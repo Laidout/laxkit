@@ -1,10 +1,10 @@
 
 THE LAXKIT
 ---------------
-Version 0.0.7.1
-Released under the LGPL
-http://github.com/tomlechner/laxkit
-http://laxkit.sourceforge.net
+Version 0.0.7.1  
+Released under the LGPL  
+http://github.com/tomlechner/laxkit  
+http://laxkit.sourceforge.net  
 
 
 WHAT IS IT
@@ -35,7 +35,7 @@ http://www.nuigroup.com for information about that sort of thing.
 
 COMPILING
 ---------
-You will need the development files for (these are the debian packages):
+You will need the development files for (these are the debian packages):  
   libcupsys2-dev
   libimlib2-dev
   libx11-dev
@@ -52,9 +52,9 @@ apt-get install g++ pkg-config libpng12-dev libx11-dev libxft-dev libcups2-dev l
 
 Simply do:
 
-./configure
-make
-make install
+`./configure
+`make
+`make install
 
 If you type ./configure --prefix=/your/own/install/path, then the laxkit will get
 installed in prefix/include, prefix/share/doc, prefix/lib, etc.
@@ -63,9 +63,8 @@ What files were installed are put into the file install.log.
 By default, 'make install' will plop down everything in /usr/local/include and 
 /usr/local/lib. The end result is three libraries:
 
-liblaxkit.a        The laxkit core      
-liblaxinterfaces.a The laxkit interfaces
-liblaxatts.a       Only the LaxFiles parts of the Laxkit (included in liblaxkit.a)
+`liblaxkit.a        The laxkit core      
+`liblaxinterfaces.a The laxkit interfaces
 
 
 COMPILING FROM GIT
@@ -73,13 +72,13 @@ COMPILING FROM GIT
 The development version of the Laxkit is currently kept on github. To access,
 you will need git installed. Then do:
 
- git clone http://github.com/tomlechner/laxkit.git laxkit-git
-
- cd laxkit-git
- ./configure
- make depends
- make
- make docs
+` git clone http://github.com/tomlechner/laxkit.git laxkit-git
+`
+` cd laxkit-git
+` ./configure
+` make depends
+` make
+` make docs
 
 By default, running the Laxkit directly from git code will pump out lots of debugging information 
 to the terminal. To prevent this, do 'make hidegarbage' before 'make'.
@@ -102,7 +101,7 @@ The Laxkit source code contains a lot of doxygen style documentation.
 'make install' will not generate or install this documentation. 
 You must do that yourself with:
 
-make docs
+`make docs
 
 This uses doxygen to generate lots of docs in the docs/html directory. This assumes you
 have the dot tool, a part of Graphviz, which generates collaboration diagrams of the classes,
