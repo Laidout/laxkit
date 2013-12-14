@@ -27,7 +27,7 @@ backend for the desktop publishing program Laidout (http://www.laidout.org).
 There is copius documentation of the source accessible through doxygen by 
 running 'make docs'.
 
-Another currently partially implemented goal of the Laxkit is to provide an interface
+Another partially implemented goal of the Laxkit is to provide an interface
 kit supporting multi-pointer, multi-keyboard, and multi-touch surfaces.
 
 
@@ -46,7 +46,7 @@ You will need the development files for (these are the debian packages):
     xutils-dev
  
 You can get them with this command (on debian systems):
-apt-get install g++ pkg-config libpng12-dev libx11-dev libxft-dev libcups2-dev libimlib2-dev libfontconfig-dev libfreetype6-dev libssl-dev xutils-dev
+    apt-get install g++ pkg-config libpng12-dev libx11-dev libxft-dev libcups2-dev libimlib2-dev libfontconfig-dev libfreetype6-dev libssl-dev xutils-dev
 
 Simply do:
 
@@ -54,11 +54,11 @@ Simply do:
     make
     make install
 
-If you type ./configure --prefix=/your/own/install/path, then the laxkit will get
+If you type `./configure --prefix=/your/own/install/path`, then the laxkit will get
 installed in prefix/include, prefix/share/doc, prefix/lib, etc.
 What files were installed are put into the file install.log.
 
-By default, 'make install' will plop down everything in /usr/local/include and 
+By default, `'make install'` will plop down everything in /usr/local/include and 
 /usr/local/lib. The end result is three libraries:
 
     liblaxkit.a        The laxkit core      
