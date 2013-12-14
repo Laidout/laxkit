@@ -45,7 +45,8 @@ You will need the development files for (these are the debian packages):
     libssl-dev
     xutils-dev
  
-You can get them with this command (on debian systems):  
+You can get them with this command (on debian systems):
+
     apt-get install g++ pkg-config libpng12-dev libx11-dev libxft-dev libcups2-dev libimlib2-dev libfontconfig-dev libfreetype6-dev libssl-dev xutils-dev
 
 Simply do:
