@@ -27,10 +27,8 @@ backend for the desktop publishing program Laidout (http://www.laidout.org).
 There is copius documentation of the source accessible through doxygen by 
 running 'make docs'.
 
-Another currently unimplemented goal of the Laxkit is to provide an interface
+Another currently partially implemented goal of the Laxkit is to provide an interface
 kit supporting multi-pointer, multi-keyboard, and multi-touch surfaces.
-See MPX: Multi-Pointer-X, an xorg associated work in progress, and also
-http://www.nuigroup.com for information about that sort of thing.
 
 
 COMPILING
@@ -52,9 +50,11 @@ apt-get install g++ pkg-config libpng12-dev libx11-dev libxft-dev libcups2-dev l
 
 Simply do:
 
-`./configure
-`make
-`make install
+`
+./configure
+make
+make install
+`
 
 If you type ./configure --prefix=/your/own/install/path, then the laxkit will get
 installed in prefix/include, prefix/share/doc, prefix/lib, etc.
@@ -72,13 +72,15 @@ COMPILING FROM GIT
 The development version of the Laxkit is currently kept on github. To access,
 you will need git installed. Then do:
 
-` git clone http://github.com/tomlechner/laxkit.git laxkit-git
 `
-` cd laxkit-git
-` ./configure
-` make depends
-` make
-` make docs
+ git clone http://github.com/tomlechner/laxkit.git laxkit-git
+
+ cd laxkit-git
+ ./configure
+ make depends
+ make
+ make docs
+`
 
 By default, running the Laxkit directly from git code will pump out lots of debugging information 
 to the terminal. To prevent this, do 'make hidegarbage' before 'make'.
