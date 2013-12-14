@@ -1,0 +1,140 @@
+/*! \page xlibforlaxkit Xlib Primer for Laxkit
+
+\todo this page needs updating!!
+
+This page discusses the various Xlib structs, typedefs, defines, and functions
+that might be useful sometimes when programming with the Laxkit. Most of the common
+windowing procedures are wrapped into Laxkit::anXApp and Laxkit::anXWindow. This 
+includes window creation, deletion, moving, resizing (manual and automatic), mouse
+and keyboard events, and focus handling. Most other more specialized events must be
+dealt with by intercepting them by redefining Laxkit::anXWindow::event().
+
+For the most typical uses, practically the only bits one really needs to understand
+from Xlib is the XClientMessageEvent structure and Xlib graphics contexts.
+
+A real treatment of these things can be found in the Xlib Programming Manual, and the 
+Inter-client Communication Conventions Manual. On debian, these manuals and more are
+provided in the xspecs pacakge. Also, you can always hunt them down at 
+<a href="http://www.x.org">x.org</a>.
+
+\section ClientMessage
+This is the XClientMessageEvent structure, which is used by many of the 
+Laxkit::anXWindow classes to send messages:
+<pre>
+struct XClientMessageEvent {
+    int type;
+    unsigned long serial;   /* # of last request processed by server */
+    Bool send_event;        /* true if this came from a SendEvent request */
+    Display *display;       /* Display the event was read from */
+    Window window;
+    Atom message_type;
+    int format;
+    union {
+        char b[20];
+        short s[10];
+        long l[5];
+    } data;
+};
+</pre>
+
+\section atoms Atoms
+
+Atoms are numbers that correspond to specific strings. The X server keeps track of these.
+
+You get such a number from some
+string by calling <tt>Atom XInternAtom(Display *dpy,char *atom_name,Bool only_if_it_already_exists)</tt>.
+That Bool can be \c True or \c False. If it is True, then the Atom is created only if it already exists.
+If it doesn't, then \c None is returned.
+
+You can get the string back by calling
+<tt>char *str=XGetAtomName(Display *dpy, Atom atom);</tt>.
+This str must be free'd by calling <tt>XFree(str)</tt>.
+
+An atom can only have characters that are part of the "Host Portable Character Encoding", 
+which the Xlib Programmer's Manual defines as:\n
+&nbsp;&nbsp;"The encoding of the X Portable Character Set on the host. The encoding itself 
+	is not defined by this standard, but the encoding must
+	be the same in all locales supported by Xlib on the host."
+
+I don't understand why more people don't program in plain Xlib. Anyway, it goes on to say
+basically that currently, the "X Portable Character Set" is essentially the 
+graphic Ascii values (0x20 - 0xFE).
+
+\section xrender XRender
+
+Some sections of the Laxkit currently use XRender related bits of X11. For instance, the XRenderColor
+structure is:
+\code
+ struct {
+   unsigned short   red;
+   unsigned short   green;
+   unsigned short   blue;
+   unsigned short   alpha;			   
+ } XRenderColor;
+\endcode
+
+In time, after color management is integrated into the Laxkit, colors will be specified with 
+more useful classes.
+
+
+\section events Events
+
+Most of these events are processed in Laxkit::anXWindow::event().
+
+***TODO!
+<pre>
+    case KeyPress : sprintf(text, "KeyPress"); break;
+    case KeyRelease : sprintf(text, "KeyRelease"); break;
+    case ButtonPress : sprintf(text, "ButtonPress"); break;
+    case ButtonRelease : sprintf(text, "ButtonRelease"); break;
+    case MotionNotify : sprintf(text, "MotionNotify"); break;
+    case EnterNotify : sprintf(text, "EnterNotify"); break;
+    case LeaveNotify : sprintf(text, "LeaveNotify"); break;
+    case FocusIn : sprintf(text, "FocusIn"); break;
+    case FocusOut : sprintf(text, "FocusOut"); break;
+    case KeymapNotify : sprintf(text, "KeymapNotify"); break;
+    case Expose : sprintf(text, "Expose"); break;
+    case GraphicsExpose : sprintf(text, "GraphicsExpose"); break;
+    case NoExpose : sprintf(text, "NoExpose"); break;
+    case VisibilityNotify : sprintf(text, "VisibilityNotify"); break;
+    case CreateNotify : sprintf(text, "CreateNotify"); break;
+    case DestroyNotify : sprintf(text, "DestroyNotify"); break;
+    case UnmapNotify : sprintf(text, "UnmapNotify"); break;
+    case MapNotify : sprintf(text, "MapNotify"); break;
+    case MapRequest : sprintf(text, "MapRequest"); break;
+    case ReparentNotify : sprintf(text, "ReparentNotify"); break;
+    case ConfigureNotify : sprintf(text, "ConfigureNotify"); break;
+    case ConfigureRequest : sprintf(text, "ConfigureRequest"); break;
+    case GravityNotify : sprintf(text, "GravityNotify"); break;
+    case ResizeRequest : sprintf(text, "ResizeRequest"); break;
+    case CirculateNotify : sprintf(text, "CirculateNotify"); break;
+    case CirculateRequest : sprintf(text, "CirculateRequest"); break;
+    case PropertyNotify : sprintf(text, "PropertyNotify"); break;
+    case SelectionClear : sprintf(text, "SelectionClear"); break;
+    case SelectionRequest : sprintf(text, "SelectionRequest"); break;
+    case SelectionNotify : sprintf(text, "SelectionNotify"); break;
+    case ColormapNotify : sprintf(text, "ColormapNotify"); break;
+    case ClientMessage : sprintf(text, "ClientMessage"); break;
+    case MappingNotify : sprintf(text, "MappingNotify"); break;
+    case LASTEvent : sprintf(text, "LASTEvent"); break;
+</pre>
+
+\section gl GL Tips
+
+TODO!!
+
+Gl programming is fairly unhindered by the Laxkit. To initialize gl, the thing you need is
+the Xlib Display structure held by Laxkit::anXApp::dpy.
+
+A simple test program using:
+<pre>
+ XVisualInfo *glvi = glXChooseVisual(dpy, DefaultScreen(dpy), attributeListDouble);
+ GLXContext     cx = glXCreateContext(dpy, glvi, 0, GL_TRUE);
+</pre>
+succeeded in initializing gl on my machine. After that, inside windows, you need to do:
+glXMakeCurrent(app->dpy, window, cx), and you can use all the normal gl functions as you wish.
+
+
+*/
+
+

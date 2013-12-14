@@ -1,0 +1,76 @@
+Laxkit Roadmap
+--------------
+
+What should be done to progress to the next version. Not final!
+
+
+VERSION 0.0.8
+-------------
+       CairoDisplayer, abstract the Displayer class to make swapping out backends easy
+       FontDialog (which means working out fonts, big task!)
+       Pop out multiple packages: liblaxkit(not yet, but I know how to now), liblaxkit-dev, liblaxkit-doc, laxinput
+
+
+VERSION 0.1
+-----------
+       As appropriate, all controls must support multicontact, multipointer, and multikeyboard interfaces
+         food for thought: touch devices with blob events: http://www.nuigroup.com
+       By hook or by crook, handle left-to-right, right-to-left, and mixed text in controls
+       Drag-n-drop more than just text, and with objects internally
+       font management should be finally decided upon (xft/fontconfig? pango/freetype/antigrain?) and implemented 
+       Clean up patch controls
+       lots of testing by other people (perhaps via laidout) 
+       add descriptive pictures of the widgets and interface objects to the documentation
+       have the integrated short-cuts/actions mechanism in place
+       some sort of basically useable color management should be in place, via lcms
+       all planned core widgets must be at least slightly usable
+          (see Lax Checklist in doxygen docs) this includes among other things:
+         ColorSelector
+         PrintDialog
+         RailSlider (like a 'valuator'), could double as a 1-d scroller
+         SliderInputPopup
+       LaxInterfaces basics, meaning anInterface, InterfaceWithDp,
+         ViewerWindow, and ViewportWindow should be more or less stable, and all 
+         (almost done) current specific interfaces should work within that system correctly
+       perhaps have the swappable graphics backend in place
+       some sort of either test bed, example, or actual classes geared for opengl
+
+
+
+---- OLD RELEASES -----
+
+VERSION 0.0.7  --  released December 3, 2011
+-------------
+(done) overhaul to support better window styling
+(done) abstract event passing
+(done) support XInput2 (mpx)
+(done) DateSelector
+(done) make some replacement for using Xlib Atoms, as currently, many silly Laxkit Atoms are left behind in X after programs cease
+
+
+VERSION 0.0.6  --  released February 27, 2010
+-------------
+(done) misc bug fixes
+
+
+VERSION 0.0.5  --  released November 6, 2007
+-------------
+(done) Use x input method for inputing text, similar to how fltk does it
+(done) Convert all text handling to utf8
+(done) libintl/gettext support
+(done) Support for freedesktop.org's ~/.recently-used.
+(done) Fix system clipboard cut/paste/copy
+
+
+VERSION 0.0.4  --  released November 8, 2006
+-------------
+(done) make it easy to make a deb package out of the source
+(done) have a very basic ./configure to do simple checks for required libs so that people might
+         have easier time figuring out what's missing
+
+
+VERSION 0.0.3
+-------------
+(done) ImagePatchInterface
+
+

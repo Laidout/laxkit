@@ -1,0 +1,28 @@
+-----Needs to be finished and/or fleshed out:------
+
+tagcloudwindow.cc
+laxwii.cc
+laximages-vector.cc
+commit.cc
+fileorstr.cc
+fileorstr.h
+att-json.cc
+cairo related backends
+
+
+interfaces/pointwarpinterface.h
+interfaces/pointwarpinterface.cc
+interfaces/measureinterface.h
+interfaces/measureinterface.cc
+interfaces/engraverfillinterface.h
+interfaces/engraverfillinterface.cc
+interfaces/captioninterface.cc
+interfaces/captioninterface.h
+
+
+
+
+-----aging interfaces that need to be modernified--------
+interfaces/bezinterface*
+interfaces/ellipseinterface*
+interfaces/linesinterface*

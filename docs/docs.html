@@ -1,0 +1,239 @@
+<html>
+<head>
+<title>
+Laxkit Documentation</title>
+<meta content="text/html; charset=ISO-8859-1" http-equiv="Content-Type" />
+<meta 
+content="Tom, Lechner, Laxkit, gui, user, interface, window, toolkit"
+name="keywords" />
+<meta 
+content="Loose Amalgamated Xkit" 
+name="description" />
+<link rel="icon" href="icon.png" type="image/png">
+<link rel="stylesheet" href="style.css" type="text/css">
+
+</head>
+
+<body aLink="red" bgColor="#cccccc" link="red" text="olive" vLink="maroon">
+
+
+<table><tr>
+<td id="bodytext" class="test" valign=top bgcolor="#aaaaaa" border=1 bordercolor="#000000">
+  <center><a href="index.html"><img src="logo-131x120.jpg" width="131" height="120" border="0" alt="The Laxkit"></a></center><br>
+  <blockqoute><b>
+  &nbsp;&nbsp;<a href="index.html">Main</a><br>
+  &nbsp;&nbsp;<a href="news.html">News</a><br>
+  &nbsp;&nbsp;<a href="faq.html">Faq</a><br>
+  &nbsp;&nbsp;<a href="docs.html">Documentation</a><br>
+  &nbsp;&nbsp;&nbsp;&nbsp;<a href="#downloading">Downloading</a><br>
+  &nbsp;&nbsp;&nbsp;&nbsp;<a href="#compiling">Compiling</a><br>
+  &nbsp;&nbsp;&nbsp;&nbsp;<a href="#laxhello">Hello World</a><br>
+  &nbsp;&nbsp;&nbsp;&nbsp;<a href="#todo">Todo</a><br>
+  &nbsp;&nbsp;&nbsp;&nbsp;<a href="#contact">Contact</a><br>
+  &nbsp;&nbsp;<a href="docs.html#downloading">Download</a><br>
+  &nbsp;&nbsp;<a href="links.html">Links</a><br>
+  &nbsp;&nbsp;<a href="#contact">Contact</a><br>
+  </b></blockqoute>
+
+</td><td>&nbsp;&nbsp;</td>
+<td id="bodytext">
+  <h1>Documentation</h1>
+
+
+<a href="html/index.html">Click here for the current Doxygen documentation</a> <br>
+<hr>
+
+<a href="roadmap.html">Here is the current rough developer's Roadmap.</a>
+<hr>
+
+<a href="http://www.sourceforge.net/projects/laxkit">Here is the Laxkit Sourceforge project page.</a>
+<hr>
+<br>
+<a name="downloading"></a>
+<div id="heading" align="center">Downloading</div>
+
+<p>You can download the current allegedly 
+<a href="http://sourceforge.net/projects/laxkit/files/laxkit/0.0.7/laxkit-0.0.7.tar.bz2/download">Stable Release (0.0.7) here</a>.
+You may browse <a href="http://sourceforge.net/projects/laxkit/files/">all the downloadable files here</a>.</p>
+
+
+<a name="source"></a><p>Otherwise, you can grab the current development version from the svn repository:<br> 
+<pre class="stuff">
+svn co https://laxkit.svn.sourceforge.net/svnroot/laxkit/laxkit/trunk laxkit
+</pre>
+Or you can browse the repository <a href="http://laxkit.svn.sourceforge.net/">here</a>.
+The Laxkit is licensed under the LGPL.<br>
+<br>
+That I know of, there are currently exactly 3 downloadable programs using the Laxkit. One is Liv,
+a rudimentary image viewer, roughly in the spirit of the Feh image viewer. This is only
+available from svn, via this command:<br />
+<pre class="stuff">
+svn co https://laxkit.svn.sourceforge.net/svnroot/laxkit/liv/trunk liv
+</pre>
+Another is Laxinput, which lets you easily set up multiple independent mice and keyboards. This
+is currently included in the main Laxkit library code, but you can also download it specifically with this:<br/>
+<pre class="stuff">
+svn co https://laxkit.svn.sourceforge.net/svnroot/laxkit/laxkit/trunk/laxinput laxinput
+</pre>
+The other is desktop publishing
+software called <a href="http://www.laidout.org">Laidout</a>, which has been the driving
+force behind my making the Laxkit.</p>
+
+<hr>
+<a name="compiling"></a>
+<div id="heading" align="center">Compiling the Library</div>
+<p>
+The Laxkit depends on:
+<blockquote>
+- <a href="http://www.libpng.org/pub/png/libpng.html">libpng</a><br>
+- <a href="http://www.x.org">X11, Xi, and Xft</a><br>
+- <a href="http://www.cups.org">cups</a><br>
+- <a href="http://www.enlightenment.org/Libraries/Imlib2/">Imlib2</a><br>
+- <a href="http://www.fontconfig.org">fontconfig</a><br>
+- <a href="http://freetype.sourceforge.net/index2.html">freetype</a><br>
+- <a href="http://www.openssl.org/">libssl</a><br>
+Soon, it will likely also depend on:<br>
+- <a href="http://www.littlecms.com">lcms</a><br>
+</blockquote>
+On a debian based system, you could type this command as root (or on ubuntu preface this with "sudo") to get them all:
+<pre class="stuff">
+apt-get install g++ libpng12-dev libx11-dev libxi-dev libcups2-dev libimlib2-dev libxft-dev libfontconfig-dev libfreetype-dev libssl-dev
+</pre>
+All of these are usually available for all major linux distributions.
+When you're sure you have those things installed, just type:<br>
+<pre class="stuff">
+./configure
+make
+make install
+</pre>
+<br>
+By default, this will cause liblaxkit.a, and liblaxinterfaces.a to be put in /usr/local/lib,
+and the header files will be put in /usr/local/include/lax-(whatever.version).
+<br><br>
+If you type <tt>./configure --prefix=/your/own/install/path</tt>, then the laxkit will get
+installed in prefix/include, prefix/share/doc, prefix/lib, etc.
+What files were installed are put into the file install.log.<br>
+<br>
+
+<li>liblaxkit is the main core of the kit, consisting of buttons, text edits, and the like.</li>
+<li>liblaxinterfaces is for lots of user interfaces to various artsy sorts of objects, like curvy
+lines and bezier color patch gradients.</li>
+
+<br>
+This library currently is being developed on a Debian &quot;unstable&quot; Linux 
+machine, but it has few dependencies at the moment, and should be relatively easy to
+get to compile on most Unix like systems. 
+It works on my machine as they say.
+I am not aware of any one else in the universe using the Laxkit, 
+so it will likely have lots of bugs that I've 
+inadvertently learned to not activate. I only have a Linux machine and very little 
+experience with other platforms, and I would very much like to hear of 
+success/failure/accusations/insults/patches from attempts to compile on other platforms.
+</p>
+
+<hr>
+<a name="laxhello"></a>
+<div id="heading" align="center">Laxkit Hello World</div>
+Here is a very simple Laxkit program.
+
+<pre class="stuff">
+#include &lt;lax/mesbar.h&gt;
+using namespace Laxkit;
+
+int main(int argc,char **argv)
+{
+   anXApp app;
+   app.init(argc,argv);
+   app.addwindow(new MessageBar(NULL,"mesbar","mesbar",MB_MOVE, 5,5,100,100,0, "Blah!"));
+   app.run();
+   return 0;
+}
+</pre>
+<br>
+You would compile it something like this:<br>
+<pre class="stuff">
+g++ laxhello.cc -I/usr/include/freetype2 \
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; -llaxkit -lX11 -lXi -lXft -lm  -lpng `imlib2-config --libs` -lcups -o laxhello
+</pre>
+
+<br>
+It produces the following window:<br>
+<img src="laxhello.png" width="102" height="131" border="0" alt="Laxhello output">
+<br/>
+<br/>
+Note that this is the simplest case! If you use everything, including images and the
+interface classes, your compile line would look more like:
+<pre class="stuff">
+g++ laxhello.cc -I/usr/include/freetype2  -llaxinterfaces -llaxkit -lX11 -lXft -lm -lpng \
+       -lcups `imlib2-config --libs` -lssl -o laxhello
+</pre>
+
+<hr>
+
+<br>
+<a name="todo"></a>
+<div id="heading" align="center">~~ TODO ~~</div>
+<p><b>Coding.</b> I've already programmed something more or less working for about 85% of my planned
+widgets and interfaces. This existing code needs lots of cleanup. 
+The most important goal is support for left-right, right-left and mixed fonts, and a good font dialog, 
+which I should have done at about the 10% mark.<br>
+<br>
+Features planned but either not started or not functional include: <br>
+<ul>
+<li>Easier dialog creation facility, with gui constructor similar to fltk's Fluid</li>
+<li>an html-ish table container</li>
+<li>a font dialog</li>
+<li>configurable shortcut integration</li>
+</ul>
+
+<br>
+The doxygen documentation has a more extensive list of coding todo.
+</p>
+
+
+<hr>
+
+<br>
+<a name="contact"></a>
+<div id="heading" align="center" >Contacting</div>
+
+<p>If you have complaints and/or contributions as to how to streamline my dilettante code, 
+please let me know. I'm sure there are a lot of little programming tricks and Xlib+window 
+manager pitfalls I haven't a clue about. "Chuck all this, and switch to Fltk or Gtkmm" is 
+probably very good advice to me, but I don't want to hear it (but try again in one more year).
+Please help develop! I'd rather be drawing <a href="http://www.tomlechner.com/cartoons/">cartoons</a>.</p>
+
+
+<p>Here is the person to complain to: 
+ <a href="mailto:tomlechner@users.sourceforge.net">Tom Lechner</a></p>
+
+
+
+
+<br></center>
+<br>
+<br>
+</td>
+</tr></table>
+
+
+
+<hr>
+<center>
+
+<table><tr>
+<td>
+
+<a href="http://sourceforge.net"><img src="http://sflogo.sourceforge.net/sflogo.php?group_id=156971&amp;type=4" width="125" height="37" border="0" alt="SourceForge.net Logo" /></a>
+<!-- donation button -->
+<a href="http://sourceforge.net/donate/index.php?group_id=156971"><img src="http://images.sourceforge.net/images/project-support.jpg" width="88" height="32" border="0" alt="Support This Project" /></a>
+
+
+&nbsp;&nbsp;&nbsp;&nbsp;
+</td>
+<td id="bodytext"><em>Last $Date: 2012-01-21 17:24:19 -0800 (Sat, 21 Jan 2012) $</em></td>
+</tr></table>
+
+</center>
+</body>
+</html>

@@ -1,0 +1,267 @@
+#lax ui
+#Notes for possible implementation of "scripted" uis
+
+
+#------- schema:
+  <name-string>   <element-type>    <documentation>
+
+  "name"      string|int|real|affine|file|color|date|boolean|hash|object or something like real[6]  #documentation
+  "name"      int:[0..inf):5  <-- type:range:default
+  "name"      real:[-1..1]
+  "someenum"  one of: left right center  #documentation <- enum
+  "someenum"  zero or more: left right center  #documentation <- flags
+  "someenum"  one or more: left right center  #documentation <- flags
+  "someenum"  zero or one of: left right center  #documentation <- enum+null
+  "one: name" ...  <-- more than one just means later on overwrites previous <--default
+  "many: name" ... <-- becomes an array of these
+  "flag: name" ...    <-- name is present or not, basically a boolean
+
+  "name" hash --> subfields are random assortment of string name and value pairs
+
+  <objecttype>  <objectsubtype>
+	<object fields>
+  many:imposition   object:subtype:one of:NetImposition Singles SignatureImposition
+    ----fields are unique to object+subtype
+  many:imposition   object:id
+    ----fields are unique to object
+
+
+
+#------------------- general windows
+
+Window type
+  win_name #should be a unique string id
+  +win_flags \
+	  grayed
+	  escapable
+	  remember
+	  dndaware
+	  bare
+	  center
+	  fullscreen
+	  out_click_destroys
+  +win_tooltip
+  +colors
+
+  wh 200 100
+  xywh  0 0 200 100 
+  wsgag   #width  shrink grow align gap
+  hsgag   #height shrink grow align gap
+    ...
+  fonts
+    ...
+  other more complex state
+  key mapping/window actions
+  event types
+    #send events on various conditions
+    #onMouseIn (device, event)
+    #onMouseMove
+    #onMouseOut
+    #onButtonDown(device,button,event)
+    #onButtonUp
+    #onMap
+    #...
+
+
+#--------------------controls
+
++MessageBar
+  +text "Stuff to show in the bar"
+  +style_flags   center, ...
+
+
++LineEdit
++LineInput
+  +win_name "input1"
+  +align #left, center, right
+  +text  "actual text"
+  +blanktext "text that blanks out upon any input"
+  password  #flag to not display actual letters when input
+  font "sans-12" #a fontconfig pattern string
+  ----lineinput only:
+  +label "The Label"
+  +labelplacement top #or bottom, left, right
+
+
++MultilineEdit #like LineEdit
+  +text
+
+
++Scroller
+  +horizontal #or vertical
+  connect otherscroller #auto establish common panner
+  panner PannerId #*** danger!! a hidden asset! hard to sync up with normal in/out
+  +curpos
+  +curposend
+  +minsize
+  +maxsize
+  +single_step #how big is one
+  +page_step #default is 90% of curposend-curpos
+
+
+
++Button
+  +text "blah"
+  +icon "file or name"
+  +momentary/toggle
+  +send "message"
+    mods shift,control
+  send when:"shift control"  "message when shift pressed"
+
+
+IconSelector
+IconSlider
+  allow_popup
+  curitem 3
+  choice "text 1"
+    icon "blah" #icon id or filename
+  choice "text 2"
+  choice "text 3"
+
+
+MenuSelector      #list of things as in a menu, OR as list of checkboxes
+  type togglelist
+  curitem 2
+
+  item "text 1"
+    icon "blah"
+  item "text 2"
+
+
+TreeSelector
+  curitem 4
+  item (collapsed) itemid
+    icon "iconname"
+	detail "blah"
+	   icon "etc"
+    subitems
+	  item ...
+	  item ...
+  item ...
+
+
++RulerWindow
+  +units inches
+  +base_unit_size 1
+  +majordivisions 2 #of a unit
+  +minordivisions 4 #per major division (si would be 5)
+  +tickalign top #or left, bottom or right
+
+
++DateSelector
+  +withtime
+  +currentdate  2012-11-15 7:01 pm PST
+
+
+NumberSlider
+  number 5
+  range real.2 [0..10) #any number starting at 0, up to but not 10, incrments of .01
+  decimalplaces * #any number of decimal places ok
+
+
+ColorSelector
+  currentcolor rgbaf(1.,1.,1.,1.)
+
+PaletteWindow
+  palette "Palette Name"
+    color color1id green
+	color color2id rgb(5,1,5)
+
+*Knob
+  absolute|pan
+  wraps
+  min 0
+  max 100
+  step 1
+  current 50
+
+*position(s)
+  color1
+  color2
+  ...colorn #if unspecified, repeat sequence so far defined
+
+*curves
+  divisions * #real numbers
+  divisions 100  #discrete map
+  minx 0
+  maxx 100
+  miny 0
+  maxy 100
+
+*ProgressBar
+
+
+#------------------ window containers
+
+RowFrame
+  item name
+    xwsgga #x width,  shrink, grow, gap, alignment
+    yhsgga #y height, shrink, grow, gap, alignment
+	window
+	  ...
+
+TabFrame
+  item name
+    icon "name"
+	window
+	  ...
+
+FunctionFrame
+  item
+    x W/2
+	y H/2
+    w W/4
+	h H/4
+	window
+	  ...
+SplitWindow
+  pane
+    xywh ...
+	window 
+	  ...
+
+StackFrame
+  windowitem
+    position 0
+	window
+	  ...
+
+#---------------------- dialogs
+
+MessageBox
+  title "Important message"
+  text "press something!"
+  button ok
+    send "ok"
+  button "No, not ok"
+    send "no"
+  button cancel
+
+
+FileDialog
+  curfile
+  curmask
+  curdir
+
+FontDialog
+  curfamily
+  curstyle
+  cursize
+  curcolor
+
+PrintDialog
+ImageInfoDialog
+
+
+
+
+--interfaces: tool + object--
+image
+gradient
+color mesh
+image mesh
+grid mesh
+paths
+label
+text boxes
+

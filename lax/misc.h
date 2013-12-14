@@ -1,0 +1,58 @@
+//
+//	
+//    The Laxkit, a windowing toolkit
+//    Please consult http://laxkit.sourceforge.net about where to send any
+//    correspondence about this software.
+//
+//    This library is free software; you can redistribute it and/or
+//    modify it under the terms of the GNU Library General Public
+//    License as published by the Free Software Foundation; either
+//    version 2 of the License, or (at your option) any later version.
+//
+//    This library is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//    Library General Public License for more details.
+//
+//    You should have received a copy of the GNU Library General Public
+//    License along with this library; if not, write to the Free Software
+//    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//
+//    Copyright (C) 2004-2010,2012-2013 by Tom Lechner
+//
+#ifndef _LAX_MISC_H
+#define _LAX_MISC_H
+
+namespace Laxkit {
+
+unsigned long getUniqueNumber();
+char *make_id(const char *base);
+
+
+//----------------------------- Simple, non color managed color conversions ----------------------------
+void simple_rgb_to_cmyk(int r,int g,int b,int *c,int *m,int *y,int *k,int max);
+void simple_rgb_to_cmyk(int *rgb, int *cmyk, int max);
+void simple_rgb_to_cmyk(double r,double g,double b,double *c,double *m,double *y,double *k);
+void simple_rgb_to_cmyk(double *rgb, double *cmyk);
+
+void simple_cmyk_to_rgb(int c,int m,int y,int k,int *r,int *g,int *b,int max);
+void simple_cmyk_to_rgb(int *cmyk, int *rgb, int max);
+void simple_cmyk_to_rgb(double c,double m,double y,double k,double *r,double *g,double *b);
+void simple_cmyk_to_rgb(double *cmyk, double *rgb);
+
+
+void simple_hsv_to_rgb(int h,int s,int v,int *r,int *g,int *b,int max);
+void simple_hsv_to_rgb(int *hsv, int *rgb, int max);
+void simple_hsv_to_rgb(double h,double s,double v,double *r,double *g,double *b);
+void simple_hsv_to_rgb(double *hsv, double *rgb);
+
+void simple_rgb_to_hsv(int r,int g,int b,int *h,int *s,int *v,int max);
+void simple_rgb_to_hsv(int *rgb, int *hsv, int max);
+void simple_rgb_to_hsv(double r,double g,double b,double *h,double *s,double *v);
+void simple_rgb_to_hsv(double *rgb, double *hsv);
+
+
+} //namespace Laxkit
+
+#endif
+

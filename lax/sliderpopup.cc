@@ -1,0 +1,434 @@
+//
+//	
+//    The Laxkit, a windowing toolkit
+//    Please consult http://laxkit.sourceforge.net about where to send any
+//    correspondence about this software.
+//
+//    This library is free software; you can redistribute it and/or
+//    modify it under the terms of the GNU Library General Public
+//    License as published by the Free Software Foundation; either
+//    version 2 of the License, or (at your option) any later version.
+//
+//    This library is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//    Library General Public License for more details.
+//
+//    You should have received a copy of the GNU Library General Public
+//    License along with this library; if not, write to the Free Software
+//    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//
+//    Copyright (C) 2004-2006,2010 by Tom Lechner
+//
+
+
+
+#include <lax/sliderpopup.h>
+#include <lax/laxutils.h>
+#include <lax/popupmenu.h>
+
+
+#include <iostream>
+using namespace std;
+#define DBG 
+
+namespace Laxkit {
+
+
+//------------------------------ SliderPopup ------------------------------
+/*! \class SliderPopup
+ * \ingroup menuthings
+ * \brief Basically an extended IconSlider to include a popup MenuSelector.
+ *
+ * \todo ******** needs work! update these docs 
+ *
+ * The user has the option of poping up the menu by clicking on the little arrow,
+ * or clicking, like any other item slider, on the left to decrease one element,
+ * or on the right to increase the element.
+ * 
+ * Uses a MenuInfo class to store the items, which may or may not be local to
+ * this window. This enables easy reuse of menu lists. Only the top level of the
+ * MenuInfo is used, not submenus.
+ *
+ * \todo Make optional tab-completing input similar to NumInputSlider, perhaps in a subclass.
+ */
+
+
+SliderPopup::SliderPopup(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
+		int xx,int yy,int ww,int hh,int brder,
+		anXWindow *prev,unsigned long nowner,const char *mes,
+		MenuInfo *nitems,int ilocal)
+	: ItemSlider(parnt,nname,ntitle,nstyle,xx,yy,ww,hh,brder,prev,nowner,mes)
+{
+	curitem=-1;
+
+	if (nitems) {
+		items=nitems;
+		itemsislocal=ilocal;
+	} else {
+		items=new MenuInfo;
+		itemsislocal=1;
+	}
+
+	pad=gap=app->defaultlaxfont->textheight()/3;
+	if (win_h==0) {
+		win_h=2*pad+app->defaultlaxfont->textheight();
+	}
+	arrowwidth=app->defaultlaxfont->textheight()*2/3;
+}
+
+//! Delete items if it is local.
+SliderPopup::~SliderPopup()
+{
+	if (itemsislocal) delete items;
+}
+
+//! Set the dimensions to the maximum bounds of the entries.
+/*! \todo *** this only works before mapping because it sets win_w,win_h
+ * directly, rather than through Resize().. should probably think if
+ * this is good or not.
+ */
+void SliderPopup::WrapToExtent()
+{
+	char *label;
+	MenuItem *item;
+	LaxImage *img;
+	
+	int w,h,maxh=0,maxw=0;
+	for (int c=0; c<items->menuitems.n; c++) {
+		if (items->menuitems.e[c]->state&LAX_SEPARATOR) continue;
+
+		label=items->menuitems.e[c]->name;
+		item=items->menuitems.e[c];
+		if (item) img=item->image; else img=NULL;
+		
+		get_placement(img,label,gap,(win_style&SLIDER_WHAT_MASK)>>21,
+					  &w,&h,NULL,NULL,NULL,NULL);
+		if (w>maxw) maxw=w;
+		if (h>maxh) maxh=h;
+	}
+	maxw+=arrowwidth+2*pad;
+	maxh+=2*pad;
+	win_w=maxw;
+	win_h=maxh;
+}
+
+//! Draw the little arrow to indicate that there's something to be popped up.
+void SliderPopup::drawarrow()
+{
+	draw_thing(this, 
+			  win_w-arrowwidth/2,win_h/2,arrowwidth/2,arrowwidth/2,
+			  THING_Triangle_Down, win_colors->fg, win_colors->color1);
+}
+
+//! Draw the item text, and the little popup arrow.
+void SliderPopup::Refresh()
+{
+	if (!win_on || !needtodraw) return;
+	background_color(win_colors->bg);
+	foreground_color(win_colors->fg);
+	clear_window(this);
+	
+	char *label=items->menuitems.e[curitem]->name;
+	MenuItem *item=items->menuitems.e[curitem];
+	LaxImage *img=NULL;
+	if (item) img=item->image;
+		
+	 // draw item
+	int tx,ty,ix,iy,w,h;
+	get_placement(img,label,gap,(win_style&SLIDER_WHAT_MASK)>>21,
+				  &w,&h,&tx,&ty,&ix,&iy);
+	if (tx!=LAX_WAY_OFF) textout(this, label,-1,(win_w-arrowwidth-w)/2+tx,(win_h-h)/2+ty,LAX_LEFT|LAX_TOP);
+	if (ix!=LAX_WAY_OFF) image_out(img,this,(win_w-arrowwidth-w)/2+ix,(win_h-h)/2+iy);
+
+	 // draw popup arrow
+	drawarrow();
+	
+	needtodraw=0;
+}
+
+//! Delete item with this id, and return the number of items left.
+int SliderPopup::DeleteItem(int id)
+{
+	if (nitems==0) return 0;
+	int c2=items->findIndex(id);
+	if (c2>=0) items->menuitems.pop(c2);
+	nitems=items->menuitems.n;
+	needtodraw=1;
+	return nitems;
+}
+
+//! Adds a bunch of text only items.
+/*! Returns number of items added.
+ */
+int SliderPopup::AddItems(const char **i,int n,int startid)
+{
+	int c=items->AddItems(i,n,startid);
+	nitems=items->menuitems.n;
+	return c;
+}
+
+//! Currently adds a grayed separator with name="", id=0, no submenu, (but it is still legal to add a submenu!!)
+/*! Returns whatever AddItem returns.
+ *
+ * These separators will not show up when just clicking through items.
+ */
+int SliderPopup::AddSep(const char *name,int where)
+{
+	return items->AddSep(name,where);
+}
+
+//! Just return AddItem(newitem,NULL,nid).
+/*! Use SLIDER_IGNORE_ON_BROWSE in extrastate as a menuitem state, to show in menu, but not prev/next.
+ */
+int SliderPopup::AddItem(const char *newitem,int nid)
+{
+	return AddItem(newitem,NULL,nid);
+}
+
+//! Return the number of items. icon's count is not incremented.
+/*! Use SLIDER_IGNORE_ON_BROWSE in extrastate as a menuitem state, to show in menu, but not prev/next.
+ */
+int SliderPopup::AddItem(const char *newitem,LaxImage *icon,int nid)
+{
+	MenuItem *item=new MenuItem(newitem, icon, nid, LAX_OFF, 0, NULL, 1);
+	items->AddItem(item,1);
+	needtodraw=1;
+	nitems=items->menuitems.n;
+	if (nitems && curitem<0) curitem=0;
+	return nitems;
+}
+
+//! Add extra state flags to an item, or most recently added if which==-1.
+/*! Return 0 for success or nonzero for error.
+ *
+ * If on==-1, then toggle. If on==0, then clear. If on==1, then set.
+ *
+ * \todo this is currently a little bit of a kludge to add SLIDER_IGNORE_ON_BROWSE.
+ *   a more clean way would be to have it in AddItem, but due to the similarity mix of two AddItem()
+ *   functions, lots of cleanup would have to happen to add an extra int for extrastate there.
+ */
+int SliderPopup::SetState(int which, int extrastate, int on)
+{
+	if (which==-1) which=items->menuitems.n-1;
+	if (which<0 || which>=items->menuitems.n) return 1;
+
+	if (on==-1) {
+		if (((int)items->menuitems.e[which]->state & extrastate)==extrastate) on=0;
+		else on=1;
+	}
+	if (on==0) items->menuitems.e[which]->state&=~extrastate;
+	else items->menuitems.e[which]->state|=extrastate;
+
+	return 0;
+}
+
+//! Return index in items of item with fromid, or -1 if not found.
+int SliderPopup::GetItemIndex(int fromid)
+{
+	for (int i=0; i<items->menuitems.n; i++)
+		if (items->menuitems.e[i]->id==fromid) return i;
+	return -1;
+}
+
+/*! Returns items->menuitems.e[which]->state&extrastate.
+ */
+int SliderPopup::GetState(int which, int extrastate)
+{
+	if (which==-1) which=items->menuitems.n-1;
+	if (which<0 || which>=items->menuitems.n) return 0;
+	return items->menuitems.e[which]->state&extrastate;
+}
+
+//! Remove all items from sliderpopup.
+/*! If completely!=0, then totally remove old items object, and establish a new one.
+ */
+int SliderPopup::Flush(int completely)
+{
+	if (completely) {
+		if (itemsislocal) delete items;
+		items=new MenuInfo;
+		itemsislocal=1;
+	} else items->Flush();
+	return 0;
+}
+
+//! Returns const pointer to the item name.
+/*! Better use it quick, before items change!
+ */
+const char *SliderPopup::GetCurrentItem()
+{
+	if (curitem>=0) return (const char *)(items->menuitems.e[curitem]->name);
+	return NULL;
+}
+
+int SliderPopup::GetCurrentItemIndex()
+{ return curitem; }
+
+//! Return the id corresponding to item with index i.
+int SliderPopup::getid(int i)
+{
+	if (i<0 || i>=items->menuitems.n) return -1;
+	return items->menuitems.e[i]->id;
+}
+
+//! Sends message to owner.
+/*! Sends a SimpleMessage with <tt>message->info1=id of curitem</tt>.
+ * Also fill in message->str with the current item's name if win_style&SLIDER_SEND_STRING).
+ */
+int SliderPopup::send()
+{
+	if (!win_owner || !win_sendthis || curitem<0) return 0;
+
+	SimpleMessage *ievent=new SimpleMessage;
+	if (win_style&SLIDER_SEND_STRING) makestr(ievent->str,items->menuitems.e[curitem]->name);
+	ievent->info1=items->menuitems.e[curitem]->id;
+	app->SendMessage(ievent,win_owner,win_sendthis,object_id);
+	needtodraw=1;
+	return 1;
+}
+
+int SliderPopup::Event(const EventData *e,const char *mes)
+{
+	if (strcmp(mes,"popupselect")) return anXWindow::Event(e,mes);
+
+	DBG cerr <<"SliderPopup message received."<<endl;
+	
+	 // So now the button was released, and we must determine the
+	 // ON elements in menuinfo
+	int ncuritem;
+	const SimpleMessage *m=dynamic_cast<const SimpleMessage*>(e);
+	
+	DBG cerr <<"----SliderPopup got popup event curitem:"<< m->info1<<endl;
+	ncuritem= m->info1; // this is the curitem just before popup destroyed itself
+	if (ncuritem>=0 && ncuritem<items->menuitems.n && !(items->menuitems.e[ncuritem]->state&(LAX_GRAY|LAX_SEPARATOR))) {
+		if (curitem>=0 && items->menuitems.e[curitem]->state&LAX_ON) {
+			items->menuitems.e[curitem]->state=
+				(items->menuitems.e[curitem]->state&~LAX_ON)|LAX_OFF;
+		}
+		if (items->menuitems.e[ncuritem]->state&LAX_OFF) {
+			items->menuitems.e[ncuritem]->state=
+				(items->menuitems.e[ncuritem]->state&~LAX_OFF)|LAX_ON;
+		}
+		curitem=ncuritem;
+		send();
+		needtodraw=1;
+	}
+
+	return 0;
+}
+
+//! Create the Popup MenuSelector. Called from LBDown().
+void SliderPopup::makePopup(int mouseid)
+{
+	PopupMenu *popup;
+	int justify=0;
+	if (win_style&SLIDER_LEFT) justify|=MENUSEL_LEFT;
+	if (win_style&SLIDER_CENTER) justify|=MENUSEL_CENTER;
+	if (win_style&SLIDER_RIGHT) justify|=MENUSEL_RIGHT;
+	popup=new PopupMenu(items->title?items->title:"Item Popup",
+						items->title?items->title:"Item Popup",
+						0,
+						0,0,0,0, 1, 
+						object_id,"popupselect", 
+						mouseid,
+						items,0,
+						NULL,
+						MENUSEL_GRAPHIC_ON_LEFT|justify);
+
+	popup->pad=pad;
+	popup->Select(curitem);
+//	popup->SetFirst(curitem,x,y); 
+	popup->WrapToMouse(mouseid);
+	app->rundialog(popup);
+	app->setfocus(popup,0,NULL);//***
+}
+
+//! Pop up a MenuSelector with the items in it via popup() when click on arrow.
+/*! \todo *** work out how transfer focus
+ */
+int SliderPopup::LBDown(int x,int y,unsigned int state,int count,const LaxMouse *d)
+{
+	if (x<win_w-arrowwidth || !items) return ItemSlider::LBDown(x,y,state,count,d);
+	
+	makePopup(d->id);
+	return 0;
+}
+
+//! copy curselection to clipboard
+int SliderPopup::RBDown(int x,int y,unsigned int state,int count,const LaxMouse *d)
+{
+	// copy current item clipboard
+	if (curitem>=0 && curitem<items->menuitems.n) 
+		app->CopytoBuffer(items->menuitems.e[curitem]->name,
+						  strlen(items->menuitems.e[curitem]->name)); 
+	DBG else cerr << "SliderPopup copy to clip: No item selected.\n";
+
+	return 1;
+}
+
+/*! Left selects previous str, right selects next.
+ * Enter pops up menu.
+ */
+int SliderPopup::CharInput(unsigned int ch,const char *buffer,int len,unsigned int state,const LaxKeyboard *d)
+{
+	switch(ch) {
+		case LAX_Tab: return anXWindow::CharInput(ch,buffer,len,state,d);
+		case LAX_Enter: {
+				makePopup(d->paired_mouse?d->paired_mouse->id:0);
+				return 0;
+			}
+		case LAX_Left: SelectPrevious(); send(); return 0; 
+		case LAX_Right: SelectNext(); send(); return 0;
+//		case LAX_Up: //*** up: bring up popup
+//		case LAX_Down: //*** down
+	}
+	return anXWindow::CharInput(ch,buffer,len,state,d);
+}
+
+//! Select the previous item.
+/*! Returns id of the new item.
+ *
+ * This skips over any separators.
+ */
+int SliderPopup::SelectPrevious()
+{ 
+	if (curitem==-1) return -1;
+	int olditem=curitem;
+	do {
+		curitem--;
+		if (curitem<0) curitem=numitems()-1;
+		if (!(items->menuitems.e[curitem]->state&(LAX_SEPARATOR|SLIDER_IGNORE_ON_BROWSE))) break;
+	} while (curitem!=olditem);
+
+	if (win_style & ITEMSLIDER_SENDALL) send();
+	DBG cerr <<" Previous Item:"<<curitem<<endl;
+	needtodraw=1;
+	return getid(curitem);
+}
+
+//! Select the next item.
+/*! Returns id of the new item.
+ *
+ * This skips over any separators.
+ */
+int SliderPopup::SelectNext()
+{
+	if (curitem==-1) return -1;
+
+	int olditem=curitem;
+	do {
+		curitem++;
+		if (curitem==numitems()) curitem=0;
+		if (!(items->menuitems.e[curitem]->state&(LAX_SEPARATOR|SLIDER_IGNORE_ON_BROWSE))) break;
+	} while (curitem!=olditem);
+
+	if (win_style & ITEMSLIDER_SENDALL) send();
+	needtodraw=1;
+	return getid(curitem);
+}
+
+
+} // namespace Laxkit
+
+

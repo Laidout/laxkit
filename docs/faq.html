@@ -1,0 +1,176 @@
+<html>
+<head>
+<title>Laxkit Faq</title>
+<meta content="text/html; charset=ISO-8859-1" http-equiv="Content-Type">
+<meta 
+content="Tom, Lechner, Laxkit, gui, user, interface, window, toolkit"
+name="keywords">
+<meta 
+content="Loose Amalgamated Xkit" 
+name="description">
+<link rel="icon" href="icon.png" type="image/png">
+<link rel="stylesheet" href="style.css" type="text/css">
+
+
+</head>
+<body aLink="red" bgColor="#cccccc" link="red" text="olive" vLink="maroon">
+
+
+<table><tr>
+<td id="bodytext" valign=top bgcolor="#aaaaaa">
+  <center><a href="index.html"><img src="logo-131x120.jpg" width="131" height="120" border="0" alt="The Laxkit"></a></center><br>
+  <blockqoute><b>
+  &nbsp;&nbsp;<a href="index.html">Main</a><br>
+  &nbsp;&nbsp;<a href="news.html">News</a><br>
+  &nbsp;&nbsp;<a href="faq.html">Faq</a><br>
+  &nbsp;&nbsp;<a href="docs.html">Documentation</a><br>
+  &nbsp;&nbsp;<a href="docs.html#downloading">Download</a><br>
+  &nbsp;&nbsp;<a href="links.html">Links</a><br>
+  &nbsp;&nbsp;<a href="#contact">Contact</a><br>
+  </b></blockqoute>
+
+</td><td>&nbsp;&nbsp;</td>
+<td id="bodytext">
+  <center><h1>The Loose Amalgamated C++ Xlib Wrapper Kit<br>
+  -- Version 0.0.7.1 --<br>
+Frequently Asked Questions</h1></center>
+
+
+<a href="#huh">What's it all about?</a><br>
+<a href="#why">Why on earth make another X toolkit?</a><br> 
+<a href="#whyohwhy">No, really, what's up with this?</a><br> 
+<a href="#next">Don't you have anything better to be doing?</a><br> 
+<a href="#contact">Who should I complain to?</a><br>
+<br>
+<hr>
+<br>
+<a name="huh"></a>
+<div id="heading" align="left">What's it all about?</div>
+
+<p>The Laxkit is a C++ Xlib wrapper. If you are looking for a
+window toolkit for X that is highly experimental and whose API is quite unstable,
+this is the toolkit for you. For code maturity, speed, portability and just general 
+availability of doo-dads and robust user community you're better off with 
+<a href="http://www.fltk.org">FLTK</a>, 
+<a href="http://www.gtk.org">Gtk</a>/<a href="http://www.gtkmm.org">Gtkmm</a>, 
+<a href="http://www.fox-toolkit.org">Fox</a>, 
+<a href="http://www.trolltech.com">Qt</a>, 
+<a href="http://www.wxwindows.org">etc</a>,
+<a href="http://www.tcl.tk">etc</a>.</p>
+
+<p>The Laxkit is currently in the "Mediocre" stage of development. Its purpose, I suppose,
+has been to provide lots of widgets useful in making arty sorts of programs to help me
+make my art, which runs from laying out cartoons into books, to polyhedral math sculptures.
+There are capable bits and pieces in various and sundry programs, but mostly they are barely documented,
+and otherwise embedded in massive code bases that I don't (yet) understand. Art program essentials 
+should be easy to get to, easy to use, and well documented. 
+</p>
+<p>
+As of 2010, there is support for multiple mice and keyboards, via Xinput2.
+ See <a href="http://en.wikipedia.org/wiki/Multi-Pointer_X/">MPX</a> for more info about that sort of thing.
+Also you might look up <a href="http://www.nuigroup.com">nuigroup.com</a> for lots of info about up strange and 
+exciting hardware interfaces such as fairly inexpensive do-it-yourself multiple contact touch surfaces.
+</p>
+
+<br>
+<a name="why"></a>
+<div id="heading" align="left">Why on earth make another X toolkit?</div>
+
+<p>I started to develop Laxkit in early 2003 partly to learn how to program under 
+Linux and X better, and partly for being picky and stubborn. As for other toolkits, 
+their standard widgets were really very unsatisfactory for the sorts of programs I 
+wanted to make. I figured it would take just as much time rolling my own as figuring 
+out Gtkmm or Qt, for instance. In retrospect, that's been totally false, and 
+I probably would have been happy with 
+Fltk or Gtkmm, not to mention that that would make me more useful on other projects, 
+but it's too late now! I suppose it has taken several years longer than I had 
+initially envisioned (so far). Please remember that while I try to be careful, I am an 
+<a href="http://www.tomlechner.com">artist</a>, and certainly not a professional programmer.
+</p>
+
+<p>I would probably have gone for Fltk, which is looking better and better. Fltk2.0 in 
+particular is set up quite nicely. It is quite streamlined, portable, well documented 
+and very easy to use. I just might port all my new widgets to fltk, and be done with 
+the Laxkit! However, Fltk is meant to be totally lean, and currently does not natively provide mixed left-to-right
+and right-to-left languages, or color management (though, right now neither does the Laxkit!!).
+The Laxkit aims to be lean, but still provide enough conveniences
+to make good art programs somewhat easily.
+</p>
+
+<p>Besides, despite what everyone always says about it being bad, wasteful, and even
+irresponsible, reinventing the wheel is fun!
+</p>
+
+<br>
+<a name="whyohwhy"></a>
+<div id="heading" align="left">No, really, what's up with this?</div>
+<p>
+Most toolkits have the basics down great, but the actual user interfaces usually
+don't do enough, and are not very configurable in a way that I find convenient. I strive for a system that allows
+somewhat easy creation of interfaces that are a cross between the <a href="http://www.gimp.org">Gimp</a> and 
+<a href="http://www.blender3d.org">Blender</a>. I use Vim, by the way.
+</p>
+
+<p>Some features that might be noteworthy in the Laxkit are copious documentation within
+the source code, widgets that utilize the mouse 
+wheel thoroughly, such as speeding up the scroll speed when shift or control is pressed while the 
+wheel is turned, an option I hardly ever see 
+(<a href="http://www-user.tu-chemnitz.de/~fri/ding/">ding</a> is a notable example that has such scrolling
+features), and text edits 
+whose internals are easy to tweak in useful ways. Another unusual standard widget is a SplitWindow, 
+which is reminiscent of how the program Blender organizes windows.
+Also included is a container widget very loosely based on a TeX sort of layout scheme, so
+you dump in a whole lot of boxes with preferred widths, allowable shrink and grow values,
+and resizing happens in a more pleasant manner than with many other toolkits.</p>
+
+
+<br>
+<a name="next"></a>
+<div id="heading" align="left">Don't you have anything better to be doing?</div>
+<p> Well, yes, but in the meantime, let me just mention that one long term 
+goal for the Laxkit is to abstract the rendering mechanisms to allow swapping out
+the backends, so you can render window widgets onto Cairo contexts, or to gl surfaces using
+the exact same code. Long way to go yet!
+</p>
+
+<br>
+<a name="contact"></a>
+<div name="test" id="heading" align="left" >Contacting</div>
+
+<p>If you have complaints and/or contributions as to how to streamline my dilettante code, 
+please let me know. I'm sure there are a lot of little programming tricks and Xlib+window 
+manager pitfalls I haven't a clue about. "Chuck all this, and switch to Fltk or Gtkmm" is 
+probably very good advice to me, but I don't want to hear it (but try again in one more year).
+Please help develop! I'd rather be drawing <a href="http://www.tomlechner.com/cartoons/">cartoons</a>.</p>
+
+
+<p>Here is the person to complain to: 
+ <a href="mailto:tomlechner@users.sourceforge.net">Tom Lechner</a></p>
+
+
+
+
+</td>
+</tr></table>
+
+
+
+<hr />
+<center>
+
+<table><tr>
+<td>
+
+<a href="http://sourceforge.net"><img src="http://sflogo.sourceforge.net/sflogo.php?group_id=156971&amp;type=4" width="125" height="37" border="0" alt="SourceForge.net Logo" /></a>
+<!-- donation button -->
+<a href="http://sourceforge.net/donate/index.php?group_id=156971"><img src="http://images.sourceforge.net/images/project-support.jpg" width="88" height="32" border="0" alt="Support This Project" /></a>
+
+&nbsp;&nbsp;&nbsp;&nbsp;
+</td>
+<td id="bodytext"><em>Last updated $Date: 2011-12-03 18:09:51 -0800 (Sat, 03 Dec 2011) $</em></td>
+</tr></table>
+
+</center>
+</body>
+</html>
+

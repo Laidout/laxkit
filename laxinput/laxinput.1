@@ -1,0 +1,36 @@
+.TH LAXINPUT 1 "$Date: 2011-10-16 07:05:57 -0700 (Sun, 16 Oct 2011) $"
+.SH NAME
+Laxinput \- Version 0.1
+.br
+.SH DESCRIPTION
+
+Laxinput allows you to configure the device tree within Xinput2, which allows
+you to use more than one mouse and keyboard independently at the same time.
+
+Simply click and drag devices to reposition them.
+Drop on the "Floating Devices" block to float.
+Drag on the "Add new..." block to create a new master device pair from that device.
+Drag a master device to another device area to merge.
+
+Doing control-s will save whatever is the current configuration.
+Also try "laxinput -h" for a list of various command line options.
+
+This software is not idiot proof, i.e. it does not prevent you from floating all your mice,
+for instance, which would prevent you from using any mice at all.
+
+Please note that this program is not even close to a complete wrapper around xinput.
+It is currently only for quickly remapping the X device hierarchy.
+
+
+Laxinput is part of the Laxkit: http://laxkit.sourceforge.net for information
+.PP
+.\" TeX users may be more comfortable with the \fB<whatever>\fP and
+.\" \fI<whatever>\fP escape sequences to invode bold face and italics, 
+.\" respectively.
+.SH COPYRIGHT
+This program is released under the GPL v3.
+.SH AUTHOR
+\fBLaxinput\fP was written with varying degrees of success by 
+\fBTom Lechner\fP <tomlechner@users.sourceforge.net>,
+who is still currently the only developer, and who would probably rather be
+drawing cartoons (http://www.tomlechner.com).

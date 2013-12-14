@@ -1,0 +1,173 @@
+window overhaul:
+----------------
+----tasks:
+work out selecting for events, especially non-X events: man select(), use file descriptors??
+  how to break out of select() from random threads?
+
+work out details for a generic event filter,
+	  which acts on events that have already been processed into EventData objects. This would
+	  allow using the same mechanism for mouse gesture recognition AND for shortcuts, allowing
+	  windows to respond only to basic events, rather that catching by redefining all
+	  the input routines
+work out rendering system independent of Xlib, see todo in laxutils.cc
+  -> :initX() would need to call function to init default graphics handling
+  -> anXApp::DefaultIcon() requires LaxImage? right now hardcoded to imlib
+iron out something workable for fontdialog and matrix textout. investigate pango
+repair now broken text editor's dealing with fonts with missing glyphs
+multiple device implementation:
+  -> focus handling should be one focus per keyboard. fix in app->destroywindow()
+       research _NET_ACTIVE_WINDOW, rather than WM_TAKE_FOCUS... how does this work for MPX??
+  -> Xim stuff per keyboard??
+  -> implement device groups per user, rather than default keyb/mouse xlib grouping. Otherwise
+       modifier determination is irrational
+  -> debug multiscreen 
+
+  -> DONE work out tooltip checking for multiple mice!!
+  -> DONE (sort of) XDefineCursor() replacement? how to define cursors for any given window,
+         potentially for each device: splitwindow, stackframe.. sort of works,but *** maybe transfer assigning
+		 of pointer shapes to anXApp so as to preserve the const LaxDevice in mouse events?
+  -> DONE pointer grabs?? such as for popups...
+  -> DONE query mouse
+  -> DONE  anXApp::setfocus(): XSetInputFocus() replacement?? do it in devicemanager?
+  -> DONE-maybe  dialog event screening by device
+
+DONE shortcuts
+DONE really do anXWindow reference counting? if so, must revamp destroyqueued, destroykids, etc
+DONE work out details of DeviceManager/LaxDevice/Xinput/Xinput2
+DONE  how best to integrate XInput2? just assume to use it if available at compile time? yes
+DONE  move key down processing from anXWindow to anXApp
+DONE  work out and connecting owners to windows -> for now using just single owner, stored as object_id
+DONE  remove dependence on non-Xft font things in LaxFont
+
+
+-------------------------------NOTES-----------------------------
+
+		DIALOGS
+-------------------------------------
+separate dialog_style from win_style in all dialogs? Sometimes too confusing otherwise!!
+
+
+			EVENTS
+-----------------------------------
+other kits can connect functions to signals, so when
+a window causes a signal to be sent, notification can be sent to 
+one or more windows, not just to owner. this can be done for any
+event.
+
+Connect(ActionFunc, arg, eventype, eventCondition);
+Connect(EventReceiver, arg, eventype, eventCondition);
+
+
+custom event loops to accommodate threaded, and offshoot windows??
+
+before mapping: _NET_WM_WINDOW_TYPE
+determine extra wm decorations: _NET_FRAME_EXTENTS
+
+
+
+
+----keyboards---
+each window needs an xim_ic. with many keyboards, how does this work??
+see anXApp::CreateXInputContext()
+
+
+
+
+		CORE WINDOW ATTRIBUTES
+---------------------------------------
+NOT_DELETEABLE
+GRAYED
+REMEMBER
+XDND_AWARE
+CLICK/HOVER FOCUS
+NO_INPUT
+BARE
+CENTER_ON_SCREEN (when initially mapped)
+ESCAPABLE
+FULLSCREEN
+
+window icon/application class?
+make sure wm-spec is satisfied
+don't ignore multi screen environments
+
+DONE (needs testing) ping protocol
+DONE event propagation? (only for mouse and key events)
+
+
+
+-----------all below DONE-------------------
+			EVENTS
+-----------------------------------
+DONE need to do experiments with XInput to figure out how to get and relay events
+DONE onButtonDown(which_button, modifiers, x, y, mouse_id)
+DONE onButtonUp  (which_button, modifiers, x, y, mouse_id)
+DONE onMouseMove (modifiers, x, y, mouse_id)
+DONE Event(EventData *data)
+DONE (in base classes anyway) combine DataEvent with ClientEvent, and abstract all events away from Xlib 
+DONE figure out a sane way to do anXWindow/EventCatcher ref counting,
+       so as to pave way for any object to receive events, such as interfaces..
+DONE  Remove Atoms from anXWindow user parts. (done except for drag-n-drop)
+DONE app->SendEvent(DataEvent*) define an internal file descriptor to select for?? otherwise background threads
+	  sending generic events will not break out of Select...
+	 -> using anXApp::bump() and multithreaded X
+
+
+		DEFAULT PROPERTIES
+-------------------------------------
+---app properties:
+1st click time to wait till repeat if holding down
+double click
+idleclick
+tooltip time
+tooltip fg color
+tooltip bg color
+
+---window properties:
+bevel width
+border width
+inset padding
+pw,s,g,align,fill,   ph,s,g,align,fill <-- these are assigned when needed by containers, they are not basic window properties
+
+class WindowMetrics <-- NO, keep SquishyBox/metrics separate from basic window stuff
+{
+ public:
+	int metrics[14]; //13 is flow penalty, 14 is line penalty for linebreaking hints, when to require rows together
+	pw(), s(), g(), ...
+};
+class anXWindow : public anObject, public RefCounted
+{
+ public:
+	WindowColors *win_colors;
+
+	(irrelevant?) WindowMetrics *win_metrics;
+	(irrelevant?) WindowFonts *normal, *text;
+};
+
+FONTS  --  unnecessary? probably
+-----
+normal font (menu, panel, etc)
+text edit font
+bold font?
+italic font?
+
+
+DONE: COLORS
+------
+inactive border color
+active   border color
+
+--foreach: panel, menu, edits, buttons
+class WindowColors
+{
+ public:
+};
+fg
+bg
+hfg
+hbg
+mouse over fg (assume highlighted irrelevant)
+mouse over bg
+grayed fg
+control pad color
+
+

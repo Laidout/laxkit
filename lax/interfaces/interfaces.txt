@@ -1,0 +1,49 @@
+//These are \link Laxkit::SomeData::dump_out <tt>dump_out(FILE *,int indent)</tt>\endlink,
+//\link Laxkit::SomeData::dump_in(FILE*,int,Attribute**)<tt>dump_in(FILE*,int,Attribute**)</tt>\endlink,
+//and \link Laxkit::SomeData::dump_in_atts(Attribute *att)<tt>dump_in_atts(Attribute *att)</tt>\endlink
+
+/*! \page Interfaces How to use the Interfaces
+
+For complete interface class listings, see <a href="group__interfaces.html">here</a>.
+
+\verbatim
+***Insert Laxkit Interfaces tutorial here!!!
+***WRITE THIS BETTER!!!!! please note that the below is quite out of date..
+\endverbatim
+
+\section data A Word About Data
+
+Each WhateverData class has three functions to provide easy reading and writing with files.
+These are:
+<pre>
+  SomeData::dump_out(FILE *,int indent)
+  SomeData::dump_in(FILE*,int,Attribute**)
+  SomeData::dump_in_atts(Attribute *att)
+</pre>
+
+They use
+the file format of LaxFiles::Attribute classes. Data elements are delineated with indentation
+in the file. If you make derived classes from an interface data class, you can use the 
+dump_in/out functions to dump in or out the base elements, then do the elements of the
+derived class. The dump_in() function by default just does a whole attribute dump in, and then calls
+dump_in_atts(), so derived classes need only redefine the dump_in_atts() function. This is
+usually fine, since the Attribute class is much easier to deal with then reading in straight
+from the file.
+
+\section refreshing Refreshing
+
+An interface can either draw its own data, or it can be passed temporary data to draw
+through DrawData(Displayer *, SomeData *, anOject *, anObject *). Each case calls the interface's 
+Refresh() function, but the DrawData should replace all relevant state with what makes the temporary
+data draw appropriately. The refresh function should not push and pop the data's transform. It
+should assume that the calling code does that. This enables easy implementation of cloning.
+
+\todo At some point it might be prudent to separate rendering from the windowing. There would then
+  be 3 components per interface: the object itself, the renderer, and the interface.
+
+
+
+
+
+*/
+

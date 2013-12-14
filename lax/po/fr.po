@@ -1,0 +1,643 @@
+# LAXKIT French translation
+# Copyright (C) 2007,2011
+# This file is distributed under the same license as Laidout.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: 0.08\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2011-12-18 18:03-0800\n"
+"PO-Revision-Date: 2007-08-25 22:11-0700\n"
+"Last-Translator: Nabyl Bennouri\n"
+"Language-Team: Laidout <tomlechner@users.sourceforge.net>\n"
+"Language: fr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../laxoptions.cc:149
+msgid "Options:"
+msgstr ""
+
+#: ../palette.cc:645
+msgid "Load Palette"
+msgstr ""
+
+#: ../simpleprint.cc:71
+#, fuzzy
+msgid "Print:"
+msgstr "Imprime"
+
+#: ../simpleprint.cc:86
+msgid "To File: "
+msgstr ""
+
+#: ../simpleprint.cc:105
+msgid "By Command: "
+msgstr ""
+
+#: ../simpleprint.cc:127
+#, fuzzy
+msgid "Print All"
+msgstr "Imprime"
+
+#: ../simpleprint.cc:135
+msgid "Print Current"
+msgstr ""
+
+#: ../simpleprint.cc:143
+#, fuzzy
+msgid "Print From:"
+msgstr "Imprime"
+
+#: ../dateutils.cc:80
+msgid "Sunday"
+msgstr ""
+
+#: ../dateutils.cc:81
+msgid "Monday"
+msgstr ""
+
+#: ../dateutils.cc:82
+msgid "Tuesday"
+msgstr ""
+
+#: ../dateutils.cc:83
+msgid "Wednesday"
+msgstr ""
+
+#: ../dateutils.cc:84
+msgid "Thursday"
+msgstr ""
+
+#: ../dateutils.cc:85
+msgid "Friday"
+msgstr ""
+
+#: ../dateutils.cc:86
+msgid "Saturday"
+msgstr ""
+
+#: ../dateutils.cc:116
+msgid "January"
+msgstr ""
+
+#: ../dateutils.cc:117
+msgid "February"
+msgstr ""
+
+#: ../dateutils.cc:118
+msgid "March"
+msgstr ""
+
+#: ../dateutils.cc:119
+msgid "April"
+msgstr ""
+
+#: ../dateutils.cc:120
+msgid "May"
+msgstr ""
+
+#: ../dateutils.cc:121
+msgid "June"
+msgstr ""
+
+#: ../dateutils.cc:122
+msgid "July"
+msgstr ""
+
+#: ../dateutils.cc:123
+msgid "August"
+msgstr ""
+
+#: ../dateutils.cc:124
+msgid "September"
+msgstr ""
+
+#: ../dateutils.cc:125
+msgid "October"
+msgstr ""
+
+#: ../dateutils.cc:126
+msgid "November"
+msgstr ""
+
+#: ../dateutils.cc:127
+msgid "December"
+msgstr ""
+
+#: ../interfaces/objectinterface.cc:79
+msgid "Object Tool"
+msgstr ""
+
+#: ../interfaces/imagepatchinterface.cc:365
+msgid "Image Patch Tool"
+msgstr ""
+
+#: ../interfaces/imagepatchinterface.cc:405
+#: ../interfaces/colorpatchinterface.cc:595
+#, c-format
+msgid "New Recurse Depth %d: "
+msgstr "Nouvelle profondeure recursive %d: "
+
+#: ../interfaces/colorpatchinterface.cc:557
+msgid "Color Patch Tool"
+msgstr ""
+
+#: ../interfaces/imageinterface.cc:450
+msgid "Image Tool"
+msgstr ""
+
+#: ../interfaces/pathinterface.cc:809
+msgid "Path Tool"
+msgstr ""
+
+#: ../interfaces/pathinterface.cc:2199
+msgid "Send color to fill"
+msgstr ""
+
+#: ../interfaces/pathinterface.cc:2199
+msgid "Send color to stroke"
+msgstr ""
+
+#: ../interfaces/patchinterface.cc:1986
+msgid "Patch Tool"
+msgstr ""
+
+#: ../interfaces/patchinterface.cc:3151
+msgid ""
+"a=select all/none, y=constrain y, x=constrain x, r/c/s=subdivide, z=reset, "
+"1,2,3,4,5,8,v,h"
+msgstr ""
+"a=selectioner tout/rien, y=contrain y, x=contrain x, r/c/s=subdivise, "
+"z=remet a zero, 1,2,3,4,5,8,v,h"
+
+#: ../interfaces/patchinterface.cc:3160 ../interfaces/patchinterface.cc:3168
+#, c-format
+msgid "Recurse for screen %d times"
+msgstr "Recurse %d fois"
+
+#: ../interfaces/patchinterface.cc:3177
+msgid "Smooth edit mode"
+msgstr "Mode d'edition fluide"
+
+#: ../interfaces/patchinterface.cc:3196
+msgid "Edit as a linear patches"
+msgstr "Editer comme des pieces lineaires"
+
+#: ../interfaces/patchinterface.cc:3197
+msgid "Edit as Coons patches"
+msgstr "Editer comme des coons lineaires"
+
+#: ../interfaces/patchinterface.cc:3198
+msgid "Edit with border controls only"
+msgstr "Editer seulement avec controls de bordure"
+
+#: ../interfaces/patchinterface.cc:3199
+msgid "Edit full cubic bezier patch"
+msgstr "Editer la piece bezier cube entiere"
+
+#: ../interfaces/patchinterface.cc:3232 ../interfaces/patchinterface.cc:3239
+#, c-format
+msgid "Divide each row into %d rows now"
+msgstr "Diviser chaque ligne en %d lignes maintenant"
+
+#: ../interfaces/patchinterface.cc:3259 ../interfaces/patchinterface.cc:3266
+#, c-format
+msgid "Divide each column into %d columns now"
+msgstr "Diviser chaque colone en %d colone maintenant"
+
+#: ../interfaces/patchinterface.cc:3304
+msgid "Patches need more than 1 column of subpatches to warp."
+msgstr "Pieces ont besoin de plus d'une colone de subpieces pour enveloper."
+
+#: ../interfaces/rectinterface.cc:229
+msgid "Affine Tool"
+msgstr ""
+
+#: ../interfaces/gradientinterface.cc:922
+msgid "Radial Gradient Tool"
+msgstr ""
+
+#: ../interfaces/gradientinterface.cc:923
+msgid "Linear Gradient Tool"
+msgstr ""
+
+#: ../interfaces/gradientinterface.cc:924
+msgid "Gradient Tool"
+msgstr ""
+
+#: ../interfaces/gradientinterface.cc:1941
+msgid "d=decorations, f=flip color order, l=linear, r=radial"
+msgstr "d=decorations, f=renverser l'ordre de couleurs, l=lineaire, r=radial"
+
+#: ../interfaces/gradientinterface.cc:1991
+msgid "Don't show object on top, no decorations"
+msgstr "Ne pas montrer l'objet au dessus et ne pas montrer les decorations"
+
+#: ../interfaces/gradientinterface.cc:1992
+msgid "Don't show object on top, but show decorations"
+msgstr "Ne pas montrer l'objet au dessus mais montrer les decorations"
+
+#: ../interfaces/gradientinterface.cc:1993
+msgid "Show object on top without decorations"
+msgstr "Montrer l'objet au dessus sans les decorations"
+
+#: ../interfaces/gradientinterface.cc:1994
+msgid "Show object on top with decorations"
+msgstr "Montrer l'objet au dessus avec les decorations"
+
+#: ../button.cc:150
+msgid "Ok"
+msgstr "Ok"
+
+#: ../button.cc:151 ../filedialog.cc:868
+msgid "Cancel"
+msgstr "Annuler"
+
+#: ../button.cc:152
+msgid "Open"
+msgstr "Ouvrir"
+
+#: ../button.cc:153
+msgid "Save"
+msgstr "Sauver"
+
+#: ../button.cc:154
+msgid "Save As"
+msgstr "Sauver sous"
+
+#: ../button.cc:155
+msgid "Save All"
+msgstr "Sauver Tout"
+
+#: ../button.cc:156
+msgid "Close"
+msgstr "Fermer"
+
+#: ../button.cc:157
+msgid "Close All"
+msgstr "Fermer Tout"
+
+#: ../button.cc:158
+msgid "Quit"
+msgstr "Quitter"
+
+#: ../button.cc:159
+msgid "Quit Anyway"
+msgstr "Quitter De toute facon"
+
+#: ../button.cc:160
+msgid "Print"
+msgstr "Imprime"
+
+#: ../button.cc:161 ../imagedialog.cc:192
+msgid "Preview"
+msgstr "Apercu"
+
+#: ../button.cc:162
+msgid "Yes"
+msgstr "Oui"
+
+#: ../button.cc:163
+msgid "No"
+msgstr "Non"
+
+#: ../button.cc:164
+msgid "Overwrite"
+msgstr "Ecraser"
+
+#: ../filedialog.cc:192
+msgid "File?"
+msgstr "Fichier?"
+
+#: ../filedialog.cc:193
+msgid "Filename to use"
+msgstr "Nom de fichier a utiliser"
+
+#: ../filedialog.cc:216
+msgid "Path:"
+msgstr "Chemin:"
+
+#: ../filedialog.cc:217
+msgid "Current Directory"
+msgstr "Repertoire courant"
+
+#: ../filedialog.cc:220
+msgid "Mask:"
+msgstr "Masque:"
+
+#: ../filedialog.cc:222
+msgid "Mask to apply to the end of path"
+msgstr "Appliquer le masque a la fin du chemin"
+
+#: ../filedialog.cc:441
+msgid "Recent"
+msgstr ""
+
+#: ../filedialog.cc:442
+msgid "Select a recently used file"
+msgstr ""
+
+#: ../filedialog.cc:462
+#, fuzzy
+msgid "Bookmarks"
+msgstr "Signet"
+
+#: ../filedialog.cc:463
+msgid "Select existing bookmark or make a new bookmark"
+msgstr ""
+
+#: ../filedialog.cc:478
+msgid ""
+"Choose from these files.\n"
+"Right-click drag scrolls"
+msgstr ""
+"Choisir de ces fichiers.\n"
+"Click-Droit traine en rouleau"
+
+#: ../filedialog.cc:492
+msgid "Bookmark"
+msgstr "Signet"
+
+#: ../filedialog.cc:493
+#, fuzzy
+msgid "Bookmark the current directory"
+msgstr "Relire le repertore courant"
+
+#: ../filedialog.cc:500
+msgid "New Dir"
+msgstr "Nouveau repertoire"
+
+#: ../filedialog.cc:501
+#, fuzzy
+msgid "Create a new directory"
+msgstr "Repertoire courant"
+
+#: ../filedialog.cc:507
+msgid "Up"
+msgstr "Haut"
+
+#: ../filedialog.cc:508
+msgid "Go up a directory"
+msgstr "Aller un repertoire vers le haut"
+
+#: ../filedialog.cc:513
+msgid "Refresh"
+msgstr "Rafraichir"
+
+#: ../filedialog.cc:514
+msgid "Re-read current directory"
+msgstr "Relire le repertore courant"
+
+#: ../filedialog.cc:519
+msgid "Details"
+msgstr "Details"
+
+#: ../filedialog.cc:521 ../filedialog.cc:528 ../filedialog.cc:535
+msgid "(Not implemented yet)"
+msgstr "(Pas encore implemente)"
+
+#: ../filedialog.cc:526
+msgid "Back"
+msgstr "Arriere"
+
+#: ../filedialog.cc:533
+msgid "Forward"
+msgstr "Devant"
+
+#: ../filedialog.cc:642 ../filedialog.cc:753
+#, fuzzy
+msgid "Add current directory"
+msgstr "Relire le repertore courant"
+
+#: ../filedialog.cc:866
+#, fuzzy
+msgid "New directory?"
+msgstr "Aller un repertoire vers le haut"
+
+#: ../filedialog.cc:867
+msgid "Create"
+msgstr ""
+
+#: ../imagedialog.cc:175 ../fontdialog.cc:171
+#, fuzzy
+msgid "File"
+msgstr "Fichier?"
+
+#: ../imagedialog.cc:185
+msgid "..."
+msgstr ""
+
+#: ../imagedialog.cc:211
+msgid "Regenerate preview:"
+msgstr ""
+
+#: ../imagedialog.cc:211
+msgid "Generate preview:"
+msgstr ""
+
+#: ../rulerwin.cc:616
+msgid "Units"
+msgstr ""
+
+#: ../units.cc:51
+msgid "in"
+msgstr ""
+
+#: ../units.cc:51
+msgid "inch"
+msgstr ""
+
+#: ../units.cc:51
+msgid "inches"
+msgstr ""
+
+#: ../units.cc:52
+#, fuzzy
+msgid "ft"
+msgstr "Gauche"
+
+#: ../units.cc:52
+msgid "foot"
+msgstr ""
+
+#: ../units.cc:52
+msgid "feet"
+msgstr ""
+
+#: ../units.cc:53
+msgid "yd"
+msgstr ""
+
+#: ../units.cc:53
+msgid "yard"
+msgstr ""
+
+#: ../units.cc:53
+msgid "yards"
+msgstr ""
+
+#: ../units.cc:54
+msgid "cm"
+msgstr ""
+
+#: ../units.cc:54
+msgid "centimeter"
+msgstr ""
+
+#: ../units.cc:54
+msgid "centimeters"
+msgstr ""
+
+#: ../units.cc:55
+msgid "mm"
+msgstr ""
+
+#: ../units.cc:55
+msgid "millimeter"
+msgstr ""
+
+#: ../units.cc:55
+msgid "millimeters"
+msgstr ""
+
+#: ../units.cc:56
+msgid "m"
+msgstr ""
+
+#: ../units.cc:56
+msgid "meter"
+msgstr ""
+
+#: ../units.cc:56
+msgid "meters"
+msgstr ""
+
+#: ../units.cc:57
+msgid "pt"
+msgstr ""
+
+#: ../units.cc:57
+msgid "point"
+msgstr ""
+
+#: ../units.cc:57
+msgid "points"
+msgstr ""
+
+#: ../units.cc:58
+msgid "px"
+msgstr ""
+
+#: ../units.cc:58
+msgid "pixel"
+msgstr ""
+
+#: ../units.cc:58
+msgid "pixels"
+msgstr ""
+
+#: ../colorbox.cc:185
+#, c-format
+msgid "Shift-"
+msgstr "Shift-"
+
+#: ../colorbox.cc:186
+#, c-format
+msgid "Control-"
+msgstr "Control-"
+
+#: ../colorbox.cc:187
+#, c-format
+msgid "Meta-"
+msgstr "Meta-"
+
+#: ../colorbox.cc:188
+#, c-format
+msgid "Alt-"
+msgstr "Alt-"
+
+#: ../colorbox.cc:189
+#, c-format
+msgid "Left"
+msgstr "Gauche"
+
+#: ../colorbox.cc:190
+#, c-format
+msgid "Middle"
+msgstr "Milieu"
+
+#: ../colorbox.cc:191
+#, c-format
+msgid "Right"
+msgstr "Droite"
+
+#: ../colorbox.cc:201
+msgid "For red, drag "
+msgstr "Pour le rouge, trainer "
+
+#: ../colorbox.cc:208
+msgid "For green, drag "
+msgstr "Pour le green, trainer "
+
+#: ../colorbox.cc:215
+msgid "For blue, drag "
+msgstr "Pour le bleu, trainer "
+
+#: ../colorbox.cc:222
+msgid "For cyan, drag "
+msgstr "Pour le cyan, trainer "
+
+#: ../colorbox.cc:229
+msgid "For magenta, drag "
+msgstr "Pour le magenta, trainer "
+
+#: ../colorbox.cc:236
+msgid "For yellow, drag "
+msgstr "Pour le yellow, trainer "
+
+#: ../colorbox.cc:243
+msgid "For black, drag "
+msgstr "Pour le black, trainer "
+
+#: ../colorbox.cc:250
+msgid "For alpha, drag "
+msgstr "Pour le alpha, trainer "
+
+#: ../overwrite.cc:62
+#, fuzzy
+msgid "Overwrite?"
+msgstr "Ecraser"
+
+#: ../fontdialog.cc:144
+msgid "Family"
+msgstr ""
+
+#: ../fontdialog.cc:145
+msgid "Family name of the font"
+msgstr ""
+
+#: ../fontdialog.cc:155
+msgid "Style"
+msgstr ""
+
+#: ../fontdialog.cc:156
+msgid "Style of the font"
+msgstr ""
+
+#: ../fontdialog.cc:163
+msgid "Size"
+msgstr ""
+
+#: ../fontdialog.cc:164
+msgid "Size of the font"
+msgstr ""
+
+#: ../fontdialog.cc:172
+msgid "File of the font"
+msgstr ""
+
+#, fuzzy
+#~ msgid "Nov"
+#~ msgstr "Non"

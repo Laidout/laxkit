@@ -1,0 +1,32 @@
+easy warp pointer to different screen
+
+when removing a slave device, should only prune the master device it came from
+
+enable/disable devices, rather than resorting to floating?
+
+Need to have a "do not float" and "do not prune" tag
+
+Load from config: remember grouping of devices, like all from a tablet go to same master device
+ for devices not currently plugged in. Then, when you do plug in devices, they are all grouped in a single
+ master of their own.
+
+need a check to ensure that you do not float ALL your mice or keyboards!!
+
+categories (loadable plugins?) for:
+  X   wii   tuio   midi   kinect   other?
+
+maps to tie wii ir input to XTEST pointers?
+
+Merge this with main laxkit library so that any Laxkit based program can use this 
+  configurator from their own application space, so as to more easily map input 
+  to something usable, without resorting to external communication
+
+
+
+-------------------------
+9-25 DONE in config be able to auto float devices (like a touch screen that insists on giving bad inputs)
+9-24 DONE drag master to same master, it removes itself!!
+9-21 DONE If devices are added or removed externally, laxinput does not remaphierarchy!! anxapp is absorbing the hierarchy changes
+9-21 DONE auto-background mode where any that get plugged get a new master, any empty masters are deleted
+6-17 DONE should really respond to device hierarchy changes!! If you create a new device, you cannot
+           actually use it without restarting laxinput!!

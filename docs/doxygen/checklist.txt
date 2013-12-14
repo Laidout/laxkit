@@ -1,0 +1,150 @@
+/*! \page laxchecklist Laxkit Checklist
+
+\section laxchecklist Laxkit Checklist
+
+<pre>
+     LAXKIT
+Light Amalgamated X Kit
+Loose Amalgamated X Kit
+Lotsa Assorted Xthings
+Lord, another Xlib-wrapper
+Lumbering Asinine Xkit
+Lame Awful Xkit
+
+-----------------------------
+-- Readymade Control Usage --
+-----------------------------
+
+
+The only dependencies currently are png, Xlib, libssl, libcups, fontconfig, and Imlib2.
+Currently, only left to right fonts supported in controls, that will change.
+Controls called something-slider or something-button have one thing selected at a time.
+Controls called something-selector can have multiple things selected at a time.
+
+
+The Laxkit provides the following ready made controls and features:
++ means implemented more or less acceptably
+~ means implemented enough to sort of work, but needs much cleanup
+. means implementation started, but still a long way to go until usable
+  means not implemented
+  
++ basic window type with tooltips and member functions LBDown/Up, CharInput/Release, and such
++ scrollers with the little arrows optionally right next to each other
++ zooming scrollers
++ 2-d pan window, with optional popup feature
++ 2-d integer tracker class, akin to Gtkmm's Adjuster class
++ message bars:    basic, multiline
++ message bars:    geared for displaying x,y coords in various formats
++ line edits
++ labled line edit
+~ multiline word wrapping edits with left/right/center justification, and l/r/c/numerical tabs
+~ simple multiline edit based on a prompt
+  number rail slider with optional label
++ number slider, with optional label
++ number slider with input
++ string slider
++ icon slider
++ rulers that track the mouse
++ color picker: simple 8 bit rgb
+~ palettes and palette window
+  color picker: up to 32 bit per channel palette-gray-rgb-cmyk-cmy with background, and with simple conversion
+  color strip: arbitrary primaries/cmyk/rgb/CIEL+a*b*/gray/yuv/palette
++ progress bar
++ text button
+~ graphic button: check box-square/circle with a label
++ icon button
++ icon selector, with icon and/or text label
++ pop up menus (multi-level, select one only,optionally sub menus persist in memory)
++ popup menu selector (one level, select many), non-popped looks kinda like strslider
+  sliderpopup/lineinput: has label, can type in option or select from list.
++ menu selector/ menu as checkboxes, checks, or highlighted
+  detail selector, like menuselector, but list details, like file details
+~ tree selector
++ icon selector (like for picking text attributes l/c/r/j)
++ function frames using RPN expressions for position, width, and height
+~ row/column packing: l->r and t->b,  LRBT RLTB RLBT LRTB LRBT RLTB RLBT
+  row/column packing with builtin capability for nested rows/cols
+  table frames
+~ tabbed window frame
+~ SplitWindow frame, like in Blender and Ion
++ StackFrame, a container for more than 1 window, and you slide bars between to resize
++ DateSelector
+  
+dialogs:
+ ~  file select
+ ~  font select
+ .  print setup
+ ~  color select?
+ +  single line input box
+ +  single line input box with buttons!!
+ +  message box, a label with buttons: "Blah Blah" [ok] [cancel]
+ +  ImageDialog, for setting a few properties and associated preview of images
+ +  Overwrite popup
+  
+an interface setup for complex manipulation of things in one window including:
+ ~  rect selecting
+ +  bezier curve construction
+ ~  ellipse construction
+ +  line construction
+    nurbs lines
+ +  bezier patches
+ ~  bezier color patch gradients
+ ~  linear and radial gradients
+ ~  object interface
+ ~  freehand (makes bezier lines)
+ ~  hetergeneous paths
+ +  images (based on Imlib2)
+    triangle color mesh gradients?
+    triangle color strip gradients (could be combined with above somehow?)?
+ .  text objects
+ .  measure tool
+ +  viewport window, holds a stack of the above interfaces
+ +  viewer window, holds a viewport, scrollers, etc.
+
+
+Shortcuts: general shortcut integration
+    dialogs for searching for blank keys or used shortcuts
+    setup to easily enable modifying existing shortcuts
+
+
+Convenience graphics functions, not anti-aliased or optimized for speed or efficiency, 
+uses plain Xlib functions, these are just cheap, quick hacks really, but they do come in handy:
+ + displayer for cheap and easy 2-d graphics with easy scaling/rotation
+   displayer3d for cheap and easy 3-d, not optimized, no opengl
+
+
+Support for various useful things:
+ +  Imlib2 initialization
+    a Displayer using cairo as backend
+    Generic image loaders based on imlib2, libmagick++, or whatever else
+    graphics tablet support, spaceball support (need to get a spaceball first!!)
+ .  opengl support
+
+
+
+FRAMES
+------
+---General Guidelines -----
+
+Typical frame usage is something like this:
+
+aDerivedFrameInstance::init() {
+    AddWin(new WindowObject, additional parameters, ...)
+    AddWin(new WindowObject2)
+    ...
+    Sync(1); <- the 1 means to call app->addwindow on all the unwindow'd AddWin'd windows
+}
+
+AddWin and Sync should not depend on an anxwindow having anXWindow::window defined already.
+The windows should have win_w/win_h,... set with a Sync(1) before (or at the same time as in usage
+example above) any call to any subwindow's anXWindow::init(), in which windows need 
+appropriate values for window, win_x, win_y, win_w, win_h, and win_border so they can
+do whatever basic initialization they need to.
+
+Any resizing of the frame calls Sync(0) which calls anXWindow::MoveResize(---)
+
+If you make any frames of your own they ought to adhere to the above guidelines.
+
+</pre>
+*/
+

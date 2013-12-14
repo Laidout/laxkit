@@ -1,0 +1,173 @@
+
+/*! \defgroup math Math Related Functions
+ *	These are functions mainly pertaining to matrix manipulation,
+ *  See also pages on 
+ *  <a href="group__transformmath.html">transform math</a> and 
+ *  <a href="group__vectors.html">vectors</a>.
+ * 
+ * Also see <a href="lotsamath.html">this page</a> for a wholesome introduction to the math for bezier curves
+ * and patches.
+ *
+ * \todo  *** must add in and make available the bez/bezpatch matrix utils
+ *  from bezinterface.cc and patchinterface.cc
+ *
+ */
+ 
+/*! \page lotsamath Math Primer
+
+\todo ***todo: a page for affine/rotate/shear/3x3 persp transforms
+
+\section laxmathprimerLax Math Primer
+
+\section rollcurve Rolling With Bezier Lines
+
+Say you want a cubic curve defined by two vertex points (p0 and p3) and
+two control points (p1 and p2). The tangent at a vertex will be
+proportional to the vector from the vertex point to the control point.
+Define the curve so that it is a function of t going from 0 to 1. Then:
+\f[
+\begin{array}{c}
+p=at^3 + bt^2 + ct + d \\
+p' (0)=g (p_1-p_0) \\
+p' (1)=g (p_3-p_2)
+\end{array}
+\f]
+
+If we take g=3, then we have the most common type of this sort of cubic curve.
+So from the above we find:
+\f[
+p=(-p_0+3p_1-3p_2+p_3)t^3 + (3p_0-6p_1+3p_2)t^2 + (-3p_0+3p_1)t + p_0
+\f]
+
+or
+\f[
+\begin{array}{c}
+\left[\begin{array}{c} p_x \\ p_y \end{array}\right] =
+
+\left[\begin{array}{cccc}
+      p_{0x}  &   p_{1x}  &  p_{2x}  & p_{3x} \\
+      p_{0y}  &   p_{1y}  &  p_{2y}  & p_{3y} 
+\end{array}\right] \:
+
+\left[\begin{array}{cccc}
+	 -1  &   3  &  -3  &  1 \\
+	  3  &  -6  &   3  &  0 \\
+	 -3  &   3  &   0  &  0 \\
+      1  &   0  &   0  &  0 
+\end{array}\right] \: 
+
+\left[\begin{array}{c} t^3 \\ t^2 \\ t \\ 1 \end{array}\right] \\
+\\
+P=G\; B\; T
+
+\end{array}
+\f]
+Note that \f$B=B^T\f$ and that \f$B^{-1}=(B^{-1})^T\f$.
+
+This curve has the convenient subdividable property that with points p0 to p3, we can
+subdivide this so that we have 2 new segments whose points are 
+[p0&nbsp;q1&nbsp;q2&nbsp;q6] and
+[q6&nbsp;q4&nbsp;q5&nbsp;p3]. Note also that a bezier segment will always be contained
+within the bouning box of the vertex and control points. More specifically, the curve will
+always be contained within the convex hull of those points.<br>
+\image html bezcurve.png
+
+
+\section bezfun Fun With Bezier Lines
+
+Say you want to  approximate a circular arc with a cubic bezier line.
+For approximation purposes, the t=.5 point of the bezier curve must pass
+through the middle of the arc. Then for a circle of radius r and arc 
+angle \f$\theta\f$, it follows that the length of the vector 
+connecting a vertex point and its control point is v:
+
+\f[
+  v=\frac{4\:r}{3}\:\frac{2\;sin(\theta/2)-sin(\theta)}{1-cos(\theta)}
+\f]
+ 
+
+
+
+
+
+\section grokpatch Groking Bezier Patches
+
+\image html bezpatch.png
+
+
+\f[
+	P\:=\:S^T\:B\:G^T\:\:B\:T
+\f]
+\f[
+S=\left[\begin{array}{c} s^3 \\ s^2 \\ s \\ 1 \end{array}\right],\:
+G= \left[\begin{array}{cccc}
+	 p_{00}  &  p_{01}  &  p_{02}  &  p_{03} \\
+	 p_{10}  &  p_{11}  &  p_{12}  &  p_{13} \\
+	 p_{20}  &  p_{21}  &  p_{22}  &  p_{23} \\
+	 p_{30}  &  p_{31}  &  p_{32}  &  p_{33} \end{array}\right],\:
+T=\left[\begin{array}{c} t^3 \\ t^2 \\ t \\ 1 \end{array}\right]
+\f]
+where p are either the x or y coordinates of the points, depending on whether you
+want the x or y coordinate of P.
+
+\todo *** explain where the hell that patch equation came from)
+
+
+\section subdiv How To Subdivide a Cubic Bezier Patch
+
+Have the patch be defined as a funtion of \f$s\f$ and \f$t\f$ that each run from 
+0 to 1. You want a section of the patch as a function of \f$u\f$ and \f$v\f$
+which also run from 0 to 1. 
+
+For \f$s,\: t,\: u,\f$ and \f$v\f$, make corresponding matrices:
+\f[
+S=\left[\begin{array}{c} s^3 \\ s^2 \\ s \\ 1 \end{array}\right],\:
+T=\left[\begin{array}{c} t^3 \\ t^2 \\ t \\ 1 \end{array}\right],\:
+U=\left[\begin{array}{c} u^3 \\ u^2 \\ u \\ 1 \end{array}\right],\:
+V=\left[\begin{array}{c} v^3 \\ v^2 \\ v \\ 1 \end{array}\right]
+\f]
+
+These will be linearly related to \f$s\f$ and \f$t\f$ like this:
+
+\f[
+v=n (t-t_0),\;t=v/n + t_0, \:\:\:\:\:\:
+u=m (s-s_0),\;s=u/m + s_0 
+\f]
+
+So \f$S=M\:U\f$, and \f$T=N\:V\f$ where:
+
+
+
+\f[
+M=
+\left[\begin{array}{cccc}
+	 1/m^3 & 3 s_0/m^2 & 3 s_0^2/m & s_0^3 \\
+	 0     &    1/m^2 & 2 s_0/m   & s_0^2 \\
+	 0     &      0   &  1/m     &  s_0 \\
+     0     &      0   &   0      &  1 \end{array}\right], \:\:
+N=
+\left[\begin{array}{cccc}
+	 1/n^3 & 3 t_0/n^2 & 3 t_0^2/n & t_0^3 \\
+	 0     &    1/n^2 & 2 t_0/n   & t_0^2 \\
+	 0     &      0   &  1/n     &  t_0 \\
+     0     &      0   &   0      &  1 \end{array}\right]
+\f]
+
+Use those plus the above equation for a patch and get points Q:
+\f[
+	Q\:=\:U^T\:B^T\:(((B^{-1})^T\:M^T\:B)\:G^T\:(B\:N\:B^{-1}))\:B\:V
+\f]
+\f[
+	Q\:=\:U^T\:B\:G_q^T\:\:B\:V
+\f]
+\f[
+	G_q^T\:=(((B^{-1})^T\:M^T\:B)\:G^T\:(B\:N\:B^{-1}))
+\f]
+where \f$ B \f$ is the plain bezier curve matrix, \f$ G \f$ is
+the coordinate matrix of the original patch as above, and \f$ G_q \f$ magically contains
+the coordinate matrix of the new patch for u and v.
+
+
+
+
+*/

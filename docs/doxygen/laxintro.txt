@@ -1,0 +1,317 @@
+/*! \mainpage
+
+\section  LAXKIT Laxkit: The Nitty Gritty
+Loose Amalgamated C++ Xlib Wrapper Kit
+
+\section framework What's it all about?
+
+
+The Laxkit is a c++ gui toolkit. It currently only works with X.
+If you are looking for a window toolkit for X that is highly experimental and whose
+API is quite unstable, this is the toolkit for you. For code maturity, speed, portability and just general
+availability of doo-dads and robust user community you're better off with 
+<a href="http://www.fltk.org">FLTK</a>, 
+<a href="http://www.gtk.org">Gtk</a>/<a href="http://www.gtkmm.org">Gtkmm</a>, 
+<a href="http://www.fox-toolkit.org">Fox</a>, 
+<a href="http://www.trolltech.com">Qt</a>, 
+<a href="http://www.wxwindows.org">etc</a>,
+<a href="http://www.tcl.tk">etc</a>.<br>
+<br>
+The Laxkit is currently in the &quot;Mediocre&quot; stage of development, as
+is this documentation, which needs a bit of clean up.
+
+
+<a href="#downloading">Downloading</a><br>
+<a href="#compiling">Compiling Laxkit</a><br>
+<a href="LaxkitAPI.html">Laxkit API</a><br>
+&nbsp;&nbsp;&nbsp;<a href="namespaceLaxkit.html">Laxkit Classes</a><br>
+&nbsp;&nbsp;&nbsp;<a href="group__Strman.html">Assorted character string functions</a><br>
+&nbsp;&nbsp;&nbsp;<a href="LaxkitAPI.html#compileprograms">Compiling Programs</a><br>
+&nbsp;&nbsp;&nbsp;<a href="xlibforlaxkit.html">Xlib Primer for Laxkit</a><br>
+<a href="codinghowto.html">Coding How To</a><br>
+<a href="todo.html">Coding To Do</a><br>
+<a href="legal.html">License</a><br>
+
+
+\section downloading Downloading
+
+The Laxkit is currently hosted at: http://laxkit.sourceforge.net
+
+\section compiling Compiling
+
+The Laxkit depends on:
+- <a href="http://www.libpng.org/pub/png/libpng.html">libpng</a><br>
+- <a href="http://www.x.org">X11</a><br>
+- <a href="http://www.cups.org">cups</a><br>
+- <a href="http://freetype.sourceforge.net/index2.html">freetype</a><br>
+- <a href="http://www.enlightenment.org/Libraries/Imlib2/">Imlib2</a><br>
+
+Soon, it will likely also depend on:<br>
+- <a href="http://www.cairographics.com">cairo</a><br>
+- <a href="http://www.littlecms.com">lcms</a><br>
+- <a href="http://www.fontconfig.org">fontconfig</a><br>
+- pango<br>
+
+All of these are pretty standard for all major linux distributions.
+When you're sure you have those things installed, just type:
+
+\code
+./configure
+make
+make install
+\endcode
+
+This will cause liblaxkit.a and liblaxinterfaces.a to be put in /usr/local/lib by default.
+You can change where the Laxkit is installed by typing './configure --prefix=/your/new/path',
+rather than just the plain './configure'.
+What files were installed is put into the file install.log.
+
+liblaxkit is the main core of the kit, consisting of buttons, text edits, and the like.
+liblaxinterfaces is for lots of user interfaces to various artsy sorts of objects, like curvy
+lines and bezier color patch gradients.<br>
+
+This library currently is being developed on a Debian &quot;unstable&quot; Linux machine. 
+It works on my machine, as they say. I only have a Linux machine and very little 
+experience with other platforms, and I would very much like to hear of 
+success/failure/accusations/insults/patches from attempts to compile on other platforms.
+
+
+*/
+
+/*! \page todo To Do */
+
+
+namespace Laxkit {
+
+/*! \page LaxkitAPI The Laxkit API
+
+\section themeat ---Unacceptably Rough Description of the API----
+
+&nbsp;&nbsp;&nbsp;<a href="namespaceLaxkit.html">Laxkit Classes</a><br>
+&nbsp;&nbsp;&nbsp;<a href="group__Strman.html">Assorted character string functions</a><br>
+&nbsp;&nbsp;&nbsp;<a href="LaxkitAPI.html#compileprograms">Compiling Programs</a><br>
+&nbsp;&nbsp;&nbsp;<a href="xlibforlaxkit.html">Xlib Primer for Laxkit</a><br>
+&nbsp;&nbsp;&nbsp;<a href="laxrc.html">The laxrc file</a><br>
+
+\section compileprograms Compiling Programs
+
+You will most likely need to use something like the following line to compile programs:\n
+<tt>g++ laxhello.cc -L/usr/X11R6/lib -lX11 -lXft -lm -lpng -lcups `imlib2-config --libs` -llaxkit -o laxhello</tt><br>
+
+\section creating Creating Your Own Windows
+
+There are currently three namespaces in the Laxkit. Namespace Laxkit holds all the basic window building blocks.
+LaxInterfaces holds many tools for manipulating various graphical objects.
+LaxFiles holds the Attribute classes, and various file utilities.
+
+When creating custom windows, you will be subclassing Laxkit::anXWindow.
+The constructor of that class sets up win_xatts and win_xattsmask to
+the minimum that it needs for the basics of windowing. If you need access to exotic events like CirculateNotify
+or VisibilityNotify, you must intercept them in anXWindow::event(), and also select for those events by
+or'ing them to anXWindow::win_xatts.event_mask.
+
+anXWindow will deal with the basics, like clicking the window manager's delete button decoration, and
+delivering input events to functions like anXWindow::CharInput() and anXWindow::LBDown().
+
+Tip: it is not a good idea to have a window's constructor depend on x,y,w,h, as those might change, 
+for instance by the frame windows. Any size dependent initialization can be done in preinit() which 
+is called before the window is XCreateWindow'd, or init(), which is called after it 
+is XCreated but before it is mapped. Note that if you try to resize a window after it
+is XCreated but before it is mapped, the resize is ignored. This is due to mysterious goings on in Xlib.
+
+Windows typically add any initial children in window->init(), ie after app gives window a real Xlib Window.
+Dialogs will typically create and add buttons and edit boxes it init(), and call anXWin::addwindow() to get
+them going.
+
+If you want to have windows that really stick around (that is to say, not get deleted),
+for instance a file dialog that you want to have the same
+settings for each time it is used, then you can define a reference to it, rather than pointertoit=new WhateverWindow(...).
+Then,  you call app->addwindow(&referencetowindow,0). That final 0 tells anXApp/anXWindow that it should not try to call \a delete
+on that pointer.
+
+
+\section destroying Destroying Windows
+
+\todo this may change. The anXWindow class may be reference counted at some point.
+
+app does not destroy windows that say they are owned elsewhere (islocal==0)
+if window is not local, all its subwindows should also be not local. and vice versa. Otherwise 
+	there could be crashes with a parent being destroyed before its children, while expecting
+	app to have destroyed its children already, depending on where kids were defined (??)
+
+Something will call app->destroywindow(win) to tag win for deletion. app will immediately
+XDestroyWindow(win->window), and also its subwindows. The anXWindow structures are
+not deleted until after event queue is depleted, and it is called direct from app to prevent deletion of
+a window while control is in the window. Actual deletion is done by app->deletequeued(), where
+app will delete whatever window is in the stack app->todelete, by calling 
+windowparent->deletekid(theKidToBeDeleted). The window's kid stack is
+flushed when win's destructor is called. If islocal==0 for any window in app's stack or
+in a window's kid stack, that window is not deleted. In that case, it is assumed that the
+programmer has set up some alternate system to control window deletion.
+
+
+
+
+\section tooltips Tooltips
+
+All anXWindows have a char *thetooltip, which defaults to NULL. Just make thetooltip point to some
+text, and set app->tooltips equal to the number of milliseconds to wait before popping up the tip.
+If app->tooltips==0, then there are no tooltips. The app actually gets the pointer to the
+tooltip text by calling
+thewindow->tooltip(), so you can have dynamically created tooltips if you wish.
+
+
+
+
+\section initializing Initializing anXApp
+
+&nbsp;&nbsp;&nbsp;<b>Quick Usage Summary</b>
+
+<pre>
+anXApp app;
+app->init(argc,argv);
+app->addwindow(new SomeWindow(...), mapit=1, islocal=1):
+	in here, some window properties are set up,
+	somewindow->preinit() is called
+	somewindow->window gets a value from XCreateWindow()
+	somewindow->init() is called.
+	the window gets mapped now, if mapit==1
+
+app->run();
+	app event loop:
+		deal with all pending messages
+		draw all needtodraw
+		deal all idles
+		destroy windows in todelete stack
+
+app->close();
+	this destroys any left over windows
+</pre>
+
+
+\section derived Derived Classes, Special Precautions
+
+The anXWindow base class reserves style bits [0..15]. Any derived classes must not use those.
+
+It is worth remembering that there are no copy constructors or equal operators
+defined for any of the Laxkit classes, except NumStack, LineStyle and FillStyle.
+
+
+
+*/
+
+
+ 
+ 
+/*! \page codinghowto Coding How To
+
+To see the things that need to be done, first consult the 
+<a href="todo.html">Coding To Do</a> page. 
+
+Sections of code that require urgent attention have a *** next to them so as to be able to search for them easily.
+If it is urgent enough to require that it be fixed before running, do not put it in a comment so it
+will screw up the compilation, and make you deal with it (hopefully not by just commenting it out).
+
+
+\section conventions Loose Coding Conventions
+
+Fashions change, but for the time being, this is the preferred coding style. Of course, consult
+the actual source code for real examples.
+
+Each source file should have the GNU LGPL indicator, as well as having the svn id tag
+at the top.  This helps considerably to not get confused 
+when one has a whole lot of files open at the same time.
+
+
+Comments are Doxygen style with //! for brief comments and for other comment blocks use:
+\verbatim
+/*! Blah blah 
+ */
+\endverbatim
+
+These comments are all in the source files, not the header files. Any comments in the headers
+are intended to stay in the headers upon distribution, and generally should be // comments, not /* ... * /.
+The // style I find much easier to spot and see what's what.
+
+ 
+Global functions and variables are all lower case.
+Global functions are encouraged to have underscores just to have something to make them stand out 
+	(like matrix m_times_m(double *m1,double *m2,double *ans) rather than somethingLikeThis.
+
+Publically accessible member functions have word starts capitalized (ThisIsAnExample).
+Protected/private member functions generally lowercase, optionally with rest capitalized (thisIsAnExample).
+Member functions shouldn't have underscores, unless it is a function common to many classes, 
+like dump_in_atts(), which is found in all the interface data classes.
+
+Defines are all caps and underscores.
+
+Enums have an inital capital sequence, then lower cases, such as BLAH_Blah_blah.
+
+Usually have tabwidth=4 spaces.
+
+Any printf, cout/cerr or other purely debugging related code should be on lines like
+'[whitespace]DBG the code'. Toward the beginning of the file, define DBG to be nothing.
+Each DBG line can be commented out and uncommented with the \a hidegarbage utility in the
+lax directory. This is to make it easy to remove all the cerr garbage for a release.
+If someone knows how to achieve the same thing with pure defines, let me know.
+
+Example:
+\verbatim
+ --- the gnu lgpl snippet goes here ---
+/********* blah.cc *********/
+
+#define DBG
+
+enum Something {
+	SOME_Thing,
+	SOME_Thing_Else
+};
+
+//! Doxygen brief comment
+/*! Doxygen long comment
+ * comment block cont.
+ */
+ // Persistent comments 
+ // go here with one space before the //.
+ // /**/ blocks are usually avoided.
+void Blah(blah *blah,blah blah)
+{
+    for (c=0; c<blah; c++) {
+        blah();
+    } 
+    if (1) {
+        blah();
+    } else {
+    }
+}
+
+//------------------------------- Blah -----------------------
+
+void Blah::Blah()
+{
+	blah=BLAH_BLAH;
+}
+\endverbatim
+
+blah.h:
+\verbatim
+ --- the gnu lgpl snippet goes here ---
+#ifndef BLAH_H
+#define BLAH_H
+
+//------------------------------- Blah -----------------------
+ // Blahb alablbal abalhb al
+class Blah
+{
+    int blah; // blah blah
+	Blah();
+};
+
+#endif
+
+\endverbatim
+
+
+*/
+
+} //namespace Laxkit

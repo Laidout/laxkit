@@ -1,0 +1,63 @@
+/*** Laxkit Style Sheet **/
+
+
+A:link { color: #cc0000 }
+A:visited { color: #aa0000 }
+A:hover { color: #220066 }
+A:active { color: #ff0000 }
+
+BODY { 
+	color: #000000;
+	background: #cccccc;
+	font-family: "Bookman,serif";
+/**	font-size: 12pt;**/
+}
+
+TD.side {
+	border-width: 1;
+	border-color: black;
+	background: #aaaaaa;
+}
+
+PRE.stuff {
+	font-size: 90%;
+	background-color: #dddddd;
+	padding: 5px;
+}
+
+div.code {
+	background-color: #dddddd;
+	padding: 5px;
+}
+
+P.body {
+	font-family: Bookman-Demi, Bookman, Palatino, Georgia, Times, serif;
+/*	font-size: 12pt;*/
+}
+
+#footertext {
+	font-size: 11pt;
+}
+
+#bodytext {
+/*	font-size: 12pt;*/
+	font-family: Bookman-Demi, Bookman, Palatino, Georgia, Times, serif;
+}
+
+#sidemenu {
+/*	font-size: 12pt;*/
+	font-family: Palatino, Bookman, Times New Roman, Times, serif;
+}
+
+#heading {
+	font-family:"Courier", sans-serif;
+	font-style: normal;
+	font-weight: 700;
+	font-size: 19pt;
+}
+
+#headslant {
+	font-style: italic;
+	font-size: 17pt;
+	font-weight: 700;
+}

@@ -1,0 +1,178 @@
+<HTML><HEAD><TITLE>Laxkit News</TITLE>
+<META content="text/html; charset=ISO-8859-1" http-equiv=Content-Type>
+<META 
+content="Tom, Lechner, Laxkit, gui, user, interface, window, toolkit"
+name=keywords>
+<META 
+content="Loose Amalgamated Xkit" 
+name=description>
+<link rel="icon" href="icon.png" type="image/png">
+<link rel="stylesheet" href="style.css" type="text/css">
+
+
+</head>
+<body aLink="red" bgColor="#cccccc" link="red" text="olive" vLink="maroon">
+
+
+<table><tr>
+<td id="bodytext" valign=top bgcolor="#aaaaaa">
+  <center><a href="index.html"><img src="logo-131x120.jpg" width="131" height="120" border="0" alt="The Laxkit"></a></center><br>
+  <blockqoute><b>
+  &nbsp;&nbsp;<a href="index.html">Main</a><br>
+  &nbsp;&nbsp;<a href="news.html">News</a><br>
+  &nbsp;&nbsp;<a href="faq.html">Faq</a><br>
+  &nbsp;&nbsp;<a href="docs.html">Documentation</a><br>
+  &nbsp;&nbsp;<a href="docs.html#downloading">Download</a><br>
+  &nbsp;&nbsp;<a href="links.html">Links</a><br>
+  &nbsp;&nbsp;<a href="docs.html#contact">Contact</a><br>
+  </b></blockqoute>
+
+</td><td>&nbsp;&nbsp;</td>
+<td id="bodytext">
+  <h1>News</h1>
+
+
+
+<font size="-1"><em>25 September 2011</em></font><br>
+<strong>Laxinput</strong><br/>
+<table cellpadding="5">
+<tr>
+<td>
+<a href="images/laxinput-screenshot.jpg"><img border="1" src="images/laxinput-screenshot-s.jpg" width="170" height="190"></a>
+</td>
+<td>
+Laxinput lets you simply set up the use of more than one mouse at the same time, which is needed to play with the newest
+faux multi-touch capabilities of the <a href="http://laxkit.sourceforge.net/">Laxkit</a>. Being able to have different independent mice and keyboards is a feature of Xinput2,
+part of recent X based systems. There has not emerged an easy configuration tool, other than xinput which only operates from the 
+command line. Laxinput attempts to fill this void, and lets you create and move around devices just by dragging their names around. 
+<br /><br />
+Laxinput is currently a part of the Laxkit source code. Grab the <a href="docs.html#source">Laxkit svn</a>, and go to the laxinput directory, compile, and viola! 
+Laxinput currently implements only device hierarchy changes, so for more complicated input mapping, you will still probably need
+xinput, and perhaps xrandr. Planned are features to help map strange input devices like IR spots from wiimotes, or tuio input to
+something usable for applications! 
+</td>
+</tr>
+</table>
+<br />
+<hr/>
+
+
+
+<font size="-1"><em>24 September 2010</em></font><br>
+Laxkit Overhaul Merged<br/>
+<br />
+The overhaul branch since 0.0.6 is now merged into mainline Laxkit. It's approximately as workable as
+the previous mainline Laxkit, but still a long way to go to really be great!
+<br />
+
+<br />
+<hr/>
+<font size="-1"><em>20 June 2010</em></font><br>
+Laxkit Overhaul<br/>
+<br />
+Just in case anyone's trying to investigate bleeding edge Laxkit, work is progressing on a thorough reworking
+of the Laxkit to be adaptible to Xinput2 devices. This also involved a complete reworking of event passing, and
+will soon introduce an optional <a href="http://cairographics.org/">cairo</a> based renderer. Hopefully soon this overhaul
+will be more or less stable, and merged with the mainline Laxkit. You can grab the branch here:
+<br />
+<pre class="stuff">
+svn co https://laxkit.svn.sourceforge.net/svnroot/laxkit/laxkit/branches/0.0.6.1-overhaul
+</pre> 
+
+<br />
+<hr/>
+<font size="-1"><em>27 February 2010</em></font><br>
+The sixth release, so to speak! <br>
+<br>
+It's been over 2 years since the last release, and all I have to show for it are mostly cosmetic changes and bug fixes.
+I thought I might as well have a so-called release before embarking on an overhaul of Laxkit to abstract it more, making it
+easier to port, and also making it easier for laxkit elements to communicate with each other. <br>
+<br>
+<li>Window icon support</li>
+<li>Recently used support, based on <a href="http://www.freedesktop.org/wiki/Specifications/recent-file-spec">freedesktop's Recently File spec</a>.</li>
+<li>A little support for quickly finding <a href="http://jens.triq.net/thumbnail-spec/index.html">freedesktop thumbnail</a> files,
+but work still needs to be done to implement the required insertion of metadata when creating thumbnails.</li>
+<li>SomeData now has a preview field, to cache what the data actually looks like for complicated data. Speeds up
+screen rendering slightly.</li>
+<br/>
+<hr/>
+
+
+
+<font size="-1"><em>6 November 2007</em></font><br>
+The fifth release, such as it is! <br>
+<br>
+It's been over a year since the last release, and all I have to show for it is as follows.<br>
+<br>
+<li>All text handling for all the widgets are now Utf8 based with Xft. Unfortunately, Xft, and thus the Laxkit also,
+ is limited to left-to-right languages. </li>
+<li>Also included now is gettext based internationalization support. The Laxkit currently contains about 100 user messages, which have currently been
+translated to English, Spanish, and French (the Spanish translation was done by myself, and is probably very badly translated).</li>
+<li>
+Also there is input using X input methods and dead keys, which allows non-english keyboards to actually work as intended (hopefully!).</li>
+<li> There have also been rather a lot of bug fixes and enhancements, particularly with the interface classes. The GradientInterface 
+controls in particular have been greatly improved.</li>
+<br>
+<hr/>
+<font size="-1"><em>6 November 2006</em></font><br>
+The fourth release, if you can believe it! This release occurs just after the fifth release of 
+<a href="http://www.laidout.org">Laidout</a>, which is built on top of the Laxkit.<br>
+<br>
+New this time around are smoother integration of images, with the capability to work with preview 
+images rather than the actual image. Also, there is a large amount of general code cleanup.
+<br>
+<hr>
+
+<font size="-1"><em>13 May 2006</em></font><br>
+The third release, if I may be so bold! This release coincides with the third release of 
+<a href="http://www.laidout.org">Laidout</a>, which is built on top of the Laxkit.<br>
+<br>
+The major feature of this release, besides general code shape up, is the introduction of ImagePatchData
+and ImagePatchInterface classes which provide a data class and user interface to stretch images
+using cubic bezier patches as a control mesh. These are like the ColorPatch*, but uses an
+image for the color source rather than a gradient.<br>
+<br>
+See <a href="html/lotsamath.html">here</a> for what a &quot;cubic bezier patch&quot; is.
+
+
+<br><br>
+<hr>
+
+<font size="-1"><em>8 April 2006</em></font><br>
+The second release, if that's the right phrase! This release coincides with the second release of 
+<a href="http://www.laidout.org">Laidout</a>,
+which is built on top of the Laxkit.
+<br><br>
+<hr>
+
+<font size="-1"><em>12 March 2006</em></font><br>
+The first release, such as it is! This release coincides with the first release of 
+<a href="http://www.laidout.org">Laidout</a>,
+which is built on top of the Laxkit.
+
+
+<br></center>
+<br>
+<br>
+</td>
+</tr></table>
+
+
+
+<hr>
+<center>
+<table><tr>
+<td>
+
+<a href="http://sourceforge.net"><img src="http://sflogo.sourceforge.net/sflogo.php?group_id=156971&amp;type=4" width="125" height="37" border="0" alt="SourceForge.net Logo" /></a>
+<!-- donation button -->
+<a href="http://sourceforge.net/donate/index.php?group_id=156971"><img src="http://images.sourceforge.net/images/project-support.jpg" width="88" height="32" border="0" alt="Support This Project" /></a>
+
+&nbsp;&nbsp;&nbsp;&nbsp;
+</td>
+<td id="bodytext"><em>Last updated $Date: 2011-12-03 18:09:51 -0800 (Sat, 03 Dec 2011) $</em></td>
+</tr></table>
+
+</center>
+</body>
+</html>

@@ -1,0 +1,1282 @@
+# THE LAXKIT
+# Copyright (C) 2004-2007,2011
+# This file is distributed under the same license as the Laxkit package.
+# Your name here <your@email.com>, 2011.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: Laxkit 0.0.7\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2013-12-14 12:07-0800\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../filedialog.cc:191
+msgid "File?"
+msgstr ""
+
+#: ../filedialog.cc:192
+msgid "Filename to use"
+msgstr ""
+
+#: ../filedialog.cc:216
+msgid "Path:"
+msgstr ""
+
+#: ../filedialog.cc:217
+msgid "Current Directory"
+msgstr ""
+
+#: ../filedialog.cc:220
+msgid "Mask:"
+msgstr ""
+
+#: ../filedialog.cc:222
+msgid "Mask to apply to the end of path"
+msgstr ""
+
+#: ../filedialog.cc:453
+msgid "Recent"
+msgstr ""
+
+#: ../filedialog.cc:455
+msgid "Select a recently used file"
+msgstr ""
+
+#: ../filedialog.cc:475
+msgid "Bookmarks"
+msgstr ""
+
+#: ../filedialog.cc:476
+msgid "Select existing bookmark or make a new bookmark"
+msgstr ""
+
+#: ../filedialog.cc:491
+msgid ""
+"Choose from these files.\n"
+"Right-click drag scrolls"
+msgstr ""
+
+#: ../filedialog.cc:505
+msgid "Bookmark"
+msgstr ""
+
+#: ../filedialog.cc:506
+msgid "Bookmark the current directory"
+msgstr ""
+
+#: ../filedialog.cc:513
+msgid "New Dir"
+msgstr ""
+
+#: ../filedialog.cc:514
+msgid "Create a new directory"
+msgstr ""
+
+#: ../filedialog.cc:520
+msgid "Up"
+msgstr ""
+
+#: ../filedialog.cc:521
+msgid "Go up a directory"
+msgstr ""
+
+#: ../filedialog.cc:526
+msgid "Refresh"
+msgstr ""
+
+#: ../filedialog.cc:527
+msgid "Re-read current directory"
+msgstr ""
+
+#: ../filedialog.cc:532
+msgid "Details"
+msgstr ""
+
+#: ../filedialog.cc:534 ../filedialog.cc:541 ../filedialog.cc:548
+msgid "(Not implemented yet)"
+msgstr ""
+
+#: ../filedialog.cc:539
+msgid "Back"
+msgstr ""
+
+#: ../filedialog.cc:546
+msgid "Forward"
+msgstr ""
+
+#: ../filedialog.cc:660 ../filedialog.cc:777
+msgid "Add current directory"
+msgstr ""
+
+#: ../filedialog.cc:890
+msgid "New directory?"
+msgstr ""
+
+#: ../filedialog.cc:891
+msgid "Create"
+msgstr ""
+
+#: ../filedialog.cc:892 ../button.cc:153
+msgid "Cancel"
+msgstr ""
+
+#: ../palette.cc:639
+msgid "Load Palette"
+msgstr ""
+
+#: ../overwrite.cc:62
+msgid "Overwrite?"
+msgstr ""
+
+#: ../rulerwin.cc:621
+msgid "Units"
+msgstr ""
+
+#: ../imagedialog.cc:175 ../fontdialog.cc:171
+msgid "File"
+msgstr ""
+
+#: ../imagedialog.cc:185
+msgid "..."
+msgstr ""
+
+#: ../imagedialog.cc:192 ../button.cc:163
+msgid "Preview"
+msgstr ""
+
+#: ../imagedialog.cc:211
+msgid "Regenerate preview:"
+msgstr ""
+
+#: ../imagedialog.cc:211
+msgid "Generate preview:"
+msgstr ""
+
+#: ../colorsliders.cc:203
+msgid "Red"
+msgstr ""
+
+#: ../colorsliders.cc:209
+msgid "Green"
+msgstr ""
+
+#: ../colorsliders.cc:215
+msgid "Blue"
+msgstr ""
+
+#: ../colorsliders.cc:224
+msgid "Cyan"
+msgstr ""
+
+#: ../colorsliders.cc:233
+msgid "Magenta"
+msgstr ""
+
+#: ../colorsliders.cc:242
+msgid "Yellow"
+msgstr ""
+
+#: ../colorsliders.cc:251
+msgid "Black"
+msgstr ""
+
+#: ../colorsliders.cc:260
+msgid "Saturation"
+msgstr ""
+
+#: ../colorsliders.cc:269
+msgid "Value"
+msgstr ""
+
+#: ../colorsliders.cc:275
+msgid "Alpha"
+msgstr ""
+
+#: ../colorsliders.cc:279
+msgid "Hue"
+msgstr ""
+
+#: ../units.cc:51
+msgid "in"
+msgstr ""
+
+#: ../units.cc:51
+msgid "inch"
+msgstr ""
+
+#: ../units.cc:51
+msgid "inches"
+msgstr ""
+
+#: ../units.cc:52
+msgid "ft"
+msgstr ""
+
+#: ../units.cc:52
+msgid "foot"
+msgstr ""
+
+#: ../units.cc:52
+msgid "feet"
+msgstr ""
+
+#: ../units.cc:53
+msgid "yd"
+msgstr ""
+
+#: ../units.cc:53
+msgid "yard"
+msgstr ""
+
+#: ../units.cc:53
+msgid "yards"
+msgstr ""
+
+#: ../units.cc:54
+msgid "cm"
+msgstr ""
+
+#: ../units.cc:54
+msgid "centimeter"
+msgstr ""
+
+#: ../units.cc:54
+msgid "centimeters"
+msgstr ""
+
+#: ../units.cc:55
+msgid "mm"
+msgstr ""
+
+#: ../units.cc:55
+msgid "millimeter"
+msgstr ""
+
+#: ../units.cc:55
+msgid "millimeters"
+msgstr ""
+
+#: ../units.cc:56
+msgid "m"
+msgstr ""
+
+#: ../units.cc:56
+msgid "meter"
+msgstr ""
+
+#: ../units.cc:56
+msgid "meters"
+msgstr ""
+
+#: ../units.cc:57
+msgid "pt"
+msgstr ""
+
+#: ../units.cc:57
+msgid "point"
+msgstr ""
+
+#: ../units.cc:57
+msgid "points"
+msgstr ""
+
+#: ../units.cc:58
+msgid "px"
+msgstr ""
+
+#: ../units.cc:58
+msgid "pixel"
+msgstr ""
+
+#: ../units.cc:58
+msgid "pixels"
+msgstr ""
+
+#: ../dateutils.cc:80
+msgid "Sunday"
+msgstr ""
+
+#: ../dateutils.cc:81
+msgid "Monday"
+msgstr ""
+
+#: ../dateutils.cc:82
+msgid "Tuesday"
+msgstr ""
+
+#: ../dateutils.cc:83
+msgid "Wednesday"
+msgstr ""
+
+#: ../dateutils.cc:84
+msgid "Thursday"
+msgstr ""
+
+#: ../dateutils.cc:85
+msgid "Friday"
+msgstr ""
+
+#: ../dateutils.cc:86
+msgid "Saturday"
+msgstr ""
+
+#: ../dateutils.cc:123
+msgid "January"
+msgstr ""
+
+#: ../dateutils.cc:124
+msgid "February"
+msgstr ""
+
+#: ../dateutils.cc:125
+msgid "March"
+msgstr ""
+
+#: ../dateutils.cc:126
+msgid "April"
+msgstr ""
+
+#: ../dateutils.cc:127
+msgid "May"
+msgstr ""
+
+#: ../dateutils.cc:128
+msgid "June"
+msgstr ""
+
+#: ../dateutils.cc:129
+msgid "July"
+msgstr ""
+
+#: ../dateutils.cc:130
+msgid "August"
+msgstr ""
+
+#: ../dateutils.cc:131
+msgid "September"
+msgstr ""
+
+#: ../dateutils.cc:132
+msgid "October"
+msgstr ""
+
+#: ../dateutils.cc:133
+msgid "November"
+msgstr ""
+
+#: ../dateutils.cc:134
+msgid "December"
+msgstr ""
+
+#: ../simpleprint.cc:71
+msgid "Print:"
+msgstr ""
+
+#: ../simpleprint.cc:86
+msgid "To File: "
+msgstr ""
+
+#: ../simpleprint.cc:105
+msgid "By Command: "
+msgstr ""
+
+#: ../simpleprint.cc:127
+msgid "Print All"
+msgstr ""
+
+#: ../simpleprint.cc:135
+msgid "Print Current"
+msgstr ""
+
+#: ../simpleprint.cc:143
+msgid "Print From:"
+msgstr ""
+
+#: ../colorbox.cc:155
+#, c-format
+msgid "Shift-"
+msgstr ""
+
+#: ../colorbox.cc:156
+#, c-format
+msgid "Control-"
+msgstr ""
+
+#: ../colorbox.cc:157
+#, c-format
+msgid "Meta-"
+msgstr ""
+
+#: ../colorbox.cc:158
+#, c-format
+msgid "Alt-"
+msgstr ""
+
+#: ../colorbox.cc:159
+#, c-format
+msgid "Left"
+msgstr ""
+
+#: ../colorbox.cc:160
+#, c-format
+msgid "Middle"
+msgstr ""
+
+#: ../colorbox.cc:161
+#, c-format
+msgid "Right"
+msgstr ""
+
+#: ../colorbox.cc:171
+msgid "For red, drag "
+msgstr ""
+
+#: ../colorbox.cc:178
+msgid "For green, drag "
+msgstr ""
+
+#: ../colorbox.cc:185
+msgid "For blue, drag "
+msgstr ""
+
+#: ../colorbox.cc:192
+msgid "For cyan, drag "
+msgstr ""
+
+#: ../colorbox.cc:199
+msgid "For magenta, drag "
+msgstr ""
+
+#: ../colorbox.cc:206
+msgid "For yellow, drag "
+msgstr ""
+
+#: ../colorbox.cc:213
+msgid "For black, drag "
+msgstr ""
+
+#: ../colorbox.cc:220
+msgid "For alpha, drag "
+msgstr ""
+
+#: ../fontdialog.cc:144
+msgid "Family"
+msgstr ""
+
+#: ../fontdialog.cc:145
+msgid "Family name of the font"
+msgstr ""
+
+#: ../fontdialog.cc:155
+msgid "Style"
+msgstr ""
+
+#: ../fontdialog.cc:156
+msgid "Style of the font"
+msgstr ""
+
+#: ../fontdialog.cc:163
+msgid "Size"
+msgstr ""
+
+#: ../fontdialog.cc:164
+msgid "Size of the font"
+msgstr ""
+
+#: ../fontdialog.cc:172
+msgid "File of the font"
+msgstr ""
+
+#: ../shortcutwindow.cc:288
+msgid "<<press>>"
+msgstr ""
+
+#: ../shortcutwindow.cc:375
+msgid "Key"
+msgstr ""
+
+#: ../shortcutwindow.cc:376
+msgid "Action"
+msgstr ""
+
+#: ../shortcutwindow.cc:377
+msgid "Description"
+msgstr ""
+
+#: ../shortcutwindow.cc:451
+msgid "Key set name"
+msgstr ""
+
+#: ../shortcutwindow.cc:452
+msgid "Name of the shortcut set"
+msgstr ""
+
+#: ../shortcutwindow.cc:457
+msgid "Save the shortcut set to a file"
+msgstr ""
+
+#: ../shortcutwindow.cc:461
+msgid "Load the shortcut set from a file"
+msgstr ""
+
+#: ../shortcutwindow.cc:647
+msgid "Save shortcuts"
+msgstr ""
+
+#: ../shortcutwindow.cc:668
+msgid "Load"
+msgstr ""
+
+#: ../laxoptions.cc:160 ../laxoptions.cc:236 ../laxoptions.cc:289
+msgid "Options:"
+msgstr ""
+
+#: ../button.cc:152
+msgid "Ok"
+msgstr ""
+
+#: ../button.cc:154
+msgid "Open"
+msgstr ""
+
+#: ../button.cc:155
+msgid "Save"
+msgstr ""
+
+#: ../button.cc:156
+msgid "Save As"
+msgstr ""
+
+#: ../button.cc:157
+msgid "Save All"
+msgstr ""
+
+#: ../button.cc:158
+msgid "Close"
+msgstr ""
+
+#: ../button.cc:159
+msgid "Close All"
+msgstr ""
+
+#: ../button.cc:160
+msgid "Quit"
+msgstr ""
+
+#: ../button.cc:161
+msgid "Quit Anyway"
+msgstr ""
+
+#: ../button.cc:162
+msgid "Print"
+msgstr ""
+
+#: ../button.cc:164
+msgid "Yes"
+msgstr ""
+
+#: ../button.cc:165
+msgid "No"
+msgstr ""
+
+#: ../button.cc:166
+msgid "Overwrite"
+msgstr ""
+
+#: ../interfaces/pathinterface.cc:1528
+msgid "Path Tool"
+msgstr ""
+
+#: ../interfaces/pathinterface.cc:2233
+msgid "New Subpath"
+msgstr ""
+
+#: ../interfaces/pathinterface.cc:2236
+msgid "New Path Object"
+msgstr ""
+
+#: ../interfaces/pathinterface.cc:2588
+msgid "Flip add direction, or drag to select next add"
+msgstr ""
+
+#: ../interfaces/pathinterface.cc:3025
+msgid "Smooth, equal"
+msgstr ""
+
+#: ../interfaces/pathinterface.cc:3026
+msgid "Smooth, unequal"
+msgstr ""
+
+#: ../interfaces/pathinterface.cc:3027
+msgid "Corner, equal"
+msgstr ""
+
+#: ../interfaces/pathinterface.cc:3029 ../interfaces/pathinterface.cc:3030
+msgid "Corner"
+msgstr ""
+
+#: ../interfaces/pathinterface.cc:3178 ../interfaces/pathinterface.cc:3713
+msgid "Next point starts subpath"
+msgstr ""
+
+#: ../interfaces/pathinterface.cc:3184 ../interfaces/pathinterface.cc:3715
+msgid "Next point starts new path object"
+msgstr ""
+
+#: ../interfaces/pathinterface.cc:3553
+msgid "Click to add segment between endpoints"
+msgstr ""
+
+#: ../interfaces/pathinterface.cc:3554
+msgid "Merge endpoints"
+msgstr ""
+
+#: ../interfaces/pathinterface.cc:3555
+msgid "Click to add point to segment"
+msgstr ""
+
+#: ../interfaces/pathinterface.cc:3556
+msgid "Click to change add direction"
+msgstr ""
+
+#: ../interfaces/pathinterface.cc:3839 ../interfaces/pathinterface.cc:3840
+msgid "Switch between handle and vertex"
+msgstr ""
+
+#: ../interfaces/pathinterface.cc:3841
+msgid "Change path operator"
+msgstr ""
+
+#: ../interfaces/pathinterface.cc:3842
+msgid "Toggle fill rule"
+msgstr ""
+
+#: ../interfaces/pathinterface.cc:3843
+msgid "Toggle fill"
+msgstr ""
+
+#: ../interfaces/pathinterface.cc:3844
+msgid "Toggle stroke"
+msgstr ""
+
+#: ../interfaces/pathinterface.cc:3845
+msgid "Send colors to fill or to stroke"
+msgstr ""
+
+#: ../interfaces/pathinterface.cc:3846
+msgid "Select next points"
+msgstr ""
+
+#: ../interfaces/pathinterface.cc:3847
+msgid "Select previous points"
+msgstr ""
+
+#: ../interfaces/pathinterface.cc:3848
+msgid "Toggle add after"
+msgstr ""
+
+#: ../interfaces/pathinterface.cc:3849
+msgid "Change point type"
+msgstr ""
+
+#: ../interfaces/pathinterface.cc:3850 ../interfaces/pointwarpinterface.cc:769
+#: ../interfaces/patchinterface.cc:3129
+msgid "Select all or deselect"
+msgstr ""
+
+#: ../interfaces/pathinterface.cc:3851
+msgid "Select all in path or deselect"
+msgstr ""
+
+#: ../interfaces/pathinterface.cc:3852
+msgid "Toggle closed"
+msgstr ""
+
+#: ../interfaces/pathinterface.cc:3853 ../interfaces/pointwarpinterface.cc:780
+#: ../interfaces/patchinterface.cc:3140 ../interfaces/rectinterface.cc:1666
+#: ../interfaces/gradientinterface.cc:1910
+#: ../interfaces/imageinterface.cc:1010
+msgid "Toggle decorations"
+msgstr ""
+
+#: ../interfaces/pathinterface.cc:3854
+msgid "Start a totally new path object"
+msgstr ""
+
+#: ../interfaces/pathinterface.cc:3855
+msgid "Start a new subpath"
+msgstr ""
+
+#: ../interfaces/pathinterface.cc:3856
+msgid "Thicken the line"
+msgstr ""
+
+#: ../interfaces/pathinterface.cc:3857
+msgid "Thin the line"
+msgstr ""
+
+#: ../interfaces/pathinterface.cc:3858 ../interfaces/pathinterface.cc:3859
+msgid "Change how much change for width changes"
+msgstr ""
+
+#: ../interfaces/pathinterface.cc:3860
+msgid "Arrange points in a circle"
+msgstr ""
+
+#: ../interfaces/pathinterface.cc:3861
+msgid "Arrange points in a rectangle"
+msgstr ""
+
+#: ../interfaces/pathinterface.cc:3862
+msgid "Reverse direction of current path"
+msgstr ""
+
+#: ../interfaces/pathinterface.cc:3863
+msgid "Delete selected points"
+msgstr ""
+
+#: ../interfaces/pathinterface.cc:3971
+msgid "Fill odd winding"
+msgstr ""
+
+#: ../interfaces/pathinterface.cc:3974
+msgid "Fill all"
+msgstr ""
+
+#: ../interfaces/pathinterface.cc:3985
+msgid "Don't fill"
+msgstr ""
+
+#: ../interfaces/pathinterface.cc:3989
+msgid "Fill"
+msgstr ""
+
+#: ../interfaces/pathinterface.cc:3997
+msgid "Don't stroke"
+msgstr ""
+
+#: ../interfaces/pathinterface.cc:4001
+msgid "Stroke"
+msgstr ""
+
+#: ../interfaces/pathinterface.cc:4009
+msgid "Send color to fill"
+msgstr ""
+
+#: ../interfaces/pathinterface.cc:4009
+msgid "Send color to stroke"
+msgstr ""
+
+#: ../interfaces/pathinterface.cc:4135 ../interfaces/pathinterface.cc:4147
+#, c-format
+msgid "Width %.10g"
+msgstr ""
+
+#: ../interfaces/pathinterface.cc:4159
+#, c-format
+msgid "Width step %.10g"
+msgstr ""
+
+#: ../interfaces/pointwarpinterface.cc:415
+msgid "Point Warp Tool"
+msgstr ""
+
+#: ../interfaces/pointwarpinterface.cc:763
+#: ../interfaces/patchinterface.cc:3123
+msgid "Render mode"
+msgstr ""
+
+#: ../interfaces/pointwarpinterface.cc:764
+#: ../interfaces/patchinterface.cc:3124
+msgid "Increment screen recursion"
+msgstr ""
+
+#: ../interfaces/pointwarpinterface.cc:765
+#: ../interfaces/patchinterface.cc:3125
+msgid "Decrement screen recursion"
+msgstr ""
+
+#: ../interfaces/pointwarpinterface.cc:766
+#: ../interfaces/patchinterface.cc:3126
+msgid "Toggle smooth editing"
+msgstr ""
+
+#: ../interfaces/pointwarpinterface.cc:767
+#: ../interfaces/patchinterface.cc:3127
+msgid "Toggle mesh type"
+msgstr ""
+
+#: ../interfaces/pointwarpinterface.cc:768
+#: ../interfaces/patchinterface.cc:3128
+msgid "Toggle mesh type in reverse"
+msgstr ""
+
+#: ../interfaces/pointwarpinterface.cc:770
+#: ../interfaces/patchinterface.cc:3130
+msgid "Constrain to vertical movements"
+msgstr ""
+
+#: ../interfaces/pointwarpinterface.cc:771
+#: ../interfaces/patchinterface.cc:3131
+msgid "Constrain to horizontal movements"
+msgstr ""
+
+#: ../interfaces/pointwarpinterface.cc:772
+#: ../interfaces/pointwarpinterface.cc:774
+#: ../interfaces/patchinterface.cc:3132 ../interfaces/patchinterface.cc:3134
+msgid "Increment row subdivisions"
+msgstr ""
+
+#: ../interfaces/pointwarpinterface.cc:773
+#: ../interfaces/pointwarpinterface.cc:775
+#: ../interfaces/patchinterface.cc:3133 ../interfaces/patchinterface.cc:3135
+msgid "Decrement row subdivisions"
+msgstr ""
+
+#: ../interfaces/pointwarpinterface.cc:776
+#: ../interfaces/patchinterface.cc:3136
+msgid "Subdivide"
+msgstr ""
+
+#: ../interfaces/pointwarpinterface.cc:777
+#: ../interfaces/patchinterface.cc:3137
+msgid "Subdivide rows"
+msgstr ""
+
+#: ../interfaces/pointwarpinterface.cc:778
+#: ../interfaces/patchinterface.cc:3138
+msgid "Subdivide columns"
+msgstr ""
+
+#: ../interfaces/pointwarpinterface.cc:779
+#: ../interfaces/patchinterface.cc:3139
+msgid "Zap back to a rectangle"
+msgstr ""
+
+#: ../interfaces/pointwarpinterface.cc:781
+#: ../interfaces/patchinterface.cc:3141
+msgid "Make circle"
+msgstr ""
+
+#: ../interfaces/pointwarpinterface.cc:782
+#: ../interfaces/patchinterface.cc:3142
+msgid "Select corners"
+msgstr ""
+
+#: ../interfaces/pointwarpinterface.cc:783
+#: ../interfaces/patchinterface.cc:3143
+msgid "Select middle controls"
+msgstr ""
+
+#: ../interfaces/pointwarpinterface.cc:784
+#: ../interfaces/patchinterface.cc:3144
+msgid "Select edge controls"
+msgstr ""
+
+#: ../interfaces/pointwarpinterface.cc:785
+#: ../interfaces/patchinterface.cc:3145
+msgid "Select vertical edge controls"
+msgstr ""
+
+#: ../interfaces/pointwarpinterface.cc:786
+#: ../interfaces/patchinterface.cc:3146
+msgid "Select horizontal edge controls"
+msgstr ""
+
+#: ../interfaces/pointwarpinterface.cc:787
+#: ../interfaces/patchinterface.cc:3147
+msgid "Select points around current points"
+msgstr ""
+
+#: ../interfaces/pointwarpinterface.cc:788
+#: ../interfaces/patchinterface.cc:3148
+msgid "Select all vertically"
+msgstr ""
+
+#: ../interfaces/pointwarpinterface.cc:789
+#: ../interfaces/patchinterface.cc:3149
+msgid "Select next points vertically"
+msgstr ""
+
+#: ../interfaces/pointwarpinterface.cc:790
+#: ../interfaces/patchinterface.cc:3150
+msgid "Select all horizontally"
+msgstr ""
+
+#: ../interfaces/pointwarpinterface.cc:791
+#: ../interfaces/patchinterface.cc:3151
+msgid "Select next points horizontally"
+msgstr ""
+
+#: ../interfaces/pointwarpinterface.cc:807
+#: ../interfaces/pointwarpinterface.cc:815
+#: ../interfaces/patchinterface.cc:3167 ../interfaces/patchinterface.cc:3175
+#, c-format
+msgid "Recurse for screen %d times"
+msgstr ""
+
+#: ../interfaces/viewerwindow.cc:386
+msgid "NextTool"
+msgstr ""
+
+#: ../interfaces/viewerwindow.cc:386
+msgid "Next tool"
+msgstr ""
+
+#: ../interfaces/viewerwindow.cc:387
+msgid "PreviousTool"
+msgstr ""
+
+#: ../interfaces/viewerwindow.cc:387
+msgid "Previous tool"
+msgstr ""
+
+#: ../interfaces/viewportwindow.cc:1069
+msgid "ZoomIn"
+msgstr ""
+
+#: ../interfaces/viewportwindow.cc:1069
+msgid "Zoom in"
+msgstr ""
+
+#: ../interfaces/viewportwindow.cc:1071
+msgid "ZoomOut"
+msgstr ""
+
+#: ../interfaces/viewportwindow.cc:1071
+msgid "Zoom out"
+msgstr ""
+
+#: ../interfaces/viewportwindow.cc:1072
+msgid "CenterReal"
+msgstr ""
+
+#: ../interfaces/viewportwindow.cc:1072
+msgid "Center the real origin in the viewport"
+msgstr ""
+
+#: ../interfaces/viewportwindow.cc:1073
+msgid "ResetView"
+msgstr ""
+
+#: ../interfaces/viewportwindow.cc:1073
+msgid "Reset the view, center and align axes"
+msgstr ""
+
+#: ../interfaces/viewportwindow.cc:1075
+msgid "NextObject"
+msgstr ""
+
+#: ../interfaces/viewportwindow.cc:1075
+msgid "Select next object"
+msgstr ""
+
+#: ../interfaces/viewportwindow.cc:1076
+msgid "PreviousObject"
+msgstr ""
+
+#: ../interfaces/viewportwindow.cc:1076
+msgid "Select previous object"
+msgstr ""
+
+#: ../interfaces/viewportwindow.cc:1077
+msgid "DeleteObject"
+msgstr ""
+
+#: ../interfaces/viewportwindow.cc:1077
+msgid "Delete current object"
+msgstr ""
+
+#: ../interfaces/viewportwindow.cc:1080
+msgid "ShiftLeft"
+msgstr ""
+
+#: ../interfaces/viewportwindow.cc:1080
+msgid "Shift view left"
+msgstr ""
+
+#: ../interfaces/viewportwindow.cc:1081
+msgid "ShiftRight"
+msgstr ""
+
+#: ../interfaces/viewportwindow.cc:1081
+msgid "Shift view right"
+msgstr ""
+
+#: ../interfaces/viewportwindow.cc:1082
+msgid "ShiftUp"
+msgstr ""
+
+#: ../interfaces/viewportwindow.cc:1082
+msgid "Shift view Up"
+msgstr ""
+
+#: ../interfaces/viewportwindow.cc:1083
+msgid "ShiftDown"
+msgstr ""
+
+#: ../interfaces/viewportwindow.cc:1083
+msgid "Shift view Down"
+msgstr ""
+
+#: ../interfaces/viewportwindow.cc:1084
+msgid "IncShift"
+msgstr ""
+
+#: ../interfaces/viewportwindow.cc:1084
+msgid "Increase view shift amount"
+msgstr ""
+
+#: ../interfaces/viewportwindow.cc:1085
+msgid "DecShift"
+msgstr ""
+
+#: ../interfaces/viewportwindow.cc:1085
+msgid "Decrease view shift amount"
+msgstr ""
+
+#: ../interfaces/objectinterface.cc:79
+msgid "Object Tool"
+msgstr ""
+
+#: ../interfaces/objectinterface.cc:611
+msgid "Group or ungroup"
+msgstr ""
+
+#: ../interfaces/colorpatchinterface.cc:571
+msgid "Color Patch Tool"
+msgstr ""
+
+#: ../interfaces/colorpatchinterface.cc:610
+#: ../interfaces/imagepatchinterface.cc:406
+#: ../interfaces/engraverfillinterface.cc:303
+#, c-format
+msgid "New Recurse Depth %d: "
+msgstr ""
+
+#: ../interfaces/colorpatchinterface.cc:695
+#: ../interfaces/imagepatchinterface.cc:488
+#: ../interfaces/engraverfillinterface.cc:365
+msgid "Render with grid"
+msgstr ""
+
+#: ../interfaces/colorpatchinterface.cc:696
+#: ../interfaces/imagepatchinterface.cc:489
+#: ../interfaces/engraverfillinterface.cc:366
+msgid "Render with preview"
+msgstr ""
+
+#: ../interfaces/colorpatchinterface.cc:697
+#: ../interfaces/imagepatchinterface.cc:490
+#: ../interfaces/engraverfillinterface.cc:367
+msgid "Render recursively"
+msgstr ""
+
+#: ../interfaces/captioninterface.cc:424
+msgid "Caption Tool"
+msgstr ""
+
+#: ../interfaces/patchinterface.cc:2000
+msgid "Patch Tool"
+msgstr ""
+
+#: ../interfaces/patchinterface.cc:3184
+msgid "Smooth edit mode"
+msgstr ""
+
+#: ../interfaces/patchinterface.cc:3203
+msgid "Edit as a linear patches"
+msgstr ""
+
+#: ../interfaces/patchinterface.cc:3204
+msgid "Edit as Coons patches"
+msgstr ""
+
+#: ../interfaces/patchinterface.cc:3205
+msgid "Edit with border controls only"
+msgstr ""
+
+#: ../interfaces/patchinterface.cc:3206
+msgid "Edit full cubic bezier patch"
+msgstr ""
+
+#: ../interfaces/patchinterface.cc:3232 ../interfaces/patchinterface.cc:3239
+#, c-format
+msgid "Divide each row into %d rows now"
+msgstr ""
+
+#: ../interfaces/patchinterface.cc:3247 ../interfaces/patchinterface.cc:3254
+#, c-format
+msgid "Divide each column into %d columns now"
+msgstr ""
+
+#: ../interfaces/patchinterface.cc:3299
+msgid "Patches need more than 1 column of subpatches to warp."
+msgstr ""
+
+#: ../interfaces/rectinterface.cc:222
+msgid "Affine Tool"
+msgstr ""
+
+#: ../interfaces/rectinterface.cc:1155
+msgid "Drag to move flip axis"
+msgstr ""
+
+#: ../interfaces/rectinterface.cc:1156
+msgid "Click to flip, or drag to move axis"
+msgstr ""
+
+#: ../interfaces/rectinterface.cc:1157
+msgid "Click to flip, shift-click to keep line"
+msgstr ""
+
+#: ../interfaces/rectinterface.cc:1667
+msgid "Normalize scale, clear skew"
+msgstr ""
+
+#: ../interfaces/rectinterface.cc:1668
+msgid "Normalize scale, clear skew and rotation"
+msgstr ""
+
+#: ../interfaces/rectinterface.cc:1669
+msgid "Toggle drag constraint"
+msgstr ""
+
+#: ../interfaces/rectinterface.cc:1670
+msgid "Move rotation center to common points"
+msgstr ""
+
+#: ../interfaces/rectinterface.cc:1671
+msgid "Expand handle size"
+msgstr ""
+
+#: ../interfaces/rectinterface.cc:1672
+msgid "Contract handle size"
+msgstr ""
+
+#: ../interfaces/rectinterface.cc:1674
+msgid "Flip horizontally"
+msgstr ""
+
+#: ../interfaces/rectinterface.cc:1675
+msgid "Flip vertically"
+msgstr ""
+
+#: ../interfaces/rectinterface.cc:1676
+msgid "Toggle showing flip controls"
+msgstr ""
+
+#: ../interfaces/gradientinterface.cc:921
+msgid "Radial Gradient Tool"
+msgstr ""
+
+#: ../interfaces/gradientinterface.cc:922
+msgid "Linear Gradient Tool"
+msgstr ""
+
+#: ../interfaces/gradientinterface.cc:923
+msgid "Gradient Tool"
+msgstr ""
+
+#: ../interfaces/gradientinterface.cc:1908
+msgid "Select next"
+msgstr ""
+
+#: ../interfaces/gradientinterface.cc:1909
+msgid "Select previous"
+msgstr ""
+
+#: ../interfaces/gradientinterface.cc:1911
+msgid "Flip order of colors"
+msgstr ""
+
+#: ../interfaces/gradientinterface.cc:1912
+msgid "Convert to linear gradient"
+msgstr ""
+
+#: ../interfaces/gradientinterface.cc:1913
+msgid "Convert to Radial gradient"
+msgstr ""
+
+#: ../interfaces/gradientinterface.cc:1914
+msgid "Select all, or deselect"
+msgstr ""
+
+#: ../interfaces/gradientinterface.cc:1915
+msgid "Delete"
+msgstr ""
+
+#: ../interfaces/gradientinterface.cc:1947
+msgid "Don't show object on top, no decorations"
+msgstr ""
+
+#: ../interfaces/gradientinterface.cc:1948
+msgid "Don't show object on top, but show decorations"
+msgstr ""
+
+#: ../interfaces/gradientinterface.cc:1949
+msgid "Show object on top without decorations"
+msgstr ""
+
+#: ../interfaces/gradientinterface.cc:1950
+msgid "Show object on top with decorations"
+msgstr ""
+
+#: ../interfaces/somedataref.cc:150 ../interfaces/somedata.cc:333
+msgid "An affine matrix of 6 numbers"
+msgstr ""
+
+#: ../interfaces/somedataref.cc:151
+msgid "String id of the object referred to"
+msgstr ""
+
+#: ../interfaces/imagepatchinterface.cc:365
+msgid "Image Patch Tool"
+msgstr ""
+
+#: ../interfaces/somedata.cc:334
+msgid "Minimum x bound"
+msgstr ""
+
+#: ../interfaces/somedata.cc:335
+msgid "Maximum x bound"
+msgstr ""
+
+#: ../interfaces/somedata.cc:336
+msgid "Minimum y bound"
+msgstr ""
+
+#: ../interfaces/somedata.cc:337
+msgid "Maximum y bound"
+msgstr ""
+
+#: ../interfaces/somedata.cc:338
+msgid "Style for this box"
+msgstr ""
+
+#: ../interfaces/imageinterface.cc:468
+msgid "Image Tool"
+msgstr ""
+
+#: ../interfaces/imageinterface.cc:1008
+msgid "Normalize"
+msgstr ""
+
+#: ../interfaces/imageinterface.cc:1009
+msgid "Clear aspect and rotation"
+msgstr ""
+
+#: ../interfaces/imageinterface.cc:1011
+msgid "Toggle labels"
+msgstr ""
+
+#: ../interfaces/engraverfillinterface.cc:261
+msgid "Engraver Fill Tool"
+msgstr ""

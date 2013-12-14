@@ -1,0 +1,93 @@
+
+
+/*! \page codinghuh Coding Say What?
+
+This page is for various programming tricks and various things about coding
+to remember. It especially helps
+non-professional programmers (like me) from tripping over the same mistakes.
+One may find lots of C++ info at, for instance http://www.cppreference.com/operator_precedence.html
+and also http://www.cplusplus.com . Also, the info pages for gcc and libc are
+invaluable, as are all the Xlib and related documents in the Debian xspecs package.
+
+
+<hr>
+
+<b>C++ operator precedence</b> roughly goes something like this:\n
+(good chart at http://www.cppreference.com/operator_precedence.html)
+
+\verbatim
+[]   ()   ->   .   ::   (thing)++   (thing)--
+!   ~   ++(thing)   --(thing)   -(unary)   +(unary)
+  *(dereference)   &(address of)   (cast)   sizeof
+->*  .*    
+*    /    %   
++   -
+<<   >>   
+<   <=   >    >=   
+==   !=
+&    ^    |   &&   ||   e1?e2:e3
+=   +=   -=   *=   /=   %=   &=   |=   ^=   <<=   >>=
+,
+\endverbatim
+
+! through (sizeof) go right to left, as do all the thing= operators.
+The rest all go left to right.
+
+& through ?: are evaluated left to right on their own. The ops on each  
+other line are evaluated as they occur, so a+b-c+d would evaluate in
+order a b c d since + and - have same level, so to speak.
+
+<hr>
+
+Some useful Vi key mappings which you can put in your ~/.vimrc file:
+
+\verbatim
+ set mouse=a
+ set tabstop=4
+ set sw=4
+ 
+  " Make '  //blah' into '  blah'
+ map <F3> :s/^\(\s*\)\/\//\1/<CR>
+ 
+  " Make '  blah' into '  //blah'
+ map <F4> :s/^\(\s*\)/\1\/\//<CR>
+
+  " Make '//  blah' into '  blah'
+ map <F11> :s/^\/\///<CR>
+
+  " Make '  blah' into '//  blah'
+ map <F12> :s/^/\/\//<CR>
+\endverbatim
+
+<hr>
+
+Don't forget to have a <b>virtual destructor</b> in your functions that get derived from!!!
+
+<hr>
+
+to make <b>shared library</b>,
+objects must be compiled without -g something like:\n
+\code g++ -fPIC -c blah.cc -o blah.o\endcode
+ and linked thus:
+\code g++ -shared -fPIC -o blah.so blah.o ... \endcode
+
+<hr>
+
+<b>Template compilation question:</b>
+
+Currently, my templates have a *.h and *.cc, and I wonder if it is a big disadvantage when
+including the lists.cc (or refcounter.cc) in a window class.. does that imply that every object file
+that has that included is creating its own local functions for all the templates from all the include files,
+rather than just the relevant ones for that file?? did a very simplified basic check with lists.cc/h
+and each object file is compiling its own functions, but it is not clear whether all of those are
+linked in, or just the most recent, or what??
+
+\b Answer?
+
+The info pages for gcc say that g++ in conjunction with gnu ld version 2.8 or later 
+collapses all the template code to single instances of the code. For my current system,
+ld is at version 2.16, so if I've understood what I read there, it should be ok to include
+the template.h and template.cc in each file that the template is used. It will be compiled
+for each file, but collapsed when linked all together.
+
+*/

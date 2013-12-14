@@ -1,0 +1,30 @@
+laxkit (0.0.7.1) unstable; urgency=low
+
+  * Dev version.
+
+ -- Tom Lechner <tomlechner@users.sourceforge.net>  Tue, 3 Dec 2011 06:03:50 -0800
+ 
+ laxkit (0.0.7) unstable; urgency=low
+
+  * Seventh release. First since event system rewrite.
+
+ -- Tom Lechner <tomlechner@users.sourceforge.net>  Tue, 3 Dec 2011 03:29:50 -0800
+
+laxkit (0.0.6) unstable; urgency=low
+
+  * Sixth release, mainly since its been over 2 years.
+
+ -- Tom Lechner <tomlechner@users.sourceforge.net>  Tue, 27 Feb 2010 08:29:50 -0800
+ 
+laxkit (0.0.5) unstable; urgency=low
+
+  * Fifth release, mainly since its been over a year. 
+
+ -- Tom Lechner <tomlechner@users.sourceforge.net>  Tue, 6 Nov 2007 08:29:50 -0800
+ 
+laxkit (0.0.4) unstable; urgency=low
+
+  * First time making a deb. 
+
+ -- Tom Lechner <tomlechner@users.sourceforge.net>  Wed, 8 Nov 2006 21:29:50 -0800
+
