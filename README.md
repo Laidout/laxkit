@@ -60,10 +60,10 @@ installed in prefix/include, prefix/share/doc, prefix/lib, etc.
 What files were installed are put into the file install.log.
 
 By default, `make install` will plop down everything in /usr/local/include and 
-/usr/local/lib. The end result is three libraries:
+/usr/local/lib. The end result is two libraries:
 
-    liblaxkit.a        The laxkit core      
-    liblaxinterfaces.a The laxkit interfaces
+    liblaxkit.a          The laxkit core      
+    liblaxinterfaces.a   The laxkit interfaces
 
 
 COMPILING FROM GIT
