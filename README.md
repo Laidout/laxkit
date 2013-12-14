@@ -45,7 +45,7 @@ You will need the development files for (these are the debian packages):
     libssl-dev
     xutils-dev
  
-You can get them with this command (on debian systems):
+You can get them with this command (on debian systems):  
     apt-get install g++ pkg-config libpng12-dev libx11-dev libxft-dev libcups2-dev libimlib2-dev libfontconfig-dev libfreetype6-dev libssl-dev xutils-dev
 
 Simply do:
@@ -58,7 +58,7 @@ If you type `./configure --prefix=/your/own/install/path`, then the laxkit will 
 installed in prefix/include, prefix/share/doc, prefix/lib, etc.
 What files were installed are put into the file install.log.
 
-By default, `'make install'` will plop down everything in /usr/local/include and 
+By default, `make install` will plop down everything in /usr/local/include and 
 /usr/local/lib. The end result is three libraries:
 
     liblaxkit.a        The laxkit core      
@@ -79,7 +79,7 @@ you will need git installed. Then do:
     make docs
 
 By default, running the Laxkit directly from git code will pump out lots of debugging information 
-to the terminal. To prevent this, do 'make hidegarbage' before 'make'.
+to the terminal. To prevent this, do `make hidegarbage` before `make`.
 
 
 CONTRIBUTING
