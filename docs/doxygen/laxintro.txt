@@ -218,9 +218,7 @@ will screw up the compilation, and make you deal with it (hopefully not by just 
 Fashions change, but for the time being, this is the preferred coding style. Of course, consult
 the actual source code for real examples.
 
-Each source file should have the GNU LGPL indicator, as well as having the svn id tag
-at the top.  This helps considerably to not get confused 
-when one has a whole lot of files open at the same time.
+Each source file should have the GNU LGPL indicator.
 
 
 Comments are Doxygen style with //! for brief comments and for other comment blocks use:

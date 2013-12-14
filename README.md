@@ -3,6 +3,7 @@ THE LAXKIT
 ---------------
 Version 0.0.7.1
 Released under the LGPL
+http://github.com/tomlechner/laxkit
 http://laxkit.sourceforge.net
 
 
@@ -67,17 +68,20 @@ liblaxinterfaces.a The laxkit interfaces
 liblaxatts.a       Only the LaxFiles parts of the Laxkit (included in liblaxkit.a)
 
 
-COMPILING FROM SVN
+COMPILING FROM GIT
 ------------------
- svn co svn://svn.code.sf.net/p/laxkit/code/laxkit/trunk laxkit-svn
- cd laxkit-svn
+The development version of the Laxkit is currently kept on github. To access,
+you will need git installed. Then do:
 
+ git clone http://github.com/tomlechner/laxkit.git laxkit-git
+
+ cd laxkit-git
  ./configure
  make depends
  make
  make docs
 
-By default, running the svn Laxkit library will pump out lots of debugging information 
+By default, running the Laxkit directly from git code will pump out lots of debugging information 
 to the terminal. To prevent this, do 'make hidegarbage' before 'make'.
 
 
