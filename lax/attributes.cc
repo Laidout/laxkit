@@ -1019,6 +1019,8 @@ void dump_out_escaped(FILE *f, const char *str, int n)
  *  It is assumed that the file pointer points to the beginning of the 
  *  line to output, so that first line will contain the indent then
  *  the first part of str.
+ *
+ *  See also Attribute::dump_in_indented().
  */
 void dump_out_indented(FILE *f, int indent, const char *str)
 {
@@ -1346,11 +1348,14 @@ char *Attribute::dump_in_indented(FILE *f, int Indent)
 
 	long pos;
 	int firstindent=-1;
-	DBG int linenumber=0;
+	int linenumber=0;
 
 	while (!feof(f)) {
 		pos=ftell(f);
-		DBG linenumber++; cerr <<"dump in, line number: "<<linenumber<<endl;
+		linenumber++;
+
+		DBG cerr <<"dump in, line number: "<<linenumber<<endl;
+
 		c=getline_indent_nonblank(&line,&n,f,Indent,"#",'"',0); //0 means dont skip lines
 		if (c<=0) break;
 		indent=how_indented(line);
@@ -1372,14 +1377,15 @@ char *Attribute::dump_in_indented(FILE *f, int Indent)
 		tline=line+indent;
 		c-=indent;
 		if (c<=0) break;
+		if (linenumber>1) appendstr(str,"\n");
+
 		if (!strcmp(tline,".")) {
-			appendstr(str,"\n");
+			//do nothing...  line has a single '.' at the beginning, prepend "\n" on next line
 		} else if (!strcmp(tline,"\\.")) {
-			appendstr(str,".\n");
+			appendstr(str,"."); //line has only "\.", add ".\n"
 		} else {
 			if (c>1 && tline[0]=='\\' && tline[1]=='\\') line++;
 			appendstr(str,tline);
-			appendstr(str,"\n");
 		}
 	}
 	
