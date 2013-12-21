@@ -79,6 +79,7 @@ class Affine
 	virtual double m(int c) { return _m[c]; }
 	virtual void   m(int c,double v) { _m[c]=v; }
 	virtual void Unshear(int preserve_x, int normalize);
+	virtual void Normalize();
 
 	virtual flatpoint origin() { return flatpoint(_m[4],_m[5]); }
 	virtual void      origin(flatpoint o) { _m[4]=o.x; _m[5]=o.y; }

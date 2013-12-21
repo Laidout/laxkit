@@ -184,6 +184,15 @@ void Affine::Unshear(int preserve_x, int normalize)
     //modtime=time(NULL);
 }
 
+//! Make x and y both be unit vectors, but point in the same direction as before.
+void Affine::Normalize()
+{
+	double d=norm(xaxis());
+	if (d!=0) xaxis(xaxis()/d);
+	d=norm(yaxis());
+	if (d!=0) yaxis(yaxis()/d);
+}
+
 void Affine::Translate(flatvector d)
 {
 	_m[4]+=d.x;
