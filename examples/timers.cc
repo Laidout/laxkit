@@ -77,7 +77,7 @@ int Win::CharInput(unsigned int ch, const char *buffer,int len,unsigned int stat
 
 void Win::Refresh()
 {
-	if (!needtodraw) return;
+    if (!needtodraw) return;
 
     clear_window(this);
 
@@ -98,7 +98,7 @@ void Win::Refresh()
     fill_polygon(this, pts, 4);
 
     SwapBuffers();
-	needtodraw=0;
+    needtodraw=0;
 }
 
 int main(int argc,char **argv)
