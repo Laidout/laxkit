@@ -1039,10 +1039,18 @@ int DisplayerXlib::imageout(LaxImage *image, double x,double y, double w,double 
 
 	if (w<=0 || h<=0) { w=image->w(); h=image->h(); }
 
-	flatpoint ul=realtoscreen(flatpoint(x  ,y  )), 
-			  ur=realtoscreen(flatpoint(x+w,y  )), 
-			  ll=realtoscreen(flatpoint(x  ,y+h)), 
-			  lr=realtoscreen(flatpoint(x+w,y+h));
+	flatpoint ul=flatpoint(x  ,y  ),
+			  ur=flatpoint(x+w,y  ),
+			  ll=flatpoint(x  ,y+h),
+			  lr=flatpoint(x+w,y+h);
+	if (real_coordinates) {
+		ul=realtoscreen(ul), 
+		ur=realtoscreen(ur), 
+		ll=realtoscreen(ll), 
+		lr=realtoscreen(lr);
+	} else {
+	}
+
 	DoubleBBox bbox(ul);
 	bbox.addtobounds(ur);
 	bbox.addtobounds(ll);
