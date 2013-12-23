@@ -2078,7 +2078,7 @@ int PathInterface::Refresh()
 						   (lstyle->dotdash && lstyle->dotdash!=~0)?LineOnOffDash:LineSolid,
 						   lstyle->capstyle,
 						   lstyle->joinstyle);
-		DBG cerr <<"-------width:"<<lstyle->width*dp->Getmag()<<endl;
+		//DBG cerr <<"-------width:"<<lstyle->width*dp->Getmag()<<endl;
 
 		dp->stroke(0);
 	}
