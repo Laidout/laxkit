@@ -693,6 +693,9 @@ int SplitWindow::SetCursor(const char *curs,LaxMouse *d)
 	//if (cursortype==1) d->setMouseShape(this,LAX_MOUSE_LeftRight);
 	//else if (cursortype==2) d->setMouseShape(this,LAX_MOUSE_UpDown);
 	//else if (cursortype==3) d->setMouseShape(this,LAX_MOUSE_Pan);
+
+	// **** just use pan always for now
+	d->setMouseShape(this,LAX_MOUSE_Pan);
 	return 1;
 }
 
