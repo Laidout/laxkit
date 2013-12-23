@@ -77,6 +77,44 @@ enum PathHoverType {
 namespace LaxInterfaces {
 
 
+//------------------------------------- PathUndo -------------------------------------
+
+enum PathUndoTypes {
+	PATHUNDO_Move_Point,
+	PATHUNDO_Add_Point,
+	PATHUNDO_Delete_Point,
+	PATHUNDO_Point_Type_Change,
+	PATHUNDO_Width_Change,
+	PATHUNDO_Width1_Change,
+	PATHUNDO_Width2_Change,
+
+	PATHUNDO_Add_Path,
+	PATHUNDO_Delete_Path,
+
+	PATHUNDO_LineStyle_Change,
+	PATHUNDO_FillStyle_Change,
+	PATHUNDO_MAX
+};
+
+
+//-------------------- PathInfo ---------------------------
+
+/*! \class PathInfo
+ * Styling info about a path, such as width information.
+ * These can be positioned anywhere along a path.
+ */
+class PathInfo
+{
+  public:
+	int pathi; //!< path index
+	double pt; //!< position in path
+	
+	double w1;
+	double w2;
+
+	PathInfo *prev, *next;
+};
+
 
 //------------------------------------- Path -------------------------------------
 
@@ -1050,6 +1088,50 @@ double PathsData::Length(int pathi, double tstart,double tend)
 void PathsData::pushEmpty(int where,LineStyle *nls)
 {
 	paths.push(new Path(NULL,nls),1,where);
+}
+
+//! Return the last point of the top path, or NULL if that doesn't exist
+Coordinate *PathsData::LastVertex()
+{
+	if (!paths.n) return NULL;
+	if (paths.e[paths.n-1]->path==NULL) return NULL;
+
+	return paths.e[paths.n-1]->lastPoint(1);
+}
+
+/*! Create a circular arc, with center, and last point determines radius.
+ * Sweep out angle radians. Add at least one new vertex point, and 
+ * associated control points.
+ */
+void PathsData::appendBezArc(flatpoint center, double angle, int num_vertices)
+{
+	if (num_vertices<1) num_vertices=1;
+
+
+    double xx,yy;
+	flatpoint cp,p,cn;
+	Coordinate *pp=LastVertex();
+	if (!pp) { append(center); p=center; }
+	else p=pp->p() - center;
+
+	double r=p.norm();
+	double start_angle=atan2(p.y,p.x);
+	double theta=angle/(num_vertices); //radians between control points
+    double v=4*r*(2*sin(theta/2)-sin(theta))/3/(1-cos(theta)); //length of control handle
+
+    for (int c=0, i=0; c<num_vertices+1; c++, i+=3) {
+        xx=cos(start_angle + c*theta);
+        yy=sin(start_angle + c*theta);
+
+        p = center + flatpoint(r*xx,r*yy);
+        cp= p + flatpoint(v*yy,-v*xx);
+        cn= p + flatpoint(-v*yy,v*xx);
+
+		if (c>0) append(cp,POINT_TONEXT);
+		if (c>0) append(p,POINT_VERTEX);
+		if (c<num_vertices) append(cn,POINT_TOPREV);
+    }
+
 }
 
 //! Convenience to add a rectangle at (x,y) with width and height to whichpath.
