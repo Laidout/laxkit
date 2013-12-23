@@ -126,6 +126,8 @@ bool Affine::isIdentity()
            are_near(_m[4], 0.0, EPSILON) && are_near(_m[5], 0.0, EPSILON);
 }
 
+/*! Does not affect origin. Only sets rotation of axes.
+ */
 void Affine::setRotation(double angle)
 {
 	_m[0]=cos(angle);
