@@ -2798,7 +2798,8 @@ int anXApp::addtimer(anXWindow *win, //!< The window to create the timer for
 	//TimerInfo(anXWindow *nwin,int duration,int firstt,int tickt,int nid,long ninfo);
 	int nid=getUniqueNumber();
 	timers.push(new TimerInfo(win,duration,strt,next,nid,0));
-	DBG cerr <<"addtimer: "<<win->WindowTitle()<<"  id:"<<nid<<"  duration:"<<duration<<"  next:"<<next<< endl;
+
+	DBG cerr <<"addtimer: "<<win->WindowTitle()<<"  id:"<<nid<<"  duration:"<<duration<<"  next:"<<next<< " ms"<<endl;
 	return nid;
 }
 
