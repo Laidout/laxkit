@@ -114,6 +114,7 @@ class LaxOptions : protected PtrStack<LaxOption>
 	LaxOption *start();
 	LaxOption *remaining();
 	LaxOption *next();
+	LaxOption *find(const char *long_option, int short_option);
 	int more(); //return number of remaining options
 
 	//void man_page_text(); //print to stdout the options formatted for a man page
