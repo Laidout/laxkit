@@ -1071,6 +1071,9 @@ int anXApp::close()
 		xim=NULL; 
 	}
 
+	 //--------destroy any x dependent things
+	if (defaultlaxfont) { defaultlaxfont->dec_count(); defaultlaxfont=NULL; }
+
 	 //------------close display
 	DBG cerr <<"closing display.."<<endl;
 	XCloseDisplay(dpy);
