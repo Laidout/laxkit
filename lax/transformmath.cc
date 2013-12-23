@@ -370,7 +370,7 @@ void Affine::Multiply(Affine &m)
 {
 	double result[6];
 	transform_mult(result,_m,m.m());
-	transform_copy(result,_m);
+	transform_copy(_m,result);
 }
 
 //! this=m*this
@@ -378,7 +378,7 @@ void Affine::PreMultiply(Affine &m)
 {
 	double result[6];
 	transform_mult(result,m.m(),_m);
-	transform_copy(result,_m);
+	transform_copy(_m,result);
 }
 
 //! Return a new matrix that is the inverse of this, if possible.
@@ -394,7 +394,7 @@ void Affine::Invert()
 {
 	double mm[6];
 	transform_invert(mm,_m);
-	transform_copy(mm,_m);
+	transform_copy(_m,mm);
 }
 
 flatpoint Affine::transformPoint(flatpoint p)
