@@ -155,7 +155,7 @@ int DoubleBBox::intersect(double mix,double max,double miy,double may, int setto
 	return max>=mix && may>=miy;
 }
 
-//! Return whether the given point is contained within the bounds.
+//! Return whether the given point is contained within or on the bounds.
 /*! Invalid bounds will always return 0.
  */
 int DoubleBBox::boxcontains(double x, double y)
