@@ -3488,7 +3488,8 @@ int PatchInterface::CharInput(unsigned int ch, const char *buffer,int len,unsign
 			return 0;
 		}
 
-	} DBG else if (ch=='m' && (state&LAX_STATE_MASK)==(ShiftMask|ControlMask)) {
+	}
+	//DBG else if (ch=='m' && (state&LAX_STATE_MASK)==(ShiftMask|ControlMask)) {
 	//DBG 	if (!data) return 1;
 	//DBG 	app->addwindow(new showmat(NULL,"Matrix",0, 0,0, 800,500, 0, data->points,data->xsize,data->ysize));
 	//DBG 	return 0;
