@@ -894,7 +894,7 @@ int PatchData::inSubPatch(flatpoint p,int *r_ret,int *c_ret,double *t_ret,double
 	if (r_ret) *r_ret=-1;
 	if (c_ret) *c_ret=-1;
 	
-	DBG cerr <<" no (s,t) found"<<endl;
+	//DBG cerr <<" no (s,t) found"<<endl;
 	return 0;
 }
 
@@ -1197,7 +1197,7 @@ int PatchData::subdivide(int r,double rt,int c,double ct)
 		 //subdivide a row
 		if (r<ysize-4) {
 			 //make room for new row by shifting the unaffected rows up
-			DBG cerr <<endl<<" --- r:"<<r<<", move "<<xsize*(ysize-r-3)<<" flatpoints from "<<(r+3)*xsize<<" to "<<(r+6)*xsize<<endl;
+			//DBG cerr <<endl<<" --- r:"<<r<<", move "<<xsize*(ysize-r-3)<<" flatpoints from "<<(r+3)*xsize<<" to "<<(r+6)*xsize<<endl;
 			//memmove(np+(r+6)*xsize,np+(r+3)*xsize,xsize*(ysize-r-3)*sizeof(flatpoint));
 			memmove(np+(r+6)*nxs, np+(r+3)*nxs, nxs*(ysize-r-3)*sizeof(flatpoint));
 		}
@@ -1216,7 +1216,7 @@ int PatchData::subdivide(int r,double rt,int c,double ct)
 				 // mult  B * N * Binv
 				//getPolyT(oldN, n, t0);
 				getPolyT(oldN, (r2==0?1/rt:(1/(1-rt))), (r2==0?0:rt));
-				DBG printG("should be N:",oldN);
+				//DBG printG("should be N:",oldN);
 				
 				m_times_m(B,oldN,C);
 				m_times_m(C,Binv,N);
@@ -1249,7 +1249,7 @@ int PatchData::subdivide(int r,double rt,int c,double ct)
 		if (c<xsize-4) {
 			 //make room for new row by shifting the unaffected columns to the right
 			for (rr=0; rr<nys; rr++) {
-				DBG cerr <<endl<<" --- c:"<<c<<", move "<<(xsize-c-3) <<" flatpoints from "<<rr*xsize+c+3 <<" to "<<rr*xsize+c+6<<endl;
+				//DBG cerr <<endl<<" --- c:"<<c<<", move "<<(xsize-c-3) <<" flatpoints from "<<rr*xsize+c+3 <<" to "<<rr*xsize+c+6<<endl;
 				memmove(np+rr*nxs+c+6, np+rr*nxs+c+3, (xsize-c-3)*sizeof(flatpoint));
 			}
 		}
@@ -1268,10 +1268,10 @@ int PatchData::subdivide(int r,double rt,int c,double ct)
 				 // mult  Binv * Mt * B
 				//getPolyT(result, n, t0);
 				getPolyT(oldM, (c2==0?1/ct:(1/(1-ct))), (c2==0?0:ct));
-				DBG printG("should be M:",oldM);
+				//DBG printG("should be M:",oldM);
 				
 				m_transpose(oldM);
-				DBG printG("should be Mt:",oldM);
+				//DBG printG("should be Mt:",oldM);
 				
 				m_times_m(Binv,oldM,C); //C = Binv*oldM 
 				m_times_m(C,B,Mt);     //Mt = Binv*oldM*B 
@@ -1340,17 +1340,17 @@ int PatchData::subdivide(int xn,int yn) //xn,yn=2
 					 //	v=n*(t-t0), t=v/n + t0,  u=m*(s-s0), s=u/m + s0, 
 					 // mult  Binv * Mt * B
 					getPolyT(oldM, xnd, ((double)c2)/xnd);
-					DBG printG("should be M:",oldM);
+					//DBG printG("should be M:",oldM);
 					
 					m_transpose(oldM);
-					DBG printG("should be Mt:",oldM);
+					//DBG printG("should be Mt:",oldM);
 					
 					m_times_m(Binv,oldM,C);
 					m_times_m(C,B,Mt);
 						
 					 // mult  B * N * Binv
 					getPolyT(oldN, ynd, r2/ynd);
-					DBG printG("should be N:",oldN);
+					//DBG printG("should be N:",oldN);
 					
 					m_times_m(B,oldN,C);
 					m_times_m(C,Binv,N);
@@ -1489,7 +1489,7 @@ int PatchData::renderToBuffer(unsigned char *buffer, int bufw, int bufh, int buf
 {
 	if (!buffer) return 1;
 
-	DBG cerr <<"...Render "<<whattype()<<" to buffer, w,h:"<<bufw<<','<<bufh<<" rdepth="<<renderdepth<<endl;
+	//DBG cerr <<"...Render "<<whattype()<<" to buffer, w,h:"<<bufw<<','<<bufh<<" rdepth="<<renderdepth<<endl;
 
 	if (bufdepth!=8 || bufchannels!=4) {
 		cerr <<" *** must implement ImagePatchData::renderToBuffer() for non 8 bit rgba!!"<<endl;
@@ -1552,10 +1552,10 @@ int PatchData::renderToBuffer(unsigned char *buffer, int bufw, int bufh, int buf
 			context.ds=3./(xsize-1);
 			context.t0=roff*3./(ysize-1);
 			context.dt=3./(ysize-1);
-			DBG cerr <<" draw patch s:"<<context.s0<<','<<context.ds<<"  t:"<<context.t0<<','<<context.dt<<endl;
+			//DBG cerr <<" draw patch s:"<<context.s0<<','<<context.ds<<"  t:"<<context.t0<<','<<context.dt<<endl;
 				
-			DBG d=0;
-			DBG cerr <<(renderdepth==0?"rpatchpoint:":"patchpoint:")<<endl;
+			//DBG d=0;
+			//DBG cerr <<(renderdepth==0?"rpatchpoint:":"patchpoint:")<<endl;
 
 			
 			//if (renderdepth>=0) rpatchpoint(&context,flatpoint(),flatpoint(),flatpoint(),flatpoint(), 0.,0.,1.,1.,15);
@@ -1563,7 +1563,7 @@ int PatchData::renderToBuffer(unsigned char *buffer, int bufw, int bufh, int buf
 			rpatchpoint(&context,flatpoint(),flatpoint(),flatpoint(),flatpoint(), 0.,0.,1.,1.,15);
 		}
 	}
-	DBG cerr <<"...done rendering to buffer"<<endl;
+	//DBG cerr <<"...done rendering to buffer"<<endl;
 	return 0;
 }
 
@@ -1680,7 +1680,7 @@ void PatchData::rpatchpoint(PatchRenderContext *context,
 			context->buffer[i+1]=(color.green&0xff00)>>8;
 			context->buffer[i+0]=(color.blue&0xff00) >>8;
 			//col=WhatColor(context->s0+context->ds*s1, context->t0+context->dt*t2);
-			////DBG fprintf(stderr," -- %lx ",col);
+			//DBG fprintf(stderr," -- %lx ",col);
 			//a=(col&0xff000000)>>24;
 			//context->buffer[i+3]=a;
 			//context->buffer[i+2]=(col&0xff0000)>>16;
@@ -1707,7 +1707,7 @@ void PatchData::rpatchpoint(PatchRenderContext *context,
 			context->buffer[i+1]=(color.green&0xff00)>>8;
 			context->buffer[i+0]=(color.blue&0xff00) >>8;
 			//col=WhatColor(context->s0+context->ds*s2, context->t0+context->dt*t2);
-			////DBG fprintf(stderr," -- %lx ",col);
+			//DBG fprintf(stderr," -- %lx ",col);
 			//a=(col&0xff000000)>>24;
 			//context->buffer[i+3]=a;
 			//context->buffer[i+2]=(col&0xff0000)>>16;
@@ -1723,10 +1723,10 @@ void PatchData::rpatchpoint(PatchRenderContext *context,
 	//DBG 	"ur:"<<ur.x<<", "<<ur.y<<	"  "<<
 	//DBG 	"ll:"<<ll.x<<", "<<ll.y<<	"  "<<
 	//DBG 	"lr:"<<lr.x<<", "<<lr.y<<endl;	
-	////DBG cerr <<"int "<<int(ul.x+.5)<<", "<<int(ul.y+.5)<<"  "<<
-	////DBG 	int(ur.x+.5)<<", "<<int(ur.y+.5)<<	"  "<<
-	////DBG 	int(ll.x+.5)<<", "<<int(ll.y+.5)<<	"  "<<
-	////DBG 	int(lr.x+.5)<<", "<<int(lr.y+.5)<<endl;	
+	//DBG cerr <<"int "<<int(ul.x+.5)<<", "<<int(ul.y+.5)<<"  "<<
+	//DBG 	int(ur.x+.5)<<", "<<int(ur.y+.5)<<	"  "<<
+	//DBG 	int(ll.x+.5)<<", "<<int(ll.y+.5)<<	"  "<<
+	//DBG 	int(lr.x+.5)<<", "<<int(lr.y+.5)<<endl;	
 
 	//DBG cerr <<"  fabs(ul.x-ur.x):" << fabs(ul.x-ur.x) << "  fabs(ll.x-lr.x):" << fabs(ll.x-lr.x) 
 	//DBG 		<< "  fabs(ul.y-ll.y):" << fabs(ul.y-ll.y) << "  fabs(ur.y-lr.y):" << fabs(ur.y-lr.y) << endl;
@@ -1973,7 +1973,7 @@ PatchInterface::~PatchInterface()
 	if (cutv) delete[] cutv;
 	if (cuth) delete[] cuth;
 	
-	DBG cerr<<"-----"<<whattype()<<","<<" destructor"<<endl;
+	//DBG cerr<<"-----"<<whattype()<<","<<" destructor"<<endl;
 	deletedata();
 
 	if (sc) sc->dec_count();
@@ -2205,7 +2205,7 @@ int PatchInterface::DrawData(anObject *ndata,anObject *a1,anObject *a2,int info)
  */
 void PatchInterface::drawpatch(int roff,int coff)
 {
-	DBG cerr <<" - - - PatchInterface::drawpatch()"<<endl;
+	//DBG cerr <<" - - - PatchInterface::drawpatch()"<<endl;
 
 	dp->LineAttributes(linestyle.width,LineSolid,linestyle.capstyle,linestyle.joinstyle);
 	dp->NewFG(&data->linestyle.color);
@@ -2274,7 +2274,7 @@ void PatchInterface::drawpatch(int roff,int coff)
  */
 void PatchInterface::drawpatches()
 {
-	DBG cerr <<" - - - PatchInterface::drawpatches()"<<endl;
+	//DBG cerr <<" - - - PatchInterface::drawpatches()"<<endl;
 	int r,c;
 	for (r=0; r<data->ysize/3; r++) {
 		for (c=0; c<data->xsize/3; c++) {
@@ -2299,7 +2299,7 @@ int PatchInterface::Refresh()
 	}
 
 	//data->renderdepth=-recurse;
-	DBG cerr <<"  PatchRefresh- rendermode="<<rendermode<<", depth="<<data->renderdepth<<endl;
+	//DBG cerr <<"  PatchRefresh- rendermode="<<rendermode<<", depth="<<data->renderdepth<<endl;
 
 				
 	 // draw patches
@@ -2308,7 +2308,7 @@ int PatchInterface::Refresh()
 		LaxImage *preview=data->GetPreview();
 		if (preview) {
 			d=dp->imageout(preview,data->minx,data->miny, data->maxx-data->minx, data->maxy-data->miny);
-			DBG if (d<0) cerr <<"- - - Patch do not use preview"<<endl; else cerr <<"- - - Patch using preview"<<endl;
+			//DBG if (d<0) cerr <<"- - - Patch do not use preview"<<endl; else cerr <<"- - - Patch using preview"<<endl;
 			if (d<0) d=1; else d=0; //draw lines if problem with image
 		}
 	}
@@ -2331,10 +2331,10 @@ int PatchInterface::Refresh()
 			for (int c=0; c<data->xsize/3+1; c++) {
 				data->bezAtEdge(bez+1,c,0);
 				
-				DBG cerr <<"---- drawedge: "<<c<<endl;
-				DBG for (int cc=0; cc<data->ysize; cc++)
-				DBG    cerr <<" "<<bez[cc].x<<','<<bez[cc].y;
-				DBG cerr <<endl;
+				//DBG cerr <<"---- drawedge: "<<c<<endl;
+				//DBG for (int cc=0; cc<data->ysize; cc++)
+				//DBG    cerr <<" "<<bez[cc].x<<','<<bez[cc].y;
+				//DBG cerr <<endl;
 
 				dp->drawbez(bez,data->ysize/3+1,0,0);
 			}
@@ -2344,12 +2344,12 @@ int PatchInterface::Refresh()
 			}
 		}
 
-		DBG cerr <<"dragmode="<<dragmode<<endl;
-		DBG cerr <<"in refresh: overv:"<<overv<<"  overh:"<<overh<<endl;
+		//DBG cerr <<"dragmode="<<dragmode<<endl;
+		//DBG cerr <<"in refresh: overv:"<<overv<<"  overh:"<<overh<<endl;
 		
 		 // draw hover indicator
 		if (overv>=0) {
-			DBG cerr <<"hovering over a vertical..."<<endl;
+			//DBG cerr <<"hovering over a vertical..."<<endl;
 			dp->LineAttributes(5,LineSolid,linestyle.capstyle,linestyle.joinstyle);
 			//int o=0;
 			//flatpoint p[data->ysize+1 + (dragmode==DRAG_ADD_EDGE?6:0)];
@@ -2580,7 +2580,7 @@ int PatchInterface::scan(int x,int y)
 		}
 	}
 	//DBG cerr <<" found:"<<closest<<endl;
-	DBG cerr <<" scan found closest:"<<closest<<"  at d="<<d<<" (x,y)="<<p.x<<','<<p.y<<endl;
+	//DBG cerr <<" scan found closest:"<<closest<<"  at d="<<d<<" (x,y)="<<p.x<<','<<p.y<<endl;
 	return closest; // scan never checks a wildpoint
 }
 
@@ -2701,7 +2701,7 @@ int PatchInterface::LBDown(int x,int y,unsigned int state,int count,const Laxkit
 			return 0;
 		} else if ((state&LAX_STATE_MASK)==ShiftMask) {
 			 //extend off outer edge
-			DBG cerr <<"   changing dragmode "<<endl;
+			//DBG cerr <<"   changing dragmode "<<endl;
 			dragmode=DRAG_ADD_EDGE;
 			lbdown=transform_point_inverse(data->m(),screentoreal(x,y));
 			transform_identity(movetransform);
@@ -2823,7 +2823,7 @@ int PatchInterface::LBUp(int x,int y,unsigned int state,const Laxkit::LaxMouse *
 int PatchInterface::findNearVertical(flatpoint fp,double d,double *t_ret,int *i_ret)
 {
 	int r,c;
-	DBG cerr <<"findv: d="<<d<<"  fp="<<fp.x<<","<<fp.y<<"  d="<<d<<"  ";
+	//DBG cerr <<"findv: d="<<d<<"  fp="<<fp.x<<","<<fp.y<<"  d="<<d<<"  ";
 	
 	flatpoint p[data->ysize];
 	double dd,ddd=1e+10;
@@ -2844,11 +2844,11 @@ int PatchInterface::findNearVertical(flatpoint fp,double d,double *t_ret,int *i_
 		dd=bez_near_point(fp,p,data->ysize,resolution,t_ret,i_ret);
 		if (dd<ddd) { ddd=dd; }
 		
-		DBG cerr <<"c:"<<c<<"  distance:"<<dd<<endl;
+		//DBG cerr <<"c:"<<c<<"  distance:"<<dd<<endl;
 		
 		if (dd<d) return c;
 	}
-	DBG cerr <<" closest:"<<c<<"  ddd:"<<ddd<<endl;
+	//DBG cerr <<" closest:"<<c<<"  ddd:"<<ddd<<endl;
 	return -1;
 }
 
@@ -2856,7 +2856,7 @@ int PatchInterface::findNearVertical(flatpoint fp,double d,double *t_ret,int *i_
 int PatchInterface::findNearHorizontal(flatpoint fp,double d,double *t_ret,int *i_ret)
 {
 	int r,c;
-	DBG cerr <<"findh: d="<<d<<"  fp="<<fp.x<<","<<fp.y<<"  d="<<d<<"  ";
+	//DBG cerr <<"findh: d="<<d<<"  fp="<<fp.x<<","<<fp.y<<"  d="<<d<<"  ";
 	
 	flatpoint p[data->xsize];
 	DoubleBBox bbox;
@@ -2890,10 +2890,10 @@ int PatchInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMo
 	if (!buttondown.isdown(d->id,LEFTBUTTON)) {
 		flatpoint fp=transform_point_inverse(data->m(),screentoreal(x,y));
 
-		DBG int rrr,ccc;
-		DBG cerr <<" ----------------inSubPatch:"<<data->inSubPatch(fp,&rrr,&ccc, NULL,NULL, 1)<<endl;
-		DBG cerr <<" -----------------r:"<<rrr<<" c:"<<ccc<<endl;
-		DBG cerr <<"2/mag:"<<2/Getmag()<<"  2*mag:"<<2*Getmag()<<endl;
+		//DBG int rrr,ccc;
+		//DBG cerr <<" ----------------inSubPatch:"<<data->inSubPatch(fp,&rrr,&ccc, NULL,NULL, 1)<<endl;
+		//DBG cerr <<" -----------------r:"<<rrr<<" c:"<<ccc<<endl;
+		//DBG cerr <<"2/mag:"<<2/Getmag()<<"  2*mag:"<<2*Getmag()<<endl;
 				
 		int v=-1,
 			h=-1,
@@ -2914,7 +2914,7 @@ int PatchInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMo
 				|| (state&LAX_STATE_MASK)==ShiftMask
 				|| (state&LAX_STATE_MASK)==ControlMask) {
 
-			DBG cerr <<"---ONE---"<<endl;
+			//DBG cerr <<"---ONE---"<<endl;
 			
 			flatpoint d1=transform_point_inverse(data->m(),flatpoint(0,0)),
 					  d2=transform_point_inverse(data->m(),flatpoint(1,1));
@@ -2923,11 +2923,11 @@ int PatchInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMo
 			//if (data->maxx-data->minx>data->maxy-data->miny) d=(data->maxx-data->minx);
 			//else d=(data->maxy-data->miny);
 			//if (data->xsize>data->ysize) d/=data->xsize*5; else d/=data->ysize*5;
-			DBG cerr <<"----patch---: find in a radius d:"<<d<<endl;
+			//DBG cerr <<"----patch---: find in a radius d:"<<d<<endl;
 			
 			v=  findNearVertical(fp,d,&at_t,&at_c);
 			h=findNearHorizontal(fp,d,&at_t,&at_c);
-			DBG cerr <<"find near v:"<<v<<"  h:"<<h<<endl;
+			//DBG cerr <<"find near v:"<<v<<"  h:"<<h<<endl;
 
 			if ((state&LAX_STATE_MASK)==0 || (state&LAX_STATE_MASK)==ShiftMask) {
 				 //plain hover over edge for adding on rows/cols
@@ -2945,13 +2945,13 @@ int PatchInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMo
 			}
 
 		} else if ((state&LAX_STATE_MASK)==(ControlMask|ShiftMask)) {
-			DBG cerr <<"---^+ONE---"<<endl;
+			//DBG cerr <<"---^+ONE---"<<endl;
 			 // set up for subdivide
 			flatpoint d1=transform_point_inverse(data->m(),flatpoint(0,0)),
 					  d2=transform_point_inverse(data->m(),flatpoint(1,1));
 			double d=2/Getmag() *  norm(d1-d2)/(sqrt(2));
 
-			DBG cerr <<"----patch---: find in d:"<<d<<endl;
+			//DBG cerr <<"----patch---: find in d:"<<d<<endl;
 			
 			if (data->inSubPatch(fp,&hr,&hc, &at_t,&at_s, d)) {	
 				if (cuth) delete[] cuth;
@@ -2966,7 +2966,7 @@ int PatchInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMo
 				cutatct=at_s;
 				data->bezCrossSection(cutv+1,overcv,at_s,0);
 				needtodraw=1;
-				DBG cerr <<"^+needtodraw: "<<needtodraw<<endl;
+				//DBG cerr <<"^+needtodraw: "<<needtodraw<<endl;
 
 				 // if hover over edges, only cut perpendicular
 				v=  findNearVertical(fp,d,&at_t,&at_c);
@@ -2977,13 +2977,13 @@ int PatchInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMo
 				return 0;
 			} 
 		}
-		DBG cerr <<"---TWO---"<<endl;
-		DBG cerr <<"subdiv: v="<<v<<"  h="<<h<<endl;
+		//DBG cerr <<"---TWO---"<<endl;
+		//DBG cerr <<"subdiv: v="<<v<<"  h="<<h<<endl;
 		if (v!=overv) { overv=v; needtodraw=1; }
 		if (h!=overh) { overh=h; needtodraw=1; }
 		if (overv<0 && overch>=0) { overch=-1; needtodraw=1; }//turn off subdivision marker line 
 		if (overh<0 && overcv>=0) { overcv=-1; needtodraw=1; }
-		DBG cerr <<"needtodraw: "<<needtodraw<<endl;
+		//DBG cerr <<"needtodraw: "<<needtodraw<<endl;
 		return 0; 
 	}
 
@@ -3489,10 +3489,10 @@ int PatchInterface::CharInput(unsigned int ch, const char *buffer,int len,unsign
 		}
 
 	} DBG else if (ch=='m' && (state&LAX_STATE_MASK)==(ShiftMask|ControlMask)) {
-	DBG 	if (!data) return 1;
-	DBG 	app->addwindow(new showmat(NULL,"Matrix",0, 0,0, 800,500, 0, data->points,data->xsize,data->ysize));
-	DBG 	return 0;
-	DBG }
+	//DBG 	if (!data) return 1;
+	//DBG 	app->addwindow(new showmat(NULL,"Matrix",0, 0,0, 800,500, 0, data->points,data->xsize,data->ysize));
+	//DBG 	return 0;
+	//DBG }
 
 	if (!sc) GetShortcuts();
 	int action=sc->FindActionNumber(ch,state&LAX_STATE_MASK,0);
