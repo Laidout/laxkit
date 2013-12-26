@@ -27,18 +27,13 @@
 
 #include <lax/anxapp.h>
 #include <lax/texteditbase-utf8.h>
+#include <lax/rectangles.h>
 
 #include <lax/fontmanager.h>
 
+
 namespace Laxkit {
 
-class aRectangle
-{
- public:
-	int x,y,width,height;
-	aRectangle() : x(0),y(0),width(0),height(0) {}
-	aRectangle(int xx,int yy,int w,int h) : x(xx),y(yy),width(w),height(h) {}
-};
 
 class TextXEditBaseUtf8 : public anXWindow, public TextEditBaseUtf8
 {
@@ -53,7 +48,7 @@ class TextXEditBaseUtf8 : public anXWindow, public TextEditBaseUtf8
 	unsigned long curbkcolor,bkwrongcolor,wscolor;
  	LaxFont *thefont;
 	int valid;
-	aRectangle textrect;
+	DoubleRectangle textrect;
 	virtual void docaret(int w=1);
 	virtual void settextrect();
 	virtual int selectionDropped(unsigned char *data,unsigned long len,Atom actual_type,Atom which);

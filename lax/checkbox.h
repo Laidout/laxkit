@@ -24,7 +24,7 @@
 #define _LAX_CHECKBOX_H
 
 #include <lax/button.h>
-#include <lax/intrectangle.h>
+#include <lax/rectangles.h>
 
 namespace Laxkit {
 

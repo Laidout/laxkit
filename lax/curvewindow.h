@@ -24,7 +24,7 @@
 #define _LAX_CURVEWINDOW_H
 
 #include <lax/anxapp.h>
-#include <lax/intrectangle.h>
+#include <lax/rectangles.h>
 #include <lax/buttondowninfo.h>
 
 namespace Laxkit {

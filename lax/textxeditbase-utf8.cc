@@ -109,7 +109,7 @@ namespace Laxkit {
 /*! \var int TextXEditBaseUtf8::con
  * \brief Nonzero if the caret is supposed to be on, and is drawn on, on the screen.
  */
-/*! \var aRectangle TextXEditBaseUtf8::textrect
+/*! \var DoubleRectangle TextXEditBaseUtf8::textrect
  * \brief The rectangle inside of which text can be drawn.
  */
 

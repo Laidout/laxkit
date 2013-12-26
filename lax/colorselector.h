@@ -27,7 +27,7 @@
 #include <lax/anxapp.h>
 #include <lax/colors.h>
 #include <lax/screencolor.h>
-#include <lax/intrectangle.h>
+#include <lax/rectangles.h>
 
 namespace Laxkit {
 

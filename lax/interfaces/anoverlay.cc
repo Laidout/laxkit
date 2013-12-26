@@ -24,7 +24,7 @@
 
 
 #include <lax/interfaces/aninterface.h>
-#include <lax/intrectangle.h>
+#include <lax/rectangles.h>
 
 
 namespace LaxInterfaces {

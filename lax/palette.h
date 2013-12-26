@@ -26,7 +26,7 @@
 #include <lax/dump.h>
 #include <lax/anxapp.h>
 #include <lax/anobject.h>
-#include <lax/intrectangle.h>
+#include <lax/rectangles.h>
 #include <lax/lists.h>
 #include <lax/buttondowninfo.h>
 

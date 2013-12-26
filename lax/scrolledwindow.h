@@ -26,7 +26,7 @@
 #include <lax/scroller.h>
 #include <lax/pancontroller.h>
 #include <lax/panpopup.h>
-#include <lax/intrectangle.h>
+#include <lax/rectangles.h>
 
  // Put an x scroller on either top or bottom
 #define SW_TOP         (1<<16)

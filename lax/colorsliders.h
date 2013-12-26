@@ -27,7 +27,7 @@
 #include <lax/anxapp.h>
 #include <lax/colorbase.h>
 #include <lax/buttondowninfo.h>
-#include <lax/intrectangle.h>
+#include <lax/rectangles.h>
 #include <lax/lists.h>
 
 
