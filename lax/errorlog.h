@@ -70,6 +70,7 @@ class ErrorLog
 	virtual int Total() { return messages.n; }
 	virtual ErrorLogNode *Message(int i);
 	virtual const char *MessageStr(int i);
+	virtual char *FullMessageStr();
 	virtual int Warnings();
 	virtual int Errors();
 	virtual int Oks();

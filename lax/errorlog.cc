@@ -149,10 +149,22 @@ int ErrorLog::AddMessage(unsigned int objid, const char *objidstr, const char *n
 	return messages.n;
 }
 
+//! Return message i, or NULL if i out or range.
 const char *ErrorLog::MessageStr(int i)
 {
 	if (i>=0 && i<messages.n) return messages.e[i]->description;
 	return NULL;
+}
+
+//! Return new char[] with all messages, or NULL if there are none.
+char *ErrorLog::FullMessageStr()
+{
+	if (!messages.n) return NULL;
+
+	char *str=NULL;
+	for (int c=0; c<messages.n; c++)
+		appendline(str,messages.e[c]->description);
+	return str;
 }
 
 ErrorLogNode *ErrorLog::Message(int i)
