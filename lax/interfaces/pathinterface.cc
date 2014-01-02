@@ -2844,7 +2844,7 @@ int PathInterface::ChangeCurpathop(int newiid)
 
 	if (curpathop) {
 		child=curpathop->getInterface(dp,data);
-		viewport->Push(child,0,n);
+		viewport->Push(child,n,0);
 		child->UseThis(data);
 	}
 
@@ -3058,9 +3058,10 @@ void PathInterface::SetPointType(int newtype)
 		else {
 			if (curpoints.e[c]->flags&POINT_TOPREV) v=curpoints.e[c]->prev;
 			else v=curpoints.e[c]->next;
-			if (curpoints.findindex(v)>=0) continue; //don't toggle more than once for vertex!
-			SetPointType(v,newtype);
+			if (curpoints.findindex(v)>=0) continue; //vertex is already in curpoints, 
+													//don't toggle more than once for vertex!
 		}
+		SetPointType(v,newtype);
 	}
 }
 
@@ -3634,7 +3635,7 @@ void PathInterface::hoverMessage()
 	else if (drawhover==HOVER_Endpoint) mes=_("Click to add segment between endpoints");
 	else if (drawhover==HOVER_MergeEndpoints) mes=_("Merge endpoints");
 	else if (drawhover==HOVER_AddPoint) mes=_("Click to add point to segment");
-	else if (drawhover==HOVER_Direction) mes=_("Click to change add direction");
+	else if (drawhover==HOVER_Direction) mes=_("Click to flip add direction, or drag to select next add");
 	//else if (drawhover==HOVER_Direction) mes=_("Click to change add direction, or drag to start new subpath");
 
 	PostMessage(mes);
