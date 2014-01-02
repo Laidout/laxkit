@@ -87,6 +87,7 @@ class anInterface : virtual public Laxkit::EventReceiver,
 	virtual int InterfaceOn() { return 0; }
 	virtual int InterfaceOff() { return 0; } 
 	virtual int RemoveChild();
+	virtual int AddChild(LaxInterfaces::anInterface *ch, int absorbcount, int addbefore);
 
 	virtual int Needtodraw() { return needtodraw; }
 	virtual int Needtodraw(int n) { return needtodraw|=n; }

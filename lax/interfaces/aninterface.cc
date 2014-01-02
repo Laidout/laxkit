@@ -394,6 +394,25 @@ Laxkit::anXWindow *anInterface::CurrentWindow(Laxkit::anXWindow *ncur)
 	return curwindow=ncur;
 }
 
+/*! Will not add ch if child!=NULL.
+ * If addbefore!=0, then add at index-1 in viewport->interfaces. Else after *this.
+ *
+ * Return 0 success, or nonzero for not added.
+ */
+int anInterface::AddChild(LaxInterfaces::anInterface *ch, int absorbcount, int addbefore)
+{
+	if (!ch) return 1;
+	if (!child) return 2;
+
+	int i=viewport->interfaces.findindex(this);
+	if (!addbefore) i++;
+	viewport->Push(ch,i,0);
+	child=ch;
+	child->owner=this;
+	if (!absorbcount) child->inc_count();
+	return 0;
+}
+
 //! If there is a child, do something to remove it.
 /*! If this interface is in a ViewportWindow, then the child will be popped off that port's stack.
  */
