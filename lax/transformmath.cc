@@ -179,8 +179,8 @@ void Affine::getBasics(double *x,double *y,double *sx,double *sy,double *angle,d
  */
 void Affine::Unshear(int preserve_x, int normalize)
 {
-    if (preserve_x) xaxis(transpose(xaxis()));
-    else yaxis(-transpose(yaxis()));
+    if (preserve_x) yaxis(transpose(xaxis()));
+    else xaxis(-transpose(yaxis()));
 
 	if (normalize) {
 		double d=norm(xaxis());
