@@ -39,10 +39,11 @@ class Affine
 	Affine(const double *m);
 	Affine(const Affine &m);
 	Affine(double xx,double xy,double yx,double yy,double tx,double ty);
-	Affine &operator=(Affine &m);
+	Affine &operator=(Affine const &m);
 	Affine &operator*=(Affine const &m);
 	Affine operator*(Affine const m);
 	virtual ~Affine();
+	virtual void set(Affine a);
 	virtual void setIdentity();
 	virtual bool isIdentity();
 	virtual void setRotation(double angle);

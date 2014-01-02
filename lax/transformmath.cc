@@ -70,8 +70,12 @@ namespace Laxkit {
 Affine::Affine()
 { transform_identity(_m); }
 
+//! If mm==NULL, set identity.
 Affine::Affine(const double *mm)
-{ memcpy(_m,mm, 6*sizeof(double)); }
+{
+	if (mm) memcpy(_m,mm, 6*sizeof(double));
+	else transform_identity(_m);
+}
 
 Affine::Affine(const Affine &mm)
 {
@@ -88,10 +92,10 @@ Affine::Affine(double xx,double xy,double yx,double yy,double tx,double ty)
 	_m[5]=ty;
 }
 
-Affine &Affine::operator=(Affine &mm)
+Affine &Affine::operator=(Affine const &mm)
 {
 	memcpy(_m, mm.m(), 6*sizeof(double));
-	return mm;
+	return *this;
 }
 
 Affine &Affine::operator*=(Affine const &M)
@@ -111,6 +115,9 @@ Affine Affine::operator*(Affine const m)
 
 Affine::~Affine()
 {}
+
+void Affine::set(Affine a)
+{ transform_copy(_m,a.m()); }
 
 void Affine::setIdentity()
 { transform_identity(_m); }
@@ -316,7 +323,7 @@ void Affine::Scale(flatpoint o, double s)
 {
 	flatpoint to=transform_point_inverse(_m,o);
 	Scale(s);
-	origin(origin()+transform_point(_m,to)-o);
+	origin(origin()-transform_point(_m,to)+o);
 }
 
 void Affine::Scale(flatpoint o,double sx,double sy)
