@@ -686,6 +686,30 @@ int MenuInfo::AddItem(const char *newitem,int nid,unsigned int nstate,int ninfo,
 	return curmenu->menuitems.n;
 }
 
+/*! A shortcut to add something like "group 1/subgroup/item" to submenu.
+ * Adds any non-existing intermediate groups (with id==0). Afterwards, curmenu is unchanged.
+ */
+int MenuInfo::AddDelimited(const char *newitem,char delimiter, int nid)
+{
+	if (!newitem || !*newitem) return 1;
+	
+	const char *st=strchr(newitem,delimiter);
+	if (!st) return AddItem(newitem,nid);
+
+	char *group=newnstr(newitem,st-newitem);
+	int i=curmenu->findIndex(group);
+	if (i<0) {
+		AddItem(group);
+		SubMenu();
+	} else {
+		SubMenu(NULL,i);
+	}
+	AddDelimited(st+1,delimiter,nid);
+	EndSubMenu();
+
+	return 0;
+}
+
 //! Add item detail to the item at the top of menuitems, or to towhich.
 /*! If there is no recent item, then return 1. On success, return 0.
  */
@@ -759,6 +783,21 @@ int MenuInfo::findLine(MenuItem *mi)
 				i+=minfo->howmany(-1,0);
 			}
 		}
+	}
+	return -1;
+}
+
+/*! Return index if name is in this menu, not a submenu.
+ * Note that name is not necessarily unique. If start_at>0, then start the search at that item.
+ *
+ * Return -1 if not found.
+ */
+int MenuInfo::findIndex(const char *name, int start_at)
+{
+	if (!name || start_at<0) return -1;
+	for (int c=start_at; c<menuitems.n; c++) {
+		if (!menuitems.e[c]->name) continue;
+		if (!strcmp(name,menuitems.e[c]->name)) return c;
 	}
 	return -1;
 }

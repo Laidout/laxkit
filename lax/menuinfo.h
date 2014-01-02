@@ -139,6 +139,7 @@ class MenuInfo : public anObject
 	virtual MenuItem *findFromLine(int i); // find element with index i, counting all open submenus
 	virtual int findLine(MenuItem *mi); // return index of mi counting all open submenus
 	virtual int findIndex(MenuItem *mi); // return index of mi only if mi is in this menu, not a submenu
+	virtual int findIndex(const char *name, int start_at=0); // return index if name is in this menu, not a submenu
 	virtual int findIndex(int checkid); // return index of element with checkid in this menu, not a submenu
 	virtual MenuItem *findid(int checkid); // find MenuItem with id==checkid
 	virtual int idexists(int check,MenuInfo *look); // whether an id==check exists somewhere in the menu.
@@ -146,6 +147,7 @@ class MenuInfo : public anObject
 	virtual int howmany(int maxn,int all=0); // maxn=0, maxn is only consider menuitems.e[c<maxn]
 
 	virtual int AddItem(const char *newitem,int nid=0);
+	virtual int AddDelimited(const char *newitem,char delimiter='/', int nid=0);
 	virtual int AddItem(const char *newitem,LaxImage *img,int nid=0);
 	virtual int AddItem(const char *newitem,int nid,unsigned int nstate,int ninfo=0,
 						MenuInfo *nsub=NULL,int where=-1,char subislocal=1);
