@@ -83,6 +83,8 @@ enum RectInterfaceActions {
 	RIA_FlipHorizontal,
 	RIA_FlipVertical,
 	RIA_ToggleFlipControls,
+	RIA_RotateCW,
+	RIA_RotateCCW,
 	RIA_MAX
 };
 
@@ -94,6 +96,7 @@ class RectInterface : public anInterface
 	flatpoint createp,createx,createy;
 	flatpoint center1,center2,shearpoint,leftp;
 	flatpoint flip1,flip2;
+	double rotatestep;
 	int hover;
 	int mousetarget;
 	int shiftmode;
@@ -106,6 +109,7 @@ class RectInterface : public anInterface
 	virtual void syncFromData(int first);
 	virtual const char *hoverMessage(int p);
 	virtual void Flip(int type);
+	virtual void Rotate(double angle);
 
 	Laxkit::ShortcutHandler *sc;
 	virtual int PerformAction(int action);

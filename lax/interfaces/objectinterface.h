@@ -45,6 +45,7 @@ class ObjectInterface : public RectInterface
 	Laxkit::PtrStack<ObjectContext> selection;
 	int dontclear;
 	virtual void Flip(int type);
+	virtual void Rotate(double angle);
 	virtual int PerformAction(int action);
   public:
 	ObjectInterface(int nid,Laxkit::Displayer *ndp);

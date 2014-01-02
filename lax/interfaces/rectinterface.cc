@@ -199,6 +199,8 @@ RectInterface::RectInterface(int nid,Displayer *ndp) : anInterface(nid,ndp)
 	createy=flatpoint(0,1);
 	griddivisions=10;
 
+	rotatestep=M_PI/12;
+
 	dragmode=0; //should be normal operations. ignored by RectInterface, but can be used by subclasses
 	shiftmode=0; //0 for normal, 1 for was doing single mouse cntl zoom/rotate
 
@@ -1027,6 +1029,15 @@ int RectInterface::LBDown(int x,int y,unsigned int state,int count,const Laxkit:
 	return 0;
 }
 
+void RectInterface::Rotate(double angle)
+{
+	if (!somedata) return;
+	somedata->xaxis(rotate(somedata->xaxis(),-rotatestep));
+	somedata->yaxis(rotate(somedata->yaxis(),-rotatestep));
+	needtodraw=1;
+	return;
+}
+
 //! Flip the rectangle. type must be one of RP_Flip_Go, RP_Flip_H, or RP_Flip_V.
 void RectInterface::Flip(int type)
 {
@@ -1667,9 +1678,12 @@ Laxkit::ShortcutHandler *RectInterface::GetShortcuts()
 	sc->Add(RIA_Normalize,     'n',0,0,        "Normalize",     _("Normalize scale, clear skew"),NULL,0);
 	sc->Add(RIA_Rectify,       'N',ShiftMask,0,"Rectify",       _("Normalize scale, clear skew and rotation"),NULL,0);
 	sc->Add(RIA_Constrain,     'c',0,0,        "Constrain",     _("Toggle drag constraint"),NULL,0);
-	sc->Add(RIA_MoveCenter,    'r',0,0,        "MoveCenter",    _("Move rotation center to common points"),NULL,0);
+	sc->AddAction(RIA_MoveCenter,              "MoveCenter",    _("Move rotation center to common points"),NULL,0,0);
 	sc->Add(RIA_ExpandHandle,  '>',ShiftMask,0,"ExpandHandle",  _("Expand handle size"),NULL,0);
 	sc->Add(RIA_ContractHandle,'<',ShiftMask,0,"ContractHandle",_("Contract handle size"),NULL,0);
+
+	sc->Add(RIA_RotateCW,      'r',0,0,        "RotateCW",      _("Rotate clockwise"),NULL,0);
+	sc->Add(RIA_RotateCCW,     'R',ShiftMask,0,"RotateCCW",     _("Rotate counter clockwise"),NULL,0);
 
 	sc->Add(RIA_FlipHorizontal    ,'h',0,0,    "FlipH",         _("Flip horizontally"),NULL,0);
 	sc->Add(RIA_FlipVertical      ,'v',0,0,    "FlipV",         _("Flip vertically"),NULL,0);
@@ -1700,6 +1714,16 @@ int RectInterface::PerformAction(int action)
 
 	} else if (action==RIA_FlipVertical) {
 		Flip(RP_Flip_V);
+		return 0;
+
+	} else if (action==RIA_RotateCW) {
+		if (!somedata) return 1;
+		Rotate(-rotatestep);
+		return 0;
+
+	} else if (action==RIA_RotateCCW) {
+		if (!somedata) return 1;
+		Rotate(rotatestep);
 		return 0;
 
 	} else if (action==RIA_ToggleFlipControls) {

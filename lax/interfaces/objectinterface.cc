@@ -527,6 +527,19 @@ int ObjectInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxM
 	return 0;
 }
 
+void ObjectInterface::Rotate(double angle)
+{
+	if (!somedata) return;
+
+	Affine t;
+	flatpoint p=(somedata->transformPoint(flatpoint(somedata->minx,somedata->miny))+
+				 somedata->transformPoint(flatpoint(somedata->maxx,somedata->maxy)))/2;
+	t.Rotate(angle,p);
+	somedata->Rotate(angle,p);
+	TransformSelection(t.m());
+	needtodraw=1;
+}
+
 void ObjectInterface::Flip(int type)
 {
 	if (!selection.n) return;
