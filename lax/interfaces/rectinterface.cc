@@ -279,6 +279,7 @@ int RectInterface::UseThis(anObject *newdata,unsigned int) // assumes not use lo
 		somedata->inc_count();
 		data=dynamic_cast<RectData *>(newdata);
 		extrapoints=0;
+		syncFromData(1);
 		needtodraw=1;
 		return 1;
 	}
@@ -1219,8 +1220,8 @@ int RectInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMou
 	flatpoint op;
 
 	if (curpoint==RP_Flip_H || curpoint==RP_Flip_V || curpoint==RP_Flip1 || curpoint==RP_Flip2) {
-		flatpoint np=transform_point_inverse(data->m(),dp->screentoreal( x, y));
-		op=transform_point_inverse(data->m(),dp->screentoreal(mx,my));
+		flatpoint np=transform_point_inverse(somedata->m(),dp->screentoreal( x, y));
+		op=transform_point_inverse(somedata->m(),dp->screentoreal(mx,my));
 		d=np-op;
 
 		if (curpoint==RP_Flip_H || curpoint==RP_Flip_V) {
