@@ -52,7 +52,7 @@ namespace LaxInterfaces {
 #define SOMEDATA_LOCK_POSITION  (1<<6)
  //only object tool can touch it
 #define SOMEDATA_LOCK_CONTENTS  (1<<7)
- //child objects are not not selectable
+ //child objects are not selectable
 #define SOMEDATA_LOCK_KIDS      (1<<8)
 #define SOMEDATA_UNSELECTABLE   (1<<9)
 #define SOMEDATA_UNEDITABLE     (1<<10)
