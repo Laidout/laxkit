@@ -411,12 +411,14 @@ void Path::append(flatpoint p,unsigned long flags,SegmentControls *ctl)
 }
 
 //! The path takes possession of coord. Calling code should not delete it.
+/*! coord can be a string of points or a single point, open or closed.
+ */
 void Path::append(Coordinate *coord)
 {
 	if (!path) path=coord;
 	else {
 		Coordinate *p=path->lastPoint(0);
-		p->connect(coord,1);
+		p->insert(coord,1);
 	}
 }
 
@@ -1090,6 +1092,14 @@ void PathsData::pushEmpty(int where,LineStyle *nls)
 	paths.push(new Path(NULL,nls),1,where);
 }
 
+void PathsData::InstallLineStyle(LineStyle *newlinestyle)
+{
+	if (linestyle==newlinestyle) return;
+	if (linestyle) linestyle->dec_count();
+	linestyle=newlinestyle;
+	if (newlinestyle) newlinestyle->inc_count();
+}
+
 //! Return the last point of the top path, or NULL if that doesn't exist
 Coordinate *PathsData::LastVertex()
 {
@@ -1145,6 +1155,14 @@ void PathsData::appendRect(double x,double y,double w,double h,SegmentControls *
 	append(x,y+h,POINT_VERTEX,ctl,whichpath);
 	close(whichpath);
 	FindBBox();
+}
+
+void PathsData::appendCoord(Coordinate *coord,int whichpath)
+{
+	if (whichpath<0 || whichpath>=paths.n) whichpath=paths.n-1;
+	if (paths.n==0) paths.push(new Path());
+	if (whichpath<0) whichpath=0;
+	paths.e[whichpath]->append(coord);
 }
 
 //! Just calls append(p.x,p.y,...).

@@ -120,6 +120,7 @@ class PathsData : virtual public SomeData
 
 	virtual int hasCoord(Coordinate *co);
 	virtual int pathHasCoord(int pathindex,Coordinate *co);
+	virtual void appendCoord(Coordinate *coord,int whichpath=-1);
 	virtual void append(double x,double y,unsigned long flags=POINT_VERTEX,SegmentControls *ctl=NULL,int whichpath=-1);
 	virtual void append(flatpoint p,unsigned long flags=POINT_VERTEX,SegmentControls *ctl=NULL,int whichpath=-1);
 	virtual void appendRect(double x,double y,double w,double h,SegmentControls *ctl=NULL,int whichpath=-1);
@@ -127,6 +128,7 @@ class PathsData : virtual public SomeData
 	virtual void close(int whichpath=-1);
 	virtual Coordinate *LastVertex();
 	virtual void pushEmpty(int where=-1,LineStyle *nls=NULL);
+	virtual void InstallLineStyle(LineStyle *newlinestyle);
 	virtual void fixpath(int index);
 //	virtual int AddAfter(Coordinate *afterwhich,flatpoint p); 
 //	virtual int Delete(Coordinate *which); // returns num left in stack
