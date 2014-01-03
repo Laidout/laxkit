@@ -109,6 +109,8 @@ class anInterface : virtual public Laxkit::EventReceiver,
 	virtual int Event(const Laxkit::EventData *e, const char *mes) { return 1; }
 	virtual void ExposeChange(Laxkit::ScreenEventData *e) { Needtodraw(1); }
 	virtual void ViewportResized() {}
+	virtual void Mapped() {}
+	virtual void Unmapped() {}
 	virtual int Refresh() { needtodraw=0; return 0; }
 	virtual void PostMessage(const char *message);
 

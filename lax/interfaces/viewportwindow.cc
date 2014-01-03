@@ -593,6 +593,15 @@ int ViewportWindow::Needtodraw()
  */
 int ViewportWindow::Event(const EventData *e,const char *mes)
 {
+	if (e->type==LAX_onUnmapped) {
+		for (int c=0; c<interfaces.n; c++) { interfaces.e[c]->Unmapped(); }
+		return anXWindow::Event(e,mes);
+
+	} else if (e->type==LAX_onMapped) {
+		for (int c=0; c<interfaces.n; c++) { interfaces.e[c]->Mapped(); }
+		return anXWindow::Event(e,mes);
+	}
+
 	if (!strcmp(mes,"pan change")) {
 		dp->syncFromPanner();
 		syncrulers();

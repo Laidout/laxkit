@@ -232,6 +232,17 @@ namespace LaxInterfaces {
  * the interface is using d.
  */
 
+
+/*! \fn void anInterface::ViewportResized()
+ * \brief Called after the parent viewport gets resized.
+ */
+/*! \fn void anInterface::Mapped()
+ * \brief Called after the parent viewport gets mapped (made visible).
+ */
+/*! \fn void anInterface::Unmapped()
+ * \brief Called after the parent viewport gets mapped (made invisible, such as offscreen, not merely obscured).
+ */
+
 	
 //!  This constructor assigns id=getUniqueNumber().
 anInterface::anInterface()
