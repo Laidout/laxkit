@@ -37,10 +37,9 @@ objs= \
 	colorpatchinterface.o \
 	imagepatchinterface.o\
 	pathinterface.o \
+	freehandinterface.o \
 	captioninterface.o \
 
-#	freehandinterface.o \
-#	bezinterface.o \
 #	linesinterface.o \
 #	ellipseinterface.o \
 #	measureinterface.o \
