@@ -468,7 +468,7 @@ Coordinate *Coordinate::detach()
 
 //! Insert point after *this (if after!=0) else before *this.
 /*! Assumes that c is the most previous point in a list of one or
- *  more points, that is not closed. Also assumes that the segment
+ *  more points, that is open or closed. Also assumes that the segment
  *  is sectioned correctly, that is, it does not sever control segments.
  *  PathInterface is supposed to check for that. Returns 1 on success.
  */
@@ -662,6 +662,52 @@ flatpoint Coordinate::direction(int after)
 }
 
 
+
+//----------------------------------- Coordinate Shape Makers ----------------------------------
+
+
+/*! Returns polygon arranged in counterclockwise direction as viewed in right handed
+ * coordinate system.
+ */
+Coordinate *CoordinatePolygon(flatpoint center, double radius, bool point_on_x_axis, int num_sides, int num_winding)
+{
+	Coordinate *coord=NULL;
+	Coordinate *cc=NULL;
+
+	double angle=num_winding*2*M_PI/num_sides;
+	double start=0;
+	if (!point_on_x_axis) start=angle/2;
+	double a=start;
+
+	flatpoint p;
+	for (int c=0; c<num_sides; c++) {
+		p=center+flatpoint(radius*cos(a), radius*sin(a));
+		a+=angle;
+
+		if (cc==NULL) {
+			coord=cc=new Coordinate(p);
+		} else {
+			cc->next=new Coordinate(p);
+			cc->next->prev=cc;
+			cc=cc->next;
+		}
+	}
+
+	coord->prev=cc;
+	cc->next=coord;
+
+	return coord;
+}
+
+///*! round==1 is maximum, meaning edge to midpoint is rounded.
+// * round is the round extent counterclockwise from a point, round2 on the
+// * clockwise side.
+// */
+//Coordinate RoundedRectangle(flatpoint ll, flatpoint ur, double round,double round2)
+//{
+//	***
+//	
+//}
 } //namespace LaxInterfaces
 
 
