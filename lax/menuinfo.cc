@@ -936,7 +936,7 @@ int MenuInfo::SetRecursively(unsigned long nstate, int on, int ignoreunmade)
 void MenuInfo::ClearSearch()
 { SetRecursively(MENU_SEARCH_HIT|MENU_SEARCH_PARENT|MENU_SEARCH_HIDDEN, 0, 1); }
 
-//! Progressively search for items, caseless+partial.
+//! Progressively search for items, caseless+partial. search==NULL matches all.
 /*! Sets MENU_SEARCH_HIT on matching items.
  *  Sets MENU_SEARCH_PARENT on items that don't match, but who has descendents.
  *
@@ -955,11 +955,11 @@ int MenuInfo::Search(const char *search, int isprogressive, int ignoreunmade)
 	MenuItem *p;
 	int n=0;
 	for (int c=0; c<menuitems.n; c++) {
-		if (menuitems.e[c]->name && strcasestr(menuitems.e[c]->name, search)) {
+		if (!search || (menuitems.e[c]->name && strcasestr(menuitems.e[c]->name, search))) {
 			 //got one!
 			n++;
 			menuitems.e[c]->state|=MENU_SEARCH_HIT;
-			DBG cerr <<" SEARCH \""<<search<<"\" hit: "<<menuitems.e[c]->name<<endl;
+			DBG cerr <<" SEARCH \""<<(search?search:"(null)")<<"\" hit: "<<menuitems.e[c]->name<<endl;
 
 			 //set parents to force visible
 			p=parent;
