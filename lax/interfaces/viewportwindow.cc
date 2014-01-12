@@ -878,12 +878,25 @@ int ViewportWindow::WheelDown(int x,int y,unsigned int state,int count,const Lax
 int ViewportWindow::LBDown(int x,int y,unsigned int state,int count,const Laxkit::LaxMouse *d)
 {
 	DBG cerr <<"in ViewportWindow::lbdown:"<<x<<','<<y<<".."<<endl;
-	for (int c=interfaces.n-1; c>=0; c--) { //***
+
+
+	for (int c=interfaces.n-1; c>=0; c--) {
+		if (interfaces.e[c]->interface_type!=INTERFACE_Overlay) continue;
 		if (!interfaces.e[c]->LBDown(x,y,state,count,d)) {
 			buttondown.down(d->id,LEFTBUTTON, x,y, state, interfaces.e[c]->id);
 			return 0; //interface claimed the event
 		}
 	}
+
+	for (int c=interfaces.n-1; c>=0; c--) {
+		if (interfaces.e[c]->interface_type==INTERFACE_Overlay) continue;
+		if (!interfaces.e[c]->LBDown(x,y,state,count,d)) {
+			buttondown.down(d->id,LEFTBUTTON, x,y, state, interfaces.e[c]->id);
+			return 0; //interface claimed the event
+		}
+	}
+
+	
 	buttondown.down(d->id,LEFTBUTTON, x,y, state, 0);
 
 	 // if here, then mouse down on nothing, so try to select an object...
@@ -899,8 +912,16 @@ int ViewportWindow::LBDown(int x,int y,unsigned int state,int count,const Laxkit
 int ViewportWindow::LBUp(int x,int y,unsigned int state,const Laxkit::LaxMouse *d) 
 {
 	DBG cerr <<"  ViewportWindow::lbup.."<<endl;
+
 	buttondown.up(d->id,LEFTBUTTON);
-	for (int c=interfaces.n-1; c>=0; c--) { //***
+	for (int c=interfaces.n-1; c>=0; c--) {
+		if (interfaces.e[c]->interface_type!=INTERFACE_Overlay) continue;
+		if (!interfaces.e[c]->LBUp(x,y,state,d)) 
+			return 0; //interface claimed the event
+	}
+
+	for (int c=interfaces.n-1; c>=0; c--) {
+		if (interfaces.e[c]->interface_type==INTERFACE_Overlay) continue;
 		if (!interfaces.e[c]->LBUp(x,y,state,d)) 
 			return 0; //interface claimed the event
 	}
