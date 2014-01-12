@@ -1,7 +1,9 @@
 #!/usr/bin/perl
 
 #
-# Use to convert $Date$ and $Id$ to relevant lines, now that we are on git instead of svn:
+# Use to convert $Date$ and $Id$ to relevant lines.
+# Now that we are on git instead of svn, we must do this manually.
+#
 # > convertKeywords [files...]
 # This makes all lines from * like:
 #     $Date$
@@ -25,9 +27,8 @@ foreach $file (@ARGV) {
 
 	$date=localtime($st->mtime);
 	$commit=lastcommit($file);
-	print "commit: $commit\n";
 	$id="$file, last commit $commit";
-	print "mod time: ".localtime($st->mtime)."\n";
+	#print "mod time: ".localtime($st->mtime)."\n";
 
 	if (open (INFILE, "<$file")) {
 		print "Converting keywords in $file\n";
@@ -51,10 +52,8 @@ sub lastcommit
 	my $command="git log $file | grep Date:";
 
 	my $output=`$command`;
-	print "output before: \"".$output."\"\n";
 	$output =~ s/\s+$//; #trim trailing whitespace
 	$output =~ s/Date: *(.*)$/\1/;
-	print "output after: \"".$output."\"\n";
 	return $output;
 }
 
