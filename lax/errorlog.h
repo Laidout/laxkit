@@ -71,9 +71,9 @@ class ErrorLog
 	virtual ErrorLogNode *Message(int i);
 	virtual const char *MessageStr(int i);
 	virtual char *FullMessageStr();
-	virtual int Warnings();
-	virtual int Errors();
-	virtual int Oks();
+	virtual int Warnings(int since=0);
+	virtual int Errors(int since=0);
+	virtual int Oks(int since=0);
 	virtual void Clear();
 };
 

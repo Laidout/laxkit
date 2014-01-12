@@ -174,24 +174,27 @@ ErrorLogNode *ErrorLog::Message(int i)
 }
 
 //! Return the number of ok notes.
-int ErrorLog::Oks()
+int ErrorLog::Oks(int since)
 {
+	if (since<0) since=0;
 	int n=0;
 	for (int c=0; c<messages.n; c++) if (messages.e[c]->severity==ERROR_Ok) n++;
 	return n;
 }
 
 //! Return the number of warnings.
-int ErrorLog::Warnings()
+int ErrorLog::Warnings(int since)
 {
+	if (since<0) since=0;
 	int n=0;
 	for (int c=0; c<messages.n; c++) if (messages.e[c]->severity==ERROR_Warning) n++;
 	return n;
 }
 
 //! Return the number of failing errors.
-int ErrorLog::Errors()
+int ErrorLog::Errors(int since)
 {
+	if (since<0) since=0;
 	int n=0;
 	for (int c=0; c<messages.n; c++) if (messages.e[c]->severity==ERROR_Fail) n++;
 	return n;
