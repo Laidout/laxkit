@@ -55,6 +55,7 @@ class Affine
 	virtual void Translate(flatvector d);
 	virtual void Rotate(double angle);
 	virtual void Rotate(double angle, flatpoint around_point);
+	virtual void RotatePointed(flatpoint anchor1, flatpoint anchor2, flatpoint newanchor2);
 	virtual void RotateScale(flatpoint anchor1, flatpoint anchor2, flatpoint newanchor2);
 	virtual void Stretch(flatpoint anchor1, flatpoint anchor2, flatpoint newanchor2);
 	virtual void AnchorShear(flatpoint anchor1, flatpoint anchor2, flatpoint anchor3, flatpoint newanchor3);

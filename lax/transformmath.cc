@@ -239,6 +239,16 @@ void Affine::Rotate(double angle, flatpoint around_point)
 	transform_copy(_m,mm);
 }
 
+void Affine::RotatePointed(flatpoint anchor1, flatpoint anchor2, flatpoint newanchor2)
+{
+	double angle=angle2(newanchor2-anchor1, anchor2-anchor1);
+	Rotate(angle,anchor1);
+	//flatpoint a1=transformPoint(anchor1);
+	//xaxis(rotate(xaxis(), angle));
+	//yaxis(rotate(yaxis(), angle));
+	//origin(origin() + transformPoint(anchor1)-a1);
+}
+
 //! Rotate and scale so that anchor1 stays fixed, but anchor2 is shifted to newanchor2.
 void Affine::RotateScale(flatpoint anchor1, flatpoint anchor2, flatpoint newanchor2)
 {
@@ -278,7 +288,8 @@ void Affine::Stretch(flatpoint anchor1, flatpoint anchor2, flatpoint newanchor2)
 	p*=d;
 	flatpoint newa= anchor1+p;
 
-	AnchorShear(anchor1,newanchor2, transformPointInverse(olda),newa);
+	//AnchorShear(anchor1,newanchor2, transformPointInverse(olda),newa);
+	AnchorShear(anchor1,newanchor2, olda,newa);
 }
 
 //! Transform so that anchor1 and 2 stay fixed, but anchor3 is shifted to newanchor3.
