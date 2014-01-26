@@ -771,8 +771,15 @@ flatpoint *draw_thing_coordinates(DrawThingTypes thing, flatpoint *buffer, int b
 		p[24].info=LINE_End;
 		memcpy(buffer,p,25*sizeof(flatpoint));
 
-//	} else if (thing==THING_Check) {
-//		***
+	} else if (thing==THING_Check) {
+		if ((buffer && buffer_size<4) || (!buffer && buffer_size>=0)) { *n_ret=4; return NULL; }
+		*n_ret=4;
+		if (!buffer) buffer=new flatpoint[4];
+
+		buffer[0]=flatpoint(.1,.6);
+		buffer[1]=flatpoint(.33,.267);
+		buffer[2]=flatpoint(.9,.8);
+		buffer[3]=flatpoint(.33,.444, LINE_End);
 
 //	} else if (thing==THING_Locked) {
 //		***
