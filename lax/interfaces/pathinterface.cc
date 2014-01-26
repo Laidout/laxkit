@@ -2696,7 +2696,6 @@ int PathInterface::LBDown(int x,int y,unsigned int state,int count,const LaxMous
 	if (curpathop && primary) lbfound=scan(x,y,curpathop->id);
 	else lbfound=scan(x,y);
 	lbselected=1;
-	drawhover=0;
 
 	// Add Point if did not find any point, and is primary.
 	// also flush curpoints,
