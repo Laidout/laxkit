@@ -155,7 +155,13 @@ SomeData::~SomeData()
  */
 const char *SomeData::Id()
 {
-    if (!nameid) nameid=make_id(whattype());
+    if (!nameid) {
+		if (object_idstr) makestr(nameid,object_idstr);
+		else {
+			nameid=make_id(whattype());
+			makestr(object_idstr,nameid);
+		}
+	}
     return nameid; 
 }
 
