@@ -164,4 +164,12 @@ int DoubleBBox::boxcontains(double x, double y)
 	return 0;
 }
 
+/*! Return the absolute point given bbox points.
+ * That is, point (0,0) is returned as (minx,miny)
+ * and (1,1) is returned as (maxx, maxy).
+ */
+flatpoint DoubleBBox::BBoxPoint(double x,double y)
+{ return flatpoint(minx+x*(maxx-minx),miny+y*(maxy-miny)); }
+
+
 } // namespace Laxkit 

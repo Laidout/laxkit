@@ -47,6 +47,7 @@ class DoubleBBox {
 	virtual int intersect(DoubleBBox *bbox, int settointersection=0);
 	virtual int intersect(double *m,DoubleBBox *bbox, int touching, int settointersection);
 	virtual int boxcontains(double x, double y);
+	virtual flatpoint BBoxPoint(double x,double y);
 };
 	
 } // namespace Laxkit
