@@ -290,6 +290,16 @@ int ViewerWindow::SelectToolFor(const char *datatype,ObjectContext *oc)//data=NU
 	return !curtool->UseThisObject(oc); // UseThis returns 1 for used..
 }
 
+/*! Make the tool with the given whattype() the current tool.
+ * Basically, find that tool in this->tools, then call SelectTool(id).
+ */
+int ViewerWindow::SelectTool(const char *type)
+{
+	for (int ti=0; ti<tools.n; ti++)
+		if (!strcmp(type,tools.e[ti]->whattype())) return SelectTool(tools.e[ti]->id);
+	return 1;
+}
+
 //! Make the tool with this id the current tool, or previous (id==-2), next (id==-1), or first (id==0). 
 /*! Return 1 for error, 0 for tool selected, -1 for overlay toggled.
  *
@@ -302,6 +312,7 @@ int ViewerWindow::SelectTool(int id)
 {
 	if (tools.n==0) return 1;
 	if (curtool && curtool->id==id) return 0;
+
 	int ti; //index of tool to select in tools stack
 	if (id==-2 || id==-1) { // select previous or next
 		if (!curtool) ti=0;
@@ -324,6 +335,7 @@ int ViewerWindow::SelectTool(int id)
 		}
 	} else if (id==0) ti=0;
 	else for (ti=0; ti<tools.n; ti++) if (id==tools.e[ti]->id) break;
+
 	if (ti==tools.n || ti<0) { 
 		DBG cerr <<"********* no tool found for id "<<id<<endl; 
 		return 1;
