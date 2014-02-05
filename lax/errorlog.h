@@ -18,6 +18,10 @@
 
 #include <lax/lists.h>
 
+
+namespace Laxkit {
+
+
 //---------------------------------- ErrorLog -----------------------------
 
 /*! ERROR_Ok, means everything checks out.
@@ -78,6 +82,9 @@ class ErrorLog
 };
 
 void dumperrorlog(const char *mes,ErrorLog &log);
+
+
+} //namespace Laxkit
 
 
 #endif

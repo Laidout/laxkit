@@ -19,11 +19,16 @@
 
 #include <lax/lists.cc>
 
-using namespace Laxkit;
 
 #include <iostream>
 using namespace std;
 #define DBG
+
+
+
+namespace Laxkit {
+
+
 
 //---------------------------------- ErrorLog -----------------------------
 
@@ -199,4 +204,8 @@ int ErrorLog::Errors(int since)
 	for (int c=0; c<messages.n; c++) if (messages.e[c]->severity==ERROR_Fail) n++;
 	return n;
 }
+
+} //namespace Laxkit
+
+
 
