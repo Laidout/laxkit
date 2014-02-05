@@ -172,6 +172,16 @@ const char *SomeData::Id(const char *newid)
 	return nameid;
 } 
 
+/*! Like Laxkit::DoubleBBox::BBoxPoint(x,y), but if transform_to_parent==true,
+ * then transform the point by m().
+ */
+flatpoint SomeData::BBoxPoint(double x,double y, bool transform_to_parent)
+{
+	flatpoint p=DoubleBBox::BBoxPoint(x,y);
+	if (transform_to_parent) return transformPoint(p);
+	return p;
+}
+
 //! Render the object to a buffer.
 /*! This draws onto buffer such that the object's whole bounding box maps to the whole buffer.
  *
