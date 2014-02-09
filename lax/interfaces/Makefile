@@ -39,6 +39,7 @@ objs= \
 	pathinterface.o \
 	freehandinterface.o \
 	captioninterface.o \
+	engraverfillinterface.o \
 
 #	linesinterface.o \
 #	ellipseinterface.o \
