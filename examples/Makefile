@@ -25,6 +25,9 @@ all: laxhello interfs timers
 interfs: lax laxinterface interfs.o
 	$(LD) $(LDFLAGS) interfs.o -llaxinterfaces -llaxkit -o $@
 
+interfs2: lax laxinterface interfs2.o
+	$(LD) $(LDFLAGS) interfs2.o -llaxinterfaces -llaxkit -o $@
+
 cairotest: lax laxinterface cairotest.o
 	$(LD) $(LDFLAGS) $@.o  -llaxinterfaces -llaxkit -o $@
 
