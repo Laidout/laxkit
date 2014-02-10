@@ -71,6 +71,7 @@ class CurveInfo : public anObject, public LaxFiles::DumpUtility
 	virtual flatpoint MapUnitPoint(flatpoint p);
 	virtual int AddPoint(double x,double y);
 	virtual int MovePoint(int index, double x,double y);
+	virtual void SetSinusoidal(int samples);
 	virtual void Reset();
 
 	virtual void MakeFakeCurve();

@@ -448,6 +448,25 @@ double CurveInfo::f_bezier(double x)
 	return y*(ymax-ymin) + ymin;
 }
 
+/*! Make a sine like curve with max point at minx, min point at maxx.
+ * samples needs to be >= 2.
+ */
+void CurveInfo::SetSinusoidal(int samples)
+{
+	if (samples<2) return;
+
+	points.flush();
+	flatvector p;
+
+	samples--;
+
+	for (int c=0; c<=samples; c++) {
+		p.x=((double)c)/samples;
+		p.y=.5+.5*cos(M_PI*c/samples);
+		points.push(p);
+	}
+}
+
 //! Fills fauxpoints with c-v-c-c-v-c...
 /*! Basically for each point, push handles that are parallel to a line connecting
  * the points on either side.
