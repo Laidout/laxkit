@@ -81,7 +81,7 @@ class anInterface : virtual public Laxkit::EventReceiver,
 	virtual const char *Name() { return "An Interface"; }
 	virtual const char *whattype() { return "anInterface"; }
 	virtual const char *whatdatatype() = 0;
-	virtual int draws(const char *atype) { return !strcmp(whatdatatype(),atype); }
+	virtual int draws(const char *atype) { return whatdatatype()!=NULL && !strcmp(whatdatatype(),atype); }
 	
 	virtual void Clear();
 	virtual int InterfaceOn() { return 0; }
