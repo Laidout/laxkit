@@ -25,10 +25,14 @@
 // ******* todo *********
 //
 // Needs clip boundary
-// rotate direction
+// rotate direction on canvas controller
 // point generators
-// curved lines, not polylines
 // mesh controls are really bad
+// need mode based shortcuts
+// reasonable caps
+//
+// DONE direction for default lines not installing correctly when downward
+// DONE curved lines, not polylines
 //
 
 
@@ -43,6 +47,7 @@
 #include <lax/strmanip.h>
 #include <lax/language.h>
 #include <lax/fileutils.h>
+#include <lax/filedialog.h>
 
 #include <lax/lists.cc>
 
@@ -101,9 +106,9 @@ void LinePoint::Add(LinePoint *np)
 EngraverFillData::EngraverFillData()
   : PatchData(0,0,1,1,1,1,0)
 {
-	usepreview=1;
+	usepreview=0;
 
-	direction.x=1;
+	direction=flatvector(1,0);
 
 	maxx=maxy=1;
 }
@@ -165,6 +170,69 @@ void EngraverFillData::FillRegularLines(double weight)
 {
 	 // create generic lines to experiment with weight painting...
 	int n=25;
+	double spacing=1./n;
+
+	lines.flush();
+	nlines=0;
+	LinePoint *p;
+
+	//double totalh=spacing*n;
+	if (weight<=0) weight=spacing/10; // *** weight is actual distance, not s,t!!
+
+	flatvector v=direction;
+	if (v.x<0) v=-v;
+	v.normalize();
+	flatvector vt=transpose(v);
+	vt*=spacing;
+
+	if (v.y<0) lines.push(new LinePoint(0,1,weight)); //push a (0,0) starter point
+	else       lines.push(new LinePoint(0,0,weight)); //push a (0,0) starter point
+
+	 //starter points along y
+	double sp;
+	if (vt.y) {
+		sp=fabs(spacing*spacing/vt.y);
+		if (sp<1) {
+			for (double yy=sp; yy<=1; yy+=sp) {
+				if (v.y<0) lines.push(new LinePoint(0,1-yy, weight));
+				else       lines.push(new LinePoint(0,yy, weight));
+			}
+		}
+	}
+
+	 //starter points along x
+	if (vt.x) {
+		sp=fabs(spacing*spacing/vt.x);
+		if (sp<1) {
+			for (double xx=sp; xx<=1; xx+=sp) {
+				if (v.y<0) lines.push(new LinePoint(xx,1, weight));
+				else       lines.push(new LinePoint(xx,0, weight));
+			}
+		}
+	}
+
+	 //grow lines
+	flatvector pp;
+	for (int c=0; c<lines.n; c++) {
+		p=lines.e[c];
+
+		while (p->s>=0 && p->t>=0 && p->s<=1 && p->t<=1) {
+			pp=flatpoint(p->s,p->t) + spacing*v;
+			p->next=new LinePoint(pp.x, pp.y, weight);
+			p->next->prev=p;
+			p=p->next;
+		}
+
+		nlines++;
+	}
+}
+
+/*! Like FillRegularLines(), but assumes direction==(1,0).
+ */
+void EngraverFillData::FillRegularLinesHorizontal(double weight)
+{
+	 // create generic lines to experiment with weight painting...
+	int n=25;
 	double spacing=10;
 	//double dim=n*spacing;
 
@@ -182,10 +250,8 @@ void EngraverFillData::FillRegularLines(double weight)
 		p->s=0;
 		p->t=c/(double)n;
 		p->weight=weight;
-		//p->weight=weight /spacing*2;
 
 		for (int c2=1; c2<=n; c2++) {
-			//p->next=new LinePoint(c2/(double)n, c/(double)n, weight * (c2)/spacing*2);
 			p->next=new LinePoint(c2/(double)n, c/(double)n, weight);
 			p->next->prev=p;
 			p=p->next;
@@ -193,8 +259,6 @@ void EngraverFillData::FillRegularLines(double weight)
 
 		nlines++;
 	}
-
-	//zap(flatpoint(0,0), flatpoint(n*spacing,0), flatpoint(0,n*spacing));
 }
 
 void EngraverFillData::Set(double xx,double yy,double ww,double hh,int nr,int nc,unsigned int stle)
@@ -331,6 +395,7 @@ void EngraverFillData::dump_out_svg(const char *file)
 				"     inkscape:label=\"Layer 1\"\n"
 				"     inkscape:groupmode=\"layer\"\n"
 				"     id=\"layer1\">\n");
+	fprintf(f,  "  <g id=\"themesh\"\n>");
  
 	// *** output paths
 	//  <path d="....the full outline....."
@@ -338,6 +403,7 @@ void EngraverFillData::dump_out_svg(const char *file)
 	//        inkscape:original-d="....original path...."
 
 	NumStack<flatvector> points;
+	NumStack<flatvector> points2;
 
 	LinePoint *l, *last, *last2;
 	flatvector t, tp;
@@ -347,6 +413,7 @@ void EngraverFillData::dump_out_svg(const char *file)
 
 	for (int c=0; c<lines.n; c++) {
 		points.flush();
+		points2.flush();
 
 		l=lines.e[c];
 		last=l;
@@ -367,6 +434,12 @@ void EngraverFillData::dump_out_svg(const char *file)
 			p1=last->p + last->weight/2*t;
 			p2=last->p - last->weight/2*t;
 
+			if (last==lines.e[c]) {
+				 //first point cap
+				points.push(last->p-last->weight/2*tp);
+				points.push(p1-last->weight*.001*tp);
+				points.push(p2-last->weight*.001*tp);
+			}
 			points.push(p1);
 			points.push(p2);
 
@@ -375,35 +448,98 @@ void EngraverFillData::dump_out_svg(const char *file)
 			l=l->next;
 		}
 
-		// *** do last point... last2 -> last
+		 //do last point... last2 -> last
 		points.push(last->p + last->weight/2*t);
 		points.push(last->p - last->weight/2*t);
 
+		 //final point cap
+		points.push(last->p + last->weight/2*t + last->weight*.001*tp);
+		points.push(last->p - last->weight/2*t + last->weight*.001*tp);
+		points.push(last->p + last->weight/2*tp);
+
 		if (points.n) {
+			 //convert to bez approximation
+			points2.push(points.e[0]); //initial cap
+			for (int c2=1; c2<points.n-1; c2+=2)    points2.push(points.e[c2]);
+
+			points2.push(points.e[points.n-1]); //final cap
+			for (int c2=points.n-2; c2>0; c2-=2) points2.push(points.e[c2]);
+			
+
+			BezApproximate(points,points2);
+
+
 			fprintf(f,"    <path d=\"");
-			for (int c2=0; c2<points.n; c2+=2) {
-				if (c2==0) fprintf(f,"M "); else fprintf(f,"L ");
-
-				fprintf(f,"%f %f ", points.e[c2].x,points.e[c2].y);
-			}
-			for (int c2=points.n-1; c2>=0; c2-=2) {
-				if (c2==0) fprintf(f,"M "); else fprintf(f,"L ");
-
-				fprintf(f,"%f %f ", points.e[c2].x,points.e[c2].y);
+			fprintf(f,"M %f %f ", points.e[0].x,points.e[0].y);
+			for (int c2=1; c2<points.n-2; c2+=3) {
+				fprintf(f,"C %f %f %f %f %f %f ",
+					points.e[c2+1].x,points.e[c2+1].y,
+					points.e[c2+2].x,points.e[c2+2].y,
+					points.e[c2+3].x,points.e[c2+3].y);
 			}
 
-			fprintf(f,"\" />\n");
+//			for (int c2=0; c2<points.n; c2+=2) {
+//				if (c2==0) fprintf(f,"M "); else fprintf(f,"L ");
+//
+//				fprintf(f,"%f %f ", points.e[c2].x,points.e[c2].y);
+//			}
+//			for (int c2=points.n-1; c2>=0; c2-=2) {
+//				if (c2==0) fprintf(f,"M "); else fprintf(f,"L ");
+//
+//				fprintf(f,"%f %f ", points.e[c2].x,points.e[c2].y);
+//			}
+
+			fprintf(f,"z \" />\n");
 		}
 	}
 
 
-	fprintf(f,  " </g>\n"
+	fprintf(f,  "  </g>\n"
+				" </g>\n"
 				"</svg>\n");
 
 
 	fclose(f);
 }
 
+
+void EngraverFillData::BezApproximate(Laxkit::NumStack<flatvector> &fauxpoints, Laxkit::NumStack<flatvector> &points)
+{
+    fauxpoints.flush();
+
+    flatvector v,p, pp,pn;
+	flatvector opn, opp;
+
+    //fauxpoints.push(points.e[0]); //ignored control point
+    //fauxpoints.push(points.e[0]);
+    //fauxpoints.push(points.e[0]);
+
+    int c=1;
+    double sx;
+    for ( ; c<points.n; c++) {
+		if (c==0) opp=points.e[points.n-1]; else opp=points.e[c-1];
+		if (c==points.n-1) opn=points.e[0]; else opn=points.e[c+1];
+
+
+        v=opn-opp;
+        v.normalize();
+
+        p=points.e[c];
+        sx=norm(p-opp)*.5;
+        pp=p - v*sx;
+
+        sx=norm(opn-p)*.5;
+        pn=p + v*sx;
+
+        fauxpoints.push(pp);
+        fauxpoints.push(p);
+        fauxpoints.push(pn);
+
+    }
+    //fauxpoints.push(points.e[c]);
+    //fauxpoints.push(points.e[c]); //the final point
+    //fauxpoints.push(points.e[c]); //ignored final point
+}
 
 
 ////------------------------------ EngraverFillInterface -------------------------------
@@ -419,23 +555,27 @@ void EngraverFillData::dump_out_svg(const char *file)
 enum EngraverModes {
 	EMODE_Mesh,
 	EMODE_Thickness,
+	EMODE_Orientation,
 	EMODE_Freehand
 };
 
 EngraverFillInterface::EngraverFillInterface(int nid,Displayer *ndp) : PatchInterface(nid,ndp)
 {
-	rendermode=1;
+	showdecs=SHOW_Points|SHOW_Edges;
+	rendermode=3;
 	recurse=0;
+	edata=NULL;
 
-	//mode=EMODE_Thickness;
 	mode=EMODE_Mesh;
+	//mode=EMODE_Thickness;
 	//mode=EMODE_Freehand;
 
 	brush_radius=40;
 
 	thickness.curvetype=CurveInfo::Bezier;
-	thickness.AddPoint(0,1);
-	thickness.AddPoint(1,0);
+	thickness.SetSinusoidal(5);
+	//thickness.AddPoint(0,1);
+	//thickness.AddPoint(1,0);
 	thickness.RefreshLookup();
 
 	whichcontrols=Patch_Coons;
@@ -479,6 +619,7 @@ PatchData *EngraverFillInterface::newPatchData(double xx,double yy,double ww,dou
 	//ndata->xaxis(flatpoint(1,0)/Getmag()*100);
 	//ndata->yaxis(flatpoint(0,1)/Getmag()*100);
 
+	ndata->style|=PATCH_SMOOTH;
 	ndata->FillRegularLines(1./dp->Getmag());
 	ndata->Sync();
 	ndata->FindBBox();
@@ -526,9 +667,18 @@ int EngraverFillInterface::UseThis(Laxkit::anObject *nobj,unsigned int mask) // 
 	return 0;
 }
 
+void EngraverFillInterface::deletedata()
+{
+	PatchInterface::deletedata();
+	edata=NULL;
+}
+
+
 //! Catch a double click to pop up an ImageDialog.
 int EngraverFillInterface::LBDown(int x,int y,unsigned int state,int count,const Laxkit::LaxMouse *d)
 {
+	if (!edata) mode=EMODE_Mesh;
+
 	if (mode==EMODE_Mesh) {
 		int c=PatchInterface::LBDown(x,y,state,count,d);
 		if (!edata && data) edata=dynamic_cast<EngraverFillData*>(data);
@@ -602,7 +752,8 @@ int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit
 					if (d<rr) {
 						 //point is within
 						a=sqrt(d/rr);
-						a=1-thickness.f(a);
+						//a=1-thickness.f(a);
+						a=thickness.f(a);
 						if ((state&LAX_STATE_MASK)==ControlMask) {
 							a=1-a*.01;
 						} else {
@@ -627,7 +778,13 @@ int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit
 int EngraverFillInterface::DrawData(Laxkit::anObject *ndata,anObject *a1,anObject *a2,int info) // info=0
 {
 	if (!ndata || dynamic_cast<EngraverFillData *>(ndata)==NULL) return 1;
-	return PatchInterface::DrawData(ndata,a1,a2,info);
+
+	EngraverFillData *ee=edata;
+	edata=dynamic_cast<EngraverFillData *>(ndata);
+	int c=PatchInterface::DrawData(ndata,a1,a2,info);
+	edata=ee;
+
+	return c;
 }
 
 int EngraverFillInterface::Refresh()
@@ -687,6 +844,9 @@ int EngraverFillInterface::Refresh()
 
 enum EngraveShortcuts {
 	ENGRAVE_SwitchMode=PATCHA_MAX,
+	ENGRAVE_ExportSvg,
+	ENGRAVE_RotateDir,
+	ENGRAVE_RotateDirR,
 	ENGRAVE_MAX
 };
 
@@ -712,10 +872,43 @@ int EngraverFillInterface::PerformAction(int action)
 
 		needtodraw=1;
 		return 0;
+
+	} else if (action==ENGRAVE_ExportSvg) {
+		app->rundialog(new FileDialog(NULL,"Export Svg",_("Export engraving to svg"),ANXWIN_REMEMBER|ANXWIN_CENTER,0,0,0,0,0,
+									  object_id,"exportsvg",FILES_SAVE, "out.svg"));
+		return 0;
+
+	} else if (action==ENGRAVE_RotateDir || action==ENGRAVE_RotateDirR) {
+		edata->direction=rotate(edata->direction, (action==ENGRAVE_RotateDir ? M_PI/12 : -M_PI/12), 0);
+		edata->FillRegularLines(1./dp->Getmag());
+		edata->Sync();
+		needtodraw=1;
+		return 0;
 	}
+
 
 	return PatchInterface::PerformAction(action);
 }
+
+int EngraverFillInterface::Event(const Laxkit::EventData *data, const char *mes)
+{
+    if (!strcmp(mes,"exportsvg")) {
+        if (!data) return 0;
+
+        const StrEventData *s=dynamic_cast<const StrEventData *>(data);
+        if (!s) return 1;
+        if (!isblank(s->str)) {
+			edata->dump_out_svg(s->str);
+			PostMessage(_("Exported."));
+		}
+        return 0;
+    }
+
+    return 1;
+}
+
+
+
 
 Laxkit::ShortcutHandler *EngraverFillInterface::GetShortcuts()
 {
@@ -726,7 +919,17 @@ Laxkit::ShortcutHandler *EngraverFillInterface::GetShortcuts()
 
 	PatchInterface::GetShortcuts();
 
-	sc->Add(ENGRAVE_SwitchMode,       'm',0,0,          "SwitchMode",  _("Switch edit mode"),NULL,0);
+	 //convert all patch shortcuts to EMODE_Mesh mode
+	WindowAction *a;
+	ShortcutDef *s;
+	for (int c=0; c<sc->NumActions(); c++)   { a=sc->Action(c);   a->mode=EMODE_Mesh; }
+	for (int c=0; c<sc->NumShortcuts(); c++) { s=sc->Shortcut(c); s->mode=EMODE_Mesh; }
+
+	 //any mode shortcuts
+	sc->Add(ENGRAVE_SwitchMode,  'm',0,0,          "SwitchMode",  _("Switch edit mode"),NULL,0);
+	sc->Add(ENGRAVE_ExportSvg,   'f',0,0,          "ExportSvg",   _("Export Svg"),NULL,0);
+	sc->Add(ENGRAVE_RotateDir,   'r',0,0,          "RotateDir",   _("Rotate default line direction"),NULL,0);
+	sc->Add(ENGRAVE_RotateDirR,  'R',ShiftMask,0,  "RotateDirR",  _("Rotate default line direction"),NULL,0);
 
 	return sc;
 }
@@ -735,12 +938,6 @@ int EngraverFillInterface::CharInput(unsigned int ch, const char *buffer,int len
 {
 	DBG cerr <<"in EngraverFillInterface::CharInput"<<endl;
 	
-	if (edata && ch=='f') {
-		 // ***
-		edata->dump_out_svg("out.svg");
-		return 0;
-	}
-
 
 	if (mode==EMODE_Mesh) return PatchInterface::CharInput(ch,buffer,len,state,d);
 

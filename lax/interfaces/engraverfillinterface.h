@@ -79,13 +79,14 @@ class EngraverFillData : public PatchData
 	//virtual void zap();
 
 	virtual void FillRegularLines(double weight);
+	virtual void FillRegularLinesHorizontal(double weight);
 	virtual void Sync();
+	virtual void BezApproximate(Laxkit::NumStack<flatvector> &fauxpoints, Laxkit::NumStack<flatvector> &points);
 };
 
 
 //------------------------------ EngraverFillInterface -------------------------------
 
-#define IMGPATCHI_POPUP_INFO 1
 
 class EngraverFillInterface : public PatchInterface
 {
@@ -102,7 +103,7 @@ class EngraverFillInterface : public PatchInterface
 	EngraverFillInterface(int nid, Laxkit::Displayer *ndp);
 	virtual ~EngraverFillInterface();
 	virtual Laxkit::ShortcutHandler *GetShortcuts();
-	virtual const char *IconId() { return "ImagePatch"; }
+	virtual const char *IconId() { return "Engraver"; }
 	virtual const char *Name();
 	virtual const char *whattype() { return "EngraverFillInterface"; }
 	virtual const char *whatdatatype() { return "EngraverFillData"; }
@@ -117,7 +118,9 @@ class EngraverFillInterface : public PatchInterface
 	virtual int CharInput(unsigned int ch,const char *buffer,int len,unsigned int state,const Laxkit::LaxKeyboard *d);
 	virtual int KeyUp(unsigned int ch,unsigned int state,const Laxkit::LaxKeyboard *d);
 	virtual int Refresh();
+	virtual int Event(const Laxkit::EventData *data, const char *mes);
 
+	virtual void deletedata();
 	virtual PatchData *newPatchData(double xx,double yy,double ww,double hh,int nr,int nc,unsigned int stle);
 	//virtual void drawpatch(int roff,int coff);
 	//virtual void patchpoint(PatchRenderContext *context, double s0,double ds,double t0,double dt,int n);
