@@ -202,12 +202,22 @@ class PatchInterface : public anInterface
 	Laxkit::ShortcutHandler *sc;
 	virtual int PerformAction(int action);
  public:
+	 //draw exterior and interior grid lines
+	enum PatchDecorations {
+		 SHOW_Grid   =(1<<0),
+		 //draw indicators for the points
+		 SHOW_Points =(1<<1),
+		 //draw the exterior edges
+		 SHOW_Edges  =(1<<2),
+		 SHOW_Max    =(1<<3)
+	};
+
 	 // these are the state:
 	LineStyle linestyle;
 	unsigned long rimcolor,handlecolor,gridcolor;
 	int xs,ys, rdiv,cdiv;
 	unsigned long controlcolor;
-	int showdecs; 
+	int showdecs, oldshowdecs; 
 	char whichcontrols;
 	int recurse;
 	int rendermode;

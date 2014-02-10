@@ -1915,19 +1915,13 @@ void PatchData::patchpoint(PatchRenderContext *context,double s0,double ds,doubl
  * rendermode==1 means use data->preview for the patch, and draw the grid if no preview available. 
  * rendermode==2 means use drawpatches(), which usually would call drawpatch() once for each subpatch in a patch. This would
  *  be used when you don't want to render previews, but instead draw the patch over each time.
+ * rendermode==3 means don't actually draw anything but control stuff.
  */
 
 #define All_Controls     0
 #define Border_Controls  1
 #define Outline_Controls 2
 
- //draw exterior and interior grid lines
-#define SHOW_Grid    (1<<0)
- //draw indicators for the points
-#define SHOW_Points  (1<<1)
- //draw the exterior edges
-#define SHOW_Edges   (1<<2)
-#define SHOW_Max     (1<<3)
 
 #define DRAG_ADD_EDGE   1
 #define DRAG_SHIFT_EDGE 2
@@ -1940,7 +1934,7 @@ PatchInterface::PatchInterface(int nid,Displayer *ndp) : anInterface(nid,ndp)
 	rimcolor=rgbcolor(200,100,0);
 	handlecolor=rgbcolor(100,100,0);
 	gridcolor=rgbcolor(255,0,0);
-	showdecs=SHOW_Points|SHOW_Edges;
+	oldshowdecs=showdecs=SHOW_Points|SHOW_Edges;
 	style=0;
 	xs=1;
 	ys=1;
@@ -2000,7 +1994,7 @@ const char *PatchInterface::Name()
 
 int PatchInterface::InterfaceOn()
 {//*** deal with app better in interfaces
-	showdecs=SHOW_Points;
+	showdecs=oldshowdecs;
 	needtodraw=1;
 	return 0;
 }
@@ -2009,6 +2003,7 @@ int PatchInterface::InterfaceOn()
 int PatchInterface::InterfaceOff()
 { //*** do decs with xor always?
 	Clear();
+	oldshowdecs=showdecs;
 	showdecs=0;
 	needtodraw=1;
 	curpoints.flush();
@@ -2304,6 +2299,8 @@ int PatchInterface::Refresh()
 				
 	 // draw patches
 	int d=1;
+	if (rendermode==3) d=0;
+
 	if (rendermode==1) {
 		LaxImage *preview=data->GetPreview();
 		if (preview) {
