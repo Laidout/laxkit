@@ -78,7 +78,7 @@ class EngraverFillData : public PatchData
 
 	//virtual void zap();
 
-	virtual void FillRegularLines(double weight);
+	virtual void FillRegularLines(double weight, double spacing);
 	virtual void FillRegularLinesHorizontal(double weight);
 	virtual void Sync();
 	virtual void BezApproximate(Laxkit::NumStack<flatvector> &fauxpoints, Laxkit::NumStack<flatvector> &points);
@@ -94,7 +94,8 @@ class EngraverFillInterface : public PatchInterface
 	EngraverFillData *edata;
 	int mode;
 	double brush_radius; //screen pixels
-	Laxkit::CurveInfo thickness;
+	Laxkit::CurveInfo thickness; //ramp of thickness brush
+	double default_spacing;
 	flatpoint hover;
 
 	//virtual void runImageDialog();

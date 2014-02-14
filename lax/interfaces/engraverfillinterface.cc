@@ -166,11 +166,10 @@ void EngraverFillData::Sync()
 	}
 }
 
-void EngraverFillData::FillRegularLines(double weight)
+void EngraverFillData::FillRegularLines(double weight, double spacing)
 {
 	 // create generic lines to experiment with weight painting...
-	int n=25;
-	double spacing=1./n;
+	if (spacing<=0) spacing=1./25;
 
 	lines.flush();
 	nlines=0;
@@ -525,10 +524,10 @@ void EngraverFillData::BezApproximate(Laxkit::NumStack<flatvector> &fauxpoints, 
         v.normalize();
 
         p=points.e[c];
-        sx=norm(p-opp)*.5;
+        sx=norm(p-opp)*.333;
         pp=p - v*sx;
 
-        sx=norm(opn-p)*.5;
+        sx=norm(opn-p)*.333;
         pn=p + v*sx;
 
         fauxpoints.push(pp);
@@ -565,6 +564,7 @@ EngraverFillInterface::EngraverFillInterface(int nid,Displayer *ndp) : PatchInte
 	rendermode=3;
 	recurse=0;
 	edata=NULL;
+	default_spacing=1./25;
 
 	mode=EMODE_Mesh;
 	//mode=EMODE_Thickness;
@@ -620,7 +620,7 @@ PatchData *EngraverFillInterface::newPatchData(double xx,double yy,double ww,dou
 	//ndata->yaxis(flatpoint(0,1)/Getmag()*100);
 
 	ndata->style|=PATCH_SMOOTH;
-	ndata->FillRegularLines(1./dp->Getmag());
+	ndata->FillRegularLines(1./dp->Getmag(), default_spacing);
 	ndata->Sync();
 	ndata->FindBBox();
 	return ndata;
@@ -847,6 +847,8 @@ enum EngraveShortcuts {
 	ENGRAVE_ExportSvg,
 	ENGRAVE_RotateDir,
 	ENGRAVE_RotateDirR,
+	ENGRAVE_SpacingInc,
+	ENGRAVE_SpacingDec,
 	ENGRAVE_MAX
 };
 
@@ -880,10 +882,19 @@ int EngraverFillInterface::PerformAction(int action)
 
 	} else if (action==ENGRAVE_RotateDir || action==ENGRAVE_RotateDirR) {
 		edata->direction=rotate(edata->direction, (action==ENGRAVE_RotateDir ? M_PI/12 : -M_PI/12), 0);
-		edata->FillRegularLines(1./dp->Getmag());
+		edata->FillRegularLines(1./dp->Getmag(),default_spacing);
 		edata->Sync();
 		needtodraw=1;
 		return 0;
+
+	} else if (action==ENGRAVE_SpacingInc || action==ENGRAVE_SpacingDec) {
+		if (action==ENGRAVE_SpacingInc) default_spacing*=1.1; else default_spacing*=.9;
+		edata->FillRegularLines(1./dp->Getmag(),default_spacing);
+		edata->Sync();
+		DBG cerr <<"new spacing: "<<default_spacing<<endl;
+		needtodraw=1;
+		return 0;
+
 	}
 
 
@@ -930,6 +941,8 @@ Laxkit::ShortcutHandler *EngraverFillInterface::GetShortcuts()
 	sc->Add(ENGRAVE_ExportSvg,   'f',0,0,          "ExportSvg",   _("Export Svg"),NULL,0);
 	sc->Add(ENGRAVE_RotateDir,   'r',0,0,          "RotateDir",   _("Rotate default line direction"),NULL,0);
 	sc->Add(ENGRAVE_RotateDirR,  'R',ShiftMask,0,  "RotateDirR",  _("Rotate default line direction"),NULL,0);
+	sc->Add(ENGRAVE_SpacingInc,  's',0,0,          "SpacingInc",  _("Increase default spacing"),NULL,0);
+	sc->Add(ENGRAVE_SpacingDec,  'S',ShiftMask,0,  "SpacingDec",  _("Decrease default spacing"),NULL,0);
 
 	return sc;
 }
