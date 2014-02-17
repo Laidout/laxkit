@@ -866,6 +866,18 @@ int RectInterface::scan(int x,int y)
 //	return curpoint;
 //}
 
+/*! Used when transferring control to a child RectInterface, and default to
+ * the left button being down, and RP_Move. If !somedata, nothing is done.
+ */
+int RectInterface::FakeLBDown(int x,int y,unsigned int state,int count,const Laxkit::LaxMouse *d)
+{
+	if (!somedata) return 1;
+
+	buttondown.down(d->id,LEFTBUTTON,x,y,RP_Move);
+	needtodraw=1;
+	return 0;
+}
+
 /*! If style&RECT_OBJECT_SHUNT, then do not transfer control to another
  *  interface if clicking on another object. This allows subclassed object
  *  interfaces to stay in charge.
