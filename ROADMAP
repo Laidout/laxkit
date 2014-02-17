@@ -6,6 +6,14 @@ What should be done to progress to the next version. Not final!
 
 VERSION 0.0.8
 -------------
+(done) Engraving line mesh tool (proof of concept stage)
+(done) TreeSelector
+(done) Shortcut window editor
+
+
+VERSION 0.0.9
+-------------
+       Re-re-fix cut-copy-paste
        CairoDisplayer, abstract the Displayer class to make swapping out backends easy
        FontDialog (which means working out fonts, big task!)
        Pop out multiple packages: liblaxkit(not yet, but I know how to now), liblaxkit-dev, liblaxkit-doc, laxinput
