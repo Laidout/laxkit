@@ -955,7 +955,7 @@ int LineEdit::Idle(int)
  */
 int LineEdit::MouseMove(int x,int y,unsigned int state,const LaxMouse *d)
 {
-	long newpos=findpos(x+curlineoffset);
+	DBG long newpos=findpos(x+curlineoffset);
 	DBG cerr <<"x:"<<x<<"  clo:"<<curlineoffset<<"  newpos:"<<newpos<<endl;
 
 	if (buttondown.isdown(d->id,LEFTBUTTON)) {

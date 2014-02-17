@@ -46,15 +46,15 @@ name="description" />
 <a href="roadmap.html">Here is the current rough developer's Roadmap.</a>
 <hr>
 
-<a href="http://www.sourceforge.net/projects/laxkit">Here is the Laxkit Sourceforge project page.</a>
+<a href="http://github.com/tomlechner/laxkit">Here is the source code page on github.</a>
 <hr>
 <br>
 <a name="downloading"></a>
 <div id="heading" align="center">Downloading</div>
 
 <p>You can download the current allegedly 
-<a href="http://sourceforge.net/projects/laxkit/files/laxkit/0.0.7/laxkit-0.0.7.tar.bz2/download">Stable Release (0.0.7) here</a>.
-You may browse <a href="http://sourceforge.net/projects/laxkit/files/">all the downloadable files here</a>.</p>
+<a href="http://sourceforge.net/projects/laxkit/files/laxkit/0.0.8/laxkit-0.0.8.tar.bz2/download">Stable Release (0.0.8) here</a>.
+You may browse <a href="http://sourceforge.net/projects/laxkit/files/">all the downloadable release files here</a>.</p>
 
 
 <a name="source"></a><p>Otherwise, you can grab the current development version from the repository:<br> 
@@ -90,12 +90,13 @@ The Laxkit depends on:
 - <a href="http://www.fontconfig.org">fontconfig</a><br>
 - <a href="http://freetype.sourceforge.net/index2.html">freetype</a><br>
 - <a href="http://www.openssl.org/">libssl</a><br>
-Soon, it will likely also depend on:<br>
-- <a href="http://www.littlecms.com">lcms</a><br>
+- <a href="http://www.cairographics.org/">libcairo</a> (optional) <br>
+<!-- Soon, it will likely also depend on:<br>
+- <a href="http://www.littlecms.com">lcms</a><br -->
 </blockquote>
 On a debian based system, you could type this command as root (or on ubuntu preface this with "sudo") to get them all:
 <pre class="stuff">
-apt-get install g++ libpng12-dev libx11-dev libxi-dev libcups2-dev libimlib2-dev libxft-dev libfontconfig-dev libfreetype-dev libssl-dev
+apt-get install g++ libcairo2-dev libpng12-dev libx11-dev libxi-dev libcups2-dev libimlib2-dev libxft-dev libfontconfig-dev libfreetype-dev libssl-dev
 </pre>
 All of these are usually available for all major linux distributions.
 When you're sure you have those things installed, just type:<br>
@@ -150,8 +151,9 @@ int main(int argc,char **argv)
 <br>
 You would compile it something like this:<br>
 <pre class="stuff">
-g++ laxhello.cc -I/usr/include/freetype2 \
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; -llaxkit -lX11 -lXi -lXft -lm  -lpng `imlib2-config --libs` -lcups -o laxhello
+g++ laxhello.cc -I/usr/include/freetype2 -L/usr/X11R6/lib \
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; -lX11 -lm -lcairo -lpng -lcups `imlib2-config --libs` -lXi -lXft -lcrypto \
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; -llaxkit -o laxhello
 </pre>
 
 <br>
@@ -162,8 +164,9 @@ It produces the following window:<br>
 Note that this is the simplest case! If you use everything, including images and the
 interface classes, your compile line would look more like:
 <pre class="stuff">
-g++ laxhello.cc -I/usr/include/freetype2  -llaxinterfaces -llaxkit -lX11 -lXft -lm -lpng \
-       -lcups `imlib2-config --libs` -lssl -o laxhello
+g++ laxhello.cc -I/usr/include/freetype2 -L/usr/X11R6/lib \
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; -lX11 -lm -lcairo -lpng -lcups `imlib2-config --libs` -lXi -lXft -lcrypto \
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; -llaxinterfaces -llaxkit  -o laxhello
 </pre>
 
 <hr>
@@ -181,7 +184,6 @@ Features planned but either not started or not functional include: <br>
 <li>Easier dialog creation facility, with gui constructor similar to fltk's Fluid</li>
 <li>an html-ish table container</li>
 <li>a font dialog</li>
-<li>configurable shortcut integration</li>
 </ul>
 
 <br>
@@ -196,7 +198,7 @@ The doxygen documentation has a more extensive list of coding todo.
 <div id="heading" align="center" >Contacting</div>
 
 <p>If you have complaints and/or contributions as to how to streamline my dilettante code, 
-please let me know. I'm sure there are a lot of little programming tricks and Xlib+window 
+please let me know. I'm sure there are a lot of little programming tricks and window 
 manager pitfalls I haven't a clue about. "Chuck all this, and switch to Fltk or Gtkmm" is 
 probably very good advice to me, but I don't want to hear it (but try again in one more year).
 Please help develop! I'd rather be drawing <a href="http://www.tomlechner.com/cartoons/">cartoons</a>.</p>
@@ -229,7 +231,6 @@ Please help develop! I'd rather be drawing <a href="http://www.tomlechner.com/ca
 
 &nbsp;&nbsp;&nbsp;&nbsp;
 </td>
-<td id="bodytext"><em>Last $Date: 2012-01-21 17:24:19 -0800 (Sat, 21 Jan 2012) $</em></td>
 </tr></table>
 
 </center>

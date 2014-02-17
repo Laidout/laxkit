@@ -771,10 +771,10 @@ int RulerWindow::LBDown(int x,int y,unsigned int state,int count,const LaxMouse 
 
 int RulerWindow::MouseMove (int x,int y,unsigned int state, const LaxMouse *m)
 {
-	double ustart=start*umag; //start and end in current units, rather than base units
-	double uend=end*umag; //start and end in current units, rather than base units
-	double pos=((win_style&RULER_X)?x:y)/mag+start;
-	double upos=pos*umag;
+	DBG double ustart=start*umag; //start and end in current units, rather than base units
+	DBG double uend=end*umag; //start and end in current units, rather than base units
+	DBG double pos=((win_style&RULER_X)?x:y)/mag+start;
+	DBG double upos=pos*umag;
 	DBG cerr <<"move scr:"<<x<<","<<y<<"  default:"<<pos<<"  current:"<<upos<<"  start:"<<start<<"  ustart:"<<ustart<<"  uend:"<<uend<<endl;
 	return 0;
 }

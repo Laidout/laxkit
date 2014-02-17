@@ -17,7 +17,7 @@ MAKING LAXKIT DEB PACKAGE
         git clone http://github.com/tomlechner/laxkit-(version).git
 
     make sure version number is correct in any source files that refer to it, currently:
-        configure docs/Doxyfile docs/docs.html docs/faq.html docs/index.html README lax/lax-config debian/changelog debian/laxkit.1 debian/liblaxkit-doc.install debian/liblaxkit.install 
+        configure docs/Doxyfile docs/docs.html docs/faq.html docs/index.html README.md lax/lax-config debian/changelog debian/laxkit.1 debian/liblaxkit-doc.install debian/liblaxkit.install 
  
     make sure configure defaults to 'prefix=/usr/local/'. This is what should be in a source tarball.
 
