@@ -76,6 +76,18 @@ namespace Laxkit {
 #define LAX_BASELINE  (1<<8)
 #define LAX_CENTER    (1<<1|1<<6)
 
+typedef enum {
+	LAX_TOP_LEFT=1,
+	LAX_TOP_MIDDLE,
+	LAX_TOP_RIGHT,
+	LAX_MIDDLE_LEFT,
+	LAX_MIDDLE,
+	LAX_MIDDLE_RIGHT,
+	LAX_BOTTOM_LEFT,
+	LAX_BOTTOM_MIDDLE,
+	LAX_BOTTOM_RIGHT
+} BBoxReferencePoint;
+
 
 //----------------------------- Arrangement flow direction -----------------------------------
 //***whats with this? should be enum-like?
@@ -184,7 +196,7 @@ namespace Laxkit {
 
 
 //----------------------------- Special Keys ----------------------------------
-//---these are currently the mostly the same as Xlib keysyms
+//---these are currently mostly the same as Xlib keysyms
 //   except that tab and enter map to \t and \r.
 //   Otherwise, using keysym for now.
 //   Maybe someday will use unicode values, and these control keys may be something
