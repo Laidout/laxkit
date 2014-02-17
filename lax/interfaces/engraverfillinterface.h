@@ -24,6 +24,7 @@
 #define _LAX_ENGRAVERFILLINTERFACE_H
 
 #include <lax/interfaces/patchinterface.h>
+#include <lax/interfaces/pathinterface.h>
 #include <lax/screencolor.h>
 #include <lax/curvewindow.h>
 
@@ -60,6 +61,7 @@ class EngraverFillData : public PatchData
 	Laxkit::PtrStack<LinePoint> lines;
 	flatvector direction;
 	int nlines;
+	FillStyle fillstyle;
 
 	EngraverFillData();
 	//EngraverFillData(double xx,double yy,double ww,double hh,int nr,int nc,unsigned int stle);
@@ -70,6 +72,7 @@ class EngraverFillData : public PatchData
 	virtual void dump_out(FILE *f,int indent,int what,Laxkit::anObject *context);
 	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,Laxkit::anObject *context);
 	virtual void dump_out_svg(const char *file);
+	virtual PathsData *MakePathsData();
 
 	virtual void Set(double xx,double yy,double ww,double hh,int nr,int nc,unsigned int stle);
 	//virtual unsigned long WhatColorLong(double s,double t);

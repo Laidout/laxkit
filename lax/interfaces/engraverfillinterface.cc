@@ -109,6 +109,10 @@ EngraverFillData::EngraverFillData()
 	usepreview=0;
 
 	direction=flatvector(1,0);
+	fillstyle.color.red=0;
+	fillstyle.color.green=0;
+	fillstyle.color.blue=65535;
+	fillstyle.color.alpha=65535;
 
 	maxx=maxy=1;
 }
@@ -290,57 +294,196 @@ void EngraverFillData::Set(double xx,double yy,double ww,double hh,int nr,int nc
  * output the format as above.
  */
 void EngraverFillData::dump_out(FILE *f,int indent,int what,Laxkit::anObject *context)
-{ // ***
-	PatchData::dump_out(f,indent,what,context);
-	return;
-//	
-//	char spc[indent+3]; memset(spc,' ',indent); spc[indent]='\0'; 
+{
+	char spc[indent+3]; memset(spc,' ',indent); spc[indent]='\0'; 
+
 //	if (what==-1) {
 //		fprintf(f,"%sfilename whicheverfile.jpg  #name of the image used\n", spc);
 //		fprintf(f,"%siwidth  100  #width of the image in pixels for a preview sampling\n",spc);
 //		fprintf(f,"%siheight 100  #iheight of the image in pixels for a preview sampling\n",spc);
 //		return;
 //	}
-//	DumpContext *dump=dynamic_cast<DumpContext *>(context);
-//	if (dump && dump->basedir) {
-//		char *tmp=NULL;
-//		if (filename) {
-//			if (!dump->subs_only || (dump->subs_only && is_in_subdir(filename,dump->basedir)))
-//				tmp=relative_file(filename,dump->basedir,1);
-//			fprintf(f,"%sfilename \"%s\"\n",spc,tmp?tmp:filename);
-//			if (tmp) { delete[] tmp; tmp=NULL; }
-//		}
-//	} else fprintf(f,"%sfilename \"%s\"\n",spc,filename);
-//	fprintf(f,"%siwidth %d\n",spc,iwidth);
-//	fprintf(f,"%siheight %d\n",spc,iheight);
+
+	fprintf(f,"%smesh\n",spc);
+	PatchData::dump_out(f,indent+2,what,context);
+
+	fprintf(f,"%sdirection (%.10g, %.10g)\n",spc, direction.x,direction.y);
+	
+	fprintf(f,"%scolor rgbaf(%.10g,%.10g,%.10g,%.10g)\n",spc, 
+			fillstyle.color.red/65535.,
+			fillstyle.color.green/65535.,
+			fillstyle.color.blue/65535.,
+			fillstyle.color.alpha/65535.);
+
+	LinePoint *p;
+	for (int c=0; c<nlines; c++) {
+		fprintf(f,"%sline \\ #%d\n",spc,c);
+		p=lines.e[c];
+		while (p) {
+			fprintf(f,"%s  (%.10g, %.10g) %.10g\n",spc, p->s,p->t,p->weight);
+			p=p->next;
+		}
+	}
+
+	return;
 }
 
 //! Reverse of dump_out.
 void EngraverFillData::dump_in_atts(Attribute *att,int flag,Laxkit::anObject *context)
-{ // ***
-	PatchData::dump_in_atts(att,flag,context);
-	return;
-//	if (!att) return;
-//	char *name,*value;
-//	int c;
-//	PatchData::dump_in_atts(att,flag,context);
-//	for (c=0; c<att->attributes.n; c++) {
-//		name= att->attributes.e[c]->name;
-//		value=att->attributes.e[c]->value;
-//		if (!strcmp(name,"filename")) {
-//			DumpContext *dump=dynamic_cast<DumpContext *>(context);
-//			if (value && *value!='/' && dump && dump->basedir) {
-//				if (filename) delete[] filename;
-//				filename=full_path_for_file(value,dump->basedir);
-//			} else makestr(filename,value);
-//		} else if (!strcmp(name,"iwidth")) {
-//			IntAttribute(value,&iwidth);
-//		} else if (!strcmp(name,"iheight")) {
-//			IntAttribute(value,&iheight);
-//		}
-//	}
-//	SetImage(filename);
-//	FindBBox();
+{
+	if (!att) return;
+
+	char *name,*value;
+	int c;
+
+	for (c=0; c<att->attributes.n; c++) {
+		name= att->attributes.e[c]->name;
+		value=att->attributes.e[c]->value;
+
+		if (!strcmp(name,"mesh")) {
+			PatchData::dump_in_atts(att->attributes.e[c],flag,context);
+
+		} else if (!strcmp(name,"direction")) {
+			FlatvectorAttribute(value,&direction);
+
+		} else if (!strcmp(name,"color")) {
+			unsigned long color;
+			SimpleColorAttribute(value, &color);
+			double b=(color&0xff)/255.;
+			double g=((color&0xff00)>>8)/255.;
+			double r=((color&0xff0000)>>16)/255.;
+			double a=((color&0xff000000)>>24)/255.;
+			fillstyle.color.rgbf(r,g,b,a);
+
+		} else if (!strcmp(name,"line")) {
+			char *end_ptr=NULL;
+			flatpoint v;
+			int status;
+			double w;
+			LinePoint *lstart=NULL, *ll=NULL;
+
+			do {
+				 //get (s,t) point
+				status=FlatvectorAttribute(value, &v, &end_ptr);
+				if (status==0) break;
+
+				 //get weight
+				value=end_ptr;
+				status=DoubleAttribute(value, &w, &end_ptr);
+				if (status==0) break;
+
+				if (!lstart) lstart=ll=new LinePoint(v.x,v.y, w);
+				else {
+					ll->next=new LinePoint(v.x,v.y, w);
+					ll=ll->next;
+				}
+
+				value=end_ptr;
+				while (isspace(*value)) value++;
+			} while (*value!='\0');
+
+			if (lstart) lines.push(lstart);
+		}
+	}
+
+	FindBBox();
+	Sync();
+}
+
+PathsData *EngraverFillData::MakePathsData()
+{
+	PathsData *paths=NULL;
+    if (somedatafactory) 
+		paths=dynamic_cast<PathsData*>(somedatafactory->newObject(LAX_PATHSDATA,NULL));
+    else paths=new PathsData();
+	paths->m(m());
+
+	//currently, makes a PathsData with the outline of all the strokes...
+
+	//Todo: does not currently handly 0 weight segments properly
+
+	NumStack<flatvector> points;
+	NumStack<flatvector> points2;
+
+	LinePoint *l, *last, *last2;
+	flatvector t, tp;
+	flatvector p1,p2;
+	//double lastwidth;
+	//double neww;
+
+	for (int c=0; c<lines.n; c++) {
+		points.flush();
+		points2.flush();
+
+		l=lines.e[c];
+		last=l;
+		last2=NULL;
+		//lastwidth=l->weight;
+
+		l=l->next;
+
+		 //make points be a list of points:
+		 //   2  4  6 
+		 // 1 *--*--*--8   gets rearranged to: 1 2 4 6 8 3 5 7
+		 //   3  5  7
+		 //points 1 and 8 are cap point references, converted to rounded ends later
+		while (l) {
+			if (!last2) last2=last;
+
+			tp=l->p - last2->p;
+			tp.normalize();
+			t=transpose(tp);
+
+			//neww=last->weight;
+
+			p1=last->p + last->weight/2*t;
+			p2=last->p - last->weight/2*t;
+
+			if (last==lines.e[c]) {
+				 //first point cap
+				points.push(last->p-last->weight/2*tp);
+				//points.push(p1-last->weight*.001*tp);
+				//points.push(p2-last->weight*.001*tp);
+			}
+			points.push(p1);
+			points.push(p2);
+
+			last2=last;
+			last=l;
+			l=l->next;
+		}
+
+		 //do last point... last2 -> last
+		points.push(last->p + last->weight/2*t);
+		points.push(last->p - last->weight/2*t);
+
+		 //final point cap
+		//points.push(last->p + last->weight/2*t + last->weight*.001*tp);
+		//points.push(last->p - last->weight/2*t + last->weight*.001*tp);
+		points.push(last->p + last->weight/2*tp);
+
+		if (points.n) {
+			 //convert to bez approximation
+			 //make points2 be points rearranged according to outline
+			points2.push(points.e[0]); //initial cap
+			for (int c2=1; c2<points.n-1; c2+=2)    points2.push(points.e[c2]);
+
+			points2.push(points.e[points.n-1]); //final cap
+			for (int c2=points.n-2; c2>0; c2-=2) points2.push(points.e[c2]);
+			
+
+			BezApproximate(points,points2);
+
+			paths->moveTo(points.e[1]);
+			for (int c2=1; c2<points.n; c2+=3) {
+				paths->curveTo(points.e[c2+1], points.e[(c2+2)%points.n], points.e[(c2+3)%points.n]);
+			}
+
+			paths->close();
+		}
+	}
+
+	return paths;
 }
 
 void EngraverFillData::dump_out_svg(const char *file)
@@ -436,8 +579,8 @@ void EngraverFillData::dump_out_svg(const char *file)
 			if (last==lines.e[c]) {
 				 //first point cap
 				points.push(last->p-last->weight/2*tp);
-				points.push(p1-last->weight*.001*tp);
-				points.push(p2-last->weight*.001*tp);
+				//points.push(p1-last->weight*.001*tp);
+				//points.push(p2-last->weight*.001*tp);
 			}
 			points.push(p1);
 			points.push(p2);
@@ -452,8 +595,8 @@ void EngraverFillData::dump_out_svg(const char *file)
 		points.push(last->p - last->weight/2*t);
 
 		 //final point cap
-		points.push(last->p + last->weight/2*t + last->weight*.001*tp);
-		points.push(last->p - last->weight/2*t + last->weight*.001*tp);
+		//points.push(last->p + last->weight/2*t + last->weight*.001*tp);
+		//points.push(last->p - last->weight/2*t + last->weight*.001*tp);
 		points.push(last->p + last->weight/2*tp);
 
 		if (points.n) {
@@ -469,24 +612,14 @@ void EngraverFillData::dump_out_svg(const char *file)
 
 
 			fprintf(f,"    <path d=\"");
-			fprintf(f,"M %f %f ", points.e[0].x,points.e[0].y);
-			for (int c2=1; c2<points.n-2; c2+=3) {
+			fprintf(f,"M %f %f ", points.e[1].x,points.e[1].y);
+			for (int c2=1; c2<points.n; c2+=3) {
 				fprintf(f,"C %f %f %f %f %f %f ",
 					points.e[c2+1].x,points.e[c2+1].y,
-					points.e[c2+2].x,points.e[c2+2].y,
-					points.e[c2+3].x,points.e[c2+3].y);
+					points.e[(c2+2)%points.n].x,points.e[(c2+2)%points.n].y,
+					points.e[(c2+3)%points.n].x,points.e[(c2+3)%points.n].y);
 			}
 
-//			for (int c2=0; c2<points.n; c2+=2) {
-//				if (c2==0) fprintf(f,"M "); else fprintf(f,"L ");
-//
-//				fprintf(f,"%f %f ", points.e[c2].x,points.e[c2].y);
-//			}
-//			for (int c2=points.n-1; c2>=0; c2-=2) {
-//				if (c2==0) fprintf(f,"M "); else fprintf(f,"L ");
-//
-//				fprintf(f,"%f %f ", points.e[c2].x,points.e[c2].y);
-//			}
 
 			fprintf(f,"z \" />\n");
 		}
@@ -502,28 +635,52 @@ void EngraverFillData::dump_out_svg(const char *file)
 }
 
 
+/*! Makes fauxpoints be a bezier list: c-p-c-c-p-c-...-c-p-c
+ */
 void EngraverFillData::BezApproximate(Laxkit::NumStack<flatvector> &fauxpoints, Laxkit::NumStack<flatvector> &points)
 {
+	// There are surely better ways to do this. Not sure how powerstroke does it.
+	// It is not simplied/optimized at all. Each point gets control points to smooth it out.
+
     fauxpoints.flush();
 
     flatvector v,p, pp,pn;
 	flatvector opn, opp;
 
-    //fauxpoints.push(points.e[0]); //ignored control point
-    //fauxpoints.push(points.e[0]);
-    //fauxpoints.push(points.e[0]);
 
-    int c=1;
     double sx;
-    for ( ; c<points.n; c++) {
-		if (c==0) opp=points.e[points.n-1]; else opp=points.e[c-1];
-		if (c==points.n-1) opn=points.e[0]; else opn=points.e[c+1];
+	//caps are at points index 0 and points.n/2
+	
+    for (int c=0; c<points.n; c++) {
+        p=points.e[c];
 
+		if (c==0) {
+			 //on first cap
+			opp=p+3*.5522*(points.e[points.n-1]-points.e[1])/2;
+			opn=p+3*.5522*(points.e[1]-points.e[points.n-1])/2;
+
+		} else if (c==points.n/2) {
+			 //on final cap
+			opp=p+3*.5522*(points.e[c-1]-points.e[c+1])/2;
+			opn=p+3*.5522*(points.e[c+1]-points.e[c-1])/2;
+
+		} else {
+			if (c==1 || c==points.n/2+1) {
+				pp=(p+points.e[points.n-c])/2;
+				v=points.e[c-1]-pp;
+				opp=p+3*.5522*v;
+			} else opp=points.e[c-1];
+
+			if (c==points.n-1 || c==points.n/2-1) {
+				pp=(p+points.e[points.n-c])/2;
+				v=points.e[(c+1)%points.n]-pp;
+				opn=p+3*.5522*v;
+			} else opn=points.e[c+1];
+		}
 
         v=opn-opp;
         v.normalize();
 
-        p=points.e[c];
         sx=norm(p-opp)*.333;
         pp=p - v*sx;
 
@@ -535,9 +692,6 @@ void EngraverFillData::BezApproximate(Laxkit::NumStack<flatvector> &fauxpoints, 
         fauxpoints.push(pn);
 
     }
-    //fauxpoints.push(points.e[c]);
-    //fauxpoints.push(points.e[c]); //the final point
-    //fauxpoints.push(points.e[c]); //ignored final point
 }
 
 
@@ -663,7 +817,14 @@ int EngraverFillInterface::UseThis(Laxkit::anObject *nobj,unsigned int mask) // 
 	if (dynamic_cast<EngraverFillData *>(nobj)) { 
 		return PatchInterface::UseThis(nobj,mask);
 
+	} else if (dynamic_cast<LineStyle *>(nobj) && edata) {
+        LineStyle *nlinestyle=dynamic_cast<LineStyle *>(nobj);
+		edata->fillstyle.color=nlinestyle->color;
+        needtodraw=1;
+        return 1;
 	}
+
+
 	return 0;
 }
 
@@ -793,7 +954,8 @@ int EngraverFillInterface::Refresh()
 	if (!edata) { needtodraw=0; return 0; }
 
 
-	dp->NewFG(0.,0.,1.,1.);
+	//dp->NewFG(0.,0.,1.,1.);
+	dp->NewFG(&edata->fillstyle.color);
 
 	LinePoint *l;
 	LinePoint *last=NULL, *last2=NULL;
