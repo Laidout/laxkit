@@ -79,6 +79,9 @@ class Path : public LaxFiles::DumpUtility
 	virtual void append(flatpoint p,unsigned long flags=POINT_VERTEX,SegmentControls *ctl=NULL);
 	virtual void append(Coordinate *coord);
 	virtual void appendBezFromStr(const char *value);
+	virtual void moveTo(flatpoint p);
+	virtual void lineTo(flatpoint p);
+	virtual void curveTo(flatpoint c1, flatpoint c2, flatpoint p2);
 	virtual void close();
 	virtual void clear();
 
@@ -125,6 +128,9 @@ class PathsData : virtual public SomeData
 	virtual void append(flatpoint p,unsigned long flags=POINT_VERTEX,SegmentControls *ctl=NULL,int whichpath=-1);
 	virtual void appendRect(double x,double y,double w,double h,SegmentControls *ctl=NULL,int whichpath=-1);
 	virtual void appendBezArc(flatpoint center, double angle, int num_vertices);
+	virtual void moveTo(flatpoint p,int whichpath=-1);
+	virtual void lineTo(flatpoint p,int whichpath=-1);
+	virtual void curveTo(flatpoint c1, flatpoint c2, flatpoint p2, int whichpath=-1);
 	virtual void close(int whichpath=-1);
 	virtual Coordinate *LastVertex();
 	virtual void pushEmpty(int where=-1,LineStyle *nls=NULL);

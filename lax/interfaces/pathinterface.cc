@@ -422,6 +422,32 @@ void Path::append(Coordinate *coord)
 	}
 }
 
+/*! For a single path, this is the same as lineTo().
+ * In a PathsData, this starts a new subpath.
+ */
+void Path::moveTo(flatpoint p)
+{ lineTo(p); }
+
+/*! same as append(p,POINT_VERTEX,NULL).
+ */
+void Path::lineTo(flatpoint p)
+{ append(p,POINT_VERTEX,NULL); }
+
+/*! If no existing points, first do a lineTo(c1).
+ * Else, is a shortcut for:
+ *
+ * append(c1,POINT_TOPREV,NULL)\n
+ * append(c2,POINT_TONEXT,NULL)\n
+ * append(p2,POINT_VERTEX,NULL)\n
+ */
+void Path::curveTo(flatpoint c1, flatpoint c2, flatpoint p2)
+{
+	if (!path) append(c1,POINT_VERTEX,NULL);
+	append(c1,POINT_TOPREV,NULL);
+	append(c2,POINT_TONEXT,NULL);
+	append(p2,POINT_VERTEX,NULL);
+}
+
 //! Make sure the path is closed.
 void Path::close()
 {
@@ -1195,6 +1221,34 @@ void PathsData::append(double x,double y,unsigned long flags,SegmentControls *ct
 	if (paths.n==0) paths.push(new Path());
 	if (whichpath<0) whichpath=0;
 	paths.e[whichpath]->append(x,y,flags,ctl);
+}
+
+/*! Starts a new subpath. If whichpath>=0, then make the subpath at that index, otherwise add to end.
+ */
+void PathsData::moveTo(flatpoint p,int whichpath)
+{
+	if (whichpath<0 || whichpath>=paths.n) whichpath=paths.n;
+	pushEmpty(whichpath);
+	append(p,POINT_VERTEX,NULL,whichpath);
+}
+
+void PathsData::lineTo(flatpoint p,int whichpath)
+{
+	append(p,POINT_VERTEX,NULL,whichpath);
+}
+
+void PathsData::curveTo(flatpoint c1, flatpoint c2, flatpoint p2, int whichpath)
+{
+	if (whichpath<0 || whichpath>=paths.n) whichpath=paths.n-1;
+	if (whichpath<0) {
+		whichpath=0;
+		pushEmpty();
+	}
+	if (paths.e[whichpath]->path==NULL) append(c1,POINT_VERTEX,NULL,whichpath);
+
+	append(c1,POINT_TOPREV,NULL,whichpath);
+	append(c2,POINT_TONEXT,NULL,whichpath);
+	append(p2,POINT_VERTEX,NULL,whichpath);
 }
 
 //! Return the coordinate after which t points to.
