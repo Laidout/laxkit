@@ -182,6 +182,27 @@ flatpoint SomeData::BBoxPoint(double x,double y, bool transform_to_parent)
 	return p;
 }
 
+/*! which is one of Laxkit::BBoxReferencePoint.
+ * If transform_to_parent, return the point transformed by m().
+ */
+flatpoint SomeData::ReferencePoint(int which, bool transform_to_parent)
+{
+	double x=0,y=0;
+
+	if (which==LAX_TOP_LEFT)           { x=0;  y=1;  }
+	else if (which==LAX_TOP_MIDDLE)    { x=.5; y=1;  }
+	else if (which==LAX_TOP_RIGHT)     { x=1;  y=1;  }
+	else if (which==LAX_MIDDLE_LEFT)   { x=0;  y=.5; }
+	else if (which==LAX_MIDDLE)        { x=.5; y=.5; }
+	else if (which==LAX_MIDDLE_RIGHT)  { x=1 ; y=.5; }
+	else if (which==LAX_BOTTOM_LEFT)   { x=0;  y=0;  }
+	else if (which==LAX_BOTTOM_MIDDLE) { x=.5; y=0;  }
+	else if (which==LAX_BOTTOM_RIGHT)  { x=1;  y=0;  }
+
+	return BBoxPoint(x,y,transform_to_parent);
+
+}
+
 //! Render the object to a buffer.
 /*! This draws onto buffer such that the object's whole bounding box maps to the whole buffer.
  *
