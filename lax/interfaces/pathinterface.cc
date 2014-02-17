@@ -923,7 +923,21 @@ PathsData::~PathsData()
 
 SomeData *PathsData::duplicate(SomeData *dup)
 {
-	PathsData *newp=new PathsData(style);
+	PathsData *newp=dynamic_cast<PathsData*>(dup);
+	if (!newp && dup) return NULL; //was not a PathsData!
+
+	if (!dup && somedatafactory) {
+		dup=somedatafactory->newObject(LAX_PATHSDATA,this);
+		if (dup) {
+			dup->setbounds(minx,maxx,miny,maxy);
+		}
+		newp=dynamic_cast<PathsData*>(dup);
+	} 
+	if (!newp) {
+		newp=new PathsData();
+		dup=newp;
+	}
+
 	Path *path;
 	for (int c=0; c<paths.n; c++) {
 		path=paths.e[c]->duplicate();
