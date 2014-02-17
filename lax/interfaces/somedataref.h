@@ -45,6 +45,8 @@ class SomeDataRef : virtual public SomeData
 	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,Laxkit::anObject *savecontext);
 
 	virtual int Set(SomeData *d, int ignore_matrix);
+	virtual SomeData *GetFinalObject();
+	virtual SomeData *GetObject() { return thedata; }
 	virtual void FindBBox();
 	virtual int pointin(flatpoint pp,int pin=1);
 };

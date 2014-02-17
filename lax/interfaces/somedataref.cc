@@ -21,6 +21,7 @@
 //    Copyright (C) 2004-2006,2010,2012-2013 by Tom Lechner
 //
 
+#include <lax/interfaces/somedatafactory.h>
 #include <lax/interfaces/somedataref.h>
 #include <lax/strmanip.h>
 #include <lax/transformmath.h>
@@ -91,6 +92,21 @@ int SomeDataRef::Set(SomeData *d, int ignore_matrix)
 	return 0;
 }
 
+/*! Return an actual object at the end, if we are pointing to another clone.
+ * If final object is an empty ref, then return NULL.
+ */
+SomeData *SomeDataRef::GetFinalObject()
+{
+	if (!thedata) return NULL;
+	SomeData *obj=thedata;
+
+	while (dynamic_cast<SomeDataRef*>(obj)) {
+		obj=dynamic_cast<SomeDataRef*>(obj)->GetObject();
+	}
+
+	return obj;
+}
+
 void SomeDataRef::FindBBox()
 {
 	if (!thedata) return;
@@ -107,11 +123,13 @@ SomeData *SomeDataRef::duplicate(SomeData *dup)
 {
 	if (dup) {
 		if (!dynamic_cast<SomeDataRef*>(dup)) return NULL;
-	} else dup=new SomeDataRef(thedata);
+	} else dup=somedatafactory->newObject(LAX_SOMEDATAREF,this);
 
 	SomeDataRef *ref=dynamic_cast<SomeDataRef*>(dup);
-	if (!ref) return NULL;
-	ref->FindBBox();
+
+	ref->Set(thedata,0);
+	ref->setbounds(minx,maxx,miny,maxy);
+	ref->m(m());
 	return dup;
 }
 
