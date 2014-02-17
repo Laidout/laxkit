@@ -409,13 +409,13 @@ int SimpleColorAttribute(const char *v,unsigned long *color_ret)
 
 	int type=0; //3=rgb, 1=gray, 4=cmyk
 	int a=0, f=8;
-	if (strcasestr("rgb",v)==v) {
+	if (strcasestr(v,"rgb")==v) {
 		v+=3;
 		type=3;
-	} else if (strcasestr("gray",v)==v) {
+	} else if (strcasestr(v,"gray")==v) {
 		v+=4;
 		type=1;
-	} else if (strcasestr("cmyk",v)==v) {
+	} else if (strcasestr(v,"cmyk")==v) {
 		v+=4;
 		type=4;
 	}
@@ -435,23 +435,22 @@ int SimpleColorAttribute(const char *v,unsigned long *color_ret)
 	 //first create list of integers in range 0..255
 	int numf=0;
 	if (f==0) {
-		double *d=NULL;
-		int n=DoubleListAttribute(v, &d,&n);
+		double d[5];
+		int n=DoubleListAttribute(v, d,5, NULL);
 		if (type==0) { //adapt to 3 or 4 fields when only a number list was supplied
 			type=3;
 			if (n==4) a=1;
 		}
 		if (n!=type+a) {
-			delete[] d;
 			return 1;
 		}
 
-		i[numf]=(int)(d[numf]/(max+1) + .5);
+		i[numf]=(int)(d[numf]*max + .5);
 		numf++;
 		if (type!=1) {
-			i[numf]=(int)(d[numf]/(max+1) + .5);
+			i[numf]=(int)(d[numf]*max + .5);
 			numf++;
-			i[numf]=(int)(d[numf]/(max+1) + .5);
+			i[numf]=(int)(d[numf]*max + .5);
 			numf++;
 		}
 		if (type==4) { i[numf]=(int)(d[numf]*max + .5); numf++; }
@@ -595,10 +594,11 @@ int FlatvectorAttribute(const char *v,flatvector *vec,char **endptr)
 	double fv[2];
 	int n=DoubleListAttribute(v,fv,2,&end);
 	if (n!=2) return 0;
+	v=end;
 	while (isspace(*v)) v++;
 	if (paren && *v!=')') return 0; //need closing parenthesis!
 	else if (paren) v++;
-	if (endptr) *endptr=end;
+	if (endptr) *endptr=const_cast<char *>(v);
 	(*vec).x=fv[0]; (*vec).y=fv[1];
 	return 1;
 }
