@@ -211,7 +211,8 @@ void Affine::Translate(flatvector d)
 void Affine::Rotate(double angle)
 {
 	double mm[6];
-	transform_rotate(_m,angle);
+	transform_copy(mm,_m);
+	transform_rotate(mm,angle);
 	transform_copy(_m,mm);
 }
 
