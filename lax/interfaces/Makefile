@@ -40,9 +40,9 @@ objs= \
 	freehandinterface.o \
 	captioninterface.o \
 	engraverfillinterface.o \
+	ellipseinterface.o \
 
 #	linesinterface.o \
-#	ellipseinterface.o \
 #	measureinterface.o \
 
 

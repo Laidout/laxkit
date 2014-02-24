@@ -4,13 +4,6 @@ Laxkit Roadmap
 What should be done to progress to the next version. Not final!
 
 
-VERSION 0.0.8
--------------
-(done) Engraving line mesh tool (proof of concept stage)
-(done) TreeSelector
-(done) Shortcut window editor
-
-
 VERSION 0.0.9
 -------------
        Re-re-fix cut-copy-paste
@@ -46,6 +39,14 @@ VERSION 0.1
 
 
 ---- OLD RELEASES -----
+
+
+VERSION 0.0.8  --  released February 17, 2014
+-------------
+(done) Engraving line mesh tool (proof of concept stage)
+(done) TreeSelector
+(done) Shortcut window editor
+
 
 VERSION 0.0.7  --  released December 3, 2011
 -------------

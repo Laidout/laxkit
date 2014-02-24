@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-$LaxkitVersion="0.0.7.1";
+$LaxkitVersion="0.0.8.1";
 #$prefix="/usr/local/lib";
 $prefix="/home/tom/p/sourceforge/laxkit/lax";
 $iprefix="/interfaces";

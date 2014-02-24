@@ -1,7 +1,7 @@
 
 THE LAXKIT
 ---------------
-Version 0.0.7.1  
+Version 0.0.8.1  
 Released under the LGPL  
 http://github.com/tomlechner/laxkit  
 http://laxkit.sourceforge.net  
