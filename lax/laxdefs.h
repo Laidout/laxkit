@@ -77,7 +77,8 @@ namespace Laxkit {
 #define LAX_CENTER    (1<<1|1<<6)
 
 typedef enum {
-	LAX_TOP_LEFT=1,
+	LAX_CUSTOM_ALIGNMENT=0,
+	LAX_TOP_LEFT,
 	LAX_TOP_MIDDLE,
 	LAX_TOP_RIGHT,
 	LAX_MIDDLE_LEFT,
