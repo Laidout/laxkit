@@ -521,8 +521,10 @@ int ColorSliders::LBUp(int x,int y,unsigned int state, const LaxMouse *d)
 	int bar,half;
 	int dragged=buttondown.up(d->id,LEFTBUTTON, &bar,&half);
 	if (!dragged && (bar==ONPOS_Old || bar==ONPOS_Hex)) {
-		if (bar==ONPOS_Old) RestoreColor();
-		else EditHex();
+		if (bar==ONPOS_Old) {
+			RestoreColor();
+			send();
+		} else EditHex();
 	}
 	return 0;
 }
