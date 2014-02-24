@@ -18,12 +18,13 @@
 //    License along with this library; if not, write to the Free Software
 //    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
-//    Copyright (C) 2004-2006,2011 by Tom Lechner
+//    Copyright (C) 2004-2006,2011,2014 by Tom Lechner
 //
 
 
 #include <lax/interfaces/somedatafactory.h>
 #include <lax/interfaces/ellipseinterface.h>
+#include <lax/language.h>
 
 using namespace Laxkit;
 
@@ -37,17 +38,6 @@ namespace LaxInterfaces {
 
 //#define ELLIPSES_ISCIRCLE 1
 
-// x+---->
-//y 1     8     7
-//+ 2  11 9 10  6
-//| 3     4     5
-//|
-//10 focus 1
-//11 focus 2
-//12 start angle
-//13 end angle
-//14 is wildpoint
-//1-9 box points from rect
 
 /*! \class EllipseData
  * \ingroup interfaces
@@ -59,25 +49,10 @@ namespace LaxInterfaces {
  * Equation of an ellipse:
  * \f$(x/a)^2 + (y/b)^2 = 1\f$
  *
- * s is the starting angle in radians.
- * e is the ending angle in radians.
+ * start is the starting angle in radians.
+ * end   is the ending angle in radians.
  */
-//class EllipseData : public SomeData
-//{
-//  protected:
-//  	
-//  public:
-//	unsigned int style;
-//	double s,e,a,b;  //'width'=2*a, 'height'=2*b
-//	flatpoint center,x,y;
-//	LineStyle linestyle;
-//	EllipseData();
-//	virtual void usefocus(flatpoint f1,flatpoint f2,double c=-1);
-//	const char *whattype() { return "EllipseData"; }
-//	void FindBBox();
-//	flatpoint focus1();
-//	flatpoint focus2();
-//};
+
 
 EllipseData::EllipseData()
 {
@@ -86,8 +61,21 @@ EllipseData::EllipseData()
 	y=flatpoint(0,1);
 	a=b=0;
 	style=0; 
-	s=0;
-	e=2*3.14159265358979; 
+	start=0;
+	end=2*3.14159265358979; 
+}
+
+EllipseData::~EllipseData()
+{
+}
+
+bool EllipseData::GetStyle(unsigned int s)
+{ return style&s; }
+
+void EllipseData::SetStyle(unsigned int s, bool on)
+{
+	if (on) style|=s;
+	else style&=~s;
 }
 
  // *** this is a trashy way to do it, howzabout using max/min
@@ -107,7 +95,7 @@ void EllipseData::FindBBox()
 
 void EllipseData::usefocus(flatpoint f1,flatpoint f2,double c) //c==-1
 {
-	if (c==-1) if (a>b) c=2*a; else c=2*b;
+	if (c==-1) { if (a>b) c=2*a; else c=2*b; }
 	center=(f1+f2)/2;
 	x=(f1-f2);
 	double f=norm(x);
@@ -118,11 +106,50 @@ void EllipseData::usefocus(flatpoint f1,flatpoint f2,double c) //c==-1
 	b=sqrt(a*a-f*f/4);
 }
 
+flatpoint EllipseData::getpoint(EllipsePoints c, bool transform_to_parent)
+{
+	flatpoint p((maxx+minx)/2, (maxy+miny)/2);
+
+	if (c==ELLP_Focus1 || c==ELLP_Focus2) {
+		double a2=a*a, b2=b*b;
+		if (a2 > b2) {
+			if (c==ELLP_Focus1) p= center + sqrt(a2 - b2) * x;
+			else  p= center - sqrt(a2 - b2) * x;
+		} else {
+			if (c==ELLP_Focus1) p= center + sqrt(b2 - a2) * y;
+				else   p= center - sqrt(b2 - a2) * y;
+		}
+
+	} else if (c==ELLP_Center) {      p= center;
+	} else if (c==ELLP_Right) {       p= center + a*x; 
+	} else if (c==ELLP_BottomRight) { p= center + a*x - b*y; 
+	} else if (c==ELLP_Bottom) {      p= center       - b*y; 
+	} else if (c==ELLP_BottomLeft) {  p= center - a*x - b*y;
+	} else if (c==ELLP_Left) {        p= center - a*x; 
+	} else if (c==ELLP_TopLeft) {     p= center - a*x + b*y; 
+	} else if (c==ELLP_Top) {         p= center       + b*y; 
+	} else if (c==ELLP_TopRight) {    p= center + a*x + b*y;
+
+	} else if (c==ELLP_StartAngle) {  p= center + rotate(a*x,start);
+	} else if (c==ELLP_EndAngle)   {  p= center + rotate(a*x,end);
+
+	} else if (c==ELLP_XRadius) { p= center + a*x;
+	} else if (c==ELLP_YRadius) { p= center + b*y;
+
+	} else if (c==ELLP_OuterRadius) { p=center + outer_r*cos(start)*x + outer_r*sin(start)*y;
+	} else if (c==ELLP_InnerRadius) { p=center + inner_r*cos(start)*x + inner_r*sin(start)*y;
+	}
+
+	if (transform_to_parent) return transformPoint(p);
+	return p;
+}
+
+
 //----------------------------- EllipseInterface ------------------------
 
 /*! \class EllipseInterface
  * \ingroup interfaces
- * \brief *** fix me!Interface for EllipseData objects.
+ * \brief Interface for EllipseData objects.
  *  
  * <pre>
  *  old:
@@ -137,43 +164,48 @@ void EllipseData::usefocus(flatpoint f1,flatpoint f2,double c) //c==-1
  *    move start/end inside makes chord, outside makes pie
  * </pre>
  * 
- * \todo *** totally broken, needs some serious rewrite.. 
  * \todo *** must be able to fill also?
  */
 
 //! Constructor.
-/*! *** this keeps an internal RectInterface. Does not push onto viewport.
+/*! This keeps an internal RectInterface. Does not push onto viewport.
  */
-EllipseInterface::EllipseInterface(int nid,Displayer *ndp) : anInterface(nid,ndp)
+EllipseInterface::EllipseInterface(anInterface *nowner, int nid,Displayer *ndp)
+  : anInterface(nowner, nid,ndp),
+	rinterf(0,ndp)
 {
-	linestyle.color=app->rgbcolor(255,0,0);
-	controlcolor=38066; // defaults to white, change right after creation otherwise
+	linestyle.color.rgbf(1.,0,0);
+	controlcolor.rgbf(.5,.5,.5,1);
 	data=NULL;
-	rinterf=new RectInterface(0,dp);
+	eoc=NULL;
+
 	rdata.style=RECT_CANTCREATE;
-	rinterf->style=RECT_CANTCREATE|RECT_INVISIBLECENTER;
-	rinterf->UseThis(&rdata,0);
-	dataislocal=0;
+	rinterf.style=RECT_CANTCREATE|RECT_INVISIBLECENTER;
+	rinterf.UseThis(&rdata,0);
+	inrect=false;
+
 	showdecs=1;
-	curpoint=0;
-	buttondown=0;
+	curpoint=ELLP_None;
 	creationstyle=0;
 	createfrompoint=0; // 0=lbd=ulc, 1=lbd=center
 	createangle=0;
 	createx=flatpoint(1,0);
 	createy=flatpoint(0,1);
-	showdecs=1;
-	mask=ButtonPressMask|ButtonReleaseMask|PointerMotionMask|KeyPressMask|KeyReleaseMask;
-	buttonmask=Button1Mask;
 	
 	needtodraw=1;
+
+	sc=NULL;
 }
 
 //! Destructor, deletes rinterf.
 EllipseInterface::~EllipseInterface()
-{ 	
+{
 	DBG cerr <<"----in EllipseInterface destructor"<<endl;
-	delete rinterf; //*** maybe just create this when InterfaceOn???
+}
+
+const char *EllipseInterface::Name()
+{
+	return _("Ellipse Tool");
 }
 
 //! Return new EllipseInterface.
@@ -181,32 +213,25 @@ EllipseInterface::~EllipseInterface()
  */
 anInterface *EllipseInterface::duplicate(anInterface *dup)
 {
-	if (dup==NULL) dup=new EllipseInterface(id,NULL);
+	if (dup==NULL) dup=new EllipseInterface(NULL,id,NULL);
 	else if (!dynamic_cast<EllipseInterface *>(dup)) return NULL;
 	return anInterface::duplicate(dup);
 }
 
-//! Accepts LineStyle or EllipseData. For LineStyle, just copies over width and color.
-/*! \todo **** returns 1 with LineStyle, but does not take over it.. is that ok??
- */
+//! Accepts LineStyle. For LineStyle, just copies over width and color.
 int EllipseInterface::UseThis(anObject *nobj,unsigned int mask)
 {
 	if (!nobj) return 0;
-	if (dynamic_cast<EllipseData *>(nobj)) {
-		if (data) deletedata();
-		EllipseData *ndata=dynamic_cast<EllipseData *>(nobj);
-		***viewport->newData(ndata,0); //incs count by 1
-		data=ndata;
-		rectify();
-		return 1;
-	} else if (dynamic_cast<LineStyle *>(nobj)) { 
+
+	if (dynamic_cast<LineStyle *>(nobj)) { 
 		DBG cerr <<"Ellipse new color stuff"<<endl;
 		LineStyle *nlinestyle=dynamic_cast<LineStyle *>(nobj);
-		if (mask&GCForeground) if (data) data->linestyle.color=nlinestyle->color; else linestyle.color=nlinestyle->color;
-		if (mask&GCLineWidth) if (data) data->linestyle.width=nlinestyle->width; else linestyle.width=nlinestyle->width;
+		if (mask&GCForeground) { if (data) data->linestyle.color=nlinestyle->color; else linestyle.color=nlinestyle->color; }
+		if (mask&GCLineWidth)  { if (data) data->linestyle.width=nlinestyle->width; else linestyle.width=nlinestyle->width; }
 		needtodraw=1;
 		return 1;
 	}
+
 	return 0;
 }
 
@@ -223,28 +248,37 @@ int EllipseInterface::InterfaceOn()
  */
 int EllipseInterface::InterfaceOff()
 {
-	Clear();
+	Clear(NULL);
 	showdecs=0;
 	needtodraw=1;
-	curpoint=0;
+	curpoint=ELLP_None;
+	inrect=false;
 	return 0;
+}
+
+void EllipseInterface::Clear(SomeData *d)
+{
+	if (d==data) deletedata();
 }
 
 void EllipseInterface::deletedata()
 {
 	if (data) data->dec_count();
 	data=NULL;
+	curpoint=ELLP_None;
+	inrect=false;
 }
 
 //! Make rdata reflect data
 void EllipseInterface::rectify()
 {
 	if (!data) return;
-	rdata.x=data->x;
-	rdata.y=data->y;
-	rdata.w=2*data->a;
-	rdata.h=2*data->b;
-	rdata.p=data->center - data->a*data->x - data->b*data->y;
+
+	rdata.xaxis(data->x);
+	rdata.yaxis(data->y);
+	rdata.maxx=rdata.minx=data->a;
+	rdata.maxy=rdata.miny=data->b;
+	rdata.origin(data->center);
 	rdata.centercenter();
 }
 
@@ -252,16 +286,18 @@ void EllipseInterface::rectify()
 void EllipseInterface::erectify()
 {
 	if (!data) return;
-	data->x=rdata.x;
-	data->y=rdata.y;
-	data->a=rdata.w/2;
-	data->b=rdata.h/2;
-	data->center=rdata.p + data->a*data->x + data->b*data->y;
+
+	data->x=rdata.xaxis();
+	data->y=rdata.yaxis();
+	data->center=rdata.origin();
+	data->a=(rdata.maxx-rdata.minx)/2;
+	data->b=(rdata.maxy-rdata.miny)/2;
 }
 
 int EllipseInterface::DrawData(anObject *ndata,anObject *a1,anObject *a2,int)
 {
 	if (!ndata || dynamic_cast<EllipseData *>(ndata)==NULL) return 1;
+
 	EllipseData *bzd=data;
 	data=dynamic_cast<EllipseData *>(ndata);
 	int td=showdecs,ntd=needtodraw;
@@ -278,7 +314,7 @@ int EllipseInterface::DrawData(anObject *ndata,anObject *a1,anObject *a2,int)
 
 int EllipseInterface::Refresh()
 {
-	if (!dp || (!needtodraw && !rinterf->needtodraw)) return 0;
+	if (!dp || (!needtodraw && !rinterf.needtodraw)) return 0;
 	if (!data) {
 		if (needtodraw) needtodraw=0;
 		return 1;
@@ -286,152 +322,109 @@ int EllipseInterface::Refresh()
 
 	//cout <<"  EllipseRefresh";
 		
-	dp->NewFG(data->linestyle.color);
+	dp->NewFG(&data->linestyle.color);
 
 	 // draw just ellipse
 	dp->LineAttributes(data->linestyle.width,LineSolid,data->linestyle.capstyle,data->linestyle.joinstyle);
-	dp->drawfocusellipse(getpoint(10),getpoint(11),2*(fabs(data->a)>fabs(data->b)?data->a:data->b),data->s,data->e,1);
+	dp->drawfocusellipse(getpoint(ELLP_Focus1),getpoint(ELLP_Focus2),
+			2*(fabs(data->a)>fabs(data->b)?data->a:data->b),data->start,data->end,1);
 	dp->LineAttributes(0,LineSolid,data->linestyle.capstyle,data->linestyle.joinstyle);
 	
 	 // draw control points;
 	if (showdecs) { 
-		dp->NewFG(controlcolor);
+		dp->NewFG(&controlcolor);
 		flatpoint p;
 
 		 // angle points
-		for (int c=12; c<14; c++) {
-			p=dp->realtoscreen(getpoint(c));
-			dp->draw((int)p.x,(int)p.y,3);
-		}
+		p=dp->realtoscreen(getpoint(ELLP_StartAngle));
+		dp->drawpoint((int)p.x,(int)p.y, 3,0);
+		p=dp->realtoscreen(getpoint(ELLP_EndAngle));
+		dp->drawpoint((int)p.x,(int)p.y, 3,0);
 		
 		 // open foci
-		p=dp->realtoscreen(getpoint(10));
-		dp->draw((int)p.x,(int)p.y,5); // focus1
-		if (!(data->style&ELLIPSES_ISCIRCLE)) { // is not circle so draw second focus
-			p=dp->realtoscreen(getpoint(11));
-			dp->draw((int)p.x,(int)p.y,5); // focus2
+		p=dp->realtoscreen(getpoint(ELLP_Focus1));
+		dp->drawpoint((int)p.x,(int)p.y, 5,0); // focus1
+		if (!data->GetStyle(ELLIPSES_ISCIRCLE)) { // is not circle so draw second focus
+			p=dp->realtoscreen(getpoint(ELLP_Focus2));
+			dp->drawpoint((int)p.x,(int)p.y, 5,0); // focus2
 		}
 		
 		 // curpoint
-		if (curpoint>9) {
+		if (curpoint>=ELLP_Focus1) {
 			flatpoint fp=dp->realtoscreen(getpoint(curpoint));
-			dp->drawf((int)fp.x,(int)fp.y,(curpoint!=10 && curpoint!=11)?3:5);  // draw curpoint
+			dp->drawpoint((int)fp.x,(int)fp.y,(curpoint!=ELLP_Focus1 && curpoint!=ELLP_Focus2)?3:5,1);  // draw curpoint
 		}
 
 		 // angles
-		if (curpoint==12 || curpoint==13) {
-			dp->LineAttributes(0,LineDoubleDash, LAXCAP_Butt, LAXJOIN_Miter);
-			dp->drawrline(data->center,dp->screentoreal(mx,my));
-			dp->drawrline(data->center,getpoint(curpoint==7?8:7)); // draw line of other angle point
-			dp->LineAttributes(0,LineSolid,LAXCAP_Butt,LAXJOIN_Miter);
+		if (curpoint==ELLP_StartAngle || curpoint==ELLP_EndAngle) {
+			dp->LineAttributes(0,LineDoubleDash, LAXCAP_Butt, LAXJOIN_Round);
+			dp->drawline(data->center,dp->screentoreal(hover_x,hover_y));
+			dp->drawline(data->center,getpoint(curpoint==ELLP_StartAngle?ELLP_EndAngle:ELLP_StartAngle)); // draw line of other angle point
+			dp->LineAttributes(0,LineSolid,LAXCAP_Butt,LAXJOIN_Round);
 		}
 		 
 		 // draw dotted box
-		//cout<<"-b"<<rinterf->needtodraw;
-		rinterf->needtodraw=1;
-		rinterf->Refresh();
+		//cout<<"-b"<<rinterf.needtodraw;
+		rinterf.Dp(dp);
+		rinterf.needtodraw=1;
+		rinterf.Refresh();
 	}
 	needtodraw=0;
 	//DBG cerr<<endl;
 	return 0;
 }
 
-/*! <pre>
- *   0=none
- *   1=-x-y 
- *   2=-x
- *   3=-xy
- *   4=y
- *   5=xy
- *   6=x
- *   7=x-y
- *   8=-y
- *   9=0
- *   10=f1
- *   11=f2
- *   12=s
- *   13=e
- *   14=wp 
- *  </pre>
- */
-flatpoint EllipseInterface::getpoint(int c)
-{ 
-	if (c>0 && c<10) return rinterf->getpoint(c);
-	switch (c) {
-		case 10: // f1
-		case 11: { // f2 
-			double a2=data->a*data->a, b2=data->b*data->b;
-			if (a2 > b2) 
-			if (c==10) return data->center + sqrt(a2 - b2) * data->x;
-				else  return data->center - sqrt(a2 - b2) * data->x;
-			else if (c==10) return data->center + sqrt(b2 - a2) * data->y;
-					else   return data->center - sqrt(b2 - a2) * data->y;
-		}
-		case 12: // start angle
-			return data->center + rotate(data->a*data->x,data->s);
-		case 13: // end angle
-			return data->center + rotate(data->a*data->x,data->e);
-		case 14: // wild point
-			return dp->screentoreal(mx,my);
-//		case 6: // x
-//			return data->center + data->a*data->x;
-//		case 7: // x-y
-//			return data->center + data->a*data->x - data->b*data->y;
-//		case 8: // -y
-//			return data->center - data->b*data->y;
-//		case 9: // -x-y
-//			return data->center - data->a*data->x - data->b*data->y;
-//		case 10: // -x
-//			return data->center - data->a*data->x;
-//		case 11: // -x+y
-//			return data->center - data->a*data->x + data->b*data->y;
-//		case 12: // +y
-//			return data->center + data->b*data->y;
-//		case 13: // xy
-//			return data->center + data->a*data->x + data->b*data->y;
-	}
-	return flatpoint();
+flatpoint EllipseInterface::getpoint(EllipsePoints c, bool inparent)
+{
+	if (!data || c==ELLP_WildPoint) return dp->screentoreal(hover_x,hover_y);
+	return data->getpoint(c,inparent);
 }
 
-/*! \todo *** doesn't pick wild,start,end,  picks closest within a distance
+/*! Note, never returns ELLP_WildPoint.
+ * Picks closest within a distance, but not the standard rect points. Those have
+ * to be scanned for elsewhere with rectinterface.scan().
  */
-int EllipseInterface::scan(int x,int y) //*** only checks points, no online jazz
+EllipsePoints EllipseInterface::scan(int x,int y) //*** only checks points, no online jazz
 {
-	if (!data) return 0;
-	int closest=0;
-	if (closest=rinterf->scan(x,y),closest>0) return closest;
+	if (!data) return ELLP_None;
+
+	EllipsePoints closest=ELLP_None;
+
 	flatpoint p,p2;
 	p=screentoreal(x,y);
 	double d=5/dp->Getmag(),dd;
 	DBG cerr <<"scan d="<<d<<"(x,y)="<<p.x<<','<<p.y<<endl;
 	d*=d;
+
 	 // scan for control points
 	int c;
-	for (c=13; c>9; c--) {
-		//if (c==5) continue; // scan never looks for wildpoint
-		p2=getpoint(c);
+	for (c=(int)ELLP_WildPoint-1; c>=(int)ELLP_Focus1; c--) {
+		p2=getpoint((EllipsePoints)c);
 		dd=(p2.x-p.x)*(p2.x-p.x)+(p2.y-p.y)*(p2.y-p.y);
-		DBG cerr <<"  scan "<<c<<", d="<<dd<<"  ";
+		DBG cerr <<"  ellipse scan "<<c<<", d="<<dd<<"  ";
 		if (dd<d) {
 			d=dd;
-			closest=c;
+			closest=(EllipsePoints)c;
 		}
 	}
 	DBG cerr <<endl;
 	return closest; // scan never checks a wildpoint
 }
 
-int EllipseInterface::LBDown(int x,int y,unsigned int state,int count)
+int EllipseInterface::LBDown(int x,int y,unsigned int state,int count,const Laxkit::LaxMouse *d)
 {
 	DBG cerr << "  in ellipse lbd..";
-	buttondown|=1;
-	mx=x;
-	my=y;
+
+	buttondown.down(d->id,LEFTBUTTON,x,y);
+	hover_x=x;
+	hover_y=y;
+
 	if (data) {
 		if ((state&LAX_STATE_MASK)==(ControlMask|ShiftMask)) { // +^lb move around wildpoint
-			flatpoint p=getpoint(1),p2=getpoint(2);
-			data->x=getpoint(1)-data->center;
-			data->x/=norm(data->x);
+			flatpoint p=getpoint(ELLP_Focus1),p2=getpoint(ELLP_Focus2);
+			data->x=getpoint(ELLP_Focus1)-data->center;
+			if (data->x.isZero()==false) data->x/=norm(data->x);
+			else data->x=flatpoint(1,0);
 			data->y=transpose(data->x);
 			double f2=(p-p2)*(p-p2);
 			p=  p-screentoreal(x,y);
@@ -440,69 +433,84 @@ int EllipseInterface::LBDown(int x,int y,unsigned int state,int count)
 			data->a=c/2; // automatically puts major axis on x
 			data->b=sqrt(data->a*data->a - f2);
 			rectify();
-			curpoint=14;
+			curpoint=ELLP_WildPoint;
 			needtodraw|=1;
 			return 0;
+
 		} else if ((state&LAX_STATE_MASK)==ControlMask) { // ^lb focus or end angle
-			int c;
-			if (c=scan(x,y), c==10 || c==11) { // remove circle restriction
+			EllipsePoints c=scan(x,y);
+			if (c==ELLP_Focus1 || c==ELLP_Focus2) { // remove circle restriction
 				curpoint=c;
-				data->style&=~ELLIPSES_ISCIRCLE;
+				data->SetStyle(ELLIPSES_ISCIRCLE, false);
 				needtodraw|=2;
 				return 0;
 			}
+
 			 // else end angle, warp pointer to current
 	//		flatpoint p=realtoscreen(getpoint(13));
 	//		XWarpPointer(app->dpy,None,None,0,0,0,0,(int)p.x-x,(int)p.y-y);
-	//		mx=(int)p.x;
-	//		my=(int)p.y;
+	//		hover_x=(int)p.x;
+	//		hover_y=(int)p.y;
 	//		curpoint=4;
 	//		needtodraw|=2;
 	//		return 0;
+
 		} else if ((state&LAX_STATE_MASK)==ShiftMask) { // +lb start angle
 	//		flatpoint p=realtoscreen(getpoint(12));
 	//		XWarpPointer(app->dpy,None,None,0,0,0,0,(int)p.x-x,(int)p.y-y);
-	//		mx=(int)p.x;
-	//		my=(int)p.y;
+	//		hover_x=(int)p.x;
+	//		hover_y=(int)p.y;
 	//		curpoint=3;
 	//		needtodraw|=2;
 	//		return 0;
+	
 		} else if ((state&LAX_STATE_MASK)==0) { // straight click
-			int c=scan(x,y); //*** how separate scan box/ellipse
-			if (c>0) { // scan found one...
-				rinterf->LBDown(x,y,state,count); //*** maybe make sure curpoint stays curpoint: rinterf->selectpoint(int c)
-				rinterf->SelectPoint(c);
+			EllipsePoints c=scan(x,y);
+			if (c!=ELLP_None) { // scan found one...
 				curpoint=c;
 				needtodraw|=2;
 				return 0;
 			}
 		}
+
+		if (rinterf.LBDown(x,y,state,count,d)==0) {
+			inrect=true;
+			needtodraw=1;
+			return 0;
+		}
+
 		return 0; // other click with data
 	}
 	DBG cerr <<"  noellipsepointfound  ";
+
 
 	 // make new one
 	EllipseData *obj=NULL;
 	ObjectContext *oc=NULL;
 	int c=viewport->FindObject(x,y,whatdatatype(),NULL,1,&oc);
 	if (c>0) obj=dynamic_cast<EllipseData *>(oc->obj);
+
 	if (obj) { 
-		 // found another ImageData to work on.
+		 // found another EllipseData to work on.
 		 // If this is primary, then it is ok to work on other images, but not click onto
 		 // other types of objects.
-		somedata=data=obj;
-		dataislocal=0;
-		if (viewport) viewport->NewData(obj,&oc); // this incs count
-		else data->inc_count();
+		data=obj;
+		data->inc_count();
+		if (eoc) delete eoc;
+		eoc=oc->duplicate();
+
+		if (viewport) viewport->ChangeObject(oc,0);
 		needtodraw=1;
 		return 0;
+
 	} else if (c<0) {
 		 // If there is some other non-image data underneath (x,y) and
 		 // this is not primary, then switch objects, and switch tools to deal
 		 // with that object.
-		if (!primary && c==-1 && viewport->ChangeObject(NULL,oc)) {
-			buttondown&=~LEFTBUTTON;
-			return 0;
+		//******* need some way to transfer the LBDown to the new tool
+		if (!primary && c==-1 && viewport->ChangeObject(oc,1)) {
+			buttondown.up(d->id,LEFTBUTTON);
+			return 1;
 		}
 	}
 
@@ -513,13 +521,18 @@ int EllipseInterface::LBDown(int x,int y,unsigned int state,int count)
 	if (somedatafactory) {
 		ndata=static_cast<EllipseData *>(somedatafactory->newObject(LAX_ELLIPSEDATA));
 	} 
-	if (!ndata) ndata=EllipseData;
+	if (!ndata) ndata=new EllipseData;
 	ndata->linestyle=linestyle;
-	viewport->newData(ndata,0);//calls deletedata() and adds 1 count
-	ndata->dec_count(); // interface should directly cause only 1 count
+	if (viewport) {
+		oc=NULL;
+		viewport->NewData(ndata,&oc);//viewport adds only its own counts
+		if (eoc) delete eoc;
+		if (oc) eoc=oc->duplicate();
+	}
+	//ndata->dec_count(); // interface should directly cause only 1 count
 	data=ndata;
 	
-	curpoint=5;
+	curpoint=ELLP_None;
 	flatpoint p=screentoreal(x,y);
 	data->style=creationstyle; 
 	data->center=p;
@@ -528,185 +541,205 @@ int EllipseInterface::LBDown(int x,int y,unsigned int state,int count)
 	data->a=data->b=0;
 	createp=p;
 	rectify();
-	rinterf->LBDown(x,y,state,count); 
-	rinterf->SelectPoint(5);
-	DBG CharInput('p',0);//***lists current points
+
+	inrect=true;
+	rinterf.FakeLBDown(x,y,state,count,d); 
+	rinterf.SelectPoint(5);
+
+	//DBG CharInput('p',0);//***lists current points
 	needtodraw=1;
 	return 0;
 	DBG cerr <<"..ellipselbd done   ";
 }
 
-int EllipseInterface::LBUp(int x,int y,unsigned int state) 
+int EllipseInterface::LBUp(int x,int y,unsigned int state,const Laxkit::LaxMouse *d) 
 {
-	buttondown&=~LEFTBUTTON;
-	if (curpoint==14) { curpoint=0; needtodraw|=2; }
-	if (curpoint>0 && curpoint<10) rinterf->LBUp(x,y,state);
+	buttondown.up(d->id,LEFTBUTTON);
+
+	if (inrect) {
+		inrect=false;
+		rinterf.LBUp(x,y,state,d);
+		needtodraw=1;
+		return 0;
+	}
+
+	if (curpoint==ELLP_WildPoint) { curpoint=ELLP_None; needtodraw|=2; }
 	needtodraw=1;
 	return 0;
 }
 
-/*! 
- * \todo *** focus move broken!
- */
-int EllipseInterface::MouseMove(int x,int y,unsigned int state) 
+int EllipseInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMouse *mouse) 
 {
-	if (!(buttondown&LEFTBUTTON) || !data) return 1;
+	hover_x=x;
+	hover_y=y;
+	if (!buttondown.any() || !data) return 1;
+
+	int lx,ly;
+	buttondown.move(mouse->id, x,y, &lx,&ly);
+
 	DBG cerr <<" mcp:"<<curpoint<<"\n";
-	if (curpoint>0 && curpoint<10) { // is doing box modifications
-		rinterf->MouseMove(x,y,state);
+	if (inrect) { // is doing box modifications
+		rinterf.MouseMove(x,y,state,mouse);
 		erectify();
-		needtodraw=1; //*** doens't set mx,my.. problem?
+		needtodraw=1;
 		return 0;
 	}
-	flatpoint d=screentoreal(x,y)-screentoreal(mx,my);
-//	flatpoint np=screentoreal(x,y)-data->center;
-	if (curpoint>0) { 
-		switch(curpoint) {
-			case 10: 
-			case 11: {
-				flatpoint p1=getpoint(10);
-				flatpoint p2=getpoint(11);
-				if (data->style&ELLIPSES_ISCIRCLE) { p2+=d; p1+=d;} 
-				else if (curpoint==11) p2+=d; else p1+=d; 
-				data->usefocus(p1,p2,-1); //*** doesn't deal with non-whole ellipse, the segment jumps around
-				rectify();
-				needtodraw|=2; 
-				break;
-			}
-			case 3: // start angle
-				//***
-				//needtodraw!=1;
-				break;
-			case 4: // end angle
-				//***
-				//needtodraw!=1;
-				break;
-			case 5: { // wildpoint, move point leaves f1,f2 change c
-				flatpoint p,p2;
-				p= getpoint(10) - screentoreal(x,y);
-				p2=getpoint(11) - screentoreal(x,y);
-				data->usefocus(getpoint(10),getpoint(11),sqrt(p*p)+sqrt(p2*p2));
-				rectify();
-				needtodraw|=1;
-				break;
-			} 
-		}
-		mx=x; my=y;
+
+	flatpoint d=screentoreal(x,y)-screentoreal(lx,ly);
+
+	if (curpoint!=ELLP_None) {
+		if (curpoint==ELLP_Focus1 || curpoint==ELLP_Focus1) {
+			flatpoint p1=getpoint(ELLP_Focus1);
+			flatpoint p2=getpoint(ELLP_Focus2);
+
+			if (data->style&ELLIPSES_ISCIRCLE) { p2+=d; p1+=d;} 
+			else if (curpoint==ELLP_Focus2) p2+=d; else p1+=d; 
+			data->usefocus(p1,p2,-1); //*** doesn't deal with non-whole ellipse, the segment jumps around
+
+			rectify();
+			needtodraw|=2; 
+
+		} else if (curpoint==ELLP_StartAngle) { // start angle
+			//***
+			//needtodraw!=1;
+
+		} else if (curpoint==ELLP_EndAngle) { // end angle
+			//***
+			//needtodraw!=1;
+
+		} else if (curpoint==ELLP_WildPoint) { // wildpoint, move point leaves f1,f2 change c
+			flatpoint p,p2;
+			p= getpoint(ELLP_Focus1) - screentoreal(x,y);
+			p2=getpoint(ELLP_Focus2) - screentoreal(x,y);
+			data->usefocus(getpoint(ELLP_Focus1),getpoint(ELLP_Focus2),sqrt(p*p)+sqrt(p2*p2));
+			rectify();
+			needtodraw|=1;
+		} 
+
+		hover_x=x; hover_y=y;
 	}
 	needtodraw|=2;
 	return 0;
 }
 
-/*! 
- * <pre>
- * Shift    edit start instead
- * Control  edit end instead
- * Del/Bksp deletes a focus point (makes a circle)
- * 'c'      center the thing
- * 'd'      toggle decorations
- * </pre>
+/*! \todo maybe combine rectinterface shortcuts with ellipse, since it is a permanent child?
  */
-int EllipseInterface::CharInput(unsigned int ch, const char *buffer,int len,unsigned int state) 
+int EllipseInterface::CharInput(unsigned int ch, const char *buffer,int len,unsigned int state,const Laxkit::LaxKeyboard *d) 
 {
-	if (curpoint>0 && curpoint<10) if (rinterf->CharInput(ch,state)==0) return 0;
-	switch(ch) {
-		case LAX_Shift: { // shift
-			if (curpoint==LAX_Enter) { // switch to start
-				curpoint=12;
-				 // warp pointer to start point
-				flatpoint p=realtoscreen(data->center+rotate(data->a*data->x,data->s));
-				XWarpPointer(app->dpy,None,None,0,0,0,0,(int)p.x-mx,(int)p.y-my);
-				mx=(int)p.x;
-				my=(int)p.y;
-				needtodraw|=1;
-				return 0;
-			}
-		} break;
-		case LAX_Control: { // cntl
-			if (curpoint==12) { // switch to end
-				curpoint=13;
-				flatpoint p=realtoscreen(data->center+rotate(data->a*data->x,data->e));
-				XWarpPointer(app->dpy,None,None,0,0,0,0,(int)p.x-mx,(int)p.y-my);
-				mx=(int)p.x;
-				my=(int)p.y;
-				needtodraw|=1;
-				return 0;
-			}
-		} break;
-		case LAX_Del: // delete
-		case LAX_Bksp: { // backspace
-			if (curpoint==10 || curpoint==11) { 
-				data->center=getpoint(curpoint==10?11:10); 
-				data->a=data->b; 
-				data->style|=ELLIPSES_ISCIRCLE; 
-				rectify();
-				needtodraw|=2; 
-				return 0; 
-			}
-		} break;
-//		case LAX_Left: { // left //***unmodified from before rect
-//			if (curpoint<6) return 0;
-//			curpoint--;
-//			if (curpoint<6) curpoint=13;
-//			flatpoint p=realtoscreen(getpoint(curpoint));
-//			XWarpPointer(app->dpy,None,None,0,0,0,0,(int)p.x-mx,(int)p.y-my);
-//			mx=(int)p.x;
-//			my=(int)p.y;
-//			needtodraw|=2;
-//			return 0;
-//		}
-//		case LAX_Right: { // right
-//			if (curpoint<6) return 0;
-//			curpoint++;
-//			if (curpoint>13) curpoint=6;
-//			flatpoint p=realtoscreen(getpoint(curpoint));
-//			XWarpPointer(app->dpy,None,None,0,0,0,0,(int)p.x-mx,(int)p.y-my);
-//			mx=(int)p.x;
-//			my=(int)p.y;
-//			needtodraw|=2;
-//			return 0;
-//		}
-		//case LAX_Up: // up
-		//case LAX_Down: // down
-			break;
-		case 'p': { //***list points, debug only
-			DBG flatpoint p;
-			DBG cerr <<"\nEllipse Curpoint="<<curpoint<<endl;
-			DBG for (int c=1; c<15; c++) {
-			DBG 	p=getpoint(c);
-			DBG 	cerr <<" "<<c<<":"<<p.x<<","<<p.y<<endl;
-			DBG }
-		} break;
-		case ' ':
-			if (curpoint>9 || !buttondown) return 1;
-		case 'c': {
-			data->x=createx=flatpoint(1,0);
-			data->y=createy=flatpoint(0,1);
-			rectify();
-			MouseMove(mx,my,0);
-			return 0;
-		} break;
-		case 'd': {
-			showdecs=!showdecs;
-			needtodraw=1;
-			return 0;
-		}
+	 //check shortcuts
+	if (!sc) GetShortcuts();
+	int action=sc->FindActionNumber(ch,state&LAX_STATE_MASK,0);
+	if (action>=0) {
+		return PerformAction(action);
 	}
+
+	
+	if (inrect) {
+		if (rinterf.CharInput(ch,buffer,len,state,d)==0) return 0;
+	}
+
+
+//	switch(ch) {
+//		case LAX_Shift: { // shift
+//			if (ch==LAX_Enter) { // switch to start
+//				curpoint=12;
+//				 // warp pointer to start point
+//				flatpoint p=realtoscreen(data->center+rotate(data->a*data->x,data->start));
+//				XWarpPointer(app->dpy,None,None,0,0,0,0,(int)p.x-hover_x,(int)p.y-hover_y);
+//				hover_x=(int)p.x;
+//				hover_y=(int)p.y;
+//				needtodraw|=1;
+//				return 0;
+//			}
+//		} break;
+//		case LAX_Control: { // cntl
+//			if (curpoint==12) { // switch to end
+//				curpoint=13;
+//				flatpoint p=realtoscreen(data->center+rotate(data->a*data->x,data->end));
+//				XWarpPointer(app->dpy,None,None,0,0,0,0,(int)p.x-hover_x,(int)p.y-hover_y);
+//				hover_x=(int)p.x;
+//				hover_y=(int)p.y;
+//				needtodraw|=1;
+//				return 0;
+//			}
+//		} break;
+//		case LAX_Del: // delete
+//		case LAX_Bksp: { // backspace
+//			if (curpoint==10 || curpoint==11) { 
+//				data->center=getpoint(curpoint==10?11:10); 
+//				data->a=data->b; 
+//				data->style|=ELLIPSES_ISCIRCLE; 
+//				rectify();
+//				needtodraw|=2; 
+//				return 0; 
+//			}
+//		} break;
+
 	return 1; 
 }
 
-int EllipseInterface::CharRelease(unsigned int ch,unsigned int state) 
-{ //*** shift/noshift toggle end/start point
-	switch(ch) {
-		case LAX_Shift: { // shift
-			if (!buttondown || curpoint==0 || curpoint>10) return 1;
-			data->style&=~ELLIPSES_ISCIRCLE; // toggle off circle
-			return rinterf->CharRelease(ch,state);
-		} break;
-		//case LAX_Control: { } break; // cntl
+
+int EllipseInterface::KeyUp(unsigned int ch,unsigned int state, const Laxkit::LaxKeyboard *kb) 
+{
+	if (inrect) {
+		return rinterf.KeyUp(ch,state,kb);
 	}
+
+	if (ch==LAX_Shift) { // shift
+		if (!buttondown.any() || curpoint==ELLP_None) return 1;
+
+		data->SetStyle(ELLIPSES_ISCIRCLE, false); // toggle off circle
+		return 0;
+	}
+
 	return 1; 
 }
+
+
+enum EllipseShortcutActions {
+	ELLIPSEA_ToggleDecs,
+	ELLIPSEA_ToggleCircle,
+	ELLIPSEA_MAX
+};
+
+Laxkit::ShortcutHandler *EllipseInterface::GetShortcuts()
+{
+	if (sc) return sc;
+	ShortcutManager *manager=GetDefaultShortcutManager();
+	sc=manager->NewHandler(whattype());
+	if (sc) return sc;
+
+
+	sc=new ShortcutHandler(whattype());
+
+	sc->Add(ELLIPSEA_ToggleDecs,  'd',0,0,        "ToggleDecs",  _("Toggle decorations"),NULL,0);
+	sc->Add(ELLIPSEA_ToggleCircle,'c',0,0,        "ToggleCircle",  _("Toggle editing as a circle"),NULL,0);
+
+	//sc->Add(PATHIA_WidthStepR,        'W',ControlMask|ShiftMask,0,"WidthStepR", _("Change how much change for width changes"),NULL,0);
+	//sc->AddShortcut(LAX_Bksp,0,0, PATHIA_Delete);
+
+	manager->AddArea(whattype(),sc);
+	return sc;
+}
+
+int EllipseInterface::PerformAction(int action)
+{
+	if (action==ELLIPSEA_ToggleDecs) {
+		showdecs=!showdecs;
+		needtodraw=1;
+		return 0;
+
+	} else if (action==ELLIPSEA_ToggleCircle) {
+		if (!data) return 0;
+		bool circle=data->GetStyle(ELLIPSES_ISCIRCLE);
+		data->SetStyle(ELLIPSES_ISCIRCLE, !circle);
+		needtodraw=1;
+		return 0;
+	}
+
+	return 1;
+}
+
 
 
 } // namespace LaxInterfaces 
