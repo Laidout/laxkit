@@ -70,7 +70,7 @@ namespace LaxInterfaces {
 
 RectData::RectData()
 {
-	centertype=9;
+	centertype=LAX_MIDDLE;
 	setbounds(0,1, 0,1);
 	style=0; 
 	linestyle=NULL;
@@ -103,28 +103,13 @@ RectData::~RectData()
 	if (linestyle) delete linestyle;
 }
 
-//! Make sure center is where it is supposed to be.
+//! Make center be at position defined by centertype.
 void RectData::centercenter() 
 {	
-	flatpoint p(minx,miny),
-			  x(1,0),y(0,1);
-
-	double w=maxx-minx,
-		   h=maxy-miny;
-	switch(centertype) {
-		case 0: break; 
-		case 1: center= p; break;
-		case 2: center= p+         h/2*y;  break;
-		case 3: center= p+         h  *y;  break;
-		case 4: center= p+ w/2*x + h  *y;  break;
-		case 5: center= p+ w  *x + h  *y;  break;
-		case 6: center= p+ w  *x + h/2*y;  break;
-		case 7: center= p+ w  *x        ;  break;
-		case 8: center= p+ w/2*x        ;  break;
-		case 9: center= p+ w/2*x + h/2*y;  break;
-		default:  break; // no change
-	}
+	if (centertype!=LAX_CUSTOM_ALIGNMENT)
+		center=ReferencePoint(centertype,false);
 }
+
 
 //----------------------------- RectInterface --------------------------------
 
@@ -852,19 +837,20 @@ int RectInterface::scan(int x,int y)
 	return match;
 }
 
-// *** selecting point not so relevant at the moment, perhaps if key controls added...
-////! Tries to set curpoint and flags for redrawing. Returns the curpoint.
-///*! Valid points are 1 to npoints.
-// */
-//int RectInterface::SelectPoint(int c)
-//{ // ***
-//	return RP_None
-//	if (!data) return 0;
-//	if (c<=RP_None || c>RP_MAX) return curpoint;
-//	curpoint=c;
-//	needtodraw|=2;
-//	return curpoint;
-//}
+//! Tries to set curpoint and flags for redrawing. Returns the curpoint.
+/*! Does nothing if button not down.
+ */
+int RectInterface::SelectPoint(int c)
+{
+	if (!buttondown.any()) return RP_None;
+	if (!data) return RP_None;
+	if (c<=RP_None || c>=RP_MAX) return RP_None;
+
+	int device=buttondown.whichdown(0,LEFTBUTTON);
+	buttondown.moveinfo(device,LEFTBUTTON, c);
+	needtodraw|=2;
+	return c;
+}
 
 /*! Used when transferring control to a child RectInterface, and default to
  * the left button being down, and RP_Move. If !somedata, nothing is done.
@@ -1770,7 +1756,7 @@ int RectInterface::PerformAction(int action)
 
 	} else if (action==RIA_MoveCenter) {
 		if (!data) return 1;
-		if (++data->centertype>9) data->centertype=0;
+		if (++data->centertype>LAX_BOTTOM_RIGHT) data->centertype=LAX_CUSTOM_ALIGNMENT;
 		data->centercenter();
 		needtodraw=1;
 		return 0;

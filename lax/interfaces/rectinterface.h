@@ -62,11 +62,12 @@ class RectData : public SomeData
 	int centertype; // like rectinterface numbering, <1 means no center (center=p), >9 means stationary
 	flatpoint center,center2,shearpoint;
 	LineStyle *linestyle;
+
 	RectData();
 	RectData(flatpoint pp,double ww,double hh,int ct,unsigned int stle);
 	virtual ~RectData();
-	void centercenter();
-	const char *whattype() { return "RectData"; }
+	virtual void centercenter();
+	virtual const char *whattype() { return "RectData"; }
 };
 
 
@@ -147,7 +148,7 @@ class RectInterface : public anInterface
 
 	virtual int AlternateScan(flatpoint sp, flatpoint p, double xmag,double ymag, double onepix);
 	virtual int scan(int x,int y);
-	//virtual int SelectPoint(int c);
+	virtual int SelectPoint(int c);
 	virtual void deletedata();
 	virtual flatpoint getpoint(int c,int trans);
 	virtual void GetOuterRect(Laxkit::DoubleBBox *box, double *mm);
