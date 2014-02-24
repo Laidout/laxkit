@@ -722,8 +722,6 @@ int IntListAttribute(const char *v,int **i,int *n_ret,char **endptr)
  */
 double *TransformAttribute(const char *v,double *m,char **endptr)
 {
-	cout <<"*** imp TransformAttribute()!!"<<endl;
-
 	double matrix[6];
 	if (!m) m=matrix;
 
@@ -754,7 +752,7 @@ double *TransformAttribute(const char *v,double *m,char **endptr)
 
 		while (isalpha(*v)) v++;
 		if (*v=='(') v++;
-		n=DoubleListAttribute(v,tt,2,&ee);
+		n=DoubleListAttribute(v,tt,6,&ee);
 		if (n==0 || ee==v) break; //sudden ending after a word!! this is an error!
 		v=ee;
 		while (isspace(*v)) v++;
@@ -807,10 +805,9 @@ double *TransformAttribute(const char *v,double *m,char **endptr)
 		transform_copy(matrix,tt);
 	}
 
-	if (m==matrix) {
-		m=new double[6];
-		transform_copy(m,matrix);
-	}
+	if (m==matrix) m=new double[6];
+	transform_copy(m,matrix);
+
 	if (endptr) *endptr=const_cast<char *>(v);
 	return m;
 }
