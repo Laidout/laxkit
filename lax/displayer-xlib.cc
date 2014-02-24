@@ -1012,8 +1012,8 @@ void DisplayerXlib::drawpoint(double x, double y, double radius, int fill)
 //! Output an image into a real space rectangle.
 /*! This will obey any clipping in place.
  *
- * (x,y) is an additional translation to use. If w>0 AND h>0, then fit the image into
- * a rectangle with those real width and height. If w<=0 or h<=0, then use the
+ * (x,y) is an additional translation to use. If w>0 OR h>0, then fit the image into
+ * a rectangle with those real width and height. If w<=0 AND h<=0, then use the
  * image's pixel width and height as bounds.
  *
  * Return 0 for image drawn with no complications.
@@ -1037,7 +1037,7 @@ int DisplayerXlib::imageout(LaxImage *image, double x,double y, double w,double 
 	if (!imlibimage) return -2;
 	if (!imlibimage->Image()) return -3;
 
-	if (w<=0 || h<=0) { w=image->w(); h=image->h(); }
+	if (w<=0 && h<=0) { w=image->w(); h=image->h(); }
 
 	flatpoint ul=flatpoint(x  ,y  ),
 			  ur=flatpoint(x+w,y  ),
