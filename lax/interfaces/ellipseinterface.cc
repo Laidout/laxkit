@@ -543,8 +543,8 @@ int EllipseInterface::LBDown(int x,int y,unsigned int state,int count,const Laxk
 	rectify();
 
 	inrect=true;
-	rinterf.FakeLBDown(x,y,state,count,d); 
-	rinterf.SelectPoint(5);
+	rinterf.LBDown(x,y,state,count,d); 
+	//rinterf.SelectPoint(5);
 
 	//DBG CharInput('p',0);//***lists current points
 	needtodraw=1;
