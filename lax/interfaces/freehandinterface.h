@@ -30,21 +30,28 @@ namespace LaxInterfaces {
 
 
 enum FreehandEditorStyles {
-	FREEHAND_Till_Closed =(1<<0), //mouse down drag out a line, up and clicking adds points
-	FREEHAND_Coordinates =(1<<1), //Construct Coordinate points
-	FREEHAND_Flatpoints  =(1<<2), //Create a list of flatpoints
-	FREEHAND_Path        =(1<<3),      //Create a PathsData
-	FREEHAND_ScrollWindow=(1<<4), //scroll viewport if off screen
+	FREEHAND_Till_Closed     =(1<<0), //mouse down drag out a line, up and clicking adds points
+	FREEHAND_Coordinates     =(1<<1), //Construct Coordinate points
+	FREEHAND_Flatpoints      =(1<<2), //Create a list of flatpoints
+	FREEHAND_Raw_Path        =(1<<3), //Create a PathsData
+	FREEHAND_Poly_Path       =(1<<4), //Create a PathsData
+	FREEHAND_Bez_Path        =(1<<5), //Create a PathsData
+	FREEHAND_Bez_Outline     =(1<<5), //Create a PathsData
+	FREEHAND_Mesh            =(1<<6), //Create a PathsData
+	FREEHAND_ScrollWindow    =(1<<7), //scroll viewport if off screen
+	FREEHAND_Notify_All_Moves=(1<<8), //send events to owner upon every move
 	FREEHAND_MAX
 };
 
 class RawPoint {
   public:
 	flatpoint p;
+	int flag;
 	clock_t time;
 	double pressure;
 	double tiltx,tilty;
-	RawPoint(flatpoint pp) { p=pp; time=0; pressure=0; tiltx=tilty=0; }
+	RawPoint() { time=0; pressure=0; tiltx=tilty=0; flag=0; }
+	RawPoint(flatpoint pp) { p=pp; time=0; pressure=0; tiltx=tilty=0; flag=0; }
 };
 
 typedef Laxkit::PtrStack<RawPoint> RawPointLine;
@@ -60,9 +67,12 @@ class FreehandInterface : public anInterface
 	int findLine(int id);
 
 	virtual int send(int i);
+	void RecurseReduce(RawPointLine *l, int start, int end, double epsilon);
+	virtual RawPointLine *Reduce(int i, double epsilon);
 
   public:
 	unsigned int freehand_style;
+	double brush_size;
 	double mindist;
 	Laxkit::ScreenColor linecolor;
 	Laxkit::ScreenColor pointcolor;
