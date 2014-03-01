@@ -25,6 +25,7 @@
 
 #include <lax/interfaces/aninterface.h>
 #include <lax/interfaces/linestyle.h>
+#include <lax/interfaces/coordinate.h>
 
 namespace LaxInterfaces { 
 
@@ -36,9 +37,8 @@ enum FreehandEditorStyles {
 	FREEHAND_Raw_Path        =(1<<3), //Create a PathsData
 	FREEHAND_Poly_Path       =(1<<4), //Create a PathsData
 	FREEHAND_Bez_Path        =(1<<5), //Create a PathsData
-	FREEHAND_Bez_Outline     =(1<<5), //Create a PathsData
-	FREEHAND_Mesh            =(1<<6), //Create a PathsData
-	FREEHAND_ScrollWindow    =(1<<7), //scroll viewport if off screen
+	FREEHAND_Bez_Outline     =(1<<6), //Create a PathsData
+	FREEHAND_Mesh            =(1<<7), //Create a PathsData
 	FREEHAND_Notify_All_Moves=(1<<8), //send events to owner upon every move
 	FREEHAND_MAX
 };
@@ -60,20 +60,22 @@ class FreehandInterface : public anInterface
 {
   protected:
 	char showdecs;
-	int mx,my;
 	LineStyle linestyle;
 	//Laxkit::ShortcutHandler *sc;
 
 	int findLine(int id);
 
 	virtual int send(int i);
-	void RecurseReduce(RawPointLine *l, int start, int end, double epsilon);
+	virtual void RecurseReduce(RawPointLine *l, int start, int end, double epsilon);
+	virtual void RecurseReducePressure(RawPointLine *l, int start, int end, double epsilon);
 	virtual RawPointLine *Reduce(int i, double epsilon);
+	virtual RawPointLine *ReducePressure(int i, double epsilon);
+	virtual Coordinate *BezApproximate(RawPointLine *l);
 
   public:
 	unsigned int freehand_style;
 	double brush_size;
-	double mindist;
+	double smooth_pixel_threshhold;
 	Laxkit::ScreenColor linecolor;
 	Laxkit::ScreenColor pointcolor;
 
@@ -83,11 +85,13 @@ class FreehandInterface : public anInterface
 	FreehandInterface(anInterface *nowner, int nid,Laxkit::Displayer *ndp);
 	virtual ~FreehandInterface();
 	virtual anInterface *duplicate(anInterface *dup);
+	virtual const char *IconId() { return "Freehand"; }
 	const char *Name();
 	const char *whattype() { return "FreehandInterface"; }
 	const char *whatdatatype() { return NULL; } // is creation only
+	Laxkit::MenuInfo *ContextMenu(int x,int y,int deviceid);
 	//virtual Laxkit::ShortcutHandler *GetShortcuts();
-	//virtual int PerformAction(int actionnumber);
+	//virtual int PerformAction(int action);
 
 	virtual int UseThis(Laxkit::anObject *nlinestyle,unsigned int mask=0);
 	virtual int InterfaceOn();

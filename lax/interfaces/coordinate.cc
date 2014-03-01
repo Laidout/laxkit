@@ -708,6 +708,58 @@ Coordinate *CoordinatePolygon(flatpoint center, double radius, bool point_on_x_a
 //	***
 //	
 //}
+
+
+Coordinate *BezApproximate(flatpoint *l, int n)
+{
+	// There are surely better ways to do this. Not sure how powerstroke does it.
+	// It is not simplied/optimized at all. Each point gets control points to smooth it out.
+	//
+	// tangents at points are || to (p+1)-(p-1).
+	// Lengths of control rods are 1/3 of distance to adjacent points
+
+	Coordinate *coord=NULL;
+	Coordinate *curp=NULL;
+
+    flatvector v,p, pp,pn;
+	flatvector opn, opp;
+    double sx;
+	
+    for (int c=0; c<n; c++) {
+        p=l[c];
+
+		if (c==0)   opp=p; else opp=l[c-1];
+		if (c==n-1) opn=p; else opn=l[c+1];
+
+        v=opn-opp;
+        v.normalize();
+
+        sx=norm(p-opp)*.333;
+        pp=p - v*sx;
+
+        sx=norm(opn-p)*.333;
+        pn=p + v*sx;
+
+		if (!curp) coord=curp=new Coordinate(pp,POINT_TONEXT,NULL);
+		else {
+			curp->next=new Coordinate(pp,POINT_TONEXT,NULL);
+			curp->next->prev=curp;
+			curp=curp->next;
+		}
+
+		curp->next=new Coordinate(p);
+		curp->next->prev=curp;
+		curp=curp->next;
+
+		curp->next=new Coordinate(pn,POINT_TOPREV,NULL);
+		curp->next->prev=curp;
+		curp=curp->next;
+    }
+
+	return coord;
+}
+
+
 } //namespace LaxInterfaces
 
 

@@ -62,6 +62,7 @@ FreehandInterface::FreehandInterface(anInterface *nowner, int nid, Displayer *nd
 {
 	//freehand_style=FREEHAND_Poly_Path;
 	freehand_style=FREEHAND_Bez_Outline;
+	//freehand_style=FREEHAND_Bez_Path|FREEHAND_Poly_Path;
 
 	linecolor .rgbf(0,0,.5);
 	pointcolor.rgbf(.5,.5,.5);
@@ -69,7 +70,7 @@ FreehandInterface::FreehandInterface(anInterface *nowner, int nid, Displayer *nd
 	linestyle.color.red  =linestyle.color.alpha=0xffff;
 	linestyle.color.green=linestyle.color.blue =0;
 
-	mindist=40;
+	smooth_pixel_threshhold=2;
 	brush_size=60;
 
 	showdecs=1;
@@ -95,23 +96,20 @@ anInterface *FreehandInterface::duplicate(anInterface *dup)
 }
 
 int FreehandInterface::UseThis(anObject *nobj, unsigned int mask)
-{ // ***
-	return 1;
-//	if (!nobj) return 1;
-//	LineStyle *ls;
-//	if (ls=dynamic_cast<LineStyle *>(nobj), ls!=NULL) {
-//		if (mask&GCForeground) { 
-//			if (data) data->linestyle.color=ls->color;
-//			else linestyle.color=ls->color;
-//		}
-//		if (mask&GCLineWidth) {
-//			if (data) data->linestyle.width=ls->width;
-//			else linestyle.width=ls->width;
-//		}
-//		needtodraw=1;
-//		return 1;
-//	}
-//	return 0;
+{
+	if (!nobj) return 1;
+	LineStyle *ls=dynamic_cast<LineStyle *>(nobj);
+	if (ls!=NULL) {
+		if (mask&GCForeground) { 
+			linestyle.color=ls->color;
+		}
+		if (mask&GCLineWidth) {
+			linestyle.width=ls->width;
+		}
+		needtodraw=1;
+		return 1;
+	}
+	return 0;
 }
 
 int FreehandInterface::InterfaceOn()
@@ -134,6 +132,20 @@ void FreehandInterface::Clear(SomeData *d)
 	lines.flush();
 	deviceids.flush();
 }
+
+Laxkit::MenuInfo *FreehandInterface::ContextMenu(int x,int y,int deviceid)
+{
+	return NULL;
+	//MenuInfo *menu=new MenuInfo;
+	//menu->AddItem(_("Create raw points"), FREEHAND_Raw_Path, (freehand_style&FREEHAND_Raw_Path)?LAX_CHECKED:0);
+	//menu->AddItem(_("Create simplified polyline"), FREEHAND_Poly_Path, (freehand_style&FREEHAND_Poly_Path)?LAX_CHECKED:0);
+	//menu->AddItem(_("Create bezier line"), FREEHAND_Bez_Path, (freehand_style&FREEHAND_Bez_Path)?LAX_CHECKED:0);
+	//menu->AddItem(_("Create bezier outline"), FREEHAND_Bez_Outline, (freehand_style&FREEHAND_Bez_Outline)?LAX_CHECKED:0);
+	//menu->AddItem(_("Create mesh"), FREEHAND_Mesh, (freehand_style&FREEHAND_Mesh)?LAX_CHECKED:0);
+	//return menu;
+}
+
+
 
 int FreehandInterface::Refresh()
 { 
@@ -159,32 +171,34 @@ int FreehandInterface::Refresh()
 		}
 		dp->stroke(0);
 
-		 //draw pressure indicator
-		dp->NewFG(1.,0.,1.,1.);
-		flatvector vt;
-		dp->moveto(line->e[0]->p);
-		for (int c2=1; c2<line->n-1; c2++) {
-			if (line->e[c2]->pressure<0 || line->e[c2]->pressure>1) continue;
-			vt=line->e[c2+1]->p - line->e[c2-1]->p;
-			vt=transpose(vt);
-			vt.normalize();
-			vt*=brush_size/dp->Getmag()*line->e[c2]->pressure;
-			//dp->drawline(line->e[c2]->p + vt, line->e[c2]->p - vt);
-			dp->lineto(line->e[c2]->p + vt);
-		}
-		dp->stroke(0);
+		if (freehand_style&(FREEHAND_Bez_Outline|FREEHAND_Mesh)) {
+			 //draw pressure indicator
+			dp->NewFG(1.,0.,1.,1.);
+			flatvector vt;
+			dp->moveto(line->e[0]->p);
+			for (int c2=1; c2<line->n-1; c2++) {
+				if (line->e[c2]->pressure<0 || line->e[c2]->pressure>1) continue;
+				vt=line->e[c2+1]->p - line->e[c2-1]->p;
+				vt=transpose(vt);
+				vt.normalize();
+				vt*=brush_size/dp->Getmag()*line->e[c2]->pressure;
+				//dp->drawline(line->e[c2]->p + vt, line->e[c2]->p - vt);
+				dp->lineto(line->e[c2]->p + vt);
+			}
+			dp->stroke(0);
 
-		dp->moveto(line->e[0]->p);
-		for (int c2=1; c2<line->n-1; c2++) {
-			if (line->e[c2]->pressure<0 || line->e[c2]->pressure>1) continue;
-			vt=line->e[c2+1]->p - line->e[c2-1]->p;
-			vt=transpose(vt);
-			vt.normalize();
-			vt*=brush_size/dp->Getmag()*line->e[c2]->pressure;
-			//dp->drawline(line->e[c2]->p + vt, line->e[c2]->p - vt);
-			dp->lineto(line->e[c2]->p - vt);
+			dp->moveto(line->e[0]->p);
+			for (int c2=1; c2<line->n-1; c2++) {
+				if (line->e[c2]->pressure<0 || line->e[c2]->pressure>1) continue;
+				vt=line->e[c2+1]->p - line->e[c2-1]->p;
+				vt=transpose(vt);
+				vt.normalize();
+				vt*=brush_size/dp->Getmag()*line->e[c2]->pressure;
+				//dp->drawline(line->e[c2]->p + vt, line->e[c2]->p - vt);
+				dp->lineto(line->e[c2]->p - vt);
+			}
+			dp->stroke(0);
 		}
-		dp->stroke(0);
 
 
 		 // draw control points
@@ -192,7 +206,7 @@ int FreehandInterface::Refresh()
 			dp->NewFG(&pointcolor);
 			 // draw little circles
 			for (int c2=0; c2<line->n; c2++) {
-				dp->drawpoint(line->e[c2]->p,3,1);
+				dp->drawpoint(line->e[c2]->p,2,1);
 			}
 		}
 	}
@@ -267,7 +281,6 @@ int FreehandInterface::MouseMove(int x,int y,unsigned int state, const Laxkit::L
 	int mx=0,my=0;
 	buttondown.move(d->id, x,y, &mx,&my);
 
-	//if ((x-mx)*(x-mx)+(y-my)*(y-my)<mindist*mindist) return 1;
 	flatpoint p=dp->screentoreal(x,y);
 	RawPointLine *line=lines.e[i];
 
@@ -289,7 +302,7 @@ int FreehandInterface::MouseMove(int x,int y,unsigned int state, const Laxkit::L
 }
 
 
-/*! Returns a simplified line based on lines.e[i].
+/*! Returns a new RawPointLine, simplified based on lines.e[i].
  *
  * This implements the Ramer–Douglas–Peucker algorithm for reducing the number of points
  * in a polyline based on being within a given threshhold distance to a base line.
@@ -317,6 +330,54 @@ RawPointLine *FreehandInterface::Reduce(int i, double epsilon)
 	return l;
 }
 
+RawPointLine *FreehandInterface::ReducePressure(int i, double epsilon)
+{
+	if (i<0 || i>=lines.n) return NULL;
+
+	RawPointLine *l_orig=lines.e[i];
+	for (int c=0; c<l_orig->n; c++) l_orig->e[c]->flag=0;
+	RecurseReducePressure(l_orig, 0,l_orig->n-1, epsilon);
+
+	RawPointLine *l=new RawPointLine;
+	RawPoint *p;
+	for (int c=0; c<l_orig->n; c++) {
+		p=new RawPoint;
+		*p=*l_orig->e[c];
+		if (l_orig->e[c]->flag!=0) l->push(p);
+	}
+
+	return l;
+}
+
+//! Marks any points it thinks should be in the line with flag=1.
+void FreehandInterface::RecurseReducePressure(RawPointLine *l, int start, int end, double epsilon)
+{
+	if (end<=start+1) return; 
+
+	flatvector v=flatpoint(end-start, l->e[end]->pressure - l->e[start]->pressure);
+	flatvector vt=transpose(v);
+	vt.normalize();
+
+	l->e[start]->flag=1;
+	l->e[end  ]->flag=1;
+
+	int i=-1;
+	double d=0, dd;
+	for (int c=start+1; c<end; c++) {
+		dd=fabs(flatpoint(c-start, l->e[c]->pressure - l->e[start]->pressure)*vt);
+		if (dd>d) { d=dd; i=c; }
+	}
+
+	if (d<epsilon) {
+		;
+		//for (int c=start+1; c<end; c++) l->e[c]->flag=0;
+	} else {
+		RecurseReduce(l, start,i, epsilon);
+		RecurseReduce(l, i,end,   epsilon);
+	}
+}
+
+//! Marks any points it thinks should be in the line with flag=1.
 void FreehandInterface::RecurseReduce(RawPointLine *l, int start, int end, double epsilon)
 {
 	if (end<=start+1) return; 
@@ -344,51 +405,56 @@ void FreehandInterface::RecurseReduce(RawPointLine *l, int start, int end, doubl
 	}
 }
 
-///*! Makes fauxpoints be a bezier list: c-p-c-c-p-c-...-c-p-c
-// */
-//Coordinate *FreehandInterface:BezApproximate(RawPointLine *l)
-//{
-//	// There are surely better ways to do this. Not sure how powerstroke does it.
-//	// It is not simplied/optimized at all. Each point gets control points to smooth it out.
-//
-//	Coordinate *coord=NULL;
-//
-//    flatvector v,p, pp,pn;
-//	flatvector opn, opp;
-//
-//
-//    double sx;
-//	//caps are at points index 0 and points.n/2
-//	
-//    for (int c=0; c<points.n; c++) {
-//        p=points.e[c];
-//
-//		if (c==0) {
-//			***
-//
-//		} else if (c==points.n-1) {
-//			***
-//
-//		} else {
-//			opp=points.e[c-1];
-//			opn=points.e[c+1];
-//		}
-//
-//        v=opn-opp;
-//        v.normalize();
-//
-//        sx=norm(p-opp)*.333;
-//        pp=p - v*sx;
-//
-//        sx=norm(opn-p)*.333;
-//        pn=p + v*sx;
-//
-//        fauxpoints.push(pp);
-//        fauxpoints.push(p);
-//        fauxpoints.push(pn);
-//
-//    }
-//}
+/*! Return a bezier path: c-p-c-c-p-c-...-c-p-c
+ */
+Coordinate *FreehandInterface::BezApproximate(RawPointLine *l)
+{
+	// There are surely better ways to do this. Not sure how powerstroke does it.
+	// It is not simplied/optimized at all. Each point gets control points to smooth it out.
+	//
+	// tangents at points are || to (p+1)-(p-1).
+	// Lengths of control rods are 1/3 of distance to adjacent points
+
+	Coordinate *coord=NULL;
+	Coordinate *curp=NULL;
+
+    flatvector v,p, pp,pn;
+	flatvector opn, opp;
+    double sx;
+	
+    for (int c=0; c<l->n; c++) {
+        p=l->e[c]->p;
+
+		if (c==0)      opp=p; else opp=l->e[c-1]->p;
+		if (c==l->n-1) opn=p; else opn=l->e[c+1]->p;
+
+        v=opn-opp;
+        v.normalize();
+
+        sx=norm(p-opp)*.333;
+        pp=p - v*sx;
+
+        sx=norm(opn-p)*.333;
+        pn=p + v*sx;
+
+		if (!curp) coord=curp=new Coordinate(pp,POINT_TONEXT,NULL);
+		else {
+			curp->next=new Coordinate(pp,POINT_TONEXT,NULL);
+			curp->next->prev=curp;
+			curp=curp->next;
+		}
+
+		curp->next=new Coordinate(p);
+		curp->next->prev=curp;
+		curp=curp->next;
+
+		curp->next=new Coordinate(pn,POINT_TOPREV,NULL);
+		curp->next->prev=curp;
+		curp=curp->next;
+    }
+
+	return coord;
+}
 
 int FreehandInterface::send(int i)
 {
@@ -417,7 +483,7 @@ int FreehandInterface::send(int i)
 
 	if (freehand_style&FREEHAND_Poly_Path) {
 		 //return a reduced polyline
-		RawPointLine *line=Reduce(i,2/dp->Getmag());
+		RawPointLine *line=Reduce(i, smooth_pixel_threshhold/dp->Getmag());
 
 		PathsData *paths=new PathsData;
 		for (int c=0; c<line->n; c++) {
@@ -438,31 +504,33 @@ int FreehandInterface::send(int i)
 	}
 
 
-//	if (freehand_style&FREEHAND_Bez_Path) {
-//		 //return a bezierified line, based on a reduced polyline
-//		RawPointLine *line=Reduce(i,2/dp->Getmag());
-//		Coordinate *coord=BezApproximate(line);
-//
-//		paths=new PathsData;
-//		paths.append(coord);
-//
-//		if (owner) {
-//			RefCountedEventData *data=new RefCountedEventData(paths);
-//			app->SendMessage(data,owner->object_id,"FreehandInterface", object_id);
-//
-//		} else {
-//			if (viewport) viewport->NewData(paths,NULL);
-//		}
-//
-//		paths->dec_count();
-//		delete line;
-//	}
+	if (freehand_style&FREEHAND_Bez_Path) {
+		 //return a bezierified line, based on a reduced polyline
+		RawPointLine *line=Reduce(i, smooth_pixel_threshhold/dp->Getmag());
+		Coordinate *coord=BezApproximate(line);
+
+		PathsData *paths=new PathsData;
+		paths->appendCoord(coord);
+		paths->FindBBox();
+
+		if (owner) {
+			RefCountedEventData *data=new RefCountedEventData(paths);
+			app->SendMessage(data,owner->object_id,"FreehandInterface", object_id);
+
+		} else {
+			if (viewport) viewport->NewData(paths,NULL);
+		}
+
+		paths->dec_count();
+		delete line;
+	}
 
 
 	if (freehand_style&FREEHAND_Bez_Outline) {
-		RawPointLine *line=Reduce(i,2/dp->Getmag());
+		RawPointLine *line=Reduce(i, smooth_pixel_threshhold/dp->Getmag());
+		//RawPointLine *line=ReducePressure(i, .1);
 
-		PathsData *paths=new PathsData;
+		NumStack<flatpoint> points;
 
 		flatvector vt, pp,pn;
 		for (int c2=0; c2<line->n; c2++) {
@@ -475,7 +543,7 @@ int FreehandInterface::send(int i)
 			vt=transpose(vt);
 			vt.normalize();
 			vt*=brush_size/dp->Getmag()*line->e[c2]->pressure;
-			paths->append(line->e[c2]->p + vt);
+			points.push(line->e[c2]->p + vt);
 		}
 
 		for (int c2=line->n-1; c2>=0; c2--) {
@@ -488,10 +556,17 @@ int FreehandInterface::send(int i)
 			vt=transpose(vt);
 			vt.normalize();
 			vt*=brush_size/dp->Getmag()*line->e[c2]->pressure;
-			paths->append(line->e[c2]->p - vt);
+			points.push(line->e[c2]->p - vt);
 		}
+
+
+		Coordinate *coord=LaxInterfaces::BezApproximate(points.e,points.n);
+
+		PathsData *paths=new PathsData;
+		paths->appendCoord(coord);
 		paths->close();
 		paths->FindBBox();
+		paths->fill(&linestyle.color);
 
 		if (owner) {
 			RefCountedEventData *data=new RefCountedEventData(paths);
