@@ -22,6 +22,7 @@
 #include <lax/interfaces/viewerwindow.h>
 #include <lax/interfaces/viewportwithstack.h>
 #include <lax/interfaces/engraverfillinterface.h>
+#include <lax/interfaces/pressuremapinterface.h>
 #include <lax/units.h>
 
 
@@ -67,7 +68,8 @@ int main(int argc,char **argv)
 	viewer->AddTool(new       RectInterface(i++,NULL), 1,0);
 	viewer->AddTool(new       PathInterface(i++,NULL), 1,0);
 	//viewer->AddTool(new        BezInterface(i++,NULL), 1,0);
-	viewer->AddTool(new   FreehandInterface(NULL, i++,NULL), 1,0); current=i-1;
+	viewer->AddTool(new   FreehandInterface(NULL, i++,NULL), 1,0);
+	viewer->AddTool(new   PressureMapInterface(NULL, i++,NULL), 1,0); current=i-1;
 	viewer->AddTool(new    EllipseInterface(NULL,i++,NULL), 1,0);
 	//viewer->AddTool(new    MeasureInterface(i++,NULL), 1,0);
 	viewer->AddTool(new EngraverFillInterface(i++,NULL), 1,0);

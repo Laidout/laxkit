@@ -1249,6 +1249,10 @@ int XInput2Pointer::getInfo(anXWindow *win,
 		XIDeviceInfo *devinfo=XIQueryDevice(anXApp::app->dpy, xid, &n);
 		XIValuatorClassInfo *val;
 
+		if (pressure) *pressure=1;
+		if (tiltx) *tiltx=0;
+		if (tilty) *tilty=0;
+
 		for (int c=0; c<devinfo->num_classes; c++) {
 			if (devinfo->classes[c]->type!=XIValuatorClass) continue;
 
@@ -1262,9 +1266,12 @@ int XInput2Pointer::getInfo(anXWindow *win,
 			//val->mode
 
 			 //need to do a different call to find valuator info...
-			if (pressure && val->number==2) { *pressure=(val->value-val->min)/(val->max-val->min); }
-			if (tiltx && val->number==3) { *tiltx=(val->value-val->min)/(val->max-val->min); }
-			if (tilty && val->number==4) { *tilty=(val->value-val->min)/(val->max-val->min); }
+			if (pressure && val->number==2) {
+				if (val->min==val->max) *pressure=1;
+				else *pressure=(val->value-val->min)/(val->max-val->min);
+			}
+			if (tiltx && val->number==3)    { *tiltx   =(val->value-val->min)/(val->max-val->min); }
+			if (tilty && val->number==4)    { *tilty   =(val->value-val->min)/(val->max-val->min); }
 		}
 
 		XIFreeDeviceInfo(devinfo);

@@ -41,6 +41,7 @@ objs= \
 	captioninterface.o \
 	engraverfillinterface.o \
 	ellipseinterface.o \
+	pressuremapinterface.o \
 
 #	linesinterface.o \
 #	measureinterface.o \
