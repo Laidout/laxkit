@@ -3533,9 +3533,9 @@ int PathInterface::CutNear(flatpoint hoverpoint)
 
 int PathInterface::WheelUp(int x,int y,unsigned int state,int count,const Laxkit::LaxMouse *d)
 {
-	//if (curpoints.n==1 && lbfound==curpoints.e[0] && (lbfound->flags&POINT_VERTEX) && !lbselected) {
-	//***SetPointType(-1);
+	if (state&LAX_STATE_MASK) return 1;
 
+	 //plain wheel to change point type
 	Coordinate *p=scan(x,y, 0,NULL);
 	if (!p || !(p->flags&POINT_VERTEX)) return 1;
 	SetPointType(p,-1);
@@ -3546,6 +3546,9 @@ int PathInterface::WheelUp(int x,int y,unsigned int state,int count,const Laxkit
 
 int PathInterface::WheelDown(int x,int y,unsigned int state,int count,const Laxkit::LaxMouse *d)
 {
+	if (state&LAX_STATE_MASK) return 1;
+
+	 //plain wheel to change point type
 	Coordinate *p=scan(x,y, 0,NULL);
 	if (!p || !(p->flags&POINT_VERTEX)) return 1;
 	SetPointType(p,-2);
