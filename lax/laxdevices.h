@@ -118,7 +118,7 @@ class LaxMouse : public LaxDevice
 	virtual int ungrabDevice();
 	virtual int getInfo(anXWindow *win,
 						int *screen, anXWindow **child,
-						int *x, int *y, unsigned int *mods,
+						double *x, double *y, unsigned int *mods,
 						double *pressure, double *tiltx, double *tilty)=0;
 	virtual int Pressure();
 	virtual int TiltX();
@@ -187,7 +187,7 @@ class CoreXlibPointer : public LaxMouse
 	virtual int ungrabDevice();
 	virtual int getInfo(anXWindow *win,
 						int *screen, anXWindow **child,
-						int *x, int *y, unsigned int *mods,
+						double *x, double *y, unsigned int *mods,
 						double *pressure, double *tiltx, double *tilty);
 };
 
@@ -225,7 +225,7 @@ class XInput2Pointer : public LaxMouse
 	virtual int ungrabDevice();
 	virtual int getInfo(anXWindow *win,
 						int *screen, anXWindow **child,
-						int *x, int *y, unsigned int *mods,
+						double *x, double *y, unsigned int *mods,
 						double *pressure, double *tiltx, double *tilty);
 };
 

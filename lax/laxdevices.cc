@@ -581,7 +581,7 @@ int CoreXlibPointer::grabDevice(anXWindow *win)
  */
 int CoreXlibPointer::getInfo(anXWindow *win,
 							 int *screen, anXWindow **child,
-							 int *x, int *y, unsigned int *mods,
+							 double *x, double *y, unsigned int *mods,
 							 double *pressure, double *tiltx, double *tilty) //extra goodies
 {
 	Window rt=0,chld=0, xwin=0;
@@ -1185,7 +1185,7 @@ int XInput2Pointer::grabDevice(anXWindow *win)
  */
 int XInput2Pointer::getInfo(anXWindow *win,
 							 int *screen, anXWindow **child,
-							 int *x, int *y, unsigned int *mods,
+							 double *x, double *y, unsigned int *mods,
 							 double *pressure, double *tiltx, double *tilty) //extra goodies
 {
 	Window xwin=0;
@@ -1240,8 +1240,8 @@ int XInput2Pointer::getInfo(anXWindow *win,
 	if (er==False) return 1;
 
 	if (child) { *child=(chld ? anXApp::app->findwindow_xlib(chld) : NULL); }
-	if (x) { *x=(int)dxx; }
-	if (y) { *y=(int)dyy; }
+	if (x) { *x=dxx; }
+	if (y) { *y=dyy; }
 	if (mods) { *mods=modstate.effective; }
 
 	if (pressure || tiltx || tilty) {

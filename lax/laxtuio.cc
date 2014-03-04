@@ -90,7 +90,7 @@ TouchObject::~TouchObject()
 
 int TouchObject::getInfo(anXWindow *win,
 							 int *screen, anXWindow **child,
-							 int *x, int *y, unsigned int *mods,
+							 double *x, double *y, unsigned int *mods,
 							 double *pressure, double *tiltx, double *tilty) //extra goodies
 { 
 	cerr <<"*** need to implement TouchObject::getInfo()!!"<<endl;

@@ -275,7 +275,7 @@ int mouseposition(int mouse_id, anXWindow *win, int *x, int *y, unsigned int *st
 	LaxMouse *mouse=anXApp::app->devicemanager->findMouse(mouse_id);
 	if (!mouse) return 2;
 
-	int xx,yy;
+	double xx,yy;
 	unsigned int mods;
 	int er=mouse->getInfo(win, screen, child, &xx,&yy, &mods, NULL, NULL, NULL);
 	if (er!=0) return 3;
