@@ -710,6 +710,8 @@ Coordinate *CoordinatePolygon(flatpoint center, double radius, bool point_on_x_a
 //}
 
 
+/*! This will return a Coordinate list with 3*n points, arranged c-v-c - c-v-c ... c-v-c.
+ */
 Coordinate *BezApproximate(flatpoint *l, int n)
 {
 	// There are surely better ways to do this. Not sure how powerstroke does it.
@@ -740,6 +742,7 @@ Coordinate *BezApproximate(flatpoint *l, int n)
         sx=norm(opn-p)*.333;
         pn=p + v*sx;
 
+		 //create tonext control
 		if (!curp) coord=curp=new Coordinate(pp,POINT_TONEXT,NULL);
 		else {
 			curp->next=new Coordinate(pp,POINT_TONEXT,NULL);
@@ -747,10 +750,12 @@ Coordinate *BezApproximate(flatpoint *l, int n)
 			curp=curp->next;
 		}
 
+		 //create vertex
 		curp->next=new Coordinate(p);
 		curp->next->prev=curp;
 		curp=curp->next;
 
+		 //create toprev control
 		curp->next=new Coordinate(pn,POINT_TOPREV,NULL);
 		curp->next->prev=curp;
 		curp=curp->next;

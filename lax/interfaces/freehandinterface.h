@@ -86,10 +86,11 @@ class FreehandInterface : public anInterface
 	virtual ~FreehandInterface();
 	virtual anInterface *duplicate(anInterface *dup);
 	virtual const char *IconId() { return "Freehand"; }
-	const char *Name();
-	const char *whattype() { return "FreehandInterface"; }
-	const char *whatdatatype() { return NULL; } // is creation only
-	Laxkit::MenuInfo *ContextMenu(int x,int y,int deviceid);
+	virtual const char *Name();
+	virtual const char *whattype() { return "FreehandInterface"; }
+	virtual const char *whatdatatype() { return NULL; } // is creation only
+	virtual Laxkit::MenuInfo *ContextMenu(int x,int y,int deviceid);
+	virtual int Event(const Laxkit::EventData *e,const char *mes);
 	//virtual Laxkit::ShortcutHandler *GetShortcuts();
 	//virtual int PerformAction(int action);
 

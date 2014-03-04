@@ -306,6 +306,11 @@ int ColorPatchData::WhatColor(double s,double t,ScreenColor *color_ret)
 	return 0;
 }
 
+void ColorPatchData::SetColor(int pr,int pc, Laxkit::ScreenColor *col)
+{
+	SetColor(pr,pc, col->red,col->green,col->blue,col->alpha);
+}
+
 /*! pr,pc is row/column of vertex, 0=first vertex, 1=second vertex, ...
  */
 void ColorPatchData::SetColor(int pr,int pc,int red,int green,int blue,int alpha)

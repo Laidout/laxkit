@@ -27,6 +27,8 @@
 
 #include <lax/interfaces/somedatafactory.h>
 #include <lax/interfaces/pathinterface.h>
+#include <lax/interfaces/colorpatchinterface.h>
+#include <lax/interfaces/gradientinterface.h>
 #include <lax/language.h>
 
 #include <lax/lists.cc>
@@ -61,8 +63,9 @@ FreehandInterface::FreehandInterface(anInterface *nowner, int nid, Displayer *nd
  : anInterface(nowner,nid,ndp)
 {
 	//freehand_style=FREEHAND_Poly_Path;
-	freehand_style=FREEHAND_Bez_Outline;
-	//freehand_style=FREEHAND_Bez_Path|FREEHAND_Poly_Path;
+	//freehand_style=FREEHAND_Bez_Path;
+	//freehand_style=FREEHAND_Bez_Outline;
+	freehand_style=FREEHAND_Mesh;
 
 	linecolor .rgbf(0,0,.5);
 	pointcolor.rgbf(.5,.5,.5);
@@ -135,17 +138,42 @@ void FreehandInterface::Clear(SomeData *d)
 
 Laxkit::MenuInfo *FreehandInterface::ContextMenu(int x,int y,int deviceid)
 {
-	return NULL;
-	//MenuInfo *menu=new MenuInfo;
-	//menu->AddItem(_("Create raw points"), FREEHAND_Raw_Path, (freehand_style&FREEHAND_Raw_Path)?LAX_CHECKED:0);
-	//menu->AddItem(_("Create simplified polyline"), FREEHAND_Poly_Path, (freehand_style&FREEHAND_Poly_Path)?LAX_CHECKED:0);
-	//menu->AddItem(_("Create bezier line"), FREEHAND_Bez_Path, (freehand_style&FREEHAND_Bez_Path)?LAX_CHECKED:0);
-	//menu->AddItem(_("Create bezier outline"), FREEHAND_Bez_Outline, (freehand_style&FREEHAND_Bez_Outline)?LAX_CHECKED:0);
-	//menu->AddItem(_("Create mesh"), FREEHAND_Mesh, (freehand_style&FREEHAND_Mesh)?LAX_CHECKED:0);
-	//return menu;
+	MenuInfo *menu=new MenuInfo;
+	menu->AddItem(_("Create raw points"), FREEHAND_Raw_Path, (freehand_style&FREEHAND_Raw_Path)?LAX_CHECKED:0);
+	menu->AddItem(_("Create simplified polyline"), FREEHAND_Poly_Path, (freehand_style&FREEHAND_Poly_Path)?LAX_CHECKED:0);
+	menu->AddItem(_("Create bezier line"), FREEHAND_Bez_Path, (freehand_style&FREEHAND_Bez_Path)?LAX_CHECKED:0);
+	menu->AddItem(_("Create bezier outline"), FREEHAND_Bez_Outline, (freehand_style&FREEHAND_Bez_Outline)?LAX_CHECKED:0);
+	menu->AddItem(_("Create mesh"), FREEHAND_Mesh, (freehand_style&FREEHAND_Mesh)?LAX_CHECKED:0);
+	return menu;
 }
 
 
+int FreehandInterface::Event(const Laxkit::EventData *e,const char *mes)
+{
+	if (!strcmp(mes,"menuevent")) {
+        const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(e);
+        int i =s->info2; //id of menu item
+        //int ii=s->info4; //extra id, 1 for direction
+
+		if (i==FREEHAND_Raw_Path    ) {
+			freehand_style=FREEHAND_Raw_Path;
+
+		} else if (i==FREEHAND_Poly_Path   ) {
+			freehand_style=FREEHAND_Poly_Path;
+
+		} else if (i==FREEHAND_Bez_Path    ) {
+			freehand_style=FREEHAND_Bez_Path;
+
+		} else if (i==FREEHAND_Bez_Outline ) {
+			freehand_style=FREEHAND_Bez_Outline;
+
+		} else if (i==FREEHAND_Mesh        ) {
+			freehand_style=FREEHAND_Mesh;
+		}
+	}
+	
+	return 1;
+}
 
 int FreehandInterface::Refresh()
 { 
@@ -286,7 +314,9 @@ int FreehandInterface::MouseMove(int x,int y,unsigned int state, const Laxkit::L
 
 	RawPoint *pp=new RawPoint(p);
 	pp->time=times(NULL);
-	const_cast<LaxMouse*>(d)->getInfo(NULL,NULL,NULL,NULL,NULL,NULL,&pp->pressure,&pp->tiltx,&pp->tilty);
+	double xx,yy;
+	const_cast<LaxMouse*>(d)->getInfo(NULL,NULL,NULL,&xx,&yy,NULL,&pp->pressure,&pp->tiltx,&pp->tilty);
+	p=dp->screentoreal(xx,yy);
 	if (pp->pressure<0 || pp->pressure>1) pp->pressure=1; //non-pressure sensitive map to full pressure
 	line->push(pp);
 
@@ -330,6 +360,9 @@ RawPointLine *FreehandInterface::Reduce(int i, double epsilon)
 	return l;
 }
 
+/*! Returns a new RawPointLine with only points with non zero flags.
+ * \todo *** need to artifically add points on bez line for flag==-1 points.
+ */
 RawPointLine *FreehandInterface::ReducePressure(int i, double epsilon)
 {
 	if (i<0 || i>=lines.n) return NULL;
@@ -350,6 +383,9 @@ RawPointLine *FreehandInterface::ReducePressure(int i, double epsilon)
 }
 
 //! Marks any points it thinks should be in the line with flag=1.
+/*! If a point is added from pressure, but flag already is one (from a previous call to Reduce(),
+ * then flag is made -1. 
+ */
 void FreehandInterface::RecurseReducePressure(RawPointLine *l, int start, int end, double epsilon)
 {
 	if (end<=start+1) return; 
@@ -358,8 +394,8 @@ void FreehandInterface::RecurseReducePressure(RawPointLine *l, int start, int en
 	flatvector vt=transpose(v);
 	vt.normalize();
 
-	l->e[start]->flag=1;
-	l->e[end  ]->flag=1;
+	if (l->e[start]->flag==0) l->e[start]->flag=-1;
+	if (l->e[end  ]->flag==0) l->e[end  ]->flag=-1;
 
 	int i=-1;
 	double d=0, dd;
@@ -405,7 +441,7 @@ void FreehandInterface::RecurseReduce(RawPointLine *l, int start, int end, doubl
 	}
 }
 
-/*! Return a bezier path: c-p-c-c-p-c-...-c-p-c
+/*! Return a new Coordinate list with bezier path: c-p-c-c-p-c-...-c-p-c
  */
 Coordinate *FreehandInterface::BezApproximate(RawPointLine *l)
 {
@@ -580,10 +616,98 @@ int FreehandInterface::send(int i)
 		delete line;
 	}
 
-//	if (freehand_style&FREEHAND_Mesh) {
-//		 //return a mesh based on a bezierified line, which is based on a reduced polyline
-//		 ***
-//	}
+	if (freehand_style&FREEHAND_Mesh) {
+		 //return a mesh based on a bezierified line, which is based on a reduced polyline
+		RawPointLine *line=Reduce(i, smooth_pixel_threshhold/dp->Getmag());
+		//RawPointLine *line=lines.e[i];
+
+		 //each point in line gets 3 coords in:
+		Coordinate *coord=BezApproximate(line);
+
+		Coordinate *cc=coord->next;
+		NumStack<flatpoint> points_top,points_bottom;
+		flatvector vt, pp,pn;
+		int i=0;
+		while (cc) {
+			if (line->e[i]->pressure>=0 && line->e[i]->pressure<=1) {
+				if (i==0) pp=cc->fp; else pp=cc->prev->fp;
+				if (i==line->n-1) pn=cc->fp; else pn=cc->next->fp;
+
+				vt=pn-pp;
+				vt=transpose(vt);
+				vt.normalize();
+				vt*=brush_size/dp->Getmag()*line->e[i]->pressure;
+				points_top.   push(line->e[i]->p + vt);
+				points_bottom.push(line->e[i]->p - vt);
+			}
+
+			i++;
+			cc=cc->next->next;
+			if (cc) { cc=cc->next; }
+		}
+		delete line;
+
+		Coordinate *coord_t=LaxInterfaces::BezApproximate(points_top.e,    points_top.n);
+		Coordinate *coord_b=LaxInterfaces::BezApproximate(points_bottom.e, points_bottom.n);
+
+		int nn=0;
+		cc=coord_t;
+		while (cc) { nn++; cc=cc->next; }
+
+		ScreenColor col1(1.,0.,0.,1.), col2(0.,0.,1.,1.);
+		GradientData gradient(flatpoint(0,0),flatpoint(1,0),0,1,&col1,&col2,GRADIENT_LINEAR);
+
+
+		ColorPatchData *mesh=new ColorPatchData;
+		mesh->Set(0,0,1,1, gradient.colors.n-1,points_top.n-1, Patch_Coons);
+		Coordinate *cct=coord_t->next;
+		Coordinate *ccb=coord_b->next;
+		int r;
+		flatpoint p,v;
+		for (int c=0; c<mesh->xsize; c+=3) {
+			 //top points
+			r=0;
+			mesh->points[r*mesh->xsize+c  ]=p=cct->fp;
+			cct=cct->next; //cct at next
+			if (c<mesh->xsize-2) {
+				mesh->points[r*mesh->xsize+c+1]=cct->fp;
+				cct=cct->next; //cct at prev
+				mesh->points[r*mesh->xsize+c+2]=cct->fp;
+				cct=cct->next; //cct at v
+			}
+
+			 //bottom points
+			r=mesh->ysize-1;
+			mesh->points[r*mesh->xsize+c  ]=v=ccb->fp;   ccb=ccb->next;
+			v-=p;
+			if (c<mesh->xsize-1) {
+				mesh->points[r*mesh->xsize+c+1]=ccb->fp; ccb=ccb->next;
+				mesh->points[r*mesh->xsize+c+2]=ccb->fp; ccb=ccb->next;
+			}
+
+			 //middle points
+			r=1;
+			mesh->points[  r  *mesh->xsize+c]=p+v/3;
+			mesh->points[(r+1)*mesh->xsize+c]=p+v*2/3;
+
+			mesh->SetColor(0,c/3, &gradient.colors.e[0]->color);
+			mesh->SetColor(1,c/3, &gradient.colors.e[1]->color);
+		}
+		mesh->InterpolateControls(Patch_Coons);
+		mesh->FindBBox();
+
+		if (owner) {
+			RefCountedEventData *data=new RefCountedEventData(mesh);
+			app->SendMessage(data,owner->object_id,"FreehandInterface", object_id);
+
+		} else {
+			if (viewport) viewport->NewData(mesh,NULL);
+		}
+
+		mesh->dec_count();
+		delete coord_t;
+		delete coord_b;
+	}
 
 
 	return 0;

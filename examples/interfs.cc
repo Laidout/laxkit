@@ -64,12 +64,12 @@ int main(int argc,char **argv)
 	//viewer->AddTool(new   GradientInterface(i++,NULL), 1,0);
 	//viewer->AddTool(new      ImageInterface(i++,NULL), 1,0);
 	viewer->AddTool(new      PatchInterface(i++,NULL), 1,0);
-	//viewer->AddTool(new ColorPatchInterface(i++,NULL), 1,0);
+	viewer->AddTool(new ColorPatchInterface(i++,NULL), 1,0);
 	viewer->AddTool(new       RectInterface(i++,NULL), 1,0);
 	viewer->AddTool(new       PathInterface(i++,NULL), 1,0);
 	//viewer->AddTool(new        BezInterface(i++,NULL), 1,0);
-	viewer->AddTool(new   FreehandInterface(NULL, i++,NULL), 1,0);
-	viewer->AddTool(new   PressureMapInterface(NULL, i++,NULL), 1,0); current=i-1;
+	viewer->AddTool(new   FreehandInterface(NULL, i++,NULL), 1,0); current=i-1;
+	viewer->AddTool(new   PressureMapInterface(NULL, i++,NULL), 1,0);
 	viewer->AddTool(new    EllipseInterface(NULL,i++,NULL), 1,0);
 	//viewer->AddTool(new    MeasureInterface(i++,NULL), 1,0);
 	viewer->AddTool(new EngraverFillInterface(i++,NULL), 1,0);
