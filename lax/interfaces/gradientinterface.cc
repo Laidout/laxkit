@@ -521,6 +521,15 @@ void GradientData::FindBBox()
 	DBG cerr <<"gradient "<<object_id<<": x:"<<minx<<','<<maxx<<"  y:"<<miny<<','<<maxy<<endl;
 }
 
+/*! Return the t of colors.e[i] mapped to the range [0..1] where
+ * 0 is colors.e[0] and 1 is colors.e[colors.n-1].
+ */
+double GradientData::GetNormalizedT(int i)
+{
+	if (i<0 || i>=colors.n) return 0;
+	return (colors.e[i]->t - colors.e[0]->t)/(colors.e[colors.n-1]->t - colors.e[0]->t);
+}
+
 //! Move the color which to a new t position.
 /*! Note this is the GradientData independent t value.
  */

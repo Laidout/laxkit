@@ -70,6 +70,7 @@ class GradientData : virtual public SomeData
 	virtual void FindBBox();
 	virtual int pointin(flatpoint pp,int pin=1);
 	virtual int ShiftPoint(int which,double dt);
+	virtual double GetNormalizedT(int i);
 	virtual int AddColor(double t,int red,int green,int blue,int alpha);
 	virtual int AddColor(double t,Laxkit::ScreenColor *col);
 	virtual int WhatColor(double t,Laxkit::ScreenColor *col);
