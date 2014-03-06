@@ -65,7 +65,8 @@ FreehandInterface::FreehandInterface(anInterface *nowner, int nid, Displayer *nd
 	//freehand_style=FREEHAND_Poly_Path;
 	//freehand_style=FREEHAND_Bez_Path;
 	//freehand_style=FREEHAND_Bez_Outline;
-	freehand_style=FREEHAND_Mesh;
+	//freehand_style=FREEHAND_Color_Mesh;
+	freehand_style=FREEHAND_Double_Mesh;
 
 	linecolor .rgbf(0,0,.5);
 	pointcolor.rgbf(.5,.5,.5);
@@ -78,6 +79,8 @@ FreehandInterface::FreehandInterface(anInterface *nowner, int nid, Displayer *nd
 
 	showdecs=1;
 	needtodraw=1;
+
+	sc=NULL;
 }
 
 FreehandInterface::~FreehandInterface()
@@ -139,11 +142,19 @@ void FreehandInterface::Clear(SomeData *d)
 Laxkit::MenuInfo *FreehandInterface::ContextMenu(int x,int y,int deviceid)
 {
 	MenuInfo *menu=new MenuInfo;
-	menu->AddItem(_("Create raw points"), FREEHAND_Raw_Path, (freehand_style&FREEHAND_Raw_Path)?LAX_CHECKED:0);
-	menu->AddItem(_("Create simplified polyline"), FREEHAND_Poly_Path, (freehand_style&FREEHAND_Poly_Path)?LAX_CHECKED:0);
-	menu->AddItem(_("Create bezier line"), FREEHAND_Bez_Path, (freehand_style&FREEHAND_Bez_Path)?LAX_CHECKED:0);
-	menu->AddItem(_("Create bezier outline"), FREEHAND_Bez_Outline, (freehand_style&FREEHAND_Bez_Outline)?LAX_CHECKED:0);
-	menu->AddItem(_("Create mesh"), FREEHAND_Mesh, (freehand_style&FREEHAND_Mesh)?LAX_CHECKED:0);
+	//menu->AddItem(_("Create raw points"), FREEHAND_Raw_Path, (freehand_style&FREEHAND_Raw_Path)?LAX_CHECKED:0);
+	//menu->AddItem(_("Create simplified polyline"), FREEHAND_Poly_Path, (freehand_style&FREEHAND_Poly_Path)?LAX_CHECKED:0);
+	//menu->AddItem(_("Create bezier line"), FREEHAND_Bez_Path, (freehand_style&FREEHAND_Bez_Path)?LAX_CHECKED:0);
+	//menu->AddItem(_("Create bezier outline"), FREEHAND_Bez_Outline, (freehand_style&FREEHAND_Bez_Outline)?LAX_CHECKED:0);
+	//menu->AddItem(_("Create mesh"), FREEHAND_Color_Mesh, (freehand_style&FREEHAND_Color_Mesh)?LAX_CHECKED:0);
+	//menu->AddItem(_("Create symmetric mesh"), FREEHAND_Double_Mesh, (freehand_style&FREEHAND_Color_Mesh)?LAX_CHECKED:0);
+
+	menu->AddItem(_("Create raw points"), FREEHAND_Raw_Path );
+	menu->AddItem(_("Create simplified polyline"), FREEHAND_Poly_Path );
+	menu->AddItem(_("Create bezier line"), FREEHAND_Bez_Path );
+	menu->AddItem(_("Create bezier outline"), FREEHAND_Bez_Outline);
+	menu->AddItem(_("Create mesh"), FREEHAND_Color_Mesh);
+	menu->AddItem(_("Create symmetric mesh"), FREEHAND_Double_Mesh);
 	return menu;
 }
 
@@ -167,8 +178,11 @@ int FreehandInterface::Event(const Laxkit::EventData *e,const char *mes)
 		} else if (i==FREEHAND_Bez_Outline ) {
 			freehand_style=FREEHAND_Bez_Outline;
 
-		} else if (i==FREEHAND_Mesh        ) {
-			freehand_style=FREEHAND_Mesh;
+		} else if (i==FREEHAND_Color_Mesh        ) {
+			freehand_style=FREEHAND_Color_Mesh;
+
+		} else if (i==FREEHAND_Double_Mesh        ) {
+			freehand_style=FREEHAND_Double_Mesh;
 		}
 	}
 	
@@ -199,7 +213,7 @@ int FreehandInterface::Refresh()
 		}
 		dp->stroke(0);
 
-		if (freehand_style&(FREEHAND_Bez_Outline|FREEHAND_Mesh)) {
+		if (freehand_style&(FREEHAND_Bez_Outline|FREEHAND_Color_Mesh|FREEHAND_Double_Mesh)) {
 			 //draw pressure indicator
 			dp->NewFG(1.,0.,1.,1.);
 			flatvector vt;
@@ -261,12 +275,6 @@ int FreehandInterface::LBDown(int x,int y,unsigned int state,int count, const La
 		deviceids.remove(i);
 	}
 
-	RawPointLine *line=new RawPointLine;
-	flatpoint p=dp->screentoreal(x,y);
-	line->push(new RawPoint(p));
-	lines.push(line);
-	deviceids.push(d->id);
-	
 	DBG cerr <<"../freehandiLbd\n";
 	return 0;
 }
@@ -301,10 +309,16 @@ int FreehandInterface::LBUp(int x,int y,unsigned int state, const Laxkit::LaxMou
  */
 int FreehandInterface::MouseMove(int x,int y,unsigned int state, const Laxkit::LaxMouse *d)
 {
-	if (!buttondown.any()) return 1;
+	if (!buttondown.isdown(d->id,LEFTBUTTON)) return 1;
 
 	int i=findLine(d->id);
-	if (i<0) return 0;
+	if (i<0) {
+		RawPointLine *line=new RawPointLine;
+		lines.push(line);
+		deviceids.push(d->id);
+		i=lines.n-1;
+	}
+	
 
 	int mx=0,my=0;
 	buttondown.move(d->id, x,y, &mx,&my);
@@ -313,19 +327,15 @@ int FreehandInterface::MouseMove(int x,int y,unsigned int state, const Laxkit::L
 	RawPointLine *line=lines.e[i];
 
 	RawPoint *pp=new RawPoint(p);
-	pp->time=times(NULL);
+
 	double xx,yy;
 	const_cast<LaxMouse*>(d)->getInfo(NULL,NULL,NULL,&xx,&yy,NULL,&pp->pressure,&pp->tiltx,&pp->tilty);
+
+	pp->time=times(NULL);
 	p=dp->screentoreal(xx,yy);
 	if (pp->pressure<0 || pp->pressure>1) pp->pressure=1; //non-pressure sensitive map to full pressure
 	line->push(pp);
 
-//	if (data->npoints>2*3) {
-//		int n=data->npoints;
-//		p=data->points[n-2]-data->points[n-8];
-//		data->points[n-6]+=((data->points[n-8]-data->points[n-5])||p)/2;
-//		data->points[n-4]+=((data->points[n-2]-data->points[n-5])||p)/2;
-//	}
 
 	needtodraw=1;
 	return 0;
@@ -616,7 +626,7 @@ int FreehandInterface::send(int i)
 		delete line;
 	}
 
-	if (freehand_style&FREEHAND_Mesh) {
+	if (freehand_style&(FREEHAND_Color_Mesh | FREEHAND_Double_Mesh)) {
 		 //return a mesh based on a bezierified line, which is based on a reduced polyline
 		RawPointLine *line=Reduce(i, smooth_pixel_threshhold/dp->Getmag());
 		//RawPointLine *line=lines.e[i];
@@ -647,6 +657,7 @@ int FreehandInterface::send(int i)
 		}
 		delete line;
 
+		 //create coordinate list, should have 3*points_top.n coords in each
 		Coordinate *coord_t=LaxInterfaces::BezApproximate(points_top.e,    points_top.n);
 		Coordinate *coord_b=LaxInterfaces::BezApproximate(points_bottom.e, points_bottom.n);
 
@@ -654,12 +665,23 @@ int FreehandInterface::send(int i)
 		cc=coord_t;
 		while (cc) { nn++; cc=cc->next; }
 
+		 // *** set up test gradient:
 		ScreenColor col1(1.,0.,0.,1.), col2(0.,0.,1.,1.);
 		GradientData gradient(flatpoint(0,0),flatpoint(1,0),0,1,&col1,&col2,GRADIENT_LINEAR);
+		gradient.AddColor(.5, 0,65535,0,65535);
 
+		if (freehand_style&(FREEHAND_Double_Mesh)) {
+			int ncol=gradient.colors.n;
+			for (int c=0; c<ncol-1; c++) {
+				gradient.AddColor(gradient.colors.e[ncol-1]->t+(gradient.colors.e[ncol-1]->t-gradient.colors.e[ncol-2-c]->t),
+								  &gradient.colors.e[ncol-2-c]->color);
+			}
+		}
 
+		 //create and populate mesh object
 		ColorPatchData *mesh=new ColorPatchData;
-		mesh->Set(0,0,1,1, gradient.colors.n-1,points_top.n-1, Patch_Coons);
+		//mesh->Set(0,0,1,1, 1,points_top.n-1, Patch_Coons); //create as 1 row, subdivide later
+		mesh->Set(0,0,1,1, gradient.colors.n-1,points_top.n-1, Patch_Coons); //create as 1 row, subdivide later
 		Coordinate *cct=coord_t->next;
 		Coordinate *ccb=coord_b->next;
 		int r;
@@ -667,7 +689,7 @@ int FreehandInterface::send(int i)
 		for (int c=0; c<mesh->xsize; c+=3) {
 			 //top points
 			r=0;
-			mesh->points[r*mesh->xsize+c  ]=p=cct->fp;
+			p=mesh->points[r*mesh->xsize+c  ]=cct->fp;
 			cct=cct->next; //cct at next
 			if (c<mesh->xsize-2) {
 				mesh->points[r*mesh->xsize+c+1]=cct->fp;
@@ -678,20 +700,35 @@ int FreehandInterface::send(int i)
 
 			 //bottom points
 			r=mesh->ysize-1;
-			mesh->points[r*mesh->xsize+c  ]=v=ccb->fp;   ccb=ccb->next;
+			v=mesh->points[r*mesh->xsize+c  ]=ccb->fp;   ccb=ccb->next;
 			v-=p;
 			if (c<mesh->xsize-1) {
 				mesh->points[r*mesh->xsize+c+1]=ccb->fp; ccb=ccb->next;
 				mesh->points[r*mesh->xsize+c+2]=ccb->fp; ccb=ccb->next;
 			}
 
-			 //middle points
-			r=1;
-			mesh->points[  r  *mesh->xsize+c]=p+v/3;
-			mesh->points[(r+1)*mesh->xsize+c]=p+v*2/3;
-
+			 //middle points and colors
 			mesh->SetColor(0,c/3, &gradient.colors.e[0]->color);
-			mesh->SetColor(1,c/3, &gradient.colors.e[1]->color);
+			double rr=0, lrr=0;
+			for (int row=0; row<gradient.colors.n-1; row++) {
+			  lrr=rr;
+			  rr=gradient.GetNormalizedT(row+1);
+
+			  for (int col=c; col<c+3; col++) {
+				  p=mesh->points[col];
+				  v=mesh->points[(mesh->ysize-1)*mesh->xsize+col]-p;
+				  for (r=0; r<3; r++) {
+					if (row==0 && r==0) continue;
+					if (row==gradient.colors.n-1 && r==2) continue;
+					if (col%3!=0 && r!=0) continue;
+					if (c==mesh->xsize-1 && col>c) continue;
+
+					mesh->points[(row*3+r)*mesh->xsize+col] = p + v*(lrr+r*(rr-lrr)/3);
+					if (r==0) mesh->SetColor(row,col/3, &gradient.colors.e[row]->color);
+				  }
+			  }
+			}
+			mesh->SetColor(mesh->ysize/3,c/3, &gradient.colors.e[gradient.colors.n-1]->color);
 		}
 		mesh->InterpolateControls(Patch_Coons);
 		mesh->FindBBox();
@@ -711,6 +748,16 @@ int FreehandInterface::send(int i)
 
 
 	return 0;
+}
+
+Laxkit::ShortcutHandler *FreehandInterface::GetShortcuts()
+{
+	return NULL;
+}
+
+int FreehandInterface::PerformAction(int action)
+{
+	return 1;
 }
 
 } // namespace LaxInterfaces

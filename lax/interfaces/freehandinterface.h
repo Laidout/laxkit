@@ -31,15 +31,18 @@ namespace LaxInterfaces {
 
 
 enum FreehandEditorStyles {
-	FREEHAND_Till_Closed     =(1<<0), //mouse down drag out a line, up and clicking adds points
-	FREEHAND_Coordinates     =(1<<1), //Construct Coordinate points
-	FREEHAND_Flatpoints      =(1<<2), //Create a list of flatpoints
-	FREEHAND_Raw_Path        =(1<<3), //Create a PathsData
-	FREEHAND_Poly_Path       =(1<<4), //Create a PathsData
-	FREEHAND_Bez_Path        =(1<<5), //Create a PathsData
-	FREEHAND_Bez_Outline     =(1<<6), //Create a PathsData
-	FREEHAND_Mesh            =(1<<7), //Create a PathsData
-	FREEHAND_Notify_All_Moves=(1<<8), //send events to owner upon every move
+	FREEHAND_Coordinates     =(1<<0), //Construct Coordinate points (not implemented)
+	FREEHAND_Flatpoints      =(1<<1), //Create a list of flatpoints (not implemented)
+	FREEHAND_Raw_Path        =(1<<2), //Create a straight polyline PathsData with all input points
+	FREEHAND_Poly_Path       =(1<<3), //Create a simplified polyline PathsData, approximated within a threshhold
+	FREEHAND_Bez_Path        =(1<<4), //Create a bezier PathsData based on a simplified polyline
+	FREEHAND_Bez_Outline     =(1<<5), //Create a bezier PathsData that is the outline of pressure sensitive line
+	FREEHAND_Color_Mesh      =(1<<6), //Create a ColorPatchData using pressure and a gradient
+	FREEHAND_Double_Mesh     =(1<<7), //Create a ColorPatchData where the gradient is mirrored about the middle of the line
+	FREEHAND_Mesh_Grid       =(1<<8), //Create a PatchData
+
+	FREEHAND_Till_Closed     =(1<<9), //mouse down drag out a line, up and clicking adds points
+	FREEHAND_Notify_All_Moves=(1<<10), //send events to owner upon every move
 	FREEHAND_MAX
 };
 
@@ -61,7 +64,7 @@ class FreehandInterface : public anInterface
   protected:
 	char showdecs;
 	LineStyle linestyle;
-	//Laxkit::ShortcutHandler *sc;
+	Laxkit::ShortcutHandler *sc;
 
 	int findLine(int id);
 
@@ -91,8 +94,8 @@ class FreehandInterface : public anInterface
 	virtual const char *whatdatatype() { return NULL; } // is creation only
 	virtual Laxkit::MenuInfo *ContextMenu(int x,int y,int deviceid);
 	virtual int Event(const Laxkit::EventData *e,const char *mes);
-	//virtual Laxkit::ShortcutHandler *GetShortcuts();
-	//virtual int PerformAction(int action);
+	virtual Laxkit::ShortcutHandler *GetShortcuts();
+	virtual int PerformAction(int action);
 
 	virtual int UseThis(Laxkit::anObject *nlinestyle,unsigned int mask=0);
 	virtual int InterfaceOn();
