@@ -58,6 +58,25 @@ enum PathFillType {
 
 //-------------------- Path ---------------------------
 
+class PathWeightNode
+{
+  public:
+	double width;
+	double offset; //0 means weight symmetric about path
+	double t; //point along path, the bezier parameter: integer t corresponds to line points
+
+	enum PathWeightNodeTypes {
+		Symmetric,
+		Offset,
+		DualOffset
+	};
+	int type; //symmetric width, fixed width with offset, width1/2 independent
+
+	PathWeightNode() { width=1; offset=0; t=.5; type=Symmetric; }
+	double topOffset() { return offset+width/2; }
+	double bottomOffset() { return offset-width/2; }
+};
+
 class Path : public LaxFiles::DumpUtility
 {
  protected:
@@ -269,6 +288,8 @@ class PathInterface : public anInterface
 	int editmode;
 	LineStyle *linestyle,*defaultline;
 	FillStyle *fillstyle,*defaultfill;
+
+	PathWeightNode defaultweight;
 
 	 //other state
 	int constrain;

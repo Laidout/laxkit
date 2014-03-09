@@ -97,24 +97,6 @@ enum PathUndoTypes {
 };
 
 
-//-------------------- PathInfo ---------------------------
-
-/*! \class PathInfo
- * Styling info about a path, such as width information.
- * These can be positioned anywhere along a path.
- */
-class PathInfo
-{
-  public:
-	int pathi; //!< path index
-	double pt; //!< position in path
-	
-	double w1;
-	double w2;
-
-	PathInfo *prev, *next;
-};
-
 
 //------------------------------------- Path -------------------------------------
 
@@ -2957,6 +2939,9 @@ PathsData *PathInterface::newPathsData()
 
 	if (!linestyle) { linestyle=defaultline; if (linestyle) linestyle->inc_count(); }
 	if (!ndata->linestyle) ndata->linestyle=new LineStyle(*linestyle); //***bit of a hack here
+
+	defaultweight.width=ndata->linestyle->width;
+	defaultweight.offset=0;
 
 	if (viewport) {
 		ObjectContext *oc=NULL;
