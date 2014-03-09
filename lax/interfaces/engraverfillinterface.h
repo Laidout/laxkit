@@ -39,14 +39,15 @@ class LinePoint
 	double s,t;
 	int row,col;
 	double weight;
+	bool on;
 
 	bool needtosync;
 	flatpoint p; //(s,t) transformed by the mesh
 
 	LinePoint *next, *prev;
 
-	LinePoint() { row=col=0; s=t=0; weight=1; next=NULL; needtosync=true; }
-	LinePoint(double ss, double tt, double ww) { next=NULL; s=ss; t=tt; weight=ww; }
+	LinePoint() { on=true; row=col=0; s=t=0; weight=1; next=prev=NULL; needtosync=true; }
+	LinePoint(double ss, double tt, double ww) { on=true; next=prev=NULL; s=ss; t=tt; weight=ww; }
 
 	void Set(double ss,double tt, double nweight) { s=ss; t=tt; if (nweight>=0) weight=nweight; needtosync=true; }
 	void Clear();
@@ -96,6 +97,7 @@ class EngraverFillInterface : public PatchInterface
  protected:
 	EngraverFillData *edata;
 	int mode;
+	int submode;
 	double brush_radius; //screen pixels
 	Laxkit::CurveInfo thickness; //ramp of thickness brush
 	double default_spacing;

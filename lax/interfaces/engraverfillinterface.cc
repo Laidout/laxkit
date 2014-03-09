@@ -48,6 +48,7 @@
 #include <lax/language.h>
 #include <lax/fileutils.h>
 #include <lax/filedialog.h>
+#include <lax/interfaces/freehandinterface.h>
 
 #include <lax/lists.cc>
 
@@ -320,7 +321,7 @@ void EngraverFillData::dump_out(FILE *f,int indent,int what,Laxkit::anObject *co
 		fprintf(f,"%sline \\ #%d\n",spc,c);
 		p=lines.e[c];
 		while (p) {
-			fprintf(f,"%s  (%.10g, %.10g) %.10g\n",spc, p->s,p->t,p->weight);
+			fprintf(f,"%s  (%.10g, %.10g) %.10g %s\n",spc, p->s,p->t,p->weight, p->on?"on":"off");
 			p=p->next;
 		}
 	}
@@ -360,6 +361,7 @@ void EngraverFillData::dump_in_atts(Attribute *att,int flag,Laxkit::anObject *co
 			flatpoint v;
 			int status;
 			double w;
+			bool on=true;
 			LinePoint *lstart=NULL, *ll=NULL;
 
 			do {
@@ -372,14 +374,20 @@ void EngraverFillData::dump_in_atts(Attribute *att,int flag,Laxkit::anObject *co
 				status=DoubleAttribute(value, &w, &end_ptr);
 				if (status==0) break;
 
-				if (!lstart) lstart=ll=new LinePoint(v.x,v.y, w);
+				value=end_ptr;
+				while (isspace(*value)) value++;
+				if (*value=='o' && *value=='n') { on=true; value+=2; }
+				else if (*value=='o' && *value=='f' && *value=='f') { on=true; value+=3; }
+
+				if (!lstart) { lstart=ll=new LinePoint(v.x,v.y, w); ll->on=on; }
 				else {
 					ll->next=new LinePoint(v.x,v.y, w);
+					ll->next->on=on;
 					ll=ll->next;
 				}
 
-				value=end_ptr;
 				while (isspace(*value)) value++;
+
 			} while (*value!='\0');
 
 			if (lstart) lines.push(lstart);
@@ -405,22 +413,14 @@ PathsData *EngraverFillData::MakePathsData()
 	NumStack<flatvector> points;
 	NumStack<flatvector> points2;
 
-	LinePoint *l, *last, *last2;
+	LinePoint *l;
 	flatvector t, tp;
 	flatvector p1,p2;
 	//double lastwidth;
 	//double neww;
 
 	for (int c=0; c<lines.n; c++) {
-		points.flush();
-		points2.flush();
-
 		l=lines.e[c];
-		last=l;
-		last2=NULL;
-		//lastwidth=l->weight;
-
-		l=l->next;
 
 		 //make points be a list of points:
 		 //   2  4  6 
@@ -428,59 +428,65 @@ PathsData *EngraverFillData::MakePathsData()
 		 //   3  5  7
 		 //points 1 and 8 are cap point references, converted to rounded ends later
 		while (l) {
-			if (!last2) last2=last;
+			if (!l->on) { l=l->next; continue; }
 
-			tp=l->p - last2->p;
-			tp.normalize();
+			if (l->next && l->prev) tp=l->next->p - l->prev->p;
+			else if (l->next && !l->prev) tp=l->next->p - l->p;
+			else if (!l->next && l->prev) tp=l->p - l->prev->p;
+			else tp=flatpoint(1,0); //<- a line with a single point
+
+			tp.normalize(); 
 			t=transpose(tp);
 
-			//neww=last->weight;
-
-			p1=last->p + last->weight/2*t;
-			p2=last->p - last->weight/2*t;
-
-			if (last==lines.e[c]) {
-				 //first point cap
-				points.push(last->p-last->weight/2*tp);
-				//points.push(p1-last->weight*.001*tp);
-				//points.push(p2-last->weight*.001*tp);
+			if (points.n==0) {
+				 //add a first point cap
+				points.push(l->p - l->weight/2*tp);
 			}
+
+			 //add top and bottom points for l
+			p1=l->p + l->weight/2*t;
+			p2=l->p - l->weight/2*t;
+
 			points.push(p1);
 			points.push(p2);
 
-			last2=last;
-			last=l;
+
+			if (!l->next || !l->next->on) {
+				 //need to add a path!
+	
+				 //add last cap
+				tp=points.e[points.n-1]-points.e[points.n-2];
+				tp.normalize();
+				tp=transpose(tp);
+				points.push(l->p + l->weight/2*tp);
+
+
+				 //convert to bez approximation
+				 //make points2 be points rearranged according to outline
+				points2.push(points.e[0]); //initial cap
+				for (int c2=1; c2<points.n-1; c2+=2)    points2.push(points.e[c2]);
+
+				points2.push(points.e[points.n-1]); //final cap
+				for (int c2=points.n-2; c2>0; c2-=2) points2.push(points.e[c2]);
+				
+
+				BezApproximate(points,points2);
+
+				paths->moveTo(points.e[1]);
+				for (int c2=1; c2<points.n; c2+=3) {
+					paths->curveTo(points.e[c2+1], points.e[(c2+2)%points.n], points.e[(c2+3)%points.n]);
+				}
+
+				paths->close();
+
+				points.flush();
+				points2.flush();
+			}
+
 			l=l->next;
 		}
 
-		 //do last point... last2 -> last
-		points.push(last->p + last->weight/2*t);
-		points.push(last->p - last->weight/2*t);
 
-		 //final point cap
-		//points.push(last->p + last->weight/2*t + last->weight*.001*tp);
-		//points.push(last->p - last->weight/2*t + last->weight*.001*tp);
-		points.push(last->p + last->weight/2*tp);
-
-		if (points.n) {
-			 //convert to bez approximation
-			 //make points2 be points rearranged according to outline
-			points2.push(points.e[0]); //initial cap
-			for (int c2=1; c2<points.n-1; c2+=2)    points2.push(points.e[c2]);
-
-			points2.push(points.e[points.n-1]); //final cap
-			for (int c2=points.n-2; c2>0; c2-=2) points2.push(points.e[c2]);
-			
-
-			BezApproximate(points,points2);
-
-			paths->moveTo(points.e[1]);
-			for (int c2=1; c2<points.n; c2+=3) {
-				paths->curveTo(points.e[c2+1], points.e[(c2+2)%points.n], points.e[(c2+3)%points.n]);
-			}
-
-			paths->close();
-		}
 	}
 
 	return paths;
@@ -547,83 +553,84 @@ void EngraverFillData::dump_out_svg(const char *file)
 	NumStack<flatvector> points;
 	NumStack<flatvector> points2;
 
-	LinePoint *l, *last, *last2;
+	LinePoint *l;
 	flatvector t, tp;
 	flatvector p1,p2;
 	//double lastwidth;
 	//double neww;
 
 	for (int c=0; c<lines.n; c++) {
-		points.flush();
-		points2.flush();
-
 		l=lines.e[c];
-		last=l;
-		last2=NULL;
-		//lastwidth=l->weight;
 
-		l=l->next;
-
+		 //make points be a list of points:
+		 //   2  4  6 
+		 // 1 *--*--*--8   gets rearranged to: 1 2 4 6 8 3 5 7
+		 //   3  5  7
+		 //points 1 and 8 are cap point references, converted to rounded ends later
 		while (l) {
-			if (!last2) last2=last;
+			if (!l->on) { l=l->next; continue; }
 
-			tp=l->p - last2->p;
-			tp.normalize();
+			if (l->next && l->prev) tp=l->next->p - l->prev->p;
+			else if (l->next && !l->prev) tp=l->next->p - l->p;
+			else if (!l->next && l->prev) tp=l->p - l->prev->p;
+			else tp=flatpoint(1,0); //<- a line with a single point
+
+			tp.normalize(); 
 			t=transpose(tp);
 
-			//neww=last->weight;
-
-			p1=last->p + last->weight/2*t;
-			p2=last->p - last->weight/2*t;
-
-			if (last==lines.e[c]) {
-				 //first point cap
-				points.push(last->p-last->weight/2*tp);
-				//points.push(p1-last->weight*.001*tp);
-				//points.push(p2-last->weight*.001*tp);
+			if (points.n==0) {
+				 //add a first point cap
+				points.push(l->p - l->weight/2*tp);
 			}
+
+			 //add top and bottom points for l
+			p1=l->p + l->weight/2*t;
+			p2=l->p - l->weight/2*t;
+
 			points.push(p1);
 			points.push(p2);
 
-			last2=last;
-			last=l;
-			l=l->next;
-		}
 
-		 //do last point... last2 -> last
-		points.push(last->p + last->weight/2*t);
-		points.push(last->p - last->weight/2*t);
-
-		 //final point cap
-		//points.push(last->p + last->weight/2*t + last->weight*.001*tp);
-		//points.push(last->p - last->weight/2*t + last->weight*.001*tp);
-		points.push(last->p + last->weight/2*tp);
-
-		if (points.n) {
-			 //convert to bez approximation
-			points2.push(points.e[0]); //initial cap
-			for (int c2=1; c2<points.n-1; c2+=2)    points2.push(points.e[c2]);
-
-			points2.push(points.e[points.n-1]); //final cap
-			for (int c2=points.n-2; c2>0; c2-=2) points2.push(points.e[c2]);
-			
-
-			BezApproximate(points,points2);
+			if (!l->next || !l->next->on) {
+				 //need to add a path!
+	
+				 //add last cap
+				tp=points.e[points.n-1]-points.e[points.n-2];
+				tp.normalize();
+				tp=transpose(tp);
+				points.push(l->p + l->weight/2*tp);
 
 
-			fprintf(f,"    <path d=\"");
-			fprintf(f,"M %f %f ", points.e[1].x,points.e[1].y);
-			for (int c2=1; c2<points.n; c2+=3) {
-				fprintf(f,"C %f %f %f %f %f %f ",
-					points.e[c2+1].x,points.e[c2+1].y,
-					points.e[(c2+2)%points.n].x,points.e[(c2+2)%points.n].y,
-					points.e[(c2+3)%points.n].x,points.e[(c2+3)%points.n].y);
+				 //convert to bez approximation
+				 //make points2 be points rearranged according to outline
+				points2.push(points.e[0]); //initial cap
+				for (int c2=1; c2<points.n-1; c2+=2)    points2.push(points.e[c2]);
+
+				points2.push(points.e[points.n-1]); //final cap
+				for (int c2=points.n-2; c2>0; c2-=2) points2.push(points.e[c2]);
+				
+
+				BezApproximate(points,points2);
+
+				fprintf(f,"    <path d=\"");
+				fprintf(f,"M %f %f ", points.e[1].x,points.e[1].y);
+				for (int c2=1; c2<points.n; c2+=3) {
+					fprintf(f,"C %f %f %f %f %f %f ",
+						points.e[c2+1].x,points.e[c2+1].y,
+						points.e[(c2+2)%points.n].x,points.e[(c2+2)%points.n].y,
+						points.e[(c2+3)%points.n].x,points.e[(c2+3)%points.n].y);
+				}
+
+
+				fprintf(f,"z \" />\n");
+
+				points.flush();
+				points2.flush();
 			}
 
-
-			fprintf(f,"z \" />\n");
-		}
-	}
+			l=l->next;
+		} //while (l)
+	} //foreach line
 
 
 	fprintf(f,  "  </g>\n"
@@ -709,7 +716,8 @@ enum EngraverModes {
 	EMODE_Mesh,
 	EMODE_Thickness,
 	EMODE_Orientation,
-	EMODE_Freehand
+	EMODE_Freehand,
+	EMODE_Blockout
 };
 
 EngraverFillInterface::EngraverFillInterface(int nid,Displayer *ndp) : PatchInterface(nid,ndp)
@@ -720,6 +728,7 @@ EngraverFillInterface::EngraverFillInterface(int nid,Displayer *ndp) : PatchInte
 	edata=NULL;
 	default_spacing=1./25;
 
+	submode=0;
 	mode=EMODE_Mesh;
 	//mode=EMODE_Thickness;
 	//mode=EMODE_Freehand;
@@ -838,6 +847,15 @@ void EngraverFillInterface::deletedata()
 //! Catch a double click to pop up an ImageDialog.
 int EngraverFillInterface::LBDown(int x,int y,unsigned int state,int count,const Laxkit::LaxMouse *d)
 {
+	if (mode==EMODE_Freehand) {
+		FreehandInterface *freehand=new FreehandInterface(this,-1,dp);
+		freehand->freehand_style=FREEHAND_Color_Mesh|FREEHAND_Remove_On_Up;
+		viewport->Push(freehand,-1,0);
+		freehand->LBDown(x,y,state,count,d);
+		child=freehand;
+		return 0;
+	}
+	
 	if (!edata) mode=EMODE_Mesh;
 
 	if (mode==EMODE_Mesh) {
@@ -846,11 +864,7 @@ int EngraverFillInterface::LBDown(int x,int y,unsigned int state,int count,const
 		return c;
 	}
 
-	if (mode==EMODE_Freehand) {
-		return 0;
-	}
-	
-	if (mode==EMODE_Thickness) {
+	if (mode==EMODE_Thickness || mode==EMODE_Blockout) {
 		buttondown.down(d->id,LEFTBUTTON, x,y);
 	}
 
@@ -859,9 +873,21 @@ int EngraverFillInterface::LBDown(int x,int y,unsigned int state,int count,const
 	
 int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::LaxMouse *d)
 {
-	if (mode==EMODE_Mesh) return PatchInterface::LBUp(x,y,state,d);
+	if (mode==EMODE_Mesh) {
+		PatchInterface::LBUp(x,y,state,d);
+		edata->Sync();
+		return 0;
+	}
 
-	if (mode==EMODE_Thickness) {
+	if (mode==EMODE_Freehand) {
+//		if (child) {
+//			RemoveChild();
+//			needtodraw=1;
+//		}
+		return 0;
+	}
+
+	if (mode==EMODE_Thickness || mode==EMODE_Blockout) {
 		buttondown.up(d->id,LEFTBUTTON);
 	}
 
@@ -873,6 +899,11 @@ int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit
 	hover.x=x;
 	hover.y=y;
 
+	if (mode==EMODE_Freehand && !child) {
+		needtodraw=1;
+		return 0;
+	}
+
 	if (mode==EMODE_Mesh) {
 		PatchInterface::MouseMove(x,y,state,d);
 		if (buttondown.any() && curpoints.n>0) edata->Sync();
@@ -880,7 +911,7 @@ int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit
 
 	}
 	
-	if (mode==EMODE_Thickness) {
+	if (mode==EMODE_Thickness || mode==EMODE_Blockout) {
 		if (!buttondown.any()) {
 			needtodraw=1;
 			return 0;
@@ -911,16 +942,23 @@ int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit
 				while (l) {
 					d=norm2(l->p - m);
 					if (d<rr) {
-						 //point is within
-						a=sqrt(d/rr);
-						//a=1-thickness.f(a);
-						a=thickness.f(a);
-						if ((state&LAX_STATE_MASK)==ControlMask) {
-							a=1-a*.01;
-						} else {
-							a=1+a*.01;
+						if (mode==EMODE_Thickness) {
+							 //point is within
+							a=sqrt(d/rr);
+							//a=1-thickness.f(a);
+							a=thickness.f(a);
+							if ((state&LAX_STATE_MASK)==ControlMask) {
+								a=1-a*.01;
+							} else {
+								a=1+a*.01;
+							}
+							l->weight*=a;
+
+						} else if (mode==EMODE_Blockout) {
+							if ((state&LAX_STATE_MASK)==ControlMask) 
+								l->on=true;
+							else l->on=false;
 						}
-						l->weight*=a;
 					}
 
 					l=l->next;
@@ -951,8 +989,24 @@ int EngraverFillInterface::DrawData(Laxkit::anObject *ndata,anObject *a1,anObjec
 int EngraverFillInterface::Refresh()
 {
 	if (!needtodraw) return 0;
-	if (!edata) { needtodraw=0; return 0; }
 
+	if (mode==EMODE_Freehand && !child) {
+		 //draw squiggly lines near mouse
+		dp->LineAttributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
+		dp->NewFG(0.,0.,1.);
+		dp->DrawScreen();
+		double s=10;
+		for (int c=-1; c<2; c++) {
+			dp->moveto(hover-flatpoint(2*s,c*s));
+			dp->curveto(hover-flatpoint(s*1.5,c*s+5), hover+flatpoint(-s/2,-c*s+s/2), hover+flatpoint(0,-c*s));
+			dp->stroke(0);
+		}
+		dp->DrawReal();
+		needtodraw=0;
+		return 0;
+	}
+
+	if (!edata) { needtodraw=0; return 0; }
 
 	//dp->NewFG(0.,0.,1.,1.);
 	dp->NewFG(&edata->fillstyle.color);
@@ -982,7 +1036,7 @@ int EngraverFillInterface::Refresh()
 				lastwidth=neww;
 				dp->LineAttributes(lastwidth,LineSolid,LAXCAP_Round,LAXJOIN_Round);
 			}
-			dp->drawline(last->p,l->p);
+			if (last->on && l->on) dp->drawline(last->p,l->p);
 
 			last2=last;
 			last=l;
@@ -993,10 +1047,23 @@ int EngraverFillInterface::Refresh()
 	dp->LineAttributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
 
 	if (mode==EMODE_Mesh) PatchInterface::Refresh();
-	else if (mode==EMODE_Thickness) {
+	else if (mode==EMODE_Thickness || mode==EMODE_Blockout) {
 		dp->DrawScreen();
-		dp->NewFG(.5,.5,.5,1.);
+
+		if (mode==EMODE_Thickness) dp->NewFG(.5,.5,.5,1.);
+		else {
+			if (submode==1) dp->NewFG(0,200,0);
+			else if (submode==2) dp->NewFG(.5,.5,.5);
+			else dp->NewFG(255,100,100);
+		}
+
 		dp->drawpoint(hover.x,hover.y, brush_radius,0);
+
+		if (submode==2) {
+			dp->drawarrow(hover+flatpoint(brush_radius+10,0), flatpoint(20,0), 0, 20, 1, 3);
+			dp->drawarrow(hover-flatpoint(brush_radius+10,0), flatpoint(-20,0), 0, 20, 1, 3);
+		}
+
 		dp->DrawReal();
 	}
 
@@ -1006,6 +1073,7 @@ int EngraverFillInterface::Refresh()
 
 enum EngraveShortcuts {
 	ENGRAVE_SwitchMode=PATCHA_MAX,
+	ENGRAVE_SwitchModeR,
 	ENGRAVE_ExportSvg,
 	ENGRAVE_RotateDir,
 	ENGRAVE_RotateDirR,
@@ -1028,12 +1096,26 @@ int EngraverFillInterface::PerformAction(int action)
 		needtodraw=1;
 		return 0;
 
-	} else if (action==ENGRAVE_SwitchMode) {
-		if (mode==EMODE_Mesh) mode=EMODE_Thickness;
-		else if (mode==EMODE_Thickness) mode=EMODE_Mesh;
+	} else if (action==ENGRAVE_SwitchMode || action==ENGRAVE_SwitchModeR) {
 
-		//EMODE_Freehand
+		if (action==ENGRAVE_SwitchMode) {
+			if (mode==EMODE_Mesh) mode=EMODE_Thickness;
+			else if (mode==EMODE_Thickness) mode=EMODE_Blockout;
+			else if (mode==EMODE_Blockout) mode=EMODE_Freehand;
+			else if (mode==EMODE_Freehand) mode=EMODE_Mesh;
+		} else {
+			if (mode==EMODE_Mesh) mode=EMODE_Freehand;
+			else if (mode==EMODE_Thickness) mode=EMODE_Mesh;
+			else if (mode==EMODE_Blockout) mode=EMODE_Thickness;
+			else if (mode==EMODE_Freehand) mode=EMODE_Blockout;
+		}
 
+		if (mode==EMODE_Mesh) PostMessage(_("Mesh mode"));
+		else if (mode==EMODE_Thickness) PostMessage(_("Thickness, shift for brush size, control to thin"));
+		else if (mode==EMODE_Blockout) PostMessage(_("Blockout mode, shift for brush size, control to turn on"));
+		else if (mode==EMODE_Freehand) PostMessage(_("Freehand mode"));
+
+		submode=0;
 		needtodraw=1;
 		return 0;
 
@@ -1063,18 +1145,49 @@ int EngraverFillInterface::PerformAction(int action)
 	return PatchInterface::PerformAction(action);
 }
 
-int EngraverFillInterface::Event(const Laxkit::EventData *data, const char *mes)
+int EngraverFillInterface::Event(const Laxkit::EventData *e_data, const char *mes)
 {
     if (!strcmp(mes,"exportsvg")) {
-        if (!data) return 0;
+        if (!e_data) return 0;
 
-        const StrEventData *s=dynamic_cast<const StrEventData *>(data);
+        const StrEventData *s=dynamic_cast<const StrEventData *>(e_data);
         if (!s) return 1;
         if (!isblank(s->str)) {
 			edata->dump_out_svg(s->str);
 			PostMessage(_("Exported."));
 		}
         return 0;
+
+	} else if (!strcmp(mes,"FreehandInterface")) {
+		 //got new freehand mesh
+
+        const RefCountedEventData *s=dynamic_cast<const RefCountedEventData *>(e_data);
+		if (!s) return 1;
+
+		PatchData *patch=dynamic_cast<PatchData*>(const_cast<anObject*>(s->TheObject()));
+		if (!patch) return 1;
+
+
+		deletedata();
+		EngraverFillData *newdata=dynamic_cast<EngraverFillData*>(newPatchData(0,0,1,1,1,1,PATCH_SMOOTH));
+		newdata->m(patch->m());
+		newdata->CopyMeshPoints(patch);
+		if (viewport) {
+			ObjectContext *oc=NULL;
+			viewport->NewData(newdata,&oc);
+
+			if (oc) poc=oc->duplicate();
+		}
+		data=newdata;
+		data->linestyle=linestyle;
+		data->FindBBox();
+		curpoints.flush();
+
+		edata=dynamic_cast<EngraverFillData*>(data);
+		edata->Sync();
+
+		needtodraw=1;
+		return 0;
     }
 
     return 1;
@@ -1100,6 +1213,7 @@ Laxkit::ShortcutHandler *EngraverFillInterface::GetShortcuts()
 
 	 //any mode shortcuts
 	sc->Add(ENGRAVE_SwitchMode,  'm',0,0,          "SwitchMode",  _("Switch edit mode"),NULL,0);
+	sc->Add(ENGRAVE_SwitchModeR, 'M',ShiftMask,0,  "SwitchModeR", _("Switch to previous edit mode"),NULL,0);
 	sc->Add(ENGRAVE_ExportSvg,   'f',0,0,          "ExportSvg",   _("Export Svg"),NULL,0);
 	sc->Add(ENGRAVE_RotateDir,   'r',0,0,          "RotateDir",   _("Rotate default line direction"),NULL,0);
 	sc->Add(ENGRAVE_RotateDirR,  'R',ShiftMask,0,  "RotateDirR",  _("Rotate default line direction"),NULL,0);
@@ -1114,8 +1228,17 @@ int EngraverFillInterface::CharInput(unsigned int ch, const char *buffer,int len
 	DBG cerr <<"in EngraverFillInterface::CharInput"<<endl;
 	
 
-	if (mode==EMODE_Mesh) return PatchInterface::CharInput(ch,buffer,len,state,d);
-
+	if (mode==EMODE_Thickness || mode==EMODE_Blockout) {
+		if (ch==LAX_Control) {
+			submode=1;
+			needtodraw=1;
+			return 0;
+		} else if (ch==LAX_Shift) {
+			submode=2;
+			needtodraw=1;
+			return 0;
+		}
+	}
 
     if (!sc) GetShortcuts();
     int action=sc->FindActionNumber(ch,state&LAX_STATE_MASK,0);
@@ -1124,12 +1247,24 @@ int EngraverFillInterface::CharInput(unsigned int ch, const char *buffer,int len
     }
 
 
+	if (mode==EMODE_Mesh) return PatchInterface::CharInput(ch,buffer,len,state,d);
+
+
 	return 1;
 }
 
 int EngraverFillInterface::KeyUp(unsigned int ch,unsigned int state,const Laxkit::LaxKeyboard *d)
 {
 	if (mode==EMODE_Mesh) return PatchInterface::KeyUp(ch,state,d);
+
+	if (mode==EMODE_Thickness || mode==EMODE_Blockout) {
+		if (ch==LAX_Control || ch==LAX_Shift) {
+			submode=0;
+			needtodraw=1;
+			return 0;
+		}
+	}
+
 	return 1;
 }
 
