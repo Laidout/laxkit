@@ -146,7 +146,7 @@ RefCountedEventData::~RefCountedEventData()
 //! Return pointer to the object.
 /*! The returned object needs to have it's count incremented if it is to be used.
  */
-anObject *RefCountedEventData::TheObject()
+anObject *RefCountedEventData::TheObject() const
 { return object; }
 
 

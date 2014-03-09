@@ -135,7 +135,7 @@ class RefCountedEventData : public EventData
 	int info1,info2,info3,info4;
 	RefCountedEventData(anObject *obj=NULL);
 	virtual ~RefCountedEventData();
-	anObject *TheObject();
+	anObject *TheObject() const;
 };
 
 //-------------------------- StrEventData
