@@ -121,6 +121,18 @@ SomeData *ColorPatchData::duplicate(SomeData *dup)
 	return PatchData::duplicate(dup);
 }
 
+/*! Call PatchData::CopyMeshPoints(patch) and update color array to be proper size.
+ */
+void ColorPatchData::CopyMeshPoints(PatchData *patch)
+{
+	PatchData::CopyMeshPoints(patch);
+
+	DBG cerr << " *** warning! due to lazy programmers, color data is lost during ColorPatchData::CopyMeshPoints()"<<endl;
+
+	if (colors) delete[] colors;
+	colors=new ScreenColor[(xsize/3+1)*(ysize/3+1)];
+}
+
 //! Set in rect xx,yy,ww,hh with nr rows and nc columns. Removes old info.
 /*! Afterward the colors can be anything. Might want to code preserving what is possible
  * to preserve...

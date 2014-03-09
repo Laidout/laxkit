@@ -46,6 +46,7 @@ class ColorPatchData : public PatchData
 	const char *whattype() { return "ColorPatchData"; }
 	virtual SomeData *duplicate(SomeData *dup);
 
+	virtual void CopyMeshPoints(PatchData *patch);
 	virtual void Set(double xx,double yy,double ww,double hh,int nr,int nc,unsigned int stle);
 	virtual void SetColor(int pr,int pc,int red=0,int green=0,int blue=0,int alpha=0xffff);
 	virtual void SetColor(int pr,int pc, Laxkit::ScreenColor *col);

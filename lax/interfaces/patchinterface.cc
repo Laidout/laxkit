@@ -521,6 +521,20 @@ void PatchData::FindBBox()
 	}
 }
 
+/*! Copies mesh point data only, not matrix.
+ */
+void PatchData::CopyMeshPoints(PatchData *patch)
+{
+	if (patch->xsize*patch->ysize!=xsize*ysize) {
+		delete[] points;
+		points=new flatpoint[patch->xsize*patch->ysize];
+	}
+	xsize=patch->xsize;
+	ysize=patch->ysize;
+
+	memcpy(points,patch->points, patch->xsize*patch->ysize*sizeof(flatpoint));
+}
+
 //! Set in rect xx,yy,ww,hh with nr rows and nc columns. Removes old info.
 void PatchData::Set(double xx,double yy,double ww,double hh,int nr,int nc,unsigned int stle)
 {

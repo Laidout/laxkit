@@ -115,6 +115,7 @@ class PatchData : virtual public SomeData
 
 	 /*! \name Data modifying functions */
 	 //@{
+	virtual void CopyMeshPoints(PatchData *patch);
 	virtual void Set(double xx,double yy,double ww,double hh,int nr,int nc,unsigned int stle);
 	virtual void zap(flatpoint p,flatpoint x,flatpoint y);
 	virtual void zap(); // zap to bbox
