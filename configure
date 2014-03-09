@@ -19,6 +19,7 @@ USEGL="yes"
 LAXKITBACKEND="xlib"
 ONAMAC="no"
 PLATFORM="linux"
+FORCE="no"
 
 if [ ! -e /usr/include/X11/extensions/XInput2.h ] ; then unset USEXINPUT2; fi
 
@@ -54,10 +55,15 @@ while true ; do
 		echo " --backend=xlib               Use xlib or cairo"
 		echo " --platform=linux             Only linux is implemented. Someday mac or windows."
 #       echo " --onamac                     Include this if you are compiling on a Mac."
+		echo " --force                      Try to compile even when libraries are not detected by ./configure"
 		echo " --version=OtherVersionNum    You may force Laxkit to compile with a different"
 		echo "                                version string."
         echo ""
 		exit 1 ;;
+
+    --force)
+		FORCE="yes"
+		shift ;;
 
     --onamac)
 		ONAMAC="yes"
@@ -190,8 +196,8 @@ echo
 
 
 
-if [ "$NUM" != "1" ]; then
-    echo "Too many problems to proceed!"
+if [ "$NUM" != "1" -a $FORCE=="no" ]; then
+    echo "Too many problems to proceed! Use --force to override."
 	exit 1
 fi
 
