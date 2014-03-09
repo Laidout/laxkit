@@ -39,10 +39,13 @@ enum FreehandEditorStyles {
 	FREEHAND_Bez_Outline     =(1<<5), //Create a bezier PathsData that is the outline of pressure sensitive line
 	FREEHAND_Color_Mesh      =(1<<6), //Create a ColorPatchData using pressure and a gradient
 	FREEHAND_Double_Mesh     =(1<<7), //Create a ColorPatchData where the gradient is mirrored about the middle of the line
-	FREEHAND_Mesh_Grid       =(1<<8), //Create a PatchData
+	FREEHAND_Grid_Mesh       =(1<<8), //Create a PatchData
+	FREEHAND_Mesh            =((1<<6)|(1<<7)|(1<<8)), //mask for any mesh
 
 	FREEHAND_Till_Closed     =(1<<9), //mouse down drag out a line, up and clicking adds points
 	FREEHAND_Notify_All_Moves=(1<<10), //send events to owner upon every move
+	FREEHAND_Lock_Type       =(1<<11),
+	FREEHAND_Remove_On_Up    =(1<<12), //remove the interface from viewport when button up
 	FREEHAND_MAX
 };
 
@@ -69,6 +72,7 @@ class FreehandInterface : public anInterface
 	int findLine(int id);
 
 	virtual int send(int i);
+	virtual void sendObject(LaxInterfaces::SomeData *tosend, int i);
 	virtual void RecurseReduce(RawPointLine *l, int start, int end, double epsilon);
 	virtual void RecurseReducePressure(RawPointLine *l, int start, int end, double epsilon);
 	virtual RawPointLine *Reduce(int i, double epsilon);

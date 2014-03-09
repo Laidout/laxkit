@@ -141,6 +141,8 @@ void FreehandInterface::Clear(SomeData *d)
 
 Laxkit::MenuInfo *FreehandInterface::ContextMenu(int x,int y,int deviceid)
 {
+	if (freehand_style&FREEHAND_Lock_Type) return NULL;
+
 	MenuInfo *menu=new MenuInfo;
 	//menu->AddItem(_("Create raw points"), FREEHAND_Raw_Path, (freehand_style&FREEHAND_Raw_Path)?LAX_CHECKED:0);
 	//menu->AddItem(_("Create simplified polyline"), FREEHAND_Poly_Path, (freehand_style&FREEHAND_Poly_Path)?LAX_CHECKED:0);
@@ -153,7 +155,8 @@ Laxkit::MenuInfo *FreehandInterface::ContextMenu(int x,int y,int deviceid)
 	menu->AddItem(_("Create simplified polyline"), FREEHAND_Poly_Path );
 	menu->AddItem(_("Create bezier line"), FREEHAND_Bez_Path );
 	menu->AddItem(_("Create bezier outline"), FREEHAND_Bez_Outline);
-	menu->AddItem(_("Create mesh"), FREEHAND_Color_Mesh);
+	menu->AddItem(_("Create color mesh"), FREEHAND_Color_Mesh);
+	menu->AddItem(_("Create grid mesh"), FREEHAND_Grid_Mesh);
 	menu->AddItem(_("Create symmetric mesh"), FREEHAND_Double_Mesh);
 	return menu;
 }
@@ -177,6 +180,9 @@ int FreehandInterface::Event(const Laxkit::EventData *e,const char *mes)
 
 		} else if (i==FREEHAND_Bez_Outline ) {
 			freehand_style=FREEHAND_Bez_Outline;
+
+		} else if (i==FREEHAND_Grid_Mesh        ) {
+			freehand_style=FREEHAND_Grid_Mesh;
 
 		} else if (i==FREEHAND_Color_Mesh        ) {
 			freehand_style=FREEHAND_Color_Mesh;
@@ -213,7 +219,7 @@ int FreehandInterface::Refresh()
 		}
 		dp->stroke(0);
 
-		if (freehand_style&(FREEHAND_Bez_Outline|FREEHAND_Color_Mesh|FREEHAND_Double_Mesh)) {
+		if (freehand_style&(FREEHAND_Bez_Outline|FREEHAND_Mesh)) {
 			 //draw pressure indicator
 			dp->NewFG(1.,0.,1.,1.);
 			flatvector vt;
@@ -288,16 +294,22 @@ int FreehandInterface::LBUp(int x,int y,unsigned int state, const Laxkit::LaxMou
 	int dragged=buttondown.up(d->id,LEFTBUTTON);
 
 	int i=findLine(d->id);
-	if (i<0) return 0; //line missing! do nothing
+	if (i>=0) {
+		DBG cerr <<"  *** FreehandInterface should check for closed path???"<<endl;
 
-	DBG cerr <<"  *** FreehandInterface should check for closed path???"<<endl;
+		if (dragged && lines.e[i]->n>1) {
+			send(i);
+		}
 
-	if (dragged && lines.e[i]->n>1) {
-		send(i);
+		deviceids.remove(i);
+		lines.remove(i);
+
+	} //else line missing! do nothing
+
+	if (freehand_style&FREEHAND_Remove_On_Up) {
+		if (owner) owner->RemoveChild();
+		else if (viewport) viewport->Pop(this,1);
 	}
-
-	deviceids.remove(i);
-	lines.remove(i);
 
 	needtodraw=1;
 	return 0;
@@ -502,9 +514,27 @@ Coordinate *FreehandInterface::BezApproximate(RawPointLine *l)
 	return coord;
 }
 
+/*! If owner!=NULL, send a RefCountedEventData with the object, and info1=i.
+ */
+void FreehandInterface::sendObject(LaxInterfaces::SomeData *tosend, int i)
+{
+	if (!tosend) return;
+
+	if (owner) {
+		RefCountedEventData *data=new RefCountedEventData(tosend);
+		data->info1=i;
+		app->SendMessage(data,owner->object_id,"FreehandInterface", object_id);
+
+	} else {
+		if (viewport) viewport->NewData(tosend,NULL);
+	}
+	tosend->dec_count();
+}
+
 int FreehandInterface::send(int i)
 {
 	if (i<0 || i>=lines.n) return 1;
+
 
 	if (freehand_style&FREEHAND_Raw_Path) {
 		RawPointLine *line=lines.e[i];
@@ -514,16 +544,7 @@ int FreehandInterface::send(int i)
 			paths->append(line->e[c]->p);
 		}
 		paths->FindBBox();
-
-		if (owner) {
-			RefCountedEventData *data=new RefCountedEventData(paths);
-			app->SendMessage(data,owner->object_id,"FreehandInterface", object_id);
-
-		} else {
-			if (viewport) viewport->NewData(paths,NULL);
-		}
-
-		paths->dec_count();
+		sendObject(paths,FREEHAND_Raw_Path);
 	}
 	
 
@@ -536,16 +557,7 @@ int FreehandInterface::send(int i)
 			paths->append(line->e[c]->p);
 		}
 		paths->FindBBox();
-
-		if (owner) {
-			RefCountedEventData *data=new RefCountedEventData(paths);
-			app->SendMessage(data,owner->object_id,"FreehandInterface", object_id);
-
-		} else {
-			if (viewport) viewport->NewData(paths,NULL);
-		}
-
-		paths->dec_count();
+		sendObject(paths,FREEHAND_Poly_Path);
 		delete line;
 	}
 
@@ -558,16 +570,7 @@ int FreehandInterface::send(int i)
 		PathsData *paths=new PathsData;
 		paths->appendCoord(coord);
 		paths->FindBBox();
-
-		if (owner) {
-			RefCountedEventData *data=new RefCountedEventData(paths);
-			app->SendMessage(data,owner->object_id,"FreehandInterface", object_id);
-
-		} else {
-			if (viewport) viewport->NewData(paths,NULL);
-		}
-
-		paths->dec_count();
+		sendObject(paths,FREEHAND_Bez_Path);
 		delete line;
 	}
 
@@ -613,23 +616,14 @@ int FreehandInterface::send(int i)
 		paths->close();
 		paths->FindBBox();
 		paths->fill(&linestyle.color);
+		sendObject(paths,FREEHAND_Bez_Outline);
 
-		if (owner) {
-			RefCountedEventData *data=new RefCountedEventData(paths);
-			app->SendMessage(data,owner->object_id,"FreehandInterface", object_id);
-
-		} else {
-			if (viewport) viewport->NewData(paths,NULL);
-		}
-
-		paths->dec_count();
 		delete line;
 	}
 
 	if (freehand_style&(FREEHAND_Color_Mesh | FREEHAND_Double_Mesh)) {
 		 //return a mesh based on a bezierified line, which is based on a reduced polyline
 		RawPointLine *line=Reduce(i, smooth_pixel_threshhold/dp->Getmag());
-		//RawPointLine *line=lines.e[i];
 
 		 //each point in line gets 3 coords in:
 		Coordinate *coord=BezApproximate(line);
@@ -733,15 +727,11 @@ int FreehandInterface::send(int i)
 		mesh->InterpolateControls(Patch_Coons);
 		mesh->FindBBox();
 
-		if (owner) {
-			RefCountedEventData *data=new RefCountedEventData(mesh);
-			app->SendMessage(data,owner->object_id,"FreehandInterface", object_id);
+		int ii=0;
+		if (freehand_style&FREEHAND_Color_Mesh) ii=FREEHAND_Color_Mesh;
+		else if (freehand_style&FREEHAND_Double_Mesh) ii=FREEHAND_Double_Mesh;
+		sendObject(mesh,ii);
 
-		} else {
-			if (viewport) viewport->NewData(mesh,NULL);
-		}
-
-		mesh->dec_count();
 		delete coord_t;
 		delete coord_b;
 	}
