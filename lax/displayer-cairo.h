@@ -23,6 +23,9 @@
 #ifndef _LAX_DISPLAYER_CAIRO_H
 #define _LAX_DISPLAYER_CAIRO_H
 
+#ifdef LAX_USES_CAIRO
+
+
 #include <cairo/cairo-xlib.h>
 #include <cairo/cairo-ft.h>
 
@@ -178,4 +181,7 @@ class DisplayerCairo : public Displayer
 
 } // namespace Laxkit
 
+#endif //cairo
 #endif
+
+

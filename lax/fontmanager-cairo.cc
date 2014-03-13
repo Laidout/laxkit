@@ -21,6 +21,9 @@
 //    Copyright (C) 2013 by Tom Lechner
 //
 
+#ifdef LAX_USES_CAIRO
+
+
 
 #include <lax/fontmanager-cairo.h>
 #include <lax/anxapp.h>
@@ -273,4 +276,7 @@ LaxFont *FontManagerCairo::MakeFont(const char *family, const char *style, doubl
 
 
 } // namespace Laxkit
+
+#endif
+
 

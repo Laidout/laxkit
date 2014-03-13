@@ -23,6 +23,9 @@
 #ifndef _LAX_FONTMANAGER_CAIRO_H
 #define _LAX_FONTMANAGER_CAIRO_H
 
+#ifdef LAX_USES_CAIRO
+
+
 #include <lax/lists.h>
 #include <lax/refptrstack.h>
 #include <lax/fontmanager.h>
@@ -79,5 +82,6 @@ FontManager *newFontManager_cairo();
 
 } //namespace Laxkit
 
+#endif //uses cairo
 #endif
 

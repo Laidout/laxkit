@@ -22,6 +22,10 @@
 //
 
 
+#ifdef LAX_USES_CAIRO
+
+
+
 #include <lax/lists.cc>
 #include <lax/displayer-cairo.h>
 #include <lax/laximages-cairo.h>
@@ -1125,4 +1129,8 @@ int DisplayerCairo::DrawScreen()
 
 
 } // namespace Laxkit
+
+#endif //cairo
+
+
 

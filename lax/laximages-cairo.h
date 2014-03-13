@@ -23,11 +23,15 @@
 #ifndef _LAX_LAXIMAGES_CAIRO_H
 #define _LAX_LAXIMAGES_CAIRO_H
 
+
+
 #include <lax/laximages.h>
 
+
+
+#ifdef LAX_USES_CAIRO
+
 #include <cairo/cairo-xlib.h>
-
-
 
 namespace Laxkit {
 	
@@ -81,5 +85,6 @@ LaxImage *create_new_cairo_image(int w, int h);
 
 } //namespace Laxkit
 
+#endif //uses cairo
 #endif
 

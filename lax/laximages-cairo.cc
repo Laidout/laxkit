@@ -21,6 +21,9 @@
 //    Copyright (C) 2013 by Tom Lechner
 //
 
+
+
+
 #include <cstdio>
 #include <errno.h>
 
@@ -37,12 +40,10 @@ using namespace std;
 #define DBG 
 
 
+#ifdef LAX_USES_CAIRO
+
 
 namespace Laxkit {
-
-
-//#ifdef SKIPTHISBADBOY
-#ifdef LAX_USES_CAIRO
 
 
 
@@ -561,19 +562,15 @@ int laxcairo_image_type()
 
 
 #else
+
+namespace Laxkit {
+
+
 //-------------------------if no cairo support:-------------------------------------
 
 int laxcairo_image_type()
 { return LAX_IMAGE_CAIRO; }
 
-//! Cairo support not compiled in, this just prints a warning and returns.
-/*! \ingroup misc
- */
-void InitLaxCairo() 
-{
-	printf(" ** Warning! InitLaxCairo() was called, but "
-			" Cairo support was not compiled into the Laxkit.\n");
-}
 
 void laxcairo_image_out(LaxImage *image, anXWindow *win, int ulx, int uly)
 {
@@ -635,10 +632,10 @@ LaxImage *image_from_buffer_cairo(unsigned char *buffer, int w, int h)
 }
 
 
-#endif
 
 
 
 } //namespace Laxkit
 
+#endif
 
