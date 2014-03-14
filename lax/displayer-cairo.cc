@@ -22,12 +22,15 @@
 //
 
 
+#include <lax/displayer-cairo.h>
+
+
+
 #ifdef LAX_USES_CAIRO
 
 
 
 #include <lax/lists.cc>
-#include <lax/displayer-cairo.h>
 #include <lax/laximages-cairo.h>
 #include <lax/laxutils.h>
 #include <lax/doublebbox.h>

@@ -21,11 +21,13 @@
 //    Copyright (C) 2013 by Tom Lechner
 //
 
+#include <lax/fontmanager-cairo.h>
+
+
+
 #ifdef LAX_USES_CAIRO
 
 
-
-#include <lax/fontmanager-cairo.h>
 #include <lax/anxapp.h>
 
 #include <lax/lists.cc> // this is necessary to instantiate templates

@@ -24,12 +24,12 @@
 #define _LAX_LAXIMAGES_CAIRO_H
 
 
-
-#include <lax/laximages.h>
-
+#include <lax/configured.h>
 
 
 #ifdef LAX_USES_CAIRO
+
+#include <lax/laximages.h>
 
 #include <cairo/cairo-xlib.h>
 
@@ -65,6 +65,7 @@ class LaxCairoImage : public LaxImage
 	virtual int doneWithBuffer(unsigned char *buffer);
 };
 
+
 //----------------- LaxCairoImage utils
 
 int laxcairo_image_type();
@@ -86,5 +87,5 @@ LaxImage *create_new_cairo_image(int w, int h);
 } //namespace Laxkit
 
 #endif //uses cairo
-#endif
+#endif //_LAX_LAXIMAGES_CAIRO_H
 

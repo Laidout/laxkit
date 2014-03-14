@@ -23,6 +23,10 @@
 #ifndef _LAX_DISPLAYER_CAIRO_H
 #define _LAX_DISPLAYER_CAIRO_H
 
+
+
+#include <lax/configured.h>
+
 #ifdef LAX_USES_CAIRO
 
 

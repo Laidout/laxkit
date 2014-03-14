@@ -40,13 +40,13 @@ using namespace std;
 #define DBG 
 
 
+
 #ifdef LAX_USES_CAIRO
 
 
+
+
 namespace Laxkit {
-
-
-
 
 
 //--------------------------- LaxCairoImage --------------------------------------
@@ -560,13 +560,19 @@ int laxcairo_image_type()
 
 
 
+} //namespace Laxkit
+
+
+
 
 #else
+//-------------------------if no cairo support:-------------------------------------
+
+
 
 namespace Laxkit {
 
 
-//-------------------------if no cairo support:-------------------------------------
 
 int laxcairo_image_type()
 { return LAX_IMAGE_CAIRO; }
