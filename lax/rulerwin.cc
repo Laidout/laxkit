@@ -318,6 +318,8 @@ void RulerWindow::Refresh()
 	drawing_function(LAXOP_Source);
 	drawing_line_attributes(0,LineSolid,LAXCAP_Butt,LAXJOIN_Miter);
 
+	DBG cerr << "*******************rulerwin, winw/h: "<<win_w<<','<<win_h<<endl;
+
 	 // draw all
 	if (needtodraw&1) {
 		//clear_window(this);
@@ -345,6 +347,8 @@ void RulerWindow::Refresh()
 		tw=(int)(t*tf);
 		stw=(int)(t*stf);
 		sstw=(int)(t*sstf);
+		DBG cerr << "*******************rulerwin sstf, t, sstw: "<<sstf<<','<<t<<','<<sstw<<endl;
+
 		if (win_style&RULER_TOPTICKS) {
 			toff=stoff=sstoff=0;
 		} else if (win_style&RULER_CENTERTICKS) {
@@ -411,7 +415,10 @@ void RulerWindow::Refresh()
 			 //draw big tick
 			foreground_color(tickcolor);
 			x=(p-ustart)/umag*mag;
+
 			//DBG cerr <<"--- big tick for "<<p<<" at screen pos "<<x<<endl;
+			//DBG cerr << "*******************rulerwin, line: "<<x<<','<<toff<<','<<toff+tw<<endl;
+
 			if (win_style&RULER_X) {
 				draw_line(this, (int)x,toff, (int)x,toff+tw);
 			} else {

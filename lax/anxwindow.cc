@@ -414,7 +414,7 @@ anXWindow::~anXWindow()
 
 	if (win_tooltip) delete[] win_tooltip;
 
-	int t=_kids.n;
+	DBG int t=_kids.n;
 	DBG cerr <<"anXWindow flushing "<<t<<" kids..."<<endl;
 	for (int c=0; _kids.n; c++) {
 		DBG cerr <<"remove window "<<_kids.e[0]->whattype()<<","<<

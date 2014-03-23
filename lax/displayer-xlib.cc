@@ -307,6 +307,12 @@ void DisplayerXlib::ClearClip()
  */
 flatpoint DisplayerXlib::realtoscreen(flatpoint p)
 {
+	DBG if (ctm[4]>1e+100 || ctm[5]>1e+100) {
+	DBG 	dumpctm(ctm);
+	DBG 	cerr <<" ***** BLAM ******"<<endl;
+	DBG 	cerr <<" ***** This is a mystery bug, intermittent DisplayerXlib transform corruption ******"<<endl;
+	DBG 	exit(1);
+	DBG }
 	return flatpoint(ctm[4] + ctm[0]*p.x + ctm[2]*p.y, ctm[5]+ctm[1]*p.x+ctm[3]*p.y); 
 } 
 
@@ -973,10 +979,12 @@ void DisplayerXlib::drawlines(flatpoint *points,int npoints,char closed,char fil
 //! Draw a line between real coordinates p1 and p2.
 void DisplayerXlib::drawline(flatpoint p1,flatpoint p2)
 {
+	//DBG cerr <<" **************Displayer::drawline before "<<p1.x<<','<<p1.y<<" to "<<p2.x<<','<<p2.y<<endl;
 	if (real_coordinates) {
 		p1=realtoscreen(p1); 
 		p2=realtoscreen(p2);
 	}
+	//DBG cerr <<" **************Displayer::drawline after "<<p1.x<<','<<p1.y<<" to "<<p2.x<<','<<p2.y<<endl;
 	XDrawLine(dpy,w,gc, (int)p1.x, (int)p1.y, (int)p2.x, (int)p2.y);
 }
 
