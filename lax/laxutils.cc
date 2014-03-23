@@ -672,6 +672,21 @@ flatpoint *draw_thing_coordinates(DrawThingTypes thing, flatpoint *buffer, int b
 		buffer[4].x=0;  buffer[4].y=.5;
 		buffer[5].x=1;  buffer[5].y=.5;  buffer[5].info=LINE_End;
 
+	} else if (thing==THING_Pause) {
+		if ((buffer && buffer_size<8) || (!buffer && buffer_size>=0)) { *n_ret=8; return NULL; }
+		*n_ret=8;
+		if (!buffer) buffer=new flatpoint[8];
+
+		buffer[0].x=.125; buffer[0].y=0;  
+		buffer[1].x=.4;   buffer[1].y=0;  
+		buffer[2].x=.4;   buffer[2].y=1;  
+		buffer[3].x=.125; buffer[3].y=1;    buffer[3].info=LINE_Closed;
+
+		buffer[0].x=.6;   buffer[0].y=0;  
+		buffer[1].x=.875; buffer[1].y=0;  
+		buffer[2].x=.875; buffer[2].y=1;  
+		buffer[3].x=.6;   buffer[3].y=1;    buffer[3].info=LINE_Closed;
+
 	} else if (thing==THING_Eject) {
 		if ((buffer && buffer_size<7) || (!buffer && buffer_size>=0)) { *n_ret=7; return NULL; }
 		*n_ret=7;
