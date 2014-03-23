@@ -4283,6 +4283,7 @@ int PathInterface::PerformAction(int action)
 
 	} else if (action==PATHIA_Wider) {
 		if (!data) return 0;
+		if (!data->linestyle) data->linestyle=new LineStyle;
 		if (!data->linestyle->width) data->linestyle->width=1;
 		data->linestyle->width*=widthstep;
 
@@ -4295,6 +4296,7 @@ int PathInterface::PerformAction(int action)
 
 	} else if (action==PATHIA_Thinner) {
 		if (!data) return 0;
+		if (!data->linestyle) data->linestyle=new LineStyle;
 		if (!data->linestyle->width) data->linestyle->width=1;
 		data->linestyle->width/=widthstep;
 
