@@ -539,7 +539,12 @@ int FreehandInterface::send(int i)
 	if (freehand_style&FREEHAND_Raw_Path) {
 		RawPointLine *line=lines.e[i];
 	
-		PathsData *paths=new PathsData;
+		PathsData *paths=NULL;
+		if (somedatafactory) {
+            paths=dynamic_cast<PathsData*>(somedatafactory->newObject(LAX_PATHSDATA));
+        }
+        if (!paths) paths=new PathsData();
+
 		for (int c=0; c<line->n; c++) {
 			paths->append(line->e[c]->p);
 		}
@@ -552,7 +557,12 @@ int FreehandInterface::send(int i)
 		 //return a reduced polyline
 		RawPointLine *line=Reduce(i, smooth_pixel_threshhold/dp->Getmag());
 
-		PathsData *paths=new PathsData;
+		PathsData *paths=NULL;
+		if (somedatafactory) {
+            paths=dynamic_cast<PathsData*>(somedatafactory->newObject(LAX_PATHSDATA));
+        }
+        if (!paths) paths=new PathsData();
+
 		for (int c=0; c<line->n; c++) {
 			paths->append(line->e[c]->p);
 		}
@@ -567,7 +577,12 @@ int FreehandInterface::send(int i)
 		RawPointLine *line=Reduce(i, smooth_pixel_threshhold/dp->Getmag());
 		Coordinate *coord=BezApproximate(line);
 
-		PathsData *paths=new PathsData;
+		PathsData *paths=NULL;
+		if (somedatafactory) {
+            paths=dynamic_cast<PathsData*>(somedatafactory->newObject(LAX_PATHSDATA));
+        }
+        if (!paths) paths=new PathsData();
+
 		paths->appendCoord(coord);
 		paths->FindBBox();
 		sendObject(paths,FREEHAND_Bez_Path);
@@ -611,11 +626,17 @@ int FreehandInterface::send(int i)
 
 		Coordinate *coord=LaxInterfaces::BezApproximate(points.e,points.n);
 
-		PathsData *paths=new PathsData;
+		PathsData *paths=NULL;
+		if (somedatafactory) {
+            paths=dynamic_cast<PathsData*>(somedatafactory->newObject(LAX_PATHSDATA));
+        }
+        if (!paths) paths=new PathsData();
+
 		paths->appendCoord(coord);
 		paths->close();
 		paths->FindBBox();
 		paths->fill(&linestyle.color);
+		paths->line(-1,-1,-1,&linestyle.color);
 		sendObject(paths,FREEHAND_Bez_Outline);
 
 		delete line;
