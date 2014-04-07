@@ -1267,7 +1267,10 @@ int XInput2Pointer::getInfo(anXWindow *win,
 
 			 //need to do a different call to find valuator info...
 			if (pressure && val->number==2) {
-				if (val->min==val->max) *pressure=1;
+				 //it appears to vary as to how various plain mice map to pressure.
+				 //one, for instance, maps to 0, and min/max is 0,-1
+				 //another has mni==max==0
+				if (val->min>=val->max) *pressure=1; 
 				else *pressure=(val->value-val->min)/(val->max-val->min);
 			}
 			if (tiltx && val->number==3)    { *tiltx   =(val->value-val->min)/(val->max-val->min); }
