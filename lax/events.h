@@ -68,24 +68,25 @@ class LaxKeyboard;
 #define LAX_onKeyDown          (1<<7)
 #define LAX_onKeyUp            (1<<8)
 #define LAX_onDeviceChange     (1<<9)
+#define LAX_onFrame            (1<<10)
  //state events
-#define LAX_onSubmit           (1<<10)
-#define LAX_onCancel           (1<<11)
-#define LAX_onContentChange    (1<<12)
-#define LAX_onSelectionChange  (1<<13)
-#define LAX_onUpdateByEvent    (1<<14)
-#define LAX_onUngrayed         (1<<15)
-#define LAX_onGrayed           (1<<16)
-#define LAX_onMapped           (1<<17)
-#define LAX_onUnmapped         (1<<18)
+#define LAX_onSubmit           (1<<11)
+#define LAX_onCancel           (1<<12)
+#define LAX_onContentChange    (1<<13)
+#define LAX_onSelectionChange  (1<<14)
+#define LAX_onUpdateByEvent    (1<<15)
+#define LAX_onUngrayed         (1<<16)
+#define LAX_onGrayed           (1<<17)
+#define LAX_onMapped           (1<<18)
+#define LAX_onUnmapped         (1<<19)
  //---other events
  //sent by window controls for various purposes.
  //event->subtype will some value that makes sense to the control
-#define LAX_ControlEvent       (1<<19)
-#define LAX_ButtonEvent        (1<<20)
-#define LAX_ShortcutEvent      (1<<21)
-#define LAX_ColorEvent         (1<<22)
-#define LAX_UserEvent          (1<<23)
+#define LAX_ControlEvent       (1<<20)
+#define LAX_ButtonEvent        (1<<21)
+#define LAX_ShortcutEvent      (1<<22)
+#define LAX_ColorEvent         (1<<23)
+#define LAX_UserEvent          (1<<24)
 
 const char *lax_event_name(int e);
 
@@ -243,6 +244,7 @@ class EventReceiver : virtual public anObject
 	EventReceiver();
 	virtual ~EventReceiver();
 	virtual int Event(const EventData *data,const char *mes);
+	virtual int  Idle(int tid=0) { return 1; } // *** should make a specific Frame event for more detail??
 };
 
 
