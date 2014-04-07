@@ -850,36 +850,80 @@ int LineEdit::WheelUp(int x,int y,unsigned int state,int count,const Laxkit::Lax
 	if (win_style&(LINEEDIT_INT|LINEEDIT_FLOAT)) {
 		 //wheel to change specific digits
 
-		long newpos=findpos(x+curlineoffset);
-		//long newpos=curpos;
-
-		if (newpos==textlen) newpos=textlen-1;
-		if (newpos<0 || newpos>=textlen) return 0;
-		int place=0, decimal=0;
-		int s=0,e=textlen-1;
-		while (isspace(thetext[s])) s++;
-		if (thetext[s]=='-') s++;
-		while (e>0 && isspace(thetext[e])) e--;
-		if (e<s) return 0;
-
-		decimal=s;
-		while (decimal<e && thetext[decimal]!='.') decimal++;
-		if (decimal==e) place=decimal-newpos-1;
-		else if (newpos<decimal) place=decimal-newpos-1;
-		else place=decimal-newpos;
-
 		if (win_style&(LINEEDIT_INT)) {
 			long l=GetLong(NULL);
-			l+=(pow10(place)+.5);
+			l++;
 			SetText((int)l);
 		} else {
 			double d=GetDouble(NULL);
-			d+=pow10(place);
+			d++;
 			SetText(d);
 		}
-		//curpos=newpos;
-		findcaret();
+		Modified();
 		return 0;
+
+//		long newpos=findpos(x+curlineoffset);
+//		//long newpos=curpos;
+//
+//		if (newpos==textlen) newpos=textlen-1;
+//		if (newpos<0 || newpos>=textlen) return 0;
+//
+//		if (!isdigit(thetext[newpos])) {
+//			if (win_style&(LINEEDIT_INT)) {
+//				long l=GetLong(NULL);
+//				l++;
+//				SetText((int)l);
+//			} else {
+//				double d=GetDouble(NULL);
+//				d++;
+//				SetText(d);
+//			}
+//			return 0;
+//		}
+//
+//		do {
+//			int digit=thetext[newpos]-'0';
+//			digit++;
+//			if (digit==10) {
+//				thetext[newpos]='0';
+//				newpos--;
+//				if (newpos<0 || !isdigit(thetext[newpos])) {
+//					SetCurpos(newpos+1);
+//					inschar('1');
+//					break;
+//				}
+//			} else {
+//				thetext[newpos]=digit+'0';
+//			}
+//		}
+//
+//		return 0;
+//		------------------
+//		int place=0, decimal=0;0
+//		int s=0,e=textlen-1;
+//		while (isspace(thetext[s])) s++;
+//		if (thetext[s]=='-') s++;
+//		while (e>0 && isspace(thetext[e])) e--;
+//		if (e<s) return 0;
+//
+//		decimal=s;
+//		while (decimal<e && thetext[decimal]!='.') decimal++;
+//		if (decimal==e) place=decimal-newpos-1;
+//		else if (newpos<decimal) place=decimal-newpos-1;
+//		else place=decimal-newpos;
+//
+//		if (win_style&(LINEEDIT_INT)) {
+//			long l=GetLong(NULL);
+//			l+=(pow10(place)+.5);
+//			SetText((int)l);
+//		} else {
+//			double d=GetDouble(NULL);
+//			d+=pow10(place);
+//			SetText(d);
+//		}
+//		//curpos=newpos;
+//		findcaret();
+//		return 0;
 	}
 
 	return 1;
@@ -890,36 +934,48 @@ int LineEdit::WheelDown(int x,int y,unsigned int state,int count,const Laxkit::L
 	if (win_style&(LINEEDIT_INT|LINEEDIT_FLOAT)) {
 		 //wheel to change specific digits
 
-		long newpos=findpos(x+curlineoffset);
-		//long newpos=curpos;
-
-		if (newpos==textlen) newpos=textlen-1;
-		if (newpos<0 || newpos>=textlen) return 0;
-		int place=0, decimal=0;
-		int s=0,e=textlen-1;
-		while (isspace(thetext[s])) s++;
-		if (thetext[s]=='-') s++;
-		while (e>0 && isspace(thetext[e])) e--;
-		if (e<s) return 0;
-
-		decimal=s;
-		while (decimal<e && thetext[decimal]!='.') decimal++;
-		if (decimal==e) place=decimal-newpos-1;
-		else if (newpos<decimal) place=decimal-newpos-1;
-		else place=decimal-newpos;
-
 		if (win_style&(LINEEDIT_INT)) {
 			long l=GetLong(NULL);
-			l-=(pow10(place)+.5);
+			l--;
 			SetText((int)l);
 		} else {
 			double d=GetDouble(NULL);
-			d-=pow10(place);
+			d--;
 			SetText(d);
 		}
-		//curpos=newpos;
-		findcaret();
+		Modified();
 		return 0;
+
+//		long newpos=findpos(x+curlineoffset);
+//		//long newpos=curpos;
+//
+//		if (newpos==textlen) newpos=textlen-1;
+//		if (newpos<0 || newpos>=textlen) return 0;
+//		int place=0, decimal=0;
+//		int s=0,e=textlen-1;
+//		while (isspace(thetext[s])) s++;
+//		if (thetext[s]=='-') s++;
+//		while (e>0 && isspace(thetext[e])) e--;
+//		if (e<s) return 0;
+//
+//		decimal=s;
+//		while (decimal<e && thetext[decimal]!='.') decimal++;
+//		if (decimal==e) place=decimal-newpos-1;
+//		else if (newpos<decimal) place=decimal-newpos-1;
+//		else place=decimal-newpos;
+//
+//		if (win_style&(LINEEDIT_INT)) {
+//			long l=GetLong(NULL);
+//			l-=(pow10(place)+.5);
+//			SetText((int)l);
+//		} else {
+//			double d=GetDouble(NULL);
+//			d-=pow10(place);
+//			SetText(d);
+//		}
+//		//curpos=newpos;
+//		findcaret();
+//		return 0;
 	}
 
 	return 1;
@@ -955,8 +1011,8 @@ int LineEdit::Idle(int)
  */
 int LineEdit::MouseMove(int x,int y,unsigned int state,const LaxMouse *d)
 {
-	DBG long newpos=findpos(x+curlineoffset);
-	DBG cerr <<"x:"<<x<<"  clo:"<<curlineoffset<<"  newpos:"<<newpos<<endl;
+	//DBG long newpos=findpos(x+curlineoffset);
+	//DBG cerr <<"x:"<<x<<"  clo:"<<curlineoffset<<"  newpos:"<<newpos<<endl;
 
 	if (buttondown.isdown(d->id,LEFTBUTTON)) {
 		long newpos=findpos(x+curlineoffset);
