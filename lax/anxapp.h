@@ -304,10 +304,10 @@ struct TimerInfo
 	long info;
 	clock_t endtime,firsttick,ticktime;
 	clock_t nexttime;
-	anXWindow *win;
+	EventReceiver *win;
 	
 	TimerInfo() { info=0; id=0; endtime=firsttick=ticktime=nexttime=0; win=NULL; }
-	TimerInfo(anXWindow *nwin,int duration,int firstt,int tickt,int nid,long ninfo);
+	TimerInfo(EventReceiver *nwin,int duration,int firstt,int tickt,int nid,long ninfo);
 	int checktime(clock_t tm);
 };
 
@@ -491,9 +491,9 @@ class anXApp : virtual public anObject
 
 	 //timer management
 	virtual int SetMaxTimeout(int timeoutmax);
-	virtual int addtimer(anXWindow *win,int strt,int next,int duration);
-	virtual int addmousetimer(anXWindow *win);
-	virtual int removetimer(anXWindow *w,int timerid);
+	virtual int addtimer(EventReceiver *win,int strt,int next,int duration);
+	virtual int addmousetimer(EventReceiver *win);
+	virtual int removetimer(EventReceiver *w,int timerid);
 };
 
 } // namespace Laxkit

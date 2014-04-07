@@ -262,7 +262,7 @@ WindowColors &WindowColors::operator=(WindowColors &l)
  * Please not that if the current time is several ticks ahead of the last tick, then only one tick is sent
  * to Idle().
  */
-TimerInfo::TimerInfo(anXWindow *nwin,int duration,int firstt,int tickt,int nid,long ninfo)
+TimerInfo::TimerInfo(EventReceiver *nwin,int duration,int firstt,int tickt,int nid,long ninfo)
 {
 	win=nwin;
 	id=nid;
@@ -1270,7 +1270,8 @@ int anXApp::destroywindow(anXWindow *w)
 
 	 //remove all timers associated with w and its children
 	for (int c=0; c<timers.n; c++) {
-		if (timers.e[c]->win==w || IsWindowChild(w,timers.e[c]->win)) { timers.remove(c); c--; }
+		if (dynamic_cast<anXWindow*>(timers.e[c]->win)==w || IsWindowChild(w,dynamic_cast<anXWindow*>(timers.e[c]->win)))
+			{ timers.remove(c); c--; }
 	}
 	
 	
@@ -1493,6 +1494,7 @@ int anXApp::RegisterEventReceiver(EventReceiver *ev)
 
 	if (eventreceivers.n==0) { eventreceivers.push(ev,0); return 0; }
 
+	 //push sorted by object id for easy binary search later
 	if (ev->object_id<eventreceivers.e[0]->object_id) { eventreceivers.push(ev,0,0); return 0; }
 	if (ev->object_id>eventreceivers.e[e]->object_id) { eventreceivers.push(ev,0,-1); return 0; }
 	if (ev->object_id==eventreceivers.e[0]->object_id || ev->object_id==eventreceivers.e[e]->object_id)
@@ -1513,6 +1515,7 @@ int anXApp::RegisterEventReceiver(EventReceiver *ev)
 
 int anXApp::UnregisterEventReceiver(EventReceiver *e)
 {
+	removetimer(e,0);
 	return eventreceivers.remove(eventreceivers.findindex(e));
 }
 
@@ -2353,7 +2356,8 @@ int anXApp::run()
 		 //--- do any idling
 		 // idle is recursive loop on the specified window
 		//DBG cerr <<"-idling"<<endl;
-		for (c=0; c<topwindows.n; c++) idle(topwindows.e[c]);
+		// *** this is do nothing as idle is controlled by timers now...
+		//for (c=0; c<topwindows.n; c++) idle(topwindows.e[c]);
 
 		 // Do X events
 		//DBG cerr <<"-x events"<<endl;
@@ -2791,7 +2795,7 @@ int anXApp::SetMaxTimeout(int timeoutmax)
  *
  * A duration of -1 means about 1000 hours, so basically forever.
  */
-int anXApp::addtimer(anXWindow *win, //!< The window to create the timer for
+int anXApp::addtimer(EventReceiver *win, //!< The window to create the timer for
 					int strt, //!< Time to wait for the first timer event (milliseconds)
 					int next, //!< Time to wait for each successive timer event (milliseconds)
 					int duration //!< How long the timer should last (milliseconds)
@@ -2802,7 +2806,7 @@ int anXApp::addtimer(anXWindow *win, //!< The window to create the timer for
 	int nid=getUniqueNumber();
 	timers.push(new TimerInfo(win,duration,strt,next,nid,0));
 
-	DBG cerr <<"addtimer: "<<win->WindowTitle()<<"  id:"<<nid<<"  duration:"<<duration<<"  next:"<<next<< " ms"<<endl;
+	//DBG cerr <<"addtimer: "<<win->WindowTitle()<<"  id:"<<nid<<"  duration:"<<duration<<"  next:"<<next<< " ms"<<endl;
 	return nid;
 }
 
@@ -2813,7 +2817,7 @@ int anXApp::addtimer(anXWindow *win, //!< The window to create the timer for
  *
  * If timerid==0, then remove any timer of w.
  */
-int anXApp::removetimer(anXWindow *w,int timerid)
+int anXApp::removetimer(EventReceiver *w,int timerid)
 {
 	DBG cerr <<"remove timer:"<<timerid<<endl;
 	int c;
@@ -2834,7 +2838,7 @@ int anXApp::removetimer(anXWindow *w,int timerid)
  *
  * \todo maybe figure out how to make automatic turnoff when button up???
  */
-int anXApp::addmousetimer(anXWindow *win)
+int anXApp::addmousetimer(EventReceiver *win)
 {
 	long c=sysconf(_SC_CLK_TCK);
 	return addtimer(win,firstclk*1000/c,idleclk*1000/c,-1);
