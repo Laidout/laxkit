@@ -175,6 +175,7 @@ enum PatchInterfaceActions {
 	PATCHA_SelectAllHorizontally,
 	PATCHA_SelectMoreHorizontally,
 	PATCHA_SelectAround,
+	PATCHA_DeleteSelected,
 	PATCHA_MAX
 };
 

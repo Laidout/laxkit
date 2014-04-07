@@ -28,6 +28,7 @@
 #include <lax/screencolor.h>
 #include <lax/curvewindow.h>
 
+//#include <lax/interfaces/selection.h>
 
 namespace LaxInterfaces {
 
@@ -102,6 +103,7 @@ class EngraverFillInterface : public PatchInterface
 	Laxkit::CurveInfo thickness; //ramp of thickness brush
 	double default_spacing;
 	flatpoint hover;
+	//Selection *selection;
 
 	//virtual void runImageDialog();
 	virtual int PerformAction(int action);

@@ -168,6 +168,7 @@ int FreehandInterface::Event(const Laxkit::EventData *e,const char *mes)
         const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(e);
         int i =s->info2; //id of menu item
         //int ii=s->info4; //extra id, 1 for direction
+		DBG cerr <<" ********* freehand got menuevent..."<<i<<endl;
 
 		if (i==FREEHAND_Raw_Path    ) {
 			freehand_style=FREEHAND_Raw_Path;

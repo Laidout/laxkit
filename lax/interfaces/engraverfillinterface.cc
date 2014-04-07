@@ -376,8 +376,8 @@ void EngraverFillData::dump_in_atts(Attribute *att,int flag,Laxkit::anObject *co
 
 				value=end_ptr;
 				while (isspace(*value)) value++;
-				if (*value=='o' && *value=='n') { on=true; value+=2; }
-				else if (*value=='o' && *value=='f' && *value=='f') { on=true; value+=3; }
+				if (*value=='o' && value[1]=='n') { on=true; value+=2; }
+				else if (*value=='o' && value[1]=='f' && value[2]=='f') { on=true; value+=3; }
 
 				if (!lstart) { lstart=ll=new LinePoint(v.x,v.y, w); ll->on=on; }
 				else {
@@ -722,6 +722,8 @@ enum EngraverModes {
 
 EngraverFillInterface::EngraverFillInterface(int nid,Displayer *ndp) : PatchInterface(nid,ndp)
 {
+	//selection=NULL;
+
 	showdecs=SHOW_Points|SHOW_Edges;
 	rendermode=3;
 	recurse=0;
@@ -748,6 +750,7 @@ EngraverFillInterface::EngraverFillInterface(int nid,Displayer *ndp) : PatchInte
 EngraverFillInterface::~EngraverFillInterface() 
 {
 	DBG cerr<<"-------"<<whattype()<<","<<" destructor"<<endl;
+	//if (selection) selection->dec_count();
 }
 
 const char *EngraverFillInterface::Name()
@@ -948,9 +951,9 @@ int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit
 							//a=1-thickness.f(a);
 							a=thickness.f(a);
 							if ((state&LAX_STATE_MASK)==ControlMask) {
-								a=1-a*.01;
+								a=1-a*.05;
 							} else {
-								a=1+a*.01;
+								a=1+a*.05;
 							}
 							l->weight*=a;
 
@@ -1017,6 +1020,8 @@ int EngraverFillInterface::Refresh()
 
 	double mag=dp->Getmag();
 	double lastwidth, neww;
+	double tw;
+	flatpoint lp,v;
 
 	for (int c=0; c<edata->lines.n; c++) {
 		l=edata->lines.e[c];
@@ -1033,10 +1038,19 @@ int EngraverFillInterface::Refresh()
 
 			neww=last->weight*mag;
 			if (neww!=lastwidth) {
+				if (last->on && l->on) {
+					lp=last->p;
+					v=(l->p-last->p)/9.;
+					for (int c2=0; c2<10; c2++) {
+						tw=lastwidth+c2/9.*(neww-lastwidth);
+						dp->LineAttributes(tw,LineSolid,LAXCAP_Round,LAXJOIN_Round);
+						dp->drawline(lp,lp+v*c2);
+					}
+				}
+
 				lastwidth=neww;
-				dp->LineAttributes(lastwidth,LineSolid,LAXCAP_Round,LAXJOIN_Round);
-			}
-			if (last->on && l->on) dp->drawline(last->p,l->p);
+
+			} else if (last->on && l->on) dp->drawline(last->p,l->p);
 
 			last2=last;
 			last=l;
@@ -1058,6 +1072,7 @@ int EngraverFillInterface::Refresh()
 		}
 
 		dp->drawpoint(hover.x,hover.y, brush_radius,0);
+		if (mode==EMODE_Blockout) dp->drawpoint(hover.x,hover.y, brush_radius*.85,0);
 
 		if (submode==2) {
 			dp->drawarrow(hover+flatpoint(brush_radius+10,0), flatpoint(20,0), 0, 20, 1, 3);
