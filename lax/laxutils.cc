@@ -602,6 +602,28 @@ flatpoint *draw_thing_coordinates(DrawThingTypes thing, flatpoint *buffer, int b
 		buffer[2]=flatpoint(.5,1);
 		buffer[3]=flatpoint(1,.5); buffer[3].info=LINE_Closed;
 
+	} else if (thing==THING_To_Bottom
+			|| thing==THING_To_Top
+			|| thing==THING_To_Left
+			|| thing==THING_To_Right) {
+		if ((buffer && buffer_size<7) || (!buffer && buffer_size>=0)) { *n_ret=7; return NULL; }
+		*n_ret=7;
+		if (!buffer) buffer=new flatpoint[7];
+		buffer[0]=flatpoint(0,0);
+		buffer[1]=flatpoint(.5,.8);
+		buffer[2]=flatpoint(1,0); buffer[2].info=LINE_Closed;
+		buffer[3]=flatpoint(0,.8);
+		buffer[4]=flatpoint(1,.8);
+		buffer[5]=flatpoint(1,1);
+		buffer[6]=flatpoint(0,1); buffer[6].info=LINE_Closed;
+
+		if (thing==THING_To_Top || thing==THING_To_Left) {
+			for (int c=0; c<7; c++) buffer[c].y=1-buffer[c].y;
+		}
+		if (thing==THING_To_Left || thing==THING_To_Right) {
+			for (int c=0; c<7; c++) { double t=buffer[c].x; buffer[c].x=buffer[c].y; buffer[c].y=t; }
+		}
+
 	} else if (thing==THING_Triangle_Down) {
 		if ((buffer && buffer_size<3) || (!buffer && buffer_size>=0)) { *n_ret=3; return NULL; }
 		*n_ret=3;
@@ -682,10 +704,10 @@ flatpoint *draw_thing_coordinates(DrawThingTypes thing, flatpoint *buffer, int b
 		buffer[2].x=.4;   buffer[2].y=1;  
 		buffer[3].x=.125; buffer[3].y=1;    buffer[3].info=LINE_Closed;
 
-		buffer[0].x=.6;   buffer[0].y=0;  
-		buffer[1].x=.875; buffer[1].y=0;  
-		buffer[2].x=.875; buffer[2].y=1;  
-		buffer[3].x=.6;   buffer[3].y=1;    buffer[3].info=LINE_Closed;
+		buffer[4].x=.6;   buffer[4].y=0;  
+		buffer[5].x=.875; buffer[5].y=0;  
+		buffer[6].x=.875; buffer[6].y=1;  
+		buffer[7].x=.6;   buffer[7].y=1;    buffer[7].info=LINE_Closed;
 
 	} else if (thing==THING_Eject) {
 		if ((buffer && buffer_size<7) || (!buffer && buffer_size>=0)) { *n_ret=7; return NULL; }
@@ -731,10 +753,10 @@ flatpoint *draw_thing_coordinates(DrawThingTypes thing, flatpoint *buffer, int b
 
 		buffer[0].x=.5; buffer[0].y=1;
 		buffer[1].x=.5; buffer[1].y=0;
-		buffer[2].x=0;  buffer[2].y=.5;  buffer[3].info=LINE_Closed;
+		buffer[2].x=0;  buffer[2].y=.5;  buffer[2].info=LINE_Closed;
 		buffer[3].x=1;  buffer[3].y=1;
 		buffer[4].x=1;  buffer[4].y=0;
-		buffer[5].x=.5; buffer[5].y=.5;  buffer[6].info=LINE_Closed;
+		buffer[5].x=.5; buffer[5].y=.5;  buffer[5].info=LINE_Closed;
 
 	} else if (thing==THING_Double_Triangle_Right) {
 		if ((buffer && buffer_size<6) || (!buffer && buffer_size>=0)) { *n_ret=6; return NULL; }
@@ -743,10 +765,10 @@ flatpoint *draw_thing_coordinates(DrawThingTypes thing, flatpoint *buffer, int b
 
 		buffer[0].x=0;  buffer[0].y=1;
 		buffer[1].x=.5; buffer[1].y=.5;
-		buffer[2].x=0;  buffer[2].y=0;  buffer[3].info=LINE_Closed;
+		buffer[2].x=0;  buffer[2].y=0;  buffer[2].info=LINE_Closed;
 		buffer[3].x=.5; buffer[3].y=1;
 		buffer[4].x=1;  buffer[4].y=.5;
-		buffer[5].x=.5; buffer[5].y=0;  buffer[6].info=LINE_Closed;
+		buffer[5].x=.5; buffer[5].y=0;  buffer[5].info=LINE_Closed;
 
 	} else if (thing==THING_Pan_Arrows) {
 		if ((buffer && buffer_size<25) || (!buffer && buffer_size>=0)) { *n_ret=25; return NULL; }
