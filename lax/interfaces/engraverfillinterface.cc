@@ -382,6 +382,7 @@ void EngraverFillData::dump_in_atts(Attribute *att,int flag,Laxkit::anObject *co
 				if (!lstart) { lstart=ll=new LinePoint(v.x,v.y, w); ll->on=on; }
 				else {
 					ll->next=new LinePoint(v.x,v.y, w);
+					ll->next->prev=ll;
 					ll->next->on=on;
 					ll=ll->next;
 				}
@@ -394,6 +395,7 @@ void EngraverFillData::dump_in_atts(Attribute *att,int flag,Laxkit::anObject *co
 		}
 	}
 
+	nlines=lines.n;
 	FindBBox();
 	Sync();
 }
@@ -730,6 +732,7 @@ EngraverFillInterface::EngraverFillInterface(int nid,Displayer *ndp) : PatchInte
 	edata=NULL;
 	default_spacing=1./25;
 
+	show_points=false;
 	submode=0;
 	mode=EMODE_Mesh;
 	//mode=EMODE_Thickness;
@@ -1011,12 +1014,11 @@ int EngraverFillInterface::Refresh()
 
 	if (!edata) { needtodraw=0; return 0; }
 
-	//dp->NewFG(0.,0.,1.,1.);
+
 	dp->NewFG(&edata->fillstyle.color);
 
 	LinePoint *l;
-	LinePoint *last=NULL, *last2=NULL;
-	flatvector t; 
+	LinePoint *last=NULL;
 
 	double mag=dp->Getmag();
 	double lastwidth, neww;
@@ -1032,29 +1034,41 @@ int EngraverFillInterface::Refresh()
 		l=l->next;
 
 		while (l) {
-			if (!last2) last2=last;
-
-			t=l->p - last2->p;
-
-			neww=last->weight*mag;
+			neww=l->weight*mag;
 			if (neww!=lastwidth) {
 				if (last->on && l->on) {
 					lp=last->p;
 					v=(l->p-last->p)/9.;
-					for (int c2=0; c2<10; c2++) {
+					for (int c2=1; c2<10; c2++) {
 						tw=lastwidth+c2/9.*(neww-lastwidth);
 						dp->LineAttributes(tw,LineSolid,LAXCAP_Round,LAXJOIN_Round);
-						dp->drawline(lp,lp+v*c2);
+						dp->drawline(lp+v*(c2-1), lp+v*c2);
 					}
 				}
 
 				lastwidth=neww;
 
-			} else if (last->on && l->on) dp->drawline(last->p,l->p);
+			} else {
+				if (last->on && l->on) dp->drawline(last->p,l->p);
+			}
 
-			last2=last;
 			last=l;
 			l=l->next;
+
+		}
+
+		if (show_points) {
+			//DBG int p=1;
+			flatpoint pp;
+			l=edata->lines.e[c];
+			dp->NewFG(1.,0.,0.);
+			while (l) {
+				dp->drawpoint(l->p, 2, 1);
+				//DBG dp->drawnum(l->p.x,l->p.y, p);
+				//DBG p++;
+				l=l->next;
+			}
+			dp->NewFG(&edata->fillstyle.color);
 		}
 	}
 
@@ -1094,6 +1108,7 @@ enum EngraveShortcuts {
 	ENGRAVE_RotateDirR,
 	ENGRAVE_SpacingInc,
 	ENGRAVE_SpacingDec,
+	ENGRAVE_ShowPoints,
 	ENGRAVE_MAX
 };
 
@@ -1154,6 +1169,12 @@ int EngraverFillInterface::PerformAction(int action)
 		needtodraw=1;
 		return 0;
 
+	} else if (action==ENGRAVE_ShowPoints) {
+		show_points=!show_points;
+		if (show_points) PostMessage(_("Show sample points"));
+		else PostMessage(_("Don't show sample points"));
+		needtodraw=1;
+		return 0;
 	}
 
 
@@ -1234,6 +1255,7 @@ Laxkit::ShortcutHandler *EngraverFillInterface::GetShortcuts()
 	sc->Add(ENGRAVE_RotateDirR,  'R',ShiftMask,0,  "RotateDirR",  _("Rotate default line direction"),NULL,0);
 	sc->Add(ENGRAVE_SpacingInc,  's',0,0,          "SpacingInc",  _("Increase default spacing"),NULL,0);
 	sc->Add(ENGRAVE_SpacingDec,  'S',ShiftMask,0,  "SpacingDec",  _("Decrease default spacing"),NULL,0);
+	sc->Add(ENGRAVE_ShowPoints,  'p',0,0,          "ShowPoints",  _("Toggle showing sample points"),NULL,0);
 
 	return sc;
 }

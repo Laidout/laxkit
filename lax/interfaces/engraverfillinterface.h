@@ -99,6 +99,7 @@ class EngraverFillInterface : public PatchInterface
 	EngraverFillData *edata;
 	int mode;
 	int submode;
+	bool show_points;
 	double brush_radius; //screen pixels
 	Laxkit::CurveInfo thickness; //ramp of thickness brush
 	double default_spacing;
