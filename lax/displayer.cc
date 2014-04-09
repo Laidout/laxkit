@@ -832,29 +832,35 @@ int Displayer::drawrealline(flatline &ln,int num)
 	return c;
 }
 
-//! Draw the number num centered at screen coord (x,y).
+//! Draw the number num centered at coord (x,y).
 /*!
- * If (x,y) is not on the screen, draw nothing.
+ * If (x,y) ends up not on the screen, draw nothing.
  *
  * If the coordinate is near a screen edge, care is taken so that the number will
  * actually be drawn entirely in the screen, and not bleed off the edge.
  */
 void Displayer::drawnum(double x, double y, int num)
 {
-	if (!onscreen(x,y)) return;
 	char ch[20];
 	sprintf(ch,"%d",num);
 
+	flatpoint p(x,y);
+	if (real_coordinates) p=realtoscreen(x,y);
+	if (!onscreen(p.x,p.y)) return;
+	
+
 	double wid,h;
 	textextent(ch,strlen(ch),&wid,&h);
-	x-=wid/2;
-	y-=h/2;
+	p.x-=wid/2;
+	p.y-=h/2;
 
-	if (x<Minx) x=Minx;
-	else if (x>Maxx-wid) x=Maxx-wid;
-	if (y<Miny) y=Miny;
-	else if (y>Maxy-h) y=Maxy-h;
-	textout(x,y,ch,strlen(ch),LAX_CENTER);
+	if (p.x<Minx) p.x=Minx;
+	else if (p.x>Maxx-wid) p.x=Maxx-wid;
+	if (p.y<Miny) p.y=Miny;
+	else if (p.y>Maxy-h) p.y=Maxy-h;
+
+	if (real_coordinates) p=screentoreal(p);
+	textout(p.x,p.y,ch,strlen(ch),LAX_CENTER);
 }
 
 
