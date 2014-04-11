@@ -318,7 +318,7 @@ void RulerWindow::Refresh()
 	drawing_function(LAXOP_Source);
 	drawing_line_attributes(0,LineSolid,LAXCAP_Butt,LAXJOIN_Miter);
 
-	DBG cerr << "*******************rulerwin, winw/h: "<<win_w<<','<<win_h<<endl;
+	//DBG cerr << "*******************rulerwin, winw/h: "<<win_w<<','<<win_h<<endl;
 
 	 // draw all
 	if (needtodraw&1) {
@@ -347,7 +347,7 @@ void RulerWindow::Refresh()
 		tw=(int)(t*tf);
 		stw=(int)(t*stf);
 		sstw=(int)(t*sstf);
-		DBG cerr << "*******************rulerwin sstf, t, sstw: "<<sstf<<','<<t<<','<<sstw<<endl;
+		//DBG cerr << "*******************rulerwin sstf, t, sstw: "<<sstf<<','<<t<<','<<sstw<<endl;
 
 		if (win_style&RULER_TOPTICKS) {
 			toff=stoff=sstoff=0;
