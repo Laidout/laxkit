@@ -65,6 +65,9 @@ class EngraverFillData : public PatchData
 	int nlines;
 	FillStyle fillstyle;
 
+	double zero_threshhold; //weight<this are considered off
+	double broken_threshhold; //if nonzero, zero_threshhold<weight<this means use broken line of this thickness
+
 	EngraverFillData();
 	//EngraverFillData(double xx,double yy,double ww,double hh,int nr,int nc,unsigned int stle);
 	virtual ~EngraverFillData(); 
@@ -102,7 +105,11 @@ class EngraverFillInterface : public PatchInterface
 	bool show_points;
 	double brush_radius; //screen pixels
 	Laxkit::CurveInfo thickness; //ramp of thickness brush
+
 	double default_spacing;
+	double default_zero_threshhold; //weight<this are considered off
+	double default_broken_threshhold; //if nonzero, zero_threshhold<weight<this means use broken line of this thickness
+
 	flatpoint hover;
 	//Selection *selection;
 

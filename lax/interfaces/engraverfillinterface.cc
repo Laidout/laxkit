@@ -22,20 +22,6 @@
 //
 
 
-// ******* todo *********
-//
-// Needs clip boundary
-// rotate direction on canvas controller
-// point generators
-// mesh controls are really bad
-// need mode based shortcuts
-// reasonable caps
-//
-// DONE direction for default lines not installing correctly when downward
-// DONE curved lines, not polylines
-//
-
-
 
 #include <lax/interfaces/engraverfillinterface.h>
 
@@ -61,10 +47,6 @@ using namespace std;
 
 
 namespace LaxInterfaces {
-
-extern double B[16];
-extern double Binv[16];
-
 
 
 
@@ -171,6 +153,8 @@ void EngraverFillData::Sync()
 	}
 }
 
+/*! spacing is the fraction of [0..1] that is the distance between line centers.
+ */
 void EngraverFillData::FillRegularLines(double weight, double spacing)
 {
 	 // create generic lines to experiment with weight painting...
@@ -730,7 +714,10 @@ EngraverFillInterface::EngraverFillInterface(int nid,Displayer *ndp) : PatchInte
 	rendermode=3;
 	recurse=0;
 	edata=NULL;
+
 	default_spacing=1./25;
+	default_zero_threshhold=0;
+	default_broken_threshhold=0;
 
 	show_points=false;
 	submode=0;
@@ -881,7 +868,8 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
 {
 	if (mode==EMODE_Mesh) {
 		PatchInterface::LBUp(x,y,state,d);
-		edata->Sync();
+		if (!edata && data) edata=dynamic_cast<EngraverFillData*>(data);
+		if (edata) edata->Sync();
 		return 0;
 	}
 
@@ -1076,6 +1064,13 @@ int EngraverFillInterface::Refresh()
 
 	if (mode==EMODE_Mesh) PatchInterface::Refresh();
 	else if (mode==EMODE_Thickness || mode==EMODE_Blockout) {
+		if (data->npoints_boundary) {
+			dp->NewFG(150,150,150);
+			dp->LineAttributes(1,LineSolid,linestyle.capstyle,linestyle.joinstyle);
+		    dp->drawbez(data->boundary_outline,data->npoints_boundary/3,1,0);
+		}
+		
+
 		dp->DrawScreen();
 
 		if (mode==EMODE_Thickness) dp->NewFG(.5,.5,.5,1.);
