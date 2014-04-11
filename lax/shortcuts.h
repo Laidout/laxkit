@@ -172,7 +172,7 @@ class ShortcutManager : public LaxFiles::DumpUtility, public anObject
   protected:
 
   public:
-	char *setname, *setfile;
+	char *settitle, *setname, *setfile;
 	LaxFiles::Attribute tree;
 	RefPtrStack<ShortcutHandler> shortcuts;
 	// map zone -- ShortcutHandler

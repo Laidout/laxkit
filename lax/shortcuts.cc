@@ -568,12 +568,14 @@ int ShortcutHandler::ReassignKey(unsigned int newkey, unsigned int newstate,
 
 ShortcutManager::ShortcutManager()
 {
+	settitle=newstr("Shortcuts");
 	setname=NULL;
 	setfile=NULL;
 }
 
 ShortcutManager::~ShortcutManager()
 {
+	delete[] settitle;
 	delete[] setname;
 	delete[] setfile;
 }
@@ -701,7 +703,7 @@ int ShortcutManager::SaveHTML(const char *file)
 
 	fprintf(f,"<html>\n"
 	          "<head>\n"
-	          "<title>Shortcuts</title>\n"
+	          "<title>%s</title>\n"
 	          "\n"
 	          "<style type=\"text/css\">\n"
 	          "table.formattable {\n"
@@ -733,7 +735,10 @@ int ShortcutManager::SaveHTML(const char *file)
 	          "</style>\n"
 	          "\n"
 	          "</head>\n"
-	          "<body>\n\n");
+	          "<body>\n\n"
+			  "<h1>%s</h1>\n",
+				settitle?settitle:"Shortcuts",
+				settitle?settitle:"Shortcuts");
 	
 	 //output available modifier aliases
 	fprintf(f,"Modifiers<br/>\n");
