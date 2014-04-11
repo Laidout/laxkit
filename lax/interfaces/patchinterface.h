@@ -89,6 +89,9 @@ class PatchData : virtual public SomeData
 	PatchControls controls;
 	LineStyle linestyle;
 	
+	int npoints_boundary;
+	flatpoint *boundary_outline; //cached for convenience, updated in FindBBox()
+
 	PatchData(); 
 	PatchData(double xx,double yy,double ww,double hh,int nr,int nc,unsigned int stle);
 	virtual ~PatchData();
@@ -235,6 +238,7 @@ class PatchInterface : public anInterface
 	virtual const char *whattype() { return "PatchInterface"; }
 	virtual const char *whatdatatype() { return "PatchData"; }
 	virtual anInterface *duplicate(anInterface *dup);
+	virtual Laxkit::MenuInfo *ContextMenu(int x,int y,int deviceid);
 	virtual int UseThisObject(ObjectContext *oc);
 	virtual int UseThis(Laxkit::anObject *newdata,unsigned int mask=0);
 	virtual int UseThis(int id,int ndata);

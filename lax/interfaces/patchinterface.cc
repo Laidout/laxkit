@@ -343,6 +343,9 @@ PatchData::PatchData()
 	points=NULL;
 	griddivisions=10;
 	xsize=ysize=0;
+
+	npoints_boundary=0;
+	boundary_outline=NULL;
 }
 
 //! Creates a new patch in rect xx,yy,ww,hh with nr rows and nc columns.
@@ -350,11 +353,15 @@ PatchData::PatchData(double xx,double yy,double ww,double hh,int nr,int nc,unsig
 {
 	points=NULL;
 	Set(xx,yy,ww,hh,nr,nc,stle);
+
+	npoints_boundary=0;
+	boundary_outline=NULL;
 }
 
 PatchData::~PatchData()
 {
 	if (points) delete[] points; 
+	if (boundary_outline) delete[] boundary_outline;
 }
 
 SomeData *PatchData::duplicate(SomeData *dup)
@@ -502,15 +509,17 @@ void PatchData::dump_in_atts(Attribute *att,int flag,Laxkit::anObject *context)
  */
 int PatchData::pointin(flatpoint pp,int pin)
 {
-	return SomeData::pointin(pp,pin);
+	if (!npoints_boundary) return SomeData::pointin(pp,pin);
+	return point_is_in_bez(transform_point_inverse(m(),pp), boundary_outline,npoints_boundary/3, 15);
 }
 
 //! Find bbox.
-/*! \todo ***this currently only does bounds for control points
+/*! \todo ***this currently only does bounds for control points, not visual bounding box
  */
 void PatchData::FindBBox()
 {
-	if (xsize*ysize<=0) return;
+	if (xsize*ysize<=0) { maxx=minx-1; maxy=miny-1; return; }
+
 	minx=maxx=points[0].x;
 	miny=maxy=points[0].y;
 	for (int c=0; c<xsize*ysize; c++) {
@@ -518,6 +527,20 @@ void PatchData::FindBBox()
 		else if (points[c].x>maxx) maxx=points[c].x;
 		if (points[c].y<miny) miny=points[c].y;
 		else if (points[c].y>maxy) maxy=points[c].y;
+	}
+
+	 //create bezier outline cache for pointin()
+	int n=bezOfPatch(NULL,0,0,0,0);
+	if (npoints_boundary<n) {
+		if (boundary_outline) delete[] boundary_outline;
+		boundary_outline=new flatpoint[n];
+	}
+	npoints_boundary=n;
+	bezOfPatch(boundary_outline,0,0,0,0);
+
+	cerr <<"boundary points: "<<npoints_boundary<<endl;
+	for (int c=0; c<npoints_boundary; c++) {
+		cerr <<c<<"  "<<boundary_outline[c].x<<' '<<boundary_outline[c].y<<endl;
 	}
 }
 
@@ -814,7 +837,8 @@ void PatchData::InterpolateControls(int whichcontrols)
  * the start of r is 3*r. If rl<1 then use the maximum size from row r. Similarly for cl.
  *
  * If p==NULL, then return the number of points that must be allocated in p.
- * Otherwise, p must have enough points for the requested data.
+ * Otherwise, p must have enough points for the requested data,
+ * namely, p=2*(rl*3+cl*3).
  *
  * Returns a closed path, with the first vertex at p[1], whose associated control points
  * are p[0] and p[2].
@@ -823,11 +847,11 @@ int PatchData::bezOfPatch(flatpoint *p,int r,int rl,int c,int cl)
 {
 	if (r<0 || r>=ysize/3+1) { r=0; rl=ysize/3+1; }
 	if (rl<1) rl=100000;
-	if (r+rl>ysize/3+1) rl=ysize/3+1-r;
+	if (r+rl>=ysize/3+1) rl=ysize/3-r;
 	
 	if (c<0 || c>=xsize/3+1) { c=0; cl=xsize/3+1; }
 	if (cl<1) cl=100000;
-	if (c+cl>xsize/3+1) cl=xsize/3+1-c;
+	if (c+cl>=xsize/3+1) cl=xsize/3-c;
 	
 	int n=2*(rl*3+cl*3);
 	if (p==NULL) return n;
@@ -2006,6 +2030,30 @@ anInterface *PatchInterface::duplicate(anInterface *dup)//dup=NULL
 const char *PatchInterface::Name()
 { return _("Patch Tool"); }
 
+Laxkit::MenuInfo *PatchInterface::ContextMenu(int x,int y,int deviceid)
+{
+	return NULL;
+
+//	--------- *** this might be better as a config box on canvas? too many options that have associated numbers
+//	MenuInfo *menu=new MenuInfo();
+//
+//	enum PatchInterfaceMenu {
+//		PATCHMENU_Full,   
+//		PATCHMENU_Coons,  
+//		PATCHMENU_Borders,
+//		PATCHMENU_Linear, 
+//		PATCHMENU_MAX
+//	};
+//
+//	menu->AddSep(_("Mesh type"));
+//	menu->AddItem(_("Full (16 point)"), PATCHMENU_Full,   LAX_OFF|LAX_ISTOGGLE|(whichcontrols==Patch_Full_Bezier?LAX_CHECKED:0));
+//	menu->AddItem(_("Coons (12 point)"),PATCHMENU_Coons,  LAX_OFF|LAX_ISTOGGLE|(whichcontrols==Patch_Coons?LAX_CHECKED:0));
+//	menu->AddItem(_("Borders only"),    PATCHMENU_Borders,LAX_OFF|LAX_ISTOGGLE|(whichcontrols==Patch_Border_Only?LAX_CHECKED:0));
+//	menu->AddItem(_("Linear"),          PATCHMENU_Linear, LAX_OFF|LAX_ISTOGGLE|(whichcontrols==Patch_Linear?LAX_CHECKED:0));
+//
+//	return menu;
+}
+
 int PatchInterface::InterfaceOn()
 {//*** deal with app better in interfaces
 	showdecs=oldshowdecs;
@@ -2309,6 +2357,12 @@ int PatchInterface::Refresh()
 
 	//data->renderdepth=-recurse;
 	//DBG cerr <<"  PatchRefresh- rendermode="<<rendermode<<", depth="<<data->renderdepth<<endl;
+
+//   //draw outline of whole patch	
+//	if (data->npoints_boundary) {
+//		dp->LineAttributes(3,LineSolid,linestyle.capstyle,linestyle.joinstyle);
+//		dp->drawbez(data->boundary_outline,data->npoints_boundary/3,1,0);
+//	}
 
 				
 	 // draw patches
@@ -2900,6 +2954,8 @@ int PatchInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMo
 	//if (!buttondown.isdown(d->id,LEFTBUTTON) && !curpoints.n) {
 	if (!buttondown.isdown(d->id,LEFTBUTTON)) {
 		flatpoint fp=transform_point_inverse(data->m(),screentoreal(x,y));
+
+		DBG cerr << "point in: "<<data->pointin(transform_point(data->m(),fp),1)<<endl;
 
 		//DBG int rrr,ccc;
 		//DBG cerr <<" ----------------inSubPatch:"<<data->inSubPatch(fp,&rrr,&ccc, NULL,NULL, 1)<<endl;
