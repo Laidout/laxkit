@@ -145,13 +145,35 @@ void EngraverFillData::Sync()
 		l=lines.e[c];
 
 		while (l) {
-			l->p=getPoint(l->s,l->t); // *** note this is hideously inefficient
+			l->p=getPoint(l->s,l->t); // *** note this is hideously inefficient, matrices are not cached with getPoint!!!
 			l->needtosync=false;
 
 			l=l->next;
 		}
 	}
 }
+
+///*! Assume lines->p are accurate, and we need to map back to s,t mesh coordinates.
+// */
+//void EngraverFillData::ReverseSync()
+//{
+//	cerr << " *** need to implement  EngraverFillData::ReverseSync()"<<endl;
+//
+//	LinePoint *l;
+//	flatpoint pp;
+//	for (int c=0; c<lines.n; c++) {
+//		l=lines.e[c];
+//
+//		while (l) {
+//			pp=getPointReverse(l->p.x,l->p.y); // *** note this is hideously inefficient
+//			l->s=pp.x;
+//			l->t=pp.y;
+//			l->needtosync=false;
+//
+//			l=l->next;
+//		}
+//	}
+//}
 
 /*! spacing is the fraction of [0..1] that is the distance between line centers.
  */
@@ -703,7 +725,12 @@ enum EngraverModes {
 	EMODE_Thickness,
 	EMODE_Orientation,
 	EMODE_Freehand,
-	EMODE_Blockout
+	EMODE_Blockout,
+	EMODE_PushPull,
+	EMODE_Drag,
+	EMODE_Trace,
+	EMODE_Resolution //change sample point distribution
+
 };
 
 EngraverFillInterface::EngraverFillInterface(int nid,Displayer *ndp) : PatchInterface(nid,ndp)
@@ -719,7 +746,7 @@ EngraverFillInterface::EngraverFillInterface(int nid,Displayer *ndp) : PatchInte
 	default_zero_threshhold=0;
 	default_broken_threshhold=0;
 
-	show_points=false;
+	show_points=0;
 	submode=0;
 	mode=EMODE_Mesh;
 	//mode=EMODE_Thickness;
@@ -1015,23 +1042,42 @@ int EngraverFillInterface::Refresh()
 
 	for (int c=0; c<edata->lines.n; c++) {
 		l=edata->lines.e[c];
-		last=l;
-		lastwidth=l->weight*mag;
-		dp->LineAttributes(lastwidth,LineSolid,LAXCAP_Round,LAXJOIN_Round);
-
-		l=l->next;
+		last=NULL;
+		lastwidth=-1;
 
 		while (l) {
+			if (!last) {
+				 //establish a first point of a visible segment
+	
+				//if (l->on && l->width>data->zero_threshhold) {
+				if (l->on) {
+					last=l;
+					lastwidth=l->weight*mag;
+					dp->LineAttributes(lastwidth,LineSolid,LAXCAP_Round,LAXJOIN_Round);
+				}
+				l=l->next;
+				continue;
+			}
+
+			if (!l->on) {
+				if (!last->prev || !last->prev->on) {
+					 //draw just a single dot
+					dp->drawline(last->p,last->p);
+				}
+				last=NULL;
+				lastwidth=-1;
+				l=l->next;
+				continue;
+			}
+
 			neww=l->weight*mag;
 			if (neww!=lastwidth) {
-				if (last->on && l->on) {
-					lp=last->p;
-					v=(l->p-last->p)/9.;
-					for (int c2=1; c2<10; c2++) {
-						tw=lastwidth+c2/9.*(neww-lastwidth);
-						dp->LineAttributes(tw,LineSolid,LAXCAP_Round,LAXJOIN_Round);
-						dp->drawline(lp+v*(c2-1), lp+v*c2);
-					}
+				lp=last->p;
+				v=(l->p-last->p)/9.;
+				for (int c2=1; c2<10; c2++) {
+					tw=lastwidth+c2/9.*(neww-lastwidth);
+					dp->LineAttributes(tw,LineSolid,LAXCAP_Round,LAXJOIN_Round);
+					dp->drawline(lp+v*(c2-1), lp+v*c2);
 				}
 
 				lastwidth=neww;
@@ -1046,14 +1092,19 @@ int EngraverFillInterface::Refresh()
 		}
 
 		if (show_points) {
-			//DBG int p=1;
+			 //show little red dots for all the sample points
 			flatpoint pp;
 			l=edata->lines.e[c];
 			dp->NewFG(1.,0.,0.);
+			int p=1;
+			char buffer[50];
 			while (l) {
 				dp->drawpoint(l->p, 2, 1);
-				//DBG dp->drawnum(l->p.x,l->p.y, p);
-				//DBG p++;
+				if (show_points==2) {
+					sprintf(buffer,"%d,%d",c,p);
+					dp->textout(l->p.x,l->p.y, buffer,-1, LAX_BOTTOM|LAX_HCENTER);
+					p++;
+				}
 				l=l->next;
 			}
 			dp->NewFG(&edata->fillstyle.color);
@@ -1165,8 +1216,10 @@ int EngraverFillInterface::PerformAction(int action)
 		return 0;
 
 	} else if (action==ENGRAVE_ShowPoints) {
-		show_points=!show_points;
-		if (show_points) PostMessage(_("Show sample points"));
+		show_points++;
+		if (show_points>2) show_points=0;
+		if (show_points==2) PostMessage(_("Show sample points with numbers"));
+		else if (show_points==1) PostMessage(_("Show sample points"));
 		else PostMessage(_("Don't show sample points"));
 		needtodraw=1;
 		return 0;
