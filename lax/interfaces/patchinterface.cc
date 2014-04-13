@@ -897,7 +897,7 @@ int PatchData::bezOfPatch(flatpoint *p,int r,int rl,int c,int cl)
  * (y direction) within the subpatch (range [0..1] the point is at, and put
  * those values in t_ret and s_ret.
  *
- * r_ret and c_ret can alsa be NULL, if the specific row and column are not needed.
+ * r_ret and c_ret can also be NULL, if the specific row and column are not needed.
  *
  * The return value is 0 for point not found to be within the boundary of any subpatch, or nonzero if it is.
  * Note that this only checks against the bezier boundary points, not the actual visual boundary
