@@ -307,12 +307,17 @@ void DisplayerXlib::ClearClip()
  */
 flatpoint DisplayerXlib::realtoscreen(flatpoint p)
 {
-	DBG if (ctm[4]>1e+100 || ctm[5]>1e+100) {
-	DBG 	dumpctm(ctm);
-	DBG 	cerr <<" ***** BLAM ******"<<endl;
-	DBG 	cerr <<" ***** This is a mystery bug, intermittent DisplayerXlib transform corruption ******"<<endl;
-	DBG 	exit(1);
-	DBG }
+	if (ctm[4]>1e+100 || ctm[5]>1e+100) {
+		dumpctm(ctm);
+		cerr <<" *****"<<endl;
+		cerr <<" *****"<<endl;
+		cerr <<" ***** BLAM ******"<<endl;
+		cerr <<" ***** This is a mystery bug, very intermittent DisplayerXlib transform corruption ******"<<endl;
+		cerr <<" ***** aborting program..."<<endl;
+		cerr <<" *****"<<endl;
+		cerr <<" *****"<<endl;
+		exit(1);
+	}
 	return flatpoint(ctm[4] + ctm[0]*p.x + ctm[2]*p.y, ctm[5]+ctm[1]*p.x+ctm[3]*p.y); 
 } 
 

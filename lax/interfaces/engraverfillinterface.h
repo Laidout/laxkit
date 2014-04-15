@@ -51,6 +51,7 @@ class LinePoint
 	LinePoint(double ss, double tt, double ww) { on=true; next=prev=NULL; s=ss; t=tt; weight=ww; }
 
 	void Set(double ss,double tt, double nweight) { s=ss; t=tt; if (nweight>=0) weight=nweight; needtosync=true; }
+	void Set(LinePoint *pp);
 	void Clear();
 	void Add(LinePoint *np);
 };

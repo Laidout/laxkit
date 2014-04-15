@@ -75,6 +75,19 @@ void LinePoint::Add(LinePoint *np)
 	np->prev=this;
 }
 
+/*! Copy over everything except next and prev.
+ */
+void LinePoint::Set(LinePoint *pp)
+{
+	s=pp->s;
+	t=pp->t;
+	row=pp->row;
+	col=pp->col;
+	weight=pp->weight;
+	on=pp->on;
+	needtosync=pp->needtosync;
+	p=pp->p;
+}
 
 //------------------------------------- EngraverFillData ------------------------
 
@@ -131,6 +144,28 @@ SomeData *EngraverFillData::duplicate(SomeData *dup)
 	if (!p) {
 		p=new EngraverFillData();
 		dup=p;
+	}
+
+	p->fillstyle=fillstyle;
+	p->direction=direction;
+	p->zero_threshhold=zero_threshhold;
+	p->broken_threshhold=broken_threshhold;
+	p->nlines=lines.n;
+
+	LinePoint *pp, *lp;
+	for (int c=0; c<lines.n; c++) {
+		pp=new LinePoint();
+		pp->Set(lines.e[c]);
+		p->lines.push(pp);
+
+		lp=lines.e[c]->next;
+		while (lp) {
+			pp->next=new LinePoint();
+			pp->next->prev=pp;
+			pp->next->Set(lp);
+			pp=pp->next;
+			lp=lp->next;
+		}
 	}
 
 	return PatchData::duplicate(dup);

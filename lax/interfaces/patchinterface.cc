@@ -538,10 +538,10 @@ void PatchData::FindBBox()
 	npoints_boundary=n;
 	bezOfPatch(boundary_outline,0,0,0,0);
 
-	cerr <<"boundary points: "<<npoints_boundary<<endl;
-	for (int c=0; c<npoints_boundary; c++) {
-		cerr <<c<<"  "<<boundary_outline[c].x<<' '<<boundary_outline[c].y<<endl;
-	}
+	//DBG cerr <<"boundary points: "<<npoints_boundary<<endl;
+	//DBG for (int c=0; c<npoints_boundary; c++) {
+	//DBG 	cerr <<c<<"  "<<boundary_outline[c].x<<' '<<boundary_outline[c].y<<endl;
+	//DBG }
 }
 
 /*! Copies mesh point data only, not matrix.
