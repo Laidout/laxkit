@@ -181,34 +181,36 @@ void EngraverFillData::Sync()
 
 		while (l) {
 			l->p=getPoint(l->s,l->t); // *** note this is hideously inefficient, matrices are not cached with getPoint!!!
-			l->needtosync=false;
+			l->needtosync=0;
 
 			l=l->next;
 		}
 	}
 }
 
-///*! Assume lines->p are accurate, and we need to map back to s,t mesh coordinates.
-// */
-//void EngraverFillData::ReverseSync()
-//{
-//	cerr << " *** need to implement  EngraverFillData::ReverseSync()"<<endl;
-//
-//	LinePoint *l;
-//	flatpoint pp;
-//	for (int c=0; c<lines.n; c++) {
-//		l=lines.e[c];
-//
-//		while (l) {
-//			pp=getPointReverse(l->p.x,l->p.y); // *** note this is hideously inefficient
-//			l->s=pp.x;
-//			l->t=pp.y;
-//			l->needtosync=false;
-//
-//			l=l->next;
-//		}
-//	}
-//}
+/*! Assume lines->p are accurate, and we need to map back to s,t mesh coordinates.
+ */
+void EngraverFillData::ReverseSync(bool asneeded)
+{
+	LinePoint *l;
+	flatpoint pp;
+	int in=0;
+
+	for (int c=0; c<lines.n; c++) {
+		l=lines.e[c];
+
+		while (l) {
+			if (!asneeded || (asneeded && l->needtosync==2)) {
+				pp=getPointReverse(l->p.x,l->p.y, &in); // *** note this is hideously inefficient
+				l->s=pp.x;
+				l->t=pp.y;
+				l->needtosync=0;
+			}
+
+			l=l->next;
+		}
+	}
+}
 
 /*! spacing is the fraction of [0..1] that is the distance between line centers.
  */
@@ -216,6 +218,7 @@ void EngraverFillData::FillRegularLines(double weight, double spacing)
 {
 	 // create generic lines to experiment with weight painting...
 	if (spacing<=0) spacing=1./25;
+	default_spacing=spacing;
 
 	lines.flush();
 	nlines=0;
@@ -752,17 +755,38 @@ void EngraverFillData::BezApproximate(Laxkit::NumStack<flatvector> &fauxpoints, 
  * \ingroup interfaces
  * \brief Interface for dealing with EngraverFillData objects.
  *
- * *** select multiple datas to adjust. Mesh tinker only on one of them, touch up on many
+ * \todo *** select multiple datas to adjust. Mesh tinker only on one of them, touch up on many
  */
 
-enum EngraverModes {
+enum EngraveShortcuts {
+	ENGRAVE_SwitchMode=PATCHA_MAX,
+	ENGRAVE_SwitchModeR,
+	ENGRAVE_ExportSvg,
+	ENGRAVE_RotateDir,
+	ENGRAVE_RotateDirR,
+	ENGRAVE_SpacingInc,
+	ENGRAVE_SpacingDec,
+	ENGRAVE_ShowPoints,
+	ENGRAVE_ToggleTrace,
+	ENGRAVE_MAX
+};
+
+enum EngraveControls {
+	 //on canvas controls:
+	ENGRAVE_None=0,
+	ENGRAVE_Trace_Once,
+
+	 //modes:
 	EMODE_Mesh,
 	EMODE_Thickness,
 	EMODE_Orientation,
 	EMODE_Freehand,
 	EMODE_Blockout,
+	EMODE_Drag, 
 	EMODE_PushPull,
-	EMODE_Drag,
+	EMODE_AvoidToward,
+	EMODE_Twirl,
+	EMODE_Turbulence,
 	EMODE_Trace,
 	EMODE_Resolution //change sample point distribution
 
@@ -784,18 +808,36 @@ EngraverFillInterface::EngraverFillInterface(int nid,Displayer *ndp) : PatchInte
 	show_points=0;
 	submode=0;
 	mode=EMODE_Mesh;
-	//mode=EMODE_Thickness;
-	//mode=EMODE_Freehand;
 
 	brush_radius=40;
 
-	thickness.curvetype=CurveInfo::Bezier;
-	thickness.SetSinusoidal(5);
-	//thickness.AddPoint(0,1);
-	//thickness.AddPoint(1,0);
+	thickness.SetSinusoidal(10);
 	thickness.RefreshLookup();
 
+	//DBG CurveWindow *ww=new CurveWindow(NULL,"curve","curve",0,0,0,400,400,0,NULL,0,NULL);
+	//DBG ww->SetInfo(&thickness);
+	//DBG app->addwindow(ww);
+
 	whichcontrols=Patch_Coons;
+
+	continuous_trace=false;
+	show_trace=false;
+	traceobject=NULL;
+	trace_bw=NULL;
+	traceobj_opacity=1;
+
+
+	modes.AddItem(_("Mesh mode"),                                              NULL, EMODE_Mesh         );
+	modes.AddItem(_("Thickness, shift for brush size, control to thin"),       NULL, EMODE_Thickness    );
+	modes.AddItem(_("Blockout mode, shift for brush size, control to turn on"),NULL, EMODE_Blockout     );
+	modes.AddItem(_("Drag mode, shift for brush size"),                        NULL, EMODE_Drag         );
+	modes.AddItem(_("Push or pull. Shift for brush size"),                     NULL, EMODE_PushPull     );
+	//modes.AddItem(_("Avoid or pull toward. Shift for brush size"),             NULL, EMODE_AvoidToward  );
+	//modes.AddItem(_("Twirl, Shift for brush size"),                            NULL, EMODE_Twirl        );
+	modes.AddItem(_("Randomly push sample points"),                            NULL, EMODE_Turbulence   );
+	//modes.AddItem(_("Add or remove sample points"),                            NULL, EMODE_Resolution   );
+	//modes.AddItem(_("Trace mode"),                                             NULL, EMODE_Trace        );
+	modes.AddItem(_("Freehand mode"),                                          NULL, EMODE_Freehand     );
 }
 
 //! Empty destructor.
@@ -919,7 +961,11 @@ int EngraverFillInterface::LBDown(int x,int y,unsigned int state,int count,const
 		return c;
 	}
 
-	if (mode==EMODE_Thickness || mode==EMODE_Blockout) {
+	if (	 mode==EMODE_Thickness
+		  || mode==EMODE_Blockout
+		  || mode==EMODE_Turbulence
+		  || mode==EMODE_Drag
+		  || mode==EMODE_PushPull) {
 		buttondown.down(d->id,LEFTBUTTON, x,y);
 	}
 
@@ -943,8 +989,19 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
 		return 0;
 	}
 
-	if (mode==EMODE_Thickness || mode==EMODE_Blockout) {
+	if (	 mode==EMODE_Thickness
+		  || mode==EMODE_Blockout
+		  || mode==EMODE_Turbulence
+		  || mode==EMODE_Drag
+		  || mode==EMODE_PushPull) {
 		buttondown.up(d->id,LEFTBUTTON);
+
+		if (mode==EMODE_Drag
+				|| mode==EMODE_Turbulence
+				|| mode==EMODE_PushPull)
+			edata->ReverseSync(true);
+
+		needtodraw=1;
 	}
 
 	return 0;
@@ -967,7 +1024,12 @@ int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit
 
 	}
 	
-	if (mode==EMODE_Thickness || mode==EMODE_Blockout) {
+	if (    mode==EMODE_Thickness
+		 || mode==EMODE_Blockout
+		 || mode==EMODE_Turbulence
+		 || mode==EMODE_Drag
+		 || mode==EMODE_PushPull) {
+
 		if (!buttondown.any()) {
 			needtodraw=1;
 			return 0;
@@ -984,19 +1046,21 @@ int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit
 
 		} else {
 			flatvector m=screentoreal(x,y);
-			m=transform_point_inverse(edata->m(),m);
+			m=transform_point_inverse(edata->m(),m); //center of brush
 			flatvector m2=screentoreal(x+brush_radius,y);
-			m2=transform_point_inverse(edata->m(),m2);
+			m2=transform_point_inverse(edata->m(),m2); //on edge of brush radius
 
 
-			double rr=norm2(m2-m);
+			double rr=norm2(m2-m); //radius of brush in object coordinates
 			double d, a;
 			LinePoint *l;
+			flatpoint dv=m-transform_point_inverse(edata->m(),screentoreal(lx,ly));
+			flatpoint pp;
 
 			for (int c=0; c<edata->lines.n; c++) {
 				l=edata->lines.e[c];
 				while (l) {
-					d=norm2(l->p - m);
+					d=norm2(l->p - m); //distance point to brush center
 					if (d<rr) {
 						if (mode==EMODE_Thickness) {
 							 //point is within
@@ -1014,6 +1078,31 @@ int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit
 							if ((state&LAX_STATE_MASK)==ControlMask) 
 								l->on=true;
 							else l->on=false;
+
+						} else if (mode==EMODE_Drag) {
+							a=sqrt(d/rr);
+							a=thickness.f(a);
+							l->p+=dv*a; //point without mesh
+							l->needtosync=2;
+
+						} else if (mode==EMODE_Turbulence) {
+							a=sqrt(d/rr);
+							a=thickness.f(a);
+							l->p+=rotate(dv,drand48()*2*M_PI);
+							l->needtosync=2;
+
+						} else if (mode==EMODE_PushPull) {
+							a=sqrt(d/rr);
+							a=thickness.f(a);
+							pp=(l->p-m)*.03;
+
+							if ((state&LAX_STATE_MASK)==ControlMask) {
+								l->p-=pp*a*d/rr;
+							} else {
+								l->p+=pp*a;
+							}
+							l->needtosync=2;
+
 						}
 					}
 
@@ -1148,8 +1237,15 @@ int EngraverFillInterface::Refresh()
 
 	dp->LineAttributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
 
-	if (mode==EMODE_Mesh) PatchInterface::Refresh();
-	else if (mode==EMODE_Thickness || mode==EMODE_Blockout) {
+	if (mode==EMODE_Mesh) {
+		PatchInterface::Refresh();
+
+	} else if (mode==EMODE_Thickness
+			|| mode==EMODE_Blockout
+			|| mode==EMODE_Drag
+			|| mode==EMODE_Turbulence
+			|| mode==EMODE_PushPull) {
+
 		if (data->npoints_boundary) {
 			dp->NewFG(150,150,150);
 			dp->LineAttributes(1,LineSolid,linestyle.capstyle,linestyle.joinstyle);
@@ -1159,17 +1255,46 @@ int EngraverFillInterface::Refresh()
 
 		dp->DrawScreen();
 
+		 //set colors
 		if (mode==EMODE_Thickness) dp->NewFG(.5,.5,.5,1.);
-		else {
+		else if (mode==EMODE_Turbulence) dp->NewFG(.5,.5,.5,1.);
+		else if (mode==EMODE_Drag || mode==EMODE_PushPull) {
+			if (submode==2) dp->NewFG(.5,.5,.5);
+			else dp->NewFG(0.,0.,.7,1.);
+		} else { //blockout
 			if (submode==1) dp->NewFG(0,200,0);
 			else if (submode==2) dp->NewFG(.5,.5,.5);
 			else dp->NewFG(255,100,100);
 		}
 
-		dp->drawpoint(hover.x,hover.y, brush_radius,0);
-		if (mode==EMODE_Blockout) dp->drawpoint(hover.x,hover.y, brush_radius*.85,0);
+		 //draw circle
+		if (mode==EMODE_Turbulence) {
+			 //draw jagged circle
+			double xx,yy, r;
+			for (int c=0; c<30; c++) {
+				r=1 + .2*drand48()-.1;
+				xx=hover.x + brush_radius*r*cos(c*2*M_PI/30);
+				yy=hover.y + brush_radius*r*sin(c*2*M_PI/30);
+				dp->lineto(xx,yy);
+			}
+			dp->closed();
+			dp->stroke(0);
 
-		if (submode==2) {
+		} else if (mode==EMODE_PushPull) {
+			dp->drawpoint(hover.x,hover.y, brush_radius,0);
+
+			dp->LineAttributes(1,LineOnOffDash, LAXCAP_Butt, LAXJOIN_Miter);
+			if (submode==1) dp->drawpoint(hover.x,hover.y, brush_radius*.85,0);
+			else dp->drawpoint(hover.x,hover.y, brush_radius*1.10,0);
+			dp->LineAttributes(1,LineSolid, LAXCAP_Butt, LAXJOIN_Miter);
+		} else {
+			 //draw plain old circle
+			dp->drawpoint(hover.x,hover.y, brush_radius,0);
+		}
+
+		if (mode==EMODE_Blockout) dp->drawpoint(hover.x,hover.y, brush_radius*.85,0); //second inner circle
+
+		if (submode==2) { //brush size change arrows
 			dp->drawarrow(hover+flatpoint(brush_radius+10,0), flatpoint(20,0), 0, 20, 1, 3);
 			dp->drawarrow(hover-flatpoint(brush_radius+10,0), flatpoint(-20,0), 0, 20, 1, 3);
 		}
@@ -1177,21 +1302,44 @@ int EngraverFillInterface::Refresh()
 		dp->DrawReal();
 	}
 
+	if (show_trace) DrawTracingTools();
+
 	needtodraw=0;
 	return 0;
 }
 
-enum EngraveShortcuts {
-	ENGRAVE_SwitchMode=PATCHA_MAX,
-	ENGRAVE_SwitchModeR,
-	ENGRAVE_ExportSvg,
-	ENGRAVE_RotateDir,
-	ENGRAVE_RotateDirR,
-	ENGRAVE_SpacingInc,
-	ENGRAVE_SpacingDec,
-	ENGRAVE_ShowPoints,
-	ENGRAVE_MAX
-};
+void EngraverFillInterface::DrawTracingTools()
+{
+	if (!tracebox.validbounds()) {
+		tracebox.minx=tracebox.miny=0;
+		tracebox.maxx=100;
+		tracebox.maxy=150;
+	}
+
+	dp->DrawScreen();
+
+	double uiscale=1;
+	double th=dp->textheight();
+	dp->LineAttributes(3,LineSolid, CapButt, JoinMiter);
+
+	 //continuous trace circle
+	double r=th*2/3;
+	if (continuous_trace) dp->NewFG(0,200,0); else dp->NewFG(255,100,100);
+	dp->drawellipse((tracebox.minx+tracebox.maxx)/2+th/2+r,tracebox.miny+r,
+                        r*uiscale,r*uiscale,
+                        0,2*M_PI,
+                        0);
+
+	 //single trace square
+	if (lasthover==ENGRAVE_Trace_Once) dp->NewFG(0,200,0); else dp->NewFG(255,100,100);
+	dp->drawrectangle((tracebox.minx+tracebox.maxx)/2-th/2-2*r,tracebox.miny, r*2,r*2, 0);
+
+	dp->LineAttributes(1,LineSolid, CapButt, JoinMiter);
+	dp->NewFG(.5,.5,.5);
+	dp->drawrectangle(tracebox.minx,tracebox.miny,tracebox.maxx-tracebox.minx,tracebox.maxy-tracebox.miny, 0);
+
+	dp->DrawReal();
+}
 
 int EngraverFillInterface::PerformAction(int action)
 {
@@ -1209,22 +1357,17 @@ int EngraverFillInterface::PerformAction(int action)
 
 	} else if (action==ENGRAVE_SwitchMode || action==ENGRAVE_SwitchModeR) {
 
+		int i=modes.findIndex(mode);
+
 		if (action==ENGRAVE_SwitchMode) {
-			if (mode==EMODE_Mesh) mode=EMODE_Thickness;
-			else if (mode==EMODE_Thickness) mode=EMODE_Blockout;
-			else if (mode==EMODE_Blockout) mode=EMODE_Freehand;
-			else if (mode==EMODE_Freehand) mode=EMODE_Mesh;
+			i++;
+			if (i>=modes.n()) i=0;
 		} else {
-			if (mode==EMODE_Mesh) mode=EMODE_Freehand;
-			else if (mode==EMODE_Thickness) mode=EMODE_Mesh;
-			else if (mode==EMODE_Blockout) mode=EMODE_Thickness;
-			else if (mode==EMODE_Freehand) mode=EMODE_Blockout;
+			i--;
+			if (i<0) i=modes.n()-1;
 		}
 
-		if (mode==EMODE_Mesh) PostMessage(_("Mesh mode"));
-		else if (mode==EMODE_Thickness) PostMessage(_("Thickness, shift for brush size, control to thin"));
-		else if (mode==EMODE_Blockout) PostMessage(_("Blockout mode, shift for brush size, control to turn on"));
-		else if (mode==EMODE_Freehand) PostMessage(_("Freehand mode"));
+		ChangeMode(modes.e(i)->id);
 
 		submode=0;
 		needtodraw=1;
@@ -1258,10 +1401,40 @@ int EngraverFillInterface::PerformAction(int action)
 		else PostMessage(_("Don't show sample points"));
 		needtodraw=1;
 		return 0;
+
+	} else if (action==ENGRAVE_ToggleTrace) {
+		show_trace=!show_trace;
+		if (show_trace) continuous_trace=false;
+		if (show_trace) PostMessage(_("Show tracing controls"));
+		else PostMessage(_("Don't show tracing controls"));
+		needtodraw=1;
+		return 0;
 	}
 
 
 	return PatchInterface::PerformAction(action);
+}
+
+/*! Return old value of mode.
+ */
+int EngraverFillInterface::ChangeMode(int newmode)
+{
+	if (newmode==mode) return mode;
+
+	int c=0;
+	for (c=0; c<modes.n(); c++) {
+		if (modes.e(c)->id==newmode) break;
+	}
+	if (c==modes.n()) return mode;
+
+	int oldmode=mode;
+	mode=newmode;
+
+	if (mode==EMODE_Trace) { continuous_trace=false; }
+
+	PostMessage(modes.e(c)->name);
+	return oldmode;
+
 }
 
 int EngraverFillInterface::Event(const Laxkit::EventData *e_data, const char *mes)
@@ -1313,6 +1486,19 @@ int EngraverFillInterface::Event(const Laxkit::EventData *e_data, const char *me
 }
 
 
+Laxkit::MenuInfo *EngraverFillInterface::ContextMenu(int x,int y,int deviceid)
+{
+	MenuInfo *menu=new MenuInfo();
+
+	menu->AddSep(_("Mode"));
+	MenuItem *i;
+	for (int c=0; c<modes.n(); c++) {
+		i=modes.e(c);
+		menu->AddItem(i->name, i->id, LAX_OFF|LAX_ISTOGGLE|(mode==i->id ? LAX_CHECKED : 0));
+	}
+
+	return menu;
+}
 
 
 Laxkit::ShortcutHandler *EngraverFillInterface::GetShortcuts()
@@ -1339,6 +1525,7 @@ Laxkit::ShortcutHandler *EngraverFillInterface::GetShortcuts()
 	sc->Add(ENGRAVE_SpacingInc,  's',0,0,          "SpacingInc",  _("Increase default spacing"),NULL,0);
 	sc->Add(ENGRAVE_SpacingDec,  'S',ShiftMask,0,  "SpacingDec",  _("Decrease default spacing"),NULL,0);
 	sc->Add(ENGRAVE_ShowPoints,  'p',0,0,          "ShowPoints",  _("Toggle showing sample points"),NULL,0);
+	sc->Add(ENGRAVE_ToggleTrace, 't',0,0,          "ToggleTrace", _("Toggle showing tracing controls"),NULL,0);
 
 	return sc;
 }
@@ -1348,7 +1535,12 @@ int EngraverFillInterface::CharInput(unsigned int ch, const char *buffer,int len
 	DBG cerr <<"in EngraverFillInterface::CharInput"<<endl;
 	
 
-	if (mode==EMODE_Thickness || mode==EMODE_Blockout) {
+	if (	 mode==EMODE_Thickness
+		  || mode==EMODE_Blockout
+		  || mode==EMODE_Turbulence
+		  || mode==EMODE_Drag
+		  || mode==EMODE_PushPull) {
+
 		if (ch==LAX_Control) {
 			submode=1;
 			needtodraw=1;
@@ -1377,7 +1569,12 @@ int EngraverFillInterface::KeyUp(unsigned int ch,unsigned int state,const Laxkit
 {
 	if (mode==EMODE_Mesh) return PatchInterface::KeyUp(ch,state,d);
 
-	if (mode==EMODE_Thickness || mode==EMODE_Blockout) {
+	if (	 mode==EMODE_Thickness
+		  || mode==EMODE_Blockout
+		  || mode==EMODE_Turbulence
+		  || mode==EMODE_Drag
+		  || mode==EMODE_PushPull) {
+
 		if (ch==LAX_Control || ch==LAX_Shift) {
 			submode=0;
 			needtodraw=1;

@@ -25,6 +25,7 @@
 
 #include <lax/interfaces/patchinterface.h>
 #include <lax/interfaces/pathinterface.h>
+#include <lax/interfaces/imageinterface.h>
 #include <lax/screencolor.h>
 #include <lax/curvewindow.h>
 
@@ -40,17 +41,18 @@ class LinePoint
 	double s,t;
 	int row,col;
 	double weight;
+	int group;
 	bool on;
 
-	bool needtosync;
+	int needtosync; //0 no, 1: s,t -> p, 2: p->s,t
 	flatpoint p; //(s,t) transformed by the mesh
 
 	LinePoint *next, *prev;
 
-	LinePoint() { on=true; row=col=0; s=t=0; weight=1; next=prev=NULL; needtosync=true; }
-	LinePoint(double ss, double tt, double ww) { on=true; next=prev=NULL; s=ss; t=tt; weight=ww; }
+	LinePoint() { on=true; row=col=0; s=t=0; weight=1; next=prev=NULL; needtosync=1; group=0; }
+	LinePoint(double ss, double tt, double ww) { on=true; next=prev=NULL; s=ss; t=tt; weight=ww; group=0; }
 
-	void Set(double ss,double tt, double nweight) { s=ss; t=tt; if (nweight>=0) weight=nweight; needtosync=true; }
+	void Set(double ss,double tt, double nweight) { s=ss; t=tt; if (nweight>=0) weight=nweight; needtosync=1; }
 	void Set(LinePoint *pp);
 	void Clear();
 	void Add(LinePoint *np);
@@ -66,6 +68,7 @@ class EngraverFillData : public PatchData
 	int nlines;
 	FillStyle fillstyle;
 
+	double default_spacing;
 	double zero_threshhold; //weight<this are considered off
 	double broken_threshhold; //if nonzero, zero_threshhold<weight<this means use broken line of this thickness
 
@@ -90,6 +93,7 @@ class EngraverFillData : public PatchData
 	virtual void FillRegularLines(double weight, double spacing);
 	virtual void FillRegularLinesHorizontal(double weight);
 	virtual void Sync();
+	virtual void ReverseSync(bool asneeded);
 	virtual void BezApproximate(Laxkit::NumStack<flatvector> &fauxpoints, Laxkit::NumStack<flatvector> &points);
 };
 
@@ -100,6 +104,7 @@ class EngraverFillData : public PatchData
 class EngraverFillInterface : public PatchInterface
 {
  protected:
+	Laxkit::MenuInfo modes;
 	EngraverFillData *edata;
 	int mode;
 	int submode;
@@ -111,6 +116,15 @@ class EngraverFillInterface : public PatchInterface
 	double default_zero_threshhold; //weight<this are considered off
 	double default_broken_threshhold; //if nonzero, zero_threshhold<weight<this means use broken line of this thickness
 
+	Laxkit::CurveInfo tracemap;
+	Laxkit::DoubleBBox tracebox;
+	bool show_trace;
+	bool continuous_trace;
+	ImageData *traceobject;
+	Laxkit::LaxImage *trace_bw;
+	double traceobj_opacity;
+
+	int lasthover;
 	flatpoint hover;
 	//Selection *selection;
 
@@ -136,11 +150,14 @@ class EngraverFillInterface : public PatchInterface
 	virtual int KeyUp(unsigned int ch,unsigned int state,const Laxkit::LaxKeyboard *d);
 	virtual int Refresh();
 	virtual int Event(const Laxkit::EventData *data, const char *mes);
+	virtual Laxkit::MenuInfo *ContextMenu(int x,int y,int deviceid);
 
+	virtual void DrawTracingTools();
 	virtual void deletedata();
 	virtual PatchData *newPatchData(double xx,double yy,double ww,double hh,int nr,int nc,unsigned int stle);
 	//virtual void drawpatch(int roff,int coff);
 	//virtual void patchpoint(PatchRenderContext *context, double s0,double ds,double t0,double dt,int n);
+	virtual int ChangeMode(int newmode);
 };
 
 } //namespace LaxInterfaces
