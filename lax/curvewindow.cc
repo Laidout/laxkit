@@ -454,6 +454,7 @@ double CurveInfo::f_bezier(double x)
 void CurveInfo::SetSinusoidal(int samples)
 {
 	if (samples<2) return;
+	curvetype=CurveInfo::Autosmooth;
 
 	points.flush();
 	flatvector p;
@@ -465,6 +466,7 @@ void CurveInfo::SetSinusoidal(int samples)
 		p.y=.5+.5*cos(M_PI*c/samples);
 		points.push(p);
 	}
+	MakeFakeCurve();
 }
 
 //! Fills fauxpoints with c-v-c-c-v-c...
