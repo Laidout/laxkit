@@ -570,6 +570,29 @@ void PatchData::Set(double xx,double yy,double ww,double hh,int nr,int nc,unsign
 	griddivisions=10;
 }
 
+/*! From data point (x,y), return a mesh point (s,t), where s and t are in range [0..1],
+ * assuming x,y is actually in the mesh somewhere.
+ * This is the reverse of getPoint(s,t).
+ *
+ * If the point is not in the mesh, then error_ret gets 0, else 1.
+ */
+flatpoint PatchData::getPointReverse(double x,double y, int *error_ret)
+{
+	flatpoint fp(x,y);
+	int rr=-1,cc=-1;
+	double tt=-1,ss=-1;
+
+	double d=(maxx-minx)/1000;
+
+	int status=inSubPatch(fp, &rr,&cc, &tt,&ss, d);
+	if (error_ret) *error_ret=status;
+
+	flatpoint p;
+	p.x=(cc+ss)/(xsize/3);
+	p.y=(rr+tt)/(ysize/3);
+	return p;
+}
+
 //! Return the point corresponding to (s,t), where s and t are in range [0..1]. s for column, t for row.
 /*! Please note that this is useful only for one time lookup. The matrices involved are
  * not cached for repeated use.

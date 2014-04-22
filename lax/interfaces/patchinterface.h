@@ -105,6 +105,7 @@ class PatchData : virtual public SomeData
 	virtual int hasColorData();
 	virtual flatpoint getControlPoint(int r,int c);
 	virtual flatpoint getPoint(double t,double s);
+	virtual flatpoint getPointReverse(double x,double y, int *error_ret);
 	virtual flatpoint *bezAtEdge(flatpoint *p,int i,int row);
 	virtual flatpoint *bezCrossSection(flatpoint *p,int i,double t,int row);
 	virtual int bezOfPatch(flatpoint *p,int r,int rl,int c,int cl);
