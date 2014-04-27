@@ -54,6 +54,7 @@ double bez_near_point(flatpoint p,flatpoint *points,int n,int maxpoints,double *
 double bez_near_point_p(flatpoint p,flatpoint **points,int n,int maxpoints,double *t_ret,int *i_ret);
 
 int point_is_in_bez(flatpoint p,flatpoint *points,int n,int resolution=20);
+flatpoint *bez_from_points(flatpoint *result, flatpoint *points, int numpoints);
 flatpoint *bez_circle(flatpoint *points, int numpoints, double x,double y,double r);
 flatpoint *bez_ellipse(flatpoint *points, int numsegments,
 					   double x,double y,

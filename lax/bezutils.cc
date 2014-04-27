@@ -761,5 +761,53 @@ flatpoint *bez_ellipse(flatpoint *points, int numsegments,
 }
 
 
+/*! This will return in result a list with 3*n points, arranged c-v-c - c-v-c ... c-v-c.
+ * If result==NULL, then return a new flatpoint[3*numpoints].
+ *
+ * This is a primitive approximation, where each point gets control points added before
+ * and after, such that the control rods are of length 1/3 the distance between the point
+ * and the next point, and the rods are parallel to the line connecting the previous
+ * and next point.
+ *
+ */
+flatpoint *bez_from_points(flatpoint *result, flatpoint *points, int numpoints)
+{
+	if (!result) result=new flatpoint[3*numpoints];
+
+	// There are surely better ways to do this. Not sure how powerstroke does it.
+	// It is not simplied/optimized at all. Each point gets control points to smooth it out.
+	//
+	// tangents at points are || to (p+1)-(p-1).
+	// Lengths of control rods are 1/3 of distance to adjacent points
+
+    flatvector v,p, pp,pn;
+	flatvector opn, opp;
+    double sx;
+	int i=0;
+	
+    for (int c=0; c<numpoints; c++) {
+        p=points[c];
+
+		if (c==0)           opp=p; else opp=points[c-1];
+		if (c==numpoints-1) opn=p; else opn=points[c+1];
+
+        v=opn-opp;
+        v.normalize();
+
+        sx=norm(p-opp)*.333;
+        result[i]=p - v*sx;
+
+		result[i+1]=p;
+
+        sx=norm(opn-p)*.333;
+        result[i+2]=p + v*sx;
+
+		i+=3;
+    }
+
+	return result;
+}
+
+
 } // namespace Laxkit
 
