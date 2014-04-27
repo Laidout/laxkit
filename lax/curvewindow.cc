@@ -686,6 +686,7 @@ void CurveWindow::Refresh()
 
 	dp->NewFG(win_colors->fg);
 
+	 //fill highlight rectangle for any hovers
 	if (highlighteditable) {
 		dp->NewFG(coloravg(win_colors->bg,win_colors->fg,.1));
 
