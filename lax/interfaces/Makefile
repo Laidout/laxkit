@@ -42,6 +42,7 @@ objs= \
 	engraverfillinterface.o \
 	ellipseinterface.o \
 	pressuremapinterface.o \
+	curvemapinterface.o \
 
 #	linesinterface.o \
 #	measureinterface.o \
