@@ -118,6 +118,10 @@ class ViewportWindow : public Laxkit::PanUser, public Laxkit::anXWindow
 	virtual void Refresh();
 	virtual void RefreshUnder();
 	virtual void RefreshOver();
+	virtual void DrawSomeData(Laxkit::Displayer *ddp,LaxInterfaces::SomeData *ndata,
+			            Laxkit::anObject *a1=NULL,Laxkit::anObject *a2=NULL,int info=0) {}
+	virtual void DrawSomeData(LaxInterfaces::SomeData *ndata,
+			            Laxkit::anObject *a1=NULL,Laxkit::anObject *a2=NULL,int info=0) {}
 	virtual int LBDown(int x,int y,unsigned int state,int count,const Laxkit::LaxMouse *d);
 	virtual int MBDown(int x,int y,unsigned int state,int count,const Laxkit::LaxMouse *d);
 	virtual int RBDown(int x,int y,unsigned int state,int count,const Laxkit::LaxMouse *d);
