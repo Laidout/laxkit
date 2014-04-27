@@ -711,6 +711,13 @@ Coordinate *CoordinatePolygon(flatpoint center, double radius, bool point_on_x_a
 
 
 /*! This will return a Coordinate list with 3*n points, arranged c-v-c - c-v-c ... c-v-c.
+ *
+ * This is a primitive approximation, where each point gets control points added before
+ * and after, such that the control rods are of length 1/3 the distance between the point
+ * and the next point, and the rods are parallel to the line connecting the previous
+ * and next point.
+ *
+ * This is just like bez_from_points(), but adapted to Coordinate objects.
  */
 Coordinate *BezApproximate(flatpoint *l, int n)
 {
