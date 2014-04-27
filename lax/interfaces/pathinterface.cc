@@ -70,6 +70,7 @@ enum PathHoverType {
 	HOVER_DirectionSelect,
 	HOVER_AddToSelection,
 	HOVER_RemoveFromSelection,
+	HOVER_Weight,
 	HOVER_MAX
 };
 
@@ -493,7 +494,10 @@ int Path::Intersect(flatpoint P1,flatpoint P2, int isline, double startt, flatpo
  * \todo *** note that if you have a loop of null points, and you are going along based
  *   on distance, than this will not break!!
  */
-int Path::PointAlongPath(double t, int tisdistance, flatpoint *point, flatpoint *tangent)
+int Path::PointAlongPath(double t, //!< Either visual distance or bezier parameter, depending on tisdistance
+						 int tisdistance, //!< 1 for visual distance, 0 for t is bez parameter
+						 flatpoint *point, //!< Return point
+						 flatpoint *tangent) //!< Return tangent at point
 {
 	if (!path) return 0;
 
@@ -1615,6 +1619,9 @@ PathOperator::~PathOperator()
 //! Contstructor for PathInterface
 PathInterface::PathInterface(int nid,Displayer *ndp) : anInterface(nid,ndp)
 {
+	primary=1;
+	show_weights=false;
+
 	pathi_style=0;
 	addmode=ADDMODE_Bezier;
 	editmode=EDITMODE_AddPoints;
@@ -2265,6 +2272,47 @@ int PathInterface::Refresh()
 				dp->DrawReal();
 
 			}
+
+			 //draw weights
+			if (show_weights) {
+				double arc=SELECTRADIUS*2;
+				flatpoint ppo, pp,vv,vt,ppt,ptop,pbottom;
+				PathWeightNode *weight=&defaultweight;
+
+				dp->DrawScreen();
+				if (pdata->PointAlongPath(weight->t, 0, &pp, &vv)!=0) {
+					if (vv.isZero()) vv.x=1;
+					else vv/=norm(vv);
+					vt=transpose(vv);
+					//ppo=dp->realtoscreen(pp); //point on the path
+					ptop   =dp->realtoscreen(pp-vt*weight->topOffset());
+					pbottom=dp->realtoscreen(pp-vt*weight->bottomOffset());
+
+					vv=dp->realtoscreen(pp+vv)-dp->realtoscreen(pp);
+					vv/=norm(vv);
+					vt=transpose(vv);
+
+					if (drawhover==HOVER_Weight) dp->LineAttributes(3,LineSolid,LAXCAP_Round,LAXJOIN_Miter);
+					else dp->LineAttributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
+					dp->NewFG(controlcolor);
+
+					dp->drawline(ptop    + arc/3*(-vv+vt), ptop);
+					dp->drawline(ptop                  , ptop   +arc/3*(vv+vt));
+					dp->drawline(pbottom + arc/3*(-vv-vt), pbottom);
+					dp->drawline(pbottom               , pbottom+arc/3*(vv-vt));
+					dp->moveto(ptop);
+					dp->curveto(ptop + 1.33*arc*vt,
+								ptop + 1.33*arc*vt - arc*vv,
+								ptop - arc*vv);
+					dp->lineto(pbottom  - arc*vv);
+					dp->curveto(pbottom - 1.33*arc*vt - arc*vv,
+								pbottom - 1.33*arc*vt,
+								pbottom);
+					dp->stroke(0);
+
+				}
+				dp->DrawReal();
+			}
 		} // loop over paths
 
 		if (drawhover==HOVER_DirectionSelect) {
@@ -2791,7 +2839,6 @@ int PathInterface::LBDown(int x,int y,unsigned int state,int count,const LaxMous
 			}
 			if (viewport && !data) viewport->ChangeContext(x,y,NULL);
 
-			//if (primary) AddPoint(screentoreal(x,y));
 			AddPoint(screentoreal(x,y));
 			buttondown.moveinfo(d->id,LEFTBUTTON, state,HOVER_AddingPoint); //1 means we are adding a point, used to control
 														   //if adding bez or poly point
@@ -4008,10 +4055,11 @@ Laxkit::ShortcutHandler *PathInterface::GetShortcuts()
 	sc->Add(PATHIA_Decorations,       'd',0,0,        "Decorations",  _("Toggle decorations"),NULL,0);
 	sc->Add(PATHIA_StartNewPath,      'B',ShiftMask,0,"NewPath",      _("Start a totally new path object"),NULL,0);
 	sc->Add(PATHIA_StartNewSubpath,   'b',0,0,        "NewSubpath",   _("Start a new subpath"),NULL,0);
-	sc->Add(PATHIA_Wider,             'w',0,0,        "Wider",        _("Thicken the line"),NULL,0);
-	sc->Add(PATHIA_Thinner,           'W',ShiftMask,0,"Thinner",      _("Thin the line"),NULL,0);
-	sc->Add(PATHIA_WidthStep,         'w',ControlMask,0,"WidthStep",  _("Change how much change for width changes"),NULL,0);
-	sc->Add(PATHIA_WidthStepR,        'W',ControlMask|ShiftMask,0,"WidthStepR", _("Change how much change for width changes"),NULL,0);
+	sc->Add(PATHIA_ToggleWeights,     'w',0,0,        "ToggleWeights",_("Toggle editing of weights along lines"),NULL,0);
+	sc->Add(PATHIA_Wider,             'l',0,0,        "Wider",        _("Thicken the line"),NULL,0);
+	sc->Add(PATHIA_Thinner,           'L',ShiftMask,0,"Thinner",      _("Thin the line"),NULL,0);
+	sc->Add(PATHIA_WidthStep,         'l',ControlMask,0,"WidthStep",  _("Change how much change for width changes"),NULL,0);
+	sc->Add(PATHIA_WidthStepR,        'L',ControlMask|ShiftMask,0,"WidthStepR", _("Change how much change for width changes"),NULL,0);
 	sc->Add(PATHIA_MakeCircle,        '0',0,0,        "Circle",       _("Arrange points in a circle"),NULL,0);
 	sc->Add(PATHIA_MakeRect,          'R',ShiftMask,0,"Rect",         _("Arrange points in a rectangle"),NULL,0);
 	sc->Add(PATHIA_Reverse,           'r',0,0,        "Reverse",      _("Reverse direction of current path"),NULL,0);
@@ -4281,11 +4329,20 @@ int PathInterface::PerformAction(int action)
 		//***
 		cout <<" *** start new subpath"<<endl;
 
+	} else if (action==PATHIA_ToggleWeights) {
+		show_weights=!show_weights;
+		if (show_weights) PostMessage(_("Show weight controls"));
+		else PostMessage(_("Don't show weight controls"));
+		needtodraw=1;
+		return 0;
+
 	} else if (action==PATHIA_Wider) {
 		if (!data) return 0;
 		if (!data->linestyle) data->linestyle=new LineStyle;
 		if (!data->linestyle->width) data->linestyle->width=1;
 		data->linestyle->width*=widthstep;
+
+		defaultweight.width=data->linestyle->width;
 
 		char buffer[100];
 		sprintf(buffer,_("Width %.10g"),data->linestyle->width);
@@ -4299,6 +4356,8 @@ int PathInterface::PerformAction(int action)
 		if (!data->linestyle) data->linestyle=new LineStyle;
 		if (!data->linestyle->width) data->linestyle->width=1;
 		data->linestyle->width/=widthstep;
+
+		defaultweight.width=data->linestyle->width;
 
 		char buffer[100];
 		sprintf(buffer,_("Width %.10g"),data->linestyle->width);

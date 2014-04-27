@@ -61,7 +61,7 @@ enum PathFillType {
 class PathWeightNode
 {
   public:
-	double width;
+	double width; //total width of stroke at this node
 	double offset; //0 means weight symmetric about path
 	double t; //point along path, the bezier parameter: integer t corresponds to line points
 
@@ -85,6 +85,7 @@ class Path : public LaxFiles::DumpUtility
 
 	Coordinate *path; // path is not necessarily the head, but is a vertex
 	LineStyle *linestyle; 
+	Laxkit::PtrStack<PathWeightNode> pathweights;
 
 	Path();
 	Path(Coordinate *np,LineStyle *nls=NULL);
@@ -252,6 +253,7 @@ enum PathInterfaceActions {
 	PATHIA_Decorations,
 	PATHIA_StartNewPath,
 	PATHIA_StartNewSubpath,
+	PATHIA_ToggleWeights,
 	PATHIA_Wider,
 	PATHIA_Thinner,
 	PATHIA_WidthStep,
@@ -289,6 +291,7 @@ class PathInterface : public anInterface
 	LineStyle *linestyle,*defaultline;
 	FillStyle *fillstyle,*defaultfill;
 
+	bool show_weights;
 	PathWeightNode defaultweight;
 
 	 //other state
