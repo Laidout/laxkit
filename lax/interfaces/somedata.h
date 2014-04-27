@@ -99,6 +99,7 @@ class SomeData :  virtual public Laxkit::anObject,
 	virtual int pointin(flatpoint pp,int pin=1); // return in=1 | on=2 | out=0, default is pointin bbox
 	virtual int fitto(double *boxm,DoubleBBox *box,double alignx,double aligny, int whentoscale=2);
 	virtual SomeData *GetParent() { return NULL; }
+	virtual Laxkit::Affine GetTransformToContext(bool invert, int partial);
 
 	virtual void dump_out(FILE *f,int indent,int what,Laxkit::anObject *context);
 	virtual void dump_in(FILE *f,int indent,Laxkit::anObject *context,LaxFiles::Attribute **Att=NULL);

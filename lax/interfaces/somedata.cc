@@ -494,6 +494,28 @@ int SomeData::fitto(double *boxm,DoubleBBox *box,double alignx,double aligny, in
 }
 
 
+/*! Return concatenation of parent transforms.
+ * Note this is not valid beyond containing page.
+ *  
+ * If partial>0, then do not use that many upper transforms. For instance, partial==1
+ * means get the transform from the lowest base to the parent space, not to the object space.
+ */ 
+Laxkit::Affine SomeData::GetTransformToContext(bool invert, int partial)
+{
+    SomeData *d=this;
+    while (d && partial>0) { d=d->GetParent(); partial--; }
+    
+    Affine a;
+    while (d) { 
+        a.Multiply(*dynamic_cast<Affine*>(d));
+        d=d->GetParent();
+    }
+    
+    if (invert) a.Invert();
+    return a;
+}   
+   
+
 
 } // namespace LaxInterfaces
 
