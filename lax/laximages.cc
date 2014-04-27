@@ -220,16 +220,16 @@ int MemCachedObject::dec_cache()
  *  #define LAX_IMAGE_HAS_TEMP_FILE  <-- whether the image is held in a temporary file
  * \endcode
  */
-/*! \fn int LaxImage:: w()
+/*! \fn int LaxImage::w()
  * \brief Return the width of the actual image.
  */
-/*! \fn int LaxImage:: h()
+/*! \fn int LaxImage::h()
  * \brief Return the height of the actual image.
  */
-/*! \fn int LaxImage:: dataw()
+/*! \fn int LaxImage::dataw()
  * \brief Return the width of the image in memory (the actual or preview), or 0 if neither is in memory.
  */
-/*! \fn int LaxImage:: datah()
+/*! \fn int LaxImage::datah()
  * \brief Return the height of the image in memory (the actual or preview), or 1 if neither is in memory.
  */
 /*! \var char LaxImage::delpreview
