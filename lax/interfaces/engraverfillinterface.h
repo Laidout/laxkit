@@ -26,6 +26,7 @@
 #include <lax/interfaces/patchinterface.h>
 #include <lax/interfaces/pathinterface.h>
 #include <lax/interfaces/imageinterface.h>
+#include <lax/interfaces/curvemapinterface.h>
 #include <lax/screencolor.h>
 #include <lax/curvewindow.h>
 
@@ -41,6 +42,7 @@ class LinePoint
 	double s,t;
 	int row,col;
 	double weight;
+	double spacing; //visual measure, to be used when remapping
 	int group;
 	bool on;
 
@@ -49,8 +51,8 @@ class LinePoint
 
 	LinePoint *next, *prev;
 
-	LinePoint() { on=true; row=col=0; s=t=0; weight=1; next=prev=NULL; needtosync=1; group=0; }
-	LinePoint(double ss, double tt, double ww) { on=true; next=prev=NULL; s=ss; t=tt; weight=ww; group=0; }
+	LinePoint() { on=true; row=col=0; s=t=0; weight=1; spacing=-1; next=prev=NULL; needtosync=1; group=0; }
+	LinePoint(double ss, double tt, double ww) { on=true; next=prev=NULL; s=ss; t=tt; weight=ww; spacing=-1; group=0; }
 
 	void Set(double ss,double tt, double nweight) { s=ss; t=tt; if (nweight>=0) weight=nweight; needtosync=1; }
 	void Set(LinePoint *pp);
@@ -90,16 +92,54 @@ class EngraverFillData : public PatchData
 
 	//virtual void zap();
 
+	virtual int PointOn(LinePoint *p);
 	virtual void FillRegularLines(double weight, double spacing);
-	virtual void FillRegularLinesHorizontal(double weight);
 	virtual void Sync();
 	virtual void ReverseSync(bool asneeded);
 	virtual void BezApproximate(Laxkit::NumStack<flatvector> &fauxpoints, Laxkit::NumStack<flatvector> &points);
+	virtual void MorePoints();
 };
 
 
 //------------------------------ EngraverFillInterface -------------------------------
 
+class EngraverTraceSettings
+{
+  public:
+	int group;
+	Laxkit::CurveInfo value_to_weight;
+	double traceobj_opacity;
+	bool continuous_trace;
+
+	ObjectContext *tracecontext;
+	SomeData *traceobject;
+	char *identifier;
+	unsigned char *trace_sample_cache;
+	int samplew, sampleh;
+
+	 //black and white cache:
+	int tw,th; //dims of trace_ref_bw
+	unsigned char *trace_ref_bw;
+
+	EngraverTraceSettings();
+	~EngraverTraceSettings();
+	void ClearCache(bool obj_too);
+};
+
+class EngraverPointGroup
+{
+  public:
+	int id;
+	char *name;
+	EngraverTraceSettings trace;
+
+	double spacing;
+	flatpoint position,direction;
+
+	double dash_length;
+	double zero_threshhold;
+	double broken_threshhold;
+};
 
 class EngraverFillInterface : public PatchInterface
 {
@@ -107,28 +147,39 @@ class EngraverFillInterface : public PatchInterface
 	Laxkit::MenuInfo modes;
 	EngraverFillData *edata;
 	int mode;
+	int controlmode;
 	int submode;
 	int show_points;
+
+	 //general tool settings
 	double brush_radius; //screen pixels
 	Laxkit::CurveInfo thickness; //ramp of thickness brush
-
 	double default_spacing;
 	double default_zero_threshhold; //weight<this are considered off
 	double default_broken_threshhold; //if nonzero, zero_threshhold<weight<this means use broken line of this thickness
 
-	Laxkit::CurveInfo tracemap;
-	Laxkit::DoubleBBox tracebox;
+	 //trace settings..
 	bool show_trace;
 	bool continuous_trace;
-	ImageData *traceobject;
-	Laxkit::LaxImage *trace_bw;
-	double traceobj_opacity;
+	Laxkit::CurveInfo tracemap;
+	Laxkit::DoubleBBox tracebox;
+	EngraverTraceSettings trace;
+
+	 //default orientation
+	flatpoint orient_direction;
+	flatpoint orient_position;
+
+	Laxkit::ScreenColor fgcolor,bgcolor;
 
 	int lasthover;
 	flatpoint hover;
 	//Selection *selection;
 
-	//virtual void runImageDialog();
+	
+	CurveMapInterface curvemapi;
+
+	virtual void ChangeMessage(int forwhich);
+	virtual int scanEngraving(int x,int y, int *category);
 	virtual int PerformAction(int action);
  public:
 	EngraverFillInterface(int nid, Laxkit::Displayer *ndp);
@@ -153,11 +204,14 @@ class EngraverFillInterface : public PatchInterface
 	virtual Laxkit::MenuInfo *ContextMenu(int x,int y,int deviceid);
 
 	virtual void DrawTracingTools();
+	virtual void DrawLineGradient(double minx,double maxx,double miny,double maxy);
+	virtual void DrawShadeGradient(double minx,double maxx,double miny,double maxy);
 	virtual void deletedata();
 	virtual PatchData *newPatchData(double xx,double yy,double ww,double hh,int nr,int nc,unsigned int stle);
 	//virtual void drawpatch(int roff,int coff);
 	//virtual void patchpoint(PatchRenderContext *context, double s0,double ds,double t0,double dt,int n);
 	virtual int ChangeMode(int newmode);
+	virtual int Trace();
 };
 
 } //namespace LaxInterfaces
