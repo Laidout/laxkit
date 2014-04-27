@@ -102,7 +102,7 @@ LaxFontXlib::LaxFontXlib(XftFont *f,int nid)
 
 LaxFontXlib::~LaxFontXlib()
 {
-	if (font) XftFontClose(anXApp::app->dpy, font);
+	if (font && anXApp::app->dpy) XftFontClose(anXApp::app->dpy, font);
 
 	if (charwidths)     delete[] charwidths;
 	if (realcharwidths) delete[] realcharwidths;
