@@ -311,12 +311,19 @@ flatpoint DisplayerXlib::realtoscreen(flatpoint p)
 		dumpctm(ctm);
 		cerr <<" *****"<<endl;
 		cerr <<" *****"<<endl;
+		cerr <<" *****"<<endl;
+		cerr <<" *****"<<endl;
 		cerr <<" ***** BLAM ******"<<endl;
 		cerr <<" ***** This is a mystery bug, very intermittent DisplayerXlib transform corruption ******"<<endl;
 		cerr <<" ***** aborting program..."<<endl;
 		cerr <<" *****"<<endl;
 		cerr <<" *****"<<endl;
-		exit(1);
+		cerr <<" *****"<<endl;
+		cerr <<" *****"<<endl;
+
+		transform_identity(ctm);
+		transform_identity(ictm);
+		//exit(1);
 	}
 	return flatpoint(ctm[4] + ctm[0]*p.x + ctm[2]*p.y, ctm[5]+ctm[1]*p.x+ctm[3]*p.y); 
 } 
