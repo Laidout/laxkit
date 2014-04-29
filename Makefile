@@ -122,6 +122,10 @@ interfaces:
 laxinput: lax interfaces
 	cd laxinput/ && $(MAKE)
 
+touchdepends:
+	touch lax/makedepend
+	touch lax/interfaces/makedepend
+
 depends:
 	touch lax/makedepend
 	touch lax/interfaces/makedepend
