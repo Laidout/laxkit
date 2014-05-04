@@ -1100,8 +1100,6 @@ DeviceManager *newXInput2DeviceManager(Display *dpy, int which)
 }
 
 
-#endif // LAX_USES_XINPUT2
-
 
 //-------------------------- XInput2Pointer ----------------------------------------
 /*! \class XInput2Pointer
@@ -1778,6 +1776,10 @@ int XInput2Keyboard::SetFocus(anXWindow *win, clock_t t,int notifyonly)
 	}
 	return 0;
 }
+
+
+#endif // LAX_USES_XINPUT2
+
 
 
 //------------------------------------ DeviceManagerXInput1 -----------------------------------------
