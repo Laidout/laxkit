@@ -23,7 +23,7 @@ LAX_USING_XLIB=1
 ## Comment out the next line to not compile in debugging info
 ## Or use the second one to  not compile in debugging info and also hide all the 
 ##   output that would otherwise scroll by on the terminal screen.
-DEBUGFLAGS= -g
+DEBUGFLAGS= -g -gdwarf-2
 #DEBUGFLAGS= -DHIDEGARBAGE
 
 

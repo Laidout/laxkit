@@ -6,8 +6,8 @@ LAXIDIR=$(LAXDIR)/interfaces
 LAXOBJDIR=$(LAXDIR)
 
 LD=g++
-LDFLAGS= -L/usr/X11R6/lib -lX11 -lm -lcairo -lpng -lcups `imlib2-config --libs` -lXi -lXft -lcrypto -L$(LAXDIR) -L$(LAXIDIR)
-DEBUGFLAGS= -g
+LDFLAGS= -L/usr/X11R6/lib -lX11 -lm -lcairo -lfontconfig -lpng -lcups `imlib2-config --libs` -lXi -lXft -lcrypto -L$(LAXDIR) -L$(LAXIDIR)
+DEBUGFLAGS= -g -gdwarf-2
 CPPFLAGS= $(DEBUGFLAGS) -I. -I.. -I$(LAXDIR)/ -I../include -I../src -I/usr/include/freetype2
 
 

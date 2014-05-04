@@ -7,7 +7,7 @@ LD=g++
 LDFLAGS= -L/usr/X11R6/lib -lX11 -lm 
 
 OPTIMIZATION=
-DEBUGFLAGS= -g
+DEBUGFLAGS= -g -gdwarf-2
 
 ## use the second one to make .so
 #FPIC=
