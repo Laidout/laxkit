@@ -70,7 +70,11 @@ enum PathHoverType {
 	HOVER_DirectionSelect,
 	HOVER_AddToSelection,
 	HOVER_RemoveFromSelection,
+	HOVER_AddWeightNode,
 	HOVER_Weight,
+	HOVER_WeightTop,
+	HOVER_WeightBottom,
+	HOVER_WeightPosition,
 	HOVER_MAX
 };
 
@@ -197,6 +201,8 @@ void Path::dump_out(FILE *f,int indent,int what,Laxkit::anObject *context)
 		fprintf(f,"%s  ve 1 2                #a vertex point with corner equal controls\n",spc);
 		fprintf(f,"%s  p 1.5 2.5             #a bezier control point of the previous vertex\n",spc);
 		fprintf(f,"%s  n 3 5                 #a bezier control point of the next vertex\n",spc);
+		fprintf(f,"%sweight 1.5 0 1          #any number of optional weight node.\n",spc);
+		fprintf(f,"%s                        #numbers are (t bez parameter) (offset from normal path) (width)\n",spc);
 		fprintf(f,"%ssegment controllername  #a non-straight-line and non-bezier segment\n",spc);
 		fprintf(f,"%s  asbezier p 3 5 n 2 4 5 6  # Important! bezier approximation of the segment.\n",spc);
 		fprintf(f,"%s                            # if not present and the controller cannot be found,\n",spc);
@@ -265,6 +271,10 @@ void Path::dump_out(FILE *f,int indent,int what,Laxkit::anObject *context)
 
 
 	} while (p && p!=path);
+
+	for (int c=0; c<pathweights.n; c++) {
+		fprintf(f,"%sweight %.10g %.10g %.10g\n",spc,pathweights.e[c]->t,pathweights.e[c]->offset,pathweights.e[c]->width);
+	}
 }
 
 /*! Dump in the linestyle and coordinates..
@@ -294,6 +304,13 @@ void Path::dump_in_atts(LaxFiles::Attribute *att,int flag,Laxkit::anObject *cont
 		} else if (!strcmp(name,"points")) {
 			appendBezFromStr(value);
 
+		} else if (!strcmp(name,"weight")) {
+			double d[3];
+			int c2=DoubleListAttribute(value,d,3,NULL);
+			if (c2!=3) continue;
+
+			AddWeightNode(d[0],d[1],d[2]);
+
 		} else if (!strcmp(name,"segment")) {
 			if (isblank(value)) continue;
 
@@ -307,6 +324,29 @@ void Path::dump_in_atts(LaxFiles::Attribute *att,int flag,Laxkit::anObject *cont
 		}
 	}
 	if (closed && path) path->close();
+}
+
+void Path::AddWeightNode(double nt,double no,double nw)
+{
+	PathWeightNode *w=new PathWeightNode(nt,no,nw,PathWeightNode::Default);
+	 
+	 //insert sorted...
+	int c2;
+	for (c2=0; c2<pathweights.n; c2++) {
+		if (w->t>pathweights.e[c2]->t) continue;
+		if (w->t<pathweights.e[c2]->t) break;
+
+		// else (w->t==pathweights.e[c2])
+		 //overwrite!
+		pathweights.e[c2]->t=nt;
+		pathweights.e[c2]->offset=no;
+		pathweights.e[c2]->width=nw;
+		delete w;
+		c2=-1;
+		break;
+	}
+
+	if (c2>=0) pathweights.push(w,1,c2);
 }
 
 //! Append bezier points taken from the string.
@@ -1620,7 +1660,7 @@ PathOperator::~PathOperator()
 PathInterface::PathInterface(int nid,Displayer *ndp) : anInterface(nid,ndp)
 {
 	primary=1;
-	show_weights=false;
+	show_weights=false; //see also PATHI_No_Weights
 
 	pathi_style=0;
 	addmode=ADDMODE_Bezier;
@@ -1653,6 +1693,8 @@ PathInterface::PathInterface(int nid,Displayer *ndp) : anInterface(nid,ndp)
 	lbfound=NULL;
 	lbselected=1; //whether the most recent left button down added a point to selection that was not previously selected
 	drawhover=0;
+	drawhoveri=-1;
+	drawpathi=-1;
 	hoverdevice=0;
 	lasth=0;
 	showdecs=1;
@@ -2275,45 +2317,22 @@ int PathInterface::Refresh()
 
 			 //draw weights
 			if (show_weights) {
-				double arc=SELECTRADIUS*2;
 				flatpoint ppo, pp,vv,vt,ppt,ptop,pbottom;
 				PathWeightNode *weight=&defaultweight;
 
-				dp->DrawScreen();
-				if (pdata->PointAlongPath(weight->t, 0, &pp, &vv)!=0) {
-					if (vv.isZero()) vv.x=1;
-					else vv/=norm(vv);
-					vt=transpose(vv);
-					//ppo=dp->realtoscreen(pp); //point on the path
-					ptop   =dp->realtoscreen(pp-vt*weight->topOffset());
-					pbottom=dp->realtoscreen(pp-vt*weight->bottomOffset());
+				for (int cw=(pdata->pathweights.n>0 ? 0 : -1); cw<pdata->pathweights.n; cw++) {
+					if (cw==-1) weight=&defaultweight; else weight=pdata->pathweights.e[cw];
 
-					vv=dp->realtoscreen(pp+vv)-dp->realtoscreen(pp);
-					vv/=norm(vv);
-					vt=transpose(vv);
+					if (pdata->PointAlongPath(weight->t, 0, &pp, &vv)==0) continue;
 
-					if (drawhover==HOVER_Weight) dp->LineAttributes(3,LineSolid,LAXCAP_Round,LAXJOIN_Miter);
-					else dp->LineAttributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
-					dp->NewFG(controlcolor);
-
-					dp->drawline(ptop    + arc/3*(-vv+vt), ptop);
-					dp->drawline(ptop                  , ptop   +arc/3*(vv+vt));
-					dp->drawline(pbottom + arc/3*(-vv-vt), pbottom);
-					dp->drawline(pbottom               , pbottom+arc/3*(vv-vt));
-					dp->moveto(ptop);
-					dp->curveto(ptop + 1.33*arc*vt,
-								ptop + 1.33*arc*vt - arc*vv,
-								ptop - arc*vv);
-					dp->lineto(pbottom  - arc*vv);
-					dp->curveto(pbottom - 1.33*arc*vt - arc*vv,
-								pbottom - 1.33*arc*vt,
-								pbottom);
-					dp->stroke(0);
-
+					drawWeightNode(pp,vv, weight->topOffset(),weight->bottomOffset(), 
+							((drawhover==HOVER_Weight || drawhover==HOVER_WeightPosition
+							  						  || drawhover==HOVER_WeightTop
+							  						  || drawhover==HOVER_WeightBottom)
+							 && drawpathi==cc && drawhoveri==cw) ? 2 : 0);
 				}
-				dp->DrawReal();
 			}
-		} // loop over paths
+		} // loop cc over paths
 
 		if (drawhover==HOVER_DirectionSelect) {
 			drawNewPathIndicator(curdirp->p(),curdirp->info);
@@ -2337,6 +2356,9 @@ int PathInterface::Refresh()
 		dp->NewFG(0.,.75,0.);
 		dp->LineAttributes(2,LineSolid,LAXCAP_Butt,LAXJOIN_Round);
 		dp->drawpoint(hoverpoint, 3,0);
+
+	} else if (drawhover==HOVER_AddWeightNode) {
+		drawWeightNode(hoverpoint,hoverdir, defaultweight.topOffset(),defaultweight.bottomOffset(), 1);
 
 	} else if (drawhover==HOVER_Endpoint || drawhover==HOVER_MergeEndpoints) {
 		dp->NewFG(0.,.75,0.);
@@ -2386,6 +2408,54 @@ int PathInterface::Refresh()
 	return 0;
 }
 
+void PathInterface::drawWeightNode(flatpoint pp,flatpoint vv, double wtop,double wbottom, int isfornew)
+{
+	double arc=SELECTRADIUS*2;
+
+	if (vv.isZero()) vv.x=1;
+	else vv.normalize();
+	flatpoint vt=transpose(vv);
+
+	//ppo=dp->realtoscreen(pp); //point on the path
+	flatpoint ptop   =dp->realtoscreen(pp-vt*wtop);
+	flatpoint pbottom=dp->realtoscreen(pp-vt*wbottom);
+
+	vv=dp->realtoscreen(pp+vv)-dp->realtoscreen(pp);
+	vv/=norm(vv);
+	vt=transpose(vv);
+
+	dp->NewFG(controlcolor);
+	if (isfornew==1) {
+		dp->LineAttributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
+		dp->NewFG(0.,.75,0.);
+	} else dp->LineAttributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
+
+	dp->DrawScreen();
+
+	 //draw arrow heads
+	if (isfornew==2) dp->LineAttributes(3,LineSolid,LAXCAP_Round,LAXJOIN_Miter);
+	dp->drawline(ptop    + arc/3*(-vv+vt), ptop);
+	dp->drawline(ptop                  , ptop   +arc/3*(vv+vt));
+	dp->drawline(pbottom + arc/3*(-vv-vt), pbottom);
+	dp->drawline(pbottom               , pbottom+arc/3*(vv-vt));
+
+	 //draw curve connecting the arrow heads
+	if (isfornew==2) {
+		if (drawhover==HOVER_WeightTop || drawhover==HOVER_WeightBottom)
+			dp->LineAttributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Miter);
+	}
+	dp->moveto(ptop);
+	dp->curveto(ptop + 1.33*arc*vt,
+				ptop + 1.33*arc*vt - arc*vv,
+				ptop - arc*vv);
+	dp->lineto(pbottom  - arc*vv);
+	dp->curveto(pbottom - 1.33*arc*vt - arc*vv,
+				pbottom - 1.33*arc*vt,
+				pbottom);
+	dp->stroke(0);
+
+	dp->DrawReal();
+}
 
 /*! Draw the pop up circular menu for new path or new subpath, centered on p. which==1 is top, which==2 is bottom.
  */
@@ -2558,10 +2628,82 @@ Coordinate *PathInterface::scannear(Coordinate *p,char u,double radius) //***rad
 	return NULL;
 }
 
+/*! Each weight node has arrows that point to the position in the path, at a distance
+ * of the line top and bottom. Dragging the bar off to the side repositions. Dragging
+ * either the top or bottom moves one or both, depending on state.
+ */
+int PathInterface::scanWeights(int x,int y,unsigned int state, int *pathindex, int *index)
+{
+	 //   /--\  <- this is (arc) wide
+	 //   |  v
+	 //   |
+	 // --|--pp--- vv ->
+	 //   |        vt
+	 //   |  ^      |
+	 //   \--/      v
+
+	if (!show_weights || !data) return HOVER_None;
+
+	double arc=SELECTRADIUS*2;
+	double yyt,yyb,xx;
+	flatpoint fp(x,y);
+	flatpoint sp;
+	PathWeightNode *weight;
+	Path *path;
+	flatpoint pp,vv, vt, ptop,pbottom;
+
+	for (int c=0; c<data->paths.n; c++) {
+		path=data->paths.e[c];
+
+		for (int cw=(path->pathweights.n>0 ? 0 : -1); cw<path->pathweights.n; cw++) {
+			if (cw==-1) weight=&defaultweight; else weight=path->pathweights.e[cw];
+
+			if (path->PointAlongPath(weight->t, 0, &pp, &vv)==0) continue;
+
+			if (vv.isZero()) vv.x=1;
+			else vv.normalize();
+			vt=transpose(vv);
+
+			ptop   =realtoscreen(transform_point(data->m(), pp-vt*weight->topOffset()));
+			pbottom=realtoscreen(transform_point(data->m(), pp-vt*weight->bottomOffset()));
+
+			vv=realtoscreen(transform_point(data->m(),pp+vv))-realtoscreen(transform_point(data->m(),pp));
+			vv/=norm(vv);
+			vt=transpose(vv);
+
+			xx=(fp-ptop)*vv;
+			if (xx<-arc*1.5 || xx>arc/3) continue;
+			yyt=(fp-ptop)*vt;
+			yyb=(fp-pbottom)*vt;
+
+			DBG cerr <<"xx: "<<xx<<"  yt: "<<yyt<<"  yyb:"<<yyb<<endl;
+
+			if (xx<-arc/2 && yyt<arc && yyb>-arc) {
+				*index=cw;
+				*pathindex=c;
+				return HOVER_WeightPosition;
+			}
+			if (yyt>=0 && yyt<arc) {
+				*index=cw;
+				*pathindex=c;
+				return HOVER_WeightTop;
+			}
+			if (yyb<=0 && yyb>-arc) {
+				*index=cw;
+				*pathindex=c;
+				return HOVER_WeightBottom;
+			}
+		}
+	}
+
+
+	return HOVER_None;
+}
+
 //! Scan for various hovering things.
 /*! Such as a cutpoint, a segment to cut, a segment to join, or the direction arrow.
  */
-int PathInterface::scanHover(int x,int y,unsigned int state)
+int PathInterface::scanHover(int x,int y,unsigned int state, int *pathi)
 {
 	if (!data) return HOVER_None;
 
@@ -2576,10 +2718,21 @@ int PathInterface::scanHover(int x,int y,unsigned int state)
 		if (dist2<SELECTRADIUS2) return HOVER_AddPoint;
 		return HOVER_None;
 
-	} else if ((state&LAX_STATE_MASK)==(ShiftMask|ControlMask) && curpoints.n==0) {
-		 //hover over segment to cut out
-		// ***
-		// return HOVER_CutSegment
+	} else if ((state&LAX_STATE_MASK)==(ShiftMask|ControlMask)) {
+		 //hover over segment to add a weight node
+		int dist2;
+		double t;
+		int hoverpathi=-1;
+		hoverpoint=data->ClosestPoint(fp, NULL,NULL,&t,&hoverpathi);
+		dist2=norm2(realtoscreen(transform_point(data->m(), hoverpoint))-flatpoint(x,y));
+		if (dist2<SELECTRADIUS2*2) {
+			//DBG cerr << " ************* scanned and found add weight node..."<<endl;
+			//virtual int PointAlongPath(double t, int tisdistance, flatpoint *point, flatpoint *tangent);
+			data->PointAlongPath(hoverpathi, t, 0, NULL,&hoverdir);
+			*pathi=hoverpathi;
+			return HOVER_AddWeightNode;
+		}
+		return HOVER_None;
 
 	} else if (curvertex) {
 		flatpoint p=realtoscreen(transform_point(data->m(), curdirp->p()));
@@ -2691,16 +2844,16 @@ Coordinate *PathInterface::scan(int x,int y,int pmask, int *pathindex) // pmask=
 	// scan for control points
 	for (c=0; c<data->paths.n; c++) { //only search for normal control points, controlled was checked above
 		start=cp=data->paths.e[c]->path; //*** doesn't check that paths.e[c] exists, should be ok, though
-		DBG cerr <<" path scan for controls on 1. path "<<c<<"/"<<data->paths.n<<endl;
+		//DBG cerr <<" path scan for controls on 1. path "<<c<<"/"<<data->paths.n<<endl;
 		if (cp) {
-			DBG cerr <<" path scan for controls on path "<<c<<endl;
+			//DBG cerr <<" path scan for controls on path "<<c<<endl;
 			cp=cp->firstPoint(0);
 			start=cp;
 			do {
 				if (!cp->controls && !(cp->flags&POINT_VERTEX) ) {
 					p=realtoscreen(transform_point(data->m(),cp->p()));
 					if ((p.x-x)*(p.x-x)+(p.y-y)*(p.y-y)<SELECTRADIUS2) {
-						DBG cerr <<" path scan found control on "<<c<<endl;
+						//DBG cerr <<" path scan found control on "<<c<<endl;
 						if (pathindex) *pathindex=c;
 						return cp;
 					}
@@ -2708,7 +2861,7 @@ Coordinate *PathInterface::scan(int x,int y,int pmask, int *pathindex) // pmask=
 				cp=cp->next;
 			} while (cp && cp!=start);
 		}
-		DBG cerr <<" path scan for controls on 2. path "<<c<<"/"<<data->paths.n<<endl;
+		//DBG cerr <<" path scan for controls on 2. path "<<c<<"/"<<data->paths.n<<endl;
 	}
 	return NULL;
 }
@@ -2785,6 +2938,15 @@ int PathInterface::LBDown(int x,int y,unsigned int state,int count,const LaxMous
 		PostMessage(_("Flip add direction, or drag to select next add"));
 		//needtodraw=1;
 		return 0;
+	}
+
+	if (drawhover==HOVER_WeightTop
+		  || drawhover==HOVER_WeightBottom
+		  || drawhover==HOVER_WeightPosition
+		  || drawhover==HOVER_AddWeightNode) {
+		buttondown.moveinfo(d->id,LEFTBUTTON, state,drawhover);
+		return 0;
+
 	}
 
 	// if control is here, then curpathop did not intercept any left click,
@@ -3371,6 +3533,24 @@ int PathInterface::LBUp(int x,int y,unsigned int state,const LaxMouse *d)
 		}
 		return 0;
 
+	} else if (action==HOVER_AddWeightNode) {
+		DBG cerr << " ***** add weight node LBUp..."<<endl;
+		int pathi=-1;
+		double t;
+		data->ClosestPoint(hoverpoint, NULL,NULL,&t, &pathi);
+
+		DBG cerr << " ***** add weight node to path: "<<pathi<<endl;
+
+		 // *** needs to interpolate to actual settings at that point
+		data->paths.e[pathi]->AddWeightNode(t,0,defaultweight.width);
+		needtodraw=1;
+		
+		return 0;
+
+	} else if (action==HOVER_WeightPosition || action==HOVER_WeightTop || action==HOVER_WeightBottom) {
+		needtodraw=1;
+		return 0;
+
 	} else if (action==HOVER_DirectionSelect) {
 		if (curdirp->info==1) {
 			SetCurvertex(NULL);
@@ -3425,6 +3605,7 @@ int PathInterface::LBUp(int x,int y,unsigned int state,const LaxMouse *d)
 		return 0;
 	}
 
+	 //below is for various special cases of merging and point selection
 	switch (state&(ControlMask|AltMask|MetaMask|ShiftMask)) {
 		case (0): { // plain click
 				if (curpoints.n==1 && moved) {
@@ -3755,6 +3936,10 @@ void PathInterface::hoverMessage()
 	else if (drawhover==HOVER_Endpoint) mes=_("Click to add segment between endpoints");
 	else if (drawhover==HOVER_MergeEndpoints) mes=_("Merge endpoints");
 	else if (drawhover==HOVER_AddPoint) mes=_("Click to add point to segment");
+	else if (drawhover==HOVER_AddWeightNode) mes=_("Click to add new width node");
+	else if (drawhover==HOVER_WeightPosition) mes=_("Drag weight node position");
+	else if (drawhover==HOVER_WeightTop) mes=_("Drag weight node top");
+	else if (drawhover==HOVER_WeightBottom) mes=_("Drag weight node bottom");
 	else if (drawhover==HOVER_Direction) mes=_("Click to flip add direction, or drag to select next add");
 	//else if (drawhover==HOVER_Direction) mes=_("Click to change add direction, or drag to start new subpath");
 
@@ -3779,7 +3964,11 @@ int PathInterface::MouseMove(int x,int y,unsigned int state,const LaxMouse *mous
 
 	if (!buttondown.isdown(mouse->id,LEFTBUTTON)) {
 		int oldhover=drawhover;
+		int oldpathi=drawhoveri;
+		int oldhoveri=drawhoveri;
+		drawpathi=-1;
 		drawhover=HOVER_None;
+		drawhoveri=-1;
 
 		 //check for hovering over endpoint when another endpoint is selected
 		if (data && (state&ShiftMask) && curpoints.n==1) {
@@ -3816,28 +4005,25 @@ int PathInterface::MouseMove(int x,int y,unsigned int state,const LaxMouse *mous
 			return 0;
 		}
 
+		 //else maybe over weight nodes
+		if (show_weights) {
+			drawhover=scanWeights(x,y,state, &drawpathi, &drawhoveri);
+		}
+
 		 //else maybe something else to hover over:
-		drawhover=scanHover(x,y,state);
+		if (drawhover==HOVER_None) drawhover=scanHover(x,y,state, &drawpathi);
 
-//		 //maybe hover an add point indicator
-//		if (data 
-//			  && (((pathi_style&PATHI_Plain_Click_Add) && (state&LAX_STATE_MASK)==0)
-//			     || (!(pathi_style&PATHI_Plain_Click_Add) && (state&LAX_STATE_MASK)==ControlMask))) {
-//			 //maybe add point to a path
-//			fp=transform_point_inverse(data->m(),screentoreal(x,y));
-//			int dist2;
-//			hoverpoint=data->ClosestPoint(fp, NULL,NULL,NULL,NULL);
-//			dist2=norm2(realtoscreen(transform_point(data->m(), hoverpoint))-flatpoint(x,y));
-//			if (dist2<SELECTRADIUS2) drawhover=HOVER_AddPoint; else drawhover=0;
-//			hoverMessage();
-//
-//			DBG cerr<<"---pathinterface hoverpoint: "<<hoverpoint.x<<','<<hoverpoint.y<<endl;
-//			needtodraw=1;
-//			return 0;
-//
-//		}
+		if (drawhover==HOVER_AddWeightNode) {
+			 // *** should grab characteristics from the found path...
+			DBG cerr <<"drawpathi: "<<drawpathi<<endl;
+			defaultweight.offset=0;
+			if (data->paths.e[drawpathi]->linestyle)
+				defaultweight.width=data->paths.e[drawpathi]->linestyle->width;
+			else if (data->linestyle)
+				defaultweight.width=data->linestyle->width;
+		}
 
-		if (drawhover!=oldhover || drawhover==HOVER_AddPoint) {
+		if (drawhover!=oldhover || drawpathi!=oldpathi || drawhoveri!=oldhoveri || drawhover==HOVER_AddPoint || drawhover==HOVER_AddWeightNode) {
 			needtodraw=1;
 			hoverMessage();
 		}
@@ -3884,7 +4070,77 @@ int PathInterface::MouseMove(int x,int y,unsigned int state,const LaxMouse *mous
 	flatpoint d=transform_point_inverse(data->m(),p1)-transform_point_inverse(data->m(),p2);
 
 	DBG cerr <<"path mm action: "<<action<<endl;
-	if (action==HOVER_Direction) {
+
+	if (action==HOVER_WeightPosition) {
+		if (drawpathi<0) return 0;
+
+		Path *path=data->paths.e[drawpathi];
+		if (drawhoveri==-1) {
+			 //we need to install a new path weight node
+			path->AddWeightNode(defaultweight.t, defaultweight.offset, defaultweight.width);
+			drawhoveri=0;
+		}
+
+		PathWeightNode *weight=path->pathweights.e[drawhoveri];
+		flatpoint pp;
+
+		if (path->PointAlongPath(weight->t, 0, &pp, NULL)==0) return 0;
+		pp+=d;
+		double t=weight->t;
+		path->ClosestPoint(pp, NULL, NULL, &t);
+		weight->t=t;
+		// *** data->remapWidths(drawhoveri);
+
+		needtodraw=1;
+		return 0;
+
+	} else if (action==HOVER_WeightTop || action==HOVER_WeightBottom) {
+		if (drawpathi<0) return 0;
+
+		Path *path=data->paths.e[drawpathi];
+		if (drawhoveri==-1) {
+			 //we need to install a new path weight node
+			path->AddWeightNode(defaultweight.t, defaultweight.offset, defaultweight.width);
+			drawhoveri=0;
+		}
+
+		PathWeightNode *weight=path->pathweights.e[drawhoveri];
+		flatpoint pp,vv, vt, ptop,pbottom;
+
+		if (path->PointAlongPath(weight->t, 0, &pp, &vv)==0) return 0;
+
+		if (vv.isZero()) vv.x=1;
+		else vv.normalize();
+		vt=transpose(vv);
+
+		double toffset=weight->topOffset();
+		double boffset=weight->bottomOffset();
+		double dd=d*vt;
+
+		if (action==HOVER_WeightTop) {
+			toffset-=dd;
+			boffset+=dd;
+		} else { //action==HOVER_WeightBottom
+			toffset+=dd;
+			boffset-=dd;
+		}
+
+		weight->width=toffset-boffset;
+		weight->offset=(toffset+boffset)/2;
+
+		if (weight->width<0) {
+			if (action==HOVER_WeightTop) action=HOVER_WeightBottom; else action=HOVER_WeightTop;
+			buttondown.moveinfo(mouse->id,LEFTBUTTON, state,action);
+			weight->width=-weight->width;
+		}
+
+		// *** TEMP while variable width not implemented:
+		data->line(weight->width);
+
+		needtodraw=1;
+		return 0;
+
+	} else if (action==HOVER_Direction) {
 		if (pathi_style&PATHI_One_Path_Only) return 0;
 
 		 //if distance far enough away from down spot, pop up the new path symbols
@@ -4330,7 +4586,8 @@ int PathInterface::PerformAction(int action)
 		cout <<" *** start new subpath"<<endl;
 
 	} else if (action==PATHIA_ToggleWeights) {
-		show_weights=!show_weights;
+		if (pathi_style&PATHI_No_Weights) show_weights=false;
+		else show_weights=!show_weights;
 		if (show_weights) PostMessage(_("Show weight controls"));
 		else PostMessage(_("Don't show weight controls"));
 		needtodraw=1;

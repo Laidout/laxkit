@@ -66,6 +66,7 @@ class PathWeightNode
 	double t; //point along path, the bezier parameter: integer t corresponds to line points
 
 	enum PathWeightNodeTypes {
+		Default=0,
 		Symmetric,
 		Offset,
 		DualOffset
@@ -73,6 +74,7 @@ class PathWeightNode
 	int type; //symmetric width, fixed width with offset, width1/2 independent
 
 	PathWeightNode() { width=1; offset=0; t=.5; type=Symmetric; }
+	PathWeightNode(double nt,double no,double nw, int ntype=Default) { width=nw; offset=no; t=nt; type=ntype; }
 	double topOffset() { return offset+width/2; }
 	double bottomOffset() { return offset-width/2; }
 };
@@ -104,6 +106,8 @@ class Path : public LaxFiles::DumpUtility
 	virtual void curveTo(flatpoint c1, flatpoint c2, flatpoint p2);
 	virtual void close();
 	virtual void clear();
+
+	virtual void AddWeightNode(double nt,double no,double nw);
 
 	 //info functions
 	virtual int Intersect(flatpoint p1,flatpoint p2, int isline, double startt, flatpoint *pts,int ptsn, double *t,int tn);
@@ -232,7 +236,8 @@ enum PathInterfaceSettings {
 	PATHI_Path_Is_Real     =(1<<4),
 	PATHI_Path_Is_M_Real   =(1<<5),
 	PATHI_Esc_Off_Sub      =(1<<6),
-	PATHI_Plain_Click_Add  =(1<<7)
+	PATHI_Plain_Click_Add  =(1<<7),
+	PATHI_No_Weights       =(1<<8)
 };
 
 enum PathInterfaceActions {
@@ -308,9 +313,12 @@ class PathInterface : public anInterface
 	Coordinate *lbfound;
 	int lbselected;
 	int drawhover;
+	int drawpathi;
+	int drawhoveri;
 	int hoverdevice;
 	int hoverpointtype;
 	flatpoint hoverpoint;
+	flatpoint hoverdir;
 	flatpoint hoversegment[4];
 	int lasth; //direction of toggling selected handle
 	
@@ -339,6 +347,7 @@ class PathInterface : public anInterface
 	virtual void Modified(int level);
 	virtual void hoverMessage();
 	virtual void drawNewPathIndicator(flatpoint p,int which);
+	virtual void drawWeightNode(flatpoint pp,flatpoint dir, double wtop,double wbottom, int isfornew);
  public:
 	 // the following three comprise the default PathInterface settings.
 	unsigned long controlcolor;
@@ -391,7 +400,8 @@ class PathInterface : public anInterface
 	virtual void deletedata();
 	virtual Coordinate *scan(int x,int y,int pmask=0, int *pathindex=NULL);
 	virtual Coordinate *scanEndpoints(int x,int y,int *pathindex,Coordinate *exclude);
-	virtual int scanHover(int x,int y,unsigned int state);
+	virtual int scanHover(int x,int y,unsigned int state, int *pathi);
+	virtual int scanWeights(int x,int y,unsigned int state, int *pathindex, int *index);
 	virtual flatpoint screentoreal(int x,int y);
 	virtual flatpoint realtoscreen(flatpoint r);
 	virtual int toggleclosed(int c=-1);
