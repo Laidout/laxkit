@@ -52,6 +52,7 @@ Soon, it will likely also depend on:<br>
 - <a href="http://www.fontconfig.org">fontconfig</a><br>
 - pango<br>
 
+Please see the README.md in the source code for the most up to date list of dependencies.
 All of these are pretty standard for all major linux distributions.
 When you're sure you have those things installed, just type:
 
@@ -96,7 +97,7 @@ namespace Laxkit {
 \section compileprograms Compiling Programs
 
 You will most likely need to use something like the following line to compile programs:\n
-<tt>g++ laxhello.cc -L/usr/X11R6/lib -lX11 -lXft -lm -lpng -lcups `imlib2-config --libs` -llaxkit -o laxhello</tt><br>
+<tt>g++ laxhello.cc  -L/usr/X11R6/lib -lX11 -lm -lcairo -lfontconfig -lpng -lcups `imlib2-config --libs` -lXi -lXft -lcrypto -llaxinterfaces -llaxkit -o laxhello</tt><br>
 
 \section creating Creating Your Own Windows
 
@@ -105,49 +106,35 @@ LaxInterfaces holds many tools for manipulating various graphical objects.
 LaxFiles holds the Attribute classes, and various file utilities.
 
 When creating custom windows, you will be subclassing Laxkit::anXWindow.
-The constructor of that class sets up win_xatts and win_xattsmask to
-the minimum that it needs for the basics of windowing. If you need access to exotic events like CirculateNotify
-or VisibilityNotify, you must intercept them in anXWindow::event(), and also select for those events by
-or'ing them to anXWindow::win_xatts.event_mask.
+The constructor of that class sets up the basics of windowing, but does not allocate system
+resources for windows yet (such as with xlib's XCreateWindow()).
+If you need access to exotic events, beyond simple input and output, you must intercept 
+them in anXWindow::event().
 
 anXWindow will deal with the basics, like clicking the window manager's delete button decoration, and
 delivering input events to functions like anXWindow::CharInput() and anXWindow::LBDown().
 
 Tip: it is not a good idea to have a window's constructor depend on x,y,w,h, as those might change, 
 for instance by the frame windows. Any size dependent initialization can be done in preinit() which 
-is called before the window is XCreateWindow'd, or init(), which is called after it 
+is called before the system window is allocated (XCreateWindow'd), or init(), which is called after it 
 is XCreated but before it is mapped. Note that if you try to resize a window after it
 is XCreated but before it is mapped, the resize is ignored. This is due to mysterious goings on in Xlib.
 
-Windows typically add any initial children in window->init(), ie after app gives window a real Xlib Window.
-Dialogs will typically create and add buttons and edit boxes it init(), and call anXWin::addwindow() to get
+Windows typically add any initial children in window->init(), ie after app gives window a real system Window.
+Dialogs will typically create and add buttons and edit boxes it init(), and call anXApp::addwindow() to get
 them going.
-
-If you want to have windows that really stick around (that is to say, not get deleted),
-for instance a file dialog that you want to have the same
-settings for each time it is used, then you can define a reference to it, rather than pointertoit=new WhateverWindow(...).
-Then,  you call app->addwindow(&referencetowindow,0). That final 0 tells anXApp/anXWindow that it should not try to call \a delete
-on that pointer.
 
 
 \section destroying Destroying Windows
 
-\todo this may change. The anXWindow class may be reference counted at some point.
-
-app does not destroy windows that say they are owned elsewhere (islocal==0)
-if window is not local, all its subwindows should also be not local. and vice versa. Otherwise 
-	there could be crashes with a parent being destroyed before its children, while expecting
-	app to have destroyed its children already, depending on where kids were defined (??)
-
 Something will call app->destroywindow(win) to tag win for deletion. app will immediately
-XDestroyWindow(win->window), and also its subwindows. The anXWindow structures are
-not deleted until after event queue is depleted, and it is called direct from app to prevent deletion of
-a window while control is in the window. Actual deletion is done by app->deletequeued(), where
-app will delete whatever window is in the stack app->todelete, by calling 
-windowparent->deletekid(theKidToBeDeleted). The window's kid stack is
-flushed when win's destructor is called. If islocal==0 for any window in app's stack or
-in a window's kid stack, that window is not deleted. In that case, it is assumed that the
-programmer has set up some alternate system to control window deletion.
+deallocate system resources for that window (such as XDestroyWindow(win->window) for xlib),
+and the same for its subwindows. The anXWindow structures are
+not dereferenced until after event queue is depleted, and it is called direct from app to prevent deletion of
+a window while control is in the window. Actual dereferencing is done by app->deletequeued(), where
+app will reference whatever window is in the stack app->todelete, by calling 
+windowparent->deletekid(theKidToBeDeleted). Note that the window's kid stack is
+flushed when win's destructor is called. 
 
 
 
@@ -191,10 +178,10 @@ app->close();
 
 \section derived Derived Classes, Special Precautions
 
-The anXWindow base class reserves style bits [0..15]. Any derived classes must not use those.
+The anXWindow base class reserves win_style bits [0..15]. Any derived classes must not use those.
 
-It is worth remembering that there are no copy constructors or equal operators
-defined for any of the Laxkit classes, except NumStack, LineStyle and FillStyle.
+It is worth remembering that there are few copy constructors or equal operators
+defined for any of the Laxkit classes, except notably NumStack, LineStyle and FillStyle.
 
 
 

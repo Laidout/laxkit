@@ -2,20 +2,24 @@
 
 \todo this page needs updating!!
 
-This page discusses the various Xlib structs, typedefs, defines, and functions
-that might be useful sometimes when programming with the Laxkit. Most of the common
-windowing procedures are wrapped into Laxkit::anXApp and Laxkit::anXWindow. This 
+The bits of the Laxkit that interface directly with Xlib are to be found in anxapp.cc,
+anxwindow.cc, laxdevices.cc, events.cc, displayer-xlib.cc, fontmanager-xlib.cc, and 
+their header files.
+
+Most of the common windowing procedures are wrapped into Laxkit::anXApp and Laxkit::anXWindow. This 
 includes window creation, deletion, moving, resizing (manual and automatic), mouse
 and keyboard events, and focus handling. Most other more specialized events must be
-dealt with by intercepting them by redefining Laxkit::anXWindow::event().
+dealt with by intercepting them by redefining Laxkit::anXWindow::Event().
 
-For the most typical uses, practically the only bits one really needs to understand
-from Xlib is the XClientMessageEvent structure and Xlib graphics contexts.
+For the most typical uses, you shouldn't have to interact directly with xlib.
+For porting to other platforms, you should only need to change the content of the above
+files to work.
 
 A real treatment of these things can be found in the Xlib Programming Manual, and the 
-Inter-client Communication Conventions Manual. On debian, these manuals and more are
-provided in the xspecs pacakge. Also, you can always hunt them down at 
-<a href="http://www.x.org">x.org</a>.
+Inter-client Communication Conventions Manual. On debian, these manuals and more used to be
+provided in the xspecs pacakge. Now, you are on your own. 
+You can try to hunt them down at <a href="http://www.x.org">x.org</a>,
+or peruse <a href="http://www.freedesktop.org">freedesktop.org</a> for further elaboration of modern techniques.
 
 \section ClientMessage
 This is the XClientMessageEvent structure, which is used by many of the 
@@ -60,28 +64,12 @@ I don't understand why more people don't program in plain Xlib. Anyway, it goes 
 basically that currently, the "X Portable Character Set" is essentially the 
 graphic Ascii values (0x20 - 0xFE).
 
-\section xrender XRender
-
-Some sections of the Laxkit currently use XRender related bits of X11. For instance, the XRenderColor
-structure is:
-\code
- struct {
-   unsigned short   red;
-   unsigned short   green;
-   unsigned short   blue;
-   unsigned short   alpha;			   
- } XRenderColor;
-\endcode
-
-In time, after color management is integrated into the Laxkit, colors will be specified with 
-more useful classes.
-
 
 \section events Events
 
-Most of these events are processed in Laxkit::anXWindow::event().
+Most of these events are processed in Laxkit::anXWindow::event(). See also anXApp::processXevent().
 
-***TODO!
+Xlib events are as follows. Note not all are currently captured.
 <pre>
     case KeyPress : sprintf(text, "KeyPress"); break;
     case KeyRelease : sprintf(text, "KeyRelease"); break;
