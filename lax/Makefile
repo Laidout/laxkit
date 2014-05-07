@@ -160,6 +160,7 @@ objs= \
 	splitwindow.o \
 	treeselector.o \
 	shortcutwindow.o \
+	curveinfo.o \
 	curvewindow.o \
 	fontmanager-cairo.o \
 	laximages-cairo.o \

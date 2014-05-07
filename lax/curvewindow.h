@@ -18,7 +18,7 @@
 //    License along with this library; if not, write to the Free Software
 //    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
-//    Copyright (C) 2013 by Tom Lechner
+//    Copyright (C) 2013-2014 by Tom Lechner
 //
 #ifndef _LAX_CURVEWINDOW_H
 #define _LAX_CURVEWINDOW_H
@@ -26,66 +26,11 @@
 #include <lax/anxapp.h>
 #include <lax/rectangles.h>
 #include <lax/buttondowninfo.h>
+#include <lax/curveinfo.h>
 
 namespace Laxkit {
 
 	
-
-class CurveInfo : public anObject, public LaxFiles::DumpUtility
-{
-  private:
-	void base_init();
-	
-  public:
-	enum CurveTypes {
-		Linear,
-		Autosmooth,
-		Bezier
-	};
-
-	double xmin, xmax;
-	double ymin, ymax;
-	char *xlabel, *ylabel;
-	char *title;
-	CurveTypes curvetype;
-
-	int numsamples, lookup_min, lookup_max;
-	int *lookup;
-
-	NumStack<flatpoint> points;
-	NumStack<flatpoint> fauxpoints;
-
-	CurveInfo();
-	CurveInfo(const char *ntitle,
-			  const char *xl, double nxmin, double nxmax,
-			  const char *yl, double nymin, double nymax);
-	virtual ~CurveInfo();
-	virtual const char *whattype() { return "CurveInfo"; }
-	virtual void SetXBounds(double nxmin, double nxmax);
-	virtual void SetYBounds(double nymin, double nymax);
-	virtual void SetTitle(const char *ntitle);
-	virtual double f(double x);
-	virtual double f_linear(double x);
-	virtual double f_autosmooth(double x);
-	virtual double f_bezier(double x);
-	virtual flatpoint MapUnitPoint(flatpoint p);
-	virtual int AddPoint(double x,double y);
-	virtual int MovePoint(int index, double x,double y);
-	virtual void SetSinusoidal(int samples);
-	virtual void Reset();
-
-	virtual void MakeFakeCurve();
-	virtual int MakeLookupTable(int *table,int numentries, int minvalue, int maxvalue);
-	virtual void RefreshLookup();
-	virtual void RefreshLookup(int nsamples, int nmin, int nmax);
-	virtual void LookupDump(const char *label,FILE *f);
-
-	 //serializing aids
-	virtual void dump_out(FILE *f,int indent,int what,anObject *context);
-	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,anObject *context);
-	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,anObject *context);
-};
-
 
 enum CurveWindowStyles {
 	CURVE_Show_Ranges=(1<<15),

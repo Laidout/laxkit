@@ -942,7 +942,7 @@ EngraverFillInterface::EngraverFillInterface(int nid,Displayer *ndp)
 
 
 	curvemapi.owner=this;
-	curvemapi.ChangeEditable(CurveWindow::YMax, 1);
+	curvemapi.ChangeEditable(CurveMapInterface::YMax, 1);
 	brush_radius=40;
 
 	makestr(thickness.title,_("Brush Ramp"));

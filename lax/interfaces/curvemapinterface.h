@@ -23,7 +23,7 @@
 #ifndef _LAX_CURVEMAPINTERFACE_H
 #define _LAX_CURVEMAPINTERFACE_H
 
-#include <lax/curvewindow.h>
+#include <lax/curveinfo.h>
 #include <lax/rectangles.h>
 #include <lax/interfaces/aninterface.h>
 
