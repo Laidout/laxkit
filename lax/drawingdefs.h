@@ -71,6 +71,7 @@ enum LaxCapStyle
 	LAXCAP_Butt=1,
 	LAXCAP_Round,
 	LAXCAP_Projecting,
+	LAXCAP_Custom,
 
 	LAXCAP_MAX
 };
@@ -79,8 +80,8 @@ enum LaxJoinStyle
 {
 	LAXJOIN_Miter=1,
 	LAXJOIN_Round,
-	LAXJOIN_CurveMiter,
 	LAXJOIN_Bevel,
+	LAXJOIN_Extrapolate,
 
 	LAXJOIN_MAX
 };
