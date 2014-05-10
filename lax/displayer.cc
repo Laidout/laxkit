@@ -737,6 +737,70 @@ void Displayer::drawthing(double x, double y, double rx, double ry, int fill, Dr
 	delete[] pts;
 }
 
+/*! Draws assuming same formatting as is constructed for draw_thing_coordinates().
+ *
+ * Namely, points->info values have special meanings. Each point must have either vertex or bez.
+ * If neither, then it is vertex. Otherwise:
+ *   - info&LINE_Vertex means the point is on the line
+ *   - info&LINE_Bez    means the point is part of a pair of bezier control points, must exist between 2 vertex points
+ *   - info&LINE_Closed means this point is the final point in a closed path
+ *   - info&LINE_End    means this point is the final point in an open path
+ *
+ *  Paths containing LINE_Bez points MUST be formatted vertex-bez-bez-vertex, etc.
+ *  There MUST be 2 bez points between vertex points, corresponding to the 2
+ *  bezier control handles.
+ *
+ *  Subpaths must either start with a vertex point or a bez followed by a vertex.
+ *  When a path is closed, and it started with a bez point, it MUST end with a bez point.
+ *
+ *  The path is added with moveto() and curveto(). If draw_immediately is true,
+ *  then stroke() and fill() are called, else fill is ignored.
+ */
+void Displayer::drawFormattedPoints(flatpoint *pts, int n, int tofill)
+{
+	int nn=0; //start of current path
+	int firstbez=0;
+	int ptype=0;
+	int bez=0;
+	int c1=-1,c2=-1;
+	for (int c=0; c<n; c++) {
+		ptype=pts[c].info&(LINE_Bez|LINE_Vertex);
+		if (ptype==0) ptype=LINE_Vertex;
+ 
+		if (nn==0) {
+			if (ptype!=LINE_Bez) moveto(pts[c]);
+			nn++;
+			continue;
+		}
+
+		if (pts[c].info&LINE_Bez) {
+			if (bez==0) { c1=c; bez=1; }
+			continue;
+		}
+
+		if (bez!=0) {
+			curveto(pts[c1],pts[c-1],pts[c]);
+			bez=0;
+		} else lineto(pts[c]);
+
+
+		if (pts[c].info&LINE_Closed) { closed(); nn=0; }
+		else if (pts[c].info&LINE_Open) { closeopen(); nn=0; }
+	}
+
+	if (draw_immediately) {
+		if (tofill==0) stroke(0);
+		else if (tofill==1) fill(0);
+		else {
+			unsigned long oldfg=FG();
+			NewFG(BG());
+			fill(1);
+			NewFG(oldfg);
+			stroke(0);
+		}
+	}
+}
+
 /*! \fn void Displayer::drawpixel(flatpoint p)
  * \brief Draw one screen pixel at coord p. Transform to screen coordinates if real!=0.
  */
@@ -759,7 +823,7 @@ void Displayer::drawpoint(flatpoint p,double radius, int fill)
 
 
 //! Draw a cubic bezier line.
-/*! This is the usual actual bez having f'=3*(control point dist) which
+/*! This is the usual actual bezier path having f'=3*(control point dist) which
  * displays the remarkable midpoint property....
  *
  * For t in [0,1] from vertex v1, controls c1,c2, then vertex v2:
@@ -774,7 +838,7 @@ void Displayer::drawpoint(flatpoint p,double radius, int fill)
  *
  * If fill==0 then draw only the line.
  * If fill==1 then draw only the fill.
- * If fill==2 then draw line with fgcolor, and fill with bgcolor
+ * If fill==2 then draw fill with bgcolor, then draw line with fgcolor.
  */
 void Displayer::drawbez(flatpoint *bpoints,int n,int isclosed,int tofill)
 {

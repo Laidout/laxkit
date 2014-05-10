@@ -144,6 +144,7 @@ class Displayer : public PanUser, virtual public anObject
 	virtual void drawline(double ax,double ay,double bx,double by);
 	virtual void drawrectangle(double x,double y,double w,double h,int tofill);
 	virtual void drawbez(flatpoint *bpoints,int n,int isclosed=0,int tofill=0);
+	virtual void drawFormattedPoints(flatpoint *pts, int n, int tofill);
 	virtual int drawrealline(flatline &ln,int num);
 	virtual void drawellipse(double x,double y,double xradius,double yradius,double start_angle=0,double end_angle=0,int fill=0);
 	virtual void drawellipse(flatpoint p,double xradius,double yradius,double start_angle=0,double end_angle=0,int fill=0);
