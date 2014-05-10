@@ -64,19 +64,22 @@ class CurveInfo : public anObject, public LaxFiles::DumpUtility
 			  const char *yl, double nymin, double nymax);
 	virtual ~CurveInfo();
 	virtual const char *whattype() { return "CurveInfo"; }
-	virtual void SetXBounds(double nxmin, double nxmax);
-	virtual void SetYBounds(double nymin, double nymax);
+	CurveInfo &operator=(CurveInfo &l);
+	virtual void SetXBounds(double nxmin, double nxmax, const char *nxlabel=NULL);
+	virtual void SetYBounds(double nymin, double nymax, const char *nylabel=NULL);
 	virtual void SetTitle(const char *ntitle);
 	virtual double f(double x);
 	virtual double f_linear(double x);
 	virtual double f_autosmooth(double x);
 	virtual double f_bezier(double x);
 	virtual flatpoint MapUnitPoint(flatpoint p);
+	virtual flatpoint MapToUnitPoint(flatpoint p);
 	virtual int AddPoint(double x,double y);
 	virtual int MovePoint(int index, double x,double y);
 	virtual void SetSinusoidal(int samples);
 	virtual void Reset();
 	virtual void SetData(flatpoint *p, int n);
+	virtual void SetDataRaw(flatpoint *p, int n);
 	virtual void Wrap(bool wrapx);
 
 	virtual void MakeFakeCurve();

@@ -55,6 +55,10 @@ class CurveMapInterface : public anInterface
 	int *histogram; //in range [0..1000]
 	int hist_n;
 
+
+	Laxkit::ShortcutHandler *sc;
+    virtual int PerformAction(int action);
+
  public:
 	enum CurveMapStyles {
 		Escapable
@@ -84,6 +88,7 @@ class CurveMapInterface : public anInterface
     virtual const char *whatdatatype() { return NULL; }
 	virtual const char *whattype() { return "CurveMapInterface"; }
 	virtual void Clear(SomeData *d);
+	virtual Laxkit::ShortcutHandler *GetShortcuts();
 
 	virtual int Refresh();
 	virtual int LBDown(int x,int y,unsigned int state,int count,const Laxkit::LaxMouse *d);
@@ -110,6 +115,7 @@ class CurveMapInterface : public anInterface
 	virtual void send(int which=0);
 	virtual double f(double x);
 	virtual Laxkit::CurveInfo *GetInfo() { return curveinfo; }
+	virtual int CopyInfo(Laxkit::CurveInfo *info);
 	virtual int SetInfo(Laxkit::CurveInfo *info);
 	virtual int AddPoint(double x,double y);
 	virtual int MovePoint(int index, double x,double y);

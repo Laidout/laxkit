@@ -112,6 +112,7 @@ class CurveWindow : public anXWindow
 	virtual double f(double x);
 	virtual CurveInfo *GetInfo() { return curveinfo; }
 	virtual int SetInfo(CurveInfo *info);
+	virtual int CopyInfo(CurveInfo *info);
 	virtual int AddPoint(double x,double y);
 	virtual int MovePoint(int index, double x,double y);
 	virtual void Reset();

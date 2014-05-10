@@ -122,6 +122,17 @@ CurveInfo::~CurveInfo()
 	if (title ) delete[] title;
 }
 
+CurveInfo &CurveInfo::operator=(CurveInfo &l)
+{
+	SetTitle(l.title);
+	SetXBounds(l.xmin,l.xmax,l.xlabel);
+	SetYBounds(l.ymin,l.ymax,l.ylabel);
+	curvetype=l.curvetype;
+	wrap=l.wrap;
+	SetDataRaw(l.points.e,l.points.n);
+	return l;
+}
+
 void CurveInfo::dump_out(FILE *f,int indent,int what,anObject *context)
 {
     Attribute *att=dump_out_atts(NULL,0,context);
@@ -309,6 +320,8 @@ void CurveInfo::Reset()
  * Warning, does NOT make bounds snap to points,
  * but it DOES make points snap to 
  * existing bounds, meaning they are clamped to 0..1 in sample space.
+ *
+ * Points are copied.
  */
 void CurveInfo::SetData(flatpoint *p, int n)
 {
@@ -316,23 +329,21 @@ void CurveInfo::SetData(flatpoint *p, int n)
 	fauxpoints.flush();
 
 	for (int c=0; c<n; c++) AddPoint(p[c].x,p[c].y);
+}
 
-// ***don't think this is necessary anymore:
-//	if (points.e[0].x>0) {
-//		 //add missing initial point
-//		if (wrap) {
-//			if (points.e[points.n-1].x==1) points.push(flatpoint(0,points.e[points.n-1].y), 0);
-//			else {
-//				double r=points.e[0].x/(points.e[0].x-(points.e[points.n-1].x-1));
-//				points.push(flatpoint(0,(points.e[0].y+points.e[points.n-1].y)*r), 0);
-//			}
-//		} else points.push(flatpoint(0,points.e[0].y), 0);
-//	}
-//	if (points.e[points.n-1].x<1) {
-//		 //add missing final point
-//		if (wrap) points.push(flatpoint(1,points.e[0].y));
-//		else points.push(flatpoint(1,points.e[points.n-1].y));
-//	}
+/*! Copies points that are already sorted, and in range [0..1].
+ * Does NOT check to ensure this!
+ * Also flushes fauxpoints.
+ */
+void CurveInfo::SetDataRaw(flatpoint *p, int n)
+{
+	points.flush();
+	fauxpoints.flush();
+
+	points.Allocate(n);
+	//points.CopyRange(0, p,n);
+	memcpy(points.e,p,n*sizeof(flatpoint));
+	points.n=n;
 }
 
 /*! Set whether values wrap around in the x direction.
@@ -340,6 +351,7 @@ void CurveInfo::SetData(flatpoint *p, int n)
  */
 void CurveInfo::Wrap(bool wrapx)
 {
+	if (wrapx!=wrap) fauxpoints.flush();
 	wrap=wrapx;
 }
 
@@ -408,9 +420,10 @@ void CurveInfo::SetTitle(const char *ntitle)
 
 /*! WARNING! This DOES NOT remap existing this->points.
  *
+ * Only sets xlabel if nxlabel!=NULL.
  * \todo decide which is better, remapping or not remapping
  */
-void CurveInfo::SetXBounds(double nxmin, double nxmax)
+void CurveInfo::SetXBounds(double nxmin, double nxmax, const char *nxlabel)
 {
 	//for (int c=0; c<points.n; c++) {
 	//	points.e[c].x = ((points.e[c].y*(xmax-xmin)+xmin)-nxmin)/(nxmax-nxmin);
@@ -418,19 +431,21 @@ void CurveInfo::SetXBounds(double nxmin, double nxmax)
 
 	xmin=nxmin;
 	xmax=nxmax;
+	if (nxlabel) makestr(xlabel,nxlabel);
 
 	fauxpoints.flush();
 }
 
 /*! WARNING! This DOES remap existing this->points.
  */
-void CurveInfo::SetYBounds(double nymin, double nymax)
+void CurveInfo::SetYBounds(double nymin, double nymax, const char *nylabel)
 {
 	for (int c=0; c<points.n; c++) {
 		points.e[c].y = ((points.e[c].y*(ymax-ymin)+ymin)-nymin)/(nymax-nymin);
 	}
 	ymin=nymin;
 	ymax=nymax;
+	if (nylabel) makestr(xlabel,nylabel);
 
 	fauxpoints.flush();
 }
@@ -598,7 +613,7 @@ void CurveInfo::MakeFakeCurve()
 {
 	fauxpoints.flush();
 
-	flatvector v,p, pp,pn;
+	flatvector v,p, pp,pn, opp,opn;
 	double sx;
 
 	if (points.n==0) return;
@@ -613,19 +628,23 @@ void CurveInfo::MakeFakeCurve()
 	}
 
 	for (int c=0; c<points.n; c++) {
+		 //find a previous point to work with
 		if (c==0) {
-			if (wrap) v=points.e[1]-(points.e[points.n-2]-flatpoint(1,0));
-			else v=flatpoint(0,0);
-		} else if (c==points.n-1) {
-			if (wrap) v=(flatpoint(1,0)+points.e[1])-points.e[c-1];
-			else v=flatpoint(0,0);
-		} else {
-			v=points.e[c+1]-points.e[c-1];
-		}
+			if (wrap) opp=points.e[points.n-1]-flatpoint(1,0);
+			else { opp=points.e[0]; opp.x=0; }
+		} else opp=points.e[c-1];
+
+		 //find a next point to work with
+		if (c==points.n-1) {
+			if (wrap) opn=points.e[0]+flatpoint(1,0);
+			else { opn=points.e[c]; opn.x=1; }
+		} else opn=points.e[c+1];
+
+		v=opn-opp;
 		v.normalize();
 
 		p=points.e[c];
-		sx=(p.x-points.e[c-1].x)*.5;
+		sx=(p.x-opp.x)*.5;
 		pp=p - v*sx;
 //		if (pp.y>1) {
 //			pp=p-v*(1-p.y);
@@ -633,7 +652,7 @@ void CurveInfo::MakeFakeCurve()
 //			pp=p-v*(p.y);
 //		}
 
-		sx=(points.e[c+1].x-p.x)*.5;
+		sx=(opn.x-p.x)*.5;
 		pn=p + v*sx;
 //		if (pn.y>1) {
 //			pn=p+v*(1-p.y);
@@ -646,18 +665,35 @@ void CurveInfo::MakeFakeCurve()
 		fauxpoints.push(pn);
 	}
 
+	 //add previous and final points if necessary
 	if (wrap) {
-		 //add previous and final points if necessary
-		 if (fauxpoints.e[0].x>0) {
-			 fauxpoints.push(fauxpoints.e[fauxpoints.n-1]-flatpoint(1,0), 0);
-			 fauxpoints.push(fauxpoints.e[fauxpoints.n-2]-flatpoint(1,0), 0);
-			 fauxpoints.push(fauxpoints.e[fauxpoints.n-3]-flatpoint(1,0), 0);
-		 }
-		 if (fauxpoints.e[points.n-1].x<1) {
-			 fauxpoints.push(fauxpoints.e[0]+flatpoint(1,0));
-			 fauxpoints.push(fauxpoints.e[1]+flatpoint(1,0));
-			 fauxpoints.push(fauxpoints.e[2]+flatpoint(1,0));
-		 }
+		int added=0;
+		if (fauxpoints.e[1].x>0) {
+		    fauxpoints.push(fauxpoints.e[fauxpoints.n-1]-flatpoint(1,0), 0);
+		    fauxpoints.push(fauxpoints.e[fauxpoints.n-2]-flatpoint(1,0), 0);
+		    fauxpoints.push(fauxpoints.e[fauxpoints.n-3]-flatpoint(1,0), 0);
+			added=3;
+		}
+		if (fauxpoints.e[points.n-2].x<1) {
+		    fauxpoints.push(fauxpoints.e[added+0]+flatpoint(1,0));
+		    fauxpoints.push(fauxpoints.e[added+1]+flatpoint(1,0));
+		    fauxpoints.push(fauxpoints.e[added+2]+flatpoint(1,0));
+		}
+	} else {
+		if (fauxpoints.e[1].x>0) {
+			double y=fauxpoints.e[1].y;
+			fauxpoints.e[0]=fauxpoints.e[1];
+		    fauxpoints.push(flatpoint(0,y), 0);
+		    fauxpoints.push(flatpoint(0,y), 0);
+		    fauxpoints.push(flatpoint(0,y), 0);
+		}
+		if (fauxpoints.e[points.n-2].x<1) {
+			double y=fauxpoints.e[fauxpoints.n-2].y;
+			fauxpoints.e[fauxpoints.n-1]=fauxpoints.e[fauxpoints.n-2];
+		    fauxpoints.push(flatpoint(1,y));
+		    fauxpoints.push(flatpoint(1,y));
+		    fauxpoints.push(flatpoint(1,y));
+		}
 	}
 }
 
@@ -670,6 +706,17 @@ flatpoint CurveInfo::MapUnitPoint(flatpoint p)
 	p.y=p.y*(ymax-ymin)+ymin;
 	return p;
 }
+
+/*! p is a point with x,y in range [xmin..xmax],[ymin..ymax].
+ * Return a point scaled to [0..1].
+ */
+flatpoint CurveInfo::MapToUnitPoint(flatpoint p)
+{
+	p.x=(p.x-xmin)/(xmax-xmin);
+	p.y=(p.y-ymin)/(ymax-ymin);
+	return p;
+}
+
 
 
 

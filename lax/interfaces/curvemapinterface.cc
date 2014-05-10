@@ -25,6 +25,7 @@
 #include <lax/laxutils.h>
 #include <lax/strmanip.h>
 #include <lax/bezutils.h>
+#include <lax/language.h>
 
 #include <iostream>
 using namespace std;
@@ -37,6 +38,11 @@ using namespace LaxFiles;
 
 namespace LaxInterfaces {
 
+
+enum CurveMapIA {
+	CURVEM_ToggleWrap,
+	CURVEM_MAX
+};
 
 
 //-------------------------------- CurveMapInterface ----------------------------------
@@ -73,6 +79,8 @@ CurveMapInterface::CurveMapInterface(int nid, Laxkit::Displayer *ndp,
 
 	histogram=NULL;
 	hist_n=0;
+
+	sc=NULL;
 }
 
 CurveMapInterface::~CurveMapInterface()
@@ -82,6 +90,8 @@ CurveMapInterface::~CurveMapInterface()
 	if (curveinfo) curveinfo->dec_count();
 
 	if (histogram) delete[] histogram;
+
+	if (sc) sc->dec_count();
 }
 
 void CurveMapInterface::Clear(SomeData *d)
@@ -164,6 +174,16 @@ int CurveMapInterface::Event(const EventData *e,const char *mes)
 	}
 
 	return anInterface::Event(e,mes);
+}
+
+/*! copies info into this->curveinfo
+ */
+int CurveMapInterface::CopyInfo(CurveInfo *info)
+{
+	if (!info) return 1;
+	if (!curveinfo) curveinfo=new CurveInfo();
+	(*curveinfo)=(*info);
+	return 0;
 }
 
 int CurveMapInterface::SetInfo(CurveInfo *info)
@@ -348,6 +368,8 @@ void CurveMapInterface::ChangeEditable(unsigned int which, int on)
 	else editable&=~which;
 }
 
+/*! Scan for the various editable lables.
+ */
 int CurveMapInterface::scaneditable(int x,int y)
 {
 	int found=0;
@@ -385,32 +407,40 @@ int CurveMapInterface::scan(int x,int y)
 	return -1;
 }
 
+/*! Return a potential point to add to the curve. This is a point near the curve,
+ * but not an existing point.
+ * If no point is near 0 is returned, else 1.
+ *
+ * If found, the point should be inserted at position returned in index. The
+ * point returned in p_ret is a unit point (in range 0..1).
+ *
+ * If x,y is not within a certain scan distance, then point is not detected.
+ */
 int CurveMapInterface::scannear(int x,int y, flatpoint *p_ret, int *index)
 {
 
 	flatpoint p(((double)x-rect.x)/rect.width, ((double)rect.y+rect.height-y)/rect.height);
 	flatpoint lp;
 	flatpoint v,p1,p2;
+	double scandistance=20./rect.height;
 
-	double scandistance=10./rect.height;
+	if (p.x<0 || p.x>1 || p.y<0 || p.y>1) return 0;
 
-	for (int c=0; c<curveinfo->points.n-1; c++) {
-		p1=curveinfo->points.e[c]; //is point in range 0..1
-		p2=curveinfo->points.e[c+1]; //is point in range 0..1
-		if (p.x>=p2.x) continue;
-		if (p.x<p1.x) continue;
+	lp.x=p.x;
+	lp.y=curveinfo->f(p.x);
+	lp=curveinfo->MapToUnitPoint(lp);
 
-		v=p2-p1;
-		if (v.x==0) continue; //don't allow dividing vertical lines
-
-		lp=p1+v*((p.x-p1.x)/v.x);
-
-		if (fabs(lp.y-p.y)<scandistance) {
-			*p_ret=lp;
-			*index=c+1;
-			return 1;
+	if (fabs(lp.y-p.y)<scandistance) {
+		int c=0;
+		for (c=0; c<curveinfo->points.n; c++) {
+			if (lp.x<curveinfo->points.e[c].x) break;
 		}
+
+		*index=c;
+		*p_ret=lp;
+		return 1;
 	}
+
 	return 0;
 }
 
@@ -562,9 +592,15 @@ int CurveMapInterface::MouseMove(int x,int y,unsigned int state,const LaxMouse *
 
 	 //clamp to x boundaries of current segment
 	if (pp==0) {
-		curveinfo->points.e[pp].x=0;
+		if (curveinfo->points.e[pp].x<0) curveinfo->points.e[pp].x=0;
+		else if (curveinfo->points.n>1 && curveinfo->points.e[pp].x>curveinfo->points.e[pp+1].x) 
+			curveinfo->points.e[pp].x=curveinfo->points.e[pp+1].x;
+
 	} else if (pp==curveinfo->points.n-1) {
-		curveinfo->points.e[pp].x=1;
+		if (curveinfo->points.e[pp].x>1) curveinfo->points.e[pp].x=1;
+		else if (curveinfo->points.n>1 && curveinfo->points.e[pp].x<curveinfo->points.e[pp-1].x) 
+			curveinfo->points.e[pp].x=curveinfo->points.e[pp-1].x;
+
 	} else {
 		if (curveinfo->points.e[pp].x<curveinfo->points.e[pp-1].x) 
 			curveinfo->points.e[pp].x=curveinfo->points.e[pp-1].x;
@@ -676,8 +712,44 @@ int CurveMapInterface::CharInput(unsigned int ch, const char *buffer,int len,uns
 		else if (viewport) viewport->Pop(this,1);
 	}
 
+     //check shortcuts
+    if (!sc) GetShortcuts();
+    int action=sc->FindActionNumber(ch,state&LAX_STATE_MASK,0);
+    if (action>=0) {
+        return PerformAction(action);
+    }
 
 	return 1;
+}
+
+int CurveMapInterface::PerformAction(int action)
+{
+	if (action==CURVEM_ToggleWrap) {
+		curveinfo->Wrap(!curveinfo->wrap);
+		needtodraw=1;
+		return 0;
+	}
+
+	return 1;
+}
+
+Laxkit::ShortcutHandler *CurveMapInterface::GetShortcuts()
+{
+   if (sc) return sc;
+    ShortcutManager *manager=GetDefaultShortcutManager();
+    sc=manager->NewHandler(whattype());
+    if (sc) return sc;
+
+    //virtual int Add(int nid, const char *nname, const char *desc, const char *icon, int nmode, int assign);
+
+    sc=new ShortcutHandler(whattype());
+
+    sc->Add(CURVEM_ToggleWrap,      'w',0,0,        "ToggleWrap",  _("Toggle wrapping"),NULL,0);
+    //sc->Add(CURVEM_ToggleBrushRamp, 'b',0,0,        "ToggleBrushRamp", _("Toggle brush ramp edit mode"),NULL,0);
+
+
+    manager->AddArea(whattype(),sc);
+    return sc;
 }
 
 
