@@ -263,6 +263,13 @@ typedef spacevector spacepoint;
 /*! \class flatvector
  * \brief 2 Dimensional vector (x,y)
  */
+/*! \var flatvector::info
+ * This is used by some functions to store the type of point this represents, for
+ * instance by points returned from draw_thing_coordinates(), or points drawn by
+ * Displayer::drawFormattedPoints().
+ *
+ * Namely, see PointInfoTags.
+ */
 
 //! Make a unit vector, preserving angle. If null vector, do nothing.
 void flatvector::normalize()
