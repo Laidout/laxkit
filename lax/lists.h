@@ -53,6 +53,8 @@ class NumStack
 	virtual int remove(int which=-1);
 	virtual void Delta(int ndelta) { if (ndelta>=0) delta=ndelta; }
 	virtual int Delta() { return delta; }
+	virtual int Allocated() { return max; }
+	virtual int Allocate(int newmax);
 	virtual T *extractArray(int *nn=NULL);
 	virtual int insertArray(T *a,int nn);
 };

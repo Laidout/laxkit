@@ -85,6 +85,9 @@ namespace Laxkit {
 /*! \fn int NumStack::Delta()
  * \brief Get the delta, the size of a chunk of memory to allocate or deallocate.
  */
+/*! \fn int NumStack::Allocated()
+ * \brief Return number of elements currently allocated.
+ */
 /*! \fn int NumStack<T>::howmany()
  * \brief Returns how many things are on the stack.
  *
@@ -144,6 +147,22 @@ const NumStack<T> &NumStack<T>::operator=(const NumStack<T> &numstack)
 		memcpy(e,numstack.e,n*sizeof(T));
 	}
 	return numstack;
+}
+
+//! Ensure that the number of allocated is at least newmax.
+/*! If newmax<max, then nothing is done and max is returned.
+ * The new (or old) number of allocated elements is returned.
+ */
+template <class T>
+int NumStack<T>::Allocate(int newmax)
+{
+	if (newmax<max) return max;
+	T *newt=new T[newmax];
+	memcpy(newt,e,n*sizeof(T));
+	delete[] e;
+	e=newt;
+	max=newmax;
+	return max;
 }
 
 //! Return the e array, and set e to NULL, max=n=0.
