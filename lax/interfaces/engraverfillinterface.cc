@@ -704,8 +704,7 @@ void EngraverFillData::dump_out_svg(const char *file)
 	fclose(f);
 }
 
-/*! Add more sample points around lp.
- * If lp==NULL, then add more points between all points.
+/*! Add more sample points between all existing points.
  *
  * Approximate each line with a bezier curve, and grab the center of each segment.
  *
@@ -758,13 +757,18 @@ void EngraverFillData::MorePoints()
 	}
 }
 
-/*! Makes fauxpoints be a bezier list: c-p-c-c-p-c-...-c-p-c
+/*! points is a special list of sample points, meaning points that lie on the line.
+ * This makes fauxpoints be a bezier list: c-p-c-c-p-c-...-c-p-c smoothly connecting all the points.
+ *
+ * points is assumed to be a list of top points, then of matched bottom points, so
+ * points[0] is on top top points[points.n/2], and so on.
+ * Currently only round caps are applied.
  */
 void EngraverFillData::BezApproximate(Laxkit::NumStack<flatvector> &fauxpoints, Laxkit::NumStack<flatvector> &points)
 {
 	// There are surely better ways to do this. Not sure how powerstroke does it.
-	// It is not simplied/optimized at all. Each point gets control points to smooth it out.
-	// no fancy corner handling done
+	// This is not simplied/optimized at all. Each point gets control points to smooth it out.
+	// no fancy corner handling done yet
 
     fauxpoints.flush();
 
