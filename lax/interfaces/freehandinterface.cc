@@ -53,8 +53,6 @@ namespace LaxInterfaces {
  *   On mouse down, this records all mouse movement, and converts
  *   the points into a bez curve (linear or cubic) on mouse up.
  *
- * \todo ***Currently, this sucks. Should figure out how Sodipodi/inkscape does it.
- *  
  * \todo *** make closed when final point is close to first point
  */
 
@@ -144,20 +142,16 @@ Laxkit::MenuInfo *FreehandInterface::ContextMenu(int x,int y,int deviceid)
 	if (freehand_style&FREEHAND_Lock_Type) return NULL;
 
 	MenuInfo *menu=new MenuInfo;
-	//menu->AddItem(_("Create raw points"), FREEHAND_Raw_Path, (freehand_style&FREEHAND_Raw_Path)?LAX_CHECKED:0);
-	//menu->AddItem(_("Create simplified polyline"), FREEHAND_Poly_Path, (freehand_style&FREEHAND_Poly_Path)?LAX_CHECKED:0);
-	//menu->AddItem(_("Create bezier line"), FREEHAND_Bez_Path, (freehand_style&FREEHAND_Bez_Path)?LAX_CHECKED:0);
-	//menu->AddItem(_("Create bezier outline"), FREEHAND_Bez_Outline, (freehand_style&FREEHAND_Bez_Outline)?LAX_CHECKED:0);
-	//menu->AddItem(_("Create mesh"), FREEHAND_Color_Mesh, (freehand_style&FREEHAND_Color_Mesh)?LAX_CHECKED:0);
-	//menu->AddItem(_("Create symmetric mesh"), FREEHAND_Double_Mesh, (freehand_style&FREEHAND_Color_Mesh)?LAX_CHECKED:0);
 
-	menu->AddItem(_("Create raw points"), FREEHAND_Raw_Path );
-	menu->AddItem(_("Create simplified polyline"), FREEHAND_Poly_Path );
-	menu->AddItem(_("Create bezier line"), FREEHAND_Bez_Path );
-	menu->AddItem(_("Create bezier outline"), FREEHAND_Bez_Outline);
-	menu->AddItem(_("Create color mesh"), FREEHAND_Color_Mesh);
-	menu->AddItem(_("Create grid mesh"), FREEHAND_Grid_Mesh);
-	menu->AddItem(_("Create symmetric mesh"), FREEHAND_Double_Mesh);
+	menu->AddItem(_("Create raw points"),               FREEHAND_Raw_Path ,    LAX_ISTOGGLE|((freehand_style&FREEHAND_Raw_Path )   ?LAX_CHECKED:0));
+	menu->AddItem(_("Create simplified polyline"),      FREEHAND_Poly_Path ,   LAX_ISTOGGLE|((freehand_style&FREEHAND_Poly_Path )  ?LAX_CHECKED:0));
+	menu->AddItem(_("Create bezier line"),              FREEHAND_Bez_Path ,    LAX_ISTOGGLE|((freehand_style&FREEHAND_Bez_Path )   ?LAX_CHECKED:0));
+	menu->AddItem(_("Create bezier outline"),           FREEHAND_Bez_Outline,  LAX_ISTOGGLE|((freehand_style&FREEHAND_Bez_Outline) ?LAX_CHECKED:0));
+	menu->AddItem(_("Create bezier with weight nodes"), FREEHAND_Bez_Weighted, LAX_ISTOGGLE|((freehand_style&FREEHAND_Bez_Weighted)?LAX_CHECKED:0));
+	menu->AddItem(_("Create color mesh"),               FREEHAND_Color_Mesh,   LAX_ISTOGGLE|((freehand_style&FREEHAND_Color_Mesh)  ?LAX_CHECKED:0));
+	menu->AddItem(_("Create grid mesh"),                FREEHAND_Grid_Mesh,    LAX_ISTOGGLE|((freehand_style&FREEHAND_Grid_Mesh)   ?LAX_CHECKED:0));
+	menu->AddItem(_("Create symmetric mesh"),           FREEHAND_Double_Mesh,  LAX_ISTOGGLE|((freehand_style&FREEHAND_Double_Mesh) ?LAX_CHECKED:0));
+
 	return menu;
 }
 
@@ -181,6 +175,9 @@ int FreehandInterface::Event(const Laxkit::EventData *e,const char *mes)
 
 		} else if (i==FREEHAND_Bez_Outline ) {
 			freehand_style=FREEHAND_Bez_Outline;
+
+		} else if (i==FREEHAND_Bez_Weighted ) {
+			freehand_style=FREEHAND_Bez_Weighted;
 
 		} else if (i==FREEHAND_Grid_Mesh        ) {
 			freehand_style=FREEHAND_Grid_Mesh;
@@ -220,7 +217,7 @@ int FreehandInterface::Refresh()
 		}
 		dp->stroke(0);
 
-		if (freehand_style&(FREEHAND_Bez_Outline|FREEHAND_Mesh)) {
+		if (freehand_style&(FREEHAND_Bez_Outline|FREEHAND_Bez_Weighted|FREEHAND_Mesh)) {
 			 //draw pressure indicator
 			dp->NewFG(1.,0.,1.,1.);
 			flatvector vt;
@@ -597,6 +594,7 @@ int FreehandInterface::send(int i)
 
 		NumStack<flatpoint> points;
 
+		 //top of line
 		flatvector vt, pp,pn;
 		for (int c2=0; c2<line->n; c2++) {
 			if (line->e[c2]->pressure<0 || line->e[c2]->pressure>1) continue;
@@ -611,6 +609,7 @@ int FreehandInterface::send(int i)
 			points.push(line->e[c2]->p + vt);
 		}
 
+		 //bottom of line
 		for (int c2=line->n-1; c2>=0; c2--) {
 			if (line->e[c2]->pressure<0 || line->e[c2]->pressure>1) continue;
 
@@ -625,13 +624,13 @@ int FreehandInterface::send(int i)
 		}
 
 
-		Coordinate *coord=LaxInterfaces::BezApproximate(points.e,points.n);
-
 		PathsData *paths=NULL;
 		if (somedatafactory) {
             paths=dynamic_cast<PathsData*>(somedatafactory->newObject(LAX_PATHSDATA));
         }
         if (!paths) paths=new PathsData();
+
+		Coordinate *coord=LaxInterfaces::BezApproximate(points.e,points.n);
 
 		paths->appendCoord(coord);
 		paths->close();
@@ -641,6 +640,38 @@ int FreehandInterface::send(int i)
 		sendObject(paths,FREEHAND_Bez_Outline);
 
 		delete line;
+	}
+
+	if (freehand_style&(FREEHAND_Bez_Weighted)) {
+		 //return a mesh based on a bezierified line, which is based on a reduced polyline
+		RawPointLine *line=Reduce(i, smooth_pixel_threshhold/dp->Getmag());
+
+		 //each point in line gets 3 coords in:
+		Coordinate *coord=BezApproximate(line);
+		Path *path=new Path(coord);
+
+		Coordinate *cc=coord->next;
+		NumStack<flatpoint> points_top,points_bottom;
+		flatvector vt, pp,pn;
+		int i=0;
+		while (cc) {
+			if (i==0) pp=cc->fp; else pp=cc->prev->fp;
+			if (i==line->n-1) pn=cc->fp; else pn=cc->next->fp;
+
+			path->AddWeightNode(i, 0, brush_size/dp->Getmag()*line->e[i]->pressure);
+
+			i++;
+			cc=cc->next->next;
+			if (cc) { cc=cc->next; }
+		}
+		delete line;
+
+
+		PathsData *pdata=new PathsData();
+		pdata->paths.push(path);
+		pdata->FindBBox();
+
+		sendObject(pdata,FREEHAND_Bez_Weighted);
 	}
 
 	if (freehand_style&(FREEHAND_Color_Mesh | FREEHAND_Double_Mesh)) {
