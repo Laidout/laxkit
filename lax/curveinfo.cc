@@ -374,8 +374,8 @@ int CurveInfo::AddPoint(double x,double y)
 			points.push(p,c);
 			return 0;
 		}
-		if (p.x==x) {
-			points.e[c].y=y;
+		if (p.x==points.e[c].x) {
+			points.e[c].y=p.y;
 			return 1;
 		}
 	}
