@@ -18,7 +18,7 @@
 //    License along with this library; if not, write to the Free Software
 //    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
-//    Copyright (C) 2004-2007,2010-2012 by Tom Lechner
+//    Copyright (C) 2004-2007,2010-2014 by Tom Lechner
 //
 
 
@@ -30,6 +30,8 @@
 #include <lax/bezutils.h>
 #include <lax/transformmath.h>
 #include <lax/language.h>
+#include <lax/curveinfo.h>
+#include <lax/curvewindow.h>
 
 #include <lax/lists.cc>
 
@@ -55,6 +57,12 @@ DBG flatpoint POINT;
 #define PSELECT_SelectPathop (1<<2)
 #define PSELECT_SyncVertex   (1<<3)
 
+
+namespace LaxInterfaces {
+
+
+//------------------------------------- PathUndo -------------------------------------
+
 enum PathHoverType {
 	HOVER_None=0,
 	HOVER_Point,
@@ -71,6 +79,7 @@ enum PathHoverType {
 	HOVER_AddToSelection,
 	HOVER_RemoveFromSelection,
 	HOVER_AddWeightNode,
+	HOVER_RemoveWeightNode,
 	HOVER_Weight,
 	HOVER_WeightTop,
 	HOVER_WeightBottom,
@@ -79,7 +88,13 @@ enum PathHoverType {
 };
 
 
-namespace LaxInterfaces {
+//------------------------------------- PathCoordinate -------------------------------------
+class PathCoordinate : public Coordinate
+{
+  public:
+	int cache_n;
+	flatpoint *cache_p;
+};
 
 
 //------------------------------------- PathUndo -------------------------------------
@@ -101,6 +116,31 @@ enum PathUndoTypes {
 	PATHUNDO_MAX
 };
 
+
+//------------------------------------- PathWeightNode -------------------------------------
+PathWeightNode::PathWeightNode()
+{
+	width=1;
+	offset=0;
+	t=.5;
+	type=Symmetric;
+	cache_status=-1;
+
+	angle=0;
+	absoluteangle=false;
+}
+
+PathWeightNode::PathWeightNode(double nt,double no,double nw, int ntype)
+{
+	width=nw;
+	offset=no;
+	t=nt;
+	type=ntype;
+	cache_status=-1;
+
+	angle=0;
+	absoluteangle=false;
+}
 
 
 //------------------------------------- Path -------------------------------------
@@ -129,7 +169,10 @@ PtrStack<PathOperator> Path::basepathops;
 
 Path::Path()
   : path(NULL), linestyle(NULL)
-{}
+{
+	//cache_mod_time=0;
+	needtorecache=1;
+}
 
 /*! Incs count of linestyle.
  */
@@ -138,6 +181,9 @@ Path::Path(Coordinate *np,LineStyle *nls)
 	path=np;
 	linestyle=nls;
 	if (linestyle) linestyle->inc_count();
+
+	//cache_mod_time=0;
+	needtorecache=1;
 }
 
 //! Destructor always deletes path.
@@ -154,12 +200,18 @@ void Path::clear()
 {
 	delete path;
 	path=NULL;
+	pathweights.flush();
+	needtorecache=1;
 }
 
 Path *Path::duplicate()
 {
 	Path *newpath=new Path(NULL,linestyle);
 	if (path) newpath->path=path->duplicateAll();
+
+	for (int c=0; c<pathweights.n; c++) {
+		newpath->AddWeightNode(pathweights.e[c]->t,pathweights.e[c]->offset,pathweights.e[c]->width);
+	}
 
 	return newpath;
 }
@@ -237,6 +289,7 @@ void Path::dump_out(FILE *f,int indent,int what,Laxkit::anObject *context)
 			do {
 				if (p->flags&POINT_VERTEX) {
 					int pt=p->flags&BEZ_MASK;
+					if (pt==0) pt=BEZ_STIFF_EQUAL;
 					if (pt==BEZ_STIFF_EQUAL) pt='S';
 					else if (pt==BEZ_STIFF_NEQUAL) pt='s';
 					else if (pt==BEZ_NSTIFF_EQUAL) pt='e';
@@ -324,6 +377,276 @@ void Path::dump_in_atts(LaxFiles::Attribute *att,int flag,Laxkit::anObject *cont
 		}
 	}
 	if (closed && path) path->close();
+	// *** should probably sanitize the weight list
+	needtorecache=1;
+}
+
+/*! Does nothing if needtorecache==0.
+ * Otherwise rebuild outlinecache and areacache. areacache is the center of the stroke,
+ * inside of which is to be filled. For nonweighted, non-offset paths, this is the same as the base line.
+ */
+void Path::UpdateCache()
+{
+	if (needtorecache==0) return;
+	if (!Weighted()) { needtorecache=0; return; }
+
+
+	//strategy is to approximate the width along the curve in an abstract space not
+	//tied to the windings of the base path.
+	//then subdivide the base path a couple of times to generate sample points at the given widths.
+	//from the sample points, now approximate the actual used outlines
+
+	Coordinate *p=path->firstPoint(1);
+	if (!(p->flags&POINT_VERTEX)) { // is degenerate path: no vertices
+		DBG cerr <<"Degenerate path (shouldn't happen!)"<<endl;
+		return;
+	}
+
+	outlinecache.flush();
+	areacache.flush();
+
+	Coordinate *p2, *start=p;
+	flatpoint wtop,wbottom;
+	NumStack<flatpoint> topp,bottomp, areap;
+
+	CurveInfo offset_top;
+	CurveInfo offset_bottom;
+	CurveInfo angle;
+
+	flatpoint bez[20];
+	double ymax,ymin;
+	bool isclosed;
+
+
+	 //first find the number of vertex points in the line, which
+	 //is the number of bezier segments in the line, which also
+	 //is the x bounds of the width curve.
+	int n=NumVertices(&isclosed);
+	if (!isclosed) n--; //path is open, so num_segments = num_vertices - 1
+	if (n==0) return; //single point, open path!
+
+	offset_top.SetXBounds(0,n);
+	offset_bottom.SetXBounds(0,n);
+	//angle.SetXBounds(0,n);
+	if (isclosed) {
+		offset_top.Wrap(true);
+		offset_bottom.Wrap(true);
+		//angle.Wrap(true);
+	}
+
+	 //gather bounds and points to define the offset curves
+	ymax=ymin=pathweights.e[0]->topOffset();
+	for (int c=0; c<pathweights.n; c++) {
+		wtop=flatpoint(pathweights.e[c]->t, pathweights.e[c]->topOffset());
+		wbottom=flatpoint(pathweights.e[c]->t, pathweights.e[c]->bottomOffset());
+		topp.push(wtop);
+		bottomp.push(wbottom);
+
+		if (wtop.y>ymax) ymax=wtop.y;
+		if (wtop.y<ymin) ymin=wtop.y;
+		if (wbottom.y>ymax) ymax=wbottom.y;
+		if (wbottom.y<ymin) ymin=wbottom.y;
+	}
+
+	ymax+=(ymax-ymin)*.25;
+	ymin-=(ymax-ymin)*.25;
+
+	offset_top.SetYBounds(ymin,ymax);
+	offset_top.SetData(topp.e,topp.n);
+	offset_top.RefreshLookup();
+
+	DBG cerr <<"path:"<<endl;
+	DBG dump_out(stderr,0,0,NULL);
+	DBG for (int ii=0; ii<topp.n; ii++) cerr <<"topp "<<ii<<": "<<topp.e[ii].x<<','<<topp.e[ii].x<<endl;
+	DBG offset_top.dump_out(stderr,0,0,NULL);
+
+	offset_bottom.SetYBounds(ymin,ymax);
+	offset_bottom.SetData(bottomp.e,bottomp.n);
+	offset_bottom.RefreshLookup();
+
+
+	DBG cerr <<"offset_top:"<<endl;
+	DBG offset_top.dump_out(stderr,0, 0,NULL);
+
+    //DBG CurveWindow *ww=new CurveWindow(NULL,"curve","curve",ANXWIN_ESCAPABLE,0,0,400,400,0,NULL,0,NULL);
+    //DBG ww->CopyInfo(&offset_top);
+    //DBG anXApp::app->addwindow(ww);
+
+	//CurveMapInterface *ww=new CurveMapInterface(-1,dp,_("Brush Ramp"));
+	//ww->SetInfo(&thickness);
+	//child=ww;
+	//ww->owner=this;
+	//int pad=(dp->Maxx-dp->Minx)*.1;
+	//ww->SetupRect(dp->Minx+pad,dp->Miny+pad, dp->Maxx-dp->Minx-2*pad,dp->Maxy-dp->Miny-2*pad);
+	//viewport->Push(ww,-1,0);
+
+
+
+	 //
+	 //top and bottom offset curves now built, now need to build the actual paths,
+	 //do offset_top part of line first
+	 //
+
+	topp.flush();
+	bottomp.flush();
+
+	flatpoint c1,c2;
+	p=start;
+	int cp=0;
+	flatpoint pp,vv,vt;
+	int first=(isclosed?1:0); //index to begin render to segment.. for open paths, needs to start at 0
+
+	double ttop=offset_top.f(cp);
+	double tbottom=offset_bottom.f(cp);
+	int resolution=20;
+	double rr=1./resolution;
+
+
+	//if (***absolute angle) vv.SetAngle(angle.f(cp), length=1);
+	PointAlongPath(cp, 0, &pp, &vv);
+	if (vv.isZero()) vv.x=1;
+	vt=-transpose(vv);
+	vt.normalize();
+
+	topp   .push(pp+vt*ttop);
+	bottomp.push(pp+vt*tbottom);
+	areap  .push((topp.e[topp.n-1]+bottomp.e[bottomp.n-1])/2);
+
+	do { //one loop per vertex point
+		p2=p->next; //p points to a vertex
+		if (!p2) break;
+
+		// *** need to check join with previous segment, special handling for corners...
+
+		//p2 now points to first Coordinate after the first vertex
+		if (p2->flags&(POINT_TOPREV|POINT_TONEXT)) {
+			 //we do have control points
+			if (p2->flags&POINT_TOPREV) {
+				c1=p2->p();
+				p2=p2->next;
+			} else c1=p->p();
+			if (!p2) break;
+
+			if (p2->flags&POINT_TONEXT) {
+				c2=p2->p();
+				p2=p2->next;
+			} else { //otherwise, should be a vertex
+				//p2=p2->next;
+				c2=p2->p();
+			}
+
+			bez_points(bez, p->p(), c1,c2, p2->p(), resolution, first);
+		} else {
+			 //we do not have control points, so is just a straight line segment
+			bez_points(bez, p->p(), p->p()+1./3*(p2->p() - p->p()),p->p()+2./3*(p2->p() - p->p()), p2->p(), resolution, first);
+		}
+
+		for (int bb=first; bb<resolution; bb++) {
+			DBG cerr <<"point: "<<bb*rr<<endl;
+			vv=bez_tangent(bb*rr, p->p(), c1,c2, p2->p());
+			if (vv.isZero()) vv.x=1;
+			vt=-transpose(vv);
+			vt.normalize();
+
+			topp   .push(bez[bb]+vt*offset_top   .f(cp+bb*rr));
+			bottomp.push(bez[bb]+vt*offset_bottom.f(cp+bb*rr));
+			areap  .push((topp.e[topp.n-1]+bottomp.e[bottomp.n-1])/2);
+		}
+
+		if (first==0) first=1;
+
+
+		p=p2;
+		cp++;
+	} while (p && p->next && p!=start);
+
+	int closed=(p==start);
+
+
+	// Now to build actual cache paths from topp and bottomp raw materials!
+	
+	flatpoint *aa;
+
+	//int capnn=topp.n;
+	if (!closed) {
+		// *** add cap at topp.n
+		for (int c=bottomp.n-1; c>=0; c--) {
+			topp.push(bottomp.e[c]);
+		}
+		// *** add cap at new topp.n
+		topp.e[topp.n-1].info|=LINE_Closed;
+
+	} else {
+		topp.e[topp.n-1].info|=LINE_Closed;
+		for (int c=bottomp.n-1; c>=0; c--) {
+			topp.push(bottomp.e[c]);
+		}
+		topp.e[topp.n-1].info|=LINE_Closed;
+	}
+
+	// *** bez approximate from topp for outlinecache
+	aa=topp.extractArray(&n);
+	outlinecache.insertArray(aa,n);
+
+
+	 //install areap
+	// *** bez approximate from area p
+	aa=areap.extractArray(&n);
+	areacache.insertArray(aa,n);
+
+
+	needtorecache=0;
+}
+
+/*! Return 1 for path has variable width or offset, or 0 for constant width and no offset.
+ */
+int Path::Weighted()
+{
+	if (pathweights.n==0) return 0;
+	if (pathweights.e[0]->offset!=0) return 1;
+	if (pathweights.n==1) return 0; //so 1 weight value, no offset
+
+	double t=pathweights.e[0]->t;
+	for (int c=1; c<pathweights.n; c++) {
+		if (pathweights.e[c]->offset!=0 || pathweights.e[c]->t!=t) return 1;
+	}
+	return 0;
+}
+
+/*! Shift the position of a weight node, ensuring that the list stays sorted.
+ *
+ * Returns the new index of the node.
+ */
+int Path::MoveWeight(int which, double nt)
+{
+	if (which<0 || which>=pathweights.n) return -1;
+
+	PathWeightNode *w=pathweights.e[which];
+	w->t=nt;
+	int npos=which;
+	while (npos>0 && w->t<pathweights.e[npos-1]->t) npos--;
+	if (npos==which) {
+		while (npos<pathweights.n-1 && w->t>pathweights.e[npos+1]->t) npos++;
+	}
+	if (npos!=which) {
+		if (npos>which) npos--;
+		pathweights.pop(which);
+		pathweights.push(w,1,npos);
+	}
+
+	UpdateWeightCache(w);
+	return npos;
+}
+
+/*! which is an index into weights stack.
+ * Return 0 for success, or 1 for which out of bounds.
+ */
+int Path::RemoveWeightNode(int which)
+{
+	if (which<0 || which>=pathweights.n) return 1;
+	pathweights.remove(which);
+	needtorecache=1;
+	return 0;
 }
 
 void Path::AddWeightNode(double nt,double no,double nw)
@@ -342,11 +665,42 @@ void Path::AddWeightNode(double nt,double no,double nw)
 		pathweights.e[c2]->offset=no;
 		pathweights.e[c2]->width=nw;
 		delete w;
+		w=pathweights.e[c2];
 		c2=-1;
 		break;
 	}
 
 	if (c2>=0) pathweights.push(w,1,c2);
+
+	UpdateWeightCache(w);
+	needtorecache=1;
+}
+
+/*! Updates w->cache_*.
+ */
+void Path::UpdateWeightCache(PathWeightNode *w)
+{
+	flatpoint pp,vv;
+		
+	if (PointAlongPath(w->t, 0, &pp, &vv)==0) {
+		w->cache_status=-1; //point error!
+		return;
+	}
+
+	if (vv.isZero()) vv.x=1;
+
+	w->cache_prev=-vv;
+	w->cache_next=vv;
+
+	flatpoint vt=transpose(vv);
+	vt.normalize();
+
+	w->cache_top   =pp-vt*w->topOffset();
+	w->cache_bottom=pp-vt*w->bottomOffset();
+
+	w->cache_status=0;
+
+	needtorecache=1;
 }
 
 //! Append bezier points taken from the string.
@@ -357,7 +711,8 @@ void Path::AddWeightNode(double nt,double no,double nw)
  * the appending of points.
  *
  * On path vertices may be tagged with 'v', and an optional point type indicator,
- * one of 'c','s','S', or 'e'.
+ * one of 'c' (corner, not equal), 's' (smooth, not equal),
+ * 'S' (smooth, equal), or 'e' (corner, equal).
  */
 void Path::appendBezFromStr(const char *value)
 {
@@ -400,12 +755,71 @@ void Path::appendBezFromStr(const char *value)
 	} while (s && *s);
 }
 
-//! Make sure that path points to the first vertex point of the line, if possible.
+/*! Make sure that path points to the first vertex point of the line, if possible.
+ *  This is generally used after opening a previously closed path.
+ *
+ *  Remaps any weight nodes to be adjusted to new bez indexing.
+ */
 void Path::fixpath()
 {
 	if (!path) return;
+
+	Coordinate *oldfirst=path;
 	path=path->firstPoint(1); // note that firstPoint doesn't return NULL,
 							// but it might return a non-vertex
+
+	if (oldfirst==path) return; //path didn't actually need fixing!
+	if (pathweights.n==0) return; 
+
+	//new we must remap any weight nodes to adjust to the new first point.
+
+	int i=0;
+	bool closed=false;
+	int n=NumVertices(&closed);
+	Coordinate *p=path;
+	while (p && p!=oldfirst) {
+		p=p->nextVertex(0);
+		i++;
+		if (p==path) break; //note: this shouldn't happen
+	}
+
+	//so now i should be > 0 
+
+	PathWeightNode *w;
+	double t;
+	for (int c=0; c<pathweights.n; c++) {
+		w=pathweights.e[c];
+		t=w->t;
+
+		t+=i;
+		if (t>n+1) t-=n;
+		w->t=t;
+	}
+
+	 //remove newly cut off nodes..
+	if (!closed) {
+		for (int c=pathweights.n-1; c>=0; c--) {
+			if (pathweights.e[c]->t>=n-1) RemoveWeightNode(c);
+		}
+	}
+
+	SortWeights();
+}
+
+/*! Use this when for some reason your weights have been scrambled and are not
+ * sorted by t. This is most common after opening a path at random points. When
+ * that happens, high t values get converted to low t values.
+ */
+void Path::SortWeights()
+{
+	int lowest;
+	for (int c=0; c<pathweights.n; c++) {
+		lowest=c;
+		for (int c2=c+1; c2<pathweights.n; c2++) {
+			if (pathweights.e[c2]->t<pathweights.e[c]->t) lowest=c2;
+		}
+		if (lowest!=c) pathweights.swap(c,lowest);
+	}
 }
 
 //! Return the last point (vertex or control) that occurs at the end, or just before path.
@@ -472,10 +886,90 @@ void Path::curveTo(flatpoint c1, flatpoint c2, flatpoint p2)
 }
 
 //! Make sure the path is closed.
-void Path::close()
+/*! Return 1 for path made to be closed. 0 for already closed, or no path.
+ */
+int Path::close()
 {
-	if (!path) return;
-	path->close();
+	if (!path) return 0;
+	if (path->close()) {
+		needtorecache=1;
+		return 1;
+	}
+	//path points to the firstPoint, so no special checking for weight node placement necessary
+	
+	return 0;
+
+}
+
+/*! Make the path an open path by cutting the segment either after cc or before.
+ *
+ * cc must be a vertex. Anything else will be skipped when locating cc in path.
+ * If cc is not found in path, then nothing is done.
+ * If cc is null, then tries to break before this->path.
+ *
+ * If path is already open, nothing is done, and 0 is returned.
+ * If the segment is cut, 1 is returned.
+ *
+ * Any weight nodes in the cut segment are removed. Other nodes are repositioned
+ * to the new bezier indexing.
+ */
+int Path::openAt(Coordinate *curvertex, int after)
+{
+	if (!path) return 0;
+
+	int i=0;
+	Coordinate *p=path;
+	while (p && p!=curvertex) {
+		p=p->nextVertex(0);
+		i++;
+		if (p==path) break;
+	}
+
+	if (p==path && p!=curvertex) return 0; //curvertex not in path!!
+	if (!p) return 0; //already open
+
+	if (after) {
+		p=curvertex;
+		if (curvertex->controls) {
+			 //find break point between segments
+			while (p->next!=curvertex && p->next->controls==curvertex->controls) {
+				p=p->next;
+			}
+		} else {
+			 //must break on a vertex without a TOPREV control, or a TOPREV control
+			if (p->flags&POINT_TONEXT) {
+				p=p->prev;
+			}
+			if ((p->flags&POINT_VERTEX) && (p->next->flags&POINT_TOPREV)) {
+				p=p->next;
+			}
+		}
+		p->next->prev=NULL;
+		p->next=NULL;
+		fixpath();
+
+	} else { //break prev
+		p=curvertex;
+		if (curvertex->controls) {
+			while (p->prev!=curvertex && p->prev->controls==curvertex->controls) {
+				p=p->prev;
+			}
+		} else {
+			 //must break on a vertex without a TONEXT control, or a TONEXT control
+			if (p->flags&POINT_TOPREV) {
+				p=p->next;
+			}
+			if ((p->flags&POINT_VERTEX) && (p->prev->flags&POINT_TONEXT)) {
+				p=p->prev;
+			}
+		}
+		p->prev->next=NULL;
+		p->prev=NULL;
+		fixpath();
+	}
+
+	needtorecache=1;
+	return 1;
 }
 
 //! Find the intersection(s) of the segment (or infinite line) from p1 to p2 and the curve.
@@ -701,6 +1195,51 @@ flatpoint Path::ClosestPoint(flatpoint point, double *disttopath, double *distal
 	if (distalongpath) *distalongpath=vd;
 	if (tdist) *tdist=t;
 	return found;
+}
+
+/*! Return the number of vertices in the path (points on the line, not control handles).
+ *
+ * If isclosed_ret!=NULL, then fill it with whether the path is closed or not.
+ */
+int Path::NumVertices(bool *isclosed_ret)
+{
+	if (!path) return 0;
+
+	int n=0;
+	Coordinate *start=path->firstPoint(1);
+	Coordinate *p=start;
+	do {
+		p=p->nextVertex(0);
+		n++;
+	} while (p && p!=start);
+
+	if (isclosed_ret) *isclosed_ret=(p==start);
+	return n;
+}
+
+/*! Return a vertex index. For instance if p==path, then 0 is returned.
+ * If p==path->nextVertex(0), then 1 is returned. Note that p MUST 
+ * actually be a vertex, not a control handle.
+ *
+ * If ignore_controls==true, then count any bezier vertex.
+ * Otherwise, skip all segments that use the same SegmentControls to get
+ * to the next vertex.
+ *
+ * \todo (NOTE: ignore_controls NOT IMPLEMENTED!!)
+ *
+ * If p is not found in path, then -1 is returned.
+ */
+int Path::GetIndex(Coordinate *p, bool ignore_controls)
+{
+	int i=0;
+	Coordinate *pp=path;
+	while (pp && pp!=p) {
+		pp=pp->nextVertex(0);
+		i++;
+		if (pp==path) break;
+	}
+	if (pp==NULL || (pp==path && i>0)) return -1;
+	return i;
 }
 
 //! Find the distance along the path between the bounds, or whole length if tend<tstart.
@@ -1660,7 +2199,11 @@ PathOperator::~PathOperator()
 PathInterface::PathInterface(int nid,Displayer *ndp) : anInterface(nid,ndp)
 {
 	primary=1;
-	show_weights=false; //see also PATHI_No_Weights
+
+	show_weights=false;   //show and allow edit weights.. see also PATHI_No_Weights
+	//show_points=true;   //show and allow edit points and handles
+	show_baselines=false;
+	show_outline=false;
 
 	pathi_style=0;
 	addmode=ADDMODE_Bezier;
@@ -1922,46 +2465,7 @@ int PathInterface::toggleclosed(int c) //c=-1
 	}
 
 	 //else is closed, and we must open it
-	if (addafter) {
-		Coordinate *p=curvertex;
-		if (curvertex->controls) {
-			 //find break point between segments
-			while (p->next!=curvertex && p->next->controls==curvertex->controls) {
-				p=p->next;
-			}
-		} else {
-			 //must break on a vertex without a TOPREV control, or a TOPREV control
-			if (p->flags&POINT_TONEXT) {
-				p=p->prev;
-			}
-			if ((p->flags&POINT_VERTEX) && (p->next->flags&POINT_TOPREV)) {
-				p=p->next;
-			}
-		}
-		p->next->prev=NULL;
-		p->next=NULL;
-		curpath->fixpath();
-
-	} else { //break prev
-		Coordinate *p=curvertex;
-		if (curvertex->controls) {
-			while (p->prev!=curvertex && p->prev->controls==curvertex->controls) {
-				p=p->prev;
-			}
-		} else {
-			 //must break on a vertex without a TONEXT control, or a TONEXT control
-			if (p->flags&POINT_TOPREV) {
-				p=p->next;
-			}
-			if ((p->flags&POINT_VERTEX) && (p->prev->flags&POINT_TONEXT)) {
-				p=p->prev;
-			}
-		}
-		p->prev->next=NULL;
-		p->prev=NULL;
-		curpath->fixpath();
-	}
-
+	curpath->openAt(curvertex, addafter);
 	data->FindBBox();
 	SetCurvertex(curvertex);
 	needtodraw=1;
@@ -2091,7 +2595,8 @@ int PathInterface::Refresh()
 	needtodraw=0;
 
 
-	//************temp:
+	//************temp to show artificial second pointer.. draws marker on last mouse move from any device:
+	//            uncomment in MouseMove to use
 	//dp->DrawScreen();
 	//dp->drawpoint(POINT+flatpoint(20,0), 10,1);
 	//dp->drawthing(POINT.x+50,POINT.y, 20,20,0, THING_Circle);
@@ -2099,8 +2604,8 @@ int PathInterface::Refresh()
 	//dp->drawthing(POINT.x-50,POINT.y, 20,20,2, THING_Circle);
 	//dp->DrawReal();
 
-	// ------------ draw data-----------------
 
+	// ------------ draw data-----------------
 
 	Coordinate *start,*p,*p2;
 	//PathOperator *pathop=NULL;
@@ -2205,6 +2710,10 @@ int PathInterface::Refresh()
 
 	 //show decorations
 	if (showdecs) {
+		if (show_outline) DrawOutlines();
+		if (show_baselines) DrawBaselines();
+
+
 		for (int cc=0; cc<data->paths.n; cc++) {
 			// position p to be the first point that is a vertex
 			pdata=data->paths.e[cc];
@@ -2319,17 +2828,24 @@ int PathInterface::Refresh()
 			if (show_weights) {
 				flatpoint ppo, pp,vv,vt,ppt,ptop,pbottom;
 				PathWeightNode *weight=&defaultweight;
+				int highlight=0;
 
 				for (int cw=(pdata->pathweights.n>0 ? 0 : -1); cw<pdata->pathweights.n; cw++) {
 					if (cw==-1) weight=&defaultweight; else weight=pdata->pathweights.e[cw];
 
 					if (pdata->PointAlongPath(weight->t, 0, &pp, &vv)==0) continue;
 
-					drawWeightNode(pp,vv, weight->topOffset(),weight->bottomOffset(), 
-							((drawhover==HOVER_Weight || drawhover==HOVER_WeightPosition
-							  						  || drawhover==HOVER_WeightTop
-							  						  || drawhover==HOVER_WeightBottom)
-							 && drawpathi==cc && drawhoveri==cw) ? 2 : 0);
+					if (drawpathi==cc && drawhoveri==cw) {
+					  if (     drawhover==HOVER_Weight
+							|| drawhover==HOVER_WeightPosition
+							|| drawhover==HOVER_WeightTop
+							|| drawhover==HOVER_WeightBottom)
+						highlight=2;
+					  else if (drawhover==HOVER_RemoveWeightNode)
+						highlight=-1;
+					} else highlight=0;
+
+					drawWeightNode(pp,vv, weight->topOffset(),weight->bottomOffset(), highlight);
 				}
 			}
 		} // loop cc over paths
@@ -2408,6 +2924,90 @@ int PathInterface::Refresh()
 	return 0;
 }
 
+/*! For each explicitly weighted line, draw outline for debugging purposes.
+ */
+void PathInterface::DrawOutlines()
+{
+	dp->LineAttributes(2,LineSolid,LAXCAP_Butt,LAXJOIN_Round);
+	dp->FillAttributes(FillSolid,EvenOddRule);
+
+	Path *path;
+	for (int cc=0; cc<data->paths.n; cc++) {
+		path=data->paths.e[cc];
+		if (!path->Weighted()) continue;
+
+		if (path->needtorecache) path->UpdateCache();
+
+		dp->NewFG(.8,0.,.8);
+		dp->NewBG(0.,0.,.8);
+
+		//dp->drawbez(path->outlinecache.e, path->outlinecache.n, 1, 2);
+		dp->drawFormattedPoints(path->outlinecache.e, path->outlinecache.n, 2);
+	}
+}
+
+void PathInterface::DrawBaselines()
+{
+	Path *pdata;
+	Coordinate *p, *p2, *start;
+
+	for (int cc=0; cc<data->paths.n; cc++) {
+		// position p to be the first point that is a vertex
+		pdata=data->paths.e[cc];
+		p=pdata->path->firstPoint(1);
+		if (!(p->flags&POINT_VERTEX)) { // is degenerate path: no vertices
+			DBG cerr <<"Degenerate path (shouldn't happen!)"<<endl;
+			continue;
+		}
+
+		 //build the path to draw
+		flatpoint c1,c2;
+		start=p;
+		dp->moveto(p->p());
+		do { //one loop per vertex point
+			p2=p->next; //p points to a vertex
+			if (!p2) break;
+
+			//p2 now points to first Coordinate after the first vertex
+			if (p2->flags&(POINT_TOPREV|POINT_TONEXT)) {
+				 //we do have control points
+				if (p2->flags&POINT_TOPREV) {
+					c1=p2->p();
+					p2=p2->next;
+				} else c1=p->p();
+				if (!p2) break;
+
+				if (p2->flags&POINT_TONEXT) {
+					c2=p2->p();
+					p2=p2->next;
+				} else { //otherwise, should be a vertex
+					//p2=p2->next;
+					c2=p2->p();
+				}
+
+				dp->curveto(c1,c2,p2->p());
+			} else {
+				 //we do not have control points, so is just a straight line segment
+				dp->lineto(p2->p());
+			}
+			p=p2;
+		} while (p && p->next && p!=start);
+		if (p==start) dp->closed();
+	} //loop over paths for building before drawing
+
+	dp->NewFG(1.,1.,1.);
+	dp->LineAttributes(2,LineSolid,LAXCAP_Butt,LAXJOIN_Round);
+	dp->stroke(1);
+	dp->NewFG(1.,0.,0.);
+	dp->LineAttributes(1,LineSolid,LAXCAP_Butt,LAXJOIN_Round);
+	dp->stroke(0);
+}
+
+
+/*! isfornew==1 means draw whole thing green, as for adding.
+ * isfornew==-1 means draw whole thing red, as for removing.
+ * isfornew==2 means go by drawhover for what is to be emphasized.
+ */
 void PathInterface::drawWeightNode(flatpoint pp,flatpoint vv, double wtop,double wbottom, int isfornew)
 {
 	double arc=SELECTRADIUS*2;
@@ -2426,8 +3026,13 @@ void PathInterface::drawWeightNode(flatpoint pp,flatpoint vv, double wtop,double
 
 	dp->NewFG(controlcolor);
 	if (isfornew==1) {
-		dp->LineAttributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
+		 //adding
+		dp->LineAttributes(2,LineSolid,LAXCAP_Round,LAXJOIN_Round);
 		dp->NewFG(0.,.75,0.);
+	} else if (isfornew==-1) {
+		 //removing 
+		dp->LineAttributes(3,LineSolid,LAXCAP_Round,LAXJOIN_Round);
+		dp->NewFG(.75,0.,0.);
 	} else dp->LineAttributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
 
 	dp->DrawScreen();
@@ -2718,18 +3323,23 @@ int PathInterface::scanHover(int x,int y,unsigned int state, int *pathi)
 		if (dist2<SELECTRADIUS2) return HOVER_AddPoint;
 		return HOVER_None;
 
-	} else if ((state&LAX_STATE_MASK)==(ShiftMask|ControlMask)) {
+	} else if (!(pathi_style&PATHI_No_Weights) &&
+ 			(state&LAX_STATE_MASK)==(ShiftMask|ControlMask)) {
 		 //hover over segment to add a weight node
 		int dist2;
 		double t;
-		int hoverpathi=-1;
-		hoverpoint=data->ClosestPoint(fp, NULL,NULL,&t,&hoverpathi);
+		int hpathi=-1;
+		hoverpoint=data->ClosestPoint(fp, NULL,NULL,&t,&hpathi);
+
+		if (hpathi>=0 && (pathi_style&PATHI_Single_Weight) && data->paths.e[hpathi]->pathweights.n==1)
+			return HOVER_None;
+
 		dist2=norm2(realtoscreen(transform_point(data->m(), hoverpoint))-flatpoint(x,y));
 		if (dist2<SELECTRADIUS2*2) {
 			//DBG cerr << " ************* scanned and found add weight node..."<<endl;
 			//virtual int PointAlongPath(double t, int tisdistance, flatpoint *point, flatpoint *tangent);
-			data->PointAlongPath(hoverpathi, t, 0, NULL,&hoverdir);
-			*pathi=hoverpathi;
+			data->PointAlongPath(hpathi, t, 0, NULL,&hoverdir);
+			*pathi=hpathi;
 			return HOVER_AddWeightNode;
 		}
 		return HOVER_None;
@@ -2940,10 +3550,12 @@ int PathInterface::LBDown(int x,int y,unsigned int state,int count,const LaxMous
 		return 0;
 	}
 
+	 //catch simple cases
 	if (drawhover==HOVER_WeightTop
 		  || drawhover==HOVER_WeightBottom
 		  || drawhover==HOVER_WeightPosition
-		  || drawhover==HOVER_AddWeightNode) {
+		  || drawhover==HOVER_AddWeightNode
+		  || drawhover==HOVER_RemoveWeightNode) {
 		buttondown.moveinfo(d->id,LEFTBUTTON, state,drawhover);
 		return 0;
 
@@ -3524,6 +4136,8 @@ int PathInterface::LBUp(int x,int y,unsigned int state,const LaxMouse *d)
 	int moved=buttondown.up(d->id,LEFTBUTTON, &i1,&action);
 	if (moved<0) return 1;
 
+	//DBG cerr <<"  ***** PathInterface::LBUp action: "<<action<<endl;
+
 	if (action==HOVER_Direction) {
 		if (!moved) {
 			addafter=!addafter;
@@ -3534,20 +4148,27 @@ int PathInterface::LBUp(int x,int y,unsigned int state,const LaxMouse *d)
 		return 0;
 
 	} else if (action==HOVER_AddWeightNode) {
-		DBG cerr << " ***** add weight node LBUp..."<<endl;
 		int pathi=-1;
 		double t;
 		data->ClosestPoint(hoverpoint, NULL,NULL,&t, &pathi);
 
-		DBG cerr << " ***** add weight node to path: "<<pathi<<endl;
-
 		 // *** needs to interpolate to actual settings at that point
 		data->paths.e[pathi]->AddWeightNode(t,0,defaultweight.width);
+
+		show_weights=true;
+		drawhover=HOVER_None;
 		needtodraw=1;
-		
+		return 0;
+
+	} else if (action==HOVER_RemoveWeightNode) {
+		data->paths.e[drawpathi]->RemoveWeightNode(drawhoveri);
+
+		drawhover=HOVER_None;
+		needtodraw=1;
 		return 0;
 
 	} else if (action==HOVER_WeightPosition || action==HOVER_WeightTop || action==HOVER_WeightBottom) {
+		drawhover=HOVER_None;
 		needtodraw=1;
 		return 0;
 
@@ -3937,6 +4558,7 @@ void PathInterface::hoverMessage()
 	else if (drawhover==HOVER_MergeEndpoints) mes=_("Merge endpoints");
 	else if (drawhover==HOVER_AddPoint) mes=_("Click to add point to segment");
 	else if (drawhover==HOVER_AddWeightNode) mes=_("Click to add new width node");
+	else if (drawhover==HOVER_RemoveWeightNode) mes=_("Click to remove this width node");
 	else if (drawhover==HOVER_WeightPosition) mes=_("Drag weight node position");
 	else if (drawhover==HOVER_WeightTop) mes=_("Drag weight node top");
 	else if (drawhover==HOVER_WeightBottom) mes=_("Drag weight node bottom");
@@ -4010,6 +4632,11 @@ int PathInterface::MouseMove(int x,int y,unsigned int state,const LaxMouse *mous
 			drawhover=scanWeights(x,y,state, &drawpathi, &drawhoveri);
 		}
 
+		if ((state&LAX_STATE_MASK)==(ShiftMask|ControlMask)
+			  && (drawhover==HOVER_WeightPosition || drawhover==HOVER_WeightTop || drawhover==HOVER_WeightBottom)) {
+			drawhover=HOVER_RemoveWeightNode;
+		}
+
 		 //else maybe something else to hover over:
 		if (drawhover==HOVER_None) drawhover=scanHover(x,y,state, &drawpathi);
 
@@ -4031,7 +4658,6 @@ int PathInterface::MouseMove(int x,int y,unsigned int state,const LaxMouse *mous
 	}
 	
 	//now left button down assumed..
-	// lbfound=... Note that lbfound is no longer set to NULL ***check all modes??
 	if (!data) return 0;
 
 	int oldx,oldy;
@@ -4039,39 +4665,18 @@ int PathInterface::MouseMove(int x,int y,unsigned int state,const LaxMouse *mous
 	buttondown.move(mouse->id,x,y, &oldx,&oldy);
 	buttondown.getextrainfo(mouse->id,LEFTBUTTON, &i1,&action);
 
-	if (curpoints.n==1 && action!=HOVER_Direction && action!=HOVER_DirectionSelect) {
-		 //check if moving endpoint onto another endpoint
-		DBG cerr <<"curpoint is endpoint: "<<abs(curpoints.e[0]->isEndpoint())<<endl;
-
-		if (abs(curpoints.e[0]->isEndpoint())==1) {
-			int pathi=-1;
-			Coordinate *topoint=scanEndpoints(x,y, &pathi,curpoints.e[0]);
-			int oldhover=drawhover;
-			if (topoint && topoint!=curpoints.e[0] && abs(topoint->isEndpoint())==1) {
-				drawhover=HOVER_MergeEndpoints;
-				hoverpoint=topoint->p();
-
-				DBG cerr<<"Found hover over endpoint"<<endl;
-				needtodraw=1;
-			} else {
-				drawhover=0;
-			}
-			if (oldhover!=drawhover) {
-				hoverMessage();
-				needtodraw=1;
-			}
-		}
-	}
-
+	DBG cerr <<"mouse move action:"<<action<<endl;
 
 	flatpoint p1=screentoreal(x,y);
 	flatpoint p2=screentoreal(oldx,oldy);
-	//if (!curpoints && ***in bounds) shift object
 	flatpoint d=transform_point_inverse(data->m(),p1)-transform_point_inverse(data->m(),p2);
 
 	DBG cerr <<"path mm action: "<<action<<endl;
 
-	if (action==HOVER_WeightPosition) {
+	if (action==HOVER_AddWeightNode || action==HOVER_RemoveWeightNode) {
+		return 0;
+
+	} else if (action==HOVER_WeightPosition) {
 		if (drawpathi<0) return 0;
 
 		Path *path=data->paths.e[drawpathi];
@@ -4088,9 +4693,10 @@ int PathInterface::MouseMove(int x,int y,unsigned int state,const LaxMouse *mous
 		pp+=d;
 		double t=weight->t;
 		path->ClosestPoint(pp, NULL, NULL, &t);
-		weight->t=t;
+		drawhoveri=path->MoveWeight(drawhoveri, t);
 		// *** data->remapWidths(drawhoveri);
 
+		path->needtorecache=1;
 		needtodraw=1;
 		return 0;
 
@@ -4119,10 +4725,21 @@ int PathInterface::MouseMove(int x,int y,unsigned int state,const LaxMouse *mous
 
 		if (action==HOVER_WeightTop) {
 			toffset-=dd;
-			boffset+=dd;
+
+			if (!(pathi_style&PATHI_No_Offset) && (state&LAX_STATE_MASK)==ShiftMask)
+				boffset-=dd; //offset whole width with shift
+			else if (!(pathi_style&PATHI_No_Offset) && (state&LAX_STATE_MASK)==ControlMask)
+				; //do nothing to bottom when control to move only one arrow
+			else boffset+=dd;
+
 		} else { //action==HOVER_WeightBottom
-			toffset+=dd;
 			boffset-=dd;
+
+			if (!(pathi_style&PATHI_No_Offset) && (state&LAX_STATE_MASK)==ShiftMask)
+				toffset-=dd; //offset whole width with shift
+			else if (!(pathi_style&PATHI_No_Offset) && (state&LAX_STATE_MASK)==ControlMask)
+				; //do nothing to top when control to move only one arrow
+			else toffset+=dd;
 		}
 
 		weight->width=toffset-boffset;
@@ -4136,6 +4753,7 @@ int PathInterface::MouseMove(int x,int y,unsigned int state,const LaxMouse *mous
 
 		// *** TEMP while variable width not implemented:
 		data->line(weight->width);
+		path->needtorecache=1;
 
 		needtodraw=1;
 		return 0;
@@ -4182,6 +4800,32 @@ int PathInterface::MouseMove(int x,int y,unsigned int state,const LaxMouse *mous
 		needtodraw=1;
 		return 0;
 	}
+
+	if (curpoints.n==1 && action!=HOVER_Direction && action!=HOVER_DirectionSelect) {
+		 //check if moving endpoint onto another endpoint
+		DBG cerr <<"curpoint is endpoint: "<<abs(curpoints.e[0]->isEndpoint())<<endl;
+
+		if (abs(curpoints.e[0]->isEndpoint())==1) {
+			int pathi=-1;
+			Coordinate *topoint=scanEndpoints(x,y, &pathi,curpoints.e[0]);
+			int oldhover=drawhover;
+			if (topoint && topoint!=curpoints.e[0] && abs(topoint->isEndpoint())==1) {
+				drawhover=HOVER_MergeEndpoints;
+				hoverpoint=topoint->p();
+
+				DBG cerr<<"Found hover over endpoint"<<endl;
+				needtodraw=1;
+			} else {
+				drawhover=0;
+			}
+			if (oldhover!=drawhover) {
+				hoverMessage();
+				needtodraw=1;
+			}
+		}
+	}
+
+
 
 	if (curpoints.n==1) {
 		if ((curpoints.e[0]->flags&POINT_VERTEX) && (state&LAX_STATE_MASK)==ControlMask) {
@@ -4272,6 +4916,10 @@ int PathInterface::MouseMove(int x,int y,unsigned int state,const LaxMouse *mous
 
 	Modified(0);
 
+	// *** shortcut to not have to parse curpoints...
+	for (int c=0; c<data->paths.n; c++) data->paths.e[c]->needtorecache=1;
+
+
 // ***** These can be imp as PathInterface modes??
 //	*** flip
 //	*** circle arrange
@@ -4311,6 +4959,8 @@ Laxkit::ShortcutHandler *PathInterface::GetShortcuts()
 	sc->Add(PATHIA_Decorations,       'd',0,0,        "Decorations",  _("Toggle decorations"),NULL,0);
 	sc->Add(PATHIA_StartNewPath,      'B',ShiftMask,0,"NewPath",      _("Start a totally new path object"),NULL,0);
 	sc->Add(PATHIA_StartNewSubpath,   'b',0,0,        "NewSubpath",   _("Start a new subpath"),NULL,0);
+	sc->Add(PATHIA_ToggleOutline,     '_',ShiftMask,0,"ToggleOutline",_("Toggle indicating outlines (DEBUGGING)"),NULL,0);
+	sc->Add(PATHIA_ToggleBaseline,    '|',ShiftMask,0,"ToggleBaseline",_("Toggle indicating base line references"),NULL,0);
 	sc->Add(PATHIA_ToggleWeights,     'w',0,0,        "ToggleWeights",_("Toggle editing of weights along lines"),NULL,0);
 	sc->Add(PATHIA_Wider,             'l',0,0,        "Wider",        _("Thicken the line"),NULL,0);
 	sc->Add(PATHIA_Thinner,           'L',ShiftMask,0,"Thinner",      _("Thin the line"),NULL,0);
@@ -4584,6 +5234,20 @@ int PathInterface::PerformAction(int action)
 	} else if (action==PATHIA_StartNewSubpath) {
 		//***
 		cout <<" *** start new subpath"<<endl;
+
+	} else if (action==PATHIA_ToggleOutline) {
+		show_outline=!show_outline;
+		if (show_outline) PostMessage(_("Show outlines (DEBUGGING)"));
+		else PostMessage(_("Don't show outlines (DEBUGGING)"));
+		needtodraw=1;
+		return 0;
+
+	} else if (action==PATHIA_ToggleBaseline) {
+		show_baselines=!show_baselines;
+		if (show_baselines) PostMessage(_("Show base lines"));
+		else PostMessage(_("Don't show base lines"));
+		needtodraw=1;
+		return 0;
 
 	} else if (action==PATHIA_ToggleWeights) {
 		if (pathi_style&PATHI_No_Weights) show_weights=false;

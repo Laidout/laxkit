@@ -18,7 +18,7 @@
 //    License along with this library; if not, write to the Free Software
 //    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
-//    Copyright (C) 2004-2007,2010-2012 by Tom Lechner
+//    Copyright (C) 2004-2007,2010-2014 by Tom Lechner
 //
 #ifndef _LAX_PATHINTERFACE_H
 #define _LAX_PATHINTERFACE_H
@@ -61,9 +61,19 @@ enum PathFillType {
 class PathWeightNode
 {
   public:
+	int type; //symmetric width, fixed width with offset, width1/2 independent
 	double width; //total width of stroke at this node
 	double offset; //0 means weight symmetric about path
 	double t; //point along path, the bezier parameter: integer t corresponds to line points
+
+	// *** todo: would be better if angle was independent of weights
+	double angle;
+	bool absoluteangle; //1==absolute, or 0==relative to direction to path, wich angle==0 do default
+
+	flatpoint cache_top;
+	flatpoint cache_prev, cache_next; //original path tangents
+	flatpoint cache_bottom;
+	int cache_status;
 
 	enum PathWeightNodeTypes {
 		Default=0,
@@ -71,10 +81,9 @@ class PathWeightNode
 		Offset,
 		DualOffset
 	};
-	int type; //symmetric width, fixed width with offset, width1/2 independent
 
-	PathWeightNode() { width=1; offset=0; t=.5; type=Symmetric; }
-	PathWeightNode(double nt,double no,double nw, int ntype=Default) { width=nw; offset=no; t=nt; type=ntype; }
+	PathWeightNode();
+	PathWeightNode(double nt,double no,double nw, int ntype=Default);
 	double topOffset() { return offset+width/2; }
 	double bottomOffset() { return offset-width/2; }
 };
@@ -88,6 +97,12 @@ class Path : public LaxFiles::DumpUtility
 	Coordinate *path; // path is not necessarily the head, but is a vertex
 	LineStyle *linestyle; 
 	Laxkit::PtrStack<PathWeightNode> pathweights;
+
+	Laxkit::NumStack<flatpoint> outlinecache; //bezier c-v-c-...
+	Laxkit::NumStack<flatpoint> areacache; //bezier c-v-c-...
+	//std::time_t cache_mod_time;
+	int needtorecache;
+	virtual void UpdateCache();
 
 	Path();
 	Path(Coordinate *np,LineStyle *nls=NULL);
@@ -104,10 +119,16 @@ class Path : public LaxFiles::DumpUtility
 	virtual void moveTo(flatpoint p);
 	virtual void lineTo(flatpoint p);
 	virtual void curveTo(flatpoint c1, flatpoint c2, flatpoint p2);
-	virtual void close();
+	virtual int close();
+	virtual int openAt(Coordinate *curvertex, int after);
 	virtual void clear();
 
+	virtual void UpdateWeightCache(PathWeightNode *w);
+	virtual int Weighted();
 	virtual void AddWeightNode(double nt,double no,double nw);
+	virtual int RemoveWeightNode(int which);
+	virtual int MoveWeight(int which, double nt);
+	virtual void SortWeights();
 
 	 //info functions
 	virtual int Intersect(flatpoint p1,flatpoint p2, int isline, double startt, flatpoint *pts,int ptsn, double *t,int tn);
@@ -117,6 +138,8 @@ class Path : public LaxFiles::DumpUtility
 	virtual double Length(double tstart,double tend);
 	virtual double distance_to_t(double distance, int *err);
 	virtual double t_to_distance(double t, int *err);
+	virtual int NumVertices(bool *isclosed_ret);
+	virtual int GetIndex(Coordinate *p, bool ignore_controls);
 
 	virtual void dump_out(FILE *f,int indent,int what,Laxkit::anObject *context);
 	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,Laxkit::anObject *context);
@@ -237,13 +260,18 @@ enum PathInterfaceSettings {
 	PATHI_Path_Is_M_Real   =(1<<5),
 	PATHI_Esc_Off_Sub      =(1<<6),
 	PATHI_Plain_Click_Add  =(1<<7),
-	PATHI_No_Weights       =(1<<8)
+	PATHI_No_Weights       =(1<<8),
+	PATHI_Single_Weight    =(1<<9),
+	PATHI_No_Offset        =(1<<10),
+	PATHI_No_Angle_Weight  =(1<<11)
 };
 
 enum PathInterfaceActions {
 	PATHIA_CurpointOnHandle,
 	PATHIA_CurpointOnHandleR,
 	PATHIA_Pathop,
+	PATHIA_ToggleOutline,
+	PATHIA_ToggleBaseline,
 	PATHIA_ToggleFillRule,
 	PATHIA_ToggleFill,
 	PATHIA_ToggleStroke,
@@ -283,12 +311,13 @@ class PathInterface : public anInterface
 	class SelectedPoint //prep for actions on multiple pathsdata objects
 	{
 	  public:
-		ObjectContext *context;
+		ObjectContext *context; //nonlocal ref to context in selection
 		PathsData *paths;
-		Coordinate *point;
 		int pathindex;
+		Coordinate *point;
 		int pointindex;
 	};
+	//Laxkit::PtrStack<SelectedPoint> curpoints;
 
 	 //PathInterface potentially non-local state
 	int addmode;
@@ -297,6 +326,8 @@ class PathInterface : public anInterface
 	FillStyle *fillstyle,*defaultfill;
 
 	bool show_weights;
+	bool show_baselines;
+	bool show_outline;
 	PathWeightNode defaultweight;
 
 	 //other state
@@ -348,13 +379,16 @@ class PathInterface : public anInterface
 	virtual void hoverMessage();
 	virtual void drawNewPathIndicator(flatpoint p,int which);
 	virtual void drawWeightNode(flatpoint pp,flatpoint dir, double wtop,double wbottom, int isfornew);
+	virtual void DrawBaselines();
+	virtual void DrawOutlines();
+
  public:
 	 // the following three comprise the default PathInterface settings.
 	unsigned long controlcolor;
 	unsigned long creationstyle;
 	unsigned long pathi_style;
 	
-	Laxkit::PtrStack<Coordinate> curpoints; //*** how make this nondestructive/undoable changes?
+	Laxkit::PtrStack<Coordinate> curpoints;
 	
 	int showdecs;
 	int verbose;
