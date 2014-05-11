@@ -121,7 +121,7 @@ class Coordinate
 	virtual Coordinate *duplicate();
 	virtual Coordinate *duplicateAll();
 	virtual void append(double x,double y,unsigned long flags=POINT_VERTEX,SegmentControls *ctl=NULL);
-	virtual void close();
+	virtual int close();
 	virtual int isClosed();
 	virtual void connect(Coordinate *np,char after=1);
 	virtual Coordinate *disconnect(char after=1);

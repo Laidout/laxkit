@@ -285,15 +285,18 @@ Coordinate *Coordinate::duplicateAll()
 }
 
 
-//! Make this a closed loop if it is not already.
-void Coordinate::close()
+/*! Make this a closed loop if it is not already, and return 1;
+ * Does nothing if it is already closed, returns 0 in this case.
+ */
+int Coordinate::close()
 {
 	Coordinate *last=lastPoint(0);
-	if (last==this) return; //already closed
+	if (last==this) return 0; //already closed
 
 	Coordinate *first=firstPoint(0);
 	last->next=first;
 	first->prev=last;
+	return 1;
 }
 
 //! Return 1 if this==v. Return 2 if is TOPREV of v, or -1 if is TONEXT of v. Else 0.
@@ -564,6 +567,8 @@ int Coordinate::NumPoints(int v)
  /*! Returns next vertex starting AFTER this, if n==0. \n
   *  Returns next vertex starting WITH this, if n==1. \n
   *  returns NULL if there is no such next vertex.
+  *
+  *  Please note, this ignores SegmentControl objects.
   */
 Coordinate *Coordinate::nextVertex(int n) //n=0
 {
@@ -580,6 +585,8 @@ Coordinate *Coordinate::nextVertex(int n) //n=0
  /*! Returns previous vertex starting BEFORE this, if n==0. \n
   *  Returns previous vertex starting WITH this, if n==1. \n
   *  Returns NULL if can't find any previous vertex.
+  *
+  *  Please note, this ignores SegmentControl objects.
   */
 Coordinate *Coordinate::previousVertex(int n) //n=0
 {
