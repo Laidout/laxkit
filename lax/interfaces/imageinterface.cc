@@ -591,6 +591,8 @@ int ImageInterface::Refresh()
 	if (!data) return 1;
 
 	//DBG cerr <<"  ImageRefresh";
+
+	dp->LineAttributes(1,LineSolid,CapRound,JoinRound);
 		
 	 // find the screen box to draw into
 	 // these still need the 'dp->' because dp was transformed to space immediately holding data already
