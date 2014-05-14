@@ -71,6 +71,7 @@ enum LaxCapStyle
 	LAXCAP_Butt=1,
 	LAXCAP_Round,
 	LAXCAP_Projecting,
+	LAXCAP_Zero_Width,
 	LAXCAP_Custom,
 
 	LAXCAP_MAX
