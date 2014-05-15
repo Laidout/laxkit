@@ -46,15 +46,6 @@ class PathOperator;
 #define BEZ_NSTIFF_EQUAL   (1<<18)
 #define BEZ_NSTIFF_NEQUAL  (1<<19)
 
- // NOTE that the FILL_* is basically an enum, not a bunch of flags
-enum PathFillType {
-	FILL_NONE,
-	FILL_NONZERO,
-	FILL_ZERO,
-	FILL_EVEN_ODD,
-	FILL_ODD_EVEN
-};
-
 
 //-------------------- Path ---------------------------
 
@@ -68,19 +59,21 @@ class PathWeightNode
 
 	// *** todo: would be better if angle was independent of weights
 	double angle;
-	bool absoluteangle; //1==absolute, or 0==relative to direction to path, wich angle==0 do default
 
-	flatpoint cache_top;
-	flatpoint cache_prev, cache_next; //original path tangents
-	flatpoint cache_bottom;
-	int cache_status;
+	//flatpoint cache_top;
+	//flatpoint cache_prev, cache_next; //original path tangents
+	//flatpoint cache_bottom;
+	//int cache_status;
 
 	enum PathWeightNodeTypes {
 		Default=0,
-		Symmetric,
-		Offset,
-		DualOffset
+		Width      =(1<<0),
+		Offset     =(1<<1),
+		DualOffset =(1<<2),
+		Angle      =(1<<3),
+		AbsAngle   =(1<<4)
 	};
+	int nodetype;
 
 	PathWeightNode();
 	PathWeightNode(double nt,double no,double nw, int ntype=Default);
@@ -95,8 +88,11 @@ class Path : public LaxFiles::DumpUtility
 	static Laxkit::PtrStack<PathOperator> basepathops; 
 
 	Coordinate *path; // path is not necessarily the head, but is a vertex
-	LineStyle *linestyle; 
 	Laxkit::PtrStack<PathWeightNode> pathweights;
+
+	LineStyle *linestyle; 
+	double defaultwidth;
+	bool absoluteangle; //1==absolute, or 0==relative to direction to path, wich angle==0 do default
 
 	Laxkit::NumStack<flatpoint> outlinecache; //bezier c-v-c-...
 	Laxkit::NumStack<flatpoint> areacache; //bezier c-v-c-...
@@ -122,9 +118,12 @@ class Path : public LaxFiles::DumpUtility
 	virtual int close();
 	virtual int openAt(Coordinate *curvertex, int after);
 	virtual void clear();
+	virtual int Line(LineStyle *nlinestyle);
 
-	virtual void UpdateWeightCache(PathWeightNode *w);
-	virtual int Weighted();
+	//virtual void UpdateWeightCache(PathWeightNode *w); <- useless?
+	virtual bool Weighted();
+	virtual bool HasOffset();
+	virtual bool Angled();
 	virtual void AddWeightNode(double nt,double no,double nw);
 	virtual int RemoveWeightNode(int which);
 	virtual int MoveWeight(int which, double nt);
@@ -154,12 +153,17 @@ class PathsData : virtual public SomeData
 {
  protected:
  public:
+	enum PathsDataStyle { //these are or'd in this->style
+		PATHS_Ignore_Weights=(1<<0),
+		PATHS_MAX           =(1<<1)
+	};
+
 	unsigned long style; // contains FILL_* for combining(?)
 	Laxkit::PtrStack<Path> paths;
 	LineStyle *linestyle; //!< This is the default line style for any paths that are added.
 	FillStyle *fillstyle; //!< This is the fill style for the collection of paths
 
-	PathsData(unsigned long ns=FILL_NONZERO);
+	PathsData(unsigned long ns=(unsigned long)PATHS_Ignore_Weights);
 	virtual ~PathsData();
 	virtual const char *whattype() { return "PathsData"; }
 	virtual void FindBBox();
@@ -167,6 +171,10 @@ class PathsData : virtual public SomeData
 
 	virtual int line(double width,int cap=-1,int join=-1,Laxkit::ScreenColor *color=NULL);
 	virtual int fill(Laxkit::ScreenColor *color);
+
+	virtual bool Weighted(int whichpath=-1);
+	virtual bool HasOffset(int whichpath=-1);
+	virtual bool Angled(int whichpath=-1);
 
 	virtual int hasCoord(Coordinate *co);
 	virtual int pathHasCoord(int pathindex,Coordinate *co);
@@ -263,7 +271,8 @@ enum PathInterfaceSettings {
 	PATHI_No_Weights       =(1<<8),
 	PATHI_Single_Weight    =(1<<9),
 	PATHI_No_Offset        =(1<<10),
-	PATHI_No_Angle_Weight  =(1<<11)
+	PATHI_No_Angle_Weight  =(1<<11),
+	PATHI_Render_With_Cache=(1<<12)
 };
 
 enum PathInterfaceActions {
@@ -406,6 +415,7 @@ class PathInterface : public anInterface
 	virtual const char *Name();
 	virtual const char *whattype() { return "PathInterface"; }
 	virtual const char *whatdatatype() { return "PathsData"; }
+	virtual bool Setting(unsigned int flag, bool on);
 	virtual void Dp(Laxkit::Displayer *ndp);
 	virtual int DrawDataDp(Laxkit::Displayer *ndp,SomeData *ndata,
 			Laxkit::anObject *a1=NULL,Laxkit::anObject *a2=NULL,int info=0);
