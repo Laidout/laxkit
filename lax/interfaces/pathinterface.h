@@ -29,6 +29,7 @@
 #include <lax/interfaces/somedata.h>
 #include <lax/interfaces/linestyle.h>
 #include <lax/interfaces/fillstyle.h>
+#include <lax/curveinfo.h>
 #include <lax/screencolor.h>
 #include <lax/dump.h>
 
@@ -97,6 +98,9 @@ class Path : public LaxFiles::DumpUtility
 	Laxkit::NumStack<flatpoint> outlinecache; //bezier c-v-c-...
 	Laxkit::NumStack<flatpoint> areacache; //bezier c-v-c-...
 	//std::time_t cache_mod_time;
+	Laxkit::CurveInfo cache_offset_top;
+	Laxkit::CurveInfo cache_offset_bottom;
+	Laxkit::CurveInfo cache_angle;
 	int needtorecache;
 	virtual void UpdateCache();
 
@@ -120,11 +124,10 @@ class Path : public LaxFiles::DumpUtility
 	virtual void clear();
 	virtual int Line(LineStyle *nlinestyle);
 
-	//virtual void UpdateWeightCache(PathWeightNode *w); <- useless?
 	virtual bool Weighted();
 	virtual bool HasOffset();
 	virtual bool Angled();
-	virtual void AddWeightNode(double nt,double no,double nw);
+	virtual void AddWeightNode(double nt,double no,double nw,double nangle);
 	virtual int RemoveWeightNode(int which);
 	virtual int MoveWeight(int which, double nt);
 	virtual void SortWeights();
@@ -132,6 +135,9 @@ class Path : public LaxFiles::DumpUtility
 	 //info functions
 	virtual int Intersect(flatpoint p1,flatpoint p2, int isline, double startt, flatpoint *pts,int ptsn, double *t,int tn);
 	virtual int PointAlongPath(double t, int tisdistance, flatpoint *point, flatpoint *tangent);
+	virtual int PointInfo(double t, int tisdistance, flatpoint *point, flatpoint *tangentafter, flatpoint *tangentbefore,
+						            flatpoint *ptop, flatpoint *pbottom,
+									double *offset, double *width, double *angle);
 	virtual flatpoint ClosestPoint(flatpoint point, double *disttopath, double *distalongpath, double *tdist);
 	virtual int Reverse();
 	virtual double Length(double tstart,double tend);
@@ -175,6 +181,7 @@ class PathsData : virtual public SomeData
 	virtual bool Weighted(int whichpath=-1);
 	virtual bool HasOffset(int whichpath=-1);
 	virtual bool Angled(int whichpath=-1);
+	virtual void Recache(bool now=false);
 
 	virtual int hasCoord(Coordinate *co);
 	virtual int pathHasCoord(int pathindex,Coordinate *co);
@@ -279,6 +286,7 @@ enum PathInterfaceActions {
 	PATHIA_CurpointOnHandle,
 	PATHIA_CurpointOnHandleR,
 	PATHIA_Pathop,
+	PATHIA_ToggleAbsAngle,
 	PATHIA_ToggleOutline,
 	PATHIA_ToggleBaseline,
 	PATHIA_ToggleFillRule,
@@ -387,7 +395,7 @@ class PathInterface : public anInterface
 	virtual void Modified(int level);
 	virtual void hoverMessage();
 	virtual void drawNewPathIndicator(flatpoint p,int which);
-	virtual void drawWeightNode(flatpoint pp,flatpoint dir, double wtop,double wbottom, int isfornew);
+	virtual void drawWeightNode(flatpoint pp,flatpoint dir, double wtop,double wbottom, int isfornew, double angle, bool absoluteangle);
 	virtual void DrawBaselines();
 	virtual void DrawOutlines();
 
@@ -435,6 +443,7 @@ class PathInterface : public anInterface
 	virtual int CharInput(unsigned int ch, const char *buffer,int len,unsigned int state,const Laxkit::LaxKeyboard *d);
 	virtual int KeyUp(unsigned int ch,unsigned int state, const Laxkit::LaxKeyboard *kb);
 	virtual Laxkit::MenuInfo *ContextMenu(int x,int y,int deviceid);
+	virtual int Event(const Laxkit::EventData *e_data, const char *mes);
 	
 	//virtual void RegisterOp(PathOperator *apathop);
 	virtual int ChangeCurpathop(int newiid);

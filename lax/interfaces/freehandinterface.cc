@@ -658,7 +658,7 @@ int FreehandInterface::send(int i)
 			if (i==0) pp=cc->fp; else pp=cc->prev->fp;
 			if (i==line->n-1) pn=cc->fp; else pn=cc->next->fp;
 
-			path->AddWeightNode(i, 0, brush_size/dp->Getmag()*line->e[i]->pressure);
+			path->AddWeightNode(i, 0, brush_size/dp->Getmag()*line->e[i]->pressure, 0);
 
 			i++;
 			cc=cc->next->next;
@@ -667,7 +667,12 @@ int FreehandInterface::send(int i)
 		delete line;
 
 
-		PathsData *pdata=new PathsData();
+		PathsData *pdata=NULL;
+		if (somedatafactory) {
+            pdata=dynamic_cast<PathsData*>(somedatafactory->newObject(LAX_PATHSDATA));
+        }
+        if (!pdata) pdata=new PathsData(0);
+
 		pdata->paths.push(path);
 		pdata->FindBBox();
 
