@@ -968,7 +968,7 @@ int ViewportWindow::MBUp(int x,int y,unsigned int state,const Laxkit::LaxMouse *
  */
 int ViewportWindow::RBDown(int x,int y,unsigned int state,int count,const Laxkit::LaxMouse *d) 
 {
-	DBG cerr <<"in ViewportWindow::rbdown..";
+	DBG cerr <<"in ViewportWindow::rbdown..\n";
 
 	for (int c=interfaces.n-1; c>=0; c--) { //***
 		if (!interfaces.e[c]->RBDown(x,y,state,count,d)) 
@@ -1012,13 +1012,13 @@ int ViewportWindow::RBDown(int x,int y,unsigned int state,int count,const Laxkit
 //! Relay RBUp to interfaces.
 int ViewportWindow::RBUp(int x,int y,unsigned int state,const Laxkit::LaxMouse *d) 
 {
-	DBG cerr <<"  ViewportWindow::rbup..";
+	DBG cerr <<"  ViewportWindow::rbup..\n";
 	for (int c=interfaces.n-1; c>=0; c--) { //***
 		if (!interfaces.e[c]->RBUp(x,y,state,d)) 
 			return 0; //interface claimed the event
 	}
 	buttondown.up(d->id,RIGHTBUTTON);
-	DBG cerr <<".rbupDone ";
+	DBG cerr <<".rbupDone \n";
 	return 0;
 }
 
