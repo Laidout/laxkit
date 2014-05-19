@@ -113,18 +113,25 @@ void LineStyle::dump_in_atts(Attribute *att,int flag,Laxkit::anObject *context)
 			}
 		} else if (!strcmp(name,"width")) {
 			DoubleAttribute(value,&width);
+
 		} else if (!strcmp(name,"capstyle")) {
 			if (!strcmp(value,"round")) capstyle=LAXCAP_Round;
  			else if (!strcmp(value,"projecting")) capstyle=LAXCAP_Projecting;
+ 			else if (!strcmp(value,"zero")) capstyle=LAXCAP_Zero_Width;
 			else capstyle=LAXCAP_Butt;
+
 		} else if (!strcmp(name,"joinstyle")) {
 			if (!strcmp(value,"round")) joinstyle=LAXJOIN_Round;
  			else if (!strcmp(value,"bevel")) joinstyle=LAXJOIN_Bevel;
-			else joinstyle=LAXJOIN_Miter;
+ 			else if (!strcmp(value,"miter")) joinstyle=LAXJOIN_Miter;
+			else joinstyle=LAXJOIN_Extrapolate;
+
 		} else if (!strcmp(name,"dotdash")) {
 			IntAttribute(value,&dotdash);
+
 		} else if (!strcmp(name,"function")) {
 			IntAttribute(value,&function);
+
 		} else if (!strcmp(name,"mask")) {
 			ULongAttribute(value,&mask);
 		}
@@ -159,8 +166,8 @@ void LineStyle::dump_out(FILE *f,int indent,int what,Laxkit::anObject *context)
 	if (what==-1) {
 		fprintf(f,"%smask                   #what is active in this linestyle\n", spc);
 		fprintf(f,"%scolor 10000 0 0 65535  #rgba in range [0..65535]\n",spc);
-		fprintf(f,"%scapstyle round         #or miter, or projecting\n", spc);
-		fprintf(f,"%sjoinstyle round        #or miter, or bevel\n",spc);
+		fprintf(f,"%scapstyle round         #or miter, projecting, zero\n", spc);
+		fprintf(f,"%sjoinstyle round        #or miter, bevel, extrapolate\n",spc);
 		fprintf(f,"%sdotdash 5              #an integer whose bits define an on-off pattern\n",  spc);
 		fprintf(f,"%sfunction 3             #***mystery number saying how to combine the fill\n", spc);
 		fprintf(f,"%swidth %.10g\n", spc,width);
@@ -175,12 +182,14 @@ void LineStyle::dump_out(FILE *f,int indent,int what,Laxkit::anObject *context)
 	if (capstyle==LAXCAP_Butt) str="miter";
 	else if (capstyle==LAXCAP_Round) str="round";
  	else if (capstyle==LAXCAP_Projecting) str="projecting";
+ 	else if (capstyle==LAXCAP_Zero_Width) str="zero";
     else str="?";
 	fprintf(f,"%scapstyle %s\n", spc,str);
 
 	if (joinstyle==LAXJOIN_Miter) str="miter";
 	else if (joinstyle==LAXJOIN_Round) str="round";
  	else if (joinstyle==LAXJOIN_Bevel) str="bevel";
+ 	else if (joinstyle==LAXJOIN_Extrapolate) str="extrapolate";
     else str="?";
 	fprintf(f,"%sjoinstyle %d\n",spc,joinstyle);
 
@@ -193,7 +202,7 @@ void LineStyle::dump_out(FILE *f,int indent,int what,Laxkit::anObject *context)
 /*! Currently, this returns 1 for when function!=LAXOP_Dest and width>=0.
  */
 int LineStyle::hasStroke()
-{ return function!=LAXOP_Dest && width>=0; }
+{ return function!=LAXOP_Dest && function!=LAXOP_None && width>=0; }
 
 
 
