@@ -538,7 +538,7 @@ int CurveMapInterface::MouseMove(int x,int y,unsigned int state,const LaxMouse *
 
 		if (pp==YMax) {
 			double nymax=curveinfo->ymax+ dy*(curveinfo->ymax-curveinfo->ymin)/bounds.height;
-			curveinfo->SetYBounds(curveinfo->ymin,nymax);
+			curveinfo->SetYBounds(curveinfo->ymin,nymax, NULL,true);
 			needtodraw=1;
 		}
 		return 0;
@@ -699,7 +699,7 @@ int CurveMapInterface::MoveResize(int nx,int ny,int nw,int nh)
  */
 void CurveMapInterface::Reset()
 {
-	curveinfo->Reset();
+	curveinfo->Reset(true);
 	needtodraw=1;
 }
 
