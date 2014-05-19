@@ -96,6 +96,176 @@ void LinePoint::Set(LinePoint *pp)
 	p=pp->p;
 }
 
+
+//------------------------------------- EngraverPointGroup ------------------------
+
+/*! \class EngraverPointGroup
+ *
+ * Info for groups of points in an EngraverFillData.
+ *
+ * Built in generator types are: linear, radial, spiral, circular
+ */
+
+
+/*! Default to linear.
+ */
+EngraverPointGroup::EngraverPointGroup()
+{
+	id=getUniqueNumber(); //the group number in LinePoint
+	name=NULL;
+	type=PGROUP_Linear; //what manner of lines
+	type_d=0;   //parameter for type, for instance, an angle for spirals
+
+	spacing=10;
+	dash_length=spacing*2;
+	zero_threshhold=0;
+	broken_threshhold=0;
+}
+
+/*! Creates a unique new number for id if nid<0.
+ */
+EngraverPointGroup::EngraverPointGroup(int nid,const char *nname, int ntype, flatpoint npos, flatpoint ndir, double ntype_d)
+{
+	id=nid;
+	if (id<0) id=getUniqueNumber(); //the group number in LinePoint
+	name=newstr(nname);
+	type=ntype; //what manner of lines
+	type_d=ntype_d;   //parameter for type, for instance, an angle for spirals
+	position=npos;
+	direction=ndir;
+
+	spacing=10;
+	dash_length=spacing*2;
+	zero_threshhold=0;
+	broken_threshhold=0;
+}
+
+EngraverPointGroup::~EngraverPointGroup()
+{
+	delete[] name;
+}
+
+/*! Provide a direction vector for specified point. This is used to grow lines
+ * in EngraverFillData objects. If you need exact lines, you will want to use
+ * LineFrom(), since building from Direction() here will introduce too many
+ * rounding errors. For instance, you will never build exact circles only
+ * from a direction field.
+ */
+flatpoint EngraverPointGroup::Direction(double s,double t)
+{
+	if (type==PGROUP_Linear) {
+		return direction;
+
+	} else if (type==PGROUP_Circular) {
+		return transpose(flatpoint(s,t)-position);
+
+	} else if (type==PGROUP_Radial) {
+		return flatpoint(s,t)-position;
+
+	} else if (type==PGROUP_Spiral) {
+		return rotate(transpose(flatpoint(s,t)-position), type_d);
+	}
+
+	return flatpoint();
+}
+
+/*! Create a line extending from coordinate s,t.
+ */
+LinePoint *EngraverPointGroup::LineFrom(double s,double t)
+{
+	if (type==PGROUP_Linear) {
+
+	} else if (type==PGROUP_Circular) {
+	} else if (type==PGROUP_Radial) {
+	} else if (type==PGROUP_Spiral) {
+	}
+
+	return NULL;
+}
+
+/*! fill in x,y = 0..1,0..1
+ */
+void EngraverPointGroup::Fill(EngraverFillData *data)
+{
+	if (type==PGROUP_Linear) {
+		FillRegularLines(data);
+
+	} else if (type==PGROUP_Circular) {
+	} else if (type==PGROUP_Radial) {
+	} else if (type==PGROUP_Spiral) {
+	}
+
+}
+
+/*! spacing is an object distance (not in s,t space) to be used as the distance between line centers.
+ * If spacing<0, then use 1/25 of the x or y dimension, whichever is smaller
+ * If weight<0, then use spacing/10.
+ * Inserts lines folling this->direction, which is in (s,t) space.
+ */
+void EngraverPointGroup::FillRegularLines(EngraverFillData *data)
+{
+	double spacing=data->default_spacing;
+	double weight=-1;
+
+
+	if (weight<=0) weight=spacing/10; //remember, weight is actual distance, not s,t!!
+
+
+	LinePoint *p;
+
+	flatvector v=direction; //this is s,t space
+	if (v.x<0) v=-v;
+	v.normalize();
+	//flatvector vt=transpose(v);
+
+	 //we need to find the s,t equivalent of spacing along direction
+	flatpoint vp=data->getPoint(.1*v.x+.5, .1*v.y+.5) - data->getPoint(.5,.5);
+	v*=.1*spacing/norm(vp);
+	double vv=norm2(v);
+
+	//vp=getPoint(.1*vt.x+.5, .1*vt.y+.5)-getPoint(.5,.5);
+	//vt*=.1*spacing/norm(vp);
+
+	double s_spacing= (v.y==0 ? -1 : fabs(vv/v.y));
+	double t_spacing= (v.x==0 ? -1 : fabs(vv/v.x));
+
+	//if (xsize>4) s_spacing/= xsize/3;
+	//if (ysize>4) t_spacing/= ysize/3;
+
+	if (v.y<0) data->lines.push(new LinePoint(0,1,weight,id)); //push a (0,0) starter point
+	else       data->lines.push(new LinePoint(0,0,weight,id)); //push a (0,0) starter point
+
+	 //starter points along y
+	if (t_spacing>0) {
+		for (double yy=t_spacing; yy<=1; yy+=t_spacing) {
+			if (v.y<0) data->lines.push(new LinePoint(0,1-yy, weight,id));
+			else       data->lines.push(new LinePoint(0,yy, weight,id));
+		}
+	}
+
+	 //starter points along x
+	if (s_spacing>0) {
+		for (double xx=s_spacing; xx<=1; xx+=s_spacing) {
+			if (v.y<0) data->lines.push(new LinePoint(xx,1, weight,id));
+			else       data->lines.push(new LinePoint(xx,0, weight,id));
+		}
+	}
+
+	 //grow lines
+	flatvector pp;
+	for (int c=0; c<data->lines.n; c++) {
+		p=data->lines.e[c];
+
+		while (p->s>=0 && p->t>=0 && p->s<=1 && p->t<=1) {
+			pp=flatpoint(p->s,p->t) + v;
+			p->next=new LinePoint(pp.x, pp.y, weight,id);
+			p->next->prev=p;
+			p=p->next;
+		}
+	}
+}
+
+
 //------------------------------------- EngraverFillData ------------------------
 
 

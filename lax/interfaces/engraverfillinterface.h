@@ -52,7 +52,7 @@ class LinePoint
 	LinePoint *next, *prev;
 
 	LinePoint() { on=true; row=col=0; s=t=0; weight=1; spacing=-1; next=prev=NULL; needtosync=1; group=0; }
-	LinePoint(double ss, double tt, double ww) { on=true; next=prev=NULL; s=ss; t=tt; weight=ww; spacing=-1; group=0; }
+	LinePoint(double ss, double tt, double ww, int ngroup=0) { on=true; next=prev=NULL; s=ss; t=tt; weight=ww; spacing=-1; group=ngroup; }
 
 	void Set(double ss,double tt, double nweight) { s=ss; t=tt; if (nweight>=0) weight=nweight; needtosync=1; }
 	void Set(LinePoint *pp);
@@ -129,16 +129,35 @@ class EngraverTraceSettings
 class EngraverPointGroup
 {
   public:
-	int id;
+	enum PointGroupType {
+		PGROUP_Linear,
+		PGROUP_Radial,
+		PGROUP_Spiral,
+		PGROUP_Circular,
+		PGROUP_MAX
+	};
+
+	int id; //the group number in LinePoint
 	char *name;
 	EngraverTraceSettings trace;
 
+	int type; //what manner of lines
+	double type_d;   //parameter for type, for instance, an angle for spirals
 	double spacing;
 	flatpoint position,direction;
 
 	double dash_length;
 	double zero_threshhold;
 	double broken_threshhold;
+
+	EngraverPointGroup();
+	EngraverPointGroup(int nid,const char *nname, int ntype, flatpoint npos, flatpoint ndir, double ntype_d);
+	virtual ~EngraverPointGroup();
+	virtual flatpoint Direction(double s,double t);
+	virtual LinePoint *LineFrom(double s,double t);
+
+	virtual void Fill(EngraverFillData *data); //fill in x,y = 0..1,0..1
+	virtual void FillRegularLines(EngraverFillData *data);
 };
 
 class EngraverFillInterface : public PatchInterface
