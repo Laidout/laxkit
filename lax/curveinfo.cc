@@ -125,8 +125,8 @@ CurveInfo::~CurveInfo()
 CurveInfo &CurveInfo::operator=(CurveInfo &l)
 {
 	SetTitle(l.title);
-	SetXBounds(l.xmin,l.xmax,l.xlabel);
-	SetYBounds(l.ymin,l.ymax,l.ylabel);
+	SetXBounds(l.xmin,l.xmax,l.xlabel,false);
+	SetYBounds(l.ymin,l.ymax,l.ylabel,false);
 	curvetype=l.curvetype;
 	wrap=l.wrap;
 	SetDataRaw(l.points.e,l.points.n);
@@ -304,16 +304,28 @@ int CurveInfo::MakeLookupTable(int *table,int numentries, int minvalue, int maxv
 	return 0;
 }
 
-/*! Resets to 2 point linear, 0 to 1 (unmapped).
+/*! Flush points, and add a singe point at xmin,y.
+ */
+void CurveInfo::SetFlat(double y)
+{
+	points.flush();
+	fauxpoints.flush();
+	AddPoint(xmin,y);
+}
+
+/*! Clears points. 
+ * If !leaveblank, then also add 2 point linear, 0 to 1 (unmapped).
  * Does NOT change bounds.
  */
-void CurveInfo::Reset()
+void CurveInfo::Reset(bool leaveblank)
 {
 	points.flush();
 	fauxpoints.flush();
 
-	points.push(flatpoint(0,0));
-	points.push(flatpoint(1,1));
+	if (!leaveblank) {
+		points.push(flatpoint(0,0));
+		points.push(flatpoint(1,1));
+	}
 }
 
 /*! Flush current points, and install the given points.
@@ -418,16 +430,18 @@ void CurveInfo::SetTitle(const char *ntitle)
 	makestr(title,ntitle);
 }
 
-/*! WARNING! This DOES NOT remap existing this->points.
+/*! If remap, then remap existing points to adjust for the new bounds. Otherwise,
+ * keeps points as old values within the [0..1] range.
+ *
  *
  * Only sets xlabel if nxlabel!=NULL.
  * \todo decide which is better, remapping or not remapping
  */
-void CurveInfo::SetXBounds(double nxmin, double nxmax, const char *nxlabel)
+void CurveInfo::SetXBounds(double nxmin, double nxmax, const char *nxlabel, bool remap)
 {
-	//for (int c=0; c<points.n; c++) {
-	//	points.e[c].x = ((points.e[c].y*(xmax-xmin)+xmin)-nxmin)/(nxmax-nxmin);
-	//}
+	if (remap) for (int c=0; c<points.n; c++) {
+		points.e[c].x = ((points.e[c].y*(xmax-xmin)+xmin)-nxmin)/(nxmax-nxmin);
+	}
 
 	xmin=nxmin;
 	xmax=nxmax;
@@ -436,11 +450,14 @@ void CurveInfo::SetXBounds(double nxmin, double nxmax, const char *nxlabel)
 	fauxpoints.flush();
 }
 
-/*! WARNING! This DOES remap existing this->points.
+/*! If remap, then remap existing points to adjust for the new bounds. Otherwise,
+ * keeps points as old values within the [0..1] range.
+ *
+ * Only sets ylabel if nylabel!=NULL.
  */
-void CurveInfo::SetYBounds(double nymin, double nymax, const char *nylabel)
+void CurveInfo::SetYBounds(double nymin, double nymax, const char *nylabel, bool remap)
 {
-	for (int c=0; c<points.n; c++) {
+	if (remap) for (int c=0; c<points.n; c++) {
 		points.e[c].y = ((points.e[c].y*(ymax-ymin)+ymin)-nymin)/(nymax-nymin);
 	}
 	ymin=nymin;
@@ -501,8 +518,8 @@ double CurveInfo::f_linear(double x)
 }
 
 //! Return y value for x. Out of range x and y are clamped to bounds.
-/*! This approximates from fauxpoints array. If fauxpoints.n==0, then
- * call MakeFakeCurve() first.
+/*! This approximates from intersecting a line segment with the fauxpoints array.
+ * If fauxpoints.n==0, then call MakeFakeCurve() first.
  */
 double CurveInfo::f_autosmooth(double x)
 {
