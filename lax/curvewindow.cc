@@ -507,7 +507,7 @@ int CurveWindow::MouseMove(int x,int y,unsigned int state,const LaxMouse *m)
 
 		if (pp==YMax) {
 			double nymax=curveinfo->ymax+ dy*(curveinfo->ymax-curveinfo->ymin)/win_h;
-			curveinfo->SetYBounds(curveinfo->ymin,nymax);
+			curveinfo->SetYBounds(curveinfo->ymin,nymax,NULL,true);
 			needtodraw=1;
 		}
 		return 0;
@@ -721,7 +721,7 @@ int CurveWindow::Resize(int nw,int nh)
  */
 void CurveWindow::Reset()
 {
-	curveinfo->Reset();
+	curveinfo->Reset(false);
 	needtodraw=1;
 }
 
