@@ -538,9 +538,11 @@ flatpoint *bez_points(flatpoint *to_points,int numsegs,flatpoint *from_points,in
  *
  * If to_points!=NULL, it must have room for resolution number of points.
  * If to_points==NULL, then return a new flatpoint[resolution].
- * In either case, the generates points array is returned.
+ * In either case, the generated points array is returned.
+ * to_points[0] will correspond to v1 (from_points[0]), and
+ * to_points[resolution-1] will correspond to v2 (from_points[3]).
  *
- * from_points is an array of the 4 flatpoints of the bezier segment: v-c-c-v.
+ * from_points is an array of the 4 flatpoints of the bezier segment: v1-c1-c2-v2.
  *
  * \todo optimize me
  */
