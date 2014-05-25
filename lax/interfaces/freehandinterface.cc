@@ -33,6 +33,9 @@
 
 #include <lax/lists.cc>
 
+#include <unistd.h>
+
+
 using namespace Laxkit;
 
 
@@ -74,6 +77,8 @@ FreehandInterface::FreehandInterface(anInterface *nowner, int nid, Displayer *nd
 
 	smooth_pixel_threshhold=2;
 	brush_size=60;
+	ignore_tip_time=0;
+	ignore_clock_t = ignore_tip_time*sysconf(_SC_CLK_TCK)/1000;
 
 	showdecs=1;
 	needtodraw=1;
@@ -99,6 +104,17 @@ anInterface *FreehandInterface::duplicate(anInterface *dup)
 	return anInterface::duplicate(dup);
 }
 
+/*! Returns old number of milliseconds.
+ */
+int FreehandInterface::IgnoreTipTime(int milliseconds)
+{
+	//int old=ignore_clock_t=1000*ignore_clock_t/sysconf(_SC_CLK_TCK);
+	int old=ignore_tip_time;
+	ignore_tip_time=milliseconds;
+	if (milliseconds==0) ignore_clock_t=0;
+	else ignore_clock_t= milliseconds*sysconf(_SC_CLK_TCK)/1000;
+	return old;
+}
 int FreehandInterface::UseThis(anObject *nobj, unsigned int mask)
 {
 	if (!nobj) return 1;
@@ -296,7 +312,12 @@ int FreehandInterface::LBUp(int x,int y,unsigned int state, const Laxkit::LaxMou
 		DBG cerr <<"  *** FreehandInterface should check for closed path???"<<endl;
 
 		if (dragged && lines.e[i]->n>1) {
-			send(i);
+			if (ignore_clock_t) {
+				clock_t toptime=lines.e[i]->e[lines.e[i]->n-1]->time;
+				while (toptime-lines.e[i]->e[lines.e[i]->n-1]->time<ignore_clock_t)
+					lines.e[i]->pop();
+			}
+			if (lines.e[i]->n>1) send(i);
 		}
 
 		deviceids.remove(i);

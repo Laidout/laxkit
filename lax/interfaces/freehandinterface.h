@@ -71,6 +71,7 @@ class FreehandInterface : public anInterface
 	char showdecs;
 	LineStyle linestyle;
 	Laxkit::ShortcutHandler *sc;
+	clock_t ignore_clock_t;
 
 	int findLine(int id);
 
@@ -85,6 +86,7 @@ class FreehandInterface : public anInterface
   public:
 	unsigned int freehand_style;
 	double brush_size;
+	int ignore_tip_time; //milliseconds of final input to ignore, as pressure produces ugly ends
 	double smooth_pixel_threshhold;
 	Laxkit::ScreenColor linecolor;
 	Laxkit::ScreenColor pointcolor;
@@ -105,6 +107,7 @@ class FreehandInterface : public anInterface
 	virtual int PerformAction(int action);
 
 	virtual int UseThis(Laxkit::anObject *nlinestyle,unsigned int mask=0);
+	virtual int IgnoreTipTime(int milliseconds);
 	virtual int InterfaceOn();
 	virtual int InterfaceOff();
 	virtual void Clear(SomeData *d);

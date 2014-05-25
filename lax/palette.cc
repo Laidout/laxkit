@@ -240,6 +240,9 @@ void Palette::dump_in(FILE *f,int indent,int what,anObject *loadcontext,Attribut
  * </pre>
  *
  * If what==-1, the dump out a pseudocode mockup of the default file format.
+ *
+ * \todo translateable metadata fields?
+ * \todo color management, specify color profile to go along with palette
  */
 void Palette::dump_out(FILE *f,int indent,int what,anObject *context)
 {
