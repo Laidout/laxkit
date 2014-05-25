@@ -143,6 +143,9 @@ class Displayer : public PanUser, virtual public anObject
 	virtual void drawline(flatpoint p1,flatpoint p2) = 0;
 	virtual void drawline(double ax,double ay,double bx,double by);
 	virtual void drawrectangle(double x,double y,double w,double h,int tofill);
+	virtual void drawRoundedRect(double x,double y,double w,double h,
+                                double vround, bool vispercent, double hround, bool hispercent,
+                                int tofill);
 	virtual void drawbez(flatpoint *bpoints,int n,int isclosed=0,int tofill=0);
 	virtual void drawFormattedPoints(flatpoint *pts, int n, int tofill);
 	virtual int drawrealline(flatline &ln,int num);

@@ -567,6 +567,47 @@ void Displayer::drawrectangle(double x,double y,double ww,double hh,int tofill)
 
 }
 
+/*! vround with vispercent==true means that vround==1.0 rounds to midpoint of vertical segment. vround==0 means no round.
+ * Similarly for hround and hispercent.
+ *
+ * If draw_immediately, then tofill is ignored.
+ * Otherwise:
+ * tofill==0, draw only stroke with fg.
+ * tofill==1, draw only fill with fg.
+ * tofill==2, draw stroke with fg, fill with bg.
+ */
+void Displayer::drawRoundedRect(double x,double y,double w,double h,
+                                double vround, bool vispercent, double hround, bool hispercent,
+                                int tofill)
+{   
+    if (vispercent) vround=h/2*vround;
+    if (hispercent) hround=w/2*hround;
+
+    double vv=4./3*(sqrt(2)-1); //length of bezier handle for 90 degree arc on unit circle
+
+    moveto(x+hround,  y);
+    lineto(x+w-hround,y);
+    curveto(flatpoint(x+w-hround+vv*hround,y), flatpoint(x+w, y+vround-vv*vround), flatpoint(x+w,y+vround));
+    lineto(x+w, y+h-vround);
+    curveto(flatpoint(x+w, y+h-vround+vv*vround), flatpoint(x+w-hround+vv*hround,y+h), flatpoint(x+w-hround,y+h));
+    lineto(x+hround, y+h);
+    curveto(flatpoint(x+hround-vv*hround, y+h), flatpoint(x, y+h-vround+vv*vround), flatpoint(x,y+h-vround));
+    lineto(x,y+vround);
+    curveto(flatpoint(x, y+vround-vv*vround), flatpoint(x+hround-vv*hround, y), flatpoint(x+hround,y));
+    closed();
+
+    if (!draw_immediately) return;
+    if (tofill==0) stroke(0);
+    else if (tofill==1) fill(0);
+    else {
+        unsigned int oldfg=FG();
+        NewFG(BG());
+        fill(1);
+        NewFG(oldfg);
+        stroke(0);
+    }   
+}
+
 
 //! Draw part of an ellipse.
 /*! Just calls drawellipse() with no fill. Subclasses need not redefine.
@@ -759,10 +800,10 @@ void Displayer::drawthing(double x, double y, double rx, double ry, int fill, Dr
 void Displayer::drawFormattedPoints(flatpoint *pts, int n, int tofill)
 {
 	int nn=0; //start of current path
-	int firstbez=0;
+	//int firstbez=0;
 	int ptype=0;
 	int bez=0;
-	int c1=-1,c2=-1;
+	int c1=-1;
 	for (int c=0; c<n; c++) {
 		ptype=pts[c].info&(LINE_Bez|LINE_Vertex);
 		if (ptype==0) ptype=LINE_Vertex;
