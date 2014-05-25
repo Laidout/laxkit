@@ -14,15 +14,13 @@ interfaces/pointwarpinterface.h
 interfaces/pointwarpinterface.cc
 interfaces/measureinterface.h
 interfaces/measureinterface.cc
-interfaces/engraverfillinterface.h
-interfaces/engraverfillinterface.cc
 interfaces/captioninterface.cc
 interfaces/captioninterface.h
 
 
 
 
------aging interfaces that need to be modernified--------
+-----aging interfaces that need to be modernified or removed--------
 interfaces/bezinterface*
 interfaces/ellipseinterface*
 interfaces/linesinterface*
