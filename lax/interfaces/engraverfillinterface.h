@@ -36,6 +36,10 @@ namespace LaxInterfaces {
 
 
 //------------------------------------- EngraverFillData ------------------------
+
+class EngraverFillData;
+
+//--------------------------------------------- LinePoint
 class LinePoint
 {
   public:
@@ -60,6 +64,77 @@ class LinePoint
 	void Add(LinePoint *np);
 };
 
+//---------------------------------------------- EngraverTraceSettings 
+class EngraverTraceSettings : public Laxkit::anObject
+{
+  public:
+	int group;
+	Laxkit::CurveInfo value_to_weight;
+	double traceobj_opacity;
+	bool continuous_trace;
+
+	ObjectContext *tracecontext;
+	SomeData *traceobject;
+	char *identifier;
+	unsigned char *trace_sample_cache;
+	int samplew, sampleh;
+
+	 //black and white cache:
+	int tw,th; //dims of trace_ref_bw
+	unsigned char *trace_ref_bw;
+
+	EngraverTraceSettings();
+	virtual ~EngraverTraceSettings();
+	virtual const char *whattype() { return "EngraverTraceSettings"; }
+	void ClearCache(bool obj_too);
+};
+
+//----------------------------------------------- EngraverPointGroup
+
+class EngraverPointGroup
+{
+  public:
+	enum PointGroupType {
+		PGROUP_Linear,
+		PGROUP_Radial,
+		PGROUP_Spiral,
+		PGROUP_Circular,
+		PGROUP_MAX
+	};
+
+	int id; //the group number in LinePoint
+	char *name;
+	EngraverTraceSettings *trace;
+
+	int type; //what manner of lines
+	double type_d;   //parameter for type, for instance, an angle for spirals
+	double spacing;
+	flatpoint position,direction;
+
+	 //these should get isolated in own class to be able to share settings...
+	double dash_length;
+	double dash_randomness;
+	double zero_threshhold;
+	double broken_threshhold;
+	double dash_taper; //0 means taper all the way, 1 means no taper
+	int indashcaps, outdashcaps, startcaps, endcaps;
+	//Laxkit::CurveInfo weighttodist;
+
+	EngraverPointGroup();
+	EngraverPointGroup(int nid,const char *nname, int ntype, flatpoint npos, flatpoint ndir, double ntype_d, EngraverTraceSettings *newtrace);
+	virtual ~EngraverPointGroup();
+	virtual flatpoint Direction(double s,double t);
+	virtual LinePoint *LineFrom(double s,double t);
+
+	virtual void Fill(EngraverFillData *data); //fill in x,y = 0..1,0..1
+	virtual void FillRegularLines(EngraverFillData *data);
+
+	virtual void SetTraceSettings(EngraverTraceSettings *newtrace);
+};
+
+
+//---------------------------------------- EngraverFillData
+
 class EngraverFillData : public PatchData
 {
  protected:
@@ -73,6 +148,9 @@ class EngraverFillData : public PatchData
 	double default_spacing;
 	double zero_threshhold; //weight<this are considered off
 	double broken_threshhold; //if nonzero, zero_threshhold<weight<this means use broken line of this thickness
+	EngraverPointGroup defaultgroup;
+	Laxkit::PtrStack<EngraverPointGroup> groups;
+
 
 	EngraverFillData();
 	//EngraverFillData(double xx,double yy,double ww,double hh,int nr,int nc,unsigned int stle);
@@ -103,63 +181,6 @@ class EngraverFillData : public PatchData
 
 //------------------------------ EngraverFillInterface -------------------------------
 
-class EngraverTraceSettings
-{
-  public:
-	int group;
-	Laxkit::CurveInfo value_to_weight;
-	double traceobj_opacity;
-	bool continuous_trace;
-
-	ObjectContext *tracecontext;
-	SomeData *traceobject;
-	char *identifier;
-	unsigned char *trace_sample_cache;
-	int samplew, sampleh;
-
-	 //black and white cache:
-	int tw,th; //dims of trace_ref_bw
-	unsigned char *trace_ref_bw;
-
-	EngraverTraceSettings();
-	~EngraverTraceSettings();
-	void ClearCache(bool obj_too);
-};
-
-class EngraverPointGroup
-{
-  public:
-	enum PointGroupType {
-		PGROUP_Linear,
-		PGROUP_Radial,
-		PGROUP_Spiral,
-		PGROUP_Circular,
-		PGROUP_MAX
-	};
-
-	int id; //the group number in LinePoint
-	char *name;
-	EngraverTraceSettings trace;
-
-	int type; //what manner of lines
-	double type_d;   //parameter for type, for instance, an angle for spirals
-	double spacing;
-	flatpoint position,direction;
-
-	double dash_length;
-	double zero_threshhold;
-	double broken_threshhold;
-
-	EngraverPointGroup();
-	EngraverPointGroup(int nid,const char *nname, int ntype, flatpoint npos, flatpoint ndir, double ntype_d);
-	virtual ~EngraverPointGroup();
-	virtual flatpoint Direction(double s,double t);
-	virtual LinePoint *LineFrom(double s,double t);
-
-	virtual void Fill(EngraverFillData *data); //fill in x,y = 0..1,0..1
-	virtual void FillRegularLines(EngraverFillData *data);
-};
-
 class EngraverFillInterface : public PatchInterface
 {
  protected:
@@ -169,6 +190,7 @@ class EngraverFillInterface : public PatchInterface
 	int controlmode;
 	int submode;
 	int show_points;
+	int current_group;
 
 	 //general tool settings
 	double brush_radius; //screen pixels
@@ -200,6 +222,12 @@ class EngraverFillInterface : public PatchInterface
 	virtual void ChangeMessage(int forwhich);
 	virtual int scanEngraving(int x,int y, int *category);
 	virtual int PerformAction(int action);
+
+	virtual void DrawOrientation(int over);
+	virtual void DrawTracingTools();
+	virtual void DrawLineGradient(double minx,double maxx,double miny,double maxy);
+	virtual void DrawShadeGradient(double minx,double maxx,double miny,double maxy);
+
  public:
 	EngraverFillInterface(int nid, Laxkit::Displayer *ndp);
 	virtual ~EngraverFillInterface();
@@ -222,9 +250,6 @@ class EngraverFillInterface : public PatchInterface
 	virtual int Event(const Laxkit::EventData *data, const char *mes);
 	virtual Laxkit::MenuInfo *ContextMenu(int x,int y,int deviceid);
 
-	virtual void DrawTracingTools();
-	virtual void DrawLineGradient(double minx,double maxx,double miny,double maxy);
-	virtual void DrawShadeGradient(double minx,double maxx,double miny,double maxy);
 	virtual void deletedata();
 	virtual PatchData *newPatchData(double xx,double yy,double ww,double hh,int nr,int nc,unsigned int stle);
 	//virtual void drawpatch(int roff,int coff);

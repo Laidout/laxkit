@@ -107,10 +107,12 @@ void LinePoint::Set(LinePoint *pp)
  */
 
 
-/*! Default to linear.
+/*! Default to linear. Warning: leaves trace==NULL!
  */
 EngraverPointGroup::EngraverPointGroup()
 {
+	trace=NULL;
+
 	id=getUniqueNumber(); //the group number in LinePoint
 	name=NULL;
 	type=PGROUP_Linear; //what manner of lines
@@ -124,7 +126,8 @@ EngraverPointGroup::EngraverPointGroup()
 
 /*! Creates a unique new number for id if nid<0.
  */
-EngraverPointGroup::EngraverPointGroup(int nid,const char *nname, int ntype, flatpoint npos, flatpoint ndir, double ntype_d)
+EngraverPointGroup::EngraverPointGroup(int nid,const char *nname, int ntype, flatpoint npos, flatpoint ndir, double ntype_d,
+										EngraverTraceSettings *newtrace)
 {
 	id=nid;
 	if (id<0) id=getUniqueNumber(); //the group number in LinePoint
@@ -138,11 +141,32 @@ EngraverPointGroup::EngraverPointGroup(int nid,const char *nname, int ntype, fla
 	dash_length=spacing*2;
 	zero_threshhold=0;
 	broken_threshhold=0;
+
+	trace=newtrace;
+	if (trace) trace->inc_count();
+	else trace=new EngraverTraceSettings();
+
 }
 
 EngraverPointGroup::~EngraverPointGroup()
 {
 	delete[] name;
+}
+
+/*! If newtrace is NULL, then dec_count() the old one and install a fresh default one.
+ * Otherwise decs count on old, incs count on newtrace.
+ */
+void EngraverPointGroup::SetTraceSettings(EngraverTraceSettings *newtrace)
+{
+	if (!newtrace) {
+		if (trace) trace->dec_count();
+		trace=new EngraverTraceSettings();
+		return;
+	}
+	if (newtrace==trace) return;
+	if (trace) trace->dec_count();
+	trace=newtrace;
+	trace->inc_count();
 }
 
 /*! Provide a direction vector for specified point. This is used to grow lines
@@ -1076,6 +1100,8 @@ enum EngraveControls {
 	ENGRAVE_Orient_Spacing,
 	ENGRAVE_Orient_Position,
 	ENGRAVE_Orient_Direction,
+	ENGRAVE_Orient_Type,
+	ENGRAVE_Orient_Grow,
 
 	 //modes:
 	EMODE_Controls,
@@ -1106,6 +1132,7 @@ EngraverFillInterface::EngraverFillInterface(int nid,Displayer *ndp)
 	recurse=0;
 	edata=NULL;
 
+	current_group=-1;
 	default_spacing=1./25;
 	default_zero_threshhold=0;
 	default_broken_threshhold=0;
@@ -1140,8 +1167,8 @@ EngraverFillInterface::EngraverFillInterface(int nid,Displayer *ndp)
 	modes.AddItem(_("Push or pull. Shift for brush size"),                     NULL, EMODE_PushPull     );
 	//modes.AddItem(_("Avoid or pull toward. Shift for brush size"),             NULL, EMODE_AvoidToward  );
 	modes.AddItem(_("Twirl, Shift for brush size"),                            NULL, EMODE_Twirl        );
-	modes.AddItem(_("Randomly push sample points"),                            NULL, EMODE_Turbulence   );
-	//modes.AddItem(_("Add or remove sample points"),                            NULL, EMODE_Resolution   );
+	modes.AddItem(_("Turbulence, randomly push sample points"),                NULL, EMODE_Turbulence   );
+	//modes.AddItem(_("Resolution. Add or remove sample points"),                NULL, EMODE_Resolution   );
 	modes.AddItem(_("Orientation mode"),                                       NULL, EMODE_Orientation  );
 	modes.AddItem(_("Freehand mode"),                                          NULL, EMODE_Freehand     );
 	modes.AddItem(_("Trace adjustment mode"),                                  NULL, EMODE_Trace        );
@@ -1288,10 +1315,25 @@ int EngraverFillInterface::scanEngraving(int x,int y, int *category)
 	}
 
 	if (mode==EMODE_Orientation) {
+		 //note: need to coordinate with DrawOrientation
 		*category=ENGRAVE_Orient;
 		//ENGRAVE_Orient_Direction
 		//ENGRAVE_Orient_Position
 		//ENGRAVE_Orient_Spacing
+
+		flatpoint p(x,y);
+		flatpoint center((edata->minx+edata->maxx)/2, (edata->miny+edata->maxy)/2);
+		center=realtoscreen(center);
+
+		int size=30;
+		double thick=.25;
+
+		flatpoint xx=realtoscreen(edata->getPoint(.55,.5)) - realtoscreen(edata->getPoint(.5,.5));
+		xx=xx/norm(xx)*size;
+		flatpoint yy=-transpose(xx);
+
+		p.x=(p-center)*xx;
+		p.y=(p-center)*yy;
 	}
 
 
@@ -1943,18 +1985,8 @@ int EngraverFillInterface::Refresh()
 		PatchInterface::Refresh();
 
 	} else if (mode==EMODE_Orientation) {
-		flatpoint center((edata->minx+edata->maxx)/2, (edata->miny+edata->maxy)/2);
-		orient_position=center;
-
-		flatpoint yy=edata->getPoint(.5,.55)-edata->getPoint(.5,.5);
-		yy=yy/norm(yy)*edata->default_spacing;
-		flatpoint xx=-transpose(yy)*4;
-
-		dp->LineAttributes(5,LineSolid,LAXCAP_Round,LAXJOIN_Round);
-		dp->NewFG(1.,0.,0.);
-		dp->drawline(center, center+yy);
-		dp->NewFG(0.,1.,0.);
-		dp->drawline(center, center+xx);
+		 //draw a burin
+		DrawOrientation(lasthover);
 
 	} else if (mode==EMODE_Thickness
 			|| mode==EMODE_Blockout
@@ -2034,6 +2066,69 @@ int EngraverFillInterface::Refresh()
 
 	needtodraw=0;
 	return 0;
+}
+
+/*! Called from Refresh, draws the orientation handle.
+ */
+void EngraverFillInterface::DrawOrientation(int over)
+{
+	 //note: need to coordinate with scanEngraving()
+
+	 //draw a burin
+	flatpoint center((edata->minx+edata->maxx)/2, (edata->miny+edata->maxy)/2);
+	center=dp->realtoscreen(center);
+	orient_position=center;
+
+	int size=30;
+	double thick=.25;
+
+	flatpoint xx=dp->realtoscreen(edata->getPoint(.55,.5)) - dp->realtoscreen(edata->getPoint(.5,.5));
+	xx=xx/norm(xx)*size;
+	flatpoint yy=-transpose(xx);
+
+	dp->DrawScreen();
+
+	 //draw shaft of burin
+	dp->moveto(center + yy);
+	dp->lineto(center + yy/2);
+	dp->curveto(center + .225*yy, center + .225*xx, center+xx/2);
+	dp->lineto(center +2*xx);
+	dp->lineto(center + (2-thick)*xx + thick*yy);
+	dp->lineto(center + 2*thick*xx   + thick*yy);
+	dp->curveto(center + (1.5*thick)*xx + thick*yy, center + thick*xx+1.5*thick*yy, center + thick*xx + 2*thick*yy);
+	dp->lineto(center + thick*xx + yy);
+	dp->closed();
+
+	dp->LineAttributes(2,LineSolid,LAXCAP_Round,LAXJOIN_Round);
+	if (over==ENGRAVE_Orient_Position) dp->NewFG(.8,.8,.8); else dp->NewFG(1.,1.,1.);
+	dp->fill(1);
+	dp->NewFG(0.,0.,.6);
+	dp->stroke(0);
+
+	 //draw knob of burin
+	if (over==ENGRAVE_Orient_Spacing)  dp->NewFG(.8,.8,.8); else dp->NewFG(1.,1.,1.);
+	dp->drawpoint(center+thick/2*xx+yy, norm(xx)/3, 2);
+	
+	if (over==ENGRAVE_Orient_Direction) {
+		 //draw rotate indicator
+		dp->NewFG(0.,0.,.6);
+		dp->moveto(center + 2*xx + thick*yy);
+		dp->curveto(center + (2+thick/2)*xx + thick/2*yy,
+					center + (2+thick/2)*xx - thick/2*yy,
+					center + 2*xx - thick*yy);
+
+		dp->moveto(center + 2*xx + .9*thick*yy);
+		dp->lineto(center + 2*xx + thick*yy);
+		dp->lineto(center + 2.1*xx + thick*yy);
+
+		dp->moveto(center + 2*xx - .9*thick*yy);
+		dp->lineto(center + 2*xx - thick*yy);
+		dp->lineto(center + 2.1*xx - thick*yy);
+
+		dp->stroke(0);
+	}
+
+	dp->DrawReal();
 }
 
 /*! Draw the range of line widths in a strip, as for a curve map control.
