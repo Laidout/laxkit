@@ -148,11 +148,15 @@ int ViewportWithStack::SelectObject(int i)
 {
 	SomeData *obj=curobj->obj;
 	if (i==-1) { // select next object
-		if (++curobj->i>=datastack.n) curobj->i=0;
-		curobj->SetObject(datastack.e[curobj->i]);
+		if (datastack.n>0) {
+			if (++curobj->i>=datastack.n) curobj->i=0;
+			curobj->SetObject(datastack.e[curobj->i]);
+		}
 	} else if (i==-2) { // select previous object
-		if (--curobj->i<0) curobj->i=datastack.n-1;
-		curobj->SetObject(datastack.e[curobj->i]);
+		if (datastack.n>0) {
+			if (--curobj->i<0) curobj->i=datastack.n-1;
+			curobj->SetObject(datastack.e[curobj->i]);
+		}
 	}
 	if (obj==curobj->obj) return 0;
 
