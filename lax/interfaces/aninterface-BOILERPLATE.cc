@@ -23,14 +23,16 @@
 
 
 
-#include <lax/interfaces/pressuremapinterface.h>
+#include <lax/interfaces/boilerplateinterface.h>
 
 #include <lax/interfaces/somedatafactory.h>
-#include <lax/interfaces/pathinterface.h>
 #include <lax/laxutils.h>
 #include <lax/language.h>
 
+
+//You need this if you use any of the Laxkit stack templates in lax/lists.h
 #include <lax/lists.cc>
+
 
 using namespace Laxkit;
 
@@ -77,7 +79,7 @@ const char *BoilerPlateInterface::Name()
 
 
 //! Return new BoilerPlateInterface.
-/*! If dup!=NULL and it cannot be cast to ImageInterface, then return NULL.
+/*! If dup!=NULL and it cannot be cast to BoilerPlateInterface, then return NULL.
  */
 anInterface *BoilerPlateInterface::duplicate(anInterface *dup)
 { ***
@@ -190,14 +192,14 @@ int BoilerPlateInterface::LBDown(int x,int y,unsigned int state,int count, const
 	//device_name=dv->name;
 
 	needtodraw=1;
-	return 0;
+	return 0; //return 0 for absorbing event, or 1 for ignoring
 }
 
 //! Finish a new freehand line by calling newData with it.
 int BoilerPlateInterface::LBUp(int x,int y,unsigned int state, const Laxkit::LaxMouse *d) 
 { ***
 	buttondown.up(d->id,LEFTBUTTON);
-	return 0;
+	return 0; //return 0 for absorbing event, or 1 for ignoring
 }
 
 //! Start a new freehand line.
@@ -210,14 +212,14 @@ int BoilerPlateInterface::MBDown(int x,int y,unsigned int state,int count, const
 	//device_name=dv->name;
 
 	needtodraw=1;
-	return 0;
+	return 0; //return 0 for absorbing event, or 1 for ignoring
 }
 
 //! Finish a new freehand line by calling newData with it.
 int BoilerPlateInterface::MBUp(int x,int y,unsigned int state, const Laxkit::LaxMouse *d) 
 { ***
 	buttondown.up(d->id,MIDDLEBUTTON);
-	return 0;
+	return 0; //return 0 for absorbing event, or 1 for ignoring
 }
 
 //// NOTE! You probably only need to redefine ContextMenu(), instead of grabbing right button,
@@ -232,13 +234,13 @@ int BoilerPlateInterface::MBUp(int x,int y,unsigned int state, const Laxkit::Lax
 //	//LaxDevice *dv=app->devicemanager->findDevice(device);
 //	//device_name=dv->name;
 //	needtodraw=1;
-//	return 0;
+//	return 0; //return 0 for absorbing event, or 1 for ignoring
 //}
 //
 //int BoilerPlateInterface::RBUp(int x,int y,unsigned int state, const Laxkit::LaxMouse *d) 
 //{ ***
 //	buttondown.up(d->id,RIGHTBUTTON);
-//	return 0;
+//	return 0; //return 0 for absorbing event, or 1 for ignoring
 //}
 
 
@@ -258,7 +260,7 @@ int BoilerPlateInterface::MouseMove(int x,int y,unsigned int state, const Laxkit
 	
 
 	//needtodraw=1;
-	return 0;
+	return 0; //MouseMove is always called for all interfaces, return value doesn't inherently matter
 }
 
 
@@ -288,7 +290,12 @@ int BoilerPlateInterface::CharInput(unsigned int ch, const char *buffer,int len,
 		return 0;
 	}
 
-	return 1; //key not dealt witht, propagate to next interface
+	return 1; //key not dealt with, propagate to next interface
+}
+
+int BoilerPlateInterface::KeyUp(unsigned int ch,unsigned int state, const Laxkit::LaxKeyboard *d)
+{ ***
+	return 1; //key not dealt with
 }
 
 Laxkit::ShortcutHandler *BoilerPlateInterface::GetShortcuts()

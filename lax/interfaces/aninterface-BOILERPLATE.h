@@ -20,13 +20,11 @@
 //
 //    Copyright (C) 2014 by Tom Lechner
 //
-#ifndef _LAX_PRESSUREMAPINTERFACE_H
-#define _LAX_PRESSUREMAPINTERFACE_H
+#ifndef _LAX_BOILERPLATEINTERFACE_H
+#define _LAX_BOILERPLATEINTERFACE_H
 
 #include <lax/interfaces/aninterface.h>
-#include <lax/interfaces/linestyle.h>
-#include <lax/interfaces/coordinate.h>
-#include <lax/curvewindow.h>
+
 
 namespace LaxInterfaces { 
 
@@ -68,7 +66,7 @@ class BoilerPlateInterface : public anInterface
 	virtual int LBUp(int x,int y,unsigned int state, const Laxkit::LaxMouse *d);
 	virtual int MBDown(int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d);
 	virtual int MBUp(int x,int y,unsigned int state, const Laxkit::LaxMouse *d);
-	//virtual int RBDown(int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d); <- normally only need ContextMenu()
+	//virtual int RBDown(int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d);
 	//virtual int RBUp(int x,int y,unsigned int state, const Laxkit::LaxMouse *d);
 	virtual int WheelUp  (int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d);
 	virtual int WheelDown(int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d);
