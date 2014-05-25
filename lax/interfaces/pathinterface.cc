@@ -34,12 +34,14 @@
 
 #include <lax/lists.cc>
 
+
 using namespace LaxFiles;
 using namespace Laxkit;
 
 #include <iostream>
 using namespace std;
 #define DBG
+
 
 DBG flatpoint POINT;
 
@@ -577,11 +579,6 @@ void Path::UpdateCache()
 		p2=p->next; //p points to a vertex
 		if (!p2) break;
 
-		// *** need to check join with previous segment, special handling for corners...
-		//if (!areparallel(lasv,curv) || !(lastv.isZero() && curv.isZero()) {
-		//	...
-		//}
-
 		//p2 now points to first Coordinate after the first vertex
 		if (p2->flags&(POINT_TOPREV|POINT_TONEXT)) {
 			 //we do have control points
@@ -605,12 +602,28 @@ void Path::UpdateCache()
 		} else {
 			 //we do not have control points, so is just a straight line segment
 			vvv=rr*(p2->p()-p->p());
+			c1=p->p()+vvv/3;
 			for (int bb=0; bb<resolution; bb++) {
 				bez[bb]=p->p() + bb*vvv;
 			}
 			isline=true;
 
 		}
+
+//		 //need to check join with previous segment, special handling for corners...
+//		if (!areparallel(lastv,curv) || !(lastv.isZero() && curv.isZero())) {
+//			if (linestyle && linestyle->joinstyle==Bevel) {
+//				//nothing to do, bevel is no special treatment
+//			} else if (linestyle && linestyle->joinstyle==Miter) {
+//				// ***
+//			} else if (linestyle && linestyle->joinstyle==Round) {
+//				// ***
+//			} else { //if (linestyle && linestyle->joinstyle==Extrapolate) {
+//				//extrapolate is default... 
+//				// ***
+//			}
+//		}
+
 
 		for (int bb=first; bb<resolution; bb++) {
 			//DBG cerr <<"point: "<<bb*rr<<endl;
@@ -5061,31 +5074,36 @@ int PathInterface::MouseMove(int x,int y,unsigned int state,const LaxMouse *mous
 
 		if (path->PointAlongPath(weight->t, 0, &pp, &vv)==0) return 0;
 
-		if (vv.isZero()) vv.x=1;
-		else vv.normalize();
+		if (vv.isZero()) path->PointAlongPath(weight->t+.00001, 0, NULL,&vv);
+		vv.normalize();
 		vt=transpose(vv);
+		if (path->Angled()) {
+			if (path->absoluteangle) vt=rotate(flatpoint(1,0), weight->angle);
+			else vt=rotate(vt, weight->angle);
+		}
+
 
 		double toffset=weight->topOffset();
 		double boffset=weight->bottomOffset();
 		double dd=d*vt;
 
 		if (action==HOVER_WeightTop) {
-			toffset-=dd;
+			toffset+=dd;
 
 			if (!(pathi_style&PATHI_No_Offset) && (state&LAX_STATE_MASK)==ShiftMask)
-				boffset-=dd; //offset whole width with shift
+				boffset+=dd; //offset whole width with shift
 			else if (!(pathi_style&PATHI_No_Offset) && (state&LAX_STATE_MASK)==ControlMask)
 				; //do nothing to bottom when control to move only one arrow
-			else boffset+=dd;
+			else boffset-=dd;
 
 		} else { //action==HOVER_WeightBottom
-			boffset-=dd;
+			boffset+=dd;
 
 			if (!(pathi_style&PATHI_No_Offset) && (state&LAX_STATE_MASK)==ShiftMask)
-				toffset-=dd; //offset whole width with shift
+				toffset+=dd; //offset whole width with shift
 			else if (!(pathi_style&PATHI_No_Offset) && (state&LAX_STATE_MASK)==ControlMask)
 				; //do nothing to top when control to move only one arrow
-			else toffset+=dd;
+			else toffset-=dd;
 		}
 
 		weight->width=toffset-boffset;
