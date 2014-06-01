@@ -152,6 +152,7 @@ objs= \
 	inputdialog.o \
 	filepreviewer.o \
 	filedialog.o \
+	filedialog2.o \
 	imagedialog.o \
 	simpleprint.o \
 	printdialog.o \
@@ -161,7 +162,6 @@ objs= \
 	treeselector.o \
 	shortcutwindow.o \
 	curveinfo.o \
-	curvewindow.o \
 	fontmanager-cairo.o \
 	laximages-cairo.o \
 	laxcairo.o \

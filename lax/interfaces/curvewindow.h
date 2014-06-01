@@ -26,9 +26,10 @@
 #include <lax/anxapp.h>
 #include <lax/rectangles.h>
 #include <lax/buttondowninfo.h>
-#include <lax/curveinfo.h>
+#include <lax/interfaces/curvemapinterface.h>
 
-namespace Laxkit {
+
+namespace LaxInterfaces {
 
 	
 
@@ -36,37 +37,12 @@ enum CurveWindowStyles {
 	CURVE_Show_Ranges=(1<<15),
 };
 
-class CurveWindow : public anXWindow
+class CurveWindow : public Laxkit::anXWindow
 {
  protected:
-	LaxFont *smallnumbers;
-	IntRectangle rect;
-	unsigned int curve_win_style;
-	int firsttime;
-	CurveInfo *curveinfo;
-	ButtonDownInfo buttondown;
-
-	int show_label_ranges;
-	int show_labels;
-	int always_refresh_lookup;
-	int highlighteditable;
-
-	flatpoint lastpoint;
-	int draglimbo;
-	flatpoint ClampPoint(flatpoint p, int pp);
-
-	int *histogram; //in range [0..1000]
-	int hist_n;
+	CurveMapInterface interface;
 
  public:
-	enum CurveWindowEditable {
-		YMax  =(1<<0),
-		YMin  =(1<<1),
-		XMax  =(1<<2),
-		XMin  =(1<<3),
-		YUnits=(1<<4),
-		XUnits=(1<<5)
-	};
 
 	int padouter, padinner;
 	unsigned int curve_color;
@@ -83,18 +59,15 @@ class CurveWindow : public anXWindow
 	virtual const char *whattype() { return "CurveWindow"; }
 	//virtual int init();
 	virtual void Refresh();
-	virtual int LBDown(int x,int y,unsigned int state,int count,const LaxMouse *d);
-	virtual int LBUp(int x,int y,unsigned int state,const LaxMouse *d);
-	//virtual int MBDown(int x,int y,unsigned int state,int count,const LaxMouse *d);
-	//virtual int MBUp(int x,int y,unsigned int state,const LaxMouse *d);
-	//virtual int RBDown(int x,int y,unsigned int state,int count,const LaxMouse *d);
-	//virtual int RBUp(int x,int y,unsigned int state,const LaxMouse *d);
-	virtual int WheelUp(int x,int y,unsigned int state,int count,const LaxMouse *d);
-	virtual int WheelDown(int x,int y,unsigned int state,int count,const LaxMouse *d);
-	virtual int MouseMove(int x,int y,unsigned int state,const LaxMouse *d);
+	virtual int LBDown(int x,int y,unsigned int state,int count,const Laxkit::LaxMouse *d);
+	virtual int LBUp(int x,int y,unsigned int state,const Laxkit::LaxMouse *d);
+	virtual int WheelUp(int x,int y,unsigned int state,int count,const Laxkit::LaxMouse *d);
+	virtual int WheelDown(int x,int y,unsigned int state,int count,const Laxkit::LaxMouse *d);
+	virtual int MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMouse *d);
+	virtual int CharInput(unsigned int ch, const char *buffer,int len,unsigned int state, const Laxkit::LaxKeyboard *d);
 	virtual int MoveResize(int nx,int ny,int nw,int nh);
 	virtual int Resize(int nw,int nh);
-	virtual int Event(const EventData *e,const char *mes);
+	virtual int Event(const Laxkit::EventData *e,const char *mes);
 	virtual void ChangeEditable(unsigned int which, int on);
 
 	 //serializing aids
@@ -108,18 +81,17 @@ class CurveWindow : public anXWindow
 	virtual int scan(int x,int y);
 	virtual int scannear(int x,int y, flatpoint *p_ret, int *index);
 	virtual int MakeLookupTable(int *table,int numentries, int minvalue, int maxvalue);
-	virtual void send(int which=0);
 	virtual double f(double x);
-	virtual CurveInfo *GetInfo() { return curveinfo; }
-	virtual int SetInfo(CurveInfo *info);
-	virtual int CopyInfo(CurveInfo *info);
+	virtual Laxkit::CurveInfo *GetInfo() { return interface.GetInfo(); }
+	virtual int SetInfo(Laxkit::CurveInfo *info);
+	virtual int CopyInfo(Laxkit::CurveInfo *info);
 	virtual int AddPoint(double x,double y);
 	virtual int MovePoint(int index, double x,double y);
 	virtual void Reset();
 };
 
 
-} // namespace Laxkit
+} // namespace LaxInterfaces
 
 #endif
 

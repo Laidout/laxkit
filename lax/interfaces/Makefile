@@ -43,6 +43,7 @@ objs= \
 	ellipseinterface.o \
 	pressuremapinterface.o \
 	curvemapinterface.o \
+	curvewindow.o \
 	showkeysinterface.o \
 
 #	linesinterface.o \
