@@ -186,6 +186,7 @@ class ListBox : public SquishyBox
 
 	 //list management functions
 	virtual void Push(SquishyBox *box,char islocal=0,int where=-1);
+	virtual void AddSpacer(int npw,int nws,int nwg,int nhalign, int where=-1);
 	virtual int Pop(int which=-1);
 	virtual void Flush(); 
 

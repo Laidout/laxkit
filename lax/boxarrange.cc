@@ -391,6 +391,15 @@ void ListBox::Push(SquishyBox *box,char islocal,int where) // islocal=0,where=-1
 	list.push(box,islocal,where);
 }
 
+void ListBox::AddSpacer(int npw,int nws,int nwg,int nhalign, int where)
+{
+	SquishyBox *box;
+	if (flags&BOX_VERTICAL) box=new SquishyBox(BOX_VERTICAL, 0,1,1,0,0,50,0, 0,npw,npw,nws,nwg,nhalign,0);
+	else box=new SquishyBox(BOX_VERTICAL, 0,npw,npw,nws,nwg,nhalign, 0,1,1,0,0,50,0, 0);
+
+	list.push(box,1,where);
+}
+
 
 //! Sets this->pw,s,g/ph,s,g to be the sum of the metrics of the boxes in list.
 /*! Note that it does NOT set this->x,y,w,h.
@@ -453,7 +462,7 @@ int ListBox::arrangeBoxes(int distributetoo) //distributetoo=0
 }
 
 //! Sets x,y,w,h of the child boxes in list, and tells them to sync().
-/*! The default for SquishyBox is to layout ALL the boxes in list, based
+/*! The default for ListBox is to layout ALL the boxes in list, based
  *  on the definite, and already set x,y,w,h of *this. It lays out ALL the boxes
  *  in list, whether they squish nicely or not.
  *
