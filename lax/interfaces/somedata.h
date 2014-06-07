@@ -31,6 +31,7 @@
 #include <lax/dump.h>
 #include <lax/laximages.h>
 #include <lax/transformmath.h>
+#include <lax/undo.h>
 
 #include <cstdio>
 #include <ctime>
@@ -62,7 +63,8 @@ namespace LaxInterfaces {
 
 class SomeData :  virtual public Laxkit::anObject,
 				  virtual public Laxkit::Affine,
-				  virtual public Laxkit::DoubleBBox
+				  virtual public Laxkit::DoubleBBox,
+				  virtual public Laxkit::Undoable
 {
  protected:
  public:
@@ -105,6 +107,9 @@ class SomeData :  virtual public Laxkit::anObject,
 	virtual void dump_in(FILE *f,int indent,Laxkit::anObject *context,LaxFiles::Attribute **Att=NULL);
 	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,Laxkit::anObject *context);
 	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,Laxkit::anObject *savecontext);
+
+    virtual int Undo(Laxkit::UndoData *data);
+    virtual int Redo(Laxkit::UndoData *data);
 };
 
 

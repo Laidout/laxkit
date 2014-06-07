@@ -45,17 +45,21 @@ class UndoData
 {
   public:
     Undoable *context;
-	anObject *data;
+	unsigned long undogroup;
+	char *description;
     clock_t time;
     int direction;
     int isauto;
     UndoData *prev, *next;
 
-    UndoData();
+	anObject *data;
+
+    UndoData(int nisauto=0);
     virtual ~UndoData();
     virtual int isUndoable();
     virtual int isRedoable();
     virtual const char *Description() = 0;
+	virtual const char *Script() { return NULL; }
 };
 
 //--------------------------------------------- UndoManager ------------------------------------------

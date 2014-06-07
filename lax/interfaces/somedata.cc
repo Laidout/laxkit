@@ -514,7 +514,79 @@ Laxkit::Affine SomeData::GetTransformToContext(bool invert, int partial)
     if (invert) a.Invert();
     return a;
 }   
+
+
+//------------------------- Undo stuff:
    
+class SomeDataUndo : public Laxkit::UndoData
+{
+  public:
+	int type;
+	Laxkit::Affine m, m_orig;
+	Laxkit::DoubleBBox box, box_orig;
+	SomeDataUndo(Laxkit::Affine *mo, Laxkit::DoubleBBox *boxo,
+			     Laxkit::Affine *nm, Laxkit::DoubleBBox *nbox,
+			     int ntype, int nisauto);
+	virtual const char *Description();
+};
+
+SomeDataUndo::SomeDataUndo(Laxkit::Affine *mo, Laxkit::DoubleBBox *boxo,
+						   Laxkit::Affine *nm, Laxkit::DoubleBBox *nbox,
+						   int ntype, int nisauto)
+  : UndoData(nisauto)
+{
+	if (nm) m=*nm;
+	if (nbox) box.setbounds(nbox);
+	type=ntype;
+
+	if (mo) m_orig=*mo;
+	if (boxo) box_orig.setbounds(boxo);
+}
+
+const char *SomeDataUndo::Description()
+{
+	if (type==0) return _("New bounds");
+	else if (type==1) return _("New transform");
+	else if (type==2) return _("Shift");
+	else if (type==3) return _("Rotation");
+	else if (type==4) return _("Scale");
+	else if (type==5) return _("Shear");
+	return NULL;
+}
+
+int SomeData::Undo(UndoData *data)
+{
+	SomeDataUndo *u=dynamic_cast<SomeDataUndo*>(data);
+	if (!u) return 1;
+	if (u->type<0 || u->type>5) return 2;
+
+	if (u->type==0) {
+		setbounds(&u->box_orig);
+		return 0;
+	}
+
+	set(u->m_orig);
+	return 0;
+}
+
+int SomeData::Redo(UndoData *data)
+{
+	SomeDataUndo *u=dynamic_cast<SomeDataUndo*>(data);
+	if (!u) return 1;
+	if (u->type<0 || u->type>5) return 2;
+
+
+	if (u->type==0) {
+		setbounds(&u->box);
+		return 0;
+	}
+
+	if (u->type==1) { set(u->m); return 0; }
+
+	 //else apply transform
+	Multiply(u->m); // *** needs testing
+	return 0;
+}
 
 
 } // namespace LaxInterfaces

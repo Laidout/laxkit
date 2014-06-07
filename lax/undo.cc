@@ -54,13 +54,24 @@ namespace Laxkit {
  * the data to reflect what must be done after Undoable::Undo() or Redo() is called.
  */
 
-UndoData::UndoData()
+static unsigned long getUniqueUndoId()
 {
+    static unsigned long uniquenumber=1;
+    return uniquenumber++;
+}
+
+
+UndoData::UndoData(int nisauto)
+{
+	isauto=nisauto; //whether this undo element must exist connected to the previous undo element
+	if (nisauto) undogroup=getUniqueUndoId();
+	else undogroup=0;
+
+	description=NULL;
 	data=NULL;
 	time=0;
 	context=NULL;
 	direction=UNDOABLE;
-	isauto=0;
 	prev=next=NULL;
 }
 
@@ -81,6 +92,8 @@ UndoData::~UndoData()
 			next=NULL;
 		}
 	}
+
+	delete[] description;
 }
 
 int UndoData::isUndoable()
@@ -109,7 +122,8 @@ UndoManager::~UndoManager()
  */
 int UndoManager::AddUndo(UndoData *data)
 {
-	//current points to an UndoData that is ready to be undone. If there are none, then
+	//current points to an UndoData that is ready to be undone. It must have isauto==0.
+	//If there are no UndoData nodes, then
 	//current is NULL. In this case, if head is not NULL, then it is a list of redoables.
 
 	data->time=times(NULL);
