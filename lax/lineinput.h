@@ -38,7 +38,8 @@
 #define LINP_INT       (1<<24)
 #define LINP_FLOAT     (1<<25)
 #define LINP_FILE      (1<<26)
-#define LINP_STYLEMASK (1<<16|1<<17|1<<18|1<<19|1<<20|1<<21|1<<22|1<<23|1<<24|1<<25|1<<26)
+#define LINP_DIRECTORY (1<<27)
+#define LINP_STYLEMASK ((1<<16)|(1<<17)|(1<<18)|(1<<19)|(1<<20)|(1<<21)|(1<<22)|(1<<23)|(1<<24)|(1<<25)|(1<<26)|(1<<27))
 
 
 
