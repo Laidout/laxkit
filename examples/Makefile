@@ -38,6 +38,9 @@ test: lax laxinterface test.o
 laxhello: lax laxhello.o
 	$(LD) $(LDFLAGS) $@.o -llaxkit -o $@
 
+thingpreviewer: lax thingpreviewer.o
+	$(LD) $(LDFLAGS) $@.o -llaxkit -o $@
+
 timers: lax timers.o
 	$(LD) $(LDFLAGS) $@.o -llaxkit -o $@
 
