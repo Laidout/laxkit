@@ -156,7 +156,7 @@ class Displayer : public PanUser, virtual public anObject
 								double start_angle=0,double end_angle=0,int fill=0);
 
 	//draw things
-	virtual void drawthing(double x, double y, double rx, double ry, int fill, DrawThingTypes thing); // draws same orientation on screen
+	virtual void drawthing(double x, double y, double rx, double ry, int tofill, DrawThingTypes thing); // draws same orientation on screen
 	virtual void drawthing(double x, double y, double rx, double ry, DrawThingTypes thing,unsigned long fg,unsigned long bg,int lwidth=1);
 	virtual void drawarrow(flatpoint p,flatpoint v,int rfromp=0,double len=10,char reallength=1,int portion=3);
 	virtual void drawaxes(double len=1); //draw axes with real length at the origin

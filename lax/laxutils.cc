@@ -536,7 +536,7 @@ void draw_bevel(aDrawable *win,int bevel,unsigned long highlight,unsigned long s
  *   - info&LINE_Vertex means the point is part of a polyline segment
  *   - info&LINE_Bez    means the point is part of a bezier segment
  *   - info&LINE_Closed means this point is the final point in a closed path
- *   - info&LINE_End    means this point is the final point in an open path
+ *   - info&LINE_Open    means this point is the final point in an open path
  *
  * Paths are defined clockwise, except that holes in paths are defined counter clockwise.
  *
@@ -544,30 +544,35 @@ void draw_bevel(aDrawable *win,int bevel,unsigned long highlight,unsigned long s
  */
 flatpoint *draw_thing_coordinates(DrawThingTypes thing, flatpoint *buffer, int buffer_size, int *n_ret,double scale,DoubleBBox *bounds)
 {
+	if (thing==THING_None) {
+		*n_ret=0;
+		return NULL;
+	}
+
 	if (thing==THING_Circle || thing==THING_Circle_X || thing==THING_Circle_Plus) {
 		int n=12;
 		if (thing==THING_Circle_X) n+=6;
 		else if (thing==THING_Circle_Plus) n+=6;
 		if ((buffer && buffer_size<n) || (!buffer && buffer_size>=0)) { *n_ret=n; return NULL; }
+
 		*n_ret=n;
 		if (!buffer)  buffer=new flatpoint[n];
 		bez_circle(buffer,4, .5,.5,.5);
-		for (int c=0; c<11; c++) buffer[c].info=LINE_Bez;
-		buffer[11].info=LINE_Closed|LINE_End;
+		buffer[11].info|=LINE_Closed|LINE_End;
 		
 		if (thing==THING_Circle_X) {
 			double s=sqrt(2)/4;
 			buffer[12].x=.5-s;  buffer[12].y=.5+s;
-			buffer[13].x=.5+s;  buffer[13].y=.5-s;  buffer[13].info=LINE_End;
+			buffer[13].x=.5+s;  buffer[13].y=.5-s;  buffer[13].info=LINE_Open;
 
 			buffer[14].x=.5-s;  buffer[14].y=.5-s;
-			buffer[15].x=.5+s;  buffer[15].y=.5+s;  buffer[15].info=LINE_End;
+			buffer[15].x=.5+s;  buffer[15].y=.5+s;  buffer[15].info=LINE_Open;
 		} else if (thing==THING_Circle_Plus) {
 			buffer[12].x=.5;  buffer[12].y=1;
-			buffer[13].x=.5;  buffer[13].y=0;  buffer[13].info=LINE_End;
+			buffer[13].x=.5;  buffer[13].y=0;  buffer[13].info=LINE_Open;
 
 			buffer[14].x=0;  buffer[14].y=.5;
-			buffer[15].x=1;  buffer[15].y=.5;  buffer[15].info=LINE_End;
+			buffer[15].x=1;  buffer[15].y=.5;  buffer[15].info=LINE_Open;
 		}
 		
 	} else if (thing==THING_Square) {
@@ -662,10 +667,10 @@ flatpoint *draw_thing_coordinates(DrawThingTypes thing, flatpoint *buffer, int b
 		if (!buffer) buffer=new flatpoint[4];
 
 		buffer[0].x=.5;  buffer[0].y=1;
-		buffer[1].x=.5;  buffer[1].y=0;  buffer[1].info=LINE_End;
+		buffer[1].x=.5;  buffer[1].y=0;  buffer[1].info=LINE_Open;
 
 		buffer[2].x=0;  buffer[2].y=.5;
-		buffer[3].x=1;  buffer[3].y=.5;  buffer[3].info=LINE_End;
+		buffer[3].x=1;  buffer[3].y=.5;  buffer[3].info=LINE_Open;
 
 	} else if (thing==THING_X) {
 		if ((buffer && buffer_size<4) || (!buffer && buffer_size>=0)) { *n_ret=4; return NULL; }
@@ -674,10 +679,10 @@ flatpoint *draw_thing_coordinates(DrawThingTypes thing, flatpoint *buffer, int b
 
 		double s=sqrt(2)/4;
 		buffer[0].x=.5-s;  buffer[0].y=.5+s;
-		buffer[1].x=.5+s;  buffer[1].y=.5-s;  buffer[1].info=LINE_End;
+		buffer[1].x=.5+s;  buffer[1].y=.5-s;  buffer[1].info=LINE_Open;
 
 		buffer[2].x=.5-s;  buffer[2].y=.5-s;
-		buffer[3].x=.5+s;  buffer[3].y=.5+s;  buffer[3].info=LINE_End;
+		buffer[3].x=.5+s;  buffer[3].y=.5+s;  buffer[3].info=LINE_Open;
 
 	} else if (thing==THING_Asterix) {
 		if ((buffer && buffer_size<6) || (!buffer && buffer_size>=0)) { *n_ret=6; return NULL; }
@@ -686,13 +691,13 @@ flatpoint *draw_thing_coordinates(DrawThingTypes thing, flatpoint *buffer, int b
 
 		double s=sqrt(3)/4;
 		buffer[0].x=.25;  buffer[0].y=.5+s;
-		buffer[1].x=.75;  buffer[1].y=.5-s;  buffer[1].info=LINE_End;
+		buffer[1].x=.75;  buffer[1].y=.5-s;  buffer[1].info=LINE_Open;
 
 		buffer[2].x=.25;  buffer[2].y=.5-s;
-		buffer[3].x=.75;  buffer[3].y=.5+s;  buffer[3].info=LINE_End;
+		buffer[3].x=.75;  buffer[3].y=.5+s;  buffer[3].info=LINE_Open;
 
 		buffer[4].x=0;  buffer[4].y=.5;
-		buffer[5].x=1;  buffer[5].y=.5;  buffer[5].info=LINE_End;
+		buffer[5].x=1;  buffer[5].y=.5;  buffer[5].info=LINE_Open;
 
 	} else if (thing==THING_Pause) {
 		if ((buffer && buffer_size<8) || (!buffer && buffer_size>=0)) { *n_ret=8; return NULL; }
@@ -728,11 +733,11 @@ flatpoint *draw_thing_coordinates(DrawThingTypes thing, flatpoint *buffer, int b
 		if (!buffer) buffer=new flatpoint[6];
 
 		buffer[0].x=0;  buffer[0].y=0;
-		buffer[1].x=0;  buffer[1].y=.5;
-		buffer[2].x=1;  buffer[2].y=0;   buffer[3].info=LINE_Closed;
+		buffer[1].x=.5; buffer[1].y=.5;
+		buffer[2].x=1;  buffer[2].y=0;   buffer[2].info=LINE_Closed;
 		buffer[3].x=0;  buffer[3].y=.5;
 		buffer[4].x=.5; buffer[4].y=1;
-		buffer[5].x=1;  buffer[5].y=.5; buffer[6].info=LINE_Closed;
+		buffer[5].x=1;  buffer[5].y=.5; buffer[5].info=LINE_Closed;
 
 	} else if (thing==THING_Double_Triangle_Down) {
 		if ((buffer && buffer_size<6) || (!buffer && buffer_size>=0)) { *n_ret=6; return NULL; }
@@ -741,10 +746,10 @@ flatpoint *draw_thing_coordinates(DrawThingTypes thing, flatpoint *buffer, int b
 
 		buffer[0].x=0;  buffer[0].y=1;
 		buffer[1].x=1;  buffer[1].y=1;
-		buffer[2].x=.5; buffer[2].y=.5;  buffer[3].info=LINE_Closed;
+		buffer[2].x=.5; buffer[2].y=.5;  buffer[2].info=LINE_Closed;
 		buffer[3].x=0;  buffer[3].y=.5;
 		buffer[4].x=1;  buffer[4].y=.5;
-		buffer[5].x=.5; buffer[5].y=0; buffer[6].info=LINE_Closed;
+		buffer[5].x=.5; buffer[5].y=0; buffer[5].info=LINE_Closed;
 
 	} else if (thing==THING_Double_Triangle_Left) {
 		if ((buffer && buffer_size<6) || (!buffer && buffer_size>=0)) { *n_ret=6; return NULL; }
@@ -805,7 +810,7 @@ flatpoint *draw_thing_coordinates(DrawThingTypes thing, flatpoint *buffer, int b
 			p[c].x=p[c].x/12;
 			p[c].y=p[c].y/12;
 		}
-		p[24].info=LINE_End;
+		p[24].info=LINE_Closed;
 		memcpy(buffer,p,25*sizeof(flatpoint));
 
 	} else if (thing==THING_Check) {
@@ -816,13 +821,54 @@ flatpoint *draw_thing_coordinates(DrawThingTypes thing, flatpoint *buffer, int b
 		buffer[0]=flatpoint(.1,.6);
 		buffer[1]=flatpoint(.33,.267);
 		buffer[2]=flatpoint(.9,.8);
-		buffer[3]=flatpoint(.33,.444, LINE_End);
+		buffer[3]=flatpoint(.33,.444, LINE_Closed|LINE_End);
 
-//	} else if (thing==THING_Locked) {
-//		***
+	} else if (thing==THING_Locked) {
+		if ((buffer && buffer_size<16) || (!buffer && buffer_size>=0)) { *n_ret=16; return NULL; }
+		*n_ret=16;
+		if (!buffer) buffer=new flatpoint[16];
 
-//	} else if (thing==THING_Unlocked) {
-//		***
+		buffer[ 0]=flatpoint(.166,.4);
+		buffer[ 1]=flatpoint(.166,.1, LINE_Bez);
+		buffer[ 2]=flatpoint(.266,0, LINE_Bez);
+		buffer[ 3]=flatpoint(.33,0);
+		buffer[ 4]=flatpoint(.66,0);
+		buffer[ 5]=flatpoint(.734,0, LINE_Bez);
+		buffer[ 6]=flatpoint(.834,.1, LINE_Bez);
+		buffer[ 7]=flatpoint(.834,.4, LINE_Closed|LINE_End);
+		buffer[ 8]=flatpoint(.25,.4);
+		buffer[ 9]=flatpoint(.25,.8, LINE_Bez);
+		buffer[10]=flatpoint(.75,.8, LINE_Bez);
+		buffer[11]=flatpoint(.75,.4);
+		buffer[12]=flatpoint(.65,.4);
+		buffer[13]=flatpoint(.65,.7, LINE_Bez);
+		buffer[14]=flatpoint(.35,.7, LINE_Bez);
+		buffer[15]=flatpoint(.35,.4, LINE_Closed|LINE_End);
+
+
+	} else if (thing==THING_Unlocked) {
+		if ((buffer && buffer_size<16) || (!buffer && buffer_size>=0)) { *n_ret=16; return NULL; }
+		*n_ret=16;
+		if (!buffer) buffer=new flatpoint[16];
+
+		 //pad
+		buffer[ 0]=flatpoint(0,.4);
+		buffer[ 1]=flatpoint(0,.1, LINE_Bez);
+		buffer[ 2]=flatpoint(.1,0, LINE_Bez);
+		buffer[ 3]=flatpoint(.164,0);
+		buffer[ 4]=flatpoint(.494,0);
+		buffer[ 5]=flatpoint(.568,0, LINE_Bez);
+		buffer[ 6]=flatpoint(.668,.1, LINE_Bez);
+		buffer[ 7]=flatpoint(.668,.4, LINE_Closed|LINE_End);
+		 //loop
+		buffer[ 8]=flatpoint(.35,.4);
+		buffer[ 9]=flatpoint(.35,.9, LINE_Bez);
+		buffer[10]=flatpoint(.85,.9, LINE_Bez);
+		buffer[11]=flatpoint(.85,.5);
+		buffer[12]=flatpoint(.75,.5);
+		buffer[13]=flatpoint(.75,.8, LINE_Bez);
+		buffer[14]=flatpoint(.45,.8, LINE_Bez);
+		buffer[15]=flatpoint(.45,.4, LINE_Closed|LINE_End);
 
 	} else if (thing==THING_Open_Eye) {
 		int numlashes=4;
@@ -835,11 +881,11 @@ flatpoint *draw_thing_coordinates(DrawThingTypes thing, flatpoint *buffer, int b
 		double vv=.276; //one side of vector length for bez circle here
 		double rr=1/sqrt(2);
 		buffer[0]=flatpoint(vv,.5-vv, LINE_Bez);
-		buffer[1]=flatpoint(0,.5, LINE_Bez);
+		buffer[1]=flatpoint(0,.5, LINE_Bez|LINE_Vertex);
 		buffer[2]=flatpoint(vv,.5+vv, LINE_Bez);
 
 		buffer[3]=flatpoint(1-vv,.5+vv, LINE_Bez);
-		buffer[4]=flatpoint(1,.5, LINE_Bez);
+		buffer[4]=flatpoint(1,.5, LINE_Bez|LINE_Vertex);
 		buffer[5]=flatpoint(1-vv,.5-vv, LINE_Bez|LINE_Closed);
 
 		 //lashes:
@@ -847,8 +893,8 @@ flatpoint *draw_thing_coordinates(DrawThingTypes thing, flatpoint *buffer, int b
 		int i=6;
 		for (double ang=-M_PI/2/3, l=0; l<numlashes; l++, ang+=M_PI/3/(numlashes-1)) {
 			v.x=rr*sin(ang); v.y=rr*cos(ang);
-			buffer[i++]=flatpoint(.5+  v.x,  1 - v.y);
-			buffer[i++]=flatpoint(.5+1.4*v.x,1-1.4*v.y, LINE_End);
+			buffer[i++]=flatpoint(.5+  v.x,  v.y);
+			buffer[i++]=flatpoint(.5+1.4*v.x,1.4*v.y, LINE_Open);
 		}
 
 		 //pupil
@@ -870,19 +916,19 @@ flatpoint *draw_thing_coordinates(DrawThingTypes thing, flatpoint *buffer, int b
 		double vv=.276; //one side of vector length for bez circle here
 		double rr=1/sqrt(2);
 		buffer[0]=flatpoint(0,.5, LINE_Bez);
-		buffer[1]=flatpoint(0,.5, LINE_Bez);
-		buffer[2]=flatpoint(vv,.5+vv, LINE_Bez);
-		buffer[3]=flatpoint(1-vv,.5+vv, LINE_Bez);
-		buffer[4]=flatpoint(1,.5, LINE_Bez);
-		buffer[5]=flatpoint(1,.5, LINE_Bez|LINE_End);
+		buffer[1]=flatpoint(0,.5, LINE_Bez|LINE_Vertex);
+		buffer[2]=flatpoint(vv,.5-vv, LINE_Bez);
+		buffer[3]=flatpoint(1-vv,.5-vv, LINE_Bez);
+		buffer[4]=flatpoint(1,.5, LINE_Bez|LINE_Vertex);
+		buffer[5]=flatpoint(1,.5, LINE_Bez|LINE_Open);
 
 		 //lashes:
 		flatvector v;
 		int i=6;
 		for (double ang=-M_PI/2/3, l=0; l<numlashes; l++, ang+=M_PI/3/(numlashes-1)) {
 			v.x=rr*sin(ang); v.y=rr*cos(ang);
-			buffer[i++]=flatpoint(.5+  v.x, 0 +v.y);
-			buffer[i++]=flatpoint(.5+1.4*v.x,1.4*v.y, LINE_End);
+			buffer[i++]=flatpoint(.5+  v.x, 1-v.y);
+			buffer[i++]=flatpoint(.5+1.4*v.x,1-1.4*v.y, LINE_Open);
 		}
 
 
@@ -938,6 +984,11 @@ flatpoint *draw_thing_coordinates(DrawThingTypes thing, flatpoint *buffer, int b
 		return NULL;
 	}
 
+	if (scale<0) {
+		 //flip y
+		for (int c=0; c<*n_ret; c++) buffer[c].y=1-buffer[c].y;
+		if (scale==-1) scale=1; else scale=-scale; //this -1 check to avoid rounding errors, not sure if really necessary
+	}
 	if (scale!=1) {
 		for (int c=0; c<*n_ret; c++) buffer[c]*=scale;
 	}

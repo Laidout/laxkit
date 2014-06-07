@@ -747,9 +747,9 @@ void Displayer::drawthing(double x, double y, double rx, double ry, DrawThingTyp
 }
 
 //! Draw a little graphic in range X:x-rx..x+rx,  Y:y-ry..y+ry.
-/*! This uses Laxkit::draw_thing_coordinates() to draw from.
+/*! This grabs points from Laxkit::draw_thing_coordinates(), then draws with drawFormattedPoint().
  */
-void Displayer::drawthing(double x, double y, double rx, double ry, int fill, DrawThingTypes thing)
+void Displayer::drawthing(double x, double y, double rx, double ry, int tofill, DrawThingTypes thing)
 {
 	 //use thing_coordinates()
 	flatpoint *pts=NULL;
@@ -757,39 +757,49 @@ void Displayer::drawthing(double x, double y, double rx, double ry, int fill, Dr
 	pts=draw_thing_coordinates(thing, NULL,-1, &n, 1);
 	if (!pts) return;
 
-	int nn=0;
-	int pathtype=0;
-	int closed=0;
 	for (int c=0; c<n; c++) {
 		 // transform coordinate
 		pts[c].x=x+(2*rx*pts[c].x-rx);
 		pts[c].y=y+(2*ry*pts[c].y-ry);
-
-		if (!(pts[c].info & LINE_Closed) && !(pts[c].info & LINE_End)) {
-			pathtype=pts[c].info;
-			continue;
-		}
-
-		if (pts[c].info&LINE_Closed) closed=1; else closed=0;
-		if (pathtype==0 || pathtype==LINE_Vertex) drawlines(pts+nn,c-nn+1, closed,fill);
-		else drawbez(pts+nn,(c-nn+1)/3, closed,fill);
-		nn=c+1;
 	}
+	drawFormattedPoints(pts,n,tofill);
+
+	//---------------------------
+//	int nn=0;
+//	int pathtype=0;
+//	int closed=0;
+//	for (int c=0; c<n; c++) {
+//		 // transform coordinate
+//		pts[c].x=x+(2*rx*pts[c].x-rx);
+//		pts[c].y=y+(2*ry*pts[c].y-ry);
+//
+//		if (!(pts[c].info & LINE_Closed) && !(pts[c].info & LINE_End)) {
+//			pathtype=pts[c].info;
+//			continue;
+//		}
+//
+//		if (pts[c].info&LINE_Closed) closed=1; else closed=0;
+//		if (pathtype==0 || pathtype==LINE_Vertex) drawlines(pts+nn,c-nn+1, closed,fill);
+//		else drawbez(pts+nn,(c-nn+1)/3, closed,fill);
+//		nn=c+1;
+//	}
+
 	delete[] pts;
 }
 
 /*! Draws assuming same formatting as is constructed for draw_thing_coordinates().
  *
  * Namely, points->info values have special meanings. Each point must have either vertex or bez.
- * If neither, then it is vertex. Otherwise:
+ * If neither, then it is vertex. If vertex and bez, then use vertex.
+ * Otherwise:
  *   - info&LINE_Vertex means the point is on the line
  *   - info&LINE_Bez    means the point is part of a pair of bezier control points, must exist between 2 vertex points
  *   - info&LINE_Closed means this point is the final point in a closed path
- *   - info&LINE_End    means this point is the final point in an open path
+ *   - info&LINE_Open   means this point is the final point in an open path
  *
- *  Paths containing LINE_Bez points MUST be formatted vertex-bez-bez-vertex, etc.
  *  There MUST be 2 bez points between vertex points, corresponding to the 2
- *  bezier control handles.
+ *  bezier control handles. If you have a path that starts with a c-v-c..., then it
+ *  MUST end with ....-v-c, so that the final c combines with the initial c.
  *
  *  Subpaths must either start with a vertex point or a bez followed by a vertex.
  *  When a path is closed, and it started with a bez point, it MUST end with a bez point.
@@ -799,35 +809,70 @@ void Displayer::drawthing(double x, double y, double rx, double ry, int fill, Dr
  */
 void Displayer::drawFormattedPoints(flatpoint *pts, int n, int tofill)
 {
-	int nn=0; //start of current path
 	//int firstbez=0;
 	int ptype=0;
-	int bez=0;
-	int c1=-1;
+	int c1=-1,c2=-1, p2;
+	int start=0;
+	int firstv=-1; //first vertex of current path
+	int nn=0; //0 if on very first point of current segment
+
 	for (int c=0; c<n; c++) {
 		ptype=pts[c].info&(LINE_Bez|LINE_Vertex);
 		if (ptype==0) ptype=LINE_Vertex;
+		else if (ptype==(LINE_Bez|LINE_Vertex)) ptype=LINE_Vertex;
  
-		if (nn==0) {
-			if (ptype!=LINE_Bez) moveto(pts[c]);
-			nn++;
+		if (firstv<0) {
+			 //need to skip initial control points
+			if (ptype==LINE_Vertex) {
+				moveto(pts[c]);
+				firstv=c;
+			}
 			continue;
 		}
 
-		if (pts[c].info&LINE_Bez) {
-			if (bez==0) { c1=c; bez=1; }
-			continue;
+		if (ptype==LINE_Bez) {
+			if (c1<0) { c1=c; }
+			else if (c2<0) { c2=c; }
+
+		} else { 
+			 //we are on a vertex, add current segment
+			if (c1>=0) {
+				if (c2<0) c2=c1;
+				curveto(pts[c1],pts[c2],pts[c]);
+				c1=c2=-1;
+			} else lineto(pts[c]);
 		}
 
-		if (bez!=0) {
-			curveto(pts[c1],pts[c-1],pts[c]);
-			bez=0;
-		} else lineto(pts[c]);
+		if (pts[c].info&LINE_Open) {
+			closeopen();
+			nn=0;
+			firstv=-1;
+			start=c+1;
+			c1=c2=-1;
 
-
-		if (pts[c].info&LINE_Closed) { closed(); nn=0; }
-		else if (pts[c].info&LINE_Open) { closeopen(); nn=0; }
+		} else if (pts[c].info&LINE_Closed) {
+			if (ptype==LINE_Vertex) {
+				if (firstv!=start) { //control points at beginning
+					c1=start;
+					if (firstv!=start+1) c2=start+1; else c2=c1;
+					p2=c2+1;
+				}
+			} else if (c1>=0) { //we still need to draw a bez segment
+				if (c2<0) {//here only if final point is c1, need to wrap to get c2
+					if (firstv!=start) { c2=start; p2=c2+1; }
+					else { c2=c1; p2=start; }
+				} else p2=start; //final point was c2
+			}
+			if (c1>=0) curveto(pts[c1],pts[c2],pts[p2]);
+			c1=c2=-1;
+			closed();
+			firstv=-1;
+			start=c+1;
+			nn=0;
+			continue;
+		}
 	}
+
 
 	if (draw_immediately) {
 		if (tofill==0) stroke(0);
