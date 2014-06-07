@@ -53,6 +53,7 @@ class spacevector
 
 	bool isZero() const { return x==0 && y==0 && z==0; }
 	double norm() const { return sqrt(x*x+y*y+z*z); }
+	double norm2() const { return x*x+y*y+z*z; }
 };
 
 int operator==(spacevector v1,spacevector v2);
@@ -95,6 +96,8 @@ class flatvector
 	bool isZero() const { return x==0 && y==0; }
 	double angle() const { return atan2(y,x); }
 	double norm() const { return sqrt(x*x+y*y); }
+	double norm2() const { return x*x+y*y; }
+	double cross(flatvector v) const { return x*v.y-y*v.x; } /*magnitude and sign of cross product, which points in z direction */
 };
 
 flatvector transpose(flatvector v);
