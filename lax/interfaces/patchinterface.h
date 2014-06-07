@@ -26,6 +26,7 @@
 #include <lax/interfaces/aninterface.h>
 #include <lax/interfaces/somedata.h>
 #include <lax/interfaces/linestyle.h>
+#include <lax/interfaces/pathinterface.h>
 #include <lax/screencolor.h>
 
 
@@ -60,7 +61,7 @@ class PatchRenderContext
  public:
 	double Cx[16],Cy[16];
 	double V[4]; //temp space
-	double s0,ds,t0,dt;
+	double s0,ds,t0,dt; //used primarily for PatchData::WhatColor() lookup
 
 	unsigned char *buffer;
 	int bufferwidth,bufferheight;
@@ -70,6 +71,7 @@ class PatchRenderContext
 
 	flatpoint getPoint(double *S,double *T);
 };
+
 
 //------------------------------ PatchData ---------------------
 
@@ -89,6 +91,8 @@ class PatchData : virtual public SomeData
 	PatchControls controls;
 	LineStyle linestyle;
 	
+	Path *base_path; //optionally restrict to a weighted path
+
 	int npoints_boundary;
 	flatpoint *boundary_outline; //cached for convenience, updated in FindBBox()
 

@@ -346,6 +346,8 @@ PatchData::PatchData()
 
 	npoints_boundary=0;
 	boundary_outline=NULL;
+
+	base_path=NULL;
 }
 
 //! Creates a new patch in rect xx,yy,ww,hh with nr rows and nc columns.
@@ -356,12 +358,15 @@ PatchData::PatchData(double xx,double yy,double ww,double hh,int nr,int nc,unsig
 
 	npoints_boundary=0;
 	boundary_outline=NULL;
+
+	base_path=NULL;
 }
 
 PatchData::~PatchData()
 {
 	if (points) delete[] points; 
 	if (boundary_outline) delete[] boundary_outline;
+	if (base_path) delete base_path;
 }
 
 SomeData *PatchData::duplicate(SomeData *dup)
@@ -396,6 +401,8 @@ SomeData *PatchData::duplicate(SomeData *dup)
 		p->controls=controls;
 	}
 
+	if (base_path) p->base_path=base_path->duplicate();
+
 	 //somedata elements:
 	dup->bboxstyle=bboxstyle;
 	dup->m(m());
@@ -413,6 +420,8 @@ SomeData *PatchData::duplicate(SomeData *dup)
  *    0   0
  *    1.5 0
  *    ...
+ *  base_path
+ *    ...
  * </pre>
  * 
  * If what==-1, then output a pseudocode mockup of the format. Otherwise
@@ -428,6 +437,8 @@ void PatchData::dump_out(FILE *f,int indent,int what,Laxkit::anObject *context)
 		fprintf(f,"%sysize 4            #number of points in the y direction\n",spc);
 		fprintf(f,"%sstyle smooth       #when dragging controls do it so patch is still smooth\n",spc);
 		fprintf(f,"%scontrols full      #can also be linear, coons, or border\n",spc);
+		fprintf(f,"%sbase_path          #If mesh is defined along path, include this single Path object\n",spc);
+		fprintf(f,"%s  ...\n",spc);
 		fprintf(f,"%spoints \\           #all xsize*ysize points, a list by rows of: x y\n",spc);
 		
 		fprintf(f,"%s  1.0 1.0\n",spc);
@@ -448,6 +459,11 @@ void PatchData::dump_out(FILE *f,int indent,int what,Laxkit::anObject *context)
 	else if (controls==Patch_Border_Only)  fprintf(f,"%scontrols border\n",spc); 
 	else if (controls==Patch_Full_Bezier) fprintf(f,"%scontrols full\n",spc);
 	
+	if (base_path) {
+		fprintf(f,"%sbase_path\n",spc);
+		base_path->dump_out(f,indent+2,what,context);
+	}
+
 	fprintf(f,"%sxsize %d\n",spc,xsize);
 	fprintf(f,"%sysize %d\n",spc,ysize);
 	fprintf(f,"%spoints \\ #%dx%d\n",spc, xsize,ysize);
@@ -468,23 +484,34 @@ void PatchData::dump_in_atts(Attribute *att,int flag,Laxkit::anObject *context)
 	for (c=0; c<att->attributes.n; c++) {
 		name= att->attributes.e[c]->name;
 		value=att->attributes.e[c]->value;
+
 		if (!strcmp(name,"griddivisions")) {
 			IntAttribute(value,&griddivisions);
+
 		} else if (!strcmp(name,"xsize")) {
 			IntAttribute(value,&xsize);
+
 		} else if (!strcmp(name,"ysize")) {
 			IntAttribute(value,&ysize);
+
 		} else if (!strcmp(name,"points")) {
 			p=c;
+
 		} else if (!strcmp(name,"style")) {
 			int s;
 			IntAttribute(value,&s);
 			style=s;
+
 		} else if (!strcmp(name,"controls")) {
 			if (!strcmp(value,"full"))        controls=Patch_Full_Bezier;
 			else if (!strcmp(value,"linear")) controls=Patch_Linear;
 			else if (!strcmp(value,"coons"))  controls=Patch_Coons;
 			else if (!strcmp(value,"border")) controls=Patch_Border_Only;
+
+		} else if (!strcmp(name,"base_path")) {
+			if (!base_path) base_path=new Path();
+			else base_path->clear();
+			base_path->dump_in_atts(att->attributes.e[c], flag, context);
 		}
 	}
 	 // read in points after all atts initially parsed, so as to retrieve xsize and ysize.
@@ -545,6 +572,7 @@ void PatchData::FindBBox()
 }
 
 /*! Copies mesh point data only, not matrix.
+ * Copies from patch to *this.
  */
 void PatchData::CopyMeshPoints(PatchData *patch)
 {
@@ -1609,8 +1637,8 @@ int PatchData::renderToBuffer(unsigned char *buffer, int bufw, int bufh, int buf
 			m_times_m(B,Gtx,C);
 			m_times_m(C,B,context.Cx);  //Cx = B Gtx B
 			
-			context.s0=coff*3./(xsize-1);
-			context.ds=3./(xsize-1);
+			context.s0=coff*3./(xsize-1); //point in range [0..1]
+			context.ds=3./(xsize-1);      //portion of [0..1] occupied by a single mesh square
 			context.t0=roff*3./(ysize-1);
 			context.dt=3./(ysize-1);
 			//DBG cerr <<" draw patch s:"<<context.s0<<','<<context.ds<<"  t:"<<context.t0<<','<<context.dt<<endl;
@@ -3525,49 +3553,15 @@ int PatchInterface::PerformAction(int action)
 	return 1;
 }
 
-/*! 
- * <pre>
- *  'b'  toggle which control points can be shifted
- *  'B'  opposite of 'b' 
- *  'j'  toggle smooth editing mode (j for jagged)
- *  'a'  select all points, or deselect all if any are selected
- *  'y'  constrain to y changes, or release the constraint
- *  'x'  constrain to x changes, or release the constraint
- *  'R'  increase how many rows to divide each row into
- * ^'R'  decrease how many rows to divide each row into
- *  'r'  subdivide rows
- *  'c'  subdivide columns
- *  'C'  increase how many columns to divide each column into
- * ^'C'  decrease how many columns to divide each column into
- *  's'  subdivide rows and columns
- *  'z'  reset to rectangular (z for zap)
- *  'd'  toggle decorations
- *  'H'  select all points in rows of current points
- *  'V'  select all points in columns of current points
- *  'h'  select points adjacent horizontally to current points
- *  'v'  select points adjacent vertically to current points
- *  'm'  for debugging, popup a showmat
- *  '1'  select corners:  0,0  0,3  3,0  3,3
- *  '2'  select center controls: 1,1  1,2  2,1  2,2
- *  '3'  select edge controls: 0,1  0,2  1,0  2,0  1,3  2,3  3,1  3,2
- *  '4'  select top and bottom controls: 1,0  2,0  1,3  2,3
- *  '5'  select left and right controls: 0,1  0,2  3,1  3,2
- *  '8'  select a 3x3 group of points around each current point
- *  'i'  reset patch inside points to Coons like values
- *  'o'   increment how much to recurse
- *  'O'   decrement how much to recurse
- * </pre>
- *
- * \todo *** l/r/u/d to shift selected points:
- *   plain-move rolls curpoints,
- *   shift-move adds to curpoints,
- *   control-move rolls without wraparound
- * \todo whichcontrols or data->controls?
- */
 int PatchInterface::CharInput(unsigned int ch, const char *buffer,int len,unsigned int state,const Laxkit::LaxKeyboard *d) 
 {
 	if (ch==LAX_Shift || ch==LAX_Control) {
 		MouseMove(mx,my,state,d->paired_mouse);
+		return 0;
+	}
+
+	if (ch==LAX_Bksp || ch==LAX_Del) {
+		 //disable delete propagation
 		return 0;
 	}
 
