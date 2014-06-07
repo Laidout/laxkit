@@ -18,7 +18,7 @@
 //    License along with this library; if not, write to the Free Software
 //    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
-//    Copyright (C) 2012 by Tom Lechner
+//    Copyright (C) 2012-2014 by Tom Lechner
 //
 #ifndef _LAX_TREESELECTOR_H
 #define _LAX_TREESELECTOR_H
@@ -83,6 +83,7 @@ class TreeSelector : public ScrolledWindow
 {
   private:
 	void base_init();
+
   protected:
 
 	ButtonDownInfo buttondown;
@@ -107,11 +108,13 @@ class TreeSelector : public ScrolledWindow
 	virtual void findoutrect();
  	virtual double getitemextent(MenuItem *mitem,double *w,double *h,double *gx,double *tx);
  	virtual double getgraphicextent(MenuItem *mitem,double *w,double *h);
-	virtual void drawitem(MenuItem *mitem,IntRectangle *itemspot);
-	virtual void drawitem(int c);
+//	virtual void drawitem(int c);
 	virtual void drawsep(const char *name,IntRectangle *rect);
 	virtual void drawSubIndicator(MenuItem *mitem,int x,int y, int selected);
 	virtual void drawitemname(MenuItem *mitem,IntRectangle *rect);
+	virtual void drawitemnameOLD(MenuItem *mitem,IntRectangle *rect);
+	virtual void drawflags(MenuItem *mitem,IntRectangle *rect);
+	virtual int  drawFlagGraphic(char flag, int x,int y,int h);
 	virtual void drawtitle();
 	virtual int findmaxwidth(int s,int e, int *h_ret);
 	virtual int findColumnWidth(int which);
@@ -128,7 +131,7 @@ class TreeSelector : public ScrolledWindow
 
 	virtual int addToCache(int indent,MenuInfo *menu, int cury);
 	virtual int DrawItems(int indent, MenuInfo *item, int &n, flatpoint offset);
-	virtual void drawItemContents(MenuItem *i,int offsetx,int offsety, int fill=1);
+	virtual void drawItemContents(MenuItem *i,int offsetx,int offsety, int fill, int indent);
 	virtual void drawarrow(int x,int y,int r,int type);
 
 	virtual void editInPlace(int which);
@@ -137,13 +140,22 @@ class TreeSelector : public ScrolledWindow
 	class ColumnInfo
 	{
 	  public:
+		enum ColumnInfoType {
+			ColumnString,
+			ColumnInt,
+			ColumnNumber, //double or int
+			ColumnFlags,
+			ColumnMAX
+		};
 		char *title;
 		int pos, width;
 		int detail; //for remapping order of columns
-		ColumnInfo(const char *ntitle, int nwidth);
+		int type; //uses ColumnInfoType
+		ColumnInfo(const char *ntitle, int nwidth, int ntype, int whichdetail);
 		~ColumnInfo();
 	};
 	PtrStack<ColumnInfo> columns;
+	int tree_column;
 	int sort_detail;
 	int sort_descending;
 
@@ -199,7 +211,7 @@ class TreeSelector : public ScrolledWindow
 	virtual int AddItems(const char **i,int n,int startid); // assume ids sequential, state=0
 	virtual int AddItem(const char *i,LaxImage *img,int nid,int newstate);
 
-	virtual int AddColumn(const char *i,LaxImage *img,int width);
+	virtual int AddColumn(const char *i,LaxImage *img,int width, int ntype=ColumnInfo::ColumnString, int whichdetail=-1);
 	virtual void ClearColumns();
 	virtual void RemapColumns();
 };

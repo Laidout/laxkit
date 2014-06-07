@@ -299,6 +299,20 @@ int MenuItem::hasParent(MenuItem *menuitem)
 	return 0;
 }
 
+/*! Return the ith detail of *this. i==0 corresponds to *this.
+ * Return NULL for i not found.
+ */
+MenuItem *MenuItem::GetDetail(int i)
+{
+	MenuItem *ii=this;
+	do {
+		if (i==0) return ii;
+		ii=ii->nextdetail;
+		i--;
+	} while (ii);
+	return NULL;
+}
+
 //! Install detail to end of nextdetail list.
 int MenuItem::AddDetail(MenuItem *detail)
 {

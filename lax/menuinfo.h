@@ -104,6 +104,7 @@ class MenuItem : public anObject
 	virtual MenuInfo *GetSubmenu(int create=0);
 	virtual MenuInfo *CreateSubmenu(const char *ntitle);
 	virtual int AddDetail(MenuItem *detail);
+	virtual MenuItem *GetDetail(int i);
 	virtual void SetState(unsigned newstate, int on);
 
 	virtual const char *GetString(int detail);

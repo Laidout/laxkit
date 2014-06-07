@@ -18,7 +18,7 @@
 //    License along with this library; if not, write to the Free Software
 //    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
-//    Copyright (C) 2012 by Tom Lechner
+//    Copyright (C) 2012-2014 by Tom Lechner
 //
 
 
@@ -40,13 +40,23 @@ namespace Laxkit {
 //---------------------------------------- TreeSelector::ColumnInfo ------------------------
 /*! \class ColumnInfo
  * \brief Column info of detail columns in a TreeSelector.
+ *
+ * Strategy is to have three lists.
+ * - menu: One is the base MenuInfo that lists every accessible item in the tree. This
+ *   is not shown directly.
+ * - visibleitems: a psuedo-flat list of all items that you can actually see. It contains pointers
+ *   to the actual items in menu, but is interpreted as flat when refreshing
+ * - selection: a subset of visibleitems that are currently selected.
  */
 
 
-TreeSelector::ColumnInfo::ColumnInfo(const char *ntitle, int nwidth)
+TreeSelector::ColumnInfo::ColumnInfo(const char *ntitle, int nwidth, int ntype, int whichdetail)
 {
+	type=ntype; //uses ColumnInfoType
+	if (type==0) type=ColumnString;
 	title=newstr(ntitle);
 	pos=0;
+	detail=whichdetail;
 	width=nwidth;
 }
 
@@ -195,6 +205,7 @@ void TreeSelector::base_init()
 	searchfilter=NULL;
 	showsearch=0;
 
+	tree_column=0; //the column in which to position the tree lines
 	sort_detail=-1;
 	sort_descending=0;
 
@@ -395,13 +406,22 @@ int TreeSelector::init()
 }
 
 
-//! Add a new column for details of items.
-int TreeSelector::AddColumn(const char *i,LaxImage *img,int width)
+/*! Add a new column for details of items.
+ *
+ * If whichdetail<0, then use columns.n (before pushing).
+ * If ntype<=0, use ColumnString.
+ */
+int TreeSelector::AddColumn(const char *i,LaxImage *img,int width, int ntype, int whichdetail)
 {
-	columns.push(new ColumnInfo(i,width),1);
+	if (whichdetail<0) whichdetail=columns.n;
+	if (ntype<=0) ntype=ColumnInfo::ColumnString;
+	columns.push(new ColumnInfo(i,width, ntype, whichdetail),1);
 	return 0;
 }
 
+/*! Fill in a default width for any column that has width<=0.
+ * Adjusts each column->pos to be after the width of previous columns.
+ */
 void TreeSelector::RemapColumns()
 {
 	if (columns.n) {
@@ -587,17 +607,25 @@ int TreeSelector::RebuildCache()
 int TreeSelector::addToCache(int indent,MenuInfo *mmenu, int cury)
 {
 	double xx=(indent+1)*iwidth;
-	double ww,hh;
-	MenuItem *i;
+	double ww,hh, hhh;
+	MenuItem *i, *ii;
 
 	for (int c=0; c<mmenu->n(); c++) {
 		i=mmenu->e(c);
 		if (i->hidden()==1) continue;
+	
+		hh=0;
+		ii=i;
+		while (ii) {
+			getitemextent(ii, &ww,&hhh, NULL,NULL);
+			ii->x=xx; //note: x will not be accurate for details
+			ii->y=cury;
+			ii->w=ww;
+			ii->h=hhh;
 
-		getitemextent(i, &ww,&hh, NULL,NULL);
-		i->x=xx;
-		i->y=cury;
-		i->w=ww;
+			if (hhh>hh) hh=hhh; // *** really should only compute for visible, used columns
+			ii=ii->nextdetail;
+		}
 		i->h=hh;
 		visibleitems.AddItemAsIs(i,0);
 
@@ -646,127 +674,6 @@ double TreeSelector::getitemextent(MenuItem *mitem, //!< the index, MUST already
 }
 
 
-//! Draws a submenu indicator centered on x,y, and width=iwidth, height=textheight+leading.
-void TreeSelector::drawSubIndicator(MenuItem *mitem,int x,int y, int selected)
-{
-	if (!mitem->hasSub()) return;
-
-	int arrowtype=0;
-	if (mitem->isOpen()) arrowtype=THING_Triangle_Down;
-	else arrowtype=THING_Triangle_Right;
-
-	int subw=iwidth;
-	drawarrow(x+subw/2,y, (subw>(textheight+leading)?(textheight+leading):subw)/3, arrowtype);
-}
-
-//! Draw the item icon and name in rect, AND all detail items within rect.
-void TreeSelector::drawitemname(MenuItem *mitem,IntRectangle *rect)
-{
-	unsigned long f,g;
-	double fasc,tx,gx,iw;
-	fasc=get_default_font()->ascent();
-
-	getitemextent(mitem,&iw,NULL,&gx,&tx); // status graphic and name x coordinate
-
-	gx+=rect->x; tx+=rect->x; // |blah    |
-	//else if (menustyle&TREESEL_RIGHT) { gx=rect->x+rect->width-iw+gx; tx=rect->x+rect->width-iw+tx; } // |   blah|
-	//else { gx=rect->x+(rect->width-iw+gx)/2; tx=rect->x+(rect->width-iw+tx)/2; } // |   blah   |
-
-	
-	 // set proper foreground and background colors
-	//DBG cerr<<"menu "<<(menu->title?menu->title:"untitled")<<" item "<<c<<": "<<(mitem->state&LAX_HAS_SUBMENU?1:0)<<endl;
-	if ((mitem->state&LAX_MSTATE_MASK)>LAX_ON) { // grayed, hidden=0, off=1, on=2, so this is same as>2
-		//DBG cerr <<"item "<<(mitem->state&LAX_ON?1:0)<<" "<<mitem->name<<endl;
-		g=win_colors->bg;
-		f=win_colors->grayedfg;
-	} else {
-		//DBG cerr <<"item "<<(mitem->state&LAX_ON?1:0)<<" "<<mitem->name<<endl;
-		g=win_colors->bg;
-		f=win_colors->fg;
-	}
-
-	 // do the actual drawing
-	if (mitem->state&LAX_ON) { // draw on
-		g=win_colors->hbg;
-		f=win_colors->hfg;
-	} 
-	 // add a little extra hightlight if item is ccuritem
-	if (!(menustyle&TREESEL_ZERO_OR_ONE)) if (mitem==item(ccuritem)) g=coloravg(f,g,.85);
-	
-	//foreground_color(g); // only draw highlighted if not checkboxes
-	//fill_rectangle(this, rect->x,rect->y,rect->width,rect->height);
-
-
-	foreground_color(f);
-	background_color(g);
-	textout(this, mitem->name,strlen(mitem->name), tx,rect->y+fasc+leading/2, LAX_LEFT|LAX_BASELINE);
-	MenuItem *im=mitem;
-	if (im && im->image) {
-		image_out(im->image, this, gx, rect->y);
-	}
-	MenuItem *detail=mitem->nextdetail;
-	int column=1;
-	while (detail) {
-		textout(this, detail->name,strlen(detail->name), offsetx+columns.e[column]->pos,rect->y+fasc+leading/2, LAX_LEFT|LAX_BASELINE);
-		detail=detail->nextdetail;
-		column++;
-	}
-
-}
-
-//! Draw a separator (default is just a win_colors->grayedfg colored line) across rect widthwise.
-void TreeSelector::drawsep(const char *name,IntRectangle *rect)
-{
-	foreground_color(win_colors->grayedfg); 
-	draw_line(this, rect->x,rect->y+rect->height/2, rect->x+rect->width-1,rect->y+rect->height/2);
-	if (!isblank(name)) {
-		int extent=getextent(name, -1, NULL, NULL, NULL, NULL, 0);
-		 //blank out area
-		foreground_color(win_colors->bg); 
-		fill_rectangle(this, rect->x+rect->width/2-extent/2-2,rect->y,extent+4,rect->height);
-		 //draw name
-		foreground_color(win_colors->grayedfg); 
-		textout(this, name,-1,rect->x+rect->width/2,rect->y+rect->height/2,LAX_CENTER);
-	}
-}
-
-//! Draw the item in the provided area..
-/*!  All the things that go on an item line:\n
- * [graphic icon][text][submenu indicator]
- *
- * This does not fill background. Only draw it item contents.
- *
- * If the item is a separator, call drawsep() and return. 
- * Now the actual item text and icon fill the remaining space.
- * 
- * \todo *** set clip to intersection of itemspot and inrect??
- */
-void TreeSelector::drawitem(MenuItem *mitem,IntRectangle *itemspot)
-{
-	if (mitem->state&LAX_SEPARATOR) {
-		drawsep(mitem->name,itemspot);
-		return;
-	}
-
-	 // Draw the item icon and text
-	drawitemname(mitem,itemspot);
-}
-
-//! Draw the item with the index value c.
-/*!  All the things that go on an item line:\n
- * [status graphic=whether highlighted][check toggle][graphic icon][text][submenu indicator]
- *
- * First, determine if this item is actually on screen, and find the area to draw it in. Return if not on screen.
- * If it is found, then find the item and call drawitem(theitem,thebounds).
- */
-void TreeSelector::drawitem(int c)
-{
-	if (!ValidDrawable()) return;
-
-	if (c<0 || c>=numItems()) return;
-	drawItemContents(item(c), offsetx,offsety,1);
-}
-
 //! Find screen rectangle item c goes in
 /*! Return 1 for rectangle found, otherwise 0 for unable to find (for instance when called before
  * necessary initialization done).
@@ -784,146 +691,23 @@ int TreeSelector::findRect(int c,IntRectangle *itemspot)
 	return 1;
 }
 
-/*! Item contents are in the dimensions contained in i, with specified offset,
- * which means this function draws inside a rectangle with upper left corner
- * at (i->x+offsetx, i->y+offsety), width==i->w, and height==i->h.
- *
- * Checks bounds, so no drawing if off screen.
- *
- * If bounds ok, and fill!=0, draw background.
- *
- * Finally, call drawitem(MenuItem*,IntRectangle*).
- */
-void TreeSelector::drawItemContents(MenuItem *i,int offsetx,int offsety, int fill)
-{
-	IntRectangle itemspot;
-	itemspot.x=i->x+offsetx;
-	itemspot.y=i->y+offsety;
-	itemspot.width=i->w;
-	itemspot.height=i->h;
-
-	 // If itemspot not onscreen, return
-	if (itemspot.x+itemspot.width <=inrect.x || itemspot.x>=inrect.x+inrect.width ||
-		itemspot.y+itemspot.height<=inrect.y || itemspot.y>=inrect.y+inrect.height) {
-		//DBG cerr <<"Item "<<c<<" not on screen...."<<endl;
-		return;
-	}
-
-	if (fill) {
-		 //draw background
-		unsigned long color;
-
-		if (i->isSelected()) {
-			 //draw bg selected
-			color=win_colors->hbg;
-		} else {
-			int n=visibleitems.menuitems.findindex(i);
-
-			 //draw bg slightly darker on odd lines
-			if (n%2==1) color=coloravg(win_colors->bg,win_colors->fg, .05);
-			else color=win_colors->bg;
-		}
-
-		int isccuritem=(i==item(ccuritem));
-		if (isccuritem) color=coloravg(color,win_colors->fg,.05);
-		foreground_color(color);
-		fill_rectangle(this, offsetx+i->x,offsety+i->y, win_w,i->h);
-	}
-
-	drawitem(i, &itemspot);
-}
-
-//! Draw the arrows for menus, really just THING_Triangle_Up, Down, Left, Right for submenus.
-/*! Centers around x,y within a box of side 2*r.
- * This function is also used for the up and down arrows when the menu contents 
- * extend beyond the screen.
- */
-void TreeSelector::drawarrow(int x,int y,int r,int type)
-{
-	foreground_color(win_colors->color1); // inside the arrow
-	draw_thing(this, x,y,r,r,1,(DrawThingTypes)type);
-	foreground_color(win_colors->fg); // border of the arrow
-	draw_thing(this, x,y,r,r,0,(DrawThingTypes)type);
-}
-
-//! Draw the menu title if present. Default is print it out at top of window (not inrect).
-void TreeSelector::drawtitle()
-{
-	if (!menu || !menu->title) return;
-	foreground_color(win_colors->fg); // background of title
-	fill_rectangle(this, 0,pad, win_w,textheight+leading);
-	foreground_color(win_colors->fg); // foreground of title
-	textout(this,menu->title,-1,win_w/2,pad,LAX_CENTER|LAX_TOP);
-}
-
-/*! Recursively draw all unhidden items in mmenu.
- * Note that this will be the same as visibleitems, but it uses menu directly, not visibleitems.
- *
- * Essentially draws a background, then drawItemContents() for that item.
- */
-int TreeSelector::DrawItems(int indent, MenuInfo *mmenu, int &n, flatpoint offset)
-{
-	MenuItem *i;
-	int yy;
-	unsigned long oddcolor=coloravg(win_colors->bg,win_colors->fg, .05);
-	unsigned long linecolor=win_colors->fg;
-	unsigned long col;
-
-	for (int c=0; c<mmenu->n(); c++) {
-		i=mmenu->e(c);
-		if (i->hidden()==1) continue;
-
-		n++;
-		yy=i->y + i->h/2; //so yy in center of row
-
-		 //draw background
-		if (i->isSelected()) {
-			col=win_colors->hbg;
-
-		} else {
-			linecolor=win_colors->fg;
-			if (n%2==0) {
-				 //draw bg slightly darker
-				col=oddcolor;
-			} else {
-				 //draw bg as bg
-				col=win_colors->bg;
-			}
-		}
-		 //highlight more if is focused item
-		if (i==item(ccuritem)) col=coloravg(col,win_colors->fg,.05);
-		foreground_color(col);
-		fill_rectangle(this, offset.x+0,offset.y+i->y, win_w,i->h);
-
-
-		 //draw horizontal line for current item
-		foreground_color(linecolor);
-		draw_line(this, offset.x+(indent-.5)*iwidth,offset.y+yy, offset.x+indent*iwidth,offset.y+yy);
-
-		 //draw any subitems and connecting lines
-		if (i->hasSub()) {
-			if (i->isOpen()) {
-				 //item is open submenu
-				int newy=DrawItems(indent+1,i->GetSubmenu(),n,offset);
-				draw_line(this, offset.x+(.5+indent)*iwidth, offset.y+yy,
-								offset.x+(.5+indent)*iwidth, offset.y+newy); //vertical line
-				drawSubIndicator(i, offset.x+indent*iwidth,offset.y+yy, i->isSelected());
-				yy=newy;
-			} else {
-				 //item is closed submenu
-				drawSubIndicator(i, offset.x+indent*iwidth,offset.y+yy, i->isSelected());
-			}
-		}
-		 
-		 //finally draw actual item contents in cached area
-		drawItemContents(i,offset.x,offset.y, 0);
-	}
-
-	return yy;
-}
-
 /*! Draw the window.
  * Use DrawItems(), then draw column info over that.
+ *
+ * <pre>
+ *  Refresh()
+ *   drawtitle();            -> overall title of whole menu
+ *   draw column info-      <-  part of Refresh() currently
+ *   DrawItems()             -> draws tree lines, determines x and y offset of item
+ *     drawSubIndicator()    -> figure out if and how to draw the triangle to indicate submenus, and if open or not
+ *       drawarrow()         -> actually draw arrow
+ *     drawItemContents()    -> check if onscreen, determine specific screen rectangle draw item in, draw background
+ *       drawsep()           -> draw a separator within specific rectangle
+ *       drawCellsInLine()   -> *** todo: draw each cell for each detail as specified in columns
+ *         drawitemname()     -> *** todo: draw icon+text
+ *         drawflags()        -> *** todo: draw flag checkmarks
+ *           drawFlagGraphic() -> draw an individual flag
+ * </pre>
  */
 void TreeSelector::Refresh()
 {
@@ -964,6 +748,397 @@ void TreeSelector::Refresh()
 	SwapBuffers();
 	needtodraw=0;
 }
+
+/*! Recursively draw all unhidden items in mmenu.
+ * Note that items drawn will be in order of visibleitems, but it uses menu directly, not visibleitems,
+ * in order to determine the pattern of nesting lines to draw.
+ *
+ * Essentially draws a background, then drawItemContents() for that item.
+ *
+ */
+int TreeSelector::DrawItems(int indent, MenuInfo *mmenu, int &n, flatpoint offset)
+{
+	MenuItem *i;
+	int yy;
+	unsigned long oddcolor=coloravg(win_colors->bg,win_colors->fg, .05);
+	unsigned long linecolor=win_colors->fg;
+	unsigned long col;
+	int tree_offset=0;
+	if (columns.n && tree_column!=0 && tree_column<columns.n) {
+		tree_offset=columns.e[tree_column]->pos;
+	}
+
+	for (int c=0; c<mmenu->n(); c++) {
+		i=mmenu->e(c);
+		if (i->hidden()==1) continue;
+
+		n++;
+		yy=i->y + i->h/2; //so yy in center of row
+
+		 //draw background
+		if (i->isSelected()) {
+			col=win_colors->hbg;
+
+		} else {
+			linecolor=win_colors->fg;
+			if (n%2==0) {
+				 //draw bg slightly darker
+				col=oddcolor;
+			} else {
+				 //draw bg as bg
+				col=win_colors->bg;
+			}
+		}
+		 //highlight more if is focused item
+		if (i==item(ccuritem)) col=coloravg(col,win_colors->fg,.05);
+		foreground_color(col);
+		fill_rectangle(this, offset.x+0,offset.y+i->y, win_w,i->h);
+
+
+		 //draw small horizontal dash for current item
+		foreground_color(linecolor);
+		draw_line(this, tree_offset+offset.x+(indent-.5)*iwidth,offset.y+yy, tree_offset+offset.x+indent*iwidth,offset.y+yy);
+
+		 //draw any subitems and connecting lines
+		if (i->hasSub()) {
+			if (i->isOpen()) {
+				 //item is open submenu
+				int newy=DrawItems(indent+1,i->GetSubmenu(),n,offset);
+				draw_line(this, tree_offset+offset.x+(.5+indent)*iwidth, offset.y+yy,
+								tree_offset+offset.x+(.5+indent)*iwidth, offset.y+newy); //vertical line
+				drawSubIndicator(i, tree_offset+offset.x+indent*iwidth,offset.y+yy, i->isSelected());
+				yy=newy;
+			} else {
+				 //item is closed submenu
+				drawSubIndicator(i, tree_offset+offset.x+indent*iwidth,offset.y+yy, i->isSelected());
+			}
+		}
+		 
+		 //finally draw actual item contents in cached area
+		drawItemContents(i,offset.x,offset.y, 0, (indent+1)*iwidth);
+	}
+
+	return yy;
+}
+
+//! Draws a submenu indicator centered on x,y, and width=iwidth, height=textheight+leading.
+void TreeSelector::drawSubIndicator(MenuItem *mitem,int x,int y, int selected)
+{
+	if (!mitem->hasSub()) return;
+
+	int arrowtype=0;
+	if (mitem->isOpen()) arrowtype=THING_Triangle_Down;
+	else arrowtype=THING_Triangle_Right;
+
+	int subw=iwidth;
+	drawarrow(x+subw/2,y, (subw>(textheight+leading)?(textheight+leading):subw)/3, arrowtype);
+}
+
+//! Draw the arrows for menus, really just THING_Triangle_Up, Down, Left, Right for submenus.
+/*! Centers around x,y within a box of side 2*r.
+ * This function is also used for the up and down arrows when the menu contents 
+ * extend beyond the screen.
+ */
+void TreeSelector::drawarrow(int x,int y,int r,int type)
+{
+	foreground_color(win_colors->color1); // inside the arrow
+	draw_thing(this, x,y,r,r,1,(DrawThingTypes)type);
+	foreground_color(win_colors->fg); // border of the arrow
+	draw_thing(this, x,y,r,r,0,(DrawThingTypes)type);
+}
+
+//! Draw the menu title if present. Default is print it out at top of window (not inrect).
+void TreeSelector::drawtitle()
+{
+	if (!menu || !menu->title) return;
+	foreground_color(win_colors->fg); // background of title
+	fill_rectangle(this, 0,pad, win_w,textheight+leading);
+	foreground_color(win_colors->fg); // foreground of title
+	textout(this,menu->title,-1,win_w/2,pad,LAX_CENTER|LAX_TOP);
+}
+
+/*! i is the head MenuItem of visibleitems. Note that i might not itself be shown,
+ * if columns maps to only other details.
+ *
+ * Item contents are drawn starting at specified offset,
+ * which means this function draws inside a rectangle with upper left corner
+ * at (i->x+offsetx, i->y+offsety), width and height  to be determined by columns
+ * and width, height of relevant menu details.
+ *
+ * Checks bounds, so no drawing if off screen.
+ *
+ * If bounds ok, and fill!=0, draw background.
+ *
+ * Finally, call either drawsep() or drawitemname() on relevant cells.
+ *
+ * indent is how much to indent a cell's contents when its column is the tree_column.
+ */
+void TreeSelector::drawItemContents(MenuItem *i,int offsetx,int offsety, int fill, int indent)
+{
+	IntRectangle itemspot;
+	itemspot.x=i->x+offsetx;
+	itemspot.y=i->y+offsety;
+	itemspot.width=i->w;
+	itemspot.height=i->h;
+
+	 // If itemspot not onscreen, return
+	if (itemspot.x+itemspot.width <=inrect.x || itemspot.x>=inrect.x+inrect.width ||
+		itemspot.y+itemspot.height<=inrect.y || itemspot.y>=inrect.y+inrect.height) {
+		//DBG cerr <<"Item "<<c<<" not on screen...."<<endl;
+		return;
+	}
+
+	if (fill) {
+		// ****** not used anymore?? wipes out tree lines...
+		 //draw background
+		unsigned long color;
+
+		if (i->isSelected()) {
+			 //draw bg selected
+			color=win_colors->hbg;
+		} else {
+			int n=visibleitems.menuitems.findindex(i);
+
+			 //draw bg slightly darker on odd lines
+			if (n%2==1) color=coloravg(win_colors->bg,win_colors->fg, .05);
+			else color=win_colors->bg;
+		}
+
+		int isccuritem=(i==item(ccuritem));
+		if (isccuritem) color=coloravg(color,win_colors->fg,.05);
+		foreground_color(color);
+		fill_rectangle(this, offsetx+i->x,offsety+i->y, win_w,i->h);
+	}
+
+
+	//now draw actual content of item
+	
+	if (i->state&LAX_SEPARATOR) {
+		 //draw a separator between edge of tree lines, filling rest of line
+		int tree_offset=0;
+		if (columns.n && tree_column!=0 && tree_column<columns.n) {
+			tree_offset=columns.e[tree_column]->pos;
+		}
+		itemspot.x=offsetx+tree_offset+indent;
+		itemspot.width=inrect.x+inrect.width-itemspot.x;
+		drawsep(i->name,&itemspot);
+		return;
+	}
+
+	 // Draw the item icon and text for each detail
+	int start=0;
+	if (columns.n==0) start=-1;
+	MenuItem *ii;
+	for (int c=start; c<columns.n; c++) {
+		ii=i;
+		if (c>=0) {
+			itemspot.x=offsetx+columns.e[c]->pos;
+			itemspot.width=columns.e[c]->width;
+			ii=ii->GetDetail(columns.e[c]->detail);
+			if (c==tree_column) {
+				itemspot.width-=indent;
+				itemspot.x+=indent;
+			}
+			if (columns.e[c]->type==ColumnInfo::ColumnFlags) {
+				drawflags(ii, &itemspot);
+				ii=NULL;
+			}
+		} else {
+			itemspot.width-=indent;
+			itemspot.x+=indent;
+		}
+		if (ii) drawitemname(ii,&itemspot);
+	}
+}
+
+// *** if removing, update drawItemContents() to not use the "fill" part...
+//
+////! Draw the item with the index value c. ***** no longer used? remove?
+///*!  All the things that go on an item line:\n
+// * [status graphic=whether highlighted][check toggle][graphic icon][text][submenu indicator]
+// *
+// * First, determine if this item is actually on screen, and find the area to draw it in. Return if not on screen.
+// * If it is found, then find the item and call drawitem(theitem,thebounds).
+// */
+//void TreeSelector::drawitem(int c)
+//{
+//	if (!ValidDrawable()) return;
+//
+//	if (c<0 || c>=numItems()) return;
+//	drawItemContents(item(c), offsetx,offsety,1);
+//}
+
+
+/*! flags are parsed from mitem->name. There is one flag per byte of mitem->name.
+ *
+ * Then drawFlagGraphic() is used to draw actual flag.
+ */
+void TreeSelector::drawflags(MenuItem *mitem,IntRectangle *rect)
+{
+	const char *f=mitem->name;
+	if (!f) return;
+
+	int x=rect->x;
+	for (unsigned int c=0; c<strlen(f); c++) {
+		x=drawFlagGraphic(f[c], x+rect->height/2,rect->y, rect->height);
+	}
+}
+
+/*! A couple of special cases are implemented.
+ * If flag=='l', then an unlocked lock is drawn.
+ * If flag=='L', then a locked lock is drawn.
+ * if flag=='e', then a closed eye is drawn.
+ * if flag=='E', then an open eye is drawn.
+ * 
+ * Otherwise, if a character is ' ', then by default, it is off, and nothing is drawn.
+ * If not ' ', then a check mark is drawn.
+ *
+ * Return the new x size.
+ */
+int TreeSelector::drawFlagGraphic(char flag, int x,int y,int h)
+{
+	if (flag==' ') return x+h;
+
+	DrawThingTypes thing=THING_Check;
+	if (flag=='l') thing=THING_Unlocked;
+	else if (flag=='L') thing=THING_Locked;
+	else if (flag=='e') thing=THING_Closed_Eye;
+	else if (flag=='E') thing=THING_Open_Eye;
+
+	foreground_color(0);
+	if (flag=='e' || flag=='E') background_color(~0);
+	else background_color(.7,.7,.7);
+	drawing_line_attributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
+	draw_thing(this, x,y+h/2, h*.4,-h*.4, 2, thing);
+	return x+h;
+}
+
+/*! Draw the item icon and name in rect.
+ * Assumes mitem is the relevant detail within rect, and that background colors have been drawn already.
+ */
+void TreeSelector::drawitemname(MenuItem *mitem,IntRectangle *rect)
+{
+	unsigned long f,g;
+	double fasc,tx,gx,iw;
+	fasc=get_default_font()->ascent();
+
+	getitemextent(mitem,&iw,NULL,&gx,&tx); // status graphic and name x coordinate
+
+	gx+=rect->x; tx+=rect->x; // |blah    |
+	//else if (menustyle&TREESEL_RIGHT) { gx=rect->x+rect->width-iw+gx; tx=rect->x+rect->width-iw+tx; } // |   blah|
+	//else { gx=rect->x+(rect->width-iw+gx)/2; tx=rect->x+(rect->width-iw+tx)/2; } // |   blah   |
+
+	
+	 // set proper foreground and background colors
+	//DBG cerr<<"menu "<<(menu->title?menu->title:"untitled")<<" item "<<c<<": "<<(mitem->state&LAX_HAS_SUBMENU?1:0)<<endl;
+	if ((mitem->state&LAX_MSTATE_MASK)>LAX_ON) { // grayed, hidden=0, off=1, on=2, so this is same as>2
+		//DBG cerr <<"item "<<(mitem->state&LAX_ON?1:0)<<" "<<mitem->name<<endl;
+		g=win_colors->bg;
+		f=win_colors->grayedfg;
+	} else {
+		//DBG cerr <<"item "<<(mitem->state&LAX_ON?1:0)<<" "<<mitem->name<<endl;
+		g=win_colors->bg;
+		f=win_colors->fg;
+	}
+
+	 // do the actual drawing
+	if (mitem->state&LAX_ON) { // draw on
+		g=win_colors->hbg;
+		f=win_colors->hfg;
+	} 
+	 // add a little extra hightlight if item is ccuritem
+	//if (!(menustyle&TREESEL_ZERO_OR_ONE)) if (mitem==item(ccuritem)) g=coloravg(f,g,.85);
+	
+	//foreground_color(g); // only draw highlighted if not checkboxes
+	//fill_rectangle(this, rect->x,rect->y,rect->width,rect->height);
+
+
+	foreground_color(f);
+	background_color(g);
+	if (mitem->name) textout(this, mitem->name,strlen(mitem->name), tx,rect->y+fasc+leading/2, LAX_LEFT|LAX_BASELINE);
+	if (mitem && mitem->image) {
+		image_out(mitem->image, this, gx, rect->y);
+	}
+
+}
+
+//! Draw the item icon and name in rect. *** keeping for reference
+void TreeSelector::drawitemnameOLD(MenuItem *mitem,IntRectangle *rect)
+{
+	unsigned long f,g;
+	double fasc,tx,gx,iw;
+	fasc=get_default_font()->ascent();
+
+	// ****** ToDo: use custom ordering of columns, maybe have 
+	//          drawcells() which determines cell area, then calls drawitemname() for drawing within each cell
+	//          according to column info
+	//
+	getitemextent(mitem,&iw,NULL,&gx,&tx); // status graphic and name x coordinate
+
+	gx+=rect->x; tx+=rect->x; // |blah    |
+	//else if (menustyle&TREESEL_RIGHT) { gx=rect->x+rect->width-iw+gx; tx=rect->x+rect->width-iw+tx; } // |   blah|
+	//else { gx=rect->x+(rect->width-iw+gx)/2; tx=rect->x+(rect->width-iw+tx)/2; } // |   blah   |
+
+	
+	 // set proper foreground and background colors
+	//DBG cerr<<"menu "<<(menu->title?menu->title:"untitled")<<" item "<<c<<": "<<(mitem->state&LAX_HAS_SUBMENU?1:0)<<endl;
+	if ((mitem->state&LAX_MSTATE_MASK)>LAX_ON) { // grayed, hidden=0, off=1, on=2, so this is same as>2
+		//DBG cerr <<"item "<<(mitem->state&LAX_ON?1:0)<<" "<<mitem->name<<endl;
+		g=win_colors->bg;
+		f=win_colors->grayedfg;
+	} else {
+		//DBG cerr <<"item "<<(mitem->state&LAX_ON?1:0)<<" "<<mitem->name<<endl;
+		g=win_colors->bg;
+		f=win_colors->fg;
+	}
+
+	 // do the actual drawing
+	if (mitem->state&LAX_ON) { // draw on
+		g=win_colors->hbg;
+		f=win_colors->hfg;
+	} 
+	 // add a little extra hightlight if item is ccuritem
+	if (!(menustyle&TREESEL_ZERO_OR_ONE)) if (mitem==item(ccuritem)) g=coloravg(f,g,.85);
+	
+	//foreground_color(g); // only draw highlighted if not checkboxes
+	//fill_rectangle(this, rect->x,rect->y,rect->width,rect->height);
+
+
+	foreground_color(f);
+	background_color(g);
+	if (mitem->name) textout(this, mitem->name,strlen(mitem->name), tx,rect->y+fasc+leading/2, LAX_LEFT|LAX_BASELINE);
+	MenuItem *im=mitem;
+	if (im && im->image) {
+		image_out(im->image, this, gx, rect->y);
+	}
+	MenuItem *detail=mitem->nextdetail;
+	int column=1;
+	while (detail) {
+		textout(this, detail->name,strlen(detail->name), offsetx+columns.e[column]->pos,rect->y+fasc+leading/2, LAX_LEFT|LAX_BASELINE);
+		detail=detail->nextdetail;
+		column++;
+	}
+
+}
+
+//! Draw a separator (default is just a win_colors->grayedfg colored line) across rect widthwise.
+void TreeSelector::drawsep(const char *name,IntRectangle *rect)
+{
+	foreground_color(win_colors->grayedfg); 
+	draw_line(this, rect->x,rect->y+rect->height/2, rect->x+rect->width-1,rect->y+rect->height/2);
+	if (!isblank(name)) {
+		int extent=getextent(name, -1, NULL, NULL, NULL, NULL, 0);
+		 //blank out area
+		foreground_color(win_colors->bg); 
+		fill_rectangle(this, rect->x+rect->width/2-extent/2-2,rect->y,extent+4,rect->height);
+		 //draw name
+		foreground_color(win_colors->grayedfg); 
+		textout(this, name,-1,rect->x+rect->width/2,rect->y+rect->height/2,LAX_CENTER);
+	}
+}
+
+
+
 
 //! Send message to owner.
 /*! If !(menustyle&TREESEL_SEND_STRINGS) Sends SimpleMessage with:
@@ -1321,7 +1496,7 @@ int TreeSelector::LBUp(int x,int y,unsigned int state,const LaxMouse *d)
 {
 	if (!buttondown.isdown(d->id,LEFTBUTTON)) return 1;
 	int hovered=-1, item=-1;
-	int wasdragged=buttondown.up(d->id,LEFTBUTTON, &item,&hovered);
+	int dragamount=buttondown.up(d->id,LEFTBUTTON, &item,&hovered);
 	
 	if (mousedragmode==2) { //*** ==2 means was attempting to rearrange..
 		//***turn off any dragging mode
@@ -1344,7 +1519,7 @@ int TreeSelector::LBUp(int x,int y,unsigned int state,const LaxMouse *d)
 	}
 
 	 // clicked on already selected item
-	if (wasdragged==0) {
+	if (dragamount<7) {
 		const MenuItem *ii=Item(i);
 
 		if (onsub && ii->hasSub()) {
@@ -1397,17 +1572,36 @@ int TreeSelector::findItem(int x,int y, int *onsub, int *column)
 
 	if (which<0) return -1;
 	i=item(which);
-//	int indent=0;
-//	while (i && i->parent) {
-//		i=i->parent->parent;
-//		indent++;
-//		DBG cerr <<"for item "<<which<<" indent:"<<indent<<endl;
-//	}
-//	if (x>indent*iwidth && x<(indent+1)*iwidth) *onsub=1;
-//	else *onsub=0;
-	if (x<i->x) *onsub=1; else *onsub=0;
+
+	int indent=0;
+	MenuItem *ii=i;
+	while (ii && ii->parent) {
+		ii=ii->parent->parent;
+		indent++;
+		//DBG cerr <<"for item "<<which<<" indent:"<<indent<<endl;
+	}
+	indent--;
+
+	int col=0;
+	if (columns.n) {
+		for (int c=0; c<columns.n; c++) {
+			if (x>=columns.e[c]->pos && x<columns.e[c]->pos+columns.e[c]->width) {
+				col=c;
+				break;
+			}
+		}	
+		if (col==tree_column) {
+			if (x-columns.e[col]->pos > indent*iwidth && x-columns.e[col]->pos < (indent+1)*iwidth) *onsub=1;
+			else *onsub=0;
+		}
+	} else {
+		if (x<i->x) *onsub=1; else *onsub=0;
+		if (x>indent*iwidth && x<(indent+1)*iwidth) *onsub=1;
+	}
+
 
 	if (column) {
+		 //search for position on column position sliders
 		if (columns.n) {
 			 // *** what about title?
 			for (int c=0; c<columns.n; c++) {
