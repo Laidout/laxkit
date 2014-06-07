@@ -54,21 +54,22 @@ namespace Laxkit {
  * \code
  *  // this is to require that cntl-tab be pressed to go to next control
  *  // otherwise just tab does it
- * #define LINEEDIT_CNTLTAB_NEXT (1<<16)
+ * LINEEDIT_CNTLTAB_NEXT
  * 
  *  // Because it is so convenient, the following require that thetext be
  *  // equivalent to an int/float. When the focus goes off, or enter is
  *  // pressed, it does a check to ensure this.***TODO!!!
- * #define LINEEDIT_INT          (1<<17)
- * #define LINEEDIT_FLOAT        (1<<18)
+ * LINEEDIT_INT
+ * LINEEDIT_FLOAT
  *  
  *  // The text is a file name, and the background color should change depending on
  *  // if the file exist, and what sort of file it is..
- * #define LINEEDIT_FILE            (1<<19)
+ * LINEEDIT_FILE
+ * LINEEDIT_DIRECTORY
  *
  *  //do a send(0) whenever the text changes at all, not just on enter
  *  //sends whenever Modified(parameter!=0) is called
- * #define LINEEDIT_SEND_ANY_CHANGE (1<<20)
+ * LINEEDIT_SEND_ANY_CHANGE
  * \endcode
  *
  * \todo *** non actual moves must deselect selection
@@ -176,6 +177,10 @@ Attribute *LineEdit::dump_out_atts(Attribute *att,int what,Laxkit::anObject *sav
 	if (win_style&LINEEDIT_INT) att->push("type","int");
 	else if (win_style&LINEEDIT_FLOAT) att->push("type","real");
 	else if (win_style&LINEEDIT_FILE) att->push("type","file");
+	else if (win_style&LINEEDIT_DIRECTORY) att->push("type","directory");
+	else if (win_style&LINEEDIT_PASSWORD) att->push("type","password");
+	else if (win_style&LINEEDIT_DATE) att->push("type","date");
+	else if (win_style&LINEEDIT_TIME) att->push("type","time");
 
 	if (textstyle&TEXT_LEFT) att->push("align","left");
 	else if (textstyle&TEXT_CENTER) att->push("align","center");
@@ -196,10 +201,14 @@ void LineEdit::dump_in_atts(Attribute *att,int flag,Laxkit::anObject *loadcontex
 		else if (!strcmp("text",name)) SetText(value);
 		else if (!strcmp("blanktext",name)) makestr(blanktext,value);
 		else if (!strcmp(name,"type")) {
-			win_style&=~(LINEEDIT_INT|LINEEDIT_FLOAT|LINEEDIT_FILE);
+			win_style&=~(LINEEDIT_INT|LINEEDIT_FLOAT|LINEEDIT_FILE|LINEEDIT_DIRECTORY|LINEEDIT_PASSWORD|LINEEDIT_DATE|LINEEDIT_TIME);
 			if (!strcmp(value,"int")) win_style|=LINEEDIT_INT;
 			else if (!strcmp(value,"real")) win_style|=LINEEDIT_FLOAT;
 			else if (!strcmp(value,"file")) win_style|=LINEEDIT_FILE;
+			else if (!strcmp(value,"directory")) win_style|=LINEEDIT_DIRECTORY;
+			else if (!strcmp(value,"password")) win_style|=LINEEDIT_PASSWORD;
+			else if (!strcmp(value,"date")) win_style|=LINEEDIT_DATE;
+			else if (!strcmp(value,"time")) win_style|=LINEEDIT_TIME;
 
 		} else if (!strcmp(name,"align")) {
 			textstyle&=~TEXT_LEFT|TEXT_CENTER|TEXT_RIGHT;
@@ -271,13 +280,16 @@ int LineEdit::Modified(int m)//m=1
 			while (e && isspace(*e)) e++;
 			if (*e!='\0') v=0; else v=1;
 			
-		} else if (win_style&LINEEDIT_FILE) {
+		} else if (win_style&(LINEEDIT_FILE|LINEEDIT_DIRECTORY)) {
 			char tmp[(thetext?strlen(thetext):0) + 1 + (qualifier?strlen(qualifier):0) + 1];
 			if (thetext[0]=='/') sprintf(tmp,"%s",thetext);
 			else if (qualifier) sprintf(tmp,"%s/%s",qualifier,thetext);
 			else sprintf(tmp,"%s",thetext);
 
-			if (file_exists(tmp,1,NULL)) v=1; else v=0;
+			int type=file_exists(tmp,1,NULL);
+			if ((win_style&LINEEDIT_FILE)!=0 && S_ISREG(type)) v=1;
+			else if ((win_style&LINEEDIT_DIRECTORY)!=0 && S_ISDIR(type)) v=1;
+			else v=0;
 		}
 		if (v!=valid) { valid=v; needtodraw=1; }
 	} else valid=1;

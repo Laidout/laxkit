@@ -31,20 +31,27 @@
 #include <unistd.h>
 #include <sys/times.h>
 
-#define LINEEDIT_CNTLTAB_NEXT     (1<<16)
-#define LINEEDIT_INT              (1<<17)
-#define LINEEDIT_FLOAT            (1<<18)
-#define LINEEDIT_FILE             (1<<19)
-//#define LINEEDIT_PASSWORD
-//#define LINEEDIT_DATE
-//#define LINEEDIT_TIME
-#define LINEEDIT_SEND_ANY_CHANGE  (1<<20)
-#define LINEEDIT_SEND_FOCUS_ON    (1<<21)
-#define LINEEDIT_SEND_FOCUS_OFF   (1<<22)
-#define LINEEDIT_DESTROY_ON_ENTER (1<<23)
-#define LINEEDIT_GRAB_ON_MAP      (1<<24)
 
 namespace Laxkit {
+
+
+enum LineEditStyleFlags {
+	LINEEDIT_CNTLTAB_NEXT     =(1<<16),
+	LINEEDIT_INT              =(1<<17),
+	LINEEDIT_FLOAT            =(1<<18),
+	LINEEDIT_FILE             =(1<<19),
+	LINEEDIT_DIRECTORY        =(1<<20),
+	LINEEDIT_PASSWORD         =(1<<21),//!<not implemented
+	LINEEDIT_DATE             =(1<<22),//!<not implemented
+	LINEEDIT_TIME             =(1<<23),//!<not implemented
+
+	LINEEDIT_SEND_ANY_CHANGE  =(1<<24),
+	LINEEDIT_SEND_FOCUS_ON    =(1<<25),
+	LINEEDIT_SEND_FOCUS_OFF   =(1<<26),
+	LINEEDIT_DESTROY_ON_ENTER =(1<<27),
+	LINEEDIT_GRAB_ON_MAP      =(1<<28),
+	LINEEDIT_MAX
+};
 
 class LineEdit : public TextXEditBaseUtf8
 {
