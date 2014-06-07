@@ -62,6 +62,8 @@ flatpoint *bez_ellipse(flatpoint *points, int numsegments,
 					   flatvector xaxis,flatvector yaxis,
 					   double start_angle,double end_angle);
 
+double end_curvature(flatpoint p1,flatpoint c1,flatpoint c2,flatpoint p2);
+
 } // namespace Laxkit
 
 #endif

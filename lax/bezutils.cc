@@ -713,9 +713,9 @@ flatpoint *bez_circle(flatpoint *points, int numpoints, double x,double y,double
 	for (int c=0, i=0; c<numpoints; c++, i+=3) {
 		xx=cos(c*theta);
 		yy=sin(c*theta);
-		points[i+1]=center + flatpoint(r*xx,r*yy);
-		points[i  ]=points[i+1] + flatpoint(v*yy,-v*xx);
-		points[i+2]=points[i+1] + flatpoint(-v*yy,v*xx);
+		points[i+1]=center + flatpoint(r*xx,r*yy);        points[i+1].info=LINE_Vertex;
+		points[i  ]=points[i+1] + flatpoint(v*yy,-v*xx);  points[i  ].info=LINE_Bez;
+		points[i+2]=points[i+1] + flatpoint(-v*yy,v*xx);  points[i+2].info=LINE_Bez;
 	}
 
 	return points;
@@ -757,6 +757,10 @@ flatpoint *bez_ellipse(flatpoint *points, int numsegments,
 		points[i  ]=transform_point(mm,points[i  ]);
 		points[i+1]=transform_point(mm,points[i+1]);
 		points[i+2]=transform_point(mm,points[i+2]);
+
+		points[i  ].info=LINE_Bez;
+		points[i+1].info=LINE_Vertex;
+		points[i+2].info=LINE_Bez;
 	}
 
 	return points;
@@ -808,6 +812,31 @@ flatpoint *bez_from_points(flatpoint *result, flatpoint *points, int numpoints)
     }
 
 	return result;
+}
+
+/*! Return the curvature of the curve at p2. This is 1/r, where r is the radius of
+ * a circle with the same curvature. The side of the line the circle is on is determined
+ * by the sign of the returned value.
+ *
+ * The curvature at the endpoint is: 
+ * \f[
+ *   \kappa(1) = {2\over3}{(p_2-c_2)\times((c_1-c_2)+(p_2-c_2))\over|p_2-c_2|^3}
+ * \f]
+ *
+ * (please read Tavmjong Bah's very clear explanation for curvature for
+ * extrapolated joins here: http://tavmjong.free.fr/SVG/LINEJOIN/index.html)
+ *
+ * If the curvature is infinite (p2-c3==0), then an arbitrarily large
+ * number is returned (in this case 1e+15), though with the correct sign;
+ */
+double end_curvature(flatpoint p1,flatpoint c1,flatpoint c2,flatpoint p2)
+{
+	flatvector v=p2-c2;
+	double vvv=norm(v);
+	double k=2./3*v.cross(c1-c2 + v);
+	if (vvv==0) { if (k>0) return 1e+15; else return -1e+15; }
+	vvv=vvv*vvv*vvv;
+	return k/vvv;
 }
 
 
