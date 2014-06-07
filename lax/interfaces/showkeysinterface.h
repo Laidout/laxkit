@@ -26,7 +26,6 @@
 #include <lax/interfaces/aninterface.h>
 #include <lax/interfaces/linestyle.h>
 #include <lax/interfaces/coordinate.h>
-#include <lax/curvewindow.h>
 
 namespace LaxInterfaces { 
 
