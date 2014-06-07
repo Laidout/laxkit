@@ -30,7 +30,6 @@
 #include <lax/bezutils.h>
 #include <lax/transformmath.h>
 #include <lax/language.h>
-#include <lax/curvewindow.h>
 
 #include <lax/lists.cc>
 
@@ -476,8 +475,8 @@ void Path::UpdateCache()
 	for (int c=(pathweights.n>0 ? 0 : -1); c<pathweights.n; c++) {
 		if (c==-1) {
 			 //no actual weight nodes
-			wtop   =flatpoint(0,linestyle ?  linestyle->width : defaultwidth);
-			wbottom=flatpoint(0,linestyle ? -linestyle->width : defaultwidth);
+			wtop   =flatpoint(0,linestyle ?  linestyle->width :  defaultwidth);
+			wbottom=flatpoint(0,linestyle ? -linestyle->width : -defaultwidth);
 			ymin=ymax=wtop.y;
 			amin=amax=0;
 		} else {
@@ -4089,7 +4088,8 @@ PathsData *PathInterface::newPathsData()
 	if (!linestyle) { linestyle=defaultline; if (linestyle) linestyle->inc_count(); }
 	if (!ndata->linestyle) ndata->linestyle=new LineStyle(*linestyle); //***bit of a hack here
 
-	defaultweight.width=ndata->linestyle->width;
+	//defaultweight.width=ndata->linestyle->width;
+	defaultweight.width=1/dp->Getmag();
 	defaultweight.offset=0;
 
 	if (viewport) {
@@ -4186,6 +4186,7 @@ int PathInterface::AddPoint(flatpoint p)
 	if (!curvertex) {
 		curvertex=np->nextVertex(1);
 		curpath->path=curvertex;
+		curpath->needtorecache=1;
 
 		SetCurvertex(curvertex);
 		curpoints.flush();
@@ -4233,6 +4234,7 @@ int PathInterface::AddPoint(flatpoint p)
 	curpoints.flush();
 	if (!cp) cp=curvertex;
 	curpoints.push(cp,0);
+	curpath->needtorecache=1;
 	data->FindBBox();
 	needtodraw=1;
 	return 0;
@@ -4442,6 +4444,7 @@ int PathInterface::MergeEndpoints(Coordinate *from,int fromi, Coordinate *to,int
 	tp->prev=fp;
 
 	data->paths.e[fromi]->path=to->firstPoint(1);
+	data->paths.e[fromi]->needtorecache=1;
 	if (fromi!=toi) {
 		 //remove other path
 		data->paths.e[toi]->path=NULL;
@@ -4685,6 +4688,7 @@ int PathInterface::CutNear(flatpoint hoverpoint)
 	}
 
 	curpath=data->paths.e[pathi];
+	curpath->needtorecache=1;
 	curvertex=p1;
 	Coordinate *v=curvertex;
 	if (curvertex->next && (curvertex->next->flags&POINT_TOPREV)) v=v->next;
