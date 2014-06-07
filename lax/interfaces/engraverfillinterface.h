@@ -28,7 +28,7 @@
 #include <lax/interfaces/imageinterface.h>
 #include <lax/interfaces/curvemapinterface.h>
 #include <lax/screencolor.h>
-#include <lax/curvewindow.h>
+#include <lax/curveinfo.h>
 
 //#include <lax/interfaces/selection.h>
 
@@ -55,13 +55,15 @@ class LinePoint
 
 	LinePoint *next, *prev;
 
-	LinePoint() { on=true; row=col=0; s=t=0; weight=1; spacing=-1; next=prev=NULL; needtosync=1; group=0; }
-	LinePoint(double ss, double tt, double ww, int ngroup=0) { on=true; next=prev=NULL; s=ss; t=tt; weight=ww; spacing=-1; group=ngroup; }
+	LinePoint();
+	LinePoint(double ss, double tt, double ww, int ngroup=0);
+	~LinePoint();
 
 	void Set(double ss,double tt, double nweight) { s=ss; t=tt; if (nweight>=0) weight=nweight; needtosync=1; }
 	void Set(LinePoint *pp);
 	void Clear();
 	void Add(LinePoint *np);
+	void AddBefore(LinePoint *np);
 };
 
 //---------------------------------------------- EngraverTraceSettings 
@@ -89,9 +91,46 @@ class EngraverTraceSettings : public Laxkit::anObject
 	void ClearCache(bool obj_too);
 };
 
+//----------------------------------------------- EngraverLineQuality
+
+class EngraverLineQuality : public Laxkit::anObject
+{
+  public:
+	double dash_length;
+	double dash_randomness;
+	double zero_threshhold;
+	double broken_threshhold;
+	double dash_taper; //0 means taper all the way, 1 means no taper
+	int indashcaps, outdashcaps, startcaps, endcaps;
+	//Laxkit::CurveInfo weighttodist;
+
+	EngraverLineQuality();
+	virtual ~EngraverLineQuality();
+	virtual const char *whattype() { return "EngraverLineQuality"; }
+};
+
+
 //----------------------------------------------- EngraverPointGroup
 
-class EngraverPointGroup
+class ValueMap
+{
+  public:
+	ValueMap() {}
+	virtual ~ValueMap() {}
+	virtual double GetValue(double x,double y) = 0;
+	virtual double GetValue(flatpoint p) { return GetValue(p.x,p.y); }
+};
+
+class DirectionMap
+{
+  public:
+	DirectionMap() {}
+	virtual ~DirectionMap() {}
+	virtual flatpoint Direction(double x,double y) = 0;
+	virtual flatpoint Direction(flatpoint p) { return Direction(p.x,p.y); }
+};
+
+class EngraverPointGroup : public DirectionMap
 {
   public:
 	enum PointGroupType {
@@ -108,10 +147,10 @@ class EngraverPointGroup
 
 	int type; //what manner of lines
 	double type_d;   //parameter for type, for instance, an angle for spirals
-	double spacing;
-	flatpoint position,direction;
+	double spacing;  //default
+	flatpoint position,direction; //default
 
-	 //these should get isolated in own class to be able to share settings...
+	 //these should get isolated in own class to be able to share settings, similar to EngraverTraceSettings...
 	double dash_length;
 	double dash_randomness;
 	double zero_threshhold;
@@ -123,13 +162,22 @@ class EngraverPointGroup
 	EngraverPointGroup();
 	EngraverPointGroup(int nid,const char *nname, int ntype, flatpoint npos, flatpoint ndir, double ntype_d, EngraverTraceSettings *newtrace);
 	virtual ~EngraverPointGroup();
+
+	virtual void SetTraceSettings(EngraverTraceSettings *newtrace);
+
 	virtual flatpoint Direction(double s,double t);
 	virtual LinePoint *LineFrom(double s,double t);
 
-	virtual void Fill(EngraverFillData *data); //fill in x,y = 0..1,0..1
-	virtual void FillRegularLines(EngraverFillData *data);
+	virtual void Fill(EngraverFillData *data, double nweight); //fill in x,y = 0..1,0..1
+	virtual void FillRegularLines(EngraverFillData *data, double nweight);
+	virtual void FillRadial(EngraverFillData *data, double nweight);
+	virtual void FillCircular(EngraverFillData *data, double nweight);
 
-	virtual void SetTraceSettings(EngraverTraceSettings *newtrace);
+	virtual void GrowPoints(EngraverFillData *data,
+									double resolution, 
+									double defaultspace,  	ValueMap *spacingmap,
+									double defaultweight,   ValueMap *weightmap, 
+									flatpoint direction,    DirectionMap *directionmap);
 };
 
 
@@ -179,11 +227,13 @@ class EngraverFillData : public PatchData
 };
 
 
+
+
 //------------------------------ EngraverFillInterface -------------------------------
 
 class EngraverFillInterface : public PatchInterface
 {
- protected:
+  protected:
 	Laxkit::MenuInfo modes;
 	EngraverFillData *edata;
 	int mode;
@@ -195,20 +245,21 @@ class EngraverFillInterface : public PatchInterface
 	 //general tool settings
 	double brush_radius; //screen pixels
 	Laxkit::CurveInfo thickness; //ramp of thickness brush
+
 	double default_spacing;
 	double default_zero_threshhold; //weight<this are considered off
 	double default_broken_threshhold; //if nonzero, zero_threshhold<weight<this means use broken line of this thickness
+	double turbulence_size; //this*spacing
+	bool turbulence_per_line;
 
 	 //trace settings..
 	bool show_trace;
 	bool continuous_trace;
-	Laxkit::CurveInfo tracemap;
+	bool grow_lines;
+	bool always_warp;
+	//Laxkit::CurveInfo tracemap;
 	Laxkit::DoubleBBox tracebox;
 	EngraverTraceSettings trace;
-
-	 //default orientation
-	flatpoint orient_direction;
-	flatpoint orient_position;
 
 	Laxkit::ScreenColor fgcolor,bgcolor;
 
@@ -228,7 +279,7 @@ class EngraverFillInterface : public PatchInterface
 	virtual void DrawLineGradient(double minx,double maxx,double miny,double maxy);
 	virtual void DrawShadeGradient(double minx,double maxx,double miny,double maxy);
 
- public:
+  public:
 	EngraverFillInterface(int nid, Laxkit::Displayer *ndp);
 	virtual ~EngraverFillInterface();
 	virtual Laxkit::ShortcutHandler *GetShortcuts();
@@ -243,6 +294,8 @@ class EngraverFillInterface : public PatchInterface
 	virtual int DrawData(anObject *ndata,anObject *a1=NULL,anObject *a2=NULL,int info=0);
 	virtual int LBDown(int x,int y,unsigned int state,int count,const Laxkit::LaxMouse *d);
 	virtual int LBUp(int x,int y,unsigned int state,const Laxkit::LaxMouse *d);
+	virtual int WheelUp(int x,int y,unsigned int state,int count,const Laxkit::LaxMouse *d);
+	virtual int WheelDown(int x,int y,unsigned int state,int count,const Laxkit::LaxMouse *d);
 	virtual int MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMouse *d);
 	virtual int CharInput(unsigned int ch,const char *buffer,int len,unsigned int state,const Laxkit::LaxKeyboard *d);
 	virtual int KeyUp(unsigned int ch,unsigned int state,const Laxkit::LaxKeyboard *d);

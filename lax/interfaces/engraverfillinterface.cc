@@ -62,6 +62,38 @@ namespace LaxInterfaces {
  * Kind of a temp node for EngraverFillData.
  */
 
+LinePoint::LinePoint()
+{
+	group=0; 
+	on=true;
+	row=col=0;
+	s=t=0;
+	weight=1;
+	spacing=-1;
+	next=prev=NULL;
+	needtosync=1;
+}
+
+LinePoint::LinePoint(double ss, double tt, double ww, int ngroup)
+{
+	group=ngroup;
+	on=true;
+	next=prev=NULL;
+	s=ss;
+	t=tt;
+	weight=ww;
+	spacing=-1;
+}
+
+LinePoint::~LinePoint()
+{
+	if (prev) prev->next=NULL;
+	if (next) {
+		next->prev=NULL;
+		delete next;
+	}
+}
+
 
 void LinePoint::Clear()
 {
@@ -73,14 +105,30 @@ void LinePoint::Clear()
 void LinePoint::Add(LinePoint *np)
 {
 	LinePoint *pp=np;
-	while (pp->next) pp=pp->next;
+	while (pp->prev) pp=pp->prev;
+	while (np->next) np=np->next;
 
-	pp->next=next;
-	if (next) next->prev=pp;
+	np->next=next;
+	if (next) next->prev=np;
 
-	next=np;
-	np->prev=this;
+	pp->prev=this;
+	next=pp;
 }
+
+//! Add an OPEN line segment right before *this.
+void LinePoint::AddBefore(LinePoint *np)
+{
+	LinePoint *pp=np;
+	while (pp->prev) pp=pp->prev;
+	while (np->next) np=np->next;
+
+	pp->prev=prev;
+	if (prev) prev->next=pp;
+
+	prev=np;
+	np->next=this;
+}
+
 
 /*! Copy over everything except next and prev.
  */
@@ -95,6 +143,35 @@ void LinePoint::Set(LinePoint *pp)
 	needtosync=pp->needtosync;
 	p=pp->p;
 }
+
+
+//----------------------------- EngraverLineQuality -----------------------------------
+
+/*! \class EngraverLineQuality
+ * Class to hold info about how to render broken lines, caps, and custom mappings of
+ * stored weights to actual widths.
+ */
+
+EngraverLineQuality::EngraverLineQuality()
+{
+	//dash_length=spacing*2;
+	dash_length=2;
+
+	dash_randomness=0;
+	zero_threshhold=0;
+	broken_threshhold=0;
+	dash_taper=.5;
+
+	indashcaps =0;
+	outdashcaps=0;
+	startcaps  =0;
+	endcaps    =0;
+}
+
+EngraverLineQuality::~EngraverLineQuality()
+{
+}
+
 
 
 //------------------------------------- EngraverPointGroup ------------------------
@@ -118,10 +195,13 @@ EngraverPointGroup::EngraverPointGroup()
 	type=PGROUP_Linear; //what manner of lines
 	type_d=0;   //parameter for type, for instance, an angle for spirals
 
-	spacing=10;
+	spacing=.1;
 	dash_length=spacing*2;
 	zero_threshhold=0;
 	broken_threshhold=0;
+
+	position.x=position.y=.5;
+	direction.x=1;
 }
 
 /*! Creates a unique new number for id if nid<0.
@@ -129,6 +209,10 @@ EngraverPointGroup::EngraverPointGroup()
 EngraverPointGroup::EngraverPointGroup(int nid,const char *nname, int ntype, flatpoint npos, flatpoint ndir, double ntype_d,
 										EngraverTraceSettings *newtrace)
 {
+	trace=newtrace;
+	if (trace) trace->inc_count();
+	else trace=new EngraverTraceSettings();
+
 	id=nid;
 	if (id<0) id=getUniqueNumber(); //the group number in LinePoint
 	name=newstr(nname);
@@ -142,10 +226,8 @@ EngraverPointGroup::EngraverPointGroup(int nid,const char *nname, int ntype, fla
 	zero_threshhold=0;
 	broken_threshhold=0;
 
-	trace=newtrace;
-	if (trace) trace->inc_count();
-	else trace=new EngraverTraceSettings();
-
+	position.x=position.y=.5;
+	direction.x=1;
 }
 
 EngraverPointGroup::~EngraverPointGroup()
@@ -209,14 +291,28 @@ LinePoint *EngraverPointGroup::LineFrom(double s,double t)
 
 /*! fill in x,y = 0..1,0..1
  */
-void EngraverPointGroup::Fill(EngraverFillData *data)
+void EngraverPointGroup::Fill(EngraverFillData *data, double nweight)
 {
-	if (type==PGROUP_Linear) {
-		FillRegularLines(data);
+	if (direction.isZero()) direction.x=1;
 
-	} else if (type==PGROUP_Circular) {
+	 //remove any old lines from same group
+	for (int c=data->lines.n-1; c>=0; c--) {
+		if (data->lines.e[c]->group==id) data->lines.remove(c);
+	}
+
+
+	if (type==PGROUP_Circular) {
+		FillCircular(data,nweight);
+
 	} else if (type==PGROUP_Radial) {
+		FillRadial(data,nweight);
+
 	} else if (type==PGROUP_Spiral) {
+		//FillSpiral(data,nweight);
+
+	} else { //default: if (type==PGROUP_Linear) {
+		FillRegularLines(data,nweight);
+
 	}
 
 }
@@ -224,15 +320,18 @@ void EngraverPointGroup::Fill(EngraverFillData *data)
 /*! spacing is an object distance (not in s,t space) to be used as the distance between line centers.
  * If spacing<0, then use 1/25 of the x or y dimension, whichever is smaller
  * If weight<0, then use spacing/10.
- * Inserts lines folling this->direction, which is in (s,t) space.
+ * Inserts lines follow	a,<<<ing this->direction, which is in (s,t) space.
  */
-void EngraverPointGroup::FillRegularLines(EngraverFillData *data)
+void EngraverPointGroup::FillRegularLines(EngraverFillData *data, double nweight)
 {
-	double spacing=data->default_spacing;
-	double weight=-1;
+	double thisspacing=spacing;
+	if (thisspacing<=0) thisspacing=data->default_spacing;
+	if (thisspacing<=0) thisspacing=.1;
+	spacing=thisspacing;
+	double weight=nweight;
 
 
-	if (weight<=0) weight=spacing/10; //remember, weight is actual distance, not s,t!!
+	if (weight<=0) weight=thisspacing/10; //remember, weight is actual distance, not s,t!!
 
 
 	LinePoint *p;
@@ -240,15 +339,11 @@ void EngraverPointGroup::FillRegularLines(EngraverFillData *data)
 	flatvector v=direction; //this is s,t space
 	if (v.x<0) v=-v;
 	v.normalize();
+	v*=spacing;
 	//flatvector vt=transpose(v);
 
 	 //we need to find the s,t equivalent of spacing along direction
-	flatpoint vp=data->getPoint(.1*v.x+.5, .1*v.y+.5) - data->getPoint(.5,.5);
-	v*=.1*spacing/norm(vp);
-	double vv=norm2(v);
-
-	//vp=getPoint(.1*vt.x+.5, .1*vt.y+.5)-getPoint(.5,.5);
-	//vt*=.1*spacing/norm(vp);
+	double vv=spacing*spacing;
 
 	double s_spacing= (v.y==0 ? -1 : fabs(vv/v.y));
 	double t_spacing= (v.x==0 ? -1 : fabs(vv/v.x));
@@ -256,20 +351,29 @@ void EngraverPointGroup::FillRegularLines(EngraverFillData *data)
 	//if (xsize>4) s_spacing/= xsize/3;
 	//if (ysize>4) t_spacing/= ysize/3;
 
-	if (v.y<0) data->lines.push(new LinePoint(0,1,weight,id)); //push a (0,0) starter point
-	else       data->lines.push(new LinePoint(0,0,weight,id)); //push a (0,0) starter point
+	//if (v.y<0) data->lines.push(new LinePoint(0,1,weight,id)); //push a (0,0) starter point
+	//else       data->lines.push(new LinePoint(0,0,weight,id)); //push a (0,0) starter point
 
 	 //starter points along y
 	if (t_spacing>0) {
-		for (double yy=t_spacing; yy<=1; yy+=t_spacing) {
-			if (v.y<0) data->lines.push(new LinePoint(0,1-yy, weight,id));
+		double oy;
+		if (v.y<0) oy=position.y-position.x*v.y/v.x;
+		else oy=position.y-position.x*v.y/v.x;
+
+		for (double yy=oy-t_spacing*floor(oy/t_spacing); yy<=1; yy+=t_spacing) {
+			//if (v.y<0) data->lines.push(new LinePoint(0,1-yy, weight,id));
+			if (v.y<0) data->lines.push(new LinePoint(0,yy, weight,id));
 			else       data->lines.push(new LinePoint(0,yy, weight,id));
 		}
 	}
 
 	 //starter points along x
 	if (s_spacing>0) {
-		for (double xx=s_spacing; xx<=1; xx+=s_spacing) {
+		double ox;
+		if (v.y<0) ox=position.x+(1-position.y)*v.x/v.y;
+		else ox=position.x-position.y*v.x/v.y;
+
+		for (double xx=ox-s_spacing*floor(ox/s_spacing); xx<=1; xx+=s_spacing) {
 			if (v.y<0) data->lines.push(new LinePoint(xx,1, weight,id));
 			else       data->lines.push(new LinePoint(xx,0, weight,id));
 		}
@@ -279,6 +383,7 @@ void EngraverPointGroup::FillRegularLines(EngraverFillData *data)
 	flatvector pp;
 	for (int c=0; c<data->lines.n; c++) {
 		p=data->lines.e[c];
+		if (p->group!=id) continue;
 
 		while (p->s>=0 && p->t>=0 && p->s<=1 && p->t<=1) {
 			pp=flatpoint(p->s,p->t) + v;
@@ -286,6 +391,412 @@ void EngraverPointGroup::FillRegularLines(EngraverFillData *data)
 			p->next->prev=p;
 			p=p->next;
 		}
+	}
+}
+
+/*! If weight<0, then use spacing/10.
+ */
+void EngraverPointGroup::FillRadial(EngraverFillData *data, double nweight)
+{
+	double thisspacing=spacing;
+	if (thisspacing<=0) thisspacing=data->default_spacing;
+	if (thisspacing<=0) thisspacing=10;
+	spacing=thisspacing;
+
+	double weight=nweight;
+	if (weight<=0) weight=spacing/10; //remember, weight is actual distance, not s,t!!
+
+
+	int numpoints=2*M_PI/spacing;
+	if (numpoints<3) numpoints=3;
+
+	LinePoint *p;
+	flatpoint pp;
+	flatpoint v;
+
+	for (int c=0; c<numpoints; c++) {
+		pp=position;
+		p=new LinePoint(position.x, position.y, weight,id);
+		data->lines.push(p);
+
+		v=rotate(.05*direction/norm(direction),2*M_PI*c/numpoints);
+		
+		while (p->s>=0 && p->t>=0 && p->s<=1 && p->t<=1) {
+			pp=flatpoint(p->s,p->t) + v;
+			p->next=new LinePoint(pp.x, pp.y, weight,id);
+			p->next->prev=p;
+			p=p->next;
+		}
+	}
+}
+
+/*! If weight<0, then use spacing/10.
+ */
+void EngraverPointGroup::FillCircular(EngraverFillData *data, double nweight)
+{
+	double thisspacing=spacing;
+	if (thisspacing<=0) thisspacing=data->default_spacing;
+	if (thisspacing<=0) thisspacing=.1;
+	spacing=thisspacing;
+
+	double weight=nweight;
+	if (weight<=0) weight=spacing/10; //remember, weight is actual distance, not s,t!!
+
+
+	int numpoints=30;
+
+	LinePoint *p;
+	flatpoint pp;
+	flatpoint v(spacing,0);
+	double r=0, rr=0;
+	r=rr=norm(flatpoint(0,0)-position);
+	r=norm(flatpoint(1,0)-position);
+	if (r>rr) rr=r;
+	r=norm(flatpoint(0,1)-position);
+	if (r>rr) rr=r;
+	r=norm(flatpoint(1,1)-position);
+	if (r>rr) rr=r;
+
+
+	r=-spacing/2;
+	LinePoint *sp=NULL;
+	int first=-1;
+	DBG int circle=0;
+	while (r<rr) {
+		r+=spacing;
+		numpoints=10+2*r*M_PI/spacing;
+		sp=p=NULL;
+		first=-1;
+
+		DBG circle++;
+
+		for (int c=0; c<=numpoints+1; c++) {
+			pp=position + r*flatpoint(cos(2*M_PI*c/numpoints),sin(2*M_PI*c/numpoints));
+
+			if (pp.x<0 || pp.x>1 || pp.y<0 || pp.y>1) {
+				 //point out of bounds
+				if (!sp) continue; //no current segment, so just skip
+
+				//else we had a current segment, so we have to terminate
+				sp=NULL;
+				continue;
+			}
+
+			//now we have a point to add
+
+			if (c==numpoints+1) {
+				 //we have come full circle, the previous point was on
+				if (first>=0 && sp) {
+					 //first point of circle was on, so since this last point is also on,
+					 //we need to connect first and last
+					data->lines.e[first]->prev=p;
+					p->next=data->lines.e[first];
+					data->lines.e[first]=sp;
+					if (sp->prev) sp->prev->next=NULL;
+					sp->prev=NULL;
+					if (first!=data->lines.n-1) {
+						data->lines.e[data->lines.n-1]=NULL;
+						data->lines.n--;
+					}
+				}
+				first=-1;
+				sp=NULL;
+				break;
+			}
+
+			if (sp==NULL) {
+				 //starting new segment
+				p=new LinePoint(pp.x, pp.y, weight,id);
+				data->lines.push(p);
+
+				 //we need to remember the start of the circle, in case we need to
+				 //connect the final segment of the circle to the first segment
+				sp=p;
+				if (c==0) first=data->lines.n-1;
+
+			} else {
+				p->next=new LinePoint(pp.x, pp.y, weight,id);
+				p=p->next;
+			}
+
+		}
+	}
+
+}
+
+
+
+class StarterPoint
+{
+  public:
+	flatpoint lastdir;
+	int iteration;
+	int piteration;
+
+	LinePoint *line, *first, *last;
+	int dodir; //1 for add to +direction, 2 for add to -direction, 3 for both
+
+	StarterPoint (flatpoint p, int indir, double weight,int groupid);
+};
+
+StarterPoint::StarterPoint(flatpoint p, int indir, double weight,int groupid)
+{
+	first=last=line=new LinePoint(p.x,p.y,weight,groupid);
+	iteration=0;
+	piteration=0;
+	dodir=indir;
+}
+
+void EngraverPointGroup::GrowPoints(EngraverFillData *data,
+									double resolution, 
+									double defaultspace,  	ValueMap *spacingmap,
+									double defaultweight,   ValueMap *weightmap, 
+									flatpoint direction,    DirectionMap *directionmap)
+{
+	if (directionmap==NULL) directionmap=this;
+
+	DoubleBBox bounds(0,data->xsize/3, 0,data->ysize/3);
+	PtrStack<StarterPoint> generators;
+	PtrStack<LinePoint> lines;
+	StarterPoint *g;
+	flatpoint v=resolution*direction/norm(direction);
+	flatpoint vv;
+	double weight=defaultweight;
+	double curspace=defaultspace;
+
+	double VEPSILON=1e-6;
+
+	 //create generators and add initial line points along each of the 4 edges of bounds
+	//double x=bounds.minx, y;
+
+	 //start at origin, add points around bounds, starting with lower x edge
+	flatpoint p(bounds.minx,bounds.miny);
+	while (p.x<bounds.maxx) {
+		if (directionmap) {
+			v=directionmap->Direction(p);
+			v*=resolution/norm(v);
+		}
+		if (spacingmap) curspace=spacingmap->GetValue(p); //else spacing is constant
+
+		 //add new generator if we are pointing toward inside bounds
+		if (v.y>0 && ((v.x>0 && p.x<bounds.maxx) || (v.x<0 && p.x>bounds.minx))) {
+			g=new StarterPoint(p, 1, weight, id);
+			lines.push(g->line);
+			generators.push(g,1);
+		}
+
+		 //advance p to next point along x
+		if (fabs(v.y)<VEPSILON) { p.x=bounds.maxx; break; }
+
+		p.x+=fabs(resolution*curspace/v.y);
+	}
+
+	 //find initial starter along maxx segment
+	if (fabs(v.y)<VEPSILON) { //like horizontal lines
+		p.x=bounds.maxx;
+		p.y=bounds.miny+spacing;
+	} else {
+		if (fabs(v.x)<VEPSILON) {
+			p.x=bounds.maxx; //need to skip traverse up maxx edge
+			p.y=bounds.maxy;
+		} else {
+			p.y=bounds.miny + (-p.x+bounds.maxx)*v.y/v.x;
+			if (p.y<bounds.miny) p.y+=fabs(spacing*v.y/v.x);
+			p.x=bounds.maxx;
+		}
+	}
+
+	 //cruise up maxx side
+	while (p.y<bounds.maxy) {
+		if (directionmap) {
+			v=directionmap->Direction(p);
+			v*=resolution/norm(v);
+		}
+		if (spacingmap) curspace=spacingmap->GetValue(p); //else spacing is constant
+		vv=v*curspace;
+
+		 //add new generator if we are pointing toward inside bounds
+		if (v.x<0 && ((v.y>0 && p.y>bounds.miny) || (v.y<0 && p.y<bounds.maxy))) {
+			g=new StarterPoint(p, 1, weight, id);
+			lines.push(g->line);
+			generators.push(g,1);
+		}
+
+		 //advance p to next point along x
+		if (fabs(v.x)<VEPSILON) { p.y=bounds.maxy; break; }
+
+		p.y+=fabs(resolution*curspace/v.x);
+	}
+
+	 //find initial starter on maxy edge
+	if (fabs(v.x)<VEPSILON) { //like horizontal lines
+		p.x=bounds.maxx-spacing;
+		p.y=bounds.maxy;
+	} else {
+		if (fabs(v.y)<VEPSILON) {
+			p.x=bounds.minx; //need to skip traverse
+			p.y=bounds.maxy;
+		} else {
+			p.x=bounds.maxx - (p.y-bounds.maxy)*v.x/v.y;
+			if (p.x>bounds.maxx) p.x-=fabs(spacing*v.x/v.y);
+			p.y=bounds.maxy;
+		}
+	}
+
+
+	 //cruise down maxy side
+	while (p.x>bounds.minx) {
+		if (directionmap) {
+			v=directionmap->Direction(p);
+			v*=resolution/norm(v);
+		}
+		if (spacingmap) curspace=spacingmap->GetValue(p); //else spacing is constant
+
+		 //add new generator if we are pointing toward inside bounds
+		if (v.y<0 && ((v.x>0 && p.x<bounds.maxx) || (v.x<0 && p.x>bounds.minx))) {
+			g=new StarterPoint(p, 1, weight, id);
+			lines.push(g->line);
+			generators.push(g,1);
+		}
+
+		 //advance p to next point along x
+		if (fabs(v.y)<VEPSILON) { p.x=bounds.minx; break; }
+
+		p.x-=fabs(resolution*curspace/v.y);
+	}
+
+	 //find initial starter on minx edge
+	if (fabs(v.y)<VEPSILON) { //like horizontal lines
+		p.x=bounds.minx;
+		p.y=bounds.maxy-spacing;
+	} else {
+		if (fabs(v.x)<VEPSILON) {
+			p.x=bounds.minx; //need to skip traverse up maxx edge
+			p.y=bounds.miny;
+		} else {
+			p.y=bounds.maxy + (p.x-bounds.maxx)*v.y/v.x;
+			if (p.y>bounds.maxy) p.y-=fabs(spacing*v.y/v.x);
+			p.x=bounds.minx;
+		}
+	}
+
+
+	 //cruise down minx side
+	while (p.y>bounds.miny) {
+		if (directionmap) {
+			v=directionmap->Direction(p);
+			v*=resolution/norm(v);
+		}
+		if (spacingmap) curspace=spacingmap->GetValue(p); //else spacing is constant
+		vv=v*curspace;
+
+		 //add new generator if we are pointing toward inside bounds
+		if (v.x<0 && ((v.y>0 && p.y>bounds.miny) || (v.y<0 && p.y<bounds.maxy))) {
+			g=new StarterPoint(p, 1, weight, id);
+			lines.push(g->line);
+			generators.push(g,1);
+		}
+
+		 //advance p to next point along x
+		if (fabs(v.x)<VEPSILON) { p.y=bounds.maxy; break; }
+
+		p.y-=fabs(resolution*curspace/v.x);
+	}
+
+
+	// 
+	// Now all initial starter points positioned on edges,
+	// we must grow them...
+	//
+
+
+	 //grow points until generators depleted
+	int iteration=0;
+	bool maybefill=true;
+
+	while (generators.n) {
+		iteration++;
+
+		 //advance each generator according to directionmap
+		for (int c=0; c<generators.n; c++) {
+			g=generators.e[c];
+
+			 //advance forward
+			if (g->dodir&1) {
+				if (directionmap) {
+					v=directionmap->Direction(g->last->p);
+					v*=resolution/norm(v);
+				} //else v already set;
+
+				p=g->last->p + v;
+			}
+			g->last->Add(new LinePoint(p.x,p.y, weight,id));
+			g->last=g->last->next;
+
+			 //advance backwards
+		   	if (g->dodir&2) {
+				if (directionmap) {
+					v=directionmap->Direction(g->first->p);
+					v*=resolution/norm(v);
+				}
+
+				p=g->first->p - v;
+			}
+			g->first->AddBefore(new LinePoint(p.x,p.y, weight,id));
+			g->first=g->first->prev;
+		}
+
+//		 //search for merges and splits
+//		for (int c=0; c<generators.n; c++) {
+//			g=generators.e[c];
+//
+//			if (g->dodir&1) {
+//				if (spacingmap) curspace=spacingmap->GetValue(g->last->p); //else spacing is constant
+//				*** //search for g->last->p within curspace distance to any other sample points
+//			}
+//			if (g->dodir&2) {
+//				if (spacingmap) curspace=spacingmap->GetValue(g->first->p);
+//				*** //search for g->first->p within curspace distance to any other sample points
+//			}
+//			 
+//			*** //if merging with an endpoint, move both endpoints to midpoint
+//				//if merging against middle of line, collide into it, don't modify original line?
+//		}
+//
+//		*** //need to equalize somehow after merging and splitting
+
+
+		 //terminate lines now out of bounds
+		for (int c=generators.n-1; c>=0; c--) {
+			g=generators.e[c];
+
+			if (g->dodir&1) if (!bounds.boxcontains(g->last->s, g->last->t))  g->dodir&=~1;
+			if (g->dodir&2) if (!bounds.boxcontains(g->first->s,g->first->t)) g->dodir&=~2;
+
+			if (g->dodir==0) {
+				//all done with this generator! make sure the associated line starts at a point with no prev points
+				if (g->first!=g->line) {
+					int i=lines.findindex(g->line);
+					lines.e[i]=g->first;
+				}
+				generators.remove(c);
+			}
+
+		}
+
+		 //no more generators, search for holes to fill! this might happen with specialized direction maps
+		if (generators.n==0 && maybefill) {
+			maybefill=false; //only fill in once
+			//***
+		}
+	} //while (generators.n)
+
+
+	 //Add lines to data
+	LinePoint *lp;
+	while (lines.n) {
+		lp=lines.pop();
+		data->lines.push(lp,1);
 	}
 }
 
@@ -430,78 +941,24 @@ int EngraverFillData::PointOn(LinePoint *p)
 	return 1;
 }
 
-/*! spacing is an object distance (not in s,t space) to be used as the distance between line centers.
+/*! This is basically a flush of all points groups, and make default group be linear.
+ *
+ * spacing is an object distance (not in s,t space) to be used as the distance between line centers.
  * If spacing<0, then use 1/25 of the x or y dimension, whichever is smaller
- * If weight<0, then use spacing/10.
- * Inserts lines folling this->direction, which is in (s,t) space.
  */
 void EngraverFillData::FillRegularLines(double weight, double spacing)
 {
-	 // create generic lines to experiment with weight painting...
 	if (spacing<=0) {
 		if (maxx-minx<maxy-miny) spacing=(maxx-minx)/25; else spacing=(maxy-miny)/25;
 	}
 	default_spacing=spacing;
 
+	groups.flush();
 	lines.flush();
-	nlines=0;
-	LinePoint *p;
 
-
-	if (weight<=0) weight=spacing/10; //remember, weight is actual distance, not s,t!!
-
-	flatvector v=direction; //this is s,t space
-	if (v.x<0) v=-v;
-	v.normalize();
-	//flatvector vt=transpose(v);
-
-	 //we need to find the s,t equivalent of spacing along direction
-	flatpoint vp=getPoint(.1*v.x+.5, .1*v.y+.5)-getPoint(.5,.5);
-	v*=.1*spacing/norm(vp);
-	double vv=norm2(v);
-
-	//vp=getPoint(.1*vt.x+.5, .1*vt.y+.5)-getPoint(.5,.5);
-	//vt*=.1*spacing/norm(vp);
-
-	double s_spacing= (v.y==0 ? -1 : fabs(vv/v.y));
-	double t_spacing= (v.x==0 ? -1 : fabs(vv/v.x));
-
-	//if (xsize>4) s_spacing/= xsize/3;
-	//if (ysize>4) t_spacing/= ysize/3;
-
-	if (v.y<0) lines.push(new LinePoint(0,1,weight)); //push a (0,0) starter point
-	else       lines.push(new LinePoint(0,0,weight)); //push a (0,0) starter point
-
-	 //starter points along y
-	if (t_spacing>0) {
-		for (double yy=t_spacing; yy<=1; yy+=t_spacing) {
-			if (v.y<0) lines.push(new LinePoint(0,1-yy, weight));
-			else       lines.push(new LinePoint(0,yy, weight));
-		}
-	}
-
-	 //starter points along x
-	if (s_spacing>0) {
-		for (double xx=s_spacing; xx<=1; xx+=s_spacing) {
-			if (v.y<0) lines.push(new LinePoint(xx,1, weight));
-			else       lines.push(new LinePoint(xx,0, weight));
-		}
-	}
-
-	 //grow lines
-	flatvector pp;
-	for (int c=0; c<lines.n; c++) {
-		p=lines.e[c];
-
-		while (p->s>=0 && p->t>=0 && p->s<=1 && p->t<=1) {
-			pp=flatpoint(p->s,p->t) + v;
-			p->next=new LinePoint(pp.x, pp.y, weight);
-			p->next->prev=p;
-			p=p->next;
-		}
-
-		nlines++;
-	}
+	defaultgroup.type=EngraverPointGroup::PGROUP_Linear;
+	defaultgroup.Fill(this, -1);
+	Sync();
 }
 
 void EngraverFillData::Set(double xx,double yy,double ww,double hh,int nr,int nc,unsigned int stle)
@@ -977,12 +1434,12 @@ void EngraverFillData::BezApproximate(Laxkit::NumStack<flatvector> &fauxpoints, 
         p=points.e[c];
 
 		if (c==0) {
-			 //on first cap
+			 //on first cap, apply round
 			opp=p+3*.5522*(points.e[points.n-1]-points.e[1])/2;
 			opn=p+3*.5522*(points.e[1]-points.e[points.n-1])/2;
 
 		} else if (c==points.n/2) {
-			 //on final cap
+			 //on final cap, apply round
 			opp=p+3*.5522*(points.e[c-1]-points.e[c+1])/2;
 			opn=p+3*.5522*(points.e[c+1]-points.e[c-1])/2;
 
@@ -1077,6 +1534,10 @@ enum EngraveShortcuts {
 	ENGRAVE_ShowPoints,
 	ENGRAVE_MorePoints,
 	ENGRAVE_ToggleTrace,
+	ENGRAVE_ToggleGrow,
+	ENGRAVE_ToggleWarp,
+	ENGRAVE_NextFill,
+	ENGRAVE_PreviousFill,
 	ENGRAVE_MAX
 };
 
@@ -1136,6 +1597,8 @@ EngraverFillInterface::EngraverFillInterface(int nid,Displayer *ndp)
 	default_spacing=1./25;
 	default_zero_threshhold=0;
 	default_broken_threshhold=0;
+	turbulence_size=1;
+	turbulence_per_line=false;
 
 	show_points=0;
 	submode=0;
@@ -1158,6 +1621,8 @@ EngraverFillInterface::EngraverFillInterface(int nid,Displayer *ndp)
 
 	continuous_trace=false;
 	show_trace=false;
+	grow_lines=false;
+	always_warp=true;
 
 
 	modes.AddItem(_("Mesh mode"),                                              NULL, EMODE_Mesh         );
@@ -1217,7 +1682,7 @@ PatchData *EngraverFillInterface::newPatchData(double xx,double yy,double ww,dou
 	//ndata->yaxis(flatpoint(0,1)/Getmag()*100);
 
 	ndata->style|=PATCH_SMOOTH;
-	ndata->FillRegularLines(1./dp->Getmag(), -1);
+	ndata->defaultgroup.Fill(ndata, 1./dp->Getmag());
 	default_spacing=ndata->default_spacing;
 	ndata->Sync();
 	ndata->FindBBox();
@@ -1314,26 +1779,40 @@ int EngraverFillInterface::scanEngraving(int x,int y, int *category)
 		}
 	}
 
-	if (mode==EMODE_Orientation) {
+	if (mode==EMODE_Orientation && edata) {
 		 //note: need to coordinate with DrawOrientation
 		*category=ENGRAVE_Orient;
-		//ENGRAVE_Orient_Direction
-		//ENGRAVE_Orient_Position
-		//ENGRAVE_Orient_Spacing
+
+		EngraverPointGroup *group=&edata->defaultgroup;
+		if (current_group>=0) group=edata->groups.e[current_group];
 
 		flatpoint p(x,y);
-		flatpoint center((edata->minx+edata->maxx)/2, (edata->miny+edata->maxy)/2);
-		center=realtoscreen(center);
+		flatpoint center=edata->getPoint(group->position.x,group->position.y);
+		center=realtoscreen(edata->transformPoint(center));
 
 		int size=30;
-		double thick=.25;
+		//double thick=.25;
 
-		flatpoint xx=realtoscreen(edata->getPoint(.55,.5)) - realtoscreen(edata->getPoint(.5,.5));
+		flatpoint dir=group->direction/norm(group->direction)*.05;
+//		flatpoint xx= realtoscreen(edata->transformPoint(edata->getPoint(.5+dir.x,.5+dir.y)))
+//					- realtoscreen(edata->transformPoint(edata->getPoint(.5,      .5      )));
+		flatpoint xx= realtoscreen(edata->transformPoint(edata->getPoint(.5+dir.x,.5+dir.y)))
+					- realtoscreen(edata->transformPoint(edata->getPoint(.5,      .5      )));
 		xx=xx/norm(xx)*size;
 		flatpoint yy=-transpose(xx);
 
-		p.x=(p-center)*xx;
-		p.y=(p-center)*yy;
+		flatpoint pp;
+		pp.x=(p-center)*xx/norm2(xx);
+		pp.y=(p-center)*yy/norm2(yy);
+
+		DBG cerr <<"orient pp:"<<pp.x<<','<<pp.y<<endl;
+		if (pp.y>.5 && pp.y<1.5 && pp.x>-.5 && pp.x<.5) return ENGRAVE_Orient_Spacing;
+		if (pp.y<.5 && pp.y>-.3) {
+			if (pp.x>1.5 && pp.x<2.5) return ENGRAVE_Orient_Direction;
+			if (pp.x<=1.5 && pp.x>-.5) return ENGRAVE_Orient_Position;
+		}
+
+		return ENGRAVE_None;
 	}
 
 
@@ -1346,13 +1825,14 @@ int EngraverFillInterface::LBDown(int x,int y,unsigned int state,int count,const
 	if (child) return 1;
 
 	 //catch trace box overlay first
-	if (lasthover==ENGRAVE_Trace_Box
+	if ((lasthover==ENGRAVE_Trace_Box
 		 || lasthover==ENGRAVE_Trace_Load
 		 || lasthover==ENGRAVE_Trace_Opacity
 		 || lasthover==ENGRAVE_Trace_Identifier
 		 || lasthover==ENGRAVE_Trace_Map
 		 || lasthover==ENGRAVE_Trace_Once
-		 || lasthover==ENGRAVE_Trace_Continuous) {
+		 || lasthover==ENGRAVE_Trace_Continuous)
+		 && tracebox.boxcontains(x,y)) {
 
 		if ((state&LAX_STATE_MASK)!=0) lasthover=ENGRAVE_Trace_Box;
 
@@ -1478,7 +1958,7 @@ int EngraverFillInterface::LBDown(int x,int y,unsigned int state,int count,const
 		  || mode==EMODE_PushPull
 		  || mode==EMODE_Twirl
 		  ) {
-		if (count==2) {
+		if (count==2 && (state&LAX_STATE_MASK)==ShiftMask) {
 			 // *** in future, should be on symmetric brush ramp editing
 			CurveMapInterface *ww=new CurveMapInterface(-1,dp,_("Brush Ramp"));
 			ww->SetInfo(&thickness);
@@ -1492,6 +1972,16 @@ int EngraverFillInterface::LBDown(int x,int y,unsigned int state,int count,const
 			return 0;
 		}
 		buttondown.down(d->id,LEFTBUTTON, x,y, mode);
+		return 0;
+	}
+
+	if (mode==EMODE_Orientation) {
+		if (lasthover==ENGRAVE_Orient_Position ||
+			lasthover==ENGRAVE_Orient_Direction ||
+			lasthover==ENGRAVE_Orient_Spacing)
+		  {
+		  buttondown.down(d->id,LEFTBUTTON, x,y, lasthover);
+		}
 		return 0;
 	}
 
@@ -1561,7 +2051,7 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
 	if (mode==EMODE_Mesh) {
 		PatchInterface::LBUp(x,y,state,d);
 		if (!edata && data) edata=dynamic_cast<EngraverFillData*>(data);
-		if (edata) edata->Sync();
+		if (edata && always_warp) edata->Sync();
 		//if (continuous_trace) Trace(); ...done in move
 		return 0;
 	}
@@ -1596,6 +2086,8 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
 		needtodraw=1;
 	}
 
+	buttondown.up(d->id,LEFTBUTTON);
+
 	return 0;
 }
 
@@ -1608,8 +2100,11 @@ void EngraverFillInterface::ChangeMessage(int forwhich)
 	else if (forwhich==ENGRAVE_Trace_Identifier) {
 		if (trace.identifier) PostMessage(_("Click to remove trace object"));
 		else PostMessage(_("Click to load an image to trace"));
+	} else if (forwhich==ENGRAVE_Orient_Direction) PostMessage(_("Drag to change direction"));
+	else if (forwhich==ENGRAVE_Orient_Position) PostMessage(_("Drag to change position"));
+	else if (forwhich==ENGRAVE_Orient_Spacing) PostMessage(_("Drag to change spacing"));
 
-	}
+	if (forwhich==ENGRAVE_None) PostMessage(" ");
 }
 
 int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMouse *d)
@@ -1627,14 +2122,18 @@ int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit
 
 	hover.x=x;
 	hover.y=y;
-	int category=0;
-	int newhover= scanEngraving(x,y, &category);
-	if (newhover!=lasthover) {
-		lasthover=newhover;
-		ChangeMessage(lasthover);
-		needtodraw=1;
+
+	if (!buttondown.any()) {
+		 //update lasthover
+		int category=0;
+		int newhover= scanEngraving(x,y, &category);
+		if (newhover!=lasthover) {
+			lasthover=newhover;
+			ChangeMessage(lasthover);
+			needtodraw=1;
+		}
+		DBG cerr <<"eng lasthover: "<<lasthover<<endl;
 	}
-	DBG cerr <<"eng lasthover: "<<lasthover<<endl;
 
 	if (controlmode==EMODE_Controls) {
 		if (buttondown.any()) {
@@ -1699,11 +2198,54 @@ int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit
 
 	if (mode==EMODE_Mesh) {
 		PatchInterface::MouseMove(x,y,state,d);
-		if (buttondown.any() && curpoints.n>0) edata->Sync();
+		if (buttondown.any() && curpoints.n>0) {
+			if (always_warp) edata->Sync();
+		}
 
 		if (continuous_trace) Trace();
 		return 0;
 
+	}
+
+	if (mode==EMODE_Orientation) {
+		if (!buttondown.any()) return 0;
+
+		int lx,ly;
+		int over;
+		buttondown.getextrainfo(d->id,LEFTBUTTON, &over);
+		buttondown.move(d->id,x,y, &lx,&ly);
+
+		flatpoint  p=edata->transformPointInverse(screentoreal( x, y));
+		flatpoint op=edata->transformPointInverse(screentoreal(lx,ly));
+
+		EngraverPointGroup *group=&edata->defaultgroup;
+		if (current_group>=0) group=edata->groups.e[current_group];
+
+		if (over==ENGRAVE_Orient_Direction) {
+			flatpoint center=edata->getPoint(group->position.x,group->position.y);
+			double angle=angle_full(op-center,p-center,0);
+			group->direction=rotate(group->direction,angle,0);
+
+		} else if (over==ENGRAVE_Orient_Spacing) {
+			flatpoint center=edata->getPoint(group->position.x,group->position.y);
+			double r1=norm( p-center);
+			double r2=norm(op-center);
+			group->spacing*=r1/r2;
+
+		} else if (over==ENGRAVE_Orient_Position) {
+			flatpoint pp=edata->getPoint(group->position.x,group->position.y);
+			pp+=(p-op);
+			int status;
+			pp=edata->getPointReverse(pp.x,pp.y, &status);
+			if (status==1) group->position=pp;
+		}
+
+		group->Fill(edata, 1./dp->Getmag());
+		edata->Sync();
+		if (continuous_trace) Trace();
+
+		needtodraw=1;
+		return 0;
 	}
 	
 	if (    mode==EMODE_Thickness
@@ -1822,6 +2364,44 @@ int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit
 	return 0;
 }
 
+int EngraverFillInterface::WheelUp(int x,int y,unsigned int state,int count,const Laxkit::LaxMouse *d)
+{
+	if ((show_trace || mode==EMODE_Trace) && tracebox.boxcontains(x,y)) {
+		double w=tracebox.maxx-tracebox.minx;
+		double h=tracebox.maxy-tracebox.miny;
+		double rx=(x-tracebox.minx)/w;
+		double ry=(y-tracebox.miny)/h;
+		w*=1.1;
+		h*=1.1;
+		tracebox.minx=x-rx*w;
+		tracebox.maxx=x+(1-rx)*w;
+		tracebox.miny=y-ry*h;
+		tracebox.maxy=y+(1-ry)*h;
+		needtodraw=1;
+		return 0;
+	}
+	return 1;
+}
+
+int EngraverFillInterface::WheelDown(int x,int y,unsigned int state,int count,const Laxkit::LaxMouse *d)
+{
+	if ((show_trace || mode==EMODE_Trace) && tracebox.boxcontains(x,y)) {
+		double w=tracebox.maxx-tracebox.minx;
+		double h=tracebox.maxy-tracebox.miny;
+		double rx=(x-tracebox.minx)/w;
+		double ry=(y-tracebox.miny)/h;
+		w*=1/1.1;
+		h*=1/1.1;
+		tracebox.minx=x-rx*w;
+		tracebox.maxx=x+(1-rx)*w;
+		tracebox.miny=y-ry*h;
+		tracebox.maxy=y+(1-ry)*h;
+		needtodraw=1;
+		return 0;
+	}
+	return 1;
+}
+
 //! Checks for EngraverFillData, then calls PatchInterface::DrawData(ndata,a1,a2,info).
 int EngraverFillInterface::DrawData(Laxkit::anObject *ndata,anObject *a1,anObject *a2,int info) // info=0
 {
@@ -1855,14 +2435,13 @@ int EngraverFillInterface::Refresh()
 		return 0;
 	}
 
-	if (!edata) { needtodraw=0; return 0; }
-
 
 	 //draw the trace object if necessary
 	if (trace.traceobject && trace.traceobj_opacity>.5 // **** .5 since actual opacity not working
 			&& (mode==EMODE_Trace || show_trace)) {
 
-		Affine a=edata->GetTransformToContext(true, 0);//supposed to be inverse from edata to base real
+		Affine a;
+		if (edata) a=edata->GetTransformToContext(true, 0);//supposed to be inverse from edata to base real
 		dp->PushAndNewTransform(a.m());
 		dp->PushAndNewTransform(trace.traceobject->m());
 		viewport->DrawSomeData(trace.traceobject, NULL,NULL,0);
@@ -1874,7 +2453,8 @@ int EngraverFillInterface::Refresh()
 		dp->NewFG(.9,.9,.9);
 		dp->LineAttributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
 
-		Affine a=edata->GetTransformToContext(true, 0);
+		Affine a;
+		if (edata) a=edata->GetTransformToContext(true, 0);
 		dp->PushAndNewTransform(a.m());
 		SomeData *o=trace.traceobject;
 		dp->moveto(transform_point(o->m(),flatpoint(o->minx,o->miny)));
@@ -1885,6 +2465,13 @@ int EngraverFillInterface::Refresh()
 		dp->stroke(0);
 		dp->PopAxes();
 	}
+
+	if (!edata) {
+		if (show_trace || mode==EMODE_Trace) DrawTracingTools();
+		needtodraw=0;
+		return 0;
+	}
+
 
 
 	 //----draw the actual lines
@@ -2074,15 +2661,18 @@ void EngraverFillInterface::DrawOrientation(int over)
 {
 	 //note: need to coordinate with scanEngraving()
 
+	EngraverPointGroup *group=&edata->defaultgroup;
+	if (current_group>=0) group=edata->groups.e[current_group];
+
 	 //draw a burin
-	flatpoint center((edata->minx+edata->maxx)/2, (edata->miny+edata->maxy)/2);
+	flatpoint center=edata->getPoint(group->position.x,group->position.y);
 	center=dp->realtoscreen(center);
-	orient_position=center;
 
 	int size=30;
 	double thick=.25;
 
-	flatpoint xx=dp->realtoscreen(edata->getPoint(.55,.5)) - dp->realtoscreen(edata->getPoint(.5,.5));
+	flatpoint dir=group->direction/norm(group->direction)*.05;
+	flatpoint xx=dp->realtoscreen(edata->getPoint(.5+dir.x,.5+dir.y)) - dp->realtoscreen(edata->getPoint(.5,.5));
 	xx=xx/norm(xx)*size;
 	flatpoint yy=-transpose(xx);
 
@@ -2106,7 +2696,7 @@ void EngraverFillInterface::DrawOrientation(int over)
 	dp->stroke(0);
 
 	 //draw knob of burin
-	if (over==ENGRAVE_Orient_Spacing)  dp->NewFG(.8,.8,.8); else dp->NewFG(1.,1.,1.);
+	if (over==ENGRAVE_Orient_Spacing)  dp->NewBG(.8,.8,.8); else dp->NewBG(1.,1.,1.);
 	dp->drawpoint(center+thick/2*xx+yy, norm(xx)/3, 2);
 	
 	if (over==ENGRAVE_Orient_Direction) {
@@ -2136,7 +2726,8 @@ void EngraverFillInterface::DrawOrientation(int over)
 void EngraverFillInterface::DrawLineGradient(double minx,double maxx,double miny,double maxy)
 {
 	double sp=(maxy - miny)/10;
-	double minsp=edata->zero_threshhold/edata->default_spacing*sp;
+	double minsp=0;
+	if (edata) minsp=edata->zero_threshhold/edata->default_spacing*sp;
 
 	dp->NewFG(&fgcolor);
 	dp->DrawScreen();
@@ -2170,6 +2761,16 @@ void EngraverFillInterface::DrawShadeGradient(double minx,double maxx,double min
 
 void EngraverFillInterface::DrawTracingTools()
 {
+	// *** for identifier area, maybe have a drag out box for:
+	//  ...  >  Load image
+	//          Use object... (type in object name)
+	//          Radial gradient
+	//          Linear gradient
+	//          + Additive
+	//          - subtractive
+	//          * absolute
+	//
+	
 	dp->DrawScreen();
 
 	double uiscale=1;
@@ -2302,19 +2903,30 @@ int EngraverFillInterface::PerformAction(int action)
 		return 0;
 
 	} else if (action==ENGRAVE_RotateDir || action==ENGRAVE_RotateDirR) {
-		edata->direction=rotate(edata->direction, (action==ENGRAVE_RotateDir ? M_PI/12 : -M_PI/12), 0);
-		edata->FillRegularLines(1./dp->Getmag(),edata->default_spacing);
+		EngraverPointGroup *group=&edata->defaultgroup;
+		if (current_group>=0) group=edata->groups.e[current_group];
+
+		group->direction=rotate(group->direction, (action==ENGRAVE_RotateDir ? M_PI/12 : -M_PI/12), 0);
+		group->Fill(edata, 1./dp->Getmag());
+		//edata->FillRegularLines(1./dp->Getmag(),edata->default_spacing);
 		edata->Sync();
 		if (continuous_trace) Trace();
 		needtodraw=1;
 		return 0;
 
 	} else if (action==ENGRAVE_SpacingInc || action==ENGRAVE_SpacingDec) {
-		if (action==ENGRAVE_SpacingInc) edata->default_spacing*=1.1; else edata->default_spacing*=.9;
-		edata->FillRegularLines(1./dp->Getmag(),edata->default_spacing);
+		EngraverPointGroup *group=&edata->defaultgroup;
+		if (current_group>=0) group=edata->groups.e[current_group];
+		if (action==ENGRAVE_SpacingInc) group->spacing*=1.1; else group->spacing*=.9;
+		group->Fill(edata, 1./dp->Getmag());
 		edata->Sync();
 		if (continuous_trace) Trace();
-		DBG cerr <<"new spacing: "<<edata->default_spacing<<endl;
+		//---------------
+		//if (action==ENGRAVE_SpacingInc) edata->default_spacing*=1.1; else edata->default_spacing*=.9;
+		//edata->FillRegularLines(1./dp->Getmag(),edata->default_spacing);
+		//edata->Sync();
+		//if (continuous_trace) Trace();
+		DBG cerr <<"new spacing: "<<group->spacing<<endl;
 		needtodraw=1;
 		return 0;
 
@@ -2339,6 +2951,39 @@ int EngraverFillInterface::PerformAction(int action)
 		if (show_trace) continuous_trace=false;
 		if (show_trace) PostMessage(_("Show tracing controls"));
 		else PostMessage(_("Don't show tracing controls"));
+		needtodraw=1;
+		return 0;
+
+	} else if (action==ENGRAVE_ToggleGrow) {
+		grow_lines=!grow_lines;
+		if (grow_lines) PostMessage(_("Grow lines after warp"));
+		else PostMessage(_("Don't grow lines after warp"));
+		needtodraw=1;
+		return 0;
+
+	} else if (action==ENGRAVE_ToggleWarp) {
+		always_warp=!always_warp;
+		if (always_warp) PostMessage(_("Always remap points when modifying mesh"));
+		else PostMessage(_("Don't remap points when modifying mesh"));
+		needtodraw=1;
+		return 0;
+
+	} else if (action==ENGRAVE_NextFill || action==ENGRAVE_PreviousFill) {
+		EngraverPointGroup *group=&edata->defaultgroup;
+		if (current_group>=0) group=edata->groups.e[current_group];
+
+		if (action==ENGRAVE_NextFill) {
+			if      (group->type==EngraverPointGroup::PGROUP_Linear)   group->type=EngraverPointGroup::PGROUP_Radial;
+			else if (group->type==EngraverPointGroup::PGROUP_Radial)   group->type=EngraverPointGroup::PGROUP_Circular;
+			else if (group->type==EngraverPointGroup::PGROUP_Circular) group->type=EngraverPointGroup::PGROUP_Linear;
+		} else {
+			if      (group->type==EngraverPointGroup::PGROUP_Linear)   group->type=EngraverPointGroup::PGROUP_Circular;
+			else if (group->type==EngraverPointGroup::PGROUP_Radial)   group->type=EngraverPointGroup::PGROUP_Linear;
+			else if (group->type==EngraverPointGroup::PGROUP_Circular) group->type=EngraverPointGroup::PGROUP_Radial;
+		}
+
+		group->Fill(edata,-1);
+		edata->Sync();
 		needtodraw=1;
 		return 0;
 	}
@@ -2677,7 +3322,12 @@ Laxkit::ShortcutHandler *EngraverFillInterface::GetShortcuts()
 	sc->Add(ENGRAVE_SpacingDec,  'S',ShiftMask,0,  "SpacingDec",  _("Decrease default spacing"),NULL,0);
 	sc->Add(ENGRAVE_ShowPoints,  'p',0,0,          "ShowPoints",  _("Toggle showing sample points"),NULL,0);
 	sc->Add(ENGRAVE_MorePoints,  'p',ControlMask,0,"MorePoints",  _("Subdivide all lines to have more sample points"),NULL,0);
-	sc->Add(ENGRAVE_ToggleTrace, 't',0,0,          "ToggleTrace", _("Toggle showing tracing controls"),NULL,0);
+	sc->Add(ENGRAVE_ToggleTrace, 'c',0,0,          "ToggleTrace", _("Toggle showing tracing controls"),NULL,0);
+	sc->Add(ENGRAVE_ToggleGrow,  'g',0,0,          "ToggleGrow",  _("Toggle grow mode"),NULL,0);
+	sc->Add(ENGRAVE_ToggleWarp,  'w',0,0,          "ToggleWarp",  _("Toggle warping when modifying mesh"),NULL,0);
+
+	sc->Add(ENGRAVE_NextFill,     LAX_Left, 0,EMODE_Orientation,  "NextFillType",     _("Switch to next fill type"),NULL,0);
+	sc->Add(ENGRAVE_PreviousFill, LAX_Right,0,EMODE_Orientation,  "PreviousFillType", _("Switch to previous fill type"),NULL,0);
 
 	return sc;
 }
