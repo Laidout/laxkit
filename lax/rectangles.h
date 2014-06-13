@@ -32,9 +32,12 @@ class IntRectangle
  public:
 	int x,y;
 	int width,height;
-	int pointIsIn(int xx,int yy) { return xx>=x && xx<x+width && yy>=y && yy<y+height; }
+
 	IntRectangle() { x=y=width=height=0; }
 	IntRectangle(int nx,int ny,int nw,int nh) { x=nx; y=ny; width=nw; height=nh; }
+
+	void set(int nx,int ny,int nw,int nh) { x=nx; y=ny; width=nw; height=nh; }
+	int pointIsIn(int xx,int yy) { return xx>=x && xx<x+width && yy>=y && yy<y+height; }
 };
 
 /*! \class DoubleRectangle */
@@ -43,9 +46,12 @@ class DoubleRectangle
  public:
 	double x,y;
 	double width,height;
-	double pointIsIn(double xx,double yy) { return xx>=x && xx<x+width && yy>=y && yy<y+height; }
+
 	DoubleRectangle() { x=y=width=height=0; }
 	DoubleRectangle(double nx,double ny,double nw,double nh) { x=nx; y=ny; width=nw; height=nh; }
+
+	void set(double nx,double ny,double nw,double nh) { x=nx; y=ny; width=nw; height=nh; }
+	double pointIsIn(double xx,double yy) { return xx>=x && xx<x+width && yy>=y && yy<y+height; }
 };
 
 } //namespace Laxkit
