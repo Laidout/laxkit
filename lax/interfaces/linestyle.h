@@ -33,11 +33,12 @@
 namespace LaxInterfaces {
 
 enum LineStyleMask {
-	LINESTYLE_Width    =(1<<0),
-	LINESTYLE_Color    =(1<<1),
-	LINESTYLE_Dash     =(1<<2),
-	LINESTYLE_Joinstyle=(1<<3),
-	LINESTYLE_Capstyle =(1<<4),
+	LINESTYLE_Width     =(1<<0),
+	LINESTYLE_Color     =(1<<1),
+	LINESTYLE_Dash      =(1<<2),
+	LINESTYLE_Joinstyle =(1<<3),
+	LINESTYLE_Miterlimit=(1<<4),
+	LINESTYLE_Capstyle  =(1<<5),
 	LINESTYLE_MAX
 };
 
@@ -49,9 +50,11 @@ class LineStyle : public Laxkit::anObject, public LaxFiles::DumpUtility
 	Laxkit::ScreenColor color;
 	int capstyle;
 	int joinstyle;
+	double miterlimit;
 	int dotdash;
 	int function;
 	unsigned long mask;
+
 	LineStyle();
 	LineStyle(int r,int g,int b, int a, double w,int cap,int join,int dot,int func);
 	LineStyle(const LineStyle &l);

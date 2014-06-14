@@ -46,19 +46,31 @@ namespace LaxInterfaces {
 
 LineStyle::LineStyle()
 {
+	mask=~0;
+
 	width=0;//hairline
 	widthtype=1;//0 for screen width, 1 for real width
 	color.red=color.green=0;
 	color.blue=color.alpha=0xffff;
 	capstyle=LAXCAP_Butt;
-	joinstyle=JoinMiter; 
+	joinstyle=LAXJOIN_Extrapolate; 
+	miterlimit=100; //so this means 100*(line thickness)
 	function=LAXOP_Source;
+
+	 //dashes todo:
+	 // on/off, dashes is list of lengths proportional to width of on and off
+	 // off/on, dashes is list of lengths proportional to width of on and off
+	 // broken, dashes holds settings for zero_threshhold, broken_threshhold, and other stuff..
 	dotdash=0;
-	mask=~0;
+	//dash_offset=0;
+	//dashes=NULL;
+	//ndashes=0;
 }
 
 LineStyle::LineStyle(int r,int g,int b, int a, double w,int cap,int join,int dot,int func)
 {
+	mask=~0;
+
 	color.red=r;
 	color.green=g;
 	color.blue=b;
@@ -67,31 +79,37 @@ LineStyle::LineStyle(int r,int g,int b, int a, double w,int cap,int join,int dot
 	widthtype=1;
 	capstyle=cap;
 	joinstyle=join;
-	dotdash=dot;
+	miterlimit=100; //so this means 100*(line thickness)
 	function=func;
-	mask=~0;
+
+	dotdash=dot;
+	//dashes=NULL;
+	//ndashes=0;
 }
 
 LineStyle::LineStyle(const LineStyle &l) 
 {
-	width=l.width;
-	widthtype=l.widthtype;
-	color=l.color;
-	capstyle=l.capstyle;
-	joinstyle=l.joinstyle;
-	dotdash=l.dotdash; 
-	function=l.function;
+	width     =l.width;
+	widthtype =l.widthtype;
+	color     =l.color;
+	capstyle  =l.capstyle;
+	joinstyle =l.joinstyle;
+	miterlimit=l.miterlimit;
+	dotdash   =l.dotdash; 
+	function  =l.function;
 }
 
 LineStyle &LineStyle::operator=(LineStyle &l) 
 {
-	width=l.width;
-	widthtype=l.widthtype;
-	color=l.color;
-	capstyle=l.capstyle;
-	joinstyle=l.joinstyle;
-	dotdash=l.dotdash;
-	function=l.function;
+	width     =l.width;
+	widthtype =l.widthtype;
+	color     =l.color;
+	capstyle  =l.capstyle;
+	joinstyle =l.joinstyle;
+	miterlimit=l.miterlimit;
+	dotdash   =l.dotdash;
+	function =l.function;
+
 	return l;
 }
 
@@ -112,6 +130,9 @@ void LineStyle::dump_in_atts(Attribute *att,int flag,Laxkit::anObject *context)
 				color.alpha=i[3];
 			}
 		} else if (!strcmp(name,"width")) {
+			DoubleAttribute(value,&width);
+
+		} else if (!strcmp(name,"miterlimit")) {
 			DoubleAttribute(value,&width);
 
 		} else if (!strcmp(name,"capstyle")) {
@@ -168,6 +189,7 @@ void LineStyle::dump_out(FILE *f,int indent,int what,Laxkit::anObject *context)
 		fprintf(f,"%scolor 10000 0 0 65535  #rgba in range [0..65535]\n",spc);
 		fprintf(f,"%scapstyle round         #or miter, projecting, zero\n", spc);
 		fprintf(f,"%sjoinstyle round        #or miter, bevel, extrapolate\n",spc);
+		fprintf(f,"%smiterlimit 100         #means limit is 100*width\n",spc);
 		fprintf(f,"%sdotdash 5              #an integer whose bits define an on-off pattern\n",  spc);
 		fprintf(f,"%sfunction 3             #***mystery number saying how to combine the fill\n", spc);
 		fprintf(f,"%swidth %.10g\n", spc,width);
@@ -192,6 +214,7 @@ void LineStyle::dump_out(FILE *f,int indent,int what,Laxkit::anObject *context)
  	else if (joinstyle==LAXJOIN_Extrapolate) str="extrapolate";
     else str="?";
 	fprintf(f,"%sjoinstyle %d\n",spc,joinstyle);
+	fprintf(f,"%smiterlimit %.10g\n",spc,miterlimit);
 
 	fprintf(f,"%sdotdash %d\n",  spc,dotdash);
 	fprintf(f,"%sfunction %d\n", spc,function);
