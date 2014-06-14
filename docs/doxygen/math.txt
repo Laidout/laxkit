@@ -85,6 +85,7 @@ connecting a vertex point and its control point is v:
   v=\frac{4\:r}{3}\:\frac{2\;sin(\theta/2)-sin(\theta)}{1-cos(\theta)}
 \f]
  
+For a 90 degree arc on a unit circle, this evaluates to \f$\frac{4}{3}(\sqrt{2}-1) \approx .5523\f$.
 
 
 
