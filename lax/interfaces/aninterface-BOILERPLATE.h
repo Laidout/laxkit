@@ -34,8 +34,6 @@ class BoilerPlateInterface : public anInterface
 {
   protected:
 	int showdecs;
-	int device;
-	std::string device_name;
 
 	Laxkit::ShortcutHandler *sc;
 
@@ -50,7 +48,7 @@ class BoilerPlateInterface : public anInterface
 	virtual const char *IconId() { return "BoilerPlate"; }
 	const char *Name();
 	const char *whattype() { return "BoilerPlateInterface"; }
-	const char *whatdatatype() { return NULL; } // is creation only
+	const char *whatdatatype();
 	Laxkit::MenuInfo *ContextMenu(int x,int y,int deviceid);
 	virtual int Event(const Laxkit::EventData *data, const char *mes);
 	virtual Laxkit::ShortcutHandler *GetShortcuts();

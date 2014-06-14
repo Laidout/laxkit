@@ -60,7 +60,8 @@ BoilerPlateInterface::BoilerPlateInterface(anInterface *nowner, int nid, Display
 
 	showdecs=1;
 	needtodraw=1;
-	device=0;
+
+	sc=NULL;
 }
 
 BoilerPlateInterface::~BoilerPlateInterface()
@@ -75,7 +76,7 @@ const char *BoilerPlateInterface::whatdatatype()
 /*! Name as displayed in menus, for instance.
  */
 const char *BoilerPlateInterface::Name()
-{ *** return _("Pressure Mapper"); }
+{ *** return _("BoilerPlateInterface tool"); }
 
 
 //! Return new BoilerPlateInterface.
@@ -186,7 +187,7 @@ int BoilerPlateInterface::LBDown(int x,int y,unsigned int state,int count, const
 { ***
 	buttondown.down(d->id,LEFTBUTTON,x,y);
 
-	//device=d->subid; //normal id is the core mouse, not the controlling sub device
+	//int device=d->subid; //normal id is the core mouse, not the controlling sub device
 	//DBG cerr <<"device: "<<d->id<<"  subdevice: "<<d->subid<<endl;
 	//LaxDevice *dv=app->devicemanager->findDevice(device);
 	//device_name=dv->name;
@@ -205,11 +206,8 @@ int BoilerPlateInterface::LBUp(int x,int y,unsigned int state, const Laxkit::Lax
 //! Start a new freehand line.
 int BoilerPlateInterface::MBDown(int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d) 
 { ***
-	buttondown.down(d->id,MIDDLEBUTTON,x,y);
-
-	//device=d->subid; //normal id is the core mouse, not the controlling sub device
-	//LaxDevice *dv=app->devicemanager->findDevice(device);
-	//device_name=dv->name;
+	//dragged is a rough gauge of the maximum distance the mouse was from the original point
+	int dragged=buttondown.down(d->id,MIDDLEBUTTON,x,y);
 
 	needtodraw=1;
 	return 0; //return 0 for absorbing event, or 1 for ignoring
@@ -228,12 +226,6 @@ int BoilerPlateInterface::MBUp(int x,int y,unsigned int state, const Laxkit::Lax
 //int BoilerPlateInterface::RBDown(int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d) 
 //{ ***
 //	buttondown.down(d->id,RIGHTBUTTON,x,y);
-//
-//	device=d->subid; //normal id is the core mouse, not the controlling sub device
-//	DBG cerr <<"device: "<<d->id<<"  subdevice: "<<d->subid<<endl;
-//	//LaxDevice *dv=app->devicemanager->findDevice(device);
-//	//device_name=dv->name;
-//	needtodraw=1;
 //	return 0; //return 0 for absorbing event, or 1 for ignoring
 //}
 //
@@ -284,8 +276,6 @@ int BoilerPlateInterface::CharInput(unsigned int ch, const char *buffer,int len,
 	}
 
 	if (ch==LAX_Esc) { //the various possible keys beyond normal ascii printable chars are defined in lax/laxdefs.h
-		for (int c=0; c<histogram.n; c++) histogram.e[c]=0;
-		max_histogram_value=0;
 		needtodraw=1;
 		return 0;
 	}
