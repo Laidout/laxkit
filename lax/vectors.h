@@ -35,7 +35,14 @@ enum PointInfoTags {
 	LINE_Bez    =(1<<2),
 	LINE_Closed =(1<<3),
 	LINE_Open   =(1<<4),
-	LINE_End    =(1<<5)
+	LINE_End    =(1<<5),
+
+	LINE_Corner =(1<<6),
+	LINE_Equal  =(1<<7),
+	LINE_Auto   =(1<<8),
+	LINE_Join   =(1<<9),
+
+	LAXLINE_MAX =(9)
 };
 
 class spacevector
@@ -98,6 +105,7 @@ class flatvector
 	double norm() const { return sqrt(x*x+y*y); }
 	double norm2() const { return x*x+y*y; }
 	double cross(flatvector v) const { return x*v.y-y*v.x; } /*magnitude and sign of cross product, which points in z direction */
+	double distanceTo(flatvector v) const { return sqrt((v.x-x)*(v.x-x)+(v.y-y)*(v.y-y)); }
 };
 
 flatvector transpose(flatvector v);
@@ -120,6 +128,7 @@ int isnotvector(flatvector v);
 int areparallel(flatvector v1, flatvector v2);
 double norm(flatvector p1);
 double norm2(flatvector p1);
+bool clockwise(flatvector p, flatvector v);
 int point_is_in(flatvector p,flatvector *points, int n);
 typedef flatvector flatpoint;
 

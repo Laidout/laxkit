@@ -216,6 +216,18 @@ double norm2(spacevector p1)
 	return p1*p1;
 }
 
+/*! Assume a right handed coordinate system (positive x is to the right, positive y is
+ * up). Return true if v extending from p points clockwise around the origin. Else false.
+ *
+ * Found from the sign of the z component of the cross product,
+ * thus, return (p.cross(p+v)<=0).
+ */
+bool clockwise(flatvector p, flatvector v)
+{
+	return p.cross(p+v)<=0;
+}
+
+
 //! Return the winding number for p in the polyline points.
 /*! Automatically closes points.
  */
@@ -809,8 +821,9 @@ int intersection(flatline l1, flatline l2, flatpoint &p)
 }
 
 //! Find intersection of l1 and l2, and associated data.
-/*! Returns -1 if the lines are the same line, 1 if they are different but
- * parallel, and 0 if they intersect in a single point.
+/*! Returns 2 if the lines are the same line, 1 if they are different but
+ * parallel. -2 and -1 respectively if pointing in opposite directions.
+ * Returns 0 if they intersect in a single point.
  *
  * The actual intersection point, if any, will be put in p, and is equal to 
  * (l1.p+index1*l1.v) and also to (l1.p+index1*l1.v).
@@ -822,8 +835,11 @@ int intersection(flatline l1, flatline l2, flatpoint *p, double *index1, double 
 {
 	flatvector temp; temp=transpose(l1.v);
 	if (l2.v*temp==0) {
-		if (distance(l2.p,l1)==0) return -1; //same line
-		return 1; //lines are parallel, not same
+		int sn=1;
+		if ((l1.v.x>0 && l2.v.x<0) || (l1.v.x<0 && l2.v.x>0)) sn=-1;
+		else if ((l1.v.y>0 && l2.v.y<0) || (l1.v.y<0 && l2.v.y>0)) sn=-1;
+		if (distance(l2.p,l1)==0) return sn*2; //same line
+		return sn*1; //lines are parallel, not same
 	}
 
 	if (index2) *index2=(l1.p-l2.p)*temp/(l2.v*temp);
