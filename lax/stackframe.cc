@@ -250,6 +250,11 @@ int StackFrame::Sync(int add)
 {
 	if (!list.n) return 1;
 
+
+//	if (pos==NULL) {
+//		pos=new double[list.n];
+//	}
+
 	if (list.n==1) {
 		list.e[0]->sync(0,0,win_w,win_h);
 		return 0;
@@ -307,7 +312,7 @@ int StackFrame::Sync(int add)
  * use the pw() and ph().
  *
  * This will destroy any info in pos already, and remap pos based on
- * pane actual width and height. This function should only be called after installing
+ * pane width and height. This function should only be called after installing
  * new windows.
  *
  * Return 0 success, 1 for not enough useful information to construct pos, such
@@ -316,9 +321,12 @@ int StackFrame::Sync(int add)
 int StackFrame::UpdatePos(int useactual)
 {
 	if (pos) delete[] pos;
-	pos=NULL;
-	if (list.n<=1) return 1;
 	pos=new double[list.n];
+
+	if (list.n<=1) {
+		pos[0]=0;
+		return 1;
+	}
 
 	int totalwidth=gap*list.n;
 	for (int c=0; c<list.n; c++) {
@@ -345,7 +353,19 @@ int StackFrame::WrapToExtent()
 	w(BOX_SHOULD_WRAP);
 	h(BOX_SHOULD_WRAP);
 
-	SquishyBox::sync();
+	//sync();
+	//double squishx=0,squishy=0;
+	//figureDimensions(this,NULL,NULL,0, &squishx,&squishy);
+	figureDimensions(this,NULL,NULL,0, NULL,NULL);
+	win_w=w();
+	win_h=h();
+
+	delete[] pos;
+	pos=new double[list.n];
+	for (int c=0; c<list.n; c++) {
+		if (flags&BOX_VERTICAL) pos[c]=list.e[c]->y();
+		else pos[c]=list.e[c]->x();
+	}
 
 	return 0;
 }
