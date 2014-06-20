@@ -28,6 +28,7 @@
 #include <lax/interfaces/linestyle.h>
 #include <lax/interfaces/pathinterface.h>
 #include <lax/screencolor.h>
+#include <lax/rectangles.h>
 
 
 
@@ -61,6 +62,7 @@ class PatchRenderContext
  public:
 	double Cx[16],Cy[16];
 	double V[4]; //temp space
+	double TT[4], SS[4]; //temp space for getPoint(double,double)
 	double s0,ds,t0,dt; //used primarily for PatchData::WhatColor() lookup
 
 	unsigned char *buffer;
@@ -69,13 +71,20 @@ class PatchRenderContext
 	int bitsperchannel; //8 or 16
 	int stride; //usually bufferwidth * numchannels * bitsperchannel/8
 
+	PatchRenderContext() { SS[0]=SS[1]=SS[2]=SS[3]=TT[0]=TT[1]=TT[2]=TT[3]=1; }
 	flatpoint getPoint(double *S,double *T);
+	flatpoint getPoint(double s,double t);
 };
 
 
 //------------------------------ PatchData ---------------------
 
-#define PATCH_SMOOTH      (1<<0)
+//goes in PatchData::style:
+enum PatchDataStyles {
+	PATCH_SMOOTH    =(1<<0),
+	PATCH_Dont_Cache=(1<<1),
+	PATCH_MAX
+};
 
 
 class PatchData : virtual public SomeData
@@ -93,8 +102,17 @@ class PatchData : virtual public SomeData
 	
 	Path *base_path; //optionally restrict to a weighted path
 
+	 //cache transform matrices for faster getPoint()
+	PatchRenderContext *cache;
+	int ncache; //num allocated in cache
+	Laxkit::IntRectangle needtorecache;
+	virtual void NeedToUpdateCache(int mincol,int maxcol, int minrow,int maxrow);
+	virtual void UpdateCache();
+
+	 //cached outline for convenience, updated in FindBBox()
 	int npoints_boundary;
-	flatpoint *boundary_outline; //cached for convenience, updated in FindBBox()
+	flatpoint *boundary_outline;
+
 
 	PatchData(); 
 	PatchData(double xx,double yy,double ww,double hh,int nr,int nc,unsigned int stle);
@@ -108,8 +126,9 @@ class PatchData : virtual public SomeData
 	 //@{
 	virtual int hasColorData();
 	virtual flatpoint getControlPoint(int r,int c);
-	virtual flatpoint getPoint(double t,double s);
+	virtual flatpoint getPoint(double s,double t, bool bysize);
 	virtual flatpoint getPointReverse(double x,double y, int *error_ret);
+	virtual double getScaling(double s,double t, bool bysize);
 	virtual flatpoint *bezAtEdge(flatpoint *p,int i,int row);
 	virtual flatpoint *bezCrossSection(flatpoint *p,int i,double t,int row);
 	virtual int bezOfPatch(flatpoint *p,int r,int rl,int c,int cl);
