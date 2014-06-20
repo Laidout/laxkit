@@ -59,7 +59,7 @@ class LinePoint
 	LinePoint(double ss, double tt, double ww, int ngroup=0);
 	~LinePoint();
 
-	void Set(double ss,double tt, double nweight) { s=ss; t=tt; if (nweight>=0) weight=nweight; needtosync=1; }
+	void Set(double ss,double tt, double nweight) { s=ss; t=tt; needtosync=1; if (nweight>=0) weight=nweight; }
 	void Set(LinePoint *pp);
 	void Clear();
 	void Add(LinePoint *np);
@@ -89,6 +89,10 @@ class EngraverTraceSettings : public Laxkit::anObject
 	virtual ~EngraverTraceSettings();
 	virtual const char *whattype() { return "EngraverTraceSettings"; }
 	void ClearCache(bool obj_too);
+
+	virtual void dump_out(FILE *f,int indent,int what,Laxkit::anObject *context);
+	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,Laxkit::anObject *context);
+	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,Laxkit::anObject *savecontext);
 };
 
 //----------------------------------------------- EngraverLineQuality
@@ -130,6 +134,16 @@ class DirectionMap
 	virtual flatpoint Direction(flatpoint p) { return Direction(p.x,p.y); }
 };
 
+class GrowPointInfo
+{
+  public:
+	flatpoint p;
+	flatpoint v;
+	int godir;
+	GrowPointInfo(flatpoint pp,flatpoint vv, int gdir) { p=pp; v=vv; godir=gdir; }
+	GrowPointInfo(flatpoint pp, int gdir) { p=pp; godir=gdir; }
+};
+
 class EngraverPointGroup : public DirectionMap
 {
   public:
@@ -150,14 +164,7 @@ class EngraverPointGroup : public DirectionMap
 	double spacing;  //default
 	flatpoint position,direction; //default
 
-	 //these should get isolated in own class to be able to share settings, similar to EngraverTraceSettings...
-	double dash_length;
-	double dash_randomness;
-	double zero_threshhold;
-	double broken_threshhold;
-	double dash_taper; //0 means taper all the way, 1 means no taper
-	int indashcaps, outdashcaps, startcaps, endcaps;
-	//Laxkit::CurveInfo weighttodist;
+	EngraverLineQuality *dashes;
 
 	EngraverPointGroup();
 	EngraverPointGroup(int nid,const char *nname, int ntype, flatpoint npos, flatpoint ndir, double ntype_d, EngraverTraceSettings *newtrace);
@@ -173,11 +180,16 @@ class EngraverPointGroup : public DirectionMap
 	virtual void FillRadial(EngraverFillData *data, double nweight);
 	virtual void FillCircular(EngraverFillData *data, double nweight);
 
-	virtual void GrowPoints(EngraverFillData *data,
+	virtual void GrowLines(EngraverFillData *data,
 									double resolution, 
 									double defaultspace,  	ValueMap *spacingmap,
 									double defaultweight,   ValueMap *weightmap, 
-									flatpoint direction,    DirectionMap *directionmap);
+									flatpoint direction,    DirectionMap *directionmap,
+									Laxkit::PtrStack<GrowPointInfo> *growpoint_ret,
+									int iteration_limit);
+
+	virtual void dump_out(FILE *f,int indent,int what,Laxkit::anObject *context);
+	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,Laxkit::anObject *context);
 };
 
 
@@ -190,12 +202,8 @@ class EngraverFillData : public PatchData
  public:
 	Laxkit::PtrStack<LinePoint> lines;
 	flatvector direction;
-	int nlines;
 	FillStyle fillstyle;
 
-	double default_spacing;
-	double zero_threshhold; //weight<this are considered off
-	double broken_threshhold; //if nonzero, zero_threshhold<weight<this means use broken line of this thickness
 	EngraverPointGroup defaultgroup;
 	Laxkit::PtrStack<EngraverPointGroup> groups;
 
@@ -205,6 +213,7 @@ class EngraverFillData : public PatchData
 	virtual ~EngraverFillData(); 
 	virtual const char *whattype() { return "EngraverFillData"; }
 	virtual SomeData *duplicate(SomeData *dup);
+	virtual double DefaultSpacing(double nspacing);
 
 	virtual void dump_out(FILE *f,int indent,int what,Laxkit::anObject *context);
 	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,Laxkit::anObject *context);
@@ -220,7 +229,7 @@ class EngraverFillData : public PatchData
 
 	virtual int PointOn(LinePoint *p);
 	virtual void FillRegularLines(double weight, double spacing);
-	virtual void Sync();
+	virtual void Sync(bool asneeded);
 	virtual void ReverseSync(bool asneeded);
 	virtual void BezApproximate(Laxkit::NumStack<flatvector> &fauxpoints, Laxkit::NumStack<flatvector> &points);
 	virtual void MorePoints();
@@ -247,8 +256,9 @@ class EngraverFillInterface : public PatchInterface
 	Laxkit::CurveInfo thickness; //ramp of thickness brush
 
 	double default_spacing;
-	double default_zero_threshhold; //weight<this are considered off
-	double default_broken_threshhold; //if nonzero, zero_threshhold<weight<this means use broken line of this thickness
+	EngraverLineQuality default_linequality;
+
+	 //for turbulence tool
 	double turbulence_size; //this*spacing
 	bool turbulence_per_line;
 
@@ -261,14 +271,20 @@ class EngraverFillInterface : public PatchInterface
 	Laxkit::DoubleBBox tracebox;
 	EngraverTraceSettings trace;
 
+	 //grow related
+	Laxkit::PtrStack<GrowPointInfo> growpoints;
+	
+
+	 //general display state
 	Laxkit::ScreenColor fgcolor,bgcolor;
 
 	int lasthover;
 	flatpoint hover;
+	flatpoint hoverdir, hdir[10];
 	//Selection *selection;
 
-	
 	CurveMapInterface curvemapi;
+
 
 	virtual void ChangeMessage(int forwhich);
 	virtual int scanEngraving(int x,int y, int *category);
