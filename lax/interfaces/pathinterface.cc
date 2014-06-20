@@ -423,11 +423,11 @@ void Path::UpdateCache()
 	//if (!Weighted()) { needtorecache=0; return; } // *** always create cache, as custom joins and caps must be dealt with
 
 
-	//strategy is to approximate the angle, and top and bottom offsets along the curve in an abstract
+	//1. strategy is to approximate the angle, and top and bottom offsets along the curve in an abstract
 	//space not tied to the windings of the base path.
-	//Next basically subdivide the base path a couple of times to generate sample points.
-	//from the sample points,  create a top and bottom path, based on the cached curves for angle and offsets.
-	//Finally, connect the top and bottom paths as appropriate.
+	//2. Next basically subdivide the base path a couple of times to generate sample points.
+	//3. from the sample points,  create a top and bottom path, based on the cached curves for angle and offsets.
+	//4. Finally, connect the top and bottom paths as appropriate.
 
 	Coordinate *p=path->firstPoint(1);
 	if (!(p->flags&POINT_VERTEX)) { // is degenerate path: no vertices
@@ -436,6 +436,7 @@ void Path::UpdateCache()
 	}
 
 	bool hasangle=Angled();
+	bool hasoffset=HasOffset();
 
 	cache_angle.Reset(true); //removes all points and leaves blank
 	outlinecache.flush();
@@ -443,7 +444,8 @@ void Path::UpdateCache()
 
 	Coordinate *p2, *start=p;
 	flatpoint wtop,wbottom;
-	NumStack<flatpoint> topp,bottomp, areap;
+	NumStack<flatpoint> topp,bottomp;
+	NumStack<flatpoint> areap; //destined for areacache, this is a path with 0 offset
 
 	double ymax,ymin;
 	double amax=0,amin=0;
@@ -503,6 +505,7 @@ void Path::UpdateCache()
 	ymax+=(ymax-ymin)*.25;
 	ymin-=(ymax-ymin)*.25;
 
+	 //topp and bottomp hold (path t, offset), transfer those to cache_offset_top and cache_offset_bottom
 
 	 //set cache_offset_top
 	cache_offset_top.SetYBounds(ymin,ymax,NULL,true);
@@ -531,11 +534,23 @@ void Path::UpdateCache()
 		}
 	} else cache_angle.SetFlat(aamax);
 
+	if (!isclosed && linestyle && linestyle->capstyle==LAXCAP_Zero_Width) {
+		 //add zero width to start and end for this cap style
+		double v=(cache_offset_top.f(0)+cache_offset_bottom.f(0))/2;
+		cache_offset_top.   AddPoint(0,v);
+		cache_offset_bottom.AddPoint(0,v);
+
+		v=(cache_offset_top.f(n)+cache_offset_bottom.f(n))/2;
+		cache_offset_top.   AddPoint(n,v);
+		cache_offset_bottom.AddPoint(n,v);
+	}
 
 
 	 //
-	 //top and bottom offset, and angle curves now built, now need to build the actual paths,
-	 //do cache_offset_top part of line first
+	 //cache_angle, cache_offset_top, cache_offset_bottom curves now built,
+	 //now need to build the actual paths,
+	 //topp, bottomp, and areap get filled with sample points derived from those offset curves,
+	 //applied to the original paths
 	 //
 
 	topp.flush();
@@ -547,7 +562,7 @@ void Path::UpdateCache()
 	int first=(isclosed?1:0); //index to begin render to segment.. for open paths, needs to start at 0
 
 	int resolution=16; // *** todo: need a more dynamic resolution for when there are many weight nodes between vertices
-	double rr=1./(resolution-1);
+	double rr=1./(resolution-1); // *** maybe use subdivide for breakdown.. computationally faster
 	flatpoint bez[resolution];
 
 
@@ -572,13 +587,18 @@ void Path::UpdateCache()
 
 	topp   .push(pp+vt*ttop);
 	bottomp.push(pp+vt*tbottom);
-	areap  .push((topp.e[topp.n-1]+bottomp.e[bottomp.n-1])/2);
+	if (hasoffset) areap  .push((topp.e[topp.n-1]+bottomp.e[bottomp.n-1])/2);
+	else areap.push(pp);
+
+
+	//now parse over this's path, adding segment by segment..
 
 	do { //one loop per vertex point
 		p2=p->next; //p points to a vertex
 		if (!p2) break;
 
 		//p2 now points to first Coordinate after the first vertex
+		//find next 2 control points and next vertex
 		if (p2->flags&(POINT_TOPREV|POINT_TONEXT)) {
 			 //we do have control points
 			if (p2->flags&POINT_TOPREV) {
@@ -607,23 +627,12 @@ void Path::UpdateCache()
 			}
 			isline=true;
 
+			c1=p->p();
+			c2=p2->p();
 		}
 
-//		 //need to check join with previous segment, special handling for corners...
-//		if (!areparallel(lastv,curv) || !(lastv.isZero() && curv.isZero())) {
-//			if (linestyle && linestyle->joinstyle==Bevel) {
-//				//nothing to do, bevel is no special treatment
-//			} else if (linestyle && linestyle->joinstyle==Miter) {
-//				// ***
-//			} else if (linestyle && linestyle->joinstyle==Round) {
-//				// ***
-//			} else { //if (linestyle && linestyle->joinstyle==Extrapolate) {
-//				//extrapolate is default... 
-//				// ***
-//			}
-//		}
 
-
+		 //compute sample points, based on found bezier segment
 		for (int bb=first; bb<resolution; bb++) {
 			//DBG cerr <<"point: "<<bb*rr<<endl;
 			if (isline) vv=vvv;
@@ -638,10 +647,40 @@ void Path::UpdateCache()
 				else vt=rotate(vt, cache_angle.f(cp+bb*rr));
 			}
 
-			topp   .push(bez[bb]+vt*cache_offset_top   .f(cp+bb*rr));
-			bottomp.push(bez[bb]+vt*cache_offset_bottom.f(cp+bb*rr));
-			areap  .push((topp.e[topp.n-1]+bottomp.e[bottomp.n-1])/2);
+			topp   .push(bez[bb] + vt*cache_offset_top   .f(cp+bb*rr));
+			bottomp.push(bez[bb] + vt*cache_offset_bottom.f(cp+bb*rr));
+			if (hasoffset) areap  .push((topp.e[topp.n-1]+bottomp.e[bottomp.n-1])/2); //midpoint between top and bottom
 		}
+
+		if (!hasoffset) {
+			 //area path is the same as the original path
+			if (isline) {
+				areap.push(p2->p());
+			} else { //add bez
+				areap.push(c1); areap.e[areap.n-1].info|=LINE_Bez;
+				areap.push(c2); areap.e[areap.n-1].info|=LINE_Bez;
+				areap.push(p2->p()); areap.e[areap.n-1].info|=LINE_Vertex;
+			}
+		}
+
+		 //need to check join with next segment, special handling for corners...
+		if (p2->nextVertex(0)) {
+			flatpoint curv, nextv;
+
+			curv=p2->direction(0);
+			nextv=p2->direction(1);
+
+			//flatpoint nvt=transpose(nextv);
+			//ttop   =cache_offset_top.   f(cp+1);
+			//tbottom=cache_offset_bottom.f(cp+1);
+
+			if (!areparallel(curv, nextv)) {
+				areap  .e[areap.n-1]  .info|=LINE_Join;
+				topp   .e[topp.n-1]   .info|=LINE_Join;
+				bottomp.e[bottomp.n-1].info|=LINE_Join;
+			}
+		}
+
 
 		if (first==0) first=1;
 
@@ -653,10 +692,11 @@ void Path::UpdateCache()
 	int closed=(p==start);
 
 
-	// Now to build actual cache paths from topp and bottomp raw materials!
+	// Now to build actual cache paths from topp and bottomp raw materials.
+	//we take the topp and bottomp points, and create a path that incorporates both,
+	//temporarily installing all points to topp...
 	
-	//we install all points to a list stored temporarily in topp...
-	
+
 	//int capnn=topp.n;
 	if (!closed) {
 		 //top contour is connected to bottom with caps..
@@ -669,6 +709,8 @@ void Path::UpdateCache()
 		topp.e[topp.n-1].info|=LINE_Closed;
 
 	} else {
+		areap.e[areap.n-1].info|=LINE_Closed;
+
 		 //bottom contour is a seperate path than top contour
 		topp.e[topp.n-1].info|=LINE_Closed;
 		for (int c=bottomp.n-1; c>=0; c--) {
@@ -676,6 +718,43 @@ void Path::UpdateCache()
 		}
 		topp.e[topp.n-1].info|=LINE_Closed;
 	}
+
+	 //do joins for area path
+	int njoin;
+	flatpoint join[8];
+	flatpoint line[8];
+	flatpoint samples[3], bsamples[9];
+	if (hasoffset) for (int c=0; c<areap.n; c++) {
+		if ((areap.e[c].info&LINE_Join)==0) continue;
+
+		samples[2]=areap.e[c];
+		samples[1]=areap.e[c-1];
+		samples[0]=areap.e[c-2];
+		bez_from_points(bsamples,samples,3);
+
+		line[3]=samples[7];
+		line[2]=samples[6];
+		line[1]=samples[5];
+		line[0]=samples[4];
+
+		samples[0]=areap.e[c];
+		samples[1]=areap.e[(c+1)];
+		samples[2]=areap.e[c+2];
+		bez_from_points(bsamples,samples,3);
+
+		line[4]=samples[7];
+		line[5]=samples[6];
+		line[6]=samples[5];
+		line[7]=samples[4];
+
+		njoin=0;
+		join_paths(linestyle ? linestyle->joinstyle : LAXJOIN_Extrapolate,
+				   linestyle ? linestyle->miterlimit : defaultwidth*200,
+				   line[0],line[1],line[2],line[3],
+				   line[4],line[5],line[6],line[7],
+				   &njoin, join);
+	}
+
 
 	// *** todo: need to bez approximate from topp for outlinecache
 	flatpoint *aa=topp.extractArray(&n);
@@ -3260,6 +3339,20 @@ void PathInterface::DrawBaselines()
 	dp->NewFG(1.,0.,0.);
 	dp->LineAttributes(1,LineSolid,LAXCAP_Butt,LAXJOIN_Round);
 	dp->stroke(0);
+
+
+	 //draw offset path
+	for (int cc=0; cc<data->paths.n; cc++) {
+		// position p to be the first point that is a vertex
+		pdata=data->paths.e[cc];
+
+		dp->NewFG(1.,1.,1.);
+		dp->LineAttributes(2,LineSolid,LAXCAP_Butt,LAXJOIN_Round);
+		dp->drawFormattedPoints(pdata->areacache.e, pdata->areacache.n, 0);
+		dp->NewFG(0.,0.,1.);
+		dp->drawFormattedPoints(pdata->areacache.e, pdata->areacache.n, 0);
+	}
+
 }
 
 
@@ -3800,7 +3893,16 @@ Laxkit::MenuInfo *PathInterface::ContextMenu(int x,int y,int deviceid)
 { //***
     MenuInfo *menu=new MenuInfo();
 
+	if (curpoints.n) {
+		menu->AddSep(_("Join"));
+		menu->AddItem(_("Bevel"), PATHIA_Bevel);
+		menu->AddItem(_("Miter"), PATHIA_Miter);
+		menu->AddItem(_("Round"), PATHIA_Round);
+		menu->AddItem(_("Extrapolate"), PATHIA_Extrapolate);
+	}
+
 	if (!(pathi_style&PATHI_One_Path_Only)) {
+		if (menu->n()) menu->AddSep();
 		menu->AddItem(_("Start new subpath"),PATHIA_StartNewSubpath);
 		menu->AddItem(_("Start new path object"),PATHIA_StartNewPath);
 	}
@@ -3818,8 +3920,12 @@ int PathInterface::Event(const Laxkit::EventData *e_data, const char *mes)
         const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(e_data);
         int i =s->info2; //id of menu item
 
-		if (i==PATHIA_StartNewSubpath) PerformAction(PATHIA_StartNewSubpath);
+		if (i==PATHIA_StartNewSubpath)   PerformAction(PATHIA_StartNewSubpath);
 		else if (i==PATHIA_StartNewPath) PerformAction(PATHIA_StartNewPath);
+		else if (i==PATHIA_Bevel      )  PerformAction(PATHIA_Bevel);
+		else if (i==PATHIA_Miter      )  PerformAction(PATHIA_Miter);
+		else if (i==PATHIA_Round      )  PerformAction(PATHIA_Round);
+		else if (i==PATHIA_Extrapolate)  PerformAction(PATHIA_Extrapolate);
 
 		return 0;
 	}
@@ -5495,6 +5601,26 @@ int PathInterface::PerformAction(int action)
 		colortofill=!colortofill;
 		const char *mes=colortofill?_("Send color to fill"):_("Send color to stroke");
 		PostMessage(mes);
+		return 0;
+
+	} else if (action==PATHIA_Bevel || action==PATHIA_Miter || action==PATHIA_Round || action==PATHIA_Extrapolate) {
+		int j=LAXJOIN_Bevel;
+		if (action==PATHIA_Miter) j=LAXJOIN_Miter;
+		else if (action==PATHIA_Round) j=LAXJOIN_Round;
+		else if (action==PATHIA_Extrapolate) j=LAXJOIN_Extrapolate;
+
+		data->linestyle->joinstyle=j;
+		for (int c=0; c<data->paths.n; c++) {
+			if (data->paths.e[c]->linestyle) data->paths.e[c]->linestyle->joinstyle=j;
+			else data->paths.e[c]->Line(data->linestyle);
+		}
+
+		if (action==PATHIA_Bevel) PostMessage(_("Bevel join"));
+		else if (action==PATHIA_Miter) PostMessage(_("Miter join"));
+		else if (action==PATHIA_Round) PostMessage(_("Round join"));
+		else if (action==PATHIA_Extrapolate) PostMessage(_("Extrapolate join"));
+
+		needtodraw=1;
 		return 0;
 
 	} else if (action==PATHIA_RollNext) {

@@ -319,6 +319,11 @@ enum PathInterfaceActions {
 	PATHIA_Cut,
 	PATHIA_Paste,
 
+	PATHIA_Bevel,
+	PATHIA_Miter,
+	PATHIA_Round,
+	PATHIA_Extrapolate,
+
 	PATHIA_MAX
 };
 
