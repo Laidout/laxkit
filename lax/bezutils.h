@@ -56,11 +56,16 @@ double bez_near_point_p(flatpoint p,flatpoint **points,int n,int maxpoints,doubl
 int point_is_in_bez(flatpoint p,flatpoint *points,int n,int resolution=20);
 flatpoint *bez_from_points(flatpoint *result, flatpoint *points, int numpoints);
 flatpoint *bez_circle(flatpoint *points, int numpoints, double x,double y,double r);
+double bez_arc_handle_length(double radius, double theta);
 flatpoint *bez_ellipse(flatpoint *points, int numsegments,
 					   double x,double y,
 					   double xr,double yr,
 					   flatvector xaxis,flatvector yaxis,
 					   double start_angle,double end_angle);
+flatpoint *join_paths(int jointype, double miterlimit,
+			flatpoint ap1,flatpoint ac1,flatpoint ac2,flatpoint ap2,
+			flatpoint bp1,flatpoint bc1,flatpoint bc2,flatpoint bp2,
+			int *n, flatpoint *ret);
 
 double end_curvature(flatpoint p1,flatpoint c1,flatpoint c2,flatpoint p2);
 

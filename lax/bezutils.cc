@@ -23,6 +23,7 @@
 
 #include <lax/bezutils.h>
 #include <lax/transformmath.h>
+#include <lax/drawingdefs.h>
 
 
 #include <iostream>
@@ -721,6 +722,11 @@ flatpoint *bez_circle(flatpoint *points, int numpoints, double x,double y,double
 	return points;
 }
 
+double bez_arc_handle_length(double radius, double theta)
+{
+	return 4*radius*(2*sin(theta/2)-sin(theta))/3/(1-cos(theta));
+}
+
 //! Create an ellipse composed of numsegments bezier segments, or 4 if numsegments<=1.
 /*! Start and end in radians. If start==end, then assume a full circle.
  */
@@ -773,8 +779,9 @@ flatpoint *bez_ellipse(flatpoint *points, int numsegments,
  * This is a primitive approximation, where each point gets control points added before
  * and after, such that the control rods are of length 1/3 the distance between the point
  * and the next point, and the rods are parallel to the line connecting the previous
- * and next point.
+ * and next point. End points behave as if control handle is at the end point.
  *
+ * Points that have info with LINE_Corner, will stay corners.
  */
 flatpoint *bez_from_points(flatpoint *result, flatpoint *points, int numpoints)
 {
@@ -790,12 +797,23 @@ flatpoint *bez_from_points(flatpoint *result, flatpoint *points, int numpoints)
 	flatvector opn, opp;
     double sx;
 	int i=0;
+	//int lastwascorner=0;
 	
     for (int c=0; c<numpoints; c++) {
         p=points[c];
 
-		if (c==0)           opp=p; else opp=points[c-1];
-		if (c==numpoints-1) opn=p; else opn=points[c+1];
+
+		if (p.info&LINE_Corner) opp=p;
+		else if (c==0) {
+			if (points[numpoints-1].info&(LINE_Closed)) opp=points[numpoints-1];
+			else opp=p;
+		} else opp=points[c-1];
+
+		if (p.info&LINE_Corner) opn=p;
+		if (c==numpoints-1) {
+			if (points[numpoints-1].info&(LINE_Closed)) opn=points[0];
+			opn=p;
+		} else opn=points[c+1];
 
         v=opn-opp;
         v.normalize();
@@ -809,6 +827,8 @@ flatpoint *bez_from_points(flatpoint *result, flatpoint *points, int numpoints)
         result[i+2]=p + v*sx;
 
 		i+=3;
+
+		//if (p.info&LINE_Corner) lastwascorner=1; else lastwascorner=0;
     }
 
 	return result;
@@ -838,6 +858,362 @@ double end_curvature(flatpoint p1,flatpoint c1,flatpoint c2,flatpoint p2)
 	vvv=vvv*vvv*vvv;
 	return k/vvv;
 }
+
+
+/*! Determine the order along a circle of p1,p2,p3, starting at p1.
+ * int2 and int3 will either be 1 or 2.
+ *
+ * ang1 is angle to first point, ang2 angle to further point.
+ */
+void order(flatpoint o, flatpoint p1, flatpoint p2, flatpoint p3,
+		int &int2, int &int3,
+		double &ang1, double &ang2)
+{
+	double a1,a2,a3;
+	a1=angle_full(p1-o, flatpoint(1,0));
+	a2=angle_full(p2-o, flatpoint(1,0));
+	a3=angle_full(p3-o, flatpoint(1,0));
+
+	if (a2<a1) a2+=2*M_PI;
+	if (a3<a1) a3+=2*M_PI;
+	if (a2<a3) { int2=1; int3=2; ang1=a2-a1; ang2=a3-a1; }
+	else { int2=2; int3=1; ang1=a3-a1; ang2=a2-a1; }
+}
+
+/*! Intersect the line defined by p, pointing parallel to v, with the circle
+ * centered at o, with radius r.
+ * The number of intersections is returned. If there are no intersections,
+ * p1 and p2 are unchanged. If only one intersection, p1 and p2 are set to it.
+ * Else p1 and p2 are set to the intersection.
+ */
+int circle_line_intersection(flatpoint o, double r, flatpoint p, flatpoint v, flatpoint &p1, flatpoint &p2)
+{
+	flatpoint vv=transpose(v);
+	vv.normalize();
+	double d=vv*(p-o);
+	if (fabs(d)>r) return 0;
+	if (fabs(d)==r) {
+		p1=p2=o+vv*d;
+		return 1;
+	}
+	p=o+r*vv;
+	v.normalize();
+	d=sqrt(r*r-d*d);
+	p1=p+d*v;
+	p2=p-d*v;
+
+	return 2;
+}
+
+/*! If there are no intersections, and circle 1 is inside the other, return -1.
+ * If no intersections, and circle 2 is inside the other, return -2.
+ * If the circles are the same circle, then return -3.
+ * If no intersections, and the circles do not overlap at all, 0 is returned.
+ *
+ * Returns the number of intersections, and p1 and p2 get set with them (if any).
+ *
+ */
+int circle_circle_intersection(flatpoint o1, double r1, flatpoint o2, double r2, flatpoint &p1, flatpoint &p2)
+{
+	flatpoint v=o1-o2;
+	double d=norm(v);
+	if (d==0 && r1==r2) return -3; //same circle
+	if (d+r2<r1) return -2; //circle 2 is inside the other
+	if (d+r1<r2) return -1; //circle 1 is inside the other
+	if (d>r1+r2) return 0;
+
+	v/=d;
+	double d1=((r1*r1-r2*r2)/d + d)/2;
+	flatpoint pp=o1+d1*v;
+	v=transpose(v);
+	double x=sqrt(r1*r1-d1*d1);
+	p1=pp+x*v;
+	p2=pp-x*v;
+	if (d==r1+r2) return 1;
+	return 2;
+}
+
+/*! If ret==NULL, then return a NULL flatpoint[].
+ * Otherwise put in ret. If so, ret should have room for at least 7 points.
+ * 
+ * Points returned are either vertex points or bez control points.
+ * If control points, they will have LINE_Bez in their info.
+ *
+ */
+flatpoint *join_paths(int jointype, double miterlimit,
+			flatpoint ap1,flatpoint ac1,flatpoint ac2,flatpoint ap2,
+			flatpoint bp1,flatpoint bc1,flatpoint bc2,flatpoint bp2,
+			int *n, flatpoint *ret)
+{
+	if (jointype==LAXJOIN_Extrapolate) {
+		//adds at most 5 points
+	
+		 //large k means very small circle, also could mean control point coincident with the vertex
+		 //small k means very large circle, thus like a straight line.
+		double k1=end_curvature(ap1,ac1,ac2,ap2);
+		double k2=end_curvature(bp2,bc2,bc1,bp1);
+		if (fabs(k1)<1e-10) k1=0;
+		if (fabs(k2)<1e-10) k2=0;
+
+		if (k1==0 && k2==0) {
+			jointype=LAXJOIN_Miter; //2 lines
+		} else {
+			 //first figure out curvature circles
+			flatpoint o1=ap2, o2=bp1;
+			double r1=0,r2=0;
+			flatpoint v;
+
+			if (k1!=0) {
+				v=transpose(ap2-ac2);
+				r1=1/k1;
+				v*=r1/norm(v);
+				o1+=v;
+				v=transpose(v);
+			} else {
+				 //k1 is flat line
+				r1=0;
+			}
+
+			if (k2!=0) {
+				v=transpose(bp1-bc1);
+				r2=1/k2;
+				v*=r2/norm(v);
+				o2+=v;
+				v=transpose(v);
+			} else {
+				 //k2 is flat line
+				r2=0;
+			}
+
+			 //next find intersections, if any
+			if (r1==0 && r2==0) {
+				 //2 lines
+				DBG cerr <<" --- extrapolate: two lines"<<endl;
+				jointype=LAXJOIN_Miter;
+
+			} else if (r1==0 || r2==0) {
+				DBG cerr <<" --- extrapolate: one circle, one line"<<endl;
+
+				 //one line, one circle
+				flatpoint p,o;
+				double r;
+				if (r1==0) { r=fabs(r2); o=o2; p=ap2; }
+				else       { r=fabs(r1); o=o1; p=bp1; }
+
+				flatpoint p1,p2;
+				int status=circle_line_intersection(o, r, p, v, p1,p2);
+
+				if (status==0) {
+					 //circle does not intersect line
+					double vv=r*4./3*(sqrt(2)-1);
+					if (!ret) ret=new flatpoint[2];
+					flatpoint p,p2;
+					if (r1==0) {
+						v=bp1-bc1;
+						v*=vv/norm(v);
+						p2=bp1+v;
+						p=ap2;
+					} else {
+						v=ap2-ac2;
+						v*=vv/norm(v);
+						p=ap2+v;
+						p2=bp1;
+					}
+					p .info|=LINE_Bez;
+					p2.info|=LINE_Bez;
+
+					if (!ret) ret=new flatpoint[2];
+					ret[0]=p;
+					ret[1]=p2;
+					*n=2;
+					return ret;
+				} //if circle doesn't intersect
+
+				 //else circle does intersect a
+				int pos1, pos2;
+				double ang1, ang2;
+				order(o, r1==0 ? bp1 : ap2,  p1, p2,  pos1, pos2, ang1, ang2);
+				//***
+
+			} else {
+
+				 //2 circles
+				r1=fabs(r1);
+				r2=fabs(r2);
+				flatpoint p1,p2;
+				int status=circle_circle_intersection(o1,r1, o2,r2, p1, p2);
+
+				if (status==-3) {
+					 //miraculously has same circle
+					//***
+					DBG cerr <<" --- extrapolate: Same circle"<<endl;
+
+				} else if (status==-2 || status==-1) {
+					 //one circle is inside the other
+					//***
+					DBG cerr <<" --- extrapolate: One circle inside the other"<<endl;
+
+				} else if (status==0) {
+					 //circles don't touch
+					//***
+					DBG cerr <<" --- extrapolate: Circles don't touch"<<endl;
+
+				} else {
+					 //has intersections
+					DBG cerr <<" --- extrapolate: 2 intersections"<<endl;
+
+					int pos11=0, pos12=0, pos21=0, pos22=0;
+					double a11, a12, b11, b12;
+					order(o1, ap2,  p1, p2,  pos11, pos12, a11, a12);
+					order(o2, bp1,  p1, p2,  pos21, pos22, b11, b12);
+
+					flatpoint i;
+					double a;
+
+					v=ap2-o1;
+					double radius=norm(v);
+					if (pos11==1 && clockwise(v,ap2-ac2)) { i=p1; a=a11; } else { i=p2; a=a12; }
+					double len=radius*bez_arc_handle_length(1, a);
+
+					 // *** choose particular intersection
+					if (!ret) ret=new flatpoint[5];
+					v=ap2-ac2;
+					v.normalize();
+					ret[0]=ap2+v*len;
+					ret[0].info|=LINE_Bez;
+
+					ret[1]=ret[2]=ret[3]=i;
+					ret[1].info|=LINE_Bez;
+					ret[3].info|=LINE_Bez; 
+
+					v=bp1-o2;
+					radius=norm(v);
+					if (pos21==1) { i=p1; a=a11; } else { i=p2; a=a12; }
+					len=radius*bez_arc_handle_length(1, a);
+					v=bp1-bc1;
+					v.normalize();
+					ret[4]=bp1+v*len;
+					ret[4].info|=LINE_Bez;
+					*n=5;
+					return ret;
+				}
+			} //if 2 circles
+
+			//****
+			jointype=LAXJOIN_Round;
+		} //if at least one circle
+	}//if extrapolate
+
+
+	if (jointype==LAXJOIN_Round) {
+		//adds at most 5 points
+		flatline l1(ap2, 2*ap2-ac2);
+		flatline l2(bp1, 2*bp1-bc1);
+
+		if (l1.v.isZero()) l1.v= bez_visual_tangent(1,ap1,ac1,ac2,ap2);
+		if (l2.v.isZero()) l2.v=-bez_visual_tangent(0,bp1,bc1,bc2,bp2);
+
+		flatpoint p;
+		double index1,index2;
+		int status=intersection(l1,l2, &p, &index1,&index2);
+		cerr <<"status: "<<status<<endl;
+
+		if (status==2 || status==-2) {
+			//is same path, just connect points
+			jointype=LAXJOIN_Bevel;
+
+		} else if (status==1 || status==-1) {
+			 //parallel lines
+			double r=4./3*distance(l2.p,l1)/2;
+
+			if (!ret) ret=new flatpoint[2];
+			*n=2;
+
+			l1.v.normalize();
+			l2.v.normalize();
+			ret[0]=ap2+4/3*r*l1.v; ret[0].info=LINE_Bez;
+			ret[1]=bp1+4/3*r*l2.v; ret[1].info=LINE_Bez;
+			return ret;
+
+		} else {  //if (status==0)
+			double ang=angle_full(l1.v,l2.v,0);
+			if (ang<0) ang=-ang;
+			if (ang>M_PI/2) ang=M_PI-ang;
+			ang=M_PI-ang;
+			double vr=4./3*(2*sin(ang/2)-sin(ang))/(1-cos(ang)); //goes to infinity as ang -> 0
+
+
+			ang=M_PI-ang;
+			//DBG cerr <<" angle: "<<ang/M_PI*180<<"  i1: "<<index1<<"  i2:"<<index2<<"  vr: "<<vr;
+			double r=tan(ang/2)*ap2.distanceTo(p);
+			//DBG cerr <<"  r1="<<r*vr;
+			l1.v*=fabs(vr*r)/norm(l1.v);
+			r=tan(ang/2)*bp1.distanceTo(p);
+			DBG cerr <<"  r2="<<r*vr<<endl;
+			l2.v*=fabs(vr*r)/norm(l2.v);
+
+			if (!ret) ret=new flatpoint[2];
+			ret[0]=ap2+l1.v; ret[0].info=LINE_Bez;
+			ret[1]=bp1+l2.v; ret[1].info=LINE_Bez;
+			*n=2;
+			return ret;
+		}
+		
+	}
+
+	if (jointype==LAXJOIN_Miter) {
+		flatline l1(ap2, 2*ap2-ac2);
+		flatline l2(bp1, 2*bp1-bc1);
+
+		if (l1.v.isZero()) l1.v= bez_visual_tangent(1,ap1,ac1,ac2,ap2);
+		if (l2.v.isZero()) l2.v=-bez_visual_tangent(0,bp1,bc1,bc2,bp2);
+
+		flatpoint p;
+		double index1,index2;
+		int status=intersection(l1,l2, &p, &index1,&index2);
+		cerr <<"status: "<<status<<endl;
+
+		if (status==0) {
+			if (index1>0 && index2>0) {
+				double d1=p.distanceTo(ap2);
+				double d2=p.distanceTo(bp1);
+				if (fabs(d1)>miterlimit && fabs(d2)>miterlimit) {
+					status=1;
+
+				} else {
+					if (!ret) ret=new flatpoint[1];
+					ret[0]=p;
+					ret[0].info|=LINE_Corner;
+					*n=1;
+					return ret;
+				}
+			}
+			//else is a backwards intersection, use jointype=LAXJOIN_Bevel;
+
+		}
+		
+		if (status==1) {
+			 //parallel lines, use miter limit
+			if (!ret) ret=new flatpoint[2];
+			*n=2;
+			ret[0]=ap2+l1.v/norm(l1.v)*miterlimit; ret[0].info|=LINE_Corner;
+			ret[1]=bp1+l2.v/norm(l2.v)*miterlimit; ret[1].info|=LINE_Corner;
+			return ret;
+		}
+		
+		jointype=LAXJOIN_Bevel;
+	}
+
+	if (jointype==LAXJOIN_Bevel) {
+		 //no extra points to add!
+		*n=0;
+		return NULL;
+	}
+
+	*n=0;
+	return NULL;
+}
+
 
 
 } // namespace Laxkit
