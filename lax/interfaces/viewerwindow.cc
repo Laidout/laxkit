@@ -107,7 +107,8 @@ ViewerWindow::ViewerWindow(anXWindow *parnt,const char *nname,const char *ntitle
 	}
 
 	curtool=NULL;
-	lazytool=1;
+	//lazytool=1; //forces change of primary
+	lazytool=0;
 
 	sc=NULL;
 }
@@ -357,6 +358,7 @@ int ViewerWindow::SelectTool(int id)
 	 //else assume is tool like interface, not overlay
 	if (curtool) viewport->Pop(curtool,1); //pop old tool
 	curtool=tools.e[ti];
+
 	DBG cerr <<"ViewerWindow::SelectTool id="<<id<<" ti="<<ti<<": "<<curtool->whattype()<<endl;
 	if (lazytool) curtool->primary=0; else curtool->primary=1;
 	viewport->Push(tools.e[ti],-1,0); // this also calls the InterfaceOn
