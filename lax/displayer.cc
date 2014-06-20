@@ -706,7 +706,7 @@ void Displayer::drawfocusellipse(flatpoint focus1,flatpoint focus2,
 /*! p is center of a circle radius rfromp, and the arrow is drawn
  * tangent to the circle. rfromp<0 means arrow is on ccw side.
  *
- * Currently, the length of the arrow is screen pixel length len if reallengthi==0.
+ * Currently, the length of the arrow is screen pixel length len if reallength==0.
  * If reallength==1, then the length is the absolute real length len.
  * If reallength==2, the arrow draws with a length norm(v)*len.
  *
@@ -814,7 +814,6 @@ void Displayer::drawFormattedPoints(flatpoint *pts, int n, int tofill)
 	int c1=-1,c2=-1, p2;
 	int start=0;
 	int firstv=-1; //first vertex of current path
-	int nn=0; //0 if on very first point of current segment
 
 	for (int c=0; c<n; c++) {
 		ptype=pts[c].info&(LINE_Bez|LINE_Vertex);
@@ -845,7 +844,6 @@ void Displayer::drawFormattedPoints(flatpoint *pts, int n, int tofill)
 
 		if (pts[c].info&LINE_Open) {
 			closeopen();
-			nn=0;
 			firstv=-1;
 			start=c+1;
 			c1=c2=-1;
@@ -868,7 +866,6 @@ void Displayer::drawFormattedPoints(flatpoint *pts, int n, int tofill)
 			closed();
 			firstv=-1;
 			start=c+1;
-			nn=0;
 			continue;
 		}
 	}
