@@ -130,11 +130,13 @@ class Coordinate
 	virtual int insert(Coordinate *c,int after=1);
 	virtual int NumPoints(int v);
 	virtual flatpoint direction(int after);
+	virtual int resolveToControls(flatpoint &p1, flatpoint &c1, flatpoint &c2, flatpoint &p2);
 };
 
 
 //----------------------------------- Coordinate Shape Makers ----------------------------------
 
+int CoordinateToFlatpoint(Coordinate *coord, flatpoint **pts);
 Coordinate *CoordinatePolygon(flatpoint center, double radius, bool point_on_x_axis, int num_sides, int num_winding);
 //Coordinate RoundedRectangle(flatpoint ll, flatpoint ur, double round,double round2);
 

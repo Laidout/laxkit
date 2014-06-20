@@ -24,6 +24,8 @@
 #include <lax/interfaces/coordinate.h>
 #include <lax/bezutils.h>
 
+#include <lax/lists.cc>
+
 #include <iostream>
 using namespace std;
 #define DBG 
@@ -668,6 +670,47 @@ flatpoint Coordinate::direction(int after)
 	return neg ? -v : v;
 }
 
+/*! Return a bezier segment in p1,c1,c2,p2, based on the segment following *this.
+ * If the segment is a straight line then return 1.
+ * If a bezier segment return 2.
+ * If there is no next segment, return 0.
+ *
+ * When there is only one next or prev control point, the missing control point is taken
+ * to be the same as the adjacent vertex.
+ */
+int Coordinate::resolveToControls(flatpoint &p1, flatpoint &c1, flatpoint &c2, flatpoint &p2)
+{
+	if (!nextVertex(0)) return 0;
+
+	p1=p();
+	Coordinate *pn=next;
+	if (pn->flags&(POINT_TOPREV|POINT_TONEXT)) {
+		 //we do have control points
+		if (pn->flags&POINT_TOPREV) {
+			c1=pn->p();
+			pn=pn->next;
+		} else c1=p();
+		if (!pn) return 0; //no next vertex!
+
+		if (pn->flags&POINT_TONEXT) {
+			c2=pn->p();
+			pn=pn->next;
+		} else { //otherwise, should be a vertex
+			c2=pn->p();
+		}
+		
+		p2=pn->p();
+		return 2;
+
+	}
+	
+	 //we do not have control points, so is just a straight line segment
+	c1=p1;
+	c2=pn->p();
+	p2=c2;
+	return 1;
+}
+
 
 
 //----------------------------------- Coordinate Shape Makers ----------------------------------
@@ -776,6 +819,65 @@ Coordinate *BezApproximate(flatpoint *l, int n)
     }
 
 	return coord;
+}
+
+
+/*! Create a flatpoint list from the coord.
+ * This list is formatted to render properly with Displayer::drawFormattedPoints().
+ *
+ * Return a new flatpoint[]. 
+ */
+flatpoint *CoordinateToFlatpoint(Coordinate *coord, int *n_ret)
+{
+	Laxkit::NumStack<flatpoint> points;
+	Coordinate *p=coord;
+	Coordinate *p2, *start;
+	flatpoint c1,c2;
+
+	p=start=p->firstPoint(1);
+	points.push(p->p()); points.e[points.n-1].info=LINE_Vertex;
+
+    do { //one loop per vertex point
+        p2=p->next; //p points to a vertex
+        if (!p2) break;
+
+        //p2 now points to first Coordinate after the first vertex
+        if (p2->flags&(POINT_TOPREV|POINT_TONEXT)) {
+             //we do have control points
+            if (p2->flags&POINT_TOPREV) {
+                c1=p2->p();
+                p2=p2->next;
+            } else c1=p->p();
+            if (!p2) break;
+
+            if (p2->flags&POINT_TONEXT) {
+                c2=p2->p();
+                p2=p2->next;
+            } else { //otherwise, should be a vertex
+                //p2=p2->next;
+                c2=p2->p();
+            }
+
+			points.push(c1); points.e[points.n-1].info=LINE_Bez;
+			points.push(c2); points.e[points.n-1].info=LINE_Bez;
+			points.push(p2->p()); points.e[points.n-1].info=LINE_Vertex;
+
+        } else {
+             //we do not have control points, so is just a straight line segment
+			points.push(p2->p()); points.e[points.n-1].info=LINE_Vertex;
+        }
+
+        p=p2;
+    } while (p && p->next && p!=start);
+
+    if (p==start) {
+		points.e[points.n-1].info|=LINE_Closed;
+	}
+
+	
+	flatpoint *pts=points.extractArray(n_ret);
+	*n_ret=points.n;
+	return pts;
 }
 
 
