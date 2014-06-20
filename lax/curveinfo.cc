@@ -135,9 +135,9 @@ CurveInfo &CurveInfo::operator=(CurveInfo &l)
 
 void CurveInfo::dump_out(FILE *f,int indent,int what,anObject *context)
 {
-    Attribute *att=dump_out_atts(NULL,0,context);
-    att->dump_out(f,indent);
-    delete att;
+    Attribute att;
+    dump_out_atts(&att,0,context);
+    att.dump_out(f,indent);
 }
 
 LaxFiles::Attribute *CurveInfo::dump_out_atts(LaxFiles::Attribute *att,int what,anObject *context)
