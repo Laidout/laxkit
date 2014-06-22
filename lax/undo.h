@@ -63,7 +63,7 @@ class UndoData
 };
 
 //--------------------------------------------- UndoManager ------------------------------------------
-class UndoManager
+class UndoManager : public anObject
 {
   protected:
     UndoData *head;
@@ -71,6 +71,7 @@ class UndoManager
   public:
 	UndoManager();
 	virtual ~UndoManager();
+	virtual const char *whattype() { return "UndoManager"; }
     virtual int AddUndo(UndoData *data);
 
 	virtual int Undo();
