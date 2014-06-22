@@ -81,6 +81,9 @@ enum ViewportWindowActions {
 	VIEWPORT_IncShift,
 	VIEWPORT_DecShift,
 
+	VIEWPORT_Undo,
+	VIEWPORT_Redo,
+
 	VIEWPORT_MAX
 };
 
@@ -147,6 +150,7 @@ class ViewportWindow : public Laxkit::PanUser, public Laxkit::anXWindow
 	virtual anInterface *Pop(anInterface *i,char deletetoo=0);
 	virtual anInterface *PopId(int iid,char deletetoo=0);
 	virtual void postmessage(const char *mes);
+	virtual Laxkit::UndoManager *GetUndoManager();
 
 	 //Object context adding, deleting, and adjusting
 	virtual int NewData(SomeData *d, ObjectContext **oc_ret);

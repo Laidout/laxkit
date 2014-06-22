@@ -23,6 +23,7 @@
 
 #include <lax/interfaces/somedatafactory.h>
 #include <lax/interfaces/aninterface.h>
+#include <lax/interfaces/interfaceundo.h>
 #include <lax/strmanip.h>
 
 using namespace Laxkit;
@@ -557,6 +558,13 @@ void anInterface::dump_out(FILE *f,int indent,int what,Laxkit::anObject *savecon
 //! Placeholder for dumping in settings.
 void anInterface::dump_in_atts(Attribute *att,int flag,Laxkit::anObject *loadcontext)
 {
+}
+
+/*! By default just return GetInterfaceUndoManager() from interfaceundo.h.
+ */
+Laxkit::UndoManager *anInterface::GetUndoManager()
+{
+	return GetInterfaceUndoManager();
 }
 
 

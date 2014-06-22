@@ -113,6 +113,7 @@ class anInterface : virtual public Laxkit::EventReceiver,
 	virtual void Unmapped() {}
 	virtual int Refresh() { needtodraw=0; return 0; }
 	virtual void PostMessage(const char *message);
+	virtual Laxkit::UndoManager *GetUndoManager();
 
 	virtual Laxkit::MenuInfo *ContextMenu(int x,int y,int deviceid) { return NULL; }
 

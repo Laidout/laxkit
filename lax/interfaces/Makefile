@@ -26,6 +26,7 @@ objs= \
 	coordinate.o \
 	svgcoord.o \
 	aninterface.o \
+	interfaceundo.o \
 	viewportwindow.o \
 	viewerwindow.o \
 	viewportwithstack.o \

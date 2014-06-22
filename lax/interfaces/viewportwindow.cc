@@ -24,6 +24,7 @@
 
 
 #include <lax/interfaces/viewerwindow.h>
+#include <lax/interfaces/interfaceundo.h>
 #include <lax/interfaces/somedata.h>
 #include <lax/transformmath.h>
 #include <lax/laxutils.h>
@@ -1113,6 +1114,10 @@ Laxkit::ShortcutHandler *ViewportWindow::GetShortcuts()
 	sc->Add(VIEWPORT_IncShift,'[',ControlMask,0,   _("IncShift"),_("Increase view shift amount"),NULL,0);
 	sc->Add(VIEWPORT_DecShift,']',ControlMask,0,   _("DecShift"),_("Decrease view shift amount"),NULL,0);
 
+	sc->Add(VIEWPORT_Undo,'z',ControlMask,0,   _("Undo"),_("Undo"),NULL,0);
+	sc->Add(VIEWPORT_Redo,'y',ControlMask,0,   _("Redo"),_("Redo"),NULL,0);
+	sc->AddShortcut('Z',ControlMask|ShiftMask,0, VIEWPORT_Redo);
+
 	manager->AddArea(whattype(),sc);
 	return sc;
 }
@@ -1135,6 +1140,18 @@ int ViewportWindow::PerformAction(int action)
 		dp->Zoom(.75,x,y);
 		syncWithDp();
 		needtodraw=1; 
+		return 0;
+
+	} else if (action==VIEWPORT_Undo) {
+		DBG cerr <<" attempting undo..."<<endl;
+		UndoManager *undomanager=GetUndoManager();
+		if (undomanager) undomanager->Undo();
+		return 0;
+
+	} else if (action==VIEWPORT_Redo) {
+		DBG cerr <<" attempting redo..."<<endl;
+		UndoManager *undomanager=GetUndoManager();
+		if (undomanager) undomanager->Redo();
 		return 0;
 
 	} else if (action==VIEWPORT_CenterReal) {
@@ -1247,6 +1264,13 @@ int ViewportWindow::CharInput(unsigned int ch, const char *buffer,int len,unsign
 		default: return 1;
 	}
 	return 0;
+}
+
+/*! By default just return GetInterfaceUndoManager() from interfaceundo.h.
+ */
+Laxkit::UndoManager *ViewportWindow::GetUndoManager()
+{
+	return GetInterfaceUndoManager();
 }
 
 //! This will take the space settings in dp, and coordiate the rulers and scrollers.
