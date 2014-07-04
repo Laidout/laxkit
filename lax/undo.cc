@@ -76,6 +76,8 @@ UndoData::UndoData(int nisauto)
 }
 
 /*! If prev==NULL, then delete next, else just remove *this from chain.
+ *
+ * If context is an anObject, then dec_count it.
  */
 UndoData::~UndoData()
 {
@@ -93,6 +95,7 @@ UndoData::~UndoData()
 		}
 	}
 
+	if (dynamic_cast<anObject*>(context)) dynamic_cast<anObject*>(context)->dec_count();
 	delete[] description;
 }
 
