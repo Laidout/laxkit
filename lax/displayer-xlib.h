@@ -113,6 +113,7 @@ class DisplayerXlib : public Displayer
 	virtual unsigned long NewBG(double r,double g,double b);
 	virtual unsigned long NewBG(int r,int g,int b);
 	virtual unsigned long NewBG(unsigned long nc);
+	virtual unsigned long NewBG(ScreenColor *col);
 	virtual unsigned long FG() { return fgcolor; }
 	virtual unsigned long BG() { return bgcolor; }
 	virtual void LineAttributes(double width,int dash,int cap,int join);

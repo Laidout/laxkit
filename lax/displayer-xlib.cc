@@ -1422,6 +1422,15 @@ unsigned long DisplayerXlib::NewFG(unsigned long ncol)
 	return old;
 }
 
+//! Set new foreground. Color components are 0..0xffff.
+unsigned long DisplayerXlib::NewBG(ScreenColor *col)
+{
+	unsigned long old=bgcolor;
+	bgcolor=rgbcolor(col->red>>8,col->green>>8,col->blue>>8);
+	if (gc) XSetBackground(dpy,gc,bgcolor); 
+	return old;
+}
+
 //! Set new background color. Typically usage is NewFG(app->rgbcolor(.5,.8,0)).
 /*! Component range is [0..1.0].
  */

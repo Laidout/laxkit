@@ -94,6 +94,7 @@ class Displayer : public PanUser, virtual public anObject
 	virtual unsigned long NewBG(double r,double g,double b) = 0;
 	virtual unsigned long NewBG(int r,int g,int b) = 0;
 	virtual unsigned long NewBG(unsigned long nc) = 0;
+	virtual unsigned long NewBG(ScreenColor *col) = 0;
 	virtual unsigned long FG() = 0;
 	virtual unsigned long BG() = 0;
 	virtual void LineAttributes(double width,int dash,int cap,int join) = 0;

@@ -340,6 +340,12 @@ unsigned long DisplayerCairo::NewFG(ScreenColor *col)
 	return NewFG((double)col->red/65535,(double)col->green/65535,(double)col->blue/65535,(double)col->alpha/65535);
 }
 
+//! Set new background. Color components are 0..0xffff.
+unsigned long DisplayerCairo::NewBG(ScreenColor *col)
+{
+	return NewBG((double)col->red/65535,(double)col->green/65535,(double)col->blue/65535);
+}
+
 //! Set new foreground. Typically usage is NewFG(app->rgbcolor(23,34,234)).
 unsigned long DisplayerCairo::NewFG(unsigned long ncol)
 {
