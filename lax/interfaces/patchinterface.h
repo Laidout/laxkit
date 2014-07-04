@@ -65,14 +65,18 @@ class PatchRenderContext
 	double TT[4], SS[4]; //temp space for getPoint(double,double)
 	double s0,ds,t0,dt; //used primarily for PatchData::WhatColor() lookup
 
-	unsigned char *buffer;
+	unsigned char *buffer; //a temp, non-local buffer
 	int bufferwidth,bufferheight;
 	int numchannels;    //usually 4 (argb) and 8bits
 	int bitsperchannel; //8 or 16
 	int stride; //usually bufferwidth * numchannels * bitsperchannel/8
 
-	PatchRenderContext() { SS[0]=SS[1]=SS[2]=SS[3]=TT[0]=TT[1]=TT[2]=TT[3]=1; }
+	PatchRenderContext() {
+		buffer=NULL; bufferwidth=bufferheight=stride=0; numchannels=4; bitsperchannel=8;
+		SS[0]=SS[1]=SS[2]=SS[3]=TT[0]=TT[1]=TT[2]=TT[3]=1;
+	}
 	flatpoint getPoint(double *S,double *T);
+
 	flatpoint getPoint(double s,double t);
 };
 
@@ -82,7 +86,6 @@ class PatchRenderContext
 //goes in PatchData::style:
 enum PatchDataStyles {
 	PATCH_SMOOTH    =(1<<0),
-	PATCH_Dont_Cache=(1<<1),
 	PATCH_MAX
 };
 
@@ -217,6 +220,9 @@ class PatchInterface : public anInterface
 	int overv,overh,overcv,overch,overstate;
 	int dragmode;
 	int hoverpoint;
+
+	flatpoint hovertemp;    //DBG!!
+	flatpoint hovertemprev; //DBG!!
 	
 	int bx,by,mx,my,constrain;
 	Laxkit::NumStack<int> curpoints; 

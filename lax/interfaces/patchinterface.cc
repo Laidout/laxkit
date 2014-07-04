@@ -362,6 +362,7 @@ PatchData::PatchData()
 
 	cache=NULL;
 	ncache=0;
+	needtorecache.set(0,0,-1,-1);
 }
 
 //! Creates a new patch in rect xx,yy,ww,hh with nr rows and nc columns.
@@ -377,6 +378,7 @@ PatchData::PatchData(double xx,double yy,double ww,double hh,int nr,int nc,unsig
 
 	cache=NULL;
 	ncache=0;
+	needtorecache.set(0,0,-1,-1);
 }
 
 PatchData::~PatchData()
@@ -393,16 +395,22 @@ PatchData::~PatchData()
  */
 void PatchData::NeedToUpdateCache(int mincol,int maxcol, int minrow,int maxrow)
 {
-	if (mincol<needtorecache.x) needtorecache.x=mincol;
-	if (minrow<needtorecache.y) needtorecache.y=minrow;
+	if (maxcol<mincol || maxcol>xsize/3-1) maxcol=xsize/3-1;
+	if (maxrow<minrow || maxrow>ysize/3-1) maxrow=ysize/3-1;
+
+	if (needtorecache.x<mincol) mincol=needtorecache.x;
+	if (needtorecache.y<minrow) minrow=needtorecache.y;
+
+	if (needtorecache.x+needtorecache.width -1>maxcol) maxcol=needtorecache.x+needtorecache.width -1;
+	if (needtorecache.y+needtorecache.height-1>maxrow) maxrow=needtorecache.y+needtorecache.height-1;
+
 	needtorecache.width =maxcol-mincol+1;
-	if (needtorecache.width<0) needtorecache.width=xsize/3-mincol;
 	needtorecache.height=maxrow-minrow+1;
-	if (needtorecache.height<0) needtorecache.height=ysize/3-minrow;
 }
 
 void PatchData::UpdateCache()
 {
+	if (!cache) NeedToUpdateCache(0,-1,0,-1);
 	if (needtorecache.width==0 || needtorecache.height==0) return;
 
 	int mincol=needtorecache.x;
@@ -412,19 +420,18 @@ void PatchData::UpdateCache()
 
 	if (minrow<0) minrow=0; else if (minrow>=ysize/3) minrow=ysize/3-1;
 	if (mincol<0) mincol=0; else if (mincol>=xsize/3) mincol=xsize/3-1;
-	if (maxrow>=ysize/3) maxrow=ysize/3-1;
-	if (maxcol>=xsize/3) maxcol=xsize/3-1;
 
-	if (ncache<(xsize/3)*(ysize/3)) {
+	int numneeded=(xsize/3)*(ysize/3);
+	if (ncache<numneeded) {
 		mincol=minrow=0;
 		maxcol=maxrow=-1;
 		delete[] cache;
-		ncache=(xsize/3)*(ysize/3);
+		ncache=numneeded;
 		cache=new PatchRenderContext[ncache];
 	}
 
-	if (maxcol<mincol) maxcol=xsize/3-1;
-	if (maxrow<minrow) maxrow=ysize/3-1;
+	if (maxrow<minrow || maxrow>=ysize/3) maxrow=ysize/3-1;
+	if (maxcol<mincol || maxcol>=xsize/3) maxcol=xsize/3-1;
 
 
 	double C[16],Gty[16],Gtx[16];
@@ -432,7 +439,7 @@ void PatchData::UpdateCache()
 
 	for (int r=minrow; r<=maxrow; r++) {
 		for (int c=mincol; c<=maxcol; c++) {
-			context=&cache[r*(xsize/3) + c];
+			context= &(cache[r*(xsize/3) + c]);
 
 			getGt(Gtx,r*3,c*3,0);
 			getGt(Gty,r*3,c*3,1);
@@ -451,6 +458,23 @@ void PatchData::UpdateCache()
 
 	needtorecache.set(0,0,0,0);
 }
+
+///*! Return 1 for success, or 0 for could not compute, due to row,col out of range.
+// *
+// * If active cache, copy over relevant data.
+// */
+//int PatchData::ComputeContext(PatchRenderContext *context, int row, int col)
+//{
+//	if (row<0 || row>=ysize/3 || col<0 || col>=xsize/3) return 0;
+//
+//	NeedToUpdateCache(0,-1,0,-1);
+//
+//	int i=row*(xsize/3)+col;
+//	memcpy(context->Cx, cache[i].Cx, 16*sizeof(double));
+//	memcpy(context->Cy, cache[i].Cy, 16*sizeof(double));
+//
+//	return 1;
+//}
 
 SomeData *PatchData::duplicate(SomeData *dup)
 {
@@ -612,7 +636,7 @@ void PatchData::dump_in_atts(Attribute *att,int flag,Laxkit::anObject *context)
 		}
 	}
 	
-	if (!(style&PATCH_Dont_Cache)) NeedToUpdateCache(0,-1,0,-1);
+	NeedToUpdateCache(0,-1,0,-1);
 	FindBBox();
 }
 
@@ -668,7 +692,7 @@ void PatchData::CopyMeshPoints(PatchData *patch)
 	ysize=patch->ysize;
 
 	memcpy(points,patch->points, patch->xsize*patch->ysize*sizeof(flatpoint));
-	if (!(style&PATCH_Dont_Cache)) NeedToUpdateCache(0,-1, 0,-1);
+	NeedToUpdateCache(0,-1, 0,-1);
 }
 
 //! Set in rect xx,yy,ww,hh with nr rows and nc columns. Removes old info.
@@ -681,17 +705,22 @@ void PatchData::Set(double xx,double yy,double ww,double hh,int nr,int nc,unsign
 	points=new flatpoint[xsize*ysize];
 	zap(flatpoint(xx,yy),flatpoint(ww,0),flatpoint(0,hh));
 	griddivisions=10;
-	if (!(style&PATCH_Dont_Cache)) NeedToUpdateCache(0,-1, 0,-1);
+	NeedToUpdateCache(0,-1, 0,-1);
 }
 
-/*! From data point (x,y), return a mesh point (s,t), where s and t are in range [0..1],
+/*! From data point (x,y), return an approximate mesh point (s,t), where s and t are in range [0..1],
  * assuming x,y is actually in the mesh somewhere.
  * This is the reverse of getPoint(s,t).
  *
  * If the point is not in the mesh, then error_ret gets 0, else 1.
+ *
+ * Note this uses inSubPatch() for the actual work.
  */
 flatpoint PatchData::getPointReverse(double x,double y, int *error_ret)
 {
+	if ((xsize/3)*(ysize/3)>ncache) NeedToUpdateCache(0,-1,0,-1);
+	UpdateCache();
+
 	flatpoint fp(x,y);
 	int rr=-1,cc=-1;
 	double tt=-1,ss=-1;
@@ -728,7 +757,7 @@ double PatchData::getScaling(double s,double t, bool bysize)
  */
 flatpoint PatchData::getPoint(double s,double t, bool bysize)
 {
-	if ((xsize/3)*(ysize/3)>ncache) if (!(style&PATCH_Dont_Cache)) NeedToUpdateCache(0,-1,0,-1);
+	if ((xsize/3)*(ysize/3)>ncache) NeedToUpdateCache(0,-1,0,-1);
 	UpdateCache();
 
 	double ss,tt;
@@ -737,14 +766,16 @@ flatpoint PatchData::getPoint(double s,double t, bool bysize)
 	if (bysize) {
 		c=(int)floor(s);
 		r=(int)floor(t);
-		ss=s-c;
+		ss=s-c; //this will always be between 0..1
 		tt=t-r;
-		if (c<0) { ss+=c; c=0; } else if (c>xsize/3) { c=xsize/3; ss=s-c; }
-		if (r<0) { tt+=r; r=0; } else if (r>ysize/3) { r=ysize/3; tt=t-r; }
 
 	} else resolveToSubpatch(s,t, c,ss,r,tt);
-	//DBG cerr<<" resolve to patch: c,ss:"<<c<<":"<<ss<<"  r,tt:"<<r<<':'<<tt;
 
+	 //reapply when points are off edges
+	if (c<0) { ss+=c; c=0; } else if (c>=xsize/3) { c=xsize/3-1; ss=s-c; }
+	if (r<0) { tt+=r; r=0; } else if (r>=ysize/3) { r=ysize/3-1; tt=t-r; }
+
+	//DBG cerr<<" resolve ("<<s<<","<<t<<") to patch: c,ss:"<<c<<":"<<ss<<"  r,tt:"<<r<<':'<<tt;
 	if (cache) return cache[r*(xsize/3)+c].getPoint(ss,tt);
 
 	
@@ -778,7 +809,7 @@ flatpoint PatchData::getPoint(double s,double t, bool bysize)
 }
 
 //! From a point s,t (range 0..1), return the subpatch r,c plus offset into that subpatch.
-/*! If s,t are bad, then the returned values will be bad!
+/*! WARNING!! If s,t are bad, then the returned values will be bad!
  */
 void PatchData::resolveToSubpatch(double s,double t,int &c,double &ss,int &r,double &tt)
 {
@@ -899,7 +930,7 @@ void PatchData::zap(flatpoint p,flatpoint x,flatpoint y)
 			points[r*xsize+c]=p + c*x/xsize + r*y/ysize;
 			addtobounds(points[r*xsize+c]);
 	}
-	if (!(style&PATCH_Dont_Cache)) NeedToUpdateCache(0,-1,0,-1);
+	NeedToUpdateCache(0,-1,0,-1);
 	touchContents();
 }
 
@@ -1003,7 +1034,7 @@ void PatchData::InterpolateControls(int whichcontrols)
 		}
 	}
 
-	if (!(style&PATCH_Dont_Cache)) NeedToUpdateCache(0,-1,0,-1);
+	NeedToUpdateCache(0,-1,0,-1);
 }
 
 //! Return the bezier outline of a subsection of the patch.
@@ -1013,8 +1044,8 @@ void PatchData::InterpolateControls(int whichcontrols)
  *
  * If p==NULL, then return the number of points that must be allocated in p.
  * Otherwise, p must have enough points for the requested data,
- * namely, p=2*(rl*3+cl*3).
- *
+ * namely, numpoints = 2*(rl*3+cl*3).
+ * 
  * Returns a closed path, with the first vertex at p[1], whose associated control points
  * are p[0] and p[2].
  */
@@ -1078,12 +1109,19 @@ int PatchData::bezOfPatch(flatpoint *p,int r,int rl,int c,int cl)
  * Note that this only checks against the bezier boundary points, not the actual visual boundary
  * of the patch, which might go past the bez boundary if the inner controls are dragged way out.
  *
+ * Note this function determines which subpatch it is expected to be in, then uses
+ * coordsInSubPatch() to get the internal coordinates of that subpatch.
+ *
+ * d is a maximum distance to hunt for.
+ *
  * \todo *** could have inSubPatchBBox, to more easily search for point over a control point
  */
-int PatchData::inSubPatch(flatpoint p,int *r_ret,int *c_ret,double *t_ret,double *s_ret,double d)
+int PatchData::inSubPatch(flatpoint p, int *r_ret,int *c_ret,double *t_ret,double *s_ret,double d)
 {
 	//DBG cerr <<"inSubPatch p="<<p.x<<','<<p.y<<":"<<endl;
+
 	flatpoint pts[12];
+
 	for (int c=0; c<xsize/3; c++) {
 		for (int r=0; r<ysize/3; r++) {
 			bezOfPatch(pts,r,1,c,1);
@@ -1093,9 +1131,10 @@ int PatchData::inSubPatch(flatpoint p,int *r_ret,int *c_ret,double *t_ret,double
 				if (t_ret || s_ret) {
 					 //find the s,t!
 					if (coordsInSubPatch(p,r,c,d,s_ret,t_ret)) {
-						 //default find! error finding a point
-						if (s_ret) *s_ret=.5;
-						if (t_ret) *t_ret=.5;
+						 //error finding a point within threshhold!
+						 //coordsInSubPatch() sets s_ret,t_ret to closest point
+						//DBG cerr <<"Could not find point!!"<<endl;
+						return 0;
 					}
 					//DBG cerr <<" found (s,t)=";
 					//DBG if (s_ret && t_ret) cerr <<*s_ret<<','<<*t_ret<<endl; else cerr <<endl;
@@ -1114,7 +1153,7 @@ int PatchData::inSubPatch(flatpoint p,int *r_ret,int *c_ret,double *t_ret,double
 //! Find an approximate (s,t) point to p.
 /*! Assumes that it is known that point p is in the subpatch r,c.
  *
- * This works by computing 16 points within the range (s0..s1,t0..t1), and 
+ * This works by computing a grid of points within the range (s0..s1,t0..t1), and 
  * comparing their distance to p. Using the point with the minimum distance
  * to p, try the same thing with the range (s-ds..s+ds,t-dt..t+dt), where dt and
  * ds are a fraction of the original range.
@@ -1123,6 +1162,8 @@ int PatchData::inSubPatch(flatpoint p,int *r_ret,int *c_ret,double *t_ret,double
  * maxd from p, then return that point.
  *
  * Returns 0 for s_ret and t_ret set, else nonzero.
+ *
+ * \todo the meat of this should probably be moved to PatchRenderContext()
  */
 int PatchData::coordsInSubPatch(flatpoint p,int r,int c,double maxd, double *s_ret,double *t_ret)
 {
@@ -1133,13 +1174,17 @@ int PatchData::coordsInSubPatch(flatpoint p,int r,int c,double maxd, double *s_r
 	double d,oldmind=0,mind=1e+10,dist;
 	d=maxd*maxd;
 	flatpoint pp;
-	
-	double Gx[16],Gy[16],Tr[16],T[4],S[4],tmp[16],tv[4];
-	getGt(Gx,r*3,c*3,0);
-	getGt(Gy,r*3,c*3,1);
+
+	if ((xsize/3)*(ysize/3)>ncache) NeedToUpdateCache(0,-1,0,-1);
+	UpdateCache();
+	int i=r*(xsize/3)+c;
+	PatchRenderContext *context=cache+i;
 
 	int recurse=0;
-	while (recurse<20 && oldmind!=mind) {
+	int maxrecurse=20;
+	while (recurse<maxrecurse && oldmind!=mind) {
+		//DBG cerr <<"---coords search bounds: s:"<<s0<<"-"<<s1<<"  t:"<<t0<<'-'<<t1<<endl;
+
 		recurse++;
 		oldmind=mind;
 		s=s0;
@@ -1149,23 +1194,13 @@ int PatchData::coordsInSubPatch(flatpoint p,int r,int c,double maxd, double *s_r
 			t=t0;
 			for (tt=0; tt<nump; t+=dt,tt++) {
 				 // getpoint for s,t, which is:
-				 //   S^t * B * Gt * B * T     (remember B==B^t)
-				getT(T,t);
-				getT(S,s);
-				 //x component:
-				m_times_m(B,Gx,tmp);
-				m_times_m(tmp,B,Tr);
-				m_times_v(Tr,T,tv);
-				pp.x=dot(S,tv);
-				 //y component:
-				m_times_m(B,Gy,tmp);
-				m_times_m(tmp,B,Tr);
-				m_times_v(Tr,T,tv);
-				pp.y=dot(S,tv);
+				pp=context->getPoint(s,t);
 	
 				dist=(pp-p)*(pp-p);
 				//DBG cerr <<" ----point:"<<pp.x<<','<<pp.y<<"  dist:"<<dist<<endl;
+
 				if (dist<d) {
+					 //found a point within threshhold distance, so return it!
 					*s_ret=s;
 					*t_ret=t;
 					//DBG cerr <<"---return coords: "<<*s_ret<<","<<*t_ret<<endl;
@@ -1175,25 +1210,30 @@ int PatchData::coordsInSubPatch(flatpoint p,int r,int c,double maxd, double *s_r
 					mind=dist;
 					ps=s; 
 					pt=t;
-					//DBG cerr <<"---coords: d:"<<d<<"  dist:"<<dist<<"  s,t="<<s<<","<<t<<endl;
+					//DBG cerr <<"---coords: new min dist, target d:"<<d<<"  dist:"<<dist<<"  s,t="<<s<<","<<t<<endl;
 				}
 			}
 		}
 		if (mind==oldmind) {
-			 //widen search
+			 //could not find a closer point, widen search bounds slightly, and increase sample points
 			s0-=ds; if (s0<0) s0=0;
 			s1+=ds; if (s1>1) s1=1;
 			t0-=dt; if (t0<0) t0=0;
 			t1+=dt; if (t1>1) t1=1;
 			oldmind++;
-			nump++;
+			nump*=1.5;
+
+		} else {
+			 //ps,pt is the closest point to p for this iteration
+			if (ps-3*ds>s0) s0=ps-3*ds;
+			if (ps+3*ds<s1) s1=ps+3*ds;
+			if (pt-3*dt>t0) t0=pt-3*dt;
+			if (pt+3*dt<t1) t1=pt+3*dt;
 		}
-		if (ps-ds>s0) s0=ps-ds;
-		if (ps+ds<s1) s1=ps+ds;
-		if (pt-dt>t0) t0=pt-dt;
-		if (pt-dt<t1) t1=pt+dt;
 		
 	}
+
+	DBG if (recurse==maxrecurse) cerr << "coordsInSubPatch() hit recurse max!!"<<endl;
 	*s_ret=ps;
 	*t_ret=pt;
 	return 1;
@@ -1226,7 +1266,7 @@ void PatchData::grow(int where, double *tr)
 		delete[] points;
 		points=np;
 		xsize+=3; 
-		if (!(style&PATCH_Dont_Cache)) NeedToUpdateCache(0,-1,0,-1);
+		NeedToUpdateCache(0,-1,0,-1);
 		touchContents();
 		FindBBox();
 
@@ -1245,7 +1285,7 @@ void PatchData::grow(int where, double *tr)
 		delete[] points;
 		points=np;
 		ysize+=3;
-		if (!(style&PATCH_Dont_Cache)) NeedToUpdateCache(0,-1,0,-1);
+		NeedToUpdateCache(0,-1,0,-1);
 		touchContents();
 		FindBBox();
 
@@ -1265,7 +1305,7 @@ void PatchData::grow(int where, double *tr)
 		delete[] points;
 		points=np;
 		xsize+=3;
-		if (!(style&PATCH_Dont_Cache)) NeedToUpdateCache(0,-1,0,-1);
+		NeedToUpdateCache(0,-1,0,-1);
 		touchContents();
 		FindBBox();
 
@@ -1284,7 +1324,7 @@ void PatchData::grow(int where, double *tr)
 		delete[] points;
 		points=np;
 		ysize+=3;
-		if (!(style&PATCH_Dont_Cache)) NeedToUpdateCache(0,-1,0,-1);
+		NeedToUpdateCache(0,-1,0,-1);
 		FindBBox();
 		touchContents();
 	}
@@ -1340,7 +1380,7 @@ void PatchData::collapse(int rr,int cc)
 		points=np;
 		xsize=nxs;
 		ysize=nys;
-		if (!(style&PATCH_Dont_Cache)) NeedToUpdateCache(0,-1,0,-1);
+		NeedToUpdateCache(0,-1,0,-1);
 		
 		//if (cc>0 && xsize>4 && cc<xsize-1) {
 
@@ -1376,7 +1416,7 @@ void PatchData::collapse(int rr,int cc)
 		points=np;
 		xsize=nxs;
 		ysize=nys;
-		if (!(style&PATCH_Dont_Cache)) NeedToUpdateCache(0,-1,0,-1);
+		NeedToUpdateCache(0,-1,0,-1);
 	}
 }
 
@@ -1515,7 +1555,7 @@ int PatchData::subdivide(int r,double rt,int c,double ct)
 	ysize=nys;
 	delete[] points;
 	points=np;
-	if (!(style&PATCH_Dont_Cache)) NeedToUpdateCache(0,-1,0,-1);
+	NeedToUpdateCache(0,-1,0,-1);
 	return 0;
 }
 	
@@ -1600,7 +1640,7 @@ int PatchData::subdivide(int xn,int yn) //xn,yn=2
 	points=np;
 	xsize=nxs;
 	ysize=nys;
-	if (!(style&PATCH_Dont_Cache)) NeedToUpdateCache(0,-1,0,-1);
+	NeedToUpdateCache(0,-1,0,-1);
 	return 0;
 }
 
@@ -1680,7 +1720,7 @@ int PatchData::warpPatch(flatpoint center, double r1,double r2, double s,double 
 	} 
 	//DBG cerr << endl;
 
-	if (!(style&PATCH_Dont_Cache)) NeedToUpdateCache(0,-1,0,-1);
+	NeedToUpdateCache(0,-1,0,-1);
 	FindBBox();
 	return 0;
 }
@@ -2724,6 +2764,12 @@ int PatchInterface::Refresh()
 		}
 
 	}
+
+	//dp->NewFG(0.,0.,1.);
+	//dp->drawpoint(hovertemp,10, 0);
+	//dp->NewFG(1.,0.,0.);
+	//dp->drawpoint(data->getPoint(hovertemprev.x,hovertemprev.y, false),8, 0);
+
 	//DBG cerr <<endl;
 	needtodraw=0;
 	return 0;
@@ -3143,6 +3189,14 @@ int PatchInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMo
 	if (!buttondown.isdown(d->id,LEFTBUTTON)) {
 		flatpoint fp=transform_point_inverse(data->m(),screentoreal(x,y));
 
+		//DBG hovertemp=fp;
+		//DBG int revret;
+		//DBG cerr <<"looking up point...."<<endl;
+		//DBG hovertemprev=data->getPointReverse(fp.x,fp.y, &revret);
+		//DBG cerr <<" reverse lookup status: "<<revret<<endl;
+		//DBG needtodraw=1;
+
+
 		DBG cerr << "point in: "<<data->pointin(transform_point(data->m(),fp),1)<<endl;
 
 		//DBG int rrr,ccc;
@@ -3304,7 +3358,7 @@ int PatchInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMo
 			if (!(constrain&2)) data->points[curpoints.e[c]].y=p.y;
 			if (!(constrain&1)) data->points[curpoints.e[c]].x=p.x;
 		}
-		if (!(data->style&PATCH_Dont_Cache)) data->NeedToUpdateCache(0,-1,0,-1);
+		data->NeedToUpdateCache(0,-1,0,-1);
 
 	} else if (state&ShiftMask && state&ControlMask) { // rotate
 		flatpoint center;
@@ -3314,7 +3368,7 @@ int PatchInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMo
 		double angle=(x-mx);
 		for (c=0; c<curpoints.n; c++) 
 			data->points[curpoints.e[c]]=rotate(data->points[curpoints.e[c]],center,angle,1);
-		if (!(data->style&PATCH_Dont_Cache)) data->NeedToUpdateCache(0,-1,0,-1);
+		data->NeedToUpdateCache(0,-1,0,-1);
 		
 	} else { // move
 		double m[6];
@@ -3360,11 +3414,11 @@ int PatchInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMo
 			delete[] ps;
 		} else for (int c=0; c<curpoints.n; c++) data->points[curpoints.e[c]]+=d;
 
-		if (!(data->style&PATCH_Dont_Cache)) data->NeedToUpdateCache(0,-1,0,-1);
+		data->NeedToUpdateCache(0,-1,0,-1);
 	}
 	if (whichcontrols!=Patch_Full_Bezier) {
 		data->InterpolateControls(whichcontrols);
-		if (!(data->style&PATCH_Dont_Cache)) data->NeedToUpdateCache(0,-1,0,-1);
+		data->NeedToUpdateCache(0,-1,0,-1);
 	}
 	data->FindBBox();
 	data->touchContents();
