@@ -77,7 +77,7 @@ FreehandInterface::FreehandInterface(anInterface *nowner, int nid, Displayer *nd
 
 	smooth_pixel_threshhold=2;
 	brush_size=60;
-	ignore_tip_time=0;
+	ignore_tip_time=10;
 	ignore_clock_t = ignore_tip_time*sysconf(_SC_CLK_TCK)/1000;
 
 	showdecs=1;
@@ -521,7 +521,7 @@ Coordinate *FreehandInterface::BezApproximate(RawPointLine *l)
 			curp=curp->next;
 		}
 
-		curp->next=new Coordinate(p);
+		curp->next=new Coordinate(p, POINT_SMOOTH|POINT_VERTEX, NULL);
 		curp->next->prev=curp;
 		curp=curp->next;
 
