@@ -66,6 +66,7 @@ BoilerPlateInterface::BoilerPlateInterface(anInterface *nowner, int nid, Display
 
 BoilerPlateInterface::~BoilerPlateInterface()
 { ***
+	if (sc) sc->dec_count();
 }
 
 const char *BoilerPlateInterface::whatdatatype()
@@ -138,7 +139,7 @@ Laxkit::MenuInfo *BoilerPlateInterface::ContextMenu(int x,int y,int deviceid)
 	if (no menu for x,y) return NULL;
 
 	MenuInfo *menu=new MenuInfo;
-	menu->AddItem(_("Create raw points"), FREEHAND_Raw_Path, (freehand_style&FREEHAND_Raw_Path)?LAX_CHECKED:0);
+	menu->AddItem(_("Create raw points"), FREEHAND_Raw_Path, LAX_ISTOGGLE|(istyle&FREEHAND_Raw_Path)?LAX_CHECKED:0);
 	menu->AddItem(_("Some menu item"), SOME_MENU_VALUE);
 	menu->AddSep(_("Some separator text"));
 	menu->AddItem(_("Et Cetera"), SOME_OTHER_VALUE);
@@ -236,10 +237,6 @@ int BoilerPlateInterface::MBUp(int x,int y,unsigned int state, const Laxkit::Lax
 //}
 
 
-/*! \todo *** this isn't very sophisticated, for elegance, should use some kind of 
- * bez curve fitting to cut down on unnecessary points should use a timer so 
- * stopping makes sharp corners and closer spaced points?
- */
 int BoilerPlateInterface::MouseMove(int x,int y,unsigned int state, const Laxkit::LaxMouse *d)
 { ***
 	if (!buttondown.any()) {
@@ -253,6 +250,16 @@ int BoilerPlateInterface::MouseMove(int x,int y,unsigned int state, const Laxkit
 
 	//needtodraw=1;
 	return 0; //MouseMove is always called for all interfaces, return value doesn't inherently matter
+}
+
+int BoilerPlateInterface::WheelUp(int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d)
+{ ***
+	return 1; //wheel up ignored
+}
+
+int BoilerPlateInterface::WheelDown(int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d)
+{ ***
+	return 1; //wheel down ignored
 }
 
 
