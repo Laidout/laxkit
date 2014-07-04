@@ -629,13 +629,23 @@ int ViewportWindow::Event(const EventData *e,const char *mes)
 	return anXWindow::Event(e,mes);
 }
 
-//! Return whether an inteface with the given id is on the interfaces stack.
+//! Return whether an interface with the given id is on the interfaces stack.
 /*! Return value is index+1 if found, or 0 if not.
  */
 int ViewportWindow::HasInterface(int iid)
 {
 	for (int c=0; c<interfaces.n; c++) 
 		if (interfaces.e[c]->id==iid) return c+1;
+	return 0;
+}
+
+//! Return whether an interface with the given whattype is on the interfaces stack.
+/*! Return value is index+1 if found, or 0 if not.
+ */
+int ViewportWindow::HasInterface(const char *name)
+{
+	for (int c=0; c<interfaces.n; c++) 
+		if (!strcmp(interfaces.e[c]->whattype(),name)) return c+1;
 	return 0;
 }
 

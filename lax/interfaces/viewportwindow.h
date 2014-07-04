@@ -147,6 +147,7 @@ class ViewportWindow : public Laxkit::PanUser, public Laxkit::anXWindow
 	virtual int SetSpace(double minx,double maxx,double miny, double maxy);
 	virtual int Push(anInterface*i,int where, int absorbcount);
 	virtual int HasInterface(int iid);
+	virtual int HasInterface(const char *name);
 	virtual anInterface *Pop(anInterface *i,char deletetoo=0);
 	virtual anInterface *PopId(int iid,char deletetoo=0);
 	virtual void postmessage(const char *mes);
