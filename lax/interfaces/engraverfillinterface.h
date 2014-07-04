@@ -114,17 +114,7 @@ class EngraverLineQuality : public Laxkit::anObject
 };
 
 
-//----------------------------------------------- EngraverPointGroup
-
-class ValueMap
-{
-  public:
-	ValueMap() {}
-	virtual ~ValueMap() {}
-	virtual double GetValue(double x,double y) = 0;
-	virtual double GetValue(flatpoint p) { return GetValue(p.x,p.y); }
-};
-
+//--------------------------- DirectionMap -----------------------------
 class DirectionMap
 {
   public:
@@ -134,6 +124,41 @@ class DirectionMap
 	virtual flatpoint Direction(flatpoint p) { return Direction(p.x,p.y); }
 };
 
+//--------------------------- NormalDirectionMap -----------------------------
+class NormalDirectionMap : public DirectionMap
+{   
+  public:
+    Laxkit::Affine m; //transform input points to image space
+    Laxkit::LaxImage *normal_map;
+    bool has_transparency; //if byte 3 is transparency
+    bool has_origin_value; //if byte 2 is a grayscale version of source
+    
+    unsigned char *data; //for 4*w*h
+    int width, height;
+    Laxkit::DoubleBBox limits;
+    
+
+    NormalDirectionMap();
+    NormalDirectionMap(const char *file);
+    virtual ~NormalDirectionMap();
+    virtual flatpoint Direction(double x,double y);
+	virtual int Load(const char *file);
+	virtual void Clear();
+};  
+    
+
+//--------------------------- ValueMap -----------------------------
+class ValueMap
+{
+  public:
+	ValueMap() {}
+	virtual ~ValueMap() {}
+	virtual double GetValue(double x,double y) = 0;
+	virtual double GetValue(flatpoint p) { return GetValue(p.x,p.y); }
+};
+
+
+//--------------------------- GrowPointInfo -----------------------------
 class GrowPointInfo
 {
   public:
@@ -143,6 +168,9 @@ class GrowPointInfo
 	GrowPointInfo(flatpoint pp,flatpoint vv, int gdir) { p=pp; v=vv; godir=gdir; }
 	GrowPointInfo(flatpoint pp, int gdir) { p=pp; godir=gdir; }
 };
+
+//----------------------------------------------- EngraverPointGroup
+
 
 class EngraverPointGroup : public DirectionMap
 {
@@ -157,13 +185,12 @@ class EngraverPointGroup : public DirectionMap
 
 	int id; //the group number in LinePoint
 	char *name;
-	EngraverTraceSettings *trace;
-
 	int type; //what manner of lines
 	double type_d;   //parameter for type, for instance, an angle for spirals
 	double spacing;  //default
 	flatpoint position,direction; //default
 
+	EngraverTraceSettings *trace; 
 	EngraverLineQuality *dashes;
 
 	EngraverPointGroup();
@@ -263,6 +290,7 @@ class EngraverFillInterface : public PatchInterface
 	bool turbulence_per_line;
 
 	 //trace settings..
+	bool show_direction;
 	bool show_trace;
 	bool continuous_trace;
 	bool grow_lines;
@@ -270,6 +298,7 @@ class EngraverFillInterface : public PatchInterface
 	//Laxkit::CurveInfo tracemap;
 	Laxkit::DoubleBBox tracebox;
 	EngraverTraceSettings trace;
+	NormalDirectionMap *directionmap;
 
 	 //grow related
 	Laxkit::PtrStack<GrowPointInfo> growpoints;

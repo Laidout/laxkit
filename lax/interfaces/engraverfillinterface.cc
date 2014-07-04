@@ -174,6 +174,94 @@ EngraverLineQuality::~EngraverLineQuality()
 
 
 
+//--------------------------- NormalDirectionMap -----------------------------
+    
+NormalDirectionMap::NormalDirectionMap()
+{   
+    normal_map=NULL;
+	data=NULL;
+	width=height=0;
+}
+
+NormalDirectionMap::NormalDirectionMap(const char *file)
+{   
+    normal_map=load_image(file);
+	data=NULL;
+	width=height=0;
+
+    if (normal_map) {
+        width=normal_map->w();
+        height=normal_map->h();
+		unsigned char *dd=normal_map->getImageBuffer();
+		data=new unsigned char[width*height*4];
+		memcpy(data, dd, width*height*4);
+		normal_map->doneWithBuffer(dd);
+    }
+} 
+
+NormalDirectionMap::~NormalDirectionMap()
+{
+	delete[] data;
+    if (normal_map) normal_map->dec_count();
+}
+
+void NormalDirectionMap::Clear()
+{
+	if (normal_map) normal_map->dec_count();
+	normal_map=NULL;
+	delete[] data;
+	data=NULL;
+	width=height=0;
+}
+
+/*! Calling with NULL just calls Clear().
+ * If image loading fails, return 1.
+ * Success returns 0.
+ */
+int NormalDirectionMap::Load(const char *file)
+{
+	if (file==NULL) {
+		Clear();
+		return 0;
+	}
+
+	LaxImage *img=load_image(file);
+	if (!img) return 1;
+
+	if (normal_map) normal_map->dec_count();
+	normal_map=img;
+
+	delete[] data;
+	data=NULL;
+
+	width=normal_map->w();
+	height=normal_map->h();
+	unsigned char *dd=normal_map->getImageBuffer();
+	data=new unsigned char[width*height*4];
+	memcpy(data, dd, width*height*4);
+	normal_map->doneWithBuffer(dd);
+
+	return 0;
+}
+
+flatpoint NormalDirectionMap::Direction(double x,double y)
+{
+    flatpoint p=m.transformPoint(flatpoint(x,y));
+
+    if (p.x<0 || p.x>=width || p.y<0 || p.y>=height) return flatpoint(0,0);
+
+    int i=((int)p.y*width+(int)p.x)*4;
+    //cerr <<"p: "<<(int)p.x<<","<<(int)p.y<<" i:"<<i<<"  "<<endl;
+    //p=flatpoint(data[i]-128,data[i+1]-128);
+    //p=flatpoint(data[i+2]-128,data[i+3]-128);
+    p=flatpoint((int)(data[i+1])-128,(int)(data[i+2])-128);
+
+    return p;
+}
+
+
+
+
 //------------------------------------- EngraverPointGroup ------------------------
 
 /*! \class EngraverPointGroup
@@ -931,9 +1019,9 @@ void EngraverPointGroup::GrowLines(EngraverFillData *data,
 
 				 //find square of transformed spacing
 				if (spacingmap) curspace=spacingmap->GetValue(g->last->p)/data->getScaling(g->last->s,g->last->t,true); //else spacing is constant
-				double lsp=curspace*.75; //least space threshhold
+				double lsp=curspace*.95; //least space threshhold
 				double ls2=lsp*lsp;
-				double msp=curspace*2; //most space threshhold
+				double msp=curspace*1.5; //most space threshhold
 				double msp2=msp*msp;
 				double ld=1e+10, d2;
 				LinePoint *lclosest=NULL;
@@ -970,6 +1058,10 @@ void EngraverPointGroup::GrowLines(EngraverFillData *data,
 				}
 
 				if (ld<ls2) {
+					//g->last->Add(new LinePoint(lclosest->s,lclosest->t, weight,id));
+					//g->last=g->last->next;
+					//g->last->p=lclosest->p;
+					//g->last->needtosync=0;
 					g->dodir&=~1;
 				}
 			} //search in next direction
@@ -1018,6 +1110,10 @@ void EngraverPointGroup::GrowLines(EngraverFillData *data,
 				}
 
 				if (ld<ls2) {
+					//g->first->AddBefore(new LinePoint(lclosest->s,lclosest->t, weight,id));
+					//g->first=g->first->prev;
+					//g->first->p=lclosest->p;
+					//g->first->needtosync=0;
 					g->dodir&=~2;
 				}
 			} //search in previous direction
@@ -1953,6 +2049,8 @@ enum EngraveShortcuts {
 	ENGRAVE_ToggleTrace,
 	ENGRAVE_ToggleGrow,
 	ENGRAVE_ToggleWarp,
+	ENGRAVE_ToggleDir,
+	ENGRAVE_LoadDir,
 	ENGRAVE_NextFill,
 	ENGRAVE_PreviousFill,
 	ENGRAVE_MAX
@@ -1994,6 +2092,7 @@ enum EngraveControls {
 	EMODE_Twirl,
 	EMODE_Turbulence,
 	EMODE_Trace,
+	EMODE_Direction,
 	EMODE_Resolution //change sample point distribution
 
 };
@@ -2019,6 +2118,7 @@ EngraverFillInterface::EngraverFillInterface(int nid,Displayer *ndp)
 	submode=0;
 	mode=controlmode=EMODE_Mesh;
 
+	directionmap=NULL;
 
 	curvemapi.owner=this;
 	curvemapi.ChangeEditable(CurveMapInterface::YMax, 1);
@@ -2038,6 +2138,7 @@ EngraverFillInterface::EngraverFillInterface(int nid,Displayer *ndp)
 	show_trace=false;
 	grow_lines=false;
 	always_warp=true;
+	show_direction=false;
 
 
 	modes.AddItem(_("Mesh mode"),                                              NULL, EMODE_Mesh         );
@@ -2052,6 +2153,7 @@ EngraverFillInterface::EngraverFillInterface(int nid,Displayer *ndp)
 	modes.AddItem(_("Orientation mode"),                                       NULL, EMODE_Orientation  );
 	modes.AddItem(_("Freehand mode"),                                          NULL, EMODE_Freehand     );
 	modes.AddItem(_("Trace adjustment mode"),                                  NULL, EMODE_Trace        );
+	//modes.AddItem(_("Direction adjustment mode"),                              NULL, EMODE_Direction    );
 
 	fgcolor.rgbf(0.,0.,0.);
 	bgcolor.rgbf(1.,1.,1.);
@@ -2298,6 +2400,16 @@ int EngraverFillInterface::LBDown(int x,int y,unsigned int state,int count,const
 		return 0;
 	}
 
+	if (mode==EMODE_Direction) {
+		if (count==2 || !directionmap) {
+			PerformAction(ENGRAVE_LoadDir);
+			return 0;
+		}
+
+		buttondown.down(d->id,LEFTBUTTON,x,y,lasthover);
+		return 0;
+	}
+
 	if (mode==EMODE_Trace) {
 		 //we haven't clicked on the tracing box, so search for images to grab..
 		//RectInterface *rect=new RectInterface(0,dp);
@@ -2482,6 +2594,11 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
 		return 0;
 	}
 
+	if (mode==EMODE_Direction) {
+		buttondown.up(d->id,LEFTBUTTON);
+		return 0;
+	}
+
 	if (	 mode==EMODE_Thickness
 		  || mode==EMODE_Blockout
 		  || mode==EMODE_Turbulence
@@ -2626,11 +2743,28 @@ int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit
 
 	if (mode==EMODE_Mesh) {
 		PatchInterface::MouseMove(x,y,state,d);
-		if (buttondown.any() && curpoints.n>0) {
-			if (always_warp) edata->Sync(false);
+		if (buttondown.any()) {
+			if (always_warp && curpoints.n>0) {
+				edata->Sync(false);
+
+				if (grow_lines) {
+					EngraverPointGroup *group=&edata->defaultgroup;
+					if (current_group>=0) group=edata->groups.e[current_group];
+					growpoints.flush();
+					group->GrowLines(edata,
+									 group->spacing/3,     //resolution
+									 group->spacing, NULL, //spacing map
+									 .01, NULL,             //weight map
+									 group->direction,group, //directionmap
+									 &growpoints,
+									 1000 //iteration limit
+									);
+				}
+			}
+
+			if (continuous_trace) Trace();
 		}
 
-		if (continuous_trace) Trace();
 		return 0;
 
 	}
@@ -2645,6 +2779,8 @@ int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit
 
 		flatpoint  p=edata->transformPointInverse(screentoreal( x, y));
 		flatpoint op=edata->transformPointInverse(screentoreal(lx,ly));
+		flatpoint d=screentoreal( x, y)-screentoreal(lx,ly);
+		//flatpoint md=p-op;
 
 		EngraverPointGroup *group=&edata->defaultgroup;
 		if (current_group>=0) group=edata->groups.e[current_group];
@@ -2662,7 +2798,7 @@ int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit
 
 		} else if (over==ENGRAVE_Orient_Position) {
 			flatpoint pp=edata->getPoint(group->position.x,group->position.y, false);
-			pp+=screentoreal( x, y)-screentoreal(lx,ly);
+			pp+=d;
 			int status;
 			pp=edata->getPointReverse(pp.x,pp.y, &status);
 			if (status==1) group->position=pp;
@@ -2782,12 +2918,12 @@ int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit
 
 							flatvector vt=transpose(hoverdir);
 							vt.normalize();
-							vt*=.03*a*((l->p-m)*vt > 0 ? 1 : -1);
+							vt*=.01*a*((l->p-m)*vt > 0 ? 1 : -1);
 
 							if ((state&LAX_STATE_MASK)==ControlMask) {
-								l->p+=vt;
-							} else {
 								l->p-=vt;
+							} else {
+								l->p+=vt;
 							}
 							l->needtosync=2;
 
@@ -2874,22 +3010,6 @@ int EngraverFillInterface::Refresh()
 {
 	if (!needtodraw) return 0;
 
-	if (mode==EMODE_Freehand && !child) {
-		 //draw squiggly lines near mouse
-		dp->LineAttributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
-		dp->NewFG(0.,0.,1.);
-		dp->DrawScreen();
-		double s=10;
-		for (int c=-1; c<2; c++) {
-			dp->moveto(hover-flatpoint(2*s,c*s));
-			dp->curveto(hover-flatpoint(s*1.5,c*s+5), hover+flatpoint(-s/2,-c*s+s/2), hover+flatpoint(0,-c*s));
-			dp->stroke(0);
-		}
-		dp->DrawReal();
-		needtodraw=0;
-		return 0;
-	}
-
 
 	 //draw the trace object if necessary
 	if (trace.traceobject && trace.traceobj_opacity>.5 // **** .5 since actual opacity not working
@@ -2919,6 +3039,63 @@ int EngraverFillInterface::Refresh()
 		dp->closed();
 		dp->stroke(0);
 		dp->PopAxes();
+	}
+
+	if (show_direction) {
+		DirectionMap *map=directionmap;
+		if (!map && edata) {
+			EngraverPointGroup *group=&edata->defaultgroup;
+			if (current_group>=0) group=edata->groups.e[current_group];
+			map=group;
+		}
+
+		if (map) {
+			dp->DrawScreen();
+
+			//double s=1;
+			int step=20;
+			int win_w=dp->Maxx-dp->Minx;
+			int win_h=dp->Maxy-dp->Miny;
+			int ww=win_w - 2*step;
+			int hh=win_h - 2*step;
+
+
+			flatpoint v;
+			double vv;
+			flatpoint p;
+
+			for (int x=win_w/2-ww/2; x<win_w/2+ww/2; x+=step) {
+				for (int y=win_h/2-hh/2; y<win_h/2+hh/2; y+=step) {
+					p.x=x-(win_w/2-ww/2);
+					p.y=y-(win_h/2-hh/2);
+					p=screentoreal(p.x,p.y);
+
+					//DBG cerr <<int(xx)<<','<<int(yy)<<"  ";
+					v=map->Direction(p.x,p.y);
+					vv=norm(v);
+					if (vv>step*.8) v*=step*.8/vv;
+					if (vv<step*.5) v*=step*.5/vv;
+
+					dp->drawarrow(flatpoint(x,y), v, 0, 1, 2, 3);
+				}
+			}
+			dp->DrawReal();
+		}
+	}
+
+	if (mode==EMODE_Freehand && !child) {
+		 //draw squiggly lines near mouse
+		dp->LineAttributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
+		dp->NewFG(0.,0.,1.);
+		dp->DrawScreen();
+		double s=10;
+		for (int c=-1; c<2; c++) {
+			dp->moveto(hover-flatpoint(2*s,c*s));
+			dp->curveto(hover-flatpoint(s*1.5,c*s+5), hover+flatpoint(-s/2,-c*s+s/2), hover+flatpoint(0,-c*s));
+			dp->stroke(0);
+		}
+		dp->DrawReal();
+		needtodraw=0;
 	}
 
 	if (!edata) {
@@ -3023,6 +3200,10 @@ int EngraverFillInterface::Refresh()
 		dp->drawbez(data->boundary_outline,data->npoints_boundary/3,1,0);
 	}
 		
+	if (mode==EMODE_Freehand && !child) {
+		return 0;
+	}
+
 	if (mode==EMODE_Mesh) {
 		if (showdecs) {
 			dp->DrawScreen();
@@ -3489,6 +3670,24 @@ int EngraverFillInterface::PerformAction(int action)
 		needtodraw=1;
 		return 0;
 
+	} else if (action==ENGRAVE_ToggleDir) {
+		show_direction=!show_direction;
+		if (show_direction) PostMessage(_("Show direction map"));
+		else PostMessage(_("Don't show direction map"));
+		needtodraw=1;
+		return 0;
+
+	} else if (action==ENGRAVE_LoadDir) {
+		const char *file=NULL;
+		if (directionmap && directionmap->normal_map && directionmap->normal_map->filename)
+			file=directionmap->normal_map->filename;
+		app->rundialog(new FileDialog(NULL,"Load normal",_("Load normal map for direction"),
+						  ANXWIN_REMEMBER|ANXWIN_CENTER,0,0,0,0,0,
+						  object_id,"loadnormal",
+						  FILES_OPEN_ONE|FILES_PREVIEW, 
+						  file));
+		return 0;
+
 	} else if (action==ENGRAVE_ToggleWarp) {
 		always_warp=!always_warp;
 		if (always_warp) PostMessage(_("Always remap points when modifying mesh"));
@@ -3514,8 +3713,23 @@ int EngraverFillInterface::PerformAction(int action)
 			else if (group->type==EngraverPointGroup::PGROUP_Circular) group->type=EngraverPointGroup::PGROUP_Radial;
 		}
 
-		group->Fill(edata,-1);
-		edata->Sync(false);
+		if (grow_lines) {
+			EngraverPointGroup *group=&edata->defaultgroup;
+			if (current_group>=0) group=edata->groups.e[current_group];
+			growpoints.flush();
+			group->GrowLines(edata,
+							 group->spacing/3,
+							 group->spacing, NULL,
+							 .01, NULL,
+							 group->direction,group,
+							 &growpoints,
+							 1000 //iteration limit
+							);
+			edata->Sync(true);
+		} else {
+			group->Fill(edata,-1);
+			edata->Sync(false);
+		}
 		needtodraw=1;
 		return 0;
 	}
@@ -3750,7 +3964,10 @@ int EngraverFillInterface::Event(const Laxkit::EventData *e_data, const char *me
 			trace.traceobject->dec_count();
 			trace.traceobject=NULL;
 		}
-		trace.traceobject=new ImageData(s->str);
+		ImageData *idata=new ImageData();
+		idata->SetImage(img);
+		img->dec_count();
+		trace.traceobject=idata;
 		trace.traceobject->fitto(NULL,&box,50,50,2);
 
 		trace.ClearCache(false);
@@ -3762,6 +3979,43 @@ int EngraverFillInterface::Event(const Laxkit::EventData *e_data, const char *me
 
 		needtodraw=1;
 		PostMessage(_("Image to trace loaded."));
+		return 0;
+
+	} else if (!strcmp(mes,"loadnormal")) {
+        const StrEventData *s=dynamic_cast<const StrEventData *>(e_data);
+		if (!s || isblank(s->str)) return 0;
+
+		bool newmap=(directionmap?false:true);
+		if (!directionmap) directionmap=new NormalDirectionMap();
+		int status=directionmap->Load(s->str);
+		if (status!=0) {
+			if (newmap) { delete directionmap; directionmap=NULL; }
+
+			const char *bname=lax_basename(s->str);
+			char buf[strlen(_("Could not load %s"))+strlen(bname)+1];
+			sprintf(buf,_("Could not load %s"),bname);
+			PostMessage(buf);
+			return 0;
+		}
+
+		 //fit into a box 80% the size of viewport
+		int sx=dp->Maxx-dp->Minx;
+		int sy=dp->Maxy-dp->Miny;
+		flatpoint p1=screentoreal(dp->Minx+sx*.1,dp->Miny+sy*.1);
+		flatpoint p2=screentoreal(dp->Maxx-sx*.1,dp->Maxy-sy*.1);
+		DoubleBBox box;
+		box.addtobounds(p1);
+		box.addtobounds(p2);
+
+		ImageData *idata=new ImageData();
+		idata->SetImage(directionmap->normal_map);
+		idata->fitto(NULL,&box,50,50,2);
+		directionmap->m.set(*idata);
+		directionmap->m.Invert();
+		idata->dec_count();
+
+		needtodraw=1;
+		PostMessage(_("Normal map loaded."));
 		return 0;
 
 	} else if (!strcmp(mes,"FreehandInterface")) {
@@ -3858,6 +4112,8 @@ Laxkit::ShortcutHandler *EngraverFillInterface::GetShortcuts()
 	sc->Add(ENGRAVE_ToggleTrace, 'c',0,0,          "ToggleTrace", _("Toggle showing tracing controls"),NULL,0);
 	sc->Add(ENGRAVE_ToggleGrow,  'g',0,0,          "ToggleGrow",  _("Toggle grow mode"),NULL,0);
 	sc->Add(ENGRAVE_ToggleWarp,  'w',0,0,          "ToggleWarp",  _("Toggle warping when modifying mesh"),NULL,0);
+	sc->Add(ENGRAVE_ToggleDir,   'd',0,0,          "ToggleDir",   _("Toggle showing direction map"),NULL,0);
+	sc->Add(ENGRAVE_LoadDir,     'd',ControlMask,0,"LoadDir",     _("Load a normal map for direction"),NULL,0);
 
 	sc->Add(ENGRAVE_NextFill,     LAX_Left, 0,EMODE_Orientation,  "NextFillType",     _("Switch to next fill type"),NULL,0);
 	sc->Add(ENGRAVE_PreviousFill, LAX_Right,0,EMODE_Orientation,  "PreviousFillType", _("Switch to previous fill type"),NULL,0);
