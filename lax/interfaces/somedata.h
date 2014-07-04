@@ -113,6 +113,33 @@ class SomeData :  virtual public Laxkit::anObject,
 };
 
 
+   
+//------------------------- SomeDataUndo -------------------------------
+
+class SomeDataUndo : public Laxkit::UndoData
+{
+  public:
+	enum SDUndoTypes {
+		SDUNDO_Bounds   =(1<<0),
+		SDUNDO_Transform=(1<<1),
+		SDUNDO_Shift    =(1<<2),
+		SDUNDO_Rotation =(1<<3),
+		SDUNDO_Scale    =(1<<4),
+		SDUNDO_Shear    =(1<<5),
+		SDUNDO_MAX
+	};
+
+	int type;
+	Laxkit::Affine m, m_orig;
+	Laxkit::DoubleBBox box, box_orig;
+
+	SomeDataUndo(SomeData *object,
+			     Laxkit::Affine *mo, Laxkit::DoubleBBox *boxo,
+			     Laxkit::Affine *nm, Laxkit::DoubleBBox *nbox,
+			     int ntype, int nisauto);
+	virtual const char *Description();
+};
+
 
 
 } // namespace LaxInterfaces

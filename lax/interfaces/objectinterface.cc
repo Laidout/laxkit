@@ -456,11 +456,20 @@ int ObjectInterface::LBUp(int x,int y,unsigned int state,const Laxkit::LaxMouse 
 	}
 	
 	if (dragged && selection.n && viewport) {
+		// *** todo:
+		//Affine initial;
+		//UndoManager *undomanager=GetUndoManager();
+
 		for (int c=0; c<selection.n; c++) {
 			viewport->ObjectMoved(selection.e[c],1);
+
+			//if (undomanager) {
+			//	initial.m(start_transforms.e[c]);
+			//	undomanager->AddUndo(new SomeDataUndo(&initial,NULL, selection.e[c]->obj,NULL, SomeDataUndo::SDUNDO_Transform, (c==s ? false : true)));
+			//}
 		}
 		syncFromData(1);
-		//buttondown.up(d->id,LEFTBUTTON);
+		//buttondown.up(d->id,LEFTBUTTON); <- dealt with below in RecInterface
 		//return 0;
 	}
 
@@ -569,6 +578,7 @@ void ObjectInterface::TransformSelection(const double *N, int s, int e)
 	if (s<0) s=0;
 	if (s>=selection.n) s=selection.n-1;
 	if (e<0 || e>=selection.n) e=selection.n-1;
+
 	for (int c=s; c<=e; c++) {
 		if (viewport) {
 			 //say an object A is n deep (A1-A2-A3-...-(dp space),
@@ -590,9 +600,10 @@ void ObjectInterface::TransformSelection(const double *N, int s, int e)
 			selection.e[c]->obj->m(M);
 		} else {
 			 //assume nothing between objects and dp if not in a viewport
-			transform_mult(T,selection.e[c]->obj->m(),N);
-			selection.e[c]->obj->m(T);
+			transform_mult(M,selection.e[c]->obj->m(),N);
+			selection.e[c]->obj->m(M);
 		}
+
 	}
 }
 
