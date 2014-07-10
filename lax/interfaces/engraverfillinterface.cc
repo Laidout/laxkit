@@ -1497,13 +1497,13 @@ void EngraverFillData::dump_in_atts(Attribute *att,int flag,Laxkit::anObject *co
 			DoubleAttribute(value,&defaultgroup.spacing, NULL);
 
 		} else if (!strcmp(name,"color")) {
-			unsigned long color;
-			SimpleColorAttribute(value, &color);
-			double b=(color&0xff)/255.;
-			double g=((color&0xff00)>>8)/255.;
-			double r=((color&0xff0000)>>16)/255.;
-			double a=((color&0xff000000)>>24)/255.;
-			fillstyle.color.rgbf(r,g,b,a);
+			//unsigned long color;
+			SimpleColorAttribute(value, NULL, &fillstyle.color);
+			//double b=(color&0xff)/255.;
+			//double g=((color&0xff00)>>8)/255.;
+			//double r=((color&0xff0000)>>16)/255.;
+			//double a=((color&0xff000000)>>24)/255.;
+			//fillstyle.color.rgbf(r,g,b,a);
 
 		} else if (!strcmp(name,"line")) {
 			char *end_ptr=NULL;
