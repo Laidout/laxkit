@@ -187,7 +187,7 @@ FileDialog::FileDialog(anXWindow *parnt,const char *nname,const char *ntitle,uns
 	anXWindow *last=NULL;
 
 	 //create file input
-	last=file=new LineInput(this,"file",NULL,0, 0,0,0,0, 1, NULL,object_id,"new file", _("File?"),nfile,0, 0,0,2,2,2,2);
+	last=file=new LineInput(this,"file",NULL,0, 0,0,0,0, 1, NULL,object_id,"new file", _("File?"),lax_basename(nfile),0, 0,0,2,2,2,2);
 	file->tooltip(_("Filename to use"));
 
 	 //set up path input
