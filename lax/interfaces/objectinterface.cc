@@ -541,11 +541,14 @@ void ObjectInterface::Rotate(double angle)
 	if (!somedata) return;
 
 	Affine t;
-	flatpoint p=(somedata->transformPoint(flatpoint(somedata->minx,somedata->miny))+
+	flatpoint p;
+	if (extrapoints&HAS_CENTER1) p=somedata->transformPoint(center1);
+	else p=(somedata->transformPoint(flatpoint(somedata->minx,somedata->miny))+
 				 somedata->transformPoint(flatpoint(somedata->maxx,somedata->maxy)))/2;
 	t.Rotate(angle,p);
 	somedata->Rotate(angle,p);
 	TransformSelection(t.m());
+	syncFromData(0);
 	needtodraw=1;
 }
 

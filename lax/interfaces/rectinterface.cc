@@ -1019,7 +1019,16 @@ int RectInterface::LBDown(int x,int y,unsigned int state,int count,const Laxkit:
 	data->centercenter();
 	center1=flatpoint((data->minx+data->maxx)/2,(data->miny+data->maxy)/2);
 	createp=p;
+
+
+	DBG flatpoint xxx=somedata->xaxis();
+	DBG flatpoint yyy=somedata->yaxis();
+	DBG cerr <<" rect axes b4: x:"<<xxx.x<<','<<xxx.y<<"  y:"<<yyy.x<<','<<yyy.y<<endl;
 	syncFromData(1);
+
+	DBG xxx=somedata->xaxis();
+	DBG yyy=somedata->yaxis();
+	DBG cerr <<" rect axes aft: x:"<<xxx.x<<','<<xxx.y<<"  y:"<<yyy.x<<','<<yyy.y<<endl;
 
 	needtodraw=1;
 	DBG cerr <<"..rectlbd done   ";
@@ -1030,30 +1039,37 @@ int RectInterface::LBDown(int x,int y,unsigned int state,int count,const Laxkit:
 void RectInterface::Rotate(double angle)
 {
 	if (!somedata) return;
-	somedata->xaxis(rotate(somedata->xaxis(),-rotatestep));
-	somedata->yaxis(rotate(somedata->yaxis(),-rotatestep));
+	flatpoint p;
+	
+	if (extrapoints&HAS_CENTER1) p=somedata->transformPoint(center1);
+	else p=(somedata->transformPoint(flatpoint(somedata->minx,somedata->miny))+
+				 somedata->transformPoint(flatpoint(somedata->maxx,somedata->maxy)))/2;
+	somedata->Rotate(angle,p);
+
+	syncFromData(0);
 	needtodraw=1;
-	return;
 }
 
 //! Flip the rectangle. type must be one of RP_Flip_Go, RP_Flip_H, or RP_Flip_V.
 void RectInterface::Flip(int type)
 {
-	if (!data) return;
+	if (!somedata) return;
+
+	DBG cerr <<" RectInterface::Flip()..."<<endl;
 	if (type!=RP_Flip_Go && type!=RP_Flip_H && type!=RP_Flip_V) return;
 	
 	if (type==RP_Flip_H) {
-		flip1.x=flip2.x=(data->minx+data->maxx)/2;
-		flip1.y=data->miny;
-		flip2.y=data->maxy;
+		flip1.x=flip2.x=(somedata->minx+somedata->maxx)/2;
+		flip1.y=somedata->miny;
+		flip2.y=somedata->maxy;
 	} else if (type==RP_Flip_V) {
-		flip1.y=flip2.y=(data->miny+data->maxy)/2;
-		flip1.x=data->minx;
-		flip2.x=data->maxx;
+		flip1.y=flip2.y=(somedata->miny+somedata->maxy)/2;
+		flip1.x=somedata->minx;
+		flip2.x=somedata->maxx;
 	}
 
-	flatpoint f1=transform_point(data->m(),flip1);
-	flatpoint f2=transform_point(data->m(),flip2);
+	flatpoint f1=transform_point(somedata->m(),flip1);
+	flatpoint f2=transform_point(somedata->m(),flip2);
 
 	double mf[6],mfinv[6],f[6];
 	double t[6],tt[6];
@@ -1063,8 +1079,8 @@ void RectInterface::Flip(int type)
 
 	transform_mult(t, mfinv,f);
 	transform_mult(tt, t,mf);
-	transform_mult(t, data->m(),tt);
-	data->m(t);
+	transform_mult(t, somedata->m(),tt);
+	somedata->m(t);
 
 	syncFromData(1);
 	needtodraw=1;
@@ -1213,6 +1229,10 @@ int RectInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMou
 	if (mx==x && my==y) return 0;
 
 	if (mousetarget) mousetarget=0;
+
+	DBG flatpoint xx=somedata->xaxis();
+	DBG flatpoint yy=somedata->yaxis();
+	DBG cerr <<" rect axes: x:"<<xx.x<<','<<xx.y<<"  y:"<<yy.x<<','<<yy.y<<endl;
 
 	DBG cerr <<"========lbd: center1 dev:"<<(extrapoints&HAS_CENTER1)<<endl;
 	DBG cerr <<"========lbd: center2 dev:"<<(extrapoints&HAS_CENTER2)<<endl;
