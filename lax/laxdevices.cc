@@ -1201,7 +1201,7 @@ int XInput2Pointer::getInfo(anXWindow *win,
 			xid,             //    int                 deviceid,
 			xwin,            //    Window              win,
 			&rt,             //    Window*             root,
-			&chld,           //    Window*             child,
+			&chld,           //    Window*             child, is ONLY immediate child of xwin!!! usually a wm decoration window, not useful
 			&drx,            //    double*             root_x,
 			&dry,            //    double*             root_y,
 			&dxx,            //    double*             win_x,
@@ -1237,7 +1237,27 @@ int XInput2Pointer::getInfo(anXWindow *win,
 	}
 	if (er==False) return 1;
 
-	if (child) { *child=(chld ? anXApp::app->findwindow_xlib(chld) : NULL); }
+	if (child) {
+		 //we need to zero in on the actual child window
+		while (chld!=0) {
+			xwin=chld;
+			er=XIQueryPointer(
+				anXApp::app->dpy,//    Display*            display,
+				xid,             //    int                 deviceid,
+				xwin,            //    Window              win,
+				&rt,             //    Window*             root,
+				&chld,           //    Window*             child, is ONLY immediate child of xwin!!!
+				&drx,            //    double*             root_x,
+				&dry,            //    double*             root_y,
+				&dxx,            //    double*             win_x,
+				&dyy,            //    double*             win_y,
+				&buttonstate,    //    XIButtonState       *buttons,
+				&modstate,       //    XIModifierState     *mods,
+				&groupstate      //    XIGroupState        *group
+			);
+		}
+		*child=(xwin ? anXApp::app->findwindow_xlib(xwin) : NULL);
+	}
 	if (x) { *x=dxx; }
 	if (y) { *y=dyy; }
 	if (mods) { *mods=modstate.effective; }
