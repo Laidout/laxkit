@@ -101,29 +101,50 @@ void DoubleBBox::addtobounds(double x,double y)
 { addtobounds(flatpoint(x,y)); }
 
 
-//! Does the transformed box touch. **** incomplete implementation
+//! Return whether the transformed box touches. **** incomplete implementation
 /*! If settointersection, then set the bounds of *this to the bounding box of the
- * intersection. If touching
+ * intersection.
+ *
+ * If touching, then return true if any part touches this.
+ * If !touching, then return true only if bbox is totally inside this.
  *
  * \todo *** this is not well implemented, settointersection not implemented.
- * \todo *** this needs work so that there is option 
+ * \todo *** this needs some rethinking.. options are confusing, touching is ambiguous
  */
-int DoubleBBox::intersect(double *m,DoubleBBox *bbox, int touching, int settointersection)//s=0
+int DoubleBBox::intersect(const double *m,DoubleBBox *bbox, int touching, int settointersection)//s=0
 {
 	if (!m || !bbox) return 0;
 	int n=0;
-	flatpoint p;
-	 //this here checks if any of the corners are inside the bounding box.
-	p=transform_point(m,flatpoint(bbox->minx,bbox->miny));
-	if (p.x>=minx && p.x<=maxx && p.y>=miny && p.y<=maxy) n++;
-	p=transform_point(m,flatpoint(bbox->minx,bbox->maxy));
-	if (p.x>=minx && p.x<=maxx && p.y>=miny && p.y<=maxy) n++;
-	p=transform_point(m,flatpoint(bbox->maxx,bbox->maxy));
-	if (p.x>=minx && p.x<=maxx && p.y>=miny && p.y<=maxy) n++;
-	p=transform_point(m,flatpoint(bbox->maxx,bbox->miny));
-	if (p.x>=minx && p.x<=maxx && p.y>=miny && p.y<=maxy) n++;
+	flatpoint ul,ur,ll,lr;
 
-	if (!n) return 0;
+	 //this here checks if any of the corners are inside the bounding box.
+	ll=transform_point(m,flatpoint(bbox->minx,bbox->miny));
+	if (ll.x>=minx && ll.x<=maxx && ll.y>=miny && ll.y<=maxy) n++;
+
+	ul=transform_point(m,flatpoint(bbox->minx,bbox->maxy));
+	if (ul.x>=minx && ul.x<=maxx && ul.y>=miny && ul.y<=maxy) n++;
+
+	ur=transform_point(m,flatpoint(bbox->maxx,bbox->maxy));
+	if (ur.x>=minx && ur.x<=maxx && ur.y>=miny && ur.y<=maxy) n++;
+
+	lr=transform_point(m,flatpoint(bbox->maxx,bbox->miny));
+	if (lr.x>=minx && lr.x<=maxx && lr.y>=miny && lr.y<=maxy) n++;
+
+	if (!n && touching) {
+		////flatpoint p1(minx,miny), p2(minx,maxy), pp;
+		////if (segmentcross(p1,p2, ul,ur, p)) return 1;
+		//
+		//flatpoint pts[4];
+		//pts[0].x=minx; pts[0].y=miny;
+		//pts[1].x=maxx; pts[1].y=miny;
+		//pts[2].x=maxx; pts[2].y=maxy;
+		//pts[3].x=minx; pts[3].y=maxy;
+		//if (intersections(ll,lr, pts,4,true)) return 1;
+		//if (intersections(lr,ur, pts,4,true)) return 1;
+		//if (intersections(ur,ul, pts,4,true)) return 1;
+		//if (intersections(ul,ll, pts,4,true)) return 1;
+		return 0;
+	}
 	if (touching) return n; //true if any corners in bounds
 	return n==4; //true when all 4 corners are in bounds
 }

@@ -45,7 +45,7 @@ class DoubleBBox {
 	virtual int validbounds() { return maxx>=minx && maxy>=miny; }
 	virtual int intersect(double mix,double max,double miy,double may, int settointersection=0);
 	virtual int intersect(DoubleBBox *bbox, int settointersection=0);
-	virtual int intersect(double *m,DoubleBBox *bbox, int touching, int settointersection);
+	virtual int intersect(const double *m,DoubleBBox *bbox, int touching, int settointersection);
 	virtual int boxcontains(double x, double y);
 	virtual flatpoint BBoxPoint(double x,double y);
 };
