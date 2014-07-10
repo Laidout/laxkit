@@ -73,10 +73,10 @@ void RefPtrStack<T>::flush()
 	if (PtrStack<T>::n==0) return;
 	for (int c=0; c<PtrStack<T>::n; c++) {
 		if (PtrStack<T>::e[c]) {
-			if (PtrStack<T>::islocal[c]==2) 
+			if (PtrStack<T>::islocal[c]==LISTS_DELETE_Array) 
 				delete[] PtrStack<T>::e[c]; 
-			else if (PtrStack<T>::islocal[c]==1) delete PtrStack<T>::e[c];
-			else if (PtrStack<T>::islocal[c]==3) {
+			else if (PtrStack<T>::islocal[c]==LISTS_DELETE_Single) delete PtrStack<T>::e[c];
+			else if (PtrStack<T>::islocal[c]==LISTS_DELETE_Refcount) {
 				anObject *ref=dynamic_cast<anObject *>(PtrStack<T>::e[c]);
 				if (ref) ref->dec_count();
 				else delete PtrStack<T>::e[c];
@@ -106,12 +106,15 @@ int RefPtrStack<T>::remove(int which) //which=-1
 	char l=PtrStack<T>::islocal[which];
 	T *t=PtrStack<T>::pop(which);
 	if (t) {
-		if (l==2) delete[] t;
-		else if (l==1) delete t;
-		else if (l==3) {
+		if (l==LISTS_DELETE_Array) delete[] t;
+		else if (l==LISTS_DELETE_Single) delete t;
+		else if (l==LISTS_DELETE_Refcount) {
 			anObject *ref=dynamic_cast<anObject *>(t);
 			if (ref) ref->dec_count();
-			else delete t;
+			else {
+				delete t;
+				//cerr <<" *** Uh oh! RefPtrStack trying to dec_count something not dec_countable!"<<endl;
+			}
 		}
 	}
 	if (t) return 1; else return 0;
@@ -121,16 +124,16 @@ int RefPtrStack<T>::remove(int which) //which=-1
 /*! If called without where, pointer is pushed onto the top (highest n) position.
  *
  *  If local==-1, then use arrays for local.
- *  If local==1, then when the stack flushes or the the element is removed,
- *  then it is delete'd. If local==2, then the element will be delete[]'d.
+ *  If local==LISTS_DELETE_Single, then when the stack flushes or the the element is removed,
+ *  then it is delete'd. If local==LISTS_DELETE_Array, then the element will be delete[]'d.
  *  
- *  If local==3 then call dec_count() when the stack would otherwise delete it.
+ *  If local==LISTS_DELETE_Refcount then call dec_count() when the stack would otherwise delete it.
  *  That assumes the element can be cast to anObject. ne's count is incremented
  *  when pushed here.
  *
  *  If local is any other value, then delete is not called on the element.
  *
- *  If the item has 3 for its local and it can be cast to anObject, then 
+ *  If the item has LISTS_DELETE_Refcount for its local and it can be cast to anObject, then 
  *  inc_count() is called on it.
  * 
  *  Returns the index of the new element on the stack, or -1 if the push failed.
@@ -140,7 +143,7 @@ int RefPtrStack<T>::push(T *ne,char local,int where) // local=-1, where=-1
 {
 	int i=PtrStack<T>::push(ne,local,where);
 	if (i<0) return i;
-	if (PtrStack<T>::islocal[i]==3) {
+	if (PtrStack<T>::islocal[i]==LISTS_DELETE_Refcount) {
 		anObject *ref=dynamic_cast<anObject *>(ne);
 		if (ref) ref->inc_count();
 	}
