@@ -403,12 +403,12 @@ int BooleanAttribute(const char *v)
  * Returns 0 for successful parsing, and color is returned in color_ret.
  * Returns 1 for unsuccessful for failure, and color_ret not changed.
  */
-int SimpleColorAttribute(const char *v,unsigned long *color_ret)
+int SimpleColorAttribute(const char *v,unsigned long *color_ret, Laxkit::ScreenColor *scolor_ret)
 {
 	while (isspace(*v)) v++;
 
 	int type=0; //3=rgb, 1=gray, 4=cmyk
-	int a=0, f=8;
+	int a=0, f=-1;
 	if (strcasestr(v,"rgb")==v) {
 		v+=3;
 		type=3;
@@ -425,6 +425,7 @@ int SimpleColorAttribute(const char *v,unsigned long *color_ret)
 	if (type!=0 && (*v=='f' || *v=='F')) { f=0; v++; } // read in floats
 	if (type!=0 && *v=='8') { f=8; v++; }
 	else if (type!=0 && v[0]=='1' && v[1]=='6') { f=16; v+=2; }
+	if (f==-1) f=16;
 
 	if (*v=='(') v++;
 
@@ -432,7 +433,7 @@ int SimpleColorAttribute(const char *v,unsigned long *color_ret)
 	if (type==0) type=3;
 	int max=(f==16?65535:255);
  
-	 //first create list of integers in range 0..255
+	 //first create list of integers in range 0..max
 	int numf=0;
 	if (f==0) {
 		double d[5];
@@ -480,7 +481,7 @@ int SimpleColorAttribute(const char *v,unsigned long *color_ret)
 
 	}
 
-	 //clamp values to [0..255]
+	 //clamp values to [0..max]
 	for (int cc=0; cc<numf; cc++) {
 		if (i[cc]<0) i[cc]=0;
 		else if (i[cc]>max) i[cc]=max;
@@ -506,7 +507,14 @@ int SimpleColorAttribute(const char *v,unsigned long *color_ret)
 		i[2]=rgb[2];
 	}
 
-	*color_ret = (i[0]<<16) | (i[1]<<8) | (i[2]<<0) | (i[3]<<24);
+	if (color_ret) *color_ret = (i[0]<<16) | (i[1]<<8) | (i[2]<<0) | (i[3]<<24);
+	if (scolor_ret) {
+		if (max!=16) for (int c=0; c<4; c++) i[c]=(i[c]<<8)|i[c];
+		scolor_ret->red  =i[0];
+		scolor_ret->green=i[1];
+		scolor_ret->blue =i[2];
+		scolor_ret->alpha=i[3];
+	}
 	return 0;
 }
 
