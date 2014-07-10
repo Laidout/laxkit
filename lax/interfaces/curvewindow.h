@@ -77,9 +77,9 @@ class CurveWindow : public Laxkit::anXWindow
 
 	 //curve specific functions:
 	virtual void SetupRect();
-	virtual int scaneditable(int x,int y);
-	virtual int scan(int x,int y);
-	virtual int scannear(int x,int y, flatpoint *p_ret, int *index);
+	//virtual int scaneditable(int x,int y);
+	//virtual int scan(int x,int y);
+	//virtual int scannear(int x,int y, flatpoint *p_ret, int *index);
 	virtual int MakeLookupTable(int *table,int numentries, int minvalue, int maxvalue);
 	virtual double f(double x);
 	virtual Laxkit::CurveInfo *GetInfo() { return interface.GetInfo(); }
