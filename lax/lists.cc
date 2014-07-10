@@ -371,11 +371,15 @@ T NumStack<T>::pop(int which) // which=-1
 /*! \var char PtrStack::arrays
  * \brief The default local value for elements of the stack.
  *
- * This should be 2 to delete[] elements, rather than just delete (1) or 0 to not delete at all.
+ * Uses ListsDeleteType.
+ * This should be LISTS_DELETE_Array to delete[] elements, rather than just delete (LISTS_DELETE_Single, the 
+ * default) or LIST_DELETE_None to not delete at all.
  */
 /*! \fn PtrStack<T>::PtrStack(char nar)
  * 
- * nar==1 (the default) means elements get delete'd, 2 means delete[]'d, other means don't delete.
+ * nar uses ListsDeleteType.
+ * nar should be LISTS_DELETE_Array to delete[] elements, rather than just delete (LISTS_DELETE_Single, the 
+ * default) or LIST_DELETE_None to not delete at all.
  */
 /*! \fn T *PtrStack<T>::operator[](int i)
  * \brief Return pointer to element i, or NULL.
@@ -472,8 +476,8 @@ void PtrStack<T>::flush()
 	if (n==0) return;
 	for (int c=0; c<n; c++) 
 		if (e[c]) {
-			if (islocal[c]==2) delete[] e[c];
-			else if (islocal[c]==1) delete e[c];
+			if (islocal[c]==LISTS_DELETE_Array) delete[] e[c];
+			else if (islocal[c]==LISTS_DELETE_Single) delete e[c];
 		}
 	delete[] e; e=NULL;
 	delete[] islocal; islocal=NULL;
@@ -509,7 +513,10 @@ int PtrStack<T>::remove(int which) //which=-1
 	if (which<0 || which>=n) which=n-1;
 	char l=islocal[which];
 	T *t=pop(which);
-	if (t) { if (l==2) delete[] t; else if (l==1) delete t; }
+	if (t) {
+		if (l==LISTS_DELETE_Array) delete[] t;
+		else if (l==LISTS_DELETE_Single) delete t;
+	}
 	if (t) return 1; else return 0; //note t is deleted now, we just want to know if we had an address
 }
 

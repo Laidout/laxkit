@@ -29,6 +29,9 @@ namespace Laxkit {
 #define NULL 0
 #endif
 
+
+//------------------------------- NumStack --------------------------------------
+
 template <class T>
 class NumStack
 {
@@ -60,10 +63,14 @@ class NumStack
 };
 
 
+//------------------------------- PtrStack --------------------------------------
+
+// NOTE: these numbers should not change, they are, alas, hardcoded in many places
 enum ListsDeleteType {
-	LISTS_DELETE_None,
-	LISTS_DELETE_Array,
-	LISTS_DELETE_Refcount,
+	LISTS_DELETE_None=0,
+	LISTS_DELETE_Single=1,
+	LISTS_DELETE_Array=2,
+	LISTS_DELETE_Refcount=3,
 	LISTS_DELETE_MAX
 };
 
@@ -78,7 +85,7 @@ class PtrStack
 	char *islocal;
 	int n;
 	T **e;
-	PtrStack(char nar=1);
+	PtrStack(char nar=LISTS_DELETE_Single);
 	virtual ~PtrStack();
 	virtual T *operator[](int i) { if (i>=0 && i<n) return e[i]; else return NULL; }
 	virtual void flush();
