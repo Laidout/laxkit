@@ -789,15 +789,9 @@ void MenuSelector::drawsubindicator(MenuItem *mitem,int x,int y)
 void MenuSelector::drawcheck(int on, int x,int y)
 {
 	if (!on) return;
-	int w=checkw, h=textheight+leading;
-	int fasc=app->defaultlaxfont->ascent();
+
 	foreground_color(win_colors->fg);
-	//draw_line(this, x,y+h/2, x+w/3,y+fasc);
-	//draw_line(this, x+w/3,y+fasc, x+w,y+h/5);
 	draw_thing(this, x+checkw/2,y+(textheight+leading)/2, .7*checkw,-.7*(textheight+leading/2), 1, THING_Check);
-//-------
-//	draw_line(this, x,y+h/2, x+w/3,y+h*4/5);
-//	draw_line(this, x+w/3,y+h, x+w,y+h/5);
 }
 
 //! Draw the item icon and name in rect.
