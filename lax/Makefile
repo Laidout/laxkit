@@ -131,7 +131,6 @@ objs= \
 	itemslider.o \
 	iconslider.o \
 	numslider.o \
-	numinputslider.o \
 	checkbox.o \
 	progressbar.o \
 	scrolledwindow.o \

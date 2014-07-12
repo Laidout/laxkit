@@ -39,9 +39,6 @@ namespace Laxkit {
  * The range is [min,max]. If NUMSLIDER_WRAP is part of win_style, then sliding through
  * numbers wraps around, rather than stops at min or max.
  *
- * See NumInputSlider for a class that adds the ability to type in a value in addition
- * to the sliding feature of this class.
- *
  * \todo  optional label:   [ Blah: 34 ]
  * \todo super shift/ shift-but4 to move faster*** put that in itemslider
  */
