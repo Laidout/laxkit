@@ -55,9 +55,11 @@ int ScreenColor::equals(double r,double g,double b, double a)
 	return red==int(.5+r*65535) && green==int(.5+g*65535) && blue==int(.5+b*65535) && alpha==int(.5+a*65535);
 }
 
+/*! Return 0xAARRGGBB
+ */
 unsigned long ScreenColor::Pixel()
 {
-	return (red>>8) | ((green>>8)<<8) | ((blue>>8)<<16);
+	return (blue>>8) | ((green>>8)<<8) | ((red>>8)<<16) | ((alpha>>8)<<24);
 }
 
 //! Set colors to represent a gray, range [0..65535].
@@ -67,7 +69,7 @@ void ScreenColor::gray(int g, int a)
 	alpha=a;
 }
 
-//! Set colors to represent an rgb color.
+//! Set colors to represent an rgb color. Channels in range [0..65535].
 void ScreenColor::rgb(int r,int g,int b, int a)
 {
 	red=r;
