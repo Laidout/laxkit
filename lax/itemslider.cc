@@ -23,6 +23,7 @@
 
 
 #include <lax/itemslider.h>
+#include <lax/laxutils.h>
 #include <unistd.h>
 
 
@@ -42,23 +43,11 @@ namespace Laxkit {
  * 	up or down depending on whether you move the mouse right or left. Users of the program
  * 	Blender will be familiar with this sort of control.
  *
+ * 	If EDITABLE, then leave an area in the center, clicking of which activates editing mode.
+ *
  * \todo *** perhaps add basic popup mechanism to this class?
  *
- * \code
- *  // SENDALL means send sendthis message on every Idle,Select/Previous/Next
- *  // AUTOSHIFT means move mouse outside window then sit also selects
- *  //   prev/next based on (how far out of window)/movewidth
- * #define ITEMSLIDER_XSHIFT    (1<<16)
- * #define ITEMSLIDER_YSHIFT    (1<<17)
- * #define ITEMSLIDER_SENDALL   (1<<18)
- * #define ITEMSLIDER_AUTOSHIFT (1<<19)
- * #define ITEMSLIDER_POPUP     (1<<20)
- * \endcode
- *
  */ 
-/*! \var int ItemSlider::lbitem
- * \brief The index of the current item at the moment the left button is pressed down.
- */
 
 
 ItemSlider::ItemSlider(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
@@ -68,9 +57,7 @@ ItemSlider::ItemSlider(anXWindow *parnt,const char *nname,const char *ntitle,uns
 {
 	movewidth=10;
 	curitem=-1;
-	timerid=0;
-	buttondown=0;
-	buttondowndevice=0;
+	hover=0;
 
 	installColors(app->color_panel);
 }
@@ -98,26 +85,32 @@ int ItemSlider::send()
 }
 
  //! Select the previous item.
- /*! Returns id of the new item. */
-int ItemSlider::SelectPrevious()
+ /*! Returns id of the new item.
+  * Default ignores multiplier. During MouseMove(), if shift and/or control are pressed,
+  * multiplier will be larger to say we need to make larger changes than just 1 to curitem.
+  */
+int ItemSlider::SelectPrevious(double multiplier)
 { 
 	if (curitem==-1) return -1;
 	curitem--;
 	if (curitem<0) curitem=numitems()-1;
-	if (win_style & ITEMSLIDER_SENDALL) send();
+	if (win_style & SENDALL) send();
 	DBG cerr <<" Previous Item:"<<curitem<<endl;
 	needtodraw=1;
 	return getid(curitem);
 }
 
  //! Select the next item.
- /*! Returns id of the new item. */
-int ItemSlider::SelectNext()
+ /*! Returns id of the new item.
+  * Default ignores multiplier. During MouseMove(), if shift and/or control are pressed,
+  * multiplier will be larger to say we need to make larger changes than just 1 to curitem.
+  */
+int ItemSlider::SelectNext(double multiplier)
 {
 	if (curitem==-1) return -1;
 	curitem++;
 	if (curitem==numitems()) curitem=0;
-	if (win_style & ITEMSLIDER_SENDALL) send();
+	if (win_style & SENDALL) send();
 	needtodraw=1;
 	return getid(curitem);
 }
@@ -136,7 +129,7 @@ int ItemSlider::Select(int id)
 	for (c=0; c<numitems(); c++) if (getid(c)==id) break;
 	if (c!=numitems()) {
 		curitem=c;
-		if (win_style & ITEMSLIDER_SENDALL) send();
+		if (win_style & SENDALL) send();
 		needtodraw=1;
 	}
 	return getid(curitem);
@@ -153,70 +146,114 @@ int ItemSlider::GetCurrentItemId()
  */
 int ItemSlider::LBDown(int x,int y,unsigned int state,int count,const LaxMouse *d)
 {
-	buttondown|=LEFTBUTTON;
-	buttondowndevice=d->id;
-
-	mx=x; my=y;
-	lx=x; ly=y;
-	lbitem=curitem;
-	//if (!timerid) timerid=app->addmousetimer(this);
-	return 0;
-}
-
-//! If button is down, then next or previous items are selected rapidly.
-/*! Pressing the button down and not moving it causes points to
- * cycle through, as if you were rapidly clicking on the left or
- * right region of the control. Moving the button even just a little
- * cancels this operation.
- *
- * \todo *** need to implement fast scrolling with shift/control!!
- */
-int ItemSlider::Idle(int tid)
-{
-	DBG cerr <<"itemslider idle"<<endl;
-	if (!tid) return 0;
-	if (tid!=timerid) { app->removetimer(this,tid); return 0; }
-	if (!buttondown) { timerid=0; app->removetimer(this,timerid); return 0; }
-	if (mx<win_w/2) SelectPrevious();
-	if (mx>=win_w/2) SelectNext();
-	if (curitem!=lbitem && (win_style & ITEMSLIDER_SENDALL)) send();
+	buttondown.down(d->id,LEFTBUTTON, x,y, curitem);
 	return 0;
 }
 
 //! Select a next or previous item.
 /*! If button is up on the left side, then SelectPrevious is called.
  * If button is on the right side, then SelectNext is called.
+ *
+ * If EDITABLE, then use a pad of default text height on either side of the window
+ * for direction arrows. Clicking in the center activates edit mode, with
+ * Mode(1). This base class does not implement any editing.
  */
 int ItemSlider::LBUp(int x,int y,unsigned int state,const LaxMouse *d)
 {
-	if (!buttondown&LEFTBUTTON || d->id!=buttondowndevice) return 0;
-	buttondown&=~LEFTBUTTON;
-	if (mx==x && my==y && x<win_w/2) SelectPrevious();
-	if (mx==x && my==y && x>=win_w/2) SelectNext();
+	if (!buttondown.isdown(d->id,LEFTBUTTON)) return 1;
+
+	int lbitem;
+	int dragged=buttondown.up(d->id,LEFTBUTTON, &lbitem);
+
+	int ww=win_w/2;
+
+	if (win_style&EDITABLE) {
+		ww=text_height();
+		if (dragged<movewidth && x>=ww && x<win_w-ww) {
+			Mode(1);
+			return 0;
+		}
+	}
+
+	if (dragged<movewidth && x<ww) SelectPrevious(1);
+	if (dragged<movewidth && x>=win_w-ww) SelectNext(1);
 	if (curitem!=lbitem) send();
 	return 0;
 }
 
+/*! Change the mode of the window.
+ *
+ * 0 is normal mode. 1 is editing mode (if any).
+ *
+ * Returns current mode. This base class does not implement any actual editing,
+ * so mode is never changed, and 0 is returned.
+ */
+int ItemSlider::Mode(int newmode)
+{ return 0; }
+
 //! Dragging the mouse horizontally selects previous or next item.
 /*! If the mouse is dragged more than movewidth then the next
- * or previous item is selected. If the mouse moves just a little bit,
- * it cancels any idle selecting by setting lx and ly to unreasonable
- * values, which causes Idle to stop the cycling.
+ * or previous item is selected. 
  */
 int ItemSlider::MouseMove(int x,int y,unsigned int state,const LaxMouse *d)
 {
-	if (timerid) { timerid=0; app->removetimer(this,timerid); }
-	if (!buttondown || d->id!=buttondowndevice) return 1;
-	lx=ly=10000;
-	if (win_style&ITEMSLIDER_YSHIFT) {
-		if (my-y>movewidth) { SelectPrevious(); mx=x; my=y; }
-		else if (y-my>movewidth) { SelectNext(); mx=x; my=y; }
+	if (!buttondown.isdown(d->id,LEFTBUTTON)) {
+		int nhover=0;
+		int ww=win_w/2;
+		if (win_style&EDITABLE) ww=text_height();
+
+		if (x<ww) nhover=LAX_LEFT;
+		else if (x>win_w-ww) nhover=LAX_RIGHT;
+		else if (x>0 && x<win_w) nhover=LAX_CENTER;
+		if (nhover!=hover) {
+			hover=nhover;
+			needtodraw=1;
+		}
+		return 1;
+	}
+
+	int mx,my;
+	buttondown.move(d->id, x,y, &mx,&my);
+
+	double multiplier=1;
+	if ((state&(ShiftMask|ControlMask))==ShiftMask) multiplier=10;
+	else if ((state&(ShiftMask|ControlMask))==ControlMask) multiplier=10;
+	else if ((state&(ShiftMask|ControlMask))==(ShiftMask|ControlMask)) multiplier=20;
+
+	if (win_style&YSHIFT) {
+		if (my-y>movewidth) SelectPrevious(multiplier);
+		else if (y-my>movewidth) SelectNext(multiplier);
 	} else {
-		if (mx-x>movewidth) { SelectPrevious(); mx=x; my=y; }
-		else if (x-mx>movewidth) { SelectNext(); mx=x; my=y; }
+		if (mx-x>movewidth) SelectPrevious(multiplier);
+		else if (x-mx>movewidth) SelectNext(multiplier);
 	}
 	return 0;
 }
+
+int ItemSlider::WheelUp(int x,int y,unsigned int state,int count,const LaxMouse *d)
+{
+	double multiplier=1;
+	if ((state&(ShiftMask|ControlMask))==ShiftMask) multiplier=10;
+	else if ((state&(ShiftMask|ControlMask))==ControlMask) multiplier=10;
+	else if ((state&(ShiftMask|ControlMask))==(ShiftMask|ControlMask)) multiplier=20;
+
+	SelectNext(multiplier);
+	send();
+	return 0;
+}
+
+int ItemSlider::WheelDown(int x,int y,unsigned int state,int count,const LaxMouse *d)
+{
+	double multiplier=1;
+	if ((state&(ShiftMask|ControlMask))==ShiftMask) multiplier=10;
+	else if ((state&(ShiftMask|ControlMask))==ControlMask) multiplier=10;
+	else if ((state&(ShiftMask|ControlMask))==(ShiftMask|ControlMask)) multiplier=20;
+
+	SelectPrevious(multiplier); 
+	send();
+	return 0;
+}
+
 
 } // namespace Laxkit
 

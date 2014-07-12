@@ -18,7 +18,7 @@
 //    License along with this library; if not, write to the Free Software
 //    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
-//    Copyright (C) 2004-2010 by Tom Lechner
+//    Copyright (C) 2004-2010,2014 by Tom Lechner
 //
 #ifndef _LAX_NUMSLIDER_H
 #define _LAX_NUMSLIDER_H
@@ -27,24 +27,30 @@
 
 namespace Laxkit {
 
-#define NUMSLIDER_WRAP (1<<20)
 
 class NumSlider : public ItemSlider
 {
- protected:
+  protected:
+	int mode;
 	int lastitem;
 	char *label;
 	virtual void wraptoextent();
 	virtual int getid(int i) { return curitem; }
 	virtual int numitems() { return max-min+1; }
- public:
+
+  public:
+	enum NumSliderFlags {
+		WRAP          =(ItemSlider::MAX<<1),
+		NUMSLIDER_MAX =(ItemSlider::MAX<<1)
+	};
+
 	int min,max;
 	NumSlider(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
 		int xx,int yy,int ww,int hh,int brder,
 		anXWindow *prev,unsigned long nowner,const char *nsendthis,const char *nlabel,int nmin,int nmax,int cur=-10000);
-	virtual int MouseMove(int x,int y,unsigned int state,const LaxMouse *d);
-	virtual int SelectPrevious();
-	virtual int SelectNext();
+	//virtual int MouseMove(int x,int y,unsigned int state,const LaxMouse *d);
+	virtual int SelectPrevious(double multiplier);
+	virtual int SelectNext(double multiplier);
 	virtual int Select(int n);
 	virtual void Refresh();
 	virtual const char *Label(const char *nlabel);
@@ -52,8 +58,12 @@ class NumSlider : public ItemSlider
 	virtual int NewMax(int nmax) { return max=nmax; } //*** doesn't do max>min checking
 	virtual int NewMinMax(int nmin,int nmax) { max=nmax; return min=nmin; }
 	virtual int Value() { return curitem; }
+
+	virtual int Event(const EventData *e,const char *mes);
+	virtual int Mode(int newmode);
 };
 
 } // namespace Laxkit
 
 #endif
+

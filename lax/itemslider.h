@@ -18,46 +18,55 @@
 //    License along with this library; if not, write to the Free Software
 //    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
-//    Copyright (C) 2004-2010 by Tom Lechner
+//    Copyright (C) 2004-2010,2014 by Tom Lechner
 //
 #ifndef _LAX_ITEMSLIDER_H
 #define _LAX_ITEMSLIDER_H
 
 
 #include <lax/anxapp.h>
+#include <lax/buttondowninfo.h>
 
 namespace Laxkit {
-
- // SENDALL means send sendthis message on Idle,Select/Previous/Next
- // AUTOSHIFT means move mouse outside window then sit also selects prev/next based on (how far out of window)/movewidth
-#define ITEMSLIDER_XSHIFT    (1<<16)
-#define ITEMSLIDER_YSHIFT    (1<<17)
-#define ITEMSLIDER_SENDALL   (1<<18)
-#define ITEMSLIDER_AUTOSHIFT (1<<19)
-#define ITEMSLIDER_POPUP     (1<<20)
 
 class ItemSlider : public anXWindow
 {
   protected:
-	int timerid;
 	int nitems;
-	int curitem,lbitem;
-	int mx,my,lx,ly;
-	int ox,oy;
-	int buttondown, buttondowndevice;
+	int curitem;
+
+	Laxkit::ButtonDownInfo buttondown;
+	int hover;
+
 	virtual int send();
-	virtual int getid(int i)=0;
-	virtual int numitems()=0;
+	virtual int getid(int i) = 0;
+	virtual int numitems()   = 0;
+
+	virtual int Mode(int newmode);
+
   public:
-	int movewidth; // moving past this num in x/y dirs selects next or prev
+	 // SENDALL means send sendthis message on Idle,Select/Previous/Next
+	 // AUTOSHIFT means move mouse outside window then sit also selects prev/next based on (how far out of window)/movewidth
+	 //!these are passed in with nstyle in constructor
+	enum ItemSliderFlags {
+		XSHIFT    =(1<<16),
+		YSHIFT    =(1<<17),
+		SENDALL   =(1<<18),
+		AUTOSHIFT =(1<<19),
+		POPUP     =(1<<20),
+		EDITABLE  =(1<<21),
+		MAX       =(1<<21)
+	};
+
+	int movewidth; // moving past this num in x/y directions selects next or prev
+
 	ItemSlider(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
 			int xx,int yy,int ww,int hh,int brder,
 			anXWindow *prev,unsigned long nowner,const char *nsendthis);
 	virtual ~ItemSlider();
 	virtual int init();
-	virtual int Idle(int tid=0);
-	virtual int WheelUp(int x,int y,unsigned int state,int count,const LaxMouse *d) { SelectNext(); send(); return 0; }
-	virtual int WheelDown(int x,int y,unsigned int state,int count,const LaxMouse *d) { SelectPrevious(); send(); return 0; }
+	virtual int WheelUp(int x,int y,unsigned int state,int count,const LaxMouse *d);
+	virtual int WheelDown(int x,int y,unsigned int state,int count,const LaxMouse *d);
 	virtual int LBDown(int x,int y,unsigned int state,int count,const LaxMouse *d);
 	virtual int LBUp(int x,int y,unsigned int state,const LaxMouse *d);
 	virtual int MouseMove(int x,int y,unsigned int state,const LaxMouse *d);
@@ -65,8 +74,8 @@ class ItemSlider : public anXWindow
 	virtual void Refresh() = 0;
 
 	virtual int GetCurrentItemId();
-	virtual int SelectPrevious();
-	virtual int SelectNext();
+	virtual int SelectPrevious(double multiplier);
+	virtual int SelectNext(double multiplier);
 	virtual int Select(int id);
 };
 
