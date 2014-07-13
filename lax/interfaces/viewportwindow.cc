@@ -642,11 +642,16 @@ int ViewportWindow::HasInterface(int iid)
 //! Return whether an interface with the given whattype is on the interfaces stack.
 /*! Return value is index+1 if found, or 0 if not.
  */
-int ViewportWindow::HasInterface(const char *name)
+anInterface *ViewportWindow::HasInterface(const char *name, int *index_ret)
 {
-	for (int c=0; c<interfaces.n; c++) 
-		if (!strcmp(interfaces.e[c]->whattype(),name)) return c+1;
-	return 0;
+	for (int c=0; c<interfaces.n; c++)  {
+		if (!strcmp(interfaces.e[c]->whattype(),name)) {
+			if (index_ret) *index_ret=c;
+			return interfaces.e[c];
+		}
+	}
+	if (index_ret) *index_ret=-1;
+	return NULL;
 }
 
 //! Push i onto the stack, call i->Dp(dp), then i->InterfaceOn();
@@ -773,7 +778,26 @@ void ViewportWindow::Refresh()
 		RefreshUnder();
 
 		ObjectContext *oc;
+
+		 //refresh normal interfaces
 		for (c=0; c<interfaces.n; c++) {
+			if (interfaces.e[c]->interface_type==INTERFACE_Overlay) continue;
+			if (interfaces.e[c]->Needtodraw()) {
+				//cout <<" \ndrawing "<<c;
+				oc=interfaces.e[c]->Context();
+				if (oc) {
+					double m[6];
+					transformToContext(m,oc,0,1);
+					dp->PushAndNewTransform(m);
+				}
+				interfaces.e[c]->Refresh();
+				if (oc) { dp->PopAxes(); oc=NULL; }
+			}
+		}
+		 
+		 //refresh overlays after everything else
+		for (c=0; c<interfaces.n; c++) {
+			if (interfaces.e[c]->interface_type!=INTERFACE_Overlay) continue;
 			if (interfaces.e[c]->Needtodraw()) {
 				//cout <<" \ndrawing "<<c;
 				oc=interfaces.e[c]->Context();
