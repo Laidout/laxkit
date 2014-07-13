@@ -35,9 +35,18 @@
 
 namespace Laxkit {
 
-#define LAX_COLOR_RGB   1
-#define LAX_COLOR_CMYK  2
-#define LAX_COLOR_GRAY  3
+
+enum BasicColorTypes {
+	LAX_COLOR_NONE   =0,
+	LAX_COLOR_RGB    ,
+	LAX_COLOR_CMYK   ,
+	LAX_COLOR_GRAY   ,
+	LAX_COLOR_HSL    ,
+	LAX_COLOR_HSV    ,
+	LAX_COLOR_CieLAB ,
+	LAX_COLOR_XYZ    ,
+	LAX_COLOR_MAX
+};
 
 enum SimpleColorId {
 	COLOR_Foreground,
@@ -45,6 +54,9 @@ enum SimpleColorId {
 	COLOR_Stroke,
 	COLOR_Fill,
 	COLOR_Controls,
+	COLOR_None,
+	COLOR_Registration,
+	COLOR_Blockout,
 	COLOR_MAX
 };
 
