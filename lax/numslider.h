@@ -33,7 +33,9 @@ class NumSlider : public ItemSlider
   protected:
 	int mode;
 	int lastitem;
+	char *labelbase;
 	char *label;
+
 	virtual void wraptoextent();
 	virtual int getid(int i) { return curitem; }
 	virtual int numitems() { return max-min+1; }
@@ -45,14 +47,17 @@ class NumSlider : public ItemSlider
 	};
 
 	int min,max;
+
 	NumSlider(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
 		int xx,int yy,int ww,int hh,int brder,
 		anXWindow *prev,unsigned long nowner,const char *nsendthis,const char *nlabel,int nmin,int nmax,int cur=-10000);
+	virtual ~NumSlider();
 	//virtual int MouseMove(int x,int y,unsigned int state,const LaxMouse *d);
 	virtual int SelectPrevious(double multiplier);
 	virtual int SelectNext(double multiplier);
 	virtual int Select(int n);
 	virtual void Refresh();
+	virtual const char *LabelBase(const char *nlabelbase);
 	virtual const char *Label(const char *nlabel);
 	virtual int NewMin(int nmin) { return min=nmin; }
 	virtual int NewMax(int nmax) { return max=nmax; } //*** doesn't do max>min checking

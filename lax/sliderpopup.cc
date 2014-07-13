@@ -290,7 +290,7 @@ int SliderPopup::send()
 
 int SliderPopup::Event(const EventData *e,const char *mes)
 {
-	if (strcmp(mes,"popupselect")) return anXWindow::Event(e,mes);
+	if (strcmp(mes,"popupselect")) return ItemSlider::Event(e,mes);
 
 	DBG cerr <<"SliderPopup message received."<<endl;
 	
@@ -378,8 +378,8 @@ int SliderPopup::CharInput(unsigned int ch,const char *buffer,int len,unsigned i
 				makePopup(d->paired_mouse?d->paired_mouse->id:0);
 				return 0;
 			}
-		case LAX_Left: SelectPrevious(); send(); return 0; 
-		case LAX_Right: SelectNext(); send(); return 0;
+		case LAX_Left: SelectPrevious(1); send(); return 0; 
+		case LAX_Right: SelectNext(1); send(); return 0;
 //		case LAX_Up: //*** up: bring up popup
 //		case LAX_Down: //*** down
 	}
@@ -391,7 +391,7 @@ int SliderPopup::CharInput(unsigned int ch,const char *buffer,int len,unsigned i
  *
  * This skips over any separators.
  */
-int SliderPopup::SelectPrevious()
+int SliderPopup::SelectPrevious(double multiplier)
 { 
 	if (curitem==-1) return -1;
 	int olditem=curitem;
@@ -401,7 +401,7 @@ int SliderPopup::SelectPrevious()
 		if (!(items->menuitems.e[curitem]->state&(LAX_SEPARATOR|SLIDER_IGNORE_ON_BROWSE))) break;
 	} while (curitem!=olditem);
 
-	if (win_style & ITEMSLIDER_SENDALL) send();
+	if (win_style & SENDALL) send();
 	DBG cerr <<" Previous Item:"<<curitem<<endl;
 	needtodraw=1;
 	return getid(curitem);
@@ -412,7 +412,7 @@ int SliderPopup::SelectPrevious()
  *
  * This skips over any separators.
  */
-int SliderPopup::SelectNext()
+int SliderPopup::SelectNext(double multiplier)
 {
 	if (curitem==-1) return -1;
 
@@ -423,7 +423,7 @@ int SliderPopup::SelectNext()
 		if (!(items->menuitems.e[curitem]->state&(LAX_SEPARATOR|SLIDER_IGNORE_ON_BROWSE))) break;
 	} while (curitem!=olditem);
 
-	if (win_style & ITEMSLIDER_SENDALL) send();
+	if (win_style & SENDALL) send();
 	needtodraw=1;
 	return getid(curitem);
 }

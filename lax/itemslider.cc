@@ -213,20 +213,22 @@ int ItemSlider::MouseMove(int x,int y,unsigned int state,const LaxMouse *d)
 	}
 
 	int mx,my;
-	buttondown.move(d->id, x,y, &mx,&my);
+	buttondown.getcurrent(d->id, LEFTBUTTON, &mx,&my);
 
 	double multiplier=1;
 	if ((state&(ShiftMask|ControlMask))==ShiftMask) multiplier=10;
 	else if ((state&(ShiftMask|ControlMask))==ControlMask) multiplier=10;
 	else if ((state&(ShiftMask|ControlMask))==(ShiftMask|ControlMask)) multiplier=20;
 
+	int m=0;
 	if (win_style&YSHIFT) {
-		if (my-y>movewidth) SelectPrevious(multiplier);
-		else if (y-my>movewidth) SelectNext(multiplier);
+		if (my-y>movewidth) { SelectPrevious(multiplier); m=1; }
+		else if (y-my>movewidth) { SelectNext(multiplier); m=1; }
 	} else {
-		if (mx-x>movewidth) SelectPrevious(multiplier);
-		else if (x-mx>movewidth) SelectNext(multiplier);
+		if (mx-x>movewidth) { SelectPrevious(multiplier); m=1; }
+		else if (x-mx>movewidth) { SelectNext(multiplier); m=1; }
 	}
+	if (m) buttondown.move(d->id, x,y);
 	return 0;
 }
 
@@ -252,6 +254,16 @@ int ItemSlider::WheelDown(int x,int y,unsigned int state,int count,const LaxMous
 	SelectPrevious(multiplier); 
 	send();
 	return 0;
+}
+
+int ItemSlider::Event(const EventData *e,const char *mes)
+{
+	if (e->type==LAX_onMouseOut) {
+		hover=0;
+		needtodraw=1;
+	}
+	
+	return anXWindow::Event(e,mes);
 }
 
 

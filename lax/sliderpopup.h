@@ -67,8 +67,8 @@ class SliderPopup : public ItemSlider
 	virtual int RBDown(int x,int y,unsigned int state,int count,const LaxMouse *d);
 	virtual int LBDown(int x,int y,unsigned int state,int count,const LaxMouse *d);
 
-	virtual int SelectPrevious();
-	virtual int SelectNext();
+	virtual int SelectPrevious(double multiplier);
+	virtual int SelectNext(double multiplier);
 	virtual const char *GetCurrentItem();
 	virtual int GetCurrentItemIndex();
 	virtual int DeleteItem(int id);

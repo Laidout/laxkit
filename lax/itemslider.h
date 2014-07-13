@@ -65,6 +65,7 @@ class ItemSlider : public anXWindow
 			anXWindow *prev,unsigned long nowner,const char *nsendthis);
 	virtual ~ItemSlider();
 	virtual int init();
+	virtual int Event(const EventData *e,const char *mes);
 	virtual int WheelUp(int x,int y,unsigned int state,int count,const LaxMouse *d);
 	virtual int WheelDown(int x,int y,unsigned int state,int count,const LaxMouse *d);
 	virtual int LBDown(int x,int y,unsigned int state,int count,const LaxMouse *d);

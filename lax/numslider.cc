@@ -59,11 +59,30 @@ NumSlider::NumSlider(anXWindow *parnt,const char *nname,const char *ntitle,unsig
 	lastitem=-1;
 	movewidth=2;
 	label=NULL;
+	labelbase=NULL;
 	makestr(label,nlabel);
 
 	installColors(app->color_panel);
 
 	if (win_w==0 || win_h==0) wraptoextent();
+}
+
+NumSlider::~NumSlider()
+{
+	delete[] label;
+	delete[] labelbase;
+}
+
+/*! Use a printf style format string to create label from integer curitem and nlabelbase.
+ * nlabelbase MUST have a signed integer format in it (such as "%d").
+ *
+ * nlabelbase==NULL means use label as normal, and delete the labelbase.
+ */
+const char *NumSlider::LabelBase(const char *nlabelbase)
+{
+	makestr(labelbase,nlabelbase);
+	needtodraw=1;
+	return labelbase;
 }
 
 //! Change the label. If nlabel==NULL, then remove the label. Returns label.
@@ -104,25 +123,32 @@ void NumSlider::Refresh()
 	if (win_style&EDITABLE) ww=text_height();
 
 	 // draw left arrow
-	foreground_color(coloravg(win_colors->bg,win_colors->fg,.1));
+	foreground_color(coloravg(win_colors->bg,win_colors->fg,.2));
 	draw_thing(this, ww/2,win_h/2, ww/2,hh/2, hover==LAX_LEFT?1:0, THING_Triangle_Left);
 
 	 // draw right arrow
-	foreground_color(coloravg(win_colors->bg,win_colors->fg,.1));
 	draw_thing(this, win_w-ww/2,win_h/2, ww/2,hh/2, hover==LAX_RIGHT?1:0, THING_Triangle_Right);
 
 
 	 //draw number
+	if (hover==LAX_CENTER) {
+		foreground_color(coloravg(win_colors->bg,win_colors->fg,.1));
+		hh=text_height()*1.1;
+		fill_rectangle(this, ww,win_h/2-hh/2,win_w-2*ww,hh);
+	}
 	foreground_color(win_colors->fg);
-	char num[20+(label?strlen(label):0)];
-	if (label) sprintf(num,"%s%d",label,curitem); else sprintf(num,"%d",curitem);
+	char num[20+((labelbase?labelbase:label)?strlen((labelbase?labelbase:label)):0)];
+	if (labelbase) sprintf(num,labelbase,curitem);
+	else if (label) sprintf(num,"%s%d",label,curitem);
+	else sprintf(num,"%d",curitem);
+
 	textout(this, num,-1,win_w/2,win_h/2,LAX_CENTER);
 	needtodraw=0;
 }
 
 int NumSlider::SelectPrevious(double multiplier)
 { 
-	curitem-=multiplier;
+	curitem-=(int)multiplier;
 	if (curitem<min) {
 		if (win_style&WRAP) curitem=max;
 		else curitem=min;
@@ -134,7 +160,7 @@ int NumSlider::SelectPrevious(double multiplier)
 
 int NumSlider::SelectNext(double multiplier)
 {
-	curitem+=multiplier;
+	curitem+=(int)multiplier;
 	if (curitem>max) {
 		if (win_style&WRAP) curitem=min;
 		else curitem=max;
@@ -186,10 +212,10 @@ int NumSlider::Mode(int newmode)
 //! Catches when the lineedit receives enter..
 int NumSlider::Event(const EventData *e,const char *mes)
 {
-	if (strcmp(mes,"lineedit")) return anXWindow::Event(e,mes);
+	if (strcmp(mes,"lineedit")) return ItemSlider::Event(e,mes);
 
 	const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(e);
-	if (!s) return anXWindow::Event(e,mes);
+	if (!s) return ItemSlider::Event(e,mes);
 
 	const char *blah=s->str;
 	char *tmp;
