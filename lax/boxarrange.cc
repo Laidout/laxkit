@@ -48,22 +48,6 @@ using namespace std;
 #define gap    6
 #define vert   7
 
-#define BOX_H_pos    0
-#define BOX_H_len    1
-#define BOX_H_pref   2
-#define BOX_H_shrink 3
-#define BOX_H_grow   4
-#define BOX_H_align  5
-#define BOX_H_gap    6
-
-#define BOX_V_pos    7
-#define BOX_V_len    8
-#define BOX_V_pref   9
-#define BOX_V_shrink 10
-#define BOX_V_grow   11
-#define BOX_V_align  12
-#define BOX_V_gap    13
-
 
 
 #include <iostream>
@@ -324,10 +308,10 @@ int SquishyBox::WrapToExtent()
  */
 void SquishyBox::sync(int xx,int yy,int ww,int hh)
 {
-	m[0]=xx;
-	m[1]=ww;
-	m[6]=yy;
-	m[7]=hh;
+	x(xx);
+	w(ww);
+	y(yy);
+	h(hh);
 	sync();
 }
 	

@@ -110,6 +110,24 @@
 namespace Laxkit {
 
 
+enum SquishyBoxMetrics {
+	BOX_H_pos =  0,
+	BOX_H_len =  1,
+	BOX_H_pref = 2,
+	BOX_H_shrink=3,
+	BOX_H_grow = 4,
+	BOX_H_align =5,
+	BOX_H_gap =  6,
+
+	BOX_V_pos =  7,
+	BOX_V_len =  8,
+	BOX_V_pref = 9,
+	BOX_V_shrink=10,
+	BOX_V_grow = 11,
+	BOX_V_align =12,
+	BOX_V_gap =  13
+};
+
 	
 //----------------------------- SquishyBox -------------------------------
 

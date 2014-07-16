@@ -64,6 +64,7 @@ class StackFrame : public anXWindow, public ListBox
 	virtual int MoveResize(int nx,int ny,int nw,int nh);
 	virtual int Resize(int nw,int nh);
 
+	virtual void sync();
 	virtual int WrapToExtent();
 	virtual anXWindow *childWindow(int index);
 	virtual int findWhichBar(int x,int y);
