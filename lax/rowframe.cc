@@ -285,7 +285,7 @@ int RowFrame::AddNull(int where) //where=-1
 
 //! Add a window using the window's width and height with no squishability.
 /*! Reparents if win->win_parent!=this.
- * If the window is derived from SquishyBox, then pass it on to SquishyBox::Push(win,0,where).
+ * If the window is derived from SquishyBox, then pass it on to SquishyBox::Push(win,3,where).
  * 
  * The end result is for win to be pushed onto position where of wholelist.
  * where==-1 means to top.
@@ -298,7 +298,8 @@ int RowFrame::AddWin(anXWindow *win,int absorbcount,int where)//where=-1
 	if (win->win_parent!=this) app->reparent(win,this);
 	SquishyBox *s=dynamic_cast<SquishyBox *>(win);
 	if (s) { 
-		Push(s,0,where);
+		Push(s,3,where);
+		if (absorbcount) win->dec_count();
 		return 0; 
 	}
 	return AddWin(win,absorbcount, win->win_w,0,0,50,0, win->win_h,0,0,50,0, where);
