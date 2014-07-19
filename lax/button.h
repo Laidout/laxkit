@@ -33,6 +33,7 @@ namespace Laxkit {
 #define IBUT_TEXT_ONLY  (1<<19)
 #define IBUT_TEXT_ICON  (1<<20)
 #define IBUT_ICON_TEXT  (1<<21)
+#define IBUT_FLAT       (1<<22)
 
 class Button : public ButtonBase
 { 

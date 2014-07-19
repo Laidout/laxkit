@@ -285,7 +285,10 @@ void Button::draw()
 		textout(this, l,-1,tx,ty,LAX_LEFT|LAX_TOP);
 	}
 	
-	draw_bevel(this, bevel,highlight,shadow,state, 0,0, win_w,win_h);
+	if ((win_style&BUTTON_TOGGLE)
+			|| !(win_style&IBUT_FLAT)
+			|| ((win_style&IBUT_FLAT) && state!=LAX_OFF))
+		draw_bevel(this, bevel,highlight,shadow,state, 0,0, win_w,win_h);
 }
 
 
