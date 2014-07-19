@@ -135,10 +135,10 @@ void DisplayerXlib::base_init()
 	textxftdraw=NULL;
 
 	ctm=new double[6];
-	ctm[1]=ctm[2]=ctm[3]=ctm[5]=0.0;
+	ctm[1]=ctm[2]=ctm[4]=ctm[5]=0.0;
 	ctm[0]=ctm[3]=1.0;
 	
-	ictm[1]=ictm[2]=ictm[3]=ictm[5]=0.0; // ictm is not dynamic created like ctm
+	ictm[1]=ictm[2]=ictm[4]=ictm[5]=0.0; // ictm is not dynamic created like ctm
 	ictm[0]=ictm[3]=1.0;
 	
 	clipmask=0;
