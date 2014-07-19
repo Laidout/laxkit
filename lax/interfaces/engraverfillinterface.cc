@@ -2141,19 +2141,19 @@ EngraverFillInterface::EngraverFillInterface(int nid,Displayer *ndp)
 	show_direction=false;
 
 
-	modes.AddItem(_("Mesh mode"),                                              NULL, EMODE_Mesh         );
-	modes.AddItem(_("Thickness, shift for brush size, control to thin"),       NULL, EMODE_Thickness    );
-	modes.AddItem(_("Blockout mode, shift for brush size, control to turn on"),NULL, EMODE_Blockout     );
-	modes.AddItem(_("Drag mode, shift for brush size"),                        NULL, EMODE_Drag         );
-	modes.AddItem(_("Push or pull. Shift for brush size"),                     NULL, EMODE_PushPull     );
-	modes.AddItem(_("Avoid or pull toward. Shift for brush size"),             NULL, EMODE_AvoidToward  );
-	modes.AddItem(_("Twirl, Shift for brush size"),                            NULL, EMODE_Twirl        );
-	modes.AddItem(_("Turbulence, randomly push sample points"),                NULL, EMODE_Turbulence   );
-	//modes.AddItem(_("Resolution. Add or remove sample points"),                NULL, EMODE_Resolution   );
-	modes.AddItem(_("Orientation mode"),                                       NULL, EMODE_Orientation  );
-	modes.AddItem(_("Freehand mode"),                                          NULL, EMODE_Freehand     );
-	modes.AddItem(_("Trace adjustment mode"),                                  NULL, EMODE_Trace        );
-	//modes.AddItem(_("Direction adjustment mode"),                              NULL, EMODE_Direction    );
+	modes.AddItem(_("Mesh mode"),                                              (LaxImage*)NULL, EMODE_Mesh         );
+	modes.AddItem(_("Thickness, shift for brush size, control to thin"),       (LaxImage*)NULL, EMODE_Thickness    );
+	modes.AddItem(_("Blockout mode, shift for brush size, control to turn on"),(LaxImage*)NULL, EMODE_Blockout     );
+	modes.AddItem(_("Drag mode, shift for brush size"),                        (LaxImage*)NULL, EMODE_Drag         );
+	modes.AddItem(_("Push or pull. Shift for brush size"),                     (LaxImage*)NULL, EMODE_PushPull     );
+	modes.AddItem(_("Avoid or pull toward. Shift for brush size"),             (LaxImage*)NULL, EMODE_AvoidToward  );
+	modes.AddItem(_("Twirl, Shift for brush size"),                            (LaxImage*)NULL, EMODE_Twirl        );
+	modes.AddItem(_("Turbulence, randomly push sample points"),                (LaxImage*)NULL, EMODE_Turbulence   );
+	//modes.AddItem(_("Resolution. Add or remove sample points"),                (LaxImage*)NULL, EMODE_Resolution   );
+	modes.AddItem(_("Orientation mode"),                                       (LaxImage*)NULL, EMODE_Orientation  );
+	modes.AddItem(_("Freehand mode"),                                          (LaxImage*)NULL, EMODE_Freehand     );
+	modes.AddItem(_("Trace adjustment mode"),                                  (LaxImage*)NULL, EMODE_Trace        );
+	//modes.AddItem(_("Direction adjustment mode"),                              (LaxImage*)NULL, EMODE_Direction    );
 
 	fgcolor.rgbf(0.,0.,0.);
 	bgcolor.rgbf(1.,1.,1.);
