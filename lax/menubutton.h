@@ -27,16 +27,16 @@
 #include <lax/button.h>
 #include <lax/menuinfo.h>
 
-#define MENUBUTTON_DOWNARROW         (1<<22)
-#define MENUBUTTON_CLICK_CALLS_OWNER (1<<23)
-#define MENUBUTTON_LEFT              (1<<24)
-#define MENUBUTTON_RIGHT             (1<<25)
-#define MENUBUTTON_SEND_STRINGS      (1<<26)
+#define MENUBUTTON_DOWNARROW         (1<<23)
+#define MENUBUTTON_CLICK_CALLS_OWNER (1<<24)
+#define MENUBUTTON_LEFT              (1<<25)
+#define MENUBUTTON_RIGHT             (1<<26)
+#define MENUBUTTON_SEND_STRINGS      (1<<27)
 
-#define MENUBUTTON_ICON_ONLY         (1<<27)
-#define MENUBUTTON_TEXT_ONLY         (1<<28)
-#define MENUBUTTON_TEXT_ICON         (1<<29)
-#define MENUBUTTON_ICON_TEXT         (1<<30)
+#define MENUBUTTON_ICON_ONLY         (1<<28)
+#define MENUBUTTON_TEXT_ONLY         (1<<29)
+#define MENUBUTTON_TEXT_ICON         (1<<30)
+#define MENUBUTTON_ICON_TEXT         (1<<31)
 
 namespace Laxkit {
 
