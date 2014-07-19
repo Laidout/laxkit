@@ -145,7 +145,8 @@ LineEdit::LineEdit(anXWindow *parnt,const char *nname,const char *ntitle,unsigne
 //! Empty destructor.
 LineEdit::~LineEdit()
 {
-	if (blanktext) delete[] blanktext;
+	delete[] blanktext;
+	delete[] qualifier;
 }
 
 int LineEdit::init()
@@ -255,6 +256,12 @@ void LineEdit::Valid(int v,unsigned long col)
 	}
 }
 
+void LineEdit::Qualifier(const char *nqualifier)
+{
+	makestr(qualifier,nqualifier);
+	Modified(0);
+}
+
 /*! If LINEEDIT_FILE, then check for existence of qualifier/thetext, or
  * just thetext if it seems like an absolute path.
  *
@@ -262,7 +269,7 @@ void LineEdit::Valid(int v,unsigned long col)
  *
  * This is called whenever text is changed.
  *
- * \todo finish implementing this..
+ * \todo finish implementing date and time..
  */
 int LineEdit::Modified(int m)//m=1
 {	

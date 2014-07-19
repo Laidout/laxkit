@@ -60,7 +60,7 @@ class LineEdit : public TextXEditBaseUtf8
 	virtual int send(int i);
 	virtual void settextrect();
   public:
-	const char *qualifier;
+	char *qualifier;
 	char *blanktext;
 
 	int padx,pady,mostpixwide;
@@ -88,6 +88,7 @@ class LineEdit : public TextXEditBaseUtf8
 	
 	virtual int LBDblClick(int x,int y, int cntl,const LaxMouse *d);
 
+	virtual void Qualifier(const char *nqualifier);
 	virtual void Valid(int v);
 	virtual void Valid(int v,unsigned long col);
 	virtual int Modified(int m=1);
