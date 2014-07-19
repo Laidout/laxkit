@@ -24,6 +24,7 @@
 #define _LAX_FREEDESKTOP_H
 
 #include <lax/attributes.h>
+#include <lax/menuinfo.h>
 
 namespace LaxFiles {
 
@@ -33,6 +34,7 @@ Attribute *recently_used_att(const char *file="~/.recently-used");
 char *recently_used(const char *mimetype,const char *group, int includewhat);
 
 char *get_bookmarks(const char *file,const char *filetype);
+Laxkit::MenuInfo *get_categorized_bookmarks(const char *file,const char *filetype, Laxkit::MenuInfo *menu);
 int add_bookmark(const char *directory, int where);
 
 char *freedesktop_thumbnail(const char *file, char which='n');
