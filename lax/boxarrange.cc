@@ -28,7 +28,7 @@
  * \todo *** implement all the LRTB, ...
  */
 
-#include <lax/lists.cc>
+#include <lax/refptrstack.cc>
 
 #include <lax/boxarrange.h>
 
@@ -865,7 +865,7 @@ int ListBox::figureDimensions(ListBox *target,int *nextrow,SquishyBox **boxes, i
  *   only be done in subclasses? it is easy enough to push a new SquishyBox, but classes like
  *   RowFrame have special needs..
  */
-/*! \var PtrStack<SquishyBox> RowColBox::wholelist
+/*! \var RefPtrStack<SquishyBox> RowColBox::wholelist
  * \brief The master list of boxes.
  *
  * this->list contains the arranged rows of the RowColBox. Each element of list is a list

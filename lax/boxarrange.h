@@ -28,9 +28,7 @@
 #define NULL 0
 #endif
 
-//#define LAX_LISTS_H_ONLY
-#include <lax/lists.h>
-//#undef  LAX_LISTS_H_ONLY
+#include <lax/refptrstack.h>
 
 
 #define BOX_SHOULD_WRAP   100000
@@ -195,7 +193,7 @@ class SquishyBox
 class ListBox : public SquishyBox
 {
  public:
-	PtrStack<SquishyBox> list;
+	RefPtrStack<SquishyBox> list;
 	
 	ListBox(unsigned int flag=0);//BOX_VERTICAL or BOX_HORIZONTAL
 	ListBox(unsigned int nflags,
@@ -222,7 +220,7 @@ class ListBox : public SquishyBox
 class RowColBox : public ListBox
 {
  protected:
-	PtrStack<SquishyBox> wholelist; // the master list of boxes
+	RefPtrStack<SquishyBox> wholelist; // the master list of boxes
 	int arrangedstate;
 	virtual ListBox *newSubBox();
 	virtual void filterflags();
