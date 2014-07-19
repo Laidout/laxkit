@@ -699,6 +699,19 @@ flatpoint *draw_thing_coordinates(DrawThingTypes thing, flatpoint *buffer, int b
 		buffer[4].x=0;  buffer[4].y=.5;
 		buffer[5].x=1;  buffer[5].y=.5;  buffer[5].info=LINE_Open;
 
+	} else if (thing==THING_Folder) {
+		if ((buffer && buffer_size<7) || (!buffer && buffer_size>=0)) { *n_ret=7; return NULL; }
+		*n_ret=7;
+		if (!buffer) buffer=new flatpoint[7];
+
+		buffer[0]=flatpoint(0,    .75 );
+        buffer[1]=flatpoint(1  ,  .75 );
+        buffer[2]=flatpoint(1  ,  .333);
+        buffer[3]=flatpoint(.6  , .333);
+        buffer[4]=flatpoint(.4  , .15 );
+        buffer[5]=flatpoint(.1  , .15 );
+        buffer[6]=flatpoint(0,    .333); buffer[6].info|=LINE_Closed;
+
 	} else if (thing==THING_Pause) {
 		if ((buffer && buffer_size<8) || (!buffer && buffer_size>=0)) { *n_ret=8; return NULL; }
 		*n_ret=8;

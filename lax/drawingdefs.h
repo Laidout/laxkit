@@ -105,6 +105,7 @@ enum DrawThingTypes {
 	THING_Plus,
 	THING_X,
 	THING_Asterix,
+	THING_Folder,
 	THING_Pause,
 	THING_Eject,         //!< Triangle up with a line underneath it
 	THING_Double_Triangle_Up,
