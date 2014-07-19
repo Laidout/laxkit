@@ -656,10 +656,10 @@ int MenuInfo::AddItemAsIs(MenuItem *mi,char islocal,int where)//where=-1
 /*! Please note that the MenuItem that is created is local to the menuitems stack (it will be deleted
  *  when the item stack is flushed), while the passed in submenu is local according to subislocal.
  */
-int MenuInfo::AddItem(const char *newitem,LaxImage *img,int nid)
+int MenuInfo::AddItem(const char *newitem,LaxImage *img,int nid,int where)
 {
 	MenuItem *mi=new MenuItem(newitem,img,nid,0,0,NULL,0);
-	curmenu->menuitems.push(mi,1,-1);
+	curmenu->menuitems.push(mi,1,where);
 	mi->parent=curmenu;
 	return curmenu->menuitems.n;
 }
@@ -680,10 +680,10 @@ int MenuInfo::AddItem(const char *newitem,LaxImage *img,int nid,unsigned int nst
 /*! Please note that the MenuItem that is created is local to the menuitems stack (it will be deleted
  *  when the item stack is flushed), while the passed in submenu is local according to subislocal.
  */
-int MenuInfo::AddItem(const char *newitem,int nid)
+int MenuInfo::AddItem(const char *newitem,int nid,int where)
 {
 	MenuItem *mi=new MenuItem(newitem,nid,LAX_OFF,0,NULL,0);
-	curmenu->menuitems.push(mi,1,-1);
+	curmenu->menuitems.push(mi,1,where);
 	mi->parent=curmenu;
 	return curmenu->menuitems.n;
 }
@@ -702,8 +702,10 @@ int MenuInfo::AddItem(const char *newitem,int nid,unsigned int nstate,int ninfo,
 
 /*! A shortcut to add something like "group 1/subgroup/item" to submenu.
  * Adds any non-existing intermediate groups (with id==0). Afterwards, curmenu is unchanged.
+ *
+ * where is an index in the final level (-1 for at end).
  */
-int MenuInfo::AddDelimited(const char *newitem,char delimiter, int nid)
+int MenuInfo::AddDelimited(const char *newitem,char delimiter, int nid,int where)
 {
 	if (!newitem || !*newitem) return 1;
 	
@@ -713,12 +715,12 @@ int MenuInfo::AddDelimited(const char *newitem,char delimiter, int nid)
 	char *group=newnstr(newitem,st-newitem);
 	int i=curmenu->findIndex(group);
 	if (i<0) {
-		AddItem(group);
+		AddItem(group,where);
 		SubMenu();
 	} else {
 		SubMenu(NULL,i);
 	}
-	AddDelimited(st+1,delimiter,nid);
+	AddDelimited(st+1,delimiter,nid,where);
 	EndSubMenu();
 
 	return 0;
@@ -736,6 +738,13 @@ int MenuInfo::AddDetail(const char *newitem,LaxImage *img,int nid,int ninfo, int
 	curmenu->menuitems.e[towhich]->AddDetail(mi);
 
 	return 0;
+}
+
+/*! Returns 0 if element found, else 1 if not found.
+ */
+int MenuInfo::Remove(int which)
+{
+	return curmenu->menuitems.remove(which);
 }
 
 //! Flush menuitems and set curmenu=this.

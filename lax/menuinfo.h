@@ -147,9 +147,9 @@ class MenuInfo : public anObject
 	virtual int getuniqueid(int trythis=-1); // find a unique id number to use
 	virtual int howmany(int maxn,int all=0); // maxn=0, maxn is only consider menuitems.e[c<maxn]
 
-	virtual int AddItem(const char *newitem,int nid=0);
-	virtual int AddDelimited(const char *newitem,char delimiter='/', int nid=0);
-	virtual int AddItem(const char *newitem,LaxImage *img,int nid=0);
+	virtual int AddItem(const char *newitem,int nid=0,int where=-1);
+	virtual int AddDelimited(const char *newitem,char delimiter='/', int nid=0,int where=-1);
+	virtual int AddItem(const char *newitem,LaxImage *img,int nid=0,int where=-1);
 	virtual int AddItem(const char *newitem,int nid,unsigned int nstate,int ninfo=0,
 						MenuInfo *nsub=NULL,int where=-1,char subislocal=1);
 	virtual int AddItem(const char *newitem,LaxImage *img,int nid,unsigned int nstate,int ninfo=0,
@@ -159,6 +159,7 @@ class MenuInfo : public anObject
 	virtual int AddItems(const char **i,int n,int startid); // assume ids sequential, state=0
 	virtual int AddDetail(const char *newitem,LaxImage *img,int nid=0,int ninfo=0, int towhich=-1);
 	virtual int AddSep(const char *name=NULL,int where=-1);
+	virtual int Remove(int which=-1);
 	virtual int SubMenu(const char *ntitle=NULL,int which=-1); // future adds go on a new submenu for current item
 	virtual void EndSubMenu(); // stop adding to a submenu
 	virtual void DoneSubMenus() { curmenu=this; }  // resets curmenu to this
