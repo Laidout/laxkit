@@ -93,8 +93,9 @@ StackFrame::StackFrame(anXWindow *parnt,const char *nname,const char *ntitle,uns
 	pos=NULL;
 	whichbar=-1;
 
-	if (win_style&STACKF_VERTICAL) win_pointer_shape=LAX_MOUSE_UpDown;
-	else win_pointer_shape=LAX_MOUSE_LeftRight;
+	curshape=0;
+	//if (win_style&STACKF_VERTICAL) win_pointer_shape=LAX_MOUSE_UpDown;
+	//else win_pointer_shape=LAX_MOUSE_LeftRight;
 }
 
 StackFrame::~StackFrame()
@@ -172,6 +173,28 @@ void StackFrame::Refresh()
 			}
 		} 
 	}
+}
+
+int StackFrame::Event(const EventData *e,const char *mes)
+{
+	if (e->type==LAX_onMouseOut) {
+		if (curshape!=0) {
+			const EnterExitData *ee=dynamic_cast<const EnterExitData*>(e);
+			dynamic_cast<LaxMouse*>(ee->device)->setMouseShape(this,0);
+			curshape=0;
+		}
+	} else if (e->type==LAX_onMouseIn) {
+		const EnterExitData *ee=dynamic_cast<const EnterExitData*>(e);
+		int whichbar=findWhichBar(ee->x,ee->y);
+		if (whichbar>=0) {
+			if (win_style&STACKF_VERTICAL) curshape=LAX_MOUSE_UpDown;
+			else curshape=LAX_MOUSE_LeftRight;
+		} else curshape=0;
+
+		dynamic_cast<LaxMouse*>(ee->device)->setMouseShape(this,curshape);
+	}
+
+	return anXWindow::Event(e,mes);
 }
 
 int StackFrame::LBDown(int x,int y,unsigned int state,int count,const LaxMouse *d)

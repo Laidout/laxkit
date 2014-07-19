@@ -41,10 +41,13 @@ namespace Laxkit {
 class StackFrame : public anXWindow, public ListBox
 {
 	double *pos;
+
  protected:
 	int lastx,lasty, whichbar;
 	int gap;
 	ButtonDownInfo buttondown;
+	int curshape;
+
  public:
 	StackFrame(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
 		int xx,int yy,int ww,int hh,int brder,
@@ -63,6 +66,7 @@ class StackFrame : public anXWindow, public ListBox
 	virtual int MouseMove(int x,int y,unsigned int state,const LaxMouse *d);
 	virtual int MoveResize(int nx,int ny,int nw,int nh);
 	virtual int Resize(int nw,int nh);
+	virtual int Event(const EventData *e,const char *mes);
 
 	virtual void sync();
 	virtual int WrapToExtent();
