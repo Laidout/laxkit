@@ -43,20 +43,28 @@ class IconNode
 
 //----------------------------- IconManager ---------------------------
 
-class IconManager : public Laxkit::PtrStack<IconNode>
+class IconManager : public Laxkit::anObject, public Laxkit::PtrStack<IconNode>
 {
   protected:
 	Laxkit::PtrStack<char> icon_path;
-	Laxkit::LaxImage *findicon(const char *name);
+	virtual Laxkit::LaxImage *findicon(const char *name);
+
   public:
+	static IconManager* GetDefault();
+	static IconManager* SetDefault(IconManager *newmanager);
+
 	IconManager();
-	int InstallIcon(const char *nname, int nid, const char *file);
-	int InstallIcon(const char *nname, int nid, Laxkit::LaxImage *img);
-	Laxkit::LaxImage *GetIconByIndex(int index);
-	Laxkit::LaxImage *GetIcon(int id);
-	Laxkit::LaxImage *GetIcon(const char *name);
-	int HowMany();
-	void addpath(const char *newpath);
+	virtual ~IconManager();
+	virtual const char *whattype() { return "IconManager"; }
+
+	virtual int InstallIcon(const char *nname, int nid, const char *file);
+	virtual int InstallIcon(const char *nname, int nid, Laxkit::LaxImage *img);
+	virtual Laxkit::LaxImage *GetIconByIndex(int index);
+	virtual Laxkit::LaxImage *GetIcon(int id);
+	virtual Laxkit::LaxImage *GetIcon(const char *name);
+	virtual int HowMany();
+	virtual void AddPath(const char *newpath);
+	virtual int RemovePath(const char *oldpath);
 };
 
 } //namespace Laxkit

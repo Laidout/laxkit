@@ -32,6 +32,46 @@ using namespace std;
 
 namespace Laxkit {
 
+
+
+//----------------------------- IconManager default ---------------------------
+
+static IconManager *default_iconmanager=NULL;
+
+/*! If default_iconmanager is NULL, create and install a new Laxkit::IconManager as default.
+ * Set with IconManager::SetDefault().
+ * 
+ * By default, there are NO icon paths defined. The standard directory for Laxkit provided
+ * icons is LAX_SHARED_DIRECTORY/icons.
+ * LAX_SHARED_DIRECTORY is defined in configured.h.
+ */
+IconManager* IconManager::GetDefault()
+{
+	if (default_iconmanager==NULL) {
+		default_iconmanager=new IconManager();
+	}
+	return default_iconmanager;
+}
+
+/*! If calling with NULL, then destruct the default_windowmanager.
+ * The next call to GetDefault() will create a new one.
+ *
+ * Will inc_count of newmanager (if not null).
+ *
+ * Returns what is now the default icon manager.
+ */
+IconManager* IconManager::SetDefault(IconManager *newmanager)
+{
+	if (newmanager==default_iconmanager) return default_iconmanager;
+
+	if (default_iconmanager) default_iconmanager->dec_count();
+	default_iconmanager=newmanager;
+	if (default_iconmanager) default_iconmanager->inc_count();
+
+	return default_iconmanager;
+}
+
+
 //----------------------------- IconNode ---------------------------
 /*! \class IconNode
  * \brief Stacked in an IconManager.
@@ -72,6 +112,10 @@ IconNode::~IconNode()
 IconManager::IconManager()
 	: icon_path(2)
 {}
+
+IconManager::~IconManager()
+{
+}
 
 //! Return -1 for fail to load file.
 int IconManager::InstallIcon(const char *nname, int nid, const char *file)
@@ -170,9 +214,24 @@ Laxkit::LaxImage *IconManager::GetIcon(const char *name)
 /*! When passed a name that is unrecognized, then the all the icon paths are searched for
  * a loadable image named name.png.
  */
-void IconManager::addpath(const char *newpath)
+void IconManager::AddPath(const char *newpath)
 {
 	icon_path.push(newstr(newpath),2,0);
+}
+
+/*! Return 0 for success, and removed, or 1 for oldpath not found.
+ */
+int IconManager::RemovePath(const char *oldpath)
+{
+	if (!oldpath) return 1;
+
+	for (int c=0; c<icon_path.n; c++) {
+		if (!strcmp(icon_path.e[c],oldpath)) {
+			icon_path.remove(c);
+			return 0;
+		}
+	}
+	return 1;
 }
 
 
