@@ -2897,63 +2897,115 @@ void anXApp::postmessage(const char *str)
  *
  * Ultimately this will be used for more full featured drag and drop.
  *
+ * See also mouseposition(), which uses XInput2Pointer::getInfo() which seems to be pretty reliable.
+ *
  * \todo cannot find windows that X knows about that the application doesn't, so cannot
  *   drop to other programs (yet)!
  * \todo this needs work... especially when there are windows on different screens..
  *   laxkit in general does not handle multiple screens well (ie, at all)..
  * \todo  ***** this ignores stacking order!!!
+ * \todo this needs to be redone to use a mouse device, which is much easier to find drop candidates..
+ *        it is not so necessary to find candidates for arbitrary coordinates.
  */
 anXWindow *anXApp::findDropCandidate(anXWindow *ref,int x,int y,anXWindow **drop, Window *xlib_window_ret)
 {
-	//cout <<" *** must implement anXApp::findDropCandidate()!!"<<endl;
-	//return NULL;
+	 //find suitable xlib source window
+	Window xwin=0;
 
-	while (ref) {
-		if (x>=0 && x<ref->win_w && y>=0 && y<ref->win_h) break;
-		x+=ref->win_x;
-		y+=ref->win_y;
-		ref=ref->win_parent;
+	if (ref && ref->xlib_window) {
+		xwin=ref->xlib_window;
+
+	} else {	
+		while (ref) {
+			if (x>=0 && x<ref->win_w && y>=0 && y<ref->win_h) break;
+			x+=ref->win_x;
+			y+=ref->win_y;
+			ref=ref->win_parent;
+		}
+		xwin=DefaultRootWindow(dpy);
 	}
 
-	 // now either x and y are root coords
-	int c;
-	for (c=0; c<topwindows.n; c++) {
-		ref=topwindows.e[c];
-		if (x>=ref->win_x && x<ref->win_x+ref->win_w && y>=ref->win_y && y<ref->win_y+ref->win_h) break;
-	}
-	if (c==topwindows.n) ref=NULL;
+	//now x,y are coordinates in xwin
 
-	if (!ref) {
-		 // is not a window known to the application
-		//***must do the whole xdnd thing..
-		//if (xlib_window_ret) *xlib_window_ret=foundwindow;
+	int nx,ny;
+	Window destwin=DefaultRootWindow(dpy);
+	Window child;
+	//ScreenOfRoot?? *** how to find screen number from arbitrary window??
+	//Screen *DefaultScreenOfDisplay(dpy)
+	//Screen *ScreenOfDisplay(dpy, screen_number);
+	//Window XRootWindow(dpy, screen_number);
+	//int ScreenCount(dpy);
+	
+
+	//XTranslateCoordinates(Display *display, Window src_w, dest_w, int src_x, int src_y, int *dest_x_return, int *dest_y_return, Window *child_return)
+	Bool status=XTranslateCoordinates(dpy, xwin, destwin, x,y, &nx,&ny, &child);
+	if (status==False) {
+		//src and dest are on different screens
+		if (xlib_window_ret) *xlib_window_ret=0;
 		if (drop) *drop=NULL;
 		return NULL;
 	}
+	if (xlib_window_ret) {
+		 //top level x window, must reread dnd spec, seem to remember it being defined only for top level windows
+		if (child) *xlib_window_ret=child;
+		else *xlib_window_ret=0;
+	}
 
-	 //now ref points to the topwindow that contains the coordinates.
-	 //Need to find which subwindow actually contains them.
-	int d=0; //subwindow depth, for debugging purposes
-	anXWindow *refc=NULL;
-	do { //one iteration for each level of subwindow
-		if (ref->_kids.n==0) break;
-		for (c=0; c<ref->_kids.n; c++) {
-			refc=ref->_kids.e[c];
-			if (x>=refc->win_x && x<refc->win_x+refc->win_w 
-					&& y>=refc->win_y && y<refc->win_y+refc->win_h) {
-				 //coordinates are in refc
-				x-=refc->win_x;
-				y-=refc->win_y;
-				break;
-			}
-		}
-		if (c==ref->_kids.n) break; //coordinates are in ref, but not in any child of ref
-		ref=refc;
-		d++;
-	} while (1);
+	while (child) {
+		xwin=destwin;
+		destwin=child;
+		x=nx;
+		y=ny;
+		status=XTranslateCoordinates(dpy, xwin, destwin, x,y, &nx,&ny, &child);
+	}
 
-	if (drop) *drop=ref;
-	return ref;
+	 //now destwin is final resting place of x,y
+	
+	anXWindow *win_ret=findwindow_xlib(destwin);
+	if (drop) *drop=win_ret;
+	return win_ret;
+
+
+
+//	 // now either x and y are root coords
+//	int c;
+//	for (c=0; c<topwindows.n; c++) {
+//		ref=topwindows.e[c];
+//		if (x>=ref->win_x && x<ref->win_x+ref->win_w && y>=ref->win_y && y<ref->win_y+ref->win_h) break;
+//	}
+//	if (c==topwindows.n) ref=NULL;
+//
+//	if (!ref) {
+//		 // is not a window known to the application
+//		//***must do the whole xdnd thing..
+//		//if (xlib_window_ret) *xlib_window_ret=foundwindow;
+//		if (drop) *drop=NULL;
+//		return NULL;
+//	}
+//
+//	 //now ref points to the topwindow that contains the coordinates.
+//	 //Need to find which subwindow actually contains them.
+//	int d=0; //subwindow depth, for debugging purposes
+//	anXWindow *refc=NULL;
+//	do { //one iteration for each level of subwindow
+//		if (ref->_kids.n==0) break;
+//		for (c=0; c<ref->_kids.n; c++) {
+//			refc=ref->_kids.e[c];
+//			if (x>=refc->win_x && x<refc->win_x+refc->win_w 
+//					&& y>=refc->win_y && y<refc->win_y+refc->win_h) {
+//				 //coordinates are in refc
+//				x-=refc->win_x;
+//				y-=refc->win_y;
+//				break;
+//			}
+//		}
+//		if (c==ref->_kids.n) break; //coordinates are in ref, but not in any child of ref
+//		ref=refc;
+//		d++;
+//	} while (1);
+//
+//	if (drop) *drop=ref;
+//	return ref;
 }
 
 
