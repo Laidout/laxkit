@@ -83,6 +83,7 @@ class LineInput : public anXWindow
 	virtual int send() { return 0; }
 	virtual int CloseControlLoop() { if (le) return le->CloseControlLoop(); return 0; }
 	virtual LineEdit *GetLineEdit();
+	virtual void Qualifier(const char *nqualifier);
 
     virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,Laxkit::anObject *savecontext);
     virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,Laxkit::anObject *loadcontext);

@@ -193,6 +193,11 @@ LineInput::LineInput(anXWindow *parnt,const char *nname,const char *ntitle,unsig
 LineInput::~LineInput()
 { if (label) delete[] label; }
 
+void LineInput::Qualifier(const char *nqualifier)
+{
+	if (le) le->Qualifier(nqualifier);
+}
+
 //! Set same tip for le.
 const char *LineInput::tooltip(const char *ntip)
 {
