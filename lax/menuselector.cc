@@ -758,6 +758,7 @@ void MenuSelector::drawsubindicator(MenuItem *mitem,int x,int y)
 {
 	if (!(mitem->state&LAX_HAS_SUBMENU)) return;
 	if (menustyle&MENUSEL_SUB_FOLDER) {
+		 //draw a little folder
 		int w=subw,h=textheight+leading;
 		flatpoint p[8]={
 						 flatpoint(x,       y+h*2/3),
