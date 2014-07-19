@@ -32,6 +32,8 @@
 #include <cstring>
 
 
+namespace Laxkit {
+
 
  // Item placement and display flags
 #define TREESEL_SUB_PLUS             (1LL<<0)
@@ -71,10 +73,10 @@
 
 #define TREESEL_GRAPHIC_ON_RIGHT     (1LL<<29)
 
+#define TREESEL_SUB_FOLDER           (1LL<<30)
+
 //... remember that the buck stops with (1<<63)
 
-
-namespace Laxkit {
 
 
 

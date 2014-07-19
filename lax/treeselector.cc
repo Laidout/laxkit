@@ -227,11 +227,14 @@ TreeSelector::~TreeSelector()
 
 int TreeSelector::InstallMenu(MenuInfo *nmenu)
 {
-	if (menu==nmenu) return 0;
-	if (menu) menu->dec_count();
-	menu=nmenu;
-	nmenu->inc_count();
+	if (menu!=nmenu) {
+		if (menu) menu->dec_count();
+		menu=nmenu;
+		nmenu->inc_count();
+	}
 	needtobuildcache=1;
+	selection.flush();
+	ccuritem=curitem=0;
 	RebuildCache();
 	RemapColumns();
 	return 0;
@@ -831,7 +834,13 @@ void TreeSelector::drawSubIndicator(MenuItem *mitem,int x,int y, int selected)
 	else arrowtype=THING_Triangle_Right;
 
 	int subw=iwidth;
-	drawarrow(x+subw/2,y, (subw>(textheight+leading)?(textheight+leading):subw)/3, arrowtype);
+	x+=subw/2;
+	if (subw>(textheight+leading)) subw=(textheight+leading)/3;
+	else subw/=3;
+
+	if (menustyle&TREESEL_SUB_FOLDER) { arrowtype=THING_Folder; }
+
+	drawarrow(x,y, subw, arrowtype);
 }
 
 //! Draw the arrows for menus, really just THING_Triangle_Up, Down, Left, Right for submenus.
