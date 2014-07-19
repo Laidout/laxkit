@@ -85,10 +85,12 @@ class FileDialog2 : public RowFrame
 	Button *ok;
 	char *recentgroup;
 	int finalbuttons;
+
 	virtual int newBookmark(const char *pth);
 	virtual MenuInfo *BuildBookmarks();
 	virtual int closeWindow();
 	virtual int send(int id);
+	virtual void UpdateGray();
 
   public:
  	FileDialog2(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
@@ -108,12 +110,14 @@ class FileDialog2 : public RowFrame
 	virtual void AddFinalButton(const char *text, const char *ttip, int id, int position);
 	virtual int ClearFinalButton(int position);
 	virtual void Recent(const char *group);
-	virtual int GetState(void **state); // puts a NULL terminated char ** list of files in state
 	virtual void GoUp();
+	virtual void GoBack();
+	virtual void GoForward();
 	virtual void Cd(const char *to);
 	virtual void RefreshDir();
 	virtual void SetFile(const char *f);
 	virtual char *fullFilePath(const char *f);
+	virtual int NewHistory(const char *npath);
 };
 
 } //namespace Laxkit
