@@ -670,6 +670,16 @@ char *read_in_whole_file(const char *file, int *chars_ret, int maxchars)
 	return str;
 }
 
+/*! Uses get_current_dir_name(), then returns a new char[], not the malloc'd one get_current_dir_name fetches.
+ */
+char *current_directory()
+{
+	char *t=get_current_dir_name(); // this is a gnu extension _GNU_SOURCE must have been defined somewhere..
+    char *npath=newstr(t);
+	free(t);
+	return npath;
+}
+
 
 
 } //namespace LaxFiles
