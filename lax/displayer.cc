@@ -1664,13 +1664,16 @@ void Displayer::UseThisPanner(PanController *npanner)
 	syncPanner(1);
 }
 
-//! Set the viewable portion of the displayer to correspond with the window's win_w and win_h
-/*! So Minx,Maxx,Miny,Maxy==0,win_w, 0,win_h
+/*! Set the viewable portion of the displayer to correspond with the window's win_w and win_h.
+ * 
+ * So Minx,Maxx,Miny,Maxy==0,win_w, 0,win_h
  * Also sets the panner boxaspect to correspond to the window proportions.
  * Call syncPanner() to update anything attached to it.
  *
  *  If the spacemin/max seem not to be set, then set things so that the whole space is
  *  10 times the window size, and the viewable portion is in the middle.
+ *
+ * Finally, call MakeCurrent(nw).
  *
  *  PLEASE NOTE this does not do anything but set Min/Max, spacemin/max, mainly for panner upkeep.
  *  Other drawing targets or other state would be done in StartDrawing().
@@ -1705,6 +1708,7 @@ void Displayer::WrapWindow(anXWindow *nw)
 	panner->dontTell(NULL);
 	syncPanner();
 
+	MakeCurrent(nw);
 	//DBG 
 	//DBG cerr <<"-----displayer WrapWindow:MinMaxx,:["<<Minx<<","<<Maxx<<"] MinMaxy:["
 	//DBG		<<Miny<<","<<Maxy<<"] x0,y0:"<<ctm[4]<<","<<ctm[5]<<endl;
