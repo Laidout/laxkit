@@ -30,11 +30,12 @@
 #include <lax/transformmath.h>
 #include <lax/lists.cc>
 
+#include <unistd.h>
+#include <sys/file.h>
 #include <limits.h>
 #include <iostream>
 using namespace std;
 #define DBG 
-
 
 
 using namespace Laxkit;
@@ -1938,6 +1939,30 @@ Attribute *XMLFileToAttribute(Attribute *att,const char *file,const char **stand
 	
 	fclose(f);
 	return att;
+}
+
+/*! like XMLFileToAttribute(), but open file with flock() active.
+ * Also sets locale to "C" while loading.
+ */
+Attribute *XMLFileToAttributeLocked(Attribute *att,const char *file,const char **stand_alone_tag_list)
+{
+    setlocale(LC_ALL,"C");
+    char *rf=expand_home(file);
+    int fd=open(rf,O_RDONLY);
+    delete[] rf;
+    if (fd<0) { setlocale(LC_ALL,""); return NULL; }
+    flock(fd,LOCK_EX);
+    FILE *f=fdopen(fd,"r");
+    if (!f) { setlocale(LC_ALL,""); close(fd); return NULL; }
+
+	if (att==NULL) att=new Attribute;
+    XMLChunkToAttribute(att,f,stand_alone_tag_list);
+
+    flock(fd,LOCK_UN);
+    fclose(f);// this closes fd too
+    setlocale(LC_ALL,"");
+
+    return att;
 }
 
 ////size of file chunk to read in at a time

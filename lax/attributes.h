@@ -103,6 +103,7 @@ int AttributeToXMLFile(FILE *f, Attribute *att, int indent);
 int SubAttributesToXMLFile(FILE *f, Attribute *att, int indent);
 char *AttributeToXML(Attribute *att,char *&appendtothis, char **error_ret);
 Attribute *XMLFileToAttribute (Attribute *att,const char *file,const char **stand_alone_tag_list);
+Attribute *XMLFileToAttributeLocked (Attribute *att,const char *file,const char **stand_alone_tag_list);
 Attribute *XMLChunkToAttribute(Attribute *att,FILE *f,const char **stand_alone_tag_list);
 Attribute *XMLChunkToAttribute(Attribute *att,const char *buf,long n,
 							   long *C,const char *until,const char **stand_alone_tag_list);
