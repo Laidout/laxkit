@@ -66,6 +66,7 @@ flatpoint *draw_thing_coordinates(DrawThingTypes thing, flatpoint *buffer, int b
  //color utitilies
 ScreenColor *coloravg(ScreenColor *result, ScreenColor *a, ScreenColor *b,float r=.5);
 unsigned long pixelfromcolor(ScreenColor *col);
+unsigned long standoutcolor(const Laxkit::ScreenColor &color, bool bw);
 
 unsigned long coloravg(unsigned long a,unsigned long b,float r=.5);
 void colorrgb(unsigned long col,int *r,int *g,int *b);
