@@ -98,8 +98,7 @@ MessageBar::MessageBar(anXWindow *pwindow,const char *nname,const char *ntitle,u
 	}
 	SetupMetrics(); //clears up if h==0*** what the hell
 
-	win_colors=app->color_panel;
-	win_colors->inc_count();
+	installColors(app->color_panel);
 }
 
 MessageBar::~MessageBar()
