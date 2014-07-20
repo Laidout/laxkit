@@ -95,7 +95,8 @@ ToolTip::ToolTip(const char *newtext,int mouse)
 	app->addtimer(this,5000+c*50,5000+c*50,5001+c*50); // last for max of 5 seconds + 1sec / 20 chars
 	//DBG cerr <<"Done Creating Tooltip..."<<endl;
 
-	win_colors=new WindowColors;
+	installColors(new WindowColors);
+	win_colors->dec_count();
 	win_colors->fg=app->color_tooltip_fg;
 	win_colors->bg=app->color_tooltip_bg;
 }
