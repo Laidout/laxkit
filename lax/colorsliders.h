@@ -40,12 +40,13 @@ enum ColorSliderBlockType {
 	COLORBLOCK_RGB,
 	COLORBLOCK_CMYK,
 	COLORBLOCK_HSV,
+	COLORBLOCK_HSL,
 	COLORBLOCK_Alpha,
 	COLORBLOCK_Gray,
 	COLORBLOCK_Hue,
 	COLORBLOCK_CieLAB, //unimplemented
 	COLORBLOCK_XYZ,   //unimplemented
-	COLORBLACK_MAX
+	COLORBLOCK_MAX
 };
 
 enum ColorSliderType {
@@ -59,6 +60,7 @@ enum ColorSliderType {
 	COLORSLIDER_Hue,
 	COLORSLIDER_Saturation,
 	COLORSLIDER_Value,
+	COLORSLIDER_Lightness,
 	COLORSLIDER_Transparency,
 	COLORSLIDER_MAX
 };
@@ -88,6 +90,7 @@ class ColorSliders : public anXWindow, public ColorBase
 	IntRectangle bwcolor, hue;
 	IntRectangle sliders, hex, oldnew;
 	ScreenColor curcolor,original_color;
+	int inputpreference;
 
 	PtrStack<ColorBarInfo> bars;
 	int current, currenthalf;
@@ -112,8 +115,8 @@ class ColorSliders : public anXWindow, public ColorBase
 	virtual int MoveResize(int nx,int ny,int nw,int nh);
 
 	virtual void Refresh();
-	virtual void DrawVertical(ScreenColor &color1,ScreenColor &color2, int x,int y,int w,int h,double pos,const char *text);
-	virtual void DrawHorizontal(ScreenColor &color1,ScreenColor &color2, int x,int y,int w,int h,double pos,const char *text);
+	virtual void DrawVertical(ScreenColor &color1,ScreenColor &color2, int x,int y,int w,int h,double pos,const char *text, int usealpha);
+	virtual void DrawHorizontal(ScreenColor &color1,ScreenColor &color2, int x,int y,int w,int h,double pos,const char *text, int usealpha);
 	virtual void DrawPos(int x,int y,int w,int h, double pos);
 	virtual void DrawOldNew(int x,int y,int w,int h, int horiz);
 

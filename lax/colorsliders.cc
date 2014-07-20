@@ -73,6 +73,9 @@ ColorSliders::ColorSliders(anXWindow *parnt,const char *nname,const char *ntitle
   : anXWindow(parnt,nname,ntitle,ANXWIN_DOUBLEBUFFER|nstyle,nx,ny,nw,nh,brder,prev,owner,mes),
 	ColorBase(ctype,nmax,c0,c1,c2,c3,c4)
 {
+	inputpreference=ctype; //sliding cmyk/rgb does odd things on conversion, making sliders jump terribly
+						   //this lets one input style take preference temporarily. **** FININSH IMPLEMENTING
+
 	step=(double)nstep/max;
 	gap=5;
 	current=-1;
@@ -184,6 +187,7 @@ void ColorSliders::Refresh()
 	double tt[4];
 	double alpha=Alphaf();
 	const char *text=NULL;
+
 	for (int c=0; c<bars.n; c++) {
 		
 		if (win_style&COLORSLIDERS_Vertical) {
@@ -284,22 +288,22 @@ void ColorSliders::Refresh()
 			color1.rgbf(tt[0],tt[1],tt[2],alpha);
 			hsv[0]=1./3; simple_hsv_to_rgb(hsv,tt);
 			color2.rgbf(tt[0],tt[1],tt[2],alpha);
-			if (win_style&COLORSLIDERS_Vertical) DrawVertical(color1,color2, x,y, w,h/3+1, pos,text);
-			else DrawHorizontal(color1,color2, x,y, w/3+1,h, -1,text);
+			if (win_style&COLORSLIDERS_Vertical) DrawVertical(color1,color2, x,y, w,h/3+1, pos,text, 0);
+			else DrawHorizontal(color1,color2, x,y, w/3+1,h, -1,text, 0);
 
 			 //segment 2
 			color1=color2;
 			hsv[0]=2./3; simple_hsv_to_rgb(hsv,tt);
 			color2.rgbf(tt[0],tt[1],tt[2],alpha);
-			if (win_style&COLORSLIDERS_Vertical) DrawVertical(color1,color2, x,y+h/3, w,h/3+1, pos,text);
-			else DrawHorizontal(color1,color2, x+w/3,y, w/3+1,h, -1,text);
+			if (win_style&COLORSLIDERS_Vertical) DrawVertical(color1,color2, x,y+h/3, w,h/3+1, pos,text, 0);
+			else DrawHorizontal(color1,color2, x+w/3,y, w/3+1,h, -1,text, 0);
 
 			 //segment 3
 			color1=color2;
 			hsv[0]=1.; simple_hsv_to_rgb(hsv,tt);
 			color2.rgbf(tt[0],tt[1],tt[2],alpha);
-			if (win_style&COLORSLIDERS_Vertical) DrawVertical(color1,color2, x,y+h*2./3, w,h/3, -1,text);
-			else DrawHorizontal(color1,color2, x+w*2./3,y, w/3,h, -1,text);
+			if (win_style&COLORSLIDERS_Vertical) DrawVertical(color1,color2, x,y+h*2./3, w,h/3, -1,text, 0);
+			else DrawHorizontal(color1,color2, x+w*2./3,y, w/3,h, -1,text, 0);
 
 			DBG cerr <<" Hue pos:"<<pos<<" xywh:"<<x<<" "<<y<<" "<<w<<" "<<h<<endl;
 			DrawPos(x,y,w,h, pos);
@@ -310,9 +314,9 @@ void ColorSliders::Refresh()
 
 		if (c!=current) text=NULL;
 		if (win_style&COLORSLIDERS_Vertical) {
-			DrawVertical(color1,color2, x,y, w,h, pos,text);
+			DrawVertical(color1,color2, x,y, w,h, pos,text, bars.e[c]->type==COLORSLIDER_Transparency);
 		} else {
-			DrawHorizontal(color1,color2, x,y, w,h, pos,text);
+			DrawHorizontal(color1,color2, x,y, w,h, pos,text, bars.e[c]->type==COLORSLIDER_Transparency);
 		}
 	}
 
@@ -337,7 +341,7 @@ void ColorSliders::Refresh()
 //! Each bar is drawn horizontally.
 /*! pos is [0..1].
  */
-void ColorSliders::DrawHorizontal(ScreenColor &color1,ScreenColor &color2, int x,int y,int w,int h, double pos,const char *text)
+void ColorSliders::DrawHorizontal(ScreenColor &color1,ScreenColor &color2, int x,int y,int w,int h, double pos,const char *text, int usealpha)
 {
 //	if (color1.alpha!=65535 || color2.alpha!=65535) {
 //		 //need to draw transparency backdrop
@@ -353,11 +357,38 @@ void ColorSliders::DrawHorizontal(ScreenColor &color1,ScreenColor &color2, int x
 	 //draw color
 	double pp;
 	ScreenColor color;
-	for (int c=x; c<x+w; c++) {
-		pp=(double)(c-x)/w;
-		coloravg(&color, &color1,&color2,pp);
-		foreground_color(pixelfromcolor(&color));
-		draw_line(this, c,y, c,y+h);
+	if (usealpha) {
+		int square=10;
+		unsigned int abg1=rgbcolorf(.3,.3,.3);
+		unsigned int abg2=rgbcolorf(.6,.6,.6);
+		unsigned int bg1, bg2;
+		unsigned int col;
+		int a;
+		int hh=square;
+		for (int c=x; c<x+w; c++) {
+			a=(c/square)%2;
+			pp=(double)(c-x)/w;
+			coloravg(&color, &color1,&color2,pp);
+
+			bg1=coloravg(abg1,color.Pixel(), color.alpha/65535.);
+			bg2=coloravg(abg2,color.Pixel(), color.alpha/65535.);
+
+			hh=square;
+			for (int yy=y; yy<y+h; yy+=square) {
+				if (a) col=bg1; else col=bg2;
+				foreground_color(col);
+				if (yy+hh>y+h) hh=y+h-yy;
+				draw_line(this, c,yy, c,yy+hh);
+				a=!a;
+			}
+		}
+	} else {
+		for (int c=x; c<x+w; c++) {
+			pp=(double)(c-x)/w;
+			coloravg(&color, &color1,&color2,pp);
+			foreground_color(color.Pixel());
+			draw_line(this, c,y, c,y+h);
+		}
 	}
 
 	 //draw pos
@@ -365,10 +396,10 @@ void ColorSliders::DrawHorizontal(ScreenColor &color1,ScreenColor &color2, int x
 
 	 //text
 	if (text) {
-		foreground_color(~0);
-		drawing_function(LAXOP_Xor);
+		foreground_color(standoutcolor(color1,1));
+		//drawing_function(LAXOP_Xor);
 		textout(this, text,-1, gap,y, LAX_TOP|LAX_LEFT);
-		drawing_function(LAXOP_Over);
+		//drawing_function(LAXOP_Over);
 	}
 }
 
@@ -402,7 +433,7 @@ void ColorSliders::DrawOldNew(int x,int y,int w,int h, int horiz)
 	else fill_rectangle(this, x,y+h/2,w,h/2);
 }
 
-void ColorSliders::DrawVertical(ScreenColor &color1,ScreenColor &color2, int x,int y,int w,int h, double pos,const char *text)
+void ColorSliders::DrawVertical(ScreenColor &color1,ScreenColor &color2, int x,int y,int w,int h, double pos,const char *text, int usealpha)
 {
 //	if (color1.alpha!=65535 || color2.alpha!=65535) {
 //		 //need to draw transparency backdrop
@@ -432,6 +463,8 @@ void ColorSliders::DrawVertical(ScreenColor &color1,ScreenColor &color2, int x,i
 		foreground_color(~0);
 		draw_line(this, x,gap+pos, x+w,gap+pos+1);
 	}
+
+	// *** ignoring text
 }
 
 
