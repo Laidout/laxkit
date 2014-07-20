@@ -122,7 +122,6 @@ objs= \
 	buttonbase.o \
 	button.o \
 	imageinfo.o \
-	layer.o \
 	lineedit.o \
 	multilineedit.o \
 	promptedit.o \
