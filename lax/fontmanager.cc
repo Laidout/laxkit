@@ -149,7 +149,7 @@ FontManager::FontManager()
  */
 
 
-/*! \fn LaxFont *FontManager::MakeFontFromStr(const char *str, double size, int nid)
+/*! \fn LaxFont *FontManager::MakeFontFromStr(const char *str, int nid)
  * \brief Create and return a LaxFont, but do not store it within the fontmanager.
  *
  * str is a FontConfig string.
