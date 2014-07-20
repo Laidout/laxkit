@@ -30,7 +30,6 @@ namespace LaxFiles {
 
 
 int touch_recently_used(const char *file, const char *mime, const char *group, const char *timestamp);
-Attribute *recently_used_att(const char *file="~/.recently-used");
 char *recently_used(const char *mimetype,const char *group, int includewhat);
 
 char *get_bookmarks(const char *file,const char *filetype);

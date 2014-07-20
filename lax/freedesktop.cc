@@ -34,7 +34,6 @@
 
 #include <lax/lists.cc>
 
-#include <cstdlib>
 
 #define DBG
 #include <iostream>
@@ -50,7 +49,7 @@ namespace LaxFiles {
  * file must be an absolute path.
  *
  * \todo there could be more error checking in here. If recent file spec changes, could well break this.
- * \todo support the other commonly used recent file: ~/.recently-used.xbel
+ * \todo support the more commonly used recent file: ~/.local/share/recently-used.xbel
  */
 int touch_recently_used(const char *file, const char *mime, const char *group, const char *timestamp)
 {
@@ -73,8 +72,11 @@ int touch_recently_used(const char *file, const char *mime, const char *group, c
 	}
 
 	 //read in recently-used
-	Attribute *recent=recently_used_att();
+	char *recentfile=expand_home("~/.recently-used");
+	//char *recentfile=expand_home("~/.local/share/recently-used.xbel");
+	Attribute *recent=XMLFileToAttributeLocked(NULL,recentfile,NULL);
 	Attribute *content;
+
 	if (!recent) {
 		 //problem reading ~/.recently-used, or file does not exist
 		recent=new Attribute;
@@ -91,6 +93,7 @@ int touch_recently_used(const char *file, const char *mime, const char *group, c
 			 //error;
 			delete[] uri;
 			delete recent;
+			delete[] recentfile;
 			return 3;
 		}
 
@@ -172,9 +175,8 @@ int touch_recently_used(const char *file, const char *mime, const char *group, c
 	
 	 //write back out recently-used
 	setlocale(LC_ALL,"C");
-	char *rf=expand_home("~/.recently-used");
-	int fd=open(rf,O_CREAT|O_WRONLY|O_TRUNC,S_IREAD|S_IWRITE);
-	delete[] rf;
+	int fd=open(recentfile,O_CREAT|O_WRONLY|O_TRUNC,S_IREAD|S_IWRITE);
+	delete[] recentfile;
 	if (fd<0) { 
 		setlocale(LC_ALL,"");
 		delete[] uri;
@@ -196,46 +198,12 @@ int touch_recently_used(const char *file, const char *mime, const char *group, c
 	flock(fd,LOCK_UN);
 	fclose(f);
 	setlocale(LC_ALL,"");
+
 	delete[] uri;
 	delete recent;
 
 	return 0;
 }
-
-//! Return an Attribute created from XML.
-/*! Default is to read from ~/.recently-used.
- * See the Recently Used Specification at Freedesktop.org:
- * http://www.freedesktop.org/wiki/Specifications/recent-file-spec
- *
- * This locks the file, reads it in to an Attribute with XMLChunkToAttribute(),
- * then unlocks the file.
- *
- * Please note that many programs are not using ~/.recently-used, but
- * are instead using ~/.recently-used.xbel.
- *
- */
-Attribute *recently_used_att(const char *file)
-{
-	if (isblank(file)) file="~/.recently-used";
-
-	setlocale(LC_ALL,"C");
-	char *rf=expand_home(file);
-	int fd=open(rf,O_RDONLY);
-	delete[] rf;
-	if (fd<0) { setlocale(LC_ALL,""); return NULL; }
-	flock(fd,LOCK_EX);
-	FILE *f=fdopen(fd,"r");
-	if (!f) { setlocale(LC_ALL,""); close(fd); return NULL; }
-
-	Attribute *mainatt=XMLChunkToAttribute(NULL,f,NULL);
-
-	flock(fd,LOCK_UN);
-	fclose(f);// this closes fd too
-	setlocale(LC_ALL,"");
-
-	return mainatt;
-}
-
 
 //! Return a newline separated list of recent files.
 /*! If mimetype!=NULL, then return only items of that type.
@@ -253,7 +221,7 @@ Attribute *recently_used_att(const char *file)
  * Please note that many programs are not using this spec, but are instead using
  * the Freedesktop bookmark spec:
  * http://www.freedesktop.org/wiki/Specifications/desktop-bookmark-spec,
- * which puts info into ~/.recently-used.xbel instead. Apparently, this one
+ * which puts info into ~/.local/share/recently-used.xbel instead. Apparently, this one
  * will supercede the Recently Used spec.
  *
  * If you choose to read from ~/.recently-used, then it expects that file to return
@@ -281,7 +249,7 @@ Attribute *recently_used_att(const char *file)
  *              Group "gimp"
  * </pre>
  *
- * If you instead to read from ~/.recently-used.xbel, then an attribute of the following
+ * If you instead to read from ~/.local/share/recently-used.xbel, then an attribute of the following
  * form is expected.
  * <pre>
  *  ?xml
@@ -318,18 +286,21 @@ Attribute *recently_used_att(const char *file)
  *  
  * </pre>
  *
- * \todo support the other commonly used recent file: ~/.recently-used.xbel
+ * \todo support the other commonly used recent file: ~/.local/share/recently-used.xbel
  * \todo not a whole lot of error checking in here yet.
  */
 char *recently_used(const char *mimetype,const char *group, int includewhat)
 {
-	Attribute *mainatt=recently_used_att();
+	char *name=expand_home("~/.recently-used");
+	//char *name=expand_home("~/.local/share/recently-used.xbel");
+	Attribute *mainatt=XMLFileToAttributeLocked(NULL,name,NULL);
+	delete[] name;
 	if (!mainatt) return NULL;
 
 	char *recent=NULL;
 
 	int priv,ingroup=0;
-	char *name,*value;
+	char *value;
 	char *mime,*file,*timestamp;
 	Attribute *att2,*att=mainatt->find("RecentFiles");
 	if (!att) return NULL;//protection against malformed files
