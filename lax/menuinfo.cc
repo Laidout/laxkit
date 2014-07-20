@@ -271,6 +271,19 @@ int MenuItem::hidden()
 	return 0;
 }
 
+/*! yes==-1 means toggle LAX_HIDDEN in state.
+ * Otherwise, 0 clears hide, 1 installs hide.
+ * Returns new current hidden.
+ */
+int MenuItem::Hide(int yes)
+{
+	if (yes<0) state^=LAX_HIDDEN;
+	else if (yes) state|=LAX_HIDDEN;
+	else state&=~LAX_HIDDEN;
+	if (state&LAX_HIDDEN) return 1;
+	return 0;
+}
+
 int MenuItem::hasParent(MenuInfo *menuinfo)
 {
 	int n=1;

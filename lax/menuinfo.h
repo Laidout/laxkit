@@ -113,6 +113,7 @@ class MenuItem : public anObject
 	virtual int hasSub() const;
 	virtual int isOpen() const;
 	virtual int hidden();
+	virtual int Hide(int yes);
 	virtual int hasParent(MenuInfo *menuinfo);
 	virtual int hasParent(MenuItem *menuitem);
 };
