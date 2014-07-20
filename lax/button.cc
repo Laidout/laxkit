@@ -186,7 +186,7 @@ int Button::SetGraphic(int newthing, int newwidth, int newheight)
 	if (thingw<=0) {
 		if (label) {
 			double th;
-			getextent(label,-1,NULL,&th,NULL,NULL,0);
+			GetDefaultDisplayer()->textextent(label,-1,NULL,&th);
 			thingw=th/2;
 		}
 		else thingw=app->defaultlaxfont->textheight()/2;
@@ -239,8 +239,10 @@ int Button::SetIcon(LaxImage *img,int makebw) // makebw=0
  */
 void Button::draw()
 {
-	foreground_color(mousein?win_colors->moverbg:win_colors->bg);
-	fill_rectangle(this, 0,0, win_w,win_h);
+	Displayer *dp=GetDefaultDisplayer();
+	dp->NewFG(mousein?win_colors->moverbg:win_colors->bg);
+	dp->MakeCurrent(this);
+	dp->drawrectangle(0,0, win_w,win_h, 1);
 	
 	unsigned int what=labelstyle;
 	
@@ -252,7 +254,7 @@ void Button::draw()
 	
 	 // set up placement
 	double tx=0,ty,th=0,tw=0,ix=0,iy,iw=0,ih=0;
-	if (l) getextent(l,-1,&tw,&th,NULL,NULL,0);
+	if (l) dp->textextent(l,-1,&tw,&th);
 	if (usei) {
 		if (image) { iw=image->w(); ih=image->h(); }
 		else { iw=thingw; ih=thingh; }
@@ -272,17 +274,21 @@ void Button::draw()
 	}
 
 	DBG cerr <<" ---------button: "<<whattype()<<"  ix="<<ix<<endl;
+	DBG cerr <<"            ty:"<<ty<<"  th:"<<th<<endl;
 	
 	 // draw the stuff
+	flatpoint offset;
+	if (state&LAX_ON) { offset.x=offset.y=bevel/2; }
 	if (usei) {
 		if (image) {
 			image_out(i,this,ix,iy);
+			//image_out(i,this,ix+offset.x,iy+offset.y);
 			i->doneForNow();
-		} else draw_thing(this, ix+iw/2,iy+iy/2, iw/2,ih/2, (DrawThingTypes)thing, win_colors->fg, win_colors->color1);
+		} else dp->drawthing(ix+iw/2,iy+iy/2, iw/2,ih/2, (DrawThingTypes)thing, win_colors->fg, win_colors->color1);
 	}
 	if (l) {
-		foreground_color((state==LAX_GRAY||Grayed())?win_colors->grayedfg:win_colors->fg);
-		textout(this, l,-1,tx,ty,LAX_LEFT|LAX_TOP);
+		dp->NewFG((state==LAX_GRAY||Grayed())?win_colors->grayedfg:win_colors->fg);
+		dp->textout(tx+offset.x,ty+offset.y, l,-1, LAX_LEFT|LAX_TOP);
 	}
 	
 	if ((win_style&BUTTON_TOGGLE)
