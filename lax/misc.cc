@@ -34,6 +34,10 @@ using namespace std;
 
 namespace Laxkit {
 	
+
+
+//--------------------------- Unique things ----------------------------------------
+
 //! Return a unique unsigned long.
 /*! \ingroup misc
  * Keeps a static unsigned long, and increments it by 1 on each call. Starts at 0.
@@ -63,6 +67,24 @@ char *make_id(const char *base)
 
 
 //----------------------------- Simple, non color managed color conversions ----------------------------
+
+
+//------------------- Grayscale
+
+double simple_rgb_to_grayf(double r,double g,double b)
+{
+	return 0.2989*r + 0.5870*g + 0.1140*b;
+}
+
+int simple_rgb_to_gray(int r,int g,int b, int max)
+{
+	int gray=0.2989*r + 0.5870*g + 0.1140*b;
+	if (gray<0) gray=0;
+	else if (gray>max) gray=max;
+	return gray;
+}
+
+
 
 //-------------- rgb to cmyk
 

@@ -25,11 +25,20 @@
 
 namespace Laxkit {
 
+
+//--------------------------- Unique things ----------------------------------------
 unsigned long getUniqueNumber();
 char *make_id(const char *base);
 
 
 //----------------------------- Simple, non color managed color conversions ----------------------------
+
+//-------gray
+double simple_rgb_to_grayf(double r,double g,double b);
+int simple_rgb_to_gray(int r,int g,int b, int max);
+
+
+//---------rgb/cmyk 
 void simple_rgb_to_cmyk(int r,int g,int b,int *c,int *m,int *y,int *k,int max);
 void simple_rgb_to_cmyk(int *rgb, int *cmyk, int max);
 void simple_rgb_to_cmyk(double r,double g,double b,double *c,double *m,double *y,double *k);
@@ -41,6 +50,7 @@ void simple_cmyk_to_rgb(double c,double m,double y,double k,double *r,double *g,
 void simple_cmyk_to_rgb(double *cmyk, double *rgb);
 
 
+//---------rgb/hsv
 void simple_hsv_to_rgb(int h,int s,int v,int *r,int *g,int *b,int max);
 void simple_hsv_to_rgb(int *hsv, int *rgb, int max);
 void simple_hsv_to_rgb(double h,double s,double v,double *r,double *g,double *b);
