@@ -104,7 +104,6 @@ objs= \
 	displayer-xlib.o \
 	displayer-cairo.o \
 	messagebar.o \
-	xymesbar.o \
 	menuinfo.o \
 	filemenuinfo.o \
 	texteditbase-utf8.o \
