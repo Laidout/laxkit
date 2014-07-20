@@ -475,7 +475,8 @@ XftDraw *DisplayerXlib::textdraw(Window xlib_window)
     return textxftdraw;
 }
 
-/*! Returns distance advanced. 
+/*! Write out a single line.
+ * Returns distance advanced. 
  */
 double DisplayerXlib::textout_line(double x,double y,const char *str,int len,unsigned long align)
 {
