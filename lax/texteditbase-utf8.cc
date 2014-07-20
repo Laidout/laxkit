@@ -197,6 +197,7 @@ TextEditBaseUtf8::TextEditBaseUtf8(const char *newtext,unsigned long nstyle,unsi
 	tabwidth=4;
 	cutbuffer=NULL;
 	thetext=NULL;
+	textlen=0;
 	maxlines=maxtextlen=mintextlen=minlines=0;
 	if (ncntlchar<33) if (textstyle&TEXT_CNTL_BANG) cntlchar=(unsigned int) '!'; else cntlchar=(unsigned int) '\\';
 	else cntlchar=ncntlchar;
