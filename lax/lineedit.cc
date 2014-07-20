@@ -815,11 +815,11 @@ int LineEdit::LBDown(int x,int y, unsigned int state,int count,const LaxMouse *d
 	long newpos=findpos(x+curlineoffset);
 	//DBG cerr <<"lineedit lbdown found newpos:"<<newpos<<"  textlen:"<<textlen<<endl;
 
-	if (newpos==curpos) return 0;
 	if (state&ShiftMask) { // add to sel
 		if (sellen==0) selstart=curpos;
 		sellen=newpos-selstart;
 	} else { sellen=0; selstart=newpos; }
+	//if (newpos==curpos) return 0;
 	curpos=newpos;
 	findcaret();
 	needtodraw|=3;
