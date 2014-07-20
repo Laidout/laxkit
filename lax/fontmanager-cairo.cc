@@ -73,7 +73,7 @@ LaxFontCairo::LaxFontCairo(const char *fontconfigstr,int nid)
 	//if (!dd) return NULL;
 
 	FcPattern *pattern=FcNameParse((FcChar8*)fontconfigstr);
-	DBG cerr <<"LaxFontCairo constructor pattern from string: "<<endl;
+	DBG cerr <<"LaxFontCairo constructor: pattern from string: "<<endl;
 	DBG FcPatternPrint(pattern);
 
 	font=cairo_ft_font_face_create_for_pattern(pattern);
@@ -82,9 +82,11 @@ LaxFontCairo::LaxFontCairo(const char *fontconfigstr,int nid)
 	FcPatternDestroy(pattern);
 
 	cairo_matrix_t matrix;
+	cairo_matrix_t identity;
 	cairo_matrix_init_scale(&matrix, height, height);
+	cairo_matrix_init_identity(&identity);
 	options=cairo_font_options_create();
-	scaledfont=cairo_scaled_font_create(font, &matrix, &matrix, options);
+	scaledfont=cairo_scaled_font_create(font, &matrix, &identity, options);
 
 	//const cairo_matrix_t *font_matrix,
     //const cairo_matrix_t *ctm,
@@ -96,6 +98,8 @@ LaxFontCairo::LaxFontCairo(const char *fontconfigstr,int nid)
 
 LaxFontCairo::LaxFontCairo(const char *family, const char *style, double size, int nid)
 {
+	DBG cerr <<"LaxFontCairo constructor family/style/size..."<<endl;
+
 	id=nid;
 	if (!id) id=getUniqueNumber();
 
@@ -120,14 +124,16 @@ LaxFontCairo::LaxFontCairo(const char *family, const char *style, double size, i
 
 	cairo_matrix_t m, ctm;
 	cairo_matrix_init_scale(&m,size,size);
-	cairo_matrix_init_identity(&m);
+	cairo_matrix_init_identity(&ctm);
 	options=cairo_font_options_create();
-	scaledfont=cairo_scaled_font_create(font, &ctm, &ctm, options);
+	scaledfont=cairo_scaled_font_create(font, &m, &ctm, options);
 	cairo_scaled_font_extents(scaledfont, &extents);
 }
 
 LaxFontCairo::~LaxFontCairo()
 {
+	DBG cerr <<"LaxFontCairo destructor..."<<endl;
+
 	if (scaledfont) cairo_scaled_font_destroy(scaledfont);
 	if (font) cairo_font_face_destroy(font);
 	if (options) cairo_font_options_destroy(options);
@@ -200,15 +206,16 @@ FontManagerCairo::FontManagerCairo()
 { }
 
 
-//! Add a font to the manager, based on an X Logical Font Description string.
-/*! If nid<0 then the id is from getUniqueNumber().
+//! Create and return a LaxFont, but do not store it within the fontmanager.
+/*! str is a FontConfig string.
+ * If nid<0 then the id is from getUniqueNumber().
  */
 LaxFont *FontManagerCairo::MakeFontFromStr(const char *fcstr, int nid)
 {
 	if (nid<0) nid=getUniqueNumber();
 	LaxFont *f=new LaxFontCairo(fcstr,nid);
-	push(f);//incs count of f to 2
-	f->dec_count();//remove creation count
+	//push(f);//incs count of f to 2
+	//f->dec_count();//remove creation count
 	return f;
 }
 

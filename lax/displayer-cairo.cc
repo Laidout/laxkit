@@ -23,6 +23,8 @@
 
 
 #include <lax/displayer-cairo.h>
+#include <lax/fontmanager-cairo.h>
+#include <lax/laximages-cairo.h>
 
 
 
@@ -114,7 +116,7 @@ void DisplayerCairo::base_init()
 	cr=NULL;
 	curfont=NULL;
 	curscaledfont=NULL;
-	_textheight=0;
+	_textheight=_ascent=_descent=0;
 
 	target=NULL;
 	surface=NULL;
@@ -147,7 +149,7 @@ Displayer *DisplayerCairo::duplicate()
 }
 
 
-Display *DisplayerCairo::GetDpy() { return dpy; }
+//Display *DisplayerCairo::GetDpy() { return dpy; }
 cairo_t *DisplayerCairo::GetCairo() { return cr; }
 
 
@@ -160,11 +162,11 @@ void DisplayerCairo::SwapBuffers()
 void DisplayerCairo::BackBuffer(int on)
 { cout <<"*** imp DisplayerCairo::backbuffer()"<<endl; }
 
-void DisplayerCairo::WrapWindow(anXWindow *nw)
-{
-	Displayer::WrapWindow(nw);
-	MakeCurrent(nw);
-}
+//void DisplayerCairo::WrapWindow(anXWindow *nw)
+//{
+//	Displayer::WrapWindow(nw);
+//	MakeCurrent(nw);
+//}
 
 //! This sets up internals for drawing onto buffer, and wraps window if the min/max seem to not be set.
 int DisplayerCairo::StartDrawing(aDrawable *buffer)
@@ -178,7 +180,7 @@ int DisplayerCairo::StartDrawing(aDrawable *buffer)
 //! Make sure we are drawing on the proper surface.
 int DisplayerCairo::MakeCurrent(aDrawable *buffer)
 {
-	if (cr && surface && buffer==dr) return 1;
+	if (cr && surface && buffer==dr) return 1; //already current!
 
 	dr=buffer;
 	xw=dynamic_cast<anXWindow*>(buffer);
@@ -206,13 +208,26 @@ int DisplayerCairo::MakeCurrent(aDrawable *buffer)
 	}
 
 	if (!surface) {
+		 //no existing surface, need to remap to an xlib_surface
 		if (cr) { cairo_destroy(cr); cr=NULL; }
 		surface=cairo_xlib_surface_create(dpy,w,vis,Maxx,Maxy);
+
 	} else if (cairo_xlib_surface_get_drawable(surface)!=w) {
+		 //we already have an xlib surface, just need to point to current xlib drawable
 		cairo_xlib_surface_set_drawable(surface,w, Maxx,Maxy);
 	}
 
-	if (!cr) cr=cairo_create(surface);
+	if (!cr) {
+		cr=cairo_create(surface);
+		if (!curfont) initFont();
+		cairo_set_font_face(cr,curfont);
+		if (_textheight>0) cairo_set_font_size(cr, _textheight);
+		cairo_font_extents_t fextents;
+		cairo_font_extents(cr, &fextents);
+		_ascent =fextents.ascent;
+		_descent=fextents.descent;
+		_textheight=_ascent+_descent;
+	}
 
 	cairo_matrix_t m;
 	if (real_coordinates) cairo_matrix_init(&m, ctm[0], ctm[1], ctm[2], ctm[3], ctm[4], ctm[5]);
@@ -238,6 +253,16 @@ int DisplayerCairo::MakeCurrent(aDrawable *buffer)
  */
 int DisplayerCairo::ClearDrawable(aDrawable *drawable)
 {
+	if (!cr || !surface || drawable!=dr) return 1; //already cleared!
+
+	if (surface) cairo_surface_destroy(surface);
+	surface=NULL;
+	if (cr) { cairo_destroy(cr); cr=NULL; }
+	isinternal=0;
+
+	dr=NULL;
+
+	DBG cerr <<"DisplayerCairo::ClearDrawable()"<<endl;
 	return 0;
 }
 
@@ -266,6 +291,15 @@ int DisplayerCairo::CreateSurface(int w,int h, int type)
 	isinternal=1;
 	surface=cairo_image_surface_create(CAIRO_FORMAT_ARGB32, w,h);
 	cr=cairo_create(surface);
+	if (!curfont) initFont();
+	cairo_set_font_face(cr,curfont);
+	if (_textheight>0) cairo_set_font_size(cr, _textheight);
+	cairo_font_extents_t fextents;
+	cairo_font_extents(cr, &fextents);
+	_ascent =fextents.ascent;
+	_descent=fextents.descent;
+	_textheight=_ascent+_descent;
+
 	Minx=Miny=0;
 	Maxx=w;
 	Maxy=h;
@@ -497,7 +531,12 @@ void DisplayerCairo::ClearWindow()
 		cairo_identity_matrix(cr);
 		cairo_operator_t oldmode=cairo_get_operator(cr);
 		cairo_set_operator(cr,CAIRO_OPERATOR_OVER);
-		cairo_set_source_rgba(cr, bgRed, bgGreen, bgBlue, bgAlpha);
+		if (xw) cairo_set_source_rgba(cr,
+						(xw->win_colors->bg&0xff)/255.,
+						((xw->win_colors->bg&0xff00)>>8)/255.,
+						((xw->win_colors->bg&0xff0000)>>16)/255.,
+						1.);
+		else cairo_set_source_rgba(cr, bgRed, bgGreen, bgBlue, bgAlpha);
 		cairo_rectangle(cr, Minx,Miny,Maxx-Minx+1,Maxy-Miny+1);
 		cairo_fill(cr);
 		cairo_set_source_rgba(cr, fgRed, fgGreen, fgBlue, fgAlpha);
@@ -576,6 +615,14 @@ void DisplayerCairo::show()
 
 //------------------path functions
 
+/*! Using current path, fill with a gradient.
+ */
+void DisplayerCairo::fillgradient()
+{
+	//set up a cairo_pattern_t to use as drawing source
+
+}
+
 //! Draw out current path if any.
 /*! If preserve!=0, then the path is not cleared.
  */
@@ -652,21 +699,23 @@ void DisplayerCairo::drawpoint(double x,double y,double radius,int tofill)
  */
 void DisplayerCairo::drawlines(flatpoint *points,int npoints,char ifclosed,char tofill)
 {
-	flatpoint p=realtoscreen(points[0]);
+	flatpoint p=(real_coordinates ? realtoscreen(points[0]) : points[0]);
 	if (!cairo_has_current_point(cr)) cairo_move_to(cr, p.x,p.y);
 	int c;
 	for (c=0; c<npoints; c++) {
-		p=realtoscreen(points[c]);
+		p=(real_coordinates ? realtoscreen(points[c]) : points[c]);
 		cairo_line_to(cr, p.x,p.y);
 	}
 	if (ifclosed) cairo_close_path(cr);
 
 	if (!draw_immediately) return;
 
-	if (tofill) {
-		if (tofill==2) cairo_set_source_rgba(cr, bgRed, bgGreen, bgBlue, fgAlpha);
+	if (tofill==1) {
+		cairo_fill(cr);
+	} else if (tofill==2) {
+		cairo_set_source_rgba(cr, bgRed, bgGreen, bgBlue, bgAlpha);
 		cairo_fill_preserve(cr);
-		if (tofill==2) cairo_set_source_rgba(cr, fgRed, fgGreen, fgBlue, fgAlpha); 
+		cairo_set_source_rgba(cr, fgRed, fgGreen, fgBlue, fgAlpha); 
 	}
 	if (tofill!=1) cairo_stroke(cr);
 }
@@ -691,7 +740,19 @@ void DisplayerCairo::drawline(double ax,double ay,double bx,double by)
 
 int DisplayerCairo::font(LaxFont *nfont, double size)
 {
-	cerr <<"*** implement DisplayerCairo::font"<<endl;
+	LaxFontCairo *cairofont=dynamic_cast<LaxFontCairo*>(nfont);
+    if (!cairofont) return 1;
+
+	if (curfont!=cairofont->font) {
+		if (curfont) cairo_font_face_destroy(curfont);//really just a melodramatic dec count
+		curfont=cairofont->font;
+		cairo_font_face_reference(curfont);
+	}
+
+	if (curscaledfont) { cairo_scaled_font_destroy(curscaledfont); curscaledfont=NULL; }
+
+	cairo_set_font_face(cr,curfont);
+	fontsize(size);
 	return 1;
 }
 
@@ -712,7 +773,7 @@ int DisplayerCairo::font(const char *fontconfigpattern)
 	cairo_font_face_t *newfont;
 	newfont=cairo_ft_font_face_create_for_pattern(pattern);
 	FcPatternDestroy(pattern);
-	if (curfont) cairo_font_face_destroy(curfont);
+	if (curfont) cairo_font_face_destroy(curfont);//really just a melodramatic dec count
 	curfont=newfont;
 
 	if (curscaledfont) { cairo_scaled_font_destroy(curscaledfont); curscaledfont=NULL; }
@@ -755,6 +816,11 @@ int DisplayerCairo::font(const char *family,const char *style,double pixelsize)
 	if (cr) {
 		cairo_set_font_face(cr, curfont);
 		cairo_set_font_size(cr, pixelsize);
+
+		cairo_font_extents_t fextents;
+		cairo_font_extents(cr, &fextents);
+		_ascent =fextents.ascent;
+		_descent=fextents.descent;
 	}
 
 	return 0;
@@ -764,6 +830,11 @@ int DisplayerCairo::fontsize(double size)
 {
 	cairo_set_font_size(cr, size);
 	_textheight=size;
+
+	cairo_font_extents_t fextents;
+	cairo_font_extents(cr, &fextents);
+	_ascent =fextents.ascent;
+	_descent=fextents.descent;
 	return 0;
 }
 
@@ -773,6 +844,15 @@ double DisplayerCairo::textextent(LaxFont *thisfont, const char *str,int len, do
 {
 	if (!curfont) initFont();
 
+   if (str==NULL || !curfont) {
+        if (width) *width=0;
+        if (height) *height=0;
+        if (ascent) *ascent=0;
+        if (descent) *descent=0;
+        return 0;
+    }
+
+	if (len<0) len=strlen(str);
 	if (len>bufferlen) reallocBuffer(len);
 
 	cairo_text_extents_t extents;
@@ -780,14 +860,13 @@ double DisplayerCairo::textextent(LaxFont *thisfont, const char *str,int len, do
 	buffer[len]='\0';
 	cairo_text_extents(cr, buffer, &extents);
 
+	cairo_font_extents_t fextents;
+	cairo_font_extents(cr, &fextents);
+
+	if (ascent)  *ascent =fextents.ascent;
+	if (descent) *descent=fextents.descent;
+	if (height)  { if (real) *height=extents.height; else *height=fextents.ascent+fextents.descent; }
 	if (width)   *width  =extents.width;
-	if (height)  *height =extents.height;
-	if (ascent || descent) {
-		cairo_font_extents_t fextents;
-		cairo_font_extents(cr, &fextents);
-		if (ascent)  *ascent =fextents.ascent;
-		if (descent) *descent=fextents.descent;
-	}
 
 	return extents.width;
 }
@@ -832,12 +911,35 @@ double DisplayerCairo::textout(double x,double y,const char *str,int len,unsigne
 	buffer[len]='\0';
 
 	if (!curfont) initFont();
-	cairo_move_to(cr, x,y);
+
+
+    int ox,oy;
+	if (align&LAX_LEFT) ox=x;
+	else {
+		cairo_text_extents_t extents;
+		cairo_text_extents(cr, buffer, &extents);
+
+		if (align&LAX_RIGHT) ox=x-extents.width;
+		else ox=x-extents.width/2; //center
+	}
+
+    if (align&LAX_TOP) oy=y+_ascent;
+    else if (align&LAX_BOTTOM) oy=y-_descent;
+    else if (align&LAX_BASELINE) oy=y;
+    else oy=y-(_ascent+_descent)/2+_ascent; //center
+
+
+	cairo_move_to(cr, ox,oy);
 	if (len==0) return 0;
 
-	//DBG cairo_set_font_size(cr, 20);
 	cairo_show_text(cr, buffer);
 	cairo_fill(cr);
+
+	//DBG drawline(ox,oy-_ascent, ox+50,oy-_ascent);
+	//DBG drawline(ox,oy, ox+50,oy);
+	//DBG drawline(ox,oy+_descent, ox+50,oy+_descent);
+	//DBG drawpoint(x,y, 5,0);
+
 
 	return 0; // ***
 }

@@ -67,8 +67,11 @@ class DisplayerCairo : public Displayer
 	cairo_font_face_t *curfont;
 	cairo_scaled_font_t *curscaledfont;
 	double _textheight;
+	double _ascent;
+	double _descent;
 
 	void base_init();
+
  public:
 	DisplayerCairo(anXWindow *nxw=NULL,PanController *pan=NULL);
 	virtual ~DisplayerCairo();
@@ -76,23 +79,26 @@ class DisplayerCairo : public Displayer
 
 	 /*! \name Window and Xlib specific helper functions: */
 	 //@{
-	virtual Display *GetDpy();
+	//virtual Display *GetDpy();
 	 //@}
 
+	 /*! \name Cairo specific helper functions: */
+	 //@{
 	virtual cairo_t *GetCairo();
+	virtual void setCairoBlendMode(cairo_operator_t mode);
+	 //@}
 
 	 /*! \name Buffer Management */
 	 //@{ 
 	virtual void SwapBuffers();
 	virtual void BackBuffer(int on);
-
-	virtual void WrapWindow(anXWindow *nw);
+	//virtual void WrapWindow(anXWindow *nw);
 	virtual int StartDrawing(aDrawable *buffer);
 	virtual int MakeCurrent(aDrawable *buffer);
 	virtual int ClearDrawable(aDrawable *drawable);
 	virtual int CreateSurface(int w,int h, int type=-1);
-	virtual int ResizeSurface(int width, int height);
 	virtual LaxImage *GetSurface();
+	virtual int ResizeSurface(int width, int height);
 	virtual int EndDrawing();
 	 //@}
 
@@ -111,7 +117,6 @@ class DisplayerCairo : public Displayer
 	virtual void LineAttributes(double width,int dash,int cap,int join);
 	virtual void FillAttributes(int fillstyle, int fillrule);
 	virtual LaxCompositeOp BlendMode(LaxCompositeOp mode);
-	virtual void setCairoBlendMode(cairo_operator_t mode);
 	 //@}
 
 
@@ -147,6 +152,10 @@ class DisplayerCairo : public Displayer
 	virtual void drawlines(flatpoint *points,int npoints,char isclosed,char tofill);
 	virtual void drawline(flatpoint p1,flatpoint p2);
 	virtual void drawline(double ax,double ay,double bx,double by);
+
+	 //gradients
+	 // ********** Need to standardize this!!!
+	virtual void fillgradient();
 
 	 //draw text
 	virtual void initFont(); //not from Displayer
