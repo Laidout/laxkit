@@ -360,8 +360,6 @@ anXWindow::anXWindow(anXWindow *parnt, const char *nname, const char *ntitle,
 	win_style=nstyle;
 	win_pointer_shape=0;
 
-	win_colors=NULL;
-
 	win_tooltip=NULL;
 	if (!ntitle) ntitle="untitled";
 	win_title=newstr(ntitle);
@@ -375,6 +373,8 @@ anXWindow::anXWindow(anXWindow *parnt, const char *nname, const char *ntitle,
 	prevcontrol=NULL;
 	if (prev) prev->ConnectControl(this,1);
 
+	win_colors=NULL; 
+	//installColors(app->color_panel);
 
 #ifdef _LAX_PLATFORM_XLIB
 	 //set up Xlib specific stuff
