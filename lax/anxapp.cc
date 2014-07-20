@@ -570,6 +570,12 @@ anXApp::anXApp()
 	default_icon_file=NULL;
 	default_icon=NULL;
 
+
+	default_border_width=1;
+	default_padx=5;
+	default_pady=5; 
+	default_bevel=5;
+
 	 //set up standard mutexes
 	pthread_mutex_init(&event_mutex,NULL);
 }
@@ -1214,18 +1220,21 @@ void anXApp::reselectForXEvents(anXWindow *win)
 }
 
 //! Quick way to code setting window and win_on=0 for w and all subwindows,
-/*! Called from destroywindow(), this just has the effect of removing the windows
- * from the event queue. Actual X Window destroying is done in destrowindow(), which
- * calls this function after it XDestroys the windows.
+/*! Called from destroywindow(), this has the effect of removing the windows
+ * from the event queue. Actual X Window destroying is done in destroywindow(), which
+ * calls this function just before it XDestroys the windows.
  *
  * This will set ANXWIN_DOOMED in w->win_style and all of w's children.
  */
 void anXApp::resetkids(anXWindow *w)
 {
+	GetDefaultDisplayer()->ClearDrawable(w);
+
 	w->xlib_backbuffer=0;
 	w->xlib_window=0;
 	w->win_on=0;
 	w->win_style|=ANXWIN_DOOMED;
+
 	for (int c=0; c<w->_kids.n; c++) resetkids(w->_kids.e[c]);
 }
 
@@ -1251,14 +1260,13 @@ int anXApp::destroywindow(anXWindow *w)
 
 	 //-----close the window and destroy xlib bits of it
 	w->close();
-	if (w->xlib_window) {
-		GetDefaultDisplayer()->ClearDrawable(w);
-		XDestroyWindow(dpy,w->xlib_window); // note: destroys all subwindows
+	Window xxx=w->xlib_window;
+	resetkids(w); //dp->ClearDrawable() on w and all kids, removes from event check, sets ANXWIN_DOOMED
+	if (xxx) {
+		XDestroyWindow(dpy,xxx); // note: destroys all subwindows, so it's ok if 
+								 //       xlib_window gets set to zero in resetkids()
 	}
 
-	 //this basically removes window from event check, no destroy anXWindow here.
-	 //sets (w and w->_kids) ->window,win_on to 0, and sets ANXWIN_DOOMED
-	resetkids(w);
 
 	 //reset currentfocus if is w or kid of w. *** fix for multi-keyboard!!
 	 //also remove toolip consideration if necessary
@@ -2004,6 +2012,8 @@ int anXApp::addwindow(anXWindow *w,char mapit,char absorb_count) // mapit==1, ab
 						1); //num elements
 	}
 
+
+	if (!w->win_colors) w->installColors(color_panel); //just in case
 
 	int c=w->init(); // window must set win_hints, win_sizehints here, if wanted
 	if (c!=0) { //window size has been changed... *** please note this doesn't work as expected!! 
