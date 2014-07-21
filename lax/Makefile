@@ -137,6 +137,7 @@ objs= \
 	menubutton.o \
 	sliderpopup.o \
 	quickfileopen.o \
+	colorspace.o \
 	colors.o \
 	colorbase.o \
 	colorsliders.o \
