@@ -37,82 +37,103 @@ class ColorBase
 	
   public:
 	int colortype;
-	int max;
-	int oldcolor[5], color1[5],color2[5];
-	int *colors;
+	double channel_min[5],channel_max[5];
 
-	ColorBase(int ctype, int nmax, int c0,int c1,int c2,int c3=-1,int c4=-1);
+	int max;
+	int oldcolortype;
+	double oldcolor[5], color1[5],color2[5];
+	double *colors;
+
+	ColorBase(int ctype, double c0,double c1,double c2,double c3=-1,double c4=-1);
 	virtual ~ColorBase();
 
+	virtual int SetColorSystem(int newsystem);
 	virtual int ColorChanged();
 	virtual void Updated();
 	virtual void Clamp();
-	virtual void RestoreColor();
+	virtual void RestoreColor(int swap=1);
 
 	virtual void SetMax(int newmax);
-	virtual void SetRGB(int r,int g,int b,int a=-1);
-	virtual void SetGray(int g,int a=-1);
-	virtual void SetCMYK(int c,int m,int y,int k, int a=-1);
-	virtual void SetHSV(int h,int s,int v, int a=-1);
 
+	virtual int Set(int newtype, double c0,double c1=-1,double c2=-1,double c3=-1,double c4=-1); 
 	virtual void SetRGB(double r,double g,double b,double a=-1);
 	virtual void SetGray(double g,double a=-1);
 	virtual void SetCMYK(double c,double m,double y,double k, double a=-1);
 	virtual void SetHSV(double h,double s,double v, double a=-1);
+	virtual void SetHSL(double h,double s,double l, double a=-1);
+	virtual void SetLab(double l,double a,double b, double alpha=-1);
+	virtual void SetXYZ(double x,double y,double z, double a=-1);
+
+	virtual int Get(int newtype, double *c0,double *c1,double *c2,double *c3,double *c4); 
 	virtual void CMYK(double *cmyk);
 	virtual void RGB(double *rgb);
 	virtual void HSV(double *hsv);
+	virtual void HSL(double *hsl);
+	virtual void CieLab(double *lab);
+	virtual void XYZ(double *xyz);
+	
+
 	virtual char *HexValue(char *buffer);
 	virtual int SetHexValue(const char *hex);
 
-	virtual int Red();
-	virtual int Red(int r);
-	virtual double Redf(double r);
-	virtual double Redf();
-	virtual int Green();
-	virtual int Green(int g);
-	virtual double Greenf(double g);
-	virtual double Greenf();
-	virtual int Blue();
-	virtual int Blue(int b);
-	virtual double Bluef(double b);
-	virtual double Bluef();
-	virtual int Gray();
-	virtual int Gray(int g);
-	virtual double Grayf(double g);
-	virtual double Grayf();
-	virtual int Cyan();
-	virtual int Cyan(int c);
-	virtual double Cyanf(double c);
-	virtual double Cyanf();
-	virtual int Magenta();
-	virtual int Magenta(int m);
-	virtual double Magentaf(double m);
-	virtual double Magentaf();
-	virtual int Yellow();
-	virtual int Yellow(int y);
-	virtual double Yellowf(double y);
-	virtual double Yellowf();
-	virtual int Black();
-	virtual int Black(int k);
-	virtual double Blackf(double k);
-	virtual double Blackf();
-	virtual int Alpha();
-	virtual int Alpha(int a);
-	virtual double Alphaf(double a);
-	virtual double Alphaf();
-	virtual int Hue();
-	virtual int Hue(int h);
-	virtual double Huef(double h);
-	virtual double Huef();
-	virtual int Saturation();
-	virtual int Saturation(int s);
-	virtual double Saturationf(double s);
-	virtual double Saturationf();
-	virtual int Value();
-	virtual int Value(int v);
-	virtual double Valuef(double v);
-	virtual double Valuef();
+
+	 //alpha
+	virtual double Alpha(double a);
+	virtual double Alpha();
+
+	 //rgb
+	virtual double Red(double r);
+	virtual double Red();
+	virtual double Green(double g);
+	virtual double Green();
+	virtual double Blue(double b);
+	virtual double Blue();
+
+	 //gray
+	virtual double Gray(double g);
+	virtual double Gray();
+
+	 //cmyk
+	virtual double Cyan(double c);
+	virtual double Cyan();
+	virtual double Magenta(double m);
+	virtual double Magenta();
+	virtual double Yellow(double y);
+	virtual double Yellow();
+	virtual double Black(double k);
+	virtual double Black();
+
+	 //hsv
+	virtual double Hue(double h);
+	virtual double Hue();
+	virtual double HSV_Saturation(double s);
+	virtual double HSV_Saturation();
+	virtual double Value(double v);
+	virtual double Value();
+
+	 //hsl
+	//virtual double Hue(double h);
+	//virtual double Hue();
+	virtual double HSL_Saturation(double s);
+	virtual double HSL_Saturation();
+	virtual double Lightness(double v);
+	virtual double Lightness();
+
+	 //cielab
+	virtual double Cie_L(double v);
+	virtual double Cie_L();
+	virtual double Cie_a(double v);
+	virtual double Cie_a();
+	virtual double Cie_b(double v);
+	virtual double Cie_b();
+
+	 //xyz
+	virtual double X(double v);
+	virtual double X();
+	virtual double Y(double v);
+	virtual double Y();
+	virtual double Z(double v);
+	virtual double Z();
 };
 
 

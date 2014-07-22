@@ -86,12 +86,13 @@ namespace Laxkit {
 ColorBox::ColorBox(anXWindow *parnt,const char *nname,const char *ntitle, unsigned long nstyle,
 				   int nx,int ny,int nw,int nh,int brder,
 				   anXWindow *prev,unsigned long nowner,const char *mes,
-			 	   int ctype, int nmax, int nstep,
-				   int c0,int c1,int c2,int c3,int c4,
+			 	   int ctype, double nstep,
+				   double c0,double c1,double c2,double c3,double c4,
 			 	   NewWindowObject *newcolorselector)
-  : ColorBase(ctype,nmax,c0,c1,c2,c3,c4),
+  : ColorBase(ctype, c0,c1,c2,c3,c4),
 	anXWindow(parnt,nname,ntitle,nstyle|ANXWIN_DOUBLEBUFFER,nx,ny,nw,nh,brder,prev,nowner,mes)
 {
+	sendtype=ctype;
 	colorselector=newcolorselector;
 
 	topcolor=colors;
@@ -138,7 +139,7 @@ ColorBox::ColorBox(anXWindow *parnt,const char *nname,const char *ntitle, unsign
 	 //create our own copy of default colors..
 	win_colors=new WindowColors;
 	*win_colors=*app->color_panel;
-	win_colors->bg=rgbcolor(Red()*255/max, Green()*255/max, Blue()*255/max);
+	win_colors->bg=rgbcolor(Red()*255, Green()*255, Blue()*255);
 }
 
 ColorBox::~ColorBox()
@@ -233,25 +234,50 @@ int ColorBox::init()
 
 void ColorBox::Updated()
 {
-	win_colors->bg=rgbcolor(Red()*255/max, Green()*255/max, Blue()*255/max);
+	win_colors->bg=rgbcolor(Red()*255, Green()*255, Blue()*255);
 	needtodraw=1;
 }
 
 
 
 
-/*! Puts coloreventdata->RGBA_max(red,green,blue,alpha, max).
+/*! Normalizes all channels to be in range [0..max];
  */
 int ColorBox::send()
 {
 	if (!win_owner || !win_sendthis) return 0;
 
-	SimpleColorEventData *cevent=NULL;
-	if (colortype==LAX_COLOR_RGB) cevent=new SimpleColorEventData(max,Red(),Green(),Blue(),Alpha(),currentid);
-	else if (colortype==LAX_COLOR_GRAY) cevent=new SimpleColorEventData(max,Gray(),Alpha(),currentid);
-	else cevent=new SimpleColorEventData(max,Cyan(),Magenta(),Yellow(),Black(),Alpha(),currentid);
+    SimpleColorEventData *cevent=NULL;
 
-	app->SendMessage(cevent, win_owner,win_sendthis, object_id);
+    if (sendtype==LAX_COLOR_RGB)
+        cevent=new SimpleColorEventData(max,max*Red(),max*Green(),max*Blue(),max*Alpha(),currentid);
+
+    else if (sendtype==LAX_COLOR_GRAY)
+        cevent=new SimpleColorEventData(max,max*Gray(),max*Alpha(),currentid);
+
+    else if (sendtype==LAX_COLOR_CMYK)
+        cevent=new SimpleColorEventData(max,max*Cyan(),max*Magenta(),max*Yellow(),max*Black(),max*Alpha(),currentid);
+
+    else if (sendtype==LAX_COLOR_HSV)
+        cevent=new SimpleColorEventData(max,max*Hue()/360,max*HSV_Saturation(),max*Value(),max*Alpha(),currentid);
+
+    else if (sendtype==LAX_COLOR_HSL)
+        cevent=new SimpleColorEventData(max,max*Hue()/360,max*HSL_Saturation(),max*Lightness(),max*Alpha(),currentid);
+
+    else if (sendtype==LAX_COLOR_CieLAB)
+        cevent=new SimpleColorEventData(max,max*Cie_L()/100,max*(Cie_a()+108)/216,max*(Cie_b()+108)/216,max*Alpha(),currentid);
+
+    else if (sendtype==LAX_COLOR_XYZ)
+        cevent=new SimpleColorEventData(max,max*X(),max*Y(),max*Z(),max*Alpha(),currentid);
+
+
+    if (cevent==NULL) {
+        DBG cerr <<" WARNING! Unknown color type: "<<sendtype<<endl;
+
+    } else {
+        cevent->colortype=sendtype;
+        app->SendMessage(cevent, win_owner,win_sendthis, object_id);
+	}
 
 	return 1;
 }
@@ -261,7 +287,8 @@ int ColorBox::send()
 int ColorBox::RBDown(int x,int y,unsigned int state,int count, const LaxMouse *d)
 {
 	if (!buttondown.any()) {
-		memcpy(oldcolor,colors,5*sizeof(int));
+		memcpy(oldcolor,colors,5*sizeof(double));
+		oldcolortype=colortype;
 	}
 	buttondown.down(d->id, RIGHTBUTTON, x,y);
 	return 0;
@@ -279,7 +306,8 @@ int ColorBox::MBDown(int x,int y,unsigned int state,int count, const LaxMouse *d
 {
 	buttondown.down(d->id, MIDDLEBUTTON, x,y);
 	if (!buttondown.any(d->id)) {
-		memcpy(oldcolor,colors,5*sizeof(int));
+		memcpy(oldcolor,colors,5*sizeof(double));
+		oldcolortype=colortype;
 	}
 	return 0;
 }
@@ -297,7 +325,8 @@ int ColorBox::MBUp(int x,int y, unsigned int state, const LaxMouse *d)
 int ColorBox::LBDown(int x,int y,unsigned int state,int count, const LaxMouse *d)
 {
 	if (!buttondown.any()) {
-		memcpy(oldcolor,colors,5*sizeof(int));
+		memcpy(oldcolor,colors,5*sizeof(double));
+		oldcolortype=colortype;
 	}
 	buttondown.down(d->id, LEFTBUTTON, x,y);
 
@@ -315,10 +344,14 @@ int ColorBox::PopupColorSelector()
 {
 	anXWindow *w=NULL;
 	if (!colorselector) {
-		w=new ColorSliders(NULL,"New Color","New Color",ANXWIN_ESCAPABLE|ANXWIN_REMEMBER, 0,0,200,400,0,
+		
+		double cc[5];
+		if (Get(sendtype, &cc[0], &cc[1], &cc[2], &cc[3], &cc[4]))
+			w=new ColorSliders(NULL,"New Color","New Color",ANXWIN_ESCAPABLE|ANXWIN_REMEMBER, 0,0,200,400,0,
 						   NULL,object_id,"newcolor",
-						   colortype,max,step,
-						   colors[0],colors[1],colors[2],colors[3],colors[4]);
+						   sendtype,1./255,
+						   cc[0],cc[1],cc[2],cc[3],cc[4]);
+
 	} else {
 		w=colorselector->function(NULL,"New Color",colorselector->style,this);
 	}
@@ -337,10 +370,20 @@ int ColorBox::Event(const EventData *e,const char *mes)
 		const SimpleColorEventData *ce=dynamic_cast<const SimpleColorEventData *>(e);
 		if (!ce) return 0;
 
-		for (int c=0; c<ce->numchannels && c<5; c++) {
-			colors[c]=ce->channels[c];
+		 //we maybe need to unnormalize if hsv, hsl, or cielab
+		double mx=ce->max;
+		double cc[5];
+		for (int c=0; c<5; c++) cc[c]=ce->channels[c]/mx;
+		if (ce->colortype==LAX_COLOR_HSV || ce->colortype==LAX_COLOR_HSL) {
+			cc[0]*=360;
+		} else if (ce->colortype==LAX_COLOR_CieLAB) {
+			cc[0]*=100;
+			cc[1]=cc[1]*216-108;
+			cc[2]=cc[1]*216-108;
 		}
-		win_colors->bg=rgbcolor(Red()*255/max, Green()*255/max, Blue()*255/max);
+
+		Set(ce->colortype, cc[0],cc[1],cc[2],cc[3],cc[4]);
+		win_colors->bg=rgbcolor(Red()*255, Green()*255, Blue()*255);
 		send();
 		needtodraw=1;
 		return 0;
@@ -389,78 +432,78 @@ int ColorBox::MouseMove(int x,int y,unsigned int state, const LaxMouse *d)
 		if (col==8) continue; //mapping not found
 
 		if (col==ALPHA) {
-			int alpha=Alpha();
-			alpha+=(x-mx)*((state&ControlMask)?1:step);
+			double alpha=Alpha();
+			alpha+=(x-mx)*((state&ControlMask)?.01:step);
 			if (alpha<0) alpha=0;
-			if (alpha>max) alpha=max;
+			if (alpha>1) alpha=1;
 			Alpha(alpha);
 			needtodraw=1;
 
 		} else if (col==RED) {
-			int red=Red();
-			red+=(x-mx)*((state&ControlMask)?1:step);
+			double red=Red();
+			red+=(x-mx)*((state&ControlMask)?.01:step);
 			if (red<0) red=0;
-			if (red>max) red=max;
+			if (red>1) red=1;
 			Red(red);
 			needtodraw=1;
 
 		} else if (col==GREEN) {
-			int green=Green();
-			green+=(x-mx)*((state&ControlMask)?1:step);
+			double green=Green();
+			green+=(x-mx)*((state&ControlMask)?.01:step);
 			if (green<0) green=0;
-			if (green>max) green=max;
+			if (green>1) green=1;
 			Green(green);
 			needtodraw=1;
 
 		} else if (col==BLUE) {
-			int blue=Blue();
-			blue+=(x-mx)*((state&ControlMask)?1:step);
+			double blue=Blue();
+			blue+=(x-mx)*((state&ControlMask)?.01:step);
 			if (blue<0) blue=0;
-			if (blue>max) blue=max;
+			if (blue>1) blue=1;
 			Blue(blue);
 			needtodraw=1;
 
 		} else if (col==CYAN) {
-			int cyan=Cyan();
-			c+=(x-mx)*((state&ControlMask)?1:step);
+			double cyan=Cyan();
+			c+=(x-mx)*((state&ControlMask)?.01:step);
 			if (c<0) c=0;
-			if (c>max) c=max;
+			if (c>1) c=1;
 			Cyan(cyan);
 			needtodraw=1;
 
 		} else if (col==MAGENTA) {
-			int m=Magenta();
-			m+=(x-mx)*((state&ControlMask)?1:step);
+			double m=Magenta();
+			m+=(x-mx)*((state&ControlMask)?.01:step);
 			if (m<0) m=0;
-			if (m>max) m=max;
+			if (m>1) m=1;
 			Magenta(m);
 			needtodraw=1;
 
 		} else if (col==YELLOW) {
-			int y=Yellow();
-			y+=(x-mx)*((state&ControlMask)?1:step);
+			double y=Yellow();
+			y+=(x-mx)*((state&ControlMask)?.01:step);
 			if (y<0) y=0;
-			if (y>max) y=max;
+			if (y>1) y=1;
 			Yellow(y);
 			needtodraw=1;
 
 		} else if (col==BLACK) {
-			int k=Black();
-			k+=(x-mx)*((state&ControlMask)?1:step);
+			double k=Black();
+			k+=(x-mx)*((state&ControlMask)?.01:step);
 			if (k<0) k=0;
-			if (k>max) k=max;
+			if (k>1) k=1;
 			Black(k);
 			needtodraw=1;
 		}
 	}
 
-	win_colors->bg=rgbcolor(Red()*255/max, Green()*255/max, Blue()*255/max);
+	win_colors->bg=rgbcolor(Red()*255, Green()*255, Blue()*255);
 	needtodraw=1;
 	
 	char blah[100];
-	if (colortype==LAX_COLOR_RGB) sprintf(blah,"%d,%d,%d,%d",Red(),Green(),Blue(),Alpha());
-	else if (colortype==LAX_COLOR_CMYK) sprintf(blah,"%d,%d,%d,%d,%d",Cyan(),Magenta(),Yellow(),Black(),Alpha());
-	else sprintf(blah,"%d,%d",Gray(),Alpha());
+	if (colortype==LAX_COLOR_RGB) sprintf(blah,"%f,%f,%f,%f",Red(),Green(),Blue(),Alpha());
+	else if (colortype==LAX_COLOR_CMYK) sprintf(blah,"%f,%f,%f,%f,%f",Cyan(),Magenta(),Yellow(),Black(),Alpha());
+	else sprintf(blah,"%f,%f",Gray(),Alpha());
 	app->postmessage(blah);
 	return 0;
 }
@@ -473,17 +516,17 @@ void ColorBox::Refresh()
 
 	if (win_style&(COLORBOX_FGBG|COLORBOX_STROKEFILL)) {
 		 //two color mode, draw one color over another
-		int *cc=colors;
+		double *cc=colors;
 		int offx,offy;
 
 		if (topcolor==color1) { colors=color2; offx=win_w*.2; offy=win_h*.2; }
 		else { colors=color1; offx=0; offy=0; }
-		foreground_color(rgbcolor(Red()*255/max, Green()*255/max, Blue()*255/max));
+		foreground_color(rgbcolor(Red()*255, Green()*255, Blue()*255));
 		fill_rectangle(this, offx,offy, win_w*.8,win_h*.8);
 
 		if (topcolor==color1) { colors=color1; offx=0; offy=0; }
 		else { colors=color2; offx=win_w*.2; offy=win_h*.2; }
-		foreground_color(rgbcolor(Red()*255/max, Green()*255/max, Blue()*255/max));
+		foreground_color(rgbcolor(Red()*255, Green()*255, Blue()*255));
 		fill_rectangle(this, win_w*.2,win_h*.2, win_w*.8,win_h*.8);
 
 		colors=cc;
@@ -494,9 +537,9 @@ void ColorBox::Refresh()
 		fill_rectangle(this, 0,0,win_w,win_h);
 	}
 
-	if (Alpha()<max) {
-		win_colors->bg=rgbcolor(Red()*255/max, Green()*255/max, Blue()*255/max);
-		foreground_color(coloravg(0,win_colors->bg, double(Alpha())/(max+1)));
+	if (Alpha()<1) {
+		win_colors->bg=rgbcolor(Red()*255, Green()*255, Blue()*255);
+		foreground_color(coloravg(0,win_colors->bg, Alpha()));
 		draw_thing(this, win_w/2,win_h/2,win_w/2,win_h/2,1,THING_Diamond);
 	}
 	
@@ -516,6 +559,10 @@ int ColorBox::CharInput(unsigned int ch,const char *buffer,int len,unsigned int 
 	if (!buttondown.any(d->paired_mouse->id)) return anXWindow::CharInput(ch,buffer,len,state,d);
 
 	ch=tolower(ch);
+	if (ch>127 || !strchr("argbcmyk",(char)ch)) return anXWindow::CharInput(ch,buffer,len,state,d);
+
+	//remap button+modifier bindings for particular color channels
+
 	int b;
 	if (buttondown.isdown(d->paired_mouse->id,LEFTBUTTON)) b=1;
 	else if (buttondown.isdown(d->paired_mouse->id,MIDDLEBUTTON)) b=2;
@@ -548,12 +595,8 @@ int ColorBox::CharInput(unsigned int ch,const char *buffer,int len,unsigned int 
 		colormap[BLACK]=b;
 	} else return 1;
 
-	//char blah[100];
-	//sprintf(blah,"%d,%d,%d a:%d",red,green,blue,alpha);
-	//app->postmessage(blah);
-	//needtodraw=1;
 
-	return anXWindow::CharInput(ch,buffer,len,state,d);
+	return 0;
 }
 
 

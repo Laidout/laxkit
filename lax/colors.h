@@ -38,7 +38,7 @@ namespace Laxkit {
 
 enum BasicColorTypes {
 	LAX_COLOR_NONE   =0,
-	LAX_COLOR_RGB    ,
+	LAX_COLOR_RGB    , //note to devs: this should always be the first actual type
 	LAX_COLOR_CMYK   ,
 	LAX_COLOR_GRAY   ,
 	LAX_COLOR_HSL    ,
@@ -60,15 +60,17 @@ enum SimpleColorId {
 	COLOR_MAX
 };
 
+
 //------------------------------- SimpleColorEventData ------------------------------
 class SimpleColorEventData : public EventData
 {
  public:
+	int id;
+	int colortype; //one of BasicColorTypes
+	int max;
 	int numchannels;
 	int *channels;
-	int max;
-	int colortype; //LAX_COLOR_RGB, LAX_COLOR_CMYK, or LAX_COLOR_GRAY
-	int id;
+
 	SimpleColorEventData();
 	SimpleColorEventData(int nmax, int gray,int a, int nid);
 	SimpleColorEventData(int nmax, int r,   int g, int b, int a, int nid);
@@ -76,6 +78,21 @@ class SimpleColorEventData : public EventData
 	virtual ~SimpleColorEventData();
 };
 
+
+//------------------------------- ColorEventData ------------------------------
+class Color;
+
+class ColorEventData : public EventData
+{
+ public:
+	Color *color;
+	int id;
+	int info, info2;
+
+	ColorEventData();
+	ColorEventData(Color *ncolor,int absorbcount, int nid, int ninfo, int ninfo2);
+	virtual ~ColorEventData();
+};
 
 
 //------------------------------- ColorPrimary -------------------------------
@@ -93,6 +110,7 @@ class ColorPrimary
 	ColorPrimary();
 	virtual ~ColorPrimary();
 };
+
 
 //------------------------------- ColorSystem -------------------------------
 
@@ -118,7 +136,9 @@ class ColorSystem: public Laxkit::anObject, public LaxFiles::DumpUtility
 	virtual ~ColorSystem();
 
 	virtual Color *newColor(int n,...);
-	virtual int AlphaChannel() = 0;
+	virtual int AlphaChannel() { return style & COLOR_ALPHAOK; } //return if it is ok to use alpha for this system
+	virtual double ChannelMinimum(int channel) = 0; //some systems don't have constant max/min per channel
+	virtual double ChannelMaximum(int channel) = 0;
 
 	 //return an image tile representing the color, speckled inks, for instance
 	//virtual LaxImage *PaintPattern(Color *color); 
@@ -140,9 +160,10 @@ class Color : public Laxkit::anObject, public LaxFiles::DumpUtility
 	double *values; // the values for each primary
 
 	Color();
-	virtual ~Color();
 	Color(const Color &l);
 	Color &operator=(Color &l);
+	virtual ~Color();
+
 	virtual int ColorSystedId() { return system ? system->systemid : colorsystemid; }
 	virtual double ChannelValue(int channel);
 	virtual int ChannelValueInt(int channel, int *error_ret=NULL);

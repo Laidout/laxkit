@@ -23,12 +23,14 @@
 
 
 #include <lax/colorsliders.h>
+#include <lax/colorspace.h>
 #include <lax/laxutils.h>
 #include <lax/misc.h>
 #include <lax/language.h>
 #include <lax/drawingdefs.h>
 #include <lax/mouseshapes.h>
 #include <lax/lineedit.h>
+#include <lax/strmanip.h>
 
 #include <lax/lists.cc>
 
@@ -57,80 +59,221 @@ namespace Laxkit {
  */
 
 
-ColorBarInfo::ColorBarInfo(int nid,int ntype,double npos)
+//------------------------------------- ColorBlockInfo 
+
+/*! \class ColorBlockInfo
+ * 
+ * *** At some point, this class will be be merged somehow with ColorSystem.
+ * In the meantime, is in an info node for ColorSlider.
+ */
+ColorBlockInfo::ColorBlockInfo(int ntype, const char *nname, int isoutput, bool nhidden)
+{
+	type=ntype;
+	name=newstr(nname);
+	is_output_type=isoutput;
+	hidden=nhidden;
+}
+
+ColorBlockInfo::~ColorBlockInfo()
+{
+	delete[] name;
+}
+
+
+
+//------------------------------------- ColorBarInfo 
+
+/*! \class ColorBarInfo
+ * Used in ColorSlider. npos should be normalized to range [0..1].
+ */
+ColorBarInfo::ColorBarInfo(int nid,int nsystem,int ntype,double npos, const char *ntext)
 {
 	id=nid;
+	system=nsystem;
 	type=ntype;
 	pos=npos;
 	hidden=0;
+	text=newstr(ntext);
 }
 
+ColorBarInfo::~ColorBarInfo()
+{
+	delete[] text;
+}
+
+
+//------------------------------------- ColorSliders 
+
+/*! nstep is what fraction out of range to move on a single shift, like a pan event or wheel movement.
+ */
 ColorSliders::ColorSliders(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
 			 int nx,int ny,int nw,int nh,int brder,
 			 anXWindow *prev,unsigned long owner,const char *mes,
-			 int ctype, int nmax, int nstep,
-			 int c0,int c1,int c2,int c3,int c4)
+			 int ctype, double nstep,
+			 double c0,double c1,double c2,double c3,double c4)
   : anXWindow(parnt,nname,ntitle,ANXWIN_DOUBLEBUFFER|nstyle,nx,ny,nw,nh,brder,prev,owner,mes),
-	ColorBase(ctype,nmax,c0,c1,c2,c3,c4)
+	ColorBase(ctype, c0,c1,c2,c3,c4)
 {
-	inputpreference=ctype; //sliding cmyk/rgb does odd things on conversion, making sliders jump terribly
-						   //this lets one input style take preference temporarily. **** FININSH IMPLEMENTING
+	sendtype=ctype; //sliding cmyk/rgb does odd things on conversion, making sliders jump terribly
+						   //this lets one shift input style based on which sliders are last moved, 
+						   //but sends color message based on sendtype.
 
-	step=(double)nstep/max;
+	step=nstep;
 	gap=5;
 	current=-1;
 	currenthalf=0;
+	mouseshape=0;
+	square=10;
 
-	int i=1;
-	 //rgb
-	bars.push(new ColorBarInfo(i++, COLORSLIDER_Red, Redf()),1);
-	bars.push(new ColorBarInfo(i++, COLORSLIDER_Green, Greenf()),1);
-	bars.push(new ColorBarInfo(i++, COLORSLIDER_Blue, Bluef()),1);
-	 //cmyk
-	bars.push(new ColorBarInfo(i++, COLORSLIDER_Cyan, Cyanf()),1);
-	bars.push(new ColorBarInfo(i++, COLORSLIDER_Magenta, Magentaf()),1);
-	bars.push(new ColorBarInfo(i++, COLORSLIDER_Yellow, Yellowf()),1);
-	bars.push(new ColorBarInfo(i++, COLORSLIDER_Black, Blackf()),1);
-	 //hsv
-	bars.push(new ColorBarInfo(i++, COLORSLIDER_Hue,Huef()),1);
-	bars.push(new ColorBarInfo(i++, COLORSLIDER_Saturation,Saturationf()),1);
-	bars.push(new ColorBarInfo(i++, COLORSLIDER_Value,Valuef()),1);
-	 //alpha
-	bars.push(new ColorBarInfo(i++, COLORSLIDER_Transparency,Alphaf()),1);
+	DefineSystems(COLORBLOCK_RGB|COLORBLOCK_CMYK|COLORBLOCK_HSL|COLORBLOCK_Alpha);
+	DefineBars();
 
 	installColors(app->color_panel);
-
-	mouseshape=0;
 }
 
 ColorSliders::~ColorSliders()
 {
 }
 
+/*! If systems.n==0, then install all color systems.
+ * Else just update the hidden field of each system according to if it is flagged in which.
+ * To actually define the color bar instances, use DefineBars. The bars stack is not touched here.
+ *
+ * which is an or'd list of ColorSliderBlockType values.
+ */
+int ColorSliders::DefineSystems(int which)
+{
+	if (!systems.n) {
+		systems.push(new ColorBlockInfo(COLORBLOCK_RGB,    _("RGB"),      0, !(which & COLORBLOCK_RGB   )));
+		systems.push(new ColorBlockInfo(COLORBLOCK_CMYK,   _("CMYK"),     0, !(which & COLORBLOCK_CMYK  ))); 
+		systems.push(new ColorBlockInfo(COLORBLOCK_HSV,    _("HSV"),      0, !(which & COLORBLOCK_HSV   ))); 
+		systems.push(new ColorBlockInfo(COLORBLOCK_HSL,    _("HSL"),      0, !(which & COLORBLOCK_HSL   ))); 
+		systems.push(new ColorBlockInfo(COLORBLOCK_Gray,   _("Gray"),     0, !(which & COLORBLOCK_Gray  ))); 
+		systems.push(new ColorBlockInfo(COLORBLOCK_CieLAB, _("CieL*a*b*"),0, !(which & COLORBLOCK_CieLAB))); 
+		systems.push(new ColorBlockInfo(COLORBLOCK_XYZ,    _("XYZ"),      0, !(which & COLORBLOCK_XYZ   ))); 
+		systems.push(new ColorBlockInfo(COLORBLOCK_Alpha,  _("Alpha"),    0, !(which & COLORBLOCK_Alpha )));
+
+	} else {
+		for (int c=0; c<systems.n; c++) {
+			systems.e[c]->hidden = (which&systems.e[c]->type);
+		}
+	} 
+
+	return 0;
+}
+
+/*! Flushes bars, and readds according to if the relevant color system is hidden or not.
+ */
+int ColorSliders::DefineBars()
+{
+	bars.flush();
+	int i=1;
+
+	 //maybe implement reordering someday...
+
+	for (int c=0; c<systems.n; c++) {
+		if (systems.e[c]->hidden) continue;
+
+		if (systems.e[c]->type==COLORBLOCK_RGB) {
+			 //rgb
+			bars.push(new ColorBarInfo(i++, COLORBLOCK_RGB, COLORSLIDER_Red,   Red(),  _("Red")),  1);
+			bars.push(new ColorBarInfo(i++, COLORBLOCK_RGB, COLORSLIDER_Green, Green(),_("Green")),1);
+			bars.push(new ColorBarInfo(i++, COLORBLOCK_RGB, COLORSLIDER_Blue,  Blue(), _("Blue")), 1);
+
+		} else if (systems.e[c]->type==COLORBLOCK_CMYK) {
+			 //cmyk
+			bars.push(new ColorBarInfo(i++, COLORBLOCK_CMYK, COLORSLIDER_Cyan,    Cyan(),   _("Cyan")),1);
+			bars.push(new ColorBarInfo(i++, COLORBLOCK_CMYK, COLORSLIDER_Magenta, Magenta(),_("Magenta")),1);
+			bars.push(new ColorBarInfo(i++, COLORBLOCK_CMYK, COLORSLIDER_Yellow,  Yellow(), _("Yellow")),1);
+			bars.push(new ColorBarInfo(i++, COLORBLOCK_CMYK, COLORSLIDER_Black,   Black(),  _("Black")),1);
+
+		} else if (systems.e[c]->type==COLORBLOCK_HSV) {
+			 //hsv
+			bars.push(new ColorBarInfo(i++, COLORBLOCK_HSV, COLORSLIDER_HSV_Hue,       Hue(),       _("Hue")),1);
+			bars.push(new ColorBarInfo(i++, COLORBLOCK_HSV, COLORSLIDER_HSV_Saturation,HSV_Saturation(),_("Saturation")),1);
+			bars.push(new ColorBarInfo(i++, COLORBLOCK_HSV, COLORSLIDER_HSV_Value,     Value(),     _("Value")),1);
+
+		} else if (systems.e[c]->type==COLORBLOCK_HSL) {
+			 //hsl
+			bars.push(new ColorBarInfo(i++, COLORBLOCK_HSL, COLORSLIDER_HSL_Hue,       Hue(),       _("Hue")),1);
+			bars.push(new ColorBarInfo(i++, COLORBLOCK_HSL, COLORSLIDER_HSL_Saturation,HSL_Saturation(),_("Saturation")),1);
+			bars.push(new ColorBarInfo(i++, COLORBLOCK_HSL, COLORSLIDER_HSL_Lightness, Lightness(), _("Lightness")),1);
+
+		} else if (systems.e[c]->type==COLORBLOCK_Gray) {
+			bars.push(new ColorBarInfo(i++, COLORBLOCK_Gray, COLORSLIDER_Gray,     Gray(), _("Gray")),1);
+
+		} else if (systems.e[c]->type==COLORBLOCK_CieLAB) {
+			bars.push(new ColorBarInfo(i++, COLORBLOCK_CieLAB, COLORSLIDER_Cie_L,  Cie_L(), _("Lightness*")),1);
+			bars.push(new ColorBarInfo(i++, COLORBLOCK_CieLAB, COLORSLIDER_Cie_a,  Cie_a(), _("a*")),1);
+			bars.push(new ColorBarInfo(i++, COLORBLOCK_CieLAB, COLORSLIDER_Cie_b,  Cie_b(), _("b*")),1);
+
+		} else if (systems.e[c]->type==COLORBLOCK_XYZ) {
+			bars.push(new ColorBarInfo(i++, COLORBLOCK_XYZ, COLORSLIDER_X,  X(), _("X")),1);
+			bars.push(new ColorBarInfo(i++, COLORBLOCK_XYZ, COLORSLIDER_Y,  Y(), _("Y")),1);
+			bars.push(new ColorBarInfo(i++, COLORBLOCK_XYZ, COLORSLIDER_Z,  Z(), _("Z")),1);
+
+		} else if (systems.e[c]->type==COLORBLOCK_Alpha) {
+			 //alpha
+			bars.push(new ColorBarInfo(i++, COLORBLOCK_Alpha, COLORSLIDER_Transparency,Alpha(),_("Alpha")),1);
+		}
+	}
+
+	return 0;
+}
+
 int ColorSliders::init()
 {
+	DefineSystems(COLORBLOCK_RGB |COLORBLOCK_CMYK |COLORBLOCK_HSL |COLORBLOCK_Alpha);
+
 	updateSliderRect();
 	return 0;
 }
 
 void ColorSliders::Updated()
 {
-	curcolor.rgbf(Redf(),Greenf(),Bluef(),Alphaf());
+	curcolor.rgbf(Red(),Green(),Blue(),Alpha());
 	needtodraw=1;
 }
 
+/*! If sending SimpleColorEventData, then all channels are normalized to be in range [0..max].
+ */
 int ColorSliders::send()
 {
 	if (!win_owner || !win_sendthis) return 0;
-	DBG cerr <<" SEND "<<win_sendthis<<" to "<<win_owner<<endl;
+	DBG cerr <<" ColorSliders SEND "<<win_sendthis<<" to "<<win_owner<<endl;
 
     SimpleColorEventData *cevent=NULL;
 	int currentid=0;
-    if (colortype==LAX_COLOR_RGB) cevent=new SimpleColorEventData(max,Red(),Green(),Blue(),Alpha(),currentid);
-    else if (colortype==LAX_COLOR_GRAY) cevent=new SimpleColorEventData(max,Gray(),Alpha(),currentid);
-    else cevent=new SimpleColorEventData(max,Cyan(),Magenta(),Yellow(),Black(),Alpha(),currentid);
 
-    app->SendMessage(cevent, win_owner,win_sendthis, object_id);
+    if (sendtype==LAX_COLOR_RGB)
+		cevent=new SimpleColorEventData(max,max*Red(),max*Green(),max*Blue(),max*Alpha(),currentid);
+
+    else if (sendtype==LAX_COLOR_GRAY)
+		cevent=new SimpleColorEventData(max,max*Gray(),max*Alpha(),currentid);
+
+    else if (sendtype==LAX_COLOR_CMYK)
+		cevent=new SimpleColorEventData(max,max*Cyan(),max*Magenta(),max*Yellow(),max*Black(),max*Alpha(),currentid);
+
+    else if (sendtype==LAX_COLOR_HSV)
+		cevent=new SimpleColorEventData(max,max*Hue()/360,max*HSV_Saturation(),max*Value(),max*Alpha(),currentid);
+
+    else if (sendtype==LAX_COLOR_HSL)
+		cevent=new SimpleColorEventData(max,max*Hue()/360,max*HSL_Saturation(),max*Lightness(),max*Alpha(),currentid);
+
+    else if (sendtype==LAX_COLOR_CieLAB)
+		cevent=new SimpleColorEventData(max,max*Cie_L()/100,max*(Cie_a()+108)/216,max*(Cie_b()+108)/216,max*Alpha(),currentid);
+
+    else if (sendtype==LAX_COLOR_XYZ)
+		cevent=new SimpleColorEventData(max,max*X(),max*Y(),max*Z(),max*Alpha(),currentid);
+
+	
+	if (cevent==NULL) {
+		DBG cerr <<" WARNING! Unknown color type: "<<sendtype<<endl;
+
+	} else {
+		cevent->colortype=sendtype;
+		app->SendMessage(cevent, win_owner,win_sendthis, object_id);
+	} 
 
     return 1;
 }
@@ -184,8 +327,12 @@ void ColorSliders::Refresh()
 	double rgb[3];  RGB(rgb);
 	double cmyk[4]; CMYK(cmyk);
 	double hsv[3];  HSV(hsv);
+	double hsl[3];  HSL(hsl);
+	double lab[3];  CieLab(lab);
+	double xyz[3];  XYZ(xyz);
+
 	double tt[4];
-	double alpha=Alphaf();
+	double alpha=Alpha();
 	const char *text=NULL;
 
 	for (int c=0; c<bars.n; c++) {
@@ -200,88 +347,57 @@ void ColorSliders::Refresh()
 
 		 //need to set pos and colors
 		if (bars.e[c]->type==COLORSLIDER_Red) {
-			pos=Redf();
+			pos=Red();
 			color1.rgbf(0,rgb[1],rgb[2],alpha);
 			color2.rgbf(1,rgb[1],rgb[2],alpha);
-			text=_("Red");
 
 		} else if (bars.e[c]->type==COLORSLIDER_Green) {
-			pos=Greenf();
+			pos=Green();
 			color1.rgbf(rgb[0],0,rgb[2],alpha);
 			color2.rgbf(rgb[0],1,rgb[2],alpha);
-			text=_("Green");
 
 		} else if (bars.e[c]->type==COLORSLIDER_Blue) {
-			pos=Bluef();
+			pos=Blue();
 			color1.rgbf(rgb[0],rgb[1],0,alpha);
 			color2.rgbf(rgb[0],rgb[1],1,alpha);
-			text=_("Blue");
 
 		} else if (bars.e[c]->type==COLORSLIDER_Cyan) {
-			pos=Cyanf();
+			pos=Cyan();
 			cmyk[0]=0; simple_cmyk_to_rgb(cmyk,tt);
 			color1.rgbf(tt[0],tt[1],tt[2],alpha);
 			cmyk[0]=1; simple_cmyk_to_rgb(cmyk,tt);
 			color2.rgbf(tt[0],tt[1],tt[2],alpha);
 			cmyk[0]=pos;
-			text=_("Cyan");
 
 		} else if (bars.e[c]->type==COLORSLIDER_Magenta) {
-			pos=Magentaf();
+			pos=Magenta();
 			cmyk[1]=0; simple_cmyk_to_rgb(cmyk,tt);
 			color1.rgbf(tt[0],tt[1],tt[2],alpha);
 			cmyk[1]=1; simple_cmyk_to_rgb(cmyk,tt);
 			color2.rgbf(tt[0],tt[1],tt[2],alpha);
 			cmyk[1]=pos;
-			text=_("Magenta");
 
 		} else if (bars.e[c]->type==COLORSLIDER_Yellow) {
-			pos=Yellowf();
+			pos=Yellow();
 			cmyk[2]=0; simple_cmyk_to_rgb(cmyk,tt);
 			color1.rgbf(tt[0],tt[1],tt[2],alpha);
 			cmyk[2]=1; simple_cmyk_to_rgb(cmyk,tt);
 			color2.rgbf(tt[0],tt[1],tt[2],alpha);
 			cmyk[2]=pos;
-			text=_("Yellow");
 
 		} else if (bars.e[c]->type==COLORSLIDER_Black) {
-			pos=Blackf();
+			pos=Black();
 			cmyk[3]=0; simple_cmyk_to_rgb(cmyk,tt);
 			color1.rgbf(tt[0],tt[1],tt[2],alpha);
 			cmyk[3]=1; simple_cmyk_to_rgb(cmyk,tt);
 			color2.rgbf(tt[0],tt[1],tt[2],alpha);
 			cmyk[3]=pos;
-			text=_("Black");
 
-		} else if (bars.e[c]->type==COLORSLIDER_Saturation) {
-			pos=Saturationf();
-			hsv[1]=0; simple_hsv_to_rgb(hsv,tt);
-			color1.rgbf(tt[0],tt[1],tt[2],alpha);
-			hsv[1]=1; simple_hsv_to_rgb(hsv,tt);
-			color2.rgbf(tt[0],tt[1],tt[2],alpha);
-			hsv[1]=pos;
-			text=_("Saturation");
-
-		} else if (bars.e[c]->type==COLORSLIDER_Value) {
-			pos=Valuef();
-			hsv[2]=0; simple_hsv_to_rgb(hsv,tt);
-			color1.rgbf(tt[0],tt[1],tt[2],alpha);
-			hsv[2]=1; simple_hsv_to_rgb(hsv,tt);
-			color2.rgbf(tt[0],tt[1],tt[2],alpha);
-			hsv[2]=pos;
-			text=_("Value");
-
-		} else if (bars.e[c]->type==COLORSLIDER_Transparency) {
-			pos=alpha;
-			color1.rgbf(rgb[0],rgb[1],rgb[2],0.);
-			color2.rgbf(rgb[0],rgb[1],rgb[2],1.);
-			text=_("Alpha");
-
-		} else if (bars.e[c]->type==COLORSLIDER_Hue) {
+		} else if (bars.e[c]->type==COLORSLIDER_HSV_Hue || bars.e[c]->type==COLORSLIDER_HSL_Hue) {
 			 //hue is special in that it is in 3 parts
-			text=_("Hue");
+			text=bars.e[c]->text;
 			if (c!=current) text=NULL;
-			pos=Huef();
+			pos=Hue()/360;
 
 			 //segment 1
 			hsv[0]=0; simple_hsv_to_rgb(hsv,tt);
@@ -295,24 +411,112 @@ void ColorSliders::Refresh()
 			color1=color2;
 			hsv[0]=2./3; simple_hsv_to_rgb(hsv,tt);
 			color2.rgbf(tt[0],tt[1],tt[2],alpha);
-			if (win_style&COLORSLIDERS_Vertical) DrawVertical(color1,color2, x,y+h/3, w,h/3+1, pos,text, 0);
-			else DrawHorizontal(color1,color2, x+w/3,y, w/3+1,h, -1,text, 0);
+			if (win_style&COLORSLIDERS_Vertical) DrawVertical(color1,color2, x,y+h/3, w,h/3+1, pos,NULL, 0);
+			else DrawHorizontal(color1,color2, x+w/3,y, w/3+1,h, -1,NULL, 0);
 
 			 //segment 3
 			color1=color2;
 			hsv[0]=1.; simple_hsv_to_rgb(hsv,tt);
 			color2.rgbf(tt[0],tt[1],tt[2],alpha);
-			if (win_style&COLORSLIDERS_Vertical) DrawVertical(color1,color2, x,y+h*2./3, w,h/3, -1,text, 0);
-			else DrawHorizontal(color1,color2, x+w*2./3,y, w/3,h, -1,text, 0);
+			if (win_style&COLORSLIDERS_Vertical) DrawVertical(color1,color2, x,y+h*2./3, w,h/3, -1,NULL, 0);
+			else DrawHorizontal(color1,color2, x+w*2./3,y, w/3,h, -1,NULL, 0);
 
 			DBG cerr <<" Hue pos:"<<pos<<" xywh:"<<x<<" "<<y<<" "<<w<<" "<<h<<endl;
 			DrawPos(x,y,w,h, pos);
 
 			hsv[0]=pos;
 			continue;
+
+		} else if (bars.e[c]->type==COLORSLIDER_HSV_Saturation) {
+			pos=HSV_Saturation();
+			hsv[1]=0; simple_hsv_to_rgb(hsv,tt);
+			color1.rgbf(tt[0],tt[1],tt[2],alpha);
+			hsv[1]=1; simple_hsv_to_rgb(hsv,tt);
+			color2.rgbf(tt[0],tt[1],tt[2],alpha);
+			hsv[1]=pos;
+
+		} else if (bars.e[c]->type==COLORSLIDER_HSV_Value) {
+			pos=Value();
+			hsv[2]=0; simple_hsv_to_rgb(hsv,tt);
+			color1.rgbf(tt[0],tt[1],tt[2],alpha);
+			hsv[2]=1; simple_hsv_to_rgb(hsv,tt);
+			color2.rgbf(tt[0],tt[1],tt[2],alpha);
+			hsv[2]=pos;
+
+		} else if (bars.e[c]->type==COLORSLIDER_HSL_Saturation) {
+			pos=HSL_Saturation();
+			hsl[1]=0;  ColorConvert::Hsl2Rgb(&tt[0],&tt[1],&tt[2], hsl[0],hsl[1],hsl[2]);
+			color1.rgbf(tt[0],tt[1],tt[2],alpha);
+			hsl[1]=1;  ColorConvert::Hsl2Rgb(&tt[0],&tt[1],&tt[2], hsl[0],hsl[1],hsl[2]);
+			color2.rgbf(tt[0],tt[1],tt[2],alpha);
+			hsl[1]=pos;
+
+		} else if (bars.e[c]->type==COLORSLIDER_HSL_Lightness) {
+			pos=Lightness();
+			hsl[2]=0;  ColorConvert::Hsl2Rgb(&tt[0],&tt[1],&tt[2], hsl[0],hsl[1],hsl[2]);
+			color1.rgbf(tt[0],tt[1],tt[2],alpha);
+			hsl[2]=1;  ColorConvert::Hsl2Rgb(&tt[0],&tt[1],&tt[2], hsl[0],hsl[1],hsl[2]);
+			color2.rgbf(tt[0],tt[1],tt[2],alpha);
+			hsl[2]=pos;
+
+		} else if (bars.e[c]->type==COLORSLIDER_Cie_L) {
+			pos=Cie_L()/100;
+			lab[0]=0;  ColorConvert::Lab2Rgb(&tt[0],&tt[1],&tt[2], lab[0],lab[1],lab[2]);
+			color1.rgbf(tt[0],tt[1],tt[2],alpha);
+			lab[0]=1;  ColorConvert::Lab2Rgb(&tt[0],&tt[1],&tt[2], lab[0],lab[1],lab[2]);
+			color2.rgbf(tt[0],tt[1],tt[2],alpha);
+			lab[0]=pos;
+				   
+		} else if (bars.e[c]->type==COLORSLIDER_Cie_a) {
+			pos=(Cie_a()+108)/216;
+			lab[1]=0;  ColorConvert::Lab2Rgb(&tt[0],&tt[1],&tt[2], lab[0],lab[1],lab[2]);
+			color1.rgbf(tt[0],tt[1],tt[2],alpha);
+			lab[1]=1;  ColorConvert::Lab2Rgb(&tt[0],&tt[1],&tt[2], lab[0],lab[1],lab[2]);
+			color2.rgbf(tt[0],tt[1],tt[2],alpha);
+			lab[1]=pos;
+
+		} else if (bars.e[c]->type==COLORSLIDER_Cie_b) {
+			pos=(Cie_b()+108)/216;
+			lab[2]=0;  ColorConvert::Lab2Rgb(&tt[0],&tt[1],&tt[2], lab[0],lab[1],lab[2]);
+			color1.rgbf(tt[0],tt[1],tt[2],alpha);
+			lab[2]=1;  ColorConvert::Lab2Rgb(&tt[0],&tt[1],&tt[2], lab[0],lab[1],lab[2]);
+			color2.rgbf(tt[0],tt[1],tt[2],alpha);
+			lab[2]=pos;
+
+		} else if (bars.e[c]->type==COLORSLIDER_X) {
+			pos=X();
+			xyz[0]=0;  ColorConvert::Xyz2Rgb(&tt[0],&tt[1],&tt[2], xyz[0],xyz[1],xyz[2]);
+			color1.rgbf(tt[0],tt[1],tt[2],alpha);
+			xyz[0]=1;  ColorConvert::Xyz2Rgb(&tt[0],&tt[1],&tt[2], xyz[0],xyz[1],xyz[2]);
+			color2.rgbf(tt[0],tt[1],tt[2],alpha);
+			xyz[0]=pos;
+
+		} else if (bars.e[c]->type==COLORSLIDER_Y) {
+			pos=Y();
+			xyz[1]=0;  ColorConvert::Xyz2Rgb(&tt[0],&tt[1],&tt[2], xyz[0],xyz[1],xyz[2]);
+			color1.rgbf(tt[0],tt[1],tt[2],alpha);
+			xyz[1]=1;  ColorConvert::Xyz2Rgb(&tt[0],&tt[1],&tt[2], xyz[0],xyz[1],xyz[2]);
+			color2.rgbf(tt[0],tt[1],tt[2],alpha);
+			xyz[1]=pos;
+
+		} else if (bars.e[c]->type==COLORSLIDER_Z) {
+			pos=Z();
+			xyz[2]=0;  ColorConvert::Xyz2Rgb(&tt[0],&tt[1],&tt[2], xyz[0],xyz[1],xyz[2]);
+			color1.rgbf(tt[0],tt[1],tt[2],alpha);
+			xyz[2]=1;  ColorConvert::Xyz2Rgb(&tt[0],&tt[1],&tt[2], xyz[0],xyz[1],xyz[2]);
+			color2.rgbf(tt[0],tt[1],tt[2],alpha);
+			xyz[2]=pos;
+
+
+		} else if (bars.e[c]->type==COLORSLIDER_Transparency) {
+			pos=alpha;
+			color1.rgbf(rgb[0],rgb[1],rgb[2],0.);
+			color2.rgbf(rgb[0],rgb[1],rgb[2],1.);
 		}
 
 		if (c!=current) text=NULL;
+		else text=bars.e[c]->text;
+
 		if (win_style&COLORSLIDERS_Vertical) {
 			DrawVertical(color1,color2, x,y, w,h, pos,text, bars.e[c]->type==COLORSLIDER_Transparency);
 		} else {
@@ -327,15 +531,115 @@ void ColorSliders::Refresh()
 	}
 
 	if (!(win_style&COLORSLIDERS_HideOldNew)) {
-		int *ccolor=colors;
+		ScreenColor color;
+		double *ccolor=colors;
+		int ccolortype=colortype;
+
+		 //old color
+		colortype=oldcolortype;
 		colors=oldcolor;
-		foreground_color(Redf(),Greenf(),Bluef());
-		fill_rectangle(this, oldnew.x,oldnew.y,oldnew.width/2,oldnew.height);
+		color.rgbf(Red(),Green(),Blue(), Alpha());
+		FillWithTransparency(color, oldnew.x,oldnew.y,oldnew.width/2,oldnew.height);
+
+		 //new color
+		colortype=ccolortype;
 		colors=ccolor;
-		foreground_color(Redf(),Greenf(),Bluef());
-		fill_rectangle(this, oldnew.x+oldnew.width/2,oldnew.y,oldnew.width/2,oldnew.height);
+		color.rgbf(Red(),Green(),Blue(), Alpha());
+		FillWithTransparency(color, oldnew.x+oldnew.width/2,oldnew.y,oldnew.width/2,oldnew.height);
 	}
+
+	//DrawSpecial(COLORSLIDER_None, 0,0,50,50);
+	//DrawSpecial(COLORSLIDER_Registration, 50,0,50,50);
+	//DrawSpecial(COLORSLIDER_Knockout, 100,0,50,50);
+
 	SwapBuffers();
+}
+
+void ColorSliders::FillWithTransparency(ScreenColor &color, int x,int y,int w,int h)
+{
+	unsigned int bg1=coloravg(rgbcolorf(.3,.3,.3),color.Pixel(), color.alpha/65535.);
+	unsigned int bg2=coloravg(rgbcolorf(.6,.6,.6),color.Pixel(), color.alpha/65535.);
+	int ww=square,hh;
+	int a=0;
+
+	for (int xx=x; xx<x+w; xx+=square) {
+		a=(xx/square)%2;
+		hh=square;
+		if (xx+ww>x+w) ww=x+w-xx;
+		for (int yy=y; yy<y+h; yy+=square) {
+			if (yy+hh>y+h) hh=y+h-yy;
+			foreground_color(a ? bg1 : bg2);
+			fill_rectangle(this, xx,yy,ww,hh);
+			a=!a;
+		}
+		ww=square;
+	}
+}
+
+void ColorSliders::DrawSpecial(int which, int x,int y,int w,int h)
+{
+	Displayer *dp=GetDefaultDisplayer();
+	dp->MakeCurrent(this);//should have been done already
+
+	if (which==COLORSLIDER_None) {
+		dp->NewFG(~0);
+		dp->drawrectangle(x,y,w,h, 1);
+
+		int ll=3;
+		dp->LineAttributes(ll,LineSolid,LAXCAP_Round,LAXJOIN_Round);
+		dp->NewFG(0,0,0);
+		dp->drawline(x+ll/2,y, x+ll/2+w,y+h);
+		dp->drawline(x+ll/2,y+h, x+ll/2+w,y);
+
+		dp->NewFG(1.,0.,0.);
+		dp->drawline(x,y, x+w,y+h);
+		dp->drawline(x,y+h, x+w,y);
+
+	} else if (which==COLORSLIDER_Registration) {
+		dp->LineAttributes(2,LineSolid,LAXCAP_Round,LAXJOIN_Round);
+		dp->NewFG(~0);
+		dp->drawrectangle(x,y,w,h, 1);
+		int ww=w;
+		if (h<ww) ww=h;
+		dp->NewFG(0,0,0);
+		dp->drawline(x+w/2,      y+h/2-ww/2,  x+w/2     , y+h/2+ww/2);
+		dp->drawline(x+w/2-ww/2, y+h/2     ,  x+w/2+ww/2, y+h/2     );
+		dp->drawpoint(x+w/2,y+h/2, ww/4, 0);
+
+	} else if (which==COLORSLIDER_Knockout) {
+		dp->LineAttributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
+		ScreenColor color(0,0,0,0);
+		FillWithTransparency(color, x,y,w,h);
+		//dp->drawrectangle(x,y,w,h, 1);
+
+		dp->NewFG(1.,1.,1.);
+		dp->moveto(x,y+h*.5);
+		dp->lineto(x,y);
+		dp->lineto(x+w,y);
+		dp->lineto(x+w,y+h*.25);
+		dp->curveto(flatpoint(x+w*.6,y+h*.75), flatpoint(x+w*.6,y), flatpoint(x,y+h*.5));
+		dp->closed();
+		dp->fill(0);
+
+		dp->moveto(x,y+h);
+		dp->lineto(x+w,y+h);
+		dp->lineto(x+w,y+h*.5);
+		dp->curveto(flatpoint(x+w*.6,y+h), flatpoint(x+w*.6,y+h*.333), flatpoint(x,y+h));
+		dp->closed();
+		dp->fill(0);
+
+	}
+
+	dp->LineAttributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
+	
+	//Maybe other custom special colors or flags:
+	//  name   image-representation  number-id
+	//MenuInfo specials;
+	//specials.AddItem(_("None"),         img, COLORSLIDER_None);
+	//specials.AddItem(_("Knockout"),     img, COLORSLIDER_Knockout);
+	//specials.AddItem(_("Registration"), img, COLORSLIDER_Registration);
+
+
 }
 
 //! Each bar is drawn horizontally.
@@ -358,7 +662,6 @@ void ColorSliders::DrawHorizontal(ScreenColor &color1,ScreenColor &color2, int x
 	double pp;
 	ScreenColor color;
 	if (usealpha) {
-		int square=10;
 		unsigned int abg1=rgbcolorf(.3,.3,.3);
 		unsigned int abg2=rgbcolorf(.6,.6,.6);
 		unsigned int bg1, bg2;
@@ -418,16 +721,19 @@ void ColorSliders::DrawPos(int x,int y,int w,int h, double pos)
 
 void ColorSliders::DrawOldNew(int x,int y,int w,int h, int horiz)
 {
-	int *ccolor=colors;
+	double *ccolor=colors;
+	int ccolortype=colortype;
 
+	colortype=oldcolortype;
 	colors=oldcolor;
-	ScreenColor(Redf(),Greenf(),Bluef(),Alphaf());
+	ScreenColor(Red(),Green(),Blue(),Alpha());
 
 	if (horiz) fill_rectangle(this, x,y,w/2,h);
 	else fill_rectangle(this, x,y,w,h/2);
 
+	colortype=ccolortype;
 	colors=ccolor;
-	ScreenColor(Redf(),Greenf(),Bluef(),Alphaf());
+	ScreenColor(Red(),Green(),Blue(),Alpha());
 
 	if (horiz) fill_rectangle(this, x+w/2,y,w/2,h);
 	else fill_rectangle(this, x,y+h/2,w,h/2);
@@ -620,6 +926,7 @@ int ColorSliders::MouseMove(int mx,int my, unsigned int state, const LaxMouse *d
 	if (buttondown.isdown(d->id,LEFTBUTTON, &oldbar, &oldhalf)) {
 		int oldx,oldy;
 		buttondown.move(d->id, mx,my, &oldx,&oldy);
+
 		if (oldhalf) {
 			 //drag upper half to position absolutely
 			DBG cerr << "slider lbd  bar:"<<oldbar<<"  pos:"<<pos<<endl;
@@ -630,9 +937,13 @@ int ColorSliders::MouseMove(int mx,int my, unsigned int state, const LaxMouse *d
 		} else {
 			 //drag lower half to drag position by step
 			double oldpos=GetPosForBar(oldbar);
-			if (win_style&COLORSLIDERS_Vertical) oldpos+=step*(my-oldy);
-			else oldpos+=step*(mx-oldx);
-			DBG cerr << "slider lbd  bar:"<<oldbar<<"  pos:"<<oldpos<<endl;
+			double m=1;
+			if (state&ShiftMask) m=4;
+			else if (state&ControlMask) m=.3;
+
+			if (win_style&COLORSLIDERS_Vertical) oldpos+=m*step*(my-oldy);
+			else oldpos+=m*step*(mx-oldx);
+			DBG cerr << "slider lbd  step:"<<step<<"  bar:"<<oldbar<<"  pos:"<<oldpos<<endl;
 			SetBar(oldbar,oldpos);
 			send();
 			needtodraw=1;
@@ -684,17 +995,32 @@ void ColorSliders::SetBar(int whichbar, double pos)
 	if (pos<0) pos=0; else if (pos>1) pos=1;
 	bars.e[whichbar]->pos=pos;
 
-	if      (bars.e[whichbar]->type==COLORSLIDER_Red)  Redf(pos);
-	else if (bars.e[whichbar]->type==COLORSLIDER_Green) Greenf(pos); 
-	else if (bars.e[whichbar]->type==COLORSLIDER_Blue)   Bluef(pos); 
-	else if (bars.e[whichbar]->type==COLORSLIDER_Cyan)   Cyanf(pos); 
-	else if (bars.e[whichbar]->type==COLORSLIDER_Magenta) Magentaf(pos); 
-	else if (bars.e[whichbar]->type==COLORSLIDER_Yellow)   Yellowf(pos); 
-	else if (bars.e[whichbar]->type==COLORSLIDER_Black)     Blackf(pos); 
-	else if (bars.e[whichbar]->type==COLORSLIDER_Hue)        Huef(pos); 
-	else if (bars.e[whichbar]->type==COLORSLIDER_Saturation) Saturationf(pos); 
-	else if (bars.e[whichbar]->type==COLORSLIDER_Value)       Valuef(pos); 
-	else if (bars.e[whichbar]->type==COLORSLIDER_Transparency) Alphaf(pos); 
+	if      (bars.e[whichbar]->type==COLORSLIDER_Red)  Red(pos);
+	else if (bars.e[whichbar]->type==COLORSLIDER_Green) Green(pos); 
+	else if (bars.e[whichbar]->type==COLORSLIDER_Blue)   Blue(pos); 
+
+	else if (bars.e[whichbar]->type==COLORSLIDER_Cyan)   Cyan(pos); 
+	else if (bars.e[whichbar]->type==COLORSLIDER_Magenta) Magenta(pos); 
+	else if (bars.e[whichbar]->type==COLORSLIDER_Yellow)   Yellow(pos); 
+	else if (bars.e[whichbar]->type==COLORSLIDER_Black)     Black(pos); 
+
+	else if (bars.e[whichbar]->type==COLORSLIDER_HSV_Hue)        Hue(pos*360); 
+	else if (bars.e[whichbar]->type==COLORSLIDER_HSV_Saturation) HSV_Saturation(pos); 
+	else if (bars.e[whichbar]->type==COLORSLIDER_HSV_Value)      Value(pos); 
+
+	else if (bars.e[whichbar]->type==COLORSLIDER_HSL_Hue)        Hue(pos*360); 
+	else if (bars.e[whichbar]->type==COLORSLIDER_HSL_Saturation) HSL_Saturation(pos); 
+	else if (bars.e[whichbar]->type==COLORSLIDER_HSL_Lightness)  Lightness(pos); 
+
+	else if (bars.e[whichbar]->type==COLORSLIDER_Cie_L) Cie_L(pos*100);
+	else if (bars.e[whichbar]->type==COLORSLIDER_Cie_a) Cie_a(pos*216-108);
+	else if (bars.e[whichbar]->type==COLORSLIDER_Cie_b) Cie_b(pos*216-108);
+
+	else if (bars.e[whichbar]->type==COLORSLIDER_X) X();
+	else if (bars.e[whichbar]->type==COLORSLIDER_Y) Y();
+	else if (bars.e[whichbar]->type==COLORSLIDER_Z) Z();
+
+	else if (bars.e[whichbar]->type==COLORSLIDER_Transparency) Alpha(pos); 
 }
 
 //! Return what the bar->pos should be, not what it actually contains.
@@ -704,17 +1030,32 @@ double ColorSliders::GetPosForBar(int whichbar)
 {
 	if (whichbar<0 || whichbar>=bars.n) return -1;
 
-	if      (bars.e[whichbar]->type==COLORSLIDER_Red)  return Redf();
-	else if (bars.e[whichbar]->type==COLORSLIDER_Green) return Greenf(); 
-	else if (bars.e[whichbar]->type==COLORSLIDER_Blue)   return Bluef(); 
-	else if (bars.e[whichbar]->type==COLORSLIDER_Cyan)   return Cyanf(); 
-	else if (bars.e[whichbar]->type==COLORSLIDER_Magenta) return Magentaf(); 
-	else if (bars.e[whichbar]->type==COLORSLIDER_Yellow)   return Yellowf(); 
-	else if (bars.e[whichbar]->type==COLORSLIDER_Black)     return Blackf(); 
-	else if (bars.e[whichbar]->type==COLORSLIDER_Hue)        return Huef(); 
-	else if (bars.e[whichbar]->type==COLORSLIDER_Saturation) return Saturationf(); 
-	else if (bars.e[whichbar]->type==COLORSLIDER_Value)       return Valuef(); 
-	else if (bars.e[whichbar]->type==COLORSLIDER_Transparency) return Alphaf(); 
+	if      (bars.e[whichbar]->type==COLORSLIDER_Red)  return Red();
+	else if (bars.e[whichbar]->type==COLORSLIDER_Green) return Green(); 
+	else if (bars.e[whichbar]->type==COLORSLIDER_Blue)   return Blue(); 
+
+	else if (bars.e[whichbar]->type==COLORSLIDER_Cyan)   return Cyan(); 
+	else if (bars.e[whichbar]->type==COLORSLIDER_Magenta) return Magenta(); 
+	else if (bars.e[whichbar]->type==COLORSLIDER_Yellow)   return Yellow(); 
+	else if (bars.e[whichbar]->type==COLORSLIDER_Black)     return Black(); 
+
+	else if (bars.e[whichbar]->type==COLORSLIDER_HSV_Hue)        return Hue()/360; 
+	else if (bars.e[whichbar]->type==COLORSLIDER_HSV_Saturation) return HSV_Saturation(); 
+	else if (bars.e[whichbar]->type==COLORSLIDER_HSV_Value)       return Value(); 
+
+	else if (bars.e[whichbar]->type==COLORSLIDER_HSL_Hue)        return Hue()/360; 
+	else if (bars.e[whichbar]->type==COLORSLIDER_HSL_Saturation) return HSL_Saturation(); 
+	else if (bars.e[whichbar]->type==COLORSLIDER_HSL_Lightness)  return Lightness(); 
+
+	else if (bars.e[whichbar]->type==COLORSLIDER_Cie_L) return Cie_L()/100;
+	else if (bars.e[whichbar]->type==COLORSLIDER_Cie_a) return (Cie_a()+108)/216;
+	else if (bars.e[whichbar]->type==COLORSLIDER_Cie_b) return (Cie_b()+108)/216;
+
+	else if (bars.e[whichbar]->type==COLORSLIDER_X) return X();
+	else if (bars.e[whichbar]->type==COLORSLIDER_Y) return Y();
+	else if (bars.e[whichbar]->type==COLORSLIDER_Z) return Z();
+
+	else if (bars.e[whichbar]->type==COLORSLIDER_Transparency) return Alpha(); 
 	return -1;
 }
 
@@ -788,17 +1129,23 @@ int ColorSliders::CharInput(unsigned int ch,const char *buffer,int len,unsigned 
 		return 0;
 	}
 
-	if        (ch=='r') { current=FindBar(COLORSLIDER_Red);     needtodraw=1; return 0;
-	} else if (ch=='g') { current=FindBar(COLORSLIDER_Green);   needtodraw=1; return 0;
-	} else if (ch=='b') { current=FindBar(COLORSLIDER_Blue);    needtodraw=1; return 0;
-	} else if (ch=='c') { current=FindBar(COLORSLIDER_Cyan);    needtodraw=1; return 0;
-	} else if (ch=='m') { current=FindBar(COLORSLIDER_Magenta);  needtodraw=1; return 0;
-	} else if (ch=='y') { current=FindBar(COLORSLIDER_Yellow);   needtodraw=1; return 0;
-	} else if (ch=='k') { current=FindBar(COLORSLIDER_Black);     needtodraw=1; return 0;
-	} else if (ch=='h') { current=FindBar(COLORSLIDER_Hue);       needtodraw=1; return 0;
-	} else if (ch=='s') { current=FindBar(COLORSLIDER_Saturation); needtodraw=1; return 0;
-	} else if (ch=='v') { current=FindBar(COLORSLIDER_Value);       needtodraw=1; return 0;
-	} else if (ch=='a') { current=FindBar(COLORSLIDER_Transparency); needtodraw=1; return 0;
+	int ncurrent=current;
+	if        (ch=='r') { ncurrent=FindBar(COLORSLIDER_Red);     
+	} else if (ch=='g') { ncurrent=FindBar(COLORSLIDER_Green);   
+	} else if (ch=='b') { ncurrent=FindBar(COLORSLIDER_Blue);    
+	} else if (ch=='c') { ncurrent=FindBar(COLORSLIDER_Cyan);    
+	} else if (ch=='m') { ncurrent=FindBar(COLORSLIDER_Magenta);  
+	} else if (ch=='y') { ncurrent=FindBar(COLORSLIDER_Yellow);   
+	} else if (ch=='k') { ncurrent=FindBar(COLORSLIDER_Black);     
+	} else if (ch=='h') { ncurrent=FindBar(COLORSLIDER_HSL_Hue);       
+	} else if (ch=='s') { ncurrent=FindBar(COLORSLIDER_HSL_Saturation); 
+	} else if (ch=='l') { ncurrent=FindBar(COLORSLIDER_HSL_Lightness);   
+	} else if (ch=='a') { ncurrent=FindBar(COLORSLIDER_Transparency); 
+	}
+	if (current!=ncurrent) {
+		current=ncurrent;
+		needtodraw=1;
+		return 0;
 	}
 
 	return anXWindow::CharInput(ch,buffer,len,state,d);
@@ -821,6 +1168,7 @@ void ColorSliders::updateSliderRect()
 	if (win_style&COLORSLIDERS_Vertical) {
 		sliders.width-=2*gap;
 		//*** put in hex and oldnew
+		cerr << " *** note that ColorSliders in vertical mode is really not implemented"<<endl;
 
 	} else {
 		if ((win_style&(COLORSLIDERS_HideHex|COLORSLIDERS_HideOldNew))==0) 
@@ -852,24 +1200,10 @@ void ColorSliders::updateSliderRect()
 			}
 
 		}
-//		------
-//		sliders.height-=gap*(bars.n-1);
-//		sliders.height-=oldnewheight+hexh;
-//		if (hexh) {
-//			sliders.height-=gap;
-//			hex.x     =sliders.x;
-//			hex.y     =sliders.y+sliders.height+gap;
-//			hex.width =sliders.width;
-//			hex.height=hexh;
-//		}
-//		if (oldnewheight) {
-//			sliders.height-=gap;
-//			oldnew.x     =sliders.x;
-//			oldnew.y     =sliders.y+yh-oldnewheight;
-//			oldnew.width =sliders.width;
-//			oldnew.height=oldnewheight;
-//		}
 	}
+
+	if (win_style&COLORSLIDERS_Vertical) step=1./sliders.height;
+	else step=1./sliders.width;
 }
 
 //! Calls anXWindow::Resize, then Sync(0).

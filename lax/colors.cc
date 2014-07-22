@@ -54,6 +54,11 @@ namespace Laxkit {
  * \brief Class to pass simple rgb, gray, or cmyk colors.
  *
  * You can use simple_cmyk_to_rgb() and simple_rgb_to_cmyk() to do some simple conversions.
+ *
+ * By default, constructors will set colortype to be one of LAX_COLOR_RGB, LAX_COLOR_CMYK, or LAX_COLOR_GRAY.
+ * You can use other values, but you will have to set it manually.
+ *
+ * All values are normalized to be from [0..max].
  */
 
 SimpleColorEventData::SimpleColorEventData()
@@ -67,8 +72,10 @@ SimpleColorEventData::SimpleColorEventData()
 	type=LAX_ColorEvent; 
 }
 
+/*! Construct with 4 channel rgba color.
+ */
 SimpleColorEventData::SimpleColorEventData(int nmax, int r,int g, int b, int a, int nid)
-	: numchannels(4), max(nmax)
+	: max(nmax), numchannels(4)
 {
 	channels=new int[4];
 	channels[0]=r;
@@ -80,8 +87,10 @@ SimpleColorEventData::SimpleColorEventData(int nmax, int r,int g, int b, int a, 
 	id=nid;
 }
 
+/*! Construct with 2 channel gray-alpha color.
+ */
 SimpleColorEventData::SimpleColorEventData(int nmax, int gray, int a, int nid)
-	: numchannels(2), max(nmax)
+	: max(nmax), numchannels(2)
 {
 	channels=new int[2];
 	channels[0]=gray;
@@ -91,8 +100,10 @@ SimpleColorEventData::SimpleColorEventData(int nmax, int gray, int a, int nid)
 	id=nid;
 }
 
+/*! Construct with 5 channel cmyka color.
+ */
 SimpleColorEventData::SimpleColorEventData(int nmax, int c,int m, int y, int k, int a, int nid)
-	: numchannels(5), max(nmax)
+	: max(nmax), numchannels(5)
 {
 	channels=new int[5];
 	channels[0]=c;
@@ -108,6 +119,28 @@ SimpleColorEventData::SimpleColorEventData(int nmax, int c,int m, int y, int k, 
 SimpleColorEventData::~SimpleColorEventData()
 {
 	if (channels) delete[] channels;
+}
+
+
+//------------------------------- ColorEventData -------------------------------
+ColorEventData::ColorEventData()
+{
+	id=info=0;
+	color=NULL;
+}
+
+ColorEventData::ColorEventData(Color *ncolor, int absorbcount, int nid, int ninfo, int ninfo2)
+{
+	color=ncolor;
+	if (color && !absorbcount) color->inc_count();
+	id=nid;
+	info=ninfo;
+	info2=ninfo2;
+}
+
+ColorEventData::~ColorEventData()
+{
+	if (color) color->dec_count();
 }
 
 

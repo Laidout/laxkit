@@ -52,15 +52,16 @@ class ColorBox : public anXWindow, virtual public ColorBase
 	virtual int send();
 	
   public:
-	int *topcolor;
 	int currentid;
-	int step;
+	double *topcolor;
+	double step;
+	int sendtype;
 
 	ColorBox(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
 			 int nx,int ny,int nw,int nh,int brder,
 			 anXWindow *prev,unsigned long owner,const char *mes,
-			 int ctype, int nmax, int nstep,
-			 int c0,int c1,int c2,int c3=-1,int c4=-1,
+			 int ctype, double nstep,
+			 double c0,double c1,double c2,double c3=-1,double c4=-1,
 			 NewWindowObject *newcolorselector=NULL);
 	virtual ~ColorBox();
 	virtual const char *whattype() { return "ColorBox"; }

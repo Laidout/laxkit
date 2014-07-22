@@ -2,8 +2,8 @@
  * @file colorspace.h 
  * @author Adapted from work of Pascal Getreuer 2005-2010 <getreuer@gmail.com>
  */
-#ifndef _LAX_COLORSPACE_H_
-#define _LAX_COLORSPACE_H_
+#ifndef _LAX_COLORSPACE_H
+#define _LAX_COLORSPACE_H
 
 
 namespace ColorConvert {
