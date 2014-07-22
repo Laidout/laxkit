@@ -119,6 +119,7 @@ class DisplayerXlib : public Displayer
 	virtual void LineAttributes(double width,int dash,int cap,int join);
 	virtual void FillAttributes(int fillstyle, int fillrule);
 	virtual LaxCompositeOp BlendMode(LaxCompositeOp mode);
+	virtual double setSourceAlpha(double alpha);
 	//@}
 
 

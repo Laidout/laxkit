@@ -670,6 +670,12 @@ LaxCompositeOp DisplayerXlib::BlendMode(LaxCompositeOp mode)
 	return old;
 }
 
+double DisplayerXlib::setSourceAlpha(double alpha)
+{
+	cerr <<" *** need to implement DisplayerXlib::setSourceAlpha()!"<<endl;
+	return 1;
+}
+
 //! Any subsequent calls are using real coordinates
 /*! Returns old real_coordinates.
  */

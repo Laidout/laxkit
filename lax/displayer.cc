@@ -268,6 +268,13 @@ Displayer::~Displayer()
  * See LaxCompositeOp.
  */
 
+/*! \fn double Displayer::setSourceAlpha(double alpha)
+ * Set an additional source alpha for rendering operations. Mainly used for
+ * overlaying images with an assigned transparency, like for grayed out icons.
+ *
+ * Returns old opacity.
+ */
+
 
 //! Any subsequent calls are using real coordinates
 /*! Returns old real_coordinates.

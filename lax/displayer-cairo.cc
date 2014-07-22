@@ -473,6 +473,12 @@ LaxCompositeOp DisplayerCairo::BlendMode(LaxCompositeOp mode)
 	return old;
 }
 
+double DisplayerCairo::setSourceAlpha(double alpha)
+{
+	cerr <<" *** need to implement DisplayerCairo::setSourceAlpha()!"<<endl;
+	return 1;
+}
+
 //! Set the width, whether solid, line cap and join.
 /*! This currently uses Xlib's names which are as follows.
  * 

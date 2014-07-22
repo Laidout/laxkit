@@ -100,6 +100,7 @@ class Displayer : public PanUser, virtual public anObject
 	virtual void LineAttributes(double width,int dash,int cap,int join) = 0;
 	virtual void FillAttributes(int fillstyle, int fillrule) = 0;
 	virtual LaxCompositeOp BlendMode(LaxCompositeOp mode) = 0;
+	virtual double setSourceAlpha(double alpha) = 0;
 	//@}
 
 
