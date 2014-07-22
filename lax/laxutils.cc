@@ -492,6 +492,28 @@ unsigned long rgbcolorf(double r,double g,double b)
 
 //----------------------------- Various drawing utilities -------------------------
 
+void fill_faux_transparent(aDrawable *win, ScreenColor &color, int x, int y, int w, int h, int square)
+{
+    unsigned int bg1=coloravg(rgbcolorf(.3,.3,.3),color.Pixel(), color.alpha/65535.);
+    unsigned int bg2=coloravg(rgbcolorf(.6,.6,.6),color.Pixel(), color.alpha/65535.);
+    int ww=square,hh;
+    int a=0;
+
+    for (int xx=x; xx<x+w; xx+=square) {
+        a=(xx/square)%2;
+        hh=square;
+        if (xx+ww>x+w) ww=x+w-xx;
+        for (int yy=y; yy<y+h; yy+=square) {
+            if (yy+hh>y+h) hh=y+h-yy;
+            foreground_color(a ? bg1 : bg2);
+            fill_rectangle(win, xx,yy,ww,hh);
+            a=!a;
+        }
+        ww=square;
+    }
+}
+
+
 //! Draw a bevel with bevel thickness within x,y,w,h. Draws state== LAX_OFF=not pressed, LAX_ON=pressed.
 /*! Specifically, this bevels inside the bounds x,y,w,h [x,x+w) and [y,y+h).
  *
