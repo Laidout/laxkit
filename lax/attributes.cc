@@ -519,76 +519,93 @@ int SimpleColorAttribute(const char *v,unsigned long *color_ret, Laxkit::ScreenC
 	return 0;
 }
 
-//! Read in an rgb value such as "af3" or "ff00ff".
-/*! Return 1 if successful, or 0 if unable to parse.
+/*! Read in an rgb value such as "af3" or "ff00ff".
+ * The hex format can have an optional initial '#'.
+ * Beyond that, the acceptable formats are:
+ *   rgb, argb, rrggbb, aarrggbb, rrrrggggbbbb, aaaarrrrggggbbbb.
+ *
+ * Return 1 if successful, or 0 if unable to parse.
  */
-int HexColorAttributeRGB(const char *v,Laxkit::ScreenColor *color,char **endptr)
+int HexColorAttributeRGB(const char *value,Laxkit::ScreenColor *color,const char **endptr)
 {
 	if (!color) return 0;
+
+	const char *v=value;
 	if (*v=='#') v++;
 	int n=0;
-	int r,g,b;
+	int r,g,b,a;
 	while (isxdigit(v[n])) n++;
 	char *end=NULL;
 	unsigned long num=strtol(v,&end,16);
-	unsigned long l;
-	if (n==3) {
-		r=(num&0xf)<<8;
-		g=(num&0xf0)<<16;
-		b=(num&0xf00)<<24;
-		l=r|g|b;
-		color->pixel=l;
-		color->red=r<<16;
-		color->green=g;
-		color->blue=b>>16;
+	if (end==v) {
+		 //wasn't a number there to parse!
+		if (endptr) *endptr=value;
+		return 0;
+	}
+
+	if (endptr) *endptr=value+n;
+
+	if (n==3 || n==4) { //rgb or argb
+		r= ((num&0xf)  <<4)|(num&0xf);
+		g=(((num&0xf0) <<4)|(num&0xf0))>>4;
+		b=(((num&0xf00)<<4)|(num&0xf00))>>8;
+		if (n==4) a=(((num&0xf000)<<4)|(num&0xf000))>>12;
+		else a=255;
+
+		color->red  =(r<<8)|r; //scaling up to 16 bit
+		color->green=(g<<8)|g;
+		color->blue =(b<<8)|b;
+		color->alpha=(a<<8)|a;
+		color->pixel=color->Pixel();
 		return 1;
-	} else if (n==6) {
+
+	} else if (n==6 || n==8) { //rrggbb or aarrggbb
 		r=(num&0xff);
-		g=(num&0xff00);
-		b=(num&0xff0000);
-		l=r|g|b;
-		color->pixel=l;
-		color->red=r<<16;
-		color->green=g;
-		color->blue=b>>16;
+		g=(num&0xff00)>>8;
+		b=(num&0xff0000)>>16;
+		if (n==8) a=(num&0xff000000)>>24; else a=255;
+
+		color->red  =(r<<8)|r; //scaling up to 16 bit
+		color->green=(g<<8)|g;
+		color->blue =(b<<8)|b;
+		color->alpha=(a<<8)|a;
+		color->pixel=color->Pixel();
 		return 1;
-	} else if (n==12) {
+
+	} else if (n==12 || n==16) { //rrrrggggbbbb or aaaarrrrggggbbbb
 		char s[5];
 		s[0]=v[0]; s[1]=v[1]; s[2]=v[2]; s[3]=v[3]; s[4]='\0';
+		if (n==16) {
+			color->alpha=strtol(s,&end,16);
+			v+=4;
+		} else color->red=strtol(s,&end,16);
+
+		s[0]=v[0]; s[1]=v[1]; s[2]=v[2]; s[3]=v[3]; s[4]='\0';
 		color->red=strtol(s,&end,16);
-		s[0]=v[5]; s[1]=v[6]; s[2]=v[7]; s[3]=v[8]; s[4]='\0';
+
+		s[0]=v[4]; s[1]=v[5]; s[2]=v[6]; s[3]=v[7]; s[4]='\0';
 		color->green=strtol(s,&end,16);
-		color->blue=strtol(v+8,&end,16);
+
+		s[0]=v[8]; s[1]=v[9]; s[2]=v[10]; s[3]=v[11]; s[4]='\0';
+		color->blue=strtol(s,&end,16);
+
 		color->pixel=color->Pixel();
+		return 1;
 	}
+
+	if (endptr) *endptr=value;
 	return 0;
 }
 
 //! Read in an rgb value such as "af3" or "ff00ff".
 /*! Return 1 if successful, or 0 if unable to parse.
  */
-int HexColorAttributeRGB(const char *v,unsigned long *l,char **endptr)
+int HexColorAttributeRGB(const char *v,unsigned long *l,const char **endptr)
 {
-	if (*v=='#') v++;
-	int n=0;
-	int r,g,b;
-	while (isxdigit(v[n])) n++;
-	char *end=NULL;
-	unsigned long num=strtol(v,&end,16);
-	if (n==3) {
-		r=(num&0xf)<<8;
-		g=(num&0xf0)<<16;
-		b=(num&0xf00)<<24;
-		*l=r|g|b;
-		return 1;
-	} else if (n==6) {
-		r=(num&0xff);
-		g=(num&0xff00);
-		b=(num&0xff0000);
-		*l=r|g|b;
-		return 1;
-	}
-	return 0;
+	ScreenColor color;
+	if (HexColorAttributeRGB(v,&color,endptr)==0) return 0;
+	*l=color.Pixel();
+	return 1;
 }
 
 //! Return from something like "1 2", "1,2", "(1,2)", or "(1 2)".
