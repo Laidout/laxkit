@@ -87,6 +87,7 @@ enum ColorSlidersStyle {
 	COLORSLIDERS_Allow_Registration= (1<<21),
 	COLORSLIDERS_Allow_Knockout    = (1<<22),
 	COLORSLIDERS_SpecialMask       = ((1<<20)|(1<<21)|(1<<22)), 
+	COLORSLIDERS_Recent            = (1<<24), //unimplemented
 	COLORSLIDERS_FG_and_BG         = (1<<23), //unimplemented
 	COLORSLIDERS_MAX
 };
@@ -122,7 +123,7 @@ class ColorSliders : public anXWindow, public ColorBase
   protected:
 	ButtonDownInfo buttondown;
 	IntRectangle bwcolor, hue;
-	IntRectangle sliders, hex, oldnew;
+	IntRectangle sliders, hex, oldnew, specials;
 	ScreenColor curcolor,original_color;
 	int sendtype;
 
@@ -134,6 +135,7 @@ class ColorSliders : public anXWindow, public ColorBase
 	virtual int DefineSystems(int which);
 	virtual int DefineBars();
 	virtual int send();
+	virtual bool useSpecialLine();
 	virtual void DrawSpecial(int which, int x,int y,int w,int h);
 	
   public:

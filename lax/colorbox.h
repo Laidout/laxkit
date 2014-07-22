@@ -31,6 +31,7 @@
 namespace Laxkit {
 
 
+
 #define COLORBOX_DRAW_NUMBER (1<<16)
 #define COLORBOX_CMYK        (1<<17)
 #define COLORBOX_RGB         (1<<18)
@@ -39,6 +40,10 @@ namespace Laxkit {
 #define COLORBOX_FG          (1<<20)
 #define COLORBOX_FGBG        (1<<21)
 #define COLORBOX_STROKEFILL  (1<<22)
+
+#define COLORBOX_ALLOW_NONE         (1<<23)
+#define COLORBOX_ALLOW_KNOCKOUT     (1<<24)
+#define COLORBOX_ALLOW_REGISTRATION (1<<25)
 
 
 //------------------------------- ColorBox ------------------------------
@@ -50,8 +55,18 @@ class ColorBox : public anXWindow, virtual public ColorBase
 	NewWindowObject *colorselector;
 
 	virtual int send();
+
+	Laxkit::ShortcutHandler *sc;
+	virtual int PerformAction(int action);
 	
   public:
+	enum ColorBoxActions {
+		COLORBOXA_SelectNone,        
+		COLORBOXA_SelectRegistration,
+		COLORBOXA_SelectKnockout,    
+		COLORBOXA_MAX
+	};
+
 	int currentid;
 	double *topcolor;
 	double step;
@@ -67,6 +82,7 @@ class ColorBox : public anXWindow, virtual public ColorBase
 	virtual const char *whattype() { return "ColorBox"; }
 	virtual const char *tooltip(const char *newtip) { return anXWindow::tooltip(newtip); }
 	virtual const char *tooltip(int mouseid=0);
+	virtual Laxkit::ShortcutHandler *GetShortcuts();
 	virtual int init();
 	virtual void Refresh();
 	virtual int LBDown(int x,int y,unsigned int state,int count, const LaxMouse *d);

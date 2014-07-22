@@ -135,6 +135,22 @@ ColorSliders::~ColorSliders()
 {
 }
 
+/*! Convenience function to check if any of:
+ *  COLORSLIDERS_Allow_None        
+ *  COLORSLIDERS_Allow_Registration
+ *  COLORSLIDERS_Allow_Knockout    
+ *  are active.
+ */
+
+bool ColorSliders::useSpecialLine()
+{
+	return win_style&( COLORSLIDERS_Allow_None        
+					| COLORSLIDERS_Allow_Registration
+					| COLORSLIDERS_Allow_Knockout    
+			);
+}
+
+
 /*! If systems.n==0, then install all color systems.
  * Else just update the hidden field of each system according to if it is flagged in which.
  * To actually define the color bar instances, use DefineBars. The bars stack is not touched here.
@@ -548,9 +564,20 @@ void ColorSliders::Refresh()
 		FillWithTransparency(color, oldnew.x+oldnew.width/2,oldnew.y,oldnew.width/2,oldnew.height);
 	}
 
-	//DrawSpecial(COLORSLIDER_None, 0,0,50,50);
-	//DrawSpecial(COLORSLIDER_Registration, 50,0,50,50);
-	//DrawSpecial(COLORSLIDER_Knockout, 100,0,50,50);
+	if (useSpecialLine()) {
+		x=specials.x;
+		if (win_style&COLORSLIDERS_Allow_None) { 
+			DrawSpecial(COLORSLIDER_None, x,specials.y, specials.height,specials.height);
+			x+=specials.height+gap;
+		}
+		if (win_style&COLORSLIDERS_Allow_Registration) {
+			DrawSpecial(COLORSLIDER_Registration,  x,specials.y, specials.height,specials.height);
+			x+=specials.height+gap;
+		}
+		if (win_style&COLORSLIDERS_Allow_Knockout) {
+			DrawSpecial(COLORSLIDER_Knockout,  x,specials.y, specials.height,specials.height);
+		}
+	}
 
 	SwapBuffers();
 }
@@ -586,6 +613,7 @@ void ColorSliders::DrawSpecial(int which, int x,int y,int w,int h)
 		dp->drawrectangle(x,y,w,h, 1);
 
 		int ll=3;
+		x+=ll/2; y+=ll/2; w-=ll; h-=ll;
 		dp->LineAttributes(ll,LineSolid,LAXCAP_Round,LAXJOIN_Round);
 		dp->NewFG(0,0,0);
 		dp->drawline(x+ll/2,y, x+ll/2+w,y+h);
@@ -1172,9 +1200,11 @@ void ColorSliders::updateSliderRect()
 
 	} else {
 		if ((win_style&(COLORSLIDERS_HideHex|COLORSLIDERS_HideOldNew))==0) 
+			 //make room for the old/new selector and/or the hex entry box
 			sliders.height-=1.5*gap+hexh;
 
 		if (!(win_style&COLORSLIDERS_HideHex)) {
+			 //set up hex rectangle
 			hex.y     =sliders.y+sliders.height+gap/2;
 			hex.height=hexh;
 			if (win_style&COLORSLIDERS_HideOldNew) {
@@ -1186,6 +1216,7 @@ void ColorSliders::updateSliderRect()
 			}
 		}
 		if (!(win_style&COLORSLIDERS_HideOldNew)) {
+			 //set up oldnew box
 			oldnew.y     =sliders.y+sliders.height+gap/2;
 			oldnew.height=hexh;
 
@@ -1199,6 +1230,15 @@ void ColorSliders::updateSliderRect()
 				oldnew.width =sliders.width-3*gap-hexw;
 			}
 
+		}
+
+		if (useSpecialLine()) {
+			sliders.height-=1.5*gap+hexh;
+
+			specials.x=gap;
+			specials.y=sliders.y+sliders.height+gap/2;
+			specials.width=win_w-2*gap;
+			specials.height=hexh;
 		}
 	}
 

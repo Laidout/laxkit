@@ -140,10 +140,13 @@ ColorBox::ColorBox(anXWindow *parnt,const char *nname,const char *ntitle, unsign
 	win_colors=new WindowColors;
 	*win_colors=*app->color_panel;
 	win_colors->bg=rgbcolor(Red()*255, Green()*255, Blue()*255);
+
+	sc=NULL;
 }
 
 ColorBox::~ColorBox()
 {
+	if (sc) sc->dec_count();
 	if (colorselector) delete colorselector;
 }
 
@@ -346,11 +349,17 @@ int ColorBox::PopupColorSelector()
 	if (!colorselector) {
 		
 		double cc[5];
-		if (Get(sendtype, &cc[0], &cc[1], &cc[2], &cc[3], &cc[4]))
-			w=new ColorSliders(NULL,"New Color","New Color",ANXWIN_ESCAPABLE|ANXWIN_REMEMBER, 0,0,200,400,0,
+		if (Get(sendtype, &cc[0], &cc[1], &cc[2], &cc[3], &cc[4])) {
+			unsigned long extra=0;
+			if (win_style&COLORBOX_ALLOW_NONE)         extra|=COLORSLIDERS_Allow_None;
+			if (win_style&COLORBOX_ALLOW_KNOCKOUT    ) extra|=COLORSLIDERS_Allow_Knockout; 
+			if (win_style&COLORBOX_ALLOW_REGISTRATION) extra|=COLORSLIDERS_Allow_Registration;
+
+			w=new ColorSliders(NULL,"New Color","New Color",ANXWIN_ESCAPABLE|ANXWIN_REMEMBER|extra, 0,0,200,400,0,
 						   NULL,object_id,"newcolor",
 						   sendtype,1./255,
 						   cc[0],cc[1],cc[2],cc[3],cc[4]);
+		}
 
 	} else {
 		w=colorselector->function(NULL,"New Color",colorselector->style,this);
@@ -554,7 +563,19 @@ void ColorBox::Refresh()
 int ColorBox::CharInput(unsigned int ch,const char *buffer,int len,unsigned int state, const LaxKeyboard *d)
 {
 	if (ch=='\t') return anXWindow::CharInput(ch,buffer,len,state,d);
+	
+	
+	 //check shortcuts
+	if (!sc) GetShortcuts();
+	int action=sc->FindActionNumber(ch,state&LAX_STATE_MASK,0);
+	if (action>=0) {
+		return PerformAction(action);
+	}
 
+
+	// *** maybe remove this remapping stuff? not exactly intuitive...
+	//
+	
 	if (!d->paired_mouse) return anXWindow::CharInput(ch,buffer,len,state,d);
 	if (!buttondown.any(d->paired_mouse->id)) return anXWindow::CharInput(ch,buffer,len,state,d);
 
@@ -597,6 +618,42 @@ int ColorBox::CharInput(unsigned int ch,const char *buffer,int len,unsigned int 
 
 
 	return 0;
+}
+
+
+int ColorBox::PerformAction(int action)
+{
+	if (action==COLORBOXA_SelectNone) {       
+		if (!(win_style&COLORBOX_ALLOW_NONE)) return 1;
+		cerr << " *** need to implement COLORBOX_ALLOW_NONE!"<<endl;
+
+	} else if (action==COLORBOXA_SelectRegistration) {
+		if (!(win_style&COLORBOX_ALLOW_REGISTRATION)) return 1;
+		cerr << " *** need to implement COLORBOX_ALLOW_REGISTRATION!"<<endl;
+
+	} else if (action==COLORBOXA_SelectKnockout) {   
+		if (!(win_style&COLORBOX_ALLOW_KNOCKOUT)) return 1;
+		cerr << " *** need to implement COLORBOX_ALLOW_KNOCKOUT!"<<endl;
+	}
+
+	return 1;
+}
+
+Laxkit::ShortcutHandler *ColorBox::GetShortcuts()
+{
+	if (sc) return sc;
+	ShortcutManager *manager=GetDefaultShortcutManager();
+	sc=manager->NewHandler(whattype());
+	if (sc) return sc;
+
+	sc=new ShortcutHandler(whattype());
+
+	sc->Add(COLORBOXA_SelectNone,          'n',0,0,   "SelectNone",        _("Select \"None\" color"),NULL,0);
+	sc->Add(COLORBOXA_SelectRegistration,  'r',0,0,   "SelectRegistration",_("Select registration color"),NULL,0);
+	sc->Add(COLORBOXA_SelectKnockout,      'k',0,0,   "SelectKnockout",    _("Select knockout color"),NULL,0);
+
+	manager->AddArea(whattype(),sc);
+	return sc;
 }
 
 
