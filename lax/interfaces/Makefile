@@ -25,6 +25,7 @@ objs= \
 	somedatafactory.o \
 	coordinate.o \
 	svgcoord.o \
+	selection.o \
 	aninterface.o \
 	interfaceundo.o \
 	viewportwindow.o \
