@@ -351,7 +351,8 @@ void ViewportWithStack::Refresh()
 		ViewerWindow *viewer=dynamic_cast<ViewerWindow *>(win_parent); // maybe not always returns non-null
 		if (viewer) {
 			ColorBox *colorbox;
-			colorbox=new ColorBox(this,"colorbox",NULL,0, 0,0,0,0,1, NULL,object_id,"vpwsColor",LAX_COLOR_RGB,255,1, 255,0,0,255);
+			colorbox=new ColorBox(this,"colorbox",NULL,0, 0,0,0,0,1, NULL,object_id,"vpwsColor",LAX_COLOR_RGB,
+					1./255, 1.,0.,0.,1.);
 			viewer->AddWin(colorbox,1, 50,0,50,50,0, 10,0,50,50,0, -1);
 			viewer->Sync(1);
 		}
