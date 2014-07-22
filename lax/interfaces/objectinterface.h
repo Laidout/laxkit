@@ -25,6 +25,7 @@
 
 #include <lax/interfaces/rectinterface.h>
 #include <lax/interfaces/somedata.h>
+#include <lax/interfaces/selection.h>
 #include <lax/lists.h>
 
 #define OBJECT_SELECT_TOUCHING    (1<<16)
@@ -42,11 +43,12 @@ enum ObjectInterfaceActions {
 class ObjectInterface : public RectInterface
 {
   protected:
-	Laxkit::PtrStack<ObjectContext> selection;
+	Selection *selection;
 	int dontclear;
 	virtual void Flip(int type);
 	virtual void Rotate(double angle);
 	virtual int PerformAction(int action);
+
   public:
 	ObjectInterface(int nid,Laxkit::Displayer *ndp);
 	virtual ~ObjectInterface();
@@ -71,7 +73,8 @@ class ObjectInterface : public RectInterface
 	virtual void TransformSelection(const double *N, int s=-1, int e=-1);
 	virtual int PointInSelection(int x,int y);
 	virtual int AddToSelection(ObjectContext *oc);
-	virtual int AddToSelection(Laxkit::PtrStack<ObjectContext> &selection);
+	virtual int AddToSelection(Laxkit::PtrStack<ObjectContext> &nselection);
+	virtual int AddToSelection(Selection *nselection);
 	virtual int FreeSelection();
 	virtual void RemapBounds();
 	virtual int GrabSelection(unsigned int state);

@@ -2336,6 +2336,17 @@ int EngraverFillInterface::scanEngraving(int x,int y, int *category)
 	return ENGRAVE_None;
 }
 
+/*! oc->obj must be castable to an EngraverFillData or a PathsData.
+ */
+int EngraverFillInterface::AddToSelection(ObjectContext *oc)
+{
+    if (!oc || !oc->obj) return -2;
+    if (   !dynamic_cast<EngraverFillData*>(oc->obj)
+		&& !dynamic_cast<PathsData*>(oc->obj)) return -3; //not a usable object!
+
+    return selection->AddNoDup(oc,-1);
+}
+
 //! Catch a double click to pop up an ImageDialog.
 int EngraverFillInterface::LBDown(int x,int y,unsigned int state,int count,const Laxkit::LaxMouse *d)
 {
@@ -3454,6 +3465,14 @@ void EngraverFillInterface::DrawShadeGradient(double minx,double maxx,double min
 
 	//dp->drawrectangle(minx-1,miny-1, maxx-minx+2,maxy-miny+2,0);
 	dp->DrawReal();
+}
+
+void EngraverFillInterface::UpdatePanelAreas()
+{
+	IntRectangle groupselection;
+	IntRectangle tracing;
+	IntRectangle direction;
+	IntRectangle spacing;
 }
 
 void EngraverFillInterface::DrawTracingTools()

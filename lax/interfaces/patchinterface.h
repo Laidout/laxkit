@@ -27,6 +27,7 @@
 #include <lax/interfaces/somedata.h>
 #include <lax/interfaces/linestyle.h>
 #include <lax/interfaces/pathinterface.h>
+#include <lax/interfaces/selection.h>
 #include <lax/screencolor.h>
 #include <lax/rectangles.h>
 
@@ -236,6 +237,7 @@ class PatchInterface : public anInterface
 
 	Laxkit::ShortcutHandler *sc;
 	virtual int PerformAction(int action);
+
  public:
 	 //draw exterior and interior grid lines
 	enum PatchDecorations {
@@ -257,6 +259,7 @@ class PatchInterface : public anInterface
 	int recurse;
 	int rendermode;
 	
+	Selection *selection;
 	PatchData *data;
 	ObjectContext *poc;
 
@@ -291,6 +294,7 @@ class PatchInterface : public anInterface
 	virtual void deletedata();
 	virtual int scan(int x,int y);
 	virtual int SelectPoint(int c,unsigned int state);
+	virtual int AddToSelection(ObjectContext *oc);
 };
 
 } // namespace LaxInterfaces;

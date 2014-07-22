@@ -37,7 +37,7 @@ class SelectedObject
 {
   public:
 	int info;
-	LaxInterfaces::SomeData *obj;
+	//LaxInterfaces::SomeData *obj;
 	LaxInterfaces::ObjectContext *oc;
 	//ValueHash properties;
 

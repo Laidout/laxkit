@@ -2207,6 +2207,7 @@ PatchInterface::PatchInterface(int nid,Displayer *ndp) : anInterface(nid,ndp)
 	rdiv=2;
 	cdiv=2;
 
+	selection=NULL;
 	data=NULL;
 	poc=NULL;
 	
@@ -2323,6 +2324,8 @@ void PatchInterface::deletedata()
 	data=NULL;
 	if (poc) { delete poc; poc=NULL; }
 	curpoints.flush();
+
+	if (selection) { selection->dec_count(); selection=NULL; }
 }
 
 //! Delete data, and flush curpoints. Make needtodraw=1.
@@ -2928,6 +2931,19 @@ int PatchInterface::SelectPoint(int c,unsigned int state)
 	curpoints.push(c);
 	needtodraw|=2;
 	return curpoints.n;
+}
+
+/*! By default allow any object that can be cast to PatchInterface.
+ *
+ * Return the index of the item in the selection after adding new.
+ * Return -1 if item already in the selection.
+ * Return -2 for unable to add for some reason.
+ */
+int PatchInterface::AddToSelection(ObjectContext *oc)
+{
+	if (!oc || !oc->obj) return -2;
+	if (!dynamic_cast<PatchData*>(oc->obj)) return -3; //not a patch object!
+	return selection->AddNoDup(oc,-1);
 }
 
 int PatchInterface::LBDown(int x,int y,unsigned int state,int count,const Laxkit::LaxMouse *d)

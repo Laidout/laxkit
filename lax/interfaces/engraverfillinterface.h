@@ -324,6 +324,8 @@ class EngraverFillInterface : public PatchInterface
 	virtual void DrawLineGradient(double minx,double maxx,double miny,double maxy);
 	virtual void DrawShadeGradient(double minx,double maxx,double miny,double maxy);
 
+	virtual void UpdatePanelAreas();
+
   public:
 	EngraverFillInterface(int nid, Laxkit::Displayer *ndp);
 	virtual ~EngraverFillInterface();
@@ -354,6 +356,8 @@ class EngraverFillInterface : public PatchInterface
 	//virtual void patchpoint(PatchRenderContext *context, double s0,double ds,double t0,double dt,int n);
 	virtual int ChangeMode(int newmode);
 	virtual int Trace();
+
+	virtual int AddToSelection(ObjectContext *oc);
 };
 
 } //namespace LaxInterfaces

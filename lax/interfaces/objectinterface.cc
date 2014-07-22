@@ -66,12 +66,13 @@ namespace LaxInterfaces {
 ObjectInterface::ObjectInterface(int nid,Displayer *ndp) : RectInterface(nid,ndp)
 {
 	dontclear=0;
+	selection=new Selection;
 }
 
 ObjectInterface::~ObjectInterface() 
 {
 	DBG cerr <<"---- in ObjectInterface destructor"<<endl;
-	DBG selection.flush();
+	if (selection) selection->dec_count();
 }
 		
 const char *ObjectInterface::Name()
@@ -177,7 +178,7 @@ int ObjectInterface::Refresh()
 	if (data) {
 		//dp->PushAndNewTransform(data->m());
 		int sd=showdecs;
-		if (!selection.n) showdecs=0;
+		if (!selection->n()) showdecs=0;
 		RectInterface::Refresh();
 		showdecs=sd;
 		//dp->PopAxes();
@@ -189,9 +190,9 @@ int ObjectInterface::Refresh()
 	SomeData *obj;
 	ObjectContext *oc;
 	double m[6];
-	for (int c=0; c<selection.n; c++) {
+	for (int c=0; c<selection->n(); c++) {
 		 // Now draw outlines of each element in the selection.
-		oc=selection.e[c];
+		oc=selection->e(c);
 		obj=oc->obj;
 		if (!obj) continue;
 
@@ -221,7 +222,7 @@ int ObjectInterface::Refresh()
 // */
 //void ObjectInterface::RedoBounds()
 //{
-//	if (selection.n==0) return;
+//	if (selection->n()==0) return;
 //	
 //	if (!data) {
 //		somedata=data=new RectData();
@@ -233,20 +234,32 @@ int ObjectInterface::Refresh()
 //	transform_identity(m);
 //
 //	if (viewport) viewport->transformToContext(m,oc,0,0);
-//	if (selection.n==1) {
-//		transform_copy(data->m(), selection.e[0]->m());
-//		data->addtobounds(selection.e[0]);
-//	} else for (int c=0; c<selection.n; c++) {
-//		data->addtobounds(selection.e[c]->m(), selection.e[c]);
+//	if (selection->n()==1) {
+//		transform_copy(data->m(), selection->e(0)->obj->m());
+//		data->addtobounds(selection->e(0));
+//	} else for (int c=0; c<selection->n(); c++) {
+//		data->addtobounds(selection.e[c]->m(), selection->e(c)->obj);
 //	}
 //}
 
 //! Add many objects to selection. Return number added.
-int ObjectInterface::AddToSelection(Laxkit::PtrStack<ObjectContext> &selection)
+int ObjectInterface::AddToSelection(Selection *nselection)
+{
+	if (!nselection) return 0;
+
+	int n=0;
+	for (int c=0; c<nselection->n(); c++) {
+		n+=AddToSelection(nselection->e(c));
+	}
+	return n;
+}
+
+//! Add many objects to selection. Return number added.
+int ObjectInterface::AddToSelection(Laxkit::PtrStack<ObjectContext> &nselection)
 {
 	int n=0;
-	for (int c=0; c<selection.n; c++) {
-		n+=AddToSelection(selection.e[c]);
+	for (int c=0; c<nselection.n; c++) {
+		n+=AddToSelection(nselection.e[c]);
 	}
 	return n;
 }
@@ -257,10 +270,10 @@ void ObjectInterface::RemapBounds()
 	data->clear();
 	
 	double m[6];
-	for (int c=0; c<selection.n; c++) {
-		if (viewport) viewport->transformToContext(m,selection.e[c],0,1);
-		else transform_copy(m,selection.e[c]->obj->m());
-		data->addtobounds(m, selection.e[c]->obj);
+	for (int c=0; c<selection->n(); c++) {
+		if (viewport) viewport->transformToContext(m,selection->e(c),0,1);
+		else transform_copy(m,selection->e(c)->obj->m());
+		data->addtobounds(m, selection->e(c)->obj);
 	}
 }
 
@@ -276,10 +289,10 @@ int ObjectInterface::AddToSelection(ObjectContext *oc)
 	if (!(oc && oc->obj)) return 0;
 
 	int c;
-	for (c=0; c<selection.n; c++) {
-		if (oc->obj==selection.e[c]->obj) return 0; //object already in selection
+	for (c=0; c<selection->n(); c++) {
+		if (oc->obj==selection->e(c)->obj) return 0; //object already in selection
 	}
-	selection.push(oc->duplicate());
+	selection->Add(oc,-1);
 
 	if (!data) somedata=data=new RectData();
 
@@ -291,24 +304,24 @@ int ObjectInterface::AddToSelection(ObjectContext *oc)
 	transform_identity(m);
 	data->m(m);
 
-	if (selection.n==1) {
+	if (selection->n()==1) {
 		 //handle selection of 1 separately so that the selection rectangle exactly
 		 //matches the object rectangle. Otherwise, it might be skewed.
 		if (viewport) viewport->transformToContext(m,oc,0,1);
-		else transform_copy(m,selection.e[0]->obj->m());
+		else transform_copy(m,selection->e(0)->obj->m());
 		data->m(m);
-		data->addtobounds(selection.e[0]->obj);
+		data->addtobounds(selection->e(0)->obj);
 
-	} else for (int c=0; c<selection.n; c++) {
-		if (viewport) viewport->transformToContext(m,selection.e[c],0,1);
-		else transform_copy(m,selection.e[c]->obj->m());
-		data->addtobounds(m, selection.e[c]->obj);
+	} else for (int c=0; c<selection->n(); c++) {
+		if (viewport) viewport->transformToContext(m,selection->e(c),0,1);
+		else transform_copy(m,selection->e(c)->obj->m());
+		data->addtobounds(m, selection->e(c)->obj);
 	}
 	syncFromData(1);
 	data->centercenter();
 	center1=flatpoint((data->minx+data->maxx)/2,(data->miny+data->maxy)/2);
 	
-	DBG cerr <<"--Added to selection, ("<<selection.n<<"): "<<c<<endl;
+	DBG cerr <<"--Added to selection, ("<<selection->n()<<"): "<<c<<endl;
 	needtodraw=1;
 	return 1;
 }
@@ -316,7 +329,7 @@ int ObjectInterface::AddToSelection(ObjectContext *oc)
 void ObjectInterface::deletedata()
 {
 	RectInterface::deletedata();
-	selection.flush();
+	selection->Flush();
 }
 
 //! Flush the selection and remove the bounding rectangle.
@@ -324,7 +337,7 @@ int ObjectInterface::FreeSelection()
 {
 	DBG cerr <<"=== FreeSelection()"<<endl;
 	deletedata();
-	selection.flush();
+	selection->Flush();
 	if (style&RECT_FLIP_LINE) style=(style&~RECT_FLIP_LINE)|RECT_FLIP_AT_SIDES;
 	needtodraw=1;
 	return 0;
@@ -339,10 +352,10 @@ int ObjectInterface::PointInSelection(int x,int y)
 	flatpoint p2, p=dp->screentoreal(x,y);
 	double m[6];
 	transform_identity(m);
-	for (int c=0; c<selection.n; c++) {
-		if (viewport) viewport->transformToContext(m,selection.e[c],1,0);
+	for (int c=0; c<selection->n(); c++) {
+		if (viewport) viewport->transformToContext(m,selection->e(c),1,0);
 		p2=transform_point(m,p);
-		if (selection.e[c]->obj->pointin(p2)) return 1;
+		if (selection->e(c)->obj->pointin(p2)) return 1;
 	}
 	return 0;
 }
@@ -444,7 +457,7 @@ int ObjectInterface::LBUp(int x,int y,unsigned int state,const Laxkit::LaxMouse 
 	if (!buttondown.isdown(d->id,LEFTBUTTON)) return 1;
 
 	 // This is for dragging out an initial rectangle to capture objects in.
-	//if (selection.n==0 && data) {
+	//if (selection->n()==0 && data) {
 	int dragged=buttondown.isdragged(d->id,LEFTBUTTON);
 	if (dragged && data &&
 			(   dragmode==DRAG_ADD_SELECTION 
@@ -455,17 +468,17 @@ int ObjectInterface::LBUp(int x,int y,unsigned int state,const Laxkit::LaxMouse 
 		return 0;
 	}
 	
-	if (dragged && selection.n && viewport) {
+	if (dragged && selection->n() && viewport) {
 		// *** todo:
 		//Affine initial;
 		//UndoManager *undomanager=GetUndoManager();
 
-		for (int c=0; c<selection.n; c++) {
-			viewport->ObjectMoved(selection.e[c],1);
+		for (int c=0; c<selection->n(); c++) {
+			viewport->ObjectMoved(selection->e(c),1);
 
 			//if (undomanager) {
 			//	initial.m(start_transforms.e[c]);
-			//	undomanager->AddUndo(new SomeDataUndo(&initial,NULL, selection.e[c]->obj,NULL, SomeDataUndo::SDUNDO_Transform, (c==s ? false : true)));
+			//	undomanager->AddUndo(new SomeDataUndo(&initial,NULL, selection->e(c)->obj,NULL, SomeDataUndo::SDUNDO_Transform, (c==s ? false : true)));
 			//}
 		}
 		syncFromData(1);
@@ -520,7 +533,7 @@ int ObjectInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxM
 	//DBG cerr <<"MouseMove in box: "<<data->origin().x<<","<<data->origin().y<<"  x:"<<data->xaxis().x<<","<<data->xaxis().y
 	//DBG      <<"   y:"<<data->yaxis().x<<","<<data->yaxis().y<<endl;
 	
-	if (!selection.n) return RectInterface::MouseMove(x,y,state,d);
+	if (!selection->n()) return RectInterface::MouseMove(x,y,state,d);
 	
 	 // See RectInterface::MouseMove for what's up here.
 	double M[6],M2[6],N[6];
@@ -554,7 +567,7 @@ void ObjectInterface::Rotate(double angle)
 
 void ObjectInterface::Flip(int type)
 {
-	if (!selection.n) return;
+	if (!selection->n()) return;
 	if (type!=RP_Flip_Go && type!=RP_Flip_H && type!=RP_Flip_V) return;
 
 	double M[6],M2[6],N[6];
@@ -579,8 +592,8 @@ void ObjectInterface::TransformSelection(const double *N, int s, int e)
 {
 	double M[6],M2[6],T[6];
 	if (s<0) s=0;
-	if (s>=selection.n) s=selection.n-1;
-	if (e<0 || e>=selection.n) e=selection.n-1;
+	if (s>=selection->n()) s=selection->n()-1;
+	if (e<0 || e>=selection->n()) e=selection->n()-1;
 
 	for (int c=s; c<=e; c++) {
 		if (viewport) {
@@ -590,9 +603,9 @@ void ObjectInterface::TransformSelection(const double *N, int s, int e)
 			 //If A' is the objects transform after the move, then
 			 //  A1 * ... * An * N == A1' * A2 * A3 * ... * An
 			 //so A' == (A1 * ... * An) * N * (An^-1 * A(n-1)^-1 * ... A2^-1)
-			viewport->transformToContext(M,selection.e[c],0,1);
+			viewport->transformToContext(M,selection->e(c),0,1);
 			transform_invert(M2,M);
-			transform_mult(T,M2,selection.e[c]->obj->m());
+			transform_mult(T,M2,selection->e(c)->obj->m());
 
 			 //now M is the transform to space of the object
 			 //    T is a partial inverse of that.
@@ -600,11 +613,11 @@ void ObjectInterface::TransformSelection(const double *N, int s, int e)
 			transform_mult(M2,M,N);
 			transform_mult(M,M2,T);
 
-			selection.e[c]->obj->m(M);
+			selection->e(c)->obj->m(M);
 		} else {
 			 //assume nothing between objects and dp if not in a viewport
-			transform_mult(M,selection.e[c]->obj->m(),N);
-			selection.e[c]->obj->m(M);
+			transform_mult(M,selection->e(c)->obj->m(),N);
+			selection->e(c)->obj->m(M);
 		}
 
 	}
@@ -685,7 +698,7 @@ int ObjectInterface::CharInput(unsigned int ch, const char *buffer,int len,unsig
 
 	if (ch==LAX_Esc) {
 		int c=RectInterface::CharInput(ch,buffer,len,state,d); 
-		if (c!=0 && (state&LAX_STATE_MASK)==0 && selection.n) { 
+		if (c!=0 && (state&LAX_STATE_MASK)==0 && selection->n()) { 
 			if (extrapoints) {
 				extrapoints=0;
 				needtodraw=1;
@@ -698,11 +711,11 @@ int ObjectInterface::CharInput(unsigned int ch, const char *buffer,int len,unsig
 
 	} else if ((ch==LAX_Del || ch==LAX_Bksp) && (state&LAX_STATE_MASK)==0) { //delete
 		dontclear=1;
-		for (int c=0; c<selection.n; c++) {
-			viewport->ChangeObject(selection.e[c],0);
+		for (int c=0; c<selection->n(); c++) {
+			viewport->ChangeObject(selection->e(c),0);
 			viewport->DeleteObject();
 		}
-		selection.flush();
+		selection->Flush();
 		dontclear=0;
 		deletedata();
 		needtodraw=1;
