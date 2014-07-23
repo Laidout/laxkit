@@ -48,6 +48,12 @@ namespace Laxkit {
 /*! \fn void DoubleBBox::clear()
  * \brief Make box invalid: set minx=miny=0 and maxx=maxy=-1. 
  */
+/*! \fn double DoubleBBox::boxwidth() 
+ * Return maxx-minx if maxx>minx. Else return 0.
+ */
+/*! \fn double DoubleBBox::boxheight() 
+ * Return maxy-miny if maxy>miny. Else return 0.
+ */
 	
 
 //! Just copy over the bounds.
@@ -131,9 +137,28 @@ int DoubleBBox::intersect(const double *m,DoubleBBox *bbox, int touching, int se
 	if (lr.x>=minx && lr.x<=maxx && lr.y>=miny && lr.y<=maxy) n++;
 
 	if (!n && touching) {
-		////flatpoint p1(minx,miny), p2(minx,maxy), pp;
+		////flatpoint p1(minx,miny), p2(minx,maxy), p3(maxx,maxy), p4(maxx,miny);
 		////if (segmentcross(p1,p2, ul,ur, p)) return 1;
+		////if (segmentcross(p1,p2, ur,lr, p)) return 1;
+		////if (segmentcross(p1,p2, lr,ll, p)) return 1;
+		////if (segmentcross(p1,p2, ll,ul, p)) return 1;
 		//
+		////if (segmentcross(p2,p3, ul,ur, p)) return 1;
+		////if (segmentcross(p2,p3, ur,lr, p)) return 1;
+		////if (segmentcross(p2,p3, lr,ll, p)) return 1;
+		////if (segmentcross(p2,p3, ll,ul, p)) return 1;
+		//
+		////if (segmentcross(p3,p4, ul,ur, p)) return 1;
+		////if (segmentcross(p3,p4, ur,lr, p)) return 1;
+		////if (segmentcross(p3,p4, lr,ll, p)) return 1;
+		////if (segmentcross(p3,p4, ll,ul, p)) return 1;
+		//
+		////if (segmentcross(p4,p1, ul,ur, p)) return 1;
+		////if (segmentcross(p4,p1, ur,lr, p)) return 1;
+		////if (segmentcross(p4,p1, lr,ll, p)) return 1;
+		////if (segmentcross(p4,p1, ll,ul, p)) return 1;
+		//
+		//------------------
 		//flatpoint pts[4];
 		//pts[0].x=minx; pts[0].y=miny;
 		//pts[1].x=maxx; pts[1].y=miny;
