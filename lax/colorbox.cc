@@ -333,11 +333,6 @@ int ColorBox::LBDown(int x,int y,unsigned int state,int count, const LaxMouse *d
 	}
 	buttondown.down(d->id, LEFTBUTTON, x,y);
 
-	if (count>1) {
-		PopupColorSelector();
-		buttondown.up(d->id,LEFTBUTTON);
-		return 0;
-	}
 	return 0;
 }
 
@@ -402,7 +397,11 @@ int ColorBox::Event(const EventData *e,const char *mes)
 
 int ColorBox::LBUp(int x,int y,unsigned int state, const LaxMouse *d)
 {
-	buttondown.up(d->id, LEFTBUTTON);
+	int dragged=buttondown.up(d->id, LEFTBUTTON);
+	if (dragged<3) {
+		PopupColorSelector();
+		return 0;
+	}
 	if (!buttondown.any(d->id) && ColorChanged()) send();
 	return 0;
 }
