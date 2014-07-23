@@ -116,6 +116,7 @@ class MenuItem : public anObject
 	virtual int Hide(int yes);
 	virtual int hasParent(MenuInfo *menuinfo);
 	virtual int hasParent(MenuItem *menuitem);
+	virtual int pointIsIn(int xx,int yy) { return xx>=x && xx<x+w && yy>=y && yy<y+h; }
 };
 
 //----------------------------------- MenuInfo --------------------------------
