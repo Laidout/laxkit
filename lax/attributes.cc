@@ -408,6 +408,7 @@ int SimpleColorAttribute(const char *v,unsigned long *color_ret, Laxkit::ScreenC
 {
 	while (isspace(*v)) v++;
 
+
 	int type=0; //3=rgb, 1=gray, 4=cmyk
 	int a=0, f=-1;
 	if (strcasestr(v,"rgb")==v) {
@@ -419,6 +420,34 @@ int SimpleColorAttribute(const char *v,unsigned long *color_ret, Laxkit::ScreenC
 	} else if (strcasestr(v,"cmyk")==v) {
 		v+=4;
 		type=4;
+	} else if (!isdigit(*v)) {
+		 //is same name, so check css like named colors, assume fully opaque
+		int r=-1,g,b;
+		if      (!strncasecmp(v,"maroon",6))  { r=0x80; g=0x00; b=0x00; }
+		else if (!strncasecmp(v,"red",3))     { r=0xff; g=0x00; b=0x00; }
+		else if (!strncasecmp(v,"orange",6))  { r=0xff; g=0xA5; b=0x00; }
+		else if (!strncasecmp(v,"yellow",6))  { r=0xff; g=0xff; b=0x00; }
+		else if (!strncasecmp(v,"olive",5))   { r=0x80; g=0x80; b=0x00; }
+		else if (!strncasecmp(v,"purple",6))  { r=0x80; g=0x00; b=0x80; }
+		else if (!strncasecmp(v,"fuchsia",7)) { r=0xff; g=0x00; b=0xff; }
+		else if (!strncasecmp(v,"white",5))   { r=0xff; g=0xff; b=0xff; }
+		else if (!strncasecmp(v,"lime",4))    { r=0x00; g=0xff; b=0x00; }
+		else if (!strncasecmp(v,"green",5))   { r=0x00; g=0x80; b=0x00; }
+		else if (!strncasecmp(v,"navy",4))    { r=0x00; g=0x00; b=0x80; }
+		else if (!strncasecmp(v,"blue",4))    { r=0x00; g=0x00; b=0xff; }
+		else if (!strncasecmp(v,"aqua",4))    { r=0x00; g=0xff; b=0xff; }
+		else if (!strncasecmp(v,"teal",4))    { r=0x00; g=0x80; b=0x80; }
+		else if (!strncasecmp(v,"cyan",4))    { r=0x00; g=0xff; b=0xff; } //not css, but is x11 color, widely accepted
+		if (r>=0) {
+			if (color_ret) *color_ret = (r<<16) | (g<<8) | (b<<0) | (0xff<<24);
+			if (scolor_ret) {
+				scolor_ret->red  =(r<<8)|r;
+				scolor_ret->green=(g<<8)|g;
+				scolor_ret->blue =(b<<8)|b;
+				scolor_ret->alpha=65535;
+			}
+			return 0;
+		}
 	}
 	if (strchr(v,'.')!=NULL) f=0; //assume floats if has decimal points
 
