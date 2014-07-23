@@ -123,6 +123,7 @@ class Path : public LaxFiles::DumpUtility
 	virtual int openAt(Coordinate *curvertex, int after);
 	virtual void clear();
 	virtual int Line(LineStyle *nlinestyle);
+	virtual int LineColor(Laxkit::ScreenColor *ncolor);
 
 	virtual bool Weighted();
 	virtual bool HasOffset();

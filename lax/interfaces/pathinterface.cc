@@ -409,6 +409,25 @@ int Path::Line(LineStyle *nlinestyle)
 	return 0;
 }
 
+/*! Set the color of the path.
+ * Note this will create a new linestyle if currently NULL, but if it
+ * exists, it will just put it in. Anything else using that linestyle will be affected.
+ *
+ * Return 0 if color set, else 1.
+ */
+int Path::LineColor(Laxkit::ScreenColor *ncolor)
+{
+	if (!ncolor) return 1;
+
+	if (!linestyle) {
+		linestyle=new LineStyle;
+		linestyle->width=defaultwidth;
+	}
+	linestyle->color=*ncolor;
+
+	return 0;
+}
+
 /*! Does nothing if needtorecache==0.
  * Otherwise rebuild outlinecache and areacache. areacache is the center of the stroke,
  * inside of which is to be filled. For nonweighted, non-offset paths, this is the same as the base line.O
