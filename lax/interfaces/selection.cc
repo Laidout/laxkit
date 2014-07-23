@@ -38,7 +38,7 @@ SelectedObject::SelectedObject(LaxInterfaces::ObjectContext *noc, int ninfo)
 {
 	info=ninfo;
 	oc=noc->duplicate();
-	if (oc) obj=oc->obj;
+	//if (oc) obj=oc->obj;
 }
 
 SelectedObject::~SelectedObject()
