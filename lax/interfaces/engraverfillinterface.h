@@ -185,10 +185,12 @@ class EngraverPointGroup : public DirectionMap
 
 	int id; //the group number in LinePoint
 	char *name;
+	bool active;
 	int type; //what manner of lines
 	double type_d;   //parameter for type, for instance, an angle for spirals
 	double spacing;  //default
 	flatpoint position,direction; //default
+	Laxkit::ScreenColor color;
 
 	EngraverTraceSettings *trace; 
 	EngraverLineQuality *dashes;
@@ -228,8 +230,7 @@ class EngraverFillData : public PatchData
   	
  public:
 	Laxkit::PtrStack<LinePoint> lines;
-	flatvector direction;
-	FillStyle fillstyle;
+	flatvector direction; // *** to be removed?
 
 	EngraverPointGroup defaultgroup;
 	Laxkit::PtrStack<EngraverPointGroup> groups;
@@ -260,6 +261,7 @@ class EngraverFillData : public PatchData
 	virtual void ReverseSync(bool asneeded);
 	virtual void BezApproximate(Laxkit::NumStack<flatvector> &fauxpoints, Laxkit::NumStack<flatvector> &points);
 	virtual void MorePoints();
+	virtual EngraverPointGroup *FindGroup(int id, int *err_ret);
 };
 
 
@@ -275,7 +277,6 @@ class EngraverFillInterface : public PatchInterface
 	int mode;
 	int controlmode;
 	int submode;
-	int show_points;
 	int current_group;
 
 	 //general tool settings
@@ -289,14 +290,19 @@ class EngraverFillInterface : public PatchInterface
 	double turbulence_size; //this*spacing
 	bool turbulence_per_line;
 
-	 //trace settings..
+	 //decorations to show..
+	Laxkit::MenuInfo panel;
+
+	int show_points;
 	bool show_direction;
+	bool show_panel;
 	bool show_trace;
 	bool continuous_trace;
 	bool grow_lines;
 	bool always_warp;
 	//Laxkit::CurveInfo tracemap;
 	Laxkit::DoubleBBox tracebox;
+	Laxkit::DoubleBBox panelbox;
 	EngraverTraceSettings trace;
 	NormalDirectionMap *directionmap;
 
@@ -308,6 +314,7 @@ class EngraverFillInterface : public PatchInterface
 	Laxkit::ScreenColor fgcolor,bgcolor;
 
 	int lasthover;
+	int lasthovercategory;
 	flatpoint hover;
 	flatpoint hoverdir, hdir[10];
 	//Selection *selection;
@@ -316,10 +323,13 @@ class EngraverFillInterface : public PatchInterface
 
 
 	virtual void ChangeMessage(int forwhich);
+	virtual int scanPanel(int x,int y, int *category);
 	virtual int scanEngraving(int x,int y, int *category);
 	virtual int PerformAction(int action);
 
 	virtual void DrawOrientation(int over);
+	virtual void DrawPanel();
+	virtual void DrawPanelHeader(int open, int hover,const char *name, int x,int y,int w, int hh);
 	virtual void DrawTracingTools();
 	virtual void DrawLineGradient(double minx,double maxx,double miny,double maxy);
 	virtual void DrawShadeGradient(double minx,double maxx,double miny,double maxy);
@@ -355,6 +365,7 @@ class EngraverFillInterface : public PatchInterface
 	//virtual void drawpatch(int roff,int coff);
 	//virtual void patchpoint(PatchRenderContext *context, double s0,double ds,double t0,double dt,int n);
 	virtual int ChangeMode(int newmode);
+	virtual const char *ModeTip(int mode);
 	virtual int Trace();
 
 	virtual int AddToSelection(ObjectContext *oc);

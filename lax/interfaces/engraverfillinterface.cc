@@ -31,6 +31,7 @@
 #include <lax/transformmath.h>
 #include <lax/bezutils.h>
 #include <lax/laxutils.h>
+#include <lax/colorsliders.h>
 #include <lax/strmanip.h>
 #include <lax/language.h>
 #include <lax/fileutils.h>
@@ -283,6 +284,7 @@ EngraverPointGroup::EngraverPointGroup()
 	name=NULL;
 	type=PGROUP_Linear; //what manner of lines
 	type_d=0;   //parameter for type, for instance, an angle for spirals
+	active=true;
 
 	spacing=.1;
 
@@ -334,6 +336,7 @@ void EngraverPointGroup::dump_out(FILE *f,int indent,int what,Laxkit::anObject *
 		fprintf(f,"%stype linear      #or radial, circular\n", spc);
 		fprintf(f,"%sposition (.5,.5) #default origin for the pattern \n", spc);
 		fprintf(f,"%sdirection (1,0)  #default direction for the pattern \n", spc);
+		fprintf(f,"%scolor rgbaf(1.,1.,1.,1.)  #color of lines in this group\n", spc);
 		fprintf(f,"%sspacing  .1      #default spacing, in object space, not s,t space \n", spc);
 		fprintf(f,"%sdashes ...       # TODO!!\n", spc);
 		return;
@@ -351,6 +354,13 @@ void EngraverPointGroup::dump_out(FILE *f,int indent,int what,Laxkit::anObject *
 	fprintf(f,"%sposition (%.10g, %.10g)\n", spc,position.x,position.y);
 	fprintf(f,"%sdirection (%.10g, %.10g)\n", spc,direction.x,direction.y);
 	fprintf(f,"%sspacing  %.10g\n", spc, spacing);
+
+	fprintf(f,"%scolor rgbaf(%.10g,%.10g,%.10g,%.10g)\n",spc, 
+			color.red/65535.,
+			color.green/65535.,
+			color.blue/65535.,
+			color.alpha/65535.);
+	
 
 	//fprintf(f,"%sdashes ...       # TODO!!\n", spc);
 }
@@ -384,6 +394,9 @@ void EngraverPointGroup::dump_in_atts(LaxFiles::Attribute *att,int flag,Laxkit::
 
 		} else if (!strcmp(name,"direction")) {
 			FlatvectorAttribute(value,&direction);
+
+		} else if (!strcmp(name,"color")) {
+			SimpleColorAttribute(value, NULL, &color);
 
 		} else if (!strcmp(name,"spacing")) {
 			DoubleAttribute(value,&spacing, NULL);
@@ -1241,12 +1254,12 @@ EngraverFillData::EngraverFillData()
 	defaultgroup.spacing=(maxy-miny)/20;
 	defaultgroup.id=0;
 	defaultgroup.dashes=new EngraverLineQuality();
+	defaultgroup.color.red=0;
+	defaultgroup.color.green=0;
+	defaultgroup.color.blue=65535;
+	defaultgroup.color.alpha=65535;
 
 	direction=flatvector(1,0);
-	fillstyle.color.red=0;
-	fillstyle.color.green=0;
-	fillstyle.color.blue=65535;
-	fillstyle.color.alpha=65535;
 
 	maxx=maxy=1;
 }
@@ -1263,6 +1276,22 @@ EngraverFillData::EngraverFillData()
 
 EngraverFillData::~EngraverFillData()
 {
+}
+
+/*! Return point to group corresponding to the given id. 
+ * 0 corresponds to the default group.
+ * If found and err_ret!=NULL, then set to 1.
+ * If not found, then return pointer to default group, and set err_ret to 0.
+ */
+EngraverPointGroup *EngraverFillData::FindGroup(int id, int *err_ret)
+{
+	if (err_ret) *err_ret=0;
+	if (id==0) return &defaultgroup;
+	for (int c=0; c<groups.n; c++) {
+		if (groups.e[c]->id==id) return groups.e[c];
+	}
+	if (err_ret) *err_ret=1;
+	return &defaultgroup;
 }
 
 /*! Set the default spacing in defaultgroup.spacing.
@@ -1294,8 +1323,10 @@ SomeData *EngraverFillData::duplicate(SomeData *dup)
 	}
 
 	p->NeedToUpdateCache(0,0,-1,-1);
-	p->fillstyle=fillstyle;
+	p->defaultgroup.color=defaultgroup.color;
 	p->direction=direction;
+
+	cerr <<" *** need to implement point group duplication in EngraverFillData::duplicate!"<<endl;
 
 	LinePoint *pp, *lp;
 	for (int c=0; c<lines.n; c++) {
@@ -1435,24 +1466,28 @@ void EngraverFillData::dump_out(FILE *f,int indent,int what,Laxkit::anObject *co
 {
 	char spc[indent+3]; memset(spc,' ',indent); spc[indent]='\0'; 
 
-//	if (what==-1) {
-//		fprintf(f,"%sfilename whicheverfile.jpg  #name of the image used\n", spc);
-//		fprintf(f,"%siwidth  100  #width of the image in pixels for a preview sampling\n",spc);
-//		fprintf(f,"%siheight 100  #iheight of the image in pixels for a preview sampling\n",spc);
-//		return;
-//	}
+	if (what==-1) {
+		fprintf(f,"%smesh             #The mesh used to encase the lines\n",spc);
+		PatchData::dump_out(f,indent+2,-1,context);
+
+		fprintf(f,"%sdefaultgroup     #default point group settings\n",spc);
+		defaultgroup.dump_out(f,indent+2,-1,context);
+
+		fprintf(f,"%sgroup            #If there are defined groups, they are in these blocks, just like defaultgroup\n",spc);
+		fprintf(f,"%s  ...\n",spc);
+
+		fprintf(f,"%sline \\           #One for each defined line\n",spc);
+		fprintf(f,"%s  group 3        #(optional) which point group this line belongs to. Must be first line! 0 means use default settings\n",spc);
+		fprintf(f,"%s  (1.0,2.5) 2 on #Any number of points, 1 per line. Coordinate is within mesh. Format is: (x,y) weight on|off\n",spc);
+		fprintf(f,"%s  ...\n",spc);
+		return;
+	}
 
 	fprintf(f,"%smesh\n",spc);
 	PatchData::dump_out(f,indent+2,what,context);
 
 	fprintf(f,"%sdirection (%.10g, %.10g)\n",spc, direction.x,direction.y);
 	//fprintf(f,"%sspacing %.10g\n",spc, default_spacing);
-	
-	fprintf(f,"%scolor rgbaf(%.10g,%.10g,%.10g,%.10g)\n",spc, 
-			fillstyle.color.red/65535.,
-			fillstyle.color.green/65535.,
-			fillstyle.color.blue/65535.,
-			fillstyle.color.alpha/65535.);
 	
 	fprintf(f,"%sdefaultgroup\n",spc);
 	defaultgroup.dump_out(f,indent+2,what,context);
@@ -1465,9 +1500,11 @@ void EngraverFillData::dump_out(FILE *f,int indent,int what,Laxkit::anObject *co
 	LinePoint *p;
 	for (int c=0; c<lines.n; c++) {
 		fprintf(f,"%sline \\ #%d\n",spc,c);
+
 		p=lines.e[c];
+		if (p->group>0) fprintf(f,"%s  group %d\n",spc, p->group);
 		while (p) {
-			fprintf(f,"%s  (%.10g, %.10g) %.10g %s %d\n",spc, p->s,p->t,p->weight, p->on?"on":"off", p->group);
+			fprintf(f,"%s  (%.10g, %.10g) %.10g %s\n",spc, p->s,p->t,p->weight, p->on?"on":"off");
 			p=p->next;
 		}
 	}
@@ -1496,14 +1533,13 @@ void EngraverFillData::dump_in_atts(Attribute *att,int flag,Laxkit::anObject *co
 		} else if (!strcmp(name,"spacing")) {
 			DoubleAttribute(value,&defaultgroup.spacing, NULL);
 
-		} else if (!strcmp(name,"color")) {
-			//unsigned long color;
-			SimpleColorAttribute(value, NULL, &fillstyle.color);
-			//double b=(color&0xff)/255.;
-			//double g=((color&0xff00)>>8)/255.;
-			//double r=((color&0xff0000)>>16)/255.;
-			//double a=((color&0xff000000)>>24)/255.;
-			//fillstyle.color.rgbf(r,g,b,a);
+		} else if (!strcmp(name,"defaultgroup")) {
+			defaultgroup.dump_in_atts(att->attributes.e[c],flag,context);
+
+		} else if (!strcmp(name,"group")) {
+			EngraverPointGroup *group=new EngraverPointGroup;
+			group->dump_in_atts(att->attributes.e[c],flag,context);
+			groups.push(group);
 
 		} else if (!strcmp(name,"line")) {
 			char *end_ptr=NULL;
@@ -1514,7 +1550,15 @@ void EngraverFillData::dump_in_atts(Attribute *att,int flag,Laxkit::anObject *co
 			int gid=0;
 			LinePoint *lstart=NULL, *ll=NULL;
 
-			do {
+			 //read in group id if present
+			if (!strncmp(value,"group",5)) {
+				value+=5;
+				while (isspace(*value)) value++;
+				status=IntAttribute(value, &gid, &end_ptr);
+				value=end_ptr;
+			}
+
+			do { //one iteration for each point
 				 //each line has: (x,y) weight on|off groupid
 
 				 //get (s,t) point
@@ -1531,10 +1575,9 @@ void EngraverFillData::dump_in_atts(Attribute *att,int flag,Laxkit::anObject *co
 				if (*value=='o' && value[1]=='n') { on=true; value+=2; }
 				else if (*value=='o' && value[1]=='f' && value[2]=='f') { on=false; value+=3; }
 
-				while (isspace(*value)) value++;
-				status=IntAttribute(value, &gid, &end_ptr);
-				value=end_ptr;
-				//if (status==0) break; <- was probably no group id, straight on to next '('
+				 //skip everything until the next line
+				while (*value!='\0' && *value!='\n') value++;
+				if (*value=='\n') value++;
 
 				if (!lstart) { lstart=ll=new LinePoint(v.x,v.y, w, gid); ll->on=on; }
 				else {
@@ -1556,6 +1599,8 @@ void EngraverFillData::dump_in_atts(Attribute *att,int flag,Laxkit::anObject *co
 	Sync(false);
 }
 
+/*! Creates as outline.
+ */
 PathsData *EngraverFillData::MakePathsData()
 {
 	PathsData *paths=NULL;
@@ -1563,6 +1608,10 @@ PathsData *EngraverFillData::MakePathsData()
 		paths=dynamic_cast<PathsData*>(somedatafactory->newObject(LAX_PATHSDATA,NULL));
     else paths=new PathsData();
 	paths->m(m());
+
+	paths->line(0,-1,-1,&defaultgroup.color); //set default paths color, maybe overridden by individual paths
+	paths->fill(&defaultgroup.color); //set default paths color, maybe overridden by individual paths
+	// *** should we make it ordered so that all lines from same group are next to each other in paths??
 
 	//currently, makes a PathsData with the outline of all the strokes...
 
@@ -1574,11 +1623,16 @@ PathsData *EngraverFillData::MakePathsData()
 	LinePoint *l;
 	flatvector t, tp;
 	flatvector p1,p2;
+	EngraverPointGroup *group;
 	//double lastwidth;
 	//double neww;
 
 	for (int c=0; c<lines.n; c++) {
 		l=lines.e[c];
+
+		group=FindGroup(l->group,NULL);
+		if (!group->active) continue;
+
 
 		 //make points be a list of points:
 		 //   2  4  6 
@@ -1644,6 +1698,8 @@ PathsData *EngraverFillData::MakePathsData()
 			l=l->next;
 		}
 
+		 //finally, install color
+		paths->paths.e[paths->paths.n-1]->LineColor(&group->color);
 
 	}
 
@@ -1711,8 +1767,7 @@ void EngraverFillData::dump_out_svg(const char *file)
 	                 //"transform=\"matrix(1 0 0 -1 0 0)\" \n   >"
 	                 "transform=\"matrix(%.10g 0 0 -%.10g %.10g %.10g)\" \n   >",
 						s,s,
-						-minx*s,miny*s+1000
-						//-m(4),-m(5)
+						100-minx*s,miny*s+1000 //-m(4),-m(5)
 		         );
  
 	// *** output paths
@@ -1726,11 +1781,15 @@ void EngraverFillData::dump_out_svg(const char *file)
 	LinePoint *l;
 	flatvector t, tp;
 	flatvector p1,p2;
+	EngraverPointGroup *group;
 	//double lastwidth;
 	//double neww;
 
 	for (int c=0; c<lines.n; c++) {
 		l=lines.e[c];
+
+		group=FindGroup(l->group,NULL);
+		if (!group->active) continue;
 
 		 //make points be a list of points:
 		 //   2  4  6 
@@ -2047,6 +2106,7 @@ enum EngraveShortcuts {
 	ENGRAVE_ShowPointsN,
 	ENGRAVE_MorePoints,
 	ENGRAVE_ToggleTrace,
+	ENGRAVE_TogglePanel,
 	ENGRAVE_ToggleGrow,
 	ENGRAVE_ToggleWarp,
 	ENGRAVE_ToggleDir,
@@ -2057,9 +2117,64 @@ enum EngraveShortcuts {
 };
 
 enum EngraveControls {
-	 //on canvas controls:
 	ENGRAVE_None=0,
 
+	 //------------ panel ids...
+	ENGRAVE_Panel,
+	ENGRAVE_Mode_Selection,
+	ENGRAVE_Groups,
+
+	 //--------------- point group
+	ENGRAVE_Previous_Group,
+	ENGRAVE_Next_Group,
+	ENGRAVE_Group_Name,
+	ENGRAVE_Group_Active,
+	ENGRAVE_Group_Color,
+	ENGRAVE_Delete_Group,
+	ENGRAVE_New_Group,
+	ENGRAVE_Merge_Group,
+
+	 //--------------- tracing  
+
+	 //--------------- Dashes  
+	ENGRAVE_Dashes,
+	ENGRAVE_Dash_Same_As,
+	ENGRAVE_Dash_Threshhold,
+	ENGRAVE_Dash_Taper,
+	ENGRAVE_Dash_Caps,
+	ENGRAVE_Dash_Join,
+
+	 //--------------- Direction  
+	ENGRAVE_Direction,
+	ENGRAVE_Dir_Same_As,
+	ENGRAVE_Dir_Type,
+	ENGRAVE_Dir_Current,
+	ENGRAVE_Dir_Paint,
+	ENGRAVE_Dir_Create_From_Cur,
+	ENGRAVE_Dir_From_Trace,
+	ENGRAVE_Dir_Load_Normal,
+	ENGRAVE_Dir_Load_Image,
+
+	 //--------------- Spacing  
+	ENGRAVE_Spacing,
+	ENGRAVE_Spacing_Same_As,
+	ENGRAVE_Spacing_Preview,
+	ENGRAVE_Spacing_Create_From_Cur,
+	ENGRAVE_Spacing_Load,
+	ENGRAVE_Spacing_Paint,
+
+	 //------------tracing panel (some below in tool controls
+	ENGRAVE_Tracing,
+	ENGRAVE_Trace_Same_As,
+	ENGRAVE_Trace_Thicken,
+	ENGRAVE_Trace_Thin,
+	ENGRAVE_Trace_Set,
+	ENGRAVE_Trace_Using_type,
+	ENGRAVE_Trace_Using,
+	ENGRAVE_Trace_Apply,
+	ENGRAVE_Trace_Remove,
+
+	 //------------on canvas tool controls:
 	ENGRAVE_Trace_Box,
 	ENGRAVE_Trace_Weight_Map,
 	ENGRAVE_Trace_Once,
@@ -2069,7 +2184,7 @@ enum EngraveControls {
 	ENGRAVE_Trace_Object,
 	ENGRAVE_Trace_Opacity,
 	ENGRAVE_Trace_Identifier,
-	ENGRAVE_Trace_Map,
+	ENGRAVE_Trace_Curve,
 	ENGRAVE_Trace_Move_Mesh,
 
 	ENGRAVE_Orient,
@@ -2079,7 +2194,7 @@ enum EngraveControls {
 	ENGRAVE_Orient_Type,
 	ENGRAVE_Orient_Grow,
 
-	 //modes:
+	 //------modes:
 	EMODE_Controls,
 	EMODE_Mesh,
 	EMODE_Thickness,
@@ -2135,25 +2250,28 @@ EngraverFillInterface::EngraverFillInterface(int nid,Displayer *ndp)
 	whichcontrols=Patch_Coons;
 
 	continuous_trace=false;
+	show_panel=false;
 	show_trace=false;
 	grow_lines=false;
 	always_warp=true;
 	show_direction=false;
 
+	lasthovercategory=ENGRAVE_None;
+	lasthover=ENGRAVE_None;
 
-	modes.AddItem(_("Mesh mode"),                                              (LaxImage*)NULL, EMODE_Mesh         );
-	modes.AddItem(_("Thickness, shift for brush size, control to thin"),       (LaxImage*)NULL, EMODE_Thickness    );
-	modes.AddItem(_("Blockout mode, shift for brush size, control to turn on"),(LaxImage*)NULL, EMODE_Blockout     );
-	modes.AddItem(_("Drag mode, shift for brush size"),                        (LaxImage*)NULL, EMODE_Drag         );
-	modes.AddItem(_("Push or pull. Shift for brush size"),                     (LaxImage*)NULL, EMODE_PushPull     );
-	modes.AddItem(_("Avoid or pull toward. Shift for brush size"),             (LaxImage*)NULL, EMODE_AvoidToward  );
-	modes.AddItem(_("Twirl, Shift for brush size"),                            (LaxImage*)NULL, EMODE_Twirl        );
-	modes.AddItem(_("Turbulence, randomly push sample points"),                (LaxImage*)NULL, EMODE_Turbulence   );
-	//modes.AddItem(_("Resolution. Add or remove sample points"),                (LaxImage*)NULL, EMODE_Resolution   );
-	modes.AddItem(_("Orientation mode"),                                       (LaxImage*)NULL, EMODE_Orientation  );
-	modes.AddItem(_("Freehand mode"),                                          (LaxImage*)NULL, EMODE_Freehand     );
-	modes.AddItem(_("Trace adjustment mode"),                                  (LaxImage*)NULL, EMODE_Trace        );
-	//modes.AddItem(_("Direction adjustment mode"),                              (LaxImage*)NULL, EMODE_Direction    );
+	modes.AddItem(_("Mesh mode"),       (LaxImage*)NULL, EMODE_Mesh         );
+	modes.AddItem(_("Thickness"),       (LaxImage*)NULL, EMODE_Thickness    );
+	modes.AddItem(_("Blockout"),        (LaxImage*)NULL, EMODE_Blockout     );
+	modes.AddItem(_("Drag mode"),       (LaxImage*)NULL, EMODE_Drag         );
+	modes.AddItem(_("Push/pull"),       (LaxImage*)NULL, EMODE_PushPull     );
+	modes.AddItem(_("Avoid"),           (LaxImage*)NULL, EMODE_AvoidToward  );
+	modes.AddItem(_("Twirl"),           (LaxImage*)NULL, EMODE_Twirl        );
+	modes.AddItem(_("Turbulence"),      (LaxImage*)NULL, EMODE_Turbulence   );
+	//modes.AddItem(_("Resolution"),      (LaxImage*)NULL, EMODE_Resolution   );
+	modes.AddItem(_("Orientation"),     (LaxImage*)NULL, EMODE_Orientation  );
+	modes.AddItem(_("Freehand"),        (LaxImage*)NULL, EMODE_Freehand     );
+	modes.AddItem(_("Trace adjustment"),(LaxImage*)NULL, EMODE_Trace        );
+	//modes.AddItem(_("Direction"),       (LaxImage*)NULL, EMODE_Direction    );
 
 	fgcolor.rgbf(0.,0.,0.);
 	bgcolor.rgbf(1.,1.,1.);
@@ -2230,11 +2348,10 @@ int EngraverFillInterface::UseThisObject(ObjectContext *oc)
 	return c;
 }
 
-/*! Accepts EngraverFillData, or ImageInfo.
+/*! Accepts EngraverFillData, or LineStyle for color.
  *
  * Returns 1 to used it, 0 didn't
  *
- * If nobj is an ImageInfo, then change the file, cacheimage, description of the current data..
  */
 int EngraverFillInterface::UseThis(Laxkit::anObject *nobj,unsigned int mask) // assumes not use local
 {
@@ -2245,7 +2362,11 @@ int EngraverFillInterface::UseThis(Laxkit::anObject *nobj,unsigned int mask) // 
 
 	} else if (dynamic_cast<LineStyle *>(nobj) && edata) {
         LineStyle *nlinestyle=dynamic_cast<LineStyle *>(nobj);
-		edata->fillstyle.color=nlinestyle->color;
+
+		EngraverPointGroup *group=&edata->defaultgroup;
+		if (current_group>=0) group=edata->groups.e[current_group];
+		group->color=nlinestyle->color;
+
         needtodraw=1;
         return 1;
 	}
@@ -2260,17 +2381,58 @@ void EngraverFillInterface::deletedata()
 	edata=NULL;
 }
 
+/*! Returns the panel item (x,y) is over, or ENGRAVE_None.
+ * category will get set with one of the main section tags of the panel.
+ * That is ENGRAVE_Groups, ENGRAVE_Tracing, ENGRAVE_Dashes, ENGRAVE_Direction,
+ * or ENGRAVE_Spacing.
+ */
+int EngraverFillInterface::scanPanel(int x,int y, int *category)
+{
+	if (!panelbox.boxcontains(x,y)) {
+		DBG cerr <<"not in panel"<<endl;
+		*category=ENGRAVE_None;
+		return ENGRAVE_None;
+	}
+	DBG cerr <<"in panel"<<endl;
 
+	*category=ENGRAVE_Panel;
+	x-=panelbox.minx;
+	y-=panelbox.miny;
+
+	MenuItem *item, *item2;
+	for (int c=0; c<panel.n(); c++) {
+		item=panel.e(c);
+		if (item->pointIsIn(x,y)) {
+			if (item->hasSub()) {
+				for (int c2=0; c2<item->GetSubmenu()->n(); c2++) {
+					item2=item->GetSubmenu()->e(c2);
+					if (item2->pointIsIn(x,y)) {
+						return item2->id;
+					}
+				}
+			}
+			 //in blank space of the section, or on title head
+			return item->id;
+		}
+	}
+	 //else on blank area of entire panel
+	return ENGRAVE_Panel;
+
+}
+
+/*! Scan the panel or for other onscreen controls.
+ */
 int EngraverFillInterface::scanEngraving(int x,int y, int *category)
 {
 	*category=0;
 
-	if ((show_trace || mode==EMODE_Trace)) {
-		double th=dp->textheight();
-		double pad=2;
-
+	if (show_panel) {
+		// ******** TEMPORARY! vv
 	    if (tracebox.boxcontains(x,y)) {
-			*category=ENGRAVE_Trace_Box;
+			double th=dp->textheight();
+			double pad=2;
+
+			*category=ENGRAVE_Panel;
 
 			if(y<tracebox.miny+2+th*4/3) {
 				if (x<(tracebox.minx+tracebox.maxx)/2)
@@ -2279,9 +2441,16 @@ int EngraverFillInterface::scanEngraving(int x,int y, int *category)
 			}
 			if (y>tracebox.maxy-pad-th) return ENGRAVE_Trace_Identifier;
 			if (y>tracebox.maxy-pad-2*th) return ENGRAVE_Trace_Opacity;
-			if (x>tracebox.minx+1.5*th && y<tracebox.maxy-pad-2*th) return ENGRAVE_Trace_Map;
+			if (x>tracebox.minx+1.5*th && y<tracebox.maxy-pad-2*th) return ENGRAVE_Trace_Curve;
 			return ENGRAVE_Trace_Box;
 	    }
+		// ******** TEMPORARY! ^^
+
+
+	    if (panelbox.boxcontains(x,y)) {
+			return scanPanel(x,y,category);
+		}
+
 
 		if (edata && mode==EMODE_Trace) {
 			flatpoint p=screentoreal(x,y); //p is in edata->parent space
@@ -2352,20 +2521,15 @@ int EngraverFillInterface::LBDown(int x,int y,unsigned int state,int count,const
 {
 	if (child) return 1;
 
+	lasthover= scanEngraving(x,y, &lasthovercategory);
+
 	 //catch trace box overlay first
-	if ((lasthover==ENGRAVE_Trace_Box
-		 || lasthover==ENGRAVE_Trace_Load
-		 || lasthover==ENGRAVE_Trace_Opacity
-		 || lasthover==ENGRAVE_Trace_Identifier
-		 || lasthover==ENGRAVE_Trace_Map
-		 || lasthover==ENGRAVE_Trace_Once
-		 || lasthover==ENGRAVE_Trace_Continuous)
-		 && tracebox.boxcontains(x,y)) {
+	if (lasthovercategory==ENGRAVE_Panel && panelbox.boxcontains(x,y)) {
 
-		if ((state&LAX_STATE_MASK)!=0) lasthover=ENGRAVE_Trace_Box;
+		if ((state&LAX_STATE_MASK)!=0) lasthover=ENGRAVE_Panel;
 
-		//if (count==2 && lasthover==ENGRAVE_Trace_Map) {
-		if (lasthover==ENGRAVE_Trace_Map) {
+		//if (count==2 && lasthover==ENGRAVE_Trace_Curve) {
+		if (lasthover==ENGRAVE_Trace_Curve) {
 			double pad=2;
 			double th=dp->textheight();
 			curvemapi.Dp(dp);
@@ -2395,7 +2559,7 @@ int EngraverFillInterface::LBDown(int x,int y,unsigned int state,int count,const
 			return 0;
 		}
 
-		buttondown.down(d->id,LEFTBUTTON,x,y,lasthover);
+		buttondown.down(d->id,LEFTBUTTON,x,y,lasthover,lasthovercategory);
 		controlmode=EMODE_Controls;
 		needtodraw=1;
 
@@ -2544,25 +2708,65 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
 
 	 //catch trace box overlay first
 	int over=0;
-	buttondown.getextrainfo(d->id,LEFTBUTTON, &over);
+	int category=0;
+	buttondown.getextrainfo(d->id,LEFTBUTTON, &over,&category);
 
-	if (over==ENGRAVE_Trace_Box
-		 || over==ENGRAVE_Trace_Once
-		 || over==ENGRAVE_Trace_Load
-		 || lasthover==ENGRAVE_Trace_Object
-		 || lasthover==ENGRAVE_Trace_Move_Mesh
-		 || lasthover==ENGRAVE_Trace_Opacity
-		 || lasthover==ENGRAVE_Trace_Identifier
-		 || lasthover==ENGRAVE_Trace_Continuous) {
+	if (category==ENGRAVE_Panel) {
 
-		buttondown.up(d->id,LEFTBUTTON);
+		int dragged=buttondown.up(d->id,LEFTBUTTON);
 		controlmode=mode;
 
-		if (lasthover==over && over==ENGRAVE_Trace_Continuous) {
+		if (lasthover!=over) return 0;
+		//so all these that follow are clicking down and up over same area..
+
+		 //open or collapse a whole section..
+		if ( dragged<10
+			  && (over==ENGRAVE_Tracing
+			   || over==ENGRAVE_Direction
+			   || over==ENGRAVE_Spacing
+			   || over==ENGRAVE_Dashes)) {
+			MenuItem *item=NULL;
+			for (int c=0; c<panel.n(); c++) {
+				item=panel.e(c);
+				if (item->id==over) {
+					if (item->isOpen())
+						 item->state&=~LAX_OPEN; 
+					else item->state|=LAX_OPEN;
+					UpdatePanelAreas();
+				}
+				
+			}
+			needtodraw=1;
+			return 0;
+		}
+
+		EngraverPointGroup *group=&edata->defaultgroup;
+		if (current_group>=0) group=edata->groups.e[current_group];
+
+		if (over==ENGRAVE_Group_Active) {
+			//PerformAction(ENGRAVE_ToggleActive);
+			group->active=!group->active;
+			needtodraw=1;
+			return 0;
+
+		} else if (over==ENGRAVE_Group_Color) {
+            anXWindow *w=new ColorSliders(NULL,"New Color","New Color",ANXWIN_ESCAPABLE|ANXWIN_REMEMBER, 0,0,200,400,0,
+                           NULL,object_id,"newcolor",
+                           LAX_COLOR_RGB,1./255,
+                           group->color.red/65535.,
+                           group->color.green/65535.,
+                           group->color.blue/65535.,
+                           group->color.alpha/65535.
+						);
+			app->addwindow(w);
+			return 0;
+		}
+
+		if (over==ENGRAVE_Trace_Continuous) {
 			continuous_trace=!continuous_trace;
 			if (continuous_trace) Trace();
 
-		} else if (lasthover==over && over==ENGRAVE_Trace_Identifier) {
+		} else if (over==ENGRAVE_Trace_Identifier) {
 			if (!trace.identifier) {
 				app->rundialog(new FileDialog(NULL,"Load image",_("Load image for tracing"),
 									  ANXWIN_REMEMBER|ANXWIN_CENTER,0,0,0,0,0,
@@ -2573,10 +2777,10 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
 				if (trace.traceobject) trace.ClearCache(true);
 			}
 
-		} else if (lasthover==over && over==ENGRAVE_Trace_Once) {
+		} else if (over==ENGRAVE_Trace_Once) {
 			Trace();
 
-		} else if (lasthover==over && over==ENGRAVE_Trace_Load) {
+		} else if (over==ENGRAVE_Trace_Load) {
 			needtodraw=1;
 			app->rundialog(new FileDialog(NULL,"Export Svg",_("Export engraving to svg"),
 									  ANXWIN_REMEMBER|ANXWIN_CENTER,0,0,0,0,0,
@@ -2639,6 +2843,25 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
 	return 0;
 }
 
+const char *EngraverFillInterface::ModeTip(int mode)
+{
+	if (mode==EMODE_Mesh         ) return _("Mesh mode");
+	if (mode==EMODE_Thickness    ) return _("Thickness, shift for brush size, control to thin");
+	if (mode==EMODE_Blockout     ) return _("Blockout mode, shift for brush size, control to turn on");
+	if (mode==EMODE_Drag         ) return _("Drag mode, shift for brush size");
+	if (mode==EMODE_PushPull     ) return _("Push or pull. Shift for brush size");
+	if (mode==EMODE_AvoidToward  ) return _("Avoid or pull toward. Shift for brush size");
+	if (mode==EMODE_Twirl        ) return _("Twirl, Shift for brush size");
+	if (mode==EMODE_Turbulence   ) return _("Turbulence, randomly push sample points");
+	if (mode==EMODE_Resolution   ) return _("Resolution. Add or remove sample points");
+	if (mode==EMODE_Orientation  ) return _("Orientation mode");
+	if (mode==EMODE_Freehand     ) return _("Freehand mode");
+	if (mode==EMODE_Trace        ) return _("Trace adjustment mode");
+	if (mode==EMODE_Direction    ) return _("Direction adjustment mode");
+
+	return "";
+}
+
 void EngraverFillInterface::ChangeMessage(int forwhich)
 {
 	if (forwhich==ENGRAVE_Trace_Once) PostMessage(_("Trace once"));
@@ -2685,6 +2908,7 @@ int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit
 		int newhover= scanEngraving(x,y, &category);
 		if (newhover!=lasthover) {
 			lasthover=newhover;
+			lasthovercategory=category;
 			ChangeMessage(lasthover);
 			needtodraw=1;
 		}
@@ -2694,7 +2918,8 @@ int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit
 	if (controlmode==EMODE_Controls) {
 		if (buttondown.any()) {
 			int over=0,lx,ly;
-			buttondown.getextrainfo(d->id,LEFTBUTTON, &over);
+			int overcat=0;
+			buttondown.getextrainfo(d->id,LEFTBUTTON, &over,&overcat);
 			buttondown.move(d->id,x,y, &lx,&ly);
 
 			if (over== ENGRAVE_Trace_Object) {
@@ -2727,19 +2952,21 @@ int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit
 				else if (trace.traceobj_opacity>1) trace.traceobj_opacity=1;
 				needtodraw=1;
 
-			} else if (over==ENGRAVE_Trace_Box) {
+			} else if (over==ENGRAVE_Panel) {
 				if ((state&LAX_STATE_MASK)==ControlMask) {
 					 //scale up box...
 					double s=1+.01*(x-lx);
 					if (s<.8) s=.8;
-					tracebox.maxx=tracebox.minx+s*(tracebox.maxx-tracebox.minx);
-					tracebox.maxy=tracebox.miny+s*(tracebox.maxy-tracebox.miny);
+					panelbox.maxx=panelbox.minx+s*(panelbox.maxx-panelbox.minx);
+					panelbox.maxy=panelbox.miny+s*(panelbox.maxy-panelbox.miny);
+					UpdatePanelAreas();
 
 				} else {
-					tracebox.minx+=x-lx;
-					tracebox.maxx+=x-lx;
-					tracebox.miny+=y-ly;
-					tracebox.maxy+=y-ly;
+					 //move box
+					panelbox.minx+=x-lx;
+					panelbox.maxx+=x-lx;
+					panelbox.miny+=y-ly;
+					panelbox.maxy+=y-ly;
 				}
 				needtodraw=1;
 			}
@@ -2968,17 +3195,19 @@ int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit
 
 int EngraverFillInterface::WheelUp(int x,int y,unsigned int state,int count,const Laxkit::LaxMouse *d)
 {
-	if ((show_trace || mode==EMODE_Trace) && tracebox.boxcontains(x,y)) {
-		double w=tracebox.maxx-tracebox.minx;
-		double h=tracebox.maxy-tracebox.miny;
-		double rx=(x-tracebox.minx)/w;
-		double ry=(y-tracebox.miny)/h;
+	if (show_panel && panelbox.boxcontains(x,y) && (state&ControlMask)!=0) {
+		double w=panelbox.maxx-panelbox.minx;
+		double h=panelbox.maxy-panelbox.miny;
+		double rx=(x-panelbox.minx)/w;
+		double ry=(y-panelbox.miny)/h;
 		w*=1.1;
 		h*=1.1;
-		tracebox.minx=x-rx*w;
-		tracebox.maxx=x+(1-rx)*w;
-		tracebox.miny=y-ry*h;
-		tracebox.maxy=y+(1-ry)*h;
+		panelbox.minx=x-rx*w;
+		panelbox.maxx=x+(1-rx)*w;
+		panelbox.miny=y-ry*h;
+		panelbox.maxy=y+(1-ry)*h;
+
+		UpdatePanelAreas();
 		needtodraw=1;
 		return 0;
 	}
@@ -2987,17 +3216,19 @@ int EngraverFillInterface::WheelUp(int x,int y,unsigned int state,int count,cons
 
 int EngraverFillInterface::WheelDown(int x,int y,unsigned int state,int count,const Laxkit::LaxMouse *d)
 {
-	if ((show_trace || mode==EMODE_Trace) && tracebox.boxcontains(x,y)) {
-		double w=tracebox.maxx-tracebox.minx;
-		double h=tracebox.maxy-tracebox.miny;
-		double rx=(x-tracebox.minx)/w;
-		double ry=(y-tracebox.miny)/h;
+	if (show_panel && panelbox.boxcontains(x,y) && (state&ControlMask)!=0) {
+		double w=panelbox.maxx-panelbox.minx;
+		double h=panelbox.maxy-panelbox.miny;
+		double rx=(x-panelbox.minx)/w;
+		double ry=(y-panelbox.miny)/h;
 		w*=1/1.1;
 		h*=1/1.1;
-		tracebox.minx=x-rx*w;
-		tracebox.maxx=x+(1-rx)*w;
-		tracebox.miny=y-ry*h;
-		tracebox.maxy=y+(1-ry)*h;
+		panelbox.minx=x-rx*w;
+		panelbox.maxx=x+(1-rx)*w;
+		panelbox.miny=y-ry*h;
+		panelbox.maxy=y+(1-ry)*h;
+
+		UpdatePanelAreas();
 		needtodraw=1;
 		return 0;
 	}
@@ -3110,7 +3341,7 @@ int EngraverFillInterface::Refresh()
 	}
 
 	if (!edata) {
-		if (show_trace || mode==EMODE_Trace) DrawTracingTools();
+		if (show_panel) DrawPanel();
 		needtodraw=0;
 		return 0;
 	}
@@ -3126,12 +3357,16 @@ int EngraverFillInterface::Refresh()
 	double tw;
 	flatpoint lp,v;
 
-	dp->NewFG(&edata->fillstyle.color);
+	EngraverPointGroup *group;
 
 	for (int c=0; c<edata->lines.n; c++) {
 		l=edata->lines.e[c];
 		last=NULL;
 		lastwidth=-1;
+
+		group=edata->FindGroup(l->group,NULL);
+		if (!group->active) continue;
+		dp->NewFG(&group->color);
 
 		while (l) {
 			if (!last) {
@@ -3196,9 +3431,8 @@ int EngraverFillInterface::Refresh()
 				}
 				l=l->next;
 			}
-			dp->NewFG(&edata->fillstyle.color);
 		}
-	}
+	} //foreach line
 
 
 	 //draw other tool decorations
@@ -3357,7 +3591,7 @@ int EngraverFillInterface::Refresh()
 		dp->DrawReal();
 	}
 
-	if (show_trace || mode==EMODE_Trace) DrawTracingTools();
+	if (show_panel) DrawPanel();
 
 	needtodraw=0;
 	return 0;
@@ -3430,6 +3664,7 @@ void EngraverFillInterface::DrawOrientation(int over)
 }
 
 /*! Draw the range of line widths in a strip, as for a curve map control.
+ * Assumes already in dp->DrawScreen mode.
  */
 void EngraverFillInterface::DrawLineGradient(double minx,double maxx,double miny,double maxy)
 {
@@ -3438,7 +3673,6 @@ void EngraverFillInterface::DrawLineGradient(double minx,double maxx,double miny
 	if (edata) minsp=edata->defaultgroup.dashes->zero_threshhold / edata->defaultgroup.spacing*sp;
 
 	dp->NewFG(&fgcolor);
-	dp->DrawScreen();
 
 	for (int c=0; c<10; c++) {
 		dp->LineAttributes(minsp+(sp-minsp)*(10-c)/10., LineSolid, CapButt, JoinMiter);
@@ -3447,14 +3681,13 @@ void EngraverFillInterface::DrawLineGradient(double minx,double maxx,double miny
 	}
 
 	//dp->drawrectangle(minx-1,miny-1, maxx-minx+2,maxy-miny+2,0);
-	dp->DrawReal();
 }
 
 /*! Draw a continuous tone gradient in a strip, as for a curve map control.
+ * Assumes already in dp->DrawScreen mode.
  */
 void EngraverFillInterface::DrawShadeGradient(double minx,double maxx,double miny,double maxy)
 {
-	dp->DrawScreen();
 	ScreenColor col;
 
 	dp->LineAttributes(2, LineSolid, CapButt, JoinMiter);
@@ -3464,15 +3697,343 @@ void EngraverFillInterface::DrawShadeGradient(double minx,double maxx,double min
 	}
 
 	//dp->drawrectangle(minx-1,miny-1, maxx-minx+2,maxy-miny+2,0);
-	dp->DrawReal();
 }
 
 void EngraverFillInterface::UpdatePanelAreas()
 {
-	IntRectangle groupselection;
-	IntRectangle tracing;
-	IntRectangle direction;
-	IntRectangle spacing;
+	if (!panel.n()) {
+		 //need to define all the panel areas
+		panel.AddItem("Mode Selection",  ENGRAVE_Mode_Selection);
+
+		//--------------- Group selection ---------------
+		 // < >  _Group_Name__  [del] [new]
+		 // [new] [delete]  Active: 0  [color]
+		panel.AddItem("Group Selection",  ENGRAVE_Groups);
+		panel.SubMenu();
+		  panel.AddItem("Previous Group",  ENGRAVE_Previous_Group);
+		  panel.AddItem("Next Group",      ENGRAVE_Next_Group);
+		  panel.AddItem("Group Name",      ENGRAVE_Group_Name);
+		  panel.AddItem("Active",          ENGRAVE_Group_Active);
+		  panel.AddItem("Color",           ENGRAVE_Group_Color);
+		  panel.AddItem("Delete Group",    ENGRAVE_Delete_Group);
+		  panel.AddItem("New Group",       ENGRAVE_New_Group);
+		  panel.AddItem("Merge Group",     ENGRAVE_Merge_Group);
+		panel.EndSubMenu();
+
+		//--------------- tracing  ---------------
+		panel.AddItem("Tracing",    ENGRAVE_Tracing);
+		panel.SubMenu();
+		  panel.AddItem("Trace Same as",    ENGRAVE_Trace_Same_As);
+		  panel.AddItem("Trace Curve",      ENGRAVE_Trace_Curve);
+		  panel.AddItem("Thicken",          ENGRAVE_Trace_Thicken);
+		  panel.AddItem("Thin",             ENGRAVE_Trace_Thin);
+		  panel.AddItem("Set",              ENGRAVE_Trace_Set);
+		  panel.AddItem("Using type",       ENGRAVE_Trace_Using_type);
+		  panel.AddItem("Using",            ENGRAVE_Trace_Using);
+		  panel.AddItem("Apply",            ENGRAVE_Trace_Apply); //<- same as Once?
+		  panel.AddItem("Remove",           ENGRAVE_Trace_Remove);
+		  panel.AddItem("Opacity",          ENGRAVE_Trace_Opacity);
+		  panel.AddItem("Trace Once",       ENGRAVE_Trace_Once);
+		  panel.AddItem("Trace Continuous", ENGRAVE_Trace_Continuous);
+		panel.EndSubMenu();
+		panel.e(panel.n()-1)->state|=LAX_OPEN;
+
+		//--------------- Dashes  ---------------
+		panel.AddItem("Dashes",     ENGRAVE_Dashes);
+		panel.SubMenu();
+		  panel.AddItem("Dash same as",  ENGRAVE_Dash_Same_As);
+		  panel.AddItem("Threshhold",    ENGRAVE_Dash_Threshhold);
+		  panel.AddItem("Taper",         ENGRAVE_Dash_Taper);
+		  panel.AddItem("Caps",          ENGRAVE_Dash_Caps);
+		  panel.AddItem("Join",          ENGRAVE_Dash_Join);
+		panel.EndSubMenu();
+
+		//--------------- Direction  ---------------
+		panel.AddItem("Direction",  ENGRAVE_Direction);
+		panel.SubMenu();
+		  panel.AddItem("Dir same as",  ENGRAVE_Dir_Same_As);
+		  panel.AddItem("Type",         ENGRAVE_Dir_Type);
+		  panel.AddItem("Current",      ENGRAVE_Dir_Current);
+		  panel.AddItem("Paint...",     ENGRAVE_Dir_Paint);
+		  panel.AddItem("Create map from current",      ENGRAVE_Dir_Create_From_Cur);
+		  panel.AddItem("Generate from trace object",   ENGRAVE_Dir_From_Trace);
+		  panel.AddItem("Load normal map",              ENGRAVE_Dir_Load_Normal);
+		  panel.AddItem("Load and generate from image", ENGRAVE_Dir_Load_Image);
+		panel.EndSubMenu();
+
+		//--------------- Spacing  ---------------
+		panel.AddItem("Spacing",    ENGRAVE_Spacing);
+		panel.SubMenu();
+		  panel.AddItem("Spacing same as",      ENGRAVE_Spacing_Same_As);
+		  panel.AddItem("Preview",              ENGRAVE_Spacing_Preview);
+		  panel.AddItem("Create from current",  ENGRAVE_Spacing_Create_From_Cur);
+		  panel.AddItem("Load..",               ENGRAVE_Spacing_Load);
+		  panel.AddItem("Paint..",              ENGRAVE_Spacing_Paint);
+		panel.EndSubMenu();
+
+	}
+
+	double th=dp->textheight();
+	double pad=th/2;
+
+	//now update positions
+	if (!panelbox.validbounds()) {
+		panelbox.minx=panelbox.miny=10;
+		panelbox.maxx=7*1.5*th;
+		panelbox.maxy=10*1.5*th+th+4./3*th+th+pad;
+	}
+
+	MenuItem *item, *item2;
+	int y=pad;
+	int pw=panelbox.boxwidth();
+	//int ph=panelbox.boxheight();
+	//int px=panelbox.minx;
+	int ww;
+
+	for (int c=0; c<panel.n(); c++) {
+		item=panel.e(c);
+		item->y=y;
+
+		if (item->id==ENGRAVE_Mode_Selection) {
+			item->x=pad;  item->y=y;  item->w=pw-2*pad;  item->h=1.5*th;
+			y+=1.5*th;
+
+		} else if (item->id==ENGRAVE_Groups) {
+			item->x=pad; item->y=y; item->w=pw-2*pad;  item->h=2*th;
+
+			for (int c2=0; c2<item->GetSubmenu()->n(); c2++) {
+				item2=item->GetSubmenu()->e(c2);
+
+				if (item2->id==ENGRAVE_Previous_Group) {
+					item2->x=pad;  item2->y=y;  item2->w=th, item2->h=th;
+
+				} else if (item2->id==ENGRAVE_Next_Group) {
+					item2->x=pad+th;  item2->y=y;  item2->w=th, item2->h=th;
+
+				} else if (item2->id==ENGRAVE_Group_Name) {
+					item2->x=pad+2*th;  item2->y=y;  item2->w=pw-2*pad-4*th;  item2->h=th;
+
+				} else if (item2->id==ENGRAVE_Group_Active) {
+					item2->x=pw-pad-2*th;  item2->y=y;  item2->w=th;  item2->h=th;
+
+				} else if (item2->id==ENGRAVE_Group_Color) {
+					item2->x=pw-pad-th;  item2->y=y;  item2->w=th;  item2->h=th;
+
+				} else if (item2->id==ENGRAVE_New_Group) {
+					item2->x=pad;  item2->y=y+th;  item2->w=dp->textextent("New",-1,NULL,NULL)+pad; item2->h=th;
+
+				} else if (item2->id==ENGRAVE_Delete_Group) {
+					item2->x=pad+dp->textextent("New",-1,NULL,NULL)+pad;  item2->y=y+th;
+					item2->w=dp->textextent("Del",-1,NULL,NULL)+pad; item2->h=th;
+
+				} else if (item2->id==ENGRAVE_Merge_Group) {
+					ww=dp->textextent("Merge",-1,NULL,NULL);
+					item2->x=pw-pad-ww;  item2->y=y+th;  item2->w=ww, item2->h=th;
+
+				}
+			}
+			y+=2*th; 
+
+		} else if (item->id==ENGRAVE_Tracing) {
+			item->x=pad; item->y=y; item->w=pw-2*pad; 
+
+			if (!item->isOpen()) item->h=th;
+			else {
+				item->h=item->w + 5*th; //always square?
+				// ...
+			}
+
+			y+=item->h;
+
+		} else if (item->id==ENGRAVE_Dashes) {
+			item->x=pad; item->y=y; item->w=pw-2*pad; 
+
+			if (!(item->state&LAX_OPEN)) item->h=th;
+			else {
+				item->h=2*th;
+				// ...
+			}
+
+			y+=item->h;
+
+		} else if (item->id==ENGRAVE_Spacing) {
+			item->x=pad; item->y=y; item->w=pw-2*pad; 
+
+			if (!(item->state&LAX_OPEN)) item->h=th;
+			else {
+				item->h=2*th;
+				// ...
+			}
+
+			y+=item->h;
+
+		} else if (item->id==ENGRAVE_Direction) {
+			item->x=pad; item->y=y; item->w=pw-2*pad; 
+
+			if (!(item->state&LAX_OPEN)) item->h=th;
+			else {
+				item->h=2*th;
+				// ...
+			}
+
+			y+=item->h;
+
+		}
+	} 
+
+	panelbox.maxy=panelbox.miny+y+pad;
+
+}
+
+void EngraverFillInterface::DrawPanel()
+{
+	if (panel.n()==0) UpdatePanelAreas();
+
+	dp->DrawScreen();
+	dp->LineAttributes(1,LineSolid, CapButt, JoinMiter);
+
+	ScreenColor col;
+	coloravg(&col, &fgcolor,&bgcolor, .9);
+	dp->NewBG(&col);
+	dp->NewFG(coloravg(fgcolor.Pixel(),bgcolor.Pixel(), .5));
+	dp->drawrectangle(panelbox.minx,panelbox.miny, panelbox.maxx-panelbox.minx,panelbox.maxy-panelbox.miny, 2);
+	dp->NewFG(&fgcolor);
+
+	double th=dp->textheight();
+	double pad=th/2;
+	int ww;
+	int ix,iy,iw,ih;
+	int i2x,i2y,i2w,i2h;
+	unsigned long hcolor=coloravg(fgcolor.Pixel(),bgcolor.Pixel(), .8);
+
+	EngraverPointGroup *group=(edata ? &edata->defaultgroup : NULL);
+	if (current_group>=0) group=edata->groups.e[current_group];
+
+	MenuItem *item, *item2;
+	for (int c=0; c<panel.n(); c++) {
+		item=panel.e(c);
+		ix=item->x+panelbox.minx;
+		iy=item->y+panelbox.miny;
+		iw=item->w;
+		ih=item->h;
+		
+		if (item->id==ENGRAVE_Mode_Selection) {
+			for (int c2=0; c2<modes.n(); c2++) {
+				item2=modes.e(c2);
+				if (mode==item2->id) {
+					dp->textout(ix+iw/2,iy+ih/2, modes.e(c2)->name,-1, LAX_CENTER);
+				}
+			}
+
+		} else if (item->id==ENGRAVE_Groups) {
+
+			for (int c2=0; c2<item->GetSubmenu()->n(); c2++) {
+				item2=item->GetSubmenu()->e(c2);
+				i2x=item2->x+panelbox.minx;
+				i2y=item2->y+panelbox.miny;
+				i2w=item2->w;
+				i2h=item2->h;
+
+				if (lasthover==item2->id) {
+					dp->NewFG(hcolor);
+					dp->drawrectangle(i2x, i2y, i2w, i2h, 1);
+					dp->NewFG(&fgcolor);
+				}
+
+				if (item2->id==ENGRAVE_Previous_Group) {
+					ww=i2w*.4;
+					dp->drawthing(i2x+i2w/2,i2y+i2h/2, ww,ww, 0, THING_Triangle_Left);
+
+				} else if (item2->id==ENGRAVE_Next_Group) {
+					ww=i2w*.4;
+					dp->drawthing(i2x+i2w/2,i2y+i2h/2, ww,ww, 0, THING_Triangle_Right);
+
+				} else if (item2->id==ENGRAVE_Group_Name) {
+					if (group) dp->textout(i2x+pad, i2y+i2h/2, 
+							group->id==0 ? _("(default)") : (isblank(group->name) ? "" : group->name) ,-1,
+							LAX_VCENTER|LAX_LEFT);
+
+				} else if (item2->id==ENGRAVE_Group_Active) {
+					DrawThingTypes thing= (group && group->active) ? THING_Open_Eye : THING_Closed_Eye;
+					ww=i2w*.4;
+					dp->NewBG(1.,1.,1.);
+					dp->drawthing(i2x+i2w/2,i2y+i2h/2, ww,-ww, 2, thing);
+
+				} else if (item2->id==ENGRAVE_Group_Color) {
+					if (group) {
+						dp->NewFG(&group->color);
+						dp->drawrectangle(i2x, i2y, i2w, i2h, 1);
+					}
+					dp->NewFG(&fgcolor);
+					dp->drawrectangle(i2x, i2y, i2w, i2h, 0);
+
+				} else if (item2->id==ENGRAVE_New_Group) {
+					// *** if no data, then do something special with this?
+					dp->textout(i2x+i2w/2, i2y+i2h/2, "+",-1, LAX_CENTER);
+
+				} else if (item2->id==ENGRAVE_Delete_Group) {
+					// *** if no data, then do something special with this?
+					dp->textout(i2x+i2w/2, i2y+i2h/2, "-",-1, LAX_CENTER);
+					//dp->drawrectangle(i2x, i2y, i2w, i2h, 0);
+
+				} else if (item2->id==ENGRAVE_Merge_Group) {
+					// *** if no data, then do something special with this?
+					dp->textout(i2x+i2w/2, i2y+i2h/2, "->",-1, LAX_CENTER);
+					//dp->drawrectangle(i2x, i2y, i2w, i2h, 0);
+
+				}
+			}
+
+		} else if (item->id==ENGRAVE_Tracing) {
+			DrawPanelHeader(item->isOpen(), lasthover==item->id, item->name, ix,iy,iw,ih);
+			if (item->isOpen()) {
+				tracebox.minx=ix;
+				tracebox.maxx=ix+iw;
+				tracebox.miny=iy+th;
+				tracebox.maxy=iy+ih;
+				DrawTracingTools();
+			}
+
+		} else if (item->id==ENGRAVE_Dashes) {
+			dp->NewFG(&fgcolor);
+			DrawPanelHeader(item->isOpen(), lasthover==item->id, item->name, ix,iy,iw,ih);
+			if (item->isOpen()) {
+				dp->textout(ix+iw/2,iy+th+(ih-th)/2, "Todo!",-1,LAX_CENTER);
+			}
+
+		} else if (item->id==ENGRAVE_Spacing) {
+			dp->NewFG(&fgcolor);
+			DrawPanelHeader(item->isOpen(), lasthover==item->id, item->name, ix,iy,iw,ih);
+			if (item->isOpen()) {
+				dp->textout(ix+iw/2,iy+th+(ih-th)/2, "Todo!",-1,LAX_CENTER);
+			}
+
+		} else if (item->id==ENGRAVE_Direction) {
+			dp->NewFG(&fgcolor);
+			DrawPanelHeader(item->isOpen(), lasthover==item->id, item->name, ix,iy,iw,ih);
+			if (item->isOpen()) {
+				dp->textout(ix+iw/2,iy+th+(ih-th)/2, "Todo!",-1,LAX_CENTER);
+			}
+
+		}
+	} 
+
+	dp->DrawReal();
+}
+
+/*! Draw one of the panel sections, just a line around a name, with a little triangle.
+ */
+void EngraverFillInterface::DrawPanelHeader(int open, int hover, const char *name, int x,int y,int w, int hh)
+{
+	int h=dp->textheight(); //hh is whole section height, we can ignore.. maybe one day draw box around whole section
+	double ww=dp->textextent(name,-1,NULL,NULL);
+	if (ww<w) {
+		dp->drawline(x,y+h/2, x+(w-ww)/2,y+h/2);
+		dp->drawline(x+w,y+h/2, x+w-(w-ww)/2,y+h/2);
+	}
+	dp->textout(x+w/2,y+h/2, name,-1, LAX_CENTER);
+	dp->drawthing(x+w-h,y+h/2,h*.3,h*.3, open ? THING_Triangle_Down : THING_Triangle_Right,
+			fgcolor.Pixel(),hover?(coloravg(fgcolor.Pixel(),bgcolor.Pixel(),.6)):bgcolor.Pixel());
 }
 
 void EngraverFillInterface::DrawTracingTools()
@@ -3487,7 +4048,6 @@ void EngraverFillInterface::DrawTracingTools()
 	//          * absolute
 	//
 	
-	dp->DrawScreen();
 
 	double uiscale=1;
 	double th=dp->textheight();
@@ -3504,7 +4064,7 @@ void EngraverFillInterface::DrawTracingTools()
 	ScreenColor col;
 	coloravg(&col, &fgcolor,&bgcolor, .9);
 	dp->NewFG(&col);
-	dp->drawrectangle(tracebox.minx,tracebox.miny, tracebox.maxx-tracebox.minx,tracebox.maxy-tracebox.miny, 1);
+	//dp->drawrectangle(tracebox.minx,tracebox.miny, tracebox.maxx-tracebox.minx,tracebox.maxy-tracebox.miny, 1);
 
 	coloravg(&col, &fgcolor,&bgcolor, .95);
 	dp->NewFG(&col);
@@ -3544,12 +4104,10 @@ void EngraverFillInterface::DrawTracingTools()
 	if (lasthover==ENGRAVE_Trace_Once) dp->NewFG(0,200,0); else dp->NewFG(255,100,100);
 	dp->drawrectangle((tracebox.minx+tracebox.maxx)/2-th/2-2*r, pad+tracebox.miny, r*2,r*2, 0);
 
-	dp->LineAttributes(1,LineSolid, CapButt, JoinMiter);
-	dp->NewFG(.5,.5,.5);
-	dp->drawrectangle(tracebox.minx,tracebox.miny,tracebox.maxx-tracebox.minx,tracebox.maxy-tracebox.miny, 0);
-
 
 	 //draw opacity slider
+	dp->LineAttributes(1,LineSolid, CapButt, JoinMiter);
+	dp->NewFG(.5,.5,.5); 
 	dp->drawline(tracebox.minx+pad,tracebox.maxy-pad-1.5*th, tracebox.maxx-2*pad, tracebox.maxy-pad-1.5*th);
 	dp->drawpoint(flatpoint(tracebox.minx+pad + trace.traceobj_opacity*(tracebox.maxx-tracebox.minx-2*pad),tracebox.maxy-pad-1.5*th), th/3, 1);
 
@@ -3576,9 +4134,9 @@ void EngraverFillInterface::DrawTracingTools()
 		curvemapi.SetupRect(box.minx,box.miny, box.maxx-box.minx,box.maxy-box.miny);
 		curvemapi.needtodraw=1;
 		curvemapi.Refresh();
+		dp->DrawScreen();
 	//}
 
-	dp->DrawReal();
 }
 
 int EngraverFillInterface::PerformAction(int action)
@@ -3660,10 +4218,18 @@ int EngraverFillInterface::PerformAction(int action)
 		return 0;
 
 	} else if (action==ENGRAVE_ToggleTrace) {
+		 // *** obsolete? maybe make it toggle continuous tracing?
 		show_trace=!show_trace;
 		if (show_trace) continuous_trace=false;
 		if (show_trace) PostMessage(_("Show tracing controls"));
 		else PostMessage(_("Don't show tracing controls"));
+		needtodraw=1;
+		return 0;
+
+	} else if (action==ENGRAVE_TogglePanel) {
+		show_panel=!show_panel;
+		if (show_panel) PostMessage(_("Show control panel"));
+		else PostMessage(_("Don't show control panel"));
 		needtodraw=1;
 		return 0;
 
@@ -3877,6 +4443,7 @@ int EngraverFillInterface::Trace()
 }
 
 /*! Return old value of mode.
+ * newmode is an id of an item in this->modes.
  */
 int EngraverFillInterface::ChangeMode(int newmode)
 {
@@ -3894,7 +4461,7 @@ int EngraverFillInterface::ChangeMode(int newmode)
 	if (mode==EMODE_Trace) { continuous_trace=false; }
 
 	needtodraw=1;
-	PostMessage(modes.e(c)->name);
+	PostMessage(ModeTip(mode));
 	return oldmode;
 
 }
@@ -3935,6 +4502,24 @@ int EngraverFillInterface::Event(const Laxkit::EventData *e_data, const char *me
 			return 0;
 		}
 
+		return 0;
+
+	} else if (!strcmp(mes,"newcolor")) {
+ 		//got a new color for current group
+       const SimpleColorEventData *ce=dynamic_cast<const SimpleColorEventData *>(e_data);
+        if (!ce) return 1;
+
+         // apply message as new current color, pass on to viewport
+         // (sent from color box)
+        LineStyle linestyle;
+        float max=ce->max;
+        linestyle.color.red=  (unsigned short) (ce->channels[0]/max*65535);
+        linestyle.color.green=(unsigned short) (ce->channels[1]/max*65535);
+        linestyle.color.blue= (unsigned short) (ce->channels[2]/max*65535);
+        if (ce->numchannels>3) linestyle.color.alpha=(unsigned short) (ce->channels[3]/max*65535);
+        else linestyle.color.alpha=65535;
+		UseThis(&linestyle,0);
+		needtodraw=1;
 		return 0;
 
 	} else if (!strcmp(mes,"valuemap")) {
@@ -4128,7 +4713,7 @@ Laxkit::ShortcutHandler *EngraverFillInterface::GetShortcuts()
 	sc->Add(ENGRAVE_ShowPoints,  'p',0,0,          "ShowPoints",  _("Toggle showing sample points"),NULL,0);
 	sc->Add(ENGRAVE_ShowPointsN, 'p',ControlMask,0,"ShowPointsN", _("Toggle showing sample point numbers"),NULL,0);
 	sc->Add(ENGRAVE_MorePoints,  'P',ControlMask|ShiftMask,0,"MorePoints",  _("Subdivide all lines to have more sample points"),NULL,0);
-	sc->Add(ENGRAVE_ToggleTrace, 'c',0,0,          "ToggleTrace", _("Toggle showing tracing controls"),NULL,0);
+	sc->Add(ENGRAVE_TogglePanel, 'c',0,0,          "TogglePanel", _("Toggle showing control panel"),NULL,0);
 	sc->Add(ENGRAVE_ToggleGrow,  'g',0,0,          "ToggleGrow",  _("Toggle grow mode"),NULL,0);
 	sc->Add(ENGRAVE_ToggleWarp,  'w',0,0,          "ToggleWarp",  _("Toggle warping when modifying mesh"),NULL,0);
 	sc->Add(ENGRAVE_ToggleDir,   'd',0,0,          "ToggleDir",   _("Toggle showing direction map"),NULL,0);
