@@ -47,7 +47,6 @@ class LinePoint
 	int row,col;
 	double weight;
 	double spacing; //visual measure, to be used when remapping
-	int group;
 	bool on;
 
 	int needtosync; //0 no, 1: s,t -> p, 2: p->s,t
@@ -56,7 +55,7 @@ class LinePoint
 	LinePoint *next, *prev;
 
 	LinePoint();
-	LinePoint(double ss, double tt, double ww, int ngroup=0);
+	LinePoint(double ss, double tt, double ww);
 	~LinePoint();
 
 	void Set(double ss,double tt, double nweight) { s=ss; t=tt; needtosync=1; if (nweight>=0) weight=nweight; }
@@ -75,7 +74,7 @@ class EngraverTraceSettings : public Laxkit::anObject
 	double traceobj_opacity;
 	bool continuous_trace;
 
-	ObjectContext *tracecontext;
+	ObjectContext *tracecontext; // *** <- used?
 	SomeData *traceobject;
 	char *identifier;
 	unsigned char *trace_sample_cache;
@@ -111,6 +110,10 @@ class EngraverLineQuality : public Laxkit::anObject
 	EngraverLineQuality();
 	virtual ~EngraverLineQuality();
 	virtual const char *whattype() { return "EngraverLineQuality"; }
+
+	virtual void dump_out(FILE *f,int indent,int what,Laxkit::anObject *context);
+	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,Laxkit::anObject *context);
+	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,Laxkit::anObject *savecontext);
 };
 
 
@@ -183,7 +186,7 @@ class EngraverPointGroup : public DirectionMap
 		PGROUP_MAX
 	};
 
-	int id; //the group number in LinePoint
+	int id;
 	char *name;
 	bool active;
 	int type; //what manner of lines
@@ -195,12 +198,16 @@ class EngraverPointGroup : public DirectionMap
 	EngraverTraceSettings *trace; 
 	EngraverLineQuality *dashes;
 
+	Laxkit::PtrStack<LinePoint> lines;
+
 	EngraverPointGroup();
 	EngraverPointGroup(int nid,const char *nname, int ntype, flatpoint npos, flatpoint ndir, double ntype_d, EngraverTraceSettings *newtrace);
 	virtual ~EngraverPointGroup();
+	virtual void CopyFrom(EngraverPointGroup *orig, bool keep_name, bool link_trace, bool link_dash);
 
 	virtual void SetTraceSettings(EngraverTraceSettings *newtrace);
 
+	virtual int PointOn(LinePoint *p);
 	virtual flatpoint Direction(double s,double t);
 	virtual LinePoint *LineFrom(double s,double t);
 
@@ -229,8 +236,7 @@ class EngraverFillData : public PatchData
  protected:
   	
  public:
-	Laxkit::PtrStack<LinePoint> lines;
-	flatvector direction; // *** to be removed?
+	//flatvector direction; // *** to be removed?
 
 	EngraverPointGroup defaultgroup;
 	Laxkit::PtrStack<EngraverPointGroup> groups;
@@ -255,12 +261,12 @@ class EngraverFillData : public PatchData
 
 	//virtual void zap();
 
-	virtual int PointOn(LinePoint *p);
+	virtual int PointOn(LinePoint *p,EngraverPointGroup *group);
 	virtual void FillRegularLines(double weight, double spacing);
 	virtual void Sync(bool asneeded);
 	virtual void ReverseSync(bool asneeded);
 	virtual void BezApproximate(Laxkit::NumStack<flatvector> &fauxpoints, Laxkit::NumStack<flatvector> &points);
-	virtual void MorePoints();
+	virtual void MorePoints(int curgroup);
 	virtual EngraverPointGroup *FindGroup(int id, int *err_ret);
 };
 
