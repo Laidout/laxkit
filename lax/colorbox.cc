@@ -242,6 +242,18 @@ void ColorBox::Updated()
 }
 
 
+/*! 0 for normal color, 1 for none, 2 for knockout, 3 for registration.
+ */
+int ColorBox::SetSpecial(int newspecial)
+{
+	if (newspecial>3) return colorspecial;
+	if (newspecial==1 && !(win_style&COLORBOX_ALLOW_NONE)) return colorspecial;
+	if (newspecial==2 && !(win_style&COLORBOX_ALLOW_KNOCKOUT)) return colorspecial;
+	if (newspecial==3 && !(win_style&COLORBOX_ALLOW_REGISTRATION)) return colorspecial;
+	int old=ColorBox::SetSpecial(newspecial);
+	needtodraw=1;
+	return old;
+}
 
 
 /*! Normalizes all channels to be in range [0..max];
@@ -278,6 +290,7 @@ int ColorBox::send()
         DBG cerr <<" WARNING! Unknown color type: "<<sendtype<<endl;
 
     } else {
+		cevent->colorspecial=colorspecial;
         cevent->colortype=sendtype;
         app->SendMessage(cevent, win_owner,win_sendthis, object_id);
 	}
@@ -522,33 +535,38 @@ void ColorBox::Refresh()
 
 	clear_window(this);
 
-	if (win_style&(COLORBOX_FGBG|COLORBOX_STROKEFILL)) {
-		 //two color mode, draw one color over another
-		double *cc=colors;
-		int offx,offy;
-
-		if (topcolor==color1) { colors=color2; offx=win_w*.2; offy=win_h*.2; }
-		else { colors=color1; offx=0; offy=0; }
-		foreground_color(rgbcolor(Red()*255, Green()*255, Blue()*255));
-		fill_rectangle(this, offx,offy, win_w*.8,win_h*.8);
-
-		if (topcolor==color1) { colors=color1; offx=0; offy=0; }
-		else { colors=color2; offx=win_w*.2; offy=win_h*.2; }
-		foreground_color(rgbcolor(Red()*255, Green()*255, Blue()*255));
-		fill_rectangle(this, win_w*.2,win_h*.2, win_w*.8,win_h*.8);
-
-		colors=cc;
+	if (colorspecial>=1 && colorspecial<=3) {
+		draw_special_color(this, colorspecial, 20, 0,0,win_w,win_h);
 
 	} else {
-		 //single color
-		foreground_color(win_colors->bg);
-		fill_rectangle(this, 0,0,win_w,win_h);
-	}
+		if (win_style&(COLORBOX_FGBG|COLORBOX_STROKEFILL)) {
+			 //two color mode, draw one color over another
+			double *cc=colors;
+			int offx,offy;
 
-	if (Alpha()<1) {
-		win_colors->bg=rgbcolor(Red()*255, Green()*255, Blue()*255);
-		foreground_color(coloravg(0,win_colors->bg, Alpha()));
-		draw_thing(this, win_w/2,win_h/2,win_w/2,win_h/2,1,THING_Diamond);
+			if (topcolor==color1) { colors=color2; offx=win_w*.2; offy=win_h*.2; }
+			else { colors=color1; offx=0; offy=0; }
+			foreground_color(rgbcolor(Red()*255, Green()*255, Blue()*255));
+			fill_rectangle(this, offx,offy, win_w*.8,win_h*.8);
+
+			if (topcolor==color1) { colors=color1; offx=0; offy=0; }
+			else { colors=color2; offx=win_w*.2; offy=win_h*.2; }
+			foreground_color(rgbcolor(Red()*255, Green()*255, Blue()*255));
+			fill_rectangle(this, win_w*.2,win_h*.2, win_w*.8,win_h*.8);
+
+			colors=cc;
+
+		} else {
+			 //single color
+			foreground_color(win_colors->bg);
+			fill_rectangle(this, 0,0,win_w,win_h);
+		}
+
+		if (Alpha()<1) {
+			win_colors->bg=rgbcolor(Red()*255, Green()*255, Blue()*255);
+			foreground_color(coloravg(0,win_colors->bg, Alpha()));
+			draw_thing(this, win_w/2,win_h/2,win_w/2,win_h/2,1,THING_Diamond);
+		}
 	}
 	
 	SwapBuffers();
@@ -624,15 +642,18 @@ int ColorBox::PerformAction(int action)
 {
 	if (action==COLORBOXA_SelectNone) {       
 		if (!(win_style&COLORBOX_ALLOW_NONE)) return 1;
-		cerr << " *** need to implement COLORBOX_ALLOW_NONE!"<<endl;
+		SetSpecial(1);
+		return 0;
 
 	} else if (action==COLORBOXA_SelectRegistration) {
 		if (!(win_style&COLORBOX_ALLOW_REGISTRATION)) return 1;
-		cerr << " *** need to implement COLORBOX_ALLOW_REGISTRATION!"<<endl;
+		SetSpecial(2);
+		return 0;
 
 	} else if (action==COLORBOXA_SelectKnockout) {   
 		if (!(win_style&COLORBOX_ALLOW_KNOCKOUT)) return 1;
-		cerr << " *** need to implement COLORBOX_ALLOW_KNOCKOUT!"<<endl;
+		SetSpecial(3);
+		return 0;
 	}
 
 	return 1;

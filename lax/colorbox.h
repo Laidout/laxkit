@@ -84,6 +84,7 @@ class ColorBox : public anXWindow, virtual public ColorBase
 	virtual const char *tooltip(int mouseid=0);
 	virtual Laxkit::ShortcutHandler *GetShortcuts();
 	virtual int init();
+	virtual int SetSpecial(int newspecial);
 	virtual void Refresh();
 	virtual int LBDown(int x,int y,unsigned int state,int count, const LaxMouse *d);
 	virtual int LBUp(int x,int y,unsigned int state, const LaxMouse *d);

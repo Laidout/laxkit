@@ -36,11 +36,13 @@ class ColorBase
   protected:
 	
   public:
+	int colorspecial;
 	int colortype;
 	double channel_min[5],channel_max[5];
 
 	int max;
 	int oldcolortype;
+	int oldcolorspecial;
 	double oldcolor[5], color1[5],color2[5];
 	double *colors;
 
@@ -55,6 +57,7 @@ class ColorBase
 
 	virtual void SetMax(int newmax);
 
+	virtual int SetSpecial(int newspecial);
 	virtual int Set(int newtype, double c0,double c1=-1,double c2=-1,double c3=-1,double c4=-1); 
 	virtual void SetRGB(double r,double g,double b,double a=-1);
 	virtual void SetGray(double g,double a=-1);

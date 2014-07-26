@@ -66,6 +66,7 @@ ColorBase::ColorBase(int ctype, double c0,double c1,double c2,double c3,double c
 {
 	max=65535;
 
+	colorspecial=0; //1==none, 2=registration, 3==knockout
 	colortype=ctype;
 	SetColorSystem(ctype);
 
@@ -84,6 +85,7 @@ ColorBase::ColorBase(int ctype, double c0,double c1,double c2,double c3,double c
 	colors[4]=color2[4]=c4;
 	Clamp();
 
+	oldcolorspecial=colorspecial;
 	oldcolortype=colortype;
 	oldcolor[0]=colors[0];
 	oldcolor[1]=colors[1];
@@ -178,10 +180,17 @@ void ColorBase::RestoreColor(int swap)
 		int tt=colortype;
 		colortype=oldcolortype;
 		oldcolortype=tt;
+
+		tt=colorspecial;
+		colorspecial=oldcolorspecial;
+		oldcolorspecial=tt;
+
 	} else {
+		colorspecial=oldcolorspecial;
 		colortype=oldcolortype;
 		for (int c=0; c<5; c++) colors[c]=oldcolor[c];
 	}
+
 	Updated();
 }
 
@@ -292,12 +301,26 @@ int ColorBase::SetHexValue(const char *hex)
 	return 0;
 }
 
+/*! newspecial==0 means normal color.
+ * Other values depend on the subclass, but the standards
+ * are None color (1), knockout color (2), and registration color (3).
+ *
+ * Returns old value
+ */
+int ColorBase::SetSpecial(int newspecial)
+{
+	int old=colorspecial;
+	colorspecial=newspecial;
+	return old;
+}
 
 /*! Return 0 for success or 1 for error.
  */
 int ColorBase::Set(int newtype, double c0,double c1,double c2,double c3,double c4)
 {
 	if (SetColorSystem(newtype)!=0) return 1;
+
+	colorspecial=0;
 
 	colors[0]=c0;
 	colors[1]=c1;
