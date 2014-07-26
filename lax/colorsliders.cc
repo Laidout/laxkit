@@ -287,6 +287,7 @@ int ColorSliders::send()
 		DBG cerr <<" WARNING! Unknown color type: "<<sendtype<<endl;
 
 	} else {
+		cevent->colorspecial=colorspecial;
 		cevent->colortype=sendtype;
 		app->SendMessage(cevent, win_owner,win_sendthis, object_id);
 	} 
@@ -582,6 +583,8 @@ void ColorSliders::Refresh()
 	SwapBuffers();
 }
 
+/*! Draw color faded by it's transparency, with the checkerbox behind it.
+ */
 void ColorSliders::FillWithTransparency(ScreenColor &color, int x,int y,int w,int h)
 {
 	unsigned int bg1=coloravg(rgbcolorf(.3,.3,.3),color.Pixel(), color.alpha/65535.);
@@ -666,8 +669,6 @@ void ColorSliders::DrawSpecial(int which, int x,int y,int w,int h)
 	//specials.AddItem(_("None"),         img, COLORSLIDER_None);
 	//specials.AddItem(_("Knockout"),     img, COLORSLIDER_Knockout);
 	//specials.AddItem(_("Registration"), img, COLORSLIDER_Registration);
-
-
 }
 
 //! Each bar is drawn horizontally.
