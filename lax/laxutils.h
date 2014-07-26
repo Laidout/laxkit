@@ -62,7 +62,8 @@ void draw_bevel(aDrawable *win,int bevel,unsigned long highlight,unsigned long s
 int draw_thing(aDrawable *win,double x, double y, double rx, double ry, int fill, DrawThingTypes thing);
 int draw_thing(aDrawable *win,double x, double y, double rx, double ry, DrawThingTypes thing,unsigned long fg,unsigned long bg,int lwidth=1);
 flatpoint *draw_thing_coordinates(DrawThingTypes thing, flatpoint *buffer, int buffer_size, int *n_ret,double scale=1,DoubleBBox *bounds=NULL);
-
+void draw_special_color(aDrawable *win, int which, double square, double x, double y, double w, double h);
+void fill_with_transparency(aDrawable *win, ScreenColor &color, double square, double x,double y,double w,double h);
 
  //color utitilies
 ScreenColor *coloravg(ScreenColor *result, ScreenColor *a, ScreenColor *b,float r=.5);

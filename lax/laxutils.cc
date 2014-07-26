@@ -1112,6 +1112,91 @@ int draw_thing(aDrawable *win,double x, double y, double rx, double ry, DrawThin
 	return 0;
 }
 
+void fill_with_transparency(aDrawable *win, ScreenColor &color, double square, double x,double y,double w,double h)
+{
+    unsigned int bg1=coloravg(rgbcolorf(.3,.3,.3),color.Pixel(), color.alpha/65535.);
+    unsigned int bg2=coloravg(rgbcolorf(.6,.6,.6),color.Pixel(), color.alpha/65535.);
+    int ww=square,hh;
+    int a=0;
+
+    for (double xx=x; xx<x+w; xx+=square) {
+        a=int(xx/square)%2;
+        hh=square;
+        if (xx+ww>x+w) ww=x+w-xx;
+        for (int yy=y; yy<y+h; yy+=square) {
+            if (yy+hh>y+h) hh=y+h-yy;
+            foreground_color(a ? bg1 : bg2);
+            fill_rectangle(win, xx,yy,ww,hh);
+            a=!a;
+        }
+        ww=square;
+    }
+}
+
+
+/*! 1 for None color, 2 for black registration mark on white background, 3 for knockout.
+ */
+void draw_special_color(aDrawable *win, int which, double square, double x, double y, double w, double h)
+{
+    Displayer *dp=GetDefaultDisplayer();
+    dp->MakeCurrent(win);//should have been done already
+
+    if (which==1) {
+		 //none
+        dp->NewFG(~0);
+        dp->drawrectangle(x,y,w,h, 1);
+
+        int ll=3;
+        x+=ll/2; y+=ll/2; w-=ll; h-=ll;
+        dp->LineAttributes(ll,LineSolid,LAXCAP_Round,LAXJOIN_Round);
+        dp->NewFG(0,0,0);
+        dp->drawline(x+ll/2,y, x+ll/2+w,y+h);
+        dp->drawline(x+ll/2,y+h, x+ll/2+w,y);
+
+        dp->NewFG(1.,0.,0.);
+        dp->drawline(x,y, x+w,y+h);
+        dp->drawline(x,y+h, x+w,y);
+
+    } else if (which==2) {
+		 //registration
+        dp->LineAttributes(2,LineSolid,LAXCAP_Round,LAXJOIN_Round);
+        dp->NewFG(~0);
+        dp->drawrectangle(x,y,w,h, 1);
+        int ww=w;
+        if (h<ww) ww=h;
+        dp->NewFG(0,0,0);
+        dp->drawline(x+w/2,      y+h/2-ww/2,  x+w/2     , y+h/2+ww/2);
+        dp->drawline(x+w/2-ww/2, y+h/2     ,  x+w/2+ww/2, y+h/2     );
+        dp->drawpoint(x+w/2,y+h/2, ww/4, 0);
+
+    } else if (which==3) {
+		 //knockout
+        dp->LineAttributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
+        ScreenColor color(0,0,0,0);
+        fill_with_transparency(win,color,square, x,y,w,h);
+        //dp->drawrectangle(x,y,w,h, 1);
+
+        dp->NewFG(1.,1.,1.);
+        dp->moveto(x,y+h*.5);
+        dp->lineto(x,y);
+        dp->lineto(x+w,y);
+        dp->lineto(x+w,y+h*.25);
+        dp->curveto(flatpoint(x+w*.6,y+h*.75), flatpoint(x+w*.6,y), flatpoint(x,y+h*.5));
+        dp->closed();
+        dp->fill(0);
+
+        dp->moveto(x,y+h);
+        dp->lineto(x+w,y+h);
+        dp->lineto(x+w,y+h*.5);
+        dp->curveto(flatpoint(x+w*.6,y+h), flatpoint(x+w*.6,y+h*.333), flatpoint(x,y+h));
+        dp->closed();
+        dp->fill(0);
+
+    }
+	
+	dp->LineAttributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
+}
+
 //! Clear the window area.
 /*! Just call dp->ClearWindow() after dp->MakeCurrent(win).
  */
