@@ -66,6 +66,7 @@ SimpleColorEventData::SimpleColorEventData()
 	numchannels=0;
 	channels=NULL;
 	colortype=0;
+	colorspecial=0;
 	max=0;
 	id=0;
 

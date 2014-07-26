@@ -67,6 +67,7 @@ class SimpleColorEventData : public EventData
  public:
 	int id;
 	int colortype; //one of BasicColorTypes
+	int colorspecial;
 	int max;
 	int numchannels;
 	int *channels;
@@ -158,6 +159,7 @@ class Color : public Laxkit::anObject, public LaxFiles::DumpUtility
 	int colorsystemid; //usually same as system->systemid;
 	int n; // num values, put here so you don't have to always look them up in system definition
 	double *values; // the values for each primary
+	int special; //such as none, knockout, or registration
 
 	Color();
 	Color(const Color &l);
