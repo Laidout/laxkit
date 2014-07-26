@@ -30,7 +30,6 @@
 #include <lax/screencolor.h>
 #include <lax/curveinfo.h>
 
-//#include <lax/interfaces/selection.h>
 
 namespace LaxInterfaces {
 
@@ -40,6 +39,15 @@ namespace LaxInterfaces {
 class EngraverFillData;
 
 //--------------------------------------------- LinePoint
+class LinePointCache
+{
+  public:
+	flatpoint p;
+	double bt; //bez t coord between LinePoints
+	double weight;
+	bool on;
+};
+
 class LinePoint
 {
   public:
@@ -189,6 +197,7 @@ class EngraverPointGroup : public DirectionMap
 	int id;
 	char *name;
 	bool active;
+	bool linked; //if distortion tool should adjust points even when not current group
 	int type; //what manner of lines
 	double type_d;   //parameter for type, for instance, an angle for spirals
 	double spacing;  //default
@@ -205,7 +214,8 @@ class EngraverPointGroup : public DirectionMap
 	virtual ~EngraverPointGroup();
 	virtual void CopyFrom(EngraverPointGroup *orig, bool keep_name, bool link_trace, bool link_dash);
 
-	virtual void SetTraceSettings(EngraverTraceSettings *newtrace);
+	virtual void InstallTraceSettings(EngraverTraceSettings *newtrace);
+	virtual void InstallDashes(EngraverLineQuality *newdash);
 
 	virtual int PointOn(LinePoint *p);
 	virtual flatpoint Direction(double s,double t);
@@ -236,11 +246,7 @@ class EngraverFillData : public PatchData
  protected:
   	
  public:
-	//flatvector direction; // *** to be removed?
-
-	EngraverPointGroup defaultgroup;
-	Laxkit::PtrStack<EngraverPointGroup> groups;
-
+	Laxkit::PtrStack<EngraverPointGroup> groups; 
 
 	EngraverFillData();
 	//EngraverFillData(double xx,double yy,double ww,double hh,int nr,int nc,unsigned int stle);
@@ -248,11 +254,12 @@ class EngraverFillData : public PatchData
 	virtual const char *whattype() { return "EngraverFillData"; }
 	virtual SomeData *duplicate(SomeData *dup);
 	virtual double DefaultSpacing(double nspacing);
+	virtual void MakeDefaultGroup();
 
 	virtual void dump_out(FILE *f,int indent,int what,Laxkit::anObject *context);
 	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,Laxkit::anObject *context);
 	virtual void dump_out_svg(const char *file);
-	virtual PathsData *MakePathsData();
+	virtual PathsData *MakePathsData(int whichgroup);
 
 	virtual void Set(double xx,double yy,double ww,double hh,int nr,int nc,unsigned int stle);
 	//virtual unsigned long WhatColorLong(double s,double t);
@@ -267,7 +274,9 @@ class EngraverFillData : public PatchData
 	virtual void ReverseSync(bool asneeded);
 	virtual void BezApproximate(Laxkit::NumStack<flatvector> &fauxpoints, Laxkit::NumStack<flatvector> &points);
 	virtual void MorePoints(int curgroup);
-	virtual EngraverPointGroup *FindGroup(int id, int *err_ret);
+	virtual EngraverPointGroup *FindGroup(int id, int *err_ret=NULL);
+	virtual EngraverPointGroup *GroupFromIndex(int index, int *err_ret=NULL);
+
 };
 
 
@@ -336,8 +345,9 @@ class EngraverFillInterface : public PatchInterface
 	virtual void DrawOrientation(int over);
 	virtual void DrawPanel();
 	virtual void DrawPanelHeader(int open, int hover,const char *name, int x,int y,int w, int hh);
-	virtual void DrawTracingTools();
-	virtual void DrawLineGradient(double minx,double maxx,double miny,double maxy);
+	virtual void DrawTracingTools(Laxkit::MenuInfo *list);
+	virtual void DrawLineGradient(double minx,double maxx,double miny,double maxy, int groupnum, int horizontal);
+	virtual void DrawSlider(double pos,int hovered, double x,double y,double w,double h, const char *text);
 	virtual void DrawShadeGradient(double minx,double maxx,double miny,double maxy);
 
 	virtual void UpdatePanelAreas();

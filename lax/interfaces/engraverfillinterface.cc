@@ -160,7 +160,10 @@ EngraverLineQuality::EngraverLineQuality()
 	dash_randomness=0;
 	zero_threshhold=0;
 	broken_threshhold=0;
-	dash_taper=.5;
+
+	//dash_taper=1;
+	//dash_taper=.5;
+	dash_taper=0;
 
 	indashcaps =0;
 	outdashcaps=0;
@@ -382,6 +385,7 @@ EngraverPointGroup::EngraverPointGroup()
 	type=PGROUP_Linear; //what manner of lines
 	type_d=0;   //parameter for type, for instance, an angle for spirals
 	active=true;
+	linked=false;
 
 	spacing=.1;
 
@@ -407,6 +411,9 @@ EngraverPointGroup::EngraverPointGroup(int nid,const char *nname, int ntype, fla
 	type_d=ntype_d;   //parameter for type, for instance, an angle for spirals
 	position=npos;
 	direction=ndir;
+
+	active=true;
+	linked=false;
 
 	spacing=.1;
 
@@ -640,6 +647,8 @@ void EngraverPointGroup::dump_in_atts(LaxFiles::Attribute *att,int flag,Laxkit::
 			if (lstart) lines.push(lstart);
 		}
 	}
+	if (!trace)  trace =new EngraverTraceSettings();
+	if (!dashes) dashes=new EngraverLineQuality();
 }
 
 /*! Return 1 if a point is considered on by the criteria of the settings in dashes, else 0 if confirmed off.
@@ -655,10 +664,26 @@ int EngraverPointGroup::PointOn(LinePoint *p)
 	return 1;
 }
 
+/*! If newdash is NULL, then dec_count() the old one and install a fresh default one.
+ * Otherwise decs count on old, incs count on newdash.
+ */
+void EngraverPointGroup::InstallDashes(EngraverLineQuality *newdash)
+{
+	if (!newdash) {
+		if (dashes) dashes->dec_count();
+		dashes=new EngraverLineQuality();
+		return;
+	}
+	if (newdash==dashes) return;
+	if (dashes) dashes->dec_count();
+	dashes=newdash;
+	dashes->inc_count();
+}
+
 /*! If newtrace is NULL, then dec_count() the old one and install a fresh default one.
  * Otherwise decs count on old, incs count on newtrace.
  */
-void EngraverPointGroup::SetTraceSettings(EngraverTraceSettings *newtrace)
+void EngraverPointGroup::InstallTraceSettings(EngraverTraceSettings *newtrace)
 {
 	if (!newtrace) {
 		if (trace) trace->dec_count();
@@ -741,7 +766,6 @@ void EngraverPointGroup::Fill(EngraverFillData *data, double nweight)
 void EngraverPointGroup::FillRegularLines(EngraverFillData *data, double nweight)
 {
 	double thisspacing=spacing;
-	if (thisspacing<=0) thisspacing=data->defaultgroup.spacing;
 	if (thisspacing<=0) thisspacing=(data->maxy-data->miny)/20;
 	spacing=thisspacing;
 
@@ -816,7 +840,6 @@ void EngraverPointGroup::FillRegularLines(EngraverFillData *data, double nweight
 void EngraverPointGroup::FillRadial(EngraverFillData *data, double nweight)
 {
 	double thisspacing=spacing;
-	if (thisspacing<=0) thisspacing=data->defaultgroup.spacing;
 	if (thisspacing<=0) thisspacing=(data->maxy-data->miny)/20;
 	spacing=thisspacing;
 		
@@ -854,7 +877,6 @@ void EngraverPointGroup::FillRadial(EngraverFillData *data, double nweight)
 void EngraverPointGroup::FillCircular(EngraverFillData *data, double nweight)
 {
 	double thisspacing=spacing;
-	if (thisspacing<=0) thisspacing=data->defaultgroup.spacing;
 	if (thisspacing<=0) thisspacing=(data->maxy-data->miny)/20;
 	spacing=thisspacing;
 
@@ -983,7 +1005,7 @@ void EngraverPointGroup::GrowLines(EngraverFillData *data,
 
 	if (directionmap==NULL) directionmap=this;
 
-	double dir_rotation=0;
+	//double dir_rotation=0;
 	DoubleBBox bounds(0,data->xsize/3, 0,data->ysize/3);
 	PtrStack<StarterPoint> generators;
 	StarterPoint *g;
@@ -1268,9 +1290,9 @@ void EngraverPointGroup::GrowLines(EngraverFillData *data,
 				double lsp=curspace*.95; //least space threshhold
 				double ls2=lsp*lsp;
 				double msp=curspace*1.5; //most space threshhold
-				double msp2=msp*msp;
+				//double msp2=msp*msp;
 				double ld=1e+10, d2;
-				LinePoint *lclosest=NULL;
+				//LinePoint *lclosest=NULL;
 				LinePoint *lp;
 				//LinePoint *gg;
 				p=g->last->p;
@@ -1297,7 +1319,7 @@ void EngraverPointGroup::GrowLines(EngraverFillData *data,
 
 						d2=(lp->p.x - p.x)*(lp->p.x - p.x) + (lp->p.y - p.y)*(lp->p.y - p.y);  //norm2(lp->p - p);
 						if ((cc==g->lineref && d2<resolution/2) || (cc!=g->lineref && d2<ld)) {
-							lclosest=lp;
+							//lclosest=lp;
 							ld=d2;
 						}
 					}
@@ -1320,9 +1342,9 @@ void EngraverPointGroup::GrowLines(EngraverFillData *data,
 				double lsp=curspace*.75; //least space threshhold
 				double ls2=lsp*lsp;
 				double msp=curspace*2; //most space threshhold
-				double msp2=msp*msp;
+				//double msp2=msp*msp;
 				double ld=1e+10, d2;
-				LinePoint *lclosest=NULL;
+				//LinePoint *lclosest=NULL;
 				LinePoint *lp;
 				//LinePoint *gg;
 				p=g->first->p;
@@ -1349,7 +1371,7 @@ void EngraverPointGroup::GrowLines(EngraverFillData *data,
 
 						d2=(lp->p.x-p.x)*(lp->p.x-p.x) + (lp->p.y-p.y)*(lp->p.y-p.y);  //norm2(lp->p - p);
 						if ((cc==g->lineref && d2<resolution/2) || (cc!=g->lineref && d2<ld)) {
-							lclosest=lp;
+							//lclosest=lp;
 							ld=d2;
 						}
 					}
@@ -1483,15 +1505,8 @@ EngraverFillData::EngraverFillData()
 {
 	usepreview=0;
 
-	defaultgroup.spacing=(maxy-miny)/20;
-	defaultgroup.id=0;
-	defaultgroup.trace =new EngraverTraceSettings();
-	defaultgroup.dashes=new EngraverLineQuality();
-	defaultgroup.color.red=0;
-	defaultgroup.color.green=0;
-	defaultgroup.color.blue=65535;
-	defaultgroup.color.alpha=65535;
-
+	MakeDefaultGroup();
+	
 	maxx=maxy=1;
 }
 
@@ -1499,28 +1514,61 @@ EngraverFillData::~EngraverFillData()
 {
 }
 
+/*! Make sure there is at least one defined group.
+ * If there are already groups, then do nothing.
+ */
+void EngraverFillData::MakeDefaultGroup()
+{
+	if (groups.n) return;
+
+	EngraverPointGroup *group=new EngraverPointGroup;
+	group->spacing=(maxy-miny)/20;
+	group->id=0;
+	group->color.red=0;
+	group->color.green=0;
+	group->color.blue=65535;
+	group->color.alpha=65535;
+	if (!group->trace)  group->trace =new EngraverTraceSettings();
+	if (!group->dashes) group->dashes=new EngraverLineQuality();
+
+	groups.push(group);
+}
+
 /*! Return point to group corresponding to the given id. 
- * 0 corresponds to the default group.
  * If found and err_ret!=NULL, then set to 1.
- * If not found, then return pointer to default group, and set err_ret to 0.
+ * If not found, then return pointer to the first group, or NULL if no groups, and set err_ret to 0.
  */
 EngraverPointGroup *EngraverFillData::FindGroup(int id, int *err_ret)
 {
-	if (err_ret) *err_ret=0;
-	if (id==0) return &defaultgroup;
+	if (err_ret) *err_ret=1;
 	for (int c=0; c<groups.n; c++) {
 		if (groups.e[c]->id==id) return groups.e[c];
 	}
-	if (err_ret) *err_ret=1;
-	return &defaultgroup;
+	if (err_ret) *err_ret=0;
+	return groups.n ? groups.e[0] : NULL;
 }
 
-/*! Set the default spacing in defaultgroup.spacing.
+/*! Return point to group corresponding to the given index in groups, or group 0 if index out of range.
+ * Thus it will ALWAYS return non-null, provided groups.n>0.
+ *
+ * If found and err_ret!=NULL, then set to 1.
+ * If index out of range, then return pointer to the first group, or NULL if no groups, and set err_ret to 0.
+ */
+EngraverPointGroup *EngraverFillData::GroupFromIndex(int index, int *err_ret)
+{
+	if (err_ret) *err_ret=1;
+	if (index>=0 && index<groups.n) return groups.e[index];
+
+	if (err_ret) *err_ret=0;
+	return groups.n ? groups.e[0] : NULL;
+}
+
+/*! Set the default spacing in group 0.
  */
 double EngraverFillData::DefaultSpacing(double nspacing)
 {
-	double oldspacing=defaultgroup.spacing;
-	defaultgroup.spacing=nspacing;
+	double oldspacing=groups.e[0]->spacing;
+	groups.e[0]->spacing=nspacing;
 	return oldspacing;
 }
 
@@ -1544,9 +1592,6 @@ SomeData *EngraverFillData::duplicate(SomeData *dup)
 	}
 
 	p->NeedToUpdateCache(0,0,-1,-1);
-	p->defaultgroup.color=defaultgroup.color;
-
-	p->defaultgroup.CopyFrom(&defaultgroup, false, false, false);
 
 	for (int c=0; c<groups.n; c++) {
 		EngraverPointGroup *group=new EngraverPointGroup;
@@ -1565,9 +1610,8 @@ void EngraverFillData::Sync(bool asneeded)
 	LinePoint *l;
 	EngraverPointGroup *group;
 
-	for (int g=-1; g<groups.n; g++) {
-		if (g<0) group=&defaultgroup;
-		else group=groups.e[g];
+	for (int g=0; g<groups.n; g++) {
+		group=groups.e[g];
 
 		for (int c=0; c<group->lines.n; c++) {
 			l=group->lines.e[c];
@@ -1592,9 +1636,8 @@ void EngraverFillData::ReverseSync(bool asneeded)
 	int in=0;
 	EngraverPointGroup *group;
 
-	for (int g=-1; g<groups.n; g++) {
-		if (g<0) group=&defaultgroup;
-		else group=groups.e[g];
+	for (int g=0; g<groups.n; g++) {
+		group=groups.e[g];
 
 		for (int c=0; c<group->lines.n; c++) {
 			l=group->lines.e[c];
@@ -1627,12 +1670,12 @@ void EngraverFillData::FillRegularLines(double weight, double spacing)
 		if (maxx-minx<maxy-miny) spacing=(maxx-minx)/20;
 		else spacing=(maxy-miny)/20;
 	}
+
+	while (groups.n>1) groups.remove(-1);
 	DefaultSpacing(spacing);
 
-	groups.flush();
-
-	defaultgroup.type=EngraverPointGroup::PGROUP_Linear;
-	defaultgroup.Fill(this, -1);
+	groups.e[0]->type=EngraverPointGroup::PGROUP_Linear;
+	groups.e[0]->Fill(this, -1);
 	Sync(false);
 }
 
@@ -1674,20 +1717,14 @@ void EngraverFillData::dump_out(FILE *f,int indent,int what,Laxkit::anObject *co
 		fprintf(f,"%smesh             #The mesh used to encase the lines\n",spc);
 		PatchData::dump_out(f,indent+2,-1,context);
 
-		fprintf(f,"%sdefaultgroup     #default point group settings\n",spc);
-		defaultgroup.dump_out(f,indent+2,-1,context);
-
-		fprintf(f,"%sgroup            #(0 or mone) If there are defined groups, they are in these blocks, just like defaultgroup\n",spc);
-		fprintf(f,"%s  ...\n",spc);
+		fprintf(f,"%sgroup            #(1 or more)\n",spc);
+		groups.e[0]->dump_out(f,indent+2,-1,context);
 
 		return;
 	}
 
 	fprintf(f,"%smesh\n",spc);
 	PatchData::dump_out(f,indent+2,what,context);
-
-	fprintf(f,"%sdefaultgroup\n",spc);
-	defaultgroup.dump_out(f,indent+2,what,context);
 
 	for (int c=0; c<groups.n; c++) {
 		fprintf(f,"%sgroup\n",spc);
@@ -1707,6 +1744,8 @@ void EngraverFillData::dump_in_atts(Attribute *att,int flag,Laxkit::anObject *co
 	//char *value;
 	int c;
 
+	bool groups_flushed=false;
+
 	for (c=0; c<att->attributes.n; c++) {
 		name= att->attributes.e[c]->name;
 		//value=att->attributes.e[c]->value;
@@ -1714,10 +1753,12 @@ void EngraverFillData::dump_in_atts(Attribute *att,int flag,Laxkit::anObject *co
 		if (!strcmp(name,"mesh")) {
 			PatchData::dump_in_atts(att->attributes.e[c],flag,context);
 
-		} else if (!strcmp(name,"defaultgroup")) {
-			defaultgroup.dump_in_atts(att->attributes.e[c],flag,context);
-
 		} else if (!strcmp(name,"group")) {
+			if (groups.n && !groups_flushed) {
+				 //only flush groups when there are actual groups being read in
+				groups.flush();
+				groups_flushed=true;
+			}
 			EngraverPointGroup *group=new EngraverPointGroup;
 			group->dump_in_atts(att->attributes.e[c],flag,context);
 			groups.push(group);
@@ -1738,14 +1779,16 @@ int EngraverFillData::PointOn(LinePoint *p, EngraverPointGroup *g)
 {
 	if (!p->on) return 0;
 
-	if (!g || !g->dashes) g=&defaultgroup;
+	if (!g) g=groups.e[0];
+	if (!g->dashes) return 1;
 	if (p->weight < g->dashes->zero_threshhold) return 0;
 	return 1;
 }
 
-/*! Creates as outline.
+/*! Creates a single PathsData as outline.
+ * If whichgroup<0, then pack all groups. But be warned doing this might not respect separate colors
  */
-PathsData *EngraverFillData::MakePathsData()
+PathsData *EngraverFillData::MakePathsData(int whichgroup)
 {
 	PathsData *paths=NULL;
     if (somedatafactory) 
@@ -1753,8 +1796,8 @@ PathsData *EngraverFillData::MakePathsData()
     else paths=new PathsData();
 	paths->m(m());
 
-	paths->line(0,-1,-1,&defaultgroup.color); //set default paths color, maybe overridden by individual paths
-	paths->fill(&defaultgroup.color); //set default paths color, maybe overridden by individual paths
+	paths->line(0,-1,-1,&groups.e[0]->color); //set default paths color, maybe overridden by individual paths
+	paths->fill(&groups.e[0]->color); //set default paths color, maybe overridden by individual paths
 	// *** should we make it ordered so that all lines from same group are next to each other in paths??
 
 	//currently, makes a PathsData with the outline of all the strokes...
@@ -1769,9 +1812,11 @@ PathsData *EngraverFillData::MakePathsData()
 	flatvector p1,p2;
 	EngraverPointGroup *group;
 
-	for (int g=-1; g<groups.n; g++) {
-		if (g<0) group=&defaultgroup;
-		else group=groups.e[g];
+	int s=0, e=groups.n;
+	if (whichgroup>=0 && whichgroup<groups.n) { s=e=whichgroup; }
+
+	for (int g=s; g<=e; g++) {
+		group=groups.e[g];
 
 		if (!group->active) continue;
 
@@ -1842,10 +1887,14 @@ PathsData *EngraverFillData::MakePathsData()
 				l=l->next;
 			}
 
-			// //finally, install color for this line
-			//paths->paths.e[paths->paths.n-1]->LineColor(&group->color);
 		}
 	}
+
+	 //finally, install color for this line
+	//paths->paths.e[paths->paths.n-1]->LineColor(&group->color);
+	paths->fill(&group->color);
+	paths->line(0,-1,-1,&group->color);
+	paths->linestyle->function=LAXOP_None;
 
 	return paths;
 }
@@ -1931,9 +1980,19 @@ void EngraverFillData::dump_out_svg(const char *file)
 	flatvector p1,p2;
 	EngraverPointGroup *group;
 
-	for (int g=-1; g<groups.n; g++) {
-		if (g<0) group=&defaultgroup;
-		else group=groups.e[g];
+	char stylestr[150];
+	
+
+	for (int g=0; g<groups.n; g++) {
+		group=groups.e[g];
+
+		sprintf(stylestr," style=\"fill:#%02x%02x%02x; fill-opacity:%.10g; stroke:none; stroke-opacity:%.10g;\" ",
+						group->color.red>>8,group->color.green>>8,group->color.blue>>8,
+						group->color.alpha/65535.,
+						group->color.alpha/65535.
+						);
+
+		fprintf(f,"  <g>\n"); //encase each point group in its own svg group
 
 		if (!group->active) continue;
 
@@ -1991,7 +2050,7 @@ void EngraverFillData::dump_out_svg(const char *file)
 
 					BezApproximate(points,points2);
 
-					fprintf(f,"    <path d=\"");
+					fprintf(f,"    <path %s d=\"", stylestr);
 					fprintf(f,"M %f %f ", points.e[1].x,points.e[1].y);
 					for (int c2=1; c2<points.n; c2+=3) {
 						fprintf(f,"C %f %f %f %f %f %f ",
@@ -2010,6 +2069,8 @@ void EngraverFillData::dump_out_svg(const char *file)
 				l=l->next;
 			} //while (l)
 		} //foreach line
+
+		fprintf(f,"  </g>\n");
 	} //foreach group
 
 
@@ -2038,7 +2099,7 @@ void EngraverFillData::MorePoints(int curgroup)
 	LinePoint *l;
 
 	EngraverPointGroup *group;
-	if (curgroup<0 || curgroup>=groups.n) group=&defaultgroup;
+	if (curgroup<0 || curgroup>=groups.n) group=groups.e[0];
 	else group=groups.e[curgroup];
 
 	for (int c=0; c<group->lines.n; c++) {
@@ -2267,7 +2328,7 @@ enum EngraveShortcuts {
 	ENGRAVE_ToggleGrow,
 	ENGRAVE_ToggleWarp,
 	ENGRAVE_ToggleDir,
-	ENGRAVE_LoadDir,
+	ENGRAVE_LoadDirectory,
 	ENGRAVE_NextFill,
 	ENGRAVE_PreviousFill,
 	ENGRAVE_MAX
@@ -2285,18 +2346,36 @@ enum EngraveControls {
 	ENGRAVE_Previous_Group,
 	ENGRAVE_Next_Group,
 	ENGRAVE_Group_Name,
+	ENGRAVE_Group_Linked,
 	ENGRAVE_Group_Active,
 	ENGRAVE_Group_Color,
 	ENGRAVE_Delete_Group,
 	ENGRAVE_New_Group,
 	ENGRAVE_Merge_Group,
+	ENGRAVE_Dup_Group, // <- is same as new?
+	ENGRAVE_Group_Up,
+	ENGRAVE_Group_Down,
 
 	 //--------------- tracing  
+	ENGRAVE_Trace_Box,
+	ENGRAVE_Trace_Weight_Map,
+	ENGRAVE_Trace_Once,
+	ENGRAVE_Trace_Load,
+	ENGRAVE_Trace_Clear,
+	ENGRAVE_Trace_Continuous,
+	ENGRAVE_Trace_Object,
+	ENGRAVE_Trace_Opacity,
+	ENGRAVE_Trace_Identifier,
+	ENGRAVE_Trace_Curve,
+	ENGRAVE_Trace_Move_Mesh,
 
 	 //--------------- Dashes  
 	ENGRAVE_Dashes,
 	ENGRAVE_Dash_Same_As,
 	ENGRAVE_Dash_Threshhold,
+	ENGRAVE_Dash_Zero_Threshhold,
+	ENGRAVE_Dash_Broken_Threshhold,
+	ENGRAVE_Dash_Random,
 	ENGRAVE_Dash_Taper,
 	ENGRAVE_Dash_Caps,
 	ENGRAVE_Dash_Join,
@@ -2331,18 +2410,9 @@ enum EngraveControls {
 	ENGRAVE_Trace_Apply,
 	ENGRAVE_Trace_Remove,
 
+	ENGRANE_Panel_MAX,
+
 	 //------------on canvas tool controls:
-	ENGRAVE_Trace_Box,
-	ENGRAVE_Trace_Weight_Map,
-	ENGRAVE_Trace_Once,
-	ENGRAVE_Trace_Load,
-	ENGRAVE_Trace_Clear,
-	ENGRAVE_Trace_Continuous,
-	ENGRAVE_Trace_Object,
-	ENGRAVE_Trace_Opacity,
-	ENGRAVE_Trace_Identifier,
-	ENGRAVE_Trace_Curve,
-	ENGRAVE_Trace_Move_Mesh,
 
 	ENGRAVE_Orient,
 	ENGRAVE_Orient_Spacing,
@@ -2382,7 +2452,7 @@ EngraverFillInterface::EngraverFillInterface(int nid,Displayer *ndp)
 	recurse=0;
 	edata=NULL;
 
-	current_group=-1;
+	current_group=0;
 	default_spacing=1./20;
 	turbulence_size=1;
 	turbulence_per_line=false;
@@ -2467,9 +2537,8 @@ PatchData *EngraverFillInterface::newPatchData(double xx,double yy,double ww,dou
 	} 
 	if (!ndata) ndata=new EngraverFillData();//creates 1 count
 
-	EngraverFillData *nedata=dynamic_cast<EngraverFillData*>(ndata);
-	if (!nedata->defaultgroup.trace)  nedata->defaultgroup.trace =new EngraverTraceSettings;
-	if (!nedata->defaultgroup.dashes) nedata->defaultgroup.dashes=new EngraverLineQuality;
+	if (!ndata->groups.e[0]->trace)  ndata->groups.e[0]->trace =new EngraverTraceSettings;
+	if (!ndata->groups.e[0]->dashes) ndata->groups.e[0]->dashes=new EngraverLineQuality;
 
 	ndata->Set(xx,yy,ww,hh,nr,nc,stle);
 	//ndata->renderdepth=-recurse;
@@ -2481,7 +2550,7 @@ PatchData *EngraverFillInterface::newPatchData(double xx,double yy,double ww,dou
 
 	ndata->DefaultSpacing((ndata->maxy-ndata->miny)/20);
 	ndata->style|=PATCH_SMOOTH;
-	ndata->defaultgroup.Fill(ndata, 1./dp->Getmag());
+	ndata->groups.e[0]->Fill(ndata, 1./dp->Getmag());
 	ndata->Sync(false);
 	ndata->FindBBox();
 	return ndata;
@@ -2524,13 +2593,14 @@ int EngraverFillInterface::UseThis(Laxkit::anObject *nobj,unsigned int mask) // 
 		return PatchInterface::UseThis(nobj,mask);
 
 	} else if (dynamic_cast<LineStyle *>(nobj) && edata) {
+		if (!edata) return 1;
         LineStyle *nlinestyle=dynamic_cast<LineStyle *>(nobj);
 
-		EngraverPointGroup *group=&edata->defaultgroup;
-		if (current_group>=0) group=edata->groups.e[current_group];
-		group->color=nlinestyle->color;
-
-        needtodraw=1;
+		if (current_group>=0) {
+			EngraverPointGroup *group=edata->groups.e[current_group];
+			group->color=nlinestyle->color;
+			needtodraw=1;
+		}
         return 1;
 	}
 
@@ -2570,8 +2640,29 @@ int EngraverFillInterface::scanPanel(int x,int y, int *category)
 				int i=(x-item->x)*modes.n()/item->w;
 				if (i>=0 && i<modes.n()) return modes.e(i)->id;
 			}
-			//if (item->hasSub() && item->isOpen()) {
-			if (item->hasSub()) {
+
+			if (item->id==ENGRAVE_Tracing && item->isOpen()) {
+				// ******** TEMPORARY! vv
+				if (tracebox.boxcontains(x,y)) {
+					double th=dp->textheight();
+					double pad=2;
+
+					*category=ENGRAVE_Panel;
+
+					if(y<tracebox.miny+2+th*4/3) {
+						if (x<(tracebox.minx+tracebox.maxx)/2)
+							return ENGRAVE_Trace_Once;
+						else return ENGRAVE_Trace_Continuous;
+					}
+					if (y>tracebox.maxy-pad-th) return ENGRAVE_Trace_Identifier;
+					if (y>tracebox.maxy-pad-2*th) return ENGRAVE_Trace_Opacity;
+					if (x>tracebox.minx+1.5*th && y<tracebox.maxy-pad-2*th) return ENGRAVE_Trace_Curve;
+					return ENGRAVE_Trace_Box;
+				}
+				// ******** TEMPORARY! ^^
+			}
+
+			if (item->hasSub() && item->isOpen()) {
 				for (int c2=0; c2<item->GetSubmenu()->n(); c2++) {
 					item2=item->GetSubmenu()->e(c2);
 					if (item2->pointIsIn(x,y)) {
@@ -2595,26 +2686,6 @@ int EngraverFillInterface::scanEngraving(int x,int y, int *category)
 	*category=0;
 
 	if (show_panel) {
-		// ******** TEMPORARY! vv
-	    if (tracebox.boxcontains(x,y)) {
-			double th=dp->textheight();
-			double pad=2;
-
-			*category=ENGRAVE_Panel;
-
-			if(y<tracebox.miny+2+th*4/3) {
-				if (x<(tracebox.minx+tracebox.maxx)/2)
-					return ENGRAVE_Trace_Once;
-				else return ENGRAVE_Trace_Continuous;
-			}
-			if (y>tracebox.maxy-pad-th) return ENGRAVE_Trace_Identifier;
-			if (y>tracebox.maxy-pad-2*th) return ENGRAVE_Trace_Opacity;
-			if (x>tracebox.minx+1.5*th && y<tracebox.maxy-pad-2*th) return ENGRAVE_Trace_Curve;
-			return ENGRAVE_Trace_Box;
-	    }
-		// ******** TEMPORARY! ^^
-
-
 	    if (panelbox.boxcontains(x,y)) {
 			return scanPanel(x,y,category);
 		}
@@ -2637,8 +2708,7 @@ int EngraverFillInterface::scanEngraving(int x,int y, int *category)
 		 //note: need to coordinate with DrawOrientation
 		*category=ENGRAVE_Orient;
 
-		EngraverPointGroup *group=&edata->defaultgroup;
-		if (current_group>=0) group=edata->groups.e[current_group];
+		EngraverPointGroup *group=edata->GroupFromIndex(current_group);
 
 		flatpoint p(x,y);
 		flatpoint center=edata->getPoint(group->position.x,group->position.y, false);
@@ -2745,7 +2815,7 @@ int EngraverFillInterface::LBDown(int x,int y,unsigned int state,int count,const
 
 	if (mode==EMODE_Direction) {
 		if (count==2 || !directionmap) {
-			PerformAction(ENGRAVE_LoadDir);
+			PerformAction(ENGRAVE_LoadDirectory);
 			return 0;
 		}
 
@@ -2915,12 +2985,16 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
 		}
 
 		if (!edata) return 0;
-		EngraverPointGroup *group=&edata->defaultgroup;
-		if (current_group>=0) group=edata->groups.e[current_group];
+		EngraverPointGroup *group=edata->GroupFromIndex(current_group);
 
 		if (over==ENGRAVE_Group_Active) {
 			//PerformAction(ENGRAVE_ToggleActive);
-			group->active=!group->active;
+			if (group) group->active=!group->active;
+			needtodraw=1;
+			return 0;
+
+		} else if (over==ENGRAVE_Group_Linked) {
+			if (group) group->linked=!group->linked;
 			needtodraw=1;
 			return 0;
 
@@ -2937,24 +3011,54 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
 			return 0;
 
 		} else if (over==ENGRAVE_Group_Name) {
-			PostMessage("*** need to implement!! ***");
+			MenuItem *item=panel.findid(over);
+            LineEdit *le= new LineEdit(viewport,"Rename",_("Rename group"),
+                                        LINEEDIT_DESTROY_ON_ENTER|LINEEDIT_GRAB_ON_MAP|ANXWIN_ESCAPABLE,
+                                        item->x+panelbox.minx,item->y+panelbox.miny,
+										item->w,item->h,
+										   4, //border
+                                           NULL,object_id,"renamegroup",
+                                           group->name);
+            le->padx=le->pady=dp->textheight()*.1;
+            le->SetSelection(0,-1);
+            app->addwindow(le);
+
 			return 0;
 
 		} else if (over==ENGRAVE_Previous_Group) {
 			if (!edata || !edata->groups.n) return 0;
-			if (current_group<0) current_group=edata->groups.n-1;
+			if (current_group<=0) current_group=edata->groups.n-1;
 			else current_group--;
 			needtodraw=1;
 			return 0;
 			
 		} else if (over==ENGRAVE_Next_Group) {
 			if (!edata || !edata->groups.n) return 0;
-			if (current_group==edata->groups.n-1) current_group=-1;
+			if (current_group>=edata->groups.n-1) current_group=0;
 			else current_group++;
 			needtodraw=1;
 			return 0; 
 			
+		} else if (over==ENGRAVE_Group_Down) {
+			if (!edata || !edata->groups.n) return 0;
+			if (current_group==0) return 0;
+			edata->groups.swap(current_group,current_group-1);
+			current_group--;
+			PostMessage(_("Moved down."));
+			needtodraw=1;
+			return 0; 
+
+		} else if (over==ENGRAVE_Group_Up) {
+			if (!edata || !edata->groups.n) return 0;
+			if (current_group==edata->groups.n-1) return 0;
+			edata->groups.swap(current_group,current_group+1);
+			current_group++;
+			PostMessage(_("Moved up."));
+			needtodraw=1;
+			return 0; 
+
 		} else if (over==ENGRAVE_New_Group) {
+			 //create a duplicate of the current group, add after current
 			if (!edata) return 0;
 			EngraverPointGroup *newgroup=new EngraverPointGroup;
 			newgroup->CopyFrom(group, false,false,false);
@@ -2965,8 +3069,8 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
 				delete[] str;
 			}
 			 // *** should probably check name for uniqueness
-			edata->groups.push(newgroup);
-			current_group=edata->groups.n-1;
+			edata->groups.push(newgroup,1,current_group+1);
+			current_group++;
 			needtodraw=1;
 			PostMessage(_("Group added."));
 			return 0;
@@ -2987,7 +3091,7 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
 			return 0;
 
 		} if (over==ENGRAVE_Trace_Continuous) {
-			if (!group->trace) group=&edata->defaultgroup;
+			if (!group->trace) group=edata->GroupFromIndex(-1); //shouldn't happen, trace should always be nonnull..
 
 			continuous_trace=!continuous_trace;
 			group->trace->continuous_trace=continuous_trace;
@@ -3014,6 +3118,9 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
 									  object_id,"loadimage",
 									  FILES_OPEN_ONE|FILES_PREVIEW, 
 									  NULL));
+		} else {
+			//PostMessage("*** unimplemented!! ***"); //some are just labels...
+
 		}
 
 		needtodraw=1;
@@ -3103,6 +3210,13 @@ void EngraverFillInterface::ChangeMessage(int forwhich)
 	else if (forwhich==ENGRAVE_Orient_Spacing) PostMessage(_("Drag to change spacing"));
 	else if (forwhich>=EMODE_Mesh && forwhich<EMODE_MAX) {
 		PostMessage(modes.e(forwhich-EMODE_Mesh)->name);
+
+	} else {
+		MenuItem *item=panel.findid(forwhich);
+		if (item && !isblank(item->name)) {
+			PostMessage(item->name);
+			return;
+		}
 	}
 
 	if (forwhich==ENGRAVE_None) PostMessage(" ");
@@ -3150,6 +3264,9 @@ int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit
 		if (buttondown.any()) {
 			int over=0,lx,ly;
 			int overcat=0;
+			double th=dp->textheight();
+			double pad=th/2;
+
 			buttondown.getextrainfo(d->id,LEFTBUTTON, &over,&overcat);
 			buttondown.move(d->id,x,y, &lx,&ly);
 
@@ -3200,6 +3317,29 @@ int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit
 					panelbox.maxy+=y-ly;
 				}
 				needtodraw=1;
+
+			} else if (over==ENGRAVE_Dash_Zero_Threshhold || over==ENGRAVE_Dash_Broken_Threshhold
+					|| over==ENGRAVE_Dash_Random || over==ENGRAVE_Dash_Taper) {
+				EngraverPointGroup *group=(edata?edata->GroupFromIndex(current_group):NULL);
+				if (group) {
+					double z=(x-(panelbox.minx+pad))/(panelbox.maxx-panelbox.minx-2*pad);
+					if (z<0) z=0; else if (z>1) z=1;
+
+					if (over==ENGRAVE_Dash_Broken_Threshhold)
+						group->dashes->broken_threshhold=z*group->spacing;
+
+					else if (over==ENGRAVE_Dash_Zero_Threshhold)
+						group->dashes->zero_threshhold=z*group->spacing;
+
+					else if (over==ENGRAVE_Dash_Random)
+						group->dashes->dash_randomness=z;
+
+					else group->dashes->dash_taper=z;
+
+					needtodraw=1;
+				}
+				return 0;
+
 			}
 		}
 		return 0;
@@ -3217,8 +3357,7 @@ int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit
 				edata->Sync(false);
 
 				if (grow_lines) {
-					EngraverPointGroup *group=&edata->defaultgroup;
-					if (current_group>=0) group=edata->groups.e[current_group];
+					EngraverPointGroup *group=edata->GroupFromIndex(current_group);
 					growpoints.flush();
 					group->GrowLines(edata,
 									 group->spacing/3,     //resolution
@@ -3251,8 +3390,7 @@ int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit
 		flatpoint d=screentoreal( x, y)-screentoreal(lx,ly);
 		//flatpoint md=p-op;
 
-		EngraverPointGroup *group=&edata->defaultgroup;
-		if (current_group>=0) group=edata->groups.e[current_group];
+		EngraverPointGroup *group=edata->GroupFromIndex(current_group);
 
 		if (over==ENGRAVE_Orient_Direction) {
 			flatpoint center=edata->getPoint(group->position.x,group->position.y, false);
@@ -3274,8 +3412,7 @@ int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit
 		}
 
 		if (grow_lines) {
-			EngraverPointGroup *group=&edata->defaultgroup;
-			if (current_group>=0) group=edata->groups.e[current_group];
+			EngraverPointGroup *group=edata->GroupFromIndex(current_group);
 			growpoints.flush();
 			group->GrowLines(edata,
 							 group->spacing/3,
@@ -3331,95 +3468,99 @@ int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit
 			flatpoint pp;
 			double nearzero=.001; // *** for when tracing makes a value at 0, thicken makes it this
 
-			EngraverPointGroup *group=&edata->defaultgroup;
-			if (current_group>=0) group=edata->groups.e[current_group]; 
+			EngraverPointGroup *group;
+			
+			for (int g=0; g<edata->groups.n; g++) {
+				group=edata->groups.e[g];
+				if (!group->linked && g!=current_group) continue;
 
-			for (int c=0; c<group->lines.n; c++) {
-				l=group->lines.e[c];
-				while (l) {
-					d=norm2(l->p - m); //distance point to brush center
+				for (int c=0; c<group->lines.n; c++) {
+					l=group->lines.e[c];
+					while (l) {
+						d=norm2(l->p - m); //distance point to brush center
 
-					if (d<rr) { //point is within...
+						if (d<rr) { //point is within...
 
-						if (mode==EMODE_Thickness) {
-							a=sqrt(d/rr);
-							a=thickness.f(a);
+							if (mode==EMODE_Thickness) {
+								a=sqrt(d/rr);
+								a=thickness.f(a);
 
-							if ((state&LAX_STATE_MASK)==ControlMask) {
-								 //thin
-								a=1-a*.05;
-							} else {
-								 //thicken
-								a=1+a*.05;
-								if (l->weight<=0) l->weight=nearzero;
+								if ((state&LAX_STATE_MASK)==ControlMask) {
+									 //thin
+									a=1-a*.05;
+								} else {
+									 //thicken
+									a=1+a*.05;
+									if (l->weight<=0) l->weight=nearzero;
+								}
+								l->weight*=a;
+
+							} else if (mode==EMODE_Blockout) {
+								if ((state&LAX_STATE_MASK)==ControlMask) 
+									l->on=true;
+								else l->on=false;
+
+							} else if (mode==EMODE_Drag) {
+								a=sqrt(d/rr);
+								a=thickness.f(a);
+								l->p+=dv*a; //point without mesh
+								l->needtosync=2;
+
+							} else if (mode==EMODE_Turbulence) {
+								a=sqrt(d/rr);
+								a=thickness.f(a);
+								l->p+=rotate(dv,drand48()*2*M_PI);
+								l->needtosync=2;
+
+							} else if (mode==EMODE_PushPull) {
+								a=sqrt(d/rr);
+								a=thickness.f(a);
+								pp=(l->p-m)*.03;
+
+								if ((state&LAX_STATE_MASK)==ControlMask) {
+									l->p-=pp*a*d/rr;
+								} else {
+									l->p+=pp*a;
+								}
+								l->needtosync=2;
+
+							} else if (mode==EMODE_AvoidToward) {
+								a=sqrt(d/rr);
+								a=thickness.f(a);
+
+								flatvector vt=transpose(hoverdir);
+								vt.normalize();
+								vt*=.01*a*((l->p-m)*vt > 0 ? 1 : -1);
+
+								if ((state&LAX_STATE_MASK)==ControlMask) {
+									l->p-=vt;
+								} else {
+									l->p+=vt;
+								}
+								l->needtosync=2;
+
+							} else if (mode==EMODE_Twirl) {
+								a=sqrt(d/rr);
+								a=thickness.f(a);
+
+								if ((state&LAX_STATE_MASK)==ControlMask) {
+									l->p=m+rotate(l->p-m,a*.1);
+								} else {
+									l->p=m+rotate(l->p-m,-a*.1);
+								}
+								l->needtosync=2;
 							}
-							l->weight*=a;
-
-						} else if (mode==EMODE_Blockout) {
-							if ((state&LAX_STATE_MASK)==ControlMask) 
-								l->on=true;
-							else l->on=false;
-
-						} else if (mode==EMODE_Drag) {
-							a=sqrt(d/rr);
-							a=thickness.f(a);
-							l->p+=dv*a; //point without mesh
-							l->needtosync=2;
-
-						} else if (mode==EMODE_Turbulence) {
-							a=sqrt(d/rr);
-							a=thickness.f(a);
-							l->p+=rotate(dv,drand48()*2*M_PI);
-							l->needtosync=2;
-
-						} else if (mode==EMODE_PushPull) {
-							a=sqrt(d/rr);
-							a=thickness.f(a);
-							pp=(l->p-m)*.03;
-
-							if ((state&LAX_STATE_MASK)==ControlMask) {
-								l->p-=pp*a*d/rr;
-							} else {
-								l->p+=pp*a;
-							}
-							l->needtosync=2;
-
-						} else if (mode==EMODE_AvoidToward) {
-							a=sqrt(d/rr);
-							a=thickness.f(a);
-
-							flatvector vt=transpose(hoverdir);
-							vt.normalize();
-							vt*=.01*a*((l->p-m)*vt > 0 ? 1 : -1);
-
-							if ((state&LAX_STATE_MASK)==ControlMask) {
-								l->p-=vt;
-							} else {
-								l->p+=vt;
-							}
-							l->needtosync=2;
-
-						} else if (mode==EMODE_Twirl) {
-							a=sqrt(d/rr);
-							a=thickness.f(a);
-
-							if ((state&LAX_STATE_MASK)==ControlMask) {
-								l->p=m+rotate(l->p-m,a*.1);
-							} else {
-								l->p=m+rotate(l->p-m,-a*.1);
-							}
-							l->needtosync=2;
 						}
-					}
 
-					l=l->next;
-				}//foreach point in line
-			} //foreach line
+						l=l->next;
+					}//foreach point in line
+				} //foreach line
+			} //foreach relevant group
 			needtodraw=1;
 
 			if (continuous_trace && (mode==EMODE_Thickness)) continuous_trace=false;
 			if (continuous_trace) Trace();
-		}
+		} //if distortion mode, not brush adjust mode
 
 		return 0;
 	}
@@ -3520,8 +3661,7 @@ int EngraverFillInterface::Refresh()
 	if (show_direction) {
 		DirectionMap *map=directionmap;
 		if (!map && edata) {
-			EngraverPointGroup *group=&edata->defaultgroup;
-			if (current_group>=0) group=edata->groups.e[current_group];
+			EngraverPointGroup *group=edata->GroupFromIndex(current_group);
 			map=group;
 		}
 
@@ -3598,9 +3738,8 @@ int EngraverFillInterface::Refresh()
 
 	EngraverPointGroup *group;
 
-	for (int g=-1; g<edata->groups.n; g++) {
-		if (g<0) group=&edata->defaultgroup;
-		else group=edata->groups.e[g];
+	for (int g=0; g<edata->groups.n; g++) {
+		group=edata->groups.e[g];
 		if (!group->active) continue;
 		
 		for (int c=0; c<group->lines.n; c++) {
@@ -3847,10 +3986,9 @@ int EngraverFillInterface::Refresh()
  */
 void EngraverFillInterface::DrawOrientation(int over)
 {
-	 //note: need to coordinate with scanEngraving()
+	 //note: need to coordinate with scanPanel()
 
-	EngraverPointGroup *group=&edata->defaultgroup;
-	if (current_group>=0) group=edata->groups.e[current_group];
+	EngraverPointGroup *group=edata->GroupFromIndex(current_group);
 
 	 //draw a burin
 	flatpoint center=edata->getPoint(group->position.x,group->position.y, false);
@@ -3909,21 +4047,83 @@ void EngraverFillInterface::DrawOrientation(int over)
 	dp->DrawReal();
 }
 
+void EngraverFillInterface::DrawSlider(double pos,int hovered, double x,double y,double w,double h, const char *text)
+{
+	dp->LineAttributes(1,LineSolid, CapButt, JoinMiter);
+ 	
+	dp->NewFG(.5,.5,.5);
+
+	double ww=(text ? dp->textextent(text,-1, NULL,NULL) : 0);
+	if (text) {
+		//if (pos<.5) dp->textout(x+w,y+h/2, text,-1, LAX_RIGHT|LAX_VCENTER);
+		//else dp->textout(x,y+h/2, text,-1, LAX_LEFT|LAX_VCENTER);
+		
+		dp->textout(x+w/2,y+h/2, text,-1, LAX_CENTER);
+	}
+	if (hovered)  dp->NewFG(0.,0.,0.); 
+
+	if (ww>0) {
+		dp->drawline(x, y+h/2, x+w/2-ww/2, y+h/2);
+		dp->drawline(x+w/2+ww/2, y+h/2, x+w, y+h/2);
+	} else dp->drawline(x, y+h/2, x+w, y+h/2);
+	dp->drawpoint(flatpoint(x + pos*w,y+h/2), h*.4, 1);
+}
+
 /*! Draw the range of line widths in a strip, as for a curve map control.
  * Assumes already in dp->DrawScreen mode.
  */
-void EngraverFillInterface::DrawLineGradient(double minx,double maxx,double miny,double maxy)
+void EngraverFillInterface::DrawLineGradient(double minx,double maxx,double miny,double maxy, int groupnum, int horizontal)
 {
-	double sp=(maxy - miny)/10;
-	double minsp=0;
-	if (edata) minsp=edata->defaultgroup.dashes->zero_threshhold / edata->defaultgroup.spacing*sp;
+	double num=15;
+	double sp=(maxy - miny)/num; //one unit
+	if (horizontal) sp=(maxx-minx)/num;
+
+	EngraverPointGroup *group=edata ? edata->GroupFromIndex(groupnum) : NULL;
 
 	dp->NewFG(&fgcolor);
 
-	for (int c=0; c<10; c++) {
-		dp->LineAttributes(minsp+(sp-minsp)*(10-c)/10., LineSolid, CapButt, JoinMiter);
-		dp->drawline(minx,sp/2+miny+(maxy-miny)*c/10.,
-		             maxx,sp/2+miny+(maxy-miny)*c/10.);
+	double pos, rr,t, w, a, p, gapw;
+	double zero  =(group ? group->dashes->zero_threshhold  /group->spacing : 0);
+	double broken=(group ? group->dashes->broken_threshhold/group->spacing : 0);
+
+	for (int c=0; c<num; c++) {
+		pos=c/num;
+		if (pos<zero) continue;
+
+
+		if (group && pos*group->spacing<group->dashes->broken_threshhold) {
+			 //draw dashed
+			rr    =group->dashes->dash_randomness;
+			t     =group->dashes->dash_taper;
+
+			a=(pos-zero)/(broken-zero);
+			w=broken*a + (t*(broken-zero)+zero)*(1-a);
+
+			gapw=1-a;
+			p=.5 + (rr*random()/RAND_MAX - rr/2);
+
+			if (horizontal) {
+				gapw*=(maxy-miny);
+				p*=maxy-miny-gapw;
+				dp->drawrectangle(minx + (maxx-minx)*pos, miny,         sp*w, p, 1);
+				dp->drawrectangle(minx + (maxx-minx)*pos, miny+p+gapw,  sp*w, (maxy-miny)-(p+gapw), 1);
+
+			} else {
+				gapw*=(maxx-minx);
+				p*=maxx-minx-gapw;
+				//dp->drawrectangle(minx,        miny + (maxy-miny)*pos,  maxx-minx,                    1+sp*w, 1);
+				dp->drawrectangle(minx,        maxy - (maxy-miny)*pos,  p,                    sp*w, 1);
+				dp->drawrectangle(minx+p+gapw, maxy - (maxy-miny)*pos,  (maxx-minx)-(p+gapw), sp*w, 1);
+			}
+
+		} else {
+			 //draw solid
+			if (horizontal) {
+				dp->drawrectangle(minx + (maxx-minx)*pos, miny, 1+sp*pos,maxy-miny, 1);
+			} else {
+				dp->drawrectangle(minx, maxy - (maxy-miny)*pos, maxx-minx,sp*pos, 1);
+			}
+		}
 	}
 
 	//dp->drawrectangle(minx-1,miny-1, maxx-minx+2,maxy-miny+2,0);
@@ -3962,10 +4162,13 @@ void EngraverFillInterface::UpdatePanelAreas()
 		  panel.AddItem("Next Group",      ENGRAVE_Next_Group);
 		  panel.AddItem("Group Name",      ENGRAVE_Group_Name);
 		  panel.AddItem("Active",          ENGRAVE_Group_Active);
+		  panel.AddItem("Linked",          ENGRAVE_Group_Linked);
 		  panel.AddItem("Color",           ENGRAVE_Group_Color);
 		  panel.AddItem("Delete Group",    ENGRAVE_Delete_Group);
 		  panel.AddItem("New Group",       ENGRAVE_New_Group);
 		  panel.AddItem("Merge Group",     ENGRAVE_Merge_Group);
+		  panel.AddItem("Move Group Up",   ENGRAVE_Group_Up);
+		  panel.AddItem("Move Group Down", ENGRAVE_Group_Down);
 		panel.EndSubMenu();
 		panel.e(panel.n()-1)->state|=LAX_OPEN; //this always needs to be open
 
@@ -3990,11 +4193,14 @@ void EngraverFillInterface::UpdatePanelAreas()
 		//--------------- Dashes  ---------------
 		panel.AddItem("Dashes",     ENGRAVE_Dashes);
 		panel.SubMenu();
-		  panel.AddItem("Dash same as",  ENGRAVE_Dash_Same_As);
-		  panel.AddItem("Threshhold",    ENGRAVE_Dash_Threshhold);
-		  panel.AddItem("Taper",         ENGRAVE_Dash_Taper);
-		  panel.AddItem("Caps",          ENGRAVE_Dash_Caps);
-		  panel.AddItem("Join",          ENGRAVE_Dash_Join);
+		  panel.AddItem("Dash same as",    ENGRAVE_Dash_Same_As);
+		  //panel.AddItem("Threshhold",    ENGRAVE_Dash_Threshhold);
+		  panel.AddItem("Zero Threshhold", ENGRAVE_Dash_Zero_Threshhold);
+		  panel.AddItem("Dash Threshhold", ENGRAVE_Dash_Broken_Threshhold);
+		  panel.AddItem("Random",          ENGRAVE_Dash_Random);
+		  panel.AddItem("Taper",           ENGRAVE_Dash_Taper);
+		  panel.AddItem("Caps",            ENGRAVE_Dash_Caps);
+		  panel.AddItem("Join",            ENGRAVE_Dash_Join);
 		panel.EndSubMenu();
 
 		//--------------- Direction  ---------------
@@ -4020,6 +4226,9 @@ void EngraverFillInterface::UpdatePanelAreas()
 		  panel.AddItem("Paint..",              ENGRAVE_Spacing_Paint);
 		panel.EndSubMenu();
 
+		//--------------- Selection?  ---------------
+		// //selection management, 1 line for each selection, click x to remove?
+		//panel.AddItem("Spacing",    ENGRAVE_Spacing);
 	}
 
 	double th=dp->textheight();
@@ -4037,7 +4246,6 @@ void EngraverFillInterface::UpdatePanelAreas()
 	int pw=panelbox.boxwidth();
 	//int ph=panelbox.boxheight();
 	//int px=panelbox.minx;
-	int ww;
 
 	for (int c=0; c<panel.n(); c++) {
 		item=panel.e(c);
@@ -4051,9 +4259,13 @@ void EngraverFillInterface::UpdatePanelAreas()
 		} else if (item->id==ENGRAVE_Groups) {
 			item->x=pad; item->y=y; item->w=pw-2*pad;  item->h=2*th;
 
+			//< > Groupname  active linked color
+			//+  -  ^  v  ->
+
 			for (int c2=0; c2<item->GetSubmenu()->n(); c2++) {
 				item2=item->GetSubmenu()->e(c2);
 
+				 //----first line
 				if (item2->id==ENGRAVE_Previous_Group) {
 					item2->x=pad;  item2->y=y;  item2->w=th, item2->h=th;
 
@@ -4061,24 +4273,32 @@ void EngraverFillInterface::UpdatePanelAreas()
 					item2->x=pad+th;  item2->y=y;  item2->w=th, item2->h=th;
 
 				} else if (item2->id==ENGRAVE_Group_Name) {
-					item2->x=pad+2*th;  item2->y=y;  item2->w=pw-2*pad-4*th;  item2->h=th;
+					item2->x=pad+2*th;  item2->y=y;  item2->w=pw-2*pad-5*th;  item2->h=th;
 
 				} else if (item2->id==ENGRAVE_Group_Active) {
+					item2->x=pw-pad-3*th;  item2->y=y;  item2->w=th;  item2->h=th;
+
+				} else if (item2->id==ENGRAVE_Group_Linked) {
 					item2->x=pw-pad-2*th;  item2->y=y;  item2->w=th;  item2->h=th;
 
 				} else if (item2->id==ENGRAVE_Group_Color) {
 					item2->x=pw-pad-th;  item2->y=y;  item2->w=th;  item2->h=th;
 
+				 //----second line
 				} else if (item2->id==ENGRAVE_New_Group) {
-					item2->x=pad;  item2->y=y+th;  item2->w=dp->textextent("New",-1,NULL,NULL)+pad; item2->h=th;
+					item2->x=pad;  item2->y=y+th;  item2->w=item->w/5; item2->h=th;
 
 				} else if (item2->id==ENGRAVE_Delete_Group) {
-					item2->x=pad+dp->textextent("New",-1,NULL,NULL)+pad;  item2->y=y+th;
-					item2->w=dp->textextent("Del",-1,NULL,NULL)+pad; item2->h=th;
+					item2->x=pad+item->w/5;  item2->y=y+th;  item2->w=item->w/5; item2->h=th;
 
-				} else if (item2->id==ENGRAVE_Merge_Group) {
-					ww=dp->textextent("Merge",-1,NULL,NULL);
-					item2->x=pw-pad-ww;  item2->y=y+th;  item2->w=ww, item2->h=th;
+				} else if (item2->id==ENGRAVE_Group_Up) {
+					item2->x=pad+2*item->w/5;  item2->y=y+th;  item2->w=item->w/5; item2->h=th;
+
+				} else if (item2->id==ENGRAVE_Group_Down) {
+					item2->x=pad+3*item->w/5;  item2->y=y+th;  item2->w=item->w/5; item2->h=th;
+
+				//} else if (item2->id==ENGRAVE_Merge_Group) {
+				//	item2->x=pad+4*item->w/5;  item2->y=y+th;  item2->w=item->w/5, item2->h=th;
 
 				}
 			}
@@ -4104,8 +4324,33 @@ void EngraverFillInterface::UpdatePanelAreas()
 
 			if (!(item->state&LAX_OPEN)) item->h=th;
 			else {
-				item->h=2*th;
+				item->h=5*th+pad;
 				// ...
+				for (int c2=0; c2<item->GetSubmenu()->n(); c2++) {
+					item2=item->GetSubmenu()->e(c2);
+
+					 //----first line
+					if (item2->id==ENGRAVE_Dash_Same_As) {
+						// *** todo!
+
+					} else if (item2->id==ENGRAVE_Dash_Broken_Threshhold) {
+						item2->x=pad;  item2->y=y+th;  item2->w=pw-2*pad;  item2->h=th; 
+
+					} else if (item2->id==ENGRAVE_Dash_Zero_Threshhold) {
+						item2->x=pad;  item2->y=y+2*th;  item2->w=pw-2*pad;  item2->h=th; 
+
+					} else if (item2->id==ENGRAVE_Dash_Random) {
+						item2->x=pad;  item2->y=y+3*th;  item2->w=pw-2*pad;  item2->h=th; 
+
+					} else if (item2->id==ENGRAVE_Dash_Taper) {
+						item2->x=pad;  item2->y=y+4*th;  item2->w=pw-2*pad;  item2->h=th; 
+
+					} else if (item2->id==ENGRAVE_Dash_Caps) {
+						// *** todo!
+					} else if (item2->id==ENGRAVE_Dash_Join) {
+						// *** todo!
+					}
+				}
 			}
 
 			y+=item->h;
@@ -4155,13 +4400,11 @@ void EngraverFillInterface::DrawPanel()
 
 	double th=dp->textheight();
 	double pad=th/2;
-	int ww;
 	int ix,iy,iw,ih;
 	int i2x,i2y,i2w,i2h;
 	unsigned long hcolor=coloravg(fgcolor.Pixel(),bgcolor.Pixel(), .8);
 
-	EngraverPointGroup *group=(edata ? &edata->defaultgroup : NULL);
-	if (current_group>=0) group=edata->groups.e[current_group];
+	EngraverPointGroup *group=(edata ? edata->GroupFromIndex(current_group) : NULL);
 
 	MenuItem *item, *item2;
 	for (int c=0; c<panel.n(); c++) {
@@ -4208,12 +4451,14 @@ void EngraverFillInterface::DrawPanel()
 
 		} else if (item->id==ENGRAVE_Groups) {
 
+			int ww;
 			for (int c2=0; c2<item->GetSubmenu()->n(); c2++) {
 				item2=item->GetSubmenu()->e(c2);
 				i2x=item2->x+panelbox.minx;
 				i2y=item2->y+panelbox.miny;
 				i2w=item2->w;
 				i2h=item2->h;
+				ww=i2w; if (i2h<ww) ww=i2h;
 
 				if (lasthover==item2->id) {
 					dp->NewFG(hcolor);
@@ -4231,7 +4476,7 @@ void EngraverFillInterface::DrawPanel()
 
 				} else if (item2->id==ENGRAVE_Group_Name) {
 					if (group) dp->textout(i2x+pad, i2y+i2h/2, 
-							group->id==0 ? _("(default)") : (isblank(group->name) ? "" : group->name) ,-1,
+							(isblank(group->name) ? "(unnamed)" : group->name) ,-1,
 							LAX_VCENTER|LAX_LEFT);
 
 				} else if (item2->id==ENGRAVE_Group_Active) {
@@ -4239,6 +4484,11 @@ void EngraverFillInterface::DrawPanel()
 					ww=i2w*.4;
 					dp->NewBG(1.,1.,1.);
 					dp->drawthing(i2x+i2w/2,i2y+i2h/2, ww,-ww, 2, thing);
+
+				} else if (item2->id==ENGRAVE_Group_Linked) {
+					ww=i2w*.25;
+					unsigned long color=(group && group->linked ? rgbcolor(0,200,0) : rgbcolor(255,100,100) );
+					dp->drawthing(i2x+i2w/2,i2y+i2h/2, ww,-ww, THING_Circle, color,color);
 
 				} else if (item2->id==ENGRAVE_Group_Color) {
 					if (group) {
@@ -4249,18 +4499,22 @@ void EngraverFillInterface::DrawPanel()
 					dp->drawrectangle(i2x, i2y, i2w, i2h, 0);
 
 				} else if (item2->id==ENGRAVE_New_Group) {
-					// *** if no data, then do something special with this?
 					dp->textout(i2x+i2w/2, i2y+i2h/2, "+",-1, LAX_CENTER);
 
 				} else if (item2->id==ENGRAVE_Delete_Group) {
-					// *** if no data, then do something special with this?
 					dp->textout(i2x+i2w/2, i2y+i2h/2, "-",-1, LAX_CENTER);
-					//dp->drawrectangle(i2x, i2y, i2w, i2h, 0);
+
+				} else if (item2->id==ENGRAVE_Group_Up) {
+					ww*=.8;
+					dp->drawthing(i2x+i2w/2, i2y+i2h/2, ww/2,ww/2, 1, THING_Arrow_Down);
+
+				} else if (item2->id==ENGRAVE_Group_Down) {
+					ww*=.8;
+					dp->drawthing(i2x+i2w/2, i2y+i2h/2, ww/2,ww/2, 1, THING_Arrow_Up);
 
 				} else if (item2->id==ENGRAVE_Merge_Group) {
-					// *** if no data, then do something special with this?
-					dp->textout(i2x+i2w/2, i2y+i2h/2, "->",-1, LAX_CENTER);
-					//dp->drawrectangle(i2x, i2y, i2w, i2h, 0);
+					ww*=.8;
+					dp->drawthing(i2x+i2w/2, i2y+i2h/2, ww/2,ww/2, 1, THING_Arrow_Right);
 
 				}
 			}
@@ -4272,14 +4526,59 @@ void EngraverFillInterface::DrawPanel()
 				tracebox.maxx=ix+iw;
 				tracebox.miny=iy+th;
 				tracebox.maxy=iy+ih;
-				DrawTracingTools();
+				DrawTracingTools(item->GetSubmenu());
 			}
 
 		} else if (item->id==ENGRAVE_Dashes) {
 			dp->NewFG(&fgcolor);
 			DrawPanelHeader(item->isOpen(), lasthover==item->id, item->name, ix,iy,iw,ih);
 			if (item->isOpen()) {
-				dp->textout(ix+iw/2,iy+th+(ih-th)/2, "Todo!",-1,LAX_CENTER);
+				//dp->textout(ix+iw/2,iy+th+(ih-th)/2, "Todo!",-1,LAX_CENTER);
+
+				for (int c2=0; c2<item->GetSubmenu()->n(); c2++) {
+					item2=item->GetSubmenu()->e(c2);
+					i2x=item2->x+panelbox.minx;
+					i2y=item2->y+panelbox.miny;
+					i2w=item2->w;
+					i2h=item2->h;
+
+					if (item2->id==ENGRAVE_Dash_Same_As) {
+						// *** todo!
+
+					} else if (item2->id==ENGRAVE_Dash_Broken_Threshhold) {
+						 //draw this to span broken and zero areas
+						DrawLineGradient(i2x,i2x+i2w, i2y+pad/4,i2y+i2h*2-pad/2, current_group, 1);
+
+						int hh=i2h*.4;
+						if (group) {
+							unsigned long col=fgcolor.Pixel();
+							if (lasthover==ENGRAVE_Dash_Broken_Threshhold) col=rgbcolorf(.5,.5,.5);
+							dp->drawthing(i2x+i2w*group->dashes->broken_threshhold/group->spacing,
+									i2y+hh/2, pad*2/3.,hh*.6, THING_Triangle_Down, bgcolor.Pixel(),col); 
+
+							col=bgcolor.Pixel();
+							if (lasthover==ENGRAVE_Dash_Zero_Threshhold) col=rgbcolorf(.5,.5,.5);
+							dp->drawthing(i2x+i2w*group->dashes->zero_threshhold/group->spacing,
+									i2y+i2h+i2h-hh/2, pad/2.,hh/2, THING_Triangle_Up, fgcolor.Pixel(),col);
+						}
+
+					} else if (item2->id==ENGRAVE_Dash_Zero_Threshhold) {
+						 // this is draw with ENGRAVE_Dash_Broken_Threshhold
+
+					} else if (item2->id==ENGRAVE_Dash_Random) {
+						DrawSlider((group ? group->dashes->dash_randomness : .5), lasthover==ENGRAVE_Dash_Random,
+								i2x,i2y,i2w,i2h, _("Random"));
+
+					} else if (item2->id==ENGRAVE_Dash_Taper) {
+						DrawSlider((group ? group->dashes->dash_taper : .5), lasthover==ENGRAVE_Dash_Taper,
+								i2x,i2y,i2w,i2h, _("Taper"));
+
+					} else if (item2->id==ENGRAVE_Dash_Caps) {
+						// *** todo!
+					} else if (item2->id==ENGRAVE_Dash_Join) {
+						// *** todo!
+					}
+				}
 			}
 
 		} else if (item->id==ENGRAVE_Spacing) {
@@ -4317,7 +4616,7 @@ void EngraverFillInterface::DrawPanelHeader(int open, int hover, const char *nam
 			fgcolor.Pixel(),hover?(coloravg(fgcolor.Pixel(),bgcolor.Pixel(),.6)):bgcolor.Pixel());
 }
 
-void EngraverFillInterface::DrawTracingTools()
+void EngraverFillInterface::DrawTracingTools(MenuInfo *list)
 {
 	// *** for identifier area, maybe have a drag out box for:
 	//  ...  >  Load image
@@ -4403,7 +4702,7 @@ void EngraverFillInterface::DrawTracingTools()
 	box.maxx-=pad;
 	box.maxy-=pad+2*th;
 	int ww=2*th;
-	DrawLineGradient(box.minx,box.minx+ww, box.miny,box.maxy-ww);
+	DrawLineGradient(box.minx,box.minx+ww, box.miny,box.maxy-ww, current_group, 0);
 	DrawShadeGradient(box.minx+ww,box.maxx, box.maxy-ww,box.maxy);
 
 	box.minx+=ww;
@@ -4458,8 +4757,8 @@ int EngraverFillInterface::PerformAction(int action)
 		return 0;
 
 	} else if (action==ENGRAVE_RotateDir || action==ENGRAVE_RotateDirR) {
-		EngraverPointGroup *group=&edata->defaultgroup;
-		if (current_group>=0) group=edata->groups.e[current_group];
+		if (!edata) return 0;
+		EngraverPointGroup *group=edata->GroupFromIndex(current_group);
 
 		group->direction=rotate(group->direction, (action==ENGRAVE_RotateDir ? M_PI/12 : -M_PI/12), 0);
 		group->Fill(edata, 1./dp->Getmag());
@@ -4470,8 +4769,9 @@ int EngraverFillInterface::PerformAction(int action)
 		return 0;
 
 	} else if (action==ENGRAVE_SpacingInc || action==ENGRAVE_SpacingDec) {
-		EngraverPointGroup *group=&edata->defaultgroup;
-		if (current_group>=0) group=edata->groups.e[current_group];
+		if (!edata) return 0;
+		EngraverPointGroup *group=edata->GroupFromIndex(current_group);
+
 		if (action==ENGRAVE_SpacingInc) group->spacing*=1.1; else group->spacing*=.9;
 		group->Fill(edata, 1./dp->Getmag());
 		edata->Sync(false);
@@ -4520,8 +4820,9 @@ int EngraverFillInterface::PerformAction(int action)
 		else PostMessage(_("Don't grow lines after warp"));
 
 		if (grow_lines) {
-			EngraverPointGroup *group=&edata->defaultgroup;
-			if (current_group>=0) group=edata->groups.e[current_group];
+			if (!edata) return 0;
+			EngraverPointGroup *group=edata->GroupFromIndex(current_group);
+
 			growpoints.flush();
 			group->GrowLines(edata,
 							 group->spacing/3,
@@ -4543,7 +4844,7 @@ int EngraverFillInterface::PerformAction(int action)
 		needtodraw=1;
 		return 0;
 
-	} else if (action==ENGRAVE_LoadDir) {
+	} else if (action==ENGRAVE_LoadDirectory) {
 		const char *file=NULL;
 		if (directionmap && directionmap->normal_map && directionmap->normal_map->filename)
 			file=directionmap->normal_map->filename;
@@ -4566,8 +4867,8 @@ int EngraverFillInterface::PerformAction(int action)
 		return 0;
 
 	} else if (action==ENGRAVE_NextFill || action==ENGRAVE_PreviousFill) {
-		EngraverPointGroup *group=&edata->defaultgroup;
-		if (current_group>=0) group=edata->groups.e[current_group];
+		if (!edata) return 0;
+		EngraverPointGroup *group=edata->GroupFromIndex(current_group);
 
 		if (action==ENGRAVE_NextFill) {
 			if      (group->type==EngraverPointGroup::PGROUP_Linear)   group->type=EngraverPointGroup::PGROUP_Radial;
@@ -4580,8 +4881,6 @@ int EngraverFillInterface::PerformAction(int action)
 		}
 
 		if (grow_lines) {
-			EngraverPointGroup *group=&edata->defaultgroup;
-			if (current_group>=0) group=edata->groups.e[current_group];
 			growpoints.flush();
 			group->GrowLines(edata,
 							 group->spacing/3,
@@ -4687,11 +4986,9 @@ int EngraverFillInterface::Trace()
 	flatpoint pp;
 	EngraverPointGroup *group;
 
-	for (int g=-1; g<edata->groups.n; g++) {
-		if (g<0) group=&edata->defaultgroup;
-		else group=edata->groups.e[g];
+	for (int g=0; g<edata->groups.n; g++) {
+		group=edata->groups.e[g];
 		if (!group->active) continue;
-		if (!group->trace && !edata->defaultgroup.trace->continuous_trace) continue;
 		if (group->trace && !group->trace->continuous_trace) continue;
 
 		for (int c=0; c<group->lines.n; c++) {
@@ -4717,7 +5014,7 @@ int EngraverFillInterface::Trace()
 
 					a=(255-sample)/255.;
 					a=trace.value_to_weight.f(a);
-					l->weight=edata->defaultgroup.spacing*a; // *** this seems off
+					l->weight=group->spacing*a; // *** this seems off
 					l->on = samplea>0 ? true : false;
 				} else {
 					l->weight=0;
@@ -4812,6 +5109,14 @@ int EngraverFillInterface::Event(const Laxkit::EventData *e_data, const char *me
 		UseThis(&linestyle,0);
 		needtodraw=1;
 		return 0;
+
+	} else if (!strcmp(mes,"renamegroup")) {
+        const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(e_data);
+        if (!edata || isblank(s->str)) return 0;
+		EngraverPointGroup *group=edata->GroupFromIndex(current_group);
+		makestr(group->name,s->str);
+		needtodraw=1;
+ 		return 0;
 
 	} else if (!strcmp(mes,"valuemap")) {
 		 //in floating curve window, value map was changed...
@@ -5008,7 +5313,7 @@ Laxkit::ShortcutHandler *EngraverFillInterface::GetShortcuts()
 	sc->Add(ENGRAVE_ToggleGrow,  'g',0,0,          "ToggleGrow",  _("Toggle grow mode"),NULL,0);
 	sc->Add(ENGRAVE_ToggleWarp,  'w',0,0,          "ToggleWarp",  _("Toggle warping when modifying mesh"),NULL,0);
 	sc->Add(ENGRAVE_ToggleDir,   'd',0,0,          "ToggleDir",   _("Toggle showing direction map"),NULL,0);
-	sc->Add(ENGRAVE_LoadDir,     'd',ControlMask,0,"LoadDir",     _("Load a normal map for direction"),NULL,0);
+	sc->Add(ENGRAVE_LoadDirectory,     'd',ControlMask,0,"LoadDir",     _("Load a normal map for direction"),NULL,0);
 
 	sc->Add(ENGRAVE_NextFill,     LAX_Left, 0,EMODE_Orientation,  "NextFillType",     _("Switch to next fill type"),NULL,0);
 	sc->Add(ENGRAVE_PreviousFill, LAX_Right,0,EMODE_Orientation,  "PreviousFillType", _("Switch to previous fill type"),NULL,0);
