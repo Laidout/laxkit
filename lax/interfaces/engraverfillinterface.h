@@ -96,10 +96,33 @@ class EngraverTraceSettings : public Laxkit::anObject
 	virtual ~EngraverTraceSettings();
 	virtual const char *whattype() { return "EngraverTraceSettings"; }
 	void ClearCache(bool obj_too);
+	virtual EngraverTraceSettings *duplicate();
 
 	virtual void dump_out(FILE *f,int indent,int what,Laxkit::anObject *context);
 	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,Laxkit::anObject *context);
 	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,Laxkit::anObject *savecontext);
+};
+
+class TraceObject : public Laxkit::anObject
+{
+  public:
+	int id;
+	int type; //0=current, 1=image file, 2=some object, 3=linear gradient, 4=radial gradient
+
+	LaxInterfaces::SomeData *obj;
+	char *image_file;
+
+	int samplew, sampleh;
+	unsigned char *trace_sample_cache;
+
+	 //black and white cache:
+	int tw,th; //dims of trace_ref_bw
+	unsigned char *trace_ref_bw;
+
+	TraceObject();
+	virtual ~TraceObject();
+	double GetValue(LinePoint *p);
+	void ClearCache(bool obj_too);
 };
 
 //----------------------------------------------- EngraverLineQuality
@@ -118,6 +141,7 @@ class EngraverLineQuality : public Laxkit::anObject
 	EngraverLineQuality();
 	virtual ~EngraverLineQuality();
 	virtual const char *whattype() { return "EngraverLineQuality"; }
+	virtual EngraverLineQuality *duplicate();
 
 	virtual void dump_out(FILE *f,int indent,int what,Laxkit::anObject *context);
 	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,Laxkit::anObject *context);
@@ -255,6 +279,7 @@ class EngraverFillData : public PatchData
 	virtual SomeData *duplicate(SomeData *dup);
 	virtual double DefaultSpacing(double nspacing);
 	virtual void MakeDefaultGroup();
+	virtual int MakeGroupNameUnique(int which);
 
 	virtual void dump_out(FILE *f,int indent,int what,Laxkit::anObject *context);
 	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,Laxkit::anObject *context);
@@ -277,6 +302,7 @@ class EngraverFillData : public PatchData
 	virtual EngraverPointGroup *FindGroup(int id, int *err_ret=NULL);
 	virtual EngraverPointGroup *GroupFromIndex(int index, int *err_ret=NULL);
 
+	virtual int IsSharing(int what, int curgroup); 
 };
 
 
@@ -299,7 +325,9 @@ class EngraverFillInterface : public PatchInterface
 	Laxkit::CurveInfo thickness; //ramp of thickness brush
 
 	double default_spacing;
-	EngraverLineQuality default_linequality;
+	EngraverLineQuality   default_linequality;
+	EngraverTraceSettings default_trace;
+	NormalDirectionMap *directionmap;
 
 	 //for turbulence tool
 	double turbulence_size; //this*spacing
@@ -316,10 +344,8 @@ class EngraverFillInterface : public PatchInterface
 	bool grow_lines;
 	bool always_warp;
 	//Laxkit::CurveInfo tracemap;
-	Laxkit::DoubleBBox tracebox;
+	Laxkit::MenuItem *tracebox;
 	Laxkit::DoubleBBox panelbox;
-	EngraverTraceSettings trace;
-	NormalDirectionMap *directionmap;
 
 	 //grow related
 	Laxkit::PtrStack<GrowPointInfo> growpoints;
@@ -345,12 +371,14 @@ class EngraverFillInterface : public PatchInterface
 	virtual void DrawOrientation(int over);
 	virtual void DrawPanel();
 	virtual void DrawPanelHeader(int open, int hover,const char *name, int x,int y,int w, int hh);
-	virtual void DrawTracingTools(Laxkit::MenuInfo *list);
+	virtual void DrawTracingTools(Laxkit::MenuItem *item);
 	virtual void DrawLineGradient(double minx,double maxx,double miny,double maxy, int groupnum, int horizontal);
 	virtual void DrawSlider(double pos,int hovered, double x,double y,double w,double h, const char *text);
 	virtual void DrawShadeGradient(double minx,double maxx,double miny,double maxy);
 
+	virtual int IsSharing(int what, int curgroup); 
 	virtual void UpdatePanelAreas();
+	virtual Laxkit::MenuInfo *GetGroupMenu(int what, int current);
 
   public:
 	EngraverFillInterface(int nid, Laxkit::Displayer *ndp);
