@@ -39,13 +39,16 @@ namespace LaxInterfaces {
 class EngraverFillData;
 
 //--------------------------------------------- LinePoint
+
+#define  MAX_LINEPOINT_CACHE 10
+
 class LinePointCache
 {
   public:
 	flatpoint p;
-	double bt; //bez t coord between LinePoints
+	double bt; //bez t coord between LinePoints of this one
 	double weight;
-	bool on;
+	int on; //off if zero. if nonzero, assume it gives info about origin of this cache point
 };
 
 class LinePoint
@@ -60,6 +63,8 @@ class LinePoint
 	int needtosync; //0 no, 1: s,t -> p, 2: p->s,t
 	flatpoint p; //(s,t) transformed by the mesh
 
+	LinePointCache cache[MAX_LINEPOINT_CACHE];
+
 	LinePoint *next, *prev;
 
 	LinePoint();
@@ -71,6 +76,7 @@ class LinePoint
 	void Clear();
 	void Add(LinePoint *np);
 	void AddBefore(LinePoint *np);
+	//void ReCache(int num, double dashleftover, EngraverLineQuality *dashes);
 };
 
 //---------------------------------------------- EngraverTraceSettings 
@@ -106,10 +112,9 @@ class EngraverTraceSettings : public Laxkit::anObject
 class TraceObject : public Laxkit::anObject
 {
   public:
-	int id;
 	int type; //0=current, 1=image file, 2=some object, 3=linear gradient, 4=radial gradient
 
-	LaxInterfaces::SomeData *obj;
+	LaxInterfaces::SomeData *object;
 	char *image_file;
 
 	int samplew, sampleh;
@@ -131,6 +136,7 @@ class EngraverLineQuality : public Laxkit::anObject
 {
   public:
 	double dash_length;
+	double dash_density;
 	double dash_randomness;
 	double zero_threshhold;
 	double broken_threshhold;
@@ -230,6 +236,7 @@ class EngraverPointGroup : public DirectionMap
 
 	EngraverTraceSettings *trace; 
 	EngraverLineQuality *dashes;
+	char *iorefs; //tags of unresolved references to dashes, traces, etc
 
 	Laxkit::PtrStack<LinePoint> lines;
 
@@ -238,8 +245,8 @@ class EngraverPointGroup : public DirectionMap
 	virtual ~EngraverPointGroup();
 	virtual void CopyFrom(EngraverPointGroup *orig, bool keep_name, bool link_trace, bool link_dash);
 
-	virtual void InstallTraceSettings(EngraverTraceSettings *newtrace);
-	virtual void InstallDashes(EngraverLineQuality *newdash);
+	virtual void InstallTraceSettings(EngraverTraceSettings *newtrace, int absorbcount);
+	virtual void InstallDashes(EngraverLineQuality *newdash, int absorbcount);
 
 	virtual int PointOn(LinePoint *p);
 	virtual flatpoint Direction(double s,double t);
@@ -258,7 +265,7 @@ class EngraverPointGroup : public DirectionMap
 									Laxkit::PtrStack<GrowPointInfo> *growpoint_ret,
 									int iteration_limit);
 
-	virtual void dump_out(FILE *f,int indent,int what,Laxkit::anObject *context);
+	virtual void dump_out(FILE *f,int indent,int what,Laxkit::anObject *context,const char *sharetrace, const char *sharedash);
 	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,Laxkit::anObject *context);
 };
 
