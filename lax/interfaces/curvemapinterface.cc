@@ -40,7 +40,9 @@ namespace LaxInterfaces {
 
 
 enum CurveMapIA {
-	CURVEM_ToggleWrap,
+	CURVEM_Invert,
+	CURVEM_Select,
+	CURVEM_Toggle_Wrap,
 	CURVEM_MAX
 };
 
@@ -166,11 +168,37 @@ double CurveMapInterface::f(double x)
 	return curveinfo->f_linear(x);
 }
 
+Laxkit::MenuInfo *CurveMapInterface::ContextMenu(int x,int y,int deviceid)
+{
+	MenuInfo *menu=new MenuInfo(_("Curves"));
+	menu->AddItem(_("Invert"), CURVEM_Invert, LAX_OFF, object_id, NULL, -1, 0);
+	menu->AddItem(_("Select"), CURVEM_Select, LAX_OFF, object_id, NULL, -1, 0);
+	return menu;
+}
+
 int CurveMapInterface::Event(const EventData *e,const char *mes)
 {
     if (e->type==LAX_onMouseOut && highlighteditable) {
 		highlighteditable=0;
 		needtodraw=1;
+	}
+
+	if (!strcmp(mes,"menuevent")) {
+		const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(e);
+		int i =s->info2; //id of menu item
+
+		if (i==CURVEM_Invert) {
+			PerformAction(CURVEM_Invert);
+			return 0;
+
+		} else if (i==CURVEM_Select) {
+			//PerformAction(CURVEM_ToggleSelect);
+			cerr <<" *** curvemap select todo!!!"<<endl;
+			return 0;
+
+		}
+
+		return 0;
 	}
 
 	return anInterface::Event(e,mes);
@@ -390,7 +418,7 @@ int CurveMapInterface::scaneditable(int x,int y)
 //! Scan for existing point, return index in curveinfo->points.
 int CurveMapInterface::scan(int x,int y)
 {
-	double scandistance=5;
+	double scandistance=10;
 	flatpoint fp(x,y);
 	flatpoint p1;
 
@@ -497,8 +525,8 @@ int CurveMapInterface::LBUp(int x,int y,unsigned int state,const LaxMouse *d)
  */
 int CurveMapInterface::MouseMove(int x,int y,unsigned int state,const LaxMouse *m)
 {
-	//DBG int ppp=scan(x,y);
-	//DBG cerr <<"scan: "<<ppp<<endl;
+	DBG int ppp=scan(x,y);
+	DBG cerr <<"curvemap scan: "<<ppp<<endl;
 	//DBG flatpoint fpp;
 	//DBG int ii=-1;
 	//DBG scannear(x,y, &fpp,&ii);
@@ -724,8 +752,13 @@ int CurveMapInterface::CharInput(unsigned int ch, const char *buffer,int len,uns
 
 int CurveMapInterface::PerformAction(int action)
 {
-	if (action==CURVEM_ToggleWrap) {
+	if (action==CURVEM_Toggle_Wrap) {
 		curveinfo->Wrap(!curveinfo->wrap);
+		needtodraw=1;
+		return 0;
+
+	} else if (action==CURVEM_Invert) {
+		curveinfo->InvertY();
 		needtodraw=1;
 		return 0;
 	}
@@ -744,7 +777,8 @@ Laxkit::ShortcutHandler *CurveMapInterface::GetShortcuts()
 
     sc=new ShortcutHandler(whattype());
 
-    sc->Add(CURVEM_ToggleWrap,      'w',0,0,        "ToggleWrap",  _("Toggle wrapping"),NULL,0);
+    sc->Add(CURVEM_Toggle_Wrap,      'w',0,0,        "ToggleWrap",  _("Toggle wrapping"),NULL,0);
+    sc->Add(CURVEM_Invert,           'i',0,0,        "Invert",      _("Invert y values"),NULL,0);
     //sc->Add(CURVEM_ToggleBrushRamp, 'b',0,0,        "ToggleBrushRamp", _("Toggle brush ramp edit mode"),NULL,0);
 
 

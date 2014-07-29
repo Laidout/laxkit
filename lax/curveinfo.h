@@ -82,6 +82,8 @@ class CurveInfo : public anObject, public LaxFiles::DumpUtility
 	virtual void SetData(flatpoint *p, int n);
 	virtual void SetDataRaw(flatpoint *p, int n);
 	virtual void Wrap(bool wrapx);
+	virtual void InvertY();
+	virtual void InvertX();
 
 	virtual void MakeFakeCurve();
 	virtual int MakeLookupTable(int *table,int numentries, int minvalue, int maxvalue);

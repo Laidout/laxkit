@@ -358,6 +358,27 @@ void CurveInfo::SetDataRaw(flatpoint *p, int n)
 	points.n=n;
 }
 
+/*! Flip the y range over miny..maxy.
+ */
+void CurveInfo::InvertY()
+{
+	for (int c=0; c<points.n; c++) {
+		points.e[c].y=1-points.e[c].y;
+	}
+	fauxpoints.flush();
+}
+
+/*! Flip the x range over miny..maxy.
+ */
+void CurveInfo::InvertX()
+{
+	for (int c=0; c<points.n; c++) {
+		points.e[c].x=1-points.e[c].x;
+	}
+	fauxpoints.flush();
+}
+
+
 /*! Set whether values wrap around in the x direction.
  * This implies f(xmin)==f(xmax).
  */

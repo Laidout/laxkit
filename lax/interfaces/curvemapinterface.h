@@ -99,6 +99,7 @@ class CurveMapInterface : public anInterface
 	virtual int CharInput(unsigned int ch, const char *buffer,int len,unsigned int state, const Laxkit::LaxKeyboard *d);
 	virtual int MoveResize(int nx,int ny,int nw,int nh);
 	virtual int Event(const Laxkit::EventData *e,const char *mes);
+	virtual Laxkit::MenuInfo *ContextMenu(int x,int y,int deviceid);
 
 	 //serializing aids
 	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,Laxkit::anObject *context);
