@@ -672,6 +672,11 @@ LaxCompositeOp DisplayerXlib::BlendMode(LaxCompositeOp mode)
 
 double DisplayerXlib::setSourceAlpha(double alpha)
 {
+	if (alpha<1) {
+		laximlib_usealpha(1);
+		laximlib_update_alpha(alpha);
+	} else laximlib_usealpha(0);
+
 	cerr <<" *** need to implement DisplayerXlib::setSourceAlpha()!"<<endl;
 	return 1;
 }
