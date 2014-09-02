@@ -458,6 +458,16 @@ Basis::Basis(spacepoint p1, spacepoint p2, spacepoint p3)
 	p=p1;
 }
 
+//! True if origin is zero, and axes are normal unit x,y,z.
+bool Basis::isUnity()
+{
+	if (!p.isZero()) return false;
+	if (x.x!=1 || x.y!=0 || x.z!=0) return false;
+	if (y.x!=0 || y.y!=1 || y.z!=0) return false;
+	if (z.x!=0 || z.y!=0 || z.z!=1) return false;
+	return true;
+}
+
 /*! p=p1, z=p2-p1, x points from p3 perpendicularly away from z
  */
 void Basis::Set(spacepoint p1, spacepoint p2, spacepoint p3)

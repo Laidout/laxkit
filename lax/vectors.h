@@ -144,6 +144,7 @@ class Basis
 	void Set(spacepoint p1, spacepoint p2, spacepoint p3);
 	spacepoint transformFrom(spacepoint &v);
 	spacepoint transformTo(spacepoint &v);
+	bool isUnity();
 };
 
 class spaceline
