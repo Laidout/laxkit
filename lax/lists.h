@@ -102,6 +102,8 @@ class PtrStack
 	virtual int Delta() { return delta; }
 	virtual T **extractArrays(char **local=NULL,int *nn=NULL);
 	virtual int insertArrays(T **a,char *nl,int nn);
+	virtual int Allocated();
+	virtual int Allocate(int newmax);
 };
 
 } // namespace Laxkit;

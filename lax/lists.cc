@@ -673,7 +673,38 @@ int PtrStack<T>::pop(T *&popped,int which,int *local) // which=-1,local=NULL
 	return n;
 }
 
+/*! Return the number of item pointers currently allocated.
+ * This is just this->max.
+ */
+template <class T> 
+int PtrStack<T>::Allocated()
+{ return max; }
 
+//! Ensure that the number of allocated is at least newmax.
+/*! If newmax<max, then nothing is done and max is returned.
+ * The new (or old) number of allocated elements is returned.
+ * Elements beyond n are initialized to NULL.
+ */
+template <class T>
+int PtrStack<T>::Allocate(int newmax)
+{
+	if (newmax<max) return max;
+
+	T **newt=new T*[newmax];
+	memcpy(newt,e,n*sizeof(T*));
+	delete[] e;
+	e=newt;
+
+	char *templ=new char[max];
+	memcpy(templ,islocal,n*sizeof(char)); 
+	delete[] islocal;
+	islocal=templ;
+
+	max=newmax;
+	for (int c=n; c<max; c++) e[c]=NULL;
+
+	return max;
+}
 
 
 
