@@ -809,12 +809,10 @@ LaxFiles::Attribute *anXApp::Resource(const char *name)
 	return resources.find(name);
 }
 
-//! Append to or replace a resource.
-/*! IMPORTANT: resource must be a pointer to a totally new instance, not something already contained in resources.
+//! Append to or replace a resource. The resource belongs to the type of thing in resource->name.
+/*! IMPORTANT: If resource is different than the one already in *this, then it is removed, and
+ * totally replaced with the new one. Otherwise, nothing is done, since it's the same one on the stack.
  * LaidoutApp takes possession of resource, meaning it becomes responsible for deleting it.
- *
- * Completely replace the existing resource with the one given.
- * If the resource did not previously exist, then install the resource.
  *
  * Return 0 for success, or nonzero for error.
  *
@@ -825,7 +823,10 @@ int anXApp::Resource(LaxFiles::Attribute *resource)
 {
 	if (!resource) return 1;
 	LaxFiles::Attribute *att=resources.find(resource->name);
-	if (att) resources.attributes.remove(resources.attributes.findindex(att));
+	if (att && att==resource) return 0; //already there
+
+	 //else remove old, push new
+	resources.attributes.remove(resources.attributes.findindex(att));
 	resources.push(resource,-1);
 	return 0;
 }
