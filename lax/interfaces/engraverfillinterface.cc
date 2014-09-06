@@ -2150,6 +2150,8 @@ void EngraverFillData::dump_out_svg(const char *file)
 	FILE *f=fopen(file,"w");
 	if (!f) return;
 
+	setlocale(LC_ALL,"C");
+
 	//powerstroke path effect goes in defs, BUT the outline is in the path->d,
 	//the original path is in an attribute of the path...
 	
@@ -2324,7 +2326,7 @@ void EngraverFillData::dump_out_svg(const char *file)
 				" </g>\n"
 				"</svg>\n");
 
-
+	setlocale(LC_ALL,"");
 	fclose(f);
 }
 
