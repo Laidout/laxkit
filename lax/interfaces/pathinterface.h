@@ -88,7 +88,7 @@ class Path : public LaxFiles::DumpUtility
  public:
 	static Laxkit::PtrStack<PathOperator> basepathops; 
 
-	Coordinate *path; // path is not necessarily the head, but is a vertex
+	Coordinate *path; // path is not necessarily the first in a chain, but is a vertex
 	Laxkit::PtrStack<PathWeightNode> pathweights;
 
 	LineStyle *linestyle; 
@@ -116,6 +116,7 @@ class Path : public LaxFiles::DumpUtility
 	virtual void append(flatpoint p,unsigned long flags=POINT_VERTEX,SegmentControls *ctl=NULL);
 	virtual void append(Coordinate *coord);
 	virtual void appendBezFromStr(const char *value);
+	virtual int removePoint(Coordinate *p, bool deletetoo);
 	virtual void moveTo(flatpoint p);
 	virtual void lineTo(flatpoint p);
 	virtual void curveTo(flatpoint c1, flatpoint c2, flatpoint p2);

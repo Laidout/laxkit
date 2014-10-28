@@ -860,7 +860,9 @@ int Path::MoveWeight(int which, double nt)
 int Path::RemoveWeightNode(int which)
 {
 	if (which<0 || which>=pathweights.n) return 1;
+	double width=pathweights.e[which]->width;
 	pathweights.remove(which);
+	if (pathweights.n==0) defaultwidth=width;
 	needtorecache=1;
 	return 0;
 }
@@ -946,10 +948,119 @@ void Path::appendBezFromStr(const char *value)
 	} while (s && *s);
 }
 
+/*! Assuming p is in the path somewhere, remove it and associated control points.
+ * Makes sure that path heads and weight nodes maintain their integrity.
+ *
+ * If the point is part of a controlled segment, then delete the whole segment.
+ * This is determined by any adjacent point that has the same Coordinate::controls.
+ *
+ * If deletetoo, then "delete p" and other control points connected to it. Otherwise,
+ * p and its points will merely be detached. 
+ *
+ * If this->path==NULL, return 1, and do nothing to p.
+ * If p==NULL, return 2, do nothing else.
+ * If p is not contained in this->path, return -1, and do nothing to p.
+ * If p is in this->path, detach (or delete), and return 0.
+ */
+int Path::removePoint(Coordinate *p, bool deletetoo)
+{
+	if (!path) return 1;
+	if (!p) return 2;
+
+	 // a pathop might handle deleting differently, for instance, when one deletes a control point for
+	 // a bezier curve, the default is for the point to not be deleted, but to zap back to its vertex.
+	 // Please be advised that if the pathop actually does delete points from the path, it will have
+	 // to do all the things the rest of this procedure does. Normal use of this option is for the
+	 // the pathop to not actually delete anything, just rearrange things, like deleting a focus in an
+	 // ellipse, but if this function is called, the whole controlled segment is deleted.
+
+	int index=-1; //index of point in path, whole numbers are vertices
+	if (path->hasCoord(p, &index)==0) return -1; //not in path!
+
+
+	Coordinate *s,*e;
+	s=e=p;
+
+	if (p->controls) {
+		 //find range of points we need to delete, which is any range of points sharing the same SegmentControl
+		while (s->prev && s->prev->controls==p->controls && s->prev!=p) s=s->prev;
+		while (e->next && e->next->controls==p->controls && e->next!=p) e=e->next;
+
+	} else if (p->flags&POINT_VERTEX) { //is vertex, remove any associated uncontrolled bezier control handles
+		if (p->prev && !p->prev->controls && p->prev->flags&POINT_TONEXT) s=p->prev;
+		if (p->next && !p->next->controls && p->next->flags&POINT_TOPREV) e=p->next;
+	} // else assume is just a normal bezier control point, remove only that one
+
+	bool isclosed;
+	int oldpathlen=NumVertices(&isclosed);
+	if (!isclosed) oldpathlen--;
+
+	int s_is_endpoint=s->isEndpoint();
+	int e_is_endpoint=e->isEndpoint();
+	if (s_is_endpoint>0) s_is_endpoint=-1;
+	if (e_is_endpoint<0) e_is_endpoint=1;
+
+	p=s->detachThrough(e); //now s through e is an open path
+	int v=0;
+	for (Coordinate *pp=s; pp!=NULL; pp=pp->next) {
+		if (pp->flags&POINT_VERTEX) v++;
+	}
+
+	if (v!=0) {
+		 //there were vertices within the chain that is deleted, so we
+		 //have to ensure that this->path points to something correct, and make
+		 //sure that weight nodes remain positioned in a reasonable manner
+		
+
+		 //first deal with this->path
+		if (!p) {
+			path=NULL; //deleting removed all points from path, so delete whole path
+		} else {
+			 //there is still a remnant of a path, need to make sure this->path is valid
+			path=p->firstPoint(1);
+		}
+
+		 //next deal with weight nodes
+		if (s_is_endpoint) {
+			 //remove any points at t<1, dec the rest
+			for (int c=pathweights.n-1; c>=0; c--) {
+				if (pathweights.e[c]->t<1) RemoveWeightNode(c);
+				else pathweights.e[c]->t--;
+			}
+
+		} else if (e_is_endpoint) {
+			 //remove any points at t>oldpathlen-1
+			for (int c=pathweights.n-1; c>=0; c--) {
+				if (pathweights.e[c]->t>oldpathlen) RemoveWeightNode(c);
+			}
+
+		} else {
+			 //deleted point was an interior vertex, not an endpoint.
+			 //need to redistribute nodes in segments adjacent to t=index
+			for (int c=0; c<pathweights.n; c++) {
+				if (pathweights.e[c]->t>index-1 && pathweights.e[c]->t<=index) 
+					pathweights.e[c]->t=(pathweights.e[c]->t+index-1)/2;
+				else if (pathweights.e[c]->t>index && pathweights.e[c]->t<index+1) 
+					pathweights.e[c]->t=(pathweights.e[c]->t+index+1)/2;
+				else if (pathweights.e[c]->t>=index+1) pathweights.e[c]->t--;
+			}
+
+		}
+
+	}
+
+	if (deletetoo) delete s;
+
+	needtorecache=1;
+	return 0;
+}
+
 /*! Make sure that path points to the first vertex point of the line, if possible.
  *  This is generally used after opening a previously closed path.
  *
  *  Remaps any weight nodes to be adjusted to new bez indexing.
+ *  
+ *  \todo *** this is complicated by weight node defs... it is not as useful as it used to be
  */
 void Path::fixpath()
 {
@@ -2697,53 +2808,24 @@ int PathInterface::DeletePoint(Coordinate *p)
 	int pathi=data->hasCoord(p);
 	if (pathi<0) return 1;
 	path=data->paths.e[pathi];
-	path->needtorecache=1;
 
-
-	Coordinate *s,*e;
-	s=e=p;
-
-	if (p->controls) {
-		 //find range of points we need to delete, which is any range of points sharing the same SegmentControl
-		while (s->prev && s->prev->controls==p->controls && s->prev!=p) s=s->prev;
-		while (e->next && e->next->controls==p->controls && e->next!=p) e=e->next;
-	} else if (p->flags&POINT_VERTEX) { //is vertex, remove any associated uncontrolled bezier control handles
-		if (p->prev && !p->prev->controls && p->prev->flags&POINT_TONEXT) s=p->prev;
-		if (p->next && !p->next->controls && p->next->flags&POINT_TOPREV) e=p->next;
-	} // else assume is just a normal bezier control point, remove only that one
-
-	p=s->detachThrough(e); //now s through e is an open path
-	if (!p) {
-		path->path=NULL; //deleting removed all points from path, so delete whole path
-		data->paths.remove(pathi);
-		curpath=NULL;
-	} else {
-		 //there is still a remnant of a path
-		path->path=p;
-		path->fixpath();
-	}
+	path->removePoint(p, false);
+	if (path->path==NULL) { data->clear(pathi); path=NULL; }
+	p=p->firstPoint(0);
 
 	 //reassign curvertex if necessary
-	if (curvertex && s->hasCoord(curvertex)) SetCurvertex(NULL);
-	if (curvertex==NULL && p) SetCurvertex(p);//note p might be null if whole path was deleted
+	if (curvertex && p->hasCoord(curvertex)) SetCurvertex(NULL);
+	if (curvertex==NULL && path!=NULL) SetCurvertex(path->path);
 	if (!curvertex && data->paths.n && data->paths.e[0]->path) SetCurvertex(data->paths.e[0]->path);
 
 	 //remove any points being deleted from curvertex or curpoints
 	int i;
-	for (p=s; p; p=p->next) {
-		i=curpoints.findindex(p);
+	for (Coordinate *pp=p; pp; pp=pp->next) {
+		i=curpoints.findindex(pp);
 		if (i>=0) curpoints.pop(i);
 	}
 
-	delete s;
-
-	 //remove newly cut off nodes..
-	bool isclosed;
-	int pathlen=path->NumVertices(&isclosed);
-	if (!isclosed) pathlen--;
-	for (int c=path->pathweights.n-1; c>=0; c--) {
-		if (path->pathweights.e[c]->t>pathlen) path->RemoveWeightNode(c);
-	}
+	delete p;
 
 	drawhover=0;
 	needtodraw=1;
@@ -3913,7 +3995,7 @@ Laxkit::MenuInfo *PathInterface::ContextMenu(int x,int y,int deviceid)
     MenuInfo *menu=new MenuInfo();
 
 	if (curpoints.n) {
-		menu->AddSep(_("Join"));
+		menu->AddSep(_("Join Style"));
 		menu->AddItem(_("Bevel"), PATHIA_Bevel);
 		menu->AddItem(_("Miter"), PATHIA_Miter);
 		menu->AddItem(_("Round"), PATHIA_Round);
@@ -3925,6 +4007,11 @@ Laxkit::MenuInfo *PathInterface::ContextMenu(int x,int y,int deviceid)
 		menu->AddItem(_("Start new subpath"),PATHIA_StartNewSubpath);
 		menu->AddItem(_("Start new path object"),PATHIA_StartNewPath);
 	}
+
+	//if (***multiple paths available) menu->AddItem(_("Separate with holes"),PATHIA_BreakApart);
+	//if (***multiple paths available) menu->AddItem(_("Separate all"),PATHIA_BreakApart);
+	//if (***multiple path objects) menu->AddItem(_("Combine"),PATHIA_Combine);
+	// *** need mechanism to insert custom path actions
 
 	if (menu->n()>0) return menu;
 
@@ -3990,6 +4077,7 @@ int PathInterface::LBDown(int x,int y,unsigned int state,int count,const LaxMous
 	if (buttondown.isdown(0,LEFTBUTTON)) return 0; //some other device has the lb already
 
 	buttondown.down(d->id,LEFTBUTTON,x,y, state,HOVER_None);
+	lbfound=NULL;
 
 	if (drawhover==HOVER_Direction) {
 		buttondown.moveinfo(d->id,LEFTBUTTON, state,HOVER_Direction);
@@ -4624,8 +4712,9 @@ int PathInterface::LBUp(int x,int y,unsigned int state,const LaxMouse *d)
 		needtodraw=1;
 		return 0;
 
-	} else if (action==HOVER_WeightPosition || action==HOVER_WeightTop || action==HOVER_WeightBottom) {
-		drawhover=HOVER_None;
+	} else if (action==HOVER_WeightAngle || action==HOVER_WeightPosition || action==HOVER_WeightTop || action==HOVER_WeightBottom) {
+		//drawhover=HOVER_None;
+		drawhover=action;
 		needtodraw=1;
 		return 0;
 
