@@ -201,7 +201,7 @@ void LineStyle::dump_out(FILE *f,int indent,int what,Laxkit::anObject *context)
 	fprintf(f,"%smask %lu\n", spc,mask);
 	fprintf(f,"%scolor %d %d %d %d\n",spc,color.red,color.green,color.blue,color.alpha);
 
-	if (capstyle==LAXCAP_Butt) str="miter";
+	if (capstyle==LAXCAP_Butt) str="butt";
 	else if (capstyle==LAXCAP_Round) str="round";
  	else if (capstyle==LAXCAP_Projecting) str="projecting";
  	else if (capstyle==LAXCAP_Zero_Width) str="zero";
@@ -213,7 +213,7 @@ void LineStyle::dump_out(FILE *f,int indent,int what,Laxkit::anObject *context)
  	else if (joinstyle==LAXJOIN_Bevel) str="bevel";
  	else if (joinstyle==LAXJOIN_Extrapolate) str="extrapolate";
     else str="?";
-	fprintf(f,"%sjoinstyle %d\n",spc,joinstyle);
+	fprintf(f,"%sjoinstyle %s\n",spc,str);
 	fprintf(f,"%smiterlimit %.10g\n",spc,miterlimit);
 
 	fprintf(f,"%sdotdash %d\n",  spc,dotdash);
