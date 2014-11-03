@@ -388,7 +388,7 @@ void CurveInfo::Wrap(bool wrapx)
 	wrap=wrapx;
 }
 
-/*! x,y are in actual range (as opposed to points space).
+/*! x,y are in actual range defined by current xmin,xmax and ymin,ymax (as opposed to points space 0 to 1).
  * Point is clamped to proper range.
  * If the x is the same as an existing point, then the old y value is replaced with the new one.
  *
