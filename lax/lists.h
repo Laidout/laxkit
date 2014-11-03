@@ -47,6 +47,7 @@ class NumStack
 	virtual ~NumStack() { if (e) delete[] e; }
 	virtual T &operator[](int i);
 	virtual void flush();
+	virtual void flush_n();
 	virtual int howmany() { return n; }
 	virtual int findindex(T t);
 	virtual void swap(int i1,int i2);

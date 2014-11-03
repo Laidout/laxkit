@@ -238,6 +238,13 @@ void NumStack<T>::flush()
 	max=0;
 }
 
+//! Just set n to 0. Unlike flush(), do not deallocate e.
+template <class T>
+void NumStack<T>::flush_n()
+{	
+	n=0;
+}
+
 //! Pushes an element only if it is not already on the stack.
 /*! Returns the index if the item was already on the stack. Otherwise -1, which
  * means that the item got pushed.
