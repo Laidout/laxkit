@@ -428,8 +428,53 @@ int Path::LineColor(Laxkit::ScreenColor *ncolor)
 	return 0;
 }
 
+/*! For any vertex point where point->next_s<=0, compute the length of the next segment.
+ * If all, then force recomputation of all segment lengths.
+ *
+ * These s computations should be considered rough approximations.
+ */
+void Path::UpdateS(bool all, int resolution)
+{
+	 // *** this maybe should compute on the offset path, not the base path
+
+	if (!path) return;
+
+	Coordinate *p=path,*start=path, *p2;
+	flatpoint c1,c2;
+
+	do {
+		p2=p->next;
+		if (!p2) break;
+
+		if (p2->flags&(POINT_TOPREV|POINT_TONEXT)) {
+			 //we do have control points
+			if (p2->flags&POINT_TOPREV) {
+				c1=p2->p();
+				p2=p2->next;
+			} else c1=p->p();
+			if (!p2) break;
+
+			if (p2->flags&POINT_TONEXT) {
+				c2=p2->p();
+				p2=p2->next;
+				if (!p2) break;
+			} else { //otherwise, should be a vertex
+				//p2=p2->next;
+				c2=p2->p();
+			}
+		}
+
+		if (all || p->next_s<=0) {
+			p->next_s = bez_segment_length(p->p(),c1,c2,p2->p(), resolution);
+		}
+
+		p=p->nextVertex(0);
+	} while (p && p!=start);
+}
+
+
 /*! Does nothing if needtorecache==0.
- * Otherwise rebuild outlinecache and areacache. areacache is the center of the stroke,
+ * Otherwise rebuild outlinecache and centercache. centercache is the center of the stroke,
  * inside of which is to be filled. For nonweighted, non-offset paths, this is the same as the base line.O
  *
  * \todo this could be more intelligent in having cache tied to points somehow, so that you only
@@ -442,11 +487,12 @@ void Path::UpdateCache()
 	//if (!Weighted()) { needtorecache=0; return; } // *** always create cache, as custom joins and caps must be dealt with
 
 
-	//1. strategy is to approximate the angle, and top and bottom offsets along the curve in an abstract
-	//space not tied to the windings of the base path.
-	//2. Next basically subdivide the base path a couple of times to generate sample points.
-	//3. from the sample points,  create a top and bottom path, based on the cached curves for angle and offsets.
-	//4. Finally, connect the top and bottom paths as appropriate.
+	// 1. strategy is to approximate the angle, and top and bottom offsets along the curve in an abstract
+	//    space not tied to the windings of the base path.
+	// 2. Next basically subdivide the base path a couple of times to generate sample points.
+	// 3. from the sample points,  create a top, bottom, and center path, based on the cached curves for angle and offsets found in 1.
+	// 4. Finally, connect the top and bottom paths as appropriate.
+
 
 	Coordinate *p=path->firstPoint(1);
 	if (!(p->flags&POINT_VERTEX)) { // is degenerate path: no vertices
@@ -457,16 +503,20 @@ void Path::UpdateCache()
 	bool hasangle=Angled();
 	bool hasoffset=HasOffset();
 
-	cache_angle.Reset(true); //removes all points and leaves blank
+	cache_angle .Reset(true); //removes all points and leaves blank
+	cache_offset.Reset(true);
+	cache_width .Reset(true);
 	outlinecache.flush();
-	areacache.flush();
+	centercache .flush();
 
 	Coordinate *p2, *start=p;
 	flatpoint wtop,wbottom;
+	flatpoint woffset,wwidth;
 	NumStack<flatpoint> topp,bottomp;
-	NumStack<flatpoint> areap; //destined for areacache, this is a path with 0 offset
+	NumStack<flatpoint> offsetp,widthp;
+	NumStack<flatpoint> centerp; //destined for centercache, this is a path with 0 offset
 
-	double ymax,ymin;
+	double ymax=0,ymin=0;
 	double amax=0,amin=0;
 	bool isclosed;
 
@@ -480,144 +530,146 @@ void Path::UpdateCache()
 	if (n==0) return; //single point, open path == no path!
 
 	 //set the x range for the cached curves
-	cache_offset_top   .SetXBounds(0,n,NULL,false);
-	cache_offset_bottom.SetXBounds(0,n,NULL,false);
-	cache_angle        .SetXBounds(0,n,NULL,false);
+	cache_offset.SetXBounds(0,n,NULL,false);
+	cache_width .SetXBounds(0,n,NULL,false);
+	cache_angle .SetXBounds(0,n,NULL,false);
 
-	cache_offset_top   .Wrap(isclosed);
-	cache_offset_bottom.Wrap(isclosed);
-	cache_angle        .Wrap(isclosed);
+	cache_offset.Wrap(isclosed);
+	cache_width .Wrap(isclosed);
+	cache_angle .Wrap(isclosed);
 
 	 //gather bounds and points to define the offset curves
-	if (pathweights.n>0) {
-		ymax=ymin=pathweights.e[0]->topOffset();
+	if (pathweights.n==0) {
+		 //no actual weight nodes
+		woffset=flatpoint(0,0);
+		wwidth =flatpoint(0,linestyle ? linestyle->width : defaultwidth);
+		ymin=ymax=woffset.y;
+		amin=amax=0;
+	} else {
 		amin=amax=pathweights.e[0]->angle;
-	}
-	for (int c=(pathweights.n>0 ? 0 : -1); c<pathweights.n; c++) {
-		if (c==-1) {
-			 //no actual weight nodes
-			wtop   =flatpoint(0,linestyle ?  linestyle->width :  defaultwidth);
-			wbottom=flatpoint(0,linestyle ? -linestyle->width : -defaultwidth);
-			ymin=ymax=wtop.y;
-			amin=amax=0;
-		} else {
-			wtop   =flatpoint(pathweights.e[c]->t, pathweights.e[c]->topOffset());
-			wbottom=flatpoint(pathweights.e[c]->t, pathweights.e[c]->bottomOffset());
-		}
-		topp.push(wtop);
-		bottomp.push(wbottom);
 
-		if (wtop.y>ymax)    ymax=wtop.y;
-		if (wtop.y<ymin)    ymin=wtop.y;
-		if (wbottom.y>ymax) ymax=wbottom.y;
-		if (wbottom.y<ymin) ymin=wbottom.y;
+		for (int c=0; c<pathweights.n; c++) {
+			woffset=flatpoint(pathweights.e[c]->t, pathweights.e[c]->offset);
+			wwidth =flatpoint(pathweights.e[c]->t, pathweights.e[c]->width);
 
-		if (hasangle) {
-			if (c>=0) {
+			if (woffset.y>ymax) ymax=woffset.y;
+			if (woffset.y<ymin) ymin=woffset.y;
+			if (wwidth.y>ymax)  ymax=wwidth.y;
+			if (wwidth.y<ymin)  ymin=wwidth.y;
+
+			if (hasangle) {
 				if (pathweights.e[c]->angle>amax) amax=pathweights.e[c]->angle;
 				if (pathweights.e[c]->angle<amin) amin=pathweights.e[c]->angle;
 			}
 		}
 	}
 
+	 //finalize width and offset bounds
 	if (ymax==ymin) ymin=ymax-1;
 	ymax+=(ymax-ymin)*.25;
 	ymin-=(ymax-ymin)*.25;
 
-	 //topp and bottomp hold (path t, offset), transfer those to cache_offset_top and cache_offset_bottom
+	cache_offset.SetYBounds(ymin,ymax,NULL,true);
+	cache_width .SetYBounds(ymin,ymax,NULL,true);
 
-	 //set cache_offset_top
-	cache_offset_top.SetYBounds(ymin,ymax,NULL,true);
-	cache_offset_top.SetData(topp.e,topp.n);
-	//DBG cerr <<"path:"<<endl;
-	//DBG dump_out(stderr,0,0,NULL);
-	//DBG for (int ii=0; ii<topp.n; ii++) cerr <<"topp "<<ii<<": "<<topp.e[ii].x<<','<<topp.e[ii].x<<endl;
-	//DBG cache_offset_top.dump_out(stderr,0,0,NULL);
-
-	 //set cache_offset_bottom
-	cache_offset_bottom.SetYBounds(ymin,ymax,NULL,true);
-	cache_offset_bottom.SetData(bottomp.e,bottomp.n);
-
-	 //set cache_angle
+	 //finalize bounds of cache_angle
 	if (amax==amin) amin=amax-1;
 	double aamax=amax;
 	amax+=(amax-amin)*.25;
 	amin-=(amax-amin)*.25;
 	cache_angle.SetYBounds(amin,amax,NULL,false);
-	if (hasangle) {
-		for (int c=(pathweights.n>0 ? 0 : -1); c<pathweights.n; c++) {
-			if (c==-1) cache_angle.AddPoint(0,0); //no weight nodes
-			else {
-				cache_angle.AddPoint(pathweights.e[c]->t,pathweights.e[c]->angle);
-			}
+
+	 //Now we have the bounds of the curve info, now need to push the actual points
+	if (!hasangle) cache_angle.SetFlat(aamax);
+
+	if (pathweights.n==0) {
+		if (hasangle) cache_angle.AddPoint(0,0);
+		cache_width .AddPoint(0,linestyle ? linestyle->width : defaultwidth);
+		cache_offset.AddPoint(0,0);
+
+	} else {
+		for (int c=0; c<pathweights.n; c++) {
+			if (hasangle) cache_angle.AddPoint(pathweights.e[c]->t,pathweights.e[c]->angle);
+
+			cache_offset.AddPoint(pathweights.e[c]->t,pathweights.e[c]->offset);
+			cache_width .AddPoint(pathweights.e[c]->t,pathweights.e[c]->width); 
 		}
-	} else cache_angle.SetFlat(aamax);
+	}
 
 	if (!isclosed && linestyle && linestyle->capstyle==LAXCAP_Zero_Width) {
 		 //add zero width to start and end for this cap style
-		double v=(cache_offset_top.f(0)+cache_offset_bottom.f(0))/2;
-		cache_offset_top.   AddPoint(0,v);
-		cache_offset_bottom.AddPoint(0,v);
-
-		v=(cache_offset_top.f(n)+cache_offset_bottom.f(n))/2;
-		cache_offset_top.   AddPoint(n,v);
-		cache_offset_bottom.AddPoint(n,v);
+		cache_width.AddPoint(0,0);
+		cache_width.AddPoint(n,0);
 	}
 
 
 	 //
-	 //cache_angle, cache_offset_top, cache_offset_bottom curves now built,
+	 //cache_angle, cache_offset, cache_width curves now built,
 	 //now need to build the actual paths,
-	 //topp, bottomp, and areap get filled with sample points derived from those offset curves,
+	 //topp, bottomp, and centerp get filled with sample points derived from those offset curves,
 	 //applied to the original paths
 	 //
 
-	topp.flush();
-	bottomp.flush();
 
 	flatpoint c1,c2;
 	p=start;
-	flatpoint pp,vv,vt;
-	int first=(isclosed?1:0); //index to begin render to segment.. for open paths, needs to start at 0
+	flatpoint pp,po,vv,vt;
+	//int first=(isclosed?1:0); //index to begin render to segment.. for open paths, needs to start at 0
+	int first=0; //we need to render the 1st sample point in a segment
 
 	int resolution=16; // *** todo: need a more dynamic resolution for when there are many weight nodes between vertices
 	double rr=1./(resolution-1); // *** maybe use subdivide for breakdown.. computationally faster
 	flatpoint bez[resolution];
 
+//	-----------------
+//	NumStack<flatpoint> bez;
+//	NumStack<double> bezt;
+//	bezt.Allocate(2*resolution);
+//	bezt.Delta(2*resolution);
+//	int numbez=0;
+//
+//	 // *** put in loop below:
+//	int numw=0;
+//	double lastw=-1;
+//	for (int c=0; c<pathweights.n; c++) {
+//		if (pathweights.e[c]->t<cp) continue;
+//		if (pathweights.e[c]->t>=cp+1) break;
+//
+//		numw++;
+//		if (lastw<cp) lastw=cp;
+//		rrr=(pathweights.e[c]->t-lastw)/10;
+//		for (int cc=0; cc<11; cc++) bezt.push(lastw+rrr*cc);
+//		lastw=pathweights.e[c]->t;
+//	}
+//	if (numw==0) {
+//		bezt.flush_n();
+//		for (int c=0; c<resolution; c++) bezt.push(c*rr);
+//	} else if (lastw<cp+1) {
+//		rrr=(cp+1-lastw)/10;
+//		for (int cc=0; cc<11; cc++) bezt.push(lastw+rrr*cc);
+//	} 
+//	-----------------
 
-	 //set up first point...
-	int cp=0;
 
-	PointAlongPath(cp, 0, &pp, &vv);
-	if (vv.isZero()) {
-		PointAlongPath(cp+.00001, 0, NULL,&vv);
-	}
-	vt=transpose(vv);
-	vt.normalize();
-	if (hasangle) {
-		if (absoluteangle) vt=rotate(flatpoint(1,0), cache_angle.f(cp));
-		else vt=rotate(vt, cache_angle.f(cp));
-	}
+	//
+	//now parse over this's path, adding sampled points segment by segment..
+	//Note that there is surely a more intelligent way to do this...
+	//
 
-	double ttop=cache_offset_top.f(cp);
-	double tbottom=cache_offset_bottom.f(cp);
+	int cp=0; //vertex counter
 	bool isline;
 	flatpoint vvv;
-
-	topp   .push(pp+vt*ttop);
-	bottomp.push(pp+vt*tbottom);
-	if (hasoffset) areap  .push((topp.e[topp.n-1]+bottomp.e[bottomp.n-1])/2);
-	else areap.push(pp);
-
-
-	//now parse over this's path, adding segment by segment..
+	double width;
 
 	do { //one loop per vertex point
 		p2=p->next; //p points to a vertex
 		if (!p2) break;
 
+
 		//p2 now points to first Coordinate after the first vertex
 		//find next 2 control points and next vertex
+		//and compute resolution number of points along the initial path line
+		//
 		if (p2->flags&(POINT_TOPREV|POINT_TONEXT)) {
 			 //we do have control points
 			if (p2->flags&POINT_TOPREV) {
@@ -640,7 +692,6 @@ void Path::UpdateCache()
 		} else {
 			 //we do not have control points, so is just a straight line segment
 			vvv=rr*(p2->p()-p->p());
-			c1=p->p()+vvv/3;
 			for (int bb=0; bb<resolution; bb++) {
 				bez[bb]=p->p() + bb*vvv;
 			}
@@ -651,36 +702,43 @@ void Path::UpdateCache()
 		}
 
 
-		 //compute sample points, based on found bezier segment
+		 //compute sample points of top, bottom, and center, based on found bezier segment
+		 //
 		for (int bb=first; bb<resolution; bb++) {
 			//DBG cerr <<"point: "<<bb*rr<<endl;
 			if (isline) vv=vvv;
 			else {
-				vv=bez_tangent(bb*rr, p->p(), c1,c2, p2->p());
-				if (vv.isZero()) vv=bez_tangent(bb*rr+.00001, p->p(), c1,c2, p2->p());
+				vv=bez_visual_tangent(bb*rr, p->p(), c1,c2, p2->p());
 			}
 			vt=transpose(vv);
 			vt.normalize();
+			po=bez[bb] + vt*cache_offset.f(cp+bb*rr);
 			if (hasangle) {
 				if (absoluteangle) vt=rotate(flatpoint(1,0), cache_angle.f(cp+bb*rr));
 				else vt=rotate(vt, cache_angle.f(cp+bb*rr));
 			}
 
-			topp   .push(bez[bb] + vt*cache_offset_top   .f(cp+bb*rr));
-			bottomp.push(bez[bb] + vt*cache_offset_bottom.f(cp+bb*rr));
-			if (hasoffset) areap  .push((topp.e[topp.n-1]+bottomp.e[bottomp.n-1])/2); //midpoint between top and bottom
+			width=cache_width.f(cp+bb*rr);
+			topp   .push(po + vt*width/2);
+			bottomp.push(po - vt*width/2);
+			if (hasoffset) centerp.push(po);
 		}
 
 		if (!hasoffset) {
-			 //area path is the same as the original path
+			 //center path is the same as the original path
 			if (isline) {
-				areap.push(p2->p());
+				vv=(p2->p() - p->p())/3;
+				centerp.push(p->p()+vv);
+				centerp.push(p->p()+2*vv);
+				centerp.push(p2->p());
 			} else { //add bez
-				areap.push(c1); areap.e[areap.n-1].info|=LINE_Bez;
-				areap.push(c2); areap.e[areap.n-1].info|=LINE_Bez;
-				areap.push(p2->p()); areap.e[areap.n-1].info|=LINE_Vertex;
+				centerp.push(c1);      centerp.e[centerp.n-1].info|=LINE_Bez;
+				centerp.push(c2);      centerp.e[centerp.n-1].info|=LINE_Bez;
+				centerp.push(p2->p()); centerp.e[centerp.n-1].info|=LINE_Vertex;
 			}
 		}
+
+		if (first==0) first=1;
 
 		 //need to check join with next segment, special handling for corners...
 		if (p2->nextVertex(0)) {
@@ -689,19 +747,13 @@ void Path::UpdateCache()
 			curv=p2->direction(0);
 			nextv=p2->direction(1);
 
-			//flatpoint nvt=transpose(nextv);
-			//ttop   =cache_offset_top.   f(cp+1);
-			//tbottom=cache_offset_bottom.f(cp+1);
-
-			if (!areparallel(curv, nextv)) {
-				areap  .e[areap.n-1]  .info|=LINE_Join;
+			if (areparallel(curv, nextv)!=1) {
+				centerp.e[centerp.n-1].info|=LINE_Join;
 				topp   .e[topp.n-1]   .info|=LINE_Join;
 				bottomp.e[bottomp.n-1].info|=LINE_Join;
+				first=0;
 			}
 		}
-
-
-		if (first==0) first=1;
 
 
 		p=p2;
@@ -711,7 +763,7 @@ void Path::UpdateCache()
 	int closed=(p==start);
 
 
-	// Now to build actual cache paths from topp and bottomp raw materials.
+	// Now to build actual cache paths from topp, bottomp, and centerp sample points raw materials.
 	//we take the topp and bottomp points, and create a path that incorporates both,
 	//temporarily installing all points to topp...
 	
@@ -720,15 +772,15 @@ void Path::UpdateCache()
 	if (!closed) {
 		 //top contour is connected to bottom with caps..
 
-		// *** add cap at topp.n
+		// *** add cap at 1st topp.n (original end of path)
 		for (int c=bottomp.n-1; c>=0; c--) {
 			topp.push(bottomp.e[c]);
 		}
-		// *** add cap at new topp.n
+		// *** add cap at new topp.n (original beginning of path)
 		topp.e[topp.n-1].info|=LINE_Closed;
 
 	} else {
-		areap.e[areap.n-1].info|=LINE_Closed;
+		centerp.e[centerp.n-1].info|=LINE_Closed;
 
 		 //bottom contour is a seperate path than top contour
 		topp.e[topp.n-1].info|=LINE_Closed;
@@ -738,33 +790,46 @@ void Path::UpdateCache()
 		topp.e[topp.n-1].info|=LINE_Closed;
 	}
 
-	 //do joins for area path
+	 //do joins for center path
 	int njoin;
+	int thisclosed;
 	flatpoint join[8];
 	flatpoint line[8];
 	flatpoint samples[3], bsamples[9];
-	if (hasoffset) for (int c=0; c<areap.n; c++) {
-		if ((areap.e[c].info&LINE_Join)==0) continue;
 
-		samples[2]=areap.e[c];
-		samples[1]=areap.e[c-1];
-		samples[0]=areap.e[c-2];
+	for (int pth=0; pth<2; pth++) {
+	  NumStack<flatpoint> *list;
+	  if (pth==0) list=&topp;
+	  else list=&centerp;
+	  thisclosed=0;
+
+	  DBG if (pth==0) cerr <<"------joins for topp..."<<endl;
+	  DBG if (pth==1) cerr <<"------joins for centerp..."<<endl;
+
+	  for (int c=0; c<list->n; c++) {
+		if ((list->e[c].info&LINE_Join)==0) continue;
+		DBG cerr << "**** JOIN at "<<c<<'/'<<list->n<<endl;
+		if (norm2(list->e[c]-list->e[c+1])<1e-5) continue; //don't bother if points really close together
+
+		samples[2]=list->e[c];
+		samples[1]=list->e[c-1];
+		samples[0]=list->e[c-2];
 		bez_from_points(bsamples,samples,3);
 
-		line[3]=samples[7];
-		line[2]=samples[6];
-		line[1]=samples[5];
-		line[0]=samples[4];
+		line[3]=bsamples[7];
+		line[2]=bsamples[6];
+		line[1]=bsamples[5];
+		line[0]=bsamples[4];
 
-		samples[0]=areap.e[c];
-		samples[1]=areap.e[(c+1)];
-		samples[2]=areap.e[c+2];
+		samples[0]=list->e[(c+1)%list->n];
+		samples[1]=list->e[(c+2)%list->n];
+		samples[2]=list->e[(c+3)%list->n];
 		bez_from_points(bsamples,samples,3);
 
-		line[4]=samples[7];
-		line[5]=samples[6];
-		line[6]=samples[5];
-		line[7]=samples[4];
+		line[4]=bsamples[1];
+		line[5]=bsamples[2];
+		line[6]=bsamples[3];
+		line[7]=bsamples[4];
 
 		njoin=0;
 		join_paths(linestyle ? linestyle->joinstyle : LAXJOIN_Extrapolate,
@@ -772,6 +837,13 @@ void Path::UpdateCache()
 				   line[0],line[1],line[2],line[3],
 				   line[4],line[5],line[6],line[7],
 				   &njoin, join);
+
+		if (njoin>0 && list->e[c].info&LINE_Closed) list->e[c].info&=~LINE_Closed;
+		for (int cc=0; cc<njoin; cc++) {
+			list->push(join[cc],c+1);
+			c++;
+		}
+	  }
 	}
 
 
@@ -780,11 +852,11 @@ void Path::UpdateCache()
 	outlinecache.insertArray(aa,n);
 
 
-	 //install areap
-	// *** todo: need to bez approximate from area p
-	aa=areap.extractArray(&n);
-	areacache.insertArray(aa,n);
-	if (closed) areacache.e[areacache.n-1].info|=LINE_Closed;
+	 //install centerp
+	// *** todo: need to bez approximate from centerp
+	aa=centerp.extractArray(&n);
+	centercache.insertArray(aa,n);
+	if (closed) centercache.e[centercache.n-1].info|=LINE_Closed;
 
 
 	needtorecache=0;
@@ -815,16 +887,24 @@ bool Path::HasOffset()
 
 /*! Return true for path has variable width, offset, or angle,
  * or return false for constant width, no offset, no angles (and no absolute angles).
+ *
+ * A true return value indicates that the UpdateCache mechanism must be used to
+ * compute the outlines of the path, as it might differ substantially from the base path
+ * with a traditional thickness.
  */
 bool Path::Weighted()
 {
 	if (pathweights.n==0) return false;
-	if (pathweights.e[0]->offset!=0) return true;
-	if (pathweights.n==1) return false; //so 1 weight value, no offset
 
-	double t=pathweights.e[0]->t;
+	if (pathweights.e[0]->offset!=0) return true;
+	if (pathweights.e[0]->angle!=0)  return true;
+	if (pathweights.n==1)            return false; //so 1 weight value, no offset
+
+	double w=pathweights.e[0]->width;
 	for (int c=1; c<pathweights.n; c++) {
-		if (pathweights.e[c]->offset!=0 || pathweights.e[c]->t!=t) return true;
+		if (pathweights.e[c]->angle!=0)  return true;
+		if (pathweights.e[c]->offset!=0) return true;
+		if (pathweights.e[c]->width!=w)  return true;
 	}
 	return false;
 }
@@ -893,6 +973,23 @@ void Path::AddWeightNode(double nt,double no,double nw,double nangle)
 
 	//UpdateWeightCache(w);
 	needtorecache=1;
+}
+
+/*! Retrieve line characteristics at any point along the path.
+ *
+ * Return 0 for success.
+ */
+int Path::GetWeight(double t, double *width, double *offset, double *angle)
+{
+	if (needtorecache) UpdateCache();
+
+	if (width || offset) {
+		if (width)  *width  = cache_width .f(t);
+		if (offset) *offset = cache_offset.f(t);
+	}
+	if (angle) *angle=cache_angle.f(t);
+
+	return 0;
 }
 
 
@@ -1274,6 +1371,82 @@ int Path::openAt(Coordinate *curvertex, int after)
 	return 1;
 }
 
+//! Return the coordinate that is the closest <= t, or NULL if no such t exists.
+Coordinate *Path::GetCoordinate(double t)
+{
+	if (!path) return NULL;
+
+	Coordinate *p=path;
+	while (p && t>1) {
+		p=p->nextVertex(0);
+		t-=1;
+	}
+	return p;
+}
+
+/*! Create a new point at t, and return a reference to that new point.
+ * It divies up adjacent control handles to maintain shape. If there are no control points, then
+ * a linear point is added (1 Coordinate). If there are control handles adjacent, then
+ * a 3 Coordinate point (control-vertex-control) is added and the vertex point is returned.
+ *
+ * If t does not exist in the line, then return NULL.
+ *
+ * \todo *** need to sort what happens when you try to cut a segment that has non-bez SegmentControls..
+ */
+Coordinate *Path::addAt(double t)
+{
+	Coordinate *p1=GetCoordinate(t);
+	if (!p1) return NULL;
+	int index=t;
+	double tt=t-(int)t;
+
+	 //need to install a point between p1 and next vertex p2
+	flatpoint pts[5];
+	Coordinate *c1,*c2,*p2;
+	p2=p1->next;
+	if (p2->flags&POINT_TOPREV) {
+		c1=p2;
+		p2=p2->next;
+	} else c1=p1;
+	if (p2->flags&POINT_TONEXT) {
+		c2=p2;
+		p2=p2->next;
+	} else c2=p2;
+
+
+	bez_subdivide(tt, p1->p(), c1->p(), c2->p(), p2->p(),  pts);
+	if (c1!=p1) c1->p(pts[0]);
+	if (c2!=p2) c2->p(pts[4]);
+	Coordinate *np, *cp;
+	if (c1==p1 && c2==p2) {
+		 //add segment point, not bez
+		np=new Coordinate(pts[2],POINT_VERTEX|BEZ_NSTIFF_NEQUAL,NULL);
+		cp=np;
+	} else {
+		 //add bez
+		np=new Coordinate(pts[1],POINT_TONEXT,NULL);
+		np->connect(new Coordinate(pts[2],POINT_VERTEX|POINT_REALLYSMOOTH|BEZ_STIFF_EQUAL,NULL),1);
+		np->next->connect(new Coordinate(pts[3],POINT_TOPREV,NULL),1);
+		cp=np->next;
+	}
+
+	c1->insert(np,1);
+
+	 //update weight nodes
+	for (int c=0; c<pathweights.n; c++) {
+		if (pathweights.e[c]->t>=index && pathweights.e[c]->t<=t && tt!=0)
+			pathweights.e[c]->t=index + (pathweights.e[c]->t-index)/tt; //node is to left of addAt t within same bez segment
+
+		else if (pathweights.e[c]->t>t && pathweights.e[c]->t<=index+1 && 1-tt!=0)
+			pathweights.e[c]->t=index + 1 + (pathweights.e[c]->t-t)/(1-tt); //node is to right of addAt t within same bez segment
+
+		else if (pathweights.e[c]->t>index+1) pathweights.e[c]->t++; //node is in future bez segment
+	}
+
+	needtorecache=1;
+	return cp;
+}
+
 //! Find the intersection(s) of the segment (or infinite line) from p1 to p2 and the curve.
 int Path::Intersect(flatpoint P1,flatpoint P2, int isline, double startt, flatpoint *pts,int ptsn, double *t,int tn)
 {
@@ -1329,9 +1502,9 @@ int Path::Intersect(flatpoint P1,flatpoint P2, int isline, double startt, flatpo
  */
 int Path::PointInfo(double t, int tisdistance, flatpoint *point, flatpoint *tangentafter, flatpoint *tangentbefore,
 						            flatpoint *ptop, flatpoint *pbottom,
-									double *offset, double *width, double *angle)
+									double *offset_ret, double *width_ret, double *angle_ret)
 {
-	flatpoint pp,tan;
+	flatpoint pp,po,tan;
 	int status=PointAlongPath(t,tisdistance, &pp,&tan);
 	if (status==0) return 0;
 
@@ -1339,30 +1512,29 @@ int Path::PointInfo(double t, int tisdistance, flatpoint *point, flatpoint *tang
 	if (tangentafter)  *tangentafter =tan;
 	if (tangentbefore) *tangentbefore=-tan; // *** LAZY HACK!! before not necessarily -tan at corners
 
-	if (ptop || pbottom || offset || width || angle) {
+	if (ptop || pbottom || offset_ret || width_ret || angle_ret) {
 		UpdateCache();
 		if (tisdistance) t=distance_to_t(t,NULL);
-		double a, top,bottom;
+		double a, offset,width;
 
-		a=cache_angle.f(t);
-		top=cache_offset_top.f(t);
-		bottom=cache_offset_bottom.f(t);
+		a     =cache_angle .f(t);
+		offset=cache_offset.f(t);
+		width =cache_width .f(t);
 
-		if (angle) *angle=a;
-		if (width) *width=top-bottom;
-		if (offset) *offset=(top+bottom)/2;
+		if (angle_ret)  *angle_ret =a;
+		if (width_ret)  *width_ret =width;
+		if (offset_ret) *offset_ret=offset;
 
 		if (ptop || pbottom) {
-			flatpoint vt;
-			if (absoluteangle) vt=rotate(flatpoint(1,0),a);
-			else {
-				vt=tan;
-				vt.normalize();
-				vt=rotate(transpose(vt), a);
-			}
+			flatpoint vt=transpose(tan);
+			vt.normalize();
+			po=pp+vt*offset;
 
-			if (ptop)    *ptop   =pp + vt*top;
-			if (pbottom) *pbottom=pp + vt*bottom;
+			if (absoluteangle) vt=rotate(flatpoint(1,0),a);
+			else vt=rotate(transpose(vt), a);
+
+			if (ptop)    *ptop   =po + vt*width/2;
+			if (pbottom) *pbottom=po - vt*width/2;
 		}
 	}
 
@@ -2020,9 +2192,19 @@ void PathsData::dump_out(FILE *f,int indent,int what,Laxkit::anObject *context)
 
 	fprintf(f,"%sstyle %lu\n",spc,style);
 
+	LineStyle *ls;
 	for (int c=0; c<paths.n; c++) {
 		fprintf(f,"%spath %d\n",spc,c);
+		if (paths.e[c]->linestyle==linestyle) {
+			 //blank out the linestyle when is same as overall linestyle
+			ls=linestyle;
+			paths.e[c]->linestyle=NULL;
+		} else ls=NULL;
 		paths.e[c]->dump_out(f,indent+2,what,context);
+		if (ls!=NULL) {
+			 //restore blanked out linestyle
+			paths.e[c]->linestyle=ls;
+		}
 	}
 }
 
@@ -2064,6 +2246,10 @@ void PathsData::dump_in_atts(Attribute *att,int flag,Laxkit::anObject *context)
 		}
 	}
 	FindBBox();
+
+	for (int c=0; c<paths.n; c++) {
+		if (!paths.e[c]->linestyle) paths.e[c]->Line(linestyle);
+	}
 }
 
 double PathsData::Length(int pathi, double tstart,double tend)
@@ -3054,12 +3240,12 @@ int PathInterface::Refresh()
 	if (!ignoreweights) {
 		 //this path is only used for fill. stroke path is constructed separately below
 		if (hasfill) {
-			 //use path->areacache for fill area, and later path->outlinecache for stroke
+			 //use path->centercache for fill area, and later path->outlinecache for stroke
 			for (int cc=0; cc<data->paths.n; cc++) {
 				// position p to be the first point that is a vertex
 				pdata=data->paths.e[cc];
 				pdata->UpdateCache();
-				dp->drawFormattedPoints(pdata->areacache.e, pdata->areacache.n, 1);
+				dp->drawFormattedPoints(pdata->centercache.e, pdata->centercache.n, 1);
 			}
 		}
 
@@ -3184,6 +3370,7 @@ int PathInterface::Refresh()
 			start=p;
 			p2=NULL;
 			Coordinate *nextp=NULL;
+
 			do { //one loop for each vertex to vertex segment
 				if (p->controls) {
 					 //first find the bounds of the bezier approximated segment
@@ -3271,8 +3458,6 @@ int PathInterface::Refresh()
 				for (int cw=(pdata->pathweights.n>0 ? 0 : -1); cw<pdata->pathweights.n; cw++) {
 					if (cw==-1) weight=&defaultweight; else weight=pdata->pathweights.e[cw];
 
-					if (pdata->PointAlongPath(weight->t, 0, &pp, &vv)==0) continue;
-
 					if (drawpathi==cc && drawhoveri==cw) {
 					  if (     drawhover==HOVER_Weight
 							|| drawhover==HOVER_WeightPosition
@@ -3284,7 +3469,9 @@ int PathInterface::Refresh()
 						highlight=-1;
 					} else highlight=0;
 
-					drawWeightNode(pp,vv, weight->topOffset(),weight->bottomOffset(), highlight, weight->angle,pdata->absoluteangle);
+					//if (pdata->PointAlongPath(weight->t, 0, &pp, &vv)==0) continue; 
+					//drawWeightNode(pp,vv, weight->topOffset(),weight->bottomOffset(), highlight, weight->angle,pdata->absoluteangle);
+					drawWeightNode(pdata, weight, highlight);
 				}
 			}
 		} // loop cc over paths
@@ -3313,7 +3500,14 @@ int PathInterface::Refresh()
 		dp->drawpoint(hoverpoint, 3,0);
 
 	} else if (drawhover==HOVER_AddWeightNode) {
-		drawWeightNode(hoverpoint,hoverdir, defaultweight.topOffset(),defaultweight.bottomOffset(), 1, defaultweight.angle,pdata->absoluteangle);
+		int hpathi=-1;
+		double t;
+		data->ClosestPoint(hoverpoint, NULL,NULL,&t,&hpathi);
+		if (hpathi>=0) {
+			PathWeightNode node(t, defaultweight.offset, defaultweight.width);
+			node.angle=defaultweight.angle;
+			drawWeightNode(data->paths.e[drawpathi], &node, 0);
+		}
 
 	} else if (drawhover==HOVER_Endpoint || drawhover==HOVER_MergeEndpoints) {
 		dp->NewFG(0.,.75,0.);
@@ -3449,9 +3643,9 @@ void PathInterface::DrawBaselines()
 
 		dp->NewFG(1.,1.,1.);
 		dp->LineAttributes(2,LineSolid,LAXCAP_Butt,LAXJOIN_Round);
-		dp->drawFormattedPoints(pdata->areacache.e, pdata->areacache.n, 0);
+		dp->drawFormattedPoints(pdata->centercache.e, pdata->centercache.n, 0);
 		dp->NewFG(0.,0.,1.);
-		dp->drawFormattedPoints(pdata->areacache.e, pdata->areacache.n, 0);
+		dp->drawFormattedPoints(pdata->centercache.e, pdata->centercache.n, 0);
 	}
 
 }
@@ -3463,24 +3657,19 @@ void PathInterface::DrawBaselines()
  *
  * pp and vv are in data space, and it is assumed dp->realtoscreen() incorporates data->m().
  */
-void PathInterface::drawWeightNode(flatpoint pp,flatpoint vv, double wtop,double wbottom, int isfornew, double angle, bool absoluteangle)
+//void PathInterface::drawWeightNode(flatpoint pp,flatpoint vv, double wtop,double wbottom, int isfornew, double angle, bool absoluteangle)
+void PathInterface::drawWeightNode(Path *path, PathWeightNode *weight, int isfornew)
 {
 	double arc=SELECTRADIUS*2;
 
-	if (vv.isZero()) vv.x=1;
-	else vv.normalize();
-	if (absoluteangle) vv=rotate(flatpoint(1,0), angle);
-	else if (angle!=0) vv=rotate(vv, angle);
-	flatpoint vt=transpose(vv);
+	//double wtop   =weight->topOffset();
+	//double wbottom=weight->bottomOffset();
+	//double angle  =weight->angle;
+	//bool absoluteangle=path->absoluteangle;
 
-	//ppo=dp->realtoscreen(pp); //point on the path
-	flatpoint ptop   =dp->realtoscreen(pp+vt*wtop);
-	flatpoint pbottom=dp->realtoscreen(pp+vt*wbottom);
+	flatpoint pp,po, ptop,pbottom, vv,vt;
+	if (WeightNodePosition(path, weight, &pp,&po, &ptop,&pbottom, &vv,&vt)!=0) return;
 
-	vv=dp->realtoscreen(pp+vv)-dp->realtoscreen(pp);
-	vv/=norm(vv);
-	vt=ptop-pbottom;
-	vt.normalize();
 
 	dp->NewFG(controlcolor);
 	if (isfornew==1) {
@@ -3713,6 +3902,43 @@ Coordinate *PathInterface::scannear(Coordinate *p,char u,double radius) //***rad
 	return NULL;
 }
 
+/*! Return 1 if node not on path.
+ * Return 0 for success.
+ */
+int PathInterface::WeightNodePosition(Path *path, PathWeightNode *weight,
+									  flatpoint *pp_ret, flatpoint *po_ret, flatpoint *ptop_ret, flatpoint *pbottom_ret,
+									  flatpoint *vv_ret, flatpoint *vt_ret)
+{
+	flatpoint pp,po, vv,vt, ptop,pbottom;
+
+	if (path->PointAlongPath(weight->t, 0, &pp, &vv)==0) return 1;
+
+	if (vv.isZero()) path->PointAlongPath(weight->t+.00001, 0, NULL,&vv);
+	vv.normalize();
+	vt=transpose(vv);
+	po=pp+vt*weight->offset;
+	if (path->absoluteangle) vv=rotate(flatpoint(1,0), weight->angle);
+	else if (weight->angle!=0) vv=rotate(vv, weight->angle);
+	vt=transpose(vv);
+
+	ptop   =realtoscreen(transform_point(data->m(), po+vt*weight->width/2));
+	pbottom=realtoscreen(transform_point(data->m(), po-vt*weight->width/2));
+
+	vv=realtoscreen(transform_point(data->m(),po+vv))-realtoscreen(transform_point(data->m(),po));
+	vv.normalize();
+	vt=ptop-pbottom;
+	vt.normalize();
+
+	*pp_ret=pp;
+	*po_ret=po;
+	*ptop_ret=ptop;
+	*pbottom_ret=pbottom;
+	*vv_ret=vv;
+	*vt_ret=vt;
+
+	return 0;
+}
+
 /*! Each weight node has arrows that point to the position in the path, at a distance
  * of the line top and bottom. Dragging the bar off to the side repositions. Dragging
  * either the top or bottom moves one or both, depending on state.
@@ -3736,7 +3962,7 @@ int PathInterface::scanWeights(int x,int y,unsigned int state, int *pathindex, i
 	flatpoint sp;
 	PathWeightNode *weight;
 	Path *path;
-	flatpoint pp,vv, vt, ptop,pbottom;
+	flatpoint pp,po,vv, vt, ptop,pbottom;
 
 	for (int c=0; c<data->paths.n; c++) {
 		path=data->paths.e[c];
@@ -3744,21 +3970,7 @@ int PathInterface::scanWeights(int x,int y,unsigned int state, int *pathindex, i
 		for (int cw=(path->pathweights.n>0 ? 0 : -1); cw<path->pathweights.n; cw++) {
 			if (cw==-1) weight=&defaultweight; else weight=path->pathweights.e[cw];
 
-			if (path->PointAlongPath(weight->t, 0, &pp, &vv)==0) continue;
-
-			if (vv.isZero()) path->PointAlongPath(weight->t+.00001, 0, NULL,&vv);
-			vv.normalize();
-			if (path->absoluteangle) vv=rotate(flatpoint(1,0), weight->angle);
-			else if (weight->angle!=0) vv=rotate(vv, weight->angle);
-			vt=transpose(vv);
-
-			ptop   =realtoscreen(transform_point(data->m(), pp+vt*weight->topOffset()));
-			pbottom=realtoscreen(transform_point(data->m(), pp+vt*weight->bottomOffset()));
-
-			vv=realtoscreen(transform_point(data->m(),pp+vv))-realtoscreen(transform_point(data->m(),pp));
-			vv.normalize();
-			vt=ptop-pbottom;
-			vt.normalize();
+			if (WeightNodePosition(path, weight, &pp,&po, &ptop,&pbottom, &vv,&vt)!=0) continue;
 
 			xx=(fp-ptop)*vv;
 			if (xx<-arc*1.5 || xx>arc) continue;
@@ -3991,16 +4203,33 @@ Coordinate *PathInterface::scan(int x,int y,int pmask, int *pathindex) // pmask=
 //		| Delete       |
 //		----------------
 Laxkit::MenuInfo *PathInterface::ContextMenu(int x,int y,int deviceid)
-{ //***
+{
     MenuInfo *menu=new MenuInfo();
 
+	menu->AddSep(_("Join Style"));
+	int jstyle = curpath && curpath->linestyle ? curpath->linestyle->joinstyle : -1;
+	if (jstyle<0 && data && data->linestyle) jstyle=data->linestyle->joinstyle;
+	menu->AddItem(_("Bevel"),       PATHIA_Bevel,       LAX_OFF|LAX_ISTOGGLE|(jstyle==LAXJOIN_Bevel ? LAX_CHECKED : 0), 0);
+	menu->AddItem(_("Miter"),       PATHIA_Miter,       LAX_OFF|LAX_ISTOGGLE|(jstyle==LAXJOIN_Miter ? LAX_CHECKED : 0), 0);
+	menu->AddItem(_("Round"),       PATHIA_Round,       LAX_OFF|LAX_ISTOGGLE|(jstyle==LAXJOIN_Round ? LAX_CHECKED : 0), 0);
+	menu->AddItem(_("Extrapolate"), PATHIA_Extrapolate, LAX_OFF|LAX_ISTOGGLE|(jstyle==LAXJOIN_Extrapolate ? LAX_CHECKED : 0), 0);
+
+
 	if (curpoints.n) {
-		menu->AddSep(_("Join Style"));
-		menu->AddItem(_("Bevel"), PATHIA_Bevel);
-		menu->AddItem(_("Miter"), PATHIA_Miter);
-		menu->AddItem(_("Round"), PATHIA_Round);
-		menu->AddItem(_("Extrapolate"), PATHIA_Extrapolate);
-	}
+		unsigned int ptype=curpoints.e[0]->flags&BEZ_MASK;
+		for (int c=1; c<curpoints.n; c++) if ((curpoints.e[c]->flags&BEZ_MASK)!=ptype) { ptype=-1; break; }
+		menu->AddSep(_("Point type"));
+		menu->AddItem(_("Smooth"),          PATHIA_PointTypeSmooth,        LAX_OFF|LAX_ISTOGGLE|(ptype==BEZ_STIFF_EQUAL   ? LAX_CHECKED : 0), 0);
+		menu->AddItem(_("Smooth, unequal"), PATHIA_PointTypeSmoothUnequal, LAX_OFF|LAX_ISTOGGLE|(ptype==BEZ_STIFF_NEQUAL  ? LAX_CHECKED : 0), 0);
+		menu->AddItem(_("Corner"),          PATHIA_PointTypeCorner,        LAX_OFF|LAX_ISTOGGLE|(ptype==BEZ_NSTIFF_NEQUAL ? LAX_CHECKED : 0), 0);
+
+//		jstyle=curpoints.e[0]->flags&POINT_JOIN_MASK;
+//		menu->AddSep(_("Per Point Join Style"));
+//		menu->AddItem(_("Bevel"), PATHIA_Bevel, LAX_OFF|LAX_ISTOGGLE|((jstyle&POINT_Bevel) ? LAX_CHECKED : 0));
+//		menu->AddItem(_("Miter"), PATHIA_Miter, LAX_OFF|LAX_ISTOGGLE|((jstyle&POINT_Miter) ? LAX_CHECKED : 0));
+//		menu->AddItem(_("Round"), PATHIA_Round, LAX_OFF|LAX_ISTOGGLE|((jstyle&POINT_Round) ? LAX_CHECKED : 0));
+//		menu->AddItem(_("Extrapolate"), PATHIA_Extrapolate, LAX_OFF|LAX_ISTOGGLE|((jstyle&POINT_Extrapolate) ? LAX_CHECKED : 0));
+	}                                                                                   
 
 	if (!(pathi_style&PATHI_One_Path_Only)) {
 		if (menu->n()) menu->AddSep();
@@ -4033,6 +4262,9 @@ int PathInterface::Event(const Laxkit::EventData *e_data, const char *mes)
 		else if (i==PATHIA_Round      )  PerformAction(PATHIA_Round);
 		else if (i==PATHIA_Extrapolate)  PerformAction(PATHIA_Extrapolate);
 
+		else if (i==PATHIA_PointTypeSmooth)        PerformAction(i);
+		else if (i==PATHIA_PointTypeSmoothUnequal) PerformAction(i);
+		else if (i==PATHIA_PointTypeCorner)        PerformAction(i);
 		return 0;
 	}
 
@@ -4417,6 +4649,8 @@ int PathInterface::AddPoint(flatpoint p)
 	npend=np;
 	while (npend->next && npend->next!=np) npend=npend->next;
 
+	// *** TODO!!! addpoint must adjust weight positions.. this should be done in Path class
+
 	Coordinate *ins=curvertex;
 	if (addafter) {
 		 //position ins to be right before where to add the point
@@ -4697,8 +4931,9 @@ int PathInterface::LBUp(int x,int y,unsigned int state,const LaxMouse *d)
 		double t;
 		data->ClosestPoint(hoverpoint, NULL,NULL,&t, &pathi);
 
-		 // *** needs to interpolate to actual settings at that point
-		data->paths.e[pathi]->AddWeightNode(t,0,defaultweight.width,defaultweight.angle);
+		double width=defaultweight.width, offset=0, angle=defaultweight.angle;
+		data->paths.e[pathi]->GetWeight(t, &width, &offset, &angle);
+		data->paths.e[pathi]->AddWeightNode(t,offset,width,angle);
 
 		show_weights=true;
 		drawhover=HOVER_None;
@@ -4861,53 +5096,21 @@ int PathInterface::LBUp(int x,int y,unsigned int state,const LaxMouse *d)
 }
 
 //! Add a new point at closest point to hoverpoint, which is in data coordinates.
+/*! Return 0 for point added, or 1 for error and couldn't add.
+ */
 int PathInterface::CutNear(flatpoint hoverpoint)
 {
 	double t;
 	int pathi=-1;
 	//flatpoint newpoint=data->ClosestPoint(hoverpoint, NULL,NULL,&t,&pathi);
 	data->ClosestPoint(hoverpoint, NULL,NULL,&t,&pathi);
-	Coordinate *p1=data->GetCoordinate(pathi,t);
+
+	Coordinate *p1=data->paths[pathi]->addAt(t);
 	if (!p1) return 1;
-	t=t-(int)t;
-
-	//need to install a point between v and v->nextVertex
-	flatpoint pts[5];
-	Coordinate *c1,*c2,*p2;
-	p2=p1->next;
-	if (p2->flags&POINT_TOPREV) {
-		c1=p2;
-		p2=p2->next;
-	} else c1=p1;
-	if (p2->flags&POINT_TONEXT) {
-		c2=p2;
-		p2=p2->next;
-	} else c2=p2;
-
-
-	bez_subdivide(t, p1->p(), c1->p(), c2->p(), p2->p(),  pts);
-	if (c1!=p1) c1->p(pts[0]);
-	if (c2!=p2) c2->p(pts[4]);
-	Coordinate *np, *cp;
-	if (c1==p1 && c2==p2) {
-		 //add segment point, not bez
-		np=new Coordinate(pts[2],POINT_VERTEX|BEZ_NSTIFF_NEQUAL,NULL);
-		cp=np;
-	} else {
-		 //add bez
-		np=new Coordinate(pts[1],POINT_TONEXT,NULL);
-		np->connect(new Coordinate(pts[2],POINT_VERTEX|POINT_REALLYSMOOTH|BEZ_STIFF_EQUAL,NULL),1);
-		np->next->connect(new Coordinate(pts[3],POINT_TOPREV,NULL),1);
-		cp=np->next;
-	}
 
 	curpath=data->paths.e[pathi];
 	curpath->needtorecache=1;
-	curvertex=p1;
-	Coordinate *v=curvertex;
-	if (curvertex->next && (curvertex->next->flags&POINT_TOPREV)) v=v->next;
-	v->insert(np);
-	SetCurvertex(cp);
+	SetCurvertex(p1,pathi);
 
 	return 0;
 }
@@ -5721,6 +5924,7 @@ int PathInterface::PerformAction(int action)
 		for (int c=0; c<data->paths.n; c++) {
 			if (data->paths.e[c]->linestyle) data->paths.e[c]->linestyle->joinstyle=j;
 			else data->paths.e[c]->Line(data->linestyle);
+			data->paths.e[c]->needtorecache=1;
 		}
 
 		if (action==PATHIA_Bevel) PostMessage(_("Bevel join"));
@@ -5758,6 +5962,21 @@ int PathInterface::PerformAction(int action)
 	} else if (action==PATHIA_TogglePointType) {
 		 //toggle vertex smoothness type
 		SetPointType(-1);
+		needtodraw=1;
+		return 0;
+
+	} else if (action==PATHIA_PointTypeSmooth) {
+		SetPointType(BEZ_STIFF_EQUAL);
+		needtodraw=1;
+		return 0;
+
+	} else if (action==PATHIA_PointTypeSmoothUnequal) {
+		SetPointType(BEZ_STIFF_NEQUAL);
+		needtodraw=1;
+		return 0;
+
+	} else if (action==PATHIA_PointTypeCorner) {
+		SetPointType(BEZ_NSTIFF_NEQUAL);
 		needtodraw=1;
 		return 0;
 

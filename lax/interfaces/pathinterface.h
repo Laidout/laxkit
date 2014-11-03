@@ -41,11 +41,11 @@ namespace LaxInterfaces {
 class PathOperator;
 
 //These are added to Coordinate::flags, and devs should ensure they do not conflict with normal flags
-#define BEZ_MASK           (255<<16)
-#define BEZ_STIFF_EQUAL    (1<<16)
-#define BEZ_STIFF_NEQUAL   (1<<17)
-#define BEZ_NSTIFF_EQUAL   (1<<18)
-#define BEZ_NSTIFF_NEQUAL  (1<<19)
+#define BEZ_MASK           (255<<20)
+#define BEZ_STIFF_EQUAL    (1<<20)
+#define BEZ_STIFF_NEQUAL   (1<<21)
+#define BEZ_NSTIFF_EQUAL   (1<<22)
+#define BEZ_NSTIFF_NEQUAL  (1<<23)
 
 
 //-------------------- Path ---------------------------
@@ -96,12 +96,13 @@ class Path : public LaxFiles::DumpUtility
 	bool absoluteangle; //1==absolute, or 0==relative to direction to path, wich angle==0 do default
 
 	Laxkit::NumStack<flatpoint> outlinecache; //bezier c-v-c-...
-	Laxkit::NumStack<flatpoint> areacache; //bezier c-v-c-...
+	Laxkit::NumStack<flatpoint> centercache; //bezier c-v-c-...
 	//std::time_t cache_mod_time;
-	Laxkit::CurveInfo cache_offset_top;
-	Laxkit::CurveInfo cache_offset_bottom;
+	Laxkit::CurveInfo cache_offset;
+	Laxkit::CurveInfo cache_width;
 	Laxkit::CurveInfo cache_angle;
 	int needtorecache;
+	virtual void UpdateS(bool all, int resolution=16);
 	virtual void UpdateCache();
 
 	Path();
@@ -122,20 +123,24 @@ class Path : public LaxFiles::DumpUtility
 	virtual void curveTo(flatpoint c1, flatpoint c2, flatpoint p2);
 	virtual int close();
 	virtual int openAt(Coordinate *curvertex, int after);
+	virtual Coordinate *addAt(double t);
 	virtual void clear();
 	virtual int Line(LineStyle *nlinestyle);
 	virtual int LineColor(Laxkit::ScreenColor *ncolor);
 
+	 //weight node related
 	virtual bool Weighted();
 	virtual bool HasOffset();
 	virtual bool Angled();
 	virtual void AddWeightNode(double nt,double no,double nw,double nangle);
 	virtual int RemoveWeightNode(int which);
 	virtual int MoveWeight(int which, double nt);
+	virtual int GetWeight(double t, double *width, double *offset, double *angle);
 	virtual void SortWeights();
 
 	 //info functions
 	virtual int Intersect(flatpoint p1,flatpoint p2, int isline, double startt, flatpoint *pts,int ptsn, double *t,int tn);
+	virtual Coordinate *GetCoordinate(double t);
 	virtual int PointAlongPath(double t, int tisdistance, flatpoint *point, flatpoint *tangent);
 	virtual int PointInfo(double t, int tisdistance, flatpoint *point, flatpoint *tangentafter, flatpoint *tangentbefore,
 						            flatpoint *ptop, flatpoint *pbottom,
@@ -299,6 +304,9 @@ enum PathInterfaceActions {
 	PATHIA_RollPrev,
 	PATHIA_ToggleAddAfter,
 	PATHIA_TogglePointType,
+	PATHIA_PointTypeSmooth,
+	PATHIA_PointTypeSmoothUnequal,
+	PATHIA_PointTypeCorner,
 	PATHIA_Select,
 	PATHIA_SelectInPath,
 	PATHIA_Close,
@@ -391,6 +399,10 @@ class PathInterface : public anInterface
 	virtual Coordinate *scannear(Coordinate *p,char u,double radius=5);
 	virtual void SetCurvertex(Coordinate *p, int path=-1);
 	virtual void UpdateDir();
+	virtual int WeightNodePosition(Path *path, PathWeightNode *weight,
+									  flatpoint *pp_ret, flatpoint *po_ret, flatpoint *ptop_ret, flatpoint *pbottom_ret,
+								  flatpoint *vv_ret, flatpoint *vt_ret);
+
 	virtual int ConnectEndpoints(Coordinate *from,int fromi, Coordinate *to,int toi);
 	virtual int MergeEndpoints(Coordinate *from,int fromi, Coordinate *to,int toi);
 
@@ -402,7 +414,7 @@ class PathInterface : public anInterface
 	virtual void Modified(int level);
 	virtual void hoverMessage();
 	virtual void drawNewPathIndicator(flatpoint p,int which);
-	virtual void drawWeightNode(flatpoint pp,flatpoint dir, double wtop,double wbottom, int isfornew, double angle, bool absoluteangle);
+	virtual void drawWeightNode(Path *path, PathWeightNode *weight, int isfornew);
 	virtual void DrawBaselines();
 	virtual void DrawOutlines();
 
