@@ -407,10 +407,14 @@ int isnotvector(flatvector v)
 	return(v.x==0 && v.y==0);
 }
 
-//! True if v1 and v2 parallel
+//! Return 0 if v1 and v2 not parallel. 1 if parallel in same direction. -1 if parallel in opposite direction.
 int areparallel(flatvector v1, flatvector v2)
 {
-	return v1.x*v2.y==v2.x*v1.y;
+	if (v1.x*v2.y!=v2.x*v1.y) return 0;
+	if (v1.x==0) {
+		if (v1.y>0 && v2.y>0) return 1;
+	} else if (v1.x>0 && v2.x>0) return 1;
+	return -1;
 }
 
 //! Norm of v.
