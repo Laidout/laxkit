@@ -159,14 +159,14 @@ Laxkit::MenuInfo *FreehandInterface::ContextMenu(int x,int y,int deviceid)
 
 	MenuInfo *menu=new MenuInfo;
 
-	menu->AddItem(_("Create raw points"),               FREEHAND_Raw_Path ,    LAX_ISTOGGLE|((freehand_style&FREEHAND_Raw_Path )   ?LAX_CHECKED:0));
-	menu->AddItem(_("Create simplified polyline"),      FREEHAND_Poly_Path ,   LAX_ISTOGGLE|((freehand_style&FREEHAND_Poly_Path )  ?LAX_CHECKED:0));
-	menu->AddItem(_("Create bezier line"),              FREEHAND_Bez_Path ,    LAX_ISTOGGLE|((freehand_style&FREEHAND_Bez_Path )   ?LAX_CHECKED:0));
-	menu->AddItem(_("Create bezier outline"),           FREEHAND_Bez_Outline,  LAX_ISTOGGLE|((freehand_style&FREEHAND_Bez_Outline) ?LAX_CHECKED:0));
-	menu->AddItem(_("Create bezier with weight nodes"), FREEHAND_Bez_Weighted, LAX_ISTOGGLE|((freehand_style&FREEHAND_Bez_Weighted)?LAX_CHECKED:0));
-	menu->AddItem(_("Create color mesh"),               FREEHAND_Color_Mesh,   LAX_ISTOGGLE|((freehand_style&FREEHAND_Color_Mesh)  ?LAX_CHECKED:0));
-	menu->AddItem(_("Create grid mesh"),                FREEHAND_Grid_Mesh,    LAX_ISTOGGLE|((freehand_style&FREEHAND_Grid_Mesh)   ?LAX_CHECKED:0));
-	menu->AddItem(_("Create symmetric mesh"),           FREEHAND_Double_Mesh,  LAX_ISTOGGLE|((freehand_style&FREEHAND_Double_Mesh) ?LAX_CHECKED:0));
+	menu->AddItem(_("Create raw points"),               FREEHAND_Raw_Path ,    LAX_ISTOGGLE|((freehand_style&FREEHAND_Raw_Path )   ?LAX_CHECKED:0), 0);
+	menu->AddItem(_("Create simplified polyline"),      FREEHAND_Poly_Path ,   LAX_ISTOGGLE|((freehand_style&FREEHAND_Poly_Path )  ?LAX_CHECKED:0), 0);
+	menu->AddItem(_("Create bezier line"),              FREEHAND_Bez_Path ,    LAX_ISTOGGLE|((freehand_style&FREEHAND_Bez_Path )   ?LAX_CHECKED:0), 0);
+	menu->AddItem(_("Create bezier outline"),           FREEHAND_Bez_Outline,  LAX_ISTOGGLE|((freehand_style&FREEHAND_Bez_Outline) ?LAX_CHECKED:0), 0);
+	menu->AddItem(_("Create bezier with weight nodes"), FREEHAND_Bez_Weighted, LAX_ISTOGGLE|((freehand_style&FREEHAND_Bez_Weighted)?LAX_CHECKED:0), 0);
+	menu->AddItem(_("Create color mesh"),               FREEHAND_Color_Mesh,   LAX_ISTOGGLE|((freehand_style&FREEHAND_Color_Mesh)  ?LAX_CHECKED:0), 0);
+	menu->AddItem(_("Create grid mesh"),                FREEHAND_Grid_Mesh,    LAX_ISTOGGLE|((freehand_style&FREEHAND_Grid_Mesh)   ?LAX_CHECKED:0), 0);
+	menu->AddItem(_("Create symmetric mesh"),           FREEHAND_Double_Mesh,  LAX_ISTOGGLE|((freehand_style&FREEHAND_Double_Mesh) ?LAX_CHECKED:0), 0);
 
 	return menu;
 }
