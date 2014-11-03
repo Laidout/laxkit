@@ -124,7 +124,7 @@ PopupMenu::PopupMenu(const char *nname, const char *ntitle, unsigned long long s
 				unsigned long long extrastyle //!< Extra MenuSelector styles to pass along
 			) //nowner=0,atom=0,  nminfo=NULL,nmemislocal=1
 					: MenuSelector(NULL,nname,(ntitle?ntitle:"Menu"),
-							ANXWIN_BARE|ANXWIN_HOVER_FOCUS,
+							ANXWIN_BARE|ANXWIN_HOVER_FOCUS|ANXWIN_OUT_CLICK_DESTROYS,
 							xx,yy,ww,hh,brder,
 							nparentmenu,nowner,mes,
 							MENUSEL_ZERO_OR_ONE|MENUSEL_CURSSELECTS|MENUSEL_FOLLOW_MOUSE|MENUSEL_SEND_ON_UP
