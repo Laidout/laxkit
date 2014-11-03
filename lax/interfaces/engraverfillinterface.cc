@@ -5731,7 +5731,7 @@ Laxkit::MenuInfo *EngraverFillInterface::ContextMenu(int x,int y,int deviceid)
 	MenuItem *i;
 	for (int c=0; c<modes.n(); c++) {
 		i=modes.e(c);
-		menu->AddItem(i->name, i->id, LAX_OFF|LAX_ISTOGGLE|(mode==i->id ? LAX_CHECKED : 0));
+		menu->AddItem(i->name, i->id, LAX_OFF|LAX_ISTOGGLE|(mode==i->id ? LAX_CHECKED : 0), 0);
 	}
 
 	return menu;
