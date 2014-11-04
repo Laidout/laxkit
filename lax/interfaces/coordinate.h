@@ -86,12 +86,20 @@ class SegmentControls : public Laxkit::anObject
 
 #define POINT_NODELETE          (1<<14)
 
+#define POINT_Miter             (1<<15)
+#define POINT_Round             (1<<16)
+#define POINT_Bevel             (1<<17)
+#define POINT_Extrapolate       (1<<18)
+#define POINT_JOIN_MASK         (POINT_Miter|POINT_Round|POINT_Bevel|POINT_Extrapolate)
+
+
 class Coordinate
 {
  public:
 	flatpoint fp;
 	unsigned long flags;
 	int iid,info;
+	double next_s; //len of following segment
 	SegmentControls *controls;
 	Coordinate *next,*prev;
 
@@ -116,7 +124,7 @@ class Coordinate
 	virtual Coordinate *nextVertex(int n=0);
 	virtual Coordinate *firstPoint(int v=0); // return the first point in open line, or this
 	virtual Coordinate *lastPoint(int v=0); // return the first point in open line, or this
-	virtual int hasCoord(Coordinate *co); // return 1 if c is somewhere in paths
+	virtual int hasCoord(Coordinate *co, int *index=NULL); // return 1 if c is somewhere in paths
 	virtual void ShiftPoint(flatpoint p) { fp+=p; } //*** this could be an overloaded (Coordinate)+=(flatpoint)
 	virtual Coordinate *duplicate();
 	virtual Coordinate *duplicateAll();

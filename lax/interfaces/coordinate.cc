@@ -104,6 +104,9 @@ namespace LaxInterfaces {
  * #define POINT_REALLYSMOOTH      (1<<12|1<<13)
  * \endcode
  */
+/*! \var double Coordinate::next_s
+ * For vertex points, a hint about the length of the following segment to the next vertex point.
+ */
  
 
 //! Your basic constructor.
@@ -114,6 +117,7 @@ Coordinate::Coordinate()
 	flags=POINT_VERTEX;
 	iid=0;
 	info=0;
+	next_s=0;
 	//DBG cerr <<"+++ New coordinate vertex: "<<fp.x<<','<<fp.y<<endl;
 }
 
@@ -126,6 +130,7 @@ Coordinate::Coordinate(flatpoint p)
 	flags=POINT_VERTEX;
 	iid=0;
 	info=0;
+	next_s=0;
 	//DBG cerr <<"+++ New coordinate vertex: "<<fp.x<<','<<fp.y<<endl;
 }
 
@@ -138,6 +143,7 @@ Coordinate::Coordinate(double x,double y)
 	flags=POINT_VERTEX;
 	iid=0;
 	info=0;
+	next_s=0;
 	//DBG cerr <<"+++ New coordinate vertex: "<<fp.x<<','<<fp.y<<endl;
 }
 
@@ -151,6 +157,7 @@ Coordinate::Coordinate(double x,double y,unsigned long nflags,SegmentControls *c
 	flags=nflags; 
 	iid=0; 
 	info=0; 
+	next_s=0;
 	//DBG cerr <<"+++ New coordinate: "<<fp.x<<','<<fp.y<<endl;
 }
 
@@ -165,6 +172,7 @@ Coordinate::Coordinate(flatpoint pp,unsigned long nflags,SegmentControls *ctl)
 	flags=nflags; 
 	iid=0; 
 	info=0; 
+	next_s=0;
 	//DBG cerr <<"+++ New coordinate: "<<fp.x<<','<<fp.y<<endl;
 }
 
@@ -180,6 +188,7 @@ Coordinate::Coordinate(const Coordinate &p)
 	iid=p.iid;
 	info=p.info;
 	next=prev=NULL;
+	next_s=0;
 }
 
  //! Deletes both prev and next if they exist.
@@ -476,6 +485,9 @@ Coordinate *Coordinate::detach()
  *  more points, that is open or closed. Also assumes that the segment
  *  is sectioned correctly, that is, it does not sever control segments.
  *  PathInterface is supposed to check for that. Returns 1 on success.
+ *
+ *  Please note this does not check for TOPREV or TONEXT. It will insert
+ *  directly between *this and this->next.
  */
 int Coordinate::insert(Coordinate *c,int after) //after=1;
 { 
@@ -498,14 +510,24 @@ int Coordinate::insert(Coordinate *c,int after) //after=1;
 
  //! Return 1 if co is somewhere in path, else 0.
  /*! See also PathsData::hasCoord().
+  *
+  * If index!=NULL, then return the offset of (number of vertex points between) co from *this.
   */
-int Coordinate::hasCoord(Coordinate *co)
+int Coordinate::hasCoord(Coordinate *co, int *index)
 {
 	Coordinate *c=firstPoint(0), *d=c;
+	int v=-1;
 	do {
-		if (co==c) return 1;
+		if (c && c->flags&POINT_VERTEX) v++;
+		if (co==c) {
+			if (index) *index=v;
+			return 1;
+		}
 		c=c->next;
 	} while (c && c!=d);
+
+	 //point not found!
+	if (index) *index=-1;
 	return 0;
 }
 
