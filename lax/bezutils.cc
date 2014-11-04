@@ -425,6 +425,8 @@ flatpoint bez_tangent(double t,flatpoint p1,flatpoint c1,flatpoint c2,flatpoint 
 /*! If t>0 and t<1, then just return bez_tangent(). Otherwise, approximate a vector with a point just
  * off the path. If t<0 or t>1, then a null vector is returned.
  *
+ * Please note the returned vector is not normalized (unit length).
+ *
  * \todo this could use L'Hopital's rule, which says if two functions in this case x(t) and y(t) approach
  *   0, then x'(t) and y'(t) are such that x/y=x'/y' when limit x'/y' exists...
  *   
@@ -465,7 +467,7 @@ void bez_subdivide(double t,flatpoint p1,flatpoint c1,flatpoint c2,flatpoint p2,
 	points_ret[0]=p1+t*(c1-p1);
 	points_ret[1]=nv-t*nt/3;
 	points_ret[2]=nv;
-	points_ret[3]=nv+t*nt/3;
+	points_ret[3]=nv+(1-t)*nt/3;
 	points_ret[4]=p2+(1-t)*(c2-p2);
 }
 
@@ -938,7 +940,8 @@ int circle_circle_intersection(flatpoint o1, double r1, flatpoint o2, double r2,
  * 
  * Points returned are either vertex points or bez control points.
  * If control points, they will have LINE_Bez in their info.
- *
+ * The returned points are always new new points, not any of the original points.
+ * They would be inserted directly between ap2 and bp1.
  */
 flatpoint *join_paths(int jointype, double miterlimit,
 			flatpoint ap1,flatpoint ac1,flatpoint ac2,flatpoint ap2,
@@ -946,6 +949,7 @@ flatpoint *join_paths(int jointype, double miterlimit,
 			int *n, flatpoint *ret)
 {
 	if (jointype==LAXJOIN_Extrapolate) {
+		DBG cerr <<"join extrapolate..."<<endl;
 		//adds at most 5 points
 	
 		 //large k means very small circle, also could mean control point coincident with the vertex
@@ -957,6 +961,7 @@ flatpoint *join_paths(int jointype, double miterlimit,
 
 		if (k1==0 && k2==0) {
 			jointype=LAXJOIN_Miter; //2 lines
+
 		} else {
 			 //first figure out curvature circles
 			flatpoint o1=ap2, o2=bp1;
@@ -1106,6 +1111,8 @@ flatpoint *join_paths(int jointype, double miterlimit,
 
 
 	if (jointype==LAXJOIN_Round) {
+		DBG cerr <<"join round..."<<endl;
+
 		//adds at most 5 points
 		flatline l1(ap2, 2*ap2-ac2);
 		flatline l2(bp1, 2*bp1-bc1);
@@ -1162,6 +1169,8 @@ flatpoint *join_paths(int jointype, double miterlimit,
 	}
 
 	if (jointype==LAXJOIN_Miter) {
+		DBG cerr <<"join miter..."<<endl;
+
 		flatline l1(ap2, 2*ap2-ac2);
 		flatline l2(bp1, 2*bp1-bc1);
 
@@ -1205,6 +1214,7 @@ flatpoint *join_paths(int jointype, double miterlimit,
 	}
 
 	if (jointype==LAXJOIN_Bevel) {
+		DBG cerr <<"join bevel..."<<endl;
 		 //no extra points to add!
 		*n=0;
 		return NULL;
