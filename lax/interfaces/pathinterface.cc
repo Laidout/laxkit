@@ -728,9 +728,9 @@ void Path::UpdateCache()
 			 //center path is the same as the original path
 			if (isline) {
 				vv=(p2->p() - p->p())/3;
-				centerp.push(p->p()+vv);
-				centerp.push(p->p()+2*vv);
-				centerp.push(p2->p());
+				centerp.push(p->p()+vv);   centerp.e[centerp.n-1].info|=LINE_Bez;
+				centerp.push(p->p()+2*vv); centerp.e[centerp.n-1].info|=LINE_Bez;
+				centerp.push(p2->p());     centerp.e[centerp.n-1].info|=LINE_Vertex;
 			} else { //add bez
 				centerp.push(c1);      centerp.e[centerp.n-1].info|=LINE_Bez;
 				centerp.push(c2);      centerp.e[centerp.n-1].info|=LINE_Bez;
@@ -775,6 +775,10 @@ void Path::UpdateCache()
 		// *** add cap at 1st topp.n (original end of path)
 		for (int c=bottomp.n-1; c>=0; c--) {
 			topp.push(bottomp.e[c]);
+			if (topp.e[topp.n-1].info&LINE_Join) {
+				topp.e[topp.n-1].info&=~LINE_Join;
+				if (topp.n>1) topp.e[topp.n-2].info|=LINE_Join;
+			}
 		}
 		// *** add cap at new topp.n (original beginning of path)
 		topp.e[topp.n-1].info|=LINE_Closed;
@@ -784,15 +788,20 @@ void Path::UpdateCache()
 
 		 //bottom contour is a seperate path than top contour
 		topp.e[topp.n-1].info|=LINE_Closed;
+		if (bottomp.e[bottomp.n-1].info&LINE_Join) bottomp.e[0].info|=LINE_Join;
 		for (int c=bottomp.n-1; c>=0; c--) {
 			topp.push(bottomp.e[c]);
+			if (topp.e[topp.n-1].info&LINE_Join && c>0) {
+				topp.e[topp.n-1].info&=~LINE_Join;
+				if (topp.n>1) topp.e[topp.n-2].info|=LINE_Join;
+			}
 		}
 		topp.e[topp.n-1].info|=LINE_Closed;
 	}
 
 	 //do joins for center path
 	int njoin;
-	int thisclosed;
+	int thisclosed, thisstart, thisn;
 	flatpoint join[8];
 	flatpoint line[8];
 	flatpoint samples[3], bsamples[9];
@@ -801,35 +810,76 @@ void Path::UpdateCache()
 	  NumStack<flatpoint> *list;
 	  if (pth==0) list=&topp;
 	  else list=&centerp;
+
 	  thisclosed=0;
+	  thisstart=0;
+	  thisn=-1;
 
 	  DBG if (pth==0) cerr <<"------joins for topp..."<<endl;
 	  DBG if (pth==1) cerr <<"------joins for centerp..."<<endl;
 
 	  for (int c=0; c<list->n; c++) {
+		DBG cerr <<list->e[c].x<<"   "<<list->e[c].y<<endl;
+		if (thisn<0 || (thisn>0 && c>=thisstart+thisn)) {
+			 //need to find length of current line, which might not be list->n, so as
+			 //not to do buffer overruns below
+			thisstart=c;
+			for (int c2=thisstart; c2<list->n; c2++) {
+				if      (list->e[c2].info&LINE_Closed) thisclosed= 1;
+				else if (list->e[c2].info&LINE_Open)   thisclosed=-1;
+				else if (c2==list->n-1) thisclosed=-1;
+				else thisclosed=0;
+
+				if (thisclosed!=0) {
+					thisn=c2-thisstart+1;
+					break;
+				}
+			}
+		}
+
 		if ((list->e[c].info&LINE_Join)==0) continue;
-		DBG cerr << "**** JOIN at "<<c<<'/'<<list->n<<endl;
+		DBG cerr <<"maybe join, dist to next point="<<norm2(list->e[c]-list->e[c+1])<<endl;
+
 		if (norm2(list->e[c]-list->e[c+1])<1e-5) continue; //don't bother if points really close together
 
-		samples[2]=list->e[c];
-		samples[1]=list->e[c-1];
-		samples[0]=list->e[c-2];
-		bez_from_points(bsamples,samples,3);
+		DBG cerr << "**** JOIN at "<<c<<'/'<<list->n<<endl;
 
-		line[3]=bsamples[7];
-		line[2]=bsamples[6];
-		line[1]=bsamples[5];
-		line[0]=bsamples[4];
 
-		samples[0]=list->e[(c+1)%list->n];
-		samples[1]=list->e[(c+2)%list->n];
-		samples[2]=list->e[(c+3)%list->n];
-		bez_from_points(bsamples,samples,3);
+		if (list->e[thisstart + (c-thisstart+thisn-1)%thisn].info&LINE_Bez) {
+			line[3]=list->e[c];
+			line[2]=list->e[thisstart + (c-thisstart+thisn-1)%thisn];
+			line[1]=list->e[thisstart + (c-thisstart+thisn-2)%thisn];
+			line[0]=list->e[thisstart + (c-thisstart+thisn-3)%thisn];
 
-		line[4]=bsamples[1];
-		line[5]=bsamples[2];
-		line[6]=bsamples[3];
-		line[7]=bsamples[4];
+		} else {
+			samples[2]=list->e[c];
+			samples[1]=list->e[thisstart + (c-thisstart+thisn-1)%thisn];
+			samples[0]=list->e[thisstart + (c-thisstart+thisn-2)%thisn];
+			bez_from_points(bsamples,samples,3);
+
+			line[3]=bsamples[7];
+			line[2]=bsamples[6];
+			line[1]=bsamples[5];
+			line[0]=bsamples[4];
+		}
+
+		if (list->e[thisstart + (c-thisstart+1)%thisn].info&LINE_Bez) {
+			line[4]=list->e[thisstart + (c-thisstart+1)%thisn];
+			line[5]=list->e[thisstart + (c-thisstart+2)%thisn];
+			line[6]=list->e[thisstart + (c-thisstart+3)%thisn];
+			line[7]=list->e[thisstart + (c-thisstart+4)%thisn];
+
+		} else {
+			samples[0]=list->e[thisstart + (c-thisstart+1)%thisn];
+			samples[1]=list->e[thisstart + (c-thisstart+2)%thisn];
+			samples[2]=list->e[thisstart + (c-thisstart+3)%thisn];
+			bez_from_points(bsamples,samples,3);
+
+			line[4]=bsamples[1];
+			line[5]=bsamples[2];
+			line[6]=bsamples[3];
+			line[7]=bsamples[4];
+		}
 
 		njoin=0;
 		join_paths(linestyle ? linestyle->joinstyle : LAXJOIN_Extrapolate,
@@ -838,10 +888,17 @@ void Path::UpdateCache()
 				   line[4],line[5],line[6],line[7],
 				   &njoin, join);
 
-		if (njoin>0 && list->e[c].info&LINE_Closed) list->e[c].info&=~LINE_Closed;
+		if (njoin>0 && c==thisstart+thisn-1) list->e[c].info&=~(LINE_Closed|LINE_Open);
 		for (int cc=0; cc<njoin; cc++) {
 			list->push(join[cc],c+1);
 			c++;
+			thisn++;
+		}
+
+		if (c==thisstart+thisn-1) {
+			if (thisclosed==1)       list->e[c].info|=LINE_Closed;
+			else if (thisclosed==-1) list->e[c].info|=LINE_Open;
+			thisn=-1;
 		}
 	  }
 	}
