@@ -192,7 +192,16 @@ int CurveMapInterface::Event(const EventData *e,const char *mes)
 			return 0;
 
 		} else if (i==CURVEM_Select) {
+
 			//PerformAction(CURVEM_ToggleSelect);
+			//
+			//Builtin would be:
+			//  0..1 linear, 1..0 linear
+			//  sinusoid 0..1 and 1..0
+			//  flat 0, flat .5, flat 1
+			//need to figure out good way to store recent
+			//
+			//
 			cerr <<" *** curvemap select todo!!!"<<endl;
 			return 0;
 
