@@ -449,6 +449,41 @@ int ObjectInterface::LBDown(int x,int y,unsigned int state,int count,const Laxki
 	return 0;
 }
 
+/*! Called before doing something that is undoable.
+ * Makes initial stack reflect the current state of transforms in selection
+ * Note that if GetUndoManager() returns NULL, nothing is done.
+ */
+void ObjectInterface::UpdateInitial()
+{
+//	UndoManager *undomanager=GetUndoManager();
+//	if (!undomanager) return;
+//
+//	if (initial.Allocated()<selection->n()) initial.Allocate(selection->n());
+//
+//	for (int c=0; c<selection->n(); c++) {
+//		initial.e[c].m(selection->e(c)->obj->m());
+//	}
+//	initial.n=selection->n();
+}
+
+/*! Assuming UpdateInitial() has been called before changes made, this will install
+ * undo objects to GetUndoManager(). Does nothing in GetUndoManager() returns NULL.
+ */
+int ObjectInterface::InstallTransformUndo()
+{
+	return 0;
+//	UndoManager *undomanager=GetUndoManager();
+//	if (!undomanager) return 0;
+//
+//	for (int c=0; c<selection->n(); c++) {
+//		undomanager->AddUndo(new SomeDataUndo(selection->e(c)->obj,
+//									&initial.e[c],NULL, selection->e(c)->obj,NULL,
+//									SomeDataUndo::SDUNDO_Transform, (c==0 ? false : true)));
+//	}
+//
+//	return selection->n();
+}
+
 /*! *** drag out and capture objs, add to selection or 
  * take from selection on button up.
  */
@@ -469,21 +504,12 @@ int ObjectInterface::LBUp(int x,int y,unsigned int state,const Laxkit::LaxMouse 
 	}
 	
 	if (dragged && selection->n() && viewport) {
-		// *** todo:
-		//Affine initial;
-		//UndoManager *undomanager=GetUndoManager();
-
 		for (int c=0; c<selection->n(); c++) {
 			viewport->ObjectMoved(selection->e(c),1);
-
-			//if (undomanager) {
-			//	initial.m(start_transforms.e[c]);
-			//	undomanager->AddUndo(new SomeDataUndo(&initial,NULL, selection->e(c)->obj,NULL, SomeDataUndo::SDUNDO_Transform, (c==s ? false : true)));
-			//}
 		}
+		//InstallTransformUndo();
+
 		syncFromData(1);
-		//buttondown.up(d->id,LEFTBUTTON); <- dealt with below in RecInterface
-		//return 0;
 	}
 
 	return RectInterface::LBUp(x,y,state,d);

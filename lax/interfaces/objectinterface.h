@@ -49,6 +49,11 @@ class ObjectInterface : public RectInterface
 	virtual void Rotate(double angle);
 	virtual int PerformAction(int action);
 
+	 //undo related:
+	//Laxkit::PtrStack<SomeDataUndo> initial;
+	virtual void UpdateInitial();
+	virtual int InstallTransformUndo();
+
   public:
 	ObjectInterface(int nid,Laxkit::Displayer *ndp);
 	virtual ~ObjectInterface();
