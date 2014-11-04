@@ -105,6 +105,17 @@ int UndoData::isUndoable()
 int UndoData::isRedoable()
 { return direction==REDOABLE; }
 
+/*! in bytes of this whole undo instance,
+ * helps keep track of size of undo stack, which if left unwatched can get quite large.
+ *
+ * Default is to return size of base elements. Subclasses should add on size of anything they add on.
+ */
+int UndoData::Size()
+{
+	return 4*sizeof(Undoable*) + 2*sizeof(int) + 2*sizeof(long) + (description ? strlen(description) : 0);
+}
+
+
 //--------------------------------------------- UndoManager ------------------------------------------
 /*! \class UndoManager
  * \brief Simple class to keep track of undoes.

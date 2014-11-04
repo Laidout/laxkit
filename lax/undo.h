@@ -60,6 +60,7 @@ class UndoData
     virtual int isRedoable();
     virtual const char *Description() = 0;
 	virtual const char *Script() { return NULL; }
+	virtual int Size(); //in bytes of this whole undo instance
 };
 
 //--------------------------------------------- UndoManager ------------------------------------------
