@@ -230,7 +230,8 @@ int TreeSelector::InstallMenu(MenuInfo *nmenu)
 	if (menu!=nmenu) {
 		if (menu) menu->dec_count();
 		menu=nmenu;
-		nmenu->inc_count();
+		if (nmenu) nmenu->inc_count();
+		else menu=new MenuInfo;
 	}
 	needtobuildcache=1;
 	selection.flush();
