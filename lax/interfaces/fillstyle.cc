@@ -35,7 +35,7 @@ namespace LaxInterfaces {
  *
  * This is the color used during a solid fill
  *
- * fillrule (from Xlib): EvenOddRule or WindingRule\n
+ * fillrule: see LaxFillRule\n
  * fillstyle (from Xlib): FillSolid, FillTiled, FillStippled, or FillOpaqueStippled, plus
  * FillNone (\#define as 100)\n
  * 
@@ -47,7 +47,7 @@ FillStyle::FillStyle()
 	function=Laxkit::LAXOP_Source;
 	color.red=color.green=0;
 	color.blue=color.alpha=0xffff;
-	fillrule=EvenOddRule;
+	fillrule=LAXFILL_EvenOdd;
 	fillstyle=FillSolid;
 }
 
@@ -88,9 +88,9 @@ void FillStyle::dump_in_atts(Attribute *att,int flag,Laxkit::anObject *context)
 				color.alpha=i[3];
 			}
 		} else if (!strcmp(name,"fillrule")) {
-			if (!strcmp(value,"even")) fillrule=EvenOddRule;
-			else if (!strcmp(value,"odd")) fillrule=EvenOddRule;
-			else if (!strcmp(value,"nonzero")) fillrule=WindingRule;
+			if (!strcmp(value,"even"))         fillrule=LAXFILL_EvenOdd;
+			else if (!strcmp(value,"odd"))     fillrule=LAXFILL_EvenOdd;
+			else if (!strcmp(value,"nonzero")) fillrule=LAXFILL_Nonzero;
 			else fillrule=WindingRule;
 		} else if (!strcmp(name,"fillstyle")) {
 			if (!strcmp(value,"none")) fillstyle=FillNone;
@@ -127,7 +127,7 @@ void FillStyle::dump_out(FILE *f,int indent,int what,Laxkit::anObject *context)
 		return;
 	}
 	fprintf(f,"%scolor %d %d %d %d\n",spc,color.red,color.green,color.blue,color.alpha);
-	fprintf(f,"%sfillrule %s\n", spc,fillrule==EvenOddRule?"even":(fillrule==WindingRule?"nonzero":"odd"));
+	fprintf(f,"%sfillrule %s\n", spc,fillrule==LAXFILL_EvenOdd?"even":(fillrule==LAXFILL_Nonzero?"nonzero":"odd"));
 	fprintf(f,"%sfillstyle %s\n",spc,fillstyle==FillSolid?"solid":"none"); //or "object"
 	if (function==LAXOP_Source) fprintf(f,"%sfunction copy\n", spc);
 	else fprintf(f,"%sfunction %d\n", spc,function);
