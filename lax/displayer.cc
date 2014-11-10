@@ -671,8 +671,12 @@ void Displayer::drawfocusellipse(flatpoint focus1,flatpoint focus2,
 			)
 {
 	if (c==0) return;
+
+	if (decimal) { end_angle=end_angle/180.*M_PI; start_angle=start_angle/180.*M_PI; }
+	bool whole=true;
 	if (start_angle==end_angle) { end_angle=start_angle+2*M_PI; }
-	else if (decimal) { end_angle=end_angle/180.*M_PI; start_angle=start_angle/180.*M_PI; }
+	else whole=false;
+
 
 	double a,b;
 	flatpoint p,x,y,pp;
@@ -693,7 +697,7 @@ void Displayer::drawfocusellipse(flatpoint focus1,flatpoint focus2,
 	for (int c=1; c<9; c+=3) {
 		curveto(points[c+1],points[c+2],points[c+3]);
 	}
-	curveto(points[11],points[0],points[1]);
+	if (whole) curveto(points[11],points[0],points[1]);
 	closed();
 
 	if (draw_immediately) {
