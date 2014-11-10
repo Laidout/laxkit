@@ -630,6 +630,9 @@ void DisplayerXlib::LineAttributes(double width,int dash,int cap,int join)
  */
 void DisplayerXlib::FillAttributes(int fillstyle, int fillrule)
 {
+	if (fillrule==LAXFILL_Nonzero) fillrule=WindingRule;
+	else fillrule=EvenOddRule;
+
 	XSetFillRule(GetDpy(),GetGC(), fillrule);
 	XSetFillStyle(GetDpy(),GetGC(), fillstyle);
 }

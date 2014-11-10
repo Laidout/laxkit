@@ -257,7 +257,7 @@ Displayer::~Displayer()
 
 /*! \fn void Displayer::FillAttributes(int fillstyle, int fillrule)
  *
- * fillrule can be EvenOddRule or WindingRule.
+ * fillrule can be one of LaxFillRule.
  * fillstyle can be FillSolid, FillTiled, FillStippled, or FillOpaqueStippled.
  */
 
