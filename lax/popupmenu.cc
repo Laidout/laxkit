@@ -335,6 +335,12 @@ int PopupMenu::Idle(int tid)
 //! In addition to the MenuSelector::CharInput, left goes up a menu, right goes down, ESC escapes.
 int PopupMenu::CharInput(unsigned int ch,const char *buffer,int len,unsigned int state,const LaxKeyboard *d)
 {
+	if (ch==LAX_Enter) {
+		MenuSelector::CharInput(ch,buffer,len,state,d);
+		app->destroywindow(this);
+		return 0;
+	}
+
 	if (ch==LAX_Left) { //left, go up a menu
 		if (!parentmenu) return 0;
 //		app->rundialog(parentmenu);
