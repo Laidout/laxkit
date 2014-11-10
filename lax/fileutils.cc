@@ -322,6 +322,7 @@ long file_size(const char *filename, int followlink, int *error)
  */
 int file_exists(const char *filename, int followlink, int *error)
 {
+	if (!filename) return 0;
 	struct stat statbuf;
 	int c;
 	c=followlink?stat(filename, &statbuf):lstat(filename, &statbuf);
