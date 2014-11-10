@@ -39,6 +39,7 @@ class DoubleBBox {
 	virtual void addtobounds(flatpoint p);
 	virtual void addtobounds(DoubleBBox *bbox);
 	virtual void addtobounds(const double *m, DoubleBBox *bbox);
+	virtual void addtobounds(flatpoint *pts,int n);
 	virtual void setbounds(DoubleBBox *bbox);
 	virtual void setbounds(flatpoint *pts,int n);
 	virtual void setbounds(double mix,double max,double miy,double may) { minx=mix; maxx=max; miny=miy; maxy=may; }

@@ -73,6 +73,11 @@ void DoubleBBox::setbounds(flatpoint *pts,int n)
 	for (int c=1; c<n; c++) addtobounds(pts[c]);
 }
 
+void DoubleBBox::addtobounds(flatpoint *pts,int n)
+{
+	for (int c=0; c<n; c++) addtobounds(pts[c]);
+}
+
 //! Add bbox to bounds, first transforming it by 6 element transform matrix m.
 void DoubleBBox::addtobounds(const double *m, DoubleBBox *bbox)
 {
