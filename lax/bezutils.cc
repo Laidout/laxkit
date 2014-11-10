@@ -743,8 +743,13 @@ flatpoint *bez_ellipse(flatpoint *points, int numsegments,
 
 	if (!points) points=new flatpoint[n];
 
-	if (end_angle==start_angle) end_angle=start_angle+2*M_PI;
-	double theta=(end_angle-start_angle)/(numsegments); //radians between control points
+	double theta;
+	if (end_angle==start_angle) {
+		end_angle=start_angle+2*M_PI;
+		theta=(end_angle-start_angle)/(numsegments); //radians between control points
+	} else {
+		theta=(end_angle-start_angle)/(numsegments-1); //radians between control points
+	}
 	double v=4*(2*sin(theta/2)-sin(theta))/3/(1-cos(theta)); //length of control handle
 
 	flatpoint center=flatpoint(x,y);
