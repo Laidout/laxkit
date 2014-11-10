@@ -87,6 +87,14 @@ enum LaxJoinStyle
 	LAXJOIN_MAX
 };
 
+enum LaxFillRule
+{
+	LAXFILL_None=0,
+	LAXFILL_Nonzero,
+	LAXFILL_EvenOdd,
+	LAXFILL_MAX
+};
+
 enum DrawThingTypes {
 	THING_None,
 	THING_Circle,
