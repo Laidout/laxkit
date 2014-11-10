@@ -487,7 +487,7 @@ Coordinate *Coordinate::detach()
  *  PathInterface is supposed to check for that. Returns 1 on success.
  *
  *  Please note this does not check for TOPREV or TONEXT. It will insert
- *  directly between *this and this->next.
+ *  directly between *this and this->next (or *this and this->prev).
  */
 int Coordinate::insert(Coordinate *c,int after) //after=1;
 { 
