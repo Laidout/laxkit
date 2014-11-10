@@ -111,7 +111,6 @@ class Path : public LaxFiles::DumpUtility
 	virtual Path *duplicate();
 
 	 //building functions
-	virtual void fixpath();
 	virtual Coordinate *lastPoint(int v=0);
 	virtual void append(double x,double y,unsigned long flags=POINT_VERTEX,SegmentControls *ctl=NULL);
 	virtual void append(flatpoint p,unsigned long flags=POINT_VERTEX,SegmentControls *ctl=NULL);
@@ -124,14 +123,17 @@ class Path : public LaxFiles::DumpUtility
 	virtual int close();
 	virtual int openAt(Coordinate *curvertex, int after);
 	virtual Coordinate *addAt(double t);
+	virtual int addAt(Coordinate *curvertex, Coordinate *np, int after);
 	virtual void clear();
 	virtual int Line(LineStyle *nlinestyle);
 	virtual int LineColor(Laxkit::ScreenColor *ncolor);
 
 	 //weight node related
 	virtual bool Weighted();
+	virtual bool ConstantWidth();
 	virtual bool HasOffset();
 	virtual bool Angled();
+	virtual void InsertWeightNode(double nt);
 	virtual void AddWeightNode(double nt,double no,double nw,double nangle);
 	virtual int RemoveWeightNode(int which);
 	virtual int MoveWeight(int which, double nt);
@@ -204,13 +206,13 @@ class PathsData : virtual public SomeData
 	virtual Coordinate *LastVertex();
 	virtual void pushEmpty(int where=-1,LineStyle *nls=NULL);
 	virtual void InstallLineStyle(LineStyle *newlinestyle);
-	virtual void fixpath(int index);
 //	virtual int AddAfter(Coordinate *afterwhich,flatpoint p); 
 //	virtual int Delete(Coordinate *which); // returns num left in stack
 	virtual void clear(int which=-1);
 	virtual void ApplyTransform();
 	virtual void MatchTransform(Affine &affine);
 	virtual void MatchTransform(const double *mm);
+	virtual int ConnectEndpoints(Coordinate *from,int fromi, Coordinate *to,int toi);
 
 	virtual flatpoint ClosestPoint(flatpoint point, double *disttopath, double *distalongpath, double *tdist, int *pathi);
 	virtual int Intersect(int pathindex,flatpoint p1,flatpoint p2, int isline, double startt,flatpoint *pts,int ptsn, double *t,int tn);

@@ -942,16 +942,32 @@ bool Path::HasOffset()
 	return false;
 }
 
-/*! Return true for path has variable width, offset, or angle,
+/*! True if there are no weight nodes, or the width is the same in all nodes.
+ */
+bool Path::ConstantWidth()
+{
+	if (pathweights.n==0) return true;
+
+	for (int c=1; c<pathweights.n; c++) {
+		if (pathweights.e[c]->width!=pathweights.e[0]->width) return false;
+	}
+	return true;
+}
+
+/*! Return true for path has variable width, any offset, or any non-zero angle,
  * or return false for constant width, no offset, no angles (and no absolute angles).
  *
  * A true return value indicates that the UpdateCache mechanism must be used to
  * compute the outlines of the path, as it might differ substantially from the base path
  * with a traditional thickness.
+ *
+ * Using LAXCAP_Zero_Width, or the extrapolate join in linestyle will return a true.
  */
 bool Path::Weighted()
 {
 	if (pathweights.n==0) return false;
+	if (linestyle && linestyle->capstyle==LAXCAP_Zero_Width) return true;
+	if (linestyle && linestyle->joinstyle==LAXJOIN_Extrapolate) return true;
 
 	if (pathweights.e[0]->offset!=0) return true;
 	if (pathweights.e[0]->angle!=0)  return true;
@@ -1004,18 +1020,29 @@ int Path::RemoveWeightNode(int which)
 	return 0;
 }
 
+/*! Add a weight node at nt, and grab the current offset, width, and angle at that t value.
+ */
+void Path::InsertWeightNode(double nt)
+{
+	double no,nw,nangle;
+	GetWeight(nt, &nw, &no, &nangle);
+	AddWeightNode(nt,no,nw,nangle);
+}
+
+/*! Add a weight node at nt with the given offset, width and angle.
+ */
 void Path::AddWeightNode(double nt,double no,double nw,double nangle)
 {
 	PathWeightNode *w=new PathWeightNode(nt,no,nw,PathWeightNode::Default);
-	 
-	 //insert sorted...
+
+	//insert sorted...
 	int c2;
 	for (c2=0; c2<pathweights.n; c2++) {
 		if (w->t>pathweights.e[c2]->t) continue;
 		if (w->t<pathweights.e[c2]->t) break;
 
-		// else (w->t==pathweights.e[c2])
-		 //overwrite!
+		// else (w->t == pathweights.e[c2])
+		//overwrite!
 		pathweights.e[c2]->t=nt;
 		pathweights.e[c2]->offset=no;
 		pathweights.e[c2]->width=nw;
@@ -1040,11 +1067,18 @@ int Path::GetWeight(double t, double *width, double *offset, double *angle)
 {
 	if (needtorecache) UpdateCache();
 
-	if (width || offset) {
-		if (width)  *width  = cache_width .f(t);
-		if (offset) *offset = cache_offset.f(t);
+	if (pathweights.n==0) {
+		if (width)  *width=defaultwidth;
+		if (offset) *offset=0;
+		if (angle)  *angle=0;
+
+	} else {
+		if (width || offset) {
+			if (width)  *width  = cache_width .f(t);
+			if (offset) *offset = cache_offset.f(t);
+		}
+		if (angle) *angle=cache_angle.f(t);
 	}
-	if (angle) *angle=cache_angle.f(t);
 
 	return 0;
 }
@@ -1121,12 +1155,12 @@ int Path::removePoint(Coordinate *p, bool deletetoo)
 	if (!path) return 1;
 	if (!p) return 2;
 
-	 // a pathop might handle deleting differently, for instance, when one deletes a control point for
-	 // a bezier curve, the default is for the point to not be deleted, but to zap back to its vertex.
-	 // Please be advised that if the pathop actually does delete points from the path, it will have
-	 // to do all the things the rest of this procedure does. Normal use of this option is for the
-	 // the pathop to not actually delete anything, just rearrange things, like deleting a focus in an
-	 // ellipse, but if this function is called, the whole controlled segment is deleted.
+	// a pathop might handle deleting differently, for instance, when one deletes a control point for
+	// a bezier curve, the default is for the point to not be deleted, but to zap back to its vertex.
+	// Please be advised that if the pathop actually does delete points from the path, it will have
+	// to do all the things the rest of this procedure does. Normal use of this option is for the
+	// the pathop to not actually delete anything, just rearrange things, like deleting a focus in an
+	// ellipse, but if this function is called, the whole controlled segment is deleted.
 
 	int index=-1; //index of point in path, whole numbers are vertices
 	if (path->hasCoord(p, &index)==0) return -1; //not in path!
@@ -1136,7 +1170,7 @@ int Path::removePoint(Coordinate *p, bool deletetoo)
 	s=e=p;
 
 	if (p->controls) {
-		 //find range of points we need to delete, which is any range of points sharing the same SegmentControl
+		//find range of points we need to delete, which is any range of points sharing the same SegmentControl
 		while (s->prev && s->prev->controls==p->controls && s->prev!=p) s=s->prev;
 		while (e->next && e->next->controls==p->controls && e->next!=p) e=e->next;
 
@@ -1161,36 +1195,36 @@ int Path::removePoint(Coordinate *p, bool deletetoo)
 	}
 
 	if (v!=0) {
-		 //there were vertices within the chain that is deleted, so we
-		 //have to ensure that this->path points to something correct, and make
-		 //sure that weight nodes remain positioned in a reasonable manner
-		
+		//there were vertices within the chain that is deleted, so we
+		//have to ensure that this->path points to something correct, and make
+		//sure that weight nodes remain positioned in a reasonable manner
 
-		 //first deal with this->path
+
+		//first deal with this->path
 		if (!p) {
 			path=NULL; //deleting removed all points from path, so delete whole path
 		} else {
-			 //there is still a remnant of a path, need to make sure this->path is valid
+			//there is still a remnant of a path, need to make sure this->path is valid
 			path=p->firstPoint(1);
 		}
 
-		 //next deal with weight nodes
+		//next deal with weight nodes
 		if (s_is_endpoint) {
-			 //remove any points at t<1, dec the rest
+			//remove any points at t<1, dec the rest
 			for (int c=pathweights.n-1; c>=0; c--) {
 				if (pathweights.e[c]->t<1) RemoveWeightNode(c);
 				else pathweights.e[c]->t--;
 			}
 
 		} else if (e_is_endpoint) {
-			 //remove any points at t>oldpathlen-1
+			//remove any points at t>oldpathlen-1
 			for (int c=pathweights.n-1; c>=0; c--) {
 				if (pathweights.e[c]->t>oldpathlen) RemoveWeightNode(c);
 			}
 
 		} else {
-			 //deleted point was an interior vertex, not an endpoint.
-			 //need to redistribute nodes in segments adjacent to t=index
+			//deleted point was an interior vertex, not an endpoint.
+			//need to redistribute nodes in segments adjacent to t=index
 			for (int c=0; c<pathweights.n; c++) {
 				if (pathweights.e[c]->t>index-1 && pathweights.e[c]->t<=index) 
 					pathweights.e[c]->t=(pathweights.e[c]->t+index-1)/2;
@@ -1207,59 +1241,6 @@ int Path::removePoint(Coordinate *p, bool deletetoo)
 
 	needtorecache=1;
 	return 0;
-}
-
-/*! Make sure that path points to the first vertex point of the line, if possible.
- *  This is generally used after opening a previously closed path.
- *
- *  Remaps any weight nodes to be adjusted to new bez indexing.
- *  
- *  \todo *** this is complicated by weight node defs... it is not as useful as it used to be
- */
-void Path::fixpath()
-{
-	if (!path) return;
-
-	Coordinate *oldfirst=path;
-	path=path->firstPoint(1); // note that firstPoint doesn't return NULL,
-							// but it might return a non-vertex
-
-	if (oldfirst==path) return; //path didn't actually need fixing!
-	if (pathweights.n==0) return; 
-
-	//new we must remap any weight nodes to adjust to the new first point.
-
-	int i=0;
-	bool closed=false;
-	int n=NumVertices(&closed);
-	Coordinate *p=path;
-	while (p && p!=oldfirst) {
-		p=p->nextVertex(0);
-		i++;
-		if (p==path) break; //note: this shouldn't happen
-	}
-
-	//so now i should be > 0 
-
-	PathWeightNode *w;
-	double t;
-	for (int c=0; c<pathweights.n; c++) {
-		w=pathweights.e[c];
-		t=w->t;
-
-		t+=i;
-		if (t>n+1) t-=n;
-		w->t=t;
-	}
-
-	 //remove newly cut off nodes..
-	if (!closed) {
-		for (int c=pathweights.n-1; c>=0; c--) {
-			if (pathweights.e[c]->t>=n-1) RemoveWeightNode(c);
-		}
-	}
-
-	SortWeights();
 }
 
 /*! Use this when for some reason your weights have been scrambled and are not
@@ -1287,13 +1268,23 @@ Coordinate *Path::lastPoint(int v)
 	return path->lastPoint(v);
 }
 
+/*! Note: adds at end, does not rejigger weight nodes.
+ */
 void Path::append(double x,double y,unsigned long flags,SegmentControls *ctl)
 {
 	if (path==NULL) {
 		path=new Coordinate(x,y,flags,ctl);
 		return;
 	}
-	path->append(x,y,flags,ctl);
+	Coordinate *p=path->previousVertex(0);
+	if (p!=NULL) {
+		 //path is closed, and p currently points to the next most vertex
+		while (p->flags&POINT_TOPREV) p=p->next;
+		p->append(x,y,flags,ctl);
+	} else {
+		p=path->lastPoint(0);
+		p->append(x,y,flags,ctl);
+	}
 }
 
 /*! ctl count will be incremented.
@@ -1304,7 +1295,9 @@ void Path::append(flatpoint p,unsigned long flags,SegmentControls *ctl)
 }
 
 //! The path takes possession of coord. Calling code should not delete it.
-/*! coord can be a string of points or a single point, open or closed.
+/*! coord can be a string of points or a single point, open or closed. 
+ *
+ * As this always puts at the end, no special reconfiguring of weight nodes is done.
  */
 void Path::append(Coordinate *coord)
 {
@@ -1352,26 +1345,91 @@ int Path::close()
 		return 1;
 	}
 	//path points to the firstPoint, so no special checking for weight node placement necessary
-	
+
 	return 0;
 
 }
 
+/*! Insert np either after curvertex (after!=0), or before (after==0).
+ * curvertex must be in this->path somewhere.
+ *
+ * np must be an open string of Coordinates.
+ *
+ * Return 0 for success, or nonzero error, such as curvertex not in path somewhere.
+ */
+int Path::addAt(Coordinate *curvertex, Coordinate *np, int after)
+{
+	int i;
+	if (path->hasCoord(curvertex, &i)==0) return 1;
+	if (!after) i--;
+	if (i<0) i+=NumVertices(NULL);
+
+
+	int newverts=np->NumPoints(1);
+
+	 //now add to existing path
+	Coordinate *npend=NULL;
+	npend=np;
+	np=np->firstPoint(0);
+	while (npend->next && npend->next!=np) npend=npend->next;
+
+
+	Coordinate *ins=curvertex;
+	if (after) {
+		 //position ins to be right before where to add the point
+		if (curvertex->controls) {
+			while (ins->next && ins->next!=curvertex && ins->next->controls==curvertex->controls)
+				ins=ins->next;
+		} else {
+			if ((ins->flags&POINT_VERTEX) && ins->next && (ins->next->flags&POINT_TOPREV))
+				ins=ins->next;
+		}
+		
+		ins->insert(np->firstPoint(0),1);
+
+	} else {
+		 //position ins to be right after where to add the point
+		if (curvertex->controls) {
+			while (ins->prev && ins->prev!=curvertex && ins->prev->controls==curvertex->controls)
+				ins=ins->prev;
+		} else {
+			if ((ins->flags&POINT_VERTEX) && ins->prev && (ins->prev->flags&POINT_TONEXT))
+				ins=ins->prev;
+		}
+		
+		ins->insert(np,0);
+	}
+
+	for (int c=0; c<pathweights.n; c++) {
+		if (pathweights.e[c]->t>i) pathweights.e[c]->t+=newverts;
+	}
+
+	return 0;
+}
+
 /*! Make the path an open path by cutting the segment either after cc or before.
  *
- * cc must be a vertex. Anything else will be skipped when locating cc in path.
- * If cc is not found in path, then nothing is done.
- * If cc is null, then tries to break before this->path.
+ * curvertex must be a vertex. Anything else will be skipped when locating curvertex in path.
+ * If curvertex is not found in path, then nothing is done.
+ * If curvertex is null, then tries to break before this->path.
  *
  * If path is already open, nothing is done, and 0 is returned.
  * If the segment is cut, 1 is returned.
  *
  * Any weight nodes in the cut segment are removed. Other nodes are repositioned
  * to the new bezier indexing.
+ *
+ * Return 0 success, or nonzero for not opened,
+ * such as when path already open, or path is degenerate, or curvertex is not in path.
  */
 int Path::openAt(Coordinate *curvertex, int after)
 {
-	if (!path) return 0;
+	if (!path) return 1;
+
+	if (curvertex==NULL) {
+		curvertex=path->previousVertex(0);
+		if (!curvertex) return 2; //is null when path is open
+	}
 
 	int i=0;
 	Coordinate *p=path;
@@ -1381,8 +1439,39 @@ int Path::openAt(Coordinate *curvertex, int after)
 		if (p==path) break;
 	}
 
-	if (p==path && p!=curvertex) return 0; //curvertex not in path!!
-	if (!p) return 0; //already open
+	if (!p) return 2; //path already open!
+	if (p!=curvertex) return 3; //curvertex not in path!!
+
+	if (pathweights.n) {
+		if (!after) i--;
+		int numverts=NumVertices(NULL);
+		if (i<0) i=numverts-1;
+
+		//So the vertex to cut after is at index i, and the new first point is at i+1
+		//If there is variable width across the cut path, need to create new approximated nodes at new endpoints,
+		//and delete any old nodes within cut path
+		if (!ConstantWidth() || HasOffset() || Angled()) {
+			 //we need to add a couple of nodes at the new endpoints...
+			if (pathweights.n>1) {
+				InsertWeightNode(i);
+				InsertWeightNode(i+1<numverts ? i+1 : 0);
+			} else {
+				if (pathweights.e[0]->t>i && pathweights.e[0]->t<i+1) pathweights.e[0]->t=i;
+			}
+		}
+
+		 //...and remove any in the cut area
+		for (int c=pathweights.n-1; c>=0; c--) {
+			if (pathweights.e[c]->t>i && pathweights.e[c]->t<i+1) 
+				RemoveWeightNode(c);
+		}
+
+		//reposition nodes if necessary
+		if (i+1!=numverts) for (int c=0; c<pathweights.n; c++) {
+			if (pathweights.e[c]->t<=i) pathweights.e[c]->t+=numverts-(i+1);
+			else if (pathweights.e[c]->t>=i+1) pathweights.e[c]->t-=i+1;
+		}
+	}
 
 	if (after) {
 		p=curvertex;
@@ -1402,7 +1491,6 @@ int Path::openAt(Coordinate *curvertex, int after)
 		}
 		p->next->prev=NULL;
 		p->next=NULL;
-		fixpath();
 
 	} else { //break prev
 		p=curvertex;
@@ -1421,11 +1509,12 @@ int Path::openAt(Coordinate *curvertex, int after)
 		}
 		p->prev->next=NULL;
 		p->prev=NULL;
-		fixpath();
 	}
 
+	path=path->firstPoint(1);
+
 	needtorecache=1;
-	return 1;
+	return 0;
 }
 
 //! Return the coordinate that is the closest <= t, or NULL if no such t exists.
@@ -2030,10 +2119,15 @@ int Path::Reverse()
 {
 	Coordinate *start,*p,*pp, *h;
 	if (!path) return 1;
+
 	p=path->firstPoint(0);
 	if (!p) return 1;
+
 	start=p;
+	int nv=-1;
 	do {
+		if (p->flags&POINT_VERTEX) nv++;
+
 		 //update flags
 		if      (p->flags&POINT_TOPREV) p->flags=(p->flags&~POINT_TOPREV)|POINT_TONEXT;
 		else if (p->flags&POINT_TONEXT) p->flags=(p->flags&~POINT_TONEXT)|POINT_TOPREV;
@@ -2048,7 +2142,22 @@ int Path::Reverse()
 
 	} while (p && p!=start);
 
-	cerr <<" *** need to implement reversing the weight nodes in Path!!"<<endl;
+ 	bool closed=(p==start);
+	if (closed) {
+		nv++;
+	} else {
+		path=path->firstPoint(0);
+	}
+
+	 //now must update weight nodes, if any
+
+	for (int c=0; c<pathweights.n; c++) {
+		pathweights.e[c]->t = nv-pathweights.e[c]->t;
+		pathweights.e[c]->offset = -pathweights.e[c]->offset;
+	}
+	for (int c=0; c<pathweights.n/2; c++) {
+		pathweights.swap(c,pathweights.n-1-c);
+	}
 
 	return 0;
 }
@@ -2302,17 +2411,75 @@ void PathsData::dump_in_atts(Attribute *att,int flag,Laxkit::anObject *context)
 			SvgToPathsData(this, value, NULL);
 		}
 	}
-	FindBBox();
 
 	for (int c=0; c<paths.n; c++) {
 		if (!paths.e[c]->linestyle) paths.e[c]->Line(linestyle);
 	}
+
+	FindBBox();
 }
 
 double PathsData::Length(int pathi, double tstart,double tend)
 {
 	if (pathi<0 || pathi>=paths.n) return 0;
 	return paths.e[pathi]->Length(tstart,tend);
+}
+
+/*! If fromi<0 or toi<0, then search for a path containing from, likewise for to.
+ * from and to must be endpoints, and may or may not be on same path.
+ *
+ * Return 0 for success, or nonzero for couldn't connect and nothing done.
+ */
+int PathsData::ConnectEndpoints(Coordinate *from,int fromi, Coordinate *to,int toi)
+{
+	 //find which sides they are endpoints
+	 //make to be same path direction as from
+	if (from==to) return 1;
+	if (fromi<0) fromi=hasCoord(from);
+	if (toi<0) toi=hasCoord(to);
+	if (toi<0 || fromi<0) return 2;
+
+	int fromdir=from->isEndpoint();
+	int todir  =to->isEndpoint();
+	if (!fromdir || !todir) return 3;
+	if (fromi==toi) {
+		 //simple, endpoints are on same path, so just close the path
+		paths.e[fromi]->close();
+		return 0;
+	}
+
+	int numfromverts=paths.e[fromi]->NumVertices(NULL);
+	if ((fromdir>0 && todir>0) || (fromdir<0 && todir<0)) ReversePath(toi);
+
+	Coordinate *fp;
+	Coordinate *tp;
+
+	if (fromdir>0) {
+		fp=from->lastPoint(0);
+		tp=to->firstPoint(0);
+	} else {
+		fp=to->lastPoint(0);
+		tp=from->firstPoint(0);
+	}
+	fp->next=tp;
+	tp->prev=fp;
+
+	paths.e[fromi]->path=to->firstPoint(1);
+	paths.e[fromi]->needtorecache=1;
+	paths.e[toi]  ->needtorecache=1;
+
+	 //remove other path
+	for (int c=0; c<paths.e[toi]->pathweights.n; c++) {
+		paths.e[fromi]->AddWeightNode(
+				paths.e[toi]->pathweights.e[c]->t + numfromverts,
+				paths.e[toi]->pathweights.e[c]->offset,
+				paths.e[toi]->pathweights.e[c]->width,
+				paths.e[toi]->pathweights.e[c]->angle);
+	}
+	paths.e[toi]->path=NULL;
+	paths.remove(toi);
+
+	return 0;
 }
 
 //! This creates an empty path and puts it on top of the stack.
@@ -2324,9 +2491,10 @@ double PathsData::Length(int pathi, double tstart,double tend)
  */
 void PathsData::pushEmpty(int where,LineStyle *nls)
 {
+	if (where<0 || where>paths.n) where=paths.n;
 	paths.push(new Path(NULL,nls),1,where);
-	if (!paths.e[paths.n-1]->linestyle && linestyle) {
-		paths.e[paths.n-1]->defaultwidth=linestyle->width;
+	if (!paths.e[where]->linestyle && linestyle) {
+		paths.e[where]->Line(linestyle);
 	}
 }
 
@@ -2401,7 +2569,7 @@ void PathsData::appendCoord(Coordinate *coord,int whichpath)
 	if (paths.n==0) {
 		paths.push(new Path());
 		if (!paths.e[paths.n-1]->linestyle && linestyle) {
-			paths.e[paths.n-1]->defaultwidth=linestyle->width;
+			paths.e[paths.n-1]->Line(linestyle);
 		}
 	}
 	if (whichpath<0) whichpath=0;
@@ -2424,7 +2592,7 @@ void PathsData::append(double x,double y,unsigned long flags,SegmentControls *ct
 	if (paths.n==0) {
 		paths.push(new Path());
 		if (!paths.e[paths.n-1]->linestyle && linestyle) {
-			paths.e[paths.n-1]->defaultwidth=linestyle->width;
+			paths.e[paths.n-1]->Line(linestyle);
 		}
 	}
 	if (whichpath<0) whichpath=0;
@@ -2486,20 +2654,6 @@ void PathsData::close(int whichpath)
 	paths.e[whichpath]->close();
 }
 
-/*! If index==-1, then call Path::fixpath() on only the top subpath. 
- * If index==-2, then fixpath on all subpaths.
- * else fixpath() on only the specified index.
- */
-void PathsData::fixpath(int index)
-{
-	int s=0, e=paths.n-1;
-	if (index>=paths.n || index==-1) s=e;
-	else if (index>=0) s=e=index;
-	for (int c=s; c<=e; c++) {
-		paths.e[c]->fixpath();
-	}
-}
-
 //! Return 1 if the given path contains co, else 0.
 int PathsData::pathHasCoord(int pathindex,Coordinate *co)
 {
@@ -2530,45 +2684,52 @@ void PathsData::FindBBox()
 	for (int c=0; c<paths.n; c++) {
 		if (!paths.e[c] || !paths.e[c]->path) continue;
 
-	 	 // First find a vertex point
-		start=t=paths.e[c]->path->firstPoint(1);
-		if (!(t->flags&POINT_VERTEX)) continue;//only mysterious control points
+		if (paths.e[c]->Weighted()) {
+			paths.e[c]->UpdateCache();
+			addtobounds(paths.e[c]->outlinecache.e, paths.e[c]->outlinecache.n);
 
-		addtobounds(t->p());
+		} else {
 
-		 // step through all the rest of the vertices
-		flatpoint c1,c2;
-		while (t) {
-			p=t->next;
-			if (!p || p==start) break;
+			 // First find a vertex point
+			start=t=paths.e[c]->path->firstPoint(1);
+			if (!(t->flags&POINT_VERTEX)) continue;//only mysterious control points
 
-			if (p->flags&POINT_VERTEX) {
-				 //simple case, just a line segment
-				addtobounds(p->p());
+			addtobounds(t->p());
+
+			 // step through all the rest of the vertices
+			flatpoint c1,c2;
+			while (t) {
+				p=t->next;
+				if (!p || p==start) break;
+
+				if (p->flags&POINT_VERTEX) {
+					 //simple case, just a line segment
+					addtobounds(p->p());
+					t=p;
+					continue;
+				}
+				 //else assume bez, find 1st control
+				if (p->flags&POINT_TOPREV) {
+					c1=p->p(); 
+					p=p->next;
+					if (!p) break;
+				} else c1=t->p();
+
+				 //find second control
+				if (p->flags&POINT_TONEXT) {
+					c2=p->p(); 
+					p=t->nextVertex();
+					if (!p) break;
+				} else {
+					p=t->nextVertex();
+					c2=p->p();
+				}
+
+				bez_bbox(t->p(),c1,c2,p->p(), this, NULL);
+
 				t=p;
-				continue;
+				if (t==start) break;
 			}
-			 //else assume bez, find 1st control
-			if (p->flags&POINT_TOPREV) {
-				c1=p->p(); 
-				p=p->next;
-				if (!p) break;
-			} else c1=t->p();
-
-			 //find second control
-			if (p->flags&POINT_TONEXT) {
-				c2=p->p(); 
-				p=t->nextVertex();
-				if (!p) break;
-			} else {
-				p=t->nextVertex();
-				c2=p->p();
-			}
-
-			bez_bbox(t->p(),c1,c2,p->p(), this, NULL);
-
-			t=p;
-			if (t==start) break;
 		}
 	}
 }
@@ -4299,6 +4460,23 @@ Laxkit::MenuInfo *PathInterface::ContextMenu(int x,int y,int deviceid)
 	//if (***multiple path objects) menu->AddItem(_("Combine"),PATHIA_Combine);
 	// *** need mechanism to insert custom path actions
 
+	if (!(pathi_style&PATHI_No_Weights)) {
+		if (menu->n()) menu->AddSep();
+		menu->AddItem(_("Show base and center lines"), PATHIA_ToggleBaseline, LAX_OFF|LAX_ISTOGGLE|(show_baselines?LAX_CHECKED:0), 0);
+		menu->AddItem(_("Show weight nodes"), PATHIA_ToggleWeights, LAX_OFF|LAX_ISTOGGLE|(show_weights?LAX_CHECKED:0), 0);
+	}
+
+	 //misc actions
+	//if (menu->n()) menu->AddSep();
+	//menu->AddItem(_("Apply offset"),PATHIA_***);
+	//menu->AddItem(_("Convert to straight lines"),PATHIA_***);
+	//menu->AddItem(_("Convert to straight beziers"),PATHIA_***);
+	//menu->AddItem(_("Break apart all"),PATHIA_***);
+	//menu->AddItem(_("Break apart chunks"),PATHIA_***);
+	//menu->AddItem(_("Combine"),PATHIA_***);
+
+
+
 	if (menu->n()>0) return menu;
 
 	delete menu;
@@ -4312,16 +4490,21 @@ int PathInterface::Event(const Laxkit::EventData *e_data, const char *mes)
         const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(e_data);
         int i =s->info2; //id of menu item
 
-		if (i==PATHIA_StartNewSubpath)   PerformAction(PATHIA_StartNewSubpath);
-		else if (i==PATHIA_StartNewPath) PerformAction(PATHIA_StartNewPath);
-		else if (i==PATHIA_Bevel      )  PerformAction(PATHIA_Bevel);
-		else if (i==PATHIA_Miter      )  PerformAction(PATHIA_Miter);
-		else if (i==PATHIA_Round      )  PerformAction(PATHIA_Round);
-		else if (i==PATHIA_Extrapolate)  PerformAction(PATHIA_Extrapolate);
+		if (i==PATHIA_StartNewSubpath
+		 || i==PATHIA_StartNewPath
+		 || i==PATHIA_Bevel      
+		 || i==PATHIA_Miter      
+		 || i==PATHIA_Round      
+		 || i==PATHIA_Extrapolate
 
-		else if (i==PATHIA_PointTypeSmooth)        PerformAction(i);
-		else if (i==PATHIA_PointTypeSmoothUnequal) PerformAction(i);
-		else if (i==PATHIA_PointTypeCorner)        PerformAction(i);
+		 || i==PATHIA_PointTypeSmooth
+		 || i==PATHIA_PointTypeSmoothUnequal
+		 || i==PATHIA_PointTypeCorner
+
+		 || i==PATHIA_ToggleBaseline
+		 || i==PATHIA_ToggleWeights
+		 )
+			 PerformAction(i);
 		return 0;
 	}
 
@@ -4433,6 +4616,7 @@ int PathInterface::LBDown(int x,int y,unsigned int state,int count,const LaxMous
 					}
 					needtodraw=1;
 					return 0;
+
 				} else {
 					if (c==-1 && viewport->ChangeObject(oc,1)) { // change to other object type
 						buttondown.up(d->id,LEFTBUTTON);
@@ -4496,11 +4680,6 @@ int PathInterface::LBDown(int x,int y,unsigned int state,int count,const LaxMous
 	needtodraw=1;
 	return 0;
 }
-
-////! Connect 2 end points. Return 0 for success or nonzero for error and not connected.
-//int PathInterface::Connect(Coordinate *p1,Coordinate *p2)
-//{
-//}
 
 //! Select a point p with various options.
 /*! This assumes that p is already a path point. This does not add points to the path.
@@ -4650,19 +4829,6 @@ int PathInterface::AddPoint(flatpoint p)
 		 //start new subpath
 		data->pushEmpty();
 		curpath=data->paths.e[data->paths.n-1];
-//		-----------------------
-//		 // must find a path and position to add point to.
-//		if (!curpath && data->paths.n) curpath=data->paths.e[data->paths.n-1];
-//		if (curpath && curpath->path) { // tack onto final path, if it exists
-//			SetCurvertex(curpath->path->lastPoint(1));
-//
-//		} else {
-//			 //there was no path to add onto, so manually start one
-//			if (!curpath) {
-//				data->pushEmpty();
-//				curpath=data->paths.e[data->paths.n-1];
-//			}
-//		}
 	}
 
 	//now curpath exists, curvertex might exist.
@@ -4684,7 +4850,7 @@ int PathInterface::AddPoint(flatpoint p)
 		}
 	}
 
-	 //If curvertex==NULL, then curpath is currently a null path
+	 //If curvertex==NULL, then curpath is currently a null path, thus with no weight nodes
 	if (!curvertex) {
 		curvertex=np->nextVertex(1);
 		curpath->path=curvertex;
@@ -4701,46 +4867,19 @@ int PathInterface::AddPoint(flatpoint p)
 	
 	 // There is a curpath and a curvertex, figure out how to insert a new thing in the path.
 
-	 //now add to existing path
-	Coordinate *npend=NULL;
-	npend=np;
-	while (npend->next && npend->next!=np) npend=npend->next;
-
-	// *** TODO!!! addpoint must adjust weight positions.. this should be done in Path class
-
-	Coordinate *ins=curvertex;
-	if (addafter) {
-		 //position ins to be right before where to add the point
-		if (curvertex->controls) {
-			while (ins->next && ins->next!=curvertex && ins->next->controls==curvertex->controls)
-				ins=ins->next;
-		} else {
-			if ((ins->flags&POINT_VERTEX) && ins->next && (ins->next->flags&POINT_TOPREV))
-				ins=ins->next;
-		}
-		
-		ins->insert(np->firstPoint(0),1);
-
+	if (curpath->addAt(curvertex, np, 1)==0) {
+		SetCurvertex(np->nextVertex(1)); // *** warning! this might return NULL!! shouldn't really happen though ... right? right?
+		curpoints.flush();
+		if (!cp) cp=curvertex;
+		curpoints.push(cp,0);
+		curpath->needtorecache=1;
+		data->FindBBox();
+		needtodraw=1;
 	} else {
-		 //position ins to be right after where to add the point
-		if (curvertex->controls) {
-			while (ins->prev && ins->prev!=curvertex && ins->prev->controls==curvertex->controls)
-				ins=ins->prev;
-		} else {
-			if ((ins->flags&POINT_VERTEX) && ins->prev && (ins->prev->flags&POINT_TONEXT))
-				ins=ins->prev;
-		}
-		
-		ins->insert(np,0);
+		delete np;
+		PostMessage(_("Couldn't add point"));
 	}
 
-	SetCurvertex(np->nextVertex(1)); // *** warning! this might return NULL!! shouldn't really happen though ... really?
-	curpoints.flush();
-	if (!cp) cp=curvertex;
-	curpoints.push(cp,0);
-	curpath->needtorecache=1;
-	data->FindBBox();
-	needtodraw=1;
 	return 0;
 }
 
@@ -4841,47 +4980,20 @@ void PathInterface::SetPointType(Coordinate *v,int newtype)
 	needtodraw=1;
 }
 
+/*! Return 0 for success, nonzero for couldn't connect.
+ */
 int PathInterface::ConnectEndpoints(Coordinate *from,int fromi, Coordinate *to,int toi)
 {
-	 //find which sides they are endpoints
-	 //make to be same path direction as from
-	if (fromi<0) fromi=data->hasCoord(from);
-	if (toi<0) toi=data->hasCoord(to);
-	if (toi<0 || fromi<0) return 0;
-
-	int fromdir=from->isEndpoint();
-	int todir  =to->isEndpoint();
-	if (!fromdir || !todir) return 0;
-
-	if ((fromdir>0 && todir>0) || (fromdir<0 && todir<0)) data->ReversePath(toi);
-
-	Coordinate *fp;
-	Coordinate *tp;
-
-	if (fromdir>0) {
-		fp=from->lastPoint(0);
-		tp=to->firstPoint(0);
-	} else {
-		fp=to->lastPoint(0);
-		tp=from->firstPoint(0);
-	}
-	fp->next=tp;
-	tp->prev=fp;
-
-	data->paths.e[fromi]->path=to->firstPoint(1);
-	if (fromi==toi) {
-	} else {
-		 //remove other path
-		data->paths.e[toi]->path=NULL;
-		data->paths.remove(toi);
+	if (!data) return 1;
+	int status=data->ConnectEndpoints(from,fromi,to,toi);
+	if (status==0) {
+		curpoints.flush();
+		curpoints.push(to);
+		SetCurvertex(to);
+		needtodraw=1;
 	}
 
-	curpoints.flush();
-	curpoints.push(to);
-	SetCurvertex(to);
-	needtodraw=1;
-
-	return 1;
+	return status;
 }
 
 //! Take 2 end points, and make them the same point, merging paths if necessary.
@@ -5522,13 +5634,21 @@ int PathInterface::MouseMove(int x,int y,unsigned int state,const LaxMouse *mous
 			drawhoveri=0;
 		}
 
-		PathWeightNode *weight=path->pathweights.e[drawhoveri];
 		flatpoint pp;
+		//--------
+		double t;
+		path->ClosestPoint(p1, NULL, NULL, &t);
+		drawhoveri=path->MoveWeight(drawhoveri, t);
+		//---------
+		// //try to map node based on relation as when originally clicked down (needs work)
+		//PathWeightNode *weight=path->pathweights.e[drawhoveri];
+		//
+		//if (path->PointAlongPath(weight->t, 0, &pp, NULL)==0) return 0;
+		//pp+=d;
+		//double t=weight->t;
+		//path->ClosestPoint(pp, NULL, NULL, &t);
+		//--------------
 
-		if (path->PointAlongPath(weight->t, 0, &pp, NULL)==0) return 0;
-		pp+=d;
-		double t=weight->t;
-		path->ClosestPoint(pp, NULL, NULL, &t);
 		drawhoveri=path->MoveWeight(drawhoveri, t);
 		DBG cerr <<"t:"<<t<<endl;
 		// *** data->remapWidths(drawhoveri);
@@ -5927,11 +6047,11 @@ int PathInterface::PerformAction(int action)
 		if (!data) return 0;
 
 		if (!data->fillstyle) data->fillstyle=new FillStyle(*defaultfill);
-		if (data->fillstyle->fillrule==WindingRule) {
-			data->fillstyle->fillrule=EvenOddRule;
+		if (data->fillstyle->fillrule==LAXFILL_Nonzero) {
+			data->fillstyle->fillrule=LAXFILL_EvenOdd;
 			PostMessage(_("Fill odd winding"));
 		} else {
-			data->fillstyle->fillrule=WindingRule; 
+			data->fillstyle->fillrule=LAXFILL_Nonzero; 
 			PostMessage(_("Fill all"));
 		}
 		needtodraw=1;
