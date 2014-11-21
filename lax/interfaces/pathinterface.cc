@@ -617,38 +617,13 @@ void Path::UpdateCache()
 	//int first=(isclosed?1:0); //index to begin render to segment.. for open paths, needs to start at 0
 	int first=0; //we need to render the 1st sample point in a segment
 
-	int resolution=16; // *** todo: need a more dynamic resolution for when there are many weight nodes between vertices
-	double rr=1./(resolution-1); // *** maybe use subdivide for breakdown.. computationally faster
-	flatpoint bez[resolution];
 
-//	-----------------
-//	NumStack<flatpoint> bez;
-//	NumStack<double> bezt;
-//	bezt.Allocate(2*resolution);
-//	bezt.Delta(2*resolution);
-//	int numbez=0;
-//
-//	 // *** put in loop below:
-//	int numw=0;
-//	double lastw=-1;
-//	for (int c=0; c<pathweights.n; c++) {
-//		if (pathweights.e[c]->t<cp) continue;
-//		if (pathweights.e[c]->t>=cp+1) break;
-//
-//		numw++;
-//		if (lastw<cp) lastw=cp;
-//		rrr=(pathweights.e[c]->t-lastw)/10;
-//		for (int cc=0; cc<11; cc++) bezt.push(lastw+rrr*cc);
-//		lastw=pathweights.e[c]->t;
-//	}
-//	if (numw==0) {
-//		bezt.flush_n();
-//		for (int c=0; c<resolution; c++) bezt.push(c*rr);
-//	} else if (lastw<cp+1) {
-//		rrr=(cp+1-lastw)/10;
-//		for (int cc=0; cc<11; cc++) bezt.push(lastw+rrr*cc);
-//	} 
-//	-----------------
+	int nsamples=10;
+	NumStack<flatpoint> bez;
+	NumStack<double> bezt;
+	bezt.Allocate(2*nsamples);
+	bezt.Delta(2*nsamples);
+
 
 
 	//
@@ -665,6 +640,27 @@ void Path::UpdateCache()
 		p2=p->next; //p points to a vertex
 		if (!p2) break;
 
+		bezt.flush_n();
+		bez.flush_n();
+		double lastw=-1, t;
+		double rrr;
+		for (int c=0; c<=pathweights.n; c++) {
+			if (c==pathweights.n) {
+				t=cp+1;
+			} else {
+				if (pathweights.e[c]->t<=cp) continue;
+				if (pathweights.e[c]->t>=cp+1) continue;
+				t=pathweights.e[c]->t;
+			}
+	
+			if (lastw<cp) lastw=cp;
+			rrr=(t-lastw)/(nsamples-1);
+			for (int cc=(bezt.n==0 ? 0 : 1); cc<nsamples; cc++) bezt.push(lastw+rrr*cc-cp);
+			lastw=t;
+		}
+
+		bez.Allocate(bezt.n);
+		bez.n=bezt.n;
 
 		//p2 now points to first Coordinate after the first vertex
 		//find next 2 control points and next vertex
@@ -686,14 +682,15 @@ void Path::UpdateCache()
 				c2=p2->p();
 			}
 
-			bez_points(bez, p->p(), c1,c2, p2->p(), resolution, first);
+			bez_points_at_samples(bez.e, p->p(), c1,c2, p2->p(), bezt.e,bezt.n, first);
 			isline=false;
 
 		} else {
 			 //we do not have control points, so is just a straight line segment
-			vvv=rr*(p2->p()-p->p());
-			for (int bb=0; bb<resolution; bb++) {
-				bez[bb]=p->p() + bb*vvv;
+			vvv=(p2->p()-p->p());
+			//vvv.normalize();
+			for (int bb=0; bb<bezt.n; bb++) {
+				bez.e[bb]=p->p() + bezt.e[bb]*vvv;
 			}
 			isline=true;
 
@@ -704,21 +701,21 @@ void Path::UpdateCache()
 
 		 //compute sample points of top, bottom, and center, based on found bezier segment
 		 //
-		for (int bb=first; bb<resolution; bb++) {
-			//DBG cerr <<"point: "<<bb*rr<<endl;
+		for (int bb=first; bb<bez.n; bb++) {
+			DBG cerr <<"bez: "<<bez.e[bb].x<<"  "<<bez.e[bb].y<<endl;
 			if (isline) vv=vvv;
 			else {
-				vv=bez_visual_tangent(bb*rr, p->p(), c1,c2, p2->p());
+				vv=bez_visual_tangent(bezt.e[bb], p->p(), c1,c2, p2->p());
 			}
 			vt=transpose(vv);
 			vt.normalize();
-			po=bez[bb] + vt*cache_offset.f(cp+bb*rr);
+			po=bez.e[bb] + vt*cache_offset.f(cp+bezt.e[bb]);
 			if (hasangle) {
-				if (absoluteangle) vt=rotate(flatpoint(1,0), cache_angle.f(cp+bb*rr));
-				else vt=rotate(vt, cache_angle.f(cp+bb*rr));
+				if (absoluteangle) vt=rotate(flatpoint(1,0), cache_angle.f(cp+bezt.e[bb]));
+				else vt=rotate(vt, cache_angle.f(cp+bezt.e[bb]));
 			}
 
-			width=cache_width.f(cp+bb*rr);
+			width=cache_width.f(cp+bezt.e[bb]);
 			topp   .push(po + vt*width/2);
 			bottomp.push(po - vt*width/2);
 			if (hasoffset) centerp.push(po);
@@ -799,7 +796,17 @@ void Path::UpdateCache()
 		topp.e[topp.n-1].info|=LINE_Closed;
 	}
 
-	 //do joins for center path
+	 //bezier approximate the sample points between join points
+	for (int pth=0; pth<2; pth++) {
+	  NumStack<flatpoint> *list;
+	  if (pth==0) list=&topp;
+	  else list=&centerp;
+
+	  for (int c=0; c<list->n; c++) {
+	  }
+	}
+
+	 //do joins for center and outline paths
 	int njoin;
 	int thisclosed, thisstart, thisn;
 	flatpoint join[8];
@@ -815,11 +822,11 @@ void Path::UpdateCache()
 	  thisstart=0;
 	  thisn=-1;
 
-	  DBG if (pth==0) cerr <<"------joins for topp..."<<endl;
-	  DBG if (pth==1) cerr <<"------joins for centerp..."<<endl;
+	  //DBG if (pth==0) cerr <<"------joins for topp..."<<endl;
+	  //DBG if (pth==1) cerr <<"------joins for centerp..."<<endl;
 
 	  for (int c=0; c<list->n; c++) {
-		DBG cerr <<list->e[c].x<<"   "<<list->e[c].y<<endl;
+		//DBG cerr <<list->e[c].x<<"   "<<list->e[c].y<<endl;
 		if (thisn<0 || (thisn>0 && c>=thisstart+thisn)) {
 			 //need to find length of current line, which might not be list->n, so as
 			 //not to do buffer overruns below
@@ -838,7 +845,7 @@ void Path::UpdateCache()
 		}
 
 		if ((list->e[c].info&LINE_Join)==0) continue;
-		DBG cerr <<"maybe join, dist to next point="<<norm2(list->e[c]-list->e[c+1])<<endl;
+		//DBG cerr <<"maybe join, dist to next point="<<norm2(list->e[c]-list->e[c+1])<<endl;
 
 		if (norm2(list->e[c]-list->e[c+1])<1e-5) continue; //don't bother if points really close together
 
@@ -3533,7 +3540,8 @@ int PathInterface::Refresh()
 
 		if (!ignoreweights) {
 			 //we need to rebuild path and fill the stroke, since it uses a non-standard outline
-			dp->FillAttributes(FillSolid, EvenOddRule);
+			dp->FillAttributes(FillSolid, LAXFILL_Nonzero);
+			//dp->FillAttributes(FillSolid, LAXFILL_EvenOdd);
 			for (int cc=0; cc<data->paths.n; cc++) {
 				// position p to be the first point that is a vertex
 				pdata=data->paths.e[cc];
