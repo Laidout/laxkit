@@ -152,6 +152,7 @@ const NumStack<T> &NumStack<T>::operator=(const NumStack<T> &numstack)
 //! Ensure that the number of allocated is at least newmax.
 /*! If newmax<max, then nothing is done and max is returned.
  * The new (or old) number of allocated elements is returned.
+ * The old elements are copied to the newly allocated array.
  */
 template <class T>
 int NumStack<T>::Allocate(int newmax)
