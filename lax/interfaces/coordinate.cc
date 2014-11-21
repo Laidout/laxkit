@@ -794,7 +794,7 @@ Coordinate *CoordinatePolygon(flatpoint center, double radius, bool point_on_x_a
 Coordinate *BezApproximate(flatpoint *l, int n)
 {
 	// There are surely better ways to do this. Not sure how powerstroke does it.
-	// It is not simplied/optimized at all. Each point gets control points to smooth it out.
+	// Here it is not simplified/optimized at all. Each point gets control points to smooth it out.
 	//
 	// tangents at points are || to (p+1)-(p-1).
 	// Lengths of control rods are 1/3 of distance to adjacent points
