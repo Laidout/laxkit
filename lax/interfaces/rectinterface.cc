@@ -74,6 +74,7 @@ RectData::RectData()
 	setbounds(0,1, 0,1);
 	style=0; 
 	linestyle=NULL;
+	griddivisions=10;
 	DBG cerr <<"RectData "<<object_id<<" created"<<endl;
 } 
 
