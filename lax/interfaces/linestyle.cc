@@ -53,7 +53,7 @@ LineStyle::LineStyle()
 	color.red=color.green=0;
 	color.blue=color.alpha=0xffff;
 	capstyle=LAXCAP_Butt;
-	joinstyle=LAXJOIN_Extrapolate; 
+	joinstyle=LAXJOIN_Miter; 
 	miterlimit=100; //so this means 100*(line thickness)
 	function=LAXOP_Source;
 
