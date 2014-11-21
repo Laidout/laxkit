@@ -96,6 +96,8 @@ class RowFrame : public anXWindow, public RowColBox
 					int npw,int nws,int nwg,int nhalign,int nhgap,
 					int nph,int nhs,int nhg,int nvalign,int nvgap,
 					int where);
+	virtual int Pop(int which, anXWindow **popped);
+	virtual int Pop(int which=-1);
 	virtual void Refresh();
 };
 

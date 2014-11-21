@@ -373,6 +373,36 @@ int RowFrame::AddWin(WinFrameBox *box,char islocal,int where)//where=-1
 	return 0;
 }
 	
+/*! Pop a box.
+ * Return a reference if popped!=NULL. The window is not destroyed in this case.
+ * If popped==NULL, then destroy the window.
+ */
+int RowFrame::Pop(int which, anXWindow **popped)
+{
+	int er=0;
+	if (which<0 || which>=wholelist.n) which=wholelist.n-1;
+	if (which==-1) return 1;
+
+	WinFrameBox *w=dynamic_cast<WinFrameBox*>(wholelist.e[which]);
+	if (w && w->win()) {
+		if (popped) {
+			*popped=w->win();
+		} else {
+			app->destroywindow(w->win());
+		}
+	}
+
+	er=wholelist.remove(which);
+	arrangedstate=0;
+	return er;
+}
+
+int RowFrame::Pop(int which)
+{
+	return Pop(which,NULL);
+}
+
+
 //! Calls anXWindow::Resize, then Sync(0).
 int RowFrame::Resize(int nw,int nh)
 {
