@@ -41,6 +41,7 @@ flatpoint *bez_to_points(flatpoint *to_points,flatpoint *from_points,int n,int r
 flatpoint *bez_points(flatpoint *to_points,int numsegs,flatpoint *from_points,int resolution);
 flatpoint *bez_points(flatpoint *to_points,flatpoint *from_points,int resolution,int ignorefirst);
 flatpoint *bez_points(flatpoint *to_points,flatpoint p1,flatpoint c1,flatpoint c2,flatpoint p2,int resolution,int ignorefirst);
+flatpoint *bez_points_at_samples(flatpoint *to_points,flatpoint p1,flatpoint c1,flatpoint c2,flatpoint p2,double *t,int n,int ignorefirst);
 void bez_subdivide(double t,flatpoint p1,flatpoint c1,flatpoint c2,flatpoint p2, flatpoint *points_ret);
 
 int bez_intersection(flatpoint p1,flatpoint p2, int isline,

@@ -571,6 +571,27 @@ flatpoint *bez_points(flatpoint *to_points,flatpoint *from_points,int resolution
 	return to_points;
 }
 
+/*! Compute points along a bezier segment at the specified t values, of which there are n.
+ * If ignorefirst, then don't compute the first value.
+ */
+flatpoint *bez_points_at_samples(flatpoint *to_points,flatpoint p1,flatpoint c1,flatpoint c2,flatpoint p2,double *T,int n,int ignorefirst)
+{
+	if (to_points==NULL) to_points=new flatpoint[n];
+	
+	double t,tt,ttt, a1,a2,a3;
+	for (int c=(ignorefirst?1:0); c<n; c++) {
+		t=T[c];
+		tt=t*t;
+		ttt=tt*t;
+		a1=1-3*t+3*tt-  ttt;
+		a2=  3*t-6*tt+3*ttt;
+		a3=      3*tt-3*ttt;
+		to_points[c]=flatpoint((a1*p1.x + a2*c1.x + a3*c2.x + ttt*p2.x),
+						 	   (a1*p1.y + a2*c1.y + a3*c2.y + ttt*p2.y));
+	}
+	return to_points;
+}
+
 //! Break down the bezier segment to a polyline with resolution points.
 /*! \ingroup math
  * If ignorefirst, do not compute the first point. This allows code to call this repeatedly
