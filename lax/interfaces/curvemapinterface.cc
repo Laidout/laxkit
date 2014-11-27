@@ -223,9 +223,17 @@ int CurveMapInterface::CopyInfo(CurveInfo *info)
 	return 0;
 }
 
+/*! If info==NULL, dec_count current, and install a default.
+ * Otherwise, dec_count old info, and inc_count new info.
+ */
 int CurveMapInterface::SetInfo(CurveInfo *info)
 {
-	if (!info) return 1;
+	if (!info) {
+		if (curveinfo) curveinfo->dec_count();
+		curveinfo=new CurveInfo();
+		return 1;
+	}
+	if (info==curveinfo) return 0;
 	if (curveinfo) curveinfo->dec_count();
 	curveinfo=info;
 	info->inc_count();
