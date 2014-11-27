@@ -3509,6 +3509,7 @@ void EngraverFillInterface::ChangeMessage(int forwhich)
 int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMouse *d)
 {
 	if (child) {
+		 //to be here, curvemapi must have taken the lbdown
 		if (child==&curvemapi) {
 			child->MouseMove(x,y,state,d);
 			if (continuous_trace) Trace();
@@ -5657,6 +5658,8 @@ int EngraverFillInterface::Event(const Laxkit::EventData *e_data, const char *me
 				EngraverPointGroup *cur =edata->GroupFromIndex(current_group);
 				EngraverPointGroup *with=edata->GroupFromIndex(i);
 				if (cur && with && cur->trace!=with->trace) {
+					 //trace->value_to_weight is not fully ref counted, so we must beware
+					if (curvemapi.GetInfo()==&cur->trace->value_to_weight) curvemapi.SetInfo(NULL);
 					cur->InstallTraceSettings(with->trace,0);
 				}
 			}
