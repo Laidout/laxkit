@@ -159,7 +159,7 @@ int NumStack<T>::Allocate(int newmax)
 {
 	if (newmax<max) return max;
 	T *newt=new T[newmax];
-	memcpy(newt,e,n*sizeof(T));
+	if (n) memcpy(newt,e,n*sizeof(T)); //copy over old data
 	delete[] e;
 	e=newt;
 	max=newmax;
@@ -699,12 +699,12 @@ int PtrStack<T>::Allocate(int newmax)
 	if (newmax<max) return max;
 
 	T **newt=new T*[newmax];
-	memcpy(newt,e,n*sizeof(T*));
+	if (n) memcpy(newt,e,n*sizeof(T*));
 	delete[] e;
 	e=newt;
 
 	char *templ=new char[max];
-	memcpy(templ,islocal,n*sizeof(char)); 
+	if (n) memcpy(templ,islocal,n*sizeof(char)); 
 	delete[] islocal;
 	islocal=templ;
 
