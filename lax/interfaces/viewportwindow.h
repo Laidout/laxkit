@@ -26,6 +26,7 @@
 #include <lax/anxapp.h>
 #include <lax/interfaces/aninterface.h>
 #include <lax/interfaces/viewportwindow.h>
+#include <lax/interfaces/selection.h>
 #include <lax/rulerwin.h>
 #include <lax/scroller.h>
 #include <lax/panuser.h>
@@ -35,7 +36,10 @@
 
 namespace LaxInterfaces {
 
-class anInterface; //forward declaration
+//forward declarations
+class anInterface;
+//class Selection;
+
 
 #define VIEWPORT_NO_XSCROLLER    (1<<16)
 #define VIEWPORT_NO_YSCROLLER    (1<<17)
@@ -98,6 +102,8 @@ class ViewportWindow : public Laxkit::PanUser, public Laxkit::anXWindow
 	 // Object searching utility:
 	int searchx,searchy;
 	const char *searchtype;
+
+	Selection *selection;
 
 	Laxkit::ButtonDownInfo buttondown;
 	Laxkit::ShortcutHandler *sc;
@@ -168,6 +174,9 @@ class ViewportWindow : public Laxkit::PanUser, public Laxkit::anXWindow
 	virtual int FindObjects(Laxkit::DoubleBBox *box, char real, char ascurobj,
 							SomeData ***data_ret, ObjectContext ***c_ret);
 	virtual int SelectObject(int i);
+
+	virtual Selection *GetSelection();
+	virtual int SetSelection(Selection *nselection);
 
 	 // coordinate helper functions
 	virtual flatpoint realtoscreen(flatpoint r);

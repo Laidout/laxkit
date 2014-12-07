@@ -230,6 +230,8 @@ ViewportWindow::ViewportWindow(Laxkit::anXWindow *parnt,const char *nname,const 
 	last_mouse=0; //this is a hack to work around the abstracting done for shortcuts/WindowActions
 
 	sc=NULL;
+
+	selection=NULL;
 }
 
 //! Deletes dp.
@@ -238,6 +240,7 @@ ViewportWindow::~ViewportWindow()
 	DBG cerr <<" --in ViewportWindow  destructor"<<endl;
 	delete dp;
 	if (sc) sc->dec_count();
+	if (selection) selection->dec_count();
 }
 
 //! Default is app->postmessage(mes), unless parent is ViewerWindow, then try to set its message bar to mes.
@@ -385,6 +388,24 @@ ObjectContext *ViewportWindow::ObjectMoved(ObjectContext *oc, int modifyoc)
 int ViewportWindow::SelectObject(int i)
 {
 	return 1;
+}
+
+/*! Warning, may be NULL.
+ */
+Selection *ViewportWindow::GetSelection()
+{
+	return selection;
+}
+
+/*! Passing NULL will clear the selection as known by the viewport.
+ */
+int ViewportWindow::SetSelection(Selection *nselection)
+{
+	if (selection==nselection) return 0;
+	if (selection) selection->dec_count();
+	selection=nselection;
+	selection->inc_count();
+	return 0;
 }
 
 //! Return a list of all the objects within box.
