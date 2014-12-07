@@ -55,7 +55,6 @@ double bez_near_point(flatpoint p,flatpoint *points,int n,int maxpoints,double *
 double bez_near_point_p(flatpoint p,flatpoint **points,int n,int maxpoints,double *t_ret,int *i_ret);
 
 int point_is_in_bez(flatpoint p,flatpoint *points,int n,int resolution=20);
-flatpoint *bez_from_points(flatpoint *result, flatpoint *points, int numpoints);
 flatpoint *bez_circle(flatpoint *points, int numpoints, double x,double y,double r);
 double bez_arc_handle_length(double radius, double theta);
 flatpoint *bez_ellipse(flatpoint *points, int numsegments,
@@ -70,7 +69,13 @@ flatpoint *join_paths(int jointype, double miterlimit,
 
 double end_curvature(flatpoint p1,flatpoint c1,flatpoint c2,flatpoint p2);
 
+flatpoint *bez_from_points(flatpoint *result, flatpoint *points, int numpoints);
+flatpoint *bez_from_points(flatpoint *result, flatpoint *points, int totalpoints, int start, int numpoints);
+int reduce_polyline(flatpoint *result, flatpoint *points, int n, double epsilon);
+
+
 } // namespace Laxkit
+
 
 #endif
 

@@ -801,66 +801,7 @@ flatpoint *bez_ellipse(flatpoint *points, int numsegments,
 }
 
 
-/*! This will return in result a list with 3*n points, arranged c-v-c - c-v-c ... c-v-c.
- * If result==NULL, then return a new flatpoint[3*numpoints].
- *
- * This is a primitive approximation, where each point gets control points added before
- * and after, such that the control rods are of length 1/3 the distance between the point
- * and the next point, and the rods are parallel to the line connecting the previous
- * and next point. End points behave as if control handle is at the end point.
- *
- * Points that have info with LINE_Corner, will stay corners.
- */
-flatpoint *bez_from_points(flatpoint *result, flatpoint *points, int numpoints)
-{
-	if (!result) result=new flatpoint[3*numpoints];
 
-	// There are surely better ways to do this. Not sure how powerstroke does it.
-	// It is not simplied/optimized at all. Each point gets control points to smooth it out.
-	//
-	// tangents at points are || to (p+1)-(p-1).
-	// Lengths of control rods are 1/3 of distance to adjacent points
-
-    flatvector v,p, pp,pn;
-	flatvector opn, opp;
-    double sx;
-	int i=0;
-	//int lastwascorner=0;
-	
-    for (int c=0; c<numpoints; c++) {
-        p=points[c];
-
-
-		if (p.info&LINE_Corner) opp=p;
-		else if (c==0) {
-			if (points[numpoints-1].info&(LINE_Closed)) opp=points[numpoints-1];
-			else opp=p;
-		} else opp=points[c-1];
-
-		if (p.info&LINE_Corner) opn=p;
-		if (c==numpoints-1) {
-			if (points[numpoints-1].info&(LINE_Closed)) opn=points[0];
-			opn=p;
-		} else opn=points[c+1];
-
-        v=opn-opp;
-        v.normalize();
-
-        sx=norm(p-opp)*.333;
-        result[i]=p - v*sx;
-
-		result[i+1]=p;
-
-        sx=norm(opn-p)*.333;
-        result[i+2]=p + v*sx;
-
-		i+=3;
-
-		//if (p.info&LINE_Corner) lastwascorner=1; else lastwascorner=0;
-    }
-
-	return result;
-}
 
 /*! Return the curvature of the curve at p2. This is 1/r, where r is the radius of
  * a circle with the same curvature. The side of the line the circle is on is determined
@@ -1248,6 +1189,151 @@ flatpoint *join_paths(int jointype, double miterlimit,
 
 	*n=0;
 	return NULL;
+}
+
+
+/*! This will return in result a list with 3*n points, arranged c-v-c - c-v-c ... c-v-c.
+ * If result==NULL, then return a new flatpoint[3*numpoints].
+ *
+ * This is a primitive approximation, where each point gets control points added before
+ * and after, such that the control rods are of length 1/3 the distance between the point
+ * and the next point, and the rods are parallel to the line connecting the previous
+ * and next point. End points behave as if control handle is at the end point.
+ *
+ * Points that have info with LINE_Corner, will stay corners, by having bez handles of zero length.
+ * New bezier handles will get LINE_Bez in their info.
+ *
+ * This will call bez_from_points(flatpoint *result, flatpoint *points, int start, int numpoints, bool isclosed)
+ * with the appropriate things set.
+ */
+flatpoint *bez_from_points(flatpoint *result, flatpoint *points, int numpoints)
+{
+	return bez_from_points(result, points, 0,numpoints, points[numpoints-1].info&LINE_Closed);
+}
+
+
+/*! This will return in result a list with 3*n points, arranged c-v-c - c-v-c ... c-v-c.
+ * If result==NULL, then return a new flatpoint[3*numpoints].
+ *
+ * This is a primitive approximation, where each point gets control points added before
+ * and after, such that the control rods are of length 1/3 the distance between the point
+ * and the next point, and the rods are parallel to the line connecting the previous
+ * and next point. End points behave as if control handle is at the end point.
+ *
+ * Points that have info with LINE_Corner, will stay corners, by having bez handles of zero length.
+ * New bezier handles will get LINE_Bez in their info.
+ *
+ * points[start] is assumed to be the start of a segment to be approximated within a larger points array.
+ * This means that when start!=0, then it is the same as if that point is the start of an open path,
+ * BUT the segment MAY wrap around to points[0] if isclosed is true.
+ *
+ * If the final point has LINE_Closed, then wrap around to points[0]. If start!=0 in this case, then
+ * ONLY the segment from start to start+numpoints is approximated, NOT any continuation at
+ * points[0]. Points are grabbed from points[0] only to approximate the later points. When start!=0,
+ * the segment from points[0]..points[start-1] would have to be computed separately.
+ */
+flatpoint *bez_from_points(flatpoint *result, flatpoint *points, int totalpoints, int start, int numpoints)
+{
+	if (!result) result=new flatpoint[3*numpoints];
+
+	// There are surely better ways to do this. Not sure how powerstroke does it.
+	// It is not simplied/optimized at all. Each point gets control points to smooth it out.
+	//
+	// tangents at points are || to (p+1)-(p-1).
+	// Lengths of control rods are 1/3 of distance to adjacent points
+
+    flatvector v,p, pp,pn;
+	flatvector opn, opp;
+    double sx;
+	int i=0;
+	bool isclosed=points[totalpoints-1].info&LINE_Closed;
+	//int lastwascorner=0;
+	
+    for (int c=start; c<start+numpoints; c++) {
+        p=points[c];
+
+
+		if (p.info&LINE_Corner) opp=p;
+		else if (c==start) {
+			if (isclosed && start==0) opp=points[totalpoints-1];
+			else opp=p;
+		} else opp=points[c-1];
+
+		if (p.info&LINE_Corner) opn=p;
+		else if (c==start+numpoints-1) {
+			if (isclosed && c==totalpoints-1) opn=points[0];
+			else opn=p;
+		} else opn=points[c+1];
+
+        v=opn-opp;
+        v.normalize();
+
+        sx=norm(p-opp)*.333;
+        result[i]=p - v*sx;
+		result[i].info|=LINE_Bez;
+
+		result[i+1]=p;
+		if (points[c].info&LINE_Corner) result[i+1].info|=LINE_Corner;
+
+        sx=norm(opn-p)*.333;
+        result[i+2]=p + v*sx;
+		result[i+2].info|=LINE_Bez;
+
+		i+=3;
+
+		//if (p.info&LINE_Corner) lastwascorner=1; else lastwascorner=0;
+    }
+
+	return result;
+}
+
+//! Marks any points it thinks should be in the line with flag=1.
+static void reduce_polyline_recurse(flatpoint *result, int &ii, flatpoint *points,  int start, int end, double epsilon)
+{
+    if (end<=start+1) return;
+
+    flatvector v=points[end] - points[start];
+	if (v.isZero()) { v.x=1; v.y=0; }
+    flatvector vt=transpose(v);
+    vt.normalize();
+
+	 //find maximum distance away from line between start and end
+    int i=-1; //will be the index of point furthest off the line
+    double d=0, dd;
+    for (int c=start+1; c<end; c++) {
+        dd=fabs((points[c] - points[start])*vt);
+        if (dd>d) { d=dd; i=c; }
+    }
+
+    if (d<epsilon) {
+		 //all in between points were near line, we can ignore them
+		DBG cerr <<"reducing "<<start+1<<" to "<<end-1<<endl;
+    } else {
+        reduce_polyline_recurse(result,ii,  points, start,i, epsilon);
+		if (points[i]!=result[ii-1]) result[ii++]=points[i];
+        reduce_polyline_recurse(result,ii,  points, i,end,   epsilon);
+		if (points[end]!=result[ii-1]) result[ii++]=points[end];
+    }
+}
+
+/*! For a collection of points, reduce to the simplest polyline, such that any
+ * points removed are within epsilon distance of the polyline connecting the
+ * remaining points.
+ *
+ * Returns the number of points in the reduced polyline.
+ * result should be allocated to hold n points for the worst case scenario.
+ *
+ * It is safe to have result==points, since this function will reduce in an orderly
+ * manner.
+ */
+int reduce_polyline(flatpoint *result, flatpoint *points, int n, double epsilon)
+{
+	result[0]=points[0];
+	int ii=1;
+    reduce_polyline_recurse(result, ii, points, 0,n-1, epsilon);
+	if (points[n-1]!=result[ii-1]) result[ii++]=points[n-1];
+
+    return ii;
 }
 
 
