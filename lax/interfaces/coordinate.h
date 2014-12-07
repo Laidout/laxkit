@@ -145,6 +145,7 @@ class Coordinate
 //----------------------------------- Coordinate Shape Makers ----------------------------------
 
 int CoordinateToFlatpoint(Coordinate *coord, flatpoint **pts);
+Coordinate *FlatpointToCoordinate(flatpoint *points, int n);
 Coordinate *CoordinatePolygon(flatpoint center, double radius, bool point_on_x_axis, int num_sides, int num_winding);
 //Coordinate RoundedRectangle(flatpoint ll, flatpoint ur, double round,double round2);
 

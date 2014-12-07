@@ -844,8 +844,11 @@ Coordinate *BezApproximate(flatpoint *l, int n)
 }
 
 
-/*! Create a flatpoint list from the coord.
+/*! Create a flatpoint list from the polyline/bezier coordinate list.
  * This list is formatted to render properly with Displayer::drawFormattedPoints().
+ *
+ * Additionally, points with POINT_REALLYSMOOTH get LINE_Equal, and points with neither
+ * POINT_REALLYSMOOTH nor POINT_SMOOTH get LINE_Corner in their info.
  *
  * Return a new flatpoint[]. 
  */
@@ -858,6 +861,8 @@ flatpoint *CoordinateToFlatpoint(Coordinate *coord, int *n_ret)
 
 	p=start=p->firstPoint(1);
 	points.push(p->p()); points.e[points.n-1].info=LINE_Vertex;
+	if ((p->flags&(POINT_SMOOTH|POINT_REALLYSMOOTH))==0) points.e[points.n-1].info|=LINE_Corner;
+	else if (p->flags&POINT_REALLYSMOOTH) points.e[points.n-1].info|=LINE_Equal;
 
     do { //one loop per vertex point
         p2=p->next; //p points to a vertex
@@ -883,10 +888,14 @@ flatpoint *CoordinateToFlatpoint(Coordinate *coord, int *n_ret)
 			points.push(c1); points.e[points.n-1].info=LINE_Bez;
 			points.push(c2); points.e[points.n-1].info=LINE_Bez;
 			points.push(p2->p()); points.e[points.n-1].info=LINE_Vertex;
+			if ((p2->flags&(POINT_SMOOTH|POINT_REALLYSMOOTH))==0) points.e[points.n-1].info|=LINE_Corner;
+			else if (p2->flags&POINT_REALLYSMOOTH) points.e[points.n-1].info|=LINE_Equal;
 
         } else {
              //we do not have control points, so is just a straight line segment
 			points.push(p2->p()); points.e[points.n-1].info=LINE_Vertex;
+			if ((p2->flags&(POINT_SMOOTH|POINT_REALLYSMOOTH))==0) points.e[points.n-1].info|=LINE_Corner;
+			else if (p2->flags&POINT_REALLYSMOOTH) points.e[points.n-1].info|=LINE_Equal;
         }
 
         p=p2;
@@ -900,6 +909,44 @@ flatpoint *CoordinateToFlatpoint(Coordinate *coord, int *n_ret)
 	flatpoint *pts=points.extractArray(n_ret);
 	*n_ret=points.n;
 	return pts;
+}
+
+/*! Points marked with LINE_Bez must occur in pairs, thus:
+ * vertex-bez-bez-vertex-vertex-vertex-bez-bez-vertex-etc
+ */
+Coordinate *FlatpointToCoordinate(flatpoint *points, int n)
+{
+	if (!points || n==0) return NULL;
+
+	Coordinate *p=NULL, *path=NULL;
+
+
+	int onbez=-1;
+	for (int c=0; c<n; c++) {
+		if (points[c].info&LINE_Bez) {
+			if (onbez==-1) {
+				if (points[c+1].info&LINE_Bez) onbez=POINT_TOPREV;
+				else onbez=POINT_TONEXT;
+			} else if (onbez==POINT_VERTEX) onbez=POINT_TOPREV;
+			else if (onbez==POINT_TOPREV) onbez=POINT_TONEXT;
+			else onbez=POINT_VERTEX; // <- note this shouldn't happen
+		} else onbez=POINT_VERTEX;
+
+		if (!path) {
+			p=path=new Coordinate(points[c], onbez, NULL);
+		} else {
+			p->next=new Coordinate(points[c], onbez, NULL);
+			p->next->prev=p;
+			p=p->next;
+		}
+	}
+
+	if (points[n-1].info&LINE_Closed) {
+		p->next=path;
+		path->prev=p;
+	}
+
+	return path;
 }
 
 
