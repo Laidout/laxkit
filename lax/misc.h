@@ -62,6 +62,9 @@ void simple_rgb_to_hsv(double r,double g,double b,double *h,double *s,double *v)
 void simple_rgb_to_hsv(double *rgb, double *hsv);
 
 
+//---------------------- some debugging helpers ------------------------------
+void dump_flags(unsigned int f);
+
 } //namespace Laxkit
 
 #endif

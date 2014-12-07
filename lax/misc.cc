@@ -26,6 +26,7 @@
 #include <lax/strmanip.h>
 
 #include <cstdio>
+#include <iostream>
 using namespace std;
 
 
@@ -322,6 +323,24 @@ void simple_hsv_to_rgb(int *hsv, int *rgb, int max)
 void simple_hsv_to_rgb(double *hsv, double *rgb)
 { simple_hsv_to_rgb(hsv[0],hsv[1],hsv[2], rgb,rgb+1,rgb+2); }
 
+
+
+//---------------------- some debugging helpers ------------------------------
+/*! for something like f=6, write "label: 110" to cerr.
+ */
+void dump_flags(const char *label, unsigned int f)
+{
+	int writing=0;
+	cerr << (label?label:"flags:")<<" ";
+
+	for (int c=31; c>=0; c++) {
+		if (f&(1<<c)) {
+			writing=1;
+			cerr <<"1";
+		} else if (writing) cerr <<"0";
+	}
+	cerr <<endl;
+}
 
 
 
