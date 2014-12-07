@@ -2174,7 +2174,7 @@ void EngraverFillData::dump_out_svg(const char *file)
 				"   id=\"svg2\"\n"
 				"   version=\"1.1\"\n"
 				"   inkscape:version=\"0.48+devel r custom\"\n"
-				"   viewBox=\"0 0 744.09448 1052.3622\"\n"
+				"   viewBox=\"0 0 1000 1000\"\n"
 				"   sodipodi:docname=\"test-powerstroke.svg\">\n"
 				"  <defs id=\"defs4\">\n" 
 					//1.1*(maxx-minx), 1.1*(maxy-miny)
