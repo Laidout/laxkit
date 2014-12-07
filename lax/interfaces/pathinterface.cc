@@ -128,22 +128,24 @@ PathWeightNode::PathWeightNode()
 {
 	width=1;
 	offset=0;
+	angle=0;
 	t=.5;
 	type=Default;
-	//cache_status=-1;
+	//cache_status=-1; 
 
-	angle=0;
+	center_t=-1;
 }
 
 PathWeightNode::PathWeightNode(double nt,double no,double nw, int ntype)
 {
 	width=nw;
 	offset=no;
+	angle=0;
 	t=nt;
 	type=ntype;
 	//cache_status=-1;
 
-	angle=0;
+	center_t=-1; 
 }
 
 
@@ -473,6 +475,151 @@ void Path::UpdateS(bool all, int resolution)
 }
 
 
+// ********************** PUT SOMEWHERE USEFUL!!!! Vvvvvvvvvvv
+
+/*! list contains possibly a mixture of bare sample points and bezier segments.
+ * list can have one or more paths within, terminated by points that have LINE_Closed
+ * or LINE_Open in their info.
+ *
+ * If epsilon>0, then list will be adjusted so that the number of bare sample points is reduced by
+ * the Ramer–Douglas–Peucker polyline reduction algorithm. If epsilon<0, then use a default
+ * value. If epsilon==0, then do not reduce.
+ *
+ * Any strings of bare points in list will get a previous bezier control point, and a
+ * next control point attached to it.
+ *
+ * Any points tagged with LINE_Join are meant to have the join inserted AFTER calling this
+ * function. The point immediately after that point is assumed to be the next on-line point.
+ */
+int bez_reduce_approximate(NumStack<flatpoint> *list, double epsilon)
+{
+	DBG cerr <<"....start bez_reduce_approximate...."<<endl;
+
+	if (epsilon<0) epsilon=1e-5;
+
+	int thisclosed=0;
+	int thisstart=0, thisend;
+	NumStack<flatpoint> bsamples;
+
+	for (int c=0; c<list->n; c=thisend+1) { //one loop per line in list
+
+		 //so as not to do buffer overruns below,
+		 //need to find length of current line, which might not be list->n
+		thisstart=c;
+		for (int c2=thisstart; c2<list->n; c2++) { 
+			if      (list->e[c2].info&LINE_Closed) thisclosed= 1;
+			else if (list->e[c2].info&LINE_Open)   thisclosed=-1;
+			else if (c2==list->n-1) thisclosed=-1;
+			else thisclosed=0;
+
+			if (thisclosed!=0) {
+				thisend=c2;
+				break;
+			}
+		}
+
+		 //the current subpath is contained in thisstart...thisstart+thisn.
+		 //Now we need to find the segments of this subpath that need to be approximated.
+		 //It is assumed that segments with LINE_Bez are already approximated, and are skipped.
+		int segstart=thisstart, segend=-1, segn;
+		int diffn;
+
+		for (int c2=thisstart; c2<=thisend; c2++) { //one loop per segment
+			 //skip bez segments
+			segstart=c2;
+			while (c2<thisend && (list->e[c2].info&LINE_Bez)) { c2++; segstart=c2; }
+
+			// **** sometimes we need to wrap around, a gnarly situation!
+			//if (c2==thisstart && thisclosed==1 && (list->e[c2].info&LINE_Corner)==0) {
+			//	 //need to do special check for wrapping backwards
+			//	segstart=thisend;
+			//	while (segstart>c2 && (list->e[segstart].info&(LINE_Corner|LINE_Join))==0) segstart--;
+			//}
+			//
+			//if (c2==thisend) {
+			//	if (thisclosed==1) wraps=1; else wraps=0;
+			//}
+
+
+			 //now we should be on either a raw point or a vertex, need to find end of segment
+			
+			if (c2==thisend) break; //at end
+			if (list->e[c2].info&LINE_Join) continue; //need to skip the join gap, it will be filled in later
+
+			c2++; //position one past segstart
+			if (list->e[c2].info&LINE_Bez) continue; //need to skip bez segments
+
+			 //find all raw points following segstart
+			while (c2<thisend && (list->e[c2].info&(LINE_Corner|LINE_Join|LINE_Open|LINE_Closed)) == 0) {
+				c2++;
+			}
+
+			segend=c2;
+			segn=segend-segstart+1;
+
+			if (segn<=2) continue; //segment was just a point or a single line, so go to next
+
+
+			DBG cerr <<"------list.n="<<list->n<<"   thisstart="<<thisstart<<"   thisend="<<thisend<<endl;
+			DBG cerr <<"   segstart="<<segstart<<"   segend="<<segend<<"   segn="<<segn<<endl;
+
+			DBG for (int cc=0; cc<list->n; cc++) { list->e[cc].info2=cc; }
+
+			 //reduce as necessary
+//			diffn=0;
+//			if (epsilon>0) {
+//				dump_points("list before:",list->e,list->n);
+//				int newn=reduce_polyline(list->e, list->e+segstart, segn, epsilon);
+//				diffn=segn-newn;
+//				if (diffn && c2!=list->n-1)
+//					memmove(list->e+segstart+newn, list->e+segend+1, (list->n-segend-1)*sizeof(flatpoint));
+//				list->n-=diffn;
+//				thisend-=diffn;
+//				c2     -=diffn;
+//
+//				dump_points("list after:",list->e,list->n);
+//			}
+
+
+			 //bezier approximate
+			bsamples.flush_n();
+			bsamples.Allocate(3*segn);
+			bsamples.n=3*segn;
+			bez_from_points(bsamples.e, list->e+thisstart,thisend-thisstart+1, segstart-thisstart,segn);
+			//bez_from_points(bsamples.e, list->e,list->n, segstart,segn);
+			DBG dump_points("bsamples",bsamples.e,bsamples.n);
+
+			DBG for (int cc=0; cc<bsamples.n; cc++) { bsamples.e[cc].info2=1000+cc; }
+			DBG cerr <<"   bsamples.n="<<bsamples.n<<endl;
+			DBG dump_points("list before",list->e,list->n);
+
+			// *** should do only one memmove, combine with epsilon above
+			//if (diffn && c2!=list->n-1) memmove(list->e+segstart+newn, list->e+c2+1, (list-n-c2+1)*sizeof(flatpoint)); ***
+			list->Allocate(list->n+2*segn);
+			//if (c2!=list->n-1) memmove(list->e+segstart+3*segn-3, list->e+c2, (list->n-c2)*sizeof(flatpoint));
+			memmove(list->e+segstart+3*segn-3, list->e+c2, (list->n-c2)*sizeof(flatpoint));
+			memcpy(list->e+segstart+1, bsamples.e+2, (3*segn-4)*sizeof(flatpoint));
+
+			diffn=2*segn-2;
+
+			list->n+=diffn;
+			thisend+=diffn;
+			c2     +=diffn;
+
+			DBG dump_points("list after",list->e,list->n);
+		}
+
+		c=thisend;
+	}
+
+	DBG cerr <<"....end bez_reduce_approximate...."<<endl;
+
+	return 0;
+}
+
+// ********************** PUT SOMEWHERE USEFUL!!!! ^^^^^^^^
+
+
 /*! Does nothing if needtorecache==0.
  * Otherwise rebuild outlinecache and centercache. centercache is the center of the stroke,
  * inside of which is to be filled. For nonweighted, non-offset paths, this is the same as the base line.O
@@ -521,6 +668,8 @@ void Path::UpdateCache()
 	bool isclosed;
 
 
+	 //---------------------------------
+	 //
 	 //first find the number of vertex points in the line, which
 	 //is the number of bezier segments in the line, which also
 	 //is the x bounds of the width curve.
@@ -603,6 +752,7 @@ void Path::UpdateCache()
 	}
 
 
+	 //--------------------------
 	 //
 	 //cache_angle, cache_offset, cache_width curves now built,
 	 //now need to build the actual paths,
@@ -614,8 +764,8 @@ void Path::UpdateCache()
 	flatpoint c1,c2;
 	p=start;
 	flatpoint pp,po,vv,vt;
-	//int first=(isclosed?1:0); //index to begin render to segment.. for open paths, needs to start at 0
-	int first=0; //we need to render the 1st sample point in a segment
+	//int ignorefirst=(isclosed?1:0); //index to begin render to segment.. for open paths, must not ignore first
+	int ignorefirst=0; //we need to render the 1st sample point in a segment
 
 
 	int nsamples=10;
@@ -640,6 +790,9 @@ void Path::UpdateCache()
 		p2=p->next; //p points to a vertex
 		if (!p2) break;
 
+		 //figure out where to sample the current bezier segment. When there are weight nodes,
+		 //things can get crazy, so sample a bunch of times in between nodes, not just evenly
+		 //along the whole bezier segment.
 		bezt.flush_n();
 		bez.flush_n();
 		double lastw=-1, t;
@@ -664,7 +817,6 @@ void Path::UpdateCache()
 
 		//p2 now points to first Coordinate after the first vertex
 		//find next 2 control points and next vertex
-		//and compute resolution number of points along the initial path line
 		//
 		if (p2->flags&(POINT_TOPREV|POINT_TONEXT)) {
 			 //we do have control points
@@ -682,7 +834,7 @@ void Path::UpdateCache()
 				c2=p2->p();
 			}
 
-			bez_points_at_samples(bez.e, p->p(), c1,c2, p2->p(), bezt.e,bezt.n, first);
+			bez_points_at_samples(bez.e, p->p(), c1,c2, p2->p(), bezt.e,bezt.n, ignorefirst);
 			isline=false;
 
 		} else {
@@ -701,8 +853,9 @@ void Path::UpdateCache()
 
 		 //compute sample points of top, bottom, and center, based on found bezier segment
 		 //
-		for (int bb=first; bb<bez.n; bb++) {
-			DBG cerr <<"bez: "<<bez.e[bb].x<<"  "<<bez.e[bb].y<<endl;
+		for (int bb=ignorefirst; bb<bez.n; bb++) {
+			//DBG cerr <<"bez: "<<bez.e[bb].x<<"  "<<bez.e[bb].y<<endl;
+
 			if (isline) vv=vvv;
 			else {
 				vv=bez_visual_tangent(bezt.e[bb], p->p(), c1,c2, p2->p());
@@ -725,17 +878,23 @@ void Path::UpdateCache()
 			 //center path is the same as the original path
 			if (isline) {
 				vv=(p2->p() - p->p())/3;
+				if (!ignorefirst) {
+					centerp.push(p->p());  centerp.e[centerp.n-1].info|=LINE_Vertex;
+				}
 				centerp.push(p->p()+vv);   centerp.e[centerp.n-1].info|=LINE_Bez;
 				centerp.push(p->p()+2*vv); centerp.e[centerp.n-1].info|=LINE_Bez;
 				centerp.push(p2->p());     centerp.e[centerp.n-1].info|=LINE_Vertex;
 			} else { //add bez
-				centerp.push(c1);      centerp.e[centerp.n-1].info|=LINE_Bez;
-				centerp.push(c2);      centerp.e[centerp.n-1].info|=LINE_Bez;
-				centerp.push(p2->p()); centerp.e[centerp.n-1].info|=LINE_Vertex;
+				if (!ignorefirst) {
+					centerp.push(p->p()); centerp.e[centerp.n-1].info|=LINE_Vertex;
+				}
+				centerp.push(c1);         centerp.e[centerp.n-1].info|=LINE_Bez;
+				centerp.push(c2);         centerp.e[centerp.n-1].info|=LINE_Bez;
+				centerp.push(p2->p());    centerp.e[centerp.n-1].info|=LINE_Vertex;
 			}
 		}
 
-		if (first==0) first=1;
+		if (ignorefirst==0) ignorefirst=1;
 
 		 //need to check join with next segment, special handling for corners...
 		if (p2->nextVertex(0)) {
@@ -744,11 +903,11 @@ void Path::UpdateCache()
 			curv=p2->direction(0);
 			nextv=p2->direction(1);
 
-			if (areparallel(curv, nextv)!=1) {
+			if (areparallel(curv, nextv)!=-1) {
 				centerp.e[centerp.n-1].info|=LINE_Join;
 				topp   .e[topp.n-1]   .info|=LINE_Join;
 				bottomp.e[bottomp.n-1].info|=LINE_Join;
-				first=0;
+				ignorefirst=0;
 			}
 		}
 
@@ -759,13 +918,13 @@ void Path::UpdateCache()
 
 	int closed=(p==start);
 
+	//DBG dump_points("centerp",centerp.e,centerp.n);
 
 	// Now to build actual cache paths from topp, bottomp, and centerp sample points raw materials.
 	//we take the topp and bottomp points, and create a path that incorporates both,
 	//temporarily installing all points to topp...
 	
 
-	//int capnn=topp.n;
 	if (!closed) {
 		 //top contour is connected to bottom with caps..
 
@@ -781,6 +940,8 @@ void Path::UpdateCache()
 		topp.e[topp.n-1].info|=LINE_Closed;
 
 	} else {
+		 //path is closed...
+		if (centerp.e[centerp.n-1]==centerp.e[0]) centerp.n--; //first point will maybe have been repeated
 		centerp.e[centerp.n-1].info|=LINE_Closed;
 
 		 //bottom contour is a seperate path than top contour
@@ -796,22 +957,34 @@ void Path::UpdateCache()
 		topp.e[topp.n-1].info|=LINE_Closed;
 	}
 
+
+	//----------------
+	//
+	//Now raw paths for outline and centerline are constructed. need to bezier approximate
+	//from the raw sample points, and add joins where necessary.
+	//
+
+	int thisclosed, thisstart, thisn;
+
 	 //bezier approximate the sample points between join points
 	for (int pth=0; pth<2; pth++) {
-	  NumStack<flatpoint> *list;
-	  if (pth==0) list=&topp;
-	  else list=&centerp;
+		NumStack<flatpoint> *list;
+		NumStack<flatpoint> newlist;
 
-	  for (int c=0; c<list->n; c++) {
-	  }
+		if (pth==0) list=&topp;
+		else list=&centerp;
+
+
+		DBG if (pth==0) cerr <<"------approximate for topp..."<<endl;
+		DBG if (pth==1) cerr <<"------approximate for centerp..."<<endl;
+		bez_reduce_approximate(list, maxx>minx ? (maxx-minx + maxy-miny)/10000 : 1e-7);
 	}
 
 	 //do joins for center and outline paths
 	int njoin;
-	int thisclosed, thisstart, thisn;
 	flatpoint join[8];
 	flatpoint line[8];
-	flatpoint samples[3], bsamples[9];
+	flatpoint samples[3];
 
 	for (int pth=0; pth<2; pth++) {
 	  NumStack<flatpoint> *list;
@@ -822,8 +995,8 @@ void Path::UpdateCache()
 	  thisstart=0;
 	  thisn=-1;
 
-	  //DBG if (pth==0) cerr <<"------joins for topp..."<<endl;
-	  //DBG if (pth==1) cerr <<"------joins for centerp..."<<endl;
+	  DBG if (pth==0) cerr <<"------joins for topp..."<<endl;
+	  DBG if (pth==1) cerr <<"------joins for centerp..."<<endl;
 
 	  for (int c=0; c<list->n; c++) {
 		//DBG cerr <<list->e[c].x<<"   "<<list->e[c].y<<endl;
@@ -853,39 +1026,41 @@ void Path::UpdateCache()
 
 
 		if (list->e[thisstart + (c-thisstart+thisn-1)%thisn].info&LINE_Bez) {
+			 //prev points were bez segment
 			line[3]=list->e[c];
 			line[2]=list->e[thisstart + (c-thisstart+thisn-1)%thisn];
 			line[1]=list->e[thisstart + (c-thisstart+thisn-2)%thisn];
 			line[0]=list->e[thisstart + (c-thisstart+thisn-3)%thisn];
 
 		} else {
-			samples[2]=list->e[c];
-			samples[1]=list->e[thisstart + (c-thisstart+thisn-1)%thisn];
-			samples[0]=list->e[thisstart + (c-thisstart+thisn-2)%thisn];
-			bez_from_points(bsamples,samples,3);
-
-			line[3]=bsamples[7];
-			line[2]=bsamples[6];
-			line[1]=bsamples[5];
-			line[0]=bsamples[4];
+			 //prev points were straight segment
+			samples[1]=list->e[c];
+			samples[0]=list->e[thisstart + (c-thisstart+thisn-1)%thisn];
+			flatpoint vv=(samples[1]-samples[0])/3;
+			
+			line[3]=samples[1];
+			line[2]=samples[1]-vv;
+			line[1]=samples[1]-2*vv;
+			line[0]=samples[0];
 		}
 
 		if (list->e[thisstart + (c-thisstart+1)%thisn].info&LINE_Bez) {
+			 //next points were bez segment
 			line[4]=list->e[thisstart + (c-thisstart+1)%thisn];
 			line[5]=list->e[thisstart + (c-thisstart+2)%thisn];
 			line[6]=list->e[thisstart + (c-thisstart+3)%thisn];
 			line[7]=list->e[thisstart + (c-thisstart+4)%thisn];
 
 		} else {
+			 //next points were straight segment
 			samples[0]=list->e[thisstart + (c-thisstart+1)%thisn];
 			samples[1]=list->e[thisstart + (c-thisstart+2)%thisn];
-			samples[2]=list->e[thisstart + (c-thisstart+3)%thisn];
-			bez_from_points(bsamples,samples,3);
+			flatpoint vv=(samples[1]-samples[0])/3;
 
-			line[4]=bsamples[1];
-			line[5]=bsamples[2];
-			line[6]=bsamples[3];
-			line[7]=bsamples[4];
+			line[4]=samples[0];
+			line[5]=samples[0]+vv;
+			line[6]=samples[0]+2*vv;
+			line[7]=samples[1];
 		}
 
 		njoin=0;
@@ -911,13 +1086,12 @@ void Path::UpdateCache()
 	}
 
 
-	// *** todo: need to bez approximate from topp for outlinecache
+	 //finally install topp to outlinecache
 	flatpoint *aa=topp.extractArray(&n);
 	outlinecache.insertArray(aa,n);
 
 
-	 //install centerp
-	// *** todo: need to bez approximate from centerp
+	 //install centerp to centercache
 	aa=centerp.extractArray(&n);
 	centercache.insertArray(aa,n);
 	if (closed) centercache.e[centercache.n-1].info|=LINE_Closed;
@@ -925,6 +1099,68 @@ void Path::UpdateCache()
 
 	needtorecache=0;
 }
+
+
+//! Sets DoubleBBox::minx,etc.
+void Path::FindBBox()
+{
+	DoubleBBox::clear();
+	if (!path) return;
+
+	Coordinate *p=NULL,*t,*start;
+
+
+	if (Weighted()) {
+		UpdateCache();
+		addtobounds(outlinecache.e, outlinecache.n);
+
+	} else {
+
+		 // First find a vertex point
+		start=t=path->firstPoint(1);
+		if (!(t->flags&POINT_VERTEX)) return;//only mysterious control points
+
+		addtobounds(t->p());
+
+		 // step through all the rest of the vertices
+		flatpoint c1,c2;
+		while (t) {
+			p=t->next;
+			if (!p || p==start) break;
+
+			if (p->flags&POINT_VERTEX) {
+				 //simple case, just a line segment
+				addtobounds(p->p());
+				t=p;
+				continue;
+			}
+			 //else assume bez, find 1st control
+			if (p->flags&POINT_TOPREV) {
+				c1=p->p(); 
+				p=p->next;
+				if (!p) break;
+			} else c1=t->p();
+
+			 //find second control
+			if (p->flags&POINT_TONEXT) {
+				c2=p->p(); 
+				p=t->nextVertex();
+				if (!p) break;
+			} else {
+				p=t->nextVertex();
+				c2=p->p();
+			}
+
+			bez_bbox(t->p(),c1,c2,p->p(), this, NULL);
+
+			t=p;
+			if (t==start) break;
+		}
+	}
+}
+
+
+
 
 /*! Always true if absoluteangle is true.
  * If not absoluteangle, then true if any weight node angle is nonzero.
@@ -987,6 +1223,132 @@ bool Path::Weighted()
 		if (pathweights.e[c]->width!=w)  return true;
 	}
 	return false;
+}
+
+/*! Make the base line of the path be the current centerline, updating all weight
+ * nodes to the new t distribution.
+ *
+ * If !HasOffset(), nothing is done.
+ *
+ * Return 0 for success, 1 for error.
+ */
+int Path::ApplyOffset()
+{
+	if (!HasOffset()) return 0;
+
+	if (needtorecache) UpdateCache();
+
+	NumStack<flatpoint> weights;
+	flatpoint p,v;
+	for (int c=0; c<pathweights.n; c++) {
+		PointAlongPath(pathweights.e[c]->t,0, &p,&v);
+		v=transpose(v);
+		v.normalize();
+		weights.push(p+v*cache_offset.f(pathweights.e[c]->t));
+	}
+
+	delete path;
+	path=FlatpointToCoordinate(centercache.e,centercache.n);
+	path=path->firstPoint(1);
+
+	for (int c=0; c<pathweights.n; c++) {
+		ClosestPoint(weights.e[c], NULL,NULL, &pathweights.e[c]->t);
+		pathweights.e[c]->offset=0;
+	}
+
+	needtorecache=1;
+	return 1;
+}
+
+/*! Make all weight nodes have towhat as offset.
+ * If towhat==0 and there are no nodes, then add one with given offset.
+ *
+ * Return 0 for success, 1 for error.
+ */
+int Path::SetOffset(double towhat)
+{
+	if (pathweights.n==0) {
+		AddWeightNode(.5, towhat, linestyle ? linestyle->width : defaultwidth, 0);
+
+	} else {
+		for (int c=0; c<pathweights.n; c++) {
+			pathweights.e[c]->offset=towhat;
+		}
+	}
+
+	needtorecache=1;
+	return 0;
+}
+
+/*! Make all weight nodes have towhat as the angle.
+ * If towhat==0 and there are no nodes, then do nothing.
+ *
+ * Return 0 for success, 1 for error.
+ */
+int Path::SetAngle(double towhat, int absolute)
+{
+	if (absolute) absoluteangle=true; else absoluteangle=false;
+
+	if (pathweights.n!=0) {
+		for (int c=0; c<pathweights.n; c++) {
+			pathweights.e[c]->angle=towhat;
+		}
+	}
+
+	needtorecache=1;
+	return 0;
+}
+
+/*! from MUST be previous to to.
+ * Traverse from to to, making any segment between any vertices be straight lines,
+ * and change vertex point type to corner.
+ * If asbez, then insert bezier control handles on thirds of segment length.
+ * If !asbez, then have no control points between vertices.
+ *
+ * If from==NULL, then use path. If to=NULL then use rest of path since from.
+ *
+ * Return number of vertices traversed.
+ */
+int Path::MakeStraight(Coordinate *from, Coordinate *to, bool asbez)
+{
+	if (from==NULL) from=path; else from=from->nextVertex(1);
+	if (to==NULL) {
+		to=from->lastPoint(1);
+	} else to=to->previousVertex(1);
+
+	int numv=0;
+	Coordinate *p=from, *p2;
+	do {
+		p2=p->nextVertex(0);
+		if (!p2) break;
+		numv++;
+
+		 //remove any existing control points..
+		while (p->next != p2) {
+			Coordinate *tmp=p->next;
+			p->next->prev=NULL;
+			p->next=p->next->next;
+			tmp->next=NULL;
+			p->next->prev=p;
+
+			delete tmp;
+		}
+
+		 //add line control point if necessary
+		if (asbez) {
+			flatpoint v=(p2->p() - p->p())/3;
+			p ->insert(new Coordinate(p->p()+v,   POINT_TOPREV, NULL), 1);
+			p2->insert(new Coordinate(p->p()+2*v, POINT_TONEXT, NULL), 0);
+		}
+
+		p->flags&=~(POINT_SMOOTH|POINT_REALLYSMOOTH);
+		p2->flags&=~(POINT_SMOOTH|POINT_REALLYSMOOTH);
+		p=p2;
+	} while (p && p!=to);
+
+
+	needtorecache=1;
+	return numv;
 }
 
 /*! Shift the position of a weight node, ensuring that the list stays sorted.
@@ -2273,6 +2635,46 @@ void PathsData::Recache(bool now)
 	}
 }
 
+/*! If whichpath<0 then ApplyOffset() on all paths, else just do that one.
+ */
+int PathsData::ApplyOffset(int whichpath)
+{
+	if (whichpath>=0 && whichpath<paths.n) paths.e[whichpath]->ApplyOffset();
+	else for (int c=0; c<paths.n; c++) paths.e[c]->ApplyOffset();
+
+	return 0;
+}
+
+/*! If whichpath<0 then SetOffset() on all paths, else just do that one.
+ */
+int PathsData::SetOffset(int whichpath, double towhat)
+{
+	if (whichpath>=0 && whichpath<paths.n) paths.e[whichpath]->SetOffset(towhat);
+	else for (int c=0; c<paths.n; c++) paths.e[c]->SetOffset(towhat);
+
+	return 0;
+}
+
+/*! If whichpath<0 then SetOffset() on all paths, else just do that one.
+ */
+int PathsData::SetAngle(int whichpath, double towhat, int absolute)
+{
+	if (whichpath>=0 && whichpath<paths.n) paths.e[whichpath]->SetAngle(towhat, absolute);
+	else for (int c=0; c<paths.n; c++) paths.e[c]->SetAngle(towhat, absolute);
+
+	return 0;
+}
+
+/*! If whichpath>=0 than do just that one. Else call MakeStraight(NULL,NULL,asbez) for all paths.
+ */
+int PathsData::MakeStraight(int whichpath, Coordinate *from, Coordinate *to, bool asbez)
+{
+	if (whichpath>=0 && whichpath<paths.n) paths.e[whichpath]->MakeStraight(from,to,asbez);
+	else for (int c=0; c<paths.n; c++) paths.e[c]->MakeStraight(from,to,asbez);
+
+	return 0;
+}
+
 /*! If which==-1, flush all paths. If not, then remove path with that index.
  */
 void PathsData::clear(int which)
@@ -2687,57 +3089,11 @@ void PathsData::FindBBox()
 	DoubleBBox::clear();
 	if (paths.n==0) return;
 
-	Coordinate *p=NULL,*t,*start;
 	for (int c=0; c<paths.n; c++) {
+
 		if (!paths.e[c] || !paths.e[c]->path) continue;
-
-		if (paths.e[c]->Weighted()) {
-			paths.e[c]->UpdateCache();
-			addtobounds(paths.e[c]->outlinecache.e, paths.e[c]->outlinecache.n);
-
-		} else {
-
-			 // First find a vertex point
-			start=t=paths.e[c]->path->firstPoint(1);
-			if (!(t->flags&POINT_VERTEX)) continue;//only mysterious control points
-
-			addtobounds(t->p());
-
-			 // step through all the rest of the vertices
-			flatpoint c1,c2;
-			while (t) {
-				p=t->next;
-				if (!p || p==start) break;
-
-				if (p->flags&POINT_VERTEX) {
-					 //simple case, just a line segment
-					addtobounds(p->p());
-					t=p;
-					continue;
-				}
-				 //else assume bez, find 1st control
-				if (p->flags&POINT_TOPREV) {
-					c1=p->p(); 
-					p=p->next;
-					if (!p) break;
-				} else c1=t->p();
-
-				 //find second control
-				if (p->flags&POINT_TONEXT) {
-					c2=p->p(); 
-					p=t->nextVertex();
-					if (!p) break;
-				} else {
-					p=t->nextVertex();
-					c2=p->p();
-				}
-
-				bez_bbox(t->p(),c1,c2,p->p(), this, NULL);
-
-				t=p;
-				if (t==start) break;
-			}
-		}
+		paths.e[c]->FindBBox();
+		addtobounds(paths.e[c]);
 	}
 }
 
@@ -3894,7 +4250,7 @@ void PathInterface::drawWeightNode(Path *path, PathWeightNode *weight, int isfor
 	//bool absoluteangle=path->absoluteangle;
 
 	flatpoint pp,po, ptop,pbottom, vv,vt;
-	if (WeightNodePosition(path, weight, &pp,&po, &ptop,&pbottom, &vv,&vt)!=0) return;
+	if (WeightNodePosition(path, weight, &pp,&po, &ptop,&pbottom, &vv,&vt, 0)!=0) return;
 
 
 	dp->NewFG(controlcolor);
@@ -4133,7 +4489,8 @@ Coordinate *PathInterface::scannear(Coordinate *p,char u,double radius) //***rad
  */
 int PathInterface::WeightNodePosition(Path *path, PathWeightNode *weight,
 									  flatpoint *pp_ret, flatpoint *po_ret, flatpoint *ptop_ret, flatpoint *pbottom_ret,
-									  flatpoint *vv_ret, flatpoint *vt_ret)
+									  flatpoint *vv_ret, flatpoint *vt_ret,
+									  int needtotransform)
 {
 	flatpoint pp,po, vv,vt, ptop,pbottom;
 
@@ -4147,10 +4504,18 @@ int PathInterface::WeightNodePosition(Path *path, PathWeightNode *weight,
 	else if (weight->angle!=0) vv=rotate(vv, weight->angle);
 	vt=transpose(vv);
 
-	ptop   =realtoscreen(transform_point(data->m(), po+vt*weight->width/2));
-	pbottom=realtoscreen(transform_point(data->m(), po-vt*weight->width/2));
+	ptop=po+vt*weight->width/2;
+	if (needtotransform) ptop = realtoscreen(transform_point(data->m(), ptop));
+	else ptop=realtoscreen(ptop);
 
-	vv=realtoscreen(transform_point(data->m(),po+vv))-realtoscreen(transform_point(data->m(),po));
+	pbottom=po-vt*weight->width/2;
+	if (needtotransform) pbottom = realtoscreen(transform_point(data->m(), pbottom));
+	else pbottom=realtoscreen(pbottom);
+
+	if (needtotransform) 
+		vv =realtoscreen(transform_point(data->m(),po+vv))-realtoscreen(transform_point(data->m(),po));
+	else vv=realtoscreen(po+vv)-realtoscreen(po);
+
 	vv.normalize();
 	vt=ptop-pbottom;
 	vt.normalize();
@@ -4196,7 +4561,7 @@ int PathInterface::scanWeights(int x,int y,unsigned int state, int *pathindex, i
 		for (int cw=(path->pathweights.n>0 ? 0 : -1); cw<path->pathweights.n; cw++) {
 			if (cw==-1) weight=&defaultweight; else weight=path->pathweights.e[cw];
 
-			if (WeightNodePosition(path, weight, &pp,&po, &ptop,&pbottom, &vv,&vt)!=0) continue;
+			if (WeightNodePosition(path, weight, &pp,&po, &ptop,&pbottom, &vv,&vt, 1)!=0) continue;
 
 			xx=(fp-ptop)*vv;
 			if (xx<-arc*1.5 || xx>arc) continue;
@@ -4471,16 +4836,34 @@ Laxkit::MenuInfo *PathInterface::ContextMenu(int x,int y,int deviceid)
 	if (!(pathi_style&PATHI_No_Weights)) {
 		if (menu->n()) menu->AddSep();
 		menu->AddItem(_("Show base and center lines"), PATHIA_ToggleBaseline, LAX_OFF|LAX_ISTOGGLE|(show_baselines?LAX_CHECKED:0), 0);
-		menu->AddItem(_("Show weight nodes"), PATHIA_ToggleWeights, LAX_OFF|LAX_ISTOGGLE|(show_weights?LAX_CHECKED:0), 0);
+		menu->AddItem(_("Show weight nodes"), PATHIA_ToggleWeights,  LAX_OFF|LAX_ISTOGGLE|(show_weights?LAX_CHECKED:0), 0);
+
+		bool angled=false;
+		if (curpath) angled=curpath->absoluteangle;
+		else if (data && data->paths.n) angled=data->paths.e[0]->absoluteangle;
+		menu->AddItem(_("Absolute angles"),  PATHIA_ToggleAbsAngle,  LAX_OFF|LAX_ISTOGGLE|(angled?LAX_CHECKED:0), 0);
 	}
 
 	 //misc actions
-	//if (menu->n()) menu->AddSep();
-	//menu->AddItem(_("Apply offset"),PATHIA_***);
-	//menu->AddItem(_("Convert to straight lines"),PATHIA_***);
-	//menu->AddItem(_("Convert to straight beziers"),PATHIA_***);
-	//menu->AddItem(_("Break apart all"),PATHIA_***);
-	//menu->AddItem(_("Break apart chunks"),PATHIA_***);
+	if (data) {
+		if (menu->n()) menu->AddSep();
+		if (data->Angled()) {
+			menu->AddItem(_("Reset angle"),PATHIA_ResetAngle);
+		}
+		if (data->HasOffset()) {
+			menu->AddItem(_("Apply offset"),PATHIA_ApplyOffset);
+			menu->AddItem(_("Reset offset"),PATHIA_ResetOffset);
+		}
+		menu->AddItem(_("Convert to straight lines"),  PATHIA_MakeStraight);
+		menu->AddItem(_("Convert to straight beziers"),PATHIA_MakeBezStraight);
+		//menu->AddItem(_("New object from stroke"),     PATHIA_NewFromStroke); 
+
+		if (data->paths.n) {
+			//menu->AddItem(_("Break apart all"),PATHIA_BreakApart);
+			//menu->AddItem(_("Break apart chunks"),PATHIA_BreakApartChunks);
+		}
+	}
+
 	//menu->AddItem(_("Combine"),PATHIA_***);
 
 
@@ -4511,6 +4894,15 @@ int PathInterface::Event(const Laxkit::EventData *e_data, const char *mes)
 
 		 || i==PATHIA_ToggleBaseline
 		 || i==PATHIA_ToggleWeights
+		 || i==PATHIA_ToggleAbsAngle
+		 || i==PATHIA_ApplyOffset
+		 || i==PATHIA_ResetOffset
+		 || i==PATHIA_MakeStraight
+		 || i==PATHIA_MakeBezStraight
+		 || i==PATHIA_ResetAngle
+		 || i==PATHIA_NewFromStroke
+		 || i==PATHIA_BreakApart
+		 || i==PATHIA_BreakApartChunks
 		 )
 			 PerformAction(i);
 		return 0;
@@ -5223,18 +5615,21 @@ int PathInterface::LBUp(int x,int y,unsigned int state,const LaxMouse *d)
 					return 0;
 				}
 			} break;
+
 		case (ShiftMask): {
 				if (!lbfound && moved && !curpoints.n) { // was selecting with a box
 					//*** add point within the box.
+
 				} else if (lbfound && !moved) { // toggle selection of lbfound
 					int c=curpoints.findindex(lbfound);
-					if (c>=0) curpoints.pop(c); // toggle off
+					if (c>=0) ; //curpoints.pop(c); // toggle off
 					else { // found unselected point, toggle on
 						selectPoint(lbfound,PSELECT_PushPoints|PSELECT_SelectPathop|PSELECT_SyncVertex); //push-setcpop-syncCV
 					}
 					needtodraw|=2;
 				}
 			} break;
+
 		case (ControlMask): {
 				if (lbfound && !moved) {
 					int c=curpoints.findindex(lbfound);
@@ -5266,9 +5661,11 @@ int PathInterface::LBUp(int x,int y,unsigned int state,const LaxMouse *d)
 
 				}
 			} break;
+
 		case (ShiftMask|ControlMask): {
 			} break;
 	}
+
 	return 0;
 }
 
@@ -5943,6 +6340,12 @@ Laxkit::ShortcutHandler *PathInterface::GetShortcuts()
 	sc->Add(PATHIA_Delete,            LAX_Del,0,0,    "Delete",       _("Delete selected points"),NULL,0);
 	sc->AddShortcut(LAX_Bksp,0,0, PATHIA_Delete);
 
+	sc->Add(PATHIA_ApplyOffset,       '_',ControlMask|ShiftMask,0,  "ApplyOffset",  _("Apply offset to current paths"),NULL,0);
+	sc->Add(PATHIA_ResetOffset,       '|',ControlMask|ShiftMask,0,  "ResetOffset",  _("Make offset values (if any) be 0 of current paths"),NULL,0);
+	sc->Add(PATHIA_MakeStraight,      'I',ShiftMask,0, "MakeStraight",    _("Make segments of current points be straight"),NULL,0);
+	sc->Add(PATHIA_MakeBezStraight,   'i',0,0,         "MakeBezStraight", _("Make segments of current points be straight with bezier handles"),NULL,0);
+	sc->Add(PATHIA_ResetAngle,        '<',ShiftMask,0, "ResetAngle",      _("Make weight angles be zero, and set to not absolute angles"),NULL,0);
+
 	//sc->Add(PATHIA_Combine,           'k',ControlMask,0,    "Combine",      _("Combine multiple path objects into a single path object"),NULL,0);
 	//sc->Add(PATHIA_ExtractPath,       'K',ShiftMask,0,      "ExtractPath",  _("Move paths of current points to a new path object"),NULL,0);
 	//sc->Add(PATHIA_ExtractAll,        'K',ControlMask|ShiftMask,0,"ExtractPaths", _("Create new path objects of each subpath"),NULL,0);
@@ -6336,6 +6739,92 @@ int PathInterface::PerformAction(int action)
 
 	} else if (action==PATHIA_Delete) {
 		DeleteCurpoints();
+		return 0;
+
+	} else if (action==PATHIA_ApplyOffset) {
+		if (!data) return 0;
+
+		if (curpoints.n==0) {
+			data->ApplyOffset(-1);
+		} else {
+			curpath->ApplyOffset();
+		}
+		return 0;
+
+	} else if (action==PATHIA_ResetOffset) {
+		 //need some way to determine paths of curpoints, and affect only those.
+		 //If no curpoints, then reset for all
+		if (curpoints.n==0) {
+			data->SetOffset(-1,0);
+		} else {
+			curpath->SetOffset(0);
+		}
+		return 0;
+
+	} else if (action==PATHIA_ResetAngle) {
+		 //need some way to determine paths of curpoints, and affect only those.
+		 //If no curpoints, then reset for all
+		if (curpoints.n==0) {
+			data->SetAngle(-1,0,0);
+		} else {
+			curpath->SetAngle(0,0);
+		}
+		return 0;
+
+	} else if (action==PATHIA_MakeStraight || action==PATHIA_MakeBezStraight) {
+		if (!data) return 0;
+
+		bool asbez=(action==PATHIA_MakeBezStraight);
+
+		if (curpoints.n==0) {
+			data->MakeStraight(-1,NULL,NULL,asbez);
+		} else {
+			Coordinate *from,*to, *next, *prev;
+			Path *path;
+			int i;
+			for (int c=0; c<curpoints.n; c++) {
+				from=curpoints.e[c];
+				if ((from->flags&POINT_VERTEX)==0) continue;
+
+				i=data->hasCoord(from);
+				path=data->paths.e[i];
+				to=NULL;
+				next=from->nextVertex(0);
+				prev=from->previousVertex(0);
+				for (int c2=c+1; c2<curpoints.n; c2++) {
+					if (curpoints.e[c2]==next) {
+						to=curpoints.e[c2];
+						path->MakeStraight(from,to,asbez);
+
+					} else if (curpoints.e[c2]==prev) {
+						to=curpoints.e[c2];
+						path->MakeStraight(to,from,asbez);
+					}
+				}
+			}
+		}
+		clearSelection();
+		return 0;
+
+	} else if (action==PATHIA_NewFromStroke) {
+		PostMessage(" *** need to implement PATHIA_NewFromStroke!!");
+		return 0;
+
+	} else if (action==PATHIA_BreakApart) {
+		PostMessage(" *** need to implement PATHIA_BreakApart!!");
+//		----------
+//		if (data && data->paths.n<=1) return 0;
+//		PathsData *newpaths=NULL;
+//		int n=data->BreakApart(&newpaths);
+//		for (int c=0; c<n; c++) {
+//			viewport->NewData(newpaths[c], NULL);
+//
+//		}
+//		*** clear object selection, add data and all in newpaths to new selection
+		return 0;
+
+	} else if (action==PATHIA_BreakApartChunks) {
+		PostMessage(" *** need to implement PATHIA_BreakApartChunks!!");
 		return 0;
 	}
 

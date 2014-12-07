@@ -56,15 +56,9 @@ class PathWeightNode
 	int type; //symmetric width, fixed width with offset, width1/2 independent
 	double width; //total width of stroke at this node
 	double offset; //0 means weight symmetric about path
+	double angle; //see Path::absoluteangle, it affects what this value is
 	double t; //point along path, the bezier parameter: integer t corresponds to line points
-
-	// *** todo: would be better if angle was independent of weights
-	double angle;
-
-	//flatpoint cache_top;
-	//flatpoint cache_prev, cache_next; //original path tangents
-	//flatpoint cache_bottom;
-	//int cache_status;
+	double center_t; //t position on cached centerline
 
 	enum PathWeightNodeTypes {
 		Default=0,
@@ -82,7 +76,7 @@ class PathWeightNode
 	double bottomOffset() { return offset-width/2; }
 };
 
-class Path : public LaxFiles::DumpUtility
+class Path : public LaxFiles::DumpUtility, public Laxkit::DoubleBBox
 {
  protected:
  public:
@@ -95,13 +89,13 @@ class Path : public LaxFiles::DumpUtility
 	double defaultwidth;
 	bool absoluteangle; //1==absolute, or 0==relative to direction to path, wich angle==0 do default
 
-	Laxkit::NumStack<flatpoint> outlinecache; //bezier c-v-c-...
-	Laxkit::NumStack<flatpoint> centercache; //bezier c-v-c-...
+	int needtorecache;
 	//std::time_t cache_mod_time;
 	Laxkit::CurveInfo cache_offset;
 	Laxkit::CurveInfo cache_width;
 	Laxkit::CurveInfo cache_angle;
-	int needtorecache;
+	Laxkit::NumStack<flatpoint> outlinecache; //bezier c-v-c-...
+	Laxkit::NumStack<flatpoint> centercache; //bezier c-v-c-...
 	virtual void UpdateS(bool all, int resolution=16);
 	virtual void UpdateCache();
 
@@ -109,6 +103,7 @@ class Path : public LaxFiles::DumpUtility
 	Path(Coordinate *np,LineStyle *nls=NULL);
 	virtual ~Path();
 	virtual Path *duplicate();
+	virtual void FindBBox();
 
 	 //building functions
 	virtual Coordinate *lastPoint(int v=0);
@@ -139,6 +134,10 @@ class Path : public LaxFiles::DumpUtility
 	virtual int MoveWeight(int which, double nt);
 	virtual int GetWeight(double t, double *width, double *offset, double *angle);
 	virtual void SortWeights();
+	virtual int ApplyOffset();
+	virtual int SetOffset(double towhat);
+	virtual int SetAngle(double towhat, int absolute);
+	virtual int MakeStraight(Coordinate *from, Coordinate *to, bool asbez);
 
 	 //info functions
 	virtual int Intersect(flatpoint p1,flatpoint p2, int isline, double startt, flatpoint *pts,int ptsn, double *t,int tn);
@@ -191,6 +190,10 @@ class PathsData : virtual public SomeData
 	virtual bool HasOffset(int whichpath=-1);
 	virtual bool Angled(int whichpath=-1);
 	virtual void Recache(bool now=false);
+	virtual int ApplyOffset(int whichpath);
+	virtual int SetOffset(int whichpath, double towhat);
+	virtual int SetAngle(int whichpath, double towhat, int absolute);
+	virtual int MakeStraight(int whichpath, Coordinate *from, Coordinate *to, bool asbez);
 
 	virtual int hasCoord(Coordinate *co);
 	virtual int pathHasCoord(int pathindex,Coordinate *co);
@@ -322,6 +325,11 @@ enum PathInterfaceActions {
 	PATHIA_WidthStepR,
 	PATHIA_MakeCircle,
 	PATHIA_MakeRect,
+	PATHIA_MakeStraight,
+	PATHIA_MakeBezStraight,
+	PATHIA_ApplyOffset,
+	PATHIA_ResetOffset,
+	PATHIA_ResetAngle,
 	PATHIA_Reverse,
 	PATHIA_Delete,
 	PATHIA_Combine,
@@ -330,6 +338,10 @@ enum PathInterfaceActions {
 	PATHIA_Copy,
 	PATHIA_Cut,
 	PATHIA_Paste,
+	PATHIA_ShowNumbers,
+	PATHIA_NewFromStroke,
+	PATHIA_BreakApart,
+	PATHIA_BreakApartChunks,
 
 	PATHIA_Bevel,
 	PATHIA_Miter,
@@ -348,8 +360,8 @@ class PathInterface : public anInterface
 		ObjectContext *context; //nonlocal ref to context in selection
 		PathsData *paths;
 		int pathindex;
-		Coordinate *point;
-		int pointindex;
+		Coordinate *point; //if null, then index is which weight node
+		int index;
 	};
 	//Laxkit::PtrStack<SelectedPoint> curpoints;
 
@@ -402,8 +414,9 @@ class PathInterface : public anInterface
 	virtual void SetCurvertex(Coordinate *p, int path=-1);
 	virtual void UpdateDir();
 	virtual int WeightNodePosition(Path *path, PathWeightNode *weight,
-									  flatpoint *pp_ret, flatpoint *po_ret, flatpoint *ptop_ret, flatpoint *pbottom_ret,
-								  flatpoint *vv_ret, flatpoint *vt_ret);
+									flatpoint *pp_ret, flatpoint *po_ret, flatpoint *ptop_ret, flatpoint *pbottom_ret,
+									flatpoint *vv_ret, flatpoint *vt_ret,
+									int needtotransform);
 
 	virtual int ConnectEndpoints(Coordinate *from,int fromi, Coordinate *to,int toi);
 	virtual int MergeEndpoints(Coordinate *from,int fromi, Coordinate *to,int toi);
