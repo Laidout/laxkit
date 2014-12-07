@@ -88,9 +88,12 @@ void DoubleBBox::addtobounds(const double *m, DoubleBBox *bbox)
 }
 
 //! Add the bbox to the bounds. Set the bounds if current bounds are invalid.
+/*! Note if bbox is invalid, nothing is changed about current bbox.
+ */
 void DoubleBBox::addtobounds(DoubleBBox *bbox)
 {
 	if (!bbox) return;
+	if (bbox->maxx<bbox->minx || bbox->maxy<bbox->miny) return;
 	if (maxx<minx || maxy<miny) { setbounds(bbox); return; }
 	addtobounds(flatpoint(bbox->minx,bbox->miny));
 	addtobounds(flatpoint(bbox->maxx,bbox->miny));
