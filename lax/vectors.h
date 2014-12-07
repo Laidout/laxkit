@@ -30,19 +30,20 @@
 int vector_error();
 
 enum PointInfoTags {
-	LINE_Start  =(1<<0),
-	LINE_Vertex =(1<<1),
-	LINE_Bez    =(1<<2),
-	LINE_Closed =(1<<3),
-	LINE_Open   =(1<<4),
-	LINE_End    =(1<<5),
+	LINE_Start   =(1<<0),
+	LINE_Vertex  =(1<<1),
+	LINE_Bez     =(1<<2),
+	LINE_Closed  =(1<<3),
+	LINE_Open    =(1<<4),
+	LINE_End     =(1<<5),
 
-	LINE_Corner =(1<<6),
-	LINE_Equal  =(1<<7),
-	LINE_Auto   =(1<<8),
-	LINE_Join   =(1<<9),
+	LINE_Corner  =(1<<6),
+	LINE_Equal   =(1<<7),
+	LINE_Auto    =(1<<8),
+	LINE_Join    =(1<<9),
+	LINE_Original=(1<<10),
 
-	LAXLINE_MAX =(9)
+	LAXLINE_MAX =(10)
 };
 
 class spacevector
@@ -91,11 +92,12 @@ class flatvector
   public:
 	double x,y;
 	int info;
-	flatvector(void) {x=y=0; info=0; }
-	flatvector(double xx, double yy) { x=xx; y=yy; info=0; }
-	flatvector(double xx, double yy, int ninfo) { x=xx; y=yy; info=ninfo; }
-	flatvector(double *v) { x=v[0]; y=v[1]; info=0; }
-	flatvector(const flatvector &vec) {  x=vec.x; y=vec.y; info=vec.info; }
+	int info2;
+	flatvector(void) {x=y=0; info=0; info2=0; }
+	flatvector(double xx, double yy) { x=xx; y=yy; info=0; info2=0; }
+	flatvector(double xx, double yy, int ninfo) { x=xx; y=yy; info=ninfo; info2=0; }
+	flatvector(double *v) { x=v[0]; y=v[1]; info=0; info2=0; }
+	flatvector(const flatvector &vec) {  x=vec.x; y=vec.y; info=vec.info; info2=0; }
 	flatvector operator-();
 	void normalize();
 	void set(double xx,double yy) { x=xx; y=yy; }
@@ -223,6 +225,8 @@ void transform(flatline &l,Basis b);
 void transform(spaceline &l,Basis b);
 void transform(spacevector &v,Basis b);
 spacepoint invert(spacepoint p, spacepoint orig);
+
+void dump_points(const char *label, flatpoint *p,int n);
 
 //} //namespace LaxMath
 

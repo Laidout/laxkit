@@ -22,14 +22,15 @@
 //
 
 
-#include <lax/vectors.h>
 #include <cmath>
-#include <iostream>
+
+#include <lax/vectors.h>
 #include <lax/attributes.h>
 
 #define DBG
-
+#include <iostream>
 //using namespace std;
+
 
 /*! \defgroup vectors Various functions for dealing with math vectors
  *	This group defines lots of functions and classes that are handy in dealing with
@@ -1088,6 +1089,31 @@ spacepoint invert(spacepoint p, spacepoint orig)
 {
 	return(2*orig-p);
 }
+
+/*! write out the points to cerr
+ */
+void dump_points(const char *label, flatpoint *p,int n)
+{
+	if (label) std::cerr <<"----"<<label<<"----"<<std::endl;
+	for (int c=0; c<n; c++) {
+		std::cerr <<p[c].x<<','<<p[c].y<<"  info2="<<p[c].info2<<"  ";
+		if (p[c].info&LINE_Start   ) std::cerr <<"Start    ";
+		if (p[c].info&LINE_Vertex  ) std::cerr <<"Vertex   ";
+		if (p[c].info&LINE_Bez     ) std::cerr <<"Bez      ";
+		if (p[c].info&LINE_Closed  ) std::cerr <<"Closed   ";
+		if (p[c].info&LINE_Open    ) std::cerr <<"Open     ";
+		if (p[c].info&LINE_End     ) std::cerr <<"End      ";
+		if (p[c].info&LINE_Corner  ) std::cerr <<"Corner   ";
+		if (p[c].info&LINE_Equal   ) std::cerr <<"Equal    ";
+		if (p[c].info&LINE_Auto    ) std::cerr <<"Auto     ";
+		if (p[c].info&LINE_Join    ) std::cerr <<"Join     ";
+		if (p[c].info&LINE_Original) std::cerr <<"Original ";
+		std::cerr <<std::endl;
+	}
+	if (label) std::cerr <<"---- end "<<label<<"----"<<std::endl;
+}
+
+
 
 /*! @} */
 
