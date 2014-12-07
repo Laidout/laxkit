@@ -22,6 +22,7 @@
 //
 
 #include <lax/interfaces/selection.h>
+#include <lax/interfaces/viewportwindow.h>
 
 #include <lax/lists.cc>
 

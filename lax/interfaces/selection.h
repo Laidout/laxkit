@@ -23,11 +23,18 @@
 #ifndef _LAX_INTERFACES_SELECTION_H
 #define _LAX_INTERFACES_SELECTION_H
 
-#include <lax/interfaces/viewportwindow.h>
+
+#include <lax/anobject.h>
+#include <lax/doublebbox.h>
+#include <lax/lists.h>
 //#include <lax/values.h>
 
 
 namespace LaxInterfaces {
+
+
+class ObjectContext; //forward declaration
+
 
 //--------------------------- SelectedObject -------------------------
 
