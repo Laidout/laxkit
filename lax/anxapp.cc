@@ -2272,7 +2272,7 @@ void anXApp::settimeout(struct timeval *timeout)
 
 	for (int c=0; c<timers.n; c++) {
 		if (timers.e[c]->checktime(currenttime)<0) { 
-			//DBG cerr <<"removing timer "<<timers.e[c]->id<<endl;
+			DBG cerr <<"removing timer "<<c<<", id: "<<timers.e[c]->id<<endl;
 			timers.remove(c--); continue; 
 		}
 		if (c==0) earliest=timers.e[0]->nexttime;
@@ -2817,7 +2817,7 @@ int anXApp::addtimer(EventReceiver *win, //!< The window to create the timer for
 	int nid=getUniqueNumber();
 	timers.push(new TimerInfo(win,duration,strt,next,nid,0));
 
-	//DBG cerr <<"addtimer: "<<win->WindowTitle()<<"  id:"<<nid<<"  duration:"<<duration<<"  next:"<<next<< " ms"<<endl;
+	DBG cerr <<"addtimer: "<<win->object_id<<"  id:"<<nid<<"  duration:"<<duration<<"  next:"<<next<< " ms"<<"   numtimers="<<timers.n<<endl;
 	return nid;
 }
 
@@ -2830,7 +2830,6 @@ int anXApp::addtimer(EventReceiver *win, //!< The window to create the timer for
  */
 int anXApp::removetimer(EventReceiver *w,int timerid)
 {
-	DBG cerr <<"remove timer:"<<timerid<<endl;
 	int c;
 	for (c=0; c<timers.n; c++) {
 		if (w==timers.e[c]->win) {
@@ -2839,6 +2838,7 @@ int anXApp::removetimer(EventReceiver *w,int timerid)
 		}
 	}
 	if (c>=timers.n) return 1;
+	DBG cerr <<"remove timer:"<<timerid<<endl;
 	timers.remove(c);
 	return 0;
 }
