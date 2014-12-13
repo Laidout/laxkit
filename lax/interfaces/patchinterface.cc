@@ -359,6 +359,7 @@ PatchData::PatchData()
 	boundary_outline=NULL;
 
 	base_path=NULL;
+	pathdivisions=1;
 
 	cache=NULL;
 	ncache=0;
@@ -375,6 +376,7 @@ PatchData::PatchData(double xx,double yy,double ww,double hh,int nr,int nc,unsig
 	boundary_outline=NULL;
 
 	base_path=NULL;
+	pathdivisions=1;
 
 	cache=NULL;
 	ncache=0;
@@ -385,7 +387,7 @@ PatchData::~PatchData()
 {
 	if (points) delete[] points; 
 	if (boundary_outline) delete[] boundary_outline;
-	if (base_path) delete base_path;
+	if (base_path) base_path->dec_count();
 	delete[] cache;
 }
 
@@ -508,7 +510,7 @@ SomeData *PatchData::duplicate(SomeData *dup)
 		p->controls=controls;
 	}
 
-	if (base_path) p->base_path=base_path->duplicate();
+	if (base_path) p->base_path=dynamic_cast<PathsData*>(base_path->duplicate(NULL));
 
 	 //somedata elements:
 	dup->bboxstyle=bboxstyle;
@@ -616,7 +618,7 @@ void PatchData::dump_in_atts(Attribute *att,int flag,Laxkit::anObject *context)
 			else if (!strcmp(value,"border")) controls=Patch_Border_Only;
 
 		} else if (!strcmp(name,"base_path")) {
-			if (!base_path) base_path=new Path();
+			if (!base_path) base_path=new PathsData();
 			else base_path->clear();
 			base_path->dump_in_atts(att->attributes.e[c], flag, context);
 		}
@@ -932,6 +934,81 @@ void PatchData::zap(flatpoint p,flatpoint x,flatpoint y)
 	}
 	NeedToUpdateCache(0,-1,0,-1);
 	touchContents();
+}
+
+/*! If preferredaxis==0, then take the s direction to be the line direction. Else use the t direction.
+ * The other dimension is used to approximate sizes for path weight nodes.
+ */
+int PatchData::EstablishPath(int preferredaxis)
+{
+	if (base_path) base_path->clear();
+	else base_path=new PathsData();
+
+	base_path->pushEmpty();
+	Path *path=base_path->paths.e[0];
+
+	if (preferredaxis==0) {
+		 //line in s direction
+
+		if (MeshHeight()%2==2) {
+			 //easy, just read off bezier from middle points
+			int m=xsize*(ysize/2);
+			for (int c=0; c<xsize; c++) {
+				base_path->append(points[m+c], c%3==0 ? POINT_VERTEX : (c%3==1 ? POINT_TOPREV : POINT_TONEXT), NULL);
+			}
+
+		} else {
+			 // average adjacent edge points
+			int m=xsize*(ysize/2-1);
+			for (int c=0; c<xsize; c++) {
+				base_path->append((points[m+c]+points[m+3*xsize+c])/2, c%3==0 ? POINT_VERTEX : (c%3==1 ? POINT_TOPREV : POINT_TONEXT), NULL);
+			}
+		}
+
+		 //now add nodes
+		for (int c=0; c<xsize; c++) {
+			path->AddWeightNode(c/3, 0, norm(points[c]-points[(ysize-1)*xsize+c]), 0);
+		}
+
+	} else {
+		if (MeshWidth()%2==2) {
+			 //easy, just read off bezier from middle points
+			int m=ysize*(xsize/2);
+			for (int c=0; c<ysize; c++) {
+				base_path->append(points[m+c*xsize], c%3==0 ? POINT_VERTEX : (c%3==1 ? POINT_TOPREV : POINT_TONEXT), NULL);
+			}
+
+		} else {
+			 // average adjacent edge points
+			int m=ysize*(xsize/2-1);
+			for (int c=0; c<ysize; c++) {
+				base_path->append((points[m+c*xsize]+points[m+3+c*xsize])/2, c%3==0 ? POINT_VERTEX : (c%3==1 ? POINT_TOPREV : POINT_TONEXT), NULL);
+			}
+		}
+
+		 //now add nodes
+		for (int c=0; c<ysize; c++) {
+			path->AddWeightNode(c/3, 0, norm(points[c*xsize]-points[(xsize-1)+c*xsize]), 0);
+		}
+
+	}
+
+	return 0;
+}
+
+int PatchData::UpdateFromPath()
+{
+	DBG cerr <<" *** need to implement PatchData::UpdateFromPath()"<<endl;
+	return 0;
+}
+
+/*! Default is just to remove base_path. No other reconfiguring is done.
+ */
+int PatchData::RemovePath()
+{
+	if (base_path) base_path->dec_count();
+	base_path=NULL;
+	return 0;
 }
 
 //! Interpolate control points according to whichcontrols.
@@ -2261,11 +2338,13 @@ const char *PatchInterface::Name()
 
 Laxkit::MenuInfo *PatchInterface::ContextMenu(int x,int y,int deviceid)
 {
-	return NULL;
-
 //	--------- *** this might be better as a config box on canvas? too many options that have associated numbers
-//	MenuInfo *menu=new MenuInfo();
-//
+	MenuInfo *menu=new MenuInfo();
+
+	if (data) {
+		menu->AddItem(_("Base on path"),   PATCHA_BaseOnPath, LAX_OFF|LAX_ISTOGGLE|(data->base_path!=NULL ? LAX_CHECKED : 0));
+	}
+
 //	enum PatchInterfaceMenu {
 //		PATCHMENU_Full,   
 //		PATCHMENU_Coons,  
@@ -2279,12 +2358,48 @@ Laxkit::MenuInfo *PatchInterface::ContextMenu(int x,int y,int deviceid)
 //	menu->AddItem(_("Coons (12 point)"),PATCHMENU_Coons,  LAX_OFF|LAX_ISTOGGLE|(whichcontrols==Patch_Coons?LAX_CHECKED:0));
 //	menu->AddItem(_("Borders only"),    PATCHMENU_Borders,LAX_OFF|LAX_ISTOGGLE|(whichcontrols==Patch_Border_Only?LAX_CHECKED:0));
 //	menu->AddItem(_("Linear"),          PATCHMENU_Linear, LAX_OFF|LAX_ISTOGGLE|(whichcontrols==Patch_Linear?LAX_CHECKED:0));
-//
-//	return menu;
+
+	if (menu->n()==0) { delete menu; return NULL; }
+	return menu;
+}
+
+int PatchInterface::Event(const Laxkit::EventData *e_data, const char *mes)
+{
+	if (!strcmp(mes,"menuevent")) {
+		const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(e_data);
+		int i =s->info2; //id of menu item
+
+		if (i==PATCHA_BaseOnPath) {
+			if (data && data->base_path) {
+				data->RemovePath();
+				needtodraw=1;
+				return 0;
+
+			} else if (data) {
+				data->EstablishPath(0);
+				PathInterface *pathi=new PathInterface(getUniqueNumber(), dp);
+				pathi->pathi_style=PATHI_One_Path_Only|PATHI_Esc_Off_Sub|PATHI_Two_Point_Minimum;
+				//pathi->pathi_style=PATHI_One_Path_Only|PATHI_Esc_Off_Sub|PATHI_Two_Point_Minimum|PATHI_Path_Is_M_Real;
+				pathi->primary=1;
+				ObjectContext *oc=poc->duplicate();
+				oc->SetObject(data->base_path);
+				pathi->UseThisObject(oc);
+				delete oc;
+
+				child=pathi;
+				pathi->owner=this;
+				viewport->Push(pathi,-1,0);
+			}
+
+		}
+		return 0;
+	}
+
+	return 1;
 }
 
 int PatchInterface::InterfaceOn()
-{//*** deal with app better in interfaces
+{
 	showdecs=oldshowdecs;
 	needtodraw=1;
 	return 0;
@@ -2292,7 +2407,7 @@ int PatchInterface::InterfaceOn()
 
 //! Flush curpoints.
 int PatchInterface::InterfaceOff()
-{ //*** do decs with xor always?
+{
 	Clear();
 	oldshowdecs=showdecs;
 	showdecs=0;

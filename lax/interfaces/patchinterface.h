@@ -97,14 +97,15 @@ class PatchData : virtual public SomeData
   	
   public:
 	int renderdepth;
-	int griddivisions;
+	int griddivisions; //hint for display of interior of patch
 	flatpoint *points;
 	int xsize,ysize; // sizes%3 must == 1, numpoints=xsize*ysize
 	unsigned int style;
 	PatchControls controls;
 	LineStyle linestyle;
 	
-	Path *base_path; //optionally restrict to a weighted path
+	PathsData *base_path; //optionally restrict to a weighted path
+	int pathdivisions; //number of patches to install perpendicular to path
 
 	 //cache transform matrices for faster getPoint()
 	PatchRenderContext *cache;
@@ -129,6 +130,8 @@ class PatchData : virtual public SomeData
 	 /*! \name Informational functions */
 	 //@{
 	virtual int hasColorData();
+	virtual int MeshWidth()  { return xsize/3; }
+	virtual int MeshHeight() { return ysize/3; }
 	virtual flatpoint getControlPoint(int r,int c);
 	virtual flatpoint getPoint(double s,double t, bool bysize);
 	virtual flatpoint getPointReverse(double x,double y, int *error_ret);
@@ -156,6 +159,9 @@ class PatchData : virtual public SomeData
 	virtual void collapse(int rr,int cc);
 	virtual void InterpolateControls(int whichcontrols);
 	virtual int warpPatch(flatpoint center, double r1,double r2, double s,double e);
+	virtual int EstablishPath(int preferredaxis);
+	virtual int RemovePath();
+	virtual int UpdateFromPath();
 	 //@}
 
 	 /*! \name I/O */
@@ -207,6 +213,7 @@ enum PatchInterfaceActions {
 	PATCHA_SelectMoreHorizontally,
 	PATCHA_SelectAround,
 	PATCHA_DeleteSelected,
+	PATCHA_BaseOnPath,
 	PATCHA_MAX
 };
 
@@ -272,6 +279,7 @@ class PatchInterface : public anInterface
 	virtual const char *whatdatatype() { return "PatchData"; }
 	virtual anInterface *duplicate(anInterface *dup);
 	virtual Laxkit::MenuInfo *ContextMenu(int x,int y,int deviceid);
+	virtual int Event(const Laxkit::EventData *e_data, const char *mes);
 	virtual int UseThisObject(ObjectContext *oc);
 	virtual int UseThis(Laxkit::anObject *newdata,unsigned int mask=0);
 	virtual int UseThis(int id,int ndata);
