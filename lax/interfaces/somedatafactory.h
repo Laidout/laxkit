@@ -88,6 +88,16 @@ class SomeDataFactory
 extern LaxInterfaces::SomeDataFactory *somedatafactory;
 #endif
 
+
+
+
+//------------------------------ drawing helper ------------------------------------------
+
+typedef void (*DrawSomeDataFunc)(Laxkit::Displayer *dp,LaxInterfaces::SomeData *data);
+extern DrawSomeDataFunc DrawSomeData;
+
+
+
 } //namespace LaxInterfaces
 
 

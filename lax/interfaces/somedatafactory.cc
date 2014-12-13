@@ -115,4 +115,27 @@ int SomeDataFactory::TypeId(int which)
 	return 0;
 }
 
+
+
+
+//------------------------------ drawing helper ------------------------------------------
+
+/*! \typedef void (*DrawSomeDataFunc)(Laxkit::Displayer *dp,LaxInterfaces::SomeData *data);
+ *
+ * On rare occasions, it is necessary to do random drawing of objects directly onto Displayer objects,
+ * bypassing windows entirely. Do that with this, and redefine DrawSomeData.
+ */
+
+/*! Stub for LaxInterfaces::DrawSomeData(). Does nothing here, applications must make it point elsewhere.
+ */
+void LaxDrawSomeData(Laxkit::Displayer *dp,LaxInterfaces::SomeData *data)
+{}
+
+DrawSomeDataFunc DrawSomeData = LaxDrawSomeData;
+
+
+
+
+
+
 } //namespace LaxInterfaces
