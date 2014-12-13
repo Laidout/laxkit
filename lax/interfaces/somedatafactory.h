@@ -24,6 +24,7 @@
 #define _LAX_SOMEDATAFACTORY_H
 
 #include <lax/interfaces/somedata.h>
+#include <lax/displayer.h>
 #include <lax/lists.h>
 
 enum LaxInterfaceDataTypes {
@@ -92,6 +93,7 @@ extern LaxInterfaces::SomeDataFactory *somedatafactory;
 
 
 //------------------------------ drawing helper ------------------------------------------
+
 
 typedef void (*DrawSomeDataFunc)(Laxkit::Displayer *dp,LaxInterfaces::SomeData *data);
 extern DrawSomeDataFunc DrawSomeData;
