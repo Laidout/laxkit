@@ -38,6 +38,7 @@ namespace LaxInterfaces {
 
 class EngraverFillData;
 
+
 //--------------------------------------------- LinePoint
 
 #define  MAX_LINEPOINT_CACHE 10
@@ -51,11 +52,15 @@ class LinePointCache
 	int on; //off if zero. if nonzero, assume it gives info about origin of this cache point
 };
 
+typedef Laxkit::NumStack<LinePointCache> PointCacheStack;
+typedef Laxkit::NumStack<double> DashCache;
+
 class LinePoint
 {
   public:
 	double s,t;
 	int row,col;
+	double weight_orig;
 	double weight;
 	double spacing; //visual measure, to be used when remapping
 	bool on;
@@ -80,41 +85,21 @@ class LinePoint
 };
 
 //---------------------------------------------- EngraverTraceSettings 
-class EngraverTraceSettings : public Laxkit::anObject
-{
-  public:
-	int group;
-	Laxkit::CurveInfo value_to_weight;
-	double traceobj_opacity;
-	bool continuous_trace;
-
-	ObjectContext *tracecontext; // *** <- used?
-	SomeData *traceobject;
-	char *identifier;
-	unsigned char *trace_sample_cache;
-	int samplew, sampleh;
-
-	 //black and white cache:
-	int tw,th; //dims of trace_ref_bw
-	unsigned char *trace_ref_bw;
-
-	EngraverTraceSettings();
-	virtual ~EngraverTraceSettings();
-	virtual const char *whattype() { return "EngraverTraceSettings"; }
-	void ClearCache(bool obj_too);
-	virtual EngraverTraceSettings *duplicate();
-
-	virtual void dump_out(FILE *f,int indent,int what,Laxkit::anObject *context);
-	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,Laxkit::anObject *context);
-	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,Laxkit::anObject *savecontext);
-};
 
 class TraceObject : public Laxkit::anObject
 {
   public:
-	int type; //0=current, 1=image file, 2=some object, 3=linear gradient, 4=radial gradient
+	enum TraceObjectType {
+		TRACE_None,
+		TRACE_Current,
+		TRACE_ImageFile,
+		TRACE_Object,
+		TRACE_LinearGradient,
+		TRACE_RadialGradient
+	};
+	TraceObjectType type;
 
-	LaxInterfaces::SomeData *object;
+	LaxInterfaces::SomeData *object; //transform is to page
 	char *image_file;
 
 	int samplew, sampleh;
@@ -126,8 +111,36 @@ class TraceObject : public Laxkit::anObject
 
 	TraceObject();
 	virtual ~TraceObject();
-	double GetValue(LinePoint *p);
+	double GetValue(LinePoint *p, double *transform);
 	void ClearCache(bool obj_too);
+	int UpdateCache(ViewportWindow *viewport);
+
+	void Install(TraceObjectType ntype, SomeData *obj);
+};
+
+class EngraverTraceSettings : public Laxkit::anObject
+{
+  public:
+	int group;
+	Laxkit::CurveInfo value_to_weight;
+	double traceobj_opacity;
+	int tracetype; //0==absolute, 1=multiply
+	bool continuous_trace;
+
+	char *identifier;
+	TraceObject *traceobject;
+	EngraverTraceSettings *next;
+
+	EngraverTraceSettings();
+	virtual ~EngraverTraceSettings();
+	virtual const char *whattype() { return "EngraverTraceSettings"; }
+	void ClearCache(bool obj_too);
+	virtual EngraverTraceSettings *duplicate();
+	void Install(TraceObject::TraceObjectType ntype, SomeData *obj);
+
+	virtual void dump_out(FILE *f,int indent,int what,Laxkit::anObject *context);
+	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,Laxkit::anObject *context);
+	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,Laxkit::anObject *savecontext);
 };
 
 //----------------------------------------------- EngraverLineQuality
@@ -335,6 +348,8 @@ class EngraverFillInterface : public PatchInterface
 	EngraverLineQuality   default_linequality;
 	EngraverTraceSettings default_trace;
 	NormalDirectionMap *directionmap;
+
+	Laxkit::RefPtrStack<TraceObject> traceobjects;
 
 	 //for turbulence tool
 	double turbulence_size; //this*spacing
