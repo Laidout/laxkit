@@ -134,6 +134,24 @@ int ObjectInterface::UseThis(anObject *newdata,unsigned int) // assumes not use 
 //	somedata->yaxis((fabs(yaxislen)>1e-10?yaxislen:1e-10)*ydir);
 //}
 
+int ObjectInterface::InterfaceOn()
+{
+	if (selection != viewport->GetSelection()) {
+		if (viewport->GetSelection()) {
+			 //replace selection with the one in viewport
+			selection->dec_count();
+			selection=viewport->GetSelection();
+			selection->inc_count();
+			RemapBounds();
+		} else {
+			 //install object tool's selection in viewport
+			viewport->SetSelection(selection);
+		}
+	}
+
+	return RectInterface::InterfaceOn();
+}
+
 int ObjectInterface::InterfaceOff()
 {
 	if (style&RECT_FLIP_LINE) style=(style&~RECT_FLIP_LINE)|RECT_FLIP_AT_SIDES;
@@ -264,6 +282,8 @@ int ObjectInterface::AddToSelection(Laxkit::PtrStack<ObjectContext> &nselection)
 	return n;
 }
 
+/*! Recompute bounds for existing selection.
+ */
 void ObjectInterface::RemapBounds()
 {
 	if (!data) return;
