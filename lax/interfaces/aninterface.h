@@ -45,6 +45,9 @@ enum anInterFaceStyles {
 class ViewportWindow;
 class ObjectContext;
 
+
+
+
 //------------------------------ anInterface ------------------------------------------
 class anInterface : virtual public Laxkit::EventReceiver,
 					virtual public LaxFiles::DumpUtility
