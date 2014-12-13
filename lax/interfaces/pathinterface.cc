@@ -523,6 +523,7 @@ int bez_reduce_approximate(NumStack<flatpoint> *list, double epsilon)
 		 //It is assumed that segments with LINE_Bez are already approximated, and are skipped.
 		int segstart=thisstart, segend=-1, segn;
 		int diffn;
+		int wrap;
 
 		for (int c2=thisstart; c2<=thisend; c2++) { //one loop per segment
 			 //skip bez segments
@@ -587,26 +588,39 @@ int bez_reduce_approximate(NumStack<flatpoint> *list, double epsilon)
 			bsamples.n=3*segn;
 			bez_from_points(bsamples.e, list->e+thisstart,thisend-thisstart+1, segstart-thisstart,segn);
 			//bez_from_points(bsamples.e, list->e,list->n, segstart,segn);
-			DBG dump_points("bsamples",bsamples.e,bsamples.n);
+			bsamples.e[bsamples.n-2].info&=~(LINE_Closed|LINE_Open);
+			//DBG dump_points("bsamples",bsamples.e,bsamples.n);
 
-			DBG for (int cc=0; cc<bsamples.n; cc++) { bsamples.e[cc].info2=1000+cc; }
-			DBG cerr <<"   bsamples.n="<<bsamples.n<<endl;
-			DBG dump_points("list before",list->e,list->n);
+			//DBG for (int cc=0; cc<bsamples.n; cc++) { bsamples.e[cc].info2=1000+cc; }
+			//DBG cerr <<"   bsamples.n="<<bsamples.n<<endl;
+			//DBG dump_points("list before",list->e,list->n);
+
+			wrap=0;
+			if (segstart==thisstart && thisclosed==1) wrap|=1;
+			if (segend==thisend     && thisclosed==1) wrap|=2;
 
 			// *** should do only one memmove, combine with epsilon above
-			//if (diffn && c2!=list->n-1) memmove(list->e+segstart+newn, list->e+c2+1, (list-n-c2+1)*sizeof(flatpoint)); ***
 			list->Allocate(list->n+2*segn);
-			//if (c2!=list->n-1) memmove(list->e+segstart+3*segn-3, list->e+c2, (list->n-c2)*sizeof(flatpoint));
-			memmove(list->e+segstart+3*segn-3, list->e+c2, (list->n-c2)*sizeof(flatpoint));
-			memcpy(list->e+segstart+1, bsamples.e+2, (3*segn-4)*sizeof(flatpoint));
+			if (c2!=list->n-1) {
+				memmove(list->e+segstart + 3*segn-2 + (((wrap&1)?1:0)+((wrap&2)?1:0)),  list->e+c2+1, (list->n-c2-1)*sizeof(flatpoint));
+				DBG cerr <<" memmove( list->e + "<<segstart + 3*segn-2 + (((wrap&1)?1:0)+((wrap&2)?1:0))<<", "<<c2+1<<", "<<(list->n-c2-1)<<"*sizeof(flatpoint))"<<endl;
+			}
+			memcpy(list->e+segstart, bsamples.e + ((wrap&1) ? 0 : 1), (3*segn-(((wrap&1)?0:1)+((wrap&2)?0:1)))*sizeof(flatpoint));
+			DBG cerr <<" memcpy( list->e + "<<segstart<<", bsamples+"<<((wrap&1) ? 0 : 1)<<", "<<(3*segn-(((wrap&1)?0:1)+((wrap&2)?0:1)))<<"*sizeof(flatpoint))"<<endl;
 
-			diffn=2*segn-2;
+			diffn=2*segn-2+(((wrap&1)?1:0)+((wrap&2)?1:0));
 
 			list->n+=diffn;
 			thisend+=diffn;
 			c2     +=diffn;
 
-			DBG dump_points("list after",list->e,list->n);
+			if (c2==thisend) {
+				if (thisclosed==1) list->e[c2].info|=LINE_Closed;
+				else list->e[c2].info|=LINE_Open; 
+			}
+
+
+			//DBG dump_points("list after",list->e,list->n);
 		}
 
 		c=thisend;
@@ -616,6 +630,14 @@ int bez_reduce_approximate(NumStack<flatpoint> *list, double epsilon)
 
 	return 0;
 }
+
+//replace(dest, dstart, dend,   source, sstart, send)
+//{
+//	dn-1-(dend+1)+1 = dn-dend-1
+//	mv   dend+1 .. dn-1  to  dstart + (dend-dstart+1)-(send-sstart+1)
+//						 to  dend + 1 - (send-sstart+1) = dend - (send-sstart)
+//	cp   dstart,  sstart,send
+//}
 
 // ********************** PUT SOMEWHERE USEFUL!!!! ^^^^^^^^
 
@@ -908,6 +930,12 @@ void Path::UpdateCache()
 				topp   .e[topp.n-1]   .info|=LINE_Join;
 				bottomp.e[bottomp.n-1].info|=LINE_Join;
 				ignorefirst=0;
+
+			} else if (p2==start) {
+				 //is closed path and is continuous at the end
+				centerp.pop();
+				topp.pop();
+				bottomp.pop();
 			}
 		}
 
@@ -945,6 +973,9 @@ void Path::UpdateCache()
 		centerp.e[centerp.n-1].info|=LINE_Closed;
 
 		 //bottom contour is a seperate path than top contour
+		if (topp.e[topp.n-1]==topp.e[0]) topp.n--; //first point will maybe have been repeated
+		if (bottomp.e[bottomp.n-1]==bottomp.e[0]) bottomp.n--; //first point will maybe have been repeated
+
 		topp.e[topp.n-1].info|=LINE_Closed;
 		if (bottomp.e[bottomp.n-1].info&LINE_Join) bottomp.e[0].info|=LINE_Join;
 		for (int c=bottomp.n-1; c>=0; c--) {
@@ -957,6 +988,7 @@ void Path::UpdateCache()
 		topp.e[topp.n-1].info|=LINE_Closed;
 	}
 
+	//DBG dump_points("topp:",topp.e,topp.n);
 
 	//----------------
 	//
@@ -979,6 +1011,8 @@ void Path::UpdateCache()
 		DBG if (pth==1) cerr <<"------approximate for centerp..."<<endl;
 		bez_reduce_approximate(list, maxx>minx ? (maxx-minx + maxy-miny)/10000 : 1e-7);
 	}
+
+	//DBG dump_points("topp after approximate:",topp.e,topp.n);
 
 	 //do joins for center and outline paths
 	int njoin;
@@ -1044,7 +1078,8 @@ void Path::UpdateCache()
 			line[0]=samples[0];
 		}
 
-		if (list->e[thisstart + (c-thisstart+1)%thisn].info&LINE_Bez) {
+		//if (list->e[thisstart + (c-thisstart+1)%thisn].info&LINE_Bez) {
+		if (list->e[thisstart + (c-thisstart+2)%thisn].info&LINE_Bez) {
 			 //next points were bez segment
 			line[4]=list->e[thisstart + (c-thisstart+1)%thisn];
 			line[5]=list->e[thisstart + (c-thisstart+2)%thisn];
