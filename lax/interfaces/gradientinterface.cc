@@ -616,6 +616,38 @@ int GradientData::AddColor(double t,int red,int green,int blue,int alpha)
 	return c;
 }
 
+/*! From coordinate in data space, return the color at it.
+ * Return 0 for success, or nonzero for coordinate out of range.
+ */
+int GradientData::WhatColor(flatpoint p, Laxkit::ScreenColor *col)
+{
+	double x=p.x;
+	double y=p.y;
+	
+	if (!(style&GRADIENT_RADIAL)) {
+		 //linear gradient, much easier
+		if (r1>r2) {
+			if (y>r1 || y<r2) return 1; //out of y bounds
+		} else if (y<r1 || y>r2) return 2;
+
+		if (p1<p2) {
+			if (x<p1 || x>p2) return 3;
+		} else if (x>p1 || x<p2) return 4;
+
+		return WhatColor(colors.e[0]->t + (colors.e[colors.n-1]->t-colors.e[0]->t)*(x-p1)/(p2-p1), col);
+	}
+	
+	 //else radial gradient
+//	***
+//	if (p2+r2<=p1+r1 && p2-r2>=p1-r1) {
+//		 //circle 2 is entirely contained in circle 1
+//	} else if (p2+r2>=p1+r1 && p2-r2<=p1-r1) {
+//		 //circle 1 is entirely contained in circle 2
+//	}
+	 // ***** HACK! just looks in plane circle 2 radius centered at p2
+	return WhatColor(colors.e[0]->t + (colors.e[colors.n-1]->t-colors.e[0]->t)*norm(p-flatpoint(p2,0))/r2, col);
+}
+
 //! Figure out what color lays at coordinate t.
 /*! If t is before the earliest point then the earliest point is used
  * for the color, and -1 is returned. Similarly for beyond the final point, but

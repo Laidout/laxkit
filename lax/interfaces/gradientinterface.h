@@ -63,6 +63,8 @@ class GradientData : virtual public SomeData
 	GradientData(flatpoint pp1,flatpoint pp2,double rr1,double rr2,
 			Laxkit::ScreenColor *col1,Laxkit::ScreenColor *col2,unsigned int stle);
 	virtual ~GradientData() {}
+
+	virtual int IsRadial() { return style&GRADIENT_RADIAL; }
 	virtual void Set(flatpoint pp1,flatpoint pp2,double rr1,double rr2,
 			Laxkit::ScreenColor *col1,Laxkit::ScreenColor *col2,unsigned int stle);
 	virtual const char *whattype() { return "GradientData"; }
@@ -73,6 +75,7 @@ class GradientData : virtual public SomeData
 	virtual double GetNormalizedT(int i);
 	virtual int AddColor(double t,int red,int green,int blue,int alpha);
 	virtual int AddColor(double t,Laxkit::ScreenColor *col);
+	virtual int WhatColor(flatpoint p, Laxkit::ScreenColor *col);
 	virtual int WhatColor(double t,Laxkit::ScreenColor *col);
 	virtual int WhatColor(double t,double *col);
 	virtual int AddColor(GradientDataSpot *spot);
