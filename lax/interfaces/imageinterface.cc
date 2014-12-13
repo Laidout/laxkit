@@ -229,6 +229,56 @@ void ImageData::dump_out(FILE *f,int indent,int what,Laxkit::anObject *context)
 	}
 }
 	
+LaxFiles::Attribute *ImageData::dump_out_atts(LaxFiles::Attribute *att,int what,Laxkit::anObject *savecontext)
+{
+   if (!att) att=new Attribute(whattype(),NULL);
+
+	if (what==-1) {
+		att->push("filename /path/to/file");
+		att->push("previewfile /path/to/preview/file","#if not absolute, is relative to filename");
+		att->push("width 100","#in pixels, overriden by the actual dimensions of the image when read in.");
+		att->push("height 100","#If the file is not found or broken, then these dimensions are used.");
+		att->push("matrix 1 0 0 1 0 0","#affine transform to apply to the image");
+		att->push("description \"Text description, such as for captions\"");
+
+		return att;
+	}
+	
+	DumpContext *dump=dynamic_cast<DumpContext *>(savecontext);
+	if (dump && dump->basedir) {
+		char *tmp=NULL;
+		if (filename) {
+			if (!dump->subs_only || (dump->subs_only && is_in_subdir(filename,dump->basedir)))
+				tmp=relative_file(filename,dump->basedir,1);
+			att->push("filename",tmp?tmp:filename);
+			if (tmp) { delete[] tmp; tmp=NULL; }
+		}
+		if (previewfile) {
+			if (!dump->subs_only || (dump->subs_only && is_in_subdir(previewfile,dump->basedir)))
+				tmp=relative_file(previewfile,dump->basedir,1);
+			att->push("previewfile",tmp?tmp:previewfile);
+			if (tmp) delete[] tmp;
+		}
+			
+	} else {
+		if (filename) att->push("filename",filename);
+		if (previewfile && previewflag&1) att->push("previewfile",previewfile);
+	}
+
+	att->push("width", maxx-minx);
+	att->push("height",maxy-miny);
+
+	char s[120];
+    sprintf(s,"%.10g %.10g %.10g %.10g %.10g %.10g",
+				m(0),m(1),m(2),m(3),m(4),m(5));
+	att->push("matrix",s);
+
+	if (description) att->push("description",description);
+	
+
+	return att;
+}
+
 /*! When the image listed in the attribute cannot be loaded,
  * image is set to NULL, and the width and height attributes
  * are used if present. If the image can be loaded, then width and
@@ -312,6 +362,14 @@ void ImageData::Flip(int horiz)
 		origin(origin()+yaxis()*(maxy+miny));
 		yaxis(-yaxis());
 	}
+}
+
+/*! Return the image's filename, if any. If none, return NULL.
+ */
+const char *ImageData::Filename()
+{
+	if (image==NULL || isblank(image->filename)) return NULL;
+	return image->filename;
 }
 
 //! Set the image to the image in fname, if possible. Sets filename regardless.
@@ -1045,16 +1103,6 @@ int ImageInterface::PerformAction(int action)
 
 int ImageInterface::CharInput(unsigned int ch, const char *buffer,int len,unsigned int state,const Laxkit::LaxKeyboard *d) 
 {
-//	if (ch==LAX_Shift && (state:LAX_STATE_MASK)==0) { // shift
-//	if (ch==LAX_Control && (state:LAX_STATE_MASK)==0) { // cntl
-//	if (ch==LAX_Del && (state:LAX_STATE_MASK)==0) // delete
-//	if (ch==LAX_Bksp && (state:LAX_STATE_MASK)==0) { // backspace
-//	if (ch==LAX_Left && (state:LAX_STATE_MASK)==0) { // left //***unmodified from before rect
-//	if (ch==LAX_Right && (state:LAX_STATE_MASK)==0) { // right
-//	if (ch==LAX_Up && (state:LAX_STATE_MASK)==0) // up
-//	if (ch==LAX_Down && (state:LAX_STATE_MASK)==0) // down
-//			break;
-//	if (ch==' ' && (state:LAX_STATE_MASK)==0)
 
 	if (!sc) GetShortcuts();
 	int action=sc->FindActionNumber(ch,state&LAX_STATE_MASK,0);

@@ -53,9 +53,11 @@ class ImageData : public Laxkit::ImageInfo, virtual public SomeData
 	virtual void SetDescription(const char *ndesc);
 	virtual int UsePreview(const char *npreview, int maxpx=0, int maxpy=0, char del=0);
 	virtual int LoadImage(const char *fname, const char *npreview=NULL, int maxpx=0, int maxpy=0, char del=0,char fit=0);
+	virtual const char *Filename();
 	
 	virtual void dump_out(FILE *f,int indent,int what,Laxkit::anObject *context);
 	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,Laxkit::anObject *context);
+	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,Laxkit::anObject *savecontext);
 };
 
 //--------------------------------- ImageInterface -------------------------------
