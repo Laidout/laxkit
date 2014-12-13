@@ -673,7 +673,7 @@ int FreehandInterface::send(int i)
 
 		Coordinate *cc=coord->next;
 		NumStack<flatpoint> points_top,points_bottom;
-		flatvector vt, pp,pn;
+		flatvector pp,pn;
 		int i=0;
 		while (cc) {
 			if (i==0) pp=cc->fp; else pp=cc->prev->fp;
