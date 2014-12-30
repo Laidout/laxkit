@@ -21,6 +21,7 @@
 //    Copyright (C) 2004-2011 by Tom Lechner
 //
 
+#include <Imlib2.h>
 
 #include <lax/interfaces/imagepatchinterface.h>
 
@@ -59,6 +60,7 @@ extern double Binv[16];
  * See ImagePatchInterface.
  *
  * \todo *** should have option to offset the color data within the patch!!!
+ * \todo should not depend on Imlib
  */
 /*! \var char *ImagePatchData::filename
  * \brief The file (if any) that idata corresponds to.
