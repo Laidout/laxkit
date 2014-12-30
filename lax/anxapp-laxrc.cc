@@ -415,7 +415,7 @@ void anXApp::dump_in_colors(Attribute *att)
 				name=att->attributes.e[c]->attributes.e[c2]->name;
 				value=att->attributes.e[c]->attributes.e[c2]->value;
 
-				if (SimpleColorAttribute(value,&color,NULL)==0) {
+				if (SimpleColorAttribute(value,&color,NULL,NULL)==0) {
 					if (!strcmp(name,"fg")) {
 						col->fg=color;      
 					} else if (!strcmp(name,"bg")) {
