@@ -380,10 +380,11 @@ int BooleanAttribute(const char *v)
  * 0xff000000, 0xff0000, 0xff00, and 0xff.
  *
  * The value can be something like "black", "white", "red", "green", "blue", "yellow", "orange",
- * "purple".
+ * "purple". "transparent" maps to transparent black.
  *
  * Also, it can be something like any of the following:
  * <pre>
+ *  #112233ff           <-- uses HexColorAttributeRGB
  *  rgba16(65535,65535,65535,65535)
  *  rgb(255,255,255)
  *  rgbf(1.0, .5, .5)
@@ -403,52 +404,73 @@ int BooleanAttribute(const char *v)
  *
  * Returns 0 for successful parsing, and color is returned in color_ret.
  * Returns 1 for unsuccessful for failure, and color_ret not changed.
+ *
+ * \todo make like css, and allow like rgba(50%, 20%, 10%, .1),
+ *       also hsl(hue,saturation,lightness) or hsla(), hue is [0..360), with r,g,b at 0,120,240.
+ *       The others are [0..255] or percents.
  */
-int SimpleColorAttribute(const char *v,unsigned long *color_ret, Laxkit::ScreenColor *scolor_ret)
+int SimpleColorAttribute(const char *v,unsigned long *color_ret, Laxkit::ScreenColor *scolor_ret, const char **end_ptr)
 {
 	while (isspace(*v)) v++;
 
 
 	int type=0; //3=rgb, 1=gray, 4=cmyk
 	int a=0, f=-1;
+
+	if (*v=='#') {
+		ScreenColor color;
+		if (HexColorAttributeRGB(v,&color,end_ptr)==0) return 1;
+		if (scolor_ret) *scolor_ret=color;
+		if (color_ret) *color_ret = color.Pixel();
+		return 0;
+	}
+
 	if (strcasestr(v,"rgb")==v) {
 		v+=3;
 		type=3;
+
 	} else if (strcasestr(v,"gray")==v) {
 		v+=4;
 		type=1;
+
 	} else if (strcasestr(v,"cmyk")==v) {
 		v+=4;
 		type=4;
+
 	} else if (!isdigit(*v)) {
 		 //is same name, so check css like named colors, assume fully opaque
 		int r=-1,g,b;
-		if      (!strncasecmp(v,"maroon",6))  { r=0x80; g=0x00; b=0x00; }
-		else if (!strncasecmp(v,"red",3))     { r=0xff; g=0x00; b=0x00; }
-		else if (!strncasecmp(v,"orange",6))  { r=0xff; g=0xA5; b=0x00; }
-		else if (!strncasecmp(v,"yellow",6))  { r=0xff; g=0xff; b=0x00; }
-		else if (!strncasecmp(v,"olive",5))   { r=0x80; g=0x80; b=0x00; }
-		else if (!strncasecmp(v,"purple",6))  { r=0x80; g=0x00; b=0x80; }
-		else if (!strncasecmp(v,"fuchsia",7)) { r=0xff; g=0x00; b=0xff; }
-		else if (!strncasecmp(v,"white",5))   { r=0xff; g=0xff; b=0xff; }
-		else if (!strncasecmp(v,"lime",4))    { r=0x00; g=0xff; b=0x00; }
-		else if (!strncasecmp(v,"green",5))   { r=0x00; g=0x80; b=0x00; }
-		else if (!strncasecmp(v,"navy",4))    { r=0x00; g=0x00; b=0x80; }
-		else if (!strncasecmp(v,"blue",4))    { r=0x00; g=0x00; b=0xff; }
-		else if (!strncasecmp(v,"aqua",4))    { r=0x00; g=0xff; b=0xff; }
-		else if (!strncasecmp(v,"teal",4))    { r=0x00; g=0x80; b=0x80; }
-		else if (!strncasecmp(v,"cyan",4))    { r=0x00; g=0xff; b=0xff; } //not css, but is x11 color, widely accepted
+		a=0xff;
+		if      (!strncasecmp(v,"transparent",11))  { r=0x00; g=0x00; b=0x00; a=0x00; v+=11; }
+		else if (!strncasecmp(v,"maroon",6))  { r=0x80; g=0x00; b=0x00; v+=6; }
+		else if (!strncasecmp(v,"red",3))     { r=0xff; g=0x00; b=0x00; v+=3; }
+		else if (!strncasecmp(v,"orange",6))  { r=0xff; g=0xA5; b=0x00; v+=6; }
+		else if (!strncasecmp(v,"yellow",6))  { r=0xff; g=0xff; b=0x00; v+=6; }
+		else if (!strncasecmp(v,"olive",5))   { r=0x80; g=0x80; b=0x00; v+=5; }
+		else if (!strncasecmp(v,"purple",6))  { r=0x80; g=0x00; b=0x80; v+=6; }
+		else if (!strncasecmp(v,"fuchsia",7)) { r=0xff; g=0x00; b=0xff; v+=7; }
+		else if (!strncasecmp(v,"white",5))   { r=0xff; g=0xff; b=0xff; v+=5; }
+		else if (!strncasecmp(v,"lime",4))    { r=0x00; g=0xff; b=0x00; v+=4; }
+		else if (!strncasecmp(v,"green",5))   { r=0x00; g=0x80; b=0x00; v+=5; }
+		else if (!strncasecmp(v,"navy",4))    { r=0x00; g=0x00; b=0x80; v+=4; }
+		else if (!strncasecmp(v,"blue",4))    { r=0x00; g=0x00; b=0xff; v+=4; }
+		else if (!strncasecmp(v,"aqua",4))    { r=0x00; g=0xff; b=0xff; v+=4; }
+		else if (!strncasecmp(v,"teal",4))    { r=0x00; g=0x80; b=0x80; v+=4; }
+		else if (!strncasecmp(v,"cyan",4))    { r=0x00; g=0xff; b=0xff; v+=4; } //not css, but is x11 color, widely accepted
+
 		if (r>=0) {
-			if (color_ret) *color_ret = (r<<16) | (g<<8) | (b<<0) | (0xff<<24);
+			if (color_ret) *color_ret = (r<<16) | (g<<8) | (b<<0) | (a<<24);
 			if (scolor_ret) {
 				scolor_ret->red  =(r<<8)|r;
 				scolor_ret->green=(g<<8)|g;
 				scolor_ret->blue =(b<<8)|b;
-				scolor_ret->alpha=65535;
+				scolor_ret->alpha=(a<<8)|a;
 			}
+			if (end_ptr) *end_ptr=v;
 			return 0;
 		}
 	}
+
 	if (strchr(v,'.')!=NULL) f=0; //assume floats if has decimal points
 
 	if (type!=0 && (*v=='a' || *v=='A')) { a=1; v++; } // has alpha
@@ -465,9 +487,11 @@ int SimpleColorAttribute(const char *v,unsigned long *color_ret, Laxkit::ScreenC
  
 	 //first create list of integers in range 0..max
 	int numf=0;
-	if (f==0) {
+	if (f==0) { //is list of floats
+		max=65535;
 		double d[5];
-		int n=DoubleListAttribute(v, d,5, NULL);
+		char *endptr=NULL;
+		int n=DoubleListAttribute(v, d,5, &endptr);
 		if (type==0) { //adapt to 3 or 4 fields when only a number list was supplied
 			type=3;
 			if (n==4) a=1;
@@ -487,13 +511,17 @@ int SimpleColorAttribute(const char *v,unsigned long *color_ret, Laxkit::ScreenC
 		if (type==4) { i[numf]=(int)(d[numf]*max + .5); numf++; }
 		if (a) { i[numf]=(int)(d[numf]*max + .5); numf++; }
 
+		v=endptr;
+
 	} else { //f==8 or 16
-		int n=IntListAttribute(v,i,5,NULL);
+		char *endptr=NULL;
+		int n=IntListAttribute(v,i,5,&endptr);
 		if (type==0) { //adapt to 3 or 4 fields when only a number list was supplied
 			type=3;
 			if (n==4) a=1;
 		}
 		if (n!=type+a) return 1;
+		v=endptr;
 
 		if (f==8) numf=type+a;
 		else { //f==16
@@ -521,11 +549,13 @@ int SimpleColorAttribute(const char *v,unsigned long *color_ret, Laxkit::ScreenC
 	if (type==3) {
 		 //rgb
 		if (!a) i[3]=max; //make fully opaque if alpha field not provided
+
 	} else if (type==1) {
 		 //gray
 		if (!a) i[3]=max; //make fully opaque if alpha field not provided
 		else i[3]=i[1];
 		i[1]=i[2]=i[0];
+
 	} else {
 		 //cmyk
 		int rgb[3];
@@ -539,12 +569,14 @@ int SimpleColorAttribute(const char *v,unsigned long *color_ret, Laxkit::ScreenC
 
 	if (color_ret) *color_ret = (i[0]<<16) | (i[1]<<8) | (i[2]<<0) | (i[3]<<24);
 	if (scolor_ret) {
-		if (max!=16) for (int c=0; c<4; c++) i[c]=(i[c]<<8)|i[c];
+		if (max!=65535) for (int c=0; c<4; c++) i[c]=(i[c]<<8)|i[c];
 		scolor_ret->red  =i[0];
 		scolor_ret->green=i[1];
 		scolor_ret->blue =i[2];
 		scolor_ret->alpha=i[3];
 	}
+
+	if (end_ptr) *end_ptr=v;
 	return 0;
 }
 
