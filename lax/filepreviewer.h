@@ -24,10 +24,8 @@
 #define _LAX_FILEPREVIEWER_H
 
 #include <lax/messagebar.h>
+#include <lax/laximages.h>
 
-#ifdef LAX_USES_IMLIB
-#include <Imlib2.h>
-#endif
 
 namespace Laxkit {
 
@@ -40,9 +38,7 @@ class FilePreviewer : public MessageBar
 	char *filename;
 	long sizelimit;
 	int state;
-#ifdef LAX_USES_IMLIB
-	Imlib_Image image;
-#endif
+	LaxImage *image;
 
 
  public:

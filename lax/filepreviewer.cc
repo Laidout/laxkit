@@ -121,13 +121,6 @@ int InitializeDefaultPreviewers()
  * This class only shows a basic box with file name written in it. For a previewer
  * with some changeable dialog info see ImageDialog.
  * 
- * If you compile the Laxkit with Imlib2 support, then this class allows you
- * to preview any image that Imlib2 can load. If you use this, then your application
- * should also call InitLaxImlib() shortly after creating your anXApp.
- *
- * If you do not compile in Imlib2 support, then you only get some garbled text
- * for all non-text files.
- *
  * If a file cannot be recognized as an image, the previewer puts
  * some text roughly corresponding to the contents of the file. Utf8, latin-1,
  * and ascii text it prints as it is.. If there are '\\0' bytes in the file,
@@ -138,7 +131,6 @@ int InitializeDefaultPreviewers()
  * write out the dimensions and file size.
  * 
  * \todo ***if text, should be able to toggle between ascii(latin-1)/utf-8, binary hex.
- * \todo *** make this not depend on Imlib!
  */
 /*! \var long FilePreviewer::sizelimit
  * \brief File size above which images are not loaded, in kilobytes
@@ -165,12 +157,10 @@ int InitializeDefaultPreviewers()
 FilePreviewer::FilePreviewer(anXWindow *pwindow,const char *nname,const char *ntitle,unsigned long nstyle,
 						int nx,int ny,int nw,int nh,int brder,
 						const char *file,int sz) 
-				: MessageBar(pwindow,nname,ntitle,nstyle|MB_CENTER, nx,ny, nw,nh,brder, NULL) 
+				: MessageBar(pwindow,nname,ntitle,nstyle|MB_LEFT, nx,ny, nw,nh,brder, NULL) 
 {
 	filename=NULL;
-#ifdef LAX_USES_IMLIB
-	image=0;
-#endif
+	image=NULL;
 
 	state=0;
 
@@ -180,12 +170,7 @@ FilePreviewer::FilePreviewer(anXWindow *pwindow,const char *nname,const char *nt
 FilePreviewer::~FilePreviewer()
 {
 	if (filename) delete[] filename;
-#ifdef LAX_USES_IMLIB
-	if (image) {
-		imlib_context_set_image(image);
-		imlib_free_image();
-	}
-#endif
+	if (image) image->dec_count();
 }
 
 //int FilePreviewer::init()
@@ -198,13 +183,11 @@ FilePreviewer::~FilePreviewer()
 int FilePreviewer::Preview(const char *file)
 {
 	if (!file) { // remove preview
-#ifdef LAX_USES_IMLIB
 		if (image) {
-			imlib_context_set_image(image);
-			imlib_free_image();
-			image=0;
+			image->dec_count();
+			image=NULL;
 		}
-#endif
+
 		SetText("?");
 		makestr(filename,"");
 		state=0;
@@ -216,14 +199,12 @@ int FilePreviewer::Preview(const char *file)
 	//if (filename && !strcmp(file,filename)) return 0;***always regenerate so skip this line
 	makestr(filename,file);
 	
-#ifdef LAX_USES_IMLIB
 	if (image) {
-		imlib_context_set_image(image);
-		imlib_free_image();
+		image->dec_count();
+		image=NULL;
 	}
-	image=imlib_load_image(file);
+	image=load_image(file);
 	if (image) { state=3; return 0; }
-#endif
 	
 	char blah[25+strlen(file)];
 	if (file_exists(file,1,NULL)!=S_IFREG) {
@@ -292,13 +273,10 @@ void FilePreviewer::Refresh()
 		foreground_color(win_colors->fg);
 		clear_window(this);
 		
-#ifdef LAX_USES_IMLIB
 		if (image) {
 			int w,h;
-			imlib_context_set_drawable(xlibDrawable());
-			imlib_context_set_image(image);
-			w=imlib_image_get_width();
-			h=imlib_image_get_height();
+			w=image->w();
+			h=image->h();
 			double scale;
 			if (w<win_w && h<win_h) scale=1;
 			else if (w<win_w && h>=win_h) scale=(double)win_h/h;
@@ -310,11 +288,10 @@ void FilePreviewer::Refresh()
 
 			w=int(w*scale);
 			h=int(h*scale);
-			imlib_render_image_on_drawable_at_size(win_w/2-w/2,win_h/2-h/2,w,h);
+			//image_out_rotated(image, this, win_w/2-w/2,win_h/2-h/2, win_w/2+w/2,win_h/2-h/2);
+			image_out_rotated(image, this, win_w/2-w/2,win_h/2-h/2, w,0);
 		} else {
-#else
-		MessageBar::Refresh();
-#endif
+			MessageBar::Refresh();
 		}
 	}
 
@@ -329,7 +306,7 @@ void FilePreviewer::Refresh()
 		if (win_style&FILEPREV_SHOW_DIMS && image) {
 			 // add on dimensions..
 			char extra[50];
-			sprintf(extra,", %dx%d",imlib_image_get_width(),imlib_image_get_height());
+			sprintf(extra,", %dx%d",image->w(),image->h());
 			appendstr(text,extra);
 		}
 		double w,h;
@@ -338,10 +315,24 @@ void FilePreviewer::Refresh()
 		fill_rectangle(this, win_w/2-w/2 - 2,win_h-h - 4,w+4,h+4);
 		draw_thing(this, win_w/2-w/2-2,win_h-h/2-2, h/2,h/2+2, 1,THING_Circle);
 		draw_thing(this, win_w/2+w/2+2,win_h-h/2-2, h/2,h/2+2, 1,THING_Circle);
-		
 		foreground_color(win_colors->fg);
 		textout(this, text,-1,win_w/2,win_h-2,LAX_HCENTER|LAX_BOTTOM);
 		delete[] text;
+
+		if (image) {
+			 //write out file pixel size
+			char size[50];
+			sprintf(size,"%d x %d",image->w(),image->h());
+
+			getextent(size,-1,&w,&h);
+			foreground_color(win_colors->bg);
+			fill_rectangle(this, win_w/2-w/2 - 2,win_h-2*h - 4,w+4,h+4);
+			draw_thing(this, win_w/2-w/2-2,win_h-h/2-2-h, h/2,h/2+2, 1,THING_Circle);
+			draw_thing(this, win_w/2+w/2+2,win_h-h/2-2-h, h/2,h/2+2, 1,THING_Circle);
+			foreground_color(win_colors->fg);
+			textout(this, size,-1,win_w/2,win_h-2-h,LAX_HCENTER|LAX_BOTTOM);
+		}
+		
 	}
 	
 	//cout <<"done  ";
