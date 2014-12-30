@@ -104,6 +104,8 @@ enum EngraveControls {
 	ENGRAVE_Dash_Threshhold,
 	ENGRAVE_Dash_Zero_Threshhold,
 	ENGRAVE_Dash_Broken_Threshhold,
+	ENGRAVE_Dash_Length,
+	ENGRAVE_Dash_Seed,
 	ENGRAVE_Dash_Random,
 	ENGRAVE_Dash_Taper,
 	ENGRAVE_Dash_Density,
@@ -171,14 +173,153 @@ enum EngraveControls {
 };
 
 
+//------------------------------------- LinePointCache ------------------------
+
+/*! \class LinePointCache
+ * A cache point for use by LinePoint and EngraverFillData.
+ */
+
+LinePointCache::LinePointCache(int ntype)
+{
+	type=ntype;
+	weight=0;
+	on=dashon=ENGRAVE_On;
+	bt=0;
+
+	original=NULL;
+	next=NULL;
+	prev=NULL;
+}
+
+LinePointCache::LinePointCache(LinePointCache *prevpoint)
+{
+	type=ENGRAVE_Original;
+	weight=0;
+	on=dashon=ENGRAVE_On;
+	bt=0;
+
+	original=NULL;
+	next=NULL;
+	prev=prevpoint;
+	if (prevpoint) prevpoint->next=this;
+}
+
+//! Deletes next.
+LinePointCache::~LinePointCache()
+{
+	if (prev) {
+		prev->next=NULL;
+		prev=NULL;
+	}
+	if (next) {
+		next->prev=NULL;
+		delete next;
+	}
+	if (original) original->cache=NULL;
+}
+
+LinePoint *LinePointCache::PrevOriginal()
+{
+	LinePointCache *lc=this;
+	while (lc && !lc->original) lc=lc->prev;
+	if (lc) return lc->original;
+	return NULL;
+}
+
+//! Add an OPEN line segment right after *this.
+void LinePointCache::Add(LinePointCache *np)
+{
+	LinePointCache *pp=np;
+	while (pp->prev) pp=pp->prev;
+	while (np->next) np=np->next;
+
+	np->next=next;
+	if (next) next->prev=np;
+
+	pp->prev=this;
+	next=pp;
+}
+
+//! Add an OPEN line segment right before *this.
+void LinePointCache::AddBefore(LinePointCache *np)
+{
+	LinePointCache *pp=np;
+	while (pp->prev) pp=pp->prev;
+	while (np->next) np=np->next;
+
+	pp->prev=prev;
+	if (prev) prev->next=pp;
+
+	prev=np;
+	np->next=this;
+}
+
+/*! Place np at a proper point after this. If np->bt==this->t, place right after this.
+ * Returns np.
+ */
+LinePointCache *LinePointCache::InsertAfter(LinePointCache *np)
+{
+	LinePointCache *p=this;
+	double t=np->bt;
+
+	DBG if (t<0) cerr <<" ***\n *** t is <0!!! BAD\n ***"<<endl;
+	if (t>=1) {
+		DBG cerr <<" ***\n *** t is >=1!!! BAD\n ***"<<endl;
+
+		while (p->type!=ENGRAVE_Original && p->prev) p=p->prev;
+		LinePoint *lp=p->original;
+		while (t>=1 && lp->next) {
+			t--;
+			lp=lp->next;
+		}
+	}
+	while (t > p->bt && p->next && p->next->type!=ENGRAVE_Original) {
+		if (t<p->next->bt) break;
+		p=p->next;
+		if (p->type==ENGRAVE_Original) {
+			t-=1;
+			if (t<=0) break;
+		}
+	}
+	p->Add(np);
+	return np;
+}
+
+
+/*! Remove *this from the chain.
+ * Returns this->prev. If this->prev does not exist, then return this->next.
+ */
+LinePointCache *LinePointCache::Detach()
+{
+	LinePointCache *p=prev;
+	if (prev) {
+		prev->next=next;
+	} else {
+		p=next;
+	}
+	if (this->next) this->next->prev=prev;
+
+	next=prev=NULL;
+	original=NULL;
+	return p;
+}
+
+
 //------------------------------------- LinePoint ------------------------
 /*! \class LinePoint
  * Kind of a temp node for EngraverFillData.
+ *
+ * Each line point is a definite sample point that lies on an engraver line.
+ * Between each LinePoint can be any number of cached points, to flesh
+ * out and delineate dashes, and sections that are off, but don't fall cleanly
+ * on LinePoint boundaries.
  */
 
 LinePoint::LinePoint()
 {
-	on=true;
+	type=ENGRAVE_Original;
+	bt=0;
+	on=ENGRAVE_On;
 	row=col=0;
 	s=t=0;
 	weight=1;
@@ -186,17 +327,24 @@ LinePoint::LinePoint()
 	spacing=-1;
 	next=prev=NULL;
 	needtosync=1;
+
+	cache=NULL;
 }
 
 LinePoint::LinePoint(double ss, double tt, double ww)
 {
-	on=true;
+	type=ENGRAVE_Original;
+	bt=0;
+	on=ENGRAVE_On;
 	next=prev=NULL;
 	s=ss;
 	t=tt;
 	weight_orig=ww;
 	weight=ww;
 	spacing=-1;
+	needtosync=1;
+
+	cache=NULL;
 }
 
 LinePoint::~LinePoint()
@@ -206,6 +354,8 @@ LinePoint::~LinePoint()
 		next->prev=NULL;
 		delete next;
 	}
+
+	if (cache) delete cache;
 }
 
 
@@ -243,6 +393,54 @@ void LinePoint::AddBefore(LinePoint *np)
 	np->next=this;
 }
 
+/*! Create initial this->cache, which is simple mirror of current line.
+ * If cache already exists, it is verified to correspond to current line.
+ */
+void LinePoint::BaselineCache()
+{
+	LinePoint *l=this, *start=this;
+	LinePointCache *lc=NULL;
+
+	if (!l->cache) {
+		 //need to create new cache
+		do {
+			l->cache=new LinePointCache(ENGRAVE_Original);
+			l->cache->original=l;
+			if (lc) lc->Add(l->cache);
+
+			l->cache->p=l->p;
+			l->cache->weight=l->weight;
+			l->cache->on=l->on;
+
+			lc=l->cache;
+			l=l->next;
+		} while (l && l!=start);
+
+		if (l && l==start) l->cache->AddBefore(l->prev->cache);
+
+	} else {
+		 //need to validate existing cache
+		DBG cerr <<" *** LinePoint::BaselineCache(), must implement validate existing cache!"<<endl;
+	}
+}
+
+/*! Update the bez handles for this point only.
+ */
+void LinePoint::UpdateBezHandles()
+{
+	LinePoint *pp, *nn;
+	pp=(prev ? prev : this);
+	nn=(next ? next : this);
+
+	flatpoint v=nn->p - pp->p;
+	v.normalize();
+
+	double sx=norm(p - pp->p)*.333;
+	bez_before = p - v*sx;
+
+	sx=norm(nn->p - p)*.333;
+	bez_after = p + v*sx;
+}
 
 /*! Copy over everything except next and prev.
  */
@@ -270,10 +468,11 @@ void LinePoint::Set(LinePoint *pp)
 EngraverLineQuality::EngraverLineQuality()
 {
 	//dash_length=spacing*2;
-	dash_length=2;
+	dash_length=2; //a multiple of group->spacing
 
 	dash_density=0;
 	dash_randomness=0;
+	randomseed=0;
 	zero_threshhold=0;
 	broken_threshhold=0;
 	dash_taper=0;
@@ -308,16 +507,16 @@ Attribute *EngraverLineQuality::dump_out_atts(Attribute *att,int what,Laxkit::an
 
 	if (what==-1) {
 
-		att->push("dash_length","#A measure of how long dashes should be before breaking");
-		att->push("dash_randomness","#0 for regular spacing, up to 1 how much to randomize spacing. TODO!");
-		att->push("zero_threshhold","#Weights below this value are considered off");
-		att->push("broken_threshhold","#Weights below this value are rendered as broken lines. TODO!");
-		att->push("dash_taper","#How much to shrink weight of dashes as zero weight approaches. 0 is all the way, 1 is not at all. Todo!");
-		att->push("minimum","#The minimum dash density. 0 for all blank at 0, 1 for all solid at 0.");
-		att->push("indashcaps","#Line cap at the inside start of a dash. Todo!");
-		att->push("outdashcaps","#Line cap at the inside end of a dash. Todo!");
-		att->push("startcaps","#Line cap at the start of a whole line. Todo!");
-		att->push("endcaps","#Line cap at the end of a whole line. Todo!");
+		att->push("dash_length",      "#This times group->spacing is the length dashes should be between breaks.");
+		att->push("dash_randomness",  "#0 for regular spacing, up to 1 how much to randomize spacing.");
+		att->push("zero_threshhold",  "#Weights below this value are considered off");
+		att->push("broken_threshhold","#Weights below this value are rendered as broken lines.");
+		att->push("dash_taper",       "#How much to shrink weight of dashes as zero weight approaches. 0 is all the way, 1 is not at all.");
+		att->push("density",          "#The minimum dash density. 0 for all blank at 0, 1 for all solid at 0.");
+		att->push("indashcaps",       "#Line cap at the inside start of a dash. Todo!");
+		att->push("outdashcaps",      "#Line cap at the inside end of a dash. Todo!");
+		att->push("startcaps",        "#Line cap at the start of a whole line. Todo!");
+		att->push("endcaps",          "#Line cap at the end of a whole line. Todo!");
 		return 0;
 	}
 
@@ -339,7 +538,7 @@ Attribute *EngraverLineQuality::dump_out_atts(Attribute *att,int what,Laxkit::an
 	att->push("dash_taper",buffer);
 
 	sprintf(buffer,"%.10g",dash_density);
-	att->push("minimum",buffer);
+	att->push("density",buffer);
 
 	sprintf(buffer,"%d",indashcaps);
 	att->push("indashcaps",buffer);
@@ -373,7 +572,7 @@ void EngraverLineQuality::dump_in_atts(LaxFiles::Attribute *att,int flag,Laxkit:
 		} else if (!strcmp(name,"dash_randomness")) {
 			DoubleAttribute(value,&dash_randomness, NULL);
 
-		} else if (!strcmp(name,"minimum")) {
+		} else if (!strcmp(name,"density")) {
 			DoubleAttribute(value,&dash_density, NULL);
 
 		} else if (!strcmp(name,"zero_threshhold")) {
@@ -398,6 +597,27 @@ void EngraverLineQuality::dump_in_atts(LaxFiles::Attribute *att,int flag,Laxkit:
 			IntAttribute(value,&endcaps, NULL);
 		}
 	}
+}
+
+/*! From a weight value, translate through the dash settings to get a new weight value.
+ * It will differ from original weight when dash_taper!=0.
+ *
+ * If weight>=broken, return 2.
+ * If weight<=zero, return 1.
+ * Otherwise return 0.
+ */
+int EngraverLineQuality::GetNewWeight(double weight, double *weight_ret)
+{
+	if (weight>=broken_threshhold) { *weight_ret=weight; return 2; }
+	if (weight<=zero_threshhold)   { *weight_ret=weight; return 1; } 
+
+	 //now we figure out the length, gap placement, and width of a dash.
+	 //taper means dash width varies from broken to zero+taper*(broken-zero)
+	 //actual width varies from broken down to zero
+
+	double a=(weight-zero_threshhold)/(broken_threshhold-zero_threshhold); //0..1, how long between zero and broken
+	*weight_ret   = broken_threshhold*a + (dash_taper*(broken_threshhold-zero_threshhold)+zero_threshhold)*(1-a);
+	return 0;
 }
 
 
@@ -506,6 +726,7 @@ EngraverPointGroup::EngraverPointGroup()
 {
 	trace=NULL;
 	dashes=NULL;
+	numdashes=0;
 
 	id=getUniqueNumber(); //the group number in LinePoint
 	name=NULL;
@@ -528,6 +749,7 @@ EngraverPointGroup::EngraverPointGroup(int nid,const char *nname, int ntype, fla
 										EngraverTraceSettings *newtrace)
 {
 	dashes=NULL;
+	numdashes=0;
 
 	trace=newtrace;
 	if (trace) trace->inc_count();
@@ -641,7 +863,7 @@ void EngraverPointGroup::dump_out(FILE *f,int indent,int what,Laxkit::anObject *
 
 		fprintf(f,"%sline \\           #One for each defined line\n",spc);
 		fprintf(f,"%s  group 3        #(optional) which point group this line belongs to. Must be first line! 0 means use default settings\n",spc);
-		fprintf(f,"%s  (1.0,2.5) 2 on #Any number of points, 1 per line. Coordinate is within mesh. Format is: (x,y) weight on|off\n",spc);
+		fprintf(f,"%s  (1.0,2.5) 2 on #Any number of points, 1 per line. Coordinate is within mesh. Format is: (x,y) weight on|off|end|start\n",spc);
 		fprintf(f,"%s  ...\n",spc);
 		return;
 	}
@@ -683,13 +905,50 @@ void EngraverPointGroup::dump_out(FILE *f,int indent,int what,Laxkit::anObject *
 
 	 //finally output the lines
 	LinePoint *p;
+	const char *ons, *dash;
 	for (int c=0; c<lines.n; c++) {
 		fprintf(f,"%sline \\ #%d\n",spc,c);
 
 		p=lines.e[c];
 		while (p) {
-			fprintf(f,"%s  (%.10g, %.10g) %.10g %s\n",spc, p->s,p->t,p->weight, p->on?"on":"off");
+			if (p->on==ENGRAVE_Off) ons="off";
+			else if (p->on==ENGRAVE_On) ons="on";
+			else if (p->on==ENGRAVE_EndPoint) ons="end";
+			else if (p->on==ENGRAVE_StartPoint) ons="start";
+			fprintf(f,"%s  (%.10g, %.10g) %.10g %s\n",spc, p->s,p->t,p->weight, ons);
+
 			p=p->next;
+		}
+		
+		if (lines.e[c]->cache) {
+			fprintf(f,"%slinecache \\ #%d\n",spc,c);
+			LinePointCache *cc=lines.e[c]->cache;
+			LinePointCache *ccstart=cc;
+			const char *onsd;
+
+			do {
+				if (cc->on==ENGRAVE_Off) ons="off";
+				else if (cc->on==ENGRAVE_On) ons="on";
+				else if (cc->on==ENGRAVE_EndPoint) ons="end";
+				else if (cc->on==ENGRAVE_StartPoint) ons="start";
+
+				if (cc->dashon==ENGRAVE_Off) onsd="off";
+				else if (cc->dashon==ENGRAVE_On) onsd="on";
+				else if (cc->dashon==ENGRAVE_EndPoint) onsd="end";
+				else if (cc->dashon==ENGRAVE_StartPoint) onsd="start";
+
+				if (cc->type==ENGRAVE_Original) dash="orig";
+				else if (cc->type==ENGRAVE_BlockStart ) dash="blockstart";
+				else if (cc->type==ENGRAVE_BlockEnd   ) dash="blockend";
+				else if (cc->type==ENGRAVE_VisualCache) dash="sample";
+				else if (cc->type==ENGRAVE_EndDash    ) dash="dashend";
+				else if (cc->type==ENGRAVE_StartDash  ) dash="dashstart";
+				else dash="unknown";
+
+				fprintf(f,"%s  %s %.10g (%.10g, %.10g) %.10g %s %s\n",spc, dash, cc->bt, cc->p.x,cc->p.y,cc->weight, ons, onsd);
+
+				cc=cc->next;
+			} while (cc && cc!=ccstart);
 		}
 	}
 
@@ -729,7 +988,7 @@ void EngraverPointGroup::dump_in_atts(LaxFiles::Attribute *att,int flag,Laxkit::
 			FlatvectorAttribute(value,&direction);
 
 		} else if (!strcmp(name,"color")) {
-			SimpleColorAttribute(value, NULL, &color);
+			SimpleColorAttribute(value, NULL, &color, NULL);
 
 		} else if (!strcmp(name,"spacing")) {
 			DoubleAttribute(value,&spacing, NULL);
@@ -757,11 +1016,19 @@ void EngraverPointGroup::dump_in_atts(LaxFiles::Attribute *att,int flag,Laxkit::
 			flatpoint v;
 			int status;
 			double w;
-			bool on=true;
+			int on=ENGRAVE_On;
 			LinePoint *lstart=NULL, *ll=NULL;
 
 			do { //one iteration for each point
 				 //each line has: (x,y) weight on|off groupid
+
+				while (isspace(*value)) value++;
+				if (!strncmp(value,"cache",5)) {
+					 //ignore cache values, they are regenerated
+					value=strchr(value,'\n');
+					if (!value) break;
+					continue;
+				}
 
 				 //get (s,t) point
 				status=FlatvectorAttribute(value, &v, &end_ptr);
@@ -774,8 +1041,10 @@ void EngraverPointGroup::dump_in_atts(LaxFiles::Attribute *att,int flag,Laxkit::
 
 				value=end_ptr;
 				while (isspace(*value)) value++;
-				if (*value=='o' && value[1]=='n') { on=true; value+=2; }
-				else if (*value=='o' && value[1]=='f' && value[2]=='f') { on=false; value+=3; }
+				if (*value=='o' && value[1]=='n') { on=ENGRAVE_On; value+=2; }
+				else if (*value=='o' && value[1]=='f' && value[2]=='f') { on=ENGRAVE_Off; value+=3; }
+				else if (*value=='e' && value[1]=='n' && value[2]=='d') { on=ENGRAVE_EndPoint; value+=3; }
+				else if (*value=='s' && value[1]=='t' && value[2]=='a' && value[2]=='r' && value[2]=='t') { on=ENGRAVE_StartPoint; value+=5; }
 
 				 //skip everything until the next line
 				while (*value!='\0' && *value!='\n') value++;
@@ -815,15 +1084,525 @@ void EngraverPointGroup::dump_in_atts(LaxFiles::Attribute *att,int flag,Laxkit::
 
 /*! Return 1 if a point is considered on by the criteria of the settings in dashes, else 0 if confirmed off.
  * Default is point must be on, and weight>=zero_threshhold.
- *
- * WARNING! If dashes==NULL, this will always return -1.
  */
 int EngraverPointGroup::PointOn(LinePoint *p)
 {
-	if (!p->on) return 0;
-	if (!dashes) return -1;
-	if (p->weight < dashes->zero_threshhold) return 0;
-	return 1;
+	if (!p) return 0;
+	if (p->on==ENGRAVE_Off) return 0;
+	if (dashes && p->weight < dashes->zero_threshhold) return 0;
+
+	if (p->on==ENGRAVE_EndPoint) return ENGRAVE_EndPoint;
+	if (p->on==ENGRAVE_StartPoint) return ENGRAVE_StartPoint;
+	return ENGRAVE_On;
+}
+
+/*! Return nonzero if a point is considered on by the criteria of the settings in dashes, else 0 if confirmed off.
+ * Default is point must be dashon, and weight>=zero_threshhold.
+ */
+int EngraverPointGroup::PointOnDash(LinePointCache *p)
+{
+	if (!p) return 0;
+	if (p->dashon==ENGRAVE_Off || p->on==ENGRAVE_Off) return 0;
+	if (dashes && p->weight < dashes->zero_threshhold) return 0;
+
+	if (p->dashon==ENGRAVE_EndPoint)   return ENGRAVE_EndPoint;
+	if (p->dashon==ENGRAVE_StartPoint) return ENGRAVE_StartPoint;
+	return ENGRAVE_On;
+}
+
+/*! Return nonzero if a point is considered on by the criteria of the settings in dashes, else 0 if confirmed off.
+ * Default is point must be dashon, and weight>=zero_threshhold.
+ */
+int EngraverPointGroup::CachePointOn(LinePointCache *p)
+{
+	if (!p) return 0;
+	if (p->dashon==ENGRAVE_Off || p->on==ENGRAVE_Off) return 0;
+	if (dashes && p->weight < dashes->zero_threshhold) return 0;
+
+	if (p->dashon==ENGRAVE_EndPoint)   return ENGRAVE_EndPoint;
+	if (p->dashon==ENGRAVE_StartPoint) return ENGRAVE_StartPoint;
+	return ENGRAVE_On;
+}
+
+void EngraverPointGroup::StripDashes()
+{
+	LinePointCache *cache, *start, *cc;
+
+	for (int c=0; c<lines.n; c++) {
+		start=cache=lines.e[c]->cache;
+
+		if (!cache) continue;
+
+		do {
+			while (cache->next && (cache->next->type==ENGRAVE_EndDash || cache->next->type==ENGRAVE_StartDash)) {
+				cc=cache->next;
+				cc->Detach();
+				delete cc;
+			}
+
+			if (cache->original) cache->weight=cache->original->weight;
+			cache=cache->next;
+		} while (cache && cache!=start);
+	}
+}
+
+void EngraverPointGroup::UpdatePositionCache()
+{
+	DBG cerr <<" *** EngraverPointGroup::UpdatePositionCache() needs to be optimized"<<endl;
+	
+	UpdateBezCache();
+	
+	LinePointCache *cache, *start;
+	LinePoint *l;
+
+	for (int c=0; c<lines.n; c++) {
+		start=cache=lines.e[c]->cache;
+
+		if (!cache) continue;
+		l=cache->original;
+
+		do {
+			if (cache->original) {
+				l=cache->original;
+				cache->p=l->p;
+			} else {
+				if (l->next) cache->p=bez_point(cache->bt, l->p, l->bez_after, l->next->bez_before, l->next->p);
+			}
+
+			cache=cache->next;
+		} while (cache && cache!=start);
+	}
+}
+
+/*! Update the bez handles and bez length of all points.
+ */
+void EngraverPointGroup::UpdateBezCache()
+{
+	LinePoint *p, *start;
+
+	for (int c=0; c<lines.n; c++) {
+		start=p=lines.e[c];
+
+		if (!p) continue;
+
+		do {
+			p->UpdateBezHandles();
+			if (p->prev) p->prev->length=bez_segment_length(p->prev->p, p->prev->bez_after, p->bez_before,p->p, 8);
+			else p->length=0;
+			if (!p->next) p->length=0;
+
+			p=p->next;
+		} while (p && p!=start);
+	}
+}
+
+/*! Update any additional points added to the lines.
+ *
+ * Returns number of dashes.
+ */
+int EngraverPointGroup::UpdateDashCache()
+{
+	DBG cerr <<"UpdateDashCache..."<<endl;
+
+	numdashes=0;
+	if (!dashes || (dashes && dashes->zero_threshhold==0 && dashes->broken_threshhold<=dashes->zero_threshhold)) {
+		int hascache=0;
+		for (int c=0; c<lines.n; c++) {
+			if (lines.e[c]->cache) hascache=1;
+			else lines.e[c]->BaselineCache();
+		}
+		if (hascache) StripDashes();
+		return 1;
+	}
+
+
+	LinePointCache *lc=NULL, *lcstart;
+	LinePoint *l, *lnext, *lstart; 
+
+	double broken =dashes->broken_threshhold;
+	double zero   =dashes->zero_threshhold;
+	double dashlen=dashes->dash_length*spacing; 
+
+	if (broken<zero) broken=zero;
+
+	double next[4];
+	int nexton[4];
+	int laston; //should always be either ENGRAVE_On or ENGRAVE_Off
+	int nextmax;
+	double lasts;
+	double t, endt;
+	double s;
+	double weight,dashweight, ww;
+	double maxs, maxt;
+	int indash=0; //0=no, 1=on initial dash, 2=on gap, 3=on final dash
+	int hastoend=0;
+
+	if (dashes->randomseed>0) srandom(dashes->randomseed);
+
+	PtrStack<LinePointCache> unused;
+	unused.Allocate(10);
+
+	for (int c=0; c<lines.n; c++) {
+		lstart=l=lines.e[c];
+		if (!l->cache) l->BaselineCache();
+		lc=NULL;
+		lcstart=NULL;
+		t=endt=-1;
+		s=-1;
+		indash=0;
+		laston=ENGRAVE_Off;
+		lasts=0;
+
+		 //special treatment when starting off line
+		l->cache->dashon=l->cache->on=ENGRAVE_Off;
+		laston=ENGRAVE_Off;
+
+		do { //once per l
+			lc=l->cache;
+			lc->dashon=lc->on=laston;
+
+			if (!l->next) break;
+			lnext=l->next;
+
+
+			 //remove old dash points for this segment
+			lcstart=lc->next;
+			while (lcstart && lcstart->type!=ENGRAVE_Original) {
+				if (lcstart->type==ENGRAVE_EndDash || lcstart->type==ENGRAVE_StartDash) {
+					unused.push(lcstart, 1); //1 means remove and flush will delete lcstart
+					lcstart=lcstart->Detach();
+				}
+				lcstart=lcstart->next;
+			}
+
+
+			if (!indash) {
+				if (lc->dashon==ENGRAVE_EndPoint || lc->dashon==ENGRAVE_Off)
+					 laston=ENGRAVE_Off;
+				else laston=ENGRAVE_On; 
+
+				if (l->weight >= broken && lnext->weight >= broken) {
+					 //this point and next are too thick for dashes, so skip. We should not be 
+					 //indash if this is true
+					lc->dashon=ENGRAVE_On;
+					l->cache->weight=l->weight;
+					l=lnext;
+					laston=ENGRAVE_On;
+					lasts=0;
+					// *** need to blot any other cache points to have the proper on
+					continue;
+				}
+
+				if (l->weight <= zero && lnext->weight <= zero) {
+					 //this point and next are too thin for anything, so skip
+					lc->dashon=ENGRAVE_Off;
+					l->cache->weight=l->weight;
+					l=lnext;
+					laston=ENGRAVE_Off;
+					lasts=0;
+					// *** need to blot any other cache points to have the proper on
+					continue;
+				}
+
+
+				 //find starting point and metrics of dash. We need to have a weight value for the dash
+				 //that ideally is somewhere between but not on zero or broken.
+	
+				if (l->weight <= broken) {
+					 //starts thin. maybe gets thicker, maybe gets thinner
+					 //dash will start right on l
+					 
+					if (l->weight <= zero) { //lnext->weight must be >zero here
+						 //starts below zero, must start dash at zero threshhold
+						t=(zero - l->weight)/(lnext->weight - l->weight);
+						s=t*l->length;
+						weight=(zero+lnext->weight)/2; //pick a weight that will produce some kind of dash
+						if (weight>broken) weight=broken-.1*(broken-zero);
+
+					} else {
+						 //weight starts between zero and broken,
+						 //next weight might be anything
+						t=0;
+						s=0;
+						ww=(lnext->weight>broken ? broken : (lnext->weight<zero ? zero : lnext->weight));
+						weight=(l->weight+ww)/2;
+					}
+
+				} else {
+					 //current point is > broken, but next point is < broken, so actual threshhold is
+					 //somewhere within l..lnext
+					t=(l->weight - broken)/(l->weight - lnext->weight);
+					s=t*l->length;
+					weight=(broken+lnext->weight)/2;
+					if (weight<zero) weight=zero+.05*(broken-zero); //arbitrarily pick a non-zero weight
+				}
+
+
+				 //now we figure out the length, gap placement, and width of a dash.
+			     //taper means dash width varies from broken to zero+taper*(broken-zero)
+				 //original width varies from broken down to zero
+				EstablishDashMetrics(s,weight, next,nexton,nextmax, l,lc, laston,lasts, dashweight, dashlen, unused);
+
+				indash=1; 
+				numdashes++; 
+
+			} //if !indash
+
+
+
+			if (indash) {
+				 //figure out if the dash has to end before the next point from the line
+				 //being either too thick or too thin
+
+				if (lnext->weight >= broken) {
+					 //need to determine absolute end of dash creation when line gets too thick...
+					maxt=(broken - l->weight)/(lnext->weight - l->weight);
+					maxs=maxt*l->length;
+					hastoend=1;
+
+				} else if (lnext->weight <= zero) {
+					 //need to determine absolute end of dash creation when line gets too thin...
+					maxt=(l->weight - zero)/(l->weight - lnext->weight);
+					maxs=maxt*l->length;
+					hastoend=-1;
+
+				} else if (!lnext->next) {
+					 //end of the line! don't go beyond
+					maxt=.9999;
+					maxs=.9999*l->length;
+					hastoend=-1;
+
+				} else {
+					maxs=-1;
+					maxt=-1;
+					hastoend=0;
+				}
+
+			}
+
+			while (indash) {
+				if (hastoend && maxs<=next[indash]) {
+					 //line either gets too thick or too thin before dash ends
+
+					if (hastoend<0) {
+						 //line gets too thin, need to insert an end point maybe
+						if (nexton[indash]==ENGRAVE_EndPoint) {
+							lc=AddPoint(maxs, ENGRAVE_EndPoint, ENGRAVE_EndDash, dashweight,dashlen, l,lc, unused);
+							laston=ENGRAVE_Off;
+							lasts=maxs;
+
+						} //else already off, nothing required!
+
+					} else { //else line gets too thick, needs to become on...
+						if (nexton[indash]==ENGRAVE_StartPoint) {
+							lc=AddPoint(maxs, ENGRAVE_StartPoint, ENGRAVE_StartDash, dashweight,dashlen, l,lc, unused);
+							laston=ENGRAVE_On;
+							lasts=maxs;
+
+						} //else already on, nothing required!
+					}
+
+					indash=0;
+					break;
+
+				} else { //does not havetoend
+					 //dash continues, but maybe need to start a new dash/gap span...
+		
+					if (next[indash] < l->length) {
+						 //dash part ends within segment, so must add a change point
+						if (indash!=nextmax-1) {
+							lc=AddPoint(next[indash], nexton[indash], -1, dashweight,dashlen, l,lc, unused);
+							if (nexton[indash]==ENGRAVE_StartPoint) laston=ENGRAVE_On;
+							else laston=ENGRAVE_Off;
+						}
+
+						indash++;
+						if (indash==nextmax) { 
+							 //reset dash metrics to start at next[indash-1]
+							EstablishDashMetrics(next[nextmax-1],-1, next,nexton,nextmax,  l,lc, laston,lasts, dashweight, dashlen,unused);
+							indash=1;
+							numdashes++;
+						}
+
+					} else {
+						 //current dash part ends after current segment
+						 //need to advance l, need to break from this loop
+						//gaplen and dashweight updated if necessary below, outside of this dash loop
+						break;
+					} 
+
+				} //if dash didn't have to end
+			} //while indash
+
+
+
+			 //lastly, advance to next segment...
+			l=l->next;
+			lasts-=l->prev->length;
+
+			if (indash) {
+				 //we need to make sure all the stuff in next[] is still current for this next segment...
+				for (int c=indash; c<nextmax; c++) next[c]-=l->prev->length;
+
+				//now need to update dashweight, etc
+
+				if (l->weight!=l->prev->weight) {
+					 //need to remap dashlen, gaplen, dashonlen, dashweight
+					dashes->GetNewWeight(l->weight, &dashweight);
+					//dash metrics are reevaluated at each dash boundary, so just update weight here
+				}
+
+				l->cache->weight=dashweight;
+
+			} else { //outside of dash, just update cache weight
+				l->cache->weight=l->weight;
+			}
+
+
+		} while (l && l!=lstart);
+
+		ApplyBlockout(lines.e[c]);
+	} //foreach line
+
+	DBG cerr <<"end UpdateDashCache: "<<numdashes<<endl;
+	return numdashes;
+}
+
+/*! Install a proper LinePointCache, with all fields set to proper values.
+ *
+ * If type==-1, the make type be ENGRAVE_EndDash or ENGRAVE_StartDash, according to if on==ENGRAVE_EndPoint or ENGRAVE_StartPoint.
+ */
+LinePointCache *EngraverPointGroup::AddPoint(double s, int on, int type, double dashweight,double dashlen,
+									LinePoint *l,LinePointCache *&lc, Laxkit::PtrStack<LinePointCache> &unused)
+{
+	LinePointCache *lcc;
+	if (unused.n) {
+		lcc=unused.pop();
+	} else lcc=new LinePointCache(0);
+
+	if (type==-1) {
+		if (on==ENGRAVE_EndPoint) type=ENGRAVE_EndDash;
+		else if (on==ENGRAVE_StartPoint) type=ENGRAVE_StartDash;
+	}
+
+	lcc->type=type;
+
+	lcc->bt=s/l->length;
+	lcc->p=bez_point(lcc->bt, l->p, l->bez_after, l->next->bez_before, l->next->p);
+	lcc->weight=dashweight;
+	lcc->dashon=on;
+	lcc->on    =on;
+
+	return lc->InsertAfter(lcc);
+}
+
+/*! Will insert a LinePointCache after lc if mandated by conflict with laston.
+ *
+ * \todo implement lasts so as to keep minimum dash lengths intact.
+ */
+void EngraverPointGroup::EstablishDashMetrics(double s,double weight, double *next,int *nexton,int &nextmax,
+								LinePoint *l,LinePointCache *&lc, int &laston, double &lasts,
+								double &dashweight, double &dashlen, Laxkit::PtrStack<LinePointCache> &unused)
+{
+	if (weight<0) weight=l->weight + s/l->length * (l->next->weight - l->weight);
+
+	 //now we figure out the length, gap placement, and width of a dash.
+     //taper means dash width varies from broken to zero+taper*(broken-zero)
+	 //original width varies from broken down to zero
+	//double a=(weight-zero)/(broken-zero); //0..1, how long between zero and broken
+	//dashweight = broken*a + (taper*(broken-zero)+zero)*(1-a);
+
+	double a=(weight - dashes->zero_threshhold)/(dashes->broken_threshhold - dashes->zero_threshhold); //0..1, how long between zero and broken
+	dashweight   = dashes->broken_threshhold*a + (dashes->dash_taper*(dashes->broken_threshhold - dashes->zero_threshhold)+dashes->zero_threshhold)*(1-a);
+
+	double dashonlen = dashlen * (dashes->dash_density + (1 - dashes->dash_density)*a);
+	double gaplen    = dashlen-dashonlen;
+	double gapstart  = dashlen * (dashes->dash_randomness*random()/RAND_MAX);
+
+
+	if (gapstart==0) {
+		 // ---***  gap starts at beginning
+		next[0]=s;
+		nexton[0]=ENGRAVE_EndPoint;
+		next[1]=s+gaplen;
+		nexton[1]=ENGRAVE_StartPoint;
+		next[2]=s+dashlen;
+		nexton[2]=ENGRAVE_EndPoint;
+		nextmax=3; 
+
+	} else if (gapstart+gaplen==dashlen) {
+		 // ***---  whole gap fills final portion
+		next[0]=s;
+		nexton[0]=ENGRAVE_StartPoint;
+		next[1]=s+gapstart;
+		nexton[1]=ENGRAVE_EndPoint;
+		next[2]=s+dashlen;
+		nexton[2]=ENGRAVE_StartPoint;
+		nextmax=3; 
+
+	} else if (gapstart+gaplen>dashlen) {
+		 // --****---  gap runs past end of dash, so need to wrap around
+		next[0]=s;
+		nexton[0]=ENGRAVE_EndPoint;
+		next[1]=s+gapstart+gaplen-dashlen;
+		nexton[1]=ENGRAVE_StartPoint;
+		next[2]=next[1]+dashonlen;
+		nexton[2]=ENGRAVE_EndPoint;
+		next[3]=s+dashlen;
+		nexton[3]=ENGRAVE_StartPoint;
+		nextmax=4; 
+
+	} else {
+		 // **----***  gap within dashlen, so solid portion wraps around
+		next[0]=s;
+		nexton[0]=ENGRAVE_StartPoint;
+		next[1]=s+gapstart;
+		nexton[1]=ENGRAVE_EndPoint;
+		next[2]=s+gapstart+gaplen;
+		nexton[2]=ENGRAVE_StartPoint;
+		next[3]=s+dashlen;
+		nexton[3]=ENGRAVE_EndPoint;
+		nextmax=4; 
+	}
+
+	 //add initial dash point if necessary
+	if (   (laston==ENGRAVE_Off && nexton[0]==ENGRAVE_StartPoint)
+	    || (laston==ENGRAVE_On  && nexton[0]==ENGRAVE_EndPoint)
+	   ) {
+
+		lc=AddPoint(next[0], nexton[0], -1, dashweight,dashlen, l,lc, unused);
+		laston = (nexton[0]==ENGRAVE_EndPoint ? ENGRAVE_Off : ENGRAVE_On);
+		lasts  = next[0];
+	}
+}
+
+/*! l must have cache and dashes already properly installed and processed.
+ */
+int EngraverPointGroup::ApplyBlockout(LinePoint *l)
+{
+	LinePoint *lstart=l;
+	LinePointCache *lc, *lcstart;
+
+	lcstart=l->cache;
+	int laston=l->on;
+
+	do {
+		if (l->on==ENGRAVE_Off) l->cache->on=ENGRAVE_Off;
+		if (!l->next) break;
+		
+		if (l->on==ENGRAVE_Off || l->next->on==ENGRAVE_Off) {
+			lc=l->cache;
+			while (lc!=l->next->cache) {
+				lc->on=ENGRAVE_Off;
+				lc=lc->next;
+			}
+		}
+		
+		
+		l=l->next;
+	} while (l && l!=lstart);
+
+	return 0;
 }
 
 /*! If newdash is NULL, then dec_count() the old one and install a fresh default one.
@@ -840,6 +1619,8 @@ void EngraverPointGroup::InstallDashes(EngraverLineQuality *newdash, int absorbc
 	if (dashes) dashes->dec_count();
 	dashes=newdash;
 	if (!absorbcount) dashes->inc_count();
+
+	//UpdateDashCache();
 }
 
 /*! If newtrace is NULL, then dec_count() the old one and install a fresh default one.
@@ -1772,6 +2553,13 @@ EngraverPointGroup *EngraverFillData::GroupFromIndex(int index, int *err_ret)
 	return groups.n ? groups.e[0] : NULL;
 }
 
+void EngraverFillData::UpdatePositionCache()
+{
+	for (int c=0; c<groups.n; c++) {
+		groups.e[c]->UpdatePositionCache();
+	}
+}
+
 /*! Set the default spacing in group 0.
  */
 double EngraverFillData::DefaultSpacing(double nspacing)
@@ -2022,21 +2810,22 @@ void EngraverFillData::dump_in_atts(Attribute *att,int flag,Laxkit::anObject *co
 
 	FindBBox();
 	Sync(false);
+
+	for (int c=0; c<groups.n; c++) {
+		groups.e[c]->UpdateBezCache();
+		groups.e[c]->UpdateDashCache();
+	} 
 }
 
 /*! Return whether a point is considered on by the criteria of the settings in dashes.
  * Default is point must be on, and weight>=zero_threshhold.
- *
- * WARNING! If dashes==NULL, this will always return 1.
  */
 int EngraverFillData::PointOn(LinePoint *p, EngraverPointGroup *g)
 {
-	if (!p->on) return 0;
-
-	if (!g) g=groups.e[0];
-	if (!g->dashes) return 1;
-	if (p->weight < g->dashes->zero_threshhold) return 0;
-	return 1;
+	if (!p->on) return 0; 
+	if (!groups.n) return 0;
+	if (!g) g=groups.e[0]; 
+	return g->PointOn(p);
 }
 
 /*! Creates a single PathsData as outline.
@@ -2082,9 +2871,10 @@ PathsData *EngraverFillData::MakePathsData(int whichgroup)
 			 // 1 *--*--*--8   gets rearranged to: 1 2 4 6 8 3 5 7
 			 //   3  5  7
 			 //points 1 and 8 are cap point references, converted to rounded ends later
-			while (l) {
-				if (!PointOn(l,group)) { l=l->next; continue; }
+			while (l) { //one loop per connected segment
+				if (!group->PointOn(l)) { l=l->next; continue; } //skip off points
 
+				 //get tangent vector at l
 				if (l->next && l->prev) tp=l->next->p - l->prev->p;
 				else if (l->next && !l->prev) tp=l->next->p - l->p;
 				else if (!l->next && l->prev) tp=l->p - l->prev->p;
@@ -2106,7 +2896,7 @@ PathsData *EngraverFillData::MakePathsData(int whichgroup)
 				points.push(p2);
 
 
-				if (!l->next || !l->next->on) {
+				if (!l->next || !group->PointOn(l->next) || l->on==ENGRAVE_EndPoint) {
 					 //need to add a path!
 		
 					 //add last cap
@@ -2134,8 +2924,8 @@ PathsData *EngraverFillData::MakePathsData(int whichgroup)
 
 					paths->close();
 
-					points.flush();
-					points2.flush();
+					points.flush_n();
+					points2.flush_n();
 				}
 
 				l=l->next;
@@ -2232,6 +3022,7 @@ void EngraverFillData::dump_out_svg(const char *file)
 	NumStack<flatvector> points2;
 
 	LinePoint *l;
+	LinePointCache *lc, *lcstart;
 	flatvector t, tp;
 	flatvector p1,p2;
 	EngraverPointGroup *group;
@@ -2254,6 +3045,7 @@ void EngraverFillData::dump_out_svg(const char *file)
 
 		for (int c=0; c<group->lines.n; c++) {
 			l=group->lines.e[c];
+			lc=lcstart=l->cache;
 
 
 			 //make points be a list of points:
@@ -2261,38 +3053,44 @@ void EngraverFillData::dump_out_svg(const char *file)
 			 // 1 *--*--*--8   gets rearranged to: 1 2 4 6 8 3 5 7
 			 //   3  5  7
 			 //points 1 and 8 are cap point references, converted to rounded ends later
-			while (l) {
-				if (!PointOn(l,group)) { l=l->next; continue; }
+			do { //one loop per on segment
+				if (!group->PointOnDash(lc)) { lc=lc->next; continue; }
 
-				if (l->next && l->prev) tp=l->next->p - l->prev->p;
-				else if (l->next && !l->prev) tp=l->next->p - l->p;
-				else if (!l->next && l->prev) tp=l->p - l->prev->p;
-				else tp=flatpoint(1,0); //<- a line with a single point
+				 //get tangent vector at lc
+				if (lc->original!=NULL) {
+					l=lc->original;
+					if (l->next) tp=bez_visual_tangent(0, l->p,l->bez_after,l->next->bez_before,l->next->p);
+					else if (l->prev) tp=bez_visual_tangent(1, l->prev->p,l->prev->bez_after,l->bez_before,l->p);
+					else tp=flatpoint(1,0);
+
+				} else {
+					l=lc->PrevOriginal();
+					tp=bez_visual_tangent(lc->bt, l->p,l->bez_after,l->next->bez_before,l->next->p);
+				}
 
 				tp.normalize(); 
 				t=transpose(tp);
 
 				if (points.n==0) {
 					 //add a first point cap
-					points.push(l->p - l->weight/2*tp);
+					points.push(lc->p - lc->weight/2*tp);
 				}
 
-				 //add top and bottom points for l
-				p1=l->p + l->weight/2*t;
-				p2=l->p - l->weight/2*t;
+				 //add top and bottom points for lc
+				p1=lc->p + lc->weight/2*t;
+				p2=lc->p - lc->weight/2*t;
 
 				points.push(p1);
 				points.push(p2);
 
-
-				if (!l->next || !PointOn(l->next,group)) {
-					 //need to add a path!
+				if (!lc->next || !group->PointOnDash(lc->next) || lc->dashon==ENGRAVE_EndPoint) {
+					 //end of segment, need to add a path to file!
 		
 					 //add last cap
 					tp=points.e[points.n-1]-points.e[points.n-2];
 					tp.normalize();
 					tp=transpose(tp);
-					points.push(l->p + l->weight/2*tp);
+					points.push(lc->p + lc->weight/2*tp);
 
 
 					 //convert to bez approximation
@@ -2322,8 +3120,8 @@ void EngraverFillData::dump_out_svg(const char *file)
 					points2.flush();
 				}
 
-				l=l->next;
-			} //while (l)
+				lc=lc->next;
+			} while (lc && lc!=lcstart);
 		} //foreach line
 
 		fprintf(f,"  </g>\n");
@@ -2380,10 +3178,12 @@ void EngraverFillData::MorePoints(int curgroup)
 			ll=new LinePoint();
 			ll->weight=(l->weight+l->next->weight)/2;
 			ll->spacing=(l->spacing+l->next->spacing)/2;
-			ll->on=(l->on || l->next->on);
 			ll->s=(l->s+l->next->s)/2;
 			ll->t=(l->t+l->next->t)/2; //just in case reverse map doesn't work
 			ll->p=bez_point(.5, l->p, bez[i+1], bez[i+2], l->next->p);
+
+			if (l->on==ENGRAVE_EndPoint) l->on=ENGRAVE_Off;
+			else ll->on=(l->on || l->next->on ? ENGRAVE_On : ENGRAVE_Off);
 
 			ll->next=l->next;
 			l->next->prev=ll;
@@ -2480,6 +3280,7 @@ TraceObject::TraceObject()
 
 	samplew=sampleh=0;
 	trace_sample_cache=NULL;
+	cachetime=0;
 
 	 //black and white cache:
 	tw=th=0; //dims of trace_ref_bw
@@ -2546,7 +3347,7 @@ void TraceObject::Install(TraceObjectType ntype, SomeData *obj)
 		makestr(object_idstr, "current");
 
 	} else if (type==TRACE_ImageFile) {
-		makestr(object_idstr, "current");
+		makestr(object_idstr, "file");
 
 	} else if (type==TRACE_LinearGradient || type==TRACE_RadialGradient) {
 		makestr(object_idstr, "gradient");
@@ -2564,11 +3365,23 @@ void TraceObject::ClearCache(bool obj_too)
 	delete[] trace_sample_cache;
 	trace_sample_cache=NULL;
 	samplew=sampleh=0;
+	cachetime=0;
 
 	if (obj_too) {
 		object->dec_count();
 		object=NULL;
 	}
+}
+
+int TraceObject::NeedsUpdating()
+{
+	if (!trace_sample_cache) return 1;
+	if (type==TRACE_Object) {
+		if (!object) return 1;
+		if (object->modtime>cachetime) return 1;
+	}
+	
+	return 0;
 }
 
 /*! Calling this will always force a redrawing of the cache.
@@ -2645,8 +3458,9 @@ int TraceObject::UpdateCache(ViewportWindow *viewport)
 	unsigned char *data=img->getImageBuffer();
 	memcpy(trace_sample_cache, data, 4*samplew*sampleh);
 	img->doneWithBuffer(data);
+	cachetime=time(NULL);
 
-	// **** DBG:
+	// **** imlib only for DBG:
 	LaxImlibImage *iimg=dynamic_cast<LaxImlibImage*>(img);
 	imlib_context_set_image(iimg->image);
 	imlib_image_set_format("png");
@@ -2793,6 +3607,7 @@ void EngraverTraceSettings::dump_in_atts(LaxFiles::Attribute *att,int flag,Laxki
 				SomeDataRef *ref=dynamic_cast<SomeDataRef*>(LaxInterfaces::somedatafactory->newObject("SomeDataRef"));
 				ref->dump_in_atts(att->attributes.e[c], flag,context);
 				Install(TraceObject::TRACE_Object, ref);
+				makestr(identifier, traceobject->object_idstr);
 				ref->dec_count();
 
 			} else if (!strcmp(value,"image")) {
@@ -2888,7 +3703,7 @@ EngraverFillInterface::EngraverFillInterface(int nid,Displayer *ndp)
 	whichcontrols=Patch_Coons;
 
 	continuous_trace=false;
-	show_panel=false;
+	show_panel=true;
 	show_trace=false;
 	grow_lines=false;
 	always_warp=true;
@@ -2965,6 +3780,7 @@ PatchData *EngraverFillInterface::newPatchData(double xx,double yy,double ww,dou
 	ndata->groups.e[0]->Fill(ndata, 1./dp->Getmag());
 	ndata->Sync(false);
 	ndata->FindBBox();
+
 	return ndata;
 }
 
@@ -3453,7 +4269,7 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
 		} else if (over==ENGRAVE_Group_Name) {
 			MenuItem *item=panel.findid(over);
             LineEdit *le= new LineEdit(viewport,"Rename",_("Rename group"),
-                                        LINEEDIT_DESTROY_ON_ENTER|LINEEDIT_GRAB_ON_MAP|ANXWIN_ESCAPABLE,
+                                        LINEEDIT_DESTROY_ON_ENTER|LINEEDIT_GRAB_ON_MAP|ANXWIN_ESCAPABLE|ANXWIN_OUT_CLICK_DESTROYS|ANXWIN_HOVER_FOCUS,
                                         item->x+panelbox.minx,item->y+panelbox.miny,
 										item->w,item->h,
 										   4, //border
@@ -3572,6 +4388,42 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
                                      d->id,
                                      menu,1,NULL,
                                      MENUSEL_LEFT));
+			return 0;
+
+		} else if (over==ENGRAVE_Dash_Length) {
+			if (dragged<10) {
+				MenuItem *item=panel.findid(over);
+				char str[20];
+				sprintf(str,"%.10g",group->dashes->dash_length);
+				LineEdit *le= new LineEdit(viewport,"Dash maximum length",_("Dash Length"),
+											LINEEDIT_DESTROY_ON_ENTER|LINEEDIT_GRAB_ON_MAP|ANXWIN_ESCAPABLE|ANXWIN_OUT_CLICK_DESTROYS|ANXWIN_HOVER_FOCUS,
+											item->x+panelbox.minx,item->y+panelbox.miny,
+											item->w,item->h,
+											   4, //border
+											   NULL,object_id,"dashlength",
+											   str);
+				le->padx=le->pady=dp->textheight()*.1;
+				le->SetSelection(0,-1);
+				app->addwindow(le);
+			}
+			return 0;
+
+		} else if (over==ENGRAVE_Dash_Seed) {
+			if (dragged<10) {
+				MenuItem *item=panel.findid(over);
+				char str[20];
+				sprintf(str,"%d",group->dashes->randomseed);
+				LineEdit *le= new LineEdit(viewport,"Random Seed",_("Random Seed"),
+											LINEEDIT_DESTROY_ON_ENTER|LINEEDIT_GRAB_ON_MAP|ANXWIN_ESCAPABLE|ANXWIN_OUT_CLICK_DESTROYS|ANXWIN_HOVER_FOCUS,
+											item->x+panelbox.minx,item->y+panelbox.miny,
+											item->w,item->h,
+											   4, //border
+											   NULL,object_id,"dashseed",
+											   str);
+				le->padx=le->pady=dp->textheight()*.1;
+				le->SetSelection(0,-1);
+				app->addwindow(le);
+			}
 			return 0;
 
 		} else {
@@ -3842,10 +4694,35 @@ int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit
 
 					else group->dashes->dash_taper=z;
 
+					group->UpdateDashCache();
 					needtodraw=1;
 				}
 				return 0;
 
+			} else if (over==ENGRAVE_Dash_Length) {
+				int dx=x-lx;
+				if (dx>0) {
+					group->dashes->dash_length*=1.+.01*dx;
+				} else {
+					if (dx<-50) dx=-50;
+					group->dashes->dash_length*=1/(1-.01*dx);
+				}
+
+				group->UpdateDashCache();
+				needtodraw=1;
+
+				return 0;
+
+			} else if (over==ENGRAVE_Dash_Seed) {
+				int dx=(x-lx);
+				if (labs(dx)>2) dx/=2;
+				group->dashes->randomseed+=dx;
+				if (group->dashes->randomseed<0) group->dashes->randomseed=0;
+
+				group->UpdateDashCache();
+				needtodraw=1;
+
+				return 0;
 			}
 		}
 		return 0;
@@ -3861,6 +4738,7 @@ int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit
 		if (buttondown.any()) {
 			if (always_warp && curpoints.n>0) {
 				edata->Sync(false);
+				edata->UpdatePositionCache();
 
 				if (grow_lines) {
 					EngraverPointGroup *group=edata->GroupFromIndex(current_group);
@@ -3975,10 +4853,13 @@ int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit
 			double nearzero=.001; // *** for when tracing makes a value at 0, thicken makes it this
 
 			EngraverPointGroup *group;
+			int recachewhich; //1 for thickness change, 2 for blockout change, 4 for position change
 			
 			for (int g=0; g<edata->groups.n; g++) {
 				group=edata->groups.e[g];
 				if (!group->linked && g!=current_group) continue;
+
+				recachewhich=0;
 
 				for (int c=0; c<group->lines.n; c++) {
 					l=group->lines.e[c];
@@ -4000,23 +4881,28 @@ int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit
 									if (l->weight<=0) l->weight=nearzero;
 								}
 								l->weight*=a;
+								if (l->cache) l->cache->weight*=a;
+								recachewhich|=1;
 
 							} else if (mode==EMODE_Blockout) {
 								if ((state&LAX_STATE_MASK)==ControlMask) 
-									l->on=true;
-								else l->on=false;
+									l->on=ENGRAVE_On;
+								else l->on=ENGRAVE_Off;
+								recachewhich|=2;
 
 							} else if (mode==EMODE_Drag) {
 								a=sqrt(d/rr);
 								a=thickness.f(a);
 								l->p+=dv*a; //point without mesh
 								l->needtosync=2;
+								recachewhich|=4;
 
 							} else if (mode==EMODE_Turbulence) {
 								a=sqrt(d/rr);
 								a=thickness.f(a);
 								l->p+=rotate(dv,drand48()*2*M_PI);
 								l->needtosync=2;
+								recachewhich|=4;
 
 							} else if (mode==EMODE_PushPull) {
 								a=sqrt(d/rr);
@@ -4029,6 +4915,7 @@ int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit
 									l->p+=pp*a;
 								}
 								l->needtosync=2;
+								recachewhich|=4;
 
 							} else if (mode==EMODE_AvoidToward) {
 								a=sqrt(d/rr);
@@ -4044,6 +4931,7 @@ int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit
 									l->p+=vt;
 								}
 								l->needtosync=2;
+								recachewhich|=4;
 
 							} else if (mode==EMODE_Twirl) {
 								a=sqrt(d/rr);
@@ -4055,12 +4943,21 @@ int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit
 									l->p=m+rotate(l->p-m,-a*.1);
 								}
 								l->needtosync=2;
+								recachewhich|=4;
 							}
 						}
 
 						l=l->next;
 					}//foreach point in line
 				} //foreach line
+
+				if (recachewhich&1) { //thickness change
+					group->UpdateDashCache();
+				} else if (recachewhich&2) { //blockout change
+					group->UpdateDashCache();
+				} else if (recachewhich&4) { //position change
+					group->UpdatePositionCache();
+				}
 			} //foreach relevant group
 			needtodraw=1;
 
@@ -4123,8 +5020,24 @@ int EngraverFillInterface::DrawData(Laxkit::anObject *ndata,anObject *a1,anObjec
 
 	EngraverFillData *ee=edata;
 	edata=dynamic_cast<EngraverFillData *>(ndata);
+
+	int  tshow_points   =show_points;  
+	bool tshow_direction=show_direction;
+	bool tshow_panel    =show_panel;
+	bool tshow_trace    =show_trace;
+
+	show_points   =false;  
+	show_direction=false;
+	show_panel    =false;
+	show_trace    =false;
+
 	int c=PatchInterface::DrawData(ndata,a1,a2,info);
 	edata=ee;
+
+	show_points   =tshow_points;  
+	show_direction=tshow_direction;
+	show_panel    =tshow_panel;
+	show_trace    =tshow_trace;
 
 	return c;
 }
@@ -4242,7 +5155,8 @@ int EngraverFillInterface::Refresh()
 
 	 //----draw the actual lines
 	LinePoint *l;
-	LinePoint *last=NULL;
+	//LinePoint *last=NULL;
+	LinePointCache *lc, *lcstart, *clast=NULL;
 
 	double mag=dp->Getmag();
 	double lastwidth, neww;
@@ -4254,44 +5168,44 @@ int EngraverFillInterface::Refresh()
 		group=edata->groups.e[g];
 		if (!group->active) continue;
 		
+		if (!group->lines.e[0]->cache) {
+			group->UpdateBezCache();
+			group->UpdateDashCache();
+		} 
+
 		for (int c=0; c<group->lines.n; c++) {
 			l=group->lines.e[c];
-			last=NULL;
+			lc=lcstart=l->cache;
+			clast=NULL;
 			lastwidth=-1;
 
 			dp->NewFG(&group->color);
 
-			while (l) {
-				if (!last) {
+			do { //one loop per on segment
+				if (!group->PointOnDash(lc)) { lc=lc->next; continue; } //advance to first on point
+
+				if (!clast) {
 					 //establish a first point of a visible segment
-		
-					//if (l->on && l->width>data->zero_threshhold) {
-					//if (l->on) {
-					if (edata->PointOn(l,group)) {
-						last=l;
-						lastwidth=l->weight*mag;
-						dp->LineAttributes(lastwidth,LineSolid,LAXCAP_Round,LAXJOIN_Round);
-					}
-					l=l->next;
-					continue;
-				}
+					clast=lc;
+					lastwidth=lc->weight*mag;
+					dp->LineAttributes(lastwidth,LineSolid,LAXCAP_Round,LAXJOIN_Round);
 
-				if (!edata->PointOn(l,group)) {
-					if (!last->prev || !edata->PointOn(last->prev,group)) {
+					if (lc->on==ENGRAVE_EndPoint || !lc->next || !group->PointOnDash(lc->next)) {
 						 //draw just a single dot
-						dp->drawline(last->p,last->p);
+						dp->drawline(clast->p,clast->p);
+						lc=lc->next;
+						clast=NULL;
+						continue;
 					}
-					last=NULL;
-					lastwidth=-1;
-					l=l->next;
-					continue;
+					lc=lc->next;
 				}
 
-				neww=l->weight*mag;
+				neww=lc->weight*mag;
 				if (neww!=lastwidth) {
-					lp=last->p;
-					v=(l->p-last->p)/9.;
+					lp=clast->p;
+					v=(lc->p-clast->p)/9.;
 					for (int c2=1; c2<10; c2++) {
+						 //draw 10 mini segments, each of same width to approximate the changing width
 						tw=lastwidth+c2/9.*(neww-lastwidth);
 						dp->LineAttributes(tw,LineSolid,LAXCAP_Round,LAXJOIN_Round);
 						dp->drawline(lp+v*(c2-1), lp+v*c2);
@@ -4300,13 +5214,58 @@ int EngraverFillInterface::Refresh()
 					lastwidth=neww;
 
 				} else {
-					if (edata->PointOn(last,group) && edata->PointOn(l,group)) dp->drawline(last->p,l->p);
+					dp->drawline(clast->p,lc->p);
 				}
 
-				last=l;
-				l=l->next;
+				if (lc->on==ENGRAVE_EndPoint) clast=NULL;
+				else clast=lc;
+				lc=lc->next;
+				if (lc && !group->PointOnDash(lc)) clast=NULL;
 
-			}
+			} while (lc && lc->next && lc!=lcstart);
+//			-------------------LinePoint:
+//			while (l) { //one loop per on segment
+//				if (!group->PointOn(l)) { l=l->next; continue; } //advance to first on point
+//
+//				if (!last) {
+//					 //establish a first point of a visible segment
+//					last=l;
+//					lastwidth=l->weight*mag;
+//					dp->LineAttributes(lastwidth,LineSolid,LAXCAP_Round,LAXJOIN_Round);
+//
+//					if (l->on==ENGRAVE_EndPoint || !l->next || !group->PointOn(l->next)) {
+//						 //draw just a single dot
+//						dp->drawline(last->p,last->p);
+//						l=l->next;
+//						last=NULL;
+//						continue;
+//					}
+//					l=l->next;
+//				}
+//
+//				neww=l->weight*mag;
+//				if (neww!=lastwidth) {
+//					lp=last->p;
+//					v=(l->p-last->p)/9.;
+//					for (int c2=1; c2<10; c2++) {
+//						 //draw 10 mini segments, each of same width to approximate the changing width
+//						tw=lastwidth+c2/9.*(neww-lastwidth);
+//						dp->LineAttributes(tw,LineSolid,LAXCAP_Round,LAXJOIN_Round);
+//						dp->drawline(lp+v*(c2-1), lp+v*c2);
+//					}
+//
+//					lastwidth=neww;
+//
+//				} else {
+//					dp->drawline(last->p,l->p);
+//				}
+//
+//				if (l->on==ENGRAVE_EndPoint) last=NULL;
+//				else last=l;
+//				l=l->next;
+//				if (l && !group->PointOn(l)) last=NULL;
+//			}
+//			-------------------
 
 			if (show_points) {
 				 //show little red dots for all the sample points
@@ -4338,7 +5297,7 @@ int EngraverFillInterface::Refresh()
 		dp->LineAttributes(1,LineSolid,linestyle.capstyle,linestyle.joinstyle);
 		dp->drawbez(data->boundary_outline,data->npoints_boundary/3,1,0);
 	}
-		
+
 	if (mode==EMODE_Freehand) {
 		 //awaiting a click down
 		if (!child && show_panel) DrawPanel();
@@ -4386,13 +5345,14 @@ int EngraverFillInterface::Refresh()
 			dp->DrawReal();
 		}
 
-	} else if (mode==EMODE_Thickness
+	} else if ((mode==EMODE_Thickness
 			|| mode==EMODE_Blockout
 			|| mode==EMODE_Drag
 			|| mode==EMODE_Turbulence
 			|| mode==EMODE_PushPull
 		    || mode==EMODE_AvoidToward
-		    || mode==EMODE_Twirl
+		    || mode==EMODE_Twirl)
+			&& lasthovercategory!=ENGRAVE_Panel
 			) {
 
 
@@ -4559,6 +5519,31 @@ void EngraverFillInterface::DrawOrientation(int over)
 	dp->DrawReal();
 }
 
+void EngraverFillInterface::DrawNumInput(double pos,int type,int hovered, double x,double y,double w,double h, const char *text)
+{
+	dp->LineAttributes(1,LineSolid, CapButt, JoinMiter);
+ 	
+	if (hovered)  dp->NewFG(0.,0.,0.); 
+	else dp->NewFG(.5,.5,.5);
+
+	double th=dp->textheight();
+
+	if (text) {
+		//if (pos<.5) dp->textout(x+w,y+h/2, text,-1, LAX_RIGHT|LAX_VCENTER);
+		//else dp->textout(x,y+h/2, text,-1, LAX_LEFT|LAX_VCENTER);
+		
+		dp->textout(x+w-th-th/2,y+h/2, text,-1, LAX_RIGHT|LAX_VCENTER);
+	}
+
+	char str[20];
+	if (type==0) sprintf(str,"%.2g", pos);
+	else sprintf(str,"%d", (int)pos);
+	dp->textout(x+th+th/2,y+h/2, str,-1, LAX_LEFT|LAX_VCENTER);
+
+    dp->drawthing(x+th*.9,y+h/2, th*.3,th*.3, 0, THING_Triangle_Left);
+    dp->drawthing(x+w-th*.9,y+h/2, th*.3,th*.3, 0, THING_Triangle_Right);
+}
+
 void EngraverFillInterface::DrawSlider(double pos,int hovered, double x,double y,double w,double h, const char *text)
 {
 	dp->LineAttributes(1,LineSolid, CapButt, JoinMiter);
@@ -4578,7 +5563,7 @@ void EngraverFillInterface::DrawSlider(double pos,int hovered, double x,double y
 		dp->drawline(x, y+h/2, x+w/2-ww/2, y+h/2);
 		dp->drawline(x+w/2+ww/2, y+h/2, x+w, y+h/2);
 	} else dp->drawline(x, y+h/2, x+w, y+h/2);
-	dp->drawpoint(flatpoint(x + pos*w,y+h/2), h*.4, 1);
+	dp->drawpoint(flatpoint(x + h/4 + pos*(w-h/2),y+h/2), h*.4, 1);
 }
 
 /*! Draw the range of line widths in a strip, as for a curve map control.
@@ -4719,13 +5704,15 @@ void EngraverFillInterface::UpdatePanelAreas()
 		  panel.AddItem("Random",          ENGRAVE_Dash_Random);
 		  panel.AddItem("Taper",           ENGRAVE_Dash_Taper);
 		  panel.AddItem("Minimum density", ENGRAVE_Dash_Density);
+		  panel.AddItem("Dash Length",     ENGRAVE_Dash_Length);
+		  panel.AddItem("Random Seed",     ENGRAVE_Dash_Seed);
 		  panel.AddItem("Caps",            ENGRAVE_Dash_Caps);
 		  panel.AddItem("Join",            ENGRAVE_Dash_Join);
-		panel.EndSubMenu();
+		  panel.EndSubMenu();
 
-		//--------------- Direction  ---------------
-		panel.AddItem("Direction",  ENGRAVE_Direction);
-		panel.SubMenu();
+		  //--------------- Direction  ---------------
+		  panel.AddItem("Direction",  ENGRAVE_Direction);
+		  panel.SubMenu();
 		  panel.AddItem("Dir same as",  ENGRAVE_Dir_Same_As);
 		  panel.AddItem("Type",         ENGRAVE_Dir_Type);
 		  panel.AddItem("Current",      ENGRAVE_Dir_Current);
@@ -4734,21 +5721,21 @@ void EngraverFillInterface::UpdatePanelAreas()
 		  panel.AddItem("Generate from trace object",   ENGRAVE_Dir_From_Trace);
 		  panel.AddItem("Load normal map",              ENGRAVE_Dir_Load_Normal);
 		  panel.AddItem("Load and generate from image", ENGRAVE_Dir_Load_Image);
-		panel.EndSubMenu();
+		  panel.EndSubMenu();
 
-		//--------------- Spacing  ---------------
-		panel.AddItem("Spacing",    ENGRAVE_Spacing);
-		panel.SubMenu();
+		  //--------------- Spacing  ---------------
+		  panel.AddItem("Spacing",    ENGRAVE_Spacing);
+		  panel.SubMenu();
 		  panel.AddItem("Spacing same as",      ENGRAVE_Spacing_Same_As);
 		  panel.AddItem("Preview",              ENGRAVE_Spacing_Preview);
 		  panel.AddItem("Create from current",  ENGRAVE_Spacing_Create_From_Cur);
 		  panel.AddItem("Load..",               ENGRAVE_Spacing_Load);
 		  panel.AddItem("Paint..",              ENGRAVE_Spacing_Paint);
-		panel.EndSubMenu();
+		  panel.EndSubMenu();
 
-		//--------------- Selection?  ---------------
-		// //selection management, 1 line for each selection, click x to remove?
-		//panel.AddItem("Spacing",    ENGRAVE_Spacing);
+		  //--------------- Selection?  ---------------
+		  // //selection management, 1 line for each selection, click x to remove?
+		  //panel.AddItem("Spacing",    ENGRAVE_Spacing);
 	}
 
 	double th=dp->textheight();
@@ -4787,7 +5774,7 @@ void EngraverFillInterface::UpdatePanelAreas()
 			for (int c2=0; c2<item->GetSubmenu()->n(); c2++) {
 				item2=item->GetSubmenu()->e(c2);
 
-				 //----first line
+				//----first line
 				if (item2->id==ENGRAVE_Previous_Group) {
 					item2->x=pad;  item2->y=y;  item2->w=th, item2->h=th;
 
@@ -4806,7 +5793,7 @@ void EngraverFillInterface::UpdatePanelAreas()
 				} else if (item2->id==ENGRAVE_Group_Color) {
 					item2->x=pw-pad-th;  item2->y=y;  item2->w=th;  item2->h=th;
 
-				 //----second line
+					//----second line
 				} else if (item2->id==ENGRAVE_New_Group) {
 					item2->x=pad;  item2->y=y+th;  item2->w=item->w/nww; item2->h=th;
 
@@ -4819,16 +5806,16 @@ void EngraverFillInterface::UpdatePanelAreas()
 				} else if (item2->id==ENGRAVE_Group_Down) {
 					item2->x=pad+3*item->w/nww;  item2->y=y+th;  item2->w=item->w/nww; item2->h=th;
 
-				//} else if (item2->id==ENGRAVE_Duplicate_Group) {
-				//	item2->x=pad+4*item->w/nww;  item2->y=y+th;  item2->w=item->w/nww, item2->h=th;
+					//} else if (item2->id==ENGRAVE_Duplicate_Group) {
+					//	item2->x=pad+4*item->w/nww;  item2->y=y+th;  item2->w=item->w/nww, item2->h=th;
 
-				//} else if (item2->id==ENGRAVE_Merge_Group) {
-				//	item2->x=pad+5*item->w/nww;  item2->y=y+th;  item2->w=item->w/nww, item2->h=th;
+					//} else if (item2->id==ENGRAVE_Merge_Group) {
+					//	item2->x=pad+5*item->w/nww;  item2->y=y+th;  item2->w=item->w/nww, item2->h=th;
 
-				} else if (item2->id==ENGRAVE_Toggle_Group_List) {
-					item2->x=pad+4*item->w/nww;  item2->y=y+th;  item2->w=item->w/nww, item2->h=th;
+			} else if (item2->id==ENGRAVE_Toggle_Group_List) {
+				item2->x=pad+4*item->w/nww;  item2->y=y+th;  item2->w=item->w/nww, item2->h=th;
 
-				}
+			}
 			}
 			y+=2*th; 
 
@@ -4850,7 +5837,7 @@ void EngraverFillInterface::UpdatePanelAreas()
 				for (int c2=0; c2<item->GetSubmenu()->n(); c2++) {
 					item2=item->GetSubmenu()->e(c2);
 
-					 //----first line
+					//----first line
 					if (item2->id==ENGRAVE_Trace_Same_As) {
 						if (hasgroups) {
 							item2->x=pad;  item2->y=y+1*th;  item2->w=pw-2*pad;  item2->h=th; 
@@ -4874,7 +5861,7 @@ void EngraverFillInterface::UpdatePanelAreas()
 			else {
 				int hasgroups = (edata && edata->groups.n>1 ? 1 : 0);
 
-				item->h=6*th+pad+(hasgroups ? th : 0);
+				item->h=8*th+pad+(hasgroups ? th : 0);
 				// ...
 				for (int c2=0; c2<item->GetSubmenu()->n(); c2++) {
 					item2=item->GetSubmenu()->e(c2);
@@ -4901,6 +5888,12 @@ void EngraverFillInterface::UpdatePanelAreas()
 
 					} else if (item2->id==ENGRAVE_Dash_Density) {
 						item2->x=pad;  item2->y=y+5*th+(hasgroups ? th : 0);  item2->w=pw-2*pad;  item2->h=th; 
+
+					} else if (item2->id==ENGRAVE_Dash_Length) {
+						item2->x=pad;  item2->y=y+6*th+(hasgroups ? th : 0);  item2->w=pw-2*pad;  item2->h=th; 
+
+					} else if (item2->id==ENGRAVE_Dash_Seed) {
+						item2->x=pad;  item2->y=y+7*th+(hasgroups ? th : 0);  item2->w=pw-2*pad;  item2->h=th; 
 
 					} else if (item2->id==ENGRAVE_Dash_Caps) {
 						// *** todo!
@@ -5172,6 +6165,14 @@ void EngraverFillInterface::DrawPanel()
 					} else if (item2->id==ENGRAVE_Dash_Taper) {
 						DrawSlider((group ? group->dashes->dash_taper : .5), lasthover==ENGRAVE_Dash_Taper,
 								i2x,i2y,i2w,i2h, _("Taper"));
+
+					} else if (item2->id==ENGRAVE_Dash_Length) {
+						DrawNumInput((group ? group->dashes->dash_length : 2), 0, lasthover==ENGRAVE_Dash_Length,
+								i2x,i2y,i2w,i2h, _("Length"));
+
+					} else if (item2->id==ENGRAVE_Dash_Seed) {
+						DrawNumInput((group ? group->dashes->randomseed : -1), 1, lasthover==ENGRAVE_Dash_Seed,
+								i2x,i2y,i2w,i2h, _("Seed"));
 
 					} else if (item2->id==ENGRAVE_Dash_Caps) {
 						// *** todo!
@@ -5534,7 +6535,7 @@ int EngraverFillInterface::Trace()
 
 
 		 //update cache if necessary
-		if (!group->trace->traceobject->trace_sample_cache)
+		if (!group->trace->traceobject->trace_sample_cache || group->trace->traceobject->NeedsUpdating())
 			group->trace->traceobject->UpdateCache(viewport);
 
 		int samplew=group->trace->traceobject->samplew;
@@ -5580,10 +6581,10 @@ int EngraverFillInterface::Trace()
 						a=(255-sample)/255.;
 						a=group->trace->value_to_weight.f(a);
 						l->weight=group->spacing*a; // *** this seems off
-						l->on = samplea>0 ? true : false;
+						l->on = samplea>0 ? ENGRAVE_On : ENGRAVE_Off;
 					} else {
 						l->weight=0;
-						l->on=false;
+						l->on=ENGRAVE_Off;
 					}
 
 				} else { //use current
@@ -5594,6 +6595,8 @@ int EngraverFillInterface::Trace()
 				l=l->next;
 			}
 		} //each line
+
+		group->UpdateDashCache();
 	} //each group 
 
 	needtodraw=1;
@@ -5666,9 +6669,36 @@ int EngraverFillInterface::Event(const Laxkit::EventData *e_data, const char *me
 
 		return 0;
 
+	} else if (!strcmp(mes,"dashlength")) {
+        const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(e_data);
+        if (!edata || isblank(s->str)) return 0;
+		EngraverPointGroup *group=edata->GroupFromIndex(current_group);
+		char *endptr=NULL;
+		double d=group->dashes->dash_length=strtod(s->str, &endptr);
+		if (endptr!=s->str) {
+			group->dashes->dash_length=d;
+			group->UpdateDashCache();
+			needtodraw=1;
+		}
+ 		return 0;
+
+	} else if (!strcmp(mes,"dashseed")) {
+        const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(e_data);
+        if (!edata || isblank(s->str)) return 0;
+		EngraverPointGroup *group=edata->GroupFromIndex(current_group);
+		char *endptr=NULL;
+		int i=strtol(s->str, &endptr, 10);
+		if (endptr==s->str || i<=0) i=-1;
+
+		group->dashes->randomseed=i;
+		group->UpdateDashCache();
+		needtodraw=1;
+
+ 		return 0;
+
 	} else if (!strcmp(mes,"newcolor")) {
  		//got a new color for current group
-       const SimpleColorEventData *ce=dynamic_cast<const SimpleColorEventData *>(e_data);
+    	const SimpleColorEventData *ce=dynamic_cast<const SimpleColorEventData *>(e_data);
         if (!ce) return 1;
 
          // apply message as new current color, pass on to viewport

@@ -43,33 +43,69 @@ class EngraverFillData;
 
 #define  MAX_LINEPOINT_CACHE 10
 
+enum EngraveLinePointCacheTypes {
+	ENGRAVE_Off=0,
+	ENGRAVE_On=1,
+	ENGRAVE_EndPoint=-1,
+	ENGRAVE_StartPoint=-2,
+
+	ENGRAVE_Original=100,//an actual sample point, these persist
+	ENGRAVE_Sample,     
+	ENGRAVE_BlockStart,      //added by blockout
+	ENGRAVE_BlockEnd,     //added by blockout
+	ENGRAVE_VisualCache, //extra point for on screen display purposes
+	ENGRAVE_EndDash,   //added by dash computations
+	ENGRAVE_StartDash  //added by dash computations
+};
+
+class LinePoint;
+
 class LinePointCache
 {
   public:
+	int type; //position, end border, start border, original
+
 	flatpoint p;
-	double bt; //bez t coord between LinePoints of this one
 	double weight;
-	int on; //off if zero. if nonzero, assume it gives info about origin of this cache point
+	int on; //off if zero, 1 on, -1 end point, -2 start point
+	int dashon;
+	double bt; //bez t coord between LinePoints of this one
+	LinePoint *original;
+
+	LinePointCache *prev,*next; //must NOT be part of a loop
+
+	LinePointCache(int ntype);
+	LinePointCache(LinePointCache *prev);
+	~LinePointCache();
+	void Add(LinePointCache *np);
+	void AddBefore(LinePointCache *np);
+	LinePointCache *InsertAfter(LinePointCache *np);
+	LinePointCache *Detach();
+
+	LinePoint *PrevOriginal();
 };
 
-typedef Laxkit::NumStack<LinePointCache> PointCacheStack;
-typedef Laxkit::NumStack<double> DashCache;
 
 class LinePoint
 {
   public:
-	double s,t;
-	int row,col;
-	double weight_orig;
+	int type; //position, end border, start border
+	double bt; //bez t coord between LinePoints of this one
+
 	double weight;
-	double spacing; //visual measure, to be used when remapping
-	bool on;
+	double weight_orig;
+	int on; //off if zero, 1 on, -1 end point, -2 start point
+
+	flatpoint p; //(s,t) transformed by the mesh 
+	flatpoint bez_before, bez_after;
+	double length;
 
 	int needtosync; //0 no, 1: s,t -> p, 2: p->s,t
-	flatpoint p; //(s,t) transformed by the mesh
+	double s,t;
+	int row,col;
+	double spacing; //visual measure, to be used when remapping
 
-	LinePointCache cache[MAX_LINEPOINT_CACHE];
-
+	LinePointCache *cache;
 	LinePoint *next, *prev;
 
 	LinePoint();
@@ -81,6 +117,9 @@ class LinePoint
 	void Clear();
 	void Add(LinePoint *np);
 	void AddBefore(LinePoint *np);
+	void BaselineCache();
+
+	void UpdateBezHandles();
 	//void ReCache(int num, double dashleftover, EngraverLineQuality *dashes);
 };
 
@@ -99,11 +138,12 @@ class TraceObject : public Laxkit::anObject
 	};
 	TraceObjectType type;
 
-	LaxInterfaces::SomeData *object; //transform is to page
+	LaxInterfaces::SomeData *object; //transform is to maximum parent of owning object
 	char *image_file;
 
 	int samplew, sampleh;
 	unsigned char *trace_sample_cache;
+	std::time_t cachetime;
 
 	 //black and white cache:
 	int tw,th; //dims of trace_ref_bw
@@ -114,6 +154,7 @@ class TraceObject : public Laxkit::anObject
 	double GetValue(LinePoint *p, double *transform);
 	void ClearCache(bool obj_too);
 	int UpdateCache(ViewportWindow *viewport);
+	int NeedsUpdating();
 
 	void Install(TraceObjectType ntype, SomeData *obj);
 };
@@ -151,10 +192,12 @@ class EngraverLineQuality : public Laxkit::anObject
 	double dash_length;
 	double dash_density;
 	double dash_randomness;
+	int randomseed;
 	double zero_threshhold;
 	double broken_threshhold;
 	double dash_taper; //0 means taper all the way, 1 means no taper
-	int indashcaps, outdashcaps, startcaps, endcaps;
+
+	int indashcaps, outdashcaps, startcaps, endcaps; //0 for butt, 1 for round
 	//Laxkit::CurveInfo weighttodist;
 
 	EngraverLineQuality();
@@ -165,6 +208,8 @@ class EngraverLineQuality : public Laxkit::anObject
 	virtual void dump_out(FILE *f,int indent,int what,Laxkit::anObject *context);
 	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,Laxkit::anObject *context);
 	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,Laxkit::anObject *savecontext);
+
+	int GetNewWeight(double weight, double *weight_ret);
 };
 
 
@@ -228,6 +273,13 @@ class GrowPointInfo
 
 class EngraverPointGroup : public DirectionMap
 {
+  protected:
+	void EstablishDashMetrics(double s,double weight, double *next,int *nexton,int &nextmax,  LinePoint *l,LinePointCache *&lc,
+							 int &laston, double &lasts, double &dashweight, double &dashlen, Laxkit::PtrStack<LinePointCache> &unused);
+	LinePointCache *AddPoint(double s, int on, int type, double dashweight,double dashlen,
+						LinePoint *l,LinePointCache *&lc, Laxkit::PtrStack<LinePointCache> &unused);
+	int ApplyBlockout(LinePoint *l);
+
   public:
 	enum PointGroupType {
 		PGROUP_Linear,
@@ -249,6 +301,8 @@ class EngraverPointGroup : public DirectionMap
 
 	EngraverTraceSettings *trace; 
 	EngraverLineQuality *dashes;
+	int numdashes;
+
 	char *iorefs; //tags of unresolved references to dashes, traces, etc
 
 	Laxkit::PtrStack<LinePoint> lines;
@@ -262,6 +316,8 @@ class EngraverPointGroup : public DirectionMap
 	virtual void InstallDashes(EngraverLineQuality *newdash, int absorbcount);
 
 	virtual int PointOn(LinePoint *p);
+	virtual int PointOnDash (LinePointCache *p);
+	virtual int CachePointOn(LinePointCache *p);
 	virtual flatpoint Direction(double s,double t);
 	virtual LinePoint *LineFrom(double s,double t);
 
@@ -277,6 +333,11 @@ class EngraverPointGroup : public DirectionMap
 									flatpoint direction,    DirectionMap *directionmap,
 									Laxkit::PtrStack<GrowPointInfo> *growpoint_ret,
 									int iteration_limit);
+
+	virtual void UpdateBezCache();
+	virtual void UpdatePositionCache();
+	virtual int UpdateDashCache();
+	virtual void StripDashes();
 
 	virtual void dump_out(FILE *f,int indent,int what,Laxkit::anObject *context,const char *sharetrace, const char *sharedash);
 	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,Laxkit::anObject *context);
@@ -317,6 +378,7 @@ class EngraverFillData : public PatchData
 	virtual void FillRegularLines(double weight, double spacing);
 	virtual void Sync(bool asneeded);
 	virtual void ReverseSync(bool asneeded);
+	virtual void UpdatePositionCache();
 	virtual void BezApproximate(Laxkit::NumStack<flatvector> &fauxpoints, Laxkit::NumStack<flatvector> &points);
 	virtual void MorePoints(int curgroup);
 	virtual EngraverPointGroup *FindGroup(int id, int *err_ret=NULL);
@@ -396,6 +458,7 @@ class EngraverFillInterface : public PatchInterface
 	virtual void DrawTracingTools(Laxkit::MenuItem *item);
 	virtual void DrawLineGradient(double minx,double maxx,double miny,double maxy, int groupnum, int horizontal);
 	virtual void DrawSlider(double pos,int hovered, double x,double y,double w,double h, const char *text);
+	virtual void DrawNumInput(double pos,int type,int hovered, double x,double y,double w,double h, const char *text);
 	virtual void DrawShadeGradient(double minx,double maxx,double miny,double maxy);
 
 	virtual int IsSharing(int what, int curgroup); 
