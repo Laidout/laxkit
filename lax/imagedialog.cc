@@ -436,11 +436,12 @@ char *ImageDialog::reallyGeneratePreview()
 	if (width<=10) return newstr("Too small to fit preview inside.");
 	if (generate_preview_image(imageinfo->filename,imageinfo->previewfile,"jpg",width,width,1))
 		return newstr("Error making preview.");
-	Imlib_Image image=imlib_load_image(imageinfo->previewfile);
+
+	LaxImage *image=load_image(imageinfo->previewfile);
 	if (image) {
-		imlib_image_set_changes_on_disk();
-		imlib_free_image();
+		image->dec_count();
 	}
+
 	previewer->Preview(imageinfo->previewfile);
 	return NULL;
 }
