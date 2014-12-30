@@ -1656,7 +1656,7 @@ int anXApp::processdataevents()
 }
 
 /*! Return nonzero for event could not be sent, or 0 for event sent or otherwise processed.
- *  The event is not deleted after processing here.
+ *  The event is not deleted here.
  *
  *  If obj==NULL, then use findEventObj(data->to).
  */
@@ -1675,7 +1675,12 @@ int anXApp::processSingleDataEvent(EventReceiver *obj,EventData *ee)
 
 	if (ww && tooltips && ttcount==0) tooltipcheck(ee,ww);
 
-	if (ee->type==LAX_onButtonDown && outclickwatch.n) checkOutClicks(obj,dynamic_cast<MouseEventData*>(ee));
+	if (ee->type==LAX_onButtonDown && outclickwatch.n) {
+		if (checkOutClicks(obj,dynamic_cast<MouseEventData*>(ee))!=0) {
+			ee->type=LAX_DefunctEvent;
+			return 0;
+		}
+	}
 
 	 //focus events need additional processing for the correct processing of input,
 	 //so these are not sent through window->Event(), but instead go directly
@@ -1718,12 +1723,15 @@ int anXApp::processSingleDataEvent(EventReceiver *obj,EventData *ee)
 //! See if a mouse down event is down outside of any top windows in outclickwatch or any controls connected to them.
 /*! destroywindow() if the mouse is down outside of any of them.
  *
- * \todo If there is any mouse in associated controls, should keep that group up.
+ * Return 0 for was not a relevant out click, or 1 for it was, and windows have been removed.
+ *
+ * \todo If there is any other mouse in associated controls, should keep that group up.
  */
 int anXApp::checkOutClicks(EventReceiver *obj,MouseEventData *ee)
 {
 	if (!ee) return 1;
 	int n=0;
+	int outclicked=0;
 	anXWindow *w, *s, *e, *p;
 	
 	int x,y; //root coordinates
@@ -1744,27 +1752,29 @@ int anXApp::checkOutClicks(EventReceiver *obj,MouseEventData *ee)
 			while (e->nextcontrol && e->nextcontrol!=w) e=e->nextcontrol;
 			p=s;
 			do {
-				if (!p->win_parent) { //examine top windows only
-					translate_window_coordinates(NULL,x,y, p,&xx,&yy, NULL); //root -> p coords
-					if (xx>=0 && yy>=0 && xx<p->win_w && yy<p->win_h) {
-						n++; //mouse was inside one of the controls!
-						break;
-					}
+				translate_window_coordinates(NULL,x,y, p,&xx,&yy, NULL); //root -> p coords
+				if (xx>=0 && yy>=0 && xx<p->win_w && yy<p->win_h) {
+					n++; //mouse was inside one of the controls!
+					break;
 				}
 				p=p->nextcontrol;
 			} while (p && p!=s);
+
 			if (!n) {
-				 //mouse was not in any connceted windows so must destroy all in s..e
+				 //mouse was not in any connected windows so must destroy all in s..e
+				outclicked=1;
 				p=s;
 				do {
-					if (!p->win_parent) destroywindow(p); //remember, this removes from outclickwatch
+					outclickwatch.remove(c);
+					destroywindow(p); //remember, this removes from outclickwatch
 					p=p->nextcontrol;
 				} while (p && p!=s);
 				c=-1; //reset counter, since outclickwatch stack has been fiddled with
 			}
 		}
 	}
-	return 0;
+
+	return outclicked;
 }
 
 //! Run a (top-level) dialog window that blocks inputs to other windows (runs a so called modal dialog)
@@ -1859,9 +1869,6 @@ int anXApp::addwindow(anXWindow *w,char mapit,char absorb_count) // mapit==1, ab
 	 //----- add window to app's internal stack:
 	if (w->win_parent==NULL) {
 		topwindows.push(w);
-		if (w->win_style&ANXWIN_OUT_CLICK_DESTROYS) {
-			outclickwatch.push(w);
-		}
 	} else {
 		w->win_parent->_kids.pushnodup(w); //increased count on window
 		if (w->win_parent->xlib_window==0) {
@@ -1869,7 +1876,13 @@ int anXApp::addwindow(anXWindow *w,char mapit,char absorb_count) // mapit==1, ab
 			return 0; // do not create if the parent window is 0!! otherwise crashes
 		}
 	}
+
 	if (absorb_count) w->dec_count();
+
+	 //add to watch list. clicking anywhere outside this window will result in the window being destroyed
+	if (w->win_style&ANXWIN_OUT_CLICK_DESTROYS) {
+		outclickwatch.push(w);
+	}
 
 	 //set default background color
 	WindowColors *wc=w->win_colors;
@@ -2661,8 +2674,12 @@ void anXApp::processXevent(XEvent *xevent)
 		}
 	}
 
-	if (events && events->type==LAX_onButtonDown && outclickwatch.n)
-		checkOutClicks(NULL,dynamic_cast<MouseEventData*>(events));
+	if (events && events->type==LAX_onButtonDown && outclickwatch.n) {
+		if (checkOutClicks(NULL,dynamic_cast<MouseEventData*>(events))!=0) {
+			events->type=LAX_DefunctEvent;
+			isinputevent=0;
+		}
+	}
 
 	 //--- Dialog event screening for windows
 	 //Must screen out any unwanted events if there is a blocking dialog running.
