@@ -87,6 +87,8 @@ class LaxKeyboard;
 #define LAX_ShortcutEvent      (1<<22)
 #define LAX_ColorEvent         (1<<23)
 #define LAX_UserEvent          (1<<24)
+ //for when an event is preempted, a flag to ignore:
+#define LAX_DefunctEvent       (1<<25)
 
 const char *lax_event_name(int e);
 
