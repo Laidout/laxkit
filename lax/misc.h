@@ -62,6 +62,10 @@ void simple_rgb_to_hsv(double r,double g,double b,double *h,double *s,double *v)
 void simple_rgb_to_hsv(double *rgb, double *hsv);
 
 
+//---------rgb/hsl
+void simple_hsl_to_rgb(double h, double s, double l, double *r,double *g,double *b);
+
+
 //---------------------- some debugging helpers ------------------------------
 void dump_flags(unsigned int f);
 
