@@ -55,7 +55,7 @@ int ScreenColor::equals(double r,double g,double b, double a)
 	return red==int(.5+r*65535) && green==int(.5+g*65535) && blue==int(.5+b*65535) && alpha==int(.5+a*65535);
 }
 
-/*! Return 0xAARRGGBB
+/*! Return 0xAARRGGBB. Always recomputes, does not rely on this->pixel.
  */
 unsigned long ScreenColor::Pixel()
 {
