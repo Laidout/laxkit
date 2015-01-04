@@ -3485,6 +3485,9 @@ bool PathInterface::Setting(unsigned int flag, bool on)
 	bool old=(pathi_style&flag) ? true : false;
 	if (on) pathi_style|=flag;
 	else pathi_style&=~flag;
+
+	if (!(pathi_style&PATHI_No_Weights)) show_weights=false;
+
 	needtodraw=1;
 	return old;
 }
