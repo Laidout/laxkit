@@ -262,9 +262,13 @@ LinePointCache *LinePointCache::InsertAfter(LinePointCache *np)
 	LinePointCache *p=this;
 	double t=np->bt;
 
-	DBG if (t<0) cerr <<" ***\n *** t is <0!!! BAD\n ***"<<endl;
+	DBG if (t<0) {
+	DBG 	cerr <<" ***\n *** t=="<<t<<" is BAD!!!!!\n ***"<<endl;
+	DBG     LinePointCache *cc=NULL; cerr <<"--force segfault--"<<cc->bt;
+	DBG     exit(1);
+	DBG }
+
 	if (t>=1) {
-		DBG cerr <<" ***\n *** t is >=1!!! BAD\n ***"<<endl;
 
 		while (p->type!=ENGRAVE_Original && p->prev) p=p->prev;
 		LinePoint *lp=p->original;
@@ -1284,7 +1288,7 @@ int EngraverPointGroup::UpdateDashCache()
 				if (l->weight >= broken && lnext->weight >= broken) {
 					 //this point and next are too thick for dashes, so skip. We should not be 
 					 //indash if this is true
-					lc->dashon=ENGRAVE_On;
+					lc->dashon=lc->on=ENGRAVE_On;
 					l->cache->weight=l->weight;
 					l=lnext;
 					laston=ENGRAVE_On;
@@ -1517,7 +1521,8 @@ void EngraverPointGroup::EstablishDashMetrics(double s,double weight, double *ne
 
 	double dashonlen = dashlen * (dashes->dash_density + (1 - dashes->dash_density)*a);
 	double gaplen    = dashlen-dashonlen;
-	double gapstart  = dashlen * (dashes->dash_randomness*random()/RAND_MAX);
+	double gapstart  = dashlen/2 + dashonlen/2 + dashlen * (dashes->dash_randomness*random()/RAND_MAX);
+	while (gapstart>=dashlen) gapstart-=dashlen;
 
 
 	if (gapstart==0) {
@@ -1581,10 +1586,10 @@ void EngraverPointGroup::EstablishDashMetrics(double s,double weight, double *ne
 int EngraverPointGroup::ApplyBlockout(LinePoint *l)
 {
 	LinePoint *lstart=l;
-	LinePointCache *lc, *lcstart;
+	LinePointCache *lc;
 
-	lcstart=l->cache;
-	int laston=l->on;
+	//lcstart=l->cache;
+	//int laston=l->on;
 
 	do {
 		if (l->on==ENGRAVE_Off) l->cache->on=ENGRAVE_Off;
@@ -1847,7 +1852,8 @@ void EngraverPointGroup::FillCircular(EngraverFillData *data, double nweight)
 	LinePoint *sp=NULL;
 	int first=-1;
 	DBG int circle=0;
-	while (r<rr) {
+
+	while (r<rr) { //one loop per radius
 		r+=thisspacing;
 		numpoints=10+2*r*M_PI/thisspacing;
 		sp=p=NULL;
@@ -1901,14 +1907,17 @@ void EngraverPointGroup::FillCircular(EngraverFillData *data, double nweight)
 
 			} else {
 				p->next=new LinePoint(pp.x, pp.y, weight);
+				p->next->prev=p;
 				p=p->next;
 			}
 
-		}
-	}
+		} //foreach point in circle
+	} //for each radius
 
 }
 
+/*! Class to aid growing lines.
+ */
 class StarterPoint
 {
   public:
@@ -2851,6 +2860,7 @@ PathsData *EngraverFillData::MakePathsData(int whichgroup)
 	NumStack<flatvector> points2;
 
 	LinePoint *l;
+	LinePointCache *lc, *lcstart;
 	flatvector t, tp;
 	flatvector p1,p2;
 	EngraverPointGroup *group;
@@ -2865,45 +2875,53 @@ PathsData *EngraverFillData::MakePathsData(int whichgroup)
 
 		for (int c=0; c<group->lines.n; c++) {
 			l=group->lines.e[c];
+			lc=l->cache;
+			lcstart=lc;
 
 			 //make points be a list of points:
 			 //   2  4  6 
 			 // 1 *--*--*--8   gets rearranged to: 1 2 4 6 8 3 5 7
 			 //   3  5  7
 			 //points 1 and 8 are cap point references, converted to rounded ends later
-			while (l) { //one loop per connected segment
-				if (!group->PointOn(l)) { l=l->next; continue; } //skip off points
+			do { //one loop per connected segment
+				if (!group->PointOnDash(lc)) { lc=lc->next; continue; } //skip off points
 
-				 //get tangent vector at l
-				if (l->next && l->prev) tp=l->next->p - l->prev->p;
-				else if (l->next && !l->prev) tp=l->next->p - l->p;
-				else if (!l->next && l->prev) tp=l->p - l->prev->p;
-				else tp=flatpoint(1,0); //<- a line with a single point
+				 //get tangent vector at lc
+				if (lc->original!=NULL) {
+					l=lc->original;
+					if (l->next) tp=bez_visual_tangent(0, l->p,l->bez_after,l->next->bez_before,l->next->p);
+					else if (l->prev) tp=bez_visual_tangent(1, l->prev->p,l->prev->bez_after,l->bez_before,l->p);
+					else tp=flatpoint(1,0);
+
+				} else {
+					l=lc->PrevOriginal();
+					tp=bez_visual_tangent(lc->bt, l->p,l->bez_after,l->next->bez_before,l->next->p);
+				}
 
 				tp.normalize(); 
 				t=transpose(tp);
 
 				if (points.n==0) {
 					 //add a first point cap
-					points.push(l->p - l->weight/2*tp);
+					points.push(lc->p - lc->weight/2*tp);
 				}
 
 				 //add top and bottom points for l
-				p1=l->p + l->weight/2*t;
-				p2=l->p - l->weight/2*t;
+				p1=lc->p + lc->weight/2*t;
+				p2=lc->p - lc->weight/2*t;
 
 				points.push(p1);
 				points.push(p2);
 
 
-				if (!l->next || !group->PointOn(l->next) || l->on==ENGRAVE_EndPoint) {
+				if (!lc->next || !group->PointOnDash(lc->next) || lc->dashon==ENGRAVE_EndPoint) {
 					 //need to add a path!
 		
 					 //add last cap
 					tp=points.e[points.n-1]-points.e[points.n-2];
 					tp.normalize();
 					tp=transpose(tp);
-					points.push(l->p + l->weight/2*tp);
+					points.push(lc->p + lc->weight/2*tp);
 
 
 					 //convert to bez approximation
@@ -2928,8 +2946,8 @@ PathsData *EngraverFillData::MakePathsData(int whichgroup)
 					points2.flush_n();
 				}
 
-				l=l->next;
-			}
+				lc=lc->next;
+			} while (lc && lc!=lcstart);
 
 		}
 	}
@@ -2937,6 +2955,7 @@ PathsData *EngraverFillData::MakePathsData(int whichgroup)
 	 //finally, install color for this line
 	//paths->paths.e[paths->paths.n-1]->LineColor(&group->color);
 	paths->fill(&group->color);
+	paths->fillstyle->fillrule=LAXFILL_Nonzero;
 	paths->line(0,-1,-1,&group->color);
 	paths->linestyle->function=LAXOP_None;
 
@@ -3299,6 +3318,8 @@ TraceObject::~TraceObject()
  * Returns -1 for point outside of trace object.
  *
  * trace_sample_cache MUST be set up properly. TRACE_Current is just pass through for p->weight.
+ *
+ * If transform!=NULL, then transform p->p by transform before using.
  */
 double TraceObject::GetValue(LinePoint *p, double *transform)
 {
@@ -4255,7 +4276,9 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
 			return 0;
 
 		} else if (over==ENGRAVE_Group_Color) {
-            anXWindow *w=new ColorSliders(NULL,"New Color","New Color",ANXWIN_ESCAPABLE|ANXWIN_REMEMBER, 0,0,200,400,0,
+            anXWindow *w=new ColorSliders(NULL,"New Color","New Color",
+						   ANXWIN_ESCAPABLE|ANXWIN_REMEMBER|ANXWIN_OUT_CLICK_DESTROYS,
+						   0,0,200,400,0,
                            NULL,object_id,"newcolor",
                            LAX_COLOR_RGB,1./255,
                            group->color.red/65535.,
@@ -4809,6 +4832,8 @@ int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit
 		} else group->Fill(edata, 1./dp->Getmag());
 
 		edata->Sync(false);
+		edata->UpdatePositionCache();
+		group->UpdateDashCache();
 		if (continuous_trace) Trace();
 
 		needtodraw=1;

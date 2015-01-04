@@ -123,6 +123,18 @@ class LinePoint
 	//void ReCache(int num, double dashleftover, EngraverLineQuality *dashes);
 };
 
+
+//--------------------------- ValueMap -----------------------------
+class ValueMap
+{
+  public:
+	ValueMap() {}
+	virtual ~ValueMap() {}
+	virtual double GetValue(double x,double y) = 0;
+	virtual double GetValue(flatpoint p) { return GetValue(p.x,p.y); }
+};
+
+
 //---------------------------------------------- EngraverTraceSettings 
 
 class TraceObject : public Laxkit::anObject
@@ -246,14 +258,42 @@ class NormalDirectionMap : public DirectionMap
 };  
     
 
-//--------------------------- ValueMap -----------------------------
-class ValueMap
+//--------------------------- EngraverDirection -----------------------------
+class EngraverDirection : public Laxkit::anObject
 {
   public:
-	ValueMap() {}
-	virtual ~ValueMap() {}
-	virtual double GetValue(double x,double y) = 0;
-	virtual double GetValue(flatpoint p) { return GetValue(p.x,p.y); }
+	int type; //what manner of lines: linear, radial, circular
+	double type_d;   //parameter for type, for instance, an angle for spirals
+	double spacing;  //default
+	double resolution; //samples per spacing unit, default is 1
+	flatpoint position,direction; //default
+
+	DirectionMap *map;
+
+	EngraverDirection();
+	virtual ~EngraverDirection();
+
+	virtual void dump_out(FILE *f,int indent,int what,Laxkit::anObject *context);
+	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,Laxkit::anObject *context);
+	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,Laxkit::anObject *savecontext);
+};
+
+
+//--------------------------- EngraverSpacing -----------------------------
+class EngraverSpacing : public Laxkit::anObject
+{
+  public:
+	int type; //how to get spacing: use default, use grabbed current map, use custom map
+	double spacing;  //default
+
+	ValueMap *map;
+
+	EngraverSpacing();
+	virtual ~EngraverSpacing();
+
+	virtual void dump_out(FILE *f,int indent,int what,Laxkit::anObject *context);
+	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,Laxkit::anObject *context);
+	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,Laxkit::anObject *savecontext);
 };
 
 
@@ -286,6 +326,7 @@ class EngraverPointGroup : public DirectionMap
 		PGROUP_Radial,
 		PGROUP_Spiral,
 		PGROUP_Circular,
+		PGROUP_Custom,
 		PGROUP_MAX
 	};
 
