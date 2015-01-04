@@ -363,7 +363,8 @@ int ColorBox::PopupColorSelector()
 			if (win_style&COLORBOX_ALLOW_KNOCKOUT    ) extra|=COLORSLIDERS_Allow_Knockout; 
 			if (win_style&COLORBOX_ALLOW_REGISTRATION) extra|=COLORSLIDERS_Allow_Registration;
 
-			w=new ColorSliders(NULL,"New Color","New Color",ANXWIN_ESCAPABLE|ANXWIN_REMEMBER|extra, 0,0,200,400,0,
+			w=new ColorSliders(NULL,"New Color","New Color",ANXWIN_ESCAPABLE|ANXWIN_REMEMBER|ANXWIN_OUT_CLICK_DESTROYS|extra,
+							0,0,200,400,0,
 						   NULL,object_id,"newcolor",
 						   sendtype,1./255,
 						   cc[0],cc[1],cc[2],cc[3],cc[4]);
