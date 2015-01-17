@@ -205,9 +205,21 @@ int UndoManager::Redo()
 
 //--------------------------------------------- UndoManager manager ------------------------------------------
 static UndoManager *default_undo_manager=NULL;
+static int ok_to_use_undo=true;
+
+/*! Returns whether it was ok to undo before calling this.
+ * By default undo is enabled.
+ */
+bool EnableUndo(bool yes)
+{
+	bool old=ok_to_use_undo;
+	ok_to_use_undo=yes;
+	return old;
+}
 
 UndoManager *GetUndoManager()
 {
+	if (!ok_to_use_undo) return NULL;
     if (!default_undo_manager) default_undo_manager=new UndoManager;
     return default_undo_manager;
 }
@@ -216,7 +228,7 @@ UndoManager *GetUndoManager()
  */
 UndoManager *SetUndoManager(UndoManager *newmanager)
 {
-	if (default_undo_manager) delete default_undo_manager;
+	if (default_undo_manager) default_undo_manager->dec_count();
 	default_undo_manager=newmanager;
 	return default_undo_manager;
 }

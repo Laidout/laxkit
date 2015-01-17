@@ -82,6 +82,7 @@ class UndoManager : public anObject
 
 
 //--------------------------------------------- Default UndoManager ------------------------------------------
+bool EnableUndo(bool yes); //by default it is enabled
 UndoManager *GetUndoManager();
 UndoManager *SetUndoManager(UndoManager *newmanager);
 
