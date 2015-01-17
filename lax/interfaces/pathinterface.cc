@@ -639,30 +639,13 @@ int bez_reduce_approximate(NumStack<flatpoint> *list, double epsilon)
 //	cp   dstart,  sstart,send
 //}
 
-// ********************** PUT SOMEWHERE USEFUL!!!! ^^^^^^^^
+// ^^^^^^^^^^^^^^^^^^^ PUT SOMEWHERE USEFUL!!!! ^^^^^^^^
 
 
-/*! Does nothing if needtorecache==0.
- * Otherwise rebuild outlinecache and centercache. centercache is the center of the stroke,
- * inside of which is to be filled. For nonweighted, non-offset paths, this is the same as the base line.O
- *
- * \todo this could be more intelligent in having cache tied to points somehow, so that you only
- *    need to update cache for affected areas. otherwise this will bog down when point count is high
- * \todo need to handle dash patterns
+/*! Rebuild cache_angle, cache_offset, cache_width.
  */
-void Path::UpdateCache()
+void Path::UpdateWidthCache()
 {
-	if (needtorecache==0) return;
-	//if (!Weighted()) { needtorecache=0; return; } // *** always create cache, as custom joins and caps must be dealt with
-
-
-	// 1. strategy is to approximate the angle, and top and bottom offsets along the curve in an abstract
-	//    space not tied to the windings of the base path.
-	// 2. Next basically subdivide the base path a couple of times to generate sample points.
-	// 3. from the sample points,  create a top, bottom, and center path, based on the cached curves for angle and offsets found in 1.
-	// 4. Finally, connect the top and bottom paths as appropriate.
-
-
 	Coordinate *p=path->firstPoint(1);
 	if (!(p->flags&POINT_VERTEX)) { // is degenerate path: no vertices
 		DBG cerr <<"Degenerate path (shouldn't happen!)"<<endl;
@@ -670,7 +653,6 @@ void Path::UpdateCache()
 	}
 
 	bool hasangle=Angled();
-	bool hasoffset=HasOffset();
 
 	cache_angle .Reset(true); //removes all points and leaves blank
 	cache_offset.Reset(true);
@@ -678,12 +660,8 @@ void Path::UpdateCache()
 	outlinecache.flush();
 	centercache .flush();
 
-	Coordinate *p2, *start=p;
 	flatpoint wtop,wbottom;
 	flatpoint woffset,wwidth;
-	NumStack<flatpoint> topp,bottomp;
-	NumStack<flatpoint> offsetp,widthp;
-	NumStack<flatpoint> centerp; //destined for centercache, this is a path with 0 offset
 
 	double ymax=0,ymin=0;
 	double amax=0,amin=0;
@@ -772,6 +750,65 @@ void Path::UpdateCache()
 		cache_width.AddPoint(0,0);
 		cache_width.AddPoint(n,0);
 	}
+}
+
+/*! Does nothing if needtorecache==0.
+ * Otherwise rebuild outlinecache and centercache. centercache is the center of the stroke,
+ * inside of which is to be filled. For nonweighted, non-offset paths, this is the same as the base line.O
+ *
+ * \todo this could be more intelligent in having cache tied to points somehow, so that you only
+ *    need to update cache for affected areas. otherwise this will bog down when point count is high
+ * \todo need to handle dash patterns
+ */
+void Path::UpdateCache()
+{
+	if (needtorecache==0) return;
+	//if (!Weighted()) { needtorecache=0; return; } // *** always create cache, as custom joins and caps must be dealt with
+
+
+	// 1. strategy is to approximate the angle, and top and bottom offsets along the curve in an abstract
+	//    space not tied to the windings of the base path.
+	// 2. Next basically subdivide the base path a couple of times to generate sample points.
+	// 3. from the sample points,  create a top, bottom, and center path, based on the cached curves for angle and offsets found in 1.
+	// 4. Finally, connect the top and bottom paths as appropriate.
+
+
+	Coordinate *p=path->firstPoint(1);
+	if (!(p->flags&POINT_VERTEX)) { // is degenerate path: no vertices
+		DBG cerr <<"Degenerate path (shouldn't happen!)"<<endl;
+		return;
+	}
+
+	bool hasangle=Angled();
+	bool hasoffset=HasOffset();
+
+	cache_angle .Reset(true); //removes all points and leaves blank
+	cache_offset.Reset(true);
+	cache_width .Reset(true);
+	outlinecache.flush();
+	centercache .flush();
+
+	Coordinate *p2, *start=p;
+	flatpoint wtop,wbottom;
+	flatpoint woffset,wwidth;
+	NumStack<flatpoint> topp,bottomp;
+	NumStack<flatpoint> offsetp,widthp;
+	NumStack<flatpoint> centerp; //destined for centercache, this is a path with 0 offset
+
+	bool isclosed;
+
+
+
+	 //---------------------------------
+	 //
+	 //first find the number of vertex points in the line, which
+	 //is the number of bezier segments in the line, which also
+	 //is the x bounds of the width curve.
+	UpdateWidthCache();
+
+	int n=NumVertices(&isclosed); 
+	if (!isclosed) n--; //path is open, so num_segments = num_vertices - 1
+	if (n==0) return; //single point, open path == no path!
 
 
 	 //--------------------------
@@ -3855,6 +3892,9 @@ int PathInterface::Refresh()
 	bool ignoreweights= (data->style&PathsData::PATHS_Ignore_Weights) 
 				|| !(pathi_style&PATHI_Render_With_Cache);
 
+	if (pathi_style&PATHI_Hide_Path) { hasfill=false; hasstroke=false; }
+
+
 	 //set up the fill region, also used as path region for non-cache rendering....
 	if (!ignoreweights) {
 		 //this path is only used for fill. stroke path is constructed separately below
@@ -4831,9 +4871,9 @@ Coordinate *PathInterface::scan(int x,int y,int pmask, int *pathindex) // pmask=
 //		| Path to bez  |
 //		| Delete       |
 //		----------------
-Laxkit::MenuInfo *PathInterface::ContextMenu(int x,int y,int deviceid)
+Laxkit::MenuInfo *PathInterface::ContextMenu(int x,int y,int deviceid, MenuInfo *menu)
 {
-    MenuInfo *menu=new MenuInfo();
+    if (!menu) menu=new MenuInfo();
 
 	menu->AddSep(_("Join Style"));
 	int jstyle = curpath && curpath->linestyle ? curpath->linestyle->joinstyle : -1;
@@ -4906,10 +4946,7 @@ Laxkit::MenuInfo *PathInterface::ContextMenu(int x,int y,int deviceid)
 
 
 
-	if (menu->n()>0) return menu;
-
-	delete menu;
-	return NULL;
+	return menu;
 }
 
 
@@ -6053,7 +6090,7 @@ int PathInterface::MouseMove(int x,int y,unsigned int state,const LaxMouse *mous
 		PathWeightNode *weight=path->pathweights.e[drawhoveri];
 		flatpoint pp;
 
-		if (path->PointAlongPath(weight->t, 0, &pp, NULL)==0) return 0;
+		if (path->PointAlongPath(weight->t, 0, &pp, NULL)==0) return 0; //not a valid position
 
 		flatpoint vnew=transform_point_inverse(data->m(),p1) - pp;
 		flatpoint vold=transform_point_inverse(data->m(),p2) - pp;
@@ -6064,6 +6101,7 @@ int PathInterface::MouseMove(int x,int y,unsigned int state,const LaxMouse *mous
 		DBG cerr <<" ---- moving weight angle by: "<<aa<<", new angle: "<<weight->angle<<endl;
 
 		path->needtorecache=1;
+		Modified(0);
 		needtodraw=1;
 		return 0;
 
@@ -6096,6 +6134,7 @@ int PathInterface::MouseMove(int x,int y,unsigned int state,const LaxMouse *mous
 		DBG cerr <<"t:"<<t<<endl;
 		// *** data->remapWidths(drawhoveri);
 
+		Modified(0);
 		path->needtorecache=1;
 		needtodraw=1;
 		return 0;
@@ -6113,7 +6152,7 @@ int PathInterface::MouseMove(int x,int y,unsigned int state,const LaxMouse *mous
 		PathWeightNode *weight=path->pathweights.e[drawhoveri];
 		flatpoint pp,vv, vt, ptop,pbottom;
 
-		if (path->PointAlongPath(weight->t, 0, &pp, &vv)==0) return 0;
+		if (path->PointAlongPath(weight->t, 0, &pp, &vv)==0) return 0; //not a valid point
 
 		if (vv.isZero()) path->PointAlongPath(weight->t+.00001, 0, NULL,&vv);
 		vv.normalize();
@@ -6156,10 +6195,10 @@ int PathInterface::MouseMove(int x,int y,unsigned int state,const LaxMouse *mous
 			weight->width=-weight->width;
 		}
 
-		// *** TEMP while variable width not implemented:
 		data->line(weight->width);
 		path->needtorecache=1;
 
+		Modified(0);
 		needtodraw=1;
 		return 0;
 
@@ -6179,6 +6218,7 @@ int PathInterface::MouseMove(int x,int y,unsigned int state,const LaxMouse *mous
 			curdirp->p(transform_point_inverse(data->m(),screentoreal(pp.x,pp.y)));
 			needtodraw=1;
 		}
+		Modified(0);
 		return 0;
 
 	} else if (action==HOVER_DirectionSelect) {

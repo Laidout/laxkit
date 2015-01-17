@@ -98,6 +98,7 @@ class Path : public LaxFiles::DumpUtility, public Laxkit::DoubleBBox
 	Laxkit::NumStack<flatpoint> centercache; //bezier c-v-c-...
 	virtual void UpdateS(bool all, int resolution=16);
 	virtual void UpdateCache();
+	virtual void UpdateWidthCache();
 
 	Path();
 	Path(Coordinate *np,LineStyle *nls=NULL);
@@ -291,7 +292,9 @@ enum PathInterfaceSettings {
 	PATHI_Single_Weight    =(1<<9),
 	PATHI_No_Offset        =(1<<10),
 	PATHI_No_Angle_Weight  =(1<<11),
-	PATHI_Render_With_Cache=(1<<12)
+	PATHI_Render_With_Cache=(1<<12),
+	PATHI_Hide_Path        =(1<<13),
+	PATHI_Send_On_Changes  =(1<<14)
 };
 
 enum PathInterfaceActions {
@@ -371,9 +374,6 @@ class PathInterface : public anInterface
 	LineStyle *linestyle,*defaultline;
 	FillStyle *fillstyle,*defaultfill;
 
-	bool show_weights;
-	bool show_baselines;
-	bool show_outline;
 	PathWeightNode defaultweight;
 
 	 //other state
@@ -438,6 +438,9 @@ class PathInterface : public anInterface
 	unsigned long controlcolor;
 	unsigned long creationstyle;
 	unsigned long pathi_style;
+	bool show_weights;
+	bool show_baselines;
+	bool show_outline;
 	
 	Laxkit::PtrStack<Coordinate> curpoints;
 	
@@ -476,7 +479,7 @@ class PathInterface : public anInterface
 	virtual int WheelDown(int x,int y,unsigned int state,int count,const Laxkit::LaxMouse *d);
 	virtual int CharInput(unsigned int ch, const char *buffer,int len,unsigned int state,const Laxkit::LaxKeyboard *d);
 	virtual int KeyUp(unsigned int ch,unsigned int state, const Laxkit::LaxKeyboard *kb);
-	virtual Laxkit::MenuInfo *ContextMenu(int x,int y,int deviceid);
+	virtual Laxkit::MenuInfo *ContextMenu(int x,int y,int deviceid, Laxkit::MenuInfo *menu);
 	virtual int Event(const Laxkit::EventData *e_data, const char *mes);
 	
 	//virtual void RegisterOp(PathOperator *apathop);
