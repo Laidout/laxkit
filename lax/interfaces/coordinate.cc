@@ -733,6 +733,54 @@ int Coordinate::resolveToControls(flatpoint &p1, flatpoint &c1, flatpoint &c2, f
 	return 1;
 }
 
+/*! If *this is not a vertex, 1 is returned.
+ * If there is no next, 2 is returned.
+ * Else c1,c2,p2 are set to what is most appropriate to represent a bezier segment.
+ *
+ * For straight segments (no defined middle control points),
+ * c1 and c2 are set at thirds of segment connecting this and next vertex.
+ * If not straight, then if no toprev, then c1=this.
+ * If no tonext, then c2=p2.
+ *
+ */
+int Coordinate::getNext(flatpoint &c1, flatpoint &c2, Coordinate *&p2, int &isline)
+{
+	if (flags&(POINT_TOPREV|POINT_TONEXT)) return 1;
+	if (!next) return 2;
+
+	Coordinate *pn=next;
+	isline=0;
+
+	if (pn->flags&(POINT_TOPREV|POINT_TONEXT)) {
+		 //we do have control points
+		if (pn->flags&POINT_TOPREV) {
+			c1=pn->p();
+			pn=pn->next;
+		} else c1=p();
+		if (!pn) return 2; //no next vertex!
+
+		if (pn->flags&POINT_TONEXT) {
+			c2=pn->p();
+			pn=pn->next;
+			if (!pn) return 2;
+		} else { //otherwise, should be a vertex
+			c2=pn->p();
+		}
+
+		p2=pn;
+		return 0;
+
+	}
+
+	 //we do not have control points, so is just a straight line segment
+	isline=1;
+	flatpoint v=pn->p()-fp;
+	c1=fp+v/3;
+	c2=fp+v*2./3;
+	p2=pn;
+	return 0;
+}
+
 
 
 //----------------------------------- Coordinate Shape Makers ----------------------------------

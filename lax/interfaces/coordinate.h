@@ -139,6 +139,7 @@ class Coordinate
 	virtual int NumPoints(int v);
 	virtual flatpoint direction(int after);
 	virtual int resolveToControls(flatpoint &p1, flatpoint &c1, flatpoint &c2, flatpoint &p2);
+	virtual int getNext(flatpoint &c1, flatpoint &c2, Coordinate *&p2, int &isline);
 };
 
 
