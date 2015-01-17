@@ -75,6 +75,7 @@ enum EngraveControls {
 	ENGRAVE_Previous_Group,
 	ENGRAVE_Next_Group,
 	ENGRAVE_Group_Name,
+	ENGRAVE_Group_List,
 	ENGRAVE_Group_Linked,
 	ENGRAVE_Group_Active,
 	ENGRAVE_Group_Color,
@@ -125,10 +126,14 @@ enum EngraveControls {
 
 	 //--------------- Spacing  
 	ENGRAVE_Spacing,
+	ENGRAVE_Spacing_Default,
+	ENGRAVE_Spacing_Use_Map,
+	ENGRAVE_Spacing_Map_File,
 	ENGRAVE_Spacing_Same_As,
 	ENGRAVE_Spacing_Preview,
 	ENGRAVE_Spacing_Create_From_Cur,
 	ENGRAVE_Spacing_Load,
+	ENGRAVE_Spacing_Save,
 	ENGRAVE_Spacing_Paint,
 
 	 //------------tracing panel (some below in tool controls
@@ -2591,10 +2596,12 @@ SomeData *EngraverFillData::duplicate(SomeData *dup)
 			//set=0;
 		}
 		p=dynamic_cast<EngraverFillData*>(dup);
+		p->groups.flush();
 	} 
 	if (!p) {
 		p=new EngraverFillData();
 		dup=p;
+		p->groups.flush();
 	}
 
 	p->NeedToUpdateCache(0,0,-1,-1);
@@ -4125,6 +4132,7 @@ int EngraverFillInterface::LBDown(int x,int y,unsigned int state,int count,const
 				trace->identifier=new char[strlen(_("ref: %s"))+strlen(ref->thedata_id)+1];
 				sprintf(trace->identifier,_("ref: %s"),ref->thedata_id);
 
+				if (data->UsesPath()) ActivatePathInterface();
 				needtodraw=1;
 			}
 		}
@@ -4449,6 +4457,24 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
 			}
 			return 0;
 
+		} else if (over==ENGRAVE_Spacing_Default) {
+			if (dragged<10) {
+				MenuItem *item=panel.findid(over);
+				char str[20];
+				sprintf(str,"%.10g",group->spacing);
+				LineEdit *le= new LineEdit(viewport,"Default spacing",_("Default spacing"),
+											LINEEDIT_DESTROY_ON_ENTER|LINEEDIT_GRAB_ON_MAP|ANXWIN_ESCAPABLE|ANXWIN_OUT_CLICK_DESTROYS|ANXWIN_HOVER_FOCUS,
+											item->x+panelbox.minx,item->y+panelbox.miny,
+											item->w,item->h,
+											   4, //border
+											   NULL,object_id,"defaultspacing",
+											   str);
+				le->padx=le->pady=dp->textheight()*.1;
+				le->SetSelection(0,-1);
+				app->addwindow(le);
+			}
+			return 0;
+
 		} else {
 			//PostMessage("*** unimplemented!! ***"); //some are just labels...
 
@@ -4589,15 +4615,18 @@ void EngraverFillInterface::ChangeMessage(int forwhich)
 int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMouse *d)
 {
 	if (child) {
-		 //to be here, curvemapi must have taken the lbdown
 		if (child==&curvemapi) {
+			 //to be here, curvemapi must have taken the lbdown
 			child->MouseMove(x,y,state,d);
 			if (continuous_trace) Trace();
 
 			needtodraw=1;
 			return 0;
 		}
-		return 1;
+
+		 //if some other child, assume we let it just operate
+		 //except for mesh path manipulations
+		if (!(mode==EMODE_Mesh && data && data->UsesPath())) return 1;
 	}
 
 	 //smooth out hoverdir hint for EMODE_AvoidToward
@@ -4746,6 +4775,24 @@ int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit
 				needtodraw=1;
 
 				return 0;
+
+			} else if (over==ENGRAVE_Spacing_Default) {
+				int dx=x-lx;
+				if (dx>0) {
+					group->spacing*=1.+.01*dx;
+				} else {
+					if (dx<-50) dx=-50;
+					group->spacing*=1/(1-.01*dx);
+				}
+
+				edata->Sync(false);
+				edata->UpdatePositionCache();
+				group->UpdateDashCache();
+				if (continuous_trace) Trace();
+
+				needtodraw=1;
+				return 0;
+
 			}
 		}
 		return 0;
@@ -5689,6 +5736,7 @@ void EngraverFillInterface::UpdatePanelAreas()
 		  //panel.AddItem("Toggle list" ,    ENGRAVE_Toggle_Group_List);
 		  panel.AddItem("Previous Group",  ENGRAVE_Previous_Group);
 		  panel.AddItem("Next Group",      ENGRAVE_Next_Group);
+		  panel.AddItem("Group Name",      ENGRAVE_Group_List);
 		  panel.AddItem("Group Name",      ENGRAVE_Group_Name);
 		  panel.AddItem("Active",          ENGRAVE_Group_Active);
 		  panel.AddItem("Linked",          ENGRAVE_Group_Linked);
@@ -5751,10 +5799,14 @@ void EngraverFillInterface::UpdatePanelAreas()
 		  //--------------- Spacing  ---------------
 		  panel.AddItem("Spacing",    ENGRAVE_Spacing);
 		  panel.SubMenu();
+		  panel.AddItem("Default spacing",      ENGRAVE_Spacing_Default);
+		  panel.AddItem("Use spacing map",      ENGRAVE_Spacing_Use_Map);
+		  panel.AddItem("Use spacing map",      ENGRAVE_Spacing_Map_File);
 		  panel.AddItem("Spacing same as",      ENGRAVE_Spacing_Same_As);
 		  panel.AddItem("Preview",              ENGRAVE_Spacing_Preview);
 		  panel.AddItem("Create from current",  ENGRAVE_Spacing_Create_From_Cur);
 		  panel.AddItem("Load..",               ENGRAVE_Spacing_Load);
+		  panel.AddItem("Save..",               ENGRAVE_Spacing_Save);
 		  panel.AddItem("Paint..",              ENGRAVE_Spacing_Paint);
 		  panel.EndSubMenu();
 
@@ -5795,9 +5847,19 @@ void EngraverFillInterface::UpdatePanelAreas()
 
 			//< > Groupname  active linked color
 			//+  -  ^  v  ->
+			//-------------
+			//--visible - objectid----
+			//active color linked   group 1
+			//active color linked   group 2
+			//active color linked   group 3
+			//+  -  ^  v  
 
 			for (int c2=0; c2<item->GetSubmenu()->n(); c2++) {
 				item2=item->GetSubmenu()->e(c2);
+
+//				if (item2->id==ENGRAVE_Group_List) {
+//					item2->x=pad; item2->y=y; item2->w=pw-2*pad; item2->h=th*numg;
+//				------------------
 
 				//----first line
 				if (item2->id==ENGRAVE_Previous_Group) {
@@ -5837,10 +5899,10 @@ void EngraverFillInterface::UpdatePanelAreas()
 					//} else if (item2->id==ENGRAVE_Merge_Group) {
 					//	item2->x=pad+5*item->w/nww;  item2->y=y+th;  item2->w=item->w/nww, item2->h=th;
 
-			} else if (item2->id==ENGRAVE_Toggle_Group_List) {
-				item2->x=pad+4*item->w/nww;  item2->y=y+th;  item2->w=item->w/nww, item2->h=th;
+				} else if (item2->id==ENGRAVE_Toggle_Group_List) {
+					item2->x=pad+4*item->w/nww;  item2->y=y+th;  item2->w=item->w/nww, item2->h=th;
 
-			}
+				}
 			}
 			y+=2*th; 
 
@@ -5936,7 +5998,14 @@ void EngraverFillInterface::UpdatePanelAreas()
 			if (!(item->state&LAX_OPEN)) item->h=th;
 			else {
 				item->h=2*th;
-				// ...
+
+				for (int c2=0; c2<item->GetSubmenu()->n(); c2++) {
+					item2=item->GetSubmenu()->e(c2);
+
+					if (item2->id==ENGRAVE_Spacing_Default) {
+						item2->x=pad;  item2->y=y+1*th;  item2->w=pw-2*pad;  item2->h=th; 
+					}
+				}
 			}
 
 			y+=item->h;
@@ -5947,6 +6016,7 @@ void EngraverFillInterface::UpdatePanelAreas()
 			if (!(item->state&LAX_OPEN)) item->h=th;
 			else {
 				item->h=2*th;
+
 				// ...
 			}
 
@@ -6211,7 +6281,20 @@ void EngraverFillInterface::DrawPanel()
 			dp->NewFG(&fgcolor);
 			DrawPanelHeader(item->isOpen(), lasthover==item->id, item->name, ix,iy,iw,ih);
 			if (item->isOpen()) {
-				dp->textout(ix+iw/2,iy+th+(ih-th)/2, "Todo!",-1,LAX_CENTER);
+
+				for (int c2=0; c2<item->GetSubmenu()->n(); c2++) {
+					item2=item->GetSubmenu()->e(c2);
+					i2x=item2->x+panelbox.minx;
+					i2y=item2->y+panelbox.miny;
+					i2w=item2->w;
+					i2h=item2->h;
+
+					if (item2->id==ENGRAVE_Spacing_Default) {
+						DrawNumInput((group ? group->spacing : default_spacing), 0, lasthover==ENGRAVE_Spacing_Default,
+								i2x,i2y,i2w,i2h, NULL);
+
+					}
+				}
 			}
 
 		} else if (item->id==ENGRAVE_Direction) {
@@ -6646,6 +6729,12 @@ int EngraverFillInterface::ChangeMode(int newmode)
 
 	if (mode==EMODE_Trace) { continuous_trace=false; }
 
+	if (oldmode==EMODE_Mesh && data) {
+		if (data->UsesPath()) RemoveChild();
+	}
+	if (newmode==EMODE_Mesh && data && data->UsesPath()) ActivatePathInterface();
+
+
 	needtodraw=1;
 	PostMessage(ModeTip(mode));
 	return oldmode;
@@ -6658,8 +6747,11 @@ int EngraverFillInterface::Event(const Laxkit::EventData *e_data, const char *me
     	const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(e_data);
 		int i     =s->info2; //id of menu item
 		unsigned int interf=s->info4; //is curvemapi.object_id if from there
+
+		DBG cerr <<"Engraver Event: i=="<<i<<"  interf="<<interf<<endl;
 		
 		if (interf==curvemapi.object_id) return curvemapi.Event(e_data,mes);
+		if (i<PATCHA_MAX) return PatchInterface::Event(e_data,mes);
 
 		if ( i==EMODE_Mesh
 		  || i==EMODE_Thickness
@@ -6694,6 +6786,19 @@ int EngraverFillInterface::Event(const Laxkit::EventData *e_data, const char *me
 
 		return 0;
 
+	} else if (!strcmp(mes,"child")) {
+        if (data) {
+            data->UpdateFromPath();
+
+			if (always_warp && curpoints.n>0) {
+				edata->Sync(false);
+				edata->UpdatePositionCache();
+			}
+
+            needtodraw=1;
+        }
+        return 0;
+
 	} else if (!strcmp(mes,"dashlength")) {
         const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(e_data);
         if (!edata || isblank(s->str)) return 0;
@@ -6719,6 +6824,24 @@ int EngraverFillInterface::Event(const Laxkit::EventData *e_data, const char *me
 		group->UpdateDashCache();
 		needtodraw=1;
 
+ 		return 0;
+
+	} else if (!strcmp(mes,"defaultspacing")) {
+        const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(e_data);
+        if (!edata || isblank(s->str)) return 0;
+		EngraverPointGroup *group=edata->GroupFromIndex(current_group);
+
+		char *endptr=NULL;
+		double d=strtod(s->str, &endptr);
+		if (endptr==s->str || d<=0) d=.1;
+		group->spacing=d;
+
+		edata->Sync(false);
+		edata->UpdatePositionCache();
+		group->UpdateDashCache();
+		if (continuous_trace) Trace();
+
+		needtodraw=1;
  		return 0;
 
 	} else if (!strcmp(mes,"newcolor")) {
@@ -6938,19 +7061,33 @@ int EngraverFillInterface::Event(const Laxkit::EventData *e_data, const char *me
 }
 
 
-Laxkit::MenuInfo *EngraverFillInterface::ContextMenu(int x,int y,int deviceid)
+Laxkit::MenuInfo *EngraverFillInterface::ContextMenu(int x,int y,int deviceid, Laxkit::MenuInfo *menu)
 {
-	if (child) return NULL;
-
 	if (lasthover==ENGRAVE_Trace_Curve) {
-		MenuInfo *m=curvemapi.ContextMenu(x,y,deviceid);
-		for (int c=0; c<m->n(); c++) {
+		MenuInfo *m=curvemapi.ContextMenu(x,y,deviceid, menu);
+		int oldn=m->n();
+		for (int c=oldn; c<m->n(); c++) {
 			m->e(c)->info=curvemapi.object_id;
 		}
 		return m;
 	}
 
-	MenuInfo *menu=new MenuInfo();
+	if (!menu) menu=new MenuInfo();
+
+	if (mode==EMODE_Mesh) {
+		menu=PatchInterface::ContextMenu(x,y,deviceid,menu);
+//		if (child) {
+//			if (!strcmp(child->whattype(),"PathInterface")) {
+//				int oldn=(menu ? menu->n() : 0);
+//				menu=child->ContextMenu(x,y,deviceid, menu);
+//				for (int c=oldn; c<menu->n(); c++) {
+//					menu->e(c)->info=child->object_id;
+//				}
+//			}
+//		}
+	}
+
+	if (menu->n()!=0) menu->AddSep(_("Engraver"));
 
 	int category=0;
 	int where=scanEngraving(x,y, &category);
@@ -7017,7 +7154,7 @@ int EngraverFillInterface::CharInput(unsigned int ch, const char *buffer,int len
 {
 	DBG cerr <<"in EngraverFillInterface::CharInput"<<endl;
 	
-	if (child) return 1;
+	//if (child) return 1;
 
 	if (	 mode==EMODE_Thickness
 		  || mode==EMODE_Blockout

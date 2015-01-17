@@ -163,6 +163,8 @@ class TraceObject : public Laxkit::anObject
 
 	TraceObject();
 	virtual ~TraceObject();
+	virtual const char *whattype() { return "TraceObject"; }
+	
 	double GetValue(LinePoint *p, double *transform);
 	void ClearCache(bool obj_too);
 	int UpdateCache(ViewportWindow *viewport);
@@ -272,6 +274,7 @@ class EngraverDirection : public Laxkit::anObject
 
 	EngraverDirection();
 	virtual ~EngraverDirection();
+	virtual const char *whattype() { return "EngraverDirection"; }
 
 	virtual void dump_out(FILE *f,int indent,int what,Laxkit::anObject *context);
 	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,Laxkit::anObject *context);
@@ -290,6 +293,7 @@ class EngraverSpacing : public Laxkit::anObject
 
 	EngraverSpacing();
 	virtual ~EngraverSpacing();
+	virtual const char *whattype() { return "EngraverSpacing"; }
 
 	virtual void dump_out(FILE *f,int indent,int what,Laxkit::anObject *context);
 	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,Laxkit::anObject *context);
@@ -528,7 +532,7 @@ class EngraverFillInterface : public PatchInterface
 	virtual int KeyUp(unsigned int ch,unsigned int state,const Laxkit::LaxKeyboard *d);
 	virtual int Refresh();
 	virtual int Event(const Laxkit::EventData *data, const char *mes);
-	virtual Laxkit::MenuInfo *ContextMenu(int x,int y,int deviceid);
+	virtual Laxkit::MenuInfo *ContextMenu(int x,int y,int deviceid, Laxkit::MenuInfo *menu);
 
 	virtual void deletedata();
 	virtual PatchData *newPatchData(double xx,double yy,double ww,double hh,int nr,int nc,unsigned int stle);
