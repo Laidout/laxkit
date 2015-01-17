@@ -105,7 +105,7 @@ class PatchData : virtual public SomeData
 	LineStyle linestyle;
 	
 	PathsData *base_path; //optionally restrict to a weighted path
-	int pathdivisions; //number of patches to install perpendicular to path
+	int pathdivisions; //number of mesh squares to install perpendicular to path
 
 	 //cache transform matrices for faster getPoint()
 	PatchRenderContext *cache;
@@ -162,6 +162,7 @@ class PatchData : virtual public SomeData
 	virtual int EstablishPath(int preferredaxis);
 	virtual int RemovePath();
 	virtual int UpdateFromPath();
+	virtual int UsesPath();
 	 //@}
 
 	 /*! \name I/O */
@@ -183,7 +184,7 @@ class PatchData : virtual public SomeData
 //------------------------------ PatchInterface ---------------------
 
 enum PatchInterfaceActions {
-	PATCHA_RenderMode,
+	PATCHA_RenderMode=PATHIA_MAX,
 	PATCHA_RecurseInc,
 	PATCHA_RecurseDec,
 	PATCHA_SmoothEdit,
@@ -214,6 +215,13 @@ enum PatchInterfaceActions {
 	PATCHA_SelectAround,
 	PATCHA_DeleteSelected,
 	PATCHA_BaseOnPath,
+	PATCHA_DontBaseOnPath,
+
+	 //other context menu items
+	PATCHA_Full,   
+	PATCHA_Coons,  
+	PATCHA_Borders,
+	PATCHA_Linear, 
 	PATCHA_MAX
 };
 
@@ -241,6 +249,7 @@ class PatchInterface : public anInterface
 	virtual int   findNearVertical(flatpoint fp,double d,double *t_ret,int *i_ret);
 	virtual void drawControlPoints();
 	virtual void drawControlPoint(int i);
+	virtual int ActivatePathInterface();
 
 	Laxkit::ShortcutHandler *sc;
 	virtual int PerformAction(int action);
@@ -262,6 +271,7 @@ class PatchInterface : public anInterface
 	int xs,ys, rdiv,cdiv;
 	unsigned long controlcolor;
 	int showdecs, oldshowdecs; 
+	bool smoothedit;
 	char whichcontrols;
 	int recurse;
 	int rendermode;
@@ -278,7 +288,7 @@ class PatchInterface : public anInterface
 	virtual const char *whattype() { return "PatchInterface"; }
 	virtual const char *whatdatatype() { return "PatchData"; }
 	virtual anInterface *duplicate(anInterface *dup);
-	virtual Laxkit::MenuInfo *ContextMenu(int x,int y,int deviceid);
+	virtual Laxkit::MenuInfo *ContextMenu(int x,int y,int deviceid, Laxkit::MenuInfo *menu);
 	virtual int Event(const Laxkit::EventData *e_data, const char *mes);
 	virtual int UseThisObject(ObjectContext *oc);
 	virtual int UseThis(Laxkit::anObject *newdata,unsigned int mask=0);

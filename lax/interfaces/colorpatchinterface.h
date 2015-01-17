@@ -54,6 +54,7 @@ class ColorPatchData : public PatchData
 	virtual void grow(int where, double *tr);
 	virtual int subdivide(int r,double rt,int c,double ct);
 	virtual int subdivide(int xn=2,int yn=2);
+	virtual int UpdateFromPath();
 
 	virtual int WhatColor(double s,double t,Laxkit::ScreenColor *color_ret);
 	virtual int hasColorData();

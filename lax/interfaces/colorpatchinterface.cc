@@ -177,6 +177,8 @@ void ColorPatchData::dump_out(FILE *f,int indent,int what,Laxkit::anObject *cont
 		fprintf(f,"%sysize 4            #number of points in the y direction\n",spc);
 		fprintf(f,"%sstyle smooth       #when dragging controls do it so patch is still smooth\n",spc);
 		fprintf(f,"%scontrols full      #can also be linear, coons, or border\n",spc);
+		fprintf(f,"%sbase_path          #If mesh is defined along path, include this single Path object\n",spc);
+		fprintf(f,"%s  ...\n",spc);
 		fprintf(f,"%spoints \\           #all xsize*ysize points, a list by rows of: x y r g b a\n",spc);
 		fprintf(f,"%s  1.0 1.0     0 65535 65535 65535  #patch corners, not control points\n",spc);
 		fprintf(f,"%s  2.0 1.0                          #have colors assigned to them, with\n",spc);
@@ -198,6 +200,11 @@ void ColorPatchData::dump_out(FILE *f,int indent,int what,Laxkit::anObject *cont
 	else if (controls==Patch_Coons)       fprintf(f,"%scontrols coons\n",spc);
 	else if (controls==Patch_Border_Only)  fprintf(f,"%scontrols border\n",spc); 
 	else if (controls==Patch_Full_Bezier) fprintf(f,"%scontrols full\n",spc);
+
+	if (base_path) {
+		fprintf(f,"%sbase_path\n",spc);
+		base_path->dump_out(f,indent+2,what,context);
+	}
 
 	fprintf(f,"%spoints \\ #%dx%d\n",spc, xsize,ysize);
 	spc[indent]=spc[indent+1]=' '; spc[indent+2]='\0';
@@ -337,6 +344,26 @@ void ColorPatchData::SetColor(int pr,int pc,int red,int green,int blue,int alpha
 	colors[pr*(xsize/3+1)+pc].blue=blue;
 	colors[pr*(xsize/3+1)+pc].alpha=alpha;
 	touchContents();
+}
+
+int ColorPatchData::UpdateFromPath()
+{
+	int oldxsize=xsize/3+1,oldysize=ysize/3+1;
+	int status=PatchData::UpdateFromPath();
+	if (status!=0) return status;
+
+	int nxs,nys;
+	nxs=xsize/3+1;
+	nys=ysize/3+1;
+
+	if (nxs!=oldxsize || nys!=oldysize) {
+		int colorsize=nxs*nys;
+		ScreenColor *ncolors=new ScreenColor[colorsize];
+		delete[] colors;
+		colors=ncolors;
+	}
+
+	return 0;
 }
 
 //! Grow the patch off an edge.
