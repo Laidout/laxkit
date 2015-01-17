@@ -33,6 +33,7 @@ double bez_segment_length(flatpoint p1,flatpoint c1,flatpoint c2,flatpoint p2, i
 
 flatpoint bez_point(double t,flatpoint p1,flatpoint c1,flatpoint c2,flatpoint p2);
 flatpoint bez_tangent(double t,flatpoint p1,flatpoint c1,flatpoint c2,flatpoint p2);
+flatpoint bez_acceleration(double t,flatpoint p1,flatpoint c1,flatpoint c2,flatpoint p2);
 flatpoint bez_visual_tangent(double t,flatpoint p1,flatpoint c1,flatpoint c2,flatpoint p2);
 double bez_distance_to_t(double dist, flatpoint p1,flatpoint c1,flatpoint c2,flatpoint p2, int resolution);
 double bez_t_to_distance(double T, flatpoint p1,flatpoint c1,flatpoint c2,flatpoint p2, int resolution);
@@ -67,6 +68,7 @@ flatpoint *join_paths(int jointype, double miterlimit,
 			flatpoint bp1,flatpoint bc1,flatpoint bc2,flatpoint bp2,
 			int *n, flatpoint *ret);
 
+double curvature_at_t(double t, flatpoint p1,flatpoint c1,flatpoint c2,flatpoint p2);
 double end_curvature(flatpoint p1,flatpoint c1,flatpoint c2,flatpoint p2);
 
 flatpoint *bez_from_points(flatpoint *result, flatpoint *points, int numpoints);

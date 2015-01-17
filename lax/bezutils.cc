@@ -421,6 +421,21 @@ flatpoint bez_tangent(double t,flatpoint p1,flatpoint c1,flatpoint c2,flatpoint 
 					  (a1*p1.y + a2*c1.y + a3*c2.y + a4*p2.y)));
 }
 
+//! Return the numerical acceleration vector at t.
+/*! In other words, the double derivative of the path with respect to t.
+ */
+flatpoint bez_acceleration(double t,flatpoint p1,flatpoint c1,flatpoint c2,flatpoint p2)
+{
+	double a1,a2,a3,a4;
+	a1=   6 -  6*t;
+	a2= -12 + 18*t;
+	a3=   6 - 18*t;
+	a4=        6*t;
+
+	return (flatpoint((a1*p1.x + a2*c1.x + a3*c2.x + a4*p2.x),
+					  (a1*p1.y + a2*c1.y + a3*c2.y + a4*p2.y)));
+}
+
 //! Return the visual tangent at t.
 /*! If t>0 and t<1, then just return bez_tangent(). Otherwise, approximate a vector with a point just
  * off the path. If t<0 or t>1, then a null vector is returned.
@@ -447,6 +462,19 @@ flatpoint bez_visual_tangent(double t,flatpoint p1,flatpoint c1,flatpoint c2,fla
 
 	return flatpoint(0,0);
 }
+
+///*! Find a bezier subsegment within the given segment. *** better to have subdivide with t[]?
+// *
+// * points_ret must have room for 4 points: (new first point) - (control 1) - (control 2) - (new final point)
+// */
+//void bez_subsegment(double t1,double t2, flatpoint p1,flatpoint c1,flatpoint c2,flatpoint p2, flatpoint *points_ret)
+//{
+//	flatpoint pts[5];
+//	bez_subdivide(t1, p1,c1,c2,p2, pts);
+//
+//
+//	bez_subdivide(t1, p1,c1,c2,p2);
+//}
 
 //! Cut the bezier segment in two at t.
 /*! points_ret must be an already allocated array of 5 points. It is filled with the
@@ -568,6 +596,59 @@ flatpoint *bez_points(flatpoint *to_points,flatpoint *from_points,int resolution
 		DBG i++;
 	}
 	//DBG cerr <<"bez_points made "<<i<<" points, res="<<resolution<<endl;
+	return to_points;
+}
+
+/*! Return a subdivided bezier curve, at the points in T. T must be ordered in increasing order, and
+ * each t must be in [0..1].
+ *
+ * The list returned is (point at 0)-control-control-(point at T[0])-c- ... c-(point at 1).
+ * If as_tangents, then each control is a tangent vector at that t.
+ * Otherwise, they are locations of bezier control handles.
+ *
+ * If to_points==NULL, then a new flatpoint[] is returned with 3*n+4 points in it.
+ * Otherwise, to_points must be large enough to hold 3*n+4 points.
+ */
+flatpoint *bez_segments_at_samples(flatpoint *to_points,flatpoint p1,flatpoint c1,flatpoint c2,flatpoint p2,double *T,int n,int as_tangents)
+{
+	DBG cerr <<" *** finish this: bez_segments_at_samples!!"<<endl;
+
+	if (to_points==NULL) to_points=new flatpoint[3*n+4];
+	
+	double t,tt,ttt, a1,a2,a3,a4;
+	flatpoint tangent;
+	int i=0;
+
+	for (int c=0; c<n; c++) {
+		t=T[c];
+		tt=t*t;
+		ttt=tt*t;
+
+		a1=1-3*t+3*tt-  ttt;
+		a2=  3*t-6*tt+3*ttt;
+		a3=      3*tt-3*ttt;
+
+		to_points[i].x=a1*p1.x + a2*c1.x + a3*c2.x + ttt*p2.x;
+		to_points[i].y=a1*p1.y + a2*c1.y + a3*c2.y + ttt*p2.y;
+
+		a1= -3 + 6*t -3*tt;
+		a2=  3 -12*t +9*tt;
+		a3=      6*t -9*tt;
+		a4=           3*tt;
+
+		tangent.x=a1*p1.x + a2*c1.x + a3*c2.x + a4*p2.x;
+		tangent.y=a1*p1.y + a2*c1.y + a3*c2.y + a4*p2.y;
+
+		if (as_tangents) {
+			if (c<=n) to_points[i+1]=tangent;
+			if (i>0) to_points[i-1]=-tangent;
+		} else {
+			if (c<=n) to_points[i+1]=to_points[i]+tangent/3; // *** warning ! does not scale correctly
+			if (i>0) to_points[i-1]=to_points[i]-tangent/3;
+		}
+
+		i+=3;
+	}
 	return to_points;
 }
 
@@ -802,6 +883,25 @@ flatpoint *bez_ellipse(flatpoint *points, int numsegments,
 
 
 
+ /*! Based on Tavmjong Bah's very clear explanation for curvature for
+ * extrapolated joins here: http://tavmjong.free.fr/SVG/LINEJOIN/index.html).
+ *
+ * k= (v x v')/norm(v)^3
+ *
+ * If the curvature is infinite (p2-c3==0), then an arbitrarily large
+ * number is returned (in this case 1e+15), though with the correct sign;
+ */
+double curvature_at_t(double t, flatpoint p1,flatpoint c1,flatpoint c2,flatpoint p2)
+{
+	flatvector v=bez_tangent(t,p1,c1,c2,p2);
+	flatvector a=bez_acceleration(t,p1,c1,c2,p2);
+	double vn=norm(v);
+	double k=v.cross(a);
+
+	if (vn==0) { if (k>0) return 1e+15; else return -1e+15; }
+
+	return k/(vn*vn*vn);
+}
 
 /*! Return the curvature of the curve at p2. This is 1/r, where r is the radius of
  * a circle with the same curvature. The side of the line the circle is on is determined
