@@ -67,7 +67,7 @@ class PressureMapInterface : public anInterface
 	const char *Name();
 	const char *whattype() { return "PressureMapInterface"; }
 	const char *whatdatatype() { return NULL; } // is creation only
-	Laxkit::MenuInfo *ContextMenu(int x,int y,int deviceid);
+	Laxkit::MenuInfo *ContextMenu(int x,int y,int deviceid, Laxkit::MenuInfo *menu);
 	//virtual Laxkit::ShortcutHandler *GetShortcuts();
 	//virtual int PerformAction(int action);
 

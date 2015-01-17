@@ -168,9 +168,11 @@ double CurveMapInterface::f(double x)
 	return curveinfo->f_linear(x);
 }
 
-Laxkit::MenuInfo *CurveMapInterface::ContextMenu(int x,int y,int deviceid)
+Laxkit::MenuInfo *CurveMapInterface::ContextMenu(int x,int y,int deviceid, Laxkit::MenuInfo *menu)
 {
-	MenuInfo *menu=new MenuInfo(_("Curves"));
+	if (!menu) menu=new MenuInfo(_("Curves"));
+	else if (menu->n()==0) menu->AddSep(_("Curves"));
+
 	menu->AddItem(_("Invert"), CURVEM_Invert, LAX_OFF, object_id, NULL, -1, 0);
 	menu->AddItem(_("Select"), CURVEM_Select, LAX_OFF, object_id, NULL, -1, 0);
 	return menu;

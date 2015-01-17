@@ -127,7 +127,7 @@ class RectInterface : public anInterface
 	RectInterface(int nid,Laxkit::Displayer *ndp);
 	virtual ~RectInterface();
 	virtual Laxkit::ShortcutHandler *GetShortcuts();
-	virtual Laxkit::MenuInfo *ContextMenu(int x,int y,int deviceid);
+	virtual Laxkit::MenuInfo *ContextMenu(int x,int y,int deviceid, Laxkit::MenuInfo *menu);
 	virtual const char *IconId() { return ""; }
 	virtual const char *Name();
 	virtual const char *whattype() { return "RectInterface"; }

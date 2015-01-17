@@ -1044,13 +1044,18 @@ int ViewportWindow::RBDown(int x,int y,unsigned int state,int count,const Laxkit
 			 //***use the first interface that returns a menu.
 			 //   in future, this shoulde lump all that return a menu
 			 //   into one menu...
-			menu=interfaces.e[c]->ContextMenu(x,y,d->id); 
-			if (menu) {
+			//menu=interfaces.e[c]->ContextMenu(x,y,d->id, NULL); 
+			if (interfaces.e[c]->owner==NULL) menu=interfaces.e[c]->ContextMenu(x,y,d->id,NULL); 
+			if (menu && menu->n()>0) {
 				interfacemenu=c;
 				break;
 			}
 		}
 		if (!menu) return 0;
+		if (menu && menu->n()==0) {
+			delete menu;
+		}
+
 		 //***send message to self, must pass on to interface.....
 		app->rundialog(new PopupMenu("Viewport Menu","Viewport Menu", 0,
 									 0,0,0,0,1,

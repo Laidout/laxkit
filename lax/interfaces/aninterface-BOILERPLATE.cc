@@ -134,11 +134,13 @@ void BoilerPlateInterface::Clear(SomeData *d)
 { ***
 }
 
-Laxkit::MenuInfo *BoilerPlateInterface::ContextMenu(int x,int y,int deviceid)
+Laxkit::MenuInfo *BoilerPlateInterface::ContextMenu(int x,int y,int deviceid, Laxkit::MenuInfo *menu)
 { ***
 	if (no menu for x,y) return NULL;
 
-	MenuInfo *menu=new MenuInfo;
+	if (!menu) menu=new MenuInfo;
+	if (!menu->n()) menu->AddSep(_("Some new menu header"));
+
 	menu->AddItem(_("Create raw points"), FREEHAND_Raw_Path, LAX_ISTOGGLE|(istyle&FREEHAND_Raw_Path)?LAX_CHECKED:0);
 	menu->AddItem(_("Some menu item"), SOME_MENU_VALUE);
 	menu->AddSep(_("Some separator text"));

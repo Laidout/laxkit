@@ -50,7 +50,7 @@ class ObjectInterface : public RectInterface
 	virtual int PerformAction(int action);
 
 	 //undo related:
-	//Laxkit::PtrStack<SomeDataUndo> initial;
+	Laxkit::PtrStack<SomeData> initial;
 	virtual void UpdateInitial();
 	virtual int InstallTransformUndo();
 

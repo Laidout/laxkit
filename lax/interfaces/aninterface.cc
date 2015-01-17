@@ -207,13 +207,14 @@ namespace LaxInterfaces {
 /*! \fn int anInterface::UseThis(Laxkit::anObject *ndata,unsigned int mask=0) { return 0; } 
  * \brief Return 1 if interface can use that data, otherwise, the calling code must appropriately dispose of ndata.
  */
-/*! \fn Laxkit::MenuInfo *anInterface::ContextMenu(int x,int y,int deviceid)
+/*! \fn Laxkit::MenuInfo *anInterface::ContextMenu(int x,int y,int deviceid, Laxkit::MenuInfo *menu)
  * \brief Return a context sensitive menu for screen position (x,y).
  *
  * This should be a menu instance that gets deleted by the popped up menu. 
  * The interface should not refer to it again. 
  *
- * Default implementation here is to simply return NULL.
+ * Default implementation here is to simply return whatever was in menu. Usually if menu already exists,
+ * then this instance will append items to it.
  */
 /*! \fn int anInterface::Event(const Laxkit::EventData *e, const char *mes)
  * \brief Respond to events, particularly menu events from a menu created from ContextMenu().

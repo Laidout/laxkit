@@ -399,7 +399,7 @@ int ObjectInterface::PointInSelection(int x,int y)
  */
 int ObjectInterface::LBDown(int x,int y,unsigned int state,int count,const Laxkit::LaxMouse *d)
 {
-	DBG cerr << "  MAYBE in obj lbd..";
+	//DBG cerr << "  MAYBE in obj lbd..";
 	//if (buttondown.any()) return 0;
 	DBG cerr << "  in obj lbd..";
 
@@ -413,12 +413,16 @@ int ObjectInterface::LBDown(int x,int y,unsigned int state,int count,const Laxki
 
 		int curpoint;
 		buttondown.getextrainfo(d->id,LEFTBUTTON,&curpoint);
+		UpdateInitial();
 		if (curpoint!=RP_None && !(curpoint==RP_Move && !PointInSelection(x,y))) return 0;
 	}
 	
 	 //! Get rid of old data if not clicking in it.
-	if ((state&LAX_STATE_MASK)==0 && data && !PointInSelection(x,y))
-		 FreeSelection();
+	if ((state&LAX_STATE_MASK)==0 && data && !PointInSelection(x,y)) {
+		FreeSelection();
+		UpdateInitial();
+	}
+		
 
 	 // search for another viewport object to grab
 	if (viewport) {
@@ -429,6 +433,7 @@ int ObjectInterface::LBDown(int x,int y,unsigned int state,int count,const Laxki
 		if (obj) {
 			viewport->ChangeObject(oc,0);
 			AddToSelection(oc);
+			UpdateInitial();
 			buttondown.moveinfo(d->id,LEFTBUTTON,RP_Move);
 			showdecs|=SHOW_INNER_HANDLES|SHOW_OUTER_HANDLES;
 			showdecs&=~SHOW_TARGET;
@@ -470,42 +475,53 @@ int ObjectInterface::LBDown(int x,int y,unsigned int state,int count,const Laxki
 }
 
 /*! Called before doing something that is undoable.
- * Makes initial stack reflect the current state of transforms in selection
+ * Makes initial stack reflect the current state of transforms in selection.
  * Note that if GetUndoManager() returns NULL, nothing is done.
  */
 void ObjectInterface::UpdateInitial()
 {
-//	UndoManager *undomanager=GetUndoManager();
-//	if (!undomanager) return;
-//
-//	if (initial.Allocated()<selection->n()) initial.Allocate(selection->n());
-//
-//	for (int c=0; c<selection->n(); c++) {
-//		initial.e[c].m(selection->e(c)->obj->m());
-//	}
-//	initial.n=selection->n();
+	UndoManager *undomanager=GetUndoManager();
+	if (!undomanager) return;
+
+	while (initial.n<selection->n()) {
+		initial.push(new SomeData());
+	}
+
+	for (int c=0; c<selection->n(); c++) {
+		initial.e[c]->m(selection->e(c)->obj->m());
+		initial.e[c]->setbounds(selection->e(c)->obj);
+	}
 }
 
 /*! Assuming UpdateInitial() has been called before changes made, this will install
- * undo objects to GetUndoManager(). Does nothing in GetUndoManager() returns NULL.
+ * undo objects to GetUndoManager(). Does nothing if GetUndoManager() returns NULL.
+ *
+ * Also calls UpdateInitial() to sync up with current state.
+ *
+ * Returns the number of undo items added.
  */
 int ObjectInterface::InstallTransformUndo()
 {
-	return 0;
-//	UndoManager *undomanager=GetUndoManager();
-//	if (!undomanager) return 0;
-//
-//	for (int c=0; c<selection->n(); c++) {
-//		undomanager->AddUndo(new SomeDataUndo(selection->e(c)->obj,
-//									&initial.e[c],NULL, selection->e(c)->obj,NULL,
-//									SomeDataUndo::SDUNDO_Transform, (c==0 ? false : true)));
-//	}
-//
-//	return selection->n();
+	UndoManager *undomanager=GetUndoManager();
+	if (!undomanager) return 0;
+
+	if (initial.n != selection->n()) {
+		DBG cerr << " *** Undo not initialized in ObjectInterface!!"<<endl;
+	}
+
+	for (int c=0; c<selection->n(); c++) {
+		undomanager->AddUndo(new SomeDataUndo(selection->e(c)->obj,
+									initial.e[c],NULL,
+									selection->e(c)->obj,NULL,
+									SomeDataUndo::SDUNDO_Transform,
+									(c==0 ? false : true)));
+	}
+
+	UpdateInitial();
+	return selection->n();
 }
 
-/*! *** drag out and capture objs, add to selection or 
- * take from selection on button up.
+/*! \todo should be able to add or subtract from selection with the drag out
  */
 int ObjectInterface::LBUp(int x,int y,unsigned int state,const Laxkit::LaxMouse *d)
 {
@@ -523,22 +539,27 @@ int ObjectInterface::LBUp(int x,int y,unsigned int state,const Laxkit::LaxMouse 
 		return 0;
 	}
 	
+	int status=RectInterface::LBUp(x,y,state,d);
+
 	if (dragged && selection->n() && viewport) {
 		for (int c=0; c<selection->n(); c++) {
 			viewport->ObjectMoved(selection->e(c),1);
 		}
-		//InstallTransformUndo();
+		InstallTransformUndo();
 
 		syncFromData(1);
 	}
 
-	return RectInterface::LBUp(x,y,state,d);
+	return status;
 }
 
 //! From the bounds in data, make a new selection of what is inside.
 /*! Viewports should define their own regional searching function to
  * grab more than one object at a time. This currently only flushes data,
  * and nothing else.
+ *
+ * Subclasses must call UpdateInitial() after changing the selection, if
+ * you want undo to work.
  *
  * Return value is the number of new things added to the selection.
  *

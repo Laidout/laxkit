@@ -128,9 +128,9 @@ void PressureMapInterface::Clear(SomeData *d)
 	points.flush();
 }
 
-Laxkit::MenuInfo *PressureMapInterface::ContextMenu(int x,int y,int deviceid)
+Laxkit::MenuInfo *PressureMapInterface::ContextMenu(int x,int y,int deviceid, Laxkit::MenuInfo *menu)
 {
-	return NULL;
+	return menu;
 	//MenuInfo *menu=new MenuInfo;
 	//menu->AddItem(_("Create raw points"), FREEHAND_Raw_Path, (freehand_style&FREEHAND_Raw_Path)?LAX_CHECKED:0);
 	//menu->AddItem(_("Create simplified polyline"), FREEHAND_Poly_Path, (freehand_style&FREEHAND_Poly_Path)?LAX_CHECKED:0);

@@ -49,7 +49,7 @@ class BoilerPlateInterface : public anInterface
 	const char *Name();
 	const char *whattype() { return "BoilerPlateInterface"; }
 	const char *whatdatatype();
-	Laxkit::MenuInfo *ContextMenu(int x,int y,int deviceid);
+	Laxkit::MenuInfo *ContextMenu(int x,int y,int deviceid, Laxkit::MenuInfo *menu);
 	virtual int Event(const Laxkit::EventData *data, const char *mes);
 	virtual Laxkit::ShortcutHandler *GetShortcuts();
 	virtual int PerformAction(int action);

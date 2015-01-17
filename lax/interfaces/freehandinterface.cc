@@ -153,11 +153,12 @@ void FreehandInterface::Clear(SomeData *d)
 	deviceids.flush();
 }
 
-Laxkit::MenuInfo *FreehandInterface::ContextMenu(int x,int y,int deviceid)
+Laxkit::MenuInfo *FreehandInterface::ContextMenu(int x,int y,int deviceid, Laxkit::MenuInfo *menu)
 {
 	if (freehand_style&FREEHAND_Lock_Type) return NULL;
 
-	MenuInfo *menu=new MenuInfo;
+	if (!menu) menu=new MenuInfo;
+	else menu->AddSep(_("Freehand"));
 
 	menu->AddItem(_("Create raw points"),               FREEHAND_Raw_Path ,    LAX_ISTOGGLE|((freehand_style&FREEHAND_Raw_Path )   ?LAX_CHECKED:0), 0);
 	menu->AddItem(_("Create simplified polyline"),      FREEHAND_Poly_Path ,   LAX_ISTOGGLE|((freehand_style&FREEHAND_Poly_Path )  ?LAX_CHECKED:0), 0);

@@ -137,8 +137,6 @@ void RectData::centercenter()
  * This interface will modify only the matrix of its data and not the bounds,
  * unless it is a RectData, in which case the attributes of that are fair game.
  * 
- * \todo ********* there appears to be a bit of memory corruption somewhere. 
- *   frequently, data->griddivisions gets a crazy value...
  * \todo *** update docs here!
  * \todo *** differentiate move preserve aspect, and move with aspect==1 (as square)
  *   ***draw only whats necessary
@@ -396,8 +394,8 @@ int RectInterface::Refresh()
 
 	 // draw gridlines
 	//dp->NewFG(data->linestyle.color);
-	if (data && data->griddivisions>0 && data->griddivisions<50) {
-		if (data) cout << "*******possible memory corruption: rectdata->griddivisions == "<<data->griddivisions<<endl;
+//	if (data && data->griddivisions>0 && data->griddivisions<50) {
+//		if (data) cout << "*******possible memory corruption: rectdata->griddivisions == "<<data->griddivisions<<endl;
 //		dp->NewFG(controlcolor);
 //		double x,y,w,h;
 //		w=somedata->maxx-somedata->minx;
@@ -413,7 +411,7 @@ int RectInterface::Refresh()
 //				dp->drawrline(flatpoint(somedata->minx,somedata->miny+y),flatpoint(somedata->minx+x,somedata->miny+y));
 //				DBG cerr <<"y: "<<y<<endl;
 //			}
-	}
+//	}
 
 	 // draw control points;
 	if (showdecs && !(style&RECT_HIDE_CONTROLS)) { 
@@ -685,9 +683,9 @@ flatpoint RectInterface::getpoint(int c,int trans)
 	return p;
 }
 
-Laxkit::MenuInfo *RectInterface::ContextMenu(int x,int y,int deviceid)
+Laxkit::MenuInfo *RectInterface::ContextMenu(int x,int y,int deviceid, Laxkit::MenuInfo *menu)
 {
-	return NULL;
+	return menu;
 	//----------
 	//MenuInfo *menu=new MenuInfo;
 	//menu->AddItem(_("Reset")   ,RECT_Reset);

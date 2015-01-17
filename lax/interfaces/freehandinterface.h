@@ -101,7 +101,7 @@ class FreehandInterface : public anInterface
 	virtual const char *Name();
 	virtual const char *whattype() { return "FreehandInterface"; }
 	virtual const char *whatdatatype() { return NULL; } // is creation only
-	virtual Laxkit::MenuInfo *ContextMenu(int x,int y,int deviceid);
+	virtual Laxkit::MenuInfo *ContextMenu(int x,int y,int deviceid, Laxkit::MenuInfo *menu);
 	virtual int Event(const Laxkit::EventData *e,const char *mes);
 	virtual Laxkit::ShortcutHandler *GetShortcuts();
 	virtual int PerformAction(int action);

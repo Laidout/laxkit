@@ -118,7 +118,7 @@ class anInterface : virtual public Laxkit::EventReceiver,
 	virtual void PostMessage(const char *message);
 	virtual Laxkit::UndoManager *GetUndoManager();
 
-	virtual Laxkit::MenuInfo *ContextMenu(int x,int y,int deviceid) { return NULL; }
+	virtual Laxkit::MenuInfo *ContextMenu(int x,int y,int deviceid, Laxkit::MenuInfo *menu) { return menu; }
 
 	virtual int UseThis(int id,int ndata) { return 0; }
 	virtual int UseThis(Laxkit::anObject *ndata,unsigned int mask=0) { return 0; } 
