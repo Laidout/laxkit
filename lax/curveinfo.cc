@@ -488,7 +488,25 @@ void CurveInfo::SetYBounds(double nymin, double nymax, const char *nylabel, bool
 	fauxpoints.flush();
 }
 
-/*! This is for convenience to call f_bezier(), f_autosmooth(), or f_linear(),
+/*! Return a normalized tangent vector of the curve at x.
+ *
+ * As a shortcut, just returns a vector normalized from (f(x+.00001)-f(x)).
+ */
+flatpoint CurveInfo::tangent(double x)
+{
+	double off=(xmax-xmin)/1e+3;
+	if (xmax>xmin) {
+		if (x==xmax) x-=off;
+	} else if (x==xmin) x-=off;
+
+	flatpoint v=flatpoint(off, f(x)-f(x-off));
+	v.normalize();
+	return v;
+}
+
+/*! Return value of the curve at x.
+ *
+ * As implemented here, this function merely calls f_bezier(), f_autosmooth(), or f_linear(),
  * depending on the value of curvetype.
  */
 double CurveInfo::f(double x)
