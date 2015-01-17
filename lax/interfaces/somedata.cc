@@ -547,6 +547,7 @@ const char *SomeDataUndo::Description()
 	else if (type==SomeDataUndo::SDUNDO_Rotation ) return _("Rotation");
 	else if (type==SomeDataUndo::SDUNDO_Scale    ) return _("Scale");
 	else if (type==SomeDataUndo::SDUNDO_Shear    ) return _("Shear");
+	else if (type==SomeDataUndo::SDUNDO_Flip     ) return _("Flip");
 
 	return NULL;
 }
@@ -560,6 +561,7 @@ int SomeData::Undo(UndoData *data)
 	if (u->type==SomeDataUndo::SDUNDO_Transform) set(u->m_orig);
 
 	set(u->m_orig);
+	touchContents();
 	return 0;
 }
 
@@ -573,6 +575,7 @@ int SomeData::Redo(UndoData *data)
 
 	 //else apply transform
 	Multiply(u->m); // *** needs testing
+	touchContents();
 	return 0;
 }
 

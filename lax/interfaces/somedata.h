@@ -126,6 +126,7 @@ class SomeDataUndo : public Laxkit::UndoData
 		SDUNDO_Rotation =(1<<3),
 		SDUNDO_Scale    =(1<<4),
 		SDUNDO_Shear    =(1<<5),
+		SDUNDO_Flip     =(1<<6),
 		SDUNDO_MAX
 	};
 
