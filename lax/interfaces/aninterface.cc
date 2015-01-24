@@ -23,6 +23,7 @@
 
 #include <lax/interfaces/somedatafactory.h>
 #include <lax/interfaces/aninterface.h>
+//#include <lax/interfaces/undo.h>
 #include <lax/interfaces/interfaceundo.h>
 #include <lax/strmanip.h>
 
@@ -136,7 +137,7 @@ namespace LaxInterfaces {
  * Interfaces generally are all able to search for objects of types they may or may not be able
  * to use. After a search, they call viewport->NewData(data,context_returned_by_search_function).
  */
-/*! \var unsigned long anInterface::style
+/*! \var unsigned long anInterface::interface_style
  * \brief Style flags for the interface. Meaning depends on the interface.
  */
 /*! \var unsigned long anInterface::interface_type
@@ -163,6 +164,9 @@ namespace LaxInterfaces {
  * a BezPathOperator (the child) that controls things that are really held by
  * PathInterface (the owner). Or an EllipseInterface (owner) that uses the controls provided
  * by the RectInterface (child).
+ *
+ * Usually, when sending a message to owner, it will use owner_message, or whattype() if
+ * owner_message is null.
  *
  * When interfaces are pushed and popped of a ViewportWindow's stack, complete threads
  * of interfaces are pushed on and off, not simply individual ones.
@@ -254,12 +258,13 @@ namespace LaxInterfaces {
 anInterface::anInterface()
 { 
 	child=owner=NULL; 
+	owner_message=NULL;
 	app=anXApp::app; 
 	curwindow=NULL; 
 	name=NULL; 
 	primary=0;
 	id=getUniqueNumber();
-	style=0;
+	interface_style=0;
 	interface_type=INTERFACE_Tool;
 	needtodraw=0; 
 }
@@ -272,6 +277,7 @@ anInterface::anInterface(anInterface *nowner,int nid)
 {
 	child=NULL;
 	owner=nowner;
+	owner_message=NULL;
 	app=anXApp::app; 
 	if (nowner) {
 		curwindow=nowner->curwindow;
@@ -280,7 +286,7 @@ anInterface::anInterface(anInterface *nowner,int nid)
 	}
 	id=nid;
 	name=NULL;
-	style=0;
+	interface_style=0;
 	interface_type=INTERFACE_Tool;
 	needtodraw=0; 
 }
@@ -289,11 +295,12 @@ anInterface::anInterface(anInterface *nowner,int nid)
 anInterface::anInterface(int nid)
 {
 	child=owner=NULL;
+	owner_message=NULL;
 	app=anXApp::app; 
 	id=nid;
 	curwindow=NULL;
 	name=NULL;
-	style=0;
+	interface_style=0;
 	interface_type=INTERFACE_Tool;
 	needtodraw=0; 
 }
@@ -301,11 +308,12 @@ anInterface::anInterface(int nid)
 anInterface::anInterface(int nid,Displayer *ndp)
 { 
 	child=owner=NULL;
+	owner_message=NULL;
 	app=anXApp::app; 
 	id=nid;
 	curwindow=NULL;
 	name=NULL;
-	style=0;
+	interface_style=0;
 	interface_type=INTERFACE_Tool;
 	needtodraw=0; 
 
@@ -318,6 +326,7 @@ anInterface::anInterface(anInterface *nowner,int nid,Displayer *ndp)
 {
 	child=NULL;
 	owner=nowner;
+	owner_message=NULL;
 	app=anXApp::app; 
 	if (nowner) {
 		curwindow=nowner->curwindow;
@@ -326,7 +335,7 @@ anInterface::anInterface(anInterface *nowner,int nid,Displayer *ndp)
 	}
 	id=nid;
 	name=NULL;
-	style=0;
+	interface_style=0;
 	interface_type=INTERFACE_Tool;
 	needtodraw=0; 
 
@@ -338,6 +347,7 @@ anInterface::anInterface(anInterface *nowner,int nid,Displayer *ndp)
 anInterface::~anInterface()
 { 
 	if (child) child->dec_count();
+	delete[] owner_message;
 	DBG cerr<<"--- anInterface "<<whattype()<<","<<" destructor"<<endl; 
 }
 
@@ -345,7 +355,7 @@ anInterface::~anInterface()
 //! Return or modify to almost duplicate instance.
 /*! If dup==NULL, then return NULL. Otherwise modify the existing dup.
  *
- * Copies app, name, style, id. The rest are initialized to NULL.
+ * Copies app, name, interface_style, id. The rest are initialized to NULL.
  *
  * Normally, subclassed anInterface objects will return a new anInterface if dup=NULL,
  * or apply changes to the given dup object, assuming it is of the correct class.
@@ -374,7 +384,7 @@ anInterface *anInterface::duplicate(anInterface *dup)
 	if (!dup) return NULL; //dup=new anInterface();<- wrong! anInterface is abstract class..
 	makestr(dup->name,name);
 	dup->id=id;
-	dup->style=style;
+	dup->interface_style=interface_style;
 	return dup;
 }
 
@@ -569,7 +579,8 @@ void anInterface::dump_in_atts(Attribute *att,int flag,Laxkit::anObject *loadcon
  */
 Laxkit::UndoManager *anInterface::GetUndoManager()
 {
-	return GetInterfaceUndoManager();
+	return Laxkit::GetUndoManager();
+	//return GetInterfaceUndoManager();
 }
 
 

@@ -33,13 +33,19 @@
 
 namespace LaxInterfaces {
 
-//for anInterface::interface_type:
-enum anInterFaceStyles {
+//! for anInterface::interface_type:
+enum anInterFaceTypes {
 	INTERFACE_Unknown=0,
 	INTERFACE_Overlay,
 	INTERFACE_Tool,
 	INTERFACE_Child,
 	INTERFACE_MAX
+};
+
+//! for anInterface::interface_style:
+enum anInterFaceStyles {
+	INTERFACE_DeferChildInput = (1<<0),
+	INTERFACE_BITMAX=1
 };
 
 class ViewportWindow;
@@ -60,12 +66,13 @@ class anInterface : virtual public Laxkit::EventReceiver,
   public:
 	char *name;
 	int id;
-	unsigned long style;
+	unsigned long interface_style;
 	int interface_type;
 
 	Laxkit::anXApp *app;
 	Laxkit::anXWindow *curwindow;
 	anInterface *owner,*child;
+	char *owner_message;
 
 	int primary;
 	int needtodraw; 
