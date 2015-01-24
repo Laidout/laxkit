@@ -911,7 +911,6 @@ GradientInterface::GradientInterface(int nid,Displayer *ndp) : anInterface(nid,n
 	goc=NULL;
 	showdecs=3;
 	curpoint=GP_Nothing;
-	style=0;
 	creationstyle=0;
 	createv=flatpoint(20,0);
 	creationstyle=GRADIENT_LINEAR;

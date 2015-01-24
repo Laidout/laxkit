@@ -77,7 +77,9 @@ class ImageInterface : public anInterface
 	virtual void runImageDialog();
 	Laxkit::ShortcutHandler *sc;
 	virtual int PerformAction(int action);
+
  public:
+	unsigned long style;
 	unsigned int controlcolor;
 	int showdecs;
 	char showfile;

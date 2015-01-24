@@ -72,6 +72,7 @@ class CurveMapInterface : public anInterface
 		XUnits=(1<<5)
 	};
 
+	unsigned int style;
 	int padouter, padinner;
 	unsigned int curve_color;
 	unsigned int graph_color;

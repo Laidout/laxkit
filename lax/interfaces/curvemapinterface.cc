@@ -65,6 +65,7 @@ CurveMapInterface::CurveMapInterface(int nid, Laxkit::Displayer *ndp,
 	smallnumbers=app->fontmanager->MakeFont("Sans","",app->defaultlaxfont->textheight()/2,0);
 	DBG smallnumbers->suppress_debug=1;
 
+	style=0;
 	editable=0;
 	always_refresh_lookup=1;
 	highlighteditable=0;
