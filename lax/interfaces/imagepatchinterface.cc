@@ -249,22 +249,28 @@ void ImagePatchData::dump_in_atts(Attribute *att,int flag,Laxkit::anObject *cont
 	if (!att) return;
 	char *name,*value;
 	int c;
+
 	PatchData::dump_in_atts(att,flag,context);
+
 	for (c=0; c<att->attributes.n; c++) {
 		name= att->attributes.e[c]->name;
 		value=att->attributes.e[c]->value;
+
 		if (!strcmp(name,"filename")) {
 			DumpContext *dump=dynamic_cast<DumpContext *>(context);
 			if (value && *value!='/' && dump && dump->basedir) {
 				if (filename) delete[] filename;
 				filename=full_path_for_file(value,dump->basedir);
 			} else makestr(filename,value);
+
 		} else if (!strcmp(name,"iwidth")) {
 			IntAttribute(value,&iwidth);
+
 		} else if (!strcmp(name,"iheight")) {
 			IntAttribute(value,&iheight);
 		}
 	}
+
 	SetImage(filename);
 	FindBBox();
 }
