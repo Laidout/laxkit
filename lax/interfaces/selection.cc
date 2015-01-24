@@ -168,6 +168,17 @@ int Selection::e_info(int i)
 	return objects.e[i]->info;
 }
 
+/*! Return the index corresponding to object, or -1 if object not in selection.
+ */
+int Selection::ObjectIndex(SomeData *object)
+{
+	for (int c=0; c<n(); c++) {
+		if (object==e(c)->obj) return c;
+	}
+
+	return -1;
+}
+
 // *** complicated because currently objectcontext needs viewport to retrieve transforms
 //void Selection::FindBBox()
 //{

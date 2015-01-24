@@ -34,6 +34,7 @@ namespace LaxInterfaces {
 
 
 class ObjectContext; //forward declaration
+class SomeData;
 
 
 //--------------------------- SelectedObject -------------------------
@@ -74,6 +75,7 @@ class Selection : public Laxkit::anObject, public Laxkit::DoubleBBox
 	virtual LaxInterfaces::ObjectContext *CurrentObject();
 	virtual int CurrentObjectIndex() { return currentobject; }
 	virtual void CurrentObject(int which);
+	virtual int ObjectIndex(SomeData *object);
 
 	virtual int n() { return objects.n; }
 	virtual LaxInterfaces::ObjectContext *e(int i);
