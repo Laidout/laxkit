@@ -187,7 +187,9 @@ double bez_closest_point(flatpoint p, flatpoint p1,flatpoint c1,flatpoint c2,fla
 		}
 
 		start=at_t-dt;
+		if (start<0) start=0;
 		end  =at_t+dt;
+		if (end>1) end=1;
 		dt=(end-start)/maxpoints;
 	}
 
