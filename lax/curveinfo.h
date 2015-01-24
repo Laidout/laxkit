@@ -67,6 +67,7 @@ class CurveInfo : public anObject, public LaxFiles::DumpUtility
 	CurveInfo &operator=(CurveInfo &l);
 	virtual void SetXBounds(double nxmin, double nxmax, const char *nxlabel, bool remap);
 	virtual void SetYBounds(double nymin, double nymax, const char *nylabel, bool remap);
+	virtual void ComputeYBounds(double buffer);
 	virtual void SetTitle(const char *ntitle);
 	virtual flatpoint tangent(double x);
 	virtual double f(double x);
@@ -75,6 +76,7 @@ class CurveInfo : public anObject, public LaxFiles::DumpUtility
 	virtual double f_bezier(double x);
 	virtual flatpoint MapUnitPoint(flatpoint p);
 	virtual flatpoint MapToUnitPoint(flatpoint p);
+	virtual int AddRawYPoint(double x,double y);
 	virtual int AddPoint(double x,double y);
 	virtual int MovePoint(int index, double x,double y);
 	virtual void SetSinusoidal(int samples);

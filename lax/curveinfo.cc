@@ -417,6 +417,30 @@ int CurveInfo::AddPoint(double x,double y)
 	return 0;
 }
 
+/*! x must be in current [xmin,xmax] range, but y can be anything. y is not clamped to anything.
+ * This is for when you add a bunch of points, then afterwards call ComputeYBounds().
+ */
+int CurveInfo::AddRawYPoint(double x,double y)
+{
+	flatpoint p((x-xmin)/(xmax-xmin), y);
+	if (p.x<0) p.x=0;
+	else if (p.x>1) p.x=1;
+
+	for (int c=0; c<points.n; c++) {
+		if (p.x<points.e[c].x) {
+			points.push(p,c);
+			return 0;
+		}
+		if (p.x==points.e[c].x) {
+			points.e[c].y=p.y;
+			return 1;
+		}
+	}
+	//if (p.x<1) points.push(p,points.n-1); //push just before final point
+	points.push(p,points.n); //push at end
+	return 0;
+}
+
 /*! Adjust existing point.
  * x value is clamped to adjacent bounds.
  *
@@ -488,18 +512,46 @@ void CurveInfo::SetYBounds(double nymin, double nymax, const char *nylabel, bool
 	fauxpoints.flush();
 }
 
+/*! Rewrap y bounds to enclose existing y points. The y portions can be anything to start.
+ * After bounds found, the y parts are remapped to fit in the computed bounds.
+ *
+ * buffer is a percentage (range 0..1) of total span to put above and below the true max and min y.
+ */
+void CurveInfo::ComputeYBounds(double buffer)
+{
+	DoubleBBox box;
+	flatpoint p;
+
+	for (int c=0; c<points.n; c++) {
+		p=MapUnitPoint(points.e[c]);
+		box.addtobounds(p);
+	}
+	buffer *= box.maxy-box.miny;
+	box.miny-=buffer;
+	box.maxy+=buffer;
+
+	ymin=0;
+	ymax=1;
+	SetYBounds(box.miny,box.maxy, NULL, true);
+}
+
+
 /*! Return a normalized tangent vector of the curve at x.
  *
- * As a shortcut, just returns a vector normalized from (f(x+.00001)-f(x)).
+ * As a shortcut, just returns a vector normalized from (f(x+.001)-f(x)).
  */
 flatpoint CurveInfo::tangent(double x)
 {
-	double off=(xmax-xmin)/1e+3;
+	double off=fabs(xmax-xmin)/1e+3;
+	flatpoint v(off,0);
 	if (xmax>xmin) {
-		if (x==xmax) x-=off;
-	} else if (x==xmin) x-=off;
+		if (x+off>xmax) x=xmax-off;
+		v.y=f(x+off)-f(x);
+	} else {
+		if (x+off>xmin) x=xmin-off;
+		v.y=f(x+off)-f(x);
+	}
 
-	flatpoint v=flatpoint(off, f(x)-f(x-off));
 	v.normalize();
 	return v;
 }
@@ -577,8 +629,9 @@ double CurveInfo::f_autosmooth(double x)
 	flatpoint p;
 
 	 //check easy points first to avoid false misses
+	double epsilon=1e-10;
 	for (int c=0; c<fauxpoints.n; c++) {
-		if (fauxpoints.e[c].x==x) {
+		if (fabs(fauxpoints.e[c].x-x) < epsilon) {
 			//DBG cerr <<"*** found match for x:"<<x<<" -> "<<points.e[c].y<<endl;
 			return fauxpoints.e[c].y*(ymax-ymin) + ymin;
 		}
