@@ -262,6 +262,22 @@ int MenuItem::hasSub() const
 int MenuItem::isOpen() const
 { return state&MENU_OPEN; }
 
+int MenuItem::Open()
+{
+	int old=state&LAX_OPEN;
+	state|=LAX_OPEN;
+	return old;
+}
+
+/*! Return old state.
+ */
+int MenuItem::Close()
+{
+	int old=state&LAX_OPEN;
+	state&=~LAX_OPEN;
+	return old;
+}
+
 //! Return 1 for definitely hidden. 2 for hidden, except a child is a search hit.
 int MenuItem::hidden()
 {

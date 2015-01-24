@@ -112,6 +112,8 @@ class MenuItem : public anObject
 	virtual int isSelected(int oron=1);
 	virtual int hasSub() const;
 	virtual int isOpen() const;
+	virtual int Open();
+	virtual int Close();
 	virtual int hidden();
 	virtual int Hide(int yes);
 	virtual int hasParent(MenuInfo *menuinfo);
