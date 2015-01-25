@@ -1310,7 +1310,8 @@ flatpoint *join_paths(int jointype, double miterlimit,
  */
 flatpoint *bez_from_points(flatpoint *result, flatpoint *points, int numpoints)
 {
-	return bez_from_points(result, points, 0,numpoints, points[numpoints-1].info&LINE_Closed);
+	//return bez_from_points(result, points, 0,numpoints, points[numpoints-1].info&LINE_Closed);
+	return bez_from_points(result, points, numpoints, 0,numpoints);
 }
 
 
