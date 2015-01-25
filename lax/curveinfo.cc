@@ -526,6 +526,9 @@ void CurveInfo::ComputeYBounds(double buffer)
 		p=MapUnitPoint(points.e[c]);
 		box.addtobounds(p);
 	}
+	if (fabs(box.maxy-box.miny)<1.e-10) {
+		box.maxy+=1;
+	}
 	buffer *= box.maxy-box.miny;
 	box.miny-=buffer;
 	box.maxy+=buffer;
