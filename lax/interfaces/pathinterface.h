@@ -90,12 +90,16 @@ class Path : public LaxFiles::DumpUtility, public Laxkit::DoubleBBox
 	bool absoluteangle; //1==absolute, or 0==relative to direction to path, wich angle==0 do default
 
 	int needtorecache;
+	int cache_samples;
+	int cache_types;
 	//std::time_t cache_mod_time;
 	Laxkit::CurveInfo cache_offset;
 	Laxkit::CurveInfo cache_width;
 	Laxkit::CurveInfo cache_angle;
 	Laxkit::NumStack<flatpoint> outlinecache; //bezier c-v-c-...
 	Laxkit::NumStack<flatpoint> centercache; //bezier c-v-c-...
+	Laxkit::NumStack<flatpoint> cache_top; //bezier c-v-c-...
+	Laxkit::NumStack<flatpoint> cache_bottom; //bezier c-v-c-...
 	virtual void UpdateS(bool all, int resolution=16);
 	virtual void UpdateCache();
 	virtual void UpdateWidthCache();

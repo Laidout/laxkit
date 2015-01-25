@@ -121,18 +121,6 @@ SomeData *ColorPatchData::duplicate(SomeData *dup)
 	return PatchData::duplicate(dup);
 }
 
-/*! Call PatchData::CopyMeshPoints(patch) and update color array to be proper size.
- */
-void ColorPatchData::CopyMeshPoints(PatchData *patch)
-{
-	PatchData::CopyMeshPoints(patch);
-
-	DBG cerr << " *** warning! due to lazy programmers, color data is lost during ColorPatchData::CopyMeshPoints()"<<endl;
-
-	if (colors) delete[] colors;
-	colors=new ScreenColor[(xsize/3+1)*(ysize/3+1)];
-}
-
 //! Set in rect xx,yy,ww,hh with nr rows and nc columns. Removes old info.
 /*! Afterward the colors can be anything. Might want to code preserving what is possible
  * to preserve...
@@ -231,20 +219,38 @@ void ColorPatchData::dump_in_atts(Attribute *att,int flag,Laxkit::anObject *cont
 	if (!att) return;
 	char *name,*value;
 	int p=-1,c;
+
 	SomeData::dump_in_atts(att,flag,context);
+
 	for (c=0; c<att->attributes.n; c++) {
 		name= att->attributes.e[c]->name;
 		value=att->attributes.e[c]->value;
+
 		if (!strcmp(name,"griddivisions")) {
 			IntAttribute(value,&griddivisions);
+
 		} else if (!strcmp(name,"xsize")) {
 			IntAttribute(value,&xsize);
+
 		} else if (!strcmp(name,"ysize")) {
 			IntAttribute(value,&ysize);
+
 		} else if (!strcmp(name,"points")) {
 			p=c;
+
+		} else if (!strcmp(name,"controls")) {
+			if (!strcmp(value,"full"))        controls=Patch_Full_Bezier;
+			else if (!strcmp(value,"linear")) controls=Patch_Linear;
+			else if (!strcmp(value,"coons"))  controls=Patch_Coons;
+			else if (!strcmp(value,"border")) controls=Patch_Border_Only;
+
+		} else if (!strcmp(name,"base_path")) {
+			if (!base_path) base_path=new PathsData();
+			else base_path->clear();
+			base_path->dump_in_atts(att->attributes.e[c], flag, context);
 		}
 	}
+
 	 // read in points after all atts initially parsed, so as to retrieve xsize and ysize.
 	if (p>-1) {
 		double d[6];
@@ -293,10 +299,15 @@ void ColorPatchData::dump_in_atts(Attribute *att,int flag,Laxkit::anObject *cont
 			value=name;
 			if (nl) *nl='\n';
 		}
+
 	} else {
 		//*** need to set up a default point list!! previous colors and points
 		//might have old data in them
 	}
+
+	if (base_path) UpdateFromPath();
+
+
 	FindBBox();
 	touchContents();
 }
@@ -316,7 +327,7 @@ int ColorPatchData::WhatColor(double s,double t,ScreenColor *color_ret)
 
 	int c,r;
 	double ss,tt;
-	resolveToSubpatch(s,t,c,ss,r,tt);
+	resolveToSubpatch(s,t, c,ss,r,tt);
 	ScreenColor col1,col2;
 	int cxsize=xsize/3+1;
 	coloravg(&col1, &colors[r*cxsize+c], &colors[r*cxsize+c+1], ss);
@@ -346,12 +357,59 @@ void ColorPatchData::SetColor(int pr,int pc,int red,int green,int blue,int alpha
 	touchContents();
 }
 
+static void resolveToSubpatch2(int xsize,int ysize, double s,double t,
+							   int &c,double &ss,int &r,double &tt)
+{
+	 //a remapping so we can grab column and row from old values of xsize,ysize
+	 //xsize and ysize are number of patches, not points
+	 
+	int nc=xsize, //num of patches horizontally
+		nr=ysize; //num of patches vertically
+
+	c=(int) (s*nc);
+	if (c>=nc) c=nc-1;
+	ss=s*nc-c;
+
+	r=(int) (t*nr);
+	if (r>=nr) r=nr-1;
+	tt=t*nr-r;
+}
+
+/*! Call PatchData::UpdateFromPath(), then update the color information according
+ * to new mesh size.
+ */
 int ColorPatchData::UpdateFromPath()
 {
 	int oldxsize=xsize/3+1,oldysize=ysize/3+1;
 	int status=PatchData::UpdateFromPath();
 	if (status!=0) return status;
 
+	TransferColors(oldxsize, oldysize);
+
+	return 0;
+}
+
+/*! Call PatchData::CopyMeshPoints(patch) and update color array to be proper size.
+ */
+void ColorPatchData::CopyMeshPoints(PatchData *patch, bool usepath)
+{
+	int oldxsize=xsize/3+1,oldysize=ysize/3+1;
+	PatchData::CopyMeshPoints(patch, usepath); 
+	TransferColors(oldxsize, oldysize);
+}
+
+/*! Low level function to sample current colors, and potentially reallocate
+ * the colors array.
+ *
+ * Assumes xsize and ysize do NOT correspond to the current points array.
+ * This function is used to sync up the colors array (assumed to be old) to
+ * match the current points array.
+ *
+ * oldxsize and oldysize are the number of mesh squares, NOT the number of points,
+ * i.e. they do NOT have the same metric as this->xsize and this->ysize.
+ */
+int ColorPatchData::TransferColors(int oldxsize, int oldysize)
+{
 	int nxs,nys;
 	nxs=xsize/3+1;
 	nys=ysize/3+1;
@@ -359,8 +417,32 @@ int ColorPatchData::UpdateFromPath()
 	if (nxs!=oldxsize || nys!=oldysize) {
 		int colorsize=nxs*nys;
 		ScreenColor *ncolors=new ScreenColor[colorsize];
-		delete[] colors;
+		ScreenColor *oldcolors=colors;
 		colors=ncolors;
+	
+		double s,t;
+		ScreenColor color;
+		ScreenColor col1,col2;
+		int c,r;
+		double ss,tt;
+		int cxsize;
+
+		for (int x=0; x<nxs; x++) {
+			for (int y=0; y<nxs; y++) { 
+				resolveFromSubpatch(x,0, y,0, s,t);
+
+				resolveToSubpatch2(oldxsize-1,oldysize-1, s,t, c,ss,r,tt);
+
+				cxsize=oldxsize;
+				coloravg(&col1, &oldcolors[r*cxsize+c],     &oldcolors[r*cxsize+c+1],     ss);
+				coloravg(&col2, &oldcolors[(r+1)*cxsize+c], &oldcolors[(r+1)*cxsize+c+1], ss);
+				coloravg(&color,&col1, &col2, tt);
+				
+				SetColor(y,x, &color);
+			}
+		}
+
+		delete[] oldcolors;
 	}
 
 	return 0;

@@ -3737,6 +3737,10 @@ EngraverFillInterface::EngraverFillInterface(int nid,Displayer *ndp)
 	always_warp=true;
 	show_direction=false;
 
+	eventobject=0;
+	eventgroup=-1;
+
+	lasthoverindex=lasthoverdetail=-1;
 	lasthovercategory=ENGRAVE_None;
 	lasthover=ENGRAVE_None;
 
@@ -3870,12 +3874,22 @@ void EngraverFillInterface::deletedata()
 	edata=NULL;
 }
 
+
+//! Flush curpoints.
+int EngraverFillInterface::InterfaceOff()
+{
+	PatchInterface::InterfaceOff();
+	curvemapi.SetInfo(NULL);
+    return 0;
+}
+
+
 /*! Returns the panel item (x,y) is over, or ENGRAVE_None.
  * category will get set with one of the main section tags of the panel.
  * That is ENGRAVE_Groups, ENGRAVE_Tracing, ENGRAVE_Dashes, ENGRAVE_Direction,
  * or ENGRAVE_Spacing.
  */
-int EngraverFillInterface::scanPanel(int x,int y, int *category)
+int EngraverFillInterface::scanPanel(int x,int y, int *category, int *index_ret, int *detail_ret)
 {
 	if (!panelbox.boxcontains(x,y)) {
 		DBG cerr <<"not in panel"<<endl;
@@ -3922,6 +3936,15 @@ int EngraverFillInterface::scanPanel(int x,int y, int *category)
 				for (int c2=0; c2<item->GetSubmenu()->n(); c2++) {
 					item2=item->GetSubmenu()->e(c2);
 					if (item2->pointIsIn(x,y)) {
+						if (item2->id==ENGRAVE_Group_List) {
+							double th=dp->textheight();
+							//int n=NumGroupLines();
+							int index=(y-item2->y)/th;
+							int detail=(x-item2->x)/th;
+							if (detail>3) detail=3;
+							if (index_ret) *index_ret=index;
+							if (detail_ret) *detail_ret=detail;
+						}
 						return item2->id;
 					}
 				}
@@ -3937,13 +3960,13 @@ int EngraverFillInterface::scanPanel(int x,int y, int *category)
 
 /*! Scan the panel or for other onscreen controls.
  */
-int EngraverFillInterface::scanEngraving(int x,int y, int *category)
+int EngraverFillInterface::scanEngraving(int x,int y, int *category, int *index_ret, int *detail_ret)
 {
 	*category=0;
 
 	if (show_panel) {
 	    if (panelbox.boxcontains(x,y)) {
-			return scanPanel(x,y,category);
+			return scanPanel(x,y,category,index_ret,detail_ret);
 		}
 
 
@@ -4011,15 +4034,14 @@ int EngraverFillInterface::AddToSelection(ObjectContext *oc)
     if (   !dynamic_cast<EngraverFillData*>(oc->obj)
 		&& !dynamic_cast<PathsData*>(oc->obj)) return -3; //not a usable object!
 
+	if (!selection) selection=new Selection();
     return selection->AddNoDup(oc,-1);
 }
 
 //! Catch a double click to pop up an ImageDialog.
 int EngraverFillInterface::LBDown(int x,int y,unsigned int state,int count,const Laxkit::LaxMouse *d)
 {
-	if (child) return 1;
-
-	lasthover= scanEngraving(x,y, &lasthovercategory);
+	lasthover= scanEngraving(x,y, &lasthovercategory, &lasthoverindex, &lasthoverdetail);
 
 	 //catch trace box overlay first
 	if (lasthovercategory==ENGRAVE_Panel && panelbox.boxcontains(x,y)) {
@@ -4075,6 +4097,8 @@ int EngraverFillInterface::LBDown(int x,int y,unsigned int state,int count,const
 
 		return 0;
 	}
+
+	if (child) return 1;
 
 	if (mode==EMODE_Direction) {
 		if (count==2 || !directionmap) {
@@ -4143,9 +4167,10 @@ int EngraverFillInterface::LBDown(int x,int y,unsigned int state,int count,const
 
 	if (mode==EMODE_Freehand) {
 		FreehandInterface *freehand=new FreehandInterface(this,-1,dp);
-		freehand->freehand_style=FREEHAND_Color_Mesh|FREEHAND_Remove_On_Up;
+		freehand->freehand_style=FREEHAND_Path_Mesh|FREEHAND_Remove_On_Up;
 		viewport->Push(freehand,-1,0);
 		freehand->LBDown(x,y,state,count,d);
+		if (child) RemoveChild();
 		child=freehand;
 		return 0;
 	}
@@ -4153,8 +4178,10 @@ int EngraverFillInterface::LBDown(int x,int y,unsigned int state,int count,const
 	if (!edata) ChangeMode(EMODE_Mesh);
 
 	if (mode==EMODE_Mesh) {
+		EngraverFillData *olddata=edata;
 		int c=PatchInterface::LBDown(x,y,state,count,d);
 		if (!edata && data) edata=dynamic_cast<EngraverFillData*>(data);
+		if (edata!=olddata) UpdatePanelAreas();
 		return c;
 	}
 
@@ -4208,8 +4235,10 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
 			needtodraw=1;
 			return 0;
 		}
-		return 1;
 	}
+
+	if (!buttondown.isdown(d->id,LEFTBUTTON)) return 1;
+
 
 	 //catch trace box overlay first
 	int over=0;
@@ -4234,9 +4263,8 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
 			for (int c=0; c<panel.n(); c++) {
 				item=panel.e(c);
 				if (item->id==over) {
-					if (item->isOpen())
-						 item->state&=~LAX_OPEN; 
-					else item->state|=LAX_OPEN;
+					if (item->isOpen()) item->Close();
+					else item->Open();
 					UpdatePanelAreas();
 				}
 				
@@ -4244,6 +4272,84 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
 			needtodraw=1;
 			return 0;
 		}
+
+		if (dragged<10 && over==ENGRAVE_Toggle_Group_List) {
+			MenuItem *item=panel.findid(ENGRAVE_Group_List);
+			if (item->isOpen()) item->Close(); else item->Open();
+			UpdatePanelAreas();
+			needtodraw=1;
+			return 0;
+		}
+
+		if (dragged<10 && over==ENGRAVE_Group_List) {
+			EngraverFillData *obj;
+			int gindex;
+			obj=GroupFromLineIndex(lasthoverindex, &gindex);
+
+			if (!obj) return 0;
+
+			if (lasthoverdetail==0) {
+				 //active
+				obj->groups.e[gindex]->active=!obj->groups.e[gindex]->active;
+
+			} else if (lasthoverdetail==1) {
+				 //linked
+				obj->groups.e[gindex]->linked=!obj->groups.e[gindex]->linked;
+
+			} else if (lasthoverdetail==2) {
+				 //color
+				anXWindow *w=new ColorSliders(NULL,"New Color","New Color",
+							   ANXWIN_ESCAPABLE|ANXWIN_REMEMBER|ANXWIN_OUT_CLICK_DESTROYS,
+							   0,0,200,400,0,
+							   NULL,object_id,"newcolor",
+							   LAX_COLOR_RGB,1./255,
+							   obj->groups.e[gindex]->color.red/65535.,
+							   obj->groups.e[gindex]->color.green/65535.,
+							   obj->groups.e[gindex]->color.blue/65535.,
+							   obj->groups.e[gindex]->color.alpha/65535.
+							);
+				eventgroup=gindex;
+				eventobject=edata->object_id;
+				app->addwindow(w);
+
+			} else if (lasthoverdetail==3) {
+				 //name/make current
+				if (obj!=edata) {
+					 //make current
+					int i=selection->ObjectIndex(obj);
+					UseThisObject(selection->e(i));
+					current_group=0;
+				} 
+
+				if (gindex>=0) {
+					if (gindex<obj->groups.n) {
+						if (current_group!=gindex) {
+							current_group=gindex;
+						} else {
+							MenuItem *item=panel.findid(over);
+							double th=dp->textheight();
+							LineEdit *le= new LineEdit(viewport,"Rename",_("Rename group"),
+														LINEEDIT_DESTROY_ON_ENTER|LINEEDIT_GRAB_ON_MAP|ANXWIN_ESCAPABLE|ANXWIN_OUT_CLICK_DESTROYS|ANXWIN_HOVER_FOCUS,
+														item->x+panelbox.minx+3*th,panelbox.miny+item->y+((y-item->y)/th)*th,
+														item->w,th,
+														   4, //border
+														   NULL,object_id,"renamegroup",
+														   obj->groups.e[gindex]->name);
+							eventgroup=gindex;
+							eventobject=obj->object_id;
+							le->padx=le->pady=dp->textheight()*.1;
+							le->SetSelection(0,-1);
+							app->addwindow(le);
+
+							return 0;
+						}
+					}
+				}
+			}
+
+			needtodraw=1;
+			return 0;
+		} //if not dragged and Group_List
 
 		if (over>=EMODE_Mesh && over<EMODE_MAX) {
 			ChangeMode(over);
@@ -4295,6 +4401,9 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
                            group->color.alpha/65535.
 						);
 			app->addwindow(w);
+
+			eventgroup=current_group;
+			eventobject=edata->object_id;
 			return 0;
 
 		} else if (over==ENGRAVE_Group_Name) {
@@ -4310,6 +4419,8 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
             le->SetSelection(0,-1);
             app->addwindow(le);
 
+			eventgroup=current_group;
+			eventobject=edata->object_id;
 			return 0;
 
 		} else if (over==ENGRAVE_Previous_Group) {
@@ -4534,6 +4645,58 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
 	return 0;
 }
 
+int EngraverFillInterface::NumGroupLines()
+{
+	EngraverFillData *obj; 
+	int n=0;
+	
+	if (!selection) {
+		if (edata) return edata->groups.n+1;
+		return 1;
+	}
+
+	for (int g=0; g<selection->n(); g++) {
+		obj=dynamic_cast<EngraverFillData *>(selection->e(g)->obj);
+		if (!obj) continue;
+		n++;
+		n+=obj->groups.n;;
+	}
+
+	return n;
+}
+
+EngraverFillData *EngraverFillInterface::GroupFromLineIndex(int i, int *gi)
+{
+	if (!selection) {
+		if (i==0) {
+			*gi=-1;
+		}
+		return edata;
+	}
+
+	EngraverFillData *obj; 
+	
+	for (int g=0; g<selection->n(); g++) {
+		obj=dynamic_cast<EngraverFillData *>(selection->e(g)->obj);
+		if (!obj) continue;
+		if (i==0) {
+			*gi=-1;
+			return obj;
+		}
+
+		i--;
+		if (i<obj->groups.n) {
+			*gi=i;
+			return obj;
+		}
+		i-=obj->groups.n;
+	}
+
+	*gi=-1;
+	return NULL;
+}
+
+
 Laxkit::MenuInfo *EngraverFillInterface::GetGroupMenu(int what, int current)
 {
 	if (!edata || edata->groups.n<=1) return NULL;
@@ -4542,20 +4705,29 @@ Laxkit::MenuInfo *EngraverFillInterface::GetGroupMenu(int what, int current)
 	menu->AddSep(_("Use from"));
 	int shared;
 	int numshared=1;
+	EngraverFillData *obj;
 	
-	for (int c=0; c<edata->groups.n; c++) {
-		if (c==current) continue;
-		shared=0;
-		if (what==ENGRAVE_Tracing     && edata->groups.e[c]->trace ==edata->groups.e[current]->trace ) shared=1;
-		else if (what==ENGRAVE_Dashes && edata->groups.e[c]->dashes==edata->groups.e[current]->dashes) shared=1;
-		//else if (what==ENGRAVE_Direction && edata->groups.e[c]->direction==edata->groups.e[current]->direction) sharing=1;
-		//else if (what==ENGRAVE_Spacing   && edata->groups.e[c]->spacing  ==edata->groups.e[current]->spacing)   sharing=1;
-		
-		if (shared) numshared++;
+	for (int g=0; g<selection->n(); g++) {
+		obj=dynamic_cast<EngraverFillData *>(selection->e(g));		
+		if (!obj) continue;
+		menu->AddSep(obj->Id());
 
-		menu->AddItem(edata->groups.e[c]->name, c, LAX_ISTOGGLE|(shared ? LAX_CHECKED : 0),
-						0, NULL);
+		for (int c=0; c<edata->groups.n; c++) {
+			if (c==current) continue;
+
+			shared=0;
+			if (what==ENGRAVE_Tracing     && edata->groups.e[c]->trace ==edata->groups.e[current]->trace ) shared=1;
+			else if (what==ENGRAVE_Dashes && edata->groups.e[c]->dashes==edata->groups.e[current]->dashes) shared=1;
+			//else if (what==ENGRAVE_Direction && edata->groups.e[c]->direction==edata->groups.e[current]->direction) sharing=1;
+			//else if (what==ENGRAVE_Spacing   && edata->groups.e[c]->spacing  ==edata->groups.e[current]->spacing)   sharing=1;
+			
+			if (shared) numshared++;
+
+			menu->AddItem(edata->groups.e[c]->name, c, LAX_ISTOGGLE|(shared ? LAX_CHECKED : 0),
+							0, NULL);
+		}
 	}
+
 	if (numshared>1) {
 		menu->AddSep();
 		menu->AddItem(_("New"),-2);
@@ -4642,15 +4814,17 @@ int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit
 
 	if (!buttondown.any()) {
 		 //update lasthover
-		int category=0;
-		int newhover= scanEngraving(x,y, &category);
-		if (newhover!=lasthover) {
+		int category=0, index=-1, detail=-1;
+		int newhover= scanEngraving(x,y, &category, &index, &detail);
+		if (newhover!=lasthover || index!=lasthoverindex || detail!=lasthoverdetail) {
 			lasthover=newhover;
 			lasthovercategory=category;
+			lasthoverindex=index;
+			lasthoverdetail=detail;
 			ChangeMessage(lasthover);
 			needtodraw=1;
 		}
-		DBG cerr <<"eng lasthover: "<<lasthover<<endl;
+		DBG cerr <<"eng lasthover: "<<lasthover<<"  index:"<<index<<"  detail"<<detail<<endl;
 	}
 
 
@@ -5733,10 +5907,10 @@ void EngraverFillInterface::UpdatePanelAreas()
 		 // [new] [delete]  Active: 0  [color]
 		panel.AddItem("Group Selection",  ENGRAVE_Groups);
 		panel.SubMenu();
-		  //panel.AddItem("Toggle list" ,    ENGRAVE_Toggle_Group_List);
+		  panel.AddItem("Toggle list" ,    ENGRAVE_Toggle_Group_List);
 		  panel.AddItem("Previous Group",  ENGRAVE_Previous_Group);
 		  panel.AddItem("Next Group",      ENGRAVE_Next_Group);
-		  panel.AddItem("Group Name",      ENGRAVE_Group_List);
+		  panel.AddItem("Group List",      ENGRAVE_Group_List);
 		  panel.AddItem("Group Name",      ENGRAVE_Group_Name);
 		  panel.AddItem("Active",          ENGRAVE_Group_Active);
 		  panel.AddItem("Linked",          ENGRAVE_Group_Linked);
@@ -5821,7 +5995,7 @@ void EngraverFillInterface::UpdatePanelAreas()
 	//now update positions
 	if (!panelbox.validbounds()) {
 		panelbox.minx=panelbox.miny=10;
-		panelbox.maxx=7*1.5*th;
+		panelbox.maxx=8*1.5*th;
 		panelbox.maxy=10*1.5*th+th+4./3*th+th+pad;
 	}
 
@@ -5841,70 +6015,98 @@ void EngraverFillInterface::UpdatePanelAreas()
 			y+=item->h+pad;
 
 		} else if (item->id==ENGRAVE_Groups) {
-			item->x=pad; item->y=y; item->w=pw-2*pad;  item->h=2*th;
+			item->x=pad; item->y=y; item->w=pw-2*pad;  item->h=th;
+
+			item2=panel.findid(ENGRAVE_Group_List);
+			int lh=0;
+			bool showlist=false;
+			if (item2->isOpen()) {
+				lh=th*NumGroupLines();
+				if (lh==0) lh=th;
+				showlist=true;
+			} else lh=th;
+			item->h+=lh;
 
 			int nww=5;
 
 			//< > Groupname  active linked color
-			//+  -  ^  v  ->
+			//=   +  -  ^  v  ->
 			//-------------
 			//--visible - objectid----
 			//active color linked   group 1
 			//active color linked   group 2
 			//active color linked   group 3
-			//+  -  ^  v  
+			//+  -  ^  v  dup
 
 			for (int c2=0; c2<item->GetSubmenu()->n(); c2++) {
 				item2=item->GetSubmenu()->e(c2);
 
-//				if (item2->id==ENGRAVE_Group_List) {
-//					item2->x=pad; item2->y=y; item2->w=pw-2*pad; item2->h=th*numg;
-//				------------------
-
 				//----first line
-				if (item2->id==ENGRAVE_Previous_Group) {
-					item2->x=pad;  item2->y=y;  item2->w=th, item2->h=th;
+				if (!showlist) {
+					if (item2->id==ENGRAVE_Previous_Group) {
+						item2->x=pad;  item2->y=y;  item2->w=th; item2->h=th;
 
-				} else if (item2->id==ENGRAVE_Next_Group) {
-					item2->x=pad+th;  item2->y=y;  item2->w=th, item2->h=th;
+					} else if (item2->id==ENGRAVE_Next_Group) {
+						item2->x=pad+th;  item2->y=y;  item2->w=th; item2->h=th;
 
-				} else if (item2->id==ENGRAVE_Group_Name) {
-					item2->x=pad+2*th;  item2->y=y;  item2->w=pw-2*pad-5*th;  item2->h=th;
+					} else if (item2->id==ENGRAVE_Group_Name) {
+						item2->x=pad+2*th;  item2->y=y;  item2->w=pw-2*pad-5*th;  item2->h=th;
 
-				} else if (item2->id==ENGRAVE_Group_Active) {
-					item2->x=pw-pad-3*th;  item2->y=y;  item2->w=th;  item2->h=th;
+					} else if (item2->id==ENGRAVE_Group_Active) {
+						item2->x=pw-pad-3*th;  item2->y=y;  item2->w=th;  item2->h=th;
 
-				} else if (item2->id==ENGRAVE_Group_Linked) {
-					item2->x=pw-pad-2*th;  item2->y=y;  item2->w=th;  item2->h=th;
+					} else if (item2->id==ENGRAVE_Group_Linked) {
+						item2->x=pw-pad-2*th;  item2->y=y;  item2->w=th;  item2->h=th;
 
-				} else if (item2->id==ENGRAVE_Group_Color) {
-					item2->x=pw-pad-th;  item2->y=y;  item2->w=th;  item2->h=th;
+					} else if (item2->id==ENGRAVE_Group_Color) {
+						item2->x=pw-pad-th;  item2->y=y;  item2->w=th;  item2->h=th;
+					}
+
+				} else {
+					if (       item2->id==ENGRAVE_Previous_Group
+							|| item2->id==ENGRAVE_Next_Group
+							|| item2->id==ENGRAVE_Group_Name
+							|| item2->id==ENGRAVE_Group_Active
+							|| item2->id==ENGRAVE_Group_Linked
+							|| item2->id==ENGRAVE_Group_Color) 
+						item2->w=item2->h=0;
+				}
+
+
+				//----group list, if any
+				if (item2->id==ENGRAVE_Group_List) {
+					if (showlist) {
+						item2->x=pad; item2->y=y; item2->w=pw-2*pad; item2->h=lh;
+					} else {
+						item2->x=pad; item2->y=y+th; item2->w=-1; item2->h=-1;
+					}
+
 
 					//----second line
+				} else if (item2->id==ENGRAVE_Toggle_Group_List) {
+					item2->x=pad;     item2->y=y+lh;  item2->w=th; item2->h=th;
+
 				} else if (item2->id==ENGRAVE_New_Group) {
-					item2->x=pad;  item2->y=y+th;  item2->w=item->w/nww; item2->h=th;
+					item2->x=th+pad;  item2->y=y+lh;  item2->w=(item->w-th)/nww; item2->h=th;
 
 				} else if (item2->id==ENGRAVE_Delete_Group) {
-					item2->x=pad+item->w/nww;  item2->y=y+th;  item2->w=item->w/nww; item2->h=th;
-
-				} else if (item2->id==ENGRAVE_Group_Up) {
-					item2->x=pad+2*item->w/nww;  item2->y=y+th;  item2->w=item->w/nww; item2->h=th;
+					item2->x=th+pad+item->w/nww;  item2->y=y+lh;  item2->w=(item->w-th)/nww; item2->h=th;
 
 				} else if (item2->id==ENGRAVE_Group_Down) {
-					item2->x=pad+3*item->w/nww;  item2->y=y+th;  item2->w=item->w/nww; item2->h=th;
+					item2->x=th+pad+2*item->w/nww;  item2->y=y+lh;  item2->w=(item->w-th)/nww; item2->h=th;
 
-					//} else if (item2->id==ENGRAVE_Duplicate_Group) {
-					//	item2->x=pad+4*item->w/nww;  item2->y=y+th;  item2->w=item->w/nww, item2->h=th;
+				} else if (item2->id==ENGRAVE_Group_Up) {
+					item2->x=th+pad+3*item->w/nww;  item2->y=y+lh;  item2->w=(item->w-th)/nww; item2->h=th;
 
-					//} else if (item2->id==ENGRAVE_Merge_Group) {
-					//	item2->x=pad+5*item->w/nww;  item2->y=y+th;  item2->w=item->w/nww, item2->h=th;
+				//} else if (item2->id==ENGRAVE_Duplicate_Group) {
+				//	item2->x=th+pad+4*item->w/nww;  item2->y=y+lh;  item2->w=(item->w-th)/nww, item2->h=th;
 
-				} else if (item2->id==ENGRAVE_Toggle_Group_List) {
-					item2->x=pad+4*item->w/nww;  item2->y=y+th;  item2->w=item->w/nww, item2->h=th;
+				//} else if (item2->id==ENGRAVE_Merge_Group) {
+				//	item2->x=th+pad+5*item->w/nww;  item2->y=y+lh;  item2->w=(item->w-th)/nww, item2->h=th;
 
 				}
 			}
-			y+=2*th; 
+			y+=item->h; 
 
 		} else if (item->id==ENGRAVE_Tracing) {
 			item->x=pad; item->y=y; item->w=pw-2*pad; 
@@ -6112,7 +6314,12 @@ void EngraverFillInterface::DrawPanel()
 					dp->NewFG(&fgcolor);
 				}
 
-				if (item2->id==ENGRAVE_Previous_Group) {
+				if (item2->id==ENGRAVE_Toggle_Group_List) {
+					dp->drawrectangle(i2x+i2w/5,i2y+i2h*3/16,   i2w*.6,i2h/8, 1);
+					dp->drawrectangle(i2x+i2w/5,i2y+i2h*7/16,   i2w*.6,i2h/8, 1);
+					dp->drawrectangle(i2x+i2w/5,i2y+i2h*11/16,  i2w*.6,i2h/8, 1);
+
+				} else if (item2->id==ENGRAVE_Previous_Group) {
 					ww=i2w*.4;
 					dp->drawthing(i2x+i2w/2,i2y+i2h/2, ww,ww, 0, THING_Triangle_Left);
 
@@ -6121,22 +6328,22 @@ void EngraverFillInterface::DrawPanel()
 					dp->drawthing(i2x+i2w/2,i2y+i2h/2, ww,ww, 0, THING_Triangle_Right);
 
 				} else if (item2->id==ENGRAVE_Group_Name) {
-					if (group) dp->textout(i2x+pad, i2y+i2h/2, 
+					if (group && i2h>0) dp->textout(i2x+pad, i2y+i2h/2, 
 							(isblank(group->name) ? "(unnamed)" : group->name) ,-1,
 							LAX_VCENTER|LAX_LEFT);
 
-				} else if (item2->id==ENGRAVE_Group_Active) {
+				} else if (item2->id==ENGRAVE_Group_Active && i2h>0) {
 					DrawThingTypes thing= (group && group->active) ? THING_Open_Eye : THING_Closed_Eye;
 					ww=i2w*.4;
 					dp->NewBG(1.,1.,1.);
 					dp->drawthing(i2x+i2w/2,i2y+i2h/2, ww,-ww, 2, thing);
 
-				} else if (item2->id==ENGRAVE_Group_Linked) {
+				} else if (item2->id==ENGRAVE_Group_Linked && i2h>0) {
 					ww=i2w*.25;
 					unsigned long color=(group && group->linked ? rgbcolor(0,200,0) : rgbcolor(255,100,100) );
 					dp->drawthing(i2x+i2w/2,i2y+i2h/2, ww,-ww, THING_Circle, color,color);
 
-				} else if (item2->id==ENGRAVE_Group_Color) {
+				} else if (item2->id==ENGRAVE_Group_Color && i2h>0) {
 					if (group) {
 						dp->NewFG(&group->color);
 						dp->drawrectangle(i2x, i2y, i2w, i2h, 1);
@@ -6144,17 +6351,101 @@ void EngraverFillInterface::DrawPanel()
 					dp->NewFG(&fgcolor);
 					dp->drawrectangle(i2x, i2y, i2w, i2h, 0);
 
+				} else if (item2->id==ENGRAVE_Group_List && item2->isOpen()) {
+					EngraverFillData *obj; 
+					EngraverPointGroup *group2;
+
+					dp->NewFG(&bgcolor);
+					dp->drawrectangle(i2x,i2y,i2w,i2h,1);
+					dp->NewFG(&fgcolor);
+
+					int oncurobj=0;
+					int yy=i2y;
+					int ii=0;
+					double hhh;
+
+					DBG cerr<<"lasthoverindex="<<lasthoverindex<<endl;
+					//for (int o=0; o<selection->n(); o++) {
+						//obj=dynamic_cast<EngraverFillData *>(selection->e(o));
+						//if (!obj) { ii++; continue; }
+						obj=edata;
+						if (obj) {
+							if (obj==edata) oncurobj=1; else oncurobj=0;
+
+							 //object header:  [eye] Object id
+							ww=th*.4;
+							hhh=1.0;
+							if (lasthoverindex==ii || oncurobj) {
+								ScreenColor col;
+								if (lasthoverindex==ii) hhh-=.1;
+								if (oncurobj) hhh-=.2;
+								coloravg(&col, &fgcolor,&bgcolor, hhh);
+								dp->NewFG(&col);
+								dp->drawrectangle(i2x,i2y+ii*th, i2w,th,1);
+								dp->NewFG(&fgcolor);
+							}
+							//dp->drawthing(i2x+i2w/2,i2y+i2h/2, ww,-ww, 2, obj->Visible() ? THING_Open_Eye : THING_Closed_Eye);
+							dp->textout(i2x+th,yy+th/2, obj->Id(),-1, LAX_LEFT|LAX_VCENTER);
+							yy+=th;
+
+							ii++;
+
+							 //the object's groups
+							 // [eye] [color] [linked] [sharing]  group name
+							for (int g=0; g<obj->groups.n; g++) {
+								int xx=i2x;
+								group2=obj->groups.e[g];
+
+								hhh=1.0;
+								if (lasthoverindex==ii || group==group2) {
+									ScreenColor col;
+									if (lasthoverindex==ii) hhh-=.1;
+									if (group==group2) hhh-=.2;
+									coloravg(&col, &fgcolor,&bgcolor, hhh);
+									dp->NewFG(&col);
+									dp->drawrectangle(i2x,i2y+ii*th, i2w,th,1);
+									dp->NewFG(&fgcolor);
+								}
+								
+								 //active eye
+								dp->drawthing(xx+th/2,yy+th/2, ww,-ww, 2,  group2->active ? THING_Open_Eye : THING_Closed_Eye);
+								xx+=th;
+
+								 //linked
+								unsigned long color=(group2 && group2->linked ? rgbcolor(0,200,0) : rgbcolor(255,100,100) );
+								dp->drawthing(xx+th/2,yy+th/2, th*.25,-th*.25, THING_Circle, color,color);
+								dp->NewFG(&fgcolor);
+								xx+=th;
+
+								 //color rectangle
+								dp->NewFG(&group2->color);
+								dp->drawrectangle(xx+th*.1, yy+th*.1, th*.8, th*.8, 1);	
+								dp->NewFG(&fgcolor);
+								dp->drawrectangle(xx+th*.1, yy+th*.1, th*.8, th*.8, 0);	
+								xx+=th;
+
+								 //name
+								dp->textout(xx, yy+th/2, 
+									(isblank(group2->name) ? "(unnamed)" : group2->name) ,-1,
+									LAX_VCENTER|LAX_LEFT);
+
+								yy+=th;
+								ii++;
+							}
+						}
+					//}
+
 				} else if (item2->id==ENGRAVE_New_Group) {
 					dp->textout(i2x+i2w/2, i2y+i2h/2, "+",-1, LAX_CENTER);
 
 				} else if (item2->id==ENGRAVE_Delete_Group) {
 					dp->textout(i2x+i2w/2, i2y+i2h/2, "-",-1, LAX_CENTER);
 
-				} else if (item2->id==ENGRAVE_Group_Up) {
+				} else if (item2->id==ENGRAVE_Group_Down) {
 					ww*=.8;
 					dp->drawthing(i2x+i2w/2, i2y+i2h/2, ww/2,ww/2, 1, THING_Arrow_Down);
 
-				} else if (item2->id==ENGRAVE_Group_Down) {
+				} else if (item2->id==ENGRAVE_Group_Up) {
 					ww*=.8;
 					dp->drawthing(i2x+i2w/2, i2y+i2h/2, ww/2,ww/2, 1, THING_Arrow_Up);
 
@@ -6732,7 +7023,10 @@ int EngraverFillInterface::ChangeMode(int newmode)
 	if (oldmode==EMODE_Mesh && data) {
 		if (data->UsesPath()) RemoveChild();
 	}
-	if (newmode==EMODE_Mesh && data && data->UsesPath()) ActivatePathInterface();
+
+	if (newmode==EMODE_Mesh) {
+		if (data && data->UsesPath()) ActivatePathInterface();
+	}
 
 
 	needtodraw=1;
@@ -6786,11 +7080,12 @@ int EngraverFillInterface::Event(const Laxkit::EventData *e_data, const char *me
 
 		return 0;
 
-	} else if (!strcmp(mes,"child")) {
+	} else if (!strcmp(mes,"PathInterface")) {
         if (data) {
             data->UpdateFromPath();
 
-			if (always_warp && curpoints.n>0) {
+			//if (always_warp && curpoints.n>0) {
+			if (always_warp) {
 				edata->Sync(false);
 				edata->UpdatePositionCache();
 			}
@@ -6858,16 +7153,42 @@ int EngraverFillInterface::Event(const Laxkit::EventData *e_data, const char *me
         linestyle.color.blue= (unsigned short) (ce->channels[2]/max*65535);
         if (ce->numchannels>3) linestyle.color.alpha=(unsigned short) (ce->channels[3]/max*65535);
         else linestyle.color.alpha=65535;
-		UseThis(&linestyle,0);
+
+		EngraverFillData *obj=edata;
+		SomeData *somedata;
+		if (eventobject>0 && eventobject!=edata->object_id && selection) {
+			for (int c=0; c<selection->n(); c++) {
+				if (eventobject==selection->e(c)->obj->object_id) {
+					somedata=selection->e(c)->obj;
+					obj=dynamic_cast<EngraverFillData*>(somedata);
+					break;
+				}
+			}
+		}
+
+		EngraverPointGroup *group=(obj ? obj->GroupFromIndex(eventgroup) : NULL);
+		if (group) group->color=linestyle.color;
+
 		needtodraw=1;
 		return 0;
 
 	} else if (!strcmp(mes,"renamegroup")) {
         const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(e_data);
         if (!edata || isblank(s->str)) return 0;
-		EngraverPointGroup *group=edata->GroupFromIndex(current_group);
+
+		EngraverFillData *obj=edata;
+		if (eventobject>0 && eventobject!=edata->object_id && selection) {
+			for (int c=0; c<selection->n(); c++) {
+				if (eventobject==selection->e(c)->obj->object_id) {
+					obj=dynamic_cast<EngraverFillData*>(selection->e(c)->obj);
+					break;
+				}
+			}
+		}
+
+		EngraverPointGroup *group=(obj ? obj->GroupFromIndex(eventgroup) : NULL);
 		makestr(group->name,s->str);
-		edata->MakeGroupNameUnique(current_group);
+		obj->MakeGroupNameUnique(eventgroup);
 		needtodraw=1;
  		return 0;
 
@@ -7038,7 +7359,19 @@ int EngraverFillInterface::Event(const Laxkit::EventData *e_data, const char *me
 		deletedata();
 		EngraverFillData *newdata=dynamic_cast<EngraverFillData*>(newPatchData(0,0,1,1,1,1,PATCH_SMOOTH));
 		newdata->m(patch->m());
-		newdata->CopyMeshPoints(patch);
+		newdata->CopyMeshPoints(patch, true);
+		DBG newdata->dump_out(stderr,0,0,NULL);
+
+		//newdata->UpdateFromPath();
+		newdata->FindBBox();
+		newdata->Sync(false);
+		newdata->groups.e[0]->Fill(newdata, 1./dp->Getmag());
+		//newdata->UpdateDashCache();
+		for (int c=0; c<newdata->groups.n; c++) {
+			newdata->groups.e[c]->UpdateBezCache();
+			newdata->groups.e[c]->UpdateDashCache();
+		} 
+
 		if (viewport) {
 			ObjectContext *oc=NULL;
 			viewport->NewData(newdata,&oc);
@@ -7051,7 +7384,6 @@ int EngraverFillInterface::Event(const Laxkit::EventData *e_data, const char *me
 		curpoints.flush();
 
 		edata=dynamic_cast<EngraverFillData*>(data);
-		edata->Sync(false);
 
 		needtodraw=1;
 		return 0;
@@ -7089,8 +7421,8 @@ Laxkit::MenuInfo *EngraverFillInterface::ContextMenu(int x,int y,int deviceid, L
 
 	if (menu->n()!=0) menu->AddSep(_("Engraver"));
 
-	int category=0;
-	int where=scanEngraving(x,y, &category);
+	int category=0, index=-1, detail=-1;
+	int where=scanEngraving(x,y, &category, &index, &detail);
 	if (mode==EMODE_Trace
 		 || where==ENGRAVE_Trace_Box
 		 || where==ENGRAVE_Trace_Once

@@ -149,7 +149,7 @@ class PatchData : virtual public SomeData
 
 	 /*! \name Data modifying functions */
 	 //@{
-	virtual void CopyMeshPoints(PatchData *patch);
+	virtual void CopyMeshPoints(PatchData *patch, bool usepath);
 	virtual void Set(double xx,double yy,double ww,double hh,int nr,int nc,unsigned int stle);
 	virtual void zap(flatpoint p,flatpoint x,flatpoint y);
 	virtual void zap(); // zap to bbox
@@ -161,7 +161,10 @@ class PatchData : virtual public SomeData
 	virtual int warpPatch(flatpoint center, double r1,double r2, double s,double e);
 	virtual int EstablishPath(int preferredaxis);
 	virtual int RemovePath();
+	virtual int InstallPath(PathsData *path);
 	virtual int UpdateFromPath();
+	virtual int UpdateFromPathSampled();
+	virtual int UpdateFromPathExtrapolate();
 	virtual int UsesPath();
 	 //@}
 
@@ -266,6 +269,7 @@ class PatchInterface : public anInterface
 	};
 
 	 // these are the state:
+	unsigned int style;
 	LineStyle linestyle;
 	unsigned long rimcolor,handlecolor,gridcolor;
 	int xs,ys, rdiv,cdiv;

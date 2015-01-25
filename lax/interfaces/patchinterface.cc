@@ -556,6 +556,7 @@ void PatchData::dump_out(FILE *f,int indent,int what,Laxkit::anObject *context)
 
 		return;
 	}
+
 	fprintf(f,"%smatrix %.10g %.10g %.10g %.10g %.10g %.10g\n",
 			spc,m(0),m(1),m(2),m(3),m(4),m(5));
 	fprintf(f,"%sgriddivisions %d\n",spc,griddivisions);
@@ -573,6 +574,12 @@ void PatchData::dump_out(FILE *f,int indent,int what,Laxkit::anObject *context)
 
 	fprintf(f,"%sxsize %d\n",spc,xsize);
 	fprintf(f,"%sysize %d\n",spc,ysize);
+
+    fprintf(f,"%sminx %.10g\n",spc,minx);
+    fprintf(f,"%smaxx %.10g\n",spc,maxx);
+    fprintf(f,"%sminy %.10g\n",spc,miny);
+    fprintf(f,"%smaxy %.10g\n",spc,maxy);
+
 	fprintf(f,"%spoints \\ #%dx%d\n",spc, xsize,ysize);
 	for (int c=0; c<xsize*ysize; c++) {
 		fprintf(f,"%s  %.10g %.10g",spc,points[c].x,points[c].y);
@@ -588,6 +595,7 @@ void PatchData::dump_in_atts(Attribute *att,int flag,Laxkit::anObject *context)
 	char *name,*value;
 	int p=-1,c;
 	SomeData::dump_in_atts(att,0,context);
+
 	for (c=0; c<att->attributes.n; c++) {
 		name= att->attributes.e[c]->name;
 		value=att->attributes.e[c]->value;
@@ -621,21 +629,24 @@ void PatchData::dump_in_atts(Attribute *att,int flag,Laxkit::anObject *context)
 			base_path->dump_in_atts(att->attributes.e[c], flag, context);
 		}
 	}
+
 	 // read in points after all atts initially parsed, so as to retrieve xsize and ysize.
 	if (p>-1) {
 		double x;
 		name=value=att->attributes.e[p]->value;
 		if (points) delete[] points;
 		points=new flatpoint[xsize*ysize];
+
 		for (c=0; c<xsize*ysize; c++) {
 			DoubleAttribute(value,&x,&name);
 			if (name!=value) {
 				points[c].x=x;
 				DoubleAttribute(name,&points[c].y,&value);
 			}
-		}
+		} 
 	}
-	
+
+	if (base_path) UpdateFromPath(); 
 	NeedToUpdateCache(0,-1,0,-1);
 	FindBBox();
 }
@@ -681,18 +692,27 @@ void PatchData::FindBBox()
 
 /*! Copies mesh point data only, not matrix.
  * Copies from patch to *this.
+ *
+ * If usepath, then install a copy of patch->base_path.
  */
-void PatchData::CopyMeshPoints(PatchData *patch)
+void PatchData::CopyMeshPoints(PatchData *patch, bool usepath)
 {
-	if (patch->xsize*patch->ysize!=xsize*ysize) {
-		delete[] points;
-		points=new flatpoint[patch->xsize*patch->ysize];
-	}
-	xsize=patch->xsize;
-	ysize=patch->ysize;
+	if (patch->base_path && usepath) {
+		PathsData *path=dynamic_cast<PathsData*>(patch->base_path->duplicate(NULL));
+		InstallPath(path);
+		path->dec_count();
 
-	memcpy(points,patch->points, patch->xsize*patch->ysize*sizeof(flatpoint));
-	NeedToUpdateCache(0,-1, 0,-1);
+	} else {
+		if (patch->xsize*patch->ysize!=xsize*ysize) {
+			delete[] points;
+			points=new flatpoint[patch->xsize*patch->ysize];
+		}
+		xsize=patch->xsize;
+		ysize=patch->ysize;
+
+		memcpy(points,patch->points, patch->xsize*patch->ysize*sizeof(flatpoint));
+		NeedToUpdateCache(0,-1, 0,-1);
+	}
 }
 
 //! Set in rect xx,yy,ww,hh with nr rows and nc columns. Removes old info.
@@ -828,6 +848,9 @@ void PatchData::resolveToSubpatch(double s,double t,int &c,double &ss,int &r,dou
 //! From subpatch (r,c) and offset, return a point s,t with range [0..1],[0..1].
 /*! c and r are subpatch indices, not point indices. (Point column)=3*(subpatch column).
  * If c,ss,r,tt don't exist in this patch, then a faulty s,t will be returned!
+ *
+ * ss and tt are fractions within c,r. For instance, ss=0 is at position c+0,
+ * and ss=1 is at c+1.
  */
 void PatchData::resolveFromSubpatch(int c,double ss,int r,double tt,double &s,double &t)
 {
@@ -993,6 +1016,7 @@ int PatchData::EstablishPath(int preferredaxis)
 
 	}
 
+	base_path->FindBBox();
 	UpdateFromPath();
 	return 0;
 }
@@ -1009,6 +1033,96 @@ int PatchData::UsesPath()
  */
 int PatchData::UpdateFromPath()
 {
+	return UpdateFromPathSampled();
+	//return UpdateFromPathExtrapolate();
+}
+
+/*! Return 0 for success, or nonzero for error.
+ * See also UpdateFromPath().
+ */
+int PatchData::UpdateFromPathSampled()
+{
+	if (!base_path) return 1;
+	if (!base_path->paths.n) return 2;
+	if (!base_path->paths.e[0]->path) return 3;
+	if (!base_path->paths.e[0]->path->nextVertex(0)) return 4;//path is only single point
+
+	Path *path=base_path->paths.e[0];
+	path->cache_samples=4;
+	path->cache_types|=1;
+	path->needtorecache=1;
+	path->UpdateS(true,10);
+	path->UpdateCache();
+
+
+	 //reallocate points array if necessary
+	int numverts=path->cache_top.n/3;
+	int nxs=(numverts-1)*3+1;
+	int nys=pathdivisions*3+1;
+	if (xsize*ysize<nxs*nys) { 
+		delete[] points;
+		points=new flatpoint[nxs*nys];
+	}
+	xsize=nxs;
+	ysize=nys;
+
+
+	flatpoint vtop,vtop2, vbottom,vbottom2;
+	flatpoint ptop,ptop2, pbottom,pbottom2;
+	int onfirst=1;
+	double dd;
+	flatpoint np,nv;
+
+	for (int pi=1; pi<path->cache_top.n-3; pi+=3) {
+		onfirst= (pi==1);
+
+		ptop    =path->cache_top   .e[pi];
+		pbottom =path->cache_bottom.e[pi];
+		ptop2   =path->cache_top   .e[pi+3];
+		pbottom2=path->cache_bottom.e[pi+3];
+
+		vtop    =path->cache_top   .e[pi+1] - ptop;
+		vbottom =path->cache_bottom.e[pi+1] - pbottom;
+		vtop2   =ptop2    - path->cache_top   .e[pi+2];
+		vbottom2=pbottom2 - path->cache_bottom.e[pi+2];
+
+		 //now populate points with interpolated things
+		for (int c=0; c<nys; c++) { 
+			dd=c/(nys-1.); //how far between bottom and top we are 
+
+			np=pbottom*(1-dd) + ptop*dd;
+			nv=vbottom*(1-dd) + vtop*dd;
+
+			 //add vertex points
+			if (onfirst) points[c*nxs + pi-1]=np;
+
+			 //add next controls 
+			points[c*nxs + pi-1+1]=np+nv;
+
+
+			np=pbottom2*(1-dd) + ptop2*dd;
+			nv=vbottom2*(1-dd) + vtop2*dd;
+
+			 //add controls for next vertex
+			points[c*nxs + pi-1+2]=np-nv;
+
+			 //finally, add next vertex points
+			points[c*nxs + pi-1+3]=np;
+		}
+	}
+
+
+	FindBBox();
+	touchContents();
+	NeedToUpdateCache(0,-1,0,-1);
+	return 0;
+}
+
+/*! Return 0 for success, or nonzero for error.
+ * See also UpdateFromPath().
+ */
+int PatchData::UpdateFromPathExtrapolate()
+{
 	if (!base_path) return 1;
 	if (!base_path->paths.n) return 2;
 	if (!base_path->paths.e[0]->path) return 3;
@@ -1016,6 +1130,7 @@ int PatchData::UpdateFromPath()
 
 	Path *path=base_path->paths.e[0];
 	path->UpdateCache(); // *** really only need width cache updated
+	path->UpdateS(true,10);
 
 	bool hasangle=path->Angled();
 
@@ -1026,10 +1141,12 @@ int PatchData::UpdateFromPath()
 	int numpathverts=path->NumVertices(&closed);
 	int numverts=numpathverts;
 	if (closed) numverts++;
-	double t, t2;
+	double t, t2=0;
 	for (int c=0; c<path->pathweights.n; c++) {
 		t=path->pathweights.e[c]->t;
 		if (fabs(t-int(t))<1e-8) continue;
+		if (t==t2) continue; //skip nodes at same t
+		t2=t;
 		numverts++;
 	}
 
@@ -1040,24 +1157,66 @@ int PatchData::UpdateFromPath()
 		delete[] points;
 		points=new flatpoint[nxs*nys];
 	}
+	xsize=nxs;
+	ysize=nys;
 
 	Coordinate *p=path->path, *p2;
 	flatpoint pp1, c1,c2, pp2, cv1, cv2;
 	Coordinate *start=p;
 	double r1,k1;
-	//double r2,k2;
+	double r2,k2;
 	double o, width, top, bottom, scaling, dd;
-	flatpoint np,nv;
+	flatpoint np,nv,wt;
 	flatpoint basep, po;
 	flatpoint ptop,  pbottom;
 	flatpoint ptop2, pbottom2;
 	flatpoint vtop,  vbottom,  vv, vt;
 	flatpoint vtop2, vbottom2, vv2,vt2;
 
-	int weighti=0, weighti2;
+	int weighti=0, weighti2=0;
 	int i=0, pi=0;
 	int isline;
 	bool onfirst=true;
+
+//	DBG cerr <<"Cache width:"<<endl;
+//	DBG path->cache_width.dump_out(stderr,2,0,NULL);
+//	for (double x=0; x<1; x+=.1) {
+//		cerr <<x<<"  "<<path->cache_width.f(x)<<endl;
+//	}
+//	cerr <<"tangents:"<<endl;
+//	for (double x=0; x<1; x+=.1) {
+//		flatpoint v=path->cache_width.tangent(x);
+//		cerr <<x<<"  "<<v.x<<"  "<<v.y<<endl;
+//	}
+
+	CurveInfo top_edge;
+	CurveInfo bottom_edge;
+	top_edge   .SetXBounds(path->cache_width.xmin, path->cache_width.xmax, NULL,0);
+	bottom_edge.SetXBounds(path->cache_width.xmin, path->cache_width.xmax, NULL,0);
+
+	for (int c=0; c<path->cache_width.points.n; c++) {
+		np=path->cache_width.MapUnitPoint(path->cache_width.points.e[c]);
+		o=path->cache_offset.f(np.x);
+
+		top_edge   .AddRawYPoint(np.x, o + np.y/2); 
+		bottom_edge.AddRawYPoint(np.x, o - np.y/2); 
+
+		DBG cerr <<"add point: "<<np.x<<' '<<np.y<<endl;
+	}
+	top_edge   .ComputeYBounds(.1);
+	bottom_edge.ComputeYBounds(.1);
+
+	DBG cerr <<"top_edge:"<<endl;
+	DBG for (double x=0; x<1; x+=.1) {
+	DBG 	cerr <<x<<"  "<<top_edge.f(x)<<endl;
+	DBG }
+	DBG top_edge.dump_out(stderr,2,0,NULL);
+
+	DBG cerr <<"bottom_edge:"<<endl;
+	DBG for (double x=0; x<1; x+=.1) {
+	DBG 	cerr <<x<<"  "<<bottom_edge.f(x)<<endl;
+	DBG }
+	DBG bottom_edge.dump_out(stderr,2,0,NULL);
 
 
 	do { //one loop per vertex
@@ -1080,12 +1239,25 @@ int PatchData::UpdateFromPath()
 
 			 //find next t, either next vertex or next weight node, if any
 			weighti2=weighti;
-			if (path->pathweights.n) {
-				while ((path->pathweights.e[weighti2]->t > i+t && path->pathweights.e[weighti2]->t<i+1)
-						|| fabs(path->pathweights.e[weighti2]->t-(i+t))<1e-10)
+			if (path->pathweights.n && weighti<path->pathweights.n) { 
+				 //advance past previous nodes
+				while (weighti2<path->pathweights.n && path->pathweights.e[weighti2]->t<i) weighti2++;
+
+				 //advance past nodes at current vertex
+				if (t==0) {
+					while (weighti2<path->pathweights.n && fabs(path->pathweights.e[weighti2]->t-i)<1e-10)
+						weighti2++;
+				}
+
+				 //advance past nodes <= current t 
+				while (weighti2<path->pathweights.n  &&  path->pathweights.e[weighti2]->t <= i+t) 
 					weighti2++;
-				t2=path->pathweights.e[weighti2]->t-i;
-				if (fabs(1-t2)<1e-10) t2=1;
+
+				if (weighti2<path->pathweights.n) {
+					t2=path->pathweights.e[weighti2]->t-i;
+					if (fabs(1-t2)<1e-10) t2=1;
+					if (t2>1) t2=1;
+				} else t2=1;
 			} else t2=1;
 
 
@@ -1104,6 +1276,10 @@ int PatchData::UpdateFromPath()
 			vt.normalize();
 			if (vt.isZero()) vt.x=1;
 
+
+			 //
+			 //----find top and bottom at t1
+			 //
 			o=path->cache_offset.f(i+t);
 			basep=bez_point(t, pp1, c1, c2, pp2); //original line point at t
 			po=basep + vt*o; //point at centerline
@@ -1123,21 +1299,38 @@ int PatchData::UpdateFromPath()
 			k1=curvature_at_t(t, pp1, c1,c2, pp2);
 			//k1=end_curvature(pp2, c2,c1, pp1);
 			if (k1==0) k1=1e-10;
-			r1=1/k1;
+			r1=3/k1;
 
 			 //scale attached control rods by ratio of (new dist from curvature center) / (old dist - c center)
 			scaling=(top+r1)/r1;
+			if (scaling<0) scaling=0;
 			vbottom = vv*scaling;
 			scaling=(bottom+r1)/r1;
+			if (scaling<0) scaling=0;
 			vtop    = vv*scaling;
 
-			// //rotate new tangent by rotation seen in offset curve
-			//*** //does not adequately account for offset
-			//wt=cache_width.tangent(t);
-			//nv=flatpoint(wt.x*nv.x - wt.y*nv.y, wt.y*nv.x + wt.y*nv.y);
+			 //rotate new tangent by rotation seen in offset curve
+			wt=top_edge.tangent(i+t);
+			wt.x*=p->next_s;
+			wt.normalize();
+			nv=vtop;
+			nv=flatpoint(nv.x*wt.x - nv.y*wt.y, nv.y*wt.x + nv.x*wt.y);
+			vtop=nv;
+
+			wt=bottom_edge.tangent(i+t);
+			DBG cerr <<"wt.1= "<<wt.x<<"  "<<wt.y<<endl;
+			wt.x*=p->next_s;
+			//wt.y=-wt.y;
+			wt.normalize();
+			DBG cerr <<"wt.2= "<<wt.x<<"  "<<wt.y<<endl;
+			nv=vbottom;
+			nv=flatpoint(nv.x*wt.x - nv.y*wt.y, nv.y*wt.x + nv.x*wt.y);
+			vbottom=nv;
 
 
-			 //---compute p2 and v2 at next vertex
+			 //
+			 //----find top and bottom at t2
+			 //
 			vt2=transpose(vv2);
 			vt2.normalize();
 			if (vt2.isZero()) vt2.x=1;
@@ -1157,22 +1350,36 @@ int PatchData::UpdateFromPath()
 			top    = o + width/2;
 			bottom = o - width/2;
 	 
-			 //need curvature for path at t
-			k1=curvature_at_t(t2, pp1, c1,c2, pp2);
-			//k1=end_curvature(pp2, c2,c1, pp1);
-			if (k1==0) k1=1e-10;
-			r1=1/k1;
+			 //need curvature for path at t2
+			k2=curvature_at_t(t2, pp1, c1,c2, pp2);
+			//k2=end_curvature(pp2, c2,c1, pp1);
+			if (k2==0) k2=1e-10;
+			r2=3/k2;
 
 			 //scale attached control rods by ratio of (new dist from curvature center) / (old dist - c center)
-			scaling=(top+r1)/r1;
+			scaling=(top+r2)/r2;
+			if (scaling<0) scaling=0;
 			vbottom2 = vv2*scaling;
-			scaling=(bottom+r1)/r1;
+			scaling=(bottom+r2)/r2;
+			if (scaling<0) scaling=0;
 			vtop2    = vv2*scaling;
 
-			// //rotate new tangent by rotation seen in offset curve
+			 //rotate new tangent by rotation seen in offset curve
 			//*** //does not adequately account for offset
-			//wt=cache_width.tangent(t);
-			//nv=flatpoint(wt.x*nv.x - wt.y*nv.y, wt.y*nv.x + wt.y*nv.y);
+			wt=top_edge.tangent(i+t2);
+			wt.x*=p->next_s;
+			wt.normalize();
+			nv=vtop2;
+			nv=flatpoint(nv.x*wt.x - nv.y*wt.y, nv.y*wt.x + nv.x*wt.y);
+			vtop2=nv;
+
+			wt=bottom_edge.tangent(i+t2);
+			wt.x*=p->next_s;
+			//wt.y=-wt.y;
+			wt.normalize();
+			nv=vbottom2;
+			nv=flatpoint(nv.x*wt.x - nv.y*wt.y, nv.y*wt.x + nv.x*wt.y);
+			vbottom2=nv;
 
 			 //now populate points with interpolated things
 			for (int c=0; c<nys; c++) { 
@@ -1223,6 +1430,35 @@ int PatchData::RemovePath()
 {
 	if (base_path) base_path->dec_count();
 	base_path=NULL;
+	return 0;
+}
+
+/*! Installing NULL is same as calling RemovePath().
+ *
+ * Return 0 for success, or nonzero for error.
+ * It is an error for the path to have other than exactly one subpath, 
+ * which must have at least 2 vertices (or one closed path).
+ *
+ * Count of path is incremented.
+ */
+int PatchData::InstallPath(PathsData *path)
+{
+	if (!path) return RemovePath();
+	if (path->paths.n!=1) return 1;
+	if (!path->paths.e[0]->path) return 1;
+
+	Coordinate *p=path->paths.e[0]->path->nextVertex(1);
+	if (!p) return 2;
+
+	p=p->nextVertex(0);
+	if (!p) return 3;
+
+	if (base_path) base_path->dec_count();
+	base_path=path; 
+	if (base_path) base_path->inc_count();
+
+	UpdateFromPath();
+	touchContents();
 	return 0;
 }
 
@@ -2554,7 +2790,6 @@ const char *PatchInterface::Name()
 
 Laxkit::MenuInfo *PatchInterface::ContextMenu(int x,int y,int deviceid, Laxkit::MenuInfo *menu)
 {
-//	--------- *** this might be better as a config box on canvas? too many options that have associated numbers
 	int alreadythere=(menu==NULL?0:1);
 	int needsheader=0;
 	if (menu && menu->n()) needsheader=1;
@@ -2596,6 +2831,7 @@ Laxkit::MenuInfo *PatchInterface::ContextMenu(int x,int y,int deviceid, Laxkit::
 int PatchInterface::ActivatePathInterface()
 {
 	if (!data || !data->base_path) return 1;
+	data->base_path->m(data->m());
 
 	PathInterface *pathi=dynamic_cast<PathInterface*>(child);
 
@@ -2618,7 +2854,7 @@ int PatchInterface::ActivatePathInterface()
 
 		child=pathi;
 		pathi->owner=this;
-		viewport->Push(pathi,-1,0);
+		viewport->Push(pathi,viewport->HasInterface(object_id)+1,0);
 	}
 
 	ObjectContext *oc=poc->duplicate();
@@ -2672,10 +2908,12 @@ int PatchInterface::Event(const Laxkit::EventData *e_data, const char *mes)
 
 		return 1; //unknown menu item
 
-	} else if (!strcmp(mes,"child")) {
+	} else if (!strcmp(mes,"PathInterface")) {
 		if (data) {
-			data->UpdateFromPath();
-			needtodraw=1;
+			if (data->UsesPath()) {
+				data->UpdateFromPath();
+				needtodraw=1;
+			}
 		}
 		return 0;
 	}
@@ -2783,6 +3021,8 @@ int PatchInterface::UseThisObject(ObjectContext *oc)
 			ActivatePathInterface();
 		}
 	}
+
+	AddToSelection(poc);
 
 	curpoints.flush();
 	needtodraw=1;
@@ -3182,292 +3422,297 @@ int PatchInterface::Refresh()
 	//DBG cerr <<endl;
 	needtodraw=0;
 	return 0;
-	}
+}
 
-	//! Draw a single point. This is for the hoverpoint, and is called from Refresh().
-	void PatchInterface::drawControlPoint(int i)
-	{
-		if (!data || i<0 || i>=data->xsize*data->ysize) return;
+//! Draw a single point. This is for the hoverpoint, and is called from Refresh().
+void PatchInterface::drawControlPoint(int i)
+{
+	if (!data || i<0 || i>=data->xsize*data->ysize) return;
 
-		flatpoint p;
-		//p=dp->realtoscreen(data->points[i]);
-		p=data->points[i];
+	flatpoint p;
+	//p=dp->realtoscreen(data->points[i]);
+	p=data->points[i];
 
-		dp->NewFG(controlcolor);
-		dp->drawpoint(p.x,p.y,5,1);
-		dp->NewFG(~0);
-		dp->drawpoint(p.x,p.y,5,0);
-		dp->NewFG(0,0,0);
-		dp->drawpoint(p.x,p.y,6,0);
-	}
+	dp->NewFG(controlcolor);
+	dp->drawpoint(p.x,p.y,5,1);
+	dp->NewFG(~0);
+	dp->drawpoint(p.x,p.y,5,0);
+	dp->NewFG(0,0,0);
+	dp->drawpoint(p.x,p.y,6,0);
+}
 
-	/*! \todo in the future someday, might be useful to only show control points for "active" subpatches,
-	 *    or when shift-hovering
-	 */
-	void PatchInterface::drawControlPoints()
-	{
-		if (!data) return;
+/*! \todo in the future someday, might be useful to only show control points for "active" subpatches,
+ *    or when shift-hovering
+ */
+void PatchInterface::drawControlPoints()
+{
+	if (!data) return;
 
-		int r,c;
-		flatpoint p;
-		int rr;
-		for (int c=0; c<data->xsize*data->ysize; c++) {
-			//p=dp->realtoscreen(data->points[c]);
-			p=data->points[c];
-			if (selectablePoint(c)) {
-				//draw points with outer black circle, and just inside that a white circle
-				if ((c/data->xsize)%3==0 && (c%data->xsize)%3==0) rr=4; else rr=3;
-				dp->NewFG(controlcolor);
-				dp->drawpoint(p.x,p.y,rr,0);
+	int r,c;
+	flatpoint p;
+	int rr;
+	for (int c=0; c<data->xsize*data->ysize; c++) {
+		//p=dp->realtoscreen(data->points[c]);
+		p=data->points[c];
+		if (selectablePoint(c)) {
+			//draw points with outer black circle, and just inside that a white circle
+			if ((c/data->xsize)%3==0 && (c%data->xsize)%3==0) rr=4; else rr=3;
+			dp->NewFG(controlcolor);
+			dp->drawpoint(p.x,p.y,rr,0);
 
-				if ((c/data->xsize)%3==0 && (c%data->xsize)%3==0) dp->NewFG(50,50,50); //is vertex point
-				else dp->NewFG((unsigned long)0);//is control point
-				dp->drawpoint(p.x,p.y,rr+1,0);
-			} else {
-				//DBG cerr <<" Nope"<<endl;
-				// //draw an x
-				//dp->NewFG(controlcolor);
-				//dp->draw((int)p.x,(int)p.y, 7,7, 0, 8);
-			}
-			//DBG else cerr <<" Yep"<<endl;
-			//DBG sprintf(blah,"%d",c);
-			//DBG dp->textout((int)p.x+10,(int)p.y,blah,strlen(blah),LAX_CENTER);
+			if ((c/data->xsize)%3==0 && (c%data->xsize)%3==0) dp->NewFG(50,50,50); //is vertex point
+			else dp->NewFG((unsigned long)0);//is control point
+			dp->drawpoint(p.x,p.y,rr+1,0);
+		} else {
+			//DBG cerr <<" Nope"<<endl;
+			// //draw an x
+			//dp->NewFG(controlcolor);
+			//dp->draw((int)p.x,(int)p.y, 7,7, 0, 8);
 		}
-		dp->NewFG(controlcolor);
-		//draw little arrows for inner controls to point to outer corners
-		if (whichcontrols==Patch_Full_Bezier) {
-			for (r=0; r<data->ysize-1; r+=3) {
-				for (c=0; c<data->xsize-1; c+=3) {
-					dp->drawarrow(data->points[(r+1)*data->xsize+c+1],
-							data->points[r*data->xsize+c]-data->points[(r+1)*data->xsize+c+1],0,.2,2);
-					dp->drawarrow(data->points[(r+1)*data->xsize+c+2],
-							data->points[r*data->xsize+c+3]-data->points[(r+1)*data->xsize+c+2],0,.2,2);
-					dp->drawarrow(data->points[(r+2)*data->xsize+c+1],
-							data->points[(r+3)*data->xsize+c]-data->points[(r+2)*data->xsize+c+1],0,.2,2);
-					dp->drawarrow(data->points[(r+2)*data->xsize+c+2],
-							data->points[(r+3)*data->xsize+c+3]-data->points[(r+2)*data->xsize+c+2],0,.2,2);
-				}
-			}
-		}
-
-		// curpoints
-		if (curpoints.n) {
-			//dp->DrawScreen();
-			for (int c=0; c<curpoints.n; c++) {
-				//p=dp->realtoscreen(data->points[curpoints.e[c]]);
-				p=data->points[curpoints.e[c]];
-				dp->drawpoint(p.x,p.y,3,1);  // draw curpoint
-			}
-			//dp->DrawReal();
-		}
+		//DBG else cerr <<" Yep"<<endl;
+		//DBG sprintf(blah,"%d",c);
+		//DBG dp->textout((int)p.x+10,(int)p.y,blah,strlen(blah),LAX_CENTER);
 	}
-
-	/*! *** need better scanning, to start at point after currently selected
-	 * // no pick wild,start,end,  picks closest within a distance
-	 * // *** only checks points, no online jazz
-	 */
-	int PatchInterface::scan(int x,int y)
-	{
-		if (!data) return -1;
-		flatpoint p,p2;
-		p=screentoreal(x,y);
-		double d=5/dp->Getmag(),dd;//*** Getmag or dp->Getmag??
-		//DBG cerr <<"scan d="<<d<<"(x,y)="<<p.x<<','<<p.y<<endl;
-
-		d*=d;
-		int closest=-1;
-		// scan for control points
-		int c;
-		for (c=0; c<data->xsize*data->ysize; c++) {
-			p2=transform_point(data->m(),data->points[c]);
-			dd=(p2.x-p.x)*(p2.x-p.x)+(p2.y-p.y)*(p2.y-p.y);
-			//DBG cerr <<"  scan "<<c<<", d="<<dd<<"  ";
-			if (dd<d) {
-				d=dd;
-				closest=c;
+	dp->NewFG(controlcolor);
+	//draw little arrows for inner controls to point to outer corners
+	if (whichcontrols==Patch_Full_Bezier) {
+		for (r=0; r<data->ysize-1; r+=3) {
+			for (c=0; c<data->xsize-1; c+=3) {
+				dp->drawarrow(data->points[(r+1)*data->xsize+c+1],
+						data->points[r*data->xsize+c]-data->points[(r+1)*data->xsize+c+1],0,.2,2);
+				dp->drawarrow(data->points[(r+1)*data->xsize+c+2],
+						data->points[r*data->xsize+c+3]-data->points[(r+1)*data->xsize+c+2],0,.2,2);
+				dp->drawarrow(data->points[(r+2)*data->xsize+c+1],
+						data->points[(r+3)*data->xsize+c]-data->points[(r+2)*data->xsize+c+1],0,.2,2);
+				dp->drawarrow(data->points[(r+2)*data->xsize+c+2],
+						data->points[(r+3)*data->xsize+c+3]-data->points[(r+2)*data->xsize+c+2],0,.2,2);
 			}
 		}
-		//DBG cerr <<" found:"<<closest<<endl;
-		//DBG cerr <<" scan found closest:"<<closest<<"  at d="<<d<<" (x,y)="<<p.x<<','<<p.y<<endl;
-		return closest; // scan never checks a wildpoint
 	}
 
-	//! Return whether point c is ok to select.
-	/*! For instance, in a Coons patch, the inner controls for each
-	 * subsection are not selectable.
-	 */
-	int PatchInterface::selectablePoint(int i)
-	{
-		if (!data) return 0;
-
-		int c,r;
-		c=i%data->xsize;
-		r=i/data->xsize;
-		//DBG cerr <<"============== check r,c:"<<r<<','<<c<<": ";
-		if (whichcontrols==Patch_Border_Only) {
-			// controls on outer edges only
-			return c==0 || r==0 || r==data->ysize-1 || c==data->xsize-1;
-		} else if (whichcontrols==Patch_Coons) {
-			// all but the inner 4 controls of each subsection
-			return c%3==0 || r%3==0;
-		} else if (whichcontrols==Patch_Linear) {
-			// the outer 4 corners only
-			return (c==0 && r==0)
-				|| (c==0 && r==data->ysize-1)
-				|| (c==data->xsize-1 && r==0 )
-				|| (c==data->xsize-1 && r==data->ysize-1);
-		} 
-		return 1;
-	}
-
-	/*! Returns num of points selected.
-	 */
-	int PatchInterface::SelectPoint(int c,unsigned int state)
-	{
-		if (!data) return 0;
-		if (c<0 || c>=data->xsize*data->ysize) return 0;
-		if (!(state&ShiftMask)) curpoints.flush();
-		for (int cc=0; cc<curpoints.n; cc++) {
-			if (c==curpoints.e[cc]) {
-				curpoints.pop(cc);
-				needtodraw|=2;
-				return curpoints.n;
-			}
+	// curpoints
+	if (curpoints.n) {
+		//dp->DrawScreen();
+		for (int c=0; c<curpoints.n; c++) {
+			//p=dp->realtoscreen(data->points[curpoints.e[c]]);
+			p=data->points[curpoints.e[c]];
+			dp->drawpoint(p.x,p.y,3,1);  // draw curpoint
 		}
-		curpoints.push(c);
-		needtodraw|=2;
-		return curpoints.n;
+		//dp->DrawReal();
 	}
+}
 
-	/*! By default allow any object that can be cast to PatchInterface.
-	 *
-	 * Return the index of the item in the selection after adding new.
-	 * Return -1 if item already in the selection.
-	 * Return -2 for unable to add for some reason.
-	 */
-	int PatchInterface::AddToSelection(ObjectContext *oc)
-	{
-		if (!oc || !oc->obj) return -2;
-		if (!dynamic_cast<PatchData*>(oc->obj)) return -3; //not a patch object!
-		return selection->AddNoDup(oc,-1);
-	}
+/*! *** need better scanning, to start at point after currently selected
+ * // no pick wild,start,end,  picks closest within a distance
+ * // *** only checks points, no online jazz
+ */
+int PatchInterface::scan(int x,int y)
+{
+	if (!data) return -1;
+	flatpoint p,p2;
+	p=screentoreal(x,y);
+	double d=5/dp->Getmag(),dd;//*** Getmag or dp->Getmag??
+	//DBG cerr <<"scan d="<<d<<"(x,y)="<<p.x<<','<<p.y<<endl;
 
-	int PatchInterface::LBDown(int x,int y,unsigned int state,int count,const Laxkit::LaxMouse *d)
-	{
-		//DBG cerr << "  in patch lbd..";
-		if (buttondown.any()) return 0;
-		mx=bx=x;
-		my=by=y;
-		mousedragged=0;
-		dragmode=0;
-		hoverpoint=-1;
-
-		// straight click
-		int c=scan(x,y);
-		if (c>=0) { // scan found one...
-			SelectPoint(c,state);
-			if (overv>=0 || overh>=0) {
-				overv=overh=-1;
-				needtodraw=1;
-			}
-			buttondown.down(d->id,LEFTBUTTON);
-			return 0;
+	d*=d;
+	int closest=-1;
+	// scan for control points
+	int c;
+	for (c=0; c<data->xsize*data->ysize; c++) {
+		p2=transform_point(data->m(),data->points[c]);
+		dd=(p2.x-p.x)*(p2.x-p.x)+(p2.y-p.y)*(p2.y-p.y);
+		//DBG cerr <<"  scan "<<c<<", d="<<dd<<"  ";
+		if (dd<d) {
+			d=dd;
+			closest=c;
 		}
-		//DBG cerr <<"  no patch point found  ";
+	}
+	//DBG cerr <<" found:"<<closest<<endl;
+	//DBG cerr <<" scan found closest:"<<closest<<"  at d="<<d<<" (x,y)="<<p.x<<','<<p.y<<endl;
+	return closest; // scan never checks a wildpoint
+}
 
+//! Return whether point c is ok to select.
+/*! For instance, in a Coons patch, the inner controls for each
+ * subsection are not selectable.
+ */
+int PatchInterface::selectablePoint(int i)
+{
+	if (!data) return 0;
+
+	int c,r;
+	c=i%data->xsize;
+	r=i/data->xsize;
+	//DBG cerr <<"============== check r,c:"<<r<<','<<c<<": ";
+	if (whichcontrols==Patch_Border_Only) {
+		// controls on outer edges only
+		return c==0 || r==0 || r==data->ysize-1 || c==data->xsize-1;
+	} else if (whichcontrols==Patch_Coons) {
+		// all but the inner 4 controls of each subsection
+		return c%3==0 || r%3==0;
+	} else if (whichcontrols==Patch_Linear) {
+		// the outer 4 corners only
+		return (c==0 && r==0)
+			|| (c==0 && r==data->ysize-1)
+			|| (c==data->xsize-1 && r==0 )
+			|| (c==data->xsize-1 && r==data->ysize-1);
+	} 
+	return 1;
+}
+
+/*! Returns num of points selected.
+ */
+int PatchInterface::SelectPoint(int c,unsigned int state)
+{
+	if (!data) return 0;
+	if (c<0 || c>=data->xsize*data->ysize) return 0;
+	if (!(state&ShiftMask)) curpoints.flush();
+	for (int cc=0; cc<curpoints.n; cc++) {
+		if (c==curpoints.e[cc]) {
+			curpoints.pop(cc);
+			needtodraw|=2;
+			return curpoints.n;
+		}
+	}
+	curpoints.push(c);
+	needtodraw|=2;
+	return curpoints.n;
+}
+
+/*! By default allow any object that can be cast to PatchInterface.
+ *
+ * Return the index of the item in the selection after adding new.
+ * Return -1 if item already in the selection.
+ * Return -2 for unable to add for some reason.
+ */
+int PatchInterface::AddToSelection(ObjectContext *oc)
+{
+	if (!oc || !oc->obj) return -2;
+	if (!dynamic_cast<PatchData*>(oc->obj)) return -3; //not a patch object!
+
+	if (!selection) selection=new Selection;
+	return selection->AddNoDup(oc,-1);
+}
+
+int PatchInterface::LBDown(int x,int y,unsigned int state,int count,const Laxkit::LaxMouse *d)
+{
+	//DBG cerr << "  in patch lbd..";
+	if (buttondown.any()) return 1;
+	if (child) return 1;
+
+	mx=bx=x;
+	my=by=y;
+	mousedragged=0;
+	dragmode=0;
+	hoverpoint=-1;
+
+	// straight click
+	int c=scan(x,y);
+	if (c>=0) { // scan found one...
+		SelectPoint(c,state);
+		if (overv>=0 || overh>=0) {
+			overv=overh=-1;
+			needtodraw=1;
+		}
 		buttondown.down(d->id,LEFTBUTTON);
+		return 0;
+	}
+	//DBG cerr <<"  no patch point found  ";
 
-		// click on nothing deselects any selected points
-		if (curpoints.n) {
-			if ((state&LAX_STATE_MASK)==0) {
-				curpoints.flush();
-				needtodraw=1;
+	buttondown.down(d->id,LEFTBUTTON);
+
+	// click on nothing deselects any selected points
+	if (curpoints.n) {
+		if ((state&LAX_STATE_MASK)==0) {
+			curpoints.flush();
+			needtodraw=1;
+		}
+		return 0;
+	}
+
+	//	if (data) { // is going to select points within rect***
+	//		if (!(state&ShiftMask)) { curpoints.flush(); needtodraw=1; }
+	//		drawselrect();
+	//		return 0; 
+	//	}
+
+	transform_identity(movetransform);
+	if (data && overstate==0 && (overh>=0 || overv>=0)) {
+		if ((state&LAX_STATE_MASK)==0) {
+			int i;
+			if (overh>=0) {
+				for (int c=0; c<data->xsize; c++) {
+					i=3*overh*data->xsize+c;
+					SelectPoint(i,ShiftMask);
+					if (smoothedit) { // add adjacent control points
+						if (3*overh<data->ysize-1) SelectPoint(i+data->xsize,ShiftMask);
+						if (overh>0) SelectPoint(i-data->xsize,ShiftMask);
+					}
+				}
 			}
+			if (overv>=0) {
+				for (int r=0; r<data->ysize; r++) {
+					i=r*data->xsize+3*overv;
+					SelectPoint(i,ShiftMask);
+					if (smoothedit) { // add adjacent control points
+						if (3*overv<data->xsize-1) SelectPoint(i+1,ShiftMask);
+						if (overv>0) SelectPoint(i-1,ShiftMask);
+					}
+				}
+			}
+			overv=overh=-1;
+			dragmode=0;
+			needtodraw=1;
+			return 0;
+
+		} else if ((state&LAX_STATE_MASK)==ShiftMask) {
+			//extend off outer edge
+			//DBG cerr <<"   changing dragmode "<<endl;
+			dragmode=DRAG_ADD_EDGE;
+			lbdown=transform_point_inverse(data->m(),screentoreal(x,y));
+			transform_identity(movetransform);
+			//***better to use plain transform, compute points in refresh?
+			//			if (movepts) { delete[] movepts;  movepts=NULL; }
+			//			if (overh==0) {
+			//				movepts=new flatpoint[data->xsize+2];
+			//				for (int c=0; c<data->xsize; c++) movepts[c+1]=data->points[c];
+			//			} else if (overh>0) {
+			//				movepts=new flatpoint[data->xsize+2];
+			//				for (int c=0; c<data->xsize; c++) movepts[c+1]=data->points[(data->ysize-1)*data->xsize+c];
+			//			} else if (overv>0) {
+			//				movepts=new flatpoint[data->ysize+2];
+			//				for (int c=0; c<data->ysize; c++) movepts[c+1]=data->points[(data->ysize-1)*data->xsize+c];
+			//			} else {
+			//				movepts=new flatpoint[data->ysize+2];
+			//			}
+			overcv=overch=-1;
+			needtodraw=1;
 			return 0;
 		}
+	}
 
-		//	if (data) { // is going to select points within rect***
-		//		if (!(state&ShiftMask)) { curpoints.flush(); needtodraw=1; }
-		//		drawselrect();
-		//		return 0; 
-		//	}
+	if (viewport) {
+		SomeData *obj=NULL;
+		ObjectContext *oc=NULL;
+		int c=viewport->FindObject(x,y,whatdatatype(),NULL,1,&oc);
+		if (oc) obj=oc->obj;
+		if (c>0) {
+			//found another patch object to work on
+			viewport->ChangeObject(oc,0);
+			deletedata();
+			data=dynamic_cast<PatchData*>(obj);
+			poc=oc->duplicate();
+			data->inc_count();
 
-		transform_identity(movetransform);
-		if (data && overstate==0 && (overh>=0 || overv>=0)) {
-			if ((state&LAX_STATE_MASK)==0) {
-				int i;
-				if (overh>=0) {
-					for (int c=0; c<data->xsize; c++) {
-						i=3*overh*data->xsize+c;
-						SelectPoint(i,ShiftMask);
-						if (smoothedit) { // add adjacent control points
-							if (3*overh<data->ysize-1) SelectPoint(i+data->xsize,ShiftMask);
-							if (overh>0) SelectPoint(i-data->xsize,ShiftMask);
-						}
-					}
-				}
-				if (overv>=0) {
-					for (int r=0; r<data->ysize; r++) {
-						i=r*data->xsize+3*overv;
-						SelectPoint(i,ShiftMask);
-						if (smoothedit) { // add adjacent control points
-							if (3*overv<data->xsize-1) SelectPoint(i+1,ShiftMask);
-							if (overv>0) SelectPoint(i-1,ShiftMask);
-						}
-					}
-				}
-				overv=overh=-1;
-				dragmode=0;
-				needtodraw=1;
-				return 0;
-
-			} else if ((state&LAX_STATE_MASK)==ShiftMask) {
-				//extend off outer edge
-				//DBG cerr <<"   changing dragmode "<<endl;
-				dragmode=DRAG_ADD_EDGE;
-				lbdown=transform_point_inverse(data->m(),screentoreal(x,y));
-				transform_identity(movetransform);
-				//***better to use plain transform, compute points in refresh?
-				//			if (movepts) { delete[] movepts;  movepts=NULL; }
-				//			if (overh==0) {
-				//				movepts=new flatpoint[data->xsize+2];
-				//				for (int c=0; c<data->xsize; c++) movepts[c+1]=data->points[c];
-				//			} else if (overh>0) {
-				//				movepts=new flatpoint[data->xsize+2];
-				//				for (int c=0; c<data->xsize; c++) movepts[c+1]=data->points[(data->ysize-1)*data->xsize+c];
-				//			} else if (overv>0) {
-				//				movepts=new flatpoint[data->ysize+2];
-				//				for (int c=0; c<data->ysize; c++) movepts[c+1]=data->points[(data->ysize-1)*data->xsize+c];
-				//			} else {
-				//				movepts=new flatpoint[data->ysize+2];
-				//			}
-				overcv=overch=-1;
-				needtodraw=1;
-				return 0;
+			//set up path interface if necessary
+			if (data->base_path) {
+				ActivatePathInterface();
 			}
-		}
-
-		if (viewport) {
-			SomeData *obj=NULL;
-			ObjectContext *oc=NULL;
-			int c=viewport->FindObject(x,y,whatdatatype(),NULL,1,&oc);
-			if (oc) obj=oc->obj;
-			if (c>0) {
-				//found another patch object to work on
-				viewport->ChangeObject(oc,0);
-				deletedata();
-				data=dynamic_cast<PatchData*>(obj);
-				poc=oc->duplicate();
-				data->inc_count();
-
-				//set up path interface if necessary
-				if (data->base_path) {
-					ActivatePathInterface();
-				}
 
 			needtodraw=1;
 			return 0;
 		}
+		
 		if (!primary) {
 			 //clicked on some other object, switch to that one
 			if (obj && c==-1 && viewport->ChangeObject(oc,1)) {
@@ -3508,6 +3753,7 @@ int PatchInterface::Refresh()
 int PatchInterface::LBUp(int x,int y,unsigned int state,const Laxkit::LaxMouse *d) 
 {
 	if (!buttondown.isdown(d->id,LEFTBUTTON)) return 1;
+
 	buttondown.up(d->id,LEFTBUTTON);
 	if (dragmode==DRAG_ADD_EDGE || dragmode==DRAG_SHIFT_EDGE) {
 		 //add off to side
@@ -4179,6 +4425,8 @@ int PatchInterface::PerformAction(int action)
 
 int PatchInterface::CharInput(unsigned int ch, const char *buffer,int len,unsigned int state,const Laxkit::LaxKeyboard *d) 
 {
+	if (child) return 1;
+
 	if (ch==LAX_Shift || ch==LAX_Control) {
 		MouseMove(mx,my,state,d->paired_mouse);
 		return 0;

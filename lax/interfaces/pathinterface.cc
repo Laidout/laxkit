@@ -180,6 +180,8 @@ Path::Path()
 {
 	//cache_mod_time=0;
 	needtorecache=1;
+	cache_types=0; //if 1, then also compute cache_top and cache_bottom
+	cache_samples=10;
 	defaultwidth=1./72;
 	absoluteangle=false;
 }
@@ -196,6 +198,8 @@ Path::Path(Coordinate *np,LineStyle *nls)
 
 	//cache_mod_time=0;
 	needtorecache=1;
+	cache_samples=10;
+	cache_types=0; //if 1, then also compute cache_top and cache_bottom
 }
 
 //! Destructor always deletes path.
@@ -788,6 +792,9 @@ void Path::UpdateCache()
 	outlinecache.flush();
 	centercache .flush();
 
+	cache_top   .flush();
+	cache_bottom.flush();
+
 	Coordinate *p2, *start=p;
 	flatpoint wtop,wbottom;
 	flatpoint woffset,wwidth;
@@ -827,7 +834,7 @@ void Path::UpdateCache()
 	int ignorefirst=0; //we need to render the 1st sample point in a segment
 
 
-	int nsamples=10;
+	int nsamples=cache_samples;
 	NumStack<flatpoint> bez;
 	NumStack<double> bezt;
 	bezt.Allocate(2*nsamples);
@@ -931,6 +938,11 @@ void Path::UpdateCache()
 			topp   .push(po + vt*width/2);
 			bottomp.push(po - vt*width/2);
 			if (hasoffset) centerp.push(po);
+
+			if (cache_types&1) {
+				cache_top   .push(topp   .e[topp.n   -1]);
+				cache_bottom.push(bottomp.e[bottomp.n-1]);
+			}
 		}
 
 		if (!hasoffset) {
@@ -1168,6 +1180,17 @@ void Path::UpdateCache()
 	centercache.insertArray(aa,n);
 	if (closed) centercache.e[centercache.n-1].info|=LINE_Closed;
 
+	if (cache_types&1) {
+		 //we create a matched top and bottom point list, ignoring joins (for now)
+		 //such as can be easily used as a basis for a mesh...
+		flatpoint *ppp=new flatpoint[cache_top.n*3];
+		bez_from_points(ppp, cache_top.e,cache_top.n);
+		cache_top.insertArray(ppp,cache_top.n*3);
+
+		ppp=new flatpoint[cache_bottom.n*3];
+		bez_from_points(ppp, cache_bottom.e,cache_bottom.n);
+		cache_bottom.insertArray(ppp,cache_bottom.n*3);
+	}
 
 	needtorecache=0;
 }
@@ -1431,15 +1454,21 @@ int Path::MoveWeight(int which, double nt)
 {
 	if (which<0 || which>=pathweights.n) return -1;
 
+	if (nt<0) {
+		DBG cerr <<" *** WARNING! NEGATIVE t in Path::MoveWeight!!"<<endl;
+		nt=0;
+	}
+
 	PathWeightNode *w=pathweights.e[which];
 	w->t=nt;
 	int npos=which;
-	while (npos>0 && w->t<pathweights.e[npos-1]->t) npos--;
+	while (npos>0 && nt<pathweights.e[npos-1]->t) npos--;
+
 	if (npos==which) {
-		while (npos<pathweights.n-1 && w->t>pathweights.e[npos+1]->t) npos++;
+		while (npos<pathweights.n-1 && nt>pathweights.e[npos+1]->t) npos++;
 	}
 	if (npos!=which) {
-		if (npos>which) npos--;
+		//if (npos>which) npos--;
 		pathweights.pop(which);
 		pathweights.push(w,1,npos);
 	}
@@ -3622,6 +3651,7 @@ int PathInterface::DeleteCurpoints()
 		if (DeletePoint(curpoints.e[0])!=0) break; //this will remove from curpoints, break out of loop on fail
 	}
 	if (data) data->FindBBox();
+	Modified(0);
 	needtodraw=1;
 	return 0;
 }
@@ -5262,8 +5292,10 @@ PathsData *PathInterface::newPathsData()
 void PathInterface::Modified(int level)
 {
 	if (owner) {
-		EventData *ev=new EventData("child");
-		anXApp::app->SendMessage(ev, owner->object_id, "child",object_id);
+		const char *message=owner_message;
+		if (!message) message=whattype();
+		EventData *ev=new EventData(message);
+		anXApp::app->SendMessage(ev, owner->object_id, message,object_id);
 		return;
 	}
 }
@@ -5349,7 +5381,9 @@ int PathInterface::AddPoint(flatpoint p)
 		curpoints.push(cp,0);
 		curpath->needtorecache=1;
 		data->FindBBox();
+		Modified(0);
 		needtodraw=1;
+
 	} else {
 		delete np;
 		PostMessage(_("Couldn't add point"));
@@ -5552,6 +5586,7 @@ int PathInterface::MergeEndpoints(Coordinate *from,int fromi, Coordinate *to,int
 int PathInterface::LBUp(int x,int y,unsigned int state,const LaxMouse *d)
 {
 	if (!buttondown.isdown(d->id,LEFTBUTTON)) return 1;
+
 	int i1;
 	int action;
 	int xi,yi;
@@ -5579,6 +5614,7 @@ int PathInterface::LBUp(int x,int y,unsigned int state,const LaxMouse *d)
 		data->paths.e[pathi]->GetWeight(t, &width, &offset, &angle);
 		data->paths.e[pathi]->AddWeightNode(t,offset,width,angle);
 
+		Modified(0);
 		show_weights=true;
 		drawhover=HOVER_None;
 		needtodraw=1;
@@ -5587,6 +5623,7 @@ int PathInterface::LBUp(int x,int y,unsigned int state,const LaxMouse *d)
 	} else if (action==HOVER_RemoveWeightNode) {
 		data->paths.e[drawpathi]->RemoveWeightNode(drawhoveri);
 
+		Modified(0);
 		drawhover=HOVER_None;
 		needtodraw=1;
 		return 0;
@@ -5761,6 +5798,7 @@ int PathInterface::CutNear(flatpoint hoverpoint)
 	curpath->needtorecache=1;
 	SetCurvertex(p1,pathi);
 
+	Modified(0); 
 	return 0;
 }
 
@@ -6118,8 +6156,8 @@ int PathInterface::MouseMove(int x,int y,unsigned int state,const LaxMouse *mous
 		flatpoint pp;
 		//--------
 		double t;
-		path->ClosestPoint(p1, NULL, NULL, &t);
-		drawhoveri=path->MoveWeight(drawhoveri, t);
+		path->ClosestPoint(transform_point_inverse(data->m(),p1), NULL, NULL, &t);
+		//drawhoveri=path->MoveWeight(drawhoveri, t);
 		//---------
 		// //try to map node based on relation as when originally clicked down (needs work)
 		//PathWeightNode *weight=path->pathweights.e[drawhoveri];

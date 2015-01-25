@@ -42,9 +42,12 @@ enum FreehandEditorStyles {
 	FREEHAND_Color_Mesh      =(1<<7), //Create a ColorPatchData using pressure and a gradient
 	FREEHAND_Double_Mesh     =(1<<8), //Create a ColorPatchData where the gradient is mirrored about the middle of the line
 	FREEHAND_Grid_Mesh       =(1<<9), //Create a PatchData
-	FREEHAND_Mesh            =((1<<7)|(1<<8)|(1<<9)), //mask for any mesh
+	FREEHAND_Path_Mesh       =(1<<10), //Create a PatchData based on a bezier weighted path
 
-	FREEHAND_Till_Closed     =(1<<10), //mouse down drag out a line, up and clicking adds points
+	FREEHAND_Mesh            =((1<<7)|(1<<8)|(1<<9)|(1<<10)), //mask for any mesh
+	FREEHAND_All_Types       =((1<<0)|(1<<1)|(1<<2)|(1<<3)|(1<<4)|(1<<5)|(1<<6)|(1<<7)|(1<<8)|(1<<9)|(1<<10)),
+
+	FREEHAND_Till_Closed     =(1<<11), //mouse down drag out a line, up and clicking adds points
 	FREEHAND_Notify_All_Moves=(1<<12), //send events to owner upon every move
 	FREEHAND_Lock_Type       =(1<<13),
 	FREEHAND_Remove_On_Up    =(1<<14), //remove the interface from viewport when button up
@@ -119,6 +122,8 @@ class FreehandInterface : public anInterface
 	//virtual int WheelDown(int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d);
 	//virtual int CharInput(unsigned int ch, const char *buffer,int len,unsigned int state, const Laxkit::LaxKeyboard *d);
 	//virtual int KeyUp(unsigned int ch,unsigned int state, const Laxkit::LaxKeyboard *d);
+
+	virtual unsigned int SendType(unsigned int type);
 
 };
 

@@ -664,8 +664,8 @@ int FreehandInterface::send(int i)
 		delete line;
 	}
 
-	if (freehand_style&(FREEHAND_Bez_Weighted)) {
-		 //return a mesh based on a bezierified line, which is based on a reduced polyline
+	if (freehand_style&(FREEHAND_Bez_Weighted|FREEHAND_Path_Mesh)) {
+		 //return a weighted bezierified line, which is based on a reduced polyline
 		RawPointLine *line=Reduce(i, smooth_pixel_threshhold/dp->Getmag());
 
 		 //each point in line gets 3 coords in:
@@ -698,8 +698,29 @@ int FreehandInterface::send(int i)
 		pdata->paths.push(path);
 		pdata->FindBBox();
 
-		sendObject(pdata,FREEHAND_Bez_Weighted);
+		if (freehand_style&FREEHAND_Bez_Weighted) {
+			sendObject(pdata,FREEHAND_Bez_Weighted);
+
+			if (freehand_style&FREEHAND_Path_Mesh) {
+				pdata=dynamic_cast<PathsData*>(pdata->duplicate(NULL)); //if both, we need to do this!
+			}
+		}
+
+		 //return a mesh based on a weighted path
+		if (freehand_style&FREEHAND_Path_Mesh) {
+			PatchData *mesh=NULL; 
+			if (somedatafactory) {
+				mesh=dynamic_cast<PatchData*>(somedatafactory->newObject(LAX_PATCHDATA));
+			}
+			if (!mesh) mesh=new PatchData; 
+
+			mesh->InstallPath(pdata);
+			pdata->dec_count();
+
+			sendObject(mesh,FREEHAND_Path_Mesh);
+		}
 	}
+
 
 	if (freehand_style&(FREEHAND_Color_Mesh | FREEHAND_Double_Mesh)) {
 		 //return a mesh based on a bezierified line, which is based on a reduced polyline
@@ -753,7 +774,13 @@ int FreehandInterface::send(int i)
 		}
 
 		 //create and populate mesh object
-		ColorPatchData *mesh=new ColorPatchData;
+		ColorPatchData *mesh=NULL; 
+		if (somedatafactory) {
+            mesh=dynamic_cast<ColorPatchData*>(somedatafactory->newObject(LAX_COLORPATCHDATA));
+        }
+		if (!mesh) mesh=new ColorPatchData;
+
+
 		//mesh->Set(0,0,1,1, 1,points_top.n-1, Patch_Coons); //create as 1 row, subdivide later
 		mesh->Set(0,0,1,1, gradient.colors.n-1,points_top.n-1, Patch_Coons); //create as 1 row, subdivide later
 		Coordinate *cct=coord_t->next;
@@ -818,6 +845,18 @@ int FreehandInterface::send(int i)
 
 
 	return 0;
+}
+
+/*! If type==0, then default to FREEHAND_Poly_Path.
+ * Returns the old types.
+ */
+unsigned int FreehandInterface::SendType(unsigned int type)
+{
+	unsigned int old=(freehand_style&FREEHAND_All_Types);
+	freehand_style&=~old;
+	if (type==0) type=FREEHAND_Poly_Path;
+	freehand_style|=type;
+	return old;
 }
 
 Laxkit::ShortcutHandler *FreehandInterface::GetShortcuts()

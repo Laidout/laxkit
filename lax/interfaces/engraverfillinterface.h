@@ -439,6 +439,10 @@ class EngraverFillData : public PatchData
 
 class EngraverFillInterface : public PatchInterface
 {
+  private:
+	unsigned int eventobject; //bit of a hack to remember which event when calling
+	int eventgroup;          //helper windows from the group list
+
   protected:
 	Laxkit::MenuInfo modes;
 	EngraverFillData *edata;
@@ -464,6 +468,8 @@ class EngraverFillInterface : public PatchInterface
 
 	 //decorations to show..
 	Laxkit::MenuInfo panel;
+	flatpoint list_offset;
+	bool show_group_list;
 
 	int show_points;
 	bool show_direction;
@@ -485,6 +491,7 @@ class EngraverFillInterface : public PatchInterface
 
 	int lasthover;
 	int lasthovercategory;
+	int lasthoverindex, lasthoverdetail;
 	flatpoint hover;
 	flatpoint hoverdir, hdir[10];
 	//Selection *selection;
@@ -493,8 +500,8 @@ class EngraverFillInterface : public PatchInterface
 
 
 	virtual void ChangeMessage(int forwhich);
-	virtual int scanPanel(int x,int y, int *category);
-	virtual int scanEngraving(int x,int y, int *category);
+	virtual int scanPanel(int x,int y, int *category, int *index_ret, int *detail_ret);
+	virtual int scanEngraving(int x,int y, int *category, int *index_ret, int *detail_ret);
 	virtual int PerformAction(int action);
 
 	virtual void DrawOrientation(int over);
@@ -509,6 +516,8 @@ class EngraverFillInterface : public PatchInterface
 	virtual int IsSharing(int what, int curgroup); 
 	virtual void UpdatePanelAreas();
 	virtual Laxkit::MenuInfo *GetGroupMenu(int what, int current);
+	virtual int NumGroupLines();
+	virtual EngraverFillData *GroupFromLineIndex(int i, int *gi);
 
   public:
 	EngraverFillInterface(int nid, Laxkit::Displayer *ndp);
@@ -533,6 +542,7 @@ class EngraverFillInterface : public PatchInterface
 	virtual int Refresh();
 	virtual int Event(const Laxkit::EventData *data, const char *mes);
 	virtual Laxkit::MenuInfo *ContextMenu(int x,int y,int deviceid, Laxkit::MenuInfo *menu);
+	virtual int InterfaceOff();
 
 	virtual void deletedata();
 	virtual PatchData *newPatchData(double xx,double yy,double ww,double hh,int nr,int nc,unsigned int stle);
