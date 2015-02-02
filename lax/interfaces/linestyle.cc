@@ -153,8 +153,8 @@ void LineStyle::dump_in_atts(Attribute *att,int flag,Laxkit::anObject *context)
 		} else if (!strcmp(name,"function")) {
 			IntAttribute(value,&function);
 
-		} else if (!strcmp(name,"mask")) {
-			ULongAttribute(value,&mask);
+		//} else if (!strcmp(name,"mask")) {
+		//	ULongAttribute(value,&mask);
 		}
 	}
 }
@@ -185,7 +185,7 @@ void LineStyle::dump_out(FILE *f,int indent,int what,Laxkit::anObject *context)
 {
 	char spc[indent+1]; memset(spc,' ',indent); spc[indent]='\0';
 	if (what==-1) {
-		fprintf(f,"%smask                   #what is active in this linestyle\n", spc);
+		//fprintf(f,"%smask                   #what is active in this linestyle\n", spc);
 		fprintf(f,"%scolor 10000 0 0 65535  #rgba in range [0..65535]\n",spc);
 		fprintf(f,"%scapstyle round         #or miter, projecting, zero\n", spc);
 		fprintf(f,"%sjoinstyle round        #or miter, bevel, extrapolate\n",spc);
@@ -198,7 +198,7 @@ void LineStyle::dump_out(FILE *f,int indent,int what,Laxkit::anObject *context)
 			
 	const char *str;
 
-	fprintf(f,"%smask %lu\n", spc,mask);
+	//fprintf(f,"%smask %lu\n", spc,mask);
 	fprintf(f,"%scolor %d %d %d %d\n",spc,color.red,color.green,color.blue,color.alpha);
 
 	if (capstyle==LAXCAP_Butt) str="butt";
