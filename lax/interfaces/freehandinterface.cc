@@ -680,7 +680,7 @@ int FreehandInterface::send(int i)
 			if (i==0) pp=cc->fp; else pp=cc->prev->fp;
 			if (i==line->n-1) pn=cc->fp; else pn=cc->next->fp;
 
-			path->AddWeightNode(i, 0, brush_size/dp->Getmag()*line->e[i]->pressure, 0);
+			path->AddWeightNode(i, 0, 2*brush_size/dp->Getmag()*line->e[i]->pressure, 0);
 
 			i++;
 			cc=cc->next->next;
