@@ -498,7 +498,7 @@ class EngraverFillInterface : public PatchInterface
 
 	CurveMapInterface curvemapi;
 
-
+	virtual int ActivatePathInterface();
 	virtual void ChangeMessage(int forwhich);
 	virtual int scanPanel(int x,int y, int *category, int *index_ret, int *detail_ret);
 	virtual int scanEngraving(int x,int y, int *category, int *index_ret, int *detail_ret);
@@ -518,6 +518,8 @@ class EngraverFillInterface : public PatchInterface
 	virtual Laxkit::MenuInfo *GetGroupMenu(int what, int current);
 	virtual int NumGroupLines();
 	virtual EngraverFillData *GroupFromLineIndex(int i, int *gi);
+
+	virtual void UpdateDashCaches(EngraverLineQuality *dash);
 
   public:
 	EngraverFillInterface(int nid, Laxkit::Displayer *ndp);

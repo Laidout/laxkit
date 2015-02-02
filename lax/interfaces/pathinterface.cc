@@ -3549,12 +3549,13 @@ const char *PathInterface::Name()
 bool PathInterface::Setting(unsigned int flag, bool on)
 {
 	bool old=(pathi_style&flag) ? true : false;
+
 	if (on) pathi_style|=flag;
 	else pathi_style&=~flag;
 
-	if (!(pathi_style&PATHI_No_Weights)) show_weights=false;
+	if (pathi_style&PATHI_No_Weights) show_weights=false;
 
-	needtodraw=1;
+	//needtodraw=1;
 	return old;
 }
 
@@ -3832,6 +3833,8 @@ int PathInterface::DrawData(anObject *ndata,anObject *a1,anObject *a2,int info)/
 	if (!ndata || !dynamic_cast<PathsData *>(ndata)) return 0;
 	int ntd=needtodraw,
 		sd=showdecs;
+	unsigned long olddefer=pathi_style&PATHI_Defer_Render;
+	pathi_style&=~PATHI_Defer_Render;
 	needtodraw=1;
 	showdecs=0;
 	PathsData *d=data;
@@ -3847,6 +3850,7 @@ int PathInterface::DrawData(anObject *ndata,anObject *a1,anObject *a2,int info)/
 
 	Refresh(); // pushes and pops m in Refresh..
 
+	pathi_style|=olddefer;
 	data=d;
 	if (ls) linestyle=ls;
 	if (fs) fillstyle=fs;
@@ -3860,6 +3864,11 @@ int PathInterface::DrawData(anObject *ndata,anObject *a1,anObject *a2,int info)/
  */
 int PathInterface::Refresh()
 {
+	if (pathi_style&PATHI_Defer_Render) {
+		needtodraw=0;
+		return 0;
+	}
+
 	if (!dp || !needtodraw) return 0;
 	if (!data || !data->paths.n) {
 		if (needtodraw) needtodraw=0;

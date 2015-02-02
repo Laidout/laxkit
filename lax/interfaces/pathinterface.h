@@ -298,7 +298,8 @@ enum PathInterfaceSettings {
 	PATHI_No_Angle_Weight  =(1<<11),
 	PATHI_Render_With_Cache=(1<<12),
 	PATHI_Hide_Path        =(1<<13),
-	PATHI_Send_On_Changes  =(1<<14)
+	PATHI_Send_On_Changes  =(1<<14),
+	PATHI_Defer_Render     =(1<<15)
 };
 
 enum PathInterfaceActions {

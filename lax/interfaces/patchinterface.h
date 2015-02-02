@@ -279,6 +279,7 @@ class PatchInterface : public anInterface
 	char whichcontrols;
 	int recurse;
 	int rendermode;
+	int drawrendermode;
 	
 	Selection *selection;
 	PatchData *data;

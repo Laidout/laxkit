@@ -712,6 +712,7 @@ void PatchData::CopyMeshPoints(PatchData *patch, bool usepath)
 
 		memcpy(points,patch->points, patch->xsize*patch->ysize*sizeof(flatpoint));
 		NeedToUpdateCache(0,-1, 0,-1);
+		FindBBox();
 	}
 }
 
@@ -2699,6 +2700,9 @@ void PatchData::patchpoint(PatchRenderContext *context,double s0,double ds,doubl
  * If dragmode==2, then the mouse was clicked on an edge, but the intention is to move the existing
  * edge without creating a new column or row.
  */
+/*! \var int PatchInterface::drawrendermode
+ * Like rendermode, but is used when Refresh is called from DrawData().
+ */
 /*! \var int PatchInterface::rendermode
  * \brief How to draw the overall patch.
  * 
@@ -2745,7 +2749,7 @@ PatchInterface::PatchInterface(int nid,Displayer *ndp) : anInterface(nid,ndp)
 	movepts=NULL;
 	dragmode=0;
 	hoverpoint=-1;
-	rendermode=1;
+	rendermode=drawrendermode=1;
 	recurse=0;
 	
 	constrain=0;
@@ -2782,6 +2786,8 @@ anInterface *PatchInterface::duplicate(anInterface *dup)//dup=NULL
 	dupp->gridcolor=gridcolor;
 	dupp->xs=xs;
 	dupp->ys=ys;
+	dupp->rendermode=rendermode;
+	dupp->drawrendermode=drawrendermode;
 	return anInterface::duplicate(dup);
 }
 
@@ -2847,7 +2853,8 @@ int PatchInterface::ActivatePathInterface()
 	} else {
 		 //create and install new PathInterface
 		pathi=new PathInterface(getUniqueNumber(), dp);
-		pathi->pathi_style=PATHI_One_Path_Only|PATHI_Esc_Off_Sub|PATHI_Two_Point_Minimum|PATHI_Hide_Path;
+		pathi->pathi_style=PATHI_One_Path_Only|PATHI_Two_Point_Minimum|PATHI_Hide_Path;
+		//pathi->pathi_style=PATHI_One_Path_Only|PATHI_Two_Point_Minimum|PATHI_Hide_Path|PATHI_Defer_Render;
 		//pathi->pathi_style=PATHI_One_Path_Only|PATHI_Esc_Off_Sub|PATHI_Two_Point_Minimum|PATHI_Path_Is_M_Real;
 		pathi->primary=1;
 		pathi->show_baselines=true;
@@ -3122,11 +3129,14 @@ int PatchInterface::DrawData(anObject *ndata,anObject *a1,anObject *a2,int info)
 	PatchData *bzd=data;
 	data=dynamic_cast<PatchData *>(ndata);
 	int td=showdecs,ntd=needtodraw;
+	int oldrendermode=rendermode;
+	rendermode=drawrendermode;
 	showdecs=0;
 	needtodraw=1;
 
 	Refresh();
 
+	rendermode=oldrendermode;
 	needtodraw=ntd;
 	showdecs=td;
 	data=bzd;
@@ -3264,7 +3274,7 @@ int PatchInterface::Refresh()
 		flatpoint p;
 
 		// draw patch borders
-		if (showdecs&SHOW_Edges) {
+		if ((showdecs&SHOW_Edges) && !child) {
 			dp->NewFG(rimcolor);
 			dp->LineAttributes(1,LineSolid,linestyle.capstyle,linestyle.joinstyle);
 
@@ -3386,7 +3396,7 @@ int PatchInterface::Refresh()
 
 		// control points
 		//if ((showdecs&SHOW_Points) && data->base_path==NULL) {
-		if ((showdecs&SHOW_Points)) {
+		if ((showdecs&SHOW_Points) && !child) {
 			// draw patch handle bars
 			dp->NewFG(handlecolor);
 			int r,c;
@@ -3701,8 +3711,9 @@ int PatchInterface::LBDown(int x,int y,unsigned int state,int count,const Laxkit
 			viewport->ChangeObject(oc,0);
 			deletedata();
 			data=dynamic_cast<PatchData*>(obj);
-			poc=oc->duplicate();
 			data->inc_count();
+			poc=oc->duplicate();
+			AddToSelection(poc);
 
 			//set up path interface if necessary
 			if (data->base_path) {
@@ -3743,6 +3754,8 @@ int PatchInterface::LBDown(int x,int y,unsigned int state,int count,const Laxkit
 	data=ndata;
 	data->linestyle=linestyle;
 	data->FindBBox();
+
+	AddToSelection(poc);
 	curpoints.flush();
 	
 	needtodraw=1;
