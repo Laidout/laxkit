@@ -92,6 +92,7 @@ class Path : public LaxFiles::DumpUtility, public Laxkit::DoubleBBox
 	int needtorecache;
 	int cache_samples;
 	int cache_types;
+	bool save_cache;
 	//std::time_t cache_mod_time;
 	Laxkit::CurveInfo cache_offset;
 	Laxkit::CurveInfo cache_width;
@@ -174,7 +175,8 @@ class PathsData : virtual public SomeData
  public:
 	enum PathsDataStyle { //these are or'd in this->style
 		PATHS_Ignore_Weights=(1<<0),
-		PATHS_MAX           =(1<<1)
+		PATHS_Save_Cache    =(1<<1),
+		PATHS_MAX           =(1<<2)
 	};
 
 	unsigned long style; // contains FILL_* for combining(?)
@@ -355,6 +357,9 @@ enum PathInterfaceActions {
 	PATHIA_Miter,
 	PATHIA_Round,
 	PATHIA_Extrapolate,
+	PATHIA_CapRound,
+	PATHIA_CapButt,
+	PATHIA_CapZero,
 
 	PATHIA_MAX
 };

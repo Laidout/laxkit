@@ -184,6 +184,8 @@ Path::Path()
 	cache_samples=10;
 	defaultwidth=1./72;
 	absoluteangle=false;
+
+	save_cache=true;
 }
 
 /*! Incs count of linestyle.
@@ -200,6 +202,8 @@ Path::Path(Coordinate *np,LineStyle *nls)
 	needtorecache=1;
 	cache_samples=10;
 	cache_types=0; //if 1, then also compute cache_top and cache_bottom
+
+	save_cache=true;
 }
 
 //! Destructor always deletes path.
@@ -280,6 +284,8 @@ void Path::dump_out(FILE *f,int indent,int what,Laxkit::anObject *context)
 		fprintf(f,"%s                        #they are is dependent of the actual controller of the segment.\n",spc);
 		fprintf(f,"%s                        #If for some reason the segment controller is not found, then\n",spc);
 		fprintf(f,"%s                        #the bezier approximation is appended to the path as bezier points\n",spc);
+		fprintf(f,"%scache                   #This is for reference only. Ignored on read in.\n",spc);
+		fprintf(f,"%s  ...                   #This is for reference only. Ignored on read in.\n",spc);
 		return;
 	}
 
@@ -345,6 +351,26 @@ void Path::dump_out(FILE *f,int indent,int what,Laxkit::anObject *context)
 	for (int c=0; c<pathweights.n; c++) {
 		fprintf(f,"%sweight %.10g %.10g %.10g %.10g\n",spc,
 				pathweights.e[c]->t,pathweights.e[c]->offset,pathweights.e[c]->width,pathweights.e[c]->angle);
+	}
+
+	if (save_cache) { 
+		fprintf(f,"%scache outline\n",spc);
+		for (int c=0; c<outlinecache.n; c++) { 
+			fprintf(f, "%s  %.10g, %.10g   %d  ", spc, outlinecache.e[c].x, outlinecache.e[c].y, c);
+			if (outlinecache.e[c].info&LINE_Start   ) fprintf(f,"Start    ");
+			if (outlinecache.e[c].info&LINE_Vertex  ) fprintf(f,"Vertex   ");
+			if (outlinecache.e[c].info&LINE_Bez     ) fprintf(f,"Bez      ");
+			if (outlinecache.e[c].info&LINE_Closed  ) fprintf(f,"Closed   ");
+			if (outlinecache.e[c].info&LINE_Open    ) fprintf(f,"Open     ");
+			if (outlinecache.e[c].info&LINE_End     ) fprintf(f,"End      "); 
+			if (outlinecache.e[c].info&LINE_Corner  ) fprintf(f,"Corner   ");
+			if (outlinecache.e[c].info&LINE_Equal   ) fprintf(f,"Equal    ");
+			if (outlinecache.e[c].info&LINE_Auto    ) fprintf(f,"Auto     ");
+			if (outlinecache.e[c].info&LINE_Join    ) fprintf(f,"Join     ");
+			if (outlinecache.e[c].info&LINE_Cap     ) fprintf(f,"Cap      ");
+			if (outlinecache.e[c].info&LINE_Original) fprintf(f,"Original ");
+			fprintf(f,"\n");
+		}
 	}
 }
 
@@ -492,7 +518,7 @@ void Path::UpdateS(bool all, int resolution)
  * Any strings of bare points in list will get a previous bezier control point, and a
  * next control point attached to it.
  *
- * Any points tagged with LINE_Join are meant to have the join inserted AFTER calling this
+ * Any points tagged with LINE_Join or LINE_Cap are meant to have the join inserted AFTER calling this
  * function. The point immediately after that point is assumed to be the next on-line point.
  */
 int bez_reduce_approximate(NumStack<flatpoint> *list, double epsilon)
@@ -549,15 +575,18 @@ int bez_reduce_approximate(NumStack<flatpoint> *list, double epsilon)
 			 //now we should be on either a raw point or a vertex, need to find end of segment
 			
 			if (c2==thisend) break; //at end
-			if (list->e[c2].info&LINE_Join) continue; //need to skip the join gap, it will be filled in later
+			if (list->e[c2].info&(LINE_Join|LINE_Cap)) continue; //need to skip the join gap, it will be filled in later
 
 			c2++; //position one past segstart
 			if (list->e[c2].info&LINE_Bez) continue; //need to skip bez segments
 
 			 //find all raw points following segstart
-			while (c2<thisend && (list->e[c2].info&(LINE_Corner|LINE_Join|LINE_Open|LINE_Closed)) == 0) {
+			while (c2<thisend && (list->e[c2].info&(LINE_Corner|LINE_Cap|LINE_Join|LINE_Open|LINE_Closed)) == 0) {
 				c2++;
 			}
+
+			DBG if (list->e[c2].info&LINE_Cap) cerr <<"Line cap at: "<<c2<<endl;
+			DBG dump_points("seg found:", list->e+segstart, c2-segstart+1, segstart);
 
 			segend=c2;
 			segn=segend-segstart+1;
@@ -600,12 +629,15 @@ int bez_reduce_approximate(NumStack<flatpoint> *list, double epsilon)
 			//DBG dump_points("list before",list->e,list->n);
 
 			wrap=0;
-			if (segstart==thisstart && thisclosed==1) wrap|=1;
-			if (segend==thisend     && thisclosed==1) wrap|=2;
+			bool onbreak=((list->e[thisend].info&(LINE_Join|LINE_Cap))!=0);
+			if (segstart==thisstart && thisclosed==1 && !onbreak) wrap|=1;
+			if (segend==thisend     && thisclosed==1 && !onbreak) wrap|=2;
+
 
 			// *** should do only one memmove, combine with epsilon above
 			list->Allocate(list->n+2*segn);
 			if (c2!=list->n-1) {
+				 //move points beyond current segment out past where new points must go
 				memmove(list->e+segstart + 3*segn-2 + (((wrap&1)?1:0)+((wrap&2)?1:0)),  list->e+c2+1, (list->n-c2-1)*sizeof(flatpoint));
 				DBG cerr <<" memmove( list->e + "<<segstart + 3*segn-2 + (((wrap&1)?1:0)+((wrap&2)?1:0))<<", "<<c2+1<<", "<<(list->n-c2-1)<<"*sizeof(flatpoint))"<<endl;
 			}
@@ -991,7 +1023,7 @@ void Path::UpdateCache()
 
 		p=p2;
 		cp++;
-	} while (p && p->next && p!=start);
+	} while (p && p->next && p!=start); //loop over original line
 
 	int closed=(p==start);
 
@@ -1004,6 +1036,7 @@ void Path::UpdateCache()
 
 	if (!closed) {
 		 //top contour is connected to bottom with caps..
+		topp.e[topp.n-1].info|=LINE_Cap;
 
 		// *** add cap at 1st topp.n (original end of path)
 		for (int c=bottomp.n-1; c>=0; c--) {
@@ -1014,6 +1047,7 @@ void Path::UpdateCache()
 			}
 		}
 		// *** add cap at new topp.n (original beginning of path)
+		topp.e[topp.n-1].info|=LINE_Cap;
 		topp.e[topp.n-1].info|=LINE_Closed;
 
 	} else {
@@ -1100,8 +1134,21 @@ void Path::UpdateCache()
 			}
 		}
 
-		if ((list->e[c].info&LINE_Join)==0) continue;
-		//DBG cerr <<"maybe join, dist to next point="<<norm2(list->e[c]-list->e[c+1])<<endl;
+		int jointype=0;
+		if ((list->e[c].info&LINE_Cap)!=0) {
+			if (linestyle) {
+				if      (linestyle->capstyle==LAXCAP_Butt)  jointype=LAXJOIN_Bevel;
+				else if (linestyle->capstyle==LAXCAP_Round) jointype=LAXJOIN_Round;
+				else jointype=LAXJOIN_Bevel;
+			}
+			if (!jointype) jointype=LAXJOIN_Bevel;
+		}
+		if ((list->e[c].info&LINE_Join)!=0 && !jointype) {
+			jointype = linestyle ? linestyle->joinstyle : LAXJOIN_Round;
+		} 
+		if (!jointype) continue;
+
+		//DBG cerr <<"maybe join, dist to next point="<<norm2(list->e[c]-list->e[c+1])<<endl; 
 
 		if (norm2(list->e[c]-list->e[c+1])<1e-5) continue; //don't bother if points really close together
 
@@ -1148,7 +1195,7 @@ void Path::UpdateCache()
 		}
 
 		njoin=0;
-		join_paths(linestyle ? linestyle->joinstyle : LAXJOIN_Extrapolate,
+		join_paths(jointype,
 				   linestyle ? linestyle->miterlimit : defaultwidth*200,
 				   line[0],line[1],line[2],line[3],
 				   line[4],line[5],line[6],line[7],
@@ -4914,14 +4961,6 @@ Laxkit::MenuInfo *PathInterface::ContextMenu(int x,int y,int deviceid, MenuInfo 
 {
     if (!menu) menu=new MenuInfo();
 
-	menu->AddSep(_("Join Style"));
-	int jstyle = curpath && curpath->linestyle ? curpath->linestyle->joinstyle : -1;
-	if (jstyle<0 && data && data->linestyle) jstyle=data->linestyle->joinstyle;
-	menu->AddItem(_("Bevel"),       PATHIA_Bevel,       LAX_OFF|LAX_ISTOGGLE|(jstyle==LAXJOIN_Bevel ? LAX_CHECKED : 0), 0);
-	menu->AddItem(_("Miter"),       PATHIA_Miter,       LAX_OFF|LAX_ISTOGGLE|(jstyle==LAXJOIN_Miter ? LAX_CHECKED : 0), 0);
-	menu->AddItem(_("Round"),       PATHIA_Round,       LAX_OFF|LAX_ISTOGGLE|(jstyle==LAXJOIN_Round ? LAX_CHECKED : 0), 0);
-	menu->AddItem(_("Extrapolate"), PATHIA_Extrapolate, LAX_OFF|LAX_ISTOGGLE|(jstyle==LAXJOIN_Extrapolate ? LAX_CHECKED : 0), 0);
-
 
 	if (curpoints.n) {
 		unsigned int ptype=curpoints.e[0]->flags&BEZ_MASK;
@@ -4938,6 +4977,21 @@ Laxkit::MenuInfo *PathInterface::ContextMenu(int x,int y,int deviceid, MenuInfo 
 //		menu->AddItem(_("Round"), PATHIA_Round, LAX_OFF|LAX_ISTOGGLE|((jstyle&POINT_Round) ? LAX_CHECKED : 0));
 //		menu->AddItem(_("Extrapolate"), PATHIA_Extrapolate, LAX_OFF|LAX_ISTOGGLE|((jstyle&POINT_Extrapolate) ? LAX_CHECKED : 0));
 	}                                                                                   
+
+	menu->AddSep(_("Join Style"));
+	int jstyle = curpath && curpath->linestyle ? curpath->linestyle->joinstyle : -1;
+	if (jstyle<0 && data && data->linestyle) jstyle=data->linestyle->joinstyle;
+	menu->AddItem(_("Bevel"),       PATHIA_Bevel,       LAX_OFF|LAX_ISTOGGLE|(jstyle==LAXJOIN_Bevel ? LAX_CHECKED : 0), 0);
+	menu->AddItem(_("Miter"),       PATHIA_Miter,       LAX_OFF|LAX_ISTOGGLE|(jstyle==LAXJOIN_Miter ? LAX_CHECKED : 0), 0);
+	menu->AddItem(_("Round"),       PATHIA_Round,       LAX_OFF|LAX_ISTOGGLE|(jstyle==LAXJOIN_Round ? LAX_CHECKED : 0), 0);
+	menu->AddItem(_("Extrapolate"), PATHIA_Extrapolate, LAX_OFF|LAX_ISTOGGLE|(jstyle==LAXJOIN_Extrapolate ? LAX_CHECKED : 0), 0);
+
+	menu->AddSep(_("Cap Style"));
+	int cstyle = curpath && curpath->linestyle ? curpath->linestyle->capstyle : -1;
+	if (cstyle<0 && data && data->linestyle) cstyle=data->linestyle->capstyle;
+	menu->AddItem(_("Butt"),        PATHIA_CapButt,     LAX_OFF|LAX_ISTOGGLE|(cstyle==LAXCAP_Butt ? LAX_CHECKED : 0), 0);
+	menu->AddItem(_("Round"),       PATHIA_CapRound,    LAX_OFF|LAX_ISTOGGLE|(cstyle==LAXCAP_Round ? LAX_CHECKED : 0), 0);
+	menu->AddItem(_("Zero tips"),   PATHIA_CapZero,     LAX_OFF|LAX_ISTOGGLE|(cstyle==LAXCAP_Zero_Width ? LAX_CHECKED : 0), 0);
 
 	if (!(pathi_style&PATHI_One_Path_Only)) {
 		if (menu->n()) menu->AddSep();
@@ -5001,6 +5055,10 @@ int PathInterface::Event(const Laxkit::EventData *e_data, const char *mes)
 		 || i==PATHIA_Miter      
 		 || i==PATHIA_Round      
 		 || i==PATHIA_Extrapolate
+
+		 || i==PATHIA_CapButt
+		 || i==PATHIA_CapRound
+		 || i==PATHIA_CapZero
 
 		 || i==PATHIA_PointTypeSmooth
 		 || i==PATHIA_PointTypeSmoothUnequal
@@ -6645,6 +6703,23 @@ int PathInterface::PerformAction(int action)
 		else if (action==PATHIA_Round) PostMessage(_("Round join"));
 		else if (action==PATHIA_Extrapolate) PostMessage(_("Extrapolate join"));
 
+		needtodraw=1;
+		return 0;
+
+	} else if (action==PATHIA_CapButt || action==PATHIA_CapRound || action==PATHIA_CapZero) {
+		int cap=LAXCAP_Butt;
+		const char *message=_("Cap butt");
+		if      (action==PATHIA_CapZero)  { cap=LAXCAP_Zero_Width; message=_("Zero tip caps"); }
+		else if (action==PATHIA_CapRound) { cap=LAXCAP_Round;      message=_("Round caps");    }
+
+		data->linestyle->capstyle=cap;
+		for (int c=0; c<data->paths.n; c++) {
+			if (data->paths.e[c]->linestyle) data->paths.e[c]->linestyle->capstyle=cap;
+			else data->paths.e[c]->Line(data->linestyle);
+			data->paths.e[c]->needtorecache=1;
+		}
+
+		PostMessage(message);
 		needtodraw=1;
 		return 0;
 
