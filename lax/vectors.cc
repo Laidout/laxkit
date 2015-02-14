@@ -1092,11 +1092,11 @@ spacepoint invert(spacepoint p, spacepoint orig)
 
 /*! write out the points to cerr
  */
-void dump_points(const char *label, flatpoint *p,int n)
+void dump_points(const char *label, flatpoint *p,int n, int offset)
 {
 	if (label) std::cerr <<"----"<<label<<"----"<<std::endl;
 	for (int c=0; c<n; c++) {
-		std::cerr <<p[c].x<<','<<p[c].y<<"  info2="<<p[c].info2<<"  ";
+		std::cerr <<p[c].x<<','<<p[c].y<<"  c="<<c+offset<<"  info2="<<p[c].info2<<"  ";
 		if (p[c].info&LINE_Start   ) std::cerr <<"Start    ";
 		if (p[c].info&LINE_Vertex  ) std::cerr <<"Vertex   ";
 		if (p[c].info&LINE_Bez     ) std::cerr <<"Bez      ";
@@ -1107,6 +1107,7 @@ void dump_points(const char *label, flatpoint *p,int n)
 		if (p[c].info&LINE_Equal   ) std::cerr <<"Equal    ";
 		if (p[c].info&LINE_Auto    ) std::cerr <<"Auto     ";
 		if (p[c].info&LINE_Join    ) std::cerr <<"Join     ";
+		if (p[c].info&LINE_Cap     ) std::cerr <<"Cap      ";
 		if (p[c].info&LINE_Original) std::cerr <<"Original ";
 		std::cerr <<std::endl;
 	}

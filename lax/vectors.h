@@ -41,9 +41,10 @@ enum PointInfoTags {
 	LINE_Equal   =(1<<7),
 	LINE_Auto    =(1<<8),
 	LINE_Join    =(1<<9),
-	LINE_Original=(1<<10),
+	LINE_Cap     =(1<<10),
+	LINE_Original=(1<<11),
 
-	LAXLINE_MAX =(10)
+	LAXLINE_MAX =(11)
 };
 
 class spacevector
@@ -226,7 +227,7 @@ void transform(spaceline &l,Basis b);
 void transform(spacevector &v,Basis b);
 spacepoint invert(spacepoint p, spacepoint orig);
 
-void dump_points(const char *label, flatpoint *p,int n);
+void dump_points(const char *label, flatpoint *p,int n, int offset=0);
 
 //} //namespace LaxMath
 
