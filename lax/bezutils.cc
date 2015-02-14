@@ -1349,7 +1349,8 @@ flatpoint *bez_from_points(flatpoint *result, flatpoint *points, int totalpoints
 	flatvector opn, opp;
     double sx;
 	int i=0;
-	bool isclosed=points[totalpoints-1].info&LINE_Closed;
+	bool isclosed=((points[totalpoints-1].info&LINE_Closed) && (points[totalpoints-1].info&(LINE_Join|LINE_Cap))==0) ;
+	//bool isclosed=(points[totalpoints-1].info&LINE_Closed);
 	//int lastwascorner=0;
 	
     for (int c=start; c<start+numpoints; c++) {
