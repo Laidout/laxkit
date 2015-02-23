@@ -52,7 +52,12 @@ LineStyle::LineStyle()
 	widthtype=1;//0 for screen width, 1 for real width
 	color.red=color.green=0;
 	color.blue=color.alpha=0xffff;
+
 	capstyle=LAXCAP_Butt;
+	endcapstyle=0; //0 means use capstyle? .. need better cap support, use engraver line quality??
+	//dash_start_caps=LAXCAP_Butt;
+	//dash_end_caps  =LAXCAP_Butt;
+
 	joinstyle=LAXJOIN_Miter; 
 	miterlimit=100; //so this means 100*(line thickness)
 	function=LAXOP_Source;

@@ -48,7 +48,7 @@ class LineStyle : public Laxkit::anObject, public LaxFiles::DumpUtility
   	double width;
 	int widthtype;
 	Laxkit::ScreenColor color;
-	int capstyle;
+	int capstyle, endcapstyle;
 	int joinstyle;
 	double miterlimit;
 	int dotdash;
