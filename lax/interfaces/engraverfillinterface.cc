@@ -6419,6 +6419,7 @@ void EngraverFillInterface::DrawPanel()
 							ww=th*.4;
 							hhh=1.0;
 							if (lasthoverindex==ii || oncurobj) {
+								 //highlight for current object
 								ScreenColor col;
 								if (lasthoverindex==ii) hhh-=.1;
 								if (oncurobj) hhh-=.2;
@@ -6441,6 +6442,7 @@ void EngraverFillInterface::DrawPanel()
 
 								hhh=1.0;
 								if (lasthoverindex==ii || group==group2) {
+									 //highlight bg for current group
 									ScreenColor col;
 									if (lasthoverindex==ii) hhh-=.1;
 									if (group==group2) hhh-=.2;
@@ -6457,6 +6459,9 @@ void EngraverFillInterface::DrawPanel()
 								 //linked
 								unsigned long color=(group2 && group2->linked ? rgbcolor(0,200,0) : rgbcolor(255,100,100) );
 								dp->drawthing(xx+th/2,yy+th/2, th*.25,-th*.25, THING_Circle, color,color);
+								if (oncurobj && g==current_group) {
+									 //draw green override circle over current group linked thing regardless of actual color
+								}
 								dp->NewFG(&fgcolor);
 								xx+=th;
 
