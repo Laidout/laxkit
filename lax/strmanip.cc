@@ -659,7 +659,8 @@ char **split(const char *str,char delim,int *n_ret)
  *
  *  Returns a NULL terminated char** holding the fields which
  *  point to the start of each field within str.
- *  The user need only delete[] the returned array, not the individual elements.
+ *  The user need only delete[] the returned array, not the individual elements,
+ *  as the elements of the returned array will be destroyed when str itself is destroyed.
  */
 char **spliton(char *str,char delim,int *n_ret)
 {
