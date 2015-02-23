@@ -2403,6 +2403,20 @@ int Path::NumVertices(bool *isclosed_ret)
 	return n;
 }
 
+bool Path::IsClosed()
+{
+	if (!path) return false;
+
+	int n=0;
+	Coordinate *start=path->firstPoint(1);
+	Coordinate *p=start;
+	do {
+		p=p->nextVertex(0);
+	} while (p && p!=start);
+
+	return (p==start);
+}
+
 /*! Return a vertex index. For instance if p==path, then 0 is returned.
  * If p==path->nextVertex(0), then 1 is returned. Note that p MUST 
  * actually be a vertex, not a control handle.
@@ -2965,7 +2979,7 @@ void PathsData::dump_in_atts(Attribute *att,int flag,Laxkit::anObject *context)
 			paths.push(newpath);
 
 		} else if (!strcmp(name,"d")) {
-			SvgToPathsData(this, value, NULL);
+			SvgToPathsData(this, value, NULL, NULL);
 		}
 	}
 
@@ -3375,7 +3389,7 @@ void PathsData::MatchTransform(const double *newm)
  * If existingpath==NULL, then return a new PathsData, else append new Path
  * objects to existingpath. existingpath is also returned on success.
  */
-PathsData *SvgToPathsData(PathsData *existingpath, const char *d,char **end_ptr)
+PathsData *SvgToPathsData(PathsData *existingpath, const char *d,char **end_ptr, LaxFiles::Attribute *powerstroke)
 {
 	Coordinate *coord=SvgToCoordinate(d,0,end_ptr,NULL);
 	if (!coord) return NULL;
@@ -3403,6 +3417,44 @@ PathsData *SvgToPathsData(PathsData *existingpath, const char *d,char **end_ptr)
 		paths->append(p->p(),p->flags);
 	}
 	delete coord;
+
+	if (powerstroke) {
+		try {
+			const char *str=powerstroke->findValue("is_visible");
+			if (!str || strcmp(str,"true")) throw(1);
+
+			//  <inkscape:path-effect
+			//       effect="powerstroke"
+			//       id="path-effect3338"
+			//       is_visible="true"
+			//       offset_points="0.060282486,35.326279 | 0.48001872,30.037074 | 1,1"
+			//       sort_points="true"
+			//       interpolator_type="Linear"
+			//       interpolator_beta="0.2"
+			//       start_linecap_type="round"
+			//       linejoin_type="round"
+			//       miter_limit="4"
+			//       end_linecap_type="round" />
+
+			str=powerstroke->findValue("offset_points");
+			if (isblank(str)) throw(2);
+
+			Path *path=paths->paths.e[paths->paths.n-1];
+			char *str2=newstr(str);
+			int n, nn;
+			char **list=spliton(str2, '|', &n);
+			double d[2];
+
+			for (int c=0; c<n; c++) {
+				nn=DoubleListAttribute(list[c], d, 2, NULL);
+				if (nn!=2) continue;
+
+				path->AddWeightNode(d[0], 0, d[1], 0);
+			}
+			
+		} catch (int e) {
+		}
+	}
 
 	paths->FindBBox();
 	return paths;

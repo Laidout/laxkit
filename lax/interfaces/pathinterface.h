@@ -158,6 +158,7 @@ class Path : public LaxFiles::DumpUtility, public Laxkit::DoubleBBox
 	virtual double distance_to_t(double distance, int *err);
 	virtual double t_to_distance(double t, int *err);
 	virtual int NumVertices(bool *isclosed_ret);
+	virtual bool IsClosed();
 	virtual int GetIndex(Coordinate *p, bool ignore_controls);
 
 	virtual void dump_out(FILE *f,int indent,int what,Laxkit::anObject *context);
@@ -239,7 +240,7 @@ class PathsData : virtual public SomeData
 
 //-------------------- PathsData utility
 
-PathsData *SvgToPathsData(PathsData *existingpath, const char *d,char **end_ptr);
+PathsData *SvgToPathsData(PathsData *existingpath, const char *d,char **end_ptr, LaxFiles::Attribute *powerstroke);
 
 
 //-------------------- PathOperator ---------------------------
