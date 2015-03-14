@@ -265,6 +265,8 @@ double SimpleUnit::Convert(double value, const char *from, const char *to, int *
 		return 0;
 	}
 
+	if (!strcmp(from,to)) return value;
+
 	SimpleUnit *f,*t;
 	int c;
 
@@ -297,6 +299,8 @@ double SimpleUnit::Convert(double value, const char *from, const char *to, int *
  */
 double SimpleUnit::Convert(double value, int from_id, int to_id, int *error_ret)
 {
+	if (from_id==to_id) return value; //avoid rounding errors!
+
 	SimpleUnit *f,*t;
 
 	f=this;
