@@ -631,7 +631,7 @@ int RulerWindow::RBUp(int x,int y,unsigned int state,const LaxMouse *d)
 	for (int c=0; c<NumberOfUnits(); c++) {
 		UnitInfo(c, &name, &id, NULL,NULL,NULL);
 		//menu->AddItem(name, id, id==units->defaultunits?LAX_CHECKED|LAX_ISTOGGLE:0);
-		menu->AddItem(name, id, id==currentunits?LAX_CHECKED|LAX_ISTOGGLE:0);
+		menu->AddItem(name, id, (id==currentunits?LAX_CHECKED:0)|LAX_ISTOGGLE, 0);
 	}
 
 	PopupMenu *popup;
@@ -643,7 +643,7 @@ int RulerWindow::RBUp(int x,int y,unsigned int state,const LaxMouse *d)
 						d->id,
 						menu,1,
 						NULL,
-						MENUSEL_GRAPHIC_ON_LEFT);
+						MENUSEL_LEFT|MENUSEL_GRAPHIC_ON_LEFT);
 	popup->WrapToMouse(d->id);
 	app->rundialog(popup);
 
