@@ -14,7 +14,7 @@ Someday I hope to have something to generate the icons internally to
 Laidout, the icons should be able to be generated from svg-ish (or
 laidout-ish vector specs fast enough to not be irritating maybe.
 
-This will hopefully run with python 3.
+Tested to run with python 2.7 and above (including python 3).
 """
 
 import subprocess, sys
@@ -27,7 +27,9 @@ bitmapw=24
 
 if (len(sys.argv)>1) :
     arg=sys.argv[1]
-    if (arg[0]>='A' and arg[0]<='Z') : makethisonly=arg
+    if (arg[0]>='A' and arg[0]<='Z') :
+        makethisonly=arg
+        print ("Make only: "+makethisonly)
     else :
         bitmapw=int(sys.argv[1])
         if (len(sys.argv)>2) :
@@ -77,6 +79,7 @@ class SAXtracer (xml.sax.handler.ContentHandler):
 
          #there is an element that is of depth 3 whose id is capitalized
          #so we specifically have to skip that
+        if (id.find("Arrow")>=0): return
         if (id[0]>='A' and id[0]<='Z' and id.find("GridFrom")<0) : 
             names.append(id)
             print (id)
