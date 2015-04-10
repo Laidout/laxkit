@@ -466,7 +466,7 @@ void ImagePatchInterface::runImageDialog()
 	if (!p) return;
 	ImageInfo *inf=new ImageInfo(p->filename,NULL,NULL,NULL,0);
 	curwindow->app->rundialog(new ImageDialog(NULL,NULL,"Image Properties",
-					0,
+					ANXWIN_REMEMBER,
 					0,0,400,400,0,
 					NULL,curwindow->object_id,"image properties",
 					IMGD_NO_TITLE|IMGD_NO_DESCRIPTION,
@@ -479,7 +479,6 @@ int ImagePatchInterface::LBDown(int x,int y,unsigned int state,int count,const L
 {
 	if (count==2 && (style&IMGPATCHI_POPUP_INFO) && curwindow) {
 		runImageDialog();
-		//buttondown.down(d->id,LEFTBUTTON);
 		return 0;
 	}
 	return PatchInterface::LBDown(x,y,state,count,d);
