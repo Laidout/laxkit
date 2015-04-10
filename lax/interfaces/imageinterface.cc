@@ -284,6 +284,8 @@ LaxFiles::Attribute *ImageData::dump_out_atts(LaxFiles::Attribute *att,int what,
  * are used if present. If the image can be loaded, then width and
  * height as given in the file are curretly ignored, and the actual pixel 
  * width and height of the image are used instead.
+ *
+ * If context is a DumpContext, then expand relative paths accordingly.
  */
 void ImageData::dump_in_atts(Attribute *att,int flag,anObject *context)
 {
