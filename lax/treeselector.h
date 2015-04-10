@@ -187,6 +187,11 @@ class TreeSelector : public ScrolledWindow
 	virtual int FocusOn(const FocusChangeData *e);
 	virtual int FocusOff(const FocusChangeData *e);
 
+	virtual void       dump_out(FILE *f,int indent,int what,Laxkit::anObject *savecontext);
+    virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,Laxkit::anObject *savecontext); 
+    virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,Laxkit::anObject *loadcontext);
+
+
 	virtual int movescreen(int dx,int dy);
 	virtual int SetFirst(int which,int x,int y);
 	virtual int Curitem() { return curitem; }
@@ -213,7 +218,7 @@ class TreeSelector : public ScrolledWindow
 	virtual int AddItems(const char **i,int n,int startid); // assume ids sequential, state=0
 	virtual int AddItem(const char *i,LaxImage *img,int nid,int newstate);
 
-	virtual int AddColumn(const char *i,LaxImage *img,int width, int ntype=ColumnInfo::ColumnString, int whichdetail=-1);
+	virtual int AddColumn(const char *i,LaxImage *img,int width, int ntype=ColumnInfo::ColumnString, int whichdetail=-1, bool nodup=true);
 	virtual void ClearColumns();
 	virtual void RemapColumns();
 };

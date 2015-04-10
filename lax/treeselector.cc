@@ -33,6 +33,7 @@
 using namespace std;
 #define DBG 
 
+
 namespace Laxkit {
 	
 
@@ -241,6 +242,64 @@ int TreeSelector::InstallMenu(MenuInfo *nmenu)
 	return 0;
 }
 
+void TreeSelector::dump_out(FILE *f,int indent,int what,Laxkit::anObject *savecontext)
+{
+    LaxFiles::Attribute att;
+    dump_out_atts(&att,what,savecontext);
+    att.dump_out(f,indent);
+}
+
+LaxFiles::Attribute *TreeSelector::dump_out_atts(LaxFiles::Attribute *att,int what,Laxkit::anObject *savecontext)
+{
+	if (!att) att=new LaxFiles::Attribute();
+
+	anXWindow::dump_out_atts(att,what,savecontext);
+
+    if (what==-1) {
+
+		att->push("columns", "#A list of positions of the columns. Each entry is the name and displayed width of the column");
+        return att;
+    }
+
+	if (columns.n) {
+		LaxFiles::Attribute *col=att->pushSubAtt("columns");
+		for (int c=0; c<columns.n; c++) {
+			col->push(columns.e[c]->title,  columns.e[c]->width);
+		}
+	}
+
+	return att;
+}
+
+void TreeSelector::dump_in_atts(LaxFiles::Attribute *att,int flag,Laxkit::anObject *loadcontext)
+{
+	anXWindow::dump_in_atts(att,flag,loadcontext);
+
+	char *name;
+	char *value;
+
+	for (int c=0; c<att->attributes.n; c++) {
+		name= att->attributes.e[c]->name;
+		value=att->attributes.e[c]->value;
+
+		if (!strcmp(name,"columns")) {
+			 //each line is (column name) (column width)
+			for (int c2=0; c2<att->attributes.e[c]->attributes.n; c2++) {
+				name= att->attributes.e[c]->attributes.e[c2]->name;
+				value=att->attributes.e[c]->attributes.e[c2]->value;
+
+				DBG cerr << " *** need to finish implementing reading in column positions for TreeSelector"<<endl;
+
+				for (int c3=0; c3<columns.n; c3++) {
+					if (!strcmp(columns.e[c3]->title,name)) {
+						columns.e[c3]->width=strtol(value, NULL, 10);
+					}
+				}
+			}
+		}
+	}
+}
+
 
 //! Focus on draws the char over item.
 int TreeSelector::FocusOn(const FocusChangeData *e)
@@ -415,11 +474,23 @@ int TreeSelector::init()
  * If whichdetail<0, then use columns.n (before pushing).
  * If ntype<=0, use ColumnString.
  */
-int TreeSelector::AddColumn(const char *i,LaxImage *img,int width, int ntype, int whichdetail)
+int TreeSelector::AddColumn(const char *i,LaxImage *img,int width, int ntype, int whichdetail, bool nodup)
 {
 	if (whichdetail<0) whichdetail=columns.n;
 	if (ntype<=0) ntype=ColumnInfo::ColumnString;
-	columns.push(new ColumnInfo(i,width, ntype, whichdetail),1);
+
+	int c;
+	for (c=0; c<columns.n; c++) {
+		if (!strcmp(columns.e[c]->title,i)) {
+			columns.e[c]->width=width;
+			columns.e[c]->detail=whichdetail;
+			columns.e[c]->type=ntype;
+			break;
+		}
+	}
+	
+	if (c==columns.n) columns.push(new ColumnInfo(i,width, ntype, whichdetail),1);
+
 	return 0;
 }
 
@@ -732,11 +803,11 @@ void TreeSelector::Refresh()
 	flatpoint offset(offsetx,offsety);
 	int n=0;
 	DrawItems(indent,menu,n,offset);
-	
-	 
+
+
 	 //draw column info
 	if (columns.n) {
-		foreground_color(win_colors->bg);
+		foreground_color(coloravg(win_colors->fg,win_colors->bg,.8));
 		fill_rectangle(this, 0,0,win_w,textheight);
 		foreground_color(win_colors->fg);
 		for (int c=0; c<columns.n; c++) {
