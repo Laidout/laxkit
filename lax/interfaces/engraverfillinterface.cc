@@ -526,7 +526,7 @@ Attribute *EngraverLineQuality::dump_out_atts(Attribute *att,int what,Laxkit::an
 		att->push("outdashcaps",      "#Line cap at the inside end of a dash. Todo!");
 		att->push("startcaps",        "#Line cap at the start of a whole line. Todo!");
 		att->push("endcaps",          "#Line cap at the end of a whole line. Todo!");
-		return 0;
+		return att;
 	}
 
 	char buffer[50];
@@ -3589,6 +3589,7 @@ Attribute *EngraverTraceSettings::dump_out_atts(Attribute *att,int what,Laxkit::
 		att->push("view_opacity", "#Opacity of background reference");
 		att->push("continuous true",   "#Whether to trace continuously");
 		att->push("trace", "#What to trace from");
+		return att;
 	}
 
 	char buffer[50];
@@ -5965,6 +5966,8 @@ void EngraverFillInterface::UpdatePanelAreas()
 		  panel.AddItem("Move Group Down", ENGRAVE_Group_Down);
 		panel.EndSubMenu();
 		panel.e(panel.n()-1)->state|=LAX_OPEN; //this always needs to be open
+		MenuItem *grouplist=panel.findid(ENGRAVE_Group_List);
+		grouplist->Open();
 
 		//--------------- tracing  ---------------
 		panel.AddItem("Tracing",    ENGRAVE_Tracing);
