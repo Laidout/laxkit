@@ -532,12 +532,15 @@ int LineEdit::CharInput(unsigned int ch,const char *buffer,int len,unsigned int 
 {
 	DBG cerr <<"########LineEdit::CharInput"<<endl;
 
-	if (!thefont) { cout <<"No font in "<<WindowTitle()<<endl; return 0; }
+	if (!thefont) { cout <<"No font in "<<WindowTitle()<<endl; return 1; }
+
 	int c=0;
 	if ((ch==LAX_Tab && !(win_style&LINEEDIT_CNTLTAB_NEXT)) 
 			|| ((win_style&LINEEDIT_CNTLTAB_NEXT) && (state&ControlMask)))
 		return anXWindow::CharInput('\t',NULL,0,state,d);
+
 	if (!(state&ControlMask) && (ch=='\t' || (ch>=32 && ch<255)) && !readonly()) {
+		 //insert the character
 		if (sellen) replacesel(ch);
 		else inschar(ch);
 		DBG cerr <<"text: "<<thetext<<endl;
@@ -549,6 +552,7 @@ int LineEdit::CharInput(unsigned int ch,const char *buffer,int len,unsigned int 
 	if (ch=='z' && (state&LAX_STATE_MASK)==ControlMask) {
 		Undo();
 		return 0;
+
 	} else if ((ch=='y' && (state&LAX_STATE_MASK)==(ControlMask))
 				|| (ch=='z' && (state&LAX_STATE_MASK)==(ShiftMask|ControlMask))) {
 		Redo();
@@ -556,7 +560,7 @@ int LineEdit::CharInput(unsigned int ch,const char *buffer,int len,unsigned int 
 	}
 
 
-	 // catch control keys
+	 // catch control-(char) keys
 	if ((state&LAX_STATE_MASK)==ControlMask && ch>=32) switch(ch) { 
 		case 'b': 
 			DBG cerr <<"breakpoint"<<endl;
@@ -615,7 +619,9 @@ int LineEdit::CharInput(unsigned int ch,const char *buffer,int len,unsigned int 
 					  return 0;
 				}
 	}
-	switch(ch) { // standard control keys
+
+	 // standard control keys (without pressing control)
+	switch(ch) {
 		case 0: return 0; // null
 		case LAX_Tab:  // ^tab nextcontrol, ^+tab for prev
 			if (state&ShiftMask) SelectPrevControl(d);
