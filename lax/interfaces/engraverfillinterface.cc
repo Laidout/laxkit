@@ -6459,14 +6459,28 @@ void EngraverFillInterface::DrawPanel()
 								dp->drawthing(xx+th/2,yy+th/2, ww,-ww, 2,  group2->active ? THING_Open_Eye : THING_Closed_Eye);
 								xx+=th;
 
+
 								 //linked
-								unsigned long color=(group2 && group2->linked ? rgbcolor(0,200,0) : rgbcolor(255,100,100) );
-								dp->drawthing(xx+th/2,yy+th/2, th*.25,-th*.25, THING_Circle, color,color);
-								if (oncurobj && g==current_group) {
+								unsigned long color;
+								double rr=.25; //radius of inner linked circle
+								if (oncurobj && g==current_group && group2->active && !group2->linked) {
 									 //draw green override circle over current group linked thing regardless of actual color
+									color=rgbcolor(0,200,0);
+									dp->drawthing(xx+th/2,yy+th/2, th*.4,-th*.4, THING_Circle, color,color);
+									rr=.2;
 								}
+								if (group2->linked && !group2->active) {
+									//draw red override circle, since group is not modifiable while invisible
+									color=rgbcolor(255,100,100);
+									dp->drawthing(xx+th/2,yy+th/2, th*.4,-th*.4, THING_Circle, color,color);
+									rr=.2;
+								}
+								 //now draw actual linked state
+								color=(group2 && group2->linked ? rgbcolor(0,200,0) : rgbcolor(255,100,100) );
+								dp->drawthing(xx+th/2,yy+th/2, th*rr,-th*rr, THING_Circle, color,color);
 								dp->NewFG(&fgcolor);
 								xx+=th;
+
 
 								 //color rectangle
 								dp->NewFG(&group2->color);
