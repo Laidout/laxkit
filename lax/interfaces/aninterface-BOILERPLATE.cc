@@ -61,7 +61,7 @@ BoilerPlateInterface::BoilerPlateInterface(anInterface *nowner, int nid, Display
 	showdecs=1;
 	needtodraw=1;
 
-	sc=NULL;
+	sc=NULL; //shortcut list, define as needed in GetShortcuts()
 }
 
 BoilerPlateInterface::~BoilerPlateInterface()
