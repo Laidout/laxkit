@@ -42,6 +42,7 @@ objs= \
 	freehandinterface.o \
 	captioninterface.o \
 	engraverfillinterface.o \
+	delauneyinterface.o \
 	ellipseinterface.o \
 	pressuremapinterface.o \
 	curvemapinterface.o \
