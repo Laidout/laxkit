@@ -182,7 +182,7 @@ Path::Path()
 	needtorecache=1;
 	cache_types=0; //if 1, then also compute cache_top and cache_bottom
 	cache_samples=10;
-	defaultwidth=1./72;
+	defaultwidth=10./72;
 	absoluteangle=false;
 
 	save_cache=true;
@@ -195,7 +195,7 @@ Path::Path(Coordinate *np,LineStyle *nls)
 	path=np;
 	linestyle=nls;
 	if (linestyle) linestyle->inc_count();
-	defaultwidth=1./72;
+	defaultwidth=10./72;
 	absoluteangle=false;
 
 	//cache_mod_time=0;
@@ -1150,7 +1150,8 @@ void Path::UpdateCache()
 
 		//DBG cerr <<"maybe join, dist to next point="<<norm2(list->e[c]-list->e[c+1])<<endl; 
 
-		if (norm2(list->e[c]-list->e[c+1])<1e-5) continue; //don't bother if points really close together
+		// *** trouble spot with following line, should wrap around as appropriate
+		if (c<thisstart+thisn-1 && norm2(list->e[c]-list->e[c+1])<1e-5) continue; //don't bother if points really close together
 
 		DBG cerr << "**** JOIN at "<<c<<'/'<<list->n<<endl;
 
@@ -2407,9 +2408,9 @@ bool Path::IsClosed()
 {
 	if (!path) return false;
 
-	int n=0;
 	Coordinate *start=path->firstPoint(1);
 	Coordinate *p=start;
+
 	do {
 		p=p->nextVertex(0);
 	} while (p && p!=start);
@@ -2996,31 +2997,32 @@ double PathsData::Length(int pathi, double tstart,double tend)
 	return paths.e[pathi]->Length(tstart,tend);
 }
 
-/*! If fromi<0 or toi<0, then search for a path containing from, likewise for to.
+/*! If frompathi<0 or toi<0, then search for a path containing from, likewise for to.
  * from and to must be endpoints, and may or may not be on same path.
  *
  * Return 0 for success, or nonzero for couldn't connect and nothing done.
  */
-int PathsData::ConnectEndpoints(Coordinate *from,int fromi, Coordinate *to,int toi)
+int PathsData::ConnectEndpoints(Coordinate *from,int frompathi, Coordinate *to,int topathi)
 {
 	 //find which sides they are endpoints
 	 //make to be same path direction as from
 	if (from==to) return 1;
-	if (fromi<0) fromi=hasCoord(from);
-	if (toi<0) toi=hasCoord(to);
-	if (toi<0 || fromi<0) return 2;
+	if (frompathi<0) frompathi=hasCoord(from);
+	if (topathi<0) topathi=hasCoord(to);
+	if (topathi<0 || frompathi<0) return 2;
 
 	int fromdir=from->isEndpoint();
 	int todir  =to->isEndpoint();
 	if (!fromdir || !todir) return 3;
-	if (fromi==toi) {
+	if (frompathi==topathi) {
 		 //simple, endpoints are on same path, so just close the path
-		paths.e[fromi]->close();
+		paths.e[frompathi]->close();
 		return 0;
 	}
 
-	int numfromverts=paths.e[fromi]->NumVertices(NULL);
-	if ((fromdir>0 && todir>0) || (fromdir<0 && todir<0)) ReversePath(toi);
+	 //non-simple case, need to connect two different paths...
+	int numfromverts=paths.e[frompathi]->NumVertices(NULL);
+	if ((fromdir>0 && todir>0) || (fromdir<0 && todir<0)) ReversePath(topathi);
 
 	Coordinate *fp;
 	Coordinate *tp;
@@ -3035,20 +3037,20 @@ int PathsData::ConnectEndpoints(Coordinate *from,int fromi, Coordinate *to,int t
 	fp->next=tp;
 	tp->prev=fp;
 
-	paths.e[fromi]->path=to->firstPoint(1);
-	paths.e[fromi]->needtorecache=1;
-	paths.e[toi]  ->needtorecache=1;
+	paths.e[frompathi]->path=to->firstPoint(1);
+	paths.e[frompathi]->needtorecache=1;
+	paths.e[topathi]  ->needtorecache=1;
 
 	 //remove other path
-	for (int c=0; c<paths.e[toi]->pathweights.n; c++) {
-		paths.e[fromi]->AddWeightNode(
-				paths.e[toi]->pathweights.e[c]->t + numfromverts,
-				paths.e[toi]->pathweights.e[c]->offset,
-				paths.e[toi]->pathweights.e[c]->width,
-				paths.e[toi]->pathweights.e[c]->angle);
+	for (int c=0; c<paths.e[topathi]->pathweights.n; c++) {
+		paths.e[frompathi]->AddWeightNode(
+				paths.e[topathi]->pathweights.e[c]->t + numfromverts,
+				paths.e[topathi]->pathweights.e[c]->offset,
+				paths.e[topathi]->pathweights.e[c]->width,
+				paths.e[topathi]->pathweights.e[c]->angle);
 	}
-	paths.e[toi]->path=NULL;
-	paths.remove(toi);
+	paths.e[topathi]->path=NULL;
+	paths.remove(topathi);
 
 	return 0;
 }
@@ -3240,6 +3242,7 @@ int PathsData::hasCoord(Coordinate *co)
 {
 	for (int c=0; c<paths.n; c++) {
 		if (!paths.e[c]->path) continue;
+
 		if (paths.e[c]->path->hasCoord(co)) return c;
 	}
 	return -1;
@@ -4593,6 +4596,7 @@ void PathInterface::SetCurvertex(Coordinate *p, int path)
 	if (i<0) i=data->hasCoord(p);
 	if (i>=0) curpath=data->paths.e[i];
 
+	 //make sure p is on nearest vertex
 	if (!(p->flags&POINT_VERTEX)) {
 		if (p->flags&POINT_TOPREV) {
 			while (p->prev && !(p->flags&POINT_VERTEX)) p=p->prev;
@@ -5011,7 +5015,7 @@ Coordinate *PathInterface::scan(int x,int y,int pmask, int *pathindex) // pmask=
 //		----------------
 Laxkit::MenuInfo *PathInterface::ContextMenu(int x,int y,int deviceid, MenuInfo *menu)
 {
-    if (!menu) menu=new MenuInfo();
+	if (!menu) menu=new MenuInfo();
 
 
 	if (curpoints.n) {
@@ -5022,12 +5026,12 @@ Laxkit::MenuInfo *PathInterface::ContextMenu(int x,int y,int deviceid, MenuInfo 
 		menu->AddItem(_("Smooth, unequal"), PATHIA_PointTypeSmoothUnequal, LAX_OFF|LAX_ISTOGGLE|(ptype==BEZ_STIFF_NEQUAL  ? LAX_CHECKED : 0), 0);
 		menu->AddItem(_("Corner"),          PATHIA_PointTypeCorner,        LAX_OFF|LAX_ISTOGGLE|(ptype==BEZ_NSTIFF_NEQUAL ? LAX_CHECKED : 0), 0);
 
-//		jstyle=curpoints.e[0]->flags&POINT_JOIN_MASK;
-//		menu->AddSep(_("Per Point Join Style"));
-//		menu->AddItem(_("Bevel"), PATHIA_Bevel, LAX_OFF|LAX_ISTOGGLE|((jstyle&POINT_Bevel) ? LAX_CHECKED : 0));
-//		menu->AddItem(_("Miter"), PATHIA_Miter, LAX_OFF|LAX_ISTOGGLE|((jstyle&POINT_Miter) ? LAX_CHECKED : 0));
-//		menu->AddItem(_("Round"), PATHIA_Round, LAX_OFF|LAX_ISTOGGLE|((jstyle&POINT_Round) ? LAX_CHECKED : 0));
-//		menu->AddItem(_("Extrapolate"), PATHIA_Extrapolate, LAX_OFF|LAX_ISTOGGLE|((jstyle&POINT_Extrapolate) ? LAX_CHECKED : 0));
+		//		jstyle=curpoints.e[0]->flags&POINT_JOIN_MASK;
+		//		menu->AddSep(_("Per Point Join Style"));
+		//		menu->AddItem(_("Bevel"), PATHIA_Bevel, LAX_OFF|LAX_ISTOGGLE|((jstyle&POINT_Bevel) ? LAX_CHECKED : 0));
+		//		menu->AddItem(_("Miter"), PATHIA_Miter, LAX_OFF|LAX_ISTOGGLE|((jstyle&POINT_Miter) ? LAX_CHECKED : 0));
+		//		menu->AddItem(_("Round"), PATHIA_Round, LAX_OFF|LAX_ISTOGGLE|((jstyle&POINT_Round) ? LAX_CHECKED : 0));
+		//		menu->AddItem(_("Extrapolate"), PATHIA_Extrapolate, LAX_OFF|LAX_ISTOGGLE|((jstyle&POINT_Extrapolate) ? LAX_CHECKED : 0));
 	}                                                                                   
 
 	menu->AddSep(_("Join Style"));
@@ -5067,7 +5071,7 @@ Laxkit::MenuInfo *PathInterface::ContextMenu(int x,int y,int deviceid, MenuInfo 
 		menu->AddItem(_("Absolute angles"),  PATHIA_ToggleAbsAngle,  LAX_OFF|LAX_ISTOGGLE|(angled?LAX_CHECKED:0), 0);
 	}
 
-	 //misc actions
+	//misc actions
 	if (data) {
 		if (menu->n()) menu->AddSep();
 		if (data->Angled()) {
@@ -5097,38 +5101,38 @@ Laxkit::MenuInfo *PathInterface::ContextMenu(int x,int y,int deviceid, MenuInfo 
 
 int PathInterface::Event(const Laxkit::EventData *e_data, const char *mes)
 {
-    if (!strcmp(mes,"menuevent")) {
-        const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(e_data);
-        int i =s->info2; //id of menu item
+	if (!strcmp(mes,"menuevent")) {
+		const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(e_data);
+		int i =s->info2; //id of menu item
 
 		if (i==PATHIA_StartNewSubpath
-		 || i==PATHIA_StartNewPath
-		 || i==PATHIA_Bevel      
-		 || i==PATHIA_Miter      
-		 || i==PATHIA_Round      
-		 || i==PATHIA_Extrapolate
+				|| i==PATHIA_StartNewPath
+				|| i==PATHIA_Bevel      
+				|| i==PATHIA_Miter      
+				|| i==PATHIA_Round      
+				|| i==PATHIA_Extrapolate
 
-		 || i==PATHIA_CapButt
-		 || i==PATHIA_CapRound
-		 || i==PATHIA_CapZero
+				|| i==PATHIA_CapButt
+				|| i==PATHIA_CapRound
+				|| i==PATHIA_CapZero
 
-		 || i==PATHIA_PointTypeSmooth
-		 || i==PATHIA_PointTypeSmoothUnequal
-		 || i==PATHIA_PointTypeCorner
+				|| i==PATHIA_PointTypeSmooth
+				|| i==PATHIA_PointTypeSmoothUnequal
+				|| i==PATHIA_PointTypeCorner
 
-		 || i==PATHIA_ToggleBaseline
-		 || i==PATHIA_ToggleWeights
-		 || i==PATHIA_ToggleAbsAngle
-		 || i==PATHIA_ApplyOffset
-		 || i==PATHIA_ResetOffset
-		 || i==PATHIA_MakeStraight
-		 || i==PATHIA_MakeBezStraight
-		 || i==PATHIA_ResetAngle
-		 || i==PATHIA_NewFromStroke
-		 || i==PATHIA_BreakApart
-		 || i==PATHIA_BreakApartChunks
-		 )
-			 PerformAction(i);
+				|| i==PATHIA_ToggleBaseline
+				|| i==PATHIA_ToggleWeights
+				|| i==PATHIA_ToggleAbsAngle
+				|| i==PATHIA_ApplyOffset
+				|| i==PATHIA_ResetOffset
+				|| i==PATHIA_MakeStraight
+				|| i==PATHIA_MakeBezStraight
+				|| i==PATHIA_ResetAngle
+				|| i==PATHIA_NewFromStroke
+				|| i==PATHIA_BreakApart
+				|| i==PATHIA_BreakApartChunks
+				)
+				PerformAction(i);
 		return 0;
 	}
 
@@ -5185,13 +5189,13 @@ int PathInterface::LBDown(int x,int y,unsigned int state,int count,const LaxMous
 		return 0;
 	}
 
-	 //catch simple cases
+	//catch simple cases
 	if (drawhover==HOVER_WeightTop
-		  || drawhover==HOVER_WeightBottom
-		  || drawhover==HOVER_WeightPosition
-		  || drawhover==HOVER_WeightAngle
-		  || drawhover==HOVER_AddWeightNode
-		  || drawhover==HOVER_RemoveWeightNode) {
+			|| drawhover==HOVER_WeightBottom
+			|| drawhover==HOVER_WeightPosition
+			|| drawhover==HOVER_WeightAngle
+			|| drawhover==HOVER_AddWeightNode
+			|| drawhover==HOVER_RemoveWeightNode) {
 		buttondown.moveinfo(d->id,LEFTBUTTON, state,drawhover);
 		return 0;
 
@@ -5211,7 +5215,7 @@ int PathInterface::LBDown(int x,int y,unsigned int state,int count,const LaxMous
 
 	if (!lbfound) {
 		if (drawhover==HOVER_AddPoint) {
-			 //add new point at mouse position
+			//add new point at mouse position
 			if (curpoints.n) curpoints.flush();
 			CutNear(hoverpoint);
 			curpoints.pushnodup(curvertex,0);
@@ -5225,7 +5229,7 @@ int PathInterface::LBDown(int x,int y,unsigned int state,int count,const LaxMous
 		if ((state&(ControlMask|AltMask|MetaMask|ShiftMask))==0) {
 			//plain click
 			if (!primary && viewport) {
-				 //possibly switch to existing object on canvas
+				//possibly switch to existing object on canvas
 				PathsData *obj=NULL;
 				ObjectContext *oc=NULL;
 				int c=viewport->FindObject(x,y,whatdatatype(),NULL,1,&oc);
@@ -5252,7 +5256,7 @@ int PathInterface::LBDown(int x,int y,unsigned int state,int count,const LaxMous
 
 			AddPoint(screentoreal(x,y));
 			buttondown.moveinfo(d->id,LEFTBUTTON, state,HOVER_AddingPoint); //1 means we are adding a point, used to control
-														   //if adding bez or poly point
+			//if adding bez or poly point
 
 		} else if ((state&(ControlMask|AltMask|MetaMask|ShiftMask))==ShiftMask) {
 			if (data) {
@@ -5275,15 +5279,16 @@ int PathInterface::LBDown(int x,int y,unsigned int state,int count,const LaxMous
 		drawhover=0;
 
 		if ((state&(ControlMask|AltMask|MetaMask|ShiftMask))==0) {
-			 // plain click means flush old points, select new point.
-			 // Point found means that it is either ok with the current pathop
-			 // or curpathop is not primary.
+			// plain click means flush old points, select new point.
+			// Point found means that it is either ok with the current pathop
+			// or curpathop is not primary.
 			if (curpoints.findindex(lbfound)>=0) lbselected=0; //point was already selected
 			selectPoint(lbfound,PSELECT_FlushPoints|PSELECT_PushPoints|PSELECT_SelectPathop|PSELECT_SyncVertex);
 
 		} else if ((state&(ControlMask|AltMask|MetaMask|ShiftMask))==ShiftMask) {
 			if (curpoints.n==1) {
-				 //check if curpoint is an endpoint, and we click up on another endpoint
+				//check if curpoint is an endpoint, and we click up on another endpoint,
+				//so we need to put a segment between the endpoints
 				if (curpoints.e[0]->isEndpoint()) {
 					int pathi=-1;
 					Coordinate *topoint=scanEndpoints(x,y, &pathi,curpoints.e[0]);
@@ -5371,7 +5376,7 @@ int PathInterface::ChangeCurpathop(int newiid)
 	SetCurvertex(NULL);
 	curpoints.flush();
 
-	 // post a message somewhere saying what is current pathop
+	// post a message somewhere saying what is current pathop
 	char blah[100];
 	strcpy(blah,"PathInterface now using: ");
 	if (curpathop) strcat(blah,curpathop->whattype());
@@ -5394,8 +5399,9 @@ PathsData *PathInterface::newPathsData()
 	if (!ndata->linestyle) ndata->linestyle=new LineStyle(*linestyle); //***bit of a hack here
 
 	//defaultweight.width=ndata->linestyle->width;
-	defaultweight.width=1/dp->Getmag();
+	defaultweight.width=3/dp->Getmag();
 	defaultweight.offset=0;
+	ndata->linestyle->width=defaultweight.width;
 
 	if (viewport) {
 		ObjectContext *oc=NULL;
@@ -5452,7 +5458,7 @@ int PathInterface::AddPoint(flatpoint p)
 	// it must be created, essentially by assigning the created node to a path.
 
 	if (!curvertex) {
-		 //start new subpath
+		//start new subpath
 		data->pushEmpty();
 		curpath=data->paths.e[data->paths.n-1];
 	}
@@ -5476,7 +5482,7 @@ int PathInterface::AddPoint(flatpoint p)
 		}
 	}
 
-	 //If curvertex==NULL, then curpath is currently a null path, thus with no weight nodes
+	//If curvertex==NULL, then curpath is currently a null path, thus with no weight nodes
 	if (!curvertex) {
 		curvertex=np->nextVertex(1);
 		curpath->path=curvertex;
@@ -5490,8 +5496,8 @@ int PathInterface::AddPoint(flatpoint p)
 		return 0;
 	}
 
-	
-	 // There is a curpath and a curvertex, figure out how to insert a new thing in the path.
+
+	// There is a curpath and a curvertex, figure out how to insert a new thing in the path.
 
 	if (curpath->addAt(curvertex, np, 1)==0) {
 		SetCurvertex(np->nextVertex(1)); // *** warning! this might return NULL!! shouldn't really happen though ... right? right?
@@ -5523,7 +5529,7 @@ void PathInterface::removeSegment(Coordinate *p)
 	if (!p->controls) {
 		if (p->flags&POINT_VERTEX) return;
 		if (p->flags&(POINT_TOPREV|POINT_TONEXT)) {
-			 //remove ordinary bezier control points
+			//remove ordinary bezier control points
 			p->detach();
 			delete p;
 		}
@@ -5552,7 +5558,7 @@ void PathInterface::SetPointType(int newtype)
 			if (curpoints.e[c]->flags&POINT_TOPREV) v=curpoints.e[c]->prev;
 			else v=curpoints.e[c]->next;
 			if (curpoints.findindex(v)>=0) continue; //vertex is already in curpoints, 
-													//don't toggle more than once for vertex!
+			//don't toggle more than once for vertex!
 		}
 		SetPointType(v,newtype);
 	}
@@ -5576,8 +5582,8 @@ void PathInterface::SetPointType(Coordinate *v,int newtype)
 				switch (f) {
 					case BEZ_STIFF_EQUAL: f=BEZ_STIFF_NEQUAL;   break;
 					case BEZ_STIFF_NEQUAL: f=BEZ_NSTIFF_NEQUAL;  break;
-					//case BEZ_STIFF_NEQUAL: f=BEZ_NSTIFF_EQUAL;  break;
-					//case BEZ_NSTIFF_EQUAL: f=BEZ_NSTIFF_NEQUAL; break;
+										   //case BEZ_STIFF_NEQUAL: f=BEZ_NSTIFF_EQUAL;  break;
+										   //case BEZ_NSTIFF_EQUAL: f=BEZ_NSTIFF_NEQUAL; break;
 					case BEZ_NSTIFF_NEQUAL: f=BEZ_STIFF_EQUAL;  break;
 					default: f=BEZ_NSTIFF_NEQUAL; break;
 				}
@@ -5585,8 +5591,8 @@ void PathInterface::SetPointType(Coordinate *v,int newtype)
 				switch (f) {
 					case BEZ_STIFF_EQUAL: f=BEZ_NSTIFF_NEQUAL;   break;
 					case BEZ_STIFF_NEQUAL: f=BEZ_STIFF_EQUAL;  break;
-					//case BEZ_NSTIFF_EQUAL: f=BEZ_STIFF_NEQUAL; break;
-					//case BEZ_NSTIFF_NEQUAL: f=BEZ_NSTIFF_EQUAL;  break;
+										   //case BEZ_NSTIFF_EQUAL: f=BEZ_STIFF_NEQUAL; break;
+										   //case BEZ_NSTIFF_NEQUAL: f=BEZ_NSTIFF_EQUAL;  break;
 					case BEZ_NSTIFF_NEQUAL: f=BEZ_STIFF_NEQUAL;  break;
 					default: f=BEZ_NSTIFF_NEQUAL; break;
 				}
@@ -5600,7 +5606,7 @@ void PathInterface::SetPointType(Coordinate *v,int newtype)
 		case BEZ_STIFF_EQUAL:   mes=_("Smooth, equal");   break;
 		case BEZ_STIFF_NEQUAL:  mes=_("Smooth, unequal"); break;
 		case BEZ_NSTIFF_EQUAL:  mes=_("Corner, equal");   break;
-		//case BEZ_NSTIFF_NEQUAL: mes=_("Corner, unequal"); break;
+								//case BEZ_NSTIFF_NEQUAL: mes=_("Corner, unequal"); break;
 		case BEZ_NSTIFF_NEQUAL: mes=_("Corner"); break;
 		default: mes=_("Corner"); break;
 	}
@@ -5610,13 +5616,15 @@ void PathInterface::SetPointType(Coordinate *v,int newtype)
 
 /*! Return 0 for success, nonzero for couldn't connect.
  */
-int PathInterface::ConnectEndpoints(Coordinate *from,int fromi, Coordinate *to,int toi)
+int PathInterface::ConnectEndpoints(Coordinate *from,int frompathi, Coordinate *to,int topathi)
 {
 	if (!data) return 1;
-	int status=data->ConnectEndpoints(from,fromi,to,toi);
+
+	int status=data->ConnectEndpoints(from,frompathi,to,topathi);
+
 	if (status==0) {
 		curpoints.flush();
-		curpoints.push(to);
+		curpoints.pushnodup(to,0);
 		SetCurvertex(to);
 		needtodraw=1;
 	}
@@ -5629,7 +5637,7 @@ int PathInterface::MergeEndpoints(Coordinate *from,int fromi, Coordinate *to,int
 {
 	//find which sides they are endpoints
 	//make to be same path direction as from
-	
+
 	if (fromi<0) fromi=data->hasCoord(from);
 	if (toi<0) toi=data->hasCoord(to);
 	if (toi<0 || fromi<0) return 0;
@@ -5641,12 +5649,12 @@ int PathInterface::MergeEndpoints(Coordinate *from,int fromi, Coordinate *to,int
 
 	if ((fromdir>0 && todir>0) || (fromdir<0 && todir<0)) data->ReversePath(toi);
 
-	 //need to take prev of from and put on to, removing to's prev (for fromdir>0)
+	//need to take prev of from and put on to, removing to's prev (for fromdir>0)
 	Coordinate *fp;
 	Coordinate *tp;
 	Coordinate *tmp;
 
-	 //standardize connect order for code below
+	//standardize connect order for code below
 	if (fromdir<0) {
 		tmp=from;
 		from=to;
@@ -5656,11 +5664,11 @@ int PathInterface::MergeEndpoints(Coordinate *from,int fromi, Coordinate *to,int
 		toi=tt;
 	}
 
-	 //we connect from final path point to beginning path point
+	//we connect from final path point to beginning path point
 	fp=from->lastPoint(0);
 	tp=to->firstPoint(0);
 
-	 //first remove in between control points
+	//first remove in between control points
 	if (fp->flags&POINT_TOPREV) {
 		fp=fp->prev;
 		tmp=fp->next;
@@ -5676,21 +5684,21 @@ int PathInterface::MergeEndpoints(Coordinate *from,int fromi, Coordinate *to,int
 		delete tmp;
 	}
 
-	 //now fp and tp should be vertices, need to remove fp
+	//now fp and tp should be vertices, need to remove fp
 	fp=fp->prev;
 	tmp=fp->next;
 	fp->next=NULL;
 	tmp->prev=NULL;
 	delete tmp;
 
-	 //finally connect the terminal points
+	//finally connect the terminal points
 	fp->next=tp;
 	tp->prev=fp;
 
 	data->paths.e[fromi]->path=to->firstPoint(1);
 	data->paths.e[fromi]->needtorecache=1;
 	if (fromi!=toi) {
-		 //remove other path
+		//remove other path
 		data->paths.e[toi]->path=NULL;
 		data->paths.remove(toi);
 	}
@@ -5807,94 +5815,94 @@ int PathInterface::LBUp(int x,int y,unsigned int state,const LaxMouse *d)
 		return 0;
 	}
 
-	 //below is for various special cases of merging and point selection
+	//below is for various special cases of merging and point selection
 	switch (state&(ControlMask|AltMask|MetaMask|ShiftMask)) {
 		case (0): { // plain click
-				if (curpoints.n==1 && moved) {
-					 //check if moving endpoint onto another endpoint
-					if (abs(curpoints.e[0]->isEndpoint())==1) {
-						int pathi=-1;
-						Coordinate *topoint=scanEndpoints(x,y, &pathi,curpoints.e[0]);
-						if (topoint && topoint!=curpoints.e[0] && abs(topoint->isEndpoint())==1) {
-							MergeEndpoints(curpoints.e[0],-1, topoint,pathi);
-							needtodraw=1;
-							drawhover=0;
-							return 0;
-						}
-					}
-				}
+					  if (curpoints.n==1 && moved) {
+						  //check if moving endpoint onto another endpoint
+						  if (abs(curpoints.e[0]->isEndpoint())==1) {
+							  int pathi=-1;
+							  Coordinate *topoint=scanEndpoints(x,y, &pathi,curpoints.e[0]);
+							  if (topoint && topoint!=curpoints.e[0] && abs(topoint->isEndpoint())==1) {
+								  MergeEndpoints(curpoints.e[0],-1, topoint,pathi);
+								  needtodraw=1;
+								  drawhover=0;
+								  return 0;
+							  }
+						  }
+					  }
 
-				if (lbfound && !moved) { // clicked on a point and didn't move
-					 //flush-push-setcpop-syncCV
-					if (curpoints.n==1 && lbfound==curpoints.e[0] && (lbfound->flags&POINT_VERTEX) && !lbselected) {
-						 //click down then up on only selected vertex, toggle selected
-						curpoints.flush();
-					} else selectPoint(lbfound,PSELECT_FlushPoints|PSELECT_PushPoints|PSELECT_SelectPathop|PSELECT_SyncVertex);
-					needtodraw|=2;
-					return 0;
+					  if (lbfound && !moved) { // clicked on a point and didn't move
+						  //flush-push-setcpop-syncCV
+						  if (curpoints.n==1 && lbfound==curpoints.e[0] && (lbfound->flags&POINT_VERTEX) && !lbselected) {
+							  //click down then up on only selected vertex, toggle selected
+							  curpoints.flush();
+						  } else selectPoint(lbfound,PSELECT_FlushPoints|PSELECT_PushPoints|PSELECT_SelectPathop|PSELECT_SyncVertex);
+						  needtodraw|=2;
+						  return 0;
 
-				} else if (!lbfound && !moved && action==HOVER_AddingPoint && curvertex) {
-					 //we clicked down then up without moving and added a new point, so trim the control points
-					curpoints.flush();
-					Coordinate *cv=curvertex;
-					if (curvertex->next && (curvertex->next->flags&POINT_TOPREV)) curpoints.push(curvertex->next,0);
-					if (curvertex->prev && (curvertex->prev->flags&POINT_TONEXT)) curpoints.push(curvertex->prev,0);
-					DeleteCurpoints(); //makes curvertex null
-					SetCurvertex(cv);
-					curpoints.push(curvertex,0);
-					needtodraw=1;
-					return 0;
-				}
-			} break;
+					  } else if (!lbfound && !moved && action==HOVER_AddingPoint && curvertex) {
+						  //we clicked down then up without moving and added a new point, so trim the control points
+						  curpoints.flush();
+						  Coordinate *cv=curvertex;
+						  if (curvertex->next && (curvertex->next->flags&POINT_TOPREV)) curpoints.push(curvertex->next,0);
+						  if (curvertex->prev && (curvertex->prev->flags&POINT_TONEXT)) curpoints.push(curvertex->prev,0);
+						  DeleteCurpoints(); //makes curvertex null
+						  SetCurvertex(cv);
+						  curpoints.push(curvertex,0);
+						  needtodraw=1;
+						  return 0;
+					  }
+				  } break;
 
 		case (ShiftMask): {
-				if (!lbfound && moved && !curpoints.n) { // was selecting with a box
-					//*** add point within the box.
+							  if (!lbfound && moved && !curpoints.n) { // was selecting with a box
+								  //*** add point within the box.
 
-				} else if (lbfound && !moved) { // toggle selection of lbfound
-					int c=curpoints.findindex(lbfound);
-					if (c>=0) ; //curpoints.pop(c); // toggle off
-					else { // found unselected point, toggle on
-						selectPoint(lbfound,PSELECT_PushPoints|PSELECT_SelectPathop|PSELECT_SyncVertex); //push-setcpop-syncCV
-					}
-					needtodraw|=2;
-				}
-			} break;
+							  } else if (lbfound && !moved) { // toggle selection of lbfound
+								  int c=curpoints.findindex(lbfound);
+								  if (c>=0) ; //curpoints.pop(c); // toggle off
+								  else { // found unselected point, toggle on
+									  selectPoint(lbfound,PSELECT_PushPoints|PSELECT_SelectPathop|PSELECT_SyncVertex); //push-setcpop-syncCV
+								  }
+								  needtodraw|=2;
+							  }
+						  } break;
 
 		case (ControlMask): {
-				if (lbfound && !moved) {
-					int c=curpoints.findindex(lbfound);
-					if (c>=0) { // found point  --  not moved  --  selected
-						//***needs testing*** scan underneath swapping point if necessary, otherwise leave point as is
+								if (lbfound && !moved) {
+									int c=curpoints.findindex(lbfound);
+									if (c>=0) { // found point  --  not moved  --  selected
+										//***needs testing*** scan underneath swapping point if necessary, otherwise leave point as is
 
-						Coordinate *np;
-						np=scannear(lbfound,1);  // scannear have option that 1 means that the point has to be an unselected one??
-						int c2=(np?curpoints.findindex(np):-1);
+										Coordinate *np;
+										np=scannear(lbfound,1);  // scannear have option that 1 means that the point has to be an unselected one??
+										int c2=(np?curpoints.findindex(np):-1);
 
-						if (np) {
-							if (c2<0) { // found point is not selected, so deselect lbfound, select np
-								curpoints.pop(c);
-								selectPoint(np,PSELECT_PushPoints|PSELECT_SelectPathop|PSELECT_SyncVertex); //push-setcpop-syncCV
-							} else { // found point is already selected
-								 // rearrange stack by swapping np and lbfound***whatthehell is this? is it remotely useful?
-								curpoints.e[c]=np;
-								curpoints.e[c2]=lbfound;
-							}
-						} else { //did not find a near point, so deselect this point
-							curpoints.pop(c); // toggle off
-						}
+										if (np) {
+											if (c2<0) { // found point is not selected, so deselect lbfound, select np
+												curpoints.pop(c);
+												selectPoint(np,PSELECT_PushPoints|PSELECT_SelectPathop|PSELECT_SyncVertex); //push-setcpop-syncCV
+											} else { // found point is already selected
+												// rearrange stack by swapping np and lbfound***whatthehell is this? is it remotely useful?
+												curpoints.e[c]=np;
+												curpoints.e[c2]=lbfound;
+											}
+										} else { //did not find a near point, so deselect this point
+											curpoints.pop(c); // toggle off
+										}
 
-					} else { // found point  --  not moved  --  not selected
-						selectPoint(lbfound,PSELECT_PushPoints|PSELECT_SelectPathop|PSELECT_SyncVertex); //push-setcpop-syncCV
-					}
-					needtodraw|=2;
-					return 0;
+									} else { // found point  --  not moved  --  not selected
+										selectPoint(lbfound,PSELECT_PushPoints|PSELECT_SelectPathop|PSELECT_SyncVertex); //push-setcpop-syncCV
+									}
+									needtodraw|=2;
+									return 0;
 
-				}
-			} break;
+								}
+							} break;
 
 		case (ShiftMask|ControlMask): {
-			} break;
+									  } break;
 	}
 
 	return 0;
@@ -5925,7 +5933,7 @@ int PathInterface::WheelUp(int x,int y,unsigned int state,int count,const Laxkit
 {
 	if (state&LAX_STATE_MASK) return 1;
 
-	 //plain wheel to change point type
+	//plain wheel to change point type
 	Coordinate *p=scan(x,y, 0,NULL);
 	if (!p || !(p->flags&POINT_VERTEX)) return 1;
 	SetPointType(p,-1);
@@ -5938,7 +5946,7 @@ int PathInterface::WheelDown(int x,int y,unsigned int state,int count,const Laxk
 {
 	if (state&LAX_STATE_MASK) return 1;
 
-	 //plain wheel to change point type
+	//plain wheel to change point type
 	Coordinate *p=scan(x,y, 0,NULL);
 	if (!p || !(p->flags&POINT_VERTEX)) return 1;
 	SetPointType(p,-2);
@@ -5951,13 +5959,13 @@ int PathInterface::WheelDown(int x,int y,unsigned int state,int count,const Laxk
 int PathInterface::shiftBezPoint(Coordinate *pp,flatpoint d)
 {
 	if (d.x==0 && d.y==0) return 0; // should have ZERO=1e-10 or something rather than 0 because of rounding errors???
-	
+
 	//double dx=d.x,dy=d.y;
 	Coordinate *c,*v;
 	unsigned long f;
-	
-		 
-	 // Must shift the point and also the control point on other side of vertex if exists and is necessary
+
+
+	// Must shift the point and also the control point on other side of vertex if exists and is necessary
 	if (pp->flags&POINT_VERTEX) { // is on vertex: c1-< V >-c2
 		pp->ShiftPoint(d);
 		if (pp->next && !pp->next->controls && (pp->next->flags&POINT_TOPREV)) pp->next->ShiftPoint(d);
@@ -5966,7 +5974,7 @@ int PathInterface::shiftBezPoint(Coordinate *pp,flatpoint d)
 
 	} else {
 		if (pp->flags&POINT_TOPREV) {  // is on c1-v-< C2 >
-			 // set v=the vertex, c=the 'prev' control, pp is the 'next' control
+			// set v=the vertex, c=the 'prev' control, pp is the 'next' control
 			v=pp->prev;
 			if (!v->controls) {
 				f=v->flags&BEZ_MASK;
@@ -5979,7 +5987,7 @@ int PathInterface::shiftBezPoint(Coordinate *pp,flatpoint d)
 			if (v->prev && !v->prev->controls && (v->prev->flags&POINT_TONEXT)) c=v->prev; else c=NULL;
 
 		} else { // assume POINT_TONEXT
-			 // set v=the vertex, c=the 'next' control, pp is the 'prev' control
+			// set v=the vertex, c=the 'next' control, pp is the 'prev' control
 			v=pp->next;
 			if (!v->controls) {
 				f=v->flags&BEZ_MASK;
@@ -5994,32 +6002,32 @@ int PathInterface::shiftBezPoint(Coordinate *pp,flatpoint d)
 		pp->ShiftPoint(d);
 		if (c) switch (f) {
 			case BEZ_STIFF_EQUAL: {
-					DBG cerr <<"BEZ_STIFF_EQUAL"<<endl;
-					c->p(2*v->p() - pp->p());
-				} break;
+									  DBG cerr <<"BEZ_STIFF_EQUAL"<<endl;
+									  c->p(2*v->p() - pp->p());
+								  } break;
 			case BEZ_NSTIFF_EQUAL: {
-					DBG cerr <<"BEZ_NSTIFF_EQUAL"<<endl;
-					double nvc=norm(pp->p() - v->p()),
-					       ncv=norm(c->p() -  v->p());
-					if (ncv!=0) c->p(v->p() + nvc/ncv*(c->p() - v->p()));
-					else { // if c1,2 start at v give c2 a stiff direction
-						c->p(2*v->p() - pp->p());
-					}
-				} break;
+									   DBG cerr <<"BEZ_NSTIFF_EQUAL"<<endl;
+									   double nvc=norm(pp->p() - v->p()),
+											  ncv=norm(c->p() -  v->p());
+									   if (ncv!=0) c->p(v->p() + nvc/ncv*(c->p() - v->p()));
+									   else { // if c1,2 start at v give c2 a stiff direction
+										   c->p(2*v->p() - pp->p());
+									   }
+								   } break;
 			case BEZ_STIFF_NEQUAL: { 
-					DBG cerr <<"BEZ_STIFF_NEQUAL"<<endl;
-					double nvc=norm(pp->p() - v->p()),
-					       ncv=norm(c->p() -  v->p());
-					if (nvc!=0) c->p(v->p() - ncv/nvc*(pp->p() - v->p()));
-				} break;
+									   DBG cerr <<"BEZ_STIFF_NEQUAL"<<endl;
+									   double nvc=norm(pp->p() - v->p()),
+											  ncv=norm(c->p() -  v->p());
+									   if (nvc!=0) c->p(v->p() - ncv/nvc*(pp->p() - v->p()));
+								   } break;
 			case BEZ_NSTIFF_NEQUAL:  //Already shifted point, so do nothing!
-				DBG cerr <<"BEZ_STIFF_EQUAL"<<endl;
-				break;
+								   DBG cerr <<"BEZ_STIFF_EQUAL"<<endl;
+								   break;
 
 		} // switch
 		return 1;
 	}
-		
+
 	return 0; // return 1 if the point is shifted, else 0
 }
 
@@ -6039,8 +6047,8 @@ int PathInterface::shiftSelected(flatpoint d)
 		if (curpoints.e[c]->controls) pathop=getPathOpFromId(curpoints.e[c]->controls->iid());
 		if (pathop) pathop->ShiftPoint(curpoints.e[c],d);
 		else {
-			 //If trying to move a control point, and we are also moving a vertex at some
-			 //point, then skip moving the control point
+			//If trying to move a control point, and we are also moving a vertex at some
+			//point, then skip moving the control point
 			p=curpoints.e[c];
 			if (p->flags&POINT_TONEXT) p=p->next;
 			else if (p->flags&POINT_TOPREV) p=p->prev;
@@ -6149,7 +6157,7 @@ int PathInterface::MouseMove(int x,int y,unsigned int state,const LaxMouse *mous
 		drawhover=HOVER_None;
 		drawhoveri=-1;
 
-		 //check for hovering over endpoint when another endpoint is selected
+		//check for hovering over endpoint when another endpoint is selected
 		if (data && (state&ShiftMask) && curpoints.n==1) {
 			int pathi=-1;
 			Coordinate *topoint=scanEndpoints(x,y, &pathi,curpoints.e[0]);
