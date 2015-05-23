@@ -314,7 +314,7 @@ class PatchInterface : public anInterface
 	virtual int DrawData(Laxkit::anObject *ndata,Laxkit::anObject *a1=NULL,Laxkit::anObject *a2=NULL,int info=0);
 
 	virtual PatchData *newPatchData(double xx,double yy,double ww,double hh,int nr,int nc,unsigned int stle);
-	virtual void deletedata();
+	virtual void deletedata(bool flush_selection);
 	virtual int scan(int x,int y);
 	virtual int SelectPoint(int c,unsigned int state);
 	virtual int AddToSelection(ObjectContext *oc);

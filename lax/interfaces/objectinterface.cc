@@ -55,7 +55,7 @@ namespace LaxInterfaces {
  * 
  * If style&OBJECT_SELECT_TOUCHING, then the interface should select those objects that
  * are merely touching a dragged out rectangle. Otherwise, the objects must be totally inside
- * the dragged rectangle.
+ * the dragged rectangle. (unimplemented)
  * 
  * \todo ********* must have mechanism to get viewport events like layer up, home,
  *   end, etc, to affect all in selection!!
@@ -157,7 +157,13 @@ int ObjectInterface::InterfaceOff()
 	if (style&RECT_FLIP_LINE) style=(style&~RECT_FLIP_LINE)|RECT_FLIP_AT_SIDES;
 	showdecs=0;
 	needtodraw=1;
+
+	if (selection==viewport->GetSelection()) {
+		selection->dec_count();
+		selection=new Selection();
+	}
 	FreeSelection();
+
 	return 0;
 }
 
@@ -357,7 +363,9 @@ int ObjectInterface::FreeSelection()
 {
 	DBG cerr <<"=== FreeSelection()"<<endl;
 	deletedata();
+
 	selection->Flush();
+
 	if (style&RECT_FLIP_LINE) style=(style&~RECT_FLIP_LINE)|RECT_FLIP_AT_SIDES;
 	needtodraw=1;
 	return 0;

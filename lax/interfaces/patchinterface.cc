@@ -2768,7 +2768,8 @@ PatchInterface::~PatchInterface()
 	if (cuth) delete[] cuth;
 	
 	//DBG cerr<<"-----"<<whattype()<<","<<" destructor"<<endl;
-	deletedata();
+	deletedata(false);
+	if (selection) selection->dec_count();
 
 	if (sc) sc->dec_count();
 }
@@ -2931,6 +2932,19 @@ int PatchInterface::Event(const Laxkit::EventData *e_data, const char *mes)
 int PatchInterface::InterfaceOn()
 {
 	showdecs=oldshowdecs;
+
+	if (viewport && selection!=viewport->GetSelection()) {
+		if (selection) selection->Flush();
+		Selection *vselection=viewport->GetSelection();
+
+		for (int c=0; c<vselection->n(); c++) {
+			AddToSelection(vselection->e(c));
+		}
+	}
+
+	if (selection && selection->n()) UseThisObject(selection->e(0));
+
+
 	needtodraw=1;
 	return 0;
 }
@@ -2964,14 +2978,14 @@ PatchData *PatchInterface::newPatchData(double xx,double yy,double ww,double hh,
 }
 
 //! Delete data, and flush curpoints.
-void PatchInterface::deletedata()
+void PatchInterface::deletedata(bool flush_selection)
 {
 	if (data) data->dec_count();
 	data=NULL;
 	if (poc) { delete poc; poc=NULL; }
 	curpoints.flush();
 
-	if (selection) { selection->dec_count(); selection=NULL; }
+	if (selection && flush_selection) { selection->dec_count(); selection=NULL; }
 }
 
 //! Delete data, and flush curpoints. Make needtodraw=1.
@@ -2980,7 +2994,7 @@ void PatchInterface::deletedata()
 void PatchInterface::Clear(SomeData *d)
 {
 	//if (d && d!=somedata) return;
-	deletedata();
+	deletedata(true);
 	curpoints.flush();
 	hoverpoint=-1;
 	overh=overv=overch=overcv=-1;
@@ -3016,7 +3030,7 @@ int PatchInterface::UseThisObject(ObjectContext *oc)
 	PatchData *ndata=dynamic_cast<PatchData *>(oc->obj);
 	if (!ndata) return 0;
 
-	if (data && data!=ndata) deletedata();
+	if (data && data!=ndata) deletedata(false);
 	if (poc) delete poc;
 	poc=oc->duplicate();
 
@@ -3709,7 +3723,7 @@ int PatchInterface::LBDown(int x,int y,unsigned int state,int count,const Laxkit
 		if (c>0) {
 			//found another patch object to work on
 			viewport->ChangeObject(oc,0);
-			deletedata();
+			deletedata((state&LAX_STATE_MASK)==ShiftMask ? false : true);
 			data=dynamic_cast<PatchData*>(obj);
 			data->inc_count();
 			poc=oc->duplicate();
@@ -3728,14 +3742,14 @@ int PatchInterface::LBDown(int x,int y,unsigned int state,int count,const Laxkit
 			 //clicked on some other object, switch to that one
 			if (obj && c==-1 && viewport->ChangeObject(oc,1)) {
 				buttondown.up(d->id,LEFTBUTTON);
-				deletedata(); 
+				deletedata(false); 
 				return 0; 
 			}
 		}
 	}
 	
 	if (data) {
-		deletedata();
+		deletedata(true);
 		needtodraw=1;
 		return 0;
 	}

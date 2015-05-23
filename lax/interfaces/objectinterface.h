@@ -28,12 +28,17 @@
 #include <lax/interfaces/selection.h>
 #include <lax/lists.h>
 
-#define OBJECT_SELECT_TOUCHING    (1<<16)
 
 namespace LaxInterfaces {
 
 
 //-----------------------------
+
+enum ObjecInterfaceStyles {
+	OBJECTI_Select_Touching   = (1<<0),
+	OBJECTI_Private_Selection = (1<<1),
+	OBJECTI_MAX
+};
 
 enum ObjectInterfaceActions {
 	OIA_Group = RIA_MAX,

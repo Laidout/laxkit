@@ -184,6 +184,7 @@ class EngraverTraceSettings : public Laxkit::anObject
 
 	char *identifier;
 	TraceObject *traceobject;
+	bool lock_ref_to_obj;
 	EngraverTraceSettings *next;
 
 	EngraverTraceSettings();
@@ -203,6 +204,8 @@ class EngraverTraceSettings : public Laxkit::anObject
 class EngraverLineQuality : public Laxkit::anObject
 {
   public:
+	unsigned long resource_id;
+
 	double dash_length;
 	double dash_density;
 	double dash_randomness;
@@ -237,6 +240,7 @@ class DirectionMap
 	virtual flatpoint Direction(flatpoint p) { return Direction(p.x,p.y); }
 };
 
+
 //--------------------------- NormalDirectionMap -----------------------------
 class NormalDirectionMap : public DirectionMap
 {   
@@ -260,15 +264,55 @@ class NormalDirectionMap : public DirectionMap
 };  
     
 
+//--------------------------- LineProfile -----------------------------
+class LineProfile : public Laxkit::anObject
+{
+  public:
+	double width, max_height;
+	Laxkit::CurveInfo profile;
+
+	 //instance data:
+	double start, end; //-1 for random, otherwise must be in [0..1], and start<end
+};
+
 //--------------------------- EngraverDirection -----------------------------
 class EngraverDirection : public Laxkit::anObject
 {
   public:
+	enum PointGroupType {
+		PGROUP_Linear,
+		PGROUP_Radial,
+		PGROUP_Spiral,
+		PGROUP_Circular,
+		PGROUP_Shell,
+		PGROUP_S,
+		PGROUP_Contour_Repeat,
+		PGROUP_Map,
+		PGROUP_Custom,
+		PGROUP_MAX
+	};
+	class Parameter
+	{
+	  public:
+		char *name; //scripting name
+		char *Name; //human name
+		int type; //boolean, int, real
+		double min, max;
+		int min_type, max_type; //0=not active, 1=fixed
+		double mingap; //min size the slider shows
+	};
+
 	int type; //what manner of lines: linear, radial, circular
-	double type_d;   //parameter for type, for instance, an angle for spirals
 	double spacing;  //default
 	double resolution; //samples per spacing unit, default is 1
 	flatpoint position,direction; //default
+	Laxkit::NumStack<Parameter> parameters; //extras beyond position, spacing, rotation
+
+	 //line generation settings
+	double line_offset; //0..1 for random offset per line
+	double noise_scale; //applied per sample point, but offset per random line, not random at each point
+	LineProfile *default_profile;
+	double profile_start, profile_end; //-1 for random, else [0..1]
 
 	DirectionMap *map;
 
@@ -330,6 +374,8 @@ class EngraverPointGroup : public DirectionMap
 		PGROUP_Radial,
 		PGROUP_Spiral,
 		PGROUP_Circular,
+		PGROUP_Shell,
+		PGROUP_S,
 		PGROUP_Custom,
 		PGROUP_MAX
 	};
@@ -391,6 +437,35 @@ class EngraverPointGroup : public DirectionMap
 
 //---------------------------------------- EngraverFillData
 
+class EngraverFillStyle : public Laxkit::anObject
+{
+  public:
+	char *name;
+
+	EngraverLineQuality *dashes;
+	EngraverTraceSettings *trace;
+	EngraverDirection *direction;
+	EngraverSpacing *spacing;
+
+	EngraverFillStyle()
+	{
+		name=NULL;
+		dashes=NULL;
+		trace=NULL;
+		direction=NULL;
+		spacing=NULL;
+	}
+	virtual ~EngraverFillStyle()
+	{
+		delete[] name;
+		if (dashes) dashes->dec_count();
+		if (trace) trace->dec_count();
+		if (direction) direction->dec_count();
+		if (spacing) spacing->dec_count();
+	} 
+	virtual const char *whattype() { return "EngraverFillStyle"; }
+};
+
 class EngraverFillData : public PatchData
 {
  protected:
@@ -429,7 +504,7 @@ class EngraverFillData : public PatchData
 	virtual EngraverPointGroup *FindGroup(int id, int *err_ret=NULL);
 	virtual EngraverPointGroup *GroupFromIndex(int index, int *err_ret=NULL);
 
-	virtual int IsSharing(int what, int curgroup); 
+	virtual int IsSharing(int what, EngraverPointGroup *group, int curgroup); 
 };
 
 
@@ -513,11 +588,14 @@ class EngraverFillInterface : public PatchInterface
 	virtual void DrawNumInput(double pos,int type,int hovered, double x,double y,double w,double h, const char *text);
 	virtual void DrawShadeGradient(double minx,double maxx,double miny,double maxy);
 
-	virtual int IsSharing(int what, int curgroup); 
+	virtual int IsSharing(int what, EngraverPointGroup *group, int curgroup); 
 	virtual void UpdatePanelAreas();
-	virtual Laxkit::MenuInfo *GetGroupMenu(int what, int current);
+	virtual Laxkit::MenuInfo *GetGroupMenu(int what);
 	virtual int NumGroupLines();
 	virtual EngraverFillData *GroupFromLineIndex(int i, int *gi);
+
+	int PushToAll(int what, EngraverPointGroup *from,int fromi);
+	int PushSettings(int what, EngraverPointGroup *from,int fromi, EngraverPointGroup *to,int toi);
 
 	virtual void UpdateDashCaches(EngraverLineQuality *dash);
 
@@ -546,7 +624,7 @@ class EngraverFillInterface : public PatchInterface
 	virtual Laxkit::MenuInfo *ContextMenu(int x,int y,int deviceid, Laxkit::MenuInfo *menu);
 	virtual int InterfaceOff();
 
-	virtual void deletedata();
+	virtual void deletedata(bool flush_selection);
 	virtual PatchData *newPatchData(double xx,double yy,double ww,double hh,int nr,int nc,unsigned int stle);
 	//virtual void drawpatch(int roff,int coff);
 	//virtual void patchpoint(PatchRenderContext *context, double s0,double ds,double t0,double dt,int n);
