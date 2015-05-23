@@ -515,8 +515,9 @@ int Coordinate::insert(Coordinate *c,int after) //after=1;
   */
 int Coordinate::hasCoord(Coordinate *co, int *index)
 {
-	Coordinate *c=firstPoint(0), *d=c;
+	Coordinate *c=firstPoint(0), *first=c;
 	int v=-1;
+
 	do {
 		if (c && c->flags&POINT_VERTEX) v++;
 		if (co==c) {
@@ -524,7 +525,7 @@ int Coordinate::hasCoord(Coordinate *co, int *index)
 			return 1;
 		}
 		c=c->next;
-	} while (c && c!=d);
+	} while (c && c!=first);
 
 	 //point not found!
 	if (index) *index=-1;
