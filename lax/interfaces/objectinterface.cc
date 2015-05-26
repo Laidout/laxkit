@@ -292,7 +292,10 @@ int ObjectInterface::AddToSelection(Laxkit::PtrStack<ObjectContext> &nselection)
  */
 void ObjectInterface::RemapBounds()
 {
-	if (!data) return;
+	if (!data) {
+		if (!selection->n()) return;
+		somedata=data=new RectData();
+	}
 	data->clear();
 	
 	double m[6];
