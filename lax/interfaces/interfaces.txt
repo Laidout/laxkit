@@ -13,19 +13,11 @@ For complete interface class listings, see <a href="group__interfaces.html">here
 
 \section data A Word About Data
 
-Each WhateverData class has three functions to provide easy reading and writing with files.
-These are:
-<pre>
-  SomeData::dump_out(FILE *,int indent)
-  SomeData::dump_in(FILE*,int,Attribute**)
-  SomeData::dump_in_atts(Attribute *att)
-</pre>
+Most of the interfaces act on one kind of data. Usually, the data is defined in the same files
+as the interface. All the data classes are derived from LaxFiles::DumpUtility, and thus have
+easy file i/o with idented file data, a la LaxFiles::Attribute.
 
-They use
-the file format of LaxFiles::Attribute classes. Data elements are delineated with indentation
-in the file. If you make derived classes from an interface data class, you can use the 
-dump_in/out functions to dump in or out the base elements, then do the elements of the
-derived class. The dump_in() function by default just does a whole attribute dump in, and then calls
+The dump_in() function by default just does a whole attribute dump in, and then calls
 dump_in_atts(), so derived classes need only redefine the dump_in_atts() function. This is
 usually fine, since the Attribute class is much easier to deal with then reading in straight
 from the file.
@@ -35,8 +27,9 @@ from the file.
 An interface can either draw its own data, or it can be passed temporary data to draw
 through DrawData(Displayer *, SomeData *, anOject *, anObject *). Each case calls the interface's 
 Refresh() function, but the DrawData should replace all relevant state with what makes the temporary
-data draw appropriately. The refresh function should not push and pop the data's transform. It
-should assume that the calling code does that. This enables easy implementation of cloning.
+data draw appropriately. If an interface defines the Context() method, then the ViewportWindow will
+set the proper transform according to what Context() returns, so it need not be done in Refresh()
+itself.
 
 \todo At some point it might be prudent to separate rendering from the windowing. There would then
   be 3 components per interface: the object itself, the renderer, and the interface.
