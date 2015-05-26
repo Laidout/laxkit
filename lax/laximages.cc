@@ -242,6 +242,7 @@ int MemCachedObject::dec_cache()
  *
  * This checks out data of the actual image (in filename) not the previewfile, 
  * in 8 bit ARGB format, with the row stride==4*width.
+ * The bytes are arranged BGRABGRABGRA...
  *
  * It MUST be checked back in with doneWithBuffer() if you make changes in it.
  */
