@@ -8,9 +8,9 @@ namespace Laxkit {
 //-------------------------------- GetBuiltinPaperSizes ------------------
 
 //
-// The category is p for paper, c for custom, s for screen, and * for special "whatever" paper.
+// The target is p for paper, c for custom, s for screen, and * for special "whatever" paper.
 //
-//      PAPERSIZE   Width  Height  Units  Category
+//      PAPERSIZE   Width  Height  Units  Target
 //      ------------------------------------------
 const char *BuiltinPaperSizes[60*5]=
 	{
@@ -71,8 +71,8 @@ const char *BuiltinPaperSizes[60*5]=
 		"1600x1200" ,"1600","1200","px", "s", // 54
 		"1920x1080" ,"1920","1080","px", "s", // 55
 		"1920x1200" ,"1920","1200","px", "s", // 56
-		"Custom"    ,"8.5","11"   ,"in", "c", // 57
-		"Whatever"  ,"8.5","11"   ,"in", "*", // 58
+		"4096x2160" ,"4096","2160","px", "s", // 57
+		"3840x2160" ,"3840","2160","px", "s", // 58
 		NULL,NULL,NULL,NULL,NULL // 59
 	};
 
