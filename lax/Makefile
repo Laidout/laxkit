@@ -89,6 +89,7 @@ objs= \
 	laxdevices.o \
 	events.o \
 	shortcuts.o \
+	resources.o \
 	anxapp.o \
 	anxapp-laxrc.o \
 	laxoptions.o \
