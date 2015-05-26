@@ -304,6 +304,7 @@ class EngraverDirection : public Laxkit::anObject
 
 	int type; //what manner of lines: linear, radial, circular
 	double spacing;  //default
+	double default_weight; //a fraction of spacing
 	double resolution; //samples per spacing unit, default is 1
 	flatpoint position,direction; //default
 	Laxkit::NumStack<Parameter> parameters; //extras beyond position, spacing, rotation
@@ -387,6 +388,7 @@ class EngraverPointGroup : public DirectionMap
 	int type; //what manner of lines
 	double type_d;   //parameter for type, for instance, an angle for spirals
 	double spacing;  //default
+	double default_weight; //a fraction of spacing
 	flatpoint position,direction; //default
 	Laxkit::ScreenColor color;
 
@@ -402,6 +404,7 @@ class EngraverPointGroup : public DirectionMap
 	EngraverPointGroup(int nid,const char *nname, int ntype, flatpoint npos, flatpoint ndir, double ntype_d, EngraverTraceSettings *newtrace);
 	virtual ~EngraverPointGroup();
 	virtual void CopyFrom(EngraverPointGroup *orig, bool keep_name, bool link_trace, bool link_dash);
+	virtual void Modified(int what);
 
 	virtual void InstallTraceSettings(EngraverTraceSettings *newtrace, int absorbcount);
 	virtual void InstallDashes(EngraverLineQuality *newdash, int absorbcount);
@@ -412,10 +415,12 @@ class EngraverPointGroup : public DirectionMap
 	virtual flatpoint Direction(double s,double t);
 	virtual LinePoint *LineFrom(double s,double t);
 
+	virtual int Trace(Laxkit::Affine *aa, ViewportWindow *viewport);
 	virtual void Fill(EngraverFillData *data, double nweight); //fill in x,y = 0..1,0..1
 	virtual void FillRegularLines(EngraverFillData *data, double nweight);
 	virtual void FillRadial(EngraverFillData *data, double nweight);
 	virtual void FillCircular(EngraverFillData *data, double nweight);
+	virtual void QuickAdjust(double factor);
 
 	virtual void GrowLines(EngraverFillData *data,
 									double resolution, 
@@ -630,7 +635,7 @@ class EngraverFillInterface : public PatchInterface
 	//virtual void patchpoint(PatchRenderContext *context, double s0,double ds,double t0,double dt,int n);
 	virtual int ChangeMode(int newmode);
 	virtual const char *ModeTip(int mode);
-	virtual int Trace();
+	virtual int Trace(bool do_once=false);
 
 	virtual int AddToSelection(ObjectContext *oc);
 };

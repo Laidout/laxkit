@@ -156,6 +156,8 @@ enum EngraveControls {
 	ENGRAVE_Orient_Position,
 	ENGRAVE_Orient_Direction,
 	ENGRAVE_Orient_Type,
+	ENGRAVE_Orient_Quick_Adjust,
+	ENGRAVE_Orient_Keep_Old,
 	ENGRAVE_Orient_Grow,
 
 	 //------modes:
@@ -758,6 +760,7 @@ EngraverPointGroup::EngraverPointGroup()
 	linked=false;
 
 	spacing=.1;
+	default_weight=-1;
 
 	position.x=position.y=.5;
 	direction.x=1;
@@ -789,6 +792,7 @@ EngraverPointGroup::EngraverPointGroup(int nid,const char *nname, int ntype, fla
 	linked=false;
 
 	spacing=.1;
+	default_weight=-1;
 
 	position.x=position.y=.5;
 	direction.x=1;
@@ -802,6 +806,15 @@ EngraverPointGroup::~EngraverPointGroup()
 	if (dashes) dashes->dec_count();
 	delete[] name;
 	delete[] iorefs;
+}
+
+/*! Sets the modification time of various aspects to the current time.
+ */
+void EngraverPointGroup::Modified(int what)
+{
+	//std::time_t modtime;
+	//modtime=time(NULL);
+	cerr << " *** need to implement EngraverPointGroup::Modified!"<<endl;
 }
 
 /*! If keep_name, then do not copy id and name.
@@ -1177,6 +1190,85 @@ void EngraverPointGroup::StripDashes()
 			cache=cache->next;
 		} while (cache && cache!=start);
 	}
+}
+
+/*! This will trace regardless of active or continuous_trace.
+ * aa is a transform from object coordinates to the same coords that traceobject sits in.
+ * For instance, this is usually (parent engraver object)->GetTransformToContext(false, 0).
+ *
+ * Returns 0 for success, or nonzero for error.
+ *
+ * \todo *** viewport is needed because of a terrible hack needed in TraceObject::UpdateCache()
+ */
+int EngraverPointGroup::Trace(Affine *aa, ViewportWindow *viewport)
+{
+	if (!trace->traceobject) return 1;
+
+
+	 //update cache if necessary
+	if (!trace->traceobject->trace_sample_cache || trace->traceobject->NeedsUpdating())
+		trace->traceobject->UpdateCache(viewport);
+
+	int samplew=trace->traceobject->samplew;
+	int sampleh=trace->traceobject->sampleh;
+
+	int x,y, i;
+	int sample, samplea;
+	double me[6],mti[6];
+	unsigned char *rgb;
+	flatpoint pp;
+	double a;
+
+	SomeData *to=trace->traceobject->object;
+	if (to) {
+		transform_invert(mti,to->m());
+		if (aa) transform_mult(me, aa->m(),mti);
+		else transform_copy(me,mti);
+	} else transform_identity(me);
+
+
+	for (int c=0; c<lines.n; c++) {
+		LinePoint *l=lines.e[c];
+
+		while (l) {
+			pp=transform_point(me,l->p);
+			//pp=l->p;
+			//pp=transform_point(mti,pp);
+
+			if (to) {
+				x=samplew*(pp.x-to->minx)/(to->maxx-to->minx);
+				y=sampleh*(pp.y-to->miny)/(to->maxy-to->miny);
+
+				if (x>=0 && x<samplew && y>=0 && y<sampleh) {
+					i=4*(x+(sampleh-y)*samplew);
+					rgb=trace->traceobject->trace_sample_cache+i;
+
+					samplea=rgb[3];
+					sample=0.3*rgb[0] + 0.59*rgb[1] + 0.11*rgb[2];
+					if (sample>255) {
+						sample=255;
+					}
+
+					a=(255-sample)/255.;
+					a=trace->value_to_weight.f(a);
+					l->weight=spacing*a; // *** this seems off
+					l->on = samplea>0 ? ENGRAVE_On : ENGRAVE_Off;
+				} else {
+					l->weight=0;
+					l->on=ENGRAVE_Off;
+				}
+
+			} else { //use current
+				a=spacing * trace->value_to_weight.f(l->weight_orig/spacing);
+				l->weight=a;
+			}
+
+			l=l->next;
+		}
+	} //each line
+
+	UpdateDashCache();
+	return 0;
 }
 
 void EngraverPointGroup::UpdatePositionCache()
@@ -1711,11 +1803,34 @@ LinePoint *EngraverPointGroup::LineFrom(double s,double t)
 	return NULL;
 }
 
+/*! Scale up each linepoint->weight by factor.
+ * If factor<=0 or factor==1.0, then nothing is done.
+ */
+void EngraverPointGroup::QuickAdjust(double factor)
+{
+	if (factor<=0 || factor==1.0) return;
+
+	for (int c=0; c<lines.n; c++) {
+		LinePoint *l=lines.e[c];
+		LinePoint *start=l;
+
+		do {
+			l->weight*=factor;
+			if (l->cache) l->cache->weight*=factor;
+			l=l->next;
+		} while (l && l!=start);
+	}
+
+	UpdateDashCache(); 
+}
+
 /*! fill in x,y = 0..1,0..1
  */
 void EngraverPointGroup::Fill(EngraverFillData *data, double nweight)
 {
 	if (direction.isZero()) direction.x=1;
+	if (nweight>0) default_weight=nweight;
+	if (nweight<=0) nweight=default_weight;
 
 	lines.flush();
 
@@ -1732,6 +1847,8 @@ void EngraverPointGroup::Fill(EngraverFillData *data, double nweight)
 		FillRegularLines(data,nweight);
 
 	}
+
+	if (default_weight<0) default_weight=spacing/10;
 
 }
 
@@ -4026,11 +4143,11 @@ int EngraverFillInterface::scanEngraving(int x,int y, int *category, int *index_
 
 
 		if (mode==EMODE_Trace) {
-			flatpoint p=screentoreal(x,y); //p is in edata->parent space
-			if (edata && edata->pointin(p)) return ENGRAVE_Trace_Move_Mesh;
+			flatpoint p;
 
-			//Affine a=edata->GetTransformToContext(true, 0);
-			//p=a.transformPoint(p);
+			p=screentoreal(x,y); //p is in edata->parent space
+			if (edata && edata->pointin(p)) return ENGRAVE_Trace_Move_Mesh;
+			
 			p=dp->screentoreal(x,y);
 
 			EngraverPointGroup *group=(edata ? edata->GroupFromIndex(current_group) : NULL);
@@ -4039,11 +4156,17 @@ int EngraverFillInterface::scanEngraving(int x,int y, int *category, int *index_
 			if (trace->traceobject && trace->traceobject->object && trace->traceobject->object->pointin(p)) {
 				return ENGRAVE_Trace_Object;
 			}
+
+			p=screentoreal(x,y); //p is in edata->parent space
+			if (edata && edata->pointin(p)) return ENGRAVE_Trace_Move_Mesh;
+
 		}
 	}
 
 	if (mode==EMODE_Orientation && edata) {
 		 //note: need to coordinate with DrawOrientation
+		 //     0
+		 //   > \----  |  =
 		*category=ENGRAVE_Orient;
 
 		EngraverPointGroup *group=edata->GroupFromIndex(current_group);
@@ -4070,8 +4193,10 @@ int EngraverFillInterface::scanEngraving(int x,int y, int *category, int *index_
 		DBG cerr <<"orient pp:"<<pp.x<<','<<pp.y<<endl;
 		if (pp.y>.5 && pp.y<1.5 && pp.x>-.5 && pp.x<.5) return ENGRAVE_Orient_Spacing;
 		if (pp.y<.5 && pp.y>-.3) {
+			if (pp.x>2.5 && pp.x<3.5) return ENGRAVE_Orient_Quick_Adjust;
 			if (pp.x>1.5 && pp.x<2.5) return ENGRAVE_Orient_Direction;
 			if (pp.x<=1.5 && pp.x>-.5) return ENGRAVE_Orient_Position;
+			//if (pp.x<=-.5 && pp.x>-1.5) return ENGRAVE_Orient_Keep_Old;
 		}
 
 		return ENGRAVE_None;
@@ -4273,6 +4398,8 @@ int EngraverFillInterface::LBDown(int x,int y,unsigned int state,int count,const
 	if (mode==EMODE_Orientation) {
 		if (lasthover==ENGRAVE_Orient_Position ||
 			lasthover==ENGRAVE_Orient_Direction ||
+			lasthover==ENGRAVE_Orient_Keep_Old ||
+			lasthover==ENGRAVE_Orient_Quick_Adjust ||
 			lasthover==ENGRAVE_Orient_Spacing)
 		  {
 		  buttondown.down(d->id,LEFTBUTTON, x,y, lasthover);
@@ -4347,7 +4474,26 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
 			if (!obj) return 0;
 
 			if ((obj!=edata && lasthoverdetail==3) || gindex<0) { //clicking down on object header
-				if (obj!=edata) UseThisObject(selection->e(selection->ObjectIndex(obj)));
+				if (obj!=edata) {
+					UseThisObject(selection->e(selection->ObjectIndex(obj)));
+
+				} else if (obj==edata && gindex<0) {
+					MenuItem *item=panel.findid(over);
+					double th=dp->textheight();
+					LineEdit *le= new LineEdit(viewport,"Rename",_("Rename object"),
+												LINEEDIT_DESTROY_ON_ENTER|LINEEDIT_GRAB_ON_MAP|ANXWIN_ESCAPABLE|ANXWIN_OUT_CLICK_DESTROYS|ANXWIN_HOVER_FOCUS,
+												item->x+panelbox.minx+3*th,panelbox.miny+item->y+((y-item->y)/th)*th,
+												item->w,th,
+												   4, //border
+												   NULL,object_id,"renameobject",
+												   obj->Id());
+					eventgroup=gindex;
+					eventobject=obj->object_id;
+					le->padx=le->pady=dp->textheight()*.1;
+					le->SetSelection(0,-1);
+					app->addwindow(le);
+				}
+
 				if (gindex>=0) current_group=gindex;
 				else current_group=0;
 				needtodraw=1;
@@ -4580,7 +4726,7 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
 			return 0;
 
 		} else if (over==ENGRAVE_Trace_Once) {
-			Trace();
+			Trace(true);
 			return 0;
 
 		} else if (over==ENGRAVE_Trace_Load) {
@@ -4665,7 +4811,8 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
 
 		needtodraw=1;
 		return 0;
-	}
+	} //if (category==ENGRAVE_Panel)
+
 
 	if (mode==EMODE_Mesh) {
 		PatchInterface::LBUp(x,y,state,d);
@@ -4684,6 +4831,53 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
 
 	if (mode==EMODE_Direction) {
 		buttondown.up(d->id,LEFTBUTTON);
+		return 0;
+	}
+
+	if (mode==EMODE_Orientation) {
+		int dragged=buttondown.up(d->id,LEFTBUTTON);
+		if (dragged>5) return 0;
+
+		const char *what=NULL, *whatm=NULL;
+		char str[50];
+		EngraverPointGroup *group=edata->GroupFromIndex(current_group);
+
+		if (over==ENGRAVE_Orient_Quick_Adjust) {
+			what="quickadjust";
+			whatm=_("Quick Adjust");
+			sprintf(str,"1.0");
+
+		} else if (over==ENGRAVE_Orient_Spacing) {
+			what="orientspacing";
+			whatm=_("Spacing");
+			sprintf(str,"%.10g",group->spacing);
+
+		} else if (over==ENGRAVE_Orient_Direction) {
+			what="orientdirection";
+			whatm=_("Direction");
+			sprintf(str,"%.10g",atan2(group->direction.y,group->direction.x)*180/M_PI);
+
+		//} else if (over==ENGRAVE_Orient_Position) {
+		//} else if (over==ENGRAVE_Orient_Keep_Old) {
+		//} else if (over==ENGRAVE_Orient_Grow) {
+		//} else if (over==ENGRAVE_Orient_Type) {
+		}
+
+		if (what) {
+			double th=dp->textheight();
+			LineEdit *le= new LineEdit(viewport,whatm,whatm,
+										LINEEDIT_DESTROY_ON_ENTER|LINEEDIT_GRAB_ON_MAP|ANXWIN_ESCAPABLE|ANXWIN_OUT_CLICK_DESTROYS|ANXWIN_HOVER_FOCUS,
+										x-15*th/2,y+th,
+										15*th,th,
+										   4, //border
+										   NULL,object_id,what,
+										   str);
+			eventgroup=current_group;
+			eventobject=edata->object_id;
+			le->padx=le->pady=dp->textheight()*.1;
+			le->SetSelection(0,-1);
+			app->addwindow(le);
+		}
 		return 0;
 	}
 
@@ -4876,6 +5070,8 @@ void EngraverFillInterface::ChangeMessage(int forwhich)
 	} else if (forwhich==ENGRAVE_Orient_Direction) PostMessage(_("Drag to change direction"));
 	else if (forwhich==ENGRAVE_Orient_Position) PostMessage(_("Drag to change position"));
 	else if (forwhich==ENGRAVE_Orient_Spacing) PostMessage(_("Drag to change spacing"));
+	else if (forwhich==ENGRAVE_Orient_Keep_Old) PostMessage(_("Toggle keeping old thickness when reorinting"));
+	else if (forwhich==ENGRAVE_Orient_Quick_Adjust) PostMessage(_("Drag for quick thickness adjustment"));
 	else if (forwhich>=EMODE_Mesh && forwhich<EMODE_MAX) {
 		PostMessage(ModeTip(forwhich));
 
@@ -5144,6 +5340,29 @@ int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit
 			int status;
 			pp=edata->getPointReverse(pp.x,pp.y, &status);
 			if (status==1) group->position=pp;
+
+		} else if (over==ENGRAVE_Orient_Quick_Adjust) {
+			flatpoint dir=group->direction/norm(group->direction)*.05;
+			flatpoint xx=dp->realtoscreen(edata->getPoint(.5+dir.x,.5+dir.y, false)) - dp->realtoscreen(edata->getPoint(.5,.5, false));
+			xx=xx/norm(xx);
+			flatpoint yy=-transpose(xx);
+
+			double amount=.05*flatpoint(x-lx,y-ly)*yy;
+			if (state&ShiftMask) amount/=2;
+
+			double factor=1;
+			if (amount>0) factor=1+amount;
+			else if (amount<0) factor=1/(1-amount);
+
+			if (factor!=1.0) {
+				if (factor<1) PostMessage(_("Thinning..."));
+				else if (factor>1) PostMessage(_("Thickening..."));
+				group->QuickAdjust(factor);
+				group->default_weight*=factor;
+			}
+
+			needtodraw=1;
+			return 0;
 		}
 
 		if (grow_lines) {
@@ -5157,7 +5376,7 @@ int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit
 							 &growpoints,
 							 1000 //iteration limit
 							);
-		} else group->Fill(edata, 1./dp->Getmag());
+		} else group->Fill(edata, -1);
 
 		edata->Sync(false);
 		edata->UpdatePositionCache();
@@ -5206,7 +5425,7 @@ int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit
 
 			flatpoint brushcenter; //local to obj brush center
 			double d, a, rr;
-			LinePoint *l;
+			LinePoint *l, *lstart;
 			flatpoint pp, dv;
 			double nearzero=.001; // *** for when tracing makes a value at 0, thicken makes it this
 
@@ -5234,8 +5453,9 @@ int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit
 					recachewhich=0;
 
 					for (int c=0; c<group->lines.n; c++) {
-						l=group->lines.e[c];
-						while (l) {
+						l=lstart=group->lines.e[c];
+
+						if (l) do {
 							d=norm2(l->p - brushcenter); //distance point to brush center
 
 							if (d<rr) { //point is within...
@@ -5320,7 +5540,7 @@ int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit
 							}
 
 							l=l->next;
-						}//foreach point in line
+						} while (l && l!=lstart); //foreach point in line
 					} //foreach line
 
 					if (recachewhich&1) { //thickness change
@@ -5742,6 +5962,7 @@ int EngraverFillInterface::Refresh()
 		 //draw a burin
 		DrawOrientation(lasthover);
 
+		 //draw starter points for growth mode
 		if (grow_lines && growpoints.n) {
 			dp->DrawScreen();
 
@@ -5878,6 +6099,8 @@ void EngraverFillInterface::DrawOrientation(int over)
 {
 	 //note: need to coordinate with scanPanel()
 
+	 //the burin occupies 2*xx by 1.5*yy
+
 	EngraverPointGroup *group=edata->GroupFromIndex(current_group);
 
 	 //draw a burin
@@ -5885,7 +6108,7 @@ void EngraverFillInterface::DrawOrientation(int over)
 	center=dp->realtoscreen(center);
 
 	int size=30;
-	double thick=.25;
+	double thick=.25; //thickness of shaft, percentage of size
 
 	flatpoint dir=group->direction/norm(group->direction)*.05;
 	flatpoint xx=dp->realtoscreen(edata->getPoint(.5+dir.x,.5+dir.y, false)) - dp->realtoscreen(edata->getPoint(.5,.5, false));
@@ -5915,8 +6138,8 @@ void EngraverFillInterface::DrawOrientation(int over)
 	if (over==ENGRAVE_Orient_Spacing)  dp->NewBG(.8,.8,.8); else dp->NewBG(1.,1.,1.);
 	dp->drawpoint(center+thick/2*xx+yy, norm(xx)/3, 2);
 	
+	 //draw rotate indicator
 	if (over==ENGRAVE_Orient_Direction) {
-		 //draw rotate indicator
 		dp->NewFG(0.,0.,.6);
 		dp->moveto(center + 2*xx + thick*yy);
 		dp->curveto(center + (2+thick/2)*xx + thick/2*yy,
@@ -5933,6 +6156,21 @@ void EngraverFillInterface::DrawOrientation(int over)
 
 		dp->stroke(0);
 	}
+	
+	 //draw quick adjust
+	if (over==ENGRAVE_Orient_Quick_Adjust) {
+		dp->NewFG(0.,0.,.6);
+		dp->moveto(center + 2.5*xx + thick/2*yy);
+		dp->lineto(center + 3.5*xx + thick/2*yy);
+		dp->lineto(center + 3.5*xx + -thick/2*yy);
+		dp->lineto(center + 2.5*xx + -thick/2*yy);
+		dp->closed();
+		dp->fill(1);
+		dp->NewFG(.8,.8,.8);
+		dp->stroke(0);
+	}
+
+	 //draw keep old 
 
 	dp->DrawReal();
 }
@@ -6899,7 +7137,7 @@ void EngraverFillInterface::DrawTracingTools(Laxkit::MenuItem *item)
 	dp->LineAttributes(3,LineSolid, CapButt, JoinMiter);
 
 	 //continuous trace circle
-	if (group->trace->continuous_trace) dp->NewFG(0,200,0); else dp->NewFG(255,100,100); //should be settings of activate/deactivate colors
+	if (group && group->trace->continuous_trace) dp->NewFG(0,200,0); else dp->NewFG(255,100,100); //should be settings of activate/deactivate colors
 	dp->drawellipse((tbox.minx+tbox.maxx)/2+th/2+r,pad+tbox.miny+r,
                         r*uiscale,r*uiscale,
                         0,2*M_PI,
@@ -6987,7 +7225,7 @@ int EngraverFillInterface::PerformAction(int action)
 		EngraverPointGroup *group=edata->GroupFromIndex(current_group);
 
 		group->direction=rotate(group->direction, (action==ENGRAVE_RotateDir ? M_PI/12 : -M_PI/12), 0);
-		group->Fill(edata, 1./dp->Getmag());
+		group->Fill(edata, -1);
 		//edata->FillRegularLines(1./dp->Getmag(),edata->default_spacing);
 		edata->Sync(false);
 		Trace();
@@ -6999,7 +7237,7 @@ int EngraverFillInterface::PerformAction(int action)
 		EngraverPointGroup *group=edata->GroupFromIndex(current_group);
 
 		if (action==ENGRAVE_SpacingInc) group->spacing*=1.1; else group->spacing*=.9;
-		group->Fill(edata, 1./dp->Getmag());
+		group->Fill(edata, -1);
 		edata->Sync(false);
 		Trace();
 		DBG cerr <<"new spacing: "<<group->spacing<<endl;
@@ -7151,7 +7389,7 @@ void EngraverFillInterface::UpdateDashCaches(EngraverLineQuality *dash)
 	}
 }
 
-int EngraverFillInterface::Trace()
+int EngraverFillInterface::Trace(bool do_once)
 {
 	if (!edata) return 1;
 
@@ -7163,82 +7401,110 @@ int EngraverFillInterface::Trace()
 		if (!obj) continue;
 
 		for (int g=0; g<obj->groups.n; g++) {
-			group=obj->groups.e[g];
+			group=obj->groups.e[g]; 
+			if (!group->trace) continue; //shouldn't happen, but just in case..  
+			if (!group->trace->traceobject) continue; //incomplete trace setup
+
 			if (!group->active) continue;
-			if (group->trace && !group->trace->continuous_trace) continue;
+			if (!do_once && !group->trace->continuous_trace) continue;
 
-			if (!group->trace->traceobject) continue;
-
-
-			 //update cache if necessary
-			if (!group->trace->traceobject->trace_sample_cache || group->trace->traceobject->NeedsUpdating())
-				group->trace->traceobject->UpdateCache(viewport);
-
-			int samplew=group->trace->traceobject->samplew;
-			int sampleh=group->trace->traceobject->sampleh;
-
-			int x,y, i;
-			int sample, samplea;
-			double me[6],mti[6];
-			unsigned char *rgb;
-			flatpoint pp;
-			double a;
-
-			Affine aa=obj->GetTransformToContext(false, 0);//supposed to be from obj to base real
-			SomeData *to=group->trace->traceobject->object;
-			if (to) {
-				transform_invert(mti,to->m());
-				transform_mult(me, aa.m(),mti);
-			}
-
-
-			for (int c=0; c<group->lines.n; c++) {
-				LinePoint *l=group->lines.e[c];
-
-				while (l) {
-					pp=transform_point(me,l->p);
-					//pp=l->p;
-					//pp=transform_point(mti,pp);
-
-					if (to) {
-						x=samplew*(pp.x-to->minx)/(to->maxx-to->minx);
-						y=sampleh*(pp.y-to->miny)/(to->maxy-to->miny);
-
-						if (x>=0 && x<samplew && y>=0 && y<sampleh) {
-							i=4*(x+(sampleh-y)*samplew);
-							rgb=group->trace->traceobject->trace_sample_cache+i;
-
-							samplea=rgb[3];
-							sample=0.3*rgb[0] + 0.59*rgb[1] + 0.11*rgb[2];
-							if (sample>255) {
-								sample=255;
-							}
-
-							a=(255-sample)/255.;
-							a=group->trace->value_to_weight.f(a);
-							l->weight=group->spacing*a; // *** this seems off
-							l->on = samplea>0 ? ENGRAVE_On : ENGRAVE_Off;
-						} else {
-							l->weight=0;
-							l->on=ENGRAVE_Off;
-						}
-
-					} else { //use current
-						a=group->spacing * group->trace->value_to_weight.f(l->weight_orig/group->spacing);
-						l->weight=a;
-					}
-
-					l=l->next;
-				}
-			} //each line
-
-			group->UpdateDashCache();
-		} //each group 
+			Affine aa=obj->GetTransformToContext(false, 0);//supposed to be from obj to same "parent" as traceobject
+			group->Trace(&aa, viewport);
+		}
 	}
 
 	needtodraw=1;
 	return 0;
 }
+
+//int EngraverFillInterface::Trace_OLD()
+//{
+//	if (!edata) return 1;
+//
+//	EngraverFillData *obj;
+//	EngraverPointGroup *group;
+//
+//	for (int c=0; c<selection->n(); c++) {
+//		obj=dynamic_cast<EngraverFillData*>(selection->e(c)->obj);
+//		if (!obj) continue;
+//
+//		for (int g=0; g<obj->groups.n; g++) {
+//			group=obj->groups.e[g];
+//			if (!group->active) continue;
+//			if (group->trace && !group->trace->continuous_trace) continue;
+//
+//			if (!group->trace->traceobject) continue;
+//
+//
+//			 //update cache if necessary
+//			if (!group->trace->traceobject->trace_sample_cache || group->trace->traceobject->NeedsUpdating())
+//				group->trace->traceobject->UpdateCache(viewport);
+//
+//			int samplew=group->trace->traceobject->samplew;
+//			int sampleh=group->trace->traceobject->sampleh;
+//
+//			int x,y, i;
+//			int sample, samplea;
+//			double me[6],mti[6];
+//			unsigned char *rgb;
+//			flatpoint pp;
+//			double a;
+//
+//			Affine aa=obj->GetTransformToContext(false, 0);//supposed to be from obj to base real
+//			SomeData *to=group->trace->traceobject->object;
+//			if (to) {
+//				transform_invert(mti,to->m());
+//				transform_mult(me, aa.m(),mti);
+//			}
+//
+//
+//			for (int c=0; c<group->lines.n; c++) {
+//				LinePoint *l=group->lines.e[c];
+//
+//				while (l) {
+//					pp=transform_point(me,l->p);
+//					//pp=l->p;
+//					//pp=transform_point(mti,pp);
+//
+//					if (to) {
+//						x=samplew*(pp.x-to->minx)/(to->maxx-to->minx);
+//						y=sampleh*(pp.y-to->miny)/(to->maxy-to->miny);
+//
+//						if (x>=0 && x<samplew && y>=0 && y<sampleh) {
+//							i=4*(x+(sampleh-y)*samplew);
+//							rgb=group->trace->traceobject->trace_sample_cache+i;
+//
+//							samplea=rgb[3];
+//							sample=0.3*rgb[0] + 0.59*rgb[1] + 0.11*rgb[2];
+//							if (sample>255) {
+//								sample=255;
+//							}
+//
+//							a=(255-sample)/255.;
+//							a=group->trace->value_to_weight.f(a);
+//							l->weight=group->spacing*a; // *** this seems off
+//							l->on = samplea>0 ? ENGRAVE_On : ENGRAVE_Off;
+//						} else {
+//							l->weight=0;
+//							l->on=ENGRAVE_Off;
+//						}
+//
+//					} else { //use current
+//						a=group->spacing * group->trace->value_to_weight.f(l->weight_orig/group->spacing);
+//						l->weight=a;
+//					}
+//
+//					l=l->next;
+//				}
+//			} //each line
+//
+//			group->UpdateDashCache();
+//		} //each group 
+//	}
+//
+//	needtodraw=1;
+//	return 0;
+//}
 
 /*! Return old value of mode.
  * newmode is an id of an item in this->modes.
@@ -7292,6 +7558,7 @@ int EngraverFillInterface::Event(const Laxkit::EventData *e_data, const char *me
 		DBG cerr <<"Engraver Event: i=="<<i<<"  interf="<<interf<<endl;
 		
 		if (interf==curvemapi.object_id) return curvemapi.Event(e_data,mes);
+		if (child && !strcmp(child->whattype(),"CurveMapInterface")) return child->Event(e_data,mes);
 		if (i<PATCHA_MAX) return PatchInterface::Event(e_data,mes);
 
 		if ( i==EMODE_Mesh
@@ -7420,6 +7687,16 @@ int EngraverFillInterface::Event(const Laxkit::EventData *e_data, const char *me
 		needtodraw=1;
 		return 0;
 
+	} else if (!strcmp(mes,"renameobject")) {
+        const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(e_data);
+        if (!edata || isblank(s->str)) return 0;
+		if (eventobject==edata->object_id) {
+			edata->Id(s->str);
+		}
+		eventobject=0;
+		needtodraw=1;
+		return 0;
+
 	} else if (!strcmp(mes,"renamegroup")) {
         const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(e_data);
         if (!edata || isblank(s->str)) return 0;
@@ -7439,17 +7716,6 @@ int EngraverFillInterface::Event(const Laxkit::EventData *e_data, const char *me
 		obj->MakeGroupNameUnique(eventgroup);
 		needtodraw=1;
  		return 0;
-
-	} else if (!strcmp(mes,"valuemap")) {
-		 //in floating curve window, value map was changed...
-		 // *** this needs to be changed to the on canvas interface
-		if (!edata) return 0;
-
-        const StrEventData *s=dynamic_cast<const StrEventData *>(e_data);
-		if (!s) return 0;
-		Trace();
-		needtodraw=1;
-		return 0;
 
 	} else if (!strcmp(mes,"exportsvg")) {
         if (!edata) return 0;
@@ -7606,6 +7872,78 @@ int EngraverFillInterface::Event(const Laxkit::EventData *e_data, const char *me
 		PostMessage(_("Tracing installed."));
 		return 0;
 
+	} else if (!strcmp(mes,"quickadjust")) {
+    	const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(e_data);
+		
+		double factor;
+		if (DoubleAttribute(s->str, &factor, NULL)) {
+			EngraverPointGroup *group=edata->GroupFromIndex(current_group);
+			group->QuickAdjust(factor);
+		}
+		return 0; 
+
+	} else if (!strcmp(mes,"orientspacing")) {
+    	const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(e_data);
+		
+		double spacing;
+		if (DoubleAttribute(s->str, &spacing, NULL)) {
+			EngraverPointGroup *group=edata->GroupFromIndex(current_group);
+			group->spacing=spacing;
+
+			if (grow_lines) {
+				EngraverPointGroup *group=edata->GroupFromIndex(current_group);
+				growpoints.flush();
+				group->GrowLines(edata,
+								 group->spacing/3,
+								 group->spacing, NULL,
+								 .01, NULL,
+								 group->direction,group,
+								 &growpoints,
+								 1000 //iteration limit
+								);
+			} else group->Fill(edata, -1);
+
+			edata->Sync(false);
+			edata->UpdatePositionCache();
+			group->UpdateDashCache();
+			Trace();
+
+			needtodraw=1;
+		}
+		return 0;
+
+	} else if (!strcmp(mes,"orientdirection")) {
+    	const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(e_data);
+		
+		double angle;
+		if (DoubleAttribute(s->str, &angle, NULL)) {
+			EngraverPointGroup *group=edata->GroupFromIndex(current_group);
+			angle*=M_PI/180.;
+			group->direction=flatvector(cos(angle),sin(angle));
+
+			if (grow_lines) {
+				EngraverPointGroup *group=edata->GroupFromIndex(current_group);
+				growpoints.flush();
+				group->GrowLines(edata,
+								 group->spacing/3,
+								 group->spacing, NULL,
+								 .01, NULL,
+								 group->direction,group,
+								 &growpoints,
+								 1000 //iteration limit
+								);
+			} else group->Fill(edata, -1);
+
+			edata->Sync(false);
+			edata->UpdatePositionCache();
+			group->UpdateDashCache();
+			Trace();
+
+			needtodraw=1;
+		}
+		return 0;
+
+
 	} else if (!strcmp(mes,"FreehandInterface")) {
 		 //got new freehand mesh
 
@@ -7752,6 +8090,11 @@ Laxkit::MenuInfo *EngraverFillInterface::ContextMenu(int x,int y,int deviceid, L
 		return m;
 	}
 
+	if (child && !strcmp(child->whattype(),"CurveMapInterface")) {
+		menu=child->ContextMenu(x,y,deviceid,menu);
+		if (menu) return menu;
+	}
+
 	if (!menu) menu=new MenuInfo();
 
 	if (mode==EMODE_Mesh) {
@@ -7846,7 +8189,12 @@ int EngraverFillInterface::CharInput(unsigned int ch, const char *buffer,int len
 {
 	DBG cerr <<"in EngraverFillInterface::CharInput"<<endl;
 	
-	//if (child) return 1;
+	if (child) {
+		if (ch==LAX_Esc) {
+			if (child) RemoveChild(); 
+			return 0;
+		}
+	}
 
 	if (	 mode==EMODE_Thickness
 		  || mode==EMODE_Blockout
