@@ -579,6 +579,26 @@ int SomeData::Redo(UndoData *data)
 	return 0;
 }
 
+/*! Default return 0. Can be used to specify that this object uses some object
+ * that is meant to be accessible by other objects.
+ *
+ * See also ResourceInfo().
+ */
+int SomeData::NumResources()
+{
+	return 0;
+}
+
+/*! Return 1 for not found, or 0 for success, and the resource in question is returned in resource_ret.
+ *
+ * See also NumResources().
+ */
+int SomeData::ResourceInfo(int index, Laxkit::anObject **resource_ret)
+{
+	*resource_ret=NULL;
+	return 1;
+}
+
 
 } // namespace LaxInterfaces
 

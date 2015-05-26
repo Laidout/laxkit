@@ -110,6 +110,9 @@ class SomeData :  virtual public Laxkit::anObject,
 
     virtual int Undo(Laxkit::UndoData *data);
     virtual int Redo(Laxkit::UndoData *data);
+
+	virtual int NumResources();
+	virtual int ResourceInfo(int index, Laxkit::anObject **resource_ret);
 };
 
 
