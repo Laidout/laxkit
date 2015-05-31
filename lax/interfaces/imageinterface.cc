@@ -457,10 +457,13 @@ void ImageData::SetDescription(const char *ndesc)
  */
 int ImageData::SetImage(LaxImage *newimage)
 {
-	if (image) { image->dec_count(); image=NULL; }
+	if (image!=newimage) {
+		if (image) image->dec_count();
+		image=newimage;
+		if (image) newimage->inc_count();
+	}
 	
 	if (newimage) {
-		newimage->inc_count();
 		makestr(filename,newimage->filename);
 		makestr(previewfile,newimage->previewfile);
 		if (!image && maxx!=0 && maxy!=0) {
@@ -474,7 +477,6 @@ int ImageData::SetImage(LaxImage *newimage)
 			xaxis(s*xaxis());
 			yaxis(s*yaxis());
 		}
-		image=newimage;
 		minx=0; miny=0;
 		maxx=image->w();
 		maxy=image->h();

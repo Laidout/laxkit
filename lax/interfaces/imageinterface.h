@@ -41,10 +41,10 @@ class ImageData : public Laxkit::ImageInfo, virtual public SomeData
 	char previewflag;
 	Laxkit::LaxImage *image;
 
-	virtual const char *whattype() { return "ImageData"; }
 	ImageData(const char *nfilename=NULL, const char *npreview=NULL, 
 			  int maxpx=0, int maxpy=0, char delpreview=0);
 	virtual ~ImageData();
+	virtual const char *whattype() { return "ImageData"; }
 	ImageData &operator=(ImageData &i);
 	virtual SomeData *duplicate(SomeData *dup);
 
