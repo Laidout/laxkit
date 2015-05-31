@@ -68,7 +68,7 @@ class PathWeightNode
 		Angle      =(1<<3),
 		AbsAngle   =(1<<4)
 	};
-	int nodetype;
+	int nodetype; //or'd PathWeightNodeTypes
 
 	PathWeightNode();
 	PathWeightNode(double nt,double no,double nw, int ntype=Default);
