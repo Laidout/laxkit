@@ -33,6 +33,7 @@ class DoubleBBox {
 	DoubleBBox() { minx=miny=0; maxx=maxy=-1; }
 	DoubleBBox(flatpoint p) { minx=maxx=p.x; miny=maxy=p.y; }
 	DoubleBBox(double mix,double max,double miy,double may) { minx=mix; maxx=max; miny=miy; maxy=may; }
+	DoubleBBox(const DoubleBBox &box) { minx=box.minx; maxx=box.maxx; miny=box.miny; maxy=box.maxy; }
 	virtual ~DoubleBBox() {}
 	virtual void clear() { minx=miny=0; maxx=maxy=-1; }
 	virtual void addtobounds(double x,double y);
