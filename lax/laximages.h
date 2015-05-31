@@ -114,6 +114,12 @@ extern LoadImageFunc            load_image;
 extern LoadImageWithPreviewFunc load_image_with_preview;
 
 
+//---------------- save_image 
+
+typedef int (*SaveImageFunc)(LaxImage *image, const char *filename, const char *format);
+
+extern SaveImageFunc  save_image;
+
 
 } //namespace Laxkit
 

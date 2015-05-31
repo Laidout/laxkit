@@ -108,6 +108,7 @@ void InitImlib2Backend()
 	image_out_skewed  =laximlib_image_out_skewed;
 	image_out_matrix  =laximlib_image_out_matrix;
 
+	save_image              =save_imlib_image;
 	load_image              =load_imlib_image;
 	load_image_with_preview =load_imlib_image_with_preview;
 	generate_preview_image  =laximlib_generate_preview;

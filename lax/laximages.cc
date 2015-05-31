@@ -362,6 +362,42 @@ ImageFromBufferFunc      image_from_buffer       = NULL;
 CreateNewImageFunc       create_new_image        = NULL;
 
 
+
+//------------------- save_image 
+
+extern SaveImageFunc  save_image=NULL;
+
+
+//---------------------- preview creation
+
+/*! \typedef int (*GeneratePreviewImageFunc)(const char *original_file, const char *to_preview_file, int width, int height, int fit)
+ * \brief Function pointer type to a preview image creator.
+ *
+ * This sort of function basically creates a copy of original into preview with the given
+ * width and height. If fit!=0, then fit the image within a box that is width x height, but
+ * has the same aspect as the original image.
+ *
+ * WARNING: this does no sanity checking on file names, and will force an overwrite.
+ * It is the responsibility of the calling code to do those things, and to ensure
+ * that the preview file path is writable.
+ *
+ * Returns 0 for preview created. Otherwise nonzero.
+ */
+
+/*! \brief The base preview creator.
+ */
+GeneratePreviewFunc generate_preview_image = NULL;
+
+
+
+
+//----------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------
+//------------------------------ ToDo ----------------------------------------------
+//----------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------
+
+
 //------------------------------- ImageLoader stuff -------------------------------------
 
 /*! \class ImageLoader
@@ -451,30 +487,6 @@ LaxImage *load_image_with_loaders(const char *file,
 //---------------------------------------------------------------------------------------
 
 
-//---------------------- preview creation
-
-/*! \typedef int (*GeneratePreviewImageFunc)(const char *original_file, const char *to_preview_file, int width, int height, int fit)
- * \brief Function pointer type to a preview image creator.
- *
- * This sort of function basically creates a copy of original into preview with the given
- * width and height. If fit!=0, then fit the image within a box that is width x height, but
- * has the same aspect as the original image.
- *
- * WARNING: this does no sanity checking on file names, and will force an overwrite.
- * It is the responsibility of the calling code to do those things, and to ensure
- * that the preview file path is writable.
- *
- * Returns 0 for preview created. Otherwise nonzero.
- */
-
-/*! \brief The base preview creator.
- */
-GeneratePreviewFunc generate_preview_image = NULL;
-
-
-
-
-//------------------------ LaxImage subclasses -------------------------
 
 //--------------------------- LaxBufferImage --------------------------------------
 

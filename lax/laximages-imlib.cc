@@ -524,6 +524,21 @@ int laximlib_generate_preview(const char *original_file,
 	return 0;
 }
 
+/*! Warning! Does NO clobber check.
+ */
+int save_imlib_image(LaxImage *image, const char *filename, const char *format)
+{
+	LaxImlibImage *img=dynamic_cast<LaxImlibImage*>(image);
+	if (!img) return 1;
+	if (!filename) filename=image->filename;
+	if (!filename) return 2;
+
+	imlib_context_set_image(img->Image());
+	if (format) imlib_image_set_format(format);
+	imlib_save_image(filename); 
+
+	return 0;
+}
 
 
 

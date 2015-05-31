@@ -70,6 +70,7 @@ void laximlib_image_out(LaxImage *image, aDrawable *win, int ulx, int uly);
 void laximlib_image_out_rotated(LaxImage *image, aDrawable *win, int ulx,int uly, int urx,int ury);
 void laximlib_image_out_skewed(LaxImage *image, aDrawable *win, int ulx,int uly, int urx,int ury, int llx, int lly);
 void laximlib_image_out_matrix(LaxImage *image, aDrawable *win, double *m);
+int save_imlib_image(LaxImage *image, const char *filename, const char *format);
 LaxImage *load_imlib_image(const char *filename);
 LaxImage *load_imlib_image_with_preview(const char *filename,const char *previewfile,int maxx,int maxy,char del);
 int laximlib_generate_preview(const char *original_file, const char *to_preview_file, const char *format,int maxw, int maxh, int fit);
