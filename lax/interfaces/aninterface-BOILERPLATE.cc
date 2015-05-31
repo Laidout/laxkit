@@ -18,7 +18,7 @@
 //    License along with this library; if not, write to the Free Software
 //    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
-//    Copyright (C) 2014 by Tom Lechner
+//    Copyright (C) 2015 by Tom Lechner
 //
 
 
@@ -56,7 +56,7 @@ namespace LaxInterfaces {
 BoilerPlateInterface::BoilerPlateInterface(anInterface *nowner, int nid, Displayer *ndp)
  : anInterface(nowner,nid,ndp)
 { ***
-	boiler_interface_style=0;
+	boilerplate_interface_style=0;
 
 	showdecs=1;
 	needtodraw=1;

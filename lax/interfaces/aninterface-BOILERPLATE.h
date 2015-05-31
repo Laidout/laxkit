@@ -18,7 +18,7 @@
 //    License along with this library; if not, write to the Free Software
 //    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
-//    Copyright (C) 2014 by Tom Lechner
+//    Copyright (C) 2015 by Tom Lechner
 //
 #ifndef _LAX_BOILERPLATEINTERFACE_H
 #define _LAX_BOILERPLATEINTERFACE_H
@@ -40,7 +40,7 @@ class BoilerPlateInterface : public anInterface
 	virtual int send();
 
   public:
-	unsigned int boiler_interface_style;
+	unsigned int boilerplate_interface_style;
 
 	BoilerPlateInterface(anInterface *nowner, int nid,Laxkit::Displayer *ndp);
 	virtual ~BoilerPlateInterface();
