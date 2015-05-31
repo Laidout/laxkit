@@ -97,6 +97,7 @@ objs= \
 	newwindowobject.o \
 	tooltip.o \
 	laxutils.o \
+	bitmaputils.o \
 	iconmanager.o \
 	misc.o \
 	buttondowninfo.o \
