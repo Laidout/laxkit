@@ -149,6 +149,7 @@ class TraceObject : public Laxkit::anObject
 		TRACE_RadialGradient
 	};
 	TraceObjectType type;
+	char *identifier;
 
 	LaxInterfaces::SomeData *object; //transform is to maximum parent of owning object
 	char *image_file;
@@ -164,6 +165,7 @@ class TraceObject : public Laxkit::anObject
 	TraceObject();
 	virtual ~TraceObject();
 	virtual const char *whattype() { return "TraceObject"; }
+	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,Laxkit::anObject *savecontext);
 	
 	double GetValue(LinePoint *p, double *transform);
 	void ClearCache(bool obj_too);
@@ -182,7 +184,6 @@ class EngraverTraceSettings : public Laxkit::anObject
 	int tracetype; //0==absolute, 1=multiply
 	bool continuous_trace;
 
-	char *identifier;
 	TraceObject *traceobject;
 	bool lock_ref_to_obj;
 	EngraverTraceSettings *next;
@@ -193,6 +194,7 @@ class EngraverTraceSettings : public Laxkit::anObject
 	void ClearCache(bool obj_too);
 	virtual EngraverTraceSettings *duplicate();
 	void Install(TraceObject::TraceObjectType ntype, SomeData *obj);
+	virtual const char *Identifier();
 
 	virtual void dump_out(FILE *f,int indent,int what,Laxkit::anObject *context);
 	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,Laxkit::anObject *context);
@@ -264,17 +266,6 @@ class NormalDirectionMap : public DirectionMap
 };  
     
 
-//--------------------------- LineProfile -----------------------------
-class LineProfile : public Laxkit::anObject
-{
-  public:
-	double width, max_height;
-	Laxkit::CurveInfo profile;
-
-	 //instance data:
-	double start, end; //-1 for random, otherwise must be in [0..1], and start<end
-};
-
 //--------------------------- EngraverDirection -----------------------------
 class EngraverDirection : public Laxkit::anObject
 {
@@ -312,7 +303,7 @@ class EngraverDirection : public Laxkit::anObject
 	 //line generation settings
 	double line_offset; //0..1 for random offset per line
 	double noise_scale; //applied per sample point, but offset per random line, not random at each point
-	LineProfile *default_profile;
+	//LineProfile *default_profile;
 	double profile_start, profile_end; //-1 for random, else [0..1]
 
 	DirectionMap *map;
@@ -381,6 +372,8 @@ class EngraverPointGroup : public DirectionMap
 		PGROUP_MAX
 	};
 
+	EngraverFillData *owner;
+
 	int id;
 	char *name;
 	bool active;
@@ -400,8 +393,8 @@ class EngraverPointGroup : public DirectionMap
 
 	Laxkit::PtrStack<LinePoint> lines;
 
-	EngraverPointGroup();
-	EngraverPointGroup(int nid,const char *nname, int ntype, flatpoint npos, flatpoint ndir, double ntype_d, EngraverTraceSettings *newtrace);
+	EngraverPointGroup(EngraverFillData *nowner);
+	EngraverPointGroup(EngraverFillData *nowner,int nid,const char *nname, int ntype, flatpoint npos, flatpoint ndir, double ntype_d, EngraverTraceSettings *newtrace);
 	virtual ~EngraverPointGroup();
 	virtual void CopyFrom(EngraverPointGroup *orig, bool keep_name, bool link_trace, bool link_dash);
 	virtual void Modified(int what);
@@ -421,6 +414,8 @@ class EngraverPointGroup : public DirectionMap
 	virtual void FillRadial(EngraverFillData *data, double nweight);
 	virtual void FillCircular(EngraverFillData *data, double nweight);
 	virtual void QuickAdjust(double factor);
+	virtual ImageData *CreateFromSnapshot();
+	virtual int TraceFromSnapshot();
 
 	virtual void GrowLines(EngraverFillData *data,
 									double resolution, 
@@ -508,6 +503,7 @@ class EngraverFillData : public PatchData
 	virtual void MorePoints(int curgroup);
 	virtual EngraverPointGroup *FindGroup(int id, int *err_ret=NULL);
 	virtual EngraverPointGroup *GroupFromIndex(int index, int *err_ret=NULL);
+	virtual int MergeDown(int which_group);
 
 	virtual int IsSharing(int what, EngraverPointGroup *group, int curgroup); 
 };
@@ -516,6 +512,22 @@ class EngraverFillData : public PatchData
 
 
 //------------------------------ EngraverFillInterface -------------------------------
+
+//class EngraverInterfaceSettings
+//{
+//  public:
+//	EngraverInterfaceSettings();
+//	~EngraverInterfaceSettings() {}
+//
+//	Laxkit::ScreenColor fgcolor,bgcolor;
+//
+//	double sensitive_thickness;
+//	double sensitive_turbulence;
+//	double sensitive_drag;
+//	double sensitive_pushPull;
+//	double sensitive_avoidToward;
+//	double sensitive_twirl;
+//};
 
 class EngraverFillInterface : public PatchInterface
 {
@@ -534,10 +546,18 @@ class EngraverFillInterface : public PatchInterface
 	 //general tool settings
 	double brush_radius; //screen pixels
 	Laxkit::CurveInfo thickness; //ramp of thickness brush
+	double sensitive_thickness;
+	double sensitive_turbulence;
+	double sensitive_drag;
+	double sensitive_pushpull;
+	double sensitive_avoidtoward;
+	double sensitive_twirl;
 
 	double default_spacing;
 	EngraverLineQuality   default_linequality;
 	EngraverTraceSettings default_trace;
+	//EngraverDirection     default_direction;
+	//EngraverSpacing       default_spacing;
 	NormalDirectionMap *directionmap;
 
 	Laxkit::RefPtrStack<TraceObject> traceobjects;
@@ -555,12 +575,12 @@ class EngraverFillInterface : public PatchInterface
 	bool show_direction;
 	bool show_panel;
 	bool show_trace;
-	bool continuous_trace;
 	bool grow_lines;
 	bool always_warp;
 	//Laxkit::CurveInfo tracemap;
 	Laxkit::MenuItem *tracebox;
 	Laxkit::DoubleBBox panelbox;
+	Laxkit::IntRectangle sensbox;
 
 	 //grow related
 	Laxkit::PtrStack<GrowPointInfo> growpoints;
@@ -581,7 +601,7 @@ class EngraverFillInterface : public PatchInterface
 	virtual int ActivatePathInterface();
 	virtual void ChangeMessage(int forwhich);
 	virtual int scanPanel(int x,int y, int *category, int *index_ret, int *detail_ret);
-	virtual int scanEngraving(int x,int y, int *category, int *index_ret, int *detail_ret);
+	virtual int scanEngraving(int x,int y,unsigned int state, int *category, int *index_ret, int *detail_ret);
 	virtual int PerformAction(int action);
 
 	virtual void DrawOrientation(int over);

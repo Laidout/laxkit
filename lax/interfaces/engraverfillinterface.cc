@@ -33,6 +33,7 @@
 #include <lax/bezutils.h>
 #include <lax/iconmanager.h>
 #include <lax/laxutils.h>
+#include <lax/bitmaputils.h>
 #include <lax/colorsliders.h>
 #include <lax/strmanip.h>
 #include <lax/language.h>
@@ -61,7 +62,7 @@ using namespace std;
 namespace LaxInterfaces {
 
 
-//------------------------------------- Engraver identifiers ------------------------
+//------------------------------------- Engraver control numbers ------------------------
 enum EngraveControls {
 	ENGRAVE_None=0,
 
@@ -92,6 +93,7 @@ enum EngraveControls {
 	ENGRAVE_Trace_Once,
 	ENGRAVE_Trace_Load,
 	ENGRAVE_Trace_Clear,
+	ENGRAVE_Trace_Snapshot,
 	ENGRAVE_Trace_Continuous,
 	ENGRAVE_Trace_Object,
 	ENGRAVE_Trace_Opacity,
@@ -136,7 +138,7 @@ enum EngraveControls {
 	ENGRAVE_Spacing_Save,
 	ENGRAVE_Spacing_Paint,
 
-	 //------------tracing panel (some below in tool controls
+	 //------------tracing panel
 	ENGRAVE_Tracing,
 	ENGRAVE_Trace_Same_As,
 	ENGRAVE_Trace_Thicken,
@@ -159,6 +161,8 @@ enum EngraveControls {
 	ENGRAVE_Orient_Quick_Adjust,
 	ENGRAVE_Orient_Keep_Old,
 	ENGRAVE_Orient_Grow,
+
+	ENGRAVE_Sensitivity,
 
 	 //------modes:
 	EMODE_Controls,
@@ -746,8 +750,10 @@ flatpoint NormalDirectionMap::Direction(double x,double y)
 
 /*! Default to linear. Warning: leaves trace==NULL!
  */
-EngraverPointGroup::EngraverPointGroup()
-{
+EngraverPointGroup::EngraverPointGroup(EngraverFillData *nowner)
+{	
+	owner=nowner;
+
 	trace=NULL;
 	dashes=NULL;
 	numdashes=0;
@@ -770,9 +776,12 @@ EngraverPointGroup::EngraverPointGroup()
 
 /*! Creates a unique new number for id if nid<0.
  */
-EngraverPointGroup::EngraverPointGroup(int nid,const char *nname, int ntype, flatpoint npos, flatpoint ndir, double ntype_d,
+EngraverPointGroup::EngraverPointGroup(EngraverFillData *nowner,
+										int nid,const char *nname, int ntype, flatpoint npos, flatpoint ndir, double ntype_d,
 										EngraverTraceSettings *newtrace)
 {
+	owner=nowner;
+
 	dashes=NULL;
 	numdashes=0;
 
@@ -1190,6 +1199,78 @@ void EngraverPointGroup::StripDashes()
 			cache=cache->next;
 		} while (cache && cache!=start);
 	}
+}
+
+/*! Take a kind of blurred snapshot of current line arrangement, and install that as the traceobject.
+ */
+int EngraverPointGroup::TraceFromSnapshot()
+{
+	ImageData *idata=CreateFromSnapshot();
+	if (!idata) return 1;
+	trace->Install(TraceObject::TRACE_Current, idata);
+	idata->dec_count();
+	return 0;
+}
+
+ImageData *EngraverPointGroup::CreateFromSnapshot()
+{
+	NumStack<flatpoint> points;
+	LinePoint *l,*lstart;
+	Affine aa(owner->GetTransformToContext(false,0));
+	for (int c=0; c<lines.n; c++) {
+		l=lstart=lines.e[c];
+		do {
+			points.push(aa.transformPoint(l->p));
+			points.e[points.n-1].info=255-l->weight/spacing*255;
+			l=l->next;
+		} while (l && l!=lstart);
+	}
+	DoubleBBox bbox;
+	bbox.addtobounds(aa.m(), owner);
+
+	ImageProcessor *proc=GetDefaultImageProcessor();
+	int mapwidth, mapheight;
+	int blur=0;
+	double aspect=(bbox.maxx-bbox.minx)/(bbox.maxy-bbox.miny);
+	if (aspect>1) { mapwidth=(bbox.maxx-bbox.minx)/spacing*5; mapheight=mapwidth/aspect; }
+	else { mapheight=(bbox.maxy-bbox.miny)/spacing*5; mapwidth=mapheight*aspect; }
+	if (mapwidth<=0 || mapheight<=0) {
+		if (aspect>1) { mapwidth=100; mapheight=mapwidth/aspect; }
+		else { mapheight=100; mapwidth=mapheight*aspect; }
+		blur=5;
+	} else {
+		//blur=mapwidth/5*.5;
+		blur=3;
+	}
+
+	unsigned char img[mapwidth*mapheight];
+	//proc->MakeValueMap(img, mapwidth,mapheight, 0, bbox, points.e,points.n);
+	proc->MakeValueMap(img, mapwidth,mapheight, blur, bbox, points.e,points.n, true);
+
+	 //convert img to actual image and install 
+	LaxImage *image=create_new_image(mapwidth,mapheight);
+	unsigned char *data=image->getImageBuffer();
+	int ii=0,i=0;
+	for (int y=0; y<mapheight; y++) {
+		for (int x=0; x<mapwidth; x++) {
+			//DBG cerr <<"i,ii:"<<i<<','<<ii<<" ";
+			data[i]=data[i+1]=data[i+2]=img[ii];
+			data[i+3]=255;
+			i+=4;
+			ii++;
+		}
+	}
+	//DBG cerr <<endl;
+	image->doneWithBuffer(data);
+
+	 //install as new traceobject
+	ImageData *idata=new ImageData;
+	idata->SetImage(image);
+	image->dec_count();
+
+	idata->fitto(NULL,&bbox,50,50,2);
+
+	return idata;
 }
 
 /*! This will trace regardless of active or continuous_trace.
@@ -2619,7 +2700,7 @@ void EngraverFillData::MakeDefaultGroup()
 {
 	if (groups.n) return;
 
-	EngraverPointGroup *group=new EngraverPointGroup;
+	EngraverPointGroup *group=new EngraverPointGroup(this);
 	group->spacing=(maxy-miny)/20;
 	group->id=0;
 	group->color.red=0;
@@ -2716,6 +2797,32 @@ EngraverPointGroup *EngraverFillData::GroupFromIndex(int index, int *err_ret)
 	return groups.n ? groups.e[0] : NULL;
 }
 
+/*! Merge the specified group with the group of higher index in the group stack.
+ * Only the lines are merged into the other group. All other settings are ignored.
+ * The old group's name is appended to the group we merge with.
+ *
+ * Return 0 for success, nonzero for could not merge.
+ */
+int EngraverFillData::MergeDown(int which_group)
+{
+	if (which_group>=groups.n-1) return 1;
+
+	EngraverPointGroup *from=groups.e[which_group];
+	EngraverPointGroup *to  =groups.e[which_group+1];
+
+	LinePoint *l;
+	while (from->lines.n) {
+		l=from->lines.pop(0);
+		to->lines.push(l,1);
+	}
+
+	appendstr(to->name,"+");
+	appendstr(to->name,from->name);
+
+	groups.remove(which_group);
+	return 0;
+}
+
 void EngraverFillData::UpdatePositionCache()
 {
 	for (int c=0; c<groups.n; c++) {
@@ -2756,7 +2863,7 @@ SomeData *EngraverFillData::duplicate(SomeData *dup)
 	p->NeedToUpdateCache(0,0,-1,-1);
 
 	for (int c=0; c<groups.n; c++) {
-		EngraverPointGroup *group=new EngraverPointGroup;
+		EngraverPointGroup *group=new EngraverPointGroup(this);
 		group->CopyFrom(groups.e[c], false, false, false);
 		p->groups.push(group);
 	}
@@ -2930,7 +3037,7 @@ void EngraverFillData::dump_in_atts(Attribute *att,int flag,Laxkit::anObject *co
 				groups.flush();
 				groups_flushed=true;
 			}
-			EngraverPointGroup *group=new EngraverPointGroup;
+			EngraverPointGroup *group=new EngraverPointGroup(this);
 			group->dump_in_atts(att->attributes.e[c],flag,context);
 			groups.push(group);
 
@@ -3452,6 +3559,7 @@ TraceObject::TraceObject()
 	type=TRACE_None;
 
 	object=NULL;
+	identifier=NULL;
 	image_file=NULL;
 
 	samplew=sampleh=0;
@@ -3469,6 +3577,39 @@ TraceObject::~TraceObject()
 	delete[] image_file;
 	delete[] trace_sample_cache;
 	delete[] trace_ref_bw;
+	delete[] identifier;
+}
+
+Attribute *TraceObject::dump_out_atts(Attribute *att,int what,Laxkit::anObject *savecontext)
+{
+	if (!att) att=new Attribute();
+
+	if (what==-1) {
+		att->push("trace", "#What to trace from");
+		return att;
+	}
+
+	//char buffer[50]; 
+	//sprintf(buffer,"%lu",object_id);
+	//att->push("resource_id",buffer);
+
+	if (type==TraceObject::TRACE_Current) {
+		att->push("current");
+
+	} else if (type==TraceObject::TRACE_LinearGradient || type==TraceObject::TRACE_RadialGradient) {
+		att->push("gradient", type==TraceObject::TRACE_LinearGradient ? "linear" : "radial");
+		object->dump_out_atts(att->attributes.e[att->attributes.n-1], what, savecontext);
+
+	} else if (type==TraceObject::TRACE_ImageFile) {
+		att->push("image");
+		object->dump_out_atts(att->attributes.e[att->attributes.n-1], what, savecontext); 
+
+	} else if (type==TraceObject::TRACE_Object) {
+		att->push("object", object->whattype());
+		object->dump_out_atts(att->attributes.e[att->attributes.n-1], what, savecontext); 
+	}
+
+	return att;
 }
 
 /*! Note this is more for one time lookups. Not very efficient for mass lookups.
@@ -3508,34 +3649,43 @@ double TraceObject::GetValue(LinePoint *p, double *transform)
 	return -1;
 }
 
+/*! Count on obj will be incremented, unless obj is alread object.
+ *
+ * If TRACE_ImageFile, then obj must be an ImageData.
+ */
 void TraceObject::Install(TraceObjectType ntype, SomeData *obj)
 {
-	if (object && object!=obj) {
-		object->dec_count();
-		object=NULL;
+	if (object!=obj) {
+		if (object) object->dec_count();
+		object=obj;
+		if (object) object->inc_count();
 	}
 
 	type=ntype;
-	object=obj;
-	if (obj) obj->inc_count();
 
 
 	 //make object_idstr be basically same as identifier
 	if (type==TRACE_Current) {
-		makestr(object_idstr, "current");
+		makestr(identifier, _("snapshot"));
 
 	} else if (type==TRACE_ImageFile) {
-		makestr(object_idstr, "file");
+		delete[] identifier;
+		ImageData *img=dynamic_cast<ImageData*>(obj);
+		const char *bname=lax_basename(img->Filename());
+		identifier=new char[strlen(_("img: %s"))+strlen(bname)+1];
+		sprintf(identifier,_("img: %s"),bname);
 
 	} else if (type==TRACE_LinearGradient || type==TRACE_RadialGradient) {
-		makestr(object_idstr, "gradient");
+		makestr(identifier, "gradient");
 
 	} else if (type==TRACE_Object) { 
-		delete[] object_idstr;
+		delete[] identifier;
 		SomeDataRef *ref=dynamic_cast<SomeDataRef*>(object);
-		object_idstr=new char[strlen(_("ref: %s"))+strlen(ref->thedata_id)+1];
-		sprintf(object_idstr, _("ref: %s"),ref->thedata_id);
+		identifier=new char[strlen(_("ref: %s"))+strlen(ref->thedata_id)+1];
+		sprintf(identifier, _("ref: %s"),ref->thedata_id);
 	}
+
+	if (isblank(object_idstr)) makestr(object_idstr, identifier);
 }
 
 void TraceObject::ClearCache(bool obj_too)
@@ -3546,6 +3696,8 @@ void TraceObject::ClearCache(bool obj_too)
 	cachetime=0;
 
 	if (obj_too) {
+		delete[] identifier;
+		identifier=NULL;
 		object->dec_count();
 		object=NULL;
 	}
@@ -3622,6 +3774,8 @@ int TraceObject::UpdateCache(ViewportWindow *viewport)
 		return 1;
 	}
 
+	delete ddp;
+
 	if (trace_sample_cache) {
 		if (img->w()*img->h()>samplew*sampleh) {
 			 //old isn't big enough to hold the new
@@ -3637,12 +3791,13 @@ int TraceObject::UpdateCache(ViewportWindow *viewport)
 	memcpy(trace_sample_cache, data, 4*samplew*sampleh);
 	img->doneWithBuffer(data);
 	cachetime=time(NULL);
+	img->dec_count();
 
-	// **** imlib only for DBG:
-	LaxImlibImage *iimg=dynamic_cast<LaxImlibImage*>(img);
-	imlib_context_set_image(iimg->image);
-	imlib_image_set_format("png");
-	imlib_save_image("trace.png");
+	//// **** imlib only for DBG:
+	//DBG LaxImlibImage *iimg=dynamic_cast<LaxImlibImage*>(img);
+	//DBG imlib_context_set_image(iimg->image);
+	//DBG imlib_image_set_format("png");
+	//DBG imlib_save_image("trace.png");
 
 	return 0;
 }
@@ -3662,13 +3817,11 @@ EngraverTraceSettings::EngraverTraceSettings()
 	traceobj_opacity=1;
 	tracetype=0;
 	traceobject=NULL;
-	identifier=NULL;
 }
 
 EngraverTraceSettings::~EngraverTraceSettings()
 {
 	if (traceobject) traceobject->dec_count();
-	delete[] identifier;
 }
 
 EngraverTraceSettings *EngraverTraceSettings::duplicate()
@@ -3682,9 +3835,16 @@ EngraverTraceSettings *EngraverTraceSettings::duplicate()
 	dup->lock_ref_to_obj=lock_ref_to_obj;
 	dup->traceobj_opacity=traceobj_opacity;
 	dup->tracetype=tracetype;
-	makestr(dup->identifier, identifier);
 
 	return dup;
+}
+
+/*! Just returns traceobject->identifier or NULL if there is no traceobject.
+ */
+const char *EngraverTraceSettings::Identifier()
+{
+	if (traceobject) return traceobject->identifier;
+	return NULL;
 }
 
 /*! Creates brand new traceobject, dec_counts old.
@@ -3700,9 +3860,6 @@ void EngraverTraceSettings::Install(TraceObject::TraceObjectType ntype, SomeData
  */
 void EngraverTraceSettings::ClearCache(bool obj_too)
 {
-	delete[] identifier;
-	identifier=NULL;
-
 	if (traceobject) {
 		if (obj_too) {
 			traceobject->dec_count();
@@ -3789,7 +3946,6 @@ void EngraverTraceSettings::dump_in_atts(LaxFiles::Attribute *att,int flag,Laxki
 		} else if (!strcmp(name,"trace")) {
 			if (!strcmp(value,"current")) {
 				Install(TraceObject::TRACE_Current, NULL);
-				makestr(identifier,NULL);
 
 			} else if (!strcmp(value,"gradient")) {
 				GradientData *grad=new GradientData;
@@ -3802,29 +3958,45 @@ void EngraverTraceSettings::dump_in_atts(LaxFiles::Attribute *att,int flag,Laxki
 				SomeDataRef *ref=dynamic_cast<SomeDataRef*>(LaxInterfaces::somedatafactory->newObject("SomeDataRef"));
 				ref->dump_in_atts(att->attributes.e[c], flag,context);
 				Install(TraceObject::TRACE_Object, ref);
-				makestr(identifier, traceobject->object_idstr);
 				ref->dec_count();
 
 			} else if (!strcmp(value,"image")) {
 				ImageData *img=new ImageData;
 				img->dump_in_atts(att->attributes.e[c], flag,context);
 
-				delete[] identifier;  identifier=NULL;
 				const char *bname=lax_basename(img->Filename());
 				if (bname) {
 					Install(TraceObject::TRACE_ImageFile, img);
-					identifier=new char[strlen(_("img: %s"))+strlen(bname)+1];
-					sprintf(identifier,_("img: %s"),bname);
 				}
 
 				img->dec_count();
 
 			} else {
-				makestr(identifier, value);
+				cerr << " *** unknown TraceObject type on EngraverTraceSettings::dump_in_att!"<<endl;
 			}
 		}
 	}
 }
+
+
+//------------------------------ EngraverInterfaceSettings -------------------------------
+
+/*! \class EngraverInterfaceSettings
+ *
+ * Settings meant to be shared across instances of the EngraverFillInterface
+ */
+
+
+//EngraverInterfaceSettings::EngraverInterfaceSettings()
+//{ 
+//	sensitive_thickness=1;
+//	sensitive_turbulence=1;
+//	sensitive_drag=1;
+//	sensitive_pushpull=1;
+//	sensitive_avoidtoward=1;
+//	sensitive_twirl=1;
+//}
+
 
 
 ////------------------------------ EngraverFillInterface -------------------------------
@@ -3841,6 +4013,7 @@ enum EngraveShortcuts {
 	ENGRAVE_SwitchMode=PATCHA_MAX,
 	ENGRAVE_SwitchModeR,
 	ENGRAVE_ExportSvg,
+	ENGRAVE_ExportSnapshot,
 	ENGRAVE_RotateDir,
 	ENGRAVE_RotateDirR,
 	ENGRAVE_SpacingInc,
@@ -3871,10 +4044,18 @@ EngraverFillInterface::EngraverFillInterface(int nid,Displayer *ndp)
 	edata=NULL;
 	tracebox=NULL;
 
+
 	current_group=0;
 	default_spacing=1./20;
 	turbulence_size=1;
 	turbulence_per_line=false;
+	sensitive_thickness=1;
+	sensitive_turbulence=1;
+	sensitive_drag=1;
+	sensitive_pushpull=1;
+	sensitive_avoidtoward=1;
+	sensitive_twirl=1;
+
 
 	show_points=0;
 	submode=0;
@@ -3896,7 +4077,6 @@ EngraverFillInterface::EngraverFillInterface(int nid,Displayer *ndp)
 
 	whichcontrols=Patch_Coons;
 
-	continuous_trace=false;
 	show_panel=true;
 	show_trace=false;
 	grow_lines=false;
@@ -4132,7 +4312,7 @@ int EngraverFillInterface::scanPanel(int x,int y, int *category, int *index_ret,
 
 /*! Scan the panel or for other onscreen controls.
  */
-int EngraverFillInterface::scanEngraving(int x,int y, int *category, int *index_ret, int *detail_ret)
+int EngraverFillInterface::scanEngraving(int x,int y,unsigned int state, int *category, int *index_ret, int *detail_ret)
 {
 	*category=0;
 
@@ -4146,7 +4326,10 @@ int EngraverFillInterface::scanEngraving(int x,int y, int *category, int *index_
 			flatpoint p;
 
 			p=screentoreal(x,y); //p is in edata->parent space
-			if (edata && edata->pointin(p)) return ENGRAVE_Trace_Move_Mesh;
+			if ((state&LAX_STATE_MASK)==ShiftMask) {
+				// *** need to scan for any in selection
+				if (edata && edata->pointin(p)) return ENGRAVE_Trace_Move_Mesh;
+			}
 			
 			p=dp->screentoreal(x,y);
 
@@ -4202,6 +4385,16 @@ int EngraverFillInterface::scanEngraving(int x,int y, int *category, int *index_
 		return ENGRAVE_None;
 	}
 
+	if (    mode==EMODE_Thickness
+		 || mode==EMODE_Turbulence
+		 || mode==EMODE_Drag
+		 || mode==EMODE_PushPull
+		 || mode==EMODE_AvoidToward
+		 || mode==EMODE_Twirl
+		 ) {
+		if (submode==2 && sensbox.pointIsIn(x,y)) return ENGRAVE_Sensitivity;
+		return ENGRAVE_None;
+	}
 
 	return ENGRAVE_None;
 }
@@ -4221,7 +4414,7 @@ int EngraverFillInterface::AddToSelection(ObjectContext *oc)
 //! Catch a double click to pop up an ImageDialog.
 int EngraverFillInterface::LBDown(int x,int y,unsigned int state,int count,const Laxkit::LaxMouse *d)
 {
-	lasthover= scanEngraving(x,y, &lasthovercategory, &lasthoverindex, &lasthoverdetail);
+	lasthover= scanEngraving(x,y,state, &lasthovercategory, &lasthoverindex, &lasthoverdetail);
 
 	 //catch trace box overlay first
 	if (lasthovercategory==ENGRAVE_Panel && panelbox.boxcontains(x,y)) {
@@ -4329,12 +4522,8 @@ int EngraverFillInterface::LBDown(int x,int y,unsigned int state,int count,const
 				//ref->m(m2);
 				ref->m(m);
 
-				trace->Install(TraceObject::TRACE_Object, ref);
-
+				trace->Install(TraceObject::TRACE_Object, ref); 
 				trace->ClearCache(false);
-				delete[] trace->identifier;
-				trace->identifier=new char[strlen(_("ref: %s"))+strlen(ref->thedata_id)+1];
-				sprintf(trace->identifier,_("ref: %s"),ref->thedata_id);
 
 				if (data->UsesPath()) ActivatePathInterface();
 				needtodraw=1;
@@ -4391,7 +4580,7 @@ int EngraverFillInterface::LBDown(int x,int y,unsigned int state,int count,const
 			submode=0;
 			return 0;
 		}
-		buttondown.down(d->id,LEFTBUTTON, x,y, mode);
+		buttondown.down(d->id,LEFTBUTTON, x,y, mode, (submode==2 && sensbox.pointIsIn(x,y) ? 1 : 0));
 		return 0;
 	}
 
@@ -4576,7 +4765,7 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
 
 		if (over==ENGRAVE_Trace_Identifier) {
 			EngraverTraceSettings *trace=(group ? group->trace : &default_trace);
-			if (!trace->identifier) {
+			if (!trace->Identifier()) {
 				app->rundialog(new FileDialog(NULL,"Load image",_("Load image for tracing"),
 									  ANXWIN_ESCAPABLE|ANXWIN_REMEMBER|ANXWIN_CENTER,0,0,0,0,0,
 									  object_id,"loadimage",
@@ -4584,7 +4773,6 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
 									  NULL));
 			} else {
 				if (trace->traceobject) trace->ClearCache(true);
-				makestr(trace->identifier, NULL);
 			}
 		}
 
@@ -4671,7 +4859,7 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
 		} else if (over==ENGRAVE_New_Group) {
 			 //create a duplicate of the current group, add after current
 			if (!edata) return 0;
-			EngraverPointGroup *newgroup=new EngraverPointGroup;
+			EngraverPointGroup *newgroup=new EngraverPointGroup(edata);
 			newgroup->CopyFrom(group, false,false,false);
 			makestr(newgroup->name,group->name);
 			if (!newgroup->name) makestr(newgroup->name,"Group");
@@ -4700,9 +4888,10 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
 			return 0;
 			
 		} else if (over==ENGRAVE_Merge_Group) { 
-			// *** need popup menu to select other group
-			cerr << " *** need to implement ENGRAVE_Merge_Group!"<<endl;
-			PostMessage("*** unimplemented!! ***");
+			if (!edata) return 0;
+			edata->MergeDown(current_group);
+			PostMessage(_("Merged."));
+			needtodraw=1;
 			return 0;
 
 
@@ -4831,6 +5020,36 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
 
 	if (mode==EMODE_Direction) {
 		buttondown.up(d->id,LEFTBUTTON);
+		return 0;
+	}
+
+	if (mode==EMODE_Trace) {
+		int ix,iy;
+		buttondown.getinitial(d->id,LEFTBUTTON, &ix,&iy);
+		int dragged=buttondown.up(d->id,LEFTBUTTON);
+
+		if (over==ENGRAVE_Trace_Object) {
+			if (dragged<3 && (state&LAX_STATE_MASK)==(ShiftMask|ControlMask)) {
+				 //align to 0/90/180/270
+
+				EngraverPointGroup *group=(edata?edata->GroupFromIndex(current_group):NULL);
+				EngraverTraceSettings *trace=(group ? group->trace : &default_trace);
+
+				double angle=trace->traceobject->object->xaxis().angle(); //angle is -pi..pi
+				//if (angle<0) angle+=2*M_PI;
+				//double newangle= (angle - M_PI/2*int(angle/(M_PI/2) + .5)) + M_PI/2;
+				double newangle;
+				if (angle<-M_PI/2 || angle==M_PI) newangle=-M_PI/2;
+				else if (angle<0) newangle=0;
+				else if (angle<M_PI/2) newangle=M_PI/2;
+				else newangle=M_PI;
+
+				trace->traceobject->object->Rotate(-(newangle-angle), dp->screentoreal(ix,iy));
+				
+				Trace();
+				needtodraw=1;
+			}
+		}
 		return 0;
 	}
 
@@ -5064,7 +5283,7 @@ void EngraverFillInterface::ChangeMessage(int forwhich)
 	else if (forwhich==ENGRAVE_Trace_Identifier) {
 		EngraverPointGroup *group=(edata ? edata->GroupFromIndex(current_group) : NULL);
 		EngraverTraceSettings *trace=(group ? group->trace : &default_trace);
-		if (trace->identifier) PostMessage(_("Click to remove trace object"));
+		if (trace->Identifier()) PostMessage(_("Click to remove trace object"));
 		else PostMessage(_("Click to load an image to trace"));
 
 	} else if (forwhich==ENGRAVE_Orient_Direction) PostMessage(_("Drag to change direction"));
@@ -5086,12 +5305,12 @@ void EngraverFillInterface::ChangeMessage(int forwhich)
 	if (forwhich==ENGRAVE_None) PostMessage(" ");
 }
 
-int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMouse *d)
+int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMouse *mouse)
 {
 	if (child) {
 		if (child==&curvemapi) {
 			 //to be here, curvemapi must have taken the lbdown
-			child->MouseMove(x,y,state,d);
+			child->MouseMove(x,y,state,mouse);
 			Trace();
 
 			needtodraw=1;
@@ -5117,7 +5336,7 @@ int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit
 	if (!buttondown.any()) {
 		 //update lasthover
 		int category=0, index=-1, detail=-1;
-		int newhover= scanEngraving(x,y, &category, &index, &detail);
+		int newhover= scanEngraving(x,y,state, &category, &index, &detail);
 		if (newhover!=lasthover || index!=lasthoverindex || detail!=lasthoverdetail) {
 			lasthover=newhover;
 			lasthovercategory=category;
@@ -5132,27 +5351,39 @@ int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit
 
 	if (controlmode==EMODE_Controls) {
 		if (buttondown.any()) {
-			int over=0,lx,ly;
+			int over=0, lx,ly, ix,iy;
 			int overcat=0;
 			double th=dp->textheight();
 			double pad=th/2;
 
-			buttondown.getextrainfo(d->id,LEFTBUTTON, &over,&overcat);
-			buttondown.move(d->id,x,y, &lx,&ly);
+			buttondown.getextrainfo(mouse->id,LEFTBUTTON, &over,&overcat);
+			buttondown.move(mouse->id,x,y, &lx,&ly);
 
 			EngraverPointGroup *group=(edata?edata->GroupFromIndex(current_group):NULL);
 			EngraverTraceSettings *trace=(group ? group->trace : &default_trace);
 
 			if (over== ENGRAVE_Trace_Object) {
+				buttondown.getinitial(mouse->id,LEFTBUTTON, &ix,&iy);
+
 				if ((state&LAX_STATE_MASK)==ControlMask) {
 					 //scale trace object
 					double s=1+.01*(x-lx);
-					if (s<.8) s=.8;
-					for (int c=0; c<4; c++) {
-						trace->traceobject->object->m(c,trace->traceobject->object->m(c)*s);
-					}
+					if (s<.2) s=.2;
+					trace->traceobject->object->Scale(dp->screentoreal(ix,iy),s);
+
+					//trace->traceobject->object->Scale(dp->screentoreal(ix,iy),dp->screentoreal(lx,ly),dp->screentoreal(x,y));
+//					if (s<.8) s=.8;
+//					for (int c=0; c<4; c++) {
+//						trace->traceobject->object->m(c,trace->traceobject->object->m(c)*s);
+//					}
+
+				} else if ((state&LAX_STATE_MASK)==(ShiftMask|ControlMask)) {
+					 //rotate trace object
+					double s=.01*(x-lx);
+					trace->traceobject->object->Rotate(s, dp->screentoreal(ix,iy));
 
 				} else {
+					 //move trace object
 					flatpoint p=dp->screentoreal(x,y) - dp->screentoreal(lx,ly);
 					trace->traceobject->object->origin(trace->traceobject->object->origin()+p);
 				}
@@ -5281,7 +5512,7 @@ int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit
 	}
 
 	if (mode==EMODE_Mesh) {
-		PatchInterface::MouseMove(x,y,state,d);
+		PatchInterface::MouseMove(x,y,state,mouse);
 		if (buttondown.any()) {
 			if (always_warp && curpoints.n>0) {
 				edata->Sync(false);
@@ -5313,8 +5544,8 @@ int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit
 
 		int lx,ly;
 		int over;
-		buttondown.getextrainfo(d->id,LEFTBUTTON, &over);
-		buttondown.move(d->id,x,y, &lx,&ly);
+		buttondown.getextrainfo(mouse->id,LEFTBUTTON, &over);
+		buttondown.move(mouse->id,x,y, &lx,&ly);
 
 		flatpoint  p=edata->transformPointInverse(screentoreal( x, y));
 		flatpoint op=edata->transformPointInverse(screentoreal(lx,ly));
@@ -5402,15 +5633,33 @@ int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit
 		}
 
 		int lx,ly;
-		buttondown.move(d->id,x,y, &lx,&ly);
+		int in_sens=0;
+		buttondown.move(mouse->id,x,y, &lx,&ly);
+		buttondown.getextrainfo(mouse->id,LEFTBUTTON,NULL,&in_sens);
 
 		if ((state&LAX_STATE_MASK)==ShiftMask) {
-			 //change brush size
-			brush_radius+=(x-lx)*2;
-			if (brush_radius<5) brush_radius=5;
+			if (in_sens) {
+				double newsens=((double)x-sensbox.x)/sensbox.width*2;
+				if (newsens<=0) newsens=.00001;
+				else if (newsens>2) newsens=2;
+
+				if (mode==EMODE_Thickness)        sensitive_thickness=newsens;
+				else if (mode==EMODE_Turbulence)  sensitive_turbulence=newsens;
+				else if (mode==EMODE_Drag)        sensitive_drag=newsens;
+				else if (mode==EMODE_PushPull)    sensitive_pushpull=newsens;
+				else if (mode==EMODE_AvoidToward) sensitive_avoidtoward=newsens;
+				else if (mode==EMODE_Twirl)       sensitive_twirl=newsens;
+
+			} else {
+				 //change brush size
+				brush_radius+=(x-lx)*2;
+				if (brush_radius<5) brush_radius=5;
+			}
 			needtodraw=1;
 
 		} else {
+			if (lx==x && ly==y) return 0;
+
 			Affine tr;
 			if (edata) tr=edata->GetTransformToContext(false, 1);//supposed to be from edata parent to base real
 
@@ -5433,6 +5682,9 @@ int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit
 			EngraverPointGroup *group;
 			int recachewhich; //1 for thickness change, 2 for blockout change, 4 for position change
 			
+			double pressure=1;
+			const_cast<LaxMouse*>(mouse)->getInfo(NULL,NULL,NULL,NULL,NULL,NULL,&pressure,NULL,NULL); //final 2 are tiltx and tilty
+
 			for (int o=0; o<selection->n(); o++) {
 				obj=dynamic_cast<EngraverFillData *>(selection->e(o)->obj);
 				if (!obj) { continue; }
@@ -5462,14 +5714,14 @@ int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit
 
 								if (mode==EMODE_Thickness) {
 									a=sqrt(d/rr);
-									a=thickness.f(a);
+									a=thickness.f(a)*pressure;
 
 									if ((state&LAX_STATE_MASK)==ControlMask) {
 										 //thin
-										a=1-a*.05;
+										a=1-a*.04*sensitive_thickness;
 									} else {
 										 //thicken
-										a=1+a*.05;
+										a=1+a*.04*sensitive_thickness;
 										if (l->weight<=0) l->weight=nearzero;
 									}
 									l->weight*=a;
@@ -5484,22 +5736,26 @@ int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit
 
 								} else if (mode==EMODE_Drag) {
 									a=sqrt(d/rr);
-									a=thickness.f(a);
+									a=thickness.f(a)*sensitive_drag*pressure;
 									l->p+=dv*a; //point without mesh
 									l->needtosync=2;
 									recachewhich|=4;
 
 								} else if (mode==EMODE_Turbulence) {
 									a=sqrt(d/rr);
-									a=thickness.f(a);
-									l->p+=rotate(dv,drand48()*2*M_PI);
+									a=thickness.f(a)*.5*sensitive_turbulence*pressure;
+									if (dv.norm2()>group->spacing*.5) {
+										dv.normalize();
+										dv*=group->spacing;
+									}
+									l->p+=a*rotate(dv,drand48()*2*M_PI);
 									l->needtosync=2;
 									recachewhich|=4;
 
 								} else if (mode==EMODE_PushPull) {
 									a=sqrt(d/rr);
-									a=thickness.f(a);
-									pp=(l->p-brushcenter)*.03;
+									a=thickness.f(a)*sensitive_pushpull*pressure;
+									pp=(l->p-brushcenter)*.015;
 
 									if ((state&LAX_STATE_MASK)==ControlMask) {
 										l->p-=pp*a*d/rr;
@@ -5511,11 +5767,11 @@ int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit
 
 								} else if (mode==EMODE_AvoidToward) {
 									a=sqrt(d/rr);
-									a=thickness.f(a);
+									a=thickness.f(a)*sensitive_avoidtoward*pressure;
 
 									flatvector vt=transpose(hoverdir);
 									vt.normalize();
-									vt*=.01*a*((l->p-brushcenter)*vt > 0 ? 1 : -1);
+									vt*=.005*a*((l->p-brushcenter)*vt > 0 ? 1 : -1);
 
 									if ((state&LAX_STATE_MASK)==ControlMask) {
 										l->p-=vt;
@@ -5527,12 +5783,12 @@ int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit
 
 								} else if (mode==EMODE_Twirl) {
 									a=sqrt(d/rr);
-									a=thickness.f(a);
+									a=thickness.f(a)*.006*sensitive_twirl*pressure;
 
 									if ((state&LAX_STATE_MASK)==ControlMask) {
-										l->p=brushcenter+rotate(l->p-brushcenter,a*.1);
+										l->p=brushcenter+rotate(l->p-brushcenter,a);
 									} else {
-										l->p=brushcenter+rotate(l->p-brushcenter,-a*.1);
+										l->p=brushcenter+rotate(l->p-brushcenter,-a);
 									}
 									l->needtosync=2;
 									recachewhich|=4;
@@ -5676,8 +5932,6 @@ int EngraverFillInterface::Refresh()
 
 	if (trace->traceobject && trace->traceobj_opacity>.5 // **** .5 since actual opacity not working
 			&& (mode==EMODE_Trace || show_trace)) {
-	//if (trace->traceobject && trace->traceobj_opacity>0 // **** .5 since actual opacity not working
-	//		&& (mode==EMODE_Trace || show_trace)) {
 
 		Affine a;
 		if (edata) a=edata->GetTransformToContext(true, 0);//supposed to be inverse from edata to base real
@@ -5793,10 +6047,10 @@ int EngraverFillInterface::Refresh()
 		group=edata->groups.e[g];
 		if (!group->active) continue;
 		if (!group->lines.n) {
-			DBG cerr <<" *** WARNING! engraver group #"<<g<<"is missing lines!"<<endl;
+			DBG cerr <<" *** WARNING! engraver group #"<<g<<" is missing lines!"<<endl;
 			continue;
 		}
-		
+
 		if (!group->lines.e[0]->cache) {
 			group->UpdateBezCache();
 			group->UpdateDashCache();
@@ -5852,49 +6106,6 @@ int EngraverFillInterface::Refresh()
 				if (lc && !group->PointOnDash(lc)) clast=NULL;
 
 			} while (lc && lc->next && lc!=lcstart);
-//			-------------------LinePoint:
-//			while (l) { //one loop per on segment
-//				if (!group->PointOn(l)) { l=l->next; continue; } //advance to first on point
-//
-//				if (!last) {
-//					 //establish a first point of a visible segment
-//					last=l;
-//					lastwidth=l->weight*mag;
-//					dp->LineAttributes(lastwidth,LineSolid,LAXCAP_Round,LAXJOIN_Round);
-//
-//					if (l->on==ENGRAVE_EndPoint || !l->next || !group->PointOn(l->next)) {
-//						 //draw just a single dot
-//						dp->drawline(last->p,last->p);
-//						l=l->next;
-//						last=NULL;
-//						continue;
-//					}
-//					l=l->next;
-//				}
-//
-//				neww=l->weight*mag;
-//				if (neww!=lastwidth) {
-//					lp=last->p;
-//					v=(l->p-last->p)/9.;
-//					for (int c2=1; c2<10; c2++) {
-//						 //draw 10 mini segments, each of same width to approximate the changing width
-//						tw=lastwidth+c2/9.*(neww-lastwidth);
-//						dp->LineAttributes(tw,LineSolid,LAXCAP_Round,LAXJOIN_Round);
-//						dp->drawline(lp+v*(c2-1), lp+v*c2);
-//					}
-//
-//					lastwidth=neww;
-//
-//				} else {
-//					dp->drawline(last->p,l->p);
-//				}
-//
-//				if (l->on==ENGRAVE_EndPoint) last=NULL;
-//				else last=l;
-//				l=l->next;
-//				if (l && !group->PointOn(l)) last=NULL;
-//			}
-//			-------------------
 
 			if (show_points) {
 				 //show little red dots for all the sample points
@@ -5920,11 +6131,17 @@ int EngraverFillInterface::Refresh()
 	 //draw other tool decorations
 	dp->LineAttributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
 
-	 //draw outline of mesh
+	 //always draw outline of mesh
 	if (data->npoints_boundary) {
-		dp->NewFG(150,150,150);
-		dp->LineAttributes(1,LineSolid,linestyle.capstyle,linestyle.joinstyle);
+		if (always_warp) {
+			dp->NewFG(150,150,150);
+			dp->LineAttributes(1, LineSolid, linestyle.capstyle,linestyle.joinstyle);
+		} else {
+			dp->NewFG(255,255,255);
+			dp->LineAttributes(1, LineOnOffDash, linestyle.capstyle,linestyle.joinstyle);
+		}
 		dp->drawbez(data->boundary_outline,data->npoints_boundary/3,1,0);
+		dp->LineAttributes(1,LineSolid,linestyle.capstyle,linestyle.joinstyle);
 	}
 
 	if (mode==EMODE_Freehand) {
@@ -5948,6 +6165,18 @@ int EngraverFillInterface::Refresh()
 		}
 
 		PatchInterface::Refresh();
+		if (data->npoints_boundary) {
+			if (always_warp) {
+				dp->NewFG(150,150,150);
+				dp->LineAttributes(1, LineSolid, linestyle.capstyle,linestyle.joinstyle);
+			} else {
+				dp->NewFG(255,255,255);
+				dp->LineAttributes(1, LineOnOffDash, linestyle.capstyle,linestyle.joinstyle);
+			}
+			dp->drawbez(data->boundary_outline,data->npoints_boundary/3,1,0);
+			dp->LineAttributes(1,LineSolid,linestyle.capstyle,linestyle.joinstyle);
+		}
+
 		if (dynamic_cast<PathInterface*>(child)) {
 			 //due to defered refreshing, so we can draw path between mesh and panel
 			PathInterface *pathi=dynamic_cast<PathInterface*>(child);
@@ -5997,91 +6226,116 @@ int EngraverFillInterface::Refresh()
 
 		dp->DrawScreen();
 
-		 //set colors
-		dp->NewFG(.5,.5,.5,1.);
-		if (mode==EMODE_Thickness) {
-			dp->LineAttributes(2,LineSolid,linestyle.capstyle,linestyle.joinstyle);
+		if (!(submode==2 && lasthover==ENGRAVE_Sensitivity)) {
+
+			 //set colors
 			dp->NewFG(.5,.5,.5,1.);
+			if (mode==EMODE_Thickness) {
+				dp->LineAttributes(2,LineSolid,linestyle.capstyle,linestyle.joinstyle);
+				dp->NewFG(.5,.5,.5,1.);
 
-		} else if (mode==EMODE_Turbulence) dp->NewFG(.5,.5,.5,1.);
+			} else if (mode==EMODE_Turbulence) dp->NewFG(.5,.5,.5,1.);
 
-		else if (   mode==EMODE_Drag
-				 || mode==EMODE_PushPull
-				 || mode==EMODE_Twirl) {
-			if (submode==2) dp->NewFG(.5,.5,.5); //brush size change
-			else dp->NewFG(0.,0.,.7,1.);
+			else if (   mode==EMODE_Drag
+					 || mode==EMODE_PushPull
+					 || mode==EMODE_Twirl) {
+				if (submode==2) dp->NewFG(.5,.5,.5); //brush size change
+				else dp->NewFG(0.,0.,.7,1.);
 
-		} else if (mode==EMODE_Blockout) { //blockout
-			if (submode==1) dp->NewFG(0,200,0);
-			else if (submode==2) dp->NewFG(.5,.5,.5);
-			else dp->NewFG(255,100,100);
-		}
-
-		 //draw main circle
-		if (mode==EMODE_Turbulence) {
-			 //draw jagged circle
-			double xx,yy, r;
-			for (int c=0; c<30; c++) {
-				r=1 + .2*drand48()-.1;
-				xx=hover.x + brush_radius*r*cos(c*2*M_PI/30);
-				yy=hover.y + brush_radius*r*sin(c*2*M_PI/30);
-				dp->lineto(xx,yy);
+			} else if (mode==EMODE_Blockout) { //blockout
+				if (submode==1) dp->NewFG(0,200,0);
+				else if (submode==2) dp->NewFG(.5,.5,.5);
+				else dp->NewFG(255,100,100);
 			}
-			dp->closed();
-			dp->stroke(0);
 
-		} else if (mode==EMODE_Twirl) {
-			int s=1;
-			if (submode==1) s=-1;
-			for (int c=0; c<10; c++) {
-				dp->moveto(hover.x+brush_radius*cos(s*c/10.*2*M_PI), hover.y+brush_radius*sin(s*c/10.*2*M_PI));
-				dp->curveto(flatpoint(hover.x+brush_radius*cos(s*(c+1)/10.*2*M_PI), hover.y+brush_radius*sin(s*(c+1)/10.*2*M_PI)),
-							flatpoint(hover.x+.85*brush_radius*cos(s*(c+1)/10.*2*M_PI), hover.y+.85*brush_radius*sin(s*(c+1)/10.*2*M_PI)),
-							flatpoint(hover.x+.85*brush_radius*cos(s*(c+1)/10.*2*M_PI), hover.y+.85*brush_radius*sin(s*(c+1)/10.*2*M_PI)));
+			 //draw main circle
+			if (mode==EMODE_Turbulence) {
+				 //draw jagged circle
+				double xx,yy, r;
+				for (int c=0; c<30; c++) {
+					r=1 + .2*drand48()-.1;
+					xx=hover.x + brush_radius*r*cos(c*2*M_PI/30);
+					yy=hover.y + brush_radius*r*sin(c*2*M_PI/30);
+					dp->lineto(xx,yy);
+				}
+				dp->closed();
 				dp->stroke(0);
-			}
 
-		} else if (mode==EMODE_PushPull) {
-			dp->drawpoint(hover.x,hover.y, brush_radius,0);
+			} else if (mode==EMODE_Twirl) {
+				int s=1;
+				if (submode==1) s=-1;
+				for (int c=0; c<10; c++) {
+					dp->moveto(hover.x+brush_radius*cos(s*c/10.*2*M_PI), hover.y+brush_radius*sin(s*c/10.*2*M_PI));
+					dp->curveto(flatpoint(hover.x+brush_radius*cos(s*(c+1)/10.*2*M_PI), hover.y+brush_radius*sin(s*(c+1)/10.*2*M_PI)),
+								flatpoint(hover.x+.85*brush_radius*cos(s*(c+1)/10.*2*M_PI), hover.y+.85*brush_radius*sin(s*(c+1)/10.*2*M_PI)),
+								flatpoint(hover.x+.85*brush_radius*cos(s*(c+1)/10.*2*M_PI), hover.y+.85*brush_radius*sin(s*(c+1)/10.*2*M_PI)));
+					dp->stroke(0);
+				}
 
-			dp->LineAttributes(1,LineOnOffDash, LAXCAP_Butt, LAXJOIN_Miter);
-			if (submode==1) dp->drawpoint(hover.x,hover.y, brush_radius*.85,0);
-			else dp->drawpoint(hover.x,hover.y, brush_radius*1.10,0);
-			dp->LineAttributes(1,LineSolid, LAXCAP_Butt, LAXJOIN_Miter);
+			} else if (mode==EMODE_PushPull) {
+				dp->drawpoint(hover.x,hover.y, brush_radius,0);
 
-		} else {
-			 //draw plain old circle
-			dp->drawpoint(hover.x,hover.y, brush_radius,0);
-		}
+				dp->LineAttributes(1,LineOnOffDash, LAXCAP_Butt, LAXJOIN_Miter);
+				if (submode==1) dp->drawpoint(hover.x,hover.y, brush_radius*.85,0);
+				else dp->drawpoint(hover.x,hover.y, brush_radius*1.10,0);
+				dp->LineAttributes(1,LineSolid, LAXCAP_Butt, LAXJOIN_Miter);
 
-		 //draw circle decorations
-		if (mode==EMODE_Drag) {
-			dp->drawarrow(hover,flatpoint(brush_radius/4,0), 0,1,2,3);
-			dp->drawarrow(hover,flatpoint(-brush_radius/4,0), 0,1,2,3);
-			dp->drawarrow(hover,flatpoint(0,brush_radius/4), 0,1,2,3);
-			dp->drawarrow(hover,flatpoint(0,-brush_radius/4), 0,1,2,3);
-
-		} else if (mode==EMODE_Blockout) {
-			dp->drawpoint(hover.x,hover.y, brush_radius*.85,0); //second inner circle
-
-		} else if (mode==EMODE_AvoidToward) {
-			flatpoint vt(-hoverdir.y,hoverdir.x);
-			vt.normalize();
-			vt*=brush_radius/2;
-
-			if (submode==1) {
-				dp->drawarrow(hover+3*vt,-vt, 0,1,2,3);
-				dp->drawarrow(hover-3*vt, vt, 0,1,2,3);
 			} else {
-				dp->drawarrow(hover+vt,vt, 0,1,2,3);
-				dp->drawarrow(hover-vt,-vt, 0,1,2,3);
+				 //draw plain old circle
+				dp->drawpoint(hover.x,hover.y, brush_radius,0);
 			}
-		}
+
+			 //draw circle decorations
+			if (mode==EMODE_Drag) {
+				dp->drawarrow(hover,flatpoint(brush_radius/4,0), 0,1,2,3);
+				dp->drawarrow(hover,flatpoint(-brush_radius/4,0), 0,1,2,3);
+				dp->drawarrow(hover,flatpoint(0,brush_radius/4), 0,1,2,3);
+				dp->drawarrow(hover,flatpoint(0,-brush_radius/4), 0,1,2,3);
+
+			} else if (mode==EMODE_Blockout) {
+				dp->drawpoint(hover.x,hover.y, brush_radius*.85,0); //second inner circle
+
+			} else if (mode==EMODE_AvoidToward) {
+				flatpoint vt(-hoverdir.y,hoverdir.x);
+				vt.normalize();
+				vt*=brush_radius/2;
+
+				if (submode==1) {
+					dp->drawarrow(hover+3*vt,-vt, 0,1,2,3);
+					dp->drawarrow(hover-3*vt, vt, 0,1,2,3);
+				} else {
+					dp->drawarrow(hover+vt,vt, 0,1,2,3);
+					dp->drawarrow(hover-vt,-vt, 0,1,2,3);
+				}
+			}
+		} //if needed to draw brush circles
 
 		dp->LineAttributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
-		if (submode==2) { //brush size change arrows
-			dp->drawarrow(hover+flatpoint(brush_radius+10,0), flatpoint(20,0), 0, 20, 1, 3);
-			dp->drawarrow(hover-flatpoint(brush_radius+10,0), flatpoint(-20,0), 0, 20, 1, 3);
+		if (submode==2) {
+			 //brush size change arrows
+			if (lasthover!=ENGRAVE_Sensitivity) {
+				dp->drawarrow(hover+flatpoint(brush_radius+10,0), flatpoint(20,0), 0, 20, 1, 3);
+				dp->drawarrow(hover-flatpoint(brush_radius+10,0), flatpoint(-20,0), 0, 20, 1, 3);
+			}
+
+			 //sensitivity slider
+			double sens=1;
+			if (mode==EMODE_Thickness)        sens= sensitive_thickness;
+			else if (mode==EMODE_Drag)        sens= sensitive_drag;
+			else if (mode==EMODE_Turbulence)  sens= sensitive_turbulence;
+			else if (mode==EMODE_PushPull)    sens= sensitive_pushpull;
+		    else if (mode==EMODE_AvoidToward) sens= sensitive_avoidtoward;
+		    else if (mode==EMODE_Twirl)       sens= sensitive_twirl;
+
+			dp->NewFG(&bgcolor);
+			dp->drawellipse(100,100,50,50, 0,0,1);
+			dp->drawellipse(sensbox.x+sensbox.width/2,sensbox.y+sensbox.height/2, sensbox.width/2,sensbox.height/2, 0,0,1);
+			dp->NewFG(&fgcolor);
+			DrawSlider(sens/2, lasthover==ENGRAVE_Sensitivity, sensbox.x,sensbox.y,sensbox.width,sensbox.height, NULL);
+			dp->textout(sensbox.x+sensbox.width/2,sensbox.y-5, _("Sensitivity"),-1, LAX_HCENTER|LAX_BOTTOM); 
+			char buffer[30];
+			sprintf(buffer,"%.2f",sens);
+			dp->textout(sensbox.x+sensbox.width/2,sensbox.y+sensbox.height+5, buffer,-1, LAX_HCENTER|LAX_TOP);
 		}
 
 		dp->DrawReal();
@@ -7121,7 +7375,7 @@ void EngraverFillInterface::DrawTracingTools(Laxkit::MenuItem *item)
 		dp->drawrectangle(tbox.minx+pad,tbox.maxy-pad-2*th, (tbox.maxx-tbox.minx),th, 1);
 
 	} else if (lasthover==ENGRAVE_Trace_Identifier) {
-		if (trace->identifier) {
+		if (trace->Identifier()) {
 			ScreenColor red;
 			red.rgbf(1.,0.,0.);
 			coloravg(&col,&bgcolor,&red,.1);
@@ -7150,12 +7404,13 @@ void EngraverFillInterface::DrawTracingTools(Laxkit::MenuItem *item)
 
 	 //draw opacity slider
 	dp->LineAttributes(1,LineSolid, CapButt, JoinMiter);
+	DrawSlider(trace->traceobj_opacity, lasthover==ENGRAVE_Trace_Opacity, tbox.minx,tbox.maxy-pad-2*th,tbox.maxx-tbox.minx,th, "");
 	dp->NewFG(.5,.5,.5); 
-	dp->drawline(tbox.minx,tbox.maxy-pad-1.5*th, tbox.maxx, tbox.maxy-pad-1.5*th);
-	dp->drawpoint(flatpoint(tbox.minx + trace->traceobj_opacity*(tbox.maxx-tbox.minx),tbox.maxy-pad-1.5*th), th/3, 1);
+	//dp->drawline(tbox.minx,tbox.maxy-pad-1.5*th, tbox.maxx, tbox.maxy-pad-1.5*th);
+	//dp->drawpoint(flatpoint(tbox.minx + trace->traceobj_opacity*(tbox.maxx-tbox.minx),tbox.maxy-pad-1.5*th), th/3, 1);
 
 	dp->textout(tbox.minx,tbox.maxy-pad, 
-			trace->identifier ? trace->identifier : "...",-1,
+			trace->Identifier() ? trace->Identifier() : "...",-1,
 			LAX_LEFT|LAX_BOTTOM);
 
 
@@ -7218,6 +7473,11 @@ int EngraverFillInterface::PerformAction(int action)
 	} else if (action==ENGRAVE_ExportSvg) {
 		app->rundialog(new FileDialog(NULL,"Export Svg",_("Export engraving to svg"),ANXWIN_REMEMBER|ANXWIN_CENTER,0,0,0,0,0,
 									  object_id,"exportsvg",FILES_SAVE, "out.svg"));
+		return 0;
+
+	} else if (action==ENGRAVE_ExportSnapshot) {
+		app->rundialog(new FileDialog(NULL,"Export Snapshot",_("Export snapshot of group to image"),ANXWIN_REMEMBER|ANXWIN_CENTER,0,0,0,0,0,
+									  object_id,"exportsnapshot",FILES_SAVE, "out.png"));
 		return 0;
 
 	} else if (action==ENGRAVE_RotateDir || action==ENGRAVE_RotateDirR) {
@@ -7395,6 +7655,11 @@ int EngraverFillInterface::Trace(bool do_once)
 
 	EngraverFillData *obj;
 	EngraverPointGroup *group;
+	EngraverTraceSettings *curtrace=NULL;
+	if (do_once) {
+		group=edata->GroupFromIndex(current_group);
+		curtrace=group->trace;
+	}
 
 	for (int c=0; c<selection->n(); c++) {
 		obj=dynamic_cast<EngraverFillData*>(selection->e(c)->obj);
@@ -7407,6 +7672,7 @@ int EngraverFillInterface::Trace(bool do_once)
 
 			if (!group->active) continue;
 			if (!do_once && !group->trace->continuous_trace) continue;
+			if (curtrace && group->trace!=curtrace) continue;
 
 			Affine aa=obj->GetTransformToContext(false, 0);//supposed to be from obj to same "parent" as traceobject
 			group->Trace(&aa, viewport);
@@ -7416,95 +7682,6 @@ int EngraverFillInterface::Trace(bool do_once)
 	needtodraw=1;
 	return 0;
 }
-
-//int EngraverFillInterface::Trace_OLD()
-//{
-//	if (!edata) return 1;
-//
-//	EngraverFillData *obj;
-//	EngraverPointGroup *group;
-//
-//	for (int c=0; c<selection->n(); c++) {
-//		obj=dynamic_cast<EngraverFillData*>(selection->e(c)->obj);
-//		if (!obj) continue;
-//
-//		for (int g=0; g<obj->groups.n; g++) {
-//			group=obj->groups.e[g];
-//			if (!group->active) continue;
-//			if (group->trace && !group->trace->continuous_trace) continue;
-//
-//			if (!group->trace->traceobject) continue;
-//
-//
-//			 //update cache if necessary
-//			if (!group->trace->traceobject->trace_sample_cache || group->trace->traceobject->NeedsUpdating())
-//				group->trace->traceobject->UpdateCache(viewport);
-//
-//			int samplew=group->trace->traceobject->samplew;
-//			int sampleh=group->trace->traceobject->sampleh;
-//
-//			int x,y, i;
-//			int sample, samplea;
-//			double me[6],mti[6];
-//			unsigned char *rgb;
-//			flatpoint pp;
-//			double a;
-//
-//			Affine aa=obj->GetTransformToContext(false, 0);//supposed to be from obj to base real
-//			SomeData *to=group->trace->traceobject->object;
-//			if (to) {
-//				transform_invert(mti,to->m());
-//				transform_mult(me, aa.m(),mti);
-//			}
-//
-//
-//			for (int c=0; c<group->lines.n; c++) {
-//				LinePoint *l=group->lines.e[c];
-//
-//				while (l) {
-//					pp=transform_point(me,l->p);
-//					//pp=l->p;
-//					//pp=transform_point(mti,pp);
-//
-//					if (to) {
-//						x=samplew*(pp.x-to->minx)/(to->maxx-to->minx);
-//						y=sampleh*(pp.y-to->miny)/(to->maxy-to->miny);
-//
-//						if (x>=0 && x<samplew && y>=0 && y<sampleh) {
-//							i=4*(x+(sampleh-y)*samplew);
-//							rgb=group->trace->traceobject->trace_sample_cache+i;
-//
-//							samplea=rgb[3];
-//							sample=0.3*rgb[0] + 0.59*rgb[1] + 0.11*rgb[2];
-//							if (sample>255) {
-//								sample=255;
-//							}
-//
-//							a=(255-sample)/255.;
-//							a=group->trace->value_to_weight.f(a);
-//							l->weight=group->spacing*a; // *** this seems off
-//							l->on = samplea>0 ? ENGRAVE_On : ENGRAVE_Off;
-//						} else {
-//							l->weight=0;
-//							l->on=ENGRAVE_Off;
-//						}
-//
-//					} else { //use current
-//						a=group->spacing * group->trace->value_to_weight.f(l->weight_orig/group->spacing);
-//						l->weight=a;
-//					}
-//
-//					l=l->next;
-//				}
-//			} //each line
-//
-//			group->UpdateDashCache();
-//		} //each group 
-//	}
-//
-//	needtodraw=1;
-//	return 0;
-//}
 
 /*! Return old value of mode.
  * newmode is an id of an item in this->modes.
@@ -7521,8 +7698,6 @@ int EngraverFillInterface::ChangeMode(int newmode)
 
 	int oldmode=mode;
 	mode=newmode;
-
-	//if (mode==EMODE_Trace) { continuous_trace=false; }
 
 	if (newmode!=EMODE_Mesh && data) {
 		if (child && data->UsesPath()) RemoveChild();
@@ -7589,6 +7764,13 @@ int EngraverFillInterface::Event(const Laxkit::EventData *e_data, const char *me
 		} else if (i==ENGRAVE_Trace_Clear) {
 			EngraverPointGroup *group=edata->GroupFromIndex(current_group);
 			if (group->trace->traceobject) group->trace->ClearCache(true);
+			return 0;
+
+		} else if (i==ENGRAVE_Trace_Snapshot) {
+			if (!edata) return 0;
+			EngraverPointGroup *group=edata->GroupFromIndex(current_group);
+			group->TraceFromSnapshot();
+			needtodraw=1;
 			return 0;
 		}
 
@@ -7728,6 +7910,22 @@ int EngraverFillInterface::Event(const Laxkit::EventData *e_data, const char *me
 		}
         return 0;
 
+	} else if (!strcmp(mes,"exportsnapshot")) {
+        if (!edata) return 0;
+
+        const StrEventData *s=dynamic_cast<const StrEventData *>(e_data);
+        if (!s) return 0;
+        if (isblank(s->str)) return 0;
+		EngraverPointGroup *group=(edata ? edata->GroupFromIndex(current_group) : NULL);
+		if (!group) return 0;
+		ImageData *idata=group->CreateFromSnapshot();
+		if (!idata) return 0;
+		save_image(idata->image,s->str,NULL);
+		idata->dec_count();
+			
+		PostMessage(_("Exported."));
+        return 0;
+
 	} else if (!strcmp(mes,"loadimage")) {
         const StrEventData *s=dynamic_cast<const StrEventData *>(e_data);
 		if (!s || isblank(s->str)) return 0;
@@ -7764,9 +7962,6 @@ int EngraverFillInterface::Event(const Laxkit::EventData *e_data, const char *me
 		traceobjects.push(trace->traceobject);
 
 		trace->ClearCache(false);
-		delete[] trace->identifier;
-		trace->identifier=new char[strlen(_("img: %s"))+strlen(bname)+1];
-		sprintf(trace->identifier,_("img: %s"),bname);
 
 		needtodraw=1;
 		PostMessage(_("Image to trace loaded."));
@@ -8113,15 +8308,16 @@ Laxkit::MenuInfo *EngraverFillInterface::ContextMenu(int x,int y,int deviceid, L
 	if (menu->n()!=0) menu->AddSep(_("Engraver"));
 
 	int category=0, index=-1, detail=-1;
-	int where=scanEngraving(x,y, &category, &index, &detail);
+	int where=scanEngraving(x,y,0, &category, &index, &detail);
 	if (mode==EMODE_Trace
 		 || where==ENGRAVE_Trace_Box
 		 || where==ENGRAVE_Trace_Once
 		 || where==ENGRAVE_Trace_Load
 		 || where==ENGRAVE_Trace_Continuous) {
 		menu->AddSep(_("Trace"));
-		menu->AddItem(_("Load image to trace..."),ENGRAVE_Trace_Load, LAX_OFF);
-		menu->AddItem(_("Clear trace object"), ENGRAVE_Trace_Clear, LAX_OFF);
+		menu->AddItem(_("Load image to trace..."),ENGRAVE_Trace_Load);
+		menu->AddItem(_("Clear trace object"), ENGRAVE_Trace_Clear);
+		menu->AddItem(_("Snapshot from current"), ENGRAVE_Trace_Snapshot);
 	}
 
 //	if (mode==EMODE_Orientation) {
@@ -8166,6 +8362,7 @@ Laxkit::ShortcutHandler *EngraverFillInterface::GetShortcuts()
 	sc->Add(ENGRAVE_SwitchMode,   'm',0,0,          "SwitchMode",  _("Switch edit mode"),NULL,0);
 	sc->Add(ENGRAVE_SwitchModeR,  'M',ShiftMask,0,  "SwitchModeR", _("Switch to previous edit mode"),NULL,0);
 	sc->Add(ENGRAVE_ExportSvg,    'f',0,0,          "ExportSvg",   _("Export Svg"),NULL,0);
+	sc->Add(ENGRAVE_ExportSnapshot,'F',ShiftMask,0, "ExportSnapshot",   _("Export snapshot"),NULL,0);
 	sc->Add(ENGRAVE_RotateDir,    'r',0,0,          "RotateDir",   _("Rotate default line direction"),NULL,0);
 	sc->Add(ENGRAVE_RotateDirR,   'R',ShiftMask,0,  "RotateDirR",  _("Rotate default line direction"),NULL,0);
 	sc->Add(ENGRAVE_SpacingInc,   's',0,0,          "SpacingInc",  _("Increase default spacing"),NULL,0);
@@ -8212,6 +8409,10 @@ int EngraverFillInterface::CharInput(unsigned int ch, const char *buffer,int len
 			return 0;
 		} else if (ch==LAX_Shift) {
 			submode=2;
+			sensbox.width =(dp->Maxx-dp->Minx)/4;
+			sensbox.height=dp->textheight();
+			sensbox.x = (dp->Maxx+dp->Minx-sensbox.width)/2;
+			sensbox.y = dp->Miny*.2 + dp->Maxy*.8;
 			//if (state&ControlMask) submode=3;
 			needtodraw=1;
 			return 0;
