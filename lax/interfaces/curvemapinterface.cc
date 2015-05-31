@@ -175,7 +175,7 @@ Laxkit::MenuInfo *CurveMapInterface::ContextMenu(int x,int y,int deviceid, Laxki
 	else if (menu->n()==0) menu->AddSep(_("Curves"));
 
 	menu->AddItem(_("Invert"), CURVEM_Invert, LAX_OFF, object_id, NULL, -1, 0);
-	menu->AddItem(_("Select"), CURVEM_Select, LAX_OFF, object_id, NULL, -1, 0);
+	menu->AddItem(_("Select..."), CURVEM_Select, LAX_OFF, object_id, NULL, -1, 0);
 	return menu;
 }
 
@@ -205,6 +205,7 @@ int CurveMapInterface::Event(const EventData *e,const char *mes)
 			//need to figure out good way to store recent
 			//
 			//
+			PostMessage(" *** need to implement curvemap Select!!");
 			cerr <<" *** curvemap select todo!!!"<<endl;
 			return 0;
 
