@@ -46,6 +46,7 @@ namespace Laxkit {
 Resource::Resource()
 {
 	object=NULL;
+	owner=NULL;
 
 	name=NULL;
 	Name=NULL;
@@ -64,10 +65,11 @@ Resource::Resource()
 	creation_func=NULL;
 }
 
-Resource::Resource(anObject *obj, const char *nname, const char *nName, const char *ndesc, const char *nfile, LaxImage *nicon)
+Resource::Resource(anObject *obj, anObject *nowner, const char *nname, const char *nName, const char *ndesc, const char *nfile, LaxImage *nicon)
 {
 	object=obj;
 	if (object) object->inc_count();
+	owner=nowner;
 
 	name=newstr(nname);
 	Name=newstr(nName);
@@ -154,7 +156,7 @@ ResourceType::ResourceType()
 }
 
 ResourceType::ResourceType(const char *nname, const char *nName, const char *ndesc, LaxImage *nicon)
-  : Resource(NULL,nname,nName,ndesc,NULL,nicon),
+  : Resource(NULL,NULL,nname,nName,ndesc,NULL,nicon),
 	dirs(LISTS_DELETE_Array)
 {
 }
@@ -217,11 +219,11 @@ int ResourceType::Find(anObject *object)
  *
  * object's count will be incremented.
  */
-int ResourceType::AddResource(anObject *nobject, const char *nname, const char *nName, const char *ndescription, const char *nfile, LaxImage *nicon)
+int ResourceType::AddResource(anObject *nobject, anObject *nowner, const char *nname, const char *nName, const char *ndescription, const char *nfile, LaxImage *nicon)
 {
 	if (Find(object)) return -1;
 
-	Resource *r=new Resource(nobject,nname,nName,ndescription,nfile,nicon);
+	Resource *r=new Resource(nobject,nowner,nname,nName,ndescription,nfile,nicon);
 	resources.push(r);
 
 	return 0;
@@ -243,7 +245,7 @@ int ResourceType::AddResource(anObject *nobject, const char *nname, const char *
  * -1 if object is already there for type.
  */
 int ResourceManager::AddResource(const char *type, //! If NULL, then use object->whattype()
-							anObject *object, 
+							anObject *object, anObject *nowner,
 							const char *name, const char *Name, const char *description, const char *file, LaxImage *icon)
 {
 	if (!object) return 1;
@@ -255,7 +257,7 @@ int ResourceManager::AddResource(const char *type, //! If NULL, then use object-
 		t=AddResourceType(type,type,NULL,NULL);
 	}
 
-	t->AddResource(object, name,Name,description,file,icon);
+	t->AddResource(object,nowner, name,Name,description,file,icon);
 	return 0;
 }
 

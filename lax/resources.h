@@ -37,10 +37,19 @@ namespace Laxkit {
 
 typedef anObject *(*ResourceCreateFunc)(LaxFiles::Attribute *att);
 
+class ResourceUser
+{
+  public:
+	virtual Laxkit::anObject *ResourceOwner();
+	virtual Laxkit::LaxImage *ResourceIcon();
+
+};
+
 class Resource : virtual public anObject, virtual public Tagged
 {
   public:
 	anObject *object;
+	anObject *owner; //NULL for resourcemanager. Might be some object in a doc tree.
 
 	char *name;
 	char *Name;
@@ -50,10 +59,13 @@ class Resource : virtual public anObject, virtual public Tagged
 
 	int favorite; //0 for not fav, positive for order in a favorites list
 	int source_type; //0 for object on its own, 1 for object from file, 2 for built in (do not dump out)
+	 //stand alone resource
+	 //temp resource: in use by a random object
+	 //resource scanned in from directory
 	char *source;
 
 	Resource();
-	Resource(anObject *obj, const char *nname, const char *nName, const char *ndesc,  const char *nfile,LaxImage *nicon);
+	Resource(anObject *obj, anObject *nowner, const char *nname, const char *nName, const char *ndesc,  const char *nfile,LaxImage *nicon);
 	virtual ~Resource();
 	virtual const char *whattype() { return "Resource"; }
 
@@ -69,6 +81,7 @@ class ResourceType : public Resource
 {
   public: 
 	PtrStack<char> dirs;
+	 //dir last scan time
 	RefPtrStack<Resource> resources;
 
 	ResourceType();
@@ -79,7 +92,7 @@ class ResourceType : public Resource
 	virtual int AddDir(const char *dir, int where);
 	virtual int RemoveDir(const char *dir);
 	virtual int Find(anObject *object);
-	virtual int AddResource(anObject *object, const char *name, const char *Name, const char *description, const char *file, LaxImage *icon);
+	virtual int AddResource(anObject *object, anObject *nowner, const char *name, const char *Name, const char *description, const char *file, LaxImage *icon);
 };
 
 
@@ -95,7 +108,7 @@ class ResourceManager : public anObject, public LaxFiles::DumpUtility
 	virtual ~ResourceManager();
 	virtual const char *whattype() { return "ResourceManager"; }
 
-	virtual int AddResource(const char *type, anObject *object, const char *name, const char *Name, const char *description, const char *file, LaxImage *icon);
+	virtual int AddResource(const char *type, anObject *object, anObject *nowner, const char *name, const char *Name, const char *description, const char *file, LaxImage *icon);
 	virtual ResourceType *AddResourceType(const char *name, const char *Name, const char *description, LaxImage *icon);
 
 	virtual int AddResourceDir(const char *type, const char *dir, int where);
