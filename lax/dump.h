@@ -30,6 +30,7 @@
 
 namespace LaxFiles {
 
+//------------------------------- DumpUtility ---------------------------------
 class DumpUtility
 {
  public:
@@ -41,6 +42,21 @@ class DumpUtility
 
 	virtual ~DumpUtility() {}
 };
+
+
+//------------------------------- DumpContext ---------------------------------
+class DumpContext : public Laxkit::anObject
+{
+ public:
+	char *basedir;
+	char subs_only;
+	unsigned long initiator;
+
+	DumpContext();
+	DumpContext(const char *b,char s, unsigned long initer);
+	virtual ~DumpContext();
+};
+
 
 } // namespace LaxFiles
 

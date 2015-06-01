@@ -19,7 +19,6 @@ CPPFLAGS= $(OPTIMIZATION) $(EXTRAS) $(DEBUGFLAGS) $(FPIC) -I. -I.. -I$(LAXDIR)/.
 objs= \
 	linestyle.o \
 	fillstyle.o \
-	dumpcontext.o \
 	somedata.o \
 	somedataref.o \
 	somedatafactory.o \

@@ -22,6 +22,7 @@
 //
 
 #include <lax/dump.h>
+#include <lax/strmanip.h>
 
 #include <lax/lists.cc>
 
@@ -92,5 +93,40 @@ void DumpUtility::dump_in(FILE *f,int indent,int what,anObject *loadcontext,Attr
 	if (Att) *Att=att;
 	else delete att;
 }
+
+
+//------------------------------- DumpContext ---------------------------------
+/*! \class DumpContext
+ * \brief Class to pass to interface object dump out methods for particular behavior.
+ *
+ * If basedir!=NULL and saving is happening, then paths saved are relative to basedir.
+ * If subs_only==0, then the saved path is always relative to basedir. If subs_only!=0,
+ * then the saved path is relative to basedir ONLY if it is in basedir or a subdirectory 
+ * of basedir. This makes managing project directories a little easier.
+ *
+ * If basedir!=NULL and loading is happening, then any relative paths encountered are
+ * considered relative to basedir, or the current directory is basedir==NULL. subs_only
+ * is ignored when loading.
+ */
+
+DumpContext::DumpContext()
+	: basedir(NULL), subs_only(0)
+{
+	initiator=0;
+}
+
+DumpContext::DumpContext(const char *b,char s, unsigned long initer)
+{
+	basedir=newstr(b);
+	subs_only=s;
+	initiator=initer;
+}
+
+DumpContext::~DumpContext()
+{
+	if (basedir) delete[] basedir;
+}
+
+
 
 } // namespace LaxFiles
