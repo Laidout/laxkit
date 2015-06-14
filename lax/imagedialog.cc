@@ -82,30 +82,6 @@ ImageDialog::ImageDialog(anXWindow *parnt,const char *nname,const char *ntitle,u
 {
 	dialog_style=ndstyle;
 	
-//	if (win_style&ANXWIN_REMEMBER) {
-//		Attribute *att=const_cast<Attribute *>(app->Resource("ImageDialog"));//do not delete it!
-//		if (att) {
-//			dump_in_atts(att,0);
-//			if (!win_sizehints) win_sizehints=XAllocSizeHints();
-//			if (win_sizehints) {
-//				DBG cerr <<"doingwin_sizehintsfor"<<(WindowTitle())<<endl;
-//				//*** The initial x and y become the upper left corner of the window
-//				//manager decorations. ***how to figure out how much room those decorations take,
-//				//so as to place things on the screen accurately? like full screen view?
-//				win_sizehints->x=win_x;
-//				win_sizehints->y=win_y;
-//				win_sizehints->width=win_w;
-//				win_sizehints->height=win_h;
-//				win_sizehints->flags=USPosition|USSize;
-//			}
-//		}
-//	}
-//	if (win_w==0) win_w=500;
-//	if (win_h==0) {
-//		int textheight=app->defaultfont->max_bounds.ascent+app->defaultfont->max_bounds.descent;
-//		win_h=12*(textheight+7)+20;
-//	}
-	
 	imageinfo=inf;
 	if (imageinfo) imageinfo->inc_count(); else imageinfo=new ImageInfo();
 

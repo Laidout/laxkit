@@ -152,86 +152,102 @@ void anXApp::setupdefaultcolors()
 	color_activeborder  = rgbcolor(0,0,0);
 
 	if (app_profile && !strcmp(app_profile,"Dark")) {
-		color_panel->fg      =rgbcolor(255,0,0);
-		color_panel->bg      =rgbcolor(31,31,31);
-		color_panel->hfg     =rgbcolor(255,0,255);
-		color_panel->hbg     =rgbcolor(127,127,127);
-		color_panel->moverfg =rgbcolor(255,0,0);
-		color_panel->moverbg =rgbcolor(51,51,51);
-		color_panel->grayedfg=rgbcolor(128,0,0);
-		color_panel->color1  =rgbcolor(64,64,64);
-		color_panel->color2  =rgbcolor(64,64,64);
+		color_panel->fg        =rgbcolor(255,0,0);
+		color_panel->bg        =rgbcolor(31,31,31);
+		color_panel->hfg       =rgbcolor(255,0,255);
+		color_panel->hbg       =rgbcolor(127,127,127);
+		color_panel->moverfg   =rgbcolor(255,0,0);
+		color_panel->moverbg   =rgbcolor(51,51,51);
+		color_panel->grayedfg  =rgbcolor(128,0,0);
+		color_panel->color1    =rgbcolor(64,64,64);
+		color_panel->color2    =rgbcolor(64,64,64);
+		color_panel->activate  =rgbcolor(  0,200,  0);
+		color_panel->deactivate=rgbcolor(255,100,100);
 
-		color_menu->fg      =rgbcolor(255,0,0);
-		color_menu->bg      =rgbcolor(31,31,31);
-		color_menu->hfg     =rgbcolor(255,0,0);
-		color_menu->hbg     =rgbcolor(127,127,127);
-		color_menu->moverfg =rgbcolor(255,0,0);
-		color_menu->moverbg =rgbcolor(51,51,51);
-		color_menu->grayedfg=rgbcolor(128,0,0);
-		color_menu->color1  =rgbcolor(64,64,64);
-		color_menu->color2  =rgbcolor(64,64,64);
+		color_menu->fg        =rgbcolor(255,0,0);
+		color_menu->bg        =rgbcolor(31,31,31);
+		color_menu->hfg       =rgbcolor(255,0,0);
+		color_menu->hbg       =rgbcolor(127,127,127);
+		color_menu->moverfg   =rgbcolor(255,0,0);
+		color_menu->moverbg   =rgbcolor(51,51,51);
+		color_menu->grayedfg  =rgbcolor(128,0,0);
+		color_menu->color1    =rgbcolor(64,64,64);
+		color_menu->color2    =rgbcolor(64,64,64);
+		color_menu->activate  =rgbcolor(  0,200,  0);
+		color_menu->deactivate=rgbcolor(255,100,100);
 
-		color_edits->fg      =rgbcolor(255,0,0);
-		color_edits->bg      =rgbcolor(0,0,0);
-		color_edits->hfg     =rgbcolor(255,0,255);
-		color_edits->hbg     =rgbcolor(127,127,127);
-		color_edits->moverfg =rgbcolor(255,0,0);
-		color_edits->moverbg =rgbcolor(51,51,51);
-		color_edits->grayedfg=rgbcolor(128,0,0);
-		color_edits->color1  =rgbcolor(64,64,64);
-		color_edits->color2  =rgbcolor(64,64,64);
+		color_edits->fg        =rgbcolor(255,0,0);
+		color_edits->bg        =rgbcolor(0,0,0);
+		color_edits->hfg       =rgbcolor(255,0,255);
+		color_edits->hbg       =rgbcolor(127,127,127);
+		color_edits->moverfg   =rgbcolor(255,0,0);
+		color_edits->moverbg   =rgbcolor(51,51,51);
+		color_edits->grayedfg  =rgbcolor(128,0,0);
+		color_edits->color1    =rgbcolor(64,64,64);
+		color_edits->color2    =rgbcolor(64,64,64);
+		color_edits->activate  =rgbcolor(  0,200,  0);
+		color_edits->deactivate=rgbcolor(255,100,100);
 
-		color_buttons->fg      =rgbcolor(255,0,0);
-		color_buttons->bg      =rgbcolor(41,41,41);
-		color_buttons->hfg     =rgbcolor(255,0,255);
-		color_buttons->hbg     =rgbcolor(127,127,127);
-		color_buttons->moverfg =rgbcolor(255,0,0);
-		color_buttons->moverbg =rgbcolor(144,144,144);
-		color_buttons->grayedfg=rgbcolor(128,0,0);
-		color_buttons->color1  =rgbcolor(64,64,64);
-		color_buttons->color2  =rgbcolor(64,64,64);
+		color_buttons->fg        =rgbcolor(255,0,0);
+		color_buttons->bg        =rgbcolor(41,41,41);
+		color_buttons->hfg       =rgbcolor(255,0,255);
+		color_buttons->hbg       =rgbcolor(127,127,127);
+		color_buttons->moverfg   =rgbcolor(255,0,0);
+		color_buttons->moverbg   =rgbcolor(144,144,144);
+		color_buttons->grayedfg  =rgbcolor(128,0,0);
+		color_buttons->color1    =rgbcolor(64,64,64);
+		color_buttons->color2    =rgbcolor(64,64,64);
+		color_buttons->activate  =rgbcolor(  0,200,  0);
+		color_buttons->deactivate=rgbcolor(255,100,100);
 
     } else { //Light
-		color_panel->fg      =rgbcolor(32,32,32);
-		color_panel->bg      =rgbcolor(192,192,192);
-		color_panel->hfg     =rgbcolor(0,0,0);
-		color_panel->hbg     =rgbcolor(127,127,127);
-		color_panel->moverfg =rgbcolor(16,16,16);
-		color_panel->moverbg =rgbcolor(150,150,150);
-		color_panel->grayedfg=rgbcolor(100,100,100);
-		color_panel->color1  =rgbcolor(128,128,128);
-		color_panel->color2  =rgbcolor(128,128,128);
+		color_panel->fg        =rgbcolor(32,32,32);
+		color_panel->bg        =rgbcolor(192,192,192);
+		color_panel->hfg       =rgbcolor(0,0,0);
+		color_panel->hbg       =rgbcolor(127,127,127);
+		color_panel->moverfg   =rgbcolor(16,16,16);
+		color_panel->moverbg   =rgbcolor(150,150,150);
+		color_panel->grayedfg  =rgbcolor(100,100,100);
+		color_panel->color1    =rgbcolor(128,128,128);
+		color_panel->color2    =rgbcolor(128,128,128);
+		color_panel->activate  =rgbcolor(  0,200,  0);
+		color_panel->deactivate=rgbcolor(255,100,100);
 
-		color_menu->fg      =rgbcolor(0,0,0);
-		color_menu->bg      =rgbcolor(192,192,192);
-		color_menu->hfg     =rgbcolor(255,0,0);
-		color_menu->hbg     =rgbcolor(127,127,127);
-		color_menu->moverfg =rgbcolor(16,16,16);
-		color_menu->moverbg =rgbcolor(150,150,150);
-		color_menu->grayedfg=rgbcolor(100,100,100);
-		color_menu->color1  =rgbcolor(128,128,128);
-		color_menu->color2  =rgbcolor(128,128,128);
+		color_menu->fg        =rgbcolor(0,0,0);
+		color_menu->bg        =rgbcolor(192,192,192);
+		color_menu->hfg       =rgbcolor(255,0,0);
+		color_menu->hbg       =rgbcolor(127,127,127);
+		color_menu->moverfg   =rgbcolor(16,16,16);
+		color_menu->moverbg   =rgbcolor(150,150,150);
+		color_menu->grayedfg  =rgbcolor(100,100,100);
+		color_menu->color1    =rgbcolor(128,128,128);
+		color_menu->color2    =rgbcolor(128,128,128);
+		color_menu->activate  =rgbcolor(  0,200,  0);
+		color_menu->deactivate=rgbcolor(255,100,100);
 
-		color_edits->fg      =rgbcolor(64,64,64);
-		color_edits->bg      =rgbcolor(255,255,255);
-		color_edits->hfg     =rgbcolor(0,0,0);
-		color_edits->hbg     =rgbcolor(127,127,127);
-		color_edits->moverfg =rgbcolor(64,64,64);
-		color_edits->moverbg =rgbcolor(255,255,255);
-		color_edits->grayedfg=rgbcolor(100,100,100);
-		color_edits->color1  =rgbcolor(64,64,64);
-		color_edits->color2  =rgbcolor(64,64,64);
+		color_edits->fg        =rgbcolor(64,64,64);
+		color_edits->bg        =rgbcolor(255,255,255);
+		color_edits->hfg       =rgbcolor(0,0,0);
+		color_edits->hbg       =rgbcolor(127,127,127);
+		color_edits->moverfg   =rgbcolor(64,64,64);
+		color_edits->moverbg   =rgbcolor(255,255,255);
+		color_edits->grayedfg  =rgbcolor(100,100,100);
+		color_edits->color1    =rgbcolor(64,64,64);
+		color_edits->color2    =rgbcolor(64,64,64);
+		color_edits->activate  =rgbcolor(  0,200,  0);
+		color_edits->deactivate=rgbcolor(255,100,100);
 
-		color_buttons->fg      =rgbcolor(0,0,0);
-		color_buttons->bg      =rgbcolor(192,192,192);
-		color_buttons->hfg     =rgbcolor(0,0,0);
-		color_buttons->hbg     =rgbcolor(127,127,127);
-		color_buttons->moverfg =rgbcolor(0,0,0);
-		color_buttons->moverbg =rgbcolor(164,164,164);
-		color_buttons->grayedfg=rgbcolor(100,100,100);
-		color_buttons->color1  =rgbcolor(64,64,64);
-		color_buttons->color2  =rgbcolor(64,64,64);
+		color_buttons->fg        =rgbcolor(0,0,0);
+		color_buttons->bg        =rgbcolor(192,192,192);
+		color_buttons->hfg       =rgbcolor(0,0,0);
+		color_buttons->hbg       =rgbcolor(127,127,127);
+		color_buttons->moverfg   =rgbcolor(0,0,0);
+		color_buttons->moverbg   =rgbcolor(164,164,164);
+		color_buttons->grayedfg  =rgbcolor(100,100,100);
+		color_buttons->color1    =rgbcolor(64,64,64);
+		color_buttons->color2    =rgbcolor(64,64,64);
+		color_buttons->activate  =rgbcolor(  0,200,  0);
+		color_buttons->deactivate=rgbcolor(255,100,100);
 	}
 }
 
@@ -320,6 +336,10 @@ void anXApp::dump_out_rc(FILE *f, const char *profile, int indent, int what)
 							cols->color1&0xff, (cols->color1&0xff00)>>8, (cols->color1&0xff0000)>>16);
 		fprintf(f,"%s    color2   %lu %lu %lu\n",spc,
 							cols->color2&0xff, (cols->color2&0xff00)>>8, (cols->color2&0xff0000)>>16);
+		fprintf(f,"%s    activate   %lu %lu %lu\n",spc,
+							cols->activate&0xff, (cols->activate&0xff00)>>8, (cols->activate&0xff0000)>>16);
+		fprintf(f,"%s    deactivate   %lu %lu %lu\n",spc,
+							cols->deactivate&0xff, (cols->deactivate&0xff00)>>8, (cols->deactivate&0xff0000)>>16);
 	}
 
 	if (what==-1) {
@@ -434,6 +454,10 @@ void anXApp::dump_in_colors(Attribute *att)
 						col->color1=color;
 					} else if (!strcmp(name,"color2")) {
 						col->color2=color;
+					} else if (!strcmp(name,"activate")) {
+						col->activate=color;
+					} else if (!strcmp(name,"deactivate")) {
+						col->deactivate=color;
 					}
 				}
 			}

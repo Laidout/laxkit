@@ -518,7 +518,7 @@ int anXWindow::PerformAction(int action_number)
  * so subclasses need only redefine dump_out_atts() and dump_in_atts()
  * for all the DumpUtility functions to work.
  */
-void anXWindow::dump_out(FILE *f,int indent,int what,anObject *context)
+void anXWindow::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
 {
 	Attribute *att=dump_out_atts(NULL,0,context);
 	att->dump_out(f,indent);
@@ -533,7 +533,7 @@ void anXWindow::dump_out(FILE *f,int indent,int what,anObject *context)
  *   but this opens up potential problems due to possible nesting. How deep
  *   would the replace function?
  */
-Attribute *anXWindow::dump_out_atts(Attribute *att,int what,anObject *context)
+Attribute *anXWindow::dump_out_atts(Attribute *att,int what,LaxFiles::DumpContext *context)
 {
 	if (!att) att=new Attribute(whattype(),NULL);
 	char scratch[100];
@@ -583,7 +583,7 @@ Attribute *anXWindow::dump_out_atts(Attribute *att,int what,anObject *context)
  * \todo  at some point, must ensure that the dimensions read in are in part on screen..
  *    though this is really an anXApp::addwindow() task.
  */
-void anXWindow::dump_in_atts(Attribute *att,int flag,anObject *context)
+void anXWindow::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *context)
 {
 	char *name,*value;
 	for (int c=0; c<att->attributes.n; c++) {
@@ -689,7 +689,7 @@ const char *anXWindow::tooltip(int mouseid)
  * to do tinkering when init() is called after allocating, but before being made visible 
  * (aka mapped).
  *
- * In win_style&ANXWIN_REMEMBER and win_w and/or win_h==0, then look up the anXApp::Resource() corresponding
+ * In win_style&ANXWIN_REMEMBER and win_w and/or win_h==0, then look up the anXApp::AppResource() corresponding
  * to this->whattype(), and set the win_x,y,w,h to the corresponding values.
  *
  * The return value is currently ignored in the default anXApp, but 0 should mean success.
@@ -726,7 +726,7 @@ int anXWindow::preinit()
 	//if ((win_style&ANXWIN_REMEMBER) && (win_h<=0 || win_w<=0)) {
 	if ((win_style&ANXWIN_REMEMBER)) {
 		DBG cerr << "Remembering settings for " << whattype() <<endl;
-		Attribute *att=const_cast<Attribute *>(app->Resource(whattype()));//do not delete it!
+		Attribute *att=const_cast<Attribute *>(app->AppResource(whattype()));//do not delete it!
 		if (att) {
 			dump_in_atts(att,0,NULL);
 			if (!xlib_win_sizehints) xlib_win_sizehints=XAllocSizeHints();
@@ -760,7 +760,7 @@ int anXWindow::preinit()
 /*! This function is called before the Xlib window is destroyed, so windows can do any
  * specific cleanup that still depends on that window value here.
  *
- * If win_parent==NULL and win_style&ANXWIN_REMEMBER, then call app->Resource() with a new Attribute
+ * If win_parent==NULL and win_style&ANXWIN_REMEMBER, then call app->AppResource() with a new Attribute
  * found via dump_out_atts().
  *
  * The Laxkit does not do anything with the default return value, but 0 should mean success.
@@ -771,7 +771,7 @@ int anXWindow::close()
 {
 	if (!win_parent && win_style&ANXWIN_REMEMBER) {
 		Attribute *att=dump_out_atts(NULL,0,NULL);
-		app->Resource(att); //do not delete att!
+		app->AppResource(att); //do not delete att!
 	}
 	return 0;
 }

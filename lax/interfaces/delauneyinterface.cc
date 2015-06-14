@@ -78,7 +78,7 @@ void VoronoiData::FindBBox()
 	}
 }
 
-void VoronoiData::dump_out(FILE *f,int indent,int what,Laxkit::anObject *context)
+void VoronoiData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
 {
     char spc[indent+1];
     memset(spc,' ',indent);
@@ -112,7 +112,7 @@ void VoronoiData::dump_out(FILE *f,int indent,int what,Laxkit::anObject *context
 
 }
 
-void VoronoiData::dump_in_atts(LaxFiles::Attribute *att,int flag,Laxkit::anObject *context)
+void VoronoiData::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context)
 {
     if (!att) return;
     char *name,*value;

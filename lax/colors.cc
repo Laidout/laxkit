@@ -18,7 +18,7 @@
 //    License along with this library; if not, write to the Free Software
 //    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
-//    Copyright (C) 2009-2010,2012 by Tom Lechner
+//    Copyright (C) 2009-2010,2012,2015 by Tom Lechner
 //
 
 
@@ -26,12 +26,17 @@
 #include <lax/colors.h>
 #include <lax/refptrstack.cc>
 #include <lax/strmanip.h>
+#include <lax/language.h>
 
 
-#define LAXCOLOR_ARGB
-#define LAXCOLOR_ABGR
-#define LAXCOLOR_RGBA
-#define LAXCOLOR_BGRA
+
+#define DBG
+#include <iostream>
+using namespace std;
+
+
+using namespace LaxFiles;
+
 
 namespace Laxkit {
 
@@ -145,90 +150,6 @@ ColorEventData::~ColorEventData()
 }
 
 
-//------------------------------- ColorPrimary -------------------------------
-/*! \class ColorPrimary
- * \ingroup colors
- * \brief Defines a primary color of a ColorSystem.
- *
- * For instance, for an RGB red, name="red" or "R", minvalue, maxvalue might be 0,255.
- * The screencolor is a representation of how the color should appear on the computer screen.
- * Red, for instance would be (255,0,0) for TrueColor visuals in X.
- *
- * ***Attributes would tell extra information about how to display the colors. For instance,
- * to simulate differences between transparent and opaque inks, you might specify 
- * reflectance/absorption values, or maybe bumpiness. These are separate from any alpha or tint values defined
- * elsewhere.
- * 
- * <pre>
- * ***
- *  // sample attributes would be:
- *  // 	Reflectance: 128,128,0 (these would be based on the min/max for system, so for [0..255], 0=0%, 255=100%
- *  // 	Absorption: 0,0,0
- * </pre> 
- */
-
-
-ColorPrimary::ColorPrimary()
-{
-	name=NULL;
-	maxvalue=minvalue=0;
-}
-
-ColorPrimary::~ColorPrimary()
-{
-	if (name) delete[] name;
-}
-
-
-//------------------------------- ColorSystem -------------------------------
-
-#define COLOR_ADDITIVE    (1<<0)
-#define COLOR_SUBTRACTIVE (1<<1)
-#define COLOR_SPOT        (1<<2)
-#define COLOR_ALPHAOK     (1<<3)
-#define COLOR_SPECIAL_INK (1<<4)
-
-
-/*! \class ColorSystem
- * \ingroup colors
- * \brief Defines a color system, like RGB, CMYK, etc.
- *
- * \code
- *  //ColorSystem::style:
- *  #define COLOR_ADDITIVE    (1<<0)
- *  #define COLOR_SUBTRACTIVE (1<<1)
- *  #define COLOR_SPOT        (1<<2)
- *  #define COLOR_ALPHAOK     (1<<3)
- *  #define COLOR_SPECIAL_INK (1<<4)
- * \endcode
- */
-/*! \fn int ColorSystem::AlphaChannel()
- * \brief Return the channel index of the alpha channel, or -1 if none.
- */
-
-
-ColorSystem::ColorSystem()
-{
-	name=NULL;
-	//iccprofile=NULL;
-	systemid=getUniqueNumber();
-	style=0;
-}
-
-ColorSystem::~ColorSystem()
-{
-	if (name) delete[] name;
-	//cmsCloseProfile(iccprofile);
-	primaries.flush();
-}
-
-
-//! Return a new Color instance with the given channel values.
-Color *ColorSystem::newColor(int n,...)
-{// ***
-	return NULL;
-}
-
 //------------------------------- Color -------------------------------
 /*! \class Color
  * \ingroup colors
@@ -259,11 +180,10 @@ Color::Color(const Color &c)
 		system=c.system;
 		if (system) system->inc_count();
 	}
-	if (system) colorsystemid=system->systemid;
+	if (system) colorsystemid=system->object_id;
 	else colorsystemid=c.colorsystemid;
 	alpha=c.alpha;
 	makestr(name,c.name);
-	id=c.id;
 	if (n>c.n) {
 		delete[] values; values=NULL;
 		n=c.n;
@@ -279,11 +199,10 @@ Color &Color::operator=(Color &c)
 		system=c.system;
 		if (system) system->inc_count();
 	}
-	if (system) colorsystemid=system->systemid;
+	if (system) colorsystemid=system->object_id;
 	else colorsystemid=c.colorsystemid;
 	alpha=c.alpha;
 	makestr(name,c.name);
-	id=c.id;
 	if (n>c.n) {
 		delete[] values;
 		n=c.n;
@@ -303,7 +222,7 @@ Color &Color::operator=(Color &c)
 double Color::Alpha()
 {
 	if (!system) return alpha;
-	int i=system->AlphaChannel();
+	int i=system->HasAlpha();
 	if (i<0) return alpha;
 	if (alpha<0 || alpha>1.0) return values[i];
 	return values[i]*alpha;
@@ -339,11 +258,130 @@ int Color::ChannelValueInt(int channel, int *error_ret)
 		return -1;
 	}
 	if (error_ret) *error_ret=0;
+
 	return (int)(system->primaries.e[channel]->minvalue
 		+ values[channel]*(system->primaries.e[channel]->maxvalue-system->primaries.e[channel]->minvalue)
 		+ .5);
 }
 
+/*! Return name if not NULL, otherwise return Id().
+ */
+const char *Color::Name()
+{
+	if (!name) return Id(); 
+	return name;
+}
+
+/*! Return system->object_id or colorsytemid if system==NULL;
+ */
+int Color::ColorSystemId()
+{
+	return system ? system->object_id : colorsystemid;
+}
+
+void Color::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
+{
+	Attribute att;
+	dump_out_atts(&att,what,context);
+	att.dump_out(f,indent);
+}
+
+LaxFiles::Attribute *Color::dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *savecontext)
+{
+	if (!att) att=new Attribute;
+
+	if (what==-1) {
+		att->push("name","Red #a human readable name for this color instance.");
+		att->push("type","Normal # or none,registration,knockout,");
+		att->push("system","sRGB #name of color system this belongs to");
+		att->push("values","1.0 1.0 1.0 1.0 #floating point values of each channel");
+	}
+
+	att->push("name",Name());
+	if ((system && system->HasAlpha()) || !system) att->push("alpha",alpha);
+	
+	if (system) att->push("system",system->Name());
+	else if (colorsystemid) att->push("system_id",colorsystemid);
+
+	if (color_type==COLOR_Normal) {
+		char str[n*20];
+		str[0]=0;
+		for (int c=0; c<n; c++) {
+			sprintf(str+strlen(str),"%.10g ", values[c]);
+		}
+		att->push("values",str);
+
+	} else {
+		if (color_type==COLOR_Knockout) att->push("type","knockout");
+		else if (color_type==COLOR_None) att->push("type","none");
+		else if (color_type==COLOR_Registration) att->push("type","registration");
+	}
+
+	return att;
+}
+
+void Color::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *loadcontext)
+{
+    char *name,*value;
+
+    for (int c=0; c<att->attributes.n; c++) {
+        name= att->attributes.e[c]->name;
+        value=att->attributes.e[c]->value;
+
+		if (!strcmp(name,"name")) {
+			if (!isblank(value)) makestr(name,value);
+
+		} else if (!strcmp(name,"alpha")) {
+			DoubleAttribute(value, &alpha);
+
+		} else if (!strcmp(name,"system")) {
+			//ColorSystem *sys=colormanager.FindSystem(value);
+			ColorSystem *sys=NULL;
+			if (system != sys) {
+				if (system) system->dec_count();
+				system=sys;
+				if (system) system->inc_count();
+			}
+
+		} else if (!strcmp(name,"system_id")) {
+			IntAttribute(value, &colorsystemid);
+
+		} else if (!strcmp(name,"type")) {
+			if (!value) continue;
+			if (!strcmp(value,"none")) color_type=COLOR_None;
+			else if (!strcmp(value,"knockout")) color_type=COLOR_Knockout;
+			else if (!strcmp(value,"registration")) color_type=COLOR_Registration;
+			else if (!strcmp(value,"normal")) color_type=COLOR_Normal;
+
+		} else if (!strcmp(name,"values")) {
+			int nn=0;
+			double *list=NULL;
+			DoubleListAttribute(value,&list,&nn);
+			if (nn) {
+				n=nn;
+				delete[] values;
+				values=list;
+			}
+		}
+	}
+
+	 //validate that values has correct number of channels
+	if (system) {
+		if (system->NumChannels()!=n) {
+			if (n>system->NumChannels()) n=system->NumChannels();
+			else if (n<system->NumChannels()){
+				 //arbitrarily add 0s for any missing channels
+				double *list=new double[system->NumChannels()];
+				if (values && n) memcpy(list, values, n*sizeof(double));
+				delete[] values;
+				values=list;
+				for ( ; n<system->NumChannels(); n++) {
+					values[n]=0;
+				}
+			}
+		}
+	}
+}
 
 
 //------------------------------ ColorSet ----------------------------------
@@ -365,6 +403,197 @@ ColorSet::~ColorSet()
 }
 
 
+//------------------------------- ColorPrimary -------------------------------
+/*! \class ColorPrimary
+ * \ingroup colors
+ * \brief Defines a primary color of a ColorSystem.
+ *
+ * For instance, for an RGB red, name="red" or "R", minvalue, maxvalue might be 0,255.
+ * The screencolor is a representation of how the color should appear on the computer screen.
+ * Red, for instance would be (255,0,0) for TrueColor visuals in X.
+ *
+ * ***Attributes would tell extra information about how to display the colors. For instance,
+ * to simulate differences between transparent and opaque inks, you might specify 
+ * reflectance/absorption values, or maybe bumpiness. These are separate from any alpha or tint values defined
+ * elsewhere.
+ * 
+ * <pre>
+ * ***
+ *  // sample attributes would be:
+ *  // 	Reflectance: 128,128,0 (these would be based on the min/max for system, so for [0..255], 0=0%, 255=100%
+ *  // 	Absorption: 0,0,0
+ * </pre> 
+ */
+
+
+ColorPrimary::ColorPrimary()
+{
+	name=NULL;
+	minvalue=0;
+	maxvalue=1;
+}
+
+ColorPrimary::~ColorPrimary()
+{
+	if (name) delete[] name;
+}
+
+
+//------------------------------- ColorSystem -------------------------------
+
+/*! \class ColorSystem
+ * \ingroup colors
+ * \brief Defines a color system, like RGB, CMYK, etc.
+ *
+ */
+/*! \fn int ColorSystem::HasAlpha()
+ * \brief Return the channel index of the alpha channel, or -1 if none.
+ */
+
+
+ColorSystem::ColorSystem()
+{
+	name=NULL;
+	//iccprofile=NULL;
+	style=0;
+}
+
+ColorSystem::~ColorSystem()
+{
+	delete[] name;
+	//cmsCloseProfile(iccprofile);
+	primaries.flush();
+}
+
+
+//! Return a new Color instance with the given channel values.
+Color *ColorSystem::newColor(int n,...)
+{// ***
+	return NULL;
+}
+
+/*! Return 0 if channel number out of bounds.
+ * Note some systems don't have constant max/min per channel .... ***WHAT DOES THIS MEAN??? UPDATE ME!
+ */
+double ColorSystem::ChannelMinimum(int channel)
+{
+	if (channel<0 || channel>=primaries.n) return 0;
+	return primaries.e[channel]->minvalue;
+}
+
+/*! Return 0 if channel number out of bounds.
+ */
+double ColorSystem::ChannelMaximum(int channel)
+{
+	if (channel<0 || channel>=primaries.n) return 0;
+	return primaries.e[channel]->maxvalue;
+}
+
+void ColorSystem::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
+{
+	Attribute att;
+	dump_out_atts(&att,what,context);
+	att.dump_out(f,indent);
+}
+
+LaxFiles::Attribute *ColorSystem::dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context)
+{
+	if (!att) att=new Attribute;
+
+	if (what==-1) {
+		att->push("name","Red #a human readable name.");
+		//att->push("profile","/path/to/iccprofile");
+	}
+
+	att->push("name",Id());
+	att->push("has_alpha", HasAlpha() ? "yes" : "no");
+	
+	cerr <<" *** need to finish implementing ColorSystem::dump_out_atts()!!"<<endl;
+	for (int c=0; c<primaries.n; c++) {
+		// ***
+
+	}
+
+	return att;
+}
+
+void ColorSystem::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context)
+{
+	cerr <<" *** need to finish implementing ColorSystem::dump_in_atts()!!"<<endl;
+}
+
+
+
+//------------------------------- Built in ColorSystem creators-------------------------------
+
+ColorSystem *Create_sRGB(bool with_alpha)
+{
+	ColorSystem *rgb=new ColorSystem;
+	makestr(rgb->name,_("sRGB"));
+	if (with_alpha) rgb->style|=COLOR_Has_Alpha;
+
+	//rgb->iccprofile=***;
+
+	 //red
+	ColorPrimary *primary=new ColorPrimary;
+	makestr(primary->name,_("Red"));
+	primary->screencolor.rgbf(1.0,0.0,0.0);
+	rgb->primaries.push(primary);
+
+	 //green
+	primary=new ColorPrimary;
+	makestr(primary->name,_("Green"));
+	primary->screencolor.rgbf(0.0,1.0,0.0);
+	rgb->primaries.push(primary);
+
+	 //blue
+	primary=new ColorPrimary;
+	makestr(primary->name,_("Blue"));
+	primary->screencolor.rgbf(0.0,0.0,1.0);
+	rgb->primaries.push(primary);
+
+	return rgb;
+}
+
+ColorSystem *Create_Generic_CMYK(bool with_alpha)
+{
+	ColorSystem *cmyk=new ColorSystem;
+	makestr(cmyk->name,_("Generic CMYK"));
+	if (with_alpha) cmyk->style|=COLOR_Has_Alpha;
+
+	//cmyk->iccprofile=***;
+
+	 //cyan
+	ColorPrimary *primary=new ColorPrimary;
+	makestr(primary->name,_("Cyan"));
+	primary->screencolor.cmykf(1.0,0.0,0.0,0.0);
+	cmyk->primaries.push(primary);
+
+	 //Magenta
+	primary=new ColorPrimary;
+	makestr(primary->name,_("Magenta"));
+	primary->screencolor.cmykf(0.0,1.0,0.0,0.0);
+	cmyk->primaries.push(primary);
+
+	 //yellow
+	primary=new ColorPrimary;
+	makestr(primary->name,_("Yellow"));
+	primary->screencolor.cmykf(0.0,0.0,1.0,0.0);
+	cmyk->primaries.push(primary);
+
+	 //black
+	primary=new ColorPrimary;
+	makestr(primary->name,_("Black"));
+	primary->screencolor.cmykf(0.0,0.0,0.0,1.0);
+	cmyk->primaries.push(primary);
+
+	return cmyk;
+}
+
+
+
+
+
 ////------------------------------- ColorManager -------------------------------
 //
 ///*! \class ColorManager
@@ -376,13 +605,6 @@ ColorSet::~ColorSet()
 // *
 // * Basics are rgb, cmy, cmyk, yuv, hsv.
 // */
-//class ColorManager
-//{
-// protected:
-// public:
-//	PtrStack<char> icc_paths;
-//	RefPtrStack<ColorSystem> colorsystems;
-//};
 
 
 } //namespace Laxkit

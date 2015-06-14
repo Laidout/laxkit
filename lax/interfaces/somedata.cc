@@ -151,15 +151,15 @@ SomeData::~SomeData()
 	if (nameid) delete[] nameid;
 }
 
-/*! If id is blank, then try to create a unique one.
+/*! If nameid is blank, then try to create a unique one.
+ * Otherwise, just return nameid.
  */
 const char *SomeData::Id()
 {
     if (!nameid) {
 		if (object_idstr) makestr(nameid,object_idstr);
 		else {
-			nameid=make_id(whattype());
-			makestr(object_idstr,nameid);
+			makestr(nameid, anObject::Id());
 		}
 	}
     return nameid; 
@@ -295,7 +295,7 @@ Laxkit::LaxImage *SomeData::GetPreview()
  *
  * ***perhaps?: The fields actually used are removed from the attribute?
  */
-void SomeData::dump_in(FILE *f,int indent,Laxkit::anObject *context, Attribute **Att)
+void SomeData::dump_in(FILE *f,int indent,LaxFiles::DumpContext *context, Attribute **Att)
 {
 	Attribute *att=new Attribute;
 	att->dump_in(f,indent);
@@ -305,7 +305,7 @@ void SomeData::dump_in(FILE *f,int indent,Laxkit::anObject *context, Attribute *
 }
 
 //! Reverse of dump_out().
-void SomeData::dump_in_atts(Attribute *att,int flag,Laxkit::anObject *context)
+void SomeData::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *context)
 {
 	if (!att) return;
 	char *name,*value;
@@ -346,7 +346,7 @@ void SomeData::dump_in_atts(Attribute *att,int flag,Laxkit::anObject *context)
  * 
  * Ignores what. Uses 0 for it.
  */
-void SomeData::dump_out(FILE *f,int indent,int what,Laxkit::anObject *context)
+void SomeData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
 {
 	char spc[indent+1];
 	memset(spc,' ',indent);
@@ -361,7 +361,7 @@ void SomeData::dump_out(FILE *f,int indent,int what,Laxkit::anObject *context)
 	fprintf(f,"%sbboxstyle %d\n",spc,bboxstyle);
 }
 
-Attribute *SomeData::dump_out_atts(Attribute *att,int what,Laxkit::anObject *savecontext)
+Attribute *SomeData::dump_out_atts(Attribute *att,int what,LaxFiles::DumpContext *context)
 {
 	if (!att) att=new LaxFiles::Attribute("SomeData",NULL);
 

@@ -31,6 +31,7 @@
 #include <lax/dump.h>
 #include <lax/laximages.h>
 #include <lax/transformmath.h>
+#include <lax/resources.h>
 #include <lax/undo.h>
 
 #include <cstdio>
@@ -61,7 +62,7 @@ namespace LaxInterfaces {
 
 
 
-class SomeData :  virtual public Laxkit::anObject,
+class SomeData :  virtual public Laxkit::Resourceable,
 				  virtual public Laxkit::Affine,
 				  virtual public Laxkit::DoubleBBox,
 				  virtual public Laxkit::Undoable
@@ -101,12 +102,13 @@ class SomeData :  virtual public Laxkit::anObject,
 	virtual int pointin(flatpoint pp,int pin=1); // return in=1 | on=2 | out=0, default is pointin bbox
 	virtual int fitto(double *boxm,DoubleBBox *box,double alignx,double aligny, int whentoscale=2);
 	virtual SomeData *GetParent() { return NULL; }
+	virtual anObject *ObjectOwner() { return GetParent(); }
 	virtual Laxkit::Affine GetTransformToContext(bool invert, int partial);
 
-	virtual void dump_out(FILE *f,int indent,int what,Laxkit::anObject *context);
-	virtual void dump_in(FILE *f,int indent,Laxkit::anObject *context,LaxFiles::Attribute **Att=NULL);
-	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,Laxkit::anObject *context);
-	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,Laxkit::anObject *savecontext);
+	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
+	virtual void dump_in(FILE *f,int indent,LaxFiles::DumpContext *context,LaxFiles::Attribute **Att=NULL);
+	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
+	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *savecontext);
 
     virtual int Undo(Laxkit::UndoData *data);
     virtual int Redo(Laxkit::UndoData *data);

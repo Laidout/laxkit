@@ -187,9 +187,9 @@ class TreeSelector : public ScrolledWindow
 	virtual int FocusOn(const FocusChangeData *e);
 	virtual int FocusOff(const FocusChangeData *e);
 
-	virtual void       dump_out(FILE *f,int indent,int what,Laxkit::anObject *savecontext);
-    virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,Laxkit::anObject *savecontext); 
-    virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,Laxkit::anObject *loadcontext);
+	virtual void       dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *savecontext);
+    virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *savecontext); 
+    virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *loadcontext);
 
 
 	virtual int movescreen(int dx,int dy);

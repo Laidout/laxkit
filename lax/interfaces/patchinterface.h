@@ -177,8 +177,8 @@ class PatchData : virtual public SomeData
 								double s1,double t1, double s2,double t2,int which);
 	virtual void patchpoint(PatchRenderContext *context, double s0,double ds,double t0,double dt,int n);
 	
-	virtual void dump_out(FILE *f,int indent,int what,Laxkit::anObject *context);
-	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,Laxkit::anObject *context);
+	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
+	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
 	 //@}
 };
 

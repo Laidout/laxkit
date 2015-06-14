@@ -403,7 +403,7 @@ int LineInput::Resize(int nw,int nh)
 	return 0;
 }
 
-Attribute *LineInput::dump_out_atts(Attribute *att,int what,Laxkit::anObject *savecontext)
+Attribute *LineInput::dump_out_atts(Attribute *att,int what,LaxFiles::DumpContext *savecontext)
 {
 	if (!att) att=new Attribute(whattype(),NULL);
 	anXWindow::dump_out_atts(att,what,savecontext);
@@ -428,7 +428,7 @@ Attribute *LineInput::dump_out_atts(Attribute *att,int what,Laxkit::anObject *sa
 	return att;
 }
 
-void LineInput::dump_in_atts(Attribute *att,int flag,Laxkit::anObject *loadcontext)
+void LineInput::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *loadcontext)
 {
 	anXWindow::dump_in_atts(att,flag,loadcontext);
 	le->dump_in_atts(att,flag,loadcontext);

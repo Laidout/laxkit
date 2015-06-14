@@ -803,7 +803,7 @@ int ShortcutManager::SaveHTML(const char *file)
  *
  * \todo custom modifiers?
  */
-void ShortcutManager::dump_out(FILE *f,int indent,int what,Laxkit::anObject *savecontext)
+void ShortcutManager::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *savecontext)
 {
 	char spc[indent+1]; memset(spc,' ',indent); spc[indent]='\0';
 
@@ -936,7 +936,7 @@ ShortcutHandler *ShortcutManager::FindHandler(const char *area)
  * Care must be taken to ensure that there are WindowActions defined for the area BEFORE
  * calling this! Otherwise, the non-number actions defined for the key will not map to anything meaningful.
  */
-void ShortcutManager::dump_in_atts(LaxFiles::Attribute *att,int flag,Laxkit::anObject *loadcontext)
+void ShortcutManager::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *loadcontext)
 {
     if (!att) return;
     char *name,*value,*kstr;

@@ -438,7 +438,7 @@ int DateSelector::CharInput(unsigned int ch,const char *buffer,int len,unsigned 
  *
  * Default is to add attributes for "text", and whatever anXWindow adds.
  */
-Attribute *DateSelector::dump_out_atts(Attribute *att,int what,anObject *context)
+Attribute *DateSelector::dump_out_atts(Attribute *att,int what,LaxFiles::DumpContext *context)
 {
 	if (!att) att=new Attribute(whattype(),NULL);
 	anXWindow::dump_out_atts(att,what,context);
@@ -465,7 +465,7 @@ Attribute *DateSelector::dump_out_atts(Attribute *att,int what,anObject *context
 
 /*! Default is to read in text, and whatever anXWindow reads.
  */
-void DateSelector::dump_in_atts(Attribute *att,int flag,anObject *context)
+void DateSelector::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *context)
 {
 	anXWindow::dump_in_atts(att,flag,context);
 

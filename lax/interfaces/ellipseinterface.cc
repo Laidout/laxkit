@@ -182,6 +182,7 @@ EllipseInterface::EllipseInterface(anInterface *nowner, int nid,Displayer *ndp)
 	rdata.style=RECT_CANTCREATE;
 	rinterf.style=RECT_CANTCREATE|RECT_INVISIBLECENTER;
 	rinterf.UseThis(&rdata,0);
+	rinterf.Dp(ndp);
 	inrect=false;
 
 	showdecs=1;
@@ -201,6 +202,12 @@ EllipseInterface::EllipseInterface(anInterface *nowner, int nid,Displayer *ndp)
 EllipseInterface::~EllipseInterface()
 {
 	DBG cerr <<"----in EllipseInterface destructor"<<endl;
+}
+
+void EllipseInterface::Dp(Laxkit::Displayer *ndp)
+{
+	anInterface::Dp(ndp);
+	rinterf.Dp(ndp);
 }
 
 const char *EllipseInterface::Name()

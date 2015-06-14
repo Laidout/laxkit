@@ -18,7 +18,7 @@
 //    License along with this library; if not, write to the Free Software
 //    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
-//    Copyright (C) 2009-2010,2012 by Tom Lechner
+//    Copyright (C) 2009-2010,2012,2015 by Tom Lechner
 //
 #ifndef _LAX_COLORS_H
 #define _LAX_COLORS_H
@@ -45,10 +45,13 @@ enum BasicColorTypes {
 	LAX_COLOR_HSV    ,
 	LAX_COLOR_CieLAB ,
 	LAX_COLOR_XYZ    ,
+	LAX_COLOR_N      ,
 	LAX_COLOR_MAX
 };
 
 enum SimpleColorId {
+	COLOR_No_Color=0, //means undefined, not the same as COLOR_None
+	COLOR_Normal,
 	COLOR_Foreground,
 	COLOR_Background,
 	COLOR_Stroke,
@@ -56,7 +59,7 @@ enum SimpleColorId {
 	COLOR_Controls,
 	COLOR_None,
 	COLOR_Registration,
-	COLOR_Blockout,
+	COLOR_Knockout,
 	COLOR_MAX
 };
 
@@ -82,6 +85,7 @@ class SimpleColorEventData : public EventData
 
 //------------------------------- ColorEventData ------------------------------
 class Color;
+class ColorSystem;
 
 class ColorEventData : public EventData
 {
@@ -96,6 +100,69 @@ class ColorEventData : public EventData
 };
 
 
+//------------------------------- Color -------------------------------
+class Color : public Laxkit::anObject, public LaxFiles::DumpUtility
+{
+ public:
+	char *name; //note this is different than object_idstr which is supposed to be unique
+	double alpha; //additional to any alpha defined in ColorSystem itself
+	int color_type; //such as none, knockout, or registration, from SimpleColorId
+
+	ColorSystem *system;
+	int colorsystemid; //usually same as system->object_id;
+	int n; // num values, put here so you don't have to always look them up in system definition
+	double *values; // the values for each primary
+
+	Color();
+	Color(const Color &l);
+	Color &operator=(Color &l);
+	virtual ~Color();
+
+	virtual const char *Name();
+	virtual int ColorSystemId();
+	virtual double ChannelValue(int channel);
+	virtual int ChannelValueInt(int channel, int *error_ret=NULL);
+	virtual double Alpha();
+
+	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
+    virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context);
+    virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
+};
+
+
+
+//------------------------------ ColorSet ----------------------------------
+class ColorSet : public Laxkit::anObject, public LaxFiles::DumpUtility
+{
+ public:
+	unsigned int setstyle;
+	char *name;
+	char *filename;
+
+	 //palette display info:
+	int num_columns_hint;
+
+	class ColorSetNode
+	{
+	  public:
+		Color *color;
+		double postition;
+
+		 //for compatibility with gimp gradients:
+		double midpostition; //0..1, is along segment of this point to next
+		int interpolation; //like gimp? 0=linear, 1=curved, 2=sinusoidal, 3=sphere inc, 4=sphere dec
+		int transition; //how to vary the color, a line in rgb or in hsv
+	};
+
+
+
+	PtrStack<ColorSetNode> colors;
+
+	ColorSet();
+	virtual ~ColorSet();
+};
+
+
 //------------------------------- ColorPrimary -------------------------------
 class ColorPrimary
 {
@@ -104,6 +171,7 @@ class ColorPrimary
 	double maxvalue;
 	double minvalue;
 	ScreenColor screencolor;
+	//LaxImage *pattern; //tilable image for instance for speckled paint in a ColorN space
 	
 	LaxFiles::Attribute atts; //*** this could be a ColorAttribute class, to allow ridiculously adaptable color systems
 					//    like being able to define a sparkle or metal speck fill pattern 
@@ -115,11 +183,14 @@ class ColorPrimary
 
 //------------------------------- ColorSystem -------------------------------
 
-#define COLOR_ADDITIVE    (1<<0)
-#define COLOR_SUBTRACTIVE (1<<1)
-#define COLOR_SPOT        (1<<2)
-#define COLOR_ALPHAOK     (1<<3)
-#define COLOR_SPECIAL_INK (1<<4)
+enum ColorSystemStyles {
+	COLOR_Additive    =(1<<0),
+	COLOR_Subtractive =(1<<1),
+	COLOR_Spot        =(1<<2),
+	COLOR_Has_Alpha   =(1<<3),
+	COLOR_Special_Ink =(1<<4),
+	COLOR_SYSTEM_MAX
+};
 
 class Color;
 
@@ -127,7 +198,6 @@ class ColorSystem: public Laxkit::anObject, public LaxFiles::DumpUtility
 {
  public:
 	char *name;
-	unsigned int systemid;
 	unsigned long style;
 	
 	//cmsHPROFILE iccprofile;
@@ -135,55 +205,27 @@ class ColorSystem: public Laxkit::anObject, public LaxFiles::DumpUtility
 
 	ColorSystem();
 	virtual ~ColorSystem();
+	virtual const char *Name() { return name; }
 
 	virtual Color *newColor(int n,...);
-	virtual int AlphaChannel() { return style & COLOR_ALPHAOK; } //return if it is ok to use alpha for this system
-	virtual double ChannelMinimum(int channel) = 0; //some systems don't have constant max/min per channel
-	virtual double ChannelMaximum(int channel) = 0;
+	virtual int HasAlpha() { return style & COLOR_Has_Alpha; } //return if it is ok to use alpha for this system
+	virtual double ChannelMinimum(int channel); //some systems don't have constant max/min per channel
+	virtual double ChannelMaximum(int channel);
+	virtual int NumChannels() { return primaries.n + HasAlpha(); }
 
 	 //return an image tile representing the color, speckled inks, for instance
 	//virtual LaxImage *PaintPattern(Color *color); 
+
+	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *savecontext);
+	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *savecontext);
+	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *loadcontext);
 };
 
 
 
-//------------------------------- Color -------------------------------
-class Color : public Laxkit::anObject, public LaxFiles::DumpUtility
-{
- public:
-	int id;
-	char *name;  //optional color instance name
-	double alpha; //additional to any alpha defined in ColorSystem itself
+ColorSystem *Create_sRGB(bool with_alpha);
+ColorSystem *Create_Generic_CMYK(bool with_alpha);
 
-	ColorSystem *system;
-	int colorsystemid; //usually same as system->systemid;
-	int n; // num values, put here so you don't have to always look them up in system definition
-	double *values; // the values for each primary
-	int special; //such as none, knockout, or registration
-
-	Color();
-	Color(const Color &l);
-	Color &operator=(Color &l);
-	virtual ~Color();
-
-	virtual int ColorSystedId() { return system ? system->systemid : colorsystemid; }
-	virtual double ChannelValue(int channel);
-	virtual int ChannelValueInt(int channel, int *error_ret=NULL);
-	virtual double Alpha();
-};
-
-
-
-//------------------------------ ColorSet ----------------------------------
-class ColorSet : public Laxkit::anObject, public LaxFiles::DumpUtility
-{
- public:
-	unsigned int setstyle;
-	char *name;
-	RefPtrStack<Color> colors;
-	ColorSet();
-	virtual ~ColorSet();
-};
 
 ////------------------------------- class ColorManager -------------------------------
 //

@@ -18,11 +18,12 @@
 //    License along with this library; if not, write to the Free Software
 //    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
-//    Copyright (C) 2004-2007,2012 by Tom Lechner
+//    Copyright (C) 2004-2007,2012,2015 by Tom Lechner
 //
 
 #include <lax/anobject.h>
 #include <lax/misc.h>
+#include <lax/strmanip.h>
 
 #include <iostream>
 using namespace std;
@@ -52,7 +53,6 @@ anObject::anObject()
 	object_idstr=NULL;
 	DBG cerr <<"anObject tracker "<<object_id<<"   created    num of anObjects: "<<numofanObject<<endl;
 
-	deleteMe=NULL;
 	_count=1; 
 }
 
@@ -76,45 +76,23 @@ anObject::~anObject()
 	if (object_idstr) delete[] object_idstr;
 }
 
+/*! \fn anObject *anObject::ObjectOwner()
+ *
+ * By default, NULL is returned. This can be used, for instance, by ResourceManager or by
+ * some interface data to determine if this object is a shared resource, or is directly owned
+ * by someone.
+ */
+
+
 
 //---------------- reference counting stuff
-
-
-/*! \typedef int (*DeleteRefCountedFunc)(anObject *obj)
- * \brief The type of function in an object optionally called on count reaching 0.
- */
-
-
-/*! 
- * If this function pointer is not NULL, then every time a anObject::dec_count()
- * results in a count less than or equal to 0, that function gets called with
- * the object address as the argument, unless the corresponding
- * anObject::deleteMe is not NULL, in which case that deleteMe is
- * called instead of this function.
- *
- * This could be used, for instance to remove the object from
- * some stack, when the object is no longer referenced.
- *
- * Should return 1 if the object is no longer needed, and the destructor should delete
- * it, and 0 if it might still exist, like if it gets thrown onto a hidden cache, and
- * should not yet be deleted.
- *
- * NOTE, currently, this is not used in Laxkit.
- */
-DeleteRefCountedFunc defaultDeleteRefCountedFunc=NULL;
-
 
 
 /*! \var int anObject::_count
  * \brief The reference count of the object.
  *
  * Controlled with inc_count() and dec_count(). When the count
- * is less or equal to 0, then deleteMe is called. See dec_count() for more.
- */
-/*! \var DeleteRefCountedFunc anObject::deleteMe
- * \brief Called when the count is decremented to 0.
- *
- * See dec_count() for more.
+ * is less or equal to 0, the object is deleted. See dec_count() for more.
  */
 
 	
@@ -133,10 +111,7 @@ int anObject::inc_count()
 }
 
 //! Decrement the count of the data, deleting if count is less than or equal to 0.
-/*! If count gets decremented to 0, then do the following. 
- * If deleteMe!=NULL, then call that.
- * Then, if defaultDeleteRefCountedFunc!=NULL, then call that. 
- * Then call "delete this" when count==0.
+/*! If count gets decremented to 0, then call "delete this".
  *
  * Returns the count. If 0 is returned, the item is gone, and should
  * not be accessed any more.
@@ -151,13 +126,26 @@ int anObject::dec_count()
 
 	if (_count<=0) {
 		int yesdelete=1;
-		if (deleteMe) yesdelete=deleteMe(this);
-		else if (defaultDeleteRefCountedFunc) yesdelete=defaultDeleteRefCountedFunc(this);
 		int c=_count;
 		if (yesdelete) delete this;
 		return c;
 	}
 	return _count; 
+}
+
+const char *anObject::Id()
+{
+	if (object_idstr) return object_idstr;
+	else object_idstr=make_id(whattype());
+	return object_idstr;
+}
+
+/*! Warning! Passing in NULL will make object_idstr==NULL!
+ */
+const char *anObject::Id(const char *newid)
+{
+	makestr(object_idstr,newid);
+	return object_idstr;
 }
 
 

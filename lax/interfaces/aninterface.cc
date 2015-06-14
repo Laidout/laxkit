@@ -566,12 +566,12 @@ void anInterface::PostMessage(const char *message)
 
 
 //! Default settings saving is to output nothing.
-void anInterface::dump_out(FILE *f,int indent,int what,Laxkit::anObject *savecontext)
+void anInterface::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *savecontext)
 {
 }
 
 //! Placeholder for dumping in settings.
-void anInterface::dump_in_atts(Attribute *att,int flag,Laxkit::anObject *loadcontext)
+void anInterface::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *loadcontext)
 {
 }
 

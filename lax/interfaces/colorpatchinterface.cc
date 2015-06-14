@@ -155,7 +155,7 @@ void ColorPatchData::Set(double xx,double yy,double ww,double hh,int nr,int nc,u
  *   and specification that colors are 8bit, or other bit depth, like have field
  *   "colordepth 16|8|float"
  */
-void ColorPatchData::dump_out(FILE *f,int indent,int what,Laxkit::anObject *context)
+void ColorPatchData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
 {
 	char spc[indent+3]; memset(spc,' ',indent); spc[indent]='\0'; 
 	if (what==-1) {
@@ -214,7 +214,7 @@ void ColorPatchData::dump_out(FILE *f,int indent,int what,Laxkit::anObject *cont
 }
 
 //! Reverse of dump_out().
-void ColorPatchData::dump_in_atts(Attribute *att,int flag,Laxkit::anObject *context)
+void ColorPatchData::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *context)
 {
 	if (!att) return;
 	char *name,*value;

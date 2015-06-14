@@ -94,7 +94,7 @@ class EllipseInterface : public anInterface
   protected:
 	int hover_x,hover_y;
 	int hover_point;
-	EllipsePoints curpoint; //0=none 1=f1 2=f2 3=t 4=r 5=b 6=l 7=wildpoint 8=start 9=end
+	EllipsePoints curpoint;
 	flatpoint createp,createx,createy;
 
 	bool inrect;
@@ -121,6 +121,7 @@ class EllipseInterface : public anInterface
 	virtual anInterface *duplicate(anInterface *dup);
 	virtual void Clear(SomeData *d);
 	virtual Laxkit::ShortcutHandler *GetShortcuts();
+	virtual void Dp(Laxkit::Displayer *ndp);
 
 	virtual void deletedata();
 	virtual void rectify();

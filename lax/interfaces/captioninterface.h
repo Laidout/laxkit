@@ -61,8 +61,8 @@ class CaptionData : public SomeData
 	virtual int DeleteChar(int line,int pos,int after, int *newline,int *newpos);
 	virtual int InsertChar(unsigned int ch, int line,int pos, int *newline,int *newpos);
 	
-	virtual void dump_out(FILE *f,int indent,int what,Laxkit::anObject *context);
-	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,Laxkit::anObject *context);
+	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
+	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
 };
 
 //--------------------------------- CaptionInterface -------------------------------

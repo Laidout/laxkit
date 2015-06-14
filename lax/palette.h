@@ -60,10 +60,10 @@ class Palette : public LaxFiles::DumpUtility, public anObject
 	Palette();
 	virtual ~Palette();
 	
-	virtual void dump_out(FILE *f,int indent,int what,anObject *savecontext);
-	virtual void dump_in (FILE *f,int indent,int what,anObject *loadcontext,LaxFiles::Attribute **att);
-	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,anObject *savecontext);
-	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,anObject *loadcontext);
+	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *savecontext);
+	virtual void dump_in (FILE *f,int indent,int what,LaxFiles::DumpContext *loadcontext,LaxFiles::Attribute **att);
+	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *savecontext);
+	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *loadcontext);
 
 	virtual int AddRGB(const char *name, int r, int g, int b, int max);
 	virtual int AddRGBA(const char *name, int r, int g, int b, int a, int max);

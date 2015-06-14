@@ -50,8 +50,8 @@ class FillStyle : public Laxkit::anObject, public LaxFiles::DumpUtility
 		{ color=f.color; fillrule=f.fillrule; fillstyle=f.fillstyle; return f; }
 	virtual ~FillStyle() {}
 	virtual void Color(int r,int g,int b,int a);
-	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,Laxkit::anObject *context);
-	virtual void dump_out(FILE *f,int indent,int what,Laxkit::anObject *context);
+	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
+	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
 
 	virtual int hasFill();
 };

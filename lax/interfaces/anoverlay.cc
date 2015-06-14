@@ -1,5 +1,4 @@
 //
-//    $Id$
 //	
 //    The Laxkit, a windowing toolkit
 //    Please consult http://laxkit.sourceforge.net about where to send any

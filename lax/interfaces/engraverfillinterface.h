@@ -18,7 +18,7 @@
 //    License along with this library; if not, write to the Free Software
 //    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
-//    Copyright (C) 2014 by Tom Lechner
+//    Copyright (C) 2014,2015 by Tom Lechner
 //
 #ifndef _LAX_ENGRAVERFILLINTERFACE_H
 #define _LAX_ENGRAVERFILLINTERFACE_H
@@ -125,7 +125,7 @@ class LinePoint
 
 
 //--------------------------- ValueMap -----------------------------
-class ValueMap
+class ValueMap : public Laxkit::Resourceable
 {
   public:
 	ValueMap() {}
@@ -137,7 +137,7 @@ class ValueMap
 
 //---------------------------------------------- EngraverTraceSettings 
 
-class TraceObject : public Laxkit::anObject
+class TraceObject : public Laxkit::Resourceable
 {
   public:
 	enum TraceObjectType {
@@ -165,7 +165,7 @@ class TraceObject : public Laxkit::anObject
 	TraceObject();
 	virtual ~TraceObject();
 	virtual const char *whattype() { return "TraceObject"; }
-	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,Laxkit::anObject *savecontext);
+	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *savecontext);
 	
 	double GetValue(LinePoint *p, double *transform);
 	void ClearCache(bool obj_too);
@@ -175,7 +175,7 @@ class TraceObject : public Laxkit::anObject
 	void Install(TraceObjectType ntype, SomeData *obj);
 };
 
-class EngraverTraceSettings : public Laxkit::anObject
+class EngraverTraceSettings : public Laxkit::Resourceable
 {
   public:
 	int group;
@@ -183,6 +183,7 @@ class EngraverTraceSettings : public Laxkit::anObject
 	double traceobj_opacity;
 	int tracetype; //0==absolute, 1=multiply
 	bool continuous_trace;
+	bool show_trace;
 
 	TraceObject *traceobject;
 	bool lock_ref_to_obj;
@@ -196,14 +197,14 @@ class EngraverTraceSettings : public Laxkit::anObject
 	void Install(TraceObject::TraceObjectType ntype, SomeData *obj);
 	virtual const char *Identifier();
 
-	virtual void dump_out(FILE *f,int indent,int what,Laxkit::anObject *context);
-	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,Laxkit::anObject *context);
-	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,Laxkit::anObject *savecontext);
+	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
+	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
+	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *savecontext);
 };
 
 //----------------------------------------------- EngraverLineQuality
 
-class EngraverLineQuality : public Laxkit::anObject
+class EngraverLineQuality : public Laxkit::Resourceable
 {
   public:
 	unsigned long resource_id;
@@ -224,16 +225,16 @@ class EngraverLineQuality : public Laxkit::anObject
 	virtual const char *whattype() { return "EngraverLineQuality"; }
 	virtual EngraverLineQuality *duplicate();
 
-	virtual void dump_out(FILE *f,int indent,int what,Laxkit::anObject *context);
-	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,Laxkit::anObject *context);
-	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,Laxkit::anObject *savecontext);
+	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
+	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
+	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *savecontext);
 
 	int GetNewWeight(double weight, double *weight_ret);
 };
 
 
 //--------------------------- DirectionMap -----------------------------
-class DirectionMap
+class DirectionMap : public Laxkit::Resourceable
 {
   public:
 	DirectionMap() {}
@@ -267,7 +268,7 @@ class NormalDirectionMap : public DirectionMap
     
 
 //--------------------------- EngraverDirection -----------------------------
-class EngraverDirection : public Laxkit::anObject
+class EngraverDirection : public Laxkit::Resourceable
 {
   public:
 	enum PointGroupType {
@@ -277,9 +278,10 @@ class EngraverDirection : public Laxkit::anObject
 		PGROUP_Circular,
 		PGROUP_Shell,
 		PGROUP_S,
-		PGROUP_Contour_Repeat,
+		PGROUP_Contour,
 		PGROUP_Map,
-		PGROUP_Custom,
+		PGROUP_Manual,
+		PGROUP_Function,
 		PGROUP_MAX
 	};
 	class Parameter
@@ -294,32 +296,42 @@ class EngraverDirection : public Laxkit::anObject
 	};
 
 	int type; //what manner of lines: linear, radial, circular
-	double spacing;  //default
-	double default_weight; //a fraction of spacing
-	double resolution; //samples per spacing unit, default is 1
-	flatpoint position,direction; //default
-	Laxkit::NumStack<Parameter> parameters; //extras beyond position, spacing, rotation
+	DirectionMap *map;
 
-	 //line generation settings
+	double spacing;  //default
+	double resolution; //default samples per spacing unit, default is 1
+	double default_weight; //a fraction of spacing 
+	flatpoint position,direction; //default
+	Laxkit::PtrStack<Parameter> parameters; //extras beyond position, spacing, rotation
+
+	 //line generation tinkering settings
+	int seed; //for any randomness
 	double line_offset; //0..1 for random offset per line
 	double noise_scale; //applied per sample point, but offset per random line, not random at each point
 	//LineProfile *default_profile;
-	double profile_start, profile_end; //-1 for random, else [0..1]
+	int start_type, end_type; //0=normal, 1=random
+	double start_rand_width, end_rand_width; //zone around start and end to randomize
+	double profile_start, profile_end; // [0..1]
 
-	DirectionMap *map;
+	bool grow_lines;
+	bool merge;
+	double spread;
+	double spread_depth;
+	double merge_angle;
+
 
 	EngraverDirection();
 	virtual ~EngraverDirection();
 	virtual const char *whattype() { return "EngraverDirection"; }
 
-	virtual void dump_out(FILE *f,int indent,int what,Laxkit::anObject *context);
-	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,Laxkit::anObject *context);
-	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,Laxkit::anObject *savecontext);
+	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
+	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
+	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *savecontext);
 };
 
 
 //--------------------------- EngraverSpacing -----------------------------
-class EngraverSpacing : public Laxkit::anObject
+class EngraverSpacing : public Laxkit::Resourceable
 {
   public:
 	int type; //how to get spacing: use default, use grabbed current map, use custom map
@@ -331,9 +343,9 @@ class EngraverSpacing : public Laxkit::anObject
 	virtual ~EngraverSpacing();
 	virtual const char *whattype() { return "EngraverSpacing"; }
 
-	virtual void dump_out(FILE *f,int indent,int what,Laxkit::anObject *context);
-	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,Laxkit::anObject *context);
-	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,Laxkit::anObject *savecontext);
+	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
+	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
+	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *savecontext);
 };
 
 
@@ -381,6 +393,7 @@ class EngraverPointGroup : public DirectionMap
 	int type; //what manner of lines
 	double type_d;   //parameter for type, for instance, an angle for spirals
 	double spacing;  //default
+	double resolution; //default, a fraction of spacing
 	double default_weight; //a fraction of spacing
 	flatpoint position,direction; //default
 	Laxkit::ScreenColor color;
@@ -430,14 +443,14 @@ class EngraverPointGroup : public DirectionMap
 	virtual int UpdateDashCache();
 	virtual void StripDashes();
 
-	virtual void dump_out(FILE *f,int indent,int what,Laxkit::anObject *context,const char *sharetrace, const char *sharedash);
-	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,Laxkit::anObject *context);
+	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context,const char *sharetrace, const char *sharedash);
+	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
 };
 
 
 //---------------------------------------- EngraverFillData
 
-class EngraverFillStyle : public Laxkit::anObject
+class EngraverFillStyle : public Laxkit::Resourceable
 {
   public:
 	char *name;
@@ -482,8 +495,8 @@ class EngraverFillData : public PatchData
 	virtual void MakeDefaultGroup();
 	virtual int MakeGroupNameUnique(int which);
 
-	virtual void dump_out(FILE *f,int indent,int what,Laxkit::anObject *context);
-	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,Laxkit::anObject *context);
+	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
+	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
 	virtual void dump_out_svg(const char *file);
 	virtual PathsData *MakePathsData(int whichgroup);
 
@@ -574,7 +587,7 @@ class EngraverFillInterface : public PatchInterface
 	int show_points;
 	bool show_direction;
 	bool show_panel;
-	bool show_trace;
+	bool show_trace_object;
 	bool grow_lines;
 	bool always_warp;
 	//Laxkit::CurveInfo tracemap;

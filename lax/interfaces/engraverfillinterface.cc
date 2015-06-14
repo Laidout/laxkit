@@ -18,7 +18,7 @@
 //    License along with this library; if not, write to the Free Software
 //    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
-//    Copyright (C) 2014 by Tom Lechner
+//    Copyright (C) 2014,2015 by Tom Lechner
 //
 
 
@@ -27,7 +27,6 @@
 
 #include <lax/interfaces/somedatafactory.h>
 #include <lax/interfaces/gradientinterface.h>
-#include <lax/interfaces/dumpcontext.h>
 #include <lax/imagedialog.h>
 #include <lax/transformmath.h>
 #include <lax/bezutils.h>
@@ -477,6 +476,225 @@ void LinePoint::Set(LinePoint *pp)
 /*! \class EngraverDirection
  */
 
+EngraverDirection::EngraverDirection()
+{
+	type=PGROUP_Linear;
+	map=NULL;
+
+	spacing=1; //default
+	resolution=1; //default samples per spacing unit, default is 1
+	default_weight=.1; //a fraction of spacing 
+	position.x=position.y=.5;
+	direction.x=1; //default
+
+	 //line generation tinkering settings
+	seed=0; //for any randomness
+	line_offset=0; //0..1 for random offset per line
+	noise_scale=.1; //applied per sample point, but offset per random line, not random at each point
+	
+	//default_profile=NULL;
+	start_type=0; //0=normal, 1=random
+	end_type=0;
+	start_rand_width=end_rand_width=0;
+	profile_start=0;
+	profile_end=1;
+
+	grow_lines=false;
+	merge=true;
+	spread=1;
+	spread_depth=3;
+}
+
+EngraverDirection::~EngraverDirection()
+{
+	//if (profile) profile->dec_count();
+}
+
+void EngraverDirection::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
+{
+	Attribute att;
+	dump_out_atts(&att,what,context);
+	att.dump_out(f,indent);
+}
+
+Attribute *EngraverDirection::dump_out_atts(Attribute *att,int what,LaxFiles::DumpContext *savecontext)
+{
+	if (!att) att=new Attribute();
+
+	if (what==-1) {
+
+		cerr << "*** FINISH IMP EngraverDirection::dump_out_atts!!!!!"<<endl;
+
+		att->push("resource_id",      "#unique number for this object, usually readonly, created internally to simplify shared resources upon read in");
+		//att->push("",      "#");
+
+		att->push("type","linear      #or radial, circular");
+		att->push("position","(.5,.5) #default origin for the pattern ");
+		att->push("direction","(1,0)  #default direction for the pattern ");
+		att->push("color","rgbaf(1.,1.,1.,1.)  #color of lines in this group");
+		att->push("spacing","1      #default spacing, in object space, not s,t space ");
+		return att;
+	}
+
+
+	if (object_idstr) att->push("resource_id",object_idstr);
+
+	const char *str="Linear";
+	if (type==PGROUP_Linear) str="Linear";
+	else if (type==PGROUP_Radial) str="Radial";
+	else if (type==PGROUP_Spiral) str="Spiral";
+	else if (type==PGROUP_Circular) str="Circular";
+	else if (type==PGROUP_Shell) str="Shell";
+	else if (type==PGROUP_S) str="S";
+	else if (type==PGROUP_Contour) str="Contour";
+	else if (type==PGROUP_Map) str="Map";
+	else if (type==PGROUP_Manual) str="Manual";
+	else if (type==PGROUP_Function) str="Function";
+	if (str) att->push("type", str);
+
+	char buffer[50];
+	sprintf(buffer, "(%.10g, %.10g)", position.x,position.y);
+	att->push("position",buffer);
+
+	sprintf(buffer, "(%.10g, %.10g)", direction.x,direction.y);
+	att->push("direction",buffer);
+
+	att->push("spacing", spacing);
+	att->push("resolution", resolution);
+
+	//if (map) ***
+
+	att->push("default_weight",default_weight); //a fraction of spacing 
+
+	if (parameters.n) {
+		// ***Laxkit::NumStack<Parameter> parameters; //extras beyond position, spacing, rotation
+		cerr << "*** FINISH IMP EngraverDirection::dump_out_atts parameters!!!!!"<<endl;
+	}
+
+	 //line generation tinkering settings
+	att->push("seed", seed); //for any randomness
+	att->push("line_offset", line_offset); //0..1 for random offset per line
+	att->push("noise_scale", noise_scale); ; //applied per sample point, but offset per random line, not random at each point
+
+	//if (default_profile) {
+	//	Attribute *att2=att->pushSubatt("profile");
+	//	default_profile->dump_out_atts(att2,0,context);
+	//}
+
+    att->push("start_type", start_type==0 ? "normal" : "random");
+    att->push("start_rand_width",start_rand_width);
+    att->push("start",profile_start);
+    att->push("end_type", end_type==0 ? "normal" : "random");
+    att->push("end_rand_width",end_rand_width);
+    att->push("end",profile_end);
+
+	att->push("grow", grow_lines ? "yes" : "no");
+	att->push("merge", merge     ? "yes" : "no");
+	att->push("spread", spread);
+	att->push("spread_depth", spread_depth);
+	att->push("merge_angle", merge_angle);
+
+	return att;
+}
+
+void EngraverDirection::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context)
+{
+	if (!att) return;
+
+	char *name,*value;
+	int c;
+
+	for (c=0; c<att->attributes.n; c++) {
+		name= att->attributes.e[c]->name;
+		value=att->attributes.e[c]->value;
+
+		if (!strcmp(name,"resource_id")) {
+			if (!isblank(value)) Id(value);
+
+		} else if (!strcmp(name,"type")) {
+			if      (!strcasecmp(value,"Linear"))   type=PGROUP_Linear;
+			else if (!strcasecmp(value,"Radial"))   type=PGROUP_Radial;
+			else if (!strcasecmp(value,"Spiral"))   type=PGROUP_Spiral;
+			else if (!strcasecmp(value,"Circular")) type=PGROUP_Circular;
+			else if (!strcasecmp(value,"Shell"))    type=PGROUP_Shell;
+			else if (!strcasecmp(value,"S"))        type=PGROUP_S;
+			else if (!strcasecmp(value,"Contour"))  type=PGROUP_Contour;
+			else if (!strcasecmp(value,"Map"))      type=PGROUP_Map;
+			else if (!strcasecmp(value,"Manual"))   type=PGROUP_Manual;
+			else if (!strcasecmp(value,"Function")) type=PGROUP_Function;
+
+		} else if (!strcmp(name,"map")) {
+			// *** map
+
+		} else if (!strcmp(name,"parameter")) {
+			// *** parameter
+
+		} else if (!strcmp(name,"position")) {
+			FlatvectorAttribute(value,&position);
+
+		} else if (!strcmp(name,"direction")) {
+			FlatvectorAttribute(value,&direction);
+
+		} else if (!strcmp(name,"resolution")) {
+			DoubleAttribute(value,&resolution, NULL);
+
+		} else if (!strcmp(name,"spacing")) {
+			DoubleAttribute(value,&spacing, NULL);
+
+		} else if (!strcmp(name,"default_weight")) {
+			DoubleAttribute(value,&default_weight, NULL);
+
+		} else if (!strcmp(name,"line_offset")) {
+			DoubleAttribute(value,&line_offset, NULL);
+
+		} else if (!strcmp(name,"noise_scale")) {
+			DoubleAttribute(value,&noise_scale, NULL);
+
+		} else if (!strcmp(name,"seed")) {
+			IntAttribute(value,&seed, NULL);
+
+		} else if (!strcmp(name,"profile")) {
+			//*** LineProfile
+
+        } else if (!strcmp(name,"start_type")) {
+            if (value && !strcasecmp(value,"normal")) start_type=0;
+            else start_type=1;
+
+        } else if (!strcmp(name,"start_rand_width")) {
+            DoubleAttribute(value, &start_rand_width, NULL);
+
+        } else if (!strcmp(name,"start")) {
+            DoubleAttribute(value, &profile_start, NULL);
+
+        } else if (!strcmp(name,"end_type")) {
+            if (value && !strcasecmp(value,"normal")) end_type=0;
+            else end_type=1;
+
+        } else if (!strcmp(name,"end_rand_width")) {
+            DoubleAttribute(value, &end_rand_width, NULL);
+
+        } else if (!strcmp(name,"end")) {
+            DoubleAttribute(value, &profile_end, NULL); 
+
+		} else if (!strcmp(name,"grow")) {
+			grow_lines=BooleanAttribute(value);
+
+		} else if (!strcmp(name,"merge")) {
+			merge=BooleanAttribute(value);
+
+		} else if (!strcmp(name,"spread")) {
+			DoubleAttribute(value,&spread, NULL);
+
+		} else if (!strcmp(name,"spread_depth")) {
+			DoubleAttribute(value,&spread_depth, NULL);
+
+		} else if (!strcmp(name,"merge_angle")) {
+			DoubleAttribute(value,&merge_angle, NULL);
+
+		}
+	}
+}
+
 
 
 //----------------------------- EngraverLineQuality -----------------------------------
@@ -515,14 +733,14 @@ EngraverLineQuality *EngraverLineQuality::duplicate()
 	return dup;
 }
 
-void EngraverLineQuality::dump_out(FILE *f,int indent,int what,Laxkit::anObject *context)
+void EngraverLineQuality::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
 {
 	Attribute att;
 	dump_out_atts(&att,what,context);
 	att.dump_out(f,indent);
 }
 
-Attribute *EngraverLineQuality::dump_out_atts(Attribute *att,int what,Laxkit::anObject *savecontext)
+Attribute *EngraverLineQuality::dump_out_atts(Attribute *att,int what,LaxFiles::DumpContext *savecontext)
 {
 	if (!att) att=new Attribute();
 
@@ -542,45 +760,22 @@ Attribute *EngraverLineQuality::dump_out_atts(Attribute *att,int what,Laxkit::an
 		return att;
 	}
 
-	char buffer[50];
-
-	sprintf(buffer,"%lu",object_id);
-	att->push("resource_id",buffer);
-
-	sprintf(buffer,"%.10g",dash_length);
-	att->push("dash_length",buffer);
-
-	sprintf(buffer,"%.10g",dash_randomness);
-	att->push("dash_randomness",buffer);
-
-	sprintf(buffer,"%.10g",zero_threshhold);
-	att->push("zero_threshhold",buffer);
-
-	sprintf(buffer,"%.10g",broken_threshhold);
-	att->push("broken_threshhold",buffer);
-
-	sprintf(buffer,"%.10g",dash_taper);
-	att->push("dash_taper",buffer);
-
-	sprintf(buffer,"%.10g",dash_density);
-	att->push("density",buffer);
-
-	sprintf(buffer,"%d",indashcaps);
-	att->push("indashcaps",buffer);
-
-	sprintf(buffer,"%d",outdashcaps);
-	att->push("outdashcaps",buffer);
-
-	sprintf(buffer,"%d",startcaps);
-	att->push("startcaps",buffer);
-
-	sprintf(buffer,"%d",endcaps);
-	att->push("endcaps",buffer);
+	att->push("resource_id",object_id); 
+	att->push("dash_length",dash_length); 
+	att->push("dash_randomness",dash_randomness); 
+	att->push("zero_threshhold",zero_threshhold);
+	att->push("broken_threshhold",broken_threshhold); 
+	att->push("dash_taper",dash_taper); 
+	att->push("density",dash_density); 
+	att->push("indashcaps",indashcaps);
+	att->push("outdashcaps",outdashcaps); 
+	att->push("startcaps",startcaps); 
+	att->push("endcaps",endcaps);
 
 	return att;
 }
 
-void EngraverLineQuality::dump_in_atts(LaxFiles::Attribute *att,int flag,Laxkit::anObject *context)
+void EngraverLineQuality::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context)
 {
 	if (!att) return;
 
@@ -738,6 +933,450 @@ flatpoint NormalDirectionMap::Direction(double x,double y)
 
 
 
+//------------------------------ TraceObject -------------------------------
+
+/*! \class TraceObject
+ *
+ * Class to hold information about a tracing source, for use in EngraverTraceSettings.
+ */
+
+TraceObject::TraceObject()
+{
+	type=TRACE_None;
+
+	object=NULL;
+	identifier=NULL;
+	image_file=NULL;
+
+	samplew=sampleh=0;
+	trace_sample_cache=NULL;
+	cachetime=0;
+
+	 //black and white cache:
+	tw=th=0; //dims of trace_ref_bw
+	trace_ref_bw=NULL;
+}
+
+TraceObject::~TraceObject()
+{
+	if (object) object->dec_count();
+	delete[] image_file;
+	delete[] trace_sample_cache;
+	delete[] trace_ref_bw;
+	delete[] identifier;
+}
+
+Attribute *TraceObject::dump_out_atts(Attribute *att,int what,LaxFiles::DumpContext *savecontext)
+{
+	if (!att) att=new Attribute();
+
+	if (what==-1) {
+		att->push("trace", "#What to trace from");
+		return att;
+	}
+
+	//char buffer[50]; 
+	//sprintf(buffer,"%lu",object_id);
+	//att->push("resource_id",buffer);
+
+	if (type==TraceObject::TRACE_Current) {
+		att->push("current");
+
+	} else if (type==TraceObject::TRACE_LinearGradient || type==TraceObject::TRACE_RadialGradient) {
+		att->push("gradient", type==TraceObject::TRACE_LinearGradient ? "linear" : "radial");
+		object->dump_out_atts(att->attributes.e[att->attributes.n-1], what, savecontext);
+
+	} else if (type==TraceObject::TRACE_ImageFile) {
+		att->push("image");
+		object->dump_out_atts(att->attributes.e[att->attributes.n-1], what, savecontext); 
+
+	} else if (type==TraceObject::TRACE_Object) {
+		att->push("object", object->whattype());
+		object->dump_out_atts(att->attributes.e[att->attributes.n-1], what, savecontext); 
+	}
+
+	return att;
+}
+
+/*! Note this is more for one time lookups. Not very efficient for mass lookups.
+ * Returns -1 for point outside of trace object.
+ *
+ * trace_sample_cache MUST be set up properly. TRACE_Current is just pass through for p->weight.
+ *
+ * If transform!=NULL, then transform p->p by transform before using.
+ */
+double TraceObject::GetValue(LinePoint *p, double *transform)
+{
+	if (type==TRACE_Current) return p->weight;
+
+	int x,y,i;
+	int sample, samplea;
+	flatpoint pp=p->p;
+	if (transform) pp=transform_point(transform,pp);
+
+	x=samplew*(pp.x-object->minx)/(object->maxx-object->minx);
+	y=sampleh*(pp.y-object->miny)/(object->maxy-object->miny);
+
+	if (x>=0 && x<samplew && y>=0 && y<sampleh) {
+		i=4*(x+(sampleh-y)*samplew);
+
+		samplea=trace_sample_cache[i+3];
+		if (samplea==0) return -1; //transparent sample!
+
+		sample=0.3*trace_sample_cache[i] + 0.59*trace_sample_cache[i+1] + 0.11*trace_sample_cache[i+2];
+		if (sample>255) {
+			sample=255;
+		}
+
+		return (255-sample)/255.; 
+	}
+	
+	// else point outside sample area
+	return -1;
+}
+
+/*! Count on obj will be incremented, unless obj is alread object.
+ *
+ * If TRACE_ImageFile, then obj must be an ImageData.
+ */
+void TraceObject::Install(TraceObjectType ntype, SomeData *obj)
+{
+	if (object!=obj) {
+		if (object) object->dec_count();
+		object=obj;
+		if (object) object->inc_count();
+	}
+
+	type=ntype;
+
+
+	 //make object_idstr be basically same as identifier
+	if (type==TRACE_Current) {
+		makestr(identifier, _("snapshot"));
+
+	} else if (type==TRACE_ImageFile) {
+		delete[] identifier;
+		ImageData *img=dynamic_cast<ImageData*>(obj);
+		const char *bname=lax_basename(img->Filename());
+		identifier=new char[strlen(_("img: %s"))+strlen(bname)+1];
+		sprintf(identifier,_("img: %s"),bname);
+
+	} else if (type==TRACE_LinearGradient || type==TRACE_RadialGradient) {
+		makestr(identifier, "gradient");
+
+	} else if (type==TRACE_Object) { 
+		delete[] identifier;
+		SomeDataRef *ref=dynamic_cast<SomeDataRef*>(object);
+		identifier=new char[strlen(_("ref: %s"))+strlen(ref->thedata_id)+1];
+		sprintf(identifier, _("ref: %s"),ref->thedata_id);
+	}
+
+	if (isblank(object_idstr)) makestr(object_idstr, identifier);
+}
+
+void TraceObject::ClearCache(bool obj_too)
+{
+	delete[] trace_sample_cache;
+	trace_sample_cache=NULL;
+	samplew=sampleh=0;
+	cachetime=0;
+
+	if (obj_too) {
+		delete[] identifier;
+		identifier=NULL;
+		object->dec_count();
+		object=NULL;
+	}
+}
+
+int TraceObject::NeedsUpdating()
+{
+	if (!trace_sample_cache) return 1;
+	if (type==TRACE_Object) {
+		if (!object) return 1;
+		if (object->modtime>cachetime) return 1;
+	}
+	
+	return 0;
+}
+
+/*! Calling this will always force a redrawing of the cache.
+ * trace_sample_cache will only be reallocated if it is not currently large enough to hold data from object.
+ *
+ * viewport is unfortunately needed for a terrible hack to render random object references.
+ */
+int TraceObject::UpdateCache(ViewportWindow *viewport)
+{
+	//we need to render the trace object to a grayscale sample board
+	
+
+	//if (!trace_sample_cache) return; //cache already there
+	if (!object) {
+		ClearCache(false);
+		return 0;
+	}
+
+	double w,h;
+	w=object->maxx - object->minx;
+	h=object->maxy - object->miny;
+	if (w<500 && h<500) {
+		if (w<h) {
+			double a=w/h;
+			h=500;
+			w=h*a;
+		} else {
+			double a=h/w;
+			w=500;
+			h=500*a;
+		}
+	}
+
+
+	Displayer *ddp=newDisplayer(NULL);
+	ddp->CreateSurface((int)w,(int)h);
+
+	 // setup ddp to have proper scaling...
+	ddp->NewTransform(1.,0.,0.,-1.,0.,0.);
+	//ddp->NewTransform(1.,0.,0.,1.,0.,0.);
+	DoubleBBox bbox;
+	bbox.addtobounds(object);
+	ddp->SetSpace(bbox.minx,bbox.maxx,bbox.miny,bbox.maxy);
+	ddp->Center(bbox.minx,bbox.maxx,bbox.miny,bbox.maxy);
+
+	ddp->NewBG(255,255,255); // *** this should be the paper color for paper the page is on...
+	ddp->NewFG(0,0,0,255);
+	//ddp->m()[4]=0;
+	//ddp->m()[5]=2*h;
+	//ddp->Newmag(w/(bbox.maxx-bbox.minx));
+	ddp->ClearWindow();
+
+
+	viewport->DrawSomeData(ddp,object, NULL,NULL,0);
+	ddp->EndDrawing();
+
+	LaxImage *img=ddp->GetSurface();
+	if (!img) {
+		DBG cerr <<"could not render trace object"<<endl;
+		return 1;
+	}
+
+	delete ddp;
+
+	if (trace_sample_cache) {
+		if (img->w()*img->h()>samplew*sampleh) {
+			 //old isn't big enough to hold the new
+			delete[] trace_sample_cache;
+			trace_sample_cache=NULL;
+		}
+	}
+	samplew=img->w();
+	sampleh=img->h();
+	if (trace_sample_cache==NULL) trace_sample_cache=new unsigned char[4*samplew*sampleh];
+
+	unsigned char *data=img->getImageBuffer();
+	memcpy(trace_sample_cache, data, 4*samplew*sampleh);
+	img->doneWithBuffer(data);
+	cachetime=time(NULL);
+	img->dec_count();
+
+	//// **** imlib only for DBG:
+	//DBG LaxImlibImage *iimg=dynamic_cast<LaxImlibImage*>(img);
+	//DBG imlib_context_set_image(iimg->image);
+	//DBG imlib_image_set_format("png");
+	//DBG imlib_save_image("trace.png");
+
+	return 0;
+}
+
+
+//------------------------------ EngraverTraceSettings -------------------------------
+
+/*! \class EngraverTraceSettings
+ * Holds settings about tracing points from objects for EngraverFillData.
+ */
+
+EngraverTraceSettings::EngraverTraceSettings()
+{
+	lock_ref_to_obj=true;
+	continuous_trace=false; 
+	show_trace=true;
+	group=-1;
+	traceobj_opacity=1;
+	tracetype=0;
+	traceobject=NULL;
+}
+
+EngraverTraceSettings::~EngraverTraceSettings()
+{
+	if (traceobject) traceobject->dec_count();
+}
+
+/*! Warning: will link, NOT duplicate dashes, trace, etc.
+ */
+EngraverTraceSettings *EngraverTraceSettings::duplicate()
+{
+	EngraverTraceSettings *dup=new EngraverTraceSettings;
+
+	dup->continuous_trace=continuous_trace;
+	dup->traceobject=traceobject;
+	if (traceobject) traceobject->inc_count();
+
+	dup->lock_ref_to_obj=lock_ref_to_obj;
+	dup->traceobj_opacity=traceobj_opacity;
+	dup->tracetype=tracetype;
+
+	return dup;
+}
+
+/*! Just returns traceobject->identifier or NULL if there is no traceobject.
+ */
+const char *EngraverTraceSettings::Identifier()
+{
+	if (traceobject) return traceobject->identifier;
+	return NULL;
+}
+
+/*! Creates brand new traceobject, dec_counts old.
+ */
+void EngraverTraceSettings::Install(TraceObject::TraceObjectType ntype, SomeData *obj)
+{
+	if (traceobject) {
+		traceobject->SetResourceOwner(NULL);
+		traceobject->dec_count();
+	}
+	traceobject=new TraceObject;
+	traceobject->SetResourceOwner(this);
+	traceobject->Install(ntype,obj);
+}
+
+/*! Remove traceobject if obj_too, else clear the object within traceobject.
+ */
+void EngraverTraceSettings::ClearCache(bool obj_too)
+{
+	if (traceobject) {
+		if (obj_too) {
+			traceobject->dec_count();
+			traceobject=NULL;
+		} else {
+			traceobject->ClearCache(obj_too);
+		}
+	}
+}
+
+void EngraverTraceSettings::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
+{
+	Attribute att;
+	dump_out_atts(&att,what,context);
+	att.dump_out(f,indent);
+}
+
+Attribute *EngraverTraceSettings::dump_out_atts(Attribute *att,int what,LaxFiles::DumpContext *savecontext)
+{
+	if (!att) att=new Attribute();
+
+	if (what==-1) {
+		att->push("resource_id",      "#unique number for this object, usually readonly, created internally to simplify shared resources upon read in");
+		att->push("curve","#The value to weight curve");
+		att->push("view_opacity", "#Opacity of background reference");
+		att->push("show_trace true",   "#Whether to show the trace object at all");
+		att->push("continuous true",   "#Whether to trace continuously");
+		att->push("trace", "#What to trace from");
+		return att;
+	}
+
+	char buffer[50];
+
+	sprintf(buffer,"%lu",object_id);
+	att->push("resource_id",buffer);
+
+	sprintf(buffer,"%.10g",traceobj_opacity);
+	att->push("view_opacity", buffer);
+	att->push("show_trace", show_trace?"true":"false" );
+	att->push("continuous", continuous_trace?"true":"false" );
+
+	if (traceobject) {
+		if (traceobject->type==TraceObject::TRACE_Current) {
+			att->push("trace", "current");
+
+		} else if (traceobject->type==TraceObject::TRACE_LinearGradient || traceobject->type==TraceObject::TRACE_RadialGradient) {
+			att->push("trace", "gradient");
+			traceobject->object->dump_out_atts(att->attributes.e[att->attributes.n-1], what, savecontext);
+
+		} else if (traceobject->type==TraceObject::TRACE_ImageFile) {
+			att->push("trace", "image");
+			traceobject->object->dump_out_atts(att->attributes.e[att->attributes.n-1], what, savecontext); 
+
+		} else if (traceobject->type==TraceObject::TRACE_Object) {
+			att->push("trace", "object");
+			traceobject->object->dump_out_atts(att->attributes.e[att->attributes.n-1], what, savecontext); 
+		}
+	}
+
+	Attribute *att2=att->pushSubAtt("curve");
+	value_to_weight.dump_out_atts(att2,what,savecontext);
+
+	return att;
+}
+
+void EngraverTraceSettings::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context)
+{
+	if (!att) return;
+
+	char *name,*value;
+	int c;
+
+	for (c=0; c<att->attributes.n; c++) {
+		name= att->attributes.e[c]->name;
+		value=att->attributes.e[c]->value;
+
+		if (!strcmp(name,"curve")) {
+			value_to_weight.dump_in_atts(att->attributes.e[c],flag,context);
+
+		} else if (!strcmp(name,"view_opacity")) {
+			DoubleAttribute(value,&traceobj_opacity, NULL);
+
+		} else if (!strcmp(name,"show_trace")) {
+			show_trace=BooleanAttribute(value);
+
+		} else if (!strcmp(name,"continuous")) {
+			continuous_trace=BooleanAttribute(value);
+
+		} else if (!strcmp(name,"trace")) {
+			if (!strcmp(value,"current")) {
+				Install(TraceObject::TRACE_Current, NULL);
+
+			} else if (!strcmp(value,"gradient")) {
+				GradientData *grad=new GradientData;
+				grad->dump_in_atts(att->attributes.e[c], flag,context);
+				if (grad->IsRadial()) Install(TraceObject::TRACE_RadialGradient, grad);
+				else Install(TraceObject::TRACE_LinearGradient, grad);
+				grad->dec_count();
+
+			} else if (!strcmp(value,"object")) {
+				SomeDataRef *ref=dynamic_cast<SomeDataRef*>(LaxInterfaces::somedatafactory->newObject("SomeDataRef"));
+				ref->dump_in_atts(att->attributes.e[c], flag,context);
+				Install(TraceObject::TRACE_Object, ref);
+				ref->dec_count();
+
+			} else if (!strcmp(value,"image")) {
+				ImageData *img=new ImageData;
+				img->dump_in_atts(att->attributes.e[c], flag,context);
+
+				const char *bname=lax_basename(img->Filename());
+				if (bname) {
+					Install(TraceObject::TRACE_ImageFile, img);
+				}
+
+				img->dec_count();
+
+			} else {
+				cerr << " *** unknown TraceObject type on EngraverTraceSettings::dump_in_att!"<<endl;
+			}
+		}
+	}
+}
+
+
 //------------------------------------- EngraverPointGroup ------------------------
 
 /*! \class EngraverPointGroup
@@ -766,6 +1405,7 @@ EngraverPointGroup::EngraverPointGroup(EngraverFillData *nowner)
 	linked=false;
 
 	spacing=.1;
+	resolution=1./3;
 	default_weight=-1;
 
 	position.x=position.y=.5;
@@ -788,6 +1428,8 @@ EngraverPointGroup::EngraverPointGroup(EngraverFillData *nowner,
 	trace=newtrace;
 	if (trace) trace->inc_count();
 	else trace=new EngraverTraceSettings();
+	if (trace && !trace->ResourceOwner()) trace->SetResourceOwner(this);
+
 
 	id=nid;
 	if (id<0) id=getUniqueNumber(); //the group number in LinePoint
@@ -801,6 +1443,7 @@ EngraverPointGroup::EngraverPointGroup(EngraverFillData *nowner,
 	linked=false;
 
 	spacing=.1;
+	resolution=1./3;
 	default_weight=-1;
 
 	position.x=position.y=.5;
@@ -850,13 +1493,14 @@ void EngraverPointGroup::CopyFrom(EngraverPointGroup *orig, bool keep_name, bool
 	if (link_trace) { trace=orig->trace; if (trace) trace->inc_count(); }
 	else if (orig->trace!=NULL) {
 		trace=orig->trace->duplicate();
+		trace->SetResourceOwner(this);
 	}
 
 	if (dashes) { dashes->dec_count(); dashes=NULL; }
 	if (link_dash) { dashes=orig->dashes; if (dashes) dashes->inc_count(); }
 	else if (orig->dashes) {
-		dashes=new EngraverLineQuality;
-		*dashes=*orig->dashes; //warning shallow copy!! so far that's ok....
+		dashes=orig->dashes->duplicate();
+		dashes->SetResourceOwner(this);
 	}
 
 
@@ -878,7 +1522,7 @@ void EngraverPointGroup::CopyFrom(EngraverPointGroup *orig, bool keep_name, bool
 	}
 }
 
-void EngraverPointGroup::dump_out(FILE *f,int indent,int what,Laxkit::anObject *context,
+void EngraverPointGroup::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context,
 						const char *sharetrace, const char *sharedash)
 {
 	char spc[indent+3]; memset(spc,' ',indent); spc[indent]='\0'; 
@@ -921,6 +1565,7 @@ void EngraverPointGroup::dump_out(FILE *f,int indent,int what,Laxkit::anObject *
 	fprintf(f,"%sactive %s\n",spc, active?"yes":"no");
 	fprintf(f,"%slinked %s\n",spc, linked?"yes":"no");
 
+	 //auto line info *** TO BE REPLACED WITH EngraverDirection
 	const char *str="linear";
 	if (type==PGROUP_Radial) str="radial";
 	else if (type==PGROUP_Spiral) str="spiral";
@@ -929,6 +1574,8 @@ void EngraverPointGroup::dump_out(FILE *f,int indent,int what,Laxkit::anObject *
 	fprintf(f,"%sposition (%.10g, %.10g)\n", spc,position.x,position.y);
 	fprintf(f,"%sdirection (%.10g, %.10g)\n", spc,direction.x,direction.y);
 	fprintf(f,"%sspacing  %.10g\n", spc, spacing);
+	fprintf(f,"%sresolution  %.10g\n", spc, resolution);
+
 
 	fprintf(f,"%scolor rgbaf(%.10g,%.10g,%.10g,%.10g)\n",spc, 
 			color.red/65535.,
@@ -1003,7 +1650,7 @@ void EngraverPointGroup::dump_out(FILE *f,int indent,int what,Laxkit::anObject *
 
 }
 
-void EngraverPointGroup::dump_in_atts(LaxFiles::Attribute *att,int flag,Laxkit::anObject *context)
+void EngraverPointGroup::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context)
 {
 	if (!att) return;
 
@@ -1045,6 +1692,9 @@ void EngraverPointGroup::dump_in_atts(LaxFiles::Attribute *att,int flag,Laxkit::
 		} else if (!strcmp(name,"color")) {
 			SimpleColorAttribute(value, NULL, &color, NULL);
 
+		} else if (!strcmp(name,"resolution")) {
+			DoubleAttribute(value,&resolution, NULL);
+
 		} else if (!strcmp(name,"spacing")) {
 			DoubleAttribute(value,&spacing, NULL);
 
@@ -1054,7 +1704,10 @@ void EngraverPointGroup::dump_in_atts(LaxFiles::Attribute *att,int flag,Laxkit::
 				while (isspace(*dashkey)) dashkey++;
 			}
 			//if (dashes) dashes->dec_count();
-			if (!dashes) dashes=new EngraverLineQuality();
+			if (!dashes) {
+				dashes=new EngraverLineQuality();
+				dashes->SetResourceOwner(this);
+			}
 			dashes->dump_in_atts(att->attributes.e[c],flag,context);
 
 		} else if (!strcmp(name,"trace")) {
@@ -1063,7 +1716,10 @@ void EngraverPointGroup::dump_in_atts(LaxFiles::Attribute *att,int flag,Laxkit::
 				while (isspace(*tracekey)) tracekey++;
 			}
 			//if (trace) trace->dec_count();
-			if (!trace) trace=new EngraverTraceSettings();
+			if (!trace) {
+				trace=new EngraverTraceSettings();
+				trace->SetResourceOwner(this);
+			}
 			trace->dump_in_atts(att->attributes.e[c],flag,context);
 
 		} else if (!strcmp(name,"line")) {
@@ -1120,8 +1776,8 @@ void EngraverPointGroup::dump_in_atts(LaxFiles::Attribute *att,int flag,Laxkit::
 			if (lstart) lines.push(lstart);
 		}
 	}
-	if (!trace)  trace =new EngraverTraceSettings();
-	if (!dashes) dashes=new EngraverLineQuality();
+	if (!trace)  { trace =new EngraverTraceSettings(); trace->SetResourceOwner(this); }
+	if (!dashes) { dashes=new EngraverLineQuality(); dashes->SetResourceOwner(this); }
 
 	if (isblank(this->name)) makestr(this->name,"Group");
 
@@ -1820,6 +2476,7 @@ void EngraverPointGroup::InstallDashes(EngraverLineQuality *newdash, int absorbc
 	if (!newdash) {
 		if (dashes) dashes->dec_count();
 		dashes=new EngraverLineQuality();
+		dashes->SetResourceOwner(this); 
 		return;
 	}
 	if (newdash==dashes) return;
@@ -1838,6 +2495,7 @@ void EngraverPointGroup::InstallTraceSettings(EngraverTraceSettings *newtrace, i
 	if (!newtrace) {
 		if (trace) trace->dec_count();
 		trace=new EngraverTraceSettings();
+		trace->SetResourceOwner(this); 
 		return;
 	}
 	if (newtrace==trace) return;
@@ -2036,7 +2694,7 @@ void EngraverPointGroup::FillRadial(EngraverFillData *data, double nweight)
 		p=new LinePoint(position.x, position.y, weight);
 		lines.push(p);
 
-		v=rotate(.05*direction/norm(direction),2*M_PI*c/numpoints);
+		v= resolution * rotate(.05*direction/norm(direction),2*M_PI*c/numpoints);
 		
 		while (p->s>=0 && p->t>=0 && p->s<=1 && p->t<=1) {
 			pp=flatpoint(p->s,p->t) + v;
@@ -2707,8 +3365,8 @@ void EngraverFillData::MakeDefaultGroup()
 	group->color.green=0;
 	group->color.blue=65535;
 	group->color.alpha=65535;
-	if (!group->trace)  group->trace =new EngraverTraceSettings();
-	if (!group->dashes) group->dashes=new EngraverLineQuality();
+	if (!group->trace)  { group->trace =new EngraverTraceSettings(); group->trace ->SetResourceOwner(group); }
+	if (!group->dashes) { group->dashes=new EngraverLineQuality();   group->dashes->SetResourceOwner(group); }
 
 	groups.push(group);
 }
@@ -2978,7 +3636,7 @@ void EngraverFillData::Set(double xx,double yy,double ww,double hh,int nr,int nc
  * If what==-1, then output a pseudocode mockup of the format. Otherwise
  * output the format as above.
  */
-void EngraverFillData::dump_out(FILE *f,int indent,int what,Laxkit::anObject *context)
+void EngraverFillData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
 {
 	char spc[indent+3]; memset(spc,' ',indent); spc[indent]='\0'; 
 
@@ -3014,7 +3672,7 @@ void EngraverFillData::dump_out(FILE *f,int indent,int what,Laxkit::anObject *co
 }
 
 //! Reverse of dump_out.
-void EngraverFillData::dump_in_atts(Attribute *att,int flag,Laxkit::anObject *context)
+void EngraverFillData::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *context)
 {
 	if (!att) return;
 
@@ -3547,438 +4205,6 @@ void EngraverFillData::BezApproximate(Laxkit::NumStack<flatvector> &fauxpoints, 
 
 
 
-//------------------------------ TraceObject -------------------------------
-
-/*! \class TraceObject
- *
- * Class to hold information about a tracing source, for use in EngraverTraceSettings.
- */
-
-TraceObject::TraceObject()
-{
-	type=TRACE_None;
-
-	object=NULL;
-	identifier=NULL;
-	image_file=NULL;
-
-	samplew=sampleh=0;
-	trace_sample_cache=NULL;
-	cachetime=0;
-
-	 //black and white cache:
-	tw=th=0; //dims of trace_ref_bw
-	trace_ref_bw=NULL;
-}
-
-TraceObject::~TraceObject()
-{
-	if (object) object->dec_count();
-	delete[] image_file;
-	delete[] trace_sample_cache;
-	delete[] trace_ref_bw;
-	delete[] identifier;
-}
-
-Attribute *TraceObject::dump_out_atts(Attribute *att,int what,Laxkit::anObject *savecontext)
-{
-	if (!att) att=new Attribute();
-
-	if (what==-1) {
-		att->push("trace", "#What to trace from");
-		return att;
-	}
-
-	//char buffer[50]; 
-	//sprintf(buffer,"%lu",object_id);
-	//att->push("resource_id",buffer);
-
-	if (type==TraceObject::TRACE_Current) {
-		att->push("current");
-
-	} else if (type==TraceObject::TRACE_LinearGradient || type==TraceObject::TRACE_RadialGradient) {
-		att->push("gradient", type==TraceObject::TRACE_LinearGradient ? "linear" : "radial");
-		object->dump_out_atts(att->attributes.e[att->attributes.n-1], what, savecontext);
-
-	} else if (type==TraceObject::TRACE_ImageFile) {
-		att->push("image");
-		object->dump_out_atts(att->attributes.e[att->attributes.n-1], what, savecontext); 
-
-	} else if (type==TraceObject::TRACE_Object) {
-		att->push("object", object->whattype());
-		object->dump_out_atts(att->attributes.e[att->attributes.n-1], what, savecontext); 
-	}
-
-	return att;
-}
-
-/*! Note this is more for one time lookups. Not very efficient for mass lookups.
- * Returns -1 for point outside of trace object.
- *
- * trace_sample_cache MUST be set up properly. TRACE_Current is just pass through for p->weight.
- *
- * If transform!=NULL, then transform p->p by transform before using.
- */
-double TraceObject::GetValue(LinePoint *p, double *transform)
-{
-	if (type==TRACE_Current) return p->weight;
-
-	int x,y,i;
-	int sample, samplea;
-	flatpoint pp=p->p;
-	if (transform) pp=transform_point(transform,pp);
-
-	x=samplew*(pp.x-object->minx)/(object->maxx-object->minx);
-	y=sampleh*(pp.y-object->miny)/(object->maxy-object->miny);
-
-	if (x>=0 && x<samplew && y>=0 && y<sampleh) {
-		i=4*(x+(sampleh-y)*samplew);
-
-		samplea=trace_sample_cache[i+3];
-		if (samplea==0) return -1; //transparent sample!
-
-		sample=0.3*trace_sample_cache[i] + 0.59*trace_sample_cache[i+1] + 0.11*trace_sample_cache[i+2];
-		if (sample>255) {
-			sample=255;
-		}
-
-		return (255-sample)/255.; 
-	}
-	
-	// else point outside sample area
-	return -1;
-}
-
-/*! Count on obj will be incremented, unless obj is alread object.
- *
- * If TRACE_ImageFile, then obj must be an ImageData.
- */
-void TraceObject::Install(TraceObjectType ntype, SomeData *obj)
-{
-	if (object!=obj) {
-		if (object) object->dec_count();
-		object=obj;
-		if (object) object->inc_count();
-	}
-
-	type=ntype;
-
-
-	 //make object_idstr be basically same as identifier
-	if (type==TRACE_Current) {
-		makestr(identifier, _("snapshot"));
-
-	} else if (type==TRACE_ImageFile) {
-		delete[] identifier;
-		ImageData *img=dynamic_cast<ImageData*>(obj);
-		const char *bname=lax_basename(img->Filename());
-		identifier=new char[strlen(_("img: %s"))+strlen(bname)+1];
-		sprintf(identifier,_("img: %s"),bname);
-
-	} else if (type==TRACE_LinearGradient || type==TRACE_RadialGradient) {
-		makestr(identifier, "gradient");
-
-	} else if (type==TRACE_Object) { 
-		delete[] identifier;
-		SomeDataRef *ref=dynamic_cast<SomeDataRef*>(object);
-		identifier=new char[strlen(_("ref: %s"))+strlen(ref->thedata_id)+1];
-		sprintf(identifier, _("ref: %s"),ref->thedata_id);
-	}
-
-	if (isblank(object_idstr)) makestr(object_idstr, identifier);
-}
-
-void TraceObject::ClearCache(bool obj_too)
-{
-	delete[] trace_sample_cache;
-	trace_sample_cache=NULL;
-	samplew=sampleh=0;
-	cachetime=0;
-
-	if (obj_too) {
-		delete[] identifier;
-		identifier=NULL;
-		object->dec_count();
-		object=NULL;
-	}
-}
-
-int TraceObject::NeedsUpdating()
-{
-	if (!trace_sample_cache) return 1;
-	if (type==TRACE_Object) {
-		if (!object) return 1;
-		if (object->modtime>cachetime) return 1;
-	}
-	
-	return 0;
-}
-
-/*! Calling this will always force a redrawing of the cache.
- * trace_sample_cache will only be reallocated if it is not currently large enough to hold data from object.
- *
- * viewport is unfortunately needed for a terrible hack to render random object references.
- */
-int TraceObject::UpdateCache(ViewportWindow *viewport)
-{
-	//we need to render the trace object to a grayscale sample board
-	
-
-	//if (!trace_sample_cache) return; //cache already there
-	if (!object) {
-		ClearCache(false);
-		return 0;
-	}
-
-	double w,h;
-	w=object->maxx - object->minx;
-	h=object->maxy - object->miny;
-	if (w<500 && h<500) {
-		if (w<h) {
-			double a=w/h;
-			h=500;
-			w=h*a;
-		} else {
-			double a=h/w;
-			w=500;
-			h=500*a;
-		}
-	}
-
-
-	Displayer *ddp=newDisplayer(NULL);
-	ddp->CreateSurface((int)w,(int)h);
-
-	 // setup ddp to have proper scaling...
-	ddp->NewTransform(1.,0.,0.,-1.,0.,0.);
-	//ddp->NewTransform(1.,0.,0.,1.,0.,0.);
-	DoubleBBox bbox;
-	bbox.addtobounds(object);
-	ddp->SetSpace(bbox.minx,bbox.maxx,bbox.miny,bbox.maxy);
-	ddp->Center(bbox.minx,bbox.maxx,bbox.miny,bbox.maxy);
-
-	ddp->NewBG(255,255,255); // *** this should be the paper color for paper the page is on...
-	ddp->NewFG(0,0,0,255);
-	//ddp->m()[4]=0;
-	//ddp->m()[5]=2*h;
-	//ddp->Newmag(w/(bbox.maxx-bbox.minx));
-	ddp->ClearWindow();
-
-
-	viewport->DrawSomeData(ddp,object, NULL,NULL,0);
-	ddp->EndDrawing();
-
-	LaxImage *img=ddp->GetSurface();
-	if (!img) {
-		DBG cerr <<"could not render trace object"<<endl;
-		return 1;
-	}
-
-	delete ddp;
-
-	if (trace_sample_cache) {
-		if (img->w()*img->h()>samplew*sampleh) {
-			 //old isn't big enough to hold the new
-			delete[] trace_sample_cache;
-			trace_sample_cache=NULL;
-		}
-	}
-	samplew=img->w();
-	sampleh=img->h();
-	if (trace_sample_cache==NULL) trace_sample_cache=new unsigned char[4*samplew*sampleh];
-
-	unsigned char *data=img->getImageBuffer();
-	memcpy(trace_sample_cache, data, 4*samplew*sampleh);
-	img->doneWithBuffer(data);
-	cachetime=time(NULL);
-	img->dec_count();
-
-	//// **** imlib only for DBG:
-	//DBG LaxImlibImage *iimg=dynamic_cast<LaxImlibImage*>(img);
-	//DBG imlib_context_set_image(iimg->image);
-	//DBG imlib_image_set_format("png");
-	//DBG imlib_save_image("trace.png");
-
-	return 0;
-}
-
-
-//------------------------------ EngraverTraceSettings -------------------------------
-
-/*! \class EngraverTraceSettings
- * Holds settings about tracing points from objects for EngraverFillData.
- */
-
-EngraverTraceSettings::EngraverTraceSettings()
-{
-	lock_ref_to_obj=true;
-	continuous_trace=false; 
-	group=-1;
-	traceobj_opacity=1;
-	tracetype=0;
-	traceobject=NULL;
-}
-
-EngraverTraceSettings::~EngraverTraceSettings()
-{
-	if (traceobject) traceobject->dec_count();
-}
-
-EngraverTraceSettings *EngraverTraceSettings::duplicate()
-{
-	EngraverTraceSettings *dup=new EngraverTraceSettings;
-
-	dup->continuous_trace=continuous_trace;
-	dup->traceobject=traceobject;
-	if (traceobject) traceobject->inc_count();
-
-	dup->lock_ref_to_obj=lock_ref_to_obj;
-	dup->traceobj_opacity=traceobj_opacity;
-	dup->tracetype=tracetype;
-
-	return dup;
-}
-
-/*! Just returns traceobject->identifier or NULL if there is no traceobject.
- */
-const char *EngraverTraceSettings::Identifier()
-{
-	if (traceobject) return traceobject->identifier;
-	return NULL;
-}
-
-/*! Creates brand new traceobject, dec_counts old.
- */
-void EngraverTraceSettings::Install(TraceObject::TraceObjectType ntype, SomeData *obj)
-{
-	if (traceobject) traceobject->dec_count();
-	traceobject=new TraceObject;
-	traceobject->Install(ntype,obj);
-}
-
-/*! Remove traceobject if obj_too, else clear the object within traceobject.
- */
-void EngraverTraceSettings::ClearCache(bool obj_too)
-{
-	if (traceobject) {
-		if (obj_too) {
-			traceobject->dec_count();
-			traceobject=NULL;
-		} else {
-			traceobject->ClearCache(obj_too);
-		}
-	}
-}
-
-void EngraverTraceSettings::dump_out(FILE *f,int indent,int what,Laxkit::anObject *context)
-{
-	Attribute att;
-	dump_out_atts(&att,what,context);
-	att.dump_out(f,indent);
-}
-
-Attribute *EngraverTraceSettings::dump_out_atts(Attribute *att,int what,Laxkit::anObject *savecontext)
-{
-	if (!att) att=new Attribute();
-
-	if (what==-1) {
-		att->push("resource_id",      "#unique number for this object, usually readonly, created internally to simplify shared resources upon read in");
-		att->push("curve","#The value to weight curve");
-		att->push("view_opacity", "#Opacity of background reference");
-		att->push("continuous true",   "#Whether to trace continuously");
-		att->push("trace", "#What to trace from");
-		return att;
-	}
-
-	char buffer[50];
-
-	sprintf(buffer,"%lu",object_id);
-	att->push("resource_id",buffer);
-
-	sprintf(buffer,"%.10g",traceobj_opacity);
-	att->push("view_opacity", buffer);
-	att->push("continuous", continuous_trace?"true":"false" );
-
-	if (traceobject) {
-		if (traceobject->type==TraceObject::TRACE_Current) {
-			att->push("trace", "current");
-
-		} else if (traceobject->type==TraceObject::TRACE_LinearGradient || traceobject->type==TraceObject::TRACE_RadialGradient) {
-			att->push("trace", "gradient");
-			traceobject->object->dump_out_atts(att->attributes.e[att->attributes.n-1], what, savecontext);
-
-		} else if (traceobject->type==TraceObject::TRACE_ImageFile) {
-			att->push("trace", "image");
-			traceobject->object->dump_out_atts(att->attributes.e[att->attributes.n-1], what, savecontext); 
-
-		} else if (traceobject->type==TraceObject::TRACE_Object) {
-			att->push("trace", "object");
-			traceobject->object->dump_out_atts(att->attributes.e[att->attributes.n-1], what, savecontext); 
-		}
-	}
-
-	Attribute *att2=att->pushSubAtt("curve");
-	value_to_weight.dump_out_atts(att2,what,savecontext);
-
-	return att;
-}
-
-void EngraverTraceSettings::dump_in_atts(LaxFiles::Attribute *att,int flag,Laxkit::anObject *context)
-{
-	if (!att) return;
-
-	char *name,*value;
-	int c;
-
-	for (c=0; c<att->attributes.n; c++) {
-		name= att->attributes.e[c]->name;
-		value=att->attributes.e[c]->value;
-
-		if (!strcmp(name,"curve")) {
-			value_to_weight.dump_in_atts(att->attributes.e[c],flag,context);
-
-		} else if (!strcmp(name,"view_opacity")) {
-			DoubleAttribute(value,&traceobj_opacity, NULL);
-
-		} else if (!strcmp(name,"continuous")) {
-			continuous_trace=BooleanAttribute(value);
-
-		} else if (!strcmp(name,"trace")) {
-			if (!strcmp(value,"current")) {
-				Install(TraceObject::TRACE_Current, NULL);
-
-			} else if (!strcmp(value,"gradient")) {
-				GradientData *grad=new GradientData;
-				grad->dump_in_atts(att->attributes.e[c], flag,context);
-				if (grad->IsRadial()) Install(TraceObject::TRACE_RadialGradient, grad);
-				else Install(TraceObject::TRACE_LinearGradient, grad);
-				grad->dec_count();
-
-			} else if (!strcmp(value,"object")) {
-				SomeDataRef *ref=dynamic_cast<SomeDataRef*>(LaxInterfaces::somedatafactory->newObject("SomeDataRef"));
-				ref->dump_in_atts(att->attributes.e[c], flag,context);
-				Install(TraceObject::TRACE_Object, ref);
-				ref->dec_count();
-
-			} else if (!strcmp(value,"image")) {
-				ImageData *img=new ImageData;
-				img->dump_in_atts(att->attributes.e[c], flag,context);
-
-				const char *bname=lax_basename(img->Filename());
-				if (bname) {
-					Install(TraceObject::TRACE_ImageFile, img);
-				}
-
-				img->dec_count();
-
-			} else {
-				cerr << " *** unknown TraceObject type on EngraverTraceSettings::dump_in_att!"<<endl;
-			}
-		}
-	}
-}
-
-
 //------------------------------ EngraverInterfaceSettings -------------------------------
 
 /*! \class EngraverInterfaceSettings
@@ -4018,10 +4244,12 @@ enum EngraveShortcuts {
 	ENGRAVE_RotateDirR,
 	ENGRAVE_SpacingInc,
 	ENGRAVE_SpacingDec,
+	ENGRAVE_ResolutionInc,
+	ENGRAVE_ResolutionDec,
 	ENGRAVE_ShowPoints,
 	ENGRAVE_ShowPointsN,
 	ENGRAVE_MorePoints,
-	//ENGRAVE_ToggleTrace,
+	ENGRAVE_ToggleShowTrace,
 	ENGRAVE_TogglePanel,
 	ENGRAVE_ToggleGrow,
 	ENGRAVE_ToggleWarp,
@@ -4078,7 +4306,7 @@ EngraverFillInterface::EngraverFillInterface(int nid,Displayer *ndp)
 	whichcontrols=Patch_Coons;
 
 	show_panel=true;
-	show_trace=false;
+	show_trace_object=false;
 	grow_lines=false;
 	always_warp=true;
 	show_direction=false;
@@ -4142,7 +4370,10 @@ PatchData *EngraverFillInterface::newPatchData(double xx,double yy,double ww,dou
 	ndata->MakeGroupNameUnique(0);
 	ndata->groups.e[0]->InstallTraceSettings(default_trace.duplicate(),1);
 	//if (!ndata->groups.e[0]->trace)  ndata->groups.e[0]->trace =new EngraverTraceSettings;
-	if (!ndata->groups.e[0]->dashes) ndata->groups.e[0]->dashes=new EngraverLineQuality;
+	if (!ndata->groups.e[0]->dashes) {
+		ndata->groups.e[0]->dashes=new EngraverLineQuality;
+		ndata->groups.e[0]->dashes->SetResourceOwner(ndata->groups.e[0]);
+	}
 
 	ndata->Set(xx,yy,ww,hh,nr,nc,stle);
 	//ndata->renderdepth=-recurse;
@@ -4669,18 +4900,12 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
 				} else if (obj==edata && gindex<0) {
 					MenuItem *item=panel.findid(over);
 					double th=dp->textheight();
-					LineEdit *le= new LineEdit(viewport,"Rename",_("Rename object"),
-												LINEEDIT_DESTROY_ON_ENTER|LINEEDIT_GRAB_ON_MAP|ANXWIN_ESCAPABLE|ANXWIN_OUT_CLICK_DESTROYS|ANXWIN_HOVER_FOCUS,
-												item->x+panelbox.minx+3*th,panelbox.miny+item->y+((y-item->y)/th)*th,
-												item->w,th,
-												   4, //border
-												   NULL,object_id,"renameobject",
-												   obj->Id());
+					int yy= panelbox.miny + item->y + ((y-panelbox.miny-item->y)/th+1)*th;
+					DoubleBBox bounds(item->x+panelbox.minx+th,item->x+panelbox.minx+th + item->w,
+										yy,yy+th);
+					viewport->SetupInputBox(object_id, NULL, obj->Id(), "renameobject", bounds);
 					eventgroup=gindex;
 					eventobject=obj->object_id;
-					le->padx=le->pady=dp->textheight()*.1;
-					le->SetSelection(0,-1);
-					app->addwindow(le);
 				}
 
 				if (gindex>=0) current_group=gindex;
@@ -4731,7 +4956,8 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
 								double th=dp->textheight();
 								LineEdit *le= new LineEdit(viewport,"Rename",_("Rename group"),
 															LINEEDIT_DESTROY_ON_ENTER|LINEEDIT_GRAB_ON_MAP|ANXWIN_ESCAPABLE|ANXWIN_OUT_CLICK_DESTROYS|ANXWIN_HOVER_FOCUS,
-															item->x+panelbox.minx+3*th,panelbox.miny+item->y+((y-item->y)/th)*th,
+															item->x+panelbox.minx+th, panelbox.miny + item->y + ((y-panelbox.miny-item->y)/th+1)*th,
+															//item->x+panelbox.minx+3*th,panelbox.miny+item->y+((y-item->y)/th)*th,
 															item->w,th,
 															   4, //border
 															   NULL,object_id,"renamegroup",
@@ -5522,7 +5748,7 @@ int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit
 					EngraverPointGroup *group=edata->GroupFromIndex(current_group);
 					growpoints.flush();
 					group->GrowLines(edata,
-									 group->spacing/3,     //resolution
+									 group->spacing*group->resolution,     //resolution
 									 group->spacing, NULL, //spacing map
 									 .01, NULL,             //weight map
 									 group->direction,group, //directionmap
@@ -5903,12 +6129,12 @@ int EngraverFillInterface::DrawData(Laxkit::anObject *ndata,anObject *a1,anObjec
 	int  tshow_points   =show_points;  
 	bool tshow_direction=show_direction;
 	bool tshow_panel    =show_panel;
-	bool tshow_trace    =show_trace;
+	bool tshow_trace_object    =show_trace_object;
 
 	show_points   =false;  
 	show_direction=false;
 	show_panel    =false;
-	show_trace    =false;
+	show_trace_object    =false;
 
 	int c=PatchInterface::DrawData(ndata,a1,a2,info);
 	edata=ee;
@@ -5916,7 +6142,7 @@ int EngraverFillInterface::DrawData(Laxkit::anObject *ndata,anObject *a1,anObjec
 	show_points   =tshow_points;  
 	show_direction=tshow_direction;
 	show_panel    =tshow_panel;
-	show_trace    =tshow_trace;
+	show_trace_object    =tshow_trace_object;
 
 	return c;
 }
@@ -5930,8 +6156,9 @@ int EngraverFillInterface::Refresh()
 	EngraverPointGroup *group=(edata ? edata->GroupFromIndex(current_group) : NULL);
 	EngraverTraceSettings *trace=(group ? group->trace : &default_trace);
 
-	if (trace->traceobject && trace->traceobj_opacity>.5 // **** .5 since actual opacity not working
-			&& (mode==EMODE_Trace || show_trace)) {
+	if (viewport && trace->traceobject && trace->traceobject->object && trace->traceobj_opacity>.5 // **** .5 since actual opacity not working
+			) {
+			//&& (mode==EMODE_Trace || show_trace_object)) {
 
 		Affine a;
 		if (edata) a=edata->GetTransformToContext(true, 0);//supposed to be inverse from edata to base real
@@ -6328,8 +6555,8 @@ int EngraverFillInterface::Refresh()
 		    else if (mode==EMODE_Twirl)       sens= sensitive_twirl;
 
 			dp->NewFG(&bgcolor);
-			dp->drawellipse(100,100,50,50, 0,0,1);
-			dp->drawellipse(sensbox.x+sensbox.width/2,sensbox.y+sensbox.height/2, sensbox.width/2,sensbox.height/2, 0,0,1);
+			//dp->drawellipse(100,100,50,50, 0,0,1);
+			dp->drawellipse(sensbox.x+sensbox.width/2,sensbox.y+sensbox.height/2, sensbox.width/2,2*dp->textheight()+5+sensbox.height/2, 0,0,1);
 			dp->NewFG(&fgcolor);
 			DrawSlider(sens/2, lasthover==ENGRAVE_Sensitivity, sensbox.x,sensbox.y,sensbox.width,sensbox.height, NULL);
 			dp->textout(sensbox.x+sensbox.width/2,sensbox.y-5, _("Sensitivity"),-1, LAX_HCENTER|LAX_BOTTOM); 
@@ -6784,9 +7011,10 @@ void EngraverFillInterface::UpdatePanelAreas()
 			} else {
 				DBG cerr <<" ---tracing section is OPEN"<<endl;
 
-				int hasgroups = (edata && edata->groups.n>1 ? 1 : 0);
-				if (!hasgroups && selection && selection->n()>1) hasgroups=1;
-				item->h=item->w + 5*th + (hasgroups?th:0); //always square?
+				//int hasgroups = (edata && edata->groups.n>1 ? 1 : 0);
+				//if (!hasgroups && selection && selection->n()>1) hasgroups=1;
+				//item->h=item->w + 5*th + (hasgroups?th:0); //always square?
+				item->h=item->w + 5*th + th;
 
 				// ...
 
@@ -6795,14 +7023,15 @@ void EngraverFillInterface::UpdatePanelAreas()
 
 					//----first line
 					if (item2->id==ENGRAVE_Trace_Same_As) {
-						if (hasgroups) {
+						//if (hasgroups) {
 							item2->x=pad;  item2->y=y+1*th;  item2->w=pw-2*pad;  item2->h=th; 
-						} else {
-							item2->x=pad;  item2->y=y+1*th;  item2->w=0;  item2->h=0; 
-						}
+						//} else {
+						//	item2->x=pad;  item2->y=y+1*th;  item2->w=0;  item2->h=0; 
+						//}
 
 					} else if (item2->id==ENGRAVE_Trace_Curve) {
-						item2->x=pad;  item2->y=y+(hasgroups?2:1)*th;  item2->w=pw-2*pad;  item2->h=item->w+4*th; 
+						//item2->x=pad;  item2->y=y+(hasgroups?2:1)*th;  item2->w=pw-2*pad;  item2->h=item->w+4*th; 
+						item2->x=pad;  item2->y=y+2*th;  item2->w=pw-2*pad;  item2->h=item->w+4*th; 
 						tracebox=item2;
 					}
 				}
@@ -6815,42 +7044,39 @@ void EngraverFillInterface::UpdatePanelAreas()
 
 			if (!(item->state&LAX_OPEN)) item->h=th;
 			else {
-				int hasgroups = (edata && edata->groups.n>1 ? 1 : 0);
-				if (!hasgroups && selection && selection->n()>1) hasgroups=1;
+				//int hasgroups = (edata && edata->groups.n>1 ? 1 : 0);
+				//if (!hasgroups && selection && selection->n()>1) hasgroups=1;
 
-				item->h=8*th+pad+(hasgroups ? th : 0);
+				//item->h=8*th+pad+(hasgroups ? th : 0);
+				item->h=8*th+pad+th;
 				// ...
 				for (int c2=0; c2<item->GetSubmenu()->n(); c2++) {
 					item2=item->GetSubmenu()->e(c2);
 
 					 //----first line
 					if (item2->id==ENGRAVE_Dash_Same_As) {
-						if (hasgroups) {
-							item2->x=pad;  item2->y=y+1*th;  item2->w=pw-2*pad;  item2->h=th; 
-						} else {
-							item2->x=pad;  item2->y=y+1*th;  item2->w=0;  item2->h=0; 
-						}
+						item2->x=pad;  item2->y=y+1*th;  item2->w=pw-2*pad;  item2->h=th; 
 
 					} else if (item2->id==ENGRAVE_Dash_Broken_Threshhold) {
-						item2->x=pad;  item2->y=y+1*th+(hasgroups ? th : 0);  item2->w=pw-2*pad;  item2->h=th; 
+						item2->x=pad;  item2->y=y+1*th+th;  item2->w=pw-2*pad;  item2->h=th; 
 
 					} else if (item2->id==ENGRAVE_Dash_Zero_Threshhold) {
-						item2->x=pad;  item2->y=y+2*th+(hasgroups ? th : 0);  item2->w=pw-2*pad;  item2->h=th; 
+						item2->x=pad;  item2->y=y+2*th+th;  item2->w=pw-2*pad;  item2->h=th; 
 
 					} else if (item2->id==ENGRAVE_Dash_Random) {
-						item2->x=pad;  item2->y=y+3*th+(hasgroups ? th : 0);  item2->w=pw-2*pad;  item2->h=th; 
+						item2->x=pad;  item2->y=y+3*th+th;  item2->w=pw-2*pad;  item2->h=th; 
 
 					} else if (item2->id==ENGRAVE_Dash_Taper) {
-						item2->x=pad;  item2->y=y+4*th+(hasgroups ? th : 0);  item2->w=pw-2*pad;  item2->h=th; 
+						item2->x=pad;  item2->y=y+4*th+th;  item2->w=pw-2*pad;  item2->h=th; 
 
 					} else if (item2->id==ENGRAVE_Dash_Density) {
-						item2->x=pad;  item2->y=y+5*th+(hasgroups ? th : 0);  item2->w=pw-2*pad;  item2->h=th; 
+						item2->x=pad;  item2->y=y+5*th+th;  item2->w=pw-2*pad;  item2->h=th; 
 
 					} else if (item2->id==ENGRAVE_Dash_Length) {
-						item2->x=pad;  item2->y=y+6*th+(hasgroups ? th : 0);  item2->w=pw-2*pad;  item2->h=th; 
+						item2->x=pad;  item2->y=y+6*th+th;  item2->w=pw-2*pad;  item2->h=th; 
 
 					} else if (item2->id==ENGRAVE_Dash_Seed) {
-						item2->x=pad;  item2->y=y+7*th+(hasgroups ? th : 0);  item2->w=pw-2*pad;  item2->h=th; 
+						item2->x=pad;  item2->y=y+7*th+th;  item2->w=pw-2*pad;  item2->h=th; 
 
 					} else if (item2->id==ENGRAVE_Dash_Caps) {
 						// *** todo!
@@ -7504,6 +7730,20 @@ int EngraverFillInterface::PerformAction(int action)
 		needtodraw=1;
 		return 0;
 
+	} else if (action==ENGRAVE_ResolutionInc || action==ENGRAVE_ResolutionDec) {
+		if (!edata) return 0;
+		EngraverPointGroup *group=edata->GroupFromIndex(current_group);
+
+		if (action==ENGRAVE_SpacingInc) group->resolution*=1.1; else group->resolution/=1.1;
+		group->Fill(edata, -1);
+		edata->Sync(false);
+		Trace();
+		char buffer[75];
+		sprintf(buffer,_("Resolution: %.5g"),group->resolution);
+		DBG cerr <<"new resolution: "<<group->resolution<<endl;
+		needtodraw=1;
+		return 0;
+
 	} else if (action==ENGRAVE_ShowPoints || action==ENGRAVE_ShowPointsN) {
 		if (show_points) show_points=0;
 		else if (action==ENGRAVE_ShowPoints) show_points=1;
@@ -7522,14 +7762,13 @@ int EngraverFillInterface::PerformAction(int action)
 		needtodraw=1;
 		return 0;
 
-//	} else if (action==ENGRAVE_ToggleTrace) {
-//		 // *** obsolete? maybe make it toggle continuous tracing?
-//		show_trace=!show_trace;
-//		if (show_trace) continuous_trace=false;
-//		if (show_trace) PostMessage(_("Show tracing controls"));
-//		else PostMessage(_("Don't show tracing controls"));
-//		needtodraw=1;
-//		return 0;
+	} else if (action==ENGRAVE_ToggleShowTrace) {
+		show_trace_object=!show_trace_object;
+		//if (show_trace_object) continuous_trace=false;
+		if (show_trace_object) PostMessage(_("Show tracing object"));
+		else PostMessage(_("Don't show tracing object"));
+		needtodraw=1;
+		return 0;
 
 	} else if (action==ENGRAVE_TogglePanel) {
 		show_panel=!show_panel;
@@ -8359,22 +8598,25 @@ Laxkit::ShortcutHandler *EngraverFillInterface::GetShortcuts()
 	for (int c=0; c<sc->NumShortcuts(); c++) { s=sc->Shortcut(c); s->mode=EMODE_Mesh; }
 
 	 //any mode shortcuts
-	sc->Add(ENGRAVE_SwitchMode,   'm',0,0,          "SwitchMode",  _("Switch edit mode"),NULL,0);
-	sc->Add(ENGRAVE_SwitchModeR,  'M',ShiftMask,0,  "SwitchModeR", _("Switch to previous edit mode"),NULL,0);
-	sc->Add(ENGRAVE_ExportSvg,    'f',0,0,          "ExportSvg",   _("Export Svg"),NULL,0);
-	sc->Add(ENGRAVE_ExportSnapshot,'F',ShiftMask,0, "ExportSnapshot",   _("Export snapshot"),NULL,0);
-	sc->Add(ENGRAVE_RotateDir,    'r',0,0,          "RotateDir",   _("Rotate default line direction"),NULL,0);
-	sc->Add(ENGRAVE_RotateDirR,   'R',ShiftMask,0,  "RotateDirR",  _("Rotate default line direction"),NULL,0);
-	sc->Add(ENGRAVE_SpacingInc,   's',0,0,          "SpacingInc",  _("Increase default spacing"),NULL,0);
-	sc->Add(ENGRAVE_SpacingDec,   'S',ShiftMask,0,  "SpacingDec",  _("Decrease default spacing"),NULL,0);
-	sc->Add(ENGRAVE_ShowPoints,   'p',0,0,          "ShowPoints",  _("Toggle showing sample points"),NULL,0);
-	sc->Add(ENGRAVE_ShowPointsN,  'p',ControlMask,0,"ShowPointsN", _("Toggle showing sample point numbers"),NULL,0);
-	sc->Add(ENGRAVE_MorePoints,   'P',ControlMask|ShiftMask,0,"MorePoints",  _("Subdivide all lines to have more sample points"),NULL,0);
-	sc->Add(ENGRAVE_TogglePanel,  'c',0,0,          "TogglePanel", _("Toggle showing control panel"),NULL,0);
-	sc->Add(ENGRAVE_ToggleGrow,   'g',0,0,          "ToggleGrow",  _("Toggle grow mode"),NULL,0);
-	sc->Add(ENGRAVE_ToggleWarp,   'w',0,0,          "ToggleWarp",  _("Toggle warping when modifying mesh"),NULL,0);
-	sc->Add(ENGRAVE_ToggleDir,    'd',0,0,          "ToggleDir",   _("Toggle showing direction map"),NULL,0);
-	sc->Add(ENGRAVE_LoadDirection,'d',ControlMask,0,"LoadDir",     _("Load a normal map for direction"),NULL,0);
+	sc->Add(ENGRAVE_SwitchMode,     'm',0,0,          "SwitchMode",  _("Switch edit mode"),NULL,0);
+	sc->Add(ENGRAVE_SwitchModeR,    'M',ShiftMask,0,  "SwitchModeR", _("Switch to previous edit mode"),NULL,0);
+	sc->Add(ENGRAVE_ExportSvg,      'f',0,0,          "ExportSvg",   _("Export Svg"),NULL,0);
+	sc->Add(ENGRAVE_ExportSnapshot, 'F',ShiftMask,0, "ExportSnapshot",   _("Export snapshot"),NULL,0);
+	sc->Add(ENGRAVE_RotateDir,      'r',0,0,          "RotateDir",   _("Rotate default line direction"),NULL,0);
+	sc->Add(ENGRAVE_RotateDirR,     'R',ShiftMask,0,  "RotateDirR",  _("Rotate default line direction"),NULL,0);
+	sc->Add(ENGRAVE_SpacingInc,     's',0,0,          "SpacingInc",  _("Increase default spacing"),NULL,0);
+	sc->Add(ENGRAVE_SpacingDec,     'S',ShiftMask,0,  "SpacingDec",  _("Decrease default spacing"),NULL,0);
+	sc->Add(ENGRAVE_ResolutionInc,  'r',ControlMask,0,"ResolutionInc",  _("Increase default resolution"),NULL,0);
+	sc->Add(ENGRAVE_ResolutionDec,  'R',ControlMask|ShiftMask,0,"ResolutionDec",_("Decrease default resolution"),NULL,0);
+	sc->Add(ENGRAVE_ShowPoints,     'p',0,0,          "ShowPoints",  _("Toggle showing sample points"),NULL,0);
+	sc->Add(ENGRAVE_ShowPointsN,    'p',ControlMask,0,"ShowPointsN", _("Toggle showing sample point numbers"),NULL,0);
+	sc->Add(ENGRAVE_MorePoints,     'P',ControlMask|ShiftMask,0,"MorePoints",  _("Subdivide all lines to have more sample points"),NULL,0);
+	sc->Add(ENGRAVE_TogglePanel,    'c',0,0,          "TogglePanel", _("Toggle showing control panel"),NULL,0);
+	sc->Add(ENGRAVE_ToggleGrow,     'g',0,0,          "ToggleGrow",  _("Toggle grow mode"),NULL,0);
+	sc->Add(ENGRAVE_ToggleWarp,     'w',0,0,          "ToggleWarp",  _("Toggle warping when modifying mesh"),NULL,0);
+	sc->Add(ENGRAVE_ToggleDir,      'd',0,0,          "ToggleDir",   _("Toggle showing direction map"),NULL,0);
+	sc->Add(ENGRAVE_ToggleShowTrace,']',0,0,          "ToggleShowTrace",_("Toggle showing the trace object"),NULL,0);
+	sc->Add(ENGRAVE_LoadDirection,  'd',ControlMask,0,"LoadDir",     _("Load a normal map for direction"),NULL,0);
 
 	sc->Add(ENGRAVE_NextFill,     LAX_Left, 0,EMODE_Orientation,  "NextFillType",     _("Switch to next fill type"),NULL,0);
 	sc->Add(ENGRAVE_PreviousFill, LAX_Right,0,EMODE_Orientation,  "PreviousFillType", _("Switch to previous fill type"),NULL,0);

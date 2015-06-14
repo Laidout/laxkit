@@ -583,7 +583,7 @@ int FileDialog::init()
 	return 0;
 }
 
-//! Add a new bookmark via anXApp::Resource() and a "Bookmarks" resource.
+//! Add a new bookmark via anXApp::AppResource() and a "Bookmarks" resource.
 /*! Return 0 for bookmark added, or positive for error and not added,
  * and -1 for already exists.
  *
@@ -600,7 +600,7 @@ int FileDialog::newBookmark(const char *pth)
 	if (dialog_style&FILES_GLOBAL_BOOKMARK) add_bookmark(pth,0);
 
 	 //find any existing lax held bookmarks
-	Attribute *att=app->Resource("Bookmarks");
+	Attribute *att=app->AppResource("Bookmarks");
 
 	 //check marks for duplicates
 	if (att) {
@@ -619,7 +619,7 @@ int FileDialog::newBookmark(const char *pth)
 	newatt->push(pth);
 
 	 //install new resource
-	app->Resource(newatt);
+	app->AppResource(newatt);
 
 	 //update bookmarks button if possible
 	MenuInfo *info=BuildBookmarks();//***what's this??
@@ -643,7 +643,7 @@ MenuInfo *FileDialog::BuildBookmarks()
 		deletestrs(bms,n);
 		delete[] bookmarks;
 	}
-	Attribute *att=app->Resource("Bookmarks");
+	Attribute *att=app->AppResource("Bookmarks");
 	if (att) {
 		int c2;
 		for (int c=0; c<att->attributes.n; c++) {

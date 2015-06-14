@@ -155,7 +155,7 @@ int CaptionData::ComputeLineLen(int line)
  *
  * Ignores what. Uses 0 for it.
  */
-void CaptionData::dump_out(FILE *f,int indent,int what,Laxkit::anObject *context)
+void CaptionData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
 {
 	char spc[indent+1]; memset(spc,' ',indent); spc[indent]='\0';
 	if (fontname) fprintf(f,"%sfontname \"%s\"\n",spc,fontname);
@@ -176,7 +176,7 @@ void CaptionData::dump_out(FILE *f,int indent,int what,Laxkit::anObject *context
 }
 	
 //! See dump_out().
-void CaptionData::dump_in_atts(Attribute *att,int flag,Laxkit::anObject *context)
+void CaptionData::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *context)
 {
 	if (!att) return;
 	char *name,*value;

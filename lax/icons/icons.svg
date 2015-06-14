@@ -630,11 +630,11 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="1.3770726"
-     inkscape:cx="741.2013"
-     inkscape:cy="577.56911"
+     inkscape:zoom="0.48686869"
+     inkscape:cx="-207.49833"
+     inkscape:cy="714.69359"
      inkscape:document-units="in"
-     inkscape:current-layer="layer1"
+     inkscape:current-layer="layer2"
      showgrid="true"
      units="in"
      inkscape:window-width="1918"
@@ -2470,16 +2470,60 @@
          x="0" />
     </g>
     <text
+       sodipodi:linespacing="100%"
+       id="text3488"
+       y="568.42853"
+       x="524.78217"
+       style="font-size:12px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-indent:0;text-align:start;text-decoration:none;line-height:100%;letter-spacing:0px;word-spacing:0px;text-transform:none;direction:ltr;block-progression:tb;writing-mode:lr-tb;text-anchor:start;baseline-shift:baseline;color:#000000;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1px;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate;font-family:Sans;-inkscape-font-specification:Sans"
+       xml:space="preserve"><tspan
+         y="568.42853"
+         x="524.78217"
+         id="tspan3491"
+         sodipodi:role="line">ProfileRepeat??</tspan></text>
+    <text
        xml:space="preserve"
        style="font-size:12px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-indent:0;text-align:start;text-decoration:none;line-height:100%;letter-spacing:0px;word-spacing:0px;text-transform:none;direction:ltr;block-progression:tb;writing-mode:lr-tb;text-anchor:start;baseline-shift:baseline;color:#000000;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1px;marker:none;visibility:visible;display:inline;overflow:visible;enable-background:accumulate;font-family:Sans;-inkscape-font-specification:Sans"
-       x="524.78217"
-       y="568.42853"
+       x="489.19943"
+       y="657.02228"
        id="text5331"
        sodipodi:linespacing="100%"><tspan
          sodipodi:role="line"
          id="tspan5333"
-         x="524.78217"
-         y="568.42853">ProfileRepeat??</tspan></text>
+         x="489.19943"
+         y="657.02228">ManualLines</tspan></text>
+    <path
+       style="fill:none;stroke:#000000;stroke-width:1.8;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;stroke-miterlimit:4;stroke-dasharray:none"
+       d="m 621.88786,1178.4439 c 0,0 -7.43316,11.9934 -9.87547,17.189 -1.06968,2.2755 2.35289,4.3303 3.23398,4.3463 1.6393,0.03 12.89409,-12.2898 12.89409,-12.2898"
+       id="path4311"
+       inkscape:connector-curvature="0"
+       transform="translate(0,-539.99999)"
+       sodipodi:nodetypes="cssc" />
+    <path
+       style="fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 611.5612,1197.2614 c 0,0 -2.47685,0.9935 -4.8781,5.9051 -2.40125,4.9116 -7.35563,8.5394 -8.75252,9.7451 4.45065,-1.248 7.31735,-3.3099 9.56217,-4.4178 2.24483,-1.1079 6.83041,-3.3422 7.08088,-7.8156 z"
+       id="path4313"
+       inkscape:connector-curvature="0"
+       transform="translate(0,-539.99999)"
+       sodipodi:nodetypes="czczcc" />
+    <path
+       style="fill:#000000;fill-opacity:1;stroke:none"
+       d="m 611.80507,1178.2575 c -9.98495,3.8124 -22.14843,19.879 -13.70661,35.3104 -2.08777,-6.4449 -1.79607,-14.5856 2.72317,-22.2393 4.51924,-7.6536 10.98344,-13.0711 10.98344,-13.0711 z"
+       id="path4315"
+       inkscape:connector-curvature="0"
+       transform="translate(0,-539.99999)"
+       sodipodi:nodetypes="cczc" />
+    <path
+       sodipodi:nodetypes="ccc"
+       inkscape:connector-curvature="0"
+       id="path4321"
+       d="m 608.53727,634.08191 c -11.80039,1.3616 -21.05917,12.3451 -17.51905,27.0502 -0.003,-12.8821 6.11364,-22.9346 17.51905,-27.0502 z"
+       style="fill:#000000;fill-opacity:1;stroke:none" />
+    <path
+       style="fill:#000000;fill-opacity:1;stroke:none"
+       d="m 600.00467,632.62955 c -8.05083,0.76305 -14.36765,6.91824 -11.9524,15.15903 -0.002,-7.21917 4.17104,-12.85263 11.9524,-15.15903 z"
+       id="path4317"
+       inkscape:connector-curvature="0"
+       sodipodi:nodetypes="ccc" />
   </g>
   <g
      inkscape:label="Layer 1"

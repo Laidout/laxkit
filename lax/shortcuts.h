@@ -190,8 +190,8 @@ class ShortcutManager : public LaxFiles::DumpUtility, public anObject
 	virtual int LoadKeysOnly(const char *file);
 	virtual int Save(const char *file=NULL, const char *header=NULL);
 	virtual int SaveHTML(const char *file=NULL);
-	virtual void dump_out(FILE *f,int indent,int what,Laxkit::anObject *savecontext);
-	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,Laxkit::anObject *loadcontext);
+	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *savecontext);
+	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *loadcontext);
 	virtual char *ShortcutString(ShortcutDef *def, char *buffer);
 	virtual char *ShortcutString(unsigned int key, unsigned long state, char *buffer);
 	virtual int KeyAndState(const char *str, unsigned int *key,unsigned int *state);

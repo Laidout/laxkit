@@ -92,7 +92,7 @@ Palette::~Palette()
 }
 
 //! Dump out the palette to an Attribute, in standard format (what is ignored).
-Attribute *Palette::dump_out_atts(Attribute *att,int what,anObject *savecontext)
+Attribute *Palette::dump_out_atts(Attribute *att,int what,LaxFiles::DumpContext *context)
 {
 	if (!att) att=new Attribute;
 
@@ -133,7 +133,7 @@ Attribute *Palette::dump_out_atts(Attribute *att,int what,anObject *savecontext)
  * number of initial numbers, then the first non-number character signals the start
  * of the name of the color.
  */
-void Palette::dump_in_atts(Attribute *att,int flag,anObject *loadcontext)
+void Palette::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *loadcontext)
 {
 	int c;
 	char *value,*name;
@@ -175,7 +175,7 @@ void Palette::dump_in_atts(Attribute *att,int flag,anObject *loadcontext)
  *
  * or LAX_GIMP_PALETTE
  */
-void Palette::dump_in(FILE *f,int indent,int what,anObject *loadcontext,Attribute **Att)
+void Palette::dump_in(FILE *f,int indent,int what,LaxFiles::DumpContext *loadcontext,Attribute **Att)
 {
 	if (what==LAX_GIMP_PALETTE) {
 		 // Read in
@@ -244,7 +244,7 @@ void Palette::dump_in(FILE *f,int indent,int what,anObject *loadcontext,Attribut
  * \todo translateable metadata fields?
  * \todo color management, specify color profile to go along with palette
  */
-void Palette::dump_out(FILE *f,int indent,int what,anObject *context)
+void Palette::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
 {
 	if (what==LAX_GIMP_PALETTE) {
 		fprintf(f,"GIMP Palette\n");
@@ -488,17 +488,16 @@ int PaletteWindow::send()
  * Currently, this dec_counts the old, and installs a new one.
  * 
  * Return 0 for success, or nonzero error.
- * 
- * \todo *** check readability of the file...
- * \todo *** make a default palette for file==NULL 32x8 rainbow
  */
 int PaletteWindow::LoadPalette(const char *file)
 {
 	FILE *f=fopen(file,"r");
 	if (!f) return 1;
+
 	Palette *p=new Palette;
 	p->dump_in(f,0,LAX_GIMP_PALETTE,NULL,NULL);
 	fclose(f);
+
 	if (p->colors.n) {
 		if (palette) palette->dec_count();
 		palette=p;
@@ -507,6 +506,7 @@ int PaletteWindow::LoadPalette(const char *file)
 		needtodraw=1;
 		return 0;
 	} 
+
 	delete p;
 	return 1;
 }

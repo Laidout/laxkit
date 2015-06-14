@@ -40,9 +40,9 @@ class SomeDataRef : virtual public SomeData
 	virtual const char *whattype() { return "SomeDataRef"; }
 
 	virtual SomeData *duplicate(SomeData *dup);
-	virtual void dump_out(FILE *f,int indent,int what,Laxkit::anObject *context);
-	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,Laxkit::anObject *context);
-	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,Laxkit::anObject *savecontext);
+	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
+	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
+	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context);
 
 	virtual int Set(SomeData *d, int ignore_matrix);
 	virtual SomeData *GetFinalObject();

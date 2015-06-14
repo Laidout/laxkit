@@ -53,6 +53,7 @@ class Attribute {
 	virtual int push(const char *nname);
 	virtual int push(const char *nname,const char *nval,int where=-1);
 	virtual int push(const char *nname,long nval,int where=-1);
+	virtual int push(const char *nname,unsigned long nval,int where=-1);
 	virtual int push(const char *nname,int nval,int where=-1);
 	virtual int push(const char *nname,double nval,int where=-1);
 	virtual int remove(int index);
@@ -65,6 +66,14 @@ class Attribute {
 	virtual void  dump_out_full    (FILE *f, int Indent);
 };
 
+class AttributeObject : public Attribute
+{
+  public:
+	AttributeObject();
+	AttributeObject(const char *nn, const char *nval,const char *nt=NULL);
+	virtual ~AttributeObject();
+	virtual Attribute *duplicate(); 
+};
 
 //---------------------------------- Dump helper functions ---------------------------------
 void dump_out_value(FILE *f,int indent,const char *value, int noquotes=0);

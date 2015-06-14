@@ -18,7 +18,7 @@
 //    License along with this library; if not, write to the Free Software
 //    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
-//    Copyright (C) 2004-2006,2012 by Tom Lechner
+//    Copyright (C) 2004-2006,2012,2015 by Tom Lechner
 //
 #ifndef _LAX_ANOBJECT_H
 #define _LAX_ANOBJECT_H
@@ -27,9 +27,6 @@
 
 namespace Laxkit {
 
-class anObject;
-typedef int (*DeleteRefCountedFunc)(anObject *obj);
-
 
 class anObject 
 {
@@ -37,16 +34,18 @@ class anObject
 	int _count;
   public:
 	int suppress_debug;
-	DeleteRefCountedFunc deleteMe;
 	unsigned long object_id;
 	char *object_idstr;
 	anObject();
 	virtual ~anObject();
 	virtual const char *whattype() { return "anObject"; }
+	virtual anObject *ObjectOwner() { return NULL; }
 	virtual anObject *duplicate(anObject *ref=NULL) { return NULL; }
 	virtual int inc_count();
 	virtual int dec_count();
 	virtual int the_count() { return _count; }
+	virtual const char *Id();
+	virtual const char *Id(const char *newid);
 };
 
 

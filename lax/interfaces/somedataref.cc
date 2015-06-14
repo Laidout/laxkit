@@ -133,7 +133,7 @@ SomeData *SomeDataRef::duplicate(SomeData *dup)
 	return dup;
 }
 
-void SomeDataRef::dump_out(FILE *f,int indent,int what,Laxkit::anObject *context)
+void SomeDataRef::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
 {
 	char spc[indent+1]; memset(spc,' ',indent); spc[indent]='\0';
 
@@ -159,7 +159,7 @@ void SomeDataRef::dump_out(FILE *f,int indent,int what,Laxkit::anObject *context
 	fprintf(f,"%smaxy %.10g\n",spc,maxy);
 }
 
-LaxFiles::Attribute *SomeDataRef::dump_out_atts(LaxFiles::Attribute *att,int what,Laxkit::anObject *savecontext)
+LaxFiles::Attribute *SomeDataRef::dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *savecontext)
 {
 	if (!att) att=new Attribute("SomeDataRef",NULL);
 
@@ -183,7 +183,7 @@ LaxFiles::Attribute *SomeDataRef::dump_out_atts(LaxFiles::Attribute *att,int wha
 
 /*! Only read in the id. It is up to the program reading in to substitute references for actual objects.
  */
-void SomeDataRef::dump_in_atts(LaxFiles::Attribute *att,int flag,Laxkit::anObject *context)
+void SomeDataRef::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context)
 {
 	if (!att) return;
 	SomeData::dump_in_atts(att,flag,context);

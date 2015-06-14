@@ -149,8 +149,8 @@ class anInterface : virtual public Laxkit::EventReceiver,
 	virtual double GetVMag(int x,int y);
 
 	 //input and output
-	virtual void dump_out(FILE *f,int indent,int what,Laxkit::anObject *savecontext);
-	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,Laxkit::anObject *loadcontext);
+	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *savecontext);
+	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *loadcontext);
 };
 
 

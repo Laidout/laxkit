@@ -30,6 +30,7 @@
 #include <lax/laxutils.h>
 #include <lax/language.h>
 #include <lax/popupmenu.h>
+#include <lax/lineedit.h>
 
 #include <lax/lists.cc>
 #include <lax/refptrstack.cc>
@@ -232,6 +233,9 @@ ViewportWindow::ViewportWindow(Laxkit::anXWindow *parnt,const char *nname,const 
 	sc=NULL;
 
 	selection=NULL;
+
+	temp_input=NULL;
+	temp_input_interface=0;
 }
 
 //! Deletes dp.
@@ -833,6 +837,19 @@ void ViewportWindow::Refresh()
 		}
 
 		RefreshOver();
+
+		if (temp_input && temp_input_label) {
+			dp->DrawScreen();
+ 			dp->NewBG(temp_input->win_colors->bg);
+ 			dp->NewFG(temp_input->win_colors->fg);
+			int th=dp->textheight();
+			dp->drawRoundedRect(temp_input->win_x-5,temp_input->win_y-1.2*th-5,          
+	                            temp_input->win_w+temp_input->win_border*2+10, 1.2*th+temp_input->win_h+temp_input->win_border*2,
+								5, 0, 5, 0, 2);
+ 			dp->NewFG(temp_input->win_colors->fg);
+			dp->textout(temp_input->win_x,temp_input->win_y, temp_input_label,-1, LAX_LEFT|LAX_BOTTOM);
+			dp->DrawReal();
+		}
 		
 		 // draw real axes length 10
 		//dp->drawaxes(10);
@@ -845,6 +862,52 @@ void ViewportWindow::Refresh()
 	
 	//DBG cerr <<" All done default refreshing.\n";
 	needtodraw=0;
+}
+
+/*! Redefined from anXWindow, we need to catch when we have an input window up..
+ */
+int ViewportWindow::deletekid(anXWindow *w)
+{
+	if (!temp_input || w!=temp_input) return anXWindow::deletekid(w);
+
+	temp_input=NULL;
+	temp_input_interface=0;
+	needtodraw=1;
+	win_style|=temp_grab;
+	if (temp_grab&ANXWIN_HOVER_FOCUS) app->setfocus(this, 0, NULL);
+
+	return anXWindow::deletekid(w);
+}
+
+/*! Return NULL if temp_input already there. Else return the newly created window.
+ */
+Laxkit::anXWindow *ViewportWindow::SetupInputBox(unsigned long owner_id, const char *label, const char *text, const char *message,
+									const Laxkit::DoubleBBox &bounds)
+{
+	if (temp_input) return NULL;
+
+	 //1. set up a LineEdit to get some input
+	 //2. temporarily toggle off viewport grab mode if necessary, to keep input in the edit
+	LineEdit *le= new LineEdit(this, label,label,
+								LINEEDIT_DESTROY_ON_ENTER|LINEEDIT_GRAB_ON_MAP|ANXWIN_ESCAPABLE|ANXWIN_OUT_CLICK_DESTROYS|ANXWIN_HOVER_FOCUS,
+								bounds.minx,bounds.miny,
+								bounds.maxx-bounds.minx, bounds.maxy-bounds.miny,
+								4, //border
+								NULL,owner_id,message,
+								text);
+	le->padx=le->pady=dp->textheight()*.1;
+	le->SetSelection(0,-1);
+	app->addwindow(le);
+
+	temp_input=le;
+	temp_input_interface=owner_id;
+	makestr(temp_input_label, label);
+
+	temp_grab=win_style&ANXWIN_HOVER_FOCUS;
+	win_style&=~ANXWIN_HOVER_FOCUS;
+
+	needtodraw=1;
+	return le;
 }
 
 //! Scroll, and zoom.

@@ -27,35 +27,44 @@
 #include <lax/anobject.h>
 #include <lax/attributes.h>
 #include <lax/laxdefs.h>
+#include <lax/errorlog.h>
 
 namespace LaxFiles {
-
-//------------------------------- DumpUtility ---------------------------------
-class DumpUtility
-{
- public:
-	virtual void       dump_out(FILE *f,int indent,int what,Laxkit::anObject *savecontext) =0;
-	virtual Attribute *dump_out_atts(Attribute *att,int what,Laxkit::anObject *savecontext) { return NULL; }
-
-	virtual void dump_in (FILE *f,int indent,int what,Laxkit::anObject *loadcontext,Attribute **att);
-	virtual void dump_in_atts(Attribute *att,int flag,Laxkit::anObject *loadcontext) =0;
-
-	virtual ~DumpUtility() {}
-};
 
 
 //------------------------------- DumpContext ---------------------------------
 class DumpContext : public Laxkit::anObject
 {
  public:
+	int what;
+	int zone; //like 0 for document, 1 for project, 2 for component (for instance, app dependent)
+	unsigned long initiator; //object_id of top initiating object
+
 	char *basedir;
 	char subs_only;
-	unsigned long initiator;
+	Laxkit::anObject *extra;
+
+	Laxkit::ErrorLog *log;
 
 	DumpContext();
-	DumpContext(const char *b,char s, unsigned long initer);
+	DumpContext(const char *nbasedir,char nsubs_only, unsigned long initer);
 	virtual ~DumpContext();
 };
+
+
+//------------------------------- DumpUtility ---------------------------------
+class DumpUtility
+{
+ public:
+	virtual void       dump_out(FILE *f,int indent,int what,DumpContext *context) =0;
+	virtual Attribute *dump_out_atts(Attribute *att,int what,DumpContext *context) { return NULL; }
+
+	virtual void dump_in (FILE *f,int indent,int what,DumpContext *context,Attribute **att);
+	virtual void dump_in_atts(Attribute *att,int flag,DumpContext *context) =0;
+
+	virtual ~DumpUtility() {}
+};
+
 
 
 } // namespace LaxFiles

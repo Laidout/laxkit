@@ -365,7 +365,7 @@ CreateNewImageFunc       create_new_image        = NULL;
 
 //------------------- save_image 
 
-extern SaveImageFunc  save_image=NULL;
+SaveImageFunc  save_image=NULL;
 
 
 //---------------------- preview creation

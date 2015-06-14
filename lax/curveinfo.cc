@@ -133,14 +133,14 @@ CurveInfo &CurveInfo::operator=(CurveInfo &l)
 	return l;
 }
 
-void CurveInfo::dump_out(FILE *f,int indent,int what,anObject *context)
+void CurveInfo::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
 {
     Attribute att;
     dump_out_atts(&att,0,context);
     att.dump_out(f,indent);
 }
 
-LaxFiles::Attribute *CurveInfo::dump_out_atts(LaxFiles::Attribute *att,int what,anObject *context)
+LaxFiles::Attribute *CurveInfo::dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context)
 {
 	if (!att) att=new Attribute(whattype(),NULL);
 
@@ -175,7 +175,7 @@ LaxFiles::Attribute *CurveInfo::dump_out_atts(LaxFiles::Attribute *att,int what,
 
 /*! Please note RefreshLookup() is NOT called here.
  */
-void CurveInfo::dump_in_atts(LaxFiles::Attribute *att,int flag,anObject *context)
+void CurveInfo::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context)
 {
 	char *name,*value;
 	for (int c=0; c<att->attributes.n; c++) {

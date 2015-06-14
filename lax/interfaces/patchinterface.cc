@@ -534,7 +534,7 @@ SomeData *PatchData::duplicate(SomeData *dup)
  * If what==-1, then output a pseudocode mockup of the format. Otherwise
  * output the format as above.
  */
-void PatchData::dump_out(FILE *f,int indent,int what,Laxkit::anObject *context)
+void PatchData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
 {
 	char spc[indent+3]; memset(spc,' ',indent); spc[indent]='\0'; 
 	if (what==-1) {
@@ -589,7 +589,7 @@ void PatchData::dump_out(FILE *f,int indent,int what,Laxkit::anObject *context)
 }
 
 //! Reverse of the dump_out.
-void PatchData::dump_in_atts(Attribute *att,int flag,Laxkit::anObject *context)
+void PatchData::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *context)
 {
 	if (!att) return;
 	char *name,*value;

@@ -72,8 +72,8 @@ class ShortcutWindow : public Laxkit::RowFrame
 	virtual int CharInput(unsigned int ch, const char *buffer,int len,unsigned int state, const LaxKeyboard *kb);
 	virtual int SetSearch(const char *str, int searchtype=-1);
 
-	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,anObject *context);
-	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,anObject *context);
+	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context);
+	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
 	
 };
 

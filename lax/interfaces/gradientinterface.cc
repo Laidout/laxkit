@@ -54,6 +54,8 @@
 //                   4 = "background transparent
 // 14          Right endpoint color type
 //
+//
+//
 //-- inkscape/svg gradient format:
 //***
 //for instance:
@@ -74,6 +76,33 @@
 //        <stop offset="5%" stop-color="#F60" />
 //        <stop offset="95%" stop-color="#FF6" />
 //      </linearGradient>
+//
+//
+//
+//--css gradients: http://dev.w3.org/csswg/css-images-3/#gradient-box
+//
+//<gradient> =
+//  <linear-gradient()> | <repeating-linear-gradient()> |
+//  <radial-gradient()> | <repeating-radial-gradient()>
+//
+// linear-gradient(to top right, red, white, blue)
+//
+// linear-gradient() = linear-gradient(
+//   [ <angle> | to <side-or-corner> ]? ,
+//     <color-stop-list>
+// )
+// <side-or-corner> = [left | right] || [top | bottom]
+//
+// radial-gradient() = radial-gradient(
+//   [ [ circle               || <length> ]                          [ at <position> ]? , |
+//     [ ellipse              || [ <length> | <percentage> ]{2} ]    [ at <position> ]? , |
+//     [ [ circle | ellipse ] || <extent-keyword> ]                  [ at <position> ]? , |
+//     at <position> ,
+//   ]?
+//   <color-stop> [ , <color-stop> ]+
+// )
+// <extent-keyword> = closest-corner | closest-side | farthest-corner | farthest-side
+
 
 
 
@@ -133,7 +162,7 @@ GradientDataSpot::GradientDataSpot(double tt,int rr,int gg,int bb,int aa)
  *
  * \todo *** allow import of Gimp, Inkscape/svg, scribus gradients
  */
-void GradientDataSpot::dump_in(FILE *f,int indent,Laxkit::anObject *context, Attribute **Att)
+void GradientDataSpot::dump_in(FILE *f,int indent,LaxFiles::DumpContext *context, Attribute **Att)
 {
 	Attribute *att=new Attribute;
 	att->dump_in(f,indent);
@@ -143,7 +172,7 @@ void GradientDataSpot::dump_in(FILE *f,int indent,Laxkit::anObject *context, Att
 }
 
 //! Fill the t, red, green, blue, alpha, based on the corresponding attributes.
-void GradientDataSpot::dump_in_atts(Attribute *att,int flag,Laxkit::anObject *context)
+void GradientDataSpot::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *context)
 {
 	int c,c2=0;
 	char *value,*name;
@@ -179,7 +208,7 @@ void GradientDataSpot::dump_in_atts(Attribute *att,int flag,Laxkit::anObject *co
  *
  * \todo could have rgba vs. rgba16
  */
-void GradientDataSpot::dump_out(FILE *f,int indent,int what,Laxkit::anObject *context)
+void GradientDataSpot::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
 {
 	char spc[indent+1]; memset(spc,' ',indent); spc[indent]='\0';
 	if (what==-1) {
@@ -412,7 +441,7 @@ int GradientData::pointin(flatpoint pp,int pin)
  *  radial
  * </pre>
  */
-void GradientData::dump_in_atts(Attribute *att,int flag,Laxkit::anObject *context)
+void GradientData::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *context)
 {
 	if (!att) return;
 	char *name,*value,*e;
@@ -456,7 +485,7 @@ void GradientData::dump_in_atts(Attribute *att,int flag,Laxkit::anObject *contex
  * update this code as change happens.
  * Otherwise dumps out in indented data format as described in dump_in_atts().
  */
-void GradientData::dump_out(FILE *f,int indent,int what,Laxkit::anObject *context)
+void GradientData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
 {
 	char spc[indent+1]; memset(spc,' ',indent); spc[indent]='\0';
 	if (what==-1) {

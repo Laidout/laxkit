@@ -61,8 +61,8 @@ class ColorPatchData : public PatchData
 	virtual int WhatColor(double s,double t,Laxkit::ScreenColor *color_ret);
 	virtual int hasColorData();
 
-	virtual void dump_out(FILE *f,int indent,int what,Laxkit::anObject *context);
-	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,Laxkit::anObject *context);
+	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
+	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
 };
 
 

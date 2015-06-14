@@ -701,7 +701,7 @@ int CurveMapInterface::WheelDown(int x,int y,unsigned int state,int count,const 
 	return 0;
 }
 
-Attribute *CurveMapInterface::dump_out_atts(Attribute *att,int what,anObject *context)
+Attribute *CurveMapInterface::dump_out_atts(Attribute *att,int what,LaxFiles::DumpContext *context)
 { //***
 	//if (!att) att=new Attribute(whattype(),NULL);
 	//anInterface::dump_out_atts(att,what,context);
@@ -709,7 +709,7 @@ Attribute *CurveMapInterface::dump_out_atts(Attribute *att,int what,anObject *co
 	return NULL;
 }
 
-void CurveMapInterface::dump_in_atts(LaxFiles::Attribute *att,int flag,anObject *context)
+void CurveMapInterface::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context)
 { //***
 	//anInterface::dump_in_atts(att,flag,context);
 }

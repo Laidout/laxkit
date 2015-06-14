@@ -25,7 +25,6 @@
 #include <lax/interfaces/somedatafactory.h>
 #include <lax/interfaces/imageinterface.h>
 #include <lax/interfaces/viewportwindow.h>
-#include <lax/interfaces/dumpcontext.h>
 #include <lax/transformmath.h>
 #include <lax/strmanip.h>
 #include <lax/imagedialog.h>
@@ -176,7 +175,7 @@ ImageData &ImageData::operator=(ImageData &i)
  * update this code as change happens.
  * Otherwise dumps out in indented data format as above.
  */
-void ImageData::dump_out(FILE *f,int indent,int what,Laxkit::anObject *context)
+void ImageData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
 {
 	char spc[indent+1]; memset(spc,' ',indent); spc[indent]='\0';
 	
@@ -229,7 +228,7 @@ void ImageData::dump_out(FILE *f,int indent,int what,Laxkit::anObject *context)
 	}
 }
 	
-LaxFiles::Attribute *ImageData::dump_out_atts(LaxFiles::Attribute *att,int what,Laxkit::anObject *savecontext)
+LaxFiles::Attribute *ImageData::dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *savecontext)
 {
    if (!att) att=new Attribute(whattype(),NULL);
 
@@ -287,7 +286,7 @@ LaxFiles::Attribute *ImageData::dump_out_atts(LaxFiles::Attribute *att,int what,
  *
  * If context is a DumpContext, then expand relative paths accordingly.
  */
-void ImageData::dump_in_atts(Attribute *att,int flag,anObject *context)
+void ImageData::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *context)
 {
 	if (!att) return;
 	char *name,*value;

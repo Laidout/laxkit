@@ -48,13 +48,13 @@ namespace LaxFiles {
  *
  */
 
-/*! \fn  void DumpUtility::dump_out(FILE *f,int indent,int what,anObject *savecontext)
+/*! \fn  void DumpUtility::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *savecontext)
  * \brief what==0 means write out an Attribute formatted file.
  *
  * what==-1 should mean write out a definition snippet that represents
  * what attributes can be passed in to this object.
  */
-/*! \fn  Attribute *DumpUtility::dump_out_atts(Attribute *att,int what,anObject *savecontext)
+/*! \fn  Attribute *DumpUtility::dump_out_atts(Attribute *att,int what,LaxFiles::DumpContext *savecontext)
  * \brief Default is return NULL. what==0 means write out normal Attribute formatted things.
  *
  * If att==NULL, then create and return a new Attribute. Otherwise just
@@ -64,7 +64,7 @@ namespace LaxFiles {
  *   what attributes can be passed in to this object. this would make it a snap to
  *   produce the Attribute equivalent of dtd information..
  */
-/*! \fn  void DumpUtility::dump_in_atts(Attribute *att,int flag,anObject *loadcontext)
+/*! \fn  void DumpUtility::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *loadcontext)
  * \brief Read the Attribute and take away what it can.
  *
  * \todo in future might have a flag somehow to remove atts that are processed (flag=1)..
@@ -83,9 +83,9 @@ namespace LaxFiles {
  * subclasses to read in from other file formats, like a PathsData reading in an SVG,
  * for instance.
  *
- * loadcontext, if not NULL, will typically be something like a LaxInterfaces::LoadContext object.
+ * loadcontext, if not NULL, will typically be something like a Laxkit::DumpContext object.
  */
-void DumpUtility::dump_in(FILE *f,int indent,int what,anObject *loadcontext,Attribute **Att)
+void DumpUtility::dump_in(FILE *f,int indent,int what,LaxFiles::DumpContext *loadcontext,Attribute **Att)
 {
 	Attribute *att=new Attribute;
 	att->dump_in(f,indent);
@@ -112,19 +112,33 @@ void DumpUtility::dump_in(FILE *f,int indent,int what,anObject *loadcontext,Attr
 DumpContext::DumpContext()
 	: basedir(NULL), subs_only(0)
 {
+	what=0;
+	zone=0;
+
 	initiator=0;
+	extra=NULL;
+
+	log=NULL;
 }
 
-DumpContext::DumpContext(const char *b,char s, unsigned long initer)
+DumpContext::DumpContext(const char *nbasedir,char nsubs_only, unsigned long initer)
 {
-	basedir=newstr(b);
-	subs_only=s;
+	basedir=newstr(nbasedir);
+	subs_only=nsubs_only;
 	initiator=initer;
+	extra=NULL;
+
+	what=0;
+	zone=0;
+	log=NULL;
 }
 
+/*! Dec count on extra if not NULL.
+ */
 DumpContext::~DumpContext()
 {
 	if (basedir) delete[] basedir;
+	if (extra) extra->dec_count();
 }
 
 

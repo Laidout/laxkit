@@ -67,10 +67,6 @@ class ImageDialog : public RowFrame
 	virtual int Event(const EventData *data,const char *mes);
 	virtual int CharInput(unsigned int ch,const char *buffer,int len,unsigned int state,const LaxKeyboard *d);
 	virtual void closeWindow();
-
-	//virtual void dump_out(FILE *f,int indent,int what);
-	//virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what);
-	//virtual void dump_in_atts(LaxFiles::Attribute *att,int flag);
 };
 
 } //namespace Laxkit

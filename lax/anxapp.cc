@@ -165,43 +165,49 @@ anXWindow *TopWindow(anXWindow *win)
 WindowColors::WindowColors()
 {
 	 //these are standard "Light" colors for anXApp::color_panel
-	fg  	=rgbcolor( 32, 32, 32);
-	bg  	=rgbcolor(192,192,192);
-	hfg  	=rgbcolor(  0,  0,  0);
-	hbg  	=rgbcolor(127,127,127);
-	moverfg	=rgbcolor( 32, 32, 32);
-	moverbg	=rgbcolor(164,164,164);
-	grayedfg=rgbcolor(100,100,100);
-	color1	=rgbcolor(128,128,128);
-	color2	=rgbcolor(128,128,128);
+	fg  	  =rgbcolor( 32, 32, 32);
+	bg  	  =rgbcolor(192,192,192);
+	hfg  	  =rgbcolor(  0,  0,  0);
+	hbg  	  =rgbcolor(127,127,127);
+	moverfg	  =rgbcolor( 32, 32, 32);
+	moverbg	  =rgbcolor(164,164,164);
+	grayedfg  =rgbcolor(100,100,100);
+	color1	  =rgbcolor(128,128,128);
+	color2	  =rgbcolor(128,128,128);
+	activate  =rgbcolor(  0,200,  0);
+	deactivate=rgbcolor(255,100,100);
 }
 
 //! Initialize the color info.
 WindowColors::WindowColors(const WindowColors &l)
 {
-	fg  	= l.fg;
-	bg  	= l.bg;
-	hfg  	= l.hfg;
-	hbg  	= l.hbg;
-	moverfg	= l.moverfg;
-	moverbg	= l.moverbg;
-	grayedfg= l.grayedfg;
-	color1	= l.color1;
-	color2	= l.color2;
+	fg  	  = l.fg;
+	bg  	  = l.bg;
+	hfg  	  = l.hfg;
+	hbg  	  = l.hbg;
+	moverfg	  = l.moverfg;
+	moverbg	  = l.moverbg;
+	grayedfg  = l.grayedfg;
+	color1	  = l.color1;
+	color2	  = l.color2;
+	activate  = l.activate;
+	deactivate= l.deactivate;
 }
 
 //! Copy the color info.
 WindowColors &WindowColors::operator=(WindowColors &l)
 {
-	fg  	= l.fg;
-	bg  	= l.bg;
-	hfg  	= l.hfg;
-	hbg  	= l.hbg;
-	moverfg	= l.moverfg;
-	moverbg	= l.moverbg;
-	grayedfg= l.grayedfg;
-	color1	= l.color1;
-	color2	= l.color2;
+	fg  	  = l.fg;
+	bg  	  = l.bg;
+	hfg  	  = l.hfg;
+	hbg  	  = l.hbg;
+	moverfg	  = l.moverfg;
+	moverbg	  = l.moverbg;
+	grayedfg  = l.grayedfg;
+	color1	  = l.color1;
+	color2	  = l.color2;
+	activate  = l.activate;
+	deactivate= l.deactivate;
 	return l;
 }
 
@@ -426,7 +432,7 @@ anXApp *anXApp::app=NULL;
  *  call glXMakeCurrent(dpy, win->xlib_window, cx);  before gl calls
  * </pre>
  */
-/*! \var LaxFiles::Attribute anXApp::resources
+/*! \var LaxFiles::Attribute anXApp::app_resources
  * \brief A simple resource holder.
  *
  * This is used by, for instance, FileDialog to remember where the dialog was on
@@ -434,8 +440,8 @@ anXApp *anXApp::app=NULL;
  *
  * If you want an application to remember such settings between starting and stopping,
  * then your class derived from anXApp must implement its own file save and load. This is
- * simply a matter of choosing a file to save to, and calling resources.dump_out(FILE*,int)
- * and resources.dump_in(file,0,NULL).
+ * simply a matter of choosing a file to save to, and calling app_resources.dump_out(FILE*,int)
+ * and app_resources.dump_in(file,0,NULL).
  */
 /*! \var char *anXApp::app_profile
  * \brief The default application profile, if any.
@@ -804,9 +810,9 @@ int anXApp::Tooltips(int on)
  * This is currently used by various dialogs to store their window size and position settings,
  * stored by their class name. Also used to store file bookmarks as a resource named "Bookmarks".
  */
-LaxFiles::Attribute *anXApp::Resource(const char *name)
+LaxFiles::Attribute *anXApp::AppResource(const char *name)
 {
-	return resources.find(name);
+	return app_resources.find(name);
 }
 
 //! Append to or replace a resource. The resource belongs to the type of thing in resource->name.
@@ -819,15 +825,15 @@ LaxFiles::Attribute *anXApp::Resource(const char *name)
  * \todo might be wise to have reference counted resources, but that's maybe getting too complicated
  *    for what these resources are mainly meant for, that is: info used upon dialog creation
  */
-int anXApp::Resource(LaxFiles::Attribute *resource)
+int anXApp::AppResource(LaxFiles::Attribute *resource)
 {
 	if (!resource) return 1;
-	LaxFiles::Attribute *att=resources.find(resource->name);
+	LaxFiles::Attribute *att=app_resources.find(resource->name);
 	if (att && att==resource) return 0; //already there
 
 	 //else remove old, push new
-	resources.attributes.remove(resources.attributes.findindex(att));
-	resources.push(resource,-1);
+	app_resources.attributes.remove(app_resources.attributes.findindex(att));
+	app_resources.push(resource,-1);
 	return 0;
 }
 

@@ -18,7 +18,7 @@
 //    License along with this library; if not, write to the Free Software
 //    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
-//    Copyright (C) 2004-2007,2010-2014 by Tom Lechner
+//    Copyright (C) 2004-2007,2010-2015 by Tom Lechner
 //
 #ifndef _LAX_PATHINTERFACE_H
 #define _LAX_PATHINTERFACE_H
@@ -161,8 +161,8 @@ class Path : public LaxFiles::DumpUtility, public Laxkit::DoubleBBox
 	virtual bool IsClosed();
 	virtual int GetIndex(Coordinate *p, bool ignore_controls);
 
-	virtual void dump_out(FILE *f,int indent,int what,Laxkit::anObject *context);
-	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,Laxkit::anObject *context);
+	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
+	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
 };
 
 
@@ -233,8 +233,8 @@ class PathsData : virtual public SomeData
 	virtual double Length(int pathi, double tstart,double tend);
 	//virtual int NumPoints(int vertices=1);
 
-	virtual void dump_out(FILE *f,int indent,int what,Laxkit::anObject *context);
-	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,Laxkit::anObject *context);
+	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
+	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
 };
 
 
@@ -255,8 +255,8 @@ class PathOperator : public Laxkit::anObject
 
 	PathOperator(int nid=-1);
 	virtual ~PathOperator();
-	virtual void dumpOut(FILE *f, int indent, SegmentControls *controls, int what, Laxkit::anObject *context) = 0;
-	virtual void dumpIn(Coordinate *attachto, LaxFiles::Attribute *att, Laxkit::anObject *context) = 0;
+	virtual void dumpOut(FILE *f, int indent, SegmentControls *controls, int what, LaxFiles::DumpContext *context) = 0;
+	virtual void dumpIn(Coordinate *attachto, LaxFiles::Attribute *att, LaxFiles::DumpContext *context) = 0;
 
 	virtual void drawControls(Laxkit::Displayer *dp, int which, SegmentControls *controls,
 							  int showdecs, PathInterface *pathi) = 0;

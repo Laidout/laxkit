@@ -105,6 +105,11 @@ class ViewportWindow : public Laxkit::PanUser, public Laxkit::anXWindow
 
 	Selection *selection;
 
+	Laxkit::anXWindow *temp_input;
+	unsigned long temp_input_interface;
+	char *temp_input_label;
+	unsigned int temp_grab;
+
 	Laxkit::ButtonDownInfo buttondown;
 	Laxkit::ShortcutHandler *sc;
 	virtual int PerformAction(int action);
@@ -113,6 +118,8 @@ class ViewportWindow : public Laxkit::PanUser, public Laxkit::anXWindow
 	Laxkit::Scroller *xscroller,*yscroller;
 	virtual void syncrulers(int which=3);
 	virtual void syncWithDp();
+
+	virtual int deletekid(anXWindow *w);
 
   public:
 	Laxkit::Displayer *dp;
@@ -183,6 +190,9 @@ class ViewportWindow : public Laxkit::PanUser, public Laxkit::anXWindow
 	virtual flatpoint screentoreal(int x,int y);
 	virtual double Getmag(int c=0);
 	virtual double GetVMag(int x,int y);
+
+	 //helper for grabbing custom input for interfaces
+	virtual Laxkit::anXWindow *SetupInputBox(unsigned long owner_id, const char *label, const char *text, const char *message, const Laxkit::DoubleBBox &bounds);
 };
 
 } // namespace LaxInterfaces

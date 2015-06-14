@@ -388,7 +388,7 @@ int MessageBar::Resize(int nw,int nh)
  *
  * Default is to add attributes for "text", and whatever anXWindow adds.
  */
-Attribute *MessageBar::dump_out_atts(Attribute *att,int what,anObject *context)
+Attribute *MessageBar::dump_out_atts(Attribute *att,int what,LaxFiles::DumpContext *context)
 {
 	if (!att) att=new Attribute(whattype(),NULL);
 	anXWindow::dump_out_atts(att,what,context);
@@ -419,7 +419,7 @@ Attribute *MessageBar::dump_out_atts(Attribute *att,int what,anObject *context)
 
 /*! Default is to read in text, and whatever anXWindow reads.
  */
-void MessageBar::dump_in_atts(Attribute *att,int flag,anObject *context)
+void MessageBar::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *context)
 {
 	anXWindow::dump_in_atts(att,flag,context);
 

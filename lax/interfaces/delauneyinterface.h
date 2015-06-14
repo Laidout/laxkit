@@ -89,8 +89,8 @@ class VoronoiData : virtual public LaxInterfaces::SomeData
 	virtual ~VoronoiData();
 	virtual const char *whattype() { return "VoronoiData"; }
 	virtual void FindBBox();
-	virtual void dump_out(FILE *f,int indent,int what,Laxkit::anObject *context);
-	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,Laxkit::anObject *context);
+	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
+	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
 
 	virtual void Triangulate();
 	virtual void RebuildVoronoi(bool triangulate_also=true);

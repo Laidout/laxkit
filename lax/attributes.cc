@@ -1318,6 +1318,7 @@ int Attribute::push(const char *nname,int nval,int where)
 	Attribute *v=new Attribute(nname,scratch,NULL);
 	return push(v,where);
 }
+
 //! Push a simple nname==nval attribute onto this.
 /*! Note that this simply pushes a new Attribute with name and a string for value 
  * equivalent to nval. It calls push(Attribute *,int). 
@@ -1328,6 +1329,20 @@ int Attribute::push(const char *nname,long nval,int where)
 {
 	char scratch[20];
 	sprintf(scratch,"%ld",nval);
+	Attribute *v=new Attribute(nname,scratch,NULL);
+	return push(v,where);
+}
+
+//! Push a simple nname==nval attribute onto this.
+/*! Note that this simply pushes a new Attribute with name and a string for value 
+ * equivalent to nval. It calls push(Attribute *,int). 
+ *
+ * If where==-1, then push onto the top of the stack.
+ */
+int Attribute::push(const char *nname,unsigned long nval,int where)
+{
+	char scratch[20];
+	sprintf(scratch,"%lu",nval);
 	Attribute *v=new Attribute(nname,scratch,NULL);
 	return push(v,where);
 }
@@ -1855,6 +1870,36 @@ Attribute *NameValueToAttribute(Attribute *att,const char *str, char assign, cha
 	return att;
 }
 
+
+
+//---------------------------------- AttributeObject -----------------------------------	
+/*! \class AttributeObject
+ *
+ * Just like Attribute, but subclassing anObject so as to be reference countable.
+ */
+
+
+AttributeObject::AttributeObject()
+  : Attribute()
+{}
+
+AttributeObject::AttributeObject(const char *nn, const char *nval,const char *nt)
+  : Attribute(nn,nval,nt)
+{}
+
+AttributeObject::~AttributeObject()
+{}
+
+Attribute *AttributeObject::duplicate()
+{
+	Attribute *att=new AttributeObject(name,value,atttype);
+	att->flags=flags;
+	for (int c=0; c<attributes.n; c++) {
+		if (!attributes.e[c]) continue; //tweak to ignore NULL attributes
+		att->push(attributes.e[c]->duplicate(),-1);
+	}
+	return att;
+}
 
 //---------------------------------- XML Conversion Helpers -----------------------------------	
 

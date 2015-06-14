@@ -83,6 +83,8 @@ class WindowColors : public anObject
 	unsigned long grayedfg; //assume bg is same as normal bg
 	unsigned long color1;
 	unsigned long color2;
+	unsigned long activate;  //usually green for go
+	unsigned long deactivate;//usually red for stop
 
 	WindowColors();
 	WindowColors(const WindowColors &l);
@@ -292,9 +294,9 @@ class anXWindow : virtual public EventReceiver,
 	virtual void SetOwner(unsigned long nowner_id,const char *mes=NULL, unsigned int send_mask=0);
 
 	 //serializing aids
-	virtual void dump_out(FILE *f,int indent,int what,anObject *context);
-	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,anObject *context);
-	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,anObject *context);
+	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
+	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context);
+	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
 };
 
 //-------------------------- TimerInfo ----------------------------------------
@@ -375,7 +377,7 @@ class anXApp : virtual public anObject
 
 	char                    dontstop;
 	unsigned long           dialog_mask;
-	LaxFiles::Attribute     resources;
+	LaxFiles::Attribute     app_resources;
 	PtrStack<anXWindow>     dialogs;
 	RefPtrStack<anXWindow>  topwindows;
 	RefPtrStack<anXWindow>  outclickwatch;
@@ -458,8 +460,8 @@ class anXApp : virtual public anObject
 	 //resources
 	virtual int Tooltips(int on);
 	virtual int has(int what);
-	virtual LaxFiles::Attribute *Resource(const char *name);
-	virtual int Resource(LaxFiles::Attribute *resource);
+	virtual LaxFiles::Attribute *AppResource(const char *name);
+	virtual int AppResource(LaxFiles::Attribute *resource);
 	virtual int DefaultIcon(const char *file);
 	virtual int DefaultIcon(LaxImage *image, int absorb_count);
 	virtual int ScreenInfo(int screen,int *x,int *y, int *width,int *height,int *mmwidth,int *mmheight,int *depth,int *virt);

@@ -535,7 +535,7 @@ int ShortcutWindow::CharInput(unsigned int ch, const char *buffer,int len,unsign
 	return anXWindow::CharInput(ch,buffer,len,state,kb);
 }
 
-LaxFiles::Attribute *ShortcutWindow::dump_out_atts(LaxFiles::Attribute *att,int what,anObject *context)
+LaxFiles::Attribute *ShortcutWindow::dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context)
 {
 	att=anXWindow::dump_out_atts(att,what,context);
 	TreeSelector *tree=dynamic_cast<TreeSelector*>(findChildWindowByName("tree"));
@@ -553,7 +553,7 @@ LaxFiles::Attribute *ShortcutWindow::dump_out_atts(LaxFiles::Attribute *att,int 
 	return att;
 }
 
-void ShortcutWindow::dump_in_atts(LaxFiles::Attribute *att,int flag,anObject *context)
+void ShortcutWindow::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context)
 {
 	anXWindow::dump_in_atts(att,flag,context);
 

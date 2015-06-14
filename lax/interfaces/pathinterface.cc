@@ -18,7 +18,7 @@
 //    License along with this library; if not, write to the Free Software
 //    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
-//    Copyright (C) 2004-2007,2010-2014 by Tom Lechner
+//    Copyright (C) 2004-2007,2010-2015 by Tom Lechner
 //
 
 
@@ -259,7 +259,7 @@ Path *Path::duplicate()
  *                            #the bezier approximation is appended to the path as bezier points
  * </pre>
  */
-void Path::dump_out(FILE *f,int indent,int what,Laxkit::anObject *context)
+void Path::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
 {
 	char spc[indent+1]; memset(spc,' ',indent); spc[indent]='\0';
 	if (what==-1) {
@@ -380,7 +380,7 @@ void Path::dump_out(FILE *f,int indent,int what,Laxkit::anObject *context)
  *
  * See dump_out() for format expected.
  */
-void Path::dump_in_atts(LaxFiles::Attribute *att,int flag,Laxkit::anObject *context)
+void Path::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context)
 {
 	if (!att) return;
 	char *name,*value;
@@ -2899,7 +2899,7 @@ int PathsData::fill(Laxkit::ScreenColor *color)
  *
  * Ignores what. Uses 0 for it.
  */
-void PathsData::dump_out(FILE *f,int indent,int what,Laxkit::anObject *context)
+void PathsData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
 {
 	char spc[indent+1]; memset(spc,' ',indent); spc[indent]='\0';
 	if (what==-1) {
@@ -2951,7 +2951,7 @@ void PathsData::dump_out(FILE *f,int indent,int what,Laxkit::anObject *context)
  * they should have been flushed previously. New paths read in here
  * are appended to paths stack.
  */
-void PathsData::dump_in_atts(Attribute *att,int flag,Laxkit::anObject *context)
+void PathsData::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *context)
 {
 	if (!att) return;
 	char *name,*value;

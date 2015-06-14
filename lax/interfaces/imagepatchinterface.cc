@@ -26,7 +26,6 @@
 #include <lax/interfaces/imagepatchinterface.h>
 
 #include <lax/interfaces/somedatafactory.h>
-#include <lax/interfaces/dumpcontext.h>
 #include <lax/imagedialog.h>
 #include <lax/transformmath.h>
 #include <lax/bezutils.h>
@@ -218,7 +217,7 @@ unsigned long ImagePatchData::WhatColorLong(double s,double t)
  * If what==-1, then output a pseudocode mockup of the format. Otherwise
  * output the format as above.
  */
-void ImagePatchData::dump_out(FILE *f,int indent,int what,Laxkit::anObject *context)
+void ImagePatchData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
 {
 	PatchData::dump_out(f,indent,what,context);
 	
@@ -244,7 +243,7 @@ void ImagePatchData::dump_out(FILE *f,int indent,int what,Laxkit::anObject *cont
 }
 
 //! Reverse of dump_out.
-void ImagePatchData::dump_in_atts(Attribute *att,int flag,Laxkit::anObject *context)
+void ImagePatchData::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *context)
 {
 	if (!att) return;
 	char *name,*value;

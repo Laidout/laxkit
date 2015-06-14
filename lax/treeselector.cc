@@ -242,14 +242,14 @@ int TreeSelector::InstallMenu(MenuInfo *nmenu)
 	return 0;
 }
 
-void TreeSelector::dump_out(FILE *f,int indent,int what,Laxkit::anObject *savecontext)
+void TreeSelector::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *savecontext)
 {
     LaxFiles::Attribute att;
     dump_out_atts(&att,what,savecontext);
     att.dump_out(f,indent);
 }
 
-LaxFiles::Attribute *TreeSelector::dump_out_atts(LaxFiles::Attribute *att,int what,Laxkit::anObject *savecontext)
+LaxFiles::Attribute *TreeSelector::dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *savecontext)
 {
 	if (!att) att=new LaxFiles::Attribute();
 
@@ -271,7 +271,7 @@ LaxFiles::Attribute *TreeSelector::dump_out_atts(LaxFiles::Attribute *att,int wh
 	return att;
 }
 
-void TreeSelector::dump_in_atts(LaxFiles::Attribute *att,int flag,Laxkit::anObject *loadcontext)
+void TreeSelector::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *loadcontext)
 {
 	anXWindow::dump_in_atts(att,flag,loadcontext);
 

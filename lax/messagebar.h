@@ -85,8 +85,8 @@ class MessageBar : public anXWindow
 	virtual int Resize(int nw,int nh);
 
 	 //serializing aids
-	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,anObject *context);
-	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,anObject *context);
+	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context);
+	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
 };
 
 } // namespace Laxkit
