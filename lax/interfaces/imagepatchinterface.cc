@@ -136,11 +136,10 @@ SomeData *ImagePatchData::duplicate(SomeData *dup)
 	if (!p && !dup) return NULL; //was not ImagePatchData!
 
 	char set=1;
-	if (!dup && somedatafactory) {
-		dup=somedatafactory->newObject(LAX_IMAGEPATCHDATA,this);
+	if (!dup) {
+		dup=dynamic_cast<SomeData*>(somedatafactory()->NewObject(LAX_IMAGEPATCHDATA));
 		if (dup) {
 			dup->setbounds(minx,maxx,miny,maxy);
-			set=0;
 		}
 		p=dynamic_cast<ImagePatchData*>(dup);
 	} 
@@ -386,9 +385,8 @@ anInterface *ImagePatchInterface::duplicate(anInterface *dup)//dup=NULL;
 PatchData *ImagePatchInterface::newPatchData(double xx,double yy,double ww,double hh,int nr,int nc,unsigned int stle)
 {
 	ImagePatchData *cpd=NULL;
-	if (somedatafactory) {
-		cpd=dynamic_cast<ImagePatchData *>(somedatafactory->newObject(LAX_IMAGEPATCHDATA));
-	} 
+
+	cpd=dynamic_cast<ImagePatchData *>(somedatafactory()->NewObject(LAX_IMAGEPATCHDATA));
 	if (!cpd) cpd=new ImagePatchData();//creates 1 count
 
 	//cpd->renderdepth=-recurse;

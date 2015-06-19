@@ -482,11 +482,10 @@ SomeData *PatchData::duplicate(SomeData *dup)
 	if (!p && !dup) return NULL; //was not PatchData!
 
 	char set=1;
-	if (!dup && somedatafactory) {
-		dup=somedatafactory->newObject(LAX_PATCHDATA,this);
+	if (!dup) {
+		dup=dynamic_cast<SomeData*>(somedatafactory()->NewObject(LAX_PATCHDATA));
 		if (dup) {
 			dup->setbounds(minx,maxx,miny,maxy);
-			set=0;
 		}
 		p=dynamic_cast<PatchData*>(dup);
 	} 
@@ -2967,11 +2966,12 @@ int PatchInterface::InterfaceOff()
 PatchData *PatchInterface::newPatchData(double xx,double yy,double ww,double hh,int nr,int nc,unsigned int stle)
 {
 	PatchData *ndata=NULL;
-	if (somedatafactory) {
-		ndata=dynamic_cast<PatchData *>(somedatafactory->newObject(LAX_PATCHDATA));
-		if (ndata) ndata->Set(xx,yy,ww,hh,nr,nc,stle);
-	} 
-	if (!ndata) ndata=new PatchData(xx,yy,ww,hh,nr,nc,stle);//creates 1 count
+
+	ndata=dynamic_cast<PatchData *>(somedatafactory()->NewObject(LAX_PATCHDATA));
+
+	if (ndata) ndata->Set(xx,yy,ww,hh,nr,nc,stle);
+	else ndata=new PatchData(xx,yy,ww,hh,nr,nc,stle);//creates 1 count
+
 	ndata->style|=PATCH_SMOOTH;
 	ndata->FindBBox();
 	return ndata;

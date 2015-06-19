@@ -37,7 +37,7 @@ class DumpContext : public Laxkit::anObject
 {
  public:
 	int what;
-	int zone; //like 0 for document, 1 for project, 2 for component (for instance, app dependent)
+	int zone; //app dependent, like 0 for document, 1 for project, 2 for component (for instance)
 	unsigned long initiator; //object_id of top initiating object
 
 	char *basedir;

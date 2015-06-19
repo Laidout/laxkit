@@ -20,8 +20,8 @@
 //
 //    Copyright (C) 2015 by Tom Lechner
 //
-#ifndef RESOURCES_H
-#define RESOURCES_H
+#ifndef _LAX_RESOURCES_H
+#define _LAX_RESOURCES_H
 
 #include <lax/anobject.h>
 #include <lax/dump.h>
@@ -81,21 +81,22 @@ class Resource : virtual public anObject, virtual public Tagged
 	bool linkable;
 
 	int favorite; //0 for not fav, positive for order in a favorites list
-	int source_type; //0 for object on its own, 1 for object from file, 2 for built in (do not dump out)
+	int source_type; //0 for object on its own, 1 for object from file, 2 for object from config, -1 for built in (do not dump out)
 	 //stand alone resource
 	 //temp resource: in use by a random object
 	 //resource scanned in from directory
 	char *source;
+
+	char *objecttype;
+	LaxFiles::Attribute *config; //when we are creating, not storing.
+	ResourceCreateFunc creation_func;
+	virtual anObject *Create();
 
 	Resource();
 	Resource(anObject *obj, anObject *nowner, const char *nname, const char *nName, const char *ndesc,  const char *nfile,LaxImage *nicon);
 	virtual ~Resource();
 	virtual const char *whattype() { return "Resource"; }
 
-	char *objecttype;
-	LaxFiles::Attribute *config; //when we are creating, not storing.
-	ResourceCreateFunc creation_func;
-	virtual anObject *Create();
 };
 
 
@@ -119,6 +120,8 @@ class ResourceType : public Resource
 
 	RefPtrStack<Resource> resources;
 	RefPtrStack<anObject> recent;
+
+	ResourceCreateFunc creation_func; //the default one, may be overridden for particular Resource objects
 
 	LaxImage *default_icon;
 
@@ -154,6 +157,8 @@ class ResourceManager : public anObject, public LaxFiles::DumpUtility
 	virtual anObject *FindResource(const char *name, const char *type, Resource **resource_ret=NULL);
 	virtual ResourceType *AddResourceType(const char *name, const char *Name, const char *description, LaxImage *icon);
 
+	virtual anObject *NewObjectFromType(const char *type);
+
 	virtual int AddResourceDir(const char *type, const char *dir, int where);
 	virtual int RemoveResourceDir(const char *type, const char *dir);
 	virtual ResourceType *FindType(const char *name);
@@ -161,9 +166,11 @@ class ResourceManager : public anObject, public LaxFiles::DumpUtility
 	virtual ResourceType *GetType(int which) { if (which>=0 && which<types.n) return types.e[which]; return NULL; }
 	virtual int AddDirs_XDG(int which_type);
 
-	virtual void       dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *savecontext);
-    virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *savecontext);
-    virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *loadcontext);
+	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
+	virtual void dump_out_list(ResourceType *type, FILE *f,int indent,int what,LaxFiles::DumpContext *context);
+    virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context);
+    virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
+	virtual void dump_in_list_atts(ResourceType *type, LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
 
 
 };

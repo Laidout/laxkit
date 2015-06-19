@@ -2732,11 +2732,9 @@ SomeData *PathsData::duplicate(SomeData *dup)
 	PathsData *newp=dynamic_cast<PathsData*>(dup);
 	if (!newp && dup) return NULL; //was not a PathsData!
 
-	if (!dup && somedatafactory) {
-		dup=somedatafactory->newObject(LAX_PATHSDATA,this);
-		if (dup) {
-			dup->setbounds(minx,maxx,miny,maxy);
-		}
+	if (!dup) {
+		dup=dynamic_cast<SomeData*>(somedatafactory()->NewObject(LAX_PATHSDATA));
+		if (dup) dup->setbounds(minx,maxx,miny,maxy);
 		newp=dynamic_cast<PathsData*>(dup);
 	} 
 	if (!newp) {
@@ -3399,9 +3397,7 @@ PathsData *SvgToPathsData(PathsData *existingpath, const char *d,char **end_ptr,
 
 	PathsData *paths=existingpath;
 	if (!paths) {
-		if (somedatafactory) {
-			paths=dynamic_cast<PathsData*>(somedatafactory->newObject(LAX_PATHSDATA));
-		}
+		paths=dynamic_cast<PathsData*>(somedatafactory()->NewObject(LAX_PATHSDATA));
 		if (!paths) paths=new PathsData();//creates 1 count
 	}
 	Coordinate *p=coord;
@@ -5389,10 +5385,10 @@ int PathInterface::ChangeCurpathop(int newiid)
 PathsData *PathInterface::newPathsData()
 {
 	PathsData *ndata=NULL;
-	if (somedatafactory) {
-		ndata=dynamic_cast<PathsData*>(somedatafactory->newObject(LAX_PATHSDATA));
-		if (ndata) ndata->style=creationstyle;
-	}
+
+	ndata=dynamic_cast<PathsData*>(somedatafactory()->NewObject(LAX_PATHSDATA));
+	if (ndata) ndata->style=creationstyle;
+
 	if (!ndata) ndata=new PathsData(creationstyle);//creates 1 count
 
 	if (!linestyle) { linestyle=defaultline; if (linestyle) linestyle->inc_count(); }

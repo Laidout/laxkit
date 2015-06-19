@@ -570,7 +570,7 @@ int ResourceManager::RemoveResourceDir(const char *type, const char *dir)
 }
 
 
-void ResourceManager::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *savecontext)
+void ResourceManager::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
 {
 	//Attribute att;
 	//dump_out_atts(&att,what,context);
@@ -578,16 +578,72 @@ void ResourceManager::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext
 
 	char spc[indent+3]; memset(spc,' ',indent); spc[indent]='\0';
 
+	ResourceType *type=NULL;
+
 	for (int c=0; c<types.n; c++) {
 		if (types.e[c]->ignore) continue;
 
-		fprintf(f,"%s%s\n",spc, types.e[c]->name);
-		// ***
+		type=types.e[c];
+
+		fprintf(f,"%stype %s\n",spc, type->name);
+		fprintf(f,"%s  Name %s\n",spc, type->Name);
+		fprintf(f,"%s  description %s\n",spc, type->description);
+
+		if (type->dirs.n) {
+			fprintf(f,"%s  dirs \\\n",spc);
+			for (int c=0; c<type->dirs.n; c++) {
+				fprintf(f,"%s    %s\n",spc, type->dirs.e[c]);
+			}
+		}
+		
+		dump_out_list(type, f,indent+2,0,context);
 	}
 }
 
-LaxFiles::Attribute *ResourceManager::dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *savecontext)
+void ResourceManager::dump_out_list(ResourceType *type, FILE *f,int indent,int what,LaxFiles::DumpContext *context)
 {
+	if (!type || !type->resources.n) return;
+
+	char spc[indent+3]; memset(spc,' ',indent); spc[indent]='\0';
+
+	Resource *resource;
+	for (int c=0; c<type->resources.n; c++) {
+		resource=type->resources.e[c];
+		if (resource->ignore) continue;
+
+		if (dynamic_cast<ResourceType*>(resource)) {
+			fprintf(f,"%ssublist\n",spc);
+			dump_out_list(dynamic_cast<ResourceType*>(resource), f,indent+2,what,context);
+			continue;
+		}
+
+		fprintf(f,"%sresource\n",spc);
+		fprintf(f,"%s  name %s\n",spc, resource->name);
+		fprintf(f,"%s  Name %s\n",spc, resource->Name);
+		fprintf(f,"%s  description %s\n",spc, resource->description);
+		fprintf(f,"%s  favorite %d\n",spc, resource->favorite);
+
+		if (resource->source_type==0 && resource->object) {
+			fprintf(f,"%s  object %s\n",spc, resource->object->whattype());
+			if (dynamic_cast<DumpUtility*>(resource->object));
+				dynamic_cast<DumpUtility*>(resource->object)->dump_out(f,indent+4,what,context);
+
+		} else if (resource->source_type==1 && !isblank(resource->source)) {
+			fprintf(f,"%s  file %s\n",spc, resource->source);
+
+		} else if (resource->source_type==2 && resource->config) {
+			fprintf(f,"%s  config %s\n",spc, resource->objecttype);
+			resource->config->dump_out(f,indent+4);
+
+		} else if (resource->source_type==-1) {
+			fprintf(f,"%s  builtin\n",spc);
+		} 
+	}
+}
+
+LaxFiles::Attribute *ResourceManager::dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context)
+{
+	cerr << " *** need to implement ResourceManager::dump_out_atts()!!"<<endl;
 	return NULL;
 
 //	if (!att) att=new Attribute();
@@ -599,17 +655,14 @@ LaxFiles::Attribute *ResourceManager::dump_out_atts(LaxFiles::Attribute *att,int
 
 }
 
-void ResourceManager::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *loadcontext)
+void ResourceManager::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context)
 {
 	if (!att) return;
 
 	ResourceType *type;
-    char *name,*value;
-    int c;
+    const char *name,*value;
 
-	cerr << " *** FINISH IMPLEMENTING ResourceManager::dump_in_atts()!!!"<<endl;
-
-    for (c=0; c<att->attributes.n; c++) {
+    for (int c=0; c<att->attributes.n; c++) {
         name= att->attributes.e[c]->name;
         value=att->attributes.e[c]->value;
 
@@ -617,15 +670,112 @@ void ResourceManager::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::D
 
 		if (!strcmp(name,"type")) {
 			type=FindType(value);
-			if (!type) {
-				type=AddResourceType(value,value,NULL,NULL);
+			if (!type) type=AddResourceType(value,value,NULL,NULL);
 
+			for (int c2=0; c2<att->attributes.n; c2++) {
+				name= att->attributes.e[c]->attributes.e[c2]->name;
+				value=att->attributes.e[c]->attributes.e[c2]->value;
+
+				if (!strcmp(name,"Name")) {
+					makestr(type->Name,value);
+
+				} else if (!strcmp(name,"description")) {
+					makestr(type->description,value);
+
+				} else if (!strcmp(name,"dirs")) {
+					const char *end=value;
+					char *dir;
+					while (*value) {
+						end=strchr(value,'\n');
+						if (!end) end=value+strlen(value);
+						dir=newnstr(value,end-value);
+						type->AddDir(dir,-1);
+						delete[] dir;
+						if (*end) value=end+1; else value=end;
+					}
+				}
 			}
+
+			dump_in_list_atts(type, att->attributes.e[c],0,context);
 		}
 
 	}
 }
 
+/*! Separated from main dump_in_atts() so as to allow recursive resource tree input.
+ */
+void ResourceManager::dump_in_list_atts(ResourceType *type, LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context)
+{
+    const char *name,*value;
+
+    for (int c=0; c<att->attributes.n; c++) {
+        name= att->attributes.e[c]->name;
+        value=att->attributes.e[c]->value;
+
+		if (!strcmp(name,"sublist")) {
+			ResourceType *sub=new ResourceType;
+			type->resources.push(sub);
+			sub->dec_count();
+			dump_in_list_atts(sub, att->attributes.e[c], flag,context);
+
+		} else if (!strcmp(name,"resource")) {
+			Resource *resource=new Resource;
+			int resourceok=0;
+
+			for (int c2=0; c2<att->attributes.n; c2++) {
+				name= att->attributes.e[c]->attributes.e[c2]->name;
+				value=att->attributes.e[c]->attributes.e[c2]->value;
+
+				if (!strcmp(name,"name")) {
+					makestr(resource->name,value);
+
+				} else if (!strcmp(name,"Name")) {
+					makestr(resource->Name,value);
+
+				} else if (!strcmp(name,"description")) {
+					makestr(resource->description,value);
+
+				} else if (!strcmp(name,"favorite")) {
+					resource->favorite=BooleanAttribute(value);
+
+				} else if (!strcmp(name,"object")) {
+					resource->source_type=0;
+					anObject *newobject=NewObjectFromType(value);
+					if (dynamic_cast<DumpUtility*>(newobject)) {
+						dynamic_cast<DumpUtility*>(newobject)->dump_in_atts(att->attributes.e[c]->attributes.e[c2], flag,context);
+						resourceok=1;
+					} else if (newobject) {
+						newobject->dec_count();
+					}
+
+				} else if (!strcmp(name,"file")) {
+					resource->source_type=1;
+					makestr(resource->source, value);
+					resourceok=1;
+
+				} else if (!strcmp(name,"config")) {
+					resource->source_type=2;
+					makestr(resource->objecttype,value);
+					resource->config=att->attributes.e[c]->attributes.e[c2]->duplicate();
+					resourceok=1;
+
+				} else if (!strcmp(name,"builtin")) {
+					resource->source_type=-1;
+					// *** skip
+
+				}
+			}
+
+			if (resourceok) type->resources.push(resource);
+			resource->dec_count();
+		}
+	}
+}
+
+anObject *ResourceManager::NewObjectFromType(const char *type)
+{
+	return NULL;
+}
 
 } //namespace Laxkit
 

@@ -24,10 +24,7 @@
 
 #include <lax/interfaces/somedatafactory.h>
 
-#define _LAX_SOMEDATA_SRC
 #include <lax/interfaces/somedata.h>
-#undef _LAX_SOMEDATA_SRC
-
 #include <lax/transformmath.h>
 #include <lax/misc.h>
 #include <lax/strmanip.h>
@@ -405,7 +402,7 @@ Attribute *SomeData::dump_out_atts(Attribute *att,int what,LaxFiles::DumpContext
  * taking a shortcut to duplicate components of super classes.
  *
  * If dup==NULL, then return a brand new copy of this object. In this case,
- * subclasses should first call somedatafactory->newObject(object_type, reference) and return
+ * subclasses should first call interfacemanager->NewObject(object_type, reference) and return
  * that if any, before creating one of itself.
  *
  * bboxstyle and the matrix are copied over here.
@@ -415,8 +412,8 @@ SomeData *SomeData::duplicate(SomeData *dup)
 	SomeData *ndata=dynamic_cast<SomeData*>(dup);
 	if (!ndata && !dup) return NULL;
 
-	if (!ndata && somedatafactory) {
-		ndata=somedatafactory->newObject(LAX_SOMEDATA);
+	if (!ndata) {
+		ndata=dynamic_cast<SomeData*>(somedatafactory()->NewObject(LAX_SOMEDATA));
 		if (ndata) ndata->setbounds(minx,maxx,miny,maxy);
 	} 
 	if (!ndata) ndata=new SomeData(minx,maxx,miny,maxy);

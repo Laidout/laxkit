@@ -123,7 +123,7 @@ SomeData *SomeDataRef::duplicate(SomeData *dup)
 {
 	if (dup) {
 		if (!dynamic_cast<SomeDataRef*>(dup)) return NULL;
-	} else dup=somedatafactory->newObject(LAX_SOMEDATAREF,this);
+	} else dup=dynamic_cast<SomeData*>(somedatafactory()->NewObject(LAX_SOMEDATAREF,this));
 
 	SomeDataRef *ref=dynamic_cast<SomeDataRef*>(dup);
 

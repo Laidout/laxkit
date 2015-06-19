@@ -25,6 +25,7 @@
 
 #include <lax/interfaces/engraverfillinterface.h>
 
+#include <lax/interfaces/interfacemanager.h>
 #include <lax/interfaces/somedatafactory.h>
 #include <lax/interfaces/gradientinterface.h>
 #include <lax/imagedialog.h>
@@ -181,6 +182,29 @@ enum EngraveControls {
 	EMODE_MAX
 
 };
+
+
+//-------------------------- Engraver object creation stuff (see ObjectFactory)  ------------------------
+anObject *NewTraceObject(anObject *refobj)           { return new TraceObject; }
+anObject *NewEngraverLineQuality(anObject *refobj)   { return new EngraverLineQuality; }
+anObject *NewEngraverTraceSettings(anObject *refobj) { return new EngraverTraceSettings; }
+anObject *NewNormalDirectionMap(anObject *refobj)    { return new NormalDirectionMap; }
+anObject *NewEngraverDirection(anObject *refobj)     { return new EngraverDirection; }
+//anObject *NewEngraverSpacing(anObject *refobj)       { return new EngraverSpacing; }
+anObject *NewEngraverFillStyle(anObject *refobj)     { return new EngraverFillStyle; }
+
+
+void InstallEngraverObjectTypes(ObjectFactory *factory)
+{
+	factory->DefineNewObject(ENGTYPE_TraceObject,          "TraceObject"          , NewTraceObject,           NULL);
+	factory->DefineNewObject(ENGTYPE_EngraverLineQuality,  "EngraverLineQuality"  , NewEngraverLineQuality,   NULL);
+	factory->DefineNewObject(ENGTYPE_EngraverTraceSettings,"EngraverTraceSettings", NewEngraverTraceSettings, NULL);
+	factory->DefineNewObject(ENGTYPE_NormalDirectionMap,   "NormalDirectionMap"   , NewNormalDirectionMap,    NULL);
+	factory->DefineNewObject(ENGTYPE_EngraverDirection,    "EngraverDirection"    , NewEngraverDirection,     NULL);
+	//factory->DefineNewObject(ENGTYPE_EngraverSpacing,      "EngraverSpacing"      , NewEngraverSpacing,       NULL);
+	factory->DefineNewObject(ENGTYPE_EngraverFillStyle,    "EngraverFillStyle"    , NewEngraverFillStyle,     NULL);
+}
+
 
 
 //------------------------------------- LinePointCache ------------------------
@@ -1353,7 +1377,7 @@ void EngraverTraceSettings::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFi
 				grad->dec_count();
 
 			} else if (!strcmp(value,"object")) {
-				SomeDataRef *ref=dynamic_cast<SomeDataRef*>(LaxInterfaces::somedatafactory->newObject("SomeDataRef"));
+				SomeDataRef *ref=dynamic_cast<SomeDataRef*>(somedatafactory()->NewObject("SomeDataRef"));
 				ref->dump_in_atts(att->attributes.e[c], flag,context);
 				Install(TraceObject::TRACE_Object, ref);
 				ref->dec_count();
@@ -3503,14 +3527,15 @@ SomeData *EngraverFillData::duplicate(SomeData *dup)
 	if (!p && !dup) return NULL; //was not EngraverFillData!
 
 	//char set=1;
-	if (!dup && somedatafactory) {
-		dup=somedatafactory->newObject(LAX_ENGRAVERFILLDATA,this);
+	if (!dup) {
+		//dup=somedatafactory->newObject(LAX_ENGRAVERFILLDATA,this);
+		dup=dynamic_cast<SomeData*>(somedatafactory()->NewObject("EngraverFillData"));
 		if (dup) {
 			dup->setbounds(minx,maxx,miny,maxy);
 			//set=0;
+			p=dynamic_cast<EngraverFillData*>(dup);
+			p->groups.flush();
 		}
-		p=dynamic_cast<EngraverFillData*>(dup);
-		p->groups.flush();
 	} 
 	if (!p) {
 		p=new EngraverFillData();
@@ -3671,6 +3696,7 @@ void EngraverFillData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContex
 	return;
 }
 
+
 //! Reverse of dump_out.
 void EngraverFillData::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *context)
 {
@@ -3764,9 +3790,9 @@ int EngraverFillData::PointOn(LinePoint *p, EngraverPointGroup *g)
 PathsData *EngraverFillData::MakePathsData(int whichgroup)
 {
 	PathsData *paths=NULL;
-    if (somedatafactory) 
-		paths=dynamic_cast<PathsData*>(somedatafactory->newObject(LAX_PATHSDATA,NULL));
-    else paths=new PathsData();
+    //if (somedatafactory) paths=dynamic_cast<PathsData*>(somedatafactory()->NewObject(LAX_PATHSDATA,NULL));
+    paths=dynamic_cast<PathsData*>(somedatafactory()->NewObject("PathsData",NULL));
+    if (!paths) paths=new PathsData();
 	paths->m(m());
 
 	paths->line(0,-1,-1,&groups.e[0]->color); //set default paths color, maybe overridden by individual paths
@@ -4318,7 +4344,7 @@ EngraverFillInterface::EngraverFillInterface(int nid,Displayer *ndp)
 	lasthovercategory=ENGRAVE_None;
 	lasthover=ENGRAVE_None;
 
-	IconManager *iconmanager=IconManager::GetDefault();
+	IconManager *iconmanager=InterfaceManager::GetDefault(true)->GetIconManager();
 	modes.AddItem(_("Mesh mode"),       iconmanager->GetIcon("EngraverMesh"),        EMODE_Mesh         );
 	modes.AddItem(_("Thickness"),       iconmanager->GetIcon("EngraverThickness"),   EMODE_Thickness    );
 	modes.AddItem(_("Blockout"),        iconmanager->GetIcon("EngraverKnockout"),    EMODE_Blockout     );
@@ -4362,9 +4388,10 @@ anInterface *EngraverFillInterface::duplicate(anInterface *dup)//dup=NULL;
 PatchData *EngraverFillInterface::newPatchData(double xx,double yy,double ww,double hh,int nr,int nc,unsigned int stle)
 {
 	EngraverFillData *ndata=NULL;
-	if (somedatafactory) {
-		ndata=dynamic_cast<EngraverFillData *>(somedatafactory->newObject(LAX_ENGRAVERFILLDATA));
-	} 
+//	if (somedatafactory) {
+//		ndata=dynamic_cast<EngraverFillData *>(somedatafactory->newObject(LAX_ENGRAVERFILLDATA));
+//	} 
+	ndata=dynamic_cast<EngraverFillData *>(somedatafactory()->NewObject("EngraverFillData"));
 	if (!ndata) ndata=new EngraverFillData();//creates 1 count
 
 	ndata->MakeGroupNameUnique(0);
@@ -4742,7 +4769,7 @@ int EngraverFillInterface::LBDown(int x,int y,unsigned int state,int count,const
 
 			if (obj && obj!=edata) {
 				 //set up proxy object
-				SomeDataRef *ref=dynamic_cast<SomeDataRef*>(LaxInterfaces::somedatafactory->newObject("SomeDataRef"));
+				SomeDataRef *ref=dynamic_cast<SomeDataRef*>(somedatafactory()->NewObject("SomeDataRef"));
 				ref->Set(obj, false);
 				ref->flags|=SOMEDATA_KEEP_ASPECT;
 				double m[6]; //,m2[6],m3[6];
@@ -8495,6 +8522,14 @@ int EngraverFillInterface::PushSettings(int what, EngraverPointGroup *from,int f
 		if (from->trace!=to->trace) {
 			 //trace->value_to_weight is not fully ref counted, so we must beware
 			if (curvemapi.GetInfo()==&to->trace->value_to_weight) curvemapi.SetInfo(NULL);
+
+			if (from->trace->ResourceOwner()==from) {
+				 //trace was owned by from, need to make from->trace be a shared resource
+				from->trace->SetResourceOwner(NULL);
+				ResourceManager *resourcemanager=InterfaceManager::GetDefault(true)->GetResourceManager();
+				resourcemanager->AddResource(from->trace->whattype(), from->trace, NULL, 
+						from->trace->Id(), from->trace->Id(), NULL, NULL, NULL);
+			}
 			to->InstallTraceSettings(from->trace,0);
 		}
 

@@ -24,7 +24,7 @@
 
 
 #include <lax/interfaces/viewerwindow.h>
-#include <lax/interfaces/interfaceundo.h>
+#include <lax/interfaces/interfacemanager.h>
 #include <lax/interfaces/somedata.h>
 #include <lax/transformmath.h>
 #include <lax/laxutils.h>
@@ -1267,13 +1267,15 @@ int ViewportWindow::PerformAction(int action)
 
 	} else if (action==VIEWPORT_Undo) {
 		DBG cerr <<" attempting undo..."<<endl;
-		UndoManager *undomanager=GetUndoManager();
+		InterfaceManager *imanager=InterfaceManager::GetDefault(true);
+		UndoManager *undomanager=imanager->GetUndoManager();
 		if (undomanager) undomanager->Undo();
 		return 0;
 
 	} else if (action==VIEWPORT_Redo) {
 		DBG cerr <<" attempting redo..."<<endl;
-		UndoManager *undomanager=GetUndoManager();
+		InterfaceManager *imanager=InterfaceManager::GetDefault(true);
+		UndoManager *undomanager=imanager->GetUndoManager();
 		if (undomanager) undomanager->Redo();
 		return 0;
 
@@ -1389,11 +1391,12 @@ int ViewportWindow::CharInput(unsigned int ch, const char *buffer,int len,unsign
 	return 0;
 }
 
-/*! By default just return GetInterfaceUndoManager() from interfaceundo.h.
+/*! By default just return the UndoManager from InterfaceManager.
  */
 Laxkit::UndoManager *ViewportWindow::GetUndoManager()
 {
-	return GetInterfaceUndoManager();
+	InterfaceManager *imanager=InterfaceManager::GetDefault(true);
+	return imanager->GetUndoManager();
 }
 
 //! This will take the space settings in dp, and coordiate the rulers and scrollers.

@@ -116,11 +116,10 @@ SomeData *ImageData::duplicate(SomeData *dup)
 	if (!i && dup) return NULL; //was not an ImageData!
 
 	char set=1;
-	if (!dup && somedatafactory) {
-		dup=somedatafactory->newObject(LAX_IMAGEDATA,this);
+	if (!dup) {
+		dup=dynamic_cast<SomeData*>(somedatafactory()->NewObject(LAX_IMAGEDATA));
 		if (dup) {
 			dup->setbounds(minx,maxx,miny,maxy);
-			set=0;
 		}
 		i=dynamic_cast<ImageData*>(dup);
 	} 
@@ -789,8 +788,8 @@ void ImageInterface::deletedata()
 ImageData *ImageInterface::newData()
 {
 	ImageData *ndata=NULL;
-	if (somedatafactory) {
-		ndata=dynamic_cast<ImageData *>(somedatafactory->newObject(LAX_IMAGEDATA));
+	ndata=dynamic_cast<ImageData *>(somedatafactory()->NewObject(LAX_IMAGEDATA));
+	if (ndata) {
 		ndata->LoadImage(NULL);
 	} 
 	if (!ndata) ndata=new ImageData(NULL);//creates 1 count

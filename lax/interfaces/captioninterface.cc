@@ -635,10 +635,10 @@ void CaptionInterface::deletedata()
 CaptionData *CaptionInterface::newData()
 {//***
 	CaptionData *ndata=NULL;
-	if (somedatafactory) {
-		ndata=static_cast<CaptionData *>(somedatafactory->newObject(LAX_CAPTIONDATA));
-		ndata->SetText("Blah balh aoeunth323\nline 2\nthird line");
-	} 
+
+	ndata=dynamic_cast<CaptionData *>(somedatafactory()->NewObject(LAX_CAPTIONDATA));
+	if (ndata) ndata->SetText("Blah balh aoeunth323\nline 2\nthird line");
+
 	cout << " *** CaptionInterface: need to grab a more generic installed font....."<<endl;
 	if (!ndata) ndata=new CaptionData("Blah balh aoeunth323\nline 2\nthird line", 
 						 "sans",NULL,

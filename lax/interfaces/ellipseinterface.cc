@@ -525,10 +525,9 @@ int EllipseInterface::LBDown(int x,int y,unsigned int state,int count,const Laxk
 	if (viewport) viewport->ChangeContext(x,y,NULL);
 
 	EllipseData *ndata=NULL; //creates with 1 count
-	if (somedatafactory) {
-		ndata=static_cast<EllipseData *>(somedatafactory->newObject(LAX_ELLIPSEDATA));
-	} 
+	ndata=dynamic_cast<EllipseData *>(somedatafactory()->NewObject(LAX_ELLIPSEDATA));
 	if (!ndata) ndata=new EllipseData;
+
 	ndata->linestyle=linestyle;
 	if (viewport) {
 		oc=NULL;

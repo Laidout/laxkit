@@ -96,11 +96,10 @@ SomeData *ColorPatchData::duplicate(SomeData *dup)
 	if (!p && !dup) return NULL; //was not ColorPatchData!
 
 	char set=1;
-	if (!dup && somedatafactory) {
-		dup=somedatafactory->newObject(LAX_COLORPATCHDATA,this);
+	if (!dup) {
+		dup=dynamic_cast<SomeData*>(somedatafactory()->NewObject(LAX_COLORPATCHDATA));
 		if (dup) {
 			dup->setbounds(minx,maxx,miny,maxy);
-			set=0;
 		}
 		p=dynamic_cast<ColorPatchData*>(dup);
 	} 
@@ -708,12 +707,11 @@ anInterface *ColorPatchInterface::duplicate(anInterface *dup)//dup=NULL;
 //! Return new local ColorPatchData
 PatchData *ColorPatchInterface::newPatchData(double xx,double yy,double ww,double hh,int nr,int nc,unsigned int stle)
 {
-	ColorPatchData *cpd=NULL;
-	if (somedatafactory) {
-		cpd=dynamic_cast<ColorPatchData *>(somedatafactory->newObject(LAX_COLORPATCHDATA));
-		cpd->Set(xx,yy,ww,hh,nr,nc,stle);
-	} 
-	if (!cpd) cpd=new ColorPatchData(xx,yy,ww,hh,nr,nc,stle);//creates 1 count
+	ColorPatchData *cpd=NULL; 
+	cpd=dynamic_cast<ColorPatchData *>(somedatafactory()->NewObject(LAX_COLORPATCHDATA));
+
+	if (cpd) cpd->Set(xx,yy,ww,hh,nr,nc,stle);
+ 	else cpd=new ColorPatchData(xx,yy,ww,hh,nr,nc,stle);//creates 1 count
 
 	cpd->renderdepth=-recurse;
 	 //void SetColor(int pr,int pc,int red,int green,int blue,alpha);

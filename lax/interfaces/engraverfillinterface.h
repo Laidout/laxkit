@@ -38,6 +38,19 @@ namespace LaxInterfaces {
 
 class EngraverFillData;
 
+//NOTE!! these values must be coordinated with LaxInterfaceDataTypes, and 
+//any other Laxkit object types meant to be used with an ObjectFactory.
+enum EngraverObjectTypes {
+	ENGTYPE_TraceObject = 100,
+    ENGTYPE_EngraverLineQuality,
+    ENGTYPE_EngraverTraceSettings,
+    ENGTYPE_NormalDirectionMap,
+    ENGTYPE_EngraverDirection,
+    ENGTYPE_EngraverSpacing,
+    ENGTYPE_EngraverFillStyle,
+
+	ENGTYPE_MAX
+};
 
 //--------------------------------------------- LinePoint
 
@@ -455,6 +468,8 @@ class EngraverFillStyle : public Laxkit::Resourceable
   public:
 	char *name;
 
+	EngraverFillStyle *next_group_style; //define stacks of style for when there are multiple groups
+
 	EngraverLineQuality *dashes;
 	EngraverTraceSettings *trace;
 	EngraverDirection *direction;
@@ -467,6 +482,7 @@ class EngraverFillStyle : public Laxkit::Resourceable
 		trace=NULL;
 		direction=NULL;
 		spacing=NULL;
+		next_group_style=NULL;
 	}
 	virtual ~EngraverFillStyle()
 	{
@@ -475,6 +491,7 @@ class EngraverFillStyle : public Laxkit::Resourceable
 		if (trace) trace->dec_count();
 		if (direction) direction->dec_count();
 		if (spacing) spacing->dec_count();
+		if (next_group_style) next_group_style->dec_count();
 	} 
 	virtual const char *whattype() { return "EngraverFillStyle"; }
 };

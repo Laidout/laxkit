@@ -40,7 +40,7 @@ class anObject
 	virtual ~anObject();
 	virtual const char *whattype() { return "anObject"; }
 	virtual anObject *ObjectOwner() { return NULL; }
-	virtual anObject *duplicate(anObject *ref=NULL) { return NULL; }
+	virtual anObject *duplicate(anObject *ref) { return NULL; }
 	virtual int inc_count();
 	virtual int dec_count();
 	virtual int the_count() { return _count; }

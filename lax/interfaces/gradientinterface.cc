@@ -284,13 +284,13 @@ SomeData *GradientData::duplicate(SomeData *dup)
 	if (!g && !dup) return NULL; //was not GradientData!
 
 	char set=1;
-	if (!dup && somedatafactory) {
-		dup=somedatafactory->newObject(LAX_GRADIENTDATA,this);
+	if (!dup) {
+		dup=dynamic_cast<SomeData*>(somedatafactory()->NewObject(LAX_GRADIENTDATA));
 		if (dup) {
 			dup->setbounds(minx,maxx,miny,maxy);
-			set=0;
+			//set=0;
+			g=dynamic_cast<GradientData*>(dup);
 		}
-		g=dynamic_cast<GradientData*>(dup);
 	} 
 	if (!g) {
 		g=new GradientData();
@@ -1730,8 +1730,8 @@ void GradientInterface::newData(int x,int y)
 
 	 //create with count 1
 	GradientData *ndata=NULL;
-	if (somedatafactory) {
-		ndata=dynamic_cast<GradientData *>(somedatafactory->newObject(LAX_GRADIENTDATA));
+	ndata=dynamic_cast<GradientData *>(somedatafactory()->NewObject(LAX_GRADIENTDATA));
+	if (ndata) {
 		ndata->Set(screentoreal(x,y),screentoreal(x,y),
 						creater1,creater2,&col1,&col2,creationstyle);
 	} 

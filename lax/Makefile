@@ -90,6 +90,7 @@ objs= \
 	events.o \
 	shortcuts.o \
 	resources.o \
+	objectfactory.o \
 	anxapp.o \
 	anxapp-laxrc.o \
 	laxoptions.o \

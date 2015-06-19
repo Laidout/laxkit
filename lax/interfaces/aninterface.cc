@@ -24,7 +24,7 @@
 #include <lax/interfaces/somedatafactory.h>
 #include <lax/interfaces/aninterface.h>
 //#include <lax/interfaces/undo.h>
-#include <lax/interfaces/interfaceundo.h>
+#include <lax/interfaces/interfacemanager.h>
 #include <lax/strmanip.h>
 
 using namespace Laxkit;
@@ -575,15 +575,15 @@ void anInterface::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *lo
 {
 }
 
-/*! By default just return GetInterfaceUndoManager() from interfaceundo.h.
+/*! By default just return InterfaceManager::GetUndoManager() from the default manager..
  */
 Laxkit::UndoManager *anInterface::GetUndoManager()
 {
-	return Laxkit::GetUndoManager();
-	//return GetInterfaceUndoManager();
+	InterfaceManager *imanager=InterfaceManager::GetDefault(true);
+	return imanager->GetUndoManager();
 }
 
 
 
-} // namespace Laxkit
+} // namespace LaxInterfaces
 

@@ -293,7 +293,7 @@ int GaussianBlur(int radius, //!< Pixels to blur from to left and right of a giv
 	}
 
 	//int i;
-	int v, ii, isout, dopartial;
+	int v, ii, dopartial;
 	double sum,tsum;
 	int stride = orig_width*numchannels*depth;
 	int pixwidth = numchannels*depth;

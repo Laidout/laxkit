@@ -1001,9 +1001,7 @@ int RectInterface::LBDown(int x,int y,unsigned int state,int count,const Laxkit:
 	extrapoints=0;
 
 	somedata=NULL;
-	if (somedatafactory) {
-		somedata=somedatafactory->newObject(LAX_RECTDATA);
-	} 
+	somedata=dynamic_cast<SomeData*>(somedatafactory()->NewObject(LAX_RECTDATA));
 	if (!somedata) somedata=new RectData;
 	data=dynamic_cast<RectData *>(somedata); //has count=1
 	if (!data) return 0;

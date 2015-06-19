@@ -559,10 +559,7 @@ int FreehandInterface::send(int i)
 	if (freehand_style&FREEHAND_Raw_Path) {
 		RawPointLine *line=lines.e[i];
 	
-		PathsData *paths=NULL;
-		if (somedatafactory) {
-            paths=dynamic_cast<PathsData*>(somedatafactory->newObject(LAX_PATHSDATA));
-        }
+		PathsData *paths=dynamic_cast<PathsData*>(somedatafactory()->NewObject(LAX_PATHSDATA));
         if (!paths) paths=new PathsData();
 
 		for (int c=0; c<line->n; c++) {
@@ -577,10 +574,7 @@ int FreehandInterface::send(int i)
 		 //return a reduced polyline
 		RawPointLine *line=Reduce(i, smooth_pixel_threshhold/dp->Getmag());
 
-		PathsData *paths=NULL;
-		if (somedatafactory) {
-            paths=dynamic_cast<PathsData*>(somedatafactory->newObject(LAX_PATHSDATA));
-        }
+		PathsData *paths=dynamic_cast<PathsData*>(somedatafactory()->NewObject(LAX_PATHSDATA));
         if (!paths) paths=new PathsData();
 
 		for (int c=0; c<line->n; c++) {
@@ -597,10 +591,7 @@ int FreehandInterface::send(int i)
 		RawPointLine *line=Reduce(i, smooth_pixel_threshhold/dp->Getmag());
 		Coordinate *coord=BezApproximate(line);
 
-		PathsData *paths=NULL;
-		if (somedatafactory) {
-            paths=dynamic_cast<PathsData*>(somedatafactory->newObject(LAX_PATHSDATA));
-        }
+		PathsData *paths=dynamic_cast<PathsData*>(somedatafactory()->NewObject(LAX_PATHSDATA));
         if (!paths) paths=new PathsData();
 
 		paths->appendCoord(coord);
@@ -646,10 +637,7 @@ int FreehandInterface::send(int i)
 		}
 
 
-		PathsData *paths=NULL;
-		if (somedatafactory) {
-            paths=dynamic_cast<PathsData*>(somedatafactory->newObject(LAX_PATHSDATA));
-        }
+		PathsData *paths=dynamic_cast<PathsData*>(somedatafactory()->NewObject(LAX_PATHSDATA));
         if (!paths) paths=new PathsData();
 
 		Coordinate *coord=LaxInterfaces::BezApproximate(points.e,points.n);
@@ -689,10 +677,7 @@ int FreehandInterface::send(int i)
 		delete line;
 
 
-		PathsData *pdata=NULL;
-		if (somedatafactory) {
-            pdata=dynamic_cast<PathsData*>(somedatafactory->newObject(LAX_PATHSDATA));
-        }
+		PathsData *pdata=dynamic_cast<PathsData*>(somedatafactory()->NewObject(LAX_PATHSDATA));
         if (!pdata) pdata=new PathsData(0);
 
 		pdata->paths.push(path);
@@ -708,10 +693,7 @@ int FreehandInterface::send(int i)
 
 		 //return a mesh based on a weighted path
 		if (freehand_style&FREEHAND_Path_Mesh) {
-			PatchData *mesh=NULL; 
-			if (somedatafactory) {
-				mesh=dynamic_cast<PatchData*>(somedatafactory->newObject(LAX_PATCHDATA));
-			}
+			PatchData *mesh=dynamic_cast<PatchData*>(somedatafactory()->NewObject(LAX_PATCHDATA));
 			if (!mesh) mesh=new PatchData; 
 
 			mesh->InstallPath(pdata);
@@ -774,10 +756,7 @@ int FreehandInterface::send(int i)
 		}
 
 		 //create and populate mesh object
-		ColorPatchData *mesh=NULL; 
-		if (somedatafactory) {
-            mesh=dynamic_cast<ColorPatchData*>(somedatafactory->newObject(LAX_COLORPATCHDATA));
-        }
+		ColorPatchData *mesh=dynamic_cast<ColorPatchData*>(somedatafactory()->NewObject(LAX_COLORPATCHDATA));
 		if (!mesh) mesh=new ColorPatchData;
 
 

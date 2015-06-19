@@ -463,9 +463,7 @@ int ObjectInterface::LBDown(int x,int y,unsigned int state,int count,const Laxki
 	if ((state&LAX_STATE_MASK)==ControlMask) dragmode=DRAG_SUBTRACT_SELECTION;
 
 	somedata=NULL;
-	if (somedatafactory) {
-		somedata=somedatafactory->newObject(LAX_RECTDATA);
-	} 
+	somedata=dynamic_cast<SomeData*>(somedatafactory()->NewObject(LAX_RECTDATA));
 	if (!somedata) somedata=new RectData;
 	data=dynamic_cast<RectData *>(somedata); //has count=1
 	if (!data) return 0;
