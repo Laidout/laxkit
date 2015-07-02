@@ -150,19 +150,19 @@ class ValueMap : public Laxkit::Resourceable
 
 //---------------------------------------------- EngraverTraceSettings 
 
-class TraceObject : public Laxkit::Resourceable
+class TraceObject : public Laxkit::Resourceable, public LaxFiles::DumpUtility
 {
   public:
 	enum TraceObjectType {
 		TRACE_None,
 		TRACE_Current,
+		TRACE_Snapshot,
 		TRACE_ImageFile,
 		TRACE_Object,
 		TRACE_LinearGradient,
 		TRACE_RadialGradient
 	};
 	TraceObjectType type;
-	char *identifier;
 
 	LaxInterfaces::SomeData *object; //transform is to maximum parent of owning object
 	char *image_file;
@@ -178,7 +178,11 @@ class TraceObject : public Laxkit::Resourceable
 	TraceObject();
 	virtual ~TraceObject();
 	virtual const char *whattype() { return "TraceObject"; }
+	virtual Laxkit::anObject *duplicate(Laxkit::anObject *ref);
+
+	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
 	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *savecontext);
+	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
 	
 	double GetValue(LinePoint *p, double *transform);
 	void ClearCache(bool obj_too);
@@ -188,7 +192,7 @@ class TraceObject : public Laxkit::Resourceable
 	void Install(TraceObjectType ntype, SomeData *obj);
 };
 
-class EngraverTraceSettings : public Laxkit::Resourceable
+class EngraverTraceSettings : public Laxkit::Resourceable, public LaxFiles::DumpUtility
 {
   public:
 	int group;
@@ -204,10 +208,13 @@ class EngraverTraceSettings : public Laxkit::Resourceable
 
 	EngraverTraceSettings();
 	virtual ~EngraverTraceSettings();
+	virtual const char *Id();
+	virtual const char *Id(const char *str);
 	virtual const char *whattype() { return "EngraverTraceSettings"; }
 	void ClearCache(bool obj_too);
 	virtual EngraverTraceSettings *duplicate();
 	void Install(TraceObject::TraceObjectType ntype, SomeData *obj);
+	void Install(TraceObject *nobject);
 	virtual const char *Identifier();
 
 	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
@@ -217,11 +224,9 @@ class EngraverTraceSettings : public Laxkit::Resourceable
 
 //----------------------------------------------- EngraverLineQuality
 
-class EngraverLineQuality : public Laxkit::Resourceable
+class EngraverLineQuality : public Laxkit::Resourceable, public LaxFiles::DumpUtility
 {
   public:
-	unsigned long resource_id;
-
 	double dash_length;
 	double dash_density;
 	double dash_randomness;
@@ -281,7 +286,7 @@ class NormalDirectionMap : public DirectionMap
     
 
 //--------------------------- EngraverDirection -----------------------------
-class EngraverDirection : public Laxkit::Resourceable
+class EngraverDirection : public Laxkit::Resourceable, public LaxFiles::DumpUtility
 {
   public:
 	enum PointGroupType {
@@ -344,7 +349,7 @@ class EngraverDirection : public Laxkit::Resourceable
 
 
 //--------------------------- EngraverSpacing -----------------------------
-class EngraverSpacing : public Laxkit::Resourceable
+class EngraverSpacing : public Laxkit::Resourceable, public LaxFiles::DumpUtility
 {
   public:
 	int type; //how to get spacing: use default, use grabbed current map, use custom map
@@ -398,6 +403,7 @@ class EngraverPointGroup : public DirectionMap
 	};
 
 	EngraverFillData *owner;
+	virtual Laxkit::anObject *ObjectOwner();
 
 	int id;
 	char *name;
@@ -496,7 +502,7 @@ class EngraverFillStyle : public Laxkit::Resourceable
 	virtual const char *whattype() { return "EngraverFillStyle"; }
 };
 
-class EngraverFillData : public PatchData
+class EngraverFillData : virtual public PatchData
 {
  protected:
   	
@@ -507,6 +513,8 @@ class EngraverFillData : public PatchData
 	//EngraverFillData(double xx,double yy,double ww,double hh,int nr,int nc,unsigned int stle);
 	virtual ~EngraverFillData(); 
 	virtual const char *whattype() { return "EngraverFillData"; }
+	virtual const char *Id();
+	virtual const char *Id(const char *id);
 	virtual SomeData *duplicate(SomeData *dup);
 	virtual double DefaultSpacing(double nspacing);
 	virtual void MakeDefaultGroup();
@@ -618,6 +626,7 @@ class EngraverFillInterface : public PatchInterface
 
 	 //general display state
 	Laxkit::ScreenColor fgcolor,bgcolor;
+	unsigned long activate_color, deactivate_color;
 
 	int lasthover;
 	int lasthovercategory;
@@ -637,7 +646,6 @@ class EngraverFillInterface : public PatchInterface
 	virtual void DrawOrientation(int over);
 	virtual void DrawPanel();
 	virtual void DrawPanelHeader(int open, int hover,const char *name, int x,int y,int w, int hh);
-	virtual void DrawTracingTools(Laxkit::MenuItem *item);
 	virtual void DrawLineGradient(double minx,double maxx,double miny,double maxy, int groupnum, int horizontal);
 	virtual void DrawSlider(double pos,int hovered, double x,double y,double w,double h, const char *text);
 	virtual void DrawNumInput(double pos,int type,int hovered, double x,double y,double w,double h, const char *text);
@@ -678,6 +686,7 @@ class EngraverFillInterface : public PatchInterface
 	virtual int Event(const Laxkit::EventData *data, const char *mes);
 	virtual Laxkit::MenuInfo *ContextMenu(int x,int y,int deviceid, Laxkit::MenuInfo *menu);
 	virtual int InterfaceOff();
+	virtual int InitializeResources();
 
 	virtual void deletedata(bool flush_selection);
 	virtual PatchData *newPatchData(double xx,double yy,double ww,double hh,int nr,int nc,unsigned int stle);
