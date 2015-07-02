@@ -1048,13 +1048,14 @@ void MenuSelector::Refresh()
  * info1 = curitem (which might be -1 for nothing)
  * info2 = id of curitem
  * info3 = nitems selected
- * info4 = menuitem->info
+ * info4 = curitem->info
+ * str   = curitem->name
  * \endcode
  *
  * Otherwise, sends a list of the selected strings in a StrsEventData,
  * with info=curitem.
  *
- * \todo *** there needs to be option to send id or list of ids..
+ * \todo there needs to be option to send id or list of ids..
  * \todo maybe send device id of the device that triggered the send
  */
 int MenuSelector::send(int deviceid)
@@ -1084,6 +1085,7 @@ int MenuSelector::send(int deviceid)
 		ievent->info2=(curitem>=0 && curitem<numItems() ? item(curitem)->id : curitem);
 		ievent->info3=n; // n is the number of items selected
 		ievent->info4=(curitem>=0 && curitem<numItems() ? item(curitem)->info : 0);
+		makestr(ievent->str, (curitem>=0 && curitem<numItems() ? item(curitem)->name : NULL));
 		app->SendMessage(ievent,win_owner,win_sendthis,object_id);
 	}
 
