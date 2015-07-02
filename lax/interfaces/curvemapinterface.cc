@@ -41,6 +41,7 @@ namespace LaxInterfaces {
 
 enum CurveMapIA {
 	CURVEM_Invert,
+	CURVEM_Reset,
 	CURVEM_Select,
 	CURVEM_Toggle_Wrap,
 	CURVEM_MAX
@@ -69,6 +70,7 @@ CurveMapInterface::CurveMapInterface(int nid, Laxkit::Displayer *ndp,
 	editable=0;
 	always_refresh_lookup=1;
 	highlighteditable=0;
+	lasthover=-1;
 
 	show_label_ranges=1;
 	show_labels=1;
@@ -131,21 +133,24 @@ void CurveMapInterface::SetupRect(int x,int y,int w,int h)
 	}
 
 	if (show_label_ranges) {
-		char scratch[100];
-		int extent=0, tmp=0;
-
 		if (!show_labels) rect.height-=padinner+smallnumbers->textheight(); //remove number height
 
-		sprintf(scratch, "%.5g",curveinfo->ymin);
-		extent=dp->textextent(smallnumbers, scratch,-1, NULL,NULL,NULL,NULL,0);
+		//char scratch[100];
+		int extent=0;
+		//int tmp=0;
 
-		sprintf(scratch, "%.5g",curveinfo->ymax);
-		tmp=dp->textextent(smallnumbers, scratch,-1, NULL,NULL,NULL,NULL,0);
-		if (tmp>extent) extent=tmp;
+		//sprintf(scratch, "%.5g",curveinfo->ymin);
+		//extent=dp->textextent(smallnumbers, scratch,-1, NULL,NULL,NULL,NULL,0);
 
-		extent+=padinner;
-		rect.x+=extent;
-		rect.width-=extent;
+		//sprintf(scratch, "%.5g",curveinfo->ymax);
+		//tmp=dp->textextent(smallnumbers, scratch,-1, NULL,NULL,NULL,NULL,0);
+		//if (tmp>extent) extent=tmp;
+
+		//extent+=padinner;
+		//rect.x+=extent;
+		extent=dp->textextent(smallnumbers, "5.5",-1, NULL,NULL,NULL,NULL,0);
+		rect.x    += padinner + extent;
+		rect.width-= padinner + extent;
 	}
 
 	needtodraw=1;
@@ -174,7 +179,8 @@ Laxkit::MenuInfo *CurveMapInterface::ContextMenu(int x,int y,int deviceid, Laxki
 	if (!menu) menu=new MenuInfo(_("Curves"));
 	else if (menu->n()==0) menu->AddSep(_("Curves"));
 
-	menu->AddItem(_("Invert"), CURVEM_Invert, LAX_OFF, object_id, NULL, -1, 0);
+	menu->AddItem(_("Invert"),    CURVEM_Invert, LAX_OFF, object_id, NULL, -1, 0);
+	menu->AddItem(_("Reset"),     CURVEM_Reset,  LAX_OFF, object_id, NULL, -1, 0);
 	menu->AddItem(_("Select..."), CURVEM_Select, LAX_OFF, object_id, NULL, -1, 0);
 	return menu;
 }
@@ -190,8 +196,8 @@ int CurveMapInterface::Event(const EventData *e,const char *mes)
 		const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(e);
 		int i =s->info2; //id of menu item
 
-		if (i==CURVEM_Invert) {
-			PerformAction(CURVEM_Invert);
+		if (i==CURVEM_Invert || i==CURVEM_Reset) {
+			PerformAction(i);
 			return 0;
 
 		} else if (i==CURVEM_Select) {
@@ -268,6 +274,12 @@ int CurveMapInterface::Refresh()
 	dp->NewBG(graph_color);
 	dp->drawrectangle(rect.x,rect.y,rect.width,rect.height, 2);
 
+	DBG if (rect.pointIsIn(hoverpoint.x,hoverpoint.y)) {
+	DBG 	dp->drawline(hoverpoint.x-5,hoverpoint.y, hoverpoint.x+5,hoverpoint.y);
+	DBG 	dp->drawline(hoverpoint.x,hoverpoint.y-5, hoverpoint.x,hoverpoint.y+5);
+	DBG }
+
+
 	 //draw histogram, if any
 	if (histogram) {
 		dp->NewFG(coloravg(graph_color,win_colors->fg,.9));
@@ -294,9 +306,9 @@ int CurveMapInterface::Refresh()
 		else if (highlighteditable==XMin)
 			dp->drawrectangle(rect.x,rect.y+rect.height, rect.width*.25,bounds.height-(rect.y+rect.height),1);
 		else if (highlighteditable==YMax)
-			dp->drawrectangle(0,rect.y,rect.x,rect.height*.3,1);
+			dp->drawrectangle(bounds.x,rect.y, rect.x-bounds.x,rect.height*.3,1);
 		else if (highlighteditable==YMin)
-			dp->drawrectangle(0,rect.y+rect.height*.7,rect.x,rect.height*.3,1);
+			dp->drawrectangle(bounds.x,rect.y+rect.height*.7,rect.x,rect.height*.3,1);
 
 		dp->NewFG(win_colors->fg);
 	}
@@ -400,7 +412,8 @@ int CurveMapInterface::Refresh()
 		p1.y=rect.y + p1.y*rect.height;
 
 		 //draw points
-		dp->drawpoint(p1, 3,0);
+		if (c==lasthover) dp->drawpoint(p1, 5,1);
+		else dp->drawpoint(p1, 3,0);
 	}
 
 
@@ -436,7 +449,7 @@ int CurveMapInterface::scaneditable(int x,int y)
 	return found;
 }
 
-//! Scan for existing point, return index in curveinfo->points.
+//! Scan for existing point, return index in curveinfo->points, or -1 for not found.
 int CurveMapInterface::scan(int x,int y)
 {
 	double scandistance=10;
@@ -546,8 +559,9 @@ int CurveMapInterface::LBUp(int x,int y,unsigned int state,const LaxMouse *d)
  */
 int CurveMapInterface::MouseMove(int x,int y,unsigned int state,const LaxMouse *m)
 {
-	DBG int ppp=scan(x,y);
-	DBG cerr <<"curvemap scan: "<<ppp<<endl;
+	hoverpoint=flatpoint(x,y);
+	DBG if (rect.pointIsIn(x,y)) needtodraw=1;
+
 	//DBG flatpoint fpp;
 	//DBG int ii=-1;
 	//DBG scannear(x,y, &fpp,&ii);
@@ -565,8 +579,14 @@ int CurveMapInterface::MouseMove(int x,int y,unsigned int state,const LaxMouse *
 			needtodraw=1;
 			return 0;
 		}
+
+		int hover=scan(x,y);
+		if (hover!=lasthover) { lasthover=hover; needtodraw=1; }
+		DBG cerr <<"curvemap scan: "<<lasthover<<endl;
+
 		return 1;
 	}
+
 
 	int ox,oy;
 	buttondown.move(m->id, x,y, &ox, &oy);
@@ -782,6 +802,11 @@ int CurveMapInterface::PerformAction(int action)
 		curveinfo->InvertY();
 		needtodraw=1;
 		return 0;
+
+	} else if (action==CURVEM_Reset) {
+		curveinfo->Reset(false);
+		needtodraw=1;
+		return 0;
 	}
 
 	return 1;
@@ -800,6 +825,7 @@ Laxkit::ShortcutHandler *CurveMapInterface::GetShortcuts()
 
     sc->Add(CURVEM_Toggle_Wrap,      'w',0,0,        "ToggleWrap",  _("Toggle wrapping"),NULL,0);
     sc->Add(CURVEM_Invert,           'i',0,0,        "Invert",      _("Invert y values"),NULL,0);
+    sc->Add(CURVEM_Reset,            'z',0,0,        "Reset",      _("Reset to 1:1"),NULL,0);
     //sc->Add(CURVEM_ToggleBrushRamp, 'b',0,0,        "ToggleBrushRamp", _("Toggle brush ramp edit mode"),NULL,0);
 
 

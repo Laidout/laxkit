@@ -48,7 +48,9 @@ class CurveMapInterface : public anInterface
 	int always_refresh_lookup;
 	int highlighteditable;
 
-	flatpoint lastpoint;
+	flatpoint lastpoint; //in real space
+	int lasthover;
+	flatpoint hoverpoint;
 	int draglimbo;
 	flatpoint ClampPoint(flatpoint p, int pp);
 
