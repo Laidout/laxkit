@@ -133,6 +133,8 @@ int anObject::dec_count()
 	return _count; 
 }
 
+/*! Return the id of the object. If NULL, then create a default one and return that.
+ */
 const char *anObject::Id()
 {
 	if (object_idstr) return object_idstr;
