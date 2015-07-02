@@ -882,7 +882,7 @@ int ViewportWindow::deletekid(anXWindow *w)
 /*! Return NULL if temp_input already there. Else return the newly created window.
  */
 Laxkit::anXWindow *ViewportWindow::SetupInputBox(unsigned long owner_id, const char *label, const char *text, const char *message,
-									const Laxkit::DoubleBBox &bounds)
+									const Laxkit::DoubleBBox &bounds, const char *ntooltip)
 {
 	if (temp_input) return NULL;
 
@@ -895,6 +895,7 @@ Laxkit::anXWindow *ViewportWindow::SetupInputBox(unsigned long owner_id, const c
 								4, //border
 								NULL,owner_id,message,
 								text);
+	if (ntooltip) le->tooltip(ntooltip);
 	le->padx=le->pady=dp->textheight()*.1;
 	le->SetSelection(0,-1);
 	app->addwindow(le);
