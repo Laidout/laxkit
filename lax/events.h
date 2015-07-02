@@ -130,31 +130,27 @@ class XEventData : public EventData
 };
 #endif //_LAX_PLATFORM_XLIB
 
-////-------------------------- RefCountedEventData
-class RefCountedEventData : public EventData
-{
- public:
-	anObject *object;
-	int info1,info2,info3,info4;
-	RefCountedEventData(anObject *obj=NULL);
-	virtual ~RefCountedEventData();
-	anObject *TheObject() const;
-};
 
 //-------------------------- StrEventData
-class StrEventData : public EventData
+class SimpleMessage : public EventData
 {
  public:
 	char *str;
+	anObject *object;
 	int info1,info2,info3,info4;
-	StrEventData() { str=NULL; info1=info2=info3=info4=0; }
-	StrEventData(unsigned long t, unsigned long f, unsigned long tp, const char *newmes=NULL);
-	StrEventData(const char *nstr, int i1,int i2,int i3,int i4,
+
+	SimpleMessage() { object=NULL; str=NULL; info1=info2=info3=info4=0; }
+	SimpleMessage(anObject *obj);
+	SimpleMessage(unsigned long t, unsigned long f, unsigned long tp, const char *newmes=NULL);
+	SimpleMessage(const char *nstr, int i1,int i2,int i3,int i4,
 				 const char *message=NULL,unsigned long fromwindow=0, unsigned long towindow=0);
-	virtual ~StrEventData() { if (str) delete[] str; }
+	virtual ~SimpleMessage() { if (str) delete[] str; if (object) object->dec_count(); }
+	anObject *TheObject() const;
 };
 
-typedef StrEventData SimpleMessage;
+typedef SimpleMessage StrEventData;
+typedef SimpleMessage RefCountedEventData;
+
 
 //-------------------------- StrsEventData
 class StrsEventData : public EventData

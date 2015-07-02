@@ -127,28 +127,6 @@ EventData::~EventData()
  *
  */
 
-/*! If obj!=NULL, then the object's count is incremented.
- */
-RefCountedEventData::RefCountedEventData(anObject *obj)
-{
-	object=obj;
-	if (object) object->inc_count();
-	info1=info2=info3=info4=0; 
-}
-
-/*! object is deleted.
- */
-RefCountedEventData::~RefCountedEventData()
-{
-	if (object) object->dec_count();
-}
-
-//! Return pointer to the object.
-/*! The returned object needs to have it's count incremented if it is to be used.
- */
-anObject *RefCountedEventData::TheObject() const
-{ return object; }
-
 
 //----------------------------- StrEventData ----------------------------------
 /*! \class StrEventData
@@ -159,16 +137,17 @@ anObject *RefCountedEventData::TheObject() const
  * info can be any number, for instance could indicate the type of thing in str.
  */
 
-StrEventData::StrEventData(unsigned long t, unsigned long f, unsigned long tp, const char *newmes)
+SimpleMessage::SimpleMessage(unsigned long t, unsigned long f, unsigned long tp, const char *newmes)
 {
 	to=t;
 	from=f;
 	type=tp;
 	str=NULL;
 	info1=info2=info3=info4=0; 
+	object=NULL;
 }
  
-StrEventData::StrEventData(const char *nstr, int i1,int i2,int i3,int i4,
+SimpleMessage::SimpleMessage(const char *nstr, int i1,int i2,int i3,int i4,
 						   const char *message,unsigned long fromwindow, unsigned long towindow)
 		: EventData(message,fromwindow,towindow),
 		  info1(i1),
@@ -178,7 +157,24 @@ StrEventData::StrEventData(const char *nstr, int i1,int i2,int i3,int i4,
 {
 	str=NULL;
 	makestr(str,nstr); 
+	object=NULL;
 }
+
+/*! If obj!=NULL, then the object's count is incremented.
+ */
+SimpleMessage::SimpleMessage(anObject *obj)
+{
+	object=obj;
+	if (object) object->inc_count();
+	info1=info2=info3=info4=0; 
+	str=NULL;
+}
+
+//! Return pointer to the object.
+/*! The returned object needs to have it's count incremented if it is to be used.
+ */
+anObject *SimpleMessage::TheObject() const
+{ return object; }
 
 
 //------------------------- StrsEventData --------------------------------
