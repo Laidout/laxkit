@@ -99,6 +99,8 @@ CurveInfo::CurveInfo()
 
 void CurveInfo::base_init()
 {
+	guides=NULL;
+
 	curvetype=Autosmooth;
 	wrap=false; //whether x wraps around
 
@@ -120,6 +122,8 @@ CurveInfo::~CurveInfo()
 	if (xlabel) delete[] xlabel;
 	if (ylabel) delete[] ylabel;
 	if (title ) delete[] title;
+	
+	if (guides) delete guides;
 }
 
 CurveInfo &CurveInfo::operator=(CurveInfo &l)

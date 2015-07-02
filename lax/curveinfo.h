@@ -18,7 +18,7 @@
 //    License along with this library; if not, write to the Free Software
 //    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
-//    Copyright (C) 2013-2014 by Tom Lechner
+//    Copyright (C) 2013-2015 by Tom Lechner
 //
 
 #ifndef _LAX_CURVEINFO_H
@@ -33,6 +33,24 @@ namespace Laxkit {
 
 //------------------------------- CurveInfo ------------------------------------
 
+class CurveInfoGuide
+{
+  public:
+	int id;
+	char *name;
+	double value; //real coords
+	bool vertical;
+	bool editable;
+	bool active;
+	//ScreenColor color;
+	int style; //dashed 1, dotted 2, or solid 0
+
+	CurveInfoGuide *next;
+
+	CurveInfoGuide() { next=NULL; id=0; name=NULL; value=0; editable=true; vertical=false; active=false; }
+	virtual ~CurveInfoGuide() { delete[] name; if (next) delete next; }
+};
+
 class CurveInfo : public anObject, public LaxFiles::DumpUtility
 {
   private:
@@ -44,6 +62,8 @@ class CurveInfo : public anObject, public LaxFiles::DumpUtility
 		Autosmooth,
 		Bezier
 	};
+
+	CurveInfoGuide *guides;
 
 	double xmin, xmax;
 	double ymin, ymax;
