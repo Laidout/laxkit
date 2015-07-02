@@ -49,7 +49,7 @@ class InterfaceManager : public Laxkit::anObject
 
 
 	Laxkit::ObjectFactory *datafactory;
-	Laxkit::ResourceManager *tool_settings;
+	Laxkit::ResourceManager *tools;
 	Laxkit::ResourceManager *resources;
 
 	virtual Laxkit::ResourceManager *GetResourceManager();
@@ -62,6 +62,8 @@ class InterfaceManager : public Laxkit::anObject
 	virtual anObject *NewObject(int type);
 	virtual SomeData *NewDataObject(const char *type);
 	virtual SomeData *NewDataObject(int type);
+
+	virtual int Resourcify(Laxkit::anObject *resource, const char *type=NULL);
 
 	virtual void DrawSomeData(Laxkit::Displayer *ddp,LaxInterfaces::SomeData *ndata,
 							Laxkit::anObject *a1=NULL,Laxkit::anObject *a2=NULL,int info=0);

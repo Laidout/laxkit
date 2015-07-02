@@ -54,31 +54,36 @@ InterfaceManager *InterfaceManager::default_manager=NULL;
 
 InterfaceManager::InterfaceManager()
 {
-	tool_settings=NULL;
+	tools=NULL;
 	resources=NULL;
 	datafactory=NULL;
 }
 
 InterfaceManager::~InterfaceManager()
 {
-	if (tool_settings) tool_settings->dec_count();
-	if (resources) resources->dec_count();
-	if (datafactory) datafactory->dec_count();
+	DBG cerr <<"----InterfaceManager destructor begin"<<endl;
+
+	if (tools)       { tools->dec_count();       tools=NULL; }
+	if (resources)   { resources->dec_count();   resources=NULL; }
+	if (datafactory) { datafactory->dec_count(); datafactory=NULL; }
+
+	DBG cerr <<"----InterfaceManager destructor end"<<endl;
 }
 
 
 ResourceManager *InterfaceManager::GetSettingsManager()
 {
-	if (!tool_settings) {
-		tool_settings=new ResourceManager();
+	if (!tools) {
+		tools=new ResourceManager();
 	}
-	return tool_settings;
+	return tools;
 }
 
 ResourceManager *InterfaceManager::GetResourceManager()
 {
 	if (!resources) {
 		resources=new ResourceManager();
+		resources->SetObjectFactory(GetObjectFactory());
 	}
 	return resources;
 }
@@ -135,6 +140,21 @@ SomeData *InterfaceManager::NewDataObject(int type)
 	if (obj) obj->dec_count();
 	return NULL;
 }
+
+/*! For an object that is NOT currently a resource, make it one.
+ * No check is done to ensure it's not currently a resource.
+ */
+int InterfaceManager::Resourcify(Laxkit::anObject *resource, const char *type)
+{
+	if (!type) type=resource->whattype();
+
+	ResourceManager *rm=GetResourceManager();
+	rm->AddResource(resource->whattype(), resource, NULL,
+                    resource->Id(), resource->Id(), NULL, NULL, NULL);
+			
+	return 0;
+}
+
 
 void InterfaceManager::DrawSomeData(Laxkit::Displayer *ddp,LaxInterfaces::SomeData *ndata,
 							Laxkit::anObject *a1,Laxkit::anObject *a2,int info)
