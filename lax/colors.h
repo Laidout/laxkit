@@ -177,6 +177,7 @@ class ColorPrimary
 					//    like being able to define a sparkle or metal speck fill pattern 
 	               // for each i'th attribute
 	ColorPrimary();
+	ColorPrimary(const char *nname, double min, double max);
 	virtual ~ColorPrimary();
 };
 

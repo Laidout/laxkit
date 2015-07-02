@@ -433,6 +433,13 @@ ColorPrimary::ColorPrimary()
 	maxvalue=1;
 }
 
+ColorPrimary::ColorPrimary(const char *nname, double min, double max)
+{
+	name=newstr(nname);
+	minvalue=min;
+	maxvalue=max;
+}
+
 ColorPrimary::~ColorPrimary()
 {
 	if (name) delete[] name;
@@ -591,6 +598,62 @@ ColorSystem *Create_Generic_CMYK(bool with_alpha)
 }
 
 
+ColorSystem *Create_CieLab(bool with_alpha)
+{
+	ColorSystem *cielab=new ColorSystem;
+	makestr(cielab->name,_("CieL*a*b*"));
+	if (with_alpha) cielab->style|=COLOR_Has_Alpha;
+
+	//cielab->iccprofile=***;
+
+	 //L*
+	ColorPrimary *primary=new ColorPrimary(_("L"), 0,100);
+	primary->screencolor.rgbf(0.0,0.0,0.0);
+	cielab->primaries.push(primary);
+
+	 //a*
+	primary=new ColorPrimary(_("a"), -128,127);
+	primary->screencolor.rgbf(0.0,1.0,0.0);
+	cielab->primaries.push(primary);
+
+	 //b*
+	primary=new ColorPrimary(_("b"), -128,127);
+	primary->screencolor.rgbf(1.0,0.0,1.0);
+	cielab->primaries.push(primary);
+
+
+	return cielab;
+}
+
+ColorSystem *Create_XYZ(bool with_alpha)
+{
+	//todo: the screen color representation needs to make sense.. it doesn't currently
+	
+
+	ColorSystem *xyz=new ColorSystem;
+	makestr(xyz->name,_("XYZ"));
+	if (with_alpha) xyz->style|=COLOR_Has_Alpha;
+
+	//xyz->iccprofile=***;
+
+	 //X
+	ColorPrimary *primary=new ColorPrimary(_("X"), 0,100);
+	primary->screencolor.rgbf(0.0,0.0,0.0);
+	xyz->primaries.push(primary);
+
+	 //Y
+	primary=new ColorPrimary(_("Y"), 0,100);
+	primary->screencolor.rgbf(0.0,1.0,0.0);
+	xyz->primaries.push(primary);
+
+	 //Z
+	primary=new ColorPrimary(_("Z"), 0,100);
+	primary->screencolor.rgbf(0.0,0.0,1.0);
+	xyz->primaries.push(primary);
+
+
+	return xyz;
+}
 
 
 
