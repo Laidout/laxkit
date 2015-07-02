@@ -23,7 +23,6 @@
 #ifndef _LAX_DATAFACTORY_H
 #define _LAX_DATAFACTORY_H
 
-#include <lax/interfaces/somedata.h>
 #include <lax/displayer.h>
 #include <lax/lists.h>
 
@@ -51,10 +50,14 @@ class ObjectFactoryNode
 	virtual ~ObjectFactoryNode() { delete[] name; }
 };
 
+
 //---------------------------- ObjectFactory ---------------------------------
 class ObjectFactory : public anObject
 {
- public:
+  protected:
+	virtual ObjectFactoryNode *newObjectFactoryNode();
+
+  public:
 	PtrStack<ObjectFactoryNode> types;
 
 	//static ObjectFactory *default_factory;

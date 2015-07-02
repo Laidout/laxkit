@@ -73,6 +73,11 @@ namespace Laxkit {
 
 
 
+ObjectFactoryNode *ObjectFactory::newObjectFactoryNode()
+{
+	return new ObjectFactoryNode();
+}
+
 
 //! Add ability to make a new type of object.
 /*! If newname already exists, then do nothing and return -1. Else return the index on types
@@ -84,7 +89,7 @@ int ObjectFactory::DefineNewObject(int newid, const char *newname, NewObjectFunc
 	int i=findPosition(newname,&exists);
 	if (exists) return -1;
 
-	ObjectFactoryNode *node=new ObjectFactoryNode();
+	ObjectFactoryNode *node=newObjectFactoryNode();
 	node->name=newstr(newname);
 	node->id=newid;
 	node->newfunc=newfunc;
