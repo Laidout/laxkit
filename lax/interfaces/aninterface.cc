@@ -413,6 +413,19 @@ void anInterface::Clear()
 	Clear(NULL);
 }
 
+/*! Applications may call this on the very first time a tool is instantiated.
+ * It should install any tool settings object, and any resource types to
+ * InterfaceManager::tools and InterfaceManager::datafactory.
+ * The tool settings object should have the same name as the tool type,
+ * that is, it should be tool->whattype().
+ *
+ * Default here is to do nothing.
+ */
+int anInterface::InitializeResources()
+{
+	return 0;
+}
+
 //! Set the window the interface works on to ncur. Returns ncur. If ncur==NULL, then just return current viewport.
 Laxkit::anXWindow *anInterface::CurrentWindow(Laxkit::anXWindow *ncur)
 {

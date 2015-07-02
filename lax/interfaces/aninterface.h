@@ -96,6 +96,7 @@ class anInterface : virtual public Laxkit::EventReceiver,
 	virtual void Clear();
 	virtual int InterfaceOn() { return 0; }
 	virtual int InterfaceOff() { return 0; } 
+	virtual int InitializeResources();
 	virtual int RemoveChild();
 	virtual int AddChild(LaxInterfaces::anInterface *ch, int absorbcount, int addbefore);
 
