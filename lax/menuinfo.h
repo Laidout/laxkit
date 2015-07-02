@@ -41,12 +41,15 @@
 #define SORT_CBA          (1<<2)
 #define SORT_123          (1<<3)
 #define SORT_321          (1<<4)
+#define SORT_INFO         (1<<5)
+#define SORT_INFO_REV     (1<<6)
  // Or'd with any of these:
 #define SORT_IGNORE_CASE  (1<<8)
 #define SORT_DIRS_FIRST   (1<<9)
 #define SORT_HIDE_HIDDEN  (1<<10)
 #define SORT_DOT_FIRST    (1<<11)
 #define SORT_BY_EXTENSION (1<<12)
+
 
 //-------item state
 //---from laxdefs.h:
@@ -75,6 +78,7 @@
 namespace Laxkit {
 
 class MenuInfo;
+
 
 //----------------------------------- MenuItem --------------------------------
 class MenuItem : public anObject
@@ -121,8 +125,10 @@ class MenuItem : public anObject
 	virtual int pointIsIn(int xx,int yy) { return xx>=x && xx<x+w && yy>=y && yy<y+h; }
 };
 
+
 //----------------------------------- MenuInfo --------------------------------
-typedef int (*CompareFunc)(const char *s1,const char *s2);
+//typedef int (*CompareFunc)(const char *s1,const char *s2);
+typedef int (*CompareFunc)(MenuItem *i1,int detail1, MenuItem *i2,int detail2);
 
 class MenuInfo : public anObject
 {
@@ -134,6 +140,7 @@ class MenuInfo : public anObject
 	char *title;
 	MenuItem *parent;
 	RefPtrStack<MenuItem> menuitems;
+
 	MenuInfo(const char *ntitle=NULL);
 	virtual ~MenuInfo();
 	virtual void SetCompareFunc(CompareFunc func);
@@ -178,7 +185,9 @@ class MenuInfo : public anObject
 	virtual MenuItem *e(int i);
 };
 
+
 void menuinfoDump(MenuInfo *menu, int indent); //for debugging
+
 
 } // namespace Laxkit
 	

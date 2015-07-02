@@ -78,6 +78,48 @@ namespace Laxkit {
  * </pre>
  */
 
+
+//-------------------------- Old style comparison functions (no longer used?)
+int reversestrcmp(const char *s1,const char *s2)
+{ return -strcmp(s1,s2); }
+
+int reversestrcasecmp(const char *s1,const char *s2)
+{ return -strcasecmp(s1,s2); }
+
+int strcmp123(const char *s1,const char *s2)
+{ return atof(s1)<atof(s2)?-1:(atof(s1)>atof(s2)?1:0); }
+
+int strcmp321(const char *s1,const char *s2)
+{ return atof(s1)>atof(s2)?-1:(atof(s1)<atof(s2)?1:0); }
+
+//-------------------------- Comparison functions
+
+int menu_strcmp(MenuItem *i1,int detail1, MenuItem *i2,int detail2)
+{ return strcmp(i1->GetString(detail1), i2->GetString(detail1)); }
+
+int menu_strcasecmp(MenuItem *i1,int detail1, MenuItem *i2,int detail2)
+{ return strcasecmp(i1->GetString(detail1), i2->GetString(detail1)); }
+
+int menu_reversestrcmp(MenuItem *i1,int detail1, MenuItem *i2,int detail2)
+{ return -strcmp(i1->GetString(detail1), i2->GetString(detail1)); }
+
+int menu_reversestrcasecmp(MenuItem *i1,int detail1, MenuItem *i2,int detail2)
+{ return -strcasecmp(i1->GetString(detail1), i2->GetString(detail1)); }
+
+int menu_strcmp123(MenuItem *i1,int detail1, MenuItem *i2,int detail2)
+{ return atof(i1->GetString(detail1))<atof(i2->GetString(detail2))?-1:(atof(i1->GetString(detail1))>atof(i2->GetString(detail2))?1:0); }
+
+int menu_strcmp321(MenuItem *i1,int detail1, MenuItem *i2,int detail2)
+{ return atof(i1->GetString(detail1))>atof(i2->GetString(detail2))?-1:(atof(i1->GetString(detail1))<atof(i2->GetString(detail2))?1:0); }
+
+
+int strcmpInfo(MenuItem *i1,int detail1, MenuItem *i2,int detail2)
+{ return i1->GetDetail(detail1)->info < i2->GetDetail(detail2)->info ? -1 : ((i1->GetDetail(detail1)->info > i2->GetDetail(detail2)->info) ? 1 : 0); }
+
+int strcmpInfoRev(MenuItem *i1,int detail1, MenuItem *i2,int detail2)
+{ return i1->GetDetail(detail1)->info > i2->GetDetail(detail2)->info ? -1 : ((i1->GetDetail(detail1)->info < i2->GetDetail(detail2)->info) ? 1 : 0); }
+
+
 //--------------------------------------------------------
 
 /*! \typedef int (*CompareFunc)(const char *s1,const char *s1)
@@ -464,7 +506,7 @@ MenuInfo::MenuInfo(const char *ntitle) // ntitle
 	title=NULL;
 	makestr(title,ntitle);
 	curmenu=this;
-	Compare=strcmp;
+	Compare=menu_strcmp;
 	parent=NULL;
 }
 
@@ -573,14 +615,16 @@ void MenuInfo::sort(int start,int end, int detail) // sort in 1,2,3..
 	//DBG cerr <<"--quick sort:"<<start<<" "<<end<<endl;
 	if (end<0) end=menuitems.n-1;
 	if (start>=end) return;
+
 	int s,e;
-	const char *mid=menuitems.e[end]->GetString(detail);
+	MenuItem *mid=menuitems.e[end];
 	MenuItem *mi;
 	s=start;
 	e=end;
+
 	while (s<=e) {
-		if (Compare(menuitems.e[s]->GetString(detail),mid)<0) { s++; continue; }
-		if (Compare(menuitems.e[e]->GetString(detail),mid)>0) { e--; continue; }
+		if (Compare(menuitems.e[s],detail, mid,detail)<0) { s++; continue; }
+		if (Compare(menuitems.e[e],detail, mid,detail)>0) { e--; continue; }
 
 		//DBG cerr <<"=== sort swap: "<<s<<','<<e<<endl;
 		mi=menuitems.e[s];
@@ -610,35 +654,32 @@ void MenuInfo::Sort(int detail,int newsortstyle)
  */
 void MenuInfo::SetCompareFunc(CompareFunc func)
 {
-	if (func) Compare=func; else Compare=strcmp;
-	Sort();
+	if (func) Compare=func; else Compare=menu_strcmp;
+	//Sort();
 }
 
-int reversestrcmp(const char *s1,const char *s2)
-{ return -strcmp(s1,s2); }
-
-int reversestrcasecmp(const char *s1,const char *s2)
-{ return -strcasecmp(s1,s2); }
-
-int strcmp123(const char *s1,const char *s2)
-{ return atof(s1)<atof(s2)?-1:(atof(s1)>atof(s2)?1:0); }
-
-int strcmp321(const char *s1,const char *s2)
-{ return atof(s1)>atof(s2)?-1:(atof(s1)<atof(s2)?1:0); }
 
 //! Set Compare to the appropriate function for newsortstyle
 void MenuInfo::SetCompareFunc(int newsortstyle)
 {
 	sortstyle=newsortstyle;
-	if (sortstyle&SORT_ABC) 
-		if (sortstyle&(SORT_IGNORE_CASE)) Compare=strcasecmp;
-		else Compare=strcmp;
-	else if (sortstyle&SORT_CBA) 
-		if (sortstyle&(SORT_IGNORE_CASE)) Compare=reversestrcasecmp;
-		else Compare=reversestrcmp;
-	else if (sortstyle&SORT_123) Compare=strcmp123;
-	else if (sortstyle&SORT_321) Compare=strcmp321;
-	else Compare=strcmp; //**** default??
+
+	if (sortstyle&SORT_ABC) {
+		if (sortstyle&(SORT_IGNORE_CASE))
+			 Compare=menu_strcasecmp;
+		else Compare=menu_strcmp;
+
+	} else if (sortstyle&SORT_CBA)  {
+		if (sortstyle&(SORT_IGNORE_CASE))
+			 Compare=menu_reversestrcasecmp;
+		else Compare=menu_reversestrcmp;
+
+	} else if (sortstyle&SORT_INFO)     Compare=strcmpInfo;
+	else   if (sortstyle&SORT_INFO_REV) Compare=strcmpInfoRev;
+	else   if (sortstyle&SORT_123)      Compare=menu_strcmp123;
+	else   if (sortstyle&SORT_321)      Compare=menu_strcmp321;
+
+	else Compare=menu_strcmp; //**** default??
 }
 
 //! Add a whole bunch of items at the same time.
