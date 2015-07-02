@@ -1453,7 +1453,7 @@ char *Attribute::dump_in_indented(FILE *f, int Indent)
 		pos=ftell(f);
 		linenumber++;
 
-		DBG cerr <<"dump in, line number: "<<linenumber<<endl;
+		//DBG cerr <<"dump in, line number: "<<linenumber<<endl;
 
 		c=getline_indent_nonblank(&line,&n,f,Indent,"#",'"',0); //0 means dont skip lines
 		if (c<=0) break;
