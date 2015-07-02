@@ -25,8 +25,10 @@
 
 #include <lax/anobject.h>
 #include <lax/dump.h>
+#include <lax/objectfactory.h>
 #include <lax/tagged.h>
 #include <lax/laximages.h>
+#include <lax/menuinfo.h>
 #include <lax/refptrstack.h>
 
 #include <ctime>
@@ -71,7 +73,7 @@ class Resource : virtual public anObject, virtual public Tagged
 {
   public:
 	anObject *object;
-	anObject *owner; //such as a document or a project, not usually direct owner of object?
+	anObject *topowner; //such as a document or a project, not usually direct owner of object?
 
 	char *name;
 	char *Name;
@@ -134,7 +136,9 @@ class ResourceType : public Resource
 	virtual int RemoveDir(const char *dir);
 	virtual int Find(anObject *object);
 	virtual anObject *Find(const char *str, Resource **resource_ret);
-	virtual int AddResource(anObject *object, anObject *nowner, const char *name, const char *Name, const char *description, const char *file, LaxImage *icon);
+	virtual int AddResource(anObject *object, anObject *ntopowner, const char *name, const char *Name, const char *description, const char *file, LaxImage *icon);
+
+	virtual MenuInfo *AppendMenu(MenuInfo *menu, bool do_favorites, int *numadded);
 };
 
 
@@ -146,26 +150,39 @@ class ResourceManager : public anObject, public LaxFiles::DumpUtility
   public:
 	char *app_name; //where app specific resources are located, so search in */app_name/app_version/resource_name/*
 	char *app_version; //only used if app_name!=NULL
+
 	PtrStack<ResourceType> types;
+
+	ObjectFactory *objectfactory;
+	virtual ObjectFactory *GetObjectFactory() { return objectfactory; }
+	virtual void SetObjectFactory(ObjectFactory *factory);
 
 	ResourceManager();
 	virtual ~ResourceManager();
 	virtual const char *whattype() { return "ResourceManager"; }
 
 	virtual void SetAppName(const char *nname, const char *nversion);
-	virtual int AddResource(const char *type, anObject *object, anObject *nowner, const char *name, const char *Name, const char *description, const char *file, LaxImage *icon);
+
+	 //resource management
+	virtual int AddResource(const char *type, anObject *object, anObject *ntopowner, const char *name, const char *Name, const char *description, const char *file, LaxImage *icon);
 	virtual anObject *FindResource(const char *name, const char *type, Resource **resource_ret=NULL);
-	virtual ResourceType *AddResourceType(const char *name, const char *Name, const char *description, LaxImage *icon);
 
 	virtual anObject *NewObjectFromType(const char *type);
 
+
+	 //type management
+	MenuInfo *ResourceMenu(const char *type, bool include_recent, MenuInfo *menu);
+	virtual ResourceType *AddResourceType(const char *name, const char *Name, const char *description, LaxImage *icon);
+	virtual ResourceType *FindType(const char *name);
+	virtual ResourceType *GetTypeFromIndex(int which) { if (which>=0 && which<types.n) return types.e[which]; return NULL; }
+	virtual int NumTypes() { return types.n; }
+
 	virtual int AddResourceDir(const char *type, const char *dir, int where);
 	virtual int RemoveResourceDir(const char *type, const char *dir);
-	virtual ResourceType *FindType(const char *name);
-	virtual int NumTypes() { return types.n; }
-	virtual ResourceType *GetType(int which) { if (which>=0 && which<types.n) return types.e[which]; return NULL; }
 	virtual int AddDirs_XDG(int which_type);
 
+
+	 //io
 	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
 	virtual void dump_out_list(ResourceType *type, FILE *f,int indent,int what,LaxFiles::DumpContext *context);
     virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context);

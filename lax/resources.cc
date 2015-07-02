@@ -86,7 +86,6 @@ Laxkit::LaxImage *Resourceable::ResourceIcon()
 	return NULL;
 }
 
-
 int Resourceable::dec_count()
 {
 	if (users.n && _count==users.n+1) {
@@ -143,7 +142,7 @@ int Resourceable::RemoveUser(anObject *object)
 Resource::Resource()
 {
 	object=NULL;
-	owner=NULL;
+	topowner=NULL;
 
 	name=NULL;
 	Name=NULL;
@@ -169,13 +168,15 @@ Resource::Resource(anObject *obj, anObject *nowner, const char *nname, const cha
 {
 	object=obj;
 	if (object) object->inc_count();
-	owner=nowner;
+	topowner=nowner;
 
 	name=newstr(nname);
 	Name=newstr(nName);
-	description=newstr(description);
+	description=newstr(ndesc);
+
 	icon=nicon;
 	if (icon) icon->inc_count();
+
 	source=newstr(nfile);
 	if (nfile) source_type=1; else source_type=0;
 
@@ -187,10 +188,17 @@ Resource::Resource(anObject *obj, anObject *nowner, const char *nname, const cha
 	objecttype=NULL;
 	config=NULL;
 	creation_func=NULL;
+
+	if (dynamic_cast<Resourceable*>(obj)) {
+		Resourceable *r=dynamic_cast<Resourceable*>(obj);
+		r->SetResourceOwner(this);
+	}
 }
 
 Resource::~Resource()
 {
+	DBG cerr <<"--Resource destructor for "<<name<<", id="<<(object ? object->object_id : object_id)<<endl;
+
 	if (object) object->dec_count();
 
 	delete[] name;
@@ -251,28 +259,21 @@ anObject *Resource::Create()
 ResourceType::ResourceType()
 	: dirs(LISTS_DELETE_Array)
 {
-	name=NULL;
-	Name=NULL;
-	description=NULL;
-	icon=NULL;
-
-	PtrStack<Resource> resources;
-
+	default_icon=NULL;
+	creation_func=NULL;
 }
 
 ResourceType::ResourceType(const char *nname, const char *nName, const char *ndesc, LaxImage *nicon)
   : Resource(NULL,NULL,nname,nName,ndesc,NULL,nicon),
 	dirs(LISTS_DELETE_Array)
 {
+	default_icon=NULL;
+	creation_func=NULL;
 }
 
 ResourceType::~ResourceType()
 {
-	delete[] name;
-	delete[] Name;
-	delete[] description;
-	delete[] source;
-	if (icon) icon->dec_count();
+	if (default_icon) default_icon->dec_count();
 }
 
 /*! Return 0 for added, -1 for already there and not added.
@@ -285,7 +286,7 @@ int ResourceType::AddDir(const char *dir, int where)
 		if (!strcmp(dirs.e[c], dir)) return -1;
 	}
 
-	dirs.push(newstr(dir), 2, where);
+	dirs.push(newstr(dir), LISTS_DELETE_Array, where);
 	return 0;
 }
 
@@ -357,14 +358,52 @@ int ResourceType::Find(anObject *object)
  *
  * object's count will be incremented.
  */
-int ResourceType::AddResource(anObject *nobject, anObject *nowner, const char *nname, const char *nName, const char *ndescription, const char *nfile, LaxImage *nicon)
+int ResourceType::AddResource(anObject *nobject, anObject *ntopowner, const char *nname, const char *nName, const char *ndescription, const char *nfile, LaxImage *nicon)
 {
 	if (Find(object)) return -1;
 
-	Resource *r=new Resource(nobject,nowner,nname,nName,ndescription,nfile,nicon);
+	Resource *r=new Resource(nobject,ntopowner,nname,nName,ndescription,nfile,nicon);
 	resources.push(r);
+	r->dec_count();
 
 	return 0;
+}
+
+/*! \todo *** should have progressive loading of submenus when resource list is file based and large.
+ *
+ * The info field of normal items is -1. The info of favorite items is >=0 and represents placement in the list.
+ */
+MenuInfo *ResourceType::AppendMenu(MenuInfo *menu, bool do_favorites, int *numadded)
+{
+	if (!menu) menu=new MenuInfo(name);
+	
+	Resource *r;
+	for (int c=0; c<resources.n; c++) {
+		r=resources.e[c];
+		if (r->ignore) continue;
+
+		if (do_favorites && !r->favorite) continue;
+
+		if (dynamic_cast<ResourceType*>(r)) {
+			 //sub list...
+			if (do_favorites) menu->SubMenu(r->Name);
+			int oldn=menu->n();
+			dynamic_cast<ResourceType*>(r)->AppendMenu(menu,do_favorites,numadded);
+			oldn=menu->n()-oldn;
+			*numadded += oldn;
+			if (do_favorites) {
+				if (oldn==0) menu->Remove(-1); //remove added submenu when no items added
+				menu->EndSubMenu();
+			}
+
+		} else {
+			 //normal resource
+			menu->AddItem(r->Name, r->icon, r->object_id, LAX_OFF, do_favorites ? r->favorite : -1, NULL);
+			*numadded += 1;
+		}
+	}
+
+	return menu;
 }
 
 
@@ -380,18 +419,52 @@ ResourceManager::ResourceManager()
 {
 	app_name=NULL;
 	app_version=NULL;
+
+	objectfactory=NULL;
 }
 
 ResourceManager::~ResourceManager()
 {
 	delete[] app_name;
 	delete[] app_version;
+	if (objectfactory) objectfactory->dec_count();
 }
 
 void ResourceManager::SetAppName(const char *nname, const char *nversion)
 {
 	makestr(app_name,nname);
 	makestr(app_version,nversion);
+}
+
+void ResourceManager::SetObjectFactory(ObjectFactory *factory)
+{
+	if (objectfactory!=factory) {
+		if (objectfactory) objectfactory->dec_count();
+		objectfactory=factory;
+		if (objectfactory) objectfactory->inc_count();
+	}
+}
+
+/*! If menu!=NULL, then append to it. Else return a new one.
+ *
+ * If type not found, return NULL.
+ */
+MenuInfo *ResourceManager::ResourceMenu(const char *type, bool include_recent, MenuInfo *menu)
+{
+	ResourceType *rtype=FindType(type);
+	if (!rtype) return NULL;
+
+	if (!menu) menu=new MenuInfo(type);
+
+	 //first do a favorites menu
+	int numadded=0;
+	rtype->AppendMenu(menu, true, &numadded);
+	if (numadded) menu->AddSep();
+
+	 //then add full menu
+	rtype->AppendMenu(menu, false, &numadded);
+
+	return menu;
 }
 
 /*! Add the usual directories to search in, according to the XDG Base Directory Specification.
@@ -504,9 +577,10 @@ anObject *ResourceManager::FindResource(const char *name, const char *type, Reso
  * -1 if object is already there for type.
  */
 int ResourceManager::AddResource(const char *type, //! If NULL, then use object->whattype()
-							anObject *object, anObject *nowner,
+							anObject *object, anObject *ntopowner,
 							const char *name, const char *Name, const char *description, const char *file, LaxImage *icon)
 {
+	DBG cerr <<"Add resource "<<object->Id()<<"..."<<endl;
 	if (!object) return 1;
 	if (!type) type=object->whattype();
 
@@ -516,7 +590,7 @@ int ResourceManager::AddResource(const char *type, //! If NULL, then use object-
 		t=AddResourceType(type,type,NULL,NULL);
 	}
 
-	t->AddResource(object,nowner, name,Name,description,file,icon);
+	t->AddResource(object,ntopowner, name,Name,description,file,icon);
 	return 0;
 }
 
@@ -540,11 +614,11 @@ ResourceType *ResourceManager::AddResourceType(const char *name, const char *Nam
 	 //add sorted
 	t=new ResourceType(name,Name,description,icon);
 	int c;
-	for (c=0; c<t->resources.n; c++) {
-		if (strcmp(name,t->resources.e[c]->name)<0) break;
+	for (c=0; c<types.n; c++) {
+		if (strcmp(name,types.e[c]->name)<0) break;
 	}
 
-	types.push(t,1,c);
+	types.push(t,LISTS_DELETE_Single,c);
 	return t;
 }
 
@@ -586,8 +660,8 @@ void ResourceManager::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext
 		type=types.e[c];
 
 		fprintf(f,"%stype %s\n",spc, type->name);
-		fprintf(f,"%s  Name %s\n",spc, type->Name);
-		fprintf(f,"%s  description %s\n",spc, type->description);
+		if (type->Name)        fprintf(f,"%s  Name %s\n",spc, type->Name);
+		if (type->description) fprintf(f,"%s  description %s\n",spc, type->description);
 
 		if (type->dirs.n) {
 			fprintf(f,"%s  dirs \\\n",spc);
@@ -612,20 +686,20 @@ void ResourceManager::dump_out_list(ResourceType *type, FILE *f,int indent,int w
 		if (resource->ignore) continue;
 
 		if (dynamic_cast<ResourceType*>(resource)) {
-			fprintf(f,"%ssublist\n",spc);
+			fprintf(f,"%ssublist %s\n",spc, resource->name ? resource->name : "");
 			dump_out_list(dynamic_cast<ResourceType*>(resource), f,indent+2,what,context);
 			continue;
 		}
 
 		fprintf(f,"%sresource\n",spc);
 		fprintf(f,"%s  name %s\n",spc, resource->name);
-		fprintf(f,"%s  Name %s\n",spc, resource->Name);
-		fprintf(f,"%s  description %s\n",spc, resource->description);
+		if (resource->Name) fprintf(f,"%s  Name %s\n",spc, resource->Name);
+		if (resource->description) fprintf(f,"%s  description %s\n",spc, resource->description);
 		fprintf(f,"%s  favorite %d\n",spc, resource->favorite);
 
 		if (resource->source_type==0 && resource->object) {
 			fprintf(f,"%s  object %s\n",spc, resource->object->whattype());
-			if (dynamic_cast<DumpUtility*>(resource->object));
+			if (dynamic_cast<DumpUtility*>(resource->object))
 				dynamic_cast<DumpUtility*>(resource->object)->dump_out(f,indent+4,what,context);
 
 		} else if (resource->source_type==1 && !isblank(resource->source)) {
@@ -713,7 +787,7 @@ void ResourceManager::dump_in_list_atts(ResourceType *type, LaxFiles::Attribute 
         value=att->attributes.e[c]->value;
 
 		if (!strcmp(name,"sublist")) {
-			ResourceType *sub=new ResourceType;
+			ResourceType *sub=new ResourceType(value,value,NULL,NULL);
 			type->resources.push(sub);
 			sub->dec_count();
 			dump_in_list_atts(sub, att->attributes.e[c], flag,context);
@@ -722,7 +796,7 @@ void ResourceManager::dump_in_list_atts(ResourceType *type, LaxFiles::Attribute 
 			Resource *resource=new Resource;
 			int resourceok=0;
 
-			for (int c2=0; c2<att->attributes.n; c2++) {
+			for (int c2=0; c2<att->attributes.e[c]->attributes.n; c2++) {
 				name= att->attributes.e[c]->attributes.e[c2]->name;
 				value=att->attributes.e[c]->attributes.e[c2]->value;
 
@@ -741,9 +815,13 @@ void ResourceManager::dump_in_list_atts(ResourceType *type, LaxFiles::Attribute 
 				} else if (!strcmp(name,"object")) {
 					resource->source_type=0;
 					anObject *newobject=NewObjectFromType(value);
+
 					if (dynamic_cast<DumpUtility*>(newobject)) {
 						dynamic_cast<DumpUtility*>(newobject)->dump_in_atts(att->attributes.e[c]->attributes.e[c2], flag,context);
 						resourceok=1;
+						resource->object=newobject;
+						if (!isblank(newobject->object_idstr)) makestr(resource->name,newobject->Id());
+
 					} else if (newobject) {
 						newobject->dec_count();
 					}
@@ -774,7 +852,8 @@ void ResourceManager::dump_in_list_atts(ResourceType *type, LaxFiles::Attribute 
 
 anObject *ResourceManager::NewObjectFromType(const char *type)
 {
-	return NULL;
+	if (!objectfactory) return NULL;
+	return objectfactory->NewObject(type);
 }
 
 } //namespace Laxkit
