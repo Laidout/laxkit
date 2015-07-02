@@ -365,6 +365,11 @@ CreateNewImageFunc       create_new_image        = NULL;
 
 //------------------- save_image 
 
+/*! \typedef int (*SaveImageFunc)(LaxImage *image, const char *filename, const char *format);
+ *
+ * Returns 0 for success, or nonzero for some kind of error, not saved.
+ */
+
 SaveImageFunc  save_image=NULL;
 
 
