@@ -196,7 +196,7 @@ class EngraverTraceSettings : public Laxkit::Resourceable, public LaxFiles::Dump
 {
   public:
 	int group;
-	Laxkit::CurveInfo value_to_weight;
+	Laxkit::CurveInfo *value_to_weight;
 	double traceobj_opacity;
 	int tracetype; //0==absolute, 1=multiply
 	bool continuous_trace;
@@ -419,7 +419,8 @@ class EngraverPointGroup : public DirectionMap
 
 	EngraverTraceSettings *trace; 
 	EngraverLineQuality *dashes;
-	int numdashes;
+	//EngraverDirection *direction;
+	//EngraverSpacing *spacing;
 
 	char *iorefs; //tags of unresolved references to dashes, traces, etc
 
@@ -433,6 +434,8 @@ class EngraverPointGroup : public DirectionMap
 
 	virtual void InstallTraceSettings(EngraverTraceSettings *newtrace, int absorbcount);
 	virtual void InstallDashes(EngraverLineQuality *newdash, int absorbcount);
+	virtual void InstallDirection(EngraverDirection *newdir, int absorbcount);
+	virtual void InstallSpacing(EngraverSpacing *newspace, int absorbcount);
 
 	virtual int PointOn(LinePoint *p);
 	virtual int PointOnDash (LinePointCache *p);
