@@ -528,7 +528,7 @@ double DisplayerXlib::textout_line(double x,double y,const char *str,int len,uns
 //! Draw multiple lines of text around screen x,y.
 double DisplayerXlib::textout(double x,double y,const char *str,int len,unsigned long align)
 {
-	if (!w) return 0;
+	if (!w || !str) return 0;
 	XSetForeground(dpy,gc,fgcolor);
 
     int n=0;
@@ -582,7 +582,7 @@ double DisplayerXlib::textout(double *matrix,double x,double y,const char *str,i
 {
 	cerr << " *** implement DisplayerXlib::textout(double *matrix)!!"<<endl;
 
-	if (!w) return 0;
+	if (!w || !str) return 0;
 	XSetForeground(dpy,gc,fgcolor);
 	return textout(x,y, str,len, align);
 }
@@ -591,7 +591,7 @@ double DisplayerXlib::textout(double angle, double x,double y,const char *str,in
 {
 	cerr << " *** implement DisplayerXlib::textout(double angle)!!"<<endl;
 
-	if (!w) return 0;
+	if (!w || !str) return 0;
 	XSetForeground(dpy,gc,fgcolor);
 	return textout(x,y, str,len, align);
 }
