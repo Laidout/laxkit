@@ -24,6 +24,7 @@
 #include <lax/curveinfo.h>
 #include <lax/strmanip.h>
 #include <lax/bezutils.h>
+#include <lax/language.h>
 
 
 #include <iostream>
@@ -474,6 +475,54 @@ int CurveInfo::MovePoint(int index, double x,double y)
 	return 0;
 }
 
+/*! Note, old bounds will be kept.
+ */
+void CurveInfo::SetDefault(CurveDefaults type, bool set_title)
+{
+	points.flush();
+
+	if (type==CURVE_Rising) {
+		points.push(flatpoint(0,0));
+		points.push(flatpoint(1,1));
+		if (set_title) makestr(title, _("Rising"));
+
+	} else if (type==CURVE_Falling) {
+		points.push(flatpoint(0,1));
+		points.push(flatpoint(1,0));
+		if (set_title) makestr(title, _("Falling"));
+
+	} else if (type==CURVE_Flat_Low) {
+		points.push(flatpoint(.5,0));
+		if (set_title) makestr(title, _("Flat low"));
+
+	} else if (type==CURVE_Flat_Middle) {
+		points.push(flatpoint(.5,.5));
+		if (set_title) makestr(title, _("Flat middle"));
+
+	} else if (type==CURVE_Flat_High) {
+		points.push(flatpoint(.5,1));
+		if (set_title) makestr(title, _("Flat high"));
+
+	} else if (type==CURVE_Sine_Rising) {
+		SetSinusoidal(8, 0);
+		if (set_title) makestr(title, _("Sine rising"));
+
+	} else if (type==CURVE_Sine_Falling) {
+		SetSinusoidal(8, 1);
+		if (set_title) makestr(title, _("Sine falling"));
+
+	} else if (type==CURVE_Sine_Bump) {
+		SetSinusoidal(8, 2);
+		if (set_title) makestr(title, _("Sine bump"));
+
+	} else if (type==CURVE_Sine_Valley) {
+		SetSinusoidal(8, 3);
+		if (set_title) makestr(title, _("Sine valley"));
+	}
+
+	fauxpoints.flush();
+}
+
 void CurveInfo::SetTitle(const char *ntitle)
 {
 	makestr(title,ntitle);
@@ -699,8 +748,13 @@ double CurveInfo::f_bezier(double x)
  *
  * Note this makes a CurveInfo::Autosmooth type, simply making sample points
  * on an actual sine curve. It is NOT a minimal bezier representation.
+ *
+ * variant==0 is sine rising \n
+ * variant==1 is sine falling \n
+ * variant==2 is sine bump \n
+ * variant==3 is sine valley \n
  */
-void CurveInfo::SetSinusoidal(int samples)
+void CurveInfo::SetSinusoidal(int samples, int variant)
 {
 	if (samples<2) return;
 	curvetype=CurveInfo::Autosmooth;
@@ -709,10 +763,12 @@ void CurveInfo::SetSinusoidal(int samples)
 	flatvector p;
 
 	samples--;
+	int flip=(variant%2 ? -1 : 1);
+	int more=(variant>=2 ? 2 : 1);
 
 	for (int c=0; c<=samples; c++) {
 		p.x=((double)c)/samples;
-		p.y=.5+.5*cos(M_PI*c/samples);
+		p.y=.5+.5*flip*cos(more*M_PI*c/samples);
 		points.push(p);
 	}
 	MakeFakeCurve();

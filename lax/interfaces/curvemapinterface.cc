@@ -22,6 +22,7 @@
 //
 
 #include <lax/interfaces/curvemapinterface.h>
+#include <lax/interfaces/interfacemanager.h>
 #include <lax/laxutils.h>
 #include <lax/strmanip.h>
 #include <lax/bezutils.h>
@@ -97,6 +98,31 @@ CurveMapInterface::~CurveMapInterface()
 	if (histogram) delete[] histogram;
 
 	if (sc) sc->dec_count();
+}
+
+anObject *NewCurveInfo(anObject *refobj) { return new CurveInfo; }
+
+int CurveMapInterface::InitializeResources()
+{
+	InterfaceManager *imanager=InterfaceManager::GetDefault(true);
+
+	ObjectFactory *factory=imanager->GetObjectFactory(); 
+	factory->DefineNewObject(-1, "CurveInfo", NewCurveInfo, NULL);
+
+	 //create builtin
+	ResourceManager *resources=imanager->GetResourceManager();
+	CurveInfo *curve;
+	
+	int type=CurveInfo::CURVE_Rising;
+	while ((CurveInfo::CurveDefaults)type!=CurveInfo::CURVEMAX) {
+		curve=new CurveInfo;
+		curve->SetDefault((CurveInfo::CurveDefaults)type, true);
+		curve->Id(curve->title);
+		type++;
+		resources->AddResource("CurveInfo", curve, NULL, curve->Id(), curve->Id(), NULL, NULL, NULL, true);
+	}
+
+	return 0;
 }
 
 void CurveMapInterface::Clear(SomeData *d)

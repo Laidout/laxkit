@@ -92,6 +92,7 @@ class CurveMapInterface : public anInterface
 	virtual const char *whattype() { return "CurveMapInterface"; }
 	virtual void Clear(SomeData *d);
 	virtual Laxkit::ShortcutHandler *GetShortcuts();
+	virtual int InitializeResources();
 
 	virtual int Refresh();
 	virtual int LBDown(int x,int y,unsigned int state,int count,const Laxkit::LaxMouse *d);

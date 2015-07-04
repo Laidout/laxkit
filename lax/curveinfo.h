@@ -25,6 +25,7 @@
 #define _LAX_CURVEINFO_H
 
 #include <lax/anobject.h>
+#include <lax/resources.h>
 #include <lax/dump.h>
 
 
@@ -51,7 +52,7 @@ class CurveInfoGuide
 	virtual ~CurveInfoGuide() { delete[] name; if (next) delete next; }
 };
 
-class CurveInfo : public anObject, public LaxFiles::DumpUtility
+class CurveInfo : public Resourceable, public LaxFiles::DumpUtility
 {
   private:
 	void base_init();
@@ -62,6 +63,20 @@ class CurveInfo : public anObject, public LaxFiles::DumpUtility
 		Autosmooth,
 		Bezier
 	};
+
+	enum CurveDefaults {
+		CURVE_Rising,
+		CURVE_Falling,
+		CURVE_Flat_Low,
+		CURVE_Flat_Middle,
+		CURVE_Flat_High,
+		CURVE_Sine_Rising,
+		CURVE_Sine_Falling,
+		CURVE_Sine_Bump,
+		CURVE_Sine_Valley,
+		CURVEMAX
+	};
+	void SetDefault(CurveDefaults type, bool set_title);
 
 	CurveInfoGuide *guides;
 
@@ -99,7 +114,7 @@ class CurveInfo : public anObject, public LaxFiles::DumpUtility
 	virtual int AddRawYPoint(double x,double y);
 	virtual int AddPoint(double x,double y);
 	virtual int MovePoint(int index, double x,double y);
-	virtual void SetSinusoidal(int samples);
+	virtual void SetSinusoidal(int samples, int variant=0);
 	virtual void SetFlat(double y);
 	virtual void Reset(bool leaveblank);
 	virtual void SetData(flatpoint *p, int n);
