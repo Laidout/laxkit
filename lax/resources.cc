@@ -358,11 +358,13 @@ int ResourceType::Find(anObject *object)
  *
  * object's count will be incremented.
  */
-int ResourceType::AddResource(anObject *nobject, anObject *ntopowner, const char *nname, const char *nName, const char *ndescription, const char *nfile, LaxImage *nicon)
+int ResourceType::AddResource(anObject *nobject, anObject *ntopowner, const char *nname, const char *nName, const char *ndescription,
+								const char *nfile, LaxImage *nicon, bool builtin)
 {
 	if (Find(object)) return -1;
 
 	Resource *r=new Resource(nobject,ntopowner,nname,nName,ndescription,nfile,nicon);
+	if (builtin) r->source_type=-1;
 	resources.push(r);
 	r->dec_count();
 
@@ -578,7 +580,8 @@ anObject *ResourceManager::FindResource(const char *name, const char *type, Reso
  */
 int ResourceManager::AddResource(const char *type, //! If NULL, then use object->whattype()
 							anObject *object, anObject *ntopowner,
-							const char *name, const char *Name, const char *description, const char *file, LaxImage *icon)
+							const char *name, const char *Name, const char *description, const char *file, LaxImage *icon,
+							bool builtin)
 {
 	DBG cerr <<"Add resource "<<object->Id()<<"..."<<endl;
 	if (!object) return 1;
@@ -590,7 +593,7 @@ int ResourceManager::AddResource(const char *type, //! If NULL, then use object-
 		t=AddResourceType(type,type,NULL,NULL);
 	}
 
-	t->AddResource(object,ntopowner, name,Name,description,file,icon);
+	t->AddResource(object,ntopowner, name,Name,description,file,icon, builtin);
 	return 0;
 }
 
