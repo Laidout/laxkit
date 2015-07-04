@@ -242,6 +242,8 @@ class EngraverLineQuality : public Laxkit::Resourceable, public LaxFiles::DumpUt
 	virtual ~EngraverLineQuality();
 	virtual const char *whattype() { return "EngraverLineQuality"; }
 	virtual EngraverLineQuality *duplicate();
+	virtual const char *Id();
+	virtual const char *Id(const char *id);
 
 	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
 	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
@@ -286,22 +288,26 @@ class NormalDirectionMap : public DirectionMap
     
 
 //--------------------------- EngraverDirection -----------------------------
+enum PointGroupType {
+	PGROUP_Unknown,
+	PGROUP_Linear,
+	PGROUP_Radial,
+	PGROUP_Circular,
+	PGROUP_Spiral,
+	PGROUP_Shell,
+	PGROUP_S,
+	PGROUP_Contour,
+	PGROUP_Map,
+	PGROUP_Manual,
+	PGROUP_Function,
+	//PGROUP_Voronoi,
+	//PGROUP_Maze,
+	PGROUP_MAX
+};
+
 class EngraverDirection : public Laxkit::Resourceable, public LaxFiles::DumpUtility
 {
   public:
-	enum PointGroupType {
-		PGROUP_Linear,
-		PGROUP_Radial,
-		PGROUP_Spiral,
-		PGROUP_Circular,
-		PGROUP_Shell,
-		PGROUP_S,
-		PGROUP_Contour,
-		PGROUP_Map,
-		PGROUP_Manual,
-		PGROUP_Function,
-		PGROUP_MAX
-	};
 	class Parameter
 	{
 	  public:
@@ -313,7 +319,7 @@ class EngraverDirection : public Laxkit::Resourceable, public LaxFiles::DumpUtil
 		double mingap; //min size the slider shows
 	};
 
-	int type; //what manner of lines: linear, radial, circular
+	int type; //what manner of lines: linear, radial, circular. See PointGroupType
 	DirectionMap *map;
 
 	double spacing;  //default
@@ -325,13 +331,18 @@ class EngraverDirection : public Laxkit::Resourceable, public LaxFiles::DumpUtil
 	 //line generation tinkering settings
 	int seed; //for any randomness
 	double line_offset; //0..1 for random offset per line
+	double point_offset;
 	double noise_scale; //applied per sample point, but offset per random line, not random at each point
+
 	//LineProfile *default_profile;
 	int start_type, end_type; //0=normal, 1=random
 	double start_rand_width, end_rand_width; //zone around start and end to randomize
 	double profile_start, profile_end; // [0..1]
+	double max_height;
+	bool scale_profile;
 
 	bool grow_lines;
+	bool fill;
 	bool merge;
 	double spread;
 	double spread_depth;
@@ -341,6 +352,11 @@ class EngraverDirection : public Laxkit::Resourceable, public LaxFiles::DumpUtil
 	EngraverDirection();
 	virtual ~EngraverDirection();
 	virtual const char *whattype() { return "EngraverDirection"; }
+	virtual EngraverDirection *duplicate();
+	virtual const char *Id();
+	virtual const char *Id(const char *id);
+
+	virtual const char *TypeName();
 
 	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
 	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
@@ -360,6 +376,9 @@ class EngraverSpacing : public Laxkit::Resourceable, public LaxFiles::DumpUtilit
 	EngraverSpacing();
 	virtual ~EngraverSpacing();
 	virtual const char *whattype() { return "EngraverSpacing"; }
+	virtual EngraverSpacing *duplicate();
+	virtual const char *Id();
+	virtual const char *Id(const char *id);
 
 	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
 	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
@@ -391,17 +410,6 @@ class EngraverPointGroup : public DirectionMap
 	int ApplyBlockout(LinePoint *l);
 
   public:
-	enum PointGroupType {
-		PGROUP_Linear,
-		PGROUP_Radial,
-		PGROUP_Spiral,
-		PGROUP_Circular,
-		PGROUP_Shell,
-		PGROUP_S,
-		PGROUP_Custom,
-		PGROUP_MAX
-	};
-
 	EngraverFillData *owner;
 	virtual Laxkit::anObject *ObjectOwner();
 
@@ -409,27 +417,28 @@ class EngraverPointGroup : public DirectionMap
 	char *name;
 	bool active;
 	bool linked; //if distortion tool should adjust points even when not current group
-	int type; //what manner of lines
-	double type_d;   //parameter for type, for instance, an angle for spirals
-	double spacing;  //default
-	double resolution; //default, a fraction of spacing
-	double default_weight; //a fraction of spacing
-	flatpoint position,direction; //default
 	Laxkit::ScreenColor color;
+
+	double default_weight; //a fraction of spacing
+	flatpoint position,directionv; //note NOT the same properties as in EngravingDirection
 
 	EngraverTraceSettings *trace; 
 	EngraverLineQuality *dashes;
-	//EngraverDirection *direction;
-	//EngraverSpacing *spacing;
+	EngraverDirection *direction;
+	EngraverSpacing *spacing;
 
 	char *iorefs; //tags of unresolved references to dashes, traces, etc
 
 	Laxkit::PtrStack<LinePoint> lines;
 
 	EngraverPointGroup(EngraverFillData *nowner);
-	EngraverPointGroup(EngraverFillData *nowner,int nid,const char *nname, int ntype, flatpoint npos, flatpoint ndir, double ntype_d, EngraverTraceSettings *newtrace);
+	EngraverPointGroup(EngraverFillData *nowner,int nid,const char *nname, int ntype, flatpoint npos, flatpoint ndir,
+						EngraverTraceSettings *newtrace,
+						EngraverLineQuality   *newdash,
+						EngraverDirection     *newdir,
+						EngraverSpacing       *newspacing);
 	virtual ~EngraverPointGroup();
-	virtual void CopyFrom(EngraverPointGroup *orig, bool keep_name, bool link_trace, bool link_dash);
+	virtual void CopyFrom(EngraverPointGroup *orig, bool keep_name, bool link_trace, bool link_dash, bool link_dir, bool link_spacing);
 	virtual void Modified(int what);
 
 	virtual void InstallTraceSettings(EngraverTraceSettings *newtrace, int absorbcount);
@@ -448,6 +457,7 @@ class EngraverPointGroup : public DirectionMap
 	virtual void FillRegularLines(EngraverFillData *data, double nweight);
 	virtual void FillRadial(EngraverFillData *data, double nweight);
 	virtual void FillCircular(EngraverFillData *data, double nweight);
+	virtual void FillSpiral(EngraverFillData *data, double nweight, int numarms, double r0,double b, int spin);
 	virtual void QuickAdjust(double factor);
 	virtual ImageData *CreateFromSnapshot();
 	virtual int TraceFromSnapshot();
@@ -475,7 +485,6 @@ class EngraverPointGroup : public DirectionMap
 class EngraverFillStyle : public Laxkit::Resourceable
 {
   public:
-	char *name;
 
 	EngraverFillStyle *next_group_style; //define stacks of style for when there are multiple groups
 
@@ -486,7 +495,6 @@ class EngraverFillStyle : public Laxkit::Resourceable
 
 	EngraverFillStyle()
 	{
-		name=NULL;
 		dashes=NULL;
 		trace=NULL;
 		direction=NULL;
@@ -495,7 +503,6 @@ class EngraverFillStyle : public Laxkit::Resourceable
 	}
 	virtual ~EngraverFillStyle()
 	{
-		delete[] name;
 		if (dashes) dashes->dec_count();
 		if (trace) trace->dec_count();
 		if (direction) direction->dec_count();
@@ -558,9 +565,11 @@ class EngraverFillData : virtual public PatchData
 //{
 //  public:
 //	EngraverInterfaceSettings();
-//	~EngraverInterfaceSettings() {}
+//	virtual ~EngraverInterfaceSettings() {}
 //
 //	Laxkit::ScreenColor fgcolor,bgcolor;
+//
+//	int panelwidth;
 //
 //	double sensitive_thickness;
 //	double sensitive_turbulence;
@@ -651,6 +660,7 @@ class EngraverFillInterface : public PatchInterface
 	virtual void DrawPanelHeader(int open, int hover,const char *name, int x,int y,int w, int hh);
 	virtual void DrawLineGradient(double minx,double maxx,double miny,double maxy, int groupnum, int horizontal);
 	virtual void DrawSlider(double pos,int hovered, double x,double y,double w,double h, const char *text);
+	virtual void DrawCheckBox(int on,  int hovered, double x,double y,double w,double h, const char *text);
 	virtual void DrawNumInput(double pos,int type,int hovered, double x,double y,double w,double h, const char *text);
 	virtual void DrawShadeGradient(double minx,double maxx,double miny,double maxy);
 
@@ -698,6 +708,7 @@ class EngraverFillInterface : public PatchInterface
 	virtual int ChangeMode(int newmode);
 	virtual const char *ModeTip(int mode);
 	virtual int Trace(bool do_once=false);
+	virtual int Grow(bool alldir, bool allindata);
 
 	virtual int AddToSelection(ObjectContext *oc);
 };
