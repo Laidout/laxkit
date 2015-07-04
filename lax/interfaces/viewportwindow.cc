@@ -888,11 +888,16 @@ Laxkit::anXWindow *ViewportWindow::SetupInputBox(unsigned long owner_id, const c
 
 	 //1. set up a LineEdit to get some input
 	 //2. temporarily toggle off viewport grab mode if necessary, to keep input in the edit
+	int x=bounds.minx, y=bounds.miny, w=bounds.maxx-bounds.minx, h=bounds.maxy-bounds.miny;
+
+	if (y+h>win_h) y-=y+h-win_h+8;
+	else if (y<0) y=0;
+	if (x+w>win_w) x-=x+w-win_w;
+	else if (x<0) x=0;
+
 	LineEdit *le= new LineEdit(this, label,label,
 								LINEEDIT_DESTROY_ON_ENTER|LINEEDIT_GRAB_ON_MAP|ANXWIN_ESCAPABLE|ANXWIN_OUT_CLICK_DESTROYS|ANXWIN_HOVER_FOCUS,
-								bounds.minx,bounds.miny,
-								bounds.maxx-bounds.minx, bounds.maxy-bounds.miny,
-								4, //border
+								x,y,w,h, 4, //border
 								NULL,owner_id,message,
 								text);
 	if (ntooltip) le->tooltip(ntooltip);
