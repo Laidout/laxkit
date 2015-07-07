@@ -29,6 +29,7 @@
 #include <lax/interfaces/curvemapinterface.h>
 #include <lax/screencolor.h>
 #include <lax/curveinfo.h>
+#include <lax/noise.h>
 
 
 namespace LaxInterfaces {
@@ -289,7 +290,7 @@ class NormalDirectionMap : public DirectionMap
 
 //--------------------------- EngraverDirection -----------------------------
 enum PointGroupType {
-	PGROUP_Unknown,
+	PGROUP_Unknown=0,
 	PGROUP_Linear,
 	PGROUP_Radial,
 	PGROUP_Circular,
@@ -314,6 +315,7 @@ class EngraverDirection : public Laxkit::Resourceable, public LaxFiles::DumpUtil
 		char *name; //scripting name
 		char *Name; //human name
 		int type; //boolean, int, real
+		int dtype; //which direction->type this corresponds to
 		double min, max;
 		int min_type, max_type; //0=not active, 1=fixed
 		double mingap; //min size the slider shows
@@ -357,6 +359,7 @@ class EngraverDirection : public Laxkit::Resourceable, public LaxFiles::DumpUtil
 	virtual const char *Id(const char *id);
 
 	virtual const char *TypeName();
+	virtual int SetType(int newtype);
 
 	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
 	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
@@ -615,6 +618,7 @@ class EngraverFillInterface : public PatchInterface
 	 //for turbulence tool
 	double turbulence_size; //this*spacing
 	bool turbulence_per_line;
+	Laxkit::OpenSimplexNoise noise;
 
 	 //decorations to show..
 	Laxkit::MenuInfo panel;
