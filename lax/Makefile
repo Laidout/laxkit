@@ -99,6 +99,7 @@ objs= \
 	tooltip.o \
 	laxutils.o \
 	bitmaputils.o \
+	noise.o \
 	iconmanager.o \
 	misc.o \
 	buttondowninfo.o \
