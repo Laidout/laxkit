@@ -57,30 +57,30 @@ int ImageProcessor::GaussianBlur(int radius, char which, unsigned char *img, int
 
 //--------------------------- default ImageProcessor
 
-static ImageProcessor *default_ImageProcessor=NULL;
+ImageProcessor *ImageProcessor::default_processor=NULL;
 
 
 /*! This will always return non-null
  */
-ImageProcessor *GetDefaultImageProcessor(bool create_if_null)
+ImageProcessor *ImageProcessor::GetDefault(bool create_if_null)
 {
-	if (!default_ImageProcessor && create_if_null) {
-		default_ImageProcessor = new ImageProcessor;
+	if (!default_processor && create_if_null) {
+		default_processor = new ImageProcessor;
 	}
 
-	return default_ImageProcessor;
+	return default_processor;
 }
 
 /*! If you pass in NULL, it will dec_count the old one.
  * The count on new_processor will be incremented.
  */
-void SetDefaultImageProcessor(ImageProcessor *new_processor)
+void ImageProcessor::SetDefault(ImageProcessor *new_processor)
 {
-	if (new_processor==default_ImageProcessor) return;
+	if (new_processor==default_processor) return;
 
-	if (default_ImageProcessor) default_ImageProcessor->dec_count();
-	default_ImageProcessor = new_processor;
-	if (default_ImageProcessor) default_ImageProcessor->inc_count();
+	if (default_processor) default_processor->dec_count();
+	default_processor = new_processor;
+	if (default_processor) default_processor->inc_count();
 }
 
 

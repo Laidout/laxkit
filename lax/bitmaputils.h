@@ -54,18 +54,20 @@ int GaussianBlur(int radius, char which, unsigned char *img, int orig_width, int
 //---------------------------- ImageProcessor --------------------------------------
 class ImageProcessor : public anObject
 {
+  private:
+	static ImageProcessor *default_processor;
+
   public:
 	ImageProcessor() {}
 	virtual ~ImageProcessor() {}
+
+	static ImageProcessor *GetDefault(bool create_if_null=true);
+	static void SetDefault(ImageProcessor *new_processor);
 
 	virtual void MakeValueMap(unsigned char *img, int mapwidth, int mapheight, int blur, const DoubleBBox &bounds, flatpoint *points, int numpoints, bool flipy);
 	virtual int GaussianBlur(int radius, char which, unsigned char *img, int orig_width, int orig_height,
 					unsigned char *blurred, bool expand, int depth, int numchannels, int channel_mask );
 };
-
-
-ImageProcessor *GetDefaultImageProcessor(bool create_if_null=true);
-void SetDefaultImageProcessor(ImageProcessor *new_processor);
 
 
 } //namespace Laxkit
