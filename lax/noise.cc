@@ -247,7 +247,7 @@ double OpenSimplexNoise::extrapolate4(int xsb, int ysb, int zsb, int wsb, double
 	
 
 
-/*! 2D OpenSimplex (Simplectic) Noise. */
+/*! 2D OpenSimplex (Simplectic) Noise. Returns value in [-1..1] */
 double OpenSimplexNoise::Evaluate(double x, double y) 
 {
 	
