@@ -220,6 +220,20 @@ double bez_segment_length(flatpoint p1,flatpoint c1,flatpoint c2,flatpoint p2, i
 	return d;
 }
 
+/*! Subdivide the segment with the famous bezier subdivision by midpoints algorithm.
+ * npm is the new point on the path, the other points are associated new control points.
+ */
+void bez_midpoint(flatpoint p1,flatpoint c1, flatpoint c2, flatpoint p2, 
+				flatpoint &nc1, flatpoint &npp, flatpoint &npm, flatpoint &npn, flatpoint &nc2)
+{
+	nc1.set((p1.x+c1.x)/2,(p1.y+c1.y)/2);
+	nc2.set((p2.x+c2.x)/2,(p2.y+c2.y)/2);
+	double mx=(c1.x+c2.x)/2, my=(c1.y+c2.y)/2;
+	npp.set((mx+nc1.x)/2,(my+nc1.y)/2);
+	npn.set((mx+nc2.x)/2,(my+nc2.y)/2);
+	npm.set((npp.x+npn.x)/2,(npp.y+npn.y)/2);
+}
+
 /*! For when you only need one intersection on one bezier segment.
  * Return 1 for hit found, or 0.
  *

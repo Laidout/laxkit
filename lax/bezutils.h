@@ -33,6 +33,8 @@ double bez_segment_length(flatpoint p1,flatpoint c1,flatpoint c2,flatpoint p2, i
 
 flatpoint bez_point(double t,flatpoint p1,flatpoint c1,flatpoint c2,flatpoint p2);
 flatpoint bez_tangent(double t,flatpoint p1,flatpoint c1,flatpoint c2,flatpoint p2);
+void bez_midpoint(flatpoint p1,flatpoint c1, flatpoint c2, flatpoint p2, 
+				flatpoint &nc1, flatpoint &npp, flatpoint &npm, flatpoint &npn, flatpoint &nc2);
 flatpoint bez_acceleration(double t,flatpoint p1,flatpoint c1,flatpoint c2,flatpoint p2);
 flatpoint bez_visual_tangent(double t,flatpoint p1,flatpoint c1,flatpoint c2,flatpoint p2);
 double bez_distance_to_t(double dist, flatpoint p1,flatpoint c1,flatpoint c2,flatpoint p2, int resolution);
