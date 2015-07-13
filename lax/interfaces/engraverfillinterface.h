@@ -26,6 +26,7 @@
 #include <lax/interfaces/patchinterface.h>
 #include <lax/interfaces/pathinterface.h>
 #include <lax/interfaces/imageinterface.h>
+#include <lax/interfaces/gradientinterface.h>
 #include <lax/interfaces/curvemapinterface.h>
 #include <lax/screencolor.h>
 #include <lax/curveinfo.h>
@@ -314,11 +315,16 @@ class EngraverDirection : public Laxkit::Resourceable, public LaxFiles::DumpUtil
 	  public:
 		char *name; //scripting name
 		char *Name; //human name
-		int type; //boolean, int, real
+		char type; //initial of: boolean, int, real
 		int dtype; //which direction->type this corresponds to
 		double min, max;
 		int min_type, max_type; //0=not active, 1=fixed
 		double mingap; //min size the slider shows
+		double value;
+		Parameter();
+		Parameter(const char *nname, const char *nName, int ndtype, char ntype, double nmin,
+				int nmint, double nmax,int nmaxt, double nmingap, double nvalue);
+		~Parameter();
 	};
 
 	int type; //what manner of lines: linear, radial, circular. See PointGroupType
@@ -338,7 +344,7 @@ class EngraverDirection : public Laxkit::Resourceable, public LaxFiles::DumpUtil
 
 	//LineProfile *default_profile;
 	int start_type, end_type; //0=normal, 1=random
-	double start_rand_width, end_rand_width; //zone around start and end to randomize
+	double start_rand_width, end_rand_width; //zone around start and end to randomize, fraction of total
 	double profile_start, profile_end; // [0..1]
 	double max_height;
 	bool scale_profile;
@@ -360,6 +366,10 @@ class EngraverDirection : public Laxkit::Resourceable, public LaxFiles::DumpUtil
 
 	virtual const char *TypeName();
 	virtual int SetType(int newtype);
+	virtual Parameter *FindParameter(const char *name);
+	virtual int ValidateParameter(EngraverDirection::Parameter *p);
+	virtual Parameter *GetParameter(int index);
+	virtual int NumParameters();
 
 	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
 	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
@@ -375,6 +385,7 @@ class EngraverSpacing : public Laxkit::Resourceable, public LaxFiles::DumpUtilit
 	double spacing;  //default
 
 	ValueMap *map;
+	bool map_multiply; //multiply with default spacing
 
 	EngraverSpacing();
 	virtual ~EngraverSpacing();
@@ -444,6 +455,8 @@ class EngraverPointGroup : public DirectionMap
 	virtual void CopyFrom(EngraverPointGroup *orig, bool keep_name, bool link_trace, bool link_dash, bool link_dir, bool link_spacing);
 	virtual void Modified(int what);
 
+	virtual void InstallTraceGradient(char type, GradientData *ngradient, int absorbcount);
+		
 	virtual void InstallTraceSettings(EngraverTraceSettings *newtrace, int absorbcount);
 	virtual void InstallDashes(EngraverLineQuality *newdash, int absorbcount);
 	virtual void InstallDirection(EngraverDirection *newdir, int absorbcount);
@@ -463,6 +476,7 @@ class EngraverPointGroup : public DirectionMap
 	virtual void FillSpiral(EngraverFillData *data, double nweight, int numarms, double r0,double b, int spin);
 	virtual void QuickAdjust(double factor);
 	virtual ImageData *CreateFromSnapshot();
+	virtual ImageData *SpacingSnapshot();
 	virtual int TraceFromSnapshot();
 
 	virtual void GrowLines(EngraverFillData *data,
@@ -631,6 +645,7 @@ class EngraverFillInterface : public PatchInterface
 	bool show_trace_object;
 	bool grow_lines;
 	bool always_warp;
+	bool auto_reline;
 	//Laxkit::CurveInfo tracemap;
 	Laxkit::MenuItem *tracebox;
 	Laxkit::DoubleBBox panelbox;
