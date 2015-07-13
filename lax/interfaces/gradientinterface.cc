@@ -322,14 +322,17 @@ void GradientData::Set(flatpoint pp1,flatpoint pp2,double rr1,double rr2,
 	if (norm(pp2-pp1)<1e-5) {
 		xaxis(flatpoint(1,0));
 		yaxis(flatpoint(0,1));
+		p1=0;
+		p2=0;
+
 	} else {
 		xaxis(pp2-pp1);
 		yaxis(transpose(pp2-pp1));
+		p1=0;
+		p2=1;
 	}
 	origin(pp1);
 
-	p1=0;
-	p2=1;
 	r1=rr1;
 	r2=rr2;
 	a=0;
