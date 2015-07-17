@@ -270,6 +270,35 @@ bool LineProfile::ConstantWidth()
 	return true;
 }
 
+/*! Add a weight node at nt with the given offset, width and angle.
+ */
+void LineProfile::AddNode(double nt,double no,double nw,double nangle)
+{
+	PathWeightNode *w=new PathWeightNode(nt,no,nw,PathWeightNode::Default);
+
+	//insert sorted... *** this doesn't have to be a necessity!! could do some interesting path on path stuff
+	int c2;
+	for (c2=0; c2<pathweights.n; c2++) {
+		if (w->t>pathweights.e[c2]->t) continue;
+		if (w->t<pathweights.e[c2]->t) break;
+
+		// else (w->t == pathweights.e[c2])
+		//overwrite!
+		pathweights.e[c2]->t=nt;
+		pathweights.e[c2]->offset=no;
+		pathweights.e[c2]->width=nw;
+		pathweights.e[c2]->angle=nangle;
+		delete w;
+		w=pathweights.e[c2];
+		c2=-1;
+		break;
+	}
+
+	if (c2>=0) pathweights.push(w,1,c2);
+
+	needtorecache=1;
+}
+
 void LineProfile::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
 {
 	Attribute att;
