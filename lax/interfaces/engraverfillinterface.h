@@ -24,6 +24,7 @@
 #define _LAX_ENGRAVERFILLINTERFACE_H
 
 #include <lax/interfaces/patchinterface.h>
+#include <lax/interfaces/lineprofile.h>
 #include <lax/interfaces/pathinterface.h>
 #include <lax/interfaces/imageinterface.h>
 #include <lax/interfaces/gradientinterface.h>
@@ -342,7 +343,7 @@ class EngraverDirection : public Laxkit::Resourceable, public LaxFiles::DumpUtil
 	double point_offset;
 	double noise_scale; //applied per sample point, but offset per random line, not random at each point
 
-	//LineProfile *default_profile;
+	LineProfile *default_profile;
 	int start_type, end_type; //0=normal, 1=random
 	double start_rand_width, end_rand_width; //zone around start and end to randomize, fraction of total
 	double profile_start, profile_end; // [0..1]

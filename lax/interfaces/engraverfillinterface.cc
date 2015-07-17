@@ -555,7 +555,7 @@ EngraverDirection::EngraverDirection()
 	point_offset=0; //0..1 for random offset per point
 	noise_scale=1; //applied per sample point, but offset per random line, not random at each point
 	
-	//default_profile=NULL;
+	default_profile=NULL;
 	start_type=0; //0=normal, 1=random
 	end_type=0;
 	start_rand_width=end_rand_width=0;
@@ -573,7 +573,7 @@ EngraverDirection::EngraverDirection()
 
 EngraverDirection::~EngraverDirection()
 {
-	//if (profile) profile->dec_count();
+	if (default_profile) default_profile->dec_count();
 }
 
 /*! Override from anObject to produce a less verbose default id..
@@ -887,10 +887,18 @@ Attribute *EngraverDirection::dump_out_atts(Attribute *att,int what,LaxFiles::Du
 	att->push("point_offset", point_offset); //0..1 for random offset per point
 	att->push("noise_scale", noise_scale); ; //applied per sample point, but offset per random line, not random at each point
 
-	//if (default_profile) {
-	//	Attribute *att2=att->pushSubatt("profile");
-	//	default_profile->dump_out_atts(att2,0,context);
-	//}
+	if (default_profile) {
+		if (default_profile->ResourceOwner()!=this) {
+			 //resource'd default_profile
+			char str[11+strlen(default_profile->Id())];
+			sprintf(str,"resource: %s",default_profile->Id());
+			att->push("default_profile",buffer);
+
+		} else {
+			Attribute *t=att->pushSubAtt("profile");
+			default_profile->dump_out_atts(t, 0,savecontext);
+		}
+	}
 
     att->push("start_type", start_type==0 ? "normal" : "random");
     att->push("start_rand_width",start_rand_width);
@@ -1017,7 +1025,25 @@ void EngraverDirection::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles:
 			IntAttribute(value,&seed, NULL);
 
 		} else if (!strcmp(name,"profile")) {
-			//*** LineProfile
+			if (value && strstr(value,"resource:")==value) {
+				value+=9;
+				while (isspace(*value)) value ++;
+				InterfaceManager *imanager=InterfaceManager::GetDefault(true);
+				ResourceManager *rm=imanager->GetResourceManager();
+				LineProfile *obj=dynamic_cast<LineProfile*>(rm->FindResource(value,"LineProfile"));
+				if (obj) {
+					if (default_profile) default_profile->dec_count();
+					default_profile=obj;
+					default_profile->inc_count();
+				}
+
+			} else { //not resourced
+				LineProfile *obj=new LineProfile;
+				obj->dump_in_atts(att->attributes.e[c], flag,context);
+				obj->SetResourceOwner(this);
+				if (default_profile) default_profile->dec_count();
+				default_profile=obj;
+			}
 
         } else if (!strcmp(name,"max_height")) {
             DoubleAttribute(value, &max_height, NULL);
@@ -3734,6 +3760,102 @@ void EngraverPointGroup::FillRegularLines(EngraverFillData *data, double nweight
 			p->next=new LinePoint(pp.x, pp.y, weight);
 			p->next->prev=p;
 			p=p->next;
+		}
+	}
+
+	 //apply line profile stuff
+	if (direction->profile_start!=0 || direction->profile_end!=1
+			|| direction->start_rand_width!=0 || direction->end_rand_width!=0) {
+		double start,ss, end, ee, d, dd, segd;
+		//double tt;
+		LinePoint *tp;
+		v.normalize(); 
+
+		for (int c=0; c<lines.n; c++) {
+			p=lines.e[c];
+			d=0;
+			while (p) {
+				if (p->next) d+=norm(flatpoint(p->next->s - p->s, p->next->t - p->t));
+				p=p->next;
+			}
+
+			start=direction->profile_start;
+			if (direction->start_rand_width) start+=direction->start_rand_width * (2*(double)random()/RAND_MAX - 1);
+			if (start<0) start=0; else if (start>1) start=1;
+
+			end=direction->profile_end;
+			if (direction->end_rand_width) end+=direction->end_rand_width * (2*(double)random()/RAND_MAX - 1);
+			if (end<0) end=0; else if (end>1) end=1;
+
+			if (start>end) { dd=start; start=end; end=dd; }
+
+			ss=start*d;
+			ee=end*d;
+
+			 //position and weight start, turning off all points before start
+			p=lines.e[c];
+			dd=0;
+			while (p && p->next) {
+				if (start>0) p->weight=0;
+				//if (start>0) p->on=ENGRAVE_Off;
+
+				v=flatpoint(p->next->s - p->s, p->next->t - p->t);
+				segd=norm(v);
+
+				if (ss<dd+segd) {
+					 //add point in between for start
+					v*=(ss-dd)/segd;
+					v+=flatpoint(p->s,p->t);
+
+					tp=new LinePoint(v.x, v.y, weight);
+					//tp->type=ENGRAVE_StartPoint;
+					tp->prev=p;
+					tp->next=p->next;
+					if (p->next) p->next->prev=tp;
+					p->next=tp;
+
+					//tt=ss/d;
+					//profile->GetWeight(tt, ...)
+
+					p=p->next;
+					dd=ss;
+					break;
+				}
+
+				dd+=segd;
+				p=p->next;
+			}
+
+			 //position and weight end
+			while (p && p->next) {
+
+				v=flatpoint(p->next->s - p->s, p->next->t - p->t);
+				segd=norm(flatpoint(p->next->s - p->s, p->next->t - p->t));
+
+				if (ee<dd+segd) {
+					 //add point in between for end
+					v*=(ee-dd)/segd;
+					v+=flatpoint(p->s,p->t);
+
+					tp=new LinePoint(v.x, v.y, weight);
+					tp->prev=p;
+					tp->next=p->next;
+					if (p->next) p->next->prev=tp;
+					p->next=tp; 
+
+					p=p->next;
+					break;
+				}
+
+				dd+=segd;
+				p=p->next;
+			}
+
+			 //turn off all after end
+			while (p) {
+				p->weight=0;
+				p=p->next;
+			}
 		}
 	}
 }
@@ -7309,7 +7431,9 @@ int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit
 					group->direction->profile_end=z;
 
 				if (auto_reline) {
-					// ***
+					group->Fill(edata, -1);
+					edata->Sync(false);
+					Trace();
 				}
 				needtodraw=1;
 				return 0;
@@ -7337,7 +7461,9 @@ int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit
 				}
 
 				if (auto_reline) {
-					// ***
+					group->Fill(edata, -1);
+					edata->Sync(false);
+					Trace();
 				}
 				needtodraw=1;
 				return 0;
