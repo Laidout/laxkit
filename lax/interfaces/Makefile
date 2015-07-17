@@ -37,6 +37,7 @@ objs= \
 	patchinterface.o\
 	colorpatchinterface.o \
 	imagepatchinterface.o\
+	lineprofile.o \
 	pathinterface.o \
 	freehandinterface.o \
 	captioninterface.o \
