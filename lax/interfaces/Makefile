@@ -41,6 +41,7 @@ objs= \
 	pathinterface.o \
 	freehandinterface.o \
 	captioninterface.o \
+	engraverfilldata.o \
 	engraverfillinterface.o \
 	delauneyinterface.o \
 	ellipseinterface.o \
