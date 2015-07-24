@@ -114,6 +114,8 @@ enum EngraveShortcuts {
 	ENGRAVE_LoadDirection,
 	ENGRAVE_NextFill,
 	ENGRAVE_PreviousFill,
+	ENGRAVE_NextGroup,
+	ENGRAVE_PreviousGroup,
 	ENGRAVE_MAX
 };
 
@@ -4568,6 +4570,14 @@ int EngraverFillInterface::PerformAction(int action)
 		needtodraw=1;
 		return 0;
 
+	} else if (action==ENGRAVE_NextGroup) {
+		PostMessage(" *** IMPLEMENT NextGroup!!!");
+		return 0;
+
+	} else if (action==ENGRAVE_PreviousGroup) {
+		PostMessage(" *** IMPLEMENT PreviousGroup!!!");
+		return 0;
+
 	} else if (action==ENGRAVE_ExportSvg) {
 		app->rundialog(new FileDialog(NULL,"Export Svg",_("Export engraving to svg"),ANXWIN_REMEMBER|ANXWIN_CENTER,0,0,0,0,0,
 									  object_id,"exportsvg",FILES_SAVE, "out.svg"));
@@ -5264,7 +5274,7 @@ int EngraverFillInterface::Event(const Laxkit::EventData *e_data, const char *me
 
 		int what=0;
 		if (!strcmp(mes,"sharedirection"))    what=ENGRAVE_Direction;
-		else if (!strcmp(mes,"sharedash"))  what=ENGRAVE_Dashes;
+		else if (!strcmp(mes,"sharedash"))    what=ENGRAVE_Dashes;
 		else if (!strcmp(mes,"sharespacing")) what=ENGRAVE_Spacing;
 		else if (!strcmp(mes,"sharetrace"))   what=ENGRAVE_Tracing;
 
@@ -5626,13 +5636,44 @@ int EngraverFillInterface::PushSettings(int what, EngraverPointGroup *from,int f
 		}
 
 	} else if (what==ENGRAVE_Dashes) {
-		if (from->dashes!=to->dashes) to->InstallDashes(from->dashes,0);
+		if (from->dashes!=to->dashes) {
+			if (from->dashes->ResourceOwner()==from) {
+				 //dashes was owned by from, need to make from->dashes be a shared resource
+				from->dashes->SetResourceOwner(NULL);
+				ResourceManager *resourcemanager=InterfaceManager::GetDefault(true)->GetResourceManager();
+				resourcemanager->AddResource(from->dashes->whattype(), from->dashes, NULL, 
+						from->dashes->Id(), from->dashes->Id(), NULL, NULL, NULL);
+				DBG cerr <<"Dashes Resource added "<<from->dashes->Id()<<endl;
+			}
+			to->InstallDashes(from->dashes,0);
+
+		}
 
 	} else if (what==ENGRAVE_Direction) {
-		if (from->direction!=to->direction) to->InstallDirection(from->direction,0);
+		if (from->direction!=to->direction) {
+			if (from->direction->ResourceOwner()==from) {
+				 //direction was owned by from, need to make from->direction be a shared resource
+				from->direction->SetResourceOwner(NULL);
+				ResourceManager *resourcemanager=InterfaceManager::GetDefault(true)->GetResourceManager();
+				resourcemanager->AddResource(from->direction->whattype(), from->direction, NULL, 
+						from->direction->Id(), from->direction->Id(), NULL, NULL, NULL);
+				DBG cerr <<"Dashes Resource added "<<from->direction->Id()<<endl;
+			}
+			to->InstallDirection(from->direction,0); 
+		}
 
 	} else if (what==ENGRAVE_Spacing) {
-		if (from->spacing!=to->spacing) to->InstallSpacing(from->spacing,0);
+		if (from->spacing!=to->spacing) {
+			if (from->spacing->ResourceOwner()==from) {
+				 //spacing was owned by from, need to make from->spacing be a shared resource
+				from->spacing->SetResourceOwner(NULL);
+				ResourceManager *resourcemanager=InterfaceManager::GetDefault(true)->GetResourceManager();
+				resourcemanager->AddResource(from->spacing->whattype(), from->spacing, NULL, 
+						from->spacing->Id(), from->spacing->Id(), NULL, NULL, NULL);
+				DBG cerr <<"Dashes Resource added "<<from->spacing->Id()<<endl;
+			}
+			to->InstallSpacing(from->spacing,0); 
+		}
 
 	} else return 5;
 
@@ -5744,6 +5785,8 @@ Laxkit::ShortcutHandler *EngraverFillInterface::GetShortcuts()
 	sc->Add(ENGRAVE_ToggleDir,      'd',0,0,          "ToggleDir",   _("Toggle showing direction map"),NULL,0);
 	sc->Add(ENGRAVE_ToggleShowTrace,']',0,0,          "ToggleShowTrace",_("Toggle showing the trace object"),NULL,0);
 	sc->Add(ENGRAVE_LoadDirection,  'd',ControlMask,0,"LoadDir",     _("Load a normal map for direction"),NULL,0);
+	sc->Add(ENGRAVE_NextGroup,      LAX_Pgdown,0,0,   "NextGroup",   _("Next group"),NULL,0);
+	sc->Add(ENGRAVE_PreviousGroup,  LAX_Pgup,0,0,     "PreviousGroup",_("Previous group"),NULL,0);
 
 	sc->Add(ENGRAVE_NextFill,     LAX_Left, 0,EMODE_Orientation,  "NextFillType",     _("Switch to next fill type"),NULL,0);
 	sc->Add(ENGRAVE_PreviousFill, LAX_Right,0,EMODE_Orientation,  "PreviousFillType", _("Switch to previous fill type"),NULL,0);
