@@ -3634,8 +3634,8 @@ void EngraverPointGroup::FillRegularLines(EngraverFillData *data, double nweight
 			p=lines.e[c];
 			dd=0;
 			while (p && p->next) {
-				if (start>0) p->weight=0;
-				//if (start>0) p->on=ENGRAVE_Off;
+				//if (start>0) p->weight=0;
+				if (start>0) p->on=ENGRAVE_Off;
 
 				v=flatpoint(p->next->s - p->s, p->next->t - p->t);
 				segd=norm(v);
@@ -3681,7 +3681,7 @@ void EngraverPointGroup::FillRegularLines(EngraverFillData *data, double nweight
 					if (p->next) p->next->prev=tp;
 					p->next=tp; 
 
-					p=p->next;
+					p=tp->next;
 					break;
 				}
 
@@ -3691,7 +3691,8 @@ void EngraverPointGroup::FillRegularLines(EngraverFillData *data, double nweight
 
 			 //turn off all after end
 			while (p) {
-				p->weight=0;
+				//p->weight=0;
+				p->on=ENGRAVE_Off;
 				p=p->next;
 			}
 		}
