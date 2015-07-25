@@ -730,10 +730,10 @@ Attribute *EngraverDirection::dump_out_atts(Attribute *att,int what,LaxFiles::Du
 			 //resource'd default_profile
 			char str[11+strlen(default_profile->Id())];
 			sprintf(str,"resource: %s",default_profile->Id());
-			att->push("default_profile",buffer);
+			att->push("default_profile", str);
 
 		} else {
-			Attribute *t=att->pushSubAtt("profile");
+			Attribute *t=att->pushSubAtt("default_profile");
 			default_profile->dump_out_atts(t, 0,savecontext);
 		}
 	}
@@ -862,7 +862,7 @@ void EngraverDirection::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles:
 		} else if (!strcmp(name,"seed")) {
 			IntAttribute(value,&seed, NULL);
 
-		} else if (!strcmp(name,"profile")) {
+		} else if (!strcmp(name,"default_profile")) {
 			if (value && strstr(value,"resource:")==value) {
 				value+=9;
 				while (isspace(*value)) value ++;
@@ -929,6 +929,55 @@ void EngraverDirection::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles:
 
 		}
 	}
+}
+
+/*! Get values for start and end in range 0..1. If keep_increasing, ensure that start<end.
+ * These values are based on profile_start, etc.
+ *
+ * Return value is 1 for end>start, 0 for end==start, -1 for end<start.
+ */
+int EngraverDirection::GetStartEnd(double *start_ret, double *end_ret, bool keep_increasing)
+{
+	if (profile_start==0 && profile_end==1
+			&& start_rand_width==0 && end_rand_width==0) {
+		*start_ret=0;
+		*end_ret=1;
+		return 1;
+	}
+
+	double start=profile_start;
+	if (start_rand_width) start+=start_rand_width * (2*(double)random()/RAND_MAX - 1);
+	if (start<0) start=0; else if (start>1) start=1;
+
+	double end=profile_end;
+	if (end_rand_width) end+=end_rand_width * (2*(double)random()/RAND_MAX - 1);
+	if (end<0) end=0; else if (end>1) end=1;
+
+	if (keep_increasing && start>end) {
+		double dd=start;
+		start=end;
+		end=dd;
+	}
+
+	*start_ret=start;
+	*end_ret=end;
+
+	if (end==start) return 0;
+	if (end>start) return 1;
+	return -1;
+}
+
+/*! It's ok for profile to be NULL. It will remove any current profile.
+ */
+int EngraverDirection::InstallProfile(LineProfile *profile, int absorbcount)
+{
+	if (profile==default_profile) return 0;
+
+	if (default_profile) default_profile->dec_count();
+	default_profile=profile;
+	if (default_profile && !absorbcount) default_profile->inc_count();
+
+	return 0;
 }
 
 
@@ -3508,52 +3557,51 @@ void EngraverPointGroup::FillRegularLines(EngraverFillData *data, double nweight
 	LinePoint *p;
 
 	flatvector v=directionv; //this is s,t space
-	if (v.x<0) v=-v;
+	//if (v.x<0) v=-v;
 	v.normalize();
 	v*=thisspacing;
 	flatvector vt=transpose(v);
 
 	 //we need to find the s,t equivalent of spacing along direction
-	double vv=thisspacing*thisspacing;
 
-	double s_spacing= (v.y==0 ? -1 : fabs(vv/v.y));
-	double t_spacing= (v.x==0 ? -1 : fabs(vv/v.x));
 
+	// *** when mesh is not a single square, currently spacing is irrational
 	//if (xsize>4) s_spacing/= xsize/3;
 	//if (ysize>4) t_spacing/= ysize/3;
 
-	//if (v.y<0) data->lines.push(new LinePoint(0,1,weight,id)); //push a (0,0) starter point
-	//else       data->lines.push(new LinePoint(0,0,weight,id)); //push a (0,0) starter point
 
-	// ***
-	// *** this would be better spawning starters on a single line connecting opposite corners
-	// ***
+	 //set up starters along an appropriate diagonal
+	flatpoint sv,sp;
+	flatvector pp;
+	if ((v.y>=0 && v.x>=0) || (v.y<=0 && v.x<=0)) {
+		sp.set(0,1);
+		sv.set(1,-1);
+	} else {
+		sp.set(0,0);
+		sv.set(1,1);
+	}
+	sv.normalize();
+	double d=thisspacing*thisspacing/(sv*vt);
+	sv*=d;
 
-	 //starter points along y
-	if (t_spacing>0) {
-		double oy;
-		if (v.y<0) oy=position.y-position.x*v.y/v.x;
-		else oy=position.y-position.x*v.y/v.x;
+	flatpoint o;
+	intersection(flatline(sp,sp+sv), flatline(position,position+v), o);
 
-		for (double yy=oy-t_spacing*floor(oy/t_spacing); yy<=1; yy+=t_spacing) {
-			//if (v.y<0) data->lines.push(new LinePoint(0,1-yy, weight,id));
-			if (v.y<0) lines.push(new LinePoint(0,yy, weight));
-			else       lines.push(new LinePoint(0,yy, weight));
-		}
+	 //starters forward from position
+	pp=o;
+	do {
+		lines.push(new LinePoint(pp.x,pp.y, weight));
+		pp+=sv;
+	} while (pp.x>=0 && pp.y>=0 && pp.x<=1 && pp.y<=1);
+
+	 //starters backward from position
+	pp=o-sv;
+	while (pp.x>=0 && pp.y>=0 && pp.x<=1 && pp.y<=1) {
+		lines.push(new LinePoint(pp.x,pp.y, weight));
+		pp-=sv;
 	}
 
-	 //starter points along x
-	if (s_spacing>0) {
-		double ox;
-		if (v.y<0) ox=position.x+(1-position.y)*v.x/v.y;
-		else ox=position.x-position.y*v.x/v.y;
-
-		for (double xx=ox-s_spacing*floor(ox/s_spacing); xx<=1; xx+=s_spacing) {
-			if (v.y<0) lines.push(new LinePoint(xx,1, weight));
-			else       lines.push(new LinePoint(xx,0, weight));
-		}
-	}
-
+	 //initialize noise
 	OpenSimplexNoise noise;
 	if (direction->seed>0) { noise.Seed(direction->seed); srandom(direction->seed); }
 	else { noise.Seed(random()); }
@@ -3562,8 +3610,11 @@ void EngraverPointGroup::FillRegularLines(EngraverFillData *data, double nweight
 	featuresize*=featuresize;
 
 	 //grow lines
-	flatvector pp, curp;
+	flatvector curp;
 	double rnd;
+
+	v*=direction->resolution;
+
 	for (int c=0; c<lines.n; c++) {
 		p=lines.e[c];
 		curp.set(p->s,p->t);
@@ -3579,19 +3630,10 @@ void EngraverPointGroup::FillRegularLines(EngraverFillData *data, double nweight
 
 		pp=curp;
 
+		 //go foward
 		while (1) {
-			 //apply point randomness if necessary
-			if (direction->point_offset) {
-				rnd=(noise.Evaluate(pp.x/thisspacing/featuresize, pp.y/thisspacing/featuresize) - .5);
-				pp += vt * direction->point_offset * rnd;
-
-				p->s=pp.x;
-				p->t=pp.y;
-			}
-
 			curp=curp + v;
-			pp=curp;
-
+			pp=curp; 
 
 			if (pp.x<0 || pp.y<0 || pp.x>1 || pp.y>1) break;
 
@@ -3599,11 +3641,44 @@ void EngraverPointGroup::FillRegularLines(EngraverFillData *data, double nweight
 			p->next->prev=p;
 			p=p->next;
 		}
+
+		 //go backward
+		p=lines.e[c];
+		curp.set(p->s,p->t);
+
+		while (1) { 
+			curp=curp - v;
+			pp=curp;
+
+			if (pp.x<0 || pp.y<0 || pp.x>1 || pp.y>1) break;
+
+			p->prev=new LinePoint(pp.x, pp.y, weight);
+			p->prev->next=p;
+			p=p->prev;
+
+		}
+		if (p!=lines.e[c]) lines.e[c]=p;
+
+		if (direction->point_offset) {
+			while (p) {
+			 //apply point randomness if necessary
+				pp.set(p->s,p->t);
+				rnd=(noise.Evaluate((pp.x-.5)/thisspacing/featuresize, (pp.y-.5)/thisspacing/featuresize) - .5);
+				pp += vt * direction->point_offset * rnd;
+
+				p->s=pp.x;
+				p->t=pp.y;
+
+				p=p->next;
+			}
+		}
 	}
 
+
 	 //apply line profile stuff
-	if (direction->profile_start!=0 || direction->profile_end!=1
+	if (direction->default_profile || direction->profile_start!=0 || direction->profile_end!=1
 			|| direction->start_rand_width!=0 || direction->end_rand_width!=0) {
+
 		double start,ss, end, ee, d, dd, segd;
 		//double tt;
 		LinePoint *tp;
@@ -3617,15 +3692,7 @@ void EngraverPointGroup::FillRegularLines(EngraverFillData *data, double nweight
 				p=p->next;
 			}
 
-			start=direction->profile_start;
-			if (direction->start_rand_width) start+=direction->start_rand_width * (2*(double)random()/RAND_MAX - 1);
-			if (start<0) start=0; else if (start>1) start=1;
-
-			end=direction->profile_end;
-			if (direction->end_rand_width) end+=direction->end_rand_width * (2*(double)random()/RAND_MAX - 1);
-			if (end<0) end=0; else if (end>1) end=1;
-
-			if (start>end) { dd=start; start=end; end=dd; }
+			direction->GetStartEnd(&start,&end, true);
 
 			ss=start*d;
 			ee=end*d;
@@ -3634,7 +3701,6 @@ void EngraverPointGroup::FillRegularLines(EngraverFillData *data, double nweight
 			p=lines.e[c];
 			dd=0;
 			while (p && p->next) {
-				//if (start>0) p->weight=0;
 				if (start>0) p->on=ENGRAVE_Off;
 
 				v=flatpoint(p->next->s - p->s, p->next->t - p->t);
@@ -3645,17 +3711,22 @@ void EngraverPointGroup::FillRegularLines(EngraverFillData *data, double nweight
 					v*=(ss-dd)/segd;
 					v+=flatpoint(p->s,p->t);
 
-					tp=new LinePoint(v.x, v.y, weight);
-					//tp->type=ENGRAVE_StartPoint;
-					tp->prev=p;
-					tp->next=p->next;
-					if (p->next) p->next->prev=tp;
-					p->next=tp;
+					if (direction->default_profile) {
+						direction->default_profile->GetWeight(0, &weight, NULL,NULL);
+						weight*=direction->max_height*spacing->spacing;
+					}
 
-					//tt=ss/d;
-					//profile->GetWeight(tt, ...)
+					if (start==0) {
+						p->weight=weight;
+					} else {
+						tp=new LinePoint(v.x, v.y, weight);
+						tp->prev=p;
+						tp->next=p->next;
+						if (p->next) p->next->prev=tp;
+						p->next=tp;
+						p=p->next;
+					}
 
-					p=p->next;
 					dd=ss;
 					break;
 				}
@@ -3675,6 +3746,10 @@ void EngraverPointGroup::FillRegularLines(EngraverFillData *data, double nweight
 					v*=(ee-dd)/segd;
 					v+=flatpoint(p->s,p->t);
 
+					if (direction->default_profile) {
+						direction->default_profile->GetWeight(1, &weight, NULL,NULL);
+						weight*=direction->max_height*spacing->spacing;
+					}
 					tp=new LinePoint(v.x, v.y, weight);
 					tp->prev=p;
 					tp->next=p->next;
@@ -3687,12 +3762,16 @@ void EngraverPointGroup::FillRegularLines(EngraverFillData *data, double nweight
 
 				dd+=segd;
 				p=p->next;
+				if (p && direction->default_profile) {
+					direction->default_profile->GetWeight((dd-ss)/(ee-ss), &p->weight, NULL,NULL);
+					p->weight*=direction->max_height*spacing->spacing;
+				}
 			}
 
 			 //turn off all after end
 			while (p) {
 				//p->weight=0;
-				p->on=ENGRAVE_Off;
+				if (p->next || (!p->next && end!=1)) p->on=ENGRAVE_Off;
 				p=p->next;
 			}
 		}
@@ -3944,6 +4023,7 @@ void EngraverPointGroup::FillCircular(EngraverFillData *data, double nweight)
 	DBG int circle=0;
 	double rnd;
 	flatpoint v;
+	double angle;
 
 	while (r<largestr) { //one loop per radius
 		r+=thisspacing;
@@ -3951,6 +4031,15 @@ void EngraverPointGroup::FillCircular(EngraverFillData *data, double nweight)
 		sp=p=NULL;
 		first=-1;
 		rr=r;
+
+		double start=0, end=1;
+		bool fullcircles=true;
+		direction->GetStartEnd(&start,&end, false);
+		if ((start==0 && end==1) || (start==1 && end==0)) { start=0; end=1; }
+		if (end<start) end+=1;
+		if (end!=start+1) fullcircles=false;
+		start*=2*M_PI;
+		end  *=2*M_PI;
 
 		 //apply any whole line randomness at beginning...
 		if (direction->line_offset) {
@@ -3962,7 +4051,9 @@ void EngraverPointGroup::FillCircular(EngraverFillData *data, double nweight)
 
 		for (int c=0; c<=numpoints+1; c++) { //for each circle
 			 //apply point randomness if necessary
-			pp=rr*flatpoint(cos(2*M_PI*c/numpoints),sin(2*M_PI*c/numpoints));
+			angle=start+(end-start)*c/numpoints;;
+			pp=rr*flatpoint(cos(angle),sin(angle));
+
 			v=pp;
 			v.normalize();
 			v*=thisspacing;
@@ -3987,7 +4078,7 @@ void EngraverPointGroup::FillCircular(EngraverFillData *data, double nweight)
 
 			if (c==numpoints+1) {
 				 //we have come full circle, the previous point was on
-				if (first>=0 && sp) {
+				if (first>=0 && sp && fullcircles) {
 					 //first point of circle was on, so since this last point is also on,
 					 //we need to connect first and last
 					lines.e[first]->prev=p;
@@ -4760,20 +4851,20 @@ SomeData *EngraverFillData::duplicate(SomeData *dup)
 			dup->setbounds(minx,maxx,miny,maxy);
 			//set=0;
 			p=dynamic_cast<EngraverFillData*>(dup);
-			p->groups.flush();
 		}
 	} 
 	if (!p) {
 		p=new EngraverFillData();
 		dup=p;
-		p->groups.flush();
 	}
 
+	p->groups.flush();
 	p->NeedToUpdateCache(0,0,-1,-1);
 
 	for (int c=0; c<groups.n; c++) {
 		EngraverPointGroup *group=new EngraverPointGroup(this);
 		group->CopyFrom(groups.e[c], false, false, false, false, false);
+		makestr(group->name, groups.e[c]->name);
 		p->groups.push(group);
 	}
 

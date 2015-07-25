@@ -35,6 +35,79 @@ using namespace Laxkit;
 
 namespace LaxInterfaces {
 
+
+
+//--------------------------- standard LineProfiles -----------------------------
+
+
+anObject *NewLineProfile(anObject *refobj) { return new LineProfile; }
+
+
+/*! Create and install LineProfile type (if factory!=NULL), and also install to default resource manager
+ * default LineProfile objects (if resources!=NULL), like flat, rising, falling, etc.
+ *
+ * If the type "LineProfile" already exists in factory, then assume everything is already initialized
+ * and return -1.
+ *
+ * Else return 0 for success.
+ */
+int InstallDefaultLineProfiles(ObjectFactory *factory, ResourceManager *resources)
+{
+	if (factory) {
+		int status=factory->DefineNewObject(OBJTYPE_LineProfile, "LineProfile", NewLineProfile, NULL);
+		if (status==-1) return -1;
+	}
+
+
+	if (resources) {
+		LineProfile *profile;
+		resources->AddResourceType("LineProfile", _("Line Profile"), NULL, NULL);
+
+		 //flat
+		profile=new LineProfile;
+		profile->AddNode(0,0,1,0);
+		profile->Id(_("Flat"));
+		resources->AddResource("LineProfile", profile, NULL, profile->Id(), profile->Id(), NULL, NULL, NULL, true);
+		profile->dec_count();		
+
+		//rising
+		profile=new LineProfile;
+		profile->AddNode(0,0,0,0);
+		profile->AddNode(1,0,1,0);
+		profile->Id(_("Rising"));
+		resources->AddResource("LineProfile", profile, NULL, profile->Id(), profile->Id(), NULL, NULL, NULL, true);
+		profile->dec_count();		
+
+		//falling
+		profile=new LineProfile;
+		profile->AddNode(0,0,1,0);
+		profile->AddNode(1,0,0,0);
+		profile->Id(_("Falling"));
+		resources->AddResource("LineProfile", profile, NULL, profile->Id(), profile->Id(), NULL, NULL, NULL, true);
+		profile->dec_count();		
+
+		//eye
+		profile=new LineProfile;
+		profile->AddNode( 0,0,0,0);
+		profile->AddNode(.5,0,1,0);
+		profile->AddNode( 1,0,0,0);
+		profile->Id(_("Eye"));
+		resources->AddResource("LineProfile", profile, NULL, profile->Id(), profile->Id(), NULL, NULL, NULL, true);
+		profile->dec_count();		
+
+		//eye slit, kind of sine wave with bump in the middle
+		// ***
+	}
+
+
+
+	//profiles.push(NULL);
+	////LineProfile **pf=profiles.extractArrays(NULL,NULL);
+	//return pf;
+
+	return 0;
+}
+
 //--------------------------- LineProfile -----------------------------
 /*! \class LineProfile
  *
@@ -94,10 +167,15 @@ LaxImage *LineProfile::CreatePreview(int pwidth,int pheight)
 	double w,off,angle;
 	for (int x=0; x<pwidth; x++) {
 		GetWeight((double)x/pwidth, &w,&off,&angle);
-		w*=pheight/2;
-		off=(off+1)*pheight;
+		w*=pheight;
+		off=pheight/2 + off*pheight/2;
+
 		for (int y=off-w/2; y<off+w/2; y++) {
-			data[y*pwidth*4 + x]=0;
+			if (y>=0 && y<pheight) {
+				data[(y*pwidth + x)*4  ]=0;//b
+				data[(y*pwidth + x)*4+1]=0;//g
+				data[(y*pwidth + x)*4+2]=0;//r
+			}
 		}
 	}
 
@@ -116,6 +194,8 @@ LaxImage *LineProfile::Preview()
 }
 
 /*! t must range from 0 to 1.
+ *
+ * Return value is 0 for success.
  */
 int LineProfile::GetWeight(double t, double *width_ret, double *offset_ret, double *angle_ret)
 {
@@ -354,7 +434,7 @@ LaxFiles::Attribute *LineProfile::dump_out_atts(LaxFiles::Attribute *att,int wha
 
 void LineProfile::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context)
 {
-   if (!att) return;
+	if (!att) return;
 
     char *name,*value;
     int c;
@@ -410,53 +490,6 @@ void LineProfile::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpC
 }
 
 
-
-//--------------------------- standard LineProfiles -----------------------------
-
-
-/*! Return NULL terminated list of new instances for built in LineProfile objects.
- */
-LineProfile **MakeStandardLineProfiles()
-{
-	Laxkit::PtrStack<LineProfile> profiles;
-
-	LineProfile *profile;
-	
-	 //flat
-	profile=new LineProfile;
-	profile->AddNode(0,0,1,0);
-	profile->Id(_("Flat"));
-	profiles.push(profile,1);
-
-	//rising
-	profile=new LineProfile;
-	profile->AddNode(0,0,0,0);
-	profile->AddNode(1,0,1,0);
-	profile->Id(_("Rising"));
-	profiles.push(profile,1);
-
-	//falling
-	profile=new LineProfile;
-	profile->AddNode(0,0,1,0);
-	profile->AddNode(1,0,0,0);
-	profile->Id(_("Falling"));
-	profiles.push(profile,1);
-
-	//eye
-	profile=new LineProfile;
-	profile->AddNode( 0,0,0,0);
-	profile->AddNode(.5,0,1,0);
-	profile->AddNode( 1,0,0,0);
-	profile->Id(_("Eye"));
-	profiles.push(profile,1);
-
-	//eye slit, kind of sine wave with bump in the middle
-
-
-	profiles.push(NULL);
-	LineProfile **pf=profiles.extractArrays(NULL,NULL);
-	return pf;
-}
 
 
 

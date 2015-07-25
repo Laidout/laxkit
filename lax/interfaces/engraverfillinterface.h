@@ -150,9 +150,10 @@ class EngraverFillInterface : public PatchInterface
 	virtual Laxkit::MenuInfo *GetGroupMenu(int what);
 	virtual int NumGroupLines();
 	virtual EngraverFillData *GroupFromLineIndex(int i, int *gi);
+	virtual int CurrentLineIndex(int *maxindex);
 
-	int PushToAll(int what, EngraverPointGroup *from,int fromi);
-	int PushSettings(int what, EngraverPointGroup *from,int fromi, EngraverPointGroup *to,int toi);
+	virtual int PushToAll(int what, EngraverPointGroup *from,int fromi);
+	virtual int PushSettings(int what, EngraverPointGroup *from,int fromi, EngraverPointGroup *to,int toi);
 
 	virtual void UpdateDashCaches(EngraverLineQuality *dash);
 
@@ -189,6 +190,7 @@ class EngraverFillInterface : public PatchInterface
 	virtual int ChangeMode(int newmode);
 	virtual const char *ModeTip(int mode);
 	virtual int Trace(bool do_once=false);
+	virtual int Reline(bool do_once=true, int which=3);
 	virtual int Grow(bool alldir, bool allindata);
 
 	virtual int AddToSelection(ObjectContext *oc);

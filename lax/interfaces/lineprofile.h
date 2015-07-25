@@ -25,6 +25,7 @@
 
 #include <lax/lists.h>
 #include <lax/resources.h>
+#include <lax/objectfactory.h>
 #include <lax/curveinfo.h>
 
 #include <lax/interfaces/pathinterface.h>
@@ -35,7 +36,11 @@ namespace LaxInterfaces {
 
 //--------------------------- LineProfile -----------------------------
 
-class LineProfile : public Laxkit::Resourceable
+//! NOTE! This define must coexist with EngraverObjectTypes and LaxInterfaceDataTypes
+#define OBJTYPE_LineProfile 200
+
+
+class LineProfile : public Laxkit::Resourceable, public LaxFiles::DumpUtility
 {
   public:
 	Laxkit::LaxImage *preview;
@@ -81,7 +86,8 @@ class LineProfile : public Laxkit::Resourceable
 
 //------------Default LineProfile resources
 
-LineProfile **MakeStandardLineProfiles();
+int InstallDefaultLineProfiles(Laxkit::ObjectFactory *factory, Laxkit::ResourceManager *resources);
+//LineProfile **MakeStandardLineProfiles();
 
 
 

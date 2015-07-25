@@ -116,6 +116,11 @@ enum EngraveShortcuts {
 	ENGRAVE_PreviousFill,
 	ENGRAVE_NextGroup,
 	ENGRAVE_PreviousGroup,
+	ENGRAVE_ToggleTracePanel, 
+	ENGRAVE_ToggleDashPanel,  
+	ENGRAVE_ToggleDirPanel,   
+	ENGRAVE_ToggleSpacingPanel,
+
 	ENGRAVE_MAX
 };
 
@@ -341,6 +346,8 @@ int EngraverFillInterface::InitializeResources()
 
 
 	InstallEngraverObjectTypes(imanager->GetObjectFactory());
+
+	InstallDefaultLineProfiles(imanager->GetObjectFactory(), imanager->GetResourceManager());
 
 	return 0;
 }
@@ -1197,7 +1204,12 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
 			ResourceManager *manager=InterfaceManager::GetDefault(true)->GetResourceManager();
 			manager->ResourceMenu("LineProfile", true, menu);
 			if (n==menu->n()) {
-				menu->AddItem(_("(none)"),0,LAX_GRAY);
+				menu->AddItem(_("(none)"),NULL, 0,LAX_GRAY);
+				//menu->AddItem(_("(none)"),0,LAX_GRAY,0,NULL);
+			}
+			if (group->direction->default_profile) {
+				menu->AddSep();
+				menu->AddItem(_("Clear"), -1,LAX_OFF,0,(MenuInfo*)NULL);
 			}
 
 	        app->rundialog(new PopupMenu("Line Profile","Line Profile", 0,
@@ -1483,7 +1495,7 @@ int EngraverFillInterface::NumGroupLines()
 }
 
 /*! Retrun the object and the group index within object based on the visible line number i.
- * i==0 is the first object with -1 for ground index, 1 is first object and 0 for group index, and so on.
+ * i==0 is the first object with -1 for group index, 1 is first object and 0 for group index, and so on.
  */
 EngraverFillData *EngraverFillInterface::GroupFromLineIndex(int i, int *gi)
 {
@@ -1514,6 +1526,44 @@ EngraverFillData *EngraverFillInterface::GroupFromLineIndex(int i, int *gi)
 
 	*gi=-1;
 	return NULL;
+}
+
+/*! Find what is the current line index, returning the max index currently allowed.
+ */
+int EngraverFillInterface::CurrentLineIndex(int *maxindex)
+{
+	if (!edata || !selection || !selection->n()) {
+		*maxindex=0;
+		return -1;
+	}
+
+	EngraverPointGroup *group=(edata ? edata->GroupFromIndex(current_group) : NULL);
+	EngraverFillData *obj; 
+	
+	int i=-1;
+	int max=0;
+	int cur=-1;
+
+	for (int g=0; g<selection->n(); g++) {
+		obj=dynamic_cast<EngraverFillData *>(selection->e(g)->obj);
+		if (!obj) continue;
+
+		max+=1 + obj->groups.n;
+		i++;
+
+		if (obj==edata) {
+			for (int c=0; c<obj->groups.n; c++) {
+				if (group==obj->groups.e[c]) {
+					cur=i+c+1; break;
+				}
+			}
+		}
+
+		i+=obj->groups.n;
+	}
+
+	if (maxindex) *maxindex=max;
+	return cur;
 }
 
 
@@ -3621,7 +3671,7 @@ void EngraverFillInterface::UpdatePanelAreas()
 
 			if (!(item->state&LAX_OPEN)) item->h=th;
 			else {
-				item->h=13*th;
+				item->h=14*th;
 
 				int sharing=IsSharing(ENGRAVE_Direction, NULL, current_group);
 
@@ -3679,24 +3729,24 @@ void EngraverFillInterface::UpdatePanelAreas()
 						//contains ENGRAVE_Direction_Point_Off_Size
 						item2->x=pad;  item2->y=y+7*th;  item2->w=pw-2*pad;  item2->h=th; 
 
-					 //--- line
+					 //--- 7th line
 					} else if (item2->id==ENGRAVE_Direction_Grow) {
-						item2->x=pad;  item2->y=y+8*th;  item2->w=pw-2*pad;  item2->h=th; 
+						item2->x=pad;  item2->y=y+8.5*th;  item2->w=pw-2*pad;  item2->h=th; 
 
-					 //--- line
+					 //--- 8th line
 					} else if (item2->id==ENGRAVE_Direction_Fill) {
-						item2->x=pad;  item2->y=y+9*th;  item2->w=(pw-2*pad)/2;  item2->h=th; 
+						item2->x=pad;  item2->y=y+9.5*th;  item2->w=(pw-2*pad)/2;  item2->h=th; 
 
 					} else if (item2->id==ENGRAVE_Direction_Merge) {
-						item2->x=pad+(pw-2*pad)/2;  item2->y=y+9*th;  item2->w=(pw-2*pad)/2;  item2->h=th; 
+						item2->x=pad+(pw-2*pad)/2;  item2->y=y+9.5*th;  item2->w=(pw-2*pad)/2;  item2->h=th; 
 
-					 //--- line
+					 //--- 9th line
 					} else if (item2->id==ENGRAVE_Direction_Spread) {
 						//contains ENGRAVE_Direction_Spread_Depth, ENGRAVE_Direction_Spread_Angle
-						item2->x=pad;  item2->y=y+10*th;  item2->w=pw-2*pad;  item2->h=2*th; 
+						item2->x=pad;  item2->y=y+10.5*th;  item2->w=pw-2*pad;  item2->h=2*th; 
 
 					} else if (item2->id==ENGRAVE_Direction_Seed) {
-						item2->x=pad;  item2->y=y+12*th;  item2->w=pw-2*pad;  item2->h=th; 
+						item2->x=pad;  item2->y=y+12.5*th;  item2->w=pw-2*pad;  item2->h=th; 
 					}
 				}
 			}
@@ -4311,13 +4361,13 @@ void EngraverFillInterface::DrawPanel()
 						dp->NewFG(.5,.5,.5);
 						dp->drawline(i2x,i2y+i2h/2, i2x+i2w,i2y+i2h/2);
 
-						 //draw in base profile ***** update when line profile active!!!
+						 //draw in base profile
 						dp->NewFG(&fgcolor);
-						//if (group && group->direction->lineprofile) {
-						//	***
-						//} else { 
+						if (group && group->direction->default_profile) {
+							dp->imageout(group->direction->default_profile->Preview(), start,i2y+i2h/4, end-start,i2h/2);
+						} else { 
 							dp->drawrectangle(start, i2y+i2h/3, end-start,i2h/3, 1);
-						//} 
+						} 
 
 						 //start
 						if (lasthover==ENGRAVE_Direction_Profile_Start) {
@@ -4364,13 +4414,13 @@ void EngraverFillInterface::DrawPanel()
 								lasthover==ENGRAVE_Direction_Profile_End_Random ? 1 : 0); 
 						}
 
-						dp->NewFG(1.0,1.0,1.0);
-						dp->textout(i2x+i2w/2-1,i2y+i2h/2-1, "Profile Todo!",-1,LAX_CENTER); 
-						dp->textout(i2x+i2w/2-1,i2y+i2h/2+1, "Profile Todo!",-1,LAX_CENTER); 
-						dp->textout(i2x+i2w/2+1,i2y+i2h/2-1, "Profile Todo!",-1,LAX_CENTER); 
-						dp->textout(i2x+i2w/2+1,i2y+i2h/2+1, "Profile Todo!",-1,LAX_CENTER); 
-						dp->NewFG(&fgcolor);
-						dp->textout(i2x+i2w/2,i2y+i2h/2, "Profile Todo!",-1,LAX_CENTER); 
+						//dp->NewFG(1.0,1.0,1.0);
+						//dp->textout(i2x+i2w/2-1,i2y+i2h/2-1, "Profile Todo!",-1,LAX_CENTER); 
+						//dp->textout(i2x+i2w/2-1,i2y+i2h/2+1, "Profile Todo!",-1,LAX_CENTER); 
+						//dp->textout(i2x+i2w/2+1,i2y+i2h/2-1, "Profile Todo!",-1,LAX_CENTER); 
+						//dp->textout(i2x+i2w/2+1,i2y+i2h/2+1, "Profile Todo!",-1,LAX_CENTER); 
+						//dp->NewFG(&fgcolor);
+						//dp->textout(i2x+i2w/2,i2y+i2h/2, "Profile Todo!",-1,LAX_CENTER); 
 
 
 					} else if (item2->id==ENGRAVE_Direction_Profile_Menu) {
@@ -4571,12 +4621,70 @@ int EngraverFillInterface::PerformAction(int action)
 		return 0;
 
 	} else if (action==ENGRAVE_NextGroup) {
-		PostMessage(" *** IMPLEMENT NextGroup!!!");
+		if (!edata) return 0;
+
+		int cur=CurrentLineIndex(NULL);
+
+		cur++;
+
+		int gindex;
+		EngraverFillData *obj = GroupFromLineIndex(cur, &gindex);
+		if (!obj) {
+			cur=1;
+			obj=GroupFromLineIndex(cur,&gindex);
+		} else {
+			if (gindex<0) { cur++; gindex=0; }
+		} 
+
+		UseThisObject(selection->e(selection->ObjectIndex(obj)));
+		current_group=gindex;
+		UpdatePanelAreas();
+		needtodraw=1;
+
+		return 0;
+
+	} else if (    action==ENGRAVE_ToggleTracePanel
+				|| action==ENGRAVE_ToggleDashPanel
+				|| action==ENGRAVE_ToggleDirPanel   
+				|| action==ENGRAVE_ToggleSpacingPanel) {
+
+		int what=ENGRAVE_Tracing;
+		if (action==ENGRAVE_ToggleDashPanel) what=ENGRAVE_Dashes;
+		else if (action==ENGRAVE_ToggleDirPanel) what=ENGRAVE_Direction;
+		else if (action==ENGRAVE_ToggleSpacingPanel) what=ENGRAVE_Spacing;
+
+		MenuItem *item=panel.findid(what);
+
+		if (item->isOpen()) item->Close();
+		else item->Open();
+		UpdatePanelAreas();
+		needtodraw=1;
 		return 0;
 
 	} else if (action==ENGRAVE_PreviousGroup) {
-		PostMessage(" *** IMPLEMENT PreviousGroup!!!");
+		if (!edata) return 0;
+
+		int max=0;
+		int cur=CurrentLineIndex(&max);
+
+		cur--;
+		if (cur<1) cur=max-1;
+
+		int gindex;
+		EngraverFillData *obj = GroupFromLineIndex(cur, &gindex);
+		if (gindex<0) {
+			cur--;
+			if (cur<1) cur=max-1;
+			obj=GroupFromLineIndex(cur,&gindex);
+		}
+
+		UseThisObject(selection->e(selection->ObjectIndex(obj)));
+		current_group=gindex;
+		UpdatePanelAreas();
+		needtodraw=1;
+
 		return 0;
+
 
 	} else if (action==ENGRAVE_ExportSvg) {
 		app->rundialog(new FileDialog(NULL,"Export Svg",_("Export engraving to svg"),ANXWIN_REMEMBER|ANXWIN_CENTER,0,0,0,0,0,
@@ -4619,8 +4727,11 @@ int EngraverFillInterface::PerformAction(int action)
 		group->Fill(edata, -1);
 		edata->Sync(false);
 		Trace();
+
 		char buffer[75];
 		sprintf(buffer,_("Resolution: %.5g"),group->direction->resolution);
+		PostMessage(buffer);
+
 		DBG cerr <<"new resolution: "<<group->direction->resolution<<endl;
 		needtodraw=1;
 		return 0;
@@ -4777,6 +4888,8 @@ int EngraverFillInterface::Grow(bool all, bool allindata)
 //	return 0;
 }
 
+/*! For any group in any selected object with the same trace settings as the current group, trace.
+ */
 int EngraverFillInterface::Trace(bool do_once)
 {
 	if (!edata) return 1;
@@ -4807,6 +4920,52 @@ int EngraverFillInterface::Trace(bool do_once)
 		}
 	}
 
+	needtodraw=1;
+	return 0;
+}
+
+/*! For any group in any selected object with the same direction settings as the current group, reline.
+ * Calls Trace() after relining.
+ *
+ * which&1 means direction was changed, which&2 means spacing was changed.
+ */
+int EngraverFillInterface::Reline(bool do_once, int which)
+{
+	if (!edata) return 1;
+
+	EngraverFillData *obj=NULL;
+	EngraverPointGroup *group=NULL;
+	EngraverDirection *curdir=NULL;
+	EngraverSpacing *curspc=NULL;
+
+	if (do_once) {
+		group=edata->GroupFromIndex(current_group);
+		curdir=group->direction;
+		curspc=group->spacing;
+	}
+
+	for (int c=0; c<selection->n(); c++) {
+		obj=dynamic_cast<EngraverFillData*>(selection->e(c)->obj);
+		if (!obj) continue;
+
+		for (int g=0; g<obj->groups.n; g++) {
+			group=obj->groups.e[g]; 
+			if (!group->direction) continue; //shouldn't happen, but just in case..  
+
+			if (!group->active) continue;
+			//if (!do_once && !group->direction->continuous_trace) continue;
+
+			int yes=0;
+			if (curdir && (which%1) && group->direction==curdir) yes=1;
+			if (curspc && (which%2) && group->spacing  ==curspc) yes=1;
+			if (!yes) continue;
+
+			group->Fill(edata, -1);
+			edata->Sync(false);
+		}
+	}
+
+	Trace();
 	needtodraw=1;
 	return 0;
 }
@@ -5461,8 +5620,25 @@ int EngraverFillInterface::Event(const Laxkit::EventData *e_data, const char *me
 		return 0;
 
 	} else if (!strcmp(mes,"lineprofilemenu")) {
-    	//const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(e_data);
-		PostMessage("lineprofilemenu UNIMPLEMENTED!! ARRRG!!!!");
+    	const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(e_data);
+
+		EngraverPointGroup *group=edata->GroupFromIndex(current_group);
+		if (group) {
+			InterfaceManager *imanager=InterfaceManager::GetDefault(true);
+			ResourceManager *rm=imanager->GetResourceManager();
+
+			if (s->info2==-1) {
+				group->direction->InstallProfile(NULL,0);
+			} else {
+				LineProfile *obj=dynamic_cast<LineProfile*>(rm->FindResource(s->str,"LineProfile"));
+				if (obj) {
+					group->direction->InstallProfile(obj, 0);
+				}
+			}
+
+			Reline(true,1);
+			needtodraw=1;
+		}
 		return 0;
 
 	} else if (!strcmp(mes,"directionseed")) {
@@ -5787,6 +5963,11 @@ Laxkit::ShortcutHandler *EngraverFillInterface::GetShortcuts()
 	sc->Add(ENGRAVE_LoadDirection,  'd',ControlMask,0,"LoadDir",     _("Load a normal map for direction"),NULL,0);
 	sc->Add(ENGRAVE_NextGroup,      LAX_Pgdown,0,0,   "NextGroup",   _("Next group"),NULL,0);
 	sc->Add(ENGRAVE_PreviousGroup,  LAX_Pgup,0,0,     "PreviousGroup",_("Previous group"),NULL,0);
+
+	sc->Add(ENGRAVE_ToggleTracePanel,  '1',0,0,     "ToggleTracePanel",  _("Toggle trace panel"),NULL,0);
+	sc->Add(ENGRAVE_ToggleDashPanel,   '2',0,0,     "ToggleDashPanel",   _("Toggle dash panel"),NULL,0);
+	sc->Add(ENGRAVE_ToggleDirPanel,    '3',0,0,     "ToggleDirPanel",    _("Toggle direction panel"),NULL,0);
+	sc->Add(ENGRAVE_ToggleSpacingPanel,'4',0,0,     "ToggleSpacingPanel",_("Toggle spacing panel"),NULL,0);
 
 	sc->Add(ENGRAVE_NextFill,     LAX_Left, 0,EMODE_Orientation,  "NextFillType",     _("Switch to next fill type"),NULL,0);
 	sc->Add(ENGRAVE_PreviousFill, LAX_Right,0,EMODE_Orientation,  "PreviousFillType", _("Switch to previous fill type"),NULL,0);
