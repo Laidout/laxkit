@@ -197,8 +197,8 @@ class flatline
   public:
 	flatpoint p;
 	flatvector v;
-	flatline() {p=flatpoint(); v=flatvector(1,0);}
-	flatline(flatline &fl) {p=fl.p; v=fl.v;}
+	flatline() { p=flatpoint(); v=flatvector(1,0); }
+	flatline(const flatline &fl) { p=fl.p; v=fl.v; }
 	flatline(flatpoint p1, flatpoint p2) { p=p1; v=p2-p1; }
 	flatline(double *v1,double *v2) { p=flatvector(v1); v=flatvector(v2); }
 };
