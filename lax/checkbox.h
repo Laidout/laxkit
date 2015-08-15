@@ -56,6 +56,8 @@ class CheckBox : public Button
 	virtual void draw();
 	virtual void setPlacement();
 	virtual void drawgraphic();
+	virtual int MoveResize(int nx,int ny,int nw,int nh);
+    virtual int Resize(int nw,int nh);
 };
 
 } // namespace Laxkit

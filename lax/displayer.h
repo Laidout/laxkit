@@ -78,6 +78,7 @@ class Displayer : public PanUser, virtual public anObject
 	virtual void WrapWindow(anXWindow *nw);
 	virtual int StartDrawing(aDrawable *buffer) = 0;
 	virtual int MakeCurrent(aDrawable *buffer) = 0;
+	virtual int CurrentResized(aDrawable *buffer, int nwidth,int nheight) = 0;
 	virtual int ClearDrawable(aDrawable *drawable) = 0;
 	virtual int CreateSurface(int width,int height, int type=-1) = 0;
 	virtual LaxImage *GetSurface() = 0;
@@ -171,7 +172,7 @@ class Displayer : public PanUser, virtual public anObject
 	virtual int fontsize(double size) = 0;
 	virtual int textheight() = 0;
 	virtual double textextent(LaxFont *thisfont, const char *str,int len, double *width,double *height,double *ascent,double *descent,char real) = 0;
-	virtual double textextent(const char *str,int len, double *width,double *height);
+	virtual double textextent(const char *str,int len, double *width,double *height,double *ascent=NULL,double *descent=NULL,char real=0);
 	virtual double textout(double x,double y,const char *str,int len=0,unsigned long align=LAX_CENTER) = 0;
 	virtual double textout(double *matrix,double x,double y,const char *str,int len=0,unsigned long align=LAX_CENTER) = 0;
 	virtual double textout(double angle, double x,double y,const char *str,int len=0,unsigned long align=LAX_CENTER) = 0;

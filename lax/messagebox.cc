@@ -71,7 +71,7 @@ MessageBox::MessageBox( anXWindow *parnt, const char *nname,const char *ntitle, 
 						const char *mes)
 		: RowFrame(parnt,nname,ntitle,nstyle|ROWFRAME_CENTER|ROWFRAME_ROWS,
 				   xx,yy,ww,hh,brder, prev,nowner,nsend,
-				   anXApp::app->defaultlaxfont->textheight())
+				   anXApp::app->defaultlaxfont->textheight()/2)
 {
 	if (win_w<=1) w(BOX_SHOULD_WRAP); else { w(win_w); pw(win_w); }
 	if (win_h<=1) h(BOX_SHOULD_WRAP); else { h(win_h); ph(win_h); }

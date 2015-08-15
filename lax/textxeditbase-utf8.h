@@ -38,6 +38,8 @@ namespace Laxkit {
 class TextXEditBaseUtf8 : public anXWindow, public TextEditBaseUtf8
 {
  protected:
+ 	LaxFont *thefont;
+	int valid; 
 	int cx,cy,oldx,oldy,curlineoffset;
 	int padx,pady;
  	char firsttime,con;
@@ -46,13 +48,13 @@ class TextXEditBaseUtf8 : public anXWindow, public TextEditBaseUtf8
 	int textascent,textheight,textdescent;
 	unsigned long curtextcolor,textbgcolor;
 	unsigned long curbkcolor,bkwrongcolor,wscolor;
- 	LaxFont *thefont;
-	int valid;
 	DoubleRectangle textrect;
+
 	virtual void docaret(int w=1);
 	virtual void settextrect();
-	virtual int selectionDropped(unsigned char *data,unsigned long len,Atom actual_type,Atom which);
+	virtual int selectionDropped(const unsigned char *data,unsigned long len,Atom actual_type,Atom which);
 	virtual char *getSelectionData(int *len,Atom property,Atom targettype,Atom selection);
+
  public:
 	TextXEditBaseUtf8(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
 							 int xx,int yy,int ww,int hh,int brder,

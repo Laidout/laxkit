@@ -27,15 +27,11 @@
 #include <lax/colorbase.h>
 #include <lax/buttondowninfo.h>
 #include <lax/newwindowobject.h>
+#include <lax/colors.h>
 
 namespace Laxkit {
 
 
-
-#define COLORBOX_DRAW_NUMBER (1<<16)
-#define COLORBOX_CMYK        (1<<17)
-#define COLORBOX_RGB         (1<<18)
-#define COLORBOX_GRAY        (1<<19)
 
 #define COLORBOX_FG          (1<<20)
 #define COLORBOX_FGBG        (1<<21)

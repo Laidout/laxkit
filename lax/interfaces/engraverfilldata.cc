@@ -1957,6 +1957,8 @@ EngraverPointGroup::EngraverPointGroup(EngraverFillData *nowner)
 	default_weight=-1;
 
 	iorefs=NULL;
+	needtotrace=false;
+	needtoreline=false;
 }
 
 /*! Creates a unique new number for id if nid<0.
@@ -2016,6 +2018,8 @@ EngraverPointGroup::EngraverPointGroup(EngraverFillData *nowner,
 	}
 
 	iorefs=NULL;
+	needtotrace=false;
+	needtoreline=false;
 }
 
 EngraverPointGroup::~EngraverPointGroup()
@@ -2316,6 +2320,12 @@ void EngraverPointGroup::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles
 
 		} else if (!strcmp(name,"linked")) {
 			linked=BooleanAttribute(value);
+
+		} else if (!strcmp(name,"needtotrace")) {
+			needtotrace=BooleanAttribute(value);
+
+		} else if (!strcmp(name,"needtoreline")) {
+			needtoreline=BooleanAttribute(value);
 
 		} else if (!strcmp(name,"type")) {
 			 //deprecated as of after Laidout 0.095!!
@@ -5103,10 +5113,22 @@ void EngraverFillData::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContex
 	}
 
 	FindBBox();
+
+	for (int c=0; c<groups.n; c++) {
+		if (groups.e[c]->needtoreline) {
+			groups.e[c]->Fill(this, -1);
+			groups.e[c]->needtoreline=false;
+		}
+	}
 	Sync(false);
 
 	for (int c=0; c<groups.n; c++) {
 		groups.e[c]->UpdateBezCache();
+
+		if (groups.e[c]->needtotrace) {
+			// *** need to clarify this: group.e[c]->Trace(aa,viewport);
+		}
+
 		groups.e[c]->UpdateDashCache();
 	} 
 }

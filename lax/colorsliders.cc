@@ -301,6 +301,10 @@ void ColorSliders::Refresh()
 	if (!needtodraw || !win_on) return;
 	needtodraw=0;
 
+
+	Displayer *dp=GetDefaultDisplayer();
+	dp->MakeCurrent(this);
+
 	clear_window(this);
 	if (!bars.n) return;
 

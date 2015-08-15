@@ -55,21 +55,11 @@ namespace Laxkit {
 /*! \class LaxFont
  * \brief A wrapper for fonts that contains various metric information.
  *
- * In addition to an XftFont holding the font, LaxFont also contains easy to
- * get to info about the range of characters defined in the font (one continuous range
- * is allowed per LaxFont), the text height, ascent, and descent, and the widths of the 
- * characters. The width is actually separated into 2 width arrays. One has the real
- * character width, which could be 0, and one has the charwidths based on converted the
- * 0 width characters into a hex representation. For instance, the character '\\n' has
- * ascii value 10, and it might be converted to "\0a". This is to aid text editors such
- * as LineEdit.
+ * LaxFont contains easy to get to common font information the text height,
+ * ascent, and descent, and the widths of the 
+ * characters.
  *
- * These objects are reference counted via dec_count() and inc_count(). If a dec_count() 
- * results in a count of 0, then <tt>delete this</tt> is called.
- * 
- * \todo read up on Xft, and (?) FVontSets, have ability to maintain charwidths[] for multiple ranges,
- *   not just the basic Latin1/small [firstcharinfont + numcharsinfont]. Must be able to
- *   facilitate font subsetting
+ * These objects are reference counted via dec_count() and inc_count(). 
  */
 
 
@@ -98,19 +88,19 @@ LaxFont::LaxFont()
 
 
 /*! \fn  double textheight()
- * \brief Usually ascent plus descent.
+ * \brief Usually, but NOT ALWAYS,  ascent plus descent. It is the default distance between baselines.
  */
 
 /*! \fn  double ascent()
- * \brief Distance from basline to top of the font. Note this is usually higher than the visual top.
+ * \brief Distance from baseline to top of the font. Note this is usually higher than the visual top.
  */
 
 /*! \fn  double descent()
- * \brief Distance from basline to bottom of the font. Note this is usually lower than the visual top.
+ * \brief Distance from baseline to bottom of the font. Note this is usually lower than the visual top.
  */
 
 /*! \fn  double Resize(double newsize)
- * \brief Change the size of the cached font, keeping the font type and style.
+ * \brief Change the size of the cached font, keeping the font type and style. Returns newsize on success, or 0 on error.
  */
 
 

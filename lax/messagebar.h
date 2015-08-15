@@ -51,7 +51,7 @@ class MessageBar : public anXWindow
    protected:
 	int lbdown,firsttime;
 	int msx,msy,ox,oy;
-	double ex,ey,fasc,fdes; // ex,ey are extents
+	double ex,ey,fasc,fdes,height; // ex,ey are extents
 	char **thetext;
 	int nlines;
 	double *indents;

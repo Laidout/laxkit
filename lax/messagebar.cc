@@ -96,7 +96,7 @@ MessageBar::MessageBar(anXWindow *pwindow,const char *nname,const char *ntitle,u
 	if ((win_style&(MB_CENTER|MB_LEFT|MB_RIGHT|MB_TOP|MB_BOTTOM))==0) { // default center
 		win_style=(win_style&(~(MB_CENTER|MB_LEFT|MB_RIGHT|MB_TOP|MB_BOTTOM)))|MB_CENTER;
 	}
-	SetupMetrics(); //clears up if h==0*** what the hell
+	SetupMetrics(); //sets win_w and win_h if nh==0
 
 	installColors(app->color_panel);
 }
@@ -190,14 +190,14 @@ int MessageBar::SetupMetrics()
 	int n;
 	ex=0;
 	for (n=0; n<nlines; n++) {
-		getextent(thetext[n],strlen(thetext[n]), &indents[n], NULL, &fasc, &fdes, 0);
+		getextent(thetext[n],strlen(thetext[n]), &indents[n], &height, &fasc, &fdes, 0);
 		if (indents[n]>ex) ex=indents[n];
 	}
-	ey=nlines*(fasc+fdes);
-	
+	ey=nlines*height;
+
 	if (win_w==0) win_w=ex+2*padx;
 	if (win_h==0) win_h=ey+2*pady;
-	
+
 	if (win_style&MB_RIGHT) ox=win_w-ex-2*padx;
 	else if (win_style&MB_LEFT) ox=padx; 
 	else ox=(win_w-ex)/2; //center
@@ -212,7 +212,7 @@ int MessageBar::SetupMetrics()
 	else if (win_style&MB_BOTTOM) oy=win_h-ey+fasc-2*pady;
 	else oy=(win_h-ey)/2+fasc; //center
 	
-	firsttime=0;
+	//firsttime=0;
 	return 0;
 }
 	
@@ -227,14 +227,16 @@ void MessageBar::Refresh()
 	}
 	//DBG cerr <<"mesbar("<<WindowTitle()<<")drawing..";
 	
-	background_color(win_colors->bg);
-	foreground_color(win_colors->fg);
-	clear_window(this);
+	Displayer *dp=MakeCurrent();
+
+	dp->NewBG(win_colors->bg);
+	dp->NewFG(win_colors->fg);
+	dp->ClearWindow();
 	int l=0;
 	for (int c=0; c<nlines; c++) {
 		l=strlen(thetext[c]);
 		if (thetext[c][l-1]=='\n') l--;
-		textout(this,thetext[c],l, ox+indents[c],oy+c*(fasc+fdes), LAX_LEFT|LAX_BASELINE);
+		dp->textout(ox+indents[c],oy+c*height, thetext[c],l, LAX_LEFT|LAX_BASELINE);
 	}
 
 	needtodraw=0;

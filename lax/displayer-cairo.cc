@@ -116,10 +116,12 @@ void DisplayerCairo::base_init()
 	cr=NULL;
 	curfont=NULL;
 	curscaledfont=NULL;
-	_textheight=_ascent=_descent=0;
+	_textheight=0;
+	height_over_M=0; // = (M square height: cairo_set_font_size parameter) / (actual font height) 
 
 	target=NULL;
 	surface=NULL;
+	ref_surface=NULL;
 	mask=NULL;
 	source=NULL;
 
@@ -136,6 +138,7 @@ DisplayerCairo::~DisplayerCairo()
 	if (cr) cairo_destroy(cr);
 
 	if (surface) cairo_surface_destroy(surface);
+	if (ref_surface) cairo_surface_destroy(ref_surface);
 	if (mask) cairo_surface_destroy(mask);
 	if (source) cairo_surface_destroy(source);
 
@@ -177,16 +180,63 @@ int DisplayerCairo::StartDrawing(aDrawable *buffer)
 	return 0;
 }
 
+/*! Free any resources allocated for drawing in this object created during StartDrawing() or MakeCurrent()..
+ *
+ *  This resets all the drawing bits to 0. Be warned that most of the functions in
+ * DisplayerCairo do not check for a NULL context or NULL surface!!
+ *
+ * If xw==NULL, then also call Updates(1);
+ */
+int DisplayerCairo::EndDrawing()
+{
+	if (xw==NULL) Updates(1);
+	//if (xw) { xw->dec_count(); xw=NULL; }
+
+	if (cr)      { cairo_destroy(cr); cr=NULL; }
+	if (surface) { cairo_surface_destroy(surface); surface=NULL; }
+	if (mask)    { cairo_surface_destroy(mask);    mask=NULL;    }
+	if (source)  { cairo_surface_destroy(source);  source=NULL;  }
+	return 0;
+}
+
+/*! Called in response to a window resize, this must update if the current surface is buffer.
+ * If current surface is not buffer, then nothing is done.
+ */
+int DisplayerCairo::CurrentResized(aDrawable *buffer, int nwidth,int nheight)
+{
+	if (buffer!=dr) return 1;
+
+	if (buffer->xlibDrawable(1)==0
+			|| buffer->xlibDrawable(0)==buffer->xlibDrawable(1)) {
+		 //not double buffered, easy..
+		cairo_xlib_surface_set_size(surface, nwidth,nheight);
+		//cairo_xlib_surface_set_drawable(surface,w, nwidth,nheight);
+		return 0;
+	}
+
+	EndDrawing();
+	//MakeCurrent(buffer);
+	//w=buffer->xlibDrawable();
+
+	return 0;
+}
+
 //! Make sure we are drawing on the proper surface.
 int DisplayerCairo::MakeCurrent(aDrawable *buffer)
 {
-	if (cr && surface && buffer==dr) return 1; //already current!
+	if (!buffer) { EndDrawing(); return -1; }
+
+	if (cr && surface && buffer==dr && w==buffer->xlibDrawable()) return 1; //already current!
 
 	dr=buffer;
 	xw=dynamic_cast<anXWindow*>(buffer);
 	w=buffer->xlibDrawable();
 
+	//w=buffer->xlibDrawable(1);
+	//if (!w) w=buffer->xlibDrawable(0);
+
 	if (!xw) {
+		 //if buffer is probably an xlib Pixmap:
 		Window rootwin;
 		int x,y;
 		unsigned int width,height,bwidth,depth;
@@ -201,9 +251,10 @@ int DisplayerCairo::MakeCurrent(aDrawable *buffer)
 	}
 
 	if (isinternal) {
+		 //we need to destroy internal, as we are now using external buffer
+		if (cr) { cairo_destroy(cr); cr=NULL; }
 		if (surface) cairo_surface_destroy(surface);
 		surface=NULL;
-		if (cr) { cairo_destroy(cr); cr=NULL; }
 		isinternal=0;
 	}
 
@@ -219,20 +270,19 @@ int DisplayerCairo::MakeCurrent(aDrawable *buffer)
 
 	if (!cr) {
 		cr=cairo_create(surface);
+
 		if (!curfont) initFont();
 		cairo_set_font_face(cr,curfont);
-		if (_textheight>0) cairo_set_font_size(cr, _textheight);
-		cairo_font_extents_t fextents;
-		cairo_font_extents(cr, &fextents);
-		_ascent =fextents.ascent;
-		_descent=fextents.descent;
-		_textheight=_ascent+_descent;
+		if (_textheight>0) cairo_set_font_size(cr, _textheight/height_over_M);
+		cairo_font_extents(cr, &curfont_extents);
 	}
+
 
 	cairo_matrix_t m;
 	if (real_coordinates) cairo_matrix_init(&m, ctm[0], ctm[1], ctm[2], ctm[3], ctm[4], ctm[5]);
 	else cairo_matrix_init(&m, 1,0,0,1,0,0);
 	cairo_set_matrix(cr, &m);
+
 
 	return 1;
 }
@@ -291,14 +341,11 @@ int DisplayerCairo::CreateSurface(int w,int h, int type)
 	isinternal=1;
 	surface=cairo_image_surface_create(CAIRO_FORMAT_ARGB32, w,h);
 	cr=cairo_create(surface);
+
 	if (!curfont) initFont();
 	cairo_set_font_face(cr,curfont);
-	if (_textheight>0) cairo_set_font_size(cr, _textheight);
-	cairo_font_extents_t fextents;
-	cairo_font_extents(cr, &fextents);
-	_ascent =fextents.ascent;
-	_descent=fextents.descent;
-	_textheight=_ascent+_descent;
+	if (_textheight>0) cairo_set_font_size(cr, _textheight/height_over_M);
+	cairo_font_extents(cr, &curfont_extents);
 
 	Minx=Miny=0;
 	Maxx=w;
@@ -317,24 +364,6 @@ int DisplayerCairo::ResizeSurface(int width, int height)
 {
 	if (!isinternal) return 1;
 	if (width!=Maxx || height!=Maxy) return CreateSurface(width,height);
-	return 0;
-}
-
-//! Free any resources allocated for drawing in this object.
-/*! This resets all the drawing bits to 0. Be warned that most of the functions in
- * DisplayerCairo do not check for a NULL context or NULL surface!!
- *
- * If xw==NULL, then also call Updates(1);
- */
-int DisplayerCairo::EndDrawing()
-{
-	if (xw==NULL) Updates(1);
-	//if (xw) { xw->dec_count(); xw=NULL; }
-
-	if (cr)      { cairo_destroy(cr); cr=NULL; }
-	if (surface) { cairo_surface_destroy(surface); surface=NULL; }
-	if (mask)    { cairo_surface_destroy(mask);    mask=NULL; }
-	if (source)  { cairo_surface_destroy(source);  source=NULL; }
 	return 0;
 }
 
@@ -528,8 +557,8 @@ void DisplayerCairo::FillAttributes(int fillstyle, int fillrule)
 //! Clear the window to bgcolor between Min* and Max*. 
 void DisplayerCairo::ClearWindow()
 {
-	DBG cerr <<"--displayer ClearWindow:MinMaxx,:["<<Minx<<","<<Maxx
-	DBG		<<"] MinMaxy:["<<Miny<<","<<Maxy<<"] x0,y0:"<<ctm[4]<<","<<ctm[5]<<endl;
+	//DBG cerr <<"--displayer ClearWindow:MinMaxx,:["<<Minx<<","<<Maxx
+	//DBG		<<"] MinMaxy:["<<Miny<<","<<Maxy<<"] x0,y0:"<<ctm[4]<<","<<ctm[5]<<endl;
 
 	if (xw==NULL || (xw && dr->xlibDrawable(-1)==dr->xlibDrawable(1))) {
 		 //if using double buffer, XClearWindow will crash your program, so clear manually
@@ -744,6 +773,13 @@ void DisplayerCairo::drawline(double ax,double ay,double bx,double by)
 //-------------------------text functions
 
 
+int DisplayerCairo::textheight()
+{
+	if (!curfont) initFont();
+
+	return _textheight;
+}
+
 int DisplayerCairo::font(LaxFont *nfont, double size)
 {
 	LaxFontCairo *cairofont=dynamic_cast<LaxFontCairo*>(nfont);
@@ -757,16 +793,20 @@ int DisplayerCairo::font(LaxFont *nfont, double size)
 
 	if (curscaledfont) { cairo_scaled_font_destroy(curscaledfont); curscaledfont=NULL; }
 
-	cairo_set_font_face(cr,curfont);
+//	int tempcr=0;
+//	if (!cr) {
+//		 //use ref_surface for reference
+//		if (!surface && !ref_surface) {
+//			ref_surface=cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 10,10);
+//		}
+//
+//		cr=cairo_create(surface ? surface : ref_surface);
+//		tempcr=1;
+//	}
+
+	if (cr) cairo_set_font_face(cr,curfont);
 	fontsize(size);
 	return 1;
-}
-
-int DisplayerCairo::textheight()
-{
-	if (!curfont) initFont();
-
-	return _textheight;
 }
 
 /*! Return 0 for success, 1 for fail.
@@ -785,7 +825,10 @@ int DisplayerCairo::font(const char *fontconfigpattern)
 	if (curscaledfont) { cairo_scaled_font_destroy(curscaledfont); curscaledfont=NULL; }
 	FcPatternDestroy(pattern);
 
-	cairo_set_font_face(cr,curfont);
+	if (cr) {
+		cairo_set_font_face(cr,curfont);
+		cairo_font_extents(cr, &curfont_extents);
+	}
 	return 0;
 }
 
@@ -795,7 +838,6 @@ int DisplayerCairo::font(const char *family,const char *style,double pixelsize)
 	FcPattern *pattern=FcPatternCreate();
 	v.type=FcTypeString; v.u.s=(FcChar8*)family;
 	FcPatternAdd(pattern,FC_FAMILY,v,FcTrue);
-	_textheight=pixelsize;
 
 	if (style) {
 		v.type=FcTypeString; v.u.s=(FcChar8*)style;
@@ -819,38 +861,63 @@ int DisplayerCairo::font(const char *family,const char *style,double pixelsize)
 
 	FcPatternDestroy(pattern);
 
-	if (cr) {
-		cairo_set_font_face(cr, curfont);
-		cairo_set_font_size(cr, pixelsize);
-
-		cairo_font_extents_t fextents;
-		cairo_font_extents(cr, &fextents);
-		_ascent =fextents.ascent;
-		_descent=fextents.descent;
-	}
+	fontsize(pixelsize);
 
 	return 0;
 }
 
 int DisplayerCairo::fontsize(double size)
 {
+	int tempcr=0;
+	if (!cr) {
+		 //use ref_surface for reference
+		if (!surface && !ref_surface) {
+			ref_surface=cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 10,10);
+		}
+
+		cr=cairo_create(surface ? surface : ref_surface);
+		cairo_set_font_face(cr,curfont);
+		tempcr=1;
+	}
+
+	 //need to do some double checking, since font extents height is NOT the same as size
+	 //as set in cairo_set_font_size(). That size is the size of the M square.
 	cairo_set_font_size(cr, size);
-	_textheight=size;
 
 	cairo_font_extents_t fextents;
 	cairo_font_extents(cr, &fextents);
-	_ascent =fextents.ascent;
-	_descent=fextents.descent;
+
+	height_over_M=fextents.height/size;
+
+	cairo_set_font_size(cr, size/height_over_M);
+	cairo_font_extents(cr, &curfont_extents);
+
+	_textheight=size;
+
+	if (tempcr) { cairo_destroy(cr); cr=NULL; }
 	return 0;
 }
 
 /*! str should be utf8, and len should be number of bytes into str.
+ *
+ * Note that height might not equal ascent+descent. There might be an additional line spacing defined by the font.
+ * Also, cairo_set_font_size() sets the M square height NOT the font height.
  */
 double DisplayerCairo::textextent(LaxFont *thisfont, const char *str,int len, double *width,double *height,double *ascent,double *descent,char real)
-{
-	if (!curfont) initFont();
+{ 
+	cairo_font_face_t *oldfont=NULL;
+	double oldheight=0;
 
-   if (str==NULL || !curfont) {
+	if (thisfont && dynamic_cast<LaxFontCairo*>(thisfont)) {
+		oldfont=curfont;
+		oldheight=_textheight;
+		//LaxFontCairo *cf=dynamic_cast<LaxFontCairo*>(thisfont);
+		font(thisfont,thisfont->textheight());
+
+	} else if (!curfont) initFont();
+
+
+	if (str==NULL || !curfont) {
         if (width) *width=0;
         if (height) *height=0;
         if (ascent) *ascent=0;
@@ -860,6 +927,19 @@ double DisplayerCairo::textextent(LaxFont *thisfont, const char *str,int len, do
 
 	if (len<0) len=strlen(str);
 	if (len>bufferlen) reallocBuffer(len);
+
+	int tempcr=0;
+	if (!cr) {
+		 //use ref_surface for reference
+		if (!surface && !ref_surface) {
+			ref_surface=cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 10,10);
+		}
+
+		cr=cairo_create(surface ? surface : ref_surface);
+		cairo_set_font_face(cr,curfont);
+		cairo_set_font_size(cr, _textheight/height_over_M);
+		tempcr=1;
+	}
 
 	cairo_text_extents_t extents;
 	memcpy(buffer,str,len);
@@ -871,10 +951,26 @@ double DisplayerCairo::textextent(LaxFont *thisfont, const char *str,int len, do
 
 	if (ascent)  *ascent =fextents.ascent;
 	if (descent) *descent=fextents.descent;
-	if (height)  { if (real) *height=extents.height; else *height=fextents.ascent+fextents.descent; }
-	if (width)   *width  =extents.width;
+	if (height)  { if (real) *height=extents.height; else *height=fextents.height; }
+	if (width)   { if (real) *width =extents.width;  else *width=extents.x_advance; }
 
-	return extents.width;
+	if (tempcr) { cairo_destroy(cr); cr=NULL; }
+
+	if (oldfont) {
+ 		if (oldfont!=curfont) {
+			cairo_font_face_destroy(curfont);//really just a melodramatic dec count
+			curfont=oldfont;
+			cairo_font_face_reference(curfont);
+		}
+
+		if (curscaledfont) { cairo_scaled_font_destroy(curscaledfont); curscaledfont=NULL; }
+
+		if (cr) cairo_set_font_face(cr,curfont);
+		fontsize(oldheight);
+	}
+
+	if (real) return extents.width;
+	return extents.x_advance;
 }
 
 void DisplayerCairo::initFont()
@@ -883,9 +979,9 @@ void DisplayerCairo::initFont()
 	LaxFont *def=anXApp::app->defaultlaxfont;
 	font("sans","normal",def->textheight());
 
-	if (!cr) {
-		if (!surface) CreateSurface(50,50,0);
-	}
+//	if (!cr) {
+//		if (!surface) CreateSurface(50,50,0);
+//	}
 
 //	if (cr) {
 //		cairo_set_font_face(cr, curfont);
@@ -929,10 +1025,10 @@ double DisplayerCairo::textout(double x,double y,const char *str,int len,unsigne
 		else ox=x-extents.width/2; //center
 	}
 
-    if (align&LAX_TOP) oy=y+_ascent;
-    else if (align&LAX_BOTTOM) oy=y-_descent;
+    if (align&LAX_TOP) oy=y+curfont_extents.ascent;
+    else if (align&LAX_BOTTOM) oy=y-curfont_extents.descent;
     else if (align&LAX_BASELINE) oy=y;
-    else oy=y-(_ascent+_descent)/2+_ascent; //center
+    else oy=y - (curfont_extents.ascent + curfont_extents.descent)/2 + curfont_extents.ascent; //center
 
 
 	cairo_move_to(cr, ox,oy);
@@ -965,8 +1061,33 @@ double DisplayerCairo::textout(double *matrix,double x,double y,const char *str,
 
 double DisplayerCairo::textout(double angle,double x,double y,const char *str,int len,unsigned long align)
 {
+
+    double mm[6];
+    transform_identity(mm);
+    mm[4]-=x;
+    mm[5]-=y;
+
+     //do a rotation
+    double r[6],s[6];
+    r[4]=r[5]=0;
+    r[0]=cos(angle);
+    r[1]=-sin(angle);
+    r[2]=sin(angle);
+    r[3]=cos(angle);
+    transform_mult(s,mm,r);
+    transform_copy(mm,s);
+
+    mm[4]+=x;
+    mm[5]+=y;
+
+
 	cairo_save(cr);
-	cairo_rotate(cr,angle);
+	cairo_matrix_t m;
+	cairo_matrix_init(&m,mm[0],mm[1],mm[2],mm[3],mm[4],mm[5]);
+	cairo_set_matrix(cr,&m);
+	//cairo_translate(cr,-x,-y); <- why doesn't this work!?!?!
+	//cairo_rotate(cr,angle);
+	//cairo_translate(cr,x,y);
 	double d=textout(x,y,str,len,align);
 	cairo_restore(cr);
 	return d;

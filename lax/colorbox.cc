@@ -27,7 +27,6 @@
 #include <lax/laxutils.h>
 #include <lax/strmanip.h>
 #include <lax/misc.h>
-#include <lax/colors.h>
 #include <lax/colorsliders.h>
 
 
@@ -534,7 +533,8 @@ void ColorBox::Refresh()
 {
 	if (!win_on || !needtodraw) return;
 
-	clear_window(this);
+	Displayer *dp=MakeCurrent();
+	dp->ClearWindow();
 
 	if (colorspecial>=1 && colorspecial<=3) {
 		draw_special_color(this, colorspecial, 20, 0,0,win_w,win_h);

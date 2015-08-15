@@ -933,6 +933,11 @@ int anXWindow::Resize(int nw,int nh)
 	if (xlib_window) XResizeWindow(app->dpy,xlib_window,nw,nh);
 	win_w=nw;
 	win_h=nh;
+
+	Displayer *dp=GetDefaultDisplayer();
+	//dp->MakeCurrent(this);
+	dp->CurrentResized(this, nw,nh);
+
 	needtodraw|=1;
 	return 0;
 }
@@ -954,6 +959,11 @@ int anXWindow::MoveResize(int nx,int ny,int nw,int nh)
 	win_y=ny;
 	win_w=nw;
 	win_h=nh;
+
+	Displayer *dp=GetDefaultDisplayer();
+	//dp->MakeCurrent(this);
+	dp->CurrentResized(this, nw,nh);
+
 	needtodraw|=1;
 	DBG cerr <<"    done MoveResize"<<endl;
 	return 0;
@@ -1171,7 +1181,31 @@ int anXWindow::event(XEvent *e)
 				}
 			} break;
 
+
+		//
+		//------- Selection handling. copy/paste and drag and drop:
+		//
+
 		case SelectionNotify: {
+			DBG cerr <<"\nSelectionNotify this window:"<<xlib_window<<endl;
+			DBG cerr <<	"  requestor:"<<e->xselection.requestor<<endl;
+			DBG char *blah=NULL;
+			DBG blah=XGetAtomName(app->dpy,e->xselection.selection);
+			DBG cout <<"  selection: "<<(blah?blah:"(no selection)")<<endl;
+			DBG if (blah) XFree(blah);
+			DBG blah=XGetAtomName(app->dpy,e->xselection.target);
+			DBG cout <<"  target: "<<(blah?blah:"(no target)")<<endl;
+			DBG if (blah) XFree(blah);
+			DBG blah=NULL;
+			DBG if (e->xselection.property) blah=XGetAtomName(app->dpy,e->xselection.property);
+			DBG cout <<"  property: "<<(blah?blah:"(no property)")<<endl;
+			DBG if (blah) XFree(blah);
+
+			if (e->xselection.property==0) {
+				DBG cerr <<"selection failed!"<<endl;
+				return 0;
+			}
+
 			Atom actual_type;
 			int format;
 			unsigned long len, remaining;
@@ -1202,7 +1236,8 @@ int anXWindow::event(XEvent *e)
 			DBG blah=XGetAtomName(app->dpy,e->xselectionrequest.target);
 			DBG cout <<"  target: "<<(blah?blah:"(no target)")<<endl;
 			DBG if (blah) XFree(blah);
-			DBG blah=XGetAtomName(app->dpy,e->xselectionrequest.property);
+			DBG blah=0;
+			DBG if (e->xselectionrequest.property) blah=XGetAtomName(app->dpy,e->xselectionrequest.property);
 			DBG cout <<"  property: "<<(blah?blah:"(no property)")<<endl;
 			DBG if (blah) XFree(blah);
 
@@ -1239,7 +1274,7 @@ int anXWindow::event(XEvent *e)
 				ee.xselection.time=e->xselectionrequest.time;
 				XSendEvent(app->dpy,e->xselectionrequest.requestor,False,0,&ee);
 
-				DBG cerr <<"   sent XSelectionNotify to "<<e->xselectionrequest.requestor<<endl;
+				DBG cerr <<" sent XSelectionNotify to "<<e->xselectionrequest.requestor<<endl;
 
 				
 
@@ -1540,7 +1575,7 @@ int anXWindow::selectionDropped(const unsigned char *data,unsigned long len,Atom
  */
 int anXWindow::selectionPaste(char mid, Atom targettype)
 {
-	Atom atom=mid?XInternAtom(app->dpy,"PRIMARY",False):XInternAtom(app->dpy,"CLIPBOARD",False);
+	Atom atom = mid ? XInternAtom(app->dpy,"PRIMARY",False) : XInternAtom(app->dpy,"CLIPBOARD",False);
 	Window selowner=XGetSelectionOwner(app->dpy, atom);
 	if (selowner==None) return -1;
 
@@ -1550,9 +1585,9 @@ int anXWindow::selectionPaste(char mid, Atom targettype)
 	 //a SelectionRequest event is sent to the owner of the selection
 	XConvertSelection(app->dpy,
 						atom,         //selection
-						targettype,          //target type for data
-						XA_SECONDARY, //property on the target window
-						xlib_window,       //requestor
+						targettype,   //target type for data
+						XA_SECONDARY, //property in which to put data on the target window
+						xlib_window,  //requestor
 						CurrentTime);
 	return 0;
 }
@@ -1607,6 +1642,17 @@ Displayer *anXWindow::MakeCurrent()
 	Displayer *dp=GetDefaultDisplayer();
 	dp->MakeCurrent(this);
 	return dp;
+}
+
+/*! Return the Displayer that should be used in Refresh().
+ * Note this does NOT call dp->MakeCurrent(). Use MakeCurrent() to both ensure this window
+ * is the current context, and also retrieve the Displayer to use.
+ *
+ * The default here is to simple return GetDefaultDisplayer().
+ */
+Displayer *anXWindow::GetDisplayer()
+{
+	return GetDefaultDisplayer();
 }
 
 } // namespace Laxkit

@@ -236,6 +236,7 @@ class anXWindow : virtual public EventReceiver,
 	virtual int  Idle(int tid=0) { return 1; }
 	virtual void Refresh() { Needtodraw(0); }
 	virtual Displayer *MakeCurrent();
+	virtual Displayer *GetDisplayer();
 	virtual int  Needtodraw() { return needtodraw; }
 	virtual void Needtodraw(int nntd) { needtodraw=nntd; }
 	virtual int  deletenow() { return 1; }

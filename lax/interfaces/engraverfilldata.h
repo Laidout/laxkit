@@ -607,6 +607,9 @@ class EngraverPointGroup : public DirectionMap
 	bool linked; //if distortion tool should adjust points even when not current group
 	Laxkit::ScreenColor color;
 
+	bool needtotrace;
+	bool needtoreline;
+
 	double default_weight; //a fraction of spacing
 	flatpoint position,directionv; //note NOT the same properties as in EngravingDirection
 

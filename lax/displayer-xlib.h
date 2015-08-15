@@ -97,6 +97,7 @@ class DisplayerXlib : public Displayer
 	virtual void BackBuffer(int on);
 	virtual int StartDrawing(aDrawable *buffer);
 	virtual int MakeCurrent(aDrawable *buffer);
+	virtual int CurrentResized(aDrawable *buffer, int nwidth,int nheight);
 	virtual int ClearDrawable(aDrawable *drawable);
 	virtual int CreateSurface(int width,int height, int type=-1);
 	virtual LaxImage *GetSurface();

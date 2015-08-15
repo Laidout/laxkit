@@ -1533,6 +1533,12 @@ int DisplayerXlib::StartDrawing(aDrawable *buffer)//buffer=0
 	return 0;
 }
 
+int DisplayerXlib::CurrentResized(aDrawable *buffer, int nwidth,int nheight)
+{
+	 //nothing special is necessary for xlib surfaces
+	return 0;
+}
+
 int DisplayerXlib::MakeCurrent(aDrawable *buffer)
 {
 	dr=buffer;

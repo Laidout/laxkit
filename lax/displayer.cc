@@ -466,9 +466,9 @@ flatpoint Displayer::screentoreal(flatpoint p)
  * Also return width and height if not null.
  * Extents depend on draw_real.
  */
-double Displayer::textextent(const char *str,int len, double *width,double *height)
+double Displayer::textextent(const char *str,int len, double *width,double *height,double *ascent,double *descent,char real)
 {
-	return textextent(NULL, str,len, width,height, NULL,NULL,0);
+	return textextent(NULL, str,len, width,height, ascent,descent,real);
 }
 
 
@@ -1739,6 +1739,11 @@ void Displayer::WrapWindow(anXWindow *nw)
  * that the Minx,Maxx,... are screwed up by then, and you must sync those yourself.
  */
 
+
+/*! \fn int Displayer::CurrentResized(aDrawable *buffer, int nwidth,int nheight)
+ * Called in response to a window resize, this must update if the current surface is buffer.
+ * If current surface is not buffer, then nothing is done.
+ */
 
 /*! \fn int Displayer::MakeCurrent(aDrawable *buffer)
  * \brief Update the drawing context so that all drawing operations will now operate on buffer.

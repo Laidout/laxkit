@@ -54,6 +54,7 @@ class DisplayerCairo : public Displayer
 	cairo_t *cr;
 	cairo_surface_t *target;
 	cairo_surface_t *surface;
+	cairo_surface_t *ref_surface;
 	cairo_surface_t *mask;
 	cairo_surface_t *source;
 	//PtrStack<cairo_surface_t> groups;
@@ -66,9 +67,10 @@ class DisplayerCairo : public Displayer
 
 	cairo_font_face_t *curfont;
 	cairo_scaled_font_t *curscaledfont;
-	double _textheight;
-	double _ascent;
-	double _descent;
+	cairo_font_extents_t curfont_extents;
+
+	double height_over_M;
+	double _textheight; //user value, not a cairo value
 
 	void base_init();
 
@@ -95,6 +97,7 @@ class DisplayerCairo : public Displayer
 	//virtual void WrapWindow(anXWindow *nw);
 	virtual int StartDrawing(aDrawable *buffer);
 	virtual int MakeCurrent(aDrawable *buffer);
+	virtual int CurrentResized(aDrawable *buffer, int nwidth,int nheight);
 	virtual int ClearDrawable(aDrawable *drawable);
 	virtual int CreateSurface(int w,int h, int type=-1);
 	virtual LaxImage *GetSurface();

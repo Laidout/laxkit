@@ -26,6 +26,7 @@
 #include <lax/textxeditbase-utf8.h>
 #include <lax/utf8utils.h>
 #include <lax/laxutils.h>
+#include <lax/strmanip.h>
 
 
 #include <iostream>
@@ -131,9 +132,6 @@ TextXEditBaseUtf8::TextXEditBaseUtf8(anXWindow *parnt,const char *nname,const ch
 	con=0;
 	valid=1;
 	curlineoffset=0;
-
-	 //*** init colors done in instances?
-	 
 }
 
 /*! Decrements count of thefont.
@@ -186,6 +184,8 @@ int hexify(char *str, int i)
  */
 int TextXEditBaseUtf8::charwidth(int ch,int r) //r=0
 {
+	if (ch==32) return getextent(thefont, " ",-1, NULL,NULL,NULL,NULL, 0);
+
 	char c[20];
 	int l;
 	l=utf8encode(ch,c);
@@ -226,6 +226,7 @@ int TextXEditBaseUtf8::Copy()
 	if (sl<0) sl=-sl;
 	if (selstart<curpos) ss=selstart; else ss=curpos;
 
+	TextEditBaseUtf8::Copy(); //updates cutbuffer
 	selectionCopy(0);
 	app->CopytoBuffer(thetext+ss,sl);
 
@@ -242,15 +243,23 @@ int TextXEditBaseUtf8::Paste()
 	return 0;
 }
 
-//! Return the selected text, or NULL if no selection.
+/*! Xlib specific. Return the selected text, or NULL if no selection.
+ * Should probably check to make sure targettype is string.
+ */
 char *TextXEditBaseUtf8::getSelectionData(int *len,Atom property,Atom targettype,Atom selection)
 {
-	if (!sellen) return NULL;
+	if (!sellen) {
+		if (cutbuffer) {
+			*len=strlen(cutbuffer);
+			return newstr(cutbuffer);
+		}
+		*len=0; return NULL;
+	}
 	*len= sellen>0?sellen:-sellen;
 	return GetSelText();
 }
 
-int TextXEditBaseUtf8::selectionDropped(unsigned char *data,unsigned long len,Atom actual_type,Atom which)
+int TextXEditBaseUtf8::selectionDropped(const unsigned char *data,unsigned long len,Atom actual_type,Atom which)
 {
 	if (!data || !*data) return 0;
 	insstring((char*)data,1);
@@ -339,6 +348,10 @@ void TextXEditBaseUtf8::Refresh()
 		if (SetupMetrics()) return;
 		firsttime=0; 
 	}
+
+	Displayer *dp=MakeCurrent();
+	double oldheight=dp->textheight();
+	dp->font(thefont, thefont->textheight());
 	
 	if (needtodraw&1) { // draw all
 		if (textstyle&TEXT_SHOWTABLINE) DrawTabLine();
@@ -348,13 +361,15 @@ void TextXEditBaseUtf8::Refresh()
 		clear_window(this);
 		DrawText(); // defaults to black out
 		if (win_active) DrawCaret(0,1); 
+
 	} else if (needtodraw&2) { // redraw from dpos to nlines
 		DrawCaret(0,0);
 		DrawText();
 		if (win_active) DrawCaret(0,1);
+
 	} else if (needtodraw&4) DrawCaret(1,1); // curs move only 
 
-	//app->textdraw(None);
+	dp->font(app->defaultlaxfont, oldheight);
 	needtodraw=0;
 }
 
@@ -678,7 +693,7 @@ int TextXEditBaseUtf8::TextOut(int x,int y,char *str,long len,long eof) // len=1
 		//int r,g,b;
 		//colorrgb(curtextcolor,&r,&g,&b);
 		foreground_color(curtextcolor);
-		textout(this,thefont, blah,p, x,y,LAX_LEFT|LAX_BASELINE);
+		textout(this, blah,p, x,y,LAX_LEFT|LAX_BASELINE);
 
 		if (textstyle&TEXT_SHOW_WHITESPACE) { // draw ticks for spaces
 			 // different color for ws

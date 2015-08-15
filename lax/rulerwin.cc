@@ -65,7 +65,6 @@ namespace Laxkit {
  * When magnification makes units grow so much that the subsubdivs have enough space
  * for subdiv*subsubdiv number of ticks, then set unit to that smallest space (==unit/subdiv/subsubdiv).
  *
- * \todo ***optionally make vertical writing on the vertical ruler
  * \todo could make ruler automatically track mouse with mouseposition() every 10ms or so
  *      or respond to sent mouse move messages, and mouseposition() to get location...
  * \todo should be able to move position when mouse is in this window!!!
@@ -271,16 +270,16 @@ void RulerWindow::adjustmetrics()
 
 //! Draw the number labels every unit, taking steps to not overlap labels
 /*! textpos is the last screen coordinate drawn to by a drawtext() call. 
- *
- * \todo *** this could use some work, particularly, vertical rulers should employ vertical text
  */
 void RulerWindow::drawtext(double n,int pos,int &textpos,int toff) // n is real, textpos=minimum screenpos rel to ruler win_w
 {
+	Displayer *dp=GetDisplayer();
+
 	char thetext[20];
 	if (fabs(n)<1e-7) n=0;
 	sprintf(thetext,"%.4g",((win_style&RULER_UP_IS_POSITIVE)?-n:n));
 	double adv,ex,ey,asc,des;
-	adv=getextent(smallnumbers, thetext,strlen(thetext),&ex,&ey,&asc,&des,0);
+	adv=dp->textextent(smallnumbers, thetext,strlen(thetext),&ex,&ey,&asc,&des,0);
 
 	if (win_style&RULER_X) {
 		//if (pos<textpos || pos+3+adv<textpos || pos>((floor(n/unit)*unit+unit)-ustart)*umag*mag) { 
@@ -289,18 +288,19 @@ void RulerWindow::drawtext(double n,int pos,int &textpos,int toff) // n is real,
 			return;		
 		}
 		if (win_style&RULER_TOPTICKS) toff=win_h-des-2; else toff=2+asc;
-		textout(this, smallnumbers, thetext,strlen(thetext), pos+3,toff, LAX_LEFT|LAX_BASELINE);
+		dp->textout(pos+3,toff, thetext,strlen(thetext), LAX_LEFT|LAX_BASELINE);
 		textpos=pos+adv;
+
 	} else {
-		 //*** Draw vertically: needs work, gotta rotate the text!!!
+		 //Draw vertically: gotta rotate the text!!!   ... note: only works in cairo!!
 		if (pos<textpos || pos+3+(des+asc)<textpos
 				//|| pos>((floor(n/unit)*unit+unit)-ustart)*umag*mag) { 
 				) { 
 					// text must fit between textpos and next unit start, else return
 			return;		
 		}
-		//textout_rotated(this, smallnumbers, 90, thetext,strlen(thetext), 0,pos+asc,LAX_LEFT|LAX_BASELINE);
-		textout(this, smallnumbers, thetext,strlen(thetext), 0,pos+asc,LAX_LEFT|LAX_BASELINE);
+		//dp->textout(0,pos+asc, thetext,strlen(thetext), LAX_LEFT|LAX_BASELINE); //<- non vert drawing
+		dp->textout(M_PI/2, dp->textheight(),pos, thetext,strlen(thetext), LAX_LEFT|LAX_BASELINE);
 		textpos+=des+asc;
 	}
 }
@@ -313,18 +313,19 @@ void RulerWindow::Refresh()
 {
 	if (!win_on || !needtodraw) return;
 
-	MakeCurrent();
+	Displayer *dp=MakeCurrent();
 
-	drawing_function(LAXOP_Source);
-	drawing_line_attributes(0,LineSolid,LAXCAP_Butt,LAXJOIN_Miter);
+	dp->BlendMode(LAXOP_Source);
+	dp->LineAttributes(1,LineSolid,LAXCAP_Butt,LAXJOIN_Miter);
+	dp->font(smallnumbers,smallnumbers->textheight());
+
 
 	//DBG cerr << "*******************rulerwin, winw/h: "<<win_w<<','<<win_h<<endl;
 
 	 // draw all
 	if (needtodraw&1) {
-		//clear_window(this);
-		foreground_color(win_colors->bg);
-		fill_rectangle(this,0,0,win_w,win_h);
+		dp->NewFG(win_colors->bg);
+		dp->drawrectangle(0,0,win_w,win_h, 1);
 
 		double ustart=start*umag; //start and end in current units, rather than base units
 		double uend  =  end*umag;
@@ -386,43 +387,43 @@ void RulerWindow::Refresh()
 				for (c=0; c<subdiv; c++) {
 					if (uunit/subdiv/subsubdiv/umag*mag>4) { // make sure the divisions aren't too close together
 						pos2=pos;
-						foreground_color(subsubtickcolor);
+						dp->NewFG(subsubtickcolor);
 						 
 						 // Draw subsubdivisions (smallest ticks)
 						for (c2=1; c2<subsubdiv; c2++) {
 							pos2+=uunit/subdiv/subsubdiv;
 							x=(pos2-ustart)/umag*mag;
 							if (win_style&RULER_X) 
-								draw_line(this, (int)x,sstoff, (int)x,sstoff+sstw);
-							else draw_line(this, sstoff,(int)x, sstoff+sstw,(int)x);
+								dp->drawline((int)x,sstoff, (int)x,sstoff+sstw);
+							else dp->drawline(sstoff,(int)x, sstoff+sstw,(int)x);
 							//DBG cerr <<"'";						
 						}
 					}
-					foreground_color(subtickcolor);
+					dp->NewFG(subtickcolor);
 					pos+=uunit/subdiv;
 
 					 //draw medium ticks
 					if (c<subdiv-1) {
 						x=(pos-ustart)/umag*mag;
 						if (win_style&RULER_X) 
-							draw_line(this, (int)x,stoff, (int)x,stoff+stw);
-						else draw_line(this, stoff,(int)x, stoff+stw,(int)x);
+							dp->drawline((int)x,stoff, (int)x,stoff+stw);
+						else dp->drawline(stoff,(int)x, stoff+stw,(int)x);
 					}
 					//DBG cerr <<"=";
 				}
 			}
 
 			 //draw big tick
-			foreground_color(tickcolor);
+			dp->NewFG(tickcolor);
 			x=(p-ustart)/umag*mag;
 
 			//DBG cerr <<"--- big tick for "<<p<<" at screen pos "<<x<<endl;
 			//DBG cerr << "*******************rulerwin, line: "<<x<<','<<toff<<','<<toff+tw<<endl;
 
 			if (win_style&RULER_X) {
-				draw_line(this, (int)x,toff, (int)x,toff+tw);
+				dp->drawline((int)x,toff, (int)x,toff+tw);
 			} else {
-				draw_line(this, toff,(int)x, toff+tw,(int)x);
+				dp->drawline(toff,(int)x, toff+tw,(int)x);
 			}
 
 			 //draw numbers next to big ticks
@@ -431,7 +432,7 @@ void RulerWindow::Refresh()
 	}
 	
 	 // Draw mouse indicator lines, one line per identified mouse
-	foreground_color(curposcolor);
+	dp->NewFG(curposcolor);
 	int x,y;
 	unsigned int mask;
 	LaxMouse *mouse;
@@ -440,12 +441,14 @@ void RulerWindow::Refresh()
 		if (!mouse) continue;
 		if (mouseposition(mouse->id, this, &x,&y, &mask, NULL)==0) {
 			if (win_style&RULER_X) {
-				draw_line(this, x,0, x,win_h);
+				dp->drawline(x,0, x,win_h);
 			} else {
-				draw_line(this, 0,y, win_w,y);
+				dp->drawline(0,y, win_w,y);
 			}
 		}
 	}
+
+	dp->font(app->defaultlaxfont,app->defaultlaxfont->textheight());
 
 	SwapBuffers();
 	needtodraw=0;
@@ -783,6 +786,8 @@ int RulerWindow::MouseMove (int x,int y,unsigned int state, const LaxMouse *m)
 	DBG double pos=((win_style&RULER_X)?x:y)/mag+start;
 	DBG double upos=pos*umag;
 	DBG cerr <<"move scr:"<<x<<","<<y<<"  default:"<<pos<<"  current:"<<upos<<"  start:"<<start<<"  ustart:"<<ustart<<"  uend:"<<uend<<endl;
+
+	needtodraw=1;
 	return 0;
 }
 

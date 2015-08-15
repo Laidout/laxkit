@@ -983,16 +983,18 @@ int anXApp::initX(int argc,char **argv)
 
 
 	 //--------------- initialize the cut buffer
-	unsigned char b[2]={0,0};
-	Window rw=DefaultRootWindow(dpy);
-	XChangeProperty(dpy,rw,XA_CUT_BUFFER0,XA_STRING,8,PropModeAppend,b,0);
-	XChangeProperty(dpy,rw,XA_CUT_BUFFER1,XA_STRING,8,PropModeAppend,b,0);
-	XChangeProperty(dpy,rw,XA_CUT_BUFFER2,XA_STRING,8,PropModeAppend,b,0);
-	XChangeProperty(dpy,rw,XA_CUT_BUFFER3,XA_STRING,8,PropModeAppend,b,0);
-	XChangeProperty(dpy,rw,XA_CUT_BUFFER4,XA_STRING,8,PropModeAppend,b,0);
-	XChangeProperty(dpy,rw,XA_CUT_BUFFER5,XA_STRING,8,PropModeAppend,b,0);
-	XChangeProperty(dpy,rw,XA_CUT_BUFFER6,XA_STRING,8,PropModeAppend,b,0);
-	XChangeProperty(dpy,rw,XA_CUT_BUFFER7,XA_STRING,8,PropModeAppend,b,0);
+	// *** somehow, this causes crash AFTER I run Unreal4Editor!! wuuuh?
+	//  --> type and format must match existing, guessing UE4 changes the type on the cut buffers...
+	//unsigned char b[2]={0,0};
+	//Window rw=DefaultRootWindow(dpy);
+	//XChangeProperty(dpy,rw,XA_CUT_BUFFER0,XA_STRING,8,PropModeAppend,b,0);
+	//XChangeProperty(dpy,rw,XA_CUT_BUFFER1,XA_STRING,8,PropModeAppend,b,0);
+	//XChangeProperty(dpy,rw,XA_CUT_BUFFER2,XA_STRING,8,PropModeAppend,b,0);
+	//XChangeProperty(dpy,rw,XA_CUT_BUFFER3,XA_STRING,8,PropModeAppend,b,0);
+	//XChangeProperty(dpy,rw,XA_CUT_BUFFER4,XA_STRING,8,PropModeAppend,b,0);
+	//XChangeProperty(dpy,rw,XA_CUT_BUFFER5,XA_STRING,8,PropModeAppend,b,0);
+	//XChangeProperty(dpy,rw,XA_CUT_BUFFER6,XA_STRING,8,PropModeAppend,b,0);
+	//XChangeProperty(dpy,rw,XA_CUT_BUFFER7,XA_STRING,8,PropModeAppend,b,0);
 	
 
 	 //prepare rgbcolor() and colorrgb() to work right for vis

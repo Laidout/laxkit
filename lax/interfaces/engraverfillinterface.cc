@@ -120,6 +120,9 @@ enum EngraveShortcuts {
 	ENGRAVE_ToggleDashPanel,  
 	ENGRAVE_ToggleDirPanel,   
 	ENGRAVE_ToggleSpacingPanel,
+	ENGRAVE_ToggleLinked,
+	ENGRAVE_ToggleGroupLinked,
+	ENGRAVE_ToggleCurLinked,
 
 	ENGRAVE_MAX
 };
@@ -1863,9 +1866,17 @@ int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit
 			} else if (over==ENGRAVE_Direction_Profile_Max_Height) {
 				if (group) {
 					MenuItem *item=panel.findid(ENGRAVE_Direction_Profile_Max_Height);
-					double z=(x-(panelbox.minx+item->x))/(item->w);
-					if (z<0) z=0; else if (z>1) z=1;
-					group->direction->max_height=z*2;
+					double z;
+					if (buttondown.isdragged(mouse->id,LEFTBUTTON)>5) {
+						double mod=((state&ShiftMask) ? .1 : ((state&ControlMask) ? .01 : 1));
+						z=group->direction->max_height + mod*(x-lx)*2.0/item->w;
+						if (z<0) z=0;
+						group->direction->max_height=z;
+					} else { 
+						z=(x-(panelbox.minx+item->x))/(item->w);
+						if (z<0) z=0; else if (z>1) z=1;
+						group->direction->max_height=z*2;
+					}
 					
 					if (auto_reline) {
 						group->Fill(edata, -1);
@@ -3135,7 +3146,10 @@ void EngraverFillInterface::DrawSlider(double pos,int hovered, double x,double y
 		dp->drawline(x, y+h/2, x+w/2-ww/2, y+h/2);
 		dp->drawline(x+w/2+ww/2, y+h/2, x+w, y+h/2);
 	} else dp->drawline(x, y+h/2, x+w, y+h/2);
-	dp->drawpoint(flatpoint(x + h/4 + pos*(w-h/2),y+h/2), h*.4, 1);
+
+	if (pos>1) dp->drawthing(x+w-h/4,y+h/2, h*.4,h*.4, 1, THING_Triangle_Right);
+	else if (pos<0) dp->drawthing(x+h/4,y+h/2, h*.4,h*.4, 1, THING_Triangle_Left);
+	else dp->drawpoint(flatpoint(x + h/4 + pos*(w-h/2),y+h/2), h*.4, 1);
 }
 
 /*! Draw the range of line widths in a strip, as for a curve map control.
@@ -3306,7 +3320,7 @@ void EngraverFillInterface::UpdatePanelAreas()
 		  panel.AddItem("Default line profile",       ENGRAVE_Direction_Profile_Menu);
 		  //panel.AddItem("Profile start",              ENGRAVE_Direction_Profile_Start);
 		  //panel.AddItem("Profile end",                ENGRAVE_Direction_Profile_End);
-		  panel.AddItem("Stretch or scale profile",              ENGRAVE_Direction_Profile_Scale);
+		  //panel.AddItem("Stretch or scale profile",              ENGRAVE_Direction_Profile_Scale);
 		  panel.AddItem("Profile max height",         ENGRAVE_Direction_Profile_Max_Height);
 		  panel.AddItem("Random line offset",         ENGRAVE_Direction_Line_Offset);
 		  panel.AddItem("Random point offset",        ENGRAVE_Direction_Point_Offset);
@@ -3714,11 +3728,12 @@ void EngraverFillInterface::UpdatePanelAreas()
 						item2->x=pw-pad-th;  item2->y=y+3*th;  item2->w=th;  item2->h=2*th;
 
 					 //----fourth line, profile scaling
-					} else if (item2->id==ENGRAVE_Direction_Profile_Scale) {
-						item2->x=pad;  item2->y=y+5*th;  item2->w=2*th;  item2->h=th; 
+					//} else if (item2->id==ENGRAVE_Direction_Profile_Scale) {
+					//	item2->x=pad;  item2->y=y+5*th;  item2->w=2*th;  item2->h=th; 
 
 					} else if (item2->id==ENGRAVE_Direction_Profile_Max_Height) {
-						item2->x=pad+2*th+pad;  item2->y=y+5*th;  item2->w=pw-3*pad-2*th;  item2->h=th; 
+						//item2->x=pad+2*th+pad;  item2->y=y+5*th;  item2->w=pw-3*pad-2*th;  item2->h=th; 
+						item2->x=pad;  item2->y=y+5*th;  item2->w=pw-2*pad;  item2->h=th; 
 
 					 //---fifth line
 					} else if (item2->id==ENGRAVE_Direction_Line_Offset) {
@@ -4840,6 +4855,39 @@ int EngraverFillInterface::PerformAction(int action)
 
 		needtodraw=1;
 		return 0;
+
+	} else if (action==ENGRAVE_ToggleLinked) {     
+		if (!edata) return 0;
+		EngraverPointGroup *group=edata->GroupFromIndex(current_group);
+		bool tolink=!group->linked;
+		EngraverFillData *obj;
+
+		for (int c=0; c<selection->n(); c++) {
+			obj=dynamic_cast<EngraverFillData*>(selection->e(c)->obj);
+			if (!obj) continue;
+			for (int c=0; c<obj->groups.n; c++) {
+				obj->groups.e[c]->linked=tolink;
+			}
+		}
+		needtodraw=1;
+		return 0;
+
+	} else if (action==ENGRAVE_ToggleGroupLinked) {
+		if (!edata) return 0;
+		EngraverPointGroup *group=edata->GroupFromIndex(current_group);
+		bool tolink=!group->linked;
+		for (int c=0; c<edata->groups.n; c++) {
+			edata->groups.e[c]->linked=tolink;
+		}
+		needtodraw=1;
+		return 0; 
+
+	} else if (action==ENGRAVE_ToggleCurLinked) {  
+		if (!edata) return 0;
+		EngraverPointGroup *group=edata->GroupFromIndex(current_group);
+		group->linked=!group->linked;
+		needtodraw=1;
+		return 0; 
 	}
 
 
@@ -5960,17 +6008,20 @@ Laxkit::ShortcutHandler *EngraverFillInterface::GetShortcuts()
 	sc->Add(ENGRAVE_ToggleWarp,     'w',0,0,          "ToggleWarp",  _("Toggle warping when modifying mesh"),NULL,0);
 	sc->Add(ENGRAVE_ToggleDir,      'd',0,0,          "ToggleDir",   _("Toggle showing direction map"),NULL,0);
 	sc->Add(ENGRAVE_ToggleShowTrace,']',0,0,          "ToggleShowTrace",_("Toggle showing the trace object"),NULL,0);
-	sc->Add(ENGRAVE_LoadDirection,  'd',ControlMask,0,"LoadDir",     _("Load a normal map for direction"),NULL,0);
-	sc->Add(ENGRAVE_NextGroup,      LAX_Pgdown,0,0,   "NextGroup",   _("Next group"),NULL,0);
+	sc->Add(ENGRAVE_LoadDirection,  'd',ControlMask,0,"LoadDir",      _("Load a normal map for direction"),NULL,0);
+	sc->Add(ENGRAVE_NextGroup,      LAX_Pgdown,0,0,   "NextGroup",    _("Next group"),NULL,0);
 	sc->Add(ENGRAVE_PreviousGroup,  LAX_Pgup,0,0,     "PreviousGroup",_("Previous group"),NULL,0);
+	sc->Add(ENGRAVE_NextFill,     LAX_Left, 0,EMODE_Orientation,  "NextFillType",     _("Switch to next fill type"),NULL,0);
+	sc->Add(ENGRAVE_PreviousFill, LAX_Right,0,EMODE_Orientation,  "PreviousFillType", _("Switch to previous fill type"),NULL,0);
 
 	sc->Add(ENGRAVE_ToggleTracePanel,  '1',0,0,     "ToggleTracePanel",  _("Toggle trace panel"),NULL,0);
 	sc->Add(ENGRAVE_ToggleDashPanel,   '2',0,0,     "ToggleDashPanel",   _("Toggle dash panel"),NULL,0);
 	sc->Add(ENGRAVE_ToggleDirPanel,    '3',0,0,     "ToggleDirPanel",    _("Toggle direction panel"),NULL,0);
 	sc->Add(ENGRAVE_ToggleSpacingPanel,'4',0,0,     "ToggleSpacingPanel",_("Toggle spacing panel"),NULL,0);
 
-	sc->Add(ENGRAVE_NextFill,     LAX_Left, 0,EMODE_Orientation,  "NextFillType",     _("Switch to next fill type"),NULL,0);
-	sc->Add(ENGRAVE_PreviousFill, LAX_Right,0,EMODE_Orientation,  "PreviousFillType", _("Switch to previous fill type"),NULL,0);
+	sc->Add(ENGRAVE_ToggleLinked,     'l',0,0,          "ToggleLinked",     _("Toggle if all are linked or unlinked"),NULL,0);
+	sc->Add(ENGRAVE_ToggleGroupLinked,'L',ShiftMask,0,  "ToggleGroupLinked",_("Toggle if all in group are linked or not"),NULL,0);
+	sc->Add(ENGRAVE_ToggleCurLinked,  'l',ControlMask,0,"ToggleCurLinked",  _("Toggle current group being linked"),NULL,0);
 
 	return sc;
 }
@@ -6019,7 +6070,7 @@ int EngraverFillInterface::CharInput(unsigned int ch, const char *buffer,int len
     }
 
 
-	if (mode==EMODE_Mesh) return PatchInterface::CharInput(ch,buffer,len,state,d);
+	if (mode==EMODE_Mesh && lasthovercategory!=ENGRAVE_Panel) return PatchInterface::CharInput(ch,buffer,len,state,d);
 
 
 	return 1;
@@ -6029,7 +6080,7 @@ int EngraverFillInterface::KeyUp(unsigned int ch,unsigned int state,const Laxkit
 {
 	if (child) return 1;
 
-	if (mode==EMODE_Mesh) return PatchInterface::KeyUp(ch,state,d);
+	if (mode==EMODE_Mesh && lasthovercategory!=ENGRAVE_Panel) return PatchInterface::KeyUp(ch,state,d);
 
 	if (	 mode==EMODE_Thickness
 		  || mode==EMODE_Blockout

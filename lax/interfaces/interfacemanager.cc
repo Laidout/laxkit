@@ -22,6 +22,7 @@
 //
 
 #include <lax/interfaces/interfacemanager.h>
+#include <lax/interfaces/aninterface.h>
 
 #include <lax/lists.cc>
 
@@ -70,7 +71,14 @@ InterfaceManager::~InterfaceManager()
 	DBG cerr <<"----InterfaceManager destructor end"<<endl;
 }
 
-
+/*! The tools ResourceManager object by default has two ResourceTypes.
+ *
+ * One is "tools", each resource of which is an instance of any interface usuable. This is
+ * a flat list, no nested Resource menus here, or favorites.
+ *
+ * The other is "settings", each resource of which has id the same the tool it is settings
+ * for. Again, no nesting.
+ */
 ResourceManager *InterfaceManager::GetSettingsManager()
 {
 	if (!tools) {
@@ -156,10 +164,48 @@ int InterfaceManager::Resourcify(Laxkit::anObject *resource, const char *type)
 }
 
 
-void InterfaceManager::DrawSomeData(Laxkit::Displayer *ddp,LaxInterfaces::SomeData *ndata,
-							Laxkit::anObject *a1,Laxkit::anObject *a2,int info)
+//! Draw data using the transform of the data....
+/*! \ingroup objects
+ * Assumes dp.Updates(0) has already been called, and the transform
+ * before data has been set appropriately. This steps through any groups, and looks
+ * up an appropriate interface from laidout->interfacepool to draw the data.
+ *
+ * Note that for groups, a1 and a2 are passed along to all the group members..
+ *
+ * \todo currently this looks up which interface to draw an object with in LaidoutApp,
+ *   but it should first check for suitable one in the relevant viewport.
+ */
+int InterfaceManager::DrawData(Displayer *dp,SomeData *data,anObject *a1,anObject *a2,unsigned int flags)
+{
+    dp->PushAndNewTransform(data->m()); // insert transform first
+    int status=DrawDataStraight(dp,data,a1,a2,flags);
+    dp->PopAxes();
+	return status;
+}
+
+/*! Return -1 for unknown data type, or 0 for drawn.
+ */
+int InterfaceManager::DrawDataStraight(Laxkit::Displayer *dp,LaxInterfaces::SomeData *data,
+							Laxkit::anObject *a1,Laxkit::anObject *a2,unsigned int info)
 {
 	DBG cerr << " Warning! Default InterfaceManager::DrawSomeData() doesn't do anything!!"<<endl;
+
+	if (!tools) return -1;
+
+	ResourceType *interfs = tools->FindType("tools");
+	anInterface *interf=NULL;
+
+	for (int c=0; c<interfs->resources.n; c++) {
+		interf=dynamic_cast<anInterface*>(interfs->resources.e[c]->object);
+		if (interf && interf->draws(data->whattype())) break;
+	}
+
+	if (interf) {
+		interf->DrawDataDp(dp,data,a1,a2);
+		return 0;
+	}
+
+	return -1;
 }
 
 

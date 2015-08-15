@@ -65,8 +65,10 @@ class InterfaceManager : public Laxkit::anObject
 
 	virtual int Resourcify(Laxkit::anObject *resource, const char *type=NULL);
 
-	virtual void DrawSomeData(Laxkit::Displayer *ddp,LaxInterfaces::SomeData *ndata,
-							Laxkit::anObject *a1=NULL,Laxkit::anObject *a2=NULL,int info=0);
+	virtual int DrawData(Laxkit::Displayer *dp, LaxInterfaces::SomeData *ndata,
+							Laxkit::anObject *a1=NULL, Laxkit::anObject *a2=NULL, unsigned int info=0);
+	virtual int DrawDataStraight(Laxkit::Displayer *dp, LaxInterfaces::SomeData *ndata,
+							Laxkit::anObject *a1=NULL, Laxkit::anObject *a2=NULL, unsigned int info=0);
 
 };
 

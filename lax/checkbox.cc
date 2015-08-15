@@ -121,16 +121,20 @@ void CheckBox::setPlacement()
 	if (win_style&CHECK_LEFT) {
 		grect.x=pad;
 		trect.x=pad+grect.width+pad;
+
 	} else if (win_style&CHECK_RIGHT) { 
 		grect.x=win_w-pad-grect.width;
 		trect.x=grect.x-pad-trect.width;
+
 	} else if (win_style&CHECK_CENTERR) { 
 		grect.x=win_w/2-(grect.width+pad+trect.width)/2;
 		trect.x=grect.x+grect.width+pad;
+
 	} else { // default CENTERL
 		trect.x=win_w/2-(grect.width+pad+trect.width)/2;
 		grect.x=trect.x+trect.width+pad;
 	}
+
 	DBG cerr <<"grect: "<<grect.x<<","<<grect.y<<", "<<grect.width<<","<<grect.height<<endl;
 	DBG cerr <<"trect: "<<trect.x<<","<<trect.y<<", "<<trect.width<<","<<trect.height<<endl;
 }
@@ -140,6 +144,8 @@ const char *CheckBox::Label(const char *nlabel)
 	return Button::Label(nlabel);	
 }
 
+/*! \todo implement other than circle
+ */
 void CheckBox::drawgraphic()
 {//***
 //	if (win_style&CHECK_CIRCLE) {
@@ -166,21 +172,40 @@ void CheckBox::drawgraphic()
 }
 
 void CheckBox::draw()
-{
-	foreground_color((mousein?win_colors->moverbg:win_colors->bg));
-	fill_rectangle(this, 0,0, win_w,win_h);
+{ 
+	Displayer *dp=MakeCurrent();
+    dp->NewFG(mousein ? win_colors->moverbg : win_colors->bg);
+
+	dp->drawrectangle(0,0, win_w,win_h, 1);
 	drawgraphic();
 
 	if (!label) return;
 	
-	double ex,ey,fasc,fdes;
-	getextent(label,-1,&ex,&ey,&fasc,&fdes);
+	//double ex,ey,fasc,fdes;
+	//dp->textextent(label,-1,&ex,&ey,&fasc,&fdes);
+	//getextent(label,-1,&ex,&ey,&fasc,&fdes);
 	
-	foreground_color(win_colors->fg);
-	textout(this, label,strlen(label), trect.x+trect.width/2,trect.y+trect.height/2, LAX_CENTER);
+    dp->NewFG(win_colors->fg);
+	dp->textout(trect.x+trect.width/2,trect.y+trect.height/2, label,strlen(label), LAX_CENTER);
 
 	//drawbevel(0);
 }
+
+int CheckBox::MoveResize(int nx,int ny,int nw,int nh)
+{   
+    anXWindow::MoveResize(nx,ny,nw,nh);
+    setPlacement();
+    needtodraw=1;
+    return 0;
+}   
+    
+int CheckBox::Resize(int nw,int nh)
+{   
+    anXWindow::Resize(nw,nh);
+    setPlacement();
+    needtodraw=1;
+    return 0;
+}   
 
 } // namespace Laxkit
 

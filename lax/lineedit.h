@@ -18,7 +18,7 @@
 //    License along with this library; if not, write to the Free Software
 //    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
-//    Copyright (c) 2004-2010 Tom Lechner
+//    Copyright (c) 2004-2015 Tom Lechner
 //
 #ifndef _LAX_LINEEDIT_H
 #define _LAX_LINEEDIT_H
@@ -59,6 +59,7 @@ class LineEdit : public TextXEditBaseUtf8
 	ButtonDownInfo buttondown;
 	virtual int send(int i);
 	virtual void settextrect();
+
   public:
 	char *qualifier;
 	char *blanktext;

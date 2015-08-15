@@ -18,7 +18,7 @@
 //    License along with this library; if not, write to the Free Software
 //    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
-//    Copyright (c) 2004-2010 Tom Lechner
+//    Copyright (c) 2004-2015 Tom Lechner
 //
 
 
@@ -1081,12 +1081,14 @@ void LineEdit::DrawText(int)
 	if (textstyle&TEXT_LEFT || mostpixwide>textrect.width-2*padx) {
 		 //if left justified, or line fits off screen
 		DrawLineOfText(-curlineoffset,textrect.height/2-textheight/2+textascent,0,textlen,check);
+
 	} else {
 		//int ext=GetExtent(0,textlen,0);
 		if (textstyle&TEXT_CENTER) 
 			DrawLineOfText(textrect.width/2-mostpixwide/2,textrect.height/2-textheight/2+textascent,0,textlen,check);
 		else DrawLineOfText(textrect.width-padx-mostpixwide,textrect.height/2-textheight/2+textascent,0,textlen,check);
 	}
+
 	if (curlineoffset<0) {
 		 //black out blank area before text (on left)
 		Colors(0);
