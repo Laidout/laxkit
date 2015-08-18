@@ -29,6 +29,9 @@
 
 namespace Laxkit {
 	
+
+//---------------------------------- HistoryNode -------------------------------------
+
 class HistoryNode
 {
  public:
@@ -39,6 +42,9 @@ class HistoryNode
 	~HistoryNode();
 };
 
+
+//-------------------------------- PromptEdit --------------------------------------------------
+
 class PromptEdit : public MultiLineEdit
 {
  protected:
@@ -47,18 +53,22 @@ class PromptEdit : public MultiLineEdit
 	HistoryNode *history;
 	int numhistory,maxhistory;
 	virtual char *process(const char *in);
+
  public:
 	PromptEdit(anXWindow *prnt,const char *nname,const char *ntitle,unsigned long nstyle,
 						int xx,int yy,int ww,int hh,int brder,
 						anXWindow *prev,unsigned long nowner=None,const char *nsend=NULL,
 						unsigned int ntstyle=0,const char *newtext=NULL);
 	virtual ~PromptEdit();
+	virtual const char *whattype() { return "PromptEdit"; }
+	virtual int CharInput(unsigned int ch,const char *buffer,int len,unsigned int state,const LaxKeyboard *d);
+
 	virtual int readonly(long pos);
-	virtual int ProcessInput(const char *thisexpression=NULL);
 	virtual void SetPromptString(const char *nstr);
 	virtual const char *GetPromptString();
-	virtual int CharInput(unsigned int ch,const char *buffer,int len,unsigned int state,const LaxKeyboard *d);
+	virtual int ProcessInput(const char *thisexpression=NULL);
 };
+
 
 } // namespace Laxkit;
 

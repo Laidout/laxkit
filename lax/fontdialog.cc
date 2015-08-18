@@ -36,10 +36,12 @@ using namespace std;
 
 //Select Font
 //filter: bold italic size scalable favorites
-//font family: __Times/preview___[v]    font style:___________
+//font family: __Times/preview___[v]    font style:___________  [optionalcolor]
 //size:_____v
 //effects:________  (centering, line spacing, etc)
-//sample text
+//
+//sample text  ->  choose fg and bg color
+//multiline sample
 
 namespace Laxkit {
 
@@ -53,14 +55,17 @@ FontDialogFont::FontDialogFont()
 {
 	family=style=file=NULL;
 	size=12;
+	preview=NULL;
 }
 
 FontDialogFont::~FontDialogFont()
 {
-	if (family) delete[] family;
-	if (style) delete[] style;
-	if (file) delete[] file;
+	delete[] family;
+	delete[] style;
+	delete[] file;
+	if (preview) preview->dec_count();
 }
+
 
 //-------------------------------------- FontDialog -------------------------------------
 /*! \class FontDialog
@@ -135,6 +140,14 @@ int FontDialog::init()
 
 	anXWindow *last=NULL;
 
+
+	 //------search
+	last=search=new LineInput(this,"search","search",0, 0,0,0,0, 1, last,object_id,"search", 
+							_("Search"),NULL,0, 0,0,2,2,2,2);
+	search->tooltip(_("Search among fonts"));
+	AddWin(search,1, 200,100,1000,50,0, search->win_h,0,0,50,0, -1);
+	AddNull();
+
 	
 	 //------font family
 	 // *** type in box progressively limits what's displayed in list 
@@ -142,10 +155,6 @@ int FontDialog::init()
 	last=fontfamily=new LineInput(this,"fontfamily","fontfamily",0, 0,0,0,0, 1, last,object_id,"fontfamily", 
 							_("Family"),NULL,0, 0,0,2,2,2,2);
 	fontfamily->tooltip(_("Family name of the font"));
-//	virtual int AddWin(anXWindow *win,int absorbcount,
-//					int npw,int nws,int nwg,int nhalign,int nhgap,
-//					int nph,int nhs,int nhg,int nvalign,int nvgap,
-//					int where);
 	AddWin(fontfamily,1, 200,100,1000,50,0, fontfamily->win_h,0,0,50,0, -1);
 
 
@@ -157,11 +166,14 @@ int FontDialog::init()
 
 
 	 //-----font size
-	last=fontsize=new LineInput(this,"size","size",0, //LINP_FLOAT,
+	//last=fontsize=new LineInput(this,"size","size",0, //LINP_FLOAT,
+	//						0,0,0,0, 1, last,object_id,"fontsize", 
+	//						_("Size"),NULL,0, 0,0,2,2,2,2);
+	last=fontsize=new NumSlider(this,"size","size",0,
 							0,0,0,0, 1, last,object_id,"fontsize", 
-							_("Size"),NULL,0, 0,0,2,2,2,2);
+							_("Size"),0,1000000, 15);
 	fontsize->tooltip(_("Size of the font"));
-	fontsize->SetText(app->defaultlaxfont->textheight());
+	//fontsize->SetText(app->defaultlaxfont->textheight());
 	AddWin(fontsize,1, 200,100,1000,50,0, fontsize->win_h,0,0,50,0, -1);
 
 	AddNull();
@@ -231,7 +243,7 @@ int FontDialog::init()
 
 void FontDialog::UpdateSample()
 {
-	LaxFont *newfont=app->fontmanager->MakeFont(fontfamily->GetCText(),fontstyle->GetCText(),fontsize->GetDouble(), 0);
+	LaxFont *newfont=app->fontmanager->MakeFont(fontfamily->GetCText(),fontstyle->GetCText(),fontsize->Value(), 0);
 	if (!newfont) return;
 	text->UseThisFont(newfont);
 	newfont->dec_count();
@@ -292,7 +304,7 @@ int FontDialog::send()
 	s->strs[2]=NULL;
 	makestr(s->strs[2],fonts.e[currentfont]->file);
 	s->strs[3]=new char[30];
-	sprintf(s->strs[3],"%f",fontsize->GetDouble());
+	sprintf(s->strs[3],"%f",fontsize->Valuef());
 
 	app->SendMessage(s);
 	return 0;

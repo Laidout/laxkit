@@ -1045,6 +1045,9 @@ void Displayer::drawnum(double x, double y, int num)
  * Return 1 for image not in viewport, so it's not actually drawn.
  * Return 2 for image would be drawn smaller than a pixel, so it's not actually drawn.
  *
+ * if w==0 and h!=0, set h as appropriate to preserve aspect. Likewise for w!=0 and h==0.
+ * If both w and h are 0, then use w and h from the image.
+ *
  * \todo should be able to do partial drawing when an image is huge, and only a tiny
  *   portion of it actually should be rendered.
  */
@@ -1061,6 +1064,9 @@ void Displayer::drawnum(double x, double y, int num)
  */
 
 /*! \fn void Displayer::imageout_rotated(LaxImage *img,double x,double y,double ulx,double uly)
+ *
+ * Render such that the upper left corner is at (x,y) and upper right is at (ulx+urx,uly+ury).
+ * The height is adjusted to preserve aspect.
  */
 
 /*! void Displayer::imageout_skewed(LaxImage *img,double x,double y,double ulx,double uly,double urx,double ury)

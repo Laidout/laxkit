@@ -188,6 +188,7 @@ class DisplayerCairo : public Displayer
 	virtual const double *Getictm();
 
 	virtual void ShiftScreen(int dx,int dy);
+	virtual void ResetTransform();
 	virtual void NewTransform(const double *d);
 	virtual void NewTransform(double a,double b,double c,double d,double x0,double y0);
 	virtual void PushAxes();

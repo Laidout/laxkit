@@ -1111,27 +1111,22 @@ int anXApp::CopytoBuffer(const char *stuff,int len)
 	makenstr(copybuffer,stuff,len);
 	
 	DBG cerr <<"anxapp--copy"<<endl;
-	XRotateBuffers(dpy,1);
-	XStoreBuffer(dpy,stuff,len,0);
+
+	//XRotateBuffers(dpy,1); *** old cutbuffer stuff.. remove?
+	//XStoreBuffer(dpy,stuff,len,0);
 	return 0;
 }
 
 //! Get a new'd copy of stuff from the X cutbuffer.
-/*! \todo *** this appears to be broken, cannot copy stuff from terminal...
- */
 char *anXApp::GetBuffer()
 {
-	DBG cerr <<"--paste";
-	int n;
-	char *blah=XFetchBuffer(dpy,&n,0);
+	DBG cerr <<"--anXApp::GetBuffer paste";
+
+	if (!copybuffer) return NULL;
+	char *blah=newstr(copybuffer);
 	
-	DBG cerr <<": "<<n<<": "<<blah<<endl;
-	if (n==0) return NULL;
-	char *ret=new char[n+1];
-	strcpy(ret,blah);
-	ret[n]='\0';
-	XFree(blah);
-	return ret;
+	DBG cerr <<"  -> "<<blah<<endl;
+	return blah;
 }
 
 //! Set the default icon to the image in file.

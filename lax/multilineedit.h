@@ -18,7 +18,7 @@
 //    License along with this library; if not, write to the Free Software
 //    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
-//    Copyright (C) 2004-2007,2010 by Tom Lechner
+//    Copyright (C) 2004-2007,2010,2015 by Tom Lechner
 //
 #ifndef _LAX_GOODEDITWW_H
 #define _LAX_GOODEDITWW_H
@@ -32,6 +32,9 @@
 
 
 namespace Laxkit {
+
+
+//----------------------------------------------- MultiLineEdit ----------------------------------------
 
 class MultiLineEdit : public TextXEditBaseUtf8
 {
@@ -48,6 +51,7 @@ class MultiLineEdit : public TextXEditBaseUtf8
 	Scroller *xscroller,*yscroller;
 	int xscrollislocal,yscrollislocal;
 	virtual int send() { return 0; }
+
  public:
 	int padx,pady;
 	MultiLineEdit(anXWindow *prnt,const char *nname,const char *ntitle,unsigned long nstyle,
@@ -111,13 +115,14 @@ class MultiLineEdit : public TextXEditBaseUtf8
 	virtual int Getmostwide();  // returns which line 
 	virtual long WhichLine(long pos);
 	virtual void DrawText(int black=1); // black=1 
+	virtual int UseThisFont(LaxFont *newfont);
 	virtual int SetupMetrics();
 	virtual void SetupScreen();
 
     virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context);
-    virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
- 
+    virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context); 
 };
+
 
 } // namespace Laxkit
 

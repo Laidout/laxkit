@@ -18,7 +18,7 @@
 //    License along with this library; if not, write to the Free Software
 //    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
-//    Copyright (C) 2004-2010 by Tom Lechner
+//    Copyright (C) 2004-2010,2015 by Tom Lechner
 //
 
 
@@ -132,6 +132,8 @@ TextXEditBaseUtf8::TextXEditBaseUtf8(anXWindow *parnt,const char *nname,const ch
 	con=0;
 	valid=1;
 	curlineoffset=0;
+
+	firsttime=1; //used as a flag to trigger SetupMetrics() at the start of next Refresh()
 }
 
 /*! Decrements count of thefont.
@@ -191,10 +193,12 @@ int TextXEditBaseUtf8::charwidth(int ch,int r) //r=0
 	l=utf8encode(ch,c);
 	c[l]='\0';
 
-	int w=getextent(thefont, c,-1, NULL,NULL,NULL,NULL, 1);
-	if (w || r) return w;
+	if (r==1) return getextent(thefont, c,-1, NULL,NULL,NULL,NULL, 1);
+
+	int w=getextent(thefont, c,-1, NULL,NULL,NULL,NULL, 0);
+	if (w) return w;
 	hexify(c,ch);
-	w=getextent(thefont, c,-1, NULL,NULL,NULL,NULL, 1);
+	w=getextent(thefont, c,-1, NULL,NULL,NULL,NULL, 0);
 	return w;
 }
 
@@ -345,8 +349,11 @@ void TextXEditBaseUtf8::Refresh()
 	//DBG cerr << "\nEditor painting";
 	
 	if (firsttime) { 
-		if (SetupMetrics()) return;
 		firsttime=0; 
+		if (SetupMetrics()) { //couldn't set up yet for some reason
+			firsttime=1;
+			return;
+		}
 	}
 
 	Displayer *dp=MakeCurrent();
@@ -367,7 +374,9 @@ void TextXEditBaseUtf8::Refresh()
 		DrawText();
 		if (win_active) DrawCaret(0,1);
 
-	} else if (needtodraw&4) DrawCaret(1,1); // curs move only 
+	} else if (needtodraw&4) { // curs move only 
+		DrawCaret(1,1);
+	}
 
 	dp->font(app->defaultlaxfont, oldheight);
 	needtodraw=0;
@@ -427,11 +436,11 @@ void TextXEditBaseUtf8::DrawCaret(int removeold,int on) // removeold=0,on=1
  */
 void TextXEditBaseUtf8::docaret(int w)
 { 
-	drawing_function(LAXOP_Xor);
+	drawing_function(LAXOP_Difference);
 	foreground_color(~0);
 	if (w) fill_rectangle(this, cx,cy-textascent,2,textheight);
 	else fill_rectangle(this, oldx,oldy-textascent,2,textheight);
-	drawing_function(LAXOP_Source);
+	drawing_function(LAXOP_Over);
 }
 
 //! Set curtextcolor and curbkcolor according to whether highlighting is on or not.
@@ -981,15 +990,19 @@ long TextXEditBaseUtf8::GetPos(long pos,int pix,int lsofar,long eof) //lsofar=0,
 	return pos;
 }
 
-/*! Increments newfont's count.
+/*! Dec counts old font and Increments newfont's count, unless it is the same as thefont.
+ * Sets firsttime=1, which will trigger a SetupMetrics() at the beginning
+ * of the next Refresh().
  */
 int TextXEditBaseUtf8::UseThisFont(LaxFont *newfont)
 {
 	if (!newfont) return 1;
-	if (thefont) thefont->dec_count();
-	thefont=newfont;
-	thefont->inc_count();
-	SetupMetrics();
+	if (newfont!=thefont) {
+		if (thefont) thefont->dec_count();
+		thefont=newfont;
+		thefont->inc_count();
+	}
+	firsttime=1; //triggers SetupMetrics() in next Refresh
 	needtodraw=1;
 	return 0;
 }

@@ -188,6 +188,7 @@ class DisplayerXlib : public Displayer
 
 	virtual void ShiftScreen(int dx,int dy);
 	virtual void ShiftReal(double dx,double dy);
+	virtual void ResetTransform();
 	virtual void NewTransform(const double *d);
 	virtual void NewTransform(double a,double b,double c,double d,double x0,double y0);
 	virtual void PushAndNewTransform(const double *m);

@@ -279,6 +279,7 @@ void SplitWindow::Refresh()
 {
 	if (!needtodraw || !win_on) return;
 	
+	MakeCurrent();
 	//XClearWindow(app->dpy,window);
 	
 	

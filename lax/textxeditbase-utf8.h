@@ -18,7 +18,7 @@
 //    License along with this library; if not, write to the Free Software
 //    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
-//    Copyright (C) 2004-2013 by Tom Lechner
+//    Copyright (C) 2004-2013,2015 by Tom Lechner
 //
 #ifndef _LAX_TEXTXEDITBASE_UTF8_H
 #define _LAX_TEXTXEDITBASE_UTF8_H

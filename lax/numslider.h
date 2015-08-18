@@ -63,6 +63,7 @@ class NumSlider : public ItemSlider
 	virtual int NewMax(int nmax) { return max=nmax; } //*** doesn't do max>min checking
 	virtual int NewMinMax(int nmin,int nmax) { max=nmax; return min=nmin; }
 	virtual int Value() { return curitem; }
+	virtual double Valuef() { return (double)curitem; }
 
 	virtual int Event(const EventData *e,const char *mes);
 	virtual int Mode(int newmode);

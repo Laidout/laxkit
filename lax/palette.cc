@@ -79,6 +79,7 @@ PaletteEntry::~PaletteEntry()
 	
 Palette::Palette()
 {
+	readonly=false;
 	columns=0;
 	is_read_in=0;
 	name=filename=NULL;
@@ -444,7 +445,7 @@ Palette *rainbowPalette(int w,int h,int max,int include_gray_strip)
 PaletteWindow::PaletteWindow(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
 		int xx,int yy,int ww,int hh,int brder,
 		anXWindow *prev,unsigned long nowner,const char *nsend)
-	: anXWindow(parnt,nname,ntitle,nstyle,xx,yy,ww,hh,brder,prev,nowner,nsend)
+	: anXWindow(parnt,nname,ntitle,nstyle|ANXWIN_DOUBLEBUFFER,xx,yy,ww,hh,brder,prev,nowner,nsend)
 {
 	palette=NULL;
 	
@@ -453,6 +454,7 @@ PaletteWindow::PaletteWindow(anXWindow *parnt,const char *nname,const char *ntit
 	palette=rainbowPalette(27,18,255, 1);
 
 	curcolor=ccolor=-1;
+	pad=app->default_padx;
 	
 	installColors(app->color_panel);
 
@@ -516,19 +518,23 @@ void PaletteWindow::Refresh()
 	if (!win_on || needtodraw==0) return;
 	needtodraw=0;
 
+	Displayer *dp=MakeCurrent();
+	dp->ClearWindow();
+
 
 	 // draw head stuff
 	const char *blah;
-	foreground_color(win_colors->bg);
-	drawing_function(LAXOP_Source);
-	fill_rectangle(this, 0,0,win_w,app->defaultlaxfont->textheight());
+	dp->NewFG(win_colors->bg);
+	dp->BlendMode(LAXOP_Source);
+	dp->drawrectangle(0,0,win_w,app->defaultlaxfont->textheight(), 1);
 			
 	if (palette->name) blah=palette->name; else blah="(untitled)";
-	foreground_color(win_colors->fg);
-	int cc=textout(this, blah,strlen(blah),0,0,LAX_LEFT|LAX_TOP);
+	dp->NewFG(win_colors->fg);
+	int cc=dp->textout(pad,pad, blah,strlen(blah), LAX_LEFT|LAX_TOP);
 
 	int r,g,b;
 	if (curcolor>=0 || ccolor>=0) {
+		 //write out current color name
 		int color;
 		if (ccolor>=0) color=ccolor; else color=curcolor;
 		char *blah2=NULL;
@@ -539,12 +545,14 @@ void PaletteWindow::Refresh()
 			blah2=new char[30];
 			sprintf(blah2,"%02X%02X%02X",r,g,b);
 		}
-		int ccc=textout(this, (blah2?blah2:palette->colors.e[color]->name),-1,win_w,0,LAX_TOP|LAX_RIGHT);
+		int ccc=dp->textout(win_w-pad,pad, (blah2?blah2:palette->colors.e[color]->name),-1,LAX_TOP|LAX_RIGHT);
 		if (blah2) delete[] blah2;
-		ccc=win_w-cc-ccc-10;
+
+		 //draw current mouse over color
+		ccc=win_w-cc-ccc-4*pad;
 		if (ccc>0) {
-			foreground_color(rgbcolor(r,g,b));
-			fill_rectangle(this, cc+5,0, ccc,app->defaultlaxfont->textheight());
+			dp->NewFG(rgbcolor(r,g,b));
+			dp->drawrectangle(cc+2*pad,0, ccc,app->defaultlaxfont->textheight()+2*pad,1);
 		}
 	}
 
@@ -561,17 +569,17 @@ void PaletteWindow::Refresh()
 		r=palette->colors.e[i]->channels[0]*255/palette->defaultmaxcolor;
 		g=palette->colors.e[i]->channels[1]*255/palette->defaultmaxcolor;
 		b=palette->colors.e[i]->channels[2]*255/palette->defaultmaxcolor;
-		foreground_color(rgbcolor(r,g,b));
-		fill_rectangle(this, x,y,dx+1,dy+1);
+		dp->NewFG(rgbcolor(r,g,b));
+		dp->drawrectangle(x,y,dx+1,dy+1, 1);
 		x+=dx;
 //		if ((i+1)%xn==0) {
 //			 //blank out to the right
-//			foreground_color(win_colors->bg);
+//			dp->NewFG(win_colors->bg);
 //			fill_rectangle(this, x,y,win_w-x,dy);
 //		}
 	}
 //	 //blank out unused space
-//	foreground_color(win_colors->bg);
+//	dp->NewFG(win_colors->bg);
 //	fill_rectangle(this, x,y,win_w-x,dy);
 //	fill_rectangle(this, 0,y+dy,win_w,win_h-y);
 	
@@ -579,12 +587,13 @@ void PaletteWindow::Refresh()
 	if (curcolor>=0) {
 		x=inrect.x + (curcolor%xn)*dx;
 		y=inrect.y + (curcolor/xn)*dy;
-		foreground_color(0);
-		draw_rectangle(this, x,y,dx,dy);
-		foreground_color(~0);
-		draw_rectangle(this, x-1,y-1,dx+2,dy+2);
+		dp->NewFG((unsigned long) 0);
+		dp->drawrectangle(x,y,dx,dy, 0);
+		dp->NewFG(~0);
+		dp->drawrectangle(x-1,y-1,dx+2,dy+2, 0);
 	}
 	
+	SwapBuffers();
 }
 
 int PaletteWindow::findColorIndex(int x,int y)
@@ -652,8 +661,14 @@ int PaletteWindow::LBUp(int x,int y,unsigned int state,const LaxMouse *d)
 {
 	if (!buttondown.isdown(d->id,LEFTBUTTON)) return 0;
 	buttondown.up(d->id,LEFTBUTTON);
+
 	int cc=findColorIndex(x,y);
-	if (curcolor!=cc) {
+
+	if (cc<0 && y<inrect.y && y>0) {
+		 //clicked down in header
+		//  [Palette name]  [current color]  [color name]
+
+	} else if (curcolor!=cc && cc>=0) {
 		needtodraw|=2;
 		curcolor=cc;
 		send();
@@ -681,6 +696,13 @@ int PaletteWindow::RBUp(int x,int y,unsigned int state,const LaxMouse *d)
 int PaletteWindow::MouseMove(int x,int y,unsigned int state,const LaxMouse *d)
 {
 	int cc=findColorIndex(x,y);
+	if (cc<0) {
+		if (ccolor!=curcolor) {
+			needtodraw|=2;
+			ccolor=curcolor;
+		}
+		return 0;
+	}
 
 	if (buttondown.isdown(0,LEFTBUTTON) && curcolor!=cc) {
 		needtodraw|=2;
@@ -702,9 +724,9 @@ int PaletteWindow::MouseMove(int x,int y,unsigned int state,const LaxMouse *d)
 void PaletteWindow::findInrect()
 {
 	inrect.x=0;
-	inrect.y=app->defaultlaxfont->textheight();
-	inrect.width= win_w;
-	inrect.height=win_h-app->defaultlaxfont->textheight();
+	inrect.y=app->defaultlaxfont->textheight() + 2*pad;
+	inrect.width=  win_w;
+	inrect.height= win_h - app->defaultlaxfont->textheight() - 2*pad;
 	if (inrect.width<1) inrect.width=1;
 	if (inrect.height<1) inrect.height=1;
 	

@@ -18,7 +18,7 @@
 //    License along with this library; if not, write to the Free Software
 //    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
-//    Copyright (C) 2004-2007,2010 by Tom Lechner
+//    Copyright (C) 2004-2007,2010,2015 by Tom Lechner
 //
 
 
@@ -39,7 +39,7 @@ namespace Laxkit {
 
 
 
-//-----------------------------------------------------------
+//----------------------------------------------- MultiLineEdit ----------------------------------------
 /*! \class MultiLineEdit
  * \brief *** please note this class is currently seriously broken *** Multiline edit with optional word wrap.
  * 
@@ -204,7 +204,8 @@ void MultiLineEdit::UseTheseScrollers(Scroller *xscroll,Scroller *yscroll)
 		if (xscroller) {
 			if (xscrollislocal) {
 				if (xscroller->win_on) textrect.height+=scrollwidth;
-				SetupScreen();
+				firsttime=1;
+				//SetupScreen();
 				app->destroywindow(xscroller);
 			}
 		}
@@ -216,7 +217,8 @@ void MultiLineEdit::UseTheseScrollers(Scroller *xscroll,Scroller *yscroll)
 		if (yscroller) {
 			if (yscrollislocal) {
 				if (yscroller->win_on) textrect.width+=scrollwidth;
-				SetupScreen();
+				firsttime=1;
+				//SetupScreen();
 				app->destroywindow(yscroller);
 			}
 		}
@@ -684,7 +686,7 @@ int MultiLineEdit::CharInput(unsigned int ch,const char *buffer,int len,unsigned
 	if (state&ControlMask && ch>=32) // scan for ^char (<32 handled below)
 	  switch(ch) { // cntl+? 
 		case ' ': needtodraw=1; return 0;
-		case 'q': app->quit(); return 0;
+		//case 'q': app->quit(); return 0;
 		case 'a': cdir=0; selstart=0; curpos=sellen=textlen; return needtodraw=1; 
 		case 'x':
 		case 'X': ch=LAX_Del; state=ShiftMask; break;//cut 
@@ -744,7 +746,8 @@ int MultiLineEdit::CharInput(unsigned int ch,const char *buffer,int len,unsigned
 				textstyle=(textstyle&~(TEXT_CNTL_BANG|TEXT_CNTL_NONE|TEXT_CNTL_HEX))|TEXT_CNTL_BANG;
 				cntlchar='\\';
 			}
-			SetupMetrics();
+			firsttime=1;
+			//SetupMetrics();
 			findcaret();
 			needtodraw=1;
 			return 0;
@@ -763,20 +766,22 @@ int MultiLineEdit::CharInput(unsigned int ch,const char *buffer,int len,unsigned
 //		case LAX_Control: return 0;//cntl
 //		case LAX_Esc: return 0;//esc
 
-		case LAX_Ins: if (state&ControlMask) { //cntl+ins: copy
+		case LAX_Ins:
+			if (state&ControlMask) { //cntl+ins: copy
 				if (!sellen) return 0;
 				Copy();
 				return 0;
 			}
 			if (state&ShiftMask) { //shift+ins: paste	
 				if (readonly()) return 0;
-				Paste();
-				//selectionPaste(0,0);
+				//Paste();
+				selectionPaste(0,None);
 				return 0;
 			}		
 			return 0;//ins
 
-		case LAX_Del: if (readonly()) return 0; //del
+		case LAX_Del:
+			if (readonly()) return 0; //del
 			if (state&ShiftMask) {	//shift+del: cut
 				if (!sellen) return 0;
 				Copy();
@@ -787,7 +792,8 @@ int MultiLineEdit::CharInput(unsigned int ch,const char *buffer,int len,unsigned
 			delchar(0);
 			return 0;
 
-		case LAX_Bksp: if (readonly(prevpos(curpos))) return 0; //bksp, ***sh+bk=del line,? 
+		case LAX_Bksp:
+			if (readonly(prevpos(curpos))) return 0; //bksp, ***sh+bk=del line,? 
 			if (sellen) return delsel();//cn+bk=del to begl?
 			delchar(1);
 			return 0;
@@ -1010,9 +1016,9 @@ int MultiLineEdit::CharInput(unsigned int ch,const char *buffer,int len,unsigned
 			needtodraw|=(makeinwindow()?1:4);
 			return 0;
 
-		default: return 0;
+		default: return anXWindow::CharInput(ch,buffer,len,state,d);
 	}
-	return 0;
+	return anXWindow::CharInput(ch,buffer,len,state,d);
 }
 
 
@@ -1400,6 +1406,7 @@ int MultiLineEdit::makelinestart(int startline, //! Screen line to begin remappi
 	if (startline<0) startline=0;
 	if (startline>lpers+1) startline=lpers+1;
 	if (!linestats) startline=0;
+
 	long leftwchar;
 	if (ulwc==-2) leftwchar=findlinestart();
 	else if (ulwc<0) {
@@ -1617,12 +1624,18 @@ void MultiLineEdit::DrawText(int black) // black=1
 	return;
 }
 	 
+int MultiLineEdit::UseThisFont(LaxFont *newfont)
+{
+    TextXEditBaseUtf8::UseThisFont(newfont);
+    return 1;
+}
+
 //! Call TextXEditBaseUtf8::SetupMetrics(), set firsttime=0, and SetupScreen().
 int MultiLineEdit::SetupMetrics()
 {
 	if (TextXEditBaseUtf8::SetupMetrics()) return 1;
-	firsttime=0;
 	SetupScreen();
+	makeinwindow();
 	return 0;
 }
 
@@ -1635,25 +1648,32 @@ int MultiLineEdit::SetupMetrics()
 void MultiLineEdit::SetupScreen()
 { 
 	if (textheight==0) return;
+	if (textrect.height==0) return;
+
 	lpers=(textrect.height-2*pady)/textheight;
 	DBG cerr <<"lpers=="<<lpers<<endl;
+
 	makelinestart(0,-1,1,1);
 	Getmostwide();
+
 	if (textstyle&TEXT_WORDWRAP) {
 		maxpixwide=textrect.width-2*padx;
 	}
+
 	if (textstyle&TEXT_XSCROLL) {
 		if (xscroller && xscrollislocal) {
 			xscroller->MoveResize(0,win_h-scrollwidth, win_w,scrollwidth);
 		}
 		newxssize();
 	}
+
 	if (textstyle&TEXT_YSCROLL) {
 		if (yscroller && yscrollislocal) {
 			yscroller->MoveResize(win_w-scrollwidth,0,scrollwidth,win_h);
 		}
 		newyssize(); // sets curpos 
 	}
+
 	findcaret();
 	needtodraw=1;
 }
@@ -1665,7 +1685,7 @@ int MultiLineEdit::Resize(int nw,int nh)
 { 
 	anXWindow::Resize(nw,nh);
 	settextrect();
-	SetupScreen();
+	firsttime=1;
 	return 0;
 }
 
@@ -1676,7 +1696,7 @@ int MultiLineEdit::MoveResize(int nx,int ny,int nw,int nh)
 {
 	anXWindow::MoveResize(nx,ny,nw,nh);
 	settextrect();
-	SetupScreen();
+	firsttime=1;
 	return 0;
 }
 

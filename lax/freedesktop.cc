@@ -395,7 +395,8 @@ char *get_bookmarks(const char *file,const char *filetype)
 		 //load from standard bookmarks location
 		if (!strcmp(filetype,"gtk")) file="~/.gtk-bookmarks";
 		else if (!strcmp(filetype,"gtk3")) file="~/.config/gtk-3.0/bookmarks";
-		else if (!strcmp(filetype,"kde")) file="~/.kde/share/apps/konqueror/bookmarks.xml";
+		//else if (!strcmp(filetype,"kde")) file="~/.kde/share/apps/konqueror/bookmarks.xml";
+		else if (!strcmp(filetype,"kde")) file="~/.kde/share/apps/kfileplaces/bookmarks.xml";
 		else if (!strcmp(filetype,"rox")) file="~/.config/rox.sourceforge.net/ROX-Filer/Bookmarks.xml";
 	}
 	if (!file) return NULL;
@@ -409,8 +410,32 @@ char *get_bookmarks(const char *file,const char *filetype)
 	char *files=NULL;
 
 	if (!strcmp(filetype,"kde") || !strcmp(filetype,"rox")) {
-		//Attribute *att=XMLChunkToAttribute(NULL,f,NULL);
-		//***
+		Attribute att;
+		Attribute *attt, *satt;
+		XMLChunkToAttribute(&att,f,NULL);
+
+		attt=att.find("xbel");
+		if (attt) attt=attt->find("content:");
+
+		if (attt) {
+			const char *value, *name;
+
+			for (int c=0; c<attt->attributes.n; c++) {
+				name =attt->attributes.e[c]->name;
+				value=attt->attributes.e[c]->value;
+
+				if (!strcmp(name,"bookmark")) {
+					satt=attt->attributes.e[c]->find("href");
+					if (satt && !strncmp(satt->value,"file://",7)) {
+						value=satt->value+7;
+
+						if (!isblank(value)) {
+							appendstr(files,value);
+						}
+					} 
+				}
+			}
+		}
 
 	} else if (!strcmp(filetype,"gtk") || !strcmp(filetype,"gtk3")) {
 		 //gtk uses (as far as I know) a simple list of lines like:   
@@ -448,7 +473,7 @@ char *get_bookmarks(const char *file,const char *filetype)
  *
  * gtk:  ~/.gtk-bookmarks\n
  * gtk3: ~/.config/gtk-3.0/bookmarks\n
- * kde:  ~/.kde/share/apps/konqueror/bookmarks.xml\n
+ * kde:  ~/.kde/share/apps/kfileplaces/bookmarks.xml\n
  * rox:  ~/.config/rox.sourceforge.net/ROX-Filer/Bookmarks.xml\n
  * lax: (no default file at this time)\n
  *
@@ -504,7 +529,8 @@ Laxkit::MenuInfo *get_categorized_bookmarks(const char *file,const char *filetyp
 		 //load from standard bookmarks location
 		if (!strcmp(filetype,"gtk")) file="~/.gtk-bookmarks";
 		else if (!strcmp(filetype,"gtk3")) file="~/.config/gtk-3.0/bookmarks";
-		else if (!strcmp(filetype,"kde")) file="~/.kde/share/apps/konqueror/bookmarks.xml";
+		//else if (!strcmp(filetype,"kde")) file="~/.kde/share/apps/konqueror/bookmarks.xml";
+		else if (!strcmp(filetype,"kde")) file="~/.kde/share/apps/kfileplaces/bookmarks.xml";
 		else if (!strcmp(filetype,"rox")) file="~/.config/rox.sourceforge.net/ROX-Filer/Bookmarks.xml";
 	}
 	if (!file) return NULL;
@@ -524,8 +550,34 @@ Laxkit::MenuInfo *get_categorized_bookmarks(const char *file,const char *filetyp
 
 
 	if (!strcmp(filetype,"kde") || !strcmp(filetype,"rox")) {
-		//Attribute *att=XMLChunkToAttribute(NULL,f,NULL);
-		//***
+		Attribute att;
+		Attribute *attt, *satt;
+		XMLChunkToAttribute(&att,f,NULL);
+
+		attt=att.find("xbel");
+		if (attt) attt=attt->find("content:");
+
+		if (attt) {
+			const char *value, *name;
+
+			for (int c=0; c<attt->attributes.n; c++) {
+				name =attt->attributes.e[c]->name;
+				value=attt->attributes.e[c]->value;
+
+				if (!strcmp(name,"bookmark")) {
+					satt=attt->attributes.e[c]->find("href");
+					if (satt && !strncmp(satt->value,"file://",7)) {
+						value=satt->value+7;
+
+						if (!isblank(value)) {
+							n++;
+							menu->AddItem(lax_basename(value));
+							menu->AddDetail(value,NULL);
+						}
+					} 
+				}
+			}
+		}
 
 	} else if (!strcmp(filetype,"gtk") || !strcmp(filetype,"gtk3")) {
 		 //gtk uses (as far as I know) a simple list of lines like:   

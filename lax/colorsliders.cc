@@ -994,8 +994,9 @@ int ColorSliders::WheelUp(int x,int y,unsigned int state,int count,const LaxMous
 	double s=step;
 	if ((state&LAX_STATE_MASK)==ShiftMask || (state&LAX_STATE_MASK)==ControlMask) s*=10;
 	else if ((state&LAX_STATE_MASK)==(ControlMask|ShiftMask)) s*=30;
+
 	double pos=GetPosForBar(current);
-	if (!pos<0) return 0;
+	if (pos<0) return 0;
 	pos+=s;
 	SetBar(current,pos);
 	send();
@@ -1010,8 +1011,9 @@ int ColorSliders::WheelDown(int x,int y,unsigned int state,int count,const LaxMo
 	double s=-step;
 	if ((state&LAX_STATE_MASK)==ShiftMask || (state&LAX_STATE_MASK)==ControlMask) s*=10;
 	else if ((state&LAX_STATE_MASK)==(ControlMask|ShiftMask)) s*=30;
+
 	double pos=GetPosForBar(current);
-	if (!pos<0) return 0;
+	if (pos<0) return 0;
 	pos+=s;
 	SetBar(current,pos);
 	send();

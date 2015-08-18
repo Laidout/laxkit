@@ -593,7 +593,7 @@ double DisplayerXlib::textout(double angle, double x,double y,const char *str,in
 
 	if (!w || !str) return 0;
 	XSetForeground(dpy,gc,fgcolor);
-	return textout(x,y, str,len, align);
+	return textout(x-sin(angle)*textheight(),y, str,len, align);
 }
 
 
@@ -665,9 +665,12 @@ void DisplayerXlib::FillAttributes(int fillstyle, int fillrule)
 LaxCompositeOp DisplayerXlib::BlendMode(LaxCompositeOp mode)
 {
 	LaxCompositeOp old=drawmode;
+
 	int xmode=GXcopy;
 	if (mode==LAXOP_Clear) xmode=GXclear;
 	else if (mode==LAXOP_Xor) xmode=GXxor;
+	else if (mode==LAXOP_Difference) xmode=GXxor;
+
 	XSetFunction(dpy,gc,xmode);
 	drawmode=old;
 	return old;
@@ -1072,18 +1075,19 @@ int DisplayerXlib::imageout(LaxImage *image, double x,double y, double w,double 
 	if (!imlibimage) return -2;
 	if (!imlibimage->Image()) return -3;
 
-	if (w<=0 && h<=0) { w=image->w(); h=image->h(); }
+	if (w==0 && h==0) { w=image->w(); h=image->h(); }
+	if (w==0) { w=h*image->w()/image->h(); }
+	if (h==0) { h=w*image->h()/image->w(); }
 
 	flatpoint ul=flatpoint(x  ,y  ),
 			  ur=flatpoint(x+w,y  ),
 			  ll=flatpoint(x  ,y+h),
 			  lr=flatpoint(x+w,y+h);
 	if (real_coordinates) {
-		ul=realtoscreen(ul), 
-		ur=realtoscreen(ur), 
-		ll=realtoscreen(ll), 
+		ul=realtoscreen(ul);
+		ur=realtoscreen(ur);
+		ll=realtoscreen(ll);
 		lr=realtoscreen(lr);
-	} else {
 	}
 
 	DoubleBBox bbox(ul);
@@ -1225,6 +1229,18 @@ void DisplayerXlib::NewTransform(double a,double b,double c,double d,double x0,d
 	ctm[5]=y0;
 	findictm();
 	syncPanner();
+}
+
+void DisplayerXlib::ResetTransform()
+{
+	double *m;
+	while (axesstack.n) {
+		m=axesstack.pop();
+		delete[] m;
+	}
+
+	transform_identity(ctm);
+	transform_identity(ictm);
 }
 
 //! Push axes, and multiply ctm by a new transform.

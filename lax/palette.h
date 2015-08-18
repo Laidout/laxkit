@@ -32,9 +32,11 @@
 
 namespace Laxkit {
 
-#define LAX_GIMP_PALETTE 1
 
 //-------------------------------- Palette/PaletteEntry -----------------------------
+
+#define LAX_GIMP_PALETTE 1
+
 class PaletteEntry
 {
  public:
@@ -43,8 +45,9 @@ class PaletteEntry
 	int color_space;
 	int maxcolor;
 	char *name;
+
 	PaletteEntry(const char *nname,int n,int *v,int space,int max=255);
-	~PaletteEntry();
+	virtual ~PaletteEntry();
 };
 
 class Palette : public LaxFiles::DumpUtility, public anObject
@@ -55,8 +58,10 @@ class Palette : public LaxFiles::DumpUtility, public anObject
 	char *filename;
 	char *name;
 	char is_read_in;
+	bool readonly;
 	int columns;
 	PtrStack<PaletteEntry> colors;
+
 	Palette();
 	virtual ~Palette();
 	
@@ -75,9 +80,12 @@ class Palette : public LaxFiles::DumpUtility, public anObject
 
 Palette *rainbowPalette(int w,int h,int max,int include_gray_strip);
 	
+
 //-------------------------------- PaletteWindow -----------------------------
 
 #define PALW_DBCLK_TO_LOAD   (1<<16)
+#define PALW_READONLY        (1<<17)
+
 
 class PaletteWindow : public anXWindow
 {
@@ -85,10 +93,13 @@ class PaletteWindow : public anXWindow
 	int xn,yn;
 	double dx,dy;
 	ButtonDownInfo buttondown;
+
  public:
 	Palette *palette;
+	int pad;
 	int curcolor,ccolor;
 	IntRectangle inrect;
+
 	PaletteWindow(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
 		int xx,int yy,int ww,int hh,int brder,
 		anXWindow *prev,unsigned long nowner,const char *nsend);

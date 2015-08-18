@@ -46,6 +46,7 @@ class ColorBase
 	double oldcolor[5], color1[5],color2[5];
 	double *colors;
 
+	ColorBase();
 	ColorBase(int ctype, double c0,double c1,double c2,double c3=-1,double c4=-1);
 	virtual ~ColorBase();
 
@@ -58,6 +59,7 @@ class ColorBase
 	virtual void SetMax(int newmax);
 
 	virtual int SetSpecial(int newspecial);
+	virtual int Set(unsigned long color); 
 	virtual int Set(int newtype, double c0,double c1=-1,double c2=-1,double c3=-1,double c4=-1); 
 	virtual void SetRGB(double r,double g,double b,double a=-1);
 	virtual void SetGray(double g,double a=-1);

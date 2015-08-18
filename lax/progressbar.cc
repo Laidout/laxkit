@@ -103,6 +103,7 @@ void ProgressBar::Drawbar()
 {
 	if (win_w<4 || win_h<4 || win_w>1600 || win_h>1600) return;
 	DBG cerr <<"progress bar "<<WindowTitle()<<": "<<win_w<<','<<win_h<<endl;
+
 	if (win_style&PROGRESS_OVAL) {
 		int start=oldprogress,w;
 		if (needtodraw&1) { // drawall
@@ -128,6 +129,7 @@ void ProgressBar::Drawbar()
 		fill_arc_wh(this, w,0, win_w-2*w,win_h, 0,2*M_PI);
 		foreground_color(coloravg(win_colors->bg,win_colors->fg,progress/(float)max));
 		draw_arc_wh(this, w,0, win_w-2*w,win_h, 0,2*M_PI);
+
 	} else {
 		foreground_color(win_colors->fg);
 		fill_rectangle(this, 0,0,(int)((float) progress/(float)max * win_w),win_h);
@@ -140,6 +142,7 @@ void ProgressBar::Drawbar()
 void ProgressBar::Refresh()
 {
 	if (!win_on || !needtodraw || !max) return;
+	MakeCurrent();
 	Drawbar();
 	needtodraw=0;
 }

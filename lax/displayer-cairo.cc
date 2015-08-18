@@ -478,24 +478,25 @@ LaxCompositeOp DisplayerCairo::BlendMode(LaxCompositeOp mode)
 	LaxCompositeOp old=blendmode;
 	cairo_operator_t m=CAIRO_OPERATOR_OVER;
 
-	if (mode==LAXOP_Source        ) m=CAIRO_OPERATOR_SOURCE;
-	else if (mode==LAXOP_Over     ) m=CAIRO_OPERATOR_OVER;
-	else if (mode==LAXOP_Xor      ) m=CAIRO_OPERATOR_XOR;
-	else if (mode==LAXOP_In       ) m=CAIRO_OPERATOR_IN;
-	else if (mode==LAXOP_Out      ) m=CAIRO_OPERATOR_OUT;
-	else if (mode==LAXOP_Atop     ) m=CAIRO_OPERATOR_ATOP;
-	else if (mode==LAXOP_Dest     ) m=CAIRO_OPERATOR_DEST;
-	else if (mode==LAXOP_Dest_over) m=CAIRO_OPERATOR_DEST_OVER;
-	else if (mode==LAXOP_Dest_in  ) m=CAIRO_OPERATOR_DEST_IN;
-	else if (mode==LAXOP_Dest_out ) m=CAIRO_OPERATOR_DEST_OUT;
-	else if (mode==LAXOP_Dest_atop) m=CAIRO_OPERATOR_DEST_ATOP;
-	else if (mode==LAXOP_Xor      ) m=CAIRO_OPERATOR_XOR;
-	else if (mode==LAXOP_Add      ) m=CAIRO_OPERATOR_ADD;
-	else if (mode==LAXOP_Saturate ) m=CAIRO_OPERATOR_SATURATE;
+	if (mode==LAXOP_Source         ) m=CAIRO_OPERATOR_SOURCE;
+	else if (mode==LAXOP_Over      ) m=CAIRO_OPERATOR_OVER;
+	else if (mode==LAXOP_Xor       ) m=CAIRO_OPERATOR_XOR;
+	else if (mode==LAXOP_In        ) m=CAIRO_OPERATOR_IN;
+	else if (mode==LAXOP_Out       ) m=CAIRO_OPERATOR_OUT;
+	else if (mode==LAXOP_Atop      ) m=CAIRO_OPERATOR_ATOP;
+	else if (mode==LAXOP_Dest      ) m=CAIRO_OPERATOR_DEST;
+	else if (mode==LAXOP_Dest_over ) m=CAIRO_OPERATOR_DEST_OVER;
+	else if (mode==LAXOP_Dest_in   ) m=CAIRO_OPERATOR_DEST_IN;
+	else if (mode==LAXOP_Dest_out  ) m=CAIRO_OPERATOR_DEST_OUT;
+	else if (mode==LAXOP_Dest_atop ) m=CAIRO_OPERATOR_DEST_ATOP;
+	else if (mode==LAXOP_Add       ) m=CAIRO_OPERATOR_ADD;
+	else if (mode==LAXOP_Saturate  ) m=CAIRO_OPERATOR_SATURATE;
+	else if (mode==LAXOP_Multiply  ) m=CAIRO_OPERATOR_MULTIPLY;
+	else if (mode==LAXOP_Difference) m=CAIRO_OPERATOR_DIFFERENCE;
 	else mode=LAXOP_None;
-	
+
 	if (mode!=LAXOP_None) {
-		cairo_set_operator(cr,m);
+		if (cr) cairo_set_operator(cr,m);
 		blendmode=mode;
 	}
 
@@ -1014,16 +1015,13 @@ double DisplayerCairo::textout(double x,double y,const char *str,int len,unsigne
 
 	if (!curfont) initFont();
 
+	cairo_text_extents_t extents;
+	cairo_text_extents(cr, buffer, &extents);
 
     int ox,oy;
 	if (align&LAX_LEFT) ox=x;
-	else {
-		cairo_text_extents_t extents;
-		cairo_text_extents(cr, buffer, &extents);
-
-		if (align&LAX_RIGHT) ox=x-extents.width;
-		else ox=x-extents.width/2; //center
-	}
+	else if (align&LAX_RIGHT) ox=x-extents.width;
+	else ox=x-extents.width/2; //center
 
     if (align&LAX_TOP) oy=y+curfont_extents.ascent;
     else if (align&LAX_BOTTOM) oy=y-curfont_extents.descent;
@@ -1043,7 +1041,7 @@ double DisplayerCairo::textout(double x,double y,const char *str,int len,unsigne
 	//DBG drawpoint(x,y, 5,0);
 
 
-	return 0; // ***
+	return extents.x_advance;
 }
 
 double DisplayerCairo::textout(double *matrix,double x,double y,const char *str,int len,unsigned long align)
@@ -1106,52 +1104,91 @@ void DisplayerCairo::imageout(LaxImage *img,double x,double y)
 	LaxCairoImage *i=dynamic_cast<LaxCairoImage*>(img);
 
 	cairo_surface_t *t=i->Image();
-	cairo_set_source_surface(cr, t, 0,0);
-	if (mask) cairo_mask_surface(cr,mask,0,0);
-	else cairo_paint(cr);
-	img->doneForNow();
-}
+	if (t) {
+		cairo_save(cr);
+		//if (righthanded()) cairo_translate(cr,x,y);
+		//else {
+		//	cairo_translate(cr,x,y);
+		//}
 
-void DisplayerCairo::imageout(LaxImage *img,double *matrix)
-{
-	return;
-//***
-//	if (!img || img->imagetype()!=LAX_IMAGE_CAIRO) return; 
-//	LaxCairoImage *i=dynamic_cast<LaxCairoImage*>(img);
-//	PushAndNewTransform(matrix);
-//	imageout(img,0,0);
-//	PopAxes();
+		cairo_translate(cr,x,y);
+		cairo_scale(cr,1,-1);
+		cairo_translate(cr,0,-img->h());
+
+
+		cairo_set_source_surface(cr, t, 0,0);
+		if (mask) cairo_mask_surface(cr,mask,0,0);
+		else cairo_paint(cr);
+		img->doneForNow();
+		cairo_restore(cr);
+	}
 }
 
 int DisplayerCairo::imageout(LaxImage *image, double x,double y, double w,double h)
 {
+	if (w==0 && h==0) { w=image->w(); h=image->h(); }
+	if (w==0) { w=h*image->w()/image->h(); }
+	if (h==0) { h=w*image->h()/image->w(); }
+
 	double sx=w/image->w();
 	double sy=h/image->h();
 
+	//--------------------
+	//cairo_save(cr);
+	//cairo_matrix_t m;
+	//cairo_matrix_init(&m, sx,0,0,-sy, x,y+h);
+    //
+	//cairo_set_source_surface(cr, t, 0,0);
+	//if (mask) cairo_mask_surface(cr,mask,0,0);
+	//else cairo_paint(cr);
+    //
+	//***
+    //
+	//cairo_restore(cr);
+	//--------------------
 	double m[6];
-	m[0]=sx;
-	m[3]=sy;
+
+	transform_set(m, sx,0,0,sy, x,y);
+	//transform_set(m, sx,0,0,-sy, x,y+h);
+
 	PushAndNewTransform(m);
 	imageout(image,0,0);
 	PopAxes();
+	//--------------------
 
 	return 0;
 }
 
-void DisplayerCairo::imageout_rotated(LaxImage *img,double x,double y,double ulx,double uly)
+void DisplayerCairo::imageout(LaxImage *img,double *matrix)
 {
 	if (!img || img->imagetype()!=LAX_IMAGE_CAIRO) return; 
-	LaxCairoImage *i=dynamic_cast<LaxCairoImage*>(img);
-	if (!i) return;
+
+	PushAndNewTransform(matrix);
+	imageout(img,0,0);
+	PopAxes();
+}
+
+/*! Render such that the upper left corner is at (x,y) and upper right is at (ulx+urx,uly+ury).
+ * The height is adjusted to preserve aspect.
+ */
+void DisplayerCairo::imageout_rotated(LaxImage *img,double x,double y,double ulx,double uly)
+{
+	//if (!img || img->imagetype()!=LAX_IMAGE_CAIRO) return; 
+	//LaxCairoImage *i=dynamic_cast<LaxCairoImage*>(img);
+	//if (!i) return;
+
+	cerr <<" *** need to implement  DisplayerCairo::imageout_rotated()!!"<<endl;
 
 	return imageout(img,x,y); // ***
 }
 
 void DisplayerCairo::imageout_skewed(LaxImage *img,double x,double y,double ulx,double uly,double urx,double ury)
 {
-	if (!img || img->imagetype()!=LAX_IMAGE_CAIRO) return; 
-	LaxCairoImage *i=dynamic_cast<LaxCairoImage*>(img);
-	if (!i) return;
+	//if (!img || img->imagetype()!=LAX_IMAGE_CAIRO) return; 
+	//LaxCairoImage *i=dynamic_cast<LaxCairoImage*>(img);
+	//if (!i) return;
+
+	cerr <<" *** need to implement  DisplayerCairo::imageout_skewed()!!"<<endl;
 
 	return imageout(img,x,y); // ***
 }
@@ -1311,6 +1348,22 @@ void DisplayerCairo::NewTransform(double a,double b,double c,double d,double x0,
 	syncPanner();
 }
 
+void DisplayerCairo::ResetTransform()
+{
+	double *m;
+	while (axesstack.n) {
+		m=axesstack.pop();
+		delete[] m;
+		if (cr) cairo_restore(cr);
+	}
+
+	if (cr) {
+		cairo_matrix_t m;
+		cairo_matrix_init(&m, 1, 0, 0, 1, 0, 0);
+		cairo_set_matrix(cr, &m);
+	}
+}
+
 //! Push the current axes on the axessstack. Relying on cr existing is problematic.
 void DisplayerCairo::PushAxes()
 {
@@ -1325,18 +1378,28 @@ void DisplayerCairo::PushAxes()
 void DisplayerCairo::PopAxes()
 {
 	if (axesstack.n==0) return;
-	double *tctm=axesstack.pop();
-	transform_copy(ctm,tctm);
-	transform_invert(ictm,ctm);
-	delete[] tctm;
-	
+
 	if (cr) {
 		cairo_restore(cr);
 
 		cairo_matrix_t m;
-		cairo_matrix_init(&m, ctm[0], ctm[1], ctm[2], ctm[3], ctm[4], ctm[5]);
-		cairo_set_matrix(cr, &m);
+		//cairo_matrix_init(&m, ctm[0], ctm[1], ctm[2], ctm[3], ctm[4], ctm[5]);
+		//cairo_set_matrix(cr, &m);
+		cairo_get_matrix(cr, &m);
+		ctm[0]=m.xx;
+		ctm[1]=m.yx;
+		ctm[2]=m.xy;
+		ctm[3]=m.yy;
+		ctm[4]=m.x0;
+		ctm[5]=m.y0;
+
+	} else {
+		double *tctm=axesstack.pop();
+		transform_copy(ctm,tctm);
+		delete[] tctm;
 	}
+
+	transform_invert(ictm,ctm); 
 }
 
 int DisplayerCairo::DrawReal()

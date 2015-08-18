@@ -59,6 +59,27 @@ namespace Laxkit {
  * </pre>
  */
 
+/*! By default, max=65535.
+ */
+ColorBase::ColorBase()
+{
+	max=65535;
+
+	colorspecial=0; //1==none, 2=registration, 3==knockout
+	colortype=LAX_COLOR_RGB;
+	SetColorSystem(colortype);
+
+	colors=color1;
+	oldcolor[0]=colors[0]=color2[0]=0;
+	oldcolor[1]=colors[1]=color2[1]=0;
+	oldcolor[2]=colors[2]=color2[2]=0;
+	oldcolor[3]=colors[3]=color2[3]=1;
+	oldcolor[4]=colors[4]=color2[4]=0;
+
+	oldcolorspecial=colorspecial;
+	oldcolortype=colortype;
+}
+
 
 /*! By default, max=65535.
  */
@@ -314,7 +335,19 @@ int ColorBase::SetSpecial(int newspecial)
 	return old;
 }
 
-/*! Return 0 for success or 1 for error.
+//! Assume rgb, no a
+int ColorBase::Set(unsigned long color)
+{
+	return Set(LAX_COLOR_RGB,
+			((color&0xff0000)  >>16) /255.,
+			((color&0xff00)    >> 8)/255.,
+			((color&0xff)      >>0)/255.,
+			1.0, //((color&0xff000000)>>24)/255.,
+			1.0
+		 );
+}
+
+/*! Return 0 for success or 1 for error. newtype is one of BasicColorTypes.
  */
 int ColorBase::Set(int newtype, double c0,double c1,double c2,double c3,double c4)
 {

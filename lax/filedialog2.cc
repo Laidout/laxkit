@@ -599,7 +599,9 @@ int FileDialog2::init()
 
 	 //preview pane..
 	if (dialog_style&FILES_PREVIEW) {
-		last=previewer=new FilePreviewer(hstack,"previewer","previewer",MB_MOVE|MB_LEFT, 0,0,0,0, 0, NULL);
+		char *blah=fullFilePath(NULL);
+		last=previewer=new FilePreviewer(hstack,"previewer","previewer",MB_MOVE|MB_LEFT, 0,0,0,0, 1, blah);
+		delete[] blah;
 		hstack->AddWin(previewer,1, 100,50,500,50,0, 100,0,1000,50,0, -1);
 	}
 	hstack->WrapToExtent();

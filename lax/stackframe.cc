@@ -142,6 +142,8 @@ void StackFrame::Refresh()
 	needtodraw=0;
 	if (!list.n || gap<=0) return;
 
+	MakeCurrent();
+
 	unsigned long highlight, shadow;
 	highlight=coloravg(win_colors->bg,rgbcolor(255,255,255));
 	shadow=coloravg(win_colors->bg,rgbcolor(0,0,0));

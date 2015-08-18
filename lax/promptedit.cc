@@ -85,18 +85,21 @@ PromptEdit::PromptEdit(anXWindow *prnt,const char *nname,const char *ntitle,unsi
 						unsigned int ntstyle,const char *newtext)
 		: MultiLineEdit(prnt,nname,ntitle,nstyle,xx,yy,ww,hh,brder,prev,nowner,nsend,ntstyle,newtext)
 {
+
 	promptstring=newstr("> ");
 
 	history=NULL;
 	char *t=newstr(newtext);
 	appendstr(t,promptstring);
 	SetText(t);
+	delete[] t;
 	start=textlen;
 
 	LaxFont *font=app->fontmanager->MakeFontFromStr("Courier",getUniqueNumber());
+	font->Resize(20);
 	//LaxFont *font=app->fontmanager->MakeFontFromStr(":spacing=100",getUniqueNumber());
 	UseThisFont(font);
-	font->dec_count();
+	font->dec_count(); 
 }
 
 //! Delete history list.
@@ -125,6 +128,7 @@ char *PromptEdit::process(const char *in)
 int PromptEdit::ProcessInput(const char *thisexpression)
 {
 	DBG cerr <<"--------- start ProcessInput"<<endl;
+
 	HistoryNode *newentry=new HistoryNode();
 	newentry->inputstart=start;
 	newentry->inputlen=textlen-start;
@@ -149,6 +153,7 @@ int PromptEdit::ProcessInput(const char *thisexpression)
 		history=newentry;
 		history->next=history->prev=history;
 		numhistory=1;
+
 	} else {
 		if (maxhistory>1 && numhistory+1>maxhistory) {
 			 // del oldest history
@@ -214,7 +219,15 @@ int PromptEdit::CharInput(unsigned int ch,const char *buffer,int len,unsigned in
 //		move up and down through outputs/inputs
 //	} else return MultiLineEdit::CharInput(ch,buffer,len,state);
 //------------------------
+
 	if (ch==LAX_Enter) {
+		if (curpos<start) {
+			SetCurpos(-1);
+			findcaret();
+			makeinwindow();
+			needtodraw=1;
+			return 0;
+		}
 		ProcessInput();
 		return 0;
 	}

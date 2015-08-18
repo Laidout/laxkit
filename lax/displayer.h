@@ -200,6 +200,7 @@ class Displayer : public PanUser, virtual public anObject
 
 	virtual void PushAxes() = 0;
 	virtual void PopAxes() = 0;
+	virtual void ResetTransform() = 0;
 	virtual void NewTransform(double a,double b,double c,double d,double x0,double y0) = 0;
 	virtual void NewTransform(const double *d);
 	virtual void PushAndNewTransform(const double *m);

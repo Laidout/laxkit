@@ -532,7 +532,10 @@ int LineEdit::CharInput(unsigned int ch,const char *buffer,int len,unsigned int 
 {
 	DBG cerr <<"########LineEdit::CharInput"<<endl;
 
-	if (!thefont) { cout <<"No font in "<<WindowTitle()<<endl; return 1; }
+	if (!thefont) {
+		cerr <<"No font in "<<WindowTitle()<<"! This shouldn't happen."<<endl;
+		return anXWindow::CharInput(ch,buffer,len,state,d);;
+	}
 
 	int c=0;
 	if ((ch==LAX_Tab && !(win_style&LINEEDIT_CNTLTAB_NEXT)) 
@@ -609,6 +612,7 @@ int LineEdit::CharInput(unsigned int ch,const char *buffer,int len,unsigned int 
 			}
 			SetupMetrics();
 			findcaret();
+			makeinwindow();
 			needtodraw=1;
 			return 0;
 
@@ -736,6 +740,7 @@ int LineEdit::CharInput(unsigned int ch,const char *buffer,int len,unsigned int 
 int LineEdit::Setpixwide() 
 {
 	DBG cerr <<"---setpixwide clo:"<<curlineoffset<<"  cx="<<cx<<" mostpixwide="<<mostpixwide<<endl;
+
 	mostpixwide=GetExtent(0,textlen,0);
 	if (mostpixwide>win_w-2*padx) { // line is too long for window
 		if (win_w-padx-(mostpixwide-curlineoffset)>0) // gap on the right
@@ -746,6 +751,7 @@ int LineEdit::Setpixwide()
 		needtodraw=1;
 		return 0;
 	}
+
 	 // else whole line fits in window
 	if (textstyle&TEXT_LEFT) curlineoffset=-padx;
 	else if (textstyle&TEXT_CENTER) curlineoffset=-(win_w-mostpixwide)/2;
@@ -1064,6 +1070,14 @@ int LineEdit::MouseMove(int x,int y,unsigned int state,const LaxMouse *d)
 					
 }
 
+int LineEdit::UseThisFont(LaxFont *newfont)
+{
+	TextXEditBaseUtf8::UseThisFont(newfont);
+	//findcaret();
+	//makeinwindow();
+	return 1;
+}
+
 int LineEdit::SetupMetrics()
 { 
 	TextXEditBaseUtf8::SetupMetrics();
@@ -1072,7 +1086,7 @@ int LineEdit::SetupMetrics()
 	Setpixwide();
 	findcaret();
 	makeinwindow();
-	return 1;
+	return 0;
 }
 
 void LineEdit::DrawText(int)

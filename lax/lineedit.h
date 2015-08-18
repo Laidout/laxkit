@@ -114,6 +114,7 @@ class LineEdit : public TextXEditBaseUtf8
 	virtual void findcaret();
 	virtual int Setpixwide(); 
 	virtual int SetupMetrics();
+	virtual int UseThisFont(LaxFont *newfont);
 	virtual void DrawText(int a=-1);
 
     virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *savecontext);

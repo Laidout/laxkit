@@ -230,6 +230,9 @@ int FilePreviewer::Preview(const char *file)
 	int c;
 	c=fread(buffer,sizeof(char),1024,f);
 	buffer[c]='\0';
+	for (int cc=0; cc<c; cc++) {
+		if (buffer[cc]<32 && buffer[cc]!='\n') buffer[cc]='.';
+	}
 	fclose(f);
 	SetText(buffer);//***todo: fill window, not do standard messagebar? redefine SetText?
 	return 0;
@@ -263,15 +266,19 @@ int FilePreviewer::Preview(const char *file)
 void FilePreviewer::Refresh()
 {
 	if (!win_on || !needtodraw) return;
+
+	Displayer *dp=MakeCurrent();
+	
 	if (state!=3) { 
 		MessageBar::Refresh(); 
 		needtodraw=0;
+
 	} else {
 		needtodraw=0;
 
-		background_color(win_colors->bg);
-		foreground_color(win_colors->fg);
-		clear_window(this);
+		dp->NewBG(win_colors->bg);
+		dp->NewFG(win_colors->fg);
+		dp->ClearWindow();
 		
 		if (image) {
 			int w,h;
@@ -289,7 +296,11 @@ void FilePreviewer::Refresh()
 			w=int(w*scale);
 			h=int(h*scale);
 			//image_out_rotated(image, this, win_w/2-w/2,win_h/2-h/2, win_w/2+w/2,win_h/2-h/2);
-			image_out_rotated(image, this, win_w/2-w/2,win_h/2-h/2, w,0);
+			//image_out_rotated(image, this, win_w/2-w/2,win_h/2-h/2, w,0);
+			//dp->imageout(image, win_w/2-w/2,win_h/2-h/2, w,-h);
+
+			dp->imageout(image, win_w/2-w/2,win_h/2+h/2, w,-h);
+
 		} else {
 			MessageBar::Refresh();
 		}
@@ -303,20 +314,22 @@ void FilePreviewer::Refresh()
 			text=newstr(text);
 			prependstr(text,"...");
 		}
+
 		if (win_style&FILEPREV_SHOW_DIMS && image) {
 			 // add on dimensions..
 			char extra[50];
 			sprintf(extra,", %dx%d",image->w(),image->h());
 			appendstr(text,extra);
 		}
+
 		double w,h;
-		getextent(text,-1,&w,&h);
-		foreground_color(win_colors->bg);
-		fill_rectangle(this, win_w/2-w/2 - 2,win_h-h - 4,w+4,h+4);
-		draw_thing(this, win_w/2-w/2-2,win_h-h/2-2, h/2,h/2+2, 1,THING_Circle);
-		draw_thing(this, win_w/2+w/2+2,win_h-h/2-2, h/2,h/2+2, 1,THING_Circle);
-		foreground_color(win_colors->fg);
-		textout(this, text,-1,win_w/2,win_h-2,LAX_HCENTER|LAX_BOTTOM);
+		dp->textextent(text,-1,&w,&h);
+		dp->NewFG(win_colors->bg);
+		dp->drawrectangle(win_w/2-w/2 - 2,win_h-h - 4,w+4,h+4, 1);
+		dp->drawthing(win_w/2-w/2-2,win_h-h/2-2, h/2,h/2+2, 1,THING_Circle);
+		dp->drawthing(win_w/2+w/2+2,win_h-h/2-2, h/2,h/2+2, 1,THING_Circle);
+		dp->NewFG(win_colors->fg);
+		dp->textout(win_w/2,win_h-2, text,-1, LAX_HCENTER|LAX_BOTTOM);
 		delete[] text;
 
 		if (image) {
@@ -324,18 +337,17 @@ void FilePreviewer::Refresh()
 			char size[50];
 			sprintf(size,"%d x %d",image->w(),image->h());
 
-			getextent(size,-1,&w,&h);
-			foreground_color(win_colors->bg);
-			fill_rectangle(this, win_w/2-w/2 - 2,win_h-2*h - 4,w+4,h+4);
-			draw_thing(this, win_w/2-w/2-2,win_h-h/2-2-h, h/2,h/2+2, 1,THING_Circle);
-			draw_thing(this, win_w/2+w/2+2,win_h-h/2-2-h, h/2,h/2+2, 1,THING_Circle);
-			foreground_color(win_colors->fg);
-			textout(this, size,-1,win_w/2,win_h-2-h,LAX_HCENTER|LAX_BOTTOM);
+			dp->textextent(size,-1,&w,&h);
+			dp->NewFG(win_colors->bg);
+			dp->drawrectangle(win_w/2-w/2 - 2,win_h-2*h - 4,w+4,h+4, 1);
+			dp->drawthing(win_w/2-w/2-2,win_h-h/2-2-h, h/2,h/2+2, 1,THING_Circle);
+			dp->drawthing(win_w/2+w/2+2,win_h-h/2-2-h, h/2,h/2+2, 1,THING_Circle);
+			dp->NewFG(win_colors->fg);
+			dp->textout(win_w/2,win_h-2-h, size,-1, LAX_HCENTER|LAX_BOTTOM);
 		}
 		
 	}
 	
-	//cout <<"done  ";
 	return;
 }
 

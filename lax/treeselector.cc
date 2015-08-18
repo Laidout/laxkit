@@ -787,7 +787,10 @@ int TreeSelector::findRect(int c,IntRectangle *itemspot)
 void TreeSelector::Refresh()
 {
 	if (!win_on || !needtodraw) return;
-	clear_window(this);
+
+	Displayer *dp=MakeCurrent();
+	dp->ClearWindow();
+	dp->LineAttributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
 
 	 // Draw title if necessary
 	if (menustyle&TREESEL_USE_TITLE) drawtitle();
@@ -1206,7 +1209,7 @@ void TreeSelector::drawitemnameOLD(MenuItem *mitem,IntRectangle *rect)
 void TreeSelector::drawsep(const char *name,IntRectangle *rect)
 {
 	foreground_color(win_colors->grayedfg); 
-	draw_line(this, rect->x,rect->y+rect->height/2, rect->x+rect->width-1,rect->y+rect->height/2);
+	draw_line(this, rect->x,int(rect->y+rect->height/2)+.5, rect->x+rect->width-1,int(rect->y+rect->height/2)+.5);
 	if (!isblank(name)) {
 		int extent=getextent(name, -1, NULL, NULL, NULL, NULL, 0);
 		 //blank out area

@@ -114,7 +114,10 @@ void NumSlider::wraptoextent()
 void NumSlider::Refresh()
 { 
 	if (!win_on || !needtodraw) return;
-	clear_window(this);
+
+
+	Displayer *dp=MakeCurrent();
+	dp->ClearWindow();
 
 
 	 //draw arrows
@@ -124,10 +127,10 @@ void NumSlider::Refresh()
 
 	 // draw left arrow
 	foreground_color(coloravg(win_colors->bg,win_colors->fg,.2));
-	draw_thing(this, ww/2,win_h/2, ww/2,hh/2, hover==LAX_LEFT?1:0, THING_Triangle_Left);
+	draw_thing(this, hh/2,win_h/2, hh/2,hh/2, hover==LAX_LEFT?1:0, THING_Triangle_Left);
 
 	 // draw right arrow
-	draw_thing(this, win_w-ww/2,win_h/2, ww/2,hh/2, hover==LAX_RIGHT?1:0, THING_Triangle_Right);
+	draw_thing(this, win_w-hh/2,win_h/2, hh/2,hh/2, hover==LAX_RIGHT?1:0, THING_Triangle_Right);
 
 
 	 //draw number

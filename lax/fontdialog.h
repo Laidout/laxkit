@@ -27,11 +27,11 @@
 #include <lax/rowframe.h>
 #include <lax/lineinput.h>
 #include <lax/menuselector.h>
+#include <lax/numslider.h>
 
-
-#define FONTD_NO_DEL_WIN (1<<16)
 
 namespace Laxkit {
+
 
 //-------------------------------------- FontDialogFont -------------------------------------
 /*! \class FontDialogFont
@@ -44,12 +44,17 @@ class FontDialogFont
 	char *style;
 	char *file;
 	double size;
+	LaxImage *preview;
 
 	FontDialogFont();
 	virtual ~FontDialogFont();
 };
 
+
 //-------------------------------------- FontDialog -------------------------------------
+
+#define FONTD_NO_DEL_WIN (1<<16)
+
 class FontDialog : public RowFrame
 {
  protected:
@@ -59,9 +64,12 @@ class FontDialog : public RowFrame
 	unsigned long dialog_style;
 	PtrStack<FontDialogFont> fonts;
 	int currentfont;
+
 	MenuSelector *fontlist;
 	LineEdit *text;
-	LineInput *fontfamily, *fontstyle, *fontsize, *fontfile;
+	LineInput *fontfamily, *fontstyle, *fontfile;
+	LineInput *search;
+	NumSlider *fontsize;
 
  public:
 	FontDialog(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
@@ -80,6 +88,7 @@ class FontDialog : public RowFrame
 	virtual void UpdateStyles();
 	virtual void UpdateSample();
 };
+
 
 } // namespace Laxkit
 

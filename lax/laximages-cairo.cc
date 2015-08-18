@@ -349,6 +349,7 @@ cairo_surface_t *LaxCairoImage::Image(int which)
 			whichimage=0;
 		}
 	}
+
 	if (!image) {
 		if (previewfile && dwidth>0 && (which==0 || which==2)) {
 			 //if request default and preview exists
@@ -361,6 +362,7 @@ cairo_surface_t *LaxCairoImage::Image(int which)
 			whichimage=image?1:0;
 		}
 	} 
+
 	display_count++;
 	return image;
 }
@@ -444,7 +446,7 @@ void laxcairo_image_out(LaxImage *image, aDrawable *win, int ulx, int uly)
 }
 
 /*! \ingroup laximages
- * Set image, set drawable, then uses cairo_render_image_on_drawable_at_angle().
+ * Set image, set drawable, then uses Displayer::imageout_rotated().
  */
 void laxcairo_image_out_rotated(LaxImage *image, aDrawable *win, int ulx,int uly, int urx,int ury)
 {
@@ -489,6 +491,10 @@ LaxImage *load_cairo_image(const char *filename)
 	if (!filename) return NULL;
 	cairo_surface_t *image;
 	image=cairo_image_surface_create_from_png(filename);
+	if (cairo_surface_status(image)!=CAIRO_STATUS_SUCCESS) {
+		cairo_surface_destroy(image);
+		image=NULL;
+	}
 	if (!image) return NULL;
 	LaxCairoImage *img=new LaxCairoImage(filename,image);
 	img->doneForNow();

@@ -491,7 +491,9 @@ int FileDialog::init()
 	AddWin(filelist,1, 200,100,1000,50,0, 30,0,1000,50,0, finalbuttons++);
 
 	if (dialog_style&FILES_PREVIEW) {
-		last=previewer=new FilePreviewer(this,"previewer",NULL,MB_MOVE|MB_CENTER, 0,0,0,0, 1, NULL);
+		char *blah=fullFilePath(NULL);
+		last=previewer=new FilePreviewer(this,"previewer",NULL,MB_MOVE|MB_CENTER, 0,0,0,0, 1, blah);
+		delete[] blah;
 		AddWin(previewer,1, 100,50,500,50,0, 30,0,1000,50,0, finalbuttons++);
 	}
 	AddNull(finalbuttons++);
