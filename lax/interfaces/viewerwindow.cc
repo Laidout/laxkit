@@ -187,6 +187,15 @@ int ViewerWindow::init()
 	
 	AddWin(mesbar,1, 30,0,10000,50,0, rulerh,0,0,50,0, -1);
 
+	//add a final corner config button with zoom options:
+	//  zoom 1:1                1
+	//  zoom in                 =
+	//  zoom out                -
+	//  clear zoom rotation     '\'
+	//  rotate view +/-90 deg   [  ]
+	//  reset view              +' '
+	//  center                  ' '
+
 	Sync(1);
 	viewport->UseTheseRulers(xruler,yruler);
 	viewport->UseTheseScrollers(xscroller,yscroller);

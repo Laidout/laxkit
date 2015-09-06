@@ -680,7 +680,9 @@ int ColorPatchData::subdivide(int xn,int yn) //xn,yn=2
 ColorPatchInterface::ColorPatchInterface(int nid,Displayer *ndp) : PatchInterface(nid,ndp)
 {
 	cdata=NULL;
-	rendermode=1;
+	rendermode=2;
+	//rendermode=1;
+	drawrendermode=2;
 	recurse=5;
 	//recurse=0;
 }
@@ -853,6 +855,7 @@ void ColorPatchInterface::drawControlPoint(int i)
 	} else color=controlcolor;
 
 	dp->DrawScreen();
+	dp->LineWidthScreen(1);
 	dp->NewFG(color);
 	dp->drawpoint((int)p.x,(int)p.y,5,1);
 	dp->NewFG(~0);
@@ -867,6 +870,36 @@ int ColorPatchInterface::DrawData(anObject *ndata,anObject *a1,anObject *a2,int 
 {
 	if (!ndata || dynamic_cast<ColorPatchData *>(ndata)==NULL) return 1;
 	return PatchInterface::DrawData(ndata,a1,a2,info);
+}
+
+int ColorPatchInterface::Refresh()
+{
+    if (!dp || !needtodraw) return 0;
+    if (!data) {
+        if (needtodraw) needtodraw=0;
+        return 1;
+    }
+
+	cdata=dynamic_cast<ColorPatchData*>(data);
+
+	if (rendermode!=2) return PatchInterface::Refresh();
+
+
+	dp->setMesh(data->MeshHeight(), data->MeshWidth(), data->points, cdata->colors);
+	//dp->drawbez(data->boundary_outline, data->npoints_boundary, 1, 1);
+	dp->drawrectangle(data->minx,data->miny, data->maxx-data->minx, data->maxy-data->miny, 1);
+    
+         
+    // draw control points;
+    if (showdecs) drawControls();
+
+    needtodraw=0;
+    return 0; 
+}
+
+void ColorPatchInterface::drawpatch2(int roff,int coff)
+{
+	
 }
 
 //! Draws one patch.

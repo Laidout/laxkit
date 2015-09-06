@@ -577,9 +577,10 @@ void Scroller::Refresh()
 	//DBG cerr <<"REFRESH "<<WindowTitle()<<endl;
 
 	// blank out whole window
-	clear_window(this);
-	drawing_line_attributes(0,LineSolid,LAXCAP_Butt,LAXJOIN_Miter);
-	drawing_function(LAXOP_Source);
+	Displayer *dp=MakeCurrent();
+	dp->ClearWindow();
+	dp->LineAttributes(1,LineSolid,LAXCAP_Butt,LAXJOIN_Miter);
+	dp->BlendMode(LAXOP_Over);
 
 	drawtrack(); // draws the track including arrows
 	drawtrackbox();

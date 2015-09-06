@@ -173,12 +173,17 @@ LaxCairoImage::~LaxCairoImage()
 	}
 }
 
+/*! MUST be followed up with call to doneWithBuffer().
+ */
 unsigned char *LaxCairoImage::getImageBuffer()
 {
 	if (!image) image=Image();
+	DBG cerr <<" LaxCairoImage::getImageBuffer()"<<endl;
 
 	 //cairo buffers have premultiplied alpha
+	cairo_surface_flush(image);
 	unsigned char *buffer=cairo_image_surface_get_data(image);
+
 	int width =cairo_image_surface_get_width(image);
 	int height=cairo_image_surface_get_height(image);
 	int stride=cairo_image_surface_get_stride(image);
@@ -209,6 +214,8 @@ int LaxCairoImage::doneWithBuffer(unsigned char *bbuffer)
 	if (!image) image=Image();
 	if (!image) return 1;
 
+	DBG cerr <<" LaxCairoImage::doneWithBuffer()"<<endl;
+
 	 //cairo buffers have premultiplied alpha
 	unsigned char *buffer=cairo_image_surface_get_data(image);
 	int width =cairo_image_surface_get_width(image);
@@ -228,7 +235,7 @@ int LaxCairoImage::doneWithBuffer(unsigned char *bbuffer)
 
 
 
-	delete[] buffer;
+	delete[] bbuffer;
 	cairo_surface_mark_dirty (image);
 
 	return 0;

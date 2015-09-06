@@ -653,6 +653,7 @@ int ImageInterface::Refresh()
 	//DBG cerr <<"  ImageRefresh";
 
 	dp->LineAttributes(1,LineSolid,CapRound,JoinRound);
+	dp->BlendMode(LAXOP_Over);
 		
 	 // find the screen box to draw into
 	 // these still need the 'dp->' because dp was transformed to space immediately holding data already
@@ -685,6 +686,7 @@ int ImageInterface::Refresh()
 	
 	dp->NewFG(controlcolor);
 
+	//if (0) {
 	if (showdecs&2) {
 		//draw the image
 		
@@ -699,10 +701,13 @@ int ImageInterface::Refresh()
 			dp->drawline(ur,lr);
 			dp->drawline(lr,ll);
 			dp->drawline(ll,ul);
+
 			int up=-1;
 			if (dp->righthanded()) up=1; //flip if dp is +y==up
-			flatpoint p=(ll+lr+ul+ur)/4, //center of image
-					  tip=p+up*((ul+ur)/2-p)*2/3; //tip of an arrow from center, 2/3 toward up direction
+			
+			flatpoint p=(ll+lr+ul+ur)/4; //center of image
+			flatpoint tip=p+up*((ul+ur)/2-p)*2/3; //tip of an arrow from center, 2/3 toward up direction
+
 			if (status==-1) {
 				 // undefined image, draw big x
 				dp->drawline(ul,lr);
@@ -711,6 +716,7 @@ int ImageInterface::Refresh()
 				dp->drawline(p,tip);
 				dp->drawline(tip,tip+((ll+ul)/2-tip)/5);
 				dp->drawline(tip,tip+((lr+ur)/2-tip)/5);
+
 			} else {
 				 // broken image
 				dp->NewFG((unsigned long)0);
@@ -734,6 +740,7 @@ int ImageInterface::Refresh()
 
 				DBG cerr <<"******************************broken image: "<<data->filename<<endl;
 			}
+
 			dp->DrawReal();
 		} //dp->imageOut returned negative
 	} //showdecs==2
@@ -748,7 +755,8 @@ int ImageInterface::Refresh()
 		dp->drawline(ur,lr);
 		dp->drawline(lr,ll);
 		dp->drawline(ll,ul);
-//		dp->NewFG(controlcolor);
+	
+		dp->NewFG(controlcolor);
 		dp->DrawReal();
 	}
 
@@ -1052,6 +1060,8 @@ enum ImageInterfaceActions {
 	II_Rectify,
 	II_Decorations,
 	II_ToggleLabels,
+	II_FlipH,
+	II_FlipV,
 	II_MAX
 };
 
@@ -1066,10 +1076,12 @@ Laxkit::ShortcutHandler *ImageInterface::GetShortcuts()
 
 	sc=new ShortcutHandler(whattype());
 
-	sc->Add(II_Normalize,    'n',0,0,         "Normalize",  _("Normalize"),NULL,0);
-	sc->Add(II_Rectify,      'N',ShiftMask,0, "Rectify",    _("Clear aspect and rotation"),NULL,0);
-	sc->Add(II_Decorations,  'd',0,0,         "Decorations",_("Toggle decorations"),NULL,0);
-	sc->Add(II_ToggleLabels, 'f',0,0,         "Labels",     _("Toggle labels"),NULL,0);
+	sc->Add(II_Normalize,    'n',0,0,         "Normalize",     _("Normalize"),NULL,0);
+	sc->Add(II_Rectify,      'N',ShiftMask,0, "Rectify",       _("Clear aspect and rotation"),NULL,0);
+	sc->Add(II_Decorations,  'd',0,0,         "Decorations",   _("Toggle decorations"),NULL,0);
+	sc->Add(II_ToggleLabels, 'f',0,0,         "Labels",        _("Toggle labels"),NULL,0);
+	sc->Add(II_FlipH,        'h',0,0,         "FlipHorizontal",_("Flip horizontally"),NULL,0);
+	sc->Add(II_FlipV,        'v',0,0,         "FlipVertical",  _("Flip vertically"),NULL,0);
 
 	manager->AddArea(whattype(),sc);
 	return sc;
@@ -1084,6 +1096,22 @@ int ImageInterface::PerformAction(int action)
 			data->xaxis(flatpoint(x,0));
 		}
 		data->yaxis(transpose(data->xaxis()));
+		needtodraw=1;
+		return 0;
+
+	} else if (action==II_FlipH) {
+		if (!data) return 0;
+		data->Flip(1);
+		//data->Flip(data->transformPoint(flatpoint(data->minx, (data->miny+data->maxy)/2)),
+				   //data->transformPoint(flatpoint(data->maxx, (data->miny+data->maxy)/2)));
+		needtodraw=1;
+		return 0;
+
+	} else if (action==II_FlipV) {
+		if (!data) return 0;
+		data->Flip(0);
+		//data->Flip(data->transformPoint(flatpoint((data->minx+data->maxx)/2, data->miny)),
+				   //data->transformPoint(flatpoint((data->minx+data->maxx)/2, data->maxy)));
 		needtodraw=1;
 		return 0;
 

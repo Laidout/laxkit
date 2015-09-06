@@ -931,7 +931,8 @@ int GradientData::renderToBuffer(unsigned char *buffer, int bufw, int bufh, int 
 //! Default is a linear black to red.
 GradientInterface::GradientInterface(int nid,Displayer *ndp) : anInterface(nid,ndp)
 {
-	usepreview=1;
+	usepreview=0;
+	//usepreview=1;
 	controlcolor=rgbcolor(0,148,178); 
 
 	//col1.red =col1.blue =0; col1.green=col1.alpha=0xffff;
@@ -1106,6 +1107,32 @@ int GradientInterface::DrawData(anObject *ndata,anObject *a1,anObject *a2,int)
 	return 1;
 }
 
+void GradientInterface::drawLinear2()
+{
+	flatpoint p1(data->p1,0);
+	flatpoint p2(data->p2,0);
+
+	double offsets[data->colors.n];
+	ScreenColor colors[data->colors.n];
+
+	for (int c=0; c<data->colors.n; c++) {
+		offsets[c]=data->GetNormalizedT(c);
+		colors[c] =data->colors.e[c]->color;
+	}
+
+	dp->setLinearGradient(3, p1.x,p1.y, p2.x,p2.y, offsets, colors, data->colors.n);
+
+	//flatpoint v1=flatpoint(0,data->r1) - flatpoint(0,0);
+	//flatpoint v2=flatpoint(0,data->r2) - flatpoint(0,0);
+
+	dp->moveto(data->p1,data->r1);
+	dp->lineto(data->p2,data->r1);
+	dp->lineto(data->p2,-data->r2);
+	dp->lineto(data->p1,-data->r2);
+	dp->closed();
+	dp->fill(0);
+}
+
 //! Draw linear gradient. Called from Refresh.
 /*! This assumes that dp has transform to object space.
  *
@@ -1141,6 +1168,7 @@ void GradientInterface::drawLinear()
 			col0.green=data->colors.e[c+1]->color.green;
 			col0.blue =data->colors.e[c+1]->color.blue;
 			col0.alpha=data->colors.e[c+1]->color.alpha;
+
 		} else {//go in increasing x dir
 			v=x1-x0;
 			col0.red  =data->colors.e[ c ]->color.red;
@@ -1152,9 +1180,11 @@ void GradientInterface::drawLinear()
 			col1.blue =data->colors.e[c+1]->color.blue;
 			col1.alpha=data->colors.e[c+1]->color.alpha;
 		}
+
 		if (v.x>fabs(v.y)) { // for each x pixel..
 			//start=(int)x0.x; 
 			len=(int)(v.x+.5); 
+
 		} else { // for each y pixel
 			//start=(int)x0.y;
 			len=(int)(v.y+.5);
@@ -1167,6 +1197,7 @@ void GradientInterface::drawLinear()
 				x0=x1;
 			}
 		}
+		
 		v1=dp->realtoscreen(flatpoint(0,data->r1)) - dp->realtoscreen(flatpoint(0,0));
 		v2=dp->realtoscreen(flatpoint(0,data->r2)) - dp->realtoscreen(flatpoint(0,0));
 
@@ -1308,18 +1339,21 @@ int GradientInterface::Refresh()
 			DBG if (d) cerr<<"- - - gradient didn't used preview image"<<endl;
 			DBG else cerr <<"- - - gradient used preview image "<<preview->w()<<"x"<<preview->h()<<endl;
 		}
+
 		if (d) {
 			if (data->style&GRADIENT_RADIAL) drawRadial();
-			else drawLinear(); // is GRADIENT_LINEAR
+			//else drawLinear(); // is GRADIENT_LINEAR
+			else drawLinear2(); // is GRADIENT_LINEAR
 		}
 	}
 
 	// draw control points
 	if (showdecs&1) { 
-		dp->LineAttributes(0,LineSolid,LAXCAP_Butt,LAXJOIN_Miter);
-		dp->BlendMode(LAXOP_Source);
+		dp->BlendMode(LAXOP_Over);
 		dp->NewFG(controlcolor);
 		dp->DrawReal();
+		dp->LineWidthScreen(1);
+
 		flatpoint p;
 		int c;
 
@@ -1329,6 +1363,7 @@ int GradientInterface::Refresh()
 
 		// draw the spots (draw open)
 		dp->DrawScreen();
+		dp->LineWidthScreen(1);
 		for (int c=0; c<data->colors.n; c++) {
 			p=dp->realtoscreen(getpoint(c,0));
 			dp->NewFG(&data->colors.e[c]->color);
@@ -1359,10 +1394,10 @@ int GradientInterface::Refresh()
 			ur=flatpoint(data->p2,data->r1);
 			ll=flatpoint(data->p1,-data->r2);
 			lr=flatpoint(data->p2,-data->r2);
-			dp->LineAttributes(6,LineSolid,LAXCAP_Butt,LAXJOIN_Miter);
+			dp->LineWidthScreen(6);
 			dp->NewFG(controlcolor);
+
 			if (data->style&GRADIENT_RADIAL) {
-				//*** imp me!
 				if (curpoint==GP_r1) {
 					drawRadialLine(0);
 				} else if (curpoint==GP_r2) {
@@ -1379,13 +1414,14 @@ int GradientInterface::Refresh()
 					dp->drawline(ll,lr);
 				}
 			}
-			dp->LineAttributes(0,LineSolid,LAXCAP_Butt,LAXJOIN_Miter);
 		}
 
 
 		//draw selected color spots bigger
 		if (curpoints.n) {
 			dp->DrawScreen();
+			dp->LineWidthScreen(1);
+
 			for (c=0; c<curpoints.n; c++) {
 				p=dp->realtoscreen(getpoint(curpoints.e[c],0));
 				dp->NewFG(&data->colors.e[curpoints.e[c]]->color);
@@ -1395,7 +1431,7 @@ int GradientInterface::Refresh()
 			}
 			dp->DrawReal();
 		}
-		dp->BlendMode(LAXOP_Source);
+		dp->BlendMode(LAXOP_Over);
 		dp->DrawReal();
 
 	}
@@ -1422,16 +1458,20 @@ flatpoint GradientInterface::getpoint(int c, int trans)
 {
 	if (!data || !(c>=-4 && c<data->colors.n)) return flatpoint();
 	flatpoint p;
+
 	if (c==GP_a) {
 		if (data->style&GRADIENT_RADIAL) 
 			p=flatpoint(data->p1+cos(data->a)*data->r1,sin(data->a)*data->r1);
 		else p=flatpoint(0,data->a);
+
 	} else if (c==GP_r1) //r1
 		if (data->style&GRADIENT_RADIAL) p=flatpoint(data->p1,data->r1);
 		else p=flatpoint(0,data->r1);
+
 	else if (c==GP_r2) //r2
 		if (data->style&GRADIENT_RADIAL) p=flatpoint(data->p2,data->r2);
 		else p=flatpoint(0,-data->r2);
+
 	else if (c==GP_p2) p.x=data->p2;
 	else if (c==GP_p1) p.x=data->p1;
 	else {
@@ -1451,6 +1491,7 @@ flatpoint GradientInterface::getpoint(int c, int trans)
 			p=p1+(data->colors.e[c]->t-cstart)/clen*(p2-p1);
 		}
 	}
+
 	if (trans) p=transform_point(data->m(),p);
 	return p;
 }

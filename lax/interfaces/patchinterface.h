@@ -250,6 +250,7 @@ class PatchInterface : public anInterface
 	int mousedragged;
 	virtual int findNearHorizontal(flatpoint fp,double d,double *t_ret,int *i_ret);
 	virtual int   findNearVertical(flatpoint fp,double d,double *t_ret,int *i_ret);
+	virtual void drawControls();
 	virtual void drawControlPoints();
 	virtual void drawControlPoint(int i);
 	virtual int ActivatePathInterface();

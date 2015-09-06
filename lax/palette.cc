@@ -525,7 +525,7 @@ void PaletteWindow::Refresh()
 	 // draw head stuff
 	const char *blah;
 	dp->NewFG(win_colors->bg);
-	dp->BlendMode(LAXOP_Source);
+	dp->BlendMode(LAXOP_Over);
 	dp->drawrectangle(0,0,win_w,app->defaultlaxfont->textheight(), 1);
 			
 	if (palette->name) blah=palette->name; else blah="(untitled)";

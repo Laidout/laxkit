@@ -185,7 +185,8 @@ class PathsData : virtual public SomeData
 	LineStyle *linestyle; //!< This is the default line style for any paths that are added.
 	FillStyle *fillstyle; //!< This is the fill style for the collection of paths
 
-	PathsData(unsigned long ns=(unsigned long)PATHS_Ignore_Weights);
+	//PathsData(unsigned long ns=(unsigned long)PATHS_Ignore_Weights);
+	PathsData(unsigned long ns=0);
 	virtual ~PathsData();
 	virtual const char *whattype() { return "PathsData"; }
 	virtual void FindBBox();
@@ -460,7 +461,7 @@ class PathInterface : public anInterface
 	PathsData *data;
 	ObjectContext *poc;
 
-	PathInterface(int nid,Laxkit::Displayer *ndp);
+	PathInterface(int nid,Laxkit::Displayer *ndp, unsigned long nstyle=PATHI_Render_With_Cache);
 	virtual ~PathInterface();
 	virtual Laxkit::ShortcutHandler *GetShortcuts();
 	virtual anInterface *duplicate(anInterface *dup);

@@ -552,9 +552,9 @@ void ImagePatchInterface::drawpatch(int roff,int coff)
 		}
 	}
 	bbox.addtobounds(flatpoint(Gtx[0],Gty[0]));
-	bez_bbox(flatpoint(Gtx[0],Gty[0]), flatpoint(Gtx[1],Gty[1]), flatpoint(Gtx[2],Gty[2]), flatpoint(Gtx[3],Gty[3]), &bbox, NULL);
-	bez_bbox(flatpoint(Gtx[0],Gty[0]), flatpoint(Gtx[4],Gty[4]), flatpoint(Gtx[8],Gty[8]), flatpoint(Gtx[12],Gty[12]), &bbox, NULL);
-	bez_bbox(flatpoint(Gtx[3],Gty[3]), flatpoint(Gtx[7],Gty[7]), flatpoint(Gtx[11],Gty[11]), flatpoint(Gtx[15],Gty[15]), &bbox, NULL);
+	bez_bbox(flatpoint(Gtx[0], Gty[0]),  flatpoint(Gtx[1], Gty[1]),  flatpoint(Gtx[2], Gty[2]),  flatpoint(Gtx[3], Gty[3]),  &bbox, NULL);
+	bez_bbox(flatpoint(Gtx[0], Gty[0]),  flatpoint(Gtx[4], Gty[4]),  flatpoint(Gtx[8], Gty[8]),  flatpoint(Gtx[12],Gty[12]), &bbox, NULL);
+	bez_bbox(flatpoint(Gtx[3], Gty[3]),  flatpoint(Gtx[7], Gty[7]),  flatpoint(Gtx[11],Gty[11]), flatpoint(Gtx[15],Gty[15]), &bbox, NULL);
 	bez_bbox(flatpoint(Gtx[12],Gty[12]), flatpoint(Gtx[13],Gty[13]), flatpoint(Gtx[14],Gty[14]), flatpoint(Gtx[15],Gty[15]), &bbox, NULL);
 
 	 //make sure is onscreen

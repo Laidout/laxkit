@@ -46,6 +46,7 @@ class anObject
 	virtual int the_count() { return _count; }
 	virtual const char *Id();
 	virtual const char *Id(const char *newid);
+	virtual void touchContents();
 };
 
 

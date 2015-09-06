@@ -90,7 +90,9 @@ class ColorPatchInterface : public PatchInterface
 	virtual const char *whattype() { return "ColorPatchInterface"; }
 	virtual const char *whatdatatype() { return "ColorPatchData"; }
 
+	virtual int Refresh();
 	virtual void drawpatch(int roff,int coff);
+	virtual void drawpatch2(int roff,int coff);
 	virtual void drawControlPoint(int i);
 	virtual int CharInput(unsigned int ch, const char *buffer,int len,unsigned int state,const Laxkit::LaxKeyboard *d);
 //	virtual int Refresh();

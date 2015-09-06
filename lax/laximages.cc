@@ -423,12 +423,25 @@ GeneratePreviewFunc generate_preview_image = NULL;
  */
 class ImageLoader : public anObject
 {
- public:
-	string name;
-	ImageLoader *next;
+  protected:
+	static ImageLoader *loaders;
 
-	ImageLoader() : next(NULL) {}
+  public:
+	string name;
+	int format;
+
+	ImageLoader *next, *prev; 
+
+	ImageLoader() : format(0), next(NULL), prev(NULL)  {}
 	virtual ~ImageLoader() { if (next) delete next; }
+
+	static int NumLoaders();
+	static ImageLoader *GetLoaderByIndex(int which);
+	static int AddLoader(ImageLoader *loader, int where);
+	static int LoadLoader(char *file, int where); //load dynamic module
+	static int RemoveLoader(int which);
+
+	int SetLoaderPriority(int where);
 
 	 //return a LaxImage in target_format or LaxBufferImage with 8 bit argb, rowstride=4*width if
 	 //target_format can not be loaded. If must_be_that_format, then if the target_format cannot be created,
@@ -437,58 +450,139 @@ class ImageLoader : public anObject
 								 const char *previewfile,
 								 int maxx, int maxy, char delpreview,
 								 int required_state, //any of metrics, or image data, or preview data
-								 int target_format, int must_be_that_format,
+								 int target_format, bool must_be_that_format,
 								 int *actual_format) = 0;
 };
 
-//ImageLoader imageloaders;
+ImageLoader *ImageLoader::loaders = NULL;
 
-static ImageLoader *imageloaders=NULL;
 
-//! Add loader to list of available loaders.
-/*! This function takes possession of the loader. If it is later removed, loader->dec_count()
+/*! Static function, return number of known, installed loaders.
+ */
+int ImageLoader::NumLoaders()
+{
+	int n=0;
+	ImageLoader *loader=loaders;
+	while (loader) {
+		n++;
+		loader=loader->next;
+	}
+	return n;
+}
+
+/*! Static function to retrieve a particular loader.
+ */
+ImageLoader *ImageLoader::GetLoaderByIndex(int which)
+{
+	if (!loaders) return NULL;
+	
+	if (which<0) which=NumLoaders()+1;
+
+	ImageLoader *loader=loaders;
+	while (which>0 && loader) { loader=loader->next; which--; }
+
+	return loader;
+}
+
+
+/*! Static function to add loader to list of available loaders.
+ *  This function takes possession of the loader. If it is later removed, loader->dec_count()
  * is called on it. If the loader cannot be installed for some reason, it's count is decremented also.
  *
  * Return 0 for success or nonzero for error. On error, dec_count() is still called on loader.
  */
-int add_image_loader(ImageLoader *loader, int where)
+int ImageLoader::AddLoader(ImageLoader *loader, int where)
 {
 	if (!loader) return 1;
-	if (!imageloaders) { imageloaders=loader; return 0; }
+	if (!loaders) { loaders=loader; return 0; }
+
+	if (where<0) where=NumLoaders()+1;
 
 	if (where==0) {
-		loader->next=imageloaders;
-		imageloaders=loader;
+		loader->next=loaders;
+		loaders->prev=loader;
+		loaders=loader;
 		return 0;
 	}
 
 	 //else add after some loader
 	ImageLoader *l;
 	for (l=loader; l->next && where>0; l=l->next) where--;
+	if (where>0) {
+		l->next=loader;
+	}
 
 	loader->next=l->next;
-	l->next=loader;
+	l->next->prev=loader;
+
+	loader->prev=l->prev;
+	l->prev->next=loader;
+
 	return 0;
 }
+
+/*! Static function to remove a loader.
+ * Return 0 for success, 1 for not found.
+ */
+int ImageLoader::RemoveLoader(int which)
+{
+	ImageLoader *loader=GetLoaderByIndex(which);
+	if (!loader) return 1;
+
+	if (which==0) loaders=loaders->next;
+
+	if (loader->prev) loader->prev->next = loader->next;
+	if (loader->next) loader->next->prev = loader->prev;
+	loader->next=loader->prev=NULL;
+	delete loader;
+
+	return 0;
+}
+
+
+/*! Static function to load ImageLoader dynamic module.
+ *
+ * Return 0 for success, or nonzero for could not load.
+ */
+int ImageLoader::LoadLoader(char *file, int where)
+{
+	cerr << " *** need to implement ImageLoader::LoadLoader()"<<endl;
+	return 1;
+}
+
+int ImageLoader::SetLoaderPriority(int where)
+{
+	cerr << " *** need to implement ImageLoader::SetLoaderPriority()"<<endl;
+	return 1;
+}
+
+
 
 LaxImage *load_image_with_loaders(const char *file,
 								 const char *previewfile,
 								 int maxx, int maxy, char delpreview,
 								 int required_state,
-								 int target_format, int must_be_that_format, int *actual_format)
+								 int target_format, bool must_be_that_format, int *actual_format)
 {
-	ImageLoader *loader=imageloaders;
-	if (!imageloaders) return NULL;
+	ImageLoader *loader = ImageLoader::GetLoaderByIndex(0);
+	if (!loader) return NULL;
 
 	LaxImage *image=NULL;
 	while (loader) {
 		image=loader->load_image(file,previewfile,maxx,maxy,delpreview,
-								 required_state,target_format,must_be_that_format,actual_format);
-		if (image) return image;
+								 required_state,
+								 target_format,must_be_that_format,
+								 actual_format);
+		if (image) {
+			if (actual_format) *actual_format = loader->format;
+			return image;
+		}
 		loader=loader->next;
 	}
 	return NULL;
 }
+
+
 //---------------------------------------------------------------------------------------
 
 

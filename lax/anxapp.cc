@@ -812,6 +812,7 @@ int anXApp::Tooltips(int on)
  */
 LaxFiles::Attribute *anXApp::AppResource(const char *name)
 {
+	if (!name) return NULL;
 	return app_resources.find(name);
 }
 

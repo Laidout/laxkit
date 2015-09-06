@@ -192,7 +192,7 @@ int ObjectInterface::Refresh()
 {
 	if (!dp || !needtodraw) return 0;
 	if (!somedata) {
-		if (needtodraw) needtodraw=0;
+		needtodraw=0;
 		return 1;
 	}
 

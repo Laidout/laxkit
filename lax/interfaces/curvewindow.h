@@ -57,7 +57,7 @@ class CurveWindow : public Laxkit::anXWindow
 						const char *yl=NULL, double nymin=0, double nymax=1);
 	virtual ~CurveWindow();
 	virtual const char *whattype() { return "CurveWindow"; }
-	//virtual int init();
+	virtual int init();
 	virtual void Refresh();
 	virtual int LBDown(int x,int y,unsigned int state,int count,const Laxkit::LaxMouse *d);
 	virtual int LBUp(int x,int y,unsigned int state,const Laxkit::LaxMouse *d);

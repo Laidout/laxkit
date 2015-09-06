@@ -33,10 +33,12 @@ namespace LaxInterfaces {
 class ViewportWithStack : public ViewportWindow
 {
  protected:
+	flatpoint lastm;
 	int vpwsfirsttime;
 	ObjectContext *foundobj,*foundtypeobj,*firstobj; //obj just before firstobj should be the last one searched.
 	ObjectContext *curobj;
 	virtual void ClearSearch();
+
  public:
 	Laxkit::RefPtrStack<SomeData> datastack;
  	ViewportWithStack(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
@@ -44,6 +46,7 @@ class ViewportWithStack : public ViewportWindow
 	virtual ~ViewportWithStack();
 	virtual void Refresh();
 	virtual int Event(const Laxkit::EventData *e,const char *mes);
+	virtual int MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMouse *d);
 	
 	virtual int NewData(SomeData *d,ObjectContext **oc_ret);
 	virtual int DropObject(SomeData *d, double x,double y);

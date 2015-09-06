@@ -60,7 +60,7 @@ LineStyle::LineStyle()
 
 	joinstyle=LAXJOIN_Miter; 
 	miterlimit=100; //so this means 100*(line thickness)
-	function=LAXOP_Source;
+	function=LAXOP_Over;
 
 	 //dashes todo:
 	 // on/off, dashes is list of lengths proportional to width of on and off

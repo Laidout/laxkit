@@ -42,12 +42,12 @@
 #define LINESDATA_RECT     512
 #define LINESDATA_MAXINBOX 1024
 
+
 namespace LaxInterfaces {
- 
-class LinesData : public SomeData
+
+
+class LinesData : virtual public SomeData
 {
-//  protected:
-  	
   public:
   	int numsides,numturns;
   	flatpoint *points;
@@ -75,6 +75,7 @@ class LinesInterface : public anInterface
 	void Setupcreation(int sides,int turns);
 	void movecontrol(int which,int x,int y);
 	void movecontrol(int which,flatpoint d);
+
   public:
 	unsigned long controlcolor;
 	int creationstyle,creationsides,creationturns,creationgravity,showdecs;
@@ -83,6 +84,9 @@ class LinesInterface : public anInterface
 	LineStyle linestyle;
 	LinesInterface(int nid,Laxkit::Displayer *ndp);
 	virtual ~LinesInterface() { deletedata(); }
+	virtual const char *whattype() { return "LinesInterface"; }
+	virtual const char *whatdatatype() { return "LinesData"; }
+
 	virtual void deletedata();
 	virtual int scan(int x,int y);
 	virtual int LBDown(int x,int y,unsigned int state,int count);
@@ -96,8 +100,6 @@ class LinesInterface : public anInterface
 	virtual int toggleclosed(int c=-1);
 	virtual int InterfaceOn();
 	virtual int InterfaceOff();
-	virtual const char *whattype() { return "LinesInterface"; }
-	virtual const char *whatdatatype() { return "LinesData"; }
 };
 
 } // namespace LaxInterfaces

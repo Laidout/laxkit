@@ -84,6 +84,17 @@ anObject::~anObject()
  */
 
 
+/*! Called whenever the object contents is changed, usually calls for screen refresh.
+ *
+ * Default doesn't actually do anything. See LaxInterfaces::SomeData for more useful stuff.
+ */
+void anObject::touchContents()
+{ 
+	//previewtime=0; //time() doesn't change often enough, so we have to force this to 0..
+	//modtime=time(NULL); 
+}
+
+
 
 //---------------- reference counting stuff
 

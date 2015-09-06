@@ -24,10 +24,12 @@
 
 #include <lax/fileutils.h>
 #include <lax/strmanip.h>
+
 #include <cctype>
 #include <cstdlib>
 #include <cerrno>
 #include <unistd.h>
+
 
 //! Namespace for various file utilities.
 /*! Contains functions to check file read/write ability, filename sanitizing, plus
@@ -87,12 +89,6 @@ int how_indented(char *str,char **strt)//strt=NULL;
 	return i;
 }
 
-
-#ifdef _LAX_PLATFORM_MAC
-int getline(char **line, size_t *n,FILE *f)
-{ ***implement me!!!
-}
-#endif  //_LAX_PLATFORM_MAC
 
 
 
@@ -684,4 +680,60 @@ char *current_directory()
 
 
 } //namespace LaxFiles
+
+
+
+#ifdef _LAX_PLATFORM_MAC
+
+
+/*! Return -1 for eof or other failure.
+ * Otherwise, return the number of characters read.
+ */
+long getline(char **lineptr, size_t *n, FILE *stream)
+{
+    size_t len  = 0;
+    size_t last = 0;
+	char *nl;
+
+	if (feof(stream)) return -1;
+
+    do {
+		if ((*n)==0) {
+			 //initialize buffer
+			*n = BUFSIZ;
+			*lineptr = realloc(*lineptr, *n);
+		}
+
+        /* Actually do the read. Note that fgets puts a terminal '\0' on the
+           end of the string, so we make sure we overwrite this */
+        fgets((*lineptr) + last, *n-last, stream);
+        len = strlen(*lineptr);
+		
+		nl = strchr(*lineptr, '\n');
+		if (nl) {
+			len = nl-(*lineptr);
+			*(nl+1)='\0';
+			return len;
+
+		}
+		
+		last = len - 1;
+
+		 //lengthen buffer
+		size += BUFSIZ; //BUFSIZ is defined as "the optimal read size for this platform"
+		*lineptr = realloc(buf,size); 
+
+    } while (!feof(f) && (*lineptr)[last]!='\n');
+
+
+    return buf;
+}
+
+
+
+#endif  //_LAX_PLATFORM_MAC
+
+
+
+
 

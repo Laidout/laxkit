@@ -235,6 +235,7 @@ ViewportWindow::ViewportWindow(Laxkit::anXWindow *parnt,const char *nname,const 
 	selection=NULL;
 
 	temp_input=NULL;
+	temp_input_label=NULL;
 	temp_input_interface=0;
 }
 
@@ -242,6 +243,8 @@ ViewportWindow::ViewportWindow(Laxkit::anXWindow *parnt,const char *nname,const 
 ViewportWindow::~ViewportWindow()
 {
 	DBG cerr <<" --in ViewportWindow  destructor"<<endl;
+	
+	delete[] temp_input_label;
 	delete dp;
 	if (sc) sc->dec_count();
 	if (selection) selection->dec_count();
@@ -1180,21 +1183,24 @@ int ViewportWindow::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMo
 	if (buttondown.isdown(d->id,RIGHTBUTTON) || buttondown.isdown(d->id,MIDDLEBUTTON)) {
 		if (buttondown.isdown(d->id,MIDDLEBUTTON) && (state&(ShiftMask|ControlMask))==0) state|=ShiftMask;
 		if (state&ShiftMask && state&ControlMask) {// rotate left==ccw, right==cw
-			if (win_style&VIEWPORT_ROTATABLE && x-rmx) {
+
+			if (win_style&VIEWPORT_ROTATABLE && x-mx) { //rotate canvas
 				dp->Rotate(x-mx,rmx,rmy,1); 
 				syncWithDp();
 				needtodraw=1;
 			}
+
 		} else if (state&ControlMask) { // zoom: left==out, right==in
-			if (x-rmx) { 
+			if (x-mx) { 
 				double z=pow(1.1,x-mx);
 				//cout <<"..Zoom:"<<z<<"  ";
 				dp->Zoom(z,rmx,rmy);
 				syncWithDp();
 				needtodraw=1;
 			}
+
 		} else if (state&ShiftMask) { // shift screen
-			if (x-rmx) {
+			if (x-mx!=0 || y-mx!=0) {
 				dp->ShiftScreen(x-mx,y-my);
 				syncWithDp();
 				needtodraw=1;
@@ -1229,7 +1235,7 @@ Laxkit::ShortcutHandler *ViewportWindow::GetShortcuts()
 	sc->AddShortcut('=',0,0, VIEWPORT_ZoomIn);
 	sc->Add(VIEWPORT_ZoomOut,       '-',0,0,           _("ZoomOut"),       _("Zoom out"),NULL,0);
 	sc->Add(VIEWPORT_CenterReal,    ' ',0,0,           _("CenterReal"),    _("Center the real origin in the viewport"),NULL,0);
-	sc->Add(VIEWPORT_ResetView,     ' ',ShiftMask,0,   _("ResetView"),     _("Reset the view, center and align axes"),NULL,0);
+	sc->Add(VIEWPORT_ResetView,     ' ',ControlMask|ShiftMask,0,_("ResetView"),_("Reset the view, center and align axes"),NULL,0);
 	sc->AddShortcut(' ',ControlMask,0, VIEWPORT_ResetView);
 	sc->Add(VIEWPORT_NextObject,    '.',0,0,           _("NextObject"),    _("Select next object"),NULL,0);
 	sc->Add(VIEWPORT_PreviousObject,',',0,0,           _("PreviousObject"),_("Select previous object"),NULL,0);
@@ -1294,13 +1300,24 @@ int ViewportWindow::PerformAction(int action)
 
 	} else if (action==VIEWPORT_ResetView) {
 		 //zap axes to normal x/y, and center origin in middle of viewport
-		flatpoint p=dp->screentoreal((dp->Maxx+dp->Minx)/2,(dp->Maxy+dp->Miny)/2);
-		dp->Newangle(0); 
-		dp->CenterPoint(p);
+		//-------------------
+		flatpoint p=flatpoint((dp->Maxx+dp->Minx)/2, (dp->Maxy+dp->Miny)/2);
+
 		double m[6];
 		transform_copy(m,dp->Getctm());
-		m[3]=m[0]*(m[3]<0?-1:1);
-		m[1]=m[2]=0;
+		double xscale=sqrt(m[0]*m[0] + m[1]*m[1]);
+		double yscale=xscale * (dp->defaultRighthanded() ? -1 : 1);
+		
+		transform_set(m, xscale,0,0,yscale, p.x,p.y);
+		//-------------------
+		//flatpoint p=dp->screentoreal((dp->Maxx+dp->Minx)/2,(dp->Maxy+dp->Miny)/2);
+		//dp->Newangle(0); 
+		//dp->CenterPoint(p);
+		//double m[6];
+		//transform_copy(m,dp->Getctm());
+		//m[3]=m[0]*(m[3]<0?-1:1);
+		//m[1]=m[2]=0;
+		//-------------------
 		dp->NewTransform(m);
 		syncWithDp(); 
 		needtodraw=1;

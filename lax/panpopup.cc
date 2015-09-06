@@ -70,7 +70,7 @@ void PanPopup::Refresh()
 {
 	if (!win_on || !needtodraw || win_w<5 || win_h<5) return;
 	clear_window(this);
-	drawing_function(LAXOP_Source);
+	drawing_function(LAXOP_Over);
 	drawing_line_attributes(1,LineSolid,LAXCAP_Butt,LAXJOIN_Miter);
 	 // draw move arrows
 	flatpoint p[25]={flatpoint(6,1),
@@ -362,8 +362,6 @@ void PanWindow::Refresh()
 		draw_line(this, win_w/2,win_h/2+s/2, win_w/2+s/4,win_h/2+s/2-s/4);
 	}
 	
-	//XSetFunction(app->dpy,app->gc(),LAXOP_Source);
-
 	
 	needtodraw=0;
 }

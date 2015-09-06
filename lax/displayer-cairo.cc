@@ -83,6 +83,22 @@ namespace Laxkit {
 
 
 
+void dump_transforms(cairo_t *cr, double *d)
+{
+	if (!cr) return;
+
+	cairo_matrix_t m;
+	cairo_get_matrix(cr, &m);
+
+	cerr <<
+		m.xx<<"   "<<d[0]<<endl<<
+		m.yx<<"   "<<d[1]<<endl<<
+		m.xy<<"   "<<d[2]<<endl<<
+		m.yy<<"   "<<d[3]<<endl<<
+		m.x0<<"   "<<d[4]<<endl<<
+		m.y0<<"   "<<d[5]<<endl;
+}
+
 
 
 /*! set cr=NULL, and surface=NULL.
@@ -110,7 +126,7 @@ void DisplayerCairo::base_init()
 		w=0;
 	}
 
-	blendmode=LAXOP_Source;
+	blendmode=LAXOP_Over;
 	on=0;
 
 	cr=NULL;
@@ -177,6 +193,8 @@ int DisplayerCairo::StartDrawing(aDrawable *buffer)
 	DBG cerr<<"----DisplayerCairo Start Drawing"<<endl;
 
 	MakeCurrent(buffer);
+	Updates(0);
+	NewFG(fgRed, fgGreen, fgBlue, fgAlpha);
 	return 0;
 }
 
@@ -282,6 +300,7 @@ int DisplayerCairo::MakeCurrent(aDrawable *buffer)
 	if (real_coordinates) cairo_matrix_init(&m, ctm[0], ctm[1], ctm[2], ctm[3], ctm[4], ctm[5]);
 	else cairo_matrix_init(&m, 1,0,0,1,0,0);
 	cairo_set_matrix(cr, &m);
+	transform_invert(ictm,ctm);
 
 
 	return 1;
@@ -335,7 +354,7 @@ int DisplayerCairo::CreateSurface(int w,int h, int type)
 	xw=NULL;
 	dr=NULL;
 	w=0;
-	cairo_surface_destroy(surface);
+	if (surface) cairo_surface_destroy(surface);
 	if (cr) cairo_destroy(cr);
 
 	isinternal=1;
@@ -386,6 +405,8 @@ unsigned long DisplayerCairo::NewFG(double r,double g,double b,double a)
 	fgBlue=b;
 	fgAlpha=a;
 	if (cr) cairo_set_source_rgba(cr, fgRed, fgGreen, fgBlue, fgAlpha);
+
+	//DBG  cerr <<"New fg: "<<fgRed<<"  "<<fgGreen<<"  "<<fgBlue<<"  "<<fgAlpha<<endl;
 	return old;
 }
 
@@ -449,6 +470,16 @@ unsigned long DisplayerCairo::NewBG(unsigned long ncol)
 unsigned long DisplayerCairo::FG() { return ((int)(fgAlpha*255)<<24) + ((int)(fgRed*255)<<16) + ((int)(fgGreen*255)<<8) + (fgBlue*255); }
 unsigned long DisplayerCairo::BG() { return ((int)(bgAlpha*255)<<24) + ((int)(bgRed*255)<<16) + ((int)(bgGreen*255)<<8) + (bgBlue*255); }
 
+//int DisplayerCairo::FGLinearGradient(flatpoint p1, flatpoint p2, int extend, GradientStrip *strip)
+//{
+//}
+//int DisplayerCairo::FGRadialGradient(flatpoint p1, flatpoint p2, int extend, GradientStrip *strip)
+//{
+//}
+//int DisplayerCairo::DrawMesh(double *extra, ColorPatchData *mesh)
+//{
+//}
+
 //! Set how the source is blended onto the destination.
 /*! The cairo modes are cairo_operator_t:
  * <pre>
@@ -509,6 +540,27 @@ double DisplayerCairo::setSourceAlpha(double alpha)
 	return 1;
 }
 
+double DisplayerCairo::LineWidth(double newwidth)
+{
+	if (!cr) return 0;
+
+	double old=cairo_get_line_width(cr);
+	cairo_set_line_width(cr,newwidth);
+	return old;
+}
+
+double DisplayerCairo::LineWidthScreen(double newwidth)
+{
+	if (!cr) return 0;
+
+	double old=cairo_get_line_width(cr);
+	if (real_coordinates) {
+		newwidth/=Getmag();
+	}
+	cairo_set_line_width(cr,newwidth);
+	return old;
+}
+
 //! Set the width, whether solid, line cap and join.
 /*! This currently uses Xlib's names which are as follows.
  * 
@@ -527,7 +579,7 @@ void DisplayerCairo::LineAttributes(double width,int dash,int cap,int join)
 	if (dash>=0) {
 		if (dash==LineSolid) cairo_set_dash(cr,NULL,0,0);
 		else {
-			double l=width;
+			double l=width*5;
 			if (l<=0) l=1;
 			cairo_set_dash(cr, &l,1, 0);
 			//cairo_set_dash(cr, *double, num_dashes, offset);
@@ -550,9 +602,12 @@ void DisplayerCairo::LineAttributes(double width,int dash,int cap,int join)
 
 void DisplayerCairo::FillAttributes(int fillstyle, int fillrule)
 {
-	cerr <<"*** implement DisplayerCairo::FillAttributes"<<endl;
-	//XSetFillRule(GetDpy(),GetGC(), fillrule);
-	//XSetFillStyle(GetDpy(),GetGC(), fillstyle);
+	cerr <<"*** implement DisplayerCairo::FillAttributes for fillstyle"<<endl;
+
+	if (!cr) return;
+
+	if (fillrule==LAXFILL_Nonzero) cairo_set_fill_rule(cr, CAIRO_FILL_RULE_WINDING);
+	else cairo_set_fill_rule(cr, CAIRO_FILL_RULE_EVEN_ODD);
 }
 
 //! Clear the window to bgcolor between Min* and Max*. 
@@ -561,24 +616,27 @@ void DisplayerCairo::ClearWindow()
 	//DBG cerr <<"--displayer ClearWindow:MinMaxx,:["<<Minx<<","<<Maxx
 	//DBG		<<"] MinMaxy:["<<Miny<<","<<Maxy<<"] x0,y0:"<<ctm[4]<<","<<ctm[5]<<endl;
 
-	if (xw==NULL || (xw && dr->xlibDrawable(-1)==dr->xlibDrawable(1))) {
+	//if (xw==NULL || (xw && dr->xlibDrawable(-1)==dr->xlibDrawable(1))) {
 		 //if using double buffer, XClearWindow will crash your program, so clear manually
 		cairo_save(cr);
 		cairo_identity_matrix(cr);
 		cairo_operator_t oldmode=cairo_get_operator(cr);
 		cairo_set_operator(cr,CAIRO_OPERATOR_OVER);
+
 		if (xw) cairo_set_source_rgba(cr,
 						(xw->win_colors->bg&0xff)/255.,
 						((xw->win_colors->bg&0xff00)>>8)/255.,
 						((xw->win_colors->bg&0xff0000)>>16)/255.,
 						1.);
-		else cairo_set_source_rgba(cr, bgRed, bgGreen, bgBlue, bgAlpha);
+		else cairo_set_source_rgba(cr, bgRed, bgGreen, bgBlue, 1.0);
+
 		cairo_rectangle(cr, Minx,Miny,Maxx-Minx+1,Maxy-Miny+1);
 		cairo_fill(cr);
 		cairo_set_source_rgba(cr, fgRed, fgGreen, fgBlue, fgAlpha);
 		cairo_set_operator(cr,oldmode);
 		cairo_restore(cr);
-	} else XClearWindow(dpy, w);
+
+	//} //else XClearWindow(dpy, w);
 }
 
 //! Install a clip mask from a polyline (line is automatically closed)
@@ -649,15 +707,199 @@ void DisplayerCairo::show()
 }
 
 
-//------------------path functions
+//------------------source patterns
 
-/*! Using current path, fill with a gradient.
- */
-void DisplayerCairo::fillgradient()
+bool DisplayerCairo::Capability(DisplayerFeature what)
 {
-	//set up a cairo_pattern_t to use as drawing source
-
+	if (what==DRAW_LinearGradient ||
+		what==DRAW_RadialGradient ||
+		what==DRAW_MeshGradient) return true;
+	
+	return false;
 }
+
+/*! Set the foreground "color" to be a linear gradient.
+ */
+void DisplayerCairo::setLinearGradient(int extend, double x1,double y1, double x2,double y2, double *offsets, ScreenColor *colors, int n)
+{
+	if (!cr) return;
+
+	//set up a cairo_pattern_t to use as drawing source
+	// *** see cairo_pattern_set_matrix() 
+
+//	if (real_coordinates) {
+//		flatpoint p;
+//		p=realtoscreen(x1,y1);
+//		x1=p.x;
+//		y1=p.y;
+//		p=realtoscreen(x2,y2);
+//		x2=p.x;
+//		y2=p.y;
+//	}
+
+	cairo_pattern_t *gradient=cairo_pattern_create_linear(x1,y1, x2,y2);
+	//cairo_pattern_t *gradient=cairo_pattern_create_linear(0,0, 300,300);
+
+
+	 // can be CAIRO_EXTEND_NONE, CAIRO_EXTEND_REPEAT, CAIRO_EXTEND_REFLECT, or CAIRO_EXTEND_PAD
+	 // pad is default for gradients, none default for surfaces
+	if (extend==0) cairo_pattern_set_extend (gradient, CAIRO_EXTEND_NONE);
+	else if (extend==1) cairo_pattern_set_extend (gradient, CAIRO_EXTEND_REPEAT);
+	else if (extend==2) cairo_pattern_set_extend (gradient, CAIRO_EXTEND_REFLECT);
+	else if (extend==3) cairo_pattern_set_extend (gradient, CAIRO_EXTEND_PAD);
+
+
+	double r,g,b,a;
+	for (int c=0; c<n; c++) {
+		r=colors[c].red  /65535.;
+		g=colors[c].green/65535.;
+		b=colors[c].blue /65535.;
+		a=colors[c].alpha/65535.;
+		cairo_pattern_add_color_stop_rgba(gradient, offsets[c], r,g,b,a); //offset in [0..1]
+	} 
+//	for (int c=0; c<colors->colors.n; c++) {
+//		r=colors->colors.e[c]->screen.Red();
+//		g=colors->colors.e[c]->screen.Green();
+//		b=colors->colors.e[c]->screen.Blue();
+//		a=colors->colors.e[c]->screen.Alpha();
+//		cairo_pattern_add_color_stop_rgba(gradient, colors->colors.e[c]->nt, r,g,b,a); //offset in [0..1]
+//	}
+
+	cairo_set_source(cr, gradient);
+	cairo_pattern_destroy(gradient);
+}
+
+/*! Set the foreground "color" to be a radial gradient.
+ */
+//void DisplayerCairo::setRadialGradient(int extend, double x1,double y1, double r1, double x2,double y2, double r2, GradientStrip *colors)
+void DisplayerCairo::setRadialGradient(int extend, double x1,double y1, double r1, double x2,double y2, double r2, double *offsets, ScreenColor *colors, int n)
+{
+	if (!cr) return;
+
+	//set up a cairo_pattern_t to use as drawing source
+	// *** see cairo_pattern_set_matrix() 
+
+	cairo_pattern_t *gradient=cairo_pattern_create_radial(x1,y1,r1, x2,y2,r2); 
+
+	 // can be CAIRO_EXTEND_NONE, CAIRO_EXTEND_REPEAT, CAIRO_EXTEND_REFLECT, or CAIRO_EXTEND_PAD
+	 // pad is default for gradients, none default for surfaces
+	if (extend==0) cairo_pattern_set_extend (gradient, CAIRO_EXTEND_NONE);
+	else if (extend==1) cairo_pattern_set_extend (gradient, CAIRO_EXTEND_REPEAT);
+	else if (extend==2) cairo_pattern_set_extend (gradient, CAIRO_EXTEND_REFLECT);
+	else if (extend==3) cairo_pattern_set_extend (gradient, CAIRO_EXTEND_PAD);
+
+
+	double r,g,b,a;
+	for (int c=0; c<n; c++) {
+		r=colors[c].red  /65535.;
+		g=colors[c].green/65535.;
+		b=colors[c].blue /65535.;
+		a=colors[c].alpha/65535.;
+		cairo_pattern_add_color_stop_rgba(gradient, offsets[c], r,g,b,a); //offset in [0..1]
+	} 
+//	for (int c=0; c<colors->colors.n; c++) {
+//		r=colors->colors.e[c]->screen.Red();
+//		g=colors->colors.e[c]->screen.Green();
+//		b=colors->colors.e[c]->screen.Blue();
+//		a=colors->colors.e[c]->screen.Alpha();
+//		cairo_pattern_add_color_stop_rgba(gradient, colors->colors.e[c]->nt, r,g,b,a); //offset in [0..1]
+//	}
+
+	cairo_set_source(cr, gradient);
+	cairo_pattern_destroy(gradient);
+}
+
+/*! Make a mesh as current color.
+ *
+ * numrows and numcolumns refer to the number of mesh squares, not points.
+ * There should be (numrows*3+1)*(numcolumns*3+1) points in the points array,
+ * and (numrows+1)*(numcolumns+1) in colors.
+ */
+void DisplayerCairo::setMesh(int numrows, int numcolumns, flatpoint *points, ScreenColor *colors)
+{
+	if (!cr) return;
+
+	cairo_pattern_t *mesh=cairo_pattern_create_mesh();
+	int xs=numcolumns*3+1;
+
+	for (int r=0; r<numrows; r++) {
+		for (int c=0; c<numcolumns; c++) {
+
+			//     C1     Side 1       C2
+			//       +---------------+
+			//       |               |
+			//       |  P1       P2  |
+			//       |               |
+			//Side 0 |               | Side 2
+			//       |               |
+			//       |               |
+			//       |  P0       P3  |
+			//       |               |
+			//       +---------------+
+			//     C0     Side 3        C3
+
+
+
+			 //any number of begin/end pairs
+			cairo_mesh_pattern_begin_patch(mesh);
+
+			int i=c*3 + r*3*xs;
+			cairo_mesh_pattern_move_to(mesh,  points[i   + 3*xs].x,points[i   + 3*xs].y);
+
+			cairo_mesh_pattern_curve_to(mesh, points[i   + 2*xs].x,points[i   + 2*xs].y,
+											  points[i   +   xs].x,points[i   +   xs].y,
+											  points[i         ].x,points[i         ].y
+					);
+			cairo_mesh_pattern_curve_to(mesh, points[i+1       ].x,points[i+1       ].y,
+											  points[i+2       ].x,points[i+2       ].y,
+											  points[i+3       ].x,points[i+3       ].y
+					);                                                             
+			cairo_mesh_pattern_curve_to(mesh, points[i+3 +   xs].x,points[i+3 +   xs].y,
+											  points[i+3 + 2*xs].x,points[i+3 + 2*xs].y,
+											  points[i+3 + 3*xs].x,points[i+3 + 3*xs].y
+					);                                                             
+			cairo_mesh_pattern_curve_to(mesh, points[i+2 + 3*xs].x,points[i+2 + 3*xs].y,
+											  points[i+1 + 3*xs].x,points[i+1 + 3*xs].y,
+											  points[i   + 3*xs].x,points[i   + 3*xs].y
+					);                                                             
+
+			cairo_mesh_pattern_set_control_point(mesh, 0, points[i+1 + 2*xs].x, points[i+1 + 2*xs].y);
+			cairo_mesh_pattern_set_control_point(mesh, 1, points[i+1 +   xs].x, points[i+1 +   xs].y);
+			cairo_mesh_pattern_set_control_point(mesh, 2, points[i+2 +   xs].x, points[i+2 +   xs].y);
+			cairo_mesh_pattern_set_control_point(mesh, 3, points[i+2 + 2*xs].x, points[i+2 + 2*xs].y);
+
+			int cxs=numcolumns+1;
+			cairo_mesh_pattern_set_corner_color_rgba(mesh, 0, colors[c + (r+1)*cxs].Red(),
+															  colors[c + (r+1)*cxs].Green(),
+															  colors[c + (r+1)*cxs].Blue(),
+															  colors[c + (r+1)*cxs].Alpha()
+															  );
+			cairo_mesh_pattern_set_corner_color_rgba(mesh, 1, colors[c + r*cxs].Red(),
+															  colors[c + r*cxs].Green(),
+															  colors[c + r*cxs].Blue(),
+															  colors[c + r*cxs].Alpha()
+															  );
+			cairo_mesh_pattern_set_corner_color_rgba(mesh, 2, colors[c+1 + r*cxs].Red(),
+															  colors[c+1 + r*cxs].Green(),
+															  colors[c+1 + r*cxs].Blue(),
+															  colors[c+1 + r*cxs].Alpha()
+															  );
+			cairo_mesh_pattern_set_corner_color_rgba(mesh, 3, colors[c+1 + (r+1)*cxs].Red(),
+															  colors[c+1 + (r+1)*cxs].Green(),
+															  colors[c+1 + (r+1)*cxs].Blue(),
+															  colors[c+1 + (r+1)*cxs].Alpha()
+															  );
+
+			cairo_mesh_pattern_end_patch(mesh); 
+		}
+	}
+
+	cairo_set_source(cr, mesh);
+	cairo_pattern_destroy(mesh);
+}
+
+
+//------------------path functions
 
 //! Draw out current path if any.
 /*! If preserve!=0, then the path is not cleared.
@@ -723,10 +965,19 @@ void DisplayerCairo::drawpoint(double x,double y,double radius,int tofill)
 {
 	flatpoint p(x,y);
 	if (real_coordinates) p=realtoscreen(p);
-	int old=real_coordinates;
+	int oldreal=real_coordinates;
+	double oldwidth=cairo_get_line_width(cr);
+	
+	if (real_coordinates) {
+		cairo_set_line_width(cr,oldwidth*Getmag());
+	}
+
 	DrawScreen();
-	drawarc(p,radius,radius,0,2*M_PI);
-	if (old) DrawReal();
+	drawellipse(p,radius,radius,0,2*M_PI, tofill);
+	if (oldreal) {
+		DrawReal();
+		cairo_set_line_width(cr,oldwidth);
+	}
 }
 
 //! Draw a polygon, optionally fill.
@@ -735,12 +986,10 @@ void DisplayerCairo::drawpoint(double x,double y,double radius,int tofill)
  */
 void DisplayerCairo::drawlines(flatpoint *points,int npoints,char ifclosed,char tofill)
 {
-	flatpoint p=(real_coordinates ? realtoscreen(points[0]) : points[0]);
-	if (!cairo_has_current_point(cr)) cairo_move_to(cr, p.x,p.y);
-	int c;
-	for (c=0; c<npoints; c++) {
-		p=(real_coordinates ? realtoscreen(points[c]) : points[c]);
-		cairo_line_to(cr, p.x,p.y);
+	if (!cairo_has_current_point(cr)) cairo_move_to(cr, points[0].x,points[0].y);
+
+	for (int c=0; c<npoints; c++) {
+		cairo_line_to(cr, points[c].x,points[c].y);
 	}
 	if (ifclosed) cairo_close_path(cr);
 
@@ -785,6 +1034,7 @@ int DisplayerCairo::font(LaxFont *nfont, double size)
 {
 	LaxFontCairo *cairofont=dynamic_cast<LaxFontCairo*>(nfont);
     if (!cairofont) return 1;
+	if (size<0) size=nfont->textheight();
 
 	if (curfont!=cairofont->font) {
 		if (curfont) cairo_font_face_destroy(curfont);//really just a melodramatic dec count
@@ -990,7 +1240,7 @@ void DisplayerCairo::initFont()
 //	}
 }
 
-/*! Reallocate only when necessary.
+/*! Reallocate text scratch buffer, only when necessary.
  */
 int DisplayerCairo::reallocBuffer(int len)
 {
@@ -1008,7 +1258,9 @@ int DisplayerCairo::reallocBuffer(int len)
  */
 double DisplayerCairo::textout(double x,double y,const char *str,int len,unsigned long align)
 {
+	if (!str) return 0;
 	if (len<0) len=strlen(str);
+	if (len==0) return 0;
 	if (len>bufferlen) reallocBuffer(len);
 	strncpy(buffer,str,len);
 	buffer[len]='\0';
@@ -1058,8 +1310,7 @@ double DisplayerCairo::textout(double *matrix,double x,double y,const char *str,
 }
 
 double DisplayerCairo::textout(double angle,double x,double y,const char *str,int len,unsigned long align)
-{
-
+{ 
     double mm[6];
     transform_identity(mm);
     mm[4]-=x;
@@ -1104,29 +1355,35 @@ void DisplayerCairo::imageout(LaxImage *img,double x,double y)
 	LaxCairoImage *i=dynamic_cast<LaxCairoImage*>(img);
 
 	cairo_surface_t *t=i->Image();
-	if (t) {
-		cairo_save(cr);
-		//if (righthanded()) cairo_translate(cr,x,y);
-		//else {
-		//	cairo_translate(cr,x,y);
-		//}
+	if (!t) return;
+	
+	cairo_save(cr);
+	//if (righthanded()) cairo_translate(cr,x,y);
+	//else {
+	//	cairo_translate(cr,x,y);
+	//}
 
-		cairo_translate(cr,x,y);
-		cairo_scale(cr,1,-1);
-		cairo_translate(cr,0,-img->h());
+	cairo_translate(cr,x,y);
+	cairo_scale(cr,1,-1);
+	cairo_translate(cr,0,-img->h());
 
 
-		cairo_set_source_surface(cr, t, 0,0);
-		if (mask) cairo_mask_surface(cr,mask,0,0);
-		else cairo_paint(cr);
-		img->doneForNow();
-		cairo_restore(cr);
-	}
+	cairo_set_source_surface(cr, t, 0,0);
+	if (mask) cairo_mask_surface(cr,mask,0,0);
+	else cairo_paint(cr);
+	img->doneForNow();
+	cairo_restore(cr);
 }
 
 int DisplayerCairo::imageout(LaxImage *image, double x,double y, double w,double h)
 {
+	if (!image) return -1; 
+	if (image->imagetype()!=LAX_IMAGE_CAIRO) return -2; 
+	LaxCairoImage *i=dynamic_cast<LaxCairoImage*>(image);
+	if (!i) return -1;
+
 	if (w==0 && h==0) { w=image->w(); h=image->h(); }
+	if (w==0 && h==0) return 0;
 	if (w==0) { w=h*image->w()/image->h(); }
 	if (h==0) { h=w*image->h()/image->w(); }
 
@@ -1151,9 +1408,19 @@ int DisplayerCairo::imageout(LaxImage *image, double x,double y, double w,double
 	transform_set(m, sx,0,0,sy, x,y);
 	//transform_set(m, sx,0,0,-sy, x,y+h);
 
-	PushAndNewTransform(m);
-	imageout(image,0,0);
-	PopAxes();
+	if (real_coordinates) {
+		PushAndNewTransform(m);
+		imageout(image,0,0);
+		PopAxes();
+
+	} else {
+		cairo_save(cr);
+		cairo_matrix_t cm;
+		cairo_matrix_init(&cm,m[0],m[1],m[2],m[3],m[4],m[5]);
+		cairo_set_matrix(cr,&cm);
+		imageout(image,0,0);
+		cairo_restore(cr);
+	}
 	//--------------------
 
 	return 0;
@@ -1195,10 +1462,21 @@ void DisplayerCairo::imageout_skewed(LaxImage *img,double x,double y,double ulx,
 
 void DisplayerCairo::imageout(LaxImage *img,double angle, double x,double y)
 {
-	PushAxes();
-	Rotate(angle,x,y);
-	imageout(img,0,0);
-	PopAxes();
+	if (real_coordinates) {
+		PushAxes();
+		Rotate(angle,x,y);
+		imageout(img,0,0);
+		PopAxes();
+
+	} else {
+		cerr << " *** need to test drawscreen with DisplayerCairo::imageout"<<endl;
+		cairo_save(cr);
+		cairo_translate(cr,x,y);
+		cairo_rotate(cr,angle);
+		cairo_translate(cr,-x,-y);
+		imageout(img,0,0);
+		cairo_restore(cr);
+	}
 }
 
 
@@ -1285,7 +1563,12 @@ const double *DisplayerCairo::Getictm()
 	//transform_set(ictm, m.xx,m.yx, m.xy,m.yy, m.x0,m.y0);
 	//return ictm;
 	//----
+
+	//DBG cerr <<"ictm before: "; dumpctm(ictm);
+
 	transform_invert(ictm,ctm);
+
+	//DBG cerr <<"ictm after sync with ctm: "; dumpctm(ictm);
 	return ictm;
 }
 
@@ -1301,6 +1584,8 @@ void DisplayerCairo::ShiftScreen(int dx,int dy)
 	ctm[5]+=dy;
 
 	syncPanner();
+
+	DBG dump_transforms(cr, ctm);
 }
 
 //! Set the ctm to these 6 numbers.
@@ -1321,6 +1606,8 @@ void DisplayerCairo::NewTransform(const double *d)
 	transform_invert(ictm,ctm);
 
 	syncPanner();
+
+	DBG dump_transforms(cr, ctm);
 }
 
 //! Make the transform correspond to the values.
@@ -1346,6 +1633,8 @@ void DisplayerCairo::NewTransform(double a,double b,double c,double d,double x0,
 	transform_invert(ictm,ctm);
 
 	syncPanner();
+
+	DBG dump_transforms(cr, ctm);
 }
 
 void DisplayerCairo::ResetTransform()
@@ -1359,9 +1648,12 @@ void DisplayerCairo::ResetTransform()
 
 	if (cr) {
 		cairo_matrix_t m;
-		cairo_matrix_init(&m, 1, 0, 0, 1, 0, 0);
+		cairo_matrix_init(&m, 1, 0, 0, defaultRighthanded() ? -1 : 1, 0, 0);
 		cairo_set_matrix(cr, &m);
 	}
+
+	transform_set(ctm, 1, 0, 0, (defaultRighthanded() ? -1 : 1), 0, 0); 
+	transform_invert(ictm, ctm);
 }
 
 //! Push the current axes on the axessstack. Relying on cr existing is problematic.
@@ -1379,25 +1671,38 @@ void DisplayerCairo::PopAxes()
 {
 	if (axesstack.n==0) return;
 
+//	----------------------------
 	if (cr) {
 		cairo_restore(cr);
+	}
 
-		cairo_matrix_t m;
-		//cairo_matrix_init(&m, ctm[0], ctm[1], ctm[2], ctm[3], ctm[4], ctm[5]);
-		//cairo_set_matrix(cr, &m);
-		cairo_get_matrix(cr, &m);
-		ctm[0]=m.xx;
-		ctm[1]=m.yx;
-		ctm[2]=m.xy;
-		ctm[3]=m.yy;
-		ctm[4]=m.x0;
-		ctm[5]=m.y0;
-
-	} else {
-		double *tctm=axesstack.pop();
+	double *tctm=axesstack.pop();
+	if (tctm) {
 		transform_copy(ctm,tctm);
 		delete[] tctm;
 	}
+
+//	----------------------------
+//	if (cr) {
+//		cairo_restore(cr);
+//
+//		cairo_matrix_t m;
+//		//cairo_matrix_init(&m, ctm[0], ctm[1], ctm[2], ctm[3], ctm[4], ctm[5]);
+//		//cairo_set_matrix(cr, &m);
+//		cairo_get_matrix(cr, &m);
+//		ctm[0]=m.xx;
+//		ctm[1]=m.yx;
+//		ctm[2]=m.xy;
+//		ctm[3]=m.yy;
+//		ctm[4]=m.x0;
+//		ctm[5]=m.y0;
+//
+//	} else {
+//		double *tctm=axesstack.pop();
+//		transform_copy(ctm,tctm);
+//		delete[] tctm;
+//	}
+//	----------------------------
 
 	transform_invert(ictm,ctm); 
 }
@@ -1417,7 +1722,7 @@ int DisplayerCairo::DrawReal()
 
 int DisplayerCairo::DrawScreen()
 {
-	int r=Displayer::DrawReal();
+	int r=Displayer::DrawScreen();
 
 	if (cr) {
 		cairo_matrix_t m;

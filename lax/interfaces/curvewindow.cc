@@ -60,6 +60,12 @@ CurveWindow::~CurveWindow()
 {
 }
 
+int CurveWindow::init()
+{
+	SetupRect();
+	return 0;
+}
+
 //! Set values in rect (the rectangle that the actual curve is drawn in) to be reasonable.
 void CurveWindow::SetupRect()
 {
@@ -152,8 +158,11 @@ void CurveWindow::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpC
 
 void CurveWindow::Refresh()
 {
-	if (!win_on || !(needtodraw || interface.needtodraw)) return;
+	if (!win_on) return;
+	if (!needtodraw && !interface.needtodraw) return;
 
+	MakeCurrent();
+	interface.Needtodraw(1);
 	interface.Refresh();
 	needtodraw=0;
 	SwapBuffers();
@@ -163,7 +172,7 @@ void CurveWindow::Refresh()
 int CurveWindow::LBDown(int x,int y,unsigned int state,int count,const LaxMouse *d)
 {
 	int status=interface.LBDown(x,y,state,count,d);
-	needtodraw=interface.needtodraw;
+	needtodraw|=interface.needtodraw;
 	return status;
 }
 
@@ -199,6 +208,7 @@ int CurveWindow::CharInput(unsigned int ch, const char *buffer,int len,unsigned 
 {
 	int status=interface.CharInput(ch,buffer,len,state,d);
 	needtodraw|=interface.needtodraw;
+	if (status!=0) return anXWindow::CharInput(ch,buffer,len,state,d);
 	return status;
 
 }

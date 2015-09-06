@@ -52,7 +52,7 @@ class DisplayerCairo : public Displayer
 	LaxCompositeOp blendmode;
 	int isinternal;
 	cairo_t *cr;
-	cairo_surface_t *target;
+	cairo_surface_t *target; //which of surface or source to draw to
 	cairo_surface_t *surface;
 	cairo_surface_t *ref_surface;
 	cairo_surface_t *mask;
@@ -117,6 +117,8 @@ class DisplayerCairo : public Displayer
 	virtual unsigned long NewBG(ScreenColor *col);
 	virtual unsigned long FG();
 	virtual unsigned long BG();
+	virtual double LineWidth(double newwidth);
+	virtual double LineWidthScreen(double newwidth);
 	virtual void LineAttributes(double width,int dash,int cap,int join);
 	virtual void FillAttributes(int fillstyle, int fillrule);
 	virtual LaxCompositeOp BlendMode(LaxCompositeOp mode);
@@ -158,8 +160,10 @@ class DisplayerCairo : public Displayer
 	virtual void drawline(double ax,double ay,double bx,double by);
 
 	 //gradients
-	 // ********** Need to standardize this!!!
-	virtual void fillgradient();
+	virtual bool Capability(DisplayerFeature what);
+	virtual void setLinearGradient(int extend, double x1,double y1, double x2,double y2, double *offsets, ScreenColor *colors, int n);
+	virtual void setRadialGradient(int extend, double x1,double y1, double r1, double x2,double y2, double r2, double *offsets, ScreenColor *colors, int n);
+	virtual void setMesh(int numrows, int numcolumns, flatpoint *points, ScreenColor *colors);
 
 	 //draw text
 	virtual void initFont(); //not from Displayer

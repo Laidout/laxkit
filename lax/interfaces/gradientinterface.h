@@ -59,6 +59,7 @@ class GradientData : virtual public SomeData
 	unsigned int style;
 	double p1, p2, r1, r2, a;
 	Laxkit::PtrStack<GradientDataSpot> colors;
+
 	GradientData();
 	GradientData(flatpoint pp1,flatpoint pp2,double rr1,double rr2,
 			Laxkit::ScreenColor *col1,Laxkit::ScreenColor *col2,unsigned int stle);
@@ -135,6 +136,7 @@ class GradientInterface : public anInterface
 
 	virtual int Refresh();
 	virtual void drawLinear();
+	virtual void drawLinear2();
 	virtual void drawRadial();
 	virtual void drawRadialLine(double t);
 	virtual int DrawData(Laxkit::anObject *ndata,Laxkit::anObject *a1=NULL,Laxkit::anObject *a2=NULL,int info=0);

@@ -23,6 +23,7 @@
 
 
 #include <lax/interfaces/somedatafactory.h>
+#include <lax/interfaces/interfacemanager.h>
 
 #include <lax/interfaces/somedata.h>
 #include <lax/transformmath.h>
@@ -241,6 +242,7 @@ void SomeData::GeneratePreview(int w,int h)
 		if ((w>h && (maxx-minx)<(maxy-miny))) h=0;
 		else if ((w<h && (maxx-minx)>(maxy-miny))) w=0;
 	}
+
 	if (preview && (w!=preview->w() || h!=preview->h())) {
 		 //delete old preview and make new only when changing size of preview
 		preview->dec_count(); 
@@ -248,7 +250,11 @@ void SomeData::GeneratePreview(int w,int h)
 		DBG cerr <<"removed old preview..."<<endl;
 	}
 
-	if (w<=0 && h<=0) { if (maxx-minx>maxy-miny) w=200; else h=200; }
+	if (w<=0 && h<=0) {
+		InterfaceManager *im=InterfaceManager::GetDefault(true);
+		if (im) { if (maxx-minx>maxy-miny) w=im->PreviewSize(); else h=im->PreviewSize(); }
+		else { if (maxx-minx>maxy-miny) w=200; else h=200; }
+	}
 	if (w<=0 && h>0) w=(maxx-minx)*h/(maxy-miny);
 	else if (w>0 && h<=0) h=(maxy-miny)*w/(maxx-minx);
 	if (w==0) w=1;
@@ -267,6 +273,8 @@ void SomeData::GeneratePreview(int w,int h)
 	preview->doneWithBuffer(buffer);
 }
 
+/*! Set previewtime to 0 to force a preview refresh, and modtime=time(NULL).
+ */
 void SomeData::touchContents()
 { 
 	previewtime=0; //time() doesn't change often enough, so we have to force this to 0..

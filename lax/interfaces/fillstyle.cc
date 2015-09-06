@@ -44,7 +44,7 @@ namespace LaxInterfaces {
 
 FillStyle::FillStyle()
 {
-	function=Laxkit::LAXOP_Source;
+	function=Laxkit::LAXOP_Over;
 	color.red=color.green=0;
 	color.blue=color.alpha=0xffff;
 	fillrule=LAXFILL_EvenOdd;
@@ -79,6 +79,7 @@ void FillStyle::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *cont
 	for (int c=0; c<att->attributes.n; c++) {
 		name= att->attributes.e[c]->name;
 		value=att->attributes.e[c]->value;
+
 		if (!strcmp(name,"color")) {
 			int i[4];
 			if (IntListAttribute(value,i,4)==4) {
@@ -92,13 +93,16 @@ void FillStyle::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *cont
 			else if (!strcmp(value,"odd"))     fillrule=LAXFILL_EvenOdd;
 			else if (!strcmp(value,"nonzero")) fillrule=LAXFILL_Nonzero;
 			else fillrule=WindingRule;
+
 		} else if (!strcmp(name,"fillstyle")) {
 			if (!strcmp(value,"none")) fillstyle=FillNone;
 			//else if (!strcmp(value,"object")) fillstyle=FillObject; //for patterned fills
 			else fillstyle=FillSolid;
+
 		} else if (!strcmp(name,"function")) {
-			if (!strcmp(value,"copy")) function=LAXOP_Source;
+			if (!strcmp(value,"copy")) function=LAXOP_Over;
 			else IntAttribute(value,&function);
+
 		} else if (!strcmp(name,"mask")) {
 			ULongAttribute(value,&mask);
 		}
@@ -126,9 +130,11 @@ void FillStyle::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *cont
 		fprintf(f,"%sfunction copy     # (only copy is implemented)\n", spc);
 		return;
 	}
+
 	fprintf(f,"%scolor %d %d %d %d\n",spc,color.red,color.green,color.blue,color.alpha);
 	fprintf(f,"%sfillrule %s\n", spc,fillrule==LAXFILL_EvenOdd?"even":(fillrule==LAXFILL_Nonzero?"nonzero":"odd"));
 	fprintf(f,"%sfillstyle %s\n",spc,fillstyle==FillSolid?"solid":"none"); //or "object"
+
 	if (function==LAXOP_Source) fprintf(f,"%sfunction copy\n", spc);
 	else fprintf(f,"%sfunction %d\n", spc,function);
 }

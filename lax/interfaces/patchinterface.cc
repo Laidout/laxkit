@@ -332,6 +332,9 @@ flatpoint PatchRenderContext::getPoint(double s,double t)
  * \ingroup interfaces
  * \brief Plain old ordinary cubic tensor product patches, the base for mesh gradients and some image warping.
  *
+ * The points array is arranged by rows, so the whole first row, then the next row, etc. So given 
+ * a particular row and column, the point is points[row*xsize+column].
+ *
  * See PatchInterface.
  */
 /*! \var int PatchData::renderdepth
@@ -2726,6 +2729,7 @@ void PatchData::patchpoint(PatchRenderContext *context,double s0,double ds,doubl
 
 PatchInterface::PatchInterface(int nid,Displayer *ndp) : anInterface(nid,ndp)
 {
+	linestyle.width=1;
 	linestyle.Color(0xffff,0,0,0xffff);
 	controlcolor=rgbcolor(200,200,200);
 	rimcolor=rgbcolor(200,100,0);
@@ -3164,7 +3168,7 @@ void PatchInterface::drawpatch(int roff,int coff)
 {
 	//DBG cerr <<" - - - PatchInterface::drawpatch()"<<endl;
 
-	dp->LineAttributes(linestyle.width,LineSolid,linestyle.capstyle,linestyle.joinstyle);
+	dp->LineAttributes(1,LineSolid,linestyle.capstyle,linestyle.joinstyle);
 	dp->NewFG(&data->linestyle.color);
 	dp->DrawReal();
 
@@ -3231,6 +3235,11 @@ void PatchInterface::drawpatch(int roff,int coff)
  */
 void PatchInterface::drawpatches()
 {
+	//double mm[6];
+	//transform_invert(mm,data->m());
+	//dp->PushAndNewTransform(mm);
+	//dp->PushAndNewTransform(data->m());
+
 	//DBG cerr <<" - - - PatchInterface::drawpatches()"<<endl;
 	int r,c;
 	for (r=0; r<data->ysize/3; r++) {
@@ -3238,6 +3247,8 @@ void PatchInterface::drawpatches()
 			drawpatch(r,c);
 		}
 	}
+
+	//dp->PopAxes();
 }
 
 /*! Draw in grid form. Calls drawpatch(r,c) for each subpatch.
@@ -3284,159 +3295,7 @@ int PatchInterface::Refresh()
 	}
 
 	// draw control points;
-	if (showdecs) { 
-		flatpoint p;
-
-		// draw patch borders
-		if ((showdecs&SHOW_Edges) && !child) {
-			dp->NewFG(rimcolor);
-			dp->LineAttributes(1,LineSolid,linestyle.capstyle,linestyle.joinstyle);
-
-			flatpoint bez[(data->xsize>data->ysize?data->xsize:data->ysize)+1];
-			for (int c=0; c<data->xsize/3+1; c++) {
-				data->bezAtEdge(bez+1,c,0);
-
-				//DBG cerr <<"---- drawedge: "<<c<<endl;
-				//DBG for (int cc=0; cc<data->ysize; cc++)
-				//DBG    cerr <<" "<<bez[cc].x<<','<<bez[cc].y;
-				//DBG cerr <<endl;
-
-				dp->drawbez(bez,data->ysize/3+1,0,0);
-			}
-			for (int r=0; r<data->ysize/3+1; r++) {
-				data->bezAtEdge(bez+1,r,1);
-				dp->drawbez(bez,data->xsize/3+1,0,0);
-			}
-		}
-
-		//DBG cerr <<"dragmode="<<dragmode<<endl;
-		//DBG cerr <<"in refresh: overv:"<<overv<<"  overh:"<<overh<<endl;
-
-		// draw hover indicator
-		if (overv>=0) {
-			//DBG cerr <<"hovering over a vertical..."<<endl;
-			dp->LineAttributes(5,LineSolid,linestyle.capstyle,linestyle.joinstyle);
-			//int o=0;
-			//flatpoint p[data->ysize+1 + (dragmode==DRAG_ADD_EDGE?6:0)];
-			flatpoint p[data->ysize+1];
-			//flatpoint lb=dp->screentoreal(mx,my);
-
-			//			if (dragmode==DRAG_ADD_EDGE) {
-			//			**** draw connecting lines to transformed edge and old edge
-			//				if (overv==0) {
-			//					 //**** please note that this extra stuff adds curvy connectors to
-			//					 //     extended patch, but it's rather badly written... down below
-			//					 //     just draws straight lines, it's simple, and does the job..
-			//					flatpoint v=lb-lbdown, p0,p1;
-			//					o=3;
-			//					p[1]=data->points[0];
-			//					p[2]=(4*data->points[0]-data->points[1])/3;
-			//					p[3]=p[1]+v;
-			//
-			//					p[data->ysize+4]=p[data->ysize+6]=data->points[(data->ysize-1)*data->xsize];
-			//					p0=data->points[(data->ysize-1)*data->xsize],
-			//					p1=data->points[1+(data->ysize-1)*data->xsize];
-			//					//p[data->ysize+5]=p[data->ysize+4];
-			//					//p[data->ysize+5]=(4*p0-p1)/3;
-			//					p[data->ysize+5]=p0+(v||(-p0+p1))/3;
-			//					p[data->ysize+4]+=v;
-			//				} else {
-			//					o=3;
-			//					p[1]=data->points[data->xsize-1];
-			//					p[2]=(4*data->points[data->xsize-1]-data->points[data->xsize-2])/3;
-			//					p[3]=p[1]+(lb-lbdown);
-			//
-			//					int Y=data->ysize, X=data->xsize;
-			//					p[4+Y]=p[6+Y]=data->points[Y*X-1];
-			//					flatpoint p0=data->points[Y*X-1],
-			//							  p1=data->points[Y*X-2];
-			//					p[Y+5]=p[Y+4];
-			//					//p[Y+5]=(4*p0-p1)/3;
-			//					//p[Y+5]=p0+((lb-lbdown)||(p0-p1))/3;
-			//					p[Y+4]+=(lb-lbdown);
-			//				}
-			//			}
-			for (int r=0; r<data->ysize; r++) {
-				if (dragmode==DRAG_ADD_EDGE || dragmode==DRAG_SHIFT_EDGE) 
-					p[r+1]=transform_point(movetransform,data->points[overv*3 + r*data->xsize]);
-				else p[r+1]=data->points[overv*3 + r*data->xsize];
-				//p[o+r+1]=data->points[overv*3 + r*data->xsize]+(dragmode==DRAG_ADD_EDGE?(lb-lbdown):flatpoint(0,0));
-			}
-			if (overstate==0) dp->NewFG(controlcolor);
-			else dp->NewFG(rgbcolor(255,0,0));
-			//dp->drawbez(p,(data->ysize/3+1+(dragmode==DRAG_ADD_EDGE?2:0)), 0,0);
-			dp->drawbez(p,(data->ysize/3+1),0,0);
-		}
-		if (overh>=0) {
-			dp->LineAttributes(5,LineSolid,linestyle.capstyle,linestyle.joinstyle);
-			flatpoint p[data->xsize+1 + (dragmode==DRAG_ADD_EDGE?6:0)];
-			//flatpoint lb=dp->screentoreal(mx,my);
-			for (int c=0; c<data->xsize; c++) {
-				//p[c+1]=data->points[c + 3*overh*data->xsize]+(dragmode==DRAG_ADD_EDGE?(lb-lbdown):flatpoint(0,0));
-				if (dragmode==DRAG_ADD_EDGE || dragmode==DRAG_SHIFT_EDGE) 
-					p[c+1]=transform_point(movetransform,data->points[c + 3*overh*data->xsize]);
-				else p[c+1]=data->points[c + 3*overh*data->xsize];
-			}
-			if (overstate==0) dp->NewFG(controlcolor);
-			else dp->NewFG(rgbcolor(255,0,0));
-			dp->drawbez(p, data->xsize/3+1, 0,0);
-
-			//			if (dragmode==DRAG_ADD_EDGE) {
-			//				//***wrong now:
-			//				dp->drawrline(p[1],p[1]-(lb-lbdown));
-			//				dp->drawrline(p[data->xsize],p[data->xsize]-(lb-lbdown));
-			//			}
-		}
-		//draw potential subdividing marks
-		if (overch>=0) {
-			dp->LineAttributes(3,LineSolid,linestyle.capstyle,linestyle.joinstyle);
-			dp->NewFG(0,255,0);
-			dp->drawbez(cuth,data->xsize/3+1,0,0);
-		}
-		if (overcv>=0) {
-			dp->LineAttributes(3,LineSolid,linestyle.capstyle,linestyle.joinstyle);
-			dp->NewFG(0,255,0);
-			dp->drawbez(cutv,data->ysize/3+1,0,0);
-		}
-
-		if (dragmode==DRAG_SHIFT_EDGE) {
-			dp->LineAttributes(2,LineSolid,linestyle.capstyle,linestyle.joinstyle);
-			dp->NewFG(100,100,255);
-			dp->drawline(lbdown,dp->screentoreal(mx,my));
-		}
-
-
-		dp->LineAttributes(0,LineSolid,linestyle.capstyle,linestyle.joinstyle);
-
-		// control points
-		//if ((showdecs&SHOW_Points) && data->base_path==NULL) {
-		if ((showdecs&SHOW_Points) && !child) {
-			// draw patch handle bars
-			dp->NewFG(handlecolor);
-			int r,c;
-			for (r=0; r<data->ysize; r++) {
-				if (r%3==1) continue;
-				for (c=0; c<data->xsize; c++) {
-					if (c%3==1) continue;
-					if (c<data->xsize-1 && r%3==0)  // draw horiz handles
-						dp->drawline(data->points[r*data->xsize+c],  data->points[r*data->xsize+c+1]);
-					//*** for drawing other control lines as dashes:
-					//	dp->LineAttributes(0,LineDoubleDash,linestyle.capstyle,linestyle.joinstyle);
-
-					if (c%3==0 && r%3!=1 && r<data->ysize-1) // draw vert handles
-						dp->drawline(data->points[r*data->xsize+c], data->points[(r+1)*data->xsize+c]);
-				}
-			}
-
-			// the actual points
-			drawControlPoints();
-
-			// draw hoverpoint
-			drawControlPoint(hoverpoint);
-
-		}
-
-	}
+	if (showdecs) drawControls();
 
 	//dp->NewFG(0.,0.,1.);
 	//dp->drawpoint(hovertemp,10, 0);
@@ -3446,6 +3305,166 @@ int PatchInterface::Refresh()
 	//DBG cerr <<endl;
 	needtodraw=0;
 	return 0;
+}	
+
+void PatchInterface::drawControls()
+{ 
+	flatpoint p;
+	dp->LineAttributes(1,LineSolid,linestyle.capstyle,linestyle.joinstyle);
+
+	// draw patch borders
+	if ((showdecs&SHOW_Edges) && !child) {
+		dp->NewFG(rimcolor);
+		dp->LineWidthScreen(1);
+
+		flatpoint bez[(data->xsize>data->ysize?data->xsize:data->ysize)+1];
+		for (int c=0; c<data->xsize/3+1; c++) {
+			data->bezAtEdge(bez+1,c,0);
+
+			//DBG cerr <<"---- drawedge: "<<c<<endl;
+			//DBG for (int cc=0; cc<data->ysize; cc++)
+			//DBG    cerr <<" "<<bez[cc].x<<','<<bez[cc].y;
+			//DBG cerr <<endl;
+
+			dp->drawbez(bez,data->ysize/3+1,0,0);
+		}
+		for (int r=0; r<data->ysize/3+1; r++) {
+			data->bezAtEdge(bez+1,r,1);
+			dp->drawbez(bez,data->xsize/3+1,0,0);
+		}
+	}
+
+	//DBG cerr <<"dragmode="<<dragmode<<endl;
+	//DBG cerr <<"in refresh: overv:"<<overv<<"  overh:"<<overh<<endl;
+
+	// draw hover indicator
+	if (overv>=0) {
+		//DBG cerr <<"hovering over a vertical..."<<endl;
+		dp->LineWidthScreen(5);
+
+		//int o=0;
+		//flatpoint p[data->ysize+1 + (dragmode==DRAG_ADD_EDGE?6:0)];
+		flatpoint p[data->ysize+1];
+		//flatpoint lb=dp->screentoreal(mx,my);
+
+		//			if (dragmode==DRAG_ADD_EDGE) {
+		//			**** draw connecting lines to transformed edge and old edge
+		//				if (overv==0) {
+		//					 //**** please note that this extra stuff adds curvy connectors to
+		//					 //     extended patch, but it's rather badly written... down below
+		//					 //     just draws straight lines, it's simple, and does the job..
+		//					flatpoint v=lb-lbdown, p0,p1;
+		//					o=3;
+		//					p[1]=data->points[0];
+		//					p[2]=(4*data->points[0]-data->points[1])/3;
+		//					p[3]=p[1]+v;
+		//
+		//					p[data->ysize+4]=p[data->ysize+6]=data->points[(data->ysize-1)*data->xsize];
+		//					p0=data->points[(data->ysize-1)*data->xsize],
+		//					p1=data->points[1+(data->ysize-1)*data->xsize];
+		//					//p[data->ysize+5]=p[data->ysize+4];
+		//					//p[data->ysize+5]=(4*p0-p1)/3;
+		//					p[data->ysize+5]=p0+(v||(-p0+p1))/3;
+		//					p[data->ysize+4]+=v;
+		//				} else {
+		//					o=3;
+		//					p[1]=data->points[data->xsize-1];
+		//					p[2]=(4*data->points[data->xsize-1]-data->points[data->xsize-2])/3;
+		//					p[3]=p[1]+(lb-lbdown);
+		//
+		//					int Y=data->ysize, X=data->xsize;
+		//					p[4+Y]=p[6+Y]=data->points[Y*X-1];
+		//					flatpoint p0=data->points[Y*X-1],
+		//							  p1=data->points[Y*X-2];
+		//					p[Y+5]=p[Y+4];
+		//					//p[Y+5]=(4*p0-p1)/3;
+		//					//p[Y+5]=p0+((lb-lbdown)||(p0-p1))/3;
+		//					p[Y+4]+=(lb-lbdown);
+		//				}
+		//			}
+		for (int r=0; r<data->ysize; r++) {
+			if (dragmode==DRAG_ADD_EDGE || dragmode==DRAG_SHIFT_EDGE) 
+				p[r+1]=transform_point(movetransform,data->points[overv*3 + r*data->xsize]);
+			else p[r+1]=data->points[overv*3 + r*data->xsize];
+			//p[o+r+1]=data->points[overv*3 + r*data->xsize]+(dragmode==DRAG_ADD_EDGE?(lb-lbdown):flatpoint(0,0));
+		}
+		if (overstate==0) dp->NewFG(controlcolor);
+		else dp->NewFG(rgbcolor(255,0,0));
+		//dp->drawbez(p,(data->ysize/3+1+(dragmode==DRAG_ADD_EDGE?2:0)), 0,0);
+		dp->drawbez(p,(data->ysize/3+1),0,0);
+	}
+
+	if (overh>=0) {
+		 //draw hovered edge
+		dp->LineWidthScreen(5);
+		flatpoint p[data->xsize+1 + (dragmode==DRAG_ADD_EDGE?6:0)];
+		//flatpoint lb=dp->screentoreal(mx,my);
+		for (int c=0; c<data->xsize; c++) {
+			//p[c+1]=data->points[c + 3*overh*data->xsize]+(dragmode==DRAG_ADD_EDGE?(lb-lbdown):flatpoint(0,0));
+			if (dragmode==DRAG_ADD_EDGE || dragmode==DRAG_SHIFT_EDGE) 
+				p[c+1]=transform_point(movetransform,data->points[c + 3*overh*data->xsize]);
+			else p[c+1]=data->points[c + 3*overh*data->xsize];
+		}
+		if (overstate==0) dp->NewFG(controlcolor);
+		else dp->NewFG(rgbcolor(255,0,0));
+		dp->drawbez(p, data->xsize/3+1, 0,0);
+
+		//if (dragmode==DRAG_ADD_EDGE) {
+		//	//***wrong now:
+		//	dp->drawrline(p[1],p[1]-(lb-lbdown));
+		//	dp->drawrline(p[data->xsize],p[data->xsize]-(lb-lbdown));
+		//}
+	}
+
+	//draw potential subdividing marks
+	if (overch>=0) {
+		dp->LineWidthScreen(3);
+		dp->NewFG(0,255,0);
+		dp->drawbez(cuth,data->xsize/3+1,0,0);
+	}
+	if (overcv>=0) {
+		dp->LineWidthScreen(3);
+		dp->NewFG(0,255,0);
+		dp->drawbez(cutv,data->ysize/3+1,0,0);
+	}
+
+	if (dragmode==DRAG_SHIFT_EDGE) {
+		dp->LineWidthScreen(2);
+		dp->NewFG(100,100,255);
+		dp->drawline(lbdown,dp->screentoreal(mx,my));
+	}
+
+
+	dp->LineWidthScreen(1);
+
+	// control points
+	//if ((showdecs&SHOW_Points) && data->base_path==NULL) {
+	if ((showdecs&SHOW_Points) && !child) {
+		// draw patch handle bars
+		dp->NewFG(handlecolor);
+
+		int r,c;
+		for (r=0; r<data->ysize; r++) {
+			if (r%3==1) continue;
+			for (c=0; c<data->xsize; c++) {
+				if (c%3==1) continue;
+				if (c<data->xsize-1 && r%3==0)  // draw horiz handles
+					dp->drawline(data->points[r*data->xsize+c],  data->points[r*data->xsize+c+1]);
+				//*** for drawing other control lines as dashes:
+				//	dp->LineAttributes(1,LineDoubleDash,linestyle.capstyle,linestyle.joinstyle);
+
+				if (c%3==0 && r%3!=1 && r<data->ysize-1) // draw vert handles
+					dp->drawline(data->points[r*data->xsize+c], data->points[(r+1)*data->xsize+c]);
+			}
+		}
+
+		// the actual points
+		drawControlPoints();
+
+		// draw hoverpoint
+		drawControlPoint(hoverpoint);
+
+	} 
 }
 
 //! Draw a single point. This is for the hoverpoint, and is called from Refresh().
@@ -3475,6 +3494,7 @@ void PatchInterface::drawControlPoints()
 	int r,c;
 	flatpoint p;
 	int rr;
+
 	for (int c=0; c<data->xsize*data->ysize; c++) {
 		//p=dp->realtoscreen(data->points[c]);
 		p=data->points[c];
@@ -3487,6 +3507,7 @@ void PatchInterface::drawControlPoints()
 			if ((c/data->xsize)%3==0 && (c%data->xsize)%3==0) dp->NewFG(50,50,50); //is vertex point
 			else dp->NewFG((unsigned long)0);//is control point
 			dp->drawpoint(p.x,p.y,rr+1,0);
+			
 		} else {
 			//DBG cerr <<" Nope"<<endl;
 			// //draw an x
@@ -3497,6 +3518,7 @@ void PatchInterface::drawControlPoints()
 		//DBG sprintf(blah,"%d",c);
 		//DBG dp->textout((int)p.x+10,(int)p.y,blah,strlen(blah),LAX_CENTER);
 	}
+
 	dp->NewFG(controlcolor);
 	//draw little arrows for inner controls to point to outer corners
 	if (whichcontrols==Patch_Full_Bezier) {
@@ -3517,6 +3539,7 @@ void PatchInterface::drawControlPoints()
 	// curpoints
 	if (curpoints.n) {
 		//dp->DrawScreen();
+		dp->NewFG(.7,0.,.7);
 		for (int c=0; c<curpoints.n; c++) {
 			//p=dp->realtoscreen(data->points[curpoints.e[c]]);
 			p=data->points[curpoints.e[c]];

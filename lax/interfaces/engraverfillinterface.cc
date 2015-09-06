@@ -497,7 +497,8 @@ int EngraverFillInterface::scanEngraving(int x,int y,unsigned int state, int *ca
 		pp.x=(p-center)*xx/norm2(xx);
 		pp.y=(p-center)*yy/norm2(yy);
 
-		DBG cerr <<"orient pp:"<<pp.x<<','<<pp.y<<endl;
+		//DBG cerr <<"orient pp:"<<pp.x<<','<<pp.y<<endl;
+
 		if (pp.y>.5 && pp.y<1.5 && pp.x>-.5 && pp.x<.5) return ENGRAVE_Orient_Spacing;
 		if (pp.y<.5 && pp.y>-.3) {
 			if (pp.x>2.5 && pp.x<3.5) return ENGRAVE_Orient_Quick_Adjust;
@@ -507,7 +508,7 @@ int EngraverFillInterface::scanEngraving(int x,int y,unsigned int state, int *ca
 		}
 		if (group && pp.x>-1 && pp.x<1 && pp.y<-.25) {
 			int i=floor((-pp.y-.25)*2);
-			DBG cerr <<" orientation parameter search: pp.y="<<pp.y<<"  i="<<i<<endl;
+			//DBG cerr <<" orientation parameter search: pp.y="<<pp.y<<"  i="<<i<<endl;
 
 			if (i>=0 && i<group->direction->NumParameters()) {
 				*index_ret=i;
@@ -2539,9 +2540,9 @@ int EngraverFillInterface::Refresh()
 
 	if (mode==EMODE_Freehand && !child) {
 		 //draw squiggly lines near mouse
-		dp->LineAttributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
 		dp->NewFG(0.,0.,1.);
 		dp->DrawScreen();
+		dp->LineWidthScreen(1);
 		double s=10;
 		for (int c=-1; c<2; c++) {
 			dp->moveto(hover-flatpoint(2*s,c*s));
@@ -2591,6 +2592,7 @@ int EngraverFillInterface::Refresh()
 			lastwidth=-1;
 
 			dp->NewFG(&group->color);
+			dp->LineAttributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
 
 			do { //one loop per on segment
 				if (!group->PointOnDash(lc)) { lc=lc->next; continue; } //advance to first on point
@@ -2599,7 +2601,7 @@ int EngraverFillInterface::Refresh()
 					 //establish a first point of a visible segment
 					clast=lc;
 					lastwidth=lc->weight*mag;
-					dp->LineAttributes(lastwidth,LineSolid,LAXCAP_Round,LAXJOIN_Round);
+					dp->LineWidthScreen(lastwidth);
 
 					if (lc->on==ENGRAVE_EndPoint || !lc->next || !group->PointOnDash(lc->next)) {
 						 //draw just a single dot
@@ -2618,7 +2620,7 @@ int EngraverFillInterface::Refresh()
 					for (int c2=1; c2<10; c2++) {
 						 //draw 10 mini segments, each of same width to approximate the changing width
 						tw=lastwidth+c2/9.*(neww-lastwidth);
-						dp->LineAttributes(tw,LineSolid,LAXCAP_Round,LAXJOIN_Round);
+						dp->LineWidthScreen(tw);
 						dp->drawline(lp+v*(c2-1), lp+v*c2);
 					}
 
@@ -2670,7 +2672,7 @@ int EngraverFillInterface::Refresh()
 		if (map) {
 			dp->DrawScreen();
 			dp->NewFG(.6,.6,1.);
-			dp->LineAttributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
+			dp->LineWidthScreen(1);
 
 			//double s=1;
 			int step=20;
@@ -2746,13 +2748,14 @@ int EngraverFillInterface::Refresh()
 	if (data->npoints_boundary) {
 		if (always_warp) {
 			dp->NewFG(150,150,150);
-			dp->LineAttributes(1, LineSolid, linestyle.capstyle,linestyle.joinstyle);
+			dp->LineAttributes(-1, LineSolid, linestyle.capstyle,linestyle.joinstyle);
 		} else {
 			dp->NewFG(255,255,255);
-			dp->LineAttributes(1, LineOnOffDash, linestyle.capstyle,linestyle.joinstyle);
+			dp->LineAttributes(-1, LineOnOffDash, linestyle.capstyle,linestyle.joinstyle);
 		}
+		dp->LineWidthScreen(1);
 		dp->drawbez(data->boundary_outline,data->npoints_boundary/3,1,0);
-		dp->LineAttributes(1,LineSolid,linestyle.capstyle,linestyle.joinstyle);
+		dp->LineAttributes(-1,LineSolid,linestyle.capstyle,linestyle.joinstyle);
 	}
 
 	if (mode==EMODE_Freehand) {
@@ -2779,13 +2782,14 @@ int EngraverFillInterface::Refresh()
 		if (data->npoints_boundary) {
 			if (always_warp) {
 				dp->NewFG(150,150,150);
-				dp->LineAttributes(1, LineSolid, linestyle.capstyle,linestyle.joinstyle);
+				dp->LineAttributes(-1, LineSolid, linestyle.capstyle,linestyle.joinstyle);
 			} else {
 				dp->NewFG(255,255,255);
-				dp->LineAttributes(1, LineOnOffDash, linestyle.capstyle,linestyle.joinstyle);
+				dp->LineAttributes(-1, LineOnOffDash, linestyle.capstyle,linestyle.joinstyle);
 			}
+			dp->LineWidthScreen(1);
 			dp->drawbez(data->boundary_outline,data->npoints_boundary/3,1,0);
-			dp->LineAttributes(1,LineSolid,linestyle.capstyle,linestyle.joinstyle);
+			dp->LineAttributes(-1,LineSolid,linestyle.capstyle,linestyle.joinstyle);
 		}
 
 		if (dynamic_cast<PathInterface*>(child)) {
@@ -2842,7 +2846,7 @@ int EngraverFillInterface::Refresh()
 			 //set colors
 			dp->NewFG(.5,.5,.5,1.);
 			if (mode==EMODE_Thickness) {
-				dp->LineAttributes(2,LineSolid,linestyle.capstyle,linestyle.joinstyle);
+				dp->LineWidthScreen(2);
 				dp->NewFG(.5,.5,.5,1.);
 
 			} else if (mode==EMODE_Turbulence) dp->NewFG(.5,.5,.5,1.);
@@ -2886,10 +2890,10 @@ int EngraverFillInterface::Refresh()
 			} else if (mode==EMODE_PushPull) {
 				dp->drawpoint(hover.x,hover.y, brush_radius,0);
 
-				dp->LineAttributes(1,LineOnOffDash, LAXCAP_Butt, LAXJOIN_Miter);
+				dp->LineAttributes(-1,LineOnOffDash, LAXCAP_Butt, LAXJOIN_Miter);
 				if (submode==1) dp->drawpoint(hover.x,hover.y, brush_radius*.85,0);
 				else dp->drawpoint(hover.x,hover.y, brush_radius*1.10,0);
-				dp->LineAttributes(1,LineSolid, LAXCAP_Butt, LAXJOIN_Miter);
+				dp->LineAttributes(-1,LineSolid, LAXCAP_Butt, LAXJOIN_Miter);
 
 			} else {
 				 //draw plain old circle
@@ -2921,7 +2925,8 @@ int EngraverFillInterface::Refresh()
 			}
 		} //if needed to draw brush circles
 
-		dp->LineAttributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
+		dp->LineAttributes(-1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
+		dp->LineWidthScreen(1);
 		if (submode==2) {
 			 //brush size change arrows
 			if (lasthover!=ENGRAVE_Sensitivity) {

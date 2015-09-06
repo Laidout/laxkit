@@ -75,6 +75,10 @@ class DisplayerXlib : public Displayer
 	unsigned long fgcolor,bgcolor;
 	ScreenColor fg,bg;
 	LaxCompositeOp drawmode;
+	double linewidth;
+	int curcap;
+	int curjoin;
+	int curdash;
  
   public:
 	DisplayerXlib(aDrawable *d);
@@ -117,10 +121,17 @@ class DisplayerXlib : public Displayer
 	virtual unsigned long NewBG(ScreenColor *col);
 	virtual unsigned long FG() { return fgcolor; }
 	virtual unsigned long BG() { return bgcolor; }
+	virtual double LineWidth(double newwidth);
+	virtual double LineWidthScreen(double newwidth);
 	virtual void LineAttributes(double width,int dash,int cap,int join);
 	virtual void FillAttributes(int fillstyle, int fillrule);
 	virtual LaxCompositeOp BlendMode(LaxCompositeOp mode);
 	virtual double setSourceAlpha(double alpha);
+
+	virtual bool Capability(DisplayerFeature what);
+	virtual void setLinearGradient(int extend, double x1,double y1, double x2,double y2, double *offsets, ScreenColor *colors, int n);
+	virtual void setRadialGradient(int extend, double x1,double y1, double r1, double x2,double y2, double r2, double *offsets, ScreenColor *colors, int n);
+	virtual void setMesh(int numrows, int numcolumns, flatpoint *points, ScreenColor *colors);
 	//@}
 
 

@@ -315,7 +315,7 @@ void RulerWindow::Refresh()
 
 	Displayer *dp=MakeCurrent();
 
-	dp->BlendMode(LAXOP_Source);
+	dp->BlendMode(LAXOP_Over);
 	dp->LineAttributes(1,LineSolid,LAXCAP_Butt,LAXJOIN_Miter);
 	dp->font(smallnumbers,smallnumbers->textheight());
 

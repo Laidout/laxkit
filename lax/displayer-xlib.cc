@@ -119,6 +119,10 @@ void DisplayerXlib::base_init()
 	drawmode=LAXOP_Source;
 	on=0;
 	gc=DefaultGC(dpy,0); //dpy,screen
+	linewidth=1;
+	curcap=LAXCAP_Butt;
+	curjoin=LAXJOIN_Round;
+	curdash=LineSolid;
 //    defaultgcv=new XGCValues;
 //    XSetBackground(dpy,defaultgc,color_panel->bg);
 //    XSetForeground(dpy,defaultgc,color_panel->fg);
@@ -596,6 +600,24 @@ double DisplayerXlib::textout(double angle, double x,double y,const char *str,in
 	return textout(x-sin(angle)*textheight(),y, str,len, align);
 }
 
+double DisplayerXlib::LineWidth(double newwidth)
+{
+	if (newwidth<0) newwidth=0;
+	double old=linewidth;;
+	linewidth=newwidth;
+	LineAttributes(newwidth,curdash,curcap,curjoin);
+	return old;
+}
+
+double DisplayerXlib::LineWidthScreen(double newwidth)
+{
+	double old=linewidth;
+	if (real_coordinates) {
+		newwidth/=Getmag();
+	}
+	LineWidth(newwidth);
+	return old;
+}
 
 //! Set the width, whether solid, line cap and join.
 /*! This currently uses Xlib's names which are as follows.
@@ -613,6 +635,7 @@ void DisplayerXlib::LineAttributes(double width,int dash,int cap,int join)
 		else if (cap==LAXCAP_Round) cap=CapRound;
 		else if (cap==LAXCAP_Projecting) cap=CapProjecting;
 		else cap=CapRound;
+		curcap=cap;
 	}
 
 	if (join>0) {
@@ -620,7 +643,11 @@ void DisplayerXlib::LineAttributes(double width,int dash,int cap,int join)
 		else if (join==LAXJOIN_Round) join=JoinRound;
 		else if (join==LAXJOIN_Bevel) join=JoinBevel;
 		else join=JoinRound;
+		curjoin=join;
 	}
+
+	curdash=dash;
+	linewidth=width;
 
 	XSetLineAttributes(GetDpy(),GetGC(), (int)width,dash,cap,join);
 }
@@ -1239,8 +1266,8 @@ void DisplayerXlib::ResetTransform()
 		delete[] m;
 	}
 
-	transform_identity(ctm);
-	transform_identity(ictm);
+	transform_set(ctm, 1, 0, 0, (defaultRighthanded() ? -1 : 1), 0, 0); 
+	transform_invert(ictm, ctm);
 }
 
 //! Push axes, and multiply ctm by a new transform.
@@ -1489,6 +1516,30 @@ unsigned long DisplayerXlib::NewBG(unsigned long nc)
 	bgcolor=nc;
 	if (gc) XSetBackground(dpy,gc,nc); 
 	return old;
+}
+
+bool DisplayerXlib::Capability(DisplayerFeature what)
+{
+	//DRAW_LinearGradient,
+	//DRAW_RadialGradient,
+	//DRAW_MeshGradient,
+	
+	return false;
+}
+
+void DisplayerXlib::setLinearGradient(int extend, double x1,double y1, double x2,double y2, double *offsets, ScreenColor *colors, int n)
+{
+	cerr <<" *** need to implement DisplayerXlib::setLinearGradient()!"<<endl;
+}
+
+void DisplayerXlib::setRadialGradient(int extend, double x1,double y1, double r1, double x2,double y2, double r2, double *offsets, ScreenColor *colors, int n)
+{
+	cerr <<" *** need to implement DisplayerXlib::setRadialGradient()!"<<endl;
+}
+
+void DisplayerXlib::setMesh(int numrows, int numcolumns, flatpoint *points, ScreenColor *colors)
+{
+	cerr <<" *** need to implement DisplayerXlib::setMesh()!"<<endl;
 }
 
 //! Set the xscale and the yscale.

@@ -3565,7 +3565,7 @@ PathOperator::~PathOperator()
 #define EDITMODE_SelectPoints 2
 
 //! Contstructor for PathInterface
-PathInterface::PathInterface(int nid,Displayer *ndp) : anInterface(nid,ndp)
+PathInterface::PathInterface(int nid,Displayer *ndp, unsigned long nstyle) : anInterface(nid,ndp)
 {
 	primary=1;
 
@@ -3575,7 +3575,7 @@ PathInterface::PathInterface(int nid,Displayer *ndp) : anInterface(nid,ndp)
 	show_outline=false;
 	defaultweight.width=.01;
 
-	pathi_style=0;
+	pathi_style=nstyle;
 	addmode=ADDMODE_Bezier;
 	editmode=EDITMODE_AddPoints;
 	colortofill=0;
@@ -4015,7 +4015,7 @@ int PathInterface::Refresh()
 		if (!lstyle) lstyle=data->linestyle;//default for all data paths
 		if (!lstyle) lstyle=defaultline;   //default for interface
 	}
-	bool hasstroke=lstyle ? (lstyle->function!=LAXOP_Dest) : false;
+	bool hasstroke=lstyle ? (lstyle->function!=LAXOP_None && lstyle->function!=LAXOP_Dest) : false;
 
 	if (fillstyle && fillstyle!=data->fillstyle && fillstyle!=defaultfill) {
 		 //this is overriding the default data fillstyle, usually because we have
@@ -4104,10 +4104,7 @@ int PathInterface::Refresh()
 
 	if (hasstroke) {
 		dp->NewFG(&lstyle->color);
-		dp->LineAttributes(lstyle->width*(lstyle->widthtype==0?1:dp->Getmag()),
-						   (lstyle->dotdash && lstyle->dotdash!=~0)?LineOnOffDash:LineSolid,
-						   lstyle->capstyle,
-						   lstyle->joinstyle);
+		DBG  cerr <<"New line fg: "<<lstyle->color.red<<"  "<<lstyle->color.green<<"  "<<lstyle->color.blue<<"  "<<lstyle->color.alpha<<endl;
 
 		if (!ignoreweights) {
 			 //we need to rebuild path and fill the stroke, since it uses a non-standard outline
@@ -4122,6 +4119,10 @@ int PathInterface::Refresh()
 			dp->fill(0);
 
 		} else { //ordinary system stroke
+			dp->LineAttributes(lstyle->width*(lstyle->widthtype==0?1:dp->Getmag()),
+							   (lstyle->dotdash && lstyle->dotdash!=~0)?LineOnOffDash:LineSolid,
+							   lstyle->capstyle,
+							   lstyle->joinstyle);
 			dp->stroke(0);
 		}
 	}
@@ -4149,7 +4150,7 @@ int PathInterface::Refresh()
 			dp->NewFG(controlcolor);
 
 			 //draw corners just outside path bounding box
-			dp->LineAttributes(1,LineSolid,lstyle->capstyle,lstyle->joinstyle);
+			dp->LineWidthScreen(1);
 			double o=5/dp->Getmag(), //5 pixels outside, 15 pixels long
 				   ow=(data->maxx-data->minx)/15,
 				   oh=(data->maxy-data->miny)/15;
@@ -4189,6 +4190,7 @@ int PathInterface::Refresh()
 					char on=(curpoints.findindex(p)>=0);
 					flatpoint sp=dp->realtoscreen(p->p());
 					dp->DrawScreen();
+					dp->LineWidthScreen(1);
 
 					if (p->flags&POINT_VERTEX) {
 						int f=p->flags&BEZ_MASK;
@@ -4236,11 +4238,13 @@ int PathInterface::Refresh()
 				p=curdirp->p();
 				p2=p+v;
 
-				if (drawhover==HOVER_Direction) dp->LineAttributes(3,LineSolid,LAXCAP_Round,LAXJOIN_Miter);
-				else dp->LineAttributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
-				p=dp->realtoscreen(p);
+				p =dp->realtoscreen(p);
 				p2=dp->realtoscreen(p2);
 				dp->DrawScreen();
+
+				if (drawhover==HOVER_Direction) dp->LineWidthScreen(3);
+				else dp->LineWidthScreen(1);
+
 				dp->drawarrow(p,p2-p,6,15,0);
 				dp->DrawReal();
 
@@ -4293,7 +4297,7 @@ int PathInterface::Refresh()
 	 //draw various hovered points
 	if (drawhover==HOVER_AddPoint) {
 		dp->NewFG(0.,.75,0.);
-		dp->LineAttributes(2,LineSolid,LAXCAP_Butt,LAXJOIN_Round);
+		dp->LineWidthScreen(2);
 		dp->drawpoint(hoverpoint, 3,0);
 
 	} else if (drawhover==HOVER_AddWeightNode) {
@@ -4308,15 +4312,15 @@ int PathInterface::Refresh()
 
 	} else if (drawhover==HOVER_Endpoint || drawhover==HOVER_MergeEndpoints) {
 		dp->NewFG(0.,.75,0.);
-		dp->LineAttributes(2,LineSolid,LAXCAP_Butt,LAXJOIN_Round);
+		dp->LineWidthScreen(2);
 		dp->drawpoint(hoverpoint, 7,1);
 
 	} else if (drawhover==HOVER_Vertex || drawhover==HOVER_Point || drawhover==HOVER_Handle) {
 		dp->NewFG(controlcolor);
-		dp->LineAttributes(2,LineSolid,LAXCAP_Butt,LAXJOIN_Round);
 		int r= (drawhover==HOVER_Handle?3:5);
 
 		dp->DrawScreen();
+		dp->LineWidthScreen(2);
 		flatpoint sp=dp->realtoscreen(hoverpoint);
 		switch (hoverpointtype) {
 			 //Inkscape uses: square  = smooth AND smooth-equal
@@ -4335,7 +4339,7 @@ int PathInterface::Refresh()
 		buttondown.getinitial(hoverdevice,LEFTBUTTON, &x1,&y1);
 		buttondown.getcurrent(hoverdevice,LEFTBUTTON, &x2,&y2);
 		dp->NewFG(controlcolor);
-		dp->LineAttributes(1,LineOnOffDash,LAXCAP_Butt,LAXJOIN_Round);
+		dp->LineWidthScreen(1);
 		dp->DrawScreen();
 		dp->drawline(x1,y1, x2,y1);
 		dp->drawline(x2,y1, x2,y2);
@@ -4358,7 +4362,7 @@ int PathInterface::Refresh()
  */
 void PathInterface::DrawOutlines()
 {
-	dp->LineAttributes(2,LineSolid,LAXCAP_Butt,LAXJOIN_Round);
+	dp->LineWidthScreen(2);
 	dp->FillAttributes(FillSolid,EvenOddRule);
 
 	Path *path;
@@ -4426,10 +4430,10 @@ void PathInterface::DrawBaselines()
 	} //loop over paths for building before drawing
 
 	dp->NewFG(1.,1.,1.);
-	dp->LineAttributes(2,LineSolid,LAXCAP_Butt,LAXJOIN_Round);
+	dp->LineWidthScreen(2);
 	dp->stroke(1);
 	dp->NewFG(1.,0.,0.);
-	dp->LineAttributes(1,LineSolid,LAXCAP_Butt,LAXJOIN_Round);
+	dp->LineWidthScreen(1);
 	dp->stroke(0);
 
 
@@ -4439,7 +4443,7 @@ void PathInterface::DrawBaselines()
 		pdata=data->paths.e[cc];
 
 		dp->NewFG(1.,1.,1.);
-		dp->LineAttributes(2,LineSolid,LAXCAP_Butt,LAXJOIN_Round);
+		dp->LineWidthScreen(2);
 		dp->drawFormattedPoints(pdata->centercache.e, pdata->centercache.n, 0);
 		dp->NewFG(0.,0.,1.);
 		dp->drawFormattedPoints(pdata->centercache.e, pdata->centercache.n, 0);
@@ -4469,37 +4473,38 @@ void PathInterface::drawWeightNode(Path *path, PathWeightNode *weight, int isfor
 
 
 	dp->NewFG(controlcolor);
+	dp->DrawScreen();
+
 	if (isfornew==1) {
 		 //adding
-		dp->LineAttributes(2,LineSolid,LAXCAP_Round,LAXJOIN_Round);
+		dp->LineWidthScreen(2);
 		dp->NewFG(0.,.75,0.);
 	} else if (isfornew==-1) {
 		 //removing 
-		dp->LineAttributes(3,LineSolid,LAXCAP_Round,LAXJOIN_Round);
+		dp->LineWidthScreen(3);
 		dp->NewFG(.75,0.,0.);
-	} else dp->LineAttributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
+	} else dp->LineWidthScreen(1);
 
-	dp->DrawScreen();
 
 	 //draw arrow heads
 	if (isfornew==2) {
 		if (drawhover==HOVER_WeightTop)
-			 dp->LineAttributes(3,LineSolid,LAXCAP_Round,LAXJOIN_Miter);
-		else dp->LineAttributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Miter);
+			 dp->LineWidthScreen(3);
+		else dp->LineWidthScreen(1);
 	}
 	dp->drawline(ptop    + arc/3*(-vv+vt), ptop);
 	dp->drawline(ptop                  , ptop   +arc/3*(vv+vt));
 	if (isfornew==2 && drawhover==HOVER_WeightBottom)
-		 dp->LineAttributes(3,LineSolid,LAXCAP_Round,LAXJOIN_Miter);
-	else dp->LineAttributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Miter);
+		 dp->LineWidthScreen(3);
+	else dp->LineWidthScreen(1);
 	dp->drawline(pbottom + arc/3*(-vv-vt), pbottom);
 	dp->drawline(pbottom               , pbottom+arc/3*(vv-vt));
 
 	 //draw curve connecting the arrow heads
 	if (isfornew==2) {
 		if (drawhover==HOVER_WeightTop || drawhover==HOVER_WeightBottom || drawhover==HOVER_WeightAngle)
-			dp->LineAttributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Miter);
-		else dp->LineAttributes(3,LineSolid,LAXCAP_Round,LAXJOIN_Miter);
+			 dp->LineWidthScreen(1);
+		else dp->LineWidthScreen(3);
 	}
 	dp->moveto(ptop);
 	dp->curveto(ptop + 1.33*arc*vt,
@@ -4515,7 +4520,7 @@ void PathInterface::drawWeightNode(Path *path, PathWeightNode *weight, int isfor
 	if (isfornew==2) {
 		DBG cerr <<" ********** maybe draw 3 weight drawhover:"<<drawhover<<endl;
 		if (drawhover==HOVER_WeightAngle) {
-			dp->LineAttributes(3,LineSolid,LAXCAP_Round,LAXJOIN_Miter);
+			dp->LineWidthScreen(3);
 			DBG cerr <<" ********** draw 3 weight"<<endl;
 		}
 	}
@@ -6723,12 +6728,12 @@ int PathInterface::PerformAction(int action)
 		return 0;
 
 	} else if (action==PATHIA_ToggleStroke) {
-		if (data->linestyle && data->linestyle->function!=0) {
-			data->linestyle->function=0;
+		if (data->linestyle && data->linestyle->function!=LAXOP_None) {
+			data->linestyle->function=LAXOP_None;
 			PostMessage(_("Don't stroke"));
 		} else {
 			if (!data->linestyle) data->linestyle=new LineStyle(*defaultline);
-			data->linestyle->function=LAXOP_Source;
+			data->linestyle->function=LAXOP_Over;
 			PostMessage(_("Stroke"));
 		}
 		needtodraw=1;

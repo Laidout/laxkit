@@ -39,6 +39,7 @@ class InterfaceManager : public Laxkit::anObject
 {
   private:
 	static InterfaceManager *default_manager;
+	int preview_size;
 
   public:
 	InterfaceManager();
@@ -62,6 +63,8 @@ class InterfaceManager : public Laxkit::anObject
 	virtual anObject *NewObject(int type);
 	virtual SomeData *NewDataObject(const char *type);
 	virtual SomeData *NewDataObject(int type);
+
+	virtual int PreviewSize();
 
 	virtual int Resourcify(Laxkit::anObject *resource, const char *type=NULL);
 

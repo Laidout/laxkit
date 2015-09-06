@@ -361,11 +361,22 @@ void ViewportWithStack::Refresh()
 	DBG cerr <<"ViewportWithStack Trying to startdrawing"<<getUniqueNumber()<<endl;
 
 	dp->StartDrawing(this);
+	//dp->MakeCurrent(this);
 
 	dp->ClearWindow();
 	int c;
-	for (c=0; c<interfaces.n; c++) interfaces.e[c]->needtodraw=1;//***
+	for (c=0; c<interfaces.n; c++) interfaces.e[c]->needtodraw=1;//force refresh all whenever viewport is refreshing
 	
+	 //draw sample square 200x200
+	dp->LineAttributes(1,LineSolid,LAXCAP_Butt,LAXJOIN_Miter);
+	dp->NewFG(.5,.5,.5);
+	dp->drawline(-100,-100, 100,-100);
+	dp->drawline( 100,-100, 100, 100);
+	dp->drawline( 100, 100,-100, 100);
+	dp->drawline(-100, 100,-100,-100);
+
+	dp->drawaxes(10);
+
 	
 	if (needtodraw) {
 		int c2;
@@ -421,7 +432,7 @@ void ViewportWithStack::Refresh()
 				if (dd) {
 					 //draw bounding box
 					dp->LineAttributes(1,LineSolid,LAXCAP_Butt,LAXJOIN_Miter);
-					dp->BlendMode(LAXOP_Source);
+					dp->BlendMode(LAXOP_Over);
 					dp->NewFG(128,128,128);
 					dp->drawline(flatpoint(dd->minx,dd->miny),flatpoint(dd->maxx,dd->miny));
 					dp->drawline(flatpoint(dd->maxx,dd->miny),flatpoint(dd->maxx,dd->maxy));
@@ -438,11 +449,27 @@ void ViewportWithStack::Refresh()
 		
 	} // if needtodraw
 
+	//DBG cerr <<"ctm: "; dumpctm(dp->Getctm());
+	//DBG cerr <<"ictm: "; dumpctm(dp->Getictm());
+
+	//flatpoint p=dp->screentoreal(lastm);
+	//p=dp->realtoscreen(lastm);
+	//dp->drawpoint(p,10,0);
+	//dp->drawpoint(lastm,10,0);
+
+
 	dp->EndDrawing();
 	SwapBuffers();
 	
-	//cout <<" All done drawing.\n";
+	//DBG cerr <<" All done drawing.\n";
 	needtodraw=0;
+}
+
+int ViewportWithStack::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMouse *d)
+{
+	lastm.x=x;
+	lastm.y=y;
+	return ViewportWindow::MouseMove(x,y,state,d);
 }
 
 double *ViewportWithStack::transformToContext(double *m,ObjectContext *oc,int invert,int full)
@@ -472,11 +499,12 @@ int ViewportWithStack::Event(const EventData *e,const char *mes)
 		if (!ce) return 0;
 
 		LineStyle linestyle;
+		double max=ce->max;
 		if (ce->colortype==LAX_COLOR_RGB) {
-			linestyle.color.red  =ce->channels[0]*0xffff/ce->max;
-			linestyle.color.green=ce->channels[1]*0xffff/ce->max;
-			linestyle.color.blue =ce->channels[2]*0xffff/ce->max;
-			linestyle.color.alpha=ce->channels[3]*0xffff/ce->max;
+			linestyle.color.red  =ce->channels[0]/max*0xffff;
+			linestyle.color.green=ce->channels[1]/max*0xffff;
+			linestyle.color.blue =ce->channels[2]/max*0xffff;
+			linestyle.color.alpha=ce->channels[3]/max*0xffff;
 		} else {
 			cerr << " *** must implement cmyk and gray color event receiving in ViewportWithStack::Event"<<endl;
 		}

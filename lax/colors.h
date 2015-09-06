@@ -113,6 +113,8 @@ class Color : public Laxkit::anObject, public LaxFiles::DumpUtility
 	int n; // num values, put here so you don't have to always look them up in system definition
 	double *values; // the values for each primary
 
+	ScreenColor screen;
+
 	Color();
 	Color(const Color &l);
 	Color &operator=(Color &l);
@@ -130,37 +132,6 @@ class Color : public Laxkit::anObject, public LaxFiles::DumpUtility
 };
 
 
-
-//------------------------------ ColorSet ----------------------------------
-class ColorSet : public Laxkit::anObject, public LaxFiles::DumpUtility
-{
- public:
-	unsigned int setstyle;
-	char *name;
-	char *filename;
-
-	 //palette display info:
-	int num_columns_hint;
-
-	class ColorSetNode
-	{
-	  public:
-		Color *color;
-		double postition;
-
-		 //for compatibility with gimp gradients:
-		double midpostition; //0..1, is along segment of this point to next
-		int interpolation; //like gimp? 0=linear, 1=curved, 2=sinusoidal, 3=sphere inc, 4=sphere dec
-		int transition; //how to vary the color, a line in rgb or in hsv
-	};
-
-
-
-	PtrStack<ColorSetNode> colors;
-
-	ColorSet();
-	virtual ~ColorSet();
-};
 
 
 //------------------------------- ColorPrimary -------------------------------

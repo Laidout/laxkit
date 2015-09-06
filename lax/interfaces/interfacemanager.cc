@@ -58,6 +58,7 @@ InterfaceManager::InterfaceManager()
 	tools=NULL;
 	resources=NULL;
 	datafactory=NULL;
+	preview_size=300;
 }
 
 InterfaceManager::~InterfaceManager()
@@ -206,6 +207,16 @@ int InterfaceManager::DrawDataStraight(Laxkit::Displayer *dp,LaxInterfaces::Some
 	}
 
 	return -1;
+}
+
+/*! Return the square edge length in pixels to use as the default preview size for SomeData objects
+ * that use the SomeData::GetPreview() mechanism.
+ *
+ * Default is 300.
+ */
+int InterfaceManager::PreviewSize()
+{
+	return preview_size;
 }
 
 

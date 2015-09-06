@@ -279,19 +279,20 @@ void SplitWindow::Refresh()
 {
 	if (!needtodraw || !win_on) return;
 	
-	MakeCurrent();
+	Displayer *dp=MakeCurrent();
 	//XClearWindow(app->dpy,window);
 	
 	
 	 //*** draw a big X for the panes that do not actually have windows in them
 	char blah[300]; // ********* change this to dynamic alloc?
-	foreground_color(win_colors->fg);
+	dp->NewFG(win_colors->fg);
 
 	unsigned long highlight, shadow;
 	highlight=coloravg(win_colors->bg,rgbcolor(255,255,255));
 	shadow   =coloravg(win_colors->bg,rgbcolor(0,0,0));
 	
-	drawing_function(LAXOP_Source);
+	dp->BlendMode(LAXOP_Over);
+
 	if (mode==MAXIMIZED) {
 		foreground_color(win_colors->bg);
 		fill_rectangle(this, 0,0,win_w,win_h);
@@ -1100,7 +1101,7 @@ void SplitWindow::drawsplitmarks()
 	} else {
 		draw_line(this, curbox->x1,cury, curbox->x2,cury);
 	}
-	drawing_function(LAXOP_Source);
+	drawing_function(LAXOP_Over);
 }
 
 //! Draw vertical and/or horizontal lines when adjusting window boundaries.
@@ -1119,7 +1120,7 @@ void SplitWindow::drawmovemarks(int on) //on=1
 
 	if (on) foreground_color(rgbcolor(255,255,255));
 	else foreground_color(win_colors->bg);
-	drawing_function(LAXOP_Source);
+	drawing_function(LAXOP_Over);
 
 	if (laffected.n+raffected.n>0) draw_line(this, curx,sminy,curx,smaxy);
 	if (baffected.n+taffected.n>0) draw_line(this, sminx,cury,smaxx,cury);

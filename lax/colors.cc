@@ -384,25 +384,6 @@ void Color::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext
 }
 
 
-//------------------------------ ColorSet ----------------------------------
-/*! \class ColorSet
- * \brief Holds a collection of colors.
- *
- * This can be used for palettes, for instance.
- */
-
-ColorSet::ColorSet()
-{
-	setstyle=0;
-	name=NULL;
-}
-
-ColorSet::~ColorSet()
-{
-	if (name) delete[] name;
-}
-
-
 //------------------------------- ColorPrimary -------------------------------
 /*! \class ColorPrimary
  * \ingroup colors

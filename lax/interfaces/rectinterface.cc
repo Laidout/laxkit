@@ -366,7 +366,7 @@ int RectInterface::Refresh()
 {
 	if (!dp || !needtodraw) return 0;
 	if (!somedata) {
-		if (needtodraw) needtodraw=0;
+		needtodraw=0;
 		return 1;
 	}
 
@@ -380,22 +380,38 @@ int RectInterface::Refresh()
 	flatpoint ur(somedata->maxx,somedata->maxy);
 	flatpoint ul(somedata->minx,somedata->maxy);
 
+	ll=dp->realtoscreen(ll);
+	lr=dp->realtoscreen(lr);
+	ur=dp->realtoscreen(ur);
+	ul=dp->realtoscreen(ul);
+
+	//DBG dp->LineAttributes(1,LineSolid,LAXCAP_Butt,LAXJOIN_Round);
+	//DBG dp->drawline(0,0, 100,100);
+	//DBG dp->drawline(0,0, 100,100);
+	//DBG dp->drawline(0,0, 100,100);
+
+
 	 // draw dotted box
 	//if (!(data->style&RECT_OFF)) {
-		dp->LineAttributes(0,LineDoubleDash,LAXCAP_Butt,LAXJOIN_Miter);
+		dp->LineAttributes(1,LineDoubleDash,LAXCAP_Butt,LAXJOIN_Miter);
+		dp->DrawScreen();
 		flatpoint pn[4];
+		dp->drawline(ll,lr);
+		dp->drawline(lr,ur);
+		dp->drawline(ur,ul);
+		dp->drawline(ul,ll);
 		pn[0]=ll;
 		pn[1]=lr;
 		pn[2]=ur;
 		pn[3]=ul;
-		dp->drawlines(pn,4,1,0);
-		dp->LineAttributes(0,LineSolid,LAXCAP_Butt,LAXJOIN_Miter);
+		//dp->drawlines(pn,4,1,0);
+		dp->LineAttributes(1,LineSolid,LAXCAP_Butt,LAXJOIN_Miter);
+		dp->DrawReal();
 	//}
 
 	 // draw gridlines
 	//dp->NewFG(data->linestyle.color);
 //	if (data && data->griddivisions>0 && data->griddivisions<50) {
-//		if (data) cout << "*******possible memory corruption: rectdata->griddivisions == "<<data->griddivisions<<endl;
 //		dp->NewFG(controlcolor);
 //		double x,y,w,h;
 //		w=somedata->maxx-somedata->minx;
@@ -415,11 +431,6 @@ int RectInterface::Refresh()
 
 	 // draw control points;
 	if (showdecs && !(style&RECT_HIDE_CONTROLS)) { 
-
-		ll=dp->realtoscreen(ll);
-		lr=dp->realtoscreen(lr);
-		ur=dp->realtoscreen(ur);
-		ul=dp->realtoscreen(ul);
 
 		dp->NewFG(controlcolor);
 		dp->DrawScreen();
@@ -581,7 +592,7 @@ int RectInterface::Refresh()
 			flatpoint v=p2-p; v*=7/norm(v);
 
 			if (hover==RP_Flip_V) fill=1; else fill=0;
-			dp->LineAttributes(fill?2:0, LineSolid,LAXCAP_Butt,LAXJOIN_Miter);
+			dp->LineAttributes(fill?3:1, LineSolid,LAXCAP_Butt,LAXJOIN_Miter);
 			dp->drawarrow(p,v,0,1,2);
 			dp->drawarrow(p,-v,0,1,2);
 
@@ -590,11 +601,11 @@ int RectInterface::Refresh()
 			v=p2-p; v*=7/norm(v);
 
 			if (hover==RP_Flip_H) fill=1; else fill=0;
-			dp->LineAttributes(fill?2:0, LineSolid,LAXCAP_Butt,LAXJOIN_Miter);
+			dp->LineAttributes(fill?3:1, LineSolid,LAXCAP_Butt,LAXJOIN_Miter);
 			dp->drawarrow(p,v,0,1,2);
 			dp->drawarrow(p,-v,0,1,2);
 
-			dp->LineAttributes(0, LineSolid,LAXCAP_Butt,LAXJOIN_Miter);
+			dp->LineAttributes(1, LineSolid,LAXCAP_Butt,LAXJOIN_Miter);
 
 		} else if (style&RECT_FLIP_LINE) {
 			int fill;
@@ -606,7 +617,7 @@ int RectInterface::Refresh()
 			flatpoint p2=dp->realtoscreen(flip2);
 			dp->drawpoint((int)p2.x,(int)p2.y,5,fill);
 
-			dp->LineAttributes(hover==RP_Flip_Go?3:0, LineSolid,LAXCAP_Butt,LAXJOIN_Miter);
+			dp->LineAttributes(hover==RP_Flip_Go?3:1, LineSolid,LAXCAP_Butt,LAXJOIN_Miter);
 			dp->drawline(p1,p2);
 		}
 
@@ -616,9 +627,9 @@ int RectInterface::Refresh()
 		//}
 
 
-		dp->DrawReal();
-
+		dp->DrawReal(); 
 	}
+
 	dp->PopAxes();
 
 	DBG cerr <<"end rect draw"<<endl;
@@ -1012,7 +1023,10 @@ int RectInterface::LBDown(int x,int y,unsigned int state,int count,const Laxkit:
 	buttondown.down(d->id,LEFTBUTTON,x,y,RP_Scale_NE);
 	flatpoint p=screentoreal(x,y);
 	data->style=creationstyle; 
-	data->setbounds(p.x,p.x+1e-5,p.y,p.y+1e-5);
+	data->origin(flatpoint(p.x,p.y));
+	data->xaxis(flatpoint(1e-6,0));
+	data->yaxis(flatpoint(0,1e-6));
+	data->setbounds(-100,100,-100,100);
 	data->centercenter();
 	center1=flatpoint((data->minx+data->maxx)/2,(data->miny+data->maxy)/2);
 	createp=p;
@@ -1197,24 +1211,24 @@ const char *RectInterface::hoverMessage(int p)
 int RectInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMouse *mouse) 
 {
 	if (!somedata) return 1;
+
 	if (!buttondown.isdown(mouse->id,LEFTBUTTON)) {
 		int oldhover=hover;
 		hover=scan(x,y);
-//		flatpoint p=transform_point_inverse(somedata->m(),dp->screentoreal(x,y));
-//		if ((state&LAX_STATE_MASK)==ControlMask 
-//				&& (p.x<somedata->minx || p.x>somedata->maxx
-//					|| p.y<somedata->miny || p.y>somedata->maxy)) {
+
 		if ((state&LAX_STATE_MASK)==ControlMask) {
 			if (extrapoints==0) hover=RP_Faux_Center1;
 			else if (extrapoints==HAS_CENTER1) hover=RP_Faux_Center2;
 			else if (extrapoints==(HAS_CENTER1|HAS_CENTER2)) hover=RP_Faux_Shearpoint;
 			hoverpoint=flatpoint(x,y);
 			needtodraw|=2;
+
 		} else if (oldhover!=hover) {
 			needtodraw|=2;
 			const char *mes=hoverMessage(hover);
 			PostMessage(mes?mes:" ");
 		}
+
 		return 0;
 	}
 
@@ -1689,7 +1703,7 @@ Laxkit::ShortcutHandler *RectInterface::GetShortcuts()
 
 	sc=new ShortcutHandler(whattype());
 
-	sc->Add(RIA_Decorations,   'd',ShiftMask,0,"Decorations",   _("Toggle decorations"),NULL,0);
+	sc->Add(RIA_Decorations,   'D',ShiftMask,0,"Decorations",   _("Toggle decorations"),NULL,0);
 	sc->Add(RIA_Normalize,     'n',0,0,        "Normalize",     _("Normalize scale, clear skew"),NULL,0);
 	sc->Add(RIA_Rectify,       'N',ShiftMask,0,"Rectify",       _("Normalize scale, clear skew and rotation"),NULL,0);
 	sc->Add(RIA_Constrain,     'c',0,0,        "Constrain",     _("Toggle drag constraint"),NULL,0);
@@ -1712,14 +1726,35 @@ Laxkit::ShortcutHandler *RectInterface::GetShortcuts()
 int RectInterface::PerformAction(int action)
 {
 	if (action==RIA_Decorations) {
-		int IO=(SHOW_OUTER_HANDLES|SHOW_INNER_HANDLES);
-		int d=showdecs&~IO;
-		IO=(showdecs&IO);
+		//int IO=(SHOW_OUTER_HANDLES|SHOW_INNER_HANDLES);
+		//int d=showdecs&~IO;
+		//IO=(showdecs&IO);
 
-		if (IO==(SHOW_OUTER_HANDLES|SHOW_INNER_HANDLES)) d|=SHOW_OUTER_HANDLES;
-		else if (IO==SHOW_OUTER_HANDLES) ; //show no handles
-		else d|=SHOW_INNER_HANDLES|SHOW_OUTER_HANDLES;
-		showdecs=d;
+		//if (IO==(SHOW_OUTER_HANDLES|SHOW_INNER_HANDLES)) d|=SHOW_OUTER_HANDLES;
+		//else if (IO==SHOW_OUTER_HANDLES) ; //show no handles
+		//else d|=SHOW_INNER_HANDLES|SHOW_OUTER_HANDLES;
+		//showdecs=d;
+
+		int sshowdecs = (showdecs&(SHOW_OUTER_HANDLES|SHOW_INNER_HANDLES));
+
+		if ((sshowdecs&SHOW_OUTER_HANDLES) && (sshowdecs&SHOW_INNER_HANDLES)) {
+			sshowdecs=SHOW_OUTER_HANDLES;
+			PostMessage(_("Show outer handles"));
+
+		} else if (sshowdecs&SHOW_OUTER_HANDLES) {
+			sshowdecs=SHOW_INNER_HANDLES;
+			PostMessage(_("Show inner handles"));
+
+		} else if ((sshowdecs&SHOW_INNER_HANDLES)) {
+			sshowdecs=0;
+			PostMessage(_("Don't show control handles"));
+
+		} else {
+			sshowdecs = SHOW_OUTER_HANDLES|SHOW_INNER_HANDLES;
+			PostMessage(_("Show inner and outer handles"));
+		}
+		showdecs = (showdecs&~(SHOW_OUTER_HANDLES|SHOW_INNER_HANDLES))|sshowdecs;
+
 		needtodraw=1;
 		return 0;
 

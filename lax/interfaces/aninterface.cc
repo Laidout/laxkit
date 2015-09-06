@@ -266,7 +266,7 @@ anInterface::anInterface()
 	id=getUniqueNumber();
 	interface_style=0;
 	interface_type=INTERFACE_Tool;
-	needtodraw=0; 
+	needtodraw=1; 
 }
 
 //! Constructor to assign owner and id.
@@ -288,7 +288,7 @@ anInterface::anInterface(anInterface *nowner,int nid)
 	name=NULL;
 	interface_style=0;
 	interface_type=INTERFACE_Tool;
-	needtodraw=0; 
+	needtodraw=1; 
 }
 
 //! Constructor to assign just the id, set other stuff to 0.
@@ -302,7 +302,7 @@ anInterface::anInterface(int nid)
 	name=NULL;
 	interface_style=0;
 	interface_type=INTERFACE_Tool;
-	needtodraw=0; 
+	needtodraw=1; 
 }
 
 anInterface::anInterface(int nid,Displayer *ndp)
@@ -315,7 +315,7 @@ anInterface::anInterface(int nid,Displayer *ndp)
 	name=NULL;
 	interface_style=0;
 	interface_type=INTERFACE_Tool;
-	needtodraw=0; 
+	needtodraw=1; 
 
 	dp=ndp; 
 	if (dp) curwindow=dynamic_cast<anXWindow*>(dp->GetDrawable());
@@ -337,7 +337,7 @@ anInterface::anInterface(anInterface *nowner,int nid,Displayer *ndp)
 	name=NULL;
 	interface_style=0;
 	interface_type=INTERFACE_Tool;
-	needtodraw=0; 
+	needtodraw=1; 
 
 	dp=ndp; 
 	if (dp) curwindow=dynamic_cast<anXWindow*>(dp->GetDrawable());

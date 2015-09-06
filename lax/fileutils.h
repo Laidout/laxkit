@@ -26,7 +26,13 @@
 #include <cstdio>
 #include <sys/stat.h>
 
+
+
 namespace LaxFiles {
+
+#ifdef _LAX_PLATFORM_MAC
+int getline(char **line, size_t *n,FILE *f);
+#endif  //_LAX_PLATFORM_MAC
 
 int how_indented(char *str,char **strt=NULL);
 int getline_indent_nonblank(char **line, size_t *n,FILE *f, int indent, 
@@ -53,10 +59,6 @@ char *read_in_whole_file(const char *file, int *chars_ret, int maxchars=0);
 char *current_directory();
 	
 char *get_bookmarks(const char *file,const char *filetype);
-
-#ifdef _LAX_PLATFORM_MAC
-int getline(char **line, size_t *n,FILE *f);
-#endif  //_LAX_PLATFORM_MAC
 
 } //namespace LaxFiles
 

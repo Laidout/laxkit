@@ -38,6 +38,14 @@ namespace Laxkit {
 	
 
 //----------------------------------- Displayer -----------------------------
+enum DisplayerFeature {
+	DRAW_LinearGradient,
+	DRAW_RadialGradient,
+	DRAW_MeshGradient,
+
+	DRAW_MAX
+};
+
 class Displayer : public PanUser, virtual public anObject
 {
  protected:
@@ -54,6 +62,7 @@ class Displayer : public PanUser, virtual public anObject
 	char real_coordinates;
 	char decimal;
 	int num_bez_div;
+	bool default_righthanded;
 
  public:
 	unsigned long displayer_style;
@@ -98,10 +107,17 @@ class Displayer : public PanUser, virtual public anObject
 	virtual unsigned long NewBG(ScreenColor *col) = 0;
 	virtual unsigned long FG() = 0;
 	virtual unsigned long BG() = 0;
+	virtual double LineWidth(double newwidth) = 0; //return old
+	virtual double LineWidthScreen(double newwidth) = 0; //return old
 	virtual void LineAttributes(double width,int dash,int cap,int join) = 0;
 	virtual void FillAttributes(int fillstyle, int fillrule) = 0;
 	virtual LaxCompositeOp BlendMode(LaxCompositeOp mode) = 0;
 	virtual double setSourceAlpha(double alpha) = 0;
+
+	virtual bool Capability(DisplayerFeature what) = 0;
+	virtual void setLinearGradient(int extend, double x1,double y1, double x2,double y2, double *offsets, ScreenColor *colors, int n) = 0;
+	virtual void setRadialGradient(int extend, double x1,double y1, double r1, double x2,double y2, double r2, double *offsets, ScreenColor *colors, int n) = 0;
+	virtual void setMesh(int numrows, int numcolumns, flatpoint *points, ScreenColor *colors) = 0;
 	//@}
 
 
@@ -192,6 +208,8 @@ class Displayer : public PanUser, virtual public anObject
 	virtual const double *Getctm() = 0;
 	virtual const double *Getictm() = 0;
 	virtual int righthanded();
+	virtual bool defaultRighthanded(bool right);
+	virtual bool defaultRighthanded();
 
 	virtual char Updates(char toupdatepanner);
 	virtual void syncPanner(int all=0);

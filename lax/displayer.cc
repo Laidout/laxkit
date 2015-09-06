@@ -165,6 +165,7 @@ Displayer::Displayer(aDrawable *d)
 	draw_immediately=1;
 	real_coordinates=1;
 	decimal=0;
+	default_righthanded=false;
 
 	on=0;
 }
@@ -194,6 +195,7 @@ Displayer::Displayer(anXWindow *nxw,PanController *pan)
 	draw_immediately=1;
 	real_coordinates=1;
 	decimal=0;
+	default_righthanded=false;
 
 	on=0;
 
@@ -381,6 +383,25 @@ int Displayer::righthanded()
 	const double *ctm=Getctm();
 	return ctm[3]*ctm[0]-ctm[2]*ctm[1]>0;
 }
+
+/*! Return whether the default non-transformed ctm should be righthanded or not.
+ */
+bool Displayer::defaultRighthanded()
+{
+	return default_righthanded;
+}
+
+/*! Set whether the default non-transformed ctm should be righthanded or not.
+ *
+ * Returns old value.
+ */
+bool Displayer::defaultRighthanded(bool right)
+{
+	bool old=default_righthanded;
+	default_righthanded=right;
+	return old;
+}
+
 
 
 //! Convert real point (x,y) to screen coordinates.
@@ -1254,6 +1275,10 @@ void Displayer::Rotate(double angle,int x,int y,int dec)
 }
 
 //! Rotate around real origin so that the x axis has angle between it and the screen horizontal.
+/*! dir==0 means set absolutely.
+ * dir==1 means rotate counterclockwise.
+ * dir==-1 means rotate clockwise.
+ */
 void Displayer::Newangle(double angle,int dir,int dec)
 {
 	if (dec<0) dec=decimal;
@@ -1450,6 +1475,7 @@ char Displayer::Updates(char toupdatepanner)
 void Displayer::syncPanner(int all)//all=0
 {
 	if (!updatepanner) return;
+
 	DBG cerr<<"---====Displayer syncPanner"<<endl;
 	// set the panner selbox values from the current displayer settings.
 	// Maxx-Minx  is portion of transformed workspace, this is what to set in Panner
@@ -1513,7 +1539,8 @@ void Displayer::syncFromPanner(int all)
 	// the same. Using the old inverse transform, find the real points corresponding
 	// to the new panner selbox:
 	//*** this is really the long way around, and probably propagates panner rounding errors..
-	DBG dumpctm(ctm);
+	//DBG dumpctm(ctm);
+
 	flatpoint r1,r2,r3, s1,s2,s3;
 	s1=flatpoint(xs,ys);
 	s2=flatpoint(xe,ys);
@@ -1546,7 +1573,7 @@ void Displayer::syncFromPanner(int all)
 	ctm[3]=(s1.y*(r3.x-r2.x) +           s2.y*(r1.x-r3.x) +           s3.y*(r2.x-r1.x))/dd;
 	ctm[5]=(s1.y*(r2.x*r3.y-r2.y*r3.x) + s2.y*(r1.y*r3.x-r1.x*r3.y) + s3.y*(r1.x*r2.y-r1.y*r2.x))/dd;
 
-	DBG dumpctm(ctm);
+	//DBG dumpctm(ctm);
 
 	if (displayer_style&DISPLAYER_NO_SHEAR) {
 		if (ctm[3]*ctm[0]-ctm[2]*ctm[1]>0) {
