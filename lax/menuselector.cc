@@ -1143,6 +1143,7 @@ int MenuSelector::CharInput(unsigned int ch,const char *buffer,int len,unsigned 
 			c=makeinwindow();
 			if (menustyle&MENUSEL_CURSSELECTS) {
 				addselect(ccuritem,state);
+				if (menustyle&MENUSEL_CURSSENDS) send(d->id);
 			} else if (!c) {
 				drawitem(ccuritem);
 			}
@@ -1157,6 +1158,7 @@ int MenuSelector::CharInput(unsigned int ch,const char *buffer,int len,unsigned 
 			c=makeinwindow();
 			if (menustyle&MENUSEL_CURSSELECTS) {
 				addselect(ccuritem,state);
+				if (menustyle&MENUSEL_CURSSENDS) send(d->id);
 			} else if (!c) {
 				drawitem(ccuritem);
 			}
@@ -1194,6 +1196,7 @@ int MenuSelector::CharInput(unsigned int ch,const char *buffer,int len,unsigned 
 			c=makeinwindow();
 			if (menustyle&MENUSEL_CURSSELECTS) {
 				addselect(ccuritem,state);
+				if (menustyle&MENUSEL_CURSSENDS) send(d->id);
 			} else if (!c) {
 				drawitem(ccuritem);
 			}
@@ -1212,6 +1215,7 @@ int MenuSelector::CharInput(unsigned int ch,const char *buffer,int len,unsigned 
 			c=makeinwindow();
 			if (menustyle&MENUSEL_CURSSELECTS) {
 				addselect(ccuritem,state);
+				if (menustyle&MENUSEL_CURSSENDS) send(d->id);
 			} else if (!c) {
 				drawitem(ccuritem);
 			}
@@ -1227,7 +1231,7 @@ int MenuSelector::CharInput(unsigned int ch,const char *buffer,int len,unsigned 
 			c=makeinwindow();
 			if (menustyle&MENUSEL_CURSSELECTS) {
 				addselect(ccuritem,state);
-				//send(d->id);
+				if (menustyle&MENUSEL_CURSSENDS) send(d->id);				
 			} else if (!c) {
 				drawitem(ccuritem);
 			}
@@ -1244,7 +1248,7 @@ int MenuSelector::CharInput(unsigned int ch,const char *buffer,int len,unsigned 
 			c=makeinwindow();
 			if (menustyle&MENUSEL_CURSSELECTS) {
 				addselect(ccuritem,state);
-				//send(d->id);
+				if (menustyle&MENUSEL_CURSSENDS) send(d->id);
 			} else if (!c) {
 				drawitem(ccuritem);
 			}
@@ -1317,6 +1321,7 @@ void MenuSelector::addselect(int i,unsigned int state)
 	int c;
 	MenuItem *mitem=item(i),*titem;
 	if (!mitem) return;
+	
 	if (!(state&ShiftMask) || menustyle&(MENUSEL_ZERO_OR_ONE|MENUSEL_ONE_ONLY)) { // select individual
 		int oldstate=mitem->state;
 		if (!(state&ControlMask)) { // unselect others
@@ -1340,6 +1345,7 @@ void MenuSelector::addselect(int i,unsigned int state)
 		curmenuitem=mitem;
 		drawitem(c);       // draw off old ccuritem
 		drawitem(curitem); // draw on curitem==ccuritem
+
 	} else if (state&ShiftMask) { // select range
 		int start,end;
 		unsigned int nstate=curmenuitem->state&LAX_MSTATE_MASK;
@@ -1519,8 +1525,10 @@ int MenuSelector::MouseMove(int x,int y,unsigned int state,const LaxMouse *d)
 			//if (firstinw>0 && i==firstinw) movescreen(0,-(textheight+leading));
 			//else if (i==firstinw+pagesize-1 && i!=numItems()-1) movescreen(0,(textheight+leading));
 
-			if (menustyle&MENUSEL_CURSSELECTS) addselect(i,state);
-			else {
+			if (menustyle&MENUSEL_CURSSELECTS) {
+				addselect(i,state);
+				if (menustyle&MENUSEL_CURSSENDS) send(d->id);
+			} else {
 				int tm=ccuritem;
 				ccuritem=i;
 				drawitem(tm); //drawitem needs the current ccuritem, not old

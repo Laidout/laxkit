@@ -27,6 +27,7 @@
 #include <lax/undo.h>
 #include <lax/iconmanager.h>
 #include <lax/displayer.h>
+#include <lax/fontmanager.h>
 #include <lax/objectfactory.h>
 #include <lax/interfaces/somedata.h>
 
@@ -55,6 +56,7 @@ class InterfaceManager : public Laxkit::anObject
 
 	virtual Laxkit::ResourceManager *GetResourceManager();
 	virtual Laxkit::ResourceManager *GetSettingsManager();
+	virtual Laxkit::FontManager *GetFontManager();
 	virtual Laxkit::IconManager *GetIconManager();
 	virtual Laxkit::UndoManager *GetUndoManager();
 	virtual Laxkit::ObjectFactory *GetObjectFactory();

@@ -18,7 +18,7 @@
 //    License along with this library; if not, write to the Free Software
 //    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
-//    Copyright (C) 2012 by Tom Lechner
+//    Copyright (C) 2012-2015 by Tom Lechner
 //
 
 
@@ -349,16 +349,17 @@ LaxImage *DisplayerCairo::GetSurface()
 }
 
 //! Remove old surface, and create a fresh surface to perform drawing operations on.
-int DisplayerCairo::CreateSurface(int w,int h, int type)
+int DisplayerCairo::CreateSurface(int width,int height, int type)
 {
 	xw=NULL;
 	dr=NULL;
 	w=0;
+
 	if (surface) cairo_surface_destroy(surface);
 	if (cr) cairo_destroy(cr);
 
 	isinternal=1;
-	surface=cairo_image_surface_create(CAIRO_FORMAT_ARGB32, w,h);
+	surface=cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width,height);
 	cr=cairo_create(surface);
 
 	if (!curfont) initFont();
@@ -367,8 +368,8 @@ int DisplayerCairo::CreateSurface(int w,int h, int type)
 	cairo_font_extents(cr, &curfont_extents);
 
 	Minx=Miny=0;
-	Maxx=w;
-	Maxy=h;
+	Maxx=width;
+	Maxy=height;
 
 	return 0;
 }
@@ -1036,6 +1037,8 @@ int DisplayerCairo::font(LaxFont *nfont, double size)
     if (!cairofont) return 1;
 	if (size<0) size=nfont->textheight();
 
+	//DBG cerr <<" font(LaxFont), count: "<<cairo_font_face_get_reference_count(cairofont->font) <<endl;
+
 	if (curfont!=cairofont->font) {
 		if (curfont) cairo_font_face_destroy(curfont);//really just a melodramatic dec count
 		curfont=cairofont->font;
@@ -1044,19 +1047,13 @@ int DisplayerCairo::font(LaxFont *nfont, double size)
 
 	if (curscaledfont) { cairo_scaled_font_destroy(curscaledfont); curscaledfont=NULL; }
 
-//	int tempcr=0;
-//	if (!cr) {
-//		 //use ref_surface for reference
-//		if (!surface && !ref_surface) {
-//			ref_surface=cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 10,10);
-//		}
-//
-//		cr=cairo_create(surface ? surface : ref_surface);
-//		tempcr=1;
-//	}
+	if (cr) {
+		cairo_set_font_face(cr,curfont); 
+		//DBG cerr <<" font(LaxFont), cairo status set font face:  "<<cairo_status_to_string(cairo_status(cr)) <<endl;
+	}
 
-	if (cr) cairo_set_font_face(cr,curfont);
 	fontsize(size);
+	//DBG cerr <<" (eo)font(LaxFont), count: "<<cairo_font_face_get_reference_count(cairofont->font) <<endl;
 	return 1;
 }
 
@@ -1119,6 +1116,8 @@ int DisplayerCairo::font(const char *family,const char *style,double pixelsize)
 
 int DisplayerCairo::fontsize(double size)
 {
+	//DBG cerr <<"---fontsize"<<endl;
+
 	int tempcr=0;
 	if (!cr) {
 		 //use ref_surface for reference
@@ -1127,25 +1126,36 @@ int DisplayerCairo::fontsize(double size)
 		}
 
 		cr=cairo_create(surface ? surface : ref_surface);
+		if (!curfont) initFont();
+
+		//DBG cerr <<" fontsize, temp cr, status before set font face:  "<<cairo_status_to_string(cairo_status(cr)) <<endl;
 		cairo_set_font_face(cr,curfont);
+		//DBG cerr <<" fontsize, temp cr, cairo status set font face:  "<<cairo_status_to_string(cairo_status(cr)) <<endl;
 		tempcr=1;
 	}
 
 	 //need to do some double checking, since font extents height is NOT the same as size
 	 //as set in cairo_set_font_size(). That size is the size of the M square.
 	cairo_set_font_size(cr, size);
+	//DBG cerr <<" fontsize, cairo status font size:  "<<cairo_status_to_string(cairo_status(cr)) <<endl;
 
 	cairo_font_extents_t fextents;
 	cairo_font_extents(cr, &fextents);
+
+	//DBG cerr <<" fontsize, cairo status font extent:  "<<cairo_status_to_string(cairo_status(cr)) <<endl;
 
 	height_over_M=fextents.height/size;
 
 	cairo_set_font_size(cr, size/height_over_M);
 	cairo_font_extents(cr, &curfont_extents);
 
+	//DBG cerr <<" fontsize, cairo status font extent resized:  "<<cairo_status_to_string(cairo_status(cr)) <<endl;
+
 	_textheight=size;
 
 	if (tempcr) { cairo_destroy(cr); cr=NULL; }
+
+	//DBG cerr <<"---fontsize end"<<endl;
 	return 0;
 }
 
@@ -1156,27 +1166,38 @@ int DisplayerCairo::fontsize(double size)
  */
 double DisplayerCairo::textextent(LaxFont *thisfont, const char *str,int len, double *width,double *height,double *ascent,double *descent,char real)
 { 
+	//DBG cerr <<"-------cairo textextent-------"<<endl;
+
 	cairo_font_face_t *oldfont=NULL;
 	double oldheight=0;
 
-	if (thisfont && dynamic_cast<LaxFontCairo*>(thisfont)) {
+	LaxFontCairo *cfont=dynamic_cast<LaxFontCairo*>(thisfont);
+
+	if (!curfont) initFont();
+
+	if (len<0) len=(str ? strlen(str) : 0);
+	if (str==NULL || len==0 || (!curfont && !cfont)) {
+		if (width) *width=0;
+		if (height) *height=0;
+		if (ascent) *ascent=0;
+		if (descent) *descent=0;
+		//DBG cerr <<"-------cairo textextent (0)-------"<<endl;
+		return 0;
+	}
+
+	//DBG cerr <<" font curfont start: "<<cairo_font_face_get_reference_count(curfont) <<endl;
+	//DBG if (cfont) cerr <<" temp font count start: "<<cairo_font_face_get_reference_count(cfont->font) <<endl;
+
+	if (cfont) {
+		cairo_font_face_reference(curfont);
 		oldfont=curfont;
 		oldheight=_textheight;
-		//LaxFontCairo *cf=dynamic_cast<LaxFontCairo*>(thisfont);
-		font(thisfont,thisfont->textheight());
+		font(cfont,cfont->textheight()); //dec count old, inc new font if the cairo font not same as new one
+		//font(thisfont,thisfont->textheight()); 
+	}
+	//DBG cerr <<" font curfont 2: "<<cairo_font_face_get_reference_count(oldfont ? oldfont : curfont) <<endl;
 
-	} else if (!curfont) initFont();
 
-
-	if (str==NULL || !curfont) {
-        if (width) *width=0;
-        if (height) *height=0;
-        if (ascent) *ascent=0;
-        if (descent) *descent=0;
-        return 0;
-    }
-
-	if (len<0) len=strlen(str);
 	if (len>bufferlen) reallocBuffer(len);
 
 	int tempcr=0;
@@ -1207,18 +1228,28 @@ double DisplayerCairo::textextent(LaxFont *thisfont, const char *str,int len, do
 
 	if (tempcr) { cairo_destroy(cr); cr=NULL; }
 
+	//DBG if (oldfont) cerr <<" curfont count: "<<cairo_font_face_get_reference_count(oldfont) <<endl;
+	//DBG if (cfont) cerr <<" temp font: "<<cairo_font_face_get_reference_count(cfont->font) <<endl;
+
 	if (oldfont) {
  		if (oldfont!=curfont) {
 			cairo_font_face_destroy(curfont);//really just a melodramatic dec count
 			curfont=oldfont;
 			cairo_font_face_reference(curfont);
+			cairo_font_face_destroy(oldfont);
 		}
 
 		if (curscaledfont) { cairo_scaled_font_destroy(curscaledfont); curscaledfont=NULL; }
 
 		if (cr) cairo_set_font_face(cr,curfont);
+		//DBG cerr <<" curfont count: "<<cairo_font_face_get_reference_count(curfont) <<endl;
 		fontsize(oldheight);
 	}
+
+	//DBG if (cfont) cerr <<" temp font count end: "<<cairo_font_face_get_reference_count(cfont->font) <<endl;
+	//DBG cerr <<" font curfont end: "<<cairo_font_face_get_reference_count(curfont) <<endl;
+	//DBG cerr <<" found extent: adv="<<extents.x_advance<<"  width="<<extents.width<<endl;
+	//DBG cerr <<"-------end cairo textextent-------"<<endl;
 
 	if (real) return extents.width;
 	return extents.x_advance;
@@ -1358,14 +1389,15 @@ void DisplayerCairo::imageout(LaxImage *img,double x,double y)
 	if (!t) return;
 	
 	cairo_save(cr);
-	//if (righthanded()) cairo_translate(cr,x,y);
-	//else {
-	//	cairo_translate(cr,x,y);
-	//}
 
-	cairo_translate(cr,x,y);
-	cairo_scale(cr,1,-1);
-	cairo_translate(cr,0,-img->h());
+	if (!real_coordinates || !defaultRighthanded()) {
+		cairo_translate(cr,x,y);
+	} else {
+		cairo_translate(cr,x,y);
+		cairo_scale(cr,1,-1);
+		cairo_translate(cr,0,-img->h());
+	}
+
 
 
 	cairo_set_source_surface(cr, t, 0,0);
@@ -1430,6 +1462,7 @@ void DisplayerCairo::imageout(LaxImage *img,double *matrix)
 {
 	if (!img || img->imagetype()!=LAX_IMAGE_CAIRO) return; 
 
+	cerr <<" *** need to properly implement  DisplayerCairo::imageout(img, matrix) for drawscreen!!"<<endl;
 	PushAndNewTransform(matrix);
 	imageout(img,0,0);
 	PopAxes();

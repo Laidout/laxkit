@@ -627,12 +627,15 @@ void ImageInterface::Clear(SomeData *d)
 int ImageInterface::DrawData(anObject *ndata,anObject *a1,anObject *a2,int info)
 {
 	if (!ndata || dynamic_cast<ImageData *>(ndata)==NULL) return 1;
+
 	ImageData *bzd=data;
 	data=dynamic_cast<ImageData *>(ndata);
 	int td=showdecs,ntd=needtodraw;
 	showdecs=2;//***
 	needtodraw=1;
+
 	Refresh();
+
 	needtodraw=ntd;
 	showdecs=td;
 	data=bzd;
@@ -667,6 +670,7 @@ int ImageInterface::Refresh()
 //			  ll=dp->realtoscreen(data->origin()+data->xaxis()*data->minx+data->yaxis()*data->maxy), 
 //			  lr=dp->realtoscreen(data->origin()+data->xaxis()*data->maxx+data->yaxis()*data->maxy);
 	
+	DBG cerr <<"imageinterf Refresh: "<<(data->filename ? data->filename : "(no file)")<<endl;
 	DBG fprintf(stderr,"draw image scr coords: %ld: ul:%g,%g ur:%g,%g ll:%g,%g lr:%g,%g\n",
 	DBG		data->object_id,ul.x,ul.y,ur.x,ur.y,ll.x,ll.y,lr.x,lr.y);
 	
@@ -845,6 +849,7 @@ int ImageInterface::LBDown(int x,int y,unsigned int state,int count,const Laxkit
 		ObjectContext *oc=NULL;
 		int c=viewport->FindObject(x,y,whatdatatype(),NULL,1,&oc);
 		if (c>0) obj=dynamic_cast<ImageData *>(oc->obj);
+
 	 	if (obj) { 
 			 // found another ImageData to work on.
 			 // If this is primary, then it is ok to work on other images, but not click onto
@@ -857,6 +862,7 @@ int ImageInterface::LBDown(int x,int y,unsigned int state,int count,const Laxkit
 			if (viewport) viewport->ChangeObject(oc,0);
 			needtodraw=1;
 			return 0;
+
 		} else if (c<0) {
 			 // If there is some other non-image data underneath (x,y) and
 			 // this is not primary, then switch objects, and switch tools to deal
@@ -979,13 +985,16 @@ int ImageInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMo
 
 	 // Section out a simple rectangular area to later drop image into if mode==1
 	if (mode==1) {
-		flatpoint o,oo,p=screentoreal(x,y);
 		double m[6];
 		transform_invert(m,data->m());
-		oo=transform_point(m, leftp);
+		flatpoint p =screentoreal(x,y);
+		flatpoint oo=transform_point(m, leftp);
 		p=transform_point(m,p);
+
+		flatpoint o;
 		double dx=p.x-oo.x,
 			   dy=p.y-oo.y;
+
 		if (dx>0) {
 			o.x=oo.x;
 			data->maxx=dx;

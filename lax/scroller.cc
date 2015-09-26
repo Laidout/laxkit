@@ -593,8 +593,8 @@ void Scroller::drawtrack()
 {
 	// draw the track line
 	foreground_color(win_colors->fg);
-	if (win_style&SC_XSCROLL) draw_line(this, 0,win_h/2, win_w,win_h/2);
-	else draw_line(this, win_w/2,0, win_w/2,win_h);
+	if (win_style&SC_XSCROLL) draw_line(this, 0,int(win_h/2)+.5, win_w,int(win_h/2)+.5);
+	else draw_line(this, int(win_w/2)+.5,0, int(win_w/2)+.5,win_h);
 	drawarrows();
 }
 

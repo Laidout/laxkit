@@ -246,6 +246,27 @@ const char* utf8back(const char* p, const char* start, const char* end)
   return p;
 }
 
+/*! Like utf8back(), but using indices.
+ */
+long utf8back_index(const char* p, long pos, long end)
+{
+  // if we are not pointing at a continuation character, we are done:
+  if ((p[pos]&0xc0) != 0x80) return pos;
+
+  // search backwards for a 0xc0 starting the character:
+  long a;
+  for (a = pos-1; ; --a) {
+    if (a < 0) return pos;
+    if (!(p[a]&0x80)) return pos;
+    if ((p[a]&0x40)) break;
+  }
+
+  int len;
+  utf8decode(p+a,p+end,&len);
+  if (a+len > pos) return a;
+  return pos;
+}
+
 /*! Returns number of bytes that utf8encode() will use to encode the
  * character \a ucs. 
  */

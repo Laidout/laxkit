@@ -53,13 +53,18 @@ class LineStyle : public Laxkit::anObject, public LaxFiles::DumpUtility
 	double miterlimit;
 	int dotdash;
 	int function;
+
+	double *dashes;
+	double dash_offset;
+	int numdashes;
+
 	unsigned long mask;
 
 	LineStyle();
 	LineStyle(int r,int g,int b, int a, double w,int cap,int join,int dot,int func);
 	LineStyle(const LineStyle &l);
 	LineStyle &operator=(LineStyle &l);
-	virtual ~LineStyle() {}
+	virtual ~LineStyle();
 	virtual void Color(int r,int g,int b,int a);
 	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
 	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);

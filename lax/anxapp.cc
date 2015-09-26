@@ -50,10 +50,10 @@
 
 
 //-------backends---------
-//#ifdef LAX_USES_IMLIB
+#ifdef LAX_USES_IMLIB
 #include <lax/laximlib.h>
 #include <Imlib2.h>
-//#endif
+#endif
 
 #ifdef LAX_USES_CAIRO
 #include <lax/laxcairo.h>
@@ -963,9 +963,11 @@ int anXApp::initX(int argc,char **argv)
 	DBG cerr <<"Attempting backend: "<<(backend?backend:"(none specified)")<<endl;
 
 	if (!strcmp(backend,"xlib")) {
+#ifdef LAX_USES_IMLIB
 		//InitImlib2Backend();
 		InitLaxImlib(900);
 		if (!fontmanager) fontmanager=GetDefaultFontManager();
+#endif
 
 	} else if (!strcmp(backend,"cairo")) {
 #ifdef LAX_USES_CAIRO
@@ -986,6 +988,7 @@ int anXApp::initX(int argc,char **argv)
 	 //--------------- initialize the cut buffer
 	// *** somehow, this causes crash AFTER I run Unreal4Editor!! wuuuh?
 	//  --> type and format must match existing, guessing UE4 changes the type on the cut buffers...
+	//  --> finally delete all CUT_BUFFER stuff? obselete?
 	//unsigned char b[2]={0,0};
 	//Window rw=DefaultRootWindow(dpy);
 	//XChangeProperty(dpy,rw,XA_CUT_BUFFER0,XA_STRING,8,PropModeAppend,b,0);
@@ -2140,7 +2143,6 @@ int anXApp::addwindow(anXWindow *w,char mapit,char absorb_count) // mapit==1, ab
 		}
 
 		 //set old school icon hint if Imlib is handy to retrieve X pixmap/clipmask
-#ifdef LAX_USES_IMLIB
 		if (!xh || (xh->flags&IconPixmapHint)==0) {
 			 //***this is clunky!!
 
@@ -2156,15 +2158,31 @@ int anXApp::addwindow(anXWindow *w,char mapit,char absorb_count) // mapit==1, ab
 							CopyFromParent, //class, from: InputOutput, InputOnly, CopyFromParent
 							vis,
 							0,&xatts);
-			imlib_context_set_drawable(win);
-			Imlib_Image imlibimage=imlib_load_image(default_icon_file);
-			if (imlibimage) {
-				imlib_context_set_image(imlibimage);
-				imlib_render_pixmaps_for_whole_image(&default_icon_data, &default_icon_mask);
-				imlib_free_image();
-			} else {
-				cerr <<" WARNING! could not load default icon for xh: "<<default_icon_file<<endl;
+
+			//bool stillblank=true;
+#ifdef LAX_USES_CAIRO
+			if (!strcmp(backend, "cairo")) {
+				//***
 			}
+#endif
+#ifdef LAX_USES_IMLIB
+			if (!strcmp(backend, "xlib")) {
+
+				imlib_context_set_display(dpy);
+			    imlib_context_set_visual(vis);
+			    imlib_context_set_colormap(DefaultColormap(dpy, DefaultScreen(dpy)));
+				imlib_context_set_drawable(win);
+				Imlib_Image imlibimage=imlib_load_image(default_icon_file);
+				if (imlibimage) {
+					imlib_context_set_image(imlibimage);
+					imlib_render_pixmaps_for_whole_image(&default_icon_data, &default_icon_mask);
+					imlib_free_image();
+				} else {
+					cerr <<" WARNING! could not load default icon for xh: "<<default_icon_file<<endl;
+				}
+			}
+#endif
+
 			XDestroyWindow(dpy,win);
 
 			if (!xh) xh=XAllocWMHints();
@@ -2174,7 +2192,6 @@ int anXApp::addwindow(anXWindow *w,char mapit,char absorb_count) // mapit==1, ab
 				xh->icon_mask  =default_icon_mask;
 			}
 		}
-#endif
 	}
 
 	if (xh) XSetWMHints(dpy,w->xlib_window,xh);

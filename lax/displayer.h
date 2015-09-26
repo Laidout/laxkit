@@ -237,6 +237,9 @@ class Displayer : public PanUser, virtual public anObject
 	virtual void Zoomr(double m,flatpoint p);
 	virtual void Zoom(double m,int x,int y);
 	virtual void Zoom(double m);
+	virtual flatpoint XAxis();
+	virtual flatpoint YAxis();
+	virtual flatpoint Origin();
 	virtual double Getmag(int y=0);
 	virtual double GetVMag(int x,int y);
 	virtual void Newmag(double xs,double ys=-1);

@@ -304,10 +304,12 @@ int ViewportWithStack::DropObject(SomeData *d, double x,double y)
 /*! Returns the index in the current context of the data after instertion, or -1 for
  * not insterted.
  */
-int ViewportWithStack::NewData(SomeData *d,ObjectContext **oc_ret)
+int ViewportWithStack::NewData(SomeData *d,ObjectContext **oc_ret, bool clear_selection)
 {
 	if (!d) return -1;
 	int c;
+
+	if (clear_selection) SetSelection(NULL);
 
 	curobj->SetObject(d);
 	datastack.push(d);

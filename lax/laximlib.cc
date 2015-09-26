@@ -39,7 +39,7 @@ namespace Laxkit {
 //! Imlib2 support not compiled in, this just prints a warning and returns.
 /*! \ingroup misc
  */
-void InitLaxImlib() 
+void InitLaxImlib(int megabytes, bool with_backend) 
 {
 	printf(" ** Warning! InitLaxImlib() was called, but "
 			" Imlib2 support was not compiled into the Laxkit.\n");
@@ -83,7 +83,7 @@ namespace Laxkit {
  * to imlib based functions that expect LaxImlibImage objects.
  *
  */
-void InitLaxImlib(int megabytes)
+void InitLaxImlib(int megabytes, bool with_backend)
 {
 	 //initialize settings within Imlib
 	imlib_context_set_display(anXApp::app->dpy);
@@ -92,7 +92,7 @@ void InitLaxImlib(int megabytes)
 	imlib_set_cache_size(megabytes * 1024 * 1024); // in bytes
 
 	 //set various base functions
-	InitImlib2Backend();
+	if (with_backend) InitImlib2Backend();
 }
 
 /*! This will set up the default graphics backend to Imlib. This means all the functions

@@ -1350,6 +1350,24 @@ void Displayer::Zoom(double m) // zooms with origin constant point
 	NewTransform(ctm);
 }
 
+flatpoint Displayer::XAxis()
+{
+	const double *m=Getctm();
+	return flatpoint(m[0],m[1]);
+}
+
+flatpoint Displayer::YAxis()
+{
+	const double *m=Getctm();
+	return flatpoint(m[2],m[3]);
+}
+
+flatpoint Displayer::Origin()
+{
+	const double *m=Getctm();
+	return flatpoint(m[4],m[5]);
+}
+
 //! Return the magnification along the screen vector (x,y). (screen=mag*real)
 /*! This is useful when the axes are of different lengths or are not
  * orthogonal, or are rotated.

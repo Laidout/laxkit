@@ -18,7 +18,7 @@
 //    License along with this library; if not, write to the Free Software
 //    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
-//    Copyright (C) 2013 by Tom Lechner
+//    Copyright (C) 2015 by Tom Lechner
 //
 #ifndef _LAX_CAPTIONINTERFACE_H
 #define _LAX_CAPTIONINTERFACE_H
@@ -26,18 +26,20 @@
 #include <lax/interfaces/aninterface.h>
 #include <lax/interfaces/somedata.h>
 #include <lax/laximages.h>
+#include <lax/fontmanager.h>
 
 
 
 namespace LaxInterfaces {
 
+
 //--------------------------------- CaptionData -------------------------------
-class CaptionData : public SomeData
+class CaptionData : virtual public SomeData
 {
  public:
 	int state; //1 if lengths found
 
-	char *fontname, *fontstyle, *fontfile;
+	char *fontfamily, *fontstyle, *fontfile;
 	double fontsize;
 	Laxkit::LaxFont *font;
 	double red,green,blue,alpha; //[0..1]
@@ -47,14 +49,20 @@ class CaptionData : public SomeData
 	Laxkit::NumStack<double> linelengths;
 
 	virtual const char *whattype() { return "CaptionData"; }
-	CaptionData(const char *ntext, const char *nfontname, const char *nfontstyle, int fsize, double xcenter, double ycenter);
+	CaptionData();
+	CaptionData(const char *ntext, const char *nfontfamily, const char *nfontstyle, int fsize, double xcenter, double ycenter);
 	virtual ~CaptionData();
 	virtual int SetText(const char *newtext);
 	virtual double XCenter(double xcenter);
 	virtual double XCenter() { return xcentering; }
 	virtual double YCenter(double ycenter);
 	virtual double YCenter() { return ycentering; }
+	virtual double Size(double newsize);
+	virtual double Size() { return fontsize; }
 	virtual void FindBBox();
+
+	virtual int Font(Laxkit::LaxFont *newfont);
+	virtual int Font(const char *family,const char *style,double size);
 
 	virtual int CharLen(int line);
 	virtual int ComputeLineLen(int line);
@@ -65,20 +73,42 @@ class CaptionData : public SomeData
 	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
 };
 
+
 //--------------------------------- CaptionInterface -------------------------------
+
+enum CaptionInterfaceHover {
+	CAPTION_None=0,
+	CAPTION_Move,
+	CAPTION_Rotate,
+	CAPTION_Text,
+	CAPTION_HAlign,
+	CAPTION_VAlign,
+	CAPTION_Size,
+	CAPTION_MAX
+};
+
 class CaptionInterface : public anInterface
 {
- protected:
+  protected:
 	int mode,mousedragged;
 	flatpoint leftp;
-	int mx,my,lx,ly;
 	int caretline,caretpos;
- public:
+	flatpoint caret;
+	int lasthover;
+
+  public:
+	double defaultscale;
+	double defaultsize;
+	char *defaultfamily;
+	char *defaultstyle;
+
+	double grabpad;
+	int showobj;
 	int showdecs;
 	CaptionData *data;
 	ObjectContext *coc;
 
-	CaptionInterface(int nid,Laxkit::Displayer *ndp, const char *newtext);
+	CaptionInterface(int nid,Laxkit::Displayer *ndp);
 	virtual ~CaptionInterface();
 	virtual anInterface *duplicate(anInterface *dup);
 	virtual const char *IconId() { return "Caption"; }
@@ -95,10 +125,14 @@ class CaptionInterface : public anInterface
 	virtual int Refresh();
 	virtual int DrawData(Laxkit::anObject *ndata,Laxkit::anObject *a1=NULL,Laxkit::anObject *a2=NULL,int info=0);
 	virtual int UseThis(Laxkit::anObject *nobj,unsigned int mask=0);
-	virtual CaptionData *newData();
+	virtual int UseThisObject(ObjectContext *oc);
 	virtual int InterfaceOn();
 	virtual int InterfaceOff();
 	virtual void Clear(SomeData *d);
+	virtual int Event(const Laxkit::EventData *e_data, const char *mes);
+
+	virtual int scan(int x,int y,unsigned int state);
+	virtual CaptionData *newData();
 };
 
 

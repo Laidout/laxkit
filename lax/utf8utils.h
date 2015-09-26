@@ -36,6 +36,7 @@ unsigned utf8decode(const char*, const char* end, int* len);
 int	utf8encode(unsigned, char*);
 const char* utf8fwd(const char*, const char* start, const char* end);
 const char* utf8back(const char*, const char* start, const char* end);
+long utf8back_index(const char* p, long pos, long end);
 
 unsigned utf8towc(const char*, unsigned, wchar_t*, unsigned);
 unsigned utf8tomb(const char*, unsigned, char*, unsigned);

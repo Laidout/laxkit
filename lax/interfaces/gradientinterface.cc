@@ -1140,6 +1140,9 @@ void GradientInterface::drawLinear2()
  */
 void GradientInterface::drawLinear()
 {
+	if (dp->Capability(DRAW_LinearGradient)) { drawLinear2(); return; }
+
+
 	// if the x span is larger than the y span, then for each
 	// x pixel draw a line, otherwise for each y pixel.
 	dp->DrawScreen();
@@ -1213,6 +1216,31 @@ void GradientInterface::drawLinear()
 	// other potential drawing methods: draw first/last, then middle, recursing?
 }
 
+void GradientInterface::drawRadial2()
+{
+	DBG cerr <<" ....drawing with GradientInterface::drawRadial2()"<<endl;
+
+	flatpoint p1(data->p1,0);
+	flatpoint p2(data->p2,0);
+
+	double offsets[data->colors.n];
+	ScreenColor colors[data->colors.n];
+
+	for (int c=0; c<data->colors.n; c++) {
+		offsets[c]=data->GetNormalizedT(c);
+		colors[c] =data->colors.e[c]->color;
+	}
+
+	 //the number: 0=none, 1=repeat, 2=reflect, 3=pad
+	dp->setRadialGradient(0, p1.x,p1.y,data->r1, p2.x,p2.y,data->r2, offsets, colors, data->colors.n);
+
+	//flatpoint v1=flatpoint(0,data->r1) - flatpoint(0,0);
+	//flatpoint v2=flatpoint(0,data->r2) - flatpoint(0,0);
+
+	dp->drawrectangle(data->minx,data->miny, data->maxx-data->minx, data->maxy-data->miny, 1);
+	dp->fill(0);
+}
+
 //! Draw radial gradient. Called from Refresh.
 /*! This assumes that dp has transform to object space.
  *
@@ -1221,6 +1249,9 @@ void GradientInterface::drawLinear()
  */
 void GradientInterface::drawRadial()
 {
+	if (dp->Capability(DRAW_RadialGradient)) { drawRadial2(); return; }
+
+
 	flatpoint p,cp,O1,O2,o1,o2,xaxis,yaxis,v;
 	double R1,R2,r1,r2,r,s,cstart,clen;
 	ScreenColor col,col0,col1; //***note this shadows GradientInterface::col1
@@ -1306,6 +1337,7 @@ void GradientInterface::drawRadialLine(double t)
 		//DBG cerr <<c2<<":"<<c3<<": p="<<p.x<<','<<p.y<<"  "<<points[c3].x<<','<<points[c3].y<<endl;
 	}
 	dp->DrawScreen();
+	dp->LineWidthScreen(6);
 	dp->drawlines(points,ell,1,0);
 	dp->DrawReal();
 }
@@ -1321,6 +1353,7 @@ int GradientInterface::Refresh()
 		if (needtodraw) needtodraw=0;
 		return 1;
 	}
+
 
 	//DBG cerr <<"  GradientRefresh-";
 
@@ -1342,8 +1375,8 @@ int GradientInterface::Refresh()
 
 		if (d) {
 			if (data->style&GRADIENT_RADIAL) drawRadial();
-			//else drawLinear(); // is GRADIENT_LINEAR
-			else drawLinear2(); // is GRADIENT_LINEAR
+			else drawLinear(); // is GRADIENT_LINEAR
+			//else drawLinear2(); // is GRADIENT_LINEAR
 		}
 	}
 

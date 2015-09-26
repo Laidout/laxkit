@@ -110,8 +110,16 @@ LaxCairoImage::LaxCairoImage(const char *fname,cairo_surface_t *img,const char *
 	image=NULL;
 
 	if (!img) {
-		if (fname) image=cairo_image_surface_create_from_png(fname); //***need real image loaders...
+		if (fname) {
+			image=cairo_image_surface_create_from_png(fname); //***need real image loaders...
+			if (cairo_surface_status(image)!=CAIRO_STATUS_SUCCESS) {
+				 //is nil surface
+				cairo_surface_destroy(image);
+				image=NULL;
+			}
+		}
 	} else image=img;
+
 	if (image) {
 		whichimage=1;
 		width= cairo_image_surface_get_width(image),
@@ -134,6 +142,11 @@ LaxCairoImage::LaxCairoImage(const char *fname,cairo_surface_t *img,const char *
 		previewfile=newstr(npfile);
 		cairo_surface_t *pimage;
 		pimage=cairo_image_surface_create_from_png(previewfile);
+		if (cairo_surface_status(pimage)!=CAIRO_STATUS_SUCCESS) {
+			cairo_surface_destroy(pimage);
+			pimage=NULL;
+		}
+
 		if (pimage) {
 			DBG cerr <<" = = = Using existing preview \""<<previewfile<<"\" for \""<<(filename?filename:"(unknown)")<<"\""<<endl;
 			 // preview image already existed, so use it
@@ -361,11 +374,20 @@ cairo_surface_t *LaxCairoImage::Image(int which)
 		if (previewfile && dwidth>0 && (which==0 || which==2)) {
 			 //if request default and preview exists
 			image=cairo_image_surface_create_from_png(previewfile);
+			if (cairo_surface_status(image)!=CAIRO_STATUS_SUCCESS) {
+				cairo_surface_destroy(image);
+				image=NULL;
+			}
 			whichimage=(image?2:0);
 		}
 		if (which==2 && !image) return NULL;
 		if (!image) {
 			image=cairo_image_surface_create_from_png(filename);
+			if (cairo_surface_status(image)!=CAIRO_STATUS_SUCCESS) {
+				cairo_surface_destroy(image);
+				image=NULL;
+			}
+
 			whichimage=image?1:0;
 		}
 	} 
@@ -389,8 +411,17 @@ int laxcairo_generate_preview(const char *original,
 						   int width, int height, int fit)
 {
 	cairo_surface_t *image=NULL,*pimage;
-	if (!image) image=cairo_image_surface_create_from_png(original);
+
+	if (!image) {
+		image=cairo_image_surface_create_from_png(original);
+		if (cairo_surface_status(image)!=CAIRO_STATUS_SUCCESS) {
+			cairo_surface_destroy(image);
+			image=NULL;
+		}
+	}
+
 	if (!image) return 1;
+
 	int owidth= cairo_image_surface_get_width(image),
 	    oheight=cairo_image_surface_get_height(image);
 	
@@ -496,6 +527,7 @@ void laxcairo_image_out_matrix(LaxImage *image, aDrawable *win, double *m)
 LaxImage *load_cairo_image(const char *filename)
 {
 	if (!filename) return NULL;
+
 	cairo_surface_t *image;
 	image=cairo_image_surface_create_from_png(filename);
 	if (cairo_surface_status(image)!=CAIRO_STATUS_SUCCESS) {
@@ -503,6 +535,7 @@ LaxImage *load_cairo_image(const char *filename)
 		image=NULL;
 	}
 	if (!image) return NULL;
+
 	LaxCairoImage *img=new LaxCairoImage(filename,image);
 	img->doneForNow();
 	return img;
@@ -522,9 +555,13 @@ LaxImage *load_cairo_image(const char *filename)
 LaxImage *load_cairo_image_with_preview(const char *filename,const char *previewfile,
 										 int maxx,int maxy,char del)
 {
-	cairo_surface_t *image;
-	image=cairo_image_surface_create_from_png(filename);
+	cairo_surface_t *image = cairo_image_surface_create_from_png(filename);
+	if (cairo_surface_status(image)!=CAIRO_STATUS_SUCCESS) {
+		cairo_surface_destroy(image);
+		image=NULL;
+	}
 	if (!image) return NULL;
+
 	LaxCairoImage *img=new LaxCairoImage(filename,image,previewfile,maxx,maxy,del);
 	img->doneForNow();
 	return img;

@@ -2521,7 +2521,8 @@ int EngraverFillInterface::Refresh()
 	} else if (trace->traceobject) {
 		 //draw outline of traceobject, but don't draw the actual trace object
 		dp->NewFG(.9,.9,.9);
-		dp->LineAttributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
+		dp->LineAttributes(-1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
+		dp->LineWidthScreen(1);
 
 		Affine a;
 		if (edata) a=edata->GetTransformToContext(true, 0);
@@ -2592,7 +2593,8 @@ int EngraverFillInterface::Refresh()
 			lastwidth=-1;
 
 			dp->NewFG(&group->color);
-			dp->LineAttributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
+			dp->LineAttributes(-1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
+			dp->LineWidthScreen(1);
 
 			do { //one loop per on segment
 				if (!group->PointOnDash(lc)) { lc=lc->next; continue; } //advance to first on point
@@ -2742,7 +2744,8 @@ int EngraverFillInterface::Refresh()
 
 
 	 //draw other tool decorations
-	dp->LineAttributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
+	dp->LineAttributes(-1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
+	dp->LineWidthScreen(1);
 
 	 //always draw outline of mesh
 	if (data->npoints_boundary) {
@@ -2840,6 +2843,7 @@ int EngraverFillInterface::Refresh()
 
 
 		dp->DrawScreen();
+		dp->LineWidthScreen(1);
 
 		if (!(submode==2 && lasthover==ENGRAVE_Sensitivity)) {
 
@@ -2891,6 +2895,7 @@ int EngraverFillInterface::Refresh()
 				dp->drawpoint(hover.x,hover.y, brush_radius,0);
 
 				dp->LineAttributes(-1,LineOnOffDash, LAXCAP_Butt, LAXJOIN_Miter);
+				dp->LineWidthScreen(1);
 				if (submode==1) dp->drawpoint(hover.x,hover.y, brush_radius*.85,0);
 				else dp->drawpoint(hover.x,hover.y, brush_radius*1.10,0);
 				dp->LineAttributes(-1,LineSolid, LAXCAP_Butt, LAXJOIN_Miter);
@@ -3109,7 +3114,8 @@ void EngraverFillInterface::DrawCheckBox(int on, int hovered, double x,double y,
 
 void EngraverFillInterface::DrawNumInput(double pos,int type,int hovered, double x,double y,double w,double h, const char *text)
 {
-	dp->LineAttributes(1,LineSolid, CapButt, JoinMiter);
+	dp->LineAttributes(-1,LineSolid, CapButt, JoinMiter);
+	dp->LineWidthScreen(1);
  	
 	if (hovered)  dp->NewFG(0.,0.,0.); 
 	else dp->NewFG(.5,.5,.5);
@@ -3134,7 +3140,8 @@ void EngraverFillInterface::DrawNumInput(double pos,int type,int hovered, double
 
 void EngraverFillInterface::DrawSlider(double pos,int hovered, double x,double y,double w,double h, const char *text)
 {
-	dp->LineAttributes(1,LineSolid, CapButt, JoinMiter);
+	dp->LineAttributes(-1,LineSolid, CapButt, JoinMiter);
+	dp->LineWidthScreen(1);
  	
 	dp->NewFG(.5,.5,.5);
 
@@ -3228,7 +3235,8 @@ void EngraverFillInterface::DrawShadeGradient(double minx,double maxx,double min
 {
 	ScreenColor col;
 
-	dp->LineAttributes(2, LineSolid, CapButt, JoinMiter);
+	dp->LineAttributes(-1, LineSolid, CapButt, JoinMiter);
+	dp->LineWidthScreen(2);
 	for (int c=minx; c<maxx; c+=2) {
 		dp->NewFG(coloravg(rgbcolor(0,0,0),rgbcolor(255,255,255), 1-(c-minx)/(maxx-minx)));
 		dp->drawline(c,miny, c,maxy);
@@ -3828,17 +3836,20 @@ void EngraverFillInterface::DrawPanel()
 
 						 //display smaller icons next to it with this one enlarged
 						for (int c3=0; c3<c2; c3++) { //the ones to the left
-							dp->imageout(modes.e(c3)->image, imxmin+c3*dist-sw/2, iy+ih/2+sw/2, sw,-sw);
+							//dp->imageout(modes.e(c3)->image, imxmin+c3*dist-sw/2, iy+ih/2+sw/2, sw,-sw);
+							dp->imageout(modes.e(c3)->image, imxmin+c3*dist-sw/2, iy+ih/2-sw/2, sw,sw);
 						}
 						for (int c3=modes.n()-1; c3>c2; c3--) { //the ones to the right
-							dp->imageout(modes.e(c3)->image, imxmin+c3*dist-sw/2, iy+ih/2+sw/2, sw,-sw);
+							dp->imageout(modes.e(c3)->image, imxmin+c3*dist-sw/2, iy+ih/2-sw/2, sw,sw);
+							//dp->imageout(modes.e(c3)->image, imxmin+c3*dist-sw/2, iy+ih/2+sw/2, sw,-sw);
 						}
 
 						 //finally display actual one...
 						dp->NewFG(coloravg(fgcolor.Pixel(),bgcolor.Pixel(),.6));
 						dp->NewBG(coloravg(fgcolor.Pixel(),bgcolor.Pixel(),.9));
 						dp->drawrectangle(imxmin+c2*dist-imw/2, iy+ih/2+imh/2, imw,-imh, 2);
-						dp->imageout(item2->image, imxmin+c2*dist-imw/2, iy+ih/2+imh/2, imw,-imh);
+						dp->imageout(item2->image, imxmin+c2*dist-imw/2, iy+ih/2-imh/2, imw,imh);
+						//dp->imageout(item2->image, imxmin+c2*dist-imw/2, iy+ih/2+imh/2, imw,-imh);
 
 					} else dp->textout(ix+iw/2,iy+ih/2, modes.e(c2)->name,-1, LAX_CENTER);
 
@@ -4084,15 +4095,18 @@ void EngraverFillInterface::DrawPanel()
 
 					} else if (item2->id==ENGRAVE_Trace_Once) {
 						 //single trace square
-						dp->LineAttributes(3,LineSolid, CapButt, JoinMiter); 
+						dp->LineAttributes(-1,LineSolid, CapButt, JoinMiter); 
+						dp->LineWidthScreen(3);
 						if (lasthover==ENGRAVE_Trace_Once) dp->NewFG(activate_color); else dp->NewFG(deactivate_color);
 						dp->drawrectangle(i2x+i2w-i2h-th/2, i2y+1,  i2h-2,i2h-2, 0);
-						dp->LineAttributes(1,LineSolid, CapButt, JoinMiter);
+						dp->LineAttributes(-1,LineSolid, CapButt, JoinMiter);
+						dp->LineWidthScreen(1);
 						dp->NewFG(&fgcolor);
 
 					} else if (item2->id==ENGRAVE_Trace_Continuous) {
 						 //continuous trace circle
-						dp->LineAttributes(3,LineSolid, CapButt, JoinMiter); 
+						dp->LineAttributes(-1,LineSolid, CapButt, JoinMiter); 
+						dp->LineWidthScreen(3);
 						if (group && group->trace->continuous_trace) dp->NewFG(activate_color); else dp->NewFG(deactivate_color);
 						dp->drawellipse(i2x+i2h/2+th/2,i2y+i2h/2,
 											i2h/2-1,i2h/2-1,
@@ -4346,7 +4360,8 @@ void EngraverFillInterface::DrawPanel()
 
 					} else if (item2->id==ENGRAVE_Direction_Reline) { 
 						dp->NewFG(auto_reline ? activate_color : deactivate_color);
-						dp->LineAttributes(2,LineSolid,LAXCAP_Round,LAXJOIN_Round);
+						dp->LineAttributes(-1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
+						dp->LineWidthScreen(2);
 						dp->drawthing(i2x+i2w/2,i2y+i2h/2, i2h*.4,i2h*.4, 0, THING_Circle);
 						//dp->drawline(i2x,i2y+i2h/5, i2x+i2w/2, i2y+i2h/5);
 						////dp->drawline(i2x,i2y+i2h/2, i2x+i2w/2, i2y+i2h/2);

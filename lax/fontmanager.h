@@ -32,22 +32,26 @@ namespace Laxkit {
 class LaxFont : public anObject
 {
  protected:
+	char *family, *style;
+
  public:
 	int id;
 	unsigned long textstyle;
 	char cntlchar;
 
 	LaxFont();
-	LaxFont(const char *fontconfigstr,int nid);
-	LaxFont(const char *family, const char *style, double size, int nid);
-	virtual ~LaxFont() {}
-	virtual int laxfid() { return id; }
+	virtual ~LaxFont();
+
+	virtual int FontId() { return id; }
 
 	virtual double charwidth(unsigned long chr,int real,double *width=NULL,double *height=NULL) = 0;
 	virtual double contextcharwidth(char *start,char *pos,int real,double *width=NULL,double *height=NULL) = 0;
 	virtual double ascent() = 0;
 	virtual double descent() = 0;
 	virtual double textheight() = 0;
+	virtual const char *Family();
+	virtual const char *Style();
+	virtual double extent(const char *str,int len) = 0;
 	virtual double Resize(double newsize) = 0;
 };
 

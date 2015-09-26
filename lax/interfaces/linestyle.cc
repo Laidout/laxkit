@@ -67,11 +67,13 @@ LineStyle::LineStyle()
 	 // off/on, dashes is list of lengths proportional to width of on and off
 	 // broken, dashes holds settings for zero_threshhold, broken_threshhold, and other stuff..
 	dotdash=0;
-	//dash_offset=0;
-	//dashes=NULL;
-	//ndashes=0;
+	dash_offset=0;
+	dashes=NULL;
+	numdashes=0;
 }
 
+/*! r,g,b,a are in range 0..65535
+ */
 LineStyle::LineStyle(int r,int g,int b, int a, double w,int cap,int join,int dot,int func)
 {
 	mask=~0;
@@ -88,8 +90,9 @@ LineStyle::LineStyle(int r,int g,int b, int a, double w,int cap,int join,int dot
 	function=func;
 
 	dotdash=dot;
-	//dashes=NULL;
-	//ndashes=0;
+	dash_offset=0;
+	dashes=NULL;
+	numdashes=0;
 }
 
 LineStyle::LineStyle(const LineStyle &l) 
@@ -100,8 +103,15 @@ LineStyle::LineStyle(const LineStyle &l)
 	capstyle  =l.capstyle;
 	joinstyle =l.joinstyle;
 	miterlimit=l.miterlimit;
-	dotdash   =l.dotdash; 
 	function  =l.function;
+
+	dotdash   =l.dotdash; 
+	numdashes =l.numdashes;
+	dash_offset=l.dash_offset;
+	if (numdashes) {
+		dashes=new double[numdashes];
+		memcpy(dashes,l.dashes, numdashes*sizeof(double));
+	} else dashes=NULL; 
 }
 
 LineStyle &LineStyle::operator=(LineStyle &l) 
@@ -113,9 +123,22 @@ LineStyle &LineStyle::operator=(LineStyle &l)
 	joinstyle =l.joinstyle;
 	miterlimit=l.miterlimit;
 	dotdash   =l.dotdash;
-	function =l.function;
+	function  =l.function;
+
+	delete[] dashes;
+	numdashes =l.numdashes;
+	dash_offset=l.dash_offset;
+	if (numdashes) {
+		dashes=new double[numdashes];
+		memcpy(dashes,l.dashes, numdashes*sizeof(double));
+	} else dashes=NULL; 
 
 	return l;
+}
+
+LineStyle::~LineStyle()
+{
+	delete[] dashes;
 }
 
 //! Dump in.

@@ -240,8 +240,8 @@ int Button::SetIcon(LaxImage *img,int makebw) // makebw=0
 void Button::draw()
 {
 	Displayer *dp=GetDefaultDisplayer();
-	dp->NewFG(mousein?win_colors->moverbg:win_colors->bg);
 	dp->MakeCurrent(this);
+	dp->NewFG(mousein?win_colors->moverbg:win_colors->bg);
 	dp->drawrectangle(0,0, win_w,win_h, 1);
 	
 	unsigned int what=labelstyle;
@@ -281,7 +281,7 @@ void Button::draw()
 	if (state&LAX_ON) { offset.x=offset.y=bevel/2; }
 	if (usei) {
 		if (image) {
-			image_out(i,this,ix,iy);
+			dp->imageout(i, ix,iy);
 			//image_out(i,this,ix+offset.x,iy+offset.y);
 			i->doneForNow();
 		} else dp->drawthing(ix+iw/2,iy+iy/2, iw/2,ih/2, (DrawThingTypes)thing, win_colors->fg, win_colors->color1);

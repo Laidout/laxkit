@@ -210,10 +210,11 @@ int ObjectInterface::Refresh()
 
 	dp->NewFG(coloravg(controlcolor,0));
 	flatpoint pn[4];
-	dp->LineAttributes(0,LineSolid,LAXCAP_Butt,LAXJOIN_Miter);
+	dp->LineAttributes(-1,LineSolid,LAXCAP_Butt,LAXJOIN_Miter);
 	SomeData *obj;
 	ObjectContext *oc;
 	double m[6];
+
 	for (int c=0; c<selection->n(); c++) {
 		 // Now draw outlines of each element in the selection.
 		oc=selection->e(c);
@@ -225,6 +226,7 @@ int ObjectInterface::Refresh()
 			dp->PushAndNewTransform(m);
 		} else dp->PushAndNewTransform(obj->m());
 
+		dp->LineWidthScreen(1);
 		pn[0]=flatpoint(obj->minx,obj->miny);
 		pn[1]=flatpoint(obj->maxx,obj->miny);
 		pn[2]=flatpoint(obj->maxx,obj->maxy);

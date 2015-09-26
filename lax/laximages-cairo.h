@@ -43,6 +43,7 @@ class LaxCairoImage : public LaxImage
  protected:
 	char flag,whichimage;
 	int display_count;
+
  public:
 	cairo_surface_t *image;
 	int width,height;

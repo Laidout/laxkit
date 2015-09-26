@@ -28,7 +28,7 @@
 
 namespace Laxkit {
 
-void InitLaxImlib(int megabytes=100);
+void InitLaxImlib(int megabytes=100, bool with_backend=true);
 void InitImlib2Backend();
 
 

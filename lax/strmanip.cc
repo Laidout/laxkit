@@ -623,6 +623,10 @@ void deletestrs(char **&strs,int n)
   */
 char **split(const char *str,char delim,int *n_ret)
 {
+	if (!str) {
+		if (n_ret) *n_ret=0;
+		return NULL;
+	}
 	const char *t=NULL;
 	int c,c2=0,l=strlen(str);
 	int n=1; // n is the number of fields

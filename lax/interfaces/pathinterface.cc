@@ -4119,10 +4119,12 @@ int PathInterface::Refresh()
 			dp->fill(0);
 
 		} else { //ordinary system stroke
-			dp->LineAttributes(lstyle->width*(lstyle->widthtype==0?1:dp->Getmag()),
+			dp->LineAttributes(-1,
 							   (lstyle->dotdash && lstyle->dotdash!=~0)?LineOnOffDash:LineSolid,
 							   lstyle->capstyle,
 							   lstyle->joinstyle);
+			if (lstyle->widthtype==0) dp->LineWidthScreen(lstyle->width);
+			else dp->LineWidth(lstyle->width);
 			dp->stroke(0);
 		}
 	}

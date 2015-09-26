@@ -137,10 +137,14 @@ bool Affine::isIdentity()
  */
 void Affine::setRotation(double angle)
 {
-	_m[0]=cos(angle);
-	_m[1]=-sin(angle);
-	_m[2]=sin(angle);
-	_m[3]=cos(angle);
+	double x=norm(xaxis());
+	double y=norm(yaxis());
+	double aangle=-angle_full(xaxis(),yaxis());
+
+	_m[0]= x*cos(angle);
+	_m[1]=-x*sin(angle);
+	_m[2]= y*cos(angle+aangle);
+	_m[3]=-y*sin(angle+aangle);
 }
 
 void Affine::setScale(double sx,double sy)

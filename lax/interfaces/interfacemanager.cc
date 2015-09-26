@@ -97,6 +97,11 @@ ResourceManager *InterfaceManager::GetResourceManager()
 	return resources;
 }
 
+Laxkit::FontManager *InterfaceManager::GetFontManager()
+{
+	return anXApp::app->fontmanager;
+}
+
 IconManager *InterfaceManager::GetIconManager()
 {
 	return IconManager::GetDefault();

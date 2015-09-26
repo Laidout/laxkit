@@ -23,6 +23,7 @@
 
 
 #include <lax/fontmanager-xlib.h>
+#include <lax/strmanip.h>
 #include <lax/anxapp.h>
 #include <cstdio>
 
@@ -104,8 +105,24 @@ LaxFontXlib::~LaxFontXlib()
 {
 	if (font && anXApp::app->dpy) XftFontClose(anXApp::app->dpy, font);
 
-	if (charwidths)     delete[] charwidths;
-	if (realcharwidths) delete[] realcharwidths;
+	delete[] charwidths;
+	delete[] realcharwidths;
+}
+
+void LaxFontXlib::ResetFamily(const char *nfamily)
+{
+	makestr(family, nfamily);
+}
+
+void LaxFontXlib::ResetStyle(const char *nstyle)
+{
+	makestr(style, nstyle);
+}
+
+double LaxFontXlib::extent(const char *str,int len)
+{
+	cerr << " *** need to implement LaxFontXlib::extent()"<<endl;
+	return 0;
 }
 
 double LaxFontXlib::textheight()
@@ -327,6 +344,7 @@ LaxFont *FontManagerXlib::MakeFont(const char *family, const char *style, double
 	int screen=0;
 	if (size<=0) size=anXApp::app->defaultlaxfont->textheight();
 	XftFont *xfont;
+
 	if (style) {
 		xfont=XftFontOpen(anXApp::app->dpy, screen,
 								XFT_FAMILY, XftTypeString, family,
@@ -339,8 +357,12 @@ LaxFont *FontManagerXlib::MakeFont(const char *family, const char *style, double
 								XFT_PIXEL_SIZE,   XftTypeDouble, size,
 								NULL); 
 	}
+
 	if (!xfont) return NULL;
 	LaxFont *laxfont=new LaxFontXlib(xfont,nid);
+	LaxFontXlib *xf=dynamic_cast<LaxFontXlib*>(laxfont);
+	xf->ResetFamily(family);
+	xf->ResetStyle(style);
 
 	return laxfont;
 }

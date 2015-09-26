@@ -68,6 +68,15 @@ LaxFont::LaxFont()
 	id=getUniqueNumber();
 	textstyle=0;
 	cntlchar='\\';
+
+	family=NULL;
+	style=NULL;
+}
+
+LaxFont::~LaxFont()
+{
+	delete[] family;
+	delete[] style;
 }
 
 /*! \fn LaxFont::LaxFont(const char *fontconfigstr,int nid)
@@ -102,6 +111,20 @@ LaxFont::LaxFont()
 /*! \fn  double Resize(double newsize)
  * \brief Change the size of the cached font, keeping the font type and style. Returns newsize on success, or 0 on error.
  */
+
+/*! Default just return this->family.
+ */
+const char *LaxFont::Family()
+{
+	return family;
+}
+
+/*! Default just return this->style.
+ */
+const char *LaxFont::Style()
+{
+	return style;
+}
 
 
 //--------------------------- FontManager ------------------------------------------

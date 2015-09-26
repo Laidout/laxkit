@@ -48,7 +48,7 @@ class ViewportWithStack : public ViewportWindow
 	virtual int Event(const Laxkit::EventData *e,const char *mes);
 	virtual int MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMouse *d);
 	
-	virtual int NewData(SomeData *d,ObjectContext **oc_ret);
+	virtual int NewData(SomeData *d,ObjectContext **oc_ret, bool clear_selection=true);
 	virtual int DropObject(SomeData *d, double x,double y);
 	virtual int DeleteObject();
 	

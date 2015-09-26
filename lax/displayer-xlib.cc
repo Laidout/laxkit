@@ -605,17 +605,18 @@ double DisplayerXlib::LineWidth(double newwidth)
 	if (newwidth<0) newwidth=0;
 	double old=linewidth;;
 	linewidth=newwidth;
-	LineAttributes(newwidth,curdash,curcap,curjoin);
+	LineAttributes(newwidth*Getmag(),curdash,curcap,curjoin);
 	return old;
 }
 
 double DisplayerXlib::LineWidthScreen(double newwidth)
 {
 	double old=linewidth;
-	if (real_coordinates) {
-		newwidth/=Getmag();
-	}
-	LineWidth(newwidth);
+	//if (real_coordinates) {
+	//	newwidth/=Getmag();
+	//}
+	linewidth=newwidth;
+	XSetLineAttributes(GetDpy(),GetGC(), (int)newwidth,curdash,curcap,curjoin);
 	return old;
 }
 
@@ -1115,6 +1116,15 @@ int DisplayerXlib::imageout(LaxImage *image, double x,double y, double w,double 
 		ur=realtoscreen(ur);
 		ll=realtoscreen(ll);
 		lr=realtoscreen(lr);
+	}
+
+	if (!real_coordinates || !defaultRighthanded()) {
+		flatpoint tt=ul;
+		ul=ll;
+		ll=tt;
+		tt=ur;
+		ur=lr;
+		lr=tt;
 	}
 
 	DoubleBBox bbox(ul);

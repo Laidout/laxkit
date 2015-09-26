@@ -18,7 +18,7 @@
 //    License along with this library; if not, write to the Free Software
 //    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
-//    Copyright (C) 2007 by Tom Lechner
+//    Copyright (C) 2015 by Tom Lechner
 //
 
 #include <lax/fontdialog.h>
@@ -66,6 +66,15 @@ FontDialogFont::~FontDialogFont()
 	if (preview) preview->dec_count();
 }
 
+bool FontDialogFont::Match(const char *mfamily, const char *mstyle)
+{
+	if (mfamily && family && !strcasecmp(mfamily,family)) {
+		if (mstyle && style && !strcasecmp(mstyle,style)) return true;
+	}
+
+	return false;
+}
+
 
 //-------------------------------------- FontDialog -------------------------------------
 /*! \class FontDialog
@@ -80,14 +89,20 @@ FontDialog::FontDialog(anXWindow *parnt,const char *nname,const char *ntitle,uns
 		int xx,int yy,int ww,int hh,int brder,
 		unsigned long nowner,const char *nsend,
 		unsigned long ndstyle,
-		const char *fam, const char *style, int size)
+		const char *fam, const char *style, double size)
 	: RowFrame(parnt,nname,ntitle,(nstyle&0xffff)|ROWFRAME_ROWS|ROWFRAME_CENTER,
 			   xx,yy,ww,hh,brder,
 			   NULL,nowner,nsend,
 			   5)
 {
+	fcconfig=NULL;
+
+	origfamily=newstr(fam);
+	origstyle =newstr(style);
+
 	dialog_style=ndstyle;
-	defaultsize=12;
+	defaultsize=size;
+	if (defaultsize<=0) defaultsize=12;
 	currentfont=-1;
 
 	sampletext=newstr("The quick brown fox etc");
@@ -98,7 +113,9 @@ FontDialog::~FontDialog()
 	fonts.flush();
 	FcConfigDestroy(fcconfig);
 
-	if (sampletext) delete[] sampletext;
+	delete[] sampletext;
+	delete[] origfamily;
+	delete[] origstyle;
 }
 
 int FontDialog::init()
@@ -153,14 +170,14 @@ int FontDialog::init()
 	 // *** type in box progressively limits what's displayed in list 
 	 // *** should have selectors to group favorites or whatever
 	last=fontfamily=new LineInput(this,"fontfamily","fontfamily",0, 0,0,0,0, 1, last,object_id,"fontfamily", 
-							_("Family"),NULL,0, 0,0,2,2,2,2);
+							_("Family"),origfamily,0, 0,0,2,2,2,2);
 	fontfamily->tooltip(_("Family name of the font"));
 	AddWin(fontfamily,1, 200,100,1000,50,0, fontfamily->win_h,0,0,50,0, -1);
 
 
 	 //------font style
 	last=fontstyle=new LineInput(this,"fontstyle","fontstyle",0, 0,0,0,0, 1, last,object_id,"fontstyle", 
-							_("Style"),NULL,0, 0,0,2,2,2,2);
+							_("Style"),origstyle,0, 0,0,2,2,2,2);
 	fontstyle->tooltip(_("Style of the font"));
 	AddWin(fontstyle,1, 200,100,1000,50,0, fontstyle->win_h,0,0,50,0, -1);
 
@@ -171,7 +188,7 @@ int FontDialog::init()
 	//						_("Size"),NULL,0, 0,0,2,2,2,2);
 	last=fontsize=new NumSlider(this,"size","size",0,
 							0,0,0,0, 1, last,object_id,"fontsize", 
-							_("Size"),0,1000000, 15);
+							_("Size"),0,1000000, defaultsize);
 	fontsize->tooltip(_("Size of the font"));
 	//fontsize->SetText(app->defaultlaxfont->textheight());
 	AddWin(fontsize,1, 200,100,1000,50,0, fontsize->win_h,0,0,50,0, -1);
@@ -199,6 +216,7 @@ int FontDialog::init()
 									last,object_id,"font",
 									MENUSEL_SEND_ON_UP
 									 |MENUSEL_CURSSELECTS
+									 |MENUSEL_CURSSENDS
 									 |MENUSEL_TEXTCOLORS
 									 |MENUSEL_LEFT
 									 |MENUSEL_SUB_ON_LEFT
@@ -234,10 +252,16 @@ int FontDialog::init()
 
 
 
-
 	last->CloseControlLoop();
 	Sync(1);
 
+	return 0;
+}
+
+int FontDialog::SampleText(const char *ntext)
+{
+	if (isblank(ntext)) return 1;
+	makestr(sampletext, ntext);
 	return 0;
 }
 
@@ -253,13 +277,19 @@ int FontDialog::Event(const EventData *data,const char *mes)
 {
 	DBG cerr <<"-----font dialog got: "<<mes<<endl;
 
+
 	if (!strcmp(mes,"fontfamily")) { 
+		// *** search for matching font
+	
 	} else if (!strcmp(mes,"fontstyle")) {
+		// *** search for matching font
+	
 	} else if (!strcmp(mes,"fontsize")) {
 		UpdateSample();
 		return 0;
 
 	} else if (!strcmp(mes,"font")) { 
+		 //clicked in list
 		const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(data);
 		int i=s->info1;
 		if (i<0 || i>=fonts.n) return 0;
@@ -280,18 +310,74 @@ int FontDialog::Event(const EventData *data,const char *mes)
 		return 0;
 	}
 
+	return anXWindow::Event(data,mes);
+}
+
+/*! When currentfont<0, try to find a font that matches current text in family and style.
+ *
+ * If currentfont>=0, then do nothing and return.
+ *
+ * currentfont will always be >=0 after calling this.
+ */
+int FontDialog::FindFont()
+{
+	if (currentfont>=0) return 0;
+
+	 //set up fontconfig pattern to match
+	FcPattern *pattern=FcPatternCreate();
+
+    FcValue value;
+    value.type=FcTypeString; value.u.s = (FcChar8*)const_cast<char*>(fontfamily->GetCText());
+    FcPatternAdd(pattern, FC_FAMILY, value, FcTrue);
+
+    value.type=FcTypeString; value.u.s = (FcChar8*)const_cast<char*>(fontstyle->GetCText());
+    FcPatternAdd(pattern, FC_STYLE, value, FcTrue);
+
+
+	 //find best match
+	FcResult result;
+	FcPattern *found = FcFontMatch(fcconfig, pattern, &result);
+	if (result!=FcResultMatch) {
+		currentfont=0;
+		return 1;
+	}
+
+	result=FcPatternGet(found, FC_FAMILY,0,&value);
+	if (result==FcResultMatch) {
+		fontfamily->SetText((const char *)value.u.s);
+	}
+
+	result=FcPatternGet(found, FC_STYLE,0,&value);
+	if (result==FcResultMatch) {
+		fontstyle->SetText((const char *)value.u.s);
+	}
+
+	for (int c=0; c<fonts.n; c++) {
+		if (fonts.e[c]->Match(fontfamily->GetCText(),fontstyle->GetCText())) {
+			currentfont=c;
+			break;
+		}
+	}
+
+
+	 //clean up
+    FcPatternDestroy(pattern);
+
+	if (currentfont<0) currentfont=0;
 	return 0;
 }
 
 //! Sends a StrsEvent Data.
-/*! Fields are: family, style, file, size.
+/*! Fields are: family, style, size, file.
  */
 int FontDialog::send()
 {
-	if (currentfont<0 || !win_owner) return 1;
+	if (!win_owner) return 1;
+
+	if (currentfont<0) FindFont();
 
 	StrsEventData *s=new StrsEventData;
-	s->send_message=win_sendthis;
+	s->send_message=newstr(win_sendthis);
 	s->to=win_owner;
 	s->from=object_id;
 
@@ -299,12 +385,15 @@ int FontDialog::send()
 	s->n=4;
 	s->strs[0]=NULL;
 	makestr(s->strs[0],fonts.e[currentfont]->family);
+
 	s->strs[1]=NULL;
 	makestr(s->strs[1],fonts.e[currentfont]->style);
-	s->strs[2]=NULL;
-	makestr(s->strs[2],fonts.e[currentfont]->file);
-	s->strs[3]=new char[30];
-	sprintf(s->strs[3],"%f",fontsize->Valuef());
+
+	s->strs[2]=new char[30];
+	sprintf(s->strs[2],"%.10g",fontsize->Valuef());
+
+	s->strs[3]=NULL;
+	makestr(s->strs[3],fonts.e[currentfont]->file);
 
 	app->SendMessage(s);
 	return 0;

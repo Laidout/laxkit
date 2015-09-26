@@ -167,7 +167,7 @@ class ViewportWindow : public Laxkit::PanUser, public Laxkit::anXWindow
 	virtual Laxkit::UndoManager *GetUndoManager();
 
 	 //Object context adding, deleting, and adjusting
-	virtual int NewData(SomeData *d, ObjectContext **oc_ret);
+	virtual int NewData(SomeData *d, ObjectContext **oc_ret, bool clear_selection=true);
 	virtual int DeleteObject();
 	virtual ObjectContext *ObjectMoved(ObjectContext *oc, int modifyoc);
 	virtual int ChangeContext(int x,int y,ObjectContext **oc);

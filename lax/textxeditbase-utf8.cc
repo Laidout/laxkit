@@ -365,7 +365,7 @@ void TextXEditBaseUtf8::Refresh()
 		dpos=0; nlines=0;
 		DrawCaret(0,0);
 		//Black(textrect.x,textrect.y,textrect.width,textrect.height);
-		clear_window(this);
+		dp->ClearWindow();
 		DrawText(); // defaults to black out
 		if (win_active) DrawCaret(0,1); 
 
@@ -379,6 +379,7 @@ void TextXEditBaseUtf8::Refresh()
 	}
 
 	dp->font(app->defaultlaxfont, oldheight);
+	
 	needtodraw=0;
 }
 

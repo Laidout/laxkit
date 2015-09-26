@@ -140,9 +140,9 @@ void NumSlider::Refresh()
 		fill_rectangle(this, ww,win_h/2-hh/2,win_w-2*ww,hh);
 	}
 	foreground_color(win_colors->fg);
-	char num[20+((labelbase?labelbase:label)?strlen((labelbase?labelbase:label)):0)];
+	char num[21+((labelbase?labelbase:label)?strlen((labelbase?labelbase:label)):0)];
 	if (labelbase) sprintf(num,labelbase,curitem);
-	else if (label) sprintf(num,"%s%d",label,curitem);
+	else if (label) sprintf(num,"%s %d",label,curitem);
 	else sprintf(num,"%d",curitem);
 
 	textout(this, num,-1,win_w/2,win_h/2,LAX_CENTER);

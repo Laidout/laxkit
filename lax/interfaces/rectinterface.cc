@@ -184,6 +184,7 @@ RectInterface::RectInterface(int nid,Displayer *ndp) : anInterface(nid,ndp)
 	griddivisions=10;
 
 	rotatestep=M_PI/12;
+	hover=RP_None;
 
 	dragmode=0; //should be normal operations. ignored by RectInterface, but can be used by subclasses
 	shiftmode=0; //0 for normal, 1 for was doing single mouse cntl zoom/rotate

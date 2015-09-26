@@ -215,7 +215,10 @@ ViewportWindow::ViewportWindow(Laxkit::anXWindow *parnt,const char *nname,const 
 
 	dp=ndp;
 	if (!dp) dp=newDisplayer(this);
-	if (win_style&VIEWPORT_RIGHT_HANDED) dp->NewTransform(1,0,0,-1,0,0);
+	if (win_style&VIEWPORT_RIGHT_HANDED) {
+		dp->defaultRighthanded(true);
+		dp->NewTransform(1,0,0,-1,0,0);
+	}
 	
 	panner->pan_style|=PANC_SYNC_XY|PANC_ALLOW_SMALL|PANC_PAGE_IS_PERCENT|PANC_ELEMENT_IS_PERCENT;
 	panner->tell(dynamic_cast<anXWindow *>(this));
@@ -338,18 +341,18 @@ int ViewportWindow::ChangeObject(ObjectContext *oc, int switchtool)
  * make things shift around in unexpected ways. Note that this will most likely not crash the
  * program, since the objects are reference counted.
  *
- * Subclasses must redefine this to be something useful.
- * 
- * Subclasses might use this function to install the proper delete function to the
- * data's SomeData::deleteMe. Derived classes can redefine this function to push the
+ * Subclasses must redefine this to be something useful, such as to push the
  * data onto the appropriate page (or whereever).
  *
  * If oc_ret!=NULL, then an ObjectContext is returned there. This should be copied with
  * oc->duplicate(), as usually it is stored internally by the viewport.
  *
  * This default function does nothing, and returns -1.
+ *
+ * If clear_selection, then selection should be cleared, and then populated with only the new data.
+ * Otherwise, the new data is added to the selection.
  */
-int ViewportWindow::NewData(SomeData *d, ObjectContext **oc_ret)
+int ViewportWindow::NewData(SomeData *d, ObjectContext **oc_ret, bool clear_selection)
 {
 	return -1;
 }
@@ -409,9 +412,14 @@ Selection *ViewportWindow::GetSelection()
 int ViewportWindow::SetSelection(Selection *nselection)
 {
 	if (selection==nselection) return 0;
-	if (selection) selection->dec_count();
-	selection=nselection;
-	selection->inc_count();
+
+	if (!nselection) {
+		if (selection) selection->Flush();
+	} else {
+		if (selection) selection->dec_count();
+		selection=nselection;
+		selection->inc_count();
+	}
 	return 0;
 }
 
@@ -1543,7 +1551,7 @@ flatpoint ViewportWindow::screentoreal(int x,int y)
 //! Do a little extra checking to find what the magnification is.
 /*! If a viewport defines pages or groups, for instance, then this allows
  * derived interfaces to use coords on those pages and groups, rather than the
- * plain view transform in dp->
+ * plain view transform in dp.
  *
  * Default is just return dp->Getmag(c).
  */

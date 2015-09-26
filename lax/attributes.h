@@ -102,6 +102,7 @@ int NameValueAttribute(const char *str, char **name, char **value, char **end_pt
 					   char assign='=',char delim=0,const char *stopat=NULL);
 Attribute *NameValueToAttribute(Attribute *att,const char *str, char assign, char delim);
 int SimpleColorAttribute(const char *v,unsigned long *color_ret, Laxkit::ScreenColor *scolor_ret, const char **end_ptr);
+int SimpleColorAttribute(const char *v, double *colors, const char **end_ptr);
 int HexColorAttributeRGB(const char *v,unsigned long *l,const char **endptr);
 int HexColorAttributeRGB(const char *v,Laxkit::ScreenColor *color,const char **endptr);
 int FlatvectorAttribute(const char *v,flatvector *l,char **endptr=NULL);

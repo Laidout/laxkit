@@ -149,7 +149,7 @@ void anXApp::setupdefaultcolors()
 	color_tooltip_fg    = rgbcolor(0,0,0);
 	color_tooltip_bg    = rgbcolor(255,255,128);
 	color_inactiveborder= rgbcolor(128,128,128);
-	color_activeborder  = rgbcolor(0,0,0);
+	color_activeborder  = rgbcolor(90,90,90);
 
 	if (app_profile && !strcmp(app_profile,"Dark")) {
 		color_panel->fg        =rgbcolor(255,0,0);
@@ -277,7 +277,7 @@ void anXApp::setupdefaultcolors()
 		color_edits->fg        =rgbcolor(64,64,64);
 		color_edits->bg        =rgbcolor(255,255,255);
 		color_edits->hfg       =rgbcolor(0,0,0);
-		color_edits->hbg       =rgbcolor(127,127,127);
+		color_edits->hbg       =rgbcolor(192,192,192);
 		color_edits->moverfg   =rgbcolor(64,64,64);
 		color_edits->moverbg   =rgbcolor(255,255,255);
 		color_edits->grayedfg  =rgbcolor(100,100,100);

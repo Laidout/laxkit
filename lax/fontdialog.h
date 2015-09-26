@@ -18,7 +18,7 @@
 //    License along with this library; if not, write to the Free Software
 //    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
-//    Copyright (C) 2007 by Tom Lechner
+//    Copyright (C) 2015 by Tom Lechner
 //
 
 #ifndef _LAX_FONTDIALOG_H
@@ -48,6 +48,7 @@ class FontDialogFont
 
 	FontDialogFont();
 	virtual ~FontDialogFont();
+	virtual bool Match(const char *mfamily, const char *mstyle);
 };
 
 
@@ -65,6 +66,8 @@ class FontDialog : public RowFrame
 	PtrStack<FontDialogFont> fonts;
 	int currentfont;
 
+	char *origfamily, *origstyle;
+
 	MenuSelector *fontlist;
 	LineEdit *text;
 	LineInput *fontfamily, *fontstyle, *fontfile;
@@ -76,17 +79,19 @@ class FontDialog : public RowFrame
 				int xx,int yy,int ww,int hh,int brder,
 				unsigned long nowner,const char *nsend,
 				unsigned long ndstyle,
-				const char *fam, const char *style, int size);
+				const char *fam, const char *style, double size);
 	virtual ~FontDialog();
 
 	virtual const char *whattype() { return "FontDialog"; }
 	virtual int init();
 	virtual int CharInput(unsigned int ch, const char *buffer,int len,unsigned int state, const LaxKeyboard *kb);
 	virtual int Event(const EventData *data,const char *mes);
-
+	
+	virtual int FindFont();
 	virtual int send();
 	virtual void UpdateStyles();
 	virtual void UpdateSample();
+	virtual int SampleText(const char *ntext);
 };
 
 

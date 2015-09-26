@@ -138,6 +138,7 @@ class GradientInterface : public anInterface
 	virtual void drawLinear();
 	virtual void drawLinear2();
 	virtual void drawRadial();
+	virtual void drawRadial2();
 	virtual void drawRadialLine(double t);
 	virtual int DrawData(Laxkit::anObject *ndata,Laxkit::anObject *a1=NULL,Laxkit::anObject *a2=NULL,int info=0);
 
