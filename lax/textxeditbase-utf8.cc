@@ -28,6 +28,8 @@
 #include <lax/laxutils.h>
 #include <lax/strmanip.h>
 
+// DBG !!!!!
+#include <lax/displayer-cairo.h>
 
 #include <iostream>
 using namespace std;
@@ -263,10 +265,15 @@ char *TextXEditBaseUtf8::getSelectionData(int *len,Atom property,Atom targettype
 	return GetSelText();
 }
 
+/*! Paste in text.
+ */
 int TextXEditBaseUtf8::selectionDropped(const unsigned char *data,unsigned long len,Atom actual_type,Atom which)
 {
 	if (!data || !*data) return 0;
-	insstring((char*)data,1);
+	char txt[len+1];
+	strncpy(txt, (char*)data, len);
+	txt[len]='\0';
+	insstring(txt,1);
 	return 0;
 }
 
@@ -360,6 +367,9 @@ void TextXEditBaseUtf8::Refresh()
 	double oldheight=dp->textheight();
 	dp->font(thefont, thefont->textheight());
 	
+	DBG DisplayerCairo *ddp=dynamic_cast<DisplayerCairo*>(dp);
+	DBG if (ddp && ddp->GetCairo()) cerr <<" TextXEditBaseUtf8 refresh, cairo status:  "<<cairo_status_to_string(cairo_status(ddp->GetCairo())) <<endl;
+
 	if (needtodraw&1) { // draw all
 		if (textstyle&TEXT_SHOWTABLINE) DrawTabLine();
 		dpos=0; nlines=0;

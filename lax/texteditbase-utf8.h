@@ -125,6 +125,7 @@ class TextEditBaseUtf8 : virtual public Undoable
 	virtual int findword(long pos,long &start, long &end);
 	virtual int isword(long pos=-1); 
 	virtual long findlinestart(long pos=-1); 
+	virtual int CombineChars();
 	
 	virtual int readonly(long pos=-1);
 	virtual int SetText(const char *newtext);

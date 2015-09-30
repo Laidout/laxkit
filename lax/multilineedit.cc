@@ -696,6 +696,11 @@ int MultiLineEdit::CharInput(unsigned int ch,const char *buffer,int len,unsigned
 		case 'V': ch=LAX_Ins; state=ShiftMask; break;//paste
 		//case 'f': return GetFont();
 
+        case 'j': { //try to join selected (ascii) characters into appropriate accented characters
+                if (CombineChars()==0) needtodraw=1;
+                return 0; 
+            } 
+ 
 		case 'n': // toggle NLONLY 
 			textstyle^=TEXT_NLONLY;
 			makelinestart(curline,-2,0,0);

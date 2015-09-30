@@ -569,7 +569,11 @@ int LineEdit::CharInput(unsigned int ch,const char *buffer,int len,unsigned int 
 			DBG cerr <<"breakpoint"<<endl;
 			return 1;
 
-		case 'j': 
+		case 'j': { //try to join selected (ascii) characters into appropriate accented characters
+				if (CombineChars()==0) needtodraw=1;
+				return 0; 
+			}
+		case 'J': //justification
 			DBG cerr <<" justify before:"<<(textstyle&(TEXT_LEFT|TEXT_RIGHT|TEXT_CENTER))<<endl;
 			switch (textstyle&(TEXT_LEFT|TEXT_RIGHT|TEXT_CENTER)) {
 					  case TEXT_LEFT: textstyle=(textstyle&~TEXT_LEFT)|TEXT_CENTER; break;

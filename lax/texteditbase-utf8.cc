@@ -18,7 +18,7 @@
 //    License along with this library; if not, write to the Free Software
 //    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
-//    Copyright (C) 2004-2013 by Tom Lechner
+//    Copyright (C) 2004-2015 by Tom Lechner
 //
 
 
@@ -26,6 +26,8 @@
 #include <lax/utf8utils.h>
 #include <lax/strmanip.h>
 
+//for composekey: ..should probably relocate that function to a less heavy header
+#include <lax/anxapp.h>
 
 #include <iostream>
 #define DBG 
@@ -405,6 +407,53 @@ int TextEditBaseUtf8::SetSelection(long newss,long newse) // newss=newse=-2
 	return sellen;
 }
 
+/*! Use composekey() to combine 2 characters like "o'" into an accented o (for instance).
+ * composekey() uses numerous pairs to create new characters. See the source file
+ * for whole list.
+ *
+ * If there is a selection, then step through each pair of characters in the selection
+ * to combine.
+ */
+int TextEditBaseUtf8::CombineChars()
+{
+	if (sellen>1 || sellen<-1) {
+		int status=0;
+		int numchange=0;
+		long start=selstart;
+		long end=curpos;
+
+		if (end<start) { long t=start; start=end; end=t; }
+
+		long numchars=0;
+		for (long p=start; p<end; p=nextpos(p)) numchars++;
+
+		for (long p=start; numchars; p=nextpos(p)) {
+			curpos=nextpos(p);
+			curpos=nextpos(curpos);
+			sellen=0;
+			status=CombineChars();
+			if (status==0) { //success!
+				numchars--;
+				numchange++;
+			}
+			numchars--;
+		}
+		return numchange ? 0 : 1;
+	}
+
+	long i1=curpos-2;
+	long i2=curpos-1;
+	if (i1<0 || i2<0) return 1;
+
+	int newch = composekey(thetext[i1],thetext[i2]);
+	if (newch==0 || newch==thetext[i2]) return 1;
+
+	SetSelection(i1,curpos);
+	replacesel(newch); //puts curpos after inserted char
+
+	return 0;
+}
+
 //! Return the next utf8 character position after l.
 /*! If l happens to be in the middle of a utf8 char, return the start
  * of the next char.
@@ -617,7 +666,7 @@ int TextEditBaseUtf8::delsel()
 	return 0;
 }
 
-//! Replace the selection with character ch.
+//! Replace the selection with character ch. Puts the cursor after the inserted character.
 int TextEditBaseUtf8::replacesel(unsigned int ucs)
 { 
 	char ch[5];
