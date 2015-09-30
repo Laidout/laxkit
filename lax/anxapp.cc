@@ -3172,7 +3172,6 @@ void printxcrossing(anXWindow *win,XEvent *e)
 //                which was Copyright 1998-2006 by Bill Spitzak and others, LGPL
 
 unsigned int filterkeysym(KeySym keysym,unsigned int *state);
-unsigned int composekey(unsigned int k1, unsigned int k2);
 
 // Before searching anything the following conversions are made:
 // ';' -> ":"     "|" -> "/"    "=",'_' -> "-"
