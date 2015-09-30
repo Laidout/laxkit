@@ -68,6 +68,7 @@ const char *xlib_event_name(int e_type);
 const char *xlib_extension_event_name(int e_type);
 #endif //_LAX_PLATFORM_XLIB
 
+unsigned int composekey(unsigned int k1, unsigned int k2);
 
 //----------------------- Styling functions ----------------------------
 //---------------------- WindowColors
