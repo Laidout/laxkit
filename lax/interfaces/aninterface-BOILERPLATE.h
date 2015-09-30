@@ -70,7 +70,7 @@ class BoilerPlateInterface : public anInterface
 	virtual int WheelDown(int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d);
 	virtual int CharInput(unsigned int ch, const char *buffer,int len,unsigned int state, const Laxkit::LaxKeyboard *d);
 	virtual int KeyUp(unsigned int ch,unsigned int state, const Laxkit::LaxKeyboard *d);
-
+	virtual void ViewportResized();
 };
 
 } // namespace LaxInterfaces

@@ -134,6 +134,11 @@ void BoilerPlateInterface::Clear(SomeData *d)
 { ***
 }
 
+void BoilerPlateInterface::ViewportResized()
+{
+	// if necessary, do stuff in response to the parent window size changed
+}
+
 Laxkit::MenuInfo *BoilerPlateInterface::ContextMenu(int x,int y,int deviceid, Laxkit::MenuInfo *menu)
 { ***
 	if (no menu for x,y) return NULL;
@@ -176,16 +181,16 @@ int BoilerPlateInterface::Refresh()
 
 
 	 //draw some text name
-	dp->LineAttributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
 	dp->DrawScreen();
+	dp->LineAttributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
 	dp->NewFG(curwindow->win_colors->fg);
 	dp->textout((dp->Maxx+dp->Minx)/2,(dp->Maxy+dp->Miny)/2, "Blah!",,-1, LAX_CENTER);
+	dp->drawline(dp->Minx,dp->Miny, dp->Maxx,dp->Maxy);
 	dp->DrawReal();
 
 	return 0;
 }
 
-//! Start a new freehand line.
 int BoilerPlateInterface::LBDown(int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d) 
 { ***
 	buttondown.down(d->id,LEFTBUTTON,x,y);
@@ -199,14 +204,12 @@ int BoilerPlateInterface::LBDown(int x,int y,unsigned int state,int count, const
 	return 0; //return 0 for absorbing event, or 1 for ignoring
 }
 
-//! Finish a new freehand line by calling newData with it.
 int BoilerPlateInterface::LBUp(int x,int y,unsigned int state, const Laxkit::LaxMouse *d) 
 { ***
 	buttondown.up(d->id,LEFTBUTTON);
 	return 0; //return 0 for absorbing event, or 1 for ignoring
 }
 
-//! Start a new freehand line.
 int BoilerPlateInterface::MBDown(int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d) 
 { ***
 	//dragged is a rough gauge of the maximum distance the mouse was from the original point
@@ -216,7 +219,6 @@ int BoilerPlateInterface::MBDown(int x,int y,unsigned int state,int count, const
 	return 0; //return 0 for absorbing event, or 1 for ignoring
 }
 
-//! Finish a new freehand line by calling newData with it.
 int BoilerPlateInterface::MBUp(int x,int y,unsigned int state, const Laxkit::LaxMouse *d) 
 { ***
 	buttondown.up(d->id,MIDDLEBUTTON);

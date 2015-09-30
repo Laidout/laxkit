@@ -12,8 +12,8 @@ $name=lc($Name);
 $NAME=uc($name);
 
 
-$hfile="$name.h";
-$ccfile="$name.cc";
+$hfile="${name}interface.h";
+$ccfile="${name}interface.cc";
 
 $NAME_H=uc($hfile);
 $NAME_H =~ s/\./_/;
