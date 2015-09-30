@@ -273,8 +273,8 @@ void Button::draw()
 	} else if (usei) { ix=win_w/2-iw/2;
 	}
 
-	DBG cerr <<" ---------button: "<<whattype()<<"  ix="<<ix<<endl;
-	DBG cerr <<"            ty:"<<ty<<"  th:"<<th<<endl;
+	//DBG cerr <<" ---------button: "<<whattype()<<"  ix="<<ix<<endl;
+	//DBG cerr <<"            ty:"<<ty<<"  th:"<<th<<endl;
 	
 	 // draw the stuff
 	flatpoint offset;
