@@ -51,6 +51,8 @@ class ScreenColor
 	void rgbf(double r,double g,double b, double a=1.0);
 	void cmykf(double c, double m, double y, double k, double a=1.0);
 
+	void Set(unsigned int color);
+
 	double Red()   { return red  /65535.; }
 	double Green() { return green/65535.; }
 	double Blue()  { return blue /65535.; }

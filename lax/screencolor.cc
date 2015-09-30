@@ -62,6 +62,16 @@ unsigned long ScreenColor::Pixel()
 	return (blue>>8) | ((green>>8)<<8) | ((red>>8)<<16) | ((alpha>>8)<<24);
 }
 
+void ScreenColor::Set(unsigned int color)
+{
+	int r,g,b;
+	colorrgb(color,&r,&g,&b);
+	red=r*256;
+	green=g*256;
+	blue=b*256;
+	alpha=(0xff000000&color)>>16;
+}
+
 //! Set colors to represent a gray, range [0..65535].
 void ScreenColor::gray(int g, int a)
 {
