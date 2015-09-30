@@ -524,7 +524,7 @@ void draw_bevel(aDrawable *win,int bevel,unsigned long highlight,unsigned long s
 	if (!win || !bevel || w<=0 || h<=0) return;
 	flatpoint p[4];
 	//DBG cerr <<"  "<<win->WindowTitle()<<": state:"<<state<<"  oldstate:"<<oldstate<<endl;
-	DBG cerr<<"bevel: xywh "<<x<<','<<y<<' '<<w<<'x'<<h<<endl;
+	//DBG cerr<<"bevel: xywh "<<x<<','<<y<<' '<<w<<'x'<<h<<endl;
 
 	dp->MakeCurrent(win);
 	
