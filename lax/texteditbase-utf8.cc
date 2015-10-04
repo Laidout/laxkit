@@ -517,6 +517,7 @@ char *TextEditBaseUtf8::GetSelText()
 	if (!sellen) return NULL;
 	char *blah=new char[(sellen>0?sellen:-sellen)+1];
 	strncpy(blah,thetext+(selstart<curpos?selstart:curpos),(sellen>0?sellen:-sellen));
+	blah[abs(sellen)]='\0';
 	return blah;
 }
 

@@ -211,6 +211,12 @@ WindowColors &WindowColors::operator=(WindowColors &l)
 	return l;
 }
 
+WindowColors *WindowColors::duplicate()
+{
+	WindowColors *ncolor=new WindowColors(*this);
+	return ncolor;
+}
+
 
 //---------------------- WindowFonts ---------------------------------
 ///*! \class WindowFonts

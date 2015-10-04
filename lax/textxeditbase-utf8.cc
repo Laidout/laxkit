@@ -252,23 +252,40 @@ int TextXEditBaseUtf8::Paste()
 /*! Xlib specific. Return the selected text, or NULL if no selection.
  * Should probably check to make sure targettype is string.
  */
-char *TextXEditBaseUtf8::getSelectionData(int *len,Atom property,Atom targettype,Atom selection)
+char *TextXEditBaseUtf8::getSelectionData(int *len,const char *property,const char *targettype,const char *selection)
 {
+	DBG cerr << "TextXEditBaseUtf8::getSelectionData():"<<endl;
+	DBG cerr << "  with type "<<(targettype?targettype:("no type"))<<" on selection "<<selection<<endl;
+
+	if (targettype && strcmp(targettype,"UTF8_STRING") && strcmp(targettype,"STRING")) {
+		DBG cerr << " WARNING! strange type in TextXEditBaseUtf8::getSelectionData()"<<endl;
+		*len=0;
+		return NULL;
+	}
+
 	if (!sellen) {
 		if (cutbuffer) {
 			*len=strlen(cutbuffer);
+			DBG cerr <<"  returned data("<<(*len)<<")"<<endl;
 			return newstr(cutbuffer);
 		}
-		*len=0; return NULL;
+		*len=0;
+		return NULL;
 	}
+
 	*len= sellen>0?sellen:-sellen;
+	DBG cerr <<"  returned data("<<(*len)<<")"<<endl;
 	return GetSelText();
 }
 
 /*! Paste in text.
  */
-int TextXEditBaseUtf8::selectionDropped(const unsigned char *data,unsigned long len,Atom actual_type,Atom which)
+int TextXEditBaseUtf8::selectionDropped(const unsigned char *data,unsigned long len,const char *actual_type,const char *which)
 {
+	DBG cerr << "TextXEditBaseUtf8::selectionDropped():"<<endl;
+	DBG cerr << "  with type "<<(actual_type?actual_type:("no type"))<<" on selection "<<which<<endl;
+	DBG cerr << "  dropping data("<<len<<"): "<< (data ? data : (const unsigned char*)"(no data)") <<endl;
+
 	if (!data || !*data) return 0;
 	char txt[len+1];
 	strncpy(txt, (char*)data, len);
@@ -280,7 +297,7 @@ int TextXEditBaseUtf8::selectionDropped(const unsigned char *data,unsigned long 
 //! Initiate a middle button paste via selectionPaste(1,0).
 int TextXEditBaseUtf8::MBUp(int x,int y,unsigned int state, const LaxMouse *d)
 {
-	selectionPaste(1,0);
+	selectionPaste(1,"UTF8_STRING");
 	return 0;
 }
 
@@ -913,22 +930,25 @@ long TextXEditBaseUtf8::GetPos(long pos,int pix,int lsofar,long eof) //lsofar=0,
 	DBG cerr <<endl;
 	long end=pos;
 	if (eof<0) eof=textlen;
-	while (end<eof && !onlf(end)) end++; // puts end on newline-1
+	while (end<eof && !onlf(end)) end=nextpos(end); // puts end on newline-1
 	DBG cerr <<"textx-GetPos: pos="<<pos<<" end="<<end<<" pix="<<pix<<endl;
 
 	double ww,hh;
 	if ((textstyle&(TEXT_RIGHT|TEXT_CENTER)) || !(textstyle&TEXT_TABS_STOPS)) {
 		int tlsofar;
 		int lastpix=lsofar, mid;
-		int pos2=pos;
+		long pos2=pos;
+		long pos3;
+
 		while (pos2<end) { 
 			 //*** note that this is wrong: it does not take into account mapping of missing chars
-			getextent(thefont, thetext+pos,pos2-pos+1, &ww,&hh, NULL,NULL, 0);
+			pos3=nextpos(pos2);
+			getextent(thefont, thetext+pos,pos3-pos, &ww,&hh, NULL,NULL, 0);
 			tlsofar=lsofar+ww;
 			mid=(tlsofar+lastpix)/2;
 			DBG cerr <<pix<<"  "<<lsofar<<"  "<<"  mid:"<<mid<<"  "<<tlsofar<<endl;
 			if (mid>pix) break;
-			if (tlsofar>pix) { pos2++; break; }
+			if (tlsofar>pix) { pos2=nextpos(pos2); break; }
 			lastpix=tlsofar;
 			pos2=nextpos(pos2);
 		}
@@ -944,6 +964,7 @@ long TextXEditBaseUtf8::GetPos(long pos,int pix,int lsofar,long eof) //lsofar=0,
 	int eotabseg, //char pos right after the end of the current tab segment
 		seg,      //pixel length of the current tab segment
 		topos;    //char pos to center a tab around, or the end of the tab segment
+
 	while (pos<end) {
 		 // pos is assumed to be placed after the previous tab
 		eotabseg=pos; // eotabseg is set to point at next tab/eol/eof
@@ -952,7 +973,9 @@ long TextXEditBaseUtf8::GetPos(long pos,int pix,int lsofar,long eof) //lsofar=0,
 			tabchar=GetTabChar(tabbedto); 
 			if (tabchar=='\0') tabtype=CENTER_TAB; 
 		}
+
 		while (eotabseg<eof && !onlf(eotabseg) && thetext[eotabseg]!='\t') eotabseg++;
+
 		if (tabtype==CHAR_TAB) {
 			char ch=thetext[eotabseg];
 			thetext[eotabseg]='\0';//we don't want to waste time scanning a huge str!
@@ -962,6 +985,7 @@ long TextXEditBaseUtf8::GetPos(long pos,int pix,int lsofar,long eof) //lsofar=0,
 			if (charpos) topos=charpos-thetext;
 				else topos=eotabseg;
 		} else topos=eotabseg;
+
 		getextent(thefont, thetext+pos,topos-pos, &ww,&hh, NULL,NULL, 0);
 		seg=ww;
 
@@ -983,14 +1007,17 @@ long TextXEditBaseUtf8::GetPos(long pos,int pix,int lsofar,long eof) //lsofar=0,
 		if (pix<lsofar) return pos-1; // pix is in the tab previous to seg
 		pos2=pos;
 		last=lsofar;
+
+		long pos3;
 		while (pos2<eotabseg) {
 			 //*** probably not quite right:
-			getextent(thefont, thetext+pos,pos2-pos+1, &ww,&hh, NULL,NULL, 0);
+			pos3=nextpos(pos2);
+			getextent(thefont, thetext+pos,pos3-pos, &ww,&hh, NULL,NULL, 0);
 			lsofar2=lsofar+ww;
 			mid=(last+lsofar2)/2;
 
 			if (pix<mid) return pos2;
-			if (pix<lsofar2) return pos2+1;
+			if (pix<lsofar2) return nextpos(pos2);
 			last=lsofar2;
 			pos2=nextpos(pos2);
 		}

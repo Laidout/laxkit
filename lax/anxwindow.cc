@@ -1187,98 +1187,110 @@ int anXWindow::event(XEvent *e)
 		//
 
 		case SelectionNotify: {
-			DBG cerr <<"\nSelectionNotify this window:"<<xlib_window<<endl;
+			DBG cerr <<"\n----SelectionNotify this window:"<<xlib_window<<endl;
 			DBG cerr <<	"  requestor:"<<e->xselection.requestor<<endl;
-			DBG char *blah=NULL;
-			DBG blah=XGetAtomName(app->dpy,e->xselection.selection);
-			DBG cout <<"  selection: "<<(blah?blah:"(no selection)")<<endl;
-			DBG if (blah) XFree(blah);
-			DBG blah=XGetAtomName(app->dpy,e->xselection.target);
-			DBG cout <<"  target: "<<(blah?blah:"(no target)")<<endl;
-			DBG if (blah) XFree(blah);
-			DBG blah=NULL;
-			DBG if (e->xselection.property) blah=XGetAtomName(app->dpy,e->xselection.property);
-			DBG cout <<"  property: "<<(blah?blah:"(no property)")<<endl;
-			DBG if (blah) XFree(blah);
 
 			if (e->xselection.property==0) {
 				DBG cerr <<"selection failed!"<<endl;
 				return 0;
 			}
 
+			char *selection=XGetAtomName(app->dpy,e->xselection.selection); 
+			char *target   =XGetAtomName(app->dpy,e->xselection.target);
+			char *property =NULL;
+			if (e->xselection.property) property=XGetAtomName(app->dpy,e->xselection.property);
+
+			DBG cerr <<"  selection: "<<(selection ? selection :"(no selection)")<<endl;
+			DBG cerr <<"  target: "   <<(target    ? target    :"(no target)")   <<endl;
+			DBG cerr <<"  property: " <<(property  ? property  :"(no property)") <<endl;
+
+
 			Atom actual_type;
 			int format;
 			unsigned long len, remaining;
 			unsigned char *data=NULL;
-			if (Success==XGetWindowProperty(
+			if (Success == XGetWindowProperty(
 							app->dpy,
 							e->xselection.requestor,
-							e->xselection.property, //property
+							e->xselection.property, //property the selection data is stored in
 							0,0x8000000L,          //offset and max len into property to get
 							True,                 //whether to delete property afterwards
-							0,                   //preferred type
+							AnyPropertyType,      //preferred type (this value is #defined 0)
 							&actual_type,
 							&format, &len, &remaining, &data)) {
-				selectionDropped(data,len,actual_type,e->xselection.selection);
+
+				char *actualtype = XGetAtomName(app->dpy,actual_type);
+				DBG if (actualtype) cerr <<" dropping selection of type "<<(actualtype ? actualtype : "(unknown)")<<endl;
+
+				selectionDropped(data,len,actualtype,selection);
+
+				if (actualtype) XFree(actualtype);
 				XFree(data);
 			}
+
+			if (property)  XFree(property);
+			if (target)    XFree(target);
+			if (selection) XFree(selection);
 			return 0;
 		} //SelectionNotify
 		
 		case SelectionRequest: {
-			DBG cerr <<"\nSelectionRequest this window:"<<xlib_window<<endl;
-			DBG cerr <<	"  requestor:"<<e->xselectionrequest.requestor<<endl;
-			DBG cerr <<	"  owner:"<<e->xselectionrequest.owner<<endl;
-			DBG char *blah;
-			DBG blah=XGetAtomName(app->dpy,e->xselectionrequest.selection);
-			DBG cout <<"  selection: "<<(blah?blah:"(no selection)")<<endl;
-			DBG if (blah) XFree(blah);
-			DBG blah=XGetAtomName(app->dpy,e->xselectionrequest.target);
-			DBG cout <<"  target: "<<(blah?blah:"(no target)")<<endl;
-			DBG if (blah) XFree(blah);
-			DBG blah=0;
-			DBG if (e->xselectionrequest.property) blah=XGetAtomName(app->dpy,e->xselectionrequest.property);
-			DBG cout <<"  property: "<<(blah?blah:"(no property)")<<endl;
-			DBG if (blah) XFree(blah);
+			char *selection=XGetAtomName(app->dpy,e->xselectionrequest.selection); 
+			char *target   =XGetAtomName(app->dpy,e->xselectionrequest.target);
+			char *property =NULL;
+			if (e->xselectionrequest.property) property=XGetAtomName(app->dpy,e->xselectionrequest.property);
+
+			DBG cerr <<"\n----SelectionRequest this window:" <<xlib_window    <<endl;
+			DBG cerr <<	"  requestor:" << e->xselectionrequest.requestor  <<endl;
+			DBG cerr <<	"  owner:"     << e->xselectionrequest.owner      <<endl; 
+			DBG cerr << "  target: "   << (target    ? target    : "(no target)")   <<endl;
+			DBG cerr << "  selection: "<< (selection ? selection : "(no selection)")<<endl;
+			DBG cerr << "  property: " << (property  ? property  : "(no property)") <<endl;
 
 
 			 //A window gets these after someone else calls XConvertSelection().
-			//if (e->xselectionrequest.selection==XA_SECONDARY) {<--probably a laxkit paste request
+			// ??? if (e->xselectionrequest.selection==XA_SECONDARY) {<--probably a laxkit paste request
 				 //probably resulted from a selectionPaste() call.
 				 //need to set the data on the requestor window
-				int len=0;
-				char *data;
-				data=getSelectionData(&len,
-									  e->xselectionrequest.property,
-									  e->xselectionrequest.target,
-									  e->xselectionrequest.selection);
-				if (len==0 && data) len=strlen(data);
-				if (len) {
-					XChangeProperty(app->dpy,
-								e->xselectionrequest.requestor,
-								e->xselectionrequest.property,    //format of data
-								e->xselectionrequest.target,
-								8,
-								PropModeReplace,
-								(const unsigned char *)data,
-								len);
-				}
 
-				XEvent ee;
-				ee.xselection.type=SelectionNotify;
-				ee.xselection.display=app->dpy;
-				ee.xselection.requestor=e->xselectionrequest.requestor;
-				ee.xselection.selection=e->xselectionrequest.selection;
-				ee.xselection.target=e->xselectionrequest.target;
-				ee.xselection.property= len ? e->xselectionrequest.property : None;
-				ee.xselection.time=e->xselectionrequest.time;
-				XSendEvent(app->dpy,e->xselectionrequest.requestor,False,0,&ee);
+			int len=0;
+			char *data = getSelectionData(&len, property, target, selection);
 
-				DBG cerr <<" sent XSelectionNotify to "<<e->xselectionrequest.requestor<<endl;
+			if (len==0 && data) {
+				cerr <<" *** warning! anXWindow::SelectionRequest crash magnet for binary data!!!"<<endl;
+				len=strlen(data);
+			}
+			if (len) {
+				 //change the selection property on the window to hold the requested data
+				XChangeProperty(app->dpy,
+							e->xselectionrequest.requestor,
+							e->xselectionrequest.property,    //format of data
+							e->xselectionrequest.target,
+							8,
+							PropModeReplace,
+							(const unsigned char *)data,
+							len);
+			}
 
-				
+			 //notify requestor, whether or not any data
+			XEvent ee;
+			ee.xselection.type=SelectionNotify;
+			ee.xselection.display=app->dpy;
+			ee.xselection.requestor=e->xselectionrequest.requestor;
+			ee.xselection.selection=e->xselectionrequest.selection;
+			ee.xselection.target=e->xselectionrequest.target;
+			ee.xselection.property= len ? e->xselectionrequest.property : None;
+			ee.xselection.time=e->xselectionrequest.time;
+			XSendEvent(app->dpy,e->xselectionrequest.requestor,False,0,&ee);
 
-			//} // else if DND....
+			DBG cerr <<" sent XSelectionNotify to "<<e->xselectionrequest.requestor<<endl;
+
+
+			delete[] data;
+			if (property)  XFree(property);
+			if (target)    XFree(target);
+			if (selection) XFree(selection);
+
 			return 1;
 		} //SelectionRequest
 
@@ -1538,26 +1550,20 @@ void anXWindow::selectionChanged()
 
 //------------------ Selection and Drag-and-drop functions
 
-/*! Called from a SelectionNotify event. This is used for both generic selection events
- * (see selectionPaste()) and also drag-and-drop events.
+/*! Initiate a copy.
+ * 
+ * Normally, you will call this function in response to a control-c.
  *
- * Returns 0 if used, nonzero otherwise.
+ * In X, this is done by aquiring ownership of the selection.
+ * If mid==1 then grab PRIMARY, otherwise grab CLIPBOARD.
  *
- * \todo do this without Atoms
+ * Return 0 for success, nonzero for some kind of error.
  */
-int anXWindow::selectionDropped(const unsigned char *data,unsigned long len,Atom actual_type,Atom which)
+int anXWindow::selectionCopy(char mid)
 {
-	DBG cerr<<"selectionDropped:"<<endl;
-	DBG char *blah=(actual_type?XGetAtomName(app->dpy,actual_type):NULL);
-	DBG cerr <<"type: "<<(blah?blah:"(no type)")<<endl;
-	DBG if (blah) XFree(blah);
-	DBG blah=(which?XGetAtomName(app->dpy,which):NULL);
-	DBG cerr <<"selection: "<<(blah?blah:"(no sel)")<<endl;
-	DBG if (blah) XFree(blah);
-
-	DBG if (data) cerr <<"data:"<<endl<<data<<endl;
-
-	return 1; 
+	Atom atom=mid?XInternAtom(app->dpy,"PRIMARY",False):XInternAtom(app->dpy,"CLIPBOARD",False);
+	XSetSelectionOwner(app->dpy, atom, xlib_window, CurrentTime);
+	return 0;
 }
 
 //! Initiate a paste.
@@ -1571,61 +1577,64 @@ int anXWindow::selectionDropped(const unsigned char *data,unsigned long len,Atom
  * be relayed to selectionDropped(). 
  * The selection owner can expect a SelectionRequest.
  *
- * \todo do this without Atoms
+ * targettype can be "STRING" or *** some other things that needs more research to determine!
+ * If targettype==NULL, then use "STRING".
+ *
+ * \todo figure out what gets passed around in targettype.
  */
-int anXWindow::selectionPaste(char mid, Atom targettype)
+int anXWindow::selectionPaste(char mid, const char *targettype)
 {
 	Atom atom = mid ? XInternAtom(app->dpy,"PRIMARY",False) : XInternAtom(app->dpy,"CLIPBOARD",False);
 	Window selowner=XGetSelectionOwner(app->dpy, atom);
 	if (selowner==None) return -1;
 
-	if (!targettype) targettype=XA_STRING;
+	if (!targettype) targettype="STRING";
+
+	Atom target_type = XInternAtom(app->dpy, targettype, False);
 
 	 //some one does own it
 	 //a SelectionRequest event is sent to the owner of the selection
 	XConvertSelection(app->dpy,
 						atom,         //selection
-						targettype,   //target type for data
+						target_type,  //target type for data
 						XA_SECONDARY, //property in which to put data on the target window
 						xlib_window,  //requestor
 						CurrentTime);
 	return 0;
 }
 
-//! Initiate a copy, by aquiring ownership of the selection.
-/*! If mid==1 then grab PRIMARY, otherwise grab CLIPBOARD.
+/*! Called from a SelectionNotify event. This is used for both generic selection events
+ * (see selectionPaste()) and also drag-and-drop events.
  *
- * Return 0 for success, nonzero for some kind of error.
+ * Returns 0 if used, nonzero otherwise.
+ *
+ * \todo do this without Atoms
  */
-int anXWindow::selectionCopy(char mid)
+int anXWindow::selectionDropped(const unsigned char *data,unsigned long len,const char *actual_type,const char *which)
 {
-	Atom atom=mid?XInternAtom(app->dpy,"PRIMARY",False):XInternAtom(app->dpy,"CLIPBOARD",False);
-	XSetSelectionOwner(app->dpy, atom, xlib_window, CurrentTime);
-	return 0;
+	DBG cerr<<"selectionDropped (default anXWindow):"<<endl;
+	DBG cerr <<"type: "     <<(actual_type ? actual_type : "(no type)")     <<endl;
+	DBG cerr <<"selection: "<<(which       ? which       : "(no selection)")<<endl;
+
+	DBG if (data) cerr <<"data: "<<endl<<data<<endl;
+
+	return 1; 
 }
 
 //! Return a new char[] and len of data to set for a selection (clipboard paste or drag and drop).
 /*! This is used when a SelectionRequest comes through the wire. Whatever calls this function
  * is responsible for calling delete[] on the returned data.
  *
- * \todo do this without Atoms
  * \todo this is a little sloppy about types. what if data can be provided not in the given format?
  *     need to do SelectionNotify with no data when appropriate. cut/paste implementation is not
  *     currently totally ICCCM compliant, but it seems to work at the moment
  */
-char *anXWindow::getSelectionData(int *len,Atom property,Atom targettype,Atom selection)
+char *anXWindow::getSelectionData(int *len,const char *property,const char *targettype,const char *selection)
 {
-	DBG cerr <<"getSelectionData:"<<endl;
-	DBG char *blah=NULL;
-	DBG blah=selection?XGetAtomName(app->dpy,selection):0;
-	DBG cerr <<"  selection: "<<(blah?blah:"(no selection)")<<endl;
-	DBG if (blah) XFree(blah);
-	DBG blah=targettype?XGetAtomName(app->dpy,targettype):0;
-	DBG cerr <<"  target: "<<(blah?blah:"(no target)")<<endl;
-	DBG if (blah) XFree(blah);
-	DBG blah=property?XGetAtomName(app->dpy,property):0;
-	DBG cerr <<"  property: "<<(blah?blah:"(no property)")<<endl;
-	DBG if (blah) XFree(blah);
+	DBG cerr << "getSelectionData:"<<endl;
+	DBG cerr << "  target: "   << (targettype ? targettype : "(no target)")   <<endl;
+	DBG cerr << "  selection: "<< (selection  ? selection  : "(no selection)")<<endl;
+	DBG cerr << "  property: " << (property   ? property   : "(no property)") <<endl;
 	
 	if (len) *len=0;
 	return NULL;

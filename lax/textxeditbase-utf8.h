@@ -52,8 +52,8 @@ class TextXEditBaseUtf8 : public anXWindow, public TextEditBaseUtf8
 
 	virtual void docaret(int w=1);
 	virtual void settextrect();
-	virtual int selectionDropped(const unsigned char *data,unsigned long len,Atom actual_type,Atom which);
-	virtual char *getSelectionData(int *len,Atom property,Atom targettype,Atom selection);
+	virtual int selectionDropped(const unsigned char *data,unsigned long len,const char *actual_type,const char *which);
+	virtual char *getSelectionData(int *len,const char *property,const char *targettype,const char *selection);
 
  public:
 	TextXEditBaseUtf8(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,

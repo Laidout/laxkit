@@ -90,6 +90,8 @@ class WindowColors : public anObject
 	WindowColors();
 	WindowColors(const WindowColors &l);
 	WindowColors &operator=(WindowColors &l);
+
+	WindowColors *duplicate();
 };
 
 ////---------------------- WindowFonts
@@ -173,13 +175,6 @@ class anXWindow : virtual public EventReceiver,
 
 #ifdef _LAX_PLATFORM_XLIB
  protected:
-	 // double buffer specific stuff:
-
-	 //drag and drop helper functions
-	virtual int   selectionDropped(const unsigned char *data,unsigned long len,Atom actual_type,Atom which);
-	virtual int   selectionPaste(char mid, Atom targettype);
-	virtual int   selectionCopy(char mid);
-	virtual char *getSelectionData(int *len,Atom property,Atom targettype,Atom selection);
  public:
  	 // Very X specific stuff about window status and event capture.
 	XWMHints      *xlib_win_hints;
@@ -201,6 +196,13 @@ class anXWindow : virtual public EventReceiver,
 	 // double buffer specific stuff:
 	virtual void SwapBuffers();
 	virtual void SetupBackBuffer();
+
+	 //drag and drop helper functions
+	virtual int   selectionDropped(const unsigned char *data,unsigned long len,const char *actual_type, const char *which);
+	virtual int   selectionPaste(char mid, const char *targettype);
+	virtual int   selectionCopy(char mid);
+	virtual char *getSelectionData(int *len,const char *property,const char *targettype,const char *selection);
+
  public:
 
 	WindowColors  *win_colors;
