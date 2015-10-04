@@ -503,8 +503,8 @@ CaptionInterface::CaptionInterface(int nid,Displayer *ndp) : anInterface(nid,ndp
 	defaultstyle=newstr("");
 
 	grabpad=20;
-	caretline=0;
-	caretpos=0;
+	caretline=0;//line number, starting from 0
+	caretpos=0; //position of caret in caretline
 	needtodraw=1;
 
 //	if (newtext) {
@@ -755,6 +755,7 @@ int CaptionInterface::Refresh()
 			dp->NewFG(.5,.5,.5,.5);
 			xs*=2;
 			ys*=2;
+
 			dp->drawellipse(flatpoint(data->minx,data->miny), xs/2,ys/2, M_PI/2, 2*M_PI, 1);
 			dp->drawellipse(flatpoint(data->maxx,data->miny), xs/2,ys/2, -M_PI, M_PI/2, 1);
 			dp->drawellipse(flatpoint(data->maxx,data->maxy), xs/2,ys/2, -M_PI/2, M_PI, 1);
@@ -839,13 +840,9 @@ CaptionData *CaptionInterface::newData()
 	ndata=dynamic_cast<CaptionData *>(somedatafactory()->NewObject(LAX_CAPTIONDATA));
 	//if (ndata) ndata->SetText("\nline 2\nthird line");
 
-	if (!ndata) ndata=new CaptionData(NULL, 
-						 defaultfamily, defaultstyle,
-						 //"/home/tom/fonts/temp/usr/X11R6/lib/X11/fonts/TTF/temp/hrtimes_.ttf",
-						 defaultsize,
-						 0,  //xcenter,
-						 0);
-
+	if (!ndata) ndata=new CaptionData();
+	
+	ndata->Font(defaultfamily, defaultstyle, defaultsize);
 
 	return ndata;
 }
@@ -915,7 +912,7 @@ int CaptionInterface::LBDown(int x,int y,unsigned int state,int count, const Lax
 	mousedragged=0;
 
 	if (data && count==2) {
-		app->addwindow(new FontDialog(NULL, "Font",_("Font"),ANXWIN_REMEMBER, 10,10,500,600,0, object_id,"newfont",0,
+		app->addwindow(new FontDialog(NULL, "Font",_("Font"),ANXWIN_REMEMBER, 10,10,700,700,0, object_id,"newfont",0,
 					data->fontfamily, data->fontstyle, data->fontsize));
 		buttondown.up(d->id,LEFTBUTTON);
 		return 0;
@@ -943,6 +940,15 @@ int CaptionInterface::LBDown(int x,int y,unsigned int state,int count, const Lax
 		
 		if (viewport) viewport->ChangeObject(oc,0);
 		buttondown.moveinfo(d->id,LEFTBUTTON, CAPTION_Move);
+
+		defaultsize=data->fontsize;
+		makestr(defaultfamily,data->fontfamily);
+		makestr(defaultstyle, data->fontstyle);
+		defaultscale=data->xaxis().norm();
+
+		SimpleColorEventData *e=new SimpleColorEventData( 65535, 0xffff*data->red, 0xffff*data->green, 0xffff*data->blue, 0xffff*data->alpha, 0);
+		app->SendMessage(e, curwindow->win_parent->object_id, "make curcolor", object_id);
+
 		needtodraw=1;
 		return 0;
 
@@ -964,8 +970,11 @@ int CaptionInterface::LBDown(int x,int y,unsigned int state,int count, const Lax
 	deletedata();
 	data=newData(); 
 	needtodraw=1;
+
 	if (!data) return 0;
 	if (data->maxx>data->minx && data->maxy>data->miny) mode=0;
+	caretline=0;
+	caretpos=0;
 
 	leftp=screentoreal(x,y);
 	data->origin(leftp);
@@ -987,29 +996,7 @@ int CaptionInterface::LBDown(int x,int y,unsigned int state,int count, const Lax
 		if (oc) coc=oc->duplicate();
 	}
 
-	return 0;
-
-	 // Set leftp to the point in the image that the mouse was clicked down on.
-//	flatpoint oo=(screentoreal(x,y)-data->origin()); // real vector from data->origin() to mouse move to 
-//	leftp.x=(oo*data->xaxis())/(data->xaxis()*data->xaxis());
-//	leftp.y=(oo*data->yaxis())/(data->yaxis()*data->yaxis()); // leftp is in data coords now
-//	data->minx=data->maxx=leftp.x;
-//	data->miny=data->maxy=leftp.y;
-	
-
-////	if (state&ControlMask && state&ShiftMask && data) { // +^lb move around wildpoint
-////		return 0;
-////	} else if (state&ControlMask && data) { // ^lb focus or end angle
-////		return 0;
-////	} else if (state&ShiftMask && data) { // +lb start angle
-////		return 0;
-////	} else { // straight click
-////		return 0;
-////	}
-
-	needtodraw=1;
-	DBG cerr <<"..captioninterfacelbd done   ";
-	return 0;
+	return 0; 
 }
 
 int CaptionInterface::Event(const Laxkit::EventData *e_data, const char *mes)
@@ -1022,7 +1009,13 @@ int CaptionInterface::Event(const Laxkit::EventData *e_data, const char *mes)
 
 		if (!data) return 0;
 
-		data->Font(s->strs[0], s->strs[1], strtod(s->strs[2], NULL));
+		double size=strtod(s->strs[2], NULL);
+		if (size<=0) size=1e-4;
+		data->Font(s->strs[0], s->strs[1], size);
+
+		defaultsize=size;
+		makestr(defaultfamily,data->fontfamily);
+		makestr(defaultstyle, data->fontstyle);
 		needtodraw=1;
 
 		return 0;
@@ -1034,6 +1027,7 @@ int CaptionInterface::Event(const Laxkit::EventData *e_data, const char *mes)
 		double size=strtod(s->str,&end);
 		if (end!=s->str && size>0) {
 			data->Size(size);
+			defaultsize=data->fontsize;
 			needtodraw=1;
 		}
 		return 0;
