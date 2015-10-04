@@ -109,6 +109,7 @@ StackFrame::~StackFrame()
  */
 int StackFrame::init()
 {
+	if (!pos) UpdatePos(1);
 	anXWindow::init();
 	Sync(1);
 
@@ -118,6 +119,8 @@ int StackFrame::init()
 void StackFrame::sync()
 {
 	DBG cerr <<"StackFrame::sync()"<<endl;
+
+	if (!pos) UpdatePos(1);
 	MoveResize(x(),y(), w(),h());
 	Sync(0);
 	//ListBox::sync();
@@ -289,6 +292,7 @@ int StackFrame::Resize(int nw,int nh)
 int StackFrame::Sync(int add)
 {
 	if (!list.n) return 1;
+	if (!pos) UpdatePos(1);
 
 
 //	if (pos==NULL) {
