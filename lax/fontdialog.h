@@ -40,13 +40,14 @@ namespace Laxkit {
 class FontDialogFont
 {
  public:
+	int id;
 	char *family;
 	char *style;
 	char *file;
 	double size;
 	LaxImage *preview;
 
-	FontDialogFont();
+	FontDialogFont(int nid);
 	virtual ~FontDialogFont();
 	virtual bool Match(const char *mfamily, const char *mstyle);
 };
