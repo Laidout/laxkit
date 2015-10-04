@@ -26,6 +26,10 @@
 #include <lax/lineinput.h>
 #include <lax/button.h>
 #include <lax/language.h>
+#include <lax/stackframe.h>
+#include <lax/colorbox.h>
+#include <lax/laxutils.h>
+#include <lax/quickfileopen.h>
 
 #include <lax/lists.cc>
 
@@ -51,8 +55,9 @@ namespace Laxkit {
  * \brief Describes a font as dealt with in a FontDialog.
  */
 
-FontDialogFont::FontDialogFont()
+FontDialogFont::FontDialogFont(int nid)
 {
+	id=nid;
 	family=style=file=NULL;
 	size=12;
 	preview=NULL;
@@ -137,7 +142,7 @@ int FontDialog::init()
 		result=FcPatternGet(fontset->fonts[c],FC_FAMILY,0,&v);
 		if (result!=FcResultMatch) continue;
 		
-		f=new FontDialogFont();
+		f=new FontDialogFont(c);
 		makestr(f->family, (const char *)v.u.s);
 
 		result=FcPatternGet(fontset->fonts[c],FC_STYLE,0,&v);
@@ -156,23 +161,15 @@ int FontDialog::init()
 	//int linpheight=textheight+6;
 
 	anXWindow *last=NULL;
+	double textheight=app->defaultlaxfont->textheight();
 
-
-	 //------search
-	last=search=new LineInput(this,"search","search",0, 0,0,0,0, 1, last,object_id,"search", 
-							_("Search"),NULL,0, 0,0,2,2,2,2);
-	search->tooltip(_("Search among fonts"));
-	AddWin(search,1, 200,100,1000,50,0, search->win_h,0,0,50,0, -1);
-	AddNull();
-
-	
 	 //------font family
 	 // *** type in box progressively limits what's displayed in list 
 	 // *** should have selectors to group favorites or whatever
 	last=fontfamily=new LineInput(this,"fontfamily","fontfamily",0, 0,0,0,0, 1, last,object_id,"fontfamily", 
 							_("Family"),origfamily,0, 0,0,2,2,2,2);
 	fontfamily->tooltip(_("Family name of the font"));
-	AddWin(fontfamily,1, 200,100,1000,50,0, fontfamily->win_h,0,0,50,0, -1);
+	AddWin(fontfamily,1, 400,200,1000,50,0, fontfamily->win_h,0,0,50,0, -1);
 
 
 	 //------font style
@@ -186,12 +183,12 @@ int FontDialog::init()
 	//last=fontsize=new LineInput(this,"size","size",0, //LINP_FLOAT,
 	//						0,0,0,0, 1, last,object_id,"fontsize", 
 	//						_("Size"),NULL,0, 0,0,2,2,2,2);
-	last=fontsize=new NumSlider(this,"size","size",0,
+	last=fontsize=new NumSlider(this,"size","size",ItemSlider::SENDALL,
 							0,0,0,0, 1, last,object_id,"fontsize", 
 							_("Size"),0,1000000, defaultsize);
 	fontsize->tooltip(_("Size of the font"));
 	//fontsize->SetText(app->defaultlaxfont->textheight());
-	AddWin(fontsize,1, 200,100,1000,50,0, fontsize->win_h,0,0,50,0, -1);
+	AddWin(fontsize,1, 150,100,1000,50,0, fontsize->win_h,0,0,50,0, -1);
 
 	AddNull();
 	 //------font file
@@ -199,9 +196,27 @@ int FontDialog::init()
 							_("File"),NULL,0, 0,0,2,2,2,2);
 	fontfile->tooltip(_("File of the font"));
 	AddWin(fontfile,1, 200,100,2000,50,0, fontstyle->win_h,0,0,50,0, -1);
+
+	last=new QuickFileOpen(this,"new file","new file",ANXWIN_REMEMBER, 0,0,0,0, 1,
+	                      last,object_id,"newfile",
+						  FILES_OPEN_ONE,
+						  fontfile);
+	AddWin(last,1, last->win_w,0,0,50,0, last->win_h,0,0,50,0, -1);
+
 	AddNull();
 
 
+	AddVSpacer(textheight/2,0,0,0);
+	AddNull();
+
+	 //------search
+	last=search=new LineInput(this,"search","search",0, 0,0,0,0, 1, last,object_id,"search", 
+							_("Search"),NULL,0, 0,0,2,2,2,2);
+	search->tooltip(_("Search among fonts"));
+	AddWin(search,1, 200,100,1000,50,0, search->win_h,0,0,50,0, -1);
+	AddNull();
+
+	
 
 
 	 //------font list
@@ -211,6 +226,7 @@ int FontDialog::init()
 		sprintf(str,"%s, %s",fonts.e[c]->family,fonts.e[c]->style);
 		mfonts->AddItem(str,c);
 	}
+	mfonts->Sort(0);
 	last=fontlist=new MenuSelector(this,"fonts","fonts",0,
 									0,0,0,0,1,
 									last,object_id,"font",
@@ -230,14 +246,39 @@ int FontDialog::init()
 
 
 	 //-----sample text
-	// *** todo be able to change fg/bg
 	last=text=new LineEdit(this,"sample","sample",0,
 								0,0,0,0,0,
 								last,object_id,"sample",
 								sampletext,TEXT_CENTER);
-	AddWin(text,1, 200,100,1000,50,0, app->defaultlaxfont->textheight()*2,0,0,50,0, -1);
+	WindowColors *ncolors=app->color_edits->duplicate();
+	text->installColors(ncolors);
+	ncolors->dec_count();
+	AddWin(text,1, 200,100,1000,50,0, textheight*2,0,0,50,0, -1);
+
+
+	 // fg/bg boxes
+	StackFrame *stack=new StackFrame(this, "vstack",NULL, STACKF_VERTICAL|STACKF_NOT_SIZEABLE, 0,0,0,0,0, NULL,0,NULL,0);
+	int r,g,b;
+	colorrgb(text->win_colors->fg, &r,&g,&b);
+	ColorBox *colorbox;
+	colorbox=new ColorBox(stack,"fg","fg",COLORBOX_SEND_ALL, 0,0,textheight*2,textheight*2,1, NULL,object_id,"fg", 
+							   LAX_COLOR_RGB,1./255, r/255.,g/255.,b/255.,1.0,0);
+	colorbox->tooltip(_("Sample foreground"));
+	stack->AddWin(colorbox, 1, textheight*2,0,0,50,0, textheight*2,0,100,50,0);
+
+	colorrgb(text->win_colors->bg, &r,&g,&b);
+	colorbox=new ColorBox(stack,"bg","bg",COLORBOX_SEND_ALL, 0,0,textheight*2,textheight*2,1, NULL,object_id,"bg", 
+							   LAX_COLOR_RGB,1./255, r/255.,g/255.,b/255.,1.0,0);
+	colorbox->tooltip(_("Sample background"));
+	stack->AddWin(colorbox, 1, textheight*2,0,0,50,0, textheight*2,0,100,50,0);
+	stack->WrapToExtent();
+	AddWin(stack,1, stack->win_w,0,0,50,0, stack->win_h,0,0,50,0, -1);
+
 	AddNull();
 
+
+	AddVSpacer(textheight/2,0,0,0);
+	AddNull();
 
 
 	 //--------final ok and cancel
@@ -267,8 +308,12 @@ int FontDialog::SampleText(const char *ntext)
 
 void FontDialog::UpdateSample()
 {
-	LaxFont *newfont=app->fontmanager->MakeFont(fontfamily->GetCText(),fontstyle->GetCText(),fontsize->Value(), 0);
+	double size=fontsize->Value();
+	if (size<=0) size=1e-4;
+
+	LaxFont *newfont=app->fontmanager->MakeFont(fontfamily->GetCText(),fontstyle->GetCText(),size, 0);
 	if (!newfont) return;
+
 	text->UseThisFont(newfont);
 	newfont->dec_count();
 }
@@ -291,13 +336,27 @@ int FontDialog::Event(const EventData *data,const char *mes)
 	} else if (!strcmp(mes,"font")) { 
 		 //clicked in list
 		const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(data);
-		int i=s->info1;
+		//int i=s->info1; //index
+		int i=s->info2; //id
 		if (i<0 || i>=fonts.n) return 0;
 		fontfamily->SetText(fonts.e[i]->family);
 		fontstyle ->SetText(fonts.e[i]->style);
 		fontfile  ->SetText(fonts.e[i]->file);
 		currentfont=i;
 		UpdateSample();
+		return 0;
+
+	} else if (!strcmp(mes,"newfile")) {
+		cerr <<" *** NEED TO IMPLEMENT FontDialog:: get new file"<<endl;
+
+	} else if (!strcmp(mes,"fg") || !strcmp(mes,"bg")) { 
+		const SimpleColorEventData *ce=dynamic_cast<const SimpleColorEventData *>(data);
+        if (!ce) return 0;
+
+		unsigned long color=rgbcolorf(ce->channels[0]/(double)ce->max, ce->channels[1]/(double)ce->max, ce->channels[2]/(double)ce->max);
+		if (!strcmp(mes,"fg")) text->win_colors->fg=color;
+		else text->win_colors->bg=color;
+		text->Needtodraw(1);
 		return 0;
 
 	} else if (!strcmp(mes,"cancel")) {
