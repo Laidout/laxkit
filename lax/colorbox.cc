@@ -349,10 +349,13 @@ int ColorBox::LBDown(int x,int y,unsigned int state,int count, const LaxMouse *d
 }
 
 /*! Return 1 for unable. 0 for success.
+ *
+ * x,y is position on screen.
  */
-int ColorBox::PopupColorSelector()
+int ColorBox::PopupColorSelector(int x,int y)
 {
 	anXWindow *w=NULL;
+
 	if (!colorselector) {
 		
 		double cc[5];
@@ -366,7 +369,8 @@ int ColorBox::PopupColorSelector()
 							0,0,200,400,0,
 						   NULL,object_id,"newcolor",
 						   sendtype,1./255,
-						   cc[0],cc[1],cc[2],cc[3],cc[4]);
+						   cc[0],cc[1],cc[2],cc[3],cc[4],
+						   x,y);
 		}
 
 	} else {
@@ -411,8 +415,9 @@ int ColorBox::Event(const EventData *e,const char *mes)
 int ColorBox::LBUp(int x,int y,unsigned int state, const LaxMouse *d)
 {
 	int dragged=buttondown.up(d->id, LEFTBUTTON);
-	if (dragged<3) {
-		PopupColorSelector();
+	if (dragged<3) { 
+		mouseposition(d->id, NULL,&x,&y,NULL,NULL);
+		PopupColorSelector(x,y);
 		return 0;
 	}
 	if (!buttondown.any(d->id) && ColorChanged()) send();
@@ -526,6 +531,8 @@ int ColorBox::MouseMove(int x,int y,unsigned int state, const LaxMouse *d)
 	else if (colortype==LAX_COLOR_CMYK) sprintf(blah,"%f,%f,%f,%f,%f",Cyan(),Magenta(),Yellow(),Black(),Alpha());
 	else sprintf(blah,"%f,%f",Gray(),Alpha());
 	app->postmessage(blah);
+
+	if (win_style&COLORBOX_SEND_ALL) send();
 	return 0;
 }
 

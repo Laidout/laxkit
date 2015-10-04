@@ -105,12 +105,15 @@ ColorBarInfo::~ColorBarInfo()
 //------------------------------------- ColorSliders 
 
 /*! nstep is what fraction out of range to move on a single shift, like a pan event or wheel movement.
+ *
+ * If nearx>0 and neary>0, then try to place the window near that screen postiion.
  */
 ColorSliders::ColorSliders(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
 			 int nx,int ny,int nw,int nh,int brder,
 			 anXWindow *prev,unsigned long owner,const char *mes,
 			 int ctype, double nstep,
-			 double c0,double c1,double c2,double c3,double c4)
+			 double c0,double c1,double c2,double c3,double c4,
+			 double nearx, double neary)
   : anXWindow(parnt,nname,ntitle,ANXWIN_DOUBLEBUFFER|nstyle,nx,ny,nw,nh,brder,prev,owner,mes),
 	ColorBase(ctype, c0,c1,c2,c3,c4)
 {
@@ -125,10 +128,47 @@ ColorSliders::ColorSliders(anXWindow *parnt,const char *nname,const char *ntitle
 	mouseshape=0;
 	square=10;
 
+	if (nw<=0) nw=200;
+	if (nh<=0) nh=400;
+
 	DefineSystems(COLORBLOCK_RGB|COLORBLOCK_CMYK|COLORBLOCK_HSL|COLORBLOCK_Alpha);
 	DefineBars();
 
 	installColors(app->color_panel);
+
+
+	 //try to place window near (nearx,neary)
+	if (nearx>=0 && neary>=0) {
+		int sw,sh;
+		app->ScreenInfo(0, NULL,NULL, &sw,&sh, NULL,NULL,NULL,NULL);
+
+		nx=nearx-nw-10;
+		if (nx<0) {
+			nx=nearx+10;
+		}
+		if (nx+nw>=sw) {
+			nx=sw-nw;
+			if (nx<0) {
+				nx=0;
+				win_w=sw;
+			}
+		}
+
+		ny=neary-nh/2;
+		if (ny<0) {
+			ny=0;
+		}
+		if (ny>=sh) {
+			ny=sh-nh;
+			if (ny<0) {
+				ny=0;
+				win_h=sh;
+			}
+		}
+
+		win_x=nx;
+		win_y=ny;
+	}
 }
 
 ColorSliders::~ColorSliders()

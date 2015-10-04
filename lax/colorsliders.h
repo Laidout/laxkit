@@ -147,7 +147,8 @@ class ColorSliders : public anXWindow, public ColorBase
 			 int nx,int ny,int nw,int nh,int brder,
 			 anXWindow *prev,unsigned long owner,const char *mes,
 			 int ctype, double nstep,
-			 double c0,double c1,double c2,double c3=-1,double c4=-1);
+			 double c0,double c1,double c2,double c3=-1,double c4=-1,
+			 double nearx=-1, double neary=-1);
 	virtual ~ColorSliders();
 	virtual const char *whattype() { return "ColorSliders"; }
 	virtual int init();

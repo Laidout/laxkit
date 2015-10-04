@@ -41,6 +41,8 @@ namespace Laxkit {
 #define COLORBOX_ALLOW_KNOCKOUT     (1<<24)
 #define COLORBOX_ALLOW_REGISTRATION (1<<25)
 
+#define COLORBOX_SEND_ALL    (1<<26)
+
 
 //------------------------------- ColorBox ------------------------------
 class ColorBox : public anXWindow, virtual public ColorBase
@@ -92,7 +94,7 @@ class ColorBox : public anXWindow, virtual public ColorBase
 	virtual int CharInput(unsigned int ch,const char *buffer,int len,unsigned int state, const LaxKeyboard *d);
 	virtual int Event(const EventData *e,const char *mes);
 
-	virtual int PopupColorSelector();
+	virtual int PopupColorSelector(int x,int y);
 	virtual void Updated();
 };
 
