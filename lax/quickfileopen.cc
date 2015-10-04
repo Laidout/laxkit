@@ -56,6 +56,9 @@ QuickFileOpen::QuickFileOpen(anXWindow *parnt,const char *nname,const char *ntit
 	type=ntype;
 	path=npath;
 	dir=newstr(ndir);
+	if (!dir && !path) {
+		dir=lax_dirname(path->GetCText(),1);
+	}
 }
 
 QuickFileOpen::~QuickFileOpen()
@@ -72,15 +75,17 @@ void QuickFileOpen::SetDir(const char *ndir)
 	
 //! Called when mouse is up, the pops up the PopupMenu via app->rundialog(new PopupMenu).
 int QuickFileOpen::send(int deviceid,int direction)
-{
-	
-	app->rundialog(new FileDialog(NULL,"File Popup Menu","File Popup menu", 0,
+{	
+	char *ddir=newstr(dir);
+	if (!ddir && path) ddir=lax_dirname(path->GetCText(),1);
+	app->rundialog(new FileDialog(NULL,"File Popup Menu","File Popup menu", ANXWIN_REMEMBER,
 								0,0,0,0,1, 
 								win_owner,win_sendthis, 
 								type,
 								path?path->GetCText():NULL,
-								dir),
+								ddir),
 					NULL,1);
+	delete[] ddir;
 	return 0;
 }
 
