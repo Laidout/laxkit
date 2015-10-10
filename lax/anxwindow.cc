@@ -934,7 +934,7 @@ int anXWindow::Resize(int nw,int nh)
 	win_w=nw;
 	win_h=nh;
 
-	Displayer *dp=GetDefaultDisplayer();
+	Displayer *dp=GetDisplayer();
 	//dp->MakeCurrent(this);
 	dp->CurrentResized(this, nw,nh);
 
@@ -960,7 +960,7 @@ int anXWindow::MoveResize(int nx,int ny,int nw,int nh)
 	win_w=nw;
 	win_h=nh;
 
-	Displayer *dp=GetDefaultDisplayer();
+	Displayer *dp=GetDisplayer();
 	//dp->MakeCurrent(this);
 	dp->CurrentResized(this, nw,nh);
 
@@ -1175,6 +1175,7 @@ int anXWindow::event(XEvent *e)
 		case UnmapNotify: {
 				DBG cerr <<"..typ("<<WindowTitle()<<"):MapNotify off"<<endl;
 				if (e->xmap.window==e->xmap.event) {
+					app->ClearTransients(this);
 					EventData *d=new EventData(LAX_onUnmapped,object_id,object_id);
 					app->SendMessage(d,object_id,NULL,object_id);
 					win_on=0;
@@ -1642,13 +1643,13 @@ char *anXWindow::getSelectionData(int *len,const char *property,const char *targ
 
 
 //--------------------------- Drawing helper
-/*! Default is to return the default Displayer via GetDefaultDisplayer().
- * Also calls dp->MakeCurrent(this).
+/*! Basically, get the relevant displayer (also returned) with this->GetDisplayer(),
+ * then calls dp->MakeCurrent(this).
  * Subclasses that use other custom displayers should redefine if necessary.
  */
 Displayer *anXWindow::MakeCurrent()
 {
-	Displayer *dp=GetDefaultDisplayer();
+	Displayer *dp=GetDisplayer();
 	dp->MakeCurrent(this);
 	return dp;
 }
