@@ -1456,6 +1456,29 @@ int anXApp::mapwindow(anXWindow *w)
 	return 0;
 }
 
+/*! Remove any windows in dialogs whose win_owner is either same as w, or is a window
+ * that is a descendent of w.
+ *
+ * It is assumed that w is being either minimized or destroyed, so we need to remove
+ * anything in the dialog stack that refers to it.
+ */
+int anXApp::ClearTransients(anXWindow *w)
+{
+	if (!w) return 0;
+	DBG cerr << "anXApp::ClearTransients("<<w->WindowTitle()<<")"<<endl;
+
+	int n=0;
+	for (int c=dialogs.n-1; c>=0; c--) {
+		if (dialogs.e[c]->win_owner==w->object_id
+				|| find_subwindow_by_id(w,dialogs.e[c]->win_owner)) {
+			destroywindow(dialogs.e[c]);
+			n++;
+		}
+	}
+
+	return n;
+}
+
 //! Check to see if some kinds of event types are in mask, and so allow them through.
 /*! Note that only KeyPress/KeyRelease/ButtonPress/ButtonRelease/MotionNotify/Enter/Leave/FocusIn/Out
  * 	GraphicsExpose/Expose events are screened. All others pass right through.
@@ -2234,7 +2257,7 @@ anXWindow *anXApp::findwindow_by_id(unsigned long id)
 	return NULL;
 }
 
-//! Find the anXWindow having win, and ancestor w
+//! Find the anXWindow having id, and ancestor w
 /*! called from a loop over topwindows in run. 
  *
  * Perhaps this should be a window function?

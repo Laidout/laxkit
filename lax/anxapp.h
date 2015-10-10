@@ -488,6 +488,7 @@ class anXApp : virtual public anObject
 	virtual int reparent(anXWindow *kid,anXWindow *newparent);
 	virtual int setfocus(anXWindow *win,clock_t t=0,const LaxKeyboard *kb=NULL);
 	virtual int destroywindow(anXWindow *w);
+	virtual int ClearTransients(anXWindow *w);
 
 	 //drag-n-drop, cutting and pasting helpers
 	virtual void postmessage(const char *str);
