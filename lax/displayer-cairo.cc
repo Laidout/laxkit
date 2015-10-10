@@ -227,7 +227,7 @@ int DisplayerCairo::CurrentResized(aDrawable *buffer, int nwidth,int nheight)
 	if (buffer->xlibDrawable(1)==0
 			|| buffer->xlibDrawable(0)==buffer->xlibDrawable(1)) {
 		 //not double buffered, easy..
-		cairo_xlib_surface_set_size(surface, nwidth,nheight);
+		if (surface) cairo_xlib_surface_set_size(surface, nwidth,nheight);
 		//cairo_xlib_surface_set_drawable(surface,w, nwidth,nheight);
 		return 0;
 	}
@@ -243,6 +243,12 @@ int DisplayerCairo::CurrentResized(aDrawable *buffer, int nwidth,int nheight)
 int DisplayerCairo::MakeCurrent(aDrawable *buffer)
 {
 	if (!buffer) { EndDrawing(); return -1; }
+
+	if (cr && cairo_status(cr)!=CAIRO_STATUS_SUCCESS) {
+		cerr << " *** WARNING!!! cairo in error status: "<<cairo_status_to_string(cairo_status(cr))<<"!! recreating cr..."<<endl;
+		cairo_destroy(cr);
+		cr=NULL;		
+	}
 
 	if (cr && surface && buffer==dr && w==buffer->xlibDrawable()) return 1; //already current!
 
@@ -361,6 +367,12 @@ int DisplayerCairo::CreateSurface(int width,int height, int type)
 	isinternal=1;
 	surface=cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width,height);
 	cr=cairo_create(surface);
+
+	cairo_matrix_t m;
+	if (real_coordinates) cairo_matrix_init(&m, ctm[0], ctm[1], ctm[2], ctm[3], ctm[4], ctm[5]);
+	else cairo_matrix_init(&m, 1,0,0,1,0,0);
+	cairo_set_matrix(cr, &m);
+	transform_invert(ictm,ctm);
 
 	if (!curfont) initFont();
 	cairo_set_font_face(cr,curfont);
@@ -625,9 +637,9 @@ void DisplayerCairo::ClearWindow()
 		cairo_set_operator(cr,CAIRO_OPERATOR_OVER);
 
 		if (xw) cairo_set_source_rgba(cr,
-						(xw->win_colors->bg&0xff)/255.,
-						((xw->win_colors->bg&0xff00)>>8)/255.,
 						((xw->win_colors->bg&0xff0000)>>16)/255.,
+						((xw->win_colors->bg&0xff00)>>8)/255.,
+						(xw->win_colors->bg&0xff)/255.,
 						1.);
 		else cairo_set_source_rgba(cr, bgRed, bgGreen, bgBlue, 1.0);
 
@@ -1132,6 +1144,11 @@ int DisplayerCairo::fontsize(double size)
 		cairo_set_font_face(cr,curfont);
 		//DBG cerr <<" fontsize, temp cr, cairo status set font face:  "<<cairo_status_to_string(cairo_status(cr)) <<endl;
 		tempcr=1;
+
+		cairo_matrix_t m;
+		if (real_coordinates) cairo_matrix_init(&m, ctm[0], ctm[1], ctm[2], ctm[3], ctm[4], ctm[5]);
+		else cairo_matrix_init(&m, 1,0,0,1,0,0);
+		cairo_set_matrix(cr, &m);
 	}
 
 	 //need to do some double checking, since font extents height is NOT the same as size
@@ -1208,6 +1225,11 @@ double DisplayerCairo::textextent(LaxFont *thisfont, const char *str,int len, do
 		}
 
 		cr=cairo_create(surface ? surface : ref_surface);
+		cairo_matrix_t m;
+		if (real_coordinates) cairo_matrix_init(&m, ctm[0], ctm[1], ctm[2], ctm[3], ctm[4], ctm[5]);
+		else cairo_matrix_init(&m, 1,0,0,1,0,0);
+		cairo_set_matrix(cr, &m);
+
 		cairo_set_font_face(cr,curfont);
 		cairo_set_font_size(cr, _textheight/height_over_M);
 		tempcr=1;
