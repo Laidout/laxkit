@@ -154,6 +154,7 @@ class ViewportWindow : public Laxkit::PanUser, public Laxkit::anXWindow
 	virtual int Event(const Laxkit::EventData *e,const char *mes);
 	virtual int MoveResize(int nx,int ny,int nw,int nh);
 	virtual int Resize(int nw,int nh);
+	virtual Laxkit::Displayer *GetDisplayer() { return dp; }
 	
 	virtual int UseTheseScrollers(Laxkit::Scroller *x,Laxkit::Scroller *y);
 	virtual int UseTheseRulers(Laxkit::RulerWindow *x,Laxkit::RulerWindow *y);

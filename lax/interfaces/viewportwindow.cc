@@ -35,6 +35,10 @@
 #include <lax/lists.cc>
 #include <lax/refptrstack.cc>
 
+// DBG !!!!!
+#include <lax/displayer-cairo.h>
+
+
 #include <iostream>
 using namespace std;
 
@@ -612,11 +616,13 @@ int ViewportWindow::UseTheseRulers(RulerWindow *x,RulerWindow *y)
  */
 int ViewportWindow::Needtodraw()
 {
-	//if (needtodraw) cout <<"  Yes, it needs to draw.\n"; else cout <<"  viewport doesn't need to draw"<<endl;
+	DBG if (needtodraw) cerr <<"  Yes, it needs to draw.\n"; else cerr <<"  viewport doesn't need to draw"<<endl;
 	if (needtodraw) return needtodraw;
-	for (int c=0; c<interfaces.n; c++) if (interfaces.e[c]->needtodraw) { 
-		//cout <<"interface "<<interfaces.e[c]->whattype()<<" needs to draw "<<interfaces.e[c]->needtodraw<<endl;
-		needtodraw=1; 
+	for (int c=0; c<interfaces.n; c++) {
+		if (interfaces.e[c]->needtodraw) { 
+			DBG cerr <<"interface "<<interfaces.e[c]->whattype()<<" needs to draw "<<interfaces.e[c]->needtodraw<<endl;
+			needtodraw=1; 
+		}
 	}
 	return needtodraw;
 }
@@ -1467,15 +1473,17 @@ void ViewportWindow::syncrulers(int which)
 
 /*! Does this:
  * \code
- *  anXWindow::MoveResize(nx,ny,nw,nh);
- *  flatpoint center=dp->screentoreal(win_w/2,win_h/2);
- *  dp->WrapWindow(this);
- *  if (firsttime) { 
- *    if (firsttime==1) dp->CenterReal(); 
- *    firsttime=0;
- *  } else { dp->CenterPoint(center); }
- *  dp->syncPanner();
- *  syncWithDp();
+ *     	anXWindow::MoveResize(nx,ny,nw,nh);
+ *     	flatpoint center=dp->screentoreal(win_w/2,win_h/2);
+ *     	dp->WrapWindow(this);
+ *     	if (firsttime) { 
+ *     	  if (firsttime==1) dp->CenterReal(); 
+ *     	  firsttime=0;
+ *     	} else { dp->CenterPoint(center); }
+ *     	dp->syncPanner();
+ *     	syncWithDp();
+ *     	for (int c=0; c<interfaces.n; c++) { interfaces.e[c]->ViewportResized(); }
+ *     	return 0;
  * \endcode
  *
  * Then calls ViewportResized() on each interface.
@@ -1501,11 +1509,12 @@ int ViewportWindow::MoveResize(int nx,int ny,int nw,int nh)
  *  flatpoint center=dp->screentoreal(win_w/2,win_h/2);
  *  dp->WrapWindow(this);
  *  if (firsttime) { 
- *    if (firsttime==1) dp->CenterReal(); 
+ *    dp->CenterReal(); 
  *    firsttime=0;
  *  }  else { dp->CenterPoint(center); }
  *  dp->syncPanner();
  *  syncWithDp();
+ *  for (int c=0; c<interfaces.n; c++) { interfaces.e[c]->ViewportResized(); }
  * \endcode
  *
  * Then calls ViewportResized() on each interface.
@@ -1520,6 +1529,9 @@ int ViewportWindow::Resize(int nw,int nh)
 	dp->syncPanner();
 	syncWithDp();
 	for (int c=0; c<interfaces.n; c++) { interfaces.e[c]->ViewportResized(); }
+
+	dp->EndDrawing();
+
 	return 0;
 }
 
