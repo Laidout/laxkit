@@ -636,6 +636,12 @@ flatpoint *draw_thing_coordinates(DrawThingTypes thing, flatpoint *buffer, int b
 		buffer[2]=flatpoint(1,1);
 		buffer[3]=flatpoint(1,0); buffer[3].info=LINE_Closed;
 
+	} else if (thing==THING_Wrench) {
+		//***
+		//d="m 2.7529686,1050.1866 0.7084635,-0.7085 c 0,0 0.2146211,0.6237 -0.1982481,1.0365 -0.4128687,0.4127 -0.9742776,0.1254 -0.9742776,0.1254 l -1.58172753,1.5817 c -0.15074782,0.1515 -0.37351258,0.18 -0.55541078,0 -0.18189823,-0.1818 -0.15266659036,-0.4044 -0.001919,-0.5553 l 1.58172741,-1.5818 c 0,0 -0.2869118,-0.5614 0.1259578,-0.9743 0.4128692,-0.4127 1.0364313,-0.1982 1.0364313,-0.1982 l -0.7084635,0.7085 z"
+		if (n_ret) *n_ret=0;
+		return NULL;
+
 	} else if (thing==THING_Octagon) {
 		if ((buffer && buffer_size<8) || (!buffer && buffer_size>=0)) { *n_ret=8; return NULL; }
 		*n_ret=8;
