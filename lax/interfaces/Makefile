@@ -49,6 +49,7 @@ objs= \
 	curvemapinterface.o \
 	curvewindow.o \
 	showkeysinterface.o \
+	characterinterface.o \
 
 #	linesinterface.o \
 #	measureinterface.o \
