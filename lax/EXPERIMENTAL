@@ -14,8 +14,6 @@ interfaces/pointwarpinterface.h
 interfaces/pointwarpinterface.cc
 interfaces/measureinterface.h
 interfaces/measureinterface.cc
-interfaces/captioninterface.cc
-interfaces/captioninterface.h
 
 
 
