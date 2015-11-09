@@ -37,11 +37,13 @@ namespace Laxkit {
 
 class Button : public ButtonBase
 { 
- protected:
+  protected:
 	LaxImage *image,*bwimage;
 	int thing,thingw,thingh;
 	char *label;
- public:	
+	LaxFont *font;
+
+  public:	
 	int pad,gap,labelstyle;
 
 	Button(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
@@ -59,6 +61,7 @@ class Button : public ButtonBase
 	virtual const char *Label(unsigned int which);
 	virtual const char *Label(const char *nlabel);
 	virtual const char *Label() { return label; }
+	virtual int Font(LaxFont *font);
 	virtual void draw();
 	virtual void WrapToExtent(int which);
 

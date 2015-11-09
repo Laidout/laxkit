@@ -77,6 +77,8 @@ Button::Button(anXWindow *parnt,const char *nname,const char *ntitle,unsigned lo
 						int npad,int ngap)
 		: ButtonBase(parnt,nname,ntitle,nstyle,xx,yy,ww,hh,brder,prev,nowner,nsendmes,nid)
 {
+	font=NULL;
+
 	pad=npad; if (pad<0) pad=app->default_padx;
 	gap=npad; if (gap<0) gap=app->default_padx;
 	state=oldstate=1;
@@ -116,6 +118,7 @@ Button::Button(anXWindow *parnt,const char *nname,const char *ntitle,unsigned lo
 //! Calls dec_count() on images.
 Button::~Button()
 {
+	if (font)    font   ->dec_count();
 	if (image)   image  ->dec_count();
 	if (bwimage) bwimage->dec_count();
 }
@@ -128,6 +131,14 @@ void Button::WrapToExtent(int which)
 	else get_placement(thingw,thingh,label,gap,labelstyle,&w,&h, NULL,NULL,NULL,NULL);
 	if (which&1) win_w=w+2*bevel+2*pad;
 	if (which&2) win_h=h+2*bevel+2*pad;
+}
+
+/*! Use this font. NULL means use system default.
+ */
+int Button::Font(LaxFont *font)
+{
+	cerr << " *** implement Button::Font(LaxFont *font)!!"<<endl;
+	return 1;
 }
 
 //! Change the label to nlabel, and set needtodraw.
@@ -259,6 +270,7 @@ void Button::draw()
 		if (image) { iw=image->w(); ih=image->h(); }
 		else { iw=thingw; ih=thingh; }
 	}
+
 	ty=win_h/2-th/2;
 	iy=win_h/2-ih/2;
 	if (l && usei) {
@@ -279,6 +291,7 @@ void Button::draw()
 	 // draw the stuff
 	flatpoint offset;
 	if (state&LAX_ON) { offset.x=offset.y=bevel/2; }
+
 	if (usei) {
 		if (image) {
 			dp->imageout(i, ix,iy);
@@ -286,6 +299,7 @@ void Button::draw()
 			i->doneForNow();
 		} else dp->drawthing(ix+iw/2,iy+iy/2, iw/2,ih/2, (DrawThingTypes)thing, win_colors->fg, win_colors->color1);
 	}
+
 	if (l) {
 		dp->NewFG((state==LAX_GRAY||Grayed())?win_colors->grayedfg:win_colors->fg);
 		dp->textout(tx+offset.x,ty+offset.y, l,-1, LAX_LEFT|LAX_TOP);
