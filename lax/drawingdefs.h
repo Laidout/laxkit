@@ -133,6 +133,7 @@ enum DrawThingTypes {
 	THING_Open_Eye,
 	THING_Closed_Eye,
 	THING_Octagon,
+	THING_Wrench,
 
 	THING_MAX
 };
