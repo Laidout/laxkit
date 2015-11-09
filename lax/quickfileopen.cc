@@ -21,6 +21,7 @@
 //    Copyright (C) 2004-2006,2010 by Tom Lechner
 //
 
+#include <lax/language.h>
 #include <lax/quickfileopen.h>
 
 
@@ -78,7 +79,11 @@ int QuickFileOpen::send(int deviceid,int direction)
 {	
 	char *ddir=newstr(dir);
 	if (!ddir && path) ddir=lax_dirname(path->GetCText(),1);
-	app->rundialog(new FileDialog(NULL,"File Popup Menu","File Popup menu", ANXWIN_REMEMBER,
+
+	const char *title=(path ? path->WindowTitle() : NULL);
+	if (!title) title=_("File Popup Menu");
+
+	app->rundialog(new FileDialog(NULL,title,title, ANXWIN_REMEMBER,
 								0,0,0,0,1, 
 								win_owner,win_sendthis, 
 								type,
