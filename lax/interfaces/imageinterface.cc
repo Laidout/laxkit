@@ -95,6 +95,7 @@ ImageData::ImageData(const char *nfilename, const char *npreview, int maxpx, int
 	DBG cerr <<"in ImageData constructor"<<endl;
 	previewflag=(delpreview?0:1);
 	image=NULL;
+	previewimage=NULL;
 	flags|=SOMEDATA_KEEP_1_TO_1;
 	
 	if (!filename) return;
@@ -104,7 +105,9 @@ ImageData::ImageData(const char *nfilename, const char *npreview, int maxpx, int
 ImageData::~ImageData()
 {
 	DBG cerr <<"in ImageData destructor"<<endl;
+
 	if (image) { image->dec_count(); image=NULL; }
+	if (previewimage) { previewimage->dec_count(); previewimage=NULL; }
 
 	DBG cerr <<"-- ImageData dest. end"<<endl;
 }
@@ -127,8 +130,8 @@ SomeData *ImageData::duplicate(SomeData *dup)
 		i=new ImageData();
 		dup=i;
 	}
-	if (set) {
-		if (i && image) i->LoadImage(image->filename,image->previewfile,0,0,0,0);
+	if (set && i) {
+		if (image) i->LoadImage(image->filename, previewimage ? previewimage->filename : NULL, 0,0,0,0);
 	}
 
 	 //somedata elements:
@@ -145,7 +148,7 @@ ImageData &ImageData::operator=(ImageData &i)
 	maxx=i.maxx;
 	miny=i.miny;
 	maxy=i.maxy;
-	if (i.image) LoadImage(i.image->filename,i.image->previewfile,0,0,0,1);
+	if (i.image) LoadImage(i.image->filename, previewimage ? previewimage->filename : NULL,0,0,0,1);
 	return i;
 }
 
@@ -209,13 +212,14 @@ void ImageData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *cont
 		if (previewfile) {
 			if (!dump->subs_only || (dump->subs_only && is_in_subdir(previewfile,dump->basedir)))
 				tmp=relative_file(previewfile,dump->basedir,1);
-			fprintf(f,"%spreviewfile \"%s\"\n",spc,tmp?tmp:previewfile);
+			fprintf(f,"%spreviewfile \"%s\"\n",spc, tmp ? tmp : previewfile);
 			if (tmp) delete[] tmp;
 		}
 			
 	} else {
 		if (filename) fprintf(f,"%sfilename \"%s\"\n",spc,filename);
-		if (previewfile && previewflag&1) fprintf(f,"%spreviewfile \"%s\"\n",spc,previewfile);
+		if (previewfile && previewflag&1)
+			fprintf(f,"%spreviewfile \"%s\"\n",spc, previewfile);
 	}
 	fprintf(f,"%swidth %.10g\n",spc,maxx-minx);
 	fprintf(f,"%sheight %.10g\n",spc,maxy-miny);
@@ -226,7 +230,7 @@ void ImageData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *cont
 		dump_out_value(f,indent+2,description);
 	}
 }
-	
+
 LaxFiles::Attribute *ImageData::dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *savecontext)
 {
    if (!att) att=new Attribute(whattype(),NULL);
@@ -254,7 +258,7 @@ LaxFiles::Attribute *ImageData::dump_out_atts(LaxFiles::Attribute *att,int what,
 		if (previewfile) {
 			if (!dump->subs_only || (dump->subs_only && is_in_subdir(previewfile,dump->basedir)))
 				tmp=relative_file(previewfile,dump->basedir,1);
-			att->push("previewfile",tmp?tmp:previewfile);
+			att->push("previewfile", tmp ? tmp : previewfile);
 			if (tmp) delete[] tmp;
 		}
 			
@@ -293,9 +297,11 @@ void ImageData::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *cont
 	char *fname=NULL,*pname=NULL;
 	double w=0,h=0;
 	previewflag=(previewflag&~1);
+
 	for (int c=0; c<att->attributes.n; c++) {
 		name= att->attributes.e[c]->name;
 		value=att->attributes.e[c]->value;
+
 		if (!strcmp(name,"matrix")) {
 			DoubleListAttribute(value,const_cast<double*>(m()),6);
 		} else if (!strcmp(name,"width")) {
@@ -393,12 +399,19 @@ int ImageData::LoadImage(const char *fname, const char *npreview, int maxpx, int
 	makestr(filename,fname);
 	makestr(previewfile,npreview);
 	if (image) { image->dec_count(); image=NULL; }
+	if (previewimage) { previewimage->dec_count(); previewimage=NULL; }
 	
-	LaxImage *t;
-	if (npreview) t=load_image_with_preview(fname,npreview,maxpx,maxpy,del);
-	else t=load_image(fname);
+	LaxImage *t, *p=NULL;
+	//--------
+	//if (npreview) t=load_image_with_preview(fname,npreview,maxpx,maxpy, &p);
+	//else t=load_image(fname);
+	//--------
+	t=load_image_with_loaders(fname, npreview,maxpx,maxpy,&p, 0,-1, NULL);
+
 	if (t) {
 		image=t;
+		previewimage=p;
+
 		if (fit && maxx>minx && maxy>miny) {
 			 //if you want to fit the new image within the bounds of the old image
 			DoubleBBox box;
@@ -407,16 +420,19 @@ int ImageData::LoadImage(const char *fname, const char *npreview, int maxpx, int
 			maxx=image->w();
 			maxy=image->h();
 			fitto(NULL,&box,50.,50.);
+
 		} else {
 			minx=0; miny=0;
 			maxx=image->w();
 			maxy=image->h();
 		}
 		return 0;
+
 	} else {
 		DBG cerr <<"** warning ImageData couldn't load "<<(fname?fname:"(unknown)")<<endl;
 		minx=miny=maxx=maxy=0;
 	}
+
 	return 1;
 }
 
@@ -453,17 +469,24 @@ void ImageData::SetDescription(const char *ndesc)
  *
  * \todo *** implement fit in here too
  */
-int ImageData::SetImage(LaxImage *newimage)
+int ImageData::SetImage(LaxImage *newimage, LaxImage *newpreview)
 {
 	if (image!=newimage) {
 		if (image) image->dec_count();
 		image=newimage;
-		if (image) newimage->inc_count();
+		if (image) newimage->inc_count(); 
+	}
+
+	if (previewimage!=newpreview) {
+		if (previewimage) previewimage->dec_count();
+		previewimage=newpreview;
+		if (previewimage) previewimage->inc_count();
 	}
 	
 	if (newimage) {
 		makestr(filename,newimage->filename);
-		makestr(previewfile,newimage->previewfile);
+		if (newpreview) makestr(previewfile, newpreview->filename);
+
 		if (!image && maxx!=0 && maxy!=0) {
 			 // there was no valid image, but there were bounds, so fill
 			 // those bounds with new image
@@ -478,6 +501,7 @@ int ImageData::SetImage(LaxImage *newimage)
 		minx=0; miny=0;
 		maxx=image->w();
 		maxy=image->h();
+
 	} else {
 		image=NULL;
 		makestr(filename,NULL);
@@ -1071,6 +1095,7 @@ enum ImageInterfaceActions {
 	II_ToggleLabels,
 	II_FlipH,
 	II_FlipV,
+	II_Image_Info,
 	II_MAX
 };
 
@@ -1091,6 +1116,7 @@ Laxkit::ShortcutHandler *ImageInterface::GetShortcuts()
 	sc->Add(II_ToggleLabels, 'f',0,0,         "Labels",        _("Toggle labels"),NULL,0);
 	sc->Add(II_FlipH,        'h',0,0,         "FlipHorizontal",_("Flip horizontally"),NULL,0);
 	sc->Add(II_FlipV,        'v',0,0,         "FlipVertical",  _("Flip vertically"),NULL,0);
+	sc->Add(II_Image_Info,   LAX_Enter,0,0,   "ImageInfo",     _("Edit image info"),NULL,0);
 
 	manager->AddArea(whattype(),sc);
 	return sc;
@@ -1106,6 +1132,10 @@ int ImageInterface::PerformAction(int action)
 		}
 		data->yaxis(transpose(data->xaxis()));
 		needtodraw=1;
+		return 0;
+
+	} else if (action==II_Image_Info) {
+		runImageDialog();
 		return 0;
 
 	} else if (action==II_FlipH) {

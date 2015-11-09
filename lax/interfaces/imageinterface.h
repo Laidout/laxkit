@@ -40,6 +40,8 @@ class ImageData : public Laxkit::ImageInfo, virtual public SomeData
  public:
 	char previewflag;
 	Laxkit::LaxImage *image;
+	Laxkit::LaxImage *previewimage;
+
 
 	ImageData(const char *nfilename=NULL, const char *npreview=NULL, 
 			  int maxpx=0, int maxpy=0, char delpreview=0);
@@ -49,7 +51,7 @@ class ImageData : public Laxkit::ImageInfo, virtual public SomeData
 	virtual SomeData *duplicate(SomeData *dup);
 
 	virtual void Flip(int horiz);
-	virtual int SetImage(Laxkit::LaxImage *newimage);
+	virtual int SetImage(Laxkit::LaxImage *newimage, Laxkit::LaxImage *newpreview);
 	virtual void SetDescription(const char *ndesc);
 	virtual int UsePreview(const char *npreview, int maxpx=0, int maxpy=0, char del=0);
 	virtual int LoadImage(const char *fname, const char *npreview=NULL, int maxpx=0, int maxpy=0, char del=0,char fit=0);

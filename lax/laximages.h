@@ -51,11 +51,12 @@ class aDrawable;
 //--------------------------- LaxImage --------------------------------------
 class LaxImage : public anObject
 {
- public:
-	char delpreview;
+  public:
+	unsigned long importer;
+
 	char *filename;
-	char *previewfile;
 	clock_t lastaccesstime;
+
 	LaxImage(const char *fname);
 	virtual ~LaxImage();
 	virtual int imagetype()=0;
@@ -63,8 +64,6 @@ class LaxImage : public anObject
 	virtual void doneForNow() {}
 	virtual int w()=0;
 	virtual int h()=0;
-	virtual int dataw()=0;
-	virtual int datah()=0;
 	virtual void clear()=0;
 
 	virtual unsigned char *getImageBuffer() = 0;
@@ -106,7 +105,7 @@ typedef LaxImage *(*CreateNewImageFunc)(int w, int h);
 typedef LaxImage *(*ImageFromBufferFunc)(unsigned char *buffer, int w, int h, int stride);
 typedef LaxImage *(*LoadImageFunc)(const char *filename);
 typedef LaxImage *(*LoadImageWithPreviewFunc)(const char *filename,const char *previewfile,
-											  int maxx,int maxy,char delpreview);
+											  int maxx,int maxy,LaxImage **previewimage_ret);
 
 extern CreateNewImageFunc       create_new_image;
 extern ImageFromBufferFunc      image_from_buffer;
@@ -119,6 +118,52 @@ extern LoadImageWithPreviewFunc load_image_with_preview;
 typedef int (*SaveImageFunc)(LaxImage *image, const char *filename, const char *format);
 
 extern SaveImageFunc  save_image;
+
+
+//------------------------------- ImageLoader stuff -------------------------------------
+
+class ImageLoader : public anObject
+{
+  protected:
+	static ImageLoader *loaders;
+
+  public:
+	const char *name;
+	int format;
+
+	ImageLoader *next, *prev; 
+
+	ImageLoader(const char *newname, int nformat);
+	virtual ~ImageLoader();
+
+	static int NumLoaders();
+	static ImageLoader *GetLoaderByIndex(int which);
+	static ImageLoader *GetLoaderById(unsigned long id);
+	static int AddLoader(ImageLoader *loader, int where);
+	static int LoadLoader(const char *file, int where); //load dynamic module
+	static int RemoveLoader(int which);
+	static int FlushLoaders();
+
+
+	int SetLoaderPriority(int where);
+
+	virtual bool CanLoadFile(const char *file) = 0;
+	virtual bool CanLoadFormat(const char *format) = 0; 
+
+	 //return a LaxImage in target_format.
+	 //If target_format==0, then return any format.
+	virtual LaxImage *load_image(const char *filename, 
+								 const char *previewfile, int maxw,int maxh, LaxImage **preview_ret,
+								 int required_state, //any of metrics, or image data
+								 int target_format,
+								 int *actual_format) = 0;
+};
+
+LaxImage *load_image_with_loaders(const char *file,
+								  const char *previewfile, int maxw,int maxh, LaxImage **preview_ret,
+								  int required_state,
+								  int target_format,
+								  int *actual_format);
 
 
 } //namespace Laxkit

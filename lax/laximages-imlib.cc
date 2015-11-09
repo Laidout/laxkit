@@ -29,6 +29,11 @@
 #include <lax/anxapp.h>
 
 
+#ifdef LAX_USES_CAIRO
+#include <lax/laximages-cairo.h>
+#endif
+
+
 #include <iostream>
 using namespace std;
 #define DBG 
@@ -47,19 +52,13 @@ namespace Laxkit {
  * \brief 1 if the image should be free'd when not in use (assumes filename is good). else 0.
  */
 /*! \var char LaxImlibImage::whichimage
- * \brief Which image is in memory. 0 for none, 1 for main, 2 for preview.
+ * \brief Which image is in memory. 0 for none, 1 for main.
  */
 /*! \var int LaxImlibImage::width
  * \brief The actual width of the full image.
  */
 /*! \var int LaxImlibImage::height
  * \brief The actual height of the full image.
- */
-/*! \var int LaxImlibImage::dwidth
- * \brief The actual width of the preview image, or 0 if not loadable.
- */
-/*! \var int LaxImlibImage::dheight
- * \brief The actual height of the preview image, or 0 if not loadable.
  */
 
 
@@ -89,16 +88,17 @@ namespace Laxkit {
  * \todo when generating preview, might be wise to have check for freedesktop thumb locations to enforce
  *    proper sizing
  */
-LaxImlibImage::LaxImlibImage(const char *fname,Imlib_Image img,const char *npfile,int maxx,int maxy,char del)
+LaxImlibImage::LaxImlibImage(const char *fname,Imlib_Image img)
 	: LaxImage(fname)
 {
-	if (maxy==0) maxy=maxx;
 	whichimage=0;
 	flag=0;
 	image=NULL;
+
 	if (!img) {
 		if (fname) image=imlib_load_image(fname);
 	} else image=img;
+
 	if (image) {
 		whichimage=1;
 		imlib_context_set_image(image);
@@ -109,43 +109,74 @@ LaxImlibImage::LaxImlibImage(const char *fname,Imlib_Image img,const char *npfil
 			image=NULL;
 			whichimage=0;
 		} else if (fname) flag=1;
+
 	} else {
 		width=height=0;
 	}
+}
 
-	dwidth=dheight=0;
-	previewfile=NULL;
 
-	 // only set up the preview image if the main image exists and is readable
-	if (width>0 && npfile && (width>maxx || height>maxy)) { 
-		previewfile=newstr(npfile);
-		Imlib_Image pimage;
-		pimage=imlib_load_image(previewfile);
+/*! Create a preview for original, stored at npfile.
+ * If npfile already loads, use that.
+ * Otherwise, rescale original to fit within a box maxw by maxy.
+ *
+ * npfile should be a real path you want to use.
+ */
+LaxImlibImage::LaxImlibImage(const char *original, const char *npfile,int maxx,int maxy)
+	: LaxImage(npfile)
+{
+	if (maxy==0) maxy=maxx;
+	whichimage=0;
+	flag=0;
+	image=NULL;
+	width=height=0;
+
+	if (!original && !npfile) return;
+
+	Imlib_Image pimage=NULL;
+	if (npfile) pimage=imlib_load_image(npfile);
+
+	if (pimage) {
+		DBG cerr <<" = = = Using existing preview \""<<npfile<<"\" for \""<<(original?original:"(unknown)")<<"\""<<endl;
+
+		 // preview image already existed, so use it
+		imlib_context_set_image(pimage);
+		width= imlib_image_get_width();
+		height=imlib_image_get_height();
+		imlib_free_image();
+
+	} else if (original) {
+		 // preview image didn't already existed, so make one
+		DBG cerr <<" = = = Making new preview \""<<npfile<<"\" for \""<<(original?original:"(unknown)")<<"\""<<endl;
+
+		pimage=imlib_load_image(original);
+		width= imlib_image_get_width();
+		height=imlib_image_get_height();
+		imlib_free_image();
+
+		 //****make sure previewfile is writable
+		
+		 
+		 //figure out dimensions of new preview
+		double a=double(height)/width;
+		int dwidth, dheight;
+		if (a*maxx>maxy) {
+			dheight=maxy;
+			dwidth=int(maxy/a);
+		} else {
+			dwidth=maxx;
+			dheight=int(maxx*a);
+		}
+
+		generate_preview_image(original,npfile,"jpg",dwidth,dheight,0);
+
+		pimage=imlib_load_image(npfile);
 		if (pimage) {
-			DBG cerr <<" = = = Using existing preview \""<<previewfile<<"\" for \""<<(filename?filename:"(unknown)")<<"\""<<endl;
-			 // preview image already existed, so use it
-			imlib_context_set_image(pimage);
-			dwidth= imlib_image_get_width();
-			dheight=imlib_image_get_height();
+			width= imlib_image_get_width();
+			height=imlib_image_get_height();
 			imlib_free_image();
-			delpreview=0;
-		} else if (maxx>0 && maxy>0) {
-			DBG cerr <<" = = = Making new preview \""<<previewfile<<"\" for \""<<(filename?filename:"(unknown)")<<"\""<<endl;
-			 // preview image didn't already existed, so make one
-			 
-			 //****make sure previewfile is writable
-			 
-			 //figure out dimensions of new preview
-			double a=double(height)/width;
-			if (a*maxx>maxy) {
-				dheight=maxy;
-				dwidth=int(maxy/a);
-			} else {
-				dwidth=maxx;
-				dheight=int(maxx*a);
-			}
-			generate_preview_image(filename,previewfile,"jpg",dwidth,dheight,0);
-			delpreview=del;
+		} else {
+			width=height=0;
 		}
 	}
 }
@@ -170,17 +201,14 @@ void LaxImlibImage::clear()
 		whichimage=0;
 	}
 	if (filename) { delete[] filename; filename=NULL; }
-	if (previewfile) { delete[] previewfile; previewfile=NULL; }
-	width=height=dwidth=dheight=0;
+	width=height=0;
 }
 
 unsigned int LaxImlibImage::imagestate()
 {
 	return (filename?LAX_IMAGE_HAS_FILE:0) |
-		   (dwidth>0?LAX_IMAGE_PREVIEW:0) |
 		   (width>0?LAX_IMAGE_METRICS:0) |
-		   (whichimage==1?LAX_IMAGE_WHOLE:0) |
-		   (whichimage==2?LAX_IMAGE_PREVIEW:0); //****
+		   (whichimage==1?LAX_IMAGE_WHOLE:0);
 }
 
 
@@ -209,29 +237,11 @@ void LaxImlibImage::doneForNow()
  * \todo note that if image is already loaded, this function does not yet switch to
  *   the proper one..
  */
-Imlib_Image LaxImlibImage::Image(int which)
+Imlib_Image LaxImlibImage::Image()
 {
-	if (image) {
-		 // ensure that which is checked against currently loaded image.
-		 // If the wrong one is loaded, then unload it.
-		if ((which==1 && whichimage==2) || (which==2 && whichimage==1)) {
-			imlib_context_set_image(image);
-			imlib_free_image();
-			image=NULL;
-			whichimage=0;
-		}
-	}
 	if (!image) {
-		if (previewfile && dwidth>0 && (which==0 || which==2)) {
-			 //if request default and preview exists
-			image=imlib_load_image(previewfile);
-			whichimage=(image?2:0);
-		}
-		if (which==2 && !image) return NULL;
-		if (!image) {
-			image=imlib_load_image(filename);
-			whichimage=image?1:0;
-		}
+		image=imlib_load_image(filename);
+		whichimage=image?1:0;
 	} 
 	return image;
 }
@@ -463,13 +473,22 @@ LaxImage *load_imlib_image(const char *filename)
  *  LaxImlibImage::doneForNow() is finally called.
  */
 LaxImage *load_imlib_image_with_preview(const char *filename,const char *previewfile,
-										 int maxx,int maxy,char del)
+										 int maxx,int maxy, LaxImage **previewimage_ret)
 {
 	Imlib_Image image;
 	image=imlib_load_image(filename);
 	if (!image) return NULL;
-	LaxImlibImage *img=new LaxImlibImage(filename,image,previewfile,maxx,maxy,del);
+
+	LaxImlibImage *img=new LaxImlibImage(filename,image);
 	img->doneForNow();
+
+	if (previewimage_ret) {
+		LaxImlibImage *pimg=new LaxImlibImage(filename, previewfile, maxx,maxy);
+		pimg->doneForNow();
+
+		*previewimage_ret = pimg;
+	}
+
 	return img;
 }
 
@@ -540,6 +559,105 @@ int save_imlib_image(LaxImage *image, const char *filename, const char *format)
 	return 0;
 }
 
+
+//--------------------------- ImlibLoader --------------------------------------
+/*! \class ImlibLoader
+ *
+ * Loads image via imlib2.
+ */
+
+ImlibLoader::ImlibLoader()
+  : ImageLoader("imlib", LAX_IMAGE_IMLIB)
+{ }
+
+ImlibLoader::~ImlibLoader()
+{ }
+
+
+bool ImlibLoader::CanLoadFile(const char *file)
+{
+	Imlib_Image img = imlib_load_image(file);
+	if (img) {
+		imlib_context_set_image(img);
+		imlib_free_image();
+		return true;
+	}
+
+	return false;
+}
+
+bool ImlibLoader::CanLoadFormat(const char *format)
+{
+	if (!strcasecmp(format, "jpg")) return true;
+	if (!strcasecmp(format, "png")) return true;
+	if (!strcasecmp(format, "tif")) return true;
+	if (!strcasecmp(format, "tiff")) return true;
+	return false;
+}
+
+
+#ifdef LAX_USES_CAIRO
+LaxCairoImage *MakeCairoFromImlib(LaxImlibImage *iimg)
+{
+	LaxCairoImage *cimage=new LaxCairoImage();
+
+	 //copy over buffer from imlib image
+	unsigned char *data = iimg->getImageBuffer();
+	cimage->createFromData_ARGB8(iimg->w(), iimg->h(), 4*iimg->w(), data);
+	iimg->doneWithBuffer(data);
+
+	return cimage;
+}
+#endif
+
+
+	 //return a LaxImage in target_format.
+	 //If must_be_that_format and target_format cannot be created, then return NULL.
+LaxImage *ImlibLoader::load_image(const char *filename, 
+								 const char *previewfile, int maxx, int maxy, LaxImage **previewimage_ret,
+								 int required_state, //any of metrics, or image data, or preview data
+								 int target_format,
+								 int *actual_format)
+{
+	LaxImlibImage *iimg = dynamic_cast<LaxImlibImage*>(load_imlib_image_with_preview(filename, previewfile, maxx,maxy, previewimage_ret));
+	if (!iimg) return NULL;
+	
+	if (target_format==0 || target_format==LAX_IMAGE_IMLIB) {
+		if (actual_format) *actual_format=LAX_IMAGE_IMLIB;
+		iimg->importer = object_id;
+		return iimg;
+	}
+
+
+#ifdef LAX_USES_CAIRO
+	if (target_format == LAX_IMAGE_CAIRO) {
+		 //convert imlib image to a cairo image
+		LaxCairoImage *cimage=MakeCairoFromImlib(iimg);
+		cimage->importer = object_id;
+		makestr(cimage->filename, filename);
+
+		iimg->dec_count();
+
+		if (actual_format) *actual_format=LAX_IMAGE_CAIRO;
+
+		if (previewimage_ret && *previewimage_ret) {
+			 //convert preview image, if any, to cairo
+			iimg=dynamic_cast<LaxImlibImage*>(*previewimage_ret);
+			
+			LaxCairoImage *pimage=MakeCairoFromImlib(iimg);
+			iimg->dec_count();
+
+			pimage->importer = object_id;
+			makestr(pimage->filename, previewfile);
+			*previewimage_ret = pimage; 
+		}
+
+		return cimage;
+	} 
+#endif //uses cairo
+
+	return NULL;
+}
 
 
 

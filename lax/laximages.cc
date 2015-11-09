@@ -155,29 +155,13 @@ int MemCachedObject::dec_cache()
  * allow a preview image to shadow the actual image. See previewfile for more.
  * 
  * If filename exists, but w()<=0, then the filename is invalid. Otherwise, the w() and
- * h() refer to the actual width and height of the image. Same goes for previewfile, dataw(),
- * and datah().
+ * h() refer to the actual width and height of the image.
  *
- * \todo dataw() and datah() should be renamed pw() and ph(), plus might be useful to
- *   have a imagew() and imageh() for the dims of the thing that image points to.
  */
 /*! var char *LaxImage::filename
  * \brief The file that the image is supposed to correspond to.
  *
  * If w()<=0, then filename is invalid.
- */
-/*! var char *LaxImage::previewfile
- * \brief A sort of proxy image that can shadow the actual image.
- *
- * If dataw()<=0, then previewfile is invalid.
- *
- * This allows programs to potentially start up much more quickly, since they
- * might need to load only a smaller preview or thumbnail into memory, rather than
- * the entire image, which might be huge.
- *
- * previewfile is always assumed to be an image file on your harddrive somewhere,
- * never an in-memory image. A common use is to refer to a freedesktop.org
- * specified thumbnail.
  */
 /*! \fn void LaxImage::doneForNow()
  * \brief This might free the image to make room in a cache, for instance.
@@ -226,15 +210,6 @@ int MemCachedObject::dec_cache()
 /*! \fn int LaxImage::h()
  * \brief Return the height of the actual image.
  */
-/*! \fn int LaxImage::dataw()
- * \brief Return the width of the image in memory (the actual or preview), or 0 if neither is in memory.
- */
-/*! \fn int LaxImage::datah()
- * \brief Return the height of the image in memory (the actual or preview), or 1 if neither is in memory.
- */
-/*! \var char LaxImage::delpreview
- * \brief 1 to unlink previewfile in the destructor, else 0.
- */
 /*! \fn unsigned char *LaxImage::getImageBuffer()
  * This is mainly to assist auto cached preview images for some interface data classes.
  * More specialized low level data manipulation should be done by accessing the particular
@@ -256,12 +231,12 @@ int MemCachedObject::dec_cache()
  */
 LaxImage::LaxImage(const char *fname)
 {
-	delpreview=0;
+	importer=0;
+
 	filename=newstr(fname);
-	previewfile=NULL;
 }
 
-/*! If delpreview and previewfile, then unlink(previewfile). Note that this is hazardous,
+/*! If *** delpreview and previewfile, then unlink(previewfile). Note that this is hazardous,
  * and great care must be taken to ensure that previewfile is always what it is supposed to be.
  * The Laxkit will never directly set delpreview to 1, except if you tell it to, via 
  * load_image_with_preview().
@@ -271,11 +246,10 @@ LaxImage::LaxImage(const char *fname)
  */
 LaxImage::~LaxImage()
 {
-	if (delpreview && previewfile) {
-		DBG cerr <<" = = = Deleting preview \""<<previewfile<<"\" for \""<<(filename?filename:"(unknown)")<<"\""<<endl;
-		unlink(previewfile);
-	}
-	if (previewfile) delete[] previewfile; 
+//	if (delpreview && previewfile) {
+//		DBG cerr <<" = = = Deleting preview \""<<previewfile<<"\" for \""<<(filename?filename:"(unknown)")<<"\""<<endl;
+//		unlink(previewfile);
+//	}
 	if (filename) delete[] filename; 
 }
 
@@ -340,12 +314,9 @@ ImageOutMatrixFunc  image_out_matrix  = NULL;
 /*! \typedef LaxImage *LoadImageFunc(const char *filename)
  * \brief The type of function that loads a file to a LaxImage. Defines load_image().
  */
-/*! \typedef LaxImage *(*LoadImageWithPreviewFunc)(const char *filename,const char *pfile,int maxx,int maxy,char delpreview)
+/*! \typedef LaxImage *(*LoadImageWithPreviewFunc)(const char *filename,const char *pfile,int maxx,int maxy, LaxImage **preview_ret)
  * \brief Loads an image, using a preview image.
  *
- * If delpreview, then when the LaxImage is destroyed, the file at LaxImage::previewfile is deleted.
- * Note that if an already existing preview is used (that is, no new one is generated),
- * then delpreview reverts to 0, and the already existing preview is untouched in the destructor.
  */
 /*! \typedef LaxImage *(*CreateNewImageFunc)(int w, int h)
  * \brief Type of function that creates a new image based on a certain width and height.
@@ -421,41 +392,27 @@ GeneratePreviewFunc generate_preview_image = NULL;
  *   graphicsmagick loader
  *   cairo loader
  */
-class ImageLoader : public anObject
-{
-  protected:
-	static ImageLoader *loaders;
 
-  public:
-	string name;
-	int format;
-
-	ImageLoader *next, *prev; 
-
-	ImageLoader() : format(0), next(NULL), prev(NULL)  {}
-	virtual ~ImageLoader() { if (next) delete next; }
-
-	static int NumLoaders();
-	static ImageLoader *GetLoaderByIndex(int which);
-	static int AddLoader(ImageLoader *loader, int where);
-	static int LoadLoader(char *file, int where); //load dynamic module
-	static int RemoveLoader(int which);
-
-	int SetLoaderPriority(int where);
-
-	 //return a LaxImage in target_format or LaxBufferImage with 8 bit argb, rowstride=4*width if
-	 //target_format can not be loaded. If must_be_that_format, then if the target_format cannot be created,
-	 //then return NULL.
-	virtual LaxImage *load_image(const char *filename, 
-								 const char *previewfile,
-								 int maxx, int maxy, char delpreview,
-								 int required_state, //any of metrics, or image data, or preview data
-								 int target_format, bool must_be_that_format,
-								 int *actual_format) = 0;
-};
 
 ImageLoader *ImageLoader::loaders = NULL;
 
+
+ImageLoader::ImageLoader(const char *newname, int nformat)
+  : name(newstr(newname)),
+	format(nformat),
+	next(NULL), prev(NULL)
+{ }
+
+ImageLoader::~ImageLoader()
+{
+	 //assumes prev is deleted separately
+	if (next) {
+		next->prev=NULL;
+		next->dec_count();
+	}
+
+	delete[] name;
+}
 
 /*! Static function, return number of known, installed loaders.
  */
@@ -472,11 +429,24 @@ int ImageLoader::NumLoaders()
 
 /*! Static function to retrieve a particular loader.
  */
+ImageLoader *ImageLoader::GetLoaderById(unsigned long id)
+{
+	if (!loaders) return NULL; 
+
+	ImageLoader *loader=loaders;
+	while (loader) {
+		if (loader->object_id == id) return loader;
+	}
+
+	return NULL;
+}
+
+/*! Static function to retrieve a particular loader.
+ */
 ImageLoader *ImageLoader::GetLoaderByIndex(int which)
 {
-	if (!loaders) return NULL;
-	
-	if (which<0) which=NumLoaders()+1;
+	if (!loaders) return NULL; 
+	if (which<0) return NULL;
 
 	ImageLoader *loader=loaders;
 	while (which>0 && loader) { loader=loader->next; which--; }
@@ -500,23 +470,20 @@ int ImageLoader::AddLoader(ImageLoader *loader, int where)
 
 	if (where==0) {
 		loader->next=loaders;
-		loaders->prev=loader;
+		if (loaders) loaders->prev=loader;
 		loaders=loader;
 		return 0;
 	}
 
 	 //else add after some loader
 	ImageLoader *l;
-	for (l=loader; l->next && where>0; l=l->next) where--;
-	if (where>0) {
-		l->next=loader;
-	}
+	for (l=loaders; l->next && where>0; l=l->next) where--;
 
 	loader->next=l->next;
-	l->next->prev=loader;
+	if (l->next) l->next->prev=loader;
 
-	loader->prev=l->prev;
-	l->prev->next=loader;
+	loader->prev=l;
+	l->next=loader;
 
 	return 0;
 }
@@ -534,8 +501,19 @@ int ImageLoader::RemoveLoader(int which)
 	if (loader->prev) loader->prev->next = loader->next;
 	if (loader->next) loader->next->prev = loader->prev;
 	loader->next=loader->prev=NULL;
-	delete loader;
+	loader->dec_count();
 
+	return 0;
+}
+
+/*! Static function to flush all loaders, such as when the application is shutting down.
+ */
+int ImageLoader::FlushLoaders()
+{
+	if (loaders) {
+		loaders->dec_count();
+		loaders=NULL;
+	}
 	return 0;
 }
 
@@ -544,7 +522,7 @@ int ImageLoader::RemoveLoader(int which)
  *
  * Return 0 for success, or nonzero for could not load.
  */
-int ImageLoader::LoadLoader(char *file, int where)
+int ImageLoader::LoadLoader(const char *file, int where)
 {
 	cerr << " *** need to implement ImageLoader::LoadLoader()"<<endl;
 	return 1;
@@ -559,26 +537,36 @@ int ImageLoader::SetLoaderPriority(int where)
 
 
 LaxImage *load_image_with_loaders(const char *file,
-								 const char *previewfile,
-								 int maxx, int maxy, char delpreview,
+								  const char *previewfile, int maxw,int maxh, LaxImage **preview_ret,
 								 int required_state,
-								 int target_format, bool must_be_that_format, int *actual_format)
+								 int target_format, int *actual_format)
 {
+	DBG cerr <<"load_image_with_loaders()..."<<endl;
+
+	if (target_format<0) target_format = default_image_type();
+
 	ImageLoader *loader = ImageLoader::GetLoaderByIndex(0);
-	if (!loader) return NULL;
+	if (!loader) {
+		DBG cerr <<"load_image_with_loaders() done with null"<<endl;
+		return NULL;
+	}
 
 	LaxImage *image=NULL;
 	while (loader) {
-		image=loader->load_image(file,previewfile,maxx,maxy,delpreview,
+		image=loader->load_image(file,
+								 previewfile,maxw,maxh,preview_ret,
 								 required_state,
-								 target_format,must_be_that_format,
+								 target_format,
 								 actual_format);
 		if (image) {
 			if (actual_format) *actual_format = loader->format;
+			DBG cerr <<"load_image_with_loaders() done"<<endl;
 			return image;
 		}
 		loader=loader->next;
 	}
+
+	DBG cerr <<"load_image_with_loaders() done with null"<<endl;
 	return NULL;
 }
 

@@ -34,7 +34,7 @@
 #include <cairo/cairo-xlib.h>
 
 namespace Laxkit {
-	
+
 
 
 //--------------------------- LaxCairoImage --------------------------------------
@@ -47,18 +47,17 @@ class LaxCairoImage : public LaxImage
  public:
 	cairo_surface_t *image;
 	int width,height;
-	int dwidth,dheight;
-	LaxCairoImage(const char *fname,cairo_surface_t *img=NULL,const char *npreviewfile=NULL,
-				  int maxx=0,int maxy=0,char del=0);
+
+	LaxCairoImage();
+	LaxCairoImage(const char *fname, cairo_surface_t *img=NULL);
+	LaxCairoImage(const char *original, const char *fname, int maxw, int maxh);
 	virtual ~LaxCairoImage();
-	virtual cairo_surface_t *Image(int which=0);
+	virtual cairo_surface_t *Image();
 	virtual void doneForNow();
 	virtual unsigned int imagestate();
 	virtual int imagetype() { return LAX_IMAGE_CAIRO; }
 	virtual int w() { return width; }
 	virtual int h() { return height; }
-	virtual int dataw() { return dwidth; } //often smaller image used for preview purposes..
-	virtual int datah() { return dheight; }
 	virtual void clear();
 
 	virtual int createFromData_ARGB8(int width, int height, int stride, const unsigned char *data);
@@ -77,7 +76,7 @@ void laxcairo_image_out_skewed(LaxImage *image, aDrawable *win, int ulx,int uly,
 void laxcairo_image_out_matrix(LaxImage *image, aDrawable *win, double *m);
 
 LaxImage *load_cairo_image(const char *filename);
-LaxImage *load_cairo_image_with_preview(const char *filename,const char *previewfile,int maxx,int maxy,char del);
+LaxImage *load_cairo_image_with_preview(const char *filename,const char *previewfile,int maxx,int maxy,LaxImage **previewimage_ret);
 int laxcairo_generate_preview(const char *original, const char *preview, const char *format,int maxw, int maxh, int fit);
 
 LaxImage *image_from_buffer_cairo(unsigned char *buffer, int w, int h, int stride);

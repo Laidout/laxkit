@@ -5441,7 +5441,7 @@ int EngraverFillInterface::Event(const Laxkit::EventData *e_data, const char *me
 			//trace->traceobject=NULL;
 		}
 		ImageData *idata=new ImageData();
-		idata->SetImage(img);
+		idata->SetImage(img, NULL);
 		img->dec_count();
 		trace->Install(TraceObject::TRACE_ImageFile, idata);
 		trace->traceobject->object->fitto(NULL,&box,50,50,2);
@@ -5480,7 +5480,7 @@ int EngraverFillInterface::Event(const Laxkit::EventData *e_data, const char *me
 		box.addtobounds(p2);
 
 		ImageData *idata=new ImageData();
-		idata->SetImage(directionmap->normal_map);
+		idata->SetImage(directionmap->normal_map, NULL);
 		idata->fitto(NULL,&box,50,50,2);
 		directionmap->m.set(*idata);
 		directionmap->m.Invert();

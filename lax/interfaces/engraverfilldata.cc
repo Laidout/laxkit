@@ -2732,7 +2732,7 @@ ImageData *EngraverPointGroup::SpacingSnapshot()
 
 	 //create and return new ImageData mapped to correspond to edata bounding box
 	ImageData *idata=new ImageData;
-	idata->SetImage(image);
+	idata->SetImage(image, NULL);
 	image->dec_count();
 
 	idata->fitto(NULL,&bbox,50,50,2);
@@ -2804,7 +2804,7 @@ ImageData *EngraverPointGroup::CreateFromSnapshot()
 
 	 //create and return new ImageData mapped to correspond to edata bounding box
 	ImageData *idata=new ImageData;
-	idata->SetImage(image);
+	idata->SetImage(image, NULL);
 	image->dec_count();
 
 	idata->fitto(NULL,&bbox,50,50,2);
