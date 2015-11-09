@@ -28,6 +28,7 @@
 #include <lax/interfaces/viewportwindow.h>
 #include <lax/interfaces/linestyle.h>
 #include <lax/colors.h>
+#include <lax/laxutils.h>
 #include <lax/fontdialog.h>
 #include <lax/transformmath.h>
 #include <lax/strmanip.h>
@@ -84,7 +85,10 @@ CaptionData::CaptionData()
 	fontstyle=newstr("normal");
 	fontfile=NULL;
 	fontsize=12;
+	linespacing=1;
 	font=NULL;
+	righttoleft=false;
+
 	state=0;
 
 	xcentering=0;
@@ -96,7 +100,7 @@ CaptionData::CaptionData()
 	red=green=blue=.5;
 	alpha=1.;
 
-	Font(fontfamily, fontstyle, fontsize);
+	Font(fontfile, fontfamily, fontstyle, fontsize);
 }
 
 	
@@ -113,8 +117,11 @@ CaptionData::CaptionData(const char *ntext, const char *nfontfamily, const char 
 	fontfile=NULL;
 	//font=NULL;
 	fontsize=fsize;
+	linespacing=1;
 	if (fontsize<=0) fontsize=10;
 	font=NULL;
+	righttoleft=false;
+
 	state=0;  //0 means someone needs to remap extents
 
 	
@@ -138,7 +145,7 @@ CaptionData::CaptionData(const char *ntext, const char *nfontfamily, const char 
 	red=green=blue=.5;
 	alpha=1.;
 
-	Font(fontfamily, fontstyle, fontsize);
+	Font(fontfile, fontfamily, fontstyle, fontsize);
 
 	DBG if (ntext) cerr <<"CaptionData new text:"<<endl<<ntext<<endl;
 	DBG cerr <<"..CaptionData end"<<endl;
@@ -155,6 +162,49 @@ CaptionData::~CaptionData()
 
 	DBG cerr <<"-- CaptionData dest. end"<<endl;
 }
+
+SomeData *CaptionData::duplicate(SomeData *dup)
+{
+	CaptionData *i=dynamic_cast<CaptionData*>(dup);
+    if (!i && dup) return NULL; //was not an ImageData!
+
+    if (!dup) {
+        dup=dynamic_cast<SomeData*>(somedatafactory()->NewObject(LAX_CAPTIONDATA));
+        if (dup) {
+            dup->setbounds(minx,maxx,miny,maxy);
+        }
+        i=dynamic_cast<CaptionData*>(dup);
+    }
+    if (!i) {
+        i=new CaptionData();
+        dup=i;
+    }
+
+     //somedata elements:
+    dup->bboxstyle=bboxstyle;
+    dup->m(m());
+
+	i->linespacing =linespacing;
+	i->xcentering  =xcentering;
+	i->ycentering  =ycentering;
+	i->righttoleft =righttoleft;
+
+	i->red   =red;
+	i->green =green;
+	i->blue  =blue;
+	i->alpha=alpha;
+
+	i->Font(fontfile, fontfamily, fontstyle, fontsize);
+
+	char *txt=GetText();
+	i->SetText(txt);
+	delete[] txt;
+	
+
+    return dup;
+
+}
+
 
 /*! Return the number of characters in the given line number.
  */
@@ -187,28 +237,72 @@ int CaptionData::ComputeLineLen(int line)
  *
  * Dumps:
  * <pre>
- *  font aontuhaot.ttf
+ *  matrix 1 0 0 1 0 0
+ *  fontfamily sans
+ *  fontstyle normal
  *  fontsize 10
  *  xcentering  50
  *  ycentering  50
+ *  righttoleft no
  *  text \
  *    Blah Blah.
  *    Blah, "blah blah"
  * </pre>
- * width and height are the integer pixel dimensions of the image.
  *
- * Ignores what. Uses 0 for it.
  */
 void CaptionData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
 {
 	char spc[indent+1]; memset(spc,' ',indent); spc[indent]='\0';
-	if (fontfamily) fprintf(f,"%sfontfamily \"%s\"\n",spc,fontfamily);
-	if (fontstyle) fprintf(f,"%sfontstyle \"%s\"\n",spc,fontstyle);
-	fprintf(f,"%sfontsize %.10g\n",spc,fontsize);
-	fprintf(f,"%sxcentering %.10g\n",spc,xcentering);
-	fprintf(f,"%sycentering %.10g\n",spc,ycentering);
+
+	if (what==-1) {
+		fprintf(f,"%smatrix 1 0 0 1 0 0   #transform of the whole object\n",spc);
+		fprintf(f,"%sfontfamily sans      #Family name of font\n",spc);
+		fprintf(f,"%sfontstyle normal     #Style name of font\n",spc);
+		fprintf(f,"%sfontfile /path/to/it #File on disk to use. Overrides whatever is in family and style.\n",spc);
+		fprintf(f,"%sfontsize 12          #hopefully this is point size\n",spc);
+		fprintf(f,"%slinespacing 1        #percentage different from font's default spacing\n",spc);
+		fprintf(f,"%srighttoleft no       #yes or no. ***todo: vertical options\n",spc);
+		fprintf(f,"%sxcentering 50        #0 is left, 50 is center, 100 is right, or any other number\n",spc);
+		fprintf(f,"%sycentering 50        #0 is top, 50 is center, 100 is bottom, or any other number\n",spc);
+		fprintf(f,"%scolor rgbaf(1,0,0,1)\n", spc);
+		fprintf(f,"%stext \\  #The actual text\n%s  blah",spc,spc);
+		return;
+	}
+
+
 	fprintf(f,"%smatrix %.10g %.10g %.10g %.10g %.10g %.10g\n",spc,
 				m(0),m(1),m(2),m(3),m(4),m(5));
+
+	if (font->Layers()>1) {
+		fprintf(f,"%sfont\n",spc);
+		Palette *palette=dynamic_cast<Palette*>(font->GetColor());
+
+		int i=0;
+		for (LaxFont *ff=font; ff; ff=ff->nextlayer, i++) {
+			fprintf(f,"%s  layer\n",spc);
+			fprintf(f,"%s    fontfamily \"%s\"\n", spc,ff->Family());
+			fprintf(f,"%s    fontstyle  \"%s\"\n", spc,ff->Style());
+			fprintf(f,"%s    fontfile   \"%s\"\n", spc,ff->FontFile());
+			if (palette && i<palette->colors.n) {
+				fprintf(f,"%s    color rgbaf(%.10g, %.10g, %.10g, %.10g)\n", spc,
+						palette->colors.e[i]->channels[0]/(double)palette->colors.e[i]->maxcolor,
+						palette->colors.e[i]->channels[1]/(double)palette->colors.e[i]->maxcolor,
+						palette->colors.e[i]->channels[2]/(double)palette->colors.e[i]->maxcolor,
+						palette->colors.e[i]->channels[3]/(double)palette->colors.e[i]->maxcolor
+					   ); 
+			}
+		}
+
+	} else {
+		if (font->FontFile()) fprintf(f,"%sfontfile   \"%s\"\n", spc,font->FontFile());
+		if (fontfamily)       fprintf(f,"%sfontfamily \"%s\"\n",spc,fontfamily);
+		if (fontstyle)        fprintf(f,"%sfontstyle  \"%s\"\n",spc,fontstyle);
+	}
+	fprintf(f,"%sfontsize %.10g\n",spc,fontsize);
+	fprintf(f,"%slinespacing %.10g\n",spc,linespacing);
+	fprintf(f,"%srighttoleft %s\n",spc, righttoleft ? "yes" : "no");
+	fprintf(f,"%sxcentering %.10g\n",spc,xcentering);
+	fprintf(f,"%sycentering %.10g\n",spc,ycentering);
 	fprintf(f,"%scolor rgbaf(%.10g, %.10g, %.10g, %.10g)\n",
 				spc, red,green,blue,alpha);
 
@@ -219,7 +313,7 @@ void CaptionData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *co
 		}
 	}
 }
-	
+
 //! See dump_out().
 void CaptionData::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *context)
 {
@@ -228,6 +322,13 @@ void CaptionData::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *co
 	char *name,*value;
 	minx=miny=0;
 	maxx=maxy=-1;
+
+	const char *family=NULL, *style=NULL, *file=NULL;
+	LaxFont *newfont=NULL;
+	Palette *palette=NULL;
+
+	const char *sz=att->findValue("fontsize");
+	if (sz) DoubleAttribute(sz,&fontsize);
 
 	for (int c=0; c<att->attributes.n; c++) {
 		name= att->attributes.e[c]->name;
@@ -238,6 +339,9 @@ void CaptionData::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *co
 			DoubleListAttribute(value,mm,6);
 			m(mm);
 
+		} else if (!strcmp(name,"righttoleft")) {
+			righttoleft=BooleanAttribute(value);
+
 		} else if (!strcmp(name,"xcentering")) {
 			DoubleAttribute(value,&xcentering);
 
@@ -247,14 +351,61 @@ void CaptionData::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *co
 		} else if (!strcmp(name,"text")) {
 			SetText(value);
 
+		} else if (!strcmp(name,"font")) {
+			int layer=0;
+
+			for (int c2=0; c2<att->attributes.e[c]->attributes.n; c2++) {
+				name= att->attributes.e[c]->attributes.e[c2]->name;
+				value=att->attributes.e[c]->attributes.e[c2]->value;
+
+				if (!strcmp(name,"layer")) {
+					family=style=file=NULL;
+					layer++;
+					char cname[10];
+					sprintf(cname,"fg%d",layer);
+
+					for (int c3=0; c3<att->attributes.e[c]->attributes.e[c2]->attributes.n; c3++) {
+						name= att->attributes.e[c]->attributes.e[c2]->attributes.e[c3]->name;
+						value=att->attributes.e[c]->attributes.e[c2]->attributes.e[c3]->value;
+
+						if (!strcmp(name,"fontfile")) {
+							file=value;
+						} else if (!strcmp(name,"fontfamily")) {
+							family=value;
+						} else if (!strcmp(name,"fontstyle")) {
+							style=value;
+						} else if (!strcmp(name,"color")) {
+							double co[5];
+							if (SimpleColorAttribute(value, co, NULL)==0) {
+								if (!palette) palette=new Palette;
+								palette->AddRGBA(cname, co[0]*255, co[1]*255, co[2]*255, co[3]*255, 255);
+							}
+						}
+					}
+
+					LaxFont *newlayer = InterfaceManager::GetDefault()->GetFontManager()->MakeFontFromFile(file, family,style,fontsize,-1);
+					if (!newfont) newfont=newlayer;
+					else newfont->AddLayer(newfont->Layers(), newlayer);
+				}
+			}
+
+		} else if (!strcmp(name,"fontfile")) {
+			file=value;
+			//makestr(fontfile, value);
+
 		} else if (!strcmp(name,"fontfamily")) {
-			fontfamily=newstr(value);
+			family=value;
+			//makestr(fontfamily, value);
 
 		} else if (!strcmp(name,"fontstyle")) {
-			fontstyle=newstr(value);
+			style=value;
+			//makestr(fontstyle, value);
 
 		} else if (!strcmp(name,"fontsize")) {
 			DoubleAttribute(value,&fontsize);
+
+		} else if (!strcmp(name,"linespacing")) {
+			DoubleAttribute(value,&linespacing);
 
 		} else if (!strcmp(name,"color")) {
 			double co[5];
@@ -267,7 +418,24 @@ void CaptionData::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *co
 		}
 	}
 
-	Font(fontfamily,fontstyle,fontsize);
+	if (newfont) {
+		if (palette) {
+			for (LaxFont *f=newfont; f; f=f->nextlayer) {
+				f->SetColor(palette);
+			}
+			palette->dec_count();
+		}
+		Font(newfont);
+		newfont->dec_count();
+	} else Font(file, family, style, fontsize);
+}
+
+/*! Value is percentage (1 == 100%) off from font's line spacing.
+ */
+double CaptionData::LineSpacing(double newspacing)
+{
+	if (newspacing!=0) linespacing=newspacing;
+	return linespacing;
 }
 
 double CaptionData::Size(double newsize)
@@ -278,6 +446,18 @@ double CaptionData::Size(double newsize)
 	state=0;
 	FindBBox();
 	return fontsize;
+}
+
+/*! Return a new char[] of the (utf8) text.
+ */
+char *CaptionData::GetText()
+{
+	char *text=NULL;
+	for (int c=0; c<lines.n; c++) {
+		appendstr(text, lines.e[c]);
+		if (c<lines.n-1) appendstr(text,"\n");
+	}
+	return text;
 }
 
 //! Set new text.
@@ -397,8 +577,16 @@ int CaptionData::InsertChar(unsigned int ch, int line,int pos, int *newline,int 
  */
 void CaptionData::FindBBox()
 {//***
-	double height=lines.n*fontsize,
+	double height=lines.n*fontsize*linespacing,
 	       width=height;
+
+	if (state==0) {
+		Displayer *dp=GetDefaultDisplayer();
+		for (int c=0; c<lines.n; c++) {
+			linelengths.e[c]=dp->textextent(font, lines.e[c],-1, NULL,NULL,NULL,NULL,0);
+		}
+		state=1;
+	}
 
 	if (lines.n) {
 		width=0;
@@ -445,29 +633,45 @@ double CaptionData::YCenter(double ycenter)
 int CaptionData::Font(LaxFont *newfont)
 {
 	if (!newfont) return 1;
-	if (font==newfont) return 0;
 
-	if (font) font->dec_count();
-	font=newfont;
-	font->inc_count();
+	if (font!=newfont) {
+		if (font) font->dec_count();
+		font=newfont;
+		font->inc_count();
+	}
 
 	fontsize=font->textheight();
+	linespacing=1;
 	makestr(fontfamily,font->Family());
 	makestr(fontstyle, font->Style());
+	makestr(fontfile,  font->FontFile());
+
+	DBG cerr <<"------------ new font size a,d,h, fs: "<<font->ascent()<<", "<<font->descent()<<", "<<font->textheight()<<"   "<<fontsize<<endl;
+
+	state=0;
+	FindBBox();
 
 	return 0;
 }
 
-int CaptionData::Font(const char *family,const char *style,double size)
+int CaptionData::Font(const char *file, const char *family,const char *style,double size)
 {
 	if (font) font->dec_count();
-	font=InterfaceManager::GetDefault()->GetFontManager()->MakeFont(family,style,size,-1);
+
+	if (file) font=InterfaceManager::GetDefault()->GetFontManager()->MakeFontFromFile(file, family,style,size,-1);
+	else font=InterfaceManager::GetDefault()->GetFontManager()->MakeFont(family,style,size,-1);
 
 	fontsize=size;
-	makestr(fontfamily,family);
-	makestr(fontstyle, style);
+	linespacing=1;
+
+	makestr(fontfile,  file   ? file   : font->FontFile());
+	makestr(fontfamily,family ? family : font->Family());
+	makestr(fontstyle, style  ? style  : font->Style());
+
+	DBG cerr <<"------------ new font size a,d,h, fs: "<<font->ascent()<<", "<<font->descent()<<", "<<font->textheight()<<"   "<<fontsize<<endl;
 
 	state=0;
+	FindBBox();
 
 	return 0;
 }
@@ -493,6 +697,7 @@ CaptionInterface::CaptionInterface(int nid,Displayer *ndp) : anInterface(nid,ndp
 	data=NULL;
 	coc=NULL;
 	showdecs=3;
+	showbaselines=0;
 	showobj=1;
 	mode=0;
 	lasthover=CAPTION_None;
@@ -507,6 +712,8 @@ CaptionInterface::CaptionInterface(int nid,Displayer *ndp) : anInterface(nid,ndp
 	caretpos=0; //position of caret in caretline
 	needtodraw=1;
 
+	baseline_color=rgbcolorf(1.,0.,1.);
+
 //	if (newtext) {
 //		if (!data) data=new CaptionData(newtext,
 //						 "sans", //font name   //"/usr/X11R6/lib/X11/fonts/TTF/temp/hrtimes_.ttf",
@@ -515,6 +722,8 @@ CaptionInterface::CaptionInterface(int nid,Displayer *ndp) : anInterface(nid,ndp
 //						 0,  //xcenter,
 //						 0); //ycenter
 //	}
+
+	sc=NULL;
 }
 
 CaptionInterface::~CaptionInterface()
@@ -522,6 +731,7 @@ CaptionInterface::~CaptionInterface()
 	DBG cerr <<"----in CaptionInterface destructor"<<endl;
 	deletedata();
 
+	if (sc) sc->dec_count();
 	delete[] defaultfamily;
 	delete[] defaultstyle;
 }
@@ -644,11 +854,9 @@ int CaptionInterface::Refresh()
 
 		
 	 //find how large
-	flatpoint pb=flatpoint(0,0),
-			  pt=flatpoint(0,data->fontsize),
-			  ptt=flatpoint(0,data->fontsize*data->lines.n);
-			  //pt=flatpoint(0,data->fontsize/72),
-			  //ptt=flatpoint(0,data->fontsize/72*data->lines.n);
+	flatpoint pb =flatpoint(0,0),
+			  pt =flatpoint(0, data->fontsize*data->linespacing),
+			  ptt=flatpoint(0, pt.y * data->lines.n);
 	int height=(int)norm(dp->realtoscreen(pb)-dp->realtoscreen(pt));
 	double totalheight=norm(dp->realtoscreen(pb)-dp->realtoscreen(ptt));
 	if (totalheight<.5) return 0;
@@ -670,7 +878,7 @@ int CaptionInterface::Refresh()
 	v=v/norm(v);
 	//double boxtotalheight=norm(ul-ll);
 	//double lineheight=boxtotalheight/data->lines.n;
-	
+
 	DBG fprintf(stderr,"draw caption scr coords: %ld: ul:%g,%g ur:%g,%g ll:%g,%g lr:%g,%g\n",
 	DBG		data->object_id,ul.x,ul.y,ur.x,ur.y,ll.x,ll.y,lr.x,lr.y);
 	DBG fprintf(stderr,"     caption bounds:    w:%g  h:%g\n",
@@ -782,10 +990,26 @@ int CaptionInterface::Refresh()
 
 			 //draw the stuff
 			double x,y;
+			double baseline=data->font->ascent(), descent=data->font->descent();
 			//double width=data->maxx-data->minx;
-			y=-data->ycentering/100*data->fontsize*data->lines.n;
-			for (int c=0; c<data->lines.n; c++, y+=data->fontsize) {
+			y=-data->ycentering/100*data->fontsize*data->linespacing*data->lines.n;
+			for (int c=0; c<data->lines.n; c++, y+=data->fontsize*data->linespacing) {
 				x=-data->xcentering/100*(data->linelengths[c]);
+
+				if (showbaselines) {
+					dp->NewFG(baseline_color);
+					dp->LineWidthScreen(1);
+
+					 //baseline
+					dp->drawline(x,y+baseline, x+data->linelengths.e[c],y+baseline);
+					 //ascent/descent
+					dp->LineAttributes(-1, LineDoubleDash, LAXCAP_Round, LAXJOIN_Round);
+					dp->drawline(x,y, x+data->linelengths.e[c],y);
+					dp->drawline(x,y+baseline+descent, x+data->linelengths.e[c],y+baseline+descent);
+					dp->LineAttributes(-1, LineSolid, LAXCAP_Round, LAXJOIN_Round);
+
+					dp->NewFG(data->red, data->green, data->blue, data->alpha);
+				}
 
 				if (!isblank(data->lines.e[c])) {
 					dp->textout(x,y, data->lines.e[c],-1, LAX_TOP|LAX_LEFT);
@@ -842,7 +1066,7 @@ CaptionData *CaptionInterface::newData()
 
 	if (!ndata) ndata=new CaptionData();
 	
-	ndata->Font(defaultfamily, defaultstyle, defaultsize);
+	ndata->Font(NULL, defaultfamily, defaultstyle, defaultsize);
 
 	return ndata;
 }
@@ -874,6 +1098,14 @@ int CaptionInterface::UseThis(anObject *newdata,unsigned int) // assumes not use
     return 0;
 }
 
+/*! Make sure caretline and caretpos are within bounds for data.
+ */
+void CaptionInterface::FixCaret()
+{
+	caretline=0;
+	caretpos=0;
+}
+
 //! Use the object at oc if it is an ImageData.
 int CaptionInterface::UseThisObject(ObjectContext *oc)
 {   
@@ -899,6 +1131,8 @@ int CaptionInterface::UseThisObject(ObjectContext *oc)
 	SimpleColorEventData *e=new SimpleColorEventData( 65535, 0xffff*data->red, 0xffff*data->green, 0xffff*data->blue, 0xffff*data->alpha, 0);
 	app->SendMessage(e, curwindow->win_parent->object_id, "make curcolor", object_id);
 
+	FixCaret();
+
     needtodraw=1;
     return 1;
 }   
@@ -913,7 +1147,10 @@ int CaptionInterface::LBDown(int x,int y,unsigned int state,int count, const Lax
 
 	if (data && count==2) {
 		app->addwindow(new FontDialog(NULL, "Font",_("Font"),ANXWIN_REMEMBER, 10,10,700,700,0, object_id,"newfont",0,
-					data->fontfamily, data->fontstyle, data->fontsize));
+					data->fontfamily, data->fontstyle, data->fontsize,
+					NULL, //sample text
+					data->font
+					));
 		buttondown.up(d->id,LEFTBUTTON);
 		return 0;
 	}
@@ -948,6 +1185,8 @@ int CaptionInterface::LBDown(int x,int y,unsigned int state,int count, const Lax
 
 		SimpleColorEventData *e=new SimpleColorEventData( 65535, 0xffff*data->red, 0xffff*data->green, 0xffff*data->blue, 0xffff*data->alpha, 0);
 		app->SendMessage(e, curwindow->win_parent->object_id, "make curcolor", object_id);
+
+		FixCaret();
 
 		needtodraw=1;
 		return 0;
@@ -1011,7 +1250,14 @@ int CaptionInterface::Event(const Laxkit::EventData *e_data, const char *mes)
 
 		double size=strtod(s->strs[2], NULL);
 		if (size<=0) size=1e-4;
-		data->Font(s->strs[0], s->strs[1], size);
+
+		LaxFont *newfont=dynamic_cast<LaxFont*>(s->object);
+		if (newfont) data->Font(newfont);
+		else data->Font(s->strs[3], s->strs[0], s->strs[1], size); //file, family, style, size
+		data->state=0;
+		data->FindBBox();
+	
+		DBG cerr <<"------------ new font size a,d,h, fs: "<<data->font->ascent()<<", "<<data->font->descent()<<", "<<data->font->textheight()<<"   "<<data->fontsize<<endl;
 
 		defaultsize=size;
 		makestr(defaultfamily,data->fontfamily);
@@ -1030,6 +1276,8 @@ int CaptionInterface::Event(const Laxkit::EventData *e_data, const char *mes)
 			defaultsize=data->fontsize;
 			needtodraw=1;
 		}
+
+		DBG cerr <<"------------ new font size a,d,h, fs: "<<data->font->ascent()<<", "<<data->font->descent()<<", "<<data->font->textheight()<<"   "<<data->fontsize<<endl;
 		return 0;
 
 	} else if (!strcmp(mes, "angle")) {
@@ -1190,6 +1438,11 @@ int CaptionInterface::MouseMove(int x,int y,unsigned int state, const Laxkit::La
 			double d=data->fontsize - factor*dv.y;
 			if (d<=0) d=1e-3;
 			data->Size(d);
+			char str[100];
+			sprintf(str, _("Size %f pt"), d);
+
+			DBG cerr <<"------------ new font size a,d,h, fs: "<<data->font->ascent()<<", "<<data->font->descent()<<", "<<data->font->textheight()<<"   "<<data->fontsize<<endl;
+			PostMessage(str);
 			needtodraw=1;
 			return 0;
 
@@ -1248,23 +1501,151 @@ int CaptionInterface::MouseMove(int x,int y,unsigned int state, const Laxkit::La
 	return 0;
 }
 
+enum CaptionInterfaceActions {
+	CAPT_None=0,
+	CAPT_Copy,
+	CAPT_Paste,
+	CAPT_LeftJustify,
+	CAPT_CenterJustify,
+	CAPT_RightJustify,
+	CAPT_TopJustify,
+	CAPT_MiddleJustify,
+	CAPT_BaselineJustify,
+	CAPT_BottomJustify,
+	CAPT_Direction,
+	CAPT_Decorations,
+	CAPT_ShowBaselines,
+	CAPT_InsertChar,
+	CAPT_MAX
+};
+
+Laxkit::ShortcutHandler *CaptionInterface::GetShortcuts()
+{
+	if (sc) return sc;
+    ShortcutManager *manager=GetDefaultShortcutManager();
+    sc=manager->NewHandler(whattype());
+    if (sc) return sc;
+
+    //virtual int Add(int nid, const char *nname, const char *desc, const char *icon, int nmode, int assign);
+
+    sc=new ShortcutHandler(whattype());
+
+    sc->Add(CAPT_Copy,            'c',ControlMask,0, "Copy"           , _("Copy"            ),NULL,0);
+    sc->Add(CAPT_Paste,           'v',ControlMask,0, "Paste"          , _("Paste"           ),NULL,0);
+    sc->Add(CAPT_LeftJustify,     'l',ControlMask,0, "LeftJustify"    , _("Left Justify"    ),NULL,0);
+    sc->Add(CAPT_CenterJustify,   'e',ControlMask,0, "CenterJustify"  , _("Center Justify"  ),NULL,0);
+    sc->Add(CAPT_RightJustify,    'r',ControlMask,0, "RightJustify"   , _("Right Justify"   ),NULL,0);
+    sc->Add(CAPT_TopJustify,      't',ControlMask,0, "TopJustify"     , _("Top Justify"     ),NULL,0);
+    sc->Add(CAPT_MiddleJustify,   'm',ControlMask,0, "MiddleJustify"  , _("Middle Justify"  ),NULL,0);
+    sc->Add(CAPT_BaselineJustify, 'B',ShiftMask|ControlMask,0, "BaselineJustify", _("Baseline Justify"),NULL,0);
+    sc->Add(CAPT_BottomJustify,   'b',ControlMask,0, "BottomJustify"  , _("Bottom Justify"  ),NULL,0);
+    sc->Add(CAPT_Direction,       'D',ShiftMask|ControlMask,0, "Direction", _("Toggle Direction"),NULL,0);
+    sc->Add(CAPT_Decorations,     'd',ControlMask,0, "Decorations"    , _("Toggle Decorations"),NULL,0);
+    sc->Add(CAPT_ShowBaselines,   'D',ShiftMask|ControlMask,0, "ShowBaselines", _("Show Baselines"),NULL,0);
+    sc->Add(CAPT_InsertChar,      'i',ControlMask,0, "InsertChar"     , _("Insert Character"),NULL,0);
+
+    manager->AddArea(whattype(),sc);
+    return sc;
+}
+
+int CaptionInterface::PerformAction(int action)
+{
+	if (action==CAPT_Paste) {
+		 //pasting with no data should create a new data
+		PostMessage(" *** Need to implement paste!!!");
+		return 0;
+	}
+
+	 //everything else needs a data
+	if (!data) return 1;
+
+	if (action==CAPT_Copy) {
+		PostMessage(" *** Need to implement copy!!!");
+		return 0;
+
+	} else if (action==CAPT_Decorations) {
+		showdecs=!showdecs;
+		if (showdecs) PostMessage(_("Show controls"));
+		else PostMessage(_("Hide controls"));
+		needtodraw=1;
+		return 0;
+
+	} else if (action==CAPT_LeftJustify) {
+		data->xcentering=0;
+		data->FindBBox();
+		needtodraw=1;
+		return 0;
+
+	} else if (action==CAPT_CenterJustify) {
+		data->xcentering=50;
+		data->FindBBox();
+		needtodraw=1;
+		return 0;
+
+	} else if (action==CAPT_RightJustify) {
+		data->xcentering=100;
+		data->FindBBox();
+		needtodraw=1;
+		return 0;
+
+	} else if (action==CAPT_TopJustify) {
+		data->ycentering=0;
+		data->FindBBox();
+		needtodraw=1;
+		return 0;
+
+	} else if (action==CAPT_MiddleJustify) {
+		data->ycentering=50;
+		data->FindBBox();
+		needtodraw=1;
+		return 0;
+
+	} else if (action==CAPT_BaselineJustify) {
+		PostMessage(" *** need to implement baseline justify action in CaptionInterface!!");
+		//data->ycentering=50;
+		data->FindBBox();
+		needtodraw=1;
+		return 0;
+
+	} else if (action==CAPT_BottomJustify) {
+		data->ycentering=100;
+		data->FindBBox();
+		needtodraw=1;
+		return 0;
+
+	} else if (action==CAPT_InsertChar) {
+		PostMessage(" *** need to implement Insert Char action in CaptionInterface!!");
+		return 0;
+
+	} else if (action==CAPT_ShowBaselines) {
+		showbaselines++;
+		if (showbaselines>1) showbaselines=0;
+		needtodraw=1;
+		return 0;
+
+	} else if (action==CAPT_Direction) {
+		data->righttoleft=!data->righttoleft;
+		PostMessage(" *** need to implement rtl/ltr toggle action in CaptionInterface!!");
+		data->FindBBox();
+		needtodraw=1;
+		return 0;
+
+	}
+
+	return 1;
+}
+
 int CaptionInterface::CharInput(unsigned int ch,const char *buffer,int len,unsigned int state, const Laxkit::LaxKeyboard *d) 
 {
 
 	if (!data) return 1;
 
-	if (ch=='d' && (state&LAX_STATE_MASK)==ControlMask) {
-		//if (--showdecs<0) showdecs=3;
-		showdecs=!showdecs;
-		needtodraw=1;
-		return 0;
-
-	} else if (ch=='c' && (state&LAX_STATE_MASK)==ControlMask) {
-		PostMessage(" *** Need to implement copy!!!");
+	if (ch=='c' && (state&LAX_STATE_MASK)==ControlMask) {
+		PerformAction(CAPT_Copy);
 		return 0;
 
 	} else if (ch=='v' && (state&LAX_STATE_MASK)==ControlMask) {
-		PostMessage(" *** Need to implement paste!!!");
+		PerformAction(CAPT_Paste);
 		return 0;
 
 	} else if (ch==LAX_Del) { // delete
@@ -1329,6 +1710,14 @@ int CaptionInterface::CharInput(unsigned int ch,const char *buffer,int len,unsig
 		data->InsertChar(ch,caretline,caretpos,&caretline,&caretpos);
 		needtodraw=1;
 		return 0;
+
+	} else {
+
+		if (!sc) GetShortcuts();
+		int action=sc->FindActionNumber(ch,state&LAX_STATE_MASK,0);
+		if (action>=0) {
+			return PerformAction(action);
+		}
 	}
 
 	return 1; 

@@ -39,11 +39,17 @@ class CaptionData : virtual public SomeData
  public:
 	int state; //1 if lengths found
 
-	char *fontfamily, *fontstyle, *fontfile;
-	double fontsize;
-	Laxkit::LaxFont *font;
-	double red,green,blue,alpha; //[0..1]
+	char *fontfamily;
+	char *fontstyle;
+	char *fontfile;
+	double fontsize; //font height, font's default distance between baselines
+	double linespacing; //percentage of font's default
 	double xcentering,ycentering; //around origin
+	bool righttoleft;
+
+	double red,green,blue,alpha; //[0..1]
+
+	Laxkit::LaxFont *font;
 
 	Laxkit::PtrStack<char> lines;
 	Laxkit::NumStack<double> linelengths;
@@ -52,17 +58,22 @@ class CaptionData : virtual public SomeData
 	CaptionData();
 	CaptionData(const char *ntext, const char *nfontfamily, const char *nfontstyle, int fsize, double xcenter, double ycenter);
 	virtual ~CaptionData();
+	virtual SomeData *duplicate(SomeData *dup);
+
 	virtual int SetText(const char *newtext);
+	virtual char *GetText();
 	virtual double XCenter(double xcenter);
 	virtual double XCenter() { return xcentering; }
 	virtual double YCenter(double ycenter);
 	virtual double YCenter() { return ycentering; }
 	virtual double Size(double newsize);
 	virtual double Size() { return fontsize; }
+	virtual double LineSpacing(double newspacing);
+	virtual double LineSpacing() { return linespacing; }
 	virtual void FindBBox();
 
 	virtual int Font(Laxkit::LaxFont *newfont);
-	virtual int Font(const char *family,const char *style,double size);
+	virtual int Font(const char *file, const char *family,const char *style,double size);
 
 	virtual int CharLen(int line);
 	virtual int ComputeLineLen(int line);
@@ -95,6 +106,7 @@ class CaptionInterface : public anInterface
 	int caretline,caretpos;
 	flatpoint caret;
 	int lasthover;
+	Laxkit::ShortcutHandler *sc;
 
   public:
 	double defaultscale;
@@ -105,6 +117,8 @@ class CaptionInterface : public anInterface
 	double grabpad;
 	int showobj;
 	int showdecs;
+	int showbaselines;
+	unsigned long baseline_color;
 	CaptionData *data;
 	ObjectContext *coc;
 
@@ -130,6 +144,9 @@ class CaptionInterface : public anInterface
 	virtual int InterfaceOff();
 	virtual void Clear(SomeData *d);
 	virtual int Event(const Laxkit::EventData *e_data, const char *mes);
+	virtual Laxkit::ShortcutHandler *GetShortcuts();
+    virtual int PerformAction(int action);
+	virtual void FixCaret();
 
 	virtual int scan(int x,int y,unsigned int state);
 	virtual CaptionData *newData();
