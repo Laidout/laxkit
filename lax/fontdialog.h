@@ -26,32 +26,71 @@
 
 #include <lax/rowframe.h>
 #include <lax/lineinput.h>
-#include <lax/menuselector.h>
+#include <lax/treeselector.h>
 #include <lax/numslider.h>
+#include <lax/scroller.h>
+#include <lax/palette.h>
 
 
 namespace Laxkit {
 
 
-//-------------------------------------- FontDialogFont -------------------------------------
-/*! \class FontDialogFont
- * \brief Describes a font as dealt with in a FontDialog.
- */
-class FontDialogFont
-{
- public:
-	int id;
-	char *family;
-	char *style;
-	char *file;
-	double size;
-	LaxImage *preview;
 
-	FontDialogFont(int nid);
-	virtual ~FontDialogFont();
-	virtual bool Match(const char *mfamily, const char *mstyle);
+
+//-------------------------------------- FontDialog -------------------------------------
+
+enum LayersActions {
+	LAYERS_None   = 0,
+	LAYERS_Layer  =-1,
+	LAYERS_Off    =-2,
+	LAYERS_On     =-3,
+	LAYERS_New    =-4,
+	LAYERS_Trash  =-5,
+	LAYERS_Select =-6,
+	LAYERS_Arrange=-7,
+
+	LAYERS_MAX    =-7
 };
 
+class FontLayersWindow : public anXWindow
+{
+  protected:
+	int mode;
+	int pad;
+	int boxwidth;
+	bool glyph_mismatch;
+
+	int numlayers;
+	int current_layer;
+	int grabbed;
+	int lasthover;
+	flatpoint offset;
+
+	ButtonDownInfo buttondown;
+
+  public:
+	FontLayersWindow(anXWindow *parnt, anXWindow *prev, unsigned long nowner,const char *nsend, int nmode, int nlayers);
+	virtual ~FontLayersWindow();
+
+	virtual const char *whattype() { return "FontLayersWindow"; }
+	virtual int init();
+	virtual int Event(const EventData *data,const char *mes);
+	virtual void Refresh();
+	
+	virtual int CharInput(unsigned int ch, const char *buffer,int len,unsigned int state, const LaxKeyboard *kb);
+	virtual int LBDown(int x,int y, unsigned int state,int count,const LaxMouse *d);
+    virtual int LBUp(int x,int y, unsigned int state,const LaxMouse *d);
+    virtual int MouseMove(int x,int y,unsigned int state,const LaxMouse *d);
+	virtual int scan(int x,int y,unsigned int state, flatpoint *off=NULL);
+    //virtual int WheelDown(int x,int y,unsigned int state,int count,const LaxMouse *d);
+    //virtual int WheelUp(int x,int y,unsigned int state,int count,const LaxMouse *d);
+    //virtual int Resize(int nw,int nh);
+    //virtual int MoveResize(int nx,int ny,int nw,int nh);
+
+	virtual int send(int action, int which, int which2=0);
+	virtual int Current() { return current_layer; }
+
+};
 
 //-------------------------------------- FontDialog -------------------------------------
 
@@ -61,26 +100,39 @@ class FontDialog : public RowFrame
 {
  protected:
 	char *sampletext;
-	FcConfig *fcconfig;
 	double defaultsize;
 	unsigned long dialog_style;
-	PtrStack<FontDialogFont> fonts;
-	int currentfont;
+	PtrStack<FontDialogFont> *fonts; //stored in global fontmanager
+	int currentfont; //index into fonts
 
 	char *origfamily, *origstyle;
 
-	MenuSelector *fontlist;
+	bool more;
+	bool initted;
+
+	TreeSelector *fontlist;
 	LineEdit *text;
 	LineInput *fontfamily, *fontstyle, *fontfile;
 	LineInput *search;
 	NumSlider *fontsize;
+	MenuInfo *mfonts;
+	MenuInfo styles;
+	FontLayersWindow *layers;
+
+	LaxFont *thefont, *fontlayer;
+	Palette *palette;
+
+	virtual void UpdateStyles();
+	virtual void UpdateSample();
+	virtual void UpdateColorBoxes();
 
  public:
 	FontDialog(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
 				int xx,int yy,int ww,int hh,int brder,
 				unsigned long nowner,const char *nsend,
 				unsigned long ndstyle,
-				const char *fam, const char *style, double size);
+				const char *fam, const char *style, double size, const char *nsample,
+				LaxFont *nfont);
 	virtual ~FontDialog();
 
 	virtual const char *whattype() { return "FontDialog"; }
@@ -88,10 +140,10 @@ class FontDialog : public RowFrame
 	virtual int CharInput(unsigned int ch, const char *buffer,int len,unsigned int state, const LaxKeyboard *kb);
 	virtual int Event(const EventData *data,const char *mes);
 	
+	virtual LaxFont *CreateFromCurrent();
 	virtual int FindFont();
+	virtual int FindFont(const char *family, const char *style, const char *file);
 	virtual int send();
-	virtual void UpdateStyles();
-	virtual void UpdateSample();
 	virtual int SampleText(const char *ntext);
 };
 
