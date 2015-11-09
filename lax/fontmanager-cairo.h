@@ -43,6 +43,7 @@ namespace Laxkit {
 class LaxFontCairo : public LaxFont
 {
   protected:
+	double height_over_M;
 
   public:
 	cairo_font_extents_t extents;
@@ -54,6 +55,8 @@ class LaxFontCairo : public LaxFont
 	LaxFontCairo(const char *fontconfigstr,int nid);
 	LaxFontCairo(const char *nfamily, const char *nstyle, double size, int nid);
 	virtual ~LaxFontCairo();
+
+	virtual int SetFromFile(const char *nfile, const char *nfamily, const char *nstyle, double size);
 
 	virtual double charwidth(unsigned long chr,int real,double *width=NULL,double *height=NULL);
 	virtual double contextcharwidth(char *start,char *pos,int real,double *width=NULL,double *height=NULL);
@@ -76,7 +79,7 @@ class FontManagerCairo : public FontManager, protected RefPtrStack<LaxFont>
 	FontManagerCairo();
 	virtual ~FontManagerCairo();
 
-	virtual LaxFont *MakeFontFromFile(const char *file, double size, int nid);
+	virtual LaxFont *MakeFontFromFile(const char *file, const char *nfamily, const char *nstyle, double size, int nid);
 	virtual LaxFont *MakeFontFromStr(const char *fcstr, int nid);
 	virtual LaxFont *MakeFont(const char *family, const char *style, double size, int nid);
 	virtual LaxFont *Add(LaxFont *font,int nid);

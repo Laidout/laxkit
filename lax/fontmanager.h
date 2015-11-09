@@ -18,31 +18,44 @@
 //    License along with this library; if not, write to the Free Software
 //    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
-//    Copyright (C) 2004-2012 by Tom Lechner
+//    Copyright (C) 2004-2015 by Tom Lechner
 //
 #ifndef _LAX_FONTMANAGER_H
 #define _LAX_FONTMANAGER_H
 
 #include <cstdlib>
 #include <lax/anobject.h>
+#include <lax/laximages.h>
+#include <lax/lists.h>
+#include <fontconfig/fontconfig.h>
+
 
 namespace Laxkit {
-	
+
+
 //---------------------------- LaxFont -------------------------------
 class LaxFont : public anObject
 {
- protected:
-	char *family, *style;
+  protected:
+	char *family;
+	char *style;
+	char *fontfile;
+	int fontindex;
+	anObject *color;//optional, preferred color, a Color for single layer, Palette for multicolor
 
- public:
+  public:
 	int id;
 	unsigned long textstyle;
 	char cntlchar;
+
+	LaxFont *nextlayer; //for layered multicolor fonts
 
 	LaxFont();
 	virtual ~LaxFont();
 
 	virtual int FontId() { return id; }
+
+	virtual int SetFromFile(const char *nfile, const char *nfamily, const char *nstyle, double size) = 0;
 
 	virtual double charwidth(unsigned long chr,int real,double *width=NULL,double *height=NULL) = 0;
 	virtual double contextcharwidth(char *start,char *pos,int real,double *width=NULL,double *height=NULL) = 0;
@@ -51,23 +64,81 @@ class LaxFont : public anObject
 	virtual double textheight() = 0;
 	virtual const char *Family();
 	virtual const char *Style();
+	virtual const char *FontFile();
 	virtual double extent(const char *str,int len) = 0;
 	virtual double Resize(double newsize) = 0;
+
+	 //stuff for layered color fonts
+	virtual int Layers();
+	virtual LaxFont *Layer(int which);
+	virtual LaxFont *NextLayer() { return nextlayer; }
+	virtual LaxFont *AddLayer(int where, LaxFont *nfont);
+	virtual LaxFont *RemoveLayer(int which, LaxFont **popped_ret);
+	virtual LaxFont *MoveLayer(int which, int to);
+	virtual void RemoveAllLayers();
+	virtual anObject *GetColor() { return color; }
+	virtual int SetColor(anObject *ncolor);
 };
+
+
+//---------------------------- FontDialogFont -------------------------------
+/*! \class FontDialogFont
+ * \brief Describes a font as dealt with in a FontDialog.
+ */
+class FontDialogFont
+{
+  public:
+    int id;
+    char *name;
+    char *family;
+    char *style;
+    char *psname;
+    char *file;
+    int index; //index in file when more than one font in file
+
+    LaxImage *preview;
+    int numtags, *tags;
+
+    FcPattern *fc_pattern; //owned by the master list
+
+    FontDialogFont(int nid);
+    virtual ~FontDialogFont();
+    virtual bool Match(const char *mfamily, const char *mstyle);
+    virtual int HasTag(int tag_id);
+    virtual int AddTag(int tag_id);
+    virtual void RemoveTag(int tag_id);
+};
+
+class FontTags
+{
+  public:
+    int id;
+    int tagtype; //such as from Fontmatrix, user favorites, document defined, etc
+    const char *tag;
+};
+
 
 
 //---------------------------- FontManager -------------------------------
 class FontManager : public anObject
 {
- public:
+  protected:
+	FcConfig *fcconfig;
+	PtrStack<FontDialogFont> fonts;
+	PtrStack<FontTags> tags;
+	
+  public: 
 	FontManager();
-	virtual ~FontManager() {}
+	virtual ~FontManager();
 
-	virtual LaxFont *MakeFontFromFile(const char *file, double size, int nid) = 0;
+	virtual LaxFont *MakeFontFromFile(const char *file, const char *nfamily, const char *nstyle, double size, int nid) = 0;
 	virtual LaxFont *MakeFontFromStr(const char *fcstr, int nid) = 0;
 	virtual LaxFont *MakeFont(const char *family, const char *style, double size, int nid) = 0;
 	virtual LaxFont *Add(LaxFont *font,int nid) = 0;
 	virtual LaxFont *CheckOut(int id) = 0;
+	virtual FcConfig *GetConfig();
+	virtual PtrStack<FontDialogFont> *GetFontList();
+	virtual int RetrieveFontmatrixTags();
 };
 
 

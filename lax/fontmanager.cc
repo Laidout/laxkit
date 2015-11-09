@@ -18,7 +18,7 @@
 //    License along with this library; if not, write to the Free Software
 //    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
-//    Copyright (C) 2004-2012 by Tom Lechner
+//    Copyright (C) 2004-2015 by Tom Lechner
 //
 
 
@@ -27,6 +27,8 @@
 
 #include <lax/misc.h>
 #include <lax/anxapp.h>
+#include <lax/strmanip.h>
+#include <lax/fileutils.h>
 
 #include <iostream>
 using namespace std;
@@ -46,6 +48,10 @@ using namespace std;
 //#include <lax/fontmanager-gl.h>
 #endif
 
+
+#include <lax/lists.cc>
+
+using namespace LaxFiles;
 
 
 namespace Laxkit {
@@ -71,12 +77,21 @@ LaxFont::LaxFont()
 
 	family=NULL;
 	style=NULL;
+	fontfile=NULL;
+	fontindex=0;
+
+	color=NULL;
+	nextlayer=NULL;
 }
 
 LaxFont::~LaxFont()
 {
 	delete[] family;
 	delete[] style;
+	delete[] fontfile;
+
+	if (color) color->dec_count();
+	if (nextlayer) nextlayer->dec_count();
 }
 
 /*! \fn LaxFont::LaxFont(const char *fontconfigstr,int nid)
@@ -126,6 +141,221 @@ const char *LaxFont::Style()
 	return style;
 }
 
+/*! Default just return this->fontfile.
+ */
+const char *LaxFont::FontFile()
+{
+	return fontfile;
+}
+
+/*! For multicolor font layers, the number of different fonts to layer up. Default is to return
+ * 1, for normal single layer fonts.
+ */
+int LaxFont::Layers()
+{
+	int n=1;
+	LaxFont *f=nextlayer;
+	while (f) { n++; f=f->nextlayer; }
+	return n;
+}
+
+/*! For multicolor font layers. which must be in range [0..Layers()], or NULL is returned.
+ */
+LaxFont *LaxFont::Layer(int which)
+{
+	if (which<0 || which>=Layers()) return NULL;
+
+	LaxFont *f=this;
+	do {
+		if (which==0) return f;
+		f=f->nextlayer;
+		which--;
+	} while (f);
+
+	return NULL;
+}
+
+/*! Put layer at position where. 
+ * Returns the new head. Normally this will be *this, but if where==0, then nfont becomes
+ * the new front, which points to *this. If the head is replaced, this->count is not changed,
+ * so that calling code can simply reassign without having to mess with dec/inc counts.
+ *
+ * Count of nfont will be absorbed.
+ */
+LaxFont *LaxFont::AddLayer(int where, LaxFont *nfont)
+{
+	if (where==0) {
+		nfont->nextlayer=this;
+		return nfont;
+	}
+
+	if (where<0 || where>=Layers()) where=Layers();
+
+	LaxFont *f=this;
+	where--;
+	while (where>0 && f->nextlayer) { f=f->nextlayer; where--; }
+	if (f->nextlayer) nfont->nextlayer=f->nextlayer;
+	f->nextlayer=nfont;
+
+	return this;
+}
+
+/*! Returns the new head. Normally this will be *this, but if which==0, then this->nextlayer becomes
+ * the new head and that is returned.
+ *
+ * If popped_ret!=NULL, then do not dec_count the removed layer, but return it. Otherwise, the popped
+ * layer is dec_counted, even if it was the head.
+ *
+ * This lets you easily delete the first layer with something like:
+ *  font = font->RemoveLayer(0, NULL), and not have to delete it yourself.
+ *
+ * If only one layer or which is out of bounds, nothing is done and this is returned. popped_ret gets
+ * set to NULL in this case.
+ */
+LaxFont *LaxFont::RemoveLayer(int which, LaxFont **popped_ret)
+{
+	if (!nextlayer) { return this; if (popped_ret) *popped_ret=NULL; }
+	if (which<0 || which>=Layers()) { return this; if (popped_ret) *popped_ret=NULL; }
+
+	if (which==0) {
+		LaxFont *f=nextlayer;
+		nextlayer=NULL;
+		 if (popped_ret) {
+			 *popped_ret=this;
+		 } else this->dec_count();
+		return f;
+	}
+
+	LaxFont *f=this;
+	which--;
+	while (which>0 && f->nextlayer) { f=f->nextlayer; which--; }
+	LaxFont *of=f->nextlayer;
+	f->nextlayer = of->nextlayer;
+	of->nextlayer=NULL;
+
+	if (popped_ret) *popped_ret=of;
+	else of->dec_count();
+
+	return this;
+}
+
+/*! Take layer which and put it at position to
+ *
+ * If the first layer changes, the new head is returned. Old head is returned if not, or
+ * if there is an out of bounds error.
+ */
+LaxFont *LaxFont::MoveLayer(int which, int to)
+{
+	if (which==to) return this;
+	if (which<0 || which>=Layers()) return this;
+	if (to<0 || to>=Layers()) return this;
+
+	LaxFont *head=this;
+	LaxFont *popped=NULL;
+
+	head=RemoveLayer(which, &popped);
+	//if (to>which) to--;
+	head=head->AddLayer(to, popped);
+
+	return head;
+}
+
+/*! Basically do nextlayer->dec_count() and set to null.
+ */
+void LaxFont::RemoveAllLayers()
+{
+	if (!nextlayer) return;
+	nextlayer->dec_count();
+	nextlayer=NULL;
+}
+
+int LaxFont::SetColor(anObject *ncolor)
+{
+	if (color) color->dec_count();
+	color=ncolor;
+	if (color) color->inc_count();
+	return 0;
+}
+
+
+//-------------------------------------- FontDialogFont -------------------------------------
+/*! \class FontDialogFont
+ * \brief Describes a font as dealt with in a FontDialog.
+ */
+
+FontDialogFont::FontDialogFont(int nid)
+{
+    id=nid;
+
+    name=NULL;
+    psname=NULL;
+    family=NULL;
+    style=NULL;
+    file=NULL;
+    preview=NULL;
+    index=0;
+
+    numtags=0;
+    tags=NULL;
+
+	fc_pattern=NULL; //assume fontmanager->fontlist gets destroyed AFTER this
+}
+
+FontDialogFont::~FontDialogFont()
+{
+    delete[] name;
+    delete[] psname;
+    delete[] family;
+    delete[] style;
+    delete[] file;
+    if (preview) preview->dec_count();
+    delete[] tags;
+}
+
+bool FontDialogFont::Match(const char *mfamily, const char *mstyle)
+{
+    if (mfamily && family && !strcasecmp(mfamily,family)) {
+        if (mstyle && style && !strcasecmp(mstyle,style)) return true;
+    }
+
+    return false;
+}
+
+/*! Return value is (index in tags array)+1, or 0 if not there.
+ */
+int FontDialogFont::HasTag(int tag_id)
+{
+    for (int c=0; c<numtags; c++) {
+        if (tags[c]==tag_id) return c+1;
+    }
+    return 0;
+}
+
+/*! Returns the new number of tags.
+ */
+int FontDialogFont::AddTag(int tag_id)
+{
+    if (HasTag(tag_id)) return numtags;
+
+    int *newtags=new int[numtags+1];
+    if (numtags) memcpy(newtags, tags, numtags*sizeof(int));
+    newtags[numtags]=tag_id;
+    numtags++;
+    return numtags;
+}
+
+void FontDialogFont::RemoveTag(int tag_id)
+{
+    for (int c=0; c<numtags; c++) {
+        if (tags[c]==tag_id) {
+            for (int c2=c; c2<numtags-1; c2++) tags[c2]=tags[c2+1];
+            numtags--;
+            if (numtags==0) { delete[] tags; tags=NULL; }
+        }
+    }
+}
+
+
 
 //--------------------------- FontManager ------------------------------------------
 
@@ -135,7 +365,89 @@ const char *LaxFont::Style()
  */
 
 FontManager::FontManager()
-{}
+{
+	fcconfig=NULL;
+}
+
+FontManager::~FontManager()
+{
+	if (fcconfig) FcConfigDestroy(fcconfig);
+}
+
+FcConfig *FontManager::GetConfig()
+{
+	if (fcconfig) return fcconfig;
+
+     // Initialize FontConfig library.
+	FcInit(); //does nothing if FcInit() already called somewhere else
+	fcconfig=FcInitLoadConfigAndFonts();
+
+	return fcconfig;
+}
+
+/*! If this->fonts.n>0, then just return &this->fonts. Else populate then return it.
+ */
+PtrStack<FontDialogFont> *FontManager::GetFontList()
+{
+	if (fonts.n) return &fonts;
+	
+	if (!fcconfig) GetConfig(); //inits fontconfig
+
+
+     // Read in all the fonts, and arrange to make using the list a little more ui friendly
+    FcResult result;
+    FcValue v;
+
+    FontDialogFont *f=NULL;
+    FcFontSet *fontset=FcConfigGetFonts(fcconfig, FcSetSystem); //"This font set is owned by the library and must not be modified or freed"
+
+    for (int c=0; c<fontset->nfont; c++) {
+         // Usually, for each font family, there are several styles
+         // like bold, italic, etc.
+        result=FcPatternGet(fontset->fonts[c],FC_FAMILY,0,&v);
+        if (result!=FcResultMatch) continue;
+
+        f=new FontDialogFont(c);
+        f->fc_pattern=fontset->fonts[c];
+
+        makestr(f->family, (const char *)v.u.s);
+
+        result=FcPatternGet(fontset->fonts[c],FC_STYLE,0,&v);
+        if (result==FcResultMatch) makestr(f->style, (const char *)v.u.s);
+
+        result=FcPatternGet(fontset->fonts[c],FC_POSTSCRIPT_NAME,0,&v);
+        if (result==FcResultMatch) makestr(f->psname, (const char *)v.u.s);
+
+        result=FcPatternGet(fontset->fonts[c],FC_FILE,0,&v);
+        if (result==FcResultMatch) makestr(f->file, (const char *)v.u.s);
+
+        result=FcPatternGet(fontset->fonts[c],FC_INDEX,0,&v);
+        if (result==FcResultMatch) f->index = v.u.i;
+
+        //FC_OUTLINE
+        //FC_SCALABLE
+        //FC_LANG -> string of languages like "en|es|bs|ch"
+        //FC_CAPABILITY -> has "otlayout:" stuff
+        //FC_FONTFORMAT
+        //FC_FONT_FEATURES
+
+        DBG cout <<c<<", found font: Family,style,file: "<<f->family<<", "<<f->style<<", "<<f->file<<endl;
+
+        fonts.push(f);
+
+    }
+
+	 //sort by family+name
+	//qsort(fonts.e, fonts.n, sizeof(FontDialogFont*), cmp_fontinfo_psname); 
+ 
+	 //need to differentiate names where family and style are equal to other fonts
+	// *** - 1st try could take apart postscript name: turn something like 
+	//        DroidSansEthiopic-Bold  ->  Droid Sans Ethiopic Bold  (a bit unreliable perhaps)
+	//     - maybe diff the files' basenames. if still the same, just say "(file 1)", "(file 2)", etc.
+	
+
+	return &fonts;
+}
 
 
 /*! \fn LaxFont *FontManager::Add(LaxFont *font,int nid)
@@ -175,6 +487,44 @@ FontManager::FontManager()
  *
  * If nid<=0, then a random id is given to the font.
  */
+
+/*! Returns number of tags retrieved.
+ *
+ * If sqlite is enabled for the Laxkit, then this will try to get the tags from the Fontmatrix
+ * database, and apply to fonts, which should have been populated already.
+ */
+int FontManager::RetrieveFontmatrixTags()
+{
+	cerr << " *** must implement FontManager::RetrieveFontmatrixTags()!!"<<endl;
+
+	int n=0;
+
+#ifdef LAX_USES_SQLITE
+
+	char *dbfile=newstr("~/.Fontmatrix/Data.sql");
+	expand_home_inplace(dbfile); 
+	try {
+		if (!S_ISREG(file_exists(dbfile,1,NULL))) throw(1);
+
+		
+
+	} catch (int error) {
+	}
+
+	delete[] dbfile;
+
+
+	//connect to db
+	//db  has table fontmatrix_tags with [digitident==int, tag==text]
+	//another table fontmatrix_id    has [fontident==text, digitident==int]
+	//the fontident is the file path of the font, *** not sure if it does indexed fonts properly
+
+#else
+	cerr << "Not using Fontmatrix database. Enable sqlite and install fontmatrix to use!"<<endl;
+#endif
+
+	return n;
+}
 
 
 
