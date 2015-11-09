@@ -109,7 +109,6 @@ class MenuSelector : public ScrolledWindow
 	int mousedragged;
 	NumStack<int> columns;
 	MenuInfo *menu;
-	char menuislocal;
 	int mx,my;
 	int sgw,checkw,subw;
 	int firstinw;

@@ -294,7 +294,7 @@ MenuSelector::MenuSelector(anXWindow *parnt,const char *nname,const char *ntitle
 				anXWindow *prev,unsigned long nowner,const char *atom,
 				unsigned long long nmstyle, //!< Holds the menu style defines
 				MenuInfo *usethismenu, //!< Pass in a MenuInfo class, if not NULL is assumed to not be local
-				char nmenuislocal      //!< Whether the passed in menu is local. Default is 1
+				char absorb_count      //!< Whether the passed in menu's count should be absorbed. Default is 1
 			) //nowner=0,atom=0, ncid=0, nminfo=NULL,nmemislocal=1
 					: ScrolledWindow(parnt,nname,ntitle,nstyle,xx,yy,ww,hh,brder,prev,nowner,atom,NULL)
 {
@@ -322,12 +322,11 @@ MenuSelector::MenuSelector(anXWindow *parnt,const char *nname,const char *ntitle
 		installColors(app->color_panel);
 	}
 
-	menuislocal=nmenuislocal;
 	if (usethismenu) {
 		menu=usethismenu;
+		if (!absorb_count) menu->inc_count();
 	} else {
 		menu=new MenuInfo;
-		menuislocal=1;
 	}
 	
 	columns.push(0);
@@ -336,7 +335,7 @@ MenuSelector::MenuSelector(anXWindow *parnt,const char *nname,const char *ntitle
 //! Destructor, just does if (menu && menuislocal) delete menu.
 MenuSelector::~MenuSelector()
 {
-	if (menu && menuislocal) delete menu;
+	if (menu) menu->dec_count();
 }
 
 //! Return a new'd int array of which items are in the given state, if there are any, else NULL.
@@ -501,11 +500,13 @@ void MenuSelector::arrangeItems(int forwrapping)//forwrapping=0
 			}
 			wholerect.width=inrect.width;
 		}
+
 		IntRectangle selbox=inrect;
 		if (selbox.x<wholerect.x) selbox.x=wholerect.x;
 		if (selbox.y<wholerect.y) selbox.y=wholerect.y;
 		if (selbox.x+selbox.width>wholerect.x+wholerect.width) selbox.width=wholerect.x+wholerect.width-selbox.x;
 		if (selbox.y+selbox.height>wholerect.y+wholerect.height) selbox.height=wholerect.y+wholerect.height-selbox.y;
+		
 		panner->SetWholebox(wholerect.x,wholerect.x+wholerect.width-1,wholerect.y,wholerect.y+wholerect.height-1);
 		panner->SetCurPos(1,selbox.x,selbox.x+selbox.width-1);
 		panner->SetCurPos(2,selbox.y,selbox.y+selbox.height-1);
@@ -598,6 +599,7 @@ int MenuSelector::Event(const EventData *e,const char *mes)
 	} else if (e->type==LAX_onMouseOut && (menustyle&MENUSEL_DESTROY_ON_LEAVE)) {
 		app->destroywindow(this);
 	}
+
 	return anXWindow::Event(e,mes);
 }
 
