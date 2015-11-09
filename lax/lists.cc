@@ -428,6 +428,17 @@ void PtrStack<T>::swap(int i1,int i2)
 	islocal[i2]=tl;
 }
 
+/*! Take item i1 and put it at i2, sliding the ones in between.
+ * Basically a pop and insert.
+ */
+template <class T>
+void PtrStack<T>::slide(int i1,int i2)
+{
+	int local;
+	T *popped=pop(i1, &local);
+	push(popped, local, i2);
+}
+
 //! Flush, then use a as the new array.
 /*! Note that it is assumed that flush sets e and islocal=NULL.
  * e is then set to a. No element copying is done, the actual

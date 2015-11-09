@@ -92,6 +92,7 @@ class PtrStack
 	virtual void flush();
 	virtual int howmany() { return n; }
 	virtual void swap(int i1,int i2);
+	virtual void slide(int i1,int i2);
 	virtual int push(T *nd,char local=-1,int where=-1);
 	virtual int popp(T *topop,int *local=NULL);
 	virtual int pop(T *&popped,int which=-1,int *local=NULL);
