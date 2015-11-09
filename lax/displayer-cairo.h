@@ -33,6 +33,7 @@
 #include <cairo/cairo-xlib.h>
 #include <cairo/cairo-ft.h>
 
+#include <lax/fontmanager-cairo.h>
 #include <lax/displayer.h>
 
 
@@ -65,6 +66,7 @@ class DisplayerCairo : public Displayer
 	double fgRed, fgGreen, fgBlue, fgAlpha;
 	double bgRed, bgGreen, bgBlue, bgAlpha;
 
+	LaxFontCairo *laxfont;
 	cairo_font_face_t *curfont;
 	cairo_scaled_font_t *curscaledfont;
 	cairo_font_extents_t curfont_extents;
@@ -173,6 +175,7 @@ class DisplayerCairo : public Displayer
 	virtual int font(const char *family,const char *style,double pixelsize);
 	virtual int fontsize(double size);
 	virtual double textextent(LaxFont *thisfont, const char *str,int len, double *width,double *height,double *ascent,double *descent,char real);
+	virtual double textout_line(double x,double y,const char *str,int len,unsigned long align);
 	virtual double textout(double x,double y,const char *str,int len=0,unsigned long align=LAX_CENTER);
 	virtual double textout(double *matrix,double x,double y,const char *str,int len=0,unsigned long align=LAX_CENTER);
 	virtual double textout(double angle, double x,double y,const char *str,int len=0,unsigned long align=LAX_CENTER);

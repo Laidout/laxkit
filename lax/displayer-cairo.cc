@@ -130,8 +130,9 @@ void DisplayerCairo::base_init()
 	on=0;
 
 	cr=NULL;
+	laxfont=NULL;
 	curfont=NULL;
-	curscaledfont=NULL;
+	curscaledfont=NULL; // *** not currently used
 	_textheight=0;
 	height_over_M=0; // = (M square height: cairo_set_font_size parameter) / (actual font height) 
 
@@ -158,6 +159,7 @@ DisplayerCairo::~DisplayerCairo()
 	if (mask) cairo_surface_destroy(mask);
 	if (source) cairo_surface_destroy(source);
 
+	if (laxfont) laxfont->dec_count();
 	if (curfont) cairo_font_face_destroy(curfont);
 	if (curscaledfont) cairo_scaled_font_destroy(curscaledfont);
 }
@@ -1047,11 +1049,16 @@ int DisplayerCairo::font(LaxFont *nfont, double size)
 {
 	LaxFontCairo *cairofont=dynamic_cast<LaxFontCairo*>(nfont);
     if (!cairofont) return 1;
+
 	if (size<0) size=nfont->textheight();
 
 	//DBG cerr <<" font(LaxFont), count: "<<cairo_font_face_get_reference_count(cairofont->font) <<endl;
 
 	if (curfont!=cairofont->font) {
+		nfont->inc_count();
+		if (laxfont) laxfont->dec_count();
+		laxfont=cairofont;
+
 		if (curfont) cairo_font_face_destroy(curfont);//really just a melodramatic dec count
 		curfont=cairofont->font;
 		cairo_font_face_reference(curfont);
@@ -1066,7 +1073,7 @@ int DisplayerCairo::font(LaxFont *nfont, double size)
 
 	fontsize(size);
 	//DBG cerr <<" (eo)font(LaxFont), count: "<<cairo_font_face_get_reference_count(cairofont->font) <<endl;
-	return 1;
+	return 0;
 }
 
 /*! Return 0 for success, 1 for fail.
@@ -1075,55 +1082,22 @@ int DisplayerCairo::font(const char *fontconfigpattern)
 {
 	if (!fontconfigpattern) return 1;
 
-	FcPattern *pattern=FcNameParse((FcChar8*)fontconfigpattern);
-	cairo_font_face_t *newfont;
-	newfont=cairo_ft_font_face_create_for_pattern(pattern);
-	FcPatternDestroy(pattern);
-	if (curfont) cairo_font_face_destroy(curfont);//really just a melodramatic dec count
-	curfont=newfont;
+	FontManager *fontmanager=GetDefaultFontManager();
+	LaxFont *nfont=fontmanager->MakeFontFromStr(fontconfigpattern, -1);
+	int ret=font(nfont, nfont->textheight());
+	nfont->dec_count();
 
-	if (curscaledfont) { cairo_scaled_font_destroy(curscaledfont); curscaledfont=NULL; }
-	FcPatternDestroy(pattern);
-
-	if (cr) {
-		cairo_set_font_face(cr,curfont);
-		cairo_font_extents(cr, &curfont_extents);
-	}
-	return 0;
+	return ret;
 }
 
 int DisplayerCairo::font(const char *family,const char *style,double pixelsize)
 {
-	FcValue v;
-	FcPattern *pattern=FcPatternCreate();
-	v.type=FcTypeString; v.u.s=(FcChar8*)family;
-	FcPatternAdd(pattern,FC_FAMILY,v,FcTrue);
+	FontManager *fontmanager=GetDefaultFontManager();
+	LaxFont *nfont=fontmanager->MakeFont(family, style, pixelsize, -1);
+	int ret=font(nfont, pixelsize);
+	nfont->dec_count();
 
-	if (style) {
-		v.type=FcTypeString; v.u.s=(FcChar8*)style;
-		FcPatternAdd(pattern,FC_STYLE,v,FcTrue);
-	}
-	v.type=FcTypeDouble; v.u.d=pixelsize;
-	FcPatternAdd(pattern,FC_SIZE,v,FcTrue);
-
-	cairo_font_face_t *newfont;
-	newfont=cairo_ft_font_face_create_for_pattern(pattern);
-	if (curfont) cairo_font_face_destroy(curfont);
-	curfont=newfont;
-
-	 //curscaledfont is used for extent finding... *** need to investigate if necessary!! extents are screen extents?
-	if (curscaledfont) { cairo_scaled_font_destroy(curscaledfont); curscaledfont=NULL; }
-	//cairo_matrix_t matrix;
-	//cairo_matrix_init_scale(&matrix, pixelsize, pixelsize);
-	//cairo_font_options_t *options=cairo_font_options_create();
-	//curscaledfont=cairo_scaled_font_create(curfont, &matrix, ****ctm, options);
-	//cairo_font_options_destroy(options);
-
-	FcPatternDestroy(pattern);
-
-	fontsize(pixelsize);
-
-	return 0;
+	return ret;
 }
 
 int DisplayerCairo::fontsize(double size)
@@ -1280,8 +1254,10 @@ double DisplayerCairo::textextent(LaxFont *thisfont, const char *str,int len, do
 void DisplayerCairo::initFont()
 {
 	if (curfont) return;
-	LaxFont *def=anXApp::app->defaultlaxfont;
-	font("sans","normal",def->textheight());
+
+	//LaxFont *def=anXApp::app->defaultlaxfont;
+	//font("sans","normal",def->textheight());
+	font(anXApp::app->defaultlaxfont, anXApp::app->defaultlaxfont->textheight());
 
 //	if (!cr) {
 //		if (!surface) CreateSurface(50,50,0);
@@ -1309,7 +1285,7 @@ int DisplayerCairo::reallocBuffer(int len)
 //! Draw a single line of text at x,y.
 /*! str is utf8.
  */
-double DisplayerCairo::textout(double x,double y,const char *str,int len,unsigned long align)
+double DisplayerCairo::textout_line(double x,double y,const char *str,int len,unsigned long align)
 {
 	if (!str) return 0;
 	if (len<0) len=strlen(str);
@@ -1329,24 +1305,94 @@ double DisplayerCairo::textout(double x,double y,const char *str,int len,unsigne
 	else ox=x-extents.width/2; //center
 
     if (align&LAX_TOP) oy=y+curfont_extents.ascent;
-    else if (align&LAX_BOTTOM) oy=y-curfont_extents.descent;
+    else if (align&LAX_BOTTOM) oy=y-(curfont_extents.height-curfont_extents.ascent);
     else if (align&LAX_BASELINE) oy=y;
-    else oy=y - (curfont_extents.ascent + curfont_extents.descent)/2 + curfont_extents.ascent; //center
+    else oy=y - (curfont_extents.height)/2 + curfont_extents.ascent; //center
 
 
 	cairo_move_to(cr, ox,oy);
 	if (len==0) return 0;
 
-	cairo_show_text(cr, buffer);
+	if (laxfont->Layers()==1) cairo_show_text(cr, buffer);
+	else {
+		 //layered color font...
+		LaxFontCairo *f = laxfont;
+		int l=0;
+		cairo_save(cr);
+		Palette *fpalette=dynamic_cast<Palette*>(f->GetColor());
+		if (!fpalette) fpalette=palette;
+
+		while (f) {
+			// *** set color!!! palette must be rgba currently
+			if (fpalette) {
+				if (l<fpalette->colors.n) {
+					cairo_set_source_rgba(cr,
+							fpalette->colors.e[l]->channels[0]/(double)fpalette->colors.e[l]->maxcolor,
+							fpalette->colors.e[l]->channels[1]/(double)fpalette->colors.e[l]->maxcolor,
+							fpalette->colors.e[l]->channels[2]/(double)fpalette->colors.e[l]->maxcolor,
+							fpalette->colors.e[l]->channels[3]/(double)fpalette->colors.e[l]->maxcolor);
+				}
+			}
+			cairo_move_to(cr, ox,oy);
+			cairo_set_font_face(cr,f->font);
+			cairo_show_text(cr, buffer);
+			f=dynamic_cast<LaxFontCairo*>(f->NextLayer());
+			l++;
+		}
+		cairo_restore(cr);
+	}
 	cairo_fill(cr);
 
-	//DBG drawline(ox,oy-_ascent, ox+50,oy-_ascent);
+	//DBG drawline(ox,oy-curfont_extents.ascent, ox+50,oy-curfont_extents.ascent);
 	//DBG drawline(ox,oy, ox+50,oy);
-	//DBG drawline(ox,oy+_descent, ox+50,oy+_descent);
+	//DBG drawline(ox,oy+curfont_extents.descent, ox+50,oy+curfont_extents.descent);
 	//DBG drawpoint(x,y, 5,0);
 
 
 	return extents.x_advance;
+}
+
+//! Draw possibly multiple lines of text at x,y according to align.
+/*! str is utf8.
+ */
+double DisplayerCairo::textout(double x,double y,const char *str,int len,unsigned long align)
+{
+	if (!cr || !str) return 0;
+
+    int n=0;
+    const char *nl=str;
+    do {
+        nl=strchr(nl,'\n');
+        if (nl) nl++;
+        n++;
+    } while (nl);
+
+    if (n==1) {
+		return textout_line(x,y, str,len, align);
+	}
+
+    const char *text=str;
+    int ret=0;
+    int h=n*textheight();
+	flatpoint p;
+
+    int valign= align&(LAX_TOP|LAX_BOTTOM|LAX_VCENTER|LAX_BASELINE);
+    align=align&(LAX_LEFT|LAX_HCENTER|LAX_RIGHT);
+    if (valign==LAX_VCENTER) y-=h/2;
+    else if (valign==LAX_BOTTOM) y-=h;
+
+    do {
+        nl=strchr(text,'\n');
+        if (!nl) nl=text+strlen(text);
+
+        ret=textout_line(x,y, text,nl-text, align|LAX_TOP);
+        if (*nl) {
+            y+=textheight();
+            text=nl+1;
+            if (!*text) nl=text;
+        }
+    } while (*nl);
+    return ret;
 }
 
 double DisplayerCairo::textout(double *matrix,double x,double y,const char *str,int len,unsigned long align)
@@ -1356,7 +1402,7 @@ double DisplayerCairo::textout(double *matrix,double x,double y,const char *str,
 	cairo_matrix_t m;
 	cairo_matrix_init(&m,matrix[0],matrix[1],matrix[2],matrix[3],matrix[4],matrix[5]);
 	cairo_set_font_matrix(cr,&m);
-	double d=textout(x,y,str,len,align);
+	double d=textout(x,y, str,len, align);
 
 	cairo_restore(cr);
 	return d;
@@ -1662,7 +1708,7 @@ void DisplayerCairo::NewTransform(const double *d)
 
 	syncPanner();
 
-	DBG dump_transforms(cr, ctm);
+	//DBG dump_transforms(cr, ctm);
 }
 
 //! Make the transform correspond to the values.
