@@ -51,6 +51,8 @@ class LaxFontXlib : public LaxFont
 	LaxFontXlib(Display *dpy,const char *xlfd,int nid);
 	virtual ~LaxFontXlib();
 
+	virtual int SetFromFile(const char *nfile, const char *nfamily, const char *nstyle, double size);
+
 	virtual int SetupMetrics();
 	virtual double charwidth(unsigned long chr,int real,double *width=NULL,double *height=NULL);
 	virtual double contextcharwidth(char *start,char *pos,int real,double *width=NULL,double *height=NULL);
@@ -74,7 +76,7 @@ class FontManagerXlib : public FontManager, protected RefPtrStack<LaxFont>
 
 	virtual LaxFont *Add(XftFont *xftfont,int nid);
 
-	virtual LaxFont *MakeFontFromFile(const char *file, double size, int nid);
+	virtual LaxFont *MakeFontFromFile(const char *file, const char *nfamily, const char *nstyle, double size, int nid);
 	virtual LaxFont *MakeFontFromStr(const char *fcstr, int nid);
 	virtual LaxFont *MakeFont(const char *family, const char *style, double size, int nid);
 	virtual LaxFont *Add(LaxFont *font,int nid);

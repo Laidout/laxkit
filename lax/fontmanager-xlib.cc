@@ -109,6 +109,12 @@ LaxFontXlib::~LaxFontXlib()
 	delete[] realcharwidths;
 }
 
+int LaxFontXlib::SetFromFile(const char *nfile, const char *nfamily, const char *nstyle, double size)
+{
+	cerr << " *** must implement LaxFontXlib::SetFromFile()!!"<<endl;
+	return 1;
+}
+
 void LaxFontXlib::ResetFamily(const char *nfamily)
 {
 	makestr(family, nfamily);
@@ -320,7 +326,7 @@ LaxFont *FontManagerXlib::CheckOut(int id)
 /*! This file and size are passed along to fontconfig.
  * If fontconfig cannot do anything with it, NULL is returned.
  */
-LaxFont *FontManagerXlib::MakeFontFromFile(const char *file, double size, int nid)
+LaxFont *FontManagerXlib::MakeFontFromFile(const char *file, const char *nfamily, const char *nstyle, double size, int nid)
 {
 	int screen=0;
 	if (size<=0) size=anXApp::app->defaultlaxfont->textheight();
