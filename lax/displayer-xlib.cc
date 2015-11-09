@@ -542,6 +542,7 @@ double DisplayerXlib::textout(double x,double y,const char *str,int len,unsigned
         if (nl) nl++;
         n++;
     } while (nl);
+
     if (n==1) {
 		flatpoint p;
 		if (real_coordinates) {
