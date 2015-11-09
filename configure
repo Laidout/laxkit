@@ -16,7 +16,8 @@ USEIMLIB="yes"
 USECAIRO="yes"
 USEXINPUT2="yes"
 USEGL="yes"
-LAXKITBACKEND="xlib"
+USESQLITE="yes"
+LAXKITBACKEND="cairo"
 ONAMAC="no"
 PLATFORM="linux"
 FORCE="no"
@@ -52,7 +53,8 @@ while true ; do
         echo " --disable-imlib              Do not build Imlib2 components. Default is to built them."
         echo " --disable-cairo              Do not build cairo components. Default is to built them."
         echo " --disable-xinput2            Use this option if you do not have at least Xorg 7.5 for MPX."
-		echo " --backend=xlib               Use xlib or cairo"
+        echo " --disable-sqlite             Optional. Used to get font tags in Fontmatrix database (if it exists)"
+		echo " --backend=cairo              Use xlib or cairo. cairo is more capable."
 		echo " --platform=linux             Only linux is implemented. Someday mac or windows."
 #       echo " --onamac                     Include this if you are compiling on a Mac."
 		echo " --force                      Try to compile even when libraries are not detected by ./configure"
@@ -83,6 +85,10 @@ while true ; do
 
 	--disable-xinput2)
 		unset USEXINPUT2
+		shift;;
+
+	--disable-sqlite)
+		unset USESQLITE
 		shift;;
 
     -p | --prefix)  
@@ -168,7 +174,8 @@ LAXDIR="$PREFIX/include/lax"
  ## The stuff in NEED can be checked with pkg-config. Not all libraries
  ## can be checked this way! (notably cups, apparently)
 #NEED='x11 cupsys freetype2 imlib2 xext'
-NEED='x11  freetype2 imlib2'
+NEED='x11  freetype2'
+if [ x$USEIMLIB != x ] ; then NEED="$NEED imlib2"; fi
 if [ x$USECAIRO != x ] ; then NEED="$NEED cairo"; fi
 NUM='1'
 
@@ -183,6 +190,17 @@ for NAME in $NEED; do
 done
 #echo NUM=$NUM
 
+OPTIONAL='sqlite3'
+for NAME in $OPTIONAL; do
+    echo -n Checking for $NAME......;
+    if [ "`pkg-config --exists --print-errors --errors-to-stdout $NAME`"xxx != "xxx" ] ; then 
+		if [ $NAME == 'sqlite3' ] ; then
+	        echo "Didn't find $NAME. Install that to get access to Fontmatrix tags."; 
+		fi
+    else 
+        echo "ok"; 
+    fi
+done
 
  ## cups doesn't seem to have a pkg-config entry, so do this hackier check
 echo -n Checking for cups......;
@@ -240,6 +258,7 @@ if [ x$USEXLIB    != x ] ; then echo "#define LAX_USES_XLIB" >> lax/configured.h
 if [ x$USEXINPUT2 != x ] ; then echo "#define LAX_USES_XINPUT2" >> lax/configured.h; fi
 if [ x$USEIMLIB   != x ] ; then echo "#define LAX_USES_IMLIB" >> lax/configured.h; fi
 if [ x$USECAIRO   != x ] ; then echo "#define LAX_USES_CAIRO" >> lax/configured.h; fi
+if [ x$USESQLITE  != x ] ; then echo "#define LAX_USES_SQLITE" >> lax/configured.h; fi
 echo "" >> lax/configured.h
 echo "#endif" >> lax/configured.h
 echo "" >> lax/configured.h
@@ -271,21 +290,26 @@ echo \
 " >> config.log
 if [ x$USEXINPUT2 != x ] ; 
 then echo "     Use XInput2:  yes" >> config.log; 
-else echo "     Use XInput2:  no" >> config.log; 
+else echo "     Use XInput2:  no"  >> config.log; 
 fi
 if [ x$USEIMLIB != x ] ; 
 then echo "      Use Imlib2:  yes" >> config.log; 
-else echo "      Use Imlib2:  no" >> config.log; 
+else echo "      Use Imlib2:  no"  >> config.log; 
 fi
 if [ x$USECAIRO != x ] ; 
 then echo "       Use Cairo:  yes" >> config.log; 
-else echo "       Use Cairo:  no" >> config.log; 
+else echo "       Use Cairo:  no"  >> config.log; 
 fi
 if [ x$USEGL != x ] ; 
 then echo "          Use GL:  yes" >> config.log; 
-else echo "          Use GL:  no" >> config.log; 
+else echo "          Use GL:  no"  >> config.log; 
+fi
+if [ x$USESQLITE != x ] ; 
+then echo "      Use Sqlite:  yes" >> config.log; 
+else echo "      Use Sqlite:  no"  >> config.log; 
 fi
 echo " Default backend:  $LAXKITBACKEND" >> config.log
+#echo "        Platform:  $PLATFORM" >> config.log
 
 
 
@@ -311,6 +335,10 @@ fi
 if [ x$USEGL != x ] ; 
 then echo "          Use GL:  yes"; 
 else echo "          Use GL:  no"; 
+fi
+if [ x$USESQLITE != x ] ; 
+then echo "      Use Sqlite:  yes"; 
+else echo "      Use Sqlite:  no" ; 
 fi
 echo " Default backend:  $LAXKITBACKEND"
 echo
