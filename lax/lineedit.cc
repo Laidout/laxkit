@@ -112,6 +112,7 @@ LineEdit::LineEdit(anXWindow *parnt,const char *nname,const char *ntitle,unsigne
 { 			// ntstyle=0, newtext=NULL, cntlchar=0; newtext copied
 	qualifier=NULL;
 	blanktext=NULL;
+	lasthover=0;
 	
 	installColors(app->color_edits);
 
@@ -223,12 +224,39 @@ void LineEdit::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *loadc
 	}
 }
 
+void LineEdit::Refresh()
+{
+	if (!needtodraw) return;
+	TextXEditBaseUtf8::Refresh();
+
+	if ((win_style&LINEEDIT_CLEAR_X)) {
+		Displayer *dp=GetDisplayer();
+		dp->LineWidth(2);
+		if (lasthover==0) {
+			dp->NewFG(coloravg(win_colors->fg,win_colors->bg));
+		} else {
+			dp->NewFG(1.0,0.,0.);
+		}
+		dp->drawline(win_w-padx-.75*textheight,win_h/2-textheight/4, 
+					 win_w-padx-.25*textheight,win_h/2+textheight/4);
+		dp->drawline(win_w-padx-.75*textheight,win_h/2+textheight/4, 
+					 win_w-padx-.25*textheight,win_h/2-textheight/4);
+		dp->LineWidth(1);
+	}
+
+}
 
 int LineEdit::Event(const EventData *e,const char *mes)
 {
 	if (e->type==LAX_onMapped && win_style&LINEEDIT_GRAB_ON_MAP) {
 		app->setfocus(this,0,NULL);
 		//do not return here
+
+	} else if (e->type==LAX_onMouseOut && lasthover!=0) {
+		lasthover=0;
+		needtodraw=1;
+		//do not return here
+
 	}
 
 	return anXWindow::Event(e,mes);
@@ -341,6 +369,7 @@ int LineEdit::FocusOff(const FocusChangeData *e)
 {
 	int c=TextXEditBaseUtf8::FocusOff(e);
 	if (!win_active && (win_style&LINEEDIT_SEND_FOCUS_OFF)) send(3);
+	if (lasthover!=0) { lasthover=0; needtodraw=1; }
 	return c;
 }
 
@@ -816,6 +845,13 @@ int LineEdit::LBDown(int x,int y, unsigned int state,int count,const LaxMouse *d
 { 
 	buttondown.down(d->id, LEFTBUTTON, x,y);
 
+	if (x>win_w-textheight-padx && (win_style&LINEEDIT_CLEAR_X)) {
+		SetText("");
+		buttondown.up(d->id, LEFTBUTTON);
+		send(0);
+		return 0;
+	}
+
 	//DBG cerr <<"lineedit before lbdown curpos:"<<curpos<<"  textlen:"<<textlen<<endl;
 	count=(count-1)%3+1;
 	if (count>2) { // select all
@@ -826,6 +862,7 @@ int LineEdit::LBDown(int x,int y, unsigned int state,int count,const LaxMouse *d
 		needtodraw|=3;
 		return 0;
 	}
+
 	if (count>1) return LBDblClick(x,y,state,d);
 	 // desel, addtosel, dragdrop, repos
 	long newpos=findpos(x+curlineoffset);
@@ -1048,6 +1085,15 @@ int LineEdit::MouseMove(int x,int y,unsigned int state,const LaxMouse *d)
 {
 	//DBG long newpos=findpos(x+curlineoffset);
 	//DBG cerr <<"x:"<<x<<"  clo:"<<curlineoffset<<"  newpos:"<<newpos<<endl;
+
+	if (!buttondown.any()) {
+		int oldhover=lasthover;
+		if (x>win_w-textheight-padx && (win_style&LINEEDIT_CLEAR_X)) {
+			lasthover=1;
+		} else lasthover=0;
+		if (lasthover!=oldhover) needtodraw=1;
+		return 0;
+	}
 
 	if (buttondown.isdown(d->id,LEFTBUTTON)) {
 		long newpos=findpos(x+curlineoffset);

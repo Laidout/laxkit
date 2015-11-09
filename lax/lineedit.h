@@ -50,6 +50,7 @@ enum LineEditStyleFlags {
 	LINEEDIT_SEND_FOCUS_OFF   =(1<<26),
 	LINEEDIT_DESTROY_ON_ENTER =(1<<27),
 	LINEEDIT_GRAB_ON_MAP      =(1<<28),
+	LINEEDIT_CLEAR_X          =(1<<29),
 	LINEEDIT_MAX
 };
 
@@ -57,6 +58,8 @@ class LineEdit : public TextXEditBaseUtf8
 {
   protected:
 	ButtonDownInfo buttondown;
+	int lasthover;
+
 	virtual int send(int i);
 	virtual void settextrect();
 
@@ -86,6 +89,7 @@ class LineEdit : public TextXEditBaseUtf8
 	virtual int Idle(int tid=0); // for autoscroll
 	virtual int MouseMove(int x,int y,unsigned int state,const LaxMouse *d);
 	virtual int Resize(int nw,int nh);
+	virtual void Refresh();
 	
 	virtual int LBDblClick(int x,int y, int cntl,const LaxMouse *d);
 
