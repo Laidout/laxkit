@@ -36,6 +36,9 @@ vfill: lax laxinterface vfill.o
 cairotest: lax laxinterface cairotest.o
 	$(LD) $(LDFLAGS) $@.o  -llaxinterfaces -llaxkit -o $@
 
+testevents: lax laxinterface testevents.o
+	$(LD) $(LDFLAGS) $@.o  -llaxinterfaces -llaxkit -o $@
+
 themes: lax laxinterface themes.o
 	$(LD) $(LDFLAGS) $@.o  -llaxinterfaces -llaxkit -o $@
 
