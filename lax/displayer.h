@@ -32,6 +32,9 @@
 #include <lax/screencolor.h>
 #include <lax/drawingdefs.h>
 
+// *** temporary! maybe!
+#include <lax/palette.h>
+
 #define DISPLAYER_NO_SHEAR (1<<0)
 
 namespace Laxkit {
@@ -63,6 +66,8 @@ class Displayer : public PanUser, virtual public anObject
 	char decimal;
 	int num_bez_div;
 	bool default_righthanded;
+
+	Palette *palette;
 
  public:
 	unsigned long displayer_style;
@@ -182,6 +187,7 @@ class Displayer : public PanUser, virtual public anObject
 	virtual void drawnum(double x, double y, int num); //write out the text of a number at the given coordinates.
 
 	//draw text
+	virtual int SetPalette(Palette *npalette);
 	virtual int font(LaxFont *nfont, double size=-1) = 0;
 	virtual int font(const char *fontconfigpattern) = 0;
 	virtual int font(const char *family,const char *style,double size) = 0;

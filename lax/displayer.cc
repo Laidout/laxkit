@@ -167,6 +167,8 @@ Displayer::Displayer(aDrawable *d)
 	decimal=0;
 	default_righthanded=false;
 
+	palette=NULL;
+
 	on=0;
 }
 
@@ -197,6 +199,8 @@ Displayer::Displayer(anXWindow *nxw,PanController *pan)
 	decimal=0;
 	default_righthanded=false;
 
+	palette=NULL;
+
 	on=0;
 
 	//transform_identity(ctm);
@@ -205,7 +209,9 @@ Displayer::Displayer(anXWindow *nxw,PanController *pan)
 
 //! Destructor.
 Displayer::~Displayer()
-{}
+{
+	if (palette) palette->dec_count();
+}
 
 /*! \fn void Displayer::show()
  * \brief  Flush waiting composite operation.
@@ -457,12 +463,26 @@ flatpoint Displayer::screentoreal(flatpoint p)
  * \brief Change the current font's size.
  */
 
+/*! If defined, this should be used as the palette for multicolor fonts, overriding current FG.
+ */
+int Displayer::SetPalette(Palette *npalette)
+{
+	if (palette != npalette) {
+		if (npalette) npalette->inc_count();
+		palette->dec_count();
+		palette=npalette;
+	}
+	return 0;
+}
+
 /*! \fn double Displayer::textout(double x,double y,const char *str,int len,unsigned long align)
- * \brief Draw text at screen x,y. Return distance advanced.
+ * Draw possibly multiple lines of text at screen x,y. Each line separated by a '\\n'.
+ * Returns distance advanced.
  */
 
 /*! \fn double Displayer::textout(double *matrix,double x,double y,const char *str,int len,unsigned long align)
- * \brief Draw transformed text starting at x,y.
+ * Draw transformed text starting at x,y. Usually this is done by setting the transform then calling
+ * Displayer::textout(double x,double y,const char *str,int len,unsigned long align).
  */
 
 
