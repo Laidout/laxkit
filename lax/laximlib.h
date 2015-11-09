@@ -23,12 +23,10 @@
 #ifndef LAX_IMLIB_H
 #define LAX_IMLIB_H
 
-//#include <Imlib2.h>
-//#include <lax/laximages-imlib.h>
 
 namespace Laxkit {
 
-void InitLaxImlib(int megabytes=100, bool with_backend=true);
+void InitLaxImlib(int megabytes, bool with_backend);
 void InitImlib2Backend();
 
 

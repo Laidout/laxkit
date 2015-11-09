@@ -49,16 +49,16 @@ namespace Laxkit {
  * like load_image, image_out, etc, will be based on Cairo calls.
  *
  *
- * Also sets the default image functions (load_image(), for instance)
+ * If with_backend, also sets the default image functions (load_image(), for instance)
  * to cairo based functions that expect LaxCairoImage objects.
  *
  */
-void InitLaxCairo()
+void InitLaxCairo(bool with_backend)
 {
 	 //initialize settings within Cairo
 
 	 //set various base functions
-	InitCairoBackend();
+	if (with_backend) InitCairoBackend();
 }
 
 /*! This will set up the default graphics backend to Imlib. This means all the functions
@@ -92,7 +92,10 @@ void InitCairoBackend()
 
 
 
-#else  //----------------no LAX_USES_CAIRO:
+#else
+//------------------------------------------------
+//----------------  no LAX_USES_CAIRO  -----------
+//------------------------------------------------
 
 
 #include <lax/anxapp.h>

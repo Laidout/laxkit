@@ -26,7 +26,7 @@
 
 namespace Laxkit {
 
-void InitLaxCairo();
+void InitLaxCairo(bool with_backend);
 void InitCairoBackend();
 
 

@@ -21,7 +21,6 @@
 //    Copyright (C) 2009-2010 by Tom Lechner
 //
 
-#include <X11/Xlib.h>
 
 #include <lax/configured.h>
 #include <lax/laximlib.h>
@@ -30,33 +29,15 @@
 using namespace std;
 #define DBG
 	
-#ifndef LAX_USES_IMLIB
-
-//--------------------------- InitLaxImlib() when no Laxkit--------------------------------------
-
-namespace Laxkit {
-
-//! Imlib2 support not compiled in, this just prints a warning and returns.
-/*! \ingroup misc
- */
-void InitLaxImlib(int megabytes, bool with_backend) 
-{
-	printf(" ** Warning! InitLaxImlib() was called, but "
-			" Imlib2 support was not compiled into the Laxkit.\n");
-}
-
-void InitImlib2Backend() 
-{
-	printf(" ** Warning! InitImlib2Backend() was called, but "
-			" Imlib2 support was not compiled into the Laxkit.\n");
-}
-
-} // namespace Laxkit
 
 
 
+#ifdef LAX_USES_IMLIB
 
-#else  //LAX_USES_IMLIB is defined...
+//-----------------------------------------------------------------------------------------------
+//--------------------------- InitLaxImlib() when YES Imlib --------------------------------------
+//-----------------------------------------------------------------------------------------------
+
 
 #include <Imlib2.h>
 
@@ -64,8 +45,10 @@ void InitImlib2Backend()
 #include <lax/laximlib.h>
 #include <lax/laximages-imlib.h>
 
+
 namespace Laxkit {
-	
+
+
 //--------------------------- InitLaxImlib() --------------------------------------
 //! Initialize Imlib2 using settings in anXApp::app.
 /*! \ingroup misc
@@ -90,6 +73,10 @@ void InitLaxImlib(int megabytes, bool with_backend)
 	imlib_context_set_visual(anXApp::app->vis);
 	imlib_context_set_colormap(DefaultColormap(anXApp::app->dpy, DefaultScreen(anXApp::app->dpy)));
 	imlib_set_cache_size(megabytes * 1024 * 1024); // in bytes
+
+	 //install imlib loader
+	ImlibLoader *loader=new ImlibLoader();
+	ImageLoader::AddLoader(loader,-1);
 
 	 //set various base functions
 	if (with_backend) InitImlib2Backend();
@@ -120,6 +107,35 @@ void InitImlib2Backend()
 
 
 } //namespace Laxkit
+
+
+
+
+#else
+//-----------------------------------------------------------------------------------------------
+//--------------------------- InitLaxImlib() when NO Imlib --------------------------------------
+//-----------------------------------------------------------------------------------------------
+
+namespace Laxkit {
+
+//! Imlib2 support not compiled in, this just prints a warning and returns.
+/*! \ingroup misc
+ */
+void InitLaxImlib(int megabytes, bool with_backend) 
+{
+	printf(" ** Warning! InitLaxImlib() was called, but "
+			" Imlib2 support was not compiled into the Laxkit.\n");
+}
+
+void InitImlib2Backend() 
+{
+	printf(" ** Warning! InitImlib2Backend() was called, but "
+			" Imlib2 support was not compiled into the Laxkit.\n");
+}
+
+} // namespace Laxkit
+
+
 
 #endif //ifdef LAX_USES_IMLIB
 
