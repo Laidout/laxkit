@@ -40,7 +40,7 @@ namespace Laxkit {
 
 //----------------------------------------------------------------------------
 /*! \class TextXEditBaseUtf8
- * \brief The window base class for text edits using Latin-1 characters.
+ * \brief The window base class for text edits.
  *
  * This class provides basic text drawing utilities for subclasses to use. Mainly this means
  * providing textrect to say what portion of the actual window is to be used for drawing text in,
@@ -52,7 +52,6 @@ namespace Laxkit {
  * a default DrawCaret done here, docaret done here, subclasses must upkeep oldx,oldy and cx,cy.
  * Cursor events must be handled in subclasses.
  *   
- * \todo *** a utf8 must have different simple get extent for compound characters???
  * \todo how best to standardize text controls? 
  * \todo *** snafus with really long lines
  * \todo *** makeinwindow if it can fit, it should fit
