@@ -51,11 +51,47 @@ NumSlider::NumSlider(anXWindow *parnt,const char *nname,const char *ntitle,unsig
 {
 	mode=0;
 	nitems=0;
+
 	min=nmin;
 	max=nmax;
-	curitem=cur;
-	if (curitem<min) curitem=min;
-	else if (curitem>max) curitem=max;
+	step=1;
+
+	curnum=cur;
+	if (!(win_style&NO_MINIMUM) && curnum<min) curnum=min;
+	else if (!(win_style&NO_MAXIMUM) && curnum>max) curnum=max;
+
+	curitem=curnum;
+
+	lastitem=-1;
+	movewidth=2;
+	label=NULL;
+	labelbase=NULL;
+	makestr(label,nlabel);
+
+	installColors(app->color_panel);
+
+	if (win_w==0 || win_h==0) wraptoextent();
+}
+
+NumSlider::NumSlider(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
+		int xx,int yy,int ww,int hh,int brder,
+		anXWindow *prev,unsigned long nowner,const char *nsendthis,const char *nlabel,double nmin,double nmax,double cur, double nstep)
+	: ItemSlider(parnt,nname,ntitle,nstyle,xx,yy,ww,hh,brder,prev,nowner,nsendthis)
+{
+	mode=0;
+	nitems=0;
+
+	win_style|=DOUBLES;
+	min=nmin;
+	max=nmax;
+	step=nstep; 
+
+	curnum=cur;
+	if (!(win_style&NO_MINIMUM) && curnum<min) curnum=min;
+	else if (!(win_style&NO_MAXIMUM) && curnum>max) curnum=max;
+
+	curitem=curnum;
+
 	lastitem=-1;
 	movewidth=2;
 	label=NULL;
@@ -74,7 +110,9 @@ NumSlider::~NumSlider()
 }
 
 /*! Use a printf style format string to create label from integer curitem and nlabelbase.
- * nlabelbase MUST have a signed integer format in it (such as "%d").
+ * nlabelbase MUST have a signed integer format in it (such as "%d"), unless
+ * you are using DOUBLES style, in which case, it MUST have a double capable formatter,
+ * such as "%f" or "%g".
  *
  * nlabelbase==NULL means use label as normal, and delete the labelbase.
  */
@@ -95,12 +133,14 @@ const char *NumSlider::Label(const char *nlabel)
 //! Find the maximum extent of the items, and set win_w,win_h to them if they are 0.
 void NumSlider::wraptoextent()
 {
-	char num[20+(label?strlen(label):0)];
+	char num[30+(label?strlen(label):0)];
 	double x,y,x2,y2;
-	if (label) sprintf(num,"%s%d",label,max); else sprintf(num,"%d",max);
+
+	if (label) sprintf(num,"%s%d ",label,(int)max); else sprintf(num,"%d ",(int)max);
 	getextent(num,-1,&x,&y);
-	if (label) sprintf(num,"%s%d",label,min); else sprintf(num,"%d",min);
+	if (label) sprintf(num,"%s%d ",label,(int)min); else sprintf(num,"%d ",(int)min);
 	getextent(num,-1,&x2,&y2);
+
 	if (x2>x) x=x2;
 	if (y2>y) y=y2;
 	if (win_w==0) win_w=x;
@@ -126,36 +166,49 @@ void NumSlider::Refresh()
 	if (win_style&EDITABLE) ww=text_height();
 
 	 // draw left arrow
-	foreground_color(coloravg(win_colors->bg,win_colors->fg,.2));
-	draw_thing(this, hh/2,win_h/2, hh/2,hh/2, hover==LAX_LEFT?1:0, THING_Triangle_Left);
+	dp->NewFG(coloravg(win_colors->bg,win_colors->fg,.2));
+	dp->drawthing(hh/2,win_h/2, hh/2,hh/2, hover==LAX_LEFT?1:0, THING_Triangle_Left);
 
 	 // draw right arrow
-	draw_thing(this, win_w-hh/2,win_h/2, hh/2,hh/2, hover==LAX_RIGHT?1:0, THING_Triangle_Right);
+	dp->drawthing(win_w-hh/2,win_h/2, hh/2,hh/2, hover==LAX_RIGHT?1:0, THING_Triangle_Right);
 
 
 	 //draw number
 	if (hover==LAX_CENTER) {
-		foreground_color(coloravg(win_colors->bg,win_colors->fg,.1));
+		dp->NewFG(coloravg(win_colors->bg,win_colors->fg,.1));
 		hh=text_height()*1.1;
-		fill_rectangle(this, ww,win_h/2-hh/2,win_w-2*ww,hh);
+		dp->drawrectangle(ww,win_h/2-hh/2,win_w-2*ww,hh, 1);
 	}
-	foreground_color(win_colors->fg);
-	char num[21+((labelbase?labelbase:label)?strlen((labelbase?labelbase:label)):0)];
-	if (labelbase) sprintf(num,labelbase,curitem);
-	else if (label) sprintf(num,"%s %d",label,curitem);
-	else sprintf(num,"%d",curitem);
 
-	textout(this, num,-1,win_w/2,win_h/2,LAX_CENTER);
+	dp->NewFG(win_colors->fg);
+	char num[31+((labelbase?labelbase:label)?strlen((labelbase?labelbase:label)):0)];
+	if (labelbase) sprintf(num,labelbase,curnum);
+	else {
+		if (win_style&DOUBLES) {
+			if (label) sprintf(num,"%s %g",label,curnum);
+			else sprintf(num,"%g",curnum);
+		} else {
+			if (label) sprintf(num,"%s %d",label,int(curnum+.5));
+			else sprintf(num,"%d",int(.5+curnum));
+		}
+	}
+
+	dp->textout(win_w/2,win_h/2, num,-1, LAX_CENTER);
 	needtodraw=0;
 }
 
 int NumSlider::SelectPrevious(double multiplier)
 { 
-	curitem-=(int)multiplier;
-	if (curitem<min) {
-		if (win_style&WRAP) curitem=max;
-		else curitem=min;
+	curnum-=multiplier*step;
+	if (!(win_style&DOUBLES)) curnum=int(curnum+.5);
+
+	if (!(win_style&NO_MINIMUM) && curnum<min) {
+		if (win_style&WRAP) curnum=max;
+		else curnum=min;
 	}
+
+	curitem=curnum;
+
 	if (win_style & SENDALL) send();
 	needtodraw=1;
 	return curitem;
@@ -163,11 +216,16 @@ int NumSlider::SelectPrevious(double multiplier)
 
 int NumSlider::SelectNext(double multiplier)
 {
-	curitem+=(int)multiplier;
-	if (curitem>max) {
-		if (win_style&WRAP) curitem=min;
-		else curitem=max;
+	curnum+=multiplier*step;
+	if (!(win_style&DOUBLES)) curnum=int(curnum+.5);
+
+	if (!(win_style&NO_MAXIMUM) && curnum>max) {
+		if (win_style&WRAP) curnum=min;
+		else curnum=max;
 	}
+
+	curitem=curnum;
+
 	if (win_style & SENDALL) send();
 	needtodraw=1;
 	return curitem;
@@ -183,17 +241,35 @@ int NumSlider::Select(int nn)
 	return curitem;
 }
 
+//! Select number nn. Does nothing if out of bounds. Returns current number.
+int NumSlider::Select(double nn)
+{
+	if (!(win_style&NO_MINIMUM) && nn<min) return curitem;
+	else if (!(win_style&NO_MAXIMUM) && nn>max) return curitem;
+	if (curnum==nn) return curitem;
+
+	curnum=nn;
+	curitem=nn;
+
+	needtodraw=1;
+	if (win_style & SENDALL) send();
+	return curitem;
+}
+
 int NumSlider::Mode(int newmode)
 {
 	if (newmode==1 && mode!=1) {
 		 //edit current number
-		char num[20];
-		sprintf(num,"%d",curitem);
+		char num[30];
+		if ((win_style&DOUBLES)) sprintf(num,"%.8g",curnum);
+		else sprintf(num,"%d",(int)curnum);
+
 		LineEdit *le=new LineEdit(this,"inputedit",NULL,
-			 LINEEDIT_DESTROY_ON_ENTER,
+			 LINEEDIT_DESTROY_ON_ENTER|((win_style&DOUBLES) ? LINEEDIT_FLOAT : LINEEDIT_INT),
 			 0,0, win_w-4,win_h-4,2,
 			 NULL,object_id,"lineedit",
 			 num,0);
+
 		le->SetSelection(0,-1);
 		le->padx=5;
 		app->addwindow(le);
@@ -223,11 +299,15 @@ int NumSlider::Event(const EventData *e,const char *mes)
 	const char *blah=s->str;
 	char *tmp;
 
-	int ncuritem=strtol(blah,&tmp,10);
-	if (ncuritem<min) ncuritem=min;
-	else if (ncuritem>max) ncuritem=max;
+	double ncurnum=strtod(blah,&tmp);
+	if (!(win_style&DOUBLES)) ncurnum=int(ncurnum+.5);
+
+	if (!(win_style&NO_MINIMUM) && ncurnum<min) ncurnum=min;
+	else if (!(win_style&NO_MAXIMUM) && ncurnum>max) ncurnum=max;
+
 	if (tmp!=blah) { 
-		curitem=ncuritem; 
+		curnum=ncurnum;
+		curitem=ncurnum; 
 		needtodraw=1; 
 		send();
 	}

@@ -43,19 +43,28 @@ class NumSlider : public ItemSlider
   public:
 	enum NumSliderFlags {
 		WRAP          =(ItemSlider::MAX<<1),
-		NUMSLIDER_MAX =(ItemSlider::MAX<<1)
+		DOUBLES       =(ItemSlider::MAX<<2),
+		NO_MINIMUM    =(ItemSlider::MAX<<3),
+		NO_MAXIMUM    =(ItemSlider::MAX<<4),
+		NUMSLIDER_MAX =(ItemSlider::MAX<<4)
 	};
 
-	int min,max;
+	double curnum;
+	double min,max;
+	double step;
 
 	NumSlider(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
 		int xx,int yy,int ww,int hh,int brder,
 		anXWindow *prev,unsigned long nowner,const char *nsendthis,const char *nlabel,int nmin,int nmax,int cur=-10000);
+	NumSlider(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
+		int xx,int yy,int ww,int hh,int brder,
+		anXWindow *prev,unsigned long nowner,const char *nsendthis,const char *nlabel,double nmin,double nmax,double cur, double nstep);
 	virtual ~NumSlider();
 	//virtual int MouseMove(int x,int y,unsigned int state,const LaxMouse *d);
 	virtual int SelectPrevious(double multiplier);
 	virtual int SelectNext(double multiplier);
 	virtual int Select(int n);
+	virtual int Select(double n);
 	virtual void Refresh();
 	virtual const char *LabelBase(const char *nlabelbase);
 	virtual const char *Label(const char *nlabel);
