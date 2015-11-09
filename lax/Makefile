@@ -81,9 +81,12 @@ objs= \
 	undo.o \
 	fontmanager.o \
 	fontmanager-xlib.o \
+	fontmanager-cairo.o \
 	laximages.o \
 	laximages-imlib.o \
+	laximages-cairo.o \
 	laximlib.o \
+	laxcairo.o \
 	dateutils.o \
 	screencolor.o \
 	laxdevices.o \
@@ -164,9 +167,6 @@ objs= \
 	treeselector.o \
 	shortcutwindow.o \
 	curveinfo.o \
-	fontmanager-cairo.o \
-	laximages-cairo.o \
-	laxcairo.o \
 
 #	tableframe.o \
 #	colorselector.o \
