@@ -227,6 +227,23 @@ int RowFrame::Sync(int add) // add=0, if 1 means addwindow
 	return 0;
 }
 
+SquishyBox *RowFrame::findBox(anXWindow *win)
+{
+	int c;
+	anXWindow *w;
+	WinFrameBox *wf;
+	for (c=0; c<wholelist.n; c++) {
+		w=dynamic_cast<anXWindow *>(wholelist.e[c]);
+		if (w && win==w) return wholelist.e[c];
+		
+		wf=dynamic_cast<WinFrameBox *>(wholelist.e[c]);
+		if (wf && wf->win()) {
+			if (win==wf->win()) return wholelist.e[c];
+		}
+	}
+	return NULL;
+}
+
 //! Return the window in RowColBox::wholelist that has name as its win_name or win_title.
 anXWindow *RowFrame::findWindow(const char *name)
 {
@@ -247,6 +264,21 @@ anXWindow *RowFrame::findWindow(const char *name)
 			if (w->win_title && !strcmp(name,w->win_title)) return w;
 		}
 	}
+	return NULL;
+}
+
+/*! Return the anXWindow associated with index. If none, return NULL.
+ */
+anXWindow *RowFrame::findWindowFromIndex(int index)
+{
+	if (index<0 || index>=wholelist.n) return NULL;
+
+	anXWindow *w=dynamic_cast<anXWindow *>(wholelist.e[index]);
+	if (w) return w;
+	
+	WinFrameBox *wf=dynamic_cast<WinFrameBox *>(wholelist.e[index]);
+	if (wf) return wf->win();
+
 	return NULL;
 }
 

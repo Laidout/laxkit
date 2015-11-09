@@ -83,7 +83,9 @@ class RowFrame : public anXWindow, public RowColBox
 	virtual int MoveResize(int nx,int ny,int nw,int nh);
 	virtual int Resize(int nw,int nh);
 	virtual int findWindowIndex(const char *name);
+	virtual anXWindow *findWindowFromIndex(int index);
 	virtual anXWindow *findWindow(const char *name);
+	virtual SquishyBox *findBox(anXWindow *win);
 	virtual int AddNull(int where=-1);
 	virtual int AddHSpacer(int npw,int nws,int nwg,int nhalign, int where=-1);
 	virtual int AddVSpacer(int npw,int nws,int nwg,int nhalign, int where=-1);
