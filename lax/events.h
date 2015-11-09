@@ -144,7 +144,7 @@ class SimpleMessage : public EventData
 	SimpleMessage(unsigned long t, unsigned long f, unsigned long tp, const char *newmes=NULL);
 	SimpleMessage(const char *nstr, int i1,int i2,int i3,int i4,
 				 const char *message=NULL,unsigned long fromwindow=0, unsigned long towindow=0);
-	virtual ~SimpleMessage() { if (str) delete[] str; if (object) object->dec_count(); }
+	virtual ~SimpleMessage();
 	anObject *TheObject() const;
 };
 
@@ -156,8 +156,10 @@ typedef SimpleMessage RefCountedEventData;
 class StrsEventData : public EventData
 {
  public:
+	anObject *object;
 	char **strs;
-	int n,info,info2,info3;
+	int n; //number of strs
+	int info,info2,info3;
 	StrsEventData();
 	StrsEventData(const char *nstr,const char *message, unsigned long fromwindow, unsigned long towindow);
 	virtual ~StrsEventData();

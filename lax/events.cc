@@ -170,6 +170,12 @@ SimpleMessage::SimpleMessage(anObject *obj)
 	str=NULL;
 }
 
+SimpleMessage::~SimpleMessage()
+{
+	delete[] str;
+	if (object) object->dec_count();
+}
+
 //! Return pointer to the object.
 /*! The returned object needs to have it's count incremented if it is to be used.
  */
@@ -189,6 +195,7 @@ anObject *SimpleMessage::TheObject() const
  */
 StrsEventData::StrsEventData()
 {
+	object=NULL;
 	strs=NULL;
 	n=0;
 	info=info2=info3=0; 
@@ -197,6 +204,7 @@ StrsEventData::StrsEventData()
 StrsEventData::StrsEventData(const char *nstr,const char *message, unsigned long fromwindow, unsigned long towindow)
 		: EventData(message,fromwindow,towindow) 
 {
+	object=NULL;
 	strs=new char*[1];
 	strs[0]=NULL;
 	makestr(strs[0],nstr); 
@@ -206,6 +214,7 @@ StrsEventData::StrsEventData(const char *nstr,const char *message, unsigned long
 StrsEventData::~StrsEventData()
 {
 	if (strs) deletestrs(strs,n);
+	if (object) object->dec_count();
 }
 
 
