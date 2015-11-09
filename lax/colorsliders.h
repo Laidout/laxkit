@@ -88,7 +88,8 @@ enum ColorSlidersStyle {
 	COLORSLIDERS_Allow_Knockout    = (1<<22),
 	COLORSLIDERS_SpecialMask       = ((1<<20)|(1<<21)|(1<<22)), 
 	COLORSLIDERS_Recent            = (1<<24), //unimplemented
-	COLORSLIDERS_FG_and_BG         = (1<<23), //unimplemented
+	COLORSLIDERS_FG_and_BG         = (1<<25), //unimplemented
+	COLORSLIDERS_Done_Button       = (1<<26), //unimplemented
 	COLORSLIDERS_MAX
 };
 
