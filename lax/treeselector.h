@@ -57,23 +57,24 @@ namespace Laxkit {
 #define TREESEL_SELECT_LEAF_ONLY     (1LL<<17)
 #define TREESEL_SELECT_SUB_ONLY      (1LL<<18)
 #define TREESEL_CURSSELECTS          (1LL<<19)
-#define TREESEL_FOLLOW_MOUSE         (1LL<<20)
-#define TREESEL_GRAB_ON_MAP          (1LL<<21)
-#define TREESEL_GRAB_ON_ENTER        (1LL<<22)
+#define TREESEL_CURSSENDS            (1LL<<20)
+#define TREESEL_FOLLOW_MOUSE         (1LL<<21)
+#define TREESEL_GRAB_ON_MAP          (1LL<<22)
+#define TREESEL_GRAB_ON_ENTER        (1LL<<23)
 
-#define TREESEL_REARRANGEABLE        (1LL<<23)
-#define TREESEL_EDIT_IN_PLACE        (1LL<<24)
+#define TREESEL_REARRANGEABLE        (1LL<<24)
+#define TREESEL_EDIT_IN_PLACE        (1LL<<25)
 //*** add items?? (more than just editing names)
 //*** remove items??
 
-#define TREESEL_SEND_ON_UP           (1LL<<25)
-#define TREESEL_SEND_ON_ENTER        (1LL<<26)
-#define TREESEL_SEND_IDS             (1LL<<27)
-#define TREESEL_SEND_STRINGS         (1LL<<28)
+#define TREESEL_SEND_ON_UP           (1LL<<26)
+#define TREESEL_SEND_ON_ENTER        (1LL<<27)
+#define TREESEL_SEND_IDS             (1LL<<28)
+#define TREESEL_SEND_STRINGS         (1LL<<29)
 
-#define TREESEL_GRAPHIC_ON_RIGHT     (1LL<<29)
+#define TREESEL_GRAPHIC_ON_RIGHT     (1LL<<30)
 
-#define TREESEL_SUB_FOLDER           (1LL<<30)
+#define TREESEL_SUB_FOLDER           (1LL<<31)
 
 //... remember that the buck stops with (1<<63)
 
@@ -86,16 +87,18 @@ class TreeSelector : public ScrolledWindow
   private:
 	void base_init();
 
+	int firsttime;
+
   protected:
 
 	ButtonDownInfo buttondown;
-	int mousedragmode;
-	MenuInfo *menu;
+	int mousedragmode; 
 	int offsetx,offsety;
 	int firstinw;
 	int textheight,lineheight,pagesize;
 	int timerid;
 
+	MenuInfo *menu; 
 	MenuItem *curmenuitem;
 	int curitem,ccuritem;
 	PtrStack<MenuItem> selection;
@@ -176,6 +179,8 @@ class TreeSelector : public ScrolledWindow
 	virtual int CharInput(unsigned int ch,const char *buffer,int len,unsigned int state,const LaxKeyboard *d);
 	virtual int LBDown(int x,int y,unsigned int state,int count,const LaxMouse *d);
 	virtual int LBUp(int x,int y,unsigned int state,const LaxMouse *d);
+	virtual int MBDown(int x,int y,unsigned int state,int count,const LaxMouse *d);
+	virtual int MBUp(int x,int y,unsigned int state,const LaxMouse *d);
 	virtual int RBDown(int x,int y,unsigned int state,int count,const LaxMouse *d);
 	virtual int RBUp(int x,int y,unsigned int state,const LaxMouse *d);
 	virtual int WheelUp(int x,int y,unsigned int state,int count,const LaxMouse *d);
@@ -202,8 +207,11 @@ class TreeSelector : public ScrolledWindow
 	virtual int Expand(int which);
 	virtual int Collapse(int which);
 	virtual int Select(int which);
+	virtual int SelectId(int which);
 	virtual int Deselect(int which);
 	virtual int RebuildCache();
+	virtual int ClearSearch();
+	virtual int UpdateSearch(const char *searchterm, bool isprogressive);
 	
 	virtual MenuItem *GetSelected(int i);
 	virtual int NumSelected();
