@@ -966,24 +966,40 @@ int anXApp::initX(int argc,char **argv)
 		exit(1);
 	}
 
+	 //----------------- set up backends
 	DBG cerr <<"Attempting backend: "<<(backend?backend:"(none specified)")<<endl;
 
+	 //first just initialize things, but don't install render functions
+#ifdef LAX_USES_IMLIB
+	InitLaxImlib(1000, false); //number is imlib cache mem size limit in megabytes. this should be configurable!!!
+#endif
+
+#ifdef LAX_USES_CAIRO
+	InitLaxCairo(false);
+#endif
+
+
+	 //now install render functions according to backend
 	if (!strcmp(backend,"xlib")) {
 #ifdef LAX_USES_IMLIB
-		//InitImlib2Backend();
-		InitLaxImlib(900);
+		InitImlib2Backend(); //number is imlib cache mem size limit in megabytes. this should be configurable!!!
 		if (!fontmanager) fontmanager=GetDefaultFontManager();
 #endif
 
 	} else if (!strcmp(backend,"cairo")) {
 #ifdef LAX_USES_CAIRO
-		InitLaxCairo();
+		InitCairoBackend();
 		if (!fontmanager) fontmanager=GetDefaultFontManager();
 #endif
 
 	} else if (!strcmp(backend,"gl")) {
 		cerr <<" ** Error! gl backend not implemented yet. Lazy programmers!!!"<<endl;
-	} 
+
+	} else {
+		cerr <<" ** unknown backend \""<<backend<<"\"!! aborting!!"<<endl;
+		exit(1);
+	}
+
 
 	GetDefaultDisplayer(); //initializes if null
 	defaultlaxfont=fontmanager->MakeFontFromStr(controlfontstr,getUniqueNumber());
@@ -991,20 +1007,6 @@ int anXApp::initX(int argc,char **argv)
 	//if (load_image==NULL) InitDefaultBackend(); //<-- have this be something configure made?
 
 
-	 //--------------- initialize the cut buffer
-	// *** somehow, this causes crash AFTER I run Unreal4Editor!! wuuuh?
-	//  --> type and format must match existing, guessing UE4 changes the type on the cut buffers...
-	//  --> finally delete all CUT_BUFFER stuff? obselete?
-	//unsigned char b[2]={0,0};
-	//Window rw=DefaultRootWindow(dpy);
-	//XChangeProperty(dpy,rw,XA_CUT_BUFFER0,XA_STRING,8,PropModeAppend,b,0);
-	//XChangeProperty(dpy,rw,XA_CUT_BUFFER1,XA_STRING,8,PropModeAppend,b,0);
-	//XChangeProperty(dpy,rw,XA_CUT_BUFFER2,XA_STRING,8,PropModeAppend,b,0);
-	//XChangeProperty(dpy,rw,XA_CUT_BUFFER3,XA_STRING,8,PropModeAppend,b,0);
-	//XChangeProperty(dpy,rw,XA_CUT_BUFFER4,XA_STRING,8,PropModeAppend,b,0);
-	//XChangeProperty(dpy,rw,XA_CUT_BUFFER5,XA_STRING,8,PropModeAppend,b,0);
-	//XChangeProperty(dpy,rw,XA_CUT_BUFFER6,XA_STRING,8,PropModeAppend,b,0);
-	//XChangeProperty(dpy,rw,XA_CUT_BUFFER7,XA_STRING,8,PropModeAppend,b,0);
 	
 
 	 //prepare rgbcolor() and colorrgb() to work right for vis
