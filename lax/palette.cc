@@ -61,6 +61,16 @@ PaletteEntry::PaletteEntry(const char *nname,int n,int *v,int space,int max)//ma
 	memcpy(channels,v,sizeof(int)*n);
 }
 
+PaletteEntry::PaletteEntry(PaletteEntry *entry)
+{
+	maxcolor   =entry->maxcolor;
+	color_space=entry->color_space;
+	numcolors  =entry->numcolors;
+	name       =newstr(entry->name);
+	channels   =new int[numcolors];
+	memcpy(channels,entry->channels,sizeof(int)*numcolors);
+}
+
 PaletteEntry::~PaletteEntry()
 {
 	if (name) delete[] name;

@@ -46,6 +46,7 @@ class PaletteEntry
 	int maxcolor;
 	char *name;
 
+	PaletteEntry(PaletteEntry *entry);
 	PaletteEntry(const char *nname,int n,int *v,int space,int max=255);
 	virtual ~PaletteEntry();
 };
@@ -64,7 +65,7 @@ class Palette : public LaxFiles::DumpUtility, public anObject
 
 	Palette();
 	virtual ~Palette();
-	
+
 	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *savecontext);
 	virtual void dump_in (FILE *f,int indent,int what,LaxFiles::DumpContext *loadcontext,LaxFiles::Attribute **att);
 	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *savecontext);
