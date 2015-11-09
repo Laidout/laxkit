@@ -27,16 +27,23 @@
 #include <lax/button.h>
 #include <lax/menuinfo.h>
 
+
+
+ //these must not collide with Button defines
 #define MENUBUTTON_DOWNARROW         (1<<23)
 #define MENUBUTTON_CLICK_CALLS_OWNER (1<<24)
 #define MENUBUTTON_LEFT              (1<<25)
 #define MENUBUTTON_RIGHT             (1<<26)
 #define MENUBUTTON_SEND_STRINGS      (1<<27)
+#define MENUBUTTON_HOVER_FILL        (1<<28)
 
-#define MENUBUTTON_ICON_ONLY         (1<<28)
-#define MENUBUTTON_TEXT_ONLY         (1<<29)
-#define MENUBUTTON_TEXT_ICON         (1<<30)
-#define MENUBUTTON_ICON_TEXT         (1<<31)
+ //these are just duplicates of same in Button
+#define MENUBUTTON_ICON_ONLY         (1<<18)
+#define MENUBUTTON_TEXT_ONLY         (1<<19)
+#define MENUBUTTON_TEXT_ICON         (1<<20)
+#define MENUBUTTON_ICON_TEXT         (1<<21)
+#define MENUBUTTON_FLAT              (1<<22)
+
 
 namespace Laxkit {
 
@@ -45,6 +52,7 @@ class MenuButton : public Button
 { 
  protected:
 	MenuInfo *menuinfo;
+
  public:	
 	unsigned long menubutton_style;
 	MenuButton(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,

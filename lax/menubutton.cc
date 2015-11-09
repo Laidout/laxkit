@@ -102,7 +102,8 @@ int MenuButton::SetMenu(MenuInfo *menu, int absorb)
 //! Create the Popup MenuSelector. Called from LBDown().
 void MenuButton::makePopup(int mouseid)
 {
-	if (!menuinfo) return;
+	if (!menuinfo || !menuinfo->n()) return;
+
 //	MenuSelector *popup;
 //	popup=new MenuSelector(NULL,menuinfo->name?menuinfo->name:"Button Popup",
 //					menuinfo->title?menuinfo->title:"Button Popup",
