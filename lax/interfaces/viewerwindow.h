@@ -36,12 +36,29 @@ namespace LaxInterfaces {
 enum ViewerWindowActions {
 	VIEWER_NextTool,
 	VIEWER_PreviousTool,
+
+	VIEWER_Default_Zoom,
+	VIEWER_Zoom_In,
+	VIEWER_Zoom_Out,
+	VIEWER_Center_View,
+	VIEWER_Center_Object,
+	VIEWER_Zoom_To_Fit,
+	VIEWER_Zoom_To_Object,
+	VIEWER_Zoom_To_Width,
+	VIEWER_Zoom_To_Height, 
+	VIEWER_Reset_Rotation,
+	VIEWER_Rotate_0,
+	VIEWER_Rotate_90,
+	VIEWER_Rotate_180,
+	VIEWER_Rotate_270, 
+	VIEWER_Set_Default_Zoom,
+
 	VIEWER_MAX
 };
 
 class ViewerWindow : public Laxkit::RowFrame
 {
- protected:
+  protected:
 	Laxkit::Scroller *xscroller,*yscroller;
 	Laxkit::RulerWindow *xruler,*yruler;
 	Laxkit::MessageBar *mesbar;
@@ -55,7 +72,9 @@ class ViewerWindow : public Laxkit::RowFrame
 
 	Laxkit::ShortcutHandler *sc;
 	virtual int PerformAction(int action);
- public:
+	virtual Laxkit::MenuInfo *GetZoomMenu();
+
+  public:
 	ViewportWindow *viewport;
 	ViewerWindow(Laxkit::anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
 						int xx,int yy,int ww,int hh,int brder,

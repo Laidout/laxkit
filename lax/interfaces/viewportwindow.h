@@ -50,6 +50,7 @@ class anInterface;
 #define VIEWPORT_ROTATABLE       (1<<20)
 #define VIEWPORT_BACK_BUFFER     (1<<21)
 #define VIEWPORT_RIGHT_HANDED    (1<<22)
+#define VIEWPORT_NO_ZOOM_MENU    (1<<23)
 #define VIEWPORT_STYLE_MASK      (0xffff0000)
 
 //---------------------------- ObjectContext -----------------------
@@ -74,6 +75,21 @@ enum ViewportWindowActions {
 	VIEWPORT_ZoomOut,
 	VIEWPORT_CenterReal,
 	VIEWPORT_ResetView,
+
+	VIEWPORT_Default_Zoom, 
+	VIEWPORT_Set_Default_Zoom,
+	VIEWPORT_Center_View,
+	VIEWPORT_Center_Object,
+	VIEWPORT_Zoom_To_Fit,
+	VIEWPORT_Zoom_To_Object,
+	VIEWPORT_Zoom_To_Width,
+	VIEWPORT_Zoom_To_Height,
+	
+	VIEWPORT_Reset_Rotation,
+	VIEWPORT_Rotate_90,
+	VIEWPORT_Rotate_180,
+	VIEWPORT_Rotate_270, 
+
 	VIEWPORT_NextObject,
 	VIEWPORT_PreviousObject,
 	VIEWPORT_DeleteObj,
@@ -112,7 +128,6 @@ class ViewportWindow : public Laxkit::PanUser, public Laxkit::anXWindow
 
 	Laxkit::ButtonDownInfo buttondown;
 	Laxkit::ShortcutHandler *sc;
-	virtual int PerformAction(int action);
 
 	Laxkit::RulerWindow *xruler,*yruler;
 	Laxkit::Scroller *xscroller,*yscroller;
@@ -149,6 +164,7 @@ class ViewportWindow : public Laxkit::PanUser, public Laxkit::anXWindow
 	virtual int MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMouse *d);
 	virtual int KeyUp(unsigned int ch,unsigned int state,const Laxkit::LaxKeyboard *d);
 	virtual int CharInput(unsigned int ch, const char *buffer,int len,unsigned int state,const Laxkit::LaxKeyboard *d);
+	virtual int PerformAction(int action);
 	virtual int Needtodraw();
 	virtual void Needtodraw(int ntd) { needtodraw=ntd; }
 	virtual int Event(const Laxkit::EventData *e,const char *mes);

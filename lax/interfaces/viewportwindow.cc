@@ -1251,6 +1251,7 @@ Laxkit::ShortcutHandler *ViewportWindow::GetShortcuts()
 	sc->Add(VIEWPORT_CenterReal,    ' ',0,0,           _("CenterReal"),    _("Center the real origin in the viewport"),NULL,0);
 	sc->Add(VIEWPORT_ResetView,     ' ',ControlMask|ShiftMask,0,_("ResetView"),_("Reset the view, center and align axes"),NULL,0);
 	sc->AddShortcut(' ',ControlMask,0, VIEWPORT_ResetView);
+
 	sc->Add(VIEWPORT_NextObject,    '.',0,0,           _("NextObject"),    _("Select next object"),NULL,0);
 	sc->Add(VIEWPORT_PreviousObject,',',0,0,           _("PreviousObject"),_("Select previous object"),NULL,0);
 	sc->Add(VIEWPORT_DeleteObj, LAX_Bksp,0,0,           _("DeleteObject"), _("Delete current object"),NULL,0);
@@ -1305,16 +1306,16 @@ int ViewportWindow::PerformAction(int action)
 		if (undomanager) undomanager->Redo();
 		return 0;
 
-	} else if (action==VIEWPORT_CenterReal) {
+	} else if (action==VIEWPORT_CenterReal || action==VIEWPORT_Center_View) {
 		 //center something or other on screen
 		dp->CenterReal();
 		syncWithDp();
 		needtodraw=1;
 		return 0;
 
-	} else if (action==VIEWPORT_ResetView) {
+	} else if (action==VIEWPORT_ResetView || action==VIEWPORT_Default_Zoom) {
 		 //zap axes to normal x/y, and center origin in middle of viewport
-		//-------------------
+
 		flatpoint p=flatpoint((dp->Maxx+dp->Minx)/2, (dp->Maxy+dp->Miny)/2);
 
 		double m[6];
@@ -1323,19 +1324,55 @@ int ViewportWindow::PerformAction(int action)
 		double yscale=xscale * (dp->defaultRighthanded() ? -1 : 1);
 		
 		transform_set(m, xscale,0,0,yscale, p.x,p.y);
-		//-------------------
-		//flatpoint p=dp->screentoreal((dp->Maxx+dp->Minx)/2,(dp->Maxy+dp->Miny)/2);
-		//dp->Newangle(0); 
-		//dp->CenterPoint(p);
-		//double m[6];
-		//transform_copy(m,dp->Getctm());
-		//m[3]=m[0]*(m[3]<0?-1:1);
-		//m[1]=m[2]=0;
-		//-------------------
 		dp->NewTransform(m);
 		syncWithDp(); 
 		needtodraw=1;
 		return 0;
+
+	//} else if (action==VIEWPORT_Default_Zoom) { 
+	//} else if (action==VIEWPORT_Set_Default_Zoom) {
+	//} else if (action==VIEWPORT_Center_Object || action==VIEWPORT_Zoom_To_Object) { 
+	//} else if (action==VIEWPORT_Zoom_To_Fit) {
+	//} else if (action==VIEWPORT_Zoom_To_Width) {
+	//} else if (action==VIEWPORT_Zoom_To_Height) {
+	
+	} else if (action==VIEWPORT_Reset_Rotation) {
+		double m[6];
+		transform_copy(m, dp->Getctm());
+		double xscale=sqrt(m[0]*m[0] + m[1]*m[1]);
+		double yscale=xscale * (dp->defaultRighthanded() ? -1 : 1);
+		
+		flatpoint p=dp->screentoreal(flatpoint((dp->Maxx+dp->Minx)/2, (dp->Maxy+dp->Miny)/2));
+		transform_set(m, xscale,0,0,yscale, 0,0);
+		p=flatpoint((dp->Maxx+dp->Minx)/2, (dp->Maxy+dp->Miny)/2)-transform_point(m, p);
+		m[4]=p.x;
+		m[5]=p.y;
+		dp->NewTransform(m);
+		syncWithDp(); 
+		needtodraw=1;
+		return 0;
+
+	} else if (action==VIEWPORT_Rotate_90 ||
+			   action==VIEWPORT_Rotate_180 || 
+			   action==VIEWPORT_Rotate_270 
+			) {
+		Affine m(dp->Getctm());
+
+		double angle=0;
+		if (action==VIEWPORT_Rotate_90) {
+			angle=M_PI/2;
+		} else if (action==VIEWPORT_Rotate_180) {
+			angle=M_PI;
+		} else if (action==VIEWPORT_Rotate_270) { 
+			angle=3*M_PI/2;
+		}
+
+		m.Rotate(angle, transform_point(m.m(), dp->screentoreal(flatpoint((dp->Maxx+dp->Minx)/2, (dp->Maxy+dp->Miny)/2))));
+
+		dp->NewTransform(m.m());
+		syncWithDp(); 
+		needtodraw=1;
+		return 0; 
 
 	} else if (action==VIEWPORT_DeleteObj) {
 		if (!DeleteObject()) return 1;

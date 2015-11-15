@@ -26,6 +26,7 @@
 #include <lax/colors.h>
 #include <lax/colorbox.h>
 #include <lax/units.h>
+#include <lax/menubutton.h>
 #include <lax/language.h>
 
 #include <lax/lists.cc>
@@ -183,6 +184,25 @@ int ViewerWindow::init()
 	
 	if (xscroller) AddWin(xscroller,1, 100,50,10000,50,0, scrollerh,0,0,50,0, -1);
 	//if (xscroller && yscroller) AddWin(panpopup,1, scrollerh,0,0,50,0, scrollerh,0,0,50,0, -1);
+
+	if (!(viewer_style&VIEWPORT_NO_ZOOM_MENU)) {
+		 // add viewer zoom/reset menu
+		MenuInfo *zoommenu=GetZoomMenu();
+  		MenuButton *menub=new MenuButton(this,"zoommenu",NULL,
+                         MENUBUTTON_ICON_ONLY|MENUBUTTON_LEFT,
+                         //MENUBUTTON_CLICK_CALLS_OWNER|MENUBUTTON_ICON_ONLY|MENUBUTTON_LEFT,
+                         0,0,0,0,0,
+                         NULL,object_id,"zoommenu",
+                         0,
+                         zoommenu,1, //menu
+                         "o", //label
+                         NULL,NULL,
+                         app->defaultlaxfont->textheight()/4);
+		menub->SetGraphic(THING_Magnifying_Glass, 0,0);
+		AddWin(menub,1, scrollerh,0,scrollerh,50,0, scrollerh,0,scrollerh,50,0, -1); 
+		 //note: this will be put next to mesbar if no xscroller
+	}
+
 	if (xscroller) AddNull();
 	
 	AddWin(mesbar,1, 30,0,10000,50,0, rulerh,0,0,50,0, -1);
@@ -232,6 +252,33 @@ int ViewerWindow::Event(const Laxkit::EventData *e,const char *mes)
 		return 0;
 	}
 	return anXWindow::Event(e,mes);
+}
+
+/*! Default is to return a menu with various zoom and canvas rotation VIEWPORT_* ids.
+ */
+MenuInfo *ViewerWindow::GetZoomMenu()
+{
+	MenuInfo *menu=new MenuInfo;
+
+	menu->AddItem(_("Default zoom"),     VIEWPORT_Default_Zoom);
+	menu->AddItem(_("Zoom in"),          VIEWPORT_ZoomIn);
+	menu->AddItem(_("Zoom out"),         VIEWPORT_ZoomOut);
+	menu->AddItem(_("Center view"),      VIEWPORT_Center_View);
+	menu->AddItem(_("Zoom to fit"),      VIEWPORT_Zoom_To_Fit);
+	menu->AddItem(_("Center on object"), VIEWPORT_Center_Object);
+	menu->AddItem(_("Zoom to object"),   VIEWPORT_Zoom_To_Object);
+	//menu->AddItem(_("Zoom to width"),    VIEWPORT_Zoom_To_Width);
+	//menu->AddItem(_("Zoom to height"),   VIEWPORT_Zoom_To_Height);
+	menu->AddSep();
+	menu->AddItem(_("Reset rotation"),   VIEWPORT_Reset_Rotation);
+	//menu->AddItem(_("Rotate 0"),         VIEWPORT_Rotate_0);
+	menu->AddItem(_("Rotate 90"),        VIEWPORT_Rotate_90);
+	menu->AddItem(_("Rotate 180"),       VIEWPORT_Rotate_180);
+	menu->AddItem(_("Rotate 270"),       VIEWPORT_Rotate_270);
+	//menu->AddSep();
+	//menu->AddItem(_("Set default zoom"), VIEWPORT_Set_Default_Zoom);
+
+	return menu;
 }
 
 //! Return the interface in tools with whattype equal to which.
