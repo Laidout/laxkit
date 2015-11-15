@@ -109,6 +109,7 @@ LaxFontXlib::~LaxFontXlib()
 	delete[] realcharwidths;
 }
 
+
 int LaxFontXlib::SetFromFile(const char *nfile, const char *nfamily, const char *nstyle, double size)
 {
 	cerr << " *** must implement LaxFontXlib::SetFromFile()!!"<<endl;

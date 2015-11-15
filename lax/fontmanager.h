@@ -24,10 +24,15 @@
 #define _LAX_FONTMANAGER_H
 
 #include <cstdlib>
+#include <fontconfig/fontconfig.h>
+#include <ft2build.h>
+#include FT_FREETYPE_H
+#include FT_ERRORS_H
+
 #include <lax/anobject.h>
 #include <lax/laximages.h>
 #include <lax/lists.h>
-#include <fontconfig/fontconfig.h>
+
 
 
 namespace Laxkit {
@@ -52,6 +57,8 @@ class LaxFont : public anObject
 
 	LaxFont();
 	virtual ~LaxFont();
+	virtual LaxFont *duplicate();
+	virtual anObject *duplicate(anObject *ref) { return duplicate(); }
 
 	virtual int FontId() { return id; }
 
@@ -109,12 +116,16 @@ class FontDialogFont
     virtual void RemoveTag(int tag_id);
 };
 
-class FontTags
+//--------------------------- FontTag ------------------------------------------
+class FontTag
 {
   public:
     int id;
-    int tagtype; //such as from Fontmatrix, user favorites, document defined, etc
-    const char *tag;
+    int tagtype; //such as from Fontmatrix==2, user favorites==1, document defined, etc
+    char *tag;
+
+	FontTag(int nid, int ntagtype, const char *ntag);
+	virtual ~FontTag();
 };
 
 
@@ -124,10 +135,12 @@ class FontManager : public anObject
 {
   protected:
 	FcConfig *fcconfig;
+	FT_Library *ft_library;
 	PtrStack<FontDialogFont> fonts;
-	PtrStack<FontTags> tags;
 	
   public: 
+	PtrStack<FontTag> tags;
+
 	FontManager();
 	virtual ~FontManager();
 
@@ -137,8 +150,13 @@ class FontManager : public anObject
 	virtual LaxFont *Add(LaxFont *font,int nid) = 0;
 	virtual LaxFont *CheckOut(int id) = 0;
 	virtual FcConfig *GetConfig();
+	virtual FT_Library *GetFreetypeLibrary();
 	virtual PtrStack<FontDialogFont> *GetFontList();
+
 	virtual int RetrieveFontmatrixTags();
+	virtual int GetTagId(const char *tag);
+	virtual const char *GetTagName(int id);
+	virtual FontDialogFont *FindFontFromFile(const char *file);
 };
 
 

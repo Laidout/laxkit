@@ -78,7 +78,7 @@ LaxFontCairo::LaxFontCairo(const char *fontconfigstr,int nid)
 	FcPattern *pattern=FcNameParse((FcChar8*)fontconfigstr);
 
 	DBG cerr <<"LaxFontCairo constructor: pattern from string: "<<endl;
-	DBG FcPatternPrint(pattern);
+	//DBG FcPatternPrint(pattern); *** use stdout, not stderr!!!
 
 	font=cairo_ft_font_face_create_for_pattern(pattern);
 	double height=1;
@@ -253,6 +253,8 @@ double LaxFontCairo::Resize(double newsize)
 	if (!options) options=cairo_font_options_create();
 	scaledfont=cairo_scaled_font_create(font, &m, &ctm, options);
 	cairo_scaled_font_extents(scaledfont, &extents);
+
+	if (nextlayer) nextlayer->Resize(newsize);
 
 	return textheight();
 }

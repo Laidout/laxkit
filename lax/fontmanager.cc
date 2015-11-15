@@ -48,6 +48,9 @@ using namespace std;
 //#include <lax/fontmanager-gl.h>
 #endif
 
+#ifdef LAX_USES_SQLITE
+#include <sqlite3.h>
+#endif
 
 #include <lax/lists.cc>
 
@@ -126,6 +129,33 @@ LaxFont::~LaxFont()
 /*! \fn  double Resize(double newsize)
  * \brief Change the size of the cached font, keeping the font type and style. Returns newsize on success, or 0 on error.
  */
+
+
+LaxFont *LaxFont::duplicate()
+{
+	FontManager *fontmanager=GetDefaultFontManager();
+
+	anObject *ncolor=color->duplicate(NULL);
+
+	LaxFont *old=this, *newlayer, *newfont=NULL;
+	while (old) {
+		newlayer = fontmanager->MakeFontFromFile(old->FontFile(), old->Family(), old->Style(), textheight(), -1);
+		if (!newlayer) break;
+
+		if (!newfont) newfont=newlayer;
+		else newfont->AddLayer(-1, newlayer);
+
+		old=old->nextlayer;
+	}
+
+	if (ncolor) {
+		newfont->SetColor(ncolor);
+		ncolor->dec_count();
+	}
+
+	return newfont;
+}
+
 
 /*! Default just return this->family.
  */
@@ -340,6 +370,8 @@ int FontDialogFont::AddTag(int tag_id)
     int *newtags=new int[numtags+1];
     if (numtags) memcpy(newtags, tags, numtags*sizeof(int));
     newtags[numtags]=tag_id;
+	delete[] tags;
+	tags=newtags;
     numtags++;
     return numtags;
 }
@@ -356,6 +388,24 @@ void FontDialogFont::RemoveTag(int tag_id)
 }
 
 
+//--------------------------- FontTag ------------------------------------------
+/*! \class FontTag
+ * Tag definitions for use in FontDialogFont
+ */
+
+FontTag::FontTag(int nid, int ntagtype, const char *ntag)
+{
+	id=nid;
+	if (id<=0) id=getUniqueNumber();
+	tagtype=ntagtype;
+	tag=newstr(ntag);
+}
+
+FontTag::~FontTag()
+{
+	delete[] tag;
+}
+
 
 //--------------------------- FontManager ------------------------------------------
 
@@ -367,11 +417,29 @@ void FontDialogFont::RemoveTag(int tag_id)
 FontManager::FontManager()
 {
 	fcconfig=NULL;
+	ft_library=NULL;
 }
 
 FontManager::~FontManager()
 {
 	if (fcconfig) FcConfigDestroy(fcconfig);
+	if (ft_library) FT_Done_FreeType(*ft_library);
+}
+
+FT_Library *FontManager::GetFreetypeLibrary()
+{
+	if (!ft_library) {
+		ft_library = new FT_Library;
+		FT_Error ft_error = FT_Init_FreeType (ft_library);
+
+		if (ft_error) {
+			cerr <<"Could not initialize freetype!!"<<endl;
+			return NULL;
+		}
+
+	}
+	
+	return ft_library;
 }
 
 FcConfig *FontManager::GetConfig()
@@ -385,6 +453,31 @@ FcConfig *FontManager::GetConfig()
 	return fcconfig;
 }
 
+/*! for a qsort()
+ */
+int cmp_fontinfo_psname(const void *f1p, const void *f2p)
+{
+	FontDialogFont *f1=*((FontDialogFont**)f1p);
+	FontDialogFont *f2=*((FontDialogFont**)f2p);
+
+	if (!f1->psname) return -1;
+	if (!f2->psname) return 1;
+	return strcmp(f1->psname, f2->psname);
+}
+
+/*! for a qsort()
+ */
+static int cmp_fontinfo_file(const void *f1p, const void *f2p)
+{
+	FontDialogFont *f1=*((FontDialogFont**)f1p);
+	FontDialogFont *f2=*((FontDialogFont**)f2p);
+
+	if (!f1->file) return -1;
+	if (!f2->file) return 1;
+	return strcmp(f1->file, f2->file);
+}
+
+
 /*! If this->fonts.n>0, then just return &this->fonts. Else populate then return it.
  */
 PtrStack<FontDialogFont> *FontManager::GetFontList()
@@ -393,6 +486,8 @@ PtrStack<FontDialogFont> *FontManager::GetFontList()
 	
 	if (!fcconfig) GetConfig(); //inits fontconfig
 
+
+	DBG cerr <<"Scanning for installed fonts..."<<endl;
 
      // Read in all the fonts, and arrange to make using the list a little more ui friendly
     FcResult result;
@@ -431,20 +526,25 @@ PtrStack<FontDialogFont> *FontManager::GetFontList()
         //FC_FONTFORMAT
         //FC_FONT_FEATURES
 
-        DBG cout <<c<<", found font: Family,style,file: "<<f->family<<", "<<f->style<<", "<<f->file<<endl;
+        DBG cerr <<c<<", found font: Family,style,file: "<<f->family<<", "<<f->style<<", "<<f->file<<endl;
 
         fonts.push(f);
 
     }
 
-	 //sort by family+name
-	//qsort(fonts.e, fonts.n, sizeof(FontDialogFont*), cmp_fontinfo_psname); 
+	 //sort by file name
+	qsort(fonts.e, fonts.n, sizeof(FontDialogFont*), cmp_fontinfo_file); 
+
  
 	 //need to differentiate names where family and style are equal to other fonts
 	// *** - 1st try could take apart postscript name: turn something like 
 	//        DroidSansEthiopic-Bold  ->  Droid Sans Ethiopic Bold  (a bit unreliable perhaps)
 	//     - maybe diff the files' basenames. if still the same, just say "(file 1)", "(file 2)", etc.
 	
+
+	DBG cerr <<"Done scanning for installed fonts."<<endl;
+
+	RetrieveFontmatrixTags();
 
 	return &fonts;
 }
@@ -488,27 +588,213 @@ PtrStack<FontDialogFont> *FontManager::GetFontList()
  * If nid<=0, then a random id is given to the font.
  */
 
+const char *FontManager::GetTagName(int id)
+{
+	for (int c=0; c<tags.n; c++) {
+		if (tags.e[c]->id==id) return tags.e[c]->tag;
+	}
+	return NULL;
+}
+
+/*! Return index in tags corresponding to tag, or -1 if not found.
+ */
+int FontManager::GetTagId(const char *tag)
+{
+	if (!tag) return -1;
+	for (int c=0; c<tags.n; c++) {
+		if (!strcasecmp(tag,tags.e[c]->tag)) return tags.e[c]->id;
+	}
+	return -1;
+}
+
+FontDialogFont *FontManager::FindFontFromFile(const char *file)
+{
+	if (!fonts.n || !file) return NULL;
+
+	 //binary search, assume fonts is sorted by file
+	int s=0, e=fonts.n-1, mid, cmp; 
+
+	if (!strcmp(file, fonts.e[s]->file)) return fonts.e[s];
+	if (!strcmp(file, fonts.e[e]->file)) return fonts.e[e];;
+
+	do {
+		mid=(s+e)/2;
+		if (mid==e || mid==s) return NULL; //already checked
+
+		cmp=strcmp(file, fonts.e[mid]->file);
+		if (cmp==0) return fonts.e[mid];
+		if (cmp<0) {
+			e=mid;
+		} else {
+			s=mid;
+		}
+	} while (s!=e);
+
+	return NULL;
+}
+
 /*! Returns number of tags retrieved.
  *
  * If sqlite is enabled for the Laxkit, then this will try to get the tags from the Fontmatrix
- * database, and apply to fonts, which should have been populated already.
+ * database (at ~/.Fontmatrix/Data.sql), and apply to fonts, which should have been populated already.
  */
 int FontManager::RetrieveFontmatrixTags()
 {
-	cerr << " *** must implement FontManager::RetrieveFontmatrixTags()!!"<<endl;
-
 	int n=0;
 
 #ifdef LAX_USES_SQLITE
 
 	char *dbfile=newstr("~/.Fontmatrix/Data.sql");
 	expand_home_inplace(dbfile); 
+	int status=0;
+
+	sqlite3 *db=NULL;
+
 	try {
 		if (!S_ISREG(file_exists(dbfile,1,NULL))) throw(1);
 
+		int error = sqlite3_open_v2(dbfile, &db, SQLITE_OPEN_READONLY, NULL);
+		if (error != SQLITE_OK) {
+			cerr <<"Couldn't open database "<<dbfile<<": "<<sqlite3_errmsg(db)<<endl;
+			throw (2);
+		}
+
+
+		 //first read in the tag names
+		DBG cerr <<"Get tag names..."<<endl;
+
+		const char *sqlstr="SELECT tag FROM fontmatrix_tags GROUP BY tag";
+		sqlite3_stmt *stmt=NULL;
+		const char *strremain=NULL;
+
+		status = sqlite3_prepare_v2(db, sqlstr, strlen(sqlstr)+1, &stmt, &strremain);
+		if (status !=SQLITE_OK) {
+			DBG cerr <<"Could not prepare statement! "<<sqlite3_errmsg(db)<<endl;
+			throw (30);
+		}
+
+		int rownum=0;
+		do {
+			status = sqlite3_step(stmt);
+
+			if (status == SQLITE_ROW) {
+
+				int id           = sqlite3_column_int(stmt, 0);
+				//const unsigned char *text = sqlite3_column_text(stmt, 1);
+				const char *tag = (const char *)sqlite3_column_text(stmt, 0);
+
+				DBG cerr <<rownum<<".  id:"<<id<<"   tag: "<<tag<<endl;
+
+				if (!isblank(tag)) {
+					int cmp;
+
+					if (tags.n==0) {
+						tags.push(new FontTag(-1, 2, tag)); //puts at end 
+
+					} else for (int c=0; c<tags.n; c++) {
+						cmp=strcasecmp(tag, tags.e[c]->tag);
+
+						if (cmp<0) {
+							tags.push(new FontTag(-1, 2, tag));
+							break;
+						} else if (cmp==0) break; //tag exists already!
+
+						if (cmp>0 && c==tags.n-1) tags.push(new FontTag(-1, 2, tag)); //puts at end 
+					}
+				}
+
+				rownum++;
+
+			} else if (status!=SQLITE_DONE) {
+				cout <<"  *** step error!!" << sqlite3_errmsg(db) <<endl;
+				sqlite3_finalize(stmt);
+				throw (40);
+			}
+		} while (status !=SQLITE_DONE);
+
+		sqlite3_finalize(stmt);
+
+		DBG cerr <<"Tags:"<<endl;
+		DBG for (int c=0; c<tags.n; c++) {
+		DBG 	cerr <<c<<". ("<<tags.e[c]->id<<")  \""<<tags.e[c]->tag<<"\""<<endl;
+		DBG }
+		DBG cerr <<"...Get tag names done!"<<endl;
 		
 
+
+		//then apply tags to font list, which is sorted by file
+
+		DBG cerr <<endl<<" matching tags to font files..."<<endl;
+
+		 //for each font in fontmatrix_id, get all tags for that font..
+		sqlstr="SELECT fontident,digitident FROM fontmatrix_id";
+		stmt=NULL;
+		strremain=NULL;
+		error = sqlite3_prepare_v2(db, sqlstr, strlen(sqlstr)+1, &stmt, &strremain);
+		FontDialogFont *font=NULL;
+
+		if (error !=SQLITE_OK) {
+			cerr <<"Could not prepare statement! "<<sqlite3_errmsg(db)<<endl;
+			throw (50);
+		}
+
+		rownum=0;
+		do {
+			error = sqlite3_step(stmt);
+
+			if (error == SQLITE_ROW) {
+
+				int id                    = sqlite3_column_int (stmt, 1);
+				const char *file = (const char *)sqlite3_column_text(stmt, 0);
+
+				font=FindFontFromFile(file);
+				if (font) {
+
+					//DBG cerr <<"row "<<rownum<<": id:"<<id<<"   file: "<<file<<endl;
+					//DBG cerr <<"    tags: ";
+					rownum++;
+
+					const char *sqlstr2="SELECT digitident,tag FROM fontmatrix_tags WHERE digitident=?";
+					sqlite3_stmt *stmt2=NULL;
+					int tagid;
+
+					int error2 = sqlite3_prepare_v2(db, sqlstr2, strlen(sqlstr2)+1, &stmt2, &strremain);
+					if (error2 !=SQLITE_OK) {
+						cerr <<"Could not prepare statement for fontmatrix_tags! "<<sqlite3_errmsg(db)<<endl;
+						throw (51);
+					}
+
+					sqlite3_bind_int(stmt2, 1, id);
+
+					do {
+						error2 = sqlite3_step(stmt2);
+						if (error2 == SQLITE_ROW) {
+							const char *tag = (const char *)sqlite3_column_text(stmt2,1);
+							//DBG cerr <<"\""<<tag<<"\""<<"  ";
+
+							tagid = GetTagId(tag);
+							if (tagid>=0) {
+								font->AddTag(tagid);
+							}
+						}
+					} while (error2==SQLITE_ROW);
+
+					DBG cerr <<endl;
+					sqlite3_finalize(stmt2);
+				}
+
+
+			} else if (error!=SQLITE_DONE) {
+				DBG cerr <<"  *** step error!!" << sqlite3_errmsg(db) <<endl;
+				sqlite3_finalize(stmt);
+				throw (52);
+			}
+
+		} while (error !=SQLITE_DONE);
+
+
 	} catch (int error) {
+		DBG cerr <<" Error processing "<<dbfile<<"! err number: "<<error<<endl;
 	}
 
 	delete[] dbfile;
