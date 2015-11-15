@@ -121,6 +121,7 @@ class CaptionInterface : public anInterface
 	unsigned long baseline_color;
 	CaptionData *data;
 	ObjectContext *coc;
+	ObjectContext *extrahover;
 
 	CaptionInterface(int nid,Laxkit::Displayer *ndp);
 	virtual ~CaptionInterface();
@@ -146,8 +147,9 @@ class CaptionInterface : public anInterface
 	virtual int Event(const Laxkit::EventData *e_data, const char *mes);
 	virtual Laxkit::ShortcutHandler *GetShortcuts();
     virtual int PerformAction(int action);
-	virtual void FixCaret();
+	virtual Laxkit::MenuInfo *ContextMenu(int x,int y,int deviceid, Laxkit::MenuInfo *menu);
 
+	virtual void FixCaret();
 	virtual int scan(int x,int y,unsigned int state);
 	virtual CaptionData *newData();
 };

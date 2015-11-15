@@ -25,6 +25,7 @@
 #include <lax/interfaces/interfacemanager.h>
 #include <lax/interfaces/somedatafactory.h>
 #include <lax/interfaces/captioninterface.h>
+#include <lax/interfaces/characterinterface.h>
 #include <lax/interfaces/viewportwindow.h>
 #include <lax/interfaces/linestyle.h>
 #include <lax/colors.h>
@@ -696,6 +697,7 @@ CaptionInterface::CaptionInterface(int nid,Displayer *ndp) : anInterface(nid,ndp
 {
 	data=NULL;
 	coc=NULL;
+	extrahover=NULL;
 	showdecs=3;
 	showbaselines=0;
 	showobj=1;
@@ -805,6 +807,22 @@ void CaptionInterface::deletedata()
 		}
 	}
 	if (coc) { delete coc; coc=NULL; }
+}
+
+Laxkit::MenuInfo *CaptionInterface::ContextMenu(int x,int y,int deviceid, Laxkit::MenuInfo *menu)
+{
+	//if (!menu) menu=new MenuInfo();
+
+	//menu->AddItem(_("Lorem ipsum..."));
+	//menu->AddItem(_("Show all controls"));
+
+	//if (data) {
+		//menu->AddItem(_("Convert to "));
+		//menu->AddItem(_(""));
+		//menu->AddItem(_(""));
+	//}
+
+	return menu;
 }
 
 //! Draw ndata, but remember that data should still be the resident data afterward.
@@ -1140,6 +1158,8 @@ int CaptionInterface::UseThisObject(ObjectContext *oc)
 //! If !data on LBDown, then make a new one...
 int CaptionInterface::LBDown(int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d)
 {
+	if (child) return 1;
+
 	DBG cerr << "  in captioninterface lbd..";
 	int over=scan(x,y,state);
 	buttondown.down(d->id,LEFTBUTTON,x,y, over);
@@ -1149,7 +1169,7 @@ int CaptionInterface::LBDown(int x,int y,unsigned int state,int count, const Lax
 		app->addwindow(new FontDialog(NULL, "Font",_("Font"),ANXWIN_REMEMBER, 10,10,700,700,0, object_id,"newfont",0,
 					data->fontfamily, data->fontstyle, data->fontsize,
 					NULL, //sample text
-					data->font
+					data->font, true
 					));
 		buttondown.up(d->id,LEFTBUTTON);
 		return 0;
@@ -1294,6 +1314,19 @@ int CaptionInterface::Event(const Laxkit::EventData *e_data, const char *mes)
 		}
 		return 0;
 
+	} else if (!strcmp(mes, "insert char")) {
+		const StrEventData *s=dynamic_cast<const StrEventData*>(e_data);
+		if (!s) return 1;
+
+		int ch=s->info1;
+
+		if (caretline<0) caretline=0;
+		if (caretpos<0) caretpos=0;
+
+		if (data) data->InsertChar(ch,caretline,caretpos,&caretline,&caretpos);
+		needtodraw=1;
+
+		return 0;
 	}
 
 	return 1;
@@ -1303,6 +1336,7 @@ int CaptionInterface::Event(const Laxkit::EventData *e_data, const char *mes)
 int CaptionInterface::LBUp(int x,int y,unsigned int state, const Laxkit::LaxMouse *d) 
 {
 	if (!buttondown.isdown(d->id,LEFTBUTTON)) return 1;
+	if (child) return 1;
 
 	if (mode==1 && !mousedragged && data) {
 		DBG cerr <<"**CaptionInterface Clear() for no mouse move on new data"<<endl;
@@ -1391,8 +1425,18 @@ int CaptionInterface::scan(int x,int y,unsigned int state)
 
 int CaptionInterface::MouseMove(int x,int y,unsigned int state, const Laxkit::LaxMouse *mouse) 
 {
+	if (child) return 0;
+
 	if (!buttondown.any() || !data) {
 		int hover=scan(x,y,state);
+
+		if (hover==CAPTION_None) {
+			 //set up to outline potentially editable other captiondata
+			//ObjectContext *oc=NULL;
+			//int c=viewport->FindObject(x,y,whatdatatype(),NULL,1,&oc);
+			//if (c>0) obj=dynamic_cast<CaptionData *>(oc->obj); //***actually don't need the cast, if c>0 then obj is CaptionData
+		}
+
 		if (hover!=lasthover) {
 			lasthover=hover;
 			needtodraw=1;
@@ -1405,6 +1449,7 @@ int CaptionInterface::MouseMove(int x,int y,unsigned int state, const Laxkit::La
 			else PostMessage(" ");
 			return 0;
 		}
+
 		return 0;
 	}
 
@@ -1614,7 +1659,11 @@ int CaptionInterface::PerformAction(int action)
 		return 0;
 
 	} else if (action==CAPT_InsertChar) {
-		PostMessage(" *** need to implement Insert Char action in CaptionInterface!!");
+		if (data && !child) {
+			CharacterInterface *chari = new CharacterInterface(this, 0, dp, data->font);
+			child=chari;
+			viewport->Push(chari, viewport->HasInterface(object_id)-1,0);
+		}
 		return 0;
 
 	} else if (action==CAPT_ShowBaselines) {
@@ -1648,6 +1697,11 @@ int CaptionInterface::CharInput(unsigned int ch,const char *buffer,int len,unsig
 		PerformAction(CAPT_Paste);
 		return 0;
 
+	} else if (ch==LAX_Esc && child) {
+		RemoveChild();
+		needtodraw=1;
+		return 0;
+
 	} else if (ch==LAX_Del) { // delete
 		data->DeleteChar(caretline,caretpos,1, &caretline,&caretpos);
 		needtodraw=1;
@@ -1669,16 +1723,23 @@ int CaptionInterface::CharInput(unsigned int ch,const char *buffer,int len,unsig
 		return 0;
 
 	} else if (ch==LAX_Left) { // left
-		caretpos--;
 		if (caretpos<0) caretpos=0;
-		caretpos=utf8back_index(data->lines.e[caretline], caretpos, strlen(data->lines.e[caretline]));
-		needtodraw=1;
+		else if (caretpos>0) {
+			caretpos--;
+			caretpos=utf8back_index(data->lines.e[caretline], caretpos, strlen(data->lines.e[caretline]));
+			needtodraw=1;
+		}
 		return 0;
 
 	} else if (ch==LAX_Right) { // right
-		caretpos++;
-		if (caretpos>data->CharLen(caretline)) caretpos=data->CharLen(caretline);
-		needtodraw=1;
+		const char *line = data->lines.e[caretline];
+		if (line[caretpos]) {
+			caretpos++;
+			const char *pos = utf8fwd(line+caretpos, line, line+strlen(line));
+			caretpos = pos-line;
+			if (caretpos>data->CharLen(caretline)) caretpos=data->CharLen(caretline);
+			needtodraw=1;
+		}
 		return 0;
 
 	} else if (ch==LAX_Up) { // up
@@ -1686,6 +1747,7 @@ int CaptionInterface::CharInput(unsigned int ch,const char *buffer,int len,unsig
 		if (caretline<0) caretline=0;
 		if (caretpos>(int)strlen(data->lines.e[caretline]))
 			caretpos=strlen(data->lines.e[caretline]);
+		caretpos=utf8back_index(data->lines.e[caretline], caretpos, strlen(data->lines.e[caretline]));
 		needtodraw=1;
 		return 0;
 
@@ -1694,6 +1756,7 @@ int CaptionInterface::CharInput(unsigned int ch,const char *buffer,int len,unsig
 		if (caretline>=data->lines.n) caretline=data->lines.n-1;
 		if (caretpos>(int)strlen(data->lines.e[caretline]))
 			caretpos=strlen(data->lines.e[caretline]);
+		caretpos=utf8back_index(data->lines.e[caretline], caretpos, strlen(data->lines.e[caretline]));
 		needtodraw=1;
 		return 0;
 
