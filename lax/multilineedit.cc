@@ -161,7 +161,7 @@ MultiLineEdit::MultiLineEdit(anXWindow *prnt,const char *nname,const char *ntitl
 	linestats=NULL;
 
 //	mostcharswide=Getcharswide();
-//	numlines=Getnumlines();
+//	numlines=GetNumLines();
 	curlineoffset=-(padx + textrect.x);
 	curline=0;
 	dpos=0; nlines=0;
@@ -291,7 +291,7 @@ int MultiLineEdit::SetText(const char *newtext)
 	TextEditBaseUtf8::SetText(newtext);
 
 	DBG cerr <<"MultiLineEdit newtext:"<<endl<<thetext<<endl;
-	numlines=Getnumlines();
+	numlines=GetNumLines();
 	mostcharswide=Getcharswide();
 
 	if (!firsttime) {
