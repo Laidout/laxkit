@@ -135,8 +135,6 @@ LaxFont *LaxFont::duplicate()
 {
 	FontManager *fontmanager=GetDefaultFontManager();
 
-	anObject *ncolor=color->duplicate(NULL);
-
 	LaxFont *old=this, *newlayer, *newfont=NULL;
 	while (old) {
 		newlayer = fontmanager->MakeFontFromFile(old->FontFile(), old->Family(), old->Style(), textheight(), -1);
@@ -148,9 +146,12 @@ LaxFont *LaxFont::duplicate()
 		old=old->nextlayer;
 	}
 
-	if (ncolor) {
-		newfont->SetColor(ncolor);
-		ncolor->dec_count();
+	if (color) {
+		anObject *ncolor=color->duplicate(NULL);
+		if (ncolor) {
+			newfont->SetColor(ncolor);
+			ncolor->dec_count();
+		}
 	}
 
 	return newfont;
