@@ -157,7 +157,10 @@ void NumSlider::Refresh()
 
 
 	Displayer *dp=MakeCurrent();
-	dp->ClearWindow();
+	if (hover) {
+		dp->NewFG(coloravg(win_colors->bg,win_colors->fg,.07));
+		dp->drawrectangle(0,0,win_w,win_h, 1);
+	} else dp->ClearWindow();
 
 
 	 //draw arrows
@@ -175,7 +178,7 @@ void NumSlider::Refresh()
 
 	 //draw number
 	if (hover==LAX_CENTER) {
-		dp->NewFG(coloravg(win_colors->bg,win_colors->fg,.1));
+		dp->NewFG(coloravg(win_colors->bg,win_colors->fg,.2));
 		hh=text_height()*1.1;
 		dp->drawrectangle(ww,win_h/2-hh/2,win_w-2*ww,hh, 1);
 	}
