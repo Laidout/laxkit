@@ -131,12 +131,13 @@ enum SquishyBoxMetrics {
 
 class SquishyBox 
 {
- public:
+  public:
 	int m[14]; // metrics: x,w,pw,ws,wg,halign,hgap, y,h,ph,hs,hg,valign,vgap
 	int pad; // the bevel would go around this box, and should be added to the width in width calculations.
 	int padinset; // additional pad inside a box. "pad" is outside the box
 	int fpen,lpen; //flow penalty, line penalty
 	unsigned long flags; // LAX_LRTB, BOX_CENTER, for instance <-- these refer to arrangement of children
+
 	SquishyBox();
 	SquishyBox(unsigned int nflags,
 				int nx,int nw,int npw,int nws,int nwg,int nhalign,int nhgap, 
@@ -192,7 +193,7 @@ class SquishyBox
 //----------------------------- ListBox ------------------------------
 class ListBox : public SquishyBox
 {
- public:
+  public:
 	RefPtrStack<SquishyBox> list;
 	
 	ListBox(unsigned int flag=0);//BOX_VERTICAL or BOX_HORIZONTAL
@@ -219,12 +220,13 @@ class ListBox : public SquishyBox
 
 class RowColBox : public ListBox
 {
- protected:
+  protected:
 	RefPtrStack<SquishyBox> wholelist; // the master list of boxes
 	int arrangedstate;
 	virtual ListBox *newSubBox();
 	virtual void filterflags();
- public:
+
+  public:
 	unsigned int elementflags;
 	RowColBox();
 	RowColBox(unsigned int nflags,
@@ -232,6 +234,8 @@ class RowColBox : public ListBox
 			  int ny,int nh,int nph,int nhs,int nhg,int nvalign,int nvgap);
 	virtual void Push(SquishyBox *box,char islocal=0,int where=-1);
 	virtual int Pop(int which=-1);
+	virtual SquishyBox *GetBox(int which);
+	virtual int NumBoxes() { return wholelist.n; }
 	virtual void Flush(); 
 	
 //	virtual int figureDimensions(); // finds and sets the pw,s,g, ph,s,g based on the children

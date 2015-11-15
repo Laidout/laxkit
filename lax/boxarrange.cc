@@ -931,6 +931,12 @@ int RowColBox::Pop(int which) //which=-1
 	return er;
 }
 
+SquishyBox *RowColBox::GetBox(int which)
+{
+	if (which>=0 && which<wholelist.n) return wholelist.e[which];
+	return NULL;
+}
+
 //! Flush list, and if list does not exist, then create a new list.
 void RowColBox::Flush()
 { 
