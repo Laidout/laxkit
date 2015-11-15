@@ -637,10 +637,69 @@ flatpoint *draw_thing_coordinates(DrawThingTypes thing, flatpoint *buffer, int b
 		buffer[3]=flatpoint(1,0); buffer[3].info=LINE_Closed;
 
 	} else if (thing==THING_Wrench) {
-		//***
-		//d="m 2.7529686,1050.1866 0.7084635,-0.7085 c 0,0 0.2146211,0.6237 -0.1982481,1.0365 -0.4128687,0.4127 -0.9742776,0.1254 -0.9742776,0.1254 l -1.58172753,1.5817 c -0.15074782,0.1515 -0.37351258,0.18 -0.55541078,0 -0.18189823,-0.1818 -0.15266659036,-0.4044 -0.001919,-0.5553 l 1.58172741,-1.5818 c 0,0 -0.2869118,-0.5614 0.1259578,-0.9743 0.4128692,-0.4127 1.0364313,-0.1982 1.0364313,-0.1982 l -0.7084635,0.7085 z"
-		if (n_ret) *n_ret=0;
-		return NULL;
+		 //grabbed from icons/things.svg:
+		const char *d="m 280.86887,787.70308 17.16582,-16.37373 c 0,0 5.64467,17.15995 -5.9772,28.77992 -11.62187,11.61714 -27.42471,3.52989 -27.42471,3.52989 l -44.52409,44.52349 c -4.24347,4.26459 -10.51393,5.06684 -15.63423,0 -5.1203,-5.11752 -4.29751,-11.38351 -0.0563,-15.63122 l 44.5241,-44.52629 c 0,0 -8.07651,-15.80293 3.54537,-27.4257 11.62187,-11.61715 29.17446,-5.57916 29.17446,-5.57916 l -16.76917,16.77039 2.70337,13.59007 z";
+		int n=0;
+		flatpoint *pts = SvgToFlatpoints(d, NULL, 0, NULL,0, &n, true);
+
+		if ((buffer && buffer_size<n) || (!buffer && buffer_size>=0)) {
+			delete[] pts;
+			*n_ret=n;
+			return NULL;
+		}
+
+		if (!buffer) buffer=pts;
+		else {
+			memcpy(buffer, pts, n*sizeof(flatpoint));
+			delete[] pts;
+		}
+		*n_ret=n;
+
+		return buffer;
+
+	} else if (thing==THING_Magnifying_Glass) {
+		 //grabbed from icons/things.svg:
+		const char *d="m 262.44573,867.24638 c -12.24836,0 -22.17762,9.92926 -22.17762,22.17762 0,12.24837 9.92925,22.17763 22.17762,22.17763 12.24837,0 22.17763,-9.92926 22.17763,-22.17763 0,-12.24837 -9.92926,-22.17762 -22.17763,-22.17762 z m -43.39948,79.87358 c -3.78198,3.8556 -9.71159,5.86615 -14.83189,0.79931 -5.1203,-5.11752 -3.10091,-11.05847 0.74604,-14.83191 l 25.7593,-25.26698 c -3.02489,-5.62842 -4.77034,-11.80857 -4.77034,-18.39638 0,-20.15639 16.33998,-36.49637 36.49637,-36.49637 20.15639,0 36.49638,16.33998 36.49638,36.49637 0,20.15639 -16.33999,36.49638 -36.49638,36.49638 -5.913,0 -11.49756,-1.40619 -16.67463,-4.06909 z";
+		int n=0;
+		flatpoint *pts = SvgToFlatpoints(d, NULL, 0, NULL,0, &n, true);
+
+		if ((buffer && buffer_size<n) || (!buffer && buffer_size>=0)) {
+			delete[] pts;
+			*n_ret=n;
+			return NULL;
+		}
+
+		if (!buffer) buffer=pts;
+		else {
+			memcpy(buffer, pts, n*sizeof(flatpoint));
+			delete[] pts;
+		}
+		*n_ret=n;
+
+		return buffer;
+
+	} else if (thing==THING_Cancel) {
+		 //circle with a line through it. Solid version.
+		 //grabbed from icons/things.svg:
+		int n=0; 
+		const char *d="m 223.60428,976.09028 c -11.76205,11.79065 -14.12366,30.61262 -5.75491,45.01152 l 50.18801,-50.18802 c -14.40647,-8.37312 -32.6438,-6.59923 -44.4331,5.1765 z m 3.86147,55.86812 c 14.6173,11.0438 35.33478,10.0302 48.30368,-2.9096 12.93862,-12.9691 14.14996,-33.88398 3.10657,-48.50069 z m 57.08056,-64.24809 c 19.30709,19.30715 19.30708,50.61019 -3e-5,69.91729 -19.30712,19.3072 -51.20516,19.5055 -70.51233,0.1984 -19.30715,-19.3071 -18.71215,-50.80854 0.59501,-70.11568 19.30714,-19.30714 50.6102,-19.30715 69.91735,-10e-6 z";
+		flatpoint *pts = SvgToFlatpoints(d, NULL, 0, NULL,0, &n, true);
+
+		if ((buffer && buffer_size<n) || (!buffer && buffer_size>=0)) {
+			delete[] pts;
+			*n_ret=n;
+			return NULL;
+		}
+
+		if (!buffer) buffer=pts;
+		else {
+			memcpy(buffer, pts, n*sizeof(flatpoint));
+			delete[] pts;
+		}
+		*n_ret=n;
+
+		return buffer;
+
 
 	} else if (thing==THING_Octagon) {
 		if ((buffer && buffer_size<8) || (!buffer && buffer_size>=0)) { *n_ret=8; return NULL; }

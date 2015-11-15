@@ -55,8 +55,11 @@ const char *thing_name(int thing)
     if (thing==THING_Open_Eye) return "THING_Open_Eye";
     if (thing==THING_Closed_Eye) return "THING_Closed_Eye";
     if (thing==THING_Octagon) return "THING_Octagon";
+    if (thing==THING_Magnifying_Glass) return "THING_Magnifying_Glass";
+    if (thing==THING_Wrench) return "THING_Wrench";
+    if (thing==THING_Cancel) return "THING_Cancel";
 
-	return "";
+	return "(unknown name)";
 }
 
 
