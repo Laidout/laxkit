@@ -125,9 +125,15 @@ void SliderPopup::drawarrow()
 void SliderPopup::Refresh()
 {
 	if (!win_on || !needtodraw) return;
-	background_color(win_colors->bg);
-	foreground_color(win_colors->fg);
-	clear_window(this);
+
+	Displayer *dp=MakeCurrent();
+
+	dp->NewBG(win_colors->bg);
+	if (hover) {
+		dp->NewFG(coloravg(win_colors->bg,win_colors->fg,.07));
+		dp->drawrectangle(0,0, win_w,win_h, 1);
+	} else dp->ClearWindow();
+	dp->NewFG(win_colors->fg);
 	
 	char *label=items->menuitems.e[curitem]->name;
 	MenuItem *item=items->menuitems.e[curitem];
@@ -138,8 +144,16 @@ void SliderPopup::Refresh()
 	int tx,ty,ix,iy,w,h;
 	get_placement(img,label,gap,(win_style&SLIDER_WHAT_MASK)>>21,
 				  &w,&h,&tx,&ty,&ix,&iy);
-	if (tx!=LAX_WAY_OFF) textout(this, label,-1,(win_w-arrowwidth-w)/2+tx,(win_h-h)/2+ty,LAX_LEFT|LAX_TOP);
+	if (tx!=LAX_WAY_OFF) dp->textout((win_w-arrowwidth-w)/2+tx,(win_h-h)/2+ty, label,-1, LAX_LEFT|LAX_TOP);
 	if (ix!=LAX_WAY_OFF) image_out(img,this,(win_w-arrowwidth-w)/2+ix,(win_h-h)/2+iy);
+
+	if (hover==LAX_LEFT) {
+		dp->NewFG(coloravg(win_colors->bg,win_colors->fg,.3)); 
+		dp->drawthing(arrowwidth/2,win_h/2,arrowwidth/2,arrowwidth/2, 1, THING_Triangle_Left);
+	} else if (hover==LAX_RIGHT) {
+		dp->NewFG(coloravg(win_colors->bg,win_colors->fg,.3)); 
+		dp->drawthing(win_w-arrowwidth-arrowwidth/2,win_h/2,arrowwidth/2,arrowwidth/2, 1, THING_Triangle_Right);
+	}
 
 	 // draw popup arrow
 	drawarrow();
@@ -342,6 +356,21 @@ void SliderPopup::makePopup(int mouseid)
 	popup->WrapToMouse(mouseid);
 	app->rundialog(popup);
 	app->setfocus(popup,0,NULL);//***
+}
+
+#define SLIDER_POP_MENU 1000
+
+int SliderPopup::scan(int x,int y,unsigned int state)
+{
+	int ww=win_w/2;
+	if (win_style&EDITABLE) ww=text_height();
+
+	if (x<ww) return LAX_LEFT;
+	else if (x>win_w-arrowwidth) return SLIDER_POP_MENU;
+	else if (x>win_w-ww) return LAX_RIGHT;
+	else if (x>0 && x<win_w) return LAX_CENTER;
+
+	return 0;
 }
 
 //! Pop up a MenuSelector with the items in it via popup() when click on arrow.

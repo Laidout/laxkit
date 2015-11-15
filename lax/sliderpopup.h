@@ -46,7 +46,7 @@ namespace Laxkit {
 
 class SliderPopup : public ItemSlider
 {
- protected:
+  protected:
 	MenuInfo *items;
 	int itemsislocal;
 	virtual void drawarrow();
@@ -54,7 +54,8 @@ class SliderPopup : public ItemSlider
 	virtual int getid(int i);
 	virtual int numitems() { return items->menuitems.n; }
 	virtual void makePopup(int mouseid);
- public:
+
+  public:
 	int arrowwidth,pad,gap;
 	SliderPopup(anXWindow *parnt,const char *nname,const char *ntitle,
 				unsigned long nstyle, int xx,int yy,int ww,int hh,int brder,
@@ -66,6 +67,7 @@ class SliderPopup : public ItemSlider
 	virtual int CharInput(unsigned int ch,const char *buffer,int len,unsigned int state,const LaxKeyboard *d);
 	virtual int RBDown(int x,int y,unsigned int state,int count,const LaxMouse *d);
 	virtual int LBDown(int x,int y,unsigned int state,int count,const LaxMouse *d);
+	virtual int scan(int x,int y,unsigned int state);
 
 	virtual int SelectPrevious(double multiplier);
 	virtual int SelectNext(double multiplier);
