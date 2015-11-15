@@ -83,13 +83,14 @@ class MenuInfo;
 //----------------------------------- MenuItem --------------------------------
 class MenuItem : public anObject
 {
- protected:
+  protected:
 	void base_init();
 	void base_init(const char *newitem,int nid,unsigned int nstate,int ninfo,MenuInfo *nsub,int sublocal);
 
 	MenuInfo *submenu; // menu is the menu that this item is in, submenu is assumed local
 	int subislocal;
- public:
+
+  public:
 	char *name;
 	LaxImage *image;
 	int formathint;
@@ -132,9 +133,10 @@ typedef int (*CompareFunc)(MenuItem *i1,int detail1, MenuItem *i2,int detail2);
 
 class MenuInfo : public anObject
 {
- protected:
+  protected:
 	CompareFunc Compare;
- public:
+
+  public:
 	int sortstyle;
 	MenuInfo *curmenu; // where adds get put on to, could be a submenu
 	char *title;
