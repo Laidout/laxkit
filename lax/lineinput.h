@@ -47,12 +47,14 @@ namespace Laxkit {
 
 class LineInput : public anXWindow
 {
- protected:
+  protected:
 	LineEdit *le;
 	char *label;
+	int labelw; //preferred width of the label
 	int lx,ly,lew,leh; // lw,lh<0 means use remainder, >0 is absolute
 	int padx,pady,padlx,padly;
- public:
+
+  public:
 	LineInput(anXWindow *parnt,const char *nname,const char *ntitle,unsigned int nstyle,
 			int xx,int yy,int ww,int hh,int brder,
 			anXWindow *prev,unsigned long nowner=0,const char *nsend=NULL,

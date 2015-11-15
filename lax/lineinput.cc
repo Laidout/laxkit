@@ -65,8 +65,6 @@ namespace Laxkit {
  * #define LINP_POPUP     (1<<23) <-- make SendMessage with a StrEventData, and app->destroywindow(this) when it sends
  * #define LINP_STYLEMASK (1<<16|1<<17|1<<18|1<<19|1<<20|1<<21|1<<22|1<<23)
  * \endcode
- *
- * \todo *** fix crash on NULL label...
  */
 /*! \var int LineInput::lx
  * \brief X coordinate of the label.
@@ -130,6 +128,7 @@ LineInput::LineInput(anXWindow *parnt,const char *nname,const char *ntitle,unsig
 	padlx=npadlx;
 	label=NULL;
 	makestr(label,newlabel);
+	labelw=0;
 	lew=nlew;
 	leh=nleh;
 
@@ -288,6 +287,7 @@ void LineInput::SetPlacement()
 	int lex=0,ley=0,nlew=0,nleh=0;
 	double lw=0,lh=0,fasc=0,fdes=0,textheight;
 	if (label) getextent(label,-1,&lw,&lh,&fasc,&fdes);
+	labelw=lw;
 	textheight=fasc+fdes;
 	
 	if (win_style&(LINP_ONTOP|LINP_ONBOTTOM)) { // assume h centered
@@ -311,6 +311,7 @@ void LineInput::SetPlacement()
 		int oldley=ley;
 		ley=(win_h-nleh-lh-padly)/2+lh+padly;
 		ly+=(ley-oldley);
+
 	} else if (win_style&(LINP_ONLEFT|LINP_ONRIGHT)) {
 		if (lew>0) nlew=lew;
 		else nlew=win_w-3*padlx-2*le->win_border-lw;
@@ -380,9 +381,11 @@ void LineInput::Refresh()
 	DBG cerr <<"LineInput "<<WindowTitle()<<": le of LineInput: x,y:"<<le->win_x<<","<<le->win_y<<endl;
 	
 	if (label) {
-		clear_window(this);
-		foreground_color(win_colors->fg);
-		textout(this, label,strlen(label),lx,ly,LAX_LEFT|LAX_BASELINE);
+		Displayer *dp=MakeCurrent();
+		dp->ClearWindow();
+		dp->NewFG(win_colors->fg);
+		dp->font(app->defaultlaxfont);
+		dp->textout(lx,ly, label,strlen(label), LAX_LEFT|LAX_BASELINE);
 	}
 	needtodraw=0;
 }
