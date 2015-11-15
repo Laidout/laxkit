@@ -60,6 +60,7 @@ FontLayersWindow::FontLayersWindow(anXWindow *parnt, anXWindow *prev, unsigned l
 	current_layer=1;
 	lasthover=0;
 	grabbed=0; //which layer to float during a mouse drag, if any
+	glyph_mismatch=false;
 
 	Displayer *dp=GetDisplayer();
 	pad=dp->textheight()/2;
@@ -360,12 +361,16 @@ void FontLayersWindow::Refresh()
  *
  * fam, style, and size are default values to open the dialog to. If NULL or 0 are supplied,
  * then the dialog will select defaults.
+ *
+ * nfont's count will be incremented if !work_on_dup. If work_on_dup, nfont is left alone,
+ * and the dialog works on and sends back a duplicate of nfont.
  */
 FontDialog::FontDialog(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
 		int xx,int yy,int ww,int hh,int brder,
 		unsigned long nowner,const char *nsend,
 		unsigned long ndstyle,
-		const char *fam, const char *style, double size, const char *nsample, LaxFont *nfont)
+		const char *fam, const char *style, double size, const char *nsample,
+		LaxFont *nfont, bool work_on_dup)
 	: RowFrame(parnt,nname,ntitle,(nstyle&0xffff)|ROWFRAME_ROWS|ROWFRAME_CENTER,
 			   xx,yy,ww,hh,brder,
 			   NULL,nowner,nsend,
@@ -375,18 +380,19 @@ FontDialog::FontDialog(anXWindow *parnt,const char *nname,const char *ntitle,uns
 
 	thefont=nfont;
 	if (nfont) {
-		palette=dynamic_cast<Palette*>(nfont->GetColor());
-		if (palette) palette->inc_count();
+		if (work_on_dup) thefont=nfont->duplicate();
+		else thefont->inc_count();
 
-		thefont->inc_count();
-		if (thefont->Layers()>1) fontlayer=thefont;
 		if (!fam)   fam  =thefont->Family();
 		if (!style) style=thefont->Style();
 	} else {
 		if (!fam) fam="sans";
 		thefont=app->fontmanager->MakeFont(fam, style, size, 0);
 	}
+
 	fontlayer=thefont;
+	palette=dynamic_cast<Palette*>(thefont->GetColor());
+	if (palette) palette->inc_count();
 
 
 	origfamily=newstr(fam);
@@ -408,6 +414,7 @@ FontDialog::FontDialog(anXWindow *parnt,const char *nname,const char *ntitle,uns
 	more=false;
 	initted=false;
 
+	tags=NULL;
 }
 
 FontDialog::~FontDialog()
@@ -420,16 +427,6 @@ FontDialog::~FontDialog()
 	delete[] sampletext;
 	delete[] origfamily;
 	delete[] origstyle;
-}
-
-/*! for a qsort()
- */
-int cmp_fontinfo_psname(const void *f1p, const void *f2p)
-{
-	FontDialogFont *f1=(FontDialogFont*)f1p;
-	FontDialogFont *f2=(FontDialogFont*)f2p;
-
-	return strcmp(f1->psname, f2->psname);
 }
 
 int FontDialog::init()
@@ -505,17 +502,28 @@ int FontDialog::init()
 	search->GetLineEdit()->setWinStyle(LINEEDIT_SEND_ANY_CHANGE, 1);
 	search->GetLineEdit()->setWinStyle(LINEEDIT_CLEAR_X, 1);
 	search->tooltip(_("Search among fonts"));
-	AddWin(search,1, 20,10,2000,50,0, search->win_h,0,0,50,0, -1);
+	AddWin(search,1, 20,10,5000,50,0, search->win_h,0,0,50,0, -1);
 
 	AddHSpacer(textheight*2, 0,250,0);
 
 	Button *tbut;
-	last=tbut=new Button(this,"more","more",IBUT_FLAT, 0,0,0,0, 0, 
-			last,object_id,"more", 0, _("More.."),NULL,NULL,3,3);
-	AddWin(tbut,1, tbut->win_w,0,tbut->win_w*2,50,0, tbut->win_h,0,0,50,0, -1);
+//	last=tbut=new Button(this,"more","more",IBUT_FLAT, 0,0,0,0, 0, 
+//			last,object_id,"more", 0, _("More.."),NULL,NULL,3,3);
+//	AddWin(tbut,1, tbut->win_w,0,tbut->win_w*2,50,0, tbut->win_h,0,0,50,0, -1);
 
 	AddNull();
 
+	//----- tags
+	if (app->fontmanager->tags.n) {
+		last = tags = new IconSelector(this, "tags","tags", 0, 0,0,0,0,0, last,object_id,"tags",textheight/2,textheight/2);
+
+		for (int c=0; c<app->fontmanager->tags.n; c++) {
+			tags->AddBox(app->fontmanager->tags.e[c]->tag, (LaxImage*)NULL, app->fontmanager->tags.e[c]->id);
+		}
+
+		AddWin(tags,1, tags->win_w,0,5000,50,0, textheight*1.5,0,2*textheight,50,0, -1);
+		AddNull();
+	}
 
 	 //------font list
 	if (!mfonts) {
@@ -722,6 +730,55 @@ void FontDialog::UpdateSample()
 	}
 }
 
+/*! Apply the search term if any, and any tag filters.
+ */
+void FontDialog::UpdateSearch()
+{
+	fontlist->ClearSearch();
+	fontlist->UpdateSearch(search->GetCText(), 0);
+
+	if (!app->fontmanager->tags.n) return;
+	if (!tags) return;
+
+	MenuInfo *menu=fontlist->Menu();
+	MenuItem *item;
+	SelBox *box;
+	FontDialogFont *font;
+	int tag;
+
+	NumStack<int> active_tags;
+	for (int c2=0; c2<tags->NumBoxes(); c2++) {
+		box=dynamic_cast<SelBox*>(tags->GetBox(c2));
+		if (!box) continue;
+		if (box->state&LAX_ON) {
+			active_tags.push(box->id);
+
+			DBG cerr<<"active tag: "<<app->fontmanager->GetTagName(box->id)<<endl;
+		}
+	}
+
+	if (active_tags.n) {
+		for (int c=0; c<menu->n(); c++) { //each line in window font list
+			item=menu->e(c);
+			if (!item) continue;
+
+			font = fonts->e[item->id]; //index into fontmanager->fonts[]
+
+			int hit=0;
+			for (int c2=0; c2<active_tags.n; c2++) {
+				tag=active_tags.e[c2];
+				if (font->HasTag(tag)) {
+					item->state|=MENU_SEARCH_HIT;
+					hit++;
+				}
+			}
+			if (!hit) item->state|=MENU_SEARCH_HIDDEN;
+		}
+	}
+
+	fontlist->Sync();
+}
+
 int FontDialog::Event(const EventData *data,const char *mes)
 {
 	DBG cerr <<"-----font dialog got: "<<mes<<endl;
@@ -769,6 +826,17 @@ int FontDialog::Event(const EventData *data,const char *mes)
 
 	} else if (!strcmp(mes,"search")) {
 		fontlist->UpdateSearch(search->GetCText(), 0);
+		return 0;
+
+	} else if (!strcmp(mes,"tags")) {
+		DBG cerr <<"===========================tags======================="<<endl;
+
+		//const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(data);
+		//int i=s->info1; //index
+		//int tagid = s->info2; //id
+
+		UpdateSearch();
+
 		return 0;
 
 	} else if (!strcmp(mes,"newfile")) {

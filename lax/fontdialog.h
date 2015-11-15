@@ -30,6 +30,7 @@
 #include <lax/numslider.h>
 #include <lax/scroller.h>
 #include <lax/palette.h>
+#include <lax/iconselector.h>
 
 
 namespace Laxkit {
@@ -118,6 +119,7 @@ class FontDialog : public RowFrame
 	MenuInfo *mfonts;
 	MenuInfo styles;
 	FontLayersWindow *layers;
+	IconSelector *tags;
 
 	LaxFont *thefont, *fontlayer;
 	Palette *palette;
@@ -125,6 +127,7 @@ class FontDialog : public RowFrame
 	virtual void UpdateStyles();
 	virtual void UpdateSample();
 	virtual void UpdateColorBoxes();
+	virtual void UpdateSearch();
 
  public:
 	FontDialog(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
@@ -132,7 +135,7 @@ class FontDialog : public RowFrame
 				unsigned long nowner,const char *nsend,
 				unsigned long ndstyle,
 				const char *fam, const char *style, double size, const char *nsample,
-				LaxFont *nfont);
+				LaxFont *nfont, bool work_on_dup);
 	virtual ~FontDialog();
 
 	virtual const char *whattype() { return "FontDialog"; }
