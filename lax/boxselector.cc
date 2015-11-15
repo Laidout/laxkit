@@ -31,7 +31,6 @@
 using namespace std;
 #define DBG 
 
-#define HOVER (-1)
 
 namespace Laxkit {
 
@@ -156,6 +155,7 @@ BoxSelector::BoxSelector(anXWindow *parnt,const char *nname,const char *ntitle,u
 	bevel=1;
 	padi=1;
 	curbox=-1;
+	hoverbox=-1;
 
 //	filterflags();*** see RowColBox::filterflags
 //	if (win_style&BOXSEL_STRETCHX) elementflags|=BOX_STRETCH_TO_FILL_X;
@@ -270,7 +270,7 @@ void BoxSelector::sync()
 /*! A SimpleMessage is filled thus:	
  * <pre>
  * 	info1=curbox; // current box*** if LAX_ON only?? or first on box?
- * 	info2=(curbox>=0?wholelist.e[c]->id:0); // id of curbox
+ * 	info2=(curbox>=0?wholelist.e[curbox]->id:0); // id of curbox
  * 	info3=n; // num that are on
  * 	info4=0; // ***num that are newly changed
  * </pre>
@@ -359,11 +359,15 @@ int BoxSelector::LBDown(int x,int y,unsigned int state,int count,const LaxMouse 
 int BoxSelector::LBUp(int x,int y,unsigned int state,const LaxMouse *d)
 {
 	if (!buttondown.isdown(d->id,LEFTBUTTON)) return 1;
+
 	int lbdown=-1;
 	buttondown.up(d->id,LEFTBUTTON, &lbdown);
+
 	int wherenow=MouseInWhich(x,y);
 	if (wherenow==lbdown) {
 		DBG cerr <<" BoxSelector should send() here"<<endl; //***
+
+		send();
 		SelectN(wherenow);
 	}
 	return 0;
@@ -433,14 +437,22 @@ int BoxSelector::Event(const EventData *e,const char *mes)
 	if (e->type==LAX_onMouseOut) {
 		//DBG cerr <<" Leave:"<<WindowTitle()<<": state:"<<state<<"  oldstate:"<<oldstate<<endl;
 		//DBG cerr <<"  BoxSelector::event:Leave:"<<WindowTitle()<<": state:"<<state<<"  oldstate:"<<oldstate<<endl;
-		if (!buttondown.isdown(0,LEFTBUTTON) && curbox>=0 && curbox<wholelist.n) {
+
+//		if (!buttondown.isdown(0,LEFTBUTTON) && curbox>=0 && curbox<wholelist.n) {
+//			 // if leaving window and button is not pressed, make sure to not draw curbox with hover color...
+//			SelBox *b=dynamic_cast<SelBox *>(wholelist.e[curbox]);
+//			if (b) {
+//				b->state&=~LAX_MOUSEIN;
+//				drawbox(curbox);
+//			}
+//			curbox=-1;
+//		}
+
+		if (!buttondown.isdown(0, LEFTBUTTON) && hoverbox>=0) {
 			 // if leaving window and button is not pressed, make sure to not draw curbox with hover color...
-			SelBox *b=dynamic_cast<SelBox *>(wholelist.e[curbox]);
-			if (b) {
-				b->state&=~LAX_MOUSEIN;
-				drawbox(curbox);
-			}
+			hoverbox=-1;
 			curbox=-1;
+			needtodraw=1;
 		}
 	}
 	return anXWindow::Event(e,mes);
@@ -450,37 +462,40 @@ int BoxSelector::Event(const EventData *e,const char *mes)
 int BoxSelector::MouseMove(int x,int y,unsigned int state,const LaxMouse *d)
 {
 	int wherenow=MouseInWhich(x,y);
-	int dcurbox=-1;
 	
-	if (!buttondown.isdown(d->id, HOVER)) buttondown.down(d->id, HOVER, x,y, wherenow);
-	else buttondown.getinfo(d->id, HOVER, NULL,NULL,NULL,NULL,NULL,NULL, &dcurbox);
-
-	if (wherenow==dcurbox) return 0; //nothing to do if not crossing box boundaries
-
-	SelBox *b;
-	if (dcurbox>=0 && dcurbox<wholelist.n) { // leaving
-		b=dynamic_cast<SelBox *>(wholelist.e[dcurbox]); // dcurbox must be a non-null SelBox, so no need to check that
-		if (b) {
-			b->mousecount--;
-			int lbdown=-1;
-			if (buttondown.isdown(d->id,LEFTBUTTON, &lbdown)) {
-				 //remember only one device can have a button down at a time
-				if (dcurbox==lbdown) b->state^=(LAX_ON|LAX_OFF);
-			}
-			drawbox(dcurbox);
+	
+	if (!buttondown.isdown(d->id, LEFTBUTTON)) {
+		if (hoverbox!=wherenow) {
+			hoverbox=wherenow;
+			needtodraw=1;
 		}
+		return 0;
 	}
-	dcurbox=wherenow;
-	if (dcurbox>=0 && dcurbox<wholelist.n) { // entering
-		b=dynamic_cast<SelBox *>(wholelist.e[dcurbox]); // dcurbox must be a non-null SelBox, so no need to check that
-		if (b) {
-			b->mousecount++;
-			int lbdown=-1;
-			if (buttondown.isdown(d->id,LEFTBUTTON, &lbdown) && dcurbox==lbdown) b->state^=(LAX_ON|LAX_OFF);
-			drawbox(dcurbox);
-		}
+
+	//button is down
+
+
+	if (wherenow==hoverbox) return 0; //nothing to do if not crossing box boundaries
+
+	int lbdown=-1;
+	buttondown.getextrainfo(d->id,LEFTBUTTON, &lbdown);
+
+	SelBox *selbox=NULL;
+
+	if (wherenow == lbdown && hoverbox!=lbdown) {
+		 //reentering the down box
+		selbox=dynamic_cast<SelBox*>(wholelist.e[lbdown]);
+		selbox->state^=(LAX_ON|LAX_OFF);
+		needtodraw=1;
+
+	} else if (wherenow != lbdown && hoverbox==lbdown) {
+		 //leaving the down box
+		selbox=dynamic_cast<SelBox*>(wholelist.e[lbdown]);
+		selbox->state^=(LAX_ON|LAX_OFF);
+		needtodraw=1;
 	}
-	buttondown.moveinfo(d->id,HOVER,wherenow);
+
+	hoverbox=wherenow;
 	return 0;
 }
 

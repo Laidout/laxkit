@@ -68,10 +68,11 @@ namespace Laxkit {
 //------------------------------- SelBox --------------------------------
 class SelBox : public SquishyBox
 {
- public:
+  public:
 	unsigned int state;
 	int info,id;
 	int mousecount;
+	
 	SelBox(int xx,int yy,int ww,int hh,int nid);
 	SelBox(int nid=0);
 	virtual ~SelBox() {}
@@ -81,13 +82,18 @@ class SelBox : public SquishyBox
 
 class BoxSelector : public anXWindow, public RowColBox
 { 
- protected:
+  protected:
+	int hoverbox;
+	int curbox;
+
 	ButtonDownInfo buttondown;
+
 	virtual void togglebox(int which,int db=1);
- public:	
+
+  public:	
 	unsigned long highlight,shadow;
 	int pad,padi,bevel;
-	int curbox;
+
 	BoxSelector(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
 						int xx,int yy,int ww,int hh,int brder,
 						anXWindow *prev,unsigned long nowner,const char *nsendmes,

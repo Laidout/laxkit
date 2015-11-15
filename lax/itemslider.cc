@@ -191,6 +191,18 @@ int ItemSlider::LBUp(int x,int y,unsigned int state,const LaxMouse *d)
 int ItemSlider::Mode(int newmode)
 { return 0; }
 
+int ItemSlider::scan(int x,int y,unsigned int state)
+{
+	int ww=win_w/2;
+	if (win_style&EDITABLE) ww=text_height();
+
+	if (x<ww) return LAX_LEFT;
+	else if (x>win_w-ww) return LAX_RIGHT;
+	else if (x>0 && x<win_w) return LAX_CENTER;
+
+	return 0;
+}
+
 //! Dragging the mouse horizontally selects previous or next item.
 /*! If the mouse is dragged more than movewidth then the next
  * or previous item is selected. 
@@ -198,13 +210,8 @@ int ItemSlider::Mode(int newmode)
 int ItemSlider::MouseMove(int x,int y,unsigned int state,const LaxMouse *d)
 {
 	if (!buttondown.isdown(d->id,LEFTBUTTON)) {
-		int nhover=0;
-		int ww=win_w/2;
-		if (win_style&EDITABLE) ww=text_height();
+		int nhover=scan(x,y,state);
 
-		if (x<ww) nhover=LAX_LEFT;
-		else if (x>win_w-ww) nhover=LAX_RIGHT;
-		else if (x>0 && x<win_w) nhover=LAX_CENTER;
 		if (nhover!=hover) {
 			hover=nhover;
 			needtodraw=1;

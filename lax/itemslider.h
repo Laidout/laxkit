@@ -71,6 +71,7 @@ class ItemSlider : public anXWindow
 	virtual int LBDown(int x,int y,unsigned int state,int count,const LaxMouse *d);
 	virtual int LBUp(int x,int y,unsigned int state,const LaxMouse *d);
 	virtual int MouseMove(int x,int y,unsigned int state,const LaxMouse *d);
+	virtual int scan(int x,int y,unsigned int state);
 
 	virtual void Refresh() = 0;
 
