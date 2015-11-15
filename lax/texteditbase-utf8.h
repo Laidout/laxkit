@@ -136,7 +136,7 @@ class TextEditBaseUtf8 : virtual public Undoable
 	virtual char *CutSelText(); // cuts to char *, not clipboard
 	virtual long GetSelection(long &sels,long &sele);
 	virtual int SetSelection(long newss=-2,long newse=-2); // if e==-1, sets e=textlen,e==-2 sets sels=curpos, curpos+=s
-	virtual long Getnumlines();
+	virtual long GetNumLines();
 	virtual long Getnlines(long s=-1,long e=-1);
 	virtual long Getcharswide();  // total # chars with letter,nonprint,tabs,etc, not actual width
 	virtual int Getpixwide(long linenum); // return pix wide of line

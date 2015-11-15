@@ -767,7 +767,7 @@ long TextEditBaseUtf8::Getcharswide()  /* # chars, not actual width */
 }
 
 //! Return the number of newlines in the whole buffer.
-long TextEditBaseUtf8::Getnumlines()
+long TextEditBaseUtf8::GetNumLines()
 { return Getnlines(0,textlen-1); }
 
 //! Return the number of newlines in range [s,e]
