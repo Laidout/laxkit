@@ -128,11 +128,13 @@ enum DrawThingTypes {
 	THING_Double_Arrow_Vertical,
 	THING_Pan_Arrows,            //!< Arrow that points left, right, up, and down
 	THING_Check,
+	THING_Cancel,
 	THING_Locked,
 	THING_Unlocked,
 	THING_Open_Eye,
 	THING_Closed_Eye,
 	THING_Octagon,
+	THING_Magnifying_Glass,
 	THING_Wrench,
 
 	THING_MAX
