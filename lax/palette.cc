@@ -102,6 +102,24 @@ Palette::~Palette()
 	if (filename) delete[] filename;
 }
 
+Palette *Palette::duplicate()
+{
+	Palette *pal=new Palette();
+	for (int c=0; c<colors.n; c++) {
+		pal->colors.push(new PaletteEntry(colors.e[c]));
+	}
+
+	pal->defaultmaxcolor=defaultmaxcolor;
+	pal->default_colorspace=default_colorspace;
+	makestr(pal->filename, filename);
+	makestr(pal->name,name);
+	pal->is_read_in=is_read_in;
+	pal->readonly=readonly;
+	pal->columns=columns;
+
+	return pal;
+}
+
 //! Dump out the palette to an Attribute, in standard format (what is ignored).
 Attribute *Palette::dump_out_atts(Attribute *att,int what,LaxFiles::DumpContext *context)
 {
