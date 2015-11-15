@@ -53,8 +53,11 @@ class CharacterInterface : public anInterface
 	Laxkit::DoubleBBox suggestionbox;
 	Laxkit::DoubleBBox bigbox;
 
-	Laxkit::NumStack<int> ranges;
-	Laxkit::NumStack<int> starts;
+	//Laxkit::NumStack<int> ranges;
+	//Laxkit::NumStack<int> starts;
+	Laxkit::NumStack<int> chars;
+	bool needtosetchars;
+	virtual void SetupChars();
 
 	Laxkit::ShortcutHandler *sc;
 
@@ -63,7 +66,7 @@ class CharacterInterface : public anInterface
 
   public:
 	enum SelectCategory {
-		INSCHAR_None,
+		INSCHAR_None=0,
 		INSCHAR_Recent,
 		INSCHAR_Suggestions,
 		INSCHAR_MainBox,
@@ -72,7 +75,7 @@ class CharacterInterface : public anInterface
 
 	unsigned int character_interface_style;
 
-	CharacterInterface(anInterface *nowner, int nid,Laxkit::Displayer *ndp);
+	CharacterInterface(anInterface *nowner, int nid, Laxkit::Displayer *ndp, Laxkit::LaxFont *nfont);
 	virtual ~CharacterInterface();
 	virtual anInterface *duplicate(anInterface *dup);
 	virtual const char *IconId() { return "Character"; }
@@ -92,6 +95,8 @@ class CharacterInterface : public anInterface
 	virtual int MouseMove(int x,int y,unsigned int state, const Laxkit::LaxMouse *d);
 	virtual int LBDown(int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d);
 	virtual int LBUp(int x,int y,unsigned int state, const Laxkit::LaxMouse *d);
+	virtual int MBDown(int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d);
+	virtual int MBUp(int x,int y,unsigned int state, const Laxkit::LaxMouse *d);
 	virtual int WheelUp  (int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d);
 	virtual int WheelDown(int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d);
 	virtual int CharInput(unsigned int ch, const char *buffer,int len,unsigned int state, const Laxkit::LaxKeyboard *d);
