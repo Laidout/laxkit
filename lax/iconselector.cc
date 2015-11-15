@@ -34,7 +34,8 @@ using namespace std;
 
 namespace Laxkit {
 
-//--------------------------------------------------------------
+
+//----------------------------- IconBox ---------------------------------
 
 /*! \class IconBox
  * \brief Internal node type for IconSelector.
@@ -48,6 +49,7 @@ namespace Laxkit {
 IconBox::IconBox(const char *nlabel,LaxImage *img,int nid)
 	: SelBox(nid)
 { 
+	id=nid;
 	label=NULL;
 	image=bwimage=NULL;
 	SetBox(nlabel,img,NULL);
@@ -79,7 +81,10 @@ int IconBox::SetBox(const char *nlabel,LaxImage *img,LaxImage *bw)
 	
 	return 0;
 }
-//--------------------------------------------------------------
+
+
+//------------------------------ IconSelector --------------------------------
+
 /*! \class IconSelector
  * \brief A selector using boxes with a label and/or an icon.
  *
@@ -121,9 +126,9 @@ IconSelector::~IconSelector()
 {}
 
 //! Loads image, then calls FillBox(IconBox *,const char *,LaxImage *,int).
-void IconSelector::FillBox(IconBox *b,const char *nlabel,const char *filename,int makebw) // makebw=0
+void IconSelector::FillBox(IconBox *b,const char *nlabel,const char *filename,int nid)
 {
-	FillBox(b,nlabel,load_image(filename),makebw);
+	FillBox(b,nlabel,load_image(filename),nid);
 }
 
 //! Fill the given box with the label, and the icon from filename.
@@ -136,7 +141,7 @@ void IconSelector::FillBox(IconBox *b,const char *nlabel,const char *filename,in
  *
  *  b is supposed to be a new, blank box, whose members are NULL.
  */
-void IconSelector::FillBox(IconBox *b,const char *nlabel,LaxImage *img,int makebw) // makebw=0
+void IconSelector::FillBox(IconBox *b,const char *nlabel,LaxImage *img,int nid)
 {
 	if (!b) return;
 
@@ -156,15 +161,16 @@ void IconSelector::FillBox(IconBox *b,const char *nlabel,LaxImage *img,int makeb
 	b->pw(tw+iw);
 	b->h(th>ih?th:ih);
 	b->ph(th>ih?th:ih);
+	b->id=nid;
 	makestr(b->label,nlabel);
 
 	b->pad=bevel;
 }
 
 //! Just returns AddBox(NULL,load_image(filename),makebw).
-int IconSelector::AddBox(const char *nlabel,const char *filename,int makebw) // makebw=0
+int IconSelector::AddBox(const char *nlabel,const char *filename,int nid)
 {
-	return AddBox(NULL,load_image(filename),makebw);
+	return AddBox(NULL,load_image(filename),nid);
 }
 
 //! Add box and return its index.
@@ -172,10 +178,10 @@ int IconSelector::AddBox(const char *nlabel,const char *filename,int makebw) // 
  * 
  * Currently, filename must be something Imlib2 can read in.
  */
-int IconSelector::AddBox(const char *nlabel,LaxImage *img,int makebw) //makebw=0
+int IconSelector::AddBox(const char *nlabel,LaxImage *img,int nid)
 {
 	IconBox *newbox=new IconBox();
-	FillBox(newbox,nlabel,img,makebw);
+	FillBox(newbox,nlabel,img,nid);
 	wholelist.push(newbox);
 	needtodraw=1;
 	
@@ -194,7 +200,7 @@ void IconSelector::drawbox(int which)
 	IconBox *b=dynamic_cast<IconBox *>(wholelist.e[which]);
 	if (!b) return;
 	
-	foreground_color((b->mousecount>0?win_colors->moverbg:win_colors->bg));
+	foreground_color(which==hoverbox ? win_colors->moverbg : win_colors->bg);
 	fill_rectangle(this, b->x() - b->pad,  b->y() - b->pad,    b->w() + 2*b->pad,  b->h() + 2*b->pad);
 
 	 // Set  tx,ty  px,py

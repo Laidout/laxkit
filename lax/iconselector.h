@@ -33,23 +33,27 @@
 
 namespace Laxkit {
 
+
 //------------------------------- IconBox --------------------------------
 class IconBox : public SelBox
 {
- public:
+  public:
 	char *label;
-	LaxImage *image,*bwimage;
+	LaxImage *image;
+	LaxImage *bwimage;
+
 	IconBox(const char *nlabel,LaxImage *img,int nid);
 	IconBox() { image=bwimage=NULL; label=NULL; state=LAX_OFF; }
 	virtual ~IconBox();
 	virtual int SetBox(const char *nlabel,LaxImage *img,LaxImage *bw);
 };
 
+
 //------------------------------- IconSelector --------------------------------
 class IconSelector : public BoxSelector
 { 
- protected:
- public:
+  protected:
+  public:
 	int padg,labelstyle;
 	IconSelector(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
 						int xx,int yy,int ww,int hh,int brder,
@@ -57,11 +61,12 @@ class IconSelector : public BoxSelector
 						int npadx=0,int npady=0);
 	~IconSelector();
 	virtual void drawbox(int which);
-	virtual void FillBox(IconBox *b,const char *nlabel,LaxImage *img,int makebw); // makebw=0
-	virtual void FillBox(IconBox *b,const char *nlabel,const char *filename,int makebw); // makebw=0
-	virtual int AddBox(const char *nlabel,LaxImage *img,int makebw=0); // makebw=0
-	virtual int AddBox(const char *nlabel,const char *filename,int makebw=0); // makebw=0
+	virtual void FillBox(IconBox *b,const char *nlabel,LaxImage *img, int nid);
+	virtual void FillBox(IconBox *b,const char *nlabel,const char *filename, int nid);
+	virtual int AddBox(const char *nlabel,LaxImage *img,int nid);
+	virtual int AddBox(const char *nlabel,const char *filename,int nid);
 };
+
 
 } // namespace Laxkit
 
