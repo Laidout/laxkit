@@ -23,9 +23,14 @@
 
 
 #include <cmath>
+#include <cstdlib>
 
 #include <lax/vectors.h>
+
+//for SvgToFlatpoints
 #include <lax/attributes.h>
+#include <lax/doublebbox.h>
+#include <lax/lists.cc>
 
 #define DBG
 #include <iostream>
@@ -1112,6 +1117,428 @@ void dump_points(const char *label, flatpoint *p,int n, int offset)
 		std::cerr <<std::endl;
 	}
 	if (label) std::cerr <<"---- end "<<label<<"----"<<std::endl;
+}
+
+
+//! Convert an SVG path data snippet to a flatpoint list.
+/*!
+ * The d attribute of Svg paths allows definition of lines composed of a mixture of
+ * straight lines, cubic bezier lines, quartic bezier lines, circle arcs, and ellipses.
+ *
+ * If normalize==0, then parse points as in d.
+ * If normalize==1, then scale to fit centered within a 1x1 box, with coordinates in range [0..1].
+ *
+ * Unless how&4==4, if d contains multiple paths, the paths are all parsed into a single list.
+ * 
+ * If everything in d is parsed, then endptr will be pointing to the terminating null
+ * character of the string.
+ *
+ * Any path in d that corresponds to path with a single coordinate will be ignored.
+ * 
+ * If how&3==0, then allow mixed poly lines and bezier segments.
+ * If how&3==1, (todo) then the returned path must be only a poly line.
+ * If how&3==2, (todo) then the returned path must be all bezier segments.
+ * if how&4==4 then return a normal closed path upon parsing a 'z'. Otherwise parse whole list.
+ *
+ * Ellipsoidal arcs are converted into cubic bezier segments.
+ *
+ * Svg path data follows the following format. The letter is a command. If more than the
+ * given numbers are present, then assume they are parameters for another of the same command,
+ * except for moveto, which switches to lineto for subsequent x,y.
+ * <pre>
+ *   M x y    move to absolute coordinate (x,y)
+ *   m x y    move to coordinate (x,y) relative to previous coordinate
+ *       Any further x y are implied lineto commands
+ *
+ *   L x y    draw a line to absolute coordinate (x,y)
+ *   l x y    draw a line to coordinate (x,y) relative to previous coordinate
+ *
+ *   H x      draw a horizontal line to absolute coordinate (x,current y)
+ *   h x      draw a horizontal line to coordinate ((current x)+x,(current y))
+ *
+ *   V x      draw a vertical line to absolute coordinate ((current x), y)
+ *   v x      draw a vertical line to coordinate ((current x),(current y)+y)
+ *
+ *   C x1 y1 x2 y2 x y   draw a cubic bezier segment. 1 and 2 are controls, (x,y) is vertex
+ *   c x1 y1 x2 y2 x y   like C, but using relative coordinates
+ *
+ *   S x2 y2 x y   draw a cubic bezier segment.  2 is the second controls, (x,y) is vertex,
+ *   s x2 y2 x y     the first control is reflection of control from previous bezier segment,
+ *                   or the current point, if there was no previous segment. 's' is for
+ *                   relative coordinates
+ *
+ *   Q x1 y1 x y   draw a quartic bezier segment. 1 is control point, (x,y) is vertex
+ *   q x1 y1 x y   like q, but using relative coordinates
+ *
+ *   T x y         draw a quartic bezier segment. (x,y) is vertex,
+ *   t x y           the control point is reflection of control from previous bezier segment,
+ *                   or the current point, if there was no previous segment. 't' is for
+ *                   relative coordinates
+ *
+ *   A/a rx ry x-axis-rotation large-arc-flag sweep-flag x y
+ *               draw an arc from the current point to the point (x,y)
+ *               rx and ry are the x and y radii.
+ *               the ellipse is rotated by x-axis-rotation (in degrees).
+ *               if large-arc-flag==1, then the swept out arc is large. 0 means small.
+ *               if sweep-flag==1, then the arc is traced in a positive angle direction,
+ *               otherwise 0 means in a negative direction (hard to describe without pictures).
+ *   
+ *
+ *   Z or z   close the current path by with a straight line. If a move does not follow it,
+ *            then use the initial point of the path just closed as the starting point for
+ *            the new path
+ * </pre>
+ *
+ * \todo *** right now how&3 bits are ignored..
+ * \todo *** if d doesn't start with a move, what is the spec'd default starting point??
+ *    right now, failure results if not starting with a move
+ */
+flatpoint *SvgToFlatpoints(const char *d, char **endptr, int how, flatpoint *buffer, int buffersize, int *totalpoints, int normalize)
+{
+	if (!d) return NULL;
+
+	Laxkit::NumStack<flatpoint> points;
+
+	const char *p=d;
+	char *ee;
+	char command=0;
+	char hascurpoint=0;
+	char lastwasmove=0;//when previous point resulted from a move
+	flatpoint curpoint,
+			  lastcontrol, //Vector with length and direction of last control 
+			  			   // handle pointing at the associated vertex
+						   // ***TODO this needs to be implemented fully!!
+			  fp; //temp vector
+	flatpoint *last=NULL;
+	int numpoints=0; //number of points in current contiguous path
+	//int error=0;
+
+	try {
+	  while (*p) {
+		while (isspace (*p)) p++;
+		if (!*p) break;
+
+		if (isdigit(*p) || *p=='.' || *p=='-') {
+			//is a number, so assume we are continuing last command
+		} else {
+			command=*p;
+			p++;
+		}
+
+		if (command=='M' || command=='m') { 
+			//if (command=='m' && !hascurpoint) command='M'; //initial 'm' is treated as 'M'
+
+			if (numpoints>0 && !(points.e[points.n-1].info&(LINE_Open|LINE_Closed|LINE_End))) {
+			//if (numpoints>0 && !(****last->info&(LINE_Open|LINE_Closed|LINE_End))) {
+				 //move, if not first command is supposed to start a new subpath
+				 //so terminate current path, by adding a point with a terminator flag
+				last->info|=LINE_Open;
+			}
+
+			 // move curpoint
+			fp.x=strtod(p,&ee);
+			if (ee==p) throw (2); //bad number
+
+			p=ee;
+			while (isspace (*p) || *p==',') p++;
+			fp.y=strtod(p,&ee);
+			if (ee==p) throw (3); //bad number
+
+			if (command=='m') {
+				if (hascurpoint) fp=fp+curpoint; //lowercase command is relative coords
+				command='l'; //subsequent numbers are implied lineto commands
+			} else command='L';
+			curpoint=fp;
+			hascurpoint=1;
+			numpoints=0;
+			lastwasmove=1;
+			
+			p=ee;
+			continue;
+
+		} else if (command=='L' || command=='l') {
+			 // line to: l (x y)+
+			 // can have one or more x,y pairs
+			if (!hascurpoint) throw (4);
+			fp.x=strtod(p,&ee);
+			if (ee==p) throw (5);
+
+			p=ee;
+			while (isspace (*p) || *p==',') p++;
+			fp.y=strtod(p,&ee);
+			if (ee==p) throw (6);
+
+			p=ee;
+			while (isspace (*p) || *p==',') p++;
+
+			if (lastwasmove) {
+				 //needed to add initial point of line
+				points.push(curpoint);
+				numpoints++;
+			}
+
+			if (command=='l') fp+=curpoint; //relative line
+
+			points.push(fp);
+			numpoints++;
+
+			curpoint=fp;
+			lastwasmove=0;
+			continue;
+
+		} else if (command=='H' || command=='h') {
+			 //one or more x values, constant y
+			if (!hascurpoint) throw (4);
+
+			fp.y=curpoint.y;
+			fp.x=strtod(p,&ee);
+			if (ee==p) throw (5);
+			p=ee;
+
+			if (command=='h') fp.x+=curpoint.x;
+			if (lastwasmove) {
+				 //needed to add initial point of line
+				points.push(curpoint);
+				numpoints++;
+			}
+			points.push(fp);
+			numpoints++;
+
+			curpoint=fp;
+			lastwasmove=0;
+			continue;
+
+		} else if (command=='V' || command=='v') {
+			 //one or more y values, constant x
+			if (!hascurpoint) throw (4);
+
+			fp.x=curpoint.x;
+			fp.y=strtod(p,&ee);
+			if (ee==p) throw (6);
+			p=ee;
+
+			if (command=='v') fp.y+=curpoint.y;
+			if (lastwasmove) {
+				 //needed to add initial point of line
+				points.push(curpoint);
+				numpoints++;
+			}
+			points.push(fp);
+			curpoint=fp;
+			lastwasmove=0;
+			continue;
+
+		} else if (command=='C' || command=='c') {
+			 //C (x1 y1 x2 y2 x y)+
+			 //x1,y1 == first control point on curpoint
+			 //x2,y2 == control point for x,y
+			 // x,y  == final point
+			 // 'c' has each of the 3 points relative TO CURRENT POINT !?!!
+
+			if (!hascurpoint) throw (7);
+
+			double dd[6];
+			int n=LaxFiles::DoubleListAttribute(p,dd,6,&ee);
+			if (ee==p || n!=6) throw (8);
+			p=ee;
+
+			if (lastwasmove) {
+				 //needed to add initial point of line
+				points.push(curpoint);
+				numpoints++;
+			}
+			points.push(flatpoint(dd[0],dd[1], LINE_Bez));
+			if (command=='c') { points.e[points.n-1].x+=curpoint.x; points.e[points.n-1].y+=curpoint.y; }
+
+			points.push(flatpoint(dd[2],dd[3], LINE_Bez));
+			if (command=='c') { points.e[points.n-1].x+=curpoint.x; points.e[points.n-1].y+=curpoint.y; }
+
+			points.push(flatpoint(dd[4],dd[5]));
+			if (command=='c') { points.e[points.n-1].x+=curpoint.x; points.e[points.n-1].y+=curpoint.y; }
+
+			curpoint.set(points.e[points.n-1].x,points.e[points.n-1].y);
+
+			numpoints+=3;
+
+			lastcontrol=points.e[points.n-2] - points.e[points.n-3];
+			lastwasmove=0;
+			continue;
+
+//		} else if (command=='S' || command=='s') {
+//			 //smooth curve:
+//			 //S (x2 y2 x y)+
+//			 //x2,y2 == control point for x,y
+//			 // x,y  == final point
+//			 //control point for curpoint is reflection about curpoint of the control
+//			 //point of previous segment. If the previous command was not s, S, c, or C,
+//			 //then assume the control point is the same as curpoint.
+
+//		} else if (command=='Q' || command=='q') {
+//			 quadratic bezier curve: x1 y1 x y
+
+//		} else if (command=='T' || command=='t') {
+//			 smooth quadratic bezier curve continuation: (x y)+
+
+//		} else if (command=='A' || command=='a') {
+			 //create an arc
+			//   A/a rx ry x-axis-rotation large-arc-flag sweep-flag x y
+			//
+			//      draw an arc. rx and ry are the x and y radii.
+			//      the ellipse is rotated by x-axis-rotation (degrees).
+			//	    An ellipse can touch both points in 2 ways (or none), and traced from p1 to p2 in two ways.
+			//      Which of the 4 possible segments used in determined by various combinations of the flags.
+			//      if large-arc-flag==1, then the swept out arc is large. 0 means small.
+			//      if sweep-flag==1, then the arc is traced in a positive angle direction,
+			//      otherwise 0 means in a negative direction (hard to describe without pictures).
+			//			
+			//		if either rx or ry is zero, then insert a straight line segment.
+			//		if endpoint is same as current point, then skip.
+			//		ignore negatives on rx or ry
+			//		if there is no solution, scale up until there is
+			//		for the flags, any nonzero value is taken to be 1
+			//
+			//		Implementation below is guided by svg 1.1 spec implementation notes F.6
+
+//			if (!hascurpoint) throw (9);
+//
+//			double dd[7];
+//			int n=LaxFiles::DoubleListAttribute(p,dd,7,&ee);
+//			if (ee==p || n!=7) throw (10);
+//
+//			double x1=curpoint.x,
+//				   y1=curpoint.y,
+//				   xr  =fabs(dd[0]),
+//				   yr  =fabs(dd[1]),
+//				   xrot=dd[2]*M_PI/180,
+//				   la  =(dd[3]==0 ? 0 : 1),
+//				   sw  =(dd[4]==0 ? 0 : 1),
+//				   x2  =dd[5],
+//				   y2  =dd[6];
+//
+//			if (curpoint.x==x2 && curpoint.y==y2) continue; //skip when same as curpoint
+//
+//			flatpoint mid=(curpoint-flatpoint(x2,y2))/2;
+//			double x1p= cos(xrot)*mid.x + sin(xrot)*mid.y;
+//			double y1p=-sin(xrot)*mid.x + cos(xrot)*mid.y;
+//			double lambda=x1p*x1p/(rx*rx) + y1p*y1p/(ry*ry);
+//			if (lambda>1) { //correction for scaling up when no solution otherwise
+//				rx*=sqrt(lambda);
+//				ry*=sqrt(lambda);
+//			}
+//
+//			double sq=sqrt((rx*rx*ry*ry - rx*rx*y1p*y1p - ry*ry*x1p*x1p) / (rx*rx*y1p*y1p + ry*ry*x1p*x1p));
+//			if (la==sw) sq=-sq;
+//
+//			double cxp=sq*rx*y1p/ry;
+//			double cyp=-sq*ry*x1p/rx;
+//
+//			double cx=cos(xrot)*cxp-sin(xrot)*cyp + (x1+x2)/2;
+//			double cy=sin(xrot)*cxp+cos(xrot)*cyp + (y1+y2)/2;
+//
+//			flatvector u,v;
+//			u.x=1; u.y=0;
+//			v.x=(x1p-cxp)/rx;  v.y=(y1p-cyp)/ry;
+//#define SIGN(a) ((a)<0?-1:((a)>0?1:0))
+//			double theta1=SIGN(u.x*v.y-u.y*v.x)*acos(u*v/norm(u)/norm(v)); //returns in range 0..pi
+//			double thetad=***;
+//
+//			if (sw==0 && theta1>0) theta1-=2*M_PI;  *** impl notes are mixed about whether this is theta1 or thetad!!!!
+//			else if (sw!=0 && theta1<0) theta1+=2*M_PI;
+//
+//			 //now ellipse is centered at cx,cy, radii rx,ry, rotateh xrot, from theta1 to (theta1+thetad)
+//			***
+//
+//			lastwasmove=0;
+//			continue;
+
+		} else if (command=='Z' || command=='z') {
+			 //close path. If command other than a moveto follows a z, then the next subpath
+			 //begins at the same INITIAL point as the current subpath!!
+			if (!hascurpoint || numpoints<=1) throw(10);
+			
+			if (how&4) {
+				 //makes a single path, by
+				 //connecting with beginning of curve and returning
+				points.e[points.n-1].info|=LINE_Closed;
+				while (isspace(*p)) p++;
+				if (endptr) *endptr=const_cast<char*>(p);
+				break;
+			}
+
+			points.e[points.n-1].info|=LINE_Closed;
+			curpoint=points.e[points.n-1];
+			 //find first point in line
+			for (int c=points.n-2; c>=0; c--) {
+				if (points.e[c].info&(LINE_Closed|LINE_Open)) {
+					curpoint=points.e[c+1];
+				}
+			}
+			numpoints=0; 
+
+			lastwasmove=0;
+			continue;
+
+		} else if (isalpha(*p)) {
+			std::cerr << " *** must implement '"<<*p<<"' in SvgToFlatpoints()!!"<<std::endl;
+			if (endptr) *endptr=const_cast<char *>(p);
+			break;
+
+		} else {
+			 //hit a non-letter with unclaimed command. this halts parsing
+			if (endptr) *endptr=const_cast<char *>(p);
+			break;
+		}
+	  } //while more characters
+
+	} catch (int e) {
+		 //was error
+		DBG std::cerr <<"svgtoflatpoints() had error in parsing: "<<e<<std::endl;
+		points.flush();
+		if (endptr) *endptr=const_cast<char *>(p);
+	}
+
+	if (buffer && buffersize<points.n) {
+		 //supplied buffer not big enough to store the points!!
+		*totalpoints = points.n;
+		return NULL;		
+	}
+
+	flatpoint *newpoints = points.extractArray(totalpoints);
+	if (buffer) {
+		memcpy(buffer, newpoints, (*totalpoints)*sizeof(flatpoint));
+		delete[] newpoints;
+		newpoints=buffer;
+	}
+
+	if (normalize) {
+		Laxkit::DoubleBBox box;
+		for (int c=0; c<*totalpoints; c++) {
+			 //note this is not a true bounds if bez curves stick way out...
+			 //to do properly requires min/max computations
+			
+			//if (!(newpoints[c].info&LINE_Bez)) box.addtobounds(newpoints[c]);
+			box.addtobounds(newpoints[c]);
+		}
+		double width =box.boxwidth();
+		double height=box.boxheight();
+
+		if (width!=0 || height!=0) {
+			double scale=1;
+			if (width>height) scale=1/width;
+			else scale=1/height;
+
+			flatpoint center((box.minx+box.maxx)/2,(box.miny+box.maxy)/2);
+			for (int c=0; c<*totalpoints; c++) {
+				newpoints[c].x = (newpoints[c].x-center.x)*scale + .5;
+				newpoints[c].y = (newpoints[c].y-center.y)*scale + .5;
+			}
+		}
+	}
+
+	//DBG dump_points("svgtoflatpoint: ",newpoints,*totalpoints, 2);
+
+
+	return newpoints;
 }
 
 

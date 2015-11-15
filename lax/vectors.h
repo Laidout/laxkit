@@ -228,6 +228,7 @@ void transform(spacevector &v,Basis b);
 spacepoint invert(spacepoint p, spacepoint orig);
 
 void dump_points(const char *label, flatpoint *p,int n, int offset=0);
+flatpoint *SvgToFlatpoints(const char *d, char **endptr, int how, flatpoint *buffer, int buffersize, int *totalpoints, int normalize);
 
 //} //namespace LaxMath
 
