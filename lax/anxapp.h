@@ -229,8 +229,8 @@ class anXWindow : virtual public EventReceiver,
 	virtual void WindowTitle(const char *newtitle);
 	virtual const char *tooltip(int mouseid=0);
 	virtual const char *tooltip(const char *newtooltip);
-	virtual anXWindow *findChildWindowByTitle(const char *title);
-	virtual anXWindow *findChildWindowByName(const char *name);
+	virtual anXWindow *findChildWindowByTitle(const char *title, bool recurse=false);
+	virtual anXWindow *findChildWindowByName(const char *name, bool recurse=false);
 	virtual int  Grayed();
 	virtual int  Grayed(int g);
 	virtual int  preinit();

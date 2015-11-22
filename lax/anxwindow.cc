@@ -783,13 +783,18 @@ int anXWindow::close()
  *
  * Note that this does not check kids of child windows.
  */
-anXWindow *anXWindow::findChildWindowByName(const char *name)
+anXWindow *anXWindow::findChildWindowByName(const char *name, bool recurse)
 {
 	if (!name) return NULL;
 	const char *s=NULL;
 	for (int c=0; c<_kids.n; c++) {
 		s=_kids.e[c]->win_name ? _kids.e[c]->win_name : _kids.e[c]->win_title;
 		if (s && !strcmp(name,s)) return _kids.e[c];
+
+		if (recurse) {
+			anXWindow *win=_kids.e[c]->findChildWindowByName(name,true);
+			if (win) return win;
+		}
 	}
 	return NULL;
 }
@@ -802,13 +807,18 @@ anXWindow *anXWindow::findChildWindowByName(const char *name)
  * This will only check against win_title.
  * See also findChildWindowByName().
  */
-anXWindow *anXWindow::findChildWindowByTitle(const char *title)
+anXWindow *anXWindow::findChildWindowByTitle(const char *title, bool recurse)
 {
 	if (!title) return NULL;
 	const char *s=NULL;
 	for (int c=0; c<_kids.n; c++) {
 		s=_kids.e[c]->win_title;
 		if (s && !strcmp(title,s)) return _kids.e[c];
+
+		if (recurse) {
+			anXWindow *win=_kids.e[c]->findChildWindowByTitle(title,true);
+			if (win) return win;
+		}
 	}
 	return NULL;
 }
