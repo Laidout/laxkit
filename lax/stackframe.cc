@@ -145,12 +145,13 @@ void StackFrame::Refresh()
 	needtodraw=0;
 	if (!list.n || gap<=0) return;
 
-	MakeCurrent();
+	Displayer *dp=MakeCurrent();
 
-	unsigned long highlight, shadow;
-	highlight=coloravg(win_colors->bg,rgbcolor(255,255,255));
-	shadow=coloravg(win_colors->bg,rgbcolor(0,0,0));
-	clear_window(this);
+	unsigned long highlight=coloravg(win_colors->bg,rgbcolor(255,255,255));
+	unsigned long shadow   =coloravg(win_colors->bg,rgbcolor(0,0,0));
+	unsigned long dots     =coloravg(win_colors->bg,win_colors->fg);
+	
+	dp->ClearWindow();
 
 	SquishyBox *b;
 	for (int c=0; c<list.n; c++) {
@@ -161,20 +162,20 @@ void StackFrame::Refresh()
 
 		} else {
 			 //draw little dots on draggable bars if gap>0
-			foreground_color(win_colors->fg);
+			dp->NewFG(dots);
 			if (c==list.n-1) continue;
 
 			int p;
 			if (win_style&STACKF_VERTICAL) {
 				p=(int)(pos[c]*win_h);
-				draw_thing(this, win_w/2  ,p, 2,2, 1,THING_Circle);
-				draw_thing(this, win_w/2-5,p, 2,2, 1,THING_Circle);
-				draw_thing(this, win_w/2+5,p, 2,2, 1,THING_Circle);
+				dp->drawthing(win_w/2  ,p, 2,2, 1,THING_Circle);
+				dp->drawthing(win_w/2-5,p, 2,2, 1,THING_Circle);
+				dp->drawthing(win_w/2+5,p, 2,2, 1,THING_Circle);
 			} else {
 				p=(int)(pos[c]*win_w);
-				draw_thing(this, p,win_h/2  , 2,2, 1,THING_Circle);
-				draw_thing(this, p,win_h/2-5, 2,2, 1,THING_Circle);
-				draw_thing(this, p,win_h/2+5, 2,2, 1,THING_Circle);
+				dp->drawthing(p,win_h/2  , 2,2, 1,THING_Circle);
+				dp->drawthing(p,win_h/2-5, 2,2, 1,THING_Circle);
+				dp->drawthing(p,win_h/2+5, 2,2, 1,THING_Circle);
 			}
 		} 
 	}
@@ -253,6 +254,7 @@ int StackFrame::MouseMove(int x,int y,unsigned int state,const LaxMouse *d)
 
 	int lastx,lasty;
 	buttondown.move(d->id, x,y, &lastx,&lasty);
+
 	if ((win_style&STACKF_VERTICAL)) {
 		if (y==lasty) return 0;
 		MoveBar(whichbar, y-lasty, 0);
