@@ -141,6 +141,47 @@ LaxFontCairo::~LaxFontCairo()
 	if (options) cairo_font_options_destroy(options);
 }
 
+const char *LaxFontCairo::PostscriptName()
+{
+	if (psname) return psname;
+
+	FontManager *manager=GetDefaultFontManager();
+	FcConfig *fcconfig=manager->GetConfig();
+
+
+	FcPattern *pattern=FcPatternCreate();
+
+	FcValue value;
+	if (fontfile) {
+		value.type=FcTypeString; value.u.s=(FcChar8*)fontfile;
+		FcPatternAdd(pattern, FC_FILE, value, FcTrue);
+	}
+
+	if (family) {
+		value.type=FcTypeString; value.u.s=(FcChar8*)family;
+		FcPatternAdd(pattern, FC_FAMILY, value, FcTrue);
+	}
+
+	if (style) {
+		value.type=FcTypeString; value.u.s=(FcChar8*)style;
+		FcPatternAdd(pattern, FC_STYLE, value, FcTrue);
+	}
+
+	FcResult result;
+	FcPattern *found = FcFontMatch(fcconfig, pattern, &result);
+	if (result==FcResultMatch) {
+		result=FcPatternGet(found, FC_POSTSCRIPT_NAME,0,&value);
+	    if (result==FcResultMatch) {
+			makestr(psname, (const char *)value.u.s);
+	    }
+	}
+
+
+	FcPatternDestroy(pattern);
+
+	return psname;
+}
+
 /*! Return 0 for success, nonzero for error.
  *
  * If nfile is the same as current file, nothing is done and 0 is returned, regardless of other fields.
@@ -150,6 +191,9 @@ int LaxFontCairo::SetFromFile(const char *nfile, const char *nfamily, const char
 	if (fontfile && nfile && !strcmp(nfile,fontfile) && size==extents.height) { 
 		return 0;
 	}
+
+	delete[] psname;
+	psname=NULL;
 
 	 //find new!
 	FcPattern *pattern=FcPatternCreate();
@@ -223,10 +267,28 @@ double LaxFontCairo::descent()
 	return extents.descent;
 }
 
+/*! Returns the x advance.
+ */
 double LaxFontCairo::extent(const char *str,int len)
 {
-	cerr << " *** need to implement LaxFontCairo::extent()"<<endl;
-	return 0;
+	cairo_surface_t * ref_surface=cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 1,1); 
+	cairo_t *cr=cairo_create(ref_surface);
+
+	cairo_set_scaled_font(cr, scaledfont);
+	//cairo_set_font_size(cr, _textheight/height_over_M);
+ 
+	cairo_text_extents_t extent;
+	char buffer[len+1];
+    memcpy(buffer,str,len);
+    buffer[len]='\0';
+
+    cairo_text_extents(cr, buffer, &extent);
+
+	cairo_surface_destroy(ref_surface);
+	cairo_destroy(cr);
+    
+
+	return extent.x_advance;
 }
 
 double LaxFontCairo::Resize(double newsize)
