@@ -145,38 +145,42 @@ LaxImlibImage::LaxImlibImage(const char *original, const char *npfile,int maxx,i
 		height=imlib_image_get_height();
 		imlib_free_image();
 
-	} else if (original) {
+	} else if (original && npfile) {
 		 // preview image didn't already existed, so make one
 		DBG cerr <<" = = = Making new preview \""<<npfile<<"\" for \""<<(original?original:"(unknown)")<<"\""<<endl;
 
 		pimage=imlib_load_image(original);
-		width= imlib_image_get_width();
-		height=imlib_image_get_height();
-		imlib_free_image();
-
-		 //****make sure previewfile is writable
-		
-		 
-		 //figure out dimensions of new preview
-		double a=double(height)/width;
-		int dwidth, dheight;
-		if (a*maxx>maxy) {
-			dheight=maxy;
-			dwidth=int(maxy/a);
-		} else {
-			dwidth=maxx;
-			dheight=int(maxx*a);
-		}
-
-		generate_preview_image(original,npfile,"jpg",dwidth,dheight,0);
-
-		pimage=imlib_load_image(npfile);
 		if (pimage) {
+			imlib_context_set_image(pimage);
 			width= imlib_image_get_width();
 			height=imlib_image_get_height();
 			imlib_free_image();
-		} else {
-			width=height=0;
+
+			 //****make sure previewfile is writable
+			
+			 
+			 //figure out dimensions of new preview
+			double a=double(height)/width;
+			int dwidth, dheight;
+			if (a*maxx>maxy) {
+				dheight=maxy;
+				dwidth=int(maxy/a);
+			} else {
+				dwidth=maxx;
+				dheight=int(maxx*a);
+			}
+
+			generate_preview_image(original,npfile,"jpg",dwidth,dheight,0);
+
+			pimage=imlib_load_image(npfile);
+			if (pimage) {
+				imlib_context_set_image(pimage);
+				width= imlib_image_get_width();
+				height=imlib_image_get_height();
+				imlib_free_image();
+			} else {
+				width=height=0;
+			}
 		}
 	}
 }
