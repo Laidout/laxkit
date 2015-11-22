@@ -370,6 +370,11 @@ void ImageData::Flip(int horiz)
 	}
 }
 
+void ImageData::Flip(flatpoint f1,flatpoint f2)
+{
+	Affine::Flip(f1,f2);
+}
+
 /*! Return the image's filename, if any. If none, return NULL.
  */
 const char *ImageData::Filename()

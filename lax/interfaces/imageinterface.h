@@ -51,6 +51,7 @@ class ImageData : public Laxkit::ImageInfo, virtual public SomeData
 	virtual SomeData *duplicate(SomeData *dup);
 
 	virtual void Flip(int horiz);
+	virtual void Flip(flatpoint f1,flatpoint f2);
 	virtual int SetImage(Laxkit::LaxImage *newimage, Laxkit::LaxImage *newpreview);
 	virtual void SetDescription(const char *ndesc);
 	virtual int UsePreview(const char *npreview, int maxpx=0, int maxpy=0, char del=0);
