@@ -630,9 +630,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="0.48686869"
-     inkscape:cx="1417.4775"
-     inkscape:cy="817.30986"
+     inkscape:zoom="5.5082904"
+     inkscape:cx="378.9002"
+     inkscape:cy="1155.4407"
      inkscape:document-units="in"
      inkscape:current-layer="layer2"
      showgrid="true"
@@ -662,7 +662,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -809,16 +809,27 @@
          x="359.26761"
          y="-289.45801">Print</tspan></text>
     <text
-       xml:space="preserve"
-       style="font-size:12px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:100%;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;display:inline;font-family:Bitstream Vera Sans"
-       x="300"
+       sodipodi:linespacing="100%"
+       id="text4750"
        y="-246.90108"
+       x="300"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12px;line-height:100%;font-family:'Bitstream Vera Sans';text-align:start;writing-mode:lr-tb;text-anchor:start;display:inline;fill:#000000;fill-opacity:1;stroke:none"
+       xml:space="preserve"><tspan
+         y="-246.90108"
+         x="300"
+         id="tspan4752"
+         sodipodi:role="line">CloseDocument</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12px;line-height:100%;font-family:'Bitstream Vera Sans';text-align:start;writing-mode:lr-tb;text-anchor:start;display:inline;fill:#000000;fill-opacity:1;stroke:none"
+       x="313.0712"
+       y="-199.69951"
        id="text1675"
        sodipodi:linespacing="100%"><tspan
          sodipodi:role="line"
          id="tspan1677"
-         x="300"
-         y="-246.90108">CloseDocument</tspan></text>
+         x="313.0712"
+         y="-199.69951">NewDirectory</tspan></text>
     <g
        style="display:inline"
        id="Cancel"
@@ -2562,6 +2573,30 @@
        style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:2.70000005;stroke-linecap:round;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
        sodipodi:type="spiral"
        inkscape:label="#path4818" />
+    <g
+       style="display:inline"
+       id="NewDirectory"
+       transform="translate(269.50046,-361.23783)"
+       inkscape:label="#Open-4">
+      <path
+         style="color:#000000;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#e3e4a3;fill-opacity:1;fill-rule:nonzero;stroke:#000000;stroke-width:1.55299234;stroke-linecap:square;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate"
+         d="m 139.63271,171.08411 0.381,-22.68346 0.99061,-3.48088 15.66505,0.10256 0.50705,4.0564 12.32238,0 -0.50705,22.31018 z"
+         id="path2253-0"
+         sodipodi:nodetypes="cccccccc"
+         inkscape:connector-curvature="0" />
+      <path
+         style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:2.25;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+         d="m 153.4231,152.46437 -0.12837,14.78408"
+         id="path4746"
+         inkscape:connector-curvature="0"
+         sodipodi:nodetypes="cc" />
+      <path
+         style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:2.25;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+         d="m 145.90457,159.86743 15.24062,0"
+         id="path4748"
+         inkscape:connector-curvature="0"
+         sodipodi:nodetypes="cc" />
+    </g>
   </g>
   <g
      inkscape:label="Layer 1"
