@@ -59,6 +59,7 @@ InterfaceManager::InterfaceManager()
 	resources=NULL;
 	datafactory=NULL;
 	preview_size=300;
+	previewer=NULL;
 }
 
 InterfaceManager::~InterfaceManager()
@@ -68,8 +69,20 @@ InterfaceManager::~InterfaceManager()
 	if (tools)       { tools->dec_count();       tools=NULL; }
 	if (resources)   { resources->dec_count();   resources=NULL; }
 	if (datafactory) { datafactory->dec_count(); datafactory=NULL; }
+	if (previewer)   { previewer->dec_count();   previewer=NULL; }
 
 	DBG cerr <<"----InterfaceManager destructor end"<<endl;
+}
+
+/*! Get a Displayer object suitable for rendering object previews.
+ * This is kind of a cached Displayer object to minimize scratch buffer reallocation.
+ */
+Laxkit::Displayer *InterfaceManager::GetPreviewDisplayer()
+{
+	if (!previewer) {
+		previewer=newDisplayer(NULL);
+	}
+	return previewer;
 }
 
 /*! The tools ResourceManager object by default has two ResourceTypes.

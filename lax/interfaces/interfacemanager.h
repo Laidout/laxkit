@@ -41,6 +41,7 @@ class InterfaceManager : public Laxkit::anObject
   private:
 	static InterfaceManager *default_manager;
 	int preview_size;
+	Laxkit::Displayer *previewer;
 
   public:
 	InterfaceManager();
@@ -59,7 +60,8 @@ class InterfaceManager : public Laxkit::anObject
 	virtual Laxkit::FontManager *GetFontManager();
 	virtual Laxkit::IconManager *GetIconManager();
 	virtual Laxkit::UndoManager *GetUndoManager();
-	virtual Laxkit::ObjectFactory *GetObjectFactory();
+	virtual Laxkit::ObjectFactory *GetObjectFactory(); 
+	virtual Laxkit::Displayer *GetPreviewDisplayer();
 
 	virtual anObject *NewObject(const char *type);
 	virtual anObject *NewObject(int type);
