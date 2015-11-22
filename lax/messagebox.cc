@@ -79,7 +79,7 @@ MessageBox::MessageBox( anXWindow *parnt, const char *nname,const char *ntitle, 
 
 	padinset=5;
 	if (mes) {
-		AddWin(new MessageBar(this,"mbox-mes",NULL,MB_CENTER|MB_MOVE|MB_COPY, 0,0,0,0, 1, mes), 1,-1);
+		AddWin(new MessageBar(this,"mbox-mes",NULL,MB_CENTER|MB_MOVE|MB_COPY, 0,0,0,0, 0, mes), 1,-1);
 		AddNull();
 	}
 }
