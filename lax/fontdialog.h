@@ -99,7 +99,7 @@ class FontLayersWindow : public anXWindow
 
 class FontDialog : public RowFrame
 {
- protected:
+  protected:
 	char *sampletext;
 	double defaultsize;
 	unsigned long dialog_style;
@@ -129,7 +129,7 @@ class FontDialog : public RowFrame
 	virtual void UpdateColorBoxes();
 	virtual void UpdateSearch();
 
- public:
+  public:
 	FontDialog(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
 				int xx,int yy,int ww,int hh,int brder,
 				unsigned long nowner,const char *nsend,
