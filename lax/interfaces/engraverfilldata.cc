@@ -2609,7 +2609,10 @@ void EngraverPointGroup::StripDashes()
 				delete cc;
 			}
 
-			if (cache->original) cache->weight=cache->original->weight;
+			if (cache->original) {
+				cache->weight=cache->original->weight;
+				cache->on=cache->original->on;
+			}
 			cache=cache->next;
 		} while (cache && cache!=start);
 	}
@@ -4690,6 +4693,12 @@ const char *EngraverFillData::Id()
 const char *EngraverFillData::Id(const char *str)
 {
 	return anObject::Id(str);
+}
+
+int EngraverFillData::renderToBuffer(unsigned char *buffer, int bufw, int bufh, int bufstride, int bufdepth, int bufchannels)
+{
+	// ***
+	return 1;
 }
 
 

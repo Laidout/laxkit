@@ -253,7 +253,7 @@ class LinePointCache
 
 	flatpoint p;
 	double weight;
-	int on; //off if zero, 1 on, -1 end point, -2 start point
+	int on; //see EngraveLinePointCacheTypes
 	int dashon;
 	double bt; //bez t coord between LinePoints of this one
 	LinePoint *original;
@@ -280,7 +280,7 @@ class LinePoint
 
 	double weight;
 	double weight_orig;
-	int on; //off if zero, 1 on, -1 end point, -2 start point
+	int on; //see EngraveLinePointCacheTypes
 
 	flatpoint p; //(s,t) transformed by the mesh 
 	flatpoint bez_before, bez_after;
@@ -720,6 +720,8 @@ class EngraverFillData : virtual public PatchData
 	virtual const char *Id();
 	virtual const char *Id(const char *id);
 	virtual SomeData *duplicate(SomeData *dup);
+	virtual int renderToBuffer(unsigned char *buffer, int bufw, int bufh, int bufstride, int bufdepth, int bufchannels);
+
 	virtual double DefaultSpacing(double nspacing);
 	virtual void MakeDefaultGroup();
 	virtual int MakeGroupNameUnique(int which);
