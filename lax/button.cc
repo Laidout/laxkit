@@ -294,7 +294,9 @@ void Button::draw()
 
 	if (usei) {
 		if (image) {
+			if (Grayed()) dp->setSourceAlpha(.4);
 			dp->imageout(i, ix,iy);
+			if (Grayed()) dp->setSourceAlpha(1.);
 			//image_out(i,this,ix+offset.x,iy+offset.y);
 			i->doneForNow();
 		} else dp->drawthing(ix+iw/2,iy+iy/2, iw/2,ih/2, (DrawThingTypes)thing, win_colors->fg, win_colors->color1);
