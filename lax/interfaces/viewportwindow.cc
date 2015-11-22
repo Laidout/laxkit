@@ -1252,6 +1252,8 @@ Laxkit::ShortcutHandler *ViewportWindow::GetShortcuts()
 	sc->Add(VIEWPORT_ResetView,     ' ',ControlMask|ShiftMask,0,_("ResetView"),_("Reset the view, center and align axes"),NULL,0);
 	sc->AddShortcut(' ',ControlMask,0, VIEWPORT_ResetView);
 
+	sc->Add(VIEWPORT_ResetView,     ' ',ControlMask|ShiftMask,0,_("ResetView"),_("Reset the view, center and align axes"),NULL,0);
+
 	sc->Add(VIEWPORT_NextObject,    '.',0,0,           _("NextObject"),    _("Select next object"),NULL,0);
 	sc->Add(VIEWPORT_PreviousObject,',',0,0,           _("PreviousObject"),_("Select previous object"),NULL,0);
 	sc->Add(VIEWPORT_DeleteObj, LAX_Bksp,0,0,           _("DeleteObject"), _("Delete current object"),NULL,0);
