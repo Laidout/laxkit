@@ -24,6 +24,7 @@
 #define _LAX_INPUTDIALOG_H
 
 #include <lax/messagebox.h>
+#include <lax/lineedit.h>
 
 namespace Laxkit {
 
@@ -46,6 +47,7 @@ class InputDialog : public MessageBox
 	virtual const char *whattype() { return "InputDialog"; }
 	virtual int Event(const EventData *e,const char *mes);
 	virtual int CharInput(unsigned int ch,const char *buffer,int len,unsigned int state,const LaxKeyboard *d);
+	virtual LineEdit *GetLineEdit();
 };
 
 

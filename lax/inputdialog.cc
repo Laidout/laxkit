@@ -80,6 +80,11 @@ InputDialog::InputDialog(anXWindow *parnt, const char *nname,const char *ntitle,
 	if (button3) w=AddButton(button3,id3,w);	
 }
 
+LineEdit *InputDialog::GetLineEdit()
+{
+	return dynamic_cast<LineEdit*>(findChildWindowByName("input-edit"));
+}
+
 //! Send a StrEventData with the input, and destroy the dialog.
 /*! \todo *** enter from the lineedit makes focus jump to ok button?
  */
