@@ -45,6 +45,7 @@ class LaxFont : public anObject
 	char *family;
 	char *style;
 	char *fontfile;
+	char *psname;
 	int fontindex;
 	anObject *color;//optional, preferred color, a Color for single layer, Palette for multicolor
 
@@ -72,6 +73,7 @@ class LaxFont : public anObject
 	virtual const char *Family();
 	virtual const char *Style();
 	virtual const char *FontFile();
+	virtual const char *PostscriptName();
 	virtual double extent(const char *str,int len) = 0;
 	virtual double Resize(double newsize) = 0;
 
@@ -101,6 +103,7 @@ class FontDialogFont
     char *style;
     char *psname;
     char *file;
+	char *format;
     int index; //index in file when more than one font in file
 
     LaxImage *preview;
@@ -114,12 +117,24 @@ class FontDialogFont
     virtual int HasTag(int tag_id);
     virtual int AddTag(int tag_id);
     virtual void RemoveTag(int tag_id);
+
+	virtual int UsePSName();
+	virtual int UseFamilyStyleName();
 };
 
 //--------------------------- FontTag ------------------------------------------
 class FontTag
 {
   public:
+	enum FontTagType {
+		TAG_None=0,
+		TAG_Fontmatrix,
+		TAG_Favorite,
+		TAG_File_Type,
+		TAG_Monospace,
+		TAG_Other,
+		TAG_MAX
+	};
     int id;
     int tagtype; //such as from Fontmatrix==2, user favorites==1, document defined, etc
     char *tag;

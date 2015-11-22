@@ -80,6 +80,7 @@ LaxFont::LaxFont()
 
 	family=NULL;
 	style=NULL;
+	psname=NULL;
 	fontfile=NULL;
 	fontindex=0;
 
@@ -92,6 +93,7 @@ LaxFont::~LaxFont()
 	delete[] family;
 	delete[] style;
 	delete[] fontfile;
+	delete[] psname;
 
 	if (color) color->dec_count();
 	if (nextlayer) nextlayer->dec_count();
@@ -177,6 +179,11 @@ const char *LaxFont::Style()
 const char *LaxFont::FontFile()
 {
 	return fontfile;
+}
+
+const char *LaxFont::PostscriptName()
+{
+	return psname;
 }
 
 /*! For multicolor font layers, the number of different fonts to layer up. Default is to return
@@ -322,9 +329,10 @@ FontDialogFont::FontDialogFont(int nid)
     psname=NULL;
     family=NULL;
     style=NULL;
+	format=NULL;
     file=NULL;
-    preview=NULL;
     index=0;
+    preview=NULL;
 
     numtags=0;
     tags=NULL;
@@ -339,6 +347,7 @@ FontDialogFont::~FontDialogFont()
     delete[] family;
     delete[] style;
     delete[] file;
+    delete[] format;
     if (preview) preview->dec_count();
     delete[] tags;
 }
@@ -386,6 +395,44 @@ void FontDialogFont::RemoveTag(int tag_id)
             if (numtags==0) { delete[] tags; tags=NULL; }
         }
     }
+}
+
+int FontDialogFont::UseFamilyStyleName()
+{
+	char *nname=new char[(family ? strlen(family) : 0) + (style ? strlen(style) : 0) + 3];
+
+	sprintf(nname,"%s, %s", family?family:"", style?style:"");
+	delete[] name;
+	name=nname;
+
+	return 0;
+}
+
+/*! Parse the psname and use that instead of family+style.
+ * This should result in an almost unique name, barring the same font file being loaded
+ * in from different spots on the drive.
+ */
+int FontDialogFont::UsePSName()
+{
+	if (!psname) return 1;
+
+	int n=0;
+	for (char *p=psname; *p; p++) {
+		if (isupper(*p)) { n++; }
+	}
+
+	char *nname=new char[strlen(psname)+n+10];
+	int i=0;
+	for (char *p=psname; *p; p++) {
+		if (p!=psname && isupper(*p)) nname[i++]=' ';
+		if (!isalnum(*p)) nname[i++]=' ';
+		else nname[i++]=*p;
+	}
+	nname[i]='\0';
+
+	delete[] name;
+	name=nname;
+	return 0;
 }
 
 
@@ -456,6 +503,18 @@ FcConfig *FontManager::GetConfig()
 
 /*! for a qsort()
  */
+int cmp_fontinfo_name(const void *f1p, const void *f2p)
+{
+	FontDialogFont *f1=*((FontDialogFont**)f1p);
+	FontDialogFont *f2=*((FontDialogFont**)f2p);
+
+	if (!f1->name) return -1;
+	if (!f2->name) return 1;
+	return strcmp(f1->name, f2->name);
+}
+
+/*! for a qsort()
+ */
 int cmp_fontinfo_psname(const void *f1p, const void *f2p)
 {
 	FontDialogFont *f1=*((FontDialogFont**)f1p);
@@ -520,6 +579,12 @@ PtrStack<FontDialogFont> *FontManager::GetFontList()
         result=FcPatternGet(fontset->fonts[c],FC_INDEX,0,&v);
         if (result==FcResultMatch) f->index = v.u.i;
 
+        result=FcPatternGet(fontset->fonts[c],FC_FONTFORMAT,0,&v);
+        if (result==FcResultMatch) makestr(f->format, (const char *)v.u.s);
+
+		f->UseFamilyStyleName();
+		//f->UsePSName();
+
         //FC_OUTLINE
         //FC_SCALABLE
         //FC_LANG -> string of languages like "en|es|bs|ch"
@@ -532,6 +597,29 @@ PtrStack<FontDialogFont> *FontManager::GetFontList()
         fonts.push(f);
 
     }
+
+	 //sort by name, and try to rename duplicates
+	qsort(fonts.e, fonts.n, sizeof(FontDialogFont*), cmp_fontinfo_name); 
+	int start=0,end=-1;
+	for (int c=1; c<=fonts.n; c++) {
+		if (c<fonts.n && start!=c && !strcmp(fonts.e[start]->name, fonts.e[c]->name)) {
+			end=c;
+			continue;
+		}
+		if (end>0) {
+			 //doubles found
+			for (int c2=start+1; c2<=end; c2++) {
+				fonts.e[c2]->UsePSName();
+			}
+			//qsort(fonts.e+start, end-start+1, sizeof(FontDialogFont*), cmp_fontinfo_name); 
+
+			// *** check for doubles still, if found, modify based on filename diff??
+			
+			end=-1;
+		}
+		start=c;
+	}
+
 
 	 //sort by file name
 	qsort(fonts.e, fonts.n, sizeof(FontDialogFont*), cmp_fontinfo_file); 
