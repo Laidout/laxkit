@@ -528,11 +528,14 @@ int FontDialog::init()
 	 //------font list
 	if (!mfonts) {
 		mfonts=new MenuInfo("Fonts");
-		char str[1024];
+		//char str[1024];
 
 		for (int c=0; c<fonts->n; c++) {
-			sprintf(str,"%s, %s",fonts->e[c]->family,fonts->e[c]->style);
-			mfonts->AddItem(str, c);
+			mfonts->AddItem(fonts->e[c]->name, c);
+			//------
+			//sprintf(str,"%s, %s",fonts->e[c]->family,fonts->e[c]->style);
+			//mfonts->AddItem(fonts->e[c]->name ? fonts->e[c]->name : str, c);
+			//------
 			//mfonts->AddItem((fonts->e[c]->psname ? fonts->e[c]->psname : _("No ps name!")),c);
 		}
 		mfonts->Sort(0);
@@ -578,7 +581,7 @@ int FontDialog::init()
 //		}
 //	}
 	text->UseThisFont(thefont);
-	AddWin(text,1, 200,100,1000,50,0, defaultsize*2,0,0,50,0, -1);
+	AddWin(text,1, 200,100,1000,50,0, defaultsize*1.75,0,0,50,0, -1);
 	AddNull();
 
 
@@ -722,7 +725,7 @@ void FontDialog::UpdateSample()
 
 	SquishyBox *box=findBox(text);
 	if (size<15) size=15;
-	size=2*size;
+	size=1.75*size;
 	if (box->ph()!=size) {
 		box->ph(size);
 		Sync(0);
