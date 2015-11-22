@@ -150,23 +150,22 @@ void CheckBox::drawgraphic()
 {//***
 //	if (win_style&CHECK_CIRCLE) {
 		 //whole graphic area
-		foreground_color(pitcolor);
-		fill_arc_wh(this, grect.x,grect.y, grect.width,grect.height, 0,0);
+		Displayer *dp=GetDisplayer();
+		dp->LineWidthScreen(1);
+
+		dp->NewFG(pitcolor);
+		dp->drawellipse(grect.x+grect.width/2,grect.y+grect.height/2, 
+						grect.width/2,grect.height/2, 0,0, 1);
 		
 		 //inner circle
-		foreground_color(win_colors->fg);
-		if (state==LAX_ON) fill_arc_wh(this, grect.x+grect.width/4,grect.y+grect.height/4, grect.width/2,grect.height/2, 0,0);
+		dp->NewFG(win_colors->fg);
+		if (state==LAX_ON) 
+			dp->drawellipse(grect.x+grect.width/2,grect.y+grect.height/2, grect.width/4,grect.height/4, 0,0, 1);
 
-		foreground_color(highlight);
-		//draw_arc_wh(this, grect.x,grect.y, grect.width,grect.height, 0,M_PI);
-		//if (state==LAX_ON) draw_arc_wh(this, grect.x+grect.width/4,grect.y+grect.height/4, grect.width/2,grect.height/2,
-									//(360+20)*M_PI/180,200*M_PI/180);
 
-		foreground_color(shadow);
-		draw_arc_wh(this, grect.x,grect.y, grect.width,grect.height, 0,0);
-		//draw_arc_wh(this, grect.x,grect.y, grect.width,grect.height, M_PI,2*M_PI);
-		//if (state==LAX_ON) draw_arc_wh(this, grect.x+grect.width/4,grect.y+grect.height/4, grect.width/2,grect.height/2,
-									//200*M_PI/180,(360+20)*M_PI/180);
+		dp->NewFG(shadow);
+		dp->drawellipse(grect.x+grect.width/2,grect.y+grect.height/2, 
+						grect.width/2,grect.height/2, 0,0, 0);
 //	} else if (***) {
 //	}
 }
