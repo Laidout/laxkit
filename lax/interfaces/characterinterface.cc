@@ -371,12 +371,12 @@ int CharacterInterface::Refresh()
 
 int CharacterInterface::NumRecent()
 {
-	return 5;
+	return 0;
 }
 
 int CharacterInterface::NumSuggestions()
 {
-	return 4;
+	return 0;
 }
 
 /*! Give some context to guide suggestions for characters to insert.
