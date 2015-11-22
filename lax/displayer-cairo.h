@@ -57,6 +57,7 @@ class DisplayerCairo : public Displayer
 	cairo_surface_t *surface;
 	cairo_surface_t *ref_surface;
 	cairo_surface_t *mask;
+	cairo_pattern_t *mask_pattern;
 	cairo_surface_t *source;
 	//PtrStack<cairo_surface_t> groups;
 

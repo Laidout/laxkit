@@ -140,6 +140,7 @@ void DisplayerCairo::base_init()
 	surface=NULL;
 	ref_surface=NULL;
 	mask=NULL;
+	mask_pattern=NULL;
 	source=NULL;
 
 	fgRed=fgGreen=fgBlue=fgAlpha=1.0;
@@ -157,6 +158,7 @@ DisplayerCairo::~DisplayerCairo()
 	if (surface) cairo_surface_destroy(surface);
 	if (ref_surface) cairo_surface_destroy(ref_surface);
 	if (mask) cairo_surface_destroy(mask);
+	if (mask_pattern) cairo_pattern_destroy(mask_pattern);
 	if (source) cairo_surface_destroy(source);
 
 	if (laxfont) laxfont->dec_count();
@@ -212,10 +214,11 @@ int DisplayerCairo::EndDrawing()
 	if (xw==NULL) Updates(1);
 	//if (xw) { xw->dec_count(); xw=NULL; }
 
-	if (cr)      { cairo_destroy(cr); cr=NULL; }
-	if (surface) { cairo_surface_destroy(surface); surface=NULL; }
-	if (mask)    { cairo_surface_destroy(mask);    mask=NULL;    }
-	if (source)  { cairo_surface_destroy(source);  source=NULL;  }
+	if (cr)           { cairo_destroy(cr); cr=NULL; }
+	if (surface)      { cairo_surface_destroy(surface);      surface=NULL; }
+	if (mask)         { cairo_surface_destroy(mask);         mask=NULL;    }
+	if (mask_pattern) { cairo_pattern_destroy(mask_pattern); mask_pattern=NULL; }
+	if (source)       { cairo_surface_destroy(source);       source=NULL;  }
 	return 0;
 }
 
@@ -551,7 +554,14 @@ LaxCompositeOp DisplayerCairo::BlendMode(LaxCompositeOp mode)
 
 double DisplayerCairo::setSourceAlpha(double alpha)
 {
-	cerr <<" *** need to implement DisplayerCairo::setSourceAlpha()!"<<endl;
+	if (mask) { cairo_surface_destroy(mask); mask=NULL; }
+	if (mask_pattern) { cairo_pattern_destroy(mask_pattern); mask_pattern=NULL; }
+
+	if (alpha<0) alpha=0;
+
+	if (alpha>=1.0) alpha=1.0;
+	else mask_pattern = cairo_pattern_create_rgba(0.,0.,0.,alpha);
+
 	return 1;
 }
 
@@ -688,15 +698,15 @@ void DisplayerCairo::PopClip()
 //! Remove any mask
 void DisplayerCairo::ClearClip()
 {
-	if (mask) cairo_surface_destroy(mask);
-	mask=NULL;
+	if (mask) { cairo_surface_destroy(mask); mask=NULL; }
+	if (mask_pattern) { cairo_pattern_destroy(mask_pattern); mask_pattern=NULL; }
 	cairo_reset_clip(cr);
 }
 
 //! Return whether there is an active mask.
 int DisplayerCairo::activeMask()
 {
-	return mask!=NULL;
+	return mask!=NULL || mask_pattern!=NULL;
 }
 
 //! Drawing operations following a call here will operate on the mask surface.
@@ -718,6 +728,7 @@ void DisplayerCairo::show()
 {
 	if (source) cairo_set_source_surface(cr, source, 0,0); //else assume source has been set with something like NewFG()
 	if (mask) cairo_mask_surface(cr,mask,0,0);
+	else if (mask_pattern) cairo_mask(cr,mask_pattern);
 	else cairo_paint(cr);
 }
 
@@ -1470,7 +1481,9 @@ void DisplayerCairo::imageout(LaxImage *img,double x,double y)
 
 	cairo_set_source_surface(cr, t, 0,0);
 	if (mask) cairo_mask_surface(cr,mask,0,0);
+	else if (mask_pattern) cairo_mask(cr,mask_pattern);
 	else cairo_paint(cr);
+
 	img->doneForNow();
 	cairo_restore(cr);
 }
