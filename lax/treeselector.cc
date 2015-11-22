@@ -59,6 +59,7 @@ TreeSelector::ColumnInfo::ColumnInfo(const char *ntitle, int nwidth, int ntype, 
 	pos=0;
 	detail=whichdetail;
 	width=nwidth;
+	width_type=0;
 }
 
 TreeSelector::ColumnInfo::~ColumnInfo()

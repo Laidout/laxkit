@@ -153,7 +153,9 @@ class TreeSelector : public ScrolledWindow
 			ColumnMAX
 		};
 		char *title;
-		int pos, width;
+		int pos;
+		int width;
+		int width_type; //0=absolute, 1=fill
 		int detail; //for remapping order of columns
 		int type; //uses ColumnInfoType
 		ColumnInfo(const char *ntitle, int nwidth, int ntype, int whichdetail);
