@@ -77,20 +77,26 @@ class FileDialog2 : public RowFrame
 	int curhistory;
 
 	MenuInfo files;
-	int getDirectory(const char *npath);
+
 	LineInput *path,*mask,*file;
 	TreeSelector *filelist;
 	FilePreviewer *previewer;
 	unsigned long dialog_style;
 	Button *ok;
-	char *recentgroup;
 	int finalbuttons;
 
+	char *recentgroup;
+	MenuInfo recentmenu;
+	bool showing_recent;
+	bool showing_icons;
+
+	int getDirectory(const char *npath);
 	virtual int newBookmark(const char *pth);
 	virtual MenuInfo *BuildBookmarks();
 	virtual int closeWindow();
 	virtual int send(int id);
 	virtual void UpdateGray();
+	virtual int ShowRecent();
 
   public:
  	FileDialog2(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
@@ -109,7 +115,7 @@ class FileDialog2 : public RowFrame
 	virtual void OkButton(const char *textforok, const char *ttip);
 	virtual void AddFinalButton(const char *text, const char *ttip, int id, int position);
 	virtual int ClearFinalButton(int position);
-	virtual void Recent(const char *group);
+	virtual void RecentGroup(const char *group);
 	virtual void GoUp();
 	virtual void GoBack();
 	virtual void GoForward();
