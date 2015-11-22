@@ -210,6 +210,8 @@ LaxCairoImage::~LaxCairoImage()
 }
 
 /*! MUST be followed up with call to doneWithBuffer().
+ *
+ * This returns a new uchar[] array.
  */
 unsigned char *LaxCairoImage::getImageBuffer()
 {
@@ -227,9 +229,11 @@ unsigned char *LaxCairoImage::getImageBuffer()
 
 	unsigned char *bbuffer=new unsigned char[width*height*4];
 	if (format==CAIRO_FORMAT_ARGB32 || format==CAIRO_FORMAT_RGB24) {
+
+		cerr <<"*** need to correctly apply premultiplied in cairo image / buffer exchange"<<endl;
+
 		unsigned char *p=buffer, *pb=bbuffer;
 		for (int c=0; c<height; c++) {
-			cerr <<"*** need to correctly apply premultiplied in cairo image / buffer exchange"<<endl;
 			memcpy(pb,p, width*4);
 			p+=stride;
 			pb+=width*4;
@@ -240,7 +244,7 @@ unsigned char *LaxCairoImage::getImageBuffer()
 }
 
 /*! Check in data that was just checked out with getImageBuffer().
- * buffer gets delete'd.
+ * bbuffer gets delete'd.
  *
  * Assumes 8 bit ARGB.
  */
@@ -260,9 +264,10 @@ int LaxCairoImage::doneWithBuffer(unsigned char *bbuffer)
 	cairo_format_t format=cairo_image_surface_get_format(image);
 
 	if (format==CAIRO_FORMAT_ARGB32 || format==CAIRO_FORMAT_RGB24) {
+		cerr <<"*** need to correctly apply premultiplied in cairo image / buffer exchange"<<endl;
+
 		unsigned char *p=buffer, *pb=bbuffer;
 		for (int c=0; c<height; c++) {
-			cerr <<"*** need to correctly apply premultiplied in cairo image / buffer exchange"<<endl;
 			memcpy(p,pb, width*4);
 			p+=stride;
 			pb+=width*4;
@@ -631,6 +636,18 @@ LaxImage *image_from_buffer_cairo(unsigned char *buffer, int w, int h, int strid
 int laxcairo_image_type()
 { return LAX_IMAGE_CAIRO; }
 
+
+int save_image_cairo(LaxImage *image, const char *filename, const char *format)
+{
+	LaxCairoImage *img = dynamic_cast<LaxCairoImage *>(image);
+	if (!img) return 1;
+
+	cairo_surface_t *surface=img->image;
+	if (!surface) return 2;
+
+	cairo_surface_write_to_png(surface, filename);
+	return 0;
+}
 
 
 } //namespace Laxkit

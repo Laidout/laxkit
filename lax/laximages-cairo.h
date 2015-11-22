@@ -82,6 +82,7 @@ int laxcairo_generate_preview(const char *original, const char *preview, const c
 LaxImage *image_from_buffer_cairo(unsigned char *buffer, int w, int h, int stride);
 LaxImage *create_new_cairo_image(int w, int h);
 
+int save_image_cairo(LaxImage *image, const char *filename, const char *format);
 
 
 } //namespace Laxkit
