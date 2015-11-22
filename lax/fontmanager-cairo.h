@@ -56,6 +56,7 @@ class LaxFontCairo : public LaxFont
 	LaxFontCairo(const char *nfamily, const char *nstyle, double size, int nid);
 	virtual ~LaxFontCairo();
 
+	virtual const char *PostscriptName();
 	virtual int SetFromFile(const char *nfile, const char *nfamily, const char *nstyle, double size);
 
 	virtual double charwidth(unsigned long chr,int real,double *width=NULL,double *height=NULL);
