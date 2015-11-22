@@ -233,6 +233,32 @@ int CaptionData::ComputeLineLen(int line)
 	return font->extent(lines.e[line],strlen(lines.e[line]));
 }
 
+/*! Returns 1 if found, else 0 for out of bounds.
+ */
+int CaptionData::FindPos(double y, double x, int *line, int *pos)
+{
+	int l = (y-miny)/(fontsize*linespacing);
+	if (l<0 || l>=lines.n) return 0;
+	
+	unsigned int p=0;
+	double lastw=0;
+	double w;
+	const char *pp;
+	while (p<strlen(lines.e[l])) {
+		p++;
+		pp=utf8fwd(lines.e[l]+p, lines.e[l], lines.e[l]+strlen(lines.e[l]));
+		p=pp-lines.e[l];
+
+		w=font->extent(lines.e[l], p);
+		if (x<(lastw+w)/2) { p=utf8back_index(lines.e[l],p-1,strlen(lines.e[l])); break; }
+		lastw=w;
+	}
+
+	*line=l;
+	*pos=p;
+	return 0;
+}
+
 /*! 
  * Default dump for a CaptionData. 
  *
@@ -493,7 +519,7 @@ int CaptionData::DeleteChar(int line,int pos,int after, int *newline,int *newpos
 			ComputeLineLen(line);
 
 		} else if (pos < (int)strlen(lines.e[line])) {
-			 //delet char within a line
+			 //delete char within a line
 			const char *p=utf8fwd(lines.e[line]+pos+1, lines.e[line], lines.e[line]+strlen(lines.e[line])); 
 			int cl=p-(lines.e[line]+pos);
 			memmove(lines.e[line]+pos, lines.e[line]+pos+cl, strlen(lines.e[line])-(cl+pos)+1);
@@ -733,6 +759,7 @@ CaptionInterface::~CaptionInterface()
 	DBG cerr <<"----in CaptionInterface destructor"<<endl;
 	deletedata();
 
+	if (extrahover) { delete extrahover; extrahover=NULL; }
 	if (sc) sc->dec_count();
 	delete[] defaultfamily;
 	delete[] defaultstyle;
@@ -773,7 +800,8 @@ int CaptionInterface::InterfaceOn()
 int CaptionInterface::InterfaceOff()
 {
 	//Clear(NULL);
-	deletedata();
+	deletedata(); 
+	if (extrahover) { delete extrahover; extrahover=NULL; }
 	showdecs=0;
 	needtodraw=1;
 	DBG cerr <<"CaptionInterfaceOff()"<<endl;
@@ -870,6 +898,29 @@ int CaptionInterface::Refresh()
 		data->FindBBox();
 	}
 
+	if (extrahover) {
+		dp->NewFG(255,0,255);
+		dp->LineAttributes(1,LineSolid,CapRound,JoinRound);
+		
+		double m[6];
+		if (data) {
+			viewport->transformToContext(m,coc,1,-1);
+			dp->PushAndNewTransform(m);
+		}
+
+		viewport->transformToContext(m,extrahover,0,-1);
+		dp->PushAndNewTransform(m);
+		dp->moveto(extrahover->obj->minx, extrahover->obj->miny);
+		dp->lineto(extrahover->obj->maxx, extrahover->obj->miny);
+		dp->lineto(extrahover->obj->maxx, extrahover->obj->maxy);
+		dp->lineto(extrahover->obj->minx, extrahover->obj->maxy);
+		dp->closed();
+		dp->stroke(0);
+		dp->PopAxes(); 
+
+		if (data) dp->PopAxes();
+
+	}
 		
 	 //find how large
 	flatpoint pb =flatpoint(0,0),
@@ -1161,9 +1212,11 @@ int CaptionInterface::LBDown(int x,int y,unsigned int state,int count, const Lax
 	if (child) return 1;
 
 	DBG cerr << "  in captioninterface lbd..";
-	int over=scan(x,y,state);
+	int mline,mpos;
+	int over=scan(x,y,state, &mline, &mpos);
 	buttondown.down(d->id,LEFTBUTTON,x,y, over);
 	mousedragged=0;
+	if (extrahover) { delete extrahover; extrahover=NULL; }
 
 	if (data && count==2) {
 		app->addwindow(new FontDialog(NULL, "Font",_("Font"),ANXWIN_REMEMBER, 10,10,700,700,0, object_id,"newfont",0,
@@ -1175,7 +1228,14 @@ int CaptionInterface::LBDown(int x,int y,unsigned int state,int count, const Lax
 		return 0;
 	}
 
-	if (over!=CAPTION_None) return 0; //clicked down on something for current data
+	if (over!=CAPTION_None) {
+		if (over==CAPTION_Text) {
+			caretline=mline;
+			caretpos=mpos;
+			needtodraw=1;
+		}
+		return 0; //clicked down on something for current data
+	}
 
 
 	 // make new one or find other one.
@@ -1375,7 +1435,7 @@ int CaptionInterface::LBUp(int x,int y,unsigned int state, const Laxkit::LaxMous
 	return 0;
 }
 
-int CaptionInterface::scan(int x,int y,unsigned int state)
+int CaptionInterface::scan(int x,int y,unsigned int state, int *line, int *pos)
 {
 	if (!data) return CAPTION_None;
 
@@ -1401,6 +1461,9 @@ int CaptionInterface::scan(int x,int y,unsigned int state)
 
 
 	if (p.x>=data->minx && p.x<=data->maxx && p.y>=data->miny && p.y<=data->maxy) {
+		if (line) {
+			data->FindPos(p.y, p.x, line,pos);
+		}
 		return CAPTION_Text;
 	}
 
@@ -1428,13 +1491,30 @@ int CaptionInterface::MouseMove(int x,int y,unsigned int state, const Laxkit::La
 	if (child) return 0;
 
 	if (!buttondown.any() || !data) {
-		int hover=scan(x,y,state);
+		int hover=scan(x,y,state, NULL,NULL);
 
 		if (hover==CAPTION_None) {
 			 //set up to outline potentially editable other captiondata
-			//ObjectContext *oc=NULL;
-			//int c=viewport->FindObject(x,y,whatdatatype(),NULL,1,&oc);
-			//if (c>0) obj=dynamic_cast<CaptionData *>(oc->obj); //***actually don't need the cast, if c>0 then obj is CaptionData
+			ObjectContext *oc=NULL;
+			int c=viewport->FindObject(x,y,whatdatatype(),NULL,1,&oc);
+			if (c>0) {
+				DBG cerr <<"caption mouse over: "<<oc->obj->Id()<<endl;
+
+				if (!oc->isequal(extrahover)) {
+					extrahover=oc->duplicate();
+					needtodraw=1;
+				}
+			} else if (extrahover) {
+				delete extrahover;
+				extrahover=NULL;
+				needtodraw=1;
+			}
+		}
+
+		if (hover!=CAPTION_None && extrahover) {
+			delete extrahover;
+			extrahover=NULL;
+			needtodraw=1;
 		}
 
 		if (hover!=lasthover) {
@@ -1561,6 +1641,7 @@ enum CaptionInterfaceActions {
 	CAPT_Decorations,
 	CAPT_ShowBaselines,
 	CAPT_InsertChar,
+	CAPT_CombineChars,
 	CAPT_MAX
 };
 
@@ -1588,6 +1669,7 @@ Laxkit::ShortcutHandler *CaptionInterface::GetShortcuts()
     sc->Add(CAPT_Decorations,     'd',ControlMask,0, "Decorations"    , _("Toggle Decorations"),NULL,0);
     sc->Add(CAPT_ShowBaselines,   'D',ShiftMask|ControlMask,0, "ShowBaselines", _("Show Baselines"),NULL,0);
     sc->Add(CAPT_InsertChar,      'i',ControlMask,0, "InsertChar"     , _("Insert Character"),NULL,0);
+    sc->Add(CAPT_CombineChars,    'j',ControlMask,0, "CombineChars"   , _("Join Characters if possible"),NULL,0);
 
     manager->AddArea(whattype(),sc);
     return sc;
@@ -1679,6 +1761,30 @@ int CaptionInterface::PerformAction(int action)
 		needtodraw=1;
 		return 0;
 
+	} else if (action==CAPT_CombineChars) {
+		if (!data) return 1;
+
+		if (caretpos==0) caretpos++;
+		if (caretpos>data->CharLen(caretline)) caretpos=data->CharLen(caretline);
+
+		long i1=caretpos-2;
+		long i2=caretpos-1;
+		if (i1<0 || i2<0) {
+			PostMessage(_("Must have 2 characters to combine!"));
+			return 0;
+		}
+
+		int newch = composekey(data->lines.e[caretline][i1],data->lines.e[caretline][i2]);
+		if (newch==0 || newch==data->lines.e[caretline][i2]) {
+			PostMessage(_("Could not combine"));
+			return 0;
+		}
+
+		data->DeleteChar(caretline,caretpos,0, &caretline,&caretpos);
+		data->DeleteChar(caretline,caretpos,0, &caretline,&caretpos);
+		data->InsertChar(newch,caretline,caretpos,&caretline,&caretpos);
+		needtodraw=1;
+		return 0;
 	}
 
 	return 1;
@@ -1689,15 +1795,8 @@ int CaptionInterface::CharInput(unsigned int ch,const char *buffer,int len,unsig
 
 	if (!data) return 1;
 
-	if (ch=='c' && (state&LAX_STATE_MASK)==ControlMask) {
-		PerformAction(CAPT_Copy);
-		return 0;
 
-	} else if (ch=='v' && (state&LAX_STATE_MASK)==ControlMask) {
-		PerformAction(CAPT_Paste);
-		return 0;
-
-	} else if (ch==LAX_Esc && child) {
+	if (ch==LAX_Esc && child) {
 		RemoveChild();
 		needtodraw=1;
 		return 0;

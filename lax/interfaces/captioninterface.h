@@ -70,6 +70,7 @@ class CaptionData : virtual public SomeData
 	virtual double Size() { return fontsize; }
 	virtual double LineSpacing(double newspacing);
 	virtual double LineSpacing() { return linespacing; }
+	virtual int FindPos(double y, double x, int *line, int *pos);
 	virtual void FindBBox();
 
 	virtual int Font(Laxkit::LaxFont *newfont);
@@ -150,7 +151,7 @@ class CaptionInterface : public anInterface
 	virtual Laxkit::MenuInfo *ContextMenu(int x,int y,int deviceid, Laxkit::MenuInfo *menu);
 
 	virtual void FixCaret();
-	virtual int scan(int x,int y,unsigned int state);
+	virtual int scan(int x,int y,unsigned int state, int *line, int *pos);
 	virtual CaptionData *newData();
 };
 
