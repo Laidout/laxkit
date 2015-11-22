@@ -1,12 +1,13 @@
 #### Laxkit Examples/Makefile
 
+include ../Makefile-toinclude
 
 LAXDIR= ../lax
 LAXIDIR=$(LAXDIR)/interfaces
 LAXOBJDIR=$(LAXDIR)
 
 LD=g++
-LDFLAGS= -L/usr/X11R6/lib -lX11 -lm -lcairo -lfontconfig -lpng -lcups `imlib2-config --libs` -lXi -lXft -lcrypto -L$(LAXDIR) -L$(LAXIDIR)
+LDFLAGS= -L/usr/X11R6/lib -lX11 -lm -lcairo -lsqlite3 -lfontconfig -lpng -lcups `imlib2-config --libs` -lXi -lXft -lcrypto -L$(LAXDIR) -L$(LAXIDIR)
 DEBUGFLAGS= -g -gdwarf-2
 CPPFLAGS= $(DEBUGFLAGS) -I. -I.. -I$(LAXDIR)/ -I../include -I../src -I/usr/include/freetype2
 
@@ -34,7 +35,7 @@ vfill: lax laxinterface vfill.o
 #vfill.o: vfill.cc /home/tom/other/p/github/laxkit/lax/interfaces/engravermapping.cc /home/tom/other/p/github/laxkit/lax/interfaces/RESEARCH/blur.cc
 
 cairotest: lax laxinterface cairotest.o
-	$(LD) $(LDFLAGS) $@.o  -llaxinterfaces -llaxkit -o $@
+	$(LD) $(LDFLAGS) $@.o  -llaxinterfaces -llaxkit -lharfbuzz -o $@
 
 testevents: lax laxinterface testevents.o
 	$(LD) $(LDFLAGS) $@.o  -llaxinterfaces -llaxkit -o $@
