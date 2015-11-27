@@ -158,6 +158,8 @@ class TreeSelector : public ScrolledWindow
 		int width_type; //0=absolute, 1=fill
 		int detail; //for remapping order of columns
 		int type; //uses ColumnInfoType
+		int sort; //0 don't sort, 1 sort ascending, -1 sort descending
+
 		ColumnInfo(const char *ntitle, int nwidth, int ntype, int whichdetail);
 		~ColumnInfo();
 	};

@@ -60,6 +60,7 @@ TreeSelector::ColumnInfo::ColumnInfo(const char *ntitle, int nwidth, int ntype, 
 	detail=whichdetail;
 	width=nwidth;
 	width_type=0;
+	sort=0;
 }
 
 TreeSelector::ColumnInfo::~ColumnInfo()
@@ -189,6 +190,7 @@ TreeSelector::TreeSelector(anXWindow *parnt,const char *nname,const char *ntitle
 void TreeSelector::base_init()
 {
 	mousedragmode=0;
+	gap=3;
 	pad=3;
 	offsetx=offsety=0; //offset from pad,pad within inrect, so item.y = pad + offsety
 	textheight=0;
@@ -234,6 +236,7 @@ int TreeSelector::InstallMenu(MenuInfo *nmenu)
 		if (nmenu) nmenu->inc_count();
 		else menu=new MenuInfo;
 	}
+
 	needtobuildcache=1;
 	selection.flush();
 	ccuritem=curitem=0;
@@ -691,7 +694,8 @@ void TreeSelector::arrangeItems()
 	if (selbox.x<wholerect.x) selbox.x=wholerect.x;
 	if (selbox.y<wholerect.y) selbox.y=wholerect.y;
 	if (selbox.x+selbox.width>wholerect.x+wholerect.width) selbox.width=wholerect.x+wholerect.width-selbox.x;
-	if (selbox.y+selbox.height+gap>wholerect.y+wholerect.height) selbox.height=wholerect.y+wholerect.height-selbox.y-gap;
+	if (selbox.y+selbox.height+pad>wholerect.y+wholerect.height) selbox.height=wholerect.y+wholerect.height-selbox.y-pad;
+	//if (selbox.y+selbox.height+gap>wholerect.y+wholerect.height) selbox.height=wholerect.y+wholerect.height-selbox.y-gap;
 
 	panner->SetWholebox(wholerect.x,wholerect.x+wholerect.width-1,wholerect.y,wholerect.y+wholerect.height-1);
 	panner->SetCurPos(1,selbox.x,selbox.x+selbox.width-1);
@@ -848,6 +852,7 @@ void TreeSelector::Refresh()
 	if (needtobuildcache) RebuildCache();
 
 
+	double th=textheight;
 	int indent=0;
 	flatpoint offset(offsetx,offsety);
 	int n=0;
@@ -856,19 +861,25 @@ void TreeSelector::Refresh()
 
 	 //draw column info
 	if (columns.n) {
-		foreground_color(coloravg(win_colors->fg,win_colors->bg,.8));
-		fill_rectangle(this, 0,0,win_w,textheight);
-		foreground_color(win_colors->fg);
+		dp->NewFG(coloravg(win_colors->fg,win_colors->bg,.8));
+		dp->drawrectangle(0,0,win_w,textheight, 1);
+		dp->NewFG(win_colors->fg);
+		dp->drawline(0,textheight, win_w,textheight);
+
 		for (int c=0; c<columns.n; c++) {
 			if (c<columns.n-1) {
-				draw_line(this, columns.e[c+1]->pos,0, columns.e[c+1]->pos,textheight);
+				dp->drawline(columns.e[c+1]->pos,0, columns.e[c+1]->pos,textheight);
 			}
 
 			if (isblank(columns.e[c]->title)) continue;
-			textout(this, columns.e[c]->title,-1, gap+columns.e[c]->pos,0, LAX_LEFT|LAX_TOP);
+			dp->textout(gap+columns.e[c]->pos,0, columns.e[c]->title,-1, LAX_LEFT|LAX_TOP);
+
+			 //draw sort indicator
+			if (columns.e[c]->sort>0) dp->drawthing(gap+columns.e[c]->pos+columns.e[c]->width-th, th/2, th/4,th/4, 1, THING_Triangle_Down);
+			else if (columns.e[c]->sort<0) dp->drawthing(gap+columns.e[c]->pos+columns.e[c]->width-th, th/2, th/4,th/4, 1, THING_Triangle_Up);
 		}
 	}
-		
+
 	SwapBuffers();
 	needtodraw=0;
 }
@@ -1602,7 +1613,9 @@ int TreeSelector::LBDown(int x,int y,unsigned int state,int count,const LaxMouse
 //	}
 
 	int detailhover=-1;
-	if (columns.n && y<textheight) {
+	int item=-1;
+
+	if (columns.n && y<=inrect.y+textheight) {
 		 //check for clicking on column dividers to resize
 		 // *** what about title?
 		for (int c=columns.n-1; c>0; c--) {
@@ -1612,11 +1625,13 @@ int TreeSelector::LBDown(int x,int y,unsigned int state,int count,const LaxMouse
 			}
 		}
 		
+	} else { //no columns displayed
+		int onsub=0;
+		item=findItem(x,y, &onsub, NULL);
 	}
 
-	DBG cerr <<"-----detailhover: "<<detailhover<<endl;
-	int onsub=0;
-	int item=findItem(x,y, &onsub, NULL);
+	DBG cerr <<"-----click on "<<item<<" detailhover: "<<detailhover<<endl;
+
 	buttondown.down(d->id,LEFTBUTTON,x,y,item,detailhover);
 	mousedragmode=0;
 	return 0;
@@ -1641,14 +1656,14 @@ int TreeSelector::LBUp(int x,int y,unsigned int state,const LaxMouse *d)
 		mousedragmode=0;
 		return 0;
 	}
+
+	if (hovered>=0) return 0; //was dragging on columns
 	
 	 // do nothing if mouse is outside window.. This is necessary because of grabs.
-	if (x<0 || x>=win_w || y<0 || y>=win_h) {
-		return 0;
-	}
+	if (x<0 || x>=win_w || y<0 || y>=win_h) { return 0; }
 
-	int onsub=0;
-	int i=findItem(x,y,&onsub, NULL);
+	int onsub=0, column=-1;
+	int i=findItem(x,y,&onsub, &column);
 	if (i<0 || i>=numItems()) return 0; //if not on any item or arrow
 	
 	if (mousedragmode==2) {
@@ -1837,6 +1852,7 @@ int TreeSelector::MouseMove(int x,int y,unsigned int state,const LaxMouse *d)
 		}
 		return 0;
 	}
+
 	if (buttondown.isdown(d->id,LEFTBUTTON)) {
 		if (hover>=0) {
 			for (int c=hover; c<columns.n; c++) {
@@ -1848,6 +1864,7 @@ int TreeSelector::MouseMove(int x,int y,unsigned int state,const LaxMouse *d)
 			needtodraw=1;
 			return 0;
 		}
+
 		if (mousedragmode==0) { 
 			if (menustyle&TREESEL_REARRANGEABLE) {
 				//***if any items selected, then drag them...
@@ -1866,11 +1883,16 @@ int TreeSelector::MouseMove(int x,int y,unsigned int state,const LaxMouse *d)
 	if ((state&LAX_STATE_MASK)==(ShiftMask|ControlMask)) m=20;
 	else if ((state&LAX_STATE_MASK)==ControlMask || (state&LAX_STATE_MASK)==ShiftMask) m=10;
 	
-	if (y-my>0) { 
-		movescreen(0,-m*(y-my));
+	int dy=y-my;
+	if (y<0) dy=y;
+	else if (y>win_h) dy=y-win_h;
+
+	if (dy>0) { 
+		movescreen(0,-m*dy);
 		if (y>0 && y<win_h) { mx=x; my=y; }
-	} else if (my-y>0) {
-		movescreen(0,m*(my-y));
+
+	} else if (dy<0) {
+		movescreen(0,-m*dy);
 		if (y>0 && y<win_h) { mx=x; my=y; }
 	}
 	return 0;
@@ -2069,6 +2091,11 @@ void TreeSelector::adjustinrect()
 	inrect.width-=2*pad;
 	inrect.y+=pad;
 	inrect.height-=2*pad;
+
+	if (columns.n) {
+		inrect.y+=textheight+leading;
+		inrect.height-=textheight+leading;
+	}
 
 	if (textheight+leading) pagesize=inrect.height*.75;
 }
