@@ -31,6 +31,7 @@
 #include <lax/strmanip.h>
 #include <lax/fileutils.h>
 #include <lax/attributes.h>
+#include <lax/language.h>
 
 #include <lax/lists.cc>
 
@@ -315,18 +316,24 @@ char *recently_used(const char *mimetype,const char *group, int includewhat)
 		ingroup=0;
 		if (!att->attributes.e[c]->attributes.n) continue; //protection against malformed files
 		att2=att->attributes.e[c]->attributes.e[0];//the RecentItem->content: attribute
+
 		for (int c2=0; c2<att2->attributes.n; c2++) {
 			name =att2->attributes.e[c2]->name;
 			value=att2->attributes.e[c2]->value;
+
 			if (!strcmp(name,"URI")) {
 				file=value;
+
 			} else if (!strcmp(name,"Mime-Type")) {
 				if (mimetype && strcmp(mimetype,value)) continue; //ignore unwanted mimes
 				mime=value;
+
 			} else if (!strcmp(name,"Timestamp")) {
 				timestamp=value;
+
 			} else if (!strcmp(name,"Private")) {
 				priv=1;
+
 			} else if (!strcmp(name,"Groups") && group) {
 				if (!att2->attributes.e[c2]->attributes.n) continue; //protection against malformed files
 				Attribute *att3=att2->attributes.e[c2]->attributes.e[0];//the Groups->content: attribute
@@ -341,18 +348,317 @@ char *recently_used(const char *mimetype,const char *group, int includewhat)
 				}
 			}
 		}
+
 		if (group && !ingroup) continue; //record only a particular group
 		if (!group && priv) continue;   //ignore private elements if you are not looking for that group
 		if (mime && includewhat&1)      { appendstr(recent,mime);      appendstr(recent,"\t"); }
 		if (timestamp && includewhat&2) { appendstr(recent,timestamp); appendstr(recent,"\t"); }
 		if (file) { 
 			if (!strncmp(file,"file://",7)) file+=7;
+
+			 //convert "%20" to " "
+			char *ss=file;
+			int i=0;
+			while (file[i]) {
+				if (file[i]=='%' && file[i+1]=='2' && file[i+2]=='0') {
+					*ss=' ';
+					ss++;
+					i+=3;
+				} else {
+					*ss=file[i];
+					ss++;
+					i++;
+				}
+			}
+			*ss='\0';
+
 			appendstr(recent,file); appendstr(recent,"\n"); 
 		}
 	}
-	delete mainatt;
 
+	delete mainatt;
 	return recent;
+}
+
+//! Return a MenuInfo of recent files.
+/*! If mimetype!=NULL, then return only items of that type.
+ * If group!=NULL, then return items in only that group. If there are private
+ * items in the raw list, then return them only if its group matches the group
+ * you are looking for.
+ *
+ * If includewhat==0, then only return the file name. 
+ * If includewhat&1, next detail is mime type.
+ * If includewhat&2, next detail is timestamp.
+ *
+ * If recentfile is NULL, then try ~/.local/share/recently-used.xbel.
+ * If an <xbel> is found, it is assumed the xbel format is used.
+ * If a <RecentFiles> is found, then assume the file conforms to 
+ * the Recently Used Specification at Freedesktop.org:
+ * http://www.freedesktop.org/wiki/Specifications/recent-file-spec
+ * This would be in ~/.recently-used, for instance.
+ *
+ * Please note that many programs are not using the RecentFiles spec.
+ * Many are using the xbel, Freedesktop bookmark spec:
+ * http://www.freedesktop.org/wiki/Specifications/desktop-bookmark-spec,
+ * which puts info into ~/.local/share/recently-used.xbel instead.
+ *
+ * If you choose to read from ~/.recently-used, then it expects that file to return
+ * at Attribute structured basically like this: *
+ *
+ * <pre>
+ *  ?xml
+ *    version "1.0"
+ *  RecentFiles
+ *    content:
+ *      RecentItem
+ *        content:
+ *          URI "file:///blah/blah"
+ *          Mime-Type "text/plain"
+ *          Timestamp "1192504650"
+ *          Groups
+ *            content:
+ *              Group "gedit"
+ *      RecentItem
+ *        content:
+ *          URI "file:///blah/blah2"
+ *          Mime-Type "image/jpeg"
+ *          Timestamp "1192420896"
+ *          Groups
+ *            content:
+ *              Group "gimp"
+ * </pre>
+ *
+ * If you instead to read from ~/.local/share/recently-used.xbel, then an attribute of the following
+ * form is expected.
+ * <pre>
+ *  ?xml
+ *    version "1.0"
+ *    encoding "UTF-8"
+ *  xbel
+ *    version "1.0"
+ *    xmlns:bookmark "http://www.freedesktop.org/standards/desktop-bookmarks"
+ *    xmlns:mime "http://www.freedesktop.org/standards/shared-mime-info"
+ *    content:
+ *      bookmark
+ *        href "file:///home/tom/images/strobist/pdxstrobist/2010-01-10-BlueMonk/arms/arms.xcf"
+ *        added "2010-01-22T14:35:40Z"
+ *        modified "2010-02-21T05:35:45Z"
+ *        visited "2010-01-22T14:35:40Z"
+ *        content:
+ *          info
+ *            content:
+ *              metadata
+ *                owner "http://freedesktop.org"
+ *                content:
+ *                  mime:mime-type
+ *                    type "image/xcf"
+ *                  bookmark:groups
+ *                    content:
+ *                      bookmark:group "Graphics"
+ *                  bookmark:applications
+ *                    content:
+ *                      bookmark:application
+ *                        name "GNU Image Manipulation Program"
+ *                        exec "&apos;gimp-2.6 %u&apos;"
+ *                        modified "2010-02-21T05:35:45Z"
+ *                        count "32"
+ *  
+ * </pre>
+ *
+ * \todo support the other commonly used recent file: ~/.local/share/recently-used.xbel
+ * \todo not a whole lot of error checking in here yet.
+ */
+Laxkit::MenuInfo *recently_used(const char *recentfile, const char *mimetype,const char *group, int includewhat, Laxkit::MenuInfo *existingmenu)
+{
+	Laxkit::MenuInfo *menu=existingmenu;
+	if (!menu) menu=new Laxkit::MenuInfo(_("Recent"));
+
+	char *rfile=NULL;
+	//if (!recentfile) recentfile = expand_home("~/.recently-used");
+	if (!recentfile) rfile = expand_home("~/.local/share/recently-used.xbel");
+
+	Attribute *mainatt=XMLFileToAttributeLocked(NULL,rfile,NULL);
+	delete[] rfile;
+
+	if (!mainatt) { 
+		if (!existingmenu) delete menu;
+		return NULL;
+	}
+
+
+	int priv=0,ingroup=0;
+	char *name, *value;
+	char *mime,*file,*timestamp;
+	Attribute *att2;
+	Attribute *att=mainatt->find("RecentFiles");
+
+	if (att) {
+		if (att->attributes.n==1 && !strcmp(att->attributes.e[0]->name,"content:"))
+			att=att->attributes.e[0];
+
+		for (int c=att->attributes.n-1; c>=0; c--) { //foreach RecentItem
+			if (strcmp(att->attributes.e[c]->name,"RecentItem")) continue;
+			priv=0;
+			mime=file=timestamp=NULL;
+			ingroup=0;
+			if (!att->attributes.e[c]->attributes.n) continue; //protection against malformed files
+			att2=att->attributes.e[c]->attributes.e[0];//the RecentItem->content: attribute
+
+			for (int c2=0; c2<att2->attributes.n; c2++) {
+				name =att2->attributes.e[c2]->name;
+				value=att2->attributes.e[c2]->value;
+
+				if (!strcmp(name,"URI")) {
+					file=value;
+
+				} else if (!strcmp(name,"Mime-Type")) {
+					if (mimetype && strcmp(mimetype,value)) continue; //ignore unwanted mimes
+					mime=value;
+
+				} else if (!strcmp(name,"Timestamp")) {
+					timestamp=value;
+
+				} else if (!strcmp(name,"Private")) {
+					priv=1;
+
+				} else if (!strcmp(name,"Groups") && group) {
+					if (!att2->attributes.e[c2]->attributes.n) continue; //protection against malformed files
+					Attribute *att3=att2->attributes.e[c2]->attributes.e[0];//the Groups->content: attribute
+					if (strcmp(att3->name,"content:")) continue;
+
+					for (int c3=0; c3<att3->attributes.n; c3++) {
+						name =att3->attributes.e[c3]->name;
+						value=att3->attributes.e[c3]->value;
+						if (value && !strcmp(name,"Group")) {
+							if (!strcmp(value,group)) { ingroup=1; break; }
+						} 
+					}
+				}
+			}
+
+			if (group && !ingroup) continue; //record only a particular group
+			if (!group && priv) continue;   //ignore private elements if you are not looking for that group
+
+			if (file) { 
+				if (!strncmp(file,"file://",7)) file+=7;
+
+				 //convert "%20" to " "
+				char *ss=file;
+				int i=0;
+				while (file[i]) {
+					if (file[i]=='%' && file[i+1]=='2' && file[i+2]=='0') {
+						*ss=' ';
+						ss++;
+						i+=3;
+					} else {
+						*ss=file[i];
+						ss++;
+						i++;
+					}
+				}
+				*ss='\0';
+
+				menu->AddItem(file);
+				if (mime && includewhat&1)      { menu->AddDetail(mime,NULL); }
+				if (timestamp && includewhat&2) { menu->AddDetail(timestamp,NULL); }
+			}
+		}
+
+	} else if (att=mainatt->find("xbel"), att!=NULL) {
+		att=att->find("content:");
+
+		for (int c=att->attributes.n-1; c>=0; c--) { //foreach RecentItem
+			if (strcmp(att->attributes.e[c]->name,"bookmark")) continue;
+
+			mime=file=timestamp=NULL;
+			ingroup=0;
+
+			//att2=att->attributes.e[c]->find("content:");//the RecentItem->content: attribute
+			att2=att->attributes.e[c];
+
+			for (int c2=0; c2<att2->attributes.n; c2++) {
+				name =att2->attributes.e[c2]->name;
+				value=att2->attributes.e[c2]->value;
+
+				if (!strcmp(name,"href")) {
+					file=value;
+
+				} else if (!strcmp(name,"modified")) {
+					timestamp=value;
+
+				} else if (!strcmp(name,"content:") && ((includewhat&1)!=0 || mimetype || group)) {
+					try {
+						Attribute *att3=att2->attributes.e[c2];
+						att3=att3->find("info");
+						if (att3) att3=att3->find("content:");
+						if (att3) att3=att3->find("metadata");
+						if (att3) att3=att3->find("content:");
+						if (!att3) throw(1);
+
+						 //find mime
+						if ((includewhat&1)!=0) {
+							Attribute *att4=att3->find("mime:mime-type");
+							if (att4) att4=att4->find("type");
+							if (att4) mime=att4->value;
+						}
+
+						 //find group
+						if (group) {
+							att3=att3->find("bookmark:groups");
+							if (att3) att3=att3->find("content:");
+							if (att3) { 
+								for (int c3=0; c3<att3->attributes.n; c3++) {
+									name =att3->attributes.e[c3]->name;
+									value=att3->attributes.e[c3]->value;
+
+									if (value && !strcmp(name,"bookmark:group")) {
+										if (!strcmp(value,group)) { ingroup=1; break; }
+									} 
+								}
+							}
+						}
+					} catch (int err) {
+						DBG if (err>0) cerr <<"Missing component in recent file! ("<<err<<")"<<endl;
+					}
+
+				} else if (!strcmp(name,"Mime-Type")) {
+					if (mimetype && strcmp(mimetype,value)) continue; //ignore unwanted mimes
+					mime=value; 
+				}
+			}
+
+			if (mimetype && (!mime || strcmp(mimetype,mime))) continue; //doesn't match specified mime type
+			if (group && !ingroup) continue; //record only a particular group
+
+			if (file) { 
+				if (!strncmp(file,"file://",7)) file+=7;
+
+				 //convert "%20" to " "
+				char *ss=file;
+				int i=0;
+				while (file[i]) {
+					if (file[i]=='%' && file[i+1]=='2' && file[i+2]=='0') {
+						*ss=' ';
+						ss++;
+						i+=3;
+					} else {
+						*ss=file[i];
+						ss++;
+						i++;
+					}
+				}
+				*ss='\0';
+
+				menu->AddItem(file);
+				if (mime && includewhat&1)      { menu->AddDetail(mime,NULL); }
+				if (timestamp && includewhat&2) { menu->AddDetail(timestamp,NULL); }
+			}
+		}
+	}
+
+
+	delete mainatt;
+	return menu;
 }
 
 //! Read in file bookmarks.
@@ -480,9 +786,12 @@ char *get_bookmarks(const char *file,const char *filetype)
  * possibly fd desktop bookmark spec says folder bookmarks in ~/.shortcuts.xbel, but this is not
  * implemented here.
  *
+ * If flat, then for filetype==NULL, then add to menu without adding submenus. Each section
+ * is delineated with a separator.
+ *
  * \todo need to lock files on opening
  */
-Laxkit::MenuInfo *get_categorized_bookmarks(const char *file,const char *filetype, Laxkit::MenuInfo *menu)
+Laxkit::MenuInfo *get_categorized_bookmarks(const char *file,const char *filetype, Laxkit::MenuInfo *menu, bool flat)
 {
 	if (filetype==NULL && file!=NULL) return NULL;
 	if (filetype==NULL) {
@@ -492,33 +801,50 @@ Laxkit::MenuInfo *get_categorized_bookmarks(const char *file,const char *filetyp
 		if (!menu) { created=1; menu=new Laxkit::MenuInfo; }
 		Laxkit::MenuInfo *mm;
 
-		menu->AddItem("Gtk");
-		menu->SubMenu();
-		mm=get_categorized_bookmarks(NULL,"gtk3", menu);
-		menu->EndSubMenu();
+
+		if (flat) menu->AddSep(_("Gtk"));
+		else {
+			menu->AddItem(_("Gtk"));
+			menu->SubMenu();
+		}
+		mm=get_categorized_bookmarks(NULL,"gtk3", menu, false);
+		if (!flat) menu->EndSubMenu();
 		if (!mm) menu->Remove(-1);
 		else n++;
 
-		menu->AddItem("Kde");
-		menu->SubMenu();
-		mm=get_categorized_bookmarks(NULL,"kde",  menu);
-		menu->EndSubMenu();
+
+		if (flat) menu->AddSep(_("Kde"));
+		else {
+			menu->AddItem(_("Kde"));
+			menu->SubMenu();
+		}
+		mm=get_categorized_bookmarks(NULL,"kde",  menu, false);
+		if (!flat) menu->EndSubMenu();
 		if (!mm) menu->Remove(-1);
 		else n++;
 
-		menu->AddItem("Rox");
-		menu->SubMenu();
-		mm=get_categorized_bookmarks(NULL,"rox",  menu);
-		menu->EndSubMenu();
+
+		if (flat) menu->AddSep(_("Rox"));
+		else {
+			menu->AddItem(_("Rox"));
+			menu->SubMenu();
+		}
+		mm=get_categorized_bookmarks(NULL,"rox",  menu, false);
+		if (!flat) menu->EndSubMenu();
 		if (!mm) menu->Remove(-1);
 		else n++;
 
-		//menu->AddItem(_("Lax"));
-		//menu->SubMenu();
-		//mm=get_categorized_bookmarks(NULL,"lax",  menu);
-		//menu->EndSubMenu();
+
+		//if (flat) menu->AddItem(_("Lax"));
+		//else {
+		//	menu->AddItem(_("Lax"));
+		//	menu->SubMenu();
+		//}
+		//mm=get_categorized_bookmarks(NULL,"lax",  menu, false);
+		//if (!flat) menu->EndSubMenu();
 		//if (!mm) menu->Remove(-1);
 		//else n++;
+
 
 		if (!n && created) { delete menu; menu=NULL; } //nothing added
 		return menu;
@@ -571,7 +897,7 @@ Laxkit::MenuInfo *get_categorized_bookmarks(const char *file,const char *filetyp
 
 						if (!isblank(value)) {
 							n++;
-							menu->AddItem(lax_basename(value));
+							menu->AddItem(isblank(lax_basename(value)) ? value : lax_basename(value));
 							menu->AddDetail(value,NULL);
 						}
 					} 
@@ -583,18 +909,44 @@ Laxkit::MenuInfo *get_categorized_bookmarks(const char *file,const char *filetyp
 		 //gtk uses (as far as I know) a simple list of lines like:   
 		 //  file:///blah/blah
 		char *line=NULL;
+		char *name;
 		size_t nn=0;
 		int c;
+
 		while (1) {
 			c=getline(&line,&nn,f);
 			if (c<=0) break;
 			if (line[c-1]=='\n') line[c-1]='\0';
 			if (!isblank(line)) {
+				name=strchr(line,' ');
+				if (name && !isblank(name+1)) {
+					*name='\0';
+					name++;
+				} else {
+					name=(char*)lax_basename(line+7);
+				}
+
+				char *ss=line;
+				int i=0;
+				while (line[i]) {
+					if (line[i]=='%' && line[i+1]=='2' && line[i+2]=='0') {
+						*ss=' ';
+						ss++;
+						i+=3;
+					} else {
+						*ss=line[i];
+						ss++;
+						i++;
+					}
+				}
+				*ss='\0';
+
 				n++;
-				menu->AddItem(lax_basename(line+7));
+				menu->AddItem(name);
 				menu->AddDetail(line+7,NULL);
 			}
 		}
+
 	} else if (!strcmp(filetype,"lax")) {
 		 //is lax indented format
 		//Attribute *att=anXApp::app->Resource("Bookmarks");

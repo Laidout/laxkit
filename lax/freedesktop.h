@@ -31,9 +31,10 @@ namespace LaxFiles {
 
 int touch_recently_used(const char *file, const char *mime, const char *group, const char *timestamp);
 char *recently_used(const char *mimetype,const char *group, int includewhat);
+Laxkit::MenuInfo *recently_used(const char *recentfile, const char *mimetype,const char *group, int includewhat, Laxkit::MenuInfo *existingmenu);
 
 char *get_bookmarks(const char *file,const char *filetype);
-Laxkit::MenuInfo *get_categorized_bookmarks(const char *file,const char *filetype, Laxkit::MenuInfo *menu);
+Laxkit::MenuInfo *get_categorized_bookmarks(const char *file,const char *filetype, Laxkit::MenuInfo *menu, bool flat);
 int add_bookmark(const char *directory, int where);
 
 char *freedesktop_thumbnail(const char *file, char which='n');
