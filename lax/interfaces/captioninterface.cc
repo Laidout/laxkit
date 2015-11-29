@@ -597,6 +597,90 @@ int CaptionData::InsertChar(unsigned int ch, int line,int pos, int *newline,int 
 	return 0;
 }
 
+int CaptionData::DeleteSelection(int fline,int fpos, int tline,int tpos, int *newline,int *newpos)
+{
+	if (fline<0 || fline>=lines.n) fline=lines.n-1;
+	if (tline<0 || tline>=lines.n) tline=lines.n-1;
+	if (fpos<0 || fpos>=(int)strlen(lines.e[fline])) fpos=strlen(lines.e[fline]);
+	if (tpos<0 || tpos>=(int)strlen(lines.e[tline])) tpos=strlen(lines.e[tline]);
+	if (fline==tline && fpos==tpos) { *newline=fline; *newpos=fpos; return 0; }
+
+	 //make from be before to
+	if (tline<fline) {
+		int tt=tline; tline=fline; fline=tt;
+		tt=tpos; tpos=fpos; fpos=tt;
+	}
+	if (tline==fline && tpos<fpos) { int tt=tpos; tpos=fpos; fpos=tt; }
+
+	 //remove any whole lines
+	while (tline>fline+1) {
+		lines.remove(tline-1);
+		linelengths.remove(tline-1);
+		tline--;
+	}
+
+	if (tline==fline) {
+		 //remove text all within one line
+		memmove(lines.e[fline]+fpos, lines.e[fline]+tpos, strlen(lines.e[fline])-tpos+1);
+
+	} else {
+		 //remove end of fline, and append tline+tpos to fline
+		lines.e[fline][fpos]='\0';
+		appendstr(lines.e[fline], lines.e[tline]+tpos);
+		lines.remove(tline);
+		linelengths.remove(tline);
+	}
+
+	ComputeLineLen(fline);
+	*newline=fline;
+	*newpos=fpos;
+	return 0;
+}
+
+int CaptionData::InsertString(const char *txt,int len, int line,int pos, int *newline,int *newpos)
+{
+	if (line<0 || line>=lines.n) line=lines.n-1;
+	if (pos<0 || pos>=(int)strlen(lines.e[line])) pos=strlen(lines.e[line]);
+	if (len<0) len=strlen(txt);
+	if (!txt || !len) { *newline=line; *newpos=pos; return 0; }
+	
+	insertnstr(lines.e[line], txt,len, pos);
+
+	char *curline =lines.e[line];
+	char *origline=lines.e[line];
+	lines.e[line]=NULL;
+	int first=1;
+
+	while (*curline) {
+		char *nl=strchrnul(curline,'\n');
+		if (*nl=='\0' && first) {
+			lines.e[line]=origline;
+			origline=NULL;
+			break; //line is good as is
+		}
+
+		 //else we need to add it
+		char *thisline=newnstr(curline, nl-curline);
+		if (first) {
+			lines.e[line]=thisline;
+			first=0;
+		} else {
+			lines.push(thisline, line);
+			linelengths.push(0, line);
+		}
+		ComputeLineLen(line);
+
+		line++;
+		curline=nl;
+		if (*curline) curline++;
+	}
+	delete[] origline;
+
+	*newline=line;
+	*newpos =pos;
+	return 0;
+}
+
 /*! Assumes font is accurate????
  *
  * \todo *** must be able to find the actual extent of the text!
