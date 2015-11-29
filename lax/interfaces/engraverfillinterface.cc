@@ -2207,7 +2207,7 @@ int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit
 		}
 
 		int lx,ly;
-		int in_sens=0;
+		int in_sens=0; //sensitivity mode
 		buttondown.move(mouse->id,x,y, &lx,&ly);
 		buttondown.getextrainfo(mouse->id,LEFTBUTTON,NULL,&in_sens);
 
