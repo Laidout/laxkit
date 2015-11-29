@@ -71,10 +71,12 @@ namespace Laxkit {
 #define TREESEL_SEND_ON_ENTER        (1LL<<27)
 #define TREESEL_SEND_IDS             (1LL<<28)
 #define TREESEL_SEND_STRINGS         (1LL<<29)
+#define TREESEL_SEND_DETAIL          (1LL<<30)
 
-#define TREESEL_GRAPHIC_ON_RIGHT     (1LL<<30)
+#define TREESEL_GRAPHIC_ON_RIGHT     (1LL<<31)
+#define TREESEL_NO_LINES             (1LL<<32)
 
-#define TREESEL_SUB_FOLDER           (1LL<<31)
+#define TREESEL_SUB_FOLDER           (1LL<<33)
 
 //... remember that the buck stops with (1<<63)
 
@@ -97,6 +99,7 @@ class TreeSelector : public ScrolledWindow
 	int firstinw;
 	int textheight,lineheight,pagesize;
 	int timerid;
+	int senddetail;
 
 	MenuInfo *menu; 
 	MenuItem *curmenuitem;
@@ -207,6 +210,7 @@ class TreeSelector : public ScrolledWindow
 	virtual const MenuItem *Item(int c) { return item(c); }
 	virtual MenuInfo *Menu() { return menu; }
 	virtual int InstallMenu(MenuInfo *nmenu);
+	virtual void Wrap();
 
 	virtual int Expand(int which);
 	virtual int Collapse(int which);
@@ -217,6 +221,8 @@ class TreeSelector : public ScrolledWindow
 	virtual int ClearSearch();
 	virtual int UpdateSearch(const char *searchterm, bool isprogressive);
 	
+	virtual void SendDetail(int which);
+	virtual int GetSelectedIndex(int i);
 	virtual MenuItem *GetSelected(int i);
 	virtual int NumSelected();
 
