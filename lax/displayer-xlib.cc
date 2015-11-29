@@ -1237,7 +1237,7 @@ void DisplayerXlib::imageout_skewed(LaxImage *img,double ulx,double uly,double u
 
 
 //! Move the viewable portion by dx,dy screen units.
-void DisplayerXlib::ShiftScreen(int dx,int dy)
+void DisplayerXlib::ShiftScreen(double dx,double dy)
 {
 	ictm[4]-=dx;
 	ictm[5]-=dy;

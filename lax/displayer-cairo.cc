@@ -1688,8 +1688,13 @@ const double *DisplayerCairo::Getictm()
 
 
 //! Move the viewable portion by dx,dy screen units.
-void DisplayerCairo::ShiftScreen(int dx,int dy)
+void DisplayerCairo::ShiftScreen(double dx,double dy)
 {
+	//if (real_coordinates) {
+		//dx/=Getmag();
+		//dy/=Getmag();
+	//}
+
 	if (cr && real_coordinates) cairo_translate(cr,dx,dy);
 
 	ictm[4]-=dx;

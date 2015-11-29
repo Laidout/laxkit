@@ -1186,13 +1186,13 @@ void Displayer::Center(double minx,double maxx,double miny,double maxy)
  *   syncPanner();
  * \endcode
  */
-void Displayer::ShiftScreen(int dx,int dy)
+void Displayer::ShiftScreen(double dx,double dy)
 {
 	double t[6];
 	transform_copy(t,Getctm());
 
-	t[4]+=dx;
-	t[5]+=dy;
+	t[4]+=dx/Getmag();
+	t[5]+=dy/Getmag();
 	NewTransform(t);
 }
 

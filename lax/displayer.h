@@ -231,7 +231,7 @@ class Displayer : public PanUser, virtual public anObject
 	virtual void PushAndNewAxes(flatpoint p,flatpoint x,flatpoint y);
 	virtual void NewAxis(flatpoint o,flatpoint xtip);
 	virtual void NewAxis(flatpoint o,flatvector x,flatvector y);
-	virtual void ShiftScreen(int dx,int dy);
+	virtual void ShiftScreen(double dx,double dy);
 	virtual void ShiftReal(double dx,double dy);
 	virtual void Center(double minx,double maxx,double miny,double maxy);
 	virtual void Center(const double *m,DoubleBBox *bbox);

@@ -197,7 +197,7 @@ class DisplayerXlib : public Displayer
 	virtual const double *Getictm() { return ictm; }
 	virtual void findictm();
 
-	virtual void ShiftScreen(int dx,int dy);
+	virtual void ShiftScreen(double dx,double dyy);
 	virtual void ShiftReal(double dx,double dy);
 	virtual void ResetTransform();
 	virtual void NewTransform(const double *d);
