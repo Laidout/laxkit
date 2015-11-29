@@ -214,6 +214,7 @@ void ScrolledWindow::syncWindows(int useinrect)//useinrect==0
 	
 	int x,y,w,h;
 	findoutrect();
+
 	 // yscroller is placed first
 	if (yscroller && yscroller->win_on) {
 		x=win_style&SW_LEFT?0:win_w-scrollwidth;
@@ -253,6 +254,7 @@ void ScrolledWindow::syncWindows(int useinrect)//useinrect==0
 		h=win_h-scrollwidth;
 		if (win_style&SW_TOP) y=scrollwidth; else y=0;
 	} else { y=0; h=win_h; }
+
 	inrect.x=x;
 	inrect.y=y;
 	inrect.width=w;
