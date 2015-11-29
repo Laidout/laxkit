@@ -28,6 +28,9 @@
 #include <cstring>
 #include <cstdlib>
 
+#include <lax/lists.cc>
+
+
 #include <iostream>
 using namespace std;
 #define DBG
@@ -447,6 +450,66 @@ void Affine::m(double xx,double xy,double yx,double yy,double tx,double ty)
 	_m[3]=yy;
 	_m[4]=tx;
 	_m[5]=ty;
+}
+
+
+
+//------------------------------- AffineStack ----------------------------------------
+
+/*! \class AffineStack
+ * Just like Affine, but adds a stack of transforms.
+ */
+
+
+AffineStack::AffineStack()
+  : axesstack(2)
+{
+}
+
+AffineStack::~AffineStack()
+{
+}
+
+/*! Return value is how many levels in axesstack after pushing.
+ */
+int AffineStack::PushAxes()
+{
+    double *tctm=new double[6];
+    transform_copy(tctm,_m);
+    axesstack.push(tctm,2);
+
+	return axesstack.n;
+}
+
+/*! Return value is how many levels still in axesstack after popping.
+ * 
+ * If m_ret!=NULL, then return the discarded array.
+ */
+int AffineStack::PopAxes(double *m_ret)
+{
+    if (axesstack.n==0) return 0;
+
+    if (m_ret) transform_copy(m_ret, _m);
+
+    transform_copy(_m, axesstack.e[axesstack.n-1]);
+    axesstack.remove(axesstack.n-1);
+
+	return axesstack.n;
+}
+
+void AffineStack::ClearAxes()
+{
+	axesstack.flush();
+	setIdentity();
+}
+
+/*! Return 1 for out of bounds. Return 0 for found, and copy that level to mm.
+ */
+int AffineStack::GetAxes(int which, double *mm)
+{
+	if (which<0 || which>=axesstack.n) return 1;
+	transform_copy(mm, axesstack.e[which]);
+	return 0;
 }
 
 

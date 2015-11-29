@@ -24,11 +24,14 @@
 #define _LAX_TRANSFORMMATH_H
 
 #include <lax/vectors.h>
+#include <lax/lists.h>
 
 //-------------------- Affine Transform Utilities ---------------------
 
 namespace Laxkit {
 
+
+//-------------------- class Affine ---------------------
 class Affine
 {
   protected:
@@ -90,6 +93,28 @@ class Affine
 	virtual flatpoint yaxis() { return flatpoint(_m[2],_m[3]); }
 	virtual void      yaxis(flatpoint y) { _m[2]=y.x; _m[3]=y.y; }
 };
+
+
+//-------------------- class AffineStack ---------------------
+
+class AffineStack : public Affine
+{
+  protected:
+	PtrStack<double> axesstack;
+
+  public:
+	AffineStack();
+	virtual ~AffineStack();
+
+	virtual int NumAxes() const { return axesstack.n; } //num stored axes, not including current _m
+	virtual int GetAxes(int which, double *mm);
+	virtual int PushAxes();
+	virtual int PopAxes(double *m_ret=NULL);
+	virtual void ClearAxes();
+};
+
+
+//-------------------- lower level Affine functions ---------------------
 
 void dumpctm(const double *d);
 int is_degenerate_transform(double *m);
