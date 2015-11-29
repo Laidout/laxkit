@@ -18,13 +18,12 @@
 //    License along with this library; if not, write to the Free Software
 //    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
-//    Copyright (C) 2004-2007,2010,2014 by Tom Lechner
+//    Copyright (C) 2004-2007,2010 by Tom Lechner
 //
 
 
-#include <lax/filedialog2.h>
-
 #include <lax/language.h>
+#include <lax/filedialog.h>
 #include <lax/filemenuinfo.h>
 #include <lax/popupmenu.h>
 #include <lax/filepreviewer.h>
@@ -32,8 +31,6 @@
 #include <lax/menubutton.h>
 #include <lax/freedesktop.h>
 #include <lax/overwrite.h>
-#include <lax/stackframe.h>
-#include <lax/iconmanager.h>
 
 #include <lax/fileutils.h>
 using namespace LaxFiles;
@@ -89,15 +86,19 @@ using namespace std;
 // * Embed Icon
 //
 //
+//
+//New Dir (simple LineInput)
+//-------
+//Name? ________
 
 
 
 namespace Laxkit {
 
 
-//-------------------------------- FileDialog2 ------------------------------
+//-------------------------------- FileDialog ------------------------------
 
-/*! \class FileDialog2
+/*! \class FileDialog
  * \brief A dialog for selecting files.
  *
  * \todo FILES_OPEN_ONE still allows multiple to be selected..
@@ -144,7 +145,7 @@ namespace Laxkit {
  * #define FILES_NO_CANCEL        (1<<31) <-- do not app->destroy the window internally
  * \endcode
  */
-/*! \var unsigned long FileDialog2::dialog_style
+/*! \var unsigned long FileDialog::dialog_style
  * \brief Style flags for the dialog.
  *  
  *  This by default has FILES_GLOBAL_BOOKMARK set in it. This allows saving bookmarks
@@ -163,7 +164,7 @@ namespace Laxkit {
  * \todo *** need to work out styles, and passing to RowFrame..
  * \todo include prev?
  */
-FileDialog2::FileDialog2(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
+FileDialog::FileDialog(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
 		int xx,int yy,int ww,int hh,int brder,
 		unsigned long nowner,const char *nsend,
 		unsigned long ndstyle,
@@ -173,27 +174,21 @@ FileDialog2::FileDialog2(anXWindow *parnt,const char *nname,const char *ntitle,u
 	: RowFrame(parnt,nname,ntitle,(nstyle&0xffff)|ROWFRAME_ROWS|ROWFRAME_CENTER,
 			   xx,yy,ww,hh,brder,
 			   NULL,nowner,nsend,
-			   5),
-	  history(2)
+			   5)
 {
 	dialog_style= ndstyle | FILES_GLOBAL_BOOKMARK;
 	
-	curhistory=-1;
 	finalbuttons=-1;
-	previewer=NULL;
-
 	recentgroup=newstr(nrecentgroup);
-	showing_recent=false;
-	showing_icons=false;
+	previewer=NULL;
 
 
 	 //-------the rest of this function is building initial file/path/mask/ok controls
 	anXWindow *last=NULL;
 
 	 //create file input
-	last=file=new LineInput(this,"file",NULL,LINP_FILE, 0,0,0,0, 0, NULL,object_id,"new file", _("File?"),lax_basename(nfile),0, 0,0,2,2,2,2);
+	last=file=new LineInput(this,"file",NULL,0, 0,0,0,0, 1, NULL,object_id,"new file", _("File?"),lax_basename(nfile),0, 0,0,2,2,2,2);
 	file->tooltip(_("Filename to use"));
-
 
 	 //set up path input
 	char *nnpath=NULL;
@@ -205,33 +200,32 @@ FileDialog2::FileDialog2(anXWindow *parnt,const char *nname,const char *ntitle,u
 			if (t) delete[] t;
 		}
 	}
-	if (!nnpath && isblank(npath)) {
-		if (dialog_style&FILES_OPENING) nnpath=newstr(app->load_dir);
-		else nnpath=newstr(app->save_dir);
+	if (!nnpath && !npath) {
+		if (dialog_style&FILES_OPENING) npath=app->load_dir;
+		else npath=app->save_dir;
 	}
-	if (!nnpath && isblank(npath)) {
-		 nnpath=current_directory();
+	if (!nnpath && (!npath || npath[0]=='\0')) {
+		 //char *t=get_current_dir_name(); // this is a gnu extension _GNU_SOURCE must have been defined somewhere..
+		 char *t=getcwd(NULL,0); // this is a gnu extension _GNU_SOURCE must have been defined somewhere..
+		 nnpath=newstr(t);
+		 free(t);
 	}
-
+	if (!nnpath && npath) nnpath=newstr(npath);
 	DBG cerr <<"--------->  nnpath:"<<(nnpath?nnpath:"null")<<"  npath:"<<(npath?npath:"null")<<endl;
-	last=path=new LineInput(this,"path",NULL,LINP_DIRECTORY, 0,0,0,0, 0, last,object_id,"new path", _("Path:"),nnpath,0, 0,0,2,2,2,2);
+	last=path=new LineInput(this,"path",NULL,0, 0,0,0,0, 1, last,object_id,"new path", _("Path:"),nnpath,0, 0,0,2,2,2,2);
 	path->tooltip(_("Current Directory"));
 	 
-
 	 //set up mask input
-	last=mask=new LineInput(this,"mask",NULL,0, 0,0,0,0, 0, last,object_id,"new mask", _("Mask:"),nmask?nmask:"*",0, 0,0,2,2,2,2);
-	mask->GetLineEdit()->setWinStyle(LINEEDIT_CLEAR_X, 1);
+	last=mask=new LineInput(this,"mask",NULL,0, 0,0,0,0, 1, last,object_id,"new mask", _("Mask:"),nmask?nmask:"*",0, 0,0,2,2,2,2);
 	//mask->tooltip(_("Space separated list of\nmasks to apply to the path"));
-	mask->tooltip(_("Filter filenames by this mask"));
+	mask->tooltip(_("Mask to apply to the end of path"));
 	
-
 	app->addwindow(file,0,0);
 	app->addwindow(path,0,0);
 	app->addwindow(mask,0,0); //though these are addwindow'd, they are AddWin'd in init.
 
 	filelist=NULL;
 	getDirectory(nnpath);
-	NewHistory(nnpath);
 	if (nnpath) delete[] nnpath;
 
 	 //add an ok and optionally a cancel button to wholelist here, rather than in init()
@@ -255,48 +249,44 @@ FileDialog2::FileDialog2(anXWindow *parnt,const char *nname,const char *ntitle,u
 
 }
 
-FileDialog2::~FileDialog2()
+FileDialog::~FileDialog()
 {
 	if (recentgroup) delete[] recentgroup;
 }
 
-int FileDialog2::NewHistory(const char *npath)
+/*! Unimplemented.
+ *
+ * \todo ****not necessary? ***would put a NULL terminated char ** list of files in state
+ */
+int FileDialog::GetState(void **state)
+{ return 0; }
+
+//! Use this group for recent files.
+/*! If group==NULL, then do not use the recent file button. If group=="", then use any group.
+ */
+void FileDialog::Recent(const char *group)
 {
-	if (curhistory>=0 && !strcmp(npath,history.e[curhistory])) return 0; //is same as current
-
-	 //remove obsolete future history
-	while (history.n-1!=curhistory) history.remove(history.n-1);
-
-	if (curhistory<0) {
-		curhistory=0;
-	} else {
-		curhistory++;
-	}
-	history.push(newstr(npath));
-
-	return 0;
+	makestr(recentgroup,group);
 }
-
-/*! Fill the files MenuInfo with all the matching files.
- * Maybe called from either refresh or going to a new directory.
- * 
+	
+//! Fill the files MenuInfo with all the matching files
+/*!
+ * \todo ****** wrap this stuff into a FileMenuInfo!!!!!??
+ * 		how to make the FileMenuItem have path/mask
+ * 		*** and don't forget about scandir!!
  * \todo *** should return 0 success, nonzero error bad path, etc.
  * \todo *** this needs much work to use multiple masks...
  */
-int FileDialog2::getDirectory(const char *npath)
+int FileDialog::getDirectory(const char *npath)
 {//***
-	DBG cerr <<"FileDialog2::getDirectory()..."<<endl;
-
 	if (file_exists(npath,1,NULL)!=S_IFDIR) {
-		//char *pth=newstr(npath);
-		//appendstr(pth," BAD");
-		//path->SetText(pth);
-		//delete[] pth;
+		char *pth=newstr(npath);
+		appendstr(pth," BAD");
+		path->SetText(pth);
+		delete[] pth;
 		return 1;
 	}
 	
-	file->Qualifier(npath);
-
 	glob_t globbuf;
 	char **patterns; // patterns in mask are assumed to be sanitized already.
 	//***get pattern(s) =  path + mask
@@ -333,24 +323,20 @@ int FileDialog2::getDirectory(const char *npath)
 	files.menuitems.flush();
 	
 	if (!globbuf.gl_pathc) {
-		 //no hits, add a "." for refresh and ".." for up
 		globfree(&globbuf); 
 		files.AddItem("..",NULL,
 				0,               //id
-				//LAX_OFF,   //state
 				LAX_HAS_SUBMENU|LAX_OFF,   //state
 				1,               //*** info 1==follow links
 				NULL,0           //submenu
 			);
 		files.AddItem(".",NULL,
 				1,               //id
-				//LAX_OFF,   //state
 				LAX_HAS_SUBMENU|LAX_OFF,   //state
 				1,               //*** info 1==follow links
 				NULL,0           //submenu
 			);
 		if (filelist) {
-			if (filelist) filelist->InstallMenu(&files); //forces cache refresh
 			filelist->Select(0);
 			filelist->Sync();
 			filelist->Needtodraw(1);
@@ -366,7 +352,6 @@ int FileDialog2::getDirectory(const char *npath)
 		hasdir=0;
 		if (dialog_style&FILES_NO_FOLLOW_LINKS) s=lstat(globbuf.gl_pathv[c],&statbuf);
 		else s=stat(globbuf.gl_pathv[c],&statbuf);
-
 		if (s) { // error
 			perror("filedialog getDirectory stat error");
 		} else {
@@ -397,7 +382,6 @@ int FileDialog2::getDirectory(const char *npath)
 	//DBG }
 	
 	if (filelist) {
-		if (filelist) filelist->InstallMenu(&files); //forces cache refresh
 		filelist->Select(0);
 		filelist->Sync();
 		filelist->Needtodraw(1);
@@ -406,7 +390,7 @@ int FileDialog2::getDirectory(const char *npath)
 }
 
 //! Set win_w and win_h to sane values if necessary.
-int FileDialog2::preinit()
+int FileDialog::preinit()
 {
 	anXWindow::preinit();
 	if (win_w==0) win_w=500;
@@ -420,7 +404,7 @@ int FileDialog2::preinit()
 /*!
  * \todo *** fix quickselect button, it is totally broken at the moment
  */
-int FileDialog2::init()
+int FileDialog::init()
 {
 	if (!ValidDrawable()) return 1;
 
@@ -428,177 +412,161 @@ int FileDialog2::init()
 	int linpheight=textheight+6;
 	anXWindow *last=NULL;
 	Button *tbut=NULL;
-	if (finalbuttons<0) finalbuttons=0; //points to the "Ok" button that maybe is already there from constructor
-
-
-	IconManager *iconmanager=IconManager::GetDefault();
-
+	if (finalbuttons<0) finalbuttons=0;
 
 	 //----Add FILE line input
 
 	file->SetOwner(this);
 	AddWin(file,1, 200,100,1000,50,0, file->win_h,0,0,50,0, finalbuttons++);
+
+	 //----add optional Recent files button near File input
+	char *recent=NULL;
+	if (recentgroup) recent=recently_used(NULL,isblank(recentgroup)?NULL:recentgroup,0);
+	if (recent) {
+		MenuInfo *menu=NULL;
+		menu=new MenuInfo;
+		int n;
+		char **bms=split(recent,'\n',&n);
+		char *blah=NULL, *dir;
+		for (int c=0; c<n-1; c++) {
+			blah=newstr(lax_basename(bms[c]));
+			appendstr(blah," -- ");
+			dir=lax_dirname(bms[c],1);
+			appendstr(blah,dir);
+			delete[] dir;
+
+			menu->AddItem(blah,c);
+
+			delete[] blah;
+			blah=NULL;
+		}
+		deletestrs(bms,n);
+		delete[] recent;
+		MenuButton *mb=NULL;
+		mb=new MenuButton(this,"recent", NULL,
+						 MENUBUTTON_LEFT|MENUBUTTON_SEND_STRINGS,
+						 0,0,0,0,1,
+						 NULL,object_id,"recent",
+						 0,
+						 menu,1,
+						 _("Recent"));
+		mb->pad=app->defaultlaxfont->textheight()/3;
+		mb->tooltip(_("Select a recently used file"));
+		file->ConnectControl(mb);
+		AddWin(mb,1, mb->win_w,0,50,50,0, linpheight,0,0,50,0, finalbuttons++);
+	}
 	AddNull(finalbuttons++);
 
-
+	
 	 //Add PATH input
 	path->SetOwner(this);
 	AddWin(path,1, 200,100,1000,50,0, path->win_h,0,0,50,0, finalbuttons++);
-	AddNull(finalbuttons++);
-
-
-	
-	AddVSpacer(linpheight/3,0,0,0, finalbuttons++);
-	AddNull(finalbuttons++);
-	
-
-
-
-
-
-	 //---Main list and preview area
-	 //make a 3 pane stack:  Recent/Bookmarks,  Files,  Preview
-	StackFrame *hstack=new StackFrame(this,"hbox","hbox",0, 0,0,0,0,0, NULL,0,NULL, 8);
-	//StackFrame *hstack=new StackFrame(NULL,"hbox","hbox",0, 0,0,0,0,0, NULL,0,NULL, 10);
-
-
-	 //bookmarks pane...
-	//hstack->AddSpacer(100,100,100,50, -1);
 
 	 //bookmarks button near path
 	MenuInfo *bookmarkmenu=BuildBookmarks();
-	last=new TreeSelector(hstack,"Bookmarks","Bookmarks", 0,
-							0,0,0,0, 1,
-							last,object_id,"Bookmarks",
-							TREESEL_SEND_ON_UP |TREESEL_LEFT,
-							bookmarkmenu); //incs bookmarkmenu count, should have 2 afterwards here
-	last->installColors(app->color_edits);
-	hstack->AddWin(last,1, 150,100,1000,50,0, 300,0,1000,50,0, -1);
-	//***
-	//All recent
-	//Laidout recent
-	//Image recent...
-	//----
-	//gtk/qt/other bookmarks
-	//----
-	//[+] [-] [^] [v]
-
-
-
-	 //-----construct middle files area with various helper buttons:
-	 // 
-	 //  [details][New dir][refresh][up][back][forward]
-	 //  [        ...files.....                       ]
-	RowFrame *middle=new RowFrame(this, "middle",NULL, ROWFRAME_ROWS|ROWFRAME_STRETCHX,
-								0,0,0,0,0, NULL,0,NULL);
-
-	 // [new dir]
-	if (dialog_style&FILES_SAVING) {
-		 //have "new dir" button only when saving
-		last=tbut=new Button(middle,"fd-new dir",NULL,IBUT_FLAT|IBUT_ICON_ONLY, 0,0,0,0, 0, 
-								 last,object_id,"new dir",
-								 0,_("New Dir"),NULL,iconmanager->GetIcon("NewDirectory"),3,3);
-		last->tooltip(_("Create a new directory"));
-		middle->AddWin(tbut,1, tbut->win_w,0,50,50,0, linpheight,0,0,50,0, -1);
-	}
-
-	 // [refresh]
-	last=tbut=new Button(middle,"fd-refresh",NULL,IBUT_FLAT|IBUT_ICON_ONLY, 0,0,0,0, 0, 
-						last,object_id,"refresh",
-						0,_("Refresh"),NULL,iconmanager->GetIcon("Refresh"),3,3);
-	last->tooltip(_("Re-read current directory"));
-	middle->AddWin(tbut,1, tbut->win_w,0,50,50,0, linpheight,0,0,50,0, -1);
-
-	 // [up]
-	last=tbut=new Button(middle,"fd-up",NULL, IBUT_FLAT|IBUT_ICON_ONLY, 0,0,0,0, 0, 
-						last,object_id,"go up",
-						0,_("Up"),NULL,iconmanager->GetIcon("MoveUp"),3,3);
-	last->tooltip(_("Go up a directory"));
-	middle->AddWin(tbut,1, tbut->win_w,0,50,50,0, linpheight,0,0,50,0, -1);
-
-	 // [back]
-	last=tbut=new Button(middle,"fd-back",NULL,IBUT_FLAT|IBUT_ICON_ONLY, 0,0,0,0, 0, 
-						last,object_id,"go back",
-						0,_("Back"),NULL,iconmanager->GetIcon("Backward"),3,3);
-	last->tooltip(_("Go back"));
-	middle->AddWin(tbut,1, tbut->win_w,0,50,50,0, linpheight,0,0,50,0, -1);
-
-	 // [forward]
-	last=tbut=new Button(middle,"fd-forward",NULL,IBUT_FLAT|IBUT_ICON_ONLY, 0,0,0,0, 0, 
-						last,object_id,"go forward",
-						0,_("Forward"),NULL,iconmanager->GetIcon("Forward"),3,3);
-	last->tooltip(_("Go forward"));
-	middle->AddWin(tbut,1, tbut->win_w,0,50,50,0, linpheight,0,0,50,0, -1);
-
-	 // [list/icons]
-	last=tbut=new Button(middle,"fd-display format",NULL,IBUT_FLAT|IBUT_ICON_ONLY, 0,0,0,0, 0, 
-						last,object_id,"details",
-						0,_("Details"),NULL,iconmanager->GetIcon("Icons"),3,3);
-	last->tooltip(_("Toggle showing list or icons"));
-	middle->AddWin(tbut,1, tbut->win_w,0,50,50,0, linpheight,0,0,50,0, -1);
-
-	middle->AddNull(); 
-
+	MenuButton *menu=NULL;
+	menu=new MenuButton(this,"bookmarks",NULL,
+							 MENUBUTTON_LEFT|MENUBUTTON_SEND_STRINGS,
+							 0,0,0,0,1,
+							 path,object_id,"bookmarks",
+							 0,
+							 bookmarkmenu,1,
+							 _("Bookmarks"));
+	menu->tooltip(_("Select existing bookmark or make a new bookmark"));
+	AddWin(menu,1, menu->win_w,0,50,50,0, linpheight,0,0,50,0, finalbuttons++);
+	
+	AddNull(finalbuttons++);
 
 	 //Add MASK input
 	mask->SetOwner(this);
-	if (showing_recent) mask->SetText(_("(recent)"));
-	middle->AddWin(mask,1, 200,100,1000,50,0, mask->win_h,0,0,50,0, -1);
-	middle->AddNull();
+	AddWin(mask,1, 200,100,1000,50,0, mask->win_h,0,0,50,0, finalbuttons++);
+	AddNull(finalbuttons++);
 	last=mask;
-
 	
-	middle->AddHSpacer(linpheight/2,0,0,0, -1);
-	middle->AddNull(); 
-
-
-	 //file list pane...
-	last=filelist=new TreeSelector(middle,"files","files", 0,
-							0,0,0,0, 1,
-							last,object_id,"files",
-							//TREESEL_SEND_ON_UP|TREESEL_CURSSELECTS| TREESEL_LEFT| TREESEL_SUB_FOLDER,
-							TREESEL_SEND_ON_UP |TREESEL_LEFT |TREESEL_SUB_FOLDER,
-							&files);
-	last->installColors(app->color_edits);
+	last=filelist=new MenuSelector(this,"files",NULL, 0, 0,0,0,0,1,
+			last,object_id,"files",
+			MENUSEL_SEND_ON_UP|MENUSEL_CURSSELECTS|MENUSEL_TEXTCOLORS|
+			MENUSEL_LEFT|MENUSEL_SUB_ON_LEFT|MENUSEL_SUB_FOLDER, &files,0);
 	filelist->tooltip(_("Choose from these files.\nRight-click drag scrolls"));
-	filelist->AddColumn(_("Name"), NULL, 0);
-	filelist->AddColumn(_("Size"), NULL, 0);
-	filelist->AddColumn(_("Date"), NULL, 0);
-	filelist->Select(-1);
-	middle->AddWin(filelist,1, 300,100,1000,50,0, 400,200,5000,50,0, -1);
+	AddWin(filelist,1, 200,100,1000,50,0, 30,0,1000,50,0, finalbuttons++);
 
-	hstack->AddWin(middle,1, 300,100,1000,50,0, 400,200,5000,50,0, -1);
-
-
-	 //---------preview pane..
 	if (dialog_style&FILES_PREVIEW) {
 		char *blah=fullFilePath(NULL);
-		last=previewer=new FilePreviewer(hstack,"previewer","previewer",MB_MOVE|MB_LEFT, 0,0,0,0, 1, blah);
+		last=previewer=new FilePreviewer(this,"previewer",NULL,MB_MOVE|MB_CENTER, 0,0,0,0, 1, blah);
 		delete[] blah;
-		hstack->AddWin(previewer,1, 100,50,500,50,0, 100,0,1000,50,0, -1);
+		AddWin(previewer,1, 100,50,500,50,0, 30,0,1000,50,0, finalbuttons++);
 	}
-	hstack->WrapToExtent();
-	//hstack->UpdatePos(0);
-	//hstack->Sync(0);
+	AddNull(finalbuttons++);
+
+	 //[Bookmarks v][New dir][up][refresh][details][back][forward]
+
+
+	last=tbut=new Button(this,"fd-bookmark",NULL,0, 0,0,0,0, 1, 
+			last,object_id,"bookmark",
+			0,_("Bookmark"),NULL,NULL,3,3);
+	tbut->tooltip(_("Bookmark the current directory"));
+	AddWin(tbut,1, tbut->win_w,0,50,50,0, linpheight,0,0,50,0, finalbuttons++);
+
+	if (dialog_style&FILES_SAVING) {
+		 //have "new dir" button only when saving
+		last=tbut=new Button(this,"fd-new dir",NULL,0, 0,0,0,0, 1, 
+								 last,object_id,"new dir",
+								 0,_("New Dir"),NULL,NULL,3,3);
+		last->tooltip(_("Create a new directory"));
+		AddWin(tbut,1, tbut->win_w,0,50,50,0, linpheight,0,0,50,0, finalbuttons++);
+	}
 	
-	AddWin(hstack,1, finalbuttons++);
-	//app->addwindow(hstack);
+	last=tbut=new Button(this,"fd-up",NULL, 0, 0,0,0,0, 1, 
+						last,object_id,"go up",
+						0,_("Up"),NULL,NULL,3,3);
+	last->tooltip(_("Go up a directory"));
+	AddWin(tbut,1, tbut->win_w,0,50,50,0, linpheight,0,0,50,0, finalbuttons++);
 
+	last=tbut=new Button(this,"fd-refresh",NULL,0, 0,0,0,0, 1, 
+						last,object_id,"refresh",
+						0,_("Refresh"),NULL,NULL,3,3);
+	last->tooltip(_("Re-read current directory"));
+	AddWin(tbut,1, tbut->win_w,0,50,50,0, linpheight,0,0,50,0, finalbuttons++);
+
+	last=tbut=new Button(this,"fd-display format",NULL,0, 0,0,0,0, 1, 
+						last,object_id,"details",
+						0,_("Details"),NULL,NULL,3,3);
+	tbut->State(LAX_GRAY);
+	last->tooltip(_("(Not implemented yet)"));
+	AddWin(tbut,1, tbut->win_w,0,50,50,0, linpheight,0,0,50,0, finalbuttons++);
+
+	last=tbut=new Button(this,"fd-back",NULL,0, 0,0,0,0, 1, 
+						last,object_id,"go back",
+						0,_("Back"),NULL,NULL,3,3);
+	tbut->State(LAX_GRAY);
+	last->tooltip(_("(Not implemented yet)"));
+	AddWin(tbut,1, tbut->win_w,0,50,50,0, linpheight,0,0,50,0, finalbuttons++);
+
+	last=tbut=new Button(this,"fd-forward",NULL,0, 0,0,0,0, 1, 
+						last,object_id,"go forward",
+						0,_("Forward"),NULL,NULL,3,3);
+	tbut->State(LAX_GRAY);
+	last->tooltip(_("(Not implemented yet)"));
+	AddWin(tbut,1, tbut->win_w,0,50,50,0, linpheight,0,0,50,0, finalbuttons++);
 	AddNull(finalbuttons++);
 
 
-
-
-	AddVSpacer(linpheight/3,0,0,0, finalbuttons++);
-	AddNull(finalbuttons++);
-
-
-	 //----final buttons;
-
-
-
-
-	 //Now tie up the final buttons....
+	 //Now for the final buttons....
+//	unsigned long okbutton=BUTTON_OK;
+//	if (!ok && ) {
+//		if (dialog_style&(FILES_SAVE|FILES_SAVE_AS)) okbutton=BUTTON_SAVE;
+//		else if (dialog_style&(FILES_OPEN_MANY|FILES_OPEN_ONE)) okbutton=BUTTON_OPEN;
+//		last=ok=new Button(this,"fd-Ok",NULL,okbutton, 0,0,0,0, 1, 
+//				last,window,"ok", 0,NULL,NULL,NULL,3,3);
+//	} else {
+//		 //add to control loop
+//		ok->SetOwner(window,NULL);
+//		last->ConnectControl(ok,1);
+//		last=ok;
+//	}
+//	finalbuttons=wholelist.n-1;
+//	AddWin(ok,1, ok->win_w,0,50,50, linpheight,0,0,50, -1);
+//--------------
 	if (finalbuttons>=0) {
 		 //connect the control loop
 		WinFrameBox *box;
@@ -614,8 +582,6 @@ int FileDialog2::init()
 	last->CloseControlLoop();
 	Sync(1);
 
-	UpdateGray();
-
 	return 0;
 }
 
@@ -627,7 +593,7 @@ int FileDialog2::init()
  * globally for the user. If this is not desired, then FILES_GLOBAL_BOOKMARK
  * must be removed from dialog_style.
  */
-int FileDialog2::newBookmark(const char *pth)
+int FileDialog::newBookmark(const char *pth)
 {
 	if (pth && !strncmp(pth,"file://",7)) pth+=7;
 	if (file_exists(pth,1,NULL)!=S_IFDIR) return 1;
@@ -658,29 +624,27 @@ int FileDialog2::newBookmark(const char *pth)
 	app->AppResource(newatt);
 
 	 //update bookmarks button if possible
-	MenuInfo *info=BuildBookmarks();
-	if (info) info->dec_count();
+	MenuInfo *info=BuildBookmarks();//***what's this??
+	if (info) delete info;
 
 	return 0;
 }
 
-/*! Return a new MenuInfo with all available bookmarks in it.
- *
- * Also updates the bookmarks quick button (name "bookmarks") if it exists.
- * It will use the MenuInfo that is also returned, so if you don't want to use
- * the returned MenuInfo, you must dec_count it.
+/*! If the bookmark buttons does not exist, then return a new MenuInfo with
+ * the bookmarks in it. If the button already exists, then replace its menu
+ * with the new one, and return NULL.
  */
-MenuInfo *FileDialog2::BuildBookmarks()
+MenuInfo *FileDialog::BuildBookmarks()
 {
 	MenuInfo *bookmarkmenu=new MenuInfo;
-
-	
-	bookmarkmenu->AddItem(_("Recent"), -1);
-
-	bookmarkmenu->AddSep(_("Bookmarks"));
-
-	get_categorized_bookmarks(NULL,NULL, bookmarkmenu);
-
+	char *bookmarks=get_bookmarks(NULL,NULL);
+	int n=0;
+	if (bookmarks) {
+		char **bms=split(bookmarks,'\n',&n);
+		bookmarkmenu->AddItems((const char **)bms,n,0);
+		deletestrs(bms,n);
+		delete[] bookmarks;
+	}
 	Attribute *att=app->AppResource("Bookmarks");
 	if (att) {
 		int c2;
@@ -689,15 +653,16 @@ MenuInfo *FileDialog2::BuildBookmarks()
 				if (!strcmp(bookmarkmenu->menuitems.e[c2]->name, att->attributes.e[c]->name)) break;
 			}
 			if (c2<att->attributes.n) continue; //skip if already there!
-			bookmarkmenu->AddItem(att->attributes.e[c]->name, c);
+			bookmarkmenu->AddItem(att->attributes.e[c]->name);
+			n++;
 		}
 	}
-
-	//if (bookmarkmenu->n()) bookmarkmenu->AddSep();
-	//bookmarkmenu->AddItem(_("Add current directory"),10000);
-
-
-	return bookmarkmenu;
+	if (n) bookmarkmenu->AddSep();
+	bookmarkmenu->AddItem(_("Add current directory"),10000);
+	MenuButton *b=(MenuButton *)findChildWindowByName("bookmarks");
+	if (!b) return bookmarkmenu;
+	b->SetMenu(bookmarkmenu,1);
+	return NULL;
 }
 
 //! Change the text on the "Ok" button to something else.
@@ -707,7 +672,7 @@ MenuInfo *FileDialog2::BuildBookmarks()
  * If ttip!=NULL, then change the ok button tooltip also. If ttip!=NULL,
  * but is blank, then clear the tooltip.
  */
-void FileDialog2::OkButton(const char *textforok, const char *ttip)
+void FileDialog::OkButton(const char *textforok, const char *ttip)
 {
 	if (isblank(textforok) || !ok) return;
 
@@ -736,7 +701,7 @@ void FileDialog2::OkButton(const char *textforok, const char *ttip)
  *
  * If ttip!=NULL, then that is the button's tooltip.
  */
-void FileDialog2::AddFinalButton(const char *text, const char *ttip, int id, int position)
+void FileDialog::AddFinalButton(const char *text, const char *ttip, int id, int position)
 {
 	if (isblank(text)) return;
 
@@ -755,7 +720,7 @@ void FileDialog2::AddFinalButton(const char *text, const char *ttip, int id, int
  *
  * \todo this needs testing
  */
-int FileDialog2::ClearFinalButton(int position)
+int FileDialog::ClearFinalButton(int position)
 {
 	 //this assumes that the final buttons start at finalbuttons in wholelist,
 	 //and go until the end of wholelist.
@@ -778,60 +743,9 @@ int FileDialog2::ClearFinalButton(int position)
 	return 0;
 }
 
-//! Use this group for recent files.
-/*! If group==NULL, then do not use the recent file button. If group=="", then use any group.
- */
-void FileDialog2::RecentGroup(const char *group)
-{
-	makestr(recentgroup,group);
-}
-
-int FileDialog2::ShowRecent()
-{
-	if (showing_recent) {
-		showing_recent=false;
-
-	} else {
-		showing_recent=true;
-		mask->SetText(_("(recent)"));
-
-		char *recent = recently_used(NULL, (isblank(recentgroup) ? NULL : recentgroup), 0);
-
-		if (recent) {
-			recentmenu.Flush();
-
-			int n;
-			char **bms=split(recent,'\n',&n);
-			//char *blah=NULL, *dir;
-
-			for (int c=n-1; c>=0; c--) {
-				//blah=newstr(lax_basename(bms[c]));
-				//if (!blah) continue;
-				//appendstr(blah," -- ");
-				//dir=lax_dirname(bms[c],1);
-				//appendstr(blah,dir);
-				//delete[] dir;
-				if (!isblank(bms[c])) recentmenu.AddItem(bms[c], c);
-
-				//delete[] blah;
-				//blah=NULL;
-			}
-
-			deletestrs(bms,n);
-			delete[] recent;
-
-			if (recentmenu.n()) filelist->InstallMenu(&recentmenu);
-		}
-
-		if (recentmenu.n()==0) showing_recent=false;
-	}
-
-	return showing_recent;
-}
-
 /*! \todo no sanity checking is done before mkdir(str)
  */
-int FileDialog2::Event(const EventData *data,const char *mes)
+int FileDialog::Event(const EventData *data,const char *mes)
 {
 	DBG cerr <<"-----file dialog got: "<<mes<<endl;
 
@@ -839,114 +753,74 @@ int FileDialog2::Event(const EventData *data,const char *mes)
 
 	if (!strcmp(mes,"new directory")) {
 		if (!s) return 1;
-		if (isblank(s->str)) return 1;
-		char *dir=newstr(s->str);
-		prependstr(dir, "/");
-		prependstr(dir, path->GetCText());
-		if (file_exists(dir,0,NULL)) return 1;
-		if (mkdir(dir,S_IRWXU)==0) {
-			path->SetText(dir);
+		if (isblank(s->str) || file_exists(s->str,0,NULL)) return 1;
+		if (mkdir(s->str,S_IRWXU)==0) {
+			path->SetText(s->str);
 			RefreshDir();
 		}
-		delete[] dir;
 		return 0;
 
-// ----------old:
-//	} else if (!strcmp(mes,"recent")) {
-//		const StrsEventData *ss=dynamic_cast<const StrsEventData *>(data);
-//		if (!ss || !ss->n) return 1;
-//
-//		const char *p=strstr(ss->strs[0]," -- ");
-//		if (!p) return 0;
-//		char *file=newstr(p+4);
-//		appendnstr(file, ss->strs[0], p-ss->strs[0]);
-//		SetFile(file);
-//		delete[] file;
-//		return 0;
+	} else if (!strcmp(mes,"recent")) {
+		const StrsEventData *ss=dynamic_cast<const StrsEventData *>(data);
+		if (!ss || !ss->n) return 1;
 
-// ----------old:
-//	} else if (!strcmp(mes,"bookmarks")) {
-//		const StrsEventData *ss=dynamic_cast<const StrsEventData *>(data);
-//		if (!ss || !ss->n) return 1;
-//		if (!strcmp(ss->strs[0],_("Add current directory"))) {
-//			 //add current directory as a bookmark
-//			newBookmark(path->GetCText());
-//			return 0;
-//		}
-//		char *f=ss->strs[0];
-//		if (!strncmp(f,"file://",7)) f+=7;
-//		//if (file_exists(f,1,NULL)) Cd(f);
-//		if (f) Cd(f);
-//		return 0;
-//
-	} else if (!strcmp(mes,"Bookmarks")) {
-		//const StrEventData *ss=dynamic_cast<const StrEventData *>(data);
-		int i1=s->info2; //id of item
+		const char *p=strstr(ss->strs[0]," -- ");
+		if (!p) return 0;
+		char *file=newstr(p+4);
+		appendnstr(file, ss->strs[0], p-ss->strs[0]);
+		SetFile(file);
+		delete[] file;
+		return 0;
 
-		if (i1==-1) {
-			 // show recent
-			ShowRecent();
-
-		} else if (i1>=0) {
-			 //use bookmark
-			//char *f=ss->strs[0];
-			//if (!strncmp(f,"file://",7)) f+=7;
-			////if (file_exists(f,1,NULL)) Cd(f);
-			//if (f) Cd(f);
+	} else if (!strcmp(mes,"bookmarks")) {
+		const StrsEventData *ss=dynamic_cast<const StrsEventData *>(data);
+		if (!ss || !ss->n) return 1;
+		if (!strcmp(ss->strs[0],_("Add current directory"))) {
+			 //add current directory as a bookmark
+			newBookmark(path->GetCText());
+			return 0;
 		}
+		char *f=ss->strs[0];
+		if (!strncmp(f,"file://",7)) f+=7;
+		//if (file_exists(f,1,NULL)) Cd(f);
+		if (f) Cd(f);
 		return 0;
 
 	} else if (!strcmp(mes,"files")) { // from menuselector
 
-		if (showing_recent) {
-			 //if possible update file and path to reflect curitem, whether or not
-			 // many items are selected.
-			if (s->info1<files.menuitems.n) {
-				const MenuItem *m=filelist->Item(s->info1); 
-				if (m) SetFile(m->name);
+		 //selected "."
+		if (s->info1==0 && files.menuitems.n && !strcmp(files.menuitems.e[0]->name,"."))
+			{ RefreshDir(); return 0; }
+		
+		 //selected ".."
+		if (s->info1==1 && files.menuitems.n>1 && !strcmp(files.menuitems.e[1]->name,".."))
+			{ GoUp(); return 0; }
 
-				if (previewer) {
-					char *blah=fullFilePath(NULL);
-					previewer->Preview(blah);
-					delete[] blah;
-				}
+		 //if possible update file and path to reflect curitem, whether or not
+		 // many items are selected.
+		if (s->info1<files.menuitems.n) {
+			MenuItem *m=files.findFromLine(s->info1);
+			if (m && m->state&LAX_HAS_SUBMENU) {
+				DBG cerr <<"....Cd("<<m->name<<")"<<endl;
+				Cd(m->name);
+				return 0;
 			}
-		} else {
-
-			 //selected "."
-			if (s->info1==0 && files.menuitems.n && !strcmp(files.menuitems.e[0]->name,"."))
-				{ RefreshDir(); return 0; }
-			
-			 //selected ".."
-			if (s->info1==1 && files.menuitems.n>1 && !strcmp(files.menuitems.e[1]->name,".."))
-				{ GoUp(); return 0; }
-
-			 //if possible update file and path to reflect curitem, whether or not
-			 // many items are selected.
-			if (s->info1<files.menuitems.n) {
-				MenuItem *m=files.findFromLine(s->info1);
-				if (m && m->state&LAX_HAS_SUBMENU) {
-					DBG cerr <<"....Cd("<<m->name<<")"<<endl;
-					Cd(m->name);
-					return 0;
-				}
-				char *newfile=files.menuitems.e[s->info1]->name;
-				SetFile(newfile);
-				//file->SetText(newfile);
-				if (previewer) {
-					char *blah=fullFilePath(NULL);
-					previewer->Preview(blah);
-					delete[] blah;
-				}
+			char *newfile=files.menuitems.e[s->info1]->name;
+			SetFile(newfile);
+			//file->SetText(newfile);
+			if (previewer) {
+				char *blah=fullFilePath(NULL);
+				previewer->Preview(blah);
+				delete[] blah;
 			}
+		}
 
-			 //clear any selected directories, if can only select files
-			if (!(dialog_style&FILES_SELECT_DIR)) {
-				for (int c=0; c<files.menuitems.n; c++) {
-					if ((files.menuitems.e[c]->state&LAX_ON) && (files.menuitems.e[c]->state&LAX_HAS_SUBMENU)) {
-						files.menuitems.e[c]->state^=LAX_ON;
-						filelist->Needtodraw(1);
-					}
+		 //clear any selected directories, if can only select files
+		if (!(dialog_style&FILES_SELECT_DIR)) {
+			for (int c=0; c<files.menuitems.n; c++) {
+				if ((files.menuitems.e[c]->state&LAX_ON) && (files.menuitems.e[c]->state&LAX_HAS_SUBMENU)) {
+					files.menuitems.e[c]->state^=LAX_ON;
+					filelist->Needtodraw(1);
 				}
 			}
 		}
@@ -1010,34 +884,26 @@ int FileDialog2::Event(const EventData *data,const char *mes)
 		return 0;
 
 	} else if (!strcmp(mes,"new dir")) {
-		if (showing_recent) return 0;
-		InputDialog *i= new InputDialog(this,"New Directory",NULL,ANXWIN_CENTER|ANXWIN_OUT_CLICK_DESTROYS,
-									 20,20,.75*win_w,0, 4,
+		InputDialog *i= new InputDialog(NULL,"New Directory",NULL,ANXWIN_CENTER,
+									 20,20,0,0, 0,
 									 NULL,object_id,"new directory",
-									 //path->GetCText(),	  //start text
-									 NULL,	  //start text
+									 path->GetCText(),	  //start text
 									 _("New directory?"), //label
 									 _("Create"), 1,
 									 _("Cancel"), 0);
-		//app->rundialog(i);
-		app->addwindow(i);
-		app->setfocus(i->GetLineEdit());
+		app->rundialog(i);
 		return 0;
 
 	} else if (!strcmp(mes,"go up")) {
-		DBG cerr <<"file dialog: "<<mes<<endl;
+		DBG cerr <<"***file dialog: "<<mes<<endl; //***
 		GoUp();
 		return 0;
 
 	} else if (!strcmp(mes,"go back")) {
-		DBG cerr <<"file dialog: "<<mes<<endl;
-		GoBack();
-		return 0;
+		DBG cerr <<"***file dialog: "<<mes<<endl; //***
 
 	} else if (!strcmp(mes,"go forward")) {
-		DBG cerr <<"file dialog: "<<mes<<endl; //***
-		GoForward();
-		return 0; 
+		DBG cerr <<"***file dialog: "<<mes<<endl; //***
 
 	} else if (!strcmp(mes,"refresh")) {
 		//DBG cerr <<"***file dialog: "<<mes<<endl; //***
@@ -1048,14 +914,13 @@ int FileDialog2::Event(const EventData *data,const char *mes)
 		DBG cerr <<"***file dialog: "<<mes<<endl; //***
 
 	}
-
-	return anXWindow::Event(data, mes);
+	return 1;
 }
 
 //! In a new char[], return path/f, or path/file if f==NULL.
 /*! If f (or file) appears to be an absolute path, use only that..
  */
-char *FileDialog2::fullFilePath(const char *f)
+char *FileDialog::fullFilePath(const char *f)
 {
 	if (!f) f=file->GetCText();
 	char *full=newstr(f);
@@ -1073,7 +938,7 @@ char *FileDialog2::fullFilePath(const char *f)
  *
  * Returns 1 for window set to be destroyed, else 0.
  */
-int FileDialog2::closeWindow()
+int FileDialog::closeWindow()
 {
 	if (path->GetCText()) {
 		if (dialog_style&FILES_OPENING) makestr(app->load_dir,path->GetCText());
@@ -1093,7 +958,7 @@ int FileDialog2::closeWindow()
  *    sending a StrEventData rather than a StrsEventData... should probably make
  *    it send StrsEventData with one string...?
  */
-int FileDialog2::send(int id)
+int FileDialog::send(int id)
 {
 	if (!win_owner || !win_sendthis) return 0;
 
@@ -1113,21 +978,21 @@ int FileDialog2::send(int id)
 		if ((dialog_style&FILES_FILES_ONLY) && !S_ISREG(f)) {}
 		else typedexists=1;
 
-		int numselected=filelist->NumSelected();
+		int *which=filelist->WhichSelected(LAX_ON);
 		StrsEventData *e=new StrsEventData(NULL,win_sendthis,object_id,win_owner);
 		e->info=id;
-		e->strs=new char*[numselected+typedexists];
+		e->strs=new char*[which[0]+typedexists];
 		if (typedexists) {
 			numfiles++;
 			e->strs[0]=typedinfile;
 		} else { delete[] typedinfile; typedinfile=NULL; }
 
-		if (numselected!=0) {
+		if (which!=NULL) {
 			DBG cerr <<"********** open many files..."<<endl;
 			const MenuItem *item;
-			for (int c=0; c<numselected; c++) {
+			for (int c=0; c<which[0]; c++) {
 				e->strs[numfiles]=NULL;
-				item=filelist->GetSelected(c);
+				item=filelist->Item(which[c+1]);
 
 				if (item) {
 					if (blah) delete[] blah;
@@ -1155,6 +1020,7 @@ int FileDialog2::send(int id)
 		} else {
 			app->SendMessage(e,win_owner,win_sendthis,object_id);
 		}
+		if (which) delete[] which;
 		if (blah) delete[] blah;
 		return 1;
 	}
@@ -1171,28 +1037,28 @@ int FileDialog2::send(int id)
 }
 
 //! Refresh the current directory listing.
-void FileDialog2::RefreshDir() 
+void FileDialog::RefreshDir() 
 {
 	getDirectory(path->GetCText());
 }
 
 //! Assume file is a file path, update file and path fields.
-void FileDialog2::SetFile(const char *f)
+void FileDialog::SetFile(const char *f)
 {
 	const char *bname=lax_basename(f);
 	char *dir=lax_dirname(f,1);
 	file->SetText(bname);
 	if (dir) {
-		if (!showing_recent) if (strcmp(dir,path->GetCText())) Cd(dir);
+		if (strcmp(dir,path->GetCText())) Cd(dir);
 		path->SetText(dir);
 		delete[] dir;
 	}
-	if (!isblank(bname) && previewer) previewer->Preview(f);
 }
 
-/*! Change directory to path/to if to is relative, or just to if it is absolute. Also set the path field. Adds to history.
+//! Change directory to path/to if to is relative, or just to if it is absolute. Also set the path field.
+/*! \todo need sanity checking on to.
  */
-void FileDialog2::Cd(const char *to)
+void FileDialog::Cd(const char *to)
 {
 	if (!to) return;
 	DBG cerr <<"... cd to:"<<(to?to:"Go to where???")<<endl;
@@ -1205,46 +1071,16 @@ void FileDialog2::Cd(const char *to)
 	} else {
 		pth=newstr(to);
 	}
-	if (getDirectory(pth)==0) {
+	if (!getDirectory(pth)) {
 		path->SetText(pth);
-
-		while (history.n-1!=curhistory) history.remove(history.n-1);
-		history.push(newstr(pth));
-		curhistory++;
 	}
 	delete[] pth;
-
-	UpdateGray();
 }
 
-void FileDialog2::GoBack()
-{
-	if (curhistory<=0) return;
-
-	path->SetText(history.e[curhistory-1]);
-	getDirectory(history.e[curhistory-1]);
-	curhistory--;
-
-	UpdateGray();
-}
-
-void FileDialog2::GoForward()
-{
-	if (curhistory>=history.n-1) return;
-
-	path->SetText(history.e[curhistory+1]);
-	getDirectory(history.e[curhistory+1]);
-	curhistory++;
-
-	UpdateGray();
-	return;
-}
-
-//! Go up in the file hierarchy, and set path text. Adds to history.
-void FileDialog2::GoUp()
+//! Go up in the file hierarchy, and set path text.
+void FileDialog::GoUp()
 {
 	if (!strcmp("/",path->GetCText())) return; // if on "/" can't go up
-
 	char *pth=path->GetText();
 	char *lastslash=strrchr(pth,'/');
 	if (!lastslash) {
@@ -1259,30 +1095,18 @@ void FileDialog2::GoUp()
 	if (!lastslash) { delete[] pth; return; }
 	*lastslash='\0';
 	if (pth[0]=='\0') strcpy(pth,"/");
-
 	path->SetText(pth);
 	getDirectory(pth);
-	NewHistory(pth);
-
-	UpdateGray();
+	delete[] pth;
 }
 
 //! Cancel if ESC.
-int FileDialog2::CharInput(unsigned int ch,const char *buffer,int len,unsigned int state,const LaxKeyboard *d)
+int FileDialog::CharInput(unsigned int ch,const char *buffer,int len,unsigned int state,const LaxKeyboard *d)
 {
 	if (ch==LAX_Esc) {
 		return !closeWindow();//esc will propagate
 	}
 	return anXWindow::CharInput(ch,buffer,len,state,d);
-}
-
-void FileDialog2::UpdateGray()
-{
-	Button *back=dynamic_cast<Button*>(findChildWindowByName("fd-back", true));
-	if (back) { if (curhistory<=0) back->Grayed(1); else back->Grayed(0); }
-
-	Button *fwd =dynamic_cast<Button*>(findChildWindowByName("fd-forward", true));
-	if (fwd) { if (curhistory<0 || curhistory>=history.n-1) fwd->Grayed(1); else fwd->Grayed(0); }
 }
 
 

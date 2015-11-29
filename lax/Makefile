@@ -157,7 +157,6 @@ objs= \
 	inputdialog.o \
 	filepreviewer.o \
 	filedialog.o \
-	filedialog2.o \
 	imagedialog.o \
 	simpleprint.o \
 	printdialog.o \

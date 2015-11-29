@@ -18,15 +18,15 @@
 //    License along with this library; if not, write to the Free Software
 //    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
-//    Copyright (C) 2004-2007,2010 by Tom Lechner
+//    Copyright (C) 2004-2007,2010,2014 by Tom Lechner
 //
-#ifndef _LAX_FILEDIALOG_H
-#define _LAX_FILEDIALOG_H
+#ifndef _LAX_FILEDIALOG2_H
+#define _LAX_FILEDIALOG2_H
 
 #include <lax/rowframe.h>
 #include <lax/menuinfo.h>
 #include <lax/lineinput.h>
-#include <lax/menuselector.h>
+#include <lax/treeselector.h>
 #include <lax/filepreviewer.h>
 #include <lax/button.h>
 
@@ -72,21 +72,33 @@ namespace Laxkit {
 //-------------------------------- FileDialog ------------------------------
 class FileDialog : public RowFrame
 {
- protected:
-	MenuInfo files;
-	int getDirectory(const char *npath);
-//	FileLineInput *file;
+  protected:
+	PtrStack<char> history;
+	int curhistory;
+
+	MenuInfo *files;
+
 	LineInput *path,*mask,*file;
-	MenuSelector *filelist;
+	TreeSelector *filelist;
 	FilePreviewer *previewer;
 	unsigned long dialog_style;
 	Button *ok;
-	char *recentgroup;
 	int finalbuttons;
+
+	char *recentgroup;
+	MenuInfo recentmenu;
+	bool showing_recent;
+	bool showing_icons;
+
+	int getDirectory(const char *npath);
 	virtual int newBookmark(const char *pth);
 	virtual MenuInfo *BuildBookmarks();
 	virtual int closeWindow();
- public:
+	virtual int send(int id);
+	virtual void UpdateGray();
+	virtual int ShowRecent(int on);
+
+  public:
  	FileDialog(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
 			int xx,int yy,int ww,int hh,int brder, 
 			unsigned long nowner,const char *nsend,
@@ -95,21 +107,23 @@ class FileDialog : public RowFrame
 			const char *nrecentgroup=NULL);
 	virtual ~FileDialog();
 	virtual const char *whattype() { return "FileDialog"; }
+	virtual int preinit();
+	virtual int init();
+	virtual int Event(const EventData *e,const char *mes);
+	virtual int CharInput(unsigned int ch,const char *buffer,int len,unsigned int state,const LaxKeyboard *d);
+
 	virtual void OkButton(const char *textforok, const char *ttip);
 	virtual void AddFinalButton(const char *text, const char *ttip, int id, int position);
 	virtual int ClearFinalButton(int position);
-	virtual void Recent(const char *group);
-	virtual int preinit();
-	virtual int init();
-	virtual int GetState(void **state); // puts a NULL terminated char ** list of files in state
-	virtual int Event(const EventData *e,const char *mes);
-	virtual int send(int id);
+	virtual void RecentGroup(const char *group);
 	virtual void GoUp();
+	virtual void GoBack();
+	virtual void GoForward();
 	virtual void Cd(const char *to);
 	virtual void RefreshDir();
 	virtual void SetFile(const char *f);
-	virtual int CharInput(unsigned int ch,const char *buffer,int len,unsigned int state,const LaxKeyboard *d);
 	virtual char *fullFilePath(const char *f);
+	virtual int NewHistory(const char *npath);
 };
 
 } //namespace Laxkit
