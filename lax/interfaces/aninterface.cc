@@ -472,6 +472,16 @@ int anInterface::RemoveChild()
 	return 0;
 }
 
+/*! Return nonzero for could not paste. Return 0 for accepts paste.
+ *
+ * Generally called from ViewportWindow in response to a get selection event. The viewport may
+ * do some processing to get obj. Otherwise, the more usual past results in a simple string.
+ */
+int anInterface::Paste(const char *txt,int len, Laxkit::anObject *obj, const char *formathint)
+{
+	return 1;
+}
+
 
 //------------------------SomeData and Viewport related functions:
 

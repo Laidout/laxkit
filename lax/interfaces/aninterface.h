@@ -128,6 +128,7 @@ class anInterface : virtual public Laxkit::EventReceiver,
 
 	virtual Laxkit::MenuInfo *ContextMenu(int x,int y,int deviceid, Laxkit::MenuInfo *menu) { return menu; }
 
+	virtual int Paste(const char *txt,int len, Laxkit::anObject *obj, const char *formathint);
 	virtual int UseThis(int id,int ndata) { return 0; }
 	virtual int UseThis(Laxkit::anObject *ndata,unsigned int mask=0) { return 0; } 
 	virtual int UseThisObject(ObjectContext *oc) { return 0; } 
