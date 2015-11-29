@@ -41,6 +41,8 @@ char *appendnstr(char *&dest,const char *src,int n);
 char *appendstr(char *&dest,const char *src);
 char *appendintstr(char *&dest,int srci);
 char *appendline(char *&dest,const char *src);
+char *insertstr(char *&dest,const char *src,long pos);
+char *insertnstr(char *&dest,const char *src,long len, long pos);
 char *extendstr(char *&dest,int n);
 char *extendstr(char *&dest,int &curmax,int n); /* assumes curmax>strlen */
 char *stripws(char *dest,char where=3);

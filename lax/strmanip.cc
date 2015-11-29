@@ -396,6 +396,32 @@ char *prependstr(char *&dest,const char *src)
 	return dest;
 }
 
+char *insertstr(char *&dest,const char *src,long pos)
+{
+	if (!src) return dest;
+	return insertnstr(dest,src,strlen(src),pos);
+}
+
+char *insertnstr(char *&dest,const char *src,long len, long pos)
+{
+	if (!src || len==0) return dest;
+
+	if (len<0) len=strlen(src);
+
+	long destlen=strlen(dest);
+	if (pos<0 || pos>destlen) pos=destlen;
+
+	char *ndest=new char[strlen(dest)+len+1];
+	if (pos) { strncpy(ndest,dest, pos); ndest[pos]='\0'; }
+
+	strncat(ndest,src,len);
+	strcat(ndest,dest+pos);
+
+	delete[] dest;
+	dest=ndest;
+	return dest;
+}
+
  //! Expand how much memory dest takes up, and leave its contents the same.
  /*! Reassigns dest to a new char[] that takes up strlen(dest)+n bytes.
   * \return Returns the new string.
