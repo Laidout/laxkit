@@ -1569,6 +1569,9 @@ void anXWindow::selectionChanged()
  * If mid==1 then grab PRIMARY, otherwise grab CLIPBOARD.
  *
  * Return 0 for success, nonzero for some kind of error.
+ *
+ * No data is actually transferred. This function just lets the powers that be to use this
+ * window as the source for the next paste event.
  */
 int anXWindow::selectionCopy(char mid)
 {
