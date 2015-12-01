@@ -162,6 +162,7 @@ void NumSlider::Refresh()
 		dp->drawrectangle(0,0,win_w,win_h, 1);
 	} else dp->ClearWindow();
 
+	dp->font(app->defaultlaxfont);
 
 	 //draw arrows
 	int ww=win_w/2;
@@ -238,7 +239,9 @@ int NumSlider::SelectNext(double multiplier)
 int NumSlider::Select(int nn)
 {
 	if (curitem==nn || nn<min || nn>max) return curitem;
-	curitem=nn;
+	curnum=nn;
+	curitem=curnum;
+
 	needtodraw=1;
 	if (win_style & SENDALL) send();
 	return curitem;
