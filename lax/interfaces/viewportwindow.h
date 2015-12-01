@@ -121,6 +121,9 @@ class ViewportWindow : public Laxkit::PanUser, public Laxkit::anXWindow
 
 	Selection *selection;
 
+	anInterface *copysource;
+	anInterface *pastedest;
+
 	Laxkit::anXWindow *temp_input;
 	unsigned long temp_input_interface;
 	char *temp_input_label;
@@ -201,6 +204,10 @@ class ViewportWindow : public Laxkit::PanUser, public Laxkit::anXWindow
 
 	virtual Selection *GetSelection();
 	virtual int SetSelection(Selection *nselection);
+
+	 //copy and paste
+	virtual int PasteRequest(anInterface *interf, const char *targettype);
+	virtual int SetCopySource(anInterface *source);
 
 	 // coordinate helper functions
 	virtual flatpoint realtoscreen(flatpoint r);

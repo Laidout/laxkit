@@ -241,6 +241,9 @@ ViewportWindow::ViewportWindow(Laxkit::anXWindow *parnt,const char *nname,const 
 
 	selection=NULL;
 
+	copysource=NULL;
+	pastedest=NULL;
+
 	temp_input=NULL;
 	temp_input_label=NULL;
 	temp_input_interface=0;
@@ -253,8 +256,11 @@ ViewportWindow::~ViewportWindow()
 	
 	delete[] temp_input_label;
 	delete dp;
+
 	if (sc) sc->dec_count();
-	if (selection) selection->dec_count();
+	if (selection)  selection ->dec_count();
+	if (copysource) copysource->dec_count();
+	if (pastedest)  pastedest ->dec_count();
 }
 
 //! Default is app->postmessage(mes), unless parent is ViewerWindow, then try to set its message bar to mes.
@@ -424,6 +430,30 @@ int ViewportWindow::SetSelection(Selection *nselection)
 		selection=nselection;
 		selection->inc_count();
 	}
+	return 0;
+}
+
+int ViewportWindow::PasteRequest(anInterface *interf, const char *targettype)
+{
+	if (pastedest != interf) {
+		if (pastedest) pastedest->dec_count();
+		pastedest=interf;
+		if (pastedest) pastedest->inc_count();
+	}
+
+	selectionPaste(0, targettype);
+	return 0;
+}
+
+int ViewportWindow::SetCopySource(anInterface *source)
+{
+	if (copysource != source) {
+		if (copysource) copysource->dec_count();
+		copysource=source;
+		if (copysource) copysource->inc_count();
+	}
+
+	selectionCopy(0);
 	return 0;
 }
 
@@ -738,6 +768,9 @@ anInterface *ViewportWindow::Pop(anInterface *i,char deletetoo)//deletetoo=0
 	if (c<0) return NULL;
 	DBG cerr <<".....popping "<<i->whattype()<<endl;
 	i->InterfaceOff();
+
+	if (i==copysource) { copysource->dec_count(); copysource=NULL; }
+	if (i==pastedest)  { pastedest ->dec_count(); pastedest=NULL;  }
 
 	 //Remove child interfaces
 	anInterface *d, *p;
