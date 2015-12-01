@@ -503,12 +503,12 @@ int Scroller::Idle(int id)
 	
 	long change=0;
 	
-	if (lbi==DOWN_ARROW) {
+	if (lbi==UP_ARROW) {
 		if (state&ShiftMask && state&ControlMask) change=PageUp(5);
 		else if (state&ShiftMask || state&ControlMask) change=PageUp(1); 
 		else change=OneUp();
 
-	} else if (lbi==UP_ARROW) {
+	} else if (lbi==DOWN_ARROW) {
 		if (state&ShiftMask && state&ControlMask) change=PageDown(5);
 		else if (state&ShiftMask || state&ControlMask) change=PageDown(1); 
 		else change=OneDown();
