@@ -73,27 +73,47 @@ LaxFontCairo::LaxFontCairo(const char *fontconfigstr,int nid)
 {
 	font=NULL;
 	scaledfont=NULL;
-	options=cairo_font_options_create();
+	options=NULL;
 
+	FcResult result;
 	FcPattern *pattern=FcNameParse((FcChar8*)fontconfigstr);
+	FcPattern *pattern2=pattern;
 
-	DBG cerr <<"LaxFontCairo constructor: pattern from string: "<<endl;
-	//DBG FcPatternPrint(pattern); *** use stdout, not stderr!!!
 
-	font=cairo_ft_font_face_create_for_pattern(pattern);
+	int weight=0;
+	result=FcPatternGetInteger(pattern, FC_WEIGHT,0, &weight);
+	if (result!=FcResultMatch) {
+		 //add normal weight
+		FcPatternAddInteger(pattern, FC_WEIGHT, FC_WEIGHT_REGULAR);
+	}
+
+	FontManager *manager=GetDefaultFontManager();
+	FcConfig *fcconfig=manager->GetConfig();
+
+	FcConfigSubstitute (fcconfig, pattern, FcMatchPattern);
+	FcDefaultSubstitute(pattern);
+	FcPattern *found = FcFontMatch(fcconfig, pattern, &result);
+	if (result==FcResultMatch) { pattern2=found; }
+
+
+	//DBG cerr <<"LaxFontCairo constructor: pattern from string: "<<(fontconfigstr?fontconfigstr:"\"\"")<<endl;
+	//DBG FcPatternPrint(pattern); //*** uses stdout, not stderr!!!
+	//DBG cerr <<"---found from pattern:"<<endl;
+	//DBG if (found) FcPatternPrint(found); //*** uses stdout, not stderr!!!
+
+	font=cairo_ft_font_face_create_for_pattern(pattern2);
 	double height=1;
 	FcPatternGetDouble(pattern, FC_SIZE, 0, &height);
 
 	FcValue v;
-	FcResult result;
 
-	result=FcPatternGet(pattern,FC_FAMILY,0,&v);
+	result=FcPatternGet(pattern2,FC_FAMILY,0,&v);
 	if (result==FcResultMatch) makestr(family, (const char *)v.u.s);
 
-	result=FcPatternGet(pattern,FC_STYLE,0,&v);
+	result=FcPatternGet(pattern2,FC_STYLE,0,&v);
 	if (result==FcResultMatch) makestr(style, (const char *)v.u.s);
 
-	result=FcPatternGet(pattern,FC_FILE,0,&v);
+	result=FcPatternGet(pattern2,FC_FILE,0,&v);
 	if (result==FcResultMatch) makestr(fontfile, (const char *)v.u.s);
 
 	FcPatternDestroy(pattern);
@@ -214,6 +234,31 @@ int LaxFontCairo::SetFromFile(const char *nfile, const char *nfamily, const char
 		FcPatternAdd(pattern, FC_STYLE, value, FcTrue);
 	}
 
+	char *nnfile=NULL;
+	if (!nfile) {
+		//we need to do some extra work to get a file name, as I don't see a way to get it directly from cairo
+		FcPatternAddInteger(pattern, FC_WEIGHT, FC_WEIGHT_REGULAR);
+
+		FontManager *manager=GetDefaultFontManager();
+		FcConfig *fcconfig=manager->GetConfig();
+		FcResult result;
+		FcValue v; 
+
+		 //perform some substitutions so that something like "sans" maps to something sane
+		FcConfigSubstitute (fcconfig, pattern, FcMatchPattern);
+		FcDefaultSubstitute(pattern);
+		FcPattern *found = FcFontMatch(fcconfig, pattern, &result);
+		if (result==FcResultMatch) {
+			FcPattern *pattern2 = FcPatternDuplicate(found);
+			FcPatternDestroy(pattern);
+			pattern = pattern2;
+		}
+
+		result=FcPatternGet(pattern,FC_FILE,0,&v);
+		if (result==FcResultMatch) makestr(nnfile, (const char *)v.u.s);
+		nfile=nnfile;
+	}
+
 	cairo_font_face_t *newfont=cairo_ft_font_face_create_for_pattern(pattern);
 	FcPatternDestroy(pattern);
 
@@ -226,6 +271,7 @@ int LaxFontCairo::SetFromFile(const char *nfile, const char *nfamily, const char
 	makestr(fontfile, nfile);
 	makestr(family, nfamily ? nfamily : NULL);// *** look up from fontconfig??
 	makestr(style, nstyle ? nstyle : NULL); // ***
+	delete[] nnfile;
 
 
 	 //delete old info if any
