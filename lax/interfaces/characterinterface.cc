@@ -166,7 +166,7 @@ void CharacterInterface::SetupChars()
 	FT_Face ft_face=NULL;
 	FT_Error ft_error = FT_New_Face(*ft_library, font->FontFile(), 0, &ft_face);
 	if (ft_error) { 
-		DBG cerr <<" ERROR loading "<<font->FontFile()<<" with FT_New_Face"<<endl;
+		DBG cerr <<" ERROR loading "<<(font->FontFile()?font->FontFile():"(no font file!!)")<<" with FT_New_Face"<<endl;
 		return;
 	}
 
@@ -280,7 +280,11 @@ int CharacterInterface::Refresh()
 	}
 
 	needtodraw=0;
-
+	if (chars.n==0 && owner) {
+		PostMessage(_("Could not scan font for characters!"));
+		owner->RemoveChild();
+		return 0;
+	}
 
 	dp->DrawScreen();
 	dp->LineAttributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
@@ -359,6 +363,10 @@ int CharacterInterface::Refresh()
 	  }
 	}
 
+	if (chars.n==0) {
+		dp->NewFG(curwindow->win_colors->fg);
+		dp->textout(curwindow->win_w/2,curwindow->win_h/2, _("Could not scan font for characters!"),-1, LAX_CENTER);
+	}
 
 
 	//dp->textout((dp->Maxx+dp->Minx)/2,(dp->Maxy+dp->Miny)/2, "Blah!",,-1, LAX_CENTER);
