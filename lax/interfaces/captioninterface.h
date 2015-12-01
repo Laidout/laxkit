@@ -151,6 +151,7 @@ class CaptionInterface : public anInterface
 	virtual Laxkit::ShortcutHandler *GetShortcuts();
     virtual int PerformAction(int action);
 	virtual Laxkit::MenuInfo *ContextMenu(int x,int y,int deviceid, Laxkit::MenuInfo *menu);
+	virtual int Paste(const char *txt,int len, Laxkit::anObject *obj, const char *formathint);
 
 	virtual void FixCaret();
 	virtual int scan(int x,int y,unsigned int state, int *line, int *pos);

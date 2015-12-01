@@ -239,11 +239,14 @@ int CaptionData::FindPos(double y, double x, int *line, int *pos)
 {
 	int l = (y-miny)/(fontsize*linespacing);
 	if (l<0 || l>=lines.n) return 0;
+
+	x+=xcentering/100*(linelengths[l]);
 	
 	unsigned int p=0;
 	double lastw=0;
 	double w;
 	const char *pp;
+
 	while (p<strlen(lines.e[l])) {
 		p++;
 		pp=utf8fwd(lines.e[l]+p, lines.e[l], lines.e[l]+strlen(lines.e[l]));
@@ -410,7 +413,8 @@ void CaptionData::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *co
 						}
 					}
 
-					LaxFont *newlayer = InterfaceManager::GetDefault()->GetFontManager()->MakeFontFromFile(file, family,style,fontsize,-1);
+					FontManager *fontmanager = InterfaceManager::GetDefault()->GetFontManager();
+					LaxFont *newlayer = fontmanager->MakeFontFromFile(file, family,style,fontsize,-1);
 					if (!newfont) newfont=newlayer;
 					else newfont->AddLayer(newfont->Layers(), newlayer);
 				}
@@ -808,7 +812,7 @@ CaptionInterface::CaptionInterface(int nid,Displayer *ndp) : anInterface(nid,ndp
 	data=NULL;
 	coc=NULL;
 	extrahover=NULL;
-	showdecs=3;
+	showdecs=1;
 	showbaselines=0;
 	showobj=1;
 	mode=0;
@@ -862,11 +866,11 @@ anInterface *CaptionInterface::duplicate(anInterface *dup)
 const char *CaptionInterface::Name()
 { return _("Caption Tool"); }
 
-//! Sets showdecs=3, and needtodraw=1.
+//! Sets showdecs=1, and needtodraw=1.
 int CaptionInterface::InterfaceOn()
 {
 	DBG cerr <<"CaptionInterfaceOn()"<<endl;
-	showdecs=3;
+	showdecs=1;
 	needtodraw=1;
 	mode=0;//***
 
@@ -970,17 +974,6 @@ int CaptionInterface::Refresh()
 {
 	if (!dp || !needtodraw) return 0;
 	needtodraw=0;
-	if (!data) return 1;
-
-	dp->font(data->fontfamily,data->fontstyle,data->fontsize);//1 for real size, not screen size
-	if (!data->state) {
-		 //need to find line lengths
-		for (int c=0; c<data->lines.n; c++) {
-			data->linelengths.e[c]=dp->textextent(data->font, data->lines.e[c],-1, NULL,NULL,NULL,NULL,0);
-		}
-		data->state=1;
-		data->FindBBox();
-	}
 
 	if (extrahover) {
 		dp->NewFG(255,0,255);
@@ -1005,7 +998,19 @@ int CaptionInterface::Refresh()
 		if (data) dp->PopAxes();
 
 	}
+
+	if (!data) return 1;
 		
+	dp->font(data->fontfamily,data->fontstyle,data->fontsize);//1 for real size, not screen size
+	if (!data->state) {
+		 //need to find line lengths
+		for (int c=0; c<data->lines.n; c++) {
+			data->linelengths.e[c]=dp->textextent(data->font, data->lines.e[c],-1, NULL,NULL,NULL,NULL,0);
+		}
+		data->state=1;
+		data->FindBBox();
+	}
+
 	 //find how large
 	flatpoint pb =flatpoint(0,0),
 			  pt =flatpoint(0, data->fontsize*data->linespacing),
@@ -1054,7 +1059,7 @@ int CaptionInterface::Refresh()
 
 	
 	 // draw control points;
-	if (showdecs&1) { 
+	if (showdecs) { 
 		dp->DrawScreen();
 		 // dashed outline around text..
 		dp->LineAttributes(1,LineOnOffDash,CapRound,JoinRound);
@@ -1131,7 +1136,7 @@ int CaptionInterface::Refresh()
 
 	if (showobj) {
 		int texttoosmall=0;
-		if (height==0) {
+		if (height<1) {
 			texttoosmall=1;
 			//*** just draw little lines
 			//return 0;
@@ -1144,10 +1149,10 @@ int CaptionInterface::Refresh()
 			 //draw the stuff
 			double x,y;
 			double baseline=data->font->ascent(), descent=data->font->descent();
-			//double width=data->maxx-data->minx;
 			y=-data->ycentering/100*data->fontsize*data->linespacing*data->lines.n;
+
 			for (int c=0; c<data->lines.n; c++, y+=data->fontsize*data->linespacing) {
-				x=-data->xcentering/100*(data->linelengths[c]);
+				x=-data->xcentering/100*(data->linelengths.e[c]);
 
 				if (showbaselines) {
 					dp->NewFG(baseline_color);
@@ -1182,7 +1187,7 @@ int CaptionInterface::Refresh()
 				}
 			}
 
-			dp->font(app->defaultlaxfont);
+			//dp->font(app->defaultlaxfont);
 
 		} else {
 			//*** text is too small, draw little lines
@@ -1400,6 +1405,13 @@ int CaptionInterface::LBDown(int x,int y,unsigned int state,int count, const Lax
 	}
 
 	return 0; 
+}
+
+int CaptionInterface::Paste(const char *txt,int len, Laxkit::anObject *obj, const char *formathint)
+{
+	cerr << " *** must implement CaptionInterface::Paste()"<<endl;
+	DBG if (txt) cerr <<"    pasting: "<<txt<<endl;
+	return 1;
 }
 
 int CaptionInterface::Event(const Laxkit::EventData *e_data, const char *mes)
@@ -1763,6 +1775,7 @@ int CaptionInterface::PerformAction(int action)
 {
 	if (action==CAPT_Paste) {
 		 //pasting with no data should create a new data
+		viewport->PasteRequest(this, "txt");
 		PostMessage(" *** Need to implement paste!!!");
 		return 0;
 	}
