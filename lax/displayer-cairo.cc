@@ -1065,8 +1065,9 @@ int DisplayerCairo::font(LaxFont *nfont, double size)
 
 	//DBG cerr <<" font(LaxFont), count: "<<cairo_font_face_get_reference_count(cairofont->font) <<endl;
 
-	if (curfont!=cairofont->font) {
-		nfont->inc_count();
+	//if (curfont!=cairofont->font) {
+	if (laxfont != cairofont) {
+		cairofont->inc_count();
 		if (laxfont) laxfont->dec_count();
 		laxfont=cairofont;
 
@@ -1170,8 +1171,8 @@ double DisplayerCairo::textextent(LaxFont *thisfont, const char *str,int len, do
 { 
 	//DBG cerr <<"-------cairo textextent-------"<<endl;
 
-	cairo_font_face_t *oldfont=NULL;
-	double oldheight=0;
+	LaxFont *oldfont=NULL;
+	//double oldheight=0;
 
 	LaxFontCairo *cfont=dynamic_cast<LaxFontCairo*>(thisfont);
 
@@ -1190,10 +1191,10 @@ double DisplayerCairo::textextent(LaxFont *thisfont, const char *str,int len, do
 	//DBG cerr <<" font curfont start: "<<cairo_font_face_get_reference_count(curfont) <<endl;
 	//DBG if (cfont) cerr <<" temp font count start: "<<cairo_font_face_get_reference_count(cfont->font) <<endl;
 
-	if (cfont) {
-		cairo_font_face_reference(curfont);
-		oldfont=curfont;
-		oldheight=_textheight;
+	if (cfont && laxfont!=thisfont) {
+		oldfont=laxfont;
+		oldfont->inc_count();
+		//oldheight=_textheight;
 		font(cfont,cfont->textheight()); //dec count old, inc new font if the cairo font not same as new one
 		//font(thisfont,thisfont->textheight()); 
 	}
@@ -1239,18 +1240,9 @@ double DisplayerCairo::textextent(LaxFont *thisfont, const char *str,int len, do
 	//DBG if (cfont) cerr <<" temp font: "<<cairo_font_face_get_reference_count(cfont->font) <<endl;
 
 	if (oldfont) {
- 		if (oldfont!=curfont) {
-			cairo_font_face_destroy(curfont);//really just a melodramatic dec count
-			curfont=oldfont;
-			cairo_font_face_reference(curfont);
-			cairo_font_face_destroy(oldfont);
-		}
-
-		if (curscaledfont) { cairo_scaled_font_destroy(curscaledfont); curscaledfont=NULL; }
-
-		if (cr) cairo_set_font_face(cr,curfont);
-		//DBG cerr <<" curfont count: "<<cairo_font_face_get_reference_count(curfont) <<endl;
-		fontsize(oldheight);
+		 //reinstall the old font
+		font(oldfont,oldfont->textheight()); //dec count old, inc new font if the cairo font not same as new one
+		oldfont->dec_count();
 	}
 
 	//DBG if (cfont) cerr <<" temp font count end: "<<cairo_font_face_get_reference_count(cfont->font) <<endl;
