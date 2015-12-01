@@ -472,13 +472,34 @@ int anInterface::RemoveChild()
 	return 0;
 }
 
-/*! Return nonzero for could not paste. Return 0 for accepts paste.
+//------------------------ Copy and paste
+
+/*! Paste the given data.
+ *
+ * Return nonzero for could not paste. Return 0 for accepts paste.
  *
  * Generally called from ViewportWindow in response to a get selection event. The viewport may
  * do some processing to get obj. Otherwise, the more usual past results in a simple string.
  */
 int anInterface::Paste(const char *txt,int len, Laxkit::anObject *obj, const char *formathint)
 {
+	return 1;
+}
+
+/*! Return nonzero for could not comply.
+ */
+int anInterface::GetForCopy(const char **txt,int *len, Laxkit::anObject **obj, const char *formathint)
+{
+	return 1;
+}
+
+/*! Basically, call viewport->selectionCopy().
+ *
+ * Return 0 for success, or nonzero for unable.
+ */
+int anInterface::InitForCopy()
+{
+	if (viewport) viewport->SetCopySource(this);
 	return 1;
 }
 
