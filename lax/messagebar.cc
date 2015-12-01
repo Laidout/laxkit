@@ -228,6 +228,7 @@ void MessageBar::Refresh()
 	//DBG cerr <<"mesbar("<<WindowTitle()<<")drawing..";
 	
 	Displayer *dp=MakeCurrent();
+	dp->font(app->defaultlaxfont);
 
 	dp->NewBG(win_colors->bg);
 	dp->NewFG(win_colors->fg);
