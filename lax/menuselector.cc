@@ -1406,7 +1406,9 @@ int MenuSelector::LBDown(int x,int y,unsigned int state,int count,const LaxMouse
 			return 0;
 		}
 	}
-	buttondown.down(d->id,LEFTBUTTON,x,y);
+
+	int i=findItem(x,y);
+	buttondown.down(d->id,LEFTBUTTON,x,y, i);
 	mousedragged=0;
 	return 0;
 }
@@ -1423,7 +1425,8 @@ int MenuSelector::LBDown(int x,int y,unsigned int state,int count,const LaxMouse
 int MenuSelector::LBUp(int x,int y,unsigned int state,const LaxMouse *d)
 {
 	if (!buttondown.isdown(d->id,LEFTBUTTON)) return 1;
-	int dragged=buttondown.up(d->id,LEFTBUTTON);
+	int downi=-1;
+	int dragged=buttondown.up(d->id,LEFTBUTTON, &downi);
 	
 	if (mousedragged==2) { //*** ==2 means was attempting to rearrange..
 		//***turn off any dragging mode
@@ -1443,12 +1446,12 @@ int MenuSelector::LBUp(int x,int y,unsigned int state,const LaxMouse *d)
 	if (i<0 || i>=numItems()) return 0; //if not on any item or arrow
 	
 	 // clicked on already selected item
-	if (dragged<20 && menustyle&MENUSEL_EDIT_IN_PLACE) {
+	if (i==downi && dragged<20 && menustyle&MENUSEL_EDIT_IN_PLACE) {
 		editInPlace();
 		return 0; 
 	}
 	
-	if (dragged<20) {
+	if (i==downi) {
 		if (!(menustyle&MENUSEL_CLICK_UP_DESTROYS)) addselect(i,state);
 		if (menustyle&MENUSEL_SEND_ON_UP) send(d->id);
 		if (menustyle&MENUSEL_CLICK_UP_DESTROYS) app->destroywindow(this);
@@ -1466,7 +1469,7 @@ int MenuSelector::findItem(int x,int y)
 	panner->GetCurPos(1,&xx);
 	panner->GetCurPos(2,&yy);
 	x+=(xx-inrect.x);
-	y+=(yy-inrect.y);
+	y+=(yy-inrect.y-pad);
 	int c=0;
 	while (c<columns.n && x>columns.e[c]) x-=columns.e[c++];
 	if (c==columns.n) c--;
