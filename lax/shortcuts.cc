@@ -685,6 +685,42 @@ int ShortcutManager::Save(const char *file, const char *header)
 	return 0;
 }
 
+/*! Convert "'&<> to &quot;&apos;&amp;&lt;&gt;
+ *
+ * \todo PUT THIS SOMEWHERE BETTER
+ */
+char *XMLCharsToEntities(const char *str, char *&nstr, int &bufferlen)
+{
+	const char *p=str;
+	int n=0;
+	do {
+		p=strpbrk(p,"\"'&<>");
+		if (p!=NULL) { n++; p++; }
+	} while (p && *p);
+
+	int len=strlen(str) + 6*n + 1;
+	if (len>bufferlen) {
+		delete[] nstr;
+		nstr=new char[len];
+		bufferlen=len;
+	}
+
+	int i=0;
+	p=str;
+	while (*p) {
+		if (*p=='\'')     { nstr[i++]='&'; nstr[i++]='a'; nstr[i++]='p'; nstr[i++]='o'; nstr[i++]='s'; nstr[i++]=';'; }
+		else if (*p=='"') { nstr[i++]='&'; nstr[i++]='q'; nstr[i++]='u'; nstr[i++]='o'; nstr[i++]='t'; nstr[i++]=';'; }
+		else if (*p=='&') { nstr[i++]='&'; nstr[i++]='a'; nstr[i++]='m'; nstr[i++]='p'; nstr[i++]=';'; }
+		else if (*p=='<') { nstr[i++]='&'; nstr[i++]='l'; nstr[i++]='t'; nstr[i++]=';'; }
+		else if (*p=='>') { nstr[i++]='&'; nstr[i++]='g'; nstr[i++]='t';nstr[i++]=';'; }
+		else nstr[i++]=*p;
+		p++;
+	}
+	nstr[i]='\0';
+
+	return nstr;
+}
+
 int ShortcutManager::SaveHTML(const char *file)
 {
 	if (!file) file="-";
@@ -694,12 +730,15 @@ int ShortcutManager::SaveHTML(const char *file)
 	else f=fopen(file,"w");
 	if (!f) return 2;
 
-	if (!isblank(setname)) fprintf(f,"%s<br/><br/>\n\n",setname);
+	char *buffer2=NULL;
+	int bufferlen=0;
 
-	char shift  ='+';
-	char control='^';
-	char alt    ='&';
-	char meta   ='~';
+	if (!isblank(setname)) fprintf(f,"%s<br/><br/>\n\n",XMLCharsToEntities(setname,buffer2,bufferlen));
+
+	const char *shift  ="+";
+	const char *control="^";
+	const char *alt    ="&amp;";
+	const char *meta   ="~";
 
 	fprintf(f,"<html>\n"
 	          "<head>\n"
@@ -737,16 +776,16 @@ int ShortcutManager::SaveHTML(const char *file)
 	          "</head>\n"
 	          "<body>\n\n"
 			  "<h1>%s</h1>\n",
-				settitle?settitle:"Shortcuts",
-				settitle?settitle:"Shortcuts");
+				settitle?XMLCharsToEntities(settitle,buffer2,bufferlen):"Shortcuts",
+				settitle?XMLCharsToEntities(settitle,buffer2,bufferlen):"Shortcuts");
 	
 	 //output available modifier aliases
 	fprintf(f,"Modifiers<br/>\n");
 	fprintf(f,"<table>\n");
-	fprintf(f,"  <tr><td>Shift   </td><td>%c</td></tr>\n",shift);
-	fprintf(f,"  <tr><td>Control </td><td>%c</td></tr>\n",control);
-	fprintf(f,"  <tr><td>Alt     </td><td>%c</td></tr>\n",alt);
-	fprintf(f,"  <tr><td>Meta    </td><td>%c</td></tr>\n",meta);
+	fprintf(f,"  <tr><td>Shift   </td><td>%s</td></tr>\n",shift);
+	fprintf(f,"  <tr><td>Control </td><td>%s</td></tr>\n",control);
+	fprintf(f,"  <tr><td>Alt     </td><td>%s</td></tr>\n",alt);
+	fprintf(f,"  <tr><td>Meta    </td><td>%s</td></tr>\n",meta);
 	fprintf(f,"</table>\n");
 
 	 //output the shortcuts
@@ -754,6 +793,7 @@ int ShortcutManager::SaveHTML(const char *file)
 	WindowActions *a;
 	WindowAction *aa;
 	char buffer[100];
+
 
 	fprintf(f,"<table class=\"formattable\">\n");
 	for (int c=0; c<shortcuts.n; c++) {
@@ -764,12 +804,13 @@ int ShortcutManager::SaveHTML(const char *file)
 		 //output all bound keys
 		if (s) {
 			for (int c2=0; c2<s->n; c2++) {
-				fprintf(f,"  <tr><td class=\"key\">%-10s</td>",ShortcutString(s->e[c2], buffer));
+				fprintf(f,"  <tr><td class=\"key\">%-10s</td>", XMLCharsToEntities(ShortcutString(s->e[c2], buffer), buffer2,bufferlen));
+
 				if (a) aa=a->FindAction(s->e[c2]->action); else aa=NULL;
 				if (aa) {
 					 //print out string id and commented out description
-					fprintf(f,"<td class=\"id\">%-25s</td><td class=\"description\">",aa->name);
-					if (!isblank(aa->description)) fprintf(f,"%s",aa->description);
+					fprintf(f,"<td class=\"id\">%-25s</td><td class=\"description\">", XMLCharsToEntities(aa->name, buffer2, bufferlen));
+					if (!isblank(aa->description)) fprintf(f,"%s",XMLCharsToEntities(aa->description, buffer2, bufferlen));
 					fprintf(f,"</td></tr>\n");
 				} else fprintf(f,"<td class=\"id\">%d</td><td class=\"description\"></td>\n",s->e[c2]->action); //print out number only
 			}
@@ -780,8 +821,13 @@ int ShortcutManager::SaveHTML(const char *file)
 			int c2=0;
 			for (c2=0; c2<a->n; c2++) {
 				if (s && s->FindShortcutFromAction(a->e[c2]->id,0)) continue; //action is bound!
-				fprintf(f,"  <tr><td class=\"key\">none      </td><td class=\"id\">%-25s</td><td class=\"description\">",a->e[c2]->name);
-				if (!isblank(a->e[c2]->description)) fprintf(f,"%s",a->e[c2]->description);
+
+				fprintf(f,"  <tr><td class=\"key\">none      </td><td class=\"id\">%-25s</td><td class=\"description\">",
+						XMLCharsToEntities(a->e[c2]->name, buffer2, bufferlen));
+
+				if (!isblank(a->e[c2]->description)) {
+					fprintf(f,"%s", XMLCharsToEntities(a->e[c2]->description, buffer2, bufferlen));
+				}
 				fprintf(f,"</td></tr>\n");
 			}
 		}
@@ -790,6 +836,8 @@ int ShortcutManager::SaveHTML(const char *file)
 	fprintf(f,"</body>\n");
 
 	if (f!=stdout) fclose(f);
+
+	delete[] buffer2;
 	return 0;
 }
 
