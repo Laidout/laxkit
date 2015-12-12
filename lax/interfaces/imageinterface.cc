@@ -736,7 +736,8 @@ int ImageInterface::Refresh()
 			dp->drawline(ll,ul);
 
 			int up=-1;
-			if (dp->righthanded()) up=1; //flip if dp is +y==up
+			if (dp->defaultRighthanded()) up=1; //flip if dp is +y==up
+			//if (dp->righthanded()) up=1; //flip if dp is +y==up
 			
 			flatpoint p=(ll+lr+ul+ur)/4; //center of image
 			flatpoint tip=p+up*((ul+ur)/2-p)*2/3; //tip of an arrow from center, 2/3 toward up direction
