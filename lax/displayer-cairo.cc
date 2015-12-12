@@ -313,7 +313,6 @@ int DisplayerCairo::MakeCurrent(aDrawable *buffer)
 	cairo_set_matrix(cr, &m);
 	transform_invert(ictm,ctm);
 
-
 	return 1;
 }
 
@@ -1679,6 +1678,23 @@ const double *DisplayerCairo::Getictm()
 }
 
 
+/*! Stand out function to aid debug breaking at specific program states.
+ */
+//static void BUG_CATCHER(const char *mes, double dist)
+//{
+//	//DBG flatpoint oldp=transform_point(ctm, flatpoint(0,0));
+//	//DBG flatpoint newp=transform_point(ctm, flatpoint(0,0));
+//	//DBG double ctmdist=norm(newp-oldp);
+//	//DBG if (ctmdist>200) BUG_CATCHER("ShiftScreen", ctmdist);
+//
+//	if (dist<1000) return;
+//
+//	cerr <<"===================================================="<<endl;
+//	cerr <<"====BOOM!==== "<<dist<<":  "<<mes<<endl;
+//	cerr <<"===================================================="<<endl;
+//}
+
+
 //! Move the viewable portion by dx,dy screen units.
 void DisplayerCairo::ShiftScreen(double dx,double dy)
 {
@@ -1687,12 +1703,26 @@ void DisplayerCairo::ShiftScreen(double dx,double dy)
 		//dy/=Getmag();
 	//}
 
-	if (cr && real_coordinates) cairo_translate(cr,dx,dy);
+	//DBG flatpoint oldp=transform_point(ctm, flatpoint(0,0));
 
-	ictm[4]-=dx;
-	ictm[5]-=dy;
 	ctm[4]+=dx;
 	ctm[5]+=dy;
+	//ictm[4]-=dx;
+	//ictm[5]-=dy;
+	transform_invert(ictm,ctm);
+
+	if (cr && real_coordinates) {
+		//cairo_translate(cr,dx,dy);
+
+		cairo_matrix_t m;
+		if (real_coordinates) cairo_matrix_init(&m, ctm[0], ctm[1], ctm[2], ctm[3], ctm[4], ctm[5]);
+		else cairo_matrix_init(&m, 1,0,0,1,0,0);
+		cairo_set_matrix(cr, &m);
+	}
+
+	//DBG flatpoint newp=transform_point(ctm, flatpoint(0,0));
+	//DBG double ctmdist=norm(newp-oldp);
+	//DBG if (ctmdist>200) BUG_CATCHER("ShiftScreen", ctmdist);
 
 	syncPanner();
 
@@ -1702,6 +1732,8 @@ void DisplayerCairo::ShiftScreen(double dx,double dy)
 //! Set the ctm to these 6 numbers.
 void DisplayerCairo::NewTransform(const double *d)
 {
+	//DBG flatpoint oldp=transform_point(ctm, flatpoint(0,0));
+
 	if (cr && real_coordinates) {
 		cairo_matrix_t m;
 		m.xx=d[0];
@@ -1716,6 +1748,10 @@ void DisplayerCairo::NewTransform(const double *d)
 	transform_copy(ctm,d);
 	transform_invert(ictm,ctm);
 
+	//DBG flatpoint newp=transform_point(ctm, flatpoint(0,0));
+	//DBG double ctmdist=norm(newp-oldp);
+	//DBG if (ctmdist>200) BUG_CATCHER("NewTransform1", ctmdist);
+
 	syncPanner();
 
 	//DBG dump_transforms(cr, ctm);
@@ -1724,6 +1760,8 @@ void DisplayerCairo::NewTransform(const double *d)
 //! Make the transform correspond to the values.
 void DisplayerCairo::NewTransform(double a,double b,double c,double d,double x0,double y0)
 {
+	//DBG flatpoint oldp=transform_point(ctm, flatpoint(0,0));
+
 	if (cr && real_coordinates) {
 		cairo_matrix_t m;
 		m.xx=a;
@@ -1742,6 +1780,10 @@ void DisplayerCairo::NewTransform(double a,double b,double c,double d,double x0,
 	ctm[4]=x0;
 	ctm[5]=y0;
 	transform_invert(ictm,ctm);
+
+	//DBG flatpoint newp=transform_point(ctm, flatpoint(0,0));
+	//DBG double ctmdist=norm(newp-oldp);
+	//DBG if (ctmdist>200) BUG_CATCHER("NewTransform2", ctmdist);
 
 	syncPanner();
 
@@ -1772,9 +1814,15 @@ void DisplayerCairo::PushAxes()
 {
 	if (cr) cairo_save(cr);
 
+	//DBG flatpoint oldp=transform_point(ctm, flatpoint(0,0));
+
 	double *tctm=new double[6];
 	transform_copy(tctm,ctm);
 	axesstack.push(tctm,2);
+
+	//DBG flatpoint newp=transform_point(ctm, flatpoint(0,0));
+	//DBG double ctmdist=norm(newp-oldp);
+	//DBG if (ctmdist>200) BUG_CATCHER("PushAxes", ctmdist);
 }
 
 //! Recover the last pushed axes. Relying on cr existing is problematic.
@@ -1783,6 +1831,8 @@ void DisplayerCairo::PopAxes()
 	if (axesstack.n==0) return;
 
 //	----------------------------
+	//DBG flatpoint oldp=transform_point(ctm, flatpoint(0,0));
+
 	if (cr) {
 		cairo_restore(cr);
 	}
@@ -1793,27 +1843,10 @@ void DisplayerCairo::PopAxes()
 		delete[] tctm;
 	}
 
-//	----------------------------
-//	if (cr) {
-//		cairo_restore(cr);
-//
-//		cairo_matrix_t m;
-//		//cairo_matrix_init(&m, ctm[0], ctm[1], ctm[2], ctm[3], ctm[4], ctm[5]);
-//		//cairo_set_matrix(cr, &m);
-//		cairo_get_matrix(cr, &m);
-//		ctm[0]=m.xx;
-//		ctm[1]=m.yx;
-//		ctm[2]=m.xy;
-//		ctm[3]=m.yy;
-//		ctm[4]=m.x0;
-//		ctm[5]=m.y0;
-//
-//	} else {
-//		double *tctm=axesstack.pop();
-//		transform_copy(ctm,tctm);
-//		delete[] tctm;
-//	}
-//	----------------------------
+	//DBG flatpoint newp=transform_point(ctm, flatpoint(0,0));
+	//DBG double ctmdist=norm(newp-oldp);
+	//DBG if (ctmdist>200) BUG_CATCHER("PopAxes", ctmdist);
+
 
 	transform_invert(ictm,ctm); 
 }
