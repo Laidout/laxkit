@@ -253,7 +253,7 @@ void FontLayersWindow::Refresh()
 	dp->NewFG(win_colors->fg);
 
 	if (mode==0) {
-		int over=0;
+		DBG int over=0;
 		//if (buttondown.isdown(0,LEFTBUTTON)){ 
 		//	int device=buttondown.whichdown(0, LEFTBUTTON);
 		//	buttondown.getextrainfo(device, LEFTBUTTON, &over);
