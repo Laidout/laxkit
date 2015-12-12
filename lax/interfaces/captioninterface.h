@@ -107,6 +107,7 @@ class CaptionInterface : public anInterface
 	int mode,mousedragged;
 	flatpoint leftp;
 	int caretline,caretpos;
+	int scaretline,scaretpos, sellen;
 	flatpoint caret;
 	int lasthover;
 	Laxkit::ShortcutHandler *sc;

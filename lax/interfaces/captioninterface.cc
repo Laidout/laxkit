@@ -636,6 +636,7 @@ int CaptionData::DeleteSelection(int fline,int fpos, int tline,int tpos, int *ne
 	}
 
 	ComputeLineLen(fline);
+	FindBBox();
 	*newline=fline;
 	*newpos=fpos;
 	return 0;
@@ -679,6 +680,8 @@ int CaptionData::InsertString(const char *txt,int len, int line,int pos, int *ne
 		if (*curline) curline++;
 	}
 	delete[] origline;
+
+	FindBBox();
 
 	*newline=line;
 	*newpos =pos;
@@ -826,6 +829,8 @@ CaptionInterface::CaptionInterface(int nid,Displayer *ndp) : anInterface(nid,ndp
 	grabpad=20;
 	caretline=0;//line number, starting from 0
 	caretpos=0; //position of caret in caretline
+	sellen=0;
+	scaretline=scaretpos=0;
 	needtodraw=1;
 
 	baseline_color=rgbcolorf(1.,0.,1.);
@@ -1411,6 +1416,17 @@ int CaptionInterface::Paste(const char *txt,int len, Laxkit::anObject *obj, cons
 {
 	cerr << " *** must implement CaptionInterface::Paste()"<<endl;
 	DBG if (txt) cerr <<"    pasting: "<<txt<<endl;
+
+	//------
+	if (!txt || !len) return 1;
+
+	if (data) {
+		data->InsertString(txt, len, caretline, caretpos, &caretline, &caretpos);
+		needtodraw=1;
+		return 0;
+	} else {
+	}
+
 	return 1;
 }
 
@@ -1597,6 +1613,7 @@ int CaptionInterface::MouseMove(int x,int y,unsigned int state, const Laxkit::La
 				DBG cerr <<"caption mouse over: "<<oc->obj->Id()<<endl;
 
 				if (!oc->isequal(extrahover)) {
+					if (extrahover) delete extrahover;
 					extrahover=oc->duplicate();
 					needtodraw=1;
 				}
@@ -1775,8 +1792,7 @@ int CaptionInterface::PerformAction(int action)
 {
 	if (action==CAPT_Paste) {
 		 //pasting with no data should create a new data
-		viewport->PasteRequest(this, "txt");
-		PostMessage(" *** Need to implement paste!!!");
+		viewport->PasteRequest(this, NULL);
 		return 0;
 	}
 
