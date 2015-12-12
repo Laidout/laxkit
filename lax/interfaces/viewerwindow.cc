@@ -250,7 +250,15 @@ int ViewerWindow::Event(const Laxkit::EventData *e,const char *mes)
 							  ce->channels[3]/(double)ce->max,
 							  ce->channels[4]/(double)ce->max);
 		return 0;
+
+    } else if (!strcmp(mes,"zoommenu")) {
+        const SimpleMessage *s=dynamic_cast<const SimpleMessage *>(e);
+        if (!s) return 1;
+        int action=s->info2;
+        viewport->PerformAction(action);
+        return 0; 
 	}
+
 	return anXWindow::Event(e,mes);
 }
 
