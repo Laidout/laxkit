@@ -1652,6 +1652,24 @@ int SplitWindow::Join(int c,int whichside,char keepother)//keepother=0
 	return -1;
 }
 
+/*! If which==-1, use NumPanes()-1. Else if which out of bounds return NULL.
+ */
+PlainWinBox *SplitWindow::GetPane(int which)
+{
+	if (which==-1) which=windows.n-1;
+	if (which>=0 && which<windows.n) return windows.e[which];
+	return NULL;
+}
+
+/*! If which==-1, use NumPanes()-1. Else if which out of bounds return NULL.
+ */
+anXWindow *SplitWindow::GetPaneWindow(int which)
+{
+	if (which==-1) which=windows.n-1;
+	if (which>=0 && which<windows.n) return windows.e[which]->win();
+	return NULL;
+}
+
 //! Add a new one based on type: return Add(NewWindow(type),whichside);
 int SplitWindow::Add(const char *type,unsigned int whichside)
 {

@@ -35,9 +35,10 @@ namespace Laxkit {
 //---------------------------- PlainWinBox ---------------------------------
 class PlainWinBox 
 { 
- protected:
+  protected:
 	anXWindow *window, *prev,*next;
- public:
+
+  public:
 	int x1,y1,x2,y2;
 	PlainWinBox(anXWindow *nwin,int xx1,int yy1,int xx2,int yy2);
 	virtual ~PlainWinBox();
@@ -74,7 +75,7 @@ typedef NewWindowObject WinFuncNode;
 
 class SplitWindow : public anXWindow
 { 
- protected:
+  protected:
 	ButtonDownInfo buttondown;
 	int mousein;
 	PtrStack<PlainWinBox> windows;
@@ -99,7 +100,8 @@ class SplitWindow : public anXWindow
 	virtual void syncaffected();
 	virtual anXWindow *NewWindow(const char *wtype,anXWindow *likethis=NULL);
 	virtual MenuInfo *GetMenu();
- public:
+
+  public:
 	SplitWindow(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
 			int xx,int yy,int ww,int hh,int brder,
 			anXWindow *prev,unsigned long owner,const char *mes);
@@ -119,6 +121,9 @@ class SplitWindow : public anXWindow
 	virtual int Resize(int nw,int nh);
 	virtual void Refresh();
 	
+	virtual int NumPanes() { return windows.n; }
+	virtual PlainWinBox *GetPane(int which);
+	virtual anXWindow *GetPaneWindow(int which);
 	virtual int AddWindowType(const char *wtype,const char *ndesc,
 			unsigned long style,NewWindowFunc winfunc,int settodefault=0);
 	virtual void BoxNearPos(int x,int y,PlainWinBox *box, int *l,int *r,int *t,int *b);
