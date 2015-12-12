@@ -642,15 +642,15 @@ int anXApp::Theme(const char *theme)
 }
 
 /*! If they have been compiled in, which can be one of:
- *   "imlib"
- *   "cairo"
- *   "gl"
+ *   "xlib"  (uses xlib and imlib for graphics rendering)
+ *   "cairo" (uses cairo for rendering. Can use imlib for image loading)
+ *   "gl"    (unimplemented)
  *
  * Return 0 for success, or 1 for cannot use.
  */
 int anXApp::Backend(const char *which)
 {
-	if (!strcmp(which,"imlib")) {
+	if (!strcmp(which,"xlib")) {
 #ifdef LAX_USES_IMLIB
 		backend="xlib";
 		return 1;
