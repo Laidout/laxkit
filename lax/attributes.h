@@ -48,6 +48,7 @@ class Attribute {
 	virtual Attribute *find(const char *fromname,int *i_ret=NULL);
 	virtual const char *findValue(const char *fromname,int *i_ret=NULL);
 	virtual double findDouble(const char *fromname,int *i_ret=NULL);
+	virtual long findLong(const char *fromname,int *i_ret=NULL);
 	virtual Attribute *pushSubAtt(const char *nname, const char *nvalue=NULL);
 	virtual int push(Attribute *att,int where);
 	virtual int push(const char *nname);

@@ -1401,6 +1401,26 @@ double Attribute::findDouble(const char *fromname,int *i_ret)
 	return 0;
 }
 
+//! Convenience function to search for a subattribute, and convert its value to a long.
+/*! i_ret is the index of the subattribute found, or -1 if not found, or -2 if found,
+ * but could not convert to long.
+ *
+ * If an attribute is not found, 0 is returned.
+ */
+long Attribute::findLong(const char *fromname,int *i_ret)
+{
+	for (int c=0; c<attributes.n; c++)
+		if (attributes.e[c]->name && !strcmp(attributes.e[c]->name,fromname)) {
+			if (!isblank(attributes.e[c]->value)) {
+				if (i_ret) *i_ret=c;
+				return strtol(attributes.e[c]->value,NULL,10);
+			}
+			break;
+		}
+	if (i_ret) *i_ret=-1;
+	return 0;
+}
+
 //! Return the first sub-attribute with the name fromname, or NULL if not found.
 /*! If i_ret!=NULL, then fill it with the index of the attribute, if found, or -1 if not found.
  */
