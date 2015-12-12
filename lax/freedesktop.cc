@@ -43,16 +43,325 @@ using namespace std;
 
 namespace LaxFiles {
 
+/*! If visited or modified are not null, then update those in the recent file to the current time.
+ *
+ * file must be an absolute path.
+ *
+ * If recent_file==NULL, then use "~/.local/share/recently-used.xbel".
+ *
+ * See the xbel spec here: http://www.freedesktop.org/wiki/Specifications/desktop-bookmark-spec
+ */
+int touch_recently_used_xbel(const char *file, const char *mime,
+		const char *application,
+		const char *app_exec,
+		const char *group,
+		bool visited,
+		bool modified,
+		const char *recent_file)
+{
+	if (!file) return 1;
+
+	 //make sure to use uri rather than file
+	char *uri=newstr(file);
+	if (strncmp(uri,"file://",7)) prependstr(uri,"file://");
+	if (uri[7]!='/') {
+		delete[] uri; //was not an absolute path
+		return 2;
+	}
+
+	 //find visited
+	char visited_time[50];
+	visited_time[0]='\0';
+	if (visited) {
+		time_t t;
+		time(&t);
+		strftime(visited_time, 50, "%FT%TZ", gmtime(&t));
+	}
+
+	 //find modified
+	char mod_time[50];
+	mod_time[0]='\0';
+	if (modified) {
+		time_t t;
+		time(&t);
+		strftime(mod_time, 50, "%FT%TZ", gmtime(&t));
+	}
+
+	 //read in recently-used
+	char *recentfile=expand_home("~/.local/share/recently-used.xbel");
+	Attribute *recent=XMLFileToAttributeLocked(NULL,recentfile,NULL);
+	Attribute *content;
+
+	if (!recent) {
+		 //problem reading recentfile, or file does not exist
+		recent=new Attribute;
+		recent->push("?xml",(char*)NULL);
+		recent->attributes.e[0]->push("version","1.0");
+		recent->attributes.e[0]->push("encoding","UTF-8");
+		content = recent->pushSubAtt("xbel",NULL);
+		content = content->pushSubAtt("content:",NULL);
+
+	} else {
+		 //find RecentFiles->content: 
+		content=recent->find("xbel");
+		if (content) content=content->find("content:");
+		if (!content) {
+			 //error, couldn't find bookmarks!
+			delete[] uri;
+			delete recent;
+			delete[] recentfile;
+			return 3;
+		}
+
+	}
+	
+	 //search for file
+	Attribute *item=NULL,*att=NULL;
+	int c;
+	int oldindex=-1;
+
+	for (c=0; c<content->attributes.n; c++) {
+		if (strcmp(content->attributes.e[c]->name,"bookmark")) continue;
+		item=content->attributes.e[c];
+		att=item->find("href");
+		if (att && !strcmp(att->value,uri)) break;
+		item=NULL;
+	}
+
+	if (item) {
+		oldindex=c;
+
+		 //file found, so update it.
+		 //  Each bookmark has 3 time fields: added, modified, and visited
+		 //  they all have format "2015-11-11T15:01:32Z" (iso 8601)
+
+		 //with newer(?) timestamp
+		if (visited) {
+			att=item->find("visited");
+			if (att && strcmp(att->value, visited_time)<0)
+				makestr(att->value, visited_time);
+		}
+
+		if (modified) {
+			att=item->find("modified");
+			if (att && strcmp(att->value, mod_time)<0)
+				makestr(att->value, mod_time);
+		}
+
+		 //now update meta section...
+		Attribute *meta=item->find("content:");
+		if (!meta) meta=item->pushSubAtt("content:");
+		att = meta->find("info");
+		if (!att) att=meta->pushSubAtt("info");
+		meta = att;
+		att  = meta->find("content:");
+		if (!att) att=meta->pushSubAtt("content:");
+		meta = att;
+		att  = meta->find("metadata");
+		if (!att) att = meta->pushSubAtt("metadata");
+		meta = att;
+		att = meta->find("content:");
+		if (!att) att=meta->pushSubAtt("content:");
+		meta = att;
+
+		 //hopefully gratuitous mime type check
+		att=meta->find("mime:mime-type");
+		if (att) att=att->find("type");
+		if (att && strcmp(att->value,mime)) {
+			DBG cerr <<"***warning: mime type not same as before on "<<file<<endl;
+			makestr(att->value,mime);
+		}
+
+		 //make sure group is in there
+		if (group) {
+			Attribute *gatt=meta->find("bookmark:groups");
+			if (!gatt) {
+				 //need to add a groups sections
+				gatt = meta->pushSubAtt("bookmark:groups");
+			}
+			
+			att=gatt;
+			gatt=att->find("content:");
+			if (!gatt) gatt = att = att->pushSubAtt("content:");
+
+			for (c=0; c<gatt->attributes.n; c++) {
+				att=gatt->attributes.e[c]->find("content:"); //should be <bookmark:group>CONTENT</bookmark:group>
+				if (!att) att=gatt->attributes.e[c];
+				if (!strcmp(att->value,group)) break; //found it!
+			}
+			if (c==att->attributes.n) att->push("bookmark:group",group);
+		}
+
+		 //application
+		if (application) {
+			Attribute *gatt=meta->find("bookmark:applications");
+			if (!gatt) {
+				 //need to add an applications sections
+				gatt = meta->pushSubAtt("bookmark:applications");
+			}
+			
+			att=gatt;
+			gatt=att->find("content:");
+			if (!gatt) gatt = att = att->pushSubAtt("content:");
+
+			for (c=0; c<gatt->attributes.n; c++) {
+				att=gatt->attributes.e[c];
+				Attribute *att2=att->find("name");
+				if (att2 && !strcmp(att2->value,application)) {
+					//found it!  update count and mod time
+					if (modified) {
+						att2=att->find("modified");
+						if (att2) makestr(att2->value, mod_time);
+						else att2=att->pushSubAtt("modified", mod_time);
+					}
+					att2=att->find("count");
+					if (att2) {
+						int count=strtol(att2->value,NULL,10);
+						count++;
+						char str[10];
+						sprintf(str,"%d",count);
+						makestr(att2->value,str);
+					} else makestr(att2->value, "1");
+					break;
+				}
+			}
+
+			if (c==att->attributes.n) {
+				 //app not found, need to add a fresh application section
+				att = gatt->pushSubAtt("bookmark:application");
+				att->push("name", application);
+				att->push("exec", app_exec);
+				if (!modified) {
+					time_t t;
+					time(&t);
+					strftime(mod_time, 50, "%FT%TZ", gmtime(&t));
+				}
+				att->push("modified", mod_time);
+				att->push("count", "1");
+			}
+		}
+
+		if (oldindex>0) {
+			//move to the end of file
+			Attribute *it=content->attributes.pop(oldindex);
+			content->push(it,-1);
+		}
+
+
+	} else {
+		 //file not found, add to list 
+		item = content->pushSubAtt("bookmark",NULL);
+		item->push("href",uri);
+
+		if (!visited) {
+			time_t t;
+			time(&t);
+			strftime(visited_time, 50, "%FT%TZ", gmtime(&t));
+		}
+
+		item->push("added",   visited_time);
+		item->push("modified",mod_time);
+		item->push("visited", visited_time);
+
+		item = item->pushSubAtt("content:");
+		item = item->pushSubAtt("info");
+		item = item->pushSubAtt("content:");
+		item = item->pushSubAtt("metadata");
+		item->push("owner","http://freedesktop.org");
+		item = item->pushSubAtt("content:");
+		att = item->pushSubAtt("mime:mime-type",NULL);
+		att->push("type", mime);
+
+		if (group) {
+			att=item->pushSubAtt("bookmark:groups");
+			att=att->pushSubAtt("content:");
+			att->push("bookmark:group",group);
+		}
+
+		if (application) {
+			att=item->pushSubAtt("bookmark:applications");
+			att=att->pushSubAtt("content:");
+			att=att->pushSubAtt("bookmark:application");
+			if (app_exec) {
+				att->push("name",application);
+				char str[strlen(app_exec) + 20];
+				sprintf(str,"&apos;%s %%u&apos;", app_exec);
+				att->push("exec", str);
+			}
+			att->push("count", "1"); 
+		}
+	}
+
+	 //make sure < 500 items
+	while (content->attributes.n>500) {
+		 //find oldest one (assuming the first one)
+//		-------------
+		c=0;
+		while (c<content->attributes.n && strcmp(content->attributes.e[c]->name, "bookmark")) c++;
+
+		if (c>=0) content->attributes.remove(c); //the oldest one hopefully
+
+//		-------------if out of order: (*** needs updating)
+//		Attribute *att2;
+//		c=content->attributes.n-1;
+//		att=content->attributes.e[c]->attributes.e[0]->find("visited");
+//		int c2;
+//		long l=strtol(att->value,NULL,0),l2;
+//		for (c2=0; c2<content->attributes.n; c2++) {
+//			att2=content->attributes.e[c2]->attributes.e[0]->find("Timestamp");
+//			l2=strtol(att2->value,NULL,10);
+//			if (l2<l) { 
+//				c=c2;
+//				l=l2;
+//			}
+//		}
+//
+//		if (c>=0) content->attributes.remove(c); //the oldest one
+	}
+
+	
+	 //write back out recently-used
+	setlocale(LC_ALL,"C");
+	int fd=open(recentfile,O_CREAT|O_WRONLY|O_TRUNC,S_IREAD|S_IWRITE);
+	delete[] recentfile;
+	if (fd<0) { 
+		setlocale(LC_ALL,"");
+		delete[] uri;
+		delete recent;
+		return 1; 
+	}
+	flock(fd,LOCK_EX);
+	FILE *f=fdopen(fd,"w");
+	if (!f) { 
+		setlocale(LC_ALL,"");
+		delete[] uri;
+		delete recent;
+		close(fd);
+		return 1; 
+	}
+
+	AttributeToXMLFile(f,recent,0);
+
+	flock(fd,LOCK_UN);
+	fclose(f);
+	setlocale(LC_ALL,"");
+
+	delete[] uri;
+	delete recent;
+
+	return 0;
+}
+
 /*! If timestamp==NULL, then use the current time. Otherwise it must be a string 
  * representing the number of seconds since the epoch, which is the beginning of
- * Jan 1, 1970 UTC. time gettimeofday
+ * Jan 1, 1970 UTC. See time gettimeofday for more info about that.
  *
  * file must be an absolute path.
  *
  * \todo there could be more error checking in here. If recent file spec changes, could well break this.
  * \todo support the more commonly used recent file: ~/.local/share/recently-used.xbel
  */
-int touch_recently_used(const char *file, const char *mime, const char *group, const char *timestamp)
+int touch_recently_used_old(const char *file, const char *mime, const char *group, const char *timestamp)
 {
 	if (!file) return 1;
 

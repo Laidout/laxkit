@@ -29,7 +29,14 @@
 namespace LaxFiles {
 
 
-int touch_recently_used(const char *file, const char *mime, const char *group, const char *timestamp);
+int touch_recently_used_xbel(const char *file, const char *mime,
+		const char *application,
+		const char *app_exec,
+		const char *group,
+		bool visited,
+		bool modified,
+		const char *recent_file);
+int touch_recently_used_old(const char *file, const char *mime, const char *group, const char *timestamp);
 char *recently_used(const char *mimetype,const char *group, int includewhat);
 Laxkit::MenuInfo *recently_used(const char *recentfile, const char *mimetype,const char *group, int includewhat, Laxkit::MenuInfo *existingmenu);
 
