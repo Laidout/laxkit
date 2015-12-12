@@ -553,6 +553,18 @@ char *convert_to_full_path(char *&file,const char *path)
 	return file;
 }
 
+/*! Return whether file starts with "./" or "../", or is "." or "..".
+ */
+bool is_relative_path(const char *file)
+{
+	if (!file) return false;
+	if (file[0]=='.' && file[1]=='\0') return true;
+	if (file[0]=='.' && file[1]=='.' &&file[2]=='\0') return true;
+	if (file[0]=='.' && file[1]=='/') return true;
+	if (file[0]=='.' && file[1]=='.' &&file[2]=='/') return true;
+	return false;
+}
+
 //! Return a new char[] containing the path to file, relative to relativeto.
 /*! Both file and relativeto must be absolute paths.
  *

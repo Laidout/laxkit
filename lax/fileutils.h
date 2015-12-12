@@ -48,6 +48,7 @@ int readable_file(const char *filename,FILE **ff=NULL);
 char *full_path_for_file(const char *file, const char *path);
 char *convert_to_full_path(char *&file,const char *path);
 char *relative_file(const char *file,const char *relativeto,char isdir);
+bool is_relative_path(const char *file);
 int is_in_subdir(const char *file,const char *dir);
 char *file_to_uri(const char *file);
 char *expand_home(const char *file);
