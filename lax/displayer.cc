@@ -1282,16 +1282,41 @@ void Displayer::NewAxis(flatpoint o,flatvector x,flatvector y)
 	NewTransform( x.x,x.y, y.x,y.y, o.x,o.y);
 }
 
+///*! Stand out function to aid debug breaking at specific program states.
+// */
+//static void BUG_CATCHER(const char *mes, double dist)
+//{
+//	////DBG flatpoint oldp=transform_point(ctm, flatpoint(0,0));
+//	////DBG flatpoint newp=transform_point(ctm, flatpoint(0,0));
+//	////DBG double ctmdist=norm(newp-oldp);
+//	////DBG if (ctmdist>200) BUG_CATCHER("ShiftScreen", ctmdist);
+//
+//	if (dist<1000) return;
+//
+//	cerr <<"===================================================="<<endl;
+//	cerr <<"====BOOM!==== "<<dist<<":  "<<mes<<endl;
+//	cerr <<"===================================================="<<endl;
+//}
+
 //! Rotate by angle, about screen coordinate (x,y).
 /*! dec nonzero means angle is degrees, otherwise radians.
  */
 void Displayer::Rotate(double angle,int x,int y,int dec)
 {
 	if (dec<0) dec=decimal;
+
+	//DBG const double *ctm=Getctm();
+	//DBG flatpoint oldp=transform_point(ctm, flatpoint(0,0));
+	
 	flatpoint p=screentoreal(x,y);
 	Newangle(angle,1,dec);
 	p=realtoscreen(p);
 	ShiftScreen(x-p.x, y-p.y);
+
+	//DBG flatpoint newp=transform_point(ctm, flatpoint(0,0));
+	//DBG double ctmdist=norm(newp-oldp);
+	//DBG cerr <<"Rotate dist: "<<ctmdist<<endl;
+	//DBG if (ctmdist>200) BUG_CATCHER("Displayer::Rotate", ctmdist);
 }
 
 //! Rotate around real origin so that the x axis has angle between it and the screen horizontal.
@@ -1342,10 +1367,10 @@ void Displayer::Zoom(double m,int x,int y)
 	flatpoint po=screentoreal(x,y);
 	char udp=updatepanner;
 	updatepanner=0;
-	DBG cerr <<"\nZoom:"<<m<<"   around real="<<po.x<<","<<po.y<<"  =s:"<<x<<','<<y<<"  ctm4,5="<<Getctm()[4]<<','<<Getctm()[5]<<endl;
+	//DBG cerr <<"\nZoom:"<<m<<"   around real="<<po.x<<","<<po.y<<"  =s:"<<x<<','<<y<<"  ctm4,5="<<Getctm()[4]<<','<<Getctm()[5]<<endl;
 	Zoom(m);
 	po=realtoscreen(po);
-	DBG cerr <<"   shift:"<<po.x-x<<","<<po.y-y<<endl;
+	//DBG cerr <<"   shift:"<<po.x-x<<","<<po.y-y<<endl;
 	ShiftScreen(x-po.x, y-po.y);
 	updatepanner=udp;
 }
