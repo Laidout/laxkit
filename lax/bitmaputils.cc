@@ -141,13 +141,13 @@ void MakeValueMap(unsigned char *img, int mapwidth, int mapheight, int blur, con
 
 
 	while (!stillzero) {
-		numiter++;
-		//if (numiter>40) break;
+		DBG numiter++;
+		DBG if (numiter>40) break;
 
 		firstzero=mapheight*mapwidth;
 		lastzero=0;
 
-		numfilled=0;
+		DBG numfilled=0;
 
 		stillzero=1;
 		for (int y=startline; y<lastline && y<mapheight; y++) {
@@ -155,7 +155,7 @@ void MakeValueMap(unsigned char *img, int mapwidth, int mapheight, int blur, con
 
 			for (int x=0; x<mapwidth; x++, i++) {
 				if (m1[i]!=0) {
-					numfilled++;
+					DBG numfilled++;
 					m2[i]=m1[i];
 					continue; //pixel filled, go to next one
 				}
@@ -190,7 +190,7 @@ void MakeValueMap(unsigned char *img, int mapwidth, int mapheight, int blur, con
 				} else {
 					m2[i]=sum/nfilled;
 
-					numfilled++;
+					DBG numfilled++;
 				}
 				
 			}
