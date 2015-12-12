@@ -768,7 +768,7 @@ int FontManager::RetrieveFontmatrixTags()
 
 			if (status == SQLITE_ROW) {
 
-				int id           = sqlite3_column_int(stmt, 0);
+				DBG int id           = sqlite3_column_int(stmt, 0);
 				//const unsigned char *text = sqlite3_column_text(stmt, 1);
 				const char *tag = (const char *)sqlite3_column_text(stmt, 0);
 
