@@ -86,7 +86,7 @@ class FileDialog : public RowFrame
 	int finalbuttons;
 
 	char *recentgroup;
-	MenuInfo recentmenu;
+	MenuInfo *recentmenu;
 	bool showing_recent;
 	bool showing_icons;
 

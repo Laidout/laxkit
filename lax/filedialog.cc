@@ -179,6 +179,7 @@ FileDialog::FileDialog(anXWindow *parnt,const char *nname,const char *ntitle,uns
 	dialog_style= ndstyle | FILES_GLOBAL_BOOKMARK;
 	
 	files=new MenuInfo;
+	recentmenu=new MenuInfo;
 
 	curhistory=-1;
 	finalbuttons=-1;
@@ -261,6 +262,7 @@ FileDialog::~FileDialog()
 {
 	if (recentgroup) delete[] recentgroup;
 	if (files) files->dec_count();
+	if (recentmenu) recentmenu->dec_count();
 }
 
 int FileDialog::NewHistory(const char *npath)
@@ -320,10 +322,16 @@ int FileDialog::getDirectory(const char *npath)
 			// maybe FileResolve(char *&path, char checkforexistencetoo) to remove 
 			// ws, extra /, and expand ~
 
-	int c=0,g;
+	int c=0;
+	DBG int g;
 	while (patterns[c]) { //see wordexp?<- does ~ exp., environ var insert, shell escapse, etc..
-		if (!c) g=glob(patterns[c], GLOB_MARK|GLOB_PERIOD, NULL, &globbuf);
-		else g=glob(patterns[c], GLOB_APPEND|GLOB_MARK|GLOB_PERIOD, NULL, &globbuf);
+		if (!c) {
+			DBG g=
+			glob(patterns[c], GLOB_MARK|GLOB_PERIOD, NULL, &globbuf);
+		} else {
+			DBG g=
+			glob(patterns[c], GLOB_APPEND|GLOB_MARK|GLOB_PERIOD, NULL, &globbuf);
+		}
 		
 		DBG cerr <<"\n\nGlob test\nPattern: "<<patterns[c]<<"\nglob returns: "<<g<<endl;
 		c++;
@@ -830,10 +838,10 @@ int FileDialog::ShowRecent(int on)
 	} else {
 		showing_recent=true;
 
-		recentmenu.Flush();
-		recently_used(NULL, NULL, (isblank(recentgroup) ? NULL : recentgroup), 0, &recentmenu);
-		if (recentmenu.n()) {
-			filelist->InstallMenu(&recentmenu);
+		recentmenu->Flush();
+		recently_used(NULL, NULL, (isblank(recentgroup) ? NULL : recentgroup), 0, recentmenu);
+		if (recentmenu->n()) {
+			filelist->InstallMenu(recentmenu);
 		} else {
 			MenuInfo *none=new MenuInfo;
 			none->AddSep(_("(No recent)"));
@@ -841,7 +849,7 @@ int FileDialog::ShowRecent(int on)
 			none->dec_count();
 		}
 
-		if (recentmenu.n()==0) showing_recent=false;
+		if (recentmenu->n()==0) showing_recent=false;
 		else mask->SetText(_("(recent)"));
 	}
 
