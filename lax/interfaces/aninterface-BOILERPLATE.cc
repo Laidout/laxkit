@@ -289,6 +289,18 @@ int BoilerPlateInterface::CharInput(unsigned int ch, const char *buffer,int len,
 	if (ch==LAX_Esc) { //the various possible keys beyond normal ascii printable chars are defined in lax/laxdefs.h
 		needtodraw=1;
 		return 0;
+
+	} else if (ch==LAX_Up) {
+		//*** stuff
+
+	} else {
+		 //default shortcut processing
+
+		if (!sc) GetShortcuts();
+		int action=sc->FindActionNumber(ch,state&LAX_STATE_MASK,0);
+		if (action>=0) {
+			return PerformAction(action);
+		}
 	}
 
 	return 1; //key not dealt with, propagate to next interface
@@ -301,10 +313,31 @@ int BoilerPlateInterface::KeyUp(unsigned int ch,unsigned int state, const Laxkit
 
 Laxkit::ShortcutHandler *BoilerPlateInterface::GetShortcuts()
 { ***
+	if (sc) return sc;
+    ShortcutManager *manager=GetDefaultShortcutManager();
+    sc=manager->NewHandler(whattype());
+    if (sc) return sc;
+
+    //virtual int Add(int nid, const char *nname, const char *desc, const char *icon, int nmode, int assign);
+
+    sc=new ShortcutHandler(whattype());
+
+	//sc->Add([id number],  [key], [mod mask], [mode], [action string id], [description], [icon], [assignable]);
+    sc->Add(CAPT_BaselineJustify, 'B',ShiftMask|ControlMask,0, "BaselineJustify", _("Baseline Justify"),NULL,0);
+    sc->Add(CAPT_BottomJustify,   'b',ControlMask,0, "BottomJustify"  , _("Bottom Justify"  ),NULL,0);
+    sc->Add(CAPT_Decorations,     'd',ControlMask,0, "Decorations"    , _("Toggle Decorations"),NULL,0);
+	sc->Add(VIEWPORT_ZoomIn,      '+',ShiftMask,0,   "ZoomIn"         , _("Zoom in"),NULL,0);
+	sc->AddShortcut('=',0,0, VIEWPORT_ZoomIn); //add key to existing action
+
+    manager->AddArea(whattype(),sc);
+    return sc;
 }
 
+/*! Return 0 for action performed, or nonzero for unknown action.
+ */
 int BoilerPlateInterface::PerformAction(int action)
 { ***
+	return 1;
 }
 
 } // namespace LaxInterfaces
