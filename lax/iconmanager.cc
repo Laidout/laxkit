@@ -187,7 +187,7 @@ Laxkit::LaxImage *IconManager::GetIconByIndex(int index)
 Laxkit::LaxImage *IconManager::GetIcon(int id)
 {
 	 //rather slow, but then, there won't be a million of them
-	for (int c=1; c<PtrStack<IconNode>::n; c++)
+	for (int c=0; c<PtrStack<IconNode>::n; c++)
 		if (id==PtrStack<IconNode>::e[c]->id)  {
 			PtrStack<IconNode>::e[c]->image->inc_count();
 			return PtrStack<IconNode>::e[c]->image;
@@ -202,7 +202,7 @@ Laxkit::LaxImage *IconManager::GetIcon(int id)
 Laxkit::LaxImage *IconManager::GetIcon(const char *name)
 {
 	 //rather slow, but then, there won't be a million of them
-	for (int c=1; c<PtrStack<IconNode>::n; c++)
+	for (int c=0; c<PtrStack<IconNode>::n; c++)
 		if (strcmp(name,PtrStack<IconNode>::e[c]->name)==0) {
 			PtrStack<IconNode>::e[c]->image->inc_count();
 			return PtrStack<IconNode>::e[c]->image;
@@ -216,6 +216,9 @@ Laxkit::LaxImage *IconManager::GetIcon(const char *name)
  */
 void IconManager::AddPath(const char *newpath)
 {
+	for (int c=0; c<icon_path.n; c++) {
+		if (!strcmp(newpath, icon_path.e[c])) return; //already there!
+	}
 	icon_path.push(newstr(newpath),2,0);
 }
 
