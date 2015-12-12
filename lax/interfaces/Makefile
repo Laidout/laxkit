@@ -50,6 +50,7 @@ objs= \
 	curvewindow.o \
 	showkeysinterface.o \
 	characterinterface.o \
+	textstreaminterface.o \
 
 #	linesinterface.o \
 #	measureinterface.o \
