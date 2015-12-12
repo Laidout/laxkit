@@ -204,6 +204,7 @@ class ViewportWindow : public Laxkit::PanUser, public Laxkit::anXWindow
 
 	virtual Selection *GetSelection();
 	virtual int SetSelection(Selection *nselection);
+	virtual int selectionDropped(const unsigned char *data,unsigned long len,const char *actual_type, const char *which);
 
 	 //copy and paste
 	virtual int PasteRequest(anInterface *interf, const char *targettype);

@@ -433,6 +433,19 @@ int ViewportWindow::SetSelection(Selection *nselection)
 	return 0;
 }
 
+int ViewportWindow::selectionDropped(const unsigned char *data,unsigned long len,const char *actual_type, const char *which)
+{
+	for (int c=0; c<interfaces.n; c++) {
+		if (interfaces.e[c]->Paste((const char *)data,len, NULL, actual_type)==0) { 
+			//DBG cerr <<"interface "<<interfaces.e[c]->whattype()<<" needs to draw "<<interfaces.e[c]->needtodraw<<endl;
+			needtodraw=1; 
+			return 0;
+		}
+	}
+
+	return 1;
+}
+
 int ViewportWindow::PasteRequest(anInterface *interf, const char *targettype)
 {
 	if (pastedest != interf) {
@@ -1232,8 +1245,11 @@ int ViewportWindow::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMo
 		if (state&ShiftMask && state&ControlMask) {// rotate left==ccw, right==cw
 
 			if (win_style&VIEWPORT_ROTATABLE && x-mx) { //rotate canvas
+				DBG cerr <<"Laxkit::ViewportWindow mousemove rotate start: "<<endl; dumpctm(dp->Getctm());
 				dp->Rotate(x-mx,rmx,rmy,1); 
+				DBG cerr <<"Laxkit::ViewportWindow mousemove rotate after rotate: "<<endl; dumpctm(dp->Getctm());
 				syncWithDp();
+				DBG cerr <<"Laxkit::ViewportWindow mousemove rotate after syncWithDp: "<<endl; dumpctm(dp->Getctm());
 				needtodraw=1;
 			}
 
