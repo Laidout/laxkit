@@ -340,6 +340,8 @@ Drawable aDrawable::xlibDrawable(int which)
  * </pre>
  *
  */
+
+
 anXWindow::anXWindow(anXWindow *parnt, const char *nname, const char *ntitle,
 					unsigned long nstyle,
 					int xx,int yy,int ww,int hh,int brder,
@@ -401,14 +403,14 @@ anXWindow::~anXWindow()
 {
 	DBG cerr << " in anxwindow("<<WindowTitle()<<") destructor."<<endl;
 
-	if (win_sendthis) delete[] win_sendthis;
-	if (win_name) delete[] win_name;
-	if (win_title) delete[] win_title;
-
 #ifdef _LAX_PLATFORM_XLIB
 	if (xlib_win_hints) XFree(xlib_win_hints);
 	if (xlib_win_sizehints) XFree(xlib_win_sizehints);
 #endif //_LAX_PLATFORM_XLIB
+
+	if (win_sendthis) delete[] win_sendthis;
+	if (win_name) delete[] win_name;
+	if (win_title) delete[] win_title;
 
 	if (win_colors) win_colors->dec_count();
 
@@ -424,8 +426,7 @@ anXWindow::~anXWindow()
 	//_kids.flush(); //don't really need to do this here, but doing it here to make debugging easier
 
 	if (nextcontrol) { nextcontrol->prevcontrol=prevcontrol; }
-	if (prevcontrol) { prevcontrol->nextcontrol=nextcontrol; }
-
+	if (prevcontrol) { prevcontrol->nextcontrol=nextcontrol; } 
 }
 
 //! Return basically the name of the window.
