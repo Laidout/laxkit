@@ -2216,8 +2216,8 @@ int anXApp::addwindow(anXWindow *w,char mapit,char absorb_count) // mapit==1, ab
 
 			XDestroyWindow(dpy,win);
 
-			if (!xh) xh=XAllocWMHints();
 			if (default_icon_data) {
+				if (!xh) xh=XAllocWMHints();
 				xh->flags|=IconPixmapHint|IconMaskHint;
 				xh->icon_pixmap=default_icon_data;
 				xh->icon_mask  =default_icon_mask;
