@@ -23,6 +23,7 @@
 
 #include <lax/interfaces/interfacemanager.h>
 #include <lax/interfaces/aninterface.h>
+#include <lax/language.h>
 
 #include <lax/lists.cc>
 
@@ -93,10 +94,12 @@ Laxkit::Displayer *InterfaceManager::GetPreviewDisplayer()
  * The other is "settings", each resource of which has id the same the tool it is settings
  * for. Again, no nesting.
  */
-ResourceManager *InterfaceManager::GetSettingsManager()
+ResourceManager *InterfaceManager::GetTools()
 {
 	if (!tools) {
 		tools=new ResourceManager();
+		tools->AddResourceType("tools",    _("Tools"),         _("Tools"),         NULL);
+		tools->AddResourceType("settings", _("Tool settings"), _("Tool settings"), NULL); 
 	}
 	return tools;
 }
@@ -207,8 +210,6 @@ int InterfaceManager::DrawData(Displayer *dp,SomeData *data,anObject *a1,anObjec
 int InterfaceManager::DrawDataStraight(Laxkit::Displayer *dp,LaxInterfaces::SomeData *data,
 							Laxkit::anObject *a1,Laxkit::anObject *a2,unsigned int info)
 {
-	DBG cerr << " Warning! Default InterfaceManager::DrawSomeData() doesn't do anything!!"<<endl;
-
 	if (!tools) return -1;
 
 	ResourceType *interfs = tools->FindType("tools");

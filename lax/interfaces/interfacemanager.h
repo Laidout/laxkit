@@ -56,7 +56,7 @@ class InterfaceManager : public Laxkit::anObject
 	Laxkit::ResourceManager *resources;
 
 	virtual Laxkit::ResourceManager *GetResourceManager();
-	virtual Laxkit::ResourceManager *GetSettingsManager();
+	virtual Laxkit::ResourceManager *GetTools();
 	virtual Laxkit::FontManager *GetFontManager();
 	virtual Laxkit::IconManager *GetIconManager();
 	virtual Laxkit::UndoManager *GetUndoManager();
