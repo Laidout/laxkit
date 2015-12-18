@@ -173,7 +173,8 @@ EngraverFillInterface::EngraverFillInterface(int nid,Displayer *ndp)
 	whichcontrols=Patch_Coons;
 
 	show_panel=true;
-	show_trace_object=false;
+	show_trace_object=true;
+	show_object=false; //when active tool, don't show base object. when DrawData show base object only
 	grow_lines=false;
 	always_warp=true;
 	auto_reline=true;
@@ -341,7 +342,7 @@ int EngraverFillInterface::InitializeResources()
 	InterfaceManager *imanager=InterfaceManager::GetDefault(true);
 
 	 //install across the board interface settings object if necessary
-//	ResourceManager *tools=imanager->GetSettingsManager();
+//	ResourceManager *tools=imanager->GetTools();
 //	anObject *obj=tools->FindResource(whattype(),"settings");
 //	if (!obj) {
 //		tools->AddResource("settings", settings_object, NULL, whattype(), whattype(), NULL, NULL, NULL);
@@ -2387,6 +2388,7 @@ int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit
 			} //foreach object in selection
 
 			needtodraw=1;
+			edata->touchContents();
 		} //if distortion mode, not brush adjust mode
 
 		return 0;
@@ -2474,23 +2476,29 @@ int EngraverFillInterface::DrawData(Laxkit::anObject *ndata,anObject *a1,anObjec
 	EngraverFillData *ee=edata;
 	edata=dynamic_cast<EngraverFillData *>(ndata);
 
-	int  tshow_points   =show_points;  
-	bool tshow_direction=show_direction;
-	bool tshow_panel    =show_panel;
-	bool tshow_trace_object    =show_trace_object;
+	int  tmode              =mode;
+	int  tshow_points       =show_points;  
+	bool tshow_direction    =show_direction;
+	bool tshow_panel        =show_panel;
+	bool tshow_trace_object =show_trace_object;
+	bool tshow_object       =show_object;
 
-	show_points   =false;  
-	show_direction=false;
-	show_panel    =false;
-	show_trace_object    =false;
+	mode              =EMODE_Render_Only;
+	show_points       =false;  
+	show_direction    =false;
+	show_panel        =false;
+	show_trace_object =false;
+	show_object       =true;
 
 	int c=PatchInterface::DrawData(ndata,a1,a2,info);
 	edata=ee;
 
-	show_points   =tshow_points;  
-	show_direction=tshow_direction;
-	show_panel    =tshow_panel;
-	show_trace_object    =tshow_trace_object;
+	mode              =tmode;
+	show_points       =tshow_points;  
+	show_direction    =tshow_direction;
+	show_panel        =tshow_panel;
+	show_trace_object =tshow_trace_object;
+	show_object       =tshow_object;
 
 	return c;
 }
@@ -2504,21 +2512,23 @@ int EngraverFillInterface::Refresh()
 	EngraverPointGroup *group=(edata ? edata->GroupFromIndex(current_group) : NULL);
 	EngraverTraceSettings *trace=(group ? group->trace : &default_trace);
 
-	if (viewport && trace->traceobject && trace->traceobject->object && trace->traceobj_opacity>.5 // **** .5 since actual opacity not working
+	if (show_trace_object) {
+	  //if (viewport && trace->traceobject && trace->traceobject->object && trace->traceobj_opacity>.5 // **** .5 since actual opacity not working
+	  if (viewport && trace->traceobject && trace->traceobject->object && trace->traceobj_opacity>0 
 			) {
 			//&& (mode==EMODE_Trace || show_trace_object)) {
 
 		Affine a;
 		if (edata) a=edata->GetTransformToContext(true, 0);//supposed to be inverse from edata to base real
-		//dp->setSourceAlpha(trace->traceobj_opacity);
+		dp->setSourceAlpha(trace->traceobj_opacity);
 		dp->PushAndNewTransform(a.m());
 		dp->PushAndNewTransform(trace->traceobject->object->m());
 		viewport->DrawSomeData(trace->traceobject->object, NULL,NULL,0);
-		//dp->setSourceAlpha(1);
+		dp->setSourceAlpha(1);
 		dp->PopAxes();
 		dp->PopAxes();
 
-	} else if (trace->traceobject) {
+	  } else if (trace->traceobject) {
 		 //draw outline of traceobject, but don't draw the actual trace object
 		dp->NewFG(.9,.9,.9);
 		dp->LineAttributes(-1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
@@ -2537,7 +2547,8 @@ int EngraverFillInterface::Refresh()
 			dp->stroke(0);
 			dp->PopAxes();
 		}
-	}
+	  }//if trace->traceobject
+	}//show_trace_object
 
 	if (mode==EMODE_Freehand && !child) {
 		 //draw squiggly lines near mouse
@@ -2563,102 +2574,133 @@ int EngraverFillInterface::Refresh()
 
 
 	 //----draw the actual lines
-	LinePoint *l;
-	//LinePoint *last=NULL;
-	LinePointCache *lc, *lcstart, *clast=NULL;
+	if (show_object || (!show_object && show_trace_object && trace->traceobject && trace->traceobject->object)) {
 
-	double mag=dp->Getmag();
-	double lastwidth, neww;
-	double tw;
-	flatpoint lp,v;
+		if (data->usepreview==1) {
+			LaxImage *preview=data->GetPreview();
+            if (preview) {
+                dp->imageout(preview,data->minx,data->miny, data->maxx-data->minx, data->maxy-data->miny);
+                //d=dp->imageout(preview,data->minx,data->miny, data->maxx-data->minx, data->maxy-data->miny);
+                //if (d<0) d=1; else d=0; //draw lines if problem with image
+            }
+
+		} else {
+			 //don't use preview image, draw the image
+
+			LinePoint *l;
+			//LinePoint *last=NULL;
+			LinePointCache *lc, *lcstart, *clast=NULL;
+
+			double mag=dp->Getmag();
+			double lastwidth, neww;
+			double tw;
+			flatpoint lp,v;
 
 
-	for (int g=0; g<edata->groups.n; g++) {
-		group=edata->groups.e[g];
-		if (!group->active) continue;
-		if (!group->lines.n) {
-			DBG cerr <<" *** WARNING! engraver group #"<<g<<" is missing lines!"<<endl;
-			continue;
-		}
+			for (int g=0; g<edata->groups.n; g++) {
+				group=edata->groups.e[g];
+				if (!group->active) continue;
+				if (!group->lines.n) {
+					DBG cerr <<" *** WARNING! engraver group #"<<g<<" is missing lines!"<<endl;
+					continue;
+				}
 
-		if (!group->lines.e[0]->cache) {
-			group->UpdateBezCache();
-			group->UpdateDashCache();
-		} 
+				if (data->usepreview==0) {
+				  if (!group->lines.e[0]->cache) {
+					group->UpdateBezCache();
+					group->UpdateDashCache();
+				  } 
+				}
 
-		for (int c=0; c<group->lines.n; c++) {
-			l=group->lines.e[c];
-			lc=lcstart=l->cache;
-			clast=NULL;
-			lastwidth=-1;
+				for (int c=0; c<group->lines.n; c++) {
+					l=group->lines.e[c];
+					lc=lcstart=l->cache;
+					clast=NULL;
+					lastwidth=-1;
 
-			dp->NewFG(&group->color);
-			dp->LineAttributes(-1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
-			dp->LineWidthScreen(1);
+					if (data->usepreview==0) {
+					  dp->NewFG(&group->color);
+					  dp->LineAttributes(-1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
+					  dp->LineWidthScreen(1);
 
-			do { //one loop per on segment
-				if (!group->PointOnDash(lc)) { lc=lc->next; continue; } //advance to first on point
+					  do { //one loop per on segment
+						if (!group->PointOnDash(lc)) { lc=lc->next; continue; } //advance to first on point
 
-				if (!clast) {
-					 //establish a first point of a visible segment
-					clast=lc;
-					lastwidth=lc->weight*mag;
-					dp->LineWidthScreen(lastwidth);
+						if (!clast) {
+							 //establish a first point of a visible segment
+							clast=lc;
+							lastwidth=lc->weight*mag;
+							dp->LineWidthScreen(lastwidth);
 
-					if (lc->on==ENGRAVE_EndPoint || !lc->next || !group->PointOnDash(lc->next)) {
-						 //draw just a single dot
-						dp->drawline(clast->p,clast->p);
+							if (lc->on==ENGRAVE_EndPoint || !lc->next || !group->PointOnDash(lc->next)) {
+								 //draw just a single dot
+								dp->drawline(clast->p,clast->p);
+								lc=lc->next;
+								clast=NULL;
+								continue;
+							}
+							lc=lc->next;
+						}
+
+						neww=lc->weight*mag;
+						if (neww!=lastwidth) {
+							lp=clast->p;
+							v=(lc->p-clast->p)/9.;
+							for (int c2=1; c2<10; c2++) {
+								 //draw 10 mini segments, each of same width to approximate the changing width
+								tw=lastwidth+c2/9.*(neww-lastwidth);
+								dp->LineWidthScreen(tw);
+								dp->drawline(lp+v*(c2-1), lp+v*c2);
+							}
+
+							lastwidth=neww;
+
+						} else {
+							dp->drawline(clast->p,lc->p);
+						}
+
+						if (lc->on==ENGRAVE_EndPoint) clast=NULL;
+						else clast=lc;
 						lc=lc->next;
-						clast=NULL;
-						continue;
-					}
-					lc=lc->next;
-				}
+						if (lc && !group->PointOnDash(lc)) clast=NULL;
 
-				neww=lc->weight*mag;
-				if (neww!=lastwidth) {
-					lp=clast->p;
-					v=(lc->p-clast->p)/9.;
-					for (int c2=1; c2<10; c2++) {
-						 //draw 10 mini segments, each of same width to approximate the changing width
-						tw=lastwidth+c2/9.*(neww-lastwidth);
-						dp->LineWidthScreen(tw);
-						dp->drawline(lp+v*(c2-1), lp+v*c2);
+					  //} while (lc && lc->next && lc!=lcstart);
+					  } while (lc && lc!=lcstart);
 					}
 
-					lastwidth=neww;
-
-				} else {
-					dp->drawline(clast->p,lc->p);
-				}
-
-				if (lc->on==ENGRAVE_EndPoint) clast=NULL;
-				else clast=lc;
-				lc=lc->next;
-				if (lc && !group->PointOnDash(lc)) clast=NULL;
-
-			//} while (lc && lc->next && lc!=lcstart);
-			} while (lc && lc!=lcstart);
-
-			if (show_points) {
-				 //show little red dots for all the sample points
-				flatpoint pp;
-				l=group->lines.e[c];
-				dp->NewFG(1.,0.,0.);
-				int p=1;
-				char buffer[50];
-				while (l) {
-					dp->drawpoint(l->p, 2, 1);
-					if (show_points&2) {
-						sprintf(buffer,"%d,%d",c,p);
-						dp->textout(l->p.x,l->p.y, buffer,-1, LAX_BOTTOM|LAX_HCENTER);
-						p++;
+					if (show_points) {
+						 //show little red dots for all the sample points
+						flatpoint pp;
+						l=group->lines.e[c];
+						dp->NewFG(1.,0.,0.);
+						int p=1;
+						char buffer[50];
+						dp->DrawScreen();
+						while (l) {
+							pp=dp->realtoscreen(l->p);
+							//-----------
+							dp->drawpoint(pp, 2, 1);
+							if (show_points&2) {
+								sprintf(buffer,"%d,%d",c,p);
+								dp->textout(pp.x,pp.y, buffer,-1, LAX_BOTTOM|LAX_HCENTER);
+								p++;
+							}
+							//-----------
+							//dp->drawpoint(l->p, 2, 1);
+							//if (show_points&2) {
+							//	sprintf(buffer,"%d,%d",c,p);
+							//	dp->textout(l->p.x,l->p.y, buffer,-1, LAX_BOTTOM|LAX_HCENTER);
+							//	p++;
+							//}
+							//-----------
+							l=l->next;
+						}
+						dp->DrawReal();
 					}
-					l=l->next;
-				}
-			}
-		} //foreach line
-	} //foreach group
+				} //foreach line
+			} //foreach group
+		} //if usepreview==0
+	} //if (show_object)
 
 
 	 //show Direction Map
@@ -2748,7 +2790,7 @@ int EngraverFillInterface::Refresh()
 	dp->LineWidthScreen(1);
 
 	 //always draw outline of mesh
-	if (data->npoints_boundary) {
+	if (mode!=EMODE_Render_Only && data->npoints_boundary) {
 		if (always_warp) {
 			dp->NewFG(150,150,150);
 			dp->LineAttributes(-1, LineSolid, linestyle.capstyle,linestyle.joinstyle);
@@ -2960,7 +3002,8 @@ int EngraverFillInterface::Refresh()
 		}
 
 		dp->DrawReal();
-	}
+	} //if mode == (one of the distortion tools)
+
 
 	if (show_panel) DrawPanel();
 
@@ -4985,6 +5028,7 @@ int EngraverFillInterface::Trace(bool do_once)
 
 			Affine aa=obj->GetTransformToContext(false, 0);//supposed to be from obj to same "parent" as traceobject
 			group->Trace(&aa, viewport);
+			edata->touchContents();
 		}
 	}
 

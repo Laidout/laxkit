@@ -105,6 +105,7 @@ class EngraverFillInterface : public PatchInterface
 	bool show_direction;
 	bool show_panel;
 	bool show_trace_object;
+	bool show_object;
 	bool grow_lines;
 	bool always_warp;
 	bool auto_reline;

@@ -205,6 +205,7 @@ enum EngraveControls {
 	ENGRAVE_Sensitivity,
 
 	 //------modes:
+	EMODE_Render_Only,
 	EMODE_Controls,
 	EMODE_Mesh, //dev note: EMODE_Mesh MUST be first in mode list for proper mouse over stuff
 	EMODE_Thickness,
@@ -721,6 +722,7 @@ class EngraverFillData : virtual public PatchData
 	virtual const char *Id(const char *id);
 	virtual SomeData *duplicate(SomeData *dup);
 	virtual int renderToBuffer(unsigned char *buffer, int bufw, int bufh, int bufstride, int bufdepth, int bufchannels);
+	virtual int renderToBufferImage(Laxkit::LaxImage *image);
 
 	virtual double DefaultSpacing(double nspacing);
 	virtual void MakeDefaultGroup();

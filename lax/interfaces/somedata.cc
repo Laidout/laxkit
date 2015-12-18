@@ -218,6 +218,20 @@ int SomeData::renderToBuffer(unsigned char *buffer, int bufw, int bufh, int bufs
 	return 1;
 }
 
+/*! Render the object to an existing image.
+ * .
+ *  This draws onto buffer such that the object's whole bounding box maps to the whole image.
+ *
+ * This is currently used to create screen previews.
+ * 
+ * Default here is just a do nothing placeholder, and only returns 1.
+ * On success, it should return 0.
+ */
+int SomeData::renderToBufferImage(LaxImage *image)
+{
+	return 1;
+}
+
 //! Create a preview image with transparency for a cached screen preview.
 /*! This will return immediately if usepreview!=1 or the bounds are not valid.
  *  If w or h are less than or equal to 0, then use default or previous values for them.
@@ -243,34 +257,57 @@ void SomeData::GeneratePreview(int w,int h)
 		else if ((w<h && (maxx-minx)>(maxy-miny))) w=0;
 	}
 
-	if (preview && (w!=preview->w() || h!=preview->h())) {
-		 //delete old preview and make new only when changing size of preview
-		preview->dec_count(); 
-		preview=NULL;
-		DBG cerr <<"removed old preview..."<<endl;
-	}
+	int maxdim=500;
+	InterfaceManager *im=InterfaceManager::GetDefault(true);
+	if (im) maxdim = im->PreviewSize();
 
 	if (w<=0 && h<=0) {
-		InterfaceManager *im=InterfaceManager::GetDefault(true);
 		if (im) { if (maxx-minx>maxy-miny) w=im->PreviewSize(); else h=im->PreviewSize(); }
 		else { if (maxx-minx>maxy-miny) w=200; else h=200; }
 	}
 	if (w<=0 && h>0) w=(maxx-minx)*h/(maxy-miny);
 	else if (w>0 && h<=0) h=(maxy-miny)*w/(maxx-minx);
-	if (w==0) w=1;
-	if (h==0) h=1;
 
-	unsigned char *buffer=NULL;
+	if (w<=0) w=1;
+	if (h<=0) h=1;
+
+	 //protect against growing sizes...
+	if (w>maxdim) {
+		double aspect=(double)h/w;
+		w=maxdim;
+		h=maxdim*aspect;
+		if (h<=0) h=1;
+	}
+	if (h>maxdim) {
+		double aspect=(double)w/h;
+		h=maxdim;
+		w=maxdim*aspect;
+		if (w<=0) w=1;
+	}
+
+
+	//if (preview && (w!=preview->w() || h!=preview->h())) {
+	if (preview && ((float)w/preview->w()>1.05 || (float)w/preview->w()<.95 ||
+					(float)h/preview->h()>1.05 || (float)h/preview->h()<.95)) {
+		 //delete old preview and make new only when changing size of preview more that 5%-ish in x or y
+		preview->dec_count(); 
+		preview=NULL;
+		DBG cerr <<"removed old preview..."<<endl;
+	}
+
 	if (!preview) {
 		DBG cerr <<"old preview didn't exist, so creating new one..."<<endl;
 		preview=create_new_image(w,h);
 	} 
-	buffer=preview->getImageBuffer();
 
-	renderToBuffer(buffer,w,h,w*4,8,4);
-	previewtime=time(NULL); 
+	if (renderToBufferImage(preview)!=0) { 
+		 //render direct to image didn't work, so try the old style render to char[] buffer...
+		unsigned char *buffer = preview->getImageBuffer(); 
+		renderToBuffer(buffer,w,h,w*4,8,4); 
+		preview->doneWithBuffer(buffer); 
+	}
 
-	preview->doneWithBuffer(buffer);
+	previewtime=time(NULL);
 }
 
 /*! Set previewtime to 0 to force a preview refresh, and modtime=time(NULL).

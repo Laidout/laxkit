@@ -80,6 +80,7 @@ class SomeData :  virtual public Laxkit::Resourceable,
 	virtual Laxkit::LaxImage *GetPreview();
 	virtual void GeneratePreview(int w,int h);
 	virtual int renderToBuffer(unsigned char *buffer, int bufw, int bufh, int bufstride, int bufdepth, int bufchannels);
+	virtual int renderToBufferImage(Laxkit::LaxImage *image);
 
 	int bboxstyle; //useparent
 	flatpoint centerpoint; //used as a passive center by ObjectInterface

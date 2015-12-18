@@ -1635,6 +1635,7 @@ int TraceObject::UpdateCache(ViewportWindow *viewport)
 
 	 // setup ddp to have proper scaling...
 	ddp->NewTransform(1.,0.,0.,-1.,0.,0.);
+	ddp->defaultRighthanded(true);
 	//ddp->NewTransform(1.,0.,0.,1.,0.,0.);
 	DoubleBBox bbox;
 	bbox.addtobounds(object);
@@ -1650,13 +1651,15 @@ int TraceObject::UpdateCache(ViewportWindow *viewport)
 
 
 	viewport->DrawSomeData(ddp,object, NULL,NULL,0);
+	LaxImage *img=ddp->GetSurface();
 	ddp->EndDrawing();
 
-	LaxImage *img=ddp->GetSurface();
 	if (!img) {
 		DBG cerr <<"could not render trace object"<<endl;
 		return 1;
 	}
+
+	DBG save_image(img, "DBG-trace.png", "png");
 
 	delete ddp;
 
@@ -2805,6 +2808,8 @@ ImageData *EngraverPointGroup::CreateFromSnapshot()
 	//DBG cerr <<endl;
 	image->doneWithBuffer(data);
 
+	DBG save_image(image, "snapshot.png", "png");
+
 	 //create and return new ImageData mapped to correspond to edata bounding box
 	ImageData *idata=new ImageData;
 	idata->SetImage(image, NULL);
@@ -3549,6 +3554,7 @@ void EngraverPointGroup::Fill(EngraverFillData *data, double nweight)
 		default_weight=direction->default_weight;
 	}
 
+	if (owner) owner->touchContents();
 }
 
 /*! spacing is an object distance (not in s,t space) to be used as the distance between line centers.
@@ -4670,7 +4676,8 @@ void EngraverPointGroup::GrowLines(EngraverFillData *data,
 EngraverFillData::EngraverFillData()
   : PatchData(0,0,1,1,1,1,0)
 {
-	usepreview=0;
+	//usepreview=0;
+	usepreview=1;
 
 	MakeDefaultGroup();
 	
@@ -4697,8 +4704,64 @@ const char *EngraverFillData::Id(const char *str)
 
 int EngraverFillData::renderToBuffer(unsigned char *buffer, int bufw, int bufh, int bufstride, int bufdepth, int bufchannels)
 {
-	// ***
+//	// ***
+//	if (maxx-minx<=0 || maxy-miny<=0) return 1;
+//
+//	InterfaceManager *imanager=InterfaceManager::GetDefault();
+//	Displayer *dp = imanager->GetPreviewDisplayer();
+//	if (dp->ResizeSurface(bufw,bufh)!=0) dp->CreateSurface(bufw,bufh);
+//
+//	dp->NewTransform(bufw/(maxx-minx), 0, 0, bufh/(maxy-miny), minx,miny);
+//	imanager->DrawDataStraight(dp, this, NULL,NULL, 0);
+//
+//	dp->CopyToBuffer(buffer, bufw,bufh,bufstride,bufdepth,bufchannels, 0,0,bufw,bufh);
+
 	return 1;
+}
+
+/*! Return nonzero for unable to render, such as image==NULL, or invalid object bounds.
+ * Else return 0.
+ */
+int EngraverFillData::renderToBufferImage(LaxImage *image)
+{
+	if (!image) return 1;
+	if (maxx-minx<=0 || maxy-miny<=0) return 2;
+	if (image->w()<=0 || image->h()<=0) return 3;
+
+	DBG cerr <<"^v^v^v^v^V^v^v^v^v EngraverFillData::renderToBufferImage preview image size: "<<image->w()<<" x "<<image->h()<<endl;
+
+	InterfaceManager *imanager=InterfaceManager::GetDefault(true);
+	Displayer *dp = imanager->GetPreviewDisplayer();
+
+	int oldusepreview = usepreview;
+	usepreview = 0;
+
+	if (dp->MakeCurrent(image)!=0) return 3;
+	dp->ClearTransparent();
+
+	DBG dp->NewFG(0.0,1.0,0.0);
+	//DBG dp->NewTransform(1,0,0,1,0,0);
+	//DBG dp->drawline(0,image->h(), image->w(),0);
+	//DBG dp->NewFG(1.0,1.0,1.0);
+	//DBG dp->drawline(minx,miny, maxx,maxy);
+
+	dp->NewTransform(image->w()/(maxx-minx), 0, 0, -image->h()/(maxy-miny), -minx*image->w()/(maxx-minx), image->h()*(1+miny/(maxy-miny)));
+	//DBG dp->NewFG(1.0,0.0,1.0);
+	//DBG dp->drawline(0,image->h(), image->w(),0);
+
+	imanager->DrawDataStraight(dp, this, NULL,NULL, 0);
+
+	//DBG dp->NewFG(1.0,0.0,1.0);
+	//DBG dp->DrawScreen();
+	//DBG dp->LineWidthScreen(2);
+	//DBG dp->drawline(dp->realtoscreen(minx,miny), dp->realtoscreen(maxx,maxy));
+	//DBG dp->drawline(dp->realtoscreen(minx,maxy), dp->realtoscreen(maxx,miny));
+	//DBG dp->DrawReal();
+
+	//DBG save_image(image, "DBG.png", "png");
+
+	usepreview = oldusepreview;
+	return 0;
 }
 
 
