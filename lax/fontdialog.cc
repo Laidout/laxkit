@@ -526,11 +526,15 @@ int FontDialog::init()
 	}
 
 	 //------font list
+	int orig=-1;
 	if (!mfonts) {
 		mfonts=new MenuInfo("Fonts");
 		//char str[1024];
 
 		for (int c=0; c<fonts->n; c++) {
+			if (orig<0 && fonts->e[c]->file && thefont->FontFile() && !strcmp(fonts->e[c]->file, thefont->FontFile()))
+				orig=c;
+
 			mfonts->AddItem(fonts->e[c]->name, c);
 			//------
 			//sprintf(str,"%s, %s",fonts->e[c]->family,fonts->e[c]->style);
@@ -552,8 +556,6 @@ int FontDialog::init()
 									 |TREESEL_LEFT
 									 |TREESEL_ONE_ONLY,
 									mfonts);
-	int orig=FindFont(origfamily, origstyle, NULL);
-	if (orig>=0) fontlist->Select(orig);
 	fontlist->installColors(app->color_edits);
 	//fontlist->tooltip(_("Select one of these"));
 	AddWin(fontlist,1, 200,100,1000,50,0, 30,0,2000,50,0, -1);
@@ -682,6 +684,9 @@ int FontDialog::init()
 
 	last->CloseControlLoop();
 	Sync(1);
+
+	if (orig<0) orig=FindFont(origfamily, origstyle, thefont->FontFile());
+	if (orig>=0) fontlist->SelectId(orig);
 
 	initted=true;
 
