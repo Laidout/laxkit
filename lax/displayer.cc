@@ -1842,7 +1842,11 @@ void Displayer::WrapWindow(anXWindow *nw)
  */
 
 /*! \fn int Displayer::MakeCurrent(aDrawable *buffer)
- * \brief Update the drawing context so that all drawing operations will now operate on buffer.
+ * \brief Update the drawing context so that all drawing operations will now operate on buffer. Return 0 for success, nonzero error.
+ */
+
+/*! \fn int Displayer::MakeCurrent(LaxImage *buffer)
+ * \brief Update the drawing context so that all drawing operations will now operate on buffer. Return 0 for success, nonzero error.
  */
 
 /*! \fn int Displayer::ClearDrawable(aDrawable *buffer)

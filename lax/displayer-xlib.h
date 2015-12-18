@@ -101,6 +101,7 @@ class DisplayerXlib : public Displayer
 	virtual void BackBuffer(int on);
 	virtual int StartDrawing(aDrawable *buffer);
 	virtual int MakeCurrent(aDrawable *buffer);
+	virtual int MakeCurrent(LaxImage *buffer);
 	virtual int CurrentResized(aDrawable *buffer, int nwidth,int nheight);
 	virtual int ClearDrawable(aDrawable *drawable);
 	virtual int CreateSurface(int width,int height, int type=-1);
@@ -138,6 +139,7 @@ class DisplayerXlib : public Displayer
 	/*! \name Main drawing functions: */
 	//@{
 	virtual void ClearWindow();
+	virtual void ClearTransparent();
 	virtual flatpoint realtoscreen(flatpoint p);
 	virtual flatpoint realtoscreen(double x,double y);
 	virtual flatpoint screentoreal(int x,int y);

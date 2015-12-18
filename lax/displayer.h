@@ -92,6 +92,7 @@ class Displayer : public PanUser, virtual public anObject
 	virtual void WrapWindow(anXWindow *nw);
 	virtual int StartDrawing(aDrawable *buffer) = 0;
 	virtual int MakeCurrent(aDrawable *buffer) = 0;
+	virtual int MakeCurrent(LaxImage *buffer) = 0;
 	virtual int CurrentResized(aDrawable *buffer, int nwidth,int nheight) = 0;
 	virtual int ClearDrawable(aDrawable *drawable) = 0;
 	virtual int CreateSurface(int width,int height, int type=-1) = 0;
@@ -129,6 +130,7 @@ class Displayer : public PanUser, virtual public anObject
 	/*! \name Main drawing functions: */
 	//@{
 	virtual void ClearWindow() = 0;
+	virtual void ClearTransparent() = 0;
 	virtual flatpoint realtoscreen(flatpoint p) = 0;
 	virtual flatpoint realtoscreen(double x,double y) = 0;
 	virtual flatpoint screentoreal(int x,int y) = 0;

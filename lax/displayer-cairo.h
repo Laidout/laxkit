@@ -46,6 +46,7 @@ class DisplayerCairo : public Displayer
 	int bufferlen;
 	virtual int reallocBuffer(int len);
 
+	LaxImage *imagebuffer;
 	Display *dpy;  //if any
 	Visual *vis;
 	Window w;
@@ -100,6 +101,7 @@ class DisplayerCairo : public Displayer
 	//virtual void WrapWindow(anXWindow *nw);
 	virtual int StartDrawing(aDrawable *buffer);
 	virtual int MakeCurrent(aDrawable *buffer);
+	virtual int MakeCurrent(LaxImage *buffer);
 	virtual int CurrentResized(aDrawable *buffer, int nwidth,int nheight);
 	virtual int ClearDrawable(aDrawable *drawable);
 	virtual int CreateSurface(int w,int h, int type=-1);
@@ -132,6 +134,7 @@ class DisplayerCairo : public Displayer
 	 /*! \name Main drawing functions: */
 	 //@{
 	virtual void ClearWindow();
+	virtual void ClearTransparent();
 	virtual flatpoint realtoscreen(flatpoint p);
 	virtual flatpoint realtoscreen(double x,double y);
 	virtual flatpoint screentoreal(int x,int y);

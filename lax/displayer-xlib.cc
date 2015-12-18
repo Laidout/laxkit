@@ -355,6 +355,12 @@ flatpoint DisplayerXlib::screentoreal(flatpoint p)
 	return flatpoint(ictm[4] + ictm[0]*p.x + ictm[2]*p.y, ictm[5]+ictm[1]*p.x+ictm[3]*p.y); 
 }
 
+void DisplayerXlib::ClearTransparent()
+{
+	cerr << "need to implement DisplayerXlib::ClearTransparent()!"<<endl;
+	ClearWindow();
+}
+
 //! Clear the window to bgcolor between Min* and Max*. 
 void DisplayerXlib::ClearWindow()
 {
@@ -1617,6 +1623,13 @@ int DisplayerXlib::CurrentResized(aDrawable *buffer, int nwidth,int nheight)
 	return 0;
 }
 
+int DisplayerXlib::MakeCurrent(LaxImage *buffer)
+{
+	cerr << " *** need to implement DisplayerXlib::MakeCurrent(LaxImage *buffer)!!"<<endl;
+
+	return 1;
+}
+
 int DisplayerXlib::MakeCurrent(aDrawable *buffer)
 {
 	dr=buffer;
@@ -1631,7 +1644,7 @@ int DisplayerXlib::MakeCurrent(aDrawable *buffer)
 	Maxx=width;
 	Maxy=height;
 
-	return 1;
+	return 0;
 }
 
 //! Free any data associated with drawable.

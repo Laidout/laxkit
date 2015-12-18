@@ -115,6 +115,7 @@ void DisplayerCairo::base_init()
 	bufferlen=0;
 
 	isinternal=0;
+	imagebuffer=NULL;
 
 	if (xw) {
 		dpy=xw->app->dpy;
@@ -164,6 +165,8 @@ DisplayerCairo::~DisplayerCairo()
 	if (laxfont) laxfont->dec_count();
 	if (curfont) cairo_font_face_destroy(curfont);
 	if (curscaledfont) cairo_scaled_font_destroy(curscaledfont);
+
+	if (imagebuffer) imagebuffer->dec_count();
 }
 
 Displayer *DisplayerCairo::duplicate()
@@ -244,6 +247,65 @@ int DisplayerCairo::CurrentResized(aDrawable *buffer, int nwidth,int nheight)
 	return 0;
 }
 
+int DisplayerCairo::MakeCurrent(LaxImage *buffer)
+{
+	if (!buffer) return 2;
+	LaxCairoImage *img=dynamic_cast<LaxCairoImage*>(buffer);
+	if (!img) return 3;
+
+	if (cr && imagebuffer==buffer) return 0;
+
+	if (imagebuffer!=buffer) {
+		if (imagebuffer) imagebuffer->dec_count();
+		imagebuffer=buffer;
+		imagebuffer->inc_count();
+
+		if (cr) { cairo_destroy(cr); cr=NULL; }
+		if (surface) { cairo_surface_destroy(surface); surface=NULL; }
+	}
+
+	dr=NULL;
+	xw=NULL;
+	w=0;
+
+	Minx=Miny=0;
+	Maxx=buffer->w();
+	Maxy=buffer->h();
+
+	if (isinternal) {
+		 //we need to destroy internal, as we are now using external buffer
+		if (cr) { cairo_destroy(cr); cr=NULL; }
+		if (surface) cairo_surface_destroy(surface);
+		surface=NULL;
+		isinternal=0;
+	}
+
+	if (surface!=img->image) {
+		if (cr) { cairo_destroy(cr); cr=NULL; }
+		if (surface) cairo_surface_destroy(surface);
+		surface=img->image;
+		cairo_surface_reference(surface);
+	}
+
+
+	if (!cr) {
+		cr=cairo_create(surface);
+
+		if (!curfont) initFont();
+		cairo_set_font_face(cr,curfont);
+		if (_textheight>0) cairo_set_font_size(cr, _textheight/height_over_M);
+		cairo_font_extents(cr, &curfont_extents);
+	}
+
+	cairo_matrix_t m;
+	if (real_coordinates) cairo_matrix_init(&m, ctm[0], ctm[1], ctm[2], ctm[3], ctm[4], ctm[5]);
+	else cairo_matrix_init(&m, 1,0,0,1,0,0);
+	cairo_set_matrix(cr, &m);
+	transform_invert(ictm,ctm);
+
+	return 0;
+}
+
 //! Make sure we are drawing on the proper surface.
 int DisplayerCairo::MakeCurrent(aDrawable *buffer)
 {
@@ -255,11 +317,12 @@ int DisplayerCairo::MakeCurrent(aDrawable *buffer)
 		cr=NULL;		
 	}
 
-	if (cr && surface && buffer==dr && w==buffer->xlibDrawable()) return 1; //already current!
+	if (cr && surface && buffer==dr && w==buffer->xlibDrawable()) return 0; //already current!
 
 	dr=buffer;
 	xw=dynamic_cast<anXWindow*>(buffer);
 	w=buffer->xlibDrawable();
+	if (imagebuffer) { imagebuffer->dec_count(); imagebuffer=NULL; }
 
 	//w=buffer->xlibDrawable(1);
 	//if (!w) w=buffer->xlibDrawable(0);
@@ -313,7 +376,7 @@ int DisplayerCairo::MakeCurrent(aDrawable *buffer)
 	cairo_set_matrix(cr, &m);
 	transform_invert(ictm,ctm);
 
-	return 1;
+	return 0;
 }
 
 ////! Find out what type of surface is currently set to be drawn on.
@@ -345,9 +408,16 @@ int DisplayerCairo::ClearDrawable(aDrawable *drawable)
 	return 0;
 }
 
+/*! If surface was set with MakeCurrent(LaxImage*), then return that image, with
+ * its count incremented. Else, create and return a new LaxImage.
+ */
 LaxImage *DisplayerCairo::GetSurface()
 {
 	if (!surface) return NULL;
+	if (imagebuffer) {
+		imagebuffer->inc_count();
+		return imagebuffer;
+	}
 
 	cairo_surface_t *s=cairo_image_surface_create(CAIRO_FORMAT_ARGB32, Maxx-Minx,Maxy-Miny);
 	cairo_t *cc=cairo_create(s);
@@ -364,6 +434,7 @@ int DisplayerCairo::CreateSurface(int width,int height, int type)
 	xw=NULL;
 	dr=NULL;
 	w=0;
+	if (imagebuffer) { imagebuffer->dec_count(); imagebuffer=NULL; }
 
 	if (surface) cairo_surface_destroy(surface);
 	if (cr) cairo_destroy(cr);
@@ -390,9 +461,11 @@ int DisplayerCairo::CreateSurface(int width,int height, int type)
 	return 0;
 }
 
-//! Resize an internal drawing surface.
-/*! If you had previously called CreateSurface(), this will resize that
- * surface. If the target surface is an external surface, then nothing is done.
+/*! Resize an internal drawing surface.
+ *
+ *  If you had previously called CreateSurface(), this will resize that
+ * surface. If the target surface is an external surface or an image surface,
+ * then nothing is done.
  *
  * Return 0 for success, or 1 if not using an internal surface, and nothing done.
  */
@@ -632,6 +705,29 @@ void DisplayerCairo::FillAttributes(int fillstyle, int fillrule)
 
 	if (fillrule==LAXFILL_Nonzero) cairo_set_fill_rule(cr, CAIRO_FILL_RULE_WINDING);
 	else cairo_set_fill_rule(cr, CAIRO_FILL_RULE_EVEN_ODD);
+}
+
+/*! Clears to bgcolor with 0 opacity.
+ */
+void DisplayerCairo::ClearTransparent()
+{
+	cairo_save(cr);
+	cairo_identity_matrix(cr);
+	cairo_operator_t oldmode=cairo_get_operator(cr);
+	cairo_set_operator(cr,CAIRO_OPERATOR_SOURCE);
+
+	if (xw) cairo_set_source_rgba(cr,
+					((xw->win_colors->bg&0xff0000)>>16)/255.,
+					((xw->win_colors->bg&0xff00)>>8)/255.,
+					(xw->win_colors->bg&0xff)/255.,
+					0.);
+	else cairo_set_source_rgba(cr, bgRed, bgGreen, bgBlue, 0.0);
+
+	cairo_rectangle(cr, Minx,Miny,Maxx-Minx+1,Maxy-Miny+1);
+	cairo_fill(cr);
+	cairo_set_source_rgba(cr, fgRed, fgGreen, fgBlue, fgAlpha);
+	cairo_set_operator(cr,oldmode);
+	cairo_restore(cr);
 }
 
 //! Clear the window to bgcolor between Min* and Max*. 
