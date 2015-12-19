@@ -1206,7 +1206,7 @@ flatpoint *join_paths(int jointype, double miterlimit,
 		flatpoint p;
 		double index1,index2;
 		int status=intersection(l1,l2, &p, &index1,&index2);
-		cerr <<"status: "<<status<<endl;
+		DBG cerr <<"line intersection status: "<<status<<endl;
 
 		if (status==2 || status==-2) {
 			//is same path, just connect points

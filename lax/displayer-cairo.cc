@@ -699,7 +699,7 @@ void DisplayerCairo::LineAttributes(double width,int dash,int cap,int join)
 
 void DisplayerCairo::FillAttributes(int fillstyle, int fillrule)
 {
-	cerr <<"*** implement DisplayerCairo::FillAttributes for fillstyle"<<endl;
+	DBG cerr <<"*** need to fully implement DisplayerCairo::FillAttributes for fillstyle"<<endl;
 
 	if (!cr) return;
 

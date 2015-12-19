@@ -230,7 +230,7 @@ unsigned char *LaxCairoImage::getImageBuffer()
 	unsigned char *bbuffer=new unsigned char[width*height*4];
 	if (format==CAIRO_FORMAT_ARGB32 || format==CAIRO_FORMAT_RGB24) {
 
-		cerr <<"*** need to correctly apply premultiplied in cairo image / buffer exchange"<<endl;
+		DBG cerr <<"*** need to correctly apply premultiplied in cairo image / buffer exchange"<<endl;
 
 		unsigned char *p=buffer, *pb=bbuffer;
 		for (int c=0; c<height; c++) {
