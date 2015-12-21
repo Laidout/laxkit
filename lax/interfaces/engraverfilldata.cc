@@ -1167,7 +1167,7 @@ Attribute *EngraverLineQuality::dump_out_atts(Attribute *att,int what,LaxFiles::
 		att->push("zero_threshhold",  "#Weights below this value are considered off");
 		att->push("broken_threshhold","#Weights below this value are rendered as broken lines.");
 		att->push("dash_taper",       "#How much to shrink weight of dashes as zero weight approaches. 0 is all the way, 1 is not at all.");
-		att->push("density",          "#The minimum dash density. 0 for all blank at 0, 1 for all solid at 0.");
+		att->push("density",          "#The minimum dash density. 0 for all blank at 0, 1 for all solid at 0 thickness.");
 		att->push("indashcaps",       "#Line cap at the inside start of a dash. Todo!");
 		att->push("outdashcaps",      "#Line cap at the inside end of a dash. Todo!");
 		att->push("startcaps",        "#Line cap at the start of a whole line. Todo!");
@@ -2125,8 +2125,8 @@ void EngraverPointGroup::dump_out(FILE *f,int indent,int what,LaxFiles::DumpCont
 
 		fprintf(f,"%sactive yes       #yes|no, whether to use this group or not\n", spc);
 		fprintf(f,"%slinked yes       #yes|no, whether to warp along with other linked groups\n", spc);
-		fprintf(f,"%stype linear      #or radial, circular\n", spc);
-		fprintf(f,"%sposition (.5,.5) #default origin for the pattern \n", spc);
+		fprintf(f,"%stype linear      #or radial, circular, spiral\n", spc);
+		fprintf(f,"%sposition (.5,.5) #default origin for the pattern, range 0..1, spans whole mesh\n", spc);
 		fprintf(f,"%sdirectionv (1,0) #default direction for the pattern \n", spc);
 		fprintf(f,"%scolor rgbaf(1.,1.,1.,1.)  #color of lines in this group\n", spc);
 		fprintf(f,"%sdefault_spacing  .1 #default spacing, in object space, not s,t space \n", spc);
@@ -2160,8 +2160,7 @@ void EngraverPointGroup::dump_out(FILE *f,int indent,int what,LaxFiles::DumpCont
 		} 
 
 		fprintf(f,"%sline \\           #One for each defined line\n",spc);
-		fprintf(f,"%s  group 3        #(optional) which point group this line belongs to. Must be first line! 0 means use default settings\n",spc);
-		fprintf(f,"%s  (1.0,2.5) 2 on #Any number of points, 1 per line. Coordinate is within mesh. Format is: (x,y) weight on|off|end|start\n",spc);
+		fprintf(f,"%s  (0.5,0.75) 2 on #Any number of points, 1 point per file line. Coordinate is within mesh. Format is: (x,y) weight on|off|end|start\n",spc);
 		fprintf(f,"%s  ...\n",spc);
 		return;
 	}
