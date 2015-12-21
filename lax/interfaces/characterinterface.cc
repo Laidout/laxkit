@@ -479,7 +479,7 @@ int CharacterInterface::LBUp(int x,int y,unsigned int state, const Laxkit::LaxMo
 	buttondown.up(d->id,LEFTBUTTON, &i1,&i2);
 
 	if (i1==i && i2==cat) {
-		send();
+		if (i>=0) send();
 		if (owner) owner->RemoveChild();
 	}
 
