@@ -96,8 +96,9 @@ unsigned long screen_color_at_mouse(int mouse_id);
 #define LAX_ICON_STYLE_MASK  (7)
 #define LAX_WAY_OFF          (-1000000)
 
-const char *flow_name(int dir);
-int flow_id(const char *dir);
+const char *flow_name(int direction);
+const char *flow_name_translated(int direction);
+int flow_id(const char *direction);
 
 double text_height();
 LaxFont *get_default_font();

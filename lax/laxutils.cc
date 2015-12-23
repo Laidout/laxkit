@@ -30,6 +30,7 @@
 
 #include <lax/laxutils.h>
 #include <lax/bezutils.h>
+#include <lax/language.h>
 
 #include <lax/displayer-xlib.h>
 #include <lax/displayer-cairo.h>
@@ -1531,7 +1532,7 @@ void get_placement(int thingw,int thingh,const char *label,int gap,unsigned int 
 /*! From things like LAX_LRTB, return something like "lrtb".
  * If dir is not one of the 8 flow directions, NULL is returned.
  */
-const char *flow_name(int dir)
+const char *flow_name(int direction)
 {
 	if (direction==LAX_LRTB) return "lrtb";
 	else if (direction==LAX_LRBT) return "lrbt";
@@ -1546,7 +1547,7 @@ const char *flow_name(int dir)
 
 /*! Return a human readable string for dir.
  */
-const char *flow_name_translated(int dir)
+const char *flow_name_translated(int direction)
 {
 	if (direction==LAX_LRTB) return _("Left to right, top to bottom");
 	else if (direction==LAX_LRBT) return _("Left to right, bottom to top");
@@ -1564,7 +1565,7 @@ const char *flow_name_translated(int dir)
  *
  * Unknown dir returns -1.
  */
-const char *flow_id(const char *dir)
+int flow_id(const char *dir)
 {
 	if (!dir) return -1;
 	if      (!strcasestr(dir, "lrtb")) return LAX_LRTB;
