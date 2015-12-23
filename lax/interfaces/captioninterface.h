@@ -82,6 +82,8 @@ class CaptionData : virtual public SomeData
 	virtual int InsertChar(unsigned int ch, int line,int pos, int *newline,int *newpos);
 	virtual int DeleteSelection(int fline,int fpos, int tline,int topos, int *newline,int *newpos);
 	virtual int InsertString(const char *txt,int len, int line,int pos, int *newline,int *newpos);
+
+	virtual SomeData *ConvertToPaths(bool use_clones, SomeData *clones_to_add_to);
 	
 	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
 	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);

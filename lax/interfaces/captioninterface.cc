@@ -794,6 +794,46 @@ int CaptionData::Font(const char *file, const char *family,const char *style,dou
 	return 0;
 }
 
+/*! If !use_clones, then return a single PathsData object with each glyph to independent paths.
+ * 
+ * If use_clones, then return a group of two objects.
+ * The first object is a Group of SomeDataRef objects, and the second is another Group object
+ * containing the glyphs. The SomeDataRef objects all point to the paths in the second object.
+ */
+SomeData *CaptionData::ConvertToPaths(bool use_clones, SomeData *clones_to_add_to)
+{
+	cerr <<" *** need to implement SomeData *CaptionData::ConvertToPaths()!!"<<endl;
+
+
+	if (!font || (lines.n==1 && strlen(lines.e[0])==0)) return NULL;
+
+	 //for layered fonts, need to extract glyphs from each font, then stack em
+	for (int l=0; l<lines.n; l++) {
+	  char *line=lines.e[l];
+
+	   // *** should be for each displayed glyph in line, NOT for each char...
+	  for (const char *ch=line; *ch; ch=utf8fwd(ch+1, line, line+strlen(line))) {
+		
+		if (use_clones) {
+		  //if (clones_to_add_to doesn't have glyph already) {
+			//*** add new glyph to clones_to_add_to, 
+		  //} else {
+
+		  //*** add SomeDataRef to existing glyph
+
+		} else {
+		  for (int c=0; c<font->Layers(); c++) {
+			//LaxFont *ff=font->Layer(c);
+
+			// ***
+		  }
+		}
+	  }
+	}
+
+	return NULL;
+}
+
 
 //--------------------------------- CaptionInterface ---------------------------------
 /*! \class CaptionInterface
