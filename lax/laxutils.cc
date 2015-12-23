@@ -1528,6 +1528,56 @@ void get_placement(int thingw,int thingh,const char *label,int gap,unsigned int 
 	}
 }
 
+/*! From things like LAX_LRTB, return something like "lrtb".
+ * If dir is not one of the 8 flow directions, NULL is returned.
+ */
+const char *flow_name(int dir)
+{
+	if (direction==LAX_LRTB) return "lrtb";
+	else if (direction==LAX_LRBT) return "lrbt";
+	else if (direction==LAX_RLTB) return "rltb";
+	else if (direction==LAX_RLBT) return "rlbt";
+	else if (direction==LAX_TBLR) return "tblr";
+	else if (direction==LAX_TBRL) return "tbrl";
+	else if (direction==LAX_BTLR) return "btlr";
+	else if (direction==LAX_BTRL) return "btrl";
+	return NULL;
+}
+
+/*! Return a human readable string for dir.
+ */
+const char *flow_name_translated(int dir)
+{
+	if (direction==LAX_LRTB) return _("Left to right, top to bottom");
+	else if (direction==LAX_LRBT) return _("Left to right, bottom to top");
+	else if (direction==LAX_RLTB) return _("Right to left, top to bottom");
+	else if (direction==LAX_RLBT) return _("Right to left, bottom to top");
+	else if (direction==LAX_TBLR) return _("Top to bottom, left to right");
+	else if (direction==LAX_TBRL) return _("Top to bottom, right to left");
+	else if (direction==LAX_BTLR) return _("Bottom to top, left to right");
+	else if (direction==LAX_BTRL) return _("Bottom to top, right to left");
+	return NULL;
+}
+
+/*! From "lrtb" return LAX_LRTB, for instance.
+ * The 4 character codes are caselessly checked.
+ *
+ * Unknown dir returns -1.
+ */
+const char *flow_id(const char *dir)
+{
+	if (!dir) return -1;
+	if      (!strcasestr(dir, "lrtb")) return LAX_LRTB;
+	else if (!strcasestr(dir, "lrbt")) return LAX_LRBT;
+	else if (!strcasestr(dir, "rltb")) return LAX_RLTB;
+	else if (!strcasestr(dir, "rlbt")) return LAX_RLBT;
+	else if (!strcasestr(dir, "tblr")) return LAX_TBLR;
+	else if (!strcasestr(dir, "tbrl")) return LAX_TBRL;
+	else if (!strcasestr(dir, "btlr")) return LAX_BTLR;
+	else if (!strcasestr(dir, "btrl")) return LAX_BTRL;
+	return -1; 
+}
+
 
 
 /*! @} */
