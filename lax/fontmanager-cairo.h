@@ -61,6 +61,7 @@ class LaxFontCairo : public LaxFont
 
 	virtual double charwidth(unsigned long chr,int real,double *width=NULL,double *height=NULL);
 	virtual double contextcharwidth(char *start,char *pos,int real,double *width=NULL,double *height=NULL);
+	virtual double Msize();
 	virtual double textheight();
 	virtual double ascent();
 	virtual double descent();
@@ -83,6 +84,7 @@ class FontManagerCairo : public FontManager, protected RefPtrStack<LaxFont>
 	virtual LaxFont *MakeFontFromFile(const char *file, const char *nfamily, const char *nstyle, double size, int nid);
 	virtual LaxFont *MakeFontFromStr(const char *fcstr, int nid);
 	virtual LaxFont *MakeFont(const char *family, const char *style, double size, int nid);
+	virtual LaxFont *MakeFont(int nid);
 	virtual LaxFont *Add(LaxFont *font,int nid);
 	virtual LaxFont *CheckOut(int id);
 

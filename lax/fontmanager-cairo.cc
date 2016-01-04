@@ -298,6 +298,11 @@ int LaxFontCairo::SetFromFile(const char *nfile, const char *nfamily, const char
 	return 0;
 }
 
+double LaxFontCairo::Msize()
+{
+	return extents.height/height_over_M;
+}
+
 double LaxFontCairo::textheight()
 {
 	return extents.height;
@@ -495,6 +500,15 @@ cairo_t *FontManagerCairo::ReferenceCairo()
 	return ref_cr;
 }
 
+/*! Just make and return a blank font. Use this function when you are going to
+ * load in a font straight away.
+ */
+LaxFont *FontManagerCairo::MakeFont(int nid)
+{
+	LaxFontCairo *f=new LaxFontCairo();
+	f->id=nid;
+	return f;
+}
 
 } // namespace Laxkit
 

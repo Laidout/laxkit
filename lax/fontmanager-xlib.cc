@@ -132,6 +132,13 @@ double LaxFontXlib::extent(const char *str,int len)
 	return 0;
 }
 
+/*! returns ascent.
+ */
+double LaxFontXlib::Msize()
+{
+	return ascent();
+}
+
 double LaxFontXlib::textheight()
 {
 	if (font) return font->height;
@@ -339,6 +346,16 @@ LaxFont *FontManagerXlib::MakeFontFromFile(const char *file, const char *nfamily
 	LaxFont *laxfont=new LaxFontXlib(xfont,nid);
 
 	return laxfont;
+}
+
+/*! Just make and return a blank font. Use this function when you are going to
+ * load in a font straight away.
+ */
+LaxFont *FontManagerXlib::MakeFont(int nid)
+{
+	LaxFontXlib *f=new LaxFontXlib();
+	f->id=nid;
+	return f;
 }
 
 //! Create and return a LaxFont, but do not store it within the fontmanager.
