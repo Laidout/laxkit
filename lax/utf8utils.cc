@@ -216,6 +216,26 @@ const char* utf8fwd(const char* p, const char* start, const char* end)
   return p;
 }
 
+/*! Like utf8fwd(), but using indices, instead of char[].
+ */
+long utf8fwd_index(const char* p, long pos, long end)
+{
+  long a;
+  int len;
+  // if we are not pointing at a continuation character, we are done:
+  if ((*p&0xc0) != 0x80) return pos;
+  // search backwards for a 0xc0 starting the character:
+  for (a = pos-1; ; --a) {
+    if (a < 0) return pos;
+    if (!(p[a]&0x80)) return pos;
+    if ((p[a]&0x40)) break;
+  }
+  utf8decode(p+a,p+end,&len);
+  a += len;
+  if (a > pos) return a;
+  return pos;
+}
+
 /*! Move \a p backward until it points to the start of a UTF-8
  *  character. If it already points at the start of one then it
  *  is returned unchanged. Any UTF-8 errors are treated as though each

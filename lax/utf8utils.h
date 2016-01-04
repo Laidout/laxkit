@@ -35,6 +35,7 @@ int	utf8bytes(unsigned ucs);
 unsigned utf8decode(const char*, const char* end, int* len);
 int	utf8encode(unsigned, char*);
 const char* utf8fwd(const char*, const char* start, const char* end);
+long utf8fwd_index(const char* p, long pos, long end);
 const char* utf8back(const char*, const char* start, const char* end);
 long utf8back_index(const char* p, long pos, long end);
 
