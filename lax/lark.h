@@ -18,15 +18,45 @@
 //    License along with this library; if not, write to the Free Software
 //    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
-//    Copyright (C) 2004-2006 by Tom Lechner
+//    Copyright (C) 2004-2006,2015 by Tom Lechner
 //
 #ifndef _LAX_LARK_H
 #define _LAX_LARK_H
 
+
+#include <lax/lists.h>
+
+
 namespace Laxkit {
+
 
 const char *lark_str_from_id(int id);
 int lark_id_from_str(const char *str, char createifabsent=0);
+
+
+//-------------------------- IdSet ----------------------------
+class IdSet 
+{
+  protected:
+	PtrStack<char> strs;
+	NumStack<int> ids;
+	
+  public:
+	IdSet();
+	virtual ~IdSet();
+
+	virtual int NumIds();
+	virtual const char *StrFromId(int id);
+	virtual int IdFromStr(const char *str);
+	virtual int FindIndex(const char *str);
+	virtual int FindIndex(int id);
+	virtual int FindId(const char *str);
+	virtual const char *FindStr(int id);
+	virtual int Add(const char *str, int id);
+	virtual int Remove(const char *str);
+	virtual int Remove(int id);
+};
+
 
 } // namespace Laxkit
 

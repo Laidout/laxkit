@@ -18,7 +18,7 @@
 //    License along with this library; if not, write to the Free Software
 //    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
-//    Copyright (C) 2004-2006 by Tom Lechner
+//    Copyright (C) 2004-2006,2015 by Tom Lechner
 //
 
 #include <lax/lark.h>
@@ -106,6 +106,123 @@ int lark_id_from_str(const char *str, char createifabsent)
 	
 	return lax_larks.n;
 }
+
+
+//-------------------------- IdSet ----------------------------
+/*! \class IdSet
+ */
+
+
+IdSet::IdSet()
+  : strs(LISTS_DELETE_Array)
+{
+}
+
+IdSet::~IdSet()
+{
+}
+
+
+const char *IdSet::StrFromId(int id)
+{
+	int index=FindIndex(id);
+	if (index<0) return NULL;
+	return strs.e[index];
+}
+
+int IdSet::IdFromStr(const char *str)
+{
+	int index=FindIndex(str);
+	if (index<0) return -1;
+	return ids.e[index];
+}
+
+int IdSet::NumIds()
+{
+	return strs.n;
+}
+
+int IdSet::FindIndex(const char *str)
+{
+	for (int c=0; c<strs.n; c++) {
+		if (!strcmp(str,strs.e[c])) return c;
+	}
+
+	return -1;
+}
+
+int IdSet::FindIndex(int id)
+{
+	for (int c=0; c<ids.n; c++) {
+		if (id==ids.e[c]) return c;
+	}
+
+	return -1;
+}
+
+/*! \todo speed this up with binary search.
+ */
+int IdSet::FindId(const char *str)
+{
+	for (int c=0; c<strs.n; c++) {
+		if (!strcmp(str,strs.e[c])) return ids.e[c];
+	}
+
+	return -1;
+}
+
+/*! \todo speed this up with binary search.
+ */
+const char *IdSet::FindStr(int id)
+{
+	for (int c=0; c<ids.n; c++) {
+		if (ids.e[c]==id) return strs.e[c];
+	}
+
+	return NULL;
+}
+
+/*! Return 0 for added, nonzero for already there.
+ */
+int IdSet::Add(const char *str, int id)
+{
+	int index=FindIndex(str);
+	if (index>=0) return 1;
+
+	for (index=0; index<strs.n; index++) {
+		if (strcmp(str,strs.e[index])<0) break;
+	}
+
+	strs.push(newstr(str),LISTS_DELETE_Array,index);
+	ids.push(id, index);
+
+	return 0;
+}
+
+int IdSet::Remove(const char *str)
+{
+	int index=FindIndex(str);
+	if (index>=0) {
+		strs.remove(index);
+		ids.remove(index);
+		return 0;
+	}
+	return 1;
+}
+
+int IdSet::Remove(int id)
+{
+	int index=FindIndex(id);
+	if (index>=0) {
+		strs.remove(index);
+		ids.remove(index);
+		return 0;
+	}
+	return 1;
+}
+
+
+
 
 } // namespace Laxkit
 
