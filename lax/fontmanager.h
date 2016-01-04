@@ -38,6 +38,33 @@
 namespace Laxkit {
 
 
+//------------------------------ GlyphPlace -----------------------------------
+struct GlyphPlace
+{
+	int index; //font glyph index
+	unsigned int cluster; //in Laxkit, utf8 byte position in original string
+	int numchars; //how many unicode chars this cluster covers, such as 1 glyph for 3 chars in "ffi"
+
+	double x_advance;
+	double y_advance;
+	double x_offset; //shift from current position based on advances
+	double y_offset;
+	double x;
+	double y;
+ 
+	int has_color; //1 for manual layered, 2 for COLR layers, 3 for full svg
+	               //1 can still be used by normal font rendering.. 
+	               //until freetype/cairo supports full multicolor, have to manually draw other glyphs
+
+
+	//ScreenColor *glyph_color;
+	//int color_id;
+	//GlyphImage  *glyph_img;
+
+	GlyphPlace();
+	~GlyphPlace();
+};
+
 //---------------------------- LaxFont -------------------------------
 class LaxFont : public anObject
 {
@@ -70,6 +97,7 @@ class LaxFont : public anObject
 	virtual double ascent() = 0;
 	virtual double descent() = 0;
 	virtual double textheight() = 0;
+	virtual double Msize() = 0;
 	virtual const char *Family();
 	virtual const char *Style();
 	virtual const char *FontFile();
@@ -85,7 +113,9 @@ class LaxFont : public anObject
 	virtual LaxFont *RemoveLayer(int which, LaxFont **popped_ret);
 	virtual LaxFont *MoveLayer(int which, int to);
 	virtual void RemoveAllLayers();
-	virtual anObject *GetColor() { return color; }
+
+	virtual int HasColors() { return 0; } //1 for is manual layered font, 2 for colr based, 3 for svg
+	virtual anObject *GetColor() { return color; } //a Color or Palette
 	virtual int SetColor(anObject *ncolor);
 };
 
@@ -162,11 +192,17 @@ class FontManager : public anObject
 	virtual LaxFont *MakeFontFromFile(const char *file, const char *nfamily, const char *nstyle, double size, int nid) = 0;
 	virtual LaxFont *MakeFontFromStr(const char *fcstr, int nid) = 0;
 	virtual LaxFont *MakeFont(const char *family, const char *style, double size, int nid) = 0;
+	virtual LaxFont *MakeFont(int nid) = 0;
 	virtual LaxFont *Add(LaxFont *font,int nid) = 0;
 	virtual LaxFont *CheckOut(int id) = 0;
 	virtual FcConfig *GetConfig();
 	virtual FT_Library *GetFreetypeLibrary();
 	virtual PtrStack<FontDialogFont> *GetFontList();
+
+	virtual const char *LanguageString(int id);
+	virtual const char *ScriptString(int id);
+	virtual int LanguageId(const char *str, bool create_if_not_found);
+	virtual int ScriptId  (const char *str, bool create_if_not_found);
 
 	virtual int RetrieveFontmatrixTags();
 	virtual int GetTagId(const char *tag);

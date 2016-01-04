@@ -182,6 +182,8 @@ class DisplayerXlib : public Displayer
 	virtual double textout(double x,double y,const char *str,int len=0,unsigned long align=LAX_CENTER);
 	virtual double textout(double *matrix,double x,double y,const char *str,int len=0,unsigned long align=LAX_CENTER);
 	virtual double textout(double angle, double x,double y,const char *str,int len=0,unsigned long align=LAX_CENTER);
+	virtual double glyphsout(double x,double y, GlyphPlace *glyphs,unsigned int len, unsigned long align=LAX_CENTER);
+	virtual double glyphsextent(GlyphPlace *glyphs,unsigned int len, double *width,double *height, bool real=false);
 
 	//draw images
 	virtual int  imageout(LaxImage *image, double x,double y, double w,double h);

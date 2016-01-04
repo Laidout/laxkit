@@ -60,6 +60,29 @@ using namespace LaxFiles;
 namespace Laxkit {
 
 
+//------------------------------ GlyphPlace -----------------------------------
+/*! \struct GlyphPlace
+ *
+ * Class to hold info about specific glyphs for a string of text.
+ * See also Displayer::glyphsout().
+ */
+
+GlyphPlace::GlyphPlace()
+{
+	index=0;
+	cluster=0;
+	numchars=1;
+
+	x_advance=y_advance=x_offset=y_offset=x=y=0;
+
+	has_color=0;
+}
+
+GlyphPlace::~GlyphPlace()
+{
+}
+
+
 //-------------------------------------- LaxFont -------------------------------------------------
 /*! \class LaxFont
  * \brief A wrapper for fonts that contains various metric information.
@@ -693,6 +716,34 @@ int FontManager::GetTagId(const char *tag)
 	for (int c=0; c<tags.n; c++) {
 		if (!strcasecmp(tag,tags.e[c]->tag)) return tags.e[c]->id;
 	}
+	return -1;
+}
+
+/*! NULL for unknown id. 0 is default language.
+ */
+const char *FontManager::LanguageString(int id)
+{
+	cerr <<" *** need to implement FontManager language+script stuff!!"<<endl;
+	return NULL;
+}
+
+/*! NULL for unknown id. 0 is default.
+ */
+const char *FontManager::ScriptString(int id)
+{
+	cerr <<" *** need to implement FontManager language+script stuff!!"<<endl;
+	return NULL;
+}
+
+int FontManager::LanguageId(const char *str, bool create_if_not_found)
+{
+	cerr <<" *** need to implement FontManager language+script stuff!!"<<endl;
+	return -1;
+}
+
+int FontManager::ScriptId  (const char *str, bool create_if_not_found)
+{
+	cerr <<" *** need to implement FontManager language+script stuff!!"<<endl;
 	return -1;
 }
 

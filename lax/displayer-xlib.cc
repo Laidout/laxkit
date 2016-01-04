@@ -607,6 +607,20 @@ double DisplayerXlib::textout(double angle, double x,double y,const char *str,in
 	return textout(x-sin(angle)*textheight(),y, str,len, align);
 }
 
+/*! len must specify how many glyphs in glyphs.
+ */
+double DisplayerXlib::glyphsout(double x,double y, GlyphPlace *glyphs,unsigned int len, unsigned long align)
+{
+	cerr << " --- unimplemented: DisplayerXlib::glyphsout()!"<<endl;
+	return 0;
+}
+
+double DisplayerXlib::glyphsextent(GlyphPlace *glyphs,unsigned int len, double *width,double *height, bool real)
+{
+	cerr << " --- unimplemented: DisplayerXlib::glyphsextent()!"<<endl;
+	return 0;
+}
+
 double DisplayerXlib::LineWidth(double newwidth)
 {
 	if (newwidth<0) newwidth=0;

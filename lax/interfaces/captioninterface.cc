@@ -22,20 +22,34 @@
 //
 
 
+#include <harfbuzz/hb.h>
+#include <harfbuzz/hb-ft.h>
+#include <harfbuzz/hb-ot.h>
+
+#include FT_OUTLINE_H
+
 #include <lax/interfaces/interfacemanager.h>
 #include <lax/interfaces/somedatafactory.h>
 #include <lax/interfaces/captioninterface.h>
 #include <lax/interfaces/characterinterface.h>
+#include <lax/interfaces/pathinterface.h>
 #include <lax/interfaces/viewportwindow.h>
 #include <lax/interfaces/linestyle.h>
+#include <lax/interfaces/somedataref.h>
 #include <lax/colors.h>
 #include <lax/laxutils.h>
 #include <lax/fontdialog.h>
+#include <lax/fontmanager.h>
 #include <lax/transformmath.h>
 #include <lax/strmanip.h>
 #include <lax/utf8utils.h>
 #include <lax/language.h>
 
+// *** temp:
+//#include <lax/displayer-cairo.h>
+
+
+#include <lax/refptrstack.cc>
 #include <lax/lists.cc>
 
 using namespace LaxFiles;
@@ -50,6 +64,55 @@ using namespace std;
 
 namespace LaxInterfaces {
 
+
+static const double LSSIZE=.25;
+
+
+//-------------------------------- utf8 helpers ----------------------------------------
+
+/*! Return the number of unicode characters between given byte positions.
+ * Will return a positive number no matter if second byte is before the first.
+ */
+int get_num_chars(const char *line, int len, unsigned int pos1, unsigned int pos2)
+{
+	if (len<0) len=strlen(line);
+
+	unsigned int p;
+	if (pos1>pos2) { p=pos1; pos1=pos2; pos2=p; }
+
+	int n=0;
+	for (p=pos1; p<pos2; p=utf8fwd_index(line,p+1,len)) {
+		n++;
+	}
+
+	return n;
+}
+
+/*! Where start_cluster and end_cluster define byte offlets in utf8 line, return fraction along
+ * that stretch that pos is at.
+ *
+ * This makes even caret spacing across a glyph that covers multiple characters, ignoring differing
+ * byte lengths between utf8 character encodings.
+ */
+double char_distance(long pos, const char *line, int len, long start_cluster, long end_cluster)
+{
+	if (len<0) len=strlen(line);
+
+	if (pos==start_cluster) return 0.0;
+	if (pos==end_cluster)   return 1.0;
+
+	int n=0;
+	int atchar=-1;
+	while (start_cluster<end_cluster) {
+		if (atchar<0 && pos<=start_cluster) atchar=n;
+		n++;
+		const char *np = utf8fwd(line+start_cluster+1, line, line+len);
+		start_cluster = np-line;
+	}
+
+	return atchar/(float)n;
+
+}
 
 //--------------------------------- CaptionData -------------------------------
 /*! \class CaptionData
@@ -88,18 +151,26 @@ CaptionData::CaptionData()
 	fontsize=12;
 	linespacing=1;
 	font=NULL;
-	righttoleft=false;
+
+	direction=-1;
+	language=NULL;
+	script=NULL;
 
 	state=0;
 
 	xcentering=0;
 	ycentering=0;
+	baseline_hint=-1;
 
 	lines.push(newstr(""));
 	linelengths.push(0);
+	linestats.push(new Linestat(0,0,0,0,0));
 
+	color=NULL;
 	red=green=blue=.5;
 	alpha=1.;
+
+	needtorecache=true;
 
 	Font(fontfile, fontfamily, fontstyle, fontsize);
 }
@@ -116,36 +187,42 @@ CaptionData::CaptionData(const char *ntext, const char *nfontfamily, const char 
 	fontfamily=newstr(nfontfamily);
 	fontstyle=newstr(nfontstyle);
 	fontfile=NULL;
-	//font=NULL;
+
+	direction=-1;
+	language=NULL;
+	script=NULL;
+	
 	fontsize=fsize;
 	linespacing=1;
 	if (fontsize<=0) fontsize=10;
 	font=NULL;
-	righttoleft=false;
 
 	state=0;  //0 means someone needs to remap extents
 
-	
 
 	int numlines=0;
 	char **text=split(ntext,'\n',&numlines);
 	for (int c=0; c<numlines; c++) {
 		lines.push(text[c]);
 		linelengths.push(0);
+		linestats.push(new Linestat(0,0,0,0,0));
 	}
 	xcentering=xcenter;
 	ycentering=ycenter;
-	//centerline=NULL;
+	baseline_hint=-1;
 
 	if (numlines==0) {
 		lines.push(newstr(""));
 		linelengths.push(0);
+		linestats.push(new Linestat(0,0,0,0,0));
 		numlines=1;
 	}
 
+	color=NULL;
 	red=green=blue=.5;
 	alpha=1.;
 
+	needtorecache=true;
 	Font(fontfile, fontfamily, fontstyle, fontsize);
 
 	DBG if (ntext) cerr <<"CaptionData new text:"<<endl<<ntext<<endl;
@@ -156,10 +233,15 @@ CaptionData::~CaptionData()
 {
 	DBG cerr <<"in CaptionData destructor"<<endl;
 
-	if (fontfamily) delete[] fontfamily;
-	if (fontstyle) delete[] fontstyle;
-	if (fontfile) delete[] fontfile;
-	if (font) font->dec_count();
+	delete[] fontfamily;
+	delete[] fontstyle;
+	delete[] fontfile;
+
+	delete[] language;
+	delete[] script;
+
+	if (color) color->dec_count();
+	if (font)  font ->dec_count();
 
 	DBG cerr <<"-- CaptionData dest. end"<<endl;
 }
@@ -188,7 +270,12 @@ SomeData *CaptionData::duplicate(SomeData *dup)
 	i->linespacing =linespacing;
 	i->xcentering  =xcentering;
 	i->ycentering  =ycentering;
-	i->righttoleft =righttoleft;
+
+	i->direction   =direction;
+	makestr(i->language, language);
+	makestr(i->script,   script);
+	//i->language    =language;
+	//i->script      =script;
 
 	i->red   =red;
 	i->green =green;
@@ -207,7 +294,7 @@ SomeData *CaptionData::duplicate(SomeData *dup)
 }
 
 
-/*! Return the number of characters in the given line number.
+/*! Return the number of characters (not bytes) in the given line number.
  */
 int CaptionData::CharLen(int line)
 {
@@ -215,47 +302,345 @@ int CaptionData::CharLen(int line)
 	return strlen(lines.e[line]);
 }
 
+/*! If line<0, then do all lines.
+ * If needtorecache==false, then skip the line.
+ */
+int CaptionData::RecacheLine(int linei)
+{
+	//int start=0, end=lines.n-1;
+
+	bool ntrc=needtorecache;
+	if (linei<0 || linei>=lines.n) { 
+		for (int c=0; c<lines.n; c++) {
+			if (needtorecache) linestats.e[c]->needtorecache=true;
+			else if (linestats.e[c]->needtorecache) ntrc=true;
+		}
+	} else {
+		ntrc=true;
+		linestats.e[linei]->needtorecache=true;
+	}
+
+	if (!ntrc) return 0;
+
+
+
+	 //set up freetype and hb fonts
+	FontManager *fontmanager = InterfaceManager::GetDefault()->GetFontManager();
+
+	FT_Face ft_face;
+	FT_Library *ft_library = fontmanager->GetFreetypeLibrary();
+
+	FT_New_Face (*ft_library, font->FontFile(), 0, &ft_face);
+	FT_Set_Char_Size (ft_face, font->Msize()*64, font->Msize()*64, 0, 0);
+
+	hb_font_t *hb_font;
+	hb_font = hb_ft_font_create (ft_face, NULL);
+
+
+	 //figure out direction, language, and script
+	hb_segment_properties_t seg_properties;
+
+
+	 //Figure out direction, if any
+	hb_direction_t dir = HB_DIRECTION_INVALID;
+	if (direction==LAX_LRTB || direction==LAX_LRBT) dir=HB_DIRECTION_LTR;
+	else if (direction==LAX_RLTB || direction==LAX_RLBT) dir=HB_DIRECTION_RTL;
+	else if (direction==LAX_BTLR || direction==LAX_BTRL) dir=HB_DIRECTION_BTT;
+	else if (direction==LAX_TBLR || direction==LAX_TBRL) dir=HB_DIRECTION_TTB;
+	// else need to guess direction
+
+
+	 //Figure out language, if any
+	hb_language_t hblang = NULL;
+	//const char *str=fontmanager->LanguageString(language);
+	//if (language>=0 && str) hblang = hb_language_from_string(str, strlen(str));
+	if (language) hblang = hb_language_from_string(language, strlen(language));
+	//hblang = hb_language_get_default; 
+
+
+	 //Figure out script, if any
+	hb_script_t hbscript = HB_SCRIPT_UNKNOWN;
+	//str=fontmanager->ScriptString(language);
+	//if (script>=0 && *str) hbscript = hb_script_from_string(str, strlen(str));
+	if (script) hbscript = hb_script_from_string(script, strlen(script));
+
+//	const char *nonblank=NULL;
+//	for (int c=0; c<lines.n; c++) {
+//		if (!isblank(lines.e[c])) nonblank=lines.e[c];
+//	}
+
+
+	 //now figure out lines as necessary
+	double width;
+	for (int c=0; c<lines.n; c++) {
+		if (!linestats.e[c]->needtorecache) continue;
+
+		if (strlen(lines.e[c])==0) { //ok to have just a bunch of spaces
+			linelengths.e[c] = 0;
+
+			linestats.e[c]->pixlen = 0;
+			linestats.e[c]->needtorecache = false;
+			continue;
+		}
+
+		 //create buffer and add text
+		hb_buffer_t *hb_buffer;
+		hb_buffer = hb_buffer_create ();
+		hb_buffer_add_utf8 (hb_buffer, lines.e[c], -1, 0, -1);
+
+
+		 //set direction, language, and script
+		if (dir==HB_DIRECTION_INVALID || hblang==NULL || hbscript==HB_SCRIPT_UNKNOWN) {
+			 //at least one of these things we know, so we have to manually set again
+			hb_buffer_guess_segment_properties (hb_buffer); //guesses direction, script, language 
+			hb_buffer_get_segment_properties (hb_buffer, &seg_properties);
+
+			if (dir!=HB_DIRECTION_INVALID)   seg_properties.direction = dir;      else dir      = seg_properties.direction;
+			if (hblang!=NULL)                seg_properties.language  = hblang;   else hblang   = seg_properties.language;
+			if (hbscript!=HB_SCRIPT_UNKNOWN) seg_properties.script    = hbscript; else hbscript = seg_properties.script;
+
+			hb_buffer_set_segment_properties (hb_buffer, &seg_properties);
+
+		} else {
+			 //we know them all so...
+			seg_properties.direction = dir;
+			seg_properties.language  = hblang;
+			seg_properties.script    = hbscript;
+			hb_buffer_set_segment_properties (hb_buffer, &seg_properties);
+		}
+
+
+		 //set features
+		hb_face_t *hb_face;
+		hb_face = hb_ft_face_create_referenced(ft_face); 
+
+		//*** foreach (feature in feature_string) set for hb_font
+		//hb_ot_layout_language_get_feature_tags()
+		//
+		unsigned int lang_index=0;
+		unsigned int script_index=0;
+		hb_tag_t script_tag1, script_tag2;
+		hb_ot_tags_from_script(hbscript, &script_tag1, &script_tag2);
+		hb_ot_layout_table_find_script (hb_face, HB_OT_TAG_GSUB, script_tag1, &script_index);
+
+		hb_tag_t lang_tag = hb_ot_tag_from_language (hblang);
+		hb_ot_layout_script_find_language (hb_face, HB_OT_TAG_GSUB, script_index, lang_tag, &lang_index);
+
+		unsigned int count = 80;
+		hb_tag_t myResult[count];
+		//hb_ot_layout_table_get_feature_tags(hb_font_get_face(hb_font), HB_OT_TAG_GSUB, 0, &count, myResult)
+		//hb_ot_layout_table_get_feature_tags(hb_font_get_face(hb_font), HB_OT_TAG_GPOS, 0, &count, myResult)
+		//
+		//
+		//- hb_ot_layout_table_get_script_tags() to get all scripts for this font;
+		//- for each script index get all languages supported for this script with 
+		//hb_ot_layout_script_get_language_tags();
+		//- at this point it's two dimensional - (script index, language index), 
+		//now get feature set for this pair with:
+
+		hb_ot_layout_language_get_feature_tags(hb_face, HB_OT_TAG_GSUB, script_index, lang_index, 0, &count, myResult);
+		DBG cerr <<"for font :"<<font->FontFile()<<":"<<endl;
+		DBG cerr <<" All the GSUB features for cur lang+script:  ";
+		char tagstr[5]; tagstr[4]='\0';
+		for (int cc=0; cc<(int)count; cc++) {
+			hb_tag_to_string(myResult[cc], tagstr);
+			DBG cerr <<tagstr<<"  ";
+		}
+		DBG cerr << endl;
+		hb_ot_layout_language_get_feature_tags(hb_face, HB_OT_TAG_GPOS, script_index, lang_index, 0, &count, myResult);
+		DBG cerr <<" All the GPOS features for cur lang+script:  ";
+		for (int cc=0; cc<(int)count; cc++) {
+			hb_tag_to_string(myResult[cc], tagstr);
+			DBG cerr <<tagstr<<"  ";
+		}
+		DBG cerr << endl;
+
+
+		  //Shape it!
+		hb_shape (hb_font, hb_buffer, NULL, 0);
+
+
+		 // get positioning
+		 //
+		//struct hb_glyph_info_t {
+		//  hb_codepoint_t codepoint;
+		//  hb_mask_t      mask;
+		//  uint32_t       cluster;
+		//}
+		//
+		//struct hb_glyph_position_t {
+		//  hb_position_t  x_advance;
+		//  hb_position_t  y_advance;
+		//  hb_position_t  x_offset; //shift from current position based on advances
+		//  hb_position_t  y_offset;
+		//}
+		//
+		//hb_segment_properties_t {
+		//  hb_direction_t  direction;
+		//  hb_script_t     script;
+		//  hb_language_t   language;
+		//}
+		//
+		//cairo_glyph_t {
+		//  unsigned long        index;
+		//  double               x;
+		//  double               y;
+		//} 
+		//
+
+		unsigned int numglyphs   = hb_buffer_get_length (hb_buffer); //glyphs wide
+		hb_glyph_info_t *info    = hb_buffer_get_glyph_infos (hb_buffer, NULL);     //points to inside hb_buffer
+		hb_glyph_position_t *pos = hb_buffer_get_glyph_positions (hb_buffer, NULL); //points to inside hb_buffer
+
+		 // update cache info
+		if (linestats.e[c]->numglyphs < (int)numglyphs) {
+			delete[] linestats.e[c]->glyphs;
+			linestats.e[c]->glyphs = new GlyphPlace[numglyphs];
+		}
+		linestats.e[c]->numglyphs = numglyphs;
+
+		GlyphPlace *glyphs = linestats.e[c]->glyphs;
+		double current_x = 0;
+		double current_y = 0;
+		width=0; 
+		double widthy=0;
+
+		DBG cerr <<" computing line: "<<lines.e[c]<<endl;
+		for (unsigned int i = 0; i < numglyphs; i++)
+		{
+			glyphs[i].index     = info[i].codepoint;
+			glyphs[i].cluster   = info[i].cluster;
+			glyphs[i].x_advance = pos[i].x_advance / 64.;
+			glyphs[i].y_advance = pos[i].y_advance / 64.;
+			glyphs[i].x         =   current_x + pos[i].x_offset / 64.;
+			glyphs[i].y         = -(current_y + pos[i].y_offset / 64.);
+			glyphs[i].numchars  = get_num_chars(lines.e[c], -1, glyphs[i].cluster, i==numglyphs-1 ? strlen(lines.e[c]) : glyphs[i+1].cluster);
+
+			width     += pos[i].x_advance / 64.;
+			widthy    += pos[i].y_advance / 64.;
+
+			current_x += pos[i].x_advance / 64.;
+			current_y += pos[i].y_advance / 64.;
+
+			DBG fprintf(stderr, "index: %4d   cluster: %2u   at: %f, %f\n", glyphs[i].index, glyphs[i].cluster, glyphs[i].x, glyphs[i].y);
+			//DBG cerr <<"index: "<<glyphs[i].index<<"  cluster: "<<glyphs[i].cluster<<"  at: "<<glyphs[i].x<<","<<glyphs[i].y<<endl;
+		}
+
+		DBG cerr <<endl;
+
+		linelengths.e[c] = width;
+
+		linestats.e[c]->pixlen = width;
+		linestats.e[c]->needtorecache = false;
+		
+
+		hb_buffer_destroy (hb_buffer);
+
+	} //foreach line
+
+
+	 //cleanup
+	hb_font_destroy (hb_font);
+	FT_Done_Face (ft_face);
+
+	return 0;
+}
+
 //! Update cached pixel length of line. Also return that value.
 /*! If line<0 then compute for all lines, and returns maximum length.
  */
-int CaptionData::ComputeLineLen(int line)
+double CaptionData::ComputeLineLen(int line)
 {
-	if (line<0) {
-		int max=0,w;
-		for (int c=0; c<lines.n; c++) {
-			w=ComputeLineLen(c);
-			if (w>max) max=w;
-		}
-		return w;
-	}
+	if (line>=0 && line<lines.n) linestats.e[line]->needtorecache=true;
+	else needtorecache=true;
+	RecacheLine(line);
 
-	if (!font || line>=lines.n) return 0;
-	return font->extent(lines.e[line],strlen(lines.e[line]));
+	if (line>=0 && line<lines.n) return linestats.e[line]->pixlen;
+	return 0;
+	//-----------------
+//	if (line<0) {
+//		int max=0,w;
+//		for (int c=0; c<lines.n; c++) {
+//			w=ComputeLineLen(c);
+//			if (w>max) max=w;
+//		}
+//		return w;
+//	}
+//
+//	if (!font || line>=lines.n) return 0;
+//	return font->extent(lines.e[line],strlen(lines.e[line]));
 }
 
-/*! Returns 1 if found, else 0 for out of bounds.
+/*! Find line and byte position within.
+ * Returns 1 if found, else 0 for out of bounds.
  */
 int CaptionData::FindPos(double y, double x, int *line, int *pos)
 {
-	int l = (y-miny)/(fontsize*linespacing);
+	int l = (linespacing!=0 ? (y-miny)/fabs(fontsize*linespacing) : 0); 
 	if (l<0 || l>=lines.n) return 0;
+	if (linespacing<0) l=lines.n-1-l;
 
 	x+=xcentering/100*(linelengths[l]);
 	
 	unsigned int p=0;
-	double lastw=0;
-	double w;
-	const char *pp;
 
-	while (p<strlen(lines.e[l])) {
-		p++;
-		pp=utf8fwd(lines.e[l]+p, lines.e[l], lines.e[l]+strlen(lines.e[l]));
-		p=pp-lines.e[l];
+//	------------------
+	int len = linestats.e[l]->numglyphs;
+	int g=0;
+	double current_x=0;
+	//double current_y=y;
 
-		w=font->extent(lines.e[l], p);
-		if (x<(lastw+w)/2) { p=utf8back_index(lines.e[l],p-1,strlen(lines.e[l])); break; }
-		lastw=w;
+	GlyphPlace *glyph;
+	while (g<len) {
+		glyph = &linestats.e[l]->glyphs[g];
+
+		if (glyph->numchars>1 && x<current_x+glyph->x_advance) {
+			p=glyph->cluster; //the utf8 byte index
+
+			double tick = glyph->x_advance/glyph->numchars;
+
+			if (x<current_x+tick/2) break;
+
+			if (x<current_x+glyph->x_advance - tick/2) {
+				x -= current_x+tick/2;
+				int n=1+x/tick;
+				while (n) {
+					p=utf8fwd_index(lines.e[l],p+1,strlen(lines.e[l]));
+					n--;
+				}
+				break;
+			}
+		}
+
+		if (x<current_x+glyph->x_advance/2) {
+
+			// *** works for ltr only !!!
+			p=glyph->cluster; //the utf8 byte index
+			// *** watch for when glyph spans many clusters
+			break;
+		}
+
+		current_x += glyph->x_advance;
+		//current_y += glyph->y_advance;
+
+		g++;
 	}
+	if (g==len) p=strlen(lines.e[l]);
+
+//	------------------
+//	double lastw=0;
+//	double w;
+//	const char *pp;
+//	while (p<strlen(lines.e[l])) {
+//		p++;
+//		pp=utf8fwd(lines.e[l]+p, lines.e[l], lines.e[l]+strlen(lines.e[l]));
+//		p=pp-lines.e[l];
+//
+//		w=font->extent(lines.e[l], p);
+//		if (x<(lastw+w)/2) { p=utf8back_index(lines.e[l],p-1,strlen(lines.e[l])); break; }
+//		lastw=w;
+//	}
+//	------------------
 
 	*line=l;
 	*pos=p;
@@ -273,7 +658,7 @@ int CaptionData::FindPos(double y, double x, int *line, int *pos)
  *  fontsize 10
  *  xcentering  50
  *  ycentering  50
- *  righttoleft no
+ *  direction   lrtb
  *  text \
  *    Blah Blah.
  *    Blah, "blah blah"
@@ -291,7 +676,7 @@ void CaptionData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *co
 		fprintf(f,"%sfontfile /path/to/it #File on disk to use. Overrides whatever is in family and style.\n",spc);
 		fprintf(f,"%sfontsize 12          #hopefully this is point size\n",spc);
 		fprintf(f,"%slinespacing 1        #percentage different from font's default spacing\n",spc);
-		fprintf(f,"%srighttoleft no       #yes or no. ***todo: vertical options\n",spc);
+		fprintf(f,"%sdirection lrtb       #lrtb, lrbt, rltb, rlbt, tblr, tbrl, btlr, btrl, or guess\n",spc);
 		fprintf(f,"%sxcentering 50        #0 is left, 50 is center, 100 is right, or any other number\n",spc);
 		fprintf(f,"%sycentering 50        #0 is top, 50 is center, 100 is bottom, or any other number\n",spc);
 		fprintf(f,"%scolor rgbaf(1,0,0,1)\n", spc);
@@ -330,7 +715,13 @@ void CaptionData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *co
 	}
 	fprintf(f,"%sfontsize %.10g\n",spc,fontsize);
 	fprintf(f,"%slinespacing %.10g\n",spc,linespacing);
-	fprintf(f,"%srighttoleft %s\n",spc, righttoleft ? "yes" : "no");
+
+	const char *dir=flow_name(direction);
+	if (!dir) dir="guess";
+	fprintf(f,"%sdirection %s\n",spc, dir);
+	if (language) fprintf(f,"%slanguage %s\n",spc, language);
+	if (script)   fprintf(f,"%sscript %s\n",  spc, script);
+
 	fprintf(f,"%sxcentering %.10g\n",spc,xcentering);
 	fprintf(f,"%sycentering %.10g\n",spc,ycentering);
 	fprintf(f,"%scolor rgbaf(%.10g, %.10g, %.10g, %.10g)\n",
@@ -369,8 +760,15 @@ void CaptionData::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *co
 			DoubleListAttribute(value,mm,6);
 			m(mm);
 
-		} else if (!strcmp(name,"righttoleft")) {
-			righttoleft=BooleanAttribute(value);
+		} else if (!strcmp(name,"direction")) {
+			direction=flow_id(value);
+			if (direction<0) direction=-1; //for guess
+
+		} else if (!strcmp(name,"language")) {
+			makestr(language, value);
+
+		} else if (!strcmp(name,"script")) {
+			makestr(script, value);
 
 		} else if (!strcmp(name,"xcentering")) {
 			DoubleAttribute(value,&xcentering);
@@ -461,11 +859,26 @@ void CaptionData::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *co
 	} else Font(file, family, style, fontsize);
 }
 
+/*! Adjust ycentering to align with the given line's baseline.
+ *
+ * Returns the new ycentering value.
+ */
+double CaptionData::BaselineJustify(int line)
+{
+	if (line<0 || line>=lines.n) line=lines.n-1;
+	double height = maxy-miny;
+	ycentering=100*(line*fontsize*linespacing + font->ascent())/height;
+	baseline_hint=line;
+	FindBBox();
+	return ycentering;
+}
+
 /*! Value is percentage (1 == 100%) off from font's line spacing.
  */
 double CaptionData::LineSpacing(double newspacing)
 {
 	if (newspacing!=0) linespacing=newspacing;
+	FindBBox();
 	return linespacing;
 }
 
@@ -500,13 +913,18 @@ int CaptionData::SetText(const char *newtext)
 {
 	lines.flush();
 	linelengths.flush();
+	linestats.flush();
 
 	int numlines=0;
 	char **text=split(newtext,'\n',&numlines);
 	for (int c=0; c<numlines; c++) {
 		lines.push(text[c]);
 		linelengths.push(0);
+		while (c>=linestats.n) linestats.push(new Linestat(0,0,0,0,0));
+		//if (c>=linestats.Allocated()) linestats.push(new Linestat(0,0,0,0,0));
 	}
+
+	needtorecache=true;
 	state=0;
 	FindBBox();
 	return 0;
@@ -520,6 +938,7 @@ int CaptionData::DeleteChar(int line,int pos,int after, int *newline,int *newpos
 			appendstr(lines.e[line],lines.e[line+1]);
 			lines.remove(line+1);
 			linelengths.remove(line+1);
+			linestats.remove(line+1);
 			ComputeLineLen(line);
 
 		} else if (pos < (int)strlen(lines.e[line])) {
@@ -536,6 +955,7 @@ int CaptionData::DeleteChar(int line,int pos,int after, int *newline,int *newpos
 			appendstr(lines.e[line-1],lines.e[line]);
 			lines.remove(line);
 			linelengths.remove(line);
+			linestats.remove(line);
 			line--;
 			pos=strlen(lines.e[line]);
 			ComputeLineLen(line);
@@ -566,6 +986,7 @@ int CaptionData::InsertChar(unsigned int ch, int line,int pos, int *newline,int 
 
 		lines.push(str, 2, line+1);
 		linelengths.push(0, line+1);
+		linestats.push(new Linestat(0,0,0,0,0),1,line+1);
 
 		ComputeLineLen(line);
 		line++;
@@ -620,6 +1041,7 @@ int CaptionData::DeleteSelection(int fline,int fpos, int tline,int tpos, int *ne
 	while (tline>fline+1) {
 		lines.remove(tline-1);
 		linelengths.remove(tline-1);
+		linestats.remove(tline-1);
 		tline--;
 	}
 
@@ -633,6 +1055,7 @@ int CaptionData::DeleteSelection(int fline,int fpos, int tline,int tpos, int *ne
 		appendstr(lines.e[fline], lines.e[tline]+tpos);
 		lines.remove(tline);
 		linelengths.remove(tline);
+		linestats.remove(tline);
 	}
 
 	ComputeLineLen(fline);
@@ -672,6 +1095,7 @@ int CaptionData::InsertString(const char *txt,int len, int line,int pos, int *ne
 		} else {
 			lines.push(thisline, line);
 			linelengths.push(0, line);
+			linestats.push(new Linestat(0,0,0,0,0),1,line);
 		}
 		ComputeLineLen(line);
 
@@ -688,21 +1112,17 @@ int CaptionData::InsertString(const char *txt,int len, int line,int pos, int *ne
 	return 0;
 }
 
-/*! Assumes font is accurate????
- *
- * \todo *** must be able to find the actual extent of the text!
- *   right now, the interface must handle bbox finding.
- */
 void CaptionData::FindBBox()
-{//***
-	double height=lines.n*fontsize*linespacing,
-	       width=height;
+{
+	double width=fontsize;
+	double height=fontsize + (lines.n-1)*fontsize*linespacing;
+	if (linespacing<0) {
+		height=fontsize - (lines.n-1)*fontsize*linespacing;
+	}
+
 
 	if (state==0) {
-		Displayer *dp=GetDefaultDisplayer();
-		for (int c=0; c<lines.n; c++) {
-			linelengths.e[c]=dp->textextent(font, lines.e[c],-1, NULL,NULL,NULL,NULL,0);
-		}
+		ComputeLineLen(-1);
 		state=1;
 	}
 
@@ -720,6 +1140,13 @@ void CaptionData::FindBBox()
 	miny=-ycentering/100*height;
 	maxy=miny+height;
 	if (maxy==miny) maxy=miny+fontsize;
+
+	 //check for effects of negative line spacing
+//	if (linespacing<0) { 
+//		maxy=fontsize;
+//		miny=maxy-height;
+//	}
+
 }
 
 //! Set horizontal centering, and adjust bbox.
@@ -774,10 +1201,11 @@ int CaptionData::Font(LaxFont *newfont)
 
 int CaptionData::Font(const char *file, const char *family,const char *style,double size)
 {
-	if (font) font->dec_count();
+	if (font) { font->dec_count(); font=NULL; }
 
-	if (file) font=InterfaceManager::GetDefault()->GetFontManager()->MakeFontFromFile(file, family,style,size,-1);
-	else font=InterfaceManager::GetDefault()->GetFontManager()->MakeFont(family,style,size,-1);
+	if (file)  font=InterfaceManager::GetDefault()->GetFontManager()->MakeFontFromFile(file, family,style,size,-1);
+	if (!font) font=InterfaceManager::GetDefault()->GetFontManager()->MakeFont(family,style,size,-1);
+	if (!font) font=InterfaceManager::GetDefault()->GetFontManager()->MakeFont("sans",NULL,size,-1);
 
 	fontsize=size;
 	linespacing=1;
@@ -794,43 +1222,214 @@ int CaptionData::Font(const char *file, const char *family,const char *style,dou
 	return 0;
 }
 
+int pathsdata_ft_move_to(const FT_Vector* to, void* user)
+{
+	PathsData *paths = (PathsData*)user;
+	paths->moveTo(flatpoint(to->x/65535., to->y/65535.));
+	return 0;
+}
+
+int pathsdata_ft_line_to(const FT_Vector* to, void* user)
+{
+	PathsData *paths = (PathsData*)user;
+	paths->lineTo(flatpoint(to->x/65535., to->y/65535.));
+	return 0;
+}
+
+int pathsdata_ft_conic_to(const FT_Vector* control, const FT_Vector* to, void* user)
+{
+	PathsData *paths = (PathsData*)user;
+	flatpoint lastp = paths->LastVertex()->p();
+	flatpoint cc(control->x/65535., control->y/65535.), pto(to->x/65535.,to->y/65535.);
+	paths->curveTo(lastp + (cc-lastp)*2./3, pto + (cc-pto)*2./3, pto);
+	return 0;
+}
+
+int pathsdata_ft_cubic_to(const FT_Vector* control1, const FT_Vector* control2, const FT_Vector*  to, void* user)
+{
+	PathsData *paths = (PathsData*)user;
+	paths->curveTo(flatpoint(control1->x/65535., control1->y/65535.),
+							 flatpoint(control2->x/65535., control2->y/65535.),
+							 flatpoint(to->x/65535., to->y/65535.));
+	return 0;
+}
+
 /*! If !use_clones, then return a single PathsData object with each glyph to independent paths.
  * 
  * If use_clones, then return a group of two objects.
  * The first object is a Group of SomeDataRef objects, and the second is another Group object
  * containing the glyphs. The SomeDataRef objects all point to the paths in the second object.
+ *
+ * NULL will be returned if there is no text to render.
  */
-SomeData *CaptionData::ConvertToPaths(bool use_clones, SomeData *clones_to_add_to)
+//SomeData *CaptionData::ConvertToPaths(bool use_clones, GroupData *clones_to_add_to)
+SomeData *CaptionData::ConvertToPaths(bool use_clones, RefPtrStack<SomeData> *clones_to_add_to)
 {
-	cerr <<" *** need to implement SomeData *CaptionData::ConvertToPaths()!!"<<endl;
-
-
 	if (!font || (lines.n==1 && strlen(lines.e[0])==0)) return NULL;
 
-	 //for layered fonts, need to extract glyphs from each font, then stack em
-	for (int l=0; l<lines.n; l++) {
-	  char *line=lines.e[l];
+	RecacheLine(-1);
 
-	   // *** should be for each displayed glyph in line, NOT for each char...
-	  for (const char *ch=line; *ch; ch=utf8fwd(ch+1, line, line+strlen(line))) {
-		
-		if (use_clones) {
-		  //if (clones_to_add_to doesn't have glyph already) {
-			//*** add new glyph to clones_to_add_to, 
-		  //} else {
+	RefPtrStack<SomeData> *glyphs = clones_to_add_to;
+	if (!glyphs) glyphs = new RefPtrStack<SomeData>;
 
-		  //*** add SomeDataRef to existing glyph
 
-		} else {
-		  for (int c=0; c<font->Layers(); c++) {
-			//LaxFont *ff=font->Layer(c);
+	FT_Error ft_error;
+	FT_Face ft_faces[font->Layers()];
+	FontManager *fontmanager = GetDefaultFontManager();
+	FT_Library *ft_library = fontmanager->GetFreetypeLibrary();
 
-			// ***
-		  }
-		}
-	  }
+	for (int c=0; c<font->Layers(); c++) {
+		FT_New_Face (*ft_library, font->FontFile(), 0, &ft_faces[c]);
+		FT_Set_Char_Size (ft_faces[c], font->Msize()*64, font->Msize()*64, 0, 0);
 	}
 
+
+	char glyphname[100];
+	GlyphPlace *glyph;
+	PathsData *outline;
+	PathsData *pobject=NULL;
+	//GroupData *object=NULL;
+	RefPtrStack<SomeData> *object=NULL;
+
+	//bool is_all_paths=true;
+	//if (use_clones) is_all_paths=false;
+
+	//bool is_single_color=true;
+	Palette *palette=dynamic_cast<Palette*>(font->GetColor());
+	//if (font->Layers()>1) is_single_color=false;
+
+	 //for layered fonts, need to extract glyphs from each font, then stack 'em
+	for (int l=0; l<lines.n; l++) {
+
+	   //foreach glyph...
+	  for (int g=0; g<linestats.e[l]->numglyphs; g++) {
+		glyph = &linestats.e[l]->glyphs[g];
+
+		 //assign a glyph name.
+		 //use ONLY face[0] for name in layered fonts. All parts of the glyph get collapsed to single object.
+		FT_Get_Glyph_Name(ft_faces[0], glyph->index, glyphname, 100);
+		if (glyphname[0]=='\0') sprintf(glyphname,"glyph%d",glyph->index);
+
+		outline=NULL;
+		for (int o=0; o<glyphs->n; o++) {
+			if (!strcmp(glyphs->e[o]->Id(), glyphname)) { 
+				outline=dynamic_cast<PathsData*>(glyphs->e[o]);
+				break;
+			}
+		}
+
+		if (!outline) {
+			 //make glyph
+		  for (int c=0; c<font->Layers(); c++) {
+			//ft_error = FT_Load_Glyph(ft_faces[c], glyph->index, FT_LOAD_NO_SCALE);
+			ft_error = FT_Load_Glyph(ft_faces[c], glyph->index, FT_LOAD_NO_BITMAP);
+			if (ft_error != 0) continue;
+
+			 //so maybe the glyph is a bitmap, maybe it is an svg
+			 //we need to be on watch so that if glyph is COLR-able, we need to get the
+			 //color glyphs, NOT the fallback ones!
+
+			if (ft_faces[c]->glyph->format != FT_GLYPH_FORMAT_OUTLINE) {
+				 //not the simple case where outline is right there!!
+				cerr << " *** Need to implement something meaningful for non-outline glyph to path! "<<endl;
+
+			} else {
+				 //we're in luck! just an ordinary path in one color to parse...
+
+				if (!outline) {
+					 //has to be first layer, so make new base object
+					PathsData *glypho=new PathsData;
+					glypho->Id(glyphname);
+
+					if (palette) {
+						ScreenColor color;
+						color.rgbf(
+							palette->colors.e[c]->channels[0]/(double)palette->colors.e[c]->maxcolor,
+							palette->colors.e[c]->channels[1]/(double)palette->colors.e[c]->maxcolor,
+							palette->colors.e[c]->channels[2]/(double)palette->colors.e[c]->maxcolor,
+							palette->colors.e[c]->channels[3]/(double)palette->colors.e[c]->maxcolor);
+						glypho->fill(&color);
+					}
+					outline=glypho;
+				} else {
+					//we are on a next layer, just need to add to existing outline
+					outline->pushEmpty();
+				}
+
+				 //set up parsing functions for Path object
+				FT_Outline_Funcs outline_funcs;
+				outline_funcs.move_to  = pathsdata_ft_move_to;
+				outline_funcs.line_to  = pathsdata_ft_line_to;
+				outline_funcs.conic_to = pathsdata_ft_conic_to;
+				outline_funcs.cubic_to = pathsdata_ft_cubic_to;
+				 // parse!!
+				ft_error = FT_Outline_Decompose( &ft_faces[c]->glyph->outline, &outline_funcs, outline ); 
+
+				outline->close();
+
+			} //if ft glyph format is outline
+		  } //foreach layer
+
+		  if (outline) {
+		  	glyphs->push(outline);
+		  	outline->dec_count();
+		  }
+
+		} //if outline didn't exist
+
+		if (!outline) continue;
+
+		if (use_clones) {
+		   // add SomeDataRef to existing group object
+		  SomeDataRef *ref=new SomeDataRef(outline); // *** need to use generic object generator
+		  //ref->Scale(***);
+		  ref->origin(flatpoint(glyph->x, glyph->y));
+
+		  if (!object) object=new RefPtrStack<SomeData>();
+		  object->push(ref);
+		  ref->dec_count();
+		  //is_all_paths=false;
+
+		} else {
+		   //add duplicate of glyph to existing overall object
+		  PathsData *newchar = dynamic_cast<PathsData*>(outline->duplicate(NULL));
+		  newchar->origin(flatpoint(glyph->x, glyph->y));
+		  if (!pobject) pobject=new PathsData();
+
+		   //transfer all paths from newchar to pobject
+		  newchar->FindBBox();
+		  newchar->ApplyTransform();
+		  for ( ; newchar->paths.n>0; ) {
+			  Path *path = newchar->paths.pop(0);
+			  pobject->paths.push(path);
+		  }
+
+		}
+	  } //for each glyph
+	} //for each line
+
+
+	 //cleanup
+	//if (glyphs != clones_to_add_to) glyphs->dec_count();
+	if (glyphs != clones_to_add_to) delete glyphs;
+	for (int c=0; c<font->Layers(); c++) {
+		FT_Done_Face (ft_faces[c]);
+	}
+
+	//if (is_all_paths) *** CollapsePaths(object);
+
+	if (pobject) {
+		pobject->FindBBox();
+		pobject->m(m());
+
+		DBG cerr <<"Converted to path:"<<endl;
+		DBG dump_out(stderr,2,0,NULL);
+
+		return pobject;
+	}
+	if (object) {
+		DBG cerr << "*** Warning!!! must implement GroupData for CaptionData::ConvertToPaths()!!!"<<endl;
+	}
 	return NULL;
 }
 
@@ -862,6 +1461,7 @@ CaptionInterface::CaptionInterface(int nid,Displayer *ndp) : anInterface(nid,ndp
 	lasthover=CAPTION_None;
 
 	defaultsize=20;
+	defaultspacing=1;
 	defaultscale=-1;
 	defaultfamily=newstr("sans");
 	defaultstyle=newstr("");
@@ -917,7 +1517,7 @@ int CaptionInterface::InterfaceOn()
 	DBG cerr <<"CaptionInterfaceOn()"<<endl;
 	showdecs=1;
 	needtodraw=1;
-	mode=0;//***
+	mode=0;
 
 
 //	if (!data) data=new CaptionData("\n0123\n  spaced line 3", 
@@ -972,16 +1572,16 @@ void CaptionInterface::deletedata()
 
 Laxkit::MenuInfo *CaptionInterface::ContextMenu(int x,int y,int deviceid, Laxkit::MenuInfo *menu)
 {
-	//if (!menu) menu=new MenuInfo();
+	if (!menu) menu=new MenuInfo();
 
 	//menu->AddItem(_("Lorem ipsum..."));
 	//menu->AddItem(_("Show all controls"));
-
-	//if (data) {
-		//menu->AddItem(_("Convert to "));
+	
+	if (data) {
+		menu->AddItem(_("Convert to path"), CAPTION_Convert_To_Path);
+		//menu->AddItem(_("Convert to path clones"));
 		//menu->AddItem(_(""));
-		//menu->AddItem(_(""));
-	//}
+	}
 
 	return menu;
 }
@@ -1007,13 +1607,70 @@ int CaptionInterface::DrawData(anObject *ndata,anObject *a1,anObject *a2,int inf
 	return 1;
 }
 
-/*! Note that this calls  imlib_context_set_drawable(dp->GetWindow()).
- * Please note that Imlib does not naturally handle skewed fonts, and this function
- * doesn't either.
- *
- * Returns 1 if no data, -1 if thing was offscreen, or 0 if thing drawn.
- *
- * \todo should work this to not need imlib, allowing a redefinable backend to render the text.
+void CaptionInterface::TextOutGlyphs(int line, double x,double y, bool show_caret)
+{
+	unsigned int len=data->linestats.e[line]->numglyphs;
+
+	double current_x = x;
+	//double current_y = y;
+	double current_y = y+data->font->ascent(); 
+	GlyphPlace *glyph;
+	GlyphPlace *nextglyph;
+
+	dp->glyphsout(current_x,current_y, data->linestats.e[line]->glyphs, len, LAX_BASELINE|LAX_LEFT); 
+
+	if (!show_caret) return;
+	
+
+	double caretx=x;
+
+	for (unsigned int i = 0; i < len; i++)
+	{
+		glyph = &data->linestats.e[line]->glyphs[i];
+		if (i<len-1) nextglyph = &data->linestats.e[line]->glyphs[i+1];
+		else nextglyph = NULL;
+
+		// *** ASSUMES CLUSTER VALUES MONOTONICALLY INCREASE
+		//
+		// Sometimes one cluster produces many glyphs.
+		// Sometimes many clusters produce a single glyph.
+
+		if (caretpos == (long)glyph->cluster) {
+			caretx=current_x;
+			break;
+
+		} else if (nextglyph && caretpos>(long)glyph->cluster && caretpos<(long)nextglyph->cluster) {
+			 //current glyph spans many clusters, interpolate
+			caretx = current_x + glyph->x_advance*char_distance(caretpos, data->lines.e[line], -1, glyph->cluster, data->linestats.e[line]->glyphs[i+1].cluster);
+			break;
+
+		} else if (!nextglyph && caretpos>(long)glyph->cluster) {
+			 //final glyph spans many clusters
+			caretx = current_x + glyph->x_advance*char_distance(caretpos, data->lines.e[line], -1, glyph->cluster, strlen(data->lines.e[line]));
+			break; 
+
+		} else if (i==len-1) return; //caret place not found!
+
+		//DBG PostMessage(data->lines.e[line]+caretpos);
+
+		current_x += glyph->x_advance;
+		current_y += glyph->y_advance;
+	} 
+
+	 //draw caret
+	dp->NewFG(0.0, .5, 0.0, 1.0);
+	//double ex=dp->textextent(data->font, data->lines.e[line],caretpos, NULL,NULL,NULL,NULL,0);
+	double tick=data->fontsize/10;
+	dp->drawline(caretx,y, caretx,y+data->fontsize);
+	dp->drawline(caretx,y, caretx-tick,y-tick);
+	dp->drawline(caretx,y, caretx+tick,y-tick);
+	dp->drawline(caretx,y+data->fontsize, caretx-tick,y+data->fontsize+tick);
+	dp->drawline(caretx,y+data->fontsize, caretx+tick,y+data->fontsize+tick);
+	dp->NewFG(data->red, data->green, data->blue, data->alpha);
+
+}
+
+/*! Returns 1 if no data, -1 if thing was offscreen, or 0 if thing drawn.
  */
 int CaptionInterface::Refresh()
 {
@@ -1049,23 +1706,17 @@ int CaptionInterface::Refresh()
 	dp->font(data->fontfamily,data->fontstyle,data->fontsize);//1 for real size, not screen size
 	if (!data->state) {
 		 //need to find line lengths
-		for (int c=0; c<data->lines.n; c++) {
-			data->linelengths.e[c]=dp->textextent(data->font, data->lines.e[c],-1, NULL,NULL,NULL,NULL,0);
-		}
-		data->state=1;
 		data->FindBBox();
 	}
 
 	 //find how large
-	flatpoint pb =flatpoint(0,0),
-			  pt =flatpoint(0, data->fontsize*data->linespacing),
-			  ptt=flatpoint(0, pt.y * data->lines.n);
+	flatpoint pb =flatpoint(0, data->miny),
+			  pt =flatpoint(0, data->miny+fabs(data->fontsize)),
+			  ptt=flatpoint(0, data->maxy);
 	int height=(int)norm(dp->realtoscreen(pb)-dp->realtoscreen(pt));
 	double totalheight=norm(dp->realtoscreen(pb)-dp->realtoscreen(ptt));
 	if (totalheight<.5) return 0;
 
-
-	//if (!coc) dp->PushAndNewTransform(data->m());
 
 
 	 // find the screen box to draw into
@@ -1147,11 +1798,21 @@ int CaptionInterface::Refresh()
 
 		 //draw size handle
 		dp->NewFG(.5,.5,.5,.5);
-		dp->moveto(data->maxx+xs+xs/2, data->maxy);
+		dp->moveto(data->maxx+xs+xs/2, data->maxy - (data->lines.n==1 ? 0 : (data->maxy-data->miny)*LSSIZE));
 		dp->lineto(data->maxx+xs, data->miny);
 		dp->lineto(data->maxx+xs+xs, data->miny);
 		dp->closed();
 		if (lasthover==CAPTION_Size) dp->fill(0); else dp->stroke(0);
+
+		 //draw line spacing handle
+		if (data->lines.n>1) {
+			dp->NewFG(.5,.5,.5,.5);
+			dp->moveto(data->maxx+xs+xs/2, data->maxy);
+			dp->lineto(data->maxx+xs,    data->miny + (data->maxy-data->miny)*(1-LSSIZE));
+			dp->lineto(data->maxx+xs+xs, data->miny + (data->maxy-data->miny)*(1-LSSIZE));
+			dp->closed();
+			if (lasthover==CAPTION_Line_Spacing) dp->fill(0); else dp->stroke(0);
+		}
 
 
 		 //draw move and rotate indicators
@@ -1194,9 +1855,14 @@ int CaptionInterface::Refresh()
 			 //draw the stuff
 			double x,y;
 			double baseline=data->font->ascent(), descent=data->font->descent();
-			y=-data->ycentering/100*data->fontsize*data->linespacing*data->lines.n;
+			//y = -data->ycentering/100*data->fontsize*data->linespacing*data->lines.n;
+			y = data->miny;
 
-			for (int c=0; c<data->lines.n; c++, y+=data->fontsize*data->linespacing) {
+			for (int c=(data->LineSpacing()<0 ? data->lines.n-1 : 0);
+					 (data->LineSpacing()<0 ? c>=0 : c<data->lines.n);
+					 (data->LineSpacing()<0 ? c-- : c++),
+					 y+=fabs(data->fontsize*data->linespacing)) {
+
 				x=-data->xcentering/100*(data->linelengths.e[c]);
 
 				if (showbaselines) {
@@ -1215,34 +1881,34 @@ int CaptionInterface::Refresh()
 				}
 
 				if (!isblank(data->lines.e[c])) {
-					dp->textout(x,y, data->lines.e[c],-1, LAX_TOP|LAX_LEFT);
+					TextOutGlyphs(c, x,y, c==caretline && showdecs);
+					//dp->textout(x,y, data->lines.e[c],-1, LAX_TOP|LAX_LEFT);
 				}
 
-				 //draw caret
-				if (c==caretline && showdecs) {
-					dp->NewFG(0.0, .5, 0.0, 1.0);
-					double ex=dp->textextent(data->font, data->lines.e[c],caretpos, NULL,NULL,NULL,NULL,0);
-					double tick=data->fontsize/10;
-					dp->drawline(x+ex,y, x+ex,y+data->fontsize);
-					dp->drawline(x+ex,y, x+ex-tick,y-tick);
-					dp->drawline(x+ex,y, x+ex+tick,y-tick);
-					dp->drawline(x+ex,y+data->fontsize, x+ex-tick,y+data->fontsize+tick);
-					dp->drawline(x+ex,y+data->fontsize, x+ex+tick,y+data->fontsize+tick);
-					dp->NewFG(data->red, data->green, data->blue, data->alpha);
-				}
+				// //draw caret
+				//if (c==caretline && showdecs) {
+				//	dp->NewFG(0.0, .5, 0.0, 1.0);
+				//	double ex=dp->textextent(data->font, data->lines.e[c],caretpos, NULL,NULL,NULL,NULL,0);
+				//	double tick=data->fontsize/10;
+				//	dp->drawline(x+ex,y, x+ex,y+data->fontsize);
+				//	dp->drawline(x+ex,y, x+ex-tick,y-tick);
+				//	dp->drawline(x+ex,y, x+ex+tick,y-tick);
+				//	dp->drawline(x+ex,y+data->fontsize, x+ex-tick,y+data->fontsize+tick);
+				//	dp->drawline(x+ex,y+data->fontsize, x+ex+tick,y+data->fontsize+tick);
+				//	dp->NewFG(data->red, data->green, data->blue, data->alpha);
+				//}
 			}
 
 			//dp->font(app->defaultlaxfont);
 
 		} else {
 			//*** text is too small, draw little lines
-			DBG cerr <<"small text, draw little gray lines instead..."<<endl;
+			DBG cerr <<"small text, implement draw little gray lines instead..."<<endl;
 		}
 	}
 	
 
 	//DBG cerr<<"..Done drawing CaptionInterface"<<endl;
-	//if (!coc) dp->PopAxes();
 	return 0;
 }
 
@@ -1326,10 +1992,11 @@ int CaptionInterface::UseThisObject(ObjectContext *oc)
         data->inc_count();
     }
 
-	defaultsize=data->fontsize;
+	defaultsize = data->fontsize;
+	defaultspacing = data->LineSpacing();
 	makestr(defaultfamily,data->fontfamily);
 	makestr(defaultstyle, data->fontstyle);
-	defaultscale=data->xaxis().norm();
+	defaultscale = data->xaxis().norm();
 
 	SimpleColorEventData *e=new SimpleColorEventData( 65535, 0xffff*data->red, 0xffff*data->green, 0xffff*data->blue, 0xffff*data->alpha, 0);
 	app->SendMessage(e, curwindow->win_parent->object_id, "make curcolor", object_id);
@@ -1353,7 +2020,7 @@ int CaptionInterface::LBDown(int x,int y,unsigned int state,int count, const Lax
 	if (extrahover) { delete extrahover; extrahover=NULL; }
 
 	if (data && count==2) {
-		app->addwindow(new FontDialog(NULL, "Font",_("Font"),ANXWIN_REMEMBER, 10,10,700,700,0, object_id,"newfont",0,
+		app->rundialog(new FontDialog(NULL, "Font",_("Font"),ANXWIN_REMEMBER, 10,10,700,700,0, object_id,"newfont",0,
 					data->fontfamily, data->fontstyle, data->fontsize,
 					NULL, //sample text
 					data->font, true
@@ -1498,6 +2165,18 @@ int CaptionInterface::Event(const Laxkit::EventData *e_data, const char *mes)
 
 		return 0;
 
+	} else if (!strcmp(mes, "linespacing")) {
+		const StrEventData *s=dynamic_cast<const StrEventData*>(e_data);
+		if (!s) return 1;
+		char *end=NULL;
+		double spacing = strtod(s->str,&end);
+		if (end!=s->str && spacing>0) {
+			data->LineSpacing(spacing);
+			defaultspacing=data->LineSpacing();
+			needtodraw=1;
+		}
+		return 0;
+
 	} else if (!strcmp(mes, "size")) {
 		const StrEventData *s=dynamic_cast<const StrEventData*>(e_data);
 		if (!s) return 1;
@@ -1539,6 +2218,19 @@ int CaptionInterface::Event(const Laxkit::EventData *e_data, const char *mes)
 		needtodraw=1;
 
 		return 0;
+
+	} else if (!strcmp(mes,"menuevent")) {
+        const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(e_data);
+        int i =s->info2; //id of menu item
+
+        if (i==CAPTION_Convert_To_Path) {
+			SomeData *newdata = data->ConvertToPaths(false, NULL);
+
+			viewport->NewData(newdata,NULL);//viewport adds only its own counts
+			newdata->dec_count();
+			// *** should select it too
+		}
+		return 0;
 	}
 
 	return 1;
@@ -1566,6 +2258,10 @@ int CaptionInterface::LBUp(int x,int y,unsigned int state, const Laxkit::LaxMous
 			if (over==CAPTION_Size) {
 				what="size";
 				sprintf(str,"%.10g",data->fontsize);
+
+			} else if (over==CAPTION_Line_Spacing) {
+				what="linespacing";
+				sprintf(str,"%.10g",data->linespacing);
 
 			} else if (over==CAPTION_Rotate) {
 				what="angle";
@@ -1619,12 +2315,16 @@ int CaptionInterface::scan(int x,int y,unsigned int state, int *line, int *pos)
 		return CAPTION_Text;
 	}
 
+	 //checking for clicking down just outside bounds...
 	if (p.x>=data->minx-xm && p.x<=data->maxx+xm+xm
 			&& p.y>=data->miny-ym && p.y<=data->maxy+ym) {
 
 		flatpoint m((data->minx+data->maxx)/2,(data->miny+data->maxy)/2);
 
-		if (p.x>data->maxx+xm) return CAPTION_Size;
+		if (p.x>data->maxx+xm) {
+			if (data->lines.n>1 && p.y > data->maxy - (data->maxy-data->miny)*LSSIZE) return CAPTION_Line_Spacing;
+			return CAPTION_Size;
+		}
 		if (xm<(data->maxx-data->minx)/5 && p.x>m.x-xm && p.x<m.x+xm) return CAPTION_HAlign;
 		if (ym<(data->maxy-data->miny)/5 && p.y>m.y-ym && p.y<m.y+ym) return CAPTION_VAlign;
 		if (p.x<data->minx+xm && p.y<data->miny+ym) return CAPTION_Rotate;
@@ -1678,6 +2378,7 @@ int CaptionInterface::MouseMove(int x,int y,unsigned int state, const Laxkit::La
 			else if (lasthover==CAPTION_VAlign) PostMessage(_("Vertical alignment"));
 			else if (lasthover==CAPTION_Rotate) PostMessage(_("Rotate, shift to snap"));
 			else if (lasthover==CAPTION_Size) PostMessage(_("Drag for font size, click to input"));
+			else if (lasthover==CAPTION_Line_Spacing) PostMessage(_("Drag for line spacing, click to input"));
 			else if (lasthover==CAPTION_Text) PostMessage(_("Text"));
 			else PostMessage(" ");
 			return 0;
@@ -1720,6 +2421,19 @@ int CaptionInterface::MouseMove(int x,int y,unsigned int state, const Laxkit::La
 			sprintf(str, _("Size %f pt"), d);
 
 			DBG cerr <<"------------ new font size a,d,h, fs: "<<data->font->ascent()<<", "<<data->font->descent()<<", "<<data->font->textheight()<<"   "<<data->fontsize<<endl;
+			PostMessage(str);
+			needtodraw=1;
+			return 0;
+
+		} else if (over==CAPTION_Line_Spacing) {
+			double factor=.1;
+			if (state&ShiftMask) factor*=.1;
+			if (state&ControlMask) factor*=.1;
+			double d=data->LineSpacing() + factor*dv.y;
+			data->LineSpacing(d);
+			char str[100];
+			sprintf(str, _("Line spacing %f %%"), d);
+
 			PostMessage(str);
 			needtodraw=1;
 			return 0;
@@ -1881,9 +2595,10 @@ int CaptionInterface::PerformAction(int action)
 		return 0;
 
 	} else if (action==CAPT_BaselineJustify) {
-		PostMessage(" *** need to implement baseline justify action in CaptionInterface!!");
-		//data->ycentering=50;
-		data->FindBBox();
+		int i=data->baseline_hint+1;
+		if (i<0) i=0;
+		if (i>=data->lines.n) i=0;
+		data->BaselineJustify(i);
 		needtodraw=1;
 		return 0;
 
@@ -1908,8 +2623,13 @@ int CaptionInterface::PerformAction(int action)
 		return 0;
 
 	} else if (action==CAPT_Direction) {
-		data->righttoleft=!data->righttoleft;
-		PostMessage(" *** need to implement rtl/ltr toggle action in CaptionInterface!!");
+		if (data->direction==LAX_LRTB) data->direction=LAX_RLTB;
+		else if (data->direction==LAX_RLTB) data->direction=LAX_TBLR;
+		else if (data->direction==LAX_TBLR) data->direction=LAX_TBRL;
+		else if (data->direction==LAX_TBRL) data->direction=LAX_LRTB;
+
+		PostMessage(" *** need to implement text flow direction change in CaptionInterface!!");
+
 		data->FindBBox();
 		needtodraw=1;
 		return 0;

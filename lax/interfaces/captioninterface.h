@@ -25,34 +25,67 @@
 
 #include <lax/interfaces/aninterface.h>
 #include <lax/interfaces/somedata.h>
+#include <lax/colors.h>
 #include <lax/laximages.h>
 #include <lax/fontmanager.h>
 
+#include <lax/refptrstack.h>
 
 
 namespace LaxInterfaces {
 
 
 //--------------------------------- CaptionData -------------------------------
+
 class CaptionData : virtual public SomeData
 {
- public:
+  public:
 	int state; //1 if lengths found
 
 	char *fontfamily;
 	char *fontstyle;
 	char *fontfile;
+
+	char *language; //id matching something in fontmanager
+	char *script;
+	int direction; //rtl, ltr, ttb, btt? use LAX_LRTB stuff?
+
 	double fontsize; //font height, font's default distance between baselines
 	double linespacing; //percentage of font's default
-	double xcentering,ycentering; //around origin
-	bool righttoleft;
+	double xcentering;
+	double ycentering; //around origin
+	int baseline_hint; //for baseline justify. -1 means normal ycentering
 
+	Laxkit::Color *color;
 	double red,green,blue,alpha; //[0..1]
 
 	Laxkit::LaxFont *font;
 
 	Laxkit::PtrStack<char> lines;
 	Laxkit::NumStack<double> linelengths;
+	
+	bool needtorecache;
+	class Linestat
+	{
+	  public:		
+		int needtorecache;
+		long start, len;
+		double pixlen;
+		double indent; //from minx, or miny if vertical writing
+		double height;
+
+		 // Get glyph information and positions out of the buffer.
+		Laxkit::GlyphPlace *glyphs;
+		int numglyphs;
+	
+		Linestat(long nstart, long n, double npixlen, double nindent, double nh)
+			{ glyphs=NULL; numglyphs=0; needtorecache=1; Set(nstart,n,npixlen,nindent,nh); }
+		virtual ~Linestat() { delete[] glyphs; }
+		void Set(long nstart, long n, double npixlen, double nindent, double nh)
+			{ start=nstart; len=n; pixlen=npixlen; indent=nindent; height=nh; }
+	};
+	Laxkit::PtrStack<Linestat> linestats;
+
 
 	virtual const char *whattype() { return "CaptionData"; }
 	CaptionData();
@@ -62,28 +95,34 @@ class CaptionData : virtual public SomeData
 
 	virtual int SetText(const char *newtext);
 	virtual char *GetText();
+	virtual int NumLines() { return lines.n; }
 	virtual double XCenter(double xcenter);
 	virtual double XCenter() { return xcentering; }
 	virtual double YCenter(double ycenter);
 	virtual double YCenter() { return ycentering; }
+	virtual double BaselineJustify(int line);
 	virtual double Size(double newsize);
 	virtual double Size() { return fontsize; }
+	virtual double MSize() { return font->Msize(); }
 	virtual double LineSpacing(double newspacing);
 	virtual double LineSpacing() { return linespacing; }
 	virtual int FindPos(double y, double x, int *line, int *pos);
 	virtual void FindBBox();
+	virtual int RecacheLine(int line);
+
 
 	virtual int Font(Laxkit::LaxFont *newfont);
 	virtual int Font(const char *file, const char *family,const char *style,double size);
 
 	virtual int CharLen(int line);
-	virtual int ComputeLineLen(int line);
+	virtual double ComputeLineLen(int line);
 	virtual int DeleteChar(int line,int pos,int after, int *newline,int *newpos);
 	virtual int InsertChar(unsigned int ch, int line,int pos, int *newline,int *newpos);
 	virtual int DeleteSelection(int fline,int fpos, int tline,int topos, int *newline,int *newpos);
 	virtual int InsertString(const char *txt,int len, int line,int pos, int *newline,int *newpos);
 
-	virtual SomeData *ConvertToPaths(bool use_clones, SomeData *clones_to_add_to);
+//	virtual SomeData *ConvertToPaths(bool use_clones, SomeData *clones_to_add_to);
+	virtual SomeData *ConvertToPaths(bool use_clones, Laxkit::RefPtrStack<SomeData> *clones_to_add_to);
 	
 	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
 	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
@@ -100,6 +139,8 @@ enum CaptionInterfaceHover {
 	CAPTION_HAlign,
 	CAPTION_VAlign,
 	CAPTION_Size,
+	CAPTION_Line_Spacing,
+	CAPTION_Convert_To_Path,
 	CAPTION_MAX
 };
 
@@ -114,9 +155,13 @@ class CaptionInterface : public anInterface
 	int lasthover;
 	Laxkit::ShortcutHandler *sc;
 
+	 // *** temporary:
+	void TextOutGlyphs(int line, double x,double y, bool show_caret);
+
   public:
 	double defaultscale;
 	double defaultsize;
+	double defaultspacing;
 	char *defaultfamily;
 	char *defaultstyle;
 

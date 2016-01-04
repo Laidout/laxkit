@@ -144,6 +144,9 @@ void DisplayerCairo::base_init()
 	mask_pattern=NULL;
 	source=NULL;
 
+	cairo_glyphs=NULL;
+	numalloc_glyphs=0;
+
 	fgRed=fgGreen=fgBlue=fgAlpha=1.0;
 	bgRed=bgGreen=bgBlue=0; bgAlpha=1;
 
@@ -167,6 +170,8 @@ DisplayerCairo::~DisplayerCairo()
 	if (curscaledfont) cairo_scaled_font_destroy(curscaledfont);
 
 	if (imagebuffer) imagebuffer->dec_count();
+
+	delete[] cairo_glyphs;
 }
 
 Displayer *DisplayerCairo::duplicate()
@@ -1397,7 +1402,7 @@ double DisplayerCairo::textout_line(double x,double y,const char *str,int len,un
 	cairo_text_extents_t extents;
 	cairo_text_extents(cr, buffer, &extents);
 
-    int ox,oy;
+    double ox,oy;
 	if (align&LAX_LEFT) ox=x;
 	else if (align&LAX_RIGHT) ox=x-extents.width;
 	else ox=x-extents.width/2; //center
@@ -1441,12 +1446,127 @@ double DisplayerCairo::textout_line(double x,double y,const char *str,int len,un
 	}
 	cairo_fill(cr);
 
-	//DBG drawline(ox,oy-curfont_extents.ascent, ox+50,oy-curfont_extents.ascent);
-	//DBG drawline(ox,oy, ox+50,oy);
-	//DBG drawline(ox,oy+curfont_extents.descent, ox+50,oy+curfont_extents.descent);
-	//DBG drawpoint(x,y, 5,0);
+	return extents.x_advance;
+}
 
+/*! len must specify how many glyphs in glyphs.
+ *
+ * x,y will be added to the x,y in the glyphs, and those new coordinates will be drawn
+ * from the origin of the current transform in cr.
+ */
+double DisplayerCairo::glyphsout(double x,double y, GlyphPlace *glyphs,unsigned int len, unsigned long align)
+{
+	if (len<=0) return 0;
 
+	if (len>numalloc_glyphs) {
+		delete[] cairo_glyphs;
+		cairo_glyphs = new cairo_glyph_t[len+10];
+		numalloc_glyphs=len+10;
+	}
+
+	GlyphPlace *glyph;
+	double current_x=0;
+	double current_y=0;
+
+    for (unsigned int i = 0; i < len; i++)
+    {
+        glyph = &glyphs[i];
+
+        cairo_glyphs[i].index = glyph->index;
+        cairo_glyphs[i].x =   current_x + glyph->x_offset;
+        cairo_glyphs[i].y =   current_y + glyph->y_offset;
+
+        current_x += glyph->x_advance;
+        current_y += glyph->y_advance;
+    }
+
+	cairo_text_extents_t extents;
+	cairo_glyph_extents(cr, cairo_glyphs, len, &extents);
+
+    double ox,oy;
+	if (align&LAX_LEFT) ox=x;
+	else if (align&LAX_RIGHT) ox=x-extents.width;
+	else ox=x-extents.width/2; //center
+
+    if (align&LAX_TOP) oy=y+curfont_extents.ascent;
+    else if (align&LAX_BOTTOM) oy=y-(curfont_extents.height-curfont_extents.ascent);
+    else if (align&LAX_BASELINE) oy=y;
+    else oy=y - (curfont_extents.height)/2 + curfont_extents.ascent; //center
+
+	//cairo_move_to(cr, ox,oy); <- seems to have no effect on glyph placements
+    for (unsigned int i = 0; i < len; i++)
+    {
+        cairo_glyphs[i].x += ox;
+        cairo_glyphs[i].y += oy;
+    }
+
+	if (laxfont->Layers()==1) {
+	    cairo_show_glyphs(cr, cairo_glyphs, len);
+	} else {
+		 //layered color font...
+		LaxFontCairo *f = laxfont;
+		int l=0;
+		cairo_save(cr);
+		Palette *fpalette=dynamic_cast<Palette*>(f->GetColor());
+		if (!fpalette) fpalette=palette;
+
+		while (f) {
+			// set color!!! palette must be rgba currently
+			if (fpalette) {
+				if (l<fpalette->colors.n) {
+					cairo_set_source_rgba(cr,
+							fpalette->colors.e[l]->channels[0]/(double)fpalette->colors.e[l]->maxcolor,
+							fpalette->colors.e[l]->channels[1]/(double)fpalette->colors.e[l]->maxcolor,
+							fpalette->colors.e[l]->channels[2]/(double)fpalette->colors.e[l]->maxcolor,
+							fpalette->colors.e[l]->channels[3]/(double)fpalette->colors.e[l]->maxcolor);
+				}
+			}
+			//cairo_move_to(cr, ox,oy);
+			cairo_set_font_face(cr,f->font);
+			cairo_show_glyphs(cr, cairo_glyphs, len);
+			f=dynamic_cast<LaxFontCairo*>(f->NextLayer());
+			l++;
+		}
+		cairo_restore(cr);
+	}
+
+	return current_x;
+}
+
+/*! Returns advance value.
+ */
+double DisplayerCairo::glyphsextent(GlyphPlace *glyphs,unsigned int len, double *width,double *height, bool real)
+{
+	if (len<=0) return 0;
+
+	if (len>numalloc_glyphs) {
+		delete[] cairo_glyphs;
+		cairo_glyphs = new cairo_glyph_t[len+10];
+		numalloc_glyphs=len+10;
+	}
+
+	GlyphPlace *glyph;
+	double current_x=0;
+	double current_y=0;
+    for (unsigned int i = 0; i < len; i++)
+    {
+        glyph = &glyphs[i];
+
+        cairo_glyphs[i].index = glyph->index;
+        cairo_glyphs[i].x =   current_x + glyph->x_offset;
+        cairo_glyphs[i].y =   current_y + glyph->y_offset;
+
+        current_x += glyph->x_advance;
+        current_y += glyph->y_advance;
+    }
+
+	cairo_text_extents_t extents;
+	cairo_glyph_extents(cr, cairo_glyphs, len, &extents);
+
+	if (height)  { if (real) *height=extents.height; else *height=curfont_extents.height; }
+	if (width)   { if (real) *width =extents.width;  else *width=extents.x_advance; }
+
+	if (real) return extents.width;
 	return extents.x_advance;
 }
 

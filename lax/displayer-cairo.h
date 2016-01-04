@@ -73,6 +73,9 @@ class DisplayerCairo : public Displayer
 	cairo_scaled_font_t *curscaledfont;
 	cairo_font_extents_t curfont_extents;
 
+	cairo_glyph_t *cairo_glyphs;
+	unsigned int numalloc_glyphs;
+
 	double height_over_M;
 	double _textheight; //user value, not a cairo value
 
@@ -183,6 +186,8 @@ class DisplayerCairo : public Displayer
 	virtual double textout(double x,double y,const char *str,int len=0,unsigned long align=LAX_CENTER);
 	virtual double textout(double *matrix,double x,double y,const char *str,int len=0,unsigned long align=LAX_CENTER);
 	virtual double textout(double angle, double x,double y,const char *str,int len=0,unsigned long align=LAX_CENTER);
+	virtual double glyphsout(double x,double y, GlyphPlace *glyphs,unsigned int len, unsigned long align=LAX_CENTER);
+	virtual double glyphsextent(GlyphPlace *glyphs,unsigned int len, double *width,double *height, bool real=false);
 
 	 //draw images
 	virtual void imageout(LaxImage *img,double x,double y);
