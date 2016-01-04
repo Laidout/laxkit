@@ -3171,6 +3171,7 @@ void PatchInterface::drawpatch(int roff,int coff)
 	dp->LineAttributes(1,LineSolid,linestyle.capstyle,linestyle.joinstyle);
 	dp->NewFG(&data->linestyle.color);
 	dp->DrawReal();
+	dp->LineWidthScreen(1);
 
 	//DBG cerr <<"Draw Patch: roff:"<<roff<<"  coff:"<<coff<<endl;
 	double s,t;
