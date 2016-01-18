@@ -155,7 +155,7 @@ Displayer::Displayer(aDrawable *d)
 	xw=dynamic_cast<anXWindow*>(d);
 
 	upperbound=1e+3;
-	lowerbound=1e-5;
+	lowerbound=1e-6;
 
 	Minx=Maxx=Miny=Maxy=0;
 	spaceminx=spaceminy=spacemaxx=spacemaxy=0;
