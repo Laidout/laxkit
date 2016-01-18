@@ -51,6 +51,7 @@ objs= \
 	showkeysinterface.o \
 	characterinterface.o \
 	textstreaminterface.o \
+	groupdata.o \
 
 #	linesinterface.o \
 #	measureinterface.o \
