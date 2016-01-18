@@ -234,6 +234,8 @@ class PathsData : virtual public SomeData
 	virtual double Length(int pathi, double tstart,double tend);
 	//virtual int NumPoints(int vertices=1);
 
+	virtual Path *GetPath(int index);
+
 	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
 	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
 };
@@ -326,6 +328,8 @@ enum PathInterfaceActions {
 	PATHIA_PointTypeCorner,
 	PATHIA_Select,
 	PATHIA_SelectInPath,
+	PATHIA_FlipVertically,
+	PATHIA_FlipHorizontally,
 	PATHIA_Close,
 	PATHIA_Decorations,
 	PATHIA_StartNewPath,

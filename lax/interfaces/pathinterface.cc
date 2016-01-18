@@ -2856,7 +2856,7 @@ int PathsData::line(double width,int cap,int join,ScreenColor *color)
 {
 	if (!linestyle) linestyle=new LineStyle;
 
-	if (width>=0) linestyle->width=width;
+	if (width>0) linestyle->width=width;
 	if (cap>=0) linestyle->capstyle=cap;
 	if (join>=0) linestyle->joinstyle=join;
 	if (color) linestyle->Color(color->red,color->green,color->blue,color->alpha);
@@ -3210,6 +3210,16 @@ Coordinate *PathsData::GetCoordinate(int pathi, double t)
 		t-=1;
 	}
 	return p;
+}
+
+/*! Return that path, or if index==-1, return top path.
+ * Else Return NULL if index out of range.
+ */
+Path *PathsData::GetPath(int index)
+{
+	if (index==-1) index=paths.n-1;
+	if (index>=0 && index<paths.n) return paths.e[index];
+	return NULL;
 }
 
 //! Close the whichpath.
@@ -4341,8 +4351,8 @@ int PathInterface::Refresh()
 		buttondown.getinitial(hoverdevice,LEFTBUTTON, &x1,&y1);
 		buttondown.getcurrent(hoverdevice,LEFTBUTTON, &x2,&y2);
 		dp->NewFG(controlcolor);
-		dp->LineWidthScreen(1);
 		dp->DrawScreen();
+		dp->LineWidthScreen(1);
 		dp->drawline(x1,y1, x2,y1);
 		dp->drawline(x2,y1, x2,y2);
 		dp->drawline(x2,y2, x1,y2);
@@ -6555,8 +6565,8 @@ Laxkit::ShortcutHandler *PathInterface::GetShortcuts()
 
 	sc=new ShortcutHandler(whattype());
 
-	sc->Add(PATHIA_CurpointOnHandle,  'h',0,0,        "HandlePoint",  _("Switch between handle and vertex"),NULL,0);
-	sc->Add(PATHIA_CurpointOnHandleR, 'H',ShiftMask,0,"HandlePointR", _("Switch between handle and vertex"),NULL,0);
+	sc->Add(PATHIA_CurpointOnHandle,  't',0,0,        "HandlePoint",  _("Switch between handle and vertex"),NULL,0);
+	sc->Add(PATHIA_CurpointOnHandleR, 'T',ShiftMask,0,"HandlePointR", _("Switch between handle and vertex"),NULL,0);
 	sc->Add(PATHIA_Pathop,            'o',0,0,        "Pathop",       _("Change path operator"),NULL,0);
 	sc->Add(PATHIA_ToggleAbsAngle,    '^',ShiftMask,0,"ToggleAbsAngle",_("Toggle absolute angles in subpaths"),NULL,0);
 	sc->Add(PATHIA_ToggleFillRule,    'F',ShiftMask,0,"ToggleFillRule",_("Toggle fill rule"),NULL,0);
@@ -6585,6 +6595,9 @@ Laxkit::ShortcutHandler *PathInterface::GetShortcuts()
 	sc->Add(PATHIA_Reverse,           'r',0,0,        "Reverse",      _("Reverse direction of current path"),NULL,0);
 	sc->Add(PATHIA_Delete,            LAX_Del,0,0,    "Delete",       _("Delete selected points"),NULL,0);
 	sc->AddShortcut(LAX_Bksp,0,0, PATHIA_Delete);
+
+	sc->Add(PATHIA_FlipVertically,    'v',0,0,        "FlipVertically",  _("Flip selected points vertically"),NULL,0);
+	sc->Add(PATHIA_FlipHorizontally,  'h',0,0,        "FlipHorizontally",_("Flip selected points horizontally"),NULL,0); 
 
 	sc->Add(PATHIA_ApplyOffset,       '_',ControlMask|ShiftMask,0,  "ApplyOffset",  _("Apply offset to current paths"),NULL,0);
 	sc->Add(PATHIA_ResetOffset,       '|',ControlMask|ShiftMask,0,  "ResetOffset",  _("Make offset values (if any) be 0 of current paths"),NULL,0);
@@ -6672,6 +6685,14 @@ int PathInterface::PerformAction(int action)
 			curpoints.push(pp,0);
 			needtodraw=1;
 		}
+		return 0;
+
+	} else if (action==PATHIA_FlipHorizontally) {
+		cerr << " *** must implement PATHIA_FlipHorizontally!"<<endl;
+		return 0;
+
+	} else if (action==PATHIA_FlipVertically) {
+		cerr << " *** must implement PATHIA_FlipVertically!"<<endl;
 		return 0;
 
 	} else if (action==PATHIA_Pathop) {
