@@ -67,8 +67,8 @@ class SomeData :  virtual public Laxkit::Resourceable,
 				  virtual public Laxkit::DoubleBBox,
 				  virtual public Laxkit::Undoable
 {
- protected:
- public:
+  protected:
+  public:
 	 //preview mechanism
 	Laxkit::LaxImage *preview;
 	int usepreview;
