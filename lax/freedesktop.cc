@@ -187,7 +187,7 @@ int touch_recently_used_xbel(const char *file, const char *mime,
 			for (c=0; c<gatt->attributes.n; c++) {
 				att=gatt->attributes.e[c]->find("content:"); //should be <bookmark:group>CONTENT</bookmark:group>
 				if (!att) att=gatt->attributes.e[c];
-				if (!strcmp(att->value,group)) break; //found it!
+				if (att && att->value && !strcmp(att->value,group)) break; //found it!
 			}
 			if (c==att->attributes.n) att->push("bookmark:group",group);
 		}
