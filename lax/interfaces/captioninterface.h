@@ -131,7 +131,7 @@ class CaptionData : virtual public SomeData
 
 //--------------------------------- CaptionInterface -------------------------------
 
-enum CaptionInterfaceHover {
+enum CaptionInterfaceActions {
 	CAPTION_None=0,
 	CAPTION_Move,
 	CAPTION_Rotate,
@@ -140,9 +140,27 @@ enum CaptionInterfaceHover {
 	CAPTION_VAlign,
 	CAPTION_Size,
 	CAPTION_Line_Spacing,
+
+	CAPTION_Copy,
+	CAPTION_Paste,
+	CAPTION_LeftJustify,
+	CAPTION_CenterJustify,
+	CAPTION_RightJustify,
+	CAPTION_TopJustify,
+	CAPTION_MiddleJustify,
+	CAPTION_BaselineJustify,
+	CAPTION_BottomJustify,
+	CAPTION_Direction,
+	CAPTION_Decorations,
+	CAPTION_ShowBaselines,
+	CAPTION_InsertChar,
+	CAPTION_CombineChars,
 	CAPTION_Convert_To_Path,
-	CAPTION_MAX
+	CAPTION_Lorem_Ipsum,
+
+	CAPT_MAX
 };
+
 
 class CaptionInterface : public anInterface
 {

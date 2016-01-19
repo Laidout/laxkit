@@ -36,6 +36,7 @@
 #include <lax/interfaces/viewportwindow.h>
 #include <lax/interfaces/linestyle.h>
 #include <lax/interfaces/somedataref.h>
+#include <lax/interfaces/groupdata.h>
 #include <lax/colors.h>
 #include <lax/laxutils.h>
 #include <lax/fontdialog.h>
@@ -65,6 +66,10 @@ using namespace std;
 namespace LaxInterfaces {
 
 
+//static const char *loremipsum = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.";
+
+
+//line spacing handle size as percentage of bounding box height
 static const double LSSIZE=.25;
 
 
@@ -1222,17 +1227,22 @@ int CaptionData::Font(const char *file, const char *family,const char *style,dou
 	return 0;
 }
 
+//#define FACTOR (65535.)
+#define FACTOR (64.)
+
 int pathsdata_ft_move_to(const FT_Vector* to, void* user)
 {
 	PathsData *paths = (PathsData*)user;
-	paths->moveTo(flatpoint(to->x/65535., to->y/65535.));
+	if (paths->paths.n>0 && paths->paths.e[paths->paths.n-1]->path==NULL)
+		paths->lineTo(flatpoint(to->x/FACTOR, -to->y/FACTOR));
+	else paths->moveTo(flatpoint(to->x/FACTOR, -to->y/FACTOR));
 	return 0;
 }
 
 int pathsdata_ft_line_to(const FT_Vector* to, void* user)
 {
 	PathsData *paths = (PathsData*)user;
-	paths->lineTo(flatpoint(to->x/65535., to->y/65535.));
+	paths->lineTo(flatpoint(to->x/FACTOR, -to->y/FACTOR));
 	return 0;
 }
 
@@ -1240,7 +1250,7 @@ int pathsdata_ft_conic_to(const FT_Vector* control, const FT_Vector* to, void* u
 {
 	PathsData *paths = (PathsData*)user;
 	flatpoint lastp = paths->LastVertex()->p();
-	flatpoint cc(control->x/65535., control->y/65535.), pto(to->x/65535.,to->y/65535.);
+	flatpoint cc(control->x/FACTOR, -control->y/FACTOR), pto(to->x/FACTOR,-to->y/FACTOR);
 	paths->curveTo(lastp + (cc-lastp)*2./3, pto + (cc-pto)*2./3, pto);
 	return 0;
 }
@@ -1248,9 +1258,9 @@ int pathsdata_ft_conic_to(const FT_Vector* control, const FT_Vector* to, void* u
 int pathsdata_ft_cubic_to(const FT_Vector* control1, const FT_Vector* control2, const FT_Vector*  to, void* user)
 {
 	PathsData *paths = (PathsData*)user;
-	paths->curveTo(flatpoint(control1->x/65535., control1->y/65535.),
-							 flatpoint(control2->x/65535., control2->y/65535.),
-							 flatpoint(to->x/65535., to->y/65535.));
+	paths->curveTo( flatpoint(control1->x/FACTOR, -control1->y/FACTOR),
+					flatpoint(control2->x/FACTOR, -control2->y/FACTOR),
+					flatpoint(to->x/FACTOR, -to->y/FACTOR));
 	return 0;
 }
 
@@ -1262,15 +1272,11 @@ int pathsdata_ft_cubic_to(const FT_Vector* control1, const FT_Vector* control2, 
  *
  * NULL will be returned if there is no text to render.
  */
-//SomeData *CaptionData::ConvertToPaths(bool use_clones, GroupData *clones_to_add_to)
 SomeData *CaptionData::ConvertToPaths(bool use_clones, RefPtrStack<SomeData> *clones_to_add_to)
 {
 	if (!font || (lines.n==1 && strlen(lines.e[0])==0)) return NULL;
 
 	RecacheLine(-1);
-
-	RefPtrStack<SomeData> *glyphs = clones_to_add_to;
-	if (!glyphs) glyphs = new RefPtrStack<SomeData>;
 
 
 	FT_Error ft_error;
@@ -1278,18 +1284,28 @@ SomeData *CaptionData::ConvertToPaths(bool use_clones, RefPtrStack<SomeData> *cl
 	FontManager *fontmanager = GetDefaultFontManager();
 	FT_Library *ft_library = fontmanager->GetFreetypeLibrary();
 
+	LaxFont *ff;
 	for (int c=0; c<font->Layers(); c++) {
-		FT_New_Face (*ft_library, font->FontFile(), 0, &ft_faces[c]);
+		ff=font->Layer(c);
+		FT_New_Face (*ft_library, ff->FontFile(), 0, &ft_faces[c]);
 		FT_Set_Char_Size (ft_faces[c], font->Msize()*64, font->Msize()*64, 0, 0);
 	}
 
 
+	InterfaceManager *imanager = InterfaceManager::GetDefault();
+
+	RefPtrStack<SomeData> glyphs[font->Layers()];
+
 	char glyphname[100];
 	GlyphPlace *glyph;
 	PathsData *outline;
+	
+	RefPtrStack<PathsData> layers; //temp object for single color layers
 	PathsData *pobject=NULL;
-	//GroupData *object=NULL;
+
 	RefPtrStack<SomeData> *object=NULL;
+
+	ScreenColor color(red,green,blue,alpha);
 
 	//bool is_all_paths=true;
 	//if (use_clones) is_all_paths=false;
@@ -1298,111 +1314,174 @@ SomeData *CaptionData::ConvertToPaths(bool use_clones, RefPtrStack<SomeData> *cl
 	Palette *palette=dynamic_cast<Palette*>(font->GetColor());
 	//if (font->Layers()>1) is_single_color=false;
 
+
 	 //for layered fonts, need to extract glyphs from each font, then stack 'em
 	for (int l=0; l<lines.n; l++) {
+	  flatpoint loffset;
+	  loffset.x = -xcentering/100*(linelengths.e[l]);
+	  loffset.y = miny + font->ascent() + l*fabs(fontsize*linespacing);
 
 	   //foreach glyph...
 	  for (int g=0; g<linestats.e[l]->numglyphs; g++) {
 		glyph = &linestats.e[l]->glyphs[g];
 
 		 //assign a glyph name.
-		 //use ONLY face[0] for name in layered fonts. All parts of the glyph get collapsed to single object.
+		 //use ONLY face[0] for name in layered fonts. All parts of the glyph ultimately get collapsed to single object.
 		FT_Get_Glyph_Name(ft_faces[0], glyph->index, glyphname, 100);
 		if (glyphname[0]=='\0') sprintf(glyphname,"glyph%d",glyph->index);
 
-		outline=NULL;
-		for (int o=0; o<glyphs->n; o++) {
-			if (!strcmp(glyphs->e[o]->Id(), glyphname)) { 
-				outline=dynamic_cast<PathsData*>(glyphs->e[o]);
+		for (int layer=0; layer<font->Layers(); layer++) {
+		  outline=NULL;
+		  for (int o=0; o<glyphs[layer].n; o++) {
+			if (!strcmp(glyphs[layer].e[o]->Id(), glyphname)) { 
+				outline=dynamic_cast<PathsData*>(glyphs[layer].e[o]);
 				break;
 			}
-		}
+		  }
 
-		if (!outline) {
+		  if (!outline) {
 			 //make glyph
-		  for (int c=0; c<font->Layers(); c++) {
-			//ft_error = FT_Load_Glyph(ft_faces[c], glyph->index, FT_LOAD_NO_SCALE);
-			ft_error = FT_Load_Glyph(ft_faces[c], glyph->index, FT_LOAD_NO_BITMAP);
+			//ft_error = FT_Load_Glyph(ft_faces[layer], glyph->index, FT_LOAD_NO_SCALE);
+			ft_error = FT_Load_Glyph(ft_faces[layer], glyph->index, FT_LOAD_NO_BITMAP);
 			if (ft_error != 0) continue;
 
 			 //so maybe the glyph is a bitmap, maybe it is an svg
 			 //we need to be on watch so that if glyph is COLR-able, we need to get the
 			 //color glyphs, NOT the fallback ones!
 
-			if (ft_faces[c]->glyph->format != FT_GLYPH_FORMAT_OUTLINE) {
+			if (ft_faces[layer]->glyph->format != FT_GLYPH_FORMAT_OUTLINE) {
 				 //not the simple case where outline is right there!!
 				cerr << " *** Need to implement something meaningful for non-outline glyph to path! "<<endl;
 
 			} else {
 				 //we're in luck! just an ordinary path in one color to parse...
 
-				if (!outline) {
-					 //has to be first layer, so make new base object
-					PathsData *glypho=new PathsData;
-					glypho->Id(glyphname);
-
-					if (palette) {
-						ScreenColor color;
-						color.rgbf(
-							palette->colors.e[c]->channels[0]/(double)palette->colors.e[c]->maxcolor,
-							palette->colors.e[c]->channels[1]/(double)palette->colors.e[c]->maxcolor,
-							palette->colors.e[c]->channels[2]/(double)palette->colors.e[c]->maxcolor,
-							palette->colors.e[c]->channels[3]/(double)palette->colors.e[c]->maxcolor);
-						glypho->fill(&color);
-					}
-					outline=glypho;
-				} else {
-					//we are on a next layer, just need to add to existing outline
-					outline->pushEmpty();
+				if (palette) {
+					color.rgbf(
+						palette->colors.e[layer]->channels[0]/(double)palette->colors.e[layer]->maxcolor,
+						palette->colors.e[layer]->channels[1]/(double)palette->colors.e[layer]->maxcolor,
+						palette->colors.e[layer]->channels[2]/(double)palette->colors.e[layer]->maxcolor,
+						palette->colors.e[layer]->channels[3]/(double)palette->colors.e[layer]->maxcolor);
 				}
 
+				 //has to be first layer, so make new base object
+				PathsData *glypho = dynamic_cast<PathsData*>(imanager->NewDataObject("PathsData"));
+				glypho->Id(glyphname);
+
+				glypho->fill(&color);
+				glypho->line(0);
+				outline=glypho;
+
 				 //set up parsing functions for Path object
+				int pathn = outline->paths.n;
 				FT_Outline_Funcs outline_funcs;
 				outline_funcs.move_to  = pathsdata_ft_move_to;
 				outline_funcs.line_to  = pathsdata_ft_line_to;
 				outline_funcs.conic_to = pathsdata_ft_conic_to;
 				outline_funcs.cubic_to = pathsdata_ft_cubic_to;
+				outline_funcs.shift    = 0;
+				outline_funcs.delta    = 0;
 				 // parse!!
-				ft_error = FT_Outline_Decompose( &ft_faces[c]->glyph->outline, &outline_funcs, outline ); 
-
+				ft_error = FT_Outline_Decompose( &ft_faces[layer]->glyph->outline, &outline_funcs, outline ); 
 				outline->close();
 
-			} //if ft glyph format is outline
-		  } //foreach layer
+				for (int p=pathn; p<outline->paths.n; p++) {
+					Coordinate *coord = outline->paths.e[p]->path;
+					Coordinate *start = coord;
 
-		  if (outline) {
-		  	glyphs->push(outline);
-		  	outline->dec_count();
+					 //remove double points
+					do {
+						if (coord->prev && coord->prev!=start
+								&& coord->flags&POINT_VERTEX && coord->prev->flags&POINT_VERTEX
+								&& coord->fp==coord->prev->fp) {
+							Coordinate *d = coord->prev;
+							d->detach();
+							delete d;
+						}
+					} while (coord && coord!=start);
+
+				}
+
+			} //if ft glyph format is outline
+
+			if (outline) {
+				glyphs[layer].push(outline);
+				outline->dec_count();
+			}
+
+		  } //if outline didn't exist
+		  
+		  if (use_clones) {
+			  //*** //need to build up the glyph image
+			      //then apply a ref to the image outside of the layers loop below
+			cerr << " *** implement use_clones in convert text to paths!!"<<endl;
+
+		  } else {
+			   //add duplicate of glyph to existing overall object
+
+			  if (layer>=layers.n) {
+				  PathsData *nlayer = dynamic_cast<PathsData*>(imanager->NewDataObject("PathsData"));
+				  layers.push(nlayer);
+				  nlayer->dec_count();
+
+				  pobject=layers.e[layer];
+				  ScreenColor color;
+				  if (palette) {
+				  	color.rgbf(
+				  		palette->colors.e[layer]->channels[0]/(double)palette->colors.e[layer]->maxcolor,
+				  		palette->colors.e[layer]->channels[1]/(double)palette->colors.e[layer]->maxcolor,
+				  		palette->colors.e[layer]->channels[2]/(double)palette->colors.e[layer]->maxcolor,
+				  		palette->colors.e[layer]->channels[3]/(double)palette->colors.e[layer]->maxcolor);
+				  } else color.rgbf(red, green, blue, alpha);
+				  pobject->fill(&color);
+				  pobject->line(0);
+				  pobject->linestyle->function=LAXOP_None;
+
+			  } else pobject = layers.e[layer];
+
+			   //provide proper offset
+			  PathsData *newchar = dynamic_cast<PathsData*>(outline->duplicate(NULL));
+
+			  for (int p=0; p<newchar->paths.n; p++) {
+				  Coordinate *coord = newchar->paths.e[p]->path;
+				  Coordinate *start = coord;
+
+					start=coord;
+					do {
+						coord->fp += flatpoint(glyph->x+loffset.x, glyph->y+loffset.y);
+						coord = coord->next;
+					} while (coord && coord!=start);
+			  }
+
+			   //transfer all paths from newchar to pobject
+			  newchar->FindBBox();
+			  //newchar->ApplyTransform();
+			  for ( ; newchar->paths.n>0; ) {
+				  Path *path = newchar->paths.pop(0);
+				  pobject->paths.push(path);
+			  }
+
+			  newchar->dec_count();
 		  }
 
-		} //if outline didn't exist
+		} //foreach layer
 
 		if (!outline) continue;
 
 		if (use_clones) {
 		   // add SomeDataRef to existing group object
-		  SomeDataRef *ref=new SomeDataRef(outline); // *** need to use generic object generator
+		  //SomeDataRef *ref=new SomeDataRef(outline); // *** need to use generic object generator
+		  SomeDataRef *ref = dynamic_cast<SomeDataRef*>(imanager->NewDataObject("SomeDataRef"));
+		  if (!ref) ref=new SomeDataRef;
+		  ref->Set(outline,false);
+
 		  //ref->Scale(***);
-		  ref->origin(flatpoint(glyph->x, glyph->y));
+		  ref->origin(flatpoint(glyph->x+loffset.x, glyph->y+loffset.y));
 
 		  if (!object) object=new RefPtrStack<SomeData>();
 		  object->push(ref);
 		  ref->dec_count();
 		  //is_all_paths=false;
-
-		} else {
-		   //add duplicate of glyph to existing overall object
-		  PathsData *newchar = dynamic_cast<PathsData*>(outline->duplicate(NULL));
-		  newchar->origin(flatpoint(glyph->x, glyph->y));
-		  if (!pobject) pobject=new PathsData();
-
-		   //transfer all paths from newchar to pobject
-		  newchar->FindBBox();
-		  newchar->ApplyTransform();
-		  for ( ; newchar->paths.n>0; ) {
-			  Path *path = newchar->paths.pop(0);
-			  pobject->paths.push(path);
-		  }
 
 		}
 	  } //for each glyph
@@ -1411,22 +1490,36 @@ SomeData *CaptionData::ConvertToPaths(bool use_clones, RefPtrStack<SomeData> *cl
 
 	 //cleanup
 	//if (glyphs != clones_to_add_to) glyphs->dec_count();
-	if (glyphs != clones_to_add_to) delete glyphs;
 	for (int c=0; c<font->Layers(); c++) {
 		FT_Done_Face (ft_faces[c]);
 	}
 
 	//if (is_all_paths) *** CollapsePaths(object);
 
-	if (pobject) {
-		pobject->FindBBox();
-		pobject->m(m());
+	if (layers.n) {
+		for (int l=0; l<layers.n; l++) {
+			pobject = layers.e[l];
+			pobject->m(m());
+			pobject->FindBBox();
+		}
 
-		DBG cerr <<"Converted to path:"<<endl;
-		DBG dump_out(stderr,2,0,NULL);
+		if (layers.n==1) {
+			layers.e[0]->inc_count();
+			return layers.e[0];
+		}
 
-		return pobject;
+		DBG cerr <<"Converted to path."<<endl;
+		//DBG dump_out(stderr,2,0,NULL);
+
+		GroupData *group = dynamic_cast<GroupData*>(imanager->NewDataObject("Group"));
+		for (int l=0; l<layers.n; l++) {
+			group->push(layers.e[l]);
+		}
+		group->FindBBox();
+
+		return group;
 	}
+
 	if (object) {
 		DBG cerr << "*** Warning!!! must implement GroupData for CaptionData::ConvertToPaths()!!!"<<endl;
 	}
@@ -2224,11 +2317,7 @@ int CaptionInterface::Event(const Laxkit::EventData *e_data, const char *mes)
         int i =s->info2; //id of menu item
 
         if (i==CAPTION_Convert_To_Path) {
-			SomeData *newdata = data->ConvertToPaths(false, NULL);
-
-			viewport->NewData(newdata,NULL);//viewport adds only its own counts
-			newdata->dec_count();
-			// *** should select it too
+			return PerformAction(CAPTION_Convert_To_Path);
 		}
 		return 0;
 	}
@@ -2493,25 +2582,6 @@ int CaptionInterface::MouseMove(int x,int y,unsigned int state, const Laxkit::La
 	return 0;
 }
 
-enum CaptionInterfaceActions {
-	CAPT_None=0,
-	CAPT_Copy,
-	CAPT_Paste,
-	CAPT_LeftJustify,
-	CAPT_CenterJustify,
-	CAPT_RightJustify,
-	CAPT_TopJustify,
-	CAPT_MiddleJustify,
-	CAPT_BaselineJustify,
-	CAPT_BottomJustify,
-	CAPT_Direction,
-	CAPT_Decorations,
-	CAPT_ShowBaselines,
-	CAPT_InsertChar,
-	CAPT_CombineChars,
-	CAPT_MAX
-};
-
 Laxkit::ShortcutHandler *CaptionInterface::GetShortcuts()
 {
 	if (sc) return sc;
@@ -2523,20 +2593,21 @@ Laxkit::ShortcutHandler *CaptionInterface::GetShortcuts()
 
     sc=new ShortcutHandler(whattype());
 
-    sc->Add(CAPT_Copy,            'c',ControlMask,0, "Copy"           , _("Copy"            ),NULL,0);
-    sc->Add(CAPT_Paste,           'v',ControlMask,0, "Paste"          , _("Paste"           ),NULL,0);
-    sc->Add(CAPT_LeftJustify,     'l',ControlMask,0, "LeftJustify"    , _("Left Justify"    ),NULL,0);
-    sc->Add(CAPT_CenterJustify,   'e',ControlMask,0, "CenterJustify"  , _("Center Justify"  ),NULL,0);
-    sc->Add(CAPT_RightJustify,    'r',ControlMask,0, "RightJustify"   , _("Right Justify"   ),NULL,0);
-    sc->Add(CAPT_TopJustify,      't',ControlMask,0, "TopJustify"     , _("Top Justify"     ),NULL,0);
-    sc->Add(CAPT_MiddleJustify,   'm',ControlMask,0, "MiddleJustify"  , _("Middle Justify"  ),NULL,0);
-    sc->Add(CAPT_BaselineJustify, 'B',ShiftMask|ControlMask,0, "BaselineJustify", _("Baseline Justify"),NULL,0);
-    sc->Add(CAPT_BottomJustify,   'b',ControlMask,0, "BottomJustify"  , _("Bottom Justify"  ),NULL,0);
-    sc->Add(CAPT_Direction,       'D',ShiftMask|ControlMask,0, "Direction", _("Toggle Direction"),NULL,0);
-    sc->Add(CAPT_Decorations,     'd',ControlMask,0, "Decorations"    , _("Toggle Decorations"),NULL,0);
-    sc->Add(CAPT_ShowBaselines,   'D',ShiftMask|ControlMask,0, "ShowBaselines", _("Show Baselines"),NULL,0);
-    sc->Add(CAPT_InsertChar,      'i',ControlMask,0, "InsertChar"     , _("Insert Character"),NULL,0);
-    sc->Add(CAPT_CombineChars,    'j',ControlMask,0, "CombineChars"   , _("Join Characters if possible"),NULL,0);
+    sc->Add(CAPTION_Copy,            'c',ControlMask,0, "Copy"           , _("Copy"            ),NULL,0);
+    sc->Add(CAPTION_Paste,           'v',ControlMask,0, "Paste"          , _("Paste"           ),NULL,0);
+    sc->Add(CAPTION_LeftJustify,     'l',ControlMask,0, "LeftJustify"    , _("Left Justify"    ),NULL,0);
+    sc->Add(CAPTION_CenterJustify,   'e',ControlMask,0, "CenterJustify"  , _("Center Justify"  ),NULL,0);
+    sc->Add(CAPTION_RightJustify,    'r',ControlMask,0, "RightJustify"   , _("Right Justify"   ),NULL,0);
+    sc->Add(CAPTION_TopJustify,      't',ControlMask,0, "TopJustify"     , _("Top Justify"     ),NULL,0);
+    sc->Add(CAPTION_MiddleJustify,   'm',ControlMask,0, "MiddleJustify"  , _("Middle Justify"  ),NULL,0);
+    sc->Add(CAPTION_BaselineJustify, 'B',ShiftMask|ControlMask,0, "BaselineJustify", _("Baseline Justify"),NULL,0);
+    sc->Add(CAPTION_BottomJustify,   'b',ControlMask,0, "BottomJustify"  , _("Bottom Justify"  ),NULL,0);
+    sc->Add(CAPTION_Direction,       'D',ShiftMask|ControlMask,0, "Direction", _("Toggle Direction"),NULL,0);
+    sc->Add(CAPTION_Decorations,     'd',ControlMask,0, "Decorations"    , _("Toggle Decorations"),NULL,0);
+    sc->Add(CAPTION_ShowBaselines,   'D',ShiftMask|ControlMask,0, "ShowBaselines", _("Show Baselines"),NULL,0);
+    sc->Add(CAPTION_InsertChar,      'i',ControlMask,0, "InsertChar"     , _("Insert Character"),NULL,0);
+    sc->Add(CAPTION_CombineChars,    'j',ControlMask,0, "CombineChars"   , _("Join Characters if possible"),NULL,0);
+    sc->Add(CAPTION_Convert_To_Path, 'P',ShiftMask|ControlMask,0, "ConvertToPaths", _("Convert to path object"),NULL,0);
 
     manager->AddArea(whattype(),sc);
     return sc;
@@ -2544,7 +2615,7 @@ Laxkit::ShortcutHandler *CaptionInterface::GetShortcuts()
 
 int CaptionInterface::PerformAction(int action)
 {
-	if (action==CAPT_Paste) {
+	if (action==CAPTION_Paste) {
 		 //pasting with no data should create a new data
 		viewport->PasteRequest(this, NULL);
 		return 0;
@@ -2553,48 +2624,48 @@ int CaptionInterface::PerformAction(int action)
 	 //everything else needs a data
 	if (!data) return 1;
 
-	if (action==CAPT_Copy) {
+	if (action==CAPTION_Copy) {
 		PostMessage(" *** Need to implement copy!!!");
 		return 0;
 
-	} else if (action==CAPT_Decorations) {
+	} else if (action==CAPTION_Decorations) {
 		showdecs=!showdecs;
 		if (showdecs) PostMessage(_("Show controls"));
 		else PostMessage(_("Hide controls"));
 		needtodraw=1;
 		return 0;
 
-	} else if (action==CAPT_LeftJustify) {
+	} else if (action==CAPTION_LeftJustify) {
 		data->xcentering=0;
 		data->FindBBox();
 		needtodraw=1;
 		return 0;
 
-	} else if (action==CAPT_CenterJustify) {
+	} else if (action==CAPTION_CenterJustify) {
 		data->xcentering=50;
 		data->FindBBox();
 		needtodraw=1;
 		return 0;
 
-	} else if (action==CAPT_RightJustify) {
+	} else if (action==CAPTION_RightJustify) {
 		data->xcentering=100;
 		data->FindBBox();
 		needtodraw=1;
 		return 0;
 
-	} else if (action==CAPT_TopJustify) {
+	} else if (action==CAPTION_TopJustify) {
 		data->ycentering=0;
 		data->FindBBox();
 		needtodraw=1;
 		return 0;
 
-	} else if (action==CAPT_MiddleJustify) {
+	} else if (action==CAPTION_MiddleJustify) {
 		data->ycentering=50;
 		data->FindBBox();
 		needtodraw=1;
 		return 0;
 
-	} else if (action==CAPT_BaselineJustify) {
+	} else if (action==CAPTION_BaselineJustify) {
 		int i=data->baseline_hint+1;
 		if (i<0) i=0;
 		if (i>=data->lines.n) i=0;
@@ -2602,13 +2673,13 @@ int CaptionInterface::PerformAction(int action)
 		needtodraw=1;
 		return 0;
 
-	} else if (action==CAPT_BottomJustify) {
+	} else if (action==CAPTION_BottomJustify) {
 		data->ycentering=100;
 		data->FindBBox();
 		needtodraw=1;
 		return 0;
 
-	} else if (action==CAPT_InsertChar) {
+	} else if (action==CAPTION_InsertChar) {
 		if (data && !child) {
 			CharacterInterface *chari = new CharacterInterface(this, 0, dp, data->font);
 			child=chari;
@@ -2616,13 +2687,13 @@ int CaptionInterface::PerformAction(int action)
 		}
 		return 0;
 
-	} else if (action==CAPT_ShowBaselines) {
+	} else if (action==CAPTION_ShowBaselines) {
 		showbaselines++;
 		if (showbaselines>1) showbaselines=0;
 		needtodraw=1;
 		return 0;
 
-	} else if (action==CAPT_Direction) {
+	} else if (action==CAPTION_Direction) {
 		if (data->direction==LAX_LRTB) data->direction=LAX_RLTB;
 		else if (data->direction==LAX_RLTB) data->direction=LAX_TBLR;
 		else if (data->direction==LAX_TBLR) data->direction=LAX_TBRL;
@@ -2634,7 +2705,7 @@ int CaptionInterface::PerformAction(int action)
 		needtodraw=1;
 		return 0;
 
-	} else if (action==CAPT_CombineChars) {
+	} else if (action==CAPTION_CombineChars) {
 		if (!data) return 1;
 
 		if (caretpos==0) caretpos++;
@@ -2658,6 +2729,18 @@ int CaptionInterface::PerformAction(int action)
 		data->InsertChar(newch,caretline,caretpos,&caretline,&caretpos);
 		needtodraw=1;
 		return 0;
+
+	} else if (action==CAPTION_Convert_To_Path) {
+		if (!data) return 0;
+		SomeData *newdata = data->ConvertToPaths(false, NULL);
+
+		 //add data to viewport, and select tool for it
+		ObjectContext *oc=NULL;
+		viewport->NewData(newdata,&oc);//viewport adds only its own counts
+		//viewport->ChangeObject(oc, 1);
+		newdata->dec_count();
+		return 0;
+
 	}
 
 	return 1;
