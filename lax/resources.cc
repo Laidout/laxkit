@@ -20,10 +20,13 @@
 //
 //    Copyright (C) 2015 by Tom Lechner
 //
+
 #include <cstdlib>
+
 #include <lax/resources.h>
 #include <lax/strmanip.h>
 #include <lax/fileutils.h>
+#include <lax/misc.h>
 
 #include <lax/refptrstack.cc>
 
@@ -162,6 +165,8 @@ Resource::Resource()
 	objecttype=NULL;
 	config=NULL;
 	creation_func=NULL;
+
+	meta=NULL;
 }
 
 Resource::Resource(anObject *obj, anObject *nowner, const char *nname, const char *nName, const char *ndesc, const char *nfile, LaxImage *nicon)
@@ -193,6 +198,8 @@ Resource::Resource(anObject *obj, anObject *nowner, const char *nname, const cha
 		Resourceable *r=dynamic_cast<Resourceable*>(obj);
 		r->SetResourceOwner(this);
 	}
+
+	meta=NULL;
 }
 
 Resource::~Resource()
@@ -200,14 +207,15 @@ Resource::~Resource()
 	DBG cerr <<"--Resource destructor for "<<name<<", id="<<(object ? object->object_id : object_id)<<endl;
 
 	if (object) object->dec_count();
+	if (icon)   icon  ->dec_count();
 
 	delete[] name;
 	delete[] Name;
 	delete[] description;
 	delete[] source;
-	if (icon) icon->dec_count();
 
 	if (config) delete config;
+	if (meta)   delete meta;
 }
 
 /*! Sometimes a resource takes up a lot of memory, so we can store basic config instead,
@@ -220,6 +228,90 @@ anObject *Resource::Create()
 
 	object=creation_func(config);
 	return object;
+}
+
+
+//----------------------------- ResourceDirs -------------------------------
+/*! \class ResourceDirs 
+ * Node class for ResourceDirs.
+ */
+
+ResourceDir::ResourceDir()
+{
+	id        =getUniqueNumber();
+	dir       =NULL;
+	last_scan =0;
+	ignore    =false;
+	auto_added=false;
+}
+
+ResourceDir::ResourceDir(const char *ndir, bool nignore, bool isauto)
+{
+	id        =getUniqueNumber();
+	dir       =newstr(ndir);
+	last_scan =0;
+	ignore    =nignore;
+	auto_added=isauto;
+}
+
+ResourceDir::~ResourceDir()
+{
+	delete[] dir;
+}
+
+
+//----------------------------- ResourceDirs -------------------------------
+/*! \class ResourceDirs 
+ *
+ * Class to simplify accessing files within a set of common directories.
+ */
+
+
+ResourceDirs::ResourceDirs()
+{}
+
+ResourceDirs::~ResourceDirs()
+{}
+
+/*! Return 0 for added, -1 for already there and not added.
+ * where<0 means add at end of list.
+ */
+int ResourceDirs::AddDir(const char *ndir, int where)
+{
+    if (!ndir) return 1;
+
+    char *dir = full_path_for_file(ndir, NULL);
+    int status=1;
+
+    if (S_ISDIR(file_exists(dir,1,NULL))) {
+        int c2=0;
+        for ( ; c2<n; c2++) {
+            if (!strcmp(dir, e[c2]->dir)) break;
+        }
+
+        if (c2==n) {
+            push(new ResourceDir(dir, false, false));
+            status=0;
+        } else status=-1; //already there
+    }
+
+    delete[] dir;
+    return status;
+
+}
+
+/*! Return 0 for removed, or 1 for not there already.
+ */
+int ResourceDirs::RemoveDir(const char *dir)
+{
+	for (int c=0; c<n; c++) {
+		if (!strcmp(e[c]->dir, dir)) {
+			remove(c);
+			return 0;
+		}
+	}
+
+	return 1;
 }
 
 
@@ -257,15 +349,13 @@ anObject *Resource::Create()
 
 
 ResourceType::ResourceType()
-	: dirs(LISTS_DELETE_Array)
 {
 	default_icon=NULL;
 	creation_func=NULL;
 }
 
 ResourceType::ResourceType(const char *nname, const char *nName, const char *ndesc, LaxImage *nicon)
-  : Resource(NULL,NULL,nname,nName,ndesc,NULL,nicon),
-	dirs(LISTS_DELETE_Array)
+  : Resource(NULL,NULL,nname,nName,ndesc,NULL,nicon)
 {
 	default_icon=NULL;
 	creation_func=NULL;
@@ -281,27 +371,14 @@ ResourceType::~ResourceType()
  */
 int ResourceType::AddDir(const char *dir, int where)
 {
-	 //check to see if already there
-	for (int c=0; c<dirs.n; c++) {
-		if (!strcmp(dirs.e[c], dir)) return -1;
-	}
-
-	dirs.push(newstr(dir), LISTS_DELETE_Array, where);
-	return 0;
+	return dirs.AddDir(dir, where);
 }
 
 /*! Return 0 for removed, or 1 for not there already.
  */
 int ResourceType::RemoveDir(const char *dir)
 {
-	for (int c=0; c<dirs.n; c++) {
-		if (!strcmp(dirs.e[c], dir)) {
-			dirs.remove(c);
-			return 0;
-		}
-	}
-
-	return 1;
+	return dirs.RemoveDir(dir);
 }
 
 /*! Find some object that has str in it. Ignore case.
@@ -543,6 +620,7 @@ int ResourceManager::AddDirs_XDG(int which_type)
 			appendstr(dir,type->name);
 			expand_home_inplace(dir);
 			simplify_path(dir,1);
+
 			if (file_exists(dir,1,NULL)==S_IFDIR) {
 				if (type->AddDir(dir,-1)==0) numadded++;
 			}
@@ -583,7 +661,7 @@ int ResourceManager::AddResource(const char *type, //! If NULL, then use object-
 							const char *name, const char *Name, const char *description, const char *file, LaxImage *icon,
 							bool builtin)
 {
-	DBG cerr <<"Add resource "<<object->Id()<<"..."<<endl;
+	DBG cerr <<"Add resource "<<(object->Id() ? object->Id():"(no id!!)" )<<"..."<<endl;
 	if (!object) return 1;
 	if (!type) type=object->whattype();
 
@@ -668,8 +746,9 @@ void ResourceManager::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext
 
 		if (type->dirs.n) {
 			fprintf(f,"%s  dirs \\\n",spc);
+
 			for (int c=0; c<type->dirs.n; c++) {
-				fprintf(f,"%s    %s\n",spc, type->dirs.e[c]);
+				fprintf(f,"%s    %s\n",spc, type->dirs.e[c]->dir);
 			}
 		}
 		
@@ -762,6 +841,7 @@ void ResourceManager::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::D
 				} else if (!strcmp(name,"dirs")) {
 					const char *end=value;
 					char *dir;
+
 					while (*value) {
 						end=strchr(value,'\n');
 						if (!end) end=value+strlen(value);

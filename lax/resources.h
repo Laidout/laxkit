@@ -81,6 +81,7 @@ class Resource : virtual public anObject, virtual public Tagged
 	LaxImage *icon;
 	bool ignore;
 	bool linkable;
+	LaxFiles::Attribute *meta;
 
 	int favorite; //0 for not fav, positive for order in a favorites list
 	int source_type; //0 for object on its own, 1 for object from file, 2 for object from config, -1 for built in (do not dump out)
@@ -102,22 +103,41 @@ class Resource : virtual public anObject, virtual public Tagged
 };
 
 
+//----------------------------- ResourceDir -------------------------------
+
+class ResourceDir
+{
+  public:
+	unsigned long id;
+	char *dir;
+	std::time_t last_scan;
+	bool ignore;
+	bool auto_added;
+
+	ResourceDir();
+	ResourceDir(const char *ndir, bool ignore, bool auto_added);
+	virtual ~ResourceDir();
+};
+
+//----------------------------- ResourceDirs -------------------------------
+
+class ResourceDirs : public PtrStack<ResourceDir>
+{
+  public:
+	ResourceDirs();
+	virtual ~ResourceDirs();
+	virtual int AddDir(const char *dir, int where);
+	virtual int RemoveDir(const char *dir);
+};
+
+
 //----------------------------- ResourceType -------------------------------
 
 class ResourceType : public Resource
 {
   protected: 
   public: 
-	class ResourceDir
-	{
-	  public:
-		unsigned long id;
-		char *dir;
-		std::time_t last_scan;
-		bool ignore;
-		bool auto_added;
-	};
-	PtrStack<char> dirs;
+	ResourceDirs dirs;
 	 //dir last scan time
 
 	RefPtrStack<Resource> resources;
