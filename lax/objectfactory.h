@@ -23,7 +23,9 @@
 #ifndef _LAX_DATAFACTORY_H
 #define _LAX_DATAFACTORY_H
 
-#include <lax/displayer.h>
+#include <cstdio>
+
+#include <lax/anobject.h>
 #include <lax/lists.h>
 
 
