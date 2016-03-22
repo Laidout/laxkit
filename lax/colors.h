@@ -119,6 +119,7 @@ class Color : public Laxkit::anObject, public LaxFiles::DumpUtility
 	Color(const Color &l);
 	Color &operator=(Color &l);
 	virtual ~Color();
+	virtual Color *duplicate();
 
 	virtual const char *Name();
 	virtual int ColorSystemId();

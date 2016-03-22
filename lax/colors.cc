@@ -212,6 +212,12 @@ Color &Color::operator=(Color &c)
 	return c;
 }
 
+Color *Color::duplicate()
+{
+	Color *color = new Color(*this);
+	return color;
+}
+
 //! Return the alpha of the color. 1==totally opaque, 0==totally transparent, -1==no alpha.
 /*! If the ColorSystem defines alpha within the primaries, then
  * either that alpha is used in place of this->alpha, but only if
