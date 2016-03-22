@@ -23,28 +23,59 @@
 #ifndef _LAX_TEXTSTREAMINTERFACE_H
 #define _LAX_TEXTSTREAMINTERFACE_H
 
+
 #include <lax/interfaces/aninterface.h>
+#include <lax/interfaces/pathinterface.h>
 
 
 namespace LaxInterfaces { 
 
 
+enum TextStreamActions {
+	TXT_None=0,
+	TXT_Hover_Outside,
+	TXT_Hover_Outside_Stroke,
+	TXT_Hover_Inside,
+	TXT_Hover_Inside_Stroke,
+	TXT_Hover_Stroke,
+	TXT_Hover_Area,
+	TXT_Hover_New,
+	TXT_Offset,
+	TXT_Position,
+	TXT_MAX
+};
+
+enum TextStreamToolFlags {
+	TXT_On_Stroke      = (1<<0),
+	TXT_In_Area        = (1<<1),
+	TXT_Draggable_Area = (1<<2),
+	TXT_FLAGS_MAX
+};
 
 class TextStreamInterface : public anInterface
 {
   protected:
 	int showdecs;
 	ObjectContext *extrahover;
-	int extra_type;
+	int extra_hover;
+	flatpoint hoverpoint;
+
+	flatpoint flowdir;
+	double fontheight;
+	PathsData outline;
+	int outline_index;
+
+	double close_dist;
 
 	Laxkit::ShortcutHandler *sc;
 
 	virtual int send();
-	virtual int scan(int x,int y,unsigned int state);
+	virtual int scan(int x,int y,unsigned int state, int &index, flatpoint &hovered);
 	virtual int Track(ObjectContext *oc);
+	virtual int DefineOutline(int which);
 
   public:
-	unsigned int textstream_interface_style;
+	unsigned int tstream_style;
 
 	TextStreamInterface(anInterface *nowner, int nid,Laxkit::Displayer *ndp);
 	virtual ~TextStreamInterface();
@@ -75,6 +106,9 @@ class TextStreamInterface : public anInterface
 	virtual int CharInput(unsigned int ch, const char *buffer,int len,unsigned int state, const Laxkit::LaxKeyboard *d);
 	virtual int KeyUp(unsigned int ch,unsigned int state, const Laxkit::LaxKeyboard *d);
 	virtual void ViewportResized();
+
+	virtual void FlowDir(flatpoint dir);
+	virtual void FontHeight(double height);
 };
 
 } // namespace LaxInterfaces
