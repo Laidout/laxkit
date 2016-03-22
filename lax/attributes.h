@@ -125,6 +125,7 @@ int AttributeToCSSFile(FILE *f, Attribute *att, int indent);
 char *AttributeToCSS(Attribute *att,char **appendtothis, char **error_ret);
 Attribute *CSSFileToAttribute (const char *cssfile,Attribute *att);
 Attribute *CSSToAttribute (const char *css,Attribute *att);
+Attribute *InlineCSSToAttribute (const char *css,Attribute *att);
 
 
 } //namespace LaxFiles

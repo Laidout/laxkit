@@ -2567,7 +2567,7 @@ int AttributeToCSSFile(FILE *f, Attribute *att, int indent)
 
 char *AttributeToCSS(Attribute *att,char **appendtothis, char **error_ret)
 {
-	cout << " *** must implement AttributeToCSS()!!"<<endl;
+	cerr << " *** must implement AttributeToCSS()!!"<<endl;
 	return NULL;
 }
 
@@ -2587,7 +2587,7 @@ char *AttributeToCSS(Attribute *att,char **appendtothis, char **error_ret)
  */
 Attribute *CSSFileToAttribute (const char *cssfile,Attribute *att)
 {
-	cout << " *** must implement CSSFileToAttribute()!!"<<endl;
+	cerr << " *** must implement CSSFileToAttribute()!!"<<endl;
 	return NULL;
 
 //	FILE *f=fopen(file,"r");
@@ -2599,7 +2599,61 @@ Attribute *CSSFileToAttribute (const char *cssfile,Attribute *att)
 //	return att;
 }
 
-Attribute *CSSToAttribute (const char *css,Attribute *att);
+Attribute *CSSToAttribute (const char *css,Attribute *att)
+{
+	cerr << " *** must implement CSSToAttribute()!!"<<endl;
+	return NULL;
+}
+
+/*! Parse a string like "fill-color:#123456; stroke-opacity: .6" into an Attribute:
+ * <pre>
+ *   fill-color      #123456
+ *   stroke-opacity  .6
+ * </pre>
+ */
+Attribute *InlineCSSToAttribute (const char *thecss, Attribute *att)
+{
+	if (!att) att=new Attribute;
+
+	//------------------
+	//const char *p=css;
+	//	
+    //
+	//do {
+	//	while (isspace(*p)) p++;
+	//} while (p && *p);
+    //
+	//------------------
+
+	char *p;
+	char *css = newstr(thecss);
+	int n=0;
+	char **strs = spliton(css, ';', &n);
+	for (int c=0; c<n; c++) {
+		p=strs[c];
+		stripws(p, 3); //removes initial and trailing ws in place
+
+		int n2=0;
+		char **namevalue = spliton(p, ':', &n2);
+		if (n2==1) {
+			stripws(namevalue[0], 3);
+			att->push(namevalue[0]);
+		} else if (n2==2) {
+			stripws(namevalue[0], 3);
+			stripws(namevalue[1], 3);
+			att->push(namevalue[0], namevalue[1]);
+		}
+		delete[] namevalue;
+	}
+
+	delete[] strs;
+
+	//------------------
+
+
+	return att;
+}
+
 
 
 } //namespace
