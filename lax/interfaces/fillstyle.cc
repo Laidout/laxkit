@@ -71,6 +71,15 @@ void FillStyle::Color(int r,int g,int b,int a)
 	color.alpha=a;
 }
 
+//! Set the color. Components are 0..1.0.
+void FillStyle::Colorf(double r,double g,double b,double a)
+{
+	color.red  =r*65535;
+	color.green=g*65535;
+	color.blue =b*65535;
+	color.alpha=a*65535;
+}
+
 //! Reverse of dump_out.
 void FillStyle::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *context) 
 {
@@ -142,8 +151,18 @@ void FillStyle::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *cont
 //! Return whether the style will cause any fill or not.
 int FillStyle::hasFill()
 {
-	return fillstyle==0 || function==LAXOP_Dest || fillstyle==FillNone;
+	return fillstyle==0 || function==LAXOP_Dest || function==LAXOP_None || fillstyle==FillNone;
 }
+
+/*! Returns old fill rule.
+ */
+int FillStyle::FillRule(int newrule)
+{
+	int old=fillrule;
+	fillrule=newrule;
+	return old;
+}
+
 
 } // namespace LaxInterfaces
 
