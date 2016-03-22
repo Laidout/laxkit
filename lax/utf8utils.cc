@@ -838,6 +838,54 @@ int utf8test(const char* src, unsigned srclen) {
   return ret;
 }
 
+
+
+//-------------------------------- othen new utf8 helpers ----------------------------------------
+
+/*! Return the number of unicode characters between given byte positions.
+ * Will return a positive number no matter if second byte is before the first.
+ * Return 0 if pos1==pos2.
+ */
+int get_num_chars(const char *line, int len, unsigned int pos1, unsigned int pos2)
+{
+	if (len<0) len=strlen(line);
+
+	unsigned int p;
+	if (pos1>pos2) { p=pos1; pos1=pos2; pos2=p; }
+
+	int n=0;
+	for (p=pos1; p<pos2; p=utf8fwd_index(line,p+1,len)) {
+		n++;
+	}
+
+	return n;
+}
+
+/*! Where start_cluster and end_cluster define byte offsets in utf8 line, return fraction along
+ * that stretch that pos is at.
+ *
+ * This makes even caret spacing across a glyph that covers multiple characters, ignoring differing
+ * byte lengths between utf8 character encodings.
+ */
+double char_distance(long pos, const char *line, int len, long start_cluster, long end_cluster)
+{
+	if (len<0) len=strlen(line);
+
+	if (pos==start_cluster) return 0.0;
+	if (pos==end_cluster)   return 1.0;
+
+	int n=0;
+	int atchar=-1;
+	while (start_cluster<end_cluster) {
+		if (atchar<0 && pos<=start_cluster) atchar=n;
+		n++;
+		const char *np = utf8fwd(line+start_cluster+1, line, line+len);
+		start_cluster = np-line;
+	}
+
+	return atchar/(float)n;
+}
+
 //close doxygen utf8utils group
 /*! @}
  */

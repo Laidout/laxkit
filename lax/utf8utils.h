@@ -28,7 +28,9 @@
 
 #include <stdlib.h>
 
+
 namespace Laxkit {
+
 	
 int	utf8bytes(unsigned ucs);
 
@@ -47,6 +49,10 @@ unsigned utf8frommb(char*, unsigned, const char*, unsigned);
 unsigned utf8froma (char*, unsigned, const char*, unsigned);
 int utf8locale();
 int utf8test(const char*, unsigned);
+
+double char_distance(long pos, const char *line, int len, long start_cluster, long end_cluster);
+int get_num_chars(const char *line, int len, unsigned int pos1, unsigned int pos2);
+
 
 } //namespace Laxkit
 
