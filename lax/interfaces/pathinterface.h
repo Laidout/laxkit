@@ -194,6 +194,8 @@ class PathsData : virtual public SomeData
 
 	virtual int line(double width,int cap=-1,int join=-1,Laxkit::ScreenColor *color=NULL);
 	virtual int fill(Laxkit::ScreenColor *color);
+	virtual void InstallLineStyle(LineStyle *newlinestyle);
+	virtual void InstallFillStyle(FillStyle *newfillstyle);
 
 	virtual bool Weighted(int whichpath=-1);
 	virtual bool HasOffset(int whichpath=-1);
@@ -217,14 +219,14 @@ class PathsData : virtual public SomeData
 	virtual void close(int whichpath=-1);
 	virtual Coordinate *LastVertex();
 	virtual void pushEmpty(int where=-1,LineStyle *nls=NULL);
-	virtual void InstallLineStyle(LineStyle *newlinestyle);
 //	virtual int AddAfter(Coordinate *afterwhich,flatpoint p); 
 //	virtual int Delete(Coordinate *which); // returns num left in stack
 	virtual void clear(int which=-1);
+
+	virtual int ConnectEndpoints(Coordinate *from,int fromi, Coordinate *to,int toi);
 	virtual void ApplyTransform();
 	virtual void MatchTransform(Affine &affine);
 	virtual void MatchTransform(const double *mm);
-	virtual int ConnectEndpoints(Coordinate *from,int fromi, Coordinate *to,int toi);
 
 	virtual flatpoint ClosestPoint(flatpoint point, double *disttopath, double *distalongpath, double *tdist, int *pathi);
 	virtual int Intersect(int pathindex,flatpoint p1,flatpoint p2, int isline, double startt,flatpoint *pts,int ptsn, double *t,int tn);
@@ -234,7 +236,9 @@ class PathsData : virtual public SomeData
 	virtual double Length(int pathi, double tstart,double tend);
 	//virtual int NumPoints(int vertices=1);
 
+	virtual int NumPaths() { return paths.n; }
 	virtual Path *GetPath(int index);
+	virtual Path *GetOffsetPath(int index);
 
 	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
 	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
@@ -244,6 +248,7 @@ class PathsData : virtual public SomeData
 //-------------------- PathsData utility
 
 PathsData *SvgToPathsData(PathsData *existingpath, const char *d,char **end_ptr, LaxFiles::Attribute *powerstroke);
+int SetClipFromPaths(Laxkit::Displayer *dp, LaxInterfaces::SomeData *outline, const double *extra_m, bool real=false);
 
 
 //-------------------- PathOperator ---------------------------

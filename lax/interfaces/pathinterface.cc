@@ -18,9 +18,12 @@
 //    License along with this library; if not, write to the Free Software
 //    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
-//    Copyright (C) 2004-2007,2010-2015 by Tom Lechner
+//    Copyright (C) 2004-2007,2010-2016 by Tom Lechner
 //
 
+
+#include <lax/interfaces/somedataref.h>
+#include <lax/interfaces/groupdata.h>
 
 #include <lax/interfaces/somedatafactory.h>
 #include <lax/interfaces/somedata.h>
@@ -729,7 +732,10 @@ void Path::UpdateWidthCache()
 		woffset=flatpoint(0,0);
 		wwidth =flatpoint(0,linestyle ? linestyle->width : defaultwidth);
 		ymin=ymax=woffset.y;
+		if (wwidth.y>ymax) ymax=wwidth.y;
+		else if (wwidth.y<ymin) ymin=wwidth.y;
 		amin=amax=0;
+
 	} else {
 		amin=amax=pathweights.e[0]->angle;
 
@@ -749,7 +755,7 @@ void Path::UpdateWidthCache()
 		}
 	}
 
-	 //finalize width and offset bounds
+	 //finalize width and offset bounds, for simplicity, use same bounds, since they are approximately on same scale
 	if (ymax==ymin) ymin=ymax-1;
 	ymax+=(ymax-ymin)*.25;
 	ymin-=(ymax-ymin)*.25;
@@ -3069,12 +3075,24 @@ void PathsData::pushEmpty(int where,LineStyle *nls)
 	}
 }
 
+/*! Incs count on style, unless it is already installed.
+ */
 void PathsData::InstallLineStyle(LineStyle *newlinestyle)
 {
 	if (linestyle==newlinestyle) return;
 	if (linestyle) linestyle->dec_count();
 	linestyle=newlinestyle;
 	if (newlinestyle) newlinestyle->inc_count();
+}
+
+/*! Incs count on style, unless it is already installed.
+ */
+void PathsData::InstallFillStyle(FillStyle *newfillstyle)
+{
+	if (fillstyle==newfillstyle) return;
+	if (fillstyle) fillstyle->dec_count();
+	fillstyle=newfillstyle;
+	if (newfillstyle) newfillstyle->inc_count();
 }
 
 //! Return the last point of the top path, or NULL if that doesn't exist
@@ -3220,6 +3238,19 @@ Path *PathsData::GetPath(int index)
 	if (index==-1) index=paths.n-1;
 	if (index>=0 && index<paths.n) return paths.e[index];
 	return NULL;
+}
+
+/*! Return a new path that is the old path with offset applied.
+ * Calling code is responsible for deleting the returned path.
+ */
+Path *PathsData::GetOffsetPath(int index)
+{
+	Path *path = GetPath(index);
+	if (!path) return NULL;
+
+	Path *opath = path->duplicate();
+	if (opath->HasOffset()) opath->ApplyOffset();
+	return opath;
 }
 
 //! Close the whichpath.
@@ -7309,6 +7340,167 @@ void PathInterface::MakeCircle()
 
 	data->Recache();
     needtodraw=1;
+}
+
+//! Append clipping paths to dp.
+/*!
+ * Converts a a group of PathsData, a SomeDataRef to a PathsData, 
+ * or a single PathsData to a clipping path. The final region is just 
+ * the union of all the paths there.
+ *
+ * Non-PathsData elements in a group does not break the finding.
+ * Those extra objects are just ignored.
+ *
+ * Returns the number of single paths interpreted, or negative number for error.
+ *
+ * \todo *** currently, uses all points (vertex and control points)
+ *   in the paths as a polyline, not as the full curvy business 
+ *   that PathsData are capable of. when ps output of paths is 
+ *   actually more implemented, this will change..
+ * \todo this would be good to transplant into laxkit
+ */
+int SetClipFromPaths(Laxkit::Displayer *dp, LaxInterfaces::SomeData *outline, const double *extra_m, bool real)
+{
+	PathsData *path=dynamic_cast<PathsData *>(outline);
+
+	 //If is not a path, but is a reference to a path
+	if (!path && dynamic_cast<SomeDataRef *>(outline)) {
+		SomeDataRef *ref;
+		 // skip all nested SomeDataRefs
+		do {
+			ref=dynamic_cast<SomeDataRef *>(outline);
+			if (ref) outline=ref->thedata;
+		} while (ref);
+		if (outline) path=dynamic_cast<PathsData *>(outline);
+	}
+
+	int n=0; //the number of objects interpreted and that have non-empty paths
+	
+	 // If is not a path, and is not a ref to a path, but is a group,
+	 // then check its elements 
+	if (!path && dynamic_cast<GroupData *>(outline)) {
+		GroupData *g=dynamic_cast<GroupData *>(outline);
+		SomeData *d;
+		double m[6];
+
+		for (int c=0; c<g->NumKids(); c++) {
+			d=g->Child(c);
+
+			 //add transform of group element
+			if (extra_m) transform_mult(m,d->m(),extra_m);
+			else transform_copy(m,d->m());
+
+			n+=SetClipFromPaths(dp,d,m, real);
+		}
+	}
+	
+	if (!path) {
+		return n;
+	}
+
+     // finally append to clip path
+
+//	--------------
+    Coordinate *start,*p, *p2;
+	flatpoint c1,c2;
+    flatpoint pp;
+
+    for (int c=0; c<path->paths.n; c++) {
+        if (!path->paths.e[c]->path) continue;
+		if (!path->paths.e[c]->IsClosed()) continue; // only include closed paths
+
+
+        start=p=path->paths.e[c]->path;
+
+		if (extra_m) dp->moveto(transform_point(extra_m, p->p()));
+		else dp->moveto(p->p());
+
+		do {
+			p2=p->next; //p points to a vertex
+			if (!p2) break;
+
+			if (p2->flags&(POINT_TOPREV|POINT_TONEXT)) {
+				 //we do have control points
+				if (p2->flags&POINT_TOPREV) {
+					c1=p2->p();
+					p2=p2->next;
+				} else c1=p->p();
+				if (!p2) break;
+
+				if (p2->flags&POINT_TONEXT) {
+					c2=p2->p();
+					p2=p2->next;
+				} else { //otherwise, should be a vertex
+					//p2=p2->next;
+					c2=p2->p();
+				}
+
+				if (extra_m)
+					dp->curveto(transform_point(extra_m, c1), transform_point(extra_m, c2), transform_point(extra_m, p2->p()));
+				else dp->curveto(c1,c2,p2->p());
+			} else {
+				 //we do not have control points, so is just a straight line segment
+				if (extra_m)
+					dp->lineto(transform_point(extra_m, p2->p()));
+				else dp->lineto(p2->p());
+			}
+
+			p=p2;
+		} while (p && p!=start);
+		dp->closed();
+
+		n++;
+    }
+
+	if (n) {
+		if (!real) dp->DrawScreen();
+		dp->Clip(true);
+		if (!real) dp->DrawReal();
+	}
+
+//	-----------
+//    Coordinate *start,*p;
+//    int np,maxp=0;
+//    flatpoint *points=NULL;
+//    flatpoint pp;
+//    int c,c2;
+//
+//    for (c=0; c<path->paths.n; c++) {
+//        np=0;
+//        start=p=path->paths.e[c]->path;
+//        if (!p) continue;
+//
+//        do { p=p->next; np++; } while (p && p!=start);
+//
+//        if (p==start) { // only include closed paths
+//            if (np>maxp) {
+//                if (points) delete[] points;
+//                maxp=np;
+//                points=new flatpoint[maxp];
+//            }
+//            n++;
+//            c2=0;
+//            do {
+//                if (extra_m) pp=transform_point(extra_m, p->p());
+//                    else pp=p->p();
+//                points[c2].x = pp.x;
+//                points[c2].y = pp.y;
+//
+//                p=p->next;
+//                c2++;
+//            } while (p && p!=start);
+//
+//            if (!real) dp->DrawScreen();
+//            dp->Clip(points,np,1);
+//            if (!real) dp->DrawReal();
+//            n++;
+//        }
+//    }
+//    if (points) delete[] points;
+//	-----------
+
+
+    return n;
 }
 
 
