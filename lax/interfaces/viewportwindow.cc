@@ -1626,7 +1626,7 @@ int ViewportWindow::Resize(int nw,int nh)
 //! Do a little extra checking to find what point r should correspond to.
 /*! If a viewport defines pages or groups, for instance, then this allows
  * derived interfaces to use coords on those pages and groups, rather than the
- * plain view transform in dp->
+ * plain view transform in dp.
  *
  * Default is just return dp->realtoscreen(r).
  */
