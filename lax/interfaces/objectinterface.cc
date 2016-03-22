@@ -714,6 +714,20 @@ int ObjectInterface::ToggleGroup()
 	return 0;
 }
 
+/*! Group all in the selection, even if there is only one object selected..
+ */
+int ObjectInterface::GroupObjects()
+{ 
+	return 0;
+}
+
+/*! Ungroup any in the selection that are groups.
+ */
+int ObjectInterface::UngroupObjects()
+{ 
+	return 0;
+}
+
 Laxkit::ShortcutHandler *ObjectInterface::GetShortcuts()
 {
 	if (sc) return sc;
@@ -725,7 +739,9 @@ Laxkit::ShortcutHandler *ObjectInterface::GetShortcuts()
 
 	sc=RectInterface::GetShortcuts();
 
-	sc->Add(OIA_Group,   'g',ControlMask,0,    "Group",   _("Group or ungroup"),NULL,0);
+	sc->Add(OIA_Group,       'G',ShiftMask|AltMask|ControlMask,0,"Group",_("Group any, even if only one selected"),NULL,0);
+	sc->Add(OIA_ToggleGroup, 'g',ControlMask,0,           "ToggleGroup", _("Group if many selected, or ungroup if only one group selected"),NULL,0);
+	sc->Add(OIA_Ungroup,     'G',ShiftMask|ControlMask,0, "Ungroup",     _("Ungroup any selected that are groups"),NULL,0);
 
 	return sc;
 }
@@ -734,9 +750,17 @@ Laxkit::ShortcutHandler *ObjectInterface::GetShortcuts()
  */
 int ObjectInterface::PerformAction(int action)
 {
-	if (action==OIA_Group) {
+	if (action==OIA_ToggleGroup) {
 		 // group and ungroup
 		ToggleGroup();
+		return 0;
+
+	} else if (action==OIA_Group) {
+		GroupObjects();
+		return 0;
+
+	} else if (action==OIA_Ungroup) {
+		UngroupObjects();
 		return 0;
 
 	} else if (action==RIA_Normalize || action==RIA_Rectify) {

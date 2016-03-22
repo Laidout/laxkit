@@ -42,6 +42,8 @@ enum ObjecInterfaceStyles {
 
 enum ObjectInterfaceActions {
 	OIA_Group = RIA_MAX,
+	OIA_Ungroup,
+	OIA_ToggleGroup,
 	OIA_MAX
 };
 
@@ -90,6 +92,8 @@ class ObjectInterface : public RectInterface
 	virtual void RemapBounds();
 	virtual int GrabSelection(unsigned int state);
 	virtual int ToggleGroup();
+	virtual int GroupObjects();
+	virtual int UngroupObjects();
 	//virtual void RedoBounds();
 };
 
