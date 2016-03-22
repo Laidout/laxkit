@@ -27,6 +27,7 @@
 #include <lax/vectors.h>
 #include <lax/pancontroller.h>
 #include <lax/panuser.h>
+#include <lax/colors.h>
 #include <lax/doublebbox.h>
 #include <lax/laximages.h>
 #include <lax/screencolor.h>
@@ -39,6 +40,9 @@
 
 namespace Laxkit {
 	
+
+class GlyphPlace;
+class LaxFont;
 
 //----------------------------------- Displayer -----------------------------
 enum DisplayerFeature {
@@ -106,6 +110,7 @@ class Displayer : public PanUser, virtual public anObject
 	virtual unsigned long NewFG(double r,double g,double b,double a=1.0) = 0;
 	virtual unsigned long NewFG(unsigned long ncol) = 0;
 	virtual unsigned long NewFG(ScreenColor *col) = 0;
+	virtual unsigned long NewFG(Color *col) = 0;
 	virtual unsigned long NewFG(int r,int g,int b,int a=255) = 0;
 	virtual unsigned long NewBG(double r,double g,double b) = 0;
 	virtual unsigned long NewBG(int r,int g,int b) = 0;
@@ -137,6 +142,7 @@ class Displayer : public PanUser, virtual public anObject
 	virtual flatpoint screentoreal(flatpoint p) = 0;
 
 	virtual int Clip(flatpoint *p, int n, int append) = 0;//install a clip mask from a polyline (line is automatically closed)
+	virtual int Clip(bool append) = 0;//install a clip mask from current path
 	virtual void PushClip(int startfresh) = 0; //push the current clip mask onto a stack, make a new one maybe
 	virtual void PopClip() = 0; //restore a previous mask
 	virtual void ClearClip() = 0; //remove any mask
@@ -251,7 +257,7 @@ class Displayer : public PanUser, virtual public anObject
 	virtual flatpoint YAxis();
 	virtual flatpoint Origin();
 	virtual double Getmag(int y=0);
-	virtual double GetVMag(int x,int y);
+	virtual double GetVMag(double x,double y);
 	virtual void Newmag(double xs,double ys=-1);
 	virtual void SetView(double minx,double maxx,double miny,double maxy);
 	virtual int SetSpace(double minx,double maxx,double miny,double maxy);

@@ -1423,7 +1423,7 @@ flatpoint Displayer::Origin()
  *  return sqrt((x*x+y*y)/((v-v2)*(v-v2)));
  * \endcode
  */
-double Displayer::GetVMag(int x,int y)
+double Displayer::GetVMag(double x,double y)
 {
 	flatpoint v=screentoreal(x,y),v2=screentoreal(0,0);
 	return sqrt((x*x+y*y)/((v-v2)*(v-v2)));

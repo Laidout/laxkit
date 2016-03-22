@@ -118,6 +118,7 @@ class DisplayerCairo : public Displayer
 	virtual unsigned long NewFG(double r,double g,double b,double a=1.0);
 	virtual unsigned long NewFG(unsigned long ncol);
 	virtual unsigned long NewFG(ScreenColor *col);
+	virtual unsigned long NewFG(Color *col);
 	virtual unsigned long NewFG(int r,int g,int b,int a=255);
 	virtual unsigned long NewBG(double r,double g,double b);
 	virtual unsigned long NewBG(int r,int g,int b);
@@ -144,6 +145,7 @@ class DisplayerCairo : public Displayer
 	virtual flatpoint screentoreal(flatpoint p);
 
 	virtual int Clip(flatpoint *p, int n, int append);//install a clip mask from a polyline (line is automatically closed)
+	virtual int Clip(bool append);//install a clip mask from current path
 	virtual void PushClip(int startfresh); //push the current clip mask onto a stack, make a new one maybe
 	virtual void PopClip(); //restore a previous mask
 	virtual void ClearClip(); //remove any mask

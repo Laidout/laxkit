@@ -519,6 +519,14 @@ unsigned long DisplayerCairo::NewFG(ScreenColor *col)
 	return NewFG((double)col->red/65535,(double)col->green/65535,(double)col->blue/65535,(double)col->alpha/65535);
 }
 
+//! Set new foreground. Color components are 0..0xffff.
+unsigned long DisplayerCairo::NewFG(Color *col)
+{
+	if (col->colorsystemid == LAX_COLOR_RGB)
+		return NewFG(col->ChannelValue(0), col->ChannelValue(1), col->ChannelValue(2), col->Alpha());
+	return NewFG(&col->screen);
+}
+
 //! Set new background. Color components are 0..0xffff.
 unsigned long DisplayerCairo::NewBG(ScreenColor *col)
 {
@@ -782,6 +790,17 @@ int DisplayerCairo::Clip(flatpoint *p, int n, int append)
 	DrawImmediately(o);
 	return 0;
 }
+
+/*! Clip using current path (consumes path).
+ */
+int DisplayerCairo::Clip(bool append)
+{
+	if (!append) cairo_reset_clip(cr);
+	cairo_clip(cr); //clears its current path
+
+	return 0;
+}
+
 
 //! Push the current clip mask onto a stack, make a new one maybe
 void DisplayerCairo::PushClip(int startfresh)

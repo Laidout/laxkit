@@ -252,6 +252,12 @@ int DisplayerXlib::Clip(Region newregion, int append)
 	return 0;
 }
 
+//! install a clip mask from current path.
+int DisplayerXlib::Clip(bool append)
+{
+	cerr << " *** need to implement DisplayerXlib::Clip()!!"<<endl;
+	return 1;
+}
 
 /*! Copies the p array. If append!=0, then add the (closed) polyline to
  * the clip area. If append==0, then replace any current clip area with
@@ -1500,6 +1506,14 @@ unsigned long DisplayerXlib::NewFG(ScreenColor *col)
 	fgcolor=rgbcolor(col->red>>8,col->green>>8,col->blue>>8);
 	if (gc) XSetForeground(dpy,gc,fgcolor); 
 	return old;
+}
+
+//! Set new foreground. Color components are 0..0xffff.
+unsigned long DisplayerXlib::NewFG(Color *col)
+{
+	if (col->colorsystemid == LAX_COLOR_RGB)
+		return NewFG(col->ChannelValue(0), col->ChannelValue(1), col->ChannelValue(2), col->Alpha());
+	return NewFG(&col->screen);
 }
 
 //! Set new foreground. Typically usage is NewFG(app->rgbcolor(23,34,234)).
