@@ -73,52 +73,6 @@ namespace LaxInterfaces {
 static const double LSSIZE=.25;
 
 
-//-------------------------------- utf8 helpers ----------------------------------------
-
-/*! Return the number of unicode characters between given byte positions.
- * Will return a positive number no matter if second byte is before the first.
- */
-int get_num_chars(const char *line, int len, unsigned int pos1, unsigned int pos2)
-{
-	if (len<0) len=strlen(line);
-
-	unsigned int p;
-	if (pos1>pos2) { p=pos1; pos1=pos2; pos2=p; }
-
-	int n=0;
-	for (p=pos1; p<pos2; p=utf8fwd_index(line,p+1,len)) {
-		n++;
-	}
-
-	return n;
-}
-
-/*! Where start_cluster and end_cluster define byte offlets in utf8 line, return fraction along
- * that stretch that pos is at.
- *
- * This makes even caret spacing across a glyph that covers multiple characters, ignoring differing
- * byte lengths between utf8 character encodings.
- */
-double char_distance(long pos, const char *line, int len, long start_cluster, long end_cluster)
-{
-	if (len<0) len=strlen(line);
-
-	if (pos==start_cluster) return 0.0;
-	if (pos==end_cluster)   return 1.0;
-
-	int n=0;
-	int atchar=-1;
-	while (start_cluster<end_cluster) {
-		if (atchar<0 && pos<=start_cluster) atchar=n;
-		n++;
-		const char *np = utf8fwd(line+start_cluster+1, line, line+len);
-		start_cluster = np-line;
-	}
-
-	return atchar/(float)n;
-
-}
-
 //--------------------------------- CaptionData -------------------------------
 /*! \class CaptionData
  * \brief Holds a little bit of text.
@@ -282,6 +236,16 @@ SomeData *CaptionData::duplicate(SomeData *dup)
 	//i->language    =language;
 	//i->script      =script;
 
+	if (color) {
+		if (color->ObjectOwner() == this) {
+			 //dup color
+			i->color = color->duplicate();
+		} else {
+			 //link color
+			i->color = color;
+			color->inc_count();
+		}
+	}
 	i->red   =red;
 	i->green =green;
 	i->blue  =blue;
@@ -803,10 +767,13 @@ void CaptionData::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *co
 
 						if (!strcmp(name,"fontfile")) {
 							file=value;
+
 						} else if (!strcmp(name,"fontfamily")) {
 							family=value;
+
 						} else if (!strcmp(name,"fontstyle")) {
 							style=value;
+
 						} else if (!strcmp(name,"color")) {
 							double co[5];
 							if (SimpleColorAttribute(value, co, NULL)==0) {
@@ -1700,6 +1667,8 @@ int CaptionInterface::DrawData(anObject *ndata,anObject *a1,anObject *a2,int inf
 	return 1;
 }
 
+/*! Draw one line of text, and also draw out the caret and selection highlight.
+ */
 void CaptionInterface::TextOutGlyphs(int line, double x,double y, bool show_caret)
 {
 	unsigned int len=data->linestats.e[line]->numglyphs;
