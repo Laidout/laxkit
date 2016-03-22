@@ -557,6 +557,16 @@ Laxkit::Affine SomeData::GetTransformToContext(bool invert, int partial)
     return a;
 }   
 
+/*! Return how many parents this has. If parent==NULL, then this is 0.
+ */
+int SomeData::NestedDepth()
+{
+	int n=0;
+    SomeData *d=this->GetParent();
+    while (d) { d=d->GetParent(); n++; }
+	return n;
+}
+
 
 //------------------------- Undo stuff:
    

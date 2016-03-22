@@ -105,6 +105,7 @@ class SomeData :  virtual public Laxkit::Resourceable,
 	virtual SomeData *GetParent() { return NULL; }
 	virtual anObject *ObjectOwner() { return GetParent(); }
 	virtual Laxkit::Affine GetTransformToContext(bool invert, int partial);
+	virtual int NestedDepth();
 
 	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
 	virtual void dump_in(FILE *f,int indent,LaxFiles::DumpContext *context,LaxFiles::Attribute **Att=NULL);
