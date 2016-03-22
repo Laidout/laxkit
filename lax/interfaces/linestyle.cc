@@ -196,6 +196,15 @@ void LineStyle::Color(int r,int g,int b,int a)
 	color.alpha=a;
 }
 
+//! Set the color. Components are 0..1.0.
+void LineStyle::Colorf(double r,double g,double b,double a)
+{
+	color.red  =r*65535;
+	color.green=g*65535;
+	color.blue =b*65535;
+	color.alpha=a*65535;
+}
+
 //! ***implement mask!! should only output the actually defined values?
 /*! Does:
  * <pre>
