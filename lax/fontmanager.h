@@ -30,8 +30,12 @@
 #include FT_ERRORS_H
 
 #include <lax/anobject.h>
+#include <lax/errorlog.h>
+#include <lax/tagged.h>
+#include <lax/resources.h>
 #include <lax/laximages.h>
 #include <lax/lists.h>
+#include <lax/palette.h>
 
 
 
@@ -133,23 +137,37 @@ class FontDialogFont
     char *style;
     char *psname;
     char *file;
-	char *format;
+	int format;
     int index; //index in file when more than one font in file
 
     LaxImage *preview;
-    int numtags, *tags;
+    IntTagged tags;
+	int favorite; //num is rank in fav list, starting with 1. 0 is not favorite
 
     FcPattern *fc_pattern; //owned by the master list
 
-    FontDialogFont(int nid);
+    FontDialogFont(int nid=-1, const char *nfile=NULL, const char *nfamily=NULL, const char *nstyle=NULL);
     virtual ~FontDialogFont();
     virtual bool Match(const char *mfamily, const char *mstyle);
     virtual int HasTag(int tag_id);
     virtual int AddTag(int tag_id);
     virtual void RemoveTag(int tag_id);
+	
+	virtual void Favorite(int nfav) { favorite=nfav; }
+	virtual int Favorite() { return favorite; }
 
 	virtual int UsePSName();
 	virtual int UseFamilyStyleName();
+};
+
+class LayeredDialogFont : public FontDialogFont
+{
+  public:
+	PtrStack<FontDialogFont> layers; //must be non-layered fonts, points to other existing fonts in fontmanager->fonts
+	Palette *palette;
+
+    LayeredDialogFont(int nid=-1);
+    virtual ~LayeredDialogFont() { if (palette) palette->dec_count(); }
 };
 
 //--------------------------- FontTag ------------------------------------------
@@ -162,11 +180,12 @@ class FontTag
 		TAG_Favorite,
 		TAG_File_Type,
 		TAG_Monospace,
+		TAG_Format,
 		TAG_Other,
 		TAG_MAX
 	};
     int id;
-    int tagtype; //such as from Fontmatrix==2, user favorites==1, document defined, etc
+    int tagtype; //such as from TAG_Fontmatrix, TAG_Favorites, etc. See FontTag::FontTagType
     char *tag;
 
 	FontTag(int nid, int ntagtype, const char *ntag);
@@ -176,12 +195,14 @@ class FontTag
 
 
 //---------------------------- FontManager -------------------------------
+
 class FontManager : public anObject
 {
   protected:
 	FcConfig *fcconfig;
 	FT_Library *ft_library;
 	PtrStack<FontDialogFont> fonts;
+	ResourceDirs dirs; //extra places outside normal fontconfig to look for fonts
 	
   public: 
 	PtrStack<FontTag> tags;
@@ -195,9 +216,14 @@ class FontManager : public anObject
 	virtual LaxFont *MakeFont(int nid) = 0;
 	virtual LaxFont *Add(LaxFont *font,int nid) = 0;
 	virtual LaxFont *CheckOut(int id) = 0;
+
 	virtual FcConfig *GetConfig();
 	virtual FT_Library *GetFreetypeLibrary();
 	virtual PtrStack<FontDialogFont> *GetFontList();
+
+	virtual int AddDir(const char *dir);
+	virtual int DumpInFontList(const char *file, ErrorLog *log);
+	virtual FontDialogFont *DumpInFontDialogFont(LaxFiles::Attribute *att);
 
 	virtual const char *LanguageString(int id);
 	virtual const char *ScriptString(int id);

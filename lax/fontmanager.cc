@@ -29,6 +29,7 @@
 #include <lax/anxapp.h>
 #include <lax/strmanip.h>
 #include <lax/fileutils.h>
+#include <lax/language.h>
 
 #include <iostream>
 using namespace std;
@@ -344,21 +345,22 @@ int LaxFont::SetColor(anObject *ncolor)
  * \brief Describes a font as dealt with in a FontDialog.
  */
 
-FontDialogFont::FontDialogFont(int nid)
+FontDialogFont::FontDialogFont(int nid, const char *nfile, const char *nfamily, const char *nstyle)
 {
     id=nid;
+	if (id<=0) id=getUniqueNumber();
 
     name=NULL;
     psname=NULL;
-    family=NULL;
-    style=NULL;
-	format=NULL;
-    file=NULL;
-    index=0;
+	format=-1;
     preview=NULL;
 
-    numtags=0;
-    tags=NULL;
+    family=newstr(nfamily);
+    style =newstr(nstyle);
+    file  =newstr(nfile);
+    index=0;
+
+	favorite=0;
 
 	fc_pattern=NULL; //assume fontmanager->fontlist gets destroyed AFTER this
 }
@@ -370,9 +372,8 @@ FontDialogFont::~FontDialogFont()
     delete[] family;
     delete[] style;
     delete[] file;
-    delete[] format;
+    //delete[] format;
     if (preview) preview->dec_count();
-    delete[] tags;
 }
 
 bool FontDialogFont::Match(const char *mfamily, const char *mstyle)
@@ -388,36 +389,20 @@ bool FontDialogFont::Match(const char *mfamily, const char *mstyle)
  */
 int FontDialogFont::HasTag(int tag_id)
 {
-    for (int c=0; c<numtags; c++) {
-        if (tags[c]==tag_id) return c+1;
-    }
-    return 0;
+	return tags.HasTag(tag_id);
 }
 
 /*! Returns the new number of tags.
  */
 int FontDialogFont::AddTag(int tag_id)
 {
-    if (HasTag(tag_id)) return numtags;
-
-    int *newtags=new int[numtags+1];
-    if (numtags) memcpy(newtags, tags, numtags*sizeof(int));
-    newtags[numtags]=tag_id;
-	delete[] tags;
-	tags=newtags;
-    numtags++;
-    return numtags;
+	tags.InsertTag(tag_id);
+	return tags.NumberOfTags();
 }
 
 void FontDialogFont::RemoveTag(int tag_id)
 {
-    for (int c=0; c<numtags; c++) {
-        if (tags[c]==tag_id) {
-            for (int c2=c; c2<numtags-1; c2++) tags[c2]=tags[c2+1];
-            numtags--;
-            if (numtags==0) { delete[] tags; tags=NULL; }
-        }
-    }
+	tags.RemoveTag(tag_id);
 }
 
 int FontDialogFont::UseFamilyStyleName()
@@ -456,6 +441,14 @@ int FontDialogFont::UsePSName()
 	delete[] name;
 	name=nname;
 	return 0;
+}
+
+
+//-------------------------------------- FontDialogFont -------------------------------------
+LayeredDialogFont::LayeredDialogFont(int nid)
+  : FontDialogFont(nid)
+{ 
+	palette=NULL;
 }
 
 
@@ -576,6 +569,7 @@ PtrStack<FontDialogFont> *FontManager::GetFontList()
     FcResult result;
     FcValue v;
 
+	const char *format=NULL;
     FontDialogFont *f=NULL;
     FcFontSet *fontset=FcConfigGetFonts(fcconfig, FcSetSystem); //"This font set is owned by the library and must not be modified or freed"
 
@@ -603,7 +597,16 @@ PtrStack<FontDialogFont> *FontManager::GetFontList()
         if (result==FcResultMatch) f->index = v.u.i;
 
         result=FcPatternGet(fontset->fonts[c],FC_FONTFORMAT,0,&v);
-        if (result==FcResultMatch) makestr(f->format, (const char *)v.u.s);
+        //if (result==FcResultMatch) makestr(f->format, (const char *)v.u.s);
+        if (result==FcResultMatch) format=(const char *)v.u.s; else format=NULL;
+		if (format!=NULL) {
+			int id=GetTagId(format);
+			if (id==-1) {
+				tags.push(new FontTag(-1, FontTag::TAG_Format, format)); //puts at end 
+				f->id = tags.e[tags.n-1]->id;
+			} else f->id=id;
+			if (id>-1) f->AddTag(id);
+		}
 
 		f->UseFamilyStyleName();
 		//f->UsePSName();
@@ -747,6 +750,8 @@ int FontManager::ScriptId  (const char *str, bool create_if_not_found)
 	return -1;
 }
 
+/*! Does binary search in fonts, which should be sorted by file already.
+ */
 FontDialogFont *FontManager::FindFontFromFile(const char *file)
 {
 	if (!fonts.n || !file) return NULL;
@@ -829,17 +834,17 @@ int FontManager::RetrieveFontmatrixTags()
 					int cmp;
 
 					if (tags.n==0) {
-						tags.push(new FontTag(-1, 2, tag)); //puts at end 
+						tags.push(new FontTag(-1, FontTag::TAG_Fontmatrix, tag)); //puts at end 
 
 					} else for (int c=0; c<tags.n; c++) {
 						cmp=strcasecmp(tag, tags.e[c]->tag);
 
 						if (cmp<0) {
-							tags.push(new FontTag(-1, 2, tag));
+							tags.push(new FontTag(-1, FontTag::TAG_Fontmatrix, tag));
 							break;
 						} else if (cmp==0) break; //tag exists already!
 
-						if (cmp>0 && c==tags.n-1) tags.push(new FontTag(-1, 2, tag)); //puts at end 
+						if (cmp>0 && c==tags.n-1) tags.push(new FontTag(-1, FontTag::TAG_Fontmatrix, tag)); //puts at end 
 					}
 				}
 
@@ -952,7 +957,190 @@ int FontManager::RetrieveFontmatrixTags()
 	return n;
 }
 
+/*! Return 0 if added. Return 1 if cannot add for some reason. Return -1 for already there.
+ */
+int FontManager::AddDir(const char *ndir)
+{
+	return dirs.AddDir(ndir, -1);
+}
 
+/*! Read in extra config for fonts. This extra config consists of defining layered fonts, and adding meta on top
+ * of what is known by fontconfig.
+ *
+ * <pre>
+ *   font_dir  /path/to/custom/font/dir/not/known/to/fontconfig  #directories to add to base fontconfig on initialization
+ *
+ *   font_alias "My Goto Font" file://path/to/it
+ *   font_alias "My Goto Font" "font string id"
+ *
+ *   font_substitute
+ *     replace "sans"
+ *     with /path/to/actual/font/to/use
+ *
+ *   font file://file/to/grab/a/font/definition/from  #could be an svg font, lax formatted layered font, truetype, etc
+ *
+ *   font
+ *     id "string id" //for layered fonts, they are listed with filename "layered:[fontid]"
+ *     tags "Blah blah" blah
+ *     favorite 4
+ *
+ *     layer
+ *       file /path/to/it
+ *       index 0 #index within file for this particular font, when file is a collection
+ *       family "Font Family"   #family, style, and psname should be considered hints when actual file exists
+ *       style  "Font Style"
+ *       psname "Font Postscript Name"
+ *     layer
+ *       ...
+ *  meta
+ *    "font id"
+ *      tags "extra user tags"
+ *      favorite 2
+ *      alias "some other name"
+ *      exclusive_alias "Use this name instead of the default"
+ * </pre>
+ */ 
+int FontManager::DumpInFontList(const char *file, ErrorLog *log)
+{
+	FILE *f=fopen(file, "r");
+	if (!f) return 1;
+
+	const char *name, *value;
+
+
+	Attribute att;
+	att.dump_in(file);
+
+	for (int c=0; c<att.attributes.n; c++) {
+		name =att.attributes.e[c]->name;
+		value=att.attributes.e[c]->value;
+
+		if (!strcmp(name, "font_dir")) {
+			AddDir(value);
+
+		} else if (!strcmp(name, "font")) {
+			FontDialogFont *f=DumpInFontDialogFont(att.attributes.e[c]);
+			if (f) fonts.push(f);
+
+		} else if (!strcmp(name, "meta")) {
+			// ***
+
+		} else if (!strcmp(name, "font_substitute")) {
+			// ***
+
+		} else if (!strcmp(name, "font_alias")) {
+			// ***
+
+		}
+	}
+
+	return 0;
+}
+
+FontDialogFont *FontManager::DumpInFontDialogFont(LaxFiles::Attribute *att)
+{
+	int layer=0;
+	const char *file=NULL, *family=NULL, *style=NULL, *id=NULL;
+	//const char *tagstr=NULL;
+
+	char *name=NULL;
+	char *value=NULL;
+
+	FontDialogFont *font=NULL;
+	LayeredDialogFont *lfont=NULL;
+
+	for (int c2=0; c2<att->attributes.n; c2++) {
+		name= att->attributes.e[c2]->name;
+		value=att->attributes.e[c2]->value;
+
+        if (!strcmp(name,"id")) {
+			id=value;
+
+		} else if (!strcmp(name,"tags")) {
+			//tagstr = value;
+
+		} else if (!strcmp(name,"layer")) {
+			if (!lfont) {
+				lfont = new LayeredDialogFont();
+
+				int lid=GetTagId(_("Layered"));
+				if (lid==-1) {
+					tags.push(new FontTag(-1, FontTag::TAG_Format, _("Layered"))); //puts at end 
+					lid=tags.e[tags.n-1]->id;
+				}
+				lfont->format = lid;
+			}
+
+			layer++;
+			family=style=file=NULL;
+			char colorname[10];
+			sprintf(colorname,"fg%d",layer);
+
+			for (int c3=0; c3<att->attributes.e[c2]->attributes.n; c3++) {
+				name= att->attributes.e[c2]->attributes.e[c3]->name;
+				value=att->attributes.e[c2]->attributes.e[c3]->value;
+
+				if (!strcmp(name,"fontfile")) {
+					file=value;
+
+				} else if (!strcmp(name,"fontfamily")) {
+					family=value;
+
+				} else if (!strcmp(name,"fontstyle")) {
+					style=value;
+
+				} else if (!strcmp(name,"color")) {
+					double co[5];
+					if (SimpleColorAttribute(value, co, NULL)==0) {
+						if (!lfont->palette) lfont->palette=new Palette;
+						lfont->palette->AddRGBA(colorname, co[0]*255, co[1]*255, co[2]*255, co[3]*255, 255);
+					}
+				}
+			}
+			
+			FontDialogFont *fnt = FindFontFromFile(file);
+			if (fnt) lfont->layers.push(fnt,0);
+			else lfont->layers.push(new FontDialogFont(-1, file, family, style)); 
+
+       } else if (!strcmp(name,"fontfile")) {
+            file=value;
+
+        } else if (!strcmp(name,"fontfamily")) {
+            family=value;
+
+        } else if (!strcmp(name,"fontstyle")) {
+            style=value;
+		}
+	}
+
+	if (lfont) {
+		if (id) makestr(lfont->name, id);
+		char *ff=newstr(".layered:"); //<- filename like this so it alphabetizes to one side of regular files
+		appendstr(ff, lfont->name);
+		delete[] lfont->file;
+		lfont->file=ff;
+		return lfont;
+	}
+
+	if (!file) return NULL;
+
+	font = FindFontFromFile(file);
+	if (!font) {
+		font = new FontDialogFont();
+		makestr(font->file, file);
+		makestr(font->family, family);
+		makestr(font->style, style);
+	}
+
+	return font;
+}
+
+LaxFont *DumpInFont(LaxFiles::Attribute *att)
+{
+	//***
+	//return font;
+	return NULL;
+}
 
 //--------------------------------------- Default FontManager Stuff ---------------------------
 
