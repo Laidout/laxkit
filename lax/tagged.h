@@ -53,6 +53,30 @@ class Tagged
 };
 
 
+//-------------------------------- IntTagged ------------------------------------------
+
+class IntTagged
+{
+ protected:
+	NumStack<int> list_of_tags;
+
+ public:
+	int sorttags;
+	IntTagged();
+	virtual ~IntTagged();
+
+	virtual int HasTag(int tag);
+	virtual int NumberOfTags();
+	virtual int GetTag(int index);
+	virtual int *GetAllTags(int *n);
+	virtual int InsertTags(int *tags, int n);
+	virtual int InsertTag(int tag);
+	virtual int RemoveTag(int tag);
+	virtual int RemoveTagIndex(int i);
+	virtual void FlushTags();
+};
+
+
 //-------------------------------- TagCloudInfo ------------------------------------------
 
 class TagCloudInfo

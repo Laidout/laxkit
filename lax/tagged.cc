@@ -207,6 +207,140 @@ void Tagged::FlushTags()
 }
 
 
+//-------------------------------- IntTagged ------------------------------------------
+
+/*! \class IntTagged
+ * \brief class to help implement simple tagging and tag querying system.
+ *
+ * Store a list of tags in char[] strings.
+ *
+ * \todo make some sort of tag manager, with special functions to build a tag
+ *    cloud database, links to the tagged objects, be able to search by tag, and
+ *    substitute tag aliases..
+ */
+
+
+IntTagged::IntTagged()
+{
+	sorttags=0;
+}
+
+IntTagged::~IntTagged()
+{
+}
+
+//! Return the number of tags, strangely enough.
+int IntTagged::NumberOfTags()
+{
+	return list_of_tags.n;
+}
+
+//! Return the tag at index of internal list.
+/*! i must be in range [0..NumberOfTags()-1]. If i is out of bounds, then return -1.
+ */
+int IntTagged::GetTag(int index)
+{
+	if (index<0 || index>=list_of_tags.n) return -1;
+	return list_of_tags.e[index];
+}
+
+//! Return a new int[] with the tags. Return the number of them in n.
+int *IntTagged::GetAllTags(int *n)
+{
+	*n=list_of_tags.n;
+	if (!NumberOfTags()) return NULL;
+
+	int *tags = new int[list_of_tags.n];
+	memcpy(tags, list_of_tags.e, list_of_tags.n*sizeof(int));
+	return tags;
+}
+
+//! Return whether the tag exists.
+/*! If the tag is not found, then return 0. 
+ *
+ * Return the index+1 of the tag when the tag matches exactly, otherwise 0.
+ */
+int IntTagged::HasTag(int tag)
+{
+	if (!list_of_tags.n) return 0;
+
+	for (int c=0; c<list_of_tags.n; c++) {
+		if (tag == list_of_tags.e[c]) return c+1;
+	}
+	return 0;
+}
+
+//! Remove tag number i. i must be in range [0..NumberOfTags()-1].
+/*! Return 0 for tag removed. -1 for tag not found, 1 for other error and tag not removed.
+ */
+int IntTagged::RemoveTagIndex(int i)
+{
+	if (i<0 || i>=NumberOfTags()) return -1;
+
+	list_of_tags.remove(i);
+	return 0;
+}
+
+//! The tag must be an exact match.
+/*! Return 0 for tag removed. -1 for tag not found, 1 for other error and tag not removed.
+ */
+int IntTagged::RemoveTag(int tag)
+{
+	int c=HasTag(tag);
+	if (!c) return -1;
+	list_of_tags.remove(c-1);
+	return 0;
+}
+
+//! Insert tags.
+/*! Returns the number of tags actually inserted. Tags already in are not included.
+ */
+int IntTagged::InsertTags(int *tags, int n)
+{
+	int nn=0;
+
+	for (int c=0; c<n; c++) {
+		int tag=tags[c];
+		if (HasTag(tag)) continue;
+
+		InsertTag(tag);
+		nn++;
+	}
+
+	return nn;
+}
+
+//! Insert tag if it doesn't exist already.
+/*! Will insert ONLY if the tag does not exist there.
+ *
+ * Returns the index of the tag.
+ * 
+ * If tag didn't exist, it is added, and its index is returned.
+ */
+int IntTagged::InsertTag(int tag)
+{
+	if (!tag) return 1;
+
+	int c=HasTag(tag);
+	if (c) return c-1;
+
+	int pos=list_of_tags.n;
+	if (sorttags) {
+		for (pos=0; pos<list_of_tags.n; pos++) {
+			if (list_of_tags.e[pos] > tag) break;
+		}
+	}
+
+	list_of_tags.push(tag,pos);
+	return 0;
+}
+
+void IntTagged::FlushTags()
+{
+	list_of_tags.flush();
+}
+
+
 //-------------------------------- TagCloudInfo ------------------------------------------
 
 /*! \class TagCloudInfo
