@@ -47,6 +47,7 @@ enum EngraverObjectTypes {
 	ENGTYPE_TraceObject = 100,
     ENGTYPE_EngraverLineQuality,
     ENGTYPE_EngraverTraceSettings,
+    ENGTYPE_EngraverTraceStack,
     ENGTYPE_NormalDirectionMap,
     ENGTYPE_EngraverDirection,
     ENGTYPE_EngraverSpacing,
@@ -369,10 +370,17 @@ class TraceObject : public Laxkit::Resourceable, public LaxFiles::DumpUtility
 class EngraverTraceSettings : public Laxkit::Resourceable, public LaxFiles::DumpUtility
 {
   public:
+    enum TraceType {
+	  TRACE_Set,
+	  TRACE_Multiply,
+	  TRACE_Add,
+	  TRACE_Subtract,
+	  TRACE_MAX
+	} tracetype;
+
 	int group;
 	Laxkit::CurveInfo *value_to_weight;
 	double traceobj_opacity;
-	int tracetype; //0==absolute, 1=multiply
 	bool continuous_trace;
 	bool show_trace;
 
@@ -395,6 +403,39 @@ class EngraverTraceSettings : public Laxkit::Resourceable, public LaxFiles::Dump
 	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
 	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *savecontext);
 };
+
+class EngraverTraceStack : public Laxkit::Resourceable, public LaxFiles::DumpUtility
+{
+  public:
+    EngraverTraceStack();
+    virtual ~EngraverTraceStack();
+
+	struct TraceNode
+	{
+		EngraverTraceSettings *settings;
+		double amount;
+		bool visible;
+		TraceNode(EngraverTraceSettings *nsettings, double namount, bool nvis);
+		~TraceNode();
+	};
+
+	Laxkit::PtrStack<TraceNode> nodes;
+
+	virtual int Num() { return nodes.n; }
+	virtual TraceNode *Settings(int which);
+	virtual double Amount(int which);
+	virtual double Amount(int which, double newamount);
+	virtual bool Visible(int which);
+	virtual bool Visible(int which, bool newvisible);
+	virtual int PushSettings(EngraverTraceSettings *settings, double amount, bool nvisible, int where);
+	virtual int Move(int which, int towhere); //stack slide
+	virtual int Remove(int which);
+
+	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
+	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
+	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *savecontext);
+};
+
 
 //----------------------------------------------- EngraverLineQuality
 
@@ -658,6 +699,13 @@ class EngraverPointGroup : public DirectionMap
 	virtual int TraceFromSnapshot();
 
 	virtual void GrowLines(EngraverFillData *data,
+									double resolution, 
+									double defaultspace,  	ValueMap *spacingmap,
+									double defaultweight,   ValueMap *weightmap, 
+									flatpoint direction,    DirectionMap *directionmap,
+									Laxkit::PtrStack<GrowPointInfo> *growpoint_ret,
+									int iteration_limit);
+	virtual void GrowLines2(EngraverFillData *data,
 									double resolution, 
 									double defaultspace,  	ValueMap *spacingmap,
 									double defaultweight,   ValueMap *weightmap, 

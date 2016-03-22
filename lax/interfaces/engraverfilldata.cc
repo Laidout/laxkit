@@ -65,6 +65,7 @@ namespace LaxInterfaces {
 anObject *NewTraceObject(anObject *refobj)           { return new TraceObject; }
 anObject *NewEngraverLineQuality(anObject *refobj)   { return new EngraverLineQuality; }
 anObject *NewEngraverTraceSettings(anObject *refobj) { return new EngraverTraceSettings; }
+anObject *NewEngraverTraceStack(anObject *refobj)    { return new EngraverTraceStack; }
 anObject *NewNormalDirectionMap(anObject *refobj)    { return new NormalDirectionMap; }
 anObject *NewEngraverDirection(anObject *refobj)     { return new EngraverDirection; }
 anObject *NewEngraverSpacing(anObject *refobj)       { return new EngraverSpacing; }
@@ -76,6 +77,7 @@ void InstallEngraverObjectTypes(ObjectFactory *factory)
 	factory->DefineNewObject(ENGTYPE_TraceObject,          "TraceObject"          , NewTraceObject,           NULL);
 	factory->DefineNewObject(ENGTYPE_EngraverLineQuality,  "EngraverLineQuality"  , NewEngraverLineQuality,   NULL);
 	factory->DefineNewObject(ENGTYPE_EngraverTraceSettings,"EngraverTraceSettings", NewEngraverTraceSettings, NULL);
+	factory->DefineNewObject(ENGTYPE_EngraverTraceStack,   "EngraverTraceStack"   , NewEngraverTraceStack,    NULL);
 	factory->DefineNewObject(ENGTYPE_NormalDirectionMap,   "NormalDirectionMap"   , NewNormalDirectionMap,    NULL);
 	factory->DefineNewObject(ENGTYPE_EngraverDirection,    "EngraverDirection"    , NewEngraverDirection,     NULL);
 	factory->DefineNewObject(ENGTYPE_EngraverSpacing,      "EngraverSpacing"      , NewEngraverSpacing,       NULL);
@@ -1697,7 +1699,7 @@ EngraverTraceSettings::EngraverTraceSettings()
 	show_trace=true;
 	group=-1;
 	traceobj_opacity=1;
-	tracetype=0;
+	tracetype=TRACE_Set;
 	traceobject=NULL;
 	value_to_weight=new CurveInfo;
 }
@@ -1826,7 +1828,7 @@ Attribute *EngraverTraceSettings::dump_out_atts(Attribute *att,int what,LaxFiles
 			 //resource'd traceobject
 			char str[11+strlen(traceobject->Id())];
 			sprintf(str,"resource: %s",traceobject->Id());
-			att->push("traceobject",buffer);
+			att->push("traceobject",str);
 
 		} else {
 			Attribute *t=att->pushSubAtt("traceobject");
@@ -1924,6 +1926,190 @@ void EngraverTraceSettings::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFi
 	}
 
 	//Id(); //force creation of id if blank
+}
+
+//---------------------------------------- EngraverTraceStack 
+/*! \class EngraverTraceStack
+ */
+
+EngraverTraceStack::TraceNode::TraceNode(EngraverTraceSettings *nsettings, double namount, bool nvis)
+{
+	visible = nvis;
+	settings = nsettings;
+	if (settings) settings->inc_count();
+	amount = namount;
+}
+
+EngraverTraceStack::TraceNode::~TraceNode()
+{
+	if (settings) settings->dec_count();
+}
+
+EngraverTraceStack::EngraverTraceStack()
+{
+}
+
+EngraverTraceStack::~EngraverTraceStack()
+{
+}
+
+
+/*! Return the specified settings.
+ */
+EngraverTraceStack::TraceNode *EngraverTraceStack::Settings(int which)
+{
+	if (which<0 || which >= nodes.n) return NULL;
+	return nodes.e[which];
+}
+
+/*! Return the node's amount value.
+ */
+double EngraverTraceStack::Amount(int which)
+{
+	if (which<0 || which >= nodes.n) return 0;
+	return nodes.e[which]->amount;
+}
+
+/*! Set the node's amount value.
+ */
+double EngraverTraceStack::Amount(int which, double newamount)
+{
+	if (which<0 || which >= nodes.n) return 0;
+	nodes.e[which]->amount=newamount;
+	return newamount;
+}
+
+bool EngraverTraceStack::Visible(int which)
+{
+	if (which<0 || which >= nodes.n) return false;
+	return nodes.e[which]->visible;
+}
+
+bool EngraverTraceStack::Visible(int which, bool newvisible)
+{
+	if (which<0 || which >= nodes.n) return false;
+	nodes.e[which]->visible=newvisible;
+	return newvisible;
+}
+
+int EngraverTraceStack::PushSettings(EngraverTraceSettings *settings, double amount, bool nvisible, int where)
+{
+	return nodes.push(new TraceNode(settings, amount, nvisible), 1, where);
+}
+
+int EngraverTraceStack::Move(int which, int towhere)
+{
+	if (which<0 || which >= nodes.n) return 1;
+	if (towhere<0 || towhere >= nodes.n) return 1;
+	nodes.slide(which, towhere);
+	return 0;
+}
+
+/*! Stack slide
+ */
+int EngraverTraceStack::Remove(int which)
+{
+	return nodes.remove(which);
+}
+
+
+void EngraverTraceStack::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
+{
+	Attribute att;
+	dump_out_atts(&att,what,context);
+	att.dump_out(f,indent);
+}
+
+LaxFiles::Attribute *EngraverTraceStack::dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *savecontext)
+{
+	if (!att) att=new Attribute();
+
+	if (what==-1) {
+		att->push("id", "#id for this stack");
+		Attribute *att2 = att->pushSubAtt("node", "#One or more blocks for trace settings objects plus weight");
+		att2->push("visible","#Whether to use this node");
+		att2->push("amount", "#how much to weight this node (usually 0..1)");
+		return att;
+	}
+
+	att->push("id", Id());
+	for (int c=0; c<nodes.n; c++) {
+		Attribute *att2 = att->pushSubAtt("node");
+
+		if (nodes.e[c]->settings) {
+			if (nodes.e[c]->settings->ResourceOwner()!=this) {
+				 //resource'd traceobject
+				char str[11+strlen(nodes.e[c]->settings->Id())];
+				sprintf(str,"resource: %s",nodes.e[c]->settings->Id());
+				att2->push("settings",str);
+
+			} else {
+				Attribute *t=att2->pushSubAtt("settings");
+				nodes.e[c]->settings->dump_out_atts(t, 0,savecontext);
+			}
+		}
+	}
+
+	return att;
+}
+
+void EngraverTraceStack::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context)
+{ 
+	if (!att) return;
+
+	char *name,*value;
+
+	for (int c=0; c<att->attributes.n; c++) {
+		name= att->attributes.e[c]->name;
+		value=att->attributes.e[c]->value;
+
+		if (!strcmp(name,"id")) {
+			if (!isblank(value)) anObject::Id(value);
+
+		} else if (!strcmp(name,"node")) {
+
+			EngraverTraceSettings *nsettings=NULL;
+			double amount=0;
+			bool vis=true;
+
+			for (int c2=0; c2<att->attributes.e[c]->attributes.n; c2++) {
+				name= att->attributes.e[c]->attributes.e[c2]->name;
+				value=att->attributes.e[c]->attributes.e[c2]->value;
+
+				if (!strcmp(name,"amount")) {
+					DoubleAttribute(value, &amount, NULL);
+
+				} else if (!strcmp(name,"visible")) {
+					vis = BooleanAttribute(value);
+
+				} else if (!strcmp(name,"settings")) {
+
+					if (value && strstr(value,"resource:")==value) {
+						value+=9;
+						while (isspace(*value)) value ++;
+						InterfaceManager *imanager=InterfaceManager::GetDefault(true);
+						ResourceManager *rm=imanager->GetResourceManager();
+						EngraverTraceSettings *obj=dynamic_cast<EngraverTraceSettings*>(rm->FindResource(value,"EngraverTraceSettings"));
+						if (obj) {
+							nsettings=obj;
+							nsettings->inc_count();
+						}
+
+					} else { //not resourced
+						EngraverTraceSettings *obj=new EngraverTraceSettings;
+						obj->dump_in_atts(att->attributes.e[c]->attributes.e[c2], flag,context);
+						obj->SetResourceOwner(this);
+						nsettings=obj;
+					}
+				}
+			}
+
+			if (nsettings) {
+				PushSettings(nsettings, amount, vis, -1);
+				nsettings->dec_count();
+			}
+		}
+	}
 }
 
 
@@ -4159,6 +4345,30 @@ StarterPoint::StarterPoint(flatpoint p, int indir, double weight,int groupid, in
 	piteration=0;
 	dodir=indir;
 	lineref=nlineref;
+}
+
+void EngraverPointGroup::GrowLines2(EngraverFillData *data,
+									double resolution, 
+									double defaultspace,  	ValueMap *spacingmap,
+									double defaultweight,   ValueMap *weightmap, 
+									flatpoint direction,    DirectionMap *directionmap,
+									Laxkit::PtrStack<GrowPointInfo> *growpoint_ret,
+									int iteration_limit)
+{  // ***
+
+	//draw on a scratch space, each pixel gets:
+	//  group number
+	//  line number
+	//  point number
+	//  direction for that point
+
+	//Each iteration:
+	//  - Compute next point based on current direction
+	//  - Computer whether to merge or split based on neighborhood of point
+	//  - stack push/pulls of adjacent points
+
+	//unsigned char pixels[***];
+	
 }
 
 /*! If growpoint_ret already has points in it, use those, don't create automatically along edges.
