@@ -85,6 +85,10 @@ class Affine
 	virtual void   m(int c,double v) { _m[c]=v; }
 	virtual void Unshear(int preserve_x, int normalize);
 	virtual void Normalize();
+	virtual double GetIMagnification(double vx, double vy);
+	virtual double GetIMagnification(flatpoint v);
+	virtual double GetMagnification(double vx, double vy);
+	virtual double GetMagnification(flatpoint v);
 
 	virtual flatpoint origin() { return flatpoint(_m[4],_m[5]); }
 	virtual void      origin(flatpoint o) { _m[4]=o.x; _m[5]=o.y; }
@@ -132,6 +136,10 @@ flatpoint transform_point_inverse(const double *m,flatpoint p);
 flatpoint transform_point(const double *m,flatpoint p);
 flatpoint transform_point(const double *m,double x,double y);
 flatpoint transform_vector(const double *m,flatpoint p);
+double get_imagnification(const double *m, double vx, double vy);
+double get_imagnification(const double *m, flatpoint v);
+double get_magnification(const double *m, double vx, double vy);
+double get_magnification(const double *m, flatpoint v);
 
 double *transform_from_3x3_fixed(double *result,int M[3][3]);
 void transform_to_3x3_fixed(int M[3][3],double *m);

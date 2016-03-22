@@ -209,6 +209,32 @@ void Affine::Normalize()
 	if (d!=0) yaxis(yaxis()/d);
 }
 
+/*! Get magnification, where (vx,vy) is a vector outside the transform, 
+ * and returned value is norm(vx,vy)/norm(transformPointInverse(vx,vy)-transformPointInverse(0,0)).
+ */
+double Affine::GetIMagnification(double vx, double vy)
+{
+	return get_imagnification(_m, vx,vy);
+}
+
+double Affine::GetIMagnification(flatpoint v)
+{
+	return get_imagnification(_m, v.x,v.y);
+}
+
+/*! Get magnification, where (vx,vy) is a vector in context, 
+ * and returned value is norm(vx,vy)/norm(transformPoint(vx,vy)-transformPoint(0,0)).
+ */
+double Affine::GetMagnification(double vx, double vy)
+{
+	return get_magnification(_m, vx,vy);
+}
+
+double Affine::GetMagnification(flatpoint v)
+{
+	return get_magnification(_m, v.x,v.y);
+}
+
 void Affine::Translate(flatvector d)
 {
 	_m[4]+=d.x;
@@ -781,6 +807,36 @@ flatpoint transform_point(const double *m,flatpoint p)
 flatpoint transform_vector(const double *m,flatpoint p)
 {
 	return flatpoint(m[0]*p.x + m[2]*p.y,m[1]*p.x+m[3]*p.y);
+}
+
+/*! Basically, return norm(vx,vy)/norm(transform_point_inverse(m, vx,vy)).
+ */
+double get_imagnification(const double *m, double vx, double vy)
+{
+	flatpoint v  = transform_point_inverse(m, flatpoint(vx,vy));
+	flatpoint v2 = transform_point_inverse(m, flatpoint(0,0));
+
+    return sqrt((vx*vx + vy*vy) / ((v-v2)*(v-v2)));
+}
+
+double get_imagnification(const double *m, flatpoint v)
+{
+	return get_magnification(m, v.x, v.y);
+}
+
+/*! Basically, return norm(vx,vy)/norm(transform_point(m, vx,vy)).
+ */
+double get_magnification(const double *m, double vx, double vy)
+{
+	flatpoint v  = transform_point(m, vx,vy);
+	flatpoint v2 = transform_point(m, 0,0);
+
+    return sqrt((vx*vx + vy*vy) / ((v-v2)*(v-v2)));
+}
+
+double get_magnification(const double *m, flatpoint v)
+{
+	return get_magnification(m, v.x, v.y);
 }
 
 #define DoubleToFixed(f) ((int)((f)*65536))
