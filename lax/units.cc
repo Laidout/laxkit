@@ -34,6 +34,16 @@ using namespace std;
 namespace Laxkit {
 
 
+//------------------------------------- UnitManager ----------------------------------------
+
+class UnitManager2
+{
+  public:
+	UnitManager2();
+	virtual ~UnitManager2();
+};
+
+
 //------------------------------------- CreateDefaultUnits() ----------------------------------------
 
 //! Create a SimpleUnit collection of some common units.
@@ -44,7 +54,7 @@ namespace Laxkit {
  *
  * If units==NULL, return a new SimpleUnit. Else add to units.
  */
-SimpleUnit *CreateDefaultUnits(SimpleUnit *units)
+SimpleUnit *CreateDefaultUnits(SimpleUnit *units, bool include_px, bool include_em)
 {
 	if (!units) units=new SimpleUnit();
 	units->AddUnits(UNITS_Inches, .0254,    _("in"),_("inch"),      _("inches"));
@@ -54,7 +64,10 @@ SimpleUnit *CreateDefaultUnits(SimpleUnit *units)
 	units->AddUnits(UNITS_MM,     .001,     _("mm"),_("millimeter"),_("millimeters"));
 	units->AddUnits(UNITS_Meters, 1,        _("m"), _("meter"),     _("meters"));
 	units->AddUnits(UNITS_Points, .0254/72, _("pt"), _("point"),    _("points"));
-	units->AddUnits(UNITS_Pixels, 1,        _("px"), _("pixel"),    _("pixels"));
+
+	if (include_px) units->AddUnits(UNITS_Pixels, 1, _("px"), _("pixel"), _("pixels"));
+	if (include_em) units->AddUnits(UNITS_Em,     1, _("em"), _("em"),    _("em"));
+
 	return units;
 }
 
@@ -65,11 +78,22 @@ SimpleUnit *CreateDefaultUnits(SimpleUnit *units)
  */
 SimpleUnit *unit_manager=NULL;
 
-//! Return unit_manager, initializing it with CreateDefaultUnits() if it was NULL.
+//! Return unit_manager, initializing it with CreateDefaultUnits() if it was NULL, includes px and em units.
 UnitManager *GetUnitManager()
 {
-	if (unit_manager==NULL) unit_manager=CreateDefaultUnits(NULL);
+	if (unit_manager==NULL) unit_manager=CreateDefaultUnits(NULL, true, true);
 	return unit_manager;
+}
+
+/*! If NULL, then clear.
+ * If not NULL, then set manager as default. Note: does NOT inc count, simply takes possession.
+ */
+void SetUnitManager(UnitManager *manager)
+{
+	if (manager==unit_manager) return;
+	if (unit_manager) delete unit_manager;
+	//if (unit_manager) unit_manager->dec_count();
+	unit_manager=manager;
 }
 
 
@@ -115,6 +139,18 @@ int SimpleUnit::UnitId(const char *name,int len)
 	SimpleUnit *f=find(name,len);
 	if (!f) return UNITS_None;
 	return f->id;
+}
+
+/*! Return name corresponding to uid. If not found, return NULL.
+ *
+ * Returns first in names list.
+ */
+const char *SimpleUnit::UnitName(int uid)
+{
+	SimpleUnit *f=find(uid);
+	if (!f || !f->names.n) return NULL;
+
+	return f->names[0];
 }
 
 //! Retrieve some information about a unit, using id value as a key (not index #).
@@ -231,6 +267,11 @@ int SimpleUnit::AddUnits(int nid, double scale, const char *shortname, const cha
 	if (singular) u->names.push(newstr(singular));
 	if (plural)   u->names.push(newstr(plural));
 	return 0;
+}
+
+const SimpleUnit *SimpleUnit::Find(int id)
+{
+	return find(id);
 }
 
 SimpleUnit *SimpleUnit::find(int units)

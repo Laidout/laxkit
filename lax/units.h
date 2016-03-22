@@ -23,6 +23,8 @@
 #ifndef _LAX_UNITS_H
 #define _LAX_UNITS_H
 
+
+#include <lax/anobject.h>
 #include <lax/lists.h>
 
 namespace Laxkit {
@@ -37,15 +39,17 @@ enum UnitTypes {
 	UNITS_Meters,
 	UNITS_Points,
 	UNITS_Pixels,
+	UNITS_Em,
 	UNITS_MAX
 };
 
 //------------------------------------- SimpleUnit ----------------------------------------
-class SimpleUnit
+class SimpleUnit : public anObject
 {
   protected:
 	virtual SimpleUnit *find(const char *name,int len=-1);
 	virtual SimpleUnit *find(int units);
+
   public:
 	int id;
 	double scaling;
@@ -58,6 +62,7 @@ class SimpleUnit
 	virtual ~SimpleUnit();
 
 	virtual int UnitId(const char *name,int len=-1);
+	virtual const char *UnitName(int uid);
 	virtual int UnitInfo(const char *name, int *iid, double *scale, char **shortname, char **singular,char **plural);
 	virtual int UnitInfoIndex(int index, int *iid, double *scale, char **shortname, char **singular,char **plural);
 	virtual int UnitInfoId(int id, double *scale, char **shortname, char **singular,char **plural);
@@ -66,7 +71,9 @@ class SimpleUnit
 	virtual int DefaultUnits(const char *units);
 	virtual int DefaultUnits(int units);
 	virtual int PixelSize(double pixelsize, int intheseunits);
+
 	virtual int NumberOfUnits();
+	virtual const SimpleUnit *Find(int id);
 	virtual int AddUnits(int nid, double scale, const char *shortname, const char *singular,const char *plural);
 	virtual double Convert(double value, const char *from, const char *to, int *error_ret);
 	virtual double Convert(double value, int from_id, int to_id, int *error_ret);
@@ -77,6 +84,7 @@ typedef SimpleUnit UnitManager;
 //------------------------------------- CreateDefaultUnits() ----------------------------------------
 SimpleUnit *CreateDefaultUnits(SimpleUnit *units=NULL);
 UnitManager *GetUnitManager();
+void SetUnitManager(UnitManager *manager);
 
 
 } // namespace Laxkit
