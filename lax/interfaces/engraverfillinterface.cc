@@ -1045,7 +1045,10 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
 
 		} else if (over==ENGRAVE_Trace_Set) {
 			if (!group) return 0;
-			group->trace->tracetype=!group->trace->tracetype;
+			if (group->trace->tracetype == EngraverTraceSettings::TRACE_Set)
+				group->trace->tracetype = EngraverTraceSettings::TRACE_Multiply;
+			else group->trace->tracetype = EngraverTraceSettings::TRACE_Set; // *** need to implement more tracetypes
+
 			needtodraw=1;
 			Trace();
 			return 0;
