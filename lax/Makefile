@@ -150,6 +150,7 @@ objs= \
 	colorsliders.o \
 	colorbox.o \
 	palette.o \
+	palettewindow.o \
 	rulerwin.o \
 	stackframe.o \
 	messagebox.o \
