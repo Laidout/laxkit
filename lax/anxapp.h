@@ -56,6 +56,8 @@ class anXWindow;
 class anXApp;
 class DeviceManager;
 class Displayer;
+class FontManager;
+class LaxFont;
 
 //----------------------------- Misc ------------------------------
 
