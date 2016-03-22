@@ -104,6 +104,15 @@ ResourceManager *InterfaceManager::GetTools()
 	return tools;
 }
 
+anInterface *InterfaceManager::GetTool(const char *tool)
+{
+	if (!tools) GetTools();
+	if (!tools) return NULL;
+
+	anInterface *interf = dynamic_cast<anInterface*>(tools->FindResource(tool, "tools"));
+	return interf;
+}
+
 ResourceManager *InterfaceManager::GetResourceManager()
 {
 	if (!resources) {

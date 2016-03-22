@@ -30,6 +30,7 @@
 #include <lax/fontmanager.h>
 #include <lax/objectfactory.h>
 #include <lax/interfaces/somedata.h>
+#include <lax/interfaces/aninterface.h>
 
 
 namespace LaxInterfaces {
@@ -57,6 +58,7 @@ class InterfaceManager : public Laxkit::anObject
 
 	virtual Laxkit::ResourceManager *GetResourceManager();
 	virtual Laxkit::ResourceManager *GetTools();
+	virtual anInterface *GetTool(const char *tool);
 	virtual Laxkit::FontManager *GetFontManager();
 	virtual Laxkit::IconManager *GetIconManager();
 	virtual Laxkit::UndoManager *GetUndoManager();
