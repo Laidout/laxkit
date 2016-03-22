@@ -45,7 +45,24 @@ using namespace std;
 namespace LaxInterfaces {
 
 
-//----------------------------------------------------------------
+//--------------------------- BoilerPlateData -------------------------------------
+
+/*! \class BoilerPlateData
+ * \ingroup interfaces
+ * \brief Data that BoilerPlateInterface can use.
+ */
+
+BoilerPlateData::BoilerPlateData()
+{
+}
+
+BoilerPlateData::~BoilerPlateData()
+{
+}
+
+
+
+//--------------------------- BoilerPlateInterface -------------------------------------
 
 /*! \class BoilerPlateInterface
  * \ingroup interfaces
@@ -56,7 +73,7 @@ namespace LaxInterfaces {
 BoilerPlateInterface::BoilerPlateInterface(anInterface *nowner, int nid, Displayer *ndp)
  : anInterface(nowner,nid,ndp)
 { ***
-	boilerplate_interface_style=0;
+	interface_flags=0;
 
 	showdecs=1;
 	needtodraw=1;
@@ -108,6 +125,12 @@ int BoilerPlateInterface::UseThis(anObject *nobj, unsigned int mask)
 	}
 	return 0;
 }
+
+/*! Return the object's ObjectContext to make sure that the proper context is already installed
+ * before Refresh() is called.
+ */
+ObjectContext *BoilerPlateInterface::Context()
+{ return NULL; }
 
 /*! Any setup when an interface is activated, which usually means when it is added to 
  * the interface stack of a viewport.

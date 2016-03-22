@@ -29,6 +29,17 @@
 namespace LaxInterfaces { 
 
 
+//--------------------------- BoilerPlateData -------------------------------------
+
+class BoilerPlateData : virtual public SomeData
+{
+  public:
+	BoilerPlateData();
+	virtual ~BoilerPlateData();
+};
+
+
+//--------------------------- BoilerPlateInterface -------------------------------------
 
 class BoilerPlateInterface : public anInterface
 {
@@ -40,7 +51,7 @@ class BoilerPlateInterface : public anInterface
 	virtual int send();
 
   public:
-	unsigned int boilerplate_interface_style;
+	unsigned int interface_flags;
 
 	BoilerPlateInterface(anInterface *nowner, int nid,Laxkit::Displayer *ndp);
 	virtual ~BoilerPlateInterface();
