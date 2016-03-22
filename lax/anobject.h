@@ -30,8 +30,9 @@ namespace Laxkit {
 
 class anObject 
 {
- protected:
+  protected:
 	int _count;
+
   public:
 	int suppress_debug;
 	unsigned long object_id;
