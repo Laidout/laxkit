@@ -45,8 +45,11 @@ namespace LaxInterfaces {
 FillStyle::FillStyle()
 {
 	function=Laxkit::LAXOP_Over;
+
 	color.red=color.green=0;
 	color.blue=color.alpha=0xffff;
+	color2=NULL;
+
 	fillrule=LAXFILL_EvenOdd;
 	fillstyle=FillSolid;
 }
@@ -57,9 +60,15 @@ FillStyle::FillStyle(int r,int g,int b, int a,int fr,int fs,int f)
 	color.green=g;
 	color.blue=b;
 	color.alpha=a;
+	color2=NULL;
 	fillrule=fr;
 	fillstyle=fs;
 	function=f;
+}
+
+FillStyle::~FillStyle()
+{
+	if (color2) color2->dec_count();
 }
 
 //! Set the color. Components are 0..0xffff.

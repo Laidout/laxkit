@@ -52,6 +52,7 @@ LineStyle::LineStyle()
 	widthtype=1;//0 for screen width, 1 for real width
 	color.red=color.green=0;
 	color.blue=color.alpha=0xffff;
+	color2=NULL;
 
 	capstyle=LAXCAP_Butt;
 	endcapstyle=0; //0 means use capstyle? .. need better cap support, use engraver line quality??
@@ -82,6 +83,7 @@ LineStyle::LineStyle(int r,int g,int b, int a, double w,int cap,int join,int dot
 	color.green=g;
 	color.blue=b;
 	color.alpha=a;
+	color2=NULL;
 	width=w;
 	widthtype=1;
 	capstyle=cap;
@@ -138,6 +140,7 @@ LineStyle &LineStyle::operator=(LineStyle &l)
 
 LineStyle::~LineStyle()
 {
+	if (color2) color2->dec_count();
 	delete[] dashes;
 }
 

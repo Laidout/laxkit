@@ -27,7 +27,7 @@
 
 #include <lax/anobject.h>
 #include <lax/dump.h>
-#include <lax/screencolor.h>
+#include <lax/colors.h>
 
 
 namespace LaxInterfaces {
@@ -57,6 +57,7 @@ class LineStyle : public Laxkit::anObject, public LaxFiles::DumpUtility
 	double dash_offset;
 	int numdashes;
 
+	Laxkit::Color *color2;
 	Laxkit::ScreenColor color;
 
 	unsigned long mask;

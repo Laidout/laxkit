@@ -27,7 +27,7 @@
 #include <cstdio>
 #include <lax/anobject.h>
 #include <lax/dump.h>
-#include <lax/screencolor.h>
+#include <lax/colors.h>
 #include <lax/drawingdefs.h>
 
 #define FillNone 100
@@ -37,6 +37,7 @@ namespace LaxInterfaces {
 class FillStyle : public Laxkit::anObject, public LaxFiles::DumpUtility
 {
   public:
+	Laxkit::Color *color2;
 	Laxkit::ScreenColor color;
 	int fillrule;
 	int fillstyle;
@@ -48,7 +49,7 @@ class FillStyle : public Laxkit::anObject, public LaxFiles::DumpUtility
 		{ color=f.color; fillrule=f.fillrule; fillstyle=f.fillstyle; }
 	FillStyle &operator=(FillStyle &f) 
 		{ color=f.color; fillrule=f.fillrule; fillstyle=f.fillstyle; return f; }
-	virtual ~FillStyle() {}
+	virtual ~FillStyle();
 
 	virtual void Color(int r,int g,int b,int a);
 	virtual void Colorf(double r,double g,double b,double a);
