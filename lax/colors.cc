@@ -234,6 +234,15 @@ double Color::Alpha()
 	return values[i]*alpha;
 }
 
+/*! Return something usually from SimpleColorId. 
+ * In the normal course of things, this will usually be one of
+ * 	COLOR_None, COLOR_Normal, COLOR_Registration, or COLOR_Knockout.
+ */
+int Color::ColorType()
+{
+	return color_type;
+}
+
 //! Return the value of channel.
 /*! This function does no checking against system.
  * It only checks channel against this->n, and returns values[channel].
@@ -389,6 +398,98 @@ void Color::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext
 	}
 }
 
+//------------------------------- ColorRef -------------------------------
+/*! \class ColorRef
+ */
+
+ColorRef::ColorRef(Color *newcolor)
+{
+	state=-1;
+	color=NULL;
+	Reference(newcolor);
+}
+
+ColorRef::~ColorRef()
+{
+	if (color) color->dec_count();
+}
+
+
+Color *ColorRef::duplicate()
+{
+	ColorRef *col = new ColorRef(color);
+	return col;
+}
+
+//const char *ColorRef::Name()
+//{
+//}
+
+double ColorRef::Alpha()
+{
+	if (color) return color->Alpha();
+	return 0;
+}
+
+int ColorRef::ColorType()
+{
+	if (color) return color->ColorType();
+	return 0;
+}
+
+int ColorRef::ColorSystemId()
+{
+	if (color) return color->ColorSystemId();
+	return 0;
+} 
+
+double ColorRef::ChannelValue(int channel)
+{
+	if (color) return color->ChannelValue(channel);
+	return -1;
+}
+
+int ColorRef::ChannelValueInt(int channel, int *error_ret)
+{
+	if (color) return color->ChannelValueInt(channel, error_ret);
+	return -1;
+}
+
+/*! Change the color that this ColorRef references.
+ * Incs newcolor. If newcolor is NULL, nothing is done.
+ * Return 0 for changed (or newcolor was already the color), 1 for not changed.
+ */
+int ColorRef::Reference(Color *newcolor)
+{
+	if (!newcolor) return 1;
+	if (color==newcolor) return 0;
+	if (color) color->dec_count();
+	color=newcolor;
+	if (color) color->inc_count();
+	state=0;
+
+	return 0;
+}
+
+
+LaxFiles::Attribute *ColorRef::dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context)
+{
+	if (color) {
+		att=color->dump_out_atts(att,what,context);
+		att->push("ref", color->Name());
+		// *** needs fleshing out how and where colors are referenced
+	}
+
+	return att;
+}
+
+void ColorRef::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context)
+{ //***
+	Attribute *att2 = att->find("ref");
+	if (!att2) return;
+}
+
+
 
 //------------------------------- ColorPrimary -------------------------------
 /*! \class ColorPrimary
@@ -520,6 +621,8 @@ void ColorSystem::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpC
 
 //------------------------------- Built in ColorSystem creators-------------------------------
 
+/*! Create a ColorSystem based on sRGB.
+ */
 ColorSystem *Create_sRGB(bool with_alpha)
 {
 	ColorSystem *rgb=new ColorSystem;
@@ -549,6 +652,8 @@ ColorSystem *Create_sRGB(bool with_alpha)
 	return rgb;
 }
 
+/*! Create a ColorSystem based on naive cmyk.
+ */
 ColorSystem *Create_Generic_CMYK(bool with_alpha)
 {
 	ColorSystem *cmyk=new ColorSystem;
@@ -656,15 +761,30 @@ ColorSystem *Create_XYZ(bool with_alpha)
 // * Basics are rgb, cmy, cmyk, yuv, hsv.
 // */
 
+class ColorManager : public anObject
+{
+  protected:
+	PtrStack<ColorSystem> systems;
+
+  public:
+	ColorManager();
+	virtual ~ColorManager();
+};
+
+ColorManager::ColorManager()
+{
+}
+
+ColorManager::~ColorManager()
+{
+	DBG cerr <<"ColorManager "<<(Id()?Id():"unnamed")<<" destructor"<<endl;
+}
+
+
+
+
 
 } //namespace Laxkit
 
 
-const char *css_color_names[]={
-		"white",   "#ffffff",
-		"silver",  "#808080",
-		"gray",    "#c0c0c0",
-
-		NULL	
-	};
 

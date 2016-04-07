@@ -122,10 +122,12 @@ class Color : public Laxkit::anObject, public LaxFiles::DumpUtility
 	virtual Color *duplicate();
 
 	virtual const char *Name();
+	virtual double Alpha();
+	virtual int ColorType();
 	virtual int ColorSystemId();
+
 	virtual double ChannelValue(int channel);
 	virtual int ChannelValueInt(int channel, int *error_ret=NULL);
-	virtual double Alpha();
 
 	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
     virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context);
@@ -133,6 +135,30 @@ class Color : public Laxkit::anObject, public LaxFiles::DumpUtility
 };
 
 
+//------------------------------- ColorRef -------------------------------
+class ColorRef : virtual public Laxkit::Color
+{
+  public:
+	Color *color;
+	int state; //0==good ref. 1==values set, but need to find ref'd obj, -1==undefined
+
+	ColorRef(Color *newcolor);
+	virtual ~ColorRef();
+
+	virtual Color *duplicate();
+	//virtual const char *Name();
+	virtual double Alpha();
+	virtual int ColorType();
+	virtual int ColorSystemId();
+
+	virtual double ChannelValue(int channel);
+	virtual int ChannelValueInt(int channel, int *error_ret=NULL);
+
+    virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context);
+    virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
+
+	virtual int Reference(Color *newcolor);
+};
 
 
 //------------------------------- ColorPrimary -------------------------------
@@ -198,6 +224,8 @@ class ColorSystem: public Laxkit::anObject, public LaxFiles::DumpUtility
 
 ColorSystem *Create_sRGB(bool with_alpha);
 ColorSystem *Create_Generic_CMYK(bool with_alpha);
+ColorSystem *Create_CieLab(bool with_alpha);
+ColorSystem *Create_XYZ(bool with_alpha);
 
 
 ////------------------------------- class ColorManager -------------------------------
