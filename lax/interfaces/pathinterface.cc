@@ -1412,16 +1412,20 @@ int Path::ApplyOffset()
 /*! Make all weight nodes have towhat as offset.
  * If towhat==0 and there are no nodes, then add one with given offset.
  *
+ * If diff, then add to current offset for all nodes. In this case, if no nodes,
+ * then set to this value.
+ *
  * Return 0 for success, 1 for error.
  */
-int Path::SetOffset(double towhat)
+int Path::SetOffset(double towhat, bool diff)
 {
 	if (pathweights.n==0) {
 		AddWeightNode(.5, towhat, linestyle ? linestyle->width : defaultwidth, 0);
 
 	} else {
 		for (int c=0; c<pathweights.n; c++) {
-			pathweights.e[c]->offset=towhat;
+			if (diff) pathweights.e[c]->offset+=towhat;
+			else pathweights.e[c]->offset=towhat;
 		}
 	}
 
@@ -2041,6 +2045,35 @@ int Path::openAt(Coordinate *curvertex, int after)
 	return 0;
 }
 
+int Path::RemoveDoubles(double threshhold)
+{
+	threshhold*=threshhold;
+
+	int n=0;
+	Coordinate *p=path, *start=path, *p2, *pp;
+
+	do {
+		if (!(p->flags&POINT_VERTEX)) { p=p->next; continue; }
+		p2=p->nextVertex(0);
+		if (p2==start) break;
+
+		if (norm2(p2->p() - p->p()) <= threshhold) {
+			p2=p2->next;
+			do {
+				pp=p->next;
+				pp->detach();
+				delete pp;
+			} while (p->next != p2);
+
+			n++;
+		}
+
+		p=p->nextVertex(0);
+	} while (p && p!=start);
+
+	return n;
+}
+
 //! Return the coordinate that is the closest <= t, or NULL if no such t exists.
 Coordinate *Path::GetCoordinate(double t)
 {
@@ -2234,15 +2267,65 @@ int Path::PointAlongPath(double t, //!< Either visual distance or bezier paramet
 	double dd;
 	flatpoint fp;
 
-	if (t<=0) {
-		 //currently always clamp to start point
-		 // *** need to implement negative t!!
+	if (t<=0 && !IsClosed()) {
 		if (point) *point=start->p();
 		if (tangent) {
 			if (start->next && start->next->flags&POINT_TOPREV) *tangent=start->next->p()-start->p();
 			else *tangent=start->direction(1);
 		}
 		return -1;
+	}
+
+	if (t<=0) { //is a closed path
+		if (!tisdistance) {
+			int n=NumVertices(NULL);
+			while (t<0) t+=n;
+		}
+	}
+
+	if (t<0 && tisdistance) {
+		 //to be here, t is distance AND the path is closed..
+
+		do { //one iteration for each segment (a vertex to next vertex)
+			c1=c2=v2=NULL;
+			v2=p->prev;
+			if (!v2) break;
+
+			if (v2->flags&POINT_TONEXT) { c1=v2; v2=v2->prev; if (!v2) break; }
+			else { c1=p;  }
+
+			if (v2->flags&POINT_TOPREV) { c2=v2; v2=v2->prev; if (!v2) break; }
+			else { c2=v2; }
+
+			if (c1==p && c2==v2) {
+				 //we have the simpler case of a line segment
+				fp=v2->p()-p->p(); //current segment
+
+				dd=norm(fp);
+				if (-t>dd) { t+=dd; p=v2; continue; } //not on this segment!
+
+				if (point) *point=(dd ? p->p()-t*fp/dd : p->p());
+				if (tangent) *tangent=-fp;
+				return 1;
+
+			} else {
+				 //must deal with a bezier segment
+				double tt=0;
+
+				dd=bez_segment_length(p->p(),c1->p(),c2->p(),v2->p(), 50);
+				if (-t>dd) { t+=dd; p=v2; continue; } //not on this segment!
+				tt=bez_distance_to_t(-t, p->p(),c1->p(),c2->p(),v2->p(), 50);
+				
+				if (point) *point=bez_point(tt, p->p(),c1->p(),c2->p(),v2->p());
+				if (tangent) {
+					*tangent = -bez_point(tt+.01, p->p(),c1->p(),c2->p(),v2->p())
+							   +bez_point(tt, p->p(),c1->p(),c2->p(),v2->p());
+				}
+				return 1;
+			}
+		} while (1);
+
+		//theoretically you'll never break out of the loop
 	}
 
 	do { //one iteration for each segment (a vertex to next vertex)
@@ -2364,7 +2447,7 @@ flatpoint Path::ClosestPoint(flatpoint point, double *disttopath, double *distal
 				t=tt+sp;         //update tdist for found point
 				vd=vdd+sp*sqrt(ss); //update visual distance for closest
 			}
-			vdd+=ss;   //update running visual distance
+			vdd+=sqrt(ss);   //update running visual distance
 
 		} else {
 			 //else need to search bez segment
@@ -3230,7 +3313,7 @@ Coordinate *PathsData::GetCoordinate(int pathi, double t)
 	return p;
 }
 
-/*! Return that path, or if index==-1, return top path.
+/*! Return that path, or if index==-1, return top path. Returns direct reference to it, NOT a copy.
  * Else Return NULL if index out of range.
  */
 Path *PathsData::GetPath(int index)
@@ -3947,7 +4030,40 @@ int PathInterface::UseThis(anObject *newdata,unsigned int mask)
 		}
 		needtodraw=1;
 		return 1;
+
+	} else if (dynamic_cast<PathsData *>(newdata)) {
+		 //use a generic PathsData that is not tied to any context
+		if (newdata==data) return 1; //already used!
+
+		PathsData *ndata=dynamic_cast<PathsData *>(newdata);
+		if (!ndata) return 0;
+
+		deletedata(); //makes both data and poc NULL
+		data=ndata;
+		data->inc_count();
+
+		if (linestyle) linestyle->dec_count();
+		linestyle=data->linestyle;
+		if (!linestyle) linestyle=defaultline;
+		if (linestyle) linestyle->inc_count();
+
+		if (fillstyle) fillstyle->dec_count();
+		fillstyle=data->fillstyle;
+		if (!fillstyle) fillstyle=defaultfill;
+		if (fillstyle) fillstyle->inc_count();
+
+		curvertex=NULL;
+		curpath=NULL;
+		curpoints.flush();
+
+		if (data->paths.n && data->paths.e[data->paths.n-1]->path) {
+			SetCurvertex(data->paths.e[data->paths.n-1]->path->lastPoint(1));
+		}
+
+		needtodraw=1;
+		return 1; 
 	}
+
 	return 0;
 }
 
@@ -5461,6 +5577,7 @@ PathsData *PathInterface::newPathsData()
 void PathInterface::Modified(int level)
 {
 	if (owner) {
+		DBG cerr <<"PathInterface Modified(), sending to "<<(owner->Id()?owner->Id():owner->whattype())<<endl;
 		const char *message=owner_message;
 		if (!message) message=whattype();
 		EventData *ev=new EventData(message);
@@ -6596,8 +6713,8 @@ Laxkit::ShortcutHandler *PathInterface::GetShortcuts()
 
 	sc=new ShortcutHandler(whattype());
 
-	sc->Add(PATHIA_CurpointOnHandle,  't',0,0,        "HandlePoint",  _("Switch between handle and vertex"),NULL,0);
-	sc->Add(PATHIA_CurpointOnHandleR, 'T',ShiftMask,0,"HandlePointR", _("Switch between handle and vertex"),NULL,0);
+	sc->Add(PATHIA_CurpointOnHandle,  LAX_Up,0,0,        "HandlePoint",  _("Switch between handle and vertex"),NULL,0);
+	sc->Add(PATHIA_CurpointOnHandleR, LAX_Up,ShiftMask,0,"HandlePointR", _("Switch between handle and vertex"),NULL,0);
 	sc->Add(PATHIA_Pathop,            'o',0,0,        "Pathop",       _("Change path operator"),NULL,0);
 	sc->Add(PATHIA_ToggleAbsAngle,    '^',ShiftMask,0,"ToggleAbsAngle",_("Toggle absolute angles in subpaths"),NULL,0);
 	sc->Add(PATHIA_ToggleFillRule,    'F',ShiftMask,0,"ToggleFillRule",_("Toggle fill rule"),NULL,0);

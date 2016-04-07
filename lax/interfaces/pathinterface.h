@@ -128,6 +128,7 @@ class Path : public LaxFiles::DumpUtility, public Laxkit::DoubleBBox
 	virtual void clear();
 	virtual int Line(LineStyle *nlinestyle);
 	virtual int LineColor(Laxkit::ScreenColor *ncolor);
+	virtual int RemoveDoubles(double threshhold);
 
 	 //weight node related
 	virtual bool Weighted();
@@ -141,7 +142,7 @@ class Path : public LaxFiles::DumpUtility, public Laxkit::DoubleBBox
 	virtual int GetWeight(double t, double *width, double *offset, double *angle);
 	virtual void SortWeights();
 	virtual int ApplyOffset();
-	virtual int SetOffset(double towhat);
+	virtual int SetOffset(double towhat, bool diff=false);
 	virtual int SetAngle(double towhat, int absolute);
 	virtual int MakeStraight(Coordinate *from, Coordinate *to, bool asbez);
 
