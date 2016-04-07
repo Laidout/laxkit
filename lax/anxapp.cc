@@ -893,7 +893,8 @@ int anXApp::has(int what)
 //! Init the app. The default is to call initX() if donotusex==0, otherwise wall initNoX().
 int anXApp::init(int argc,char **argv)
 {
-	return donotusex ? initNoX(argc,argv) : initX(argc,argv);
+	if (donotusex) return initNoX(argc,argv);
+	return initX(argc,argv);
 }
 
 //! Init the app without accessing X.
@@ -983,13 +984,11 @@ int anXApp::initX(int argc,char **argv)
 	if (!strcmp(backend,"xlib")) {
 #ifdef LAX_USES_IMLIB
 		InitImlib2Backend(); //number is imlib cache mem size limit in megabytes. this should be configurable!!!
-		if (!fontmanager) fontmanager=GetDefaultFontManager();
 #endif
 
 	} else if (!strcmp(backend,"cairo")) {
 #ifdef LAX_USES_CAIRO
 		InitCairoBackend();
-		if (!fontmanager) fontmanager=GetDefaultFontManager();
 #endif
 
 	} else if (!strcmp(backend,"gl")) {
@@ -1000,6 +999,7 @@ int anXApp::initX(int argc,char **argv)
 		exit(1);
 	}
 
+	if (!fontmanager) fontmanager=GetDefaultFontManager();
 
 	GetDefaultDisplayer(); //initializes if null
 	defaultlaxfont=fontmanager->MakeFontFromStr(controlfontstr,getUniqueNumber());
