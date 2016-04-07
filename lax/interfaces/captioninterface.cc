@@ -263,7 +263,7 @@ SomeData *CaptionData::duplicate(SomeData *dup)
 }
 
 
-/*! Return the number of characters (not bytes) in the given line number.
+/*! Return the number of bytes (not characters) in the given line number.
  */
 int CaptionData::CharLen(int line)
 {
@@ -1679,7 +1679,7 @@ void CaptionInterface::TextOutGlyphs(int line, double x,double y, bool show_care
 	GlyphPlace *glyph;
 	GlyphPlace *nextglyph;
 
-	dp->glyphsout(current_x,current_y, data->linestats.e[line]->glyphs, len, LAX_BASELINE|LAX_LEFT); 
+	dp->glyphsout(current_x,current_y, data->linestats.e[line]->glyphs, NULL, len, LAX_BASELINE|LAX_LEFT); 
 
 	if (!show_caret) return;
 	
@@ -2009,7 +2009,7 @@ int CaptionInterface::UseThis(anObject *newdata,unsigned int) // assumes not use
     if (!newdata || !data) return 0;
     
     if (data && dynamic_cast<LineStyle *>(newdata)) { // make all selected points have this color
-        DBG cerr <<"Grad new color stuff"<< endl;
+        DBG cerr <<"Caption new color stuff"<< endl;
         LineStyle *nlinestyle=dynamic_cast<LineStyle *>(newdata);
 
         if (nlinestyle->mask&GCForeground) {
