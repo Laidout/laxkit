@@ -82,6 +82,7 @@ objs= \
 	fontmanager.o \
 	fontmanager-xlib.o \
 	fontmanager-cairo.o \
+	fontscanner.o \
 	laximages.o \
 	laximages-imlib.o \
 	laximages-cairo.o \
