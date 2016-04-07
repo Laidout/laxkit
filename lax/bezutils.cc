@@ -162,10 +162,10 @@ int bez_bbox(flatpoint p,flatpoint c,flatpoint d,flatpoint q,DoubleBBox *bbox,do
 double bez_closest_point(flatpoint p, flatpoint p1,flatpoint c1,flatpoint c2,flatpoint p2, int maxpoints,
 		double *d_ret, double *dalong_ret, flatpoint *found)
 {
-	flatpoint bp,last;
+	flatpoint bp,last,laststart;
 	double d=1e+10,
 		   dd;
-	double da=0, dat=0;
+	double da=0, dat=0, lastda=0, dastart=0;
 	double at_t=1e+10,
 		   t,dt,a1,a2,a3,a4;
 	double start=0,end=1;
@@ -180,13 +180,17 @@ double bez_closest_point(flatpoint p, flatpoint p1,flatpoint c1,flatpoint c2,fla
 			a4=t*t*t;
 			bp.x=(a1*p1.x + a2*c1.x + a3*c2.x + a4*p2.x);
 			bp.y=(a1*p1.y + a2*c1.y + a3*c2.y + a4*p2.y);
-			dd=(bp.x-p.x)*(bp.x-p.x)+(bp.y-p.y)*(bp.y-p.y);
+			dd=(bp.x-p.x)*(bp.x-p.x)+(bp.y-p.y)*(bp.y-p.y);//square of dist to p
 
-			if (dalong_ret) { dat+=norm(bp-last); last=bp; }
-			if (dd<d) { d=dd; at_t=t; da=dat; if (found) *found=bp; }
+			if (dd<d) {
+				d=dd; at_t=t; laststart=last; dastart=lastda; da=dat; if (found) *found=bp;
+			}
+			if (dalong_ret) { lastda=dat; dat+=norm(bp-last); last=bp; }
 		}
 
 		start=at_t-dt;
+		dat=dastart;
+		last=laststart;
 		if (start<0) start=0;
 		end  =at_t+dt;
 		if (end>1) end=1;
