@@ -749,7 +749,7 @@ int ViewportWindow::Push(anInterface *i,int where, int absorbcount)
 {
 	if (!i) return 1;
 	DBG cerr <<".....pushing "<<i->whattype()<<endl;
-	if (interfaces.pushnodup(i,3,where)>=0) { 
+	if (interfaces.pushnodup(i,LISTS_DELETE_Refcount,where)>=0) { 
 		// i was already on the stack
 	}
 	if (absorbcount) i->dec_count();
