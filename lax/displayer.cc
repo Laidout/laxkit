@@ -1301,7 +1301,7 @@ void Displayer::NewAxis(flatpoint o,flatvector x,flatvector y)
 //! Rotate by angle, about screen coordinate (x,y).
 /*! dec nonzero means angle is degrees, otherwise radians.
  */
-void Displayer::Rotate(double angle,int x,int y,int dec)
+void Displayer::Rotate(double angle, double x,double y, int dec)
 {
 	if (dec<0) dec=decimal;
 
@@ -1395,16 +1395,46 @@ void Displayer::Zoom(double m) // zooms with origin constant point
 	NewTransform(ctm);
 }
 
+flatpoint Displayer::XAxis(flatpoint xaxis)
+{
+	double m[6];
+	transform_copy(m, Getctm());
+	m[0]=xaxis.x;
+	m[1]=xaxis.y;
+	NewTransform(m);
+	return xaxis;
+}
+
 flatpoint Displayer::XAxis()
 {
 	const double *m=Getctm();
 	return flatpoint(m[0],m[1]);
 }
 
+flatpoint Displayer::YAxis(flatpoint yaxis)
+{
+	double m[6];
+	transform_copy(m, Getctm());
+	m[2]=yaxis.x;
+	m[3]=yaxis.y;
+	NewTransform(m);
+	return yaxis;
+}
+
 flatpoint Displayer::YAxis()
 {
 	const double *m=Getctm();
 	return flatpoint(m[2],m[3]);
+}
+
+flatpoint Displayer::Origin(flatpoint origin)
+{
+	double m[6];
+	transform_copy(m, Getctm());
+	m[4]=origin.x;
+	m[5]=origin.y;
+	NewTransform(m);
+	return origin;
 }
 
 flatpoint Displayer::Origin()

@@ -615,13 +615,13 @@ double DisplayerXlib::textout(double angle, double x,double y,const char *str,in
 
 /*! len must specify how many glyphs in glyphs.
  */
-double DisplayerXlib::glyphsout(double x,double y, GlyphPlace *glyphs,unsigned int len, unsigned long align)
+double DisplayerXlib::glyphsout(double x,double y, GlyphPlace *glyphs,GlyphPlace **glyphsp,unsigned int len, unsigned long align)
 {
 	cerr << " --- unimplemented: DisplayerXlib::glyphsout()!"<<endl;
 	return 0;
 }
 
-double DisplayerXlib::glyphsextent(GlyphPlace *glyphs,unsigned int len, double *width,double *height, bool real)
+double DisplayerXlib::glyphsextent(GlyphPlace *glyphs,GlyphPlace **glyphsp,unsigned int len, double *width,double *height, bool real)
 {
 	cerr << " --- unimplemented: DisplayerXlib::glyphsextent()!"<<endl;
 	return 0;
@@ -1357,7 +1357,7 @@ void DisplayerXlib::NewTransform(const double *d)
 //! Rotate by angle, about screen coordinate (x,y).
 /*! dec nonzero means angle is degrees, otherwise radians.
  */
-void DisplayerXlib::Rotate(double angle,int x,int y,int dec) // dec=1
+void DisplayerXlib::Rotate(double angle, double x,double y,int dec) // dec=1
 {
 	flatpoint p=screentoreal(x,y);
 	Newangle(angle,1,dec);

@@ -206,8 +206,8 @@ class Displayer : public PanUser, virtual public anObject
 	virtual double textout(double x,double y,const char *str,int len=0,unsigned long align=LAX_CENTER) = 0;
 	virtual double textout(double *matrix,double x,double y,const char *str,int len=0,unsigned long align=LAX_CENTER) = 0;
 	virtual double textout(double angle, double x,double y,const char *str,int len=0,unsigned long align=LAX_CENTER) = 0;
-	virtual double glyphsout(double x,double y, GlyphPlace *glyphs,unsigned int len, unsigned long align=LAX_CENTER) = 0;
-	virtual double glyphsextent(GlyphPlace *glyphs,unsigned int len, double *width,double *height, bool real=false) = 0;
+	virtual double glyphsout(double x,double y, GlyphPlace *glyphs,GlyphPlace **glyphsp,unsigned int numglyphs, unsigned long align=LAX_CENTER) = 0;
+	virtual double glyphsextent(GlyphPlace *glyphs,GlyphPlace **glyphsp,unsigned int numglyphs, double *width,double *height, bool real=false) = 0;
 
 	//draw images
 	virtual int  imageout(LaxImage *image, double x,double y, double w,double h) = 0;
@@ -249,13 +249,16 @@ class Displayer : public PanUser, virtual public anObject
 	virtual void CenterPoint(flatpoint p);
 	virtual void CenterReal();
 	virtual void Newangle(double angle,int dir=0,int dec=-1);
-	virtual void Rotate(double angle,int x,int y,int dec=-1);
+	virtual void Rotate(double angle, double x,double y,int dec=-1);
 	virtual void Zoomr(double m,flatpoint p);
 	virtual void Zoom(double m,int x,int y);
 	virtual void Zoom(double m);
 	virtual flatpoint XAxis();
+	virtual flatpoint XAxis(flatpoint xaxis);
 	virtual flatpoint YAxis();
+	virtual flatpoint YAxis(flatpoint yaxis);
 	virtual flatpoint Origin();
+	virtual flatpoint Origin(flatpoint origin);
 	virtual double Getmag(int y=0);
 	virtual double GetVMag(double x,double y);
 	virtual void Newmag(double xs,double ys=-1);
