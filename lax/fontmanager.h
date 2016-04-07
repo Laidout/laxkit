@@ -56,6 +56,7 @@ struct GlyphPlace
 	double x;
 	double y;
  
+	int styleid; //can be used to specify different font layer, or totally different font, depends on context
 	int has_color; //1 for manual layered, 2 for COLR layers, 3 for full svg
 	               //1 can still be used by normal font rendering.. 
 	               //until freetype/cairo supports full multicolor, have to manually draw other glyphs

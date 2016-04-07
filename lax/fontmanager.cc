@@ -76,6 +76,7 @@ GlyphPlace::GlyphPlace()
 
 	x_advance=y_advance=x_offset=y_offset=x=y=0;
 
+	styleid=0;
 	has_color=0;
 }
 
