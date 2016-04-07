@@ -36,7 +36,7 @@ class ScreenColor
 	char pixel_is_synced;
 	long pixel;
 
-	ScreenColor() { red=green=blue=alpha=0; pixel_is_synced=0; pixel=0; }
+	ScreenColor() { red=green=blue=0; alpha=65535; pixel_is_synced=0; pixel=0; }
 	ScreenColor(unsigned int color);
 	ScreenColor(int r, int g, int b, int a)
 	  : red(r), green(g), blue(b), alpha(a), pixel_is_synced(0), pixel(0) {}
