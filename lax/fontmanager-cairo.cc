@@ -30,6 +30,7 @@
 
 
 #include <lax/anxapp.h>
+#include <lax/colors.h>
 
 #include <lax/lists.cc> // this is necessary to instantiate templates
 #include <lax/refptrstack.cc>
@@ -48,6 +49,112 @@ namespace Laxkit {
 //--------------------------- FontManagerCairo ------------------------------------------
 FontManager *newFontManager_cairo()
 { return new FontManagerCairo(); }
+
+
+//---------------------------- LaxUserFontCairo -------------------------------
+
+/*! \class GlyphOutline
+ * Point outline plus single fill color.
+ */
+class GlyphOutline
+{
+  public:
+	Color *color; //fill
+	flatpoint *points; //you must tag info with LINE_Bez and LINE_Start/LINE_End where appropriate
+	int numpoints;
+	GlyphOutline();
+	virtual ~GlyphOutline();
+};
+
+GlyphOutline::GlyphOutline()
+{
+	color=NULL;
+	numpoints=0;
+	points=NULL;
+}
+
+GlyphOutline::~GlyphOutline()
+{
+	if (color) color->dec_count();
+	delete[] points;
+}
+
+
+/*! \class UserFontGlyph
+ * Stack of outlines to draw for the specified glyph
+ */
+class UserFontGlyph
+{
+  public:
+	unsigned int glyphid;
+	PtrStack<GlyphOutline> outlines;
+};
+
+/*! \class UserFont
+ * Store a stack of glyphs with custom rendering.
+ */
+class UserFont
+{
+  public:
+	PtrStack<UserFontGlyph> glyphs; //sort by glyphid
+	UserFontGlyph *Glyph(unsigned long glyph);
+};
+
+UserFontGlyph *UserFont::Glyph(unsigned long glyph)
+{
+	int s=0, e=glyphs.n-1, m;
+
+	if (glyphs.e[s]->glyphid == glyph) return glyphs.e[s];
+	if (glyphs.e[e]->glyphid == glyph) return glyphs.e[e];
+	while (e>s) {
+		m=(s+e)/2;
+
+		if (glyphs.e[m]->glyphid == glyph) return glyphs.e[m];
+
+		if (glyph > glyphs.e[m]->glyphid) { s=m; }
+		else { e=m; }
+	}
+
+	return NULL;
+}
+
+UserFont *temp_font=NULL; //global var hack due to cairo's poor hard coded user font api
+
+cairo_status_t renderUserFontGlyph(cairo_scaled_font_t *scaled_font,
+                                unsigned long  glyphid,
+                                cairo_t *cr,
+                                cairo_text_extents_t *extents)
+{
+	UserFontGlyph *glyph = temp_font->Glyph(glyphid);
+	if (!glyph) return CAIRO_STATUS_SUCCESS;
+
+	flatpoint *p;
+	for (int c=0; c<glyph->outlines.n; c++) {
+		for (int c2=0; c2<glyph->outlines.e[c]->numpoints; c2++) {
+			p = glyph->outlines.e[c]->points+c2;
+
+			if (p->info&LINE_Start) { cairo_move_to(cr, p->x, p->y); continue; }
+
+			if (p->info&LINE_Bez) {
+				cairo_curve_to(cr, p->x, p->y, (p+1)->x,(p+1)->y, (p+2)->x,(p+2)->y);
+				p+=2;
+			} else {
+				cairo_line_to(cr, p->x, p->y);
+			}
+
+			if (p->info&LINE_End) { cairo_close_path(cr); }
+		}
+
+		 // *** forbidden?? "...the result is undefined if any source other than the default source on cr is used"
+		cairo_set_source_rgba(cr, glyph->outlines.e[c]->color->screen.red/65535.,
+								  glyph->outlines.e[c]->color->screen.green/65535.,
+								  glyph->outlines.e[c]->color->screen.blue/65535.,
+								  glyph->outlines.e[c]->color->screen.alpha/65535.);
+		cairo_fill(cr);
+	}
+
+	return CAIRO_STATUS_SUCCESS;
+}
 
 
 //---------------------------- LaxFontCairo -------------------------------
