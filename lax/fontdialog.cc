@@ -701,7 +701,10 @@ int FontDialog::init()
 int FontDialog::FindFont(const char *family, const char *style, const char *file)
 {
 	for (int c=0; c<fonts->n; c++) {
-		if (file && !strcmp(file, fonts->e[c]->file)) return c;
+		if (file) {
+			if (!strcmp(file, fonts->e[c]->file)) return c;
+			continue;
+		}
 
 		if (family && strcasecmp(family, fonts->e[c]->family)) continue;
 		if (style  && !strcasecmp(style, fonts->e[c]->style)) return c;
