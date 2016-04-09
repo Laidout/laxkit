@@ -379,7 +379,7 @@ int ColorBox::PopupColorSelector(int x,int y)
 
 	if (!w) return 1;
 
-	app->addwindow(w);
+	app->rundialog(w);
 	return 0;
 }
 
