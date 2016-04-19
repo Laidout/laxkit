@@ -52,6 +52,7 @@ objs= \
 	characterinterface.o \
 	textstreaminterface.o \
 	textonpathinterface.o \
+	texttopath.o \
 	groupdata.o \
 
 #	linesinterface.o \
