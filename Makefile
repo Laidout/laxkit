@@ -1,4 +1,8 @@
-### The Laxkit Makefile
+################################################
+##############                   ###############
+#############   Laxkit Makefile   ##############
+##############                   ###############
+################################################
 #
 # When installing include headers, make sure to install into
 # something like: lax-version/lax/*.h. This makes it easy for users to
