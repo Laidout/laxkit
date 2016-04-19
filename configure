@@ -1,5 +1,10 @@
 #!/bin/bash
-
+#
+##
+## Laxkit configure
+##
+#
+#
 # --help
 # --prefix=/blah/blah
 
@@ -11,6 +16,8 @@ PREFIX="/usr/local"
 
 #---capabilities
 EXTRAS=
+OPTIONAL=
+OPTIONALLIBS=
 USEXLIB="yes"
 USEIMLIB="yes"
 USECAIRO="yes"
@@ -174,7 +181,7 @@ LAXDIR="$PREFIX/include/lax"
  ## The stuff in NEED can be checked with pkg-config. Not all libraries
  ## can be checked this way! (notably cups, apparently)
 #NEED='x11 cupsys freetype2 imlib2 xext'
-NEED='x11  freetype2'
+NEED='x11  freetype2  harfbuzz'
 if [ x$USEIMLIB != x ] ; then NEED="$NEED imlib2"; fi
 if [ x$USECAIRO != x ] ; then NEED="$NEED cairo"; fi
 NUM='1'
@@ -196,8 +203,11 @@ for NAME in $OPTIONAL; do
     if [ "`pkg-config --exists --print-errors --errors-to-stdout $NAME`"xxx != "xxx" ] ; then 
 		if [ $NAME == 'sqlite3' ] ; then
 	        echo "Didn't find $NAME. Install that to get access to Fontmatrix tags."; 
+		else 
+			echo "Couldn't find optional $NAME. Skipping.";
 		fi
     else 
+		OPTIONALLIBS="$OPTIONALLIBS $NAME"
         echo "ok"; 
     fi
 done
@@ -275,6 +285,8 @@ echo "" >> Makefile-toinclude
 echo "PREFIX=$PREFIX" >> Makefile-toinclude
 echo "LAXKITVERSION=$LAXKITVERSION" >> Makefile-toinclude
 echo "EXTRAS=$EXTRAS" >> Makefile-toinclude
+echo "OPTIONALLIBS=$OPTIONALLIBS" >> Makefile-toinclude
+if [ x$USESQLITE  != x ] ; then echo "LAX_USES_SQLITE=yes" >> Makefile-toinclude; fi
 echo "" >> Makefile-toinclude
 
  ##
