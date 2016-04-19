@@ -1,4 +1,8 @@
-#### laxinput/Makefile
+########################################
+##############           ###############
+#############  Laxinput   ##############
+##############           ###############
+########################################
 
 
 ###Set LAXDIR to where the Laxkit headers are:
@@ -11,11 +15,23 @@ LAXDIR= ../lax
 ################ You shouldn't need to set anything below here ############################
 
 
+###Include options from configure
+include ../Makefile-toinclude
+
+
+OPTIONALLIBS=
+
+ifeq ($(LAX_USES_SQLITE), yes)
+OPTIONALLIBS= -lsqlite3
+endif
+
+
+
 LAXIDIR=$(LAXDIR)/interfaces
 LAXOBJDIR=$(LAXDIR)
 
 LD=g++
-LDFLAGS= -L/usr/X11R6/lib -lX11 -lm -lcairo   `imlib2-config --libs` -lfontconfig -lXext -lXi -lXft -lssl -L$(LAXDIR) -L$(LAXIDIR)
+LDFLAGS= -L/usr/X11R6/lib -lX11 -lm -lcairo -lfreetype  `imlib2-config --libs` $(OPTIONALLIBS) -lfontconfig -lXext -lXi -lXft -lssl -L$(LAXDIR) -L$(LAXIDIR)
 DEBUGFLAGS= -g -Wall
 CPPFLAGS= $(DEBUGFLAGS) -I. -I.. -I$(LAXDIR)/.. -I../include -I../src -I/usr/include/freetype2
 
