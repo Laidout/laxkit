@@ -407,8 +407,10 @@ int DelauneyInterface::Refresh()
 
 
 	dp->LineAttributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
+	double width=2;
+	dp->LineWidthScreen(width);
 	//dp->DrawScreen();
-	
+
 
 	 //triangles
 	dp->NewFG(coloravg(curwindow->win_colors->fg,curwindow->win_colors->bg));
@@ -481,7 +483,7 @@ int DelauneyInterface::Refresh()
 		if (c==curpoint && data->regions.n) {
 			if (data->regions.e[c].tris.n==0) continue;
 
-			dp->LineAttributes(2,LineSolid,LAXCAP_Round,LAXJOIN_Round);
+			dp->LineWidthScreen(2*width);
 			int i=data->regions.e[c].tris.e[0];
 			if (i>=0) dp->moveto(data->triangles.e[i].circumcenter);
 			else dp->lineto(data->inf_points.e[-i-1]);
@@ -493,7 +495,7 @@ int DelauneyInterface::Refresh()
 			}
 			dp->closed();
 			dp->stroke(0);
-			dp->LineAttributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
+			dp->LineWidthScreen(width);
 		}
 	}
 
