@@ -31,6 +31,7 @@
 #include <lax/interfaces/interfacemanager.h>
 #include <lax/interfaces/somedatafactory.h>
 #include <lax/interfaces/captioninterface.h>
+#include <lax/interfaces/texttopath.h>
 #include <lax/interfaces/characterinterface.h>
 #include <lax/interfaces/pathinterface.h>
 #include <lax/interfaces/viewportwindow.h>
@@ -1194,42 +1195,6 @@ int CaptionData::Font(const char *file, const char *family,const char *style,dou
 	return 0;
 }
 
-//#define FACTOR (65535.)
-#define FACTOR (64.)
-
-int pathsdata_ft_move_to(const FT_Vector* to, void* user)
-{
-	PathsData *paths = (PathsData*)user;
-	if (paths->paths.n>0 && paths->paths.e[paths->paths.n-1]->path==NULL)
-		paths->lineTo(flatpoint(to->x/FACTOR, -to->y/FACTOR));
-	else paths->moveTo(flatpoint(to->x/FACTOR, -to->y/FACTOR));
-	return 0;
-}
-
-int pathsdata_ft_line_to(const FT_Vector* to, void* user)
-{
-	PathsData *paths = (PathsData*)user;
-	paths->lineTo(flatpoint(to->x/FACTOR, -to->y/FACTOR));
-	return 0;
-}
-
-int pathsdata_ft_conic_to(const FT_Vector* control, const FT_Vector* to, void* user)
-{
-	PathsData *paths = (PathsData*)user;
-	flatpoint lastp = paths->LastVertex()->p();
-	flatpoint cc(control->x/FACTOR, -control->y/FACTOR), pto(to->x/FACTOR,-to->y/FACTOR);
-	paths->curveTo(lastp + (cc-lastp)*2./3, pto + (cc-pto)*2./3, pto);
-	return 0;
-}
-
-int pathsdata_ft_cubic_to(const FT_Vector* control1, const FT_Vector* control2, const FT_Vector*  to, void* user)
-{
-	PathsData *paths = (PathsData*)user;
-	paths->curveTo( flatpoint(control1->x/FACTOR, -control1->y/FACTOR),
-					flatpoint(control2->x/FACTOR, -control2->y/FACTOR),
-					flatpoint(to->x/FACTOR, -to->y/FACTOR));
-	return 0;
-}
 
 /*! If !use_clones, then return a single PathsData object with each glyph to independent paths.
  * 
