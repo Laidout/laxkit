@@ -25,11 +25,14 @@
 #include <harfbuzz/hb-ft.h>
 #include <harfbuzz/hb-ot.h>
 
+#include FT_OUTLINE_H
 
 #include <lax/interfaces/textonpathinterface.h>
+#include <lax/interfaces/texttopath.h>
 #include <lax/interfaces/interfacemanager.h>
-
+#include <lax/interfaces/somedataref.h>
 #include <lax/interfaces/somedatafactory.h>
+#include <lax/interfaces/groupdata.h>
 #include <lax/units.h>
 #include <lax/utf8utils.h>
 #include <lax/laxutils.h>
@@ -562,15 +565,36 @@ int TextOnPath::Remap()
 	 //we need to apply it to the actual line
 	double d = start_offset;
 	flatpoint point, tangent; 
+	double strokewidth=path->defaultwidth;
 
 	for (int i = 0; i < numglyphs; i++) {
-		if (pathdirection%2==0) offsetpath->PointAlongPath(d, 1, &point, &tangent);
-		else { offsetpath->PointAlongPath(-d, 1, &point, &tangent); tangent = -tangent; }
+		if (pathdirection%2==0) {
+			if (baseline_type==FROM_Envelope) {
+				path->PointInfo(d,1, &point, &tangent, NULL, NULL, NULL, NULL, &strokewidth, NULL);
+			} else {
+				offsetpath->PointAlongPath(d, 1, &point, &tangent);
+			}
+		} else {
+			if (baseline_type==FROM_Envelope) {
+				path->PointInfo(-d,1, &point, &tangent, NULL, NULL, NULL, NULL, &strokewidth, NULL);
+			} else {
+				offsetpath->PointAlongPath(-d, 1, &point, &tangent);
+			}
+			tangent = -tangent;
+		}
 
 		glyphs.e[i]->position = point;
 		glyphs.e[i]->rotation = atan2(tangent.y, tangent.x);
 
-		d += glyphs.e[i]->x_advance / 72;
+		if (baseline_type==FROM_Envelope) {
+			glyphs.e[i]->scaling = strokewidth/font->Msize()*72.;
+			//glyph->scaling = strokewidth/font->Msize()/72.;
+		} else {
+			glyph->scaling = 1;
+		}
+
+
+		d += glyphs.e[i]->scaling * glyphs.e[i]->x_advance / 72;
 	}
 
 	cachetime=time(NULL);
@@ -667,9 +691,269 @@ int TextOnPath::InsertString(const char *txt,int len, int pos, int *newpos)
 	return 0;
 }
 
+
 SomeData *TextOnPath::ConvertToPaths(bool use_clones, Laxkit::RefPtrStack<SomeData> *clones_to_add_to)
 {
-	DBG cerr << " *** need to implement TextOnPath::ConvertToPaths()!!!"<<endl;
+	if (!font || end-start==0) return NULL;
+
+	Remap();
+
+
+	FT_Error ft_error;
+	FT_Face ft_faces[font->Layers()];
+	FontManager *fontmanager = GetDefaultFontManager();
+	FT_Library *ft_library = fontmanager->GetFreetypeLibrary();
+
+	LaxFont *ff;
+	for (int c=0; c<font->Layers(); c++) {
+		ff=font->Layer(c);
+		FT_New_Face (*ft_library, ff->FontFile(), 0, &ft_faces[c]);
+		FT_Set_Char_Size (ft_faces[c], font->Msize()*64, font->Msize()*64, 0, 0);
+	}
+
+
+	InterfaceManager *imanager = InterfaceManager::GetDefault();
+
+	RefPtrStack<SomeData> fglyphs[font->Layers()];
+
+	char glyphname[100];
+	OnPathGlyph *glyph;
+	PathsData *outline;
+	
+	RefPtrStack<PathsData> layers; //temp object for single color layers
+	PathsData *pobject=NULL;
+
+	RefPtrStack<SomeData> *object=NULL;
+
+	ScreenColor color;
+	if (this->color) color.rgbf(this->color->screen.red/65535.,
+								this->color->screen.green/65535.,
+								this->color->screen.blue/65535.,
+								this->color->screen.alpha/65535.);
+
+	//bool is_all_paths=true;
+	//if (use_clones) is_all_paths=false;
+
+	//bool is_single_color=true;
+	Palette *palette=dynamic_cast<Palette*>(font->GetColor());
+	//if (font->Layers()>1) is_single_color=false;
+
+
+	 //for layered fonts, need to extract glyphs from each font, then stack 'em
+	//flatpoint loffset;
+	//loffset.x = -xcentering/100*(linelengths.e[l]);
+	//loffset.y = miny + font->ascent() + l*fabs(fontsize*linespacing);
+
+	 //foreach glyph...
+	for (int g=0; g<glyphs.n; g++) {
+		glyph = glyphs.e[g];
+
+		 //assign a glyph name.
+		 //use ONLY face[0] for name in layered fonts. All parts of the glyph ultimately get collapsed to single object.
+		FT_Get_Glyph_Name(ft_faces[0], glyph->index, glyphname, 100);
+		if (glyphname[0]=='\0') sprintf(glyphname,"glyph%d",glyph->index);
+
+		for (int layer=0; layer<font->Layers(); layer++) {
+			outline=NULL;
+			for (int o=0; o<fglyphs[layer].n; o++) {
+				if (!strcmp(fglyphs[layer].e[o]->Id(), glyphname)) { 
+					outline=dynamic_cast<PathsData*>(fglyphs[layer].e[o]);
+					break;
+				}
+			}
+
+			if (!outline) {
+				 //make glyph
+				//ft_error = FT_Load_Glyph(ft_faces[layer], glyph->index, FT_LOAD_NO_SCALE);
+				ft_error = FT_Load_Glyph(ft_faces[layer], glyph->index, FT_LOAD_NO_BITMAP);
+				if (ft_error != 0) continue;
+
+				 //so maybe the glyph is a bitmap, maybe it is an svg
+				 //we need to be on watch so that if glyph is COLR-able, we need to get the
+				 //color glyphs, NOT the fallback ones!
+
+				if (ft_faces[layer]->glyph->format != FT_GLYPH_FORMAT_OUTLINE) {
+					 //not the simple case where outline is right there!!
+					cerr << " *** Need to implement something meaningful for non-outline glyph to path! "<<endl;
+
+				} else {
+					 //we're in luck! just an ordinary path in one color to parse for this layer...
+
+					if (palette) {
+						color.rgbf(
+							palette->colors.e[layer]->channels[0]/(double)palette->colors.e[layer]->maxcolor,
+							palette->colors.e[layer]->channels[1]/(double)palette->colors.e[layer]->maxcolor,
+							palette->colors.e[layer]->channels[2]/(double)palette->colors.e[layer]->maxcolor,
+							palette->colors.e[layer]->channels[3]/(double)palette->colors.e[layer]->maxcolor);
+					}
+
+					 //has to be first layer, so make new base object
+					PathsData *glypho = dynamic_cast<PathsData*>(imanager->NewDataObject("PathsData"));
+					glypho->Id(glyphname);
+
+					glypho->fill(&color);
+					glypho->line(0);
+					outline=glypho;
+
+					 //set up parsing functions for Path object
+					int pathn = outline->paths.n;
+					FT_Outline_Funcs outline_funcs;
+					outline_funcs.move_to  = pathsdata_ft_move_to;
+					outline_funcs.line_to  = pathsdata_ft_line_to;
+					outline_funcs.conic_to = pathsdata_ft_conic_to;
+					outline_funcs.cubic_to = pathsdata_ft_cubic_to;
+					outline_funcs.shift    = 0;
+					outline_funcs.delta    = 0;
+					 // parse!!
+					ft_error = FT_Outline_Decompose( &ft_faces[layer]->glyph->outline, &outline_funcs, outline ); 
+					outline->close();
+
+					for (int p=pathn; p<outline->paths.n; p++) {
+						Coordinate *coord = outline->paths.e[p]->path;
+						Coordinate *start = coord;
+
+						 //remove double points
+						do {
+							if (coord->prev && coord->prev!=start
+									&& coord->flags&POINT_VERTEX && coord->prev->flags&POINT_VERTEX
+									&& coord->fp==coord->prev->fp) {
+								Coordinate *d = coord->prev;
+								d->detach();
+								delete d;
+							}
+							coord->fp/=72.;
+							coord=coord->next;
+						} while (coord && coord!=start);
+
+					}
+
+				} //if ft glyph format is outline
+
+				if (outline) {
+					fglyphs[layer].push(outline);
+					outline->dec_count();
+				}
+
+			} //if outline didn't exist
+			
+			if (use_clones) {
+				//*** //need to build up the glyph image
+					//then apply a ref to the image outside of the layers loop below
+				cerr << " *** implement use_clones in convert text to paths!!"<<endl;
+
+			} else {
+				 //add duplicate of glyph to existing overall object
+
+				if (layer>=layers.n) {
+					PathsData *nlayer = dynamic_cast<PathsData*>(imanager->NewDataObject("PathsData"));
+					layers.push(nlayer);
+					nlayer->dec_count();
+
+					pobject=layers.e[layer];
+					ScreenColor color;
+					if (palette) {
+						color.rgbf(
+							palette->colors.e[layer]->channels[0]/(double)palette->colors.e[layer]->maxcolor,
+							palette->colors.e[layer]->channels[1]/(double)palette->colors.e[layer]->maxcolor,
+							palette->colors.e[layer]->channels[2]/(double)palette->colors.e[layer]->maxcolor,
+							palette->colors.e[layer]->channels[3]/(double)palette->colors.e[layer]->maxcolor);
+					} else {
+						color.rgbf(this->color->screen.red/65535.,
+								   this->color->screen.green/65535.,
+								   this->color->screen.blue/65535.,
+								   this->color->screen.alpha/65535.);
+					}
+					pobject->fill(&color);
+					pobject->line(0);
+					pobject->linestyle->function=LAXOP_None;
+
+				} else pobject = layers.e[layer];
+
+				 //provide proper offset
+				PathsData *newchar = dynamic_cast<PathsData*>(outline->duplicate(NULL));
+
+				for (int p=0; p<newchar->paths.n; p++) {
+					Coordinate *coord = newchar->paths.e[p]->path;
+					Coordinate *start = coord;
+
+						start=coord;
+						do {
+							coord->fp = rotate(coord->fp, glyph->rotation);
+							coord->fp += glyph->position;
+							coord = coord->next;
+						} while (coord && coord!=start);
+				}
+
+				 //transfer all paths from newchar to pobject
+				newchar->FindBBox();
+				//newchar->ApplyTransform();
+				for ( ; newchar->paths.n>0; ) {
+					Path *path = newchar->paths.pop(0);
+					pobject->paths.push(path);
+				}
+
+				newchar->dec_count();
+			}
+
+		} //foreach layer
+
+		if (!outline) continue;
+
+		if (use_clones) {
+			 // add SomeDataRef to existing group object
+			//SomeDataRef *ref=new SomeDataRef(outline); // *** need to use generic object generator
+			SomeDataRef *ref = dynamic_cast<SomeDataRef*>(imanager->NewDataObject("SomeDataRef"));
+			if (!ref) ref=new SomeDataRef;
+			ref->Set(outline,false);
+
+			//ref->Scale(***);
+			ref->origin(flatpoint(glyph->position.x, glyph->position.y));
+			//ref->origin(flatpoint(glyph->x+loffset.x, glyph->y+loffset.y));
+
+			if (!object) object=new RefPtrStack<SomeData>();
+			object->push(ref);
+			ref->dec_count();
+			//is_all_paths=false;
+
+		}
+	} //for each glyph
+
+
+	 //cleanup
+	//if (glyphs != clones_to_add_to) glyphs->dec_count();
+	for (int c=0; c<font->Layers(); c++) {
+		FT_Done_Face (ft_faces[c]);
+	}
+
+	//if (is_all_paths) *** CollapsePaths(object);
+
+	if (layers.n) {
+		for (int l=0; l<layers.n; l++) {
+			pobject = layers.e[l];
+			//pobject->m(m());
+			pobject->FindBBox();
+		}
+
+		if (layers.n==1) {
+			layers.e[0]->inc_count();
+			return layers.e[0];
+		}
+
+		DBG cerr <<"Converted to path."<<endl;
+		//DBG dump_out(stderr,2,0,NULL);
+
+		GroupData *group = dynamic_cast<GroupData*>(imanager->NewDataObject("Group"));
+		for (int l=0; l<layers.n; l++) {
+			group->push(layers.e[l]);
+		}
+		group->FindBBox();
+
+		return group;
+	}
+
+	if (object) {
+		DBG cerr << "*** Warning!!! must implement GroupData for CaptionData::ConvertToPaths()!!!"<<endl;
+	}
 	return NULL;
 }
 
@@ -842,9 +1126,19 @@ int TextOnPathInterface::Event(const Laxkit::EventData *e_data, const char *mes)
         const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(e_data);
         int i =s->info2; //id of menu item
 
+		if (!textonpath) return 0;
+
         if (i==TPATH_ConvertToPath) {
 			 // ***
 			
+		} else if (i==TextOnPath::FROM_Envelope) {
+			textonpath->baseline_type = TextOnPath::FROM_Envelope;
+			textonpath->needtorecache=1;
+			PostMessage(_("Text size from envelope"));
+			return 0;
+
+		//} else if (i==) {
+		//} else if (i==) {
 		//} else if (i==) {
 		}
 
@@ -872,12 +1166,16 @@ int TextOnPathInterface::Refresh()
 			font->dec_count();
 
 			paths = new PathsData;
-			paths->style|=PathsData::PATHS_Ignore_Weights;
+			//paths->style|=PathsData::PATHS_Ignore_Weights;
+			//paths->style|=PathsData::PATHI_Render_With_Cache;
 			paths->moveTo(flatpoint(1,4));
 			paths->curveTo(flatpoint(1,6), flatpoint(4,6), flatpoint(4,4));
 			paths->append(flatpoint(4,2), POINT_TOPREV);
 			paths->append(flatpoint(1,2), POINT_TONEXT);
 			paths->close();
+			ScreenColor col(0., 0., 1., .25);
+			paths->line(.25, -1, -1, &col);
+			//paths->linestyle->widthtype=0;
 			//-------------
 			//paths = new PathsData;
 			//paths->style|=PathsData::PATHS_Ignore_Weights;
@@ -930,6 +1228,7 @@ int TextOnPathInterface::Refresh()
 		dp->ShiftReal(glyph->position.x, glyph->position.y);
 		dp->YAxis(-dp->YAxis());
 		pp=dp->realtoscreen(0,0);
+		if (glyph->scaling != 1) dp->Zoom(glyph->scaling);
 		dp->Rotate(-glyph->rotation, pp.x,pp.y);
 
 		//DBG pp=dp->realtoscreen(flatpoint(0,0));
@@ -940,7 +1239,10 @@ int TextOnPathInterface::Refresh()
 		//dp->NewFG(0.0,0.0,1.0);
 		//dp->drawrectangle(0,0, glyph->x_advance/72, textonpath->font->Msize()/72, 1);
 
-		dp->NewFG(textonpath->color->screen.red/65535.,textonpath->color->screen.green/65535.,textonpath->color->screen.blue/65535.,textonpath->color->screen.alpha/65535.);
+		dp->NewFG(textonpath->color->screen.red/65535.,
+				  textonpath->color->screen.green/65535.,
+				  textonpath->color->screen.blue/65535.,
+				  textonpath->color->screen.alpha/65535.);
 		//dp->NewFG(1.0,0.0,0.0);
 		dp->glyphsout(0,0, NULL, glyphs+c, 1, LAX_BASELINE|LAX_LEFT);
 		dp->PopAxes();
@@ -963,10 +1265,10 @@ int TextOnPathInterface::Refresh()
 		tangent.normalize();
 		double th=textonpath->font->Msize()/72;
 		//----------
-		dp->drawpoint(pp, 3, 0);
-		dp->drawpoint(pp+tv*(th), 3, 0);
-		dp->drawpoint(pp+tv*(1.5*th), 3, 0);
-		dp->drawpoint(pp+tv*(-th/2), 3, 0);
+		//dp->drawpoint(pp, 3, 0);
+		//dp->drawpoint(pp+tv*(th), 3, 0);
+		//dp->drawpoint(pp+tv*(1.5*th), 3, 0);
+		//dp->drawpoint(pp+tv*(-th/2), 3, 0);
 		//----------
 		 //draw start offset modifier
 		if (hover_type==TPATH_Offset) {
@@ -1112,8 +1414,11 @@ int TextOnPathInterface::MouseMove(int x,int y,unsigned int state, const Laxkit:
 {
 	if (!buttondown.any()) {
 		double alongpath, alongt;
-		int hover=scan(x,y,state, &alongpath, &alongt, NULL);
-		hoveralongpath = alongpath;
+		int hover=TPATH_None;
+		if (!child) {
+			hover=scan(x,y,state, &alongpath, &alongt, NULL);
+			hoveralongpath = alongpath;
+		}
 
 		DBG cerr <<" TextOnPath hover: "<<hover<<endl;
 
@@ -1342,8 +1647,13 @@ int TextOnPathInterface::PerformAction(int action)
 		if (!paths) return 0;
 
 		pathinterface.Dp(dp);
-		pathinterface.pathi_style=PATHI_One_Path_Only|PATHI_Esc_Off_Sub|PATHI_Two_Point_Minimum|PATHI_Path_Is_M_Real;
-		pathinterface.Setting(PATHI_No_Weights, textonpath->baseline_type==TextOnPath::FROM_Envelope ? 1 : 0);
+		pathinterface.pathi_style=PATHI_Render_With_Cache |
+								  PATHI_One_Path_Only | 
+								  PATHI_Esc_Off_Sub | 
+								  PATHI_Two_Point_Minimum | 
+								  PATHI_Path_Is_M_Real;
+		//pathinterface.Setting(PATHI_No_Weights, textonpath->baseline_type==TextOnPath::FROM_Envelope ? 1 : 0);
+		//pathinterface.Setting(PATHI_No_Weights, textonpath->baseline_type==TextOnPath::FROM_Envelope ? 1 : 0);
 		pathinterface.primary=1;
 
 		//VObjContext voc;
@@ -1394,7 +1704,16 @@ int TextOnPathInterface::PerformAction(int action)
 		needtodraw=1;
 		return 0;
 
-	//	return 0;
+	} else if (action==TPATH_ConvertToPath) {
+		if (!textonpath) return 0;
+		SomeData *newdata = textonpath->ConvertToPaths(false, NULL);
+
+		 //add data to viewport, and select tool for it
+		ObjectContext *oc=NULL;
+		viewport->NewData(newdata,&oc);//viewport adds only its own counts
+		//viewport->ChangeObject(oc, 1);
+		newdata->dec_count();
+		return 0;
 	}
 
 	return 1;
