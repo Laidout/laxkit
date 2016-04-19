@@ -848,6 +848,20 @@ char *lax_dirname(const char *path,char appendslash)
 	return dir;
 }
 
+/*! If there is a final ".ext" then replace the '.' with a '\\0'.
+ *
+ * Changes file, returns file.
+ */
+char *chop_extension(char *file)
+{
+	char *period = strrchr(file, '.');
+	char *slash  = strrchr(file, '/');
+	if (slash && period && slash>period) return file;
+	if (!period) return file;
+	*period='\0';
+	return file;
+}
+
 //! Return a new name based on the old file plus one, so "file.jpg" will return "file2.jpg"
 /*! "file3.jpg"->"file4.jpg",
  *  "blah"->"blah2"->"blah3",
