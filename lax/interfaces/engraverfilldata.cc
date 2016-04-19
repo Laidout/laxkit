@@ -1603,14 +1603,12 @@ int TraceObject::NeedsUpdating()
 /*! Calling this will always force a redrawing of the cache.
  * trace_sample_cache will only be reallocated if it is not currently large enough to hold data from object.
  *
- * viewport is unfortunately needed for a terrible hack to render random object references.
  */
-int TraceObject::UpdateCache(ViewportWindow *viewport)
+int TraceObject::UpdateCache()
 {
 	//we need to render the trace object to a grayscale sample board
 	
 
-	//if (!trace_sample_cache) return; //cache already there
 	if (!object) {
 		ClearCache(false);
 		return 0;
@@ -1651,8 +1649,10 @@ int TraceObject::UpdateCache(ViewportWindow *viewport)
 	//ddp->Newmag(w/(bbox.maxx-bbox.minx));
 	ddp->ClearWindow();
 
-
-	viewport->DrawSomeData(ddp,object, NULL,NULL,0);
+	InterfaceManager *imanager = InterfaceManager::GetDefault(true);
+	imanager->DrawDataStraight(ddp, object, NULL,NULL,0);
+	//-----
+	//viewport->DrawSomeData(ddp,object, NULL,NULL,0);
 	LaxImage *img=ddp->GetSurface();
 	ddp->EndDrawing();
 
@@ -2232,7 +2232,9 @@ void EngraverPointGroup::Modified(int what)
 {
 	//std::time_t modtime;
 	//modtime=time(NULL);
-	cerr << " *** need to implement EngraverPointGroup::Modified!"<<endl;
+	cerr << " *** need to properly mplement EngraverPointGroup::Modified!"<<endl;
+
+	if (owner) owner->touchContents();
 }
 
 /*! If keep_name, then do not copy id and name.
@@ -3010,17 +3012,15 @@ ImageData *EngraverPointGroup::CreateFromSnapshot()
  * For instance, this is usually (parent engraver object)->GetTransformToContext(false, 0).
  *
  * Returns 0 for success, or nonzero for error.
- *
- * \todo *** viewport is needed because of a terrible hack needed in TraceObject::UpdateCache()
  */
-int EngraverPointGroup::Trace(Affine *aa, ViewportWindow *viewport)
+int EngraverPointGroup::Trace(Affine *aa)
 {
 	if (!trace->traceobject) return 1;
 
 
 	 //update cache if necessary
 	if (!trace->traceobject->trace_sample_cache || trace->traceobject->NeedsUpdating())
-		trace->traceobject->UpdateCache(viewport);
+		trace->traceobject->UpdateCache();
 
 	int samplew=trace->traceobject->samplew;
 	int sampleh=trace->traceobject->sampleh;
@@ -5407,7 +5407,7 @@ void EngraverFillData::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContex
 		groups.e[c]->UpdateBezCache();
 
 		if (groups.e[c]->needtotrace) {
-			// *** need to clarify this: group.e[c]->Trace(aa,viewport);
+			// *** need to clarify this: group.e[c]->Trace(aa);
 		}
 
 		groups.e[c]->UpdateDashCache();

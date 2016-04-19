@@ -29,6 +29,7 @@
 #include <lax/interfaces/imageinterface.h>
 #include <lax/interfaces/gradientinterface.h>
 #include <lax/interfaces/curvemapinterface.h>
+#include <lax/colors.h>
 #include <lax/screencolor.h>
 #include <lax/curveinfo.h>
 #include <lax/noise.h>
@@ -311,6 +312,20 @@ class LinePoint
 	//void ReCache(int num, double dashleftover, EngraverLineQuality *dashes);
 };
 
+class EngraverLine
+{
+  public:
+	int startcap;
+	int endcap;
+	double startspread;
+	double endspread;
+	Laxkit::Color *color;
+	LinePoint *line;
+
+	EngraverLine();
+	virtual ~EngraverLine();
+};
+
 
 //--------------------------- ValueMap -----------------------------
 class ValueMap : public Laxkit::Resourceable
@@ -361,7 +376,7 @@ class TraceObject : public Laxkit::Resourceable, public LaxFiles::DumpUtility
 	
 	double GetValue(LinePoint *p, double *transform);
 	void ClearCache(bool obj_too);
-	int UpdateCache(ViewportWindow *viewport);
+	int UpdateCache();
 	int NeedsUpdating();
 
 	void Install(TraceObjectType ntype, SomeData *obj);
@@ -687,7 +702,7 @@ class EngraverPointGroup : public DirectionMap
 	virtual flatpoint Direction(double s,double t);
 	virtual LinePoint *LineFrom(double s,double t);
 
-	virtual int Trace(Laxkit::Affine *aa, ViewportWindow *viewport);
+	virtual int Trace(Laxkit::Affine *aa);
 	virtual void Fill(EngraverFillData *data, double nweight); //fill in x,y = 0..1,0..1
 	virtual void FillRegularLines(EngraverFillData *data, double nweight);
 	virtual void FillRadial(EngraverFillData *data, double nweight);

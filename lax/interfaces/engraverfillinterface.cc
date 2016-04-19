@@ -2238,19 +2238,11 @@ int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit
 		} else {
 			if (lx==x && ly==y) return 0;
 
-			Affine tr;
-			if (edata) tr=edata->GetTransformToContext(false, 1);//supposed to be from edata parent to base real
-
-			flatvector brushcenter_pg=screentoreal(x,y); //brush center at page level
-			brushcenter_pg=tr.transformPoint(brushcenter_pg);//now brushcenter_pg in page level coords
-
-			flatvector brush_at_radius=screentoreal(x+brush_radius,y);
-			brush_at_radius=tr.transformPoint(brush_at_radius);
-
-			flatpoint lastp=screentoreal(lx,ly);
-			lastp=tr.transformPoint(lastp);
-
 			flatpoint brushcenter; //local to obj brush center
+			flatvector brushcenter_pg; //brush center at page level 
+			flatvector brush_at_radius; 
+			flatpoint lastp;
+			Affine tr; 
 			double d, a, rr;
 			LinePoint *l, *lstart;
 			flatpoint pp, dv;
@@ -2266,6 +2258,17 @@ int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit
 			for (int o=0; o<selection->n(); o++) {
 				obj=dynamic_cast<EngraverFillData *>(selection->e(o)->obj);
 				if (!obj) { continue; }
+				
+				tr=obj->GetTransformToContext(false, 1);//supposed to be from edata parent to base real
+
+				brushcenter_pg=screentoreal(x,y); //brush center at page level
+				brushcenter_pg=tr.transformPoint(brushcenter_pg);//now brushcenter_pg in page level coords
+
+				brush_at_radius=screentoreal(x+brush_radius,y);
+				brush_at_radius=tr.transformPoint(brush_at_radius);
+
+				lastp=screentoreal(lx,ly);
+				lastp=tr.transformPoint(lastp);
 
 				tr=obj->GetTransformToContext(true, 0);//transform base real to obj coords
 				brushcenter = tr.transformPoint(brushcenter_pg);
@@ -2385,13 +2388,17 @@ int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit
 						group->UpdatePositionCache();
 					}
 
+					if (recachewhich) obj->touchContents();
+
 					if (group->trace->continuous_trace && (mode==EMODE_Thickness)) group->trace->continuous_trace=false;
-					if (group->trace->continuous_trace) Trace();
+					if (group->trace->continuous_trace) { 
+						Affine aa=obj->GetTransformToContext(false, 0);//supposed to be from obj to same "parent" as traceobject
+						group->Trace(&aa);
+					}
 				} //foreach relevant group in object
 			} //foreach object in selection
 
 			needtodraw=1;
-			edata->touchContents();
 		} //if distortion mode, not brush adjust mode
 
 		return 0;
@@ -2669,7 +2676,7 @@ int EngraverFillInterface::Refresh()
 
 					  //} while (lc && lc->next && lc!=lcstart);
 					  } while (lc && lc!=lcstart);
-					}
+					} //if (data->usepreview==0)
 
 					if (show_points) {
 						 //show little red dots for all the sample points
@@ -4971,9 +4978,14 @@ void EngraverFillInterface::UpdateDashCaches(EngraverLineQuality *dash)
 		EngraverFillData *obj=dynamic_cast<EngraverFillData *>(selection->e(g)->obj);
 		if (!obj) continue;
 
+		bool mod=false;
 		for (int c=0; c<obj->groups.n; c++) {
-			if (obj->groups.e[c]->dashes==dash) obj->groups.e[c]->UpdateDashCache();
+			if (obj->groups.e[c]->dashes==dash) {
+				obj->groups.e[c]->UpdateDashCache();
+				mod=true;
+			}
 		}
+		if (mod) obj->touchContents();
 	}
 }
 
@@ -5030,7 +5042,7 @@ int EngraverFillInterface::Trace(bool do_once)
 			if (curtrace && group->trace!=curtrace) continue;
 
 			Affine aa=obj->GetTransformToContext(false, 0);//supposed to be from obj to same "parent" as traceobject
-			group->Trace(&aa, viewport);
+			group->Trace(&aa);
 			edata->touchContents();
 		}
 	}
@@ -5348,7 +5360,10 @@ int EngraverFillInterface::Event(const Laxkit::EventData *e_data, const char *me
 		}
 
 		EngraverPointGroup *group=(obj ? obj->GroupFromIndex(eventgroup) : NULL);
-		if (group) group->color=linestyle.color;
+		if (group) {
+			group->color=linestyle.color;
+			obj->touchContents();
+		}
 
 		needtodraw=1;
 		return 0;
