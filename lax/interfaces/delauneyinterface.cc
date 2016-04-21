@@ -349,7 +349,10 @@ DelauneyInterface::DelauneyInterface(anInterface *nowner, int nid, Displayer *nd
  : anInterface(nowner,nid,ndp)
 {
 	delauney_interface_style=0;
+
 	show_numbers=false; 
+	show_arrows=false;
+	show_lines=3;
 
 	showdecs=1;
 	needtodraw=1;
@@ -409,21 +412,24 @@ int DelauneyInterface::Refresh()
 	dp->LineAttributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
 	double width=2;
 	dp->LineWidthScreen(width);
-	//dp->DrawScreen();
+	dp->font(anXApp::app->defaultlaxfont);
+	dp->fontsize(anXApp::app->defaultlaxfont->textheight() / dp->Getmag());
 
 
-	 //triangles
+	 //delauney triangles
 	dp->NewFG(coloravg(curwindow->win_colors->fg,curwindow->win_colors->bg));
 	flatpoint center,p,v;
 
 	dp->NewFG(data->color_delauney);
 	for (int c=0; c<data->triangles.n; c++) {
 		 //draw edges
-		dp->moveto(data->points.e[data->triangles[c].p1]);
-		dp->lineto(data->points.e[data->triangles[c].p2]);
-		dp->lineto(data->points.e[data->triangles[c].p3]);
-		dp->closed();
-		dp->stroke(0);
+		if (show_lines&2) {
+			dp->moveto(data->points.e[data->triangles[c].p1]);
+			dp->lineto(data->points.e[data->triangles[c].p2]);
+			dp->lineto(data->points.e[data->triangles[c].p3]);
+			dp->closed();
+			dp->stroke(0);
+		}
 
 		 //draw arrows indicating edge direction
 		center=(data->points.e[data->triangles[c].p1]+data->points.e[data->triangles[c].p2]+data->points.e[data->triangles[c].p3])/3;
@@ -432,24 +438,20 @@ int DelauneyInterface::Refresh()
 		v=.2*(data->points.e[data->triangles[c].p2]-data->points.e[data->triangles[c].p1]);
 		p=data->points.e[data->triangles[c].p1];
 		p=p+.3*(center-p);
-		dp->drawarrow(p,v, 0,1,2,3);
+		if (show_arrows) dp->drawarrow(p,v, 0,1,2,3);
 		if (show_numbers) dp->textout(p.x,p.y, "1,",1, LAX_HCENTER);
-		//dp->drawnum(p.x+dp->textheight(),p.y, data->triangles[c].t[0]);
 
 		v=.2*(data->points.e[data->triangles[c].p3]-data->points.e[data->triangles[c].p2]);
 		p=data->points.e[data->triangles[c].p2];
 		p=p+.3*(center-p);
-		dp->drawarrow(p,v, 0,1,2,3);
+		if (show_arrows) dp->drawarrow(p,v, 0,1,2,3);
 		if (show_numbers) dp->textout(p.x,p.y, "2,",1, LAX_CENTER);
-		//dp->drawnum(p.x+dp->textheight(),p.y, data->triangles[c].t[1]);
 
 		v=.2*(data->points.e[data->triangles[c].p1]-data->points.e[data->triangles[c].p3]);
 		p=data->points.e[data->triangles[c].p3];
 		p=p+.3*(center-p);
-		dp->drawarrow(p,v, 0,1,2,3);
+		if (show_arrows) dp->drawarrow(p,v, 0,1,2,3);
 		if (show_numbers) dp->textout(p.x,p.y, "3,",1, LAX_CENTER);
-		//dp->drawnum(p.x+dp->textheight(),p.y, data->triangles[c].t[2]);
-
 
 	}
 
@@ -501,34 +503,24 @@ int DelauneyInterface::Refresh()
 
 
 	 //voronoi lines
-	dp->NewFG(data->color_voronoi);
-	int i;
-	for (int c=0; c<data->regions.n; c++) {
-		if (data->regions.e[c].tris.n==0) continue;
+	if (show_lines&1) {
+		dp->NewFG(data->color_voronoi);
+		int i;
+		for (int c=0; c<data->regions.n; c++) {
+			if (data->regions.e[c].tris.n==0) continue;
 
-		i=data->regions.e[c].tris.e[0];
-		if (i>=0) dp->moveto(data->triangles.e[i].circumcenter);
-		else dp->lineto(data->inf_points.e[-i-1]);
-
-		for (int c2=1; c2<data->regions.e[c].tris.n; c2++) {
-			i=data->regions.e[c].tris.e[c2];
-			if (i>=0) dp->lineto(data->triangles.e[i].circumcenter);
+			i=data->regions.e[c].tris.e[0];
+			if (i>=0) dp->moveto(data->triangles.e[i].circumcenter);
 			else dp->lineto(data->inf_points.e[-i-1]);
-		}
-		dp->stroke(0);
-	}
-//	for (int c=0; c<data->triangles.n; c++) {
-//		if (data->triangles.e[c].t[0]>=0) {
-//			dp->drawline(data->triangles.e[c].circumcenter, data->triangles.e[data->triangles.e[c].t[0]].circumcenter);
-//		}
-//		if (data->triangles.e[c].t[1]>=0) {
-//			dp->drawline(data->triangles.e[c].circumcenter, data->triangles.e[data->triangles.e[c].t[1]].circumcenter);
-//		}
-//		if (data->triangles.e[c].t[2]>=0) {
-//			dp->drawline(data->triangles.e[c].circumcenter, data->triangles.e[data->triangles.e[c].t[2]].circumcenter);
-//		}
-//	}
 
+			for (int c2=1; c2<data->regions.e[c].tris.n; c2++) {
+				i=data->regions.e[c].tris.e[c2];
+				if (i>=0) dp->lineto(data->triangles.e[i].circumcenter);
+				else dp->lineto(data->inf_points.e[-i-1]);
+			}
+			dp->stroke(0);
+		}
+	}
 
 
 	//dp->DrawReal();
@@ -617,6 +609,8 @@ Laxkit::ShortcutHandler *DelauneyInterface::GetShortcuts()
     sc=new ShortcutHandler(whattype());
 
     sc->Add(VORONOI_ToggleNumbers,              'n',0,0,          "ToggleNumbers",  _("Toggle numbers"),NULL,0);
+    sc->Add(VORONOI_ToggleArrows,               'a',0,0,          "ToggleArrows",   _("Toggle arrows"),NULL,0);
+    sc->Add(VORONOI_ToggleLines,                'l',0,0,          "ToggleLines",    _("Toggle lines"),NULL,0);
  
     manager->AddArea(whattype(),sc);
 	return sc;
@@ -629,6 +623,16 @@ int DelauneyInterface::PerformAction(int action)
 		needtodraw=1;
 		return 0;
 		
+	} else if (action==VORONOI_ToggleArrows) {
+		show_arrows=!show_arrows;
+		needtodraw=1;
+		return 0; 
+
+	} else if (action==VORONOI_ToggleLines) {
+		show_lines++;
+		if (show_lines>3) show_lines=0;
+		needtodraw=1;
+		return 0; 
 	}
 
 	return 1;

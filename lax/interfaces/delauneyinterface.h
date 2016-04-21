@@ -104,6 +104,8 @@ class VoronoiData : virtual public LaxInterfaces::SomeData
 
 enum DelauneyInterfaceActions {
 	VORONOI_ToggleNumbers,
+	VORONOI_ToggleArrows,
+	VORONOI_ToggleLines,
 	VORONOI_MAX
 };
 
@@ -120,6 +122,8 @@ class DelauneyInterface : public anInterface
 
   public:
 	bool show_numbers;
+	bool show_arrows;
+	int show_lines; //&1 for voronio &2 for delauney
 	unsigned int delauney_interface_style;
 
 	DelauneyInterface(anInterface *nowner, int nid,Laxkit::Displayer *ndp);
