@@ -152,7 +152,7 @@ EngraverFillInterface::EngraverFillInterface(int nid,Displayer *ndp)
 	sensitive_twirl=1;
 
 
-	show_points=0;
+	show_points=0; // &1 is points, &2 is points and numbers
 	submode=0;
 	mode=controlmode=EMODE_Mesh;
 
@@ -816,6 +816,7 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
 				if (lasthoverdetail==0) {
 					 //active
 					obj->groups.e[gindex]->active=!obj->groups.e[gindex]->active;
+					obj->touchContents();
 
 				} else if (lasthoverdetail==1) {
 					 //linked
@@ -849,8 +850,12 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
 					if (gindex>=0) {
 						if (gindex<obj->groups.n) {
 							if (current_group!=gindex) {
+								 //set current group
 								current_group=gindex;
+								UpdatePanelAreas();
+
 							} else {
+								 //rename group
 								MenuItem *item=panel.findid(over);
 								double th=dp->textheight();
 								int yy= panelbox.miny + item->y + ((y-panelbox.miny-item->y)/th+1)*th;
@@ -2628,90 +2633,106 @@ int EngraverFillInterface::Refresh()
 					clast=NULL;
 					lastwidth=-1;
 
-					if (data->usepreview==0) {
-					  dp->NewFG(&group->color);
-					  dp->LineAttributes(-1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
-					  dp->LineWidthScreen(1);
+					dp->NewFG(&group->color);
+					dp->LineAttributes(-1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
+					dp->LineWidthScreen(1);
 
-					  do { //one loop per on segment
-						if (!group->PointOnDash(lc)) { lc=lc->next; continue; } //advance to first on point
+					do { //one loop per on segment
+					  if (!group->PointOnDash(lc)) { lc=lc->next; continue; } //advance to first on point
 
-						if (!clast) {
-							 //establish a first point of a visible segment
-							clast=lc;
-							lastwidth=lc->weight*mag;
-							dp->LineWidthScreen(lastwidth);
+					  if (!clast) {
+					  	 //establish a first point of a visible segment
+					  	clast=lc;
+					  	lastwidth=lc->weight*mag;
+					  	dp->LineWidthScreen(lastwidth);
 
-							if (lc->on==ENGRAVE_EndPoint || !lc->next || !group->PointOnDash(lc->next)) {
-								 //draw just a single dot
-								dp->drawline(clast->p,clast->p);
-								lc=lc->next;
-								clast=NULL;
-								continue;
-							}
-							lc=lc->next;
-						}
+					  	if (lc->on==ENGRAVE_EndPoint || !lc->next || !group->PointOnDash(lc->next)) {
+					  		 //draw just a single dot
+					  		dp->drawline(clast->p,clast->p);
+					  		lc=lc->next;
+					  		clast=NULL;
+					  		continue;
+					  	}
+					  	lc=lc->next;
+					  }
 
-						neww=lc->weight*mag;
-						if (neww!=lastwidth) {
-							lp=clast->p;
-							v=(lc->p-clast->p)/9.;
-							for (int c2=1; c2<10; c2++) {
-								 //draw 10 mini segments, each of same width to approximate the changing width
-								tw=lastwidth+c2/9.*(neww-lastwidth);
-								dp->LineWidthScreen(tw);
-								dp->drawline(lp+v*(c2-1), lp+v*c2);
-							}
+					  neww=lc->weight*mag;
+					  if (neww!=lastwidth) {
+					  	lp=clast->p;
+					  	v=(lc->p-clast->p)/9.;
+					  	for (int c2=1; c2<10; c2++) {
+					  		 //draw 10 mini segments, each of same width to approximate the changing width
+					  		tw=lastwidth+c2/9.*(neww-lastwidth);
+					  		dp->LineWidthScreen(tw);
+					  		dp->drawline(lp+v*(c2-1), lp+v*c2);
+					  	}
 
-							lastwidth=neww;
+					  	lastwidth=neww;
 
-						} else {
-							dp->drawline(clast->p,lc->p);
-						}
+					  } else {
+					  	dp->drawline(clast->p,lc->p);
+					  }
 
-						if (lc->on==ENGRAVE_EndPoint) clast=NULL;
-						else clast=lc;
-						lc=lc->next;
-						if (lc && !group->PointOnDash(lc)) clast=NULL;
+					  if (lc->on==ENGRAVE_EndPoint) clast=NULL;
+					  else clast=lc;
+					  lc=lc->next;
+					  if (lc && !group->PointOnDash(lc)) clast=NULL;
 
-					  //} while (lc && lc->next && lc!=lcstart);
-					  } while (lc && lc!=lcstart);
-					} //if (data->usepreview==0)
+					//} while (lc && lc->next && lc!=lcstart);
+					} while (lc && lc!=lcstart);
 
-					if (show_points) {
-						 //show little red dots for all the sample points
-						flatpoint pp;
-						l=group->lines.e[c];
-						dp->NewFG(1.,0.,0.);
-						int p=1;
-						char buffer[50];
-						dp->DrawScreen();
-						while (l) {
-							pp=dp->realtoscreen(l->p);
-							//-----------
-							dp->drawpoint(pp, 2, 1);
-							if (show_points&2) {
-								sprintf(buffer,"%d,%d",c,p);
-								dp->textout(pp.x,pp.y, buffer,-1, LAX_BOTTOM|LAX_HCENTER);
-								p++;
-							}
-							//-----------
-							//dp->drawpoint(l->p, 2, 1);
-							//if (show_points&2) {
-							//	sprintf(buffer,"%d,%d",c,p);
-							//	dp->textout(l->p.x,l->p.y, buffer,-1, LAX_BOTTOM|LAX_HCENTER);
-							//	p++;
-							//}
-							//-----------
-							l=l->next;
-						}
-						dp->DrawReal();
-					}
 				} //foreach line
 			} //foreach group
 		} //if usepreview==0
 	} //if (show_object)
 
+	 //----draw the actual lines
+	if (show_points) {
+
+		LinePoint *l, *lstart; 
+		flatpoint lp,v; 
+
+		for (int g=0; g<edata->groups.n; g++) {
+			group=edata->groups.e[g];
+			if (!group->active) continue;
+			if (!group->lines.n) continue;
+
+			if (!group->lines.e[0]->cache) {
+				group->UpdateBezCache();
+				group->UpdateDashCache();
+			} 
+
+			for (int c=0; c<group->lines.n; c++) {
+				l = lstart = group->lines.e[c];
+
+				 //show little red dots for all the sample points
+				flatpoint pp;
+				int p=1;
+				char buffer[50];
+
+				dp->DrawScreen();
+				dp->font(anXApp::app->defaultlaxfont);
+				dp->LineAttributes(-1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
+				dp->LineWidthScreen(1);
+				dp->NewFG(1.,0.,0.);
+				//dp->NewFG(&group->color); 
+
+				do {
+					pp=dp->realtoscreen(l->p);
+					dp->drawpoint(pp, 2, 1);
+
+					if (show_points&2) {
+						sprintf(buffer,"%d,%d",c,p);
+						dp->textout(pp.x,pp.y, buffer,-1, LAX_BOTTOM|LAX_HCENTER);
+						p++;
+					}
+
+					l=l->next;
+				} while (l && l!=lstart);
+				dp->DrawReal();
+			} //foreach line
+		} //foreach group
+	} //if (show_points)
 
 	 //show Direction Map
 	if (show_direction) {
@@ -4825,9 +4846,13 @@ int EngraverFillInterface::PerformAction(int action)
 		return 0;
 
 	} else if (action==ENGRAVE_ShowPoints || action==ENGRAVE_ShowPointsN) {
-		if (show_points) show_points=0;
-		else if (action==ENGRAVE_ShowPoints) show_points=1;
- 		else show_points=3;
+		if (show_points==0) {
+			show_points = (action==ENGRAVE_ShowPoints) ? 1 : 3;
+		} else if (show_points==1) {
+			show_points = (action==ENGRAVE_ShowPoints) ? 0 : 3;
+		} else { //3
+			show_points = (action==ENGRAVE_ShowPoints) ? 1 : 0;
+		}
 
 		if (show_points&2) PostMessage(_("Show sample points with numbers"));
 		else if (show_points&1) PostMessage(_("Show sample points"));
@@ -5429,6 +5454,39 @@ int EngraverFillInterface::Event(const Laxkit::EventData *e_data, const char *me
 		needtodraw=1;
  		return 0;
 
+	} else if (!strcmp(mes,"renamedash")) {
+        const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(e_data);
+        if (!edata || isblank(s->str)) return 0;
+
+		EngraverPointGroup *group=edata->GroupFromIndex(current_group);
+		if (group) group->dashes->Id(s->str);
+
+		//obj->MakeGroupNameUnique(eventgroup); *** NEED TO ENFORCE RESOURCE UNIQUE NAMES
+		needtodraw=1;
+ 		return 0;
+
+	} else if (!strcmp(mes,"renamespacing")) {
+        const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(e_data);
+        if (!edata || isblank(s->str)) return 0;
+
+		EngraverPointGroup *group=edata->GroupFromIndex(current_group);
+		if (group) group->spacing->Id(s->str);
+
+		//obj->MakeGroupNameUnique(eventgroup); *** NEED TO ENFORCE RESOURCE UNIQUE NAMES
+		needtodraw=1;
+ 		return 0;
+
+	} else if (!strcmp(mes,"renamedirection")) {
+        const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(e_data);
+        if (!edata || isblank(s->str)) return 0;
+
+		EngraverPointGroup *group=edata->GroupFromIndex(current_group);
+		if (group) group->direction->Id(s->str);
+
+		//obj->MakeGroupNameUnique(eventgroup); *** NEED TO ENFORCE RESOURCE UNIQUE NAMES
+		needtodraw=1;
+ 		return 0;
+
 	} else if (!strcmp(mes,"exportsvg")) {
         if (!edata) return 0;
 
@@ -5644,39 +5702,6 @@ int EngraverFillInterface::Event(const Laxkit::EventData *e_data, const char *me
 
 		needtodraw=1;
 		return 0;
-
-	} else if (!strcmp(mes,"renamedash")) {
-        const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(e_data);
-        if (!edata || isblank(s->str)) return 0;
-
-		EngraverPointGroup *group=edata->GroupFromIndex(current_group);
-		if (group) group->dashes->Id(s->str);
-
-		//obj->MakeGroupNameUnique(eventgroup); *** NEED TO ENFORCE RESOURCE UNIQUE NAMES
-		needtodraw=1;
- 		return 0;
-
-	} else if (!strcmp(mes,"renamespacing")) {
-        const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(e_data);
-        if (!edata || isblank(s->str)) return 0;
-
-		EngraverPointGroup *group=edata->GroupFromIndex(current_group);
-		if (group) group->spacing->Id(s->str);
-
-		//obj->MakeGroupNameUnique(eventgroup); *** NEED TO ENFORCE RESOURCE UNIQUE NAMES
-		needtodraw=1;
- 		return 0;
-
-	} else if (!strcmp(mes,"renamedirection")) {
-        const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(e_data);
-        if (!edata || isblank(s->str)) return 0;
-
-		EngraverPointGroup *group=edata->GroupFromIndex(current_group);
-		if (group) group->direction->Id(s->str);
-
-		//obj->MakeGroupNameUnique(eventgroup); *** NEED TO ENFORCE RESOURCE UNIQUE NAMES
-		needtodraw=1;
- 		return 0;
 
 	} else if (!strcmp(mes,"quickadjust")) {
     	const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(e_data);
@@ -6082,14 +6107,14 @@ Laxkit::ShortcutHandler *EngraverFillInterface::GetShortcuts()
 	sc->Add(ENGRAVE_SpacingDec,     'S',ShiftMask,0,  "SpacingDec",  _("Decrease default spacing"),NULL,0);
 	sc->Add(ENGRAVE_ResolutionInc,  'r',ControlMask,0,"ResolutionInc",  _("Increase default resolution"),NULL,0);
 	sc->Add(ENGRAVE_ResolutionDec,  'R',ControlMask|ShiftMask,0,"ResolutionDec",_("Decrease default resolution"),NULL,0);
+	sc->Add(ENGRAVE_MorePoints,     ':',ControlMask|ShiftMask,0,"MorePoints",  _("Subdivide all lines to have more sample points"),NULL,0);
 	sc->Add(ENGRAVE_ShowPoints,     'p',0,0,          "ShowPoints",  _("Toggle showing sample points"),NULL,0);
-	sc->Add(ENGRAVE_ShowPointsN,    'p',ControlMask,0,"ShowPointsN", _("Toggle showing sample point numbers"),NULL,0);
-	sc->Add(ENGRAVE_MorePoints,     'P',ControlMask|ShiftMask,0,"MorePoints",  _("Subdivide all lines to have more sample points"),NULL,0);
+	sc->Add(ENGRAVE_ShowPointsN,    'P',ShiftMask,0,  "ShowPointsN", _("Toggle showing sample point numbers"),NULL,0);
 	sc->Add(ENGRAVE_TogglePanel,    'c',0,0,          "TogglePanel", _("Toggle showing control panel"),NULL,0);
 	sc->Add(ENGRAVE_ToggleGrow,     'g',0,0,          "ToggleGrow",  _("Toggle grow mode"),NULL,0);
 	sc->Add(ENGRAVE_ToggleWarp,     'w',0,0,          "ToggleWarp",  _("Toggle warping when modifying mesh"),NULL,0);
-	sc->Add(ENGRAVE_ToggleDir,      'd',0,0,          "ToggleDir",   _("Toggle showing direction map"),NULL,0);
 	sc->Add(ENGRAVE_ToggleShowTrace,']',0,0,          "ToggleShowTrace",_("Toggle showing the trace object"),NULL,0);
+	sc->Add(ENGRAVE_ToggleDir,      'd',0,0,          "ToggleDir",   _("Toggle showing direction map"),NULL,0);
 	sc->Add(ENGRAVE_LoadDirection,  'd',ControlMask,0,"LoadDir",      _("Load a normal map for direction"),NULL,0);
 	sc->Add(ENGRAVE_NextGroup,      LAX_Pgdown,0,0,   "NextGroup",    _("Next group"),NULL,0);
 	sc->Add(ENGRAVE_PreviousGroup,  LAX_Pgup,0,0,     "PreviousGroup",_("Previous group"),NULL,0);

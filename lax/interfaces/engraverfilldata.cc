@@ -426,7 +426,17 @@ const char *EngraverDirection::Id()
 }
 
 const char *EngraverDirection::Id(const char *str)
-{ return anObject::Id(str); }
+{
+	anObject::Id(str);
+
+	Resource *r=dynamic_cast<Resource*>(ResourceOwner());
+	if (r) {
+		makestr(r->name, str);
+		makestr(r->Name, str);
+	}
+
+	return anObject::Id();
+}
 
 /*! Convenience function to return (translated) string of name of line direction type.
  */
@@ -1014,7 +1024,17 @@ const char *EngraverSpacing::Id()
 }
 
 const char *EngraverSpacing::Id(const char *str)
-{ return anObject::Id(str); }
+{
+	anObject::Id(str);
+
+	Resource *r=dynamic_cast<Resource*>(ResourceOwner());
+	if (r) {
+		makestr(r->name, str);
+		makestr(r->Name, str);
+	}
+
+	return anObject::Id();
+}
 
 EngraverSpacing *EngraverSpacing::duplicate()
 {
@@ -1129,7 +1149,15 @@ const char *EngraverLineQuality::Id()
 
 const char *EngraverLineQuality::Id(const char *str)
 {
-	return anObject::Id(str);
+	anObject::Id(str);
+
+	Resource *r=dynamic_cast<Resource*>(ResourceOwner());
+	if (r) {
+		makestr(r->name, str);
+		makestr(r->Name, str);
+	}
+
+	return anObject::Id();
 }
 
 EngraverLineQuality *EngraverLineQuality::duplicate()
@@ -1721,7 +1749,15 @@ const char *EngraverTraceSettings::Id()
 
 const char *EngraverTraceSettings::Id(const char *str)
 {
-	return anObject::Id(str);
+	anObject::Id(str);
+
+	Resource *r=dynamic_cast<Resource*>(ResourceOwner());
+	if (r) {
+		makestr(r->name, str);
+		makestr(r->Name, str);
+	}
+
+	return anObject::Id();
 }
 
 /*! Warning: will link, NOT duplicate dashes, trace, etc.
@@ -4908,7 +4944,15 @@ const char *EngraverFillData::Id()
 
 const char *EngraverFillData::Id(const char *str)
 {
-	return anObject::Id(str);
+	anObject::Id(str);
+
+	Resource *r=dynamic_cast<Resource*>(ResourceOwner());
+	if (r) {
+		makestr(r->name, str);
+		makestr(r->Name, str);
+	}
+
+	return anObject::Id();
 }
 
 int EngraverFillData::renderToBuffer(unsigned char *buffer, int bufw, int bufh, int bufstride, int bufdepth, int bufchannels)

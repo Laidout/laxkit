@@ -319,6 +319,8 @@ class EngraverLine
 	int endcap;
 	double startspread;
 	double endspread;
+	double startangle; //always relative to default angle
+	double endangle;
 	Laxkit::Color *color;
 	LinePoint *line;
 
