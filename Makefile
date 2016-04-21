@@ -82,6 +82,9 @@ install-docs:
 	ls $(DOCDIR)/*  >> install.log
 	ls $(DOCDIR)/html/* >> install.log
 
+icons:
+	cd lax/icons && make
+
 install: lax interfaces laxinput
 	echo "---- installing `date` -----" >> install.log
 	$(INSTALL) -D -m644 $(LAXDIR)/liblaxkit.a $(LIBDIR)/liblaxkit.a && \
@@ -157,7 +160,7 @@ dist-clean: clean
 	rm -f install.log
 	rm -rf docs/html
 
-.PHONY: clean docs lax interfaces depends unhidegarbage hidegarbage laxinput
+.PHONY: clean docs lax interfaces depends unhidegarbage hidegarbage laxinput icons
 clean:
 	cd lax && rm -f *.o *.a *.so
 	cd lax/interfaces && rm -f *.o *.a *.so
