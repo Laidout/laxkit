@@ -48,7 +48,7 @@ class OnPathGlyph : public Laxkit::GlyphPlace
 	OnPathGlyph() { rotation=0; scaling=1; styleid=0; visible=true; }
 };
 
-class TextOnPath : virtual public Laxkit::anObject, virtual public LaxFiles::DumpUtility
+class TextOnPath : virtual public SomeData
 {
   public:
 	unsigned int flags; //what to dump, whether to save text on dump out or just start/end
@@ -99,6 +99,13 @@ class TextOnPath : virtual public Laxkit::anObject, virtual public LaxFiles::Dum
 	TextOnPath();
 	virtual ~TextOnPath();
 
+	virtual const char *whattype() { return "TextOnPath"; }
+	virtual void FindBBox();
+
+	virtual void	   dump_out(FILE *f,int indent,int what, LaxFiles::DumpContext *context);
+	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what, LaxFiles::DumpContext *context); 
+	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag, LaxFiles::DumpContext *context);
+
 	virtual int Text(const char *newtext, int nstart=0, int nend=-1);
 	virtual int Reallocate(int newn);
 	virtual int Remap();
@@ -110,15 +117,12 @@ class TextOnPath : virtual public Laxkit::anObject, virtual public LaxFiles::Dum
 	virtual int PathDirection() { return pathdirection; }
 	virtual int PathDirection(int newdir);
 
-	virtual void	   dump_out(FILE *f,int indent,int what, LaxFiles::DumpContext *context);
-	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what, LaxFiles::DumpContext *context); 
-	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag, LaxFiles::DumpContext *context);
-
 	virtual int CharLen();
 	virtual int DeleteChar(int pos,int after, int *newpos);
 	virtual int DeleteSelection(int fpos, int tpos, int *newpos);
 	virtual int InsertChar(unsigned int ch, int pos, int *newpos);
 	virtual int InsertString(const char *txt,int len, int pos, int *newpos);
+
 
 	virtual SomeData *ConvertToPaths(bool use_clones, Laxkit::RefPtrStack<SomeData> *clones_to_add_to);
 };
@@ -152,10 +156,13 @@ class TextOnPathInterface : public anInterface
 	int caretpos;
 	int selstart, sellen;
 	int firsttime;
+	int showobj;
 	 
 	TextOnPath *textonpath;
 	PathsData *paths;
-	ObjectContext *poc;
+	ObjectContext *toc;
+
+	double defaultsize;
 
 	flatpoint lasthover;
 	int hover_type;
@@ -185,10 +192,12 @@ class TextOnPathInterface : public anInterface
 	virtual int PerformAction(int action);
 
 	virtual int UseThis(Laxkit::anObject *nlinestyle,unsigned int mask=0);
+	virtual int UseThisObject(ObjectContext *oc);
 	virtual int InterfaceOn();
 	virtual int InterfaceOff();
 	virtual void Clear(SomeData *d);
 	virtual int Refresh();
+	virtual int DrawData(Laxkit::anObject *ndata,Laxkit::anObject *a1=NULL,Laxkit::anObject *a2=NULL,int info=0);
 	virtual int MouseMove(int x,int y,unsigned int state, const Laxkit::LaxMouse *d);
 	virtual int LBDown(int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d);
 	virtual int LBUp(int x,int y,unsigned int state, const Laxkit::LaxMouse *d);
@@ -198,6 +207,7 @@ class TextOnPathInterface : public anInterface
 	virtual int KeyUp(unsigned int ch,unsigned int state, const Laxkit::LaxKeyboard *d);
 	virtual void ViewportResized();
 	virtual int RemoveChild(); 
+	virtual void FixCaret();
 
 	virtual int scan(int x,int y,unsigned int state, double *alongpath, double *alongt, double *distto);
 };
