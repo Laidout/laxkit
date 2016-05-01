@@ -151,6 +151,7 @@ LineInput::LineInput(anXWindow *parnt,const char *nname,const char *ntitle,unsig
 	unsigned long extrastyle=0;
 
 	if (win_style&LINP_FILE) extrastyle|=LINEEDIT_FILE;
+	else if (win_style&LINP_FILESAVE) extrastyle|=LINEEDIT_FILESAVE;
 	else if (win_style&LINP_DIRECTORY) extrastyle|=LINEEDIT_DIRECTORY;
 	else if (win_style&LINP_INT) extrastyle|=LINEEDIT_INT;
 	else if (win_style&LINP_FLOAT) extrastyle|=LINEEDIT_FLOAT;

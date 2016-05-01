@@ -135,6 +135,9 @@ TextXEditBaseUtf8::TextXEditBaseUtf8(anXWindow *parnt,const char *nname,const ch
 	curlineoffset=0;
 
 	firsttime=1; //used as a flag to trigger SetupMetrics() at the start of next Refresh()
+
+	bkwrongcolor=~0;
+	bkwrongcolor2=~0;
 }
 
 /*! Decrements count of thefont.
@@ -478,10 +481,18 @@ void TextXEditBaseUtf8::Colors(int hl)
 		curbkcolor=win_colors->hbg;
 	} else {
 		curtextcolor=win_colors->fg;
-		curbkcolor=(valid?win_colors->bg:bkwrongcolor);
+		curbkcolor=ValidColor(valid);
 	}
 	foreground_color(curtextcolor);
 	background_color(curbkcolor);
+}
+
+unsigned long TextXEditBaseUtf8::ValidColor(int which)
+{
+	if (valid==1) return win_colors->bg;
+	if (valid==0) return bkwrongcolor;
+	if (valid==2) return bkwrongcolor2;
+	return win_colors->bg;
 }
 
 //! Fill x,y,w,h with curbkcolor.

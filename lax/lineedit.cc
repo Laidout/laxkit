@@ -116,8 +116,9 @@ LineEdit::LineEdit(anXWindow *parnt,const char *nname,const char *ntitle,unsigne
 	
 	installColors(app->color_edits);
 
-	bkwrongcolor=rgbcolor(255,175,175);//**** should be some auto color
-	wscolor=rgbcolor(0,64,255);//*** should be auto color
+	bkwrongcolor=coloravg(rgbcolor(255,0,0),win_colors->bg,.7);
+	bkwrongcolor2=coloravg(rgbcolor(255,255,0),win_colors->bg,.7);
+	wscolor=coloravg(coloravg(win_colors->fg,win_colors->bg), rgbcolor(0,0,255));
 	
 	con=cx=cy=0;
 	newline=newline2=0;
@@ -315,7 +316,7 @@ int LineEdit::Modified(int m)//m=1
 			while (e && isspace(*e)) e++;
 			if (*e!='\0') v=0; else v=1;
 			
-		} else if (win_style&(LINEEDIT_FILE|LINEEDIT_DIRECTORY)) {
+		} else if (win_style&(LINEEDIT_FILESAVE|LINEEDIT_FILE|LINEEDIT_DIRECTORY)) {
 			char tmp[(thetext?strlen(thetext):0) + 1 + (qualifier?strlen(qualifier):0) + 1];
 			if (thetext[0]=='/') sprintf(tmp,"%s",thetext);
 			else if (qualifier) sprintf(tmp,"%s/%s",qualifier,thetext);
@@ -323,7 +324,11 @@ int LineEdit::Modified(int m)//m=1
 
 			int type=file_exists(tmp,1,NULL);
 			if ((win_style&LINEEDIT_FILE)!=0 && S_ISREG(type)) v=1;
-			else if ((win_style&LINEEDIT_DIRECTORY)!=0 && S_ISDIR(type)) v=1;
+			else if ((win_style&LINEEDIT_FILESAVE)!=0) {
+				if (S_ISREG(type)) v=2;
+				else if (type==0) v=1;
+				else v=0; //is some other kind of file, assume no good
+			} else if ((win_style&LINEEDIT_DIRECTORY)!=0 && S_ISDIR(type)) v=1;
 			else v=0;
 		}
 		if (v!=valid) { valid=v; needtodraw=1; }

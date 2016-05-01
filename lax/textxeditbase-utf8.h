@@ -47,7 +47,7 @@ class TextXEditBaseUtf8 : public anXWindow, public TextEditBaseUtf8
 	long oldsellen,oldcp;
 	int textascent,textheight,textdescent;
 	unsigned long curtextcolor,textbgcolor;
-	unsigned long curbkcolor,bkwrongcolor,wscolor;
+	unsigned long curbkcolor,bkwrongcolor,bkwrongcolor2,wscolor;
 	DoubleRectangle textrect;
 
 	virtual void docaret(int w=1);
@@ -85,6 +85,7 @@ class TextXEditBaseUtf8 : public anXWindow, public TextEditBaseUtf8
 	virtual long GetPos(long pos,int pix,int lsofar=0,long eof=-1); //lsofar=0,eof=-1
 	virtual int SetupMetrics();
 	virtual int UseThisFont(LaxFont *newfont);
+	virtual unsigned long ValidColor(int which);
 };
 
 } // namespace Laxkit

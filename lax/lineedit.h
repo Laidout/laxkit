@@ -40,17 +40,18 @@ enum LineEditStyleFlags {
 	LINEEDIT_INT              =(1<<17),
 	LINEEDIT_FLOAT            =(1<<18),
 	LINEEDIT_FILE             =(1<<19),
-	LINEEDIT_DIRECTORY        =(1<<20),
-	LINEEDIT_PASSWORD         =(1<<21),//!<not implemented
-	LINEEDIT_DATE             =(1<<22),//!<not implemented
-	LINEEDIT_TIME             =(1<<23),//!<not implemented
+	LINEEDIT_FILESAVE         =(1<<20),
+	LINEEDIT_DIRECTORY        =(1<<21),
+	LINEEDIT_PASSWORD         =(1<<22),//!<not implemented
+	LINEEDIT_DATE             =(1<<23),//!<not implemented
+	LINEEDIT_TIME             =(1<<24),//!<not implemented
 
-	LINEEDIT_SEND_ANY_CHANGE  =(1<<24),
-	LINEEDIT_SEND_FOCUS_ON    =(1<<25),
-	LINEEDIT_SEND_FOCUS_OFF   =(1<<26),
-	LINEEDIT_DESTROY_ON_ENTER =(1<<27),
-	LINEEDIT_GRAB_ON_MAP      =(1<<28),
-	LINEEDIT_CLEAR_X          =(1<<29),
+	LINEEDIT_SEND_ANY_CHANGE  =(1<<25),
+	LINEEDIT_SEND_FOCUS_ON    =(1<<26),
+	LINEEDIT_SEND_FOCUS_OFF   =(1<<27),
+	LINEEDIT_DESTROY_ON_ENTER =(1<<28),
+	LINEEDIT_GRAB_ON_MAP      =(1<<29),
+	LINEEDIT_CLEAR_X          =(1<<30),
 	LINEEDIT_MAX
 };
 
