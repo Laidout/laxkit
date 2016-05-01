@@ -213,15 +213,11 @@ interfaces:
 liblaxkit.so.$(LAXKITVERSION): $(objs)
 	$(LD) -shared -fPIC  $(objs) -o $@
 
-liblaxatts.so.$(LAXKITVERSION): fileutils.o attributes.o dump.o
-	$(LD) -shared -fPIC  fileutils.o attributes.o dump.o -o $@
 
 #----------------- Static libs ---------------------------
 liblaxkit.a: $(objs)
 	ar cr $@ $(objs)
 
-liblaxatts.a: fileutils.o attributes.o dump.o
-	ar cr $@ fileutils.o attributes.o dump.o 
 
 #----------------- Other ---------------------------
 depends:
@@ -230,6 +226,7 @@ depends:
 	cd interfaces && $(MAKE) depends
 
 include makedepend
+
 
 #------- Testing Stuff ----------------
 
