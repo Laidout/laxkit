@@ -1,4 +1,8 @@
-### The Laxkit Makefile
+################################################
+###########                       ##############
+##########   Laxkit/lax Makefile   #############
+############                      ##############
+################################################
 #
 # You should not have to edit anything in this file.
 #
@@ -59,7 +63,7 @@ LDFLAGS= -L/usr/X11R6/lib -lX11 -lm  -lpng
 #FPIC=
 FPIC= -fPIC
 
-CPPFLAGS= $(OPTIMIZATION) $(EXTRAS) $(DEBUGFLAGS) $(FPIC) -I. -I.. -I$(LAXDIR)/.. -I/usr/X11R6/include -Wall -I/usr/include/freetype2
+CPPFLAGS= $(OPTIMIZATION) $(EXTRAS) $(DEBUGFLAGS) $(FPIC) -I. -I.. -I$(LAXDIR)/.. -I/usr/X11R6/include -Wall `freetype-config --cflags`
 
 
 

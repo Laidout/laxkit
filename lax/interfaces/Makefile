@@ -1,4 +1,8 @@
-### lax/interfaces/Makefile
+################################################
+#######                                  #######
+######   Laxkit/lax/interfaces Makefile   ######
+#######                                  #######
+################################################
 
 include ../../Makefile-toinclude
 
@@ -13,7 +17,7 @@ DEBUGFLAGS= -g -gdwarf-2
 #FPIC=
 FPIC= -fPIC
 
-CPPFLAGS= $(OPTIMIZATION) $(EXTRAS) $(DEBUGFLAGS) $(FPIC) -I. -I.. -I$(LAXDIR)/.. -I/usr/include/freetype2 -Wall
+CPPFLAGS= $(OPTIMIZATION) $(EXTRAS) $(DEBUGFLAGS) $(FPIC) -I. -I.. -I$(LAXDIR)/.. `freetype-config --cflags` -Wall
 
 
 objs= \
