@@ -11,18 +11,18 @@ WHAT IS IT
 ----------
 The Laxkit is a C++ gui toolkit currently in the form of an Xlib wrapper.
 It also has a number of user interfaces for manipulating various common two 
-dimensional artsy types of objects like bezier curves and gradients.
-
-The purpose of the kit is to make the creation of artsy types of programs
-easier, and that makes creation of user interfaces very efficient by having
-a lot of configurability in shortcuts (something not yet implemented!),
-and various other usability enhancements.
-For instance, when you have a large file list, pressing shift while 
-twirling the wheel makes the list scroll faster and shift-control while
-twirling makes scrolling go extra fast.
+dimensional vector art objects like bezier curves with variable widths,
+gradients, and meshes.
 
 The main driving force behind Laxkit development is as a windowing
 backend for the desktop publishing program Laidout (http://www.laidout.org).
+
+The goal of the kit is to make the creation of art related programs
+easier, and also to make creation of user interfaces very efficient by having
+a lot of configurability in shortcuts and various other usability enhancements.
+For instance, when you have a large file list, pressing shift while 
+twirling the wheel makes the list scroll faster and shift-control while
+twirling makes scrolling go extra fast.
 
 There is copius documentation of the source accessible through doxygen by 
 running 'make docs'.
@@ -31,8 +31,10 @@ Another partially implemented goal of the Laxkit is to provide an interface
 kit supporting multi-pointer, multi-keyboard, and multi-touch surfaces.
 
 
-COMPILING
----------
+COMPILING RELEASES (NOT GIT)
+----------------------------
+To compile development git source, see the next section.
+
 You will need the development files for (these are the debian packages):  
     libcupsys2-dev
     libimlib2-dev
@@ -44,11 +46,13 @@ You will need the development files for (these are the debian packages):
     libxext-dev
     libssl-dev
     xutils-dev
-    libcairo-dev (optional)
+    libharfbuzz-dev
+    libcairo-dev
+    libsqlite3-dev (optional)
  
 You can get them with this command (on debian systems):
 
-    apt-get install g++ pkg-config libcairo2-dev libpng12-dev libx11-dev libxft-dev libcups2-dev libimlib2-dev libfontconfig-dev libfreetype6-dev libssl-dev xutils-dev
+    apt-get install g++ pkg-config libcairo2-dev libsqlite3-dev libharfbuzz-dev libpng12-dev libx11-dev libxft-dev libcups2-dev libimlib2-dev libfontconfig-dev libfreetype6-dev libssl-dev xutils-dev
 
 Simply do:
 
@@ -78,6 +82,7 @@ you will need git installed. Then do:
     ./configure
     make depends
     make
+    make icons  ##<- this requires you have Inkscape installed
     make docs
 
 By default, running the Laxkit directly from git code will pump out lots of debugging information 

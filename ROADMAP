@@ -7,13 +7,14 @@ What should be done to progress to the next version. Not final!
 VERSION 0.0.9
 -------------
        Re-re-fix cut-copy-paste
-       CairoDisplayer, abstract the Displayer class to make swapping out backends easy
+(done) CairoDisplayer, abstract the Displayer class to make swapping out backends easy
        FontDialog (which means working out fonts, big task!)
        Pop out multiple packages: liblaxkit(not yet, but I know how to now), liblaxkit-dev, liblaxkit-doc, laxinput
 
 
 VERSION 0.1
 -----------
+       multiple monitor support
        As appropriate, all controls must support multicontact, multipointer, and multikeyboard interfaces
          food for thought: touch devices with blob events: http://www.nuigroup.com
        By hook or by crook, handle left-to-right, right-to-left, and mixed text in controls
