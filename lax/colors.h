@@ -106,7 +106,7 @@ class Color : public Laxkit::anObject, public LaxFiles::DumpUtility
  public:
 	char *name; //note this is different than object_idstr which is supposed to be unique
 	double alpha; //additional to any alpha defined in ColorSystem itself
-	int color_type; //such as none, knockout, or registration, from SimpleColorId
+	int color_type; //such as none, normal, knockout, or registration. See SimpleColorId
 
 	ColorSystem *system;
 	int colorsystemid; //usually same as system->object_id;
