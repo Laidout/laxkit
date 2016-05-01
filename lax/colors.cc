@@ -763,13 +763,43 @@ ColorSystem *Create_XYZ(bool with_alpha)
 
 class ColorManager : public anObject
 {
-  protected:
+  private:
+	static ColorManager *default_manager;
+
+  protected: 
 	PtrStack<ColorSystem> systems;
 
   public:
+	static ColorManager *GetDefault(bool create=true);
+	static void SetDefault(ColorManager *manager);
+		
 	ColorManager();
 	virtual ~ColorManager();
+	virtual int AddSystem(ColorSystem *system, bool absorb);
 };
+
+ColorManager *ColorManager::default_manager = NULL;
+
+ColorManager *ColorManager::GetDefault(bool create)
+{
+	if (!default_manager && create) {
+		default_manager = new ColorManager();
+	}
+
+	return default_manager;
+}
+
+/*! Increments count.
+ */
+void ColorManager::SetDefault(ColorManager *manager)
+{
+	if (manager == default_manager) return;
+	default_manager->dec_count();
+	default_manager = manager;
+	if (default_manager) default_manager->inc_count();
+}
+
+
 
 ColorManager::ColorManager()
 {
@@ -778,6 +808,26 @@ ColorManager::ColorManager()
 ColorManager::~ColorManager()
 {
 	DBG cerr <<"ColorManager "<<(Id()?Id():"unnamed")<<" destructor"<<endl;
+}
+
+/*! Return 0 for newly added. Return index+1 for system already in stack.
+ *  Return -1 for could not add.
+ */
+int ColorManager::AddSystem(ColorSystem *system, bool absorb)
+{
+	if (!system) return -1;
+
+	for (int c=0; c<systems.n; c++) {
+		if (system==systems.e[c]) {
+			if (absorb) system->dec_count();
+			return c+1;
+		}
+	}
+
+	systems.push(system);
+	if (absorb) system->dec_count();
+
+	return 0;
 }
 
 
