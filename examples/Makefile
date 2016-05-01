@@ -1,4 +1,8 @@
-#### Laxkit Examples/Makefile
+##############################################
+##############                 ###############
+#############  Laxkit/examples  ##############
+##############                 ###############
+##############################################
 
 include ../Makefile-toinclude
 
@@ -6,8 +10,17 @@ LAXDIR= ../lax
 LAXIDIR=$(LAXDIR)/interfaces
 LAXOBJDIR=$(LAXDIR)
 
+
+OPTIONALLIBS=
+
+ifeq ($(LAX_USES_SQLITE), yes)
+OPTIONALLIBS= -lsqlite3
+endif
+
+
+
 LD=g++
-LDFLAGS= -L/usr/X11R6/lib -lX11 -lm -lcairo -lsqlite3 -lfontconfig -lpng -lcups `imlib2-config --libs` -lXi -lXft -lcrypto -L$(LAXDIR) -L$(LAXIDIR)
+LDFLAGS= -L/usr/X11R6/lib -lX11 -lm -lcairo `freetype-config --libs` `imlib2-config --libs` $(OPTIONALLIBS) -lfontconfig -lXext -lXi -lXft -lssl -L$(LAXDIR) -L$(LAXIDIR)
 DEBUGFLAGS= -g -gdwarf-2
 CPPFLAGS= $(DEBUGFLAGS) -I. -I.. -I$(LAXDIR)/ -I../include -I../src -I/usr/include/freetype2
 
@@ -24,37 +37,37 @@ all: laxhello interfs timers
 
 
 interfs: lax laxinterface interfs.o
-	$(LD) $(LDFLAGS) interfs.o -llaxinterfaces -llaxkit -o $@
+	$(LD) interfs.o -llaxinterfaces -llaxkit $(LDFLAGS) -o $@
 
 interfs2: lax laxinterface interfs2.o
-	$(LD) $(LDFLAGS) interfs2.o normalinterface.o joininterface.o -llaxinterfaces -llaxkit -o $@
+	$(LD) interfs2.o normalinterface.o joininterface.o -llaxinterfaces -llaxkit $(LDFLAGS) -o $@
 
 vfill: lax laxinterface vfill.o
-	$(LD) $(LDFLAGS) vfill.o  -llaxinterfaces -llaxkit -o $@
+	$(LD) vfill.o  -llaxinterfaces -llaxkit $(LDFLAGS) -o $@
 
 #vfill.o: vfill.cc /home/tom/other/p/github/laxkit/lax/interfaces/engravermapping.cc /home/tom/other/p/github/laxkit/lax/interfaces/RESEARCH/blur.cc
 
 cairotest: lax laxinterface cairotest.o
-	$(LD) $(LDFLAGS) $@.o  -llaxinterfaces -llaxkit -lharfbuzz -o $@
+	$(LD) $@.o  -llaxinterfaces -llaxkit -lharfbuzz $(LDFLAGS) -o $@
 
 testevents: lax laxinterface testevents.o
-	$(LD) $(LDFLAGS) $@.o  -llaxinterfaces -llaxkit -o $@
+	$(LD) $@.o  -llaxinterfaces -llaxkit $(LDFLAGS) -o $@
 
 themes: lax laxinterface themes.o
-	$(LD) $(LDFLAGS) $@.o  -llaxinterfaces -llaxkit -o $@
+	$(LD) $@.o  -llaxinterfaces -llaxkit $(LDFLAGS) -o $@
 
 test: lax laxinterface test.o
-	$(LD) $(LDFLAGS) $@.o  -llaxinterfaces -llaxkit -o $@
+	$(LD) $@.o  -llaxinterfaces -llaxkit $(LDFLAGS) -o $@
 
 
 laxhello: lax laxhello.o
-	$(LD) $(LDFLAGS) $@.o -llaxkit -o $@
+	$(LD) $@.o -llaxkit $(LDFLAGS) -o $@
 
 thingpreviewer: lax thingpreviewer.o
-	$(LD) $(LDFLAGS) $@.o -llaxkit -o $@
+	$(LD) $@.o -llaxkit $(LDFLAGS) -o $@
 
 timers: lax timers.o
-	$(LD) $(LDFLAGS) $@.o -llaxkit -o $@
+	$(LD) $@.o -llaxkit $(LDFLAGS) -o $@
 
 depends:
 	touch makedepend
