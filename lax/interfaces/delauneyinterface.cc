@@ -29,6 +29,7 @@
 #include "delauneyinterface.h"
 
 #include <lax/interfaces/somedatafactory.h>
+#include <lax/interfaces/linestyle.h>
 #include <lax/laxutils.h>
 #include <lax/language.h>
 
@@ -52,6 +53,7 @@ namespace LaxInterfaces {
 //forward declarations...
 int DelauneyTriangulate(flatpoint *pts, int nv, IndexTriangle *tri_ret, int *ntri_ret);
 
+
 //------------------------------- DelauneyInterface ---------------------------------
 
 /*! \class VoronoiData
@@ -61,9 +63,21 @@ int DelauneyTriangulate(flatpoint *pts, int nv, IndexTriangle *tri_ret, int *ntr
 
 VoronoiData::VoronoiData()
 {
-	color_delauney=rgbcolorf(1.0,0.0,0.0);
-	color_voronoi =rgbcolorf(0.0,0.7,0.0);
-	color_points  =rgbcolorf(1.0,0.0,1.0); 
+	color_delauney=new Color();  color_delauney->screen.rgbf(1.0,0.0,0.0);
+	color_voronoi =new Color();  color_voronoi ->screen.rgbf(0.0,0.7,0.0);
+	color_points  =new Color();  color_points  ->screen.rgbf(1.0,0.0,1.0); 
+
+	//color_delauney=CreateColor_RGB(1.0,0.0,0.0);
+	//color_voronoi =CreateColor_RGB(0.0,0.7,0.0);
+	//color_points  =CreateColor_RGB(1.0,0.0,1.0); 
+
+	//color_delauney=rgbcolorf(1.0,0.0,0.0);
+	//color_voronoi =rgbcolorf(0.0,0.7,0.0);
+	//color_points  =rgbcolorf(1.0,0.0,1.0); 
+
+	width_delauney=1/10.;
+	width_voronoi=1/10.;
+	width_points=1/10.;
 }
 
 VoronoiData::~VoronoiData()
@@ -84,9 +98,9 @@ void VoronoiData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *co
     memset(spc,' ',indent);
     spc[indent]='\0';
 
-//	if (what==-1) {
-//		return;
-//	}
+	if (what==-1) {
+		return;
+	}
 
     const double *matrix=m();
     fprintf(f,"%smatrix %.10g %.10g %.10g %.10g %.10g %.10g\n",
@@ -147,6 +161,19 @@ void VoronoiData::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpC
     }
 
 	RebuildVoronoi(true);
+}
+
+/*! Set the width of the lines or points.
+ * which<0 sets default for all.
+ * &1 is for voronoi lines,
+ * &2 is for delauney lines,
+ * &3 is for points.
+ */
+void VoronoiData::Width(double newwidth, int which)
+{
+	if (which<0 || which&1) width_voronoi  = newwidth;
+	if (which<0 || which&2) width_delauney = newwidth;
+	if (which<0 || which&4) width_points   = newwidth;
 }
 
 /*! Return the centroid of the specified triangle.
@@ -358,6 +385,7 @@ DelauneyInterface::DelauneyInterface(anInterface *nowner, int nid, Displayer *nd
 	needtodraw=1;
 	curpoint=-1;
 	justadded=false;
+	style_target = 0; //0 is voronoi border, 1 is delauney tri edges, 2 is points
 
 	sc=NULL;
 	
@@ -376,7 +404,8 @@ DelauneyInterface::~DelauneyInterface()
 
 const char *DelauneyInterface::whatdatatype()
 {  
-	return NULL; // NULL means this tool is creation only, it cannot edit existing data automatically
+	return "VoronoiData";
+	//return NULL; // NULL means this tool is creation only, it cannot edit existing data automatically
 }
 
 /*! Name as displayed in menus, for instance.
@@ -403,21 +432,19 @@ void DelauneyInterface::Clear(SomeData *d)
 
 
 int DelauneyInterface::Refresh()
-{
-
+{ 
 	if (needtodraw==0) return 0;
 	needtodraw=0;
 
 
 	dp->LineAttributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
-	double width=2;
-	dp->LineWidthScreen(width);
 	dp->font(anXApp::app->defaultlaxfont);
 	dp->fontsize(anXApp::app->defaultlaxfont->textheight() / dp->Getmag());
 
 
 	 //delauney triangles
 	dp->NewFG(coloravg(curwindow->win_colors->fg,curwindow->win_colors->bg));
+	dp->LineWidth(data->width_delauney);
 	flatpoint center,p,v;
 
 	dp->NewFG(data->color_delauney);
@@ -477,15 +504,20 @@ int DelauneyInterface::Refresh()
 	 //points
 	dp->NewFG(data->color_points);
 	for (int c=0; c<data->points.n; c++) {
-		dp->drawpoint(data->points.e[c], c==curpoint?10:5, 1);
+		double r=(c==curpoint?2:1)*data->width_points;
+		//dp->drawpoint(data->points.e[c], (c==curpoint?2:1)*data->width_points, 1);
+		dp->drawellipse(data->points.e[c], r,r, 0,2*M_PI, 1);
+
+
 		if (show_numbers) {
 			dp->drawnum(data->points.e[c].x,data->points.e[c].y, c);
 		}
 
 		if (c==curpoint && data->regions.n) {
+			 //highlight this voronoi cell
 			if (data->regions.e[c].tris.n==0) continue;
 
-			dp->LineWidthScreen(2*width);
+			dp->LineWidth(2*data->width_voronoi);
 			int i=data->regions.e[c].tris.e[0];
 			if (i>=0) dp->moveto(data->triangles.e[i].circumcenter);
 			else dp->lineto(data->inf_points.e[-i-1]);
@@ -497,7 +529,6 @@ int DelauneyInterface::Refresh()
 			}
 			dp->closed();
 			dp->stroke(0);
-			dp->LineWidthScreen(width);
 		}
 	}
 
@@ -505,6 +536,7 @@ int DelauneyInterface::Refresh()
 	 //voronoi lines
 	if (show_lines&1) {
 		dp->NewFG(data->color_voronoi);
+		dp->LineWidth(data->width_voronoi);
 		int i;
 		for (int c=0; c<data->regions.n; c++) {
 			if (data->regions.e[c].tris.n==0) continue;
@@ -598,6 +630,37 @@ int DelauneyInterface::MouseMove(int x,int y,unsigned int state, const Laxkit::L
 	return 0; //MouseMove is always called for all interfaces, return value doesn't inherently matter
 }
 
+int DelauneyInterface::UseThis(Laxkit::anObject *nobj,unsigned int mask)
+{
+    if (!nobj) return 1;
+
+    if (data && dynamic_cast<LineStyle *>(nobj)) {
+        //DBG cerr <<"Delauney new color stuff"<< endl;
+
+        LineStyle *nlinestyle=dynamic_cast<LineStyle *>(nobj);
+
+        if (nlinestyle->mask&GCForeground) {
+			Color *color=NULL;
+			if (style_target==0)      color = data->color_delauney;
+			else if (style_target==1) color = data->color_voronoi;
+			else if (style_target==2) color = data->color_points;
+
+            color->screen.red  =nlinestyle->color.red;
+            color->screen.green=nlinestyle->color.green;
+            color->screen.blue =nlinestyle->color.blue;
+            color->screen.alpha=nlinestyle->color.alpha;
+
+            needtodraw=1;
+        }
+
+        return 1;
+    }
+
+
+    return 0;
+
+}
+
 
 Laxkit::ShortcutHandler *DelauneyInterface::GetShortcuts()
 {
@@ -608,10 +671,16 @@ Laxkit::ShortcutHandler *DelauneyInterface::GetShortcuts()
 
     sc=new ShortcutHandler(whattype());
 
-    sc->Add(VORONOI_ToggleNumbers,              'n',0,0,          "ToggleNumbers",  _("Toggle numbers"),NULL,0);
-    sc->Add(VORONOI_ToggleArrows,               'a',0,0,          "ToggleArrows",   _("Toggle arrows"),NULL,0);
-    sc->Add(VORONOI_ToggleLines,                'l',0,0,          "ToggleLines",    _("Toggle lines"),NULL,0);
- 
+    sc->Add(VORONOI_ToggleNumbers, 'n',0,0,          "ToggleNumbers",  _("Toggle numbers"),NULL,0);
+    sc->Add(VORONOI_ToggleArrows,  'a',0,0,          "ToggleArrows",   _("Toggle arrows"),NULL,0);
+    sc->Add(VORONOI_ToggleLines,   'l',0,0,          "ToggleLines",    _("Toggle lines"),NULL,0);
+    sc->Add(VORONOI_StyleTarget,   'c',0,0,          "StyleTarget",    _("Change target for color and line width changes"),NULL,0); 
+    sc->Add(VORONOI_Thicken,       'w',0,0,          "Thicken",        _("Thicken style target"),NULL,0);
+    sc->Add(VORONOI_Thin,          'W',ShiftMask,0,  "Thin",           _("Thin style target"),NULL,0);
+    sc->Add(VORONOI_FileExport,    'f',0,0,          "FileOut",        _("Export this point set to a file"),NULL,0); 
+    sc->Add(VORONOI_FileImport,    'i',0,0,          "FileIn",         _("Import a point set from a file"),NULL,0); 
+	
+	
     manager->AddArea(whattype(),sc);
 	return sc;
 }
@@ -633,15 +702,34 @@ int DelauneyInterface::PerformAction(int action)
 		if (show_lines>3) show_lines=0;
 		needtodraw=1;
 		return 0; 
-	}
 
-	return 1;
-}
+	} else if (action==VORONOI_StyleTarget) {
+		style_target++;
+		if (style_target>=3) style_target=0;
+		if (style_target==0) PostMessage(_("Adjust style of voronoi lines"));
+		else if (style_target==1) PostMessage(_("Adjust style of delauney lines"));
+		else if (style_target==2) PostMessage(_("Adjust style of points"));
+		needtodraw=1;
+		return 0; 
 
-int DelauneyInterface::CharInput(unsigned int ch, const char *buffer,int len,unsigned int state, const Laxkit::LaxKeyboard *d)
-{
+	} else if (action==VORONOI_Thicken || action==VORONOI_Thin) {
+		double d=-1;
+		double factor = (action==VORONOI_Thicken) ? 1.05 : 1/1.05;
 
-	if (ch=='f') {
+		if (style_target==0)      { data->width_voronoi*=factor;  d=data->width_voronoi;  }
+		else if (style_target==1) { data->width_delauney*=factor; d=data->width_delauney; }
+		else if (style_target==2) { data->width_points*=factor;   d=data->width_points;   }
+
+		if (d>0) {
+			char scratch[70];
+			sprintf(scratch,"Line width: %f",d);
+			PostMessage(scratch);
+			needtodraw=1;
+		}
+
+		return 0; 
+
+	} else if (action==VORONOI_FileExport) {
 		DBG cerr <<" WARNING! 'f': no error or clobber checking when exporting to voronoi.data!"<<endl;
 
 		FILE *f=fopen("voronoi.data", "w");
@@ -651,10 +739,21 @@ int DelauneyInterface::CharInput(unsigned int ch, const char *buffer,int len,uns
 		data->dump_out(f, 0, 0, NULL);
 		fclose(f);
 		DBG cerr <<"...done writing out to voronoi.data"<<endl;
+
 		PostMessage(_("Written to voronoi.data"));
 		return 0;
+
+	} else if (action==VORONOI_FileImport) {
+		PostMessage(_("Import points: TODO!"));
+		return 0;
+
 	}
 
+	return 1;
+}
+
+int DelauneyInterface::CharInput(unsigned int ch, const char *buffer,int len,unsigned int state, const Laxkit::LaxKeyboard *d)
+{
 
     if (!sc) GetShortcuts();
     int action=sc->FindActionNumber(ch,state&LAX_STATE_MASK,0);

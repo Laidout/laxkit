@@ -81,9 +81,13 @@ class VoronoiData : virtual public LaxInterfaces::SomeData
 	Laxkit::NumStack<VoronoiRegion> regions; //1 to 1 with points
 	Laxkit::NumStack<flatpoint> inf_points; //to help approximate infinite rays
 
-	unsigned int color_delauney;
-	unsigned int color_voronoi;
-	unsigned int color_points;
+	Laxkit::Color *color_delauney;
+	Laxkit::Color *color_voronoi;
+	Laxkit::Color *color_points;
+
+	double width_delauney;
+	double width_voronoi;
+	double width_points;
 
 	VoronoiData();
 	virtual ~VoronoiData();
@@ -95,7 +99,11 @@ class VoronoiData : virtual public LaxInterfaces::SomeData
 	virtual void Triangulate();
 	virtual void RebuildVoronoi(bool triangulate_also=true);
 	virtual void Rebuild() { Triangulate(); RebuildVoronoi(); }
+
+	virtual void Width(double newwidth, int which=-1);
+
 	flatpoint Centroid(int triangle);
+
 };
 
 
@@ -106,6 +114,11 @@ enum DelauneyInterfaceActions {
 	VORONOI_ToggleNumbers,
 	VORONOI_ToggleArrows,
 	VORONOI_ToggleLines,
+	VORONOI_StyleTarget,
+	VORONOI_Thicken,
+	VORONOI_Thin,
+	VORONOI_FileExport,
+	VORONOI_FileImport,
 	VORONOI_MAX
 };
 
@@ -117,6 +130,7 @@ class DelauneyInterface : public anInterface
 	int showdecs; 
 	int curpoint;
 	bool justadded;
+	int style_target;
 
 	Laxkit::ShortcutHandler *sc;
 
@@ -135,6 +149,7 @@ class DelauneyInterface : public anInterface
 	virtual const char *whatdatatype();
     virtual int PerformAction(int action);
 	virtual Laxkit::ShortcutHandler *GetShortcuts();
+	virtual int UseThis(Laxkit::anObject *nlinestyle,unsigned int mask=0);
 
 
 	virtual void Clear(SomeData *d);
