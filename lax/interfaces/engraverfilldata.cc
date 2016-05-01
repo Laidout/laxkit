@@ -374,6 +374,27 @@ void LinePoint::Set(LinePoint *pp)
 }
 
 
+//--------------------------- EngraverLine -----------------------------
+/*! \class EngraverLine
+ * Holds info about individual lines in an EngraverPointGroup.
+ */
+
+EngraverLine::EngraverLine()
+{
+	startcap = endcap = 0;
+	startspread = endspread = 1;
+	startangle = endangle = 0;
+	color=NULL;
+	line=NULL;
+}
+
+EngraverLine::~EngraverLine()
+{
+	if (color) color->dec_count();
+	delete line;
+}
+
+
 //--------------------------- EngraverDirection -----------------------------
 /*! \class EngraverDirection
  */
@@ -1297,6 +1318,7 @@ NormalDirectionMap::NormalDirectionMap()
     normal_map=NULL;
 	data=NULL;
 	width=height=0;
+	angle=0;
 }
 
 NormalDirectionMap::NormalDirectionMap(const char *file)
@@ -1304,6 +1326,7 @@ NormalDirectionMap::NormalDirectionMap(const char *file)
     normal_map=load_image(file);
 	data=NULL;
 	width=height=0;
+	angle=0;
 
     if (normal_map) {
         width=normal_map->w();
@@ -2182,8 +2205,10 @@ EngraverPointGroup::EngraverPointGroup(EngraverFillData *nowner)
 	default_weight=-1;
 
 	iorefs=NULL;
+
 	needtotrace=false;
 	needtoreline=false;
+	needtodash=false;
 }
 
 /*! Creates a unique new number for id if nid<0.
@@ -2243,8 +2268,10 @@ EngraverPointGroup::EngraverPointGroup(EngraverFillData *nowner,
 	}
 
 	iorefs=NULL;
+
 	needtotrace=false;
 	needtoreline=false;
+	needtodash=false;
 }
 
 EngraverPointGroup::~EngraverPointGroup()
@@ -3120,6 +3147,11 @@ int EngraverPointGroup::Trace(Affine *aa)
 	return 0;
 }
 
+/*! Call UpdateBezCache(), then update any LinePointCache that run along the actual lines.
+ * 
+ * This does NOT recreate cache points. Use UpdateDashCache() for that.
+ * Does NOT update on/off state, which is also done in UpdateDashCache().
+ */
 void EngraverPointGroup::UpdatePositionCache()
 {
 	DBG cerr <<" *** EngraverPointGroup::UpdatePositionCache() needs to be optimized"<<endl;
@@ -3149,6 +3181,7 @@ void EngraverPointGroup::UpdatePositionCache()
 }
 
 /*! Update the bez handles and bez length of all points.
+ * This dose NOT create, install, or update any LinePointCache.
  */
 void EngraverPointGroup::UpdateBezCache()
 {
@@ -3170,7 +3203,7 @@ void EngraverPointGroup::UpdateBezCache()
 	}
 }
 
-/*! Update any additional points added to the lines.
+/*! Update (or create) any additional points added to the lines.
  *
  * Returns number of dashes.
  */
@@ -3696,8 +3729,20 @@ flatpoint EngraverPointGroup::Direction(double s,double t)
 	} else if (direction->type==PGROUP_Radial) {
 		return flatpoint(s,t)-position;
 
-	//} else if (direction->type==PGROUP_Spiral) {
-	//	return rotate(transpose(flatpoint(s,t)-position), type_d);
+	} else if (direction->type==PGROUP_Spiral) {
+		int numarms=2;
+		int spin=1;
+		EngraverDirection::Parameter *p=direction->FindParameter("spin");
+		if (p) spin=(p->value==0 ? 1 : -1);
+		p=direction->FindParameter("arms");
+		if (p) numarms=p->value+.5;
+
+		double r=sqrt((s-position.x)*(s-position.x)+(t-position.y)*(t-position.y));
+		double theta=r/numarms/spacing->spacing;
+
+		flatpoint v(spin*(cos(theta)+theta*sin(theta)), sin(theta)-theta*cos(theta));
+		v.normalize();
+		return v;
 	}
 
 	return flatpoint();
@@ -3736,6 +3781,8 @@ void EngraverPointGroup::QuickAdjust(double factor)
 	}
 
 	UpdateDashCache(); 
+
+	if (owner) owner->touchContents();
 }
 
 /*! fill in x,y = 0..1,0..1
@@ -4358,7 +4405,8 @@ void EngraverPointGroup::FillCircular(EngraverFillData *data, double nweight)
 
 }
 
-/*! Class to aid growing lines.
+/*! \class StarterPoint
+ * Class to aid growing engraver lines.
  */
 class StarterPoint
 {
@@ -4387,10 +4435,10 @@ void EngraverPointGroup::GrowLines2(EngraverFillData *data,
 									double resolution, 
 									double defaultspace,  	ValueMap *spacingmap,
 									double defaultweight,   ValueMap *weightmap, 
-									flatpoint direction,    DirectionMap *directionmap,
+									flatpoint directionv,   DirectionMap *directionmap,
 									Laxkit::PtrStack<GrowPointInfo> *growpoint_ret,
 									int iteration_limit)
-{  // ***
+{
 
 	//draw on a scratch space, each pixel gets:
 	//  group number
@@ -4405,6 +4453,191 @@ void EngraverPointGroup::GrowLines2(EngraverFillData *data,
 
 	//unsigned char pixels[***];
 	
+
+	 //remove any old lines from same group
+	lines.flush();
+
+
+	 //----Initialize point generators
+	DoubleBBox bounds(0,data->xsize/3, 0,data->ysize/3);
+
+	double weight=defaultweight;
+	double curspace=defaultspace/data->getScaling(.5,.5,false);
+
+	PtrStack<StarterPoint> generators;
+	StarterPoint *g;
+
+	if (growpoint_ret && growpoint_ret->n>0) {
+		 //use supplied points
+		for (int c=0; c<growpoint_ret->n; c++) {
+			g=new StarterPoint(growpoint_ret->e[c]->p, growpoint_ret->e[c]->godir, weight, id, generators.n);
+			g->line->p=data->getPoint(g->line->s, g->line->t, true);
+			g->line->needtosync=0;
+			generators.push(g,1);
+		}
+
+	} else if (directionmap && directionmap!=this) {
+		 //try to trace out starters based on directionmap
+		// *** begin at center, radiate away
+
+	} else {
+		 //need to populate with default starters per direction type
+
+		if (direction->type == PGROUP_Linear) {
+			flatpoint p1, p2, pp;
+			double ds;
+			flatpoint v = directionv;
+			//flatpoint v = direction->direction;
+			v.normalize();
+			flatpoint vt = transpose(v);
+
+			if ((v.x>0 && v.y>0) || (v.x<0 && v.y<0)) {
+				p1.set(bounds.minx, bounds.maxy);
+				p2.set(bounds.maxx, bounds.miny);
+			} else {
+				p1.set(bounds.minx, bounds.miny);
+				p2.set(bounds.maxx, bounds.maxy);
+			}
+
+			v=p2-p1;
+			double dist=norm(v);
+			v.normalize();
+			flatpoint p=p1;
+			double cosa = fabs(v*vt);
+			ds=curspace/(cosa);
+
+			for (double c=0; c<dist; ) {
+				pp=data->getPoint(p.x,p.y, true);
+				if (spacingmap) {
+					curspace = spacingmap->GetValue(pp)/data->getScaling(p.x,p.y,true); //else spacing is constant
+					ds = curspace/cosa;
+				}
+				if (weightmap)  weight  =weightmap ->GetValue(pp); //else weight is constant
+
+				if (c>0) {
+					g=new StarterPoint(p, 3, weight, id, generators.n);
+					g->line->p=pp;
+					g->line->needtosync=0;
+					lines.push(g->line);
+					generators.push(g,1);
+					if (growpoint_ret) growpoint_ret->push(new GrowPointInfo(p,g->dodir));
+				}
+
+				c += ds;
+				p += ds*v;
+			}
+
+		} else if (direction->type == PGROUP_Circular || direction->type == PGROUP_Spiral) {
+			 // along largest line from center to any edge
+			//flatpoint center=direction->position;
+			flatpoint center=position;
+			flatpoint outside;
+			
+			if (center.x<.5) {
+				if (center.y<.5) {
+					outside=bounds.BBoxPoint(1,1);
+				} else {
+					outside=bounds.BBoxPoint(1,0);
+				} 
+			} else {
+				if (center.y<.5) {
+					outside=bounds.BBoxPoint(0,1);
+				} else {
+					outside=bounds.BBoxPoint(0,0);
+				} 
+			} 
+
+			center=bounds.BBoxPoint(center.x,center.y);
+			flatpoint p=center, pp;
+			double cosa=1;
+			flatpoint v=outside-center;
+			double dist=norm(v);
+			v.normalize();
+			double ds=curspace;
+
+			for (double c=0; c<dist; ) {
+				pp=data->getPoint(p.x,p.y, true);
+				//if (direction->type == PGROUP_Spiral) {
+				//	cosa = ***;
+				//}
+				if (spacingmap) {
+					curspace = spacingmap->GetValue(pp)/data->getScaling(p.x,p.y,true); //else spacing is constant
+					ds = curspace/cosa;
+				}
+				if (weightmap)  weight  =weightmap ->GetValue(pp); //else weight is constant
+
+				if (c>0) {
+					g=new StarterPoint(p, 3, weight, id, generators.n);
+					g->line->p=pp;
+					g->line->needtosync=0;
+					lines.push(g->line);
+					generators.push(g,1);
+					if (growpoint_ret) growpoint_ret->push(new GrowPointInfo(p,g->dodir));
+				}
+
+				c += ds;
+				p += ds*v;
+			}
+
+		} else if (direction->type == PGROUP_Radial) {
+			 //along biggest circle at center
+			flatpoint center=position;
+			center=bounds.BBoxPoint(center.x,center.y);
+
+			double radius=center.x;
+			if (bounds.maxx-center.x<radius) radius=bounds.maxx-center.x;
+			if (center.y<radius) radius=center.y;
+			if (bounds.maxy-center.y<radius) radius=bounds.maxy-center.y;
+
+			flatpoint p=center, pp;
+			double da=2*M_PI/int(2*M_PI*radius/curspace);
+
+			for (double a=0; a<2*M_PI; a+=da) {
+				p=center+radius*flatpoint(cos(a),sin(a));
+				pp=data->getPoint(p.x,p.y, true);
+
+				if (spacingmap) {
+					curspace = spacingmap->GetValue(pp)/data->getScaling(p.x,p.y,true); //else spacing is constant
+					da=2*M_PI/int(2*M_PI*radius/curspace);
+				}
+				if (weightmap)  weight  =weightmap ->GetValue(pp); //else weight is constant
+
+				g=new StarterPoint(p, 3, weight, id, generators.n);
+				g->line->p=pp;
+				g->line->needtosync=0;
+				lines.push(g->line);
+				generators.push(g,1);
+				if (growpoint_ret) growpoint_ret->push(new GrowPointInfo(p,g->dodir));
+			} 
+		}
+	}
+
+
+	//
+	// ------ grow points.....
+	//
+	// *****
+
+
+	 //Add lines to data
+	LinePoint *lp, *ll;
+	for (int c=0; c<lines.n; c++) {
+		lp=lines.e[c];
+
+		 //need to normalize all points
+		ll=lp;
+		while (ll) {
+			ll->s=(ll->s-bounds.minx)/(bounds.maxx-bounds.minx);
+			ll->t=(ll->t-bounds.miny)/(bounds.maxy-bounds.miny);
+			if (ll->s>=1 || ll->t>=1 || ll->s<=0 || ll->t<=0) {
+				ll->p=data->getPoint(ll->s,ll->t, false);
+				ll->needtosync=0;
+			}
+			ll=ll->next;
+		}
+	}
+
+	UpdateDashCache();
 }
 
 /*! If growpoint_ret already has points in it, use those, don't create automatically along edges.
@@ -5456,6 +5689,63 @@ void EngraverFillData::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContex
 
 		groups.e[c]->UpdateDashCache();
 	} 
+}
+
+/*! Based on groups' needtoreline, needtotrace, and needtodash, update.
+ * needtoreline implies needtotrace and needtodash.
+ * needtotrace implies needtodash.
+ */
+void EngraverFillData::Update()
+{
+	bool changed=false;
+
+	for (int c=0; c<groups.n; c++) {
+		EngraverPointGroup *group = groups.e[c];
+
+		if (group->needtoreline) {
+			if (group->direction->grow_lines) {
+				group->growpoints.flush();
+				group->GrowLines2(this,
+								 group->spacing->spacing/3,
+								 group->spacing->spacing, NULL,
+								 .01, NULL,
+								 group->directionv,group,
+								 &group->growpoints,
+								 1000 //iteration limit
+								);
+			} else {
+				group->Fill(this, -1);
+			}
+
+			group->UpdateBezCache();
+
+			group->needtoreline=false;
+			if (group->trace->continuous_trace) group->needtotrace =true;
+			group->needtodash  =true;
+
+			changed=true;
+		}
+
+		if (group->needtotrace) {
+			if (group->active && group->trace && group->trace->traceobject) { 
+				Affine aa = GetTransformToContext(false, 0);//supposed to be from obj to same "parent" as traceobject
+				group->Trace(&aa); //NOTE: this forces a trace when needtotrace!!
+				changed=true;
+			}
+
+			group->needtotrace =false;
+			group->needtodash  =true;
+		}
+
+		if (group->needtodash) {
+			group->UpdateDashCache();
+			group->needtodash=false;
+			changed=true;
+		}
+
+	} 
+
+	if (changed) touchContents();
 }
 
 /*! Return whether a point is considered on by the criteria of the settings in dashes.

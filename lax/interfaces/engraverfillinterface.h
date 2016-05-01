@@ -113,9 +113,6 @@ class EngraverFillInterface : public PatchInterface
 	Laxkit::MenuItem *tracebox;
 	Laxkit::DoubleBBox panelbox;
 	Laxkit::IntRectangle sensbox;
-
-	 //grow related
-	Laxkit::PtrStack<GrowPointInfo> growpoints;
 	
 
 	 //general display state

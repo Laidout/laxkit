@@ -2883,22 +2883,42 @@ int EngraverFillInterface::Refresh()
 		DrawOrientation(lasthover);
 
 		 //draw starter points for growth mode
-		if (grow_lines && growpoints.n) {
+		//if (grow_lines && growpoints.n) {
+		EngraverPointGroup *group=edata->GroupFromIndex(current_group);
+		if (group->direction->grow_lines && group->growpoints.n) {
 			dp->DrawScreen();
 
-			flatpoint p;
-			for (int c=0; c<growpoints.n; c++) {
-				p=growpoints.e[c]->p;
+			flatpoint p, p2;
+			flatpoint v,vt;
+			double len=5;
+
+			for (int c=0; c<group->growpoints.n; c++) {
+				p=group->growpoints.e[c]->p;
+				v=group->Direction(p.x,p.y);
+				v.normalize();
+				p2=edata->getPoint(p.x+.01*v.x, p.y+.01*v.y, false);
+				p2=dp->realtoscreen(p2);
 				p=edata->getPoint(p.x,p.y, false);
 				p=dp->realtoscreen(p);
+				v=p2-p;
+				v.normalize();
+				vt=transpose(v);
 
-				if (growpoints.e[c]->godir&1) dp->NewFG(255,100,100); //should use activate/deactivate colors
-				else dp->NewFG(0,200,0);
-				dp->drawthing(p.x+5,p.y, 5,5, 1, THING_Triangle_Right);
+				if (group->growpoints.e[c]->godir&1) dp->NewFG(activate_color);
+				else dp->NewFG(deactivate_color);
+				dp->moveto(p+vt*len);
+				dp->lineto(p-vt*len);
+				dp->lineto(p+v*2*len);
+				dp->fill(0);
+				//dp->drawthing(p.x+5,p.y, 5,5, 1, THING_Triangle_Right);
 
-				if (growpoints.e[c]->godir&2) dp->NewFG(255,100,100); //should use activate/deactivate colors
-				else dp->NewFG(0,200,0);
-				dp->drawthing(p.x-5,p.y, 5,5, 1, THING_Triangle_Left);
+				if (group->growpoints.e[c]->godir&2) dp->NewFG(activate_color); 
+				else dp->NewFG(deactivate_color);
+				dp->moveto(p+vt*len);
+				dp->lineto(p-vt*len);
+				dp->lineto(p-v*2*len);
+				dp->fill(0);
+				//dp->drawthing(p.x-5,p.y, 5,5, 1, THING_Triangle_Left);
 			}
 
 			dp->DrawReal();
@@ -2935,9 +2955,9 @@ int EngraverFillInterface::Refresh()
 				else dp->NewFG(0.,0.,.7,1.);
 
 			} else if (mode==EMODE_Blockout) { //blockout
-				if (submode==1) dp->NewFG(0,200,0);
+				if (submode==1) dp->NewFG(activate_color);
 				else if (submode==2) dp->NewFG(.5,.5,.5);
-				else dp->NewFG(255,100,100);
+				else dp->NewFG(deactivate_color);
 			}
 
 			 //draw main circle
@@ -3975,7 +3995,7 @@ void EngraverFillInterface::DrawPanel()
 
 				} else if (item2->id==ENGRAVE_Group_Linked && i2h>0) {
 					ww=i2w*.25;
-					unsigned long color=(group && group->linked ? rgbcolor(0,200,0) : rgbcolor(255,100,100) );
+					unsigned long color=(group && group->linked ? activate_color : deactivate_color );
 					dp->drawthing(i2x+i2w/2,i2y+i2h/2, ww,-ww, THING_Circle, color,color);
 
 				} else if (item2->id==ENGRAVE_Group_Color && i2h>0) {
@@ -4059,18 +4079,18 @@ void EngraverFillInterface::DrawPanel()
 								double rr=.25; //radius of inner linked circle
 								if (oncurobj && g==current_group && group2->active && !group2->linked) {
 									 //draw green override circle over current group linked thing regardless of actual color
-									color=rgbcolor(0,200,0);
+									color = activate_color;
 									dp->drawthing(xx+th/2,yy+th/2, th*.4,-th*.4, THING_Circle, color,color);
 									rr=.2;
 								}
 								if (group2->linked && !group2->active) {
 									//draw red override circle, since group is not modifiable while invisible
-									color=rgbcolor(255,100,100);
+									color = deactivate_color;
 									dp->drawthing(xx+th/2,yy+th/2, th*.4,-th*.4, THING_Circle, color,color);
 									rr=.2;
 								}
 								 //now draw actual linked state
-								color=(group2 && group2->linked ? rgbcolor(0,200,0) : rgbcolor(255,100,100) );
+								color=(group2 && group2->linked ? activate_color : deactivate_color );
 								dp->drawthing(xx+th/2,yy+th/2, th*rr,-th*rr, THING_Circle, color,color);
 								dp->NewFG(&fgcolor);
 								xx+=th;
@@ -4868,7 +4888,7 @@ int EngraverFillInterface::PerformAction(int action)
 		return 0;
 
 	} else if (action==ENGRAVE_ToggleShowTrace) {
-		show_trace_object=!show_trace_object;
+		show_trace_object = !show_trace_object;
 		//if (show_trace_object) continuous_trace=false;
 		if (show_trace_object) PostMessage(_("Show tracing object"));
 		else PostMessage(_("Don't show tracing object"));
@@ -4876,7 +4896,7 @@ int EngraverFillInterface::PerformAction(int action)
 		return 0;
 
 	} else if (action==ENGRAVE_TogglePanel) {
-		show_panel=!show_panel;
+		show_panel = !show_panel;
 		if (show_panel) PostMessage(_("Show control panel"));
 		else PostMessage(_("Don't show control panel"));
 		needtodraw=1;
@@ -4886,7 +4906,7 @@ int EngraverFillInterface::PerformAction(int action)
 		EngraverPointGroup *group=edata ? edata->GroupFromIndex(current_group) : NULL;
 		if (!group) return 0;
 
-		group->direction->grow_lines=!group->direction->grow_lines;
+		group->direction->grow_lines = !group->direction->grow_lines;
 		if (group->direction->grow_lines) PostMessage(_("Grow lines after warp"));
 		else PostMessage(_("Don't grow lines after warp"));
 
@@ -5019,24 +5039,25 @@ void EngraverFillInterface::UpdateDashCaches(EngraverLineQuality *dash)
 int EngraverFillInterface::Grow(bool all, bool allindata)
 {
 	DBG cerr <<"EngraverFillInterface::Grow("<<(all?"true":"false")<<','<<(allindata?"true":"false")<<endl;
-	return 1;
+	//return 1;
 	// *** *** ToDO!!!! needs work
 	
-//	EngraverPointGroup *group=edata ? edata->GroupFromIndex(current_group) : NULL;
-//	if (!group) return 1;
-//	if (!group->grow_lines) return 2;
-//
-//	growpoints.flush();
-//	group->GrowLines(edata,
-//					 group->spacing->spacing/3,
-//					 group->spacing->spacing, NULL,
-//					 .01, NULL,
-//					 group->directionv,group,
-//					 &growpoints,
-//					 1000 //iteration limit
-//					);
-//
-//	return 0;
+	EngraverPointGroup *group=edata ? edata->GroupFromIndex(current_group) : NULL;
+	if (!group) return 1;
+	if (!group->direction->grow_lines) return 2;
+
+	group->growpoints.flush();
+	group->GrowLines2(edata,
+					 group->spacing->spacing/3,
+					 group->spacing->spacing, NULL,
+					 .01, NULL,
+					 group->directionv,group,
+					 &group->growpoints,
+					 1000 //iteration limit
+					);
+	edata->touchContents();
+
+	return 0;
 }
 
 /*! For any group in any selected object with the same trace settings as the current group, trace.
@@ -5068,7 +5089,8 @@ int EngraverFillInterface::Trace(bool do_once)
 
 			Affine aa=obj->GetTransformToContext(false, 0);//supposed to be from obj to same "parent" as traceobject
 			group->Trace(&aa);
-			edata->touchContents();
+
+			obj->touchContents();
 		}
 	}
 
@@ -5317,7 +5339,7 @@ int EngraverFillInterface::Event(const Laxkit::EventData *e_data, const char *me
         if (!edata || isblank(s->str)) return 0;
 		EngraverPointGroup *group=edata->GroupFromIndex(current_group);
 		char *endptr=NULL;
-		double d=group->dashes->dash_length=strtod(s->str, &endptr);
+		double d=strtod(s->str, &endptr);
 		if (endptr!=s->str) {
 			group->dashes->dash_length=d;
 			group->UpdateDashCache();

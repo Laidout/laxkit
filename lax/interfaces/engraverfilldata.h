@@ -504,6 +504,7 @@ class NormalDirectionMap : public DirectionMap
     Laxkit::LaxImage *normal_map;
     bool has_transparency; //if byte 3 is transparency
     bool has_origin_value; //if byte 2 is a grayscale version of source
+	double angle; //angle to add to default normals
     
     unsigned char *data; //for 4*w*h
     int width, height;
@@ -563,7 +564,7 @@ class EngraverDirection : public Laxkit::Resourceable, public LaxFiles::DumpUtil
 	double spacing;  //default
 	double resolution; //default samples per spacing unit, default is 1
 	double default_weight; //a fraction of spacing 
-	flatpoint position,direction; //default
+	flatpoint position, direction; //default
 	Laxkit::PtrStack<Parameter> parameters; //extras beyond position, spacing, rotation
 
 	 //line generation tinkering settings
@@ -668,9 +669,11 @@ class EngraverPointGroup : public DirectionMap
 
 	bool needtotrace;
 	bool needtoreline;
+	bool needtodash;
 
 	double default_weight; //a fraction of spacing
-	flatpoint position,directionv; //note NOT the same properties as in EngravingDirection
+	flatpoint position,directionv; //note NOT the same properties as in EngravingDirection, this overrides those
+	Laxkit::PtrStack<GrowPointInfo> growpoints;
 
 	EngraverTraceSettings *trace; 
 	EngraverLineQuality *dashes;
@@ -817,6 +820,8 @@ class EngraverFillData : virtual public PatchData
 	virtual int MergeDown(int which_group);
 
 	virtual int IsSharing(int what, EngraverPointGroup *group, int curgroup); 
+
+	virtual void Update();
 };
 
 
