@@ -449,6 +449,8 @@ double LaxFontCairo::extent(const char *str,int len)
 	return extent.x_advance;
 }
 
+/*! Set textheight.
+ */
 double LaxFontCairo::Resize(double newsize)
 {
 	if (scaledfont) { cairo_scaled_font_destroy(scaledfont); scaledfont=NULL; }
