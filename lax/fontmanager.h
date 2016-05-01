@@ -70,6 +70,17 @@ struct GlyphPlace
 	~GlyphPlace();
 };
 
+class ColrGlyphMap
+{
+  public:
+	int initial_glyph;
+	int numglyphs;
+	int *glyphs;
+	int *colors;
+	ColrGlyphMap(int initial, int n, int *g, int *cols);
+	~ColrGlyphMap();
+};
+
 //---------------------------- LaxFont -------------------------------
 class LaxFont : public anObject
 {
@@ -122,6 +133,9 @@ class LaxFont : public anObject
 	virtual int HasColors() { return 0; } //1 for is manual layered font, 2 for colr based, 3 for svg
 	virtual anObject *GetColor() { return color; } //a Color or Palette
 	virtual int SetColor(anObject *ncolor);
+
+	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att, int what, LaxFiles::DumpContext *context);
+	//virtual void dump_in_atts(LaxFiles::Attribute *att,int flag, LaxFiles::DumpContext *context);
 };
 
 
@@ -235,6 +249,8 @@ class FontManager : public anObject
 	virtual int GetTagId(const char *tag);
 	virtual const char *GetTagName(int id);
 	virtual FontDialogFont *FindFontFromFile(const char *file);
+	 
+	virtual LaxFont *dump_in_font(LaxFiles::Attribute *att, LaxFiles::DumpContext *context);
 };
 
 

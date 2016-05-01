@@ -30,6 +30,7 @@
 #include <lax/strmanip.h>
 #include <lax/fileutils.h>
 #include <lax/language.h>
+#include <lax/colors.h>
 
 #include <iostream>
 using namespace std;
@@ -83,6 +84,46 @@ GlyphPlace::GlyphPlace()
 GlyphPlace::~GlyphPlace()
 {
 }
+
+
+//----------------------------- Extra color font support things -------------------------------------
+
+/*! \class ColrGlyphMap
+ */
+
+ColrGlyphMap::ColrGlyphMap(int initial, int n, int *g, int *cols)
+{
+	numglyphs = n;
+	if (n) {
+		glyphs = new int[n];
+		memcpy(glyphs, g, n*sizeof(int));
+
+		colors = new int[n];
+		memcpy(colors, cols, n*sizeof(int));
+	} else {
+		glyphs=NULL;
+		colors=NULL;
+	}
+}
+
+ColrGlyphMap::~ColrGlyphMap()
+{
+	delete[] glyphs;
+	delete[] colors;
+}
+
+//class ColrTable
+//{
+//  public:
+//	NumStack<ColrGlyphMap> maps;
+//};
+
+class SvgMap
+{
+  public:
+	int glyph;
+	//VectorImage *svg;
+};
 
 
 //-------------------------------------- LaxFont -------------------------------------------------
@@ -340,6 +381,41 @@ int LaxFont::SetColor(anObject *ncolor)
 	return 0;
 }
 
+LaxFiles::Attribute *LaxFont::dump_out_atts(LaxFiles::Attribute *att, int what, LaxFiles::DumpContext *context)
+{
+	if (!att) att=new Attribute;
+
+	att->push("fontsize", textheight());
+	Attribute *att2;
+
+	Palette *palette=dynamic_cast<Palette*>(GetColor());
+	Color   *color  =dynamic_cast<Color*>  (GetColor()); 
+
+	if (palette) {
+		att2=att->pushSubAtt("palette");
+		palette->dump_out_atts(att2, what, context);
+	}
+	if (color) {
+		att2=att->pushSubAtt("color");
+		color->dump_out_atts(att2, what, context);
+	}
+
+	for (int c=0; c<Layers(); c++) {
+		LaxFont *ff = Layer(c);
+
+		if (Layers()==1) att2=att;
+		else {
+			att2=att->pushSubAtt("layer");
+		}
+
+		att2->push("fontfile"  ,ff->FontFile()); 
+		att2->push("fontfamily",ff->Family());
+		att2->push("fontstyle" ,ff->Style());
+    }
+
+	return att;
+}
+
 
 //-------------------------------------- FontDialogFont -------------------------------------
 /*! \class FontDialogFont
@@ -424,6 +500,10 @@ int FontDialogFont::UseFamilyStyleName()
 int FontDialogFont::UsePSName()
 {
 	if (!psname) return 1;
+
+	if (strcasestr(psname, "Villa")) {
+		cerr <<" BLAH"<<endl;
+	}
 
 	int n=0;
 	for (char *p=psname; *p; p++) {
@@ -1136,12 +1216,74 @@ FontDialogFont *FontManager::DumpInFontDialogFont(LaxFiles::Attribute *att)
 	return font;
 }
 
-LaxFont *DumpInFont(LaxFiles::Attribute *att)
+LaxFont *FontManager::dump_in_font(LaxFiles::Attribute *att, LaxFiles::DumpContext *context)
 {
-	//***
-	//return font;
-	return NULL;
+	LaxFont *newfont=NULL;
+	const char *name, *value;
+	const char *file=NULL, *family=NULL, *style=NULL;
+	Palette *palette=NULL;
+	int layer=0;
+	double fontsize=1;
+
+	for (int c2=0; c2<att->attributes.n; c2++) {
+		name= att->attributes.e[c2]->name;
+		value=att->attributes.e[c2]->value;
+
+		if (!strcmp(name,"layer")) {
+			family=style=file=NULL;
+			layer++;
+			char cname[10];
+			sprintf(cname,"fg%d",layer);
+
+			for (int c3=0; c3<att->attributes.e[c2]->attributes.n; c3++) {
+				name= att->attributes.e[c2]->attributes.e[c3]->name;
+				value=att->attributes.e[c2]->attributes.e[c3]->value;
+
+				if (!strcmp(name,"fontfile")) {
+					file=value;
+
+				} else if (!strcmp(name,"fontfamily")) {
+					family=value;
+
+				} else if (!strcmp(name,"fontstyle")) {
+					style=value;
+
+				} else if (!strcmp(name,"color")) {
+					double co[5];
+					if (SimpleColorAttribute(value, co, NULL)==0) {
+						if (!palette) palette=new Palette;
+						palette->AddRGBA(cname, co[0]*255, co[1]*255, co[2]*255, co[3]*255, 255);
+					}
+				}
+			}
+
+			LaxFont *newlayer = MakeFontFromFile(file, family,style,fontsize,-1);
+			if (!newfont) newfont=newlayer;
+			else newfont->AddLayer(newfont->Layers(), newlayer);
+
+		} else if (!strcmp(name,"fontfile")) {
+			file=value;
+
+		} else if (!strcmp(name,"fontfamily")) {
+			family=value;
+
+		} else if (!strcmp(name,"fontstyle")) {
+			style=value;
+
+		} else if (!strcmp(name,"fontsize")) {
+			DoubleAttribute(value,&fontsize); 
+		} 
+	} 
+
+	if (!newfont) newfont=MakeFontFromFile(file, family, style, fontsize, -1);
+	if (newfont && palette) {
+		newfont->SetColor(palette);
+		palette->dec_count();
+	} else if (palette) palette->dec_count();
+
+	return newfont;
 }
+
 
 //--------------------------------------- Default FontManager Stuff ---------------------------
 

@@ -65,12 +65,14 @@ FontScanner::FontScanner(const char *nfile)
 	colr_complen=0;
 	colr_origlen=0;
 
+	palette=NULL;
 	file=newstr(nfile);
 	ff=NULL;
 }
 
 FontScanner::~FontScanner()
 {
+	if (palette) palette->dec_count();
 	delete[] file;
 	if (ff) fclose(ff);
 }
@@ -387,6 +389,7 @@ int FontScanner::ScanColr()
 		colrorigtable[colr_complen]='\0';
 
 	} else {
+		 //it was compressed
 		uLongf actuallen=colr_origlen;
 		int status = uncompress((Bytef*)colrorigtable, &actuallen,  (Bytef*)colrcomptable, colr_complen);
 
@@ -399,6 +402,58 @@ int FontScanner::ScanColr()
 		colr_origlen = actuallen;
 		colrorigtable[colr_origlen]='\0';
 	} 
+
+	unsigned char *ptr = colrorigtable;
+	int colr_table_version = (ptr[0]<<8)|ptr[1];
+	DBG cerr <<" colr table version: "<<colr_table_version<<endl;
+	ptr+=2;
+
+	int num_base_glyphs = (ptr[0]<<8)|ptr[1];
+	ptr+=2;
+
+	unsigned int offsetToBaseGlyphs = (((((ptr[0]<<8)|ptr[1])<<8)|ptr[2])<<8)|ptr[3];
+	ptr+=4;
+	unsigned int offsetToLayers = (((((ptr[0]<<8)|ptr[1])<<8)|ptr[2])<<8)|ptr[3];
+	ptr+=4;
+	//int num_layer_records = (ptr[0]<<8)|ptr[1];
+	//ptr+=2;
+
+	colr_maps.flush();
+	unsigned char *base_glyph_ptr  = colrorigtable + offsetToBaseGlyphs;
+
+	int allocated=10;
+	int *map=new int[allocated];
+	int *col=new int[allocated];
+
+	for (int c=0; c<num_base_glyphs; c++) {
+		ptr = base_glyph_ptr;
+
+		int base_glyph  = (ptr[0]<<8)|ptr[1];
+		int first_index = (ptr[2]<<8)|ptr[3];
+		int num_layers  = (ptr[4]<<8)|ptr[5];
+
+		if (num_layers>allocated) {
+			delete[] map;
+			delete[] col;
+			allocated+=10;
+			map=new int[allocated];
+			col=new int[allocated];
+		}
+
+		ptr = colrorigtable + offsetToLayers + first_index*4;
+		for (int c2=0; c2<num_layers; c2++) {
+			map[c2] = (ptr[0]<<8)|ptr[1];
+			col[c2] = (ptr[2]<<8)|ptr[3];
+		}
+
+		colr_maps.push(new ColrGlyphMap(base_glyph, num_layers, map, col));
+
+		base_glyph_ptr += 6;
+	}
+
+	delete[] map;
+
+
 
 	if (f!=ff) fclose(f);
 
