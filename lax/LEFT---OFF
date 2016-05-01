@@ -1,0 +1,260 @@
+This file is for random notes and specific coding tasks that need to be done
+to meet various goals. This includes Roadmap items as well as fixing bugs.
+List bug tracker number if any. This should be considered a supplement to
+laidout/src/LEFT---OFF, which has a lot more laxkit related issues in it.
+
+When an item is satisfied, put it in the DONE section at bottom of file.
+Those are purged with each release.
+
+
+-----------------------------------------------------------------------------
+
+cairo:
+  DONE window sizing is lagging somehow
+  cairo needs to work with: 
+     --bases:
+	DONE messagebar.h -> not autowrapping size correctly, multiline
+	DONE button.h
+	DONE colorsliders.h -> need to sort out font remapping
+	DONE messagebox.h
+	DONE checkbox.h
+	DONE colorbox.h
+	DONE dateselector.h
+	DONE lineedit.h
+	DONE lineinput.h
+	DONE rulerwin.h
+	DONE scroller.h 
+	DONE multilineedit.h
+	DONE menubutton.h
+	DONE menuselector.h
+	DONE iconslider.h
+	DONE iconselector.h
+	DONE sliderpopup.h
+	DONE treeselector.h
+	DONE numslider.h
+
+	 ----compound:
+	DONE filedialog2.h  <- not fully implemented!!!
+	DONE filedialog.h
+	DONE funcframe.h
+	DONE inputdialog.h
+	DONE popupmenu.h
+	DONE rowframe.h
+	DONE tabframe.h
+	DONE filepreviewer.h -> fail in Laidout
+	DONE imagedialog.h
+	DONE overwrite.h
+	DONE tooltip.h
+	DONE palette.h
+	DONE simpleprint.h
+	DONE progressbar.h
+	DONE scrolledwindow.h
+	DONE stackframe.h
+	DONE fontdialog.h ->  font to zero size screws up everything, needs more thorough implementation
+	DONE splitwindow.h
+	DONE shortcutwindow.h
+	DONE promptedit.h
+
+	DONE viewerwindow.h
+	DONE viewportwindow.h
+	DONE viewportwithstack.h
+	DONE imageinterface.h  -> non-transparent image, scale kind of big, rotate, fills bounding box with black
+	DONE rectinterface.h
+	DONE objectinterface.h
+	DONE delauneyinterface.h
+	DONE curvewindow.h
+	DONE curvemapinterface.h
+	DONE freehandinterface.h
+	DONE patchinterface.h 
+	DONE pathinterface.h -> viewportwithstack, uses same LineStyle for multiple paths??
+	DONE gradientinterface.h
+	DONE colorpatchinterface.h
+	DONE pressuremapinterface.h
+	DONE engraverfillinterface.h -> avoid, blockout not working
+	DONE captioninterface.h
+	imagepatchinterface.h
+
+	ellipseinterface.h
+	measureinterface.h
+	panelinterface.h
+	showkeysinterface.h
+	pointwarpinterface.h
+	linesinterface.h
+
+	deprecated:
+	  panpopup.h
+	  quickfileopen.h   <-  abandon in favor of standard LineInput helpers
+
+update laxinput to have correct repository in readme..
+  also implement an event viewer
+
+TO IMPLEMENT or drastically improve:
+  tableframe.o 
+  colorselector.o 
+  printdialog.o 
+  scrolledwindow
+  interfacewindow
+
+PaletteWindow:
+  hide header
+  special colors
+  edit palette
+  load/save controls
+  palette dir management
+  palette list select
+
+DateSelector needs easy way to select current date
+
+LineEdit:
+  should be able to setcurpos at any time, even without window set.. seems to not quite work at the moment
+
+shortcut html output needs to make & -> &amp;, etc
+shortcut needs mode based shortcuts implemented.. just a stub right now
+shortcuts, area info? embed info?  
+
+overwrite box in filedialog:
+  in overwrite box, provide name options
+  OR in file dialog, show yellow if overwriting, press down to pop up list of options
+
+     file1.jpg exists!
+
+	 [Overwrite][cancel]
+
+	 v Suggestions:
+	    file2.jpg
+		file1-1.jpg
+		file (copy).jpg
+		file COPY.jpg
+		  [Use instead]
+
+merge Laxkit and LaxFiles?? makes things simpler
+
+curvewindow:
+	finish side edits
+	implement full bez?
+	histogram
+
+scrollers in interfs.cc example frelled
+
+dump_out_atts needed for:
+  Gradient
+  Image
+  Path
+  Patch
+  ColorPatch
+  Caption
+
+dump_out(-1) on windows should do dump_out_atts(), then output:
+   name1  #value
+   name2  #value, wrapping to current indent at given column width
+   ---> maybe have layout hints in Attribute::atttype?
+
+MouseEvent needs expandable properties, such as depth or finger info
+
+mesbar have click-destroys so undragged mouse will destroy window.. for overlay messages
+
+usethesescrollers panner problem??
+
+dndaware should be default
+
+document singleton manager creators:
+  resourcemanager
+  shortcutmanager
+  interfacemanager
+  displayer manager
+  iconmanager
+  undomanager
+  imagemanager
+  unitmanager
+  colormanager
+
+for dateselector, grab whole translated names, then the first few chars of that, rather than translate abreviations
+
+splitwindow: cursor gets stuck on wrong cursor when entering children
+
+menuselector center with icons not placing correctly
+
+drag out a gradient in diagonal direction, has preview image problems
+drag out in negative direction, creates way off artifacts
+
+make sure button and subclass defines are consistent
+
+hierarchy changes are selected on Root window... special function at app level to accept such messages??
+could be same function as event catch all for propagated events.
+
+objectinterface:
+ SOMEDATA_KEEP_1_TO_1
+
+patch controls: selecting a control point should highlight what segments are affected by changing it
+while moving control points should do recursive draw (faster) then update preview on mouse up
+DONE not drawing boundaries correctly
+DONE patch decorations has mystery render error, far out lines with some combination of showdecs
+
+timer in popup menu causing problems...
+
+multidevice:
+ imageinterface
+ pathinterface
+ patches
+ gradients
+ viewport
+
+need a lock shaped cursor, and a circle crossed out shape.. How to make custom cursors????
+
+hover arrows on item selectors not showing up
+
+up/down key should not allow being on separators
+
+Menubutton downarrow style screws up, because considers down arrow to be a graphic in place of image, not in addition
+
+Button down grabs device, but enter and exit still leaks through, so button windows get
+multiple in events...
+
+remove const from LaxMouse/LaxKeyboard... too much const cast stuff? or make mouse shape changing and grabbing anXApp function
+
+xim per keyboard? related: not sure if dead keys are working anymore...
+
+rulerwindow: should be able to use panner data? displayer data??
+
+pointer grabs, ie for panpopup
+
+comply with: http://standards.freedesktop.org/wm-spec/wm-spec-1.3.html
+comply with net_wm_ping --> needs testing
+
+thumbnail spec says you are supposed to add in fields!!
+
+~/.recently-used  OR  ~/.recently-used.xbel?? <-- old spec says 1st one....
+
+what is behavior supposed to be on sync() if is window?? 
+
+fix rowframe, tabframe, etc integration.. 
+
+buttons should have modifier specific icons?
+
+
+
+for color palettes, and other loadable things that might need translation, maybe some standard?
+name Blah
+  translations
+    en Blaba
+	fr Blaeahe
+	be Blahsenfeffer
+
+
+--------------------------------------DONE---------------------------------------
+----------------- These are purged with each release ----------------------------
+---------------------------------------------------------------------------------
+DONE shortcut.o
+DONE dateutils, extracting the 1st 3 or 1 letters not utf8 safe!!
+DONE viewport with stack is really bad now
+DONE  *CONST* EventData()....
+DONE defaultlaxfont not being set up properly
+DONE treeview.o
+DONE should absorb menu out click event
+DONE tree view, adding to visibleitems destroys original hierarchy of menu
+DONE StackFrame messed up 
+DONE checkbox: resize should trigger placement update, or recompute each draw
+DONE rectinterface normal draw not working
+DONE add #ffaaffaa parsing to SimpleColorAttribute() 
+
+
