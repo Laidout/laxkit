@@ -64,5 +64,5 @@ laxinterface:
 
 .PHONY: clean all install
 clean:
-	rm -f x *.o
-	rm -f $(examples)
+	rm -f laxinput *.o
+

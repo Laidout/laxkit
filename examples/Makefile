@@ -26,11 +26,10 @@ CPPFLAGS= $(DEBUGFLAGS) -I. -I.. -I$(LAXDIR)/ -I../include -I../src `freetype-co
 
 
 
-	
-
 examples= \
 	laxhello \
-	interfs
+	interfs \
+	timers
 
 
 all: laxhello interfs timers
@@ -89,5 +88,5 @@ laxinterface:
 
 .PHONY: clean all
 clean:
-	rm -f x *.o
+	rm -f *.o
 	rm -f $(examples)
