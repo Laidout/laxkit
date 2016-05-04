@@ -33,7 +33,7 @@ LAXOBJDIR=$(LAXDIR)
 LD=g++
 LDFLAGS= -L/usr/X11R6/lib -lX11 -lm -lcairo `imlib2-config --libs` `freetype-config --libs` $(OPTIONALLIBS) -lfontconfig -lXext -lXi -lXft -lssl -L$(LAXDIR) -L$(LAXIDIR)
 DEBUGFLAGS= -g -Wall
-CPPFLAGS= $(DEBUGFLAGS) -I. -I.. -I$(LAXDIR)/.. -I../include -I../src `freetype-config --cflags`
+CPPFLAGS= $(DEBUGFLAGS) -I$(LAXDIR)/.. `freetype-config --cflags`
 
 
 
