@@ -363,7 +363,6 @@ anXWindow::anXWindow(anXWindow *parnt, const char *nname, const char *ntitle,
 	win_pointer_shape=0;
 
 	win_tooltip=NULL;
-	if (!ntitle) ntitle="untitled";
 	win_title=newstr(ntitle);
 	win_name=newstr(nname);
 
