@@ -391,7 +391,7 @@ anXApp *anXApp::app=NULL;
  */
 
 /*! \var int anXApp::tooltips
- * \brief Number of milliseconds to wait once a mouse enters a window before popping up a tooltip.
+ * Number of milliseconds to wait initially once a mouse enters a window before popping up a tooltip.
  *
  * If 0, then tooltips are disabled.
  */
@@ -2329,7 +2329,7 @@ void anXApp::settimeout(struct timeval *timeout)
 		timeout->tv_sec=2000000000;
 		timeout->tv_usec=0;
 	}
-	if (timers.n==0 && !tooltipmaybe.n) return;
+	if (timers.n==0 && tooltipmaybe.n==0) return;
 
 	clock_t currenttime; 
 	clock_t earliest=0;
@@ -2347,19 +2347,19 @@ void anXApp::settimeout(struct timeval *timeout)
 
 	 // tooltip timer, update earliest against possibly many tooltips to pop up...
 	if (tooltips && ttcount==0 && tooltipmaybe.n) {
-		LaxMouse *tt;
+		LaxMouse *ttmouse;
 		for (int c=0; c<tooltipmaybe.n; c++) {
-			tt=dynamic_cast<LaxMouse*>(tooltipmaybe.e[c]); //tooltipmaybe should ONLY have mice
+			ttmouse=dynamic_cast<LaxMouse*>(tooltipmaybe.e[c]); //tooltipmaybe should ONLY have mice
 
-			if (currenttime>tt->ttendlimit) { // is time, so pop up
-				tt->ttendlimit=0;
-				newToolTip(tt->ttwindow->tooltip(tt->id),tt->id);
-				tt->ttwindow->dec_count(); tt->ttwindow=NULL;
+			if (currenttime>=ttmouse->ttendlimit) { // is time, so pop up
+				ttmouse->ttendlimit=0;
+				newToolTip(ttmouse->ttwindow->tooltip(ttmouse->id),ttmouse->id);
+				ttmouse->ttwindow->dec_count(); ttmouse->ttwindow=NULL;
 				tooltipmaybe.pop(c);
 				c--;
 
 			} else { // if not time, just check against earliest
-				if (earliest==0 || tt->ttendlimit<earliest) earliest=tt->ttendlimit;
+				if (earliest==0 || ttmouse->ttendlimit<earliest) earliest=ttmouse->ttendlimit;
 			}
 		}
 
@@ -2528,37 +2528,54 @@ int anXApp::run()
  * |- time entered a window
  * |-------------------anXApp::tooltips--------------------------|
  * |--a little initial movement allowed--|-----non-move time-----| <- end of allowed time
- *                         ttthreshhold--|
+ *                        ttthreshhold-->|         ttendlimiit-->|
  * </pre>
  *
  * See also settimeout().
  */
 void anXApp::tooltipcheck(EventData *event, anXWindow *ww)
 {
-
 	if (event->type==LAX_onMouseIn) {
 		 //possibly initialize a check for a tooltip when entering a window
 
-		//DBG cerr <<"anXApp::tooltipcheck enter.."<<endl;
 		EnterExitData *ee=dynamic_cast<EnterExitData*>(event);
 		LaxMouse *m=dynamic_cast<LaxMouse *>(ee->device);
 		int c=tooltipmaybe.findindex(m); //if c>=0 then there was already a window under consideration
 
+		 //clear any tip up already
+		bool hadtip=false;
+		for (int c=0; c<topwindows.n; c++) {
+			ToolTip *tt=dynamic_cast<ToolTip*>(topwindows.e[c]);
+			if (!tt) continue;
+			if (tt->mouse_id==m->id) {
+				destroywindow(tt);
+				hadtip=true;
+			}
+		}
+
 		 // Initialize checking for whether to show a tooltip for this window..
 		if (tooltips && ttcount==0 && ww->tooltip()) {
-			m->ttendlimit=  times(&tmsstruct) + tooltips*  sysconf(_SC_CLK_TCK)/1000;
-			m->ttthreshhold=times(&tmsstruct) + tooltips/2*sysconf(_SC_CLK_TCK)/1000;
+			if (hadtip) {
+				 //pop up immediately
+				newToolTip(ww->tooltip(m->id),m->id);
+				if (c>=0) tooltipmaybe.pop(c);
+				return;
+			} else {
+				m->ttendlimit=  times(&tmsstruct) + tooltips  *sysconf(_SC_CLK_TCK)/1000;
+				m->ttthreshhold=times(&tmsstruct) + tooltips/2*sysconf(_SC_CLK_TCK)/1000;
+			}
+
 			if (m->ttwindow) {
-				DBG cerr <<"anxapp tooltip check dec_count on "<<m->ttwindow->object_id<<endl;
+				 //remove any old window candidate
 				m->ttwindow->dec_count();
 			}
 			ww->inc_count();
 			m->ttwindow=ww;
 			if (c<0) tooltipmaybe.push(m,0);
 
-		} else if (c>=0) tooltipmaybe.pop(c); //window has no tooltip, so remove check!
-
-		//DBG cerr <<"anXApp::tooltipcheck enter (end).."<<endl;
+		} else if (c>=0) {
+			tooltipmaybe.pop(c); //window has no tooltip, so remove check!
+		}
 		return;
 	}
 
@@ -2566,20 +2583,17 @@ void anXApp::tooltipcheck(EventData *event, anXWindow *ww)
 		 //stop considering to display a tooltip for window if we leave a window
 
 		EnterExitData *ee=dynamic_cast<EnterExitData*>(event);
-		int c=tooltipmaybe.findindex(ee->device);
+		int ttm=tooltipmaybe.findindex(ee->device);
 		LaxMouse *m=dynamic_cast<LaxMouse *>(ee->device);
 
-		 //clear any tip up already
-		for (int c=0; c<topwindows.n; c++) {
-			ToolTip *tt=dynamic_cast<ToolTip*>(topwindows.e[c]);
-			if (!tt) continue;
-			if (tt->mouse_id==m->id) destroywindow(tt);
+		if (ttm<0) return; //the mouse out device does not correspond to any current tooltip check 
+
+
+		 //remove ww from check, tooltip anxwindow itself scheduled for removal in loop above
+		tooltipmaybe.pop(ttm);
+		if (m->ttwindow) {
+			m->ttwindow->dec_count();
 		}
-
-		if (c<0) return; //the mouse out device does not correspond to any current tooltip check
-
-		tooltipmaybe.pop(c);
-		if (m->ttwindow) m->ttwindow->dec_count();
 		m->ttwindow=NULL;
 		m->ttendlimit=0;
 		m->ttthreshhold=0;
@@ -2590,7 +2604,9 @@ void anXApp::tooltipcheck(EventData *event, anXWindow *ww)
 	if (event->type!=LAX_onMouseMove && event->type!=LAX_onButtonDown && event->type!=LAX_onButtonUp)
 		return; //below, only care about motion and button events
 
-	 //so there has been a mouse event, and we need to see if it disqualifies the tooltip
+	 //so there has been a motion or button event, which will disqualify the tooltip
+	 //if greater than the threshhold
+
 
 	MouseEventData *ee=dynamic_cast<MouseEventData*>(event);
 	LaxMouse *m=ee->device;
@@ -2601,6 +2617,7 @@ void anXApp::tooltipcheck(EventData *event, anXWindow *ww)
 				 //event is within threshhold time, so do nothing
 				return;
 			}
+			 //event is past threshhold, remove tooltip consideration
 			m->ttthreshhold=0;
 			m->ttendlimit=0;
 			tooltipmaybe.pop(c);

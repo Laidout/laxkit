@@ -119,9 +119,7 @@ int ToolTip::Event(const EventData *e,const char *mes)
 {
 	if (       e->type==LAX_onKeyDown
 			|| e->type==LAX_onKeyUp
-			|| e->type==LAX_onMouseIn 
 			|| e->type==LAX_onMouseOut
-			|| e->type==LAX_onMouseMove
 			|| e->type==LAX_onButtonDown
 			|| e->type==LAX_onButtonUp) {
 		app->destroywindow(this);

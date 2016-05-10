@@ -396,6 +396,7 @@ class anXApp : virtual public anObject
 	//int                     bump_fd;
 
 	int                     ttcount;
+	PtrStack<LaxDevice>     tooltipmaybe;
 	void 					newToolTip(const char *text,int mouseid);
 
 	 //initialization helpers
@@ -432,7 +433,6 @@ class anXApp : virtual public anObject
 	DeviceManager *devicemanager;
 
 	int            tooltips;
-	PtrStack<LaxDevice> tooltipmaybe;
 
 	 //default Styling
 	WindowColors *color_panel, *color_menu, *color_edits, *color_buttons;
