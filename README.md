@@ -35,26 +35,19 @@ COMPILING RELEASES (NOT GIT)
 ----------------------------
 To compile development git source, see the next section.
 
-You will need the development files for (these are the debian packages):  
-    libcupsys2-dev
-    libimlib2-dev
-    libx11-dev
-    libxft-dev
-    libxi-dev
-    libpng12-dev
-    libfontconfig-dev 
-    libxext-dev
-    libssl-dev
-    xutils-dev
-    libharfbuzz-dev
-    libcairo-dev
-    libsqlite3-dev (optional)
+You will need the development files for:  
+   Imlib2, harfbuzz, freetype2, fontconfig, cairo, x11, ssl, cups, and optionally sqlite3
  
-You can get them with this command (on debian systems):
+On Debian systems, you can get them with this command:
 
-    apt-get install g++ pkg-config libcairo2-dev libsqlite3-dev libharfbuzz-dev libpng12-dev libx11-dev libxft-dev libcups2-dev libimlib2-dev libfontconfig-dev libfreetype6-dev libssl-dev xutils-dev
+    apt-get install g++ pkg-config libpng12-dev libreadline-dev libx11-dev libxext-dev libxi-dev libxft-dev libcups2-dev libimlib2-dev libfontconfig-dev libfreetype6-dev libssl-dev xutils-dev libcairo2-dev libharfbuzz-dev libsqlite3-dev
 
-Simply do:
+On Fedora, it looks more like this:
+
+    sudo dnf install -y cairo-devel cups-devel fontconfig-devel ftgl-devel glibc-headers harfbuzz-devel imlib2-devel lcms-devel libpng-devel libX11-devel libXext-devel libXft-devel libXi-devel mesa-libGL-devel mesa-libGLU-devel openssl-devel readline-devel sqlite-devel xorg-x11-proto-devel zlib-devel GraphicsMagick-c++-devel libstdc++-devel freetype-devel imake
+
+
+Now simply do:
 
     ./configure
     make
@@ -74,7 +67,8 @@ By default, `make install` will plop down everything in /usr/local/include and
 COMPILING FROM GIT
 ------------------
 The development version of the Laxkit is currently kept on github. To access,
-you will need git installed. Then do:
+you will need git installed, as well as all the extra packages listed above.
+Then do:
 
     git clone http://github.com/tomlechner/laxkit.git laxkit-git
     

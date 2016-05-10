@@ -129,7 +129,10 @@ bool FontScanner::isWoffFile(const char *maybefile)
 //FontTables        The font data tables from the input sfnt font, compressed to reduce bandwidth requirements.
 //ExtendedMetadata  An optional block of extended metadata, represented in XML format and compressed for storage in the WOFF file.
 //PrivateData       An optional block of private data for the font designer, foundry, or vendor to use.
-int FontScanner::Scan(const char *nfile)
+/*! Scan for CPAL, COLR, or SVG tables, and read in data if whole!=0.
+ * whole&1 for CPAL, whole&2 for COLR, whole&4 for SVG.
+ */
+int FontScanner::Scan(int which, const char *nfile)
 {
 	if (nfile) makestr(file, nfile);
 
@@ -206,9 +209,9 @@ int FontScanner::Scan(const char *nfile)
 		err=e;
 	}
 
-	ScanCpal();
-	ScanColr();
-	ScanSvg();
+	if (which&1) ScanCpal();
+	if (which&2) ScanColr();
+	if (which&4) ScanSvg();
 
 	ff=NULL;
 	fclose(f);

@@ -56,7 +56,7 @@ class FontScanner
 	FontScanner(const char *nfile=NULL);
 	virtual ~FontScanner();
 	virtual bool isWoffFile(const char *maybefile);
-	virtual int Scan(const char *nfile=NULL);
+	virtual int Scan(int which=0, const char *nfile=NULL);
 	virtual bool Use(const char *nfile);
 
 	virtual bool HasCpal() { return cpal_offset>0; }
