@@ -411,7 +411,8 @@ char *insertnstr(char *&dest,const char *src,long len, long pos)
 	long destlen=strlen(dest);
 	if (pos<0 || pos>destlen) pos=destlen;
 
-	char *ndest=new char[strlen(dest)+len+1];
+	char *ndest=new char[destlen+len+1];
+	*ndest='\0';
 	if (pos) { strncpy(ndest,dest, pos); ndest[pos]='\0'; }
 
 	strncat(ndest,src,len);
