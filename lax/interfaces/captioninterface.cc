@@ -877,6 +877,14 @@ char *CaptionData::GetText()
 	return text;
 }
 
+bool CaptionData::IsBlank()
+{
+	for (int c=0; c<lines.n; c++) {
+		if (!isblank(lines.e[c])) return false;
+	}
+	return true;
+}
+
 //! Set new text.
 /*! Accepts multi line text, where lines are delineated with '\n'.
  * 

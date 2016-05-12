@@ -95,6 +95,7 @@ class CaptionData : virtual public SomeData
 
 	virtual int SetText(const char *newtext);
 	virtual char *GetText();
+	virtual bool IsBlank();
 	virtual int NumLines() { return lines.n; }
 	virtual double XCenter(double xcenter);
 	virtual double XCenter() { return xcentering; }
