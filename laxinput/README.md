@@ -31,13 +31,14 @@ if necessary in the Makefile. You will also need makedepend, which on Debian sys
 If you need to download the Laxkit fresh, then do this:
 First ensure that all Laxkit dependecies are present. On debian systems, you can do this as root:
 
-    apt-get install libpng12-dev libx11-dev libcups2-dev libimlib2-dev libfontconfig-dev libfreetype-dev libssl-dev
+    apt-get install g++ pkg-config libpng12-dev libreadline-dev libx11-dev libxext-dev libxi-dev libxft-dev libcups2-dev libimlib2-dev libfontconfig-dev libfreetype6-dev libssl-dev xutils-dev libcairo2-dev libharfbuzz-dev libsqlite3-dev
+
 
 
 Now download and compile the Laxkit (don't have to be root):
 
-    svn co https://laxkit.svn.sourceforge.net/svnroot/laxkit/laxkit/trunk laxkit-svn
-    cd laxkit-svn
+    git clone http://github.com/tomlechner/laxkit  
+    cd laxkit
     ./configure
     make depends
     make
@@ -49,5 +50,5 @@ Now do:
     make depends
     make
 
-And that's it! If it actually worked, you should be able to simply run laxinput.
+And that's it! If it actually worked, you should be able to simply run ./laxinput.
 
