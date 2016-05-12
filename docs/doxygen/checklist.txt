@@ -115,7 +115,7 @@ uses plain Xlib functions, these are just cheap, quick hacks really, but they do
 
 Support for various useful things:
  +  Imlib2 initialization
-    a Displayer using cairo as backend
+ +  a Displayer using cairo as backend
     Generic image loaders based on imlib2, libmagick++, or whatever else
     graphics tablet support, spaceball support (need to get a spaceball first!!)
  .  opengl support

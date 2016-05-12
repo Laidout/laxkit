@@ -3,8 +3,8 @@
 \todo this page needs updating!!
 
 The bits of the Laxkit that interface directly with Xlib are to be found in anxapp.cc,
-anxwindow.cc, laxdevices.cc, events.cc, displayer-xlib.cc, fontmanager-xlib.cc, and 
-their header files.
+anxwindow.cc, laxdevices.cc, events.cc, displayer-xlib.cc, fontmanager-xlib.cc, 
+laximages-xlib.cc, and their header files.
 
 Most of the common windowing procedures are wrapped into Laxkit::anXApp and Laxkit::anXWindow. This 
 includes window creation, deletion, moving, resizing (manual and automatic), mouse
