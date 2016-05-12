@@ -39,19 +39,31 @@ class FontScanner
   public:
 	char *file;
 
+	 //SVG components
+	struct SvgEntry {
+		unsigned int startglyph; //range of glyphs in specified svg
+		unsigned int endglyph;  //..it is possible to have > 1 glyph range in same svg document
+		unsigned long offset;  //in svgtable
+		unsigned long len;    //from offset in svgtable
+	};
+	unsigned char *svgtable;
+	PtrStack<SvgEntry> svgentries;
 	unsigned int svg_offset;
 	unsigned int svg_complen;
 	unsigned int svg_origlen;
 
+	 //CPAL components
 	unsigned int cpal_offset;
 	unsigned int cpal_complen;
 	unsigned int cpal_origlen;
 	Palette *palette;
 
+	 //COLR components
 	unsigned int colr_offset;
 	unsigned int colr_complen;
 	unsigned int colr_origlen;
 	PtrStack<ColrGlyphMap> colr_maps;
+
 
 	FontScanner(const char *nfile=NULL);
 	virtual ~FontScanner();

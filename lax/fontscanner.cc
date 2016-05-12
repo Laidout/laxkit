@@ -48,11 +48,23 @@ namespace Laxkit {
 
 /*! \class FontScanner
  * Object that can scan font files for SVG, colr, and cpal tables.
+ *
+ * The CPAL table is converted into a Palette.
+ *
+ * The COLR table is turned into a stack of ColrGlyphMap.
+ *
+ * The SVG table is turned into a stack of FontScanner::SvgEntry objects, which
+ * detail ranges of glyphs encoded within svg documents embedded in svgtable.
+ * Each SvgEntry specifies one range. Note that there may be multiple ranges,
+ * thus multiple SvgEntry objects, that refer to the same svg document
+ * is svgtable. It is up to other code to convert these char strings into
+ * usable graphics objects, perhaps in part via XMLChunkToAttribute().
  */
 
 
 FontScanner::FontScanner(const char *nfile)
 {
+	svgtable=NULL;
 	svg_offset=0;
 	svg_complen=0;
 	svg_origlen=0;
@@ -72,6 +84,7 @@ FontScanner::FontScanner(const char *nfile)
 
 FontScanner::~FontScanner()
 {
+	delete[] svgtable;
 	if (palette) palette->dec_count();
 	delete[] file;
 	if (ff) fclose(ff);
@@ -129,7 +142,8 @@ bool FontScanner::isWoffFile(const char *maybefile)
 //FontTables        The font data tables from the input sfnt font, compressed to reduce bandwidth requirements.
 //ExtendedMetadata  An optional block of extended metadata, represented in XML format and compressed for storage in the WOFF file.
 //PrivateData       An optional block of private data for the font designer, foundry, or vendor to use.
-/*! Scan for CPAL, COLR, or SVG tables, and read in data if whole!=0.
+/*! Scan for CPAL, COLR, or SVG tables. If which==0, check for existence only.
+ * If which!=0, then: 
  * whole&1 for CPAL, whole&2 for COLR, whole&4 for SVG.
  */
 int FontScanner::Scan(int which, const char *nfile)
@@ -465,7 +479,7 @@ int FontScanner::ScanColr()
 
 /*! Return 0 for succes, nonzero for no svg.
  */
-int FontScanner::ScanSvg ()
+int FontScanner::ScanSvg()
 {
 	if (!svg_offset) return 1;
 
@@ -499,88 +513,96 @@ int FontScanner::ScanSvg ()
 
 
 	unsigned char svgcomptable[svg_complen];
-	unsigned char svgorigtable[svg_origlen+1];
+	svgtable = new unsigned char[svg_origlen+1];
+	unsigned char *svgorigtable = svgtable;
 
 	fseek(f, svg_offset, SEEK_SET);
 	fread(svgcomptable, 1,svg_complen, f);
 
-	if (svg_complen == svg_origlen) {
-		 //it wasn't compressed
-		strncpy((char*)svgorigtable, (char*)svgcomptable, svg_complen);
-		svgorigtable[svg_complen]='\0';
+	try {
+		if (svg_complen == svg_origlen) {
+			 //it wasn't compressed
+			strncpy((char*)svgorigtable, (char*)svgcomptable, svg_complen);
+			svgorigtable[svg_complen]='\0';
 
-	} else {
-		uLongf actuallen=svg_origlen;
-		int status = uncompress((Bytef*)svgorigtable, &actuallen,  (Bytef*)svgcomptable, svg_complen);
+		} else {
+			uLongf actuallen=svg_origlen;
+			int status = uncompress((Bytef*)svgorigtable, &actuallen,  (Bytef*)svgcomptable, svg_complen);
 
-		if (status == Z_OK) cerr <<"Uncompress success!"<<endl;
-		else if (status == Z_MEM_ERROR)  cerr <<"Uncompress memory error!"<<endl;
-		else if (status == Z_BUF_ERROR)  cerr <<"Uncompress buffer error!"<<endl;
-		else if (status == Z_DATA_ERROR) cerr <<"Uncompress data error!"<<endl;
+			if (status != Z_OK) {
+				DBG if (status == Z_MEM_ERROR)  cerr <<"Uncompress memory error!"<<endl;
+				DBG else if (status == Z_BUF_ERROR)  cerr <<"Uncompress buffer error!"<<endl;
+				DBG else if (status == Z_DATA_ERROR) cerr <<"Uncompress data error!"<<endl;
 
-			
-		svg_origlen = actuallen;
-		svgorigtable[svg_origlen]='\0';
+				throw(1);
+			} 
+				
+			svg_origlen = actuallen;
+			svgorigtable[svg_origlen]='\0';
+		}
+		
+
+		 //now svg stored in char[origlen] svgorigtable
+		unsigned char *ptr = svgorigtable;
+
+		int svg_table_version = (ptr[0]<<8)|ptr[1];
+		ptr+=2;
+
+		DBG cerr <<" svg table version: "<<svg_table_version<<endl;
+
+		unsigned int offsetToDocIndex = (((((ptr[0]<<8)|ptr[1])<<8)|ptr[2])<<8)|ptr[3];
+		unsigned char *docIndexStart = svgorigtable + offsetToDocIndex;
+		ptr = docIndexStart;
+
+		
+		unsigned int numentries  = (ptr[0]<<8)|ptr[1]; //in doc index
+		ptr+=2;
+
+		 //now ptr points at start of array of SVG Document Index Entries
+
+		 //for each svg entry...
+		//   SVG Document Index Entry:
+		// USHORT  startGlyphID    The first glyph ID in the range described by this index entry.
+		// USHORT  endGlyphID      The last  glyph ID in the range described by this index entry. Must be >= startGlyphID.
+		// ULONG   svgDocOffset    Offset from the beginning of the SVG Document Index to an SVG document. Must be non-zero.
+		// ULONG   svgDocLength    Length of the SVG document. Must be non-zero.
+
+		SvgEntry *entry;
+		for (unsigned int c=0; c<numentries; c++) {
+			entry=new SvgEntry;
+			entry->startglyph = (ptr[0]<<8)|ptr[1];  ptr+=2;
+			entry->endglyph   = (ptr[0]<<8)|ptr[1];  ptr+=2;
+			entry->offset     = (((((ptr[0]<<8)|ptr[1])<<8)|ptr[2])<<8)|ptr[3];  ptr+=4; 
+			entry->len        = (((((ptr[0]<<8)|ptr[1])<<8)|ptr[2])<<8)|ptr[3];  ptr+=4;
+			svgentries.push(entry,1);
+
+			//svgentries[c].svg = new char[svgentries[c].len+1];
+			//strncpy(svgentries[c].svg, (char*)(docIndexStart + svgentries[c].offset), svgentries[c].len);
+			//svgentries[c].svg[svgentries[c].len] = '\0';
+
+			 //dump out the svg to file
+			//DBG char file[200]; // *** NOTE!! they might be using the same svg document, just different glyph ranges!!
+			//DBG sprintf(file, "glyphs/glyph-%d-%d.svg", svgentries[c].startglyph, svgentries[c].endglyph);
+			//DBG FILE *fout = fopen(file, "w");
+			//DBG fwrite(svgentries[c].svg, 1, svgentries[c].len, fout);
+			//DBG fclose(fout);
+		}
+
+
+		//DBG //dump out whole svg table for debugging purposes:
+		//DBG for (unsigned int c=0; c<svg_origlen; c++) {
+		//DBG 	if (svgorigtable[c]<32) svgorigtable[c]=' ';
+		//DBG } 
+		//DBG cerr <<"SVG table:\n"<<svgorigtable<<endl;
+
+
+	} catch (int err) {
+		DBG cerr <<"...Error reading in svg table, pretending svg table is not there."<<endl;
+
+		delete[] svgtable;
+		svgtable=NULL;
+		svg_offset=0;
 	}
-	
-
-	 //now svg stored in char[origlen] svgorigtable
-	unsigned char *ptr = svgorigtable;
-
-	int svg_table_version = (ptr[0]<<8)|ptr[1];
-	ptr+=2;
-
-	DBG cerr <<" svg table version: "<<svg_table_version<<endl;
-
-	unsigned int offsetToDocIndex = (((((ptr[0]<<8)|ptr[1])<<8)|ptr[2])<<8)|ptr[3];
-	unsigned char *docIndexStart = svgorigtable + offsetToDocIndex;
-	ptr = docIndexStart;
-
-	
-	unsigned int numentries  = (ptr[0]<<8)|ptr[1]; //in doc index
-	ptr+=2;
-
-	 //now ptr points at start of array of SVG Document Index Entries
-	struct SvgEntry {
-		unsigned int startglyph;
-		unsigned int endglyph;
-		unsigned long offset;
-		unsigned long len;
-		char *svg;
-	};
-	SvgEntry svgentries[numentries];
-
-	 //for each svg entry...
-	//   SVG Document Index Entry:
-	// USHORT  startGlyphID    The first glyph ID in the range described by this index entry.
-	// USHORT  endGlyphID      The last  glyph ID in the range described by this index entry. Must be >= startGlyphID.
-	// ULONG   svgDocOffset    Offset from the beginning of the SVG Document Index to an SVG document. Must be non-zero.
-	// ULONG   svgDocLength    Length of the SVG document. Must be non-zero.
-
-	for (unsigned int c=0; c<numentries; c++) {
-		svgentries[c].startglyph = (ptr[0]<<8)|ptr[1];  ptr+=2;
-		svgentries[c].endglyph   = (ptr[0]<<8)|ptr[1];  ptr+=2;
-		svgentries[c].offset     = (((((ptr[0]<<8)|ptr[1])<<8)|ptr[2])<<8)|ptr[3];  ptr+=4; 
-		svgentries[c].len        = (((((ptr[0]<<8)|ptr[1])<<8)|ptr[2])<<8)|ptr[3];  ptr+=4;
-
-		svgentries[c].svg = new char[svgentries[c].len+1];
-		strncpy(svgentries[c].svg, (char*)(docIndexStart + svgentries[c].offset), svgentries[c].len);
-		svgentries[c].svg[svgentries[c].len] = '\0';
-
-		 //dump out the svg to file
-		//char file[200]; // *** NOTE!! they might be using the same svg document, just different glyph ranges!!
-		//sprintf(file, "glyphs/glyph-%d-%d.svg", svgentries[c].startglyph, svgentries[c].endglyph);
-		//FILE *f = fopen(file, "w");
-		//fwrite(svgentries[c].svg, 1, svgentries[c].len, f);
-		//fclose(f);
-	}
-
-
-	//DBG //dump out whole svg table for debugging purposes:
-	//DBG for (unsigned int c=0; c<svg_origlen; c++) {
-	//DBG 	if (svgorigtable[c]<32) svgorigtable[c]=' ';
-	//DBG } 
-	//DBG cerr <<"SVG table:\n"<<svgorigtable<<endl;
 
 	if (f!=ff) fclose(f);
 
