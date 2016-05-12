@@ -28,6 +28,7 @@
 #include <lax/previewable.h>
 #include <lax/dump.h>
 #include <lax/colors.h>
+#include <lax/resources.h>
 
 
 namespace Laxkit {
@@ -35,74 +36,121 @@ namespace Laxkit {
 
 
 //--------------------------------- GradientStrip ----------------------------
+
 class GradientStrip : virtual public Resourceable, virtual public LaxFiles::DumpUtility, virtual public Previewable
 {
  protected:
+	unsigned int gradient_flags; //readonly, radial gradient, linear gradient, palette 
   	
  public:
+	enum GradientStripFlags { //for gradient_flags
+		StripOnly  = (1<<0),
+		Linear     = (1<<1),
+		Radial     = (1<<2),
+		AsPalette  = (1<<3),
+		Gimp_Spots = (1<<4),
+		Continue   = (1<<6),
+		Repeat     = (1<<5),
+		FlipRepeat = (1<<7),
+		Read_only  = (1<<8),
+		MAX
+	};
+
+	char *name;
+	char *file;
+	virtual void SetFlags(unsigned int flag, bool on);
+	bool IsRadial();
+	bool IsLinear();
+	bool IsPalette(); 
+
 	class GradientSpot
 	{
 	 public:
+		unsigned int flags; //maybe Gimp_Spots
+		
+		char *name;
 		double t, nt; //user t, normalized t
 		double s, ns; //user s, normalized s, for mixer style display
 		Color *color;
 
          //for compatibility with gimp gradients:
-        double midpostition; //0..1, is along segment of this point to next
+        double midposition; //0..1, is along segment of this point to next
         int interpolation; //like gimp? 0=linear, 1=curved, 2=sinusoidal, 3=sphere inc, 4=sphere dec
         int transition; //how to vary the color, a line in rgb or in hsv
 
 
+		GradientSpot(GradientSpot *spot=NULL, bool dup_color=true);
 		GradientSpot(double tt,double ss,Laxkit::Color *col, bool dup);
 		GradientSpot(double tt,double ss,Laxkit::ScreenColor *col);
 		GradientSpot(double tt,double ss, double rr,double gg,double bb,double aa);
-		virtual ~GradientSpot() {}
+		virtual ~GradientSpot();
 
 		virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
 		virtual void dump_in(FILE *f,int indent,LaxFiles::DumpContext *context,LaxFiles::Attribute **Att=NULL);
 		virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
+		virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context);
 	};
 
-	char *name;
-	char *file;
+
+	flatpoint p1, p2;
+	double r1, r2;
 
 	int num_columns_hint; //for palette display
+	double tmin, tmax; //range for t in colors
+	double smin, smax; //range for s in colors, hint for mixer display
+
 	PtrStack<GradientSpot> colors;
-	double width, height; //range for t,s of the colors
+
+	int continue_left, continue_right; //0 for stop, 1 for continue with closest color, 2 for flip, 3 for repeat
 
 	GradientStrip();
-	GradientData(flatpoint pp1,flatpoint pp2,double rr1,double rr2,
-			Laxkit::ScreenColor *col1,Laxkit::ScreenColor *col2,unsigned int stle);
+	GradientStrip(Laxkit::ScreenColor *col1,Laxkit::ScreenColor *col2);
+	GradientStrip(Color *col1, int dup1, Color *col2, int dup2); 
 	virtual ~GradientStrip();
-	virtual const char *whattype() { return "GradientStrip"; }
-	//virtual Value *duplicate();
+	virtual const char *whattype() { return IsPalette() ? "Palette" : "GradientStrip"; }
+	virtual anObject *duplicate(anObject *ref);
+	virtual GradientStrip *newGradientStrip();
+	virtual void touchContents();
+	virtual int maxPreviewSize();
 
-	virtual void Set(flatpoint pp1,flatpoint pp2,double rr1,double rr2,
-			Laxkit::ScreenColor *col1,Laxkit::ScreenColor *col2);
 
-	virtual void Set(flatpoint pp1,flatpoint pp2,double rr1,double rr2,
-			Color *col1,Color *col2);
+	virtual void SetRadial(flatpoint pp1, flatpoint pp2, double rr1, double rr2);
+	virtual void SetLinear(flatpoint pp1, flatpoint pp2, double rr1, double rr2);
 
 	virtual int NumColors();
-	virtual GradientSpot *GetColor(int index);
+	virtual Color *GetColor(int index);
+	virtual GradientSpot *GetColorSpot(int index);
+	virtual int FlushColors(bool reset);
 	virtual int ShiftPoint(int which,double dt);
-	virtual void UpdateNormalized(bool set=false);
-	virtual double GetNormalizedT(int i);
-	virtual int AddColorI(int index, double red,double green,double blue,double alpha);
-	virtual int AddColorI(int index, Laxkit::ScreenColor *col);
-	virtual int AddColorI(int index, Color *col);
-	virtual int AddColor(double t, double red,double green,double blue,double alpha);
-	virtual int AddColor(double t,Laxkit::ScreenColor *col);
-	virtual int AddColor(double t,Color *col);
-	virtual int RemoveColor(int index);
-	virtual int WhatColor(double t,Laxkit::ScreenColor *col);
-	virtual int WhatColor(double t,Color *col);
-	virtual int WhatColor(double t,double *col);
-	virtual int AddColor(GradientSpot *spot);
 	virtual void FlipColors();
+	virtual void UpdateNormalized(bool set=false);
+	virtual double GetNormalizedT(int index);
+
+	virtual int AddColor(GradientSpot *spot);
+	virtual int AddColor(double t, double red,double green,double blue,double alpha);
+	virtual int AddColor(double t, Laxkit::ScreenColor *col);
+	virtual int AddColor(double t, Color *col, bool dup);
+	virtual int RemoveColor(int index);
+
+	virtual void Set(Color *col1, bool dup1, Color *col2, bool dup2, bool reset_bounds);
+	virtual void Set(Laxkit::ScreenColor *col1, Laxkit::ScreenColor *col2, bool reset_bounds); 
+	virtual int SetColor(int index, double red,double green,double blue,double alpha);
+	virtual int SetColor(int index, Laxkit::ScreenColor *col);
+	virtual int SetColor(int index, Color *col, bool dup);
+
+	virtual Color *WhatColor(double t) { return WhatColor(t, (Color*)NULL); }
+	virtual Color *WhatColor(double t, Color *col);
+	virtual int WhatColor(double t, Laxkit::ScreenColor *col);
 
 	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
 	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
+	virtual void dump_in (FILE *f,int indent,int what,DumpContext *context,Attribute **att);
+	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context);
+
+	virtual int renderToBufferImage(LaxImage *image);
+	virtual int RenderPalette(LaxImage *image);
+	virtual int RenderRadial(LaxImage *image);
+	virtual int RenderLinear(LaxImage *image);
 };
 
 

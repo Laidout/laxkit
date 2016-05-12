@@ -22,7 +22,14 @@
 //
 
 #include <lax/gradientstrip.h>
+#include <lax/displayer.h>
+#include <lax/attributes.h>
 
+#include <iostream>
+#define DBG
+
+using namespace std;
+using namespace LaxFiles;
 
 
 namespace Laxkit {
@@ -38,10 +45,37 @@ namespace Laxkit {
  */
 
 
+/*! If dup_color, then dup the color in spot. Else just link.
+ */
+GradientStrip::GradientSpot::GradientSpot(GradientStrip::GradientSpot *spot, bool dup_color)
+{
+	flags=0;
+	name=NULL;
+
+	t=spot->t;
+	nt=spot->nt;
+	s=spot->s;
+	ns=spot->ns;
+
+	if (dup_color && spot->color) color = spot->color->duplicate();
+	else {
+		color = spot->color;
+		if (color) color->inc_count();
+	}
+
+	 //for compatibility with gimp gradients:
+	midposition  =spot->midposition ;
+	interpolation=spot->interpolation;
+	transition   =spot->transition   ;
+}
+
 /*! If dup, then use a duplicate of col, else inc its count.
  */
-GradientStrip::GradientSpot::GradientStrip::GradientSpot(double tt,double ss,Color *col, bool dup)
+GradientStrip::GradientSpot::GradientSpot(double tt,double ss,Color *col, bool dup)
 {
+	flags=0;
+	name=NULL;
+
 	t=tt;
 	nt=0;
 	s=ss;
@@ -54,51 +88,61 @@ GradientStrip::GradientSpot::GradientStrip::GradientSpot(double tt,double ss,Col
 	}
 
 	 //for compatibility with gimp gradients:
-	midpostition=.5; //0..1, is along segment of this point to next
+	midposition=.5; //0..1, is along segment of this point to next
 	interpolation=0; //like gimp? 0=linear, 1=curved, 2=sinusoidal, 3=sphere inc, 4=sphere dec
 	transition=0; //how to vary the color, a line in rgb or in hsv
 }
 
-GradientStrip::GradientSpot::GradientStrip::GradientSpot(double tt,double ss,ScreenColor *col)
+GradientStrip::GradientSpot::GradientSpot(double tt,double ss,ScreenColor *col)
 {
+	flags=0;
+	name=NULL;
+
 	t=tt;
 	nt=0;
 	s=ss;
 	ns=0;
 
-	color=newColor(LAX_COLOR_RGB, col);
+	color=ColorManager::newColor(LAX_COLOR_RGB, col);
 
 	 //for compatibility with gimp gradients:
-	midpostition=.5; //0..1, is along segment of this point to next
+	midposition=.5; //0..1, is along segment of this point to next
 	interpolation=0; //like gimp? 0=linear, 1=curved, 2=sinusoidal, 3=sphere inc, 4=sphere dec
 	transition=0; //how to vary the color, a line in rgb or in hsv
 }
 
 /*! rr,gg,bb,aa in range [0..1]
  */
-GradientStrip::GradientSpot::GradientStrip::GradientSpot(double tt,double ss, double rr,double gg,double bb,double aa)
+GradientStrip::GradientSpot::GradientSpot(double tt,double ss, double rr,double gg,double bb,double aa)
 {
+	flags=0;
+	name=NULL;
+
 	t=tt;
 	nt=0;
 	s=ss;
 	ns=0;
 
 	ScreenColor scolor(rr,gg,bb,aa);
-	color=newColor(LAX_COLOR_RGB, &scolor);
+	color=ColorManager::newColor(LAX_COLOR_RGB, &scolor);
 
 	 //for compatibility with gimp gradients:
-	midpostition=.5; //0..1, is along segment of this point to next
+	midposition=.5; //0..1, is along segment of this point to next
 	interpolation=0; //like gimp? 0=linear, 1=curved, 2=sinusoidal, 3=sphere inc, 4=sphere dec
 	transition=0; //how to vary the color, a line in rgb or in hsv
 }
 	
+GradientStrip::GradientSpot::~GradientSpot()
+{
+	delete[] name;
+	if (color) color->dec_count();
+}
+
 //! Dump in an attribute, then call dump_in_atts(thatatt,0,context).
 /*! If Att!=NULL, then return the attribute used to read in the stuff.
  * This allows
  * holding classes to have extra attributes within the spot field to
  * exist and not be discarded.
- *
- * \todo *** allow import of Gimp, Inkscape/svg, scribus gradients
  */
 void GradientStrip::GradientSpot::dump_in(FILE *f,int indent,LaxFiles::DumpContext *context, Attribute **Att)
 {
@@ -112,14 +156,16 @@ void GradientStrip::GradientSpot::dump_in(FILE *f,int indent,LaxFiles::DumpConte
 //! Fill the t, red, green, blue, alpha, based on the corresponding attributes.
 void GradientStrip::GradientSpot::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *context)
 {
-	int c,c2=0;
 	char *value,*name;
 
-	for (c=0; c<att->attributes.n; c++) { 
+	for (int c=0; c<att->attributes.n; c++) { 
 		name=att->attributes.e[c]->name;
 		value=att->attributes.e[c]->value;
 
-		if (!strcmp(name,"t")) {
+		if (!strcmp(name,"name")) {
+			makestr(this->name, value);
+
+		} else if (!strcmp(name,"t")) {
 			DoubleAttribute(value,&t);
 
 		} else if (!strcmp(name,"nt")) {
@@ -142,24 +188,15 @@ void GradientStrip::GradientSpot::dump_in_atts(Attribute *att,int flag,LaxFiles:
 			else if (!strcmp(value, "sphere_dec")) interpolation = 4;
 
 		} else if (!strcmp(name,"transition")) {
-			transition = BooleanValue(value);
+			transition = BooleanAttribute(value);
 
 		} else if (!strcmp(name,"color")) {
-			***
-
-			if (!strcmp(name,"rgba")) {
-				int i[4];
-				c2=IntListAttribute(value,i,4);
-				DBG if (c2!=4) cerr <<"---gradient spot not right number of color components!!"<<endl;
-				for (int c3=0; c3<c2; c3++) {
-					if (c3==0) color.red=i[c3];
-					else if (c3==1) color.green=i[c3];
-					else if (c3==2) color.blue=i[c3];
-					else if (c3==3) color.alpha=i[c3];
-				}
-			}
-
-
+			Color *ncolor = ColorManager::newColor(att->attributes.e[c]);
+			if (ncolor) {
+				if (color) color->dec_count();
+				color = ncolor;
+				color->inc_count();
+			} 
 		}
 	}
 
@@ -184,23 +221,71 @@ void GradientStrip::GradientSpot::dump_out(FILE *f,int indent,int what,LaxFiles:
 		return;
 	}
 
+	if (!isblank(name)) fprintf(f, "%sname %s\n",spc, name);
+
 	fprintf(f,"%st  %.10g\n",spc,t);
 	fprintf(f,"%snt %.10g\n",spc,nt);
 	fprintf(f,"%ss  %.10g\n",spc,s);
 	fprintf(f,"%sns %.10g\n",spc,ns);
 
-	fprintf(f,"%smidpoint %.10g\n",spc,midposition);
+	if (flags & Gimp_Spots) {
+		fprintf(f,"%smidpoint %.10g\n",spc,midposition);
 
-	if (interpolation==0) fprintf("%sinterpolation linear\n",spc);
-	else if (interpolation==1) fprintf("%sinterpolation curved\n",spc);
-	else if (interpolation==2) fprintf("%sinterpolation sinusoidal\n",spc);
-	else if (interpolation==3) fprintf("%sinterpolation sphere_inc\n",spc);
-	else if (interpolation==4) fprintf("%sinterpolation sphere_dec\n",spc);
+		if (interpolation==0) fprintf(f,"%sinterpolation linear\n",spc);
+		else if (interpolation==1) fprintf(f,"%sinterpolation curved\n",spc);
+		else if (interpolation==2) fprintf(f,"%sinterpolation sinusoidal\n",spc);
+		else if (interpolation==3) fprintf(f,"%sinterpolation sphere_inc\n",spc);
+		else if (interpolation==4) fprintf(f,"%sinterpolation sphere_dec\n",spc);
 
-	fprintf(f,"%stransition %s", spc, transition ? "rgb" : "hsv");
+		fprintf(f,"%stransition %s", spc, transition ? "rgb" : "hsv");
+	}
 
 	fprintf(f,"%scolor\n",spc);
 	color->dump_out(f,indent+2,what,context);
+}
+
+/*! If what==-1, then dump out a psuedocode mockup of what gets dumped.
+ * Otherwise dumps out in indented data format described above.
+ */
+LaxFiles::Attribute *GradientStrip::GradientSpot::dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context)
+{
+	if (!att) att=new Attribute;
+
+	if (what==-1) {
+		att->push("name", "#optional name for this spot");
+		att->push("t", "#the spot on the x axis to place the color, customarily the spots will"
+					   "cover the whole range [0..1] but that range is not mandatory");
+		att->push("nt","#like t, but normalized to the range [0..1]. Recomputed on reading in GradientStrip");
+		att->push("s", "#the spot on the y axis to place the color, customarily the spots will"
+		               "cover the whole range [0..1] but that range is not mandatory");
+		att->push("ns","1 #like s, but normalized to the range [0..1]. Recomputed on reading in GradientStrip");
+		att->push("color", "#like rgbaf(1,1,1,1) or grayf(.5)");
+		return att;
+	}
+
+	if (!isblank(name)) att->push("name", name);
+
+	att->push("t" ,t);
+	att->push("nt",nt);
+	att->push("s" ,s);
+	att->push("ns",ns);
+
+	if (flags & Gimp_Spots) {
+		att->push("midpoint",midposition);
+
+		if      (interpolation==0) att->push("interpolation", "linear");
+		else if (interpolation==1) att->push("interpolation", "curved");
+		else if (interpolation==2) att->push("interpolation", "sinusoidal");
+		else if (interpolation==3) att->push("interpolation", "sphere_inc");
+		else if (interpolation==4) att->push("interpolation", "sphere_dec");
+
+		att->push("transition", transition ? "rgb" : "hsv");
+	}
+
+	Attribute *att2 = att->pushSubAtt("color");
+	color->dump_out_atts(att2,what,context);
+
+	return att;
 }
 
 
@@ -209,107 +294,297 @@ void GradientStrip::GradientSpot::dump_out(FILE *f,int indent,int what,LaxFiles:
 
 /*! \class GradientStrip
  *
- * Class to hold a sequential arrangement of colors. Used by GradientStrip.
- * GradientStrip does not specify whether linear or radial, and can be used for Palettes also.
+ * Class to hold a sequential arrangement of colors.
+ * GradientStrip doesn't have to specify whether linear or radial, and can be used for Palettes also.
  */
 
 
-
-//! Create new basic gradient pp1 to pp2. Sets col1 at 0 and col2 at 1
-/*! This just passes everything to Set().
+/*! Create new blank gradient.
  */
-GradientStrip::GradientStrip(flatpoint pp1,flatpoint pp2,double rr1,double rr2,
-			ScreenColor *col1,ScreenColor *col2,unsigned int stle)
-{ ***
+GradientStrip::GradientStrip()
+{
 	name=file=NULL;
-	num_columns_hint=0;
-	width=height=0;
 
-	Set(pp1,pp2,rr1,rr2,col1,col2,stle);
-	usepreview=1;
+	gradient_flags=0;
+	num_columns_hint=0;
+	r1=0;
+	r2=1;
+	p2.x=1;
+
+	maxx=100;
+	maxy=25;
+
+	tmin=smin=0;
+	tmax=smax=1;
+
+	FlushColors(true); //sets white to black
+}
+
+
+/*! Create new basic gradient t1 (the start) to t2 (the end). Sets col1 to start, and col2 to the end.
+ * t1 defaults to 0, t2 defaults to 1. If otherwise, these become the new min and max values.
+ *
+ *  This actually sets via Set().
+ */
+GradientStrip::GradientStrip(ScreenColor *col1, ScreenColor *col2)
+{
+	name=file=NULL;
+
+	gradient_flags=0;
+	num_columns_hint=0;
+	r1=0;
+	r2=1;
+	p2.x=1;
+
+	smin=0;
+	smax=1;
+	tmin=0;
+	tmax=1; 
+
+	Set(col1,col2, false);
+}
+
+/*! Create new basic gradient t1 (the start) to t2 (the end). Sets col1 to start, and col2 to the end.
+ * t1 defaults to 0, t2 defaults to 1. If otherwise, these become the new min and max values.
+ *
+ *  This actually sets via Set(). If dup, then dup the Color objects. Else link.
+ */
+GradientStrip::GradientStrip(Color *col1, int dup1, Color *col2, int dup2)
+{
+	name=file=NULL;
+
+	gradient_flags=0;
+	num_columns_hint=0;
+	r1=0;
+	r2=1;
+	p2.x=1;
+
+	smin=0;
+	smax=1;
+	tmin=0;
+	tmax=1;
+
+	Set(col1,dup1, col2,dup2, false);
 }
 
 GradientStrip::~GradientStrip()
 {
+	delete[] file;
+	delete[] name;
 }
 
 void GradientStrip::touchContents()
 {
-	cerr << "*** GradientStrip::touchContents(): implement me!!"<<endl;
+	Previewable::touchContents();
 }
 
-SomeData *GradientStrip::duplicate(SomeData *dup)
-{ ***
+void GradientStrip::SetFlags(unsigned int flags, bool on)
+{
+	if (flags & Gimp_Spots) {
+		if (on) gradient_flags |= Gimp_Spots;
+		else gradient_flags &= ~Gimp_Spots;
+		for (int c=0; c<colors.n; c++) {
+			if (on) colors.e[c]->flags |= Gimp_Spots;
+			else    colors.e[c]->flags &= ~Gimp_Spots;
+		}
+	}
+
+	if (flags & StripOnly) {
+		if (on) gradient_flags = (gradient_flags & ~(Linear|Radial)) | StripOnly;
+		//turning off has no effect, it is already at full fallback
+	}
+
+	if (flags & AsPalette) {
+		 //use num_columns_hint, ignore radial/linear stuff
+		if (on) gradient_flags |= AsPalette;
+		else gradient_flags &= ~AsPalette;
+	}
+
+	if (flags & Linear) {
+		if (on) gradient_flags = (gradient_flags & ~(Linear|Radial|StripOnly)) | Linear;
+		else    gradient_flags &= ~Linear; 
+	}
+
+	if (flags & Radial) {
+		if (on) gradient_flags = (gradient_flags & ~(Linear|Radial|StripOnly)) | Radial;
+		else    gradient_flags &= ~Radial; 
+	}
+}
+
+bool GradientStrip::IsRadial()  { return gradient_flags & Radial; }
+bool GradientStrip::IsLinear()  { return gradient_flags & Linear; }
+bool GradientStrip::IsPalette() { return gradient_flags & AsPalette; }
+
+GradientStrip *GradientStrip::newGradientStrip()
+{
+	//dup=dynamic_cast<SomeData*>(somedatafactory()->NewObject(LAX_GRADIENTDATA));
+	return new GradientStrip;
+}
+
+int GradientStrip::maxPreviewSize()
+{
+	return 200;
+}
+
+/*! Warning: name and file are not copied.
+ */
+anObject *GradientStrip::duplicate(anObject *dup)
+{
 	GradientStrip *g=dynamic_cast<GradientStrip*>(dup);
 	if (!g && !dup) return NULL; //was not GradientStrip!
 
-	char set=1;
 	if (!dup) {
-		dup=dynamic_cast<SomeData*>(somedatafactory()->NewObject(LAX_GRADIENTDATA));
+		dup=newGradientStrip();
 		if (dup) {
-			dup->setbounds(minx,maxx,miny,maxy);
-			//set=0;
+			g->setbounds(minx,maxx,miny,maxy);
 			g=dynamic_cast<GradientStrip*>(dup);
 		}
 	} 
+
 	if (!g) {
 		g=new GradientStrip();
 		dup=g;
 	}
-	if (set) {
-		g->radial=radial;
-		g->style=style;
-		g->p1=p1;
-		g->p2=p2;
-		g->r1=r1;
-		g->r2=r2;
-		g->a=a;
 
-		for (int c=0; c<colors.n; c++) {
-			g->colors.push(new GradiantStrip::GradientSpot(colors.e[c]->t,&colors.e[c]->color));
-		}
+	g->gradient_flags = gradient_flags;
+
+	g->tmin=tmin;
+	g->tmax=tmax;
+	g->smin=smin;
+	g->smax=smax;
+
+	g->p1=p1;
+	g->p2=p2;
+	g->r1=r1;
+	g->r2=r2;
+
+	for (int c=0; c<colors.n; c++) {
+		g->colors.push(new GradientStrip::GradientSpot(colors.e[c]));
 	}
 
-	 //somedata elements:
-	dup->bboxstyle=bboxstyle;
-	dup->m(m());
 	return dup;
 }
 
-//! Set so gradient is pp1 to pp2. Sets col1 at 0 and col2 at 1.
-void GradientStrip::Set(flatpoint pp1,flatpoint pp2,double rr1,double rr2,
-			ScreenColor *col1,ScreenColor *col2,unsigned int stle)
-{ ***
-	if (norm(pp2-pp1)<1e-5) {
-		xaxis(flatpoint(1,0));
-		yaxis(flatpoint(0,1));
-		p1=0;
-		p2=0;
-
-	} else {
-		xaxis(pp2-pp1);
-		yaxis(transpose(pp2-pp1));
-		p1=0;
-		p2=1;
-	}
-	origin(pp1);
-
+/*! This sets the gradient as a radial gradient.
+ * Use Set() to set the color range. 
+ */
+void GradientStrip::SetRadial(flatpoint pp1, flatpoint pp2, double rr1, double rr2)
+{
+	SetFlags(Radial, true);
+		
+	p1=pp1;
+	p2=pp2;
 	r1=rr1;
 	r2=rr2;
-	a=0;
-
-	style=stle; 
-	if (style&GRADIENT_RADIAL) radial=true; else radial=false;
-	colors.flush();
-	if (col1) colors.push(new GradiantStrip::GradientSpot(0,col1));	
-	if (col2) colors.push(new GradiantStrip::GradientSpot(1,col2)); 
 
 	touchContents();
-
-	DBG cerr <<"new GradientStrip:Set"<<endl;
-	DBG dump_out(stderr,2,0,NULL);
 }
 
+/*! This sets the gradient as a radial gradient.
+ * Use Set() to set the color range. 
+ *
+ * The rr1 and rr2 for linear gradients are for upper and lower bounds away from the main strip.
+ */
+void GradientStrip::SetLinear(flatpoint pp1,flatpoint pp2,double rr1,double rr2)
+{
+	SetFlags(Linear, true);
+		
+	p1=pp1;
+	p2=pp2;
+	r1=rr1;
+	r2=rr2;
+
+	touchContents();
+}
+
+/*! Replace any current colors so gradient is col1 -> col2.
+ *
+ * If reset_bounds, set p1 to the origin, p1 to (1,0), (tmin,tmax)=(0,1).
+ * If radial, set r1=0, r2=1. If linear, set r1=r2=-1;
+ */
+void GradientStrip::Set(Color *col1, bool dup1, Color *col2, bool dup2, bool reset_bounds)
+{
+	FlushColors(false);
+
+	if (reset_bounds) {
+		p1.set(0,0);
+		p2.set(1,0);
+		if (IsLinear()) { r1=-1;   r2=1; }
+		else { r1=0; r2=1; } 
+		tmin=0; tmax=1;
+		smin=0; smax=1;
+	}
+
+	AddColor(new GradientStrip::GradientSpot(0,0, col1, dup1));	
+	AddColor(new GradientStrip::GradientSpot(1,0, col2, dup1)); 
+}
+
+/*! Replace any current colors so gradient is col1 -> col2.
+ */
+void GradientStrip::Set(ScreenColor *col1, ScreenColor *col2, bool reset_bounds)
+{
+	Color *c1 = ColorManager::newColor(LAX_COLOR_RGB, col1);
+	Color *c2 = ColorManager::newColor(LAX_COLOR_RGB, col2);
+	Set(c1,false, c2,false, reset_bounds);
+	c1->dec_count();
+	c2->dec_count();
+}
+
+/*! Insert new color at position index.
+ *  The color components are in range [0,1].
+ */
+int GradientStrip::SetColor(int index, double red,double green,double blue,double alpha)
+{
+	if (index<0 || index>=colors.n) return 1;
+	Color *color = ColorManager::newColor(LAX_COLOR_RGB, 4, red,green,blue,alpha);
+
+	if (colors.e[index]->color) colors.e[index]->color->dec_count();
+	colors.e[index]->color = color;
+
+	return 0;
+}
+
+/*! Place new color in right spot in list.
+ *
+ *  If index is already present, then overwrite.
+ */
+int GradientStrip::SetColor(int index, ScreenColor *scolor)
+{
+	if (index<0 || index>=colors.n) return 1;
+	Color *color = ColorManager::newColor(LAX_COLOR_RGB, scolor);
+
+	if (colors.e[index]->color) colors.e[index]->color->dec_count();
+	colors.e[index]->color = color;
+
+	return 0;
+}
+
+/*! Place new color in right spot in list.
+ *
+ *  If index is already present, then overwrite.
+ *  If dup, then duplicate color, else link and inc count.
+ */
+int GradientStrip::SetColor(int index, Color *color, bool dup)
+{
+	if (index<0 || index>=colors.n) return 1;
+	Color *ncolor = (dup ? color->duplicate() : color);
+	if (!dup) ncolor->inc_count();
+
+	if (colors.e[index]->color) colors.e[index]->color->dec_count();
+	colors.e[index]->color = ncolor;
+
+	return 0;
+}
+
+void GradientStrip::dump_in (FILE *f,int indent,int what,DumpContext *context,Attribute **att)
+{
+	if (what==0) {
+		DumpUtility::dump_in(f,indent,what,context,att);
+
+	} else if (what==1) {
+		 //Gimp Palette...
+	}
+}
 
 /*! Reads in from something like:
  * <pre>
@@ -320,29 +595,32 @@ void GradientStrip::Set(flatpoint pp1,flatpoint pp2,double rr1,double rr2,
  *  r2 10
  *  spot
  *    t 0
- *    rgba 255 100 50 255
+ *    color rgbf(1.0, .5, .25, 1.0)
  *  spot
  *    t 1
- *    rgba 0 0 0 0
+ *    color rgbf(0, 0, 0, 1.0)
  *  radial
  * </pre>
+ *
+ * \todo *** allow import of Gimp, Inkscape/svg, scribus gradients
  */
 void GradientStrip::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *context)
-{ ***
+{
 	if (!att) return;
 	char *name,*value,*e;
 
-	SomeData::dump_in_atts(att,flag,context);
+	int type=0;
+	bool firstcolor=true;
 
 	for (int c=0; c<att->attributes.n; c++) {
 		name=att->attributes.e[c]->name;
 		value=att->attributes.e[c]->value;
 
 		if (!strcmp(name,"p1")) {
-			DoubleAttribute(value,&p1,&e);
+			FlatvectorAttribute(value,&p1,&e);
 
 		} else if (!strcmp(name,"p2")) {
-			DoubleAttribute(value,&p2,&e);
+			FlatvectorAttribute(value,&p2,&e);
 
 		} else if (!strcmp(name,"r1")) {
 			DoubleAttribute(value,&r1,&e);
@@ -350,27 +628,31 @@ void GradientStrip::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *
 		} else if (!strcmp(name,"r2")) {
 			DoubleAttribute(value,&r2,&e);
 
-		//} else if (!strcmp(name,"a")) {
-		//	DoubleAttribute(value,&a,&e);
+		} else if (!strcmp(name,"num_columns")) {
+			IntAttribute(value, &num_columns_hint);
 
 		} else if (!strcmp(name,"spot")) {
-			GradiantStrip::GradientSpot *spot=new GradiantStrip::GradientSpot(0,0,0,0,0);
+			if (firstcolor) {
+				firstcolor=false; //only flush previous points if we find any new colors
+				FlushColors(false);
+			}
+			GradientStrip::GradientSpot *spot=new GradientStrip::GradientSpot();
 			spot->dump_in_atts(att->attributes.e[c],flag,context);
-			colors.push(spot);
+			AddColor(spot);
 
 		} else if (!strcmp(name,"linear")) {
-			if (BooleanAttribute(value)) radial=false;
-			else radial=true;
+			if (BooleanAttribute(value)) type=1;
 
 		} else if (!strcmp(name,"radial")) {
-			if (!BooleanAttribute(value)) radial=false;
-			else radial=true;
+			if (BooleanAttribute(value)) type=-1;
 		}
 	}
-	a=0;
-	touchContents();
 
-	FindBBox();
+	if      (type==-1) SetFlags(Radial, true);
+	else if (type== 1) SetFlags(Linear, true);
+	else SetFlags(StripOnly, true);
+
+	touchContents();
 }
 
 /*! \ingroup interfaces
@@ -382,36 +664,38 @@ void GradientStrip::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *
  * Otherwise dumps out in indented data format as described in dump_in_atts().
  */
 void GradientStrip::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
-{ ***
+{
 	char spc[indent+1]; memset(spc,' ',indent); spc[indent]='\0';
 	if (what==-1) {
-		fprintf(f,"%s#Gradients lie on the x axis from p1 to p2\n",spc);
-		fprintf(f,"%smatrix 1 0 0 1 0 0  #the affine transform affecting this gradient\n",spc);
-		fprintf(f,"%sp1 0    #the starting x coordinate\n",spc);
-		fprintf(f,"%sp2 1    #the ending x coordinate\n",spc);
-		fprintf(f,"%sr1 0    #the starting radius (radial) or the +y extent (linear)\n",spc);
-		fprintf(f,"%sr2 0    #the ending radius (radial) or the -y extent (linear)\n",spc);
-		//fprintf(f,"%sa  0    #an offset to place the color controls of the gradient spots\n",spc);
-		fprintf(f,"%sradial  #Specifies a radial gradient\n",spc);
-		fprintf(f,"%slinear  #Specifies a linear gradient\n",spc);
-		fprintf(f,"%sspot    #There will be at least two gradient data spots, such as this:\n",spc);
+		fprintf(f,"%sp1 (0,0) #the starting coordinate (not for palettes)\n",spc);
+		fprintf(f,"%sp2 (1,0) #the ending coordinate (not for palettes)\n",spc);
+		fprintf(f,"%sr1 0     #the starting radius (radial) or the +y extent (linear) (not for palettes)\n",spc);
+		fprintf(f,"%sr2 0     #the ending radius (radial) or the -y extent (linear) (not for palettes)\n",spc);
+		fprintf(f,"%snum_columns #hint for number of columns in palette view\n",spc);
+		fprintf(f,"%sradial   #Specifies a radial gradient\n",spc);
+		fprintf(f,"%slinear   #Specifies a linear gradient\n",spc);
+		fprintf(f,"%spalette  #Specifies a palette. p1, p2, r1, r2 ignored in this case\n",spc);
+		fprintf(f,"%sspot     #There will be at least two gradient data spots, such as this:\n",spc);
 		if (colors.n) colors.e[0]->dump_out(f,indent+2,-1,NULL);
 		else {
-			GradiantStrip::GradientSpot g(0,0,30000,65535,65535);
+			GradientStrip::GradientSpot g(0,0, .5,1.,1.,1.);
 			g.dump_out(f,indent+2,-1,NULL);
 		}
 		//colors.e[colors.n-1]->dump_out(f,indent+2,-1);//*** should probably check that there are always 2 and not ever 0!
 		return;
 	}
 
-	fprintf(f,"%smatrix %.10g %.10g %.10g %.10g %.10g %.10g\n",
-			spc,m(0),m(1),m(2),m(3),m(4),m(5));
-	fprintf(f,"%sp1 %.10g\n",spc,p1);
-	fprintf(f,"%sp2 %.10g\n",spc,p2);
-	fprintf(f,"%sr1 %.10g\n",spc,r1);
-	fprintf(f,"%sr2 %.10g\n",spc,r2);
-	//fprintf(f,"%sa %.10g\n",spc,a);
-	fprintf(f,"%s%s\n",spc, radial ? "radial" : "linear");
+	if (!IsPalette()) {
+		fprintf(f,"%sp1 (%.10g, %.10g)\n",spc, p1.x,p1.y);
+		fprintf(f,"%sp2 (%.10g, %.10g)\n",spc, p2.x,p2.y);
+		fprintf(f,"%sr1 %.10g\n",spc,r1);
+		fprintf(f,"%sr2 %.10g\n",spc,r2);
+	}
+
+	if (IsRadial()) fprintf(f,"%sradial\n",spc);
+	if (IsLinear()) fprintf(f,"%slinear\n",spc);
+
+	fprintf(f,"%snum_columns %d\n",spc, num_columns_hint);
 
 	for (int c=0; c<colors.n; c++) {
 		fprintf(f,"%sspot #%d\n",spc,c);
@@ -419,25 +703,75 @@ void GradientStrip::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *
 	}
 }
 
-/*! If set, then make the t values be the normalized values.
+LaxFiles::Attribute *GradientStrip::dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context)
+{
+	if (!att) att=new Attribute;
+
+	if (what==-1) {
+		att->push("p1", "(0,0) #the starting coordinate");
+		att->push("p2", "(1,0) #the ending coordinate");
+		att->push("r1", "0     #the starting radius (radial) or the +y extent (linear)");
+		att->push("r2", " 0     #the ending radius (radial) or the -y extent (linear)");
+		att->push("num_columns"," #hint for number of columns in palette view");
+		att->push("radial","#Specifies a radial gradient");
+		att->push("linear","#Specifies a linear gradient");
+		Attribute *att2=att->pushSubAtt("spot","#There will be at least two gradient data spots, such as this:");
+
+		if (colors.n) colors.e[0]->dump_out_atts(att2,what,context);
+		else {
+			GradientStrip::GradientSpot g(0,0, .5,1.,1.,1.);
+			g.dump_out_atts(att2,what,context);
+		}
+
+		return att;
+	}
+
+	char scratch[100];
+	sprintf(scratch, "(%.10g, %.10g)", p1.x,p1.y);
+	att->push("p1", scratch);
+	sprintf(scratch, "(%.10g, %.10g)", p2.x,p2.y);
+	att->push("p2", scratch);
+	att->push("r1", r1);
+	att->push("r2", r2);
+
+	if (IsRadial()) att->push("radial");
+	if (IsLinear()) att->push("linear");
+
+	att->push("num_columns", num_columns_hint);
+
+	for (int c=0; c<colors.n; c++) {
+		Attribute *att2=att->pushSubAtt("spot");
+		colors.e[c]->dump_out_atts(att2,what,context);
+	}
+
+	return att;
+}
+
+/*! Using the t values, update the GradientStrip::GradientSpot::nt, which need to be in range [0..1].
+ *
+ * This should be called whenever a color is shifted around, added or removed.
+ *
+ * If set==0, then set the t to be the same as the normalized nt.
  */
 void GradientStrip::UpdateNormalized(bool set)
 {
 	if (!colors.n) return;
 
-	double min=colors.e[colors.n]->t, max=colors.e[colors.n]->t;
+	tmin=colors.e[0]->t;
+	tmax=colors.e[colors.n]->t;
 
-	for (int c=1; c<colors.n; c++) {
-		if (colors.e[c]->t<min) min=colors.e[c]->t;
-		if (colors.e[c]->t>max) max=colors.e[c]->t;
+	for (int c=0; c<colors.n; c++) {
+		if (colors.e[c]->t < tmin) tmin=colors.e[c]->t;
+		if (colors.e[c]->t > tmax) tmax=colors.e[c]->t;
 	}
 
-	double len=max-min;
+	double len=tmax-tmin;
 	if (len==0) {
 		for (int c=0; c<colors.n; c++) colors.e[c]->nt = 0;
+
 	} else {
 		for (int c=0; c<colors.n; c++) {
-			colors.e[c]->nt = (colors.e[c]->t-min)/len;
+			colors.e[c]->nt = (colors.e[c]->t - tmin)/len;
 		}
 	}
 
@@ -449,10 +783,11 @@ void GradientStrip::UpdateNormalized(bool set)
  *
  * i out of range returns -1.
  */
-double GradientStrip::GetNormalizedT(int i)
+double GradientStrip::GetNormalizedT(int index)
 {
-	if (i<0 || i>=colors.n) return -1;
-	return (colors.e[i]->t - colors.e[0]->t)/(colors.e[colors.n-1]->t - colors.e[0]->t);
+	if (index<0 || index>=colors.n) return -1;
+	return colors.e[index]->nt;
+	//return (colors.e[i]->t - colors.e[0]->t)/(colors.e[colors.n-1]->t - colors.e[0]->t);
 }
 
 int GradientStrip::NumColors()
@@ -460,21 +795,47 @@ int GradientStrip::NumColors()
 	return colors.n;
 }
 
-GradientSpot *GradientStrip::GetColor(int index)
+/*! If reset, then replace all with a gradient from 0..1 with white to black.
+ * If !reset, then flush all colors, and leave undefined.
+ */
+int GradientStrip::FlushColors(bool reset)
+{
+	colors.flush();
+	if (!reset) return -1;
+
+	ScreenColor col1(65535, 65535, 65535, 65535);
+	ScreenColor col2(    0,     0,     0, 65535);
+
+	tmin=0;
+	tmax=1;
+	Set(&col1, &col2, false);
+
+	return 0;
+}
+
+Color *GradientStrip::GetColor(int index)
+{
+	if (index<0 || index>=colors.n) return NULL;
+	return colors.e[index]->color;
+}
+
+GradientStrip::GradientSpot *GradientStrip::GetColorSpot(int index)
 {
 	if (index<0 || index>=colors.n) return NULL;
 	return colors.e[index];
 }
 
-/*! Move the color which to a new t position, rearranging colors stack position if necessary.
+/*! Move the color index which to new_t = old_t + dt, rearranging color's stack position if necessary.*
+ *  Note this is the GradientStrip t value, not normalized nt.
  *
- *  Note this is the GradientStrip independent t value.
+ *  Returns the index of which color after shifting.
  */
 int GradientStrip::ShiftPoint(int which,double dt)
 {
 	if (which<0 || which>=colors.n) return which;
+
 	colors.e[which]->t+=dt;
-	GradiantStrip::GradientSpot *tmp=colors.e[which];
+	GradientStrip::GradientSpot *tmp=colors.e[which];
 
 	while (which>0 && tmp->t<colors.e[which-1]->t) {
 		colors.e[which]=colors.e[which-1];
@@ -487,6 +848,7 @@ int GradientStrip::ShiftPoint(int which,double dt)
 		colors.e[which]=tmp;
 	}
 
+	UpdateNormalized(false);
 	touchContents();
 	return which;
 }
@@ -494,8 +856,7 @@ int GradientStrip::ShiftPoint(int which,double dt)
 //! Flip the order of the colors.
 void GradientStrip::FlipColors()
 {
-	GradiantStrip::GradientSpot *tt;
-	double tmax=colors.e[colors.n-1]->t, tmin=colors.e[0]->t;
+	GradientStrip::GradientSpot *tt;
 
 	for (int c=0; c<colors.n; c++) {
 		colors.e[c]->t =tmax - (colors.e[c]->t-tmin);
@@ -507,296 +868,294 @@ void GradientStrip::FlipColors()
 		colors.e[c]=colors.e[colors.n-c-1];
 		colors.e[colors.n-c-1]=tt;
 	}
+
 	touchContents();
 }
 
+int GradientStrip::RemoveColor(int index)
+{
+	if (index<0 || index>=colors.n) return 1;
+	return colors.remove(index);
+}
+
 //! Takes pointer, does not make duplicate.
-int GradientStrip::AddColor(GradiantStrip::GradientSpot *spot)
+int GradientStrip::AddColor(GradientStrip::GradientSpot *spot)
 {
 	int c=0;
 	while (c<colors.n && spot->t>colors.e[c]->t) c++;
 	colors.push(spot,1,c);
 
-	DBG cerr <<"Gradient add color to place"<<c<<endl;
+	UpdateNormalized(false);
 	touchContents();
 	return c;
 }
 
-//! Add a spot with the given color, or interpolated, if col==NULL.
+/*! Add a spot with the given color, or interpolated, if col==NULL.
+ * If t is already an existing point, then replace that color. In this case, 
+ * nothing is done if col==NULL.
+ */
 int GradientStrip::AddColor(double t,ScreenColor *col)
-{ ***
-	if (col) return AddColor(t,col->red,col->green,col->blue,col->alpha);
-	ScreenColor c;
-	WhatColor(t,&c);
-	touchContents();
-	return AddColor(t,c.red,c.green,c.blue,c.alpha);
+{
+	if (!col) return AddColor(t, NULL, false);
+	
+	return AddColor(t, col->red/65535.,col->green/65535.,col->blue/65535.,col->alpha/65535.);
 }
 	
-//! Place new color in right spot in list.
-/*! The color components are in range [0,0xffff].
+/*! red, green, blue, alpha are assumed to be in range [0..1]
  */
-int GradientStrip::AddColor(double t,int red,int green,int blue,int alpha)
-{ ***
-	int c=0;
-	if (t<colors.e[0]->t) {
-		 // move p1
-		double clen=colors.e[colors.n-1]->t-colors.e[0]->t;
-		p1-=(colors.e[0]->t-t)/clen*(p2-p1);
-	} else if (t>colors.e[colors.n-1]->t) {
-		 // move p2
-		double clen=colors.e[colors.n-1]->t-colors.e[0]->t;
-		p2-=(colors.e[colors.n-1]->t-t)/clen*(p2-p1);
-	}
+int GradientStrip::AddColor(double t, double red,double green,double blue,double alpha)
+{
+	Color *color = ColorManager::newColor(LAX_COLOR_RGB, 4, red,green,blue,alpha);
+	int status = AddColor(t, color, false);
+	color->dec_count();
+	return status;
+}
 
+/*! Place new color in right spot in list.
+ *
+ *  If t is already present, then overwrite.
+ *  If dup, then duplicate color, else link and inc count.
+ *  If color==NULL, then interpolate at t.
+ */
+int GradientStrip::AddColor(double t, Color *color, bool dup)
+{
+	int c=0; 
 	while (c<colors.n && t>colors.e[c]->t) c++;
-	GradiantStrip::GradientSpot *gds=new GradiantStrip::GradientSpot(t,red,green,blue,alpha);
-	colors.push(gds,1,c);
-	
-	DBG cerr <<"Gradient add color "<<c<<endl;
 
+	if (t == colors.e[c]->t) {
+		if (color) {
+			 //replace color
+			colors.e[c]->color->dec_count();
+			colors.e[c]->color = (dup ? color->duplicate() : color);
+			if (!dup) color->inc_count();
+		}
+
+	} else {
+		Color *usecolor = color;
+		if (!usecolor) {
+			 //interpolate color
+			usecolor = WhatColor(t);
+			dup=false;
+		}
+
+		GradientStrip::GradientSpot *gds=new GradientStrip::GradientSpot(t,0, usecolor,dup);
+		colors.push(gds,1,c);
+		if (usecolor != color) color->dec_count();
+	} 
+
+	UpdateNormalized();
 	touchContents();
 	return c;
 }
 
-/*! From coordinate in data space, return the color at it.
- * Return 0 for success, or nonzero for coordinate out of range.
+/*! Put the color intor col if col!=NULL. Else return a new Color.
+ *
+ * col, if not NULL, MUST be a plain Color, not a ColorRef.
  */
-int GradientStrip::WhatColor(flatpoint p, Laxkit::ScreenColor *col)
-{ ***
-	double x=p.x;
-	double y=p.y;
-	
-	if (!radial) {
-		 //linear gradient, much easier
-		if (r1>r2) {
-			if (y>r1 || y<r2) return 1; //out of y bounds
-		} else if (y<r1 || y>r2) return 2;
+Color *GradientStrip::WhatColor(double t, Color *col)
+{
+	double nt=(tmax>tmin ? (t-tmin)/(tmax-tmin) : 0);
 
-		if (p1<p2) {
-			if (x<p1 || x>p2) return 3;
-		} else if (x>p1 || x<p2) return 4;
+	if (nt<0 || nt>1) {
+		 //if nt out of bounds, check to see how to compute the value.
+		 //Set nt to be the proper corresponding point within [0..1]
+		if (gradient_flags & (Repeat|FlipRepeat)) {
+			int block = int(nt);
+			nt -= block; //remainder
+			if (gradient_flags & FlipRepeat) {
+				if (block%2==1) nt=1-nt;
+			}
+		}
 
-		return WhatColor(colors.e[0]->t + (colors.e[colors.n-1]->t-colors.e[0]->t)*(x-p1)/(p2-p1), col);
+		 //account for any rounding errors, plus handles Continue case
+		if (nt<0) nt=0;
+		else if (nt>1) nt=1;
 	}
-	
-	 //else radial gradient
-//	***
-//	if (p2+r2<=p1+r1 && p2-r2>=p1-r1) {
-//		 //circle 2 is entirely contained in circle 1
-//	} else if (p2+r2>=p1+r1 && p2-r2<=p1-r1) {
-//		 //circle 1 is entirely contained in circle 2
-//	}
-	 // ***** HACK! just looks in plane circle 2 radius centered at p2
-	return WhatColor(colors.e[0]->t + (colors.e[colors.n-1]->t-colors.e[0]->t)*norm(p-flatpoint(p2,0))/r2, col);
+
+	Color *color = col;
+	if (!color) color = new Color;
+
+	if (nt <= colors.e[0]->nt) {
+		*color = *colors.e[0]->color;
+
+	} else if (nt >= colors.e[colors.n]->nt) {
+		*color = *colors.e[colors.n-1]->color;
+
+	} else {
+		int c=0;
+		while (c<colors.n && nt>colors.e[c]->nt) c++;
+
+		if (c==0) { *color = *colors.e[0]->color; return color; }
+		if (c==colors.n)  { *color = *colors.e[colors.n-1]->color; return color; }
+
+		Color *c1 = colors.e[c-1]->color;
+		Color *c2 = colors.e[c  ]->color;
+
+		if (color->colorsystemid != c1->ColorSystemId()) {
+			color->UpdateToSystem(c1);
+		}
+
+		nt = (nt-colors.e[c-1]->nt)/(colors.e[c]->nt-colors.e[c-1]->nt);
+
+		for (int c=0; c<c1->NumChannels(); c++) {
+			color->ChannelValue(c, c2->ChannelValue(c)*t + c1->ChannelValue(c)*(1-t)); 
+		}
+	}
+
+	return color;
 }
 
-//! Figure out what color lays at coordinate t.
-/*! If t is before the earliest point then the earliest point is used
- * for the color, and -1 is returned. Similarly for beyond the final point, but
- * 1 is returned. Otherwise, the color is linearly interpolated between
- * the nearest points, and 0 is returned.
+/*! Figure out what color lays at coordinate t.
+ * Out of bounds are computed according to whether gradient_flags has
+ * Repeat, FlipRepeat, or Continue set (none of those defaults to Continue).
+ *
+ * \todo need to implement the smoother Gimp_Spots flags
  */
-int GradientStrip::WhatColor(double t,ScreenColor *col)
-{ ***
-	int c=0;
-	while (c<colors.n && t>colors.e[c]->t) c++;
-	if (c==0) { *col=colors.e[0]->color; return -1; }
-	if (c==colors.n)  { *col=colors.e[colors.n-1]->color; return 1; }
+int GradientStrip::WhatColor(double t, ScreenColor *col)
+{
+	double nt=(tmax>tmin ? (t-tmin)/(tmax-tmin) : 0);
 
-	ScreenColor *c1=&colors.e[c-1]->color,
-				 *c2=&colors.e[c]->color;
-	t=(t-colors.e[c-1]->t)/(colors.e[c]->t-colors.e[c-1]->t);
-	col->red  = (unsigned short) (t*c2->red   + (1-t)*c1->red);
-	col->green= (unsigned short) (t*c2->green + (1-t)*c1->green);
-	col->blue = (unsigned short) (t*c2->blue  + (1-t)*c1->blue);
-	col->alpha= (unsigned short) (t*c2->alpha + (1-t)*c1->alpha);
+	if (nt<0 || nt>1) {
+		 //if nt out of bounds, check to see how to compute the value.
+		 //Set nt to be the proper corresponding point within [0..1]
+		if (gradient_flags & (Repeat|FlipRepeat)) {
+			int block = int(nt);
+			nt -= block; //remainder
+			if (gradient_flags & FlipRepeat) {
+				if (block%2==1) nt=1-nt;
+			}
+		}
+
+		 //account for any rounding errors, plus handles Continue case
+		if (nt<0) nt=0;
+		else if (nt>1) nt=1;
+	}
+
+	if (nt <= colors.e[0]->nt) {
+		*col = colors.e[0]->color->screen;
+
+	} else if (nt >= colors.e[colors.n]->nt) {
+		*col = colors.e[colors.n]->color->screen;
+
+	} else {
+		int c=0;
+		while (c<colors.n && nt>colors.e[c]->nt) c++;
+		if (c==0) { *col=colors.e[0]->color->screen; return -1; }
+		if (c==colors.n)  { *col=colors.e[colors.n-1]->color->screen; return 1; }
+
+		ScreenColor c1 = colors.e[c-1]->color->screen,
+					c2 = colors.e[c  ]->color->screen;
+
+		t=(t-colors.e[c-1]->t)/(colors.e[c]->t-colors.e[c-1]->t);
+		col->red  = (unsigned short) (t*c2.red   + (1-t)*c1.red);
+		col->green= (unsigned short) (t*c2.green + (1-t)*c1.green);
+		col->blue = (unsigned short) (t*c2.blue  + (1-t)*c1.blue);
+		col->alpha= (unsigned short) (t*c2.alpha + (1-t)*c1.alpha);
+	}
+
 	return 0;
 }
 
-//! Figure out what color lays at coordinate t.
-/*! If t is before the earliest point then the earliest point is used
- * for the color, and -1 is returned. Similarly for beyond the final point, but
- * 1 is returned. Otherwise, the color is linearly interpolated between
- * the nearest points, and 0 is returned.
- *
- * The colors are returned as doubles in range [0..1]. It is assumed that col
- * has as many channels as needed for color (with alpha). For most cases,
- * rgba (4 channels, so a double[4]) is sufficient.
- *
- * \todo warning: assumes argb for now... ultimately, should be arranged
- *   according to the color system of the colors
- */
-int GradientStrip::WhatColor(double t,double *col)
-{ ***
-	int c=0;
-	while (c<colors.n && t>colors.e[c]->t) c++;
-	if (c==0) {
-		col[0]= (double) (colors.e[0]->color.alpha) /65535;
-		col[1]= (double) (colors.e[0]->color.red)   /65535;
-		col[2]= (double) (colors.e[0]->color.green) /65535;
-		col[3]= (double) (colors.e[0]->color.blue)  /65535;
-		return -1; 
-	}
-	if (c==colors.n)  {
-		col[0]= (double) (colors.e[colors.n-1]->color.alpha) /65535;
-		col[1]= (double) (colors.e[colors.n-1]->color.red)   /65535;
-		col[2]= (double) (colors.e[colors.n-1]->color.green) /65535;
-		col[3]= (double) (colors.e[colors.n-1]->color.blue)  /65535;
-		return 1; 
-	}
-	ScreenColor *c1=&colors.e[c-1]->color,
-				 *c2=&colors.e[c]->color;
-	t=(t-colors.e[c-1]->t)/(colors.e[c]->t-colors.e[c-1]->t);
-
-	col[0]= (double) (t*c2->alpha + (1-t)*c1->alpha) /65535;
-	col[1]= (double) (t*c2->red   + (1-t)*c1->red)   /65535;
-	col[2]= (double) (t*c2->green + (1-t)*c1->green) /65535;
-	col[3]= (double) (t*c2->blue  + (1-t)*c1->blue)  /65535;
-
-	return 0;
-}
-
-//! Render the whole gradient to a buffer.
-/*! The entire buffer maps to the gradient's bounding box.
- *
- * bufchannels must be the same number of channels as the number of channels of the colors of the gradient.
- * The last channel is assumed to be the alpha channel.
- * bufstride is the number of bytes each row takes.
- * bufdepth can be either 8 or 16.
- *
- * Currently not antialiased. Please note this is mainly for generating preview images 
- * for use on screen. 16 bit stuff should really
- * be implented with a Displayer capable of 16 bit buffers and transforms.
+/*! Fill image with a representation of the gradient/palette.
+ * Please note this is mainly for generating screen preview images.
  *
  * Return 0 for success, or nonzero for error at some point.
- *
- * \todo must rethink about rendering to buffers! must be able to handle 16 bit per channel buffers,
- *   but to be effective, this really means being able to handle arbitrary transformations, which in turn
- *   says what actually has to be rendered...
- * \todo *** rendering radial gradients VERY inefficient here..
- * \todo radial draw assumes argb
  */
-int GradientStrip::renderToBuffer(unsigned char *buffer, int bufw, int bufh, int bufstride, int bufdepth, int bufchannels)
-{ ***
-	DBG cerr <<"...GradientStrip::renderToBuffer()"<<endl;
+int GradientStrip::renderToBufferImage(LaxImage *image)
+{
+	if (IsPalette()) {
+		return RenderPalette(image);
 
-	int i=0;
-	int numchan=4; //***
-	if (bufchannels!=numchan) return 1;
-	int c,y,x;
-	bufdepth/=8;
-	if (bufdepth!=1 && bufdepth!=2) return 2;
-	if (bufstride==0) bufstride=bufw*bufchannels*bufdepth;
+	} else if (IsRadial()) {
+		return RenderRadial(image);
 
-	memset(buffer, 0, bufstride*bufh*bufdepth);
+	} //else default to linear
 
-	double color[numchan];
-	int tempcol;
+	return RenderLinear(image);
+}
 
-	if (!radial) {
-		 //linear gradient, easy!
-		for (i=0,x=0; x<bufw; x++) {
-			WhatColor(colors.e[0]->t+((double)x/bufw)*(colors.e[colors.n-1]->t-colors.e[0]->t), color);
-			for (c=0; c<numchan; c++) { //apparently in byte order, it goes bgra
-				if (bufdepth==1) {
-					buffer[i]=(unsigned char)(color[3-c]*255+.5);
-					//if (c==3) buffer[i]=128; else buffer[i]=255;
-					i++;
-				} else {
-					tempcol=(int)(color[c]*65535+.5);
-					buffer[i]=(tempcol&0xff00)>>8;
-					i++;
-					buffer[i]=(tempcol&0xff);
-					i++;
-				}
-			}
-		}
-		 //now copy that row for each of the other rows
-		 //*** this could be slightly sped up by copying the 1st row, then copying those 2 rows, 
-		 //then those 4 rows, etc, rather than do one by one
-		for (i=bufstride,y=1; y<bufh; y++, i+=bufstride) {
-			memcpy(buffer+i, buffer, bufstride);//dest,src,n
-		}
-		return 0;
-	}
+int GradientStrip::RenderPalette(LaxImage *image)
+{
+    double aspect=double(image->h())/image->w();
 
+	int xn,yn;
+	double dx,dy;
 
-	 //--- else is radial gradient
-	double scalex=bufw/(maxx-minx);
-	double px,py;
-	double cp,O1,O2,o1,o2,v;
-	double R1,R2,r1x,r2x,r,ry,cstart,clen;
-	ScreenColor col,col0,col1;
-	int len,c2,c3;
-	int ell; //number of points to approximate circles with
+    if (num_columns_hint>0) {
+        xn=num_columns_hint;
+        yn=colors.n/xn;
+        if (colors.n%xn!=0) yn++;
+    } else {
+        xn=int(ceil(sqrt(colors.n/aspect)));
+        yn=int(xn*aspect);
+        while (xn*yn<colors.n) yn++;
+    }
 
-	O1=(p1-minx)*scalex;
-	O2=(p2-minx)*scalex;
-	cstart=colors.e[0]->t;
-	clen=colors.e[colors.n-1]->t - cstart;
+    dx=image->w()/xn;
+    dy=image->h()/yn;
 
-	R1=r1;
-	R2=r2;
+    if (dx<=0) dx=1;
+    if (dy<=0) dy=1;
 
-	 //for each color segment...
-	for (c=0; c<colors.n-1; c++) {
-		o1=O1+(O2-O1)*(colors.e[c  ]->t-cstart)/clen; //this color segment's start and end centers
-		o2=O1+(O2-O1)*(colors.e[c+1]->t-cstart)/clen;
-		r1x=scalex * (R1+(R2-R1)*(colors.e[c  ]->t-cstart)/clen);//segment's start and end radii
-		r2x=scalex * (R1+(R2-R1)*(colors.e[c+1]->t-cstart)/clen);
-		v=fabs(o2-o1);
+	Displayer *dp = GetDefaultDisplayer();
+	dp->MakeCurrent(image);
 
-		col0.red  =colors.e[ c ]->color.red;
-		col0.green=colors.e[ c ]->color.green;
-		col0.blue =colors.e[ c ]->color.blue;
-		col0.alpha=colors.e[ c ]->color.alpha;
-		col1.red  =colors.e[c+1]->color.red;
-		col1.green=colors.e[c+1]->color.green;
-		col1.blue =colors.e[c+1]->color.blue;
-		col1.alpha=colors.e[c+1]->color.alpha;
+	 //render transparency first
+	dp->NewFG(0., 0., 0., 0.);
+	dp->BlendMode(LAXOP_Source);
+	dp->drawrectangle(0,0, image->w(), image->h(), 1);
+	dp->BlendMode(LAXOP_Over);
 
-		//len=(int)((v+fabs(r1x-r2x))*1.4); //the number of circles to draw so as to have no gaps hopefully
-		len=(int)((v+fabs(r1x-r2x))*2); //the number of circles to draw so as to have no gaps hopefully
-		for (c2=0; c2<len; c2++) {
-			cp=o1+v*((float)c2/len); //center of current circle
-			r=r1x+(float)c2/len*(r2x-r1x); //radius of current circle
-			ry=r*bufh/bufw/(maxy-miny)*(maxx-minx);
-			coloravg(&col,&col0,&col1,(float)c2/len);
+    int i;
+    double x=0,y;
 
-			ell=(int)(2*M_PI*r*2);
-			for (c3=0; c3<ell; c3++) { 
-				px=(int)(cp     +  r*cos((float)c3/(ell-1)*2*M_PI) + .5);
-				py=(int)(bufh/2 + ry*sin((float)c3/(ell-1)*2*M_PI) + .5);
+    y=image->h()-dy;
+    for (i=0; i<colors.n; i++) {
+        if (i%xn==0) {
+            x=0;
+            y+=dy;
+        }
 
-				//DBG cerr <<"render radial: p:("<<px<<","<<py<<") r="<<r<<endl;
-				//DBG if (px<0 || px>=bufw || py<0 || py>=bufh) cerr <<" ********* Warning! gradient render out of bounds!!"<<endl;
+		dp->NewFG(&colors.e[i]->color->screen);
+        dp->drawrectangle(x,y,dx+1,dy+1, 1);
 
-				if (px<0) px=0; else if (px>=bufw) px=bufw-1;
-				if (py<0) py=0; else if (py>=bufh) py=bufh-1;
+        x+=dx;
+    }
 
-				i=py*bufstride + px*bufchannels*bufdepth;
+	return 0;
+}
 
-				 //put in buffer
-				if (bufdepth==1) { //8bit per channel
-					buffer[i++]=(unsigned char)((col.blue &0xff00)>>8);
-					buffer[i++]=(unsigned char)((col.green&0xff00)>>8);
-					buffer[i++]=(unsigned char)((col.red  &0xff00)>>8);
-					buffer[i++]=(unsigned char)((col.alpha&0xff00)>>8);
-				} else { //16bit per channel
-					buffer[i++]=(unsigned char)((col.alpha&0xff00)>>8);
-					buffer[i++]=(unsigned char) (col.alpha&0xff);
-					buffer[i++]=(unsigned char)((col.red  &0xff00)>>8);
-					buffer[i++]=(unsigned char) (col.red  &0xff);
-					buffer[i++]=(unsigned char)((col.green&0xff00)>>8);
-					buffer[i++]=(unsigned char) (col.green&0xff);
-					buffer[i++]=(unsigned char)((col.blue &0xff00)>>8);
-					buffer[i++]=(unsigned char) (col.blue &0xff);
-				}
-			}
-		}
-	}
+int GradientStrip::RenderLinear(LaxImage *image)
+{
+	Displayer *dp = GetDefaultDisplayer();
+	dp->MakeCurrent(image);
 
-	return 1;
+    double offsets[colors.n];
+    ScreenColor scolors[colors.n];
+
+    for (int c=0; c<colors.n; c++) {
+        offsets[c]=colors.e[c]->nt;
+        scolors[c]=colors.e[c]->color->screen;
+    }
+
+    dp->setLinearGradient(3, p1.x,p1.y, p2.x,p2.y, offsets, scolors, colors.n);
+
+    //flatpoint v1=flatpoint(0,data->r1) - flatpoint(0,0);
+    //flatpoint v2=flatpoint(0,data->r2) - flatpoint(0,0);
+
+    dp->moveto(0,0);
+    dp->lineto(image->w(),0);
+    dp->lineto(image->w(),image->h());
+    dp->lineto(0,image->h());
+    dp->closed();
+    dp->fill(0);
+
+	return 0;
+}
+
+int GradientStrip::RenderRadial(LaxImage *image)
+{ //***
+	return RenderLinear(image); //TEMP!!
 }
 
 } //namespace Laxkit
