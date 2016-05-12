@@ -502,7 +502,7 @@ int ViewportWithStack::Event(const EventData *e,const char *mes)
 
 		LineStyle linestyle;
 		double max=ce->max;
-		if (ce->colortype==LAX_COLOR_RGB) {
+		if (ce->colorsystem==LAX_COLOR_RGB) {
 			linestyle.color.red  =ce->channels[0]/max*0xffff;
 			linestyle.color.green=ce->channels[1]/max*0xffff;
 			linestyle.color.blue =ce->channels[2]/max*0xffff;
@@ -529,14 +529,14 @@ int ViewportWithStack::Event(const EventData *e,const char *mes)
 		ColorBox *colorbox=dynamic_cast<ColorBox*>(findChildWindowByName("colorbox"));
 		if (!colorbox) return 0;
 
-		if (ce->colortype==LAX_COLOR_GRAY)
+		if (ce->colorsystem==LAX_COLOR_GRAY)
 			colorbox->SetGray(ce->channels[0]*255/ce->max,ce->channels[1]*255/ce->max);
-		if (ce->colortype==LAX_COLOR_RGB)
+		if (ce->colorsystem==LAX_COLOR_RGB)
 			colorbox->SetRGB(ce->channels[0]*255/ce->max,
 							 ce->channels[1]*255/ce->max,
 						  	 ce->channels[2]*255/ce->max,
 						 	 ce->channels[3]*255/ce->max);
-		if (ce->colortype==LAX_COLOR_CMYK)
+		if (ce->colorsystem==LAX_COLOR_CMYK)
 			colorbox->SetCMYK(ce->channels[0]*255/ce->max,
 							  ce->channels[1]*255/ce->max,
 							  ce->channels[2]*255/ce->max,

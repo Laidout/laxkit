@@ -236,14 +236,14 @@ int ViewerWindow::Event(const Laxkit::EventData *e,const char *mes)
 		ColorBox *colorbox=dynamic_cast<ColorBox*>(findChildWindowByName("colorbox"));
 		if (!colorbox) return 0;
 
-		if (ce->colortype==LAX_COLOR_GRAY)
+		if (ce->colorsystem==LAX_COLOR_GRAY)
 			colorbox->SetGray(ce->channels[0]/(double)ce->max,ce->channels[1]/(double)ce->max);
-		if (ce->colortype==LAX_COLOR_RGB)
+		if (ce->colorsystem==LAX_COLOR_RGB)
 			colorbox->SetRGB(ce->channels[0]/(double)ce->max,
 							 ce->channels[1]/(double)ce->max,
 						  	 ce->channels[2]/(double)ce->max,
 						 	 ce->channels[3]/(double)ce->max);
-		if (ce->colortype==LAX_COLOR_CMYK)
+		if (ce->colorsystem==LAX_COLOR_CMYK)
 			colorbox->SetCMYK(ce->channels[0]/(double)ce->max,
 							  ce->channels[1]/(double)ce->max,
 							  ce->channels[2]/(double)ce->max,
