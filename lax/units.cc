@@ -57,13 +57,14 @@ class UnitManager2
 SimpleUnit *CreateDefaultUnits(SimpleUnit *units, bool include_px, bool include_em)
 {
 	if (!units) units=new SimpleUnit();
-	units->AddUnits(UNITS_Inches, .0254,    _("in"),_("inch"),      _("inches"));
-	units->AddUnits(UNITS_Feet,   12*.0254, _("ft"),_("foot"),      _("feet"));
-	units->AddUnits(UNITS_Yards,  36*.0254, _("yd"),_("yard"),      _("yards"));
-	units->AddUnits(UNITS_CM,     .01,      _("cm"),_("centimeter"),_("centimeters"));
-	units->AddUnits(UNITS_MM,     .001,     _("mm"),_("millimeter"),_("millimeters"));
-	units->AddUnits(UNITS_Meters, 1,        _("m"), _("meter"),     _("meters"));
-	units->AddUnits(UNITS_Points, .0254/72, _("pt"), _("point"),    _("points"));
+	units->AddUnits(UNITS_Inches,    .0254,    _("in"), _("inch"),      _("inches"));
+	units->AddUnits(UNITS_Feet,      12*.0254, _("ft"), _("foot"),      _("feet"));
+	units->AddUnits(UNITS_Yards,     36*.0254, _("yd"), _("yard"),      _("yards"));
+	units->AddUnits(UNITS_CM,        .01,      _("cm"), _("centimeter"),_("centimeters"));
+	units->AddUnits(UNITS_MM,        .001,     _("mm"), _("millimeter"),_("millimeters"));
+	units->AddUnits(UNITS_Meters,    1,        _("m"),   _("meter"),    _("meters"));
+	units->AddUnits(UNITS_Points,    .0254/72, _("pt"),   _("point"),   _("points"));
+	units->AddUnits(UNITS_SvgPoints, .0254/90, _("svgpt"),_("svgpoint"),_("svgpoints"));
 
 	if (include_px) units->AddUnits(UNITS_Pixels, 1, _("px"), _("pixel"), _("pixels"));
 	if (include_em) units->AddUnits(UNITS_Em,     1, _("em"), _("em"),    _("em"));

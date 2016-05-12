@@ -38,6 +38,7 @@ enum UnitTypes {
 	UNITS_MM,
 	UNITS_Meters,
 	UNITS_Points,
+	UNITS_SvgPoints,
 	UNITS_Pixels,
 	UNITS_Em,
 	UNITS_MAX
