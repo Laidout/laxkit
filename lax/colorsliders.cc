@@ -328,7 +328,7 @@ int ColorSliders::send()
 
 	} else {
 		cevent->colorspecial=colorspecial;
-		cevent->colortype=sendtype;
+		cevent->colorsystem=sendtype;
 		app->SendMessage(cevent, win_owner,win_sendthis, object_id);
 	} 
 

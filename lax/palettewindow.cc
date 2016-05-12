@@ -94,7 +94,7 @@ int PaletteWindow::send()
 	e->max=palette->defaultmaxcolor;
 	e->numchannels=palette->colors.e[curcolor]->numcolors;
 	e->channels=new int[e->numchannels];
-	e->colortype=palette->colors.e[curcolor]->color_space;
+	e->colorsystem=palette->colors.e[curcolor]->color_space;
 
 	int c;
 	for (c=0; c<palette->colors.e[curcolor]->numcolors; c++) 

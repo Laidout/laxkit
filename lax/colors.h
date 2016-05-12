@@ -36,7 +36,7 @@
 namespace Laxkit {
 
 
-enum BasicColorTypes {
+enum BasicColorSystems {
 	LAX_COLOR_NONE   =0,
 	LAX_COLOR_RGB    , //note to devs: this should always be the first actual type
 	LAX_COLOR_CMYK   ,
@@ -69,8 +69,8 @@ class SimpleColorEventData : public EventData
 {
  public:
 	int id;
-	int colortype; //one of BasicColorTypes
-	int colorspecial;
+	int colorsystem; //one of BasicColorSystems
+	int colorspecial; //one of SimpleColorId
 	int max;
 	int numchannels;
 	int *channels;
@@ -125,9 +125,12 @@ class Color : public Laxkit::anObject, public LaxFiles::DumpUtility
 	virtual double Alpha();
 	virtual int ColorType();
 	virtual int ColorSystemId();
+	virtual int UpdateToSystem(Color *color);
+	virtual void InstallSystem(ColorSystem *newsystem);
 
+	virtual double NumChannels() { return n; }
 	virtual double ChannelValue(int channel);
-	virtual int ChannelValueInt(int channel, int *error_ret=NULL);
+	virtual double ChannelValue(int channel, double newvalue);
 
 	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
     virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context);
@@ -152,7 +155,7 @@ class ColorRef : virtual public Laxkit::Color
 	virtual int ColorSystemId();
 
 	virtual double ChannelValue(int channel);
-	virtual int ChannelValueInt(int channel, int *error_ret=NULL);
+	virtual double ChannelValue(int channel, double newvalue);
 
     virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context);
     virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
@@ -197,7 +200,9 @@ class ColorSystem: public Laxkit::anObject, public LaxFiles::DumpUtility
 {
  public:
 	char *name;
+	char *shortnames;
 	unsigned long style;
+	int systemid;
 	
 	//cmsHPROFILE iccprofile;
 	PtrStack<ColorPrimary> primaries;
@@ -205,12 +210,14 @@ class ColorSystem: public Laxkit::anObject, public LaxFiles::DumpUtility
 	ColorSystem();
 	virtual ~ColorSystem();
 	virtual const char *Name() { return name; }
+	virtual int SystemId() { return systemid; }
 
-	virtual Color *newColor(int n,...);
-	virtual int HasAlpha() { return style & COLOR_Has_Alpha; } //return if it is ok to use alpha for this system
+	virtual Color *newColor(int nvalues, ...);
+	virtual Color *newColor(int nvalues, va_list argptr);
+	virtual bool HasAlpha();
+	virtual int NumChannels();
 	virtual double ChannelMinimum(int channel); //some systems don't have constant max/min per channel
 	virtual double ChannelMaximum(int channel);
-	virtual int NumChannels() { return primaries.n + HasAlpha(); }
 
 	 //return an image tile representing the color, speckled inks, for instance
 	//virtual LaxImage *PaintPattern(Color *color); 
@@ -228,9 +235,29 @@ ColorSystem *Create_CieLab(bool with_alpha);
 ColorSystem *Create_XYZ(bool with_alpha);
 
 
-////------------------------------- class ColorManager -------------------------------
-//
-//    todo!
+//------------------------------- class ColorManager -------------------------------
+
+class ColorManager : public anObject
+{
+  private:
+	static ColorManager *default_manager;
+
+  protected: 
+	PtrStack<ColorSystem> systems;
+
+  public:
+	static ColorManager *GetDefault(bool create=true);
+	static void SetDefault(ColorManager *manager);
+
+	static Color *newColor(int system, int nvalues, ...);
+	static Color *newColor(int nvalues, ScreenColor *color);
+	static Color *newColor(LaxFiles::Attribute *att);
+		
+	ColorManager();
+	virtual ~ColorManager();
+	virtual int AddSystem(ColorSystem *system, bool absorb);
+};
+
 
 
 } //namespace Laxkit

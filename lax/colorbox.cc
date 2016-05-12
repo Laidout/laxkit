@@ -290,7 +290,7 @@ int ColorBox::send()
 
     } else {
 		cevent->colorspecial=colorspecial;
-        cevent->colortype=sendtype;
+        cevent->colorsystem=sendtype;
         app->SendMessage(cevent, win_owner,win_sendthis, object_id);
 	}
 
@@ -395,15 +395,15 @@ int ColorBox::Event(const EventData *e,const char *mes)
 		double mx=ce->max;
 		double cc[5];
 		for (int c=0; c<5; c++) cc[c]=ce->channels[c]/mx;
-		if (ce->colortype==LAX_COLOR_HSV || ce->colortype==LAX_COLOR_HSL) {
+		if (ce->colorsystem==LAX_COLOR_HSV || ce->colorsystem==LAX_COLOR_HSL) {
 			cc[0]*=360;
-		} else if (ce->colortype==LAX_COLOR_CieLAB) {
+		} else if (ce->colorsystem==LAX_COLOR_CieLAB) {
 			cc[0]*=100;
 			cc[1]=cc[1]*216-108;
 			cc[2]=cc[1]*216-108;
 		}
 
-		Set(ce->colortype, cc[0],cc[1],cc[2],cc[3],cc[4]);
+		Set(ce->colorsystem, cc[0],cc[1],cc[2],cc[3],cc[4]);
 		win_colors->bg=rgbcolor(Red()*255, Green()*255, Blue()*255);
 		send();
 		needtodraw=1;

@@ -60,7 +60,7 @@ namespace Laxkit {
  *
  * You can use simple_cmyk_to_rgb() and simple_rgb_to_cmyk() to do some simple conversions.
  *
- * By default, constructors will set colortype to be one of LAX_COLOR_RGB, LAX_COLOR_CMYK, or LAX_COLOR_GRAY.
+ * By default, constructors will set colorsystem to be one of LAX_COLOR_RGB, LAX_COLOR_CMYK, or LAX_COLOR_GRAY.
  * You can use other values, but you will have to set it manually.
  *
  * All values are normalized to be from [0..max].
@@ -70,7 +70,7 @@ SimpleColorEventData::SimpleColorEventData()
 {
 	numchannels=0;
 	channels=NULL;
-	colortype=0;
+	colorsystem=0;
 	colorspecial=0;
 	max=0;
 	id=0;
@@ -88,7 +88,7 @@ SimpleColorEventData::SimpleColorEventData(int nmax, int r,int g, int b, int a, 
 	channels[1]=g;
 	channels[2]=b;
 	channels[3]=a;
-	colortype=LAX_COLOR_RGB;
+	colorsystem=LAX_COLOR_RGB;
 	type=LAX_ColorEvent; 
 	id=nid;
 }
@@ -101,7 +101,7 @@ SimpleColorEventData::SimpleColorEventData(int nmax, int gray, int a, int nid)
 	channels=new int[2];
 	channels[0]=gray;
 	channels[1]=a;
-	colortype=LAX_COLOR_GRAY;
+	colorsystem=LAX_COLOR_GRAY;
 	type=LAX_ColorEvent;
 	id=nid;
 }
@@ -117,7 +117,7 @@ SimpleColorEventData::SimpleColorEventData(int nmax, int c,int m, int y, int k, 
 	channels[2]=y;
 	channels[3]=k;
 	channels[4]=a;
-	colortype=LAX_COLOR_CMYK;
+	colorsystem=LAX_COLOR_CMYK;
 	type=LAX_ColorEvent;
 	id=nid;
 }
@@ -160,6 +160,7 @@ ColorEventData::~ColorEventData()
 Color::Color()
 {
 	colorsystemid=0;
+	color_type=COLOR_Normal;
 	system=NULL;
 	n=0;
 	alpha=1.0;
@@ -180,8 +181,9 @@ Color::Color(const Color &c)
 		system=c.system;
 		if (system) system->inc_count();
 	}
-	if (system) colorsystemid=system->object_id;
+	if (system) colorsystemid=system->SystemId();
 	else colorsystemid=c.colorsystemid;
+	color_type = c.color_type;
 	alpha=c.alpha;
 	makestr(name,c.name);
 	if (n>c.n) {
@@ -199,8 +201,9 @@ Color &Color::operator=(Color &c)
 		system=c.system;
 		if (system) system->inc_count();
 	}
-	if (system) colorsystemid=system->object_id;
+	if (system) colorsystemid=system->SystemId();
 	else colorsystemid=c.colorsystemid;
+	color_type = c.color_type;
 	alpha=c.alpha;
 	makestr(name,c.name);
 	if (n>c.n) {
@@ -218,20 +221,22 @@ Color *Color::duplicate()
 	return color;
 }
 
-//! Return the alpha of the color. 1==totally opaque, 0==totally transparent, -1==no alpha.
-/*! If the ColorSystem defines alpha within the primaries, then
- * either that alpha is used in place of this->alpha, but only if
- * this->alpha is not within range 0..1.0. If alpha is in range,
- * then the returned alpha is that multiplied by the system channel.
- * If the system has no built in alpha, then this->alpha is returned.
+/*! Return the alpha of the color. 1==totally opaque, 0==totally transparent.
+ *
+ * If there is no attached system, or the system has no alpha, then return this->alpha.
+ * Else return values[system->NumChannels()-1], which by custom is where
+ * alpha is stored for systems that use it.
  */
 double Color::Alpha()
 {
-	if (!system) return alpha;
-	int i=system->HasAlpha();
-	if (i<0) return alpha;
-	if (alpha<0 || alpha>1.0) return values[i];
-	return values[i]*alpha;
+	//if (!system) return alpha;
+	//int i=system->HasAlpha();
+	//if (i<0) return alpha;
+	//if (alpha<0 || alpha>1.0) return values[i];
+	//return values[i]*alpha;
+	//----
+	if (!system || (system && !system->HasAlpha())) return alpha;
+	return values[system->NumChannels()-1];
 }
 
 /*! Return something usually from SimpleColorId. 
@@ -255,28 +260,14 @@ double Color::ChannelValue(int channel)
 	return values[channel];
 }
 
-//! Return the value of channel as an int in the range of the primary of the ColorSystem.
-/*! On error, -1 is returned, and error_ret set to a nonzero number:
- * 1 means no system specified, 2 means channel out of range, 3 means
- * values[channel] is not in range 0 to 1.0.
- * If channel doesn't exist. This assumes that system exists to
- * be queried about primary limits.
+/*! Set and return new value.
+ * WARNING! This function does no validation checking against system.
  */
-int Color::ChannelValueInt(int channel, int *error_ret)
+double Color::ChannelValue(int channel, double newvalue)
 {
-	try {
-		if (!system) throw 1;
-		if (channel<0 || channel>=n || channel>=system->primaries.n) throw 2;
-		if (values[channel]<0 || values[channel]>1.0) throw 3;
-	} catch (int error) {
-		if (error_ret) *error_ret=error;
-		return -1;
-	}
-	if (error_ret) *error_ret=0;
-
-	return (int)(system->primaries.e[channel]->minvalue
-		+ values[channel]*(system->primaries.e[channel]->maxvalue-system->primaries.e[channel]->minvalue)
-		+ .5);
+	if (channel<0 || channel>=n || channel>=system->primaries.n) return -1;
+	values[channel] = newvalue;
+	return newvalue;
 }
 
 /*! Return name if not NULL, otherwise return Id().
@@ -291,7 +282,57 @@ const char *Color::Name()
  */
 int Color::ColorSystemId()
 {
-	return system ? system->object_id : colorsystemid;
+	return system ? system->SystemId() : colorsystemid;
+}
+
+/*! Make this color have the same settings and number of channels as color.
+ */
+int Color::UpdateToSystem(Color *color)
+{
+	if (colorsystemid == color->ColorSystemId()) return 0;
+	if (system!=color->system) {
+		if (system) system->dec_count();
+		system = color->system;
+		if (system) system->inc_count();
+		colorsystemid = (system ? system->systemid : color->ColorSystemId());
+
+		if (n != color->NumChannels()) {
+			delete[] values;
+			values=NULL;
+			n=color->NumChannels();
+
+			if (n) {
+				values = new double[n];
+				for (int c=0; c<n; c++) values[0]=0;
+			}
+		}
+	}
+
+	return 0;
+}
+
+/*! Make the color be valid for this system, and ensure there are the right number
+ * of channels.
+ */
+void Color::InstallSystem(ColorSystem *newsystem)
+{
+	if (system!=newsystem) {
+		if (system) system->dec_count();
+		system=newsystem;
+		if (system) system->inc_count();
+	}
+	colorsystemid = (system ? system->SystemId() : 0);
+
+	if (n != system->NumChannels()) {
+		delete[] values;
+		values=NULL;
+		n = system->NumChannels();
+
+		if (n) {
+			values = new double[n];
+			for (int c=0; c<n; c++) values[0]=0;
+		}
+	}
 }
 
 void Color::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
@@ -313,12 +354,13 @@ LaxFiles::Attribute *Color::dump_out_atts(LaxFiles::Attribute *att,int what,LaxF
 	}
 
 	att->push("name",Name());
-	if ((system && system->HasAlpha()) || !system) att->push("alpha",alpha);
 	
 	if (system) att->push("system",system->Name());
 	else if (colorsystemid) att->push("system_id",colorsystemid);
 
 	if (color_type==COLOR_Normal) {
+		if ((system && !system->HasAlpha()) || !system) att->push("alpha",alpha);
+
 		char str[n*20];
 		str[0]=0;
 		for (int c=0; c<n; c++) {
@@ -449,9 +491,9 @@ double ColorRef::ChannelValue(int channel)
 	return -1;
 }
 
-int ColorRef::ChannelValueInt(int channel, int *error_ret)
+double ColorRef::ChannelValue(int channel, double newvalue)
 {
-	if (color) return color->ChannelValueInt(channel, error_ret);
+	if (color) return color->ChannelValue(channel, newvalue);
 	return -1;
 }
 
@@ -541,14 +583,12 @@ ColorPrimary::~ColorPrimary()
  * \brief Defines a color system, like RGB, CMYK, etc.
  *
  */
-/*! \fn int ColorSystem::HasAlpha()
- * \brief Return the channel index of the alpha channel, or -1 if none.
- */
 
 
 ColorSystem::ColorSystem()
 {
 	name=NULL;
+	shortnames=NULL;
 	//iccprofile=NULL;
 	style=0;
 }
@@ -556,15 +596,49 @@ ColorSystem::ColorSystem()
 ColorSystem::~ColorSystem()
 {
 	delete[] name;
+	delete[] shortnames;
 	//cmsCloseProfile(iccprofile);
 	primaries.flush();
 }
 
+Color *ColorSystem::newColor(int nvalues, ...)
+{
+	va_list argptr;
+	va_start(argptr, nvalues);
+	Color *color = newColor(nvalues, argptr);
+	va_end(argptr); 
+	return color;
+}
 
-//! Return a new Color instance with the given channel values.
-Color *ColorSystem::newColor(int n,...)
-{// ***
+/*! Return a new Color instance with the given channel values.
+ * There must be n double values.
+ */
+Color *ColorSystem::newColor(int nvalues, va_list argptr)
+{
+	Color *color = new Color();
+	color->InstallSystem(this);
+
+	for (int c=0; c<nvalues && c<NumChannels(); c++) {
+		color->ChannelValue(c, va_arg(argptr, double));
+	}
+
 	return NULL;
+}
+
+/*! Return if it is ok to use alpha for this system. The channel is assumed
+ * to be primaries.n, thus for a Color, you can get the alpha
+ * with color->ChannelValue(system->primaries.n).
+ */
+bool ColorSystem::HasAlpha()
+{
+	return (style & COLOR_Has_Alpha) ? true : false;
+}
+
+/*! Returns the number of primaries, plus one if HasAlpha().
+ */
+int ColorSystem::NumChannels()
+{
+	return primaries.n + (HasAlpha() ? 1 : 0);
 }
 
 /*! Return 0 if channel number out of bounds.
@@ -627,6 +701,8 @@ ColorSystem *Create_sRGB(bool with_alpha)
 {
 	ColorSystem *rgb=new ColorSystem;
 	makestr(rgb->name,_("sRGB"));
+	makestr(rgb->shortnames,"rgbf rgba rgb rgbaf");
+	rgb->systemid = LAX_COLOR_RGB;
 	if (with_alpha) rgb->style|=COLOR_Has_Alpha;
 
 	//rgb->iccprofile=***;
@@ -658,6 +734,8 @@ ColorSystem *Create_Generic_CMYK(bool with_alpha)
 {
 	ColorSystem *cmyk=new ColorSystem;
 	makestr(cmyk->name,_("Generic CMYK"));
+	makestr(cmyk->shortnames,"cmyk");
+	cmyk->systemid = LAX_COLOR_CMYK;
 	if (with_alpha) cmyk->style|=COLOR_Has_Alpha;
 
 	//cmyk->iccprofile=***;
@@ -694,6 +772,8 @@ ColorSystem *Create_CieLab(bool with_alpha)
 {
 	ColorSystem *cielab=new ColorSystem;
 	makestr(cielab->name,_("CieL*a*b*"));
+	makestr(cielab->shortnames,"cielab");
+	cielab->systemid = LAX_COLOR_CieLAB;
 	if (with_alpha) cielab->style|=COLOR_Has_Alpha;
 
 	//cielab->iccprofile=***;
@@ -724,6 +804,8 @@ ColorSystem *Create_XYZ(bool with_alpha)
 
 	ColorSystem *xyz=new ColorSystem;
 	makestr(xyz->name,_("XYZ"));
+	makestr(xyz->shortnames,"xyz");
+	xyz->systemid = LAX_COLOR_XYZ;
 	if (with_alpha) xyz->style|=COLOR_Has_Alpha;
 
 	//xyz->iccprofile=***;
@@ -761,23 +843,6 @@ ColorSystem *Create_XYZ(bool with_alpha)
 // * Basics are rgb, cmy, cmyk, yuv, hsv.
 // */
 
-class ColorManager : public anObject
-{
-  private:
-	static ColorManager *default_manager;
-
-  protected: 
-	PtrStack<ColorSystem> systems;
-
-  public:
-	static ColorManager *GetDefault(bool create=true);
-	static void SetDefault(ColorManager *manager);
-		
-	ColorManager();
-	virtual ~ColorManager();
-	virtual int AddSystem(ColorSystem *system, bool absorb);
-};
-
 ColorManager *ColorManager::default_manager = NULL;
 
 ColorManager *ColorManager::GetDefault(bool create)
@@ -794,12 +859,50 @@ ColorManager *ColorManager::GetDefault(bool create)
 void ColorManager::SetDefault(ColorManager *manager)
 {
 	if (manager == default_manager) return;
-	default_manager->dec_count();
+	if (default_manager) default_manager->dec_count();
 	default_manager = manager;
 	if (default_manager) default_manager->inc_count();
 }
 
+/*! Static function to return a random color.
+ * Finds the system with systemid in default ColorManager, then
+ * returns whatever that system makes.
+ */
+Color *ColorManager::newColor(int systemid, int nvalues, ...)
+{
+	ColorManager *manager = GetDefault();
 
+	va_list argptr;
+	va_start(argptr, nvalues);
+
+	Color *color=NULL;
+	for (int c=0; c<manager->systems.n; c++) {
+		if (systemid == manager->systems.e[c]->SystemId()) {
+			color=manager->systems.e[c]->newColor(nvalues, argptr);
+			break;
+		}
+	}
+	va_end(argptr);
+
+	return color;
+} 
+
+/*! Static function to convert ScreenColor to Color.
+ */
+Color *ColorManager::newColor(int nvalues, ScreenColor *color)
+{
+	return newColor(LAX_COLOR_RGB, 4, color->red/65535., color->green/65535., color->blue/65535., color->alpha/65535);
+}
+
+Color *ColorManager::newColor(LaxFiles::Attribute *att)
+{
+	// ***
+	cerr << " *** IMPLEMENT ColorManager::newColor(Attribute)!!!!"<<endl;
+	//examine att->value, if it starts with an alnum string matching one of a system's shortnames,
+	//then use that system, and assign values in parentheses.
+	//Else search in att->attributes for system, and search based on that
+	return NULL;
+}
 
 ColorManager::ColorManager()
 {
@@ -831,7 +934,24 @@ int ColorManager::AddSystem(ColorSystem *system, bool absorb)
 }
 
 
-
+////automate singleton removal.. not sure if this is a good idea
+//class SingletonDestroyer
+//{
+//  public:
+//	anObject *object;
+//	SingletonDestroyer(anObject *obj=NULL) { object=obj; if (object) object->inc_count(); }
+//	~SingletonDestroyer() { if (object) object->dec_count(); }
+//	void Update(anObject *nobj) {
+//		if (object) object->dec_count();
+//		object=nobj;
+//		if (object) object->inc_count();
+//	}
+//};
+//
+//SingletonDestroyer colormanagerkeeper;
+//... then the static GetDefault()/SetDefault() will update colormanagerkeeper
+//... so ColorManager not created initially, but once it is created somewhere else,
+//... it will be removed when colormanagerkeeper goes out of scope, ie at program termination
 
 
 } //namespace Laxkit
