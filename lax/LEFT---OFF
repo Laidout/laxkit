@@ -9,84 +9,24 @@ Those are purged with each release.
 
 -----------------------------------------------------------------------------
 
-cairo:
-  DONE window sizing is lagging somehow
-  cairo needs to work with: 
-     --bases:
-	DONE messagebar.h -> not autowrapping size correctly, multiline
-	DONE button.h
-	DONE colorsliders.h -> need to sort out font remapping
-	DONE messagebox.h
-	DONE checkbox.h
-	DONE colorbox.h
-	DONE dateselector.h
-	DONE lineedit.h
-	DONE lineinput.h
-	DONE rulerwin.h
-	DONE scroller.h 
-	DONE multilineedit.h
-	DONE menubutton.h
-	DONE menuselector.h
-	DONE iconslider.h
-	DONE iconselector.h
-	DONE sliderpopup.h
-	DONE treeselector.h
-	DONE numslider.h
+further implementation needed:
+    ellipseinterface.h
+    measureinterface.h
+    panelinterface.h
+    showkeysinterface.h
+    pointwarpinterface.h
+    linesinterface.h
+    bezinterface*
 
-	 ----compound:
-	DONE filedialog2.h  <- not fully implemented!!!
-	DONE filedialog.h
-	DONE funcframe.h
-	DONE inputdialog.h
-	DONE popupmenu.h
-	DONE rowframe.h
-	DONE tabframe.h
-	DONE filepreviewer.h -> fail in Laidout
-	DONE imagedialog.h
-	DONE overwrite.h
-	DONE tooltip.h
-	DONE palette.h
-	DONE simpleprint.h
-	DONE progressbar.h
-	DONE scrolledwindow.h
-	DONE stackframe.h
-	DONE fontdialog.h ->  font to zero size screws up everything, needs more thorough implementation
-	DONE splitwindow.h
-	DONE shortcutwindow.h
-	DONE promptedit.h
+    tagcloudwindow.cc
+    laxwii.cc
+    laximages-vector.cc
+    commit.cc
+    fileorstr.cc
+    fileorstr.h
+    att-json.cc
 
-	DONE viewerwindow.h
-	DONE viewportwindow.h
-	DONE viewportwithstack.h
-	DONE imageinterface.h  -> non-transparent image, scale kind of big, rotate, fills bounding box with black
-	DONE rectinterface.h
-	DONE objectinterface.h
-	DONE delauneyinterface.h
-	DONE curvewindow.h
-	DONE curvemapinterface.h
-	DONE freehandinterface.h
-	DONE patchinterface.h 
-	DONE pathinterface.h -> viewportwithstack, uses same LineStyle for multiple paths??
-	DONE gradientinterface.h
-	DONE colorpatchinterface.h
-	DONE pressuremapinterface.h
-	DONE engraverfillinterface.h -> avoid, blockout not working
-	DONE captioninterface.h
-	imagepatchinterface.h
-
-	ellipseinterface.h
-	measureinterface.h
-	panelinterface.h
-	showkeysinterface.h
-	pointwarpinterface.h
-	linesinterface.h
-
-	deprecated:
-	  panpopup.h
-	  quickfileopen.h   <-  abandon in favor of standard LineInput helpers
-
-update laxinput to have correct repository in readme..
-  also implement an event viewer
+    implement an event viewer in laxinput
 
 TO IMPLEMENT or drastically improve:
   tableframe.o 
@@ -118,21 +58,21 @@ overwrite box in filedialog:
 
      file1.jpg exists!
 
-	 [Overwrite][cancel]
+     [Overwrite][cancel]
 
-	 v Suggestions:
-	    file2.jpg
-		file1-1.jpg
-		file (copy).jpg
-		file COPY.jpg
-		  [Use instead]
+     v Suggestions:
+        file2.jpg
+        file1-1.jpg
+        file (copy).jpg
+        file COPY.jpg
+          [Use instead]
 
 merge Laxkit and LaxFiles?? makes things simpler
 
 curvewindow:
-	finish side edits
-	implement full bez?
-	histogram
+    finish side edits
+    implement full bez?
+    histogram
 
 scrollers in interfs.cc example frelled
 
@@ -223,8 +163,6 @@ comply with net_wm_ping --> needs testing
 
 thumbnail spec says you are supposed to add in fields!!
 
-~/.recently-used  OR  ~/.recently-used.xbel?? <-- old spec says 1st one....
-
 what is behavior supposed to be on sync() if is window?? 
 
 fix rowframe, tabframe, etc integration.. 
@@ -237,8 +175,243 @@ for color palettes, and other loadable things that might need translation, maybe
 name Blah
   translations
     en Blaba
-	fr Blaeahe
-	be Blahsenfeffer
+    fr Blaeahe
+    be Blahsenfeffer
+
+TODO RIGHT NOW:
+fluid-esque code generation tool
+start thinking about portability, particularly to osx, make a non-gnu file
+ to provide gnu things like getline() and get_current_dir_name() that are not provided on,
+ for instance, bsd-ish osx..
+
+TO ENHANCE:
+ini file to attribute converter
+Could put all the pure math stuff in LaxMath namespace?
+ this includes transformmath, vectors, and interfaces/bezier math
+Could put strmanip.cc/.h in LaxStr namespace.
+
+
+gotta make a compiler aid:
+ make a laxkit.pc for pkg-config
+ lax-config --cppflags --ldflags --libs --ldstaticflags --version --help --use* --cpp
+			--make-laxrc <-- dump a generic laxrc to stdout with lots of comments to say how to modify it.
+
+Ultimately need to have pictures of the various widgets in the docs..
+
+
+
+
+FEATURE WISHING:
+ gl support
+ thread safety
+ (in progress) drag n drop
+
+
+--Thoughts on themes--
+If more than just simple colors were to be changed, what would be required? seems
+like each refresh of every function would have to be externally redefinable, which
+would suck.. maybe just stick to simple color changes..
+Otherwise would have to have Laxkit namespace classes use a similar objectfactory
+setup as LaxInterfaces, and the theme modifies the factory to return subclasses
+of all the core classes. Bleah!
+Alternately, refreshing functions would need to isolate relevant data to pass to arbitrary functions.
+Probably more trouble than it's worth.
+
+
+
+
+---WIDGET TODO---
+number sliders, like Num: 255 [----------*---]
+SliderInputPopup?== list to select from, or type in choice, remember last few typed in choices: 2 lists...
+table frames
+multirow/col frames
+fuller print dialog
+font dialog
+detail selector/record selector
+tree selector
+color selection dialog
+
+
+CLEAN UP:
+FileDialog and FilePreviewer
+no zoom, viewerwindow but with integers (ScrolledWindow)
+SplitWindow
+BoxArrange/RowFrame and friends
+when a child window is destroyed, sometimes the parent doesn't know it.
+  perhaps there could be a built in procedure to keep track of that..
+
+-----overhaul notes:
+----------------
+----tasks:
+work out selecting for events, especially non-X events: man select(), use file descriptors??
+  how to break out of select() from random threads?
+
+work out details for a generic event filter,
+      which acts on events that have already been processed into EventData objects. This would
+      allow using the same mechanism for mouse gesture recognition AND for shortcuts, allowing
+      windows to respond only to basic events, rather that catching by redefining all
+      the input routines
+work out rendering system independent of Xlib, see todo in laxutils.cc
+  -> :initX() would need to call function to init default graphics handling
+  -> anXApp::DefaultIcon() requires LaxImage? right now hardcoded to imlib
+iron out something workable for fontdialog and matrix textout. investigate pango
+repair now broken text editor's dealing with fonts with missing glyphs
+multiple device implementation:
+  -> focus handling should be one focus per keyboard. fix in app->destroywindow()
+       research _NET_ACTIVE_WINDOW, rather than WM_TAKE_FOCUS... how does this work for MPX??
+  -> Xim stuff per keyboard??
+  -> implement device groups per user, rather than default keyb/mouse xlib grouping. Otherwise
+       modifier determination is irrational
+  -> debug multiscreen 
+
+  -> DONE work out tooltip checking for multiple mice!!
+  -> DONE (sort of) XDefineCursor() replacement? how to define cursors for any given window,
+         potentially for each device: splitwindow, stackframe.. sort of works,but *** maybe transfer assigning
+         of pointer shapes to anXApp so as to preserve the const LaxDevice in mouse events?
+  -> DONE pointer grabs?? such as for popups...
+  -> DONE query mouse
+  -> DONE  anXApp::setfocus(): XSetInputFocus() replacement?? do it in devicemanager?
+  -> DONE-maybe  dialog event screening by device
+
+DONE shortcuts
+DONE really do anXWindow reference counting? if so, must revamp destroyqueued, destroykids, etc
+DONE work out details of DeviceManager/LaxDevice/Xinput/Xinput2
+DONE  how best to integrate XInput2? just assume to use it if available at compile time? yes
+DONE  move key down processing from anXWindow to anXApp
+DONE  work out and connecting owners to windows -> for now using just single owner, stored as object_id
+DONE  remove dependence on non-Xft font things in LaxFont
+
+
+-------------------------------NOTES-----------------------------
+
+        DIALOGS
+-------------------------------------
+separate dialog_style from win_style in all dialogs? Sometimes too confusing otherwise!!
+
+
+            EVENTS
+-----------------------------------
+other kits can connect functions to signals, so when
+a window causes a signal to be sent, notification can be sent to 
+one or more windows, not just to owner. this can be done for any
+event.
+
+Connect(ActionFunc, arg, eventype, eventCondition);
+Connect(EventReceiver, arg, eventype, eventCondition);
+
+
+custom event loops to accommodate threaded, and offshoot windows??
+
+before mapping: _NET_WM_WINDOW_TYPE
+determine extra wm decorations: _NET_FRAME_EXTENTS
+
+
+
+
+----keyboards---
+each window needs an xim_ic. with many keyboards, how does this work??
+see anXApp::CreateXInputContext()
+
+
+
+
+        CORE WINDOW ATTRIBUTES
+---------------------------------------
+NOT_DELETEABLE
+GRAYED
+REMEMBER
+XDND_AWARE
+CLICK/HOVER FOCUS
+NO_INPUT
+BARE
+CENTER_ON_SCREEN (when initially mapped)
+ESCAPABLE
+FULLSCREEN
+
+window icon/application class?
+make sure wm-spec is satisfied
+don't ignore multi screen environments
+
+DONE (needs testing) ping protocol
+DONE event propagation? (only for mouse and key events)
+
+
+
+-----------all below DONE-------------------
+            EVENTS
+-----------------------------------
+DONE need to do experiments with XInput to figure out how to get and relay events
+DONE onButtonDown(which_button, modifiers, x, y, mouse_id)
+DONE onButtonUp  (which_button, modifiers, x, y, mouse_id)
+DONE onMouseMove (modifiers, x, y, mouse_id)
+DONE Event(EventData *data)
+DONE (in base classes anyway) combine DataEvent with ClientEvent, and abstract all events away from Xlib 
+DONE figure out a sane way to do anXWindow/EventCatcher ref counting,
+       so as to pave way for any object to receive events, such as interfaces..
+DONE  Remove Atoms from anXWindow user parts. (done except for drag-n-drop)
+DONE app->SendEvent(DataEvent*) define an internal file descriptor to select for?? otherwise background threads
+      sending generic events will not break out of Select...
+     -> using anXApp::bump() and multithreaded X
+
+
+        DEFAULT PROPERTIES
+-------------------------------------
+---app properties:
+1st click time to wait till repeat if holding down
+double click
+idleclick
+tooltip time
+tooltip fg color
+tooltip bg color
+
+---window properties:
+bevel width
+border width
+inset padding
+pw,s,g,align,fill,   ph,s,g,align,fill <-- these are assigned when needed by containers, they are not basic window properties
+
+class WindowMetrics <-- NO, keep SquishyBox/metrics separate from basic window stuff
+{
+ public:
+    int metrics[14]; //13 is flow penalty, 14 is line penalty for linebreaking hints, when to require rows together
+    pw(), s(), g(), ...
+};
+class anXWindow : public anObject, public RefCounted
+{
+ public:
+    WindowColors *win_colors;
+
+    (irrelevant?) WindowMetrics *win_metrics;
+    (irrelevant?) WindowFonts *normal, *text;
+};
+
+FONTS  --  unnecessary? probably
+-----
+normal font (menu, panel, etc)
+text edit font
+bold font?
+italic font?
+
+
+DONE: COLORS
+------
+inactive border color
+active   border color
+
+--foreach: panel, menu, edits, buttons
+class WindowColors
+{
+ public:
+};
+fg
+bg
+hfg
+hbg
+mouse over fg (assume highlighted irrelevant)
+mouse over bg
+grayed fg
+control pad color
+
 
 
 --------------------------------------DONE---------------------------------------
@@ -256,5 +429,79 @@ DONE StackFrame messed up
 DONE checkbox: resize should trigger placement update, or recompute each draw
 DONE rectinterface normal draw not working
 DONE add #ffaaffaa parsing to SimpleColorAttribute() 
+
+DONE cairo:
+  DONE window sizing is lagging somehow -> seems to be gone in recent unity
+  DONE cairo needs to work with: 
+     --bases:
+    DONE messagebar.h -> not autowrapping size correctly, multiline
+    DONE button.h
+    DONE colorsliders.h -> need to sort out font remapping
+    DONE messagebox.h
+    DONE checkbox.h
+    DONE colorbox.h
+    DONE dateselector.h
+    DONE lineedit.h
+    DONE lineinput.h
+    DONE rulerwin.h
+    DONE scroller.h 
+    DONE multilineedit.h
+    DONE menubutton.h
+    DONE menuselector.h
+    DONE iconslider.h
+    DONE iconselector.h
+    DONE sliderpopup.h
+    DONE treeselector.h
+    DONE numslider.h
+
+     ----compound:
+    DONE filedialog2.h  <- not fully implemented!!!
+    DONE filedialog.h
+    DONE funcframe.h
+    DONE inputdialog.h
+    DONE popupmenu.h
+    DONE rowframe.h
+    DONE tabframe.h
+    DONE filepreviewer.h -> fail in Laidout
+    DONE imagedialog.h
+    DONE overwrite.h
+    DONE tooltip.h
+    DONE palette.h
+    DONE simpleprint.h
+    DONE progressbar.h
+    DONE scrolledwindow.h
+    DONE stackframe.h
+    DONE fontdialog.h ->  font to zero size screws up everything, needs more thorough implementation
+    DONE splitwindow.h
+    DONE shortcutwindow.h
+    DONE promptedit.h
+
+    DONE viewerwindow.h
+    DONE viewportwindow.h
+    DONE viewportwithstack.h
+    DONE imageinterface.h  -> non-transparent image, scale kind of big, rotate, fills bounding box with black
+    DONE rectinterface.h
+    DONE objectinterface.h
+    DONE delauneyinterface.h
+    DONE curvewindow.h
+    DONE curvemapinterface.h
+    DONE freehandinterface.h
+    DONE patchinterface.h 
+    DONE pathinterface.h -> viewportwithstack, uses same LineStyle for multiple paths??
+    DONE gradientinterface.h
+    DONE colorpatchinterface.h
+    DONE pressuremapinterface.h
+    DONE engraverfillinterface.h -> avoid, blockout not working
+    DONE captioninterface.h
+    DONE imagepatchinterface.h
+
+    DONE (well, ignored, anyway) deprecated:
+      panpopup.h
+      quickfileopen.h   <-  abandon in favor of standard LineInput helpers
+
+DONE ~/.recently-used  OR  ~/.recently-used.xbel?? <-- old spec says 1st one, using xbel from now on
+DONE update laxinput to have correct repository in readme..
+DONE perhaps redo the whole events setup. relying on X atoms leaves quite a lot of residue in the X server..
+DONE auto double buffering
 
 

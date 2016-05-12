@@ -10,6 +10,8 @@ VERSION 0.0.9
 (done) CairoDisplayer, abstract the Displayer class to make swapping out backends easy
        FontDialog (which means working out fonts, big task!)
        Pop out multiple packages: liblaxkit(not yet, but I know how to now), liblaxkit-dev, liblaxkit-doc, laxinput
+(done) have the integrated short-cuts/actions mechanism in place
+(done) perhaps have the swappable graphics backend in place
 
 
 VERSION 0.1
@@ -19,11 +21,10 @@ VERSION 0.1
          food for thought: touch devices with blob events: http://www.nuigroup.com
        By hook or by crook, handle left-to-right, right-to-left, and mixed text in controls
        Drag-n-drop more than just text, and with objects internally
-       font management should be finally decided upon (xft/fontconfig? pango/freetype/antigrain?) and implemented 
+       font management should be finally decided upon (harfbuzz, fribidi, libraqm?, freetype, fontconfig) and implemented
        Clean up patch controls
        lots of testing by other people (perhaps via laidout) 
        add descriptive pictures of the widgets and interface objects to the documentation
-       have the integrated short-cuts/actions mechanism in place
        some sort of basically useable color management should be in place, via lcms
        all planned core widgets must be at least slightly usable
           (see Lax Checklist in doxygen docs) this includes among other things:
@@ -34,7 +35,6 @@ VERSION 0.1
        LaxInterfaces basics, meaning anInterface, InterfaceWithDp,
          ViewerWindow, and ViewportWindow should be more or less stable, and all 
          (almost done) current specific interfaces should work within that system correctly
-       perhaps have the swappable graphics backend in place
        some sort of either test bed, example, or actual classes geared for opengl
 
 
