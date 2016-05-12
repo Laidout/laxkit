@@ -188,7 +188,8 @@ Path::Path()
 	defaultwidth=10./72;
 	absoluteangle=false;
 
-	save_cache=true;
+	//save_cache=true;
+	save_cache=false;
 }
 
 /*! Incs count of linestyle.
@@ -206,7 +207,8 @@ Path::Path(Coordinate *np,LineStyle *nls)
 	cache_samples=10;
 	cache_types=0; //if 1, then also compute cache_top and cache_bottom
 
-	save_cache=true;
+	//save_cache=true;
+	save_cache=false;
 }
 
 //! Destructor always deletes path.
