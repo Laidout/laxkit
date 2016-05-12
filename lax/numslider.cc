@@ -271,7 +271,7 @@ int NumSlider::Mode(int newmode)
 		else sprintf(num,"%d",(int)curnum);
 
 		LineEdit *le=new LineEdit(this,"inputedit",NULL,
-			 LINEEDIT_DESTROY_ON_ENTER|((win_style&DOUBLES) ? LINEEDIT_FLOAT : LINEEDIT_INT),
+			 ANXWIN_OUT_CLICK_DESTROYS|LINEEDIT_DESTROY_ON_ENTER|((win_style&DOUBLES) ? LINEEDIT_FLOAT : LINEEDIT_INT),
 			 0,0, win_w-4,win_h-4,2,
 			 NULL,object_id,"lineedit",
 			 num,0);
