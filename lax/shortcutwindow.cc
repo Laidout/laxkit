@@ -569,7 +569,7 @@ void ShortcutWindow::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::Du
 		if (!strcmp(name,"column")) {
 			IntAttribute(value,&i,NULL);
 			if (column>=tree->columns.n) {
-				tree->AddColumn(NULL,NULL, i,0,-1);
+				tree->AddColumn(NULL,NULL, i,0, 0,-1);
 				DBG cerr << "*** warning: adding unexpected column in ShortcutWindow!"<<endl;
 
 			} else tree->columns.e[column]->width=i;
