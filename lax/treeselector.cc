@@ -51,7 +51,7 @@ namespace Laxkit {
  */
 
 
-TreeSelector::ColumnInfo::ColumnInfo(const char *ntitle, int nwidth, int ntype, int whichdetail)
+TreeSelector::ColumnInfo::ColumnInfo(const char *ntitle, int ntype, int whichdetail, int nwidth, int nwtype)
 {
 	type=ntype; //uses ColumnInfoType
 	if (type==0) type=ColumnString;
@@ -59,7 +59,7 @@ TreeSelector::ColumnInfo::ColumnInfo(const char *ntitle, int nwidth, int ntype, 
 	pos=0;
 	detail=whichdetail;
 	width=nwidth;
-	width_type=0;
+	width_type=nwtype;
 	sort=0;
 }
 
@@ -505,7 +505,7 @@ int TreeSelector::init()
  * If whichdetail<0, then use columns.n (before pushing).
  * If ntype<=0, use ColumnString.
  */
-int TreeSelector::AddColumn(const char *i,LaxImage *img,int width, int ntype, int whichdetail, bool nodup)
+int TreeSelector::AddColumn(const char *i,LaxImage *img,int width,int width_type, int ntype, int whichdetail, bool nodup)
 {
 	if (whichdetail<0) whichdetail=columns.n;
 	if (ntype<=0) ntype=ColumnInfo::ColumnString;
@@ -520,7 +520,7 @@ int TreeSelector::AddColumn(const char *i,LaxImage *img,int width, int ntype, in
 		}
 	}
 	
-	if (c==columns.n) columns.push(new ColumnInfo(i,width, ntype, whichdetail),1);
+	if (c==columns.n) columns.push(new ColumnInfo(i, ntype, whichdetail, width,width_type),1);
 
 	return 0;
 }
@@ -530,18 +530,38 @@ int TreeSelector::AddColumn(const char *i,LaxImage *img,int width, int ntype, in
  */
 void TreeSelector::RemapColumns()
 {
-	if (columns.n) {
-		//offsety+=textheight;
-		double pos=0;
-		for (int c=0; c<columns.n; c++) {
-			//if (columns.e[c]->width<=0) {
-				columns.e[c]->width=findColumnWidth(c);
-				//if (columns.e[c]->width<=0) columns.e[c]->width=100;
-			//}
+	if (!columns.n) return;
+
+	//offsety+=textheight;
+	int totalwidth=0;
+	double pos=0;
+	int nfills=0;
+	for (int c=0; c<columns.n; c++) {
+		//if (columns.e[c]->width<=0) {
+			columns.e[c]->width=findColumnWidth(c);
+			if (columns.e[c]->width_type==1) nfills++;
+			//if (columns.e[c]->width<=0) columns.e[c]->width=100;
+		//}
+		columns.e[c]->pos=pos;
+		pos += columns.e[c]->width;
+		totalwidth += columns.e[c]->width;
+	}
+
+	if (nfills) {
+		pos=0;
+		double fill = (inrect.width-totalwidth)/(float)nfills;
+		if (fill<0) fill=0;
+
+		if (fill) for (int c=0; c<columns.n; c++) {
 			columns.e[c]->pos=pos;
-			pos+=columns.e[c]->width;
+			if (columns.e[c]->width_type==1) {
+				columns.e[c]->width+=fill;
+			}
+
+			pos += columns.e[c]->width;
 		}
 	}
+
 	needtodraw=1;
 }
 
@@ -671,6 +691,8 @@ void TreeSelector::Wrap()
 	win_h=h;
 }
 
+/*! Return maximum actual width for which column.
+ */
 int TreeSelector::findColumnWidth(int which)
 {
 	int s=0;
@@ -2170,13 +2192,28 @@ void TreeSelector::Sync()
 int TreeSelector::MoveResize(int nx,int ny,int nw,int nh)
 {
 	ScrolledWindow::MoveResize(nx,ny,nw,nh);
+
+	for (int c=0; c<columns.n; c++) {
+		if (columns.e[c]->width_type==1) {
+			RemapColumns();
+			break;
+		}
+	}
 	return 0;
 }
 
 //! Calls ScrolledWindow::Resize(nw,nh).
 int TreeSelector::Resize(int nw,int nh)
-{
+{ 
 	ScrolledWindow::Resize(nw,nh);
+
+	for (int c=0; c<columns.n; c++) {
+		if (columns.e[c]->width_type==1) {
+			RemapColumns();
+			break;
+		}
+	}
+
 	return 0;
 }
 

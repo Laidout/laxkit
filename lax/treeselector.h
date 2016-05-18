@@ -163,7 +163,7 @@ class TreeSelector : public ScrolledWindow
 		int type; //uses ColumnInfoType
 		int sort; //0 don't sort, 1 sort ascending, -1 sort descending
 
-		ColumnInfo(const char *ntitle, int nwidth, int ntype, int whichdetail);
+		ColumnInfo(const char *ntitle, int ntype, int whichdetail, int nwidth, int nwtype);
 		~ColumnInfo();
 	};
 	PtrStack<ColumnInfo> columns;
@@ -236,7 +236,8 @@ class TreeSelector : public ScrolledWindow
 	virtual int AddItems(const char **i,int n,int startid); // assume ids sequential, state=0
 	virtual int AddItem(const char *i,LaxImage *img,int nid,int newstate);
 
-	virtual int AddColumn(const char *i,LaxImage *img,int width, int ntype=ColumnInfo::ColumnString, int whichdetail=-1, bool nodup=true);
+	virtual int AddColumn(const char *i,LaxImage *img, int width,int width_type=0,
+							int ntype=ColumnInfo::ColumnString, int whichdetail=-1, bool nodup=true);
 	virtual void ClearColumns();
 	virtual void RemapColumns();
 };
