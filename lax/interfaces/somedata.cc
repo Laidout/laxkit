@@ -557,6 +557,14 @@ Laxkit::Affine SomeData::GetTransformToContext(bool invert, int partial)
     return a;
 }   
 
+/*! Only set the parent. If NULL, then clear the parent.
+ * Default is to do nothing, since parenting is currently not stored by default.
+ */
+SomeData *SomeData::SetParent(SomeData *newparent)
+{
+	return NULL;
+}
+
 /*! Return how many parents this has. If parent==NULL, then this is 0.
  */
 int SomeData::NestedDepth()
