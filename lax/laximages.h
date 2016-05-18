@@ -49,10 +49,12 @@ class aDrawable;
 
 
 //--------------------------- LaxImage --------------------------------------
+class ImageLoader;
+
 class LaxImage : public anObject
 {
   public:
-	unsigned long importer;
+	ImageLoader *importer;
 
 	char *filename;
 	clock_t lastaccesstime;
@@ -149,6 +151,7 @@ class ImageLoader : public anObject
 
 	virtual bool CanLoadFile(const char *file) = 0;
 	virtual bool CanLoadFormat(const char *format) = 0; 
+	virtual int PingFile(const char *file, int *width, int *height, long *filesize) = 0;
 
 	 //return a LaxImage in target_format.
 	 //If target_format==0, then return any format.

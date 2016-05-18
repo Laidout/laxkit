@@ -92,6 +92,7 @@ class ImlibLoader : public ImageLoader
 
 	virtual bool CanLoadFile(const char *file);
 	virtual bool CanLoadFormat(const char *format); 
+	virtual int PingFile(const char *file, int *width, int *height, long *filesize);
 
 	 //return a LaxImage in target_format.
 	 //If must_be_that_format and target_format cannot be created, then return NULL.

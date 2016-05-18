@@ -27,6 +27,7 @@
 #include <lax/vectors.h>
 #include <lax/transformmath.h>
 #include <lax/anxapp.h>
+#include <lax/fileutils.h>
 
 
 #ifdef LAX_USES_CAIRO
@@ -599,6 +600,31 @@ bool ImlibLoader::CanLoadFormat(const char *format)
 	return false;
 }
 
+/*! Return 0 for successful ping, else nonzero.
+ *
+ * filesize returns size in bytes.
+ */
+int ImlibLoader::PingFile(const char *file, int *width, int *height, long *filesize)
+{
+	Imlib_Image img = imlib_load_image(file);
+	if (!img) return 1;
+
+	imlib_context_set_image(img);
+
+	if (width || height) {
+
+		if (width)  *width =imlib_image_get_width();
+		if (height) *height=imlib_image_get_height();
+	}
+
+	if (filesize) {
+		*filesize = LaxFiles::file_size(file, 1, NULL);
+	}
+
+	imlib_free_image();
+	return 0;
+}
+
 
 #ifdef LAX_USES_CAIRO
 LaxCairoImage *MakeCairoFromImlib(LaxImlibImage *iimg)
@@ -628,7 +654,8 @@ LaxImage *ImlibLoader::load_image(const char *filename,
 	
 	if (target_format==0 || target_format==LAX_IMAGE_IMLIB) {
 		if (actual_format) *actual_format=LAX_IMAGE_IMLIB;
-		iimg->importer = object_id;
+		iimg->importer = this;
+		iimg->importer->inc_count();
 		return iimg;
 	}
 
@@ -637,7 +664,8 @@ LaxImage *ImlibLoader::load_image(const char *filename,
 	if (target_format == LAX_IMAGE_CAIRO) {
 		 //convert imlib image to a cairo image
 		LaxCairoImage *cimage=MakeCairoFromImlib(iimg);
-		cimage->importer = object_id;
+		cimage->importer = this;
+		cimage->importer->inc_count();
 		makestr(cimage->filename, filename);
 
 		iimg->dec_count();
@@ -651,7 +679,8 @@ LaxImage *ImlibLoader::load_image(const char *filename,
 			LaxCairoImage *pimage=MakeCairoFromImlib(iimg);
 			iimg->dec_count();
 
-			pimage->importer = object_id;
+			pimage->importer = this;
+			pimage->importer->inc_count();
 			makestr(pimage->filename, previewfile);
 			*previewimage_ret = pimage; 
 		}
