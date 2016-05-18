@@ -94,6 +94,7 @@ class GroupData :   virtual public Laxkit::Tagged,
 	virtual int pointin(flatpoint pp,int pin=1);
 	virtual void FindBBox();
 	virtual LaxInterfaces::SomeData *GetParent();
+	virtual SomeData *SetParent(SomeData *newparent);
 
 	virtual int Selectable();
 	virtual int Visible();

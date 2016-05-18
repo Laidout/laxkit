@@ -79,6 +79,14 @@ GroupData::~GroupData()
 
 }
 
+/*! Set parent only if it is a GroupData.
+ */
+SomeData *GroupData::SetParent(SomeData *newparent)
+{
+	parent=dynamic_cast<GroupData*>(newparent);
+	return parent;
+}
+
 //! Simply return this->parent.
 LaxInterfaces::SomeData *GroupData::GetParent()
 { return parent; }
@@ -159,11 +167,15 @@ int GroupData::pushnodup(LaxInterfaces::SomeData *obj)
 }
 
 //! Pop d, but do not decrement its count.
-/*! Returns 1 for item popped, 0 for not.
+/*! Returns 1 for item popped, 0 for not, such as when d is not a child.
  */
 int GroupData::popp(LaxInterfaces::SomeData *d)
 {
-	return kids.popp(d);
+	int c=kids.popp(d);
+	if (c>=0) {
+		d->SetParent(NULL);
+	}
+	return c;
 }
 
 //! Return the popped item. Does not change its count.
@@ -340,10 +352,11 @@ int GroupData::GroupObjs(int ne, int *which)
 int GroupData::UnGroup(int which)
 {
 	if (which<0 || which>=NumKids()) return 1;
-	if (strcmp(Child(which)->whattype(),"Group")) return 1;
 
-	GroupData *g=dynamic_cast<GroupData*>(kids.pop(which)); //assumes "Group" is a GroupData here. does not change count of g
+	GroupData *g=dynamic_cast<GroupData*>(Child(which)); //assumes "Group" is a GroupData here. does not change count of g
 	if (!g) return 1;
+
+	kids.pop(which); //note does not change count of g
 	
 	SomeData *d;
 	double mm[6];
