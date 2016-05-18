@@ -602,7 +602,7 @@ int FileDialog::init()
 							files);
 	last->installColors(app->color_edits);
 	filelist->tooltip(_("Choose from these files.\nRight-click drag scrolls"));
-	filelist->AddColumn(_("Name"), NULL, 0);
+	filelist->AddColumn(_("Name"), NULL, 0,1);
 	filelist->AddColumn(_("Size"), NULL, 0);
 	filelist->AddColumn(_("Date"), NULL, 0);
 	filelist->Select(-1);
