@@ -10,7 +10,7 @@ http://laxkit.sourceforge.net
 WHAT IS IT
 ----------
 The Laxkit is a C++ gui toolkit currently in the form of an Xlib wrapper.
-It also has a number of user interfaces for manipulating various common two 
+It has a number of user interfaces for manipulating various common two 
 dimensional vector art objects like bezier curves with variable widths,
 gradients, and meshes.
 
@@ -18,11 +18,12 @@ The main driving force behind Laxkit development is as a windowing
 backend for the desktop publishing program Laidout (http://www.laidout.org).
 
 The goal of the kit is to make the creation of art related programs
-easier, and also to make creation of user interfaces very efficient by having
-a lot of configurability in shortcuts and various other usability enhancements.
-For instance, when you have a large file list, pressing shift while 
-twirling the wheel makes the list scroll faster and shift-control while
-twirling makes scrolling go extra fast.
+easy, by providing basic, but adaptible and efficient interfaces that can
+be used as building blocks for more complex interfaces.
+Examples of efficiency would be having a lot of configurability in shortcuts,
+using combinations of key modifiers during mouse actions to change scroll 
+speeds, and providing draggable visual elements to change drawable
+object properties instead of low level input boxes off to the side.
 
 There is copius documentation of the source accessible through doxygen by 
 running 'make docs'.
@@ -77,7 +78,7 @@ Then do:
     make depends
     make
     make icons  ##<- this requires you have Inkscape installed
-    make docs
+    make docs   ##<- optional
 
 By default, running the Laxkit directly from git code will pump out lots of debugging information 
 to the terminal. To prevent this, do `make hidegarbage` before `make`.
