@@ -24,6 +24,7 @@
 
 #include <lax/interfaces/groupdata.h>
 #include <lax/interfaces/interfacemanager.h>
+#include <lax/interfaces/somedatafactory.h>
 #include <lax/transformmath.h>
 #include <lax/language.h>
 
@@ -309,9 +310,9 @@ LaxInterfaces::SomeData *GroupData::findobj(LaxInterfaces::SomeData *d,int *n)
 /*! If any of which are not in kids, then nothing is changed. If ne<=0 then the which list
  * is assumed to be terminated by a -1.
  *
- * Return 0 for success, or nonzero error.
+ * Return 0 for success, or nonzero error. Returns the index of the newly created group.
  */
-int GroupData::GroupObjs(int ne, int *which)
+int GroupData::GroupObjs(int ne, int *which, int *newgroupindex)
 {
 	if (ne<0) {
 		ne=0;
@@ -322,8 +323,11 @@ int GroupData::GroupObjs(int ne, int *which)
 	int c;
 	for (c=0; c<ne; c++) if (which[c]<0 || which[c]>=NumKids()) return 1;
 	
-	GroupData *g=new GroupData;
-	g->flags|=SOMEDATA_LOCK_CONTENTS;//***
+	GroupData *g=dynamic_cast<GroupData *>(somedatafactory()->NewObject(LAX_GROUPDATA));
+	if (!g) g=new GroupData;
+
+	//g->flags|=SOMEDATA_LOCK_CONTENTS;// *** <-make this optional? makes group contents inaccessible
+
 	int where,w[ne];
 	memcpy(w,which,ne*sizeof(int));
 	where=w[0];
@@ -340,9 +344,12 @@ int GroupData::GroupObjs(int ne, int *which)
 	}
 
 	g->FindBBox();
-	kids.push(g,-1,where); //incs g
+	g->SetParent(this);
+	int index = kids.push(g,-1,where); //incs g
 	g->dec_count(); //remove initial count
 	FindBBox();
+
+	if (newgroupindex) *newgroupindex = index;
 	return 0;
 }
 
