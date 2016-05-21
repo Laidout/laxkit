@@ -136,6 +136,9 @@ depends:
 	cd lax && $(MAKE) depends
 	cd lax/interfaces && $(MAKE) depends
 
+deb:
+	if [ ! -e debian ] ; then ln -s debian-lo debian; fi
+	dpkg-buildpackage -rfakeroot
 
 
 #---------- garbage be-gone -----------------
@@ -157,7 +160,7 @@ dist-clean: clean
 	rm -f install.log
 	rm -rf docs/html
 
-.PHONY: clean docs lax interfaces depends unhidegarbage hidegarbage laxinput icons
+.PHONY: clean docs lax interfaces depends unhidegarbage hidegarbage laxinput icons deb
 clean:
 	cd lax && rm -f *.o *.a *.so
 	cd lax/interfaces && rm -f *.o *.a *.so
