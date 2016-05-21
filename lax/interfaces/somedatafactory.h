@@ -25,6 +25,10 @@
 
 #include <lax/objectfactory.h>
 
+
+
+namespace LaxInterfaces {
+
 enum LaxInterfaceDataTypes {
 	LAX_BEZDATA,
 	LAX_COLORPATCHDATA,
@@ -41,13 +45,10 @@ enum LaxInterfaceDataTypes {
 	LAX_SOMEDATAREF,
 	LAX_CAPTIONDATA,
 	LAX_TEXTONPATH,
+	LAX_GROUPDATA,
 
 	LAX_DATA_MAX
 };
-
-
-namespace LaxInterfaces {
-
 
 Laxkit::ObjectFactory *somedatafactory();
 
