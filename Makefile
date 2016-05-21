@@ -61,12 +61,12 @@ LAXOBJDIR=objs
 
 
 
-all: lax interfaces laxinput
+all: lax interfaces laxinput touchdepends
 	@echo "  -----------Done!-------------" 
 
 
 #this compiles the core laxkit only, not interfaces
-almostall: lax
+almostall: lax touchdepends
 	@echo "  -----------Done!-------------" 
 
 
@@ -106,12 +106,9 @@ install: lax interfaces laxinput
 	$(INSTALL) -D -m711 laxinput/laxinput $(BINDIR)/laxinput && \
 		echo '$(BINDIR)/laxinput' >> install.log
 
-#	$(INSTALL) -D -m644 $(LAXDIR)/liblaxatts.a $(LIBDIR)/liblaxatts.a && \
-#		echo '$(LIBDIR)/liblaxatts.a' >> install.log
 
 uninstall: 
 	rm -vf $(LIBDIR)/liblaxkit.a
-	rm -vf $(LIBDIR)/liblaxatts.a
 	rm -vf $(LIBDIR)/liblaxinterfaces.a
 	rm -v -rf $(INCLUDEDIR)/lax-$(LAXKITVERSION)
 
