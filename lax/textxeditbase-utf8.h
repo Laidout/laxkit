@@ -85,6 +85,7 @@ class TextXEditBaseUtf8 : public anXWindow, public TextEditBaseUtf8
 	virtual long GetPos(long pos,int pix,int lsofar=0,long eof=-1); //lsofar=0,eof=-1
 	virtual int SetupMetrics();
 	virtual int UseThisFont(LaxFont *newfont);
+	virtual LaxFont *GetFont();
 	virtual unsigned long ValidColor(int which);
 };
 

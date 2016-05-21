@@ -1055,6 +1055,13 @@ int TextXEditBaseUtf8::UseThisFont(LaxFont *newfont)
 	return 0;
 }
 
+/*! Just return a link to the current font. Count is not incremented.
+ */
+LaxFont *TextXEditBaseUtf8::GetFont()
+{
+	return thefont;
+}
+
 /*! Sets thefont=app->defaultlaxfont, and assigns textheight, textascent, and textdescent accordingly.
  * Increments the count of app->defaultlaxfont.
  */
