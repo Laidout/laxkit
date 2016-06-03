@@ -30,15 +30,18 @@ namespace Laxkit {
 //--------------------------- ToolTip ---------------------------------------
 class ToolTip : public anXWindow
 {
- public:
+	static int numtips;
+  public:
 	int mouse_id;
 	char *thetext;
 	int textheight,fasc;
 	ToolTip(const char *newtext,int mouse);
-	~ToolTip() { if (thetext) delete[] thetext; }
+	~ToolTip();
 	virtual int Idle(int tid=0);
 	virtual void Refresh();
 	virtual int Event(const EventData *d,const char *mes);
+
+	static int NumTips();
 };
 
 } //namespace Laxkit

@@ -48,6 +48,12 @@ namespace Laxkit {
  *    use that one instead for automatic text wrapping?
  */
 
+int ToolTip::numtips = 0;
+
+int ToolTip::NumTips()
+{
+	return numtips;
+}
 
 /*! Constructor, initiates a timer that lasts for a maximum
  * of 5 seconds + 1sec per every 20 characters.
@@ -59,6 +65,7 @@ ToolTip::ToolTip(const char *newtext,int mouse)
 
 	mouse_id=mouse;
 
+	numtips++;
 	needtodraw=1;
 	win_border=1;
 	
@@ -99,6 +106,12 @@ ToolTip::ToolTip(const char *newtext,int mouse)
 	win_colors->dec_count();
 	win_colors->fg=app->color_tooltip_fg;
 	win_colors->bg=app->color_tooltip_bg;
+}
+
+ToolTip::~ToolTip()
+{
+	if (thetext) delete[] thetext;
+	numtips--;
 }
 
 //! Just dump out the text, left justified.

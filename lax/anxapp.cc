@@ -2600,17 +2600,21 @@ void anXApp::tooltipcheck(EventData *event, anXWindow *ww)
 		return;
 	}
 
-	if (!tooltipmaybe.n) return; //no tooltip under consideration
-	if (event->type!=LAX_onMouseMove && event->type!=LAX_onButtonDown && event->type!=LAX_onButtonUp)
+	if (ToolTip::NumTips()==0 && !tooltipmaybe.n) return; //no tooltip under consideration
+
+	if (event->type!=LAX_onButtonDown && event->type!=LAX_onButtonUp
+			&& event->type!=LAX_onKeyDown  && event->type!=LAX_onKeyUp)
 		return; //below, only care about motion and button events
 
+	DBG cerr << " ****************************************CHECKING"<<endl;
+
 	 //so there has been a motion or button event, which will disqualify the tooltip
-	 //if greater than the threshhold
+	 //if greater than the threshhold 
 
-
+	 //first check if there are any possible tooltips under consideration
 	MouseEventData *ee=dynamic_cast<MouseEventData*>(event);
-	LaxMouse *m=ee->device;
-	for (int c=0; c<tooltipmaybe.n; c++) {
+	LaxMouse *m = ee ? ee->device : NULL;
+	if (m) for (int c=0; c<tooltipmaybe.n; c++) {
 		if (tooltipmaybe.e[c]==m) {
 			clock_t curtime=times(&tmsstruct);
 			if (curtime<m->ttthreshhold) {
@@ -2623,6 +2627,17 @@ void anXApp::tooltipcheck(EventData *event, anXWindow *ww)
 			tooltipmaybe.pop(c);
 			return;
 		}
+	}
+
+	 //then check for any existing tooltips and remove
+	if (ToolTip::NumTips()) {
+		ToolTip *tt;
+		for (int c=topwindows.n-1; c>=0; c--) {
+			tt=dynamic_cast<ToolTip*>(topwindows.e[c]);
+			if (!tt) continue;
+			//if (m && tt->mouse_id==m->id) destroywindow(tt);
+			destroywindow(tt);
+		} 
 	}
 }
 
