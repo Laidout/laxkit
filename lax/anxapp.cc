@@ -1382,12 +1382,12 @@ int anXApp::reparent(anXWindow *kid,anXWindow *newparent)
 	 //must not reparent to a doomed window
 	if (!kid || (newparent && (newparent->win_style&ANXWIN_DOOMED))) return 1;
 
-	 //if kid is already child of newparent, nothing to do
+	 //if kid is already installed child of newparent, nothing to do
 	if (kid->win_parent==newparent && newparent->_kids.findindex(kid)>=0) return 0;
 
 	 // remove from previous _kids/topwindows stacks
 	kid->inc_count();//so as to keep from deleting if only ref is from parent or topwindows
-	if (kid->win_parent) { // remove from parent's _kids stack
+	if (kid->win_parent) { // remove from old parent's _kids stack
 		if (kid->win_parent!=newparent) 
 			kid->win_parent->_kids.remove(kid->win_parent->_kids.findindex(kid));//decs count if present
 	} else { // remove from toplevel stack
