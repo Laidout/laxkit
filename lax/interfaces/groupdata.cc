@@ -93,7 +93,7 @@ LaxInterfaces::SomeData *GroupData::GetParent()
 { return parent; }
 
 int GroupData::Selectable()
-{ return selectable; }
+{ return selectable | (locks&OBJLOCK_Selectable); }
 
 int GroupData::Visible()
 { return visible; }
@@ -151,7 +151,8 @@ LaxInterfaces::SomeData *GroupData::duplicate(LaxInterfaces::SomeData *dup)
 int GroupData::push(LaxInterfaces::SomeData *obj)
 {
 	if (!obj) return -1;
-	if (dynamic_cast<GroupData*>(obj)) dynamic_cast<GroupData*>(obj)->parent=this;
+	obj->SetParent(this);
+	touchContents();
 	return kids.push(obj);
 }
 
@@ -162,8 +163,9 @@ int GroupData::push(LaxInterfaces::SomeData *obj)
 int GroupData::pushnodup(LaxInterfaces::SomeData *obj)
 {
 	if (!obj) return -1;
-	if (dynamic_cast<GroupData*>(obj)) dynamic_cast<GroupData*>(obj)->parent=this;
+	obj->SetParent(this);
 	int c=kids.pushnodup(obj,-1);
+	touchContents();
 	return c;
 }
 
@@ -176,6 +178,7 @@ int GroupData::popp(LaxInterfaces::SomeData *d)
 	if (c>=0) {
 		d->SetParent(NULL);
 	}
+	touchContents();
 	return c;
 }
 
@@ -188,6 +191,7 @@ LaxInterfaces::SomeData *GroupData::pop(int which)
 //! Remove item with index i. Return 1 for item removed, 0 for not.
 int GroupData::remove(int i)
 {
+	touchContents();
 	return kids.remove(i);
 }
 
@@ -203,6 +207,7 @@ int GroupData::slide(int i1,int i2)
 	kids.pop(obj,i1); //does nothing to count 
 	kids.push(obj,-1,i2); //incs count
 	obj->dec_count(); //remove the additional count
+	touchContents();
 	return 1;
 }
 
@@ -210,6 +215,7 @@ int GroupData::slide(int i1,int i2)
 void GroupData::flush()
 {
 	kids.flush();
+	touchContents();
 }
 
 
@@ -350,6 +356,7 @@ int GroupData::GroupObjs(int ne, int *which, int *newgroupindex)
 	FindBBox();
 
 	if (newgroupindex) *newgroupindex = index;
+	touchContents();
 	return 0;
 }
 
@@ -371,13 +378,14 @@ int GroupData::UnGroup(int which)
 		d=g->pop(0); //count stays same on d
 		transform_mult(mm,g->m(),d->m());
 		d->m(mm);
-		if (dynamic_cast<GroupData*>(d)) dynamic_cast<GroupData*>(d)->parent=this;
+		d->SetParent(this);
 		kids.push(d,-1,which++); //incs d
 		d->dec_count(); //remove extra count
 	}
 
 	g->dec_count(); //dec count of now empty group
 	FindBBox();
+	touchContents();
 	return 0;
 }
 
@@ -410,12 +418,13 @@ int GroupData::UnGroup(int n,const int *which)
 	while (d=g->pop(0), d) {
 		transform_mult(mm,d->m(),g->m());
 		d->m(mm);
-		if (dynamic_cast<GroupData*>(d)) dynamic_cast<GroupData*>(d)->parent=this;
+		d->SetParent(this);
 		kids.push(d,-1,*which+1);
 		d->dec_count();
 	}
 	remove(*which);
 	FindBBox();
+	touchContents();
 	return 0;
 }
 
@@ -523,6 +532,7 @@ void GroupData::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpCon
 
 	 //is old school group
 	if (foundconfig==-1) dump_in_group_atts(att, flag,context);
+	touchContents();
 }
 
 /*! Recognizes locked, visible, prints, then tries to parse elements...
