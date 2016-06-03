@@ -45,8 +45,6 @@ using namespace std;
 #define DBG
 
 
-DBG flatpoint POINT;
-
 //square of screen pixel distance for a point to be close enough to a point to select it
 #define SELECTRADIUS2 25
 #define SELECTRADIUS   5
@@ -895,6 +893,10 @@ void Path::UpdateCache()
 	do { //one loop per vertex point
 		p2=p->next; //p points to a vertex
 		if (!p2) break;
+		if (p2->flags&POINT_VERTEX && p2->p()==p->p()) {
+			p=p2;
+			continue; //skip zero length segments
+		}
 
 		 //figure out where to sample the current bezier segment. When there are weight nodes,
 		 //things can get crazy, so sample a bunch of times in between nodes, not just evenly
@@ -2952,6 +2954,12 @@ int PathsData::line(double width,int cap,int join,ScreenColor *color)
 	if (join>=0) linestyle->joinstyle=join;
 	if (color) linestyle->Color(color->red,color->green,color->blue,color->alpha);
 
+	for (int c=0; c<paths.n; c++) {
+		if (!paths.e[c]->linestyle || paths.e[c]->linestyle==linestyle) {
+			paths.e[c]->defaultwidth=width;
+		}
+	}
+
 	return 0;
 }
 
@@ -3157,6 +3165,7 @@ void PathsData::pushEmpty(int where,LineStyle *nls)
 	paths.push(new Path(NULL,nls),1,where);
 	if (!paths.e[where]->linestyle && linestyle) {
 		paths.e[where]->Line(linestyle);
+		paths.e[where]->defaultwidth = linestyle->width;
 	}
 }
 
@@ -3165,9 +3174,14 @@ void PathsData::pushEmpty(int where,LineStyle *nls)
 void PathsData::InstallLineStyle(LineStyle *newlinestyle)
 {
 	if (linestyle==newlinestyle) return;
+	LineStyle *old=linestyle;
 	if (linestyle) linestyle->dec_count();
 	linestyle=newlinestyle;
 	if (newlinestyle) newlinestyle->inc_count();
+
+	if (old) for (int c=0; c<paths.n; c++) {
+		if (!paths.e[c]->linestyle || paths.e[c]->linestyle==old) paths.e[c]->Line(newlinestyle);
+	}
 }
 
 /*! Incs count on style, unless it is already installed.
@@ -4134,17 +4148,6 @@ int PathInterface::Refresh()
 	needtodraw=0;
 
 
-	//************temp to show artificial second pointer for screen capture..
-	//            draws marker on last mouse move from any device:
-	//            uncomment in MouseMove to use
-	//dp->DrawScreen();
-	//dp->drawpoint(POINT+flatpoint(20,0), 10,1);
-	//dp->drawthing(POINT.x+50,POINT.y, 20,20,0, THING_Circle);
-	//dp->drawthing(POINT.x,POINT.y, 20,20,1, THING_Square);
-	//dp->drawthing(POINT.x-50,POINT.y, 20,20,2, THING_Circle);
-	//dp->DrawReal();
-
-
 	// ------------ draw data-----------------
 
 	Coordinate *start,*p,*p2;
@@ -4174,7 +4177,7 @@ int PathInterface::Refresh()
 		if (!lstyle) lstyle=data->linestyle;//default for all data paths
 		if (!lstyle) lstyle=defaultline;   //default for interface
 	}
-	bool hasstroke=lstyle ? (lstyle->function!=LAXOP_None && lstyle->function!=LAXOP_Dest) : false;
+	bool hasstroke=lstyle ? (lstyle->width!=0 && lstyle->function!=LAXOP_None && lstyle->function!=LAXOP_Dest) : false;
 
 	if (fillstyle && fillstyle!=data->fillstyle && fillstyle!=defaultfill) {
 		 //this is overriding the default data fillstyle, usually because we have
@@ -6310,8 +6313,6 @@ int PathInterface::MouseMove(int x,int y,unsigned int state,const LaxMouse *mous
 	DBG fp=screentoreal(x,y);
 	DBG cerr <<"  rts: "<<fp.x<<','<<fp.y<<endl;
 
-	//DBG needtodraw=1;
-	//DBG POINT=flatpoint(x,y);
 
 	if (!buttondown.isdown(mouse->id,LEFTBUTTON)) {
 		int oldhover=drawhover;
