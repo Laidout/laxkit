@@ -132,6 +132,20 @@ int Selection::Remove(int i)
 	return c;
 }
 
+/*! Pop and return item at index i.
+ */
+ObjectContext *Selection::Pop(int i)
+{
+	if (i<0 || i>=objects.n) return NULL;
+	SelectedObject *soc = objects.pop(i);
+	ObjectContext *oc = soc->oc;
+	soc->oc=NULL;
+	delete soc;
+	if (currentobject==i) currentobject=i-1;
+	if (currentobject<0) currentobject=objects.n-1;
+	return oc;
+}
+
 
 void Selection::Flush()
 {
