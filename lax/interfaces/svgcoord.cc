@@ -25,6 +25,7 @@
 #include <lax/interfaces/svgcoord.h>
 #include <lax/attributes.h>
 #include <lax/strmanip.h>
+#include <lax/bezutils.h>
 
 #include <cstdlib>
 
@@ -165,10 +166,12 @@ Coordinate *SvgToCoordinate(const char *d, int how, char **endptr, int *totalpoi
 				if (hascurpoint) fp=fp+curpoint; //lowercase command is relative coords
 				command='l'; //subsequent numbers are implied lineto commands
 			} else command='L';
+
 			curpoint=fp;
 			hascurpoint=1;
 			numpoints=0;
 			lastwasmove=1;
+			lastcontrol.set(0,0);
 			
 			p=ee;
 			continue;
@@ -205,6 +208,7 @@ Coordinate *SvgToCoordinate(const char *d, int how, char **endptr, int *totalpoi
 			ptr=ptr->next;
 			numpoints++;
 
+			lastcontrol.set(0,0);
 			lastwasmove=0;
 			curpoint=fp;
 			continue;
@@ -231,6 +235,7 @@ Coordinate *SvgToCoordinate(const char *d, int how, char **endptr, int *totalpoi
 			ptr=ptr->next;
 			curpoint=fp;
 			numpoints++;
+			lastcontrol.set(0,0);
 			lastwasmove=0;
 			continue;
 
@@ -255,6 +260,7 @@ Coordinate *SvgToCoordinate(const char *d, int how, char **endptr, int *totalpoi
 			ptr->next->prev=ptr;
 			ptr=ptr->next;
 			curpoint=fp;
+			lastcontrol.set(0,0);
 			lastwasmove=0;
 			continue;
 
@@ -301,27 +307,146 @@ Coordinate *SvgToCoordinate(const char *d, int how, char **endptr, int *totalpoi
 			lastwasmove=0;
 			continue;
 
-//		} else if (command=='S' || command=='s') {
-//			 //smooth curve:
-//			 //S (x2 y2 x y)+
-//			 //x2,y2 == control point for x,y
-//			 // x,y  == final point
-//			 //control point for curpoint is reflection about curpoint of the control
-//			 //point of previous segment. If the previous command was not s, S, c, or C,
-//			 //then assume the control point is the same as curpoint.
+		} else if (command=='S' || command=='s') {
+			 //smooth cubic curve:
+			 //S (x2 y2 x y)+
+			 //x2,y2 == control point for x,y
+			 // x,y  == final point
+			 //control point for curpoint is reflection about curpoint of the control
+			 //point of previous segment. If the previous command was not s, S, c, or C,
+			 //then assume the control point is the same as curpoint.
 
-//		} else if (command=='Q' || command=='q') {
-//			 quadratic bezier curve: x1 y1 x y
+			if (!hascurpoint) throw (7);
+			double dd[4];
+			int n=LaxFiles::DoubleListAttribute(p,dd,4,&ee);
+			if (ee==p || n!=4) throw (8);
+			p=ee;
+			if (command=='s') {
+				dd[0]+=curpoint.x;
+				dd[1]+=curpoint.y;
+				dd[2]+=curpoint.x;
+				dd[3]+=curpoint.y;
+			}
 
-//		} else if (command=='T' || command=='t') {
-//			 smooth quadratic bezier curve continuation: (x y)+
+			if (lastwasmove) {
+				 //needed to add initial point of line
+				if (!points) ptr=points=new Coordinate(curpoint);
+				else {
+					ptr->next=new Coordinate(curpoint);
+					ptr=ptr->next;
+				}
+				numpoints++;
+			}
+			ptr->next=new Coordinate(curpoint+lastcontrol, POINT_TOPREV,0);
+			ptr->next->prev=ptr;
+			ptr=ptr->next;
 
-//		} else if (command=='A' || command=='a') {
+			ptr->next=new Coordinate(dd[2],dd[3],POINT_TONEXT,0);
+			ptr->next->prev=ptr;
+			ptr=ptr->next;
+
+			ptr->next=new Coordinate(dd[4],dd[5]);
+			ptr->next->prev=ptr;
+			ptr=ptr->next;
+
+			curpoint=ptr->fp; 
+			numpoints+=3;
+
+			lastcontrol=ptr->p() - ptr->prev->p();
+			lastwasmove=0;
+			continue;
+
+		} else if (command=='Q' || command=='q') {
+			 //quadratic bezier curve: x1 y1 x y
+			 //convert to cubic, each control is exactly 2/3 distance to x1,y1
+
+			if (!hascurpoint) throw (7);
+			double dd[4];
+			int n=LaxFiles::DoubleListAttribute(p,dd,4,&ee);
+			if (ee==p || n!=4) throw (8);
+			p=ee;
+			flatpoint cc=flatpoint(dd[0],dd[1]);
+			flatpoint p2=flatpoint(dd[2],dd[3]);
+			if (command=='q') { cc+=curpoint; p2+=curpoint; }
+
+			if (lastwasmove) {
+				 //needed to add initial point of line
+				if (!points) ptr=points=new Coordinate(curpoint);
+				else {
+					ptr->next=new Coordinate(curpoint);
+					ptr=ptr->next;
+				}
+				numpoints++;
+			}
+			ptr->next=new Coordinate(curpoint+2./3*(cc-curpoint), POINT_TOPREV,0);
+			ptr->next->prev=ptr;
+			ptr=ptr->next;
+
+			ptr->next=new Coordinate(p2+2./3*(cc-p2), POINT_TONEXT,0);
+			ptr->next->prev=ptr;
+			ptr=ptr->next;
+
+			ptr->next=new Coordinate(p2);
+			ptr->next->prev=ptr;
+			ptr=ptr->next;
+			curpoint=ptr->fp;
+
+			numpoints+=3;
+
+			lastcontrol=ptr->p() - ptr->prev->p();
+			lastwasmove=0;
+			continue;
+
+		} else if (command=='T' || command=='t') {
+			 //smooth quadratic bezier curve continuation: (x y)+
+
+			if (!hascurpoint) throw (7);
+			double dd[2];
+			int n=LaxFiles::DoubleListAttribute(p,dd,2,&ee);
+			if (ee==p || n!=2) throw (8);
+			p=ee;
+
+			flatpoint cc=curpoint+lastcontrol*3/2;
+			flatpoint p2=flatpoint(dd[0],dd[1]);
+			if (command=='t') { p2+=curpoint; }
+
+			if (lastwasmove) {
+				 //needed to add initial point of line
+				if (!points) ptr=points=new Coordinate(curpoint);
+				else {
+					ptr->next=new Coordinate(curpoint);
+					ptr=ptr->next;
+				}
+				numpoints++;
+			}
+			ptr->next=new Coordinate(curpoint+2./3*(cc-curpoint), POINT_TOPREV,0);
+			ptr->next->prev=ptr;
+			ptr=ptr->next;
+
+			ptr->next=new Coordinate(p2+2./3*(cc-p2), POINT_TONEXT,0);
+			ptr->next->prev=ptr;
+			ptr=ptr->next;
+
+			ptr->next=new Coordinate(p2);
+			ptr->next->prev=ptr;
+			ptr=ptr->next;
+			curpoint=ptr->fp;
+
+			numpoints+=3;
+
+			lastcontrol=ptr->p() - ptr->prev->p();
+			lastwasmove=0;
+			continue;
+
+
+		} else if (command=='A' || command=='a') {
 			 //create an arc
-			//   A/a rx ry x-axis-rotation large-arc-flag sweep-flag x y
+			//   A/a rx ry            #x and y radii
+			//       x-axis-rotation  #tilt in degrees
+			//       large-arc-flag
+			//       sweep-flag
+			//       x y              #ending point
 			//
-			//      draw an arc. rx and ry are the x and y radii.
-			//      the ellipse is rotated by x-axis-rotation (degrees).
 			//	    An ellipse can touch both points in 2 ways (or none), and traced from p1 to p2 in two ways.
 			//      Which of the 4 possible segments used in determined by various combinations of the flags.
 			//      if large-arc-flag==1, then the swept out arc is large. 0 means small.
@@ -336,57 +461,115 @@ Coordinate *SvgToCoordinate(const char *d, int how, char **endptr, int *totalpoi
 			//
 			//		Implementation below is guided by svg 1.1 spec implementation notes F.6
 
-//			if (!hascurpoint) throw (9);
-//
-//			double dd[7];
-//			int n=LaxFiles::DoubleListAttribute(p,dd,7,&ee);
-//			if (ee==p || n!=7) throw (10);
-//
-//			double x1=curpoint.x,
-//				   y1=curpoint.y,
-//				   xr  =fabs(dd[0]),
-//				   yr  =fabs(dd[1]),
-//				   xrot=dd[2]*M_PI/180,
-//				   la  =(dd[3]==0 ? 0 : 1),
-//				   sw  =(dd[4]==0 ? 0 : 1),
-//				   x2  =dd[5],
-//				   y2  =dd[6];
-//
-//			if (curpoint.x==x2 && curpoint.y==y2) continue; //skip when same as curpoint
-//
-//			flatpoint mid=(curpoint-flatpoint(x2,y2))/2;
-//			double x1p= cos(xrot)*mid.x + sin(xrot)*mid.y;
-//			double y1p=-sin(xrot)*mid.x + cos(xrot)*mid.y;
-//			double lambda=x1p*x1p/(rx*rx) + y1p*y1p/(ry*ry);
-//			if (lambda>1) { //correction for scaling up when no solution otherwise
-//				rx*=sqrt(lambda);
-//				ry*=sqrt(lambda);
-//			}
-//
-//			double sq=sqrt((rx*rx*ry*ry - rx*rx*y1p*y1p - ry*ry*x1p*x1p) / (rx*rx*y1p*y1p + ry*ry*x1p*x1p));
-//			if (la==sw) sq=-sq;
-//
-//			double cxp=sq*rx*y1p/ry;
-//			double cyp=-sq*ry*x1p/rx;
-//
-//			double cx=cos(xrot)*cxp-sin(xrot)*cyp + (x1+x2)/2;
-//			double cy=sin(xrot)*cxp+cos(xrot)*cyp + (y1+y2)/2;
-//
-//			flatvector u,v;
-//			u.x=1; u.y=0;
-//			v.x=(x1p-cxp)/rx;  v.y=(y1p-cyp)/ry;
-//#define SIGN(a) ((a)<0?-1:((a)>0?1:0))
-//			double theta1=SIGN(u.x*v.y-u.y*v.x)*acos(u*v/norm(u)/norm(v)); //returns in range 0..pi
-//			double thetad=***;
-//
-//			if (sw==0 && theta1>0) theta1-=2*M_PI;  *** impl notes are mixed about whether this is theta1 or thetad!!!!
-//			else if (sw!=0 && theta1<0) theta1+=2*M_PI;
-//
-//			 //now ellipse is centered at cx,cy, radii rx,ry, rotateh xrot, from theta1 to (theta1+thetad)
-//			***
-//
-//			lastwasmove=0;
-//			continue;
+			if (!hascurpoint) throw (9);
+
+			double dd[7];
+			int n=LaxFiles::DoubleListAttribute(p,dd,7,&ee);
+			if (ee==p || n!=7) throw (10);
+			p=ee;
+
+			double x1  = curpoint.x,
+				   y1  = curpoint.y,
+				   rx  = fabs(dd[0]),
+				   ry  = fabs(dd[1]),
+				   xrot= dd[2]*M_PI/180,
+				   la  = (dd[3]==0 ? 0 : 1),
+				   sw  = (dd[4]==0 ? 0 : 1),
+				   x2  = dd[5] + (command=='a' ? curpoint.x : 0),
+				   y2  = dd[6] + (command=='a' ? curpoint.y : 0);
+
+			if (curpoint.x==x2 && curpoint.y==y2) continue; //skip when same as curpoint
+
+			if (rx==0 || ry==0) {
+				 //a radius had a bad value, treat whole thing as a line segment
+				if (lastwasmove) {
+					 //needed to add initial point of line
+					if (!points) ptr=points=new Coordinate(curpoint);
+					else {
+						ptr->next=new Coordinate(curpoint);
+						ptr=ptr->next;
+					}
+					numpoints++;
+				}
+
+				ptr->next=new Coordinate(x2,y2);
+				ptr->next->prev=ptr;
+				ptr=ptr->next;
+				numpoints++;
+
+				lastcontrol.set(0,0);
+				lastwasmove=0;
+				curpoint=fp;
+				continue;
+			}
+
+			flatpoint mid=(curpoint-flatpoint(x2,y2))/2;
+			double x1p= cos(xrot)*mid.x + sin(xrot)*mid.y;
+			double y1p=-sin(xrot)*mid.x + cos(xrot)*mid.y;
+			double lambda=x1p*x1p/(rx*rx) + y1p*y1p/(ry*ry);
+			if (lambda>1) { //correction for scaling up when no solution otherwise
+				rx*=sqrt(lambda);
+				ry*=sqrt(lambda);
+			}
+
+			double sq=sqrt((rx*rx*ry*ry - rx*rx*y1p*y1p - ry*ry*x1p*x1p) / (rx*rx*y1p*y1p + ry*ry*x1p*x1p));
+			if (la==sw) sq=-sq;
+
+			double cxp=sq*rx*y1p/ry;
+			double cyp=-sq*ry*x1p/rx;
+
+			double cx=cos(xrot)*cxp-sin(xrot)*cyp + (x1+x2)/2; //F.6.5.3 in svg 1.1 spec
+			double cy=sin(xrot)*cxp+cos(xrot)*cyp + (y1+y2)/2;
+
+			flatvector u,v;
+			u.x=1; u.y=0;
+			v.x=(x1p-cxp)/rx;  v.y=(y1p-cyp)/ry;
+			double uv = u.x*v.y-u.y*v.x;
+			double theta1 = (uv<0 ? -1 : (uv>0 ? 1 : 0)) * acos(u*v/norm(u)/norm(v));
+
+			u.x=( x1p-cxp)/rx;  u.y=( y1p-cyp)/ry;
+			v.y=(-x1p-cxp)/rx;  v.y=(-y1p-cyp)/ry;
+			uv = u.x*v.y-u.y*v.x;
+			double dtheta = (uv<0 ? -1 : (uv>0 ? 1 : 0)) * acos(u*v/norm(u)/norm(v));
+
+			if (sw==0 && dtheta>0) dtheta -= 2*M_PI;
+			else if (sw==1 && dtheta<0) theta1 += 2*M_PI;
+
+			dtheta = fmod(dtheta, 2*M_PI);
+			theta1 = fmod(theta1, 2*M_PI);
+
+			 //now ellipse is centered at cx,cy, radii rx,ry, rotated xrot, from theta1 to (theta1 + dtheta)
+			 //first insert initial point if necessary
+			if (lastwasmove) {
+				 //needed to add initial point of line
+				if (!points) ptr=points=new Coordinate(curpoint);
+				else {
+					ptr->next=new Coordinate(curpoint);
+					ptr=ptr->next;
+				}
+				numpoints++;
+			}
+
+			 //now insert 4 bezier segments forming hopefully at most a full circle
+			flatpoint xx(rx*cos(xrot),  rx*sin(xrot));
+			flatpoint yy(-ry*sin(xrot), ry*cos(xrot));
+			flatpoint pts[12];
+			Laxkit::bez_ellipse(pts, 4, cx,cy, rx,ry, xx,yy, theta1,theta1+dtheta);
+
+			int flag=0;
+			for (int c=2; c<13; c++) {
+				if (c%3==0) flag=POINT_TONEXT;
+				else if (c%3==1) flag=POINT_VERTEX;
+				else flag=POINT_TOPREV;
+
+				ptr->next=new Coordinate(c<12 ? pts[c] : pts[0], flag, NULL);
+				ptr->next->prev=ptr;
+				ptr=ptr->next;
+				numpoints++;
+			}
+
+			lastwasmove=0;
+			continue;
 
 		} else if (command=='Z' || command=='z') {
 			 //close path. If command other than a moveto follows a z, then the next subpath
@@ -443,7 +626,7 @@ Coordinate *SvgToCoordinate(const char *d, int how, char **endptr, int *totalpoi
 	}
 
 	DBG char *str=CoordinateToSvg(points);
-	DBG cerr <<"SvgToCoord \""<<d<<"\" --> \""<<str<<"\""<<endl;
+	DBG cerr <<"SvgToCoord \""<<d<<"\" --> \""<<(str?str:"???")<<"\""<<endl;
 	DBG delete[] str;
 
 	if (totalpoints) *totalpoints=numpoints;

@@ -712,8 +712,6 @@ void DisplayerCairo::LineAttributes(double width,int dash,int cap,int join)
 
 void DisplayerCairo::FillAttributes(int fillstyle, int fillrule)
 {
-	DBG cerr <<"*** need to fully implement DisplayerCairo::FillAttributes for fillstyle"<<endl;
-
 	if (!cr) return;
 
 	if (fillrule==LAXFILL_Nonzero) cairo_set_fill_rule(cr, CAIRO_FILL_RULE_WINDING);

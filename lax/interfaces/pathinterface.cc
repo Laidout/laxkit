@@ -5596,6 +5596,7 @@ void PathInterface::clearSelection()
 	curpoints.flush();
 	SetCurvertex(NULL);
 	curpath=NULL;
+	needtodraw=1;
 }
 
 //! Insert at real point p in path after/before relevant break near curvertex.
@@ -7203,6 +7204,7 @@ int PathInterface::PerformAction(int action)
 		} else {
 			curpath->SetAngle(0,0);
 		}
+		needtodraw=1;
 		return 0;
 
 	} else if (action==PATHIA_MakeStraight || action==PATHIA_MakeBezStraight) {

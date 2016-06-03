@@ -277,6 +277,8 @@ int ObjectInterface::AddToSelection(Selection *nselection)
 	for (int c=0; c<nselection->n(); c++) {
 		n+=AddToSelection(nselection->e(c));
 	}
+
+	RemapBounds();
 	return n;
 }
 
@@ -301,11 +303,22 @@ void ObjectInterface::RemapBounds()
 	data->clear();
 	
 	double m[6];
-	for (int c=0; c<selection->n(); c++) {
+	if (selection->n()==1) {
+		 //handle selection of 1 separately so that the selection rectangle exactly
+		 //matches the object rectangle. Otherwise, it might be skewed.
+		if (viewport) viewport->transformToContext(m,selection->e(0),0,1);
+		else transform_copy(m,selection->e(0)->obj->m());
+		data->m(m);
+		data->addtobounds(selection->e(0)->obj);
+
+	} else for (int c=0; c<selection->n(); c++) {
 		if (viewport) viewport->transformToContext(m,selection->e(c),0,1);
 		else transform_copy(m,selection->e(c)->obj->m());
 		data->addtobounds(m, selection->e(c)->obj);
 	}
+	syncFromData(1);
+	data->centercenter();
+	center1=flatpoint((data->minx+data->maxx)/2,(data->miny+data->maxy)/2);
 }
 
 //! Add an object to the selection, and resize bounding rectangle as appropriate.

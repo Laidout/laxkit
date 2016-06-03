@@ -130,7 +130,7 @@ class GroupData :   virtual public Laxkit::Tagged,
 	virtual void swap(int i1,int i2) { kids.swap(i1,i2); }
 	virtual int slide(int i1,int i2);
 
-	virtual int GroupObjs(int n, int *which);
+	virtual int GroupObjs(int n, int *which, int *newgroupindex);
 	virtual int UnGroup(int which);
 	virtual int UnGroup(int n,const int *which);
 	

@@ -853,6 +853,8 @@ double bez_arc_handle_length(double radius, double theta)
 
 //! Create an ellipse composed of numsegments bezier segments, or 4 if numsegments<=1.
 /*! Start and end in radians. If start==end, then assume a full circle.
+ *
+ * Points returned are c-p-c - c-p-c...
  */
 flatpoint *bez_ellipse(flatpoint *points, int numsegments,
 					   double x,double y,
