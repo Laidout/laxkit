@@ -262,10 +262,10 @@ void LineStyle::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *cont
 }
 
 //! Return whether we will actually be drawing a stroke.
-/*! Currently, this returns 1 for when function!=LAXOP_Dest and width>=0.
+/*! Currently, this returns 1 for when function!=LAXOP_Dest and width>0.
  */
 int LineStyle::hasStroke()
-{ return function!=LAXOP_Dest && function!=LAXOP_None && width>=0; }
+{ return function!=LAXOP_Dest && function!=LAXOP_None && width>0; }
 
 
 
