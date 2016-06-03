@@ -2606,8 +2606,6 @@ void anXApp::tooltipcheck(EventData *event, anXWindow *ww)
 			&& event->type!=LAX_onKeyDown  && event->type!=LAX_onKeyUp)
 		return; //below, only care about motion and button events
 
-	DBG cerr << " ****************************************CHECKING"<<endl;
-
 	 //so there has been a motion or button event, which will disqualify the tooltip
 	 //if greater than the threshhold 
 
