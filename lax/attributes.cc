@@ -581,14 +581,15 @@ int SimpleColorAttribute(const char *v,unsigned long *color_ret, Laxkit::ScreenC
 }
 
 /*! Colors should be enough to potentially hold 5 doubles.
- * Returned value is rgba.
+ * Returned value is rgba clamped to [0..1].
  */
 int SimpleColorAttribute(const char *v, double *colors, const char **end_ptr)
 {
 	while (isspace(*v)) v++;
 
 
-	int type=0; //3=rgb, 1=gray, 4=cmyk
+	int type=0; //3=rgb, 1=gray, 4=cmyk, 5=hsl
+	int numcc=0; //3=rgb, 1=gray, 4=cmyk
 	int a=0, f=-1;
 
 	if (*v=='#') {
@@ -603,15 +604,23 @@ int SimpleColorAttribute(const char *v, double *colors, const char **end_ptr)
 
 	if (strcasestr(v,"rgb")==v) {
 		v+=3;
+		numcc=3;
 		type=3;
 
 	} else if (strcasestr(v,"gray")==v) {
 		v+=4;
+		numcc=1;
 		type=1;
 
 	} else if (strcasestr(v,"cmyk")==v) {
 		v+=4;
+		numcc=4;
 		type=4;
+
+	} else if (strcasestr(v,"hsl")==v) {
+		v+=3;
+		numcc=3;
+		type=5;
 
 	} else if (!isdigit(*v)) {
 		 //is same name, so check css like named colors, assume fully opaque
@@ -646,67 +655,70 @@ int SimpleColorAttribute(const char *v, double *colors, const char **end_ptr)
 
 	if (strchr(v,'.')!=NULL) f=0; //assume floats if has decimal points
 
-	if (type!=0 && (*v=='a' || *v=='A')) { a=1; v++; } // has alpha
-	if (type!=0 && (*v=='f' || *v=='F')) { f=0; v++; } // read in floats
-	if (type!=0 && *v=='8') { f=8; v++; }
-	else if (type!=0 && v[0]=='1' && v[1]=='6') { f=16; v+=2; }
+	if (numcc!=0 && (*v=='a' || *v=='A')) { a=1; v++; } // has alpha
+	if (numcc!=0 && (*v=='f' || *v=='F')) { f=0; v++; } // read in floats
+	if (numcc!=0 && *v=='8') { f=8; v++; }
+	else if (numcc!=0 && v[0]=='1' && v[1]=='6') { f=16; v+=2; }
 	if (f==-1) f=16;
 
 	bool hasparen= (*v=='(');
 	if (hasparen) v++;
 
-	int i[5];
-	if (type==0) type=3;
-	int max=(f==16?65535:255);
- 
-	 //first create list of integers in range 0..max
 	int numf=0;
 	if (f==0) { //is list of floats
-		max=65535;
 		char *endptr=NULL;
 		int n=DoubleListAttribute(v, colors,5, &endptr);
-		if (type==0) { //adapt to 3 or 4 fields when only a number list was supplied
-			type=3;
+		if (numcc==0) { //adapt to 3 or 4 fields when only a number list was supplied
+			numcc=3;
 			if (n==4) a=1;
 		}
-		if (n!=type+a) {
+		if (n!=numcc+a) {
 			return 1;
 		} 
 
+		numf=numcc+a;
 		v=endptr;
 
-	} else { //f==8 or 16
+	} else { //f==8 or 16, so 8 or 16 bit integer channels
 		char *endptr=NULL;
+		int i[5];
 		int n=IntListAttribute(v,i,5,&endptr);
-		if (type==0) { //adapt to 3 or 4 fields when only a number list was supplied
-			type=3;
+		if (numcc==0) { //adapt to 3 or 4 fields when only a number list was supplied
+			numcc=3;
 			if (n==4) a=1;
 		}
-		if (n!=type+a) return 1;
+		if (n!=numcc+a) return 1;
 		v=endptr;
 
-		numf=type+a;
+		numf=numcc+a;
 		for (int c=0; c<numf; c++) {
 			colors[c]=i[c]/(f==8 ? 255. : 65535.);
 		}
 	}
 
-	 //clamp values to [0..max]
+	 //clamp values to [0..1]. hsl has special conversion to divide by 360.
 	for (int cc=0; cc<numf; cc++) {
-		if (i[cc]<0) i[cc]=0;
-		else if (i[cc]>1.0) i[cc]=1.0;
+		if (cc==0 && type==5) colors[cc]=colors[cc]/360.0;
+
+		if (colors[cc]<0) colors[cc]=0;
+		else if (colors[cc]>1.0) colors[cc]=1.0;
 	}
 
 	 //now convert to rgb
 	if (type==3) {
 		 //rgb
-		if (!a) colors[3]=max; //make fully opaque if alpha field not provided
+		if (!a) colors[3]=1.0; //make fully opaque if alpha field not provided
 
 	} else if (type==1) {
 		 //gray
-		if (!a) colors[3]=max; //make fully opaque if alpha field not provided
+		if (!a) colors[3]=1.0; //make fully opaque if alpha field not provided
 		else colors[3]=colors[1];
 		colors[1]=colors[2]=colors[0];
+
+	} else if (type==5) {
+		 //hsl
+		simple_hsl_to_rgb(colors[0], colors[1], colors[2], &colors[0], &colors[1], &colors[2]);
+		if (!a) colors[3]=1.0; //make fully opaque if alpha field not provided
 
 	} else {
 		 //cmyk
