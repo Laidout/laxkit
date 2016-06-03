@@ -42,6 +42,7 @@ namespace Laxkit {
  */
 	
 DBG static int numofanObject=0;
+DBG unsigned int CHECK=1202;
 
 //! Set object_id=getUniqueNumber().
 anObject::anObject()
@@ -52,6 +53,10 @@ anObject::anObject()
 	object_id=getUniqueNumber(); 
 	object_idstr=NULL;
 	DBG cerr <<"anObject tracker "<<object_id<<"   created    num of anObjects: "<<numofanObject<<endl;
+
+	DBG if (object_id==CHECK) {
+	DBG 	cerr <<" Agh!"<<endl;
+	DBG }
 
 	_count=1; 
 }
@@ -114,6 +119,10 @@ void anObject::touchContents()
 int anObject::inc_count()
 {
 	_count++;
+
+	DBG if (object_id==CHECK) {
+	DBG 	cerr <<" Agh!"<<endl;
+	DBG }
 	DBG if (!suppress_debug) {
 	DBG   cerr <<"refcounted inc count, now: "<<_count<<endl;
 	DBG   cerr<<whattype()<<" "<<object_id<<" inc counted: "<<_count<<endl;
@@ -133,6 +142,9 @@ int anObject::dec_count()
 	DBG if (!suppress_debug) {
 	DBG   cerr <<"refcounted dec count, now: "<<_count<<(_count==0?", deleting":"")<<endl;
 	DBG   cerr<<whattype()<<" "<<object_id<<" dec counted: "<<_count<<endl;
+	DBG }
+	DBG if (object_id==CHECK) {
+	DBG 	cerr <<" Agh!"<<endl;
 	DBG }
 
 	if (_count<=0) {

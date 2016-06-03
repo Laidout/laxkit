@@ -59,14 +59,12 @@ LAXOBJDIR=objs
 
 
 
-
-
-all: lax interfaces laxinput touchdepends
+#this compiles the core laxkit only, not laxinput
+almostall: lax interfaces touchdepends
 	@echo "  -----------Done!-------------" 
 
 
-#this compiles the core laxkit only, not interfaces
-almostall: lax touchdepends
+all: lax interfaces laxinput touchdepends
 	@echo "  -----------Done!-------------" 
 
 
@@ -159,9 +157,10 @@ unhidegarbage:
 dist-clean: clean 
 	rm -f install.log
 	rm -rf docs/html
+	rm -rf Makefile-toinclude config.log lax/configured.h lax/version.h
 
 .PHONY: clean docs lax interfaces depends unhidegarbage hidegarbage laxinput icons deb
 clean:
-	cd lax && rm -f *.o *.a *.so
-	cd lax/interfaces && rm -f *.o *.a *.so
+	cd lax && rm -f *.o *.a *.so *.so.*
+	cd lax/interfaces && rm -f *.o *.a *.so *.so.*
 

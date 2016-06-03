@@ -37,7 +37,7 @@ First ensure that all Laxkit dependecies are present. On debian systems, you can
 
 Now download and compile the Laxkit (don't have to be root):
 
-    git clone http://github.com/tomlechner/laxkit  
+    git clone http://github.com/Laidout/laxkit  
     cd laxkit
     ./configure
     make depends

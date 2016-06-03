@@ -3,7 +3,7 @@ THE LAXKIT
 ---------------
 Version 0.0.8.1  
 Released under the LGPL  
-http://github.com/tomlechner/laxkit  
+http://github.com/Laidout/laxkit  
 http://laxkit.sourceforge.net  
 
 
@@ -71,11 +71,10 @@ The development version of the Laxkit is currently kept on github. To access,
 you will need git installed, as well as all the extra packages listed above.
 Then do:
 
-    git clone http://github.com/tomlechner/laxkit.git laxkit-git
+    git clone http://github.com/Laidout/laxkit.git laxkit-git
     
     cd laxkit-git
-    ./configure
-    make depends
+    ./configure 
     make
     make icons  ##<- this requires you have Inkscape installed
     make docs   ##<- optional
@@ -83,16 +82,17 @@ Then do:
 By default, running the Laxkit directly from git code will pump out lots of debugging information 
 to the terminal. To prevent this, do `make hidegarbage` before `make`.
 
+If you make any changes to include statements in source files, you should
+run `make depends` which updates dependency checks when compiling.
+
 
 CONTRIBUTING
 ------------
 If you are interested in translating, please look in lax/po/README, which gives
 a rough overview of how to go about that. The Laxkit uses gettext for translations.
 
-Bug reports and reviews are welcome!
-There is currently no dedicated mailing list, but since the Laxkit is very much tied
-to Laidout, free to post any questions to the Laidout mailing list:
- http://lists.sourceforge.net/lists/listinfo/laidout-general
+Bug reports and reviews are welcome! You can post to Laxkit's
+github issue tracker: https://github.com/Laidout/laxkit/issues
 
 
 DOCUMENTATION

@@ -71,6 +71,7 @@ class Selection : public Laxkit::anObject, public Laxkit::DoubleBBox
 	virtual int Add(LaxInterfaces::ObjectContext *oc, int where, int ninfo=-1);
 	virtual int AddNoDup(LaxInterfaces::ObjectContext *oc, int where, int ninfo=-1);
 	virtual int Remove(int i);
+	virtual ObjectContext *Pop(int i);
 	virtual void Flush();
 	virtual LaxInterfaces::ObjectContext *CurrentObject();
 	virtual int CurrentObjectIndex() { return currentobject; }

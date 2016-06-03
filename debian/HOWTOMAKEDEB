@@ -9,12 +9,11 @@ MAKING LAXKIT DEB PACKAGE
     
     Now branch in github
     
-        *****UPDATE!!*** svn copy https://laxkit.svn.sourceforge.net/svnroot/laxkit/laxkit/trunk \
-          https://laxkit.svn.sourceforge.net/svnroot/laxkit/laxkit/tags/(whatever version)
+        *****UPDATE!! HOW TO DO THIS IN GIT??? *******
 
 2.  modify source
     check out the new branch:
-        git clone http://github.com/tomlechner/laxkit-(version).git
+        git clone http://github.com/Laidout/laxkit-(version).git
 
     make sure version number is correct in any source files that refer to it, currently:
         configure docs/Doxyfile docs/docs.html docs/faq.html docs/index.html README.md lax/lax-config debian/changelog debian/laxkit.1 debian/liblaxkit-doc.install debian/liblaxkit.install 
@@ -26,7 +25,7 @@ MAKING LAXKIT DEB PACKAGE
 
 3. Export a copy of the new tag and make a tarball. 
 
-        git clone http://github.com/tomlechner/laxkit-(version).git
+        git clone http://github.com/Laidout/laxkit-(version).git
         (then remove the .git directory: cd laxkit-(version); rm -rfv .git;
     
         cd laxkit-(version)
