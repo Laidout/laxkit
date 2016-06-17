@@ -64,6 +64,7 @@ class InterfaceManager : public Laxkit::anObject
 	virtual Laxkit::UndoManager *GetUndoManager();
 	virtual Laxkit::ObjectFactory *GetObjectFactory(); 
 	virtual Laxkit::Displayer *GetPreviewDisplayer();
+	virtual Laxkit::Displayer *GetDisplayer(int purpose);
 
 	virtual anObject *NewObject(const char *type);
 	virtual anObject *NewObject(int type);
