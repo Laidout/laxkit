@@ -70,7 +70,7 @@ TextOnPath::TextOnPath()
 	start_offset=0; //actual distance along path from start of path
 	end_offset=-1;
 	path_length = -1;
-	pathdirection=0;
+	pathdirection=0; //0, 2 go forward on path, 1, 3 go backward
 
 	rotation=0;
 
@@ -605,7 +605,7 @@ int TextOnPath::Remap()
 	needtorecache = false;
 	
 
-	 //cleanup
+	 //cleanup hb and freetype stuff
 	hb_buffer_destroy (hb_buffer); 
 	hb_font_destroy (hb_font);
 	FT_Done_Face (ft_face);
@@ -615,20 +615,27 @@ int TextOnPath::Remap()
 	 //we need to apply it to the actual line
 	double d = start_offset;
 	flatpoint point, tangent; 
-	double strokewidth=path->defaultwidth;
+	double scaling = 1;
+
+	double strokewidth = path->defaultwidth;
+	if (baseline_type==FROM_Envelope) {
+		strokewidth=path->GetWeight(path->t_to_distance(pathdirection%2==0 ? d : -d, NULL), &strokewidth, NULL, NULL);
+	}
 
 	for (int i = 0; i < numglyphs; i++) {
 		if (pathdirection%2==0) {
 			if (baseline_type==FROM_Envelope) {
-				path->PointInfo(d,1, &point, &tangent, NULL, NULL, NULL, NULL, &strokewidth, NULL);
+				scaling = strokewidth/font->Msize()*72.;
+				path->PointInfo(d+scaling*glyphs.e[i]->x_advance/2/72, 1, &point, &tangent, NULL, NULL, NULL, NULL, &strokewidth, NULL);
 			} else {
-				offsetpath->PointAlongPath(d, 1, &point, &tangent);
+				offsetpath->PointAlongPath(d+glyphs.e[i]->x_advance/2/72, 1, &point, &tangent);
 			}
 		} else {
 			if (baseline_type==FROM_Envelope) {
-				path->PointInfo(-d,1, &point, &tangent, NULL, NULL, NULL, NULL, &strokewidth, NULL);
+				scaling = strokewidth/font->Msize()*72.;
+				path->PointInfo(-d-scaling*glyphs.e[i]->x_advance/2/72,1, &point, &tangent, NULL, NULL, NULL, NULL, &strokewidth, NULL);
 			} else {
-				offsetpath->PointAlongPath(-d, 1, &point, &tangent);
+				offsetpath->PointAlongPath(-d-glyphs.e[i]->x_advance/2/72, 1, &point, &tangent);
 			}
 			tangent = -tangent;
 		}
