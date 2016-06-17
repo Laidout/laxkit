@@ -86,6 +86,20 @@ Laxkit::Displayer *InterfaceManager::GetPreviewDisplayer()
 	return previewer;
 }
 
+/*! Return a new Displayer object for some specific purpose.
+ * By convention, purpose==0 means a displayer fit for screen display,
+ * and 1 means a dispalyer meant for print, that is, for high resolution rendering.
+ *
+ * Note that unlike GetPreviewDisplayer(), this returns a new object, and thus must
+ * be dec_counted when done.
+ *
+ * Default here is to just return newDisplayer(NULL).
+ */
+Laxkit::Displayer *InterfaceManager::GetDisplayer(int purpose)
+{
+	return newDisplayer(NULL);
+}
+
 /*! The tools ResourceManager object by default has two ResourceTypes.
  *
  * One is "tools", each resource of which is an instance of any interface usuable. This is
