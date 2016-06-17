@@ -507,6 +507,7 @@ class PathInterface : public anInterface
 	//virtual void RegisterOp(PathOperator *apathop);
 	virtual int ChangeCurpathop(int newiid);
 
+	virtual int VerticesSelected();
 	virtual int DeleteCurpoints();
 	virtual int DeletePoint(Coordinate *p);
 	virtual void deletedata();

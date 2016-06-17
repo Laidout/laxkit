@@ -66,11 +66,12 @@ namespace LaxInterfaces {
 
 enum PathHoverType {
 	HOVER_None=0,
+	HOVER_MaybeNewPoint, 
 	HOVER_Point,
 	HOVER_Vertex,
-	HOVER_AddingPoint,
+	HOVER_AddingPoint, //helps keep track of whether we add a vertex only, or point with controls
 	HOVER_Handle,
-	HOVER_AddPoint,
+	HOVER_AddPoint, //for adding point under mouse to existing path
 	HOVER_Endpoint,
 	HOVER_MergeEndpoints,
 	HOVER_AddSegment,
@@ -889,13 +890,18 @@ void Path::UpdateCache()
 	bool isline;
 	flatpoint vvv;
 	double width;
+	double EPSILON = 1e-10;
 
 	do { //one loop per vertex point
 		p2=p->next; //p points to a vertex
 		if (!p2) break;
-		if (p2->flags&POINT_VERTEX && p2->p()==p->p()) {
-			p=p2;
-			continue; //skip zero length segments
+		if (p2->flags&POINT_VERTEX) {
+			//double segdist = norm2(p2->p()-p->p());
+			if (norm2(p2->p()-p->p()) < EPSILON) {
+				 //skip zero-ish length segments
+				p=p2;
+				continue;
+			}
 		}
 
 		 //figure out where to sample the current bezier segment. When there are weight nodes,
@@ -3881,12 +3887,30 @@ void PathInterface::deletedata()
 //	}
 //}
 
+/*! Return the number of vertices (not control points) selected.
+ */
+int PathInterface::VerticesSelected()
+{
+	int n=0;
+	for (int c=0; c<curpoints.n; c++) {
+		if (curpoints.e[c]->flags&POINT_VERTEX) n++;
+	}
+	return n;
+}
+
 //! Delete all points in curpoints.
 /*! If the point is a vertex, this will remove any attached bezier handles.
  */
 int PathInterface::DeleteCurpoints()
 {
-	while (curpoints.n) {
+	for (int c=curpoints.n-1; c>=0; c--) { 
+		if (pathi_style&PATHI_Two_Point_Minimum) {
+			int path=data->hasCoord(curpoints.e[c]);
+			if (path>=0) {
+				if (data->paths.e[path]->NumVertices(NULL)<=2) continue;
+			}
+		}
+
 		if (DeletePoint(curpoints.e[0])!=0) break; //this will remove from curpoints, break out of loop on fail
 	}
 	if (data) data->FindBBox();
@@ -4633,8 +4657,7 @@ void PathInterface::drawWeightNode(Path *path, PathWeightNode *weight, int isfor
 	//bool absoluteangle=path->absoluteangle;
 
 	flatpoint pp,po, ptop,pbottom, vv,vt;
-	if (WeightNodePosition(path, weight, &pp,&po, &ptop,&pbottom, &vv,&vt, 0)!=0) return;
-
+	if (WeightNodePosition(path, weight, &pp,&po, &ptop,&pbottom, &vv,&vt, 2)!=0) return;
 
 	dp->NewFG(controlcolor);
 	dp->DrawScreen();
@@ -4871,6 +4894,9 @@ Coordinate *PathInterface::scannear(Coordinate *p,char u,double radius) //***rad
 
 /*! Return 1 if node not on path.
  * Return 0 for success.
+ *
+ * needtotransform==1 means transform with realtoscreen().
+ * needtotransform==2 means transform with dp->realtoscreen().
  */
 int PathInterface::WeightNodePosition(Path *path, PathWeightNode *weight,
 									  flatpoint *pp_ret, flatpoint *po_ret, flatpoint *ptop_ret, flatpoint *pbottom_ret,
@@ -4890,15 +4916,19 @@ int PathInterface::WeightNodePosition(Path *path, PathWeightNode *weight,
 	vt=transpose(vv);
 
 	ptop=po+vt*weight->width/2;
-	if (needtotransform) ptop = realtoscreen(transform_point(data->m(), ptop));
+	if (needtotransform==1)      ptop =     realtoscreen(transform_point(data->m(), ptop));
+	else if (needtotransform==2) ptop = dp->realtoscreen(ptop);
 	else ptop=realtoscreen(ptop);
 
 	pbottom=po-vt*weight->width/2;
-	if (needtotransform) pbottom = realtoscreen(transform_point(data->m(), pbottom));
+	if (needtotransform==1)      pbottom =     realtoscreen(transform_point(data->m(), pbottom));
+	else if (needtotransform==2) pbottom = dp->realtoscreen(pbottom);
 	else pbottom=realtoscreen(pbottom);
 
-	if (needtotransform) 
-		vv =realtoscreen(transform_point(data->m(),po+vv))-realtoscreen(transform_point(data->m(),po));
+	if (needtotransform==1) 
+		vv =realtoscreen(transform_point(data->m(),po+vv)) - realtoscreen(transform_point(data->m(),po));
+	else if (needtotransform==2) 
+		vv =dp->realtoscreen(po+vv) - dp->realtoscreen(po);
 	else vv=realtoscreen(po+vv)-realtoscreen(po);
 
 	vv.normalize();
@@ -6753,9 +6783,9 @@ Laxkit::ShortcutHandler *PathInterface::GetShortcuts()
 
 	sc->Add(PATHIA_ApplyOffset,       '_',ControlMask|ShiftMask,0,  "ApplyOffset",  _("Apply offset to current paths"),NULL,0);
 	sc->Add(PATHIA_ResetOffset,       '|',ControlMask|ShiftMask,0,  "ResetOffset",  _("Make offset values (if any) be 0 of current paths"),NULL,0);
-	sc->Add(PATHIA_MakeStraight,      'I',ShiftMask,0, "MakeStraight",    _("Make segments of current points be straight"),NULL,0);
-	sc->Add(PATHIA_MakeBezStraight,   'i',0,0,         "MakeBezStraight", _("Make segments of current points be straight with bezier handles"),NULL,0);
-	sc->Add(PATHIA_ResetAngle,        '<',ShiftMask,0, "ResetAngle",      _("Make weight angles be zero, and set to not absolute angles"),NULL,0);
+	sc->Add(PATHIA_MakeStraight,      '\\',ControlMask,0,"MakeStraight",    _("Make segments of current points be straight"),NULL,0);
+	sc->Add(PATHIA_MakeBezStraight,   '\\',0,0,          "MakeBezStraight", _("Make segments of current points be straight with bezier handles"),NULL,0);
+	sc->Add(PATHIA_ResetAngle,        '<',ShiftMask,0,   "ResetAngle",      _("Make weight angles be zero, and set to not absolute angles"),NULL,0);
 
 	//sc->Add(PATHIA_Combine,           'k',ControlMask,0,    "Combine",      _("Combine multiple path objects into a single path object"),NULL,0);
 	//sc->Add(PATHIA_ExtractPath,       'K',ShiftMask,0,      "ExtractPath",  _("Move paths of current points to a new path object"),NULL,0);
