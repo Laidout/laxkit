@@ -603,10 +603,10 @@ anXApp::~anXApp()
 
 	delete[] default_language;
 	delete[] default_icon_file;
+	delete[] app_profile;
 	if (load_dir) delete[] load_dir;
 	if (save_dir) delete[] save_dir;
 	if (controlfontstr) delete[] controlfontstr;
-	if (app_profile) app_profile=NULL;
 	if (copybuffer) delete[] copybuffer;
 
 	
