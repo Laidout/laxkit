@@ -1067,6 +1067,8 @@ double *TransformAttribute(const char *v,double *m,char **endptr)
  * and '\"' becomes one doublequote. In fact any other character following the backslash just inserts
  * that character.
  *
+ * Quotes can me '"' or '\''.
+ *
  * On error or no first chunk, NULL is returned.
  *
  * Please note that it is assumed that there is no trailing comment in v. That is, there
@@ -1081,21 +1083,25 @@ char *QuotedAttribute(const char *v,char **endptr)
 	if (!v) return NULL;
 	char *s=new char[strlen(v)+1],*sp=s;
 	const char *p=v;
+	char quote=0;
 
 	while (isspace(*p)) p++;
-	if (*p!='"') {
+
+	if (*p!='"' && *p!='\'') {
 		 // no quotes, just grab the first ws delimited chunk
 		while (*p && !isspace(*p)) {
 			*sp=*p;
 			sp++;
 			p++;
 		}
+
 	} else {
 		 // there were initial quotes..
+		quote=*p;
 		p++; //skip initial quote
 		while (1) {
-			while (*p && *p!='\\' && *p!='"') { *sp=*p; sp++; p++; }
-			if (*p=='"') { //endquote
+			while (*p && *p!='\\' && *p!=quote) { *sp=*p; sp++; p++; }
+			if (*p==quote) { //endquote
 				p++;
 				while (isspace(*p)) p++;
 				break;
@@ -2009,9 +2015,9 @@ int NameValueAttribute(const char *str, char **name, char **value, char **end_pt
 	}
 	 
 	 // so theres an '=', but not sure if there's a value yet
-	str++;
+	str++; //skip over the assign char
 	while (isspace(*str)) str++; //str now points to the start of value
-	if (*str=='"') *value=QuotedAttribute(str,&e);
+	if (*str=='"' || *str=='\'') *value=QuotedAttribute(str,&e);
 	else if (*str) {
 		e=const_cast<char *>(str);
 		while (*e && !isspace(*e) && *e!=delim && !(stopat && strchr(stopat,*e))) e++;
@@ -2037,7 +2043,7 @@ Attribute *NameValueToAttribute(Attribute *att,const char *str, char assign, cha
 {
 	if (!att) att=new Attribute;
 
-	char *name,*value;
+	char *name=NULL,*value=NULL;
 	char *end;
 
 	end=const_cast<char *>(str);
@@ -2045,6 +2051,8 @@ Attribute *NameValueToAttribute(Attribute *att,const char *str, char assign, cha
 		str=end;
 		if (NameValueAttribute(str,&name,&value,&end,assign,delim,NULL)!=0) break;
 		att->push(name,value);
+		delete[] name;
+		delete[] value;
 	} while (end!=str);
 	return att;
 }

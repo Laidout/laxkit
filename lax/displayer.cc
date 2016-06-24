@@ -391,6 +391,7 @@ int Displayer::righthanded()
 }
 
 /*! Return whether the default non-transformed ctm should be righthanded or not.
+ * Right handed means positive Y goes up.
  */
 bool Displayer::defaultRighthanded()
 {
@@ -398,6 +399,7 @@ bool Displayer::defaultRighthanded()
 }
 
 /*! Set whether the default non-transformed ctm should be righthanded or not.
+ * Right handed means positive Y goes up.
  *
  * Returns old value.
  */

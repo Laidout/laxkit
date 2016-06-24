@@ -635,7 +635,11 @@ int save_image_cairo(LaxImage *image, const char *filename, const char *format)
 	cairo_surface_t *surface=img->image;
 	if (!surface) return 2;
 
-	cairo_surface_write_to_png(surface, filename);
+	cairo_status_t status = cairo_surface_write_to_png(surface, filename);
+	if (status!=CAIRO_STATUS_SUCCESS) {
+		DBG cerr <<"Error saving cairo preview: "<<cairo_status_to_string(status)<<endl;
+		return 1;
+	}
 	return 0;
 }
 

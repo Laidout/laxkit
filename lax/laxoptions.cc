@@ -398,6 +398,54 @@ int LaxOptions::Add(const char *long_option,
 	return 0;
 }
 
+/*! Bash doesn't properly connect arguments with subquoted areas. All args are separated
+ * in bash vigourously by space, so we maybe have to combine args.
+ *
+ * Returns how many args starting at c were combined.
+ */
+int GetArg(char **arg_ret, int argc, char **argv, int c)
+{
+	char *arg = argv[c];
+	int cc=c;
+	
+	char *newarg=newstr(arg);
+	char *s=arg;
+	int quoted=0;//or '\'' or '"'
+
+	do {
+		if (*s=='\\') {
+			s++;
+			if (*s) s++;
+		} else {
+			if (*s=='\'') {
+				if (quoted=='\'') quoted=0;
+				else if (quoted==0) quoted='\'';
+
+			} else if (*s=='"') {
+				if (quoted=='"') quoted=0;
+				else if (quoted==0) quoted='"';
+			}
+			s++;
+		}
+		if (*s=='\0') {
+			if (quoted) {
+				 //have to connect with next one
+				cc++;
+				arg=argv[cc];
+				appendstr(newarg, " ");
+				appendstr(newarg, arg);
+				s=arg;
+			}
+		}
+	} while (*s);
+
+	delete[] *arg_ret;
+	*arg_ret = newarg;
+	makestr(*arg_ret, newarg);
+
+	return cc-c+1;
+}
+
 //! Parse options.
 /*! This follows basic conventions that long options are preceeded with "--". Any number of short options 
  * can follow a "-" unless it expects a parameter. An argument of only "--" is ignored and signifies that all
@@ -422,6 +470,10 @@ int LaxOptions::Parse(int argc, char **argv, int *argerr)
 	int i, c2;
 	LaxOption *o=NULL;
 
+	//DBG for (int c=1; c<argc; c++) {
+	//DBG 	cout << "arg "<<c<<": "<<argv[c]<<endl;
+	//DBG }
+		
 	first_remaining=n;
 
 	for (int c=1; c<argc; c++) {
@@ -452,8 +504,10 @@ int LaxOptions::Parse(int argc, char **argv, int *argerr)
 								if (argerr) *argerr=c;
 								return -2;
 							}
-							makestr(o->parsed_arg, argv[c+1]);
-							c++;
+							c+=GetArg(&o->parsed_arg, argc, argv, c+1);
+							//----------
+							//makestr(o->parsed_arg, argv[c+1]);
+							//c++;
 						}
 					} else {
 						 //unknown option!
@@ -483,8 +537,9 @@ int LaxOptions::Parse(int argc, char **argv, int *argerr)
 								if (argerr) *argerr=c;
 								return -2;
 							}
-							makestr(o->parsed_arg, argv[c+1]);
-							c++;
+							c+=GetArg(&o->parsed_arg, argc, argv, c+1);
+							//makestr(o->parsed_arg, argv[c+1]);
+							//c++;
 							i=-1;
 							break; //stop looking for more short options
 						}
@@ -502,6 +557,7 @@ int LaxOptions::Parse(int argc, char **argv, int *argerr)
 	}
 	return nopts;
 }
+
 
 //! When a missing parameter of unknown option is encountered in Parse(), use this to return the object for more info.
 /*! Particularly, for missing parameters, this gives you easy access to the help text corresponding to that option.
