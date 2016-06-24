@@ -56,9 +56,6 @@ namespace Laxkit {
 /*! \var char LaxCairoImage::flag
  * \brief 1 if the image should be free'd when not in use (assumes filename is good). else 0.
  */
-/*! \var char LaxCairoImage::whichimage
- * \brief Which image is in memory. 0 for none, 1 for main, 2 for preview.
- */
 /*! \var int LaxCairoImage::width
  * \brief The actual width of the full image.
  */
@@ -70,7 +67,6 @@ namespace Laxkit {
 LaxCairoImage::LaxCairoImage()
   : LaxImage(NULL)
 { 
-	whichimage=0;
 	flag=0;
 	display_count=0;
 
@@ -95,7 +91,6 @@ LaxCairoImage::LaxCairoImage(const char *fname, cairo_surface_t *img)
 	: LaxImage(fname)
 {
 	display_count=0; 
-	whichimage=0;
 	flag=0;
 	image=NULL;
 
@@ -111,14 +106,12 @@ LaxCairoImage::LaxCairoImage(const char *fname, cairo_surface_t *img)
 	} else image=img;
 
 	if (image) {
-		whichimage=1;
 		width= cairo_image_surface_get_width(image),
 	    height=cairo_image_surface_get_height(image);
 		if (!img || (img && fname)) {
 			 //free the just loaded image
 			cairo_surface_destroy(image);
 			image=NULL;
-			whichimage=0;
 
 		} else if (fname) flag=1;
 
@@ -134,7 +127,6 @@ LaxCairoImage::LaxCairoImage(const char *original, const char *fname, int maxw, 
 	: LaxImage(fname)
 {
 	display_count=0;
-	whichimage=0;
 	flag=0;
 	image=NULL;
 
@@ -205,7 +197,6 @@ LaxCairoImage::~LaxCairoImage()
 	if (image) {
 		cairo_surface_destroy(image);
 		image=NULL;
-		whichimage=0;
 	}
 }
 
@@ -352,23 +343,19 @@ void LaxCairoImage::clear()
 
 unsigned int LaxCairoImage::imagestate()
 {
-	return (filename?LAX_IMAGE_HAS_FILE:0) |
-		   (width>0?LAX_IMAGE_METRICS:0) |
-		   (whichimage==1?LAX_IMAGE_WHOLE:0);
+	return (filename ? LAX_IMAGE_HAS_FILE : 0) |
+		   (width>0 ? LAX_IMAGE_METRICS : 0) |
+		   (image!=NULL ? LAX_IMAGE_WHOLE : 0);
 }
 
 
-//! Calling this makes it easier on the cairo cache.
-/*! Calls <tt>cairo_context_set_image(image)</tt> then <tt>cairo_free_image()</tt>
- * if image was not null and flag==0.
+/*! Calling this is supposed to make it easier on the memory cache, by allowing
+ * other code to free the cairo_surface from memory. Calling Image() will place
+ * it back in memory.
  */
 void LaxCairoImage::doneForNow()
 {
 	if (!image || flag) return;
-	//cairo_context_set_image(image);
-	//cairo_free_image();
-	//image=NULL;
-	whichimage=0;
 
 	if (display_count>0) display_count--;
 }
@@ -388,18 +375,21 @@ void LaxCairoImage::doneForNow()
 cairo_surface_t *LaxCairoImage::Image()
 {
 	if (!image) {
-		image=cairo_image_surface_create_from_png(filename);
-		if (cairo_surface_status(image)!=CAIRO_STATUS_SUCCESS) {
-			cairo_surface_destroy(image);
-			image=NULL;
-			whichimage=0;
+		if (importer && filename) {
+			importer->LoadToMemory(this);
 
-		} else { //success loading
-			if (width<=0 || height<=0) {
-				width= cairo_image_surface_get_width(image),	
-				height=cairo_image_surface_get_height(image);
+		} else {
+			image=cairo_image_surface_create_from_png(filename);
+			if (cairo_surface_status(image)!=CAIRO_STATUS_SUCCESS) {
+				cairo_surface_destroy(image);
+				image=NULL;
+
+			} else { //success loading
+				if (width<=0 || height<=0) {
+					width= cairo_image_surface_get_width(image),	
+					height=cairo_image_surface_get_height(image);
+				}
 			}
-			whichimage=1;
 		}
 	} 
 
@@ -550,7 +540,7 @@ LaxImage *load_cairo_image(const char *filename)
 
 	if (!image) { 
 		 //cairo load failed, try other loaders
-		LaxImage *img = load_image_with_loaders(filename, NULL,0,0,NULL, 0, LAX_IMAGE_CAIRO, NULL);
+		LaxImage *img = load_image_with_loaders(filename, NULL,0,0,NULL, 0, LAX_IMAGE_CAIRO, NULL, false);
 		return img;
 	}
 
