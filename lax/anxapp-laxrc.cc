@@ -201,11 +201,11 @@ void anXApp::setupdefaultcolors()
 		color_buttons->deactivate=rgbcolor(255,100,100);
 
 	} else if (app_profile && !strcmp(app_profile,"Gray")) {
-		color_panel->fg        =rgbcolor(255,255,255);
+		color_panel->fg        =rgbcolor(  0,  0,  0);
 		color_panel->bg        =rgbcolor(100,100,100);
 		color_panel->hfg       =rgbcolor(255,255,255);
 		color_panel->hbg       =rgbcolor(50,50,50);
-		color_panel->moverfg   =rgbcolor(255,0,0);
+		color_panel->moverfg   =rgbcolor(0,0,0);
 		color_panel->moverbg   =rgbcolor(150,150,150);
 		color_panel->grayedfg  =rgbcolor(200,200,200);
 		color_panel->color1    =rgbcolor(64,64,64);
@@ -213,11 +213,11 @@ void anXApp::setupdefaultcolors()
 		color_panel->activate  =rgbcolor(  0,200,  0);
 		color_panel->deactivate=rgbcolor(255,100,100);
 
-		color_menu->fg        =rgbcolor(255,255,255);
+		color_menu->fg        =rgbcolor(  0,  0,  0);
 		color_menu->bg        =rgbcolor(100,100,100);
-		color_menu->hfg       =rgbcolor(255,255,255);
+		color_menu->hfg       =rgbcolor(175,175,175);
 		color_menu->hbg       =rgbcolor(50,50,50);
-		color_menu->moverfg   =rgbcolor(255,0,0);
+		color_menu->moverfg   =rgbcolor(0,0,0);
 		color_menu->moverbg   =rgbcolor(150,150,150);
 		color_menu->grayedfg  =rgbcolor(200,200,200);
 		color_menu->color1    =rgbcolor(64,64,64);
@@ -225,11 +225,11 @@ void anXApp::setupdefaultcolors()
 		color_menu->activate  =rgbcolor(  0,200,  0);
 		color_menu->deactivate=rgbcolor(255,100,100);
 
-		color_edits->fg        =rgbcolor(255,0,0);
+		color_edits->fg        =rgbcolor(0,0,0);
 		color_edits->bg        =rgbcolor(128,128,128);
 		color_edits->hfg       =rgbcolor(200,200,200);
-		color_edits->hbg       =rgbcolor(127,127,127);
-		color_edits->moverfg   =rgbcolor(255,0,0);
+		color_edits->hbg       =rgbcolor( 64, 64, 64);
+		color_edits->moverfg   =rgbcolor(0,0,0);
 		color_edits->moverbg   =rgbcolor(51,51,51);
 		color_edits->grayedfg  =rgbcolor(128,0,0);
 		color_edits->color1    =rgbcolor(64,64,64);
@@ -237,11 +237,11 @@ void anXApp::setupdefaultcolors()
 		color_edits->activate  =rgbcolor(  0,200,  0);
 		color_edits->deactivate=rgbcolor(255,100,100);
 
-		color_buttons->fg        =rgbcolor(255,255,255);
+		color_buttons->fg        =rgbcolor(0,0,0);
 		color_buttons->bg        =rgbcolor(128,128,128);
-		color_buttons->hfg       =rgbcolor(255,0,0);
+		color_buttons->hfg       =rgbcolor(0,0,0);
 		color_buttons->hbg       =rgbcolor(200,200,200);
-		color_buttons->moverfg   =rgbcolor(255,0,0);
+		color_buttons->moverfg   =rgbcolor(0,0,0);
 		color_buttons->moverbg   =rgbcolor(150,150,150);
 		color_buttons->grayedfg  =rgbcolor(200,200,200);
 		color_buttons->color1    =rgbcolor(64,64,64);
