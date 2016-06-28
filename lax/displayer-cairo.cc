@@ -854,9 +854,9 @@ void DisplayerCairo::show()
 
 bool DisplayerCairo::Capability(DisplayerFeature what)
 {
-	if (what==DRAW_LinearGradient ||
-		what==DRAW_RadialGradient ||
-		what==DRAW_MeshGradient) return true;
+	if (what==DRAWS_LinearGradient ||
+		what==DRAWS_RadialGradient ||
+		what==DRAWS_MeshGradient) return true;
 	
 	return false;
 }

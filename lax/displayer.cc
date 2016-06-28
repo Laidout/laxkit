@@ -283,6 +283,19 @@ Displayer::~Displayer()
  * Returns old opacity.
  */
 
+/*! Normally this will return DRAWS_Screen, but subclasses can redefine to specify 
+ * different purposes, such as DRAWS_Preview, or DRAWS_Hires.
+ *
+ * DRAWS_Hires should be detected by interfaces to never use cached preview images
+ * for rendering.
+ *
+ * Any returned values that subclasses use that are not any of DisplayerFeature
+ * should be a value greater than DRAWS_MAX.
+ */
+int Displayer::RenderTarget()
+{
+	return DRAWS_Screen;
+}
 
 //! Any subsequent calls are using real coordinates
 /*! Returns old real_coordinates.

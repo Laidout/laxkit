@@ -46,11 +46,15 @@ class LaxFont;
 
 //----------------------------------- Displayer -----------------------------
 enum DisplayerFeature {
-	DRAW_LinearGradient,
-	DRAW_RadialGradient,
-	DRAW_MeshGradient,
+	DRAWS_LinearGradient,
+	DRAWS_RadialGradient,
+	DRAWS_MeshGradient,
 
-	DRAW_MAX
+	DRAWS_Screen,
+	DRAWS_Hires,
+	DRAWS_Preview,
+
+	DRAWS_MAX
 };
 
 class Displayer : public PanUser, virtual public anObject
@@ -126,6 +130,7 @@ class Displayer : public PanUser, virtual public anObject
 	virtual double setSourceAlpha(double alpha) = 0;
 
 	virtual bool Capability(DisplayerFeature what) = 0;
+	virtual int RenderTarget();
 	virtual void setLinearGradient(int extend, double x1,double y1, double x2,double y2, double *offsets, ScreenColor *colors, int n) = 0;
 	virtual void setRadialGradient(int extend, double x1,double y1, double r1, double x2,double y2, double r2, double *offsets, ScreenColor *colors, int n) = 0;
 	virtual void setMesh(int numrows, int numcolumns, flatpoint *points, ScreenColor *colors) = 0;
