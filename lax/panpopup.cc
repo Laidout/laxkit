@@ -69,9 +69,13 @@ int PanPopup::send()
 void PanPopup::Refresh()
 {
 	if (!win_on || !needtodraw || win_w<5 || win_h<5) return;
-	clear_window(this);
-	drawing_function(LAXOP_Over);
-	drawing_line_attributes(1,LineSolid,LAXCAP_Butt,LAXJOIN_Miter);
+
+	Displayer *dp=GetDisplayer();
+	dp->MakeCurrent(this);
+	dp->ClearWindow();
+	dp->BlendMode(LAXOP_Over);
+	dp->LineAttributes(1,LineSolid,LAXCAP_Butt,LAXJOIN_Miter);
+
 	 // draw move arrows
 	flatpoint p[25]={flatpoint(6,1),
 					flatpoint(8,3),
@@ -104,11 +108,11 @@ void PanPopup::Refresh()
 		p[c].y=p[c].y*win_h/12;
 	}
 
-	foreground_color(win_colors->color1);
-	fill_polygon(this, p,25);
+	dp->NewFG(win_colors->color1);
+	dp->drawlines(p,25, 1, 1);
 
-	foreground_color(win_colors->fg);
-	draw_lines(this, p,25,1);
+	dp->NewFG(win_colors->fg);
+	dp->drawlines(p,25, 1, 0);
 
 	needtodraw=0;
 }
@@ -313,13 +317,16 @@ int PanWindow::SetImage(LaxImage *imag)
 void PanWindow::Refresh()
 {
 	if (!win_on || !needtodraw) return;
-	foreground_color(rgbcolor(128,128,128));
+
+	Displayer *dp=GetDisplayer();
+	dp->MakeCurrent(this);
+	dp->NewFG(rgbcolor(128,128,128));
 
 //*** need smart refresh
 //	if (needtodraw&1) {
-		clear_window(this);
+		dp->ClearWindow();
 		if (image) {
-			image_out(image,this,imagerect.x,imagerect.y);
+			dp->imageout(image,imagerect.x,imagerect.y);
 		} else {
 			// draw without the image
 		}
@@ -328,8 +335,8 @@ void PanWindow::Refresh()
 	
 	int drawarrow=0;
 	 // draw the selbox
-	drawing_function(LAXOP_Xor);
-	drawing_line_attributes(2,LineSolid,LAXCAP_Butt,LAXJOIN_Miter);
+	dp->BlendMode(LAXOP_Xor);
+	dp->LineAttributes(2,LineSolid,LAXCAP_Butt,LAXJOIN_Miter);
 
 	int xx,yy,ww,hh;
 	long s,e;
@@ -342,24 +349,24 @@ void PanWindow::Refresh()
 	hh=e-s+1;
 	if (e-s+1>imagerect.height) drawarrow|=2;
 
-	draw_rectangle(this, xx,yy,ww,hh);
+	dp->drawrectangle(xx,yy,ww,hh, 0);
 
-	drawing_line_attributes(0,LineSolid,LAXCAP_Butt,LAXJOIN_Miter);
+	dp->LineAttributes(0,LineSolid,LAXCAP_Butt,LAXJOIN_Miter);
 	if (drawarrow&1) { // selbox is larger than whole
 		s=win_w/4;
-		draw_line(this, win_w/2-s/2,win_h/2, win_w/2+s/2,win_h/2);
-		draw_line(this, win_w/2-s/2,win_h/2, win_w/2-s/2+s/4,win_h/2-s/4);
-		draw_line(this, win_w/2-s/2,win_h/2, win_w/2-s/2+s/4,win_h/2+s/4);
-		draw_line(this, win_w/2+s/2,win_h/2, win_w/2+s/2-s/4,win_h/2-s/4);
-		draw_line(this, win_w/2+s/2,win_h/2, win_w/2+s/2-s/4,win_h/2+s/4);
+		dp->drawline(win_w/2-s/2,win_h/2, win_w/2+s/2,win_h/2);
+		dp->drawline(win_w/2-s/2,win_h/2, win_w/2-s/2+s/4,win_h/2-s/4);
+		dp->drawline(win_w/2-s/2,win_h/2, win_w/2-s/2+s/4,win_h/2+s/4);
+		dp->drawline(win_w/2+s/2,win_h/2, win_w/2+s/2-s/4,win_h/2-s/4);
+		dp->drawline(win_w/2+s/2,win_h/2, win_w/2+s/2-s/4,win_h/2+s/4);
 	}
 	if (drawarrow&2) { // selbox is larger than whole
 		s=win_h/4;
-		draw_line(this, win_w/2,win_h/2-s/2, win_w/2,win_h/2+s/2);
-		draw_line(this, win_w/2,win_h/2-s/2, win_w/2-s/4,win_h/2-s/2+s/4);
-		draw_line(this, win_w/2,win_h/2-s/2, win_w/2+s/4,win_h/2-s/2+s/4);
-		draw_line(this, win_w/2,win_h/2+s/2, win_w/2-s/4,win_h/2+s/2-s/4);
-		draw_line(this, win_w/2,win_h/2+s/2, win_w/2+s/4,win_h/2+s/2-s/4);
+		dp->drawline(win_w/2,win_h/2-s/2, win_w/2,win_h/2+s/2);
+		dp->drawline(win_w/2,win_h/2-s/2, win_w/2-s/4,win_h/2-s/2+s/4);
+		dp->drawline(win_w/2,win_h/2-s/2, win_w/2+s/4,win_h/2-s/2+s/4);
+		dp->drawline(win_w/2,win_h/2+s/2, win_w/2-s/4,win_h/2+s/2-s/4);
+		dp->drawline(win_w/2,win_h/2+s/2, win_w/2+s/4,win_h/2+s/2-s/4);
 	}
 	
 	
