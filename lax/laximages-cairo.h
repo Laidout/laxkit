@@ -41,7 +41,7 @@ namespace Laxkit {
 class LaxCairoImage : public LaxImage
 {
  protected:
-	char flag,whichimage;
+	char flag;
 	int display_count;
 
  public:

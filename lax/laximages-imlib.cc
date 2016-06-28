@@ -487,7 +487,8 @@ LaxImage *load_imlib_image_with_preview(const char *filename,const char *preview
 	LaxImlibImage *img=new LaxImlibImage(filename,image);
 	img->doneForNow();
 
-	if (previewimage_ret) {
+	if (previewfile && previewimage_ret) {
+		 //this will create previewfile on disk if it doesn't already exist:
 		LaxImlibImage *pimg=new LaxImlibImage(filename, previewfile, maxx,maxy);
 		pimg->doneForNow();
 
@@ -625,16 +626,61 @@ int ImlibLoader::PingFile(const char *file, int *width, int *height, long *files
 	return 0;
 }
 
+/*! Return 0 for success, nonzero for could not load to memory.
+ */
+int ImlibLoader::LoadToMemory(LaxImage *img)
+{
+	if (dynamic_cast<LaxImlibImage*>(img)) {
+		 //nothing really to do, Imlib does caching automatically
+		dynamic_cast<LaxImlibImage*>(img)->Image();
+		return 0;
+	}
 
 #ifdef LAX_USES_CAIRO
-LaxCairoImage *MakeCairoFromImlib(LaxImlibImage *iimg)
+	if (dynamic_cast<LaxCairoImage*>(img)) {
+		if (!img->filename) return 1;
+
+		LaxCairoImage *cimg=dynamic_cast<LaxCairoImage*>(img);
+
+		 //copy over buffer from imlib image
+		Imlib_Image imlibimage = imlib_load_image(cimg->filename);
+		imlib_context_set_image(imlibimage);
+		if (cimg->width==0 || cimg->height==0) {
+			cimg->width= imlib_image_get_width();
+			cimg->height=imlib_image_get_height();
+		}
+		unsigned char *data = (unsigned char *)imlib_image_get_data();
+		cimg->createFromData_ARGB8(cimg->width, cimg->height, 4*cimg->width, data);
+		imlib_image_put_back_data((DATA32 *)data);
+
+		cimg->Image(); //incs cimg->display_count++;
+		return 0;
+	}
+#endif
+
+	return 2;
+}
+
+
+#ifdef LAX_USES_CAIRO
+/*! Note, does not set importer field.
+ */
+LaxCairoImage *MakeCairoFromImlib(LaxImlibImage *iimg, bool ping_only)
 {
 	LaxCairoImage *cimage=new LaxCairoImage();
+	makestr(cimage->filename, iimg->filename);
 
-	 //copy over buffer from imlib image
-	unsigned char *data = iimg->getImageBuffer();
-	cimage->createFromData_ARGB8(iimg->w(), iimg->h(), 4*iimg->w(), data);
-	iimg->doneWithBuffer(data);
+	if (ping_only) {
+		 //only set dimensions. The importer will have to install actual image on call later
+		cimage->width =iimg->w();
+		cimage->height=iimg->h();
+
+	} else {
+		 //copy over buffer from imlib image
+		unsigned char *data = iimg->getImageBuffer();
+		cimage->createFromData_ARGB8(iimg->w(), iimg->h(), 4*iimg->w(), data);
+		iimg->doneWithBuffer(data);
+	}
 
 	return cimage;
 }
@@ -647,12 +693,14 @@ LaxImage *ImlibLoader::load_image(const char *filename,
 								 const char *previewfile, int maxx, int maxy, LaxImage **previewimage_ret,
 								 int required_state, //any of metrics, or image data, or preview data
 								 int target_format,
-								 int *actual_format)
+								 int *actual_format,
+								 bool ping_only)
 {
 	LaxImlibImage *iimg = dynamic_cast<LaxImlibImage*>(load_imlib_image_with_preview(filename, previewfile, maxx,maxy, previewimage_ret));
 	if (!iimg) return NULL;
 	
 	if (target_format==0 || target_format==LAX_IMAGE_IMLIB) {
+		 //Imlib loads by ping only anyway, so ok to ignore ping_only
 		if (actual_format) *actual_format=LAX_IMAGE_IMLIB;
 		iimg->importer = this;
 		iimg->importer->inc_count();
@@ -663,7 +711,7 @@ LaxImage *ImlibLoader::load_image(const char *filename,
 #ifdef LAX_USES_CAIRO
 	if (target_format == LAX_IMAGE_CAIRO) {
 		 //convert imlib image to a cairo image
-		LaxCairoImage *cimage=MakeCairoFromImlib(iimg);
+		LaxCairoImage *cimage=MakeCairoFromImlib(iimg, ping_only);
 		cimage->importer = this;
 		cimage->importer->inc_count();
 		makestr(cimage->filename, filename);
@@ -676,7 +724,7 @@ LaxImage *ImlibLoader::load_image(const char *filename,
 			 //convert preview image, if any, to cairo
 			iimg=dynamic_cast<LaxImlibImage*>(*previewimage_ret);
 			
-			LaxCairoImage *pimage=MakeCairoFromImlib(iimg);
+			LaxCairoImage *pimage=MakeCairoFromImlib(iimg, true); //assume previews ok to load straight in
 			iimg->dec_count();
 
 			pimage->importer = this;

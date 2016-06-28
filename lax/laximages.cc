@@ -96,6 +96,8 @@ class MemCachedObject
  private:
 	int incache;
 	unsigned int cache_count;
+	MemCachedObject *prev_cache, *next_cache;
+
  public:
 	int cachegroup; //images | fonts | object groups...
 	clock_t lastaccesstime;
@@ -104,11 +106,11 @@ class MemCachedObject
 	MemCachedObject();
 	virtual ~MemCachedObject();
 
-	virtual int AbleToRegenerate()=0;
 	virtual int CacheMemoryNeeded()=0;
+	virtual int AbleToRegenerate()=0;
 	virtual int CacheRegenerate()=0;
-	virtual void CacheFree()=0;
-	virtual void CacheState()=0;
+	virtual int CacheFree()=0; //return 0 for success, or nonzero can't free, like for in memory buffer with no regenerate available
+	virtual int CacheState()=0;
 
 	virtual int inc_cache();
 	virtual int dec_cache();
@@ -118,6 +120,8 @@ class MemCachedObject
  */
 MemCachedObject::MemCachedObject()
 {
+	prev_cache=next_cache=NULL;
+
 	cache_count=0;
 	lastaccesstime=0;
 }
@@ -142,6 +146,43 @@ int MemCachedObject::dec_cache()
 	return cache_count;
 }
 
+
+//--------------------------- CacheManager --------------------------------------
+class CacheManager
+{
+  protected:
+	MemCachedObject *top, *bottom; //each mod touch moves object to bottom
+
+  public:
+	static CacheManager *GetDefault();
+	static CacheManager *SetDefault(CacheManager *newmanager);
+
+	CacheManager();
+	virtual ~CacheManager();
+	virtual int Add(MemCachedObject *obj);
+	virtual int Remove(MemCachedObject *obj);
+};
+
+CacheManager::CacheManager()
+{
+	top=bottom=NULL;
+}
+
+CacheManager::~CacheManager()
+{
+}
+
+int CacheManager::Add(MemCachedObject *obj)
+{
+	// ***
+	return 1;
+}
+
+int CacheManager::Remove(MemCachedObject *obj)
+{
+	// ***
+	return 1;
+}
 
 
 
@@ -533,7 +574,9 @@ int ImageLoader::SetLoaderPriority(int where)
 LaxImage *load_image_with_loaders(const char *file,
 								  const char *previewfile, int maxw,int maxh, LaxImage **preview_ret,
 								 int required_state,
-								 int target_format, int *actual_format)
+								 int target_format,
+								 int *actual_format,
+								 bool ping_only)
 {
 	DBG cerr <<"load_image_with_loaders()..."<<endl;
 
@@ -551,7 +594,8 @@ LaxImage *load_image_with_loaders(const char *file,
 								 previewfile,maxw,maxh,preview_ret,
 								 required_state,
 								 target_format,
-								 actual_format);
+								 actual_format,
+								 ping_only);
 		if (image) {
 			if (actual_format) *actual_format = loader->format;
 			DBG cerr <<"load_image_with_loaders() done"<<endl;

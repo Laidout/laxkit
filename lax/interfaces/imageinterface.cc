@@ -411,7 +411,7 @@ int ImageData::LoadImage(const char *fname, const char *npreview, int maxpx, int
 	//if (npreview) t=load_image_with_preview(fname,npreview,maxpx,maxpy, &p);
 	//else t=load_image(fname);
 	//--------
-	t=load_image_with_loaders(fname, npreview,maxpx,maxpy,&p, 0,-1, NULL);
+	t=load_image_with_loaders(fname, npreview,maxpx,maxpy,&p, 0,-1, NULL, true);
 
 	if (t) {
 		image=t;

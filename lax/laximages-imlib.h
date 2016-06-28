@@ -33,7 +33,7 @@ namespace Laxkit {
 class LaxImlibImage : public LaxImage
 {
  protected:
-	char flag,whichimage;
+	char flag, whichimage;
 
  public:
 	Imlib_Image image;
@@ -93,6 +93,7 @@ class ImlibLoader : public ImageLoader
 	virtual bool CanLoadFile(const char *file);
 	virtual bool CanLoadFormat(const char *format); 
 	virtual int PingFile(const char *file, int *width, int *height, long *filesize);
+	virtual int LoadToMemory(LaxImage *img);
 
 	 //return a LaxImage in target_format.
 	 //If must_be_that_format and target_format cannot be created, then return NULL.
@@ -100,7 +101,8 @@ class ImlibLoader : public ImageLoader
 								 const char *previewfile, int maxx, int maxy, LaxImage **previewimage_ret,
 								 int required_state, //any of metrics, or image data, or preview data
 								 int target_format,
-								 int *actual_format);
+								 int *actual_format,
+								 bool ping_only);
 };
 
 

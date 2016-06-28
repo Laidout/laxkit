@@ -152,6 +152,7 @@ class ImageLoader : public anObject
 	virtual bool CanLoadFile(const char *file) = 0;
 	virtual bool CanLoadFormat(const char *format) = 0; 
 	virtual int PingFile(const char *file, int *width, int *height, long *filesize) = 0;
+	virtual int LoadToMemory(LaxImage *img) = 0;
 
 	 //return a LaxImage in target_format.
 	 //If target_format==0, then return any format.
@@ -159,14 +160,16 @@ class ImageLoader : public anObject
 								 const char *previewfile, int maxw,int maxh, LaxImage **preview_ret,
 								 int required_state, //any of metrics, or image data
 								 int target_format,
-								 int *actual_format) = 0;
+								 int *actual_format,
+								 bool ping_only) = 0;
 };
 
 LaxImage *load_image_with_loaders(const char *file,
 								  const char *previewfile, int maxw,int maxh, LaxImage **preview_ret,
 								  int required_state,
 								  int target_format,
-								  int *actual_format);
+								  int *actual_format,
+								  bool ping_only);
 
 
 } //namespace Laxkit
