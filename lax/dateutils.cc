@@ -217,9 +217,9 @@ void LaxDate::SetToToday()
 
 	year =d.tm_year+1900;
 	month=d.tm_mon+1; //to make it [1..12]
-	day  =d.tm_mday;
-	dayofweek=d.tm_wday;
-	dayofyear=d.tm_yday;
+	day  =d.tm_mday;  //is [1..31]
+	dayofweek=d.tm_wday; //0..6, 0==sunday
+	dayofyear=d.tm_yday; //0..365, 0==first day
 }
 
 //! Return the number of days after a Sunday. That is, if on a sunday, return 0, monday is 1, etc.
@@ -234,6 +234,8 @@ int LaxDate::DayOfWeek()
 	return dayofweek;
 }
 
+/*! 0 is the first day.
+ */
 int LaxDate::DayOfYear()
 {
 	if (dayofyear<0){
@@ -243,6 +245,70 @@ int LaxDate::DayOfYear()
 	}
 	return dayofyear;
 }
+
+void LaxDate::AddDays(int days)
+{
+	day+=days;
+
+	while (day > days_in_month(month,year)) {
+		day -= days_in_month(month,year);
+		month++;
+		if (month>=12) { month=12; year++; }
+	}
+	while (day < 1) {
+		month--;
+		if (month<0) { month=11; year--; }
+		day += days_in_month(month,year);
+	}
+
+	dayofweek=-1;
+	dayofyear=-1;
+}
+
+/*! Just return AddDays(weeks*7).
+ */
+void LaxDate::AddWeeks(int weeks)
+{
+	return AddDays(7*weeks);
+}
+
+/*! If you add one month and the day is greater than number of days in the new month,
+ * then the day is clamped to the end of that month. If it is clamped, then 1 is returned.
+ * Else 0 is returned.
+ */
+int LaxDate::AddMonths(int months)
+{
+	dayofweek=-1;
+	dayofyear=-1;
+
+	year  += months/12;
+	month += months%12;
+
+	if (month>=12) { month-=12; year++; }
+	else if (month<0) { month+=12; year--; }
+
+	int mdays = days_in_month(month, year);
+	if (day>=mdays) { day=mdays; return 1; }
+	return 0;
+}
+
+void LaxDate::AddYears(int years)
+{
+	dayofweek=-1;
+	dayofyear=-1;
+	year+=years;
+}
+
+/*! Add years first, then months, then days.
+ * Warning: The month add might change the day! See AddMonths().
+ */
+void LaxDate::Add(int years, int months, int days)
+{
+	AddYears(years);
+	AddMonths(months);
+	AddDays(days);
+}
+
 
 //! Return the number of days between dates. Note this is negative when d1 is later than d2.
 int operator-(LaxDate d2,LaxDate d1)

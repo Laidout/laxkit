@@ -40,6 +40,7 @@ class LaxDate
   protected:
 	int year,month,day;
 	int dayofweek, dayofyear;
+
   public:
 	LaxDate();
 	LaxDate(int year, int month, int day);
@@ -48,14 +49,15 @@ class LaxDate
 	int Set(int year, int month, int day);
 	void SetToToday();
 
-	//LaxDate plusDays(int days);
-	//LaxDate plusWeeks(int weeks);
-	//LaxDate plusMonths(int months);
-	//LaxDate plusYears(int years);
+	void AddDays(int days);
+	void AddWeeks(int weeks);
+	int  AddMonths(int months);
+	void AddYears(int years);
+	void Add(int years, int months, int days);
 
-	int Year() { return year; }
+	int Year()  { return year;  }
 	int Month() { return month; }
-	int Day() { return day; }
+	int Day()   { return day;   }
 	int DayOfWeek();
 	int DayOfYear();
 };
