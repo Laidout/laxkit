@@ -1140,7 +1140,7 @@ void GradientInterface::drawLinear2()
  */
 void GradientInterface::drawLinear()
 {
-	if (dp->Capability(DRAW_LinearGradient)) { drawLinear2(); return; }
+	if (dp->Capability(DRAWS_LinearGradient)) { drawLinear2(); return; }
 
 
 	// if the x span is larger than the y span, then for each
@@ -1249,7 +1249,7 @@ void GradientInterface::drawRadial2()
  */
 void GradientInterface::drawRadial()
 {
-	if (dp->Capability(DRAW_RadialGradient)) { drawRadial2(); return; }
+	if (dp->Capability(DRAWS_RadialGradient)) { drawRadial2(); return; }
 
 
 	flatpoint p,cp,O1,O2,o1,o2,xaxis,yaxis,v;

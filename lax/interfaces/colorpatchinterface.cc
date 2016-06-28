@@ -882,7 +882,7 @@ int ColorPatchInterface::Refresh()
 
 	cdata=dynamic_cast<ColorPatchData*>(data);
 
-	if (!dp->Capability(DRAW_MeshGradient)) return PatchInterface::Refresh();
+	if (!dp->Capability(DRAWS_MeshGradient)) return PatchInterface::Refresh();
 
 	if (rendermode!=2) return PatchInterface::Refresh();
 
