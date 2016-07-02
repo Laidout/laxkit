@@ -13,8 +13,6 @@
 #
 #
 
-use File::Copy;
-
 $numargs=@ARGV;
 if ($ARGV[0] eq "-0") {
 	$unhide=1;
