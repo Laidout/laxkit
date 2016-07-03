@@ -879,6 +879,8 @@ char *increment_file(const char *file)
 	
 	 //find extension, if any
 	const char *extension=strrchr(file,'.');
+	const char *slash    =strrchr(file,'/');
+	if (slash && extension<slash) extension=NULL;
 	if (!extension) extension=file+strlen(file);
 	
 	 //find old number
