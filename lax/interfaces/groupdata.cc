@@ -376,7 +376,7 @@ int GroupData::UnGroup(int which)
 	double mm[6];
 	while (g->NumKids()) {
 		d=g->pop(0); //count stays same on d
-		transform_mult(mm,g->m(),d->m());
+		transform_mult(mm,d->m(),g->m());
 		d->m(mm);
 		d->SetParent(this);
 		kids.push(d,-1,which++); //incs d
