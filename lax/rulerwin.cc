@@ -630,11 +630,20 @@ int RulerWindow::RBUp(int x,int y,unsigned int state,const LaxMouse *d)
 	MenuInfo *menu=new MenuInfo(_("Units"));
 
 	const char *name;
+	const char *current=NULL;
 	int id;
+
 	for (int c=0; c<NumberOfUnits(); c++) {
 		UnitInfo(c, &name, &id, NULL,NULL,NULL);
 		//menu->AddItem(name, id, id==units->defaultunits?LAX_CHECKED|LAX_ISTOGGLE:0);
 		menu->AddItem(name, id, (id==currentunits?LAX_CHECKED:0)|LAX_ISTOGGLE, 0);
+		if (id==currentunits) current=name;
+	}
+	if (current && menu->n() && (win_style&RULER_UNITS_MENU_ALWAYS)) {
+		menu->AddSep();
+		char scratch[strlen(_("Always use %s"))+strlen(current)+1];
+		sprintf(scratch, _("Always use %s"), current);
+		menu->AddItem(scratch, RULER_AlwaysCurrent);
 	}
 
 	PopupMenu *popup;
@@ -662,6 +671,14 @@ int RulerWindow::Event(const EventData *e,const char *mes)
 
 	int item_index= m->info1;
 	int item_id   = m->info2;
+
+	if (item_id==RULER_AlwaysCurrent && win_owner) {
+		SimpleMessage *ev=new SimpleMessage;
+		ev->info1=RULER_AlwaysCurrent;
+		ev->info2=currentunits;
+		app->SendMessage(ev,win_owner,win_sendthis,object_id);
+		return 0;
+	}
 
 	if (item_index<0 && item_index>=NumberOfUnits()) return 0;
 

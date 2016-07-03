@@ -49,10 +49,12 @@ namespace Laxkit {
 
 #define RULER_UP_IS_POSITIVE  (1<<27)
 
-#define RULER_UNITS_MENU      (1<<28)
+#define RULER_UNITS_MENU        (1<<28)
+#define RULER_UNITS_MENU_ALWAYS (1<<29)
 
  //sent in ruler messages when currentunits are changed
-#define RULER_Units   1
+#define RULER_Units          1
+#define RULER_AlwaysCurrent  (-2)
 
 
 class RulerWindow : public anXWindow
