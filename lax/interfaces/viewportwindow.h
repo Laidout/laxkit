@@ -195,6 +195,7 @@ class ViewportWindow : public Laxkit::PanUser, public Laxkit::anXWindow
 	virtual int ChangeObject(ObjectContext *oc, int switchtool);
 	virtual double *transformToContext(double *m,ObjectContext *oc,int invert,int full);
 	virtual bool IsValidContext(ObjectContext *oc);
+	virtual int UpdateSelection(Selection *sel);
 	
 	 //Object searching and selecting
 	virtual int FindObject(int x,int y, const char *dtype, 

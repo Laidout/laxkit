@@ -304,7 +304,19 @@ double *ViewportWindow::transformToContext(double *m,ObjectContext *oc,int inver
  */
 bool ViewportWindow::IsValidContext(ObjectContext *oc)
 {
+	cerr << "Warning! Using unredefined ViewportWindow::IsValidContext()!"<<endl;
 	return true;
+}
+
+/*! Make sure references in sel actually point to something.
+ * Note this modifies the contexts in sel, and removes any that are bad.
+ *
+ * If sel==NULL, then use this->selection.
+ */
+int ViewportWindow::UpdateSelection(Selection *sel)
+{
+	cerr << "Warning! Using unredefined ViewportWindow::UpdateSelection()!"<<endl;
+	return -1;
 }
 
 //! Call this to update the context to correspond to screen coordinate (x,y).

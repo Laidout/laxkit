@@ -826,10 +826,13 @@ int ObjectInterface::CharInput(unsigned int ch, const char *buffer,int len,unsig
 
 	} else if ((ch==LAX_Del || ch==LAX_Bksp) && (state&LAX_STATE_MASK)==0) { //delete
 		dontclear=1;
-		for (int c=0; c<selection->n(); c++) {
-			viewport->ChangeObject(selection->e(c),0);
+		Selection *sel = selection->duplicate();
+		while (sel->n()) {
+			viewport->ChangeObject(sel->e(0),0);
 			viewport->DeleteObject();
+			sel->Remove(0);
 		}
+		delete sel;
 		selection->Flush();
 		dontclear=0;
 		deletedata();
