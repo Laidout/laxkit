@@ -65,6 +65,8 @@ class IconManager : public Laxkit::anObject, public Laxkit::PtrStack<IconNode>
 	virtual int HowMany();
 	virtual void AddPath(const char *newpath);
 	virtual int RemovePath(const char *oldpath);
+	virtual int NumPaths() { return icon_path.n; }
+	virtual const char *GetPath(int index);
 };
 
 } //namespace Laxkit

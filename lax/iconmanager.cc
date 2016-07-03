@@ -210,6 +210,12 @@ Laxkit::LaxImage *IconManager::GetIcon(const char *name)
 	return findicon(name);
 }
 
+const char *IconManager::GetPath(int index)
+{
+	if (index<0 || index>=icon_path.n) return NULL;
+	return icon_path.e[index];
+}
+
 //! Add path to index 0 position of the path stack.
 /*! When passed a name that is unrecognized, then the all the icon paths are searched for
  * a loadable image named name.png.
