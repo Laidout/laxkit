@@ -297,6 +297,16 @@ double *ViewportWindow::transformToContext(double *m,ObjectContext *oc,int inver
 	return transform_identity(m);
 }
 
+/*! true for yes, false for no.
+ *
+ * Subclasses need to redefine this to return something meaningful.
+ * This placeholder just returns true.
+ */
+bool ViewportWindow::IsValidContext(ObjectContext *oc)
+{
+	return true;
+}
+
 //! Call this to update the context to correspond to screen coordinate (x,y).
 /*! Default here is to set *co=NULL (if oc!=NULL).
  *
