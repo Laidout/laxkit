@@ -1889,6 +1889,11 @@ int RectInterface::CharInput(unsigned int ch, const char *buffer,int len,unsigne
 	return 1;
 }
  
+void RectInterface::Unmapped()
+{
+	showdecs |= (SHOW_INNER_HANDLES|SHOW_OUTER_HANDLES);
+}
+
 /*! Shift/noshift toggles end/start point
  */
 int RectInterface::KeyUp(unsigned int ch,unsigned int state,const Laxkit::LaxKeyboard *d) 

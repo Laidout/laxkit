@@ -135,6 +135,7 @@ class RectInterface : public anInterface
 	virtual anInterface *duplicate(anInterface *dup);
 	virtual int InterfaceOn();
 	virtual int InterfaceOff();
+	virtual void Unmapped();
 	virtual int LBDown(int x,int y,unsigned int state,int count,const Laxkit::LaxMouse *d);
 	virtual int FakeLBDown(int x,int y,unsigned int state,int count,const Laxkit::LaxMouse *d);
 	virtual int LBUp(int x,int y,unsigned int state,const Laxkit::LaxMouse *d);
