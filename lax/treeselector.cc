@@ -61,6 +61,7 @@ TreeSelector::ColumnInfo::ColumnInfo(const char *ntitle, int ntype, int whichdet
 	width=nwidth;
 	width_type=nwtype;
 	sort=0;
+	sort_type=0;
 }
 
 TreeSelector::ColumnInfo::~ColumnInfo()
@@ -244,6 +245,7 @@ int TreeSelector::InstallMenu(MenuInfo *nmenu)
 	arrangeItems();
 	//RebuildCache();
 	RemapColumns();
+	needtodraw=1;
 	return 0;
 }
 
@@ -504,23 +506,30 @@ int TreeSelector::init()
  *
  * If whichdetail<0, then use columns.n (before pushing).
  * If ntype<=0, use ColumnString.
+ *
+ * If nodup, then if the named column exists already, replace its old details with those provided.
  */
-int TreeSelector::AddColumn(const char *i,LaxImage *img,int width,int width_type, int ntype, int whichdetail, bool nodup)
+int TreeSelector::AddColumn(const char *i,LaxImage *img,int width,int width_type, int ntype, int whichdetail, bool nodup, int sort_override)
 {
 	if (whichdetail<0) whichdetail=columns.n;
 	if (ntype<=0) ntype=ColumnInfo::ColumnString;
 
 	int c;
 	for (c=0; c<columns.n; c++) {
-		if (!strcmp(columns.e[c]->title,i)) {
+		if (!strcmp(columns.e[c]->title,i) && nodup) {
+			 //column existed
 			columns.e[c]->width=width;
 			columns.e[c]->detail=whichdetail;
 			columns.e[c]->type=ntype;
+			if (sort_override>=0) columns.e[c]->sort_type = sort_override;
 			break;
 		}
 	}
 	
-	if (c==columns.n) columns.push(new ColumnInfo(i, ntype, whichdetail, width,width_type),1);
+	if (c==columns.n) {
+		columns.push(new ColumnInfo(i, ntype, whichdetail, width,width_type),1);
+		if (sort_override>=0) columns.e[c]->sort_type = sort_override;
+	}
 
 	return 0;
 }
@@ -1613,13 +1622,26 @@ void TreeSelector::addselect(int i,unsigned int state)
 			}
 		}
 
-		if (menustyle&TREESEL_ONE_ONLY || oldstate==0 || (oldstate&LAX_MSTATE_MASK)==LAX_OFF) {
+		//int newstate=(LAX_ON|MENU_SELECTED);
+		//mitem->state=(mitem->state&~(LAX_ON|LAX_OFF|MENU_SELECTED)) | newstate;
+		//if (newstate&LAX_ON) {
+		//	selection.pushnodup(mitem,0);
+		//} else {
+		//	selection.remove(selection.findindex(mitem));
+		//}
+		//---------
+		if ((menustyle&TREESEL_ONE_ONLY) || oldstate==0 || (oldstate&LAX_MSTATE_MASK)==LAX_OFF) {
+			 //turn on
 			mitem->state=(mitem->state&~(LAX_ON|LAX_OFF|MENU_SELECTED))|(LAX_ON|MENU_SELECTED);
 			selection.pushnodup(mitem,0);
-		} else if ((oldstate&(LAX_ON|LAX_OFF|MENU_SELECTED))==LAX_ON) {
+			
+		//} else if ((oldstate&(LAX_ON|LAX_OFF|MENU_SELECTED))==LAX_ON) {
+		} else if ((oldstate&(LAX_ON|LAX_OFF))==LAX_ON) {
+			 //turn off
 			mitem->state=(mitem->state&~(LAX_ON|LAX_OFF|MENU_SELECTED))|LAX_OFF;
 			selection.remove(selection.findindex(mitem));
 		}
+
 		c=ccuritem;
 		ccuritem=curitem=i;
 		curmenuitem=mitem;
@@ -1702,7 +1724,7 @@ int TreeSelector::LBDown(int x,int y,unsigned int state,int count,const LaxMouse
 		
 	} else { //no columns displayed
 		int onsub=0;
-		item=findItem(x,y, &onsub, NULL);
+		item=findItem(x,y, &onsub);
 	}
 
 	DBG cerr <<"-----click on "<<item<<" detailhover: "<<detailhover<<endl;
@@ -1726,23 +1748,73 @@ int TreeSelector::LBUp(int x,int y,unsigned int state,const LaxMouse *d)
 	int hovered=-1, item=-1;
 	int dragamount=buttondown.up(d->id,LEFTBUTTON, &item,&hovered);
 	
-	if (mousedragmode==2) { //*** ==2 means was attempting to rearrange..
-		//***turn off any dragging mode
-		mousedragmode=0;
+	if (item<0 && hovered<0) {
+		 //click down and up on column header. Adjust sort.
+		if (dragamount<7) {
+			int column = findColumn(x);
+
+			if (columns.n && column>=0) {
+				if (columns.e[column]->sort==0) {
+					 //set column to sort column
+					for (int c=0; c<columns.n; c++) columns.e[c]->sort=0;
+					columns.e[column]->sort=1;
+
+				} else {
+					 //toggle sort direction
+					columns.e[column]->sort = (columns.e[column]->sort==1 ? -1 : 1);
+				}
+
+				if (columns.e[column]->type == ColumnInfo::ColumnBytes) {
+					 //has to be SORT_123kb or SORT_321kb
+					menu->sortstyle &= ~(SORT_ABC|SORT_CBA|SORT_123|SORT_321|SORT_123kb|SORT_321kb);
+					if (columns.e[column]->sort==1) menu->sortstyle|=SORT_123kb;
+					else menu->sortstyle|=SORT_321kb;
+
+				} else {
+					menu->sortstyle &= ~(SORT_123kb|SORT_321kb);
+
+					if ((menu->sortstyle&(SORT_ABC|SORT_CBA|SORT_123|SORT_321))==0) menu->sortstyle|=SORT_ABC;
+
+					if ((menu->sortstyle&(SORT_ABC|SORT_CBA))) {
+						menu->sortstyle &= ~(SORT_ABC|SORT_CBA);
+						if (columns.e[column]->sort==1) menu->sortstyle|=SORT_ABC;
+						else menu->sortstyle|=SORT_CBA;
+
+					} else if ((menu->sortstyle&(SORT_123|SORT_321))) {
+						menu->sortstyle &= ~(SORT_123|SORT_321);
+						if (columns.e[column]->sort==1) menu->sortstyle|=SORT_123;
+						else menu->sortstyle|=SORT_321;
+					}
+				}
+
+				sort_detail=columns.e[column]->detail;
+				menu->SetCompareFunc(menu->sortstyle);
+				visibleitems.SetCompareFunc(menu->sortstyle);
+				//visibleitems.Sort(sort_detail);
+				menu->Sort(sort_detail);
+
+				DBG cerr <<"visibleitems after sort:"<<endl;
+				DBG menuinfoDump(&visibleitems,2);
+
+				RebuildCache();
+				needtodraw=1;
+			}
+		}
 		return 0;
 	}
 
-	if (hovered>=0) return 0; //was dragging on columns
+	if (hovered>=0) return 0; //was dragging on column divider
 	
 	 // do nothing if mouse is outside window.. This is necessary because of grabs.
 	if (x<0 || x>=win_w || y<0 || y>=win_h) { return 0; }
 
-	int onsub=0, column=-1;
-	int i=findItem(x,y,&onsub, &column);
+	int onsub=0;
+	int i=findItem(x,y,&onsub);
 	if (i<0 || i>=numItems()) return 0; //if not on any item or arrow
 	
 	if (mousedragmode==2) {
 		// *** dragging to rearrange
+		mousedragmode=0;
 		return 0;
 	}
 
@@ -1771,7 +1843,7 @@ int TreeSelector::LBUp(int x,int y,unsigned int state,const LaxMouse *d)
 //! Find the index of the item at window coordinates (x,y).
 /*! The value returned is not necessarily an actual element index. It could be -1, or >=menuitems.n.
  */
-int TreeSelector::findItem(int x,int y, int *onsub, int *column)
+int TreeSelector::findItem(int x,int y, int *onsub)
 {
 	x-=offsetx;
 	y-=offsety;
@@ -1828,21 +1900,26 @@ int TreeSelector::findItem(int x,int y, int *onsub, int *column)
 	}
 
 
-	if (column) {
-		 //search for position on column position sliders
-		if (columns.n) {
-			 // *** what about title?
-			for (int c=0; c<columns.n; c++) {
-				if (x>columns.e[c]->pos-10 && x<columns.e[c]->pos+10) {
-					*column=c;
-					break;
-				}
-			}
-			
-		} else *column=0;
-	}
-
 	return which;
+}
+
+/*! Find column mouse is in. Note this is NOT whether it's on a boundary.
+ *
+ * If columns.n==0, then always return 0.
+ * If columns.n>0, then only return a valid column when mouse is actually within
+ * pos+data for that column. -1 is returned if x is outside.
+ */
+int TreeSelector::findColumn(int x)
+{
+	if (columns.n) {
+		for (int c=0; c<columns.n; c++) {
+			if (x>=columns.e[c]->pos && x<columns.e[c]->pos+columns.e[c]->width) {
+				return c;
+			}
+		}
+		return -1;
+	}
+	return 0;
 }
 
 //! Set up the edit in place mode.
@@ -1906,7 +1983,7 @@ int TreeSelector::MouseMove(int x,int y,unsigned int state,const LaxMouse *d)
 	//DBG cerr <<"mx,my:"<<mx<<','<<my<<" x,y:"<<x<<','<<y<<endl;
 
 	int onsub;
-	int i=findItem(x,y, &onsub, NULL);
+	int i=findItem(x,y, &onsub);
 	DBG cerr <<"tree found item "<<i<<", onsub:"<<onsub<<endl;
 
 	if (!buttondown.any()) {

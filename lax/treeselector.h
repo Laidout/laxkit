@@ -129,7 +129,8 @@ class TreeSelector : public ScrolledWindow
 
 	virtual int send(int deviceid);
 	virtual void addselect(int i,unsigned int state);
-	virtual int findItem(int x,int y, int *onsub, int *column);
+	virtual int findItem(int x,int y, int *onsub);
+	virtual int findColumn(int x);
 	virtual int findRect(int c,IntRectangle *itemspot);
 	virtual void arrangeItems();
 	virtual void syncWindows(int useinrect=0);
@@ -152,6 +153,8 @@ class TreeSelector : public ScrolledWindow
 			ColumnString,
 			ColumnInt,
 			ColumnNumber, //double or int
+			ColumnBytes, //like "23kb" or "5 MB"
+			ColumnDate,
 			ColumnFlags,
 			ColumnMAX
 		};
@@ -162,6 +165,7 @@ class TreeSelector : public ScrolledWindow
 		int detail; //for remapping order of columns
 		int type; //uses ColumnInfoType
 		int sort; //0 don't sort, 1 sort ascending, -1 sort descending
+		int sort_type; //overrides default sort for menu
 
 		ColumnInfo(const char *ntitle, int ntype, int whichdetail, int nwidth, int nwtype);
 		~ColumnInfo();
@@ -237,7 +241,8 @@ class TreeSelector : public ScrolledWindow
 	virtual int AddItem(const char *i,LaxImage *img,int nid,int newstate);
 
 	virtual int AddColumn(const char *i,LaxImage *img, int width,int width_type=0,
-							int ntype=ColumnInfo::ColumnString, int whichdetail=-1, bool nodup=true);
+							int ntype=ColumnInfo::ColumnString, int whichdetail=-1,
+							bool nodup=true, int sort_override=-1);
 	virtual void ClearColumns();
 	virtual void RemapColumns();
 };
