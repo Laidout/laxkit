@@ -1677,7 +1677,7 @@ int MenuSelector::WheelDown(int x,int y,unsigned int state,int count,const LaxMo
 //! Resize the window to the extent of the items, and reposition near the mouse.
 int MenuSelector::WrapToMouse(int mouseid, anXWindow *onedgeofthis) //onedgeofthis=0
 {
-	int x,y,screen=0;
+	int x=0,y=0,screen=0;
 	mouseposition(mouseid, NULL, &x, &y, NULL, NULL, &screen);
 	return WrapToPosition(x,y,screen,onedgeofthis);
 }
