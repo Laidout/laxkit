@@ -91,7 +91,8 @@ class FileDialog : public RowFrame
 	bool showing_icons;
 
 	int getDirectory(const char *npath);
-	virtual int newBookmark(const char *pth);
+	virtual int newBookmark(const char *pth, const char *name);
+	virtual int RemoveBookmark(const char *name, const char *pth);
 	virtual MenuInfo *BuildBookmarks();
 	virtual int closeWindow();
 	virtual int send(int id);

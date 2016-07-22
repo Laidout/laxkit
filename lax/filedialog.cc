@@ -503,6 +503,23 @@ int FileDialog::init()
 	//hstack->AddSpacer(100,100,100,50, -1);
 
 	 //bookmarks button near path
+	 //  | Recent
+	 //  |---marks---
+	 //  |  lo..
+	 //  |  gtk/kde...
+	 //  --
+	 //  [ + ][ - ][ Edit ]
+	//***
+	//All recent
+	//Laidout recent
+	//Image recent...
+	//----
+	//gtk/qt/other bookmarks
+	//----
+	//[+] [-] [^] [v]
+	RowFrame *left=new RowFrame(this, "left",NULL, ROWFRAME_ROWS|ROWFRAME_STRETCHX,
+								0,0,0,0,0, NULL,0,NULL);
+
 	MenuInfo *bookmarkmenu=BuildBookmarks();
 	TreeSelector *tree;
 	last=tree=new TreeSelector(hstack,"Bookmarks","Bookmarks", 0,
@@ -514,15 +531,35 @@ int FileDialog::init()
 	tree->SendDetail(1);
 	tree->installColors(app->color_edits);
 	tree->Wrap();
-	hstack->AddWin(tree,1, tree->win_w,tree->win_w,0,50,0, 300,0,1000,50,0, -1);
-	//***
-	//All recent
-	//Laidout recent
-	//Image recent...
-	//----
-	//gtk/qt/other bookmarks
-	//----
-	//[+] [-] [^] [v]
+	left->AddWin(tree,1, tree->win_w,tree->win_w,500,50,0, 300,0,1000,50,0, -1);
+
+	left->AddNull();
+
+	 // [new bookmark]
+	last=tbut=new Button(left,"fd-bookmark",NULL,IBUT_FLAT|IBUT_ICON_ONLY, 0,0,0,0, 0, 
+						last,object_id,"bookmark",
+						0,_("New bookmark"),NULL,iconmanager->GetIcon("Add"),3,3);
+	last->tooltip(_("Bookmark current directory"));
+	left->AddWin(tbut,1, tbut->win_w,0,50,50,0, linpheight,0,0,50,0, -1);
+
+	 // [remove bookmark]
+	last=tbut=new Button(left,"fd-rmbookmark",NULL,IBUT_FLAT|IBUT_ICON_ONLY, 0,0,0,0, 0, 
+						last,object_id,"rmbookmark",
+						0,_("Remove bookmark"),NULL,iconmanager->GetIcon("Remove"),3,3);
+	last->tooltip(_("Remove selected bookmark"));
+	left->AddWin(tbut,1, tbut->win_w,0,50,50,0, linpheight,0,0,50,0, -1);
+
+//	 // [edit bookmark]
+//	last=tbut=new Button(left,"fd-editbookmark",NULL,IBUT_FLAT|IBUT_ICON_ONLY, 0,0,0,0, 0, 
+//						last,object_id,"editbookmark",
+//						0,_("Edit bookmark"),NULL,NULL,3,3);
+//						//0,_("Edit bookmark"),NULL,iconmanager->GetIcon("Remove"),3,3);
+//	last->tooltip(_("Edit selected bookmark"));
+//	left->AddWin(tbut,1, tbut->win_w,0,50,50,0, linpheight,0,0,50,0, -1);
+
+
+
+	hstack->AddWin(left,1, tree->win_w,tree->win_w,0,500,0, 300,0,1000,50,0, -1);
 
 
 
@@ -578,6 +615,13 @@ int FileDialog::init()
 	last->tooltip(_("Toggle showing list or icons"));
 	middle->AddWin(tbut,1, tbut->win_w,0,50,50,0, linpheight,0,0,50,0, -1);
 
+	 // [settings]
+	last=tbut=new Button(middle,"fd-settings",NULL,IBUT_FLAT|IBUT_ICON_ONLY, 0,0,0,0, 0, 
+						last,object_id,"settingsbutton",
+						0,_("Settings"),NULL,iconmanager->GetIcon("Settings"),3,3);
+	last->tooltip(_("Settings"));
+	middle->AddWin(tbut,1, tbut->win_w,0,50,50,0, linpheight,0,0,50,0, -1);
+
 	middle->AddNull(); 
 
 
@@ -603,8 +647,8 @@ int FileDialog::init()
 	last->installColors(app->color_edits);
 	filelist->tooltip(_("Choose from these files.\nRight-click drag scrolls"));
 	filelist->AddColumn(_("Name"), NULL, 0,1);
-	filelist->AddColumn(_("Size"), NULL, 0);
-	filelist->AddColumn(_("Date"), NULL, 0);
+	filelist->AddColumn(_("Size"), NULL, 0,0, TreeSelector::ColumnInfo::ColumnBytes);
+	filelist->AddColumn(_("Date"), NULL, 0,0, TreeSelector::ColumnInfo::ColumnDate);
 	filelist->Select(-1);
 	middle->AddWin(filelist,1, 300,100,1000,50,0, 400,200,5000,50,0, -1);
 
@@ -664,17 +708,13 @@ int FileDialog::init()
 /*! Return 0 for bookmark added, or positive for error and not added,
  * and -1 for already exists.
  *
- * Default is to add bookmark via add_bookmark(). This will store it
- * globally for the user. If this is not desired, then FILES_GLOBAL_BOOKMARK
- * must be removed from dialog_style.
+ * If dialogstyle&FILES_GLOBAL_BOOKMARK (the default), then add pth to some kind of global bookmark place (*** not functional at the moment).
+ * Otherwise, only add to a "Bookmarks" anXApp resource.
  */
-int FileDialog::newBookmark(const char *pth)
+int FileDialog::newBookmark(const char *pth, const char *name)
 {
 	if (pth && !strncmp(pth,"file://",7)) pth+=7;
 	if (file_exists(pth,1,NULL)!=S_IFDIR) return 1;
-
-	 //add globally
-	if (dialog_style&FILES_GLOBAL_BOOKMARK) add_bookmark(pth,0);
 
 	 //find any existing lax held bookmarks
 	Attribute *att=app->AppResource("Bookmarks");
@@ -690,19 +730,57 @@ int FileDialog::newBookmark(const char *pth)
 	Attribute *newatt=new Attribute("Bookmarks",NULL,NULL);
 	if (att) {
 		for (int c=0; c<att->attributes.n; c++) {
-			newatt->push(att->attributes.e[c]->name);
+			newatt->push(att->attributes.e[c]->name, att->attributes.e[c]->value);
 		}
 	}
-	newatt->push(pth);
+
+	newatt->push(isblank(name) ? lax_basename(pth) : name, pth);
 
 	 //install new resource
 	app->AppResource(newatt);
 
-	 //update bookmarks button if possible
+	 //add globally
+	//if (dialog_style&FILES_GLOBAL_BOOKMARK) add_bookmark(pth,0);
+
+	 //update bookmarks window
 	MenuInfo *info=BuildBookmarks();
-	if (info) info->dec_count();
+	if (info) {
+		TreeSelector *tree=dynamic_cast<TreeSelector*>(findChildWindowByName("Bookmarks", true));
+		tree->InstallMenu(info);
+		info->dec_count();
+	}
 
 	return 0;
+}
+
+/*! Return 0 for success, -1 for could not find.
+ *
+ * This will only remove bookmarks found in the "Bookmarks" anXApp resource.
+ */
+int FileDialog::RemoveBookmark(const char *name, const char *pth)
+{
+	 //find any existing lax held bookmarks
+	Attribute *att=app->AppResource("Bookmarks");
+	if (!att) return -1;
+
+	 //check marks for duplicates
+	for (int c=0; c<att->attributes.n; c++) {
+		if (!strcmp(name, att->attributes.e[c]->name)) {
+			 //found it!
+			att->remove(c);
+
+			 //update bookmarks window
+			MenuInfo *info=BuildBookmarks();
+			if (info) {
+				TreeSelector *tree=dynamic_cast<TreeSelector*>(findChildWindowByName("Bookmarks", true));
+				tree->InstallMenu(info);
+				info->dec_count();
+			}
+			return 0;
+		}
+	}
+
+	return -1;
 }
 
 /*! Return a new MenuInfo with all available bookmarks in it.
@@ -720,23 +798,27 @@ MenuInfo *FileDialog::BuildBookmarks()
 
 	bookmarkmenu->AddSep(_("Bookmarks"));
 
-	get_categorized_bookmarks(NULL,NULL, bookmarkmenu, true);
-
 	Attribute *att=app->AppResource("Bookmarks");
 	if (att) {
 		int c2;
 		for (int c=0; c<att->attributes.n; c++) {
 			for (c2=0; c2<bookmarkmenu->menuitems.n; c2++) {
 				if (!strcmp(bookmarkmenu->menuitems.e[c2]->name, att->attributes.e[c]->name)) break;
+				// *** should really check against actual path, not just name compare
 			}
 			if (c2<att->attributes.n) continue; //skip if already there!
-			bookmarkmenu->AddItem(att->attributes.e[c]->name, c);
+
+			const char *name =att->attributes.e[c]->name;
+			const char *value=att->attributes.e[c]->value;
+			if (isblank(value)) value=name;
+
+			bookmarkmenu->AddItem(isblank(lax_basename(name)) ? name : lax_basename(name));
+            bookmarkmenu->AddDetail(value,NULL);
 		}
 	}
 
-	//if (bookmarkmenu->n()) bookmarkmenu->AddSep();
-	//bookmarkmenu->AddItem(_("Add current directory"),10000);
 
+	get_categorized_bookmarks(NULL,NULL, bookmarkmenu, true);
 
 	return bookmarkmenu;
 }
@@ -954,7 +1036,14 @@ int FileDialog::Event(const EventData *data,const char *mes)
 		return 0;
 
 	} else if (!strcmp(mes,"bookmark")) {
-		newBookmark(path->GetCText());
+		newBookmark(path->GetCText(), NULL);
+		return 0;
+
+	} else if (!strcmp(mes,"rmbookmark")) {
+		TreeSelector *tree=dynamic_cast<TreeSelector*>(findChildWindowByName("Bookmarks", true));
+		MenuItem *item = tree->GetSelected(0);
+		if (!item || !item->nextdetail) return 0;
+		RemoveBookmark(item->name, item->nextdetail->name);
 		return 0;
 
 	} else if (!strcmp(mes,"new file")) {
@@ -1047,7 +1136,68 @@ int FileDialog::Event(const EventData *data,const char *mes)
 
 	} else if (!strcmp(mes,"details")) { // toggle details/all together
 		DBG cerr <<"***file dialog: "<<mes<<endl; //***
+		return 0;
 
+	} else if (!strcmp(mes,"settingsbutton")) { // toggle details/all together
+		MenuInfo *bmenu=new MenuInfo();
+		unsigned int sortstyle = filelist->Menu()->sortstyle;
+
+		enum FileSortMenu {
+			FILES_Dirs_First=1,
+			FILES_Caseless,
+			FILES_ABC,
+			FILES_CBA,
+			FILES_123,
+			FILES_321,
+			FILES_abc123,
+			FILES_cba321,
+			FILES_Reverse,
+			FILES_Detail,
+			FILES_SORT_MAX
+		};
+
+		//const char *newitem,LaxImage *img,int nid,unsigned int nstate,int ninfo=0,  MenuInfo *nsub=NULL,int where=-1,char subislocal=1
+
+		bmenu->AddItem(_("Sort ABC"),NULL, SORT_ABC /*id*/,
+				LAX_ISTOGGLE|LAX_OFF|((sortstyle&SORT_ABC) ? LAX_CHECKED : 0),
+				0, NULL,-1,0
+			);
+		bmenu->AddItem(_("Sort CBA"),NULL, SORT_CBA /*id*/,
+				LAX_ISTOGGLE|LAX_OFF|((sortstyle&SORT_CBA) ? LAX_CHECKED : 0),
+				0, NULL,-1,0
+			);
+		bmenu->AddItem(_("Sort caseless"),NULL, SORT_IGNORE_CASE /*id*/,
+				LAX_ISTOGGLE|LAX_OFF|((sortstyle&SORT_IGNORE_CASE) ? LAX_CHECKED : 0),
+				0, NULL,-1,0
+			);
+		bmenu->AddItem(_("Sort directories first"),NULL, SORT_DIRS_FIRST /*id*/,
+				LAX_ISTOGGLE|LAX_OFF|((sortstyle&SORT_DIRS_FIRST) ? LAX_CHECKED : 0),
+				0, NULL,-1,0
+			);
+
+
+       PopupMenu *popup=new PopupMenu(NULL,_("Settings"), 0,
+                        0,0,0,0, 1, 
+                        object_id,"settings", 
+                        0, //mouse to position near?
+                        bmenu,1, NULL,
+                        MENUSEL_LEFT|MENUSEL_CHECK_ON_LEFT|MENUSEL_DESTROY_ON_LEAVE);
+        popup->pad=5;
+        popup->WrapToMouse(0);
+        app->rundialog(popup);
+
+		return 0;
+
+	} else if (!strcmp(mes,"settings")) { // toggle details/all together
+		int id=s->info2;
+
+		if (id==SORT_ABC) {
+		} else if (id==SORT_CBA) {
+		} else if (id==SORT_IGNORE_CASE) {
+		} else if (id==SORT_DIRS_FIRST) {
+		}
+
+		return 0;
 	}
 
 	return anXWindow::Event(data, mes);
