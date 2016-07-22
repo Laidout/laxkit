@@ -58,8 +58,6 @@ char *make_filename_base(const char *f);
 //void get_path_parts(const char *f,const char **dir,const char **file);
 char *read_in_whole_file(const char *file, int *chars_ret, int maxchars=0);
 char *current_directory();
-	
-char *get_bookmarks(const char *file,const char *filetype);
 
 } //namespace LaxFiles
 
