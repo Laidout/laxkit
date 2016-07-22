@@ -105,7 +105,7 @@ int ShortcutTreeSelector::LBUp(int x,int y,unsigned int state,const LaxMouse *d)
 	if (mousedragmode!=0) return TreeSelector::LBUp(x,y,state,d);
 
 	int onsub=0;
-    int i=findItem(x,y,&onsub, NULL);
+    int i=findItem(x,y,&onsub);
 
 	if (onsub) return TreeSelector::LBUp(x,y,state,d);
 	MenuItem *mi=item(i);
