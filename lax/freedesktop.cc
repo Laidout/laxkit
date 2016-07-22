@@ -970,107 +970,6 @@ Laxkit::MenuInfo *recently_used(const char *recentfile, const char *mimetype,con
 	return menu;
 }
 
-//! Read in file bookmarks.
-/*! filetype will be "gtk", "gtk3", "kde", "rox", "lax". If file==NULL and filetype==NULL,
- * then each of the previous filetypes (but only "gtk3", NOT "gtk") is used. If file!=NULL and filetype==NULL, then NULL
- * is returned. Otherwise, a new char[] with the file or directories separated by a newline is returned.
- *
- * If file==NULL, then read in the default locations for filetype, which are:
- *
- * gtk:  ~/.gtk-bookmarks\n
- * gtk3: ~/.config/gtk-3.0/bookmarks\n
- * kde:  ~/.kde/share/apps/konqueror/bookmarks.xml\n
- * rox:  ~/.config/rox.sourceforge.net/ROX-Filer/Bookmarks.xml\n
- * lax: (no default file at this time)\n
- *
- * possibly fd desktop bookmark spec says folder bookmarks in ~/.shortcuts.xbel, but this is not
- * implemented here.
- *
- * \todo need to lock files on opening
- */
-char *get_bookmarks(const char *file,const char *filetype)
-{
-	if (filetype==NULL && file!=NULL) return NULL;
-	if (filetype==NULL) {
-		 //scan all common locations
-		char *str,*str2;
-
-		//str=get_bookmarks(NULL,"gtk");
-		str=get_bookmarks(NULL,"gtk3");
-		str2=get_bookmarks(NULL,"kde");
-		if (str2) { appendstr(str,str2); delete[] str2; }
-		str2=get_bookmarks(NULL,"rox");
-		if (str2) { appendstr(str,str2); delete[] str2; }
-		str2=get_bookmarks(NULL,"lax");
-		if (str2) { appendstr(str,str2); delete[] str2; }
-		return str;
-	}
-
-	if (file==NULL) {
-		 //load from standard bookmarks location
-		if (!strcmp(filetype,"gtk")) file="~/.gtk-bookmarks";
-		else if (!strcmp(filetype,"gtk3")) file="~/.config/gtk-3.0/bookmarks";
-		//else if (!strcmp(filetype,"kde")) file="~/.kde/share/apps/konqueror/bookmarks.xml";
-		else if (!strcmp(filetype,"kde")) file="~/.kde/share/apps/kfileplaces/bookmarks.xml";
-		else if (!strcmp(filetype,"rox")) file="~/.config/rox.sourceforge.net/ROX-Filer/Bookmarks.xml";
-	}
-	if (!file) return NULL;
-
-	char *ff=newstr(file);
-	expand_home_inplace(ff);
-	if (file_exists(ff,1,NULL)!=S_IFREG) return NULL;
-	FILE *f=fopen(ff,"r");
-	delete[] ff;
-	if (!f) return NULL;
-	char *files=NULL;
-
-	if (!strcmp(filetype,"kde") || !strcmp(filetype,"rox")) {
-		Attribute att;
-		Attribute *attt, *satt;
-		XMLChunkToAttribute(&att,f,NULL);
-
-		attt=att.find("xbel");
-		if (attt) attt=attt->find("content:");
-
-		if (attt) {
-			const char *value, *name;
-
-			for (int c=0; c<attt->attributes.n; c++) {
-				name =attt->attributes.e[c]->name;
-				value=attt->attributes.e[c]->value;
-
-				if (!strcmp(name,"bookmark")) {
-					satt=attt->attributes.e[c]->find("href");
-					if (satt && !strncmp(satt->value,"file://",7)) {
-						value=satt->value+7;
-
-						if (!isblank(value)) {
-							appendstr(files,value);
-						}
-					} 
-				}
-			}
-		}
-
-	} else if (!strcmp(filetype,"gtk") || !strcmp(filetype,"gtk3")) {
-		 //gtk uses (as far as I know) a simple list of lines like:   
-		 //  file:///blah/blah
-		char *line=NULL;
-		size_t n=0;
-		int c;
-		while (1) {
-			c=getline(&line,&n,f);
-			if (c<=0) break;
-			if (!isblank(line)) appendstr(files,line+7);
-		}
-	} else if (!strcmp(filetype,"lax")) {
-		 //is lax indented format
-		//Attribute *att=anXApp::app->Resource("Bookmarks");
-	}
-
-	fclose(f);
-	return files;
-}
 
 /*! Read in file bookmarks, add to menu. Each item has 2 parts.
  * Main part is basename. Has one detail node, containing full path.
@@ -1216,7 +1115,7 @@ Laxkit::MenuInfo *get_categorized_bookmarks(const char *file,const char *filetyp
 
 	} else if (!strcmp(filetype,"gtk") || !strcmp(filetype,"gtk3")) {
 		 //gtk uses (as far as I know) a simple list of lines like:   
-		 //  file:///blah/blah
+		 //  file:///blah/blah optional-name
 		char *line=NULL;
 		char *name;
 		size_t nn=0;
@@ -1227,6 +1126,7 @@ Laxkit::MenuInfo *get_categorized_bookmarks(const char *file,const char *filetyp
 			if (c<=0) break;
 			if (line[c-1]=='\n') line[c-1]='\0';
 			if (!isblank(line)) {
+				 //parse optional name
 				name=strchr(line,' ');
 				if (name && !isblank(name+1)) {
 					*name='\0';
@@ -1235,6 +1135,7 @@ Laxkit::MenuInfo *get_categorized_bookmarks(const char *file,const char *filetyp
 					name=(char*)lax_basename(line+7);
 				}
 
+				 //spaces in paths are coded as "%20" so...
 				char *ss=line;
 				int i=0;
 				while (line[i]) {
@@ -1277,6 +1178,8 @@ Laxkit::MenuInfo *get_categorized_bookmarks(const char *file,const char *filetyp
  */
 int add_bookmark(const char *directory, int where)
 {
+	cerr << " *** freedesktop.cc/add_bookmark() either needs a ton of work or is deprecated!!"<<endl;
+
 	if (!directory) return 3;
 	char *dir=file_to_uri(directory);
 	if (file_exists(dir+7,1,NULL)!=S_IFDIR) { //skip over the "file://"
