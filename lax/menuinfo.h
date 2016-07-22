@@ -35,20 +35,27 @@
 #endif
 
  //-----sorting styles
- // These:
-#define SORT_NONE         (1<<0)
-#define SORT_ABC          (1<<1)
-#define SORT_CBA          (1<<2)
-#define SORT_123          (1<<3)
-#define SORT_321          (1<<4)
-#define SORT_INFO         (1<<5)
-#define SORT_INFO_REV     (1<<6)
- // Or'd with any of these:
-#define SORT_IGNORE_CASE  (1<<8)
-#define SORT_DIRS_FIRST   (1<<9)
-#define SORT_HIDE_HIDDEN  (1<<10)
-#define SORT_DOT_FIRST    (1<<11)
-#define SORT_BY_EXTENSION (1<<12)
+enum MenuSortStyles {
+	 // These:
+	SORT_NONE         =(1<<0),
+	SORT_ABC          =(1<<1),
+	SORT_CBA          =(1<<2),
+	SORT_123          =(1<<3),
+	SORT_321          =(1<<4),
+	SORT_123kb        =(1<<5),
+	SORT_321kb        =(1<<6),
+	SORT_INFO         =(1<<7),
+	SORT_INFO_REV     =(1<<8),
+
+	 // Or'd with any of these:
+	SORT_IGNORE_CASE  =(1<<9),
+	SORT_DIRS_FIRST   =(1<<10),
+	SORT_HIDE_HIDDEN  =(1<<11),
+	SORT_DOT_FIRST    =(1<<12),
+	SORT_BY_EXTENSION =(1<<13),
+
+	SORT_MAX
+};
 
 
 //-------item state

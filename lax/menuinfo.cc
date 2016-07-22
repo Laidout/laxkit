@@ -79,19 +79,6 @@ namespace Laxkit {
  */
 
 
-//-------------------------- Old style comparison functions (no longer used?)
-int reversestrcmp(const char *s1,const char *s2)
-{ return -strcmp(s1,s2); }
-
-int reversestrcasecmp(const char *s1,const char *s2)
-{ return -strcasecmp(s1,s2); }
-
-int strcmp123(const char *s1,const char *s2)
-{ return atof(s1)<atof(s2)?-1:(atof(s1)>atof(s2)?1:0); }
-
-int strcmp321(const char *s1,const char *s2)
-{ return atof(s1)>atof(s2)?-1:(atof(s1)<atof(s2)?1:0); }
-
 //-------------------------- Comparison functions
 
 int menu_strcmp(MenuItem *i1,int detail1, MenuItem *i2,int detail2)
@@ -118,6 +105,54 @@ int strcmpInfo(MenuItem *i1,int detail1, MenuItem *i2,int detail2)
 
 int strcmpInfoRev(MenuItem *i1,int detail1, MenuItem *i2,int detail2)
 { return i1->GetDetail(detail1)->info > i2->GetDetail(detail2)->info ? -1 : ((i1->GetDetail(detail1)->info < i2->GetDetail(detail2)->info) ? 1 : 0); }
+
+
+/*! Compare strings that hold some byte size string, like "1 byte", "2.5G", "25 mb".
+ * This is a very simple check, only looks for 'b', 'm', 'g', or 't' as first char after number.
+ *
+ * Return 0 for equal, -1 for a<b, 1 for a>b.
+ *
+ * \todo this should probably have a localized variation.
+ */
+int cmpKB(const char *a, const char *b)
+{
+	if (!a || !b) return 0;
+
+	double ad, bd;
+	char *endptr=NULL;
+
+	ad=strtod(a, &endptr);
+	if (endptr!=a) {
+		a=endptr;
+		while (isspace(*a)) a++;
+
+		if      (*a=='k') ad*=1000;
+		else if (*a=='m') ad*=1e+6;
+		else if (*a=='g') ad*=1e+9;
+		else if (*a=='t') ad*=1e+12;
+	}
+
+	bd=strtod(b, &endptr);
+	if (endptr!=b) {
+		b=endptr;
+		while (isspace(*b)) b++;
+
+		if      (*b=='k') bd*=1000;
+		else if (*b=='m') bd*=1e+6;
+		else if (*b=='g') bd*=1e+9;
+		else if (*b=='t') bd*=1e+12;
+	}
+
+	if (ad==bd) return 0;
+	if (ad<bd) return -1;
+	return 1;
+}
+
+int menu_strcmp321kb(MenuItem *i1,int detail1, MenuItem *i2,int detail2)
+{ return cmpKB(i1->GetString(detail1), i2->GetString(detail2)); }
+
+int menu_strcmp123kb(MenuItem *i1,int detail1, MenuItem *i2,int detail2)
+{ return -cmpKB(i1->GetString(detail1), i2->GetString(detail2)); }
 
 
 //--------------------------------------------------------
@@ -467,30 +502,27 @@ const char *MenuItem::GetString(int detail)
 /*! \var int MenuInfo::sortstyle
  * \brief Indicates how to sort.
  *
- * \code
- *   //These:
- *  #define SORT_NONE         (1<<0)
- *  #define SORT_ABC          (1<<1)
- *  #define SORT_CBA          (1<<2)
- *  #define SORT_123          (1<<3)
- *  #define SORT_321          (1<<4)
- *   // Or'd with any of these:
- *   // DOT_FIRST means place "." and ".." at the beginning always. (if they are included)
- *   // HIDE_HIDDEN means don't show any entries that begin with a . (except "." or "..")
- *  #define SORT_IGNORE_CASE  (1<<8)
- *  #define SORT_DIRS_FIRST   (1<<9)
- *  #define SORT_HIDE_HIDDEN  (1<<10)
- *  #define SORT_DOT_FIRST    (1<<11)
- *  #define SORT_BY_EXTENSION (1<<12)
- * 
- * \endcode
+ * See MenuSortStyles.
  */
 
 void menuinfoDump(MenuInfo *menu, int indent)
 {
+	if (!menu) return;
+
 	char spc[indent+1]; memset(spc,' ',indent); spc[indent]='\0';
+
+	MenuItem *detail;
 	for (int c=0; c<menu->menuitems.n; c++) {
-		cerr <<spc<<"Item "<<c<<": "<<(menu->menuitems.e[c]->name?menu->menuitems.e[c]->name:"(no name)")<<endl;
+		detail = menu->menuitems.e[c];
+		cerr <<spc<<"Item "<<c<<": ";
+
+		while (detail) {
+			cerr <<(detail->name ? detail->name : "(no name)");
+			detail=detail->nextdetail;
+			if (detail) cerr <<", ";
+		}
+		cerr<<endl;
+
 		if (menu->menuitems.e[c]->state&MENU_HAS_SUBMENU)
 			menuinfoDump(menu->menuitems.e[c]->GetSubmenu(),indent+2);
 	}
@@ -508,6 +540,7 @@ MenuInfo::MenuInfo(const char *ntitle) // ntitle
 	curmenu=this;
 	Compare=menu_strcmp;
 	parent=NULL;
+	sortstyle=0;
 }
 
 //! Destructor, just frees the title. The stack is flushed automatically.
@@ -678,6 +711,8 @@ void MenuInfo::SetCompareFunc(int newsortstyle)
 	else   if (sortstyle&SORT_INFO_REV) Compare=strcmpInfoRev;
 	else   if (sortstyle&SORT_123)      Compare=menu_strcmp123;
 	else   if (sortstyle&SORT_321)      Compare=menu_strcmp321;
+	else   if (sortstyle&SORT_123kb)    Compare=menu_strcmp123kb;
+	else   if (sortstyle&SORT_321kb)    Compare=menu_strcmp321kb;
 
 	else Compare=menu_strcmp; //**** default??
 }
