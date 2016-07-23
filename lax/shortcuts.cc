@@ -410,7 +410,7 @@ int ShortcutHandler::FindShortcutIndex(unsigned int key, unsigned int state, int
 	if (!shortcuts) return -1;
 	for (int c=0; c<shortcuts->n; c++) {
 		if (shortcuts->e[c]->match(key,state)>0
-				&& ((mode>0 && mode==shortcuts->e[c]->mode) || mode<=0)
+				&& ((shortcuts->e[c]->mode>0 && mode==shortcuts->e[c]->mode) || shortcuts->e[c]->mode<=0)
 			) return c;
 	}
 	return -1;
