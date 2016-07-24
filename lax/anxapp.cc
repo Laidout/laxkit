@@ -1857,8 +1857,8 @@ int anXApp::rundialog(anXWindow *ndialog,anXWindow *wingroup,char absorb_count)/
 		 //make dislocal 1 less than the lowest wingroup
 		if (dialogs.islocal[c]<dislocal) dislocal=dialogs.islocal[c]-1;
 	}
+
 	c=dialogs.pushnodup(ndialog,dislocal);
-	//if (absorb_count) ndialog->dec_count();//***uncomment if dialogs becomes reference counted!!
 	if (c>0) { // was on the stack already and/or was not at front of stack, so move it to the front
 		dialogs.pop(c);
 		dialogs.push(ndialog,dislocal,0);
@@ -2353,7 +2353,7 @@ void anXApp::settimeout(struct timeval *timeout)
 
 			if (currenttime>=ttmouse->ttendlimit) { // is time, so pop up
 				ttmouse->ttendlimit=0;
-				newToolTip(ttmouse->ttwindow->tooltip(ttmouse->id),ttmouse->id);
+				newToolTip(ttmouse->ttwindow->tooltip(ttmouse->id),ttmouse->id, ttmouse->ttwindow);
 				ttmouse->ttwindow->dec_count(); ttmouse->ttwindow=NULL;
 				tooltipmaybe.pop(c);
 				c--;
@@ -2384,7 +2384,7 @@ void anXApp::settimeout(struct timeval *timeout)
 }
 
 //! Create and add a new tooltip, ensuring there is only one per mouse up at any one time.
-void anXApp::newToolTip(const char *text,int mouseid)
+void anXApp::newToolTip(const char *text,int mouseid, anXWindow *ttwindow)
 {
 	ToolTip *tt;
 	for (int c=0; c<topwindows.n; c++) {
@@ -2393,7 +2393,8 @@ void anXApp::newToolTip(const char *text,int mouseid)
 		if (tt->mouse_id==mouseid) destroywindow(tt);
 	}
 	anXWindow *ttmaybe=new ToolTip(text,mouseid);
-	addwindow(ttmaybe);
+	if (ttwindow) ttmaybe->win_owner=ttwindow->object_id;
+	rundialog(ttmaybe, ttwindow);
 }
 
 //! This is the main event loop.
@@ -2557,7 +2558,7 @@ void anXApp::tooltipcheck(EventData *event, anXWindow *ww)
 		if (tooltips && ttcount==0 && ww->tooltip()) {
 			if (hadtip) {
 				 //pop up immediately
-				newToolTip(ww->tooltip(m->id),m->id);
+				newToolTip(ww->tooltip(m->id),m->id, ww);
 				if (c>=0) tooltipmaybe.pop(c);
 				return;
 			} else {
@@ -2767,20 +2768,26 @@ void anXApp::processXevent(XEvent *xevent)
 	 //Must screen out any unwanted events if there is a blocking dialog running.
 	 // Events are sent only to windows descended from dialog group of dialog 
 	 // on the top of the dialog stack.
-	//DBG cerr <<"  dialog screen..."<<endl;
 	if (ww && isinputevent && dialogs.n) { 
 		 //Input related events destined for windows contained by dialogs of the same group
 		 //as the top of the dialogs stack are allowed to pass.
 
-		int dialog_group=dialogs.islocal[dialogs.n-1]; //active dialog window group id.
-		anXWindow *ww2=TopWindow(ww); //topwindow containing target window
+		int dstacktop=dialogs.n-1;
+		while (dstacktop>=0 && dynamic_cast<ToolTip*>(dialogs.e[dstacktop])) dstacktop--;
 
-		int c2;
-		c2=dialogs.findindex(ww2); //find top of ww in dialogs
-		if (c2>=0) {                                   //target window is contained in a dialog
-			if (dialogs.islocal[c2]!=dialog_group && isinputevent) //but not in same window group 
-				rr=NULL; //And is an input related event, then don't send event
-		} else if (isinputevent) rr=NULL; // top not in dialogs, and is an input event
+		if (dstacktop>=0) { //this is a hack to use dialog machinery to dismiss tooltips on desktop changes
+							//while not blocking events due to a ToolTip technically being a dialog
+							
+			int dialog_group=dialogs.islocal[dstacktop]; //active dialog window group id.
+			anXWindow *ww2=TopWindow(ww); //topwindow containing target window
+
+			int c2;
+			c2=dialogs.findindex(ww2); //find top of ww in dialogs
+			if (c2>=0) {                                   //target window is contained in a dialog
+				if (dialogs.islocal[c2]!=dialog_group && isinputevent) //but not in same window group as top of dialog stack
+					rr=NULL; //And is an input related event, then don't send event
+			} else if (isinputevent) rr=NULL; // top of ww not in dialogs, and is an input event, so discard
+		}
 
 		//at this point, if rr==NULL, then 
 		// event did not pass screening, but we don't return until after managefocus() function

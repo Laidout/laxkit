@@ -397,7 +397,7 @@ class anXApp : virtual public anObject
 
 	int                     ttcount;
 	PtrStack<LaxDevice>     tooltipmaybe;
-	void 					newToolTip(const char *text,int mouseid);
+	void 					newToolTip(const char *text,int mouseid, anXWindow *ttwindow);
 
 	 //initialization helpers
 	virtual void setupdefaultcolors();
