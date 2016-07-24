@@ -78,6 +78,8 @@
 #define TEXT_ALWAYS_Y            (1<<23 | 1<<21)
 
 #define TEXT_CURS_PAST_NL        (1<<24)
+#define TEXT_LINE_NUMBERS        (1<<25)
+
 
 namespace Laxkit {
 
@@ -85,16 +87,19 @@ namespace Laxkit {
 class TextEditBaseUtf8 : virtual public Undoable
 {
   protected:
+	char *thetext;
+	long textlen,maxtextmem;
+	unsigned long textstyle;
+
 	long curline,curpos,selstart,sellen;
+	long modpos;
 	int cntlmovedist;
 	int tabwidth;
-	char *thetext,*cutbuffer;
-	long textlen,maxtextmem;
+	char *cutbuffer;
 	char newline,newline2;
 	char cntlchar;
 	char modified;
 	long maxtextlen,mintextlen, maxcharswide,mincharswide, maxlines,minlines; // these must be implemented in derived classes
-	unsigned long textstyle;
 	virtual int extendtext(); // overkill?
 	virtual long nextpos(long l);
 	virtual long prevpos(long l);
@@ -140,8 +145,8 @@ class TextEditBaseUtf8 : virtual public Undoable
 	virtual long Getnlines(long s=-1,long e=-1);
 	virtual long Getcharswide();  // total # chars with letter,nonprint,tabs,etc, not actual width
 	virtual int Getpixwide(long linenum); // return pix wide of line
-	virtual int Modified(int m=1) { modified=m; return m; }
-	
+	virtual int Modified(int m=1);
+
 	virtual int Cut(); // default is for internal cutbuffer
 	virtual int Copy();
 	virtual int Paste();

@@ -206,6 +206,7 @@ TextEditBaseUtf8::TextEditBaseUtf8(const char *newtext,unsigned long nstyle,unsi
 	cntlmovedist=10;
 
 	curpos=0;
+	modpos=0;
 	selstart=sellen=0;
 
 	undomode=0;
@@ -566,6 +567,13 @@ int TextEditBaseUtf8::extendtext()
 	return 1;
 }
 
+int TextEditBaseUtf8::Modified(int m)
+{
+	modified=m;
+	modpos=curpos;
+	return m;
+}
+
 //! Insert character at curpos. Afterward, make curpos on it (a==0) or after (a==1) it. Ignores selection, always at curpos.
 /*! if ch=='\\n' then put in the delimiter.
  *
@@ -784,7 +792,7 @@ long TextEditBaseUtf8::Getnlines(long s,long e) // s=e=-1
 		if (e<0) e=0;
 		if (e>textlen) e=textlen;
 	}
-	if (s<e) { long t=s; s=e; e=t; }
+	if (s>e) { long t=s; s=e; e=t; }
 	long n=0;
 	for (long c=s; c<=e; c=nextpos(c)) if (onlf(c)==1) n++;
 	return n;
