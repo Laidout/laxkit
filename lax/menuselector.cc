@@ -841,12 +841,13 @@ void MenuSelector::drawitemname(MenuItem *mitem,IntRectangle *rect)
 		image_out(im->image, this, gx, rect->y);
 	}
 
-	 // draw little markers for ccuritem
-	if (mitem==item(ccuritem) && win_active) {
-		foreground_color(win_colors->fg);
-		draw_arc_wh(this, rect->x,rect->y+textheight/3, textheight/3,textheight/3, 0,2*M_PI);
-		draw_arc_wh(this, rect->x+rect->width-1-textheight/3,rect->y+textheight/3,textheight/3,textheight/3, 0,2*M_PI);
-	}
+// *** ccuritem should add extra highlight, not these little circles which are kind of annoying
+//	 // draw little markers for ccuritem
+//	if (mitem==item(ccuritem) && win_active) {
+//		foreground_color(win_colors->fg);
+//		draw_arc_wh(this, rect->x,rect->y+textheight/3, textheight/3,textheight/3, 0,2*M_PI);
+//		draw_arc_wh(this, rect->x+rect->width-1-textheight/3,rect->y+textheight/3,textheight/3,textheight/3, 0,2*M_PI);
+//	}
 }
 
 //! Draw the item in the provided area..
