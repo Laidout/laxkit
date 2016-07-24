@@ -135,9 +135,13 @@ TextXEditBaseUtf8::TextXEditBaseUtf8(anXWindow *parnt,const char *nname,const ch
 	curlineoffset=0;
 
 	firsttime=1; //used as a flag to trigger SetupMetrics() at the start of next Refresh()
+	dp=NULL;
 
 	bkwrongcolor=~0;
 	bkwrongcolor2=~0;
+
+	padx=0;
+	pady=0;
 }
 
 /*! Decrements count of thefont.
@@ -155,7 +159,11 @@ int TextXEditBaseUtf8::FocusOn(const FocusChangeData *e)
 	//DBG cerr <<"txb: focuson, active:"<<(int)win_active<<"  con:"<<(int)con<<endl;
 	if (firsttime) return 0;
 	
-	if (win_active) DrawCaret(0,1);
+	if (win_active) {
+		dp=MakeCurrent();
+		DrawCaret(0,1);
+		dp=NULL;
+	}
 	//DBG cerr <<"txb: focuson, active:"<<(int)win_active<<"  con:"<<(int)con<<endl;
 	return 0;
 }
@@ -169,7 +177,9 @@ int TextXEditBaseUtf8::FocusOff(const FocusChangeData *e)
 	//DBG cerr <<"txb: focusoff, active:"<<(int)win_active<<"  con:"<<(int)con<<endl;
 	if (!win_active) {
 		if (!con) return needtodraw;
+		dp=MakeCurrent();
 		DrawCaret(1,0);
+		dp=NULL;
 	}
 	//DBG cerr <<"txb: focusoff, active:"<<(int)win_active<<"  con:"<<(int)con<<endl;
 	return 0;
@@ -308,10 +318,12 @@ int TextXEditBaseUtf8::MBUp(int x,int y,unsigned int state, const LaxMouse *d)
  */
 int TextXEditBaseUtf8::DrawTabLine()
 {
+	Displayer *dp=GetDisplayer();
+
 	 //blank out where the line will be printed
-	foreground_color(win_colors->bg);
-	fill_rectangle(this, 0,cy-textascent-10, win_w,10);
-	foreground_color(wscolor);
+	dp->NewFG(win_colors->bg);
+	dp->drawrectangle(0,cy-textascent-10, win_w,10, 1);
+	dp->NewFG(wscolor);
 	
 	if (textstyle&(TEXT_RIGHT|TEXT_CENTER)) return 0;
 	int c=-curlineoffset,t;
@@ -351,8 +363,9 @@ int TextXEditBaseUtf8::DrawTabLine()
 				//DBG cerr <<"c ";
 				break;
 		}
+
 		 //draw the marker for the tab
-		fill_polygon(this, p,3);
+		dp->drawlines(p,3, 1, 1);
 	}
 	DBG cerr <<endl;
 	return 0;
@@ -382,7 +395,7 @@ void TextXEditBaseUtf8::Refresh()
 		}
 	}
 
-	Displayer *dp=MakeCurrent();
+	dp=MakeCurrent();
 	double oldheight=dp->textheight();
 	dp->font(thefont, thefont->textheight());
 	
@@ -408,6 +421,7 @@ void TextXEditBaseUtf8::Refresh()
 	}
 
 	dp->font(app->defaultlaxfont, oldheight);
+	dp=NULL;
 	
 	needtodraw=0;
 }
@@ -457,6 +471,7 @@ void TextXEditBaseUtf8::DrawCaret(int removeold,int on) // removeold=0,on=1
 		oldx=cx; oldy=cy;
 		con=1;
 	} else con=0;
+
 	oldcp=curpos;
 	oldsellen=sellen; //***oldselstart??
 }
@@ -466,11 +481,11 @@ void TextXEditBaseUtf8::DrawCaret(int removeold,int on) // removeold=0,on=1
  */
 void TextXEditBaseUtf8::docaret(int w)
 { 
-	drawing_function(LAXOP_Difference);
-	foreground_color(~0);
-	if (w) fill_rectangle(this, cx,cy-textascent,2,textheight);
-	else fill_rectangle(this, oldx,oldy-textascent,2,textheight);
-	drawing_function(LAXOP_Over);
+	dp->BlendMode(LAXOP_Difference);
+	dp->NewFG(~0);
+	if (w) dp->drawrectangle(cx,cy-textascent,2,textheight, 1);
+	else dp->drawrectangle(oldx,oldy-textascent,2,textheight, 1);
+	dp->BlendMode(LAXOP_Over);
 }
 
 //! Set curtextcolor and curbkcolor according to whether highlighting is on or not.
@@ -483,8 +498,9 @@ void TextXEditBaseUtf8::Colors(int hl)
 		curtextcolor=win_colors->fg;
 		curbkcolor=ValidColor(valid);
 	}
-	foreground_color(curtextcolor);
-	background_color(curbkcolor);
+
+	dp->NewFG(curtextcolor);
+	dp->NewBG(curbkcolor);
 }
 
 unsigned long TextXEditBaseUtf8::ValidColor(int which)
@@ -498,9 +514,9 @@ unsigned long TextXEditBaseUtf8::ValidColor(int which)
 //! Fill x,y,w,h with curbkcolor.
 void TextXEditBaseUtf8::Black(int x,int y,int w,int h)
 {
-	foreground_color(curbkcolor);
-	fill_rectangle(this, x,y,w,h);
-	foreground_color(curtextcolor);
+	dp->NewFG(curbkcolor);
+	dp->drawrectangle(x,y,w,h, 1);
+	dp->NewFG(curtextcolor);
 }
 
 //! Draw a single line of text.
@@ -631,6 +647,8 @@ int TextXEditBaseUtf8::TextOut(int x,int y,char *str,long len,long eof) // len=1
 	//DBG cerr <<"  GText: x,y:"<<x<<","<<y<<" str:";
 	//DBG for (int c=0; c<len; c++) cerr <<str[c];
 	//DBG cerr<<" len:"<<len<<"  eof:"<<eof;
+
+	dp->LineWidth(1);
 	
 	long p;
 	int c2;
@@ -721,16 +739,17 @@ int TextXEditBaseUtf8::TextOut(int x,int y,char *str,long len,long eof) // len=1
 		
 		if (textstyle&TEXT_SHOW_WHITESPACE && x<textrect.x+textrect.width) {
 			// draw triangle in tab space
-			foreground_color(wscolor);
-			draw_line(this, x,y, c,y-textascent+textheight/3);
-			draw_line(this, c,y-textascent+textheight/3, c,y+textdescent-textheight/3);
-			draw_line(this, c,y+textdescent-textheight/3, x,y);
-			foreground_color(curtextcolor);
+			dp->NewFG(wscolor);
+			dp->drawline(x,y, c,y-textascent+textheight/3);
+			dp->drawline(c,y-textascent+textheight/3, c,y+textdescent-textheight/3);
+			dp->drawline(c,y+textdescent-textheight/3, x,y);
+			dp->NewFG(curtextcolor);
 		}
 		x=c; //now x points to where the text actually gets printed
 	}
 
 	c=x;
+
 	 // At this point, c is assumed to point to the pixel start of current segment, after it has 
 	 // been put into position according to tabtype
 	//DBG cerr <<"  --p="<<p;
@@ -739,26 +758,29 @@ int TextXEditBaseUtf8::TextOut(int x,int y,char *str,long len,long eof) // len=1
 
 		//int r,g,b;
 		//colorrgb(curtextcolor,&r,&g,&b);
-		foreground_color(curtextcolor);
-		textout(this, blah,p, x,y,LAX_LEFT|LAX_BASELINE);
+		dp->NewFG(curtextcolor);
+		dp->textout(x,y, blah,p, LAX_LEFT|LAX_BASELINE);
 
 		if (textstyle&TEXT_SHOW_WHITESPACE) { // draw ticks for spaces
 			 // different color for ws
-			foreground_color(wscolor);
+			dp->NewFG(wscolor);
+			int spwidth = charwidth(' ');
+
 			for (c2=0; c2<p-nlf; c2++) {
 				if (c>textrect.x+textrect.width) break;
 				if (blah[c2]==' ') {
-					draw_line(this, c,y, c,y-2);
+					dp->drawline(c+spwidth/2,y, c+spwidth/2,y-2);
 				}
 				c+=charwidth(blah[c2]);
 			}
 			if (nlf  && c<win_w) // draw slash for eol
-				draw_line(this, c,y-(int)(textascent*.6), c+charwidth(' '),y);
+				dp->drawline(c,y-(int)(textascent*.6), c+charwidth(' '),y);
 			else if (str[len]=='\0')  // draw divet for eof
-				draw_rectangle(this, c+1,y-textascent/2, 5,textascent/2);
-			foreground_color(curtextcolor);
+				dp->drawrectangle(c+1,y-textascent/2, 5,textascent/2, 0);
+			dp->NewFG(curtextcolor);
 		}
 	}
+
 	//DBG cerr <<" --print:"<<'"'<<blah<<'"'<<endl;
 	delete[] blah;
 	x+=pix;
@@ -852,8 +874,8 @@ int TextXEditBaseUtf8::GetExtent(long pos,long end,int lsofar,long eof) //lsofar
 	int ppos=pos, // temporary position pointer
 		slen=0,   // Segment LENgth in pixels
 		pslen=0,  // Partial Segment LENgth in pixels
-		tlen=0;   // Tabchar LENgth in bytes
-	long eot=end; // the end of the last tab segment containing end
+		tlen=0;   // Tabchar LENgth in pixels, length from segment start to the beginning of tabchar
+	long eot=end; // the byte position right after end of chars in the current tab segment
 	int tabbedto=lsofar,tabtype=LEFT_TAB;
 	int tabchar=0;
 	char tabutf[6];
@@ -869,6 +891,7 @@ int TextXEditBaseUtf8::GetExtent(long pos,long end,int lsofar,long eof) //lsofar
 		while (ppos<eot && thetext[ppos]!='\t' && !onlf(ppos)) ppos++;
 		getextent(thefont, thetext+pos,ppos-pos, &ww,NULL, NULL,NULL, 0);
 		slen=ww;
+
 		if (ppos>=end) {
 			getextent(thefont, thetext+pos,end-pos, &ww,NULL, NULL,NULL, 0);
 			pslen=ww;
@@ -882,6 +905,7 @@ int TextXEditBaseUtf8::GetExtent(long pos,long end,int lsofar,long eof) //lsofar
 			thetext[ppos]='\0';//we don't want to waste time scanning a huge str!
 			char *charpos=strstr(thetext+pos,tabutf);
 			thetext[ppos]=ch;
+
 			if (charpos) {
 				getextent(thetext+pos,charpos-thetext, &ww,NULL, NULL,NULL, 0);
 				tlen=ww;
@@ -894,21 +918,25 @@ int TextXEditBaseUtf8::GetExtent(long pos,long end,int lsofar,long eof) //lsofar
 		if (slen==0 || tabtype==LEFT_TAB) {
 			if (ppos>=end) return tabbedto+pslen; //return partial length
 			lsofar=tabbedto+slen; //add on segment length and continue
+
 		} else if (tabtype==RIGHT_TAB) {
 			if (tabbedto-slen<lsofar) 
 				if (ppos>=end) return lsofar+pslen; 
 				else lsofar+=slen;
 			else if (ppos>=end) return tabbedto-slen+pslen;
 			else lsofar=tabbedto;
+
 		} else if (tabtype==CENTER_TAB) {
 			if (tabbedto-slen/2<lsofar)
 				if (ppos>=end) return lsofar+pslen; else lsofar+=slen;
 			else if (ppos>=end) return tabbedto-slen/2+pslen; else lsofar=tabbedto+slen/2;
+
 		} else if (tabtype==CHAR_TAB) {
 			if (tabbedto-tlen<lsofar) 
 				if (ppos>=end) return lsofar+pslen; else lsofar+=slen;
 			else if (ppos>=end) return tabbedto-tlen+pslen; else lsofar=tabbedto-tlen+slen;
 		}
+
 		ppos++;
 		pos=ppos;
 
@@ -920,10 +948,10 @@ int TextXEditBaseUtf8::GetExtent(long pos,long end,int lsofar,long eof) //lsofar
 				tabutf[utf8encode(tabchar,tabutf)]='\0';
 			}
 		}
-	}
+	} //while (pos<=eot)
 
 	//DBG cerr <<"getextent error-- shouldn't be here"<<endl;
-	return lsofar; // this should never be reached
+	return lsofar; // note: this should never be reached
 }
 	
 //! Returns maximum pos less than or equal to an arbitrary window pixel position.

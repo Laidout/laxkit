@@ -34,6 +34,38 @@
 
 namespace Laxkit {
 
+enum TextEditControls {
+	TEXTEDIT_NewlineOnly,
+	TEXTEDIT_Increase_TabWidth,
+	TEXTEDIT_Decrease_TabWidth,
+	TEXTEDIT_Combine_Chars,
+	TEXTEDIT_Copy,
+	TEXTEDIT_Paste,
+	TEXTEDIT_Cut,
+	TEXTEDIT_Select_All,
+	TEXTEDIT_Show_Whitespace,
+	TEXTEDIT_Toggle_Bad_Chars,
+	TEXTEDIT_Show_Line_Numbers,
+	TEXTEDIT_Toggle_Replace,
+	TEXTEDIT_Jump_To_Mod,
+	TEXTEDIT_Backspace,
+	TEXTEDIT_Delete_After,
+	TEXTEDIT_Page_Up,
+	TEXTEDIT_Page_Down,
+	TEXTEDIT_Word_Left,
+	TEXTEDIT_Word_Right,
+	TEXTEDIT_Home,
+	TEXTEDIT_End,
+	TEXTEDIT_Up,
+	TEXTEDIT_Down,
+	TEXTEDIT_Left,
+	TEXTEDIT_Right,
+	TEXTEDIT_Move_Line_Up,
+	TEXTEDIT_Move_Line_Down,
+	TEXTEDIT_Undo,
+	TEXTEDIT_Redo,
+	TEXTEDIT_MAX
+};
 
 class TextXEditBaseUtf8 : public anXWindow, public TextEditBaseUtf8
 {
@@ -49,6 +81,7 @@ class TextXEditBaseUtf8 : public anXWindow, public TextEditBaseUtf8
 	unsigned long curtextcolor,textbgcolor;
 	unsigned long curbkcolor,bkwrongcolor,bkwrongcolor2,wscolor;
 	DoubleRectangle textrect;
+	Displayer *dp; //warning! this is null when outside of Refresh
 
 	virtual void docaret(int w=1);
 	virtual void settextrect();
