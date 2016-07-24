@@ -1074,7 +1074,7 @@ void Displayer::drawnum(double x, double y, int num)
 	else if (p.y>Maxy-h) p.y=Maxy-h;
 
 	if (real_coordinates) p=screentoreal(p);
-	textout(p.x,p.y,ch,strlen(ch),LAX_CENTER);
+	textout(p.x,p.y,ch,strlen(ch),LAX_LEFT|LAX_TOP);
 }
 
 
