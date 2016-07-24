@@ -51,6 +51,7 @@ class MultiLineEdit : public TextXEditBaseUtf8
 	Scroller *xscroller,*yscroller;
 	int xscrollislocal,yscrollislocal;
 	virtual int send() { return 0; }
+	virtual void settextrect();
 
  public:
 	int padx,pady;
@@ -75,11 +76,12 @@ class MultiLineEdit : public TextXEditBaseUtf8
 	virtual int Idle(int tid=0);
 	virtual int Resize(int nw,int nh);
 	virtual int MoveResize(int nx,int ny,int nw,int nh);
+	virtual void Refresh();
 
 	virtual int Find(char *str,int fromcurs=1); // fromcurs=1 
 	virtual int Replace(const char *oldstr,const char *newstr,int all);
 	virtual int SetText(const char *newtext);
-	virtual long SetCurPos(long newcurpos);
+	virtual long SetCurpos(long newcurpos);
 	virtual int SetSelection(long newss,long newse);
 	 // NOTE: the scrollers are always flush with right and bottom, and newyssize,newxssize modify textrect
 	virtual int newyssize();
@@ -118,6 +120,8 @@ class MultiLineEdit : public TextXEditBaseUtf8
 	virtual int UseThisFont(LaxFont *newfont);
 	virtual int SetupMetrics();
 	virtual void SetupScreen();
+
+	virtual void SetStyle(unsigned long style, int on);
 
     virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context);
     virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context); 

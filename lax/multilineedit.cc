@@ -159,6 +159,7 @@ MultiLineEdit::MultiLineEdit(anXWindow *prnt,const char *nname,const char *ntitl
 	blanktext=NULL;
 			
 	linestats=NULL;
+	numlines=0;
 
 //	mostcharswide=Getcharswide();
 //	numlines=GetNumLines();
@@ -225,6 +226,14 @@ void MultiLineEdit::UseTheseScrollers(Scroller *xscroll,Scroller *yscroll)
 		yscrollislocal=0;
 		yscroller=yscroll;
 		newyssize();
+	}
+}
+
+void MultiLineEdit::SetStyle(unsigned long style, int on)
+{
+	if (style&TEXT_LINE_NUMBERS) {
+		if (on) textstyle|=TEXT_LINE_NUMBERS;
+		else textstyle&=~TEXT_LINE_NUMBERS;
 	}
 }
 
@@ -307,8 +316,11 @@ int MultiLineEdit::SetText(const char *newtext)
 }
 
 //! Jump to this new position.
-long MultiLineEdit::SetCurPos(long newcurpos)
+long MultiLineEdit::SetCurpos(long newcurpos)
 {
+	TextEditBaseUtf8::SetCurpos(newcurpos);
+	needtodraw=1;
+
 	if (!firsttime) {
 		findcaret();
 		needtodraw|=(makeinwindow()?1:4);
@@ -677,7 +689,9 @@ int MultiLineEdit::replacesel(const char *newt,int after) //newt=NULL deletes, a
 int MultiLineEdit::CharInput(unsigned int ch,const char *buffer,int len,unsigned int state,const LaxKeyboard *d) 
 {
 	int c=0,pout;
+
 	if (!(state&ControlMask) && ((ch>=32 && ch<255) || ch=='\t' || ch==LAX_Enter) && !readonly()) {
+		 //normal key press, insert character
 		if (ch==LAX_Enter) ch='\n';
 		if (sellen) return replacesel(ch);
 		else return inschar(ch);
@@ -685,7 +699,6 @@ int MultiLineEdit::CharInput(unsigned int ch,const char *buffer,int len,unsigned
 
 	if (state&ControlMask && ch>=32) // scan for ^char (<32 handled below)
 	  switch(ch) { // cntl+? 
-		case ' ': needtodraw=1; return 0;
 		//case 'q': app->quit(); return 0;
 		case 'a': cdir=0; selstart=0; curpos=sellen=textlen; return needtodraw=1; 
 		case 'x':
@@ -701,6 +714,16 @@ int MultiLineEdit::CharInput(unsigned int ch,const char *buffer,int len,unsigned
                 return 0; 
             } 
  
+		case 'l':
+			textstyle^=TEXT_LINE_NUMBERS;
+			settextrect();
+			makelinestart(0,-1,0,0);
+			newxssize();
+			newyssize();
+			findcaret();
+			needtodraw=1;
+			return 0;
+	
 		case 'n': // toggle NLONLY 
 			textstyle^=TEXT_NLONLY;
 			makelinestart(curline,-2,0,0);
@@ -710,23 +733,29 @@ int MultiLineEdit::CharInput(unsigned int ch,const char *buffer,int len,unsigned
 			needtodraw=1;
 			return 0;
 
-		case '.': tabwidth++;
+		case 't':
+			tabwidth++;
 			makelinestart(0,-2,1,0);
 			newyssize(); newxssize();
 			findcaret();
 			needtodraw=1;
 			return 0;
 
-		case ',': tabwidth--; if (tabwidth<1) tabwidth=1;
+		case 'T':
+			tabwidth--; if (tabwidth<1) tabwidth=1;
 			makelinestart(0,-2,1,0);
 			newyssize(); newxssize();
 			findcaret();
 			needtodraw=1;
 			return 0;
 
-		case 'W':
-		case 'w': 
-			if (state & ShiftMask) { textstyle^=TEXT_SHOW_WHITESPACE; needtodraw=1; return 0; }
+		case '.':
+			 //jump to last modification point
+			SetCurpos(modpos);
+			return 0;
+
+		case ' ': 
+			if (state & ControlMask) { textstyle^=TEXT_SHOW_WHITESPACE; needtodraw=1; return 0; }
 			if (textstyle&TEXT_WORDWRAP) {
 				textstyle^=TEXT_WORDWRAP;
 				maxpixwide=30000;
@@ -756,20 +785,22 @@ int MultiLineEdit::CharInput(unsigned int ch,const char *buffer,int len,unsigned
 			findcaret();
 			needtodraw=1;
 			return 0;
-//		case 'u':	****cntl-u: undo?
-	}
 
-	switch(ch) { // handle any other various control characters
-		case 0: return 0; // null 
-		case LAX_Tab:  // ^tab nextcontrol, ^+tab for prev, if was not ^, tab was handled above
-			if (state&ShiftMask) SelectPrevControl(d);
-			else SelectNextControl(d);
+		case 'z': //undo?
+			if (state & ShiftMask) Redo();
+			else Undo();
 			return 0;
 
-//		case LAX_Enter: //enter
-//		case LAX_Shift: return 0;//shift
-//		case LAX_Control: return 0;//cntl
-//		case LAX_Esc: return 0;//esc
+	} //switch
+
+	switch(ch) { // handle any other various control characters that don't need control key pressed
+		case 0: return 0; // null 
+		case LAX_Tab:  // ^tab nextcontrol, ^+tab for prev, if was not ^, tab was handled above
+			if (state&ControlMask) {
+				if (state&ShiftMask) SelectPrevControl(d);
+				else SelectNextControl(d);
+			}
+			return 0;
 
 		case LAX_Ins:
 			if (state&ControlMask) { //cntl+ins: copy
@@ -1023,6 +1054,7 @@ int MultiLineEdit::CharInput(unsigned int ch,const char *buffer,int len,unsigned
 
 		default: return anXWindow::CharInput(ch,buffer,len,state,d);
 	}
+
 	return anXWindow::CharInput(ch,buffer,len,state,d);
 }
 
@@ -1048,11 +1080,13 @@ long MultiLineEdit::findpos(int l,int pix,int updatecp,int conv) //updatecp==1,c
 		makevalidpos(newpos);
 		if (newpos<0) newpos=0; //*** what about selstart
 		if (updatecp && curpos!=newpos) { curpos=newpos; findcaret(); }
+
 	} else if (l>lpers) { // pos is somewhere below
 		newpos=linestats[lpers].start+20*l;
 		makevalidpos(newpos);
 		if (newpos>textlen) newpos=textlen;
 		if (updatecp && curpos!=newpos) { curpos=newpos; findcaret(); }
+
 	} else { // pos is somewhere on screen
 		if (linestats[l].start==textlen) {
 			while (l>0 && linestats[l].start==textlen) l=prevpos(l);
@@ -1066,6 +1100,7 @@ long MultiLineEdit::findpos(int l,int pix,int updatecp,int conv) //updatecp==1,c
 			cx=-curlineoffset+pix;
 		}
 	}
+
 	return newpos;
 }
 
@@ -1129,9 +1164,11 @@ void MultiLineEdit::findcaret()
 			cy=(win_h-pady)+1+textascent;
 			curline=lpers+2;
 		}
+
 	} else if (curpos<linestats[0].start) { // is above screen
 		cy=-1;
 		curline=-1;
+
 	} else { // is on screen
 		curline=lpers-1;
 		while (curpos<linestats[curline].start) curline--;
@@ -1581,6 +1618,26 @@ long MultiLineEdit::WhichLine(long pos)
 	return l-1;
 }
 
+void MultiLineEdit::Refresh()
+{
+	TextXEditBaseUtf8::Refresh();
+
+	if (textstyle & TEXT_LINE_NUMBERS) {
+		// *** need to respond to partial refreshing
+		double th=thefont->textheight();
+		Displayer *dp=GetDisplayer();
+		dp->BlendMode(LAXOP_Over);
+		dp->NewFG(coloravg(win_colors->bg,win_colors->fg));
+
+		int nl=numlines;
+		if (!onlf(thetext[textlen-1])) nl++;
+
+		for (int c=0; c<nl; c++) {
+			dp->drawnum(textrect.x/2, textrect.y + pady + c*th + th/2, c+1);
+		}
+	}
+}
+
 //! Draw the screen.
 void MultiLineEdit::DrawText(int black) // black=1 
 {
@@ -1594,6 +1651,7 @@ void MultiLineEdit::DrawText(int black) // black=1
 	if (nlines==0) nlines=lpers+1;
 	if (dpos==0) dpos=-1;
 	spy=textrect.y+pady+textascent;
+
 	 // posinline already==linestats[0].start 
 	 // draw from [cline,cline+nlines), cline is the screen line containing dpos
 	if (dpos!=textlen && dpos>=linestats[lpers+1].start) { spy=(win_h-pady); } // dpos definitely offscreen 
@@ -1611,6 +1669,7 @@ void MultiLineEdit::DrawText(int black) // black=1
 		//lsofar=GetExtent(linestats[cline].start,posinline-thetext,0,linestats[cline+1].start);
 		GetExtent(linestats[cline].start,posinline-thetext,0,linestats[cline+1].start);
 	}  
+
 	if (textlen==0) nlines=0;
 	while (spy<(win_h-pady) && nlines) {
  		 // *** this ignores small updates, shouldn't redraw the whole line???
@@ -1621,6 +1680,7 @@ void MultiLineEdit::DrawText(int black) // black=1
 		nlines--;
 		spy+=textheight;
 	}
+
 	if (black && nlines && spy<(win_h-pady)) { // black out the remainder of the screen
 		int x=padx,y=spy, w=win_w,h=win_h-y;
 		if (w>0 && h>0) Black(x,y,w,h);
@@ -1681,6 +1741,24 @@ void MultiLineEdit::SetupScreen()
 
 	findcaret();
 	needtodraw=1;
+}
+
+void MultiLineEdit::settextrect()
+{
+	TextXEditBaseUtf8::settextrect();
+
+	if (textstyle & TEXT_LINE_NUMBERS) {
+		int nlines = GetNumLines();
+		if (nlines<=0) nlines=1;
+		int sz = int(log10(nlines)) + 1;
+		char nn[sz+1];
+		memset(nn, '0', sz);
+		nn[sz]='\0';
+		double w=thefont->extent(nn,sz);
+
+		textrect.x += w+padx;
+		textrect.width -= w+padx;
+	}
 }
 
 /*! *** probably should cache resize events, so don't have to constantly
