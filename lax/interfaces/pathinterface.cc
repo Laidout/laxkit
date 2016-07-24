@@ -3995,6 +3995,7 @@ int PathInterface::toggleclosed(int c) //c=-1
 
 	if (!closed) {
 		curpath->close();
+		data->FindBBox();
 		needtodraw=1;
 		SetCurvertex(curvertex);
 		return 0;
