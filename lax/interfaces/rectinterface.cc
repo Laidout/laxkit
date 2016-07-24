@@ -1666,7 +1666,11 @@ int RectInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMou
 				if (!n) break;
 				xdir=v/n;
 				xaxislen=n/(somedata->maxx-somedata->minx);
-				somedata->xaxis((fabs(xaxislen)>1e-10?xaxislen:1e-10)*xdir);
+
+				DBG cerr <<" SHEAR e|w === "<< (fabs(xdir.x*ydir.y-ydir.x*xdir.y)) <<"  xaxis: "<<fabs(xaxislen)<<endl;
+
+				if (fabs(xdir.x*ydir.y-ydir.x*xdir.y)>1e-5) //make sure x and y are not collinear
+					somedata->xaxis((fabs(xaxislen)>1e-10 ? xaxislen : 1e-10)*xdir);
 			} break;
 		case RP_Shear_S:
 		case RP_Shear_N: {
@@ -1680,15 +1684,21 @@ int RectInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMou
 				if (!n) break;
 				ydir=v/n;
 				yaxislen=n/(somedata->maxy-somedata->miny);
-				somedata->yaxis((fabs(yaxislen)>1e-10?yaxislen:1e-10)*ydir);
+
+				DBG cerr <<" SHEAR s|n === "<< (fabs(xdir.x*ydir.y-ydir.x*xdir.y)) <<"  yaxis: "<<fabs(yaxislen)<<endl;
+
+				if (fabs(xdir.x*ydir.y-ydir.x*xdir.y)>1e-5) //make sure x and y are not collinear
+					somedata->yaxis((fabs(yaxislen)>1e-10 ? yaxislen : 1e-10)*ydir);
 			} break;
 	}
+
 	if (ip) {
 		somedata->origin(somedata->origin()-getpoint(ip,1)+op);
 		origin=somedata->origin();
 		if (data) data->centercenter();
 		needtodraw=1;
 	}
+
 	syncFromData(0);
 	return 0;
 }
