@@ -1712,7 +1712,8 @@ int TreeSelector::LBDown(int x,int y,unsigned int state,int count,const LaxMouse
 	int detailhover=-1;
 	int item=-1;
 
-	if (columns.n && y<=inrect.y+textheight) {
+	//if (columns.n && y<=inrect.y+textheight) {
+	if (columns.n && y<=inrect.y) {
 		 //check for clicking on column dividers to resize
 		 // *** what about title?
 		for (int c=columns.n-1; c>0; c--) {
