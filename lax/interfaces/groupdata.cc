@@ -148,12 +148,12 @@ LaxInterfaces::SomeData *GroupData::duplicate(LaxInterfaces::SomeData *dup)
  * No previous existence
  * check is done here. For that, use pushnodup().
  */
-int GroupData::push(LaxInterfaces::SomeData *obj)
+int GroupData::push(LaxInterfaces::SomeData *obj, int where)
 {
 	if (!obj) return -1;
 	obj->SetParent(this);
 	touchContents();
-	return kids.push(obj);
+	return kids.push(obj,-1,where);
 }
 
 //! Push obj onto the stack only if it is not already there.

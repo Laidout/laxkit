@@ -121,7 +121,7 @@ class GroupData :   virtual public Laxkit::Tagged,
 	virtual LaxInterfaces::SomeData *FindChild(const char *id);
 	virtual LaxInterfaces::SomeData *findobj(LaxInterfaces::SomeData *d,int *n=NULL);
 	virtual int findindex(LaxInterfaces::SomeData *d) { return kids.findindex(d); }
-	virtual int push(LaxInterfaces::SomeData *obj);
+	virtual int push(LaxInterfaces::SomeData *obj, int where=-1);
 	virtual int pushnodup(LaxInterfaces::SomeData *obj);
 	virtual int remove(int i);
 	virtual LaxInterfaces::SomeData *pop(int which);
