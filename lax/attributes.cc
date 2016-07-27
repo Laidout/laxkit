@@ -28,6 +28,8 @@
 #include <lax/strmanip.h>
 #include <lax/misc.h>
 #include <lax/transformmath.h>
+#include <lax/colors.h>
+
 #include <lax/lists.cc>
 
 #include <unistd.h>
@@ -375,9 +377,38 @@ int BooleanAttribute(const char *v)
 	return 0;
 }
 
-//! Find an ARGB color packed into an unsigned long.
+//! Find an ARGB color in v, and return in either an unsigned long and/or a ScreenColor.
 /*! A, R, G, B are found from color_ret by masking with respectively
  * 0xff000000, 0xff0000, 0xff00, and 0xff.
+ *
+ * See SimpleColorAttribute(const char *, double *, const char **)
+ * for more detail on how v should be structured.
+ * This function just converts output from that other one.
+ */
+int SimpleColorAttribute(const char *v,unsigned long *color_ret, Laxkit::ScreenColor *scolor_ret, const char **end_ptr)
+{
+	double colors[5];
+	const char *endpp=NULL;
+	int status=SimpleColorAttribute(v, colors, &endpp);
+	if (status!=0) return status;
+	if (end_ptr) *end_ptr=endpp;
+
+	if (color_ret) {
+		*color_ret = (int(colors[0]*255+.5)<<16)
+				   | (int(colors[1]*255+.5)<<8)
+				   | (int(colors[2]*255+.5))
+				   | (int(colors[3]*255+.5)<<24);
+	}
+
+	if (scolor_ret) {
+		scolor_ret->rgbf(colors[0], colors[1], colors[2], colors[3]);
+	}
+
+	return 0;
+}
+
+/*! Colors should be enough to potentially hold 5 doubles.
+ * Returned value is rgba clamped to [0..1].
  *
  * The value can be something like "black", "white", "red", "green", "blue", "yellow", "orange",
  * "purple". "transparent" maps to transparent black.
@@ -387,210 +418,46 @@ int BooleanAttribute(const char *v)
  *  #112233ff           <-- uses HexColorAttributeRGB
  *  rgba16(65535,65535,65535,65535)
  *  rgb(255,255,255)
- *  rgbf(1.0, .5, .5)
- *  gray(.5)
- *  cmyk(.8, .9, .1, .2)
- *  255 255 255 255     #<-- simple list like this is assumed to be 8 bit rgba.
+ *  rgba(255,255,255,1.0) ***
+ *  rgba(50%,255,255,1.0) ***
+ *  rgbf( 1.0, .5, .5)
+ *  rgbaf(1.0, .5, .5, 1.0)
+ *  gray(255)
+ *  grayf(.5)
+ *  cmykf(.8, .9, .1, .2)
+ *  hsl(360,20%,10%)
+ *  65535,65535,65535,65535     #<-- simple list like this is assumed to be 16 bit rgba.
  * </pre>
  *  
- * These forms follow a pattern. They have to start with rgb, rgba, gray, graya, cmyk, cmyka,
+ * These forms follow a pattern. They have to start with rgb, rgba, gray, graya, cmyk, cmyka, hsl, hsla,
  * ignoring case. The gray ones will return an rgb with each color field equal to the gray value.
- * The cmyk will be converted to rgb with a simple reciprocal function (not ICC based).
+ * The cmyk and hsl will be converted to rgb with a simple reciprocal function (not ICC based).
  *
- * Following the letters should be "f" or a number for the bit depth. If missing, 8 bit is assumed.
- * "f" means use floating point values in range [0..1]. 8 means values are [0..255]. 16 means
- * values are [0..65535]. If there are '.' characters anywhere in the string, then it assumed
- * floating point values are used, and 'f' is not necessary.
+ * Following the letters should be 'f' for floats in range [0..1],
+ * '8' for 8 bit [0..255], "16" for 16 bit numbers [0..65535].
+ * If f, 8, or 16 are missing, assume v mostly follows CSS3 color format for that label. That means alpha values
+ * are always in range [0..1], the first number of hsl is [0..360], and otherwise assume
+ * fields in range [0..255] or [0%..100%].
  *
- * Returns 0 for successful parsing, and color is returned in color_ret.
- * Returns 1 for unsuccessful for failure, and color_ret not changed.
+ * Note first value of hsl is ALWAYS [0..360].
+ *
+ * A bare list of numbers is assumed to be a list of 4 16bit rgba numbers.
+ * 
+ * Returns 0 for successful parsing, and color is returned.
+ * Returns 1 for unsuccessful for failure, and colors not changed.
  *
  * \todo make like css, and allow like rgba(50%, 20%, 10%, .1),
+ *       css opacity is always [0..1].
  *       also hsl(hue,saturation,lightness) or hsla(), hue is [0..360), with r,g,b at 0,120,240.
  *       The others are [0..255] or percents.
- */
-int SimpleColorAttribute(const char *v,unsigned long *color_ret, Laxkit::ScreenColor *scolor_ret, const char **end_ptr)
-{
-	while (isspace(*v)) v++;
-
-
-	int type=0; //3=rgb, 1=gray, 4=cmyk
-	int a=0, f=-1;
-
-	if (*v=='#') {
-		ScreenColor color;
-		if (HexColorAttributeRGB(v,&color,end_ptr)==0) return 1;
-		if (scolor_ret) *scolor_ret=color;
-		if (color_ret) *color_ret = color.Pixel();
-		return 0;
-	}
-
-	if (strcasestr(v,"rgb")==v) {
-		v+=3;
-		type=3;
-
-	} else if (strcasestr(v,"gray")==v) {
-		v+=4;
-		type=1;
-
-	} else if (strcasestr(v,"cmyk")==v) {
-		v+=4;
-		type=4;
-
-	} else if (!isdigit(*v)) {
-		 //is same name, so check css like named colors, assume fully opaque
-		int r=-1,g,b;
-		a=0xff;
-		if      (!strncasecmp(v,"transparent",11))  { r=0x00; g=0x00; b=0x00; a=0x00; v+=11; }
-		else if (!strncasecmp(v,"maroon",6))  { r=0x80; g=0x00; b=0x00; v+=6; }
-		else if (!strncasecmp(v,"red",3))     { r=0xff; g=0x00; b=0x00; v+=3; }
-		else if (!strncasecmp(v,"orange",6))  { r=0xff; g=0xA5; b=0x00; v+=6; }
-		else if (!strncasecmp(v,"yellow",6))  { r=0xff; g=0xff; b=0x00; v+=6; }
-		else if (!strncasecmp(v,"olive",5))   { r=0x80; g=0x80; b=0x00; v+=5; }
-		else if (!strncasecmp(v,"purple",6))  { r=0x80; g=0x00; b=0x80; v+=6; }
-		else if (!strncasecmp(v,"fuchsia",7)) { r=0xff; g=0x00; b=0xff; v+=7; }
-		else if (!strncasecmp(v,"white",5))   { r=0xff; g=0xff; b=0xff; v+=5; }
-		else if (!strncasecmp(v,"lime",4))    { r=0x00; g=0xff; b=0x00; v+=4; }
-		else if (!strncasecmp(v,"green",5))   { r=0x00; g=0x80; b=0x00; v+=5; }
-		else if (!strncasecmp(v,"navy",4))    { r=0x00; g=0x00; b=0x80; v+=4; }
-		else if (!strncasecmp(v,"blue",4))    { r=0x00; g=0x00; b=0xff; v+=4; }
-		else if (!strncasecmp(v,"aqua",4))    { r=0x00; g=0xff; b=0xff; v+=4; }
-		else if (!strncasecmp(v,"teal",4))    { r=0x00; g=0x80; b=0x80; v+=4; }
-		else if (!strncasecmp(v,"cyan",4))    { r=0x00; g=0xff; b=0xff; v+=4; } //not css, but is x11 color, widely accepted
-
-		if (r>=0) {
-			if (color_ret) *color_ret = (r<<16) | (g<<8) | (b<<0) | (a<<24);
-			if (scolor_ret) {
-				scolor_ret->red  =(r<<8)|r;
-				scolor_ret->green=(g<<8)|g;
-				scolor_ret->blue =(b<<8)|b;
-				scolor_ret->alpha=(a<<8)|a;
-			}
-			if (end_ptr) *end_ptr=v;
-			return 0;
-		}
-	}
-
-	if (strchr(v,'.')!=NULL) f=0; //assume floats if has decimal points
-
-	if (type!=0 && (*v=='a' || *v=='A')) { a=1; v++; } // has alpha
-	if (type!=0 && (*v=='f' || *v=='F')) { f=0; v++; } // read in floats
-	if (type!=0 && *v=='8') { f=8; v++; }
-	else if (type!=0 && v[0]=='1' && v[1]=='6') { f=16; v+=2; }
-	if (f==-1) f=16;
-
-	if (*v=='(') v++;
-
-	int i[5];
-	if (type==0) type=3;
-	int max=(f==16?65535:255);
- 
-	 //first create list of integers in range 0..max
-	int numf=0;
-	if (f==0) { //is list of floats
-		max=65535;
-		double d[5];
-		char *endptr=NULL;
-		int n=DoubleListAttribute(v, d,5, &endptr);
-		if (type==0) { //adapt to 3 or 4 fields when only a number list was supplied
-			type=3;
-			if (n==4) a=1;
-		}
-		if (n!=type+a) {
-			return 1;
-		}
-
-		i[numf]=(int)(d[numf]*max + .5);
-		numf++;
-		if (type!=1) {
-			i[numf]=(int)(d[numf]*max + .5);
-			numf++;
-			i[numf]=(int)(d[numf]*max + .5);
-			numf++;
-		}
-		if (type==4) { i[numf]=(int)(d[numf]*max + .5); numf++; }
-		if (a) { i[numf]=(int)(d[numf]*max + .5); numf++; }
-
-		v=endptr;
-
-	} else { //f==8 or 16
-		char *endptr=NULL;
-		int n=IntListAttribute(v,i,5,&endptr);
-		if (type==0) { //adapt to 3 or 4 fields when only a number list was supplied
-			type=3;
-			if (n==4) a=1;
-		}
-		if (n!=type+a) return 1;
-		v=endptr;
-
-		if (f==8) numf=type+a;
-		else { //f==16
-			i[numf]=i[numf]>>8;
-			numf++;
-			if (type!=1) {
-				i[numf]=i[numf]>>8;
-				numf++;
-				i[numf]=i[numf]>>8;
-				numf++;
-			}
-			if (type==4) { i[numf]=i[numf]>>8; numf++; }
-			if (a) { i[numf]=i[numf]>>8; numf++; }
-		}
-
-	}
-
-	 //clamp values to [0..max]
-	for (int cc=0; cc<numf; cc++) {
-		if (i[cc]<0) i[cc]=0;
-		else if (i[cc]>max) i[cc]=max;
-	}
-
-	 //now convert to rgb
-	if (type==3) {
-		 //rgb
-		if (!a) i[3]=max; //make fully opaque if alpha field not provided
-
-	} else if (type==1) {
-		 //gray
-		if (!a) i[3]=max; //make fully opaque if alpha field not provided
-		else i[3]=i[1];
-		i[1]=i[2]=i[0];
-
-	} else {
-		 //cmyk
-		int rgb[3];
-		Laxkit::simple_cmyk_to_rgb(i, rgb, max);
-		if (!a) i[3]=max; //make fully opaque if alpha field not provided
-		else i[3]=i[4];
-		i[0]=rgb[0];
-		i[1]=rgb[1];
-		i[2]=rgb[2];
-	}
-
-	if (color_ret) *color_ret = (i[0]<<16) | (i[1]<<8) | (i[2]<<0) | (i[3]<<24);
-	if (scolor_ret) {
-		if (max!=65535) for (int c=0; c<4; c++) i[c]=(i[c]<<8)|i[c];
-		scolor_ret->red  =i[0];
-		scolor_ret->green=i[1];
-		scolor_ret->blue =i[2];
-		scolor_ret->alpha=i[3];
-	}
-
-	if (end_ptr) *end_ptr=v;
-	return 0;
-}
-
-/*! Colors should be enough to potentially hold 5 doubles.
- * Returned value is rgba clamped to [0..1].
  */
 int SimpleColorAttribute(const char *v, double *colors, const char **end_ptr)
 {
 	while (isspace(*v)) v++;
 
 
-	int type=0; //3=rgb, 1=gray, 4=cmyk, 5=hsl
-	int numcc=0; //3=rgb, 1=gray, 4=cmyk
-	int a=0, f=-1;
+	int type=0;
+	int numcc=0; //3=rgb or hsl, 1=gray, 4=cmyk
 
 	if (*v=='#') {
 		unsigned long color;
@@ -605,28 +472,28 @@ int SimpleColorAttribute(const char *v, double *colors, const char **end_ptr)
 	if (strcasestr(v,"rgb")==v) {
 		v+=3;
 		numcc=3;
-		type=3;
+		type=LAX_COLOR_RGB;
 
 	} else if (strcasestr(v,"gray")==v) {
 		v+=4;
 		numcc=1;
-		type=1;
+		type=LAX_COLOR_GRAY;
 
 	} else if (strcasestr(v,"cmyk")==v) {
 		v+=4;
 		numcc=4;
-		type=4;
+		type=LAX_COLOR_CMYK;
 
 	} else if (strcasestr(v,"hsl")==v) {
 		v+=3;
 		numcc=3;
-		type=5;
+		type=LAX_COLOR_HSL;
 
 	} else if (!isdigit(*v)) {
 		 //is same name, so check css like named colors, assume fully opaque
 		int r=-1,g,b;
-		a=0xff;
-		if      (!strncasecmp(v,"transparent",11))  { r=0x00; g=0x00; b=0x00; a=0x00; v+=11; }
+		int alpha=0xff;
+		if      (!strncasecmp(v,"transparent",11))  { r=0x00; g=0x00; b=0x00; alpha=0x00; v+=11; }
 		else if (!strncasecmp(v,"maroon",6))  { r=0x80; g=0x00; b=0x00; v+=6; }
 		else if (!strncasecmp(v,"red",3))     { r=0xff; g=0x00; b=0x00; v+=3; }
 		else if (!strncasecmp(v,"orange",6))  { r=0xff; g=0xA5; b=0x00; v+=6; }
@@ -647,75 +514,84 @@ int SimpleColorAttribute(const char *v, double *colors, const char **end_ptr)
 			colors[0]=r/255.;
 			colors[1]=g/255.;
 			colors[2]=b/255.;
-			colors[3]=a/255.;
+			colors[3]=alpha/255.;
 			if (end_ptr) *end_ptr=v;
 			return 0;
 		}
 	}
 
+
+	int a=0;  //has alpha
+	int f=-1; //is float==0, is css==1, or 8, or 16bit
+
 	if (strchr(v,'.')!=NULL) f=0; //assume floats if has decimal points
 
-	if (numcc!=0 && (*v=='a' || *v=='A')) { a=1; v++; } // has alpha
-	if (numcc!=0 && (*v=='f' || *v=='F')) { f=0; v++; } // read in floats
-	if (numcc!=0 && *v=='8') { f=8; v++; }
-	else if (numcc!=0 && v[0]=='1' && v[1]=='6') { f=16; v+=2; }
-	if (f==-1) f=16;
+	if (type!=0 && (*v=='a' || *v=='A')) { a=1; v++; } // has alpha
+	if (type!=0 && (*v=='f' || *v=='F')) { f=0; v++; } // read in floats
+	else if (type!=0 && *v=='8') { f=8; v++; }
+	else if (type!=0 && v[0]=='1' && v[1]=='6') { f=16; v+=2; }
+	if (f==-1) {
+		 //no specific bit format found, try to guess..
+		if (type!=0) f=1; //for label found, assume numbers inside follow css3, which is mostly 8 bit
+		else f=16; //for no label found, is a bare list of numbers, assume 16 bit
+	}
 
 	bool hasparen= (*v=='(');
 	if (hasparen) v++;
 
 	int numf=0;
-	if (f==0) { //is list of floats
-		char *endptr=NULL;
-		int n=DoubleListAttribute(v, colors,5, &endptr);
-		if (numcc==0) { //adapt to 3 or 4 fields when only a number list was supplied
-			numcc=3;
-			if (n==4) a=1;
-		}
-		if (n!=numcc+a) {
-			return 1;
-		} 
+	char *e;
+	double dd;
+	double d[5];
+	while (numf<5 && v && *v) {
+		dd=strtod(v,&e);
+		if (e==v) break;
+		d[numf]=dd;
+		v=e;
+		while (isspace(*v)) v++;
 
-		numf=numcc+a;
-		v=endptr;
+		 //convert all fields to 0..1
+		if (*v=='%') {  d[numf]/=100; v++; }
+		else if (numf==0 && type==LAX_COLOR_HSL) d[numf]/=360; //first of hsl always 0..360
+		else if (f==1) {
+			if (numcc>0 && numcc==numf) ; //assume css opacity already in 0..1
+			else d[numf]/=255; //otherwise assume was in range 0..255. Percents handled above
+		} else if (f==8)  d[numf]/=255;
+		else   if (f==16) d[numf]/=65535;
+		numf++;
 
-	} else { //f==8 or 16, so 8 or 16 bit integer channels
-		char *endptr=NULL;
-		int i[5];
-		int n=IntListAttribute(v,i,5,&endptr);
-		if (numcc==0) { //adapt to 3 or 4 fields when only a number list was supplied
-			numcc=3;
-			if (n==4) a=1;
-		}
-		if (n!=numcc+a) return 1;
-		v=endptr;
+		while (isspace(*v) || *v==',') v++;
+	}
 
-		numf=numcc+a;
-		for (int c=0; c<numf; c++) {
-			colors[c]=i[c]/(f==8 ? 255. : 65535.);
-		}
+	if (type==0) { //adapt to 3 or 4 fields when only a number list was supplied, assume rgb or rgba
+		type=LAX_COLOR_RGB;
+		numcc=3;
+		if (numf==4) a=1;
+	}
+	if (a==0 && numf==numcc+1) a=1; //assume having alpha is implied, so rgbf and rgbaf both can have alpha
+	if (numf!=numcc+a) {
+		return 1;
 	}
 
 	 //clamp values to [0..1]. hsl has special conversion to divide by 360.
 	for (int cc=0; cc<numf; cc++) {
-		if (cc==0 && type==5) colors[cc]=colors[cc]/360.0;
-
+		colors[cc]=d[cc];
 		if (colors[cc]<0) colors[cc]=0;
 		else if (colors[cc]>1.0) colors[cc]=1.0;
 	}
 
 	 //now convert to rgb
-	if (type==3) {
+	if (type==LAX_COLOR_RGB) {
 		 //rgb
 		if (!a) colors[3]=1.0; //make fully opaque if alpha field not provided
 
-	} else if (type==1) {
+	} else if (type==LAX_COLOR_GRAY) {
 		 //gray
 		if (!a) colors[3]=1.0; //make fully opaque if alpha field not provided
 		else colors[3]=colors[1];
 		colors[1]=colors[2]=colors[0];
 
-	} else if (type==5) {
+	} else if (type==LAX_COLOR_HSL) {
 		 //hsl
 		simple_hsl_to_rgb(colors[0], colors[1], colors[2], &colors[0], &colors[1], &colors[2]);
 		if (!a) colors[3]=1.0; //make fully opaque if alpha field not provided
