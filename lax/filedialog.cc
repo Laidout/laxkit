@@ -208,6 +208,9 @@ FileDialog::FileDialog(anXWindow *parnt,const char *nname,const char *ntitle,uns
 			if (file_exists(t,1,NULL)!=S_IFDIR) npath=NULL;
 			else { nnpath=t; t=NULL; }
 			if (t) delete[] t;
+
+		} else {
+			makestr(nnpath,npath);
 		}
 	}
 	if (!nnpath && isblank(npath)) {
