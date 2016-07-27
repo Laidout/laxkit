@@ -126,9 +126,9 @@ int cmpKB(const char *a, const char *b)
 		a=endptr;
 		while (isspace(*a)) a++;
 
-		if      (*a=='k') ad*=1000;
-		else if (*a=='m') ad*=1e+6;
-		else if (*a=='g') ad*=1e+9;
+		if      (*a=='k') ad*=1024;
+		else if (*a=='m') ad*=1024*1024;
+		else if (*a=='g') ad*=1e+9; //ok, i know this is fudging a little
 		else if (*a=='t') ad*=1e+12;
 	}
 
@@ -137,8 +137,8 @@ int cmpKB(const char *a, const char *b)
 		b=endptr;
 		while (isspace(*b)) b++;
 
-		if      (*b=='k') bd*=1000;
-		else if (*b=='m') bd*=1e+6;
+		if      (*b=='k') bd*=1024;
+		else if (*b=='m') bd*=1024*1024;
 		else if (*b=='g') bd*=1e+9;
 		else if (*b=='t') bd*=1e+12;
 	}
