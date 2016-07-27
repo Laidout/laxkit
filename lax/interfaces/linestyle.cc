@@ -152,14 +152,10 @@ void LineStyle::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *cont
 	for (int c=0; c<att->attributes.n; c++) {
 		name= att->attributes.e[c]->name;
 		value=att->attributes.e[c]->value;
+
 		if (!strcmp(name,"color")) {
-			int i[4];
-			if (IntListAttribute(value,i,4)==4) {
-				color.red=i[0];
-				color.green=i[1];
-				color.blue=i[2];
-				color.alpha=i[3];
-			}
+			SimpleColorAttribute(value, NULL, &color, NULL);
+
 		} else if (!strcmp(name,"width")) {
 			DoubleAttribute(value,&width);
 
@@ -226,7 +222,7 @@ void LineStyle::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *cont
 	char spc[indent+1]; memset(spc,' ',indent); spc[indent]='\0';
 	if (what==-1) {
 		//fprintf(f,"%smask                   #what is active in this linestyle\n", spc);
-		fprintf(f,"%scolor 10000 0 0 65535  #rgba in range [0..65535]\n",spc);
+		fprintf(f,"%scolor rgbaf(1,1,1,1)   #rgba in range [0..1]\n",spc);
 		fprintf(f,"%scapstyle round         #or miter, projecting, zero\n", spc);
 		fprintf(f,"%sjoinstyle round        #or miter, bevel, extrapolate\n",spc);
 		fprintf(f,"%smiterlimit 100         #means limit is 100*width\n",spc);
@@ -239,7 +235,7 @@ void LineStyle::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *cont
 	const char *str;
 
 	//fprintf(f,"%smask %lu\n", spc,mask);
-	fprintf(f,"%scolor %d %d %d %d\n",spc,color.red,color.green,color.blue,color.alpha);
+	fprintf(f,"%scolor rgbf(%.10g, %.10g, %.10g, %.10g)\n",spc, color.Red(),color.Green(),color.Blue(),color.Alpha());
 
 	if (capstyle==LAXCAP_Butt) str="butt";
 	else if (capstyle==LAXCAP_Round) str="round";

@@ -99,13 +99,8 @@ void FillStyle::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *cont
 		value=att->attributes.e[c]->value;
 
 		if (!strcmp(name,"color")) {
-			int i[4];
-			if (IntListAttribute(value,i,4)==4) {
-				color.red=i[0];
-				color.green=i[1];
-				color.blue=i[2];
-				color.alpha=i[3];
-			}
+			SimpleColorAttribute(value, NULL, &color, NULL);
+
 		} else if (!strcmp(name,"fillrule")) {
 			if (!strcmp(value,"even"))         fillrule=LAXFILL_EvenOdd;
 			else if (!strcmp(value,"odd"))     fillrule=LAXFILL_EvenOdd;
@@ -128,28 +123,20 @@ void FillStyle::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *cont
 }
 
 
-/*! Puts something like:
- * <pre>
- *  color 65535 0 65535 65535
- *  fillrule odd
- *  fillstyle solid 
- *  function copy
- * </pre>
- *
- * Ignores what. Uses 0 for it (unless -1).
+/*! Ignores what. Uses 0 for it (unless -1).
  */
 void FillStyle::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
 {
 	char spc[indent+1]; memset(spc,' ',indent); spc[indent]='\0';
 	if (what==-1) {
-		fprintf(f,"%scolor 0 0 65535 65535 #color of the fill\n",spc);
-		fprintf(f,"%sfillrule nonzero  #or odd, or even\n", spc);
-		fprintf(f,"%sfillstyle solid   #or none\n",spc);
-		fprintf(f,"%sfunction copy     # (only copy is implemented)\n", spc);
+		fprintf(f,"%scolor rgbaf(1,1,1,1) #color of the fill\n",spc);
+		fprintf(f,"%sfillrule nonzero     #or odd, or even\n", spc);
+		fprintf(f,"%sfillstyle solid      #or none\n",spc);
+		fprintf(f,"%sfunction copy        # (only copy is implemented)\n", spc);
 		return;
 	}
 
-	fprintf(f,"%scolor %d %d %d %d\n",spc,color.red,color.green,color.blue,color.alpha);
+	fprintf(f,"%scolor rgbf(%.10g, %.10g, %.10g, %.10g)\n",spc, color.Red(),color.Green(),color.Blue(),color.Alpha());
 	fprintf(f,"%sfillrule %s\n", spc,fillrule==LAXFILL_EvenOdd?"even":(fillrule==LAXFILL_Nonzero?"nonzero":"odd"));
 	fprintf(f,"%sfillstyle %s\n",spc,fillstyle==FillSolid?"solid":"none"); //or "object"
 
