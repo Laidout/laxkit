@@ -57,6 +57,7 @@ class Attribute {
 	virtual int push(const char *nname,unsigned long nval,int where=-1);
 	virtual int push(const char *nname,int nval,int where=-1);
 	virtual int push(const char *nname,double nval,int where=-1);
+	virtual Attribute *Top() { if (attributes.n) return attributes.e[attributes.n-1]; return NULL; }
 	virtual int remove(int index);
 	virtual void clear();
 	virtual int dump_in(const char *filename, Attribute *defines=NULL);
