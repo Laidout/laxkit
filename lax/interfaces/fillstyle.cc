@@ -122,9 +122,30 @@ void FillStyle::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *cont
 	}
 }
 
+LaxFiles::Attribute *FillStyle::dump_out_atts(LaxFiles::Attribute *att,int what, LaxFiles::DumpContext *context)
+{
+	if (!att) att=new Attribute;
 
-/*! Ignores what. Uses 0 for it (unless -1).
- */
+	if (what==-1) {
+		att->push("color","rgbaf(1,1,1,1) #color of the fill");
+		att->push("fillrule","nonzero #or odd, or even");
+		att->push("fillstyle","solid  #or none");
+		att->push("function", "copy   # (only copy is implemented)");
+		return att;
+	}
+
+	char scratch[200];
+	sprintf(scratch, "rgbaf(%.10g, %.10g, %.10g, %.10g)", color.Red(),color.Green(),color.Blue(),color.Alpha());
+	att->push("color", scratch);
+	att->push("fillrule",fillrule==LAXFILL_EvenOdd?"even":(fillrule==LAXFILL_Nonzero?"nonzero":"odd"));
+	att->push("fillstyle",fillstyle==FillSolid?"solid":"none"); //or "object"
+
+	if (function==LAXOP_Source) att->push("function","copy");
+	else att->push("function",function);
+
+	return att;
+}
+
 void FillStyle::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
 {
 	char spc[indent+1]; memset(spc,' ',indent); spc[indent]='\0';
@@ -143,6 +164,7 @@ void FillStyle::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *cont
 	if (function==LAXOP_Source) fprintf(f,"%sfunction copy\n", spc);
 	else fprintf(f,"%sfunction %d\n", spc,function);
 }
+
 
 //! Return whether the style will cause any fill or not.
 int FillStyle::hasFill()

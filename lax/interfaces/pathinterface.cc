@@ -378,6 +378,146 @@ void Path::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
 	}
 }
 
+LaxFiles::Attribute *Path::dump_out_atts(LaxFiles::Attribute *att,int what, LaxFiles::DumpContext *context)
+{ 
+	if (what==-1) {
+		if (!att) att=new Attribute;
+		att->push("linestyle", "#standard linestyle attributes");
+		att->push("closed","#flag to indicate that this path is a closed path");
+		att->push("points"  "1 2             #a vertex point with corner controls\n"
+							"vs 1 2          #a vertex point with smooth controls\n"
+							"vS 1 2          #a vertex point with really smooth controls\n"
+							"vc 1 2          #a vertex point with corner controls\n"
+							"ve 1 2          #a vertex point with corner equal controls\n"
+							"p 1.5 2.5       #a bezier control point of the previous vertex\n"
+							"n 3 5           #a bezier control point of the next vertex\n");
+		att->push("weight", "1.5 0 1 0       #zero or more weight nodes. Numbers are (t bez parameter) (offset from normal path) (width) (angle, optional)");
+		//att->push("segment controllername  #a non-straight-line and non-bezier segment");
+		//att->push("  asbezier p 3 5 n 2 4 5 6  # Important! bezier approximation of the segment.");
+		//att->push("                            # if not present and the controller cannot be found,");
+		//att->push("                            # then this segment is ignored.");
+		//att->push("  ...                   #any further attributes defining the segment. exactly what");
+		//att->push("                        #they are is dependent of the actual controller of the segment.");
+		//att->push("                        #If for some reason the segment controller is not found, then");
+		//att->push("                        #the bezier approximation is appended to the path as bezier points");
+		att->push("cache", "#This is for reference only. Ignored on read in.");
+
+		return att;
+	}
+
+	if (!path) return att;
+
+	if (!att) att=new Attribute;
+
+	if (linestyle) {
+		Attribute *att2=att->pushSubAtt("linestyle");
+		linestyle->dump_out_atts(att2, what, context);
+	}
+
+	if (path==path->lastPoint(0)) att->push("closed");
+
+	Coordinate *p=path, *p2=NULL;
+	char scratch[50];
+	char *pstr=NULL;
+	int n;
+
+	do {
+		 //do a string of bezier points
+		p2=p;
+		n=0;
+		while (!p2->controls) { p2=p2->next; n++; if (!p2 || p2==path) break; }
+		 //now p2 points to the point just after the last uncontrolled vertex
+
+		if (n>0) {
+			 //output straight line segments for a seemingly long string of vertex points
+
+			do {
+				if (p->flags&POINT_VERTEX) {
+					int pt=p->flags&BEZ_MASK;
+					if (pt==0) pt=BEZ_STIFF_EQUAL;
+					if (pt==BEZ_STIFF_EQUAL) pt='S';
+					else if (pt==BEZ_STIFF_NEQUAL) pt='s';
+					else if (pt==BEZ_NSTIFF_EQUAL) pt='e';
+					else if (pt==BEZ_NSTIFF_NEQUAL) pt='c';
+					else pt=0;
+
+					 
+					if (pt) sprintf(scratch, "v%c %.10g %.10g\n", pt, p->x(),p->y());
+					else sprintf(scratch, "%.10g %.10g\n", p->x(),p->y());
+					appendstr(pstr, scratch);
+
+				} else if (p->flags&POINT_TOPREV) {
+					sprintf(scratch, "p %.10g %.10g\n", p->x(),p->y());
+					appendstr(pstr, scratch);
+
+				} else if (p->flags&POINT_TONEXT) {
+					sprintf(scratch, "n %.10g %.10g\n", p->x(),p->y());
+					appendstr(pstr, scratch);
+				}
+
+				p=p->next;
+			} while (p!=p2);
+
+			att->push("points", pstr);
+			delete[] pstr; // *** really need more intelligent char[] caching.. this is really memory inefficient
+			continue;
+		}
+
+		 //check for controlled points
+		if (p->controls) {
+			cerr << " *** lazy developer! need to implement Path::dump_out_atts for non-null segment controls!"<<endl;
+			//p2=p;
+			//while (p2->controls==p->controls) { p2=p2->next; if (!p2 || p2==path) break; }
+		 	// //now p2 points to the point just after the last point with same controller
+            //
+			//int c2;
+			//for (c2=0; c2<basepathops.n; c2++) if (p2->controls->iid()==basepathops.e[c2]->id) break;
+			//if (c2==basepathops.n) {
+			//	 //ignore if pathop not found during runtime!! should never happen anyway
+			//	p=p2;
+			//	continue;
+			//}
+			//att->push("segment %s",basepathops.e[c2]->whattype());
+			//basepathops.e[c2]->dumpOut(f, indent+2, p->controls, 0, context);
+			//p=p2;
+		} 
+
+	} while (p && p!=path);
+
+	for (int c=0; c<pathweights.n; c++) {
+		sprintf(scratch, "%.10g %.10g %.10g %.10g",
+				pathweights.e[c]->t,pathweights.e[c]->offset,pathweights.e[c]->width,pathweights.e[c]->angle);
+		att->push("weight", scratch);
+	}
+
+	if (save_cache) { 
+		char *cstr=newstr("outline\n");
+
+		for (int c=0; c<outlinecache.n; c++) { 
+			sprintf(scratch, "%.10g, %.10g   %d  ", outlinecache.e[c].x, outlinecache.e[c].y, c);
+			appendstr(cstr, scratch);
+
+			if (outlinecache.e[c].info&LINE_Start   ) appendstr(cstr,"Start    ");
+			if (outlinecache.e[c].info&LINE_Vertex  ) appendstr(cstr,"Vertex   ");
+			if (outlinecache.e[c].info&LINE_Bez     ) appendstr(cstr,"Bez      ");
+			if (outlinecache.e[c].info&LINE_Closed  ) appendstr(cstr,"Closed   ");
+			if (outlinecache.e[c].info&LINE_Open    ) appendstr(cstr,"Open     ");
+			if (outlinecache.e[c].info&LINE_End     ) appendstr(cstr,"End      "); 
+			if (outlinecache.e[c].info&LINE_Corner  ) appendstr(cstr,"Corner   ");
+			if (outlinecache.e[c].info&LINE_Equal   ) appendstr(cstr,"Equal    ");
+			if (outlinecache.e[c].info&LINE_Auto    ) appendstr(cstr,"Auto     ");
+			if (outlinecache.e[c].info&LINE_Join    ) appendstr(cstr,"Join     ");
+			if (outlinecache.e[c].info&LINE_Cap     ) appendstr(cstr,"Cap      ");
+			if (outlinecache.e[c].info&LINE_Original) appendstr(cstr,"Original ");
+			appendstr(cstr,"\n");
+		}
+
+		att->push("cache", cstr);
+	}
+
+	return att;
+}
+
 /*! Dump in the linestyle and coordinates..
  *
  * If a linestyle is listed, then dec_count of old and install a new one.
@@ -3047,6 +3187,61 @@ void PathsData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *cont
 			paths.e[c]->linestyle=ls;
 		}
 	}
+}
+
+LaxFiles::Attribute *PathsData::dump_out_atts(LaxFiles::Attribute *att,int what, LaxFiles::DumpContext *context)
+{
+	if (!att) att=new Attribute;
+
+	if (what==-1) {
+		att->push("linestyle","#default line style");
+		att->push("fillstyle","#default fill style");
+		att->push("matrix"," 1 0 0 1 0 0  #standard transform matrix");
+		att->push("d","m 1 1 l 1 2 #optional paths defined by svg d path string");
+		Attribute *att2 = att->pushSubAtt("path","#none or more of these, defines single paths");
+		Path p;
+		p.dump_out_atts(att2, what, context);
+		return att;
+	}
+
+	char scratch[200];
+
+	sprintf(scratch, "%.10g %.10g %.10g %.10g %.10g %.10g", m(0),m(1),m(2),m(3),m(4),m(5));
+	att->push("matrix", scratch);
+
+	if (linestyle) {
+		Attribute *att2 = att->pushSubAtt("linestyle");
+		linestyle->dump_out_atts(att2, what, context);
+	}
+
+	if (fillstyle) {
+		Attribute *att2 = att->pushSubAtt("fillstyle");
+		fillstyle->dump_out_atts(att2, what, context);
+	}
+
+	att->push("style", style);
+
+	LineStyle *ls;
+	for (int c=0; c<paths.n; c++) {
+		att->push("path", c);
+		Attribute *att2 = att->Top();
+
+		if (paths.e[c]->linestyle==linestyle) {
+			 //temporarily blank out the linestyle when is same as overall linestyle
+			 //so we don't needlessly duplicate output
+			ls=linestyle;
+			paths.e[c]->linestyle=NULL;
+		} else ls=NULL;
+
+		paths.e[c]->dump_out_atts(att2,what,context);
+
+		if (ls!=NULL) {
+			 //restore blanked out linestyle
+			paths.e[c]->linestyle=ls;
+		}
+	}
+
+	return att;
 }
 
 //! Basically reverse of dump_out..

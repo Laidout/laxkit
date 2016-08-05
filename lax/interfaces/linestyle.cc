@@ -144,6 +144,24 @@ LineStyle::~LineStyle()
 	delete[] dashes;
 }
 
+//! Set the color. Components are 0..0xffff.
+void LineStyle::Color(int r,int g,int b,int a)
+{
+	color.red  =r;
+	color.green=g;
+	color.blue =b;
+	color.alpha=a;
+}
+
+//! Set the color. Components are 0..1.0.
+void LineStyle::Colorf(double r,double g,double b,double a)
+{
+	color.red  =r*65535;
+	color.green=g*65535;
+	color.blue =b*65535;
+	color.alpha=a*65535;
+}
+
 //! Dump in.
 void LineStyle::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *context)
 {
@@ -186,37 +204,53 @@ void LineStyle::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *cont
 	}
 }
 
-//! Set the color. Components are 0..0xffff.
-void LineStyle::Color(int r,int g,int b,int a)
+LaxFiles::Attribute *LineStyle::dump_out_atts(LaxFiles::Attribute *att,int what, LaxFiles::DumpContext *context)
 {
-	color.red  =r;
-	color.green=g;
-	color.blue =b;
-	color.alpha=a;
-}
+	if (!att) att=new Attribute;
 
-//! Set the color. Components are 0..1.0.
-void LineStyle::Colorf(double r,double g,double b,double a)
-{
-	color.red  =r*65535;
-	color.green=g*65535;
-	color.blue =b*65535;
-	color.alpha=a*65535;
+	if (what==-1) {
+		//att->push("mask                   #what is active in this linestyle");
+		att->push("color","rgbaf(1,1,1,1)   #rgba in range [0..1]");
+		att->push("capstyle","round         #or miter, projecting, zero");
+		att->push("joinstyle","round        #or miter, bevel, extrapolate");
+		att->push("miterlimit","100         #means limit is 100*width");
+		att->push("dotdash","5              #an integer whose bits define an on-off pattern");
+		att->push("function","3             #***mystery number saying how to combine the fill");
+		att->push("width","1  #width of the line");
+
+		return att;
+	}
+			
+	const char *str;
+
+	//att->push("mask %lu",mask);
+	char scratch[200];
+	sprintf(scratch, "rgbaf(%.10g, %.10g, %.10g, %.10g)", color.Red(),color.Green(),color.Blue(),color.Alpha());
+	att->push("color", scratch);
+
+	if (capstyle==LAXCAP_Butt) str="butt";
+	else if (capstyle==LAXCAP_Round) str="round";
+ 	else if (capstyle==LAXCAP_Projecting) str="projecting";
+ 	else if (capstyle==LAXCAP_Zero_Width) str="zero";
+    else str="?";
+	att->push("capstyle", str);
+
+	if (joinstyle==LAXJOIN_Miter) str="miter";
+	else if (joinstyle==LAXJOIN_Round) str="round";
+ 	else if (joinstyle==LAXJOIN_Bevel) str="bevel";
+ 	else if (joinstyle==LAXJOIN_Extrapolate) str="extrapolate";
+    else str="?";
+	att->push("joinstyle",str);
+	att->push("miterlimit",miterlimit);
+
+	att->push("dotdash", dotdash);
+	att->push("function", function);
+	att->push("width", width);
+
+	return att;
 }
 
 //! ***implement mask!! should only output the actually defined values?
-/*! Does:
- * <pre>
- *  color 255 255 255 255
- *  capstyle round|miter|projecting
- *  joinstyle round|miter|bevel
- *  dotdash 1234
- *  function 1
- *  mask 2
- * </pre>
- * 
- * Ignores what. Uses 0 for it.
- */
 void LineStyle::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
 {
 	char spc[indent+1]; memset(spc,' ',indent); spc[indent]='\0';
@@ -256,6 +290,7 @@ void LineStyle::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *cont
 	fprintf(f,"%sfunction %d\n", spc,function);
 	fprintf(f,"%swidth %.10g\n", spc,width);
 }
+
 
 //! Return whether we will actually be drawing a stroke.
 /*! Currently, this returns 1 for when function!=LAXOP_Dest and width>0.

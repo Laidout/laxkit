@@ -163,6 +163,7 @@ class Path : public LaxFiles::DumpUtility, public Laxkit::DoubleBBox
 	virtual int GetIndex(Coordinate *p, bool ignore_controls);
 
 	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
+	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what, LaxFiles::DumpContext *context);
 	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
 };
 
@@ -242,6 +243,7 @@ class PathsData : virtual public SomeData
 	virtual Path *GetOffsetPath(int index);
 
 	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
+	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what, LaxFiles::DumpContext *context);
 	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
 };
 
