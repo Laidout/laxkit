@@ -117,6 +117,8 @@ class TextOnPath : virtual public SomeData
 	virtual int PathDirection() { return pathdirection; }
 	virtual int PathDirection(int newdir);
 
+	virtual int PointInfo(double position, flatpoint *point_ret, flatpoint *tangent_ret, double *size_ret);
+
 	virtual int CharLen();
 	virtual int DeleteChar(int pos,int after, int *newpos);
 	virtual int DeleteSelection(int fpos, int tpos, int *newpos);
@@ -190,6 +192,7 @@ class TextOnPathInterface : public anInterface
 	virtual int Event(const Laxkit::EventData *data, const char *mes);
 	virtual Laxkit::ShortcutHandler *GetShortcuts();
 	virtual int PerformAction(int action);
+	virtual ObjectContext *Context(); 
 
 	virtual int UseThis(Laxkit::anObject *nlinestyle,unsigned int mask=0);
 	virtual int UseThisObject(ObjectContext *oc);
