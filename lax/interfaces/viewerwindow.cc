@@ -229,21 +229,34 @@ int ViewerWindow::init()
  */
 int ViewerWindow::Event(const Laxkit::EventData *e,const char *mes)
 {
-	if (e->type==LAX_ColorEvent && !strcmp(mes,"make curcolor")) {
-		const SimpleColorEventData *ce=dynamic_cast<const SimpleColorEventData *>(e);
-		if (!ce) return 0;
-
+	if (e->type==LAX_ColorEvent && !strcmp(mes,"make curcolor")) { 
 		ColorBox *colorbox=dynamic_cast<ColorBox*>(findChildWindowByName("colorbox"));
 		if (!colorbox) return 0;
 
+		const SimpleColorEventData *ce=dynamic_cast<const SimpleColorEventData *>(e);
+		if (!ce) {
+			const ColorEventData *cce=dynamic_cast<const ColorEventData *>(e);
+			if (!cce) return 0;
+
+			Color *color = cce->color;
+			colorbox->Set(color->colorsystemid, color->ChannelValue(0), 
+												color->ChannelValue(1), 
+												color->ChannelValue(2), 
+												color->ChannelValue(3), 
+												color->ChannelValue(4)); 
+			return 0;
+		}
+
 		if (ce->colorsystem==LAX_COLOR_GRAY)
 			colorbox->SetGray(ce->channels[0]/(double)ce->max,ce->channels[1]/(double)ce->max);
-		if (ce->colorsystem==LAX_COLOR_RGB)
+
+		else if (ce->colorsystem==LAX_COLOR_RGB)
 			colorbox->SetRGB(ce->channels[0]/(double)ce->max,
 							 ce->channels[1]/(double)ce->max,
 						  	 ce->channels[2]/(double)ce->max,
 						 	 ce->channels[3]/(double)ce->max);
-		if (ce->colorsystem==LAX_COLOR_CMYK)
+
+		else if (ce->colorsystem==LAX_COLOR_CMYK)
 			colorbox->SetCMYK(ce->channels[0]/(double)ce->max,
 							  ce->channels[1]/(double)ce->max,
 							  ce->channels[2]/(double)ce->max,

@@ -241,14 +241,15 @@ void ColorBox::Updated()
 }
 
 
-/*! 0 for normal color, 1 for none, 2 for knockout, 3 for registration.
+/*! Should be one of SimpleColorId, but only COLOR_Normal, COLOR_None, COLOR_Knockout, COLOR_Registration
+ * are supported by default.
  */
 int ColorBox::SetSpecial(int newspecial)
 {
-	if (newspecial>3) return colorspecial;
-	if (newspecial==1 && !(win_style&COLORBOX_ALLOW_NONE)) return colorspecial;
-	if (newspecial==2 && !(win_style&COLORBOX_ALLOW_KNOCKOUT)) return colorspecial;
-	if (newspecial==3 && !(win_style&COLORBOX_ALLOW_REGISTRATION)) return colorspecial;
+	if (newspecial==COLOR_None         && !(win_style&COLORBOX_ALLOW_NONE))         return colorspecial;
+	if (newspecial==COLOR_Knockout     && !(win_style&COLORBOX_ALLOW_KNOCKOUT))     return colorspecial;
+	if (newspecial==COLOR_Registration && !(win_style&COLORBOX_ALLOW_REGISTRATION)) return colorspecial;
+
 	int old=ColorBox::SetSpecial(newspecial);
 	needtodraw=1;
 	return old;
@@ -543,7 +544,7 @@ void ColorBox::Refresh()
 	Displayer *dp=MakeCurrent();
 	dp->ClearWindow();
 
-	if (colorspecial>=1 && colorspecial<=3) {
+	if (colorspecial!=COLOR_Normal) {
 		draw_special_color(this, colorspecial, 20, 0,0,win_w,win_h);
 
 	} else {

@@ -133,6 +133,7 @@ ColorEventData::ColorEventData()
 {
 	id=info=0;
 	color=NULL;
+	type=LAX_ColorEvent;
 }
 
 ColorEventData::ColorEventData(Color *ncolor, int absorbcount, int nid, int ninfo, int ninfo2)
@@ -142,6 +143,7 @@ ColorEventData::ColorEventData(Color *ncolor, int absorbcount, int nid, int ninf
 	id=nid;
 	info=ninfo;
 	info2=ninfo2;
+	type=LAX_ColorEvent;
 }
 
 ColorEventData::~ColorEventData()

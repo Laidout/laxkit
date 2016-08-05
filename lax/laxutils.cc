@@ -1200,14 +1200,14 @@ void fill_with_transparency(aDrawable *win, ScreenColor &color, double square, d
 }
 
 
-/*! 1 for None color, 2 for black registration mark on white background, 3 for knockout.
+/*! which must be COLOR_None, COLOR_Knockout, or COLOR_Registration.
  */
 void draw_special_color(aDrawable *win, int which, double square, double x, double y, double w, double h)
 {
     Displayer *dp=GetDefaultDisplayer();
     dp->MakeCurrent(win);//should have been done already
 
-    if (which==1) {
+    if (which==COLOR_None) {
 		 //none
         dp->NewFG(~0);
         dp->drawrectangle(x,y,w,h, 1);
@@ -1223,7 +1223,7 @@ void draw_special_color(aDrawable *win, int which, double square, double x, doub
         dp->drawline(x,y, x+w,y+h);
         dp->drawline(x,y+h, x+w,y);
 
-    } else if (which==2) {
+    } else if (which==COLOR_Registration) {
 		 //registration
         dp->LineAttributes(2,LineSolid,LAXCAP_Round,LAXJOIN_Round);
         dp->NewFG(~0);
@@ -1235,7 +1235,7 @@ void draw_special_color(aDrawable *win, int which, double square, double x, doub
         dp->drawline(x+w/2-ww/2, y+h/2     ,  x+w/2+ww/2, y+h/2     );
         dp->drawpoint(x+w/2,y+h/2, ww/4, 0);
 
-    } else if (which==3) {
+    } else if (which==COLOR_Knockout) {
 		 //knockout
         dp->LineAttributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
         ScreenColor color(0,0,0,0);

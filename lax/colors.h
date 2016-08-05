@@ -50,7 +50,7 @@ enum BasicColorSystems {
 };
 
 enum SimpleColorId {
-	COLOR_No_Color=0, //means undefined, not the same as COLOR_None
+	COLOR_Undefined=0, //not the same as COLOR_None
 	COLOR_Normal,
 	COLOR_Foreground,
 	COLOR_Background,
@@ -60,7 +60,7 @@ enum SimpleColorId {
 	COLOR_None,
 	COLOR_Registration,
 	COLOR_Knockout,
-	COLOR_MAX
+	COLOR_CATEGORY_MAX
 };
 
 

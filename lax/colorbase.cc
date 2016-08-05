@@ -65,7 +65,7 @@ ColorBase::ColorBase()
 {
 	max=65535;
 
-	colorspecial=0; //1==none, 2=registration, 3==knockout
+	colorspecial=COLOR_Normal;
 	colortype=LAX_COLOR_RGB;
 	SetColorSystem(colortype);
 
@@ -87,7 +87,7 @@ ColorBase::ColorBase(int ctype, double c0,double c1,double c2,double c3,double c
 {
 	max=65535;
 
-	colorspecial=0; //1==none, 2=registration, 3==knockout
+	colorspecial=COLOR_Normal; //a SimpleColorId
 	colortype=ctype;
 	SetColorSystem(ctype);
 
@@ -322,17 +322,37 @@ int ColorBase::SetHexValue(const char *hex)
 	return 0;
 }
 
-/*! newspecial==0 means normal color.
- * Other values depend on the subclass, but the standards
- * are None color (1), knockout color (2), and registration color (3).
+/*! Should be, but doesn't have to be, one of SimpleColorId.
  *
- * Returns old value
+ * If it's not one of SimpleColorId, the value should be greater than COLOR_CATEGORY_MAX.
+ *
+ * Returns old value.
  */
 int ColorBase::SetSpecial(int newspecial)
 {
 	int old=colorspecial;
 	colorspecial=newspecial;
 	return old;
+}
+
+int ColorBase::Set(Color *color)
+{
+	if (!color) return 1;
+
+	if (color->color_type==COLOR_Normal) {
+		return Set(color->colorsystemid, color->ChannelValue(0),
+										 color->ChannelValue(1),
+										 color->ChannelValue(2),
+										 color->ChannelValue(3),
+										 color->ChannelValue(4));
+
+	} else if (color->color_type==COLOR_Knockout
+				|| color->color_type==COLOR_Registration
+				|| color->color_type==COLOR_None) {
+		return SetSpecial(color->color_type);
+	}
+
+	return 0;
 }
 
 //! Assume rgb, no a
@@ -353,7 +373,7 @@ int ColorBase::Set(int newtype, double c0,double c1,double c2,double c3,double c
 {
 	if (SetColorSystem(newtype)!=0) return 1;
 
-	colorspecial=0;
+	colorspecial=COLOR_Normal;
 
 	colors[0]=c0;
 	colors[1]=c1;
