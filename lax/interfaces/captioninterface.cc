@@ -2166,7 +2166,9 @@ int CaptionInterface::Paste(const char *txt,int len, Laxkit::anObject *obj, cons
 		data->InsertString(txt, len, caretline, caretpos, &caretline, &caretpos);
 		needtodraw=1;
 		return 0;
+
 	} else {
+		PostMessage("lazy programmer! need to implement paste text to new object");
 	}
 
 	return 1;
@@ -2404,13 +2406,13 @@ int CaptionInterface::MouseMove(int x,int y,unsigned int state, const Laxkit::La
 		if (hover!=lasthover) {
 			lasthover=hover;
 			needtodraw=1;
-			if (lasthover==CAPTION_Move) PostMessage(_("Move"));
-			else if (lasthover==CAPTION_HAlign) PostMessage(_("Horizontal alignment"));
-			else if (lasthover==CAPTION_VAlign) PostMessage(_("Vertical alignment"));
-			else if (lasthover==CAPTION_Rotate) PostMessage(_("Rotate, shift to snap"));
-			else if (lasthover==CAPTION_Size) PostMessage(_("Drag for font size, click to input"));
+			if (lasthover==CAPTION_Move)              PostMessage(_("Move"));
+			else if (lasthover==CAPTION_HAlign)       PostMessage(_("Horizontal alignment"));
+			else if (lasthover==CAPTION_VAlign)       PostMessage(_("Vertical alignment"));
+			else if (lasthover==CAPTION_Rotate)       PostMessage(_("Rotate, shift to snap"));
+			else if (lasthover==CAPTION_Size)         PostMessage(_("Drag for font size, click to input"));
 			else if (lasthover==CAPTION_Line_Spacing) PostMessage(_("Drag for line spacing, click to input"));
-			else if (lasthover==CAPTION_Text) PostMessage(_("Text"));
+			else if (lasthover==CAPTION_Text)         PostMessage(_("Text"));
 			else PostMessage(" ");
 			return 0;
 		}
