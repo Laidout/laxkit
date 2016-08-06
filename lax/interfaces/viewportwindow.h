@@ -64,6 +64,7 @@ class ObjectContext
 	virtual ~ObjectContext();
 	virtual int isequal(const ObjectContext *oc) { return i==i; }
 	virtual void SetObject(SomeData *o);
+	virtual int Set(ObjectContext *oc);
 	virtual void set(int ii, SomeData *o);
 	virtual void clear();
 	virtual ObjectContext *duplicate();

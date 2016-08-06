@@ -101,6 +101,19 @@ void ObjectContext::SetObject(SomeData *o)
 	if (obj) obj->inc_count();
 }
 
+int ObjectContext::Set(ObjectContext *oc)
+{
+	if (!oc) return 1;
+
+	if (obj!=oc->obj) {
+		if (obj) obj->dec_count();
+		obj=oc->obj;
+		if (obj) obj->inc_count();
+	}
+	i=oc->i;
+	return 0;
+}
+
 /*! Decs count of old obj, incs count of o, if any.
  *
  * If !o, then i gets set to -1.
@@ -289,7 +302,8 @@ void ViewportWindow::postmessage(const char *mes)
  * the transform one wants is to the space containing that object, not the object space
  * itself, so one would pass full==0 in that case. This exists so that one may use
  * SomeData::pointin() easily, because that function takes points in object parent space,
- * not object space.
+ * not object space. If full<0 then use the entire context. If full>0, then use only that
+ * number of first components.
  */
 double *ViewportWindow::transformToContext(double *m,ObjectContext *oc,int invert,int full)
 {
