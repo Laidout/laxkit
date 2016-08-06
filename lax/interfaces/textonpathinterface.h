@@ -110,6 +110,7 @@ class TextOnPath : virtual public SomeData
 	virtual int Reallocate(int newn);
 	virtual int Remap();
 	virtual int Font(Laxkit::LaxFont *newfont);
+	virtual double Size(double newfontsize);
 	virtual int UseThisPath(PathsData *newpaths, int path_index);
 	virtual double Baseline(double newbaseline, bool diff);
 	virtual double Baseline(double newbaseline, bool diff, flatpoint constant);
@@ -143,6 +144,8 @@ enum TextOnPathActions {
 	TPATH_OffsetDec,
 	TPATH_OffsetInc,
 	TPATH_BaseAndOff,
+	TPATH_Move,
+	TPATH_Size,
 	TPATH_EditPath,
 	TPATH_ToggleDirection,
 	TPATH_ConvertToPath,
@@ -162,8 +165,10 @@ class TextOnPathInterface : public anInterface
 	 
 	TextOnPath *textonpath;
 	PathsData *paths;
+	double temp_path_m[6];
 	ObjectContext *toc;
 
+	double grabpad;
 	double defaultsize;
 
 	flatpoint lasthover;
