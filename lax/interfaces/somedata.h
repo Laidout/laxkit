@@ -108,6 +108,9 @@ class SomeData :  virtual public Laxkit::Resourceable,
 	virtual Laxkit::Affine GetTransformToContext(bool invert, int partial);
 	virtual int NestedDepth();
 
+	virtual void FlipH();
+	virtual void FlipV();
+
 	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
 	virtual void dump_in(FILE *f,int indent,LaxFiles::DumpContext *context,LaxFiles::Attribute **Att=NULL);
 	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);

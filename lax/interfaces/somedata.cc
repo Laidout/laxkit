@@ -201,6 +201,16 @@ flatpoint SomeData::ReferencePoint(int which, bool transform_to_parent)
 
 }
 
+void SomeData::FlipV()
+{
+	Flip(transformPoint(flatpoint(minx,(miny+maxy)/2)), transformPoint(flatpoint(maxx,(miny+maxy)/2)));
+}
+
+void SomeData::FlipH()
+{
+	Flip(transformPoint(flatpoint((minx+maxx)/2, miny)), transformPoint(flatpoint((minx+maxx)/2, maxy)));
+}
+
 //! Render the object to a buffer.
 /*! This draws onto buffer such that the object's whole bounding box maps to the whole buffer.
  *
