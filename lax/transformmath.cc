@@ -390,12 +390,16 @@ void Affine::Scale(flatpoint anchor1, flatpoint anchor2, flatpoint newanchor2)
 	Scale(anchor1,sqrt(d2/d1));
 }
 
+/*! Flips the x axis. Note that this does not flip within a bounding box.
+ */
 void Affine::FlipH()
 {
 	_m[0]=-_m[0];
 	_m[1]=-_m[1];
 }
 
+/*! Flips the y axis. Note that this does not flip within a bounding box.
+ */
 void Affine::FlipV()
 {
 	_m[2]=-_m[2];
