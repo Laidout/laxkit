@@ -82,6 +82,8 @@ void dump_out_value(FILE *f,int indent,const char *value, int noquotes=0);
 void dump_out_escaped(FILE *f, const char *str, int n);
 void dump_out_indented(FILE *f, int indent, const char *str);
 
+char *escape_string(const char *value, char quote, bool include_quotes);
+
 void skip_to_next_attribute(FILE *f,int indent);
 
 //---------------------------------- Value Conversion Routines -----------------------------------	

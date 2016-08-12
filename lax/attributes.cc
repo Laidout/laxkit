@@ -1129,6 +1129,54 @@ void dump_out_escaped(FILE *f, const char *str, int n)
 	fprintf(f,"\""); 
 }
 
+/*! Return a new char[] escaped for use inside a quoted string.
+ * Optionally enclose in actual quotes.
+ * Quotes the same as quote, backslashes, newlines, carriage returns, and tabs will be escaped.
+ * Also a '#' will trigger quotes, but will not itself be escaped.
+ *
+ * Generally, quote will be " or '.
+ */
+char *escape_string(const char *value, char quote, bool include_quotes)
+{
+	int ne=0;
+	const char *v=value;
+	while (*v) {
+		if (*v==quote || *v=='\\' || *v=='\r' || *v=='\n' || *v=='\t' || *v=='#') ne++;
+		v++;
+	}
+
+	if (!ne) return newstr(value);
+
+	char *nv=new char[strlen(value)+ne+3];
+	char *v2=nv;
+	v=value;
+
+	if (include_quotes) { *v2=quote; v2++; }
+
+	char s=0;
+	while (*v) {
+		s=0;
+		if (*v==quote) s=quote;
+		else if (*v=='\n') s='n';
+		else if (*v=='\r') s='r';
+		else if (*v=='\t') s='t';
+		else if (*v=='\\') s='\\';
+
+		if (s) {
+			*v2='\\'; v2++;
+			*v2=s;
+		} else *v2=*v;
+
+		v++;
+		v2++;
+	}
+
+	if (include_quotes) { *v2=quote; v2++; }
+	*v2='\0';
+
+	return nv;
+}
+
 //! Just dump out string at constant indent.
 /*! If there are newlines it the string, they are inserted in the
  *  stream as newlines. Blank lines are written '.'.
