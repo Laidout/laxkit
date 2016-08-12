@@ -386,6 +386,8 @@ LaxFiles::Attribute *LaxFont::dump_out_atts(LaxFiles::Attribute *att, int what, 
 	if (!att) att=new Attribute;
 
 	att->push("fontsize", textheight());
+	att->push("Msize", Msize());
+
 	Attribute *att2;
 
 	Palette *palette=dynamic_cast<Palette*>(GetColor());
