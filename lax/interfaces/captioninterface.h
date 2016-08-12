@@ -48,7 +48,7 @@ class CaptionData : virtual public SomeData
 
 	char *language; //id matching something in fontmanager
 	char *script;
-	int direction; //rtl, ltr, ttb, btt? use LAX_LRTB stuff?
+	int direction; //rtl, ltr, ttb, btt? uses LAX_LRTB stuff
 
 	double fontsize; //font height, font's default distance between baselines
 	double linespacing; //percentage of font's default
@@ -126,6 +126,7 @@ class CaptionData : virtual public SomeData
 	virtual SomeData *ConvertToPaths(bool use_clones, Laxkit::RefPtrStack<SomeData> *clones_to_add_to);
 	
 	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
+	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context);
 	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
 };
 

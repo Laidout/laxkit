@@ -658,31 +658,11 @@ void CaptionData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *co
 	fprintf(f,"%smatrix %.10g %.10g %.10g %.10g %.10g %.10g\n",spc,
 				m(0),m(1),m(2),m(3),m(4),m(5));
 
-	if (font->Layers()>1) {
-		fprintf(f,"%sfont\n",spc);
-		Palette *palette=dynamic_cast<Palette*>(font->GetColor());
+	fprintf(f,"%sfont\n",spc);
+	Attribute att;
+	font->dump_out_atts(&att, what, context);
+	att.dump_out(f, indent+2);
 
-		int i=0;
-		for (LaxFont *ff=font; ff; ff=ff->nextlayer, i++) {
-			fprintf(f,"%s  layer\n",spc);
-			fprintf(f,"%s    fontfamily \"%s\"\n", spc,ff->Family());
-			fprintf(f,"%s    fontstyle  \"%s\"\n", spc,ff->Style());
-			fprintf(f,"%s    fontfile   \"%s\"\n", spc,ff->FontFile());
-			if (palette && i<palette->colors.n) {
-				fprintf(f,"%s    color rgbaf(%.10g, %.10g, %.10g, %.10g)\n", spc,
-						palette->colors.e[i]->channels[0]/(double)palette->colors.e[i]->maxcolor,
-						palette->colors.e[i]->channels[1]/(double)palette->colors.e[i]->maxcolor,
-						palette->colors.e[i]->channels[2]/(double)palette->colors.e[i]->maxcolor,
-						palette->colors.e[i]->channels[3]/(double)palette->colors.e[i]->maxcolor
-					   ); 
-			}
-		}
-
-	} else {
-		if (font->FontFile()) fprintf(f,"%sfontfile   \"%s\"\n", spc,font->FontFile());
-		if (fontfamily)       fprintf(f,"%sfontfamily \"%s\"\n",spc,fontfamily);
-		if (fontstyle)        fprintf(f,"%sfontstyle  \"%s\"\n",spc,fontstyle);
-	}
 	fprintf(f,"%sfontsize %.10g\n",spc,fontsize);
 	fprintf(f,"%slinespacing %.10g\n",spc,linespacing);
 
@@ -703,6 +683,58 @@ void CaptionData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *co
 			fprintf(f,"%s  %s\n",spc,lines.e[c]); // *** this destroys spaces!!
 		}
 	}
+}
+
+LaxFiles::Attribute *CaptionData::dump_out_atts(Attribute *att,int what,DumpContext *context)
+{
+	if (!att) att=new Attribute;
+
+	if (what==-1) {
+		att->push("matrix", "An affine matrix of 6 numbers");
+		att->push("fontfamily", "sans      #Family name of font");
+		att->push("fontstyle", "normal     #Style name of font");
+		att->push("fontfile", "/path/to/it #File on disk to use. Overrides whatever is in family and style.");
+		att->push("fontsize", "12          #hopefully this is point size");
+		att->push("linespacing", "1        #percentage different from font's default spacing");
+		att->push("direction", "lrtb       #lrtb, lrbt, rltb, rlbt, tblr, tbrl, btlr, btrl, or guess");
+		att->push("xcentering", "50        #0 is left, 50 is center, 100 is right, or any other number");
+		att->push("ycentering", "50        #0 is top, 50 is center, 100 is bottom, or any other number");
+		att->push("color", "rgbaf(1,0,0,1)");
+		att->push("text", "\\  #The actual text\n%s  blah");
+		return att;
+	}
+
+	char scratch[200];
+	sprintf(scratch, "%.10g %.10g %.10g %.10g %.10g %.10g", m(0),m(1),m(2),m(3),m(4),m(5));
+	att->push("matrix", scratch);
+
+	
+	Attribute *att2=att->pushSubAtt("font");
+	font->dump_out_atts(att2, what, context);
+
+	att->push("fontsize",fontsize);
+	att->push("linespacing",linespacing);
+
+	const char *dir=flow_name(direction);
+	if (!dir) dir="guess";
+	att->push("direction", dir);
+	if (language) att->push("language", language);
+	if (script)   att->push("script",   script);
+
+	att->push("xcentering", xcentering);
+	att->push("ycentering", ycentering);
+
+	sprintf(scratch, "rgbaf(%.10g, %.10g, %.10g, %.10g)\n",
+						red,green,blue,alpha);
+	att->push("color", scratch);
+
+	if (lines.n) {
+		char *txt=GetText();
+		att->push("text", txt);
+		delete[] txt;
+	}
+
+	return att;
 }
 
 //! See dump_out().
@@ -750,46 +782,9 @@ void CaptionData::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *co
 			SetText(value);
 
 		} else if (!strcmp(name,"font")) {
-			int layer=0;
-
-			for (int c2=0; c2<att->attributes.e[c]->attributes.n; c2++) {
-				name= att->attributes.e[c]->attributes.e[c2]->name;
-				value=att->attributes.e[c]->attributes.e[c2]->value;
-
-				if (!strcmp(name,"layer")) {
-					family=style=file=NULL;
-					layer++;
-					char cname[10];
-					sprintf(cname,"fg%d",layer);
-
-					for (int c3=0; c3<att->attributes.e[c]->attributes.e[c2]->attributes.n; c3++) {
-						name= att->attributes.e[c]->attributes.e[c2]->attributes.e[c3]->name;
-						value=att->attributes.e[c]->attributes.e[c2]->attributes.e[c3]->value;
-
-						if (!strcmp(name,"fontfile")) {
-							file=value;
-
-						} else if (!strcmp(name,"fontfamily")) {
-							family=value;
-
-						} else if (!strcmp(name,"fontstyle")) {
-							style=value;
-
-						} else if (!strcmp(name,"color")) {
-							double co[5];
-							if (SimpleColorAttribute(value, co, NULL)==0) {
-								if (!palette) palette=new Palette;
-								palette->AddRGBA(cname, co[0]*255, co[1]*255, co[2]*255, co[3]*255, 255);
-							}
-						}
-					}
-
-					FontManager *fontmanager = InterfaceManager::GetDefault()->GetFontManager();
-					LaxFont *newlayer = fontmanager->MakeFontFromFile(file, family,style,fontsize,-1);
-					if (!newfont) newfont=newlayer;
-					else newfont->AddLayer(newfont->Layers(), newlayer);
-				}
-			}
+			FontManager *fontmanager = InterfaceManager::GetDefault()->GetFontManager();
+			if (newfont) newfont->dec_count();
+			newfont=fontmanager->dump_in_font(att->attributes.e[c], context);
 
 		} else if (!strcmp(name,"fontfile")) {
 			file=value;
