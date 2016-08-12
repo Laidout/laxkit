@@ -183,14 +183,13 @@ int RowFrame::init()
 }
 
 //! Call Sync(0) if arrangedstate!=1. 
-/*! *** draw box around the elements for debugging..
- */
 void RowFrame::Refresh()
 {
 	if (!win_on || !needtodraw || !list.n) return;
 	if (arrangedstate!=1) Sync(0);
 	needtodraw=0;
 
+	// ...draw box around the elements for debugging..
 	//DBG for (int c=0; c<list.n; c++)
 	//DBG 	draw_rectangle(this, list.e[c]->x(),list.e[c]->y(), list.e[c]->w(),list.e[c]->h());
 	//DBG draw_line(this, 0,0,win_w,win_h);
