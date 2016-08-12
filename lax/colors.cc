@@ -164,7 +164,7 @@ Color::Color()
 	colorsystemid=0;
 	color_type=COLOR_Normal;
 	system=NULL;
-	n=0;
+	nvalues=0;
 	alpha=1.0;
 	values=NULL;
 	name=NULL;
@@ -188,12 +188,12 @@ Color::Color(const Color &c)
 	color_type = c.color_type;
 	alpha=c.alpha;
 	makestr(name,c.name);
-	if (n>c.n) {
+	if (nvalues>c.nvalues) {
 		delete[] values; values=NULL;
-		n=c.n;
-		if (n) values=new double[n];
+		nvalues=c.nvalues;
+		if (nvalues) values=new double[nvalues];
 	}
-	if (n) memcpy(c.values,values,n*sizeof(double));
+	if (nvalues) memcpy(c.values,values,nvalues*sizeof(double));
 }
 
 Color &Color::operator=(Color &c)
@@ -208,12 +208,12 @@ Color &Color::operator=(Color &c)
 	color_type = c.color_type;
 	alpha=c.alpha;
 	makestr(name,c.name);
-	if (n>c.n) {
+	if (nvalues>c.nvalues) {
 		delete[] values;
-		n=c.n;
-		values=new double[n];
+		nvalues=c.nvalues;
+		values=new double[nvalues];
 	}
-	memcpy(c.values,values,n*sizeof(double));
+	memcpy(c.values,values,nvalues*sizeof(double));
 	return c;
 }
 
@@ -252,13 +252,13 @@ int Color::ColorType()
 
 //! Return the value of channel.
 /*! This function does no checking against system.
- * It only checks channel against this->n, and returns values[channel].
+ * It only checks channel against this->nvalues, and returns values[channel].
  *
  * On error -1 is returned.
  */
 double Color::ChannelValue(int channel)
 {
-	if (channel<0 || channel>=n || channel>=system->primaries.n) return -1;
+	if (channel<0 || channel>=nvalues || channel>=system->primaries.n) return -1;
 	return values[channel];
 }
 
@@ -267,7 +267,7 @@ double Color::ChannelValue(int channel)
  */
 double Color::ChannelValue(int channel, double newvalue)
 {
-	if (channel<0 || channel>=n || channel>=system->primaries.n) return -1;
+	if (channel<0 || channel>=nvalues || channel>=system->primaries.n) return -1;
 	values[channel] = newvalue;
 	return newvalue;
 }
@@ -298,14 +298,14 @@ int Color::UpdateToSystem(Color *color)
 		if (system) system->inc_count();
 		colorsystemid = (system ? system->systemid : color->ColorSystemId());
 
-		if (n != color->NumChannels()) {
+		if (nvalues != color->NumChannels()) {
 			delete[] values;
 			values=NULL;
-			n=color->NumChannels();
+			nvalues=color->NumChannels();
 
-			if (n) {
-				values = new double[n];
-				for (int c=0; c<n; c++) values[0]=0;
+			if (nvalues) {
+				values = new double[nvalues];
+				for (int c=0; c<nvalues; c++) values[0]=0;
 			}
 		}
 	}
@@ -325,16 +325,75 @@ void Color::InstallSystem(ColorSystem *newsystem)
 	}
 	colorsystemid = (system ? system->SystemId() : 0);
 
-	if (n != system->NumChannels()) {
+	if (nvalues != system->NumChannels()) {
 		delete[] values;
 		values=NULL;
-		n = system->NumChannels();
+		nvalues = system->NumChannels();
 
-		if (n) {
-			values = new double[n];
-			for (int c=0; c<n; c++) values[0]=0;
+		if (nvalues) {
+			values = new double[nvalues];
+			for (int c=0; c<nvalues; c++) values[0]=0;
 		}
 	}
+}
+
+/*! For instance, an sRGB might be output as "rgbaf(1.0, 0.0, 0.0, .5)".
+ *
+ * If system!=NULL, then use system->shortnames as the base.
+ * If system==NULL, then assume rgb.
+ */
+char *Color::dump_out_simple_string()
+{
+	char *color=NULL;
+
+	if (color_type==COLOR_Normal) {
+		if (nvalues==0) {
+			 //fallback to using ScreenColor
+			color=new char[20*4+10];
+			sprintf(color, "rgbaf(%.10g,%.10g,%.10g,%.10g)",
+				screen.Red(), screen.Green(), screen.Blue(), screen.Alpha());
+			return color; 
+		}
+
+		const char *base=NULL;
+		int hasalpha=1;
+
+		if (system) {
+			base=system->shortnames;
+			hasalpha=system->HasAlpha();
+		} else {
+			if      (colorsystemid==LAX_COLOR_RGB   ) base="rgb";
+			else if (colorsystemid==LAX_COLOR_CMYK  ) base="cmyk";
+			else if (colorsystemid==LAX_COLOR_GRAY  ) base="gray";
+			else if (colorsystemid==LAX_COLOR_HSL   ) base="hsl";
+			else if (colorsystemid==LAX_COLOR_HSV   ) base="hsv";
+			else if (colorsystemid==LAX_COLOR_CieLAB) base="cielab";
+			else if (colorsystemid==LAX_COLOR_XYZ   ) base="xyz";
+			else if (colorsystemid==LAX_COLOR_N     ) base="n";
+			else base="rgb";
+		}
+
+		color=new char[strlen(base)+3+20*nvalues+2];
+		sprintf(color, "%s%sf(", base, hasalpha ? "a" : "");
+
+		char *ptr;
+		for (int c=0; c<NumChannels(); c++) {
+			ptr=color+strlen(color);
+			if (NumChannels()==1 || c==NumChannels()-1) sprintf(ptr, "%.10g", ChannelValue(c));
+			else sprintf(ptr, "%.10g, ", ChannelValue(c));
+		}
+
+		ptr=color+strlen(color);
+		ptr[0]=')';
+		ptr[1]='\0';
+
+	} else {
+		if (color_type==COLOR_None) color=newstr("none");
+		else if (color_type==COLOR_Knockout) color=newstr("knockout");
+		else if (color_type==COLOR_Registration) color=newstr("registration");
+	}
+
+	return color;
 }
 
 void Color::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
@@ -363,9 +422,9 @@ LaxFiles::Attribute *Color::dump_out_atts(LaxFiles::Attribute *att,int what,LaxF
 	if (color_type==COLOR_Normal) {
 		if ((system && !system->HasAlpha()) || !system) att->push("alpha",alpha);
 
-		char str[n*20];
+		char str[nvalues*20];
 		str[0]=0;
-		for (int c=0; c<n; c++) {
+		for (int c=0; c<nvalues; c++) {
 			sprintf(str+strlen(str),"%.10g ", values[c]);
 		}
 		att->push("values",str);
@@ -417,7 +476,7 @@ void Color::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext
 			double *list=NULL;
 			DoubleListAttribute(value,&list,&nn);
 			if (nn) {
-				n=nn;
+				nvalues=nn;
 				delete[] values;
 				values=list;
 			}
@@ -426,16 +485,16 @@ void Color::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext
 
 	 //validate that values has correct number of channels
 	if (system) {
-		if (system->NumChannels()!=n) {
-			if (n>system->NumChannels()) n=system->NumChannels();
-			else if (n<system->NumChannels()){
+		if (system->NumChannels()!=nvalues) {
+			if (nvalues>system->NumChannels()) nvalues=system->NumChannels();
+			else if (nvalues<system->NumChannels()){
 				 //arbitrarily add 0s for any missing channels
 				double *list=new double[system->NumChannels()];
-				if (values && n) memcpy(list, values, n*sizeof(double));
+				if (values && nvalues) memcpy(list, values, nvalues*sizeof(double));
 				delete[] values;
 				values=list;
-				for ( ; n<system->NumChannels(); n++) {
-					values[n]=0;
+				for ( ; nvalues<system->NumChannels(); nvalues++) {
+					values[nvalues]=0;
 				}
 			}
 		}
@@ -613,7 +672,7 @@ Color *ColorSystem::newColor(int nvalues, ...)
 }
 
 /*! Return a new Color instance with the given channel values.
- * There must be n double values.
+ * There must be nvalues double values.
  */
 Color *ColorSystem::newColor(int nvalues, va_list argptr)
 {
@@ -703,7 +762,7 @@ ColorSystem *Create_sRGB(bool with_alpha)
 {
 	ColorSystem *rgb=new ColorSystem;
 	makestr(rgb->name,_("sRGB"));
-	makestr(rgb->shortnames,"rgbf rgba rgb rgbaf");
+	makestr(rgb->shortnames,"rgb");
 	rgb->systemid = LAX_COLOR_RGB;
 	if (with_alpha) rgb->style|=COLOR_Has_Alpha;
 
@@ -728,6 +787,25 @@ ColorSystem *Create_sRGB(bool with_alpha)
 	rgb->primaries.push(primary);
 
 	return rgb;
+}
+
+ColorSystem *Create_Gray(bool with_alpha)
+{
+	ColorSystem *gray=new ColorSystem;
+	makestr(gray->name,_("Gray"));
+	makestr(gray->shortnames,"gray");
+	gray->systemid = LAX_COLOR_GRAY;
+	if (with_alpha) gray->style|=COLOR_Has_Alpha;
+
+	//gray->iccprofile=***;
+
+	 //black
+	ColorPrimary *primary=new ColorPrimary;
+	makestr(primary->name,_("Black"));
+	primary->screencolor.rgbf(0.0,0.0,0.0);
+	gray->primaries.push(primary);
+
+	return gray;
 }
 
 /*! Create a ColorSystem based on naive cmyk.
@@ -835,15 +913,15 @@ ColorSystem *Create_XYZ(bool with_alpha)
 
 ////------------------------------- ColorManager -------------------------------
 //
-///*! \class ColorManager
-// * \ingroup colors
-// * \brief Keeps track of colors and color systems.
-// *
-// * *** it will be ColorManager's responsibility to read in all the icc profiles,
-// * and possibly create color systems from them(? is that reasonable??).
-// *
-// * Basics are rgb, cmy, cmyk, yuv, hsv.
-// */
+/*! \class ColorManager
+ * \ingroup colors
+ * \brief Keeps track of colors and color systems.
+ *
+ * *** it will be ColorManager's responsibility to read in all the icc profiles,
+ * and possibly create color systems from them(? is that reasonable??).
+ *
+ * Basics are rgb, gray, cmy, cmyk, yuv, hsv.
+ */
 
 ColorManager *ColorManager::default_manager = NULL;
 

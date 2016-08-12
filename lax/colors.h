@@ -38,7 +38,7 @@ namespace Laxkit {
 
 enum BasicColorSystems {
 	LAX_COLOR_NONE   =0,
-	LAX_COLOR_RGB    , //note to devs: this should always be the first actual type
+	LAX_COLOR_RGB    , //note to devs: rgb should always be the first actual type
 	LAX_COLOR_CMYK   ,
 	LAX_COLOR_GRAY   ,
 	LAX_COLOR_HSL    ,
@@ -52,14 +52,16 @@ enum BasicColorSystems {
 enum SimpleColorId {
 	COLOR_Undefined=0, //not the same as COLOR_None
 	COLOR_Normal,
+	COLOR_None,
+	COLOR_Registration,
+	COLOR_Knockout,
+
 	COLOR_Foreground,
 	COLOR_Background,
 	COLOR_Stroke,
 	COLOR_Fill,
 	COLOR_Controls,
-	COLOR_None,
-	COLOR_Registration,
-	COLOR_Knockout,
+
 	COLOR_CATEGORY_MAX
 };
 
@@ -109,9 +111,9 @@ class Color : public Laxkit::anObject, public LaxFiles::DumpUtility
 	int color_type; //such as none, normal, knockout, or registration. See SimpleColorId
 
 	ColorSystem *system;
-	int colorsystemid; //usually same as system->object_id;
-	int n; // num values, put here so you don't have to always look them up in system definition
-	double *values; // the values for each primary
+	int colorsystemid; //usually same as system->systemid;
+	int nvalues; // num values, put here so you don't have to always look them up in system definition
+	double *values; // the values for each primary plus alpha at the end (if any)
 
 	ScreenColor screen;
 
@@ -128,10 +130,11 @@ class Color : public Laxkit::anObject, public LaxFiles::DumpUtility
 	virtual int UpdateToSystem(Color *color);
 	virtual void InstallSystem(ColorSystem *newsystem);
 
-	virtual double NumChannels() { return n; }
+	virtual double NumChannels() { return nvalues; }
 	virtual double ChannelValue(int channel);
 	virtual double ChannelValue(int channel, double newvalue);
 
+	virtual char *dump_out_simple_string();
 	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
     virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context);
     virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
@@ -200,7 +203,7 @@ class ColorSystem: public Laxkit::anObject, public LaxFiles::DumpUtility
 {
  public:
 	char *name;
-	char *shortnames;
+	char *shortnames; //list of possible short descriptors for this system for use in file i/o
 	unsigned long style;
 	int systemid;
 	
@@ -230,6 +233,7 @@ class ColorSystem: public Laxkit::anObject, public LaxFiles::DumpUtility
 
 
 ColorSystem *Create_sRGB(bool with_alpha);
+ColorSystem *Create_Gray(bool with_alpha);
 ColorSystem *Create_Generic_CMYK(bool with_alpha);
 ColorSystem *Create_CieLab(bool with_alpha);
 ColorSystem *Create_XYZ(bool with_alpha);
@@ -252,6 +256,7 @@ class ColorManager : public anObject
 	static Color *newColor(int system, int nvalues, ...);
 	static Color *newColor(int nvalues, ScreenColor *color);
 	static Color *newColor(LaxFiles::Attribute *att);
+
 		
 	ColorManager();
 	virtual ~ColorManager();
