@@ -48,24 +48,39 @@ class BoilerPlateInterface : public anInterface
 
 	Laxkit::ShortcutHandler *sc;
 
+	BoilerPlateData *data; //points to dataoc->obj
+	ObjectContext *dataoc;
+
+	int hover;
+	virtual int scan(int x, int y, unsigned int state);
+	virtual int OtherObjectCheck(int x,int y,unsigned int state);
+
 	virtual int send();
 
   public:
+	enum BoilerPlateActions {
+		BOILERPLATE_None=0,
+		BOILERPLATE_Something,
+		BOILERPLATE_MAX
+	};
+
 	unsigned int interface_flags;
 
 	BoilerPlateInterface(anInterface *nowner, int nid,Laxkit::Displayer *ndp);
 	virtual ~BoilerPlateInterface();
 	virtual anInterface *duplicate(anInterface *dup);
 	virtual const char *IconId() { return "BoilerPlate"; }
-	const char *Name();
-	const char *whattype() { return "BoilerPlateInterface"; }
-	const char *whatdatatype();
-	Laxkit::MenuInfo *ContextMenu(int x,int y,int deviceid, Laxkit::MenuInfo *menu);
+	virtual const char *Name();
+	virtual const char *whattype() { return "BoilerPlateInterface"; }
+	virtual const char *whatdatatype();
+	virtual ObjectContext *Context(); 
+	virtual Laxkit::MenuInfo *ContextMenu(int x,int y,int deviceid, Laxkit::MenuInfo *menu);
 	virtual int Event(const Laxkit::EventData *data, const char *mes);
 	virtual Laxkit::ShortcutHandler *GetShortcuts();
 	virtual int PerformAction(int action);
 
 	virtual int UseThis(Laxkit::anObject *nlinestyle,unsigned int mask=0);
+	virtual int UseThisObject(ObjectContext *oc);
 	virtual int InterfaceOn();
 	virtual int InterfaceOff();
 	virtual void Clear(SomeData *d);

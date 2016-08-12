@@ -8,6 +8,8 @@
 
 $Name=$ARGV[0];
 
+$Name =~ s/Interface$//;
+
 $name=lc($Name);
 $NAME=uc($name);
 
