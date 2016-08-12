@@ -166,6 +166,7 @@ Attribute *TextOnPath::dump_out_atts(Attribute *att,int what,DumpContext *contex
 
     if (what==-1) {
 		 //dump description
+		att->push("matrix", "#An affine matrix of 6 numbers");
         att->push("baseline_type","path #or offset|stroke|otherstroke");
         att->push("baseline",".5em #number for how much to offset text from baseline_type");
         //att->push("","");
