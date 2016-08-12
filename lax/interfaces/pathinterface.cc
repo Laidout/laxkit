@@ -3408,10 +3408,44 @@ Coordinate *PathsData::LastVertex()
  * Sweep out angle radians. Add at least one new vertex point, and 
  * associated control points.
  */
-void PathsData::appendBezArc(flatpoint center, double angle, int num_vertices)
+void PathsData::appendEllipse(flatpoint center, double xradius, double yradius, double angle, int num_vertices, bool closed)
 {
 	if (num_vertices<1) num_vertices=1;
 
+	//if (closed) num_vertices++;
+
+    double xx,yy;
+	flatpoint cp,p,cn;
+
+	double start_angle=atan2(p.y,p.x);
+	double theta=angle/(num_vertices); //radians between control points
+    double v=4*(2*sin(theta/2)-sin(theta))/3/(1-cos(theta)); //length of control handle
+
+	flatpoint xv(xradius,0);
+	flatpoint yv(0,yradius);
+
+    for (int c=0; c<num_vertices; c++) {
+        xx=cos(start_angle + c*theta);
+        yy=sin(start_angle + c*theta);
+
+        p = center +    xx*xv +    yy*yv;
+        cp=   p    +  v*yy*xv + -v*xx*yv;
+        cn=   p    + -v*yy*xv +  v*xx*yv;
+
+		//if (closed && c==num_vertices-1) break;
+		append(cp,POINT_TONEXT);
+		append(p,POINT_VERTEX);
+		append(cn,POINT_TOPREV);
+    }
+}
+
+/*! Create a circular arc, with center, and last point determines radius.
+ * Sweep out angle radians. Add at least one new vertex point, and 
+ * associated control points.
+ */
+void PathsData::appendBezArc(flatpoint center, double angle, int num_vertices)
+{
+	if (num_vertices<1) num_vertices=1;
 
     double xx,yy;
 	flatpoint cp,p,cn;

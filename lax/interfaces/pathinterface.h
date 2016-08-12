@@ -214,6 +214,7 @@ class PathsData : virtual public SomeData
 	virtual void append(double x,double y,unsigned long flags=POINT_VERTEX,SegmentControls *ctl=NULL,int whichpath=-1);
 	virtual void append(flatpoint p,unsigned long flags=POINT_VERTEX,SegmentControls *ctl=NULL,int whichpath=-1);
 	virtual void appendRect(double x,double y,double w,double h,SegmentControls *ctl=NULL,int whichpath=-1);
+	virtual void appendEllipse(flatpoint center, double xradius, double yradius, double angle, int num_vertices, bool closed);
 	virtual void appendBezArc(flatpoint center, double angle, int num_vertices);
 	virtual void moveTo(flatpoint p,int whichpath=-1);
 	virtual void lineTo(flatpoint p,int whichpath=-1);
