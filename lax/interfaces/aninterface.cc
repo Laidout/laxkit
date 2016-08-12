@@ -517,9 +517,16 @@ int anInterface::InitForCopy()
 int anInterface::DrawDataDp(Displayer *tdp,SomeData *data,anObject *a1,anObject *a2,int info)//a1=a2=NULL, info=1
 {
 	Displayer *ttdp=dp;
+	anXWindow *ttw =curwindow;
+	ViewportWindow *ttvp=viewport;
 	dp=tdp;
+	curwindow=dynamic_cast<anXWindow*>(dp->GetDrawable());
+	viewport=dynamic_cast<ViewportWindow *>(curwindow); 
+
 	int c=this->DrawData((anObject *)data,a1,a2,info);
 	dp=ttdp;
+	curwindow=ttw;
+	viewport=ttvp;
 	return c;
 }
 
