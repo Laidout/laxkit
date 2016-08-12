@@ -1568,14 +1568,14 @@ const char *flow_name_translated(int direction)
 int flow_id(const char *dir)
 {
 	if (!dir) return -1;
-	if      (!strcasestr(dir, "lrtb")) return LAX_LRTB;
-	else if (!strcasestr(dir, "lrbt")) return LAX_LRBT;
-	else if (!strcasestr(dir, "rltb")) return LAX_RLTB;
-	else if (!strcasestr(dir, "rlbt")) return LAX_RLBT;
-	else if (!strcasestr(dir, "tblr")) return LAX_TBLR;
-	else if (!strcasestr(dir, "tbrl")) return LAX_TBRL;
-	else if (!strcasestr(dir, "btlr")) return LAX_BTLR;
-	else if (!strcasestr(dir, "btrl")) return LAX_BTRL;
+	if      (!strcasecmp(dir, "lrtb")) return LAX_LRTB;
+	else if (!strcasecmp(dir, "lrbt")) return LAX_LRBT;
+	else if (!strcasecmp(dir, "rltb")) return LAX_RLTB;
+	else if (!strcasecmp(dir, "rlbt")) return LAX_RLBT;
+	else if (!strcasecmp(dir, "tblr")) return LAX_TBLR;
+	else if (!strcasecmp(dir, "tbrl")) return LAX_TBRL;
+	else if (!strcasecmp(dir, "btlr")) return LAX_BTLR;
+	else if (!strcasecmp(dir, "btrl")) return LAX_BTRL;
 	return -1; 
 }
 
