@@ -75,6 +75,11 @@ class VoronoiRegion
 class VoronoiData : virtual public LaxInterfaces::SomeData
 {
   public:
+	bool show_points;
+	bool show_delauney;
+	bool show_voronoi;
+	bool show_numbers;
+
 	Laxkit::DoubleBBox containing_rect;
 	Laxkit::NumStack<flatpoint> points;
 	Laxkit::NumStack<IndexTriangle> triangles;
@@ -126,11 +131,13 @@ class DelauneyInterface : public anInterface
 {
   protected:
 	VoronoiData *data;
+	ObjectContext *voc;
 
 	int showdecs; 
 	int curpoint;
 	bool justadded;
 	int style_target;
+	char *last_export;
 
 	Laxkit::ShortcutHandler *sc;
 
@@ -147,12 +154,16 @@ class DelauneyInterface : public anInterface
 	virtual const char *Name();
 	virtual const char *whattype() { return "DelauneyInterface"; }
 	virtual const char *whatdatatype();
+	virtual int Event(const Laxkit::EventData *e_data, const char *mes);
     virtual int PerformAction(int action);
 	virtual Laxkit::ShortcutHandler *GetShortcuts();
 	virtual int UseThis(Laxkit::anObject *nlinestyle,unsigned int mask=0);
+	virtual int UseThisObject(ObjectContext *oc);
 
+	virtual ObjectContext *Context();
 
 	virtual void Clear(SomeData *d);
+	virtual int DrawData(anObject *ndata,anObject *a1,anObject *a2,int info);
 	virtual int Refresh();
 	virtual int MouseMove(int x,int y,unsigned int state, const Laxkit::LaxMouse *d);
 	virtual int LBDown(int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d);

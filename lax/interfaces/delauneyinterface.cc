@@ -30,6 +30,7 @@
 
 #include <lax/interfaces/somedatafactory.h>
 #include <lax/interfaces/linestyle.h>
+#include <lax/filedialog.h>
 #include <lax/laxutils.h>
 #include <lax/language.h>
 
@@ -63,6 +64,11 @@ int DelauneyTriangulate(flatpoint *pts, int nv, IndexTriangle *tri_ret, int *ntr
 
 VoronoiData::VoronoiData()
 {
+	show_points  =true;
+	show_delauney=true;
+	show_voronoi =true;
+	show_numbers =false;
+
 	color_delauney=new Color();  color_delauney->screen.rgbf(1.0,0.0,0.0);
 	color_voronoi =new Color();  color_voronoi ->screen.rgbf(0.0,0.7,0.0);
 	color_points  =new Color();  color_points  ->screen.rgbf(1.0,0.0,1.0); 
@@ -71,10 +77,6 @@ VoronoiData::VoronoiData()
 	//color_voronoi =CreateColor_RGB(0.0,0.7,0.0);
 	//color_points  =CreateColor_RGB(1.0,0.0,1.0); 
 
-	//color_delauney=rgbcolorf(1.0,0.0,0.0);
-	//color_voronoi =rgbcolorf(0.0,0.7,0.0);
-	//color_points  =rgbcolorf(1.0,0.0,1.0); 
-
 	width_delauney=1/10.;
 	width_voronoi=1/10.;
 	width_points=1/10.;
@@ -82,6 +84,9 @@ VoronoiData::VoronoiData()
 
 VoronoiData::~VoronoiData()
 {
+	color_delauney->dec_count();
+	color_voronoi ->dec_count();
+	color_points  ->dec_count();
 }
 
 void VoronoiData::FindBBox()
@@ -99,12 +104,35 @@ void VoronoiData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *co
     spc[indent]='\0';
 
 	if (what==-1) {
+		cerr << " *** need to implement VoronoiData::dump_out() description!!"<<endl;
 		return;
 	}
 
     const double *matrix=m();
     fprintf(f,"%smatrix %.10g %.10g %.10g %.10g %.10g %.10g\n",
 			spc,matrix[0],matrix[1],matrix[2],matrix[3],matrix[4],matrix[5]);
+
+	fprintf(f,"%sshow_points   %s\n", spc, (show_points   ? "yes" : "no"));
+	fprintf(f,"%sshow_delauney %s\n", spc, (show_delauney ? "yes" : "no"));
+	fprintf(f,"%sshow_voronoi  %s\n", spc, (show_voronoi  ? "yes" : "no"));
+	fprintf(f,"%sshow_numbers  %s\n", spc, (show_numbers  ? "yes" : "no"));
+
+	fprintf(f,"%swidth_points   %.10g\n", spc, width_points  );
+	fprintf(f,"%swidth_delauney %.10g\n", spc, width_delauney);
+	fprintf(f,"%swidth_voronoi  %.10g\n", spc, width_voronoi );
+
+	char *col=color_delauney->dump_out_simple_string();
+	if (col) fprintf(f,"%scolor_delauney %s\n", spc, col);
+	delete[] col;
+
+	col=color_voronoi->dump_out_simple_string();
+	if (col) fprintf(f,"%scolor_voronoi  %s\n", spc, col);
+	delete[] col;
+
+	col=color_points->dump_out_simple_string();
+	if (col) fprintf(f,"%scolor_points   %s\n", spc, col);
+	delete[] col;
+	
 
 	if (points.n) {
 		fprintf(f,"%spoints \\\n",spc);
@@ -114,7 +142,7 @@ void VoronoiData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *co
 	}
 
 	if (triangles.n) {
-		fprintf(f,"%striangles \\ #p1 p2 p3  t1 t2 t3  circumcenter x,y\n",spc);
+		fprintf(f,"%striangles \\ #(ignored on loading) p1 p2 p3  t1 t2 t3 (<- the triangles on other side of edge)  circumcenter x,y\n",spc);
 		for (int c=0; c<triangles.n; c++) {
 			fprintf(f,"%s  %d %d %d  %d %d %d  %.10g, %.10g  #%d\n", spc, 
 					triangles.e[c].p1,   triangles.e[c].p2,   triangles.e[c].p3,
@@ -130,15 +158,35 @@ void VoronoiData::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpC
 {
     if (!att) return;
     char *name,*value;
-    double mm[6];
 
     for (int c=0; c<att->attributes.n; c++) {
         name= att->attributes.e[c]->name;
         value=att->attributes.e[c]->value;
 
         if (!strcmp(name,"matrix")) {
-            DoubleListAttribute(value,mm,6);
-            m(mm);
+			double mm[6];
+            if (DoubleListAttribute(value,mm,6)==6) m(mm);
+
+        } else if (!strcmp(name,"show_points"  )) {
+			show_points  =BooleanAttribute(value);
+
+        } else if (!strcmp(name,"show_delauney")) {
+			show_delauney=BooleanAttribute(value);
+
+        } else if (!strcmp(name,"show_voronoi" )) {
+			show_voronoi =BooleanAttribute(value);
+
+        } else if (!strcmp(name,"show_numbers" )) {
+			show_numbers =BooleanAttribute(value);
+
+        } else if (!strcmp(name,"width_points"  )) {
+			DoubleAttribute(value, &width_points, NULL);
+
+        } else if (!strcmp(name,"width_delauney")) {
+			DoubleAttribute(value, &width_delauney, NULL);
+
+        } else if (!strcmp(name,"width_voronoi" )) {
+			DoubleAttribute(value, &width_voronoi, NULL);
 
         } else if (!strcmp(name,"points")) {
 			points.flush();
@@ -389,17 +437,16 @@ DelauneyInterface::DelauneyInterface(anInterface *nowner, int nid, Displayer *nd
 
 	sc=NULL;
 	
-
-	data=new VoronoiData; 
-	LaxFiles::Attribute att;
-	if (att.dump_in("voronoi.data")) return; 
-	data->dump_in_atts(&att,0,NULL);
+	data=NULL;
+	
+	last_export=newstr("voronoi.data");
 }
 
 DelauneyInterface::~DelauneyInterface()
 {
-	if (sc) sc->dec_count();
-	data->dec_count();
+	if (sc)   sc->dec_count();
+	if (data) data->dec_count();
+	delete[] last_export;
 }
 
 const char *DelauneyInterface::whatdatatype()
@@ -424,18 +471,53 @@ anInterface *DelauneyInterface::duplicate(anInterface *dup)
 	return anInterface::duplicate(dup);
 }
 
-
 void DelauneyInterface::Clear(SomeData *d)
 {
+	if (!d || d==data) {
+		data->dec_count();
+		delete voc;
+		voc=NULL;
+	}
 }
 
+int DelauneyInterface::DrawData(anObject *ndata,anObject *a1,anObject *a2,int info)
+{
+	if (!ndata || dynamic_cast<VoronoiData *>(ndata)==NULL) return 1;
 
+	VoronoiData *bzd=data;
+	data=dynamic_cast<VoronoiData *>(ndata);
+
+	int tcurpoint=curpoint;
+	int td=showdecs, ntd=needtodraw;
+	int tshow_lines  =show_lines;
+	int tshow_arrows =show_arrows;
+	int tshow_numbers=show_numbers;
+	curpoint=-1;
+	showdecs=0;
+	needtodraw=1;
+
+	show_lines = (data->show_delauney ? 2 : 0) | (data->show_voronoi ? 1 : 0);
+	show_numbers = false;
+	//show_numbers = data->show_numbers;
+
+	Refresh();
+
+	curpoint=tcurpoint;
+	show_lines  =tshow_lines;
+	show_arrows =tshow_arrows;
+	show_numbers=tshow_numbers;
+	showdecs=td;
+	data=bzd;
+	needtodraw=ntd;
+	return 1;
+}
 
 int DelauneyInterface::Refresh()
 { 
 	if (needtodraw==0) return 0;
 	needtodraw=0;
 
+	if (!data) return 0;
 
 	dp->LineAttributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
 	dp->font(anXApp::app->defaultlaxfont);
@@ -560,15 +642,32 @@ int DelauneyInterface::Refresh()
 	return 0;
 }
 
+ObjectContext *DelauneyInterface::Context()
+{
+	return voc;
+}
+
 //! Start a new freehand line.
 int DelauneyInterface::LBDown(int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d) 
 {
 	buttondown.down(d->id,LEFTBUTTON,x,y);
 
 	if (curpoint<0) {
+		if (!data) {
+			data=dynamic_cast<VoronoiData *>(somedatafactory()->NewObject(LAX_VORONOIDATA));
+			if (!data) data=new VoronoiData; 
+
+			viewport->ChangeContext(x,y,NULL);
+			ObjectContext *oc=NULL;
+			viewport->NewData(data,&oc);//viewport adds only its own counts
+			if (voc) { delete voc; voc=NULL; }
+			if (oc) voc=oc->duplicate();
+
+		}
+
 		curpoint=data->points.n;
 		justadded=true;
-		data->points.push(screentoreal(x,y));
+		data->points.push(data->transformPointInverse(screentoreal(x,y)));
 		Triangulate();
 	}
 
@@ -580,6 +679,8 @@ int DelauneyInterface::LBDown(int x,int y,unsigned int state,int count, const La
 //! Finish a new freehand line by calling newData with it.
 int DelauneyInterface::LBUp(int x,int y,unsigned int state, const Laxkit::LaxMouse *d) 
 {
+	if (!data) return 0;
+
 	int dragged=buttondown.up(d->id,LEFTBUTTON);
 
 	if (!justadded) {
@@ -602,12 +703,14 @@ int DelauneyInterface::LBUp(int x,int y,unsigned int state, const Laxkit::LaxMou
  */
 int DelauneyInterface::MouseMove(int x,int y,unsigned int state, const Laxkit::LaxMouse *m)
 {
+	if (!data) return 0;
+
 	if (!buttondown.any()) {
 		// update any mouse over state
 		int oldcp=curpoint;
 		int c;
 		for (c=0; c<data->points.n; c++) {
-			if (realtoscreen(data->points.e[c]).distanceTo(flatpoint(x,y))<10) break;
+			if (realtoscreen(data->transformPoint(data->points.e[c])).distanceTo(flatpoint(x,y))<10) break;
 		}
 		if (c!=data->points.n) curpoint=c;
 		else curpoint=-1;
@@ -621,13 +724,43 @@ int DelauneyInterface::MouseMove(int x,int y,unsigned int state, const Laxkit::L
 	int lx,ly;
 	buttondown.move(m->id, x,y, &lx,&ly);
 
-	flatpoint d=screentoreal(x,y)-screentoreal(lx,ly);
+	flatpoint d=data->transformPointInverse(screentoreal(x,y))-data->transformPointInverse(screentoreal(lx,ly));
 	data->points.e[curpoint]+=d;
 	Triangulate();
 	
 
 	needtodraw=1;
 	return 0; //MouseMove is always called for all interfaces, return value doesn't inherently matter
+}
+
+//! Use the object at oc if it is an ImageData.
+int DelauneyInterface::UseThisObject(ObjectContext *oc)
+{
+	if (!oc) return 0;
+
+	VoronoiData *ndata=dynamic_cast<VoronoiData *>(oc->obj);
+	if (!ndata) return 0;
+
+	if (data && data!=ndata) {
+		data->dec_count();
+		data=NULL;
+	}
+	if (voc) delete voc;
+	voc=oc->duplicate();
+
+	if (data!=ndata) {
+		data=ndata;
+		data->inc_count();
+	}
+
+	show_lines = (data->show_delauney ? 2 : 0) | (data->show_voronoi ? 1 : 0);
+	show_numbers = data->show_numbers;
+
+	//SimpleColorEventData *e=new SimpleColorEventData( 65535, 0xffff*data->red, 0xffff*data->green, 0xffff*data->blue, 0xffff*data->alpha, 0);
+	//app->SendMessage(e, curwindow->win_parent->object_id, "make curcolor", object_id);
+
+	needtodraw=1;
+	return 1;
 }
 
 int DelauneyInterface::UseThis(Laxkit::anObject *nobj,unsigned int mask)
@@ -713,6 +846,7 @@ int DelauneyInterface::PerformAction(int action)
 		return 0; 
 
 	} else if (action==VORONOI_Thicken || action==VORONOI_Thin) {
+		if (!data) return 0;
 		double d=-1;
 		double factor = (action==VORONOI_Thicken) ? 1.05 : 1/1.05;
 
@@ -730,21 +864,24 @@ int DelauneyInterface::PerformAction(int action)
 		return 0; 
 
 	} else if (action==VORONOI_FileExport) {
-		DBG cerr <<" WARNING! 'f': no error or clobber checking when exporting to voronoi.data!"<<endl;
+		if (!data) {
+			PostMessage(_("Nothing to export!"));
+			return 0;
+		}
 
-		FILE *f=fopen("voronoi.data", "w");
-		if (!f) return 0;
-
-		fprintf(f,"#Voronoi/Delauney data...\n\n");
-		data->dump_out(f, 0, 0, NULL);
-		fclose(f);
-		DBG cerr <<"...done writing out to voronoi.data"<<endl;
-
-		PostMessage(_("Written to voronoi.data"));
+		app->rundialog(new FileDialog(NULL,"Export points",_("Export points..."),
+							  ANXWIN_ESCAPABLE|ANXWIN_REMEMBER|ANXWIN_CENTER,0,0,0,0,0,
+							  object_id,"savepoints",
+							  FILES_SAVE|FILES_PREVIEW, 
+							  last_export));
 		return 0;
 
 	} else if (action==VORONOI_FileImport) {
-		PostMessage(_("Import points: TODO!"));
+		app->rundialog(new FileDialog(NULL,"Import points",_("Import points..."),
+							  ANXWIN_ESCAPABLE|ANXWIN_REMEMBER|ANXWIN_CENTER,0,0,0,0,0,
+							  object_id,"loadpoints",
+							  FILES_OPEN_ONE|FILES_PREVIEW, 
+							  NULL));
 		return 0;
 
 	}
@@ -752,9 +889,64 @@ int DelauneyInterface::PerformAction(int action)
 	return 1;
 }
 
-int DelauneyInterface::CharInput(unsigned int ch, const char *buffer,int len,unsigned int state, const Laxkit::LaxKeyboard *d)
+int DelauneyInterface::Event(const Laxkit::EventData *e_data, const char *mes)
 {
+	if (!strcmp(mes,"loadpoints")) {
+        const StrEventData *s=dynamic_cast<const StrEventData *>(e_data);
+		if (!s || isblank(s->str)) {
+			PostMessage(_("Could not load points."));
+			return 0;
+		}
 
+		LaxFiles::Attribute att;
+		if (att.dump_in(s->str)) {
+			PostMessage(_("Could not parse points."));
+			return 0;
+		}
+
+		if (!data) {
+			data=dynamic_cast<VoronoiData *>(somedatafactory()->NewObject(LAX_VORONOIDATA));
+			if (!data) data=new VoronoiData; 
+
+			viewport->ChangeContext((dp->Minx+dp->Maxx)/2, (dp->Miny+dp->Maxy)/2, NULL);
+			ObjectContext *oc=NULL;
+			viewport->NewData(data,&oc);//viewport adds only its own counts
+			if (voc) { delete voc; voc=NULL; }
+			if (oc) voc=oc->duplicate();
+		}
+
+		data->dump_in_atts(&att,0,NULL);
+		return 0;
+
+	} else if (!strcmp(mes,"savepoints")) {
+        const StrEventData *s=dynamic_cast<const StrEventData *>(e_data);
+		if (!s || isblank(s->str)) {
+			PostMessage(_("Could not save points."));
+			return 0;
+		}
+
+		FILE *f=fopen(s->str, "w");
+		if (!f) {
+			PostMessage(_("Could not write to file!"));			
+			return 0;
+		}
+
+		fprintf(f,"#Voronoi/Delauney data...\n\n");
+		data->dump_out(f, 0, 0, NULL);
+		fclose(f);
+
+		DBG cerr <<"...done writing out to "<<s->str<<endl;
+
+		makestr(last_export, s->str);
+		PostMessage(_("Saved."));
+		return 0;
+	}
+
+    return 1;
+}
+
+int DelauneyInterface::CharInput(unsigned int ch, const char *buffer,int len,unsigned int state, const Laxkit::LaxKeyboard *d)
+{ 
     if (!sc) GetShortcuts();
     int action=sc->FindActionNumber(ch,state&LAX_STATE_MASK,0);
     if (action>=0) {
@@ -769,7 +961,7 @@ int DelauneyInterface::CharInput(unsigned int ch, const char *buffer,int len,uns
 
 void DelauneyInterface::Triangulate()
 {
-	if (data->points.n<3) return;
+	if (!data || data->points.n<3) return;
 
 	data->RebuildVoronoi(true);
 	needtodraw=1;
