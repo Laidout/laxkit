@@ -62,6 +62,7 @@ char **spliton(char *str,char delim,int *n_ret);
 
 int is_absolute_path(const char *file);
 const char *lax_basename(const char *path);
+const char *lax_extension(const char *path);
 char *lax_dirname(const char *path,char appendslash);
 char *increment_file(const char *file);
 char *chop_extension(char *file);

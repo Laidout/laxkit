@@ -830,6 +830,19 @@ const char *lax_basename(const char *path)
 	return n;
 }
 
+/*! Like lax_basename, but return a pointer to the extension, if any.
+ * If no extension, return NULL.
+ */
+const char *lax_extension(const char *path)
+{
+	const char *period = strrchr(path, '.');
+	const char *slash  = strrchr(path, '/');
+	if (slash && period && slash>period) return NULL;
+	if (!period) return NULL;
+	if (period[1]=='\0') return NULL;
+	return period+1;
+}
+
 //! Returns a new char[] with the dir part of the path, or NULL.
 /*! The calling code must delete[] what is returned.
  *
