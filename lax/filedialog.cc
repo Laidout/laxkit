@@ -648,7 +648,7 @@ int FileDialog::init()
 							TREESEL_SEND_ON_UP |TREESEL_LEFT |TREESEL_SUB_FOLDER |TREESEL_NO_LINES,
 							files);
 	last->installColors(app->color_edits);
-	filelist->tooltip(_("Choose from these files.\nRight-click drag scrolls"));
+	filelist->tooltip(_("Choose from these files.\nRight-click drag or wheel scrolls"));
 	filelist->AddColumn(_("Name"), NULL, 0,1);
 	filelist->AddColumn(_("Size"), NULL, 0,0, TreeSelector::ColumnInfo::ColumnBytes);
 	filelist->AddColumn(_("Date"), NULL, 0,0, TreeSelector::ColumnInfo::ColumnDate);
