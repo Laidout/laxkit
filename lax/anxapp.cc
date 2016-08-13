@@ -2354,6 +2354,7 @@ void anXApp::settimeout(struct timeval *timeout)
 			if (currenttime>=ttmouse->ttendlimit) { // is time, so pop up
 				ttmouse->ttendlimit=0;
 				newToolTip(ttmouse->ttwindow->tooltip(ttmouse->id),ttmouse->id, ttmouse->ttwindow);
+				ttmouse->last_tt=ttmouse->ttwindow->object_id;
 				ttmouse->ttwindow->dec_count(); ttmouse->ttwindow=NULL;
 				tooltipmaybe.pop(c);
 				c--;
@@ -2543,6 +2544,11 @@ void anXApp::tooltipcheck(EventData *event, anXWindow *ww)
 		LaxMouse *m=dynamic_cast<LaxMouse *>(ee->device);
 		int c=tooltipmaybe.findindex(m); //if c>=0 then there was already a window under consideration
 
+		if (m->last_tt==ww->object_id) {
+			m->last_tt=0;
+			return;
+		}
+
 		 //clear any tip up already
 		bool hadtip=false;
 		for (int c=0; c<topwindows.n; c++) {
@@ -2559,6 +2565,7 @@ void anXApp::tooltipcheck(EventData *event, anXWindow *ww)
 			if (hadtip) {
 				 //pop up immediately
 				newToolTip(ww->tooltip(m->id),m->id, ww);
+				m->last_tt=ww->object_id;
 				if (c>=0) tooltipmaybe.pop(c);
 				return;
 			} else {

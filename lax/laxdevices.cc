@@ -228,6 +228,7 @@ LaxMouse::LaxMouse()
 	ttendlimit(0),
 	ttthreshhold(0),
 	ttwindow(NULL),
+	last_tt(0),
 	paired_keyboard(NULL)
 {}
 

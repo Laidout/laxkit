@@ -104,6 +104,7 @@ class LaxMouse : public LaxDevice
 	clock_t ttendlimit;
 	clock_t ttthreshhold;
 	anXWindow *ttwindow;
+	unsigned long last_tt;
 
 	LaxKeyboard *paired_keyboard;
 	LaxMouse();
