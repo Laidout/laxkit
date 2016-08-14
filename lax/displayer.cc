@@ -490,6 +490,20 @@ int Displayer::SetPalette(Palette *npalette)
 	return 0;
 }
 
+/*! Write out text with BG color first, slightly offset, then on top with FG.
+ */
+double Displayer::textout_halo(double offset, double x,double y,const char *str,int len,unsigned long align)
+{
+	unsigned long oldfg=FG();
+	NewFG(BG());
+	textout(x-offset,y, str,len,align);
+	textout(x+offset,y, str,len,align);
+	textout(x,y-offset, str,len,align);
+	textout(x,y+offset, str,len,align);
+	NewFG(oldfg); 
+	return textout(x,y, str,len,align);
+}
+
 /*! \fn double Displayer::textout(double x,double y,const char *str,int len,unsigned long align)
  * Draw possibly multiple lines of text at screen x,y. Each line separated by a '\\n'.
  * Returns distance advanced.
@@ -571,6 +585,16 @@ void Displayer::drawaxes(double len)
  * \brief Call if current path should be ended, but not closed.
  */
 
+/*! Fill with the BG color and stroke with the FG color.
+ */
+void Displayer::fillAndStroke(int preserve)
+{
+	unsigned long oldfg=FG();
+	NewFG(BG());
+	fill(1);
+	NewFG(oldfg);
+	stroke(preserve);
+}
 
 /*! \fn void Displayer::fill(int preserve)
  * \brief Fill any stored path(s). If preserve, then do not clear the path afterward.

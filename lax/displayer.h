@@ -164,6 +164,7 @@ class Displayer : public PanUser, virtual public anObject
 	virtual int onscreen(double x,double y);
 
 	virtual void show() = 0; //collapse source through mask onto surface
+	virtual void fillAndStroke(int preserve);
 	virtual void fill(int preserve) = 0;
 	virtual void stroke(int preserve) = 0;
 	virtual void moveto(double x,double y) { moveto(flatpoint(x,y)); }
@@ -208,6 +209,7 @@ class Displayer : public PanUser, virtual public anObject
 	virtual int textheight() = 0;
 	virtual double textextent(LaxFont *thisfont, const char *str,int len, double *width,double *height,double *ascent,double *descent,char real) = 0;
 	virtual double textextent(const char *str,int len, double *width,double *height,double *ascent=NULL,double *descent=NULL,char real=0);
+	virtual double textout_halo(double offset, double x,double y,const char *str,int len=0,unsigned long align=LAX_CENTER);
 	virtual double textout(double x,double y,const char *str,int len=0,unsigned long align=LAX_CENTER) = 0;
 	virtual double textout(double *matrix,double x,double y,const char *str,int len=0,unsigned long align=LAX_CENTER) = 0;
 	virtual double textout(double angle, double x,double y,const char *str,int len=0,unsigned long align=LAX_CENTER) = 0;
