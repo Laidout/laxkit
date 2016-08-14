@@ -56,6 +56,10 @@ class TabFrame : public IconSelector
  protected:
 	int curtab;
 	virtual int mapWindow(int which,int mapit=1); //mapit=1
+	virtual void DrawTab(IconBox *b, int selected, int iscurbox);
+	virtual void drawbox(int which);
+	virtual void FillBox(IconBox *b,const char *nlabel,LaxImage *img, int nid);
+
  public:
 	TabFrame(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
                       int xx,int yy,int ww,int hh,int brder,

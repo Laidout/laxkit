@@ -23,6 +23,8 @@
 
 
 #include <lax/tabframe.h>
+#include <lax/displayer.h>
+#include <lax/laxutils.h>
 
 
 #include <iostream>
@@ -136,22 +138,125 @@ int TabFrame::init()
 	return 0;
 }
 
-/*! \todo implement draw tab outlines style (like folder tabs),
- * rather than default button style (a bevel)
- */
+void TabFrame::FillBox(IconBox *b,const char *nlabel,LaxImage *img, int nid)
+{
+	IconSelector::FillBox(b,nlabel,img,nid);
+	double pad = app->defaultlaxfont->textheight()/3;
+	b->h (b->h()  + pad);
+	b->w (b->w()  + pad);
+	b->ph(b->ph() + pad);
+	b->pw(b->pw() + pad);
+}
+
+void TabFrame::drawbox(int which)
+{
+	needtodraw=1;
+}
+
+void TabFrame::DrawTab(IconBox *b, int selected, int iscurbox)
+{
+	if (!b) return;
+
+	Displayer *dp=GetDisplayer();
+
+	 //draw the outline
+
+	//dp->drawrectangle(b->x() - b->pad,  b->y() - b->pad,    b->w() + 2*b->pad,  b->h() + 2*b->pad, 0);
+
+	double xx=b->x(), yy=b->y(), ww=b->w(), hh=b->h();
+
+	dp->moveto(xx-hh/3, yy+hh);
+	dp->curveto(flatpoint(xx,yy+hh), flatpoint(xx,yy), flatpoint(xx+hh/3,yy));
+	dp->lineto(xx+ww-hh/3, yy);
+	dp->curveto(flatpoint(xx+ww,yy), flatpoint(xx+ww,yy+hh), flatpoint(xx+ww+hh/3,yy+hh));
+	dp->closed();
+
+	dp->NewFG(selected ? win_colors->moverbg : win_colors->bg);
+	dp->fill(0);
+
+	if (iscurbox) { //draw extra line to window border
+		dp->moveto(0, yy+hh-1); 
+		dp->lineto(xx-hh/3, yy+hh-1); 
+	} else {
+		dp->moveto(xx-hh/3, yy+hh-1);
+	}
+	dp->curveto(flatpoint(xx,yy+hh-1), flatpoint(xx,yy), flatpoint(xx+hh/3,yy));
+	dp->lineto(xx+ww-hh/3, yy);
+	dp->curveto(flatpoint(xx+ww,yy), flatpoint(xx+ww,yy+hh-1), flatpoint(xx+ww+hh/3,yy+hh-1));
+	if (iscurbox) { //draw extra line to window border
+		dp->lineto(win_w, yy+hh-1); 
+	}
+
+	dp->NewFG(coloravg(win_colors->fg, win_colors->bg));
+	dp->stroke(0);
+
+	//dp->NewFG(win_colors->bg);
+	//dp->drawline(xx-hh/3,yy+hh, xx+ww+hh/3,yy+hh);
+
+
+	 // Set  tx,ty  px,py
+	int w,h,tx,ty,ix,iy,dx,dy;
+	LaxImage *i=b->image;
+	const char *l=b->label;
+	get_placement(i,l,padg,labelstyle,&w,&h,&tx,&ty,&ix,&iy);
+	dx=b->x()+(b->w()-w)/2;
+	dy=b->y()+(b->h()-h)/2;
+
+	 // draw the info
+	if (i && ix!=LAX_WAY_OFF) {
+		ix+=dx;
+		iy+=dy;
+		dp->imageout(i,ix,iy);
+		i->doneForNow();
+	}
+
+	if (l && tx>LAX_WAY_OFF) {
+		tx+=dx;
+		ty+=dy;
+		dp->NewFG(win_colors->fg);
+		dp->textout(tx,ty, l,-1, LAX_LEFT|LAX_TOP);
+	}
+}
+
 void TabFrame::Refresh()
 {
 	if (!needtodraw) return;
 	if (arrangedstate==0) {
 		sync();
 		mapWindow(curtab,1);
-		//***
 	}
-	IconSelector::Refresh();
 
-	//*** draw tab outlines!!
-
+	Displayer *dp=MakeCurrent();
+	dp->ClearWindow();
+	dp->LineWidth(1);
 	needtodraw=0;
+
+	IconBox *b, *cbox = NULL, *hbox=NULL;
+	if (hoverbox>=0) hbox=dynamic_cast<IconBox *>(wholelist.e[hoverbox]);
+	if (curtab>=0)   cbox=dynamic_cast<IconBox *>(wholelist.e[curtab]);
+
+	for (int c=0; c<list.n; c++) {
+		ListBox *row = dynamic_cast<ListBox*>(list.e[c]);
+
+		dp->NewFG(coloravg(win_colors->fg,win_colors->bg,.8));
+		dp->drawrectangle(0,row->y()-padinset, win_w,row->h()+padinset-1, 1);
+
+		int i = row->list.findindex(cbox);
+		if (i<0) i=-1;
+
+		for (int c2=row->list.n-1; c2>i; c2--) {
+			b=dynamic_cast<IconBox *>(row->list.e[c2]); 
+			DrawTab(b, b==hbox, b==cbox);
+		}
+
+		for (int c2=0; c2<i; c2++) {
+			b=dynamic_cast<IconBox *>(row->list.e[c2]); 
+			DrawTab(b, b==hbox, b==cbox);
+		}
+
+		if (i>=0) DrawTab(cbox, hbox==cbox, true); 
+	} 
+
 }
 
 //! Add a new tab with the given window, label, and icon.
@@ -171,7 +276,8 @@ int TabFrame::AddWin(anXWindow *nwin,int absorbcount, const char *nlabel,const c
 		app->reparent(nwin,this); //this will increment the window's count
 		if (absorbcount) nwin->dec_count();
 	}
-	FillBox(newbox,nlabel,iconfilename,makebw);
+
+	IconSelector::FillBox(newbox,nlabel,iconfilename,makebw);
 	wholelist.push(newbox);
 	mapWindow(wholelist.n-1,0);
 	needtodraw=1;
@@ -212,6 +318,7 @@ int TabFrame::mapWindow(int which,int mapit) //mapit=1
 	if (!b || !b->win) return 1;
 	
 	DBG cerr<<"----- TabFrame map "<<b->win->WindowTitle()<<": "<<which<<' '<<mapit;
+
 	 // find the window area
 	int x,y,w,h;
 	if (flags&BOX_VERTICAL) { // is rows, so height=win_h-bbox.h, width=win_w
@@ -226,6 +333,7 @@ int TabFrame::mapWindow(int which,int mapit) //mapit=1
 		y=0;
 		h=win_h-1;
 	} 
+
 	DBG cerr<<"  "<<x<<','<<y<<' '<<w<<'x'<<h<<endl;
 	if (mapit) {
 		//&& w>0 && h>0) {
