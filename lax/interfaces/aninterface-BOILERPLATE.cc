@@ -30,9 +30,10 @@
 #include <lax/language.h>
 
 
-//You need this if you use any of the Laxkit stack templates in lax/lists.h
-//The few templates Laxkit provides are divided into header.h/implementation.cc.
-#include <lax/lists.cc>
+//You only need this if your new classes directly use any of the 
+//Laxkit stack templates in lax/lists.h. The few templates Laxkit 
+//provides are divided into header.h/implementation.cc.
+//#include <lax/lists.cc>
 
 
 using namespace Laxkit;
