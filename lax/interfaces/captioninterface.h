@@ -92,7 +92,9 @@ class CaptionData : virtual public SomeData
 	CaptionData(const char *ntext, const char *nfontfamily, const char *nfontstyle, int fsize, double xcenter, double ycenter);
 	virtual ~CaptionData();
 	virtual SomeData *duplicate(SomeData *dup);
+	virtual void FindBBox();
 
+	virtual int NeedToRecache();
 	virtual int SetText(const char *newtext);
 	virtual char *GetText();
 	virtual bool IsBlank();
@@ -108,7 +110,6 @@ class CaptionData : virtual public SomeData
 	virtual double LineSpacing(double newspacing);
 	virtual double LineSpacing() { return linespacing; }
 	virtual int FindPos(double y, double x, int *line, int *pos);
-	virtual void FindBBox();
 	virtual int RecacheLine(int line);
 
 

@@ -263,6 +263,50 @@ SomeData *CaptionData::duplicate(SomeData *dup)
 
 }
 
+void CaptionData::FindBBox()
+{
+	double width=fontsize;
+	double height=fontsize + (lines.n-1)*fontsize*linespacing;
+	if (linespacing<0) {
+		height=fontsize - (lines.n-1)*fontsize*linespacing;
+	}
+
+
+	if (state==0 || NeedToRecache()) {
+		ComputeLineLen(-1);
+		state=1;
+	}
+
+	if (lines.n) {
+		width=0;
+		for (int c=0; c<lines.n; c++) {
+			if (linelengths.e[c]>width) width=linelengths.e[c];
+		}
+	}
+
+	minx=-xcentering/100*width;
+	maxx=minx+width;
+	if (maxx==minx) maxx=minx+fontsize/3;
+
+	miny=-ycentering/100*height;
+	maxy=miny+height;
+	if (maxy==miny) maxy=miny+fontsize;
+
+	 //check for effects of negative line spacing
+//	if (linespacing<0) { 
+//		maxy=fontsize;
+//		miny=maxy-height;
+//	}
+
+}
+
+int CaptionData::NeedToRecache()
+{
+	if (needtorecache) return 1;
+	for (int c=0; c<linestats.n; c++) 
+		if (linestats.e[c]->needtorecache) return 1;
+	return 0;
+} 
 
 /*! Return the number of bytes (not characters) in the given line number.
  */
@@ -825,6 +869,8 @@ void CaptionData::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *co
 		Font(newfont);
 		newfont->dec_count();
 	} else Font(file, family, style, fontsize);
+
+	needtorecache=true;
 }
 
 /*! Adjust ycentering to align with the given line's baseline.
@@ -856,6 +902,7 @@ double CaptionData::Size(double newsize)
 	font->Resize(newsize);
 	fontsize=newsize;
 	state=0;
+	needtorecache=true;
 	FindBBox();
 	return fontsize;
 }
@@ -946,6 +993,7 @@ int CaptionData::DeleteChar(int line,int pos,int after, int *newline,int *newpos
 	}
 
 	state=0;
+	needtorecache=true;
 	if (newline) *newline=line;
 	if (newpos) *newpos=pos;
 	return 0;
@@ -992,6 +1040,7 @@ int CaptionData::InsertChar(unsigned int ch, int line,int pos, int *newline,int 
 		*newpos=pos;
 	}
 
+	needtorecache=true;
 	state=0;
 	FindBBox();
 
@@ -1035,6 +1084,7 @@ int CaptionData::DeleteSelection(int fline,int fpos, int tline,int tpos, int *ne
 	}
 
 	ComputeLineLen(fline);
+	needtorecache=true;
 	FindBBox();
 	*newline=fline;
 	*newpos=fpos;
@@ -1081,48 +1131,12 @@ int CaptionData::InsertString(const char *txt,int len, int line,int pos, int *ne
 	}
 	delete[] origline;
 
+	needtorecache=true;
 	FindBBox();
 
 	*newline=line;
 	*newpos =pos;
 	return 0;
-}
-
-void CaptionData::FindBBox()
-{
-	double width=fontsize;
-	double height=fontsize + (lines.n-1)*fontsize*linespacing;
-	if (linespacing<0) {
-		height=fontsize - (lines.n-1)*fontsize*linespacing;
-	}
-
-
-	if (state==0) {
-		ComputeLineLen(-1);
-		state=1;
-	}
-
-	if (lines.n) {
-		width=0;
-		for (int c=0; c<lines.n; c++) {
-			if (linelengths.e[c]>width) width=linelengths.e[c];
-		}
-	}
-
-	minx=-xcentering/100*width;
-	maxx=minx+width;
-	if (maxx==minx) maxx=minx+fontsize/3;
-
-	miny=-ycentering/100*height;
-	maxy=miny+height;
-	if (maxy==miny) maxy=miny+fontsize;
-
-	 //check for effects of negative line spacing
-//	if (linespacing<0) { 
-//		maxy=fontsize;
-//		miny=maxy-height;
-//	}
-
 }
 
 //! Set horizontal centering, and adjust bbox.
@@ -1169,6 +1183,7 @@ int CaptionData::Font(LaxFont *newfont)
 
 	DBG cerr <<"------------ new font size a,d,h, fs: "<<font->ascent()<<", "<<font->descent()<<", "<<font->textheight()<<"   "<<fontsize<<endl;
 
+	needtorecache=true;
 	state=0;
 	FindBBox();
 
@@ -1192,6 +1207,7 @@ int CaptionData::Font(const char *file, const char *family,const char *style,dou
 
 	DBG cerr <<"------------ new font size a,d,h, fs: "<<font->ascent()<<", "<<font->descent()<<", "<<font->textheight()<<"   "<<fontsize<<endl;
 
+	needtorecache=true;
 	state=0;
 	FindBBox();
 
@@ -1734,7 +1750,7 @@ int CaptionInterface::Refresh()
 	if (!data) return 1;
 		
 	dp->font(data->fontfamily,data->fontstyle,data->fontsize);//1 for real size, not screen size
-	if (!data->state) {
+	if (data->NeedToRecache()) {
 		 //need to find line lengths
 		data->FindBBox();
 	}
@@ -2151,18 +2167,18 @@ int CaptionInterface::LBDown(int x,int y,unsigned int state,int count, const Lax
 
 int CaptionInterface::Paste(const char *txt,int len, Laxkit::anObject *obj, const char *formathint)
 {
-	cerr << " *** must implement CaptionInterface::Paste()"<<endl;
-	DBG if (txt) cerr <<"    pasting: "<<txt<<endl;
+	DBG if (txt) cerr <<"    pasting into captioninterface: "<<txt<<endl;
 
-	//------
 	if (!txt || !len) return 1;
 
 	if (data) {
 		data->InsertString(txt, len, caretline, caretpos, &caretline, &caretpos);
+		PostMessage(_("Pasted."));
 		needtodraw=1;
 		return 0;
 
 	} else {
+		cerr << " *** must finish implementing CaptionInterface::Paste()"<<endl;
 		PostMessage("lazy programmer! need to implement paste text to new object");
 	}
 
@@ -2185,7 +2201,6 @@ int CaptionInterface::Event(const Laxkit::EventData *e_data, const char *mes)
 		LaxFont *newfont=dynamic_cast<LaxFont*>(s->object);
 		if (newfont) data->Font(newfont);
 		else data->Font(s->strs[3], s->strs[0], s->strs[1], size); //file, family, style, size
-		data->state=0;
 		data->FindBBox();
 	
 		DBG cerr <<"------------ new font size a,d,h, fs: "<<data->font->ascent()<<", "<<data->font->descent()<<", "<<data->font->textheight()<<"   "<<data->fontsize<<endl;
