@@ -48,8 +48,12 @@ class PerspectiveTransform
 	PerspectiveTransform();
 	PerspectiveTransform(flatpoint *nsrcPts, flatpoint *ndstPts);
 
+	virtual int SetFrom(flatpoint nfrom_ll, flatpoint nfrom_lr, flatpoint nfrom_ul, flatpoint nfrom_ur);
+	virtual int SetTo  (flatpoint nfrom_ll, flatpoint nfrom_lr, flatpoint nfrom_ul, flatpoint nfrom_ur);
+
 	virtual void ResetTransform();
 	virtual void ComputeTransform();
+	virtual bool IsValid();
 
 	flatpoint transform(flatpoint p);
 	flatpoint transform(double x,double y);

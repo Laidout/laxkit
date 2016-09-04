@@ -20,6 +20,10 @@
 //
 //    Copyright (C) 2016 by Tom Lechner
 //
+//    The marked parts below are adapted from https://github.com/sloisel/numeric
+//    and https://github.com/jlouthan/perspective-transform,
+//    both MIT licensed.
+//
 
 
 
@@ -29,10 +33,6 @@
 #include <lax/laxutils.h>
 #include <lax/language.h>
 
-
-//You need this if you use any of the Laxkit stack templates in lax/lists.h
-//The few templates Laxkit provides are divided into header.h/implementation.cc.
-#include <lax/lists.cc>
 
 
 using namespace Laxkit;
@@ -50,29 +50,6 @@ namespace LaxInterfaces {
 
 
 //---------------------------------- Perspective Transform Utils -----------------------------
-//https://github.com/jlouthan/perspective-transform
-//
-//The MIT License (MIT)
-//
-//Copyright (c) 2015 Jenny Louthan
-//
-//Permission is hereby granted, free of charge, to any person obtaining a copy
-//of this software and associated documentation files (the "Software"), to deal
-//in the Software without restriction, including without limitation the rights
-//to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//copies of the Software, and to permit persons to whom the Software is
-//furnished to do so, subject to the following conditions:
-//
-//The above copyright notice and this permission notice shall be included in all
-//copies or substantial portions of the Software.
-//
-//THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-//SOFTWARE.
 
 
 //--------------- class Matrix -------------------
@@ -147,6 +124,32 @@ void Matrix::Allocate(int nrows, int ncols)
 
 //--------------- end class Matrix -------------------
 
+
+//The following Numeric* are adapted from numeric.js:
+//  https://github.com/sloisel/numeric
+//MIT license:
+// 
+// Numeric Javascript
+// Copyright (C) 2011 by Sébastien Loisel
+// 
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+// 
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+// 
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+//
 
 double **AllocateMatrix(int nrows, int ncols)
 {
@@ -399,6 +402,51 @@ void PerspectiveTransform::ResetTransform()
 	coeffsInv[1]=coeffsInv[2]=coeffsInv[3]=coeffsInv[5]=coeffsInv[6]=coeffsInv[7]=0;
 }
 
+int PerspectiveTransform::SetFrom(flatpoint nfrom_ll, flatpoint nfrom_lr, flatpoint nfrom_ul, flatpoint nfrom_ur)
+{
+	from_ll=nfrom_ll;
+	from_lr=nfrom_lr;
+	from_ul=nfrom_ul;
+	from_ur=nfrom_ur;
+
+	return IsValid();
+}
+
+int PerspectiveTransform::SetTo(flatpoint nto_ll, flatpoint nto_lr, flatpoint nto_ul, flatpoint nto_ur)
+{
+	to_ll=nto_ll;
+	to_lr=nto_lr;
+	to_ul=nto_ul;
+	to_ur=nto_ur; 
+
+	return IsValid();
+}
+
+/*! Basically valid when the points form a convex shape.
+ */
+bool PerspectiveTransform::IsValid()
+{
+	flatpoint pts[3], p;
+
+	for (int c=0; c<4; c++) {
+		p.set(srcPts[2*c], srcPts[2*c+1]);
+		for (int c2=0, i=0; c2<4; c2++) {
+			if (c2==c) continue;
+			pts[i++].set(srcPts[2*c2], srcPts[2*c2+1]);
+		}
+		if (point_is_in(p, pts, 3)) return false;
+
+		p.set(dstPts[2*c], dstPts[2*c+1]);
+		for (int c2=0, i=0; c2<4; c2++) {
+			if (c2==c) continue;
+			pts[i++].set(dstPts[2*c2], dstPts[2*c2+1]);
+		}
+		if (point_is_in(p, pts, 3)) return false;
+	} 
+
+	return true;
+}
+
 void PerspectiveTransform::ComputeTransform()
 {
 	srcPts[0]=from_ll.x;
@@ -422,6 +470,31 @@ void PerspectiveTransform::ComputeTransform()
 	getNormalizationCoefficients(srcPts, dstPts, false);
 	getNormalizationCoefficients(srcPts, dstPts, true);
 }
+
+//The following perspective transform implementation is adapted from:
+//https://github.com/jlouthan/perspective-transform
+//
+//The MIT License (MIT)
+//
+//Copyright (c) 2015 Jenny Louthan
+//
+//Permission is hereby granted, free of charge, to any person obtaining a copy
+//of this software and associated documentation files (the "Software"), to deal
+//in the Software without restriction, including without limitation the rights
+//to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+//copies of the Software, and to permit persons to whom the Software is
+//furnished to do so, subject to the following conditions:
+//
+//The above copyright notice and this permission notice shall be included in all
+//copies or substantial portions of the Software.
+//
+//THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+//IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+//FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+//AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+//LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+//OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+//SOFTWARE.
 
 double *PerspectiveTransform::getNormalizationCoefficients(double *src, double *dst, bool isInverse)
 {
@@ -465,13 +538,13 @@ double *PerspectiveTransform::getNormalizationCoefficients(double *src, double *
 
 	} catch(exception e) {
 		err=1;
-		cerr << "Error! "<<e.what()<<endl;
+		cerr << "Matrix invert error! "<<e.what()<<endl;
 		matX[0]=matX[4]=matX[8]=1;
 		matX[1]=matX[2]=matX[3]=matX[5]=matX[6]=matX[7]=0;
 
 	} catch(int e) {
 		err=1;
-		cerr << "Error! "<<e<<endl;
+		cerr << "Matrix invert error! "<<e<<endl;
 		matX[0]=matX[4]=matX[8]=1;
 		matX[1]=matX[2]=matX[3]=matX[5]=matX[6]=matX[7]=0;
 	}
@@ -531,25 +604,6 @@ flatpoint PerspectiveTransform::transformInverse(flatpoint p)
 //---------------------------------- End Perspective Transform Utils -----------------------------
 
 
-
-
-
-
-////--------------------------- PerspectiveData -------------------------------------
-//
-///*! \class PerspectiveData
-// * \ingroup interfaces
-// * \brief Data that PerspectiveInterface can use.
-// */
-//
-//PerspectiveData::PerspectiveData()
-//{
-//}
-//
-//PerspectiveData::~PerspectiveData()
-//{
-//}
-//
 
 
 //--------------------------- PerspectiveInterface -------------------------------------
@@ -838,11 +892,6 @@ int PerspectiveInterface::Refresh()
 	flatpoint r = from_ur - from_lr;
 	flatpoint t = from_ur - from_ul; //points left from right
 	flatpoint b = from_lr - from_ll;
-	//------ 
-	//flatpoint l = transform.from_ul - transform.from_ll; //points bottom to top
-	//flatpoint r = transform.from_ur - transform.from_lr;
-	//flatpoint t = transform.from_ur - transform.from_ul; //points left to right
-	//flatpoint b = transform.from_lr - transform.from_ll;
 
 	dp->NewFG(.75,.75,.75);
 	flatpoint p1,p2;
@@ -854,25 +903,12 @@ int PerspectiveInterface::Refresh()
 		p1=transform.transform(from_ll+c/(float)(lines)*b);
         p2=transform.transform(from_ul+c/(float)(lines)*t);
 		dp->drawline(p1,p2); //vert line
-		//----
-		//p1=transform.transform(transform.from_ll+c/(float)(lines)*l);
-		//p2=transform.transform(transform.from_lr+c/(float)(lines)*r);
-		//dp->drawline(p1,p2); //horiz line
-
-		//p1=transform.transform(transform.from_ll+c/(float)(lines)*b);
-        //p2=transform.transform(transform.from_ul+c/(float)(lines)*t);
-		//dp->drawline(p1,p2); //vert line
 	}
 
 	dp->NewFG(.75,.75,.75);
 	dp->NewBG(0.6,0.6,0.6);
 	dp->LineWidthScreen(2);
 
-	//dp->drawline(transform.to_ll, transform.to_lr); //transformed corners
-	//dp->drawline(transform.to_lr, transform.to_ur);
-	//dp->drawline(transform.to_ur, transform.to_ul);
-	//dp->drawline(transform.to_ul, transform.to_ll);
-	//----------
 	dp->drawline(to_ll, to_lr); //transformed corners
 	dp->drawline(to_lr, to_ur);
 	dp->drawline(to_ur, to_ul);
