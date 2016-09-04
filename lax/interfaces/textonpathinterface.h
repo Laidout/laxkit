@@ -150,6 +150,7 @@ enum TextOnPathActions {
 	TPATH_ToggleDirection,
 	TPATH_ConvertToPath,
 	TPATH_Text,
+	TPATH_Paste,
 	TPATH_MAX	
 };
 
@@ -215,6 +216,8 @@ class TextOnPathInterface : public anInterface
 	virtual int KeyUp(unsigned int ch,unsigned int state, const Laxkit::LaxKeyboard *d);
 	virtual void ViewportResized();
 	virtual int RemoveChild(); 
+	virtual int Paste(const char *txt,int len, Laxkit::anObject *obj, const char *formathint);
+
 	virtual void FixCaret();
 
 	virtual int scan(int x,int y,unsigned int state, double *alongpath, double *alongt, double *distto);

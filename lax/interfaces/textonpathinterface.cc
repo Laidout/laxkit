@@ -2113,6 +2113,7 @@ Laxkit::ShortcutHandler *TextOnPathInterface::GetShortcuts()
     sc->Add(TPATH_EditPath,       'p',ControlMask,0,           "EditPath",       _("Edit the path"),NULL,0);
     sc->Add(TPATH_ConvertToPath,  'P',ShiftMask|ControlMask,0, "ConvertToPath",  _("Convert to path object"),NULL,0);
     sc->Add(TPATH_ToggleDirection,'D',ShiftMask|ControlMask,0, "ToggleDirection",_("Toggle basic direction of text"),NULL,0);
+    sc->Add(TPATH_Paste,          'v',ControlMask,0,           "Paste",          _("Paste text"),NULL,0);
 
     manager->AddArea(whattype(),sc);
     return sc;
@@ -2219,6 +2220,31 @@ int TextOnPathInterface::PerformAction(int action)
 		//viewport->ChangeObject(oc, 1);
 		newdata->dec_count();
 		return 0;
+
+	} else if (action==TPATH_Paste) {
+		viewport->PasteRequest(this, NULL);
+		return 0;
+	}
+
+	return 1;
+}
+
+int TextOnPathInterface::Paste(const char *txt,int len, Laxkit::anObject *obj, const char *formathint)
+{
+	 //pasting with no data should create a new data
+	DBG if (txt) cerr <<"    pasting into captioninterface: "<<txt<<endl;
+
+	if (!txt || !len) return 1;
+
+	if (textonpath) {
+		textonpath->InsertString(txt, len, caretpos, &caretpos);
+		PostMessage(_("Pasted."));
+		needtodraw=1;
+		return 0;
+
+	} else {
+		cerr << " *** must finish implementing CaptionInterface::Paste()"<<endl;
+		PostMessage("lazy programmer! need to implement paste text to new object");
 	}
 
 	return 1;
