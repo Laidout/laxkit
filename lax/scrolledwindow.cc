@@ -178,7 +178,7 @@ int ScrolledWindow::Event(const EventData *e,const char *mes)
 	return anXWindow::Event(e,mes);
 }
 
-//! Define the area that the scrollers, panpopup, and thewindow should go in.
+//! Define the area that the scrollers and thewindow should go in.
 /*! Default is the whole window.
  * Derived classes can redefine this to remove any space that they want to use.
  */
