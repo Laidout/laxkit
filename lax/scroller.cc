@@ -296,7 +296,7 @@ int Scroller::RBDown(int mx,int my,unsigned int state,int count,const LaxMouse *
 	int rbdown=getpos(mx,my);
 	if (rbdown!=0) {
 		buttondown.down(d->id, RIGHTBUTTON, rbdown,(win_style&SC_XSCROLL?mx:my));
-		if (!tid) tid=app->addmousetimer(this);
+		//if (!tid) tid=app->addmousetimer(this);
 	}
 	return 0;
 }
@@ -342,7 +342,7 @@ int Scroller::LBDown(int mx,int my,unsigned int state,int count,const LaxMouse *
 	DBG buttondown.getextrainfo(d->id,LEFTBUTTON,&i);
 	DBG cerr <<"---Scroller lbdown: "<<lbdown<<"  buttondown i:"<<i<<endl;
 
-	if (!tid) tid=app->addmousetimer(this);
+	//if (!tid) tid=app->addmousetimer(this);
 	return 0;
 }
 
