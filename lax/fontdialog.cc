@@ -542,9 +542,12 @@ int FontDialog::init()
 			//------
 			//mfonts->AddItem((fonts->e[c]->psname ? fonts->e[c]->psname : _("No ps name!")),c);
 		}
+
+		mfonts->SetCompareFunc(SORT_ABC|SORT_IGNORE_CASE);
 		mfonts->Sort(0);
 	}
-	last=fontlist=new TreeSelector(this,"fonts","fonts",0,
+
+	last=fontlist=new TreeSelector(this,"fonts","fonts", SW_RIGHT,
 									0,0,0,0,1,
 									last,object_id,"font",
 									TREESEL_SEND_ON_UP
