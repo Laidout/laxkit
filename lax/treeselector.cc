@@ -316,6 +316,22 @@ int TreeSelector::FocusOn(const FocusChangeData *e)
 	return c;
 }
 
+int TreeSelector::Event(const EventData *e,const char *mes)
+{
+	DBG cerr << "TreeSelector::Event "<<(mes?mes:"noname")<<endl;
+
+	if (!strcmp(mes, "pan change")) {
+		//makeinwindow();
+		
+		offsetx=inrect.x-panner->GetCurPos(1);
+		offsety=inrect.y-panner->GetCurPos(2);
+		needtodraw=1;
+		return 0;
+	}
+
+	return ScrolledWindow::Event(e,mes);
+}
+
 //! Focus off draws the char over item.
 /*! Also, if TREESEL_FOCUS_OFF_DESTROYS, then an off focus destroys this window.
  */
@@ -601,6 +617,9 @@ int TreeSelector::ClearSearch()
 	return 0; 
 }
 
+/*! Update the search term. If isprogressive, then update assuming that
+ * we are merely narrowing the search of existing visible items.
+ */
 int TreeSelector::UpdateSearch(const char *searchterm, bool isprogressive)
 {
 	if (!menu) return 1;
@@ -767,6 +786,8 @@ void TreeSelector::arrangeItems()
 
 /*! Update visibleitems.
  * Called from Refresh() if needtobuildcache!=0.
+ * Note that this does not update the panner.
+ * Use arrangeItems() to both RebuildCache() and update panner.
  */
 int TreeSelector::RebuildCache()
 {
@@ -914,7 +935,8 @@ void TreeSelector::Refresh()
 	//flatpoint p;
 	//NumStack<int> pos;
 
-	if (needtobuildcache) RebuildCache();
+	//if (needtobuildcache) RebuildCache();
+	if (needtobuildcache) arrangeItems();
 
 
 	double th=textheight;

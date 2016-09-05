@@ -202,6 +202,7 @@ class TreeSelector : public ScrolledWindow
 	virtual int Resize(int nw,int nh);
 	virtual int FocusOn(const FocusChangeData *e);
 	virtual int FocusOff(const FocusChangeData *e);
+	virtual int Event(const EventData *e,const char *mes);
 
 	virtual void       dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *savecontext);
     virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *savecontext); 
