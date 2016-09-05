@@ -60,11 +60,11 @@ LAXOBJDIR=objs
 
 
 #this compiles the core laxkit only, not laxinput
-almostall: lax interfaces touchdepends
+almostall: touchdepends lax interfaces
 	@echo "  -----------Done!-------------" 
 
 
-all: lax interfaces laxinput touchdepends
+all: touchdepends lax interfaces laxinput
 	@echo "  -----------Done!-------------" 
 
 
