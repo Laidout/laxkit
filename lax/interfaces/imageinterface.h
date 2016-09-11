@@ -67,6 +67,17 @@ class ImageData : public Laxkit::ImageInfo, virtual public SomeData
 
 #define IMAGEI_POPUP_INFO 1
 
+enum ImageInterfaceActions {
+	II_Normalize,
+	II_Rectify,
+	II_Decorations,
+	II_ToggleLabels,
+	II_FlipH,
+	II_FlipV,
+	II_Image_Info,
+	II_MAX
+};
+
 class ImageInterface : public anInterface
 {
  protected:
@@ -85,7 +96,8 @@ class ImageInterface : public anInterface
 	unsigned long style;
 	unsigned int controlcolor;
 	int showdecs;
-	char showfile;
+	bool showobj;
+	int showfile;
 	ImageInterface(int nid,Laxkit::Displayer *ndp,int nstyle=IMAGEI_POPUP_INFO);
 	virtual ~ImageInterface();
 	virtual const char *IconId() { return "Image"; }

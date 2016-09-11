@@ -536,6 +536,7 @@ ImageInterface::ImageInterface(int nid,Displayer *ndp,int nstyle) : anInterface(
 	ioc=NULL;
 
 	showdecs=1;
+	showobj=true;
 	showfile=0;
 	mode=0;
 	controlcolor=rgbcolor(128,128,128);
@@ -659,14 +660,18 @@ int ImageInterface::DrawData(anObject *ndata,anObject *a1,anObject *a2,int info)
 
 	ImageData *bzd=data;
 	data=dynamic_cast<ImageData *>(ndata);
-	int td=showdecs,ntd=needtodraw;
-	showdecs=2;//***
+	int td=showdecs, ntd=needtodraw, tshowobj=showobj, tshowfile=showfile;
+	showdecs  =0;
+	showfile  =0;
+	showobj   =true;
 	needtodraw=1;
 
 	Refresh();
 
 	needtodraw=ntd;
-	showdecs=td;
+	showobj   =tshowobj;
+	showfile  =tshowfile;
+	showdecs  =td;
 	data=bzd;
 	return 1;
 }
@@ -694,10 +699,6 @@ int ImageInterface::Refresh()
 			  ur=dp->realtoscreen(flatpoint(data->maxx,data->miny)), 
 			  ll=dp->realtoscreen(flatpoint(data->minx,data->maxy)), 
 			  lr=dp->realtoscreen(flatpoint(data->maxx,data->maxy));
-//***	flatpoint ul=dp->realtoscreen(data->origin()+data->xaxis()*data->minx+data->yaxis()*data->miny), 
-//			  ur=dp->realtoscreen(data->origin()+data->xaxis()*data->maxx+data->yaxis()*data->miny), 
-//			  ll=dp->realtoscreen(data->origin()+data->xaxis()*data->minx+data->yaxis()*data->maxy), 
-//			  lr=dp->realtoscreen(data->origin()+data->xaxis()*data->maxx+data->yaxis()*data->maxy);
 	
 	DBG cerr <<"imageinterf Refresh: "<<(data->filename ? data->filename : "(no file)")<<endl;
 	DBG fprintf(stderr,"draw image scr coords: %ld: ul:%g,%g ur:%g,%g ll:%g,%g lr:%g,%g\n",
@@ -708,22 +709,27 @@ int ImageInterface::Refresh()
 	bbox.addtobounds(ur);
 	bbox.addtobounds(ll);
 	bbox.addtobounds(lr);
+
 	if (!bbox.intersect(dp->Minx,dp->Maxx,dp->Miny,dp->Maxy)) {
 		DBG cerr <<"----------------ImageData outside viewport"<<endl;
 		return -1;
 	}
-	//---or---
-	//flatpoint pts[4]={dp->screentoreal(ul,ur,ll,lr)}
-	//bbox.bounds(pts,4);
-	//bbox.intersect(data->minx,data->maxx,data->miny,data->maxy, settointersection);
 	
 	dp->NewFG(controlcolor);
 
-	//if (0) {
-	if (showdecs&2) {
+	if (showobj) {
 		//draw the image
+		//  draw full if Hires
+		//  else draw preview if available
+		//  if no previe, draw full after all
 		
-		int status=dp->imageout(data->image, data->minx,data->miny, data->maxx-data->minx,data->maxy-data->miny);
+		int status=-2;
+		if (dp->RenderTarget()==DRAWS_Hires) 
+			status = dp->imageout(data->image, data->minx,data->miny, data->maxx-data->minx,data->maxy-data->miny);
+		if (status==-2 && data->previewimage) 
+			status = dp->imageout(data->previewimage, data->minx,data->miny, data->maxx-data->minx,data->maxy-data->miny);
+		if (status==-2) status = dp->imageout(data->image, data->minx,data->miny, data->maxx-data->minx,data->maxy-data->miny);
+
 		if (status<0) {
 			 // There is either no image or a broken image
 
@@ -777,10 +783,10 @@ int ImageInterface::Refresh()
 
 			dp->DrawReal();
 		} //dp->imageOut returned negative
-	} //showdecs==2
+	} //showobj
 	
 	 // draw control points, just draws an outline
-	if (showdecs&1) { 
+	if (showdecs) { 
 		 // for a box outline? control decorations..
 		dp->DrawScreen();
 		dp->LineAttributes(1,LineSolid,CapRound,JoinRound);
@@ -796,6 +802,7 @@ int ImageInterface::Refresh()
 
 	 // show filename
 	if (showfile && data->filename) {
+		 //showfile==1 full path, ==2 basename only
 		dp->DrawScreen();
 		dp->NewFG(rgbcolor(255,0,0));
 		flatpoint p=(lr+ll+ur+ul)/4;
@@ -806,7 +813,6 @@ int ImageInterface::Refresh()
 		dp->DrawReal();
 	}
 
-	//DBG cerr<<"..Done drawing ImageInterface"<<endl;
 	return 0;
 }
 
@@ -1062,12 +1068,14 @@ int ImageInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMo
 
 	if (!buttondown.isdown(mouse->id,LEFTBUTTON) || !data || !dp) return 1;
 	if (x==mx && y==my) return 0;
+
 	if (state&ControlMask && state&ShiftMask) { //rotate
 		double angle=x-mx;
 		data->xaxis(rotate(data->xaxis(),angle,1));
 		data->yaxis(rotate(data->yaxis(),angle,1));
 		d=lp-(data->origin()+data->xaxis()*leftp.x+data->yaxis()*leftp.y);
 		data->origin(data->origin()+d);
+
 	} else if (state&ControlMask) { // scale
 		if (x>mx) {
 			if (data->xaxis()*data->xaxis()<dp->upperbound*dp->upperbound) {
@@ -1080,30 +1088,22 @@ int ImageInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMo
 				data->yaxis(data->yaxis()/1.05);
 			}
 		}
+
 		oo=data->origin() + leftp.x*data->xaxis() + leftp.y*data->yaxis(); // where the point clicked down on is now
 		//DBG cerr <<"  oo="<<oo.x<<','<<oo.y<<endl;
 		d=lp-oo;
 		data->origin(data->origin()+d);
+
 	} else { //translate
 		d=screentoreal(x,y)-screentoreal(mx,my);
 		data->origin(data->origin()+d);
 	}
+
 	//DBG cerr <<"  d="<<d.x<<','<<d.y<<endl;
 	mx=x; my=y;
 	needtodraw|=2;
 	return 0;
 }
-
-enum ImageInterfaceActions {
-	II_Normalize,
-	II_Rectify,
-	II_Decorations,
-	II_ToggleLabels,
-	II_FlipH,
-	II_FlipV,
-	II_Image_Info,
-	II_MAX
-};
 
 Laxkit::ShortcutHandler *ImageInterface::GetShortcuts()
 {
@@ -1161,7 +1161,7 @@ int ImageInterface::PerformAction(int action)
 		return 0;
 
 	} else if (action==II_Decorations) {
-		if (--showdecs<0) showdecs=3;
+		showdecs = !showdecs;
 		needtodraw=1;
 		return 0;
 
