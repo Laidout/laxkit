@@ -2686,7 +2686,7 @@ int EngraverFillInterface::Refresh()
 		} //if usepreview==0
 	} //if (show_object)
 
-	 //----draw the actual lines
+	 //----draw point decorations
 	if (show_points) {
 
 		LinePoint *l, *lstart; 
