@@ -525,7 +525,7 @@ int FileDialog::init()
 
 	MenuInfo *bookmarkmenu=BuildBookmarks();
 	TreeSelector *tree;
-	last=tree=new TreeSelector(hstack,"Bookmarks","Bookmarks", 0,
+	last=tree=new TreeSelector(hstack,"Bookmarks","Bookmarks", SW_RIGHT,
 							0,0,0,0, 1,
 							last,object_id,"Bookmarks",
 							TREESEL_SEND_ON_UP |TREESEL_LEFT |TREESEL_ONE_ONLY |TREESEL_SEND_STRINGS |TREESEL_NO_LINES,
@@ -641,7 +641,7 @@ int FileDialog::init()
 
 
 	 //file list pane...
-	last=filelist=new TreeSelector(middle,"files","files", 0,
+	last=filelist=new TreeSelector(middle,"files","files", SW_RIGHT,
 							0,0,0,0, 1,
 							last,object_id,"files",
 							//TREESEL_SEND_ON_UP|TREESEL_CURSSELECTS| TREESEL_LEFT| TREESEL_SUB_FOLDER,
