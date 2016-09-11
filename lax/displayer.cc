@@ -149,6 +149,7 @@ Displayer::Displayer(aDrawable *d)
   : PanUser(NULL)
 {
 	displayer_style=0;
+	render_target=DRAWS_Screen;
 
 	updatepanner=1;
 	dr=d;
@@ -181,6 +182,7 @@ Displayer::Displayer(anXWindow *nxw,PanController *pan)
   : PanUser(pan)
 {
 	displayer_style=0;
+	render_target=DRAWS_Screen;
 
 	updatepanner=1;
 	xw=nxw;
@@ -294,7 +296,17 @@ Displayer::~Displayer()
  */
 int Displayer::RenderTarget()
 {
-	return DRAWS_Screen;
+	return render_target;
+}
+
+/*! Set render_target to newtarget and return it.
+ * Subclasses might respond by setting up any relevant state.
+ * See the other RenderTarget() for more info.
+ */
+int Displayer::RenderTarget(int newtarget)
+{
+	render_target = newtarget;
+	return render_target;
 }
 
 //! Any subsequent calls are using real coordinates
