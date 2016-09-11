@@ -4390,6 +4390,8 @@ int PathInterface::DrawData(anObject *ndata,anObject *a1,anObject *a2,int info)/
 int PathInterface::Refresh()
 {
 	if (pathi_style&PATHI_Defer_Render) {
+		 //this helps with some interfaces that use PathInterface as child interface, but
+		 //need tighter control of render order than default ViewportWindow
 		needtodraw=0;
 		return 0;
 	}
