@@ -342,6 +342,9 @@ Drawable aDrawable::xlibDrawable(int which)
  */
 
 
+/*! Note that parnt gets assigned to win_parent, but no checking for existence in _kids
+ * is done here. The check for that happens in anXApp::addwindow().
+ */
 anXWindow::anXWindow(anXWindow *parnt, const char *nname, const char *ntitle,
 					unsigned long nstyle,
 					int xx,int yy,int ww,int hh,int brder,
