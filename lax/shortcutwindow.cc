@@ -60,6 +60,7 @@ class ShortcutTreeSelector : public TreeSelector
 			             int xx,int yy,int ww,int hh,int brder,
 						 anXWindow *prev,unsigned long nowner=0,const char *mes=0,
 						 unsigned long long nmstyle=0,MenuInfo *minfo=NULL);
+	~ShortcutTreeSelector();
 	virtual void Refresh();
 	virtual void SwapBuffers();
 	virtual int LBDown(int x,int y,unsigned int state,int count,const LaxMouse *d);
@@ -78,6 +79,11 @@ ShortcutTreeSelector::ShortcutTreeSelector(anXWindow *parnt,const char *nname,co
 {
 	wait_for=NULL;
 	skipswap=0;
+}
+
+ShortcutTreeSelector::~ShortcutTreeSelector()
+{
+	DBG cerr <<"in ~ShortcutTreeSelector()"<<endl;
 }
 
 int ShortcutTreeSelector::LBDown(int x,int y,unsigned int state,int count,const LaxMouse *d)
@@ -370,11 +376,12 @@ ShortcutWindow::ShortcutWindow(Laxkit::anXWindow *parnt,const char *nname,const 
 	sc=NULL;
 	textheader=NULL;
 
-	ShortcutTreeSelector *tree=new ShortcutTreeSelector(this, "tree","tree",0, 0,0,0,0,0, NULL,this->object_id,"tree", 0,NULL);
+	ShortcutTreeSelector *tree=new ShortcutTreeSelector(this, "tree","tree",SW_RIGHT, 0,0,0,0,0, NULL,this->object_id,"tree", 0,NULL);
 	tree->AddColumn(_("Key"),NULL,-1);
 	tree->AddColumn(_("Action"),NULL,-1);
 	tree->AddColumn(_("Description"),NULL,-1);
 	app->reparent(tree,this);
+	//tree->dec_count(); *** why does uncommenting this make it crash on window close!?!?
 }
 
 ShortcutWindow::~ShortcutWindow()
@@ -486,17 +493,6 @@ int ShortcutWindow::init()
 	ShortcutTreeSelector *tree=dynamic_cast<ShortcutTreeSelector*>(findChildWindowByName("tree"));
 	tree->InstallMenu(menu);
 	menu->dec_count();
-//	int kwidth=-1, awidth=-1, dwidth=-1;
-//	if (tree->columns.n>=3) {
-//		kwidth=tree->columns.e[0]->width;
-//		awidth=tree->columns.e[1]->width;
-//		dwidth=tree->columns.e[2]->width;
-//	}
-//	tree->ClearColumns();
-//	tree->AddColumn(_("Key"),NULL,kwidth);
-//	tree->AddColumn(_("Action"),NULL,awidth);
-//	tree->AddColumn(_("Description"),NULL,dwidth);
-//	tree->RemapColumns();
 	AddWin(tree,1, 200,0,10000,50,0, 200,0,10000,50,0, -1);
 
 
