@@ -435,7 +435,7 @@ int ImageData::LoadImage(const char *fname, const char *npreview, int maxpx, int
 
 	} else {
 		DBG cerr <<"** warning ImageData couldn't load "<<(fname?fname:"(unknown)")<<endl;
-		minx=miny=maxx=maxy=0;
+		if (maxx-minx<=0 || maxy-miny<=0) minx=miny=maxx=maxy=0;
 	}
 
 	return 1;
