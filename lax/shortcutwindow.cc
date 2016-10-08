@@ -79,11 +79,12 @@ ShortcutTreeSelector::ShortcutTreeSelector(anXWindow *parnt,const char *nname,co
 {
 	wait_for=NULL;
 	skipswap=0;
+	DBG cerr <<"in ShortcutTreeSelector(), id="<<object_id<<endl;
 }
 
 ShortcutTreeSelector::~ShortcutTreeSelector()
 {
-	DBG cerr <<"in ~ShortcutTreeSelector()"<<endl;
+	DBG cerr <<"in ~ShortcutTreeSelector(), id="<<object_id<<endl;
 }
 
 int ShortcutTreeSelector::LBDown(int x,int y,unsigned int state,int count,const LaxMouse *d)
@@ -381,7 +382,9 @@ ShortcutWindow::ShortcutWindow(Laxkit::anXWindow *parnt,const char *nname,const 
 	tree->AddColumn(_("Action"),NULL,-1);
 	tree->AddColumn(_("Description"),NULL,-1);
 	app->reparent(tree,this);
-	//tree->dec_count(); *** why does uncommenting this make it crash on window close!?!?
+	tree->dec_count(); // *** why does uncommenting this make it crash on window close!?!?
+
+	DBG cerr <<"in ShortcutWindow(), id="<<object_id<<endl;
 }
 
 ShortcutWindow::~ShortcutWindow()
@@ -390,6 +393,8 @@ ShortcutWindow::~ShortcutWindow()
 
 	if (sc) sc->dec_count();
 	if (initialarea) delete[] initialarea;
+
+	DBG cerr <<"in ~ShortcutWindow(), id="<<object_id<<endl;
 }
 
 
@@ -493,7 +498,7 @@ int ShortcutWindow::init()
 	ShortcutTreeSelector *tree=dynamic_cast<ShortcutTreeSelector*>(findChildWindowByName("tree"));
 	tree->InstallMenu(menu);
 	menu->dec_count();
-	AddWin(tree,1, 200,0,10000,50,0, 200,0,10000,50,0, -1);
+	AddWin(tree,0, 200,0,10000,50,0, 200,0,10000,50,0, -1);
 
 
 	Sync(1);
