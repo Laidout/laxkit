@@ -516,6 +516,11 @@ double Displayer::textout_halo(double offset, double x,double y,const char *str,
 	return textout(x,y, str,len,align);
 }
 
+double Displayer::textout(flatpoint p,const char *str,int len,unsigned long align)
+{
+	return textout(p.x,p.y, str,len, align);
+}
+
 /*! \fn double Displayer::textout(double x,double y,const char *str,int len,unsigned long align)
  * Draw possibly multiple lines of text at screen x,y. Each line separated by a '\\n'.
  * Returns distance advanced.
@@ -1124,7 +1129,7 @@ void Displayer::drawnum(double x, double y, int num)
  *
  * (x,y) is an additional translation to use. If w>0 AND h>0, then fit the image into
  * a rectangle with those real width and height. If w<=0 or h<=0, then use the
- * image's pixel width and height as bounds.
+ * image's pixel width or height instead.
  *
  * Return 0 for image drawn with no complications.
  *
@@ -1143,6 +1148,27 @@ void Displayer::drawnum(double x, double y, int num)
  * \todo should be able to do partial drawing when an image is huge, and only a tiny
  *   portion of it actually should be rendered.
  */
+
+/*! Draw an image such that it fits with a box with corner at x,y with width w and height h, but preserve the
+ * aspect ratio of the original image.
+ */
+int Displayer::imageout_within(LaxImage *image, double x,double y, double w,double h)
+{
+	double a=image->w()/image->h();
+	double a2=w/h;
+	double ow=w, oh=h;
+
+	if (a>a2) {
+		w = h*a*w;
+	} else {
+		h = w/a*h;
+	}
+
+	x=x+ow/2-w/2;
+	y=y+oh/2-h/2;
+
+	return imageout(image, x,y,w,h);
+}
 
 
 /*! \fn void Displayer::imageout(LaxImage *image, double x,double y)

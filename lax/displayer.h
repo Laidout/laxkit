@@ -214,6 +214,7 @@ class Displayer : public PanUser, virtual public anObject
 	virtual double textextent(LaxFont *thisfont, const char *str,int len, double *width,double *height,double *ascent,double *descent,char real) = 0;
 	virtual double textextent(const char *str,int len, double *width,double *height,double *ascent=NULL,double *descent=NULL,char real=0);
 	virtual double textout_halo(double offset, double x,double y,const char *str,int len=0,unsigned long align=LAX_CENTER);
+	virtual double textout(flatpoint p,const char *str,int len=0,unsigned long align=LAX_CENTER);
 	virtual double textout(double x,double y,const char *str,int len=0,unsigned long align=LAX_CENTER) = 0;
 	virtual double textout(double *matrix,double x,double y,const char *str,int len=0,unsigned long align=LAX_CENTER) = 0;
 	virtual double textout(double angle, double x,double y,const char *str,int len=0,unsigned long align=LAX_CENTER) = 0;
@@ -221,6 +222,7 @@ class Displayer : public PanUser, virtual public anObject
 	virtual double glyphsextent(GlyphPlace *glyphs,GlyphPlace **glyphsp,unsigned int numglyphs, double *width,double *height, bool real=false) = 0;
 
 	//draw images
+	virtual int  imageout_within(LaxImage *image, double x,double y, double w,double h);
 	virtual int  imageout(LaxImage *image, double x,double y, double w,double h) = 0;
 	virtual void imageout(LaxImage *img,double x,double y) = 0;
 	virtual void imageout(LaxImage *img,double *matrix) = 0;
