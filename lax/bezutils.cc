@@ -224,6 +224,28 @@ double bez_segment_length(flatpoint p1,flatpoint c1,flatpoint c2,flatpoint p2, i
 	return d;
 }
 
+/*! Return an approximation of the whole bezier path.
+ *
+ * Naively breaks down each segment into resolution number of pieces.
+ *
+ * If first_is_v, then the first point in pts is a vertex, not an off line control point.
+ * pts must be structured as v-c-c-v-c-c-v or c-v-c-c-v-c.
+ * Any point info in pts[].info is ignored.
+ *
+ * If closed, then connect the final vertex with the first vertex.
+ *
+ * \todo be smarter with the length, as it breaks down large segments the same as small segments.
+ *       current way is predictable, but not necessarily as accurate as it could be.
+ */
+double bez_length(flatpoint *pts, int npoints, bool closed, bool first_is_v, int resolution)
+{
+	double length=0;
+	for (int c=(first_is_v ? 0: 1); c<npoints; c++) {
+		length += bez_segment_length(pts[c], pts[c+1], pts[(c+2)%npoints], pts[(c+3)%npoints], 20);
+	}
+	return length;
+}
+
 /*! Subdivide the segment with the famous bezier subdivision by midpoints algorithm.
  * npm is the new point on the path, the other points are associated new control points.
  */
