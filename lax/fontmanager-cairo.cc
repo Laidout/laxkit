@@ -429,6 +429,9 @@ double LaxFontCairo::descent()
  */
 double LaxFontCairo::extent(const char *str,int len)
 {
+	if (!str) return 0;
+	if (len<0) len=strlen(str);
+
 	cairo_surface_t * ref_surface=cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 1,1); 
 	cairo_t *cr=cairo_create(ref_surface);
 
