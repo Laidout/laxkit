@@ -149,7 +149,7 @@ class MenuSelector : public ScrolledWindow
 	MenuSelector(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
 				int xx,int yy,int ww,int hh,int brder,
 				anXWindow *prev,unsigned long nowner=0,const char *mes=0,
-				unsigned long long nmstyle=0,MenuInfo *minfo=NULL,char nmenuislocal=0); 
+				unsigned long long nmstyle=0,MenuInfo *minfo=NULL,char absorb_count=0); 
 	virtual ~MenuSelector();
 	virtual int init();
 	virtual void Refresh();
