@@ -118,8 +118,8 @@ PopupMenu::PopupMenu(const char *nname, const char *ntitle, unsigned long long s
 				int xx,int yy,int ww,int hh,int brder,
 				unsigned long  nowner,const char *mes,
 				int mouseid,
-				MenuInfo *usethismenu, //!< Pass in a MenuInfo class, if not NULL is assumed to not be local
-				char mislocal,         //!< Whether the passed in menu is local
+				MenuInfo *usethismenu,  //!< Pass in a MenuInfo class, if not NULL is assumed to not be local
+				char absorb_count,      //!< Whether to absorb the count of usethismenu 
 				PopupMenu *nparentmenu, //!< This is the calling menu, if any
 				unsigned long long extrastyle //!< Extra MenuSelector styles to pass along
 			) //nowner=0,atom=0,  nminfo=NULL,nmemislocal=1
@@ -130,7 +130,7 @@ PopupMenu::PopupMenu(const char *nname, const char *ntitle, unsigned long long s
 							MENUSEL_ZERO_OR_ONE|MENUSEL_CURSSELECTS|MENUSEL_FOLLOW_MOUSE|MENUSEL_SEND_ON_UP
 								|MENUSEL_GRAB_ON_ENTER|MENUSEL_OUT_CLICK_DESTROYS
 								|MENUSEL_CLICK_UP_DESTROYS|MENUSEL_SUB_ON_RIGHT,
-							usethismenu,mislocal)
+							usethismenu,absorb_count)
 {
 	menustyle|=(extrastyle &
 					(MENUSEL_LEFT|MENUSEL_RIGHT|MENUSEL_CENTER|MENUSEL_CHECK_ON_LEFT|MENUSEL_CHECK_ON_RIGHT

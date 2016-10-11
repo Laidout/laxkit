@@ -37,7 +37,7 @@ class PopupMenu : public MenuSelector
 				int xx,int yy,int ww,int hh,int brder,
 				unsigned long nowner,const char *mes,
 				int mouseid,
-				MenuInfo *usethismenu, char mislocal, PopupMenu *nparentmenu=NULL,
+				MenuInfo *usethismenu, char absorb_count, PopupMenu *nparentmenu=NULL,
 				unsigned long long extrastyle=0
 				);
 	virtual ~PopupMenu();
