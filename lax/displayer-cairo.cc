@@ -1129,6 +1129,8 @@ void DisplayerCairo::drawpoint(double x,double y,double radius,int tofill)
  */
 void DisplayerCairo::drawlines(flatpoint *points,int npoints,char ifclosed,char tofill)
 {
+	if (!npoints) return;
+
 	if (!cairo_has_current_point(cr)) cairo_move_to(cr, points[0].x,points[0].y);
 
 	for (int c=0; c<npoints; c++) {
