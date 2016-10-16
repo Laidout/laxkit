@@ -51,7 +51,7 @@ class DoubleRectangle
 	DoubleRectangle(double nx,double ny,double nw,double nh) { x=nx; y=ny; width=nw; height=nh; }
 
 	void set(double nx,double ny,double nw,double nh) { x=nx; y=ny; width=nw; height=nh; }
-	double pointIsIn(double xx,double yy) { return xx>=x && xx<x+width && yy>=y && yy<y+height; }
+	int pointIsIn(double xx,double yy) { return xx>=x && xx<x+width && yy>=y && yy<y+height; }
 };
 
 } //namespace Laxkit
