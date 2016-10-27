@@ -21,9 +21,9 @@
 //    Copyright (C) 2004-2012 by Tom Lechner
 //
 
-#include <X11/Xlib.h>
 #include <lax/interfaces/linestyle.h>
 #include <lax/drawingdefs.h>
+#include <lax/laxutils.h>
 
 using namespace Laxkit;
 using namespace LaxFiles;
@@ -196,7 +196,7 @@ void LineStyle::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *cont
 			IntAttribute(value,&dotdash);
 
 		} else if (!strcmp(name,"function")) {
-			IntAttribute(value,&function);
+			function = StringToLaxop(value);
 
 		//} else if (!strcmp(name,"mask")) {
 		//	ULongAttribute(value,&mask);
@@ -215,8 +215,8 @@ LaxFiles::Attribute *LineStyle::dump_out_atts(LaxFiles::Attribute *att,int what,
 		att->push("joinstyle","round        #or miter, bevel, extrapolate");
 		att->push("miterlimit","100         #means limit is 100*width");
 		att->push("dotdash","5              #an integer whose bits define an on-off pattern");
-		att->push("function","3             #***mystery number saying how to combine the fill");
 		att->push("width","1  #width of the line");
+		att->push("function","Over          #Blend mode. Common is None or Over");
 
 		return att;
 	}
@@ -244,8 +244,12 @@ LaxFiles::Attribute *LineStyle::dump_out_atts(LaxFiles::Attribute *att,int what,
 	att->push("miterlimit",miterlimit);
 
 	att->push("dotdash", dotdash);
-	att->push("function", function);
 	att->push("width", width);
+
+	if (LaxopToString(function, scratch, 200, NULL)==NULL) {
+		sprintf(scratch, "%d", function);
+	}
+	att->push("function", scratch);
 
 	return att;
 }
@@ -261,11 +265,11 @@ void LineStyle::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *cont
 		fprintf(f,"%sjoinstyle round        #or miter, bevel, extrapolate\n",spc);
 		fprintf(f,"%smiterlimit 100         #means limit is 100*width\n",spc);
 		fprintf(f,"%sdotdash 5              #an integer whose bits define an on-off pattern\n",  spc);
-		fprintf(f,"%sfunction 3             #***mystery number saying how to combine the fill\n", spc);
+		fprintf(f,"%sfunction Over          #Blend mode. Common is None or Over\n", spc);
 		fprintf(f,"%swidth %.10g\n", spc,width);
 		return;
 	}
-			
+
 	const char *str;
 
 	//fprintf(f,"%smask %lu\n", spc,mask);
@@ -287,8 +291,13 @@ void LineStyle::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *cont
 	fprintf(f,"%smiterlimit %.10g\n",spc,miterlimit);
 
 	fprintf(f,"%sdotdash %d\n",  spc,dotdash);
-	fprintf(f,"%sfunction %d\n", spc,function);
 	fprintf(f,"%swidth %.10g\n", spc,width);
+
+	char op[50];
+	if (LaxopToString(function, op, 50, NULL) == NULL) {
+		sprintf(op, "%d", function);
+	}
+	fprintf(f,"%sfunction %s\n", spc,op);
 }
 
 
