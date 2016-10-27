@@ -37,6 +37,9 @@ namespace Laxkit {
 
 
  //drawing basics
+int StringToLaxop(const char *str);
+char *LaxopToString(int function, char *str_ret, int len, int *len_ret);
+
 LaxCompositeOp drawing_function(LaxCompositeOp mode);
 void drawing_line_attributes(double width, int type, int cap, int join);
 //ScreenColor forground_color(ScreenColor &color);
