@@ -1283,9 +1283,9 @@ Attribute::~Attribute()
 //! Set name, value, atttype to NULL and flush attributes.
 void Attribute::clear()
 {
-	if (name) delete[] name;       name=NULL;
-	if (value) delete[] value;     value=NULL;
-	if (atttype) delete[] atttype; atttype=NULL;
+	if (name)    { delete[] name;    name=NULL;    }
+	if (value)   { delete[] value;   value=NULL;   }
+	if (atttype) { delete[] atttype; atttype=NULL; }
 	attributes.flush();
 }
 
