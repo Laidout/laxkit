@@ -24,7 +24,6 @@
 
 #include <lax/interfaces/somedatafactory.h>
 #include <lax/interfaces/rectinterface.h>
-#include <lax/interfaces/rectpointdefs.h>
 #include <lax/transformmath.h>
 #include <lax/laxutils.h>
 #include <lax/language.h>
