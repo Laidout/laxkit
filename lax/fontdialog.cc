@@ -732,13 +732,25 @@ void FontDialog::UpdateSample()
 	if (currentfont<0) FindFont();
 	fontlayer->SetFromFile(fonts->e[currentfont]->file, fonts->e[currentfont]->family, fonts->e[currentfont]->style, size);
 	thefont->Resize(size);
-	text->UseThisFont(thefont);
+
+	double samplesize=size;
+	LaxFont *samplefont = thefont;
+	if (size<app->defaultlaxfont->textheight()/2)      samplesize = app->defaultlaxfont->textheight()/2;
+	else if (size>app->defaultlaxfont->textheight()*5) samplesize = app->defaultlaxfont->textheight()*5;
+
+	if (samplesize != size) {
+		samplefont = samplefont->duplicate();
+		samplefont->Resize(samplesize);
+	}
+
+	text->UseThisFont(samplefont);
+	if (samplefont != thefont) samplefont->dec_count();
 
 	SquishyBox *box=findBox(text);
-	if (size<15) size=15;
-	size=1.75*size;
-	if (box->ph()!=size) {
-		box->ph(size);
+	if (samplesize<15) samplesize=15;
+	samplesize=1.75*samplesize;
+	if (box->ph() != samplesize) {
+		box->ph(samplesize);
 		Sync(0);
 		//fontlist->makeinwindow();
 	}
