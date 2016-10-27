@@ -33,6 +33,7 @@ namespace Laxkit {
 enum LaxCompositeOp
 {
 	LAXOP_None=0,
+	LAXOP_Undefined, //!< - different than None!
 	LAXOP_Clear,     //!< - Block out parts of dest that are in src
 	LAXOP_Source,    //!< - Lay on src totally
 	LAXOP_Over,      //!< - Lay on src with transparency
