@@ -1176,7 +1176,7 @@ int CaptionData::Font(LaxFont *newfont)
 	}
 
 	fontsize=font->textheight();
-	linespacing=1;
+	//linespacing=1;
 	makestr(fontfamily,font->Family());
 	makestr(fontstyle, font->Style());
 	makestr(fontfile,  font->FontFile());
@@ -1199,7 +1199,7 @@ int CaptionData::Font(const char *file, const char *family,const char *style,dou
 	if (!font) font=InterfaceManager::GetDefault()->GetFontManager()->MakeFont("sans",NULL,size,-1);
 
 	fontsize=size;
-	linespacing=1;
+	//linespacing=1;
 
 	makestr(fontfile,  file   ? file   : font->FontFile());
 	makestr(fontfamily,family ? family : font->Family());
@@ -1622,7 +1622,8 @@ Laxkit::MenuInfo *CaptionInterface::ContextMenu(int x,int y,int deviceid, Laxkit
 	//menu->AddItem(_("Show all controls"));
 	
 	if (data) {
-		menu->AddItem(_("Convert to path"), CAPTION_Convert_To_Path);
+		menu->AddItem(_("Create path object"), CAPTION_Create_Path_Object);
+		//menu->AddItem(_("Convert to path"), CAPTION_Convert_To_Path);
 		//menu->AddItem(_("Convert to path clones"));
 		//menu->AddItem(_(""));
 	}
@@ -2270,8 +2271,9 @@ int CaptionInterface::Event(const Laxkit::EventData *e_data, const char *mes)
         const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(e_data);
         int i =s->info2; //id of menu item
 
-        if (i==CAPTION_Convert_To_Path) {
-			return PerformAction(CAPTION_Convert_To_Path);
+        if ( i==CAPTION_Convert_To_Path
+          || i==CAPTION_Create_Path_Object) {
+			return PerformAction(i);
 		}
 		return 0;
 	}
@@ -2561,7 +2563,8 @@ Laxkit::ShortcutHandler *CaptionInterface::GetShortcuts()
     sc->Add(CAPTION_ShowBaselines,   'D',ShiftMask|ControlMask,0, "ShowBaselines", _("Show Baselines"),NULL,0);
     sc->Add(CAPTION_InsertChar,      'i',ControlMask,0, "InsertChar"     , _("Insert Character"),NULL,0);
     sc->Add(CAPTION_CombineChars,    'j',ControlMask,0, "CombineChars"   , _("Join Characters if possible"),NULL,0);
-    sc->Add(CAPTION_Convert_To_Path, 'P',ShiftMask|ControlMask,0, "ConvertToPaths", _("Convert to path object"),NULL,0);
+    sc->Add(CAPTION_Create_Path_Object,'P',ShiftMask|ControlMask,0, "ConvertToPaths", _("Convert to path object, but keep the old object"),NULL,0);
+    //sc->Add(CAPTION_Convert_To_Path, 'P',ShiftMask|ControlMask,0, "ConvertToPaths", _("Convert to path object"),NULL,0);
 
     manager->AddArea(whattype(),sc);
     return sc;
@@ -2685,6 +2688,11 @@ int CaptionInterface::PerformAction(int action)
 		return 0;
 
 	} else if (action==CAPTION_Convert_To_Path) {
+		// need to construct the path object, and remove the current object
+		// ***
+		return 0;
+
+	} else if (action==CAPTION_Create_Path_Object) {
 		if (!data) return 0;
 		SomeData *newdata = data->ConvertToPaths(false, NULL);
 
