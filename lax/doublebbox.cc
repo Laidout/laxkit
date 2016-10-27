@@ -192,7 +192,7 @@ int DoubleBBox::intersect(DoubleBBox *bbox, int settointersection)//s=0
 /*! If settointersection!=0, then set current bounds to the intersection or invalid bounds
  * if there is no intersection.
  *
- * \todo should me more specific about the kind of intersection: all inside, all outside, or just touching.
+ * \todo should be more specific about the kind of intersection: all inside, all outside, or just touching.
  */
 int DoubleBBox::intersect(double mix,double max,double miy,double may, int settointersection)//s=0
 {
