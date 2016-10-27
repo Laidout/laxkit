@@ -7294,23 +7294,19 @@ int PathInterface::PerformAction(int action)
 
 	} else if (action==PATHIA_SelectInPath) {
 		 // like 'a' but only with the single path containing curvertex
-		if (!data || !curvertex) return 0;
-		Coordinate *p,*p2=NULL;
+		if (!data || !curpoints.n) return 0;
 
-		int n=0,c2,cv;
-		cv=data->hasCoord(curvertex);
-		 // scan for any selected points that are in same path as curvertex
+		NumStack<int> paths;
+		Coordinate *p, *p2;
+
 		for (int c=0; c<curpoints.n; c++) {
-			c2=data->hasCoord(curpoints.e[c]);
-			if (c2==cv) {
-				n++;
-				curpoints.pop(c);
-				c--;
-			}
+			int c2=data->hasCoord(curpoints.e[c]);
+			paths.pushnodup(c2);
 		}
-		if (!n && cv>=0) { // push all in curpath
-			p=data->paths.e[cv]->path;
-			if (p) p2=p=p->firstPoint(0);
+		for (int c2=0; c2<paths.n; c2++) {
+			p=data->paths.e[paths.e[c2]]->path; 
+			p2=p=p->firstPoint(0);
+
 			do {
 				if (p2) {
 					curpoints.push(p2,0);
@@ -7322,6 +7318,7 @@ int PathInterface::PerformAction(int action)
 				}
 			} while (p2 && p2!=p);
 		}
+
 		needtodraw=1;
 		return 0;
 
@@ -7349,8 +7346,10 @@ int PathInterface::PerformAction(int action)
 		return 0;
 
 	} else if (action==PATHIA_StartNewSubpath) {
-		//***
-		cout <<" *** start new subpath"<<endl;
+		SetCurvertex(NULL);
+		PostMessage(_("Next point starts subpath"));
+		needtodraw=1;
+		return 0;
 
 	} else if (action==PATHIA_ToggleOutline) {
 		show_outline=!show_outline;
