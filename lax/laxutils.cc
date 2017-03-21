@@ -292,6 +292,112 @@ int mouseposition(int mouse_id, anXWindow *win, int *x, int *y, unsigned int *st
 
 //-----------------------Color and other state stuff
 
+/*! Turn str into LaxCompositeOp, or a number if str seems to be a number.
+ * If it doesn't seem to be any of those, return LAXOP_Undefined.
+ */
+int StringToLaxop(const char *str)
+{
+	if (!strcasecmp(str, "None")) return LAXOP_None;
+	else if (!strcasecmp(str, "Clear")) return LAXOP_Clear;
+	else if (!strcasecmp(str, "Source")) return LAXOP_Source;
+	else if (!strcasecmp(str, "Copy")) return LAXOP_Over;
+	else if (!strcasecmp(str, "Over")) return LAXOP_Over;
+	else if (!strcasecmp(str, "In")) return LAXOP_In;
+	else if (!strcasecmp(str, "Out")) return LAXOP_Out;
+	else if (!strcasecmp(str, "Atop")) return LAXOP_Atop;
+	else if (!strcasecmp(str, "Dest")) return LAXOP_Dest;
+	else if (!strcasecmp(str, "Dest_over")) return LAXOP_Dest_over;
+	else if (!strcasecmp(str, "Dest_in")) return LAXOP_Dest_in;
+	else if (!strcasecmp(str, "Dest_out")) return LAXOP_Dest_out;
+	else if (!strcasecmp(str, "Dest_atop")) return LAXOP_Dest_atop;
+	else if (!strcasecmp(str, "Xor")) return LAXOP_Xor;
+	else if (!strcasecmp(str, "Add")) return LAXOP_Add;
+	else if (!strcasecmp(str, "Saturate")) return LAXOP_Saturate;
+	else if (!strcasecmp(str, "Multiply")) return LAXOP_Multiply;
+	else if (!strcasecmp(str, "Screen")) return LAXOP_Screen;
+	else if (!strcasecmp(str, "Overlay")) return LAXOP_Overlay;
+	else if (!strcasecmp(str, "Darken")) return LAXOP_Darken;
+	else if (!strcasecmp(str, "Lighten")) return LAXOP_Lighten;
+	else if (!strcasecmp(str, "Color_dodge")) return LAXOP_Color_dodge;
+	else if (!strcasecmp(str, "Color_burn")) return LAXOP_Color_burn;
+	else if (!strcasecmp(str, "Hard_light")) return LAXOP_Hard_light;
+	else if (!strcasecmp(str, "Soft_light")) return LAXOP_Soft_light;
+	else if (!strcasecmp(str, "Difference")) return LAXOP_Difference;
+	else if (!strcasecmp(str, "Exclusion")) return LAXOP_Exclusion;
+	else if (!strcasecmp(str, "Hsl_hue")) return LAXOP_Hsl_hue;
+	else if (!strcasecmp(str, "Hsl_saturation")) return LAXOP_Hsl_saturation;
+	else if (!strcasecmp(str, "Hsl_color")) return LAXOP_Hsl_color;
+	else if (!strcasecmp(str, "Hsl_luminosity")) return LAXOP_Hsl_luminosity;
+
+	char *endptr=NULL;
+	int d=strtol(str, &endptr, 10);
+	if (endptr!=str) return d;
+
+	return LAXOP_Undefined;
+}
+
+/*! Turn function into a string, and write into str_ret, which is a buffer of length len.
+ * If it can't fit, return how many chars are needed in len_ret, and return NULL.
+ * If it does fit, return actual number
+ * of chars used in len_ret, including null termination, and return str_ret.
+ *
+ * If however str_ret==NULL, then create and return a new char[]. just big enough to fit.
+ *
+ * Converts ONLY functions that are LaxCompositeOp. If function is LAXOP_MAX or greater,
+ * then NULL is returned.
+ */
+char *LaxopToString(int function, char *str_ret, int len, int *len_ret)
+{
+	const char *str=NULL;
+
+	if (function==LAXOP_None) str="None";
+	else if (function==LAXOP_Undefined) str="Undefined";
+	else if (function==LAXOP_Clear) str="Clear";
+	else if (function==LAXOP_Source) str="Source";
+	else if (function==LAXOP_Over) str="Over";
+	else if (function==LAXOP_In) str="In";
+	else if (function==LAXOP_Out) str="Out";
+	else if (function==LAXOP_Atop) str="Atop";
+	else if (function==LAXOP_Dest) str="Dest";
+	else if (function==LAXOP_Dest_over) str="Dest_over";
+	else if (function==LAXOP_Dest_in) str="Dest_in";
+	else if (function==LAXOP_Dest_out) str="Dest_out";
+	else if (function==LAXOP_Dest_atop) str="Dest_atop";
+	else if (function==LAXOP_Xor) str="Xor";
+	else if (function==LAXOP_Add) str="Add";
+	else if (function==LAXOP_Saturate) str="Saturate";
+	else if (function==LAXOP_Multiply) str="Multiply";
+	else if (function==LAXOP_Screen) str="Screen";
+	else if (function==LAXOP_Overlay) str="Overlay";
+	else if (function==LAXOP_Darken) str="Darken";
+	else if (function==LAXOP_Lighten) str="Lighten";
+	else if (function==LAXOP_Color_dodge) str="Color_dodge";
+	else if (function==LAXOP_Color_burn) str="Color_burn";
+	else if (function==LAXOP_Hard_light) str="Hard_light";
+	else if (function==LAXOP_Soft_light) str="Soft_light";
+	else if (function==LAXOP_Difference) str="Difference";
+	else if (function==LAXOP_Exclusion) str="Exclusion";
+	else if (function==LAXOP_Hsl_hue) str="Hsl_hue";
+	else if (function==LAXOP_Hsl_saturation) str="Hsl_saturation";
+	else if (function==LAXOP_Hsl_color) str="Hsl_color";
+	else if (function==LAXOP_Hsl_luminosity) str="Hsl_luminosity";
+
+	if (str==NULL) {
+		 //op is past max, so bail
+		if (len_ret) *len_ret = -1;
+		return NULL;
+	}
+
+	int l=strlen(str); 
+	if (len_ret) *len_ret = l+1;
+
+	if (str_ret==NULL) return newstr(str);
+	if (l>=len) return NULL;
+	
+	sprintf(str_ret, "%s", str);
+	return str_ret;
+}
+
 /*! Uses XSetFunction, with, for instance, xlib values GXinvert or GXcopy.
  */
 LaxCompositeOp drawing_function(LaxCompositeOp mode)

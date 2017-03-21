@@ -27,6 +27,7 @@
 #include <lax/interfaces/aninterface.h>
 #include <lax/interfaces/somedata.h>
 #include <lax/interfaces/linestyle.h>
+#include <lax/interfaces/rectpointdefs.h>
 
 namespace LaxInterfaces {
 
@@ -37,20 +38,24 @@ namespace LaxInterfaces {
 //v
 
 //----------------------------- RectData ----------------------------------
-#define RECT_ISSQUARE        (1<<0)
-#define RECT_OFF             (1<<1)
-#define RECT_DOTTED          (1<<2)
-#define RECT_SOLID           (1<<3)
-#define RECT_INVISIBLECENTER (1<<4)
-#define RECT_CANTCREATE      (1<<5)
-#define RECT_AFFINE          (1<<6)
-#define RECT_ALLOW_SHEAR     (1<<7)
-#define RECT_NO_SHEAR
-#define RECT_HIDE_CONTROLS   (1<<8)
-#define RECT_OBJECT_SHUNT    (1<<9)
-#define RECT_FLIP_AT_SIDES   (1<<10)
-#define RECT_FLIP_LINE       (1<<11)
-#define RECT_LINK_BALL       (1<<12)
+enum RectDataStyle {
+	RECT_ISSQUARE        =(1<<0),
+	RECT_OFF             =(1<<1),
+	RECT_DOTTED          =(1<<2),
+	RECT_SOLID           =(1<<3),
+	RECT_INVISIBLECENTER =(1<<4),
+	RECT_CANTCREATE      =(1<<5),
+	RECT_AFFINE          =(1<<6),
+	RECT_ALLOW_SHEAR     =(1<<7),
+	RECT_NO_SHEAR        =(1<<8),
+	RECT_HIDE_CONTROLS   =(1<<9),
+	RECT_OBJECT_SHUNT    =(1<<10),
+	RECT_FLIP_AT_SIDES   =(1<<11),
+	RECT_FLIP_LINE       =(1<<12),
+	RECT_LINK_BALL       =(1<<13),
+
+	RECT_STYLE_MAX
+};
 
 class RectData : public SomeData
 {
@@ -74,7 +79,7 @@ class RectData : public SomeData
 //----------------------------- RectInterface ----------------------------------
 
 enum RectInterfaceActions {
-	RIA_Decorations,
+	RIA_Decorations = RP_MAX,
 	RIA_Normalize,
 	RIA_Rectify,
 	RIA_Constrain,

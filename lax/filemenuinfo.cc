@@ -101,22 +101,23 @@ MenuInfo *FileMenuItem::CreateSubmenu(const char *pathtodir)
 		submenu=new MenuInfo(pathtodir);
 		subislocal=1;
 
-		int errorcode;
 		char *str=NULL;
-		struct dirent entry,*result;
+		struct dirent *entry;
+
 		do {
-			errorcode=readdir_r(dir,&entry,&result);
-			if (errorcode>0) break; //error reading directory
-			//if (!strcmp(entry.d_name,".") || !strcmp(entry.d_name,"..")) continue;
-			if (!strcmp(entry.d_name,".")) continue;
-			if (result) {
-				makestr(str,pathtodir);
-				if (pathtodir[strlen(pathtodir)]!='/') appendstr(str,"/");
-				appendstr(str,entry.d_name);
-				FileMenuItem *nmi=new FileMenuItem(str,0,info);
-				submenu->AddItem(nmi,1);
-			}
-		} while (result);
+			entry = readdir(dir);
+			if (!entry) break; //all done!
+
+			//if (!strcmp(entry.d_name,".") || !strcmp(entry.d_name,"..")) continue; 
+			if (!strcmp(entry->d_name,".")) continue;
+
+			makestr(str,pathtodir);
+			if (pathtodir[strlen(pathtodir)]!='/') appendstr(str,"/");
+			appendstr(str,entry->d_name);
+			FileMenuItem *nmi=new FileMenuItem(str,0,info);
+			submenu->AddItem(nmi,1);
+		} while (entry);
+		
 		delete[] str;
 		closedir(dir);
 	}

@@ -28,6 +28,7 @@
 #include <lax/anobject.h>
 #include <lax/dump.h>
 #include <lax/colors.h>
+#include <lax/laxutils.h>
 
 
 namespace LaxInterfaces {

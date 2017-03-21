@@ -22,6 +22,7 @@
 //
 
 #include <lax/interfaces/fillstyle.h>
+#include <lax/laxutils.h>
 
 using namespace LaxFiles;
 using namespace Laxkit;
@@ -113,8 +114,7 @@ void FillStyle::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *cont
 			else fillstyle=FillSolid;
 
 		} else if (!strcmp(name,"function")) {
-			if (!strcmp(value,"copy")) function=LAXOP_Over;
-			else IntAttribute(value,&function);
+			function = StringToLaxop(value);
 
 		} else if (!strcmp(name,"mask")) {
 			ULongAttribute(value,&mask);
@@ -130,7 +130,7 @@ LaxFiles::Attribute *FillStyle::dump_out_atts(LaxFiles::Attribute *att,int what,
 		att->push("color","rgbaf(1,1,1,1) #color of the fill");
 		att->push("fillrule","nonzero #or odd, or even");
 		att->push("fillstyle","solid  #or none");
-		att->push("function", "copy   # (only copy is implemented)");
+		att->push("function", "Over   #Blend mode. Common is None or Over");
 		return att;
 	}
 
@@ -140,8 +140,10 @@ LaxFiles::Attribute *FillStyle::dump_out_atts(LaxFiles::Attribute *att,int what,
 	att->push("fillrule",fillrule==LAXFILL_EvenOdd?"even":(fillrule==LAXFILL_Nonzero?"nonzero":"odd"));
 	att->push("fillstyle",fillstyle==FillSolid?"solid":"none"); //or "object"
 
-	if (function==LAXOP_Source) att->push("function","copy");
-	else att->push("function",function);
+	if (LaxopToString(function, scratch, 200, NULL)==NULL) {
+		sprintf(scratch, "%d", function);
+	}
+	att->push("function", scratch);
 
 	return att;
 }
@@ -153,7 +155,7 @@ void FillStyle::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *cont
 		fprintf(f,"%scolor rgbaf(1,1,1,1) #color of the fill\n",spc);
 		fprintf(f,"%sfillrule nonzero     #or odd, or even\n", spc);
 		fprintf(f,"%sfillstyle solid      #or none\n",spc);
-		fprintf(f,"%sfunction copy        # (only copy is implemented)\n", spc);
+		fprintf(f,"%sfunction Over          #Blend mode. Common is None or Over\n", spc);
 		return;
 	}
 
@@ -161,8 +163,11 @@ void FillStyle::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *cont
 	fprintf(f,"%sfillrule %s\n", spc,fillrule==LAXFILL_EvenOdd?"even":(fillrule==LAXFILL_Nonzero?"nonzero":"odd"));
 	fprintf(f,"%sfillstyle %s\n",spc,fillstyle==FillSolid?"solid":"none"); //or "object"
 
-	if (function==LAXOP_Source) fprintf(f,"%sfunction copy\n", spc);
-	else fprintf(f,"%sfunction %d\n", spc,function);
+	char op[50];
+	if (LaxopToString(function, op, 50, NULL) == NULL) {
+		sprintf(op, "%d", function);
+	}
+	fprintf(f,"%sfunction %s\n", spc,op);
 }
 
 

@@ -1217,7 +1217,7 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
 			ResourceManager *manager=InterfaceManager::GetDefault(true)->GetResourceManager();
 			manager->ResourceMenu("LineProfile", true, menu);
 			if (n==menu->n()) {
-				menu->AddItem(_("(none)"),NULL, 0,LAX_GRAY);
+				menu->AddItem(_("(none)"),(LaxImage*)NULL, 0,LAX_GRAY);
 				//menu->AddItem(_("(none)"),0,LAX_GRAY,0,NULL);
 			}
 			if (group->direction->default_profile) {

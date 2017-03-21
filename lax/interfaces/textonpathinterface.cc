@@ -124,6 +124,9 @@ void TextOnPath::FindBBox()
 	}
 }
 
+/*! This will copy in ALL of newtext, not just what is betweer nstart and nend.
+ * Used text is in range [start, end).
+ */
 int TextOnPath::Text(const char *newtext, int nstart, int nend)
 {
 	makestr(text, newtext);
@@ -2000,6 +2003,14 @@ int TextOnPathInterface::CharInput(unsigned int ch, const char *buffer,int len,u
 
 	}
 
+		 //default shortcut processing
+
+	if (!sc) GetShortcuts();
+	int action=sc->FindActionNumber(ch,state&LAX_STATE_MASK,0);
+	if (action>=0) {
+		return PerformAction(action);
+	}
+		
 	if (!textonpath) return 1;
 
 	if (ch==LAX_Del) { // delete
@@ -2073,18 +2084,93 @@ int TextOnPathInterface::CharInput(unsigned int ch, const char *buffer,int len,u
 		needtodraw=1;
 		return 0;
 
-	} else {
-		 //default shortcut processing
-
-		if (!sc) GetShortcuts();
-		int action=sc->FindActionNumber(ch,state&LAX_STATE_MASK,0);
-		if (action>=0) {
-			return PerformAction(action);
-		}
 	}
 
 
 	return 1; //key not dealt with, propagate to next interface
+}
+
+TextOnPath *TextOnPathInterface::newData()
+{
+    TextOnPath *ndata=NULL;
+
+    ndata=dynamic_cast<TextOnPath *>(somedatafactory()->NewObject(LAX_TEXTONPATH));
+    if (!ndata) ndata=new TextOnPath();
+
+	LaxFont *font = anXApp::app->defaultlaxfont->duplicate(); // *** need some standard!!
+	font->Resize(defaultsize);
+	ndata->Font(font);
+	font->dec_count();
+
+    return ndata;
+}
+
+int TextOnPathInterface::Paste(const char *txt,int len, Laxkit::anObject *obj, const char *formathint)
+{
+	 //pasting with no data should create a new data
+	DBG if (txt) cerr <<"    pasting into captioninterface: "<<txt<<endl;
+
+	if (!txt || len<=0) return 1;
+
+	if (textonpath) {
+		textonpath->InsertString(txt, len, caretpos, &caretpos);
+		PostMessage(_("Pasted."));
+		needtodraw=1;
+		return 0;
+
+	} else {
+		Clear(NULL);
+
+		if (len<0) len=strlen(txt);
+        char text[len+1];
+        strncpy(text,txt,len);
+        text[len]='\0';
+
+		textonpath=new TextOnPath; 
+		textonpath->Text(text);
+
+		LaxFont *font = anXApp::app->defaultlaxfont->duplicate(); // *** need some standard!!
+		font->Resize(defaultsize);
+		textonpath->Font(font);
+		//textonpath->color->screen.red=65535;
+		font->dec_count();
+
+		 //create new straight line path
+		if (paths) paths->dec_count();
+		paths = new PathsData;
+		//paths->style|=PathsData::PATHS_Ignore_Weights;
+		//paths->style|=PathsData::PATHI_Render_With_Cache;
+
+		int x,y;
+        mouseposition(0, curwindow, &x,&y, NULL, NULL, NULL);
+
+		paths->moveTo(textonpath->transformPointInverse(screentoreal(x,y)));
+		paths->curveTo( textonpath->transformPointInverse(screentoreal(x+50,y)),
+						textonpath->transformPointInverse(screentoreal(x+100,y)),
+						textonpath->transformPointInverse(screentoreal(x+150,y)));
+		ScreenColor col(0., 0., 1., .25);
+		paths->line(.25, -1, -1, &col);
+		textonpath->UseThisPath(paths, 0);
+
+		caretpos=0;
+		sellen=0;
+
+		ColorEventData *e=new ColorEventData(textonpath->color, 0, -1, 0, 0);
+		app->SendMessage(e, curwindow->win_parent->object_id, "make curcolor", object_id);
+
+		if (viewport) {
+			ObjectContext *oc=NULL;
+			viewport->NewData(textonpath, &oc);//viewport adds only its own counts
+			if (toc) { delete toc; toc=NULL; }
+			if (oc) toc=oc->duplicate();
+		}
+
+		PostMessage(_("Pasted."));
+		needtodraw=1;
+		return 0;
+	}
+
+	return 1;
 }
 
 int TextOnPathInterface::KeyUp(unsigned int ch,unsigned int state, const Laxkit::LaxKeyboard *d)
@@ -2225,27 +2311,6 @@ int TextOnPathInterface::PerformAction(int action)
 	} else if (action==TPATH_Paste) {
 		viewport->PasteRequest(this, NULL);
 		return 0;
-	}
-
-	return 1;
-}
-
-int TextOnPathInterface::Paste(const char *txt,int len, Laxkit::anObject *obj, const char *formathint)
-{
-	 //pasting with no data should create a new data
-	DBG if (txt) cerr <<"    pasting into captioninterface: "<<txt<<endl;
-
-	if (!txt || !len) return 1;
-
-	if (textonpath) {
-		textonpath->InsertString(txt, len, caretpos, &caretpos);
-		PostMessage(_("Pasted."));
-		needtodraw=1;
-		return 0;
-
-	} else {
-		cerr << " *** must finish implementing CaptionInterface::Paste()"<<endl;
-		PostMessage("lazy programmer! need to implement paste text to new object");
 	}
 
 	return 1;

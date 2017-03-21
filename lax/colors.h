@@ -111,7 +111,7 @@ class Color : public Laxkit::anObject, public LaxFiles::DumpUtility
 	int color_type; //such as none, normal, knockout, or registration. See SimpleColorId
 
 	ColorSystem *system;
-	int colorsystemid; //usually same as system->systemid;
+	int colorsystemid; //usually same as system->systemid, see BasicColorSystems
 	int nvalues; // num values, put here so you don't have to always look them up in system definition
 	double *values; // the values for each primary plus alpha at the end (if any)
 
@@ -232,11 +232,11 @@ class ColorSystem: public Laxkit::anObject, public LaxFiles::DumpUtility
 
 
 
-ColorSystem *Create_sRGB(bool with_alpha);
-ColorSystem *Create_Gray(bool with_alpha);
-ColorSystem *Create_Generic_CMYK(bool with_alpha);
-ColorSystem *Create_CieLab(bool with_alpha);
-ColorSystem *Create_XYZ(bool with_alpha);
+ColorSystem *Create_sRGB_System(bool with_alpha);
+ColorSystem *Create_Gray_System(bool with_alpha);
+ColorSystem *Create_Generic_CMYK_System(bool with_alpha);
+ColorSystem *Create_CieLab_System(bool with_alpha);
+ColorSystem *Create_XYZ_System(bool with_alpha);
 
 
 //------------------------------- class ColorManager -------------------------------
