@@ -758,7 +758,7 @@ void ColorSystem::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpC
 
 /*! Create a ColorSystem based on sRGB.
  */
-ColorSystem *Create_sRGB(bool with_alpha)
+ColorSystem *Create_sRGB_System(bool with_alpha)
 {
 	ColorSystem *rgb=new ColorSystem;
 	makestr(rgb->name,_("sRGB"));
@@ -789,7 +789,7 @@ ColorSystem *Create_sRGB(bool with_alpha)
 	return rgb;
 }
 
-ColorSystem *Create_Gray(bool with_alpha)
+ColorSystem *Create_Gray_System(bool with_alpha)
 {
 	ColorSystem *gray=new ColorSystem;
 	makestr(gray->name,_("Gray"));
@@ -810,7 +810,7 @@ ColorSystem *Create_Gray(bool with_alpha)
 
 /*! Create a ColorSystem based on naive cmyk.
  */
-ColorSystem *Create_Generic_CMYK(bool with_alpha)
+ColorSystem *Create_Generic_CMYK_System(bool with_alpha)
 {
 	ColorSystem *cmyk=new ColorSystem;
 	makestr(cmyk->name,_("Generic CMYK"));
@@ -848,7 +848,7 @@ ColorSystem *Create_Generic_CMYK(bool with_alpha)
 }
 
 
-ColorSystem *Create_CieLab(bool with_alpha)
+ColorSystem *Create_CieLab_System(bool with_alpha)
 {
 	ColorSystem *cielab=new ColorSystem;
 	makestr(cielab->name,_("CieL*a*b*"));
@@ -877,7 +877,7 @@ ColorSystem *Create_CieLab(bool with_alpha)
 	return cielab;
 }
 
-ColorSystem *Create_XYZ(bool with_alpha)
+ColorSystem *Create_XYZ_System(bool with_alpha)
 {
 	//todo: the screen color representation needs to make sense.. it doesn't currently
 	
