@@ -2179,8 +2179,39 @@ int CaptionInterface::Paste(const char *txt,int len, Laxkit::anObject *obj, cons
 		return 0;
 
 	} else {
-		cerr << " *** must finish implementing CaptionInterface::Paste()"<<endl;
-		PostMessage("lazy programmer! need to implement paste text to new object");
+		 //need to create and insert a new text object
+		if (len<0) len=strlen(txt);
+		char text[len+1];
+		strncpy(text,txt,len);
+		text[len]='\0';
+
+		data=newData();
+		data->SetText(text);
+
+		int mx,my;
+		mouseposition(0, curwindow, &mx,&my, NULL, NULL, NULL);
+		flatpoint leftp = screentoreal(mx,my);
+		data->origin(leftp);
+		if (defaultscale<=0) defaultscale=1./Getmag()/2;
+		data->xaxis(flatpoint(defaultscale,0));
+		data->yaxis(flatpoint(0,defaultscale));
+		if (dp->defaultRighthanded()) {
+			data->yaxis(-data->yaxis());
+		}
+		DBG data->dump_out(stderr,6,0,NULL);
+
+		SimpleColorEventData *e=new SimpleColorEventData( 65535, 0xffff*data->red, 0xffff*data->green, 0xffff*data->blue, 0xffff*data->alpha, 0);
+		app->SendMessage(e, curwindow->win_parent->object_id, "make curcolor", object_id);
+		
+		if (viewport) {
+			ObjectContext *oc=NULL;
+			viewport->NewData(data,&oc);//viewport adds only its own counts
+			if (coc) { delete coc; coc=NULL; }
+			if (oc) coc=oc->duplicate();
+		}
+
+		PostMessage(_("Pasted."));
+		needtodraw=1;
 	}
 
 	return 1;
@@ -2710,9 +2741,14 @@ int CaptionInterface::PerformAction(int action)
 
 int CaptionInterface::CharInput(unsigned int ch,const char *buffer,int len,unsigned int state, const Laxkit::LaxKeyboard *d) 
 {
+	if (!sc) GetShortcuts();
+	int action=sc->FindActionNumber(ch,state&LAX_STATE_MASK,0);
+	if (action>=0) {
+		return PerformAction(action);
+	}
+
 
 	if (!data) return 1;
-
 
 	if (ch==LAX_Esc && child) {
 		RemoveChild();
@@ -2791,13 +2827,6 @@ int CaptionInterface::CharInput(unsigned int ch,const char *buffer,int len,unsig
 		needtodraw=1;
 		return 0;
 
-	} else {
-
-		if (!sc) GetShortcuts();
-		int action=sc->FindActionNumber(ch,state&LAX_STATE_MASK,0);
-		if (action>=0) {
-			return PerformAction(action);
-		}
 	}
 
 	return 1; 
