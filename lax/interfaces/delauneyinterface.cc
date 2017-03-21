@@ -475,6 +475,7 @@ void DelauneyInterface::Clear(SomeData *d)
 {
 	if (!d || d==data) {
 		data->dec_count();
+		data = NULL;
 		delete voc;
 		voc=NULL;
 	}
