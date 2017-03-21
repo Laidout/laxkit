@@ -2219,6 +2219,7 @@ int TextOnPathInterface::PerformAction(int action)
 		viewport->NewData(newdata,&oc);//viewport adds only its own counts
 		//viewport->ChangeObject(oc, 1);
 		newdata->dec_count();
+		PostMessage(_("Converted into new object."));
 		return 0;
 
 	} else if (action==TPATH_Paste) {
