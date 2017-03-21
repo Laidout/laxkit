@@ -63,7 +63,7 @@ class TextOnPath : virtual public SomeData
 		FROM_MAX
 	} baseline_type;
 
-	double baseline;
+	double baseline; //distance off path to put the baseline
 	int baseline_units; //em==0, or physical unit
 	double start_offset; //distance from start of path
 	double end_offset;
@@ -182,6 +182,7 @@ class TextOnPathInterface : public anInterface
 	Laxkit::ShortcutHandler *sc;
 
 	virtual int send();
+	virtual TextOnPath *newData();
 
   public:
 	unsigned int textonpath_style;
