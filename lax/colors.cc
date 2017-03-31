@@ -1014,25 +1014,6 @@ int ColorManager::AddSystem(ColorSystem *system, bool absorb)
 }
 
 
-////automate singleton removal.. not sure if this is a good idea
-//class SingletonDestroyer
-//{
-//  public:
-//	anObject *object;
-//	SingletonDestroyer(anObject *obj=NULL) { object=obj; if (object) object->inc_count(); }
-//	~SingletonDestroyer() { if (object) object->dec_count(); }
-//	void Update(anObject *nobj) {
-//		if (object) object->dec_count();
-//		object=nobj;
-//		if (object) object->inc_count();
-//	}
-//};
-//
-//SingletonDestroyer colormanagerkeeper;
-//... then the static GetDefault()/SetDefault() will update colormanagerkeeper
-//... so ColorManager not created initially, but once it is created somewhere else,
-//... it will be removed when colormanagerkeeper goes out of scope, ie at program termination
-
 
 } //namespace Laxkit
 
