@@ -113,7 +113,7 @@ int RefPtrStack<T>::remove(int which) //which=-1
 			if (ref) ref->dec_count();
 			else {
 				delete t;
-				//cerr <<" *** Uh oh! RefPtrStack trying to dec_count something not dec_countable!"<<endl;
+				//DBG cerr <<" *** Uh oh! RefPtrStack trying to dec_count something not dec_countable!"<<endl;
 			}
 		}
 	}
