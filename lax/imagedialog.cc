@@ -369,7 +369,7 @@ int ImageDialog::Event(const EventData *data,const char *mes)
 
 	} else if (!strcmp(mes,"get new preview")) {
 		app->rundialog(new FileDialog(NULL,"install new preview",NULL,ANXWIN_REMEMBER,
-									  0,0,400,500,0,object_id,"get new preview",
+									  0,0,400,500,0,object_id,"install new preview",
 									  FILES_OPEN_ONE|FILES_PREVIEW,
 									  preview->GetCText()));
 		return 0;
