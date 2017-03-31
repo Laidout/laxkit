@@ -539,6 +539,18 @@ int PtrStack<T>::remove(int which) //which=-1
 	if (t) return 1; else return 0; //note t is deleted now, we just want to know if we had an address
 }
 
+//! Pop and delete (according to islocal) the element if it exists in the stack.
+/*! This is basically a convenience function that just returns remove(findindex(t)).
+ *
+ * Return 1 if an item is removed, else 0. Passing in NULL returns 0.
+ */
+template <class T>
+int PtrStack<T>::remove(T *t)
+{
+	if (!t) return 0;
+	return remove(findindex(t));
+}
+
 //! Push a pointer onto the stack before index where. Transfers pointer, does not duplicate.
 /*! If called without where, pointer is pushed onto the top (highest n) position.
  *
