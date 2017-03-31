@@ -58,6 +58,8 @@ class ScreenColor
 	double Blue()  { return blue /65535.; }
 	double Alpha() { return alpha/65535.; }
 
+	void AddDiff(double r, double g, double b);
+
 	unsigned long Pixel();
 	int equals(ScreenColor &color);
 	int equals(double r,double g,double b, double a);

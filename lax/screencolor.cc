@@ -118,5 +118,42 @@ void ScreenColor::cmykf(double c, double m, double y, double k, double a)
 	alpha=(a*65535+.5);
 }
 
+/*! Add the amounts to the colors. If the addition will overflow the subtract instead.
+ * If subtracting will underflow, then use 0. You shouldn't use such big diffs anyway.
+ */
+void ScreenColor::AddDiff(double r, double g, double b)
+{
+	int rr = r*65535;
+	int gg = g*65535;
+	int bb = b*65535;
+
+	red += rr;
+	if (red>65535) {
+		red -= 2*rr;
+		if (red<0) red=0;
+	} else if (red<0) {
+		red -= 2*rr;
+		if (red>65535) red=65535;
+	}
+
+	green += gg;
+	if (green>65535) {
+		green -= 2*gg;
+		if (green<0) green=0;
+	} else if (green<0) {
+		green -= 2*gg;
+		if (green>65535) green=65535;
+	}
+
+	blue += bb;
+	if (blue>65535) {
+		blue -= 2*bb;
+		if (blue<0) blue=0;
+	} else if (blue<0) {
+		blue -= 2*bb;
+		if (blue>65535) blue=65535;
+	}
+}
+
 } // namespace Laxkit
 
