@@ -679,25 +679,57 @@ void Displayer::drawrectangle(double x,double y,double ww,double hh,int tofill)
  * tofill==0, draw only stroke with fg.
  * tofill==1, draw only fill with fg.
  * tofill==2, draw stroke with fg, fill with bg.
+ *
+ * If whichcorners&1, round the top left. &2 is top right, &4 is bottom right, &8 is bottom left.
  */
 void Displayer::drawRoundedRect(double x,double y,double w,double h,
                                 double vround, bool vispercent, double hround, bool hispercent,
-                                int tofill)
+                                int tofill, int whichcorners)
 {   
     if (vispercent) vround=h/2*vround;
     if (hispercent) hround=w/2*hround;
 
     double vv=4./3*(sqrt(2)-1); //length of bezier handle for 90 degree arc on unit circle
 
-    moveto(x+hround,  y);
-    lineto(x+w-hround,y);
-    curveto(flatpoint(x+w-hround+vv*hround,y), flatpoint(x+w, y+vround-vv*vround), flatpoint(x+w,y+vround));
-    lineto(x+w, y+h-vround);
-    curveto(flatpoint(x+w, y+h-vround+vv*vround), flatpoint(x+w-hround+vv*hround,y+h), flatpoint(x+w-hround,y+h));
-    lineto(x+hround, y+h);
-    curveto(flatpoint(x+hround-vv*hround, y+h), flatpoint(x, y+h-vround+vv*vround), flatpoint(x,y+h-vround));
-    lineto(x,y+vround);
-    curveto(flatpoint(x, y+vround-vv*vround), flatpoint(x+hround-vv*hround, y), flatpoint(x+hround,y));
+	 //ll
+	if (whichcorners&8) {
+	    moveto(x+hround,  y);
+	} else {
+	    moveto(x,  y);
+	}
+
+	 //lr
+	if (whichcorners&4) {
+	   	lineto(x+w-hround,y);
+		curveto(flatpoint(x+w-hround+vv*hround,y), flatpoint(x+w, y+vround-vv*vround), flatpoint(x+w,y+vround));
+	} else {
+	   	lineto(x+w,y);
+	}
+
+	 //ur
+	if (whichcorners&2) {
+	    lineto(x+w, y+h-vround);
+    	curveto(flatpoint(x+w, y+h-vround+vv*vround), flatpoint(x+w-hround+vv*hround,y+h), flatpoint(x+w-hround,y+h));
+	} else {
+	    lineto(x+w, y+h);
+	}
+
+	 //ul
+	if (whichcorners&1) {
+	    lineto(x+hround, y+h);
+    	curveto(flatpoint(x+hround-vv*hround, y+h), flatpoint(x, y+h-vround+vv*vround), flatpoint(x,y+h-vround));
+	} else {
+	    lineto(x, y+h);
+	}
+
+	 //back to ll
+	if (whichcorners&8) {
+    	lineto(x,y+vround);
+	    curveto(flatpoint(x, y+vround-vv*vround), flatpoint(x+hround-vv*hround, y), flatpoint(x+hround,y));
+	} else {
+    	//lineto(x,y+vround); //closed() below does this
+	}
+
     closed();
 
     if (!draw_immediately) return;
