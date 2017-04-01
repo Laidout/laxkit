@@ -20,6 +20,15 @@
 //    Copyright (C) 2017 by Tom Lechner
 //
 
+#ifndef _LAX_SINGLETONKEEPER_H
+#define _LAX_SINGLETONKEEPER_H
+
+
+#include <lax/anobject.h>
+
+
+namespace Laxkit {
+
 /*! \class SingletonKeeper
  *
  * Automate singleton removal.. not sure if this is a good idea, but damned if it doesn't make
@@ -29,10 +38,13 @@
  */
 class SingletonKeeper
 {
-  public:
+  protected:
 	anObject *object;
-	SingletonDestroyer(anObject *obj=NULL, bool absorb) { object=obj; if (object && !absorb) object->inc_count(); }
-	~SingletonDestroyer() { if (object) object->dec_count(); } //this happens on going out of scope
+
+  public:
+	SingletonKeeper(anObject *obj=NULL, bool absorb=false) { object=obj; if (object && !absorb) object->inc_count(); }
+	~SingletonKeeper() { if (object) object->dec_count(); } //this happens on going out of scope
+	anObject *GetObject() { return object; }
 	void SetObject(anObject *nobj, bool absorb) {
 		if (object) object->dec_count();
 		object=nobj;
@@ -44,3 +56,8 @@ class SingletonKeeper
 //... then the static GetDefault()/SetDefault() will update colormanagerkeeper
 //... so ColorManager not created initially, but once it is created somewhere else,
 //... it will be removed when colormanagerkeeper goes out of scope, ie at program termination
+
+} // namespace Laxkit
+
+#endif
+
