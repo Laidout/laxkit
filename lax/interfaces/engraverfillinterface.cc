@@ -593,7 +593,6 @@ int EngraverFillInterface::LBDown(int x,int y,unsigned int state,int count,const
 			if (trace->traceobj_opacity<0) group->trace->traceobj_opacity=0;
 			else if (trace->traceobj_opacity>1) group->trace->traceobj_opacity=1;
 
-			DBG cerr << " *** need to implement actual trace object opacity"<<endl;
 			needtodraw=1;
 		}
 
@@ -1898,6 +1897,8 @@ int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit
 				return 0;
 
 			} else if (over==ENGRAVE_Direction_Seed) {
+				if (!group) return 0;
+
 				int dx=(x-lx);
 				if (labs(dx)>2) dx/=2;
 				group->direction->seed+=dx;
@@ -2023,6 +2024,8 @@ int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit
 				return 0;
 
 			} else if (over==ENGRAVE_Dash_Length) {
+				if (!group) return 0;
+
 				int dx=x-lx;
 				if (dx>0) {
 					group->dashes->dash_length*=1.+.01*dx;
@@ -2037,6 +2040,8 @@ int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit
 				return 0;
 
 			} else if (over==ENGRAVE_Dash_Seed) {
+				if (!group) return 0;
+
 				int dx=(x-lx);
 				if (labs(dx)>2) dx/=2;
 				group->dashes->randomseed+=dx;
@@ -2048,6 +2053,8 @@ int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit
 				return 0;
 
 			} else if (over==ENGRAVE_Spacing_Default) {
+				if (!group) return 0;
+
 				int dx=x-lx;
 				if (dx>0) {
 					group->spacing->spacing*=1.+.01*dx;
