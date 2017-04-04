@@ -52,6 +52,8 @@ class DoubleBBox {
 	virtual flatpoint BBoxPoint(double x,double y);
 	double boxwidth()  {  return maxx>minx ? maxx-minx : 0; }
 	double boxheight() {  return maxy>miny ? maxy-miny : 0; }
+	double MaxDimension() { return boxwidth() > boxheight() ? boxwidth() : boxheight(); }
+	double MinDimension() { return boxwidth() < boxheight() ? boxwidth() : boxheight(); }
 };
 	
 } // namespace Laxkit
