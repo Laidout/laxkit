@@ -863,7 +863,8 @@ int RectInterface::SelectPoint(int c)
 }
 
 /*! Used when transferring control to a child RectInterface, and default to
- * the left button being down, and RP_Move. If !somedata, nothing is done.
+ * the left button being down, and RP_Move. If !somedata, nothing is done and 1 is returned.
+ * On success, 0 is returned.
  */
 int RectInterface::FakeLBDown(int x,int y,unsigned int state,int count,const Laxkit::LaxMouse *d)
 {
@@ -882,7 +883,7 @@ int RectInterface::LBDown(int x,int y,unsigned int state,int count,const Laxkit:
 {
 	//if (buttondown.isdown(d->id,LEFTBUTTON)) return 0;
 
-	DBG cerr << "  in rect lbd..";
+	DBG cerr << "  in RectInterface::LBDown..";
 
 	shiftmode=0;
 
@@ -977,7 +978,10 @@ int RectInterface::LBDown(int x,int y,unsigned int state,int count,const Laxkit:
 
 	 //If this is a superclass of an ObjectInterface, this forces the rect interface
 	 //to not transfer control to some other object and tool... bit of a hack
-	if (style&RECT_OBJECT_SHUNT) return 0;
+	if (style&RECT_OBJECT_SHUNT) {
+		if (buttondown.isdown(d->id,LEFTBUTTON)) return 0;
+		return 1;
+	}
 
 	 //! Get rid of old data if not clicking in it.
 	if (somedata && !somedata->pointin(screentoreal(x,y))) deletedata();
