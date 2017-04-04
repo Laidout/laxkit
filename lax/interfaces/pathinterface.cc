@@ -574,13 +574,14 @@ void Path::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext 
  */
 int Path::Line(LineStyle *nlinestyle)
 {
-	if (nlinestyle==linestyle) return 0;
+	if (nlinestyle == linestyle) return 0;
 	if (linestyle) linestyle->dec_count();
-	linestyle=nlinestyle;
+	linestyle = nlinestyle;
 	if (linestyle) {
-		defaultwidth=linestyle->width;
+		defaultwidth = linestyle->width;
 		linestyle->inc_count();
 	}
+	needtorecache=1;
 
 	return 0;
 }
@@ -3380,7 +3381,7 @@ void PathsData::InstallLineStyle(LineStyle *newlinestyle)
 	linestyle=newlinestyle;
 	if (newlinestyle) newlinestyle->inc_count();
 
-	if (old) for (int c=0; c<paths.n; c++) {
+	for (int c=0; c<paths.n; c++) {
 		if (!paths.e[c]->linestyle || paths.e[c]->linestyle==old) paths.e[c]->Line(newlinestyle);
 	}
 }
