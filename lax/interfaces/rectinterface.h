@@ -97,7 +97,7 @@ enum RectInterfaceActions {
 
 class RectInterface : public anInterface
 {
- protected:
+  protected:
 	int lastpoint;
 	flatpoint createp,createx,createy;
 	flatpoint center1,center2,shearpoint,leftp;
@@ -120,7 +120,8 @@ class RectInterface : public anInterface
 	Laxkit::ShortcutHandler *sc;
 	virtual int PerformAction(int action);
 	virtual int GetMode();
- public:
+
+  public:
 	int maxtouchlen;
 	int extrapoints;
 	int griddivisions;
