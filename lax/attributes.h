@@ -26,6 +26,7 @@
 #include <lax/screencolor.h>
 #include <lax/lists.h>
 #include <lax/vectors.h>
+#include <lax/anobject.h>
 #include <cstdio>
 
 namespace LaxFiles {
@@ -68,7 +69,7 @@ class Attribute {
 	virtual void  dump_out_full    (FILE *f, int Indent);
 };
 
-class AttributeObject : public Attribute
+class AttributeObject : public Laxkit::anObject, public Attribute
 {
   public:
 	AttributeObject();

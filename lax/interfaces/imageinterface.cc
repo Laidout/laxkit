@@ -115,27 +115,24 @@ ImageData::~ImageData()
 //! Return a new ImageData, based on this.
 SomeData *ImageData::duplicate(SomeData *dup)
 {
-	ImageData *i=dynamic_cast<ImageData*>(dup);
-	if (!i && dup) return NULL; //was not an ImageData!
+	ImageData *newimage = dynamic_cast<ImageData*>(dup);
+	if (!newimage && dup) return NULL; //was not an ImageData!
 
-	char set=1;
 	if (!dup) {
-		dup=dynamic_cast<SomeData*>(somedatafactory()->NewObject(LAX_IMAGEDATA));
-		if (dup) {
-			dup->setbounds(minx,maxx,miny,maxy);
-		}
-		i=dynamic_cast<ImageData*>(dup);
+		dup = dynamic_cast<SomeData*>(somedatafactory()->NewObject(LAX_IMAGEDATA));
+		newimage = dynamic_cast<ImageData*>(dup);
 	} 
-	if (!i) {
-		i=new ImageData();
-		dup=i;
+	if (!newimage) {
+		newimage = new ImageData();
+		dup = newimage;
 	}
-	if (set && i) {
-		if (image) i->LoadImage(image->filename, previewimage ? previewimage->filename : NULL, 0,0,0,0);
-	}
+
+	//newimage->LoadImage(image->filename, previewimage ? previewimage->filename : NULL, 0,0,0,0);
+	newimage->LoadImage(filename, previewfile, 0,0,0,0);
 
 	 //somedata elements:
-	dup->bboxstyle=bboxstyle;
+	dup->setbounds(minx,maxx,miny,maxy);
+	dup->bboxstyle = bboxstyle;
 	dup->m(m());
 	return dup;
 }
