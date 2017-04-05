@@ -231,8 +231,6 @@ void GroupData::FindBBox()
 }
 
 //! Check the point against all objs.
-/*! \todo *** this is broken! ignores the obj transform
- */
 int GroupData::pointin(flatpoint pp,int pin)
 { 
 	if (!kids.n) return 0;
