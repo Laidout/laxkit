@@ -45,6 +45,7 @@ enum anInterFaceTypes {
 //! for anInterface::interface_style:
 enum anInterFaceStyles {
 	INTERFACE_DeferChildInput = (1<<0),
+	INTERFACE_DontSendOnModified = (1<<1),
 	INTERFACE_BITMAX=1
 };
 
@@ -62,6 +63,8 @@ class anInterface : virtual public Laxkit::EventReceiver,
 	Laxkit::ButtonDownInfo buttondown;
 	ViewportWindow *viewport;
 	Laxkit::Displayer *dp;
+
+	virtual void Modified(int level=0);
 
   public:
 	char *name;

@@ -388,6 +388,27 @@ anInterface *anInterface::duplicate(anInterface *dup)
 	return dup;
 }
 
+/*! Classes can use this to tell owner when something's changed. This is not used in anInterface class.
+ * Sends owner_message, or whattype() if owner_message is NULL.
+ * event->usertype is set to level.
+ *
+ * If interface_style & INTERFACE_DontSendOnModified, then don't send when Modified() called.
+ */
+void anInterface::Modified(int level)
+{
+	if ((interface_style & INTERFACE_DontSendOnModified) != 0) return;
+									 
+    if (owner) {
+        DBG cerr << whattype() <<" Modified(), sending to "<<(owner->Id()?owner->Id():owner->whattype())<<endl;
+        const char *message=owner_message;
+        if (!message) message=whattype();
+        EventData *ev=new EventData(message);
+		ev->usertype = level;
+        anXApp::app->SendMessage(ev, owner->object_id, message,object_id);
+        return;
+    }
+}
+
 //! Return a ShortcutHandler that contains stacks of bound shortcuts and possible actions.
 /*! NULL means there are none defined for this interface.
  *
