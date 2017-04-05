@@ -1062,6 +1062,7 @@ void RectInterface::Rotate(double angle)
 	somedata->Rotate(angle,p);
 
 	syncFromData(0);
+	Modified();
 	needtodraw=1;
 }
 
@@ -1098,6 +1099,7 @@ void RectInterface::Flip(int type)
 	somedata->m(t);
 
 	syncFromData(1);
+	Modified();
 	needtodraw=1;
 }
 
@@ -1264,6 +1266,7 @@ int RectInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMou
 	flatpoint op;
 
 	if (curpoint==RP_Flip_H || curpoint==RP_Flip_V || curpoint==RP_Flip1 || curpoint==RP_Flip2) {
+		 //moving the flip controls. Object not actually flipped yet, that happens in LBUp
 		flatpoint np=transform_point_inverse(somedata->m(),dp->screentoreal( x, y));
 		op=transform_point_inverse(somedata->m(),dp->screentoreal(mx,my));
 		d=np-op;
@@ -1325,6 +1328,7 @@ int RectInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMou
 
 		needtodraw=1;
 		syncFromData(0);
+		Modified();
 		return 0; 
 	}
 
@@ -1381,6 +1385,7 @@ int RectInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMou
 
 		if (action==RP_Move) {
 			somedata->origin(somedata->origin()+d);
+			Modified();
 			needtodraw|=2;
 			return 0; 
 		}
@@ -1419,6 +1424,7 @@ int RectInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMou
 
 				needtodraw|=1;
 				syncFromData(0);
+				Modified();
 			}
 
 			needtodraw=1;
@@ -1478,6 +1484,7 @@ int RectInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMou
 			}
 			needtodraw=1;
 			syncFromData(0);
+			Modified();
 			return 0; 
 		}
 	} //if dragging around anchor points
@@ -1524,6 +1531,7 @@ int RectInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMou
 			somedata->origin(origin);
 			needtodraw|=2;
 			syncFromData(0);
+			Modified();
 			return 0;
 		}
 		return 0;
@@ -1646,6 +1654,7 @@ int RectInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMou
 		if (data) data->centercenter();
 		needtodraw|=2;
 		syncFromData(0);
+		Modified();
 		return 0;
 	}
 
@@ -1703,6 +1712,7 @@ int RectInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMou
 	}
 
 	syncFromData(0);
+	Modified();
 	return 0;
 }
 
@@ -1806,6 +1816,7 @@ int RectInterface::PerformAction(int action)
 		center=center-getpoint(RP_Center1,1);
 		somedata->origin(somedata->origin()+center);
 		syncFromData(0);
+		Modified();
 		needtodraw=1;
 		return 0;
 
@@ -1824,6 +1835,7 @@ int RectInterface::PerformAction(int action)
 		if (!data) return 1;
 		if (++data->centertype>LAX_BOTTOM_RIGHT) data->centertype=LAX_CUSTOM_ALIGNMENT;
 		data->centercenter();
+		Modified();
 		needtodraw=1;
 		return 0;
 
