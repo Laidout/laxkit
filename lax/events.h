@@ -103,6 +103,7 @@ class EventData
  public:
 	unsigned long type;
 	unsigned long subtype;
+	int usertype;
 	char *send_message;
 
 	unsigned long from; //EventReceiver object_id
