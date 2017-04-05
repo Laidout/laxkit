@@ -451,7 +451,6 @@ class PathInterface : public anInterface
 	virtual int scaleSelected(flatpoint center,double f,int constrain);
 	virtual int rotateSelected(flatpoint center,double angle);
 
-	virtual void Modified(int level);
 	virtual void hoverMessage();
 	virtual void drawNewPathIndicator(flatpoint p,int which);
 	virtual void drawWeightNode(Path *path, PathWeightNode *weight, int isfornew);

@@ -5841,20 +5841,6 @@ PathsData *PathInterface::newPathsData()
 	return data;
 }
 
-//! Perhaps update undo and send message to owner that the path has changed.
-void PathInterface::Modified(int level)
-{
-	if (owner) {
-		DBG cerr <<"PathInterface Modified(), sending to "<<(owner->Id()?owner->Id():owner->whattype())<<endl;
-		const char *message=owner_message;
-		if (!message) message=whattype();
-		EventData *ev=new EventData(message);
-		anXApp::app->SendMessage(ev, owner->object_id, message,object_id);
-		return;
-	}
-}
-
-
 /*! Flush curpoints, set curvertex, curpath to NULL.
  */
 void PathInterface::clearSelection()
