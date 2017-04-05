@@ -121,9 +121,10 @@ class AffineStack : public Affine
 //-------------------- lower level Affine functions ---------------------
 
 void dumpctm(const double *d);
-int is_degenerate_transform(double *m);
+int is_degenerate_transform(const double *m);
 double *transform_invert(double *result,const double *m);
 double *transform_mult(double *result,const double *a,const double *b);
+double *transform_diff(double *result,const double *a,const double *b);
 double *transform_identity(double *result);
 double *transform_rotate(double *m, double angle);
 double *transform_from_basis(double *result,flatpoint o,flatpoint x,flatpoint y);

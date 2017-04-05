@@ -599,7 +599,7 @@ double *transform_invert(double *result,const double *m)
 	return result;
 }
 
-int is_degenerate_transform(double *m)
+int is_degenerate_transform(const double *m)
 { return m[0]*m[3]-m[1]*m[2] == 0; }
 
 //! Multiply 2 6 member transform arrays: result = a x b.
@@ -623,6 +623,22 @@ double *transform_mult(double *result,const double *a,const double *b)
 	result[3]=a[2]*b[1]+a[3]*b[3];
 	result[4]=a[4]*b[0]+a[5]*b[2]+b[4];
 	result[5]=a[4]*b[1]+a[5]*b[3]+b[5];
+	return result;
+}
+
+/*! Return the transform T such that a*T = b.
+ * Put in result, or if result==NULL, then return new double[6].
+ * Return NULL if a is not invertable.
+ */
+double *transform_diff(double *result,const double *a,const double *b)
+{
+	if (is_degenerate_transform(a)) return NULL;
+	if (result==NULL) result = new double[6];
+
+	double m[6];
+	transform_invert(m,a);
+	transform_mult(result, m,b);
+
 	return result;
 }
 
