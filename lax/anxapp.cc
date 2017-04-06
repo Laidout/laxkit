@@ -1271,6 +1271,7 @@ int anXApp::destroywindow(anXWindow *w)
 {
 	if (!w) return 1;
 	if (w->win_style&ANXWIN_DOOMED) return 0;
+
 	DBG cerr <<"== Destroywindow(\""<<w->whattype()<<" (count:"<<w->_count<<":"
 	DBG    <<w->WindowTitle()<<"\")...topwindows.n="<<topwindows.n<<endl;
 
@@ -1305,8 +1306,9 @@ int anXApp::destroywindow(anXWindow *w)
 
 	if (w->win_parent==NULL) {
 		topwindows.remove(topwindows.findindex(w)); //dec's count
-		outclickwatch.remove(outclickwatch.findindex(w)); //dec's count
 	}
+
+	outclickwatch.remove(outclickwatch.findindex(w)); //dec's count
 	
 	 // to fight against the never ending scourge of delete race conditions,
 	 // no element of todelete can be descended from any other element of todelete. If a parent
@@ -1803,6 +1805,7 @@ int anXApp::checkOutClicks(EventReceiver *obj,MouseEventData *ee)
 				outclicked=1;
 				p=s;
 				do {
+					DBG cerr <<" ...out click removing: "<<p->WindowTitle()<<endl;
 					outclickwatch.remove(c);
 					destroywindow(p); //remember, this removes from outclickwatch
 					p=p->nextcontrol;
