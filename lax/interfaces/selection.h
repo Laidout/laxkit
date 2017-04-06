@@ -81,6 +81,7 @@ class Selection : public Laxkit::anObject, public Laxkit::DoubleBBox
 	virtual int n() { return objects.n; }
 	virtual LaxInterfaces::ObjectContext *e(int i);
 	virtual int e_info(int i);
+	virtual int e_info(int i, int newinfo);
 	//virtual ValueHash *e_properties(int i);
 
 };

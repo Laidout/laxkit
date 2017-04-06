@@ -174,11 +174,22 @@ LaxInterfaces::ObjectContext *Selection::e(int i)
 //	return &objects.e[i]->properties;
 //}
 
-/*! Return is -1 if out of bounds.
+/*! Get the info value for the element.
+ * Return is -1 if out of bounds.
  */
 int Selection::e_info(int i)
 {
 	if (i<0 || i>=objects.n) return -1;
+	return objects.e[i]->info;
+}
+
+/*! Set the object's info to newinfo.
+ * Return is -1 if out of bounds, else just return newinfo.
+ */
+int Selection::e_info(int i, int newinfo)
+{
+	if (i<0 || i>=objects.n) return -1;
+	objects.e[i]->info = newinfo;
 	return objects.e[i]->info;
 }
 
