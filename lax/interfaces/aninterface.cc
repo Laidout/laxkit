@@ -447,7 +447,9 @@ int anInterface::InitializeResources()
 	return 0;
 }
 
-//! Set the window the interface works on to ncur. Returns ncur. If ncur==NULL, then just return current viewport.
+/*! Set the window the interface works on to ncur. Returns ncur. If ncur==NULL, then just return current viewport.
+ * Otherwise returns the new current window.
+ */
 Laxkit::anXWindow *anInterface::CurrentWindow(Laxkit::anXWindow *ncur)
 {
 	if (!ncur) return viewport;
@@ -458,6 +460,8 @@ Laxkit::anXWindow *anInterface::CurrentWindow(Laxkit::anXWindow *ncur)
 /*! Will not add ch if child!=NULL.
  * If addbefore!=0, then add at index-1 in viewport->interfaces. Else after *this.
  *
+ * If viewport==NULL, then just install as child.
+ *
  * Return 0 success, or nonzero for not added.
  */
 int anInterface::AddChild(LaxInterfaces::anInterface *ch, int absorbcount, int addbefore)
@@ -465,9 +469,11 @@ int anInterface::AddChild(LaxInterfaces::anInterface *ch, int absorbcount, int a
 	if (!ch) return 1;
 	if (!child) return 2;
 
-	int i=viewport->interfaces.findindex(this);
-	if (!addbefore) i++;
-	viewport->Push(ch,i,0);
+	if (viewport) {
+		int i=viewport->interfaces.findindex(this);
+		if (!addbefore) i++;
+		viewport->Push(ch,i,0);
+	}
 	child=ch;
 	child->owner=this;
 	if (!absorbcount) child->inc_count();
