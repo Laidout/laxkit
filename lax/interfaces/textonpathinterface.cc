@@ -1810,6 +1810,7 @@ int TextOnPathInterface::LBDown(int x,int y,unsigned int state,int count, const 
 	ScreenColor col(0., 0., 1., .25);
 	paths->line(.25, -1, -1, &col);
 	textonpath->UseThisPath(paths, 0);
+	textonpath->Remap();
 
 	caretpos=0;
 	sellen=0;
