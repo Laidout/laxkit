@@ -284,7 +284,7 @@ void ColorBase::XYZ(double *xyz)
 {  xyz[0]=X(); xyz[1]=Y(); xyz[2]=Z(); }
 
 
-/*! Return an 8 bit per channel hex argb value.
+/*! Return an 8 bit per channel hex argb value in format "#AARRGGBB".
  *
  *  buffer must be at least 10 characters long, or you will segfault.
  *  Puts something like "#ff00abff" (without the quotes) in buffer. Returns buffer.
@@ -702,7 +702,7 @@ double ColorBase::Cyan()
 	if (colortype==LAX_COLOR_CMYK   ) return colors[0];
 
 
-	double cmyk[3];
+	double cmyk[4];
 	cmyk[1]=0;
 
 	 //note: this is faster to write, but 3 times slower than it needs to be:
@@ -746,7 +746,7 @@ double ColorBase::Magenta()
 	if (colortype==LAX_COLOR_CMYK   ) return colors[1];
 
 
-	double cmyk[3];
+	double cmyk[4];
 
 	 //note: this is faster to write, but 3 times slower than it needs to be:
 	simple_rgb_to_cmyk(Red(),Green(),Blue(), &cmyk[0],&cmyk[1],&cmyk[2],&cmyk[3]);
@@ -789,7 +789,7 @@ double ColorBase::Yellow()
 	if (colortype==LAX_COLOR_CMYK   ) return colors[2];
 
 
-	double cmyk[3];
+	double cmyk[4];
 
 	 //note: this is faster to write, but 3 times slower than it needs to be:
 	simple_rgb_to_cmyk(Red(),Green(),Blue(), &cmyk[0],&cmyk[1],&cmyk[2],&cmyk[3]);
@@ -831,7 +831,7 @@ double ColorBase::Black()
 { 
 	if (colortype==LAX_COLOR_CMYK   ) return colors[3];
 
-	double cmyk[3];
+	double cmyk[4];
 
 	 //note: this is faster to write, but 3 times slower than it needs to be:
 	simple_rgb_to_cmyk(Red(),Green(),Blue(), &cmyk[0],&cmyk[1],&cmyk[2],&cmyk[3]);
