@@ -555,26 +555,26 @@ void ColorBox::Refresh()
 
 			if (topcolor==color1) { colors=color2; offx=win_w*.2; offy=win_h*.2; }
 			else { colors=color1; offx=0; offy=0; }
-			foreground_color(rgbcolor(Red()*255, Green()*255, Blue()*255));
-			fill_rectangle(this, offx,offy, win_w*.8,win_h*.8);
+			dp->NewFG(rgbcolor(Red()*255, Green()*255, Blue()*255));
+			dp->drawrectangle(offx,offy, win_w*.8,win_h*.8, 1);
 
 			if (topcolor==color1) { colors=color1; offx=0; offy=0; }
 			else { colors=color2; offx=win_w*.2; offy=win_h*.2; }
-			foreground_color(rgbcolor(Red()*255, Green()*255, Blue()*255));
-			fill_rectangle(this, win_w*.2,win_h*.2, win_w*.8,win_h*.8);
+			dp->NewFG(rgbcolor(Red()*255, Green()*255, Blue()*255));
+			dp->drawrectangle(win_w*.2,win_h*.2, win_w*.8,win_h*.8, 1);
 
 			colors=cc;
 
 		} else {
 			 //single color
-			foreground_color(win_colors->bg);
-			fill_rectangle(this, 0,0,win_w,win_h);
+			dp->NewFG(win_colors->bg);
+			dp->drawrectangle(0,0,win_w,win_h, 1);
 		}
 
 		if (Alpha()<1) {
 			win_colors->bg=rgbcolor(Red()*255, Green()*255, Blue()*255);
-			foreground_color(coloravg(0,win_colors->bg, Alpha()));
-			draw_thing(this, win_w/2,win_h/2,win_w/2,win_h/2,1,THING_Diamond);
+			dp->NewFG(coloravg(0,win_colors->bg, Alpha()));
+			dp->drawthing(win_w/2,win_h/2,win_w/2,win_h/2,1,THING_Diamond);
 		}
 	}
 	
