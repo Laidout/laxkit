@@ -18,7 +18,7 @@
 //    License along with this library; if not, write to the Free Software
 //    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
-//    Copyright (C) 2013 by Tom Lechner
+//    Copyright (C) 2013-2017 by Tom Lechner
 //
 #ifndef _LAX_COLORSLIDERS_H
 #define _LAX_COLORSLIDERS_H
@@ -162,7 +162,6 @@ class ColorSliders : public anXWindow, public ColorBase
 	virtual void DrawHorizontal(ScreenColor &color1,ScreenColor &color2, int x,int y,int w,int h,double pos,const char *text, int usealpha);
 	virtual void FillWithTransparency(ScreenColor &color, int x,int y,int w,int h);
 	virtual void DrawPos(int x,int y,int w,int h, double pos);
-	virtual void DrawOldNew(int x,int y,int w,int h, int horiz);
 
 	virtual int GetPos(int x,int y, double *pos, int *half);
 	virtual int LBDown(int x,int y,unsigned int state,int count, const LaxMouse *d);

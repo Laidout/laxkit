@@ -18,7 +18,7 @@
 //    License along with this library; if not, write to the Free Software
 //    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
-//    Copyright (C) 2013 by Tom Lechner
+//    Copyright (C) 2013-2017 by Tom Lechner
 //
 
 
@@ -365,7 +365,7 @@ void ColorSliders::Refresh()
 
 	 //paint highlighted current in gap
 	if (current>=0) {
-		foreground_color(coloravg(win_colors->fg,win_colors->bg,.8));
+		dp->NewFG(coloravg(win_colors->fg,win_colors->bg,.8));
 		int xx=x, yy=y;
 		if (win_style&COLORSLIDERS_Vertical) {
 			xx+=current*(w+gap);
@@ -373,15 +373,15 @@ void ColorSliders::Refresh()
 			yy+=current*(h+gap);
 		}
 
-		fill_rectangle(this, xx-gap,yy-gap, w+2*gap,h+2*gap);
+		dp->drawrectangle(xx-gap,yy-gap, w+2*gap,h+2*gap, 1);
 
 	} else if (current==ONPOS_Hex) {
-		foreground_color(coloravg(win_colors->fg,win_colors->bg,.8));
-		fill_rectangle(this, hex.x-gap,hex.y-gap,hex.width+2*gap,hex.height+2*gap);
+		dp->NewFG(coloravg(win_colors->fg,win_colors->bg,.8));
+		dp->drawrectangle(hex.x-gap,hex.y-gap,hex.width+2*gap,hex.height+2*gap, 1);
 
 	} else if (current==ONPOS_Old || current==ONPOS_New) {
-		foreground_color(coloravg(win_colors->fg,win_colors->bg,.8));
-		fill_rectangle(this, oldnew.x-gap,oldnew.y-gap,oldnew.width+2*gap,oldnew.height+2*gap);
+		dp->NewFG(coloravg(win_colors->fg,win_colors->bg,.8));
+		dp->drawrectangle(oldnew.x-gap,oldnew.y-gap,oldnew.width+2*gap,oldnew.height+2*gap, 1);
 	}
 
 
@@ -465,14 +465,14 @@ void ColorSliders::Refresh()
 			color1.rgbf(tt[0],tt[1],tt[2],alpha);
 			hsv[0]=1./3; simple_hsv_to_rgb(hsv,tt);
 			color2.rgbf(tt[0],tt[1],tt[2],alpha);
-			if (win_style&COLORSLIDERS_Vertical) DrawVertical(color1,color2, x,y, w,h/3+1, pos,text, 0);
+			if (win_style&COLORSLIDERS_Vertical) DrawVertical(color1,color2, x,y, w,h/3+1, -1,NULL, 0);
 			else DrawHorizontal(color1,color2, x,y, w/3+1,h, -1,text, 0);
 
 			 //segment 2
 			color1=color2;
 			hsv[0]=2./3; simple_hsv_to_rgb(hsv,tt);
 			color2.rgbf(tt[0],tt[1],tt[2],alpha);
-			if (win_style&COLORSLIDERS_Vertical) DrawVertical(color1,color2, x,y+h/3, w,h/3+1, pos,NULL, 0);
+			if (win_style&COLORSLIDERS_Vertical) DrawVertical(color1,color2, x,y+h/3, w,h/3+1, -1,NULL, 0);
 			else DrawHorizontal(color1,color2, x+w/3,y, w/3+1,h, -1,NULL, 0);
 
 			 //segment 3
@@ -514,11 +514,34 @@ void ColorSliders::Refresh()
 
 		} else if (bars.e[c]->type==COLORSLIDER_HSL_Lightness) {
 			pos=Lightness();
-			hsl[2]=0;  ColorConvert::Hsl2Rgb(&tt[0],&tt[1],&tt[2], hsl[0],hsl[1],hsl[2]);
+
+			hsl[2]=.5;  ColorConvert::Hsl2Rgb(&tt[0],&tt[1],&tt[2], hsl[0],hsl[1],hsl[2]);
 			color1.rgbf(tt[0],tt[1],tt[2],alpha);
 			hsl[2]=1;  ColorConvert::Hsl2Rgb(&tt[0],&tt[1],&tt[2], hsl[0],hsl[1],hsl[2]);
 			color2.rgbf(tt[0],tt[1],tt[2],alpha);
 			hsl[2]=pos;
+
+			if (win_style&COLORSLIDERS_Vertical) DrawVertical(color1,color2, x,y+h/2, w,h/2, -1,NULL, 0);
+			else DrawHorizontal(color1,color2, x+w/2,y, w/2,h, -1,NULL, 0);
+
+			hsl[2]=0;  ColorConvert::Hsl2Rgb(&tt[0],&tt[1],&tt[2], hsl[0],hsl[1],hsl[2]);
+			color1.rgbf(tt[0],tt[1],tt[2],alpha);
+			hsl[2]=.5;  ColorConvert::Hsl2Rgb(&tt[0],&tt[1],&tt[2], hsl[0],hsl[1],hsl[2]);
+			color2.rgbf(tt[0],tt[1],tt[2],alpha);
+			hsl[2]=pos;
+
+			if (win_style&COLORSLIDERS_Vertical) DrawVertical(color1,color2, x,y, w,h/2, -1,NULL, 0);
+			else DrawHorizontal(color1,color2, x,y, w/2,h, -1,NULL, 0);
+
+			text = bars.e[c]->text;
+			if (c != current) text=NULL; 
+			if (text) {
+				dp->NewFG(standoutcolor(color1,1));
+				dp->textout(gap,y, text,-1, LAX_TOP|LAX_LEFT);
+			}
+
+			DrawPos(x,y,w,h, pos);
+			continue;
 
 		} else if (bars.e[c]->type==COLORSLIDER_Cie_L) {
 			pos=Cie_L()/100;
@@ -587,8 +610,8 @@ void ColorSliders::Refresh()
 
 	if (!(win_style&COLORSLIDERS_HideHex)) {
 		char str[20];
-		foreground_color(win_colors->fg);
-		textout(this, HexValue(str),-1, hex.x+hex.width/2,hex.y+hex.height/2, LAX_CENTER);
+		dp->NewFG(win_colors->fg);
+		dp->textout(hex.x+hex.width/2,hex.y+hex.height/2, HexValue(str),-1, LAX_CENTER);
 	}
 
 	if (!(win_style&COLORSLIDERS_HideOldNew)) {
@@ -631,6 +654,8 @@ void ColorSliders::Refresh()
  */
 void ColorSliders::FillWithTransparency(ScreenColor &color, int x,int y,int w,int h)
 {
+	Displayer *dp=GetDefaultDisplayer();
+
 	unsigned int bg1=coloravg(rgbcolorf(.3,.3,.3),color.Pixel(), color.alpha/65535.);
 	unsigned int bg2=coloravg(rgbcolorf(.6,.6,.6),color.Pixel(), color.alpha/65535.);
 	int ww=square,hh;
@@ -642,14 +667,16 @@ void ColorSliders::FillWithTransparency(ScreenColor &color, int x,int y,int w,in
 		if (xx+ww>x+w) ww=x+w-xx;
 		for (int yy=y; yy<y+h; yy+=square) {
 			if (yy+hh>y+h) hh=y+h-yy;
-			foreground_color(a ? bg1 : bg2);
-			fill_rectangle(this, xx,yy,ww,hh);
+			dp->NewFG(a ? bg1 : bg2);
+			dp->drawrectangle(xx,yy,ww,hh, 1);
 			a=!a;
 		}
 		ww=square;
 	}
 }
 
+/*! Draw special colors like knockout, none, and registration.
+ */
 void ColorSliders::DrawSpecial(int which, int x,int y,int w,int h)
 {
 	Displayer *dp=GetDefaultDisplayer();
@@ -716,20 +743,11 @@ void ColorSliders::DrawSpecial(int which, int x,int y,int w,int h)
 }
 
 //! Each bar is drawn horizontally.
-/*! pos is [0..1].
+/*! pos is [0..1] within 0..w. -1 means don't draw the pos.
  */
 void ColorSliders::DrawHorizontal(ScreenColor &color1,ScreenColor &color2, int x,int y,int w,int h, double pos,const char *text, int usealpha)
 {
-//	if (color1.alpha!=65535 || color2.alpha!=65535) {
-//		 //need to draw transparency backdrop
-//		int tt=10;
-//		for (int xx=x; xx<x+w; xx+=tt) {
-//			for (int yy=y; yy<y+h; yy+=tt) {
-//				if (xx*yy%2==0) foreground_color(.6,.6,.6); else foreground_color(.3,.3,.3);
-//				fill_rectangle(this, xx,yy,tt,tt); // *** need to adjust for edges
-//			}
-//		}
-//	}
+	Displayer *dp=GetDefaultDisplayer();
 
 	 //draw color
 	double pp;
@@ -752,9 +770,9 @@ void ColorSliders::DrawHorizontal(ScreenColor &color1,ScreenColor &color2, int x
 			hh=square;
 			for (int yy=y; yy<y+h; yy+=square) {
 				if (a) col=bg1; else col=bg2;
-				foreground_color(col);
+				dp->NewFG(col);
 				if (yy+hh>y+h) hh=y+h-yy;
-				draw_line(this, c,yy, c,yy+hh);
+				dp->drawline(c,yy, c,yy+hh);
 				a=!a;
 			}
 		}
@@ -762,8 +780,8 @@ void ColorSliders::DrawHorizontal(ScreenColor &color1,ScreenColor &color2, int x
 		for (int c=x; c<x+w; c++) {
 			pp=(double)(c-x)/w;
 			coloravg(&color, &color1,&color2,pp);
-			foreground_color(color.Pixel());
-			draw_line(this, c,y, c,y+h);
+			dp->NewFG(color.Pixel());
+			dp->drawline(c,y, c,y+h);
 		}
 	}
 
@@ -772,10 +790,8 @@ void ColorSliders::DrawHorizontal(ScreenColor &color1,ScreenColor &color2, int x
 
 	 //text
 	if (text) {
-		foreground_color(standoutcolor(color1,1));
-		//drawing_function(LAXOP_Xor);
-		textout(this, text,-1, gap,y, LAX_TOP|LAX_LEFT);
-		//drawing_function(LAXOP_Over);
+		dp->NewFG(standoutcolor(color1,1));
+		dp->textout(gap,y, text,-1, LAX_TOP|LAX_LEFT);
 	}
 }
 
@@ -785,45 +801,17 @@ void ColorSliders::DrawPos(int x,int y,int w,int h, double pos)
 
 	 //draw pos
 	if (pos>=0) {
-		foreground_color(0);
-		draw_line(this, gap+pos,y, gap+pos,y+h);
-		foreground_color(~0);
-		draw_line(this, gap+pos+1,y, gap+pos+1,y+h);
+		Displayer *dp=GetDefaultDisplayer();
+		dp->NewFG(0,0,0);
+		dp->drawline(gap+pos,y, gap+pos,y+h);
+		dp->NewFG(1.0,1.0,1.0);
+		dp->drawline(gap+pos+1,y, gap+pos+1,y+h);
 	}
-}
-
-void ColorSliders::DrawOldNew(int x,int y,int w,int h, int horiz)
-{
-	double *ccolor=colors;
-	int ccolortype=colortype;
-
-	colortype=oldcolortype;
-	colors=oldcolor;
-	ScreenColor(Red(),Green(),Blue(),Alpha());
-
-	if (horiz) fill_rectangle(this, x,y,w/2,h);
-	else fill_rectangle(this, x,y,w,h/2);
-
-	colortype=ccolortype;
-	colors=ccolor;
-	ScreenColor(Red(),Green(),Blue(),Alpha());
-
-	if (horiz) fill_rectangle(this, x+w/2,y,w/2,h);
-	else fill_rectangle(this, x,y+h/2,w,h/2);
 }
 
 void ColorSliders::DrawVertical(ScreenColor &color1,ScreenColor &color2, int x,int y,int w,int h, double pos,const char *text, int usealpha)
 {
-//	if (color1.alpha!=65535 || color2.alpha!=65535) {
-//		 //need to draw transparency backdrop
-//		int tt=10;
-//		for (int xx=x; xx<x+w; xx+=tt) {
-//			for (int yy=y; yy<y+h; yy+=tt) {
-//				if (xx*yy%2==0) foreground_color(.6,.6,.6); else foreground_color(.3,.3,.3);
-//				fill_rectangle(this, xx,yy,tt,tt); // *** need to adjust for edges
-//			}
-//		}
-//	}
+	Displayer *dp=GetDefaultDisplayer();
 
 	 //draw colors
 	double pp;
@@ -831,16 +819,16 @@ void ColorSliders::DrawVertical(ScreenColor &color1,ScreenColor &color2, int x,i
 	for (int c=y; c<y+h; y++) {
 		coloravg(&color, &color1,&color2,pp);
 		pp=(double)(c-y)/h;
-		foreground_color(pixelfromcolor(&color));
-		draw_line(this, x,c, x+w,c);
+		dp->NewFG(pixelfromcolor(&color));
+		dp->drawline(x,c, x+w,c);
 	}
 
 	 //draw pos
 	if (pos>=0) {
-		foreground_color(0);
-		draw_line(this, x,gap+pos, x+w,gap+pos);
-		foreground_color(~0);
-		draw_line(this, x,gap+pos, x+w,gap+pos+1);
+		dp->NewFG(0,0,0);
+		dp->drawline(x,gap+pos, x+w,gap+pos);
+		dp->NewFG(1.,1.,1.);
+		dp->drawline(x,gap+pos, x+w,gap+pos+1);
 	}
 
 	// *** ignoring text
@@ -1201,6 +1189,10 @@ int ColorSliders::CharInput(unsigned int ch,const char *buffer,int len,unsigned 
 
 	} else if (ch==LAX_Bksp) {
 		RestoreColor();
+		return 0;
+
+	} else if (ch==LAX_Enter) {
+		app->destroywindow(this);
 		return 0;
 	}
 
