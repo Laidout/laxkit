@@ -642,9 +642,9 @@ int HexColorAttributeRGB(const char *value,Laxkit::ScreenColor *color,const char
 	if (endptr) *endptr=value+n;
 
 	if (n==3 || n==4) { //rgb or argb
-		r= ((num&0xf)  <<4)|(num&0xf);
+		b= ((num&0xf)  <<4)|(num&0xf);
 		g=(((num&0xf0) <<4)|(num&0xf0))>>4;
-		b=(((num&0xf00)<<4)|(num&0xf00))>>8;
+		r=(((num&0xf00)<<4)|(num&0xf00))>>8;
 		if (n==4) a=(((num&0xf000)<<4)|(num&0xf000))>>12;
 		else a=255;
 
@@ -656,9 +656,9 @@ int HexColorAttributeRGB(const char *value,Laxkit::ScreenColor *color,const char
 		return 1;
 
 	} else if (n==6 || n==8) { //rrggbb or aarrggbb
-		r=(num&0xff);
+		b=(num&0xff);
 		g=(num&0xff00)>>8;
-		b=(num&0xff0000)>>16;
+		r=(num&0xff0000)>>16;
 		if (n==8) a=(num&0xff000000)>>24; else a=255;
 
 		color->red  =(r<<8)|r; //scaling up to 16 bit
