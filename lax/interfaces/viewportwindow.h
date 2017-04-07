@@ -67,6 +67,7 @@ class ObjectContext
 	virtual int Set(ObjectContext *oc);
 	virtual void set(int ii, SomeData *o);
 	virtual void clear();
+	virtual int Up() { return 0; } //select up, 0 for fail, 1 for ok
 	virtual ObjectContext *duplicate();
 };
 

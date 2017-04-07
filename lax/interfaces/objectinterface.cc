@@ -815,10 +815,27 @@ int ObjectInterface::CharInput(unsigned int ch, const char *buffer,int len,unsig
 		int c=RectInterface::CharInput(ch,buffer,len,state,d); 
 		if (c!=0 && (state&LAX_STATE_MASK)==0 && selection->n()) { 
 			if (extrapoints) {
+				 //clear extra points
 				extrapoints=0;
 				needtodraw=1;
 				return 0;
 			}
+
+			if (selection->n() == 1) {
+				 //try to select parent group
+				ObjectContext *oc = selection->e(0);
+				SomeData *parent = oc->obj->GetParent();
+				if (!(parent->flags & SOMEDATA_UNSELECTABLE)) {
+					if (oc->Up()) {
+						PostMessage(_("Selected parent."));
+						RemapBounds();
+						needtodraw=1;
+						return 0;
+					}
+				}
+			}
+
+			 //unselect
 			FreeSelection();
 			return 0;
 		}
