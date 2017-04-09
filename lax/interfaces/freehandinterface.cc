@@ -219,7 +219,8 @@ int FreehandInterface::Refresh()
 
 	if (lines.n==0) return 0;
 	
-	dp->LineAttributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
+	dp->LineAttributes(-1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
+	dp->LineWidthScreen(1);
 
 	RawPointLine *line;
 	for (int c=0; c<lines.n; c++) {
