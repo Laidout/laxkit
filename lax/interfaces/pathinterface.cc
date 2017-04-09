@@ -5915,7 +5915,7 @@ int PathInterface::AddPoint(flatpoint p)
 
 	// There is a curpath and a curvertex, figure out how to insert a new thing in the path.
 
-	if (curpath->addAt(curvertex, np, 1)==0) {
+	if (curpath->addAt(curvertex, np, addafter)==0) {
 		SetCurvertex(np->nextVertex(1)); // *** warning! this might return NULL!! shouldn't really happen though ... right? right?
 		curpoints.flush();
 		if (!cp) cp=curvertex;
