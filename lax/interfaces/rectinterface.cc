@@ -1191,6 +1191,12 @@ int RectInterface::LBUp(int x,int y,unsigned int state,const Laxkit::LaxMouse *d
 	return 0;
 }
 
+void RectInterface::Modified(int level)
+{
+	anInterface::Modified(level);
+	if (somedata) somedata->touchContents();
+}
+
 //! Return a string of a message for hovering over type p.
 const char *RectInterface::hoverMessage(int p)
 {
