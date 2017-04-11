@@ -740,8 +740,11 @@ int ShortcutManager::SaveHTML(const char *file)
 	const char *alt    ="&amp;";
 	const char *meta   ="~";
 
-	fprintf(f,"<html>\n"
+	fprintf(f,"<!DOCTYPE html>\n"
+			  "<html>\n"
 	          "<head>\n"
+			  "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n"
+			  "<meta charset=\"utf-8\">\n"
 	          "<title>%s</title>\n"
 	          "\n"
 	          "<style type=\"text/css\">\n"
