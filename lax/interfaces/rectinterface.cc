@@ -181,6 +181,8 @@ RectInterface::RectInterface(int nid,Displayer *ndp) : anInterface(nid,ndp)
 	createx=flatpoint(1,0);
 	createy=flatpoint(0,1);
 	griddivisions=10;
+	transform_identity(extra_context);
+	use_extra = false;
 
 	rotatestep=M_PI/12;
 	hover=RP_None;
@@ -270,6 +272,20 @@ int RectInterface::UseThis(anObject *newdata,unsigned int) // assumes not use lo
 		return 1;
 	}
 	return 0;
+}
+
+/*! Use an extra transform between real and somedata.
+ * If m==NULL, then reset to identity.
+ */
+void RectInterface::ExtraContext(const double *mm)
+{
+	if (!mm) {
+		transform_identity(extra_context);
+		use_extra = false;
+	} else {
+		transform_copy(extra_context, mm);
+		use_extra = true;
+	}
 }
 
 //! Set up xaxislen, yaxislen, xdir, and ydir from somedata.
@@ -373,6 +389,7 @@ int RectInterface::Refresh()
 	DBG cerr <<"  RectRefresh-";
 	//DBG dp->drawaxes(10);
 	dp->NewFG(controlcolor);
+	if (use_extra) dp->PushAndNewTransform(extra_context);
 	dp->PushAndNewTransform(somedata->m());
 		
 	flatpoint ll(somedata->minx,somedata->miny);
@@ -631,6 +648,7 @@ int RectInterface::Refresh()
 	}
 
 	dp->PopAxes();
+	if (use_extra) dp->PopAxes();
 
 	DBG cerr <<"end rect draw"<<endl;
 	needtodraw=0;
@@ -690,7 +708,10 @@ flatpoint RectInterface::getpoint(int c,int trans)
 		case RP_Center2: p=center2; break;    //rotate handle
 		case RP_Shearpoint: p=shearpoint; break; //shear handle
 	}
-	if (trans) p=transform_point(somedata->m(),p);
+	if (trans) {
+		p = transform_point(somedata->m(), p);
+		if (use_extra) p = transform_point(extra_context, p);
+	}
 	return p;
 }
 
@@ -728,19 +749,33 @@ int RectInterface::AlternateScan(flatpoint sp, flatpoint p, double xmag,double y
 int RectInterface::scan(int x,int y)
 {
 	if (!somedata) return -1;
+
 	flatpoint p,p2;
 	p=dp->screentoreal(x,y);
-	p=transform_point_inverse(somedata->m(),p);
-	double xx=p.x, yy=p.y;
-	double xmag=norm(dp->realtoscreen(transform_point(somedata->m(),flatpoint(1,0)))
-					-dp->realtoscreen(transform_point(somedata->m(),flatpoint(0,0))));
-	double ymag=norm(dp->realtoscreen(transform_point(somedata->m(),flatpoint(0,1)))
-					-dp->realtoscreen(transform_point(somedata->m(),flatpoint(0,0))));
-	double d=-1,dd=(xmag>ymag?xmag:ymag);
-	dd=5/dd; //5 pixel radius points for extrapoints
-	dd*=dd;
-	double fivepix2=dd;
-	int match=RP_None;
+	if (use_extra) p = transform_point_inverse(extra_context, p);
+	p = transform_point_inverse(somedata->m(), p);
+	double xx=p.x, yy=p.y; //object space point
+
+	flatpoint oo = somedata->transformPoint(flatpoint(0,0));
+	flatpoint ox = somedata->transformPoint(flatpoint(1,0));
+	flatpoint oy = somedata->transformPoint(flatpoint(0,1));
+	if (use_extra) {
+		oo = transform_point(extra_context, oo);
+		ox = transform_point(extra_context, ox);
+		oy = transform_point(extra_context, oy);
+	}
+	oo = dp->realtoscreen(oo);
+	ox = dp->realtoscreen(ox);
+	oy = dp->realtoscreen(oy);
+	double xmag = norm(ox - oo);
+	double ymag = norm(oy - oo);
+
+	double d = -1, dd = (xmag>ymag?xmag:ymag);
+	dd = 5/dd; //5 pixel radius points for extrapoints
+	dd *= dd;
+	double fivepix2 = dd;
+
+	int match = RP_None;
 
 	 //check against extrapoints if any
 	if (extrapoints&HAS_CENTER1) {
@@ -794,10 +829,10 @@ int RectInterface::scan(int x,int y)
 	 //check against drag handles
 	double xtouchlen, ytouchlen; //in real coords, not screen
 	double maxtlen;
-	double maxx=somedata->maxx;
-	double maxy=somedata->maxy;
-	double minx=somedata->minx;
-	double miny=somedata->miny;
+	double maxx = somedata->maxx;
+	double maxy = somedata->maxy;
+	double minx = somedata->minx;
+	double miny = somedata->miny;
 
 	maxtlen=maxtouchlen/xmag;
 	xtouchlen=(somedata->maxx-somedata->minx)/4;
@@ -895,8 +930,10 @@ int RectInterface::LBDown(int x,int y,unsigned int state,int count,const Laxkit:
 		if (extrapoints&HAS_CENTER2) anchors++;
 		if (anchors+buttondown.any(0,LEFTBUTTON)>3) return 0; //do not allow more than 3 active points
 
-		leftp=transform_point_inverse(somedata->m(),dp->screentoreal(x,y));
-		//leftp=screentoreal(x,y);
+		leftp = dp->screentoreal(x,y);
+		if (use_extra) transform_point_inverse(extra_context, leftp);
+		leftp = transform_point_inverse(somedata->m(), leftp);
+
 		int c=scan(x,y);
 		int curpoint=RP_None;
 		DBG cerr <<"scan found: "<<c<<endl;
@@ -992,6 +1029,7 @@ int RectInterface::LBDown(int x,int y,unsigned int state,int count,const Laxkit:
 		SomeData *obj=NULL;
 		int c=viewport->FindObject(x,y,NULL,NULL,1,&oc);
 		if (c>0) obj=oc->obj;
+
 		if (obj) {
 			somedata=obj;
 			somedata->inc_count();
@@ -1002,6 +1040,7 @@ int RectInterface::LBDown(int x,int y,unsigned int state,int count,const Laxkit:
 			needtodraw=1;
 			return 0;
 		}
+
 		if (!primary && c==-1 && viewport->ChangeObject(oc,1)) {
 			buttondown.up(d->id,LEFTBUTTON);
 			deletedata();
@@ -1206,6 +1245,14 @@ const char *RectInterface::hoverMessage(int p)
 	return NULL;
 }
 
+flatpoint RectInterface::ScreenToObject(double x,double y)
+{
+	flatpoint p = dp->screentoreal(x,y);
+	if (use_extra) p = transform_point_inverse(extra_context, p);
+	p = somedata->transformPointInverse(p);
+	return p;
+}
+
 /*! move drags point, control-move rotates and shears
  * <pre>
  *     + is preserve aspect, todo is have some other toggle for square..
@@ -1268,13 +1315,18 @@ int RectInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMou
 	 // shear: control-move on a mid point
 	 // rotate: control-move on a corner point
  
-	flatpoint d=dp->screentoreal(x,y) - dp->screentoreal(mx,my);
+	flatpoint d = dp->screentoreal(x,y) - dp->screentoreal(mx,my);
 	flatpoint op;
 
 	if (curpoint==RP_Flip_H || curpoint==RP_Flip_V || curpoint==RP_Flip1 || curpoint==RP_Flip2) {
 		 //moving the flip controls. Object not actually flipped yet, that happens in LBUp
-		flatpoint np=transform_point_inverse(somedata->m(),dp->screentoreal( x, y));
-		op=transform_point_inverse(somedata->m(),dp->screentoreal(mx,my));
+		//-----
+		flatpoint np = ScreenToObject( x, y);
+		op           = ScreenToObject(mx,my);
+		//-----
+		//flatpoint np=transform_point_inverse(somedata->m(),dp->screentoreal( x, y));
+		//op=transform_point_inverse(somedata->m(),dp->screentoreal(mx,my));
+		//----
 		d=np-op;
 
 		if (curpoint==RP_Flip_H || curpoint==RP_Flip_V) {
@@ -1305,8 +1357,14 @@ int RectInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMou
 		shiftmode=1;
 		int ix,iy;
 		buttondown.getinitial(mouse->id,LEFTBUTTON,&ix,&iy);
-		flatpoint leftp=dp->screentoreal(ix,iy); //real constant point
-		leftp=transform_point_inverse(somedata->m(),leftp);
+
+		//------
+		flatpoint leftp = ScreenToObject(ix,iy);
+		//------
+		//flatpoint leftp=dp->screentoreal(ix,iy); //real constant point
+		//leftp=transform_point_inverse(somedata->m(),leftp);
+		//------
+
 		DBG cerr <<"  initial scr:"<<ix<<","<<iy<<"  real:"<<leftp.x<<','<<leftp.y<<"   "<<somedata->whattype()<<endl;
 
 		if ((state&LAX_STATE_MASK)==0 || (state&LAX_STATE_MASK)==ShiftMask) {
@@ -1348,6 +1406,7 @@ int RectInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMou
 		int action=RP_Move;
 		int devicepoint=0;
 		flatpoint c1,c2,sh;
+
 		if (extrapoints) { //map existing anchors
 			c1=transform_point(somedata->m(),center1);
 			devicepoint++;
@@ -1356,6 +1415,7 @@ int RectInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMou
 				devicepoint++;
 			}
 		}
+
 		if (buttondown.any(0,LEFTBUTTON)>1) { //map other devices to anchors
 			int dev=0;
 			int mx,my;
@@ -1363,8 +1423,11 @@ int RectInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMou
 				dev=buttondown.whichdown(dev);
 				if (!dev) break;
 				if (dev==mouse->id) continue;
+
 				buttondown.getcurrent(dev,LEFTBUTTON,&mx,&my);
-				flatpoint fp=dp->screentoreal(mx,my);
+				flatpoint fp = dp->screentoreal(mx,my);
+				if (use_extra) fp = transform_point_inverse(extra_context, fp);
+
 				if (devicepoint==0) {
 					c1=fp;
 					devicepoint++;
@@ -1382,9 +1445,13 @@ int RectInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMou
 		if (devicepoint==1) {
 			action=RP_Center2;
 			c2=dp->screentoreal(x,y);
+			if (use_extra) c2 = transform_point_inverse(extra_context, c2);
+
 		} else if (devicepoint==2) {
 			action=RP_Shearpoint;
 			sh=dp->screentoreal(x,y);
+			if (use_extra) sh = transform_point_inverse(extra_context, sh);
+
 		} else {
 			action=RP_Move;
 		}
@@ -1544,10 +1611,10 @@ int RectInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMou
 	}
 
 	 //define the transformed midpoints, used by shearing and simple resize
-	flatpoint ql=transform_point(somedata->m(),flatpoint(somedata->minx,0)),
-			  qr=transform_point(somedata->m(),flatpoint(somedata->maxx,0)),
-			  qb=transform_point(somedata->m(),flatpoint(0,somedata->miny)),
-			  qt=transform_point(somedata->m(),flatpoint(0,somedata->maxy));
+	flatpoint ql = transform_point(somedata->m(),flatpoint(somedata->minx,0)),
+			  qr = transform_point(somedata->m(),flatpoint(somedata->maxx,0)),
+			  qb = transform_point(somedata->m(),flatpoint(0,somedata->miny)),
+			  qt = transform_point(somedata->m(),flatpoint(0,somedata->maxy));
 
 	int keepaspect=(somedata->flags&(SOMEDATA_KEEP_ASPECT|SOMEDATA_KEEP_1_TO_1)); //***<--treats them the same
 	if ((state&LAX_STATE_MASK)&ControlMask) keepaspect=!keepaspect;
@@ -1923,6 +1990,7 @@ int RectInterface::CharInput(unsigned int ch, const char *buffer,int len,unsigne
 void RectInterface::Unmapped()
 {
 	showdecs |= (SHOW_INNER_HANDLES|SHOW_OUTER_HANDLES);
+	needtodraw=1;
 }
 
 /*! Shift/noshift toggles end/start point

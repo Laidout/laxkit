@@ -110,6 +110,8 @@ class RectInterface : public anInterface
 	double rw,rh;
 	flatpoint origin,xdir,ydir;
 	double xaxislen,yaxislen;
+	double extra_context[6];
+	bool use_extra;
 	char dragmode;
 	virtual void syncToData();
 	virtual void syncFromData(int first);
@@ -122,6 +124,8 @@ class RectInterface : public anInterface
 	virtual int GetMode();
 	virtual void Modified(int level=0);
 
+	virtual flatpoint ScreenToObject(double x,double y);
+
   public:
 	int maxtouchlen;
 	int extrapoints;
@@ -129,8 +133,10 @@ class RectInterface : public anInterface
 	unsigned int style;
 	unsigned long controlcolor;
 	int creationstyle,createfrompoint,showdecs;
+
 	SomeData *somedata;
 	RectData *data;
+
 	RectInterface(int nid,Laxkit::Displayer *ndp);
 	virtual ~RectInterface();
 	virtual Laxkit::ShortcutHandler *GetShortcuts();
@@ -152,6 +158,7 @@ class RectInterface : public anInterface
 	virtual int Refresh();
 	virtual int DrawData(Laxkit::anObject *ndata,Laxkit::anObject *a1=NULL,Laxkit::anObject *a2=NULL,int info=0);
 	virtual int UseThis(Laxkit::anObject *newdata,unsigned int); // assumes not use local
+	virtual void ExtraContext(const double *mm);
 	virtual void Clear(SomeData *d=NULL);
 
 	virtual int AlternateScan(flatpoint sp, flatpoint p, double xmag,double ymag, double onepix);
