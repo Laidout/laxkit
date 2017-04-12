@@ -569,6 +569,7 @@ Laxkit::Affine SomeData::GetTransformToContext(bool invert, int partial)
 
 /*! Only set the parent. If NULL, then clear the parent.
  * Default is to do nothing, since parenting is currently not stored by default.
+ * Return what is the parent value after setting.
  */
 SomeData *SomeData::SetParent(SomeData *newparent)
 {
