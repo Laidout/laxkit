@@ -80,7 +80,7 @@ GroupData::~GroupData()
 
 }
 
-/*! Set parent only if it is a GroupData.
+/*! Set parent only if it is a GroupData. Returns new parent.
  */
 SomeData *GroupData::SetParent(SomeData *newparent)
 {
@@ -171,6 +171,7 @@ int GroupData::pushnodup(LaxInterfaces::SomeData *obj)
 
 //! Pop d, but do not decrement its count.
 /*! Returns 1 for item popped, 0 for not, such as when d is not a child.
+ * Sets its parent to NULL.
  */
 int GroupData::popp(LaxInterfaces::SomeData *d)
 {
@@ -182,9 +183,11 @@ int GroupData::popp(LaxInterfaces::SomeData *d)
 	return c;
 }
 
-//! Return the popped item. Does not change its count.
+//! Return the popped item. Does not change its count, except to change its parent to NULL.
 LaxInterfaces::SomeData *GroupData::pop(int which)
 {
+	if (which<0 || which>=kids.n) which=kids.n-1;
+	kids.e[which]->SetParent(NULL);
 	return kids.pop(which);
 }
 
@@ -192,6 +195,8 @@ LaxInterfaces::SomeData *GroupData::pop(int which)
 int GroupData::remove(int i)
 {
 	touchContents();
+	if (i<0 || i>=kids.n) i=kids.n-1;
+	kids.e[i]->SetParent(NULL);
 	return kids.remove(i);
 }
 
@@ -214,6 +219,9 @@ int GroupData::slide(int i1,int i2)
 //! Decrements all objects in kids vie kids.flush().
 void GroupData::flush()
 {
+	for (int c=0; c<kids.n; c++) {
+		kids.e[c]->SetParent(NULL);
+	}
 	kids.flush();
 	touchContents();
 }
