@@ -120,6 +120,7 @@ class RectInterface : public anInterface
 	Laxkit::ShortcutHandler *sc;
 	virtual int PerformAction(int action);
 	virtual int GetMode();
+	virtual void Modified(int level=0);
 
   public:
 	int maxtouchlen;
