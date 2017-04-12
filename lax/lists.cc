@@ -530,6 +530,8 @@ int PtrStack<T>::remove(int which) //which=-1
 {
 	if (which==-2) return 0;
 	if (which<0 || which>=n) which=n-1;
+	if (which<0) return 0;
+
 	char l=islocal[which];
 	T *t=pop(which);
 	if (t) {

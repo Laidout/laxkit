@@ -103,6 +103,8 @@ int RefPtrStack<T>::remove(int which) //which=-1
 {
 	if (which==-2) return 0;
 	if (which<0 || which>=PtrStack<T>::n) which=PtrStack<T>::n-1;
+	if (which<0) return 0;
+
 	char l=PtrStack<T>::islocal[which];
 	T *t=PtrStack<T>::pop(which);
 	if (t) {
