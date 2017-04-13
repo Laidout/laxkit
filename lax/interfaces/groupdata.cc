@@ -169,7 +169,7 @@ int GroupData::pushnodup(LaxInterfaces::SomeData *obj)
 	return c;
 }
 
-//! Pop d, but do not decrement its count.
+//! Pop d, do not decrement its count.
 /*! Returns 1 for item popped, 0 for not, such as when d is not a child.
  * Sets its parent to NULL.
  */
@@ -183,10 +183,13 @@ int GroupData::popp(LaxInterfaces::SomeData *d)
 	return c;
 }
 
-//! Return the popped item. Does not change its count, except to change its parent to NULL.
+/*! Return the popped item. Does not change its count, except to change its parent to NULL.
+ * If which out of bounds, pop the top. Else return NULL when nothing to pop.
+ */
 LaxInterfaces::SomeData *GroupData::pop(int which)
 {
 	if (which<0 || which>=kids.n) which=kids.n-1;
+	if (which<0) return NULL;
 	kids.e[which]->SetParent(NULL);
 	return kids.pop(which);
 }
