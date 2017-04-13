@@ -262,7 +262,7 @@ int RectInterface::UseThis(anObject *newdata,unsigned int) // assumes not use lo
 {
 	if (!newdata) return 0;
 	if (dynamic_cast<RectData *>(newdata) || dynamic_cast<SomeData *>(newdata)) {
-		if (data) deletedata();
+		if (somedata) deletedata();
 		somedata=dynamic_cast<SomeData *>(newdata);
 		somedata->inc_count();
 		data=dynamic_cast<RectData *>(newdata);
