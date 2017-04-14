@@ -530,36 +530,38 @@ unsigned long DisplayerCairo::NewFG(Color *col)
 //! Set new background. Color components are 0..0xffff.
 unsigned long DisplayerCairo::NewBG(ScreenColor *col)
 {
-	return NewBG((double)col->red/65535,(double)col->green/65535,(double)col->blue/65535);
+	return NewBG((double)col->red/65535,(double)col->green/65535,(double)col->blue/65535,(double)col->alpha/65535);
 }
 
-//! Set new foreground. Typically usage is NewFG(app->rgbcolor(23,34,234)).
+//! Set new foreground. ncol is 0xaabbggrr.
 unsigned long DisplayerCairo::NewFG(unsigned long ncol)
 {
-	int r,g,b;
-	colorrgb(ncol,&r,&g,&b);
-	return NewFG((double)r/255,(double)g/255,(double)b/255,1.0);
+	int r,g,b,a;
+	colorrgb(ncol,&r,&g,&b,&a);
+	return NewFG((double)r/255,(double)g/255,(double)b/255,(double)a/255);
 }
 
 //! Set new background color. Typically usage is NewFG(app->rgbcolor(.5,.8,0)).
 /*! Component range is [0..1.0].
  */
-unsigned long DisplayerCairo::NewBG(double r,double g,double b)
+unsigned long DisplayerCairo::NewBG(double r,double g,double b,double a)
 {
 	unsigned long old=BG();
 	if (r<0) r=0; else if (r>1.0) r=1.0;
 	if (g<0) g=0; else if (g>1.0) g=1.0;
 	if (b<0) b=0; else if (b>1.0) b=1.0;
-	bgRed=r; 
-	bgGreen=g;
-	bgBlue=b;
+	if (a<0) a=0; else if (a>1.0) a=1.0;
+	bgRed   = r; 
+	bgGreen = g;
+	bgBlue  = b;
+	bgAlpha = a;
 	return old;
 }
 
 //! Set new background. Typically usage is NewBG(app->rgbcolor(23,34,234)).
-unsigned long DisplayerCairo::NewBG(int r,int g,int b)
+unsigned long DisplayerCairo::NewBG(int r,int g,int b,int a)
 {
-	return NewBG((double)r/255,(double)g/255,(double)b/255);
+	return NewBG((double)r/255,(double)g/255,(double)b/255,(double)a/255);
 }
 	
 //! Set new background. Typically usage is NewBG(app->rgbcolor(23,34,234)).

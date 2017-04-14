@@ -120,8 +120,8 @@ class DisplayerCairo : public Displayer
 	virtual unsigned long NewFG(ScreenColor *col);
 	virtual unsigned long NewFG(Color *col);
 	virtual unsigned long NewFG(int r,int g,int b,int a=255);
-	virtual unsigned long NewBG(double r,double g,double b);
-	virtual unsigned long NewBG(int r,int g,int b);
+	virtual unsigned long NewBG(double r,double g,double b,double a=1.0);
+	virtual unsigned long NewBG(int r,int g,int b,int a=255);
 	virtual unsigned long NewBG(unsigned long nc);
 	virtual unsigned long NewBG(ScreenColor *col);
 	virtual unsigned long FG();

@@ -1537,7 +1537,7 @@ unsigned long DisplayerXlib::NewBG(ScreenColor *col)
 //! Set new background color. Typically usage is NewFG(app->rgbcolor(.5,.8,0)).
 /*! Component range is [0..1.0].
  */
-unsigned long DisplayerXlib::NewBG(double r,double g,double b)
+unsigned long DisplayerXlib::NewBG(double r,double g,double b,double a)
 {
 	unsigned long old=bgcolor;
 	bgcolor=rgbcolor((int)(r*255),(int)(g*255),(int)(b*255));
@@ -1546,7 +1546,7 @@ unsigned long DisplayerXlib::NewBG(double r,double g,double b)
 }
 
 //! Set new background. Typically usage is NewBG(app->rgbcolor(23,34,234)).
-unsigned long DisplayerXlib::NewBG(int r,int g,int b)
+unsigned long DisplayerXlib::NewBG(int r,int g,int b,int a)
 {
 	unsigned long old=bgcolor;
 	bgcolor=rgbcolor(r,g,b);

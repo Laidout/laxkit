@@ -119,8 +119,8 @@ class Displayer : public PanUser, virtual public anObject
 	virtual unsigned long NewFG(ScreenColor *col) = 0;
 	virtual unsigned long NewFG(Color *col) = 0;
 	virtual unsigned long NewFG(int r,int g,int b,int a=255) = 0;
-	virtual unsigned long NewBG(double r,double g,double b) = 0;
-	virtual unsigned long NewBG(int r,int g,int b) = 0;
+	virtual unsigned long NewBG(double r,double g,double b,double a=1.0) = 0;
+	virtual unsigned long NewBG(int r,int g,int b,int a=255) = 0;
 	virtual unsigned long NewBG(unsigned long nc) = 0;
 	virtual unsigned long NewBG(ScreenColor *col) = 0;
 	virtual unsigned long FG() = 0;

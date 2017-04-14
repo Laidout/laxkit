@@ -570,11 +570,12 @@ unsigned long coloravg(unsigned long a,unsigned long b,float r) //r==.5
 //! Decompose a pixel color into separate red, green, and blue components.
 /*! Does not check for NULL r, g, or b.
  */
-void colorrgb(unsigned long col,int *r,int *g,int *b)
+void colorrgb(unsigned long col,int *r,int *g,int *b,int *a)
 {
 	*r=((col&red_mask)   >> red_shift  ) * color_size / red_size;
 	*g=((col&green_mask) >> green_shift) * color_size / green_size;
 	*b=((col&blue_mask)  >> blue_shift ) * color_size / blue_size;
+	if (a) *a=((col&alpha_mask) >> alpha_shift) * color_size / alpha_size;
 }
 
 //! Get a pixel value suitable for X graphics functions from the r,g,b components.
@@ -582,7 +583,8 @@ unsigned long rgbcolor(int r,int g,int b)
 {
 	unsigned long c= (( r * red_size  /color_size) << red_shift )
 			+ ((g * green_size/color_size) << green_shift )
-			+ ((b * blue_size /color_size) << blue_shift);
+			+ ((b * blue_size /color_size) << blue_shift)
+			+ ((0xff * alpha_size /color_size) << alpha_shift);
 
 	return c;
 }
@@ -592,7 +594,8 @@ unsigned long rgbcolorf(double r,double g,double b)
 {
 	unsigned long c= (int(r * (red_size-1)  ) << red_shift )
 				   + (int(g * (green_size-1)) << green_shift )
- 				   + (int(b * (blue_size-1) ) << blue_shift);
+ 				   + (int(b * (blue_size-1) ) << blue_shift)
+ 				   + (int(1.0 * (alpha_size-1) ) << alpha_shift);
 
 	return c;
 }

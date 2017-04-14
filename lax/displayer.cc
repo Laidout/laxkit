@@ -1631,12 +1631,12 @@ void Displayer::Newmag(double xs,double ys)//ys=-1
  * \brief Set new foreground. Typically usage is NewFG(app->rgbcolor(23,34,234)).
  */
 
-/*! \fn unsigned long Displayer::NewBG(double r,double g,double b)
+/*! \fn unsigned long Displayer::NewBG(double r,double g,double b,double a)
  * \brief Set new background color. Typically usage is NewFG(app->rgbcolor(.5,.8,0)).
  * Component range is [0..1.0].
  */
 
-/*! \fn unsigned long Displayer::NewBG(int r,int g,int b)
+/*! \fn unsigned long Displayer::NewBG(int r,int g,int b,int a)
  * \brief Set new background. Typically usage is NewBG(app->rgbcolor(23,34,234)).
  */
 	

@@ -74,7 +74,7 @@ unsigned long pixelfromcolor(ScreenColor *col);
 unsigned long standoutcolor(const Laxkit::ScreenColor &color, bool bw);
 
 unsigned long coloravg(unsigned long a,unsigned long b,float r=.5);
-void colorrgb(unsigned long col,int *r,int *g,int *b);
+void colorrgb(unsigned long col,int *r,int *g,int *b,int *a=NULL);
 unsigned long rgbcolor(int r,int g,int b);
 unsigned long rgbcolorf(double r,double g,double b);
 void set_color_shift_info(unsigned int rm, unsigned int gm, unsigned int bm, unsigned int am);
