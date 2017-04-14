@@ -1322,10 +1322,7 @@ const char *RectInterface::hoverMessage(int p)
 	if (p==RP_Flip1 || p==RP_Flip2) return _("Drag to move flip axis");
 	if (p==RP_Flip_H || p==RP_Flip_V) return _("Click to flip, or drag to move axis");
 	if (p==RP_Flip_Go) return _("Click to flip, shift-click to keep line");
-	if (p==RP_Shear_N) return _("Shear");
-	if (p==RP_Shear_S) return _("Shear");
-	if (p==RP_Shear_E) return _("Shear");
-	if (p==RP_Shear_W) return _("Shear");
+	if (p==RP_Shear_N || p==RP_Shear_S || p==RP_Shear_E || p==RP_Shear_W) return _("Shear");
 	return NULL;
 }
 
@@ -1971,7 +1968,9 @@ int RectInterface::PerformAction(int action)
 		return 0;
 
 	} else if (action==RIA_ToggleFlipControls) {
-		style=(style&~RECT_FLIP_LINE)|RECT_FLIP_AT_SIDES;
+		if (style & RECT_FLIP_LINE) style = (style & ~RECT_FLIP_LINE) | RECT_FLIP_AT_SIDES;
+		else if (style & RECT_FLIP_AT_SIDES) style &= ~RECT_FLIP_AT_SIDES;
+		else style |= RECT_FLIP_AT_SIDES;
 		needtodraw=1;
 		return 0;
 
