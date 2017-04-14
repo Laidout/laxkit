@@ -208,7 +208,8 @@ int ObjectInterface::Refresh()
 		//dp->PopAxes();
 	}
 
-	dp->NewFG(coloravg(controlcolor,0));
+	ScreenColor black(0.,0.,0.,1.), col;
+	dp->NewFG(coloravg(&col, &controlcolor, &black));
 	flatpoint pn[4];
 	dp->LineAttributes(-1,LineSolid,LAXCAP_Butt,LAXJOIN_Miter);
 	SomeData *obj;

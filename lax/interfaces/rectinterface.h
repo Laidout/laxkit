@@ -104,6 +104,7 @@ class RectInterface : public anInterface
 	flatpoint flip1,flip2;
 	double rotatestep;
 	int hover;
+	int constrainx, constrainy;
 	int mousetarget;
 	int shiftmode;
 	flatpoint hoverpoint;
@@ -125,13 +126,14 @@ class RectInterface : public anInterface
 	virtual void Modified(int level=0);
 
 	virtual flatpoint ScreenToObject(double x,double y);
+	virtual flatpoint ScreenToObjectParent(double x,double y);
 
   public:
 	int maxtouchlen;
 	int extrapoints;
 	int griddivisions;
 	unsigned int style;
-	unsigned long controlcolor;
+	Laxkit::ScreenColor controlcolor, controltransp;
 	int creationstyle,createfrompoint,showdecs;
 
 	SomeData *somedata;

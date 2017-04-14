@@ -170,7 +170,9 @@ void RectData::centercenter()
 
 RectInterface::RectInterface(int nid,Displayer *ndp) : anInterface(nid,ndp)
 {
-	controlcolor=rgbcolor(0,148,178);
+	controlcolor .rgbf(0,.58,.7);
+	controltransp.rgbf(0,.58,.7, .6);
+
 	somedata=data=NULL;
 	showdecs=SHOW_OUTER_HANDLES|SHOW_INNER_HANDLES;
 	mousetarget=0; //whether to show a circle-target underneath mice
@@ -184,8 +186,9 @@ RectInterface::RectInterface(int nid,Displayer *ndp) : anInterface(nid,ndp)
 	transform_identity(extra_context);
 	use_extra = false;
 
-	rotatestep=M_PI/12;
+	rotatestep=M_PI/12; //15 deg
 	hover=RP_None;
+	constrainx = constrainy = 0;
 
 	dragmode=0; //should be normal operations. ignored by RectInterface, but can be used by subclasses
 	shiftmode=0; //0 for normal, 1 for was doing single mouse cntl zoom/rotate
@@ -388,7 +391,7 @@ int RectInterface::Refresh()
 
 	DBG cerr <<"  RectRefresh-";
 	//DBG dp->drawaxes(10);
-	dp->NewFG(controlcolor);
+	dp->NewFG(&controlcolor);
 	if (use_extra) dp->PushAndNewTransform(extra_context);
 	dp->PushAndNewTransform(somedata->m());
 		
@@ -408,7 +411,7 @@ int RectInterface::Refresh()
 	//DBG dp->drawline(0,0, 100,100);
 
 
-	 // draw dotted box
+	 // draw dotted box around somedata bounding box
 	//if (!(data->style&RECT_OFF)) {
 		dp->LineAttributes(1,LineDoubleDash,LAXCAP_Butt,LAXJOIN_Miter);
 		dp->DrawScreen();
@@ -429,7 +432,7 @@ int RectInterface::Refresh()
 	 // draw gridlines
 	//dp->NewFG(data->linestyle.color);
 //	if (data && data->griddivisions>0 && data->griddivisions<50) {
-//		dp->NewFG(controlcolor);
+//		dp->NewFG(&controlcolor);
 //		double x,y,w,h;
 //		w=somedata->maxx-somedata->minx;
 //		h=somedata->maxy-somedata->miny;
@@ -449,13 +452,15 @@ int RectInterface::Refresh()
 	 // draw control points;
 	if (showdecs && !(style&RECT_HIDE_CONTROLS)) { 
 
-		dp->NewFG(controlcolor);
+		dp->NewFG(&controlcolor);
 		dp->DrawScreen();
 		flatpoint p;
 		//DBG cerr <<"3";
 //		------------------------
 		
 		if ((showdecs&SHOW_OUTER_HANDLES) && (extrapoints==0 || extrapoints==HAS_CENTER1)) {
+			dp->NewBG(&controltransp);
+
 			int xtouchlen, ytouchlen;
 			xtouchlen=norm(ll-lr)/4;
 			ytouchlen=norm(ul-ll)/4;
@@ -475,14 +480,84 @@ int RectInterface::Refresh()
 			dp->drawline(ll-xtouchlen/2*vx+ytouchlen*vy, ul-xtouchlen/2*vx-ytouchlen*vy);
 			dp->drawline(lr+xtouchlen/2*vx+ytouchlen*vy, ur+xtouchlen/2*vx-ytouchlen*vy);
 
+			dp->NewFG(&controltransp);
+			if (hover == RP_Shear_N) {
+				dp->moveto(ul);
+				dp->lineto(ur);
+				dp->lineto(ur-xtouchlen*vx+ytouchlen/2*vy);
+				dp->lineto(ul+xtouchlen*vx+ytouchlen/2*vy);
+				dp->closed();
+				dp->fill(0);
+			} else if (hover == RP_Shear_S) {
+				dp->moveto(ll);
+				dp->lineto(lr);
+				dp->lineto(lr-xtouchlen*vx-ytouchlen/2*vy);
+				dp->lineto(ll+xtouchlen*vx-ytouchlen/2*vy);
+				dp->closed();
+				dp->fill(0);
+			} else if (hover == RP_Shear_W) {
+				dp->moveto(ul);
+				dp->lineto(ll);
+				dp->lineto(ll-xtouchlen/2*vx+ytouchlen*vy);
+				dp->lineto(ul-xtouchlen/2*vx-ytouchlen*vy);
+				dp->closed();
+				dp->fill(0);
+			} else if (hover == RP_Shear_E) {
+				dp->moveto(ur);
+				dp->lineto(lr);
+				dp->lineto(lr+xtouchlen/2*vx+ytouchlen*vy);
+				dp->lineto(ur+xtouchlen/2*vx-ytouchlen*vy);
+				dp->closed();
+				dp->fill(0);
+			}
+			dp->NewFG(&controlcolor);
+
+
 			if (showdecs&SHOW_INNER_HANDLES) {
 				 //inner horizontals
+				dp->NewFG(&controltransp);
 				dp->drawline(ll+ytouchlen*vy, lr+ytouchlen*vy);
 				dp->drawline(ul-ytouchlen*vy, ur-ytouchlen*vy);
 
 				 //inner verticals
 				dp->drawline(ll+xtouchlen*vx, ul+xtouchlen*vx);
 				dp->drawline(lr-xtouchlen*vx, ur-xtouchlen*vx);
+				dp->NewFG(&controlcolor);
+
+				dp->NewFG(&controltransp);
+				if (hover == RP_Scale_NE || hover == RP_Scale_N || hover == RP_Scale_NW) {
+					dp->moveto(ul);
+					dp->lineto(ur);
+					dp->lineto(ur-ytouchlen*vy);
+					dp->lineto(ul-ytouchlen*vy);
+					dp->closed();
+					dp->fill(0);
+				}
+				if (hover == RP_Scale_SE || hover == RP_Scale_S || hover == RP_Scale_SW) {
+					dp->moveto(ll);
+					dp->lineto(lr);
+					dp->lineto(lr+ytouchlen*vy);
+					dp->lineto(ll+ytouchlen*vy);
+					dp->closed();
+					dp->fill(0);
+				}
+				if (hover == RP_Scale_SW || hover == RP_Scale_W || hover == RP_Scale_NW) {
+					dp->moveto(ul);
+					dp->lineto(ll);
+					dp->lineto(ll+xtouchlen*vx);
+					dp->lineto(ul+xtouchlen*vx);
+					dp->closed();
+					dp->fill(0);
+				}
+				if (hover == RP_Scale_NE || hover == RP_Scale_E || hover == RP_Scale_SE) {
+					dp->moveto(ur);
+					dp->lineto(lr);
+					dp->lineto(lr-xtouchlen*vx);
+					dp->lineto(ur-xtouchlen*vx);
+					dp->closed();
+					dp->fill(0);
+				}
+				dp->NewFG(&controlcolor);
 			}
 
 			 //rotation handles
@@ -498,7 +573,7 @@ int RectInterface::Refresh()
 			b[3]=b[4]-v2;
 			b[5]=b[4]+v2;
 			b[6]=b[7]-v1;
-			dp->drawbez(b,3, 0,0);
+			dp->drawbez(b,3, 0, hover==RP_Rotate_SW ? 2: 0);
 
 			b[1]=lr + xtouchlen/2*vx + ytouchlen  *vy;
 			b[4]=lr + xtouchlen/2*vx - ytouchlen/2*vy;
@@ -507,7 +582,7 @@ int RectInterface::Refresh()
 			b[3]=b[4]+v1;
 			b[5]=b[4]-v1;
 			b[6]=b[7]-v2;
-			dp->drawbez(b,3, 0,0);
+			dp->drawbez(b,3, 0, hover==RP_Rotate_SE ? 2: 0);
 
 			b[1]=ur - xtouchlen  *vx + ytouchlen/2*vy;
 			b[4]=ur + xtouchlen/2*vx + ytouchlen/2*vy;
@@ -516,7 +591,7 @@ int RectInterface::Refresh()
 			b[3]=b[4]+v2;
 			b[5]=b[4]-v2;
 			b[6]=b[7]+v1;
-			dp->drawbez(b,3, 0,0);
+			dp->drawbez(b,3, 0, hover==RP_Rotate_NE ? 2: 0);
 
 			b[1]=ul - xtouchlen/2*vx - ytouchlen  *vy;
 			b[4]=ul - xtouchlen/2*vx + ytouchlen/2*vy;
@@ -525,9 +600,11 @@ int RectInterface::Refresh()
 			b[3]=b[4]-v1;
 			b[5]=b[4]+v1;
 			b[6]=b[7]+v2;
-			dp->drawbez(b,3, 0,0);
+			dp->drawbez(b,3, 0, hover==RP_Rotate_NW ? 2: 0);
 		} //show scale/rotate/shear handles
 
+
+		 //draw extra control points
 		if ((extrapoints&HAS_CENTER1) || hover==RP_Faux_Center1) {
 			if (hover==RP_Faux_Center1) p=hoverpoint;
 			else p=dp->realtoscreen(getpoint(RP_Center1,0));
@@ -549,47 +626,49 @@ int RectInterface::Refresh()
 			dp->drawarrow(p,-v,0,10,0);
 		} 
 
-		if (hover!=RP_None) {
-			 //scale and shear show double arrows pointing in various directions
-			 //rotate shows rotate arrows
-			flatpoint m,mid=getpoint(RP_Middle,0);
-			flatpoint p,dir;
-			int type=0;
-			if (hover==RP_Scale_N) { type=1; p=getpoint(RP_N,0); m=mid; }
-			else if (hover==RP_Scale_NE) { type=1; p=getpoint(RP_NE,0); m=mid; }
-			else if (hover==RP_Scale_E) { type=1; p=getpoint(RP_E,0); m=mid; }
-			else if (hover==RP_Scale_SE) { type=1; p=getpoint(RP_SE,0); m=mid; }
-			else if (hover==RP_Scale_S ) { type=1; p=getpoint(RP_S ,0); m=mid; }
-			else if (hover==RP_Scale_SW) { type=1; p=getpoint(RP_SW,0); m=mid; }
-			else if (hover==RP_Scale_W ) { type=1; p=getpoint(RP_W ,0); m=mid; }
-			else if (hover==RP_Scale_NW) { type=1; p=getpoint(RP_NW,0); m=mid; }
-
-			else if (hover==RP_Shear_N) { type=1; p=getpoint(RP_N,0); m=getpoint(RP_NE,0); }
-			else if (hover==RP_Shear_S) { type=1; p=getpoint(RP_S,0); m=getpoint(RP_SE,0); }
-			else if (hover==RP_Shear_E) { type=1; p=getpoint(RP_E,0); m=getpoint(RP_NE,0); }
-			else if (hover==RP_Shear_W) { type=1; p=getpoint(RP_W,0); m=getpoint(RP_NW,0); }
-
-			else if (hover==RP_Rotate_NW) { type=2; p=getpoint(RP_NW,0); m=mid; }
-			else if (hover==RP_Rotate_NE) { type=2; p=getpoint(RP_NE,0); m=mid; }
-			else if (hover==RP_Rotate_SE) { type=2; p=getpoint(RP_SE,0); m=mid; }
-			else if (hover==RP_Rotate_SW) { type=2; p=getpoint(RP_SW,0); m=mid; }
-
-			if (type!=0) {
-				p=dp->realtoscreen(p);
-				m=dp->realtoscreen(m);
-			}
-			int arrowlen=10;
-			if (type==1) {
-				 //draw double arrows
-				dp->drawarrow(p,p-m,0,arrowlen,0);
-				dp->drawarrow(p,m-p,0,arrowlen,0);
-			} else if (type==2) {
-				 // ***  draw arc !!! not double arrows
-				m=transpose(p-m);
-				dp->drawarrow(p,m,0,arrowlen,0);
-				dp->drawarrow(p,-m,0,arrowlen,0);
-			}
-		}
+//		if (hover!=RP_None) {
+//			 //scale and shear show double arrows pointing in various directions
+//			 //rotate shows rotate arrows
+//			flatpoint m,mid=getpoint(RP_Middle,0);
+//			flatpoint p,dir;
+//			double w,h;
+//			int type=0;
+//
+//			if (hover==RP_Scale_N)       { type=1; p=getpoint(RP_N,0);  m=mid; }
+//			else if (hover==RP_Scale_NE) { type=1; p=getpoint(RP_NE,0); m=mid; }
+//			else if (hover==RP_Scale_E)  { type=1; p=getpoint(RP_E,0);  m=mid; }
+//			else if (hover==RP_Scale_SE) { type=1; p=getpoint(RP_SE,0); m=mid; }
+//			else if (hover==RP_Scale_S ) { type=1; p=getpoint(RP_S ,0); m=mid; }
+//			else if (hover==RP_Scale_SW) { type=1; p=getpoint(RP_SW,0); m=mid; }
+//			else if (hover==RP_Scale_W ) { type=1; p=getpoint(RP_W ,0); m=mid; }
+//			else if (hover==RP_Scale_NW) { type=1; p=getpoint(RP_NW,0); m=mid; }
+//
+//			else if (hover==RP_Shear_N) { type=1; p=getpoint(RP_N,0); m=getpoint(RP_NE,0); }
+//			else if (hover==RP_Shear_S) { type=1; p=getpoint(RP_S,0); m=getpoint(RP_SE,0); }
+//			else if (hover==RP_Shear_E) { type=1; p=getpoint(RP_E,0); m=getpoint(RP_NE,0); }
+//			else if (hover==RP_Shear_W) { type=1; p=getpoint(RP_W,0); m=getpoint(RP_NW,0); }
+//
+//			else if (hover==RP_Rotate_NW) { type=2; p=getpoint(RP_NW,0); m=mid; }
+//			else if (hover==RP_Rotate_NE) { type=2; p=getpoint(RP_NE,0); m=mid; }
+//			else if (hover==RP_Rotate_SE) { type=2; p=getpoint(RP_SE,0); m=mid; }
+//			else if (hover==RP_Rotate_SW) { type=2; p=getpoint(RP_SW,0); m=mid; }
+//
+//			if (type!=0) {
+//				p=dp->realtoscreen(p);
+//				m=dp->realtoscreen(m);
+//			}
+//			int arrowlen=10;
+//			if (type==1) {
+//				 //draw double arrows
+//				dp->drawarrow(p,p-m,0,arrowlen,0);
+//				dp->drawarrow(p,m-p,0,arrowlen,0);
+//			} else if (type==2) {
+//				 // ***  draw arc !!! not double arrows
+//				m=transpose(p-m);
+//				dp->drawarrow(p,m,0,arrowlen,0);
+//				dp->drawarrow(p,-m,0,arrowlen,0);
+//			}
+//		}
 
 		if ((style&RECT_FLIP_AT_SIDES) && (showdecs&SHOW_OUTER_HANDLES)) {
 			int fill;
@@ -710,7 +789,7 @@ flatpoint RectInterface::getpoint(int c,int trans)
 	}
 	if (trans) {
 		p = transform_point(somedata->m(), p);
-		if (use_extra) p = transform_point(extra_context, p);
+		//if (use_extra) p = transform_point(extra_context, p);
 	}
 	return p;
 }
@@ -930,9 +1009,7 @@ int RectInterface::LBDown(int x,int y,unsigned int state,int count,const Laxkit:
 		if (extrapoints&HAS_CENTER2) anchors++;
 		if (anchors+buttondown.any(0,LEFTBUTTON)>3) return 0; //do not allow more than 3 active points
 
-		leftp = dp->screentoreal(x,y);
-		if (use_extra) transform_point_inverse(extra_context, leftp);
-		leftp = transform_point_inverse(somedata->m(), leftp);
+		leftp = ScreenToObject(x,y);
 
 		int c=scan(x,y);
 		int curpoint=RP_None;
@@ -1203,25 +1280,28 @@ int RectInterface::LBUp(int x,int y,unsigned int state,const Laxkit::LaxMouse *d
 		if ((state&LAX_STATE_MASK)==ControlMask) {
 			 //create 1st anchor point
 			if (extrapoints==0 && curpoint==RP_Move) {
-				extrapoints|=HAS_CENTER1;
-				center1=transform_point_inverse(somedata->m(),dp->screentoreal(x,y));
-				needtodraw|=2;
+				extrapoints |= HAS_CENTER1;
+				//center1 = transform_point_inverse(somedata->m(),dp->screentoreal(x,y));
+				center1 = ScreenToObject(x,y);
+				needtodraw |= 2;
 				return 0;
 			}
 
 			 // Create 2nd anchor point
 			if (extrapoints==HAS_CENTER1 && curpoint==RP_Move) {
-				extrapoints|=HAS_CENTER2;
-				center2=transform_point_inverse(somedata->m(),dp->screentoreal(x,y));
-				needtodraw|=2;
+				extrapoints |= HAS_CENTER2;
+				//center2=transform_point_inverse(somedata->m(),dp->screentoreal(x,y));
+				center2 = ScreenToObject(x,y);
+				needtodraw |= 2;
 				return 0;
 			}
 
 			 // Create a shear point
 			if (extrapoints==(HAS_CENTER1|HAS_CENTER2) && curpoint==RP_Move) {
-				extrapoints|=HAS_SHEARPOINT;
-				shearpoint=transform_point_inverse(somedata->m(),dp->screentoreal(x,y));
-				needtodraw|=2;
+				extrapoints |= HAS_SHEARPOINT;
+				//shearpoint=transform_point_inverse(somedata->m(),dp->screentoreal(x,y));
+				shearpoint = ScreenToObject(x,y);
+				needtodraw |= 2;
 				return 0;
 			}
 		}
@@ -1242,9 +1322,15 @@ const char *RectInterface::hoverMessage(int p)
 	if (p==RP_Flip1 || p==RP_Flip2) return _("Drag to move flip axis");
 	if (p==RP_Flip_H || p==RP_Flip_V) return _("Click to flip, or drag to move axis");
 	if (p==RP_Flip_Go) return _("Click to flip, shift-click to keep line");
+	if (p==RP_Shear_N) return _("Shear");
+	if (p==RP_Shear_S) return _("Shear");
+	if (p==RP_Shear_E) return _("Shear");
+	if (p==RP_Shear_W) return _("Shear");
 	return NULL;
 }
 
+/*! Transform screen point (x,y) to object space, basically (x,y) -> dp->screentoreal -> extra_context^-1 -> somedata^-1.
+ */
 flatpoint RectInterface::ScreenToObject(double x,double y)
 {
 	flatpoint p = dp->screentoreal(x,y);
@@ -1252,6 +1338,16 @@ flatpoint RectInterface::ScreenToObject(double x,double y)
 	p = somedata->transformPointInverse(p);
 	return p;
 }
+
+/*! Transform screen point (x,y) to object parent space, basically (x,y) -> dp->screentoreal -> extra_context^-1 -> somedata^-1.
+ */
+flatpoint RectInterface::ScreenToObjectParent(double x,double y)
+{
+	flatpoint p = dp->screentoreal(x,y);
+	if (use_extra) p = transform_point_inverse(extra_context, p);
+	return p;
+}
+
 
 /*! move drags point, control-move rotates and shears
  * <pre>
@@ -1291,7 +1387,7 @@ int RectInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMou
 		return 0;
 	}
 
-	int curpoint=RP_None,mx,my;
+	int curpoint=RP_None, mx,my;
 	buttondown.move(mouse->id,x,y,&mx,&my);
 	buttondown.getextrainfo(mouse->id,LEFTBUTTON,&curpoint);
 
@@ -1315,7 +1411,8 @@ int RectInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMou
 	 // shear: control-move on a mid point
 	 // rotate: control-move on a corner point
  
-	flatpoint d = dp->screentoreal(x,y) - dp->screentoreal(mx,my);
+	//flatpoint d = dp->screentoreal(x,y) - dp->screentoreal(mx,my);
+	flatpoint d = ScreenToObjectParent(x,y) - ScreenToObjectParent(mx,my);
 	flatpoint op;
 
 	if (curpoint==RP_Flip_H || curpoint==RP_Flip_V || curpoint==RP_Flip1 || curpoint==RP_Flip2) {
@@ -1329,16 +1426,7 @@ int RectInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMou
 		//----
 		d=np-op;
 
-		if (curpoint==RP_Flip_H || curpoint==RP_Flip_V) {
-			style&=~RECT_FLIP_AT_SIDES;
-			style|=RECT_FLIP_LINE;
-			flip1=op;
-			flip2=np;
-			buttondown.moveinfo(mouse->id,LEFTBUTTON, RP_Flip2,0);
-			needtodraw|=2;
-			return 0;
-
-		} else if (curpoint==RP_Flip1) {
+		if (curpoint==RP_Flip1) {
 			flip1+=d;
 			needtodraw|=2;
 			return 0;
@@ -1348,6 +1436,16 @@ int RectInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMou
 			needtodraw|=2;
 			return 0;
 		}
+
+		//else is (curpoint==RP_Flip_H || curpoint==RP_Flip_V)
+
+		style &= ~RECT_FLIP_AT_SIDES;
+		style |= RECT_FLIP_LINE;
+		flip1 = op;
+		flip2 = np;
+		buttondown.moveinfo(mouse->id,LEFTBUTTON, RP_Flip2,0);
+		needtodraw|=2;
+		return 0; 
 	}
 
 	if (curpoint==RP_Move && extrapoints==0 && buttondown.any(0,LEFTBUTTON)==1) {
@@ -1358,12 +1456,7 @@ int RectInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMou
 		int ix,iy;
 		buttondown.getinitial(mouse->id,LEFTBUTTON,&ix,&iy);
 
-		//------
 		flatpoint leftp = ScreenToObject(ix,iy);
-		//------
-		//flatpoint leftp=dp->screentoreal(ix,iy); //real constant point
-		//leftp=transform_point_inverse(somedata->m(),leftp);
-		//------
 
 		DBG cerr <<"  initial scr:"<<ix<<","<<iy<<"  real:"<<leftp.x<<','<<leftp.y<<"   "<<somedata->whattype()<<endl;
 
@@ -1375,7 +1468,8 @@ int RectInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMou
 			double dd=double(x-mx);
 			dd=1+.02*dd;
 			if (dd<0.1) dd=0.1;
-			flatpoint p=transform_point(somedata->m(),leftp); //screen constant point
+
+			flatpoint p = transform_point(somedata->m(), leftp); //screen constant point
 			somedata->xaxis(dd*somedata->xaxis());
 			somedata->yaxis(dd*somedata->yaxis());
 			somedata->origin(somedata->origin()+p-transform_point(somedata->m(),leftp));
@@ -1383,11 +1477,11 @@ int RectInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMou
 		} else if ((state&LAX_STATE_MASK)==(ControlMask|ShiftMask)) {
 			 // rotate around leftp based on x movement
 			double a;
-			a=(x-mx)/180.0*M_PI;
-			flatpoint p=transform_point(somedata->m(),leftp);
+			a = (x-mx)/180.0*M_PI;
+			flatpoint p = transform_point(somedata->m(),leftp);
 			somedata->xaxis(rotate(somedata->xaxis(),a,0));
 			somedata->yaxis(rotate(somedata->yaxis(),a,0));
-			somedata->origin(somedata->origin()+p-transform_point(somedata->m(),leftp));
+			somedata->origin(somedata->origin() + p - transform_point(somedata->m(), leftp));
 		}
 
 		needtodraw=1;
@@ -1464,7 +1558,7 @@ int RectInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMou
 		}
 		
 		if (action==RP_Shearpoint) {
-			 // on the shear handle
+			 // move the shear point handle
 			DBG cerr <<"==============shear: curpoint="<<curpoint<<endl;
 
 			if ((state&LAX_STATE_MASK)!=0) {
@@ -1583,16 +1677,19 @@ int RectInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMou
 		return 0;
 	}
 
+
 	//--------------deal with shifting handles
 
 	 // handle rotating from dragging on corner point
 	if (curpoint==RP_Rotate_NW || curpoint==RP_Rotate_NE || curpoint==RP_Rotate_SE || curpoint==RP_Rotate_SW) {
 		flatpoint center,np;
-		if (extrapoints) center=transform_point(somedata->m(),center1);
-		else center=getpoint(RP_Middle,1);
+		if (extrapoints) center = transform_point(somedata->m(),center1);
+		else center = getpoint(RP_Middle,1);
 
-		op=dp->screentoreal(mx,my) - center;
-	 	np=op + d;
+		//op = dp->screentoreal(mx,my) - center;
+		op = ScreenToObjectParent(mx,my) - center;
+	 	np = op + d;
+
 		if ((op*op)*(np*np)!=0) {
 			double a=asin((op.x*np.y-op.y*np.x)/sqrt((op*op)*(np*np)));
 			xdir=rotate(xdir,a,0);
@@ -1616,7 +1713,7 @@ int RectInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMou
 			  qb = transform_point(somedata->m(),flatpoint(0,somedata->miny)),
 			  qt = transform_point(somedata->m(),flatpoint(0,somedata->maxy));
 
-	int keepaspect=(somedata->flags&(SOMEDATA_KEEP_ASPECT|SOMEDATA_KEEP_1_TO_1)); //***<--treats them the same
+	int keepaspect=(somedata->flags&(SOMEDATA_KEEP_ASPECT|SOMEDATA_KEEP_1_TO_1)); //***<--treats them the same, they are not the same!!
 	if ((state&LAX_STATE_MASK)&ControlMask) keepaspect=!keepaspect;
 
 	 // simple resizing by dragging border points
@@ -1787,7 +1884,7 @@ int RectInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMou
 	syncFromData(0);
 	Modified();
 	return 0;
-}
+} //MouseMove
 
 Laxkit::ShortcutHandler *RectInterface::GetShortcuts()
 {
@@ -1959,6 +2056,16 @@ int RectInterface::CharInput(unsigned int ch, const char *buffer,int len,unsigne
 		showdecs|=SHOW_TARGET;
 		mousetarget++;
 		needtodraw=1;
+
+		 //if newly pressing control, make new const point be current mouse
+		int device=buttondown.whichdown(0,LEFTBUTTON);
+		if (device) {
+			int mx,my, i1,i2;
+			buttondown.getcurrent(device, LEFTBUTTON, &mx,&my);
+			buttondown.up(device, LEFTBUTTON, &i1, &i2);
+			buttondown.down(device, LEFTBUTTON, mx,my, i1,i2);
+			leftp = ScreenToObject(mx,my);
+		}
 		return 0;
 
 	} else if (ch==LAX_Esc) {
