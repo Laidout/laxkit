@@ -224,8 +224,10 @@ void MessageBar::Refresh()
 			if (!thetext) needtodraw=0;
 			return;
 		}
+		firsttime = 0;
 	}
-	//DBG cerr <<"mesbar("<<WindowTitle()<<")drawing..";
+
+	//DBG cerr <<"mesbar("<<WindowTitle()<<")drawing at: "<<ox<<','<<oy<<endl;
 	
 	Displayer *dp=MakeCurrent();
 	dp->font(app->defaultlaxfont);
@@ -233,6 +235,7 @@ void MessageBar::Refresh()
 	dp->NewBG(win_colors->bg);
 	dp->NewFG(win_colors->fg);
 	dp->ClearWindow();
+
 	int l=0;
 	for (int c=0; c<nlines; c++) {
 		l=strlen(thetext[c]);
@@ -241,7 +244,6 @@ void MessageBar::Refresh()
 	}
 
 	needtodraw=0;
-	//DBG cerr <<"done  ";
 	return;
 }
 
@@ -273,7 +275,7 @@ char *MessageBar::GetText()
 	for (int c=0; c<nlines; c++) {
 		strcat(str,thetext[c]); //actual newlines are embedded in the lines
 	}
-	DBG cerr <<"len of GetText:"<<strlen(str)<<endl;
+	//DBG cerr <<"len of GetText:"<<strlen(str)<<endl;
 	return str;
 }
 
@@ -282,11 +284,12 @@ int MessageBar::LBUp(int x,int y,unsigned int state,const LaxMouse *d)
 	buttondown.up(d->id, LEFTBUTTON);
 
 	if (!(win_style&MB_COPY))return 1;
+
 	 //	copy to clipboard
 	char *str=GetText();
 	if (str){
 		app->CopytoBuffer(str,strlen(str)); 
-		DBG cerr <<"(mb copy: "<<str<<")\n";
+		//DBG cerr <<"(mb copy: "<<str<<")\n";
 		delete[] str;
 	}
 	return 0;
@@ -318,8 +321,10 @@ int MessageBar::RBUp(int x,int y,unsigned int state,const LaxMouse *d)
  */
 int MessageBar::MouseMove(int x,int y,unsigned int state,const LaxMouse *d)
 {
-	//DBG cerr<<"\nMB:";
 	if (!buttondown.any(d->id) || !(win_style&MB_MOVE)) return 1;
+
+	//DBG cerr<<"\nMB move:";
+
 	buttondown.move(d->id, x,y);
 	buttondown.average(-1, &x,&y);
 
@@ -327,9 +332,11 @@ int MessageBar::MouseMove(int x,int y,unsigned int state,const LaxMouse *d)
 	if ((state&LAX_STATE_MASK)==ShiftMask || (state&LAX_STATE_MASK)==ControlMask) mult=4;
 	else if ((state&LAX_STATE_MASK)==(ShiftMask|ControlMask)) mult=8;
 
+	//DBG cerr <<"mb try move "<<ox<<','<<oy;
 	if (win_style&MB_MOVE) { ox+=mult*(x-msx); oy+=mult*(y-msy); }
-	//DBG cerr <<ox<<','<<oy;
+	//DBG cerr <<"  -->  "<<ox<<','<<oy;
 
+	 //clamp if necessary
 	if (x-msx>0) { // moving right
 		if (ox-padx>0 && ox+padx+ex>win_w) { if (ex+2*padx<win_w) ox=win_w-ex-padx; else ox=padx; }
 	} else if (x-msx<0) { // moving left
@@ -337,7 +344,8 @@ int MessageBar::MouseMove(int x,int y,unsigned int state,const LaxMouse *d)
 	}
 
 	if (y-msy>0) { // move down
-	//DBG cerr <<" ============ ey="<<ey<<" oy-fasc="<<oy-fasc<<" pady="<<pady<<" win_h="<<win_h<<endl;
+		//DBG cerr <<" ============ ey="<<ey<<" oy-fasc="<<oy-fasc<<" pady="<<pady<<" win_h="<<win_h<<endl;
+
 		if (oy-fasc-pady>0 && pady+oy-fasc+ey+pady>win_h) { // box is below upper pad, lower edge is below lower pad
 			if (ey+2*pady<win_h) oy=win_h-ey-pady+fasc; // box fits in window
 			else oy=fasc+pady; // box does not fit in window
@@ -345,6 +353,8 @@ int MessageBar::MouseMove(int x,int y,unsigned int state,const LaxMouse *d)
 	} else if (y-msy<0) { // move up
 		if (oy-fasc-pady<=0 && oy-fasc+pady+ey<win_h) { if (ey+2*pady<win_h) oy=fasc+pady; else oy=win_h-ey-pady+fasc; }
 	}
+
+	//DBG cerr <<"  end at  "<<ox<<','<<oy<<endl;
 
 	msx=x; msy=y;
 	needtodraw=1;
