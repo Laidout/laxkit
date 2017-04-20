@@ -29,6 +29,12 @@ namespace Laxkit {
 
 //---------------------------- NewWindowObject ---------------------------------
 
+/*! \class NewWindowObject
+ *
+ * Class to simplify creation of new window objects.
+ * See, for instance, SplitWindow.
+ */
+
 NewWindowObject::NewWindowObject(const char *nname,const char *ndesc,unsigned long nstyle,NewWindowFunc f)
 {
 	name=newstr(nname);
