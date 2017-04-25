@@ -118,7 +118,8 @@ void ScreenColor::cmykf(double c, double m, double y, double k, double a)
 	alpha=(a*65535+.5);
 }
 
-/*! Add the amounts to the colors. If the addition will overflow the subtract instead.
+/*! Add the amounts to the colors, where they are in scale [0..1].
+ * If the addition will overflow the subtract instead.
  * If subtracting will underflow, then use 0. You shouldn't use such big diffs anyway.
  */
 void ScreenColor::AddDiff(double r, double g, double b)
@@ -154,6 +155,37 @@ void ScreenColor::AddDiff(double r, double g, double b)
 		if (blue>65535) blue=65535;
 	}
 }
+
+/*! Put the average color with this in result.
+ * r==0 is just this, r==1 is color.
+ *
+ * result can't be NULL.
+ */
+void ScreenColor::Average(ScreenColor *result, const ScreenColor &color, double r)
+{
+	result->red   = red  *(1-r) + color.red  *r;
+	result->green = green*(1-r) + color.green*r;
+	result->blue  = blue *(1-r) + color.blue *r;
+	result->alpha = alpha*(1-r) + color.alpha*r;
+}
+
+/*! Make sure the channel values are [0..65535].
+ */
+void ScreenColor::Clamp()
+{
+	if (red<0) red=0;
+	else if (red>65535) red=65535;
+
+	if (green<0) green=0;
+	else if (green>65535) green=65535;
+
+	if (blue<0) blue=0;
+	else if (blue>65535) blue=65535;
+
+	if (alpha<0) alpha=0;
+	else if (alpha>65535) alpha=65535;
+}
+
 
 } // namespace Laxkit
 

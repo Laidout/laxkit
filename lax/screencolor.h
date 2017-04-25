@@ -59,6 +59,8 @@ class ScreenColor
 	double Alpha() { return alpha/65535.; }
 
 	void AddDiff(double r, double g, double b);
+	void Average(ScreenColor *result, const ScreenColor &color, double r);
+	void Clamp();
 
 	unsigned long Pixel();
 	int equals(ScreenColor &color);
