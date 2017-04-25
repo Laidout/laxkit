@@ -26,8 +26,9 @@ USEGL="yes"
 USESQLITE="yes"
 LAXKITBACKEND="cairo"
 ONAMAC="no"
-PLATFORM="linux"
 FORCE="no"
+ #linux, or qt
+PLATFORM="linux"
 
 if [ ! -e /usr/include/X11/extensions/XInput2.h ] ; then unset USEXINPUT2; fi
 
@@ -56,13 +57,13 @@ while true ; do
         echo " --help                       Show this stuff"
         echo " --prefix=/where/to/install   Default /usr/local"
         echo " --configdir=/path/to/config  Default ~/.laxkit/(version)"
+		echo " --platform=linux             Only linux is implemented. Someday also headless or qt."
 #		echo " --disable-gl                 Do not build opengl components. Default is to built them."
         echo " --disable-imlib              Do not build Imlib2 components. Default is to built them."
         echo " --disable-cairo              Do not build cairo components. Default is to built them."
         echo " --disable-xinput2            Use this option if you do not have at least Xorg 7.5 for MPX."
         echo " --disable-sqlite             Optional. Used to get font tags in Fontmatrix database (if it exists)"
-		echo " --backend=cairo              Use xlib or cairo. cairo is more capable."
-		echo " --platform=linux             Only linux is implemented. Someday mac or windows."
+		echo " --backend=cairo              Use xlib or cairo. cairo is default. xlib is deprecated."
 #       echo " --onamac                     Include this if you are compiling on a Mac."
 		echo " --force                      Try to compile even when libraries are not detected by ./configure"
 		echo " --version=OtherVersionNum    You may force Laxkit to compile with a different"
@@ -147,9 +148,9 @@ while true ; do
 done
 
 #if [[ $PLATFORM != "linux" && $PLATFORM != "mac" && $PLATFORM != "windows" ]] ;
-#	PLATFORM="linux";
-#fi;
-PLATFORM="linux";
+if [[ $PLATFORM != "linux" && $PLATFORM != "headless" && $PLATFORM != "qt" ]] ;
+	PLATFORM="linux";
+fi;
 
 
 #if [ x$USEGL    != x ] ;   then EXTRAS="$EXTRAS -DLAX_USES_GL";   fi
@@ -261,7 +262,11 @@ echo "#define LAX_INSTALL_PREFIX   \"$PREFIX\"" >> lax/configured.h
 echo "#define LAX_SHARED_DIRECTORY \"$PREFIX/share/laxkit/$LAXKITVERSION/\"" >> lax/configured.h
 echo "#define LAX_CONFIG_DIRECTORY \"$LAXKITCONFIGDIR\"" >> lax/configured.h
 echo "" >> lax/configured.h
-echo "#define _LAX_PLATFORM_XLIB" >> lax/configured.h
+
+if [ $PLATFORM == "linux"    ] ; then echo "#define _LAX_PLATFORM_XLIB"     >> lax/configured.h
+if [ $PLATFORM == "qt"       ] ; then echo "#define _LAX_PLATFORM_QT"       >> lax/configured.h
+if [ $PLATFORM == "headless" ] ; then echo "#define _LAX_PLATFORM_HEADLESS" >> lax/configured.h
+
 echo "#define LAX_DEFAULT_BACKEND \"$LAXKITBACKEND\"" >> lax/configured.h
 if [ x$USEGL      != x ] ; then echo "#define LAX_USES_GL" >> lax/configured.h; fi
 if [ x$USEXLIB    != x ] ; then echo "#define LAX_USES_XLIB" >> lax/configured.h; fi
@@ -321,7 +326,7 @@ then echo "      Use Sqlite:  yes" >> config.log;
 else echo "      Use Sqlite:  no"  >> config.log; 
 fi
 echo " Default backend:  $LAXKITBACKEND" >> config.log
-#echo "        Platform:  $PLATFORM" >> config.log
+echo "        Platform:  $PLATFORM" >> config.log
 
 
 
@@ -353,6 +358,7 @@ then echo "      Use Sqlite:  yes";
 else echo "      Use Sqlite:  no" ; 
 fi
 echo " Default backend:  $LAXKITBACKEND"
+echo "        Platform:  $PLATFORM"
 echo
 echo "Now type make to build.";
 
