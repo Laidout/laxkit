@@ -110,7 +110,7 @@ IconNode::~IconNode()
 /*! Icons are added only when needed by GetIcon(), which uses findicon().
  */
 IconManager::IconManager()
-	: icon_path(2)
+	: icon_path(LISTS_DELETE_Array)
 {}
 
 IconManager::~IconManager()
