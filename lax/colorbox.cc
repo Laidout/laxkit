@@ -531,7 +531,6 @@ int ColorBox::MouseMove(int x,int y,unsigned int state, const LaxMouse *d)
 	if (colortype==LAX_COLOR_RGB) sprintf(blah,"%f,%f,%f,%f",Red(),Green(),Blue(),Alpha());
 	else if (colortype==LAX_COLOR_CMYK) sprintf(blah,"%f,%f,%f,%f,%f",Cyan(),Magenta(),Yellow(),Black(),Alpha());
 	else sprintf(blah,"%f,%f",Gray(),Alpha());
-	app->postmessage(blah);
 
 	if (win_style&COLORBOX_SEND_ALL) send();
 	return 0;
