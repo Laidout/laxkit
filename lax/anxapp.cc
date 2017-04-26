@@ -29,6 +29,9 @@
 #include <cerrno>
 
 
+
+#ifdef _LAX_PLATFORM_XLIB
+
 #define XK_MISCELLANY
 #define XK_XKB_KEYS
 #include <X11/Xatom.h>
@@ -44,6 +47,7 @@
 #  define GenericEvent 36
 #endif
 #endif
+#endif //_LAX_PLATFORM_XLIB
 
 
 #include <lax/configured.h>
@@ -121,8 +125,11 @@ static struct tms tmsstruct;
 //TopWindow, IsWindowChild, and eventscreen are used in anXApp,
 //xlib_event_name() is just used for debugging messages.
 
+#ifdef _LAX_PLATFORM_XLIB
 int eventscreen(int e_type,unsigned long mask);
 const char *xlib_event_name(int e_type);
+#endif //_LAX_PLATFORM_XLIB
+
 
 //! Check if a window (check) is the same as or is descended from another (top). 
 /*!  \ingroup misc
@@ -521,14 +528,24 @@ anXApp *anXApp::app=NULL;
 anXApp::anXApp()
 {
 	 //--------- note that nothing in this constructor depends on an x connections
+#ifdef _LAX_PLATFORM_XLIB
 	XInitThreads();
+	use_xinput=2;
+	xscreeninfo=NULL;
+
+	xim_current_device=NULL;
+	xim=NULL;
+	xim_ic=NULL;
+	xim_fontset=NULL;
+	xim_deadkey=0;
+#endif //_LAX_PLATFORM_XLIB
+
 
 	app=this;
 	dpy=NULL;
 	vis=NULL;
 	dialog_mask=LAX_DIALOG_INPUTS;
 	donotusex=0;
-	use_xinput=2;
 	devicemanager=NULL;
 	//bump_fd=-1;
 	bump_xid=0;
@@ -537,7 +554,6 @@ anXApp::anXApp()
 	default_language=newstr("");
 
 	screen=0;
-	xscreeninfo=NULL;
 
 	 //base default styling
 	color_panel=color_menu=color_edits=color_buttons=NULL; //these are initialized in init()
@@ -566,12 +582,6 @@ anXApp::anXApp()
 	DBG cerr <<"_SC_CLK_TCK="<<sysconf(_SC_CLK_TCK)<<"  dblclk:"<<dblclk<<" firstclk:"<<firstclk<<" idleclk:"<<idleclk<<endl;
 
 	dataevents=dataevente=NULL;
-
-	xim_current_device=NULL;
-	xim=NULL;
-	xim_ic=NULL;
-	xim_fontset=NULL;
-	xim_deadkey=0;
 
 	fontmanager=NULL;
 	defaultlaxfont=NULL;
@@ -615,7 +625,9 @@ anXApp::~anXApp()
 	if (color_edits)   color_edits->dec_count();
 	if (color_buttons) color_buttons->dec_count();
 
+#ifdef _LAX_PLATFORM_XLIB
 	if (xscreeninfo) delete[] xscreeninfo;
+#endif //_LAX_PLATFORM_XLIB
 
 	pthread_mutex_destroy(&event_mutex);
 }
@@ -683,6 +695,9 @@ int anXApp::Backend(const char *which)
 	DBG cerr <<"Backend is now: "<<backend<<endl;
 	return 1;
 }
+
+
+#ifdef _LAX_PLATFORM_XLIB
 
 //! This is supposed to initialize for certain locales that require extras to input their language.
 /*! This is called every time a window is focused to set up xim_ic to something proper.
@@ -794,6 +809,7 @@ XIC anXApp::CreateXInputContext()
 	
 	return xim_ic;
 }
+#endif //_LAX_PLATFORM_XLIB
 
 //! Upkeep anXApp::ttcount.
 /*! Inc if (on) else dec. ttcount will never be less than 0.
@@ -940,6 +956,8 @@ int anXApp::initNoX(int argc,char **argv)
  */
 int anXApp::initX(int argc,char **argv)
 {
+#ifdef _LAX_PLATFORM_XLIB
+
 	 //---------- set up connection to x server
 	dpy=XOpenDisplay(NULL);
 	if (!dpy) { 
@@ -1048,6 +1066,8 @@ int anXApp::initX(int argc,char **argv)
 							0,&xatts);
 
 
+#endif //_LAX_PLATFORM_XLIB
+
 	return 0; 
 }
 
@@ -1078,14 +1098,20 @@ int anXApp::close()
 	 //-------- close down any remaining windows
 	 // topwindows autodestructs, but must call any remaining necessary XDestroyWindow
 	for (int c=0; c<topwindows.howmany(); c++) {
+#ifdef _LAX_PLATFORM_XLIB
 		if (topwindows.e[c]->xlib_window!=0) {
 			XDestroyWindow(dpy,topwindows.e[c]->xlib_window); // also destroys sub(Window)s
 			topwindows.e[c]->xlib_window=0;
 		}
+#endif //_LAX_PLATFORM_XLIB
 	}
+
 	dialogs.flush();
+
 	DBG cerr <<"removing remaining topwindows..."<<endl;
 	topwindows.flush(); // not really necessary, done here just to remind
+
+#ifdef _LAX_PLATFORM_XLIB
 	if (bump_xid) {
 		XDestroyWindow(dpy,bump_xid);
 		bump_xid=0;
@@ -1098,12 +1124,14 @@ int anXApp::close()
 		xim=NULL; 
 	}
 
-	 //--------destroy any x dependent things
-	if (defaultlaxfont) { defaultlaxfont->dec_count(); defaultlaxfont=NULL; }
-
 	 //------------close display
 	DBG cerr <<"closing display.."<<endl;
 	XCloseDisplay(dpy);
+#endif //_LAX_PLATFORM_XLIB
+
+	 //--------destroy any x dependent things
+	if (defaultlaxfont) { defaultlaxfont->dec_count(); defaultlaxfont=NULL; }
+
 	dpy=NULL; 
 	DBG cerr <<"closing display done."<<endl;
 
@@ -1124,8 +1152,6 @@ int anXApp::CopytoBuffer(const char *stuff,int len)
 	
 	DBG cerr <<"anxapp--copy"<<endl;
 
-	//XRotateBuffers(dpy,1); *** old cutbuffer stuff.. remove?
-	//XStoreBuffer(dpy,stuff,len,0);
 	return 0;
 }
 
@@ -1176,6 +1202,8 @@ int anXApp::DefaultIcon(LaxImage *image, int absorb_count)
 	return 0;
 }
 
+
+#ifdef _LAX_PLATFORM_XLIB
 //! Return information about a screen, finding it on the fly with Xlib, rather than consult xscreeninfo.
 /*! This is like ScreenInfo(), but is separate to prevent strange device thread 
  * related snafus. If you create a device that catches events in its own thread,
@@ -1196,6 +1224,7 @@ int anXApp::xlib_ScreenInfo(int screen,int *width,int *height,int *mmwidth,int *
 	if (mmheight) { *mmwidth=DisplayHeightMM(dpy,screen); n++; }
 	return n;
 }
+#endif //_LAX_PLATFORM_XLIB
 
 //! Return information about a screen, based on information in xscreeninfo which gets defined in init().
 /*! Return the width, height, and depth information about a screen, if the
@@ -1206,6 +1235,7 @@ int anXApp::xlib_ScreenInfo(int screen,int *width,int *height,int *mmwidth,int *
  */
 int anXApp::ScreenInfo(int screen,int *x,int *y, int *width,int *height,int *mmwidth,int *mmheight,int *depth,int *virt)
 {
+#ifdef _LAX_PLATFORM_XLIB
 	if (!xscreeninfo || screen<0 || screen>=xscreeninfo[0]) return 0;
 
 	int n=0;
@@ -1217,9 +1247,12 @@ int anXApp::ScreenInfo(int screen,int *x,int *y, int *width,int *height,int *mmw
 	if (mmheight){ *mmheight=xscreeninfo[1+3*screen+3]; n++; }
 	if (depth)   { *depth   =xscreeninfo[1+3*screen+4]; n++; }
 	if (virt) { *virt=0; n++; }
+#endif //_LAX_PLATFORM_XLIB
+
 	return n;
 }
 
+#ifdef _LAX_PLATFORM_XLIB
 //! This will be called in response to a device hierarchy change via XInput2.
 /*! This recurses through all existing windows, and calls devicemanager->selectForWindow().
  */
@@ -1234,6 +1267,7 @@ void anXApp::reselectForXEvents(anXWindow *win)
 	for (int c=0; c<win->_kids.n; c++) reselectForXEvents(win->_kids.e[c]);
 	return;
 }
+#endif //_LAX_PLATFORM_XLIB
 
 //! Quick way to code setting window and win_on=0 for w and all subwindows,
 /*! Called from destroywindow(), this has the effect of removing the windows
@@ -1246,8 +1280,11 @@ void anXApp::resetkids(anXWindow *w)
 {
 	GetDefaultDisplayer()->ClearDrawable(w);
 
+#ifdef _LAX_PLATFORM_XLIB
 	w->xlib_backbuffer=0;
 	w->xlib_window=0;
+#endif //_LAX_PLATFORM_XLIB
+
 	w->win_on=0;
 	w->win_style|=ANXWIN_DOOMED;
 
@@ -1277,12 +1314,15 @@ int anXApp::destroywindow(anXWindow *w)
 
 	 //-----close the window and destroy xlib bits of it
 	w->close();
+
+#ifdef _LAX_PLATFORM_XLIB
 	Window xxx=w->xlib_window;
 	resetkids(w); //dp->ClearDrawable() on w and all kids, removes from event check, sets ANXWIN_DOOMED
 	if (xxx) {
 		XDestroyWindow(dpy,xxx); // note: destroys all subwindows, so it's ok if 
 								 //       xlib_window gets set to zero in resetkids()
 	}
+#endif //_LAX_PLATFORM_XLIB
 
 
 	 //reset currentfocus if is w or kid of w. *** fix for multi-keyboard!!
@@ -1325,11 +1365,14 @@ int anXApp::destroywindow(anXWindow *w)
 	return 0;
 }
 
+#ifdef _LAX_PLATFORM_XLIB
 //! Return DefaultGC(dpy,screen).
 GC anXApp::gc(int scr, int id) //0=default
 {
 	return DefaultGC(dpy,scr);
 }
+#endif //_LAX_PLATFORM_XLIB
+
 
 //! Called after all pending events have been processed, deletes all windows that have been anXApp::destroywindow()'d.
 /*!  This may only be called from app::run(), outside of event handler
@@ -1405,6 +1448,8 @@ int anXApp::reparent(anXWindow *kid,anXWindow *newparent)
 		else topwindows.pushnodup(kid); // new parent is NULL
 	kid->dec_count(); //remove extra count added above
 
+
+#ifdef _LAX_PLATFORM_XLIB
 	 // If kid is already created, but the new parent is not, then when the parent is addwindow'd, 
 	 // the kid is XReparented there. In that case return now since we
 	 // don't want to call X functions with bad window!
@@ -1422,6 +1467,7 @@ int anXApp::reparent(anXWindow *kid,anXWindow *newparent)
 	else { // else the parent->xlib_window exists, and the kid has not been addwindow'd, so:
 		addwindow(kid,1,0);
 	}
+#endif //_LAX_PLATFORM_XLIB
 
 	DBG cerr <<"reparent counts "<<(kid->win_name?kid->win_name:"")<<"->"<<(newparent->win_name?newparent->win_name:"")
 	DBG   <<" after k, new: "<<kid->_count<<"  "<<newparent->_count<<endl;
@@ -1441,9 +1487,12 @@ int anXApp::reparent(anXWindow *kid,anXWindow *newparent)
  */
 int anXApp::unmapwindow(anXWindow *w) 
 {
+#ifdef _LAX_PLATFORM_XLIB
 	if (!w || !w->xlib_window) return 1;
 	XUnmapWindow(dpy,w->xlib_window);
 	XUnmapSubwindows(dpy,w->xlib_window);
+#endif //_LAX_PLATFORM_XLIB
+
 	return 0;
 }
 
@@ -1454,9 +1503,12 @@ int anXApp::unmapwindow(anXWindow *w)
  // Note that subwindows only are mapped with XMapSubWindows..
 int anXApp::mapwindow(anXWindow *w) 
 {
+#ifdef _LAX_PLATFORM_XLIB
 	if (!w || !w->xlib_window) return 1;
 	XMapSubwindows(dpy,w->xlib_window);
 	XMapWindow(dpy,w->xlib_window);
+#endif //_LAX_PLATFORM_XLIB
+
 	return 0;
 }
 
@@ -1473,7 +1525,7 @@ int anXApp::ClearTransients(anXWindow *w)
 
 	int n=0;
 	for (int c=dialogs.n-1; c>=0; c--) {
-		if (dialogs.e[c]->win_owner==w->object_id
+		if (dialogs.e[c]->win_owner == w->object_id
 				|| find_subwindow_by_id(w,dialogs.e[c]->win_owner)) {
 			destroywindow(dialogs.e[c]);
 			n++;
@@ -1482,6 +1534,9 @@ int anXApp::ClearTransients(anXWindow *w)
 
 	return n;
 }
+
+
+#ifdef _LAX_PLATFORM_XLIB
 
 //! Check to see if some kinds of event types are in mask, and so allow them through.
 /*! Note that only KeyPress/KeyRelease/ButtonPress/ButtonRelease/MotionNotify/Enter/Leave/FocusIn/Out
@@ -1534,6 +1589,8 @@ int eventscreen(int e_type,unsigned long mask)
 	DBG cerr <<c<<endl;
 	return c;
 }
+#endif //_LAX_PLATFORM_XLIB
+
 
 /*! Return 0 for success, nonzero for not registered.
  */
@@ -1597,6 +1654,7 @@ EventReceiver *anXApp::findEventObj(unsigned long id)
  */
 void anXApp::bump()
 {
+#ifdef _LAX_PLATFORM_XLIB
 	if (!bump_xid || !dpy) return;
 
 	XEvent e;
@@ -1608,6 +1666,8 @@ void anXApp::bump()
 	XLockDisplay(dpy);
 	XSendEvent(dpy,bump_xid,False,0,&e);
 	XUnlockDisplay(dpy);
+#endif //_LAX_PLATFORM_XLIB
+	
 
 // **** This below doesn't work, I don't know how to make a file descriptor that breaks select():
 //	if (bump_fd<=0) {
@@ -1735,8 +1795,9 @@ int anXApp::processSingleDataEvent(EventReceiver *obj,EventData *ee)
 	} else if (obj->Event(ee,ee->send_message?ee->send_message:"")!=0 && ee->propagate) {
 		 //If event rejected, then possibly propagate to parent
 		 // Only mouse and key events are so passed on.
-		if (ww && ww->win_parent && ww->win_parent->xlib_window) { 
+		if (ww && ww->win_parent) { 
 			int c=0;
+
 			if (ee->type==LAX_onMouseMove || ee->type==LAX_onButtonDown || ee->type==LAX_onButtonUp) {
 				 // Mouse event, musttranslate x,y to new window, ***assume win_x and win_y are accurate?
 				 //****must make sure they are!! Check through all the configure notify stuff
@@ -1745,7 +1806,9 @@ int anXApp::processSingleDataEvent(EventReceiver *obj,EventData *ee)
 				me->x+=ww->win_x+ww->win_border;
 				me->y+=ww->win_y+ww->win_border;
 				c=1;
+
 			} else if (ee->type==LAX_onKeyDown || ee->type==LAX_onKeyUp) c=1;
+
 			if (c) {
 				anXWindow *w=ww->win_parent;
 				while (w) {
@@ -1901,6 +1964,7 @@ int anXApp::rundialog(anXWindow *ndialog,anXWindow *wingroup,char absorb_count)/
  */
 int anXApp::addwindow(anXWindow *w,char mapit,char absorb_count) // mapit==1, absorb_count==1
 {
+#ifdef _LAX_PLATFORM_XLIB
 	if (w==NULL || w->xlib_window) return 1; // do not create if it is already created.
 	if (w->app!=this) {
 		DBG cerr << "win app!=app.\n";
@@ -2246,6 +2310,8 @@ int anXApp::addwindow(anXWindow *w,char mapit,char absorb_count) // mapit==1, ab
 
 
 	DBG cerr <<"Done app->addwindowing "<<w->WindowTitle()<<"\n";
+#endif //_LAX_PLATFORM_XLIB
+
 	return 0;
 }
 
@@ -2278,6 +2344,8 @@ anXWindow *anXApp::find_subwindow_by_id(anXWindow *w,unsigned long id)
 	return NULL;
 }
 
+
+#ifdef _LAX_PLATFORM_XLIB
 //! Find the anXWindow having win, and ancestor w
 /*! called from a loop over topwindows in run. 
  *
@@ -2311,6 +2379,8 @@ anXWindow *anXApp::findwindow_xlib(Window win)
 	}
 	return NULL;
 }
+#endif //_LAX_PLATFORM_XLIB
+
 
 //! Examine timers and set time to wait in preparation for a call to select().
 /*! If a timer is due, then that window's anXWindow::Idle() function is called from here.
@@ -2664,6 +2734,7 @@ void anXApp::tooltipcheck(EventData *event, anXWindow *ww)
  */
 int anXApp::setfocus(anXWindow *win, clock_t t, const LaxKeyboard *kb)
 {
+#ifdef _LAX_PLATFORM_XLIB
 	if (!win || !win->xlib_window) return -1;
 	 
 	XWindowAttributes atts;
@@ -2674,9 +2745,13 @@ int anXApp::setfocus(anXWindow *win, clock_t t, const LaxKeyboard *kb)
 		devicemanager->SetFocus(win,const_cast<LaxKeyboard*>(kb),t,0);
 		return 0;
 	}
+#endif //_LAX_PLATFORM_XLIB
+
 	return 1;
 }
 
+
+#ifdef _LAX_PLATFORM_XLIB
 
 //! Handle Xlib based events.
 /*! Called from run().
@@ -2841,6 +2916,9 @@ void anXApp::processXevent(XEvent *xevent)
 
 void printxcrossing(anXWindow *win,XEvent *e);
 
+#endif //_LAX_PLATFORM_XLIB
+
+
 //! Called from event loop, is supposed to do reasonable things with focus related events.
 /*! Window ww is found for event e.
  * 
@@ -2883,27 +2961,6 @@ int anXApp::managefocus(anXWindow *ww, EventData *ev)
 		return 0;
 	}
 	return 0;
-}
-
-/*!
- * <pre>
- * *** whats up with this? is it still used??
- * //quick fix for window manager not sending FocusOut 
- * //to a sub-window if focus leaves its top window
- * </pre>
- */
-void anXApp::deactivatekids(anXWindow *ww)
-{
-	if (ww->win_active) {
-		XEvent e;
-		e.xfocus.type=FocusOut;
-		e.xfocus.display=dpy;
-		e.xfocus.window=ww->xlib_window;
-		ww->event(&e);
-	}
-	for (int c=0; c<ww->_kids.n; c++) {
-		deactivatekids(ww->_kids.e[c]);
-	}
 }
 
 /*! Returns old max timeout */
@@ -2953,9 +3010,11 @@ int anXApp::removetimer(EventReceiver *w,int timerid)
 			if (!timerid) { timers.remove(c); c--; }
 		}
 	}
+
 	if (c>=timers.n) return 1;
 	DBG cerr <<"remove timer:"<<timerid<<endl;
 	timers.remove(c);
+
 	return 0;
 }
 
@@ -3140,6 +3199,9 @@ anXWindow *anXApp::findDropCandidate(anXWindow *ref,int x,int y,anXWindow **drop
 // done with anXApp... now for a couple of debugging helpers
 //------------------------- general utilities, not really necessary -------------/
 
+
+#ifdef _LAX_PLATFORM_XLIB
+
 const char *xlib_extension_event_name(int e_type)
 {
 	  //-----------extension events
@@ -3243,13 +3305,17 @@ void printxcrossing(anXWindow *win,XEvent *e)
 	} else cerr<<", some other window"<<endl;
 }
 
+#endif //_LAX_PLATFORM_XLIB
 
 
 //--------------------------------- key composing via deadkeys ------------------------
 //                       This section is adapted from fltk.org compose.cxx
 //                which was Copyright 1998-2006 by Bill Spitzak and others, LGPL
 
+#ifdef _LAX_PLATFORM_XLIB
 unsigned int filterkeysym(KeySym keysym,unsigned int *state);
+#endif //_LAX_PLATFORM_XLIB
+
 
 // Before searching anything the following conversions are made:
 // ';' -> ":"     "|" -> "/"    "=",'_' -> "-"
@@ -3576,6 +3642,9 @@ unsigned int composekey(unsigned int k1, unsigned int k2)
 
 //----------------key composition helper **** needs work!! not mpx compliant ---------------------
 
+
+#ifdef _LAX_PLATFORM_XLIB
+
 /*! \todo since I don't understand how XIM works, this stuff will stay here for the time being.
  *    really it should be mpx compliant!!!
  *  \todo *** this is rather messy and needs serious debugging:
@@ -3699,8 +3768,6 @@ int anXApp::filterKeyEvents(LaxKeyboard *kb, anXWindow *win,
 	return 0;
 }
 
-//------------------------------end key compose section--------------------------------
-
 
 //! Converts an Xlib keysym to a Laxkit key value.
 /*! This is called when deciphering key input from X via Xutf8LookupString(), when it returns 
@@ -3803,6 +3870,11 @@ unsigned int filterkeysym(KeySym keysym,unsigned int *state)
 	if (!uch && keysym>=32) return (unsigned int) keysym;
 	return uch;
 }
+
+#endif //_LAX_PLATFORM_XLIB
+
+//------------------------------end key compose section--------------------------------
+
 
 } // namespace Laxkit
 

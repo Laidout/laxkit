@@ -133,6 +133,8 @@ class aDrawable
 	Window   xlib_window;
 	Drawable xlibDrawable(int which=-1);
 #endif
+#ifdef _LAX_PLATFORM_QT
+#endif
 
 	aDrawable(Drawable d=0) { xlib_window=d; xlib_backbuffer=None; };
 	virtual ~aDrawable() {}
@@ -187,6 +189,8 @@ class anXWindow : virtual public EventReceiver,
 	virtual int event(XEvent *e);
 #endif //_LAX_PLATFORM_XLIB
 
+#ifdef _LAX_PLATFORM_QT
+#endif
 
  protected:
 	char        *win_tooltip;
@@ -361,7 +365,6 @@ class anXApp : virtual public anObject
 	int filterKeyEvents(LaxKeyboard *kb, anXWindow *win,
 							XEvent *e,unsigned int &key, char *&buffer, int &len, unsigned int &state);
 
-
 	 //X specific public functions
 	virtual XIC CreateXInputContext();
 	virtual GC gc(int scr=0, int id=0);
@@ -370,6 +373,10 @@ class anXApp : virtual public anObject
 	virtual int xlib_ScreenInfo(int screen,int *width,int *height,int *mmwidth,int *mmheight,int *depth);
 	virtual void reselectForXEvents(anXWindow *win);
 #endif //_LAX_PLATFORM_XLIB
+
+#ifdef _LAX_PLATFORM_QT
+#endif //_LAX_PLATFORM_QT
+
 
 	virtual anXWindow *findwindow_by_id(unsigned long id);
 	virtual anXWindow *find_subwindow_by_id(anXWindow *w,unsigned long id);
@@ -409,7 +416,6 @@ class anXApp : virtual public anObject
 	 //event loop helper functions
 	virtual void destroyqueued();
 	virtual void resetkids(anXWindow *w);
-	virtual void deactivatekids(anXWindow *ww);
 	virtual void idle(anXWindow *w);
 	virtual int refresh(anXWindow *w);
 	virtual int processdataevents();

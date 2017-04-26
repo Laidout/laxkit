@@ -48,12 +48,16 @@ namespace Laxkit {
  * \brief Class to hold basic rendering surface of a window.
  */
 
+
+#ifdef _LAX_PLATFORM_XLIB
+
 /*! \var Window aDrawable::xlib_window
  * \brief The Xlib window associated with the anXWindow.
  */
 /*! \var XdbeBackBuffer xlib_backbuffer
  * \brief A potential back buffer to use.
  */
+
 
 //! Return some Xlib can draw on.
 /*! If which==-1, then return the default drawing surface. When there is double buffering,
@@ -68,6 +72,8 @@ Drawable aDrawable::xlibDrawable(int which)
 	if (which==0) return xlib_window;
 	return xlib_backbuffer;
 }
+
+#endif //_LAX_PLATFORM_XLIB
 
 //------------------------------------ anXWindow -------------------------------------
 /*! \class anXWindow
@@ -449,7 +455,10 @@ const char *anXWindow::WindowTitle(int which)
 //! Change the title of the window. This text would usually be displayed in the bar provided by a window manager.
 void anXWindow::WindowTitle(const char *newtitle)
 {
+#ifdef _LAX_PLATFORM_XLIB
 	if (xlib_window) XStoreName(app->dpy,xlib_window,newtitle);
+#endif //_LAX_PLATFORM_XLIB
+
 	makestr(win_title,newtitle);
 }
 
@@ -589,9 +598,11 @@ Attribute *anXWindow::dump_out_atts(Attribute *att,int what,LaxFiles::DumpContex
 void anXWindow::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *context)
 {
 	char *name,*value;
+
 	for (int c=0; c<att->attributes.n; c++) {
 		name= att->attributes.e[c]->name;
 		value=att->attributes.e[c]->value;
+
 		if (!strcmp(name,"win_x")) {
 			IntAttribute(value,&win_x);
 		} else if (!strcmp(name,"win_y")) {
@@ -646,8 +657,10 @@ void anXWindow::SetupBackBuffer()
 {
 	if (!(win_style&ANXWIN_DOUBLEBUFFER)) return;
 
+#ifdef _LAX_PLATFORM_XLIB
 	if (xlib_backbuffer) return;
 	xlib_backbuffer=XdbeAllocateBackBufferName(app->dpy,xlib_window,XdbeBackground);
+#endif //_LAX_PLATFORM_XLIB
 }
 
 //! Swap buffers. This should be called from Refresh() if VIEWPORT_BACK_BUFFER is set in win_style.
@@ -656,6 +669,7 @@ void anXWindow::SetupBackBuffer()
  */
 void anXWindow::SwapBuffers()
 {
+#ifdef _LAX_PLATFORM_XLIB
 	 // swap buffers
 	if (xlib_backbuffer) {
 		XdbeSwapInfo swapinfo;
@@ -663,6 +677,7 @@ void anXWindow::SwapBuffers()
 		swapinfo.swap_action=XdbeBackground;
 		XdbeSwapBuffers(app->dpy,&swapinfo,1);
 	}
+#endif //_LAX_PLATFORM_XLIB
 }
 
 //! Replace the current tooltip, return the current tooltip (after replacing).
@@ -732,6 +747,8 @@ int anXWindow::preinit()
 		Attribute *att=const_cast<Attribute *>(app->AppResource(whattype()));//do not delete it!
 		if (att) {
 			dump_in_atts(att,0,NULL);
+
+#ifdef _LAX_PLATFORM_XLIB
 			if (!xlib_win_sizehints) xlib_win_sizehints=XAllocSizeHints();
 			if (xlib_win_sizehints) {
 				DBG cerr <<"doing win_sizehintsfor"<<WindowTitle()<<endl;
@@ -754,6 +771,7 @@ int anXWindow::preinit()
 				//xlib_win_sizehints->height_inc=1;
 				//xlib_win_sizehints->flags=PMinSize|PResizeInc|USPosition|USSize;
 			}
+#endif //_LAX_PLATFORM_XLIB
 		}
 	}
 	return 0;
@@ -887,6 +905,8 @@ int anXWindow::FocusOn(const FocusChangeData *e)
 	 // set win_active stuff only if this is a FocusIn event for this window
 	if (e->target==this) {
 		win_active++;
+
+#ifdef _LAX_PLATFORM_XLIB
 		xlib_win_xatts.border_pixel=app->color_activeborder;
 		XChangeWindowAttributes(app->dpy,xlib_window,CWBorderPixel,&xlib_win_xatts);
 		DBG cerr <<WindowTitle()<<": real focus on"<<endl;
@@ -898,9 +918,12 @@ int anXWindow::FocusOn(const FocusChangeData *e)
 						NULL);
 			XSetICFocus(xim_ic);
 		}
+#endif //_LAX_PLATFORM_XLIB
+
 	} else {
 		DBG cerr <<WindowTitle()<<": focuson doesn't refer to this window"<<endl;
 	}
+
 	DBG cerr <<"(typ)Focus on "<<WindowTitle()<<endl;
 	return 0;
 }
@@ -914,8 +937,10 @@ int anXWindow::FocusOff(const FocusChangeData *e)
 		win_active--;
 		if (win_active<0) win_active=0; //kludge to cover up not receiving focus events sometimes
 		if (!win_active) {
+#ifdef _LAX_PLATFORM_XLIB
 			xlib_win_xatts.border_pixel=app->color_inactiveborder;
 			if (xlib_window) XChangeWindowAttributes(app->dpy,xlib_window,CWBorderPixel,&xlib_win_xatts);
+#endif //_LAX_PLATFORM_XLIB
 		}
 		DBG cerr <<WindowTitle()<<": real focus off"<<endl;
 	} else {
@@ -943,7 +968,11 @@ int anXWindow::Resize(int nw,int nh)
 	DBG cerr << "anXWindow::Resize-"<<object_id<<":"<<WindowTitle()<<"  w,h:"<<nw<<','<<nh<<endl;
 //	return MoveResize(win_x,win_y,nw,nh);
 	if (nw<=0 || nh<=0) return 1;
+
+#ifdef _LAX_PLATFORM_XLIB
 	if (xlib_window) XResizeWindow(app->dpy,xlib_window,nw,nh);
+#endif //_LAX_PLATFORM_XLIB
+
 	win_w=nw;
 	win_h=nh;
 
@@ -963,11 +992,15 @@ int anXWindow::MoveResize(int nx,int ny,int nw,int nh)
 {
 	if (nw<=0 || nh<=0) return 1;
 	DBG cerr << "anXWindow::MoveResize-"<<xlib_window<<":"<<WindowTitle()<<"  x,y:"<<nx<<','<<ny<<"  w,h:"<<nw<<','<<nh<<endl;
+
+#ifdef _LAX_PLATFORM_XLIB
 	if (xlib_window) {
 		DBG cerr <<"---anXWindow::MoveResizing window: "<<xlib_window<<endl;
 		//if (nx==win_x && ny==win_y) XResizeWindow(nw,nh);
 		XMoveResizeWindow(app->dpy,xlib_window,nx,ny,nw,nh);
 	}
+#endif //_LAX_PLATFORM_XLIB
+
 	win_x=nx;
 	win_y=ny;
 	win_w=nw;
@@ -1039,6 +1072,7 @@ int anXWindow::Event(const EventData *data,const char *mes)
 	return 1;
 }
 
+#ifdef _LAX_PLATFORM_XLIB
 //! Xlib event receiver.
 /*! Under most circumstances, users can safely ignore this function.
  *
@@ -1336,6 +1370,7 @@ int anXWindow::event(XEvent *e)
 
 	return 1;
 }
+#endif //_LAX_PLATFORM_XLIB
 
 
 
@@ -1578,8 +1613,11 @@ void anXWindow::selectionChanged()
  */
 int anXWindow::selectionCopy(char mid)
 {
+#ifdef _LAX_PLATFORM_XLIB
 	Atom atom=mid?XInternAtom(app->dpy,"PRIMARY",False):XInternAtom(app->dpy,"CLIPBOARD",False);
 	XSetSelectionOwner(app->dpy, atom, xlib_window, CurrentTime);
+#endif //_LAX_PLATFORM_XLIB
+
 	return 0;
 }
 
@@ -1601,6 +1639,7 @@ int anXWindow::selectionCopy(char mid)
  */
 int anXWindow::selectionPaste(char mid, const char *targettype)
 {
+#ifdef _LAX_PLATFORM_XLIB
 	Atom atom = mid ? XInternAtom(app->dpy,"PRIMARY",False) : XInternAtom(app->dpy,"CLIPBOARD",False);
 	Window selowner=XGetSelectionOwner(app->dpy, atom);
 	if (selowner==None) return -1;
@@ -1617,6 +1656,8 @@ int anXWindow::selectionPaste(char mid, const char *targettype)
 						XA_SECONDARY, //property in which to put data on the target window
 						xlib_window,  //requestor
 						CurrentTime);
+#endif //_LAX_PLATFORM_XLIB
+
 	return 0;
 }
 
