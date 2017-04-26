@@ -65,6 +65,7 @@ SimpleUnit *CreateDefaultUnits(SimpleUnit *units, bool include_px, bool include_
 	units->AddUnits(UNITS_Meters,    1,        _("m"),   _("meter"),    _("meters"));
 	units->AddUnits(UNITS_Points,    .0254/72, _("pt"),   _("point"),   _("points"));
 	units->AddUnits(UNITS_SvgPoints, .0254/90, _("svgpt"),_("svgpoint"),_("svgpoints"));
+	units->AddUnits(UNITS_CSSPoints, .0254/96, _("csspt"),_("csspoint"),_("csspoints"));
 
 	if (include_px) units->AddUnits(UNITS_Pixels, 1, _("px"), _("pixel"), _("pixels"));
 	if (include_em) units->AddUnits(UNITS_Em,     1, _("em"), _("em"),    _("em"));
