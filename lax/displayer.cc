@@ -681,6 +681,7 @@ void Displayer::drawrectangle(double x,double y,double ww,double hh,int tofill)
  * tofill==2, draw stroke with fg, fill with bg.
  *
  * If whichcorners&1, round the top left. &2 is top right, &4 is bottom right, &8 is bottom left.
+ * So, 15 covers them all.
  */
 void Displayer::drawRoundedRect(double x,double y,double w,double h,
                                 double vround, bool vispercent, double hround, bool hispercent,
