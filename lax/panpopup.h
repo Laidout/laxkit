@@ -27,6 +27,7 @@
 #include <lax/pancontroller.h>
 #include <lax/panuser.h>
 #include <lax/laximages.h>
+#include <lax/rectangles.h>
 	
 namespace Laxkit {
 
@@ -58,7 +59,7 @@ class PanWindow : public anXWindow, public PanUser
 {
  protected:
 	LaxImage *image; // contains the scaled down image
-	XRectangle imagerect; // x,y of image in window
+	IntRectangle imagerect; // x,y of image in window
 	int imagex,imagey; // x,y of image in window
 	int xs,ys; // the x,y scaling
 	int mx,my;
