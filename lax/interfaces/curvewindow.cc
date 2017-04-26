@@ -52,7 +52,7 @@ CurveWindow::CurveWindow(anXWindow *pwindow,const char *nname,const char *ntitle
 						const char *xl, double nxmin, double nxmax,
 						const char *yl, double nymin, double nymax)
   : anXWindow(pwindow,nname,ntitle,nstyle|ANXWIN_DOUBLEBUFFER, nx,ny, nw,nh,brder, prev,nowner,nsend),
-	interface(-1, GetDefaultDisplayer(), nctitle, xl, nxmin, nxmax, yl, nymin, nymax)
+	interface(-1, NULL, nctitle, xl, nxmin, nxmax, yl, nymin, nymax)
 {
 }
 
@@ -62,6 +62,8 @@ CurveWindow::~CurveWindow()
 
 int CurveWindow::init()
 {
+	interface.Dp(GetDisplayer());
+
 	SetupRect();
 	return 0;
 }
@@ -69,7 +71,7 @@ int CurveWindow::init()
 //! Set values in rect (the rectangle that the actual curve is drawn in) to be reasonable.
 void CurveWindow::SetupRect()
 {
-	Displayer *dp=GetDefaultDisplayer();
+	Displayer *dp = GetDisplayer();
 	int th=dp->textheight();
 
 	interface.SetupRect(th/2,th/2,win_w-th,win_h-th);
