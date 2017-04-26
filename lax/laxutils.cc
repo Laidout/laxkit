@@ -59,26 +59,9 @@ using namespace std;
 namespace Laxkit {
 
 /*! \defgroup laxutils Common Laxkit Utilities
- * This is a bunch of commonly used functions for things like (primitive and limited) image loading,
- * drawing a bevel around a rectangle, and writing text on the screen.
+ * This is a bunch of commonly used functions for some drawing helpers,
+ * mouse position helpers, and other miscellaneous things.
  *
- * \todo *** It might be clever to have a basic hot-swappable graphics backend for the whole
- * of Laxkit. This backend would be responsible for providing functions to make marks
- * onto drawables, namely:
- *   + clear window
- *   text (+horizontal, angled, sheared),
- *   + line segments,
- *   + polylines (open or filled),
- *   ellipses (open or filled) (screen oriented done, but not rotated),
- *   + bevels, 
- *   + changing fg/bg color,
- *   + linewidth, and
- *   + function.
- * Also image loading for icons/images and cursors!!
- * This could be achieved fairly easily by making the functions in laxutils.cc be
- * function pointers that can be changed by an application. Notable backends could
- * be plain Xlib, Imlib2, cairo, opengl, antigrain.
- * 
  * @{
  */
 
@@ -95,7 +78,7 @@ namespace Laxkit {
  */
 
 //! The default Displayer "constructor".
-NewDisplayerFunc newDisplayer = NULL;
+NewDisplayerFunc newDisplayer = NULL; //note: this is here, so that main displayer.cc doesn't have to include subclasses
 
 #ifdef LAX_USES_CAIRO
 Displayer *newDisplayer_cairo(aDrawable *w)
@@ -186,6 +169,7 @@ int SetNewDisplayerFunc(const char *backend)
  */
 unsigned long screen_color_at_mouse(int mouse_id)
 {
+#ifdef _LAX_PLATFORM_XLIB
 	int xx,yy;
 	mouseposition(mouse_id, NULL,&xx,&yy,NULL,NULL);
 	cout <<"x,y:"<<xx<<","<<yy<<endl;
@@ -193,8 +177,11 @@ unsigned long screen_color_at_mouse(int mouse_id)
 						xx,yy, 1,1, ~0, ZPixmap);
 	unsigned long pixel=XGetPixel(img,0,0);
 	XDestroyImage(img);
-	
+
 	return pixel;
+#else
+	return 0;
+#endif
 }
 
 /*! Return 1 if windows are on different screens, or 0 for success.
@@ -207,6 +194,7 @@ unsigned long screen_color_at_mouse(int mouse_id)
  */
 int translate_window_coordinates(anXWindow *from, int x, int y, anXWindow *to, int *xx, int *yy, anXWindow **kid)
 {
+#ifdef _LAX_PLATFORM_XLIB
 	if (from && !from->xlib_window) return 2;
 	if (to && !to->xlib_window) return 2;
 
@@ -240,7 +228,12 @@ int translate_window_coordinates(anXWindow *from, int x, int y, anXWindow *to, i
 		else *kid=NULL;
 	}
 
-	return e==True ? 0 : 1;
+	return e == True ? 0 : 1;
+
+#else
+	return 1;
+
+#endif
 }
 
 //! Return whether the mouse is within the bounds of win.
@@ -398,8 +391,7 @@ char *LaxopToString(int function, char *str_ret, int len, int *len_ret)
 	return str_ret;
 }
 
-/*! Uses XSetFunction, with, for instance, xlib values GXinvert or GXcopy.
- */
+//! Just pass mode onto dp->BlendMode(mode).
 LaxCompositeOp drawing_function(LaxCompositeOp mode)
 {
 	return dp->BlendMode(mode);
@@ -602,6 +594,8 @@ unsigned long rgbcolorf(double r,double g,double b)
 
 //----------------------------- Various drawing utilities -------------------------
 
+/*! Fill region x,y,w,h with checkerboard pattern square number of pixels per smallest square.
+ */
 void fill_faux_transparent(aDrawable *win, ScreenColor &color, int x, int y, int w, int h, int square)
 {
     unsigned int bg1=coloravg(rgbcolorf(.3,.3,.3),color.Pixel(), color.alpha/65535.);
@@ -1493,9 +1487,6 @@ double text_height()
  *  If len is less than 0, then strlen(thetext) is used.
  *
  *  Returns the pixel length of the string.
- *
- *  \todo does Xft handle right to left rendering?
- *  \todo this is in serious hack stage. need some way to reasonably define the font and color to use 
  */
 double textout(aDrawable *win,const char *thetext,int len,double x,double y,unsigned long align)
 {
