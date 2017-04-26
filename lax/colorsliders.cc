@@ -342,10 +342,9 @@ void ColorSliders::Refresh()
 	needtodraw=0;
 
 
-	Displayer *dp=GetDefaultDisplayer();
-	dp->MakeCurrent(this);
+	Displayer *dp=MakeCurrent();
+	dp->ClearWindow();
 
-	clear_window(this);
 	if (!bars.n) return;
 
 	double pos;
@@ -654,7 +653,7 @@ void ColorSliders::Refresh()
  */
 void ColorSliders::FillWithTransparency(ScreenColor &color, int x,int y,int w,int h)
 {
-	Displayer *dp=GetDefaultDisplayer();
+	Displayer *dp = GetDisplayer();
 
 	unsigned int bg1=coloravg(rgbcolorf(.3,.3,.3),color.Pixel(), color.alpha/65535.);
 	unsigned int bg2=coloravg(rgbcolorf(.6,.6,.6),color.Pixel(), color.alpha/65535.);
@@ -679,7 +678,7 @@ void ColorSliders::FillWithTransparency(ScreenColor &color, int x,int y,int w,in
  */
 void ColorSliders::DrawSpecial(int which, int x,int y,int w,int h)
 {
-	Displayer *dp=GetDefaultDisplayer();
+	Displayer *dp = GetDisplayer();
 	dp->MakeCurrent(this);//should have been done already
 
 	if (which==COLORSLIDER_None) {
@@ -747,7 +746,7 @@ void ColorSliders::DrawSpecial(int which, int x,int y,int w,int h)
  */
 void ColorSliders::DrawHorizontal(ScreenColor &color1,ScreenColor &color2, int x,int y,int w,int h, double pos,const char *text, int usealpha)
 {
-	Displayer *dp=GetDefaultDisplayer();
+	Displayer *dp = GetDisplayer();
 
 	 //draw color
 	double pp;
@@ -801,7 +800,7 @@ void ColorSliders::DrawPos(int x,int y,int w,int h, double pos)
 
 	 //draw pos
 	if (pos>=0) {
-		Displayer *dp=GetDefaultDisplayer();
+		Displayer *dp = GetDisplayer();
 		dp->NewFG(0,0,0);
 		dp->drawline(gap+pos,y, gap+pos,y+h);
 		dp->NewFG(1.0,1.0,1.0);
@@ -811,7 +810,7 @@ void ColorSliders::DrawPos(int x,int y,int w,int h, double pos)
 
 void ColorSliders::DrawVertical(ScreenColor &color1,ScreenColor &color2, int x,int y,int w,int h, double pos,const char *text, int usealpha)
 {
-	Displayer *dp=GetDefaultDisplayer();
+	Displayer *dp = GetDisplayer();
 
 	 //draw colors
 	double pp;
