@@ -197,7 +197,7 @@ int Button::SetGraphic(int newthing, int newwidth, int newheight)
 	if (thingw<=0) {
 		if (label) {
 			double th;
-			GetDefaultDisplayer()->textextent(label,-1,NULL,&th);
+			GetDisplayer()->textextent(label,-1,NULL,&th);
 			thingw=th/2;
 		}
 		else thingw=app->defaultlaxfont->textheight()/2;
@@ -250,7 +250,7 @@ int Button::SetIcon(LaxImage *img,int makebw) // makebw=0
  */
 void Button::draw()
 {
-	Displayer *dp=GetDefaultDisplayer();
+	Displayer *dp = GetDisplayer();
 	dp->MakeCurrent(this);
 	dp->NewFG(mousein?win_colors->moverbg:win_colors->bg);
 	dp->drawrectangle(0,0, win_w,win_h, 1);
