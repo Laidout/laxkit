@@ -18,17 +18,23 @@ PREFIX="/usr/local"
 EXTRAS=
 OPTIONAL=
 OPTIONALLIBS=
+
+ #USEXLIB to compile functions for the xlib rendering backend
 USEXLIB="yes"
 USEIMLIB="yes"
 USECAIRO="yes"
 USEXINPUT2="yes"
 USEGL="yes"
 USESQLITE="yes"
-LAXKITBACKEND="cairo"
+
 ONAMAC="no"
 FORCE="no"
- #linux, or qt
-PLATFORM="linux"
+
+ #x11, or qt
+PLATFORM="x11"
+
+LAXKITBACKEND="cairo"
+
 
 if [ ! -e /usr/include/X11/extensions/XInput2.h ] ; then unset USEXINPUT2; fi
 
@@ -57,7 +63,7 @@ while true ; do
         echo " --help                       Show this stuff"
         echo " --prefix=/where/to/install   Default /usr/local"
         echo " --configdir=/path/to/config  Default ~/.laxkit/(version)"
-		echo " --platform=linux             Only linux is implemented. Someday also headless or qt."
+		echo " --platform=x11               Only x11 is implemented. Someday also headless or qt."
 #		echo " --disable-gl                 Do not build opengl components. Default is to built them."
         echo " --disable-imlib              Do not build Imlib2 components. Default is to built them."
         echo " --disable-cairo              Do not build cairo components. Default is to built them."
@@ -147,9 +153,9 @@ while true ; do
   esac
 done
 
-#if [[ $PLATFORM != "linux" && $PLATFORM != "mac" && $PLATFORM != "windows" ]] ;
-if [[ $PLATFORM != "linux" && $PLATFORM != "headless" && $PLATFORM != "qt" ]] ;
-	PLATFORM="linux";
+#if [[ $PLATFORM != "x11" && $PLATFORM != "mac" && $PLATFORM != "windows" ]] ;
+if [[ $PLATFORM != "x11" && $PLATFORM != "headless" && $PLATFORM != "qt" ]] ;
+	PLATFORM="x11";
 fi;
 
 
@@ -263,7 +269,7 @@ echo "#define LAX_SHARED_DIRECTORY \"$PREFIX/share/laxkit/$LAXKITVERSION/\"" >> 
 echo "#define LAX_CONFIG_DIRECTORY \"$LAXKITCONFIGDIR\"" >> lax/configured.h
 echo "" >> lax/configured.h
 
-if [ $PLATFORM == "linux"    ] ; then echo "#define _LAX_PLATFORM_XLIB"     >> lax/configured.h
+if [ $PLATFORM == "x11"      ] ; then echo "#define _LAX_PLATFORM_XLIB"     >> lax/configured.h
 if [ $PLATFORM == "qt"       ] ; then echo "#define _LAX_PLATFORM_QT"       >> lax/configured.h
 if [ $PLATFORM == "headless" ] ; then echo "#define _LAX_PLATFORM_HEADLESS" >> lax/configured.h
 
