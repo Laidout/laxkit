@@ -171,7 +171,7 @@ void RectData::centercenter()
 RectInterface::RectInterface(int nid,Displayer *ndp) : anInterface(nid,ndp)
 {
 	controlcolor .rgbf(0,.58,.7);
-	controltransp.rgbf(0,.58,.7, .6);
+	controltransp.rgbf(0,.58,.7, .4);
 
 	somedata=data=NULL;
 	showdecs=SHOW_OUTER_HANDLES|SHOW_INNER_HANDLES;
