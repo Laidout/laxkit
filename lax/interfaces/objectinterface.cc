@@ -323,9 +323,7 @@ void ObjectInterface::RemapBounds()
 }
 
 //! Add an object to the selection, and resize bounding rectangle as appropriate.
-/*! The oc will be owned elsewhere, and should be expected to change at any time
- * after leaving this function, so subclasses should copy oc with oc->duplicate(),
- * not store the pointer passed in here.
+/*! A copy of oc is taken.
  *
  * Return 1 for object added, or 0 for not.
  */
@@ -814,7 +812,8 @@ int ObjectInterface::CharInput(unsigned int ch, const char *buffer,int len,unsig
 
 	if (ch==LAX_Esc) {
 		int c=RectInterface::CharInput(ch,buffer,len,state,d); 
-		if (c!=0 && (state&LAX_STATE_MASK)==0 && selection->n()) { 
+
+		if (c!=0 && (state&LAX_STATE_MASK)==0) { 
 			if (extrapoints) {
 				 //clear extra points
 				extrapoints=0;
@@ -823,20 +822,43 @@ int ObjectInterface::CharInput(unsigned int ch, const char *buffer,int len,unsig
 			}
 
 			if (selection->n() == 1) {
-				 //try to select parent group
 				ObjectContext *oc = selection->e(0);
-				SomeData *parent = oc->obj->GetParent();
-				if (!(parent->flags & SOMEDATA_UNSELECTABLE)) {
-					if (oc->Up()) {
-						PostMessage(_("Selected parent."));
-						RemapBounds();
-						needtodraw=1;
-						return 0;
-					}
+
+				if (oc->obj) {
+					 //set context to current object's parent space
+					oc->Up();
+					oc->SetObject(NULL);
+					viewport->ChangeContext(oc);
+					FreeSelection(); 
 				}
+				needtodraw=1;
+				return 0;
+
+			} else if (selection->n() == 0 ) {
+				ObjectContext *oc = viewport->CurrentContext();
+
+				 //context was empty
+				SomeData *data = viewport->GetObject(oc);
+				if (data && data->Selectable()) {
+					oc->SetObject(data);
+					AddToSelection(oc);
+				}
+				//------------------
+				// //try to select parent group
+				//SomeData *parent = oc->obj->GetParent();
+
+				//if (parent && parent->Selectable()) {
+				//	if (oc->Up()) {
+				//		PostMessage(_("Selected parent."));
+				//		RemapBounds();
+				//	}
+				//}
+
+				needtodraw=1;
+				return 0;
 			}
 
-			 //unselect
+			 //when selection->n>1, unselect
 			FreeSelection();
 			return 0;
 		}
