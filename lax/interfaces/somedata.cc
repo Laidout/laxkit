@@ -113,6 +113,10 @@ SomeData::SomeData()
 	previewtime=0;
 	modtime=0;
 
+	locks=0; 
+	visible=true;
+	selectable=true;
+
 	minx=maxx=miny=maxy=0;
 	bboxstyle=0;
 	flags=0;
@@ -133,6 +137,10 @@ SomeData::SomeData(double nminx,double nmaxx,double nminy,double nmaxy)
 	usepreview=0;
 	previewtime=0;
 	modtime=0;
+
+	locks=0; 
+	visible=true;
+	selectable=true;
 
 	setbounds(nminx,nmaxx,nminy,nmaxy);
 	bboxstyle=0;
@@ -169,6 +177,34 @@ const char *SomeData::Id(const char *newid)
 	makestr(object_idstr,newid);
 	return nameid;
 } 
+
+
+/*! Return selectable | (locks&OBJLOCK_Selectable);
+ */
+int SomeData::Selectable()
+{ return selectable | (locks&OBJLOCK_Selectable); }
+
+int SomeData::Visible()
+{ return visible; }
+
+/*! If which==0, default to OBJLOCK_Selectable.
+ */
+int SomeData::IsLocked(int which)
+{
+	if (which == 0) which = OBJLOCK_Selectable;
+	return (locks&which);
+}
+
+/*! or which into locks. 
+ */
+void SomeData::Lock(int which)
+{ locks |= which; }
+
+/*! Remove which from locks.
+ */
+void SomeData::Unlock(int which)
+{ locks &= ~which; }
+
 
 /*! Like Laxkit::DoubleBBox::BBoxPoint(x,y), but if transform_to_parent==true,
  * then transform the point by m().
@@ -365,6 +401,7 @@ void SomeData::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *conte
 	for (int c=0; c<att->attributes.n; c++) {
 		name= att->attributes.e[c]->name;
 		value=att->attributes.e[c]->value;
+
 		if (!strcmp(name,"matrix")) {
 			DoubleListAttribute(value,mm,6);
 			m(mm);
@@ -376,8 +413,28 @@ void SomeData::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *conte
 			DoubleAttribute(value,&miny);
 		} else if (!strcmp(name,"maxy")) {
 			DoubleAttribute(value,&maxy);
+
 		} else if (!strcmp(name,"bboxstyle")) {
 			IntAttribute(value,&bboxstyle);
+
+		} else if (!strcmp(name,"visible")) {
+			visible = BooleanAttribute(value);
+		} else if (!strcmp(name,"selectable")) {
+			selectable = BooleanAttribute(value);
+
+		} else if (!strcmp(name,"locks")) {
+			int n=0;
+			char **strs = splitspace(value, &n);
+			for (int c=0; c<n; c++) {
+				if      (!strcmp(strs[c],"contents"  )) locks |= OBJLOCK_Contents  ;
+				else if (!strcmp(strs[c],"position"  )) locks |= OBJLOCK_Position  ;
+				else if (!strcmp(strs[c],"rotation"  )) locks |= OBJLOCK_Rotation  ;
+				else if (!strcmp(strs[c],"scale"     )) locks |= OBJLOCK_Scale     ;
+				else if (!strcmp(strs[c],"shear"     )) locks |= OBJLOCK_Shear     ;
+				else if (!strcmp(strs[c],"kids"      )) locks |= OBJLOCK_Kids      ;
+				else if (!strcmp(strs[c],"selectable")) locks |= OBJLOCK_Selectable;
+			}
+			deletestrs(strs, n);
 		}
 	}
 }
@@ -394,6 +451,9 @@ void SomeData::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *conte
  *  miny 0
  *  maxy 1
  *  bboxstyle 0
+ *  visible
+ *  selectable
+ *  locks contents position rotation scale shear kids selectable
  * </pre>
  * 
  * Ignores what. Uses 0 for it.
@@ -403,6 +463,7 @@ void SomeData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *conte
 	char spc[indent+1];
 	memset(spc,' ',indent);
 	spc[indent]='\0';
+
 	const double *matrix=m();
 	fprintf(f,"%smatrix %.10g %.10g %.10g %.10g %.10g %.10g\n",
 			spc,matrix[0],matrix[1],matrix[2],matrix[3],matrix[4],matrix[5]);
@@ -410,7 +471,19 @@ void SomeData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *conte
 	fprintf(f,"%smaxx %.10g\n",spc,maxx);
 	fprintf(f,"%sminy %.10g\n",spc,miny);
 	fprintf(f,"%smaxy %.10g\n",spc,maxy);
-	fprintf(f,"%sbboxstyle %d\n",spc,bboxstyle);
+	//fprintf(f,"%sbboxstyle %d\n",spc,bboxstyle);
+
+	if (visible)    fprintf(f,"%svisible\n",spc);
+	if (selectable) fprintf(f,"%sselectable\n",spc);
+	fprintf(f,"%slocks ",spc);
+	if (locks & OBJLOCK_Contents  ) fprintf(f,"contents ");
+	if (locks & OBJLOCK_Position  ) fprintf(f,"position ");
+	if (locks & OBJLOCK_Rotation  ) fprintf(f,"rotation ");
+	if (locks & OBJLOCK_Scale     ) fprintf(f,"scale ");
+	if (locks & OBJLOCK_Shear     ) fprintf(f,"shear ");
+	if (locks & OBJLOCK_Kids      ) fprintf(f,"kids ");
+	if (locks & OBJLOCK_Selectable) fprintf(f,"selectable ");
+	fprintf(f,"\n");
 }
 
 Attribute *SomeData::dump_out_atts(Attribute *att,int what,LaxFiles::DumpContext *context)
@@ -423,7 +496,10 @@ Attribute *SomeData::dump_out_atts(Attribute *att,int what,LaxFiles::DumpContext
 		att->push("maxx", _("Maximum x bound"));
 		att->push("miny", _("Minimum y bound"));
 		att->push("maxy", _("Maximum y bound"));
-		att->push("bboxstyle", _("Style for this box"));
+		//att->push("bboxstyle", _("Style for this box"));
+		att->push("selectable", "#Whether object is user selectable");
+		att->push("visible", "#Whether object is visible");
+		att->push("locks", "#combination of: contents position rotation scale shear kids selectable");
 		return att;
 	}
 
@@ -445,9 +521,27 @@ Attribute *SomeData::dump_out_atts(Attribute *att,int what,LaxFiles::DumpContext
 	sprintf(s,"%.10g",maxy);
 	att->push("maxy", s);
 
-	sprintf(s,"%d",bboxstyle);
-	att->push("bboxstyle", s);
+	//sprintf(s,"%d",bboxstyle);
+	//att->push("bboxstyle", s);
 
+	if (visible) att->push("visible");
+
+	if (selectable) att->push("selectable");
+
+	if (locks) {
+		char scratch[15*7];
+		scratch[0]='\0';
+
+		if (locks & OBJLOCK_Contents  ) strcat(scratch, "contents ");
+		if (locks & OBJLOCK_Position  ) strcat(scratch, "position ");
+		if (locks & OBJLOCK_Rotation  ) strcat(scratch, "rotation ");
+		if (locks & OBJLOCK_Scale     ) strcat(scratch, "scale ");
+		if (locks & OBJLOCK_Shear     ) strcat(scratch, "shear ");
+		if (locks & OBJLOCK_Kids      ) strcat(scratch, "kids ");
+		if (locks & OBJLOCK_Selectable) strcat(scratch, "selectable "); 
+
+		att->push("locks", scratch);
+	}
 
 	return att;
 }
@@ -460,7 +554,7 @@ Attribute *SomeData::dump_out_atts(Attribute *att,int what,LaxFiles::DumpContext
  * subclasses should first call interfacemanager->NewObject(object_type, reference) and return
  * that if any, before creating one of itself.
  *
- * bboxstyle and the matrix are copied over here.
+ * bboxstyle, locks, visible, selectable, and the matrix are copied over here.
  */
 SomeData *SomeData::duplicate(SomeData *dup)
 {
@@ -473,8 +567,12 @@ SomeData *SomeData::duplicate(SomeData *dup)
 	} 
 	if (!ndata) ndata=new SomeData(minx,maxx,miny,maxy);
 
+	ndata->locks = locks;
 	ndata->bboxstyle=bboxstyle;
+	ndata->visible = visible;
+	ndata->selectable = selectable;
 	ndata->m(m());
+
 	return ndata;
 }
 

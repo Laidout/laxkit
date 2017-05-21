@@ -52,16 +52,6 @@ enum BBoxAnchorTypes {
 	BBOXANCHOR_MAX
 };
 
-/*! for GroupData::locks */
-enum GroupDataLockTypes {
-	OBJLOCK_Contents   = (1<<0),
-	OBJLOCK_Position   = (1<<1),
-	OBJLOCK_Rotation   = (1<<2),
-	OBJLOCK_Scale      = (1<<3),
-	OBJLOCK_Shear      = (1<<4),
-	OBJLOCK_Kids       = (1<<5),
-	OBJLOCK_Selectable = (1<<6)
-};
 
 class GroupData :   virtual public Laxkit::Tagged,
 					virtual public LaxInterfaces::SomeData
@@ -69,9 +59,6 @@ class GroupData :   virtual public Laxkit::Tagged,
  protected:
  public:
 	SomeData *parent;
-
-	int locks; //lock object contents|matrix|rotation|shear|scale|kids|selectable
-	char locked, visible, prints, selectable;
 
 	//SomeData *clip; //If not a PathsData, then is an object for a softmask
 	//LaxInterfaces::PathsData *clip_path;
@@ -96,16 +83,10 @@ class GroupData :   virtual public Laxkit::Tagged,
 	virtual LaxInterfaces::SomeData *GetParent();
 	virtual SomeData *SetParent(SomeData *newparent);
 
-	virtual int Selectable();
-	virtual int Visible();
-	virtual int IsLocked(int which);
-	virtual void Lock(int which);
-	virtual void Unlock(int which);
-
 	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
-	virtual void dump_out_group(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
+	virtual void dump_out_group(FILE *f,int indent,int what,LaxFiles::DumpContext *context, bool kidsonly);
 	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
-	virtual void dump_in_group_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
+	virtual void dump_in_group_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context, bool checksomedata);
 	
 	 //new functions for GroupData
 	//virtual LaxInterfaces::SomeData *EquivalentObject();

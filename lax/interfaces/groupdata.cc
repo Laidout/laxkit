@@ -57,12 +57,6 @@ GroupData::GroupData()
 	//clip_path=wrap_path=inset_path=NULL;
 	//autowrap=autoinset=0;
 
-	locks=0; 
-	locked=0;
-	visible=1;
-	prints=1;
-	selectable=1;
-
 	parent=NULL;
 
 	//Id(); //makes this->nameid (of SomeData) be something like `whattype()`12343
@@ -91,30 +85,6 @@ SomeData *GroupData::SetParent(SomeData *newparent)
 //! Simply return this->parent.
 LaxInterfaces::SomeData *GroupData::GetParent()
 { return parent; }
-
-int GroupData::Selectable()
-{ return selectable | (locks&OBJLOCK_Selectable); }
-
-int GroupData::Visible()
-{ return visible; }
-
-/*! If which==0, default to OBJLOCK_Selectable.
- */
-int GroupData::IsLocked(int which)
-{
-	if (which==0) which=OBJLOCK_Selectable;
-	return (locks&which);
-}
-
-/*! or which into locks. 
- */
-void GroupData::Lock(int which)
-{ locks|=which; }
-
-/*! Remove which from locks.
- */
-void GroupData::Unlock(int which)
-{ locks&=~which; }
 
 /*! Returns copy with copy of kids.
  */
@@ -450,6 +420,10 @@ void GroupData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *cont
 	
 	if (what==-1) {
 		fprintf(f,"%sid nameofobject\n",spc);
+		fprintf(f,"%smatrix 1 0 0 1 0 0  #affine transform to apply to the whole group\n",spc);
+		fprintf(f,"%slocks      #combination of: contents position rotation scale shear kids selectable\n",spc); 
+		fprintf(f,"%svisible    #no indicates that this group cannot be seen on screen\n",spc);
+		fprintf(f,"%sselectable #whether users can select this object\n",spc);
 		fprintf(f,"%stags tag1 \"tag 2\" #(optional) list of string tags\n",spc);
 		fprintf(f,"%skids          #child object list...\n",spc);
 		//fprintf(f,"%s    ...\n",spc);
@@ -464,36 +438,49 @@ void GroupData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *cont
 		delete[] str;
 	}
 
+	fprintf(f,"%smatrix %.10g %.10g %.10g %.10g %.10g %.10g\n",spc,
+				m(0),m(1),m(2),m(3),m(4),m(5));
+
+	if (visible)    fprintf(f,"%svisible\n",spc);
+	if (selectable) fprintf(f,"%sselectable\n",spc);
+	fprintf(f,"%slocks ",spc);
+	if (locks & OBJLOCK_Contents  ) fprintf(f,"contents ");
+	if (locks & OBJLOCK_Position  ) fprintf(f,"position ");
+	if (locks & OBJLOCK_Rotation  ) fprintf(f,"rotation ");
+	if (locks & OBJLOCK_Scale     ) fprintf(f,"scale ");
+	if (locks & OBJLOCK_Shear     ) fprintf(f,"shear ");
+	if (locks & OBJLOCK_Kids      ) fprintf(f,"kids ");
+	if (locks & OBJLOCK_Selectable) fprintf(f,"selectable ");
+	fprintf(f,"\n");
+
 
 	if (kids.n) {
 		fprintf(f,"%skids\n",spc);
-		dump_out_group(f,indent+2,what,context);
+		dump_out_group(f,indent+2,what,context, true);
 	}
 }
 
 //! Write out the objects.
 /*! If what==-1, dump out pseudocode of file format for a group.
  *
+ * if kidsonly, then only dump kid objects, not matrix, id, locks, visible.
+ *
  * \todo automate object management, necessary here for what==-1
  */
-void GroupData::dump_out_group(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
+void GroupData::dump_out_group(FILE *f,int indent,int what,LaxFiles::DumpContext *context, bool kidsonly)
 {
 	char spc[indent+1]; memset(spc,' ',indent); spc[indent]='\0';
 	if (what==-1) {
-		fprintf(f,"%sid      #the name of a group. There can be no whitespace in the id\n",spc);
-		fprintf(f,"%slocked  #indicates that this group cannot be modified\n",spc);
-		fprintf(f,"%svisible #no indicates that this group cannot be seen on screen nor printed out\n",spc);
-		fprintf(f,"%sprints  #no indicates that this group can be seen on screen, but cannot be printed\n",spc);
-		fprintf(f,"%smatrix 1 0 0 1 0 0  #affine transform to apply to the whole group\n",spc);
+		fprintf(f,"%sid         #the name of a group. There can be no whitespace in the id\n",spc);
 		fprintf(f,"\n%s#Groups contain any number of drawable objects. Here are all the possible such\n",spc);
 		fprintf(f,"%s#objects currently installed:\n",spc);
 		fprintf(f,"\n%sobject 1 Group\n%s  #...a subgroup...\n",spc,spc);
 		SomeData *obj;
-		
+
 		InterfaceManager *imanager = InterfaceManager::GetDefault(true);
 	    ResourceManager *itools = imanager->GetTools();
 		ResourceType *tools = itools->FindType("tools");
-		
+
 		for (int c=0; tools->resources.n; c++) {
 			if (!strcmp(tools->resources.e[c]->name,"Group")) continue;
 			fprintf(f,"\n%sobject %s\n",spc, tools->resources.e[c]->name);
@@ -504,12 +491,23 @@ void GroupData::dump_out_group(FILE *f,int indent,int what,LaxFiles::DumpContext
 		return;
 	}
 
-	fprintf(f,"%smatrix %.10g %.10g %.10g %.10g %.10g %.10g\n",spc,
-				m(0),m(1),m(2),m(3),m(4),m(5));
-	fprintf(f,"%sid %s\n",spc,Id());
-	if (locked) fprintf(f,"%slocked\n",spc);
-	if (visible) fprintf(f,"%svisible\n",spc);
-	if (prints) fprintf(f,"%sprints\n",spc);
+	if (!kidsonly) {
+		fprintf(f,"%sid %s\n",spc,Id());
+		fprintf(f,"%smatrix %.10g %.10g %.10g %.10g %.10g %.10g\n",spc,
+					m(0),m(1),m(2),m(3),m(4),m(5));
+
+		if (visible)    fprintf(f,"%svisible\n",spc);
+		if (selectable) fprintf(f,"%sselectable\n",spc);
+		fprintf(f,"%slocks ",spc);
+		if (locks & OBJLOCK_Contents  ) fprintf(f,"contents ");
+		if (locks & OBJLOCK_Position  ) fprintf(f,"position ");
+		if (locks & OBJLOCK_Rotation  ) fprintf(f,"rotation ");
+		if (locks & OBJLOCK_Scale     ) fprintf(f,"scale ");
+		if (locks & OBJLOCK_Shear     ) fprintf(f,"shear ");
+		if (locks & OBJLOCK_Kids      ) fprintf(f,"kids ");
+		if (locks & OBJLOCK_Selectable) fprintf(f,"selectable ");
+		fprintf(f,"\n");
+	}
 
 	for (int c=0; c<kids.n; c++) {
 		fprintf(f,"%sobject %d %s\n",spc,c,kids.e[c]->whattype());
@@ -519,10 +517,11 @@ void GroupData::dump_out_group(FILE *f,int indent,int what,LaxFiles::DumpContext
 
 void GroupData::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context)
 {
-	char *name,*value;
-	int foundconfig=0;
-	if (!strcmp(whattype(),"Group")) foundconfig=-1;
+	 //reads in locks, visible, selectable, min/max
+	SomeData::dump_in_atts(att,flag,context);
 
+
+	char *name,*value; 
 	for (int c=0; c<att->attributes.n; c++) {
 		name=att->attributes.e[c]->name;
 		value=att->attributes.e[c]->value;
@@ -534,44 +533,31 @@ void GroupData::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpCon
 			InsertTags(value,0);
 
 		} else if (!strcmp(name,"kids")) {
-			dump_in_group_atts(att->attributes.e[c], flag,context);
+			dump_in_group_atts(att->attributes.e[c], flag,context, false);
 
 		}
 	}
 
-	 //is old school group
-	if (foundconfig==-1) dump_in_group_atts(att, flag,context);
 	touchContents();
 }
 
-/*! Recognizes locked, visible, prints, then tries to parse elements...
- * Discards all else.
+/*! Reads in kids.
+ * If checksomedata, then also SomeData::dump_in_atts(att,flag,context).
  * The kids should have been flushed before coming here.
  */
-void GroupData::dump_in_group_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context)
+void GroupData::dump_in_group_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context, bool checksomedata)
 {
-	int nlocked=-1, nvisible=-1, nprints=-1;
+	if (checksomedata) SomeData::dump_in_atts(att,flag,context);
+
 	char *name,*value;
+
 	for (int c=0; c<att->attributes.n; c++)  {
 		name=att->attributes.e[c]->name;
 		value=att->attributes.e[c]->value;
 
-		if (!strcmp(name,"locked")) {
-			locked=BooleanAttribute(value);
-
-		} else if (!strcmp(name,"visible")) {
-			visible=BooleanAttribute(value);
-
-		} else if (!strcmp(name,"prints")) {
-			prints=BooleanAttribute(value);
-
-		} else if (!strcmp(name,"matrix")) {
-			double mm[6];
-			if (DoubleListAttribute(value,mm,6)==6) m(mm);
-
-		} else if (!strcmp(name,"object")) {
+		if (!strcmp(name,"object")) {
 			int n;
-			char **strs=splitspace(value,&n);
+			char **strs = splitspace(value,&n);
 			if (strs) {
 				// could use the number as some sort of object id?
 				// currently out put was like: "object 2 ImageData"
@@ -586,16 +572,15 @@ void GroupData::dump_in_group_atts(LaxFiles::Attribute *att,int flag,LaxFiles::D
 					data->dec_count();
 				}
 				deletestrs(strs,n);
+
 			} else {
 				DBG cerr <<"*** readin blank object for Group..."<<endl;
 			}
+
 		} else { 
-			DBG cerr <<"Group dump_in:*** unknown attribute!!"<<endl;
+			//DBG cerr <<"Group dump_in:*** unknown attribute!!"<<endl;
 		}
 	}
-	if (nlocked>0)  locked=nlocked;
-	if (nvisible>0) visible=nvisible;
-	if (nprints>0)  prints=nprints;
 
 	FindBBox();
 }
