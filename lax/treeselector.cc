@@ -1232,17 +1232,20 @@ int TreeSelector::drawFlagGraphic(char flag, int x,int y,int h)
 {
 	if (flag==' ') return x+h;
 
+	Displayer *dp = GetDisplayer();
+
 	DrawThingTypes thing=THING_Check;
 	if (flag=='l') thing=THING_Unlocked;
 	else if (flag=='L') thing=THING_Locked;
 	else if (flag=='e') thing=THING_Closed_Eye;
 	else if (flag=='E') thing=THING_Open_Eye;
 
-	foreground_color(0);
-	if (flag=='e' || flag=='E') background_color(~0);
-	else background_color(.7,.7,.7);
-	drawing_line_attributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
-	draw_thing(this, x,y+h/2, h*.4,-h*.4, 2, thing);
+	dp->NewFG(0,0,0);
+	if (flag=='e' || flag=='E') dp->NewBG(1.,1.,1.);
+	else dp->NewBG(.7,.7,.7);
+	dp->LineAttributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
+	dp->drawthing(x,y+h/2, h*.4,-h*.4, 2, thing);
+
 	return x+h;
 }
 
