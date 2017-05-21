@@ -92,6 +92,14 @@ void Selection::CurrentObject(int which)
 	currentobject=which;
 }
 
+///*! Return the highest common ancestor of all the selected objects.
+// * If oc==NULL, then return a new ObjectContext. Otherwise, modify oc
+// * to contain the context.
+// */
+//ObjectContext *Selection::CommonAncestor(ObjectContext *oc)
+//{
+//}
+
 
 /*! Return index of added oc in selection. Warning: does NOT check for previous 
  * existence of same path!

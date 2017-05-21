@@ -78,6 +78,8 @@ class Selection : public Laxkit::anObject, public Laxkit::DoubleBBox
 	virtual void CurrentObject(int which);
 	virtual int ObjectIndex(SomeData *object);
 
+	//virtual ObjectContext *CommonAncestor(ObjectContext *oc);
+
 	virtual int n() { return objects.n; }
 	virtual LaxInterfaces::ObjectContext *e(int i);
 	virtual int e_info(int i);
