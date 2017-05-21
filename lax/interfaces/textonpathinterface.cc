@@ -1259,6 +1259,7 @@ void TextOnPathInterface::Clear(SomeData *d)
             textonpath=NULL;
         }
     }
+	if (paths) { paths->dec_count(); paths = NULL; }
     if (toc) { delete toc; toc=NULL; }
 }
 
@@ -1272,11 +1273,11 @@ Laxkit::MenuInfo *TextOnPathInterface::ContextMenu(int x,int y,int deviceid, Lax
 	if (!menu) menu=new MenuInfo;
 
 	//if (!menu->n()) menu->AddSep(_("Offset type"));
-	menu->AddItem(_("Baseline from path"), TextOnPath::FROM_Path, LAX_ISTOGGLE|(textonpath->baseline_type==TextOnPath::FROM_Path ? LAX_CHECKED : 0));
-	menu->AddItem(_("Baseline from offset"), TextOnPath::FROM_Path, LAX_ISTOGGLE|(textonpath->baseline_type==TextOnPath::FROM_Offset ? LAX_CHECKED : 0));
-	menu->AddItem(_("Baseline from stroke"), TextOnPath::FROM_Path, LAX_ISTOGGLE|(textonpath->baseline_type==TextOnPath::FROM_Stroke ? LAX_CHECKED : 0));
-	menu->AddItem(_("Baseline from other stroke"), TextOnPath::FROM_Path, LAX_ISTOGGLE|(textonpath->baseline_type==TextOnPath::FROM_Other_Stroke ? LAX_CHECKED : 0));
-	menu->AddItem(_("Use envelope for size"), TextOnPath::FROM_Envelope, LAX_ISTOGGLE|(textonpath->baseline_type==TextOnPath::FROM_Envelope ? LAX_CHECKED : 0));
+	menu->AddItem(_("Baseline from path"),         TextOnPath::FROM_Path, LAX_ISTOGGLE|(textonpath->baseline_type==TextOnPath::FROM_Path ? LAX_CHECKED : 0), 0);
+	menu->AddItem(_("Baseline from offset"),       TextOnPath::FROM_Offset, LAX_ISTOGGLE|(textonpath->baseline_type==TextOnPath::FROM_Offset ? LAX_CHECKED : 0), 0);
+	menu->AddItem(_("Baseline from stroke"),       TextOnPath::FROM_Stroke, LAX_ISTOGGLE|(textonpath->baseline_type==TextOnPath::FROM_Stroke ? LAX_CHECKED : 0), 0);
+	menu->AddItem(_("Baseline from other stroke"), TextOnPath::FROM_Other_Stroke, LAX_ISTOGGLE|(textonpath->baseline_type==TextOnPath::FROM_Other_Stroke ? LAX_CHECKED : 0), 0);
+	menu->AddItem(_("Use envelope for size"),      TextOnPath::FROM_Envelope, LAX_ISTOGGLE|(textonpath->baseline_type==TextOnPath::FROM_Envelope ? LAX_CHECKED : 0), 0);
 	//menu->AddItem(_("Use envelope to stretch"), TPATH_UseStretchEnvelope);
 	menu->AddSep();
 	menu->AddItem(_("Convert to path"), TPATH_ConvertToPath);
@@ -1321,7 +1322,8 @@ int TextOnPathInterface::Event(const Laxkit::EventData *e_data, const char *mes)
 		if (!textonpath) return 0;
 
         if (i==TPATH_ConvertToPath) {
-			 // ***
+			PerformAction(TPATH_ConvertToPath);
+			return 0; 
 
 		} else if (i==TextOnPath::FROM_Envelope) {
 			textonpath->baseline_type = TextOnPath::FROM_Envelope;
@@ -1329,11 +1331,32 @@ int TextOnPathInterface::Event(const Laxkit::EventData *e_data, const char *mes)
 			PostMessage(_("Text size from envelope"));
 			return 0;
 
-		//} else if (i==) {
-		//} else if (i==) {
-		//} else if (i==) {
+		} else if (i==TextOnPath::FROM_Path) {
+			textonpath->baseline_type = TextOnPath::FROM_Path;
+			textonpath->needtorecache=1;
+			PostMessage(_("Text size from envelope"));
+			return 0;
+
+		} else if (i==TextOnPath::FROM_Offset) {
+			textonpath->baseline_type = TextOnPath::FROM_Offset;
+			textonpath->needtorecache=1;
+			PostMessage(_("Text size from envelope"));
+			return 0;
+
+		} else if (i==TextOnPath::FROM_Stroke) {
+			textonpath->baseline_type = TextOnPath::FROM_Stroke;
+			textonpath->needtorecache=1;
+			PostMessage(_("Text size from envelope"));
+			return 0;
+
+		} else if (i==TextOnPath::FROM_Other_Stroke) {
+			textonpath->baseline_type = TextOnPath::FROM_Other_Stroke;
+			textonpath->needtorecache=1;
+			PostMessage(_("Text size from envelope"));
+			return 0; 
 		}
 
+		//if here, unknown menu item!
 		return 0;
 
 	} else if (!strcmp(mes,"setbaseline")) {
@@ -1752,6 +1775,12 @@ int TextOnPathInterface::LBDown(int x,int y,unsigned int state,int count, const 
 
         textonpath=obj;
         textonpath->inc_count();
+		if (paths != textonpath->paths) {
+			if (paths) paths->dec_count();
+			paths=textonpath->paths;
+			if (paths) paths->inc_count();
+		}
+
         if (toc) delete toc;
         toc=oc->duplicate();
 
@@ -2249,8 +2278,8 @@ int TextOnPathInterface::PerformAction(int action)
 		paths->m(m);
 		pathinterface.UseThis(paths);
 
-		child=&pathinterface;
-		pathinterface.owner=this;
+		child = &pathinterface;
+		pathinterface.owner = this;
 		pathinterface.inc_count();
 		viewport->Push(&pathinterface,-1,0);
 		needtodraw=1;
@@ -2297,6 +2326,7 @@ int TextOnPathInterface::PerformAction(int action)
 		SomeData *newdata = textonpath->ConvertToPaths(false, NULL);
 		if (!newdata) {
 			PostMessage(_("Could not convert!"));
+			return 0;
 		}
 
 		newdata->FlipV();
