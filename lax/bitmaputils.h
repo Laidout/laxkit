@@ -34,16 +34,6 @@ using namespace std;
 #define DBG 
 
 
-//
-// ***
-// Ultimately, this stuff here should be encapsulated in some kind of object,
-// so that it becomes very easy to swap out in favor of methods that are more
-// efficient than the default ones.. 
-// An object is better than needing to redefine a ton of otherwise unconnected
-// function pointers.
-// ***
-//
-
 namespace Laxkit {
 
 
@@ -57,12 +47,13 @@ class ImageProcessor : public anObject
   private:
 	static ImageProcessor *default_processor;
 
-  public:
-	ImageProcessor() {}
-	virtual ~ImageProcessor() {}
-
+  public: 
 	static ImageProcessor *GetDefault(bool create_if_null=true);
 	static void SetDefault(ImageProcessor *new_processor);
+
+
+	ImageProcessor() {}
+	virtual ~ImageProcessor() {}
 
 	virtual void MakeValueMap(unsigned char *img, int mapwidth, int mapheight, int blur, const DoubleBBox &bounds, flatpoint *points, int numpoints, bool flipy);
 	virtual int GaussianBlur(int radius, char which, unsigned char *img, int orig_width, int orig_height,
