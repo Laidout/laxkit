@@ -3147,11 +3147,11 @@ void PathsData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *cont
 {
 	char spc[indent+1]; memset(spc,' ',indent); spc[indent]='\0';
 	if (what==-1) {
+		fprintf(f,"%smatrix 1 0 0 1 0 0  #standard transform matrix\n",spc);
 		fprintf(f,"%slinestyle     #default line style\n",spc);
 		fprintf(f,"%s  ...         #standard linestyle attributes\n",spc);
 		fprintf(f,"%sfillstyle\n",spc);
 		fprintf(f,"%s  ...         #standard fillstyle attributes\n",spc);
-		fprintf(f,"%smatrix 1 0 0 1 0 0  #standard transform matrix\n",spc);
 		fprintf(f,"%spath          #none or more of these, defines single paths\n",spc);
 		fprintf(f,"%sd m 1 1 l 1 2 #paths defined by svg d path string\n",spc);
 		Path p;
@@ -3195,9 +3195,9 @@ LaxFiles::Attribute *PathsData::dump_out_atts(LaxFiles::Attribute *att,int what,
 	if (!att) att=new Attribute;
 
 	if (what==-1) {
+		att->push("matrix"," 1 0 0 1 0 0  #standard transform matrix");
 		att->push("linestyle","#default line style");
 		att->push("fillstyle","#default fill style");
-		att->push("matrix"," 1 0 0 1 0 0  #standard transform matrix");
 		att->push("d","m 1 1 l 1 2 #optional paths defined by svg d path string");
 		Attribute *att2 = att->pushSubAtt("path","#none or more of these, defines single paths");
 		Path p;
@@ -3253,8 +3253,10 @@ LaxFiles::Attribute *PathsData::dump_out_atts(LaxFiles::Attribute *att,int what,
 void PathsData::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *context)
 {
 	if (!att) return;
-	char *name,*value;
+
 	SomeData::dump_in_atts(att,flag,context);
+
+	char *name,*value;
 	for (int c=0; c<att->attributes.n; c++) {
 		name= att->attributes.e[c]->name;
 		value=att->attributes.e[c]->value;
@@ -7541,6 +7543,7 @@ int PathInterface::CharInput(unsigned int ch, const char *buffer,int len,unsigne
 		}
 		if (owner && (pathi_style&PATHI_Esc_Off_Sub)) {
 			owner->RemoveChild();
+			curpoints.flush();
 			return 0;
 		}
 		return 1;
@@ -7548,6 +7551,7 @@ int PathInterface::CharInput(unsigned int ch, const char *buffer,int len,unsigne
 	} else if (ch==LAX_Enter) {
 		if (owner && (pathi_style&PATHI_Esc_Off_Sub)) {
 			owner->RemoveChild();
+			curpoints.flush();
 			return 0;
 		}
 
