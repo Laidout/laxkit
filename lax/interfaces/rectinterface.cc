@@ -1200,6 +1200,12 @@ void RectInterface::Flip(int type)
 		flip2.x=somedata->maxx;
 	}
 
+//	if (style&RECT_FLIP_LINE) {
+//		 //just set the flip points, don't actual flip when we are dragging the line around
+//		needtodraw=1;
+//		return;
+//	}
+
 	flatpoint f1=transform_point(somedata->m(),flip1);
 	flatpoint f2=transform_point(somedata->m(),flip2);
 
@@ -1244,11 +1250,12 @@ int RectInterface::LBUp(int x,int y,unsigned int state,const Laxkit::LaxMouse *d
 
 	if (dragged==0) {
 		if (curpoint==RP_Flip_Go || curpoint==RP_Flip_H || curpoint==RP_Flip_V) {
-			Flip(curpoint);
 			if ((state&LAX_STATE_MASK)==0) {
-				 //remove flip controls
+				 //remove flip controls when not pressing mod keys
 				style=(style&~RECT_FLIP_LINE)|RECT_FLIP_AT_SIDES;
 			}
+
+			Flip(curpoint);
 			needtodraw=1;
 			return 0;
 		}
@@ -1951,10 +1958,12 @@ int RectInterface::PerformAction(int action)
 
 	} else if (action==RIA_FlipHorizontal) {
 		Flip(RP_Flip_H);
+		style = (style&~RECT_FLIP_LINE)|RECT_FLIP_AT_SIDES;
 		return 0;
 
 	} else if (action==RIA_FlipVertical) {
 		Flip(RP_Flip_V);
+		style = (style&~RECT_FLIP_LINE)|RECT_FLIP_AT_SIDES;
 		return 0;
 
 	} else if (action==RIA_RotateCW) {
