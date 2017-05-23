@@ -170,7 +170,7 @@ Attribute *TextOnPath::dump_out_atts(Attribute *att,int what,DumpContext *contex
     if (what==-1) {
 		 //dump description
 		att->push("matrix", "#An affine matrix of 6 numbers");
-        att->push("baseline_type","path #or offset|stroke|otherstroke");
+        att->push("baseline_type","path #or offset|stroke|otherstroke|envelope");
         att->push("baseline",".5em #number for how much to offset text from baseline_type");
         //att->push("","");
 		// *** finish this!
@@ -186,6 +186,7 @@ Attribute *TextOnPath::dump_out_atts(Attribute *att,int what,DumpContext *contex
 	else if (baseline_type==FROM_Offset) att->push("baseline_type", "offset");
 	else if (baseline_type==FROM_Stroke) att->push("baseline_type", "stroke");
 	else if (baseline_type==FROM_Other_Stroke) att->push("baseline_type", "otherstroke");
+	else if (baseline_type==FROM_Envelope) att->push("baseline_type", "envelope");
 
 	UnitManager *um=GetUnitManager();
 	const char *u=um->UnitName(baseline_units);
@@ -252,6 +253,13 @@ void TextOnPath::dump_in_atts(Attribute *att,int flag,DumpContext *context)
 
         } else if (!strcmp(name,"baseline")) {
 			DoubleAttribute(value, &baseline);
+
+        } else if (!strcmp(name,"baseline_type")) {
+			if      (!strcmp(value, "path"))        baseline_type = FROM_Path;
+			else if (!strcmp(value, "offset"))      baseline_type = FROM_Offset;
+			else if (!strcmp(value, "stroke"))      baseline_type = FROM_Stroke;
+			else if (!strcmp(value, "otherstroke")) baseline_type = FROM_Other_Stroke;
+			else if (!strcmp(value, "envelope"))    baseline_type = FROM_Envelope;
 
         } else if (!strcmp(name,"start_offset")) {
             DoubleAttribute(value, &start_offset);
@@ -680,6 +688,7 @@ int TextOnPath::Remap()
 	double d = start_offset;
 	flatpoint point, tangent;
 	double scaling = 1;
+	double glyphwidth; //recomputed each glyph
 
 	double strokewidth = path->defaultwidth;
 	if (baseline_type==FROM_Envelope) {
@@ -705,9 +714,6 @@ int TextOnPath::Remap()
 			tangent = -tangent;
 		}
 
-		glyphs.e[i]->position = point;
-		glyphs.e[i]->rotation = atan2(tangent.y, tangent.x);
-
 		if (baseline_type==FROM_Envelope) {
 			glyphs.e[i]->scaling = strokewidth/font->Msize()*72.;
 			//glyph->scaling = strokewidth/font->Msize()/72.;
@@ -716,9 +722,14 @@ int TextOnPath::Remap()
 			glyph->scaling = 1;
 		}
 
+		glyphwidth = glyphs.e[i]->scaling * glyphs.e[i]->x_advance / 72;
+		glyphs.e[i]->rotation = atan2(tangent.y, tangent.x);
+		tangent.normalize();
+		glyphs.e[i]->position = point - tangent*glyphwidth/2;
 
-		//d += glyphs.e[i]->scaling * glyphs.e[i]->x_advance / 72;
-		d += glyphs.e[i]->x_advance / 72;
+
+		d += glyphs.e[i]->scaling * glyphs.e[i]->x_advance / 72;
+		//d += glyphs.e[i]->x_advance / 72;
 	}
 
 	cachetime=time(NULL);
@@ -1470,7 +1481,7 @@ int TextOnPathInterface::Refresh()
 	}
 
 
-	if (showdecs) {
+	if (showdecs && !child) {
 		dp->LineWidthScreen(1);
 
 		dp->NewFG(1.0,0.0,0.0);
@@ -1750,10 +1761,16 @@ int TextOnPathInterface::LBDown(int x,int y,unsigned int state,int count, const 
          // other types of objects.
         Clear(NULL);
 
-        textonpath=obj;
+        textonpath = obj;
         textonpath->inc_count();
         if (toc) delete toc;
-        toc=oc->duplicate();
+        toc = oc->duplicate();
+
+		if (paths != textonpath->paths) {
+			if (paths) paths->dec_count();
+			paths=textonpath->paths;
+			if (paths) paths->inc_count();
+		}
 
         if (viewport) viewport->ChangeObject(oc,0);
         //buttondown.moveinfo(d->id,LEFTBUTTON, TPATH_Move);
@@ -1772,7 +1789,7 @@ int TextOnPathInterface::LBDown(int x,int y,unsigned int state,int count, const 
         return 0;
 
     } else if (c<0) {
-         // If there is some other non-image data underneath (x,y) and
+         // If there is some other non-text path data underneath (x,y) and
          // this is not primary, then switch objects, and switch tools to deal
          // with that object.
 		if (!strcmp(oc->obj->whattype(),"PathsData")) {
