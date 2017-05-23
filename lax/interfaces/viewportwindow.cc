@@ -322,6 +322,23 @@ bool ViewportWindow::IsValidContext(ObjectContext *oc)
 	return true;
 }
 
+/*! Return what oc points to, if anything. Note this is maybe NOT oc->obj.
+ * Usually, use this function to help check validity of the oc.
+ */
+SomeData *ViewportWindow::GetObject(ObjectContext *oc)
+{
+	cerr << "Warning! Using unredefined ViewportWindow::GetObject(ObjectContext *oc)!"<<endl;
+	return NULL;
+}
+
+/*! Return a pointer to the current context. Calling code should not 
+ * delete or do anything else with the returned context. It is owned by the viewport.
+ */
+ObjectContext *ViewportWindow::CurrentContext()
+{
+	return NULL;
+}
+
 /*! Make sure references in sel actually point to something.
  * Note this modifies the contexts in sel, and removes any that are bad.
  *

@@ -60,6 +60,16 @@ namespace LaxInterfaces {
 #define SOMEDATA_UNEDITABLE     (1<<10)
 
 
+/*! for GroupData::locks */
+enum GroupDataLockTypes {
+	OBJLOCK_Contents   = (1<<0),
+	OBJLOCK_Position   = (1<<1),
+	OBJLOCK_Rotation   = (1<<2),
+	OBJLOCK_Scale      = (1<<3),
+	OBJLOCK_Shear      = (1<<4),
+	OBJLOCK_Kids       = (1<<5),
+	OBJLOCK_Selectable = (1<<6)
+}; 
 
 
 class SomeData :  virtual public Laxkit::Resourceable,
@@ -68,6 +78,7 @@ class SomeData :  virtual public Laxkit::Resourceable,
 				  virtual public Laxkit::Undoable
 {
   protected:
+
   public:
 	 //preview mechanism
 	Laxkit::LaxImage *preview;
@@ -82,6 +93,9 @@ class SomeData :  virtual public Laxkit::Resourceable,
 	virtual int renderToBuffer(unsigned char *buffer, int bufw, int bufh, int bufstride, int bufdepth, int bufchannels);
 	virtual int renderToBufferImage(Laxkit::LaxImage *image);
 
+	int locks; //lock object contents|matrix|position|rotation|shear|scale|kids|selectable
+	bool visible;
+	bool selectable;
 	int bboxstyle; //useparent
 	flatpoint centerpoint; //used as a passive center by ObjectInterface
 	unsigned int flags;
@@ -96,6 +110,12 @@ class SomeData :  virtual public Laxkit::Resourceable,
 	virtual ~SomeData();
 	virtual const char *whattype() { return "SomeData"; }
 	
+	virtual int Selectable();
+	virtual int Visible();
+	virtual int IsLocked(int which);
+	virtual void Lock(int which);
+	virtual void Unlock(int which);
+
 	virtual void FindBBox() {}
 	virtual flatpoint BBoxPoint(double x,double y, bool transform_to_parent);
 	virtual flatpoint ReferencePoint(int which, bool transform_to_parent);

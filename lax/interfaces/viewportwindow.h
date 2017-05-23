@@ -197,7 +197,9 @@ class ViewportWindow : public Laxkit::PanUser, public Laxkit::anXWindow
 	virtual int ChangeObject(ObjectContext *oc, int switchtool);
 	virtual double *transformToContext(double *m,ObjectContext *oc,int invert,int full);
 	virtual bool IsValidContext(ObjectContext *oc);
+	virtual SomeData *GetObject(ObjectContext *oc);
 	virtual int UpdateSelection(Selection *sel);
+	virtual ObjectContext *CurrentContext();
 	
 	 //Object searching and selecting
 	virtual int FindObject(int x,int y, const char *dtype, 
@@ -208,11 +210,11 @@ class ViewportWindow : public Laxkit::PanUser, public Laxkit::anXWindow
 
 	virtual Selection *GetSelection();
 	virtual int SetSelection(Selection *nselection);
-	virtual int selectionDropped(const unsigned char *data,unsigned long len,const char *actual_type, const char *which);
 
 	 //copy and paste
 	virtual int PasteRequest(anInterface *interf, const char *targettype);
 	virtual int SetCopySource(anInterface *source);
+	virtual int selectionDropped(const unsigned char *data,unsigned long len,const char *actual_type, const char *which);
 
 	 // coordinate helper functions
 	virtual flatpoint realtoscreen(flatpoint r);

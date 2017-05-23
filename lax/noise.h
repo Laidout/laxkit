@@ -77,7 +77,7 @@ class OpenSimplexNoise
     static void Finalize  (int do2d, int do3d, int do4d);
     static int IsInitialized(int which);
         
-	void NoiseImage(unsigned char *data, int depth, int width, int height, int feature_size);
+	void NoiseImage(unsigned char *data, int depth, int nchannels, int width, int height, double feature_size);
         
     double Evaluate(double x, double y);
     double Evaluate(double x, double y, double z);

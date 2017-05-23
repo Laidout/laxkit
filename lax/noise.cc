@@ -187,7 +187,7 @@ void OpenSimplexNoise::Seed(long seed)
 /*! Fill whole image with noise.
  *  depth can be 8 or 16 (bits).
  */
-void OpenSimplexNoise::NoiseImage(unsigned char *data, int depth, int width, int height, int feature_size)
+void OpenSimplexNoise::NoiseImage(unsigned char *data, int depth, int nchannels, int width, int height, double feature_size)
 {
     double value;
     int i=0;
@@ -196,17 +196,25 @@ void OpenSimplexNoise::NoiseImage(unsigned char *data, int depth, int width, int
     if (depth!=16) depth=8;
     int maxvalue = (1<<depth)-1;
 
+	int bytes_per_pixel = (depth==8 ? 1 : 2);
+
     if (depth==8) {
+		bytes_per_pixel--;
+
         for (int y=0; y<height; y++) {
             for (int x=0; x<width; x++) {
                 value = Evaluate((double)x/feature_size, (double)x/feature_size);
                 valuei = value * maxvalue;
 
                 data[i++]=valuei; //8bit only
+
+				i += bytes_per_pixel; //extra to skip over other channels
             }
         }
 
     } else { //16 bit
+		bytes_per_pixel -= 2;
+
         for (int y=0; y<height; y++) {
             for (int x=0; x<width; x++) {
                 value = Evaluate((double)x/feature_size, (double)x/feature_size);
@@ -214,6 +222,8 @@ void OpenSimplexNoise::NoiseImage(unsigned char *data, int depth, int width, int
 
                 data[i++]=valuei&0xff00>>8; //16 bit
                 data[i++]=valuei&0xff;
+
+				i += bytes_per_pixel; //extra to skip over other channels
             }
         }
     }
