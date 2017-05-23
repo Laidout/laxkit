@@ -687,12 +687,12 @@ int TextOnPath::Remap()
 	 //we need to apply it to the actual line
 	double d = start_offset;
 	flatpoint point, tangent;
-	double scaling = 1;
+	double scaling = 1; //recomputed only for FROM_Envelope
 	double glyphwidth; //recomputed each glyph
 
 	double strokewidth = path->defaultwidth;
 	if (baseline_type==FROM_Envelope) {
-		strokewidth=path->GetWeight(path->t_to_distance(pathdirection%2==0 ? d : -d, NULL), &strokewidth, NULL, NULL);
+		strokewidth = path->GetWeight(path->t_to_distance(pathdirection%2==0 ? d : -d, NULL), &strokewidth, NULL, NULL);
 	}
 
 	for (int i = 0; i < numglyphs; i++) {
