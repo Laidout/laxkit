@@ -105,6 +105,8 @@ class TextOnPath : virtual public SomeData
 	virtual void	   dump_out(FILE *f,int indent,int what, LaxFiles::DumpContext *context);
 	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what, LaxFiles::DumpContext *context); 
 	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag, LaxFiles::DumpContext *context);
+	virtual SomeData *duplicate(SomeData *dup);
+
 
 	virtual int Text(const char *newtext, int nstart=0, int nend=-1);
 	virtual int Reallocate(int newn);
@@ -112,6 +114,7 @@ class TextOnPath : virtual public SomeData
 	virtual int Font(Laxkit::LaxFont *newfont);
 	virtual double Size(double newfontsize);
 	virtual int UseThisPath(PathsData *newpaths, int path_index);
+	virtual int UseThisPath(ObjectContext *npathcontext, int path_index);
 	virtual double Baseline(double newbaseline, bool diff);
 	virtual double Baseline(double newbaseline, bool diff, flatpoint constant);
 	virtual double StartOffset(double newoffset, bool diff);

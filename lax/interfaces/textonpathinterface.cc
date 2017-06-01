@@ -124,6 +124,82 @@ void TextOnPath::FindBBox()
 	}
 }
 
+SomeData *TextOnPath::duplicate(SomeData *dup)
+{
+    TextOnPath *i=dynamic_cast<TextOnPath*>(dup);
+    if (!i && dup) return NULL; //was not an ImageData!
+
+    if (!dup) {
+        dup=dynamic_cast<SomeData*>(somedatafactory()->NewObject(LAX_TEXTONPATH));
+        if (dup) {
+            dup->setbounds(minx,maxx,miny,maxy);
+        }
+        i=dynamic_cast<TextOnPath*>(dup);
+    }
+    if (!i) {
+        i=new TextOnPath();
+        dup=i;
+    }
+
+     //somedata elements:
+    dup->bboxstyle=bboxstyle;
+    dup->m(m());
+
+	i->baseline_type = baseline_type; 
+	i->baseline = baseline;
+	i->baseline_units = baseline_units;
+	i->start_offset = start_offset;
+	i->end_offset = end_offset;
+	i->rotation = rotation;
+	i->path_length = path_length;
+	i->pathdirection = pathdirection;
+
+	i->Text(text, start, end);
+
+
+	i->scale_correction = scale_correction;
+    makestr(i->language, language);
+    makestr(i->script, script);
+    i->direction = direction;
+
+    if (color) {
+		if (i->color) i->color->dec_count();
+
+        if (color->ObjectOwner() == this) {
+             //dup color
+            i->color = color->duplicate();
+        } else {
+             //link color
+            i->color = color;
+            color->inc_count();
+        }
+    }
+
+    if (font) {
+		if (i->font) i->font->dec_count();
+
+        //if (font->ObjectOwner() == this) {
+             //dup font
+            i->font = font->duplicate();
+        //} else {
+        //     //link font
+        //    i->font = font;
+        //    font->inc_count();
+        //}
+    }
+
+	if (pathcontext) {
+		i->UseThisPath(pathcontext, pathindex);
+
+	} else if (paths) {
+		i->UseThisPath(paths, pathindex);
+	}
+
+	dup->FindBBox();
+    return dup;
+}
+
+
 /*! This will copy in ALL of newtext, not just what is betweer nstart and nend.
  * Used text is in range [start, end).
  */
@@ -341,6 +417,24 @@ int TextOnPath::UseThisPath(PathsData *newpaths, int path_index)
 	needtorecache=1;
 	return 0;
 }
+
+/*! Return 0 for success, nonzero for not changed.
+ * If !pathcontext, return -1. If context doesn't point to a PathsData, return 1.
+ *
+ * A duplicate of pathcontext is made.
+ */
+int TextOnPath::UseThisPath(ObjectContext *npathcontext, int path_index)
+{
+	if (!npathcontext) return -1;
+	PathsData *newpaths = dynamic_cast<PathsData*>(pathcontext->obj);
+	if (!newpaths) return 1;
+
+	if (pathcontext) delete pathcontext;
+	pathcontext = npathcontext->duplicate();
+
+	return UseThisPath(newpaths, path_index);
+}
+
 
 // *** maybe have this be held in LaxFont??, just keeps live copies of freetype + harfbuzz fonts
 //class TextCache
@@ -686,7 +780,7 @@ int TextOnPath::Remap()
 	 //now we have glyphs laid out along a straight line,
 	 //we need to apply it to the actual line
 	double d = start_offset;
-	flatpoint point, tangent;
+	flatpoint point, tangent, normal;
 	double scaling = 1; //recomputed only for FROM_Envelope
 	double glyphwidth; //recomputed each glyph
 
@@ -696,6 +790,7 @@ int TextOnPath::Remap()
 	}
 
 	for (int i = 0; i < numglyphs; i++) {
+		 //get point info at current distance plus half the advance width:
 		if (pathdirection%2==0) {
 			if (baseline_type==FROM_Envelope) {
 				scaling = strokewidth/font->Msize()*72.;
@@ -725,14 +820,19 @@ int TextOnPath::Remap()
 		glyphwidth = glyphs.e[i]->scaling * glyphs.e[i]->x_advance / 72;
 		glyphs.e[i]->rotation = atan2(tangent.y, tangent.x);
 		tangent.normalize();
-		glyphs.e[i]->position = point - tangent*glyphwidth/2;
+		glyphs.e[i]->position = point - tangent*glyphwidth/2; //<- *** probably wrong
+		if (baseline_type==FROM_Envelope) {
+			normal = transpose(tangent);
+			glyphs.e[i]->position = point - normal*strokewidth/2; //center within envelope
+		}
 
 
 		d += glyphs.e[i]->scaling * glyphs.e[i]->x_advance / 72;
 		//d += glyphs.e[i]->x_advance / 72;
 	}
 
-	cachetime=time(NULL);
+	needtorecache = 0;
+	cachetime = time(NULL);
 	FindBBox();
 	return 0;
 }
