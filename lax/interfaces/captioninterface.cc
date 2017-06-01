@@ -556,6 +556,7 @@ int CaptionData::RecacheLine(int linei)
 	 //cleanup
 	hb_font_destroy (hb_font);
 	FT_Done_Face (ft_face);
+	needtorecache = 0;
 
 	return 0;
 }
