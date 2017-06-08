@@ -36,7 +36,6 @@ using namespace std;
 
 namespace LaxInterfaces {
 
-//#define ELLIPSES_ISCIRCLE 1
 
 
 /*! \class EllipseData
@@ -62,7 +61,8 @@ EllipseData::EllipseData()
 	a=b=0;
 	style=0; 
 	start=0;
-	end=2*3.14159265358979; 
+	end=0;
+	//end=2*3.14159265358979; 
 }
 
 EllipseData::~EllipseData()
@@ -192,6 +192,8 @@ EllipseInterface::EllipseInterface(anInterface *nowner, int nid,Displayer *ndp)
 	createangle=0;
 	createx=flatpoint(1,0);
 	createy=flatpoint(0,1);
+
+	mode = ELLP_None;
 	
 	needtodraw=1;
 
@@ -351,7 +353,7 @@ int EllipseInterface::Refresh()
 		 // open foci
 		p=dp->realtoscreen(getpoint(ELLP_Focus1));
 		dp->drawpoint((int)p.x,(int)p.y, 5,0); // focus1
-		if (!data->GetStyle(ELLIPSES_ISCIRCLE)) { // is not circle so draw second focus
+		if (!data->GetStyle(ELLIPSE_ISCIRCLE)) { // is not circle so draw second focus
 			p=dp->realtoscreen(getpoint(ELLP_Focus2));
 			dp->drawpoint((int)p.x,(int)p.y, 5,0); // focus2
 		}
@@ -448,7 +450,7 @@ int EllipseInterface::LBDown(int x,int y,unsigned int state,int count,const Laxk
 			EllipsePoints c=scan(x,y);
 			if (c==ELLP_Focus1 || c==ELLP_Focus2) { // remove circle restriction
 				curpoint=c;
-				data->SetStyle(ELLIPSES_ISCIRCLE, false);
+				data->SetStyle(ELLIPSE_ISCIRCLE, false);
 				needtodraw|=2;
 				return 0;
 			}
@@ -525,27 +527,28 @@ int EllipseInterface::LBDown(int x,int y,unsigned int state,int count,const Laxk
 	if (viewport) viewport->ChangeContext(x,y,NULL);
 
 	EllipseData *ndata=NULL; //creates with 1 count
-	ndata=dynamic_cast<EllipseData *>(somedatafactory()->NewObject(LAX_ELLIPSEDATA));
+	ndata = dynamic_cast<EllipseData *>(somedatafactory()->NewObject(LAX_ELLIPSEDATA));
 	if (!ndata) ndata=new EllipseData;
 
-	ndata->linestyle=linestyle;
+	ndata->linestyle = linestyle;
 	if (viewport) {
 		oc=NULL;
 		viewport->NewData(ndata,&oc);//viewport adds only its own counts
 		if (eoc) delete eoc;
 		if (oc) eoc=oc->duplicate();
 	}
+
 	//ndata->dec_count(); // interface should directly cause only 1 count
 	data=ndata;
-	
-	curpoint=ELLP_None;
-	flatpoint p=screentoreal(x,y);
-	data->style=creationstyle; 
-	data->center=p;
-	data->x=createx;
-	data->y=createy;
-	data->a=data->b=0;
-	createp=p;
+
+	curpoint = ELLP_None;
+	flatpoint p = screentoreal(x,y);
+	data->style = creationstyle; 
+	data->center = p;
+	data->x = createx;
+	data->y = createy;
+	data->a = data->b = 0;
+	createp = p;
 	rectify();
 
 	inrect=true;
@@ -598,7 +601,7 @@ int EllipseInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::Lax
 			flatpoint p1=getpoint(ELLP_Focus1);
 			flatpoint p2=getpoint(ELLP_Focus2);
 
-			if (data->style&ELLIPSES_ISCIRCLE) { p2+=d; p1+=d;} 
+			if (data->style & ELLIPSE_ISCIRCLE) { p2+=d; p1+=d;} 
 			else if (curpoint==ELLP_Focus2) p2+=d; else p1+=d; 
 			data->usefocus(p1,p2,-1); //*** doesn't deal with non-whole ellipse, the segment jumps around
 
@@ -674,7 +677,7 @@ int EllipseInterface::CharInput(unsigned int ch, const char *buffer,int len,unsi
 //			if (curpoint==10 || curpoint==11) { 
 //				data->center=getpoint(curpoint==10?11:10); 
 //				data->a=data->b; 
-//				data->style|=ELLIPSES_ISCIRCLE; 
+//				data->style|=ELLIPSE_ISCIRCLE; 
 //				rectify();
 //				needtodraw|=2; 
 //				return 0; 
@@ -694,7 +697,7 @@ int EllipseInterface::KeyUp(unsigned int ch,unsigned int state, const Laxkit::La
 	if (ch==LAX_Shift) { // shift
 		if (!buttondown.any() || curpoint==ELLP_None) return 1;
 
-		data->SetStyle(ELLIPSES_ISCIRCLE, false); // toggle off circle
+		data->SetStyle(ELLIPSE_ISCIRCLE, false); // toggle off circle
 		return 0;
 	}
 
@@ -737,8 +740,8 @@ int EllipseInterface::PerformAction(int action)
 
 	} else if (action==ELLIPSEA_ToggleCircle) {
 		if (!data) return 0;
-		bool circle=data->GetStyle(ELLIPSES_ISCIRCLE);
-		data->SetStyle(ELLIPSES_ISCIRCLE, !circle);
+		bool circle=data->GetStyle(ELLIPSE_ISCIRCLE);
+		data->SetStyle(ELLIPSE_ISCIRCLE, !circle);
 		needtodraw=1;
 		return 0;
 	}
