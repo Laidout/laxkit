@@ -138,13 +138,13 @@ PathWeightNode::PathWeightNode()
 	center_t=-1;
 }
 
-PathWeightNode::PathWeightNode(double nt,double no,double nw, int ntype)
+PathWeightNode::PathWeightNode(double nt,double noffset, double nwidth, double nangle, int ntype)
 {
-	width=nw;
-	offset=no;
-	angle=0;
-	t=nt;
-	type=ntype;
+	width = nwidth;
+	offset= noffset;
+	angle = nangle;
+	t     = nt;
+	type  = ntype;
 	//cache_status=-1;
 
 	center_t=-1; 
@@ -1692,9 +1692,9 @@ int Path::MoveWeight(int which, double nt)
 int Path::RemoveWeightNode(int which)
 {
 	if (which<0 || which>=pathweights.n) return 1;
-	double width=pathweights.e[which]->width;
+	double width = pathweights.e[which]->width;
 	pathweights.remove(which);
-	if (pathweights.n==0) defaultwidth=width;
+	if (pathweights.n==0) defaultwidth = width;
 	needtorecache=1;
 	return 0;
 }
@@ -1710,29 +1710,27 @@ void Path::InsertWeightNode(double nt)
 
 /*! Add a weight node at nt with the given offset, width and angle.
  */
-void Path::AddWeightNode(double nt,double no,double nw,double nangle)
+void Path::AddWeightNode(double nt, double noffset, double nwidth, double nangle)
 {
-	PathWeightNode *w=new PathWeightNode(nt,no,nw,PathWeightNode::Default);
-
 	//insert sorted...
 	int c2;
 	for (c2=0; c2<pathweights.n; c2++) {
-		if (w->t>pathweights.e[c2]->t) continue;
-		if (w->t<pathweights.e[c2]->t) break;
+		if (nt > pathweights.e[c2]->t) continue;
+		if (nt < pathweights.e[c2]->t) break;
 
-		// else (w->t == pathweights.e[c2])
 		//overwrite!
-		pathweights.e[c2]->t=nt;
-		pathweights.e[c2]->offset=no;
-		pathweights.e[c2]->width=nw;
-		pathweights.e[c2]->angle=nangle;
-		delete w;
-		w=pathweights.e[c2];
+		pathweights.e[c2]->t      = nt;
+		pathweights.e[c2]->offset = noffset;
+		pathweights.e[c2]->width  = nwidth;
+		pathweights.e[c2]->angle  = nangle;
 		c2=-1;
 		break;
 	}
 
-	if (c2>=0) pathweights.push(w,1,c2);
+	if (c2>=0) { //wasn't found, so need to insert fresh one
+		PathWeightNode *w = new PathWeightNode(nt, noffset,nwidth,nangle, PathWeightNode::Default);
+		pathweights.push(w,1,c2);
+	}
 
 	//UpdateWeightCache(w);
 	needtorecache=1;
@@ -1859,21 +1857,21 @@ int Path::removePoint(Coordinate *p, bool deletetoo)
 	} // else assume is just a normal bezier control point, remove only that one
 
 	bool isclosed;
-	int oldpathlen=NumVertices(&isclosed);
+	int oldpathlen = NumVertices(&isclosed);
 	if (!isclosed) oldpathlen--;
 
-	int s_is_endpoint=s->isEndpoint();
-	int e_is_endpoint=e->isEndpoint();
+	int s_is_endpoint = s->isEndpoint();
+	int e_is_endpoint = e->isEndpoint();
 	if (s_is_endpoint>0) s_is_endpoint=-1;
 	if (e_is_endpoint<0) e_is_endpoint=1;
 
-	p=s->detachThrough(e); //now s through e is an open path
-	int v=0;
+	p = s->detachThrough(e); //now s through e is an open path, p points to something remaining
+	int v = 0;
 	for (Coordinate *pp=s; pp!=NULL; pp=pp->next) {
 		if (pp->flags&POINT_VERTEX) v++;
 	}
 
-	if (v!=0) {
+	if (v != 0) {
 		//there were vertices within the chain that is deleted, so we
 		//have to ensure that this->path points to something correct, and make
 		//sure that weight nodes remain positioned in a reasonable manner
@@ -1881,40 +1879,68 @@ int Path::removePoint(Coordinate *p, bool deletetoo)
 
 		//first deal with this->path
 		if (!p) {
-			path=NULL; //deleting removed all points from path, so delete whole path
+			path = NULL; //deleting removed all points from path, so delete whole path
 		} else {
 			//there is still a remnant of a path, need to make sure this->path is valid
-			path=p->firstPoint(1);
+			path = p->firstPoint(1);
 		}
 
 		//next deal with weight nodes
 		if (s_is_endpoint) {
+			 //we might have to insert an extra node to compensate for truncation
+			double weight_at_end=0, offset_at_end=0, angle_at_end=0;
+			bool need_to_insert = false;
+			if (pathweights.n > 0) {
+				GetWeight(1, &weight_at_end, &offset_at_end, &angle_at_end);
+			}
+
 			//remove any points at t<1, dec the rest
 			for (int c=pathweights.n-1; c>=0; c--) {
-				if (pathweights.e[c]->t<1) RemoveWeightNode(c);
-				else pathweights.e[c]->t--;
+				if (pathweights.e[c]->t<1) {
+					need_to_insert = true;
+					RemoveWeightNode(c);
+				} else pathweights.e[c]->t--;
+			}
+
+			if (need_to_insert) { //adding node to new truncated end
+				if (pathweights.e[0]->t != 0) AddWeightNode(0, offset_at_end, weight_at_end, angle_at_end);
 			}
 
 		} else if (e_is_endpoint) {
-			//remove any points at t>oldpathlen-1
+			 //we might have to insert an extra node to compensate for truncation
+			double weight_at_end=0, offset_at_end=0, angle_at_end=0;
+			bool need_to_insert = false;
+			if (pathweights.n > 0) {
+				GetWeight(oldpathlen-1, &weight_at_end, &offset_at_end, &angle_at_end);
+			}
+
+			 //remove any points at t > oldpathlen-1
 			for (int c=pathweights.n-1; c>=0; c--) {
-				if (pathweights.e[c]->t>oldpathlen) RemoveWeightNode(c);
+				if (pathweights.e[c]->t > oldpathlen-1) {
+					RemoveWeightNode(c);
+					need_to_insert = true;
+				}
+			}
+
+			if (need_to_insert) { //adding node to new truncated end
+				if (pathweights.e[pathweights.n-1]->t < oldpathlen-1)
+					AddWeightNode(oldpathlen-1, offset_at_end, weight_at_end, angle_at_end);
 			}
 
 		} else {
 			//deleted point was an interior vertex, not an endpoint.
 			//need to redistribute nodes in segments adjacent to t=index
 			for (int c=0; c<pathweights.n; c++) {
-				if (pathweights.e[c]->t>index-1 && pathweights.e[c]->t<=index) 
-					pathweights.e[c]->t=(pathweights.e[c]->t+index-1)/2;
-				else if (pathweights.e[c]->t>index && pathweights.e[c]->t<index+1) 
-					pathweights.e[c]->t=(pathweights.e[c]->t+index+1)/2;
-				else if (pathweights.e[c]->t>=index+1) pathweights.e[c]->t--;
-			}
+				if (pathweights.e[c]->t > index-1 && pathweights.e[c]->t <= index) 
+					pathweights.e[c]->t = (pathweights.e[c]->t+index-1)/2;
 
-		}
+				else if (pathweights.e[c]->t > index && pathweights.e[c]->t < index+1) 
+					pathweights.e[c]->t = (pathweights.e[c]->t+index-1)/2;
 
-	}
+				else if (pathweights.e[c]->t >= index+1) pathweights.e[c]->t--;
+			} 
+		} 
+	} //if verts deleted
 
 	if (deletetoo) delete s;
 
@@ -4728,7 +4754,7 @@ int PathInterface::Refresh()
 		double t;
 		data->ClosestPoint(hoverpoint, NULL,NULL,&t,&hpathi);
 		if (hpathi>=0) {
-			PathWeightNode node(t, defaultweight.offset, defaultweight.width);
+			PathWeightNode node(t, defaultweight.offset, defaultweight.width, defaultweight.angle);
 			node.angle=defaultweight.angle;
 			drawWeightNode(data->paths.e[drawpathi], &node, 0);
 		}

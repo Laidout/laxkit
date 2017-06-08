@@ -71,7 +71,7 @@ class PathWeightNode
 	int nodetype; //or'd PathWeightNodeTypes
 
 	PathWeightNode();
-	PathWeightNode(double nt,double no,double nw, int ntype=Default);
+	PathWeightNode(double nt,double noffset, double nwidth, double nangle, int ntype=Default);
 	double topOffset() { return offset+width/2; }
 	double bottomOffset() { return offset-width/2; }
 };
@@ -136,7 +136,7 @@ class Path : public LaxFiles::DumpUtility, public Laxkit::DoubleBBox
 	virtual bool HasOffset();
 	virtual bool Angled();
 	virtual void InsertWeightNode(double nt);
-	virtual void AddWeightNode(double nt,double no,double nw,double nangle);
+	virtual void AddWeightNode(double nt,double noffset,double nwidth,double nangle);
 	virtual int RemoveWeightNode(int which);
 	virtual int MoveWeight(int which, double nt);
 	virtual int GetWeight(double t, double *width, double *offset, double *angle);
