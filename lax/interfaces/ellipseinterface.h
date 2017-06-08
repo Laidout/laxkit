@@ -37,7 +37,10 @@ namespace LaxInterfaces {
 
 //----------------------------- EllipseData -----------------------------
 
-#define ELLIPSES_ISCIRCLE 1
+enum EllipseFlags {
+	ELLIPSE_ISCIRCLE = (1<<0),
+	ELLIPSEFLAGS_MAX
+};
 
 enum EllipsePoints {
 	 //dev note: interface code is highly dependent on order here:
@@ -59,7 +62,12 @@ enum EllipsePoints {
 	ELLP_YRadius,
 	ELLP_OuterRadius,
 	ELLP_InnerRadius,
-	ELLP_WildPoint
+	ELLP_WildPoint,
+
+	ELLP_DragRect,
+	ELLP_DragRectCenter,
+
+	ELLP_MAX
 };
 
 class EllipseData : public SomeData
@@ -72,7 +80,7 @@ class EllipseData : public SomeData
 	double start,end;
 	double outer_r, inner_r;
 	double a,b;
-	flatpoint center,x,y;
+	flatpoint center,x,y; //center, x and y axis (in addition to this->m())
 	LineStyle linestyle;
 
 	EllipseData();
@@ -96,6 +104,7 @@ class EllipseInterface : public anInterface
 	int hover_point;
 	EllipsePoints curpoint;
 	flatpoint createp,createx,createy;
+	int mode;
 
 	bool inrect;
 	RectInterface rinterf;
@@ -113,6 +122,7 @@ class EllipseInterface : public anInterface
 
 	EllipseInterface(anInterface *nowner, int nid,Laxkit::Displayer *ndp);
 	virtual ~EllipseInterface();
+	virtual const char *IconId() { return "Ellipse"; }
 	virtual int InterfaceOn();
 	virtual int InterfaceOff();
 	virtual const char *Name();
