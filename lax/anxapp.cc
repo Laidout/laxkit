@@ -2081,6 +2081,7 @@ int anXApp::addwindow(anXWindow *w,char mapit,char absorb_count) // mapit==1, ab
 	w->xlib_window=win;
 	DBG cerr <<"addwindow  window XCreated: \""<<w->WindowTitle()<<"\" = "<<w->xlib_window<<endl;
 
+
 	if (w->win_title) {
 		XStoreName(dpy, w->xlib_window, w->win_title);
 		//not sure if window manager always changes name on its own in _NET_WM_NAME and _NET_WM_VISIBLE_NAME
@@ -2305,6 +2306,32 @@ int anXApp::addwindow(anXWindow *w,char mapit,char absorb_count) // mapit==1, ab
 	if (mapit) {
 		XMapWindow(dpy,w->xlib_window);
 		w->win_on=1;
+
+//		// ------------------- test extents....
+//		*** sometimes this will return 0s, but still claim success.. maybe delay in time to map tweaks it?
+//		int format;
+//		unsigned long len, remaining;
+//		unsigned char *data=NULL;
+//		long *idata;
+//		Atom actual_type=0;
+//		int status = XGetWindowProperty(
+//						app->dpy,
+//						w->xlib_window,
+//						XInternAtom(app->dpy, "_NET_FRAME_EXTENTS", False), //property the selection data is stored in
+//						0,0x8000000L,          //offset and max len into property to get
+//						False,                 //whether to delete property afterwards
+//						AnyPropertyType,      //preferred type (this value is #defined 0)
+//						&actual_type,
+//						&format, &len, &remaining, &data);
+//
+//		idata = (long*)data;
+//		//DBG cerr <<"window _NET_FRAME_EXTENTS: "<<(status==Success)<<','<<actual_type<<','<<format<<','<<len<<','<<remaining<<": ";
+//		//-------------
+//		char *str = XGetAtomName(app->dpy, actual_type);
+//		DBG cerr <<"window _NET_FRAME_EXTENTS: "<<(status==Success)<<','<<str<<','<<format<<','<<len<<','<<remaining<<": ";
+//		XFree(str);
+//		DBG cerr <<"  "<<idata[0]<<','<<idata[1]<<','<<idata[2]<<','<<idata[3]<<endl;
+//		// ------------------- end test extents....
 	}
 
 
