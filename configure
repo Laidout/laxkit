@@ -153,11 +153,6 @@ while true ; do
   esac
 done
 
-#if [[ $PLATFORM != "x11" && $PLATFORM != "mac" && $PLATFORM != "windows" ]] ;
-if [[ $PLATFORM != "x11" && $PLATFORM != "headless" && $PLATFORM != "qt" ]] ;
-	PLATFORM="x11";
-fi;
-
 
 #if [ x$USEGL    != x ] ;   then EXTRAS="$EXTRAS -DLAX_USES_GL";   fi
 #if [ x$USEIMLIB != x ] ;   then EXTRAS="$EXTRAS -DLAX_USES_IMLIB";   fi
@@ -237,6 +232,12 @@ if [ "$NUM" != "1" -a $FORCE=="no" ]; then
 fi
 
 
+#if [[ $PLATFORM != "x11" && $PLATFORM != "mac" && $PLATFORM != "windows" ]] ;
+if [ $PLATFORM != "x11" -a $PLATFORM != "headless" -a $PLATFORM != "qt" ] ;
+	then PLATFORM="x11";
+fi
+
+
  ##
  ## generate lax/version.h
  ## 
@@ -269,9 +270,9 @@ echo "#define LAX_SHARED_DIRECTORY \"$PREFIX/share/laxkit/$LAXKITVERSION/\"" >> 
 echo "#define LAX_CONFIG_DIRECTORY \"$LAXKITCONFIGDIR\"" >> lax/configured.h
 echo "" >> lax/configured.h
 
-if [ $PLATFORM == "x11"      ] ; then echo "#define _LAX_PLATFORM_XLIB"     >> lax/configured.h
-if [ $PLATFORM == "qt"       ] ; then echo "#define _LAX_PLATFORM_QT"       >> lax/configured.h
-if [ $PLATFORM == "headless" ] ; then echo "#define _LAX_PLATFORM_HEADLESS" >> lax/configured.h
+if [ $PLATFORM == "x11"      ] ; then echo "#define _LAX_PLATFORM_XLIB"     >> lax/configured.h ; fi
+if [ $PLATFORM == "qt"       ] ; then echo "#define _LAX_PLATFORM_QT"       >> lax/configured.h ; fi
+if [ $PLATFORM == "headless" ] ; then echo "#define _LAX_PLATFORM_HEADLESS" >> lax/configured.h ; fi
 
 echo "#define LAX_DEFAULT_BACKEND \"$LAXKITBACKEND\"" >> lax/configured.h
 if [ x$USEGL      != x ] ; then echo "#define LAX_USES_GL" >> lax/configured.h; fi
