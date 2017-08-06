@@ -102,6 +102,7 @@ LineStyle::LineStyle(const LineStyle &l)
 	width     =l.width;
 	widthtype =l.widthtype;
 	color     =l.color;
+	color2    =l.color2 ? l.color2->duplicate() : NULL;  //if (color2) color2->inc_count();
 	capstyle  =l.capstyle;
 	joinstyle =l.joinstyle;
 	miterlimit=l.miterlimit;
@@ -121,6 +122,8 @@ LineStyle &LineStyle::operator=(LineStyle &l)
 	width     =l.width;
 	widthtype =l.widthtype;
 	color     =l.color;
+	if (color2) color2->dec_count();
+	color2    =l.color2 ? l.color2->duplicate() : NULL;  //if (color2) color2->inc_count();
 	capstyle  =l.capstyle;
 	joinstyle =l.joinstyle;
 	miterlimit=l.miterlimit;
