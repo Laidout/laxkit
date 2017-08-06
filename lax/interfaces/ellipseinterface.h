@@ -85,12 +85,18 @@ class EllipseData : public SomeData
 
 	EllipseData();
 	virtual ~EllipseData();
+	virtual SomeData *duplicate(SomeData *dup);
 	virtual const char *whattype() { return "EllipseData"; }
 	virtual void usefocus(flatpoint f1,flatpoint f2,double c=-1);
 	virtual void FindBBox();
 	virtual void SetStyle(unsigned int s, bool on);
 	virtual bool GetStyle(unsigned int s);
 	virtual flatpoint getpoint(EllipsePoints c, bool transform_to_parent);
+
+
+	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
+    virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what, LaxFiles::DumpContext *context);
+    virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
 };
 
 

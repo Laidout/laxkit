@@ -2067,7 +2067,7 @@ int Path::addAt(Coordinate *curvertex, Coordinate *np, int after)
 	int i;
 	if (path->hasCoord(curvertex, &i)==0) return 1;
 	if (!after) i--;
-	if (i<0) i+=NumVertices(NULL);
+	if (i<0 && IsClosed()) i+=NumVertices(NULL);
 
 
 	int newverts=np->NumPoints(1);
@@ -2101,7 +2101,7 @@ int Path::addAt(Coordinate *curvertex, Coordinate *np, int after)
 			if ((ins->flags&POINT_VERTEX) && ins->prev && (ins->prev->flags&POINT_TONEXT))
 				ins=ins->prev;
 		}
-		
+
 		ins->insert(np,0);
 	}
 
@@ -5396,26 +5396,28 @@ Coordinate *PathInterface::scan(int x,int y,int pmask, int *pathindex) // pmask=
 	for (c=0; c<data->paths.n; c++) {
 		start=cp=data->paths.e[c]->path;
 		if (!start) continue;
+
 		if (cp) {
-			cp=cp->firstPoint(1);
-			start=cp;
+			cp = cp->firstPoint(1);
+			start = cp;
 			do {
-				if (cp->controls && cp->controls->iid()==pmask) {
-					op=getPathOpFromId(cp->controls->iid());
+				if (cp->controls && cp->controls->iid() == pmask) {
+					op = getPathOpFromId(cp->controls->iid());
 					if (op && op->scan(dp,cp->controls,x,y)) {
-						if (pathindex) *pathindex=c;
+						if (pathindex) *pathindex = c;
 						return cp;
 					}
 
 				} else if (cp->flags&POINT_VERTEX && !pmask) {
-					p=realtoscreen(transform_point(data->m(),cp->p()));
+					p = realtoscreen(transform_point(data->m(),cp->p()));
 					if ((p.x-x)*(p.x-x)+(p.y-y)*(p.y-y)<SELECTRADIUS2) {
 						DBG cerr <<" path scan found vertex on "<<c<<endl;
 						if (pathindex) *pathindex=c;
 						return cp;
 					}
 				}
-				cp=cp->nextVertex();
+
+				cp = cp->nextVertex();
 			} while (cp && cp!=start);
 
 		}
@@ -7000,7 +7002,7 @@ Laxkit::ShortcutHandler *PathInterface::GetShortcuts()
 	sc->Add(PATHIA_ToggleAbsAngle,    '^',ShiftMask,0,"ToggleAbsAngle",_("Toggle absolute angles in subpaths"),NULL,0);
 	sc->Add(PATHIA_ToggleFillRule,    'F',ShiftMask,0,"ToggleFillRule",_("Toggle fill rule"),NULL,0);
 	sc->Add(PATHIA_ToggleFill,        'f',0,0,        "ToggleFill",   _("Toggle fill"),NULL,0);
-	sc->Add(PATHIA_ToggleStroke,      's',0,0,        "ToggleStroke", _("Toggle stroke"),NULL,0);
+	sc->Add(PATHIA_ToggleStroke,      's',0,0,        "ToggleStroke", _("Toggle showing stroke"),NULL,0);
 	sc->Add(PATHIA_ColorFillOrStroke, 'x',0,0,        "ColorDest",    _("Send colors to fill or to stroke"),NULL,0);
 	sc->Add(PATHIA_RollNext,          LAX_Right,0,0,  "RollNext",     _("Select next points"),NULL,0);
 	sc->Add(PATHIA_RollPrev,          LAX_Left,0,0,   "RollPrev",     _("Select previous points"),NULL,0);
@@ -7195,6 +7197,15 @@ int PathInterface::PerformAction(int action)
 		 //toggle send colors to fill or to stroke
 		colortofill=!colortofill;
 		const char *mes=colortofill?_("Send color to fill"):_("Send color to stroke");
+
+		//update the viewport color box
+		ScreenColor *col;
+		if (colortofill) col = &data->fillstyle->color;
+		else col = &data->linestyle->color;
+
+		SimpleColorEventData *e=new SimpleColorEventData( 65535, col->red, col->green, col->blue, col->alpha, 0);
+		app->SendMessage(e, curwindow->win_parent->object_id, "make curcolor", object_id);
+
 		PostMessage(mes);
 		return 0;
 

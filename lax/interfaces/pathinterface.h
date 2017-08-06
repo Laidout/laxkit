@@ -344,6 +344,7 @@ enum PathInterfaceActions {
 	PATHIA_StartNewPath,
 	PATHIA_StartNewSubpath,
 	PATHIA_ToggleWeights,
+	PATHIA_ToggleShowPoints,
 	PATHIA_Wider,
 	PATHIA_Thinner,
 	PATHIA_WidthStep,

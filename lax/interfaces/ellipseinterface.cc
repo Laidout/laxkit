@@ -27,6 +27,7 @@
 #include <lax/language.h>
 
 using namespace Laxkit;
+using namespace LaxFiles;
 
 
 #include <iostream>
@@ -58,15 +59,48 @@ EllipseData::EllipseData()
 	center=flatpoint(0,0);
 	x=flatpoint(1,0);
 	y=flatpoint(0,1);
-	a=b=0;
+	a=b=1;
 	style=0; 
 	start=0;
 	end=0;
+	inner_r = 0;
+	outer_r = 1;
 	//end=2*3.14159265358979; 
 }
 
 EllipseData::~EllipseData()
 {
+}
+
+SomeData *EllipseData::duplicate(SomeData *dup)
+{
+	EllipseData *p=dynamic_cast<EllipseData*>(dup);
+	if (!p && !dup) return NULL;
+
+	if (!dup) {
+		dup=dynamic_cast<SomeData*>(somedatafactory()->NewObject("EllipseData"));
+		if (dup) {
+			p=dynamic_cast<EllipseData*>(dup);
+		}
+	} 
+
+	if (!p) {
+		p=new EllipseData();
+		dup=p;
+	}
+
+	p->center  = center;
+	p->x       = x;
+	p->y       = y;
+	p->a       = a;
+	p->style   = style;
+	p->start   = start;
+	p->end     = end;
+	p->inner_r = inner_r;
+	p->outer_r = outer_r;
+	p->style   = style;
+
+	return dup;
 }
 
 bool EllipseData::GetStyle(unsigned int s)
@@ -81,29 +115,30 @@ void EllipseData::SetStyle(unsigned int s, bool on)
  // *** this is a trashy way to do it, howzabout using max/min
 void EllipseData::FindBBox()
 {
-	flatpoint pp=center + a*x;
-	maxx=minx=pp.x;
-	maxy=miny=pp.y;
+	flatpoint pp = center + a*x;
+	maxx = minx = pp.x;
+	maxy = miny = pp.y;
+
 	for (double t=0; t<2*3.1415926535; t+=2*3.1415926535/20) {
 		pp=center + (a*x) + (a*y);
-		if (pp.x<minx) minx=pp.x;
-		else if (pp.x>maxx) maxx=pp.x;
-		if (pp.y<miny) miny=pp.y;
-		else if (pp.y>maxy) maxy=pp.y;
+		if (pp.x<minx) minx = pp.x;
+		else if (pp.x>maxx) maxx = pp.x;
+		if (pp.y<miny) miny = pp.y;
+		else if (pp.y>maxy) maxy = pp.y;
 	}
 }
 
 void EllipseData::usefocus(flatpoint f1,flatpoint f2,double c) //c==-1
 {
 	if (c==-1) { if (a>b) c=2*a; else c=2*b; }
-	center=(f1+f2)/2;
-	x=(f1-f2);
-	double f=norm(x);
-	if (c<f) c=f;
-	if (f) x/=f;
-	y=transpose(x);
-	a=2*c;
-	b=sqrt(a*a-f*f/4);
+	center = (f1+f2)/2;
+	x = (f1-f2);
+	double f = norm(x);
+	if (c<f) c = f;
+	if (f) x /= f;
+	y = transpose(x);
+	a = 2*c;
+	b = sqrt(a*a-f*f/4);
 }
 
 flatpoint EllipseData::getpoint(EllipsePoints c, bool transform_to_parent)
@@ -144,6 +179,113 @@ flatpoint EllipseData::getpoint(EllipsePoints c, bool transform_to_parent)
 	return p;
 }
 
+void EllipseData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
+{
+	Attribute att;
+	dump_out_atts(&att,what,context);
+	att.dump_out(f,indent);
+}
+
+Attribute *EllipseData::dump_out_atts(Attribute *att,int what,LaxFiles::DumpContext *savecontext)
+{
+	if (!att) att=new Attribute();
+
+	//unsigned int style;
+	//double start,end;
+	//double outer_r, inner_r;
+	//double a,b;
+	//flatpoint center,x,y; //center, x and y axis (in addition to this->m())
+	//LineStyle linestyle;
+
+	if (what==-1) { 
+		att->push("id", "somename #String id");
+		att->push("start","0 #starting angle, default radians");
+		att->push("end","0 #ending angle. If equal to start, assume full circle");
+		att->push("inner_r","0 #Inner radius, as fraction of default radius, if any");
+		att->push("outer_r","1 #Outer radius, as fraction of default radius, if any");
+		att->push("a","1 #x axis radius");
+		att->push("b","1 #y axis radius");
+		att->push("center","(0,0) #position of ellipse origin (not object origin)");
+		att->push("x","(1,0) #x axis of ellipse (not object x axis)");
+		att->push("y","(0,1) #y axis of ellipse (not object y axis)");
+		att->push("linestyle"," #(optional) style to draw this ellipse");
+		att->push("flags","circle #tags for how to edit this object");
+		return att;
+	}
+
+	char scratch[100];
+
+	att->push("id", Id());
+
+	if (style & ELLIPSE_ISCIRCLE) att->push("flags", "circle");
+
+	att->push("start", start);
+	att->push("end", end);
+	att->push("inner_r", inner_r);
+	att->push("outer_r", outer_r);
+	att->push("a", a);
+	att->push("b", b);
+
+	sprintf(scratch,"(%.10g, %.10g)", center.x, center.y);
+	att->push("center", scratch);
+	sprintf(scratch,"(%.10g, %.10g)", x.x, x.y);
+	att->push("x", scratch);
+	sprintf(scratch,"(%.10g, %.10g)", y.x, y.y);
+	att->push("y", scratch);
+
+	//att->push("linestyle", ); 
+
+	return att;
+}
+
+void EllipseData::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context)
+{
+	if (!att) return;
+
+	char *name,*value;
+
+	for (int c=0; c<att->attributes.n; c++) {
+		name= att->attributes.e[c]->name;
+		value=att->attributes.e[c]->value;
+
+		if (!strcmp(name,"id")) {
+			if (!isblank(value)) Id(value);
+
+		} else if (!strcmp(name,"start")) {
+			DoubleAttribute(value, &start);
+
+		} else if (!strcmp(name,"end")) {
+			DoubleAttribute(value, &end);
+
+		} else if (!strcmp(name,"inner_r")) {
+			DoubleAttribute(value, &inner_r);
+
+		} else if (!strcmp(name,"outer_r")) {
+			DoubleAttribute(value, &outer_r);
+
+		} else if (!strcmp(name,"a")) {
+			DoubleAttribute(value, &a);
+
+		} else if (!strcmp(name,"b")) {
+			DoubleAttribute(value, &b);
+
+		} else if (!strcmp(name,"center")) {
+			FlatvectorAttribute(value, &center);
+
+		} else if (!strcmp(name,"x")) {
+			FlatvectorAttribute(value, &x);
+
+		} else if (!strcmp(name,"y")) {
+			FlatvectorAttribute(value, &y); 
+
+		} else if (!strcmp(name,"linestyle")) {
+			// ***
+
+		} else if (!strcmp(name,"flags")) {
+			// ***
+		}
+	}
+}
 
 //----------------------------- EllipseInterface ------------------------
 
@@ -285,8 +427,8 @@ void EllipseInterface::rectify()
 
 	rdata.xaxis(data->x);
 	rdata.yaxis(data->y);
-	rdata.maxx=rdata.minx=data->a;
-	rdata.maxy=rdata.miny=data->b;
+	rdata.maxx = rdata.minx = data->a;
+	rdata.maxy = rdata.miny = data->b;
 	rdata.origin(data->center);
 	rdata.centercenter();
 }
@@ -296,11 +438,11 @@ void EllipseInterface::erectify()
 {
 	if (!data) return;
 
-	data->x=rdata.xaxis();
-	data->y=rdata.yaxis();
-	data->center=rdata.origin();
-	data->a=(rdata.maxx-rdata.minx)/2;
-	data->b=(rdata.maxy-rdata.miny)/2;
+	data->x = rdata.xaxis();
+	data->y = rdata.yaxis();
+	data->center = rdata.origin();
+	data->a = (rdata.maxx-rdata.minx)/2;
+	data->b = (rdata.maxy-rdata.miny)/2;
 }
 
 int EllipseInterface::DrawData(anObject *ndata,anObject *a1,anObject *a2,int)
@@ -455,23 +597,7 @@ int EllipseInterface::LBDown(int x,int y,unsigned int state,int count,const Laxk
 				return 0;
 			}
 
-			 // else end angle, warp pointer to current
-	//		flatpoint p=realtoscreen(getpoint(13));
-	//		XWarpPointer(app->dpy,None,None,0,0,0,0,(int)p.x-x,(int)p.y-y);
-	//		hover_x=(int)p.x;
-	//		hover_y=(int)p.y;
-	//		curpoint=4;
-	//		needtodraw|=2;
-	//		return 0;
-
 		} else if ((state&LAX_STATE_MASK)==ShiftMask) { // +lb start angle
-	//		flatpoint p=realtoscreen(getpoint(12));
-	//		XWarpPointer(app->dpy,None,None,0,0,0,0,(int)p.x-x,(int)p.y-y);
-	//		hover_x=(int)p.x;
-	//		hover_y=(int)p.y;
-	//		curpoint=3;
-	//		needtodraw|=2;
-	//		return 0;
 	
 		} else if ((state&LAX_STATE_MASK)==0) { // straight click
 			EllipsePoints c=scan(x,y);
@@ -539,7 +665,7 @@ int EllipseInterface::LBDown(int x,int y,unsigned int state,int count,const Laxk
 	}
 
 	//ndata->dec_count(); // interface should directly cause only 1 count
-	data=ndata;
+	data = ndata;
 
 	curpoint = ELLP_None;
 	flatpoint p = screentoreal(x,y);
@@ -548,17 +674,17 @@ int EllipseInterface::LBDown(int x,int y,unsigned int state,int count,const Laxk
 	data->x = createx;
 	data->y = createy;
 	data->a = data->b = 0;
+	data->FindBBox();
 	createp = p;
 	rectify();
 
 	inrect=true;
 	rinterf.LBDown(x,y,state,count,d); 
-	//rinterf.SelectPoint(5);
 
-	//DBG CharInput('p',0);//***lists current points
-	needtodraw=1;
-	return 0;
+	needtodraw = 1;
 	DBG cerr <<"..ellipselbd done   ";
+
+	return 0;
 }
 
 int EllipseInterface::LBUp(int x,int y,unsigned int state,const Laxkit::LaxMouse *d) 
@@ -581,6 +707,7 @@ int EllipseInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::Lax
 {
 	hover_x=x;
 	hover_y=y;
+
 	if (!buttondown.any() || !data) return 1;
 
 	int lx,ly;
@@ -594,7 +721,7 @@ int EllipseInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::Lax
 		return 0;
 	}
 
-	flatpoint d=screentoreal(x,y)-screentoreal(lx,ly);
+	flatpoint d = screentoreal(x,y)-screentoreal(lx,ly);
 
 	if (curpoint!=ELLP_None) {
 		if (curpoint==ELLP_Focus1 || curpoint==ELLP_Focus1) {
@@ -647,42 +774,6 @@ int EllipseInterface::CharInput(unsigned int ch, const char *buffer,int len,unsi
 		if (rinterf.CharInput(ch,buffer,len,state,d)==0) return 0;
 	}
 
-
-//	switch(ch) {
-//		case LAX_Shift: { // shift
-//			if (ch==LAX_Enter) { // switch to start
-//				curpoint=12;
-//				 // warp pointer to start point
-//				flatpoint p=realtoscreen(data->center+rotate(data->a*data->x,data->start));
-//				XWarpPointer(app->dpy,None,None,0,0,0,0,(int)p.x-hover_x,(int)p.y-hover_y);
-//				hover_x=(int)p.x;
-//				hover_y=(int)p.y;
-//				needtodraw|=1;
-//				return 0;
-//			}
-//		} break;
-//		case LAX_Control: { // cntl
-//			if (curpoint==12) { // switch to end
-//				curpoint=13;
-//				flatpoint p=realtoscreen(data->center+rotate(data->a*data->x,data->end));
-//				XWarpPointer(app->dpy,None,None,0,0,0,0,(int)p.x-hover_x,(int)p.y-hover_y);
-//				hover_x=(int)p.x;
-//				hover_y=(int)p.y;
-//				needtodraw|=1;
-//				return 0;
-//			}
-//		} break;
-//		case LAX_Del: // delete
-//		case LAX_Bksp: { // backspace
-//			if (curpoint==10 || curpoint==11) { 
-//				data->center=getpoint(curpoint==10?11:10); 
-//				data->a=data->b; 
-//				data->style|=ELLIPSE_ISCIRCLE; 
-//				rectify();
-//				needtodraw|=2; 
-//				return 0; 
-//			}
-//		} break;
 
 	return 1; 
 }
