@@ -185,11 +185,11 @@ int touch_recently_used_xbel(const char *file, const char *mime,
 			if (!gatt) gatt = att = att->pushSubAtt("content:");
 
 			for (c=0; c<gatt->attributes.n; c++) {
-				att=gatt->attributes.e[c]->find("content:"); //should be <bookmark:group>CONTENT</bookmark:group>
+				att = gatt->attributes.e[c]->find("content:"); //should be <bookmark:group>CONTENT</bookmark:group>
 				if (!att) att=gatt->attributes.e[c];
 				if (att && att->value && !strcmp(att->value,group)) break; //found it!
 			}
-			if (c==att->attributes.n) att->push("bookmark:group",group);
+			if (c == gatt->attributes.n) att->push("bookmark:group",group); //wasn't found, so add it!
 		}
 
 		 //application
@@ -559,6 +559,7 @@ int touch_recently_used_old(const char *file, const char *mime, const char *grou
  *              Group "gimp"
  * </pre>
  *
+ * NOT IMPLEMENTED HERE, use the other recently_used:
  * If you instead to read from ~/.local/share/recently-used.xbel, then an attribute of the following
  * form is expected.
  * <pre>
