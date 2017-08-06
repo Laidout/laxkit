@@ -357,11 +357,13 @@ void SomeData::GeneratePreview(int w,int h)
 }
 
 /*! Set previewtime to 0 to force a preview refresh, and modtime=time(NULL).
+ * If GetParent() is not null, then call touchContents() on it.
  */
 void SomeData::touchContents()
 { 
 	previewtime=0; //time() doesn't change often enough, so we have to force this to 0..
-	modtime=time(NULL); 
+	modtime=time(NULL);
+	if (GetParent()) GetParent()->touchContents();
 }
 
 //! If usepreview==1 and preview, then return preview.
