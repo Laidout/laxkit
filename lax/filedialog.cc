@@ -927,6 +927,7 @@ int FileDialog::ShowRecent(int on)
 
 		recentmenu->Flush();
 		recently_used(NULL, NULL, (isblank(recentgroup) ? NULL : recentgroup), 0, recentmenu);
+
 		if (recentmenu->n()) {
 			filelist->InstallMenu(recentmenu);
 		} else {
