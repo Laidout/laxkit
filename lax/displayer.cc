@@ -752,6 +752,15 @@ void Displayer::drawRoundedRect(double x,double y,double w,double h,
 void Displayer::drawarc(flatpoint p,double xr,double yr,double start_angle,double end_angle)
 { drawellipse(p.x,p.y,xr,yr,start_angle,end_angle, 0); }
 
+void Displayer::drawcircle(double x,double y,double radius,int fill)
+{
+	drawellipse(x,y, radius,radius, 0,0, fill);
+}
+
+void Displayer::drawcircle(flatpoint p,double radius,int fill)
+{
+	drawellipse(p, radius,radius, 0,0, fill);
+}
 
 //! Draw an ellipse in the rectangle spanned by p +/- (xradius,yradius).
 /*! If start and end angles don't correspond, then draw a partial ellipse, filled as a pie slice.
@@ -821,7 +830,7 @@ void Displayer::drawfocusellipse(flatpoint focus1,flatpoint focus2,
 	y=transpose(x);
 
 	flatpoint points[4*3];
-	bez_ellipse(points,4, p.x,p.y, a,b, x,y, start_angle,end_angle);
+	bez_ellipse(points,4, p.x,p.y, a,b, x,y, start_angle, whole ? start_angle : end_angle);
 
 	moveto(points[1]);
 	for (int c=1; c<9; c+=3) {
@@ -1679,7 +1688,8 @@ void Displayer::syncPanner(int all)//all=0
 {
 	if (!updatepanner) return;
 
-	DBG cerr<<"---====Displayer syncPanner"<<endl;
+	//DBG cerr<<"---====Displayer syncPanner"<<endl;
+
 	// set the panner selbox values from the current displayer settings.
 	// Maxx-Minx  is portion of transformed workspace, this is what to set in Panner
 	// screentoreal(Minx,Miny)

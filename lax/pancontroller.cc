@@ -918,7 +918,8 @@ int PanController::SetWholebox(long xmin,long xmax,long ymin,long ymax)
 	max[0]=xmax;
 	min[1]=ymin;
 	max[1]=ymax;
-	DBG cerr <<"=======Panner::SetWholebox: x:"<<min[0]<<','<<max[0]<<"  y:"<<min[1]<<','<<max[1]<<endl;
+
+	//DBG cerr <<"=======Panner::SetWholebox: x:"<<min[0]<<','<<max[0]<<"  y:"<<min[1]<<','<<max[1]<<endl;
 	int c=validateSelbox(); 
 	sendMessages();
 	return c;

@@ -2030,7 +2030,7 @@ void DisplayerCairo::NewTransform(double a,double b,double c,double d,double x0,
 
 	syncPanner();
 
-	DBG dump_transforms(cr, ctm);
+	//DBG dump_transforms(cr, ctm);
 }
 
 void DisplayerCairo::ResetTransform()

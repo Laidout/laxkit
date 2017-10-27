@@ -68,6 +68,9 @@ thingpreviewer: lax thingpreviewer.o
 timers: lax timers.o
 	$(LD) $@.o -llaxkit $(LDFLAGS) -o $@
 
+stationrotater: lax stationrotater.o
+	$(LD) $@.o -llaxkit $(LDFLAGS) -o $@
+
 depends:
 	touch makedepend
 	makedepend -fmakedepend -I$(LAXDIR)/.. -Y *.cc

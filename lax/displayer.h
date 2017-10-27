@@ -179,8 +179,8 @@ class Displayer : public PanUser, virtual public anObject
 	virtual void closed() = 0;
 	virtual void closeopen() = 0;
 	virtual void drawpixel(flatpoint p) = 0;
-	virtual void drawpoint(double x,double y,double radius,int fill) = 0;  //draw filled circle radius r
-	virtual void drawpoint(flatpoint p,double radius,int fill); //draw filled circle radius r
+	virtual void drawpoint(double x,double y,double radius,int fill) = 0;  //draw circle screen radius r
+	virtual void drawpoint(flatpoint p,double radius,int fill); //draw circle screen radius r
 	virtual void drawlines(flatpoint *points,int npoints,char closed,char fill) = 0;
 	virtual void drawline(flatpoint p1,flatpoint p2) = 0;
 	virtual void drawline(double ax,double ay,double bx,double by);
@@ -191,6 +191,8 @@ class Displayer : public PanUser, virtual public anObject
 	virtual void drawbez(flatpoint *bpoints,int n,int isclosed=0,int tofill=0);
 	virtual void drawFormattedPoints(flatpoint *pts, int n, int tofill);
 	virtual int drawrealline(flatline &ln,int num);
+	virtual void drawcircle(double x,double y,double radius,int fill);
+	virtual void drawcircle(flatpoint p,double radius,int fill);
 	virtual void drawellipse(double x,double y,double xradius,double yradius,double start_angle=0,double end_angle=0,int fill=0);
 	virtual void drawellipse(flatpoint p,double xradius,double yradius,double start_angle=0,double end_angle=0,int fill=0);
 	virtual void drawarc(flatpoint p,double xr,double yr,double start_angle=0,double end_angle=0);
