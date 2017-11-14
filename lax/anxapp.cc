@@ -2205,92 +2205,112 @@ int anXApp::addwindow(anXWindow *w,char mapit,char absorb_count) // mapit==1, ab
 
 	 //set window icon
 	if (!w->win_parent && (default_icon || default_icon_file)) {
-		if (!default_icon && load_image!=NULL) {
-			default_icon=load_image(default_icon_file);
+		if (!default_icon && load_image != NULL) {
+			default_icon = load_image(default_icon_file);
 			if (!default_icon) {
 				cerr <<" WARNING! could not load default icon: "<<default_icon_file<<endl;
 			}
 		}
 
 		if (default_icon) {
-			 //set new school icon hint
-			// *** it is not clear the below works (or even should work):
-//			unsigned char *data=default_icon->getImageBuffer();
-//			int width =default_icon->w();
-//			int height=default_icon->h();
-//			unsigned char ndata[4*(2+width*height)];
+			 //set new school icon hint _NET_WM_ICON:
+			 // 32 bit array, w h ARGBARGB... left to right, top to bottom
+
+			DBG cerr <<"Setting _NET_WM_ICON"<<endl;
+			unsigned char *data = default_icon->getImageBuffer(); //returns BGRA
+			int width  = default_icon->w();
+			int height = default_icon->h();
+			unsigned long ndata[4*(2+width*height)]; //needs to be long, despite having 32 bit ARGB.. gaaaa!!!
+			ndata[0] = width;
+			ndata[1] = height;
+			int i=2, ii=0;
+			for (int y=0; y<height; y++) {
+			  for (int x=0; x<width; x++) {
+				ndata[i] = (data[ii+3]<<24)|(data[ii+2]<<16)|(data[ii+1]<<8)|(data[ii+0]);
+				i++;
+				ii+=4;
+			  }
+			}
+
+//			------
 //			memcpy(ndata+8,data,4*width*height);
-//			ndata[0]=0;
-//			ndata[1]=0;
-//			ndata[2]=(width&0xff00)>>16;
-//			ndata[3]=(width&0xff);
-//			ndata[4]=0;
-//			ndata[5]=0;
-//			ndata[6]=(height&0xff00)>>16;
-//			ndata[7]=(height&0xff);
-//
-//			Atom _net_wm_icon=XInternAtom(dpy,"_NET_WM_ICON",False);
-//			XChangeProperty(dpy,
-//							w->xlib_window,
-//							_net_wm_icon,
-//							XA_CARDINAL, //???
-//							8,
-//							PropModeReplace,
-//							ndata, 4*(2+width*height));
-//
-//			default_icon->doneWithBuffer(data);
+//			ndata[0] = 0;
+//			ndata[1] = 0;
+//			ndata[2] = (width&0xff00)>>16;
+//			ndata[3] = (width&0xff);
+//			ndata[4] = 0;
+//			ndata[5] = 0;
+//			ndata[6] = (height&0xff00)>>16;
+//			ndata[7] = (height&0xff);
+
+			Atom _net_wm_icon = XInternAtom(dpy,"_NET_WM_ICON",False);
+			int status = XChangeProperty(dpy,
+							w->xlib_window,
+							_net_wm_icon,
+							XA_CARDINAL,
+							32,
+							PropModeReplace,
+							(const unsigned char*)ndata, (2+width*height));
+			DBG cerr <<"XChangeProperty for _NET_WM_ICON status: "<<status;
+
+			default_icon->doneWithBuffer(data);
 		}
 
-		 //set old school icon hint if Imlib is handy to retrieve X pixmap/clipmask
-		if (!xh || (xh->flags&IconPixmapHint)==0) {
-			 //***this is clunky!!
-
-			Pixmap default_icon_data=0;
-			Pixmap default_icon_mask=0;
-
-			XSetWindowAttributes xatts;
-			Window win=XCreateWindow(dpy,
-							DefaultRootWindow(dpy),
-							0,0,1,1,
-							0,
-							CopyFromParent, //depth
-							CopyFromParent, //class, from: InputOutput, InputOnly, CopyFromParent
-							vis,
-							0,&xatts);
-
-			//bool stillblank=true;
-#ifdef LAX_USES_CAIRO
-			if (!strcmp(backend, "cairo")) {
-				//***
-			}
-#endif
-#ifdef LAX_USES_IMLIB
-			if (!strcmp(backend, "xlib")) {
-
-				imlib_context_set_display(dpy);
-			    imlib_context_set_visual(vis);
-			    imlib_context_set_colormap(DefaultColormap(dpy, DefaultScreen(dpy)));
-				imlib_context_set_drawable(win);
-				Imlib_Image imlibimage=imlib_load_image(default_icon_file);
-				if (imlibimage) {
-					imlib_context_set_image(imlibimage);
-					imlib_render_pixmaps_for_whole_image(&default_icon_data, &default_icon_mask);
-					imlib_free_image();
-				} else {
-					cerr <<" WARNING! could not load default icon for xh: "<<default_icon_file<<endl;
-				}
-			}
-#endif
-
-			XDestroyWindow(dpy,win);
-
-			if (default_icon_data) {
-				if (!xh) xh=XAllocWMHints();
-				xh->flags|=IconPixmapHint|IconMaskHint;
-				xh->icon_pixmap=default_icon_data;
-				xh->icon_mask  =default_icon_mask;
-			}
-		}
+//		 //set old school icon hint if Imlib is handy to retrieve X pixmap/clipmask
+//		if (!xh || (xh->flags&IconPixmapHint)==0) {
+//			DBG cerr << "Setting up default icon..."<<endl;
+//			 //***this is clunky!!
+//
+//			Pixmap default_icon_data=0;
+//			Pixmap default_icon_mask=0;
+//
+//
+//			//bool stillblank=true;
+//#ifdef LAX_USES_CAIRO
+//			if (!strcmp(backend, "cairo")) {
+//				//***
+//			}
+//#endif
+//#ifdef LAX_USES_IMLIB
+//			if (default_icon_data == 0) {
+//			//if (!strcmp(backend, "xlib")) {
+//				DBG cerr << "Using Imlib to set up default icon..."<<endl;
+//
+//				XSetWindowAttributes xatts;
+//				Window win=XCreateWindow(dpy,
+//							DefaultRootWindow(dpy),
+//							0,0,1,1,
+//							0,
+//							CopyFromParent, //depth
+//							CopyFromParent, //class, from: InputOutput, InputOnly, CopyFromParent
+//							vis,
+//							0,&xatts);
+//
+//				imlib_context_set_display(dpy);
+//			    imlib_context_set_visual(vis);
+//			    imlib_context_set_colormap(DefaultColormap(dpy, DefaultScreen(dpy)));
+//				imlib_context_set_drawable(win);
+//				Imlib_Image imlibimage=imlib_load_image(default_icon_file);
+//				if (imlibimage) {
+//					imlib_context_set_image(imlibimage);
+//					imlib_render_pixmaps_for_whole_image(&default_icon_data, &default_icon_mask);
+//					imlib_free_image();
+//				} else {
+//					cerr <<" WARNING! could not load default icon for xh: "<<default_icon_file<<endl;
+//				}
+//			}
+//#endif
+//
+//			XDestroyWindow(dpy,win);
+//
+//			if (default_icon_data) {
+//				DBG cerr <<"Found default icon image data"<<endl;
+//				if (!xh) xh = XAllocWMHints();
+//				xh->flags |= IconPixmapHint|IconMaskHint;
+//				xh->icon_pixmap = default_icon_data;
+//				xh->icon_mask   = default_icon_mask;
+//			}
+//		}
 	}
 
 	if (xh) XSetWMHints(dpy,w->xlib_window,xh);
