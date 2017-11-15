@@ -8,6 +8,10 @@ Those are purged with each release.
 
 
 -----------------------------------------------------------------------------
+need more adaptable styling
+window icon management, need to be able to set for any window on the fly
+
+-----------------------------------------------------------------------------
 
 further implementation needed:
     ellipseinterface.h
