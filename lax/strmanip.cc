@@ -18,7 +18,7 @@
 //    License along with this library; if not, write to the Free Software
 //    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
-//    Copyright (C) 2004-2007 by Tom Lechner
+//    Copyright (C) 2004-2017 by Tom Lechner
 //
 
 
@@ -877,14 +877,14 @@ char *chop_extension(char *file)
 }
 
 //! Return a new name based on the old file plus one, so "file.jpg" will return "file2.jpg"
-/*! "file3.jpg"->"file4.jpg",
- *  "blah"->"blah2"->"blah3",
- *  "blah001.jpg"->"blah2.jpg"
+/*! "file3.jpg" -> "file4.jpg",
+ *  "blah" -> "blah2" -> "blah3",
+ *  "blah001.jpg" -> "blah002.jpg",
+ *  "too.many.extensions" -> "too.many2.extensions"
  *
  *  Note that currently, only the final extension is saved, meaning "blah.tar.gz" -> "blah.tar2.gz".
  *
- *  \todo should have "blah001.jpg"->"blah002.jpg", and perhaps optionally 
- *    allow "blah.tar.gz" -> "blah2.tar.gz"
+ *  \todo perhaps optionally allow "blah.tar.gz" -> "blah2.tar.gz", like increment_file(file, numextensions=1)
  */
 char *increment_file(const char *file)
 {
@@ -900,13 +900,14 @@ char *increment_file(const char *file)
 	unsigned int num=2;
 	const char *cnum;
 	cnum=extension;
+
 	if (cnum>file && isdigit(*(cnum-1))) {
 		int base=1;
 		num=0;
 		cnum--;
 		do {
-			num+=base*(cnum[0]-'0');
-			base*=10;
+			num  += base*(cnum[0]-'0');
+			base *= 10;
 			cnum--;
 		} while (cnum>file && isdigit(*cnum));
 		cnum++;
@@ -916,10 +917,116 @@ char *increment_file(const char *file)
 	 //build new name
 	char *newfile=new char[cnum-file + strlen(file)-(extension-file) + 12]; //12 is safe for integer
 	if (cnum-file) strncpy(newfile,file,cnum-file);
-	sprintf(newfile+(cnum-file),"%d%s",num,extension);
+	char format[15];
+	sprintf(format, "%%0%dd%%s", (int)(extension-cnum));
+	sprintf(newfile+(cnum-file),format,num,extension);
 	return newfile;
 }
 
+/*! Reverse of htmlchars_decode().
+ *
+ * Encode single quote (to &apos;), double quote (&quot;),
+ * ampersand (&amp;), less than (&lt;) and greater than (&gt;).
+ *
+ * If buffer==NULL, then return a new char[] with the string.
+ * If buffer!=NULL, then attempt to put in buffer, which has room for len chars, and return buffer.
+ * If buffer does not have enough room, then put how many chars are needed in len_ret, and return NULL.
+ */
+char *htmlchars_encode(const char *str, char *buffer, int len, int *len_ret)
+{
+	const char *s = str;
+
+	int n=0;
+	while (s) {
+		s = strpbrk(s, "\"'&<>");
+		if (s) {
+			if (*s == '&') n += 5;
+			else if (*s == '\'') n += 6;
+			else if (*s == '"' ) n += 6;
+			else if (*s == '<' ) n += 4;
+			else if (*s == '>' ) n += 4;
+			s++;
+		}
+	}
+
+	int slen = strlen(str);
+	if (buffer && (len < slen+n+1)) {
+		if (len_ret) *len_ret = slen+n+1;
+		return NULL;
+	}
+
+	char *ret = buffer;
+	if (!ret) {
+		len = n + slen;
+		ret = new char[len + 1];
+	}
+
+	*ret = '\0';
+
+	const char *s1;
+	s = s1 = str;
+	while (s && *s) {
+		s = strpbrk(s1, "\"'&<>");
+
+		if (s) {
+			if (s!=s1) strncat(ret, s1, s-s1); //not translated bit
+
+			if (*s == '&') strcat(ret, "&amp;");
+			else if (*s == '\'') strcat(ret, "&apos;");
+			else if (*s == '"' ) strcat(ret, "&quot;");
+			else if (*s == '<' ) strcat(ret, "&lt;");
+			else if (*s == '>' ) strcat(ret, "&gt;");
+
+			s1 = s+1;
+
+		} else {
+			strcat(ret, s1);
+		}
+	}
+
+	if (len_ret) *len_ret = slen+n+1;
+	return ret;
+}
+
+/* Reverse of htmlchars_encode(). Convert a few &amp; things to: '"&<>
+ *
+ * If buffer==NULL, then return a new char[].
+ * If buffer!=NULL, then it should be at least as long as strlen(str)+1, since
+ * the returned string can only be the same length or shorter.
+ */
+char *htmlchars_decode(const char *str, char *buffer)
+{
+	if (!buffer) buffer = new char[strlen(str)+1];
+
+	const char *s = str;
+	const char *f;
+	*buffer = '\0';
+
+	while (s && *s) {
+		f = strchr(s,'&');
+
+		if (!f) {
+			strcat(buffer, s);
+			s = NULL;
+
+		} else {
+			if (f>s) strncat(buffer, s, f-s);
+			s=f;
+
+			if (strcasestr(s,"&amp;") == s) { strcat(buffer, "&"); s += 5; }
+			else if (strcasestr(s,"&apos;") == s) { strcat(buffer, "'");  s += 6; }
+			else if (strcasestr(s,"&quot;") == s) { strcat(buffer, "\""); s += 6; }
+			else if (strcasestr(s,"&gt;")   == s) { strcat(buffer, ">");  s += 4; }
+			else if (strcasestr(s,"&lt;")   == s) { strcat(buffer, "<");  s += 4; }
+			else { //uncaught ampersand!
+				strcat(buffer,"&");
+				s++;
+			}
+		}
+	}
+
+	return buffer;
+}
 
 
 /*! @} */

@@ -18,10 +18,11 @@
 //    License along with this library; if not, write to the Free Software
 //    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
-//    Copyright (C) 2004-2007 by Tom Lechner
+//    Copyright (C) 2004-2017 by Tom Lechner
 //
 #ifndef _LAX_STRMANIP_H
 #define _LAX_STRMANIP_H
+
 
 #include <cstring>
 
@@ -66,6 +67,10 @@ const char *lax_extension(const char *path);
 char *lax_dirname(const char *path,char appendslash);
 char *increment_file(const char *file);
 char *chop_extension(char *file);
+
+char *htmlchars_encode(const char *str, char *buffer, int len, int *len_ret);
+char *htmlchars_decode(const char *str, char *buffer);
+
 
 #endif
 
