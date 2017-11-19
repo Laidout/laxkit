@@ -18,10 +18,8 @@
 //    License along with this library; if not, write to the Free Software
 //    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
-//    Copyright (C) 2004-2011 by Tom Lechner
+//    Copyright (C) 2004-2015,2017 by Tom Lechner
 //
-
-#include <Imlib2.h>
 
 #include <lax/interfaces/imagepatchinterface.h>
 
@@ -161,6 +159,7 @@ SomeData *ImagePatchData::duplicate(SomeData *dup)
 int ImagePatchData::WhatColor(double s,double t,ScreenColor *color_ret)
 {
 	if (!idata) return 1;
+
 	//if (s<0. || s>1. || t<0. || t>1.) return 0;
 	int x,y,i;
 	x=(int)(s*iwidth);
@@ -182,6 +181,7 @@ int ImagePatchData::WhatColor(double s,double t,ScreenColor *color_ret)
 unsigned long ImagePatchData::WhatColorLong(double s,double t)
 {
 	if (!idata) return 0;
+
 	//if (s<0. || s>1. || t<0. || t>1.) return 0;
 	int x,y,i;
 	x=(int)(s*iwidth);
@@ -283,39 +283,39 @@ void ImagePatchData::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext 
 int ImagePatchData::SetImage(const char *fname)
 {
 	if (!fname) return -1;
-	Imlib_Image t=imlib_load_image(fname);
+
+	LaxImage *t = load_image(fname);
 	if (t) {
 		makestr(filename,fname);
-		imlib_context_set_image(t);
-		DATA32 *data32=imlib_image_get_data_for_reading_only(); //ARGB
-		iwidth= imlib_image_get_width();
-		iheight=imlib_image_get_height();
+		unsigned char *data = t->getImageBuffer(); //BGRABGRA..
+		iwidth  = t->w();
+		iheight = t->h();
+
 		if (idata && (idataislocal==1 || idataislocal==2)) delete[] idata; 
-		idata=new unsigned long[iwidth*iheight];
+		idata = new unsigned long[iwidth*iheight];
+
 		int r,c,i,i2;
 		int flip=1;
-		for (r=0; r<iheight; r++) 
+
+		for (r=0; r<iheight; r++) {
 			for (c=0; c<iwidth; c++) {
 				i=r*iwidth+c;
 				if (flip) i2=(iheight-r-1)*iwidth+c;
 				else i2=i;
-				idata[i]=data32[i2];
-
-//				idata[i]=anXApp::app->rgbcolor(
-//						(data32[i2]&0xff0000)>>16,
-//						(data32[i2]&0xff00)>>8,
-//						(data32[i2]&0xff)
-//					);
+				i2 *= 4;
+				idata[i] = (data[i2+3]<<24) | (data[i2+2]<<16) | (data[i2+1]<<8) | (data[i2+1]);
 			}
-		imlib_free_image();
+		}
 		idataislocal=1;
 		touchContents();
+		t->doneWithBuffer(data);
 		
 		DBG cerr <<"ImagePatchData "<<object_id<<" Set to "<<filename<<endl;
 		DBG dump_out(stderr,2,0,NULL);
 		return 0;
+
 	} else {
-		cout <<"** warning ImageData couldn't load "<<(fname?fname:"(unknown)")<<" do something!"<<endl;
+		cerr <<"** warning ImagePatchData couldn't load "<<(fname?fname:"(unknown)")<<" do something!"<<endl;
 	}
 	return 1;
 }
