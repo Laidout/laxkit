@@ -328,7 +328,7 @@ void ImageData::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *cont
 	 // if filename is given, and old file is NULL, or is different... 
 	 //  ... meaning don't load in the image if it is the same image
 	if (fname && (!filename || (filename && strcmp(fname,filename)))) {
-		if (pname) previewflag|=1;
+		if (!isblank(pname)) previewflag|=1;
 		 // load an image with existing preview, do not destroy that preview when
 		 // image is destroyed:
 		if (LoadImage(fname,pname,0,0,0,1)) {
