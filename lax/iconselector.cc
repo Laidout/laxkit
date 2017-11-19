@@ -175,8 +175,6 @@ int IconSelector::AddBox(const char *nlabel,const char *filename,int nid)
 
 //! Add box and return its index.
 /*! This calls FillBox to set the new boxes elements.
- * 
- * Currently, filename must be something Imlib2 can read in.
  */
 int IconSelector::AddBox(const char *nlabel,LaxImage *img,int nid)
 {
