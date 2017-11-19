@@ -1196,14 +1196,14 @@ void Displayer::drawnum(double x, double y, int num)
  */
 int Displayer::imageout_within(LaxImage *image, double x,double y, double w,double h)
 {
-	double a=image->w()/image->h();
+	double a=(double)image->w()/image->h();
 	double a2=w/h;
 	double ow=w, oh=h;
 
 	if (a>a2) {
-		w = h*a*w;
+		h = w/a;
 	} else {
-		h = w/a*h;
+		w = h*a;
 	}
 
 	x=x+ow/2-w/2;
