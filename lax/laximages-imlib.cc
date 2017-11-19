@@ -487,12 +487,17 @@ LaxImage *load_imlib_image_with_preview(const char *filename,const char *preview
 	LaxImlibImage *img=new LaxImlibImage(filename,image);
 	img->doneForNow();
 
-	if (previewfile && previewimage_ret) {
+	if (previewimage_ret) {
+	  if (!isblank(previewfile) && previewimage_ret) {
 		 //this will create previewfile on disk if it doesn't already exist:
 		LaxImlibImage *pimg=new LaxImlibImage(filename, previewfile, maxx,maxy);
 		pimg->doneForNow();
 
 		*previewimage_ret = pimg;
+
+	  } else {
+		*previewimage_ret = NULL;
+	  }
 	}
 
 	return img;
