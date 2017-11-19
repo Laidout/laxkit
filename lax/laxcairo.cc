@@ -61,8 +61,8 @@ void InitLaxCairo(bool with_backend)
 	if (with_backend) InitCairoBackend();
 }
 
-/*! This will set up the default graphics backend to Imlib. This means all the functions
- * like load_image, image_out, etc, will be based on Imlib calls.
+/*! This will set up the default graphics backend to cairo. This means all the functions
+ * like load_image, image_out, etc, will be based on cairo calls.
  */
 void InitCairoBackend()
 {
@@ -104,9 +104,9 @@ void InitCairoBackend()
 
 namespace Laxkit {
 	
-//--------------------------- InitLaxImlib() when no Laxkit--------------------------------------
+//--------------------------- InitLaxCairo() when no Laxkit--------------------------------------
 
-//! Imlib2 support not compiled in, this just prints a warning and returns.
+//! Cairo support not compiled in, this just prints a warning and returns.
 /*! \ingroup misc
  */
 void InitLaxCairo() 
