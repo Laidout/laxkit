@@ -217,19 +217,7 @@ int CacheManager::Remove(MemCachedObject *obj)
  * It need not read in the actual pixel data.
  */
 /*! \fn int LaxImage::imagetype()
- * Return what sort of image this is. Currently, only LAX_IMAGE_IMLIB is implemented,
- * but the following words are reserved for future use maybe:
- * 
- * \code
- *  #define LAX_IMAGE_NULL            0
- *  #define LAX_IMAGE_BUFFER          1
- *  #define LAX_IMAGE_XIMAGE          2
- *  #define LAX_IMAGE_PIXMAP          3
- *  #define LAX_IMAGE_IMLIB           4
- *  #define LAX_IMAGE_CAIRO           5
- *  #define LAX_IMAGE_ANTIGRAIN       6
- *  #define LAX_IMAGE_GL              7
- * \endcode
+ * Return what sort of image this is. See LaxImageTypes.
  */
 /*! \fn int LaxImage::imagestate()
  * \brief Return whether this is valid image, is whole image, etc.
@@ -238,11 +226,11 @@ int CacheManager::Remove(MemCachedObject *obj)
  * Otherwise, the image data should be able to be gotten or already be in memory,
  * and the return value should be an or'd combination of the following:
  * \code
- *  #define LAX_IMAGE_METRICS        <-- whether metric info is ready
- *  #define LAX_IMAGE_PREVIEW        <-- whether (maybe) smaller preview is in memory
- *  #define LAX_IMAGE_WHOLE          <-- whether the whole data is in memory
- *  #define LAX_IMAGE_HAS_FILE       <-- whether the image corresponds to a file
- *  #define LAX_IMAGE_HAS_TEMP_FILE  <-- whether the image is held in a temporary file
+ *   LAX_IMAGE_METRICS        <-- whether metric info is ready
+ *   LAX_IMAGE_PREVIEW        <-- whether (maybe) smaller preview is in memory
+ *   LAX_IMAGE_WHOLE          <-- whether the whole data is in memory
+ *   LAX_IMAGE_HAS_FILE       <-- whether the image corresponds to a file
+ *   LAX_IMAGE_HAS_TEMP_FILE  <-- whether the image is held in a temporary file
  * \endcode
  */
 /*! \fn int LaxImage::w()

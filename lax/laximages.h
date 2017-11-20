@@ -26,21 +26,6 @@
 #include <lax/anobject.h>
 #include <sys/times.h>
 
-#define LAX_IMAGE_NULL            0
-#define LAX_IMAGE_BUFFER          1
-#define LAX_IMAGE_XIMAGE          2
-#define LAX_IMAGE_PIXMAP          3
-#define LAX_IMAGE_IMLIB           4
-#define LAX_IMAGE_CAIRO           5
-#define LAX_IMAGE_ANTIGRAIN       6
-#define LAX_IMAGE_GL              7
-#define LAX_IMAGE_FIRST_USER_TYPE 1000
-
-#define LAX_IMAGE_METRICS        (1<<0)
-#define LAX_IMAGE_PREVIEW        (1<<1)
-#define LAX_IMAGE_WHOLE          (1<<2)
-#define LAX_IMAGE_HAS_FILE       (1<<3)
-#define LAX_IMAGE_HAS_PREVIEW    (1<<4)
 
 namespace Laxkit {
 	
@@ -49,6 +34,27 @@ class aDrawable;
 
 
 //--------------------------- LaxImage --------------------------------------
+enum LaxImageTypes {
+	LAX_IMAGE_NULL = 0,
+	LAX_IMAGE_BUFFER,
+	LAX_IMAGE_XIMAGE,
+	LAX_IMAGE_PIXMAP,
+	LAX_IMAGE_IMLIB,
+	LAX_IMAGE_CAIRO,
+	LAX_IMAGE_ANTIGRAIN,
+	LAX_IMAGE_GL,
+	LAX_IMAGE_ANIMATED,
+	LAX_IMAGE_FIRST_USER_TYPE=1000
+};
+
+enum LaxImageStat {
+	LAX_IMAGE_METRICS       = (1<<0),
+	LAX_IMAGE_PREVIEW       = (1<<1),
+	LAX_IMAGE_WHOLE         = (1<<2),
+	LAX_IMAGE_HAS_FILE      = (1<<3)
+};
+
+
 class ImageLoader;
 
 class LaxImage : public anObject
