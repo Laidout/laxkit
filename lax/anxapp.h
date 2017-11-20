@@ -329,9 +329,14 @@ class ScreenInformation
   public:
 	int screen; //screen number
 	int x,y, width,height;
-	double mmwidth,mmheight;
+	int mmwidth,mmheight;
 	int depth;
 	int virtualscreen; //id of virtual screen, if screen is part of a larger setup
+
+	ScreenInformation *next;
+	~ScreenInformation() { if (next) delete next; }
+	int HowMany() { return 1 + (next ? next->HowMany() : 0); }
+	ScreenInformation *Get(int i) { if (i==0) return this; else { if (next && i>0) return next->Get(i-1); else return NULL; } }
 };
 
 //---------------------------- anXApp --------------------------------------
@@ -350,7 +355,6 @@ class anXApp : virtual public anObject
 	char              use_xinput;
 	Display          *dpy;
 	int               screen;
-	int              *xscreeninfo;
 	Visual           *vis;
 	Window            bump_xid;
 
@@ -370,7 +374,7 @@ class anXApp : virtual public anObject
 	virtual GC gc(int scr=0, int id=0);
 	virtual anXWindow *findwindow_xlib(Window win);
 	virtual anXWindow *findsubwindow_xlib(anXWindow *w,Window win);
-	virtual int xlib_ScreenInfo(int screen,int *width,int *height,int *mmwidth,int *mmheight,int *depth);
+	virtual int xlib_ScreenInfo(int screen, int *xx,int *yy, int *width,int *height,int *mmwidth,int *mmheight,int *depth);
 	virtual void reselectForXEvents(anXWindow *win);
 #endif //_LAX_PLATFORM_XLIB
 
@@ -387,6 +391,8 @@ class anXApp : virtual public anObject
 	LaxImage               *default_icon;
 	char                   *default_icon_file;
 	char                   *copybuffer;
+
+	ScreenInformation      *screeninfo;
 
 	char                    dontstop;
 	unsigned long           dialog_mask;

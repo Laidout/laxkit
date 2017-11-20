@@ -466,13 +466,8 @@ anXApp *anXApp::app=NULL;
 /*! \var int anXApp::screen
  * \brief The default screen for dpy, the X connection.
  */
-/*! \var int *anXApp::xscreeninfo
- * \brief Width, height, and depth of each available screen.
- *
- * xscreeninfo[0] is the number of screens, and each group of 5 ints after that are w,h,mmw,mmh,d.
- * It is necessary to have this separate, because some devices that exist outside of X need
- * info provided by X, and the threads they catch their own events do not play nice with X
- * (as of May, 2011, anyway). See ScreenInfo() for more.
+/*! \var ScreenInformation *anXApp::screeninfo
+ * \brief X, y, Width, height, width in mm, height in mm, and depth of each available screen.
  */
 /*! \var char *anXApp::textfontstr
  * \brief The default font for text inside text edits. It is a fontconfig pattern string.
@@ -528,10 +523,11 @@ anXApp *anXApp::app=NULL;
 anXApp::anXApp()
 {
 	 //--------- note that nothing in this constructor depends on an x connections
+	screeninfo = NULL;
+
 #ifdef _LAX_PLATFORM_XLIB
 	XInitThreads();
 	use_xinput=2;
-	xscreeninfo=NULL;
 
 	xim_current_device=NULL;
 	xim=NULL;
@@ -625,9 +621,7 @@ anXApp::~anXApp()
 	if (color_edits)   color_edits->dec_count();
 	if (color_buttons) color_buttons->dec_count();
 
-#ifdef _LAX_PLATFORM_XLIB
-	if (xscreeninfo) delete[] xscreeninfo;
-#endif //_LAX_PLATFORM_XLIB
+	if (screeninfo) delete screeninfo;
 
 	pthread_mutex_destroy(&event_mutex);
 }
@@ -965,22 +959,29 @@ int anXApp::initX(int argc,char **argv)
 		exit(1); 
 	}
 
-	screen=DefaultScreen(dpy);
-	int numscreens=XScreenCount(dpy);
-	if (xscreeninfo) delete[] xscreeninfo;
-	xscreeninfo=new int[1+5*numscreens];
-	xscreeninfo[0]=numscreens;
+	screen = DefaultScreen(dpy);
+	int numscreens = XScreenCount(dpy);
+	if (screeninfo) delete screeninfo;
+
+	screeninfo = new ScreenInformation;
+	ScreenInformation *scr = screeninfo;
+
 	for (int c=0; c<numscreens; c++) {
-		xlib_ScreenInfo(c,&xscreeninfo[1+3*c  ], //w
-						  &xscreeninfo[1+3*c+1], //h
-						  &xscreeninfo[1+3*c+2], //mm w
-						  &xscreeninfo[1+3*c+3], //mm h
-						  &xscreeninfo[1+3*c+4]  //depth
+		scr->screen = c;
+		scr->virtualscreen = -1;
+		xlib_ScreenInfo(c,&scr->x,
+						  &scr->y,
+						  &scr->width,
+						  &scr->height,
+						  &scr->mmwidth,
+						  &scr->mmheight,
+						  &scr->depth
 					   );
+		if (c != numscreens-1) { scr->next = new ScreenInformation; scr = scr->next; }
 	}
 
-	vis=DefaultVisual(dpy,screen);
-	if (vis->c_class!=DirectColor && vis->c_class!=TrueColor) {
+	vis = DefaultVisual(dpy,screen);
+	if (vis->c_class != DirectColor && vis->c_class != TrueColor) {
 		cerr << "This program must be run with TrueColor or DirectColor.\n";
 		exit(1);
 	}
@@ -1204,50 +1205,51 @@ int anXApp::DefaultIcon(LaxImage *image, int absorb_count)
 
 
 #ifdef _LAX_PLATFORM_XLIB
-//! Return information about a screen, finding it on the fly with Xlib, rather than consult xscreeninfo.
+//! Return information about a screen, finding it on the fly with Xlib, rather than consult screeninfo.
 /*! This is like ScreenInfo(), but is separate to prevent strange device thread 
  * related snafus. If you create a device that catches events in its own thread,
  * do not use this function, as your program will likely crash.
  */
-int anXApp::xlib_ScreenInfo(int screen,int *width,int *height,int *mmwidth,int *mmheight,int *depth)
+int anXApp::xlib_ScreenInfo(int screen,int *x, int *y, int *width,int *height,int *mmwidth,int *mmheight,int *depth)
 {
-	Window root=RootWindow(dpy,screen);
+	Window root = RootWindow(dpy,screen);
 	Window rootret;
-	int x,y;
+	int xx,yy;
 	unsigned int w,h,border,d;
-	XGetGeometry(dpy,root,&rootret, &x,&y, &w,&h, &border,&d);
+	XGetGeometry(dpy,root,&rootret, &xx,&yy, &w,&h, &border,&d);
 	int n=0;
+	if (x) { *x = xx;  n++; }
+	if (y) { *y = yy;  n++; }
 	if (width) { *width=w;  n++; }
 	if (height){ *height=h; n++; }
 	if (depth) { *depth=d;  n++; }
-	if (mmwidth)  { *mmwidth=DisplayWidthMM(dpy,screen);  n++; }
-	if (mmheight) { *mmwidth=DisplayHeightMM(dpy,screen); n++; }
+	if (mmwidth)  { *mmwidth = DisplayWidthMM(dpy,screen);  n++; }
+	if (mmheight) { *mmwidth = DisplayHeightMM(dpy,screen); n++; }
 	return n;
 }
 #endif //_LAX_PLATFORM_XLIB
 
-//! Return information about a screen, based on information in xscreeninfo which gets defined in init().
+//! Return information about a screen, based on information in screeninfo which gets defined in init().
 /*! Return the width, height, and depth information about a screen, if the
  * corresponding pointers are not NULL. The mmwidth and mmheight are in millimeters. These are usually
  * returned by the monitor, and may or may not be accurate.
  *
- * Return how many of the requested variables were found (this 0 for none found).
+ * Return how many of the requested variables were found (this is 0 for none found).
  */
 int anXApp::ScreenInfo(int screen,int *x,int *y, int *width,int *height,int *mmwidth,int *mmheight,int *depth,int *virt)
 {
-#ifdef _LAX_PLATFORM_XLIB
-	if (!xscreeninfo || screen<0 || screen>=xscreeninfo[0]) return 0;
+	if (!screeninfo || screen<0 || screen >= screeninfo->HowMany()) return 0;
+	ScreenInformation *scr = screeninfo->Get(screen);
 
 	int n=0;
-	if (x) { *x=0; n++; }
-	if (y) { *y=0; n++; }
-	if (width)   { *width   =xscreeninfo[1+3*screen];   n++; }
-	if (height)  { *height  =xscreeninfo[1+3*screen+1]; n++; }
-	if (mmwidth) { *mmwidth =xscreeninfo[1+3*screen+2]; n++; }
-	if (mmheight){ *mmheight=xscreeninfo[1+3*screen+3]; n++; }
-	if (depth)   { *depth   =xscreeninfo[1+3*screen+4]; n++; }
-	if (virt) { *virt=0; n++; }
-#endif //_LAX_PLATFORM_XLIB
+	if (x)       { *x       = scr->x;        n++; }
+	if (y)       { *y       = scr->y;        n++; }
+	if (width)   { *width   = scr->width;    n++; }
+	if (height)  { *height  = scr->height;   n++; }
+	if (mmwidth) { *mmwidth = scr->mmwidth;  n++; }
+	if (mmheight){ *mmheight= scr->mmheight; n++; }
+	if (depth)   { *depth   = scr->depth;    n++; }
+	if (virt)    { *virt    = scr->virtualscreen; n++; }
 
 	return n;
 }
