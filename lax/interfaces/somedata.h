@@ -83,15 +83,21 @@ class SomeData :  virtual public Laxkit::Resourceable,
 	 //preview mechanism
 	Laxkit::LaxImage *preview;
 	int usepreview;
-
 	std::time_t previewtime;
 	std::time_t modtime;
-	virtual void touchContents();
+	virtual bool HasOldPreview() { return modtime > previewtime; }
 
 	virtual Laxkit::LaxImage *GetPreview();
 	virtual void GeneratePreview(int w,int h);
 	virtual int renderToBuffer(unsigned char *buffer, int bufw, int bufh, int bufstride, int bufdepth, int bufchannels);
 	virtual int renderToBufferImage(Laxkit::LaxImage *image);
+
+	int modified; //hint for what has been modified
+	virtual void touchContents();
+	virtual int IsModified()     { return modified; }
+	virtual void Modified()      { modified |= 1; touchContents(); }
+	virtual void ChildModified() { modified |= 2; touchContents(); }
+	virtual void ClearModified() { modified = 0; }
 
 	int locks; //lock object contents|matrix|position|rotation|shear|scale|kids|selectable
 	bool visible;

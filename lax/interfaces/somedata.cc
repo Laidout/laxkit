@@ -108,10 +108,11 @@ SomeData::SomeData()
 {
 	//***if (defaultNewSomeDataFunc!=NULL) defaultNewSomeDataFunc(this);
 		
-	preview=NULL;
-	usepreview=0;
-	previewtime=0;
-	modtime=0;
+	preview    = NULL;
+	usepreview = 0;
+	previewtime= 0;
+	modtime    = 0;
+	modified   = 0;
 
 	locks=0; 
 	visible=true;
