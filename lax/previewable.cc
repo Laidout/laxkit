@@ -41,8 +41,8 @@ namespace Laxkit {
 Previewable::Previewable()
 {
 	preview=NULL;
-	previewtime=0;
-    modtime=0;
+	previewtime=0; //time at which preview was last rendered
+    modtime=0;     //time of most recent modification that should trigger a preview rerender
 }
 
 Previewable::~Previewable()
@@ -50,6 +50,9 @@ Previewable::~Previewable()
 	if (preview) preview->dec_count();
 }
 
+/*! Call this whenever there's reason to think the preview needs to be updated.
+ * Sets modtime to be the current time, but does NOT actually do a preview render.
+ */
 void Previewable::touchContents()
 {
     previewtime=0; //time() doesn't change often enough, so we have to force this to 0..
