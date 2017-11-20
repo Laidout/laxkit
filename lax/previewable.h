@@ -44,6 +44,7 @@ class Previewable : virtual public DoubleBBox
     std::time_t modtime;     
 
 	virtual void touchContents();
+	virtual bool HasOldPreview() { return modtime > previewtime; }
 	virtual LaxImage *GetPreview();
 	virtual int GeneratePreview(int width, int height);
 
