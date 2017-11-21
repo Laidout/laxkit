@@ -156,7 +156,7 @@ void ScreenColor::AddDiff(double r, double g, double b)
 	}
 }
 
-/*! Put the average color with this in result.
+/*! Put the average color with this in result. It works if result==this.
  * r==0 is just this, r==1 is color.
  *
  * result can't be NULL.
