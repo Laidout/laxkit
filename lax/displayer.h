@@ -198,6 +198,7 @@ class Displayer : public PanUser, virtual public anObject
 	virtual void drawarc(flatpoint p,double xr,double yr,double start_angle=0,double end_angle=0);
 	virtual void drawfocusellipse(flatpoint focus1,flatpoint focus2, double c,
 								double start_angle=0,double end_angle=0,int fill=0);
+	virtual void drawCheckerboard(double x,double y,double w,double h, double square, double offsetx,double offsety);
 
 	//draw things
 	virtual void drawthing(double x, double y, double rx, double ry, int tofill, DrawThingTypes thing); // draws same orientation on screen
