@@ -682,13 +682,13 @@ void ColorSliders::DrawSpecial(int which, int x,int y,int w,int h)
 	dp->MakeCurrent(this);//should have been done already
 
 	if (which==COLORSLIDER_None) {
-		dp->NewFG(~0);
+		dp->NewFG(1.,1.,1.);
 		dp->drawrectangle(x,y,w,h, 1);
 
 		int ll=3;
 		x+=ll/2; y+=ll/2; w-=ll; h-=ll;
 		dp->LineAttributes(ll,LineSolid,LAXCAP_Round,LAXJOIN_Round);
-		dp->NewFG(0,0,0);
+		dp->NewFG(0.,0.,0.);
 		dp->drawline(x+ll/2,y, x+ll/2+w,y+h);
 		dp->drawline(x+ll/2,y+h, x+ll/2+w,y);
 
@@ -698,11 +698,11 @@ void ColorSliders::DrawSpecial(int which, int x,int y,int w,int h)
 
 	} else if (which==COLORSLIDER_Registration) {
 		dp->LineAttributes(2,LineSolid,LAXCAP_Round,LAXJOIN_Round);
-		dp->NewFG(~0);
+		dp->NewFG(1.,1.,1.);
 		dp->drawrectangle(x,y,w,h, 1);
 		int ww=w;
 		if (h<ww) ww=h;
-		dp->NewFG(0,0,0);
+		dp->NewFG(0.,0.,0.);
 		dp->drawline(x+w/2,      y+h/2-ww/2,  x+w/2     , y+h/2+ww/2);
 		dp->drawline(x+w/2-ww/2, y+h/2     ,  x+w/2+ww/2, y+h/2     );
 		dp->drawpoint(x+w/2,y+h/2, ww/4, 0);
@@ -751,6 +751,7 @@ void ColorSliders::DrawHorizontal(ScreenColor &color1,ScreenColor &color2, int x
 	 //draw color
 	double pp;
 	ScreenColor color;
+
 	if (usealpha) {
 		unsigned int abg1=rgbcolorf(.3,.3,.3);
 		unsigned int abg2=rgbcolorf(.6,.6,.6);
@@ -775,13 +776,17 @@ void ColorSliders::DrawHorizontal(ScreenColor &color1,ScreenColor &color2, int x
 				a=!a;
 			}
 		}
+
 	} else {
-		for (int c=x; c<x+w; c++) {
-			pp=(double)(c-x)/w;
-			coloravg(&color, &color1,&color2,pp);
-			dp->NewFG(color.Pixel());
-			dp->drawline(c,y, c,y+h);
-		}
+		double offsets[2];
+		ScreenColor colors[2];
+		offsets[0] = 0;
+		offsets[1] = 1;
+		colors [0] = color1;
+		colors [1] = color2;
+		dp->setLinearGradient(3, x,y, x+w,y, offsets, colors, 2);
+		dp->drawrectangle(x,y,w,h,1);
+		dp->NewFG(dp->FG());
 	}
 
 	 //draw pos
@@ -798,10 +803,10 @@ void ColorSliders::DrawPos(int x,int y,int w,int h, double pos)
 {
 	pos*=w;
 
-	 //draw pos
+	 //draw vertical black+white bar at pos
 	if (pos>=0) {
 		Displayer *dp = GetDisplayer();
-		dp->NewFG(0,0,0);
+		dp->NewFG(0.,0.,0.);
 		dp->drawline(gap+pos,y, gap+pos,y+h);
 		dp->NewFG(1.0,1.0,1.0);
 		dp->drawline(gap+pos+1,y, gap+pos+1,y+h);
@@ -813,18 +818,19 @@ void ColorSliders::DrawVertical(ScreenColor &color1,ScreenColor &color2, int x,i
 	Displayer *dp = GetDisplayer();
 
 	 //draw colors
-	double pp;
-	ScreenColor color;
-	for (int c=y; c<y+h; y++) {
-		coloravg(&color, &color1,&color2,pp);
-		pp=(double)(c-y)/h;
-		dp->NewFG(pixelfromcolor(&color));
-		dp->drawline(x,c, x+w,c);
-	}
+	double offsets[2];
+	ScreenColor colors[2];
+	offsets[0] = 0;
+	offsets[1] = 1;
+	colors [0] = color1;
+	colors [1] = color2;
+	dp->setLinearGradient(3, x,y, x,y+h, offsets, colors, 2);
+	dp->drawrectangle(x,y,w,h,1);
+	dp->NewFG(dp->FG());
 
 	 //draw pos
 	if (pos>=0) {
-		dp->NewFG(0,0,0);
+		dp->NewFG(0.,0.,0.);
 		dp->drawline(x,gap+pos, x+w,gap+pos);
 		dp->NewFG(1.,1.,1.);
 		dp->drawline(x,gap+pos, x+w,gap+pos+1);
