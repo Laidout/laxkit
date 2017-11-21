@@ -23,6 +23,7 @@ class Win : public anXWindow
     double cur_time;
     double period; //seconds for scale pulse
     double step; //in seconds
+	double offsetx,offsety;
 
     Win(double time_step_seconds);
     virtual void Refresh();
@@ -42,6 +43,9 @@ Win::Win(double time_step_seconds)
     cur_time=0;
     period=2;
 
+	offsetx=100;
+	offsety=0;
+
     installColors(app->color_panel);
 }
 
@@ -56,6 +60,9 @@ int  Win::Idle(int tid)
 
     cur_time+=step;
     scale=(win_w<win_h?win_w:win_h)/2 * (1+sin(cur_time/period*2*M_PI))/2;
+
+	offsetx = 100*cos(angle);
+	offsety = 100*sin(angle);
 
     needtodraw=1;
 
@@ -79,9 +86,15 @@ void Win::Refresh()
 {
     if (!needtodraw) return;
 
-    clear_window(this);
+	Displayer *dp = MakeCurrent();
+    dp->ClearWindow();
 
+	 //checkerboard
+    dp->NewFG(coloravg(win_colors->fg, win_colors->bg, .4));
+    dp->NewBG(coloravg(win_colors->fg, win_colors->bg, .6));
+	dp->drawCheckerboard(0,0,win_w,win_h, 20, offsetx,offsety);
 
+	 //spinning square
     Affine m;
     m.setRotation(angle);
     m.setScale(scale,scale);
@@ -94,8 +107,9 @@ void Win::Refresh()
     
     for (int c=0; c<4; c++) pts[c]=m.transformPoint(pts[c]);
 
-    foreground_color(win_colors->fg);
-    fill_polygon(this, pts, 4);
+
+    dp->NewFG(win_colors->fg);
+    dp->drawlines(pts, 4, 1, 1);
 
     SwapBuffers();
     needtodraw=0;
