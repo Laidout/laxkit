@@ -674,26 +674,50 @@ void Displayer::drawrectangle(double x,double y,double ww,double hh,int tofill)
  */
 void Displayer::drawCheckerboard(double x,double y,double w,double h, double square, double offsetx,double offsety)
 {
+	//note: this is really slow, probably a better way with patterns or something
+	//also, this still hitches sometimes
+
 	unsigned long fg = FG();
 	unsigned long bg = BG();
 
 	drawrectangle(x,y,w,h,1); //draws with fg
-	offsetx = offsetx - floor(offsetx/square)*square;
-	offsety = offsety - floor(offsety/square)*square;
+
+	bool on, oon;
+	int numox = offsetx/square;
+	on = (numox%2);
+
+	int numoy = offsety/square;
+	on ^= (numoy%2);
+
+	//offsetx = offsetx - floor(offsetx/square)*square;
+	//offsety = offsety - floor(offsety/square)*square;
+	offsetx = offsetx - int(offsetx/square)*square;
+	offsety = offsety - int(offsety/square)*square;
+
+	if (offsetx > 0) { on = !on; offsetx -= square; }
+	if (offsety > 0) { on = !on; offsety -= square; }
 
 	 //now draw bg squares
 	NewFG(bg);
-	bool on;
+
 	double xxx,yyy,www,hhh;
-	for (double xx=x+offsetx; xx<x+w; xx+=square) {
-		for (double yy=y+offsety; yy<y+h; yy+=square) {
+	for (double xx = x+offsetx; xx < x+w; xx += square) {
+		//oon = on ^ (int( (xx-(x+offsetx))/square) % 2);
+		oon = on ^ (int(.5 + (xx-(x+offsetx))/square) % 2);
+
+		for (double yy = y+offsety; yy < y+h; yy += square) {
 			www = hhh = square;
-			xxx=xx; if (xxx<x) { www = square-(x-xxx); xxx=x; }
-			yyy=yy; if (yyy<y) { hhh = square-(y-yyy); yyy=y; }
+
+			xxx=xx;
+			if (xxx<x) { www = square-(x-xxx); xxx=x; }
+			yyy=yy;
+			if (yyy<y) { hhh = square-(y-yyy); yyy=y; }
+
 			if (xxx+www>x+w) www = x+w-xxx;
 			if (yyy+hhh>y+h) hhh = y+h-yyy;
-			on = ((int(xx/square))%2) ^ ((int(yy/square))%2);
-			if (on) drawrectangle(xxx,yyy,www,hhh,1); //draws with bg
+
+			oon = !oon;
+			if (oon) drawrectangle(xxx,yyy,www,hhh,1); //draws with bg
 		}
 	}
 
