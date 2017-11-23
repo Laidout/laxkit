@@ -31,6 +31,16 @@ namespace LaxInterfaces {
 
 //--------------------------- PerspectiveData -------------------------------------
 
+//class PointTransform
+//{
+//  public:
+//	virtual bool IsValid() = 0;
+//	virtual flatpoint transform(flatpoint p)              = 0;
+//	virtual flatpoint transform(double x,double y)        = 0;
+//	virtual flatpoint transformInverse(double x,double y) = 0;
+//	virtual flatpoint transformInverse(flatpoint p)       = 0;
+//};
+
 class PerspectiveTransform
 {
 	double *getNormalizationCoefficients(double *src, double *dst, bool isInverse);
@@ -73,7 +83,9 @@ class PerspectiveInterface : public anInterface
 	SomeData *data; //points to dataoc->obj
 	ObjectContext *dataoc;
 
-	double pm[3][3];
+	
+	bool show_grid;
+	bool continuous_update;
 
 	PerspectiveTransform transform;
 
@@ -95,6 +107,7 @@ class PerspectiveInterface : public anInterface
 		PERSP_ur,
 		PERSP_Move,
 		PERSP_Reset,
+		PERSP_Grid,
 		PERSP_MAX
 	};
 

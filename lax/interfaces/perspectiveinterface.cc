@@ -1,5 +1,5 @@
 //
-//	
+//
 //    The Laxkit, a windowing toolkit
 //    Please consult http://laxkit.sourceforge.net about where to send any
 //    correspondence about this software.
@@ -26,6 +26,8 @@
 //
 
 
+#include <lax/interfaces/pathinterface.h>
+
 
 #include <lax/interfaces/perspectiveinterface.h>
 
@@ -40,7 +42,7 @@ using namespace Laxkit;
 
 #include <iostream>
 using namespace std;
-#define DBG 
+#define DBG
 
 
 namespace LaxInterfaces {
@@ -52,7 +54,7 @@ namespace LaxInterfaces {
 //---------------------------------- Perspective Transform Utils -----------------------------
 
 
-//--------------- class Matrix -------------------
+//--------------- class Matrix (not used yet) -------------------
 class Matrix
 {
   public:
@@ -128,20 +130,20 @@ void Matrix::Allocate(int nrows, int ncols)
 //The following Numeric* are adapted from numeric.js:
 //  https://github.com/sloisel/numeric
 //MIT license:
-// 
+//
 // Numeric Javascript
 // Copyright (C) 2011 by Sébastien Loisel
-// 
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in
 // all copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -181,7 +183,7 @@ double *Numeric_cloneV(int n, double *x, double *ret)
 }
 
 /*! Copy matrix
- */ 
+ */
 double **Numeric_clone(int rows, int cols, double **x, double**ret)
 {
 	if (!ret) ret=AllocateMatrix(rows,cols);
@@ -257,7 +259,7 @@ double **Numeric_inv(int rows, int cols, double **a)
 		Ij = I[i0]; I[i0] = I[j]; I[j] = Ij;
 		x = Aj[j];
 
-		for (k=j; k!=n; ++k)    Aj[k] /= x; 
+		for (k=j; k!=n; ++k)    Aj[k] /= x;
 		for (k=n-1; k!=-1; --k) Ij[k] /= x;
 		for (i=m-1; i!=-1; --i) {
 			if (i!=j) {
@@ -374,7 +376,7 @@ PerspectiveTransform::PerspectiveTransform()
 }
 
 PerspectiveTransform::PerspectiveTransform(flatpoint *nsrcPts, flatpoint *ndstPts)
-{ 
+{
 	for (int c=0; c<4; c++) {
 		srcPts[2*c  ] = nsrcPts[c].x;
 		srcPts[2*c+1] = nsrcPts[c].y;
@@ -417,12 +419,12 @@ int PerspectiveTransform::SetTo(flatpoint nto_ll, flatpoint nto_lr, flatpoint nt
 	to_ll=nto_ll;
 	to_lr=nto_lr;
 	to_ul=nto_ul;
-	to_ur=nto_ur; 
+	to_ur=nto_ur;
 
 	return IsValid();
 }
 
-/*! Basically valid when the points form a convex shape.
+/*! Basically valid when the 4 points form a 4 point convex shape.
  */
 bool PerspectiveTransform::IsValid()
 {
@@ -442,7 +444,7 @@ bool PerspectiveTransform::IsValid()
 			pts[i++].set(dstPts[2*c2], dstPts[2*c2+1]);
 		}
 		if (point_is_in(p, pts, 3)) return false;
-	} 
+	}
 
 	return true;
 }
@@ -619,15 +621,17 @@ PerspectiveInterface::PerspectiveInterface(anInterface *nowner, int nid, Display
 {
 	interface_flags=0;
 
-	hover=PERSP_None;
-	showdecs=1;
-	needtodraw=1;
-	needtoremap=1;
+	hover       = PERSP_None;
+	showdecs    = 1;
+	show_grid   = true;
+	continuous_update = true;
+	needtodraw  = 1;
+	needtoremap = 1;
 
-	dataoc=NULL;
-	data=NULL;
+	dataoc      = NULL;
+	data        = NULL;
 
-	sc=NULL; //shortcut list, define as needed in GetShortcuts() 
+	sc          = NULL; //shortcut list, define as needed in GetShortcuts()
 }
 
 PerspectiveInterface::~PerspectiveInterface()
@@ -638,7 +642,7 @@ PerspectiveInterface::~PerspectiveInterface()
 }
 
 const char *PerspectiveInterface::whatdatatype()
-{ 
+{
 	//return "PerspectiveData";
 	return NULL; // NULL means this tool is creation only, it cannot edit existing data automatically
 }
@@ -672,19 +676,24 @@ int PerspectiveInterface::UseThisObject(ObjectContext *oc)
 		Clear(NULL);
 	}
 	if (dataoc) delete dataoc;
-	dataoc=oc->duplicate();
+	dataoc = oc->duplicate();
 
 	if (data!=ndata) {
 		data=ndata;
 		data->inc_count();
 	}
-	
+
 	 //1,2,3,4  ->  ll,lr,ul,ur
-	flatpoint v(data->boxwidth()*.1, data->boxheight()*.1);
-	transform.from_ll = transform.to_ll = data->transformPoint(flatpoint(data->minx,data->miny)+v);
-	transform.from_lr = transform.to_lr = data->transformPoint(flatpoint(data->maxx,data->miny)+flatpoint(-v.x,v.y));
-	transform.from_ul = transform.to_ul = data->transformPoint(flatpoint(data->minx,data->maxy)+flatpoint(v.x,-v.y));
-	transform.from_ur = transform.to_ur = data->transformPoint(flatpoint(data->maxx,data->maxy)+flatpoint(-v.x,-v.y));
+	//flatpoint v(data->boxwidth()*.1, data->boxheight()*.1); //offset from actual corner a little
+	//transform.from_ll = transform.to_ll = data->transformPoint(flatpoint(data->minx,data->miny)+v);
+	//transform.from_lr = transform.to_lr = data->transformPoint(flatpoint(data->maxx,data->miny)+flatpoint(-v.x,v.y));
+	//transform.from_ul = transform.to_ul = data->transformPoint(flatpoint(data->minx,data->maxy)+flatpoint(v.x,-v.y));
+	//transform.from_ur = transform.to_ur = data->transformPoint(flatpoint(data->maxx,data->maxy)+flatpoint(-v.x,-v.y));
+	//----
+	transform.from_ll = transform.to_ll = data->transformPoint(flatpoint(data->minx,data->miny));
+	transform.from_lr = transform.to_lr = data->transformPoint(flatpoint(data->maxx,data->miny));
+	transform.from_ul = transform.to_ul = data->transformPoint(flatpoint(data->minx,data->maxy));
+	transform.from_ur = transform.to_ur = data->transformPoint(flatpoint(data->maxx,data->maxy));
 	//----
 	//Affine a=ndata->GetTransformToContext(false, 0);
 	//transform.from_ll = transform.to_ll = a.transformPoint(flatpoint(data->minx,data->miny));
@@ -699,7 +708,7 @@ int PerspectiveInterface::UseThisObject(ObjectContext *oc)
 	return 1;
 }
 
-/*! 
+/*!
  * <pre>
  *  | 00  01  02 | |x|
  *  | 10  11  12 | |y|
@@ -734,8 +743,8 @@ void PerspectiveInterface::ResetTransform()
 }
 
 void PerspectiveInterface::ComputeTransform()
-{	
-	transform.ComputeTransform(); 
+{
+	transform.ComputeTransform();
 	needtoremap=0;
 }
 
@@ -746,7 +755,7 @@ int PerspectiveInterface::UseThis(anObject *nobj, unsigned int mask)
 //	if (!nobj) return 1;
 //	LineStyle *ls=dynamic_cast<LineStyle *>(nobj);
 //	if (ls!=NULL) {
-//		if (mask&GCForeground) { 
+//		if (mask&GCForeground) {
 //			linecolor=ls->color;
 //		}
 ////		if (mask&GCLineWidth) {
@@ -767,7 +776,7 @@ ObjectContext *PerspectiveInterface::Context()
 	return dataoc;
 }
 
-/*! Any setup when an interface is activated, which usually means when it is added to 
+/*! Any setup when an interface is activated, which usually means when it is added to
  * the interface stack of a viewport.
  */
 int PerspectiveInterface::InterfaceOn()
@@ -825,7 +834,7 @@ int PerspectiveInterface::Event(const Laxkit::EventData *data, const char *mes)
 //			...
 //		}
 //
-//		return 0; 
+//		return 0;
 //	}
 
 	return 1; //event not absorbed
@@ -877,7 +886,7 @@ int PerspectiveInterface::Refresh()
 	dp->PushAndNewTransform(a.m());
 	dp->LineWidthScreen(1);
 
-	
+
 	flatpoint from_ll(data->transformPoint(flatpoint(data->minx, data->miny)));
 	flatpoint from_lr(data->transformPoint(flatpoint(data->maxx, data->miny)));
 	flatpoint from_ul(data->transformPoint(flatpoint(data->minx, data->maxy)));
@@ -887,33 +896,37 @@ int PerspectiveInterface::Refresh()
 	flatpoint to_lr=transform.transform(from_lr);
 	flatpoint to_ul=transform.transform(from_ul);
 	flatpoint to_ur=transform.transform(from_ur);
-	
+
 	flatpoint l = from_ul - from_ll; //points botfromm from fromp
 	flatpoint r = from_ur - from_lr;
 	flatpoint t = from_ur - from_ul; //points left from right
 	flatpoint b = from_lr - from_ll;
 
 	dp->NewFG(.75,.75,.75);
-	flatpoint p1,p2;
-	for (int c=1; c<lines; c++) {
-		p1=transform.transform(from_ll+c/(float)(lines)*l);
-		p2=transform.transform(from_lr+c/(float)(lines)*r);
-		dp->drawline(p1,p2); //horiz line
 
-		p1=transform.transform(from_ll+c/(float)(lines)*b);
-        p2=transform.transform(from_ul+c/(float)(lines)*t);
-		dp->drawline(p1,p2); //vert line
+	if (show_grid) {
+		flatpoint p1,p2;
+		for (int c=1; c<lines; c++) {
+			p1=transform.transform(from_ll+c/(float)(lines)*l);
+			p2=transform.transform(from_lr+c/(float)(lines)*r);
+			dp->drawline(p1,p2); //horiz line
+
+			p1=transform.transform(from_ll+c/(float)(lines)*b);
+			p2=transform.transform(from_ul+c/(float)(lines)*t);
+			dp->drawline(p1,p2); //vert line
+		}
 	}
 
 	dp->NewFG(.75,.75,.75);
 	dp->NewBG(0.6,0.6,0.6);
-	dp->LineWidthScreen(2);
+	dp->LineWidthScreen(hover == PERSP_Move ? 4 : 2);
 
 	dp->drawline(to_ll, to_lr); //transformed corners
 	dp->drawline(to_lr, to_ur);
 	dp->drawline(to_ur, to_ul);
 	dp->drawline(to_ul, to_ll);
 
+	dp->LineWidthScreen(2);
 	dp->drawpoint(transform.to_ll, 10, 0); //actual to points
 	dp->drawpoint(transform.to_lr, 10, 0);
 	dp->drawpoint(transform.to_ul, 10, 0);
@@ -937,18 +950,18 @@ int PerspectiveInterface::Refresh()
  * Return 2 for changed to object of another type (switched tools).
  * Return 0 for nothing found at x,y.
  */
-int PerspectiveInterface::OtherObjectCheck(int x,int y,unsigned int state) 
+int PerspectiveInterface::OtherObjectCheck(int x,int y,unsigned int state)
 {
 	ObjectContext *oc=NULL;
 	viewport->FindObject(x,y,NULL,NULL,1,&oc);
 	SomeData *obj=NULL;
 	if (oc && oc->obj) obj=oc->obj;
 
-	if (obj) { 
+	if (obj) {
 		 // found another PerspectiveData to work on.
 		 // If this is primary, then it is ok to work on other images, but not click onto
 		 // other types of objects.
-		UseThisObject(oc); 
+		UseThisObject(oc);
 		if (viewport) viewport->ChangeObject(oc,0);
 		needtodraw=1;
 		return 1;
@@ -962,15 +975,25 @@ int PerspectiveInterface::scan(double x, double y)
 {
 	double grab=10;
 
-	if (realtoscreen(transform.to_ll).distanceTo(flatpoint(x,y))<grab) return PERSP_ll;
-	if (realtoscreen(transform.to_lr).distanceTo(flatpoint(x,y))<grab) return PERSP_lr;
-	if (realtoscreen(transform.to_ul).distanceTo(flatpoint(x,y))<grab) return PERSP_ul;
-	if (realtoscreen(transform.to_ur).distanceTo(flatpoint(x,y))<grab) return PERSP_ur;
+	flatpoint p(x,y);
+	flatpoint pts[4] = {
+		realtoscreen(transform.to_ll),
+		realtoscreen(transform.to_lr),
+		realtoscreen(transform.to_ur),
+		realtoscreen(transform.to_ul)
+	};
+
+	if (pts[0].distanceTo(p)<grab) return PERSP_ll;
+	if (pts[1].distanceTo(p)<grab) return PERSP_lr;
+	if (pts[2].distanceTo(p)<grab) return PERSP_ur;
+	if (pts[3].distanceTo(p)<grab) return PERSP_ul;
+
+	if (point_is_in(p, pts, 4)) return PERSP_Move;
 
 	return 0;
 }
 
-int PerspectiveInterface::LBDown(int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d) 
+int PerspectiveInterface::LBDown(int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d)
 {
 	int nhover=scan(x,y);
 	if (nhover != PERSP_None) {
@@ -981,7 +1004,7 @@ int PerspectiveInterface::LBDown(int x,int y,unsigned int state,int count, const
 	}
 
 
-	
+
 	 // So, was clicked outside current image or on blank space, make new one or find other one.
 	int other = OtherObjectCheck(x,y,state);
 	if (other==2) return 0; //control changed to some other tool
@@ -1000,7 +1023,7 @@ int PerspectiveInterface::LBDown(int x,int y,unsigned int state,int count, const
 	return 0; //return 0 for absorbing event, or 1 for ignoring
 }
 
-int PerspectiveInterface::LBUp(int x,int y,unsigned int state, const Laxkit::LaxMouse *d) 
+int PerspectiveInterface::LBUp(int x,int y,unsigned int state, const Laxkit::LaxMouse *d)
 {
 	buttondown.up(d->id,LEFTBUTTON);
 	return 0; //return 0 for absorbing event, or 1 for ignoring
@@ -1022,7 +1045,7 @@ int PerspectiveInterface::MouseMove(int x,int y,unsigned int state, const Laxkit
 
 	 //else deal with mouse dragging...
 	if (hover == PERSP_None) return 0;
-	
+
 	int lx,ly;
 	int h;
 	buttondown.move(d->id, x,y, &lx,&ly);
@@ -1036,6 +1059,18 @@ int PerspectiveInterface::MouseMove(int x,int y,unsigned int state, const Laxkit
 	if (h == PERSP_ur || h == PERSP_Move) transform.to_ur += dv;
 
 	needtoremap=1;
+
+	if (continuous_update && dataoc) {
+		 //transform a path... do this here for testing purposes.
+		 // *** move somewhere responsible later!!!
+		ComputeTransform();
+		PathsData *data = dynamic_cast<PathsData*>(dataoc->obj);
+		if (data) {
+
+		}
+	}
+
+
 	needtodraw=1;
 	return 0;
 }
@@ -1078,6 +1113,7 @@ Laxkit::ShortcutHandler *PerspectiveInterface::GetShortcuts()
 
 	//sc->Add([id number],  [key], [mod mask], [mode], [action string id], [description], [icon], [assignable]);
     sc->Add(PERSP_Reset, 'z',0,0, "Reset", _("Reset transform"),NULL,0);
+    sc->Add(PERSP_Grid,  'g',0,0, "Grid",  _("Toggle grid"),    NULL,0);
 
     manager->AddArea(whattype(),sc);
     return sc;
@@ -1087,8 +1123,14 @@ Laxkit::ShortcutHandler *PerspectiveInterface::GetShortcuts()
  */
 int PerspectiveInterface::PerformAction(int action)
 {
-	if (action==PERSP_Reset) {
+	if (action == PERSP_Reset) {
 		ResetTransform();
+		return 0;
+
+	} else if (action == PERSP_Grid) {
+		show_grid = !show_grid;
+		PostMessage(show_grid ? _("Show grid") : _("Don't show grid"));
+		needtodraw=1;
 		return 0;
 	}
 
