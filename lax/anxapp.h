@@ -334,6 +334,8 @@ class ScreenInformation
 	int virtualscreen; //id of virtual screen, if screen is part of a larger setup
 
 	ScreenInformation *next;
+
+	ScreenInformation() { next = NULL; }
 	~ScreenInformation() { if (next) delete next; }
 	int HowMany() { return 1 + (next ? next->HowMany() : 0); }
 	ScreenInformation *Get(int i) { if (i==0) return this; else { if (next && i>0) return next->Get(i-1); else return NULL; } }
