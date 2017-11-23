@@ -554,11 +554,11 @@ int AffineStack::GetAxes(int which, double *mm)
 void dumpctm(const double *d)
 {	
 	DBG if (1) {
-	DBG cerr <<"=== transform:";
-	DBG for (int c=0; c<6; c++) cerr<<d[c]<<(c<5?',':'\n');
+	DBG   cerr <<"--- dumpctm transform: ";
+	DBG for (int c=0; c<6; c++) cerr<<d[c]<<(c<5?", ":"\n");
 	DBG } else {
-	cout <<"=== transform:";
-	for (int c=0; c<6; c++) cout<<d[c]<<(c<5?',':'\n');
+	cout <<"--- dumpctm transform: ";
+	for (int c=0; c<6; c++) cout<<d[c]<<(c<5?", ":"\n");
 	DBG }
 }
 
