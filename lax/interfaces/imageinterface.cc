@@ -1,5 +1,5 @@
 //
-//	
+//
 //    The Laxkit, a windowing toolkit
 //    Please consult http://laxkit.sourceforge.net about where to send any
 //    correspondence about this software.
@@ -37,7 +37,7 @@ using namespace Laxkit;
 
 #include <iostream>
 using namespace std;
-#define DBG 
+#define DBG
 
 #define sgn(a) ((a)<0?-1:((a)>0?1:0))
 
@@ -54,12 +54,12 @@ namespace LaxInterfaces {
  * maxy-miny are used instead.
  *
  * Please note that these are not really designed with the idea of editting the contained image,
- * but are more just a container to move around and scale images. 
+ * but are more just a container to move around and scale images.
  *
  * Be forewarned that if previewflag==1, then the preview image will be unlinked (deleted from
  * the harddrive) in the LaxImage destructor. The default for ImageData objects is to not
  * delete (previewflag==0).
- * 
+ *
  * \todo In addition to have filename ande previewimage, perhaps make allowances for
  *   a transformedImageCache to facilitate use of ImagePatchData, for instance.....
  *   this is relevant because the ImageInterface has lots of drawing code, and it is easier
@@ -69,13 +69,13 @@ namespace LaxInterfaces {
  * \todo have flag: Don't display image|Use original|Use preview?
  */
 /*! \var char ImageData::previewflag
- * 
+ *
  * If previewflag&1, then the preview file path is saved in a dump_out, and is used
  * when loading from a dump_in.  On a dump_in, if a preview file is given, then the
  * 1 bit of previewflag gets set to 1.
  */
 
-	
+
 //! Constructor. Configures based on the image in nfilename.
 /*! If nfilename is not a valid image, then image is NULL, and maxx==maxy==0.
  *
@@ -97,7 +97,7 @@ ImageData::ImageData(const char *nfilename, const char *npreview, int maxpx, int
 	image=NULL;
 	previewimage=NULL;
 	flags|=SOMEDATA_KEEP_1_TO_1;
-	
+
 	if (!filename) return;
 	LoadImage(nfilename, npreview, maxpx, maxpy, delpreview,0);
 }
@@ -111,7 +111,7 @@ ImageData::~ImageData()
 
 	DBG cerr <<"-- ImageData dest. end"<<endl;
 }
-	
+
 //! Return a new ImageData, based on this.
 SomeData *ImageData::duplicate(SomeData *dup)
 {
@@ -121,7 +121,7 @@ SomeData *ImageData::duplicate(SomeData *dup)
 	if (!dup) {
 		dup = dynamic_cast<SomeData*>(somedatafactory()->NewObject(LAX_IMAGEDATA));
 		newimage = dynamic_cast<ImageData*>(dup);
-	} 
+	}
 	if (!newimage) {
 		newimage = new ImageData();
 		dup = newimage;
@@ -157,7 +157,7 @@ ImageData &ImageData::operator=(ImageData &i)
  * rather than what was saved in the file.
  *
  * Note that ImageData::image is not consulted for any values.
- * 
+ *
  * Dumps:
  * <pre>
  *  width 34
@@ -177,7 +177,7 @@ ImageData &ImageData::operator=(ImageData &i)
 void ImageData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
 {
 	char spc[indent+1]; memset(spc,' ',indent); spc[indent]='\0';
-	
+
 	if (what==-1) {
 		fprintf(f,"%sfilename /path/to/file\n",spc);
 		fprintf(f,"%spreviewfile /path/to/preview/file  #if not absolute, is relative to filename\n",spc);
@@ -185,7 +185,7 @@ void ImageData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *cont
 		fprintf(f,"%sheight 100          #If the file is not found or broken, then these dimensions are used.\n",spc);
 		fprintf(f,"%smatrix 1 0 0 1 0 0  #affine transform to apply to the image\n",spc);
 		fprintf(f,"%sdescription \"Text description, such as for captions\"\n",spc);
-		
+
 		//schema:?
 		//fprintf(f,"%sfilename file\n",spc);
 		//fprintf(f,"%spreviewfile file    #if not absolute, is relative to filename\n",spc);
@@ -196,7 +196,7 @@ void ImageData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *cont
 
 		return;
 	}
-	
+
 	DumpContext *dump=dynamic_cast<DumpContext *>(context);
 	if (dump && dump->basedir) {
 		char *tmp=NULL;
@@ -212,7 +212,7 @@ void ImageData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *cont
 			fprintf(f,"%spreviewfile \"%s\"\n",spc, tmp ? tmp : previewfile);
 			if (tmp) delete[] tmp;
 		}
-			
+
 	} else {
 		if (filename) fprintf(f,"%sfilename \"%s\"\n",spc,filename);
 		if (previewfile && previewflag&1)
@@ -242,7 +242,7 @@ LaxFiles::Attribute *ImageData::dump_out_atts(LaxFiles::Attribute *att,int what,
 
 		return att;
 	}
-	
+
 	DumpContext *dump=dynamic_cast<DumpContext *>(savecontext);
 	if (dump && dump->basedir) {
 		char *tmp=NULL;
@@ -258,7 +258,7 @@ LaxFiles::Attribute *ImageData::dump_out_atts(LaxFiles::Attribute *att,int what,
 			att->push("previewfile", tmp ? tmp : previewfile);
 			if (tmp) delete[] tmp;
 		}
-			
+
 	} else {
 		if (filename) att->push("filename",filename);
 		if (previewfile && previewflag&1) att->push("previewfile",previewfile);
@@ -268,12 +268,12 @@ LaxFiles::Attribute *ImageData::dump_out_atts(LaxFiles::Attribute *att,int what,
 	att->push("height",maxy-miny);
 
 	char s[120];
-    sprintf(s,"%.10g %.10g %.10g %.10g %.10g %.10g",
+	sprintf(s,"%.10g %.10g %.10g %.10g %.10g %.10g",
 				m(0),m(1),m(2),m(3),m(4),m(5));
 	att->push("matrix",s);
 
 	if (description) att->push("description",description);
-	
+
 
 	return att;
 }
@@ -281,7 +281,7 @@ LaxFiles::Attribute *ImageData::dump_out_atts(LaxFiles::Attribute *att,int what,
 /*! When the image listed in the attribute cannot be loaded,
  * image is set to NULL, and the width and height attributes
  * are used if present. If the image can be loaded, then width and
- * height as given in the file are curretly ignored, and the actual pixel 
+ * height as given in the file are curretly ignored, and the actual pixel
  * width and height of the image are used instead.
  *
  * If context is a DumpContext, then expand relative paths accordingly.
@@ -325,7 +325,7 @@ void ImageData::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *cont
 		maxy=h;
 	}
 
-	 // if filename is given, and old file is NULL, or is different... 
+	 // if filename is given, and old file is NULL, or is different...
 	 //  ... meaning don't load in the image if it is the same image
 	if (fname && (!filename || (filename && strcmp(fname,filename)))) {
 		if (!isblank(pname)) previewflag|=1;
@@ -383,11 +383,11 @@ const char *ImageData::Filename()
 //! Set the image to the image in fname, if possible. Sets filename regardless.
 /*! Return 0 for success, other for error.
  *
- * If fit!=0, then if the object's bounds are valid and nonzero, fit the image by 
+ * If fit!=0, then if the object's bounds are valid and nonzero, fit the image by
  * centering into those bounds, change the object's transform, and update the bounds.
  *
  * Be forewarned that dump_in_atts() calls this function.
- * 
+ *
  * If fname cannot be opened as an image, then maxx and maxy are
  * set to 0, but filename is set
  * to fname, and the previous image is freed. 1 is returned.
@@ -402,7 +402,7 @@ int ImageData::LoadImage(const char *fname, const char *npreview, int maxpx, int
 	makestr(previewfile,npreview);
 	if (image) { image->dec_count(); image=NULL; }
 	if (previewimage) { previewimage->dec_count(); previewimage=NULL; }
-	
+
 	LaxImage *t, *p=NULL;
 	//--------
 	//if (npreview) t=load_image_with_preview(fname,npreview,maxpx,maxpy, &p);
@@ -446,11 +446,11 @@ int ImageData::LoadImage(const char *fname, const char *npreview, int maxpx, int
 int ImageData::UsePreview(const char *npreview, int maxpx, int maxpy, char del)
 {
 	cout <<"*** must check that this works: ImageData::UsePreview()"<<endl;
-	
-	//***should pop out old LaxImage::previewfile, and drop in new, generating if necessary...	
+
+	//***should pop out old LaxImage::previewfile, and drop in new, generating if necessary...
 	//***check that this works
 	LoadImage(filename,npreview,maxpx,maxpy,del);
-	
+
 	return 0;
 }
 
@@ -461,12 +461,12 @@ void ImageData::SetDescription(const char *ndesc)
 }
 
 //! Set the image to this one, dec counting the old one.
-/*! 
+/*!
  * Sets minx=miny=0, and maxx=image width and maxy=image height.
  * Clears filename.
  *
  * Increments count on newimage.
- * 
+ *
  * Returns 0 for success, 1 for error.
  *
  * \todo *** implement fit in here too
@@ -476,7 +476,7 @@ int ImageData::SetImage(LaxImage *newimage, LaxImage *newpreview)
 	if (image!=newimage) {
 		if (image) image->dec_count();
 		image=newimage;
-		if (image) newimage->inc_count(); 
+		if (image) newimage->inc_count();
 	}
 
 	if (previewimage!=newpreview) {
@@ -484,7 +484,7 @@ int ImageData::SetImage(LaxImage *newimage, LaxImage *newpreview)
 		previewimage=newpreview;
 		if (previewimage) previewimage->inc_count();
 	}
-	
+
 	if (newimage) {
 		makestr(filename,newimage->filename);
 		if (newpreview) makestr(previewfile, newpreview->filename);
@@ -521,7 +521,7 @@ int ImageData::SetImage(LaxImage *newimage, LaxImage *newpreview)
  * limitations of the current Laxkit
  * event system, the interface cannot receive the results of the dialog directly. It has to
  * be dispatched by the viewportwindow.
- * 
+ *
  */
 
 
@@ -544,7 +544,7 @@ ImageInterface::ImageInterface(int nid,Displayer *ndp,int nstyle) : anInterface(
 }
 
 ImageInterface::~ImageInterface()
-{ 	
+{
 	deletedata();
 	if (sc) sc->dec_count();
 	DBG cerr <<"----in ImageInterface destructor"<<endl;
@@ -562,7 +562,7 @@ anInterface *ImageInterface::duplicate(anInterface *dup)
 {
 	if (dup==NULL) dup=new ImageInterface(id,NULL);
 	else if (!dynamic_cast<ImageInterface *>(dup)) return NULL;
-	
+
 	return anInterface::duplicate(dup);
 }
 
@@ -618,7 +618,7 @@ int ImageInterface::UseThis(anObject *nobj,unsigned int mask)
 //		needtodraw=1;
 //		return 1;
 
-	} 
+	}
 	return 0;
 }
 
@@ -645,9 +645,9 @@ int ImageInterface::InterfaceOff()
 void ImageInterface::Clear(SomeData *d)
 {
 	if ((d && d==data) || (!d && data)) {
-		data->dec_count(); 
-		data=NULL; 
-	} 
+		data->dec_count();
+		data=NULL;
+	}
 }
 
 //! Draw ndata, but remember that data should still be the resident data.
@@ -688,19 +688,19 @@ int ImageInterface::Refresh()
 
 	dp->LineAttributes(1,LineSolid,CapRound,JoinRound);
 	dp->BlendMode(LAXOP_Over);
-		
+
 	 // find the screen box to draw into
 	 // these still need the 'dp->' because dp was transformed to space immediately holding data already
 	 // The viewport is the base transform, usually different then dp coords...
-	flatpoint ul=dp->realtoscreen(flatpoint(data->minx,data->miny)), 
-			  ur=dp->realtoscreen(flatpoint(data->maxx,data->miny)), 
-			  ll=dp->realtoscreen(flatpoint(data->minx,data->maxy)), 
+	flatpoint ul=dp->realtoscreen(flatpoint(data->minx,data->miny)),
+			  ur=dp->realtoscreen(flatpoint(data->maxx,data->miny)),
+			  ll=dp->realtoscreen(flatpoint(data->minx,data->maxy)),
 			  lr=dp->realtoscreen(flatpoint(data->maxx,data->maxy));
-	
+
 	DBG cerr <<"imageinterf Refresh: "<<(data->filename ? data->filename : "(no file)")<<endl;
 	DBG fprintf(stderr,"draw image scr coords: %ld: ul:%g,%g ur:%g,%g ll:%g,%g lr:%g,%g\n",
 	DBG		data->object_id,ul.x,ul.y,ur.x,ur.y,ll.x,ll.y,lr.x,lr.y);
-	
+
 	 // check for positive intersection of transformed image to dp view area
 	DoubleBBox bbox(ul);
 	bbox.addtobounds(ur);
@@ -711,7 +711,7 @@ int ImageInterface::Refresh()
 		DBG cerr <<"----------------ImageData outside viewport"<<endl;
 		return -1;
 	}
-	
+
 	dp->NewFG(controlcolor);
 
 	if (showobj) {
@@ -719,11 +719,11 @@ int ImageInterface::Refresh()
 		//  draw full if Hires
 		//  else draw preview if available
 		//  if no previe, draw full after all
-		
+
 		int status=-2;
-		if (dp->RenderTarget()==DRAWS_Hires) 
+		if (dp->RenderTarget()==DRAWS_Hires)
 			status = dp->imageout(data->image, data->minx,data->miny, data->maxx-data->minx,data->maxy-data->miny);
-		if (status==-2 && data->previewimage) 
+		if (status==-2 && data->previewimage)
 			status = dp->imageout(data->previewimage, data->minx,data->miny, data->maxx-data->minx,data->maxy-data->miny);
 		if (status==-2) status = dp->imageout(data->image, data->minx,data->miny, data->maxx-data->minx,data->maxy-data->miny);
 
@@ -731,7 +731,7 @@ int ImageInterface::Refresh()
 			 // There is either no image or a broken image
 
 			dp->DrawScreen();
-			 
+
 			 //draw box around it
 			dp->drawline(ul,ur);
 			dp->drawline(ur,lr);
@@ -741,7 +741,7 @@ int ImageInterface::Refresh()
 			int up=-1;
 			if (dp->defaultRighthanded()) up=1; //flip if dp is +y==up
 			//if (dp->righthanded()) up=1; //flip if dp is +y==up
-			
+
 			flatpoint p=(ll+lr+ul+ur)/4; //center of image
 			flatpoint tip=p+up*((ul+ur)/2-p)*2/3; //tip of an arrow from center, 2/3 toward up direction
 
@@ -766,7 +766,7 @@ int ImageInterface::Refresh()
 				points[4]=p+flatpoint( -1, -5);
 				points[5]=p+flatpoint( -10, 0);
 				dp->drawlines(points,6, 1,2);
-				
+
 				points[0]=p+flatpoint(-10, 10);
 				points[1]=p+flatpoint( 10, 10);
 				points[2]=p+flatpoint( 10, -3);
@@ -781,9 +781,9 @@ int ImageInterface::Refresh()
 			dp->DrawReal();
 		} //dp->imageOut returned negative
 	} //showobj
-	
+
 	 // draw control points, just draws an outline
-	if (showdecs) { 
+	if (showdecs) {
 		 // for a box outline? control decorations..
 		dp->DrawScreen();
 		dp->LineAttributes(1,LineSolid,CapRound,JoinRound);
@@ -792,7 +792,7 @@ int ImageInterface::Refresh()
 		dp->drawline(ur,lr);
 		dp->drawline(lr,ll);
 		dp->drawline(ll,ul);
-	
+
 		dp->NewFG(controlcolor);
 		dp->DrawReal();
 	}
@@ -836,7 +836,7 @@ ImageData *ImageInterface::newData()
 	ndata=dynamic_cast<ImageData *>(somedatafactory()->NewObject(LAX_IMAGEDATA));
 	if (ndata) {
 		ndata->LoadImage(NULL);
-	} 
+	}
 	if (!ndata) ndata=new ImageData(NULL);//creates 1 count
 	ndata->flags|=SOMEDATA_KEEP_1_TO_1; //so that when scaling, default is to maintain proportions
 
@@ -861,12 +861,12 @@ int ImageInterface::LBDown(int x,int y,unsigned int state,int count,const Laxkit
 
 	lx=mx=x;
 	ly=my=y;
-	
+
 	 // Get rid of old data if not clicking in it.
 	if (data && !data->pointin(screentoreal(x,y)) && (state&LAX_STATE_MASK)==0) {
 		deletedata();
 	}
-	
+
 	 // Was clicked outside current image or on blank space, make new one or find other one.
 //	if (!data) {
 //		if (primary && viewport->clickToChange(x,y)) return 1; //transfers control to another object
@@ -874,7 +874,7 @@ int ImageInterface::LBDown(int x,int y,unsigned int state,int count,const Laxkit
 //		viewport:
 //		if (interface.e[c]->claimsClick(button, x,y,state,count,mouse,event))
 //			interface.e[c]->LBDown(x,y,state,count,d);
-//		else { do something with click in viewport } 
+//		else { do something with click in viewport }
 //	}
 //	---------------------------
 	if (!data) {
@@ -883,7 +883,7 @@ int ImageInterface::LBDown(int x,int y,unsigned int state,int count,const Laxkit
 		int c=viewport->FindObject(x,y,whatdatatype(),NULL,1,&oc);
 		if (c>0) obj=dynamic_cast<ImageData *>(oc->obj);
 
-	 	if (obj) { 
+	 	if (obj) {
 			 // found another ImageData to work on.
 			 // If this is primary, then it is ok to work on other images, but not click onto
 			 // other types of objects.
@@ -918,6 +918,7 @@ int ImageInterface::LBDown(int x,int y,unsigned int state,int count,const Laxkit
 		data->origin(leftp);
 		data->xaxis(flatpoint(1,0)/Getmag()/2);
 		data->yaxis(flatpoint(0,1)/Getmag()/2);
+
 		DBG data->dump_out(stderr,6,0,NULL);
 		return 0;
 	}
@@ -931,10 +932,10 @@ int ImageInterface::LBDown(int x,int y,unsigned int state,int count,const Laxkit
 	 //to be here, must have clicked down somewhere in image
 
 	 // Set leftp to the point in the image that the mouse was clicked down on.
-	flatpoint oo=(screentoreal(x,y)-data->origin()); // real vector from data->origin() to mouse move to 
+	flatpoint oo=(screentoreal(x,y)-data->origin()); // real vector from data->origin() to mouse move to
 	leftp.x=(oo*data->xaxis())/(data->xaxis()*data->xaxis());
 	leftp.y=(oo*data->yaxis())/(data->yaxis()*data->yaxis()); // leftp is in data coords now
-	
+
 
 //	if (state&ControlMask && state&ShiftMask && data) { // +^lb move around wildpoint
 //		return 0;
@@ -962,7 +963,7 @@ int ImageInterface::LBDown(int x,int y,unsigned int state,int count,const Laxkit
  *   somehow relay the event to the object in question.
  *
  * \todo *** at some point it might be worth laxkit's while to have a fairly abstracted
- *   general object factory, something to be able to say 
+ *   general object factory, something to be able to say
  *   newObject("ImageDialog", (anObject that wants it), other config info)
  */
 void ImageInterface::runImageDialog()
@@ -999,7 +1000,7 @@ int ImageInterface::Event(const Laxkit::EventData *data, const char *mes)
 }
 
 //! If data, then call viewport->ObjectMoved(data).
-int ImageInterface::LBUp(int x,int y,unsigned int state,const Laxkit::LaxMouse *d) 
+int ImageInterface::LBUp(int x,int y,unsigned int state,const Laxkit::LaxMouse *d)
 {
 	if (mode==1 && !mousedragged && data) {
 		DBG cerr <<"**ImageInterface Clear() for no mouse move on new imagedata"<<endl;
@@ -1011,7 +1012,7 @@ int ImageInterface::LBUp(int x,int y,unsigned int state,const Laxkit::LaxMouse *
 	return 0;
 }
 
-int ImageInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMouse *mouse) 
+int ImageInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMouse *mouse)
 {
 	if (!buttondown.any() || !data) return 0;
 	if (x!=mx || y!=my) mousedragged=1;
@@ -1048,19 +1049,19 @@ int ImageInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMo
 		needtodraw=1;
 		return 0;
 	}
-	
+
 	 // If mode!=1, then do normal rotate and scale
 	flatpoint d; // amount to shift the image origin.
 	flatpoint p=screentoreal(x,y),    //real point where mouse moved to
 				//real point where mouse clicked:
 				//should be the same as screentoreal(lx,ly)
-			  lp=data->origin() + leftp.x*data->xaxis() + leftp.y*data->yaxis(); 
+			  lp=data->origin() + leftp.x*data->xaxis() + leftp.y*data->yaxis();
 	flatpoint oo,
 			  o; // the point in image coords the mouse is over
-	oo=(p-data->origin()); // real vector from data->origin() to mouse move to 
+	oo=(p-data->origin()); // real vector from data->origin() to mouse move to
 	o.x=(oo*data->xaxis())/(data->xaxis()*data->xaxis());
 	o.y=(oo*data->yaxis())/(data->yaxis()*data->yaxis()); // o is in data coords now
-	
+
 	//DBG cerr <<"x,y="<<x<<','<<y<<"  p="<<p.x<<","<<p.y<<"  o="<<o.x<<','<<o.y;
 
 	if (!buttondown.isdown(mouse->id,LEFTBUTTON) || !data || !dp) return 1;
@@ -1173,7 +1174,7 @@ int ImageInterface::PerformAction(int action)
 	return 1;
 }
 
-int ImageInterface::CharInput(unsigned int ch, const char *buffer,int len,unsigned int state,const Laxkit::LaxKeyboard *d) 
+int ImageInterface::CharInput(unsigned int ch, const char *buffer,int len,unsigned int state,const Laxkit::LaxKeyboard *d)
 {
 
 	if (!sc) GetShortcuts();
@@ -1182,7 +1183,7 @@ int ImageInterface::CharInput(unsigned int ch, const char *buffer,int len,unsign
 		return PerformAction(action);
 	}
 
-	return 1; 
+	return 1;
 }
 
 
