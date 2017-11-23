@@ -159,6 +159,8 @@ class DelauneyInterface : public anInterface
 	virtual Laxkit::ShortcutHandler *GetShortcuts();
 	virtual int UseThis(Laxkit::anObject *nlinestyle,unsigned int mask=0);
 	virtual int UseThisObject(ObjectContext *oc);
+	virtual int InterfaceOn();
+	virtual int InterfaceOff();
 
 	virtual ObjectContext *Context();
 

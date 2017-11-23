@@ -425,19 +425,20 @@ DelauneyInterface::DelauneyInterface(anInterface *nowner, int nid, Displayer *nd
 {
 	delauney_interface_style=0;
 
-	show_numbers=false; 
-	show_arrows=false;
-	show_lines=3;
+	show_numbers = false; 
+	show_arrows  = false;
+	show_lines   = 3;
 
-	showdecs=1;
-	needtodraw=1;
-	curpoint=-1;
-	justadded=false;
+	showdecs     = 1;
+	needtodraw   = 1;
+	curpoint     = -1;
+	justadded    = false;
 	style_target = 0; //0 is voronoi border, 1 is delauney tri edges, 2 is points
+	last_export  = NULL;
 
-	sc=NULL;
-	
-	data=NULL;
+	sc   = NULL;
+	data = NULL;
+	voc  = NULL;
 	
 	last_export=newstr("voronoi.data");
 }
@@ -446,6 +447,7 @@ DelauneyInterface::~DelauneyInterface()
 {
 	if (sc)   sc->dec_count();
 	if (data) data->dec_count();
+	if (voc)  delete voc;
 	delete[] last_export;
 }
 
@@ -474,11 +476,13 @@ anInterface *DelauneyInterface::duplicate(anInterface *dup)
 void DelauneyInterface::Clear(SomeData *d)
 {
 	if (!d || d==data) {
-		data->dec_count();
+		if (data) data->dec_count();
 		data = NULL;
-		delete voc;
+		if (voc) delete voc;
 		voc=NULL;
 	}
+
+	curpoint = -1;
 }
 
 int DelauneyInterface::DrawData(anObject *ndata,anObject *a1,anObject *a2,int info)
@@ -648,10 +652,25 @@ ObjectContext *DelauneyInterface::Context()
 	return voc;
 }
 
+int DelauneyInterface::InterfaceOn()
+{
+    needtodraw=1;
+    DBG cerr <<"Delauney On()"<<endl;
+    return 0;
+}
+
+int DelauneyInterface::InterfaceOff()
+{
+    Clear(NULL);
+    needtodraw=1;
+    DBG cerr <<"Delauney Off()"<<endl;
+    return 0;
+}
+
 //! Start a new freehand line.
 int DelauneyInterface::LBDown(int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d) 
 {
-	buttondown.down(d->id,LEFTBUTTON,x,y);
+	justadded = false;
 
 	if (curpoint<0) {
 		if (!data) {
@@ -672,6 +691,8 @@ int DelauneyInterface::LBDown(int x,int y,unsigned int state,int count, const La
 		Triangulate();
 	}
 
+	buttondown.down(d->id,LEFTBUTTON,x,y, curpoint);
+
 
 	needtodraw=1;
 	return 0; //return 0 for absorbing event, or 1 for ignoring
@@ -682,9 +703,10 @@ int DelauneyInterface::LBUp(int x,int y,unsigned int state, const Laxkit::LaxMou
 {
 	if (!data) return 0;
 
-	int dragged=buttondown.up(d->id,LEFTBUTTON);
+	int point = -1;
+	int dragged=buttondown.up(d->id,LEFTBUTTON, &point);
 
-	if (!justadded) {
+	if (!justadded && point == curpoint) {
 		if (dragged<3 && curpoint>=0) data->points.remove(curpoint);
 		Triangulate();
 	}
