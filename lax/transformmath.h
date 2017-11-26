@@ -134,6 +134,7 @@ void transform_to_basics(double *m,double *x,double *y,double *sx,double *sy,dou
 double *transform_set(double *m,double a,double b,double c,double d,double x0,double y0);
 void transform_copy(double *dest,const double *src);
 flatpoint transform_point_inverse(const double *m,flatpoint p);
+flatpoint transform_point_inverse(const double *m,double x,double y);
 flatpoint transform_point(const double *m,flatpoint p);
 flatpoint transform_point(const double *m,double x,double y);
 flatpoint transform_vector(const double *m,flatpoint p);

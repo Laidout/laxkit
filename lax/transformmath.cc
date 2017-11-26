@@ -796,6 +796,21 @@ flatpoint transform_point_inverse(const double *m,flatpoint p)
 	return flatpoint(mm[4] + mm[0]*p.x + mm[2]*p.y, mm[5]+mm[1]*p.x+mm[3]*p.y);
 }
 
+//! Return point transformed by the inverse of matrix m. newpoint=[x,y,1]*m^-1
+/*! \ingroup transformmath 
+ * <pre>
+ *      [ a  b  0 ]
+ *    M=[ c  d  0 ]  --> [a b c d tx ty]
+ *      [ tx ty 1 ]
+ * </pre>
+ */
+flatpoint transform_point_inverse(const double *m,double x,double y)
+{
+	double mm[6];
+	transform_invert(mm,m);
+	return flatpoint(mm[4] + mm[0]*x + mm[2]*y, mm[5]+mm[1]*x+mm[3]*y);
+}
+
 //! Return point p transformed by matrix m. newpoint=[x,y,1]*m
 /*! \ingroup transformmath 
  * <pre>
