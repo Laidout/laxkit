@@ -59,8 +59,8 @@ test: lax laxinterface test.o
 	$(LD) $@.o  -llaxinterfaces -llaxkit $(LDFLAGS) -o $@
 
 
-laxhello: lax laxhello.o
-	$(LD) $@.o -llaxkit $(LDFLAGS) -o $@
+laxhello: lax laxinterface laxhello.cc laxhello.o
+	$(LD) $@.o -llaxinterfaces -llaxkit $(LDFLAGS) -o $@
 
 thingpreviewer: lax thingpreviewer.o
 	$(LD) $@.o -llaxkit $(LDFLAGS) -o $@
