@@ -1089,6 +1089,15 @@ int MenuSelector::send(int deviceid)
 		ievent->info3=n; // n is the number of items selected
 		ievent->info4=(curitem>=0 && curitem<numItems() ? item(curitem)->info : 0);
 		makestr(ievent->str, (curitem>=0 && curitem<numItems() ? item(curitem)->name : NULL));
+		if (menustyle&MENUSEL_SEND_PATH) {
+			 //we need to construct something like "Parent/parent/name"
+			MenuItem *itm = item(curitem);
+			while (itm && itm->parent && itm->parent->parent) {
+				itm = itm->parent->parent;
+				prependstr(ievent->str, "/");
+				prependstr(ievent->str, itm->name);
+			}
+		}
 		app->SendMessage(ievent,win_owner,win_sendthis,object_id);
 	}
 

@@ -96,6 +96,7 @@
 #define MENUSEL_SEND_ON_ENTER        (1LL<<53)
 #define MENUSEL_SEND_IDS             (1LL<<54)
 #define MENUSEL_SEND_STRINGS         (1LL<<55)
+#define MENUSEL_SEND_PATH            (1LL<<56)
 
 //... remember that the buck stops with (1<<63)
 
