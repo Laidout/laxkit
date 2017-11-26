@@ -1513,7 +1513,7 @@ void Attribute::dump_out(FILE *f, int indent)
 /*! Conveniently, you can call \a dump_out_full(stdout,0) to dump out the Attribute
  * to the screen.
  *
- * If there is no name or value, then nothing is written. If name==NULL,
+ * If there is no name, value, or subatts then nothing is written. If name==NULL,
  * then nothing is written for name, but value is still written. This can
  * potentially cause problems when name=NULL and value is something like
  * "1234\naeuo". This will cause a blank line with indent followed by two
