@@ -134,7 +134,8 @@ PopupMenu::PopupMenu(const char *nname, const char *ntitle, unsigned long long s
 {
 	menustyle|=(extrastyle &
 					(MENUSEL_LEFT|MENUSEL_RIGHT|MENUSEL_CENTER|MENUSEL_CHECK_ON_LEFT|MENUSEL_CHECK_ON_RIGHT
-					 |MENUSEL_GRAPHIC_ON_RIGHT|MENUSEL_GRAPHIC_ON_LEFT|MENUSEL_SEND_STRINGS|MENUSEL_DESTROY_ON_LEAVE)
+					 |MENUSEL_GRAPHIC_ON_RIGHT|MENUSEL_GRAPHIC_ON_LEFT|MENUSEL_SEND_STRINGS|MENUSEL_SEND_PATH
+					 |MENUSEL_DESTROY_ON_LEAVE)
 			   );
 	if (menustyle&MENUSEL_OUT_CLICK_DESTROYS) win_style|=ANXWIN_OUT_CLICK_DESTROYS;
 	parentmenu=nparentmenu;
@@ -213,10 +214,11 @@ void PopupMenu::addselect(int i,unsigned int state)
 				rect.y+=win->win_y;
 				win=win->win_parent;
 			}
-			submenu=new PopupMenu(blah, blah, menustyle,
+			submenu=new PopupMenu(blah, blah, 0,
 									rect.x+rect.width/2,rect.y+rect.height/2,0,0,win_border,win_owner,win_sendthis,
 									0,
-									minfo,0,this);
+									minfo,0,this,
+									menustyle);
 			delete[] blah;
 			app->rundialog(submenu,this);
 
