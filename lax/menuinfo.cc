@@ -429,6 +429,16 @@ int MenuItem::AddDetail(MenuItem *detail)
 	return 0;
 }
 
+//! Add item detail to the item at the top of menuitems, or to towhich.
+/*! If there is no recent item, then return 1. On success, return 0.
+ */
+int MenuItem::AddDetail(const char *newitem,LaxImage *img,int nid,int ninfo)
+{
+	MenuItem *mi=new MenuItem(newitem,img,nid,LAX_OFF,ninfo,NULL,0);
+	AddDetail(mi);
+	return 0;
+}
+
 const char *MenuItem::GetString(int detail)
 {
 	if (detail==0) return name;
