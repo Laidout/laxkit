@@ -62,26 +62,26 @@ namespace LaxInterfaces {
 
 
 //-------------------------- Engraver object creation stuff (see ObjectFactory)  ------------------------
-anObject *NewTraceObject(anObject *refobj)           { return new TraceObject; }
-anObject *NewEngraverLineQuality(anObject *refobj)   { return new EngraverLineQuality; }
-anObject *NewEngraverTraceSettings(anObject *refobj) { return new EngraverTraceSettings; }
-anObject *NewEngraverTraceStack(anObject *refobj)    { return new EngraverTraceStack; }
-anObject *NewNormalDirectionMap(anObject *refobj)    { return new NormalDirectionMap; }
-anObject *NewEngraverDirection(anObject *refobj)     { return new EngraverDirection; }
-anObject *NewEngraverSpacing(anObject *refobj)       { return new EngraverSpacing; }
-anObject *NewEngraverFillStyle(anObject *refobj)     { return new EngraverFillStyle; }
+anObject *NewTraceObject(int p, anObject *refobj)           { return new TraceObject;           }
+anObject *NewEngraverLineQuality(int p, anObject *refobj)   { return new EngraverLineQuality;   }
+anObject *NewEngraverTraceSettings(int p, anObject *refobj) { return new EngraverTraceSettings; }
+anObject *NewEngraverTraceStack(int p, anObject *refobj)    { return new EngraverTraceStack;    }
+anObject *NewNormalDirectionMap(int p, anObject *refobj)    { return new NormalDirectionMap;    }
+anObject *NewEngraverDirection(int p, anObject *refobj)     { return new EngraverDirection;     }
+anObject *NewEngraverSpacing(int p, anObject *refobj)       { return new EngraverSpacing;       }
+anObject *NewEngraverFillStyle(int p, anObject *refobj)     { return new EngraverFillStyle;     }
 
 
 void InstallEngraverObjectTypes(ObjectFactory *factory)
 {
-	factory->DefineNewObject(ENGTYPE_TraceObject,          "TraceObject"          , NewTraceObject,           NULL);
-	factory->DefineNewObject(ENGTYPE_EngraverLineQuality,  "EngraverLineQuality"  , NewEngraverLineQuality,   NULL);
-	factory->DefineNewObject(ENGTYPE_EngraverTraceSettings,"EngraverTraceSettings", NewEngraverTraceSettings, NULL);
-	factory->DefineNewObject(ENGTYPE_EngraverTraceStack,   "EngraverTraceStack"   , NewEngraverTraceStack,    NULL);
-	factory->DefineNewObject(ENGTYPE_NormalDirectionMap,   "NormalDirectionMap"   , NewNormalDirectionMap,    NULL);
-	factory->DefineNewObject(ENGTYPE_EngraverDirection,    "EngraverDirection"    , NewEngraverDirection,     NULL);
-	factory->DefineNewObject(ENGTYPE_EngraverSpacing,      "EngraverSpacing"      , NewEngraverSpacing,       NULL);
-	factory->DefineNewObject(ENGTYPE_EngraverFillStyle,    "EngraverFillStyle"    , NewEngraverFillStyle,     NULL);
+	factory->DefineNewObject(ENGTYPE_TraceObject,          "TraceObject"          , NewTraceObject,           NULL, 0);
+	factory->DefineNewObject(ENGTYPE_EngraverLineQuality,  "EngraverLineQuality"  , NewEngraverLineQuality,   NULL, 0);
+	factory->DefineNewObject(ENGTYPE_EngraverTraceSettings,"EngraverTraceSettings", NewEngraverTraceSettings, NULL, 0);
+	factory->DefineNewObject(ENGTYPE_EngraverTraceStack,   "EngraverTraceStack"   , NewEngraverTraceStack,    NULL, 0);
+	factory->DefineNewObject(ENGTYPE_NormalDirectionMap,   "NormalDirectionMap"   , NewNormalDirectionMap,    NULL, 0);
+	factory->DefineNewObject(ENGTYPE_EngraverDirection,    "EngraverDirection"    , NewEngraverDirection,     NULL, 0);
+	factory->DefineNewObject(ENGTYPE_EngraverSpacing,      "EngraverSpacing"      , NewEngraverSpacing,       NULL, 0);
+	factory->DefineNewObject(ENGTYPE_EngraverFillStyle,    "EngraverFillStyle"    , NewEngraverFillStyle,     NULL, 0);
 }
 
 
