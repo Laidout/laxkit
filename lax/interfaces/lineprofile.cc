@@ -40,7 +40,7 @@ namespace LaxInterfaces {
 //--------------------------- standard LineProfiles -----------------------------
 
 
-anObject *NewLineProfile(anObject *refobj) { return new LineProfile; }
+anObject *NewLineProfile(int p, anObject *refobj) { return new LineProfile; }
 
 
 /*! Create and install LineProfile type (if factory!=NULL), and also install to default resource manager
@@ -54,7 +54,7 @@ anObject *NewLineProfile(anObject *refobj) { return new LineProfile; }
 int InstallDefaultLineProfiles(ObjectFactory *factory, ResourceManager *resources)
 {
 	if (factory) {
-		int status=factory->DefineNewObject(OBJTYPE_LineProfile, "LineProfile", NewLineProfile, NULL);
+		int status=factory->DefineNewObject(OBJTYPE_LineProfile, "LineProfile", NewLineProfile, NULL, 0);
 		if (status==-1) return -1;
 	}
 
