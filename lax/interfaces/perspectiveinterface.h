@@ -69,6 +69,8 @@ class PerspectiveTransform
 	flatpoint transform(double x,double y);
 	flatpoint transformInverse(double x,double y);
 	flatpoint transformInverse(flatpoint p);
+
+	virtual int MapImage(SomeData *obj, Laxkit::LaxImage *initial, Laxkit::LaxImage *persped, int direction);
 };
 
 //--------------------------- PerspectiveInterface -------------------------------------
@@ -77,26 +79,32 @@ class PerspectiveInterface : public anInterface
 {
   protected:
 	int showdecs;
+	bool show_preview;
 
 	Laxkit::ShortcutHandler *sc;
 
 	SomeData *data; //points to dataoc->obj
 	ObjectContext *dataoc;
 
+	Laxkit::LaxImage *initial, *persped;
+
+	// *** dbg:
+	flatpoint mousep, initialp;
 	
 	bool show_grid;
 	bool continuous_update;
 
 	PerspectiveTransform transform;
 
-	virtual int send();
-	virtual int OtherObjectCheck(int x,int y,unsigned int state);
-
 	int hover;
 	int needtoremap;
 	virtual void ComputeTransform();
 	virtual void ResetTransform();
 	virtual flatpoint ComputePoint(double x,double y);
+
+	virtual int send();
+	virtual int OtherObjectCheck(int x,int y,unsigned int state);
+	virtual int SetupPreviewImages();
 
   public:
 	enum PerspPoints {
@@ -108,6 +116,7 @@ class PerspectiveInterface : public anInterface
 		PERSP_Move,
 		PERSP_Reset,
 		PERSP_Grid,
+		PERSP_Preview,
 		PERSP_MAX
 	};
 

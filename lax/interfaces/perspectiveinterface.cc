@@ -230,6 +230,7 @@ double **Numeric_identity(int n, double **d)
 }
 
 /*! Compute inverse of matrix.
+ * Returns a newly AllocateMatrix()'d array.
  */
 double **Numeric_inv(int rows, int cols, double **a)
 {
@@ -451,26 +452,33 @@ bool PerspectiveTransform::IsValid()
 
 void PerspectiveTransform::ComputeTransform()
 {
-	srcPts[0]=from_ll.x;
-	srcPts[1]=from_ll.y;
-	srcPts[2]=from_lr.x;
-	srcPts[3]=from_lr.y;
-	srcPts[4]=from_ul.x;
-	srcPts[5]=from_ul.y;
-	srcPts[6]=from_ur.x;
-	srcPts[7]=from_ur.y;
+	srcPts[0] = from_ll.x;
+	srcPts[1] = from_ll.y;
+	srcPts[2] = from_lr.x;
+	srcPts[3] = from_lr.y;
+	srcPts[4] = from_ul.x;
+	srcPts[5] = from_ul.y;
+	srcPts[6] = from_ur.x;
+	srcPts[7] = from_ur.y;
 
-	dstPts[0]=  to_ll.x;
-	dstPts[1]=  to_ll.y;
-	dstPts[2]=  to_lr.x;
-	dstPts[3]=  to_lr.y;
-	dstPts[4]=  to_ul.x;
-	dstPts[5]=  to_ul.y;
-	dstPts[6]=  to_ur.x;
-	dstPts[7]=  to_ur.y;
+	dstPts[0] =  to_ll.x;
+	dstPts[1] =  to_ll.y;
+	dstPts[2] =  to_lr.x;
+	dstPts[3] =  to_lr.y;
+	dstPts[4] =  to_ul.x;
+	dstPts[5] =  to_ul.y;
+	dstPts[6] =  to_ur.x;
+	dstPts[7] =  to_ur.y;
 
 	getNormalizationCoefficients(srcPts, dstPts, false);
 	getNormalizationCoefficients(srcPts, dstPts, true);
+
+	cerr << "PerspectiveTransform::ComputeTransform():"<<endl;
+	//cerr << "coeffs:"<<endl << std::setprecision(3) << fixed; //note: needs #include <iomanip>
+	cerr << "coeffs:"<<endl;
+	for (int c=0; c<9; c++) { cerr  << "  "<<coeffs[c]<<','; if (c%3==2) cerr <<endl; }
+	cerr << "coeffsInv:"<<endl;
+	for (int c=0; c<9; c++) { cerr <<"  "<<coeffsInv[c]<<','; if (c%3==2) cerr <<endl; }
 }
 
 //The following perspective transform implementation is adapted from:
@@ -527,7 +535,8 @@ double *PerspectiveTransform::getNormalizationCoefficients(double *src, double *
 		memcpy(matA[i], r[i], sizeof(double[8]));
 	}
 
-	double *matB = dstPts;
+	//double *matB = dstPts;
+	double *matB = dst;
 	double **matC=NULL;
 	double **Atranspose = Numeric_transpose(8,8, matA, NULL);
 
@@ -540,13 +549,13 @@ double *PerspectiveTransform::getNormalizationCoefficients(double *src, double *
 
 	} catch(exception e) {
 		err=1;
-		cerr << "Matrix invert error! "<<e.what()<<endl;
+		cerr << "PerspectiveTransform Matrix invert error! "<<e.what()<<endl;
 		matX[0]=matX[4]=matX[8]=1;
 		matX[1]=matX[2]=matX[3]=matX[5]=matX[6]=matX[7]=0;
 
 	} catch(int e) {
 		err=1;
-		cerr << "Matrix invert error! "<<e<<endl;
+		cerr << "PerspectiveTransform Matrix invert error! "<<e<<endl;
 		matX[0]=matX[4]=matX[8]=1;
 		matX[1]=matX[2]=matX[3]=matX[5]=matX[6]=matX[7]=0;
 	}
@@ -600,7 +609,90 @@ flatpoint PerspectiveTransform::transformInverse(flatpoint p)
 	return pp;
 }
 
+/*! Transform an image or reverse transform(if direction==-1).
+ * This will map images to bounding boxes of the corner control points.
+ *
+ * Return 0 for success, or 1 if transform is invalid.
+ *
+ * Note: only works on 8 bit bgra for now.
+ */
+int PerspectiveTransform::MapImage(SomeData *obj, LaxImage *initial, LaxImage *persped, int direction) //todo: , int oversample)
+{
+	if (!IsValid()) return 1;
 
+	DoubleBBox box1, box2;
+	for (int c=0; c<4; c++) {
+		//box1.addtobounds(srcPts[2*c], srcPts[2*c+1]);
+		box2.addtobounds(dstPts[2*c], dstPts[2*c+1]);
+	}
+	box1.setbounds(obj);
+
+	unsigned char *buffer1 = initial->getImageBuffer(); //bgra
+	unsigned char *buffer2 = persped->getImageBuffer();
+
+	int iw = initial->w(), ih = initial->h();
+	int pw = persped->w(), ph = persped->h();
+
+	double xx,yy, px,py;
+	int iix,iiy;
+	double box1w = box1.boxwidth(), box1h = box1.boxheight();
+	double box2w = box2.boxwidth(), box2h = box2.boxheight();
+	int i1, i2;
+	flatpoint o;
+
+	if (direction == -1) {
+		 //map persped back to initial
+
+	} else {
+		 //map initial to persped
+		for (int y = 0; y<ph; y++) {
+			for (int x = 0; x<pw; x++) {
+				 // *** note: this can skip 4*, 4/, 4+- by constructing a more direct persp transform
+				//map persp image space to real space
+				px = x*box2w/pw + box2.minx;
+				py = y*box2h/ph + box2.miny;
+
+				//perspective inverse transform
+				xx = (this->coeffsInv[0]*px + this->coeffsInv[1]*py + this->coeffsInv[2]) / (this->coeffsInv[6]*px + this->coeffsInv[7]*py + 1);
+				yy = (this->coeffsInv[3]*px + this->coeffsInv[4]*py + this->coeffsInv[5]) / (this->coeffsInv[6]*px + this->coeffsInv[7]*py + 1);
+
+				// xx,yy now in obj parent space
+				o = obj->transformPointInverse(flatpoint(xx,yy));
+				xx = o.x;
+				yy = o.y;
+
+				//map real space to initial image space, which is preview image that
+				//fits snuggly in the bounding box of the object
+				iix = (xx - box1.minx)*iw/box1w;
+				iiy = (yy - box1.miny)*ih/box1h;
+
+				i2 = 4*((ph-y-1)*pw + x);
+				//i2 = 4*(y*pw + x);
+
+				if (iix>=0 && iix<iw && iiy>=0 && iiy<ih) {
+					i1 = 4*((ih-iiy-1)*iw + iix);
+					//i1 = 4*(iiy*iw + iix);
+					buffer2[i2  ] = buffer1[i1  ];
+					buffer2[i2+1] = buffer1[i1+1];
+					buffer2[i2+2] = buffer1[i1+2];
+					buffer2[i2+3] = buffer1[i1+3];
+				} else {
+					 //out of bounds, so transparent
+					buffer2[i2  ] = 0;
+					buffer2[i2+1] = 0;
+					buffer2[i2+2] = 0;
+					buffer2[i2+3] = 0;
+				}
+			}
+		}
+	}
+
+
+	initial->doneWithBuffer(buffer1);
+	persped->doneWithBuffer(buffer2);
+
+	return 0;
+}
 
 
 //---------------------------------- End Perspective Transform Utils -----------------------------
@@ -621,17 +713,20 @@ PerspectiveInterface::PerspectiveInterface(anInterface *nowner, int nid, Display
 {
 	interface_flags=0;
 
-	hover       = PERSP_None;
-	showdecs    = 1;
-	show_grid   = true;
+	hover        = PERSP_None;
+	showdecs     = 1;
+	show_preview = true;
+	show_grid    = true;
 	continuous_update = true;
-	needtodraw  = 1;
-	needtoremap = 1;
+	needtodraw   = 1;
+	needtoremap  = 1;
 
-	dataoc      = NULL;
-	data        = NULL;
+	dataoc       = NULL;
+	data         = NULL;
+	initial      = NULL;
+	persped      = NULL;
 
-	sc          = NULL; //shortcut list, define as needed in GetShortcuts()
+	sc           = NULL; //shortcut list, define as needed in GetShortcuts()
 }
 
 PerspectiveInterface::~PerspectiveInterface()
@@ -639,6 +734,8 @@ PerspectiveInterface::~PerspectiveInterface()
 	if (dataoc) delete dataoc;
 	if (data) { data->dec_count(); data=NULL; }
 	if (sc) sc->dec_count();
+	if (initial) initial->dec_count();
+	if (persped) persped->dec_count();
 }
 
 const char *PerspectiveInterface::whatdatatype()
@@ -661,6 +758,25 @@ anInterface *PerspectiveInterface::duplicate(anInterface *dup)
 	if (dup==NULL) dup=new PerspectiveInterface(NULL,id,NULL);
 	else if (!dynamic_cast<PerspectiveInterface *>(dup)) return NULL;
 	return anInterface::duplicate(dup);
+}
+
+/*! Assumes dataoc has something meaningful.
+ *
+ * Return 0 if successfully set up, or nonzero error.
+ */
+int PerspectiveInterface::SetupPreviewImages()
+{
+	//ImageManager()->NewImage(200,200);
+
+	if (initial) initial->dec_count();
+	initial = dataoc->obj->GetPreview();
+	if (!initial) return 1;
+	initial->inc_count();
+
+	if (!persped) persped = create_new_image(200,200);
+
+	transform.MapImage(data, initial, persped, 1);
+	return 0;
 }
 
 //! Use the object at oc if it is an PerspectiveData.
@@ -690,10 +806,15 @@ int PerspectiveInterface::UseThisObject(ObjectContext *oc)
 	//transform.from_ul = transform.to_ul = data->transformPoint(flatpoint(data->minx,data->maxy)+flatpoint(v.x,-v.y));
 	//transform.from_ur = transform.to_ur = data->transformPoint(flatpoint(data->maxx,data->maxy)+flatpoint(-v.x,-v.y));
 	//----
-	transform.from_ll = transform.to_ll = data->transformPoint(flatpoint(data->minx,data->miny));
+	transform.from_ll = transform.to_ll = data->transformPoint(flatpoint(data->minx,data->miny)); //obj parent coords
 	transform.from_lr = transform.to_lr = data->transformPoint(flatpoint(data->maxx,data->miny));
 	transform.from_ul = transform.to_ul = data->transformPoint(flatpoint(data->minx,data->maxy));
 	transform.from_ur = transform.to_ur = data->transformPoint(flatpoint(data->maxx,data->maxy));
+	//----
+	//transform.from_ll = transform.to_ll = flatpoint(data->minx,data->miny); //obj coords
+	//transform.from_lr = transform.to_lr = flatpoint(data->maxx,data->miny);
+	//transform.from_ul = transform.to_ul = flatpoint(data->minx,data->maxy);
+	//transform.from_ur = transform.to_ur = flatpoint(data->maxx,data->maxy);
 	//----
 	//Affine a=ndata->GetTransformToContext(false, 0);
 	//transform.from_ll = transform.to_ll = a.transformPoint(flatpoint(data->minx,data->miny));
@@ -702,6 +823,7 @@ int PerspectiveInterface::UseThisObject(ObjectContext *oc)
 	//transform.from_ur = transform.to_ur = a.transformPoint(flatpoint(data->maxx,data->maxy));
 
 	ComputeTransform();
+	SetupPreviewImages();
 
 
 	needtodraw=1;
@@ -876,34 +998,53 @@ int PerspectiveInterface::Refresh()
 
 	if (!data) return 0;
 
-	if (needtoremap) ComputeTransform();
+	if (needtoremap) {
+		ComputeTransform();
+		if (buttondown.any() && continuous_update && initial) transform.MapImage(data, initial, persped, 1);
+	}
+
+
 
 	int lines=8;
 
+	//we are in obj coords
+
 	Affine a(*data);
-	a.Invert();
-
+	a.Invert(); //this nullifies the obj transform
 	dp->PushAndNewTransform(a.m());
-	dp->LineWidthScreen(1);
+	//so now we are in obj parent coords
 
-
+	//original corners
 	flatpoint from_ll(data->transformPoint(flatpoint(data->minx, data->miny)));
 	flatpoint from_lr(data->transformPoint(flatpoint(data->maxx, data->miny)));
 	flatpoint from_ul(data->transformPoint(flatpoint(data->minx, data->maxy)));
 	flatpoint from_ur(data->transformPoint(flatpoint(data->maxx, data->maxy)));
 
-	flatpoint to_ll=transform.transform(from_ll);
-	flatpoint to_lr=transform.transform(from_lr);
-	flatpoint to_ul=transform.transform(from_ul);
-	flatpoint to_ur=transform.transform(from_ur);
+	 //computed transformed corners (not necessarily the same as the control points!)
+	flatpoint to_ll = transform.transform(from_ll);
+	flatpoint to_lr = transform.transform(from_lr);
+	flatpoint to_ul = transform.transform(from_ul);
+	flatpoint to_ur = transform.transform(from_ur);
 
-	flatpoint l = from_ul - from_ll; //points botfromm from fromp
+	flatpoint l = from_ul - from_ll; //points bottom from fromp
 	flatpoint r = from_ur - from_lr;
 	flatpoint t = from_ur - from_ul; //points left from right
 	flatpoint b = from_lr - from_ll;
 
-	dp->NewFG(.75,.75,.75);
+	if (dataoc && initial && persped && show_preview) {
+		 //draw transformed preview image
+		DoubleBBox box;
+		box.addtobounds(to_ll);
+		box.addtobounds(to_lr);
+		box.addtobounds(to_ul);
+		box.addtobounds(to_ur);
+		dp->imageout(persped, box.minx,box.miny, box.boxwidth(),box.boxheight());
+	}
 
+	dp->NewFG(.75,.75,.75);
+	dp->LineWidthScreen(1);
+
+	 //draw grid
 	if (show_grid) {
 		flatpoint p1,p2;
 		for (int c=1; c<lines; c++) {
@@ -921,23 +1062,42 @@ int PerspectiveInterface::Refresh()
 	dp->NewBG(0.6,0.6,0.6);
 	dp->LineWidthScreen(hover == PERSP_Move ? 4 : 2);
 
+	 //outline of transformed area
 	dp->drawline(to_ll, to_lr); //transformed corners
 	dp->drawline(to_lr, to_ur);
 	dp->drawline(to_ur, to_ul);
 	dp->drawline(to_ul, to_ll);
 
+	 //_to_ control points , draw slightly thicker to stand out more
 	dp->LineWidthScreen(2);
 	dp->drawpoint(transform.to_ll, 10, 0); //actual to points
 	dp->drawpoint(transform.to_lr, 10, 0);
 	dp->drawpoint(transform.to_ul, 10, 0);
 	dp->drawpoint(transform.to_ur, 10, 0);
 
+	 //show hovered point
 	dp->NewFG(.25,.25,.25);
 	dp->LineWidthScreen(1);
 	dp->drawpoint(transform.to_ll, 10, hover==PERSP_ll ? 2 : 0);
 	dp->drawpoint(transform.to_lr, 10, hover==PERSP_lr ? 2 : 0);
 	dp->drawpoint(transform.to_ul, 10, hover==PERSP_ul ? 2 : 0);
 	dp->drawpoint(transform.to_ur, 10, hover==PERSP_ur ? 2 : 0);
+
+
+	//DBG:
+	DBG dp->NewFG(0.,0.,1.);
+	DBG dp->drawpoint(mousep, 7, 0);
+
+	DBG dp->NewFG(1.,0.,0.);
+	DBG initialp = transform.transformInverse(mousep); //transformed -> original
+	DBG dp->drawpoint(initialp, 5, 1);
+
+	DBG dp->NewFG(0.,1.,0.);
+	DBG dp->drawpoint(transform.transform(mousep), 5, 1); //original -> transformed
+
+	DBG char str[200];
+	DBG sprintf(str, "mouse: %f,%f, invtrans: %f,%f", mousep.x,mousep.y, initialp.x,initialp.y);
+	DBG PostMessage(str);
 
 
 	dp->PopAxes();
@@ -977,7 +1137,7 @@ int PerspectiveInterface::scan(double x, double y)
 
 	flatpoint p(x,y);
 	flatpoint pts[4] = {
-		realtoscreen(transform.to_ll),
+		realtoscreen(transform.to_ll), //remember to_ll, etc should be in obj parent space
 		realtoscreen(transform.to_lr),
 		realtoscreen(transform.to_ur),
 		realtoscreen(transform.to_ul)
@@ -1025,13 +1185,21 @@ int PerspectiveInterface::LBDown(int x,int y,unsigned int state,int count, const
 
 int PerspectiveInterface::LBUp(int x,int y,unsigned int state, const Laxkit::LaxMouse *d)
 {
-	buttondown.up(d->id,LEFTBUTTON);
+	int action=0;
+	buttondown.up(d->id,LEFTBUTTON, &action);
+	if (action != PERSP_None && !continuous_update && initial) transform.MapImage(data, initial, persped, 1);
 	return 0; //return 0 for absorbing event, or 1 for ignoring
 }
 
 
 int PerspectiveInterface::MouseMove(int x,int y,unsigned int state, const Laxkit::LaxMouse *d)
 {
+	DBG if (data) {
+	DBG 	mousep = screentoreal(x,y); //should be obj parent coords
+	DBG 	needtodraw=1;
+	DBG }
+
+
 	if (!buttondown.any()) {
 		// update any mouse over state
 
@@ -1063,11 +1231,11 @@ int PerspectiveInterface::MouseMove(int x,int y,unsigned int state, const Laxkit
 	if (continuous_update && dataoc) {
 		 //transform a path... do this here for testing purposes.
 		 // *** move somewhere responsible later!!!
-		ComputeTransform();
-		PathsData *data = dynamic_cast<PathsData*>(dataoc->obj);
-		if (data) {
+		//ComputeTransform();
+		//PathsData *data = dynamic_cast<PathsData*>(dataoc->obj);
+		//if (data) {
 
-		}
+		//}
 	}
 
 
@@ -1112,8 +1280,9 @@ Laxkit::ShortcutHandler *PerspectiveInterface::GetShortcuts()
     sc=new ShortcutHandler(whattype());
 
 	//sc->Add([id number],  [key], [mod mask], [mode], [action string id], [description], [icon], [assignable]);
-    sc->Add(PERSP_Reset, 'z',0,0, "Reset", _("Reset transform"),NULL,0);
-    sc->Add(PERSP_Grid,  'g',0,0, "Grid",  _("Toggle grid"),    NULL,0);
+    sc->Add(PERSP_Reset,  'z',0,0, "Reset",  _("Reset transform"),      NULL,0);
+    sc->Add(PERSP_Grid,   'g',0,0, "Grid",   _("Toggle grid"),          NULL,0);
+    sc->Add(PERSP_Preview,'p',0,0, "Preview",_("Toggle preview image"), NULL,0);
 
     manager->AddArea(whattype(),sc);
     return sc;
@@ -1130,6 +1299,12 @@ int PerspectiveInterface::PerformAction(int action)
 	} else if (action == PERSP_Grid) {
 		show_grid = !show_grid;
 		PostMessage(show_grid ? _("Show grid") : _("Don't show grid"));
+		needtodraw=1;
+		return 0;
+
+	} else if (action == PERSP_Preview) {
+		show_preview = !show_preview;
+		PostMessage(show_preview ? _("Show preview") : _("Don't show preview"));
 		needtodraw=1;
 		return 0;
 	}
