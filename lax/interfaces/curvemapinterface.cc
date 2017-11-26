@@ -100,14 +100,14 @@ CurveMapInterface::~CurveMapInterface()
 	if (sc) sc->dec_count();
 }
 
-anObject *NewCurveInfo(anObject *refobj) { return new CurveInfo; }
+anObject *NewCurveInfo(int p, anObject *refobj) { return new CurveInfo; }
 
 int CurveMapInterface::InitializeResources()
 {
 	InterfaceManager *imanager=InterfaceManager::GetDefault(true);
 
 	ObjectFactory *factory=imanager->GetObjectFactory(); 
-	factory->DefineNewObject(-1, "CurveInfo", NewCurveInfo, NULL);
+	factory->DefineNewObject(-1, "CurveInfo", NewCurveInfo, NULL, 0);
 
 	 //create builtin
 	ResourceManager *resources=imanager->GetResourceManager();
