@@ -83,17 +83,18 @@ ObjectFactoryNode *ObjectFactory::newObjectFactoryNode()
 /*! If newname already exists, then do nothing and return -1. Else return the index on types
  * that the new definition is pushed.
  */
-int ObjectFactory::DefineNewObject(int newid, const char *newname, NewObjectFunc newfunc,DelObjectFunc delfunc)
+int ObjectFactory::DefineNewObject(int newid, const char *newname, NewObjectFunc newfunc,DelObjectFunc delfunc, int param)
 {
 	int exists=0;
 	int i=findPosition(newname,&exists);
 	if (exists) return -1;
 
-	ObjectFactoryNode *node=newObjectFactoryNode();
-	node->name=newstr(newname);
-	node->id=newid;
-	node->newfunc=newfunc;
-	node->delfunc=delfunc;
+	ObjectFactoryNode *node = newObjectFactoryNode();
+	node->name = newstr(newname);
+	node->id = newid;
+	node->newfunc = newfunc;
+	node->delfunc = delfunc;
+	node->parameter = param;
 	
 	return types.push(node,1,i);
 }
@@ -146,8 +147,8 @@ int ObjectFactory::findPosition(const char *name, int *exists)
 anObject *ObjectFactory::NewObject(int objtype, anObject *refobj)
 {
 	for (int c=0; c<types.n; c++) {
-		if (objtype==types.e[c]->id) {
-			return types.e[c]->newfunc(refobj);
+		if (objtype == types.e[c]->id) {
+			return types.e[c]->newfunc(types.e[c]->parameter, refobj);
 		}
 	}
 	return NULL;
@@ -158,7 +159,7 @@ anObject *ObjectFactory::NewObject(const char *objtype, anObject *refobj)
 {
 	int exists=0;
 	int i=findPosition(objtype, &exists);
-	if (exists && i>=0) return types.e[i]->newfunc(refobj);
+	if (exists && i>=0) return types.e[i]->newfunc(types.e[i]->parameter, refobj);
 	return NULL;
 }
 
@@ -175,7 +176,7 @@ int ObjectFactory::TypeId(int which)
 }
 
 
-/*! Abreviated dump_out here mainly for debugging purposes..
+/*! Abbreviated dump_out here mainly for debugging purposes..
  */
 void ObjectFactory::dump_out(FILE *f, int indent)
 {

@@ -33,7 +33,7 @@
 namespace Laxkit {
 
 
-typedef anObject *(*NewObjectFunc)(anObject *refobj);
+typedef anObject *(*NewObjectFunc)(int parameter, anObject *refobj);
 
 typedef int (*DelObjectFunc)(anObject *obj);
 
@@ -45,10 +45,11 @@ class ObjectFactoryNode
 	char *name;
 	int info;
 	int id;
+	int parameter;
 	NewObjectFunc newfunc;
 	DelObjectFunc delfunc;
 
-	ObjectFactoryNode() { info=id=0; name=NULL; }
+	ObjectFactoryNode() { parameter=0; info=id=0; name=NULL; }
 	virtual ~ObjectFactoryNode() { delete[] name; }
 };
 
@@ -70,7 +71,7 @@ class ObjectFactory : public anObject
 	virtual ~ObjectFactory() {}
 	virtual const char *whattype() { return "ObjectFactory"; }
 	virtual int findPosition(const char *name, int *exists);
-	virtual int DefineNewObject(int newid, const char *newname, NewObjectFunc newfunc,DelObjectFunc delfunc);
+	virtual int DefineNewObject(int newid, const char *newname, NewObjectFunc newfunc,DelObjectFunc delfunc, int param=0);
 
 	virtual anObject *NewObject(const char *objtype, anObject *refobj=NULL);
 	virtual anObject *NewObject(int objtype, anObject *refobj=NULL);
