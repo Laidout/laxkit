@@ -17,6 +17,7 @@
 #include "errorlog.h"
 
 
+//template implementation:
 #include <lax/lists.cc>
 
 
@@ -167,8 +168,20 @@ char *ErrorLog::FullMessageStr()
 	if (!messages.n) return NULL;
 
 	char *str=NULL;
-	for (int c=0; c<messages.n; c++)
+	for (int c=0; c<messages.n; c++) {
+		 //write out something like: "objectstr_id (path):\n" or "path:\n"
+		if (messages.e[c]->objectstr_id) appendstr(str, messages.e[c]->objectstr_id);
+		if (messages.e[c]->path) {
+			if (messages.e[c]->objectstr_id) appendstr(str, " (");
+			appendstr(str, messages.e[c]->path);
+			if (messages.e[c]->objectstr_id) appendstr(str, "):\n");
+			else appendstr(str, ":\n"); 
+		} else if (messages.e[c]->objectstr_id) {
+			appendstr(str, "\n");
+		}
+
 		appendline(str,messages.e[c]->description);
+	}
 	return str;
 }
 
