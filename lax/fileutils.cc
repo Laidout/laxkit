@@ -142,7 +142,7 @@ int getline_indent_nonblank(char **line, size_t *n,FILE *f, int indent,
 	if (lineindent) *lineindent=i;
 	if (!skiplines) {
 		 //remove trailing whitespace ONLY when line is not all whitespace if !skiplines
-		if ((*line)[c-1]=='\n') { (*line)[c-1]='\0'; c--; }
+		if (c>0 && (*line)[c-1]=='\n') { (*line)[c-1]='\0'; c--; }
 		i=0;
 		while (i<c && isspace((*line)[i])) i++;
 		if (i!=c) while (c>0 && isspace((*line)[c-1])) { (*line)[c-1]='\0'; c--; } //remove trailing whitespace
