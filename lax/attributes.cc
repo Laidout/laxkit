@@ -1072,7 +1072,8 @@ void dump_out_value(FILE *f,int indent,const char *value, int noquotes)
 			dump_out_indented(f,indent,value);
 			fprintf(f,"\n");
 		} else if (strchr(value,'"') && !noquotes) {
-			 // simply written value, but must escape quotes
+			 // simply written value, but has quotes, so must escape quotes
+			fprintf(f," ");
 			dump_out_escaped(f,value,-1);
 			fprintf(f,"\n");
 		} else {
@@ -1813,7 +1814,7 @@ int Attribute::dump_in(FILE *f, int Indent,Attribute **stopatsub)//stopatsub=NUL
 				if (m==1) { // was matched quote, need to unescape quotes now
 					val[q]='\0';
 					val++;
-					for (c=1; val[c]!='\0'; c++) {
+					for (c=0; val[c]!='\0'; c++) {
 						if (val[c]=='\\') {
 							if (val[c+1]=='"') memmove(val+c,val+c+1,strlen(val+c+1)+1);
 						}
