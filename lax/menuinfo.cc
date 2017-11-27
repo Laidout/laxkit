@@ -824,7 +824,7 @@ int MenuInfo::AddDelimited(const char *newitem,char delimiter, int nid,int where
 {
 	if (!newitem || !*newitem) return 1;
 	
-	const char *st=strchr(newitem,delimiter);
+	const char *st = strchr(newitem,delimiter);
 	if (!st) return AddItem(newitem,nid);
 
 	char *group=newnstr(newitem,st-newitem);
