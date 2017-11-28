@@ -118,8 +118,8 @@ void ScreenColor::cmykf(double c, double m, double y, double k, double a)
 	alpha=(a*65535+.5);
 }
 
-/*! Add the amounts to the colors, where they are in scale [0..1].
- * If the addition will overflow the subtract instead.
+/*! Change the colors by given amounts, which should be in scale [0..1].
+ * If addition will overflow, then subtract instead.
  * If subtracting will underflow, then use 0. You shouldn't use such big diffs anyway.
  */
 void ScreenColor::AddDiff(double r, double g, double b)
