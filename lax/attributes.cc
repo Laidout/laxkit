@@ -1061,6 +1061,8 @@ char *WholeQuotedAttribute(const char *v)
  * A newline is always the last thing written to the file. If value==NULL,
  * a single newline is written to f.
  *
+ * If the string has quotes in it or a number sign, they will be escaped unless noquotes.
+ *
  * \todo note that this will almost always quote value, and it probably shouldn't for simple values
  */
 void dump_out_value(FILE *f,int indent,const char *value, int noquotes)
@@ -1071,12 +1073,15 @@ void dump_out_value(FILE *f,int indent,const char *value, int noquotes)
 			fprintf(f," \\\n");
 			dump_out_indented(f,indent,value);
 			fprintf(f,"\n");
-		} else if (strchr(value,'"') && !noquotes) {
+
+		} else if ((strchr(value,'#') || strchr(value,'"')) && !noquotes) {
 			 // simply written value, but has quotes, so must escape quotes
 			fprintf(f," ");
 			dump_out_escaped(f,value,-1);
 			fprintf(f,"\n");
+
 		} else {
+			 //force quotes when there's space chars
 			if (!strchr(value,' ')) noquotes=1;
 			if (noquotes) fprintf(f," %s\n",value);
 			else fprintf(f," \"%s\"\n",value);
