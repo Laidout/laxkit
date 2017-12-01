@@ -45,6 +45,7 @@ class DoubleBBox {
 	virtual void setbounds(flatpoint *pts,int n);
 	virtual void setbounds(double mix,double max,double miy,double may) { minx=mix; maxx=max; miny=miy; maxy=may; }
 	virtual int validbounds() { return maxx>=minx && maxy>=miny; }
+	virtual int nonzerobounds() { return maxx>minx && maxy>miny; }
 	virtual int intersect(double mix,double max,double miy,double may, int settointersection=0);
 	virtual int intersect(DoubleBBox *bbox, int settointersection=0);
 	virtual int intersect(const double *m,DoubleBBox *bbox, int touching, int settointersection);
