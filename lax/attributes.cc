@@ -725,6 +725,27 @@ int FlatvectorAttribute(const char *v,flatvector *vec,char **endptr)
 	return 1;
 }
 
+//! Return from something like "1 2 3", "1,2,3", "(1,2,3)", or "(1 2 3)".
+/*! Return 1 if successful, else 0.
+ */
+int SpacevectorAttribute(const char *v,spacevector *vec,char **endptr)
+{
+	while (isspace(*v)) v++;
+	int paren=(*v=='(');
+	if (paren) v++;
+	char *end;
+	double fv[3];
+	int n=DoubleListAttribute(v,fv,3,&end);
+	if (n!=3) return 0;
+	v=end;
+	while (isspace(*v)) v++;
+	if (paren && *v!=')') return 0; //need closing parenthesis!
+	else if (paren) v++;
+	if (endptr) *endptr=const_cast<char *>(v);
+	(*vec).x=fv[0]; (*vec).y=fv[1]; (*vec).z=fv[2];
+	return 1;
+}
+
 //! Turn v into an unsigned long, put in l if successful, return 1. Else don't change l and return 0.
 /*! \ingroup attributes
  */
@@ -2223,7 +2244,6 @@ Attribute *XMLFileToAttributeLocked(Attribute *att,const char *file,const char *
  * 
  * \todo this just reads in the whole file to memory then parses it, which might be rather
  *   inefficient, but it is easy to code..
- * \todo must interpret !DOCTYPE and ?xml...? correctly...
  */
 Attribute *XMLChunkToAttribute(Attribute *att,FILE *f,const char **stand_alone_tag_list)
 {
@@ -2339,7 +2359,8 @@ int one_of_them(const char *str,const char **list)
  * <pre>
  *   cdata: 111
  *   b
- *     cdata: 22 2 2  #TODO<--test this
+ *     content:
+ *       cdata: 22 2 2  #TODO<--test this
  *   cdata: 333
  * </pre>
  * 
