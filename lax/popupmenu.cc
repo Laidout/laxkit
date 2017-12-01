@@ -359,6 +359,7 @@ int PopupMenu::CharInput(unsigned int ch,const char *buffer,int len,unsigned int
 		app->destroywindow(this);
 		return 0;
 	}
+
 	return MenuSelector::CharInput(ch,buffer,len,state,d);
 }
 
