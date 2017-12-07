@@ -619,6 +619,9 @@ class LaxBufferImage : public LaxImage
 	int width, height;
 
 	unsigned char *pixel_data;
+
+	anObject *config;
+
  public:
 	LaxBufferImage();
 	virtual ~LaxBufferImage();
@@ -637,10 +640,13 @@ LaxBufferImage::LaxBufferImage()
 	alpha_channel=-1;
 	iccprofile=0;
 	pixel_data=NULL;
+	config = NULL;
 }
 
 LaxBufferImage::~LaxBufferImage()
-{}
+{
+	if (config) config->dec_count();
+}
 
 //! The number of bytes between rows.
 /*! So say an image is 40 pixels wide, 16 bits per channel, and has 4 channels, and
