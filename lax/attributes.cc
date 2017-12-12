@@ -964,7 +964,7 @@ double *TransformAttribute(const char *v,double *m,char **endptr)
  * and '\"' becomes one doublequote. In fact any other character following the backslash just inserts
  * that character.
  *
- * Quotes can me '"' or '\''.
+ * Quotes can be '"' or '\''.
  *
  * On error or no first chunk, NULL is returned.
  *
@@ -1172,7 +1172,7 @@ char *escape_string(const char *value, char quote, bool include_quotes)
 		v++;
 	}
 
-	if (!ne) return newstr(value);
+	if (!ne && !include_quotes) return newstr(value);
 
 	char *nv=new char[strlen(value)+ne+3];
 	char *v2=nv;
@@ -1202,6 +1202,18 @@ char *escape_string(const char *value, char quote, bool include_quotes)
 	*v2='\0';
 
 	return nv;
+}
+
+/*! Return a new char[] escaped for use inside a quoted string, including the quotes.
+ * Escapes the quote character, backslashes, newlines, carriage returns, and tabs.
+ *
+ * Generally, quote will be " or '.
+ */
+void dump_out_quoted(FILE *f, const char *value, char quote)
+{
+	char *str = escape_string(value, quote, true);
+	fprintf(f, str); 
+	delete[] str;
 }
 
 //! Just dump out string at constant indent.
@@ -1288,6 +1300,9 @@ void skip_to_next_attribute(FILE *f,int indent)
  *  
  *  (note that pangomm and atkmm have an Attribute class, though it is in their own
  *  namespace)
+ *
+ * Attribute::flags is not natively used by Attribute. It exists to aid other
+ * classes to keep a simple hint about what data is contained.
  */
 
 
@@ -2326,7 +2341,7 @@ int one_of_them(const char *str,const char **list)
  *     landscape false
  *     first_page_num 1
  *     content:
- *       title "single thing to value"  <---TODO!!!
+ *       title "single thing to value"  <---TODO!!! test!
  *       page
  *         content:
  *           frame 
@@ -2625,6 +2640,307 @@ Attribute *InlineCSSToAttribute (const char *thecss, Attribute *att)
 	return att;
 }
 
+
+//---------------------------------- JSON Conversion helpers -------------------------------
+
+/*! Negative indent means output with no whitespace.
+ */
+char *AttributeToJsonString(Attribute *att,char **appendtothis, int indent, char **error_ret)
+{
+//	char spc[indent<0?0:indent+1]; memset(spc,' ',indent<0?0:indent); spc[indent<0?0:indent]='\0';
+
+////	if (indent<0) appendstr(*appendtothis,"{");
+////	else {
+////		appendstr(*appendtothis,spc);
+////		appendstr(*appendtothis,"{\n");
+////	}
+//
+//	for (int c=0; c<att->attributes.n; c++) {
+//		if (indent>0) appendstr(*appendtothis,spc);
+//
+//		 //name
+//		appendstr(*appendtothis,"\"");
+//		appendstr(*appendtothis,att->attributes.e[c]->name);
+//		appendstr(*appendtothis,"\": ");
+//
+//		 //value
+//		if (***is string) {
+//		} else (*** is value) {
+//		} else (*** is object) {
+//			appendstr(*appendtothis,"{");
+//			AttributeToJson(att->attributes.e[c],appendtothis,indent+4,error_ret);
+//			if (indent>0) appendstr(*appendtothis,spc);
+//			appendstr(*appendtothis,"}");
+//
+//		} else (*** is array) {
+//		}
+//
+//		if (c<att->attributes.n-1) appendstr(*appendtothis,",");
+//	}
+//
+//
+//	appendstr(*appendtothis,"}\n");
+
+	return NULL;
+}
+
+/*! Return 0 for success, or nonzero for error.
+ * Negative indent means output with no whitespace.
+ *
+ * See JsonStringToAttribute() for the expected format.
+ */
+int AttributeToJsonFile(const char *jsonfile, Attribute *att, int indent)
+{
+	FILE *f = fopen(jsonfile, "w");
+	if (!f) {
+		// *** error! could not open for writing!
+		return 1;
+	}
+
+	int status = DumpAttributeToJson(f, att, indent);
+
+	fclose(f);
+	return status;
+}
+
+int DumpAttributeToJson(FILE *f, Attribute *att, int indent)
+{
+	char spc[indent<0?0:indent+1]; memset(spc,' ',indent<0?0:indent); spc[indent<0?0:indent]='\0';
+
+	if (att->flags == JSON_Null) {
+		fprintf(f, "null");
+
+	} else if (att->flags == JSON_True) {
+		fprintf(f, "true");
+
+	} else if (att->flags == JSON_False) {
+		fprintf(f, "false");
+
+	} else if (att->flags == JSON_Int || att->flags == JSON_Float) {
+		fprintf(f, "%s", att->value);
+
+	} else if (att->flags == JSON_String) {
+		dump_out_quoted(f, att->value, '"');
+
+	} else if (att->flags == JSON_Array) {
+		fprintf(f, "[ ");
+		if (att->attributes.n) fprintf(f, "\n");
+		for (int c=0; c<att->attributes.n; c++) {
+			fprintf(f, "%s", spc);
+			DumpAttributeToJson(f, att->attributes.e[c], indent+2);
+			if (c != att->attributes.n-1) fprintf(f, ",\n");
+			else fprintf(f, "\n");
+		}
+		if (att->attributes.n) fprintf(f, "%s", spc);
+		fprintf(f, "]");
+
+	} else if (att->flags == JSON_Object) {
+		fprintf(f, "{ ");
+		if (att->attributes.n) fprintf(f, "\n");
+		for (int c=0; c<att->attributes.n; c++) {
+			fprintf(f, "%s", spc);
+			dump_out_quoted(f, att->attributes.e[c]->name, '"');
+			fprintf(f, ": ");
+			if (att->attributes.e[c]->attributes.n == 0) {
+				 // *** error! Missing the value to a key!
+				break;
+			}
+			DumpAttributeToJson(f, att->attributes.e[c]->attributes.e[0], indent+2);
+			if (c != att->attributes.n-1) fprintf(f, ",\n");
+			else fprintf(f, "\n");
+		}
+		if (att->attributes.n) fprintf(f, "%s", spc);
+		fprintf(f, "}");
+	}
+
+
+	return 0;
+}
+
+
+Attribute *JsonFileToAttribute (const char *jsonfile, Attribute *att)
+{
+	char *contents = read_in_whole_file(jsonfile, NULL, 0);
+	return JsonStringToAttribute(contents, att, NULL);
+}
+
+/*! This uses Attribute::flags to hint what type the attribute is. See JsonAttTypes.
+ * Also, att->name will hold "null", "true", "false", "int", "float", "array", or "object".
+ *
+ * Null, true, and false will have null att->value. name will be "true", "false", or "null".
+ *
+ * Something like:
+ *
+ * <pre>
+ *   { "hashname" : [ "array", "of", 5, "stuff", 10.0 ],
+ *     "hashname2" " null
+ *   }
+ * </pre>
+ *
+ * will become: 
+ * <pre>
+ *   object
+ *     key hashname
+ *       array
+ *         string "array"
+ *         string "of"
+ *         int 5
+ *         string "stuff"
+ *         float 10.0
+ *     key hashname2
+ *       null
+ * </pre>
+ */
+Attribute *JsonStringToAttribute (const char *jsonstring, Attribute *att, const char **end_ptr)
+{
+	if (!att) att = new Attribute();
+
+	const char *str = jsonstring;
+	const char *strend;
+	char *endptr;
+
+	while (*str) {
+		while (*str && isspace(*str)) str++;
+
+		if (*str=='t' && !strncmp(str, "true", 4)) {
+			str += 4;
+			att->push("true");
+			att->Top()->flags = JSON_True;
+
+		} else if (*str=='f' && !strncmp(str, "false", 5)) {
+			str += 5;
+			att->push("false");
+			att->Top()->flags = JSON_False;
+
+		} else if (*str=='n' && !strncmp(str, "null", 4)) {
+			str += 4;
+			att->push("null");
+			att->Top()->flags = JSON_Null;
+
+		} else if (*str=='"') {
+			char *s = QuotedAttribute(str, &endptr);
+			if (!s || str == endptr) {
+				 // *** uh oh! problem in the parsing!
+				s++;
+
+			} else {
+				str = endptr;
+				att->push("string", s);
+				att->Top()->flags = JSON_String;
+				delete[] s;
+			}
+
+		} else if (*str=='[') {
+			str++;
+			Attribute *att2 = att->pushSubAtt("array");
+			att2->flags = JSON_Array;
+
+			while (*str && isspace(*str)) str++;
+			while (1) {
+				endptr = NULL;
+				Attribute *att3 = JsonStringToAttribute(str, NULL, &strend);
+				if (att3) {
+					att2->push(att3, -1);
+					str = strend;
+					while (*str && isspace(*str)) str++;
+
+				} else break;
+				
+				while (*str && isspace(*str)) str++;
+				if (*str != ',') break;
+				str++;
+			}
+
+			while (*str && isspace(*str)) str++;
+			if (*str != ']') {
+				// *** error!! missing close bracket
+			}
+
+		} else if (*str=='{') {
+			str++;
+			Attribute *att2 = att->pushSubAtt("object");
+			att2->flags = JSON_Object;
+
+			while (1) {
+
+				while (*str && isspace(*str)) str++;
+				if (*str != '"') {
+					if (*str != '}') {
+						// *** error! expecting a string!
+					}
+					break;
+				}
+
+				str++;
+				strend = str+1;
+				while (*strend && *strend != '"') {
+					if (*strend == '\\') strend++;
+					if (*strend) strend++;
+				}
+
+				if (*strend == '\0' || *strend != '"') {
+					// *** badly formed string!
+					break;
+				}
+
+				Attribute *key = new Attribute("key", NULL);
+				makenstr(key->value, str+1, strend-str-1);
+				att2->push(key, -1);
+
+				endptr = NULL;
+				Attribute *value = JsonStringToAttribute(str, NULL, &strend);
+				if (value) {
+					key->push(value, -1);
+					str = strend;
+
+				} else break;
+				
+				while (*str && isspace(*str)) str++;
+				if (*str != ',') break;
+				str++;
+			}
+
+			while (*str && isspace(*str)) str++;
+			if (*str != '}') {
+				// *** error!! missing close curly brace
+				break;
+			}
+
+		} else if (isdigit(*str) || *str == '.') {
+			 //is number
+			int isint = 1;
+			strend = str;
+
+			while (isdigit(*strend)) strend++; //int part
+			if (*strend == '.') { //fraction
+				isint = 0;
+				strend++;
+				while (isdigit(*strend)) strend++;
+			}
+			if (*strend == 'e' || *strend == 'E') {
+				strend++;
+				if (*strend == '+' || *strend == '-') strend++;
+				if (!isdigit(*strend)) {
+					// *** malformed number!
+					break;
+				}
+				while (isdigit(*strend)) strend++;
+			}
+			//if (str == strend) { break; }  <- this shouldn't happen
+
+			Attribute *att2 = new Attribute(isint ? "int" : "float", NULL);
+			makenstr(att2->value, str, strend-str);
+			str = strend;
+
+			att->push(att2, -1);
+		}
+	}
+
+
+	if (end_ptr) *end_ptr = str;
+
+	return att;
+}
 
 
 } //namespace

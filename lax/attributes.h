@@ -36,10 +36,10 @@ namespace LaxFiles {
 class Attribute {
  public:
 	char *name;
-	char *atttype; // string, alias to this name, use contents of file "value" as string
+	char *value;
+	char *atttype; // hint about what data type value is
 	Laxkit::PtrStack<Attribute> attributes;
 
-	char *value;
 	unsigned int flags;
 
 	Attribute() { name=value=atttype=NULL; flags=0; }
@@ -82,6 +82,7 @@ class AttributeObject : public Laxkit::anObject, public Attribute
 void dump_out_value(FILE *f,int indent,const char *value, int noquotes=0);
 void dump_out_escaped(FILE *f, const char *str, int n);
 void dump_out_indented(FILE *f, int indent, const char *str);
+void dump_out_quoted(FILE *f, const char *value, char quote);
 
 char *escape_string(const char *value, char quote, bool include_quotes);
 
@@ -132,6 +133,27 @@ Attribute *CSSFileToAttribute (const char *cssfile,Attribute *att);
 Attribute *CSSToAttribute (const char *css,Attribute *att);
 Attribute *InlineCSSToAttribute (const char *css,Attribute *att);
 
+
+//---------------------------------- JSON Conversion helpers -------------------------------
+enum JsonAttTypes {
+	JSON_Null = 0,
+	JSON_True,
+	JSON_False,
+	JSON_Int,
+	JSON_Float,
+	JSON_String,
+	JSON_Array,
+	JSON_Object,
+	JSON_Object_Name,
+
+	JSON_MAX
+};
+
+char *AttributeToJsonString(Attribute *att,char **appendtothis, int indent, char **error_ret);
+int AttributeToJsonFile(const char *jsonfile, Attribute *att, int indent);
+int DumpAttributeToJson(FILE *f, Attribute *att, int indent);
+Attribute *JsonFileToAttribute (const char *jsonfile, Attribute *att);
+Attribute *JsonStringToAttribute (const char *jsonstring, Attribute *att, const char **end_ptr);
 
 } //namespace LaxFiles
 
