@@ -27,6 +27,7 @@
 //these are just maps to some xlib cursor shapes...
 
 //misc
+#define LAX_MOUSE_Default    0
 #define LAX_MOUSE_Cancel     200
 #define LAX_MOUSE_Text       152
 #define LAX_MOUSE_Exchange   50
@@ -52,6 +53,7 @@
 #define LAX_MOUSE_To_W       70
 #define LAX_MOUSE_To_NW      137
 
+#define LAX_MOUSE_MAX_BUILTIN 255
 
 #endif
 
