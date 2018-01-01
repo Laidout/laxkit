@@ -70,6 +70,9 @@
 #include <lax/tooltip.h>
 #include <lax/utf8utils.h>
 #include <lax/laxutils.h>
+#include <lax/mouseshapes.h>
+
+//template instantiations:
 #include <lax/lists.cc>
 #include <lax/refptrstack.cc>
 
@@ -2001,14 +2004,14 @@ int anXApp::addwindow(anXWindow *w,char mapit,char absorb_count) // mapit==1, ab
 
 	if (w->win_pointer_shape) {
 		 //***need fuller implementation of mouse cursors!!
-		Cursor cursor=0;
-		if (w->win_pointer_shape<200) {
+		Cursor cursor = 0;
+		if (w->win_pointer_shape < LAX_MOUSE_MAX_BUILTIN) {
 			 //use x cursor font
-			cursor=XCreateFontCursor(dpy,w->win_pointer_shape);
+			cursor = XCreateFontCursor(dpy,w->win_pointer_shape);
 		}
 		if (cursor) {
-			w->xlib_win_xatts.cursor=cursor;
-			w->xlib_win_xattsmask|=CWCursor;
+			w->xlib_win_xatts.cursor = cursor;
+			w->xlib_win_xattsmask |= CWCursor;
 		}
 	}
 
@@ -2017,7 +2020,7 @@ int anXApp::addwindow(anXWindow *w,char mapit,char absorb_count) // mapit==1, ab
 		w->xlib_win_xatts.override_redirect=True;
 		w->xlib_win_xattsmask|=CWOverrideRedirect;
 	}
-	
+
 	 // preinit exists because I haven't figured out why XResizeWindow doesn't seem to have any effect
 	 // on the window if called after XCreateWindow but before mapping. Speaking of which, there is 
 	 // another strange lack of resizing when the window is otherwise unmapped..
