@@ -226,8 +226,11 @@ SplitWindow::SplitWindow(anXWindow *parnt,const char *nname,const char *ntitle,u
 	mode=0;
 	defaultwinfunc=-1;
 	lastactivewindow=NULL;
+	lastbox = -1;
 
 	installColors(app->color_panel);
+
+	//win_pointer_shape = LAX_MOUSE_Pan;
 }
 
 //! Adds a single blank pane.
@@ -305,6 +308,7 @@ void SplitWindow::Refresh()
 			else sprintf(blah,"%d, no title",c);
 		else sprintf(blah,"%d",c);
 		textout(this, blah,-1,win_w/2,win_h/2,LAX_CENTER);
+
 	} else {
 		for (int c=0; c<windows.n; c++) {
 			if (!windows.e[c]->win() || !windows.e[c]->win()->win_on) {
@@ -327,8 +331,15 @@ void SplitWindow::Refresh()
 				textout(this, blah,-1,(windows.e[c]->x1+windows.e[c]->x2)/2,
 									  (windows.e[c]->y1+windows.e[c]->y2)/2,LAX_CENTER);
 			}
+
 			if (win_style&SPLIT_BEVEL) {
-				draw_bevel(this,space/2,highlight,shadow,LAX_OFF,
+				 //draw boundary
+				unsigned long hl = highlight, sd = shadow;
+				if (mousein && windows.e[c]->win() && windows.e[c]->win() == lastactivewindow) {
+					hl = coloravg(win_colors->bg,rgbcolor(255,255,255), .8);
+					sd = coloravg(win_colors->bg,rgbcolor(255,255,255), .3);
+				}
+				draw_bevel(this,space/2, hl,sd, LAX_OFF,
 						windows.e[c]->x1,windows.e[c]->y1,
 						windows.e[c]->x2-windows.e[c]->x1,windows.e[c]->y2-windows.e[c]->y1);
 			}
@@ -1261,7 +1272,7 @@ int SplitWindow::RBDown(int x,int y,unsigned int state,int count,const LaxMouse 
 	// *** disable for now: const_cast<LaxMouse*>(d)->setMouseShape(this,0);
 	mousein=0;
 	if (mode==NORMAL || mode==MAXIMIZED) {
-		MenuInfo *menu=GetMenu();
+		MenuInfo *menu = GetMenu();
 		if (menu) {
 			PopupMenu *pop=new PopupMenu("Popup file menu",NULL, 0,
 							0,0,0,0,1, 
@@ -1308,6 +1319,7 @@ int SplitWindow::Event(const EventData *e, const char *mes)
 	if (e->type==LAX_onMouseOut) {
 		//const EnterExitData *ee=dynamic_cast<const EnterExitData*>(e);
 		mousein=0;
+		needtodraw=1;
 		if (!buttondown.any()) {
 			DBG cerr <<"out of splitwindow, reseting cursor"<<endl;
 			// *** disable for now: dynamic_cast<LaxMouse*>(ee->device)->setMouseShape(this,0);
@@ -1317,6 +1329,7 @@ int SplitWindow::Event(const EventData *e, const char *mes)
 	} else if (e->type==LAX_onMouseIn) {
 		const EnterExitData *ee=dynamic_cast<const EnterExitData*>(e);
 		mousein=1;
+		needtodraw=1;
 		if (!buttondown.any()) {
 			 //*** must establish the proper cursor
 			

@@ -86,6 +86,7 @@ class SplitWindow : public anXWindow
 	int sminx,smaxx, sminy,smaxy;
 	int mx,my;
 	int mode;
+	int lastbox;
 	anXWindow *lastactivewindow;
 	NumStack<int> laffected,raffected,taffected,baffected;
 	PtrStack<WinFuncNode> winfuncs;
