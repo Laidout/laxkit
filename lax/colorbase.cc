@@ -81,11 +81,9 @@ ColorBase::ColorBase()
 }
 
 
-/*! By default, max=65535.
- */
-ColorBase::ColorBase(int ctype, double c0,double c1,double c2,double c3,double c4)
+ColorBase::ColorBase(int ctype, double c0,double c1,double c2,double c3,double c4, double nmax)
 {
-	max=65535;
+	max = nmax;
 
 	colorspecial=COLOR_Normal; //a SimpleColorId
 	colortype=ctype;

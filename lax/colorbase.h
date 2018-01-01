@@ -47,7 +47,7 @@ class ColorBase
 	double *colors;
 
 	ColorBase();
-	ColorBase(int ctype, double c0,double c1,double c2,double c3=-1,double c4=-1);
+	ColorBase(int ctype, double c0,double c1,double c2,double c3=-1,double c4=-1, double nmax=65535);
 	virtual ~ColorBase();
 
 	virtual int SetColorSystem(int newsystem);
