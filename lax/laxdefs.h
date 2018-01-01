@@ -239,6 +239,8 @@ typedef enum {
 #define LAX_Numlock  0xff7f
 #define LAX_Capslock 0xffe5
 
+//a rather arbitrary limit to what char codes are considered printable.
+#define LAX_Max_Normal_Char 0xff00
 
 //The following are basically one for one with XF86XK_* from /usr/include/X11/XF86keysym.h
 //They map various special keys found on different keyboards.
