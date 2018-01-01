@@ -1032,10 +1032,12 @@ int anXWindow::Event(const EventData *data,const char *mes)
 		const KeyEventData *ke=dynamic_cast<const KeyEventData*>(data);
 		return CharInput(ke->key, ke->buffer, ke->len, ke->modifiers, ke->device);
 	}
+
 	if (data->type==LAX_onKeyUp) {
 		const KeyEventData *ke=dynamic_cast<const KeyEventData*>(data);
 		return KeyUp(ke->key, ke->modifiers, ke->device);
 	}
+
 	if (data->type==LAX_onButtonDown) {
 		const MouseEventData *me=dynamic_cast<const MouseEventData*>(data);
 
@@ -1051,6 +1053,7 @@ int anXWindow::Event(const EventData *data,const char *mes)
 		return ButtonDown(me->button, me->x, me->y, me->modifiers, me->count, me->device);
 
 	}
+
 	if (data->type==LAX_onButtonUp) {
 		const MouseEventData *me=dynamic_cast<const MouseEventData*>(data);
 
@@ -1063,11 +1066,19 @@ int anXWindow::Event(const EventData *data,const char *mes)
 		return ButtonUp(me->button, me->x, me->y, me->modifiers, me->device);
 
 	}
+
 	if (data->type==LAX_onMouseMove) {
 		const MouseEventData *me=dynamic_cast<const MouseEventData*>(data);
 		return MouseMove(me->x, me->y, me->modifiers, me->device);
 	}
+
 	if (data->type==LAX_onDeviceChange) return DeviceChange(dynamic_cast<const DeviceEventData*>(data));
+
+	if (data->type == LAX_onMouseIn) {
+		 //set mouse cursor
+		const EnterExitData *ee=dynamic_cast<const EnterExitData*>(data);
+		const_cast<LaxMouse*>(dynamic_cast<const LaxMouse*>(ee->device))->setMouseShape(this, win_pointer_shape);
+	}
 
 	return 1;
 }
