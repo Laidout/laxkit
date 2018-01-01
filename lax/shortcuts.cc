@@ -400,7 +400,7 @@ int ShortcutHandler::FindActionNumber(unsigned int key, unsigned int state, int 
 {
 	int i=FindShortcutIndex(key,state,mode);
 	if (i<0) return -1;
-	if (mode>0 && shortcuts->e[i]->mode!=mode) return -1;
+	if (shortcuts->e[i]->mode > 0 && shortcuts->e[i]->mode != mode) return -1;
 	return shortcuts->e[i]->action;
 }
 
