@@ -190,29 +190,29 @@ TreeSelector::TreeSelector(anXWindow *parnt,const char *nname,const char *ntitle
 
 void TreeSelector::base_init()
 {
-	mousedragmode=0;
-	gap=3;
-	pad=3;
-	offsetx=offsety=0; //offset from inrect.x,y,  so (screen item).y = item.y + offsety
-	textheight=0;
-	lineheight=0;
-	pagesize=0;
-	ccuritem=curitem=0;
-	curmenuitem=NULL;
-	timerid=0;
-	senddetail=-1;
-	leading=0;
-	menustyle=0;
-	needtobuildcache=1;
-	iwidth=10;
-	firsttime=1;
+	mousedragmode = 0;
+	gap           = 3;
+	pad           = 3;
+	offsetx = offsety = 0; //offset from inrect.x,y,  so (screen item).y = item.y + offsety
+	textheight   = 0;
+	lineheight   = 0;
+	pagesize     = 0;
+	ccuritem = curitem = 0;
+	curmenuitem  = NULL;
+	timerid      = 0;
+	senddetail   = -1;
+	leading      = 0;
+	menustyle    = 0;
+	needtobuildcache = 1;
+	iwidth       = 10;
+	firsttime    = 1;
 
-	searchfilter=NULL;
-	showsearch=0;
+	searchfilter = NULL;
+	showsearch   = 0;
 
-	tree_column=0; //the column in which to position the tree lines
-	sort_detail=-1;
-	sort_descending=0;
+	tree_column  = 0; //the column in which to position the tree lines
+	sort_detail  = -1;
+	sort_descending = 0;
 
 	//installColors(app->color_buttons);
 	//installColors(app->color_edits);
@@ -228,6 +228,21 @@ TreeSelector::~TreeSelector()
 	if (searchfilter) delete[] searchfilter;
 
 	DBG visibleitems.Flush();
+}
+
+/*! newvalue==0 is off, anything else is on.
+ * Returns the state afterwards.
+ */
+bool TreeSelector::SetStyle(unsigned int style, int newvalue)
+{
+	if (newvalue) menustyle |= style;
+	else menustyle &= ~style;
+	return menustyle & style;
+}
+
+bool TreeSelector::HasStyle(unsigned int style)
+{
+	return menustyle & style;
 }
 
 int TreeSelector::InstallMenu(MenuInfo *nmenu)
@@ -967,6 +982,14 @@ void TreeSelector::Refresh()
 		}
 	}
 
+	if (showsearch) {
+		double w = dp->textextent(searchfilter,-1, NULL,NULL);
+		dp->NewFG(coloravg(win_colors->bg,win_colors->fg, .35));
+		dp->drawRoundedRect(0,0, textheight + w,textheight, textheight/2,0, textheight/2,0, 1, 15);
+		dp->NewFG(win_colors->fg);
+		dp->textout(textheight,0, searchfilter,-1, LAX_LEFT|LAX_TOP);
+	}
+
 	SwapBuffers();
 	needtodraw=0;
 }
@@ -1588,7 +1611,7 @@ int TreeSelector::CharInput(unsigned int ch,const char *buffer,int len,unsigned 
 		if (menustyle&TREESEL_SEND_ON_UP) send(d->id);
 		return 0;
 
-	} else if (ch=='a') {
+	} else if (ch=='a' && !HasStyle(TREESEL_LIVE_SEARCH)) {
 		if (selection.n) {
 			 //deselect
 			for (int c=0; c<selection.n; c++) {
@@ -1607,6 +1630,9 @@ int TreeSelector::CharInput(unsigned int ch,const char *buffer,int len,unsigned 
 		}
 		needtodraw=1;
 		return 0;
+
+	} else if ((state&LAX_STATE_MASK)==0 && ch < LAX_Max_Normal_Char && HasStyle(TREESEL_LIVE_SEARCH)) {
+		 // update searchterm
 	}
 
 	return anXWindow::CharInput(ch,buffer,len,state,d);

@@ -41,6 +41,7 @@ namespace Laxkit {
 #define TREESEL_RIGHT                (1LL<<2)
 #define TREESEL_SCROLLERS            (1LL<<3)
 #define TREESEL_USE_TITLE            (1LL<<4)
+#define TREESEL_LIVE_SEARCH          (1LL<<6)
 
 #define TREESEL_SORT_NUMBERS         (1LL<<7)
 #define TREESEL_SORT_LETTERS         (1LL<<8)
@@ -73,10 +74,10 @@ namespace Laxkit {
 #define TREESEL_SEND_STRINGS         (1LL<<29)
 #define TREESEL_SEND_DETAIL          (1LL<<30)
 
-#define TREESEL_GRAPHIC_ON_RIGHT     (1LL<<31)
+#define TREESEL_GRAPHIC_ON_RIGHT     (1LL<<31) //else on left
 #define TREESEL_NO_LINES             (1LL<<32)
 
-#define TREESEL_SUB_FOLDER           (1LL<<33)
+#define TREESEL_SUB_FOLDER           (1LL<<33) //arrow graphic is a little folder
 
 //... remember that the buck stops with (1<<63)
 
@@ -207,6 +208,9 @@ class TreeSelector : public ScrolledWindow
 	virtual void       dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *savecontext);
     virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *savecontext); 
     virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *loadcontext);
+
+    virtual bool SetStyle(unsigned int style, int newvalue);
+	virtual bool HasStyle(unsigned int style);
 
 
 	virtual int movescreen(int dx,int dy);
