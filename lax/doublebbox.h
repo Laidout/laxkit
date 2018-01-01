@@ -50,11 +50,12 @@ class DoubleBBox {
 	virtual int intersect(DoubleBBox *bbox, int settointersection=0);
 	virtual int intersect(const double *m,DoubleBBox *bbox, int touching, int settointersection);
 	virtual int boxcontains(double x, double y);
-	virtual flatpoint BBoxPoint(double x,double y);
-	double boxwidth()  {  return maxx>minx ? maxx-minx : 0; }
-	double boxheight() {  return maxy>miny ? maxy-miny : 0; }
+	virtual flatpoint BBoxPoint(double x,double y) const;
+	double boxwidth()  const {  return maxx>minx ? maxx-minx : 0; }
+	double boxheight() const {  return maxy>miny ? maxy-miny : 0; }
 	double MaxDimension() { return boxwidth() > boxheight() ? boxwidth() : boxheight(); }
 	double MinDimension() { return boxwidth() < boxheight() ? boxwidth() : boxheight(); }
+	virtual double *FitToBox(const DoubleBBox &container, double *m_ret);
 };
 	
 } // namespace Laxkit

@@ -222,8 +222,35 @@ int DoubleBBox::boxcontains(double x, double y)
  * That is, point (0,0) is returned as (minx,miny)
  * and (1,1) is returned as (maxx, maxy).
  */
-flatpoint DoubleBBox::BBoxPoint(double x,double y)
+flatpoint DoubleBBox::BBoxPoint(double x,double y) const
 { return flatpoint(minx+x*(maxx-minx),miny+y*(maxy-miny)); }
+
+/*! Find an affine transform that makes *this fit inside container, scaling up or down as
+ * necessary to fit. If m_ret!=NULL, then put the matrix in m_ret. Else return a new double[6].
+ */
+double *DoubleBBox::FitToBox(const DoubleBBox &container, double *m_ret)
+{
+	if (!m_ret) m_ret = new double[6];
+	transform_identity(m_ret);
+
+	double scale = 1;
+	double scalex = container.boxwidth() / boxwidth();
+	double scaley = container.boxheight() / boxheight();
+
+	//if (scalex > 1 && scaley >= 1) scale = (scalex < scaley ? scalex : scaley);
+	//else if (scalex <= 1 && scaley <= 1) scale = (scalex < scaley ? scalex : scaley);
+	scale = (scalex < scaley ? scalex : scaley);
+
+	m_ret[0] = m_ret[3] = scale;
+
+	 //make centers coincide
+	flatpoint o  = transform_point(m_ret, (minx+maxx)/2, (miny+maxy)/2);
+	flatpoint oc = container.BBoxPoint(.5,.5);
+	m_ret[4] = oc.x - o.x;
+	m_ret[5] = oc.y - o.y;
+
+	return m_ret;
+}
 
 
 } // namespace Laxkit 
