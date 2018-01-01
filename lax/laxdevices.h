@@ -205,7 +205,7 @@ class CoreXlibKeyboard : public LaxKeyboard
 };
 
 
-//---------------------------------- DeviceManagerXInput --------------------------
+//---------------------------------- DeviceManagerXInput2 --------------------------
 
 #ifdef LAX_USES_XINPUT2
 
