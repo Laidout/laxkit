@@ -417,7 +417,7 @@ LaxFiles::Attribute *Path::dump_out_atts(LaxFiles::Attribute *att,int what, LaxF
 	if (path==path->lastPoint(0)) att->push("closed");
 
 	Coordinate *p=path, *p2=NULL;
-	char scratch[50];
+	char scratch[100];
 	char *pstr=NULL;
 	int n;
 

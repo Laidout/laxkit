@@ -509,7 +509,7 @@ Attribute *SomeData::dump_out_atts(Attribute *att,int what,LaxFiles::DumpContext
 	}
 
 	const double *matrix=m();
-	char s[100];
+	char s[200];
 	sprintf(s,"%.10g %.10g %.10g %.10g %.10g %.10g",
 			matrix[0],matrix[1],matrix[2],matrix[3],matrix[4],matrix[5]);
 	att->push("matrix", s);
