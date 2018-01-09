@@ -33,6 +33,7 @@
 #include <lax/transformmath.h>
 #include <lax/anxapp.h>
 #include <lax/laxutils.h>
+#include <lax/fileutils.h>
 
 
 #include <iostream>
@@ -411,19 +412,26 @@ int laxcairo_generate_preview(const char *original,
 						   const char *format, 
 						   int width, int height, int fit)
 {
-	DBG cerr <<" *** need to use loaders to load original for preview generation in laxcairo_generate_preview()!!"<<endl;
 
-	cairo_surface_t *image=NULL,*pimage;
+	LaxImage *img = load_image_with_loaders(original, NULL,0,0,NULL, 0,LAX_IMAGE_CAIRO,NULL, false);
+	LaxCairoImage *cimg = dynamic_cast<LaxCairoImage*>(img);
+
+	cairo_surface_t *image=NULL, *pimage;
+	if (cimg) image = cimg->Image();
 
 	if (!image) {
-		image=cairo_image_surface_create_from_png(original);
+		if (img) { img->dec_count(); img = NULL; }
+		image = cairo_image_surface_create_from_png(original);
 		if (cairo_surface_status(image)!=CAIRO_STATUS_SUCCESS) {
 			cairo_surface_destroy(image);
 			image=NULL;
 		}
 	}
 
-	if (!image) return 1;
+	if (!image) {
+		if (img) img->dec_count();
+		return 1;
+	}
 
 	int owidth= cairo_image_surface_get_width(image),
 	    oheight=cairo_image_surface_get_height(image);
@@ -443,16 +451,22 @@ int laxcairo_generate_preview(const char *original,
 
 	if (width>0 && height>0) {
 		//pimage=cairo_create_cropped_scaled_image(0,0, owidth,oheight, width,height);
-		pimage=cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width,height);
-		cairo_t *cr=cairo_create(pimage);
-		cairo_set_source_surface(cr,image, 0,0);
+		pimage = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width,height);
+		cairo_t *cr = cairo_create(pimage);
+		cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
 		cairo_scale(cr,(double)width/owidth,(double)height/oheight);
+		cairo_set_source_surface(cr,image, 0,0);
 		cairo_paint(cr);
 		cairo_destroy(cr);
 	}
-	cairo_surface_destroy(image);
+
+	if (!img) cairo_surface_destroy(image);
 	image=NULL;
-	if (width<=0 || height<=0) return 2;
+
+	if (width<=0 || height<=0) {
+		if (img) img->dec_count();
+		return 2;
+	}
 
 	cairo_status_t status=cairo_surface_write_to_png(pimage,preview);
 	if (status!=CAIRO_STATUS_SUCCESS) {
@@ -460,6 +474,7 @@ int laxcairo_generate_preview(const char *original,
 	}
 	cairo_surface_destroy(pimage);
 
+	if (img) img->dec_count();
 	return 0;
 }
 
@@ -530,6 +545,7 @@ void laxcairo_image_out_matrix(LaxImage *image, aDrawable *win, double *m)
 LaxImage *load_cairo_image(const char *filename)
 {
 	if (!filename) return NULL;
+	if (file_exists(dir,1,NULL) != S_IFREG) return NULL; //some systems cairo does not fail politely on file not found
 
 	cairo_surface_t *image;
 	image=cairo_image_surface_create_from_png(filename);
