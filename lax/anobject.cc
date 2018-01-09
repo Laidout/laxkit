@@ -141,7 +141,7 @@ int anObject::dec_count()
 	_count--;
 	DBG if (!suppress_debug) {
 	DBG   cerr <<"refcounted dec count, now: "<<_count<<(_count==0?", deleting":"")<<endl;
-	DBG   cerr<<whattype()<<" "<<object_id<<" dec counted: "<<_count<<"  "<<(object_idstr?object_idstr:"(?)")<<endl;
+	DBG   cerr<<(whattype() ? whattype() : "(no whattype)")<<" "<<object_id<<" dec counted: "<<_count<<"  "<<(object_idstr?object_idstr:"(?)")<<endl;
 	DBG }
 	DBG if (object_id==CHECK) {
 	DBG 	cerr <<" Agh!"<<endl;
