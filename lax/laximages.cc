@@ -558,27 +558,28 @@ int ImageLoader::SetLoaderPriority(int where)
 }
 
 
-
 LaxImage *load_image_with_loaders(const char *file,
 								  const char *previewfile, int maxw,int maxh, LaxImage **preview_ret,
-								 int required_state,
-								 int target_format,
+								 int required_state, //!< Or'd combo of LaxImageState
+								 int target_format, //!< LaxImageTypes, for starters. 0 means use default. Non zero is return NULL for can't.
 								 int *actual_format,
-								 bool ping_only)
+								 bool ping_only) //!< If possible, do not actually load the pixel data, just things like width and height
 {
-	DBG cerr <<"load_image_with_loaders()..."<<endl;
+	if (!file) return NULL;
+
+	DBG cerr <<"load_image_with_loaders()..."<<file<<endl;
 
 	if (target_format<0) target_format = default_image_type();
 
 	ImageLoader *loader = ImageLoader::GetLoaderByIndex(0);
 	if (!loader) {
-		DBG cerr <<"load_image_with_loaders() done with null"<<endl;
+		DBG cerr <<"load_image_with_loaders() no loaders!"<<endl;
 		return NULL;
 	}
 
 	LaxImage *image=NULL;
 	while (loader) {
-		image=loader->load_image(file,
+		image = loader->load_image(file,
 								 previewfile,maxw,maxh,preview_ret,
 								 required_state,
 								 target_format,
@@ -589,10 +590,10 @@ LaxImage *load_image_with_loaders(const char *file,
 			DBG cerr <<"load_image_with_loaders() done"<<endl;
 			return image;
 		}
-		loader=loader->next;
+		loader = loader->next;
 	}
 
-	DBG cerr <<"load_image_with_loaders() done with null"<<endl;
+	DBG cerr <<"load_image_with_loaders() couldn't load "<<file<<endl;
 	return NULL;
 }
 
