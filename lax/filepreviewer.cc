@@ -25,8 +25,10 @@
 #include <lax/strmanip.h>
 #include <lax/laxutils.h>
 #include <lax/fileutils.h>
-
+#include <lax/language.h>
 #include <lax/doublebbox.h>
+
+//template implementation:
 #include <lax/lists.cc>
 
 #include <sys/stat.h>
@@ -203,6 +205,13 @@ int FilePreviewer::Preview(const char *file)
 		image->dec_count();
 		image=NULL;
 	}
+
+	if (file_exists(file,1,NULL) == S_IFDIR) {
+		SetText(_("(directory)"));
+		state=1;
+		return 0; 
+	}
+
 	image=load_image(file);
 	if (image) { state=3; return 0; }
 	
