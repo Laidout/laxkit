@@ -545,7 +545,7 @@ void laxcairo_image_out_matrix(LaxImage *image, aDrawable *win, double *m)
 LaxImage *load_cairo_image(const char *filename)
 {
 	if (!filename) return NULL;
-	if (file_exists(dir,1,NULL) != S_IFREG) return NULL; //some systems cairo does not fail politely on file not found
+	if (LaxFiles::file_exists(filename,1,NULL) != S_IFREG) return NULL; //some systems cairo does not fail politely on file not found
 
 	cairo_surface_t *image;
 	image=cairo_image_surface_create_from_png(filename);
