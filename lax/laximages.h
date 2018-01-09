@@ -47,7 +47,7 @@ enum LaxImageTypes {
 	LAX_IMAGE_FIRST_USER_TYPE=1000
 };
 
-enum LaxImageStat {
+enum LaxImageState {
 	LAX_IMAGE_METRICS       = (1<<0),
 	LAX_IMAGE_PREVIEW       = (1<<1),
 	LAX_IMAGE_WHOLE         = (1<<2),
