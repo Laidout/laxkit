@@ -594,80 +594,6 @@ unsigned long rgbcolorf(double r,double g,double b)
 
 //----------------------------- Various drawing utilities -------------------------
 
-/*! Fill region x,y,w,h with checkerboard pattern square number of pixels per smallest square.
- */
-void fill_faux_transparent(aDrawable *win, ScreenColor &color, int x, int y, int w, int h, int square)
-{
-    unsigned int bg1=coloravg(rgbcolorf(.3,.3,.3),color.Pixel(), color.alpha/65535.);
-    unsigned int bg2=coloravg(rgbcolorf(.6,.6,.6),color.Pixel(), color.alpha/65535.);
-    int ww=square,hh;
-    int a=0;
-
-    for (int xx=x; xx<x+w; xx+=square) {
-        a=(xx/square)%2;
-        hh=square;
-        if (xx+ww>x+w) ww=x+w-xx;
-        for (int yy=y; yy<y+h; yy+=square) {
-            if (yy+hh>y+h) hh=y+h-yy;
-            foreground_color(a ? bg1 : bg2);
-            fill_rectangle(win, xx,yy,ww,hh);
-            a=!a;
-        }
-        ww=square;
-    }
-}
-
-
-//! Draw a bevel with bevel thickness within x,y,w,h. Draws state== LAX_OFF=not pressed, LAX_ON=pressed.
-/*! Specifically, this bevels inside the bounds x,y,w,h [x,x+w) and [y,y+h).
- *
- * highlight and shadow are xlib colors.
- */
-void draw_bevel(aDrawable *win,int bevel,unsigned long highlight,unsigned long shadow,int state,double x,double y,double w,double h)
-{
-	if (!win || !bevel || w<=0 || h<=0) return;
-	flatpoint p[4];
-	//DBG cerr <<"  "<<win->WindowTitle()<<": state:"<<state<<"  oldstate:"<<oldstate<<endl;
-	//DBG cerr<<"bevel: xywh "<<x<<','<<y<<' '<<w<<'x'<<h<<endl;
-
-	dp->MakeCurrent(win);
-	
-	 // draw right bevel, shadow only if state==1==off
-	if (!(state&LAX_ON)) dp->NewFG(shadow);
-	else dp->NewFG(highlight);
-	p[0].x=(x+w); p[0].y=y;
-	p[1].x=(x+w); p[1].y=(y+h);
-	p[2].x=(x+w)-bevel; p[2].y=(y+h)-bevel;
-	p[3].x=(x+w)-bevel; p[3].y=y+bevel;
-	dp->drawlines(p,4, 1,1);
-	
-	 // draw bottom bevel, shadow only if state==1==off 
-	if (!(state&LAX_ON)) dp->NewFG(shadow);
-	else dp->NewFG(highlight);
-	p[0].x=x; p[0].y=(y+h);
-	p[1].x=x+bevel; p[1].y=(y+h)-bevel;
-	p[2].x=(x+w)-bevel; p[2].y=(y+h)-bevel;
-	p[3].x=(x+w); p[3].y=(y+h);
-	dp->drawlines(p,4, 1,1);
-	
-	 // draw top bevel, highlight if state != (1==off)
-	if (state&LAX_ON) dp->NewFG(shadow);
-	else dp->NewFG(highlight);
-	p[0].x=x; p[0].y=y;
-	p[1].x=(x+w); p[1].y=y;
-	p[2].x=(x+w)-bevel; p[2].y=y+bevel;
-	p[3].x=x+bevel; p[3].y=y+bevel;
-	dp->drawlines(p,4, 1,1);
-	
-	 // draw left bevel, highlight if state != (1==off) 
- 	if (state&LAX_ON) dp->NewFG(shadow);
-	else dp->NewFG(highlight);
-	p[0].x=x; p[0].y=y;
-	p[1].x=x+bevel; p[1].y=y+bevel;
-	p[2].x=x+bevel; p[2].y=(y+h)-bevel;
-	p[3].x=x; p[3].y=(y+h);
-	dp->drawlines(p,4, 1,1);
-}
 
 //! Get coordinates for various graphical things. Coordinates are in a square bound by x=[0..scale], y=[0..scale].
 /*! This returns points describing one or more closed paths for things like arrows, double arrows, squares, etc.
@@ -1281,8 +1207,34 @@ int draw_thing(aDrawable *win,double x, double y, double rx, double ry, DrawThin
 	return 0;
 }
 
+/*! Fill region x,y,w,h with checkerboard pattern square number of pixels per smallest square.
+ */
+void fill_faux_transparent(aDrawable *win, ScreenColor &color, int x, int y, int w, int h, int square)
+{
+	cerr << " *** fill_faux_transparent() deprecated! Fix your code or it will break soon!!"<<endl;
+    unsigned int bg1=coloravg(rgbcolorf(.3,.3,.3),color.Pixel(), color.alpha/65535.);
+    unsigned int bg2=coloravg(rgbcolorf(.6,.6,.6),color.Pixel(), color.alpha/65535.);
+    int ww=square,hh;
+    int a=0;
+
+    for (int xx=x; xx<x+w; xx+=square) {
+        a=(xx/square)%2;
+        hh=square;
+        if (xx+ww>x+w) ww=x+w-xx;
+        for (int yy=y; yy<y+h; yy+=square) {
+            if (yy+hh>y+h) hh=y+h-yy;
+            foreground_color(a ? bg1 : bg2);
+            fill_rectangle(win, xx,yy,ww,hh);
+            a=!a;
+        }
+        ww=square;
+    }
+}
+
 void fill_with_transparency(aDrawable *win, ScreenColor &color, double square, double x,double y,double w,double h)
 {
+	cerr << " *** fill_with_transparency() deprecated! Fix your code or it will break soon!!"<<endl;
+
     unsigned int bg1=coloravg(rgbcolorf(.3,.3,.3),color.Pixel(), color.alpha/65535.);
     unsigned int bg2=coloravg(rgbcolorf(.6,.6,.6),color.Pixel(), color.alpha/65535.);
     int ww=square,hh;

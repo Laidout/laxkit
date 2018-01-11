@@ -61,7 +61,6 @@ void draw_lines(aDrawable *win, flatpoint *p, int n, int isclosed);
 void fill_polygon(aDrawable *win, flatpoint *p, int n);
 void fill_faux_transparent(aDrawable *win, ScreenColor &color, int x, int y, int w, int h, int square);
 
-void draw_bevel(aDrawable *win,int bevel,unsigned long highlight,unsigned long shadow,int state,double x,double y,double w,double h);
 int draw_thing(aDrawable *win,double x, double y, double rx, double ry, int fill, DrawThingTypes thing);
 int draw_thing(aDrawable *win,double x, double y, double rx, double ry, DrawThingTypes thing,unsigned long fg,unsigned long bg,int lwidth=1);
 flatpoint *draw_thing_coordinates(DrawThingTypes thing, flatpoint *buffer, int buffer_size, int *n_ret,double scale=1,DoubleBBox *bounds=NULL);
