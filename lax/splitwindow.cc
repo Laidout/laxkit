@@ -300,7 +300,7 @@ void SplitWindow::Refresh()
 		foreground_color(win_colors->bg);
 		fill_rectangle(this, 0,0,win_w,win_h);
 		if (win_style&SPLIT_BEVEL) {
-			draw_bevel(this,space/2,highlight,shadow,LAX_OFF,0,0,win_w,win_h);
+			dp->drawBevel(space/2,highlight,shadow,LAX_OFF,0,0,win_w,win_h);
 		}
 		int c=windows.findindex(curbox);
 		if (curbox->win())
@@ -339,7 +339,7 @@ void SplitWindow::Refresh()
 					hl = coloravg(win_colors->bg,rgbcolor(255,255,255), .8);
 					sd = coloravg(win_colors->bg,rgbcolor(255,255,255), .3);
 				}
-				draw_bevel(this,space/2, hl,sd, LAX_OFF,
+				dp->drawBevel(space/2, hl,sd, LAX_OFF,
 						windows.e[c]->x1,windows.e[c]->y1,
 						windows.e[c]->x2-windows.e[c]->x1,windows.e[c]->y2-windows.e[c]->y1);
 			}

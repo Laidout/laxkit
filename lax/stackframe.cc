@@ -158,7 +158,7 @@ void StackFrame::Refresh()
 		b=list.e[c];
 
 		if (win_style&STACKF_BEVEL) {
-			draw_bevel(this,gap/2, highlight,shadow, LAX_OFF, b->x()-gap/2,b->y()-gap/2, b->w()+gap,b->h()+gap);
+			dp->drawBevel(gap/2, highlight,shadow, LAX_OFF, b->x()-gap/2,b->y()-gap/2, b->w()+gap,b->h()+gap);
 
 		} else {
 			 //draw little dots on draggable bars if gap>0
