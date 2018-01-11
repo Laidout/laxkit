@@ -198,8 +198,10 @@ void IconSelector::drawbox(int which)
 	IconBox *b=dynamic_cast<IconBox *>(wholelist.e[which]);
 	if (!b) return;
 	
-	foreground_color(which==hoverbox ? win_colors->moverbg : win_colors->bg);
-	fill_rectangle(this, b->x() - b->pad,  b->y() - b->pad,    b->w() + 2*b->pad,  b->h() + 2*b->pad);
+	Displayer *dp = GetDisplayer();
+
+	dp->NewFG(which==hoverbox ? win_colors->moverbg : win_colors->bg);
+	dp->drawrectangle(b->x() - b->pad,  b->y() - b->pad,    b->w() + 2*b->pad,  b->h() + 2*b->pad, 1);
 
 	 // Set  tx,ty  px,py
 	int w,h,tx,ty,ix,iy,dx,dy;
@@ -213,17 +215,17 @@ void IconSelector::drawbox(int which)
 	if (i && ix!=LAX_WAY_OFF) {
 		ix+=dx;
 		iy+=dy;
-		image_out(i,this,ix,iy);
+		dp->imageout(i,ix,iy);
 		i->doneForNow();
 	}
 	if (l && tx>LAX_WAY_OFF) {
 		tx+=dx;
 		ty+=dy;
-		foreground_color(win_colors->fg);
-		textout(this, l,-1,tx,ty,LAX_LEFT|LAX_TOP);
+		dp->NewFG(win_colors->fg);
+		dp->textout(tx,ty, l,-1, LAX_LEFT|LAX_TOP);
 	}
 	
-	draw_bevel(this, b->pad,highlight,shadow,b->state, b->x()-b->pad,b->y()-b->pad, b->w()+2*b->pad,b->h()+2*b->pad);
+	dp->drawBevel(b->pad,highlight,shadow,b->state, b->x()-b->pad,b->y()-b->pad, b->w()+2*b->pad,b->h()+2*b->pad);
 }
 
 
