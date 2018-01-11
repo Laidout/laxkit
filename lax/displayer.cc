@@ -724,6 +724,58 @@ void Displayer::drawCheckerboard(double x,double y,double w,double h, double squ
 	NewFG(fg);
 }
 
+void Displayer::drawBevel(double bevel, ScreenColor *highlight, ScreenColor *shadow, int state,double x,double y,double w,double h)
+{
+	drawBevel(bevel, highlight->Pixel(), shadow->Pixel(), state, x,y,w,h);
+}
+
+//! Draw a bevel with bevel thickness within x,y,w,h. Draws state== LAX_OFF=not pressed, LAX_ON=pressed.
+/*! Specifically, this bevels inside the bounds x,y,w,h [x,x+w) and [y,y+h).
+ *
+ * highlight and shadow are xlib colors.
+ */
+void Displayer::drawBevel(double bevel,unsigned long highlight,unsigned long shadow,int state,double x,double y,double w,double h)
+{
+	if (!bevel || w<=0 || h<=0) return;
+
+	flatpoint p[4];
+	
+	 // draw right bevel, shadow only if state==1==off
+	if (!(state&LAX_ON)) NewFG(shadow);
+	else NewFG(highlight);
+	p[0].x=(x+w); p[0].y=y;
+	p[1].x=(x+w); p[1].y=(y+h);
+	p[2].x=(x+w)-bevel; p[2].y=(y+h)-bevel;
+	p[3].x=(x+w)-bevel; p[3].y=y+bevel;
+	drawlines(p,4, 1,1);
+	
+	 // draw bottom bevel, shadow only if state==1==off 
+	if (!(state&LAX_ON)) NewFG(shadow);
+	else NewFG(highlight);
+	p[0].x=x; p[0].y=(y+h);
+	p[1].x=x+bevel; p[1].y=(y+h)-bevel;
+	p[2].x=(x+w)-bevel; p[2].y=(y+h)-bevel;
+	p[3].x=(x+w); p[3].y=(y+h);
+	drawlines(p,4, 1,1);
+	
+	 // draw top bevel, highlight if state != (1==off)
+	if (state&LAX_ON) NewFG(shadow);
+	else NewFG(highlight);
+	p[0].x=x; p[0].y=y;
+	p[1].x=(x+w); p[1].y=y;
+	p[2].x=(x+w)-bevel; p[2].y=y+bevel;
+	p[3].x=x+bevel; p[3].y=y+bevel;
+	drawlines(p,4, 1,1);
+	
+	 // draw left bevel, highlight if state != (1==off) 
+ 	if (state&LAX_ON) NewFG(shadow);
+	else NewFG(highlight);
+	p[0].x=x; p[0].y=y;
+	p[1].x=x+bevel; p[1].y=y+bevel;
+	p[2].x=x+bevel; p[2].y=(y+h)-bevel;
+	p[3].x=x; p[3].y=(y+h);
+	drawlines(p,4, 1,1);
+}
 
 /*! vround with vispercent==true means that vround==1.0 rounds to midpoint of vertical segment. vround==0 means no round.
  * Similarly for hround and hispercent.
