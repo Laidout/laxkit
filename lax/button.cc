@@ -310,7 +310,7 @@ void Button::draw()
 	if ((win_style&BUTTON_TOGGLE)
 			|| !(win_style&IBUT_FLAT)
 			|| ((win_style&IBUT_FLAT) && state!=LAX_OFF))
-		draw_bevel(this, bevel,highlight,shadow,state, 0,0, win_w,win_h);
+		dp->drawBevel(bevel,highlight,shadow,state, 0,0, win_w,win_h);
 }
 
 
