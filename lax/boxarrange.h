@@ -109,21 +109,21 @@ namespace Laxkit {
 
 
 enum SquishyBoxMetrics {
-	BOX_H_pos =  0,
-	BOX_H_len =  1,
-	BOX_H_pref = 2,
-	BOX_H_shrink=3,
-	BOX_H_grow = 4,
-	BOX_H_align =5,
-	BOX_H_gap =  6,
+	BOX_H_pos    = 0,
+	BOX_H_len    = 1,
+	BOX_H_pref   = 2,
+	BOX_H_shrink = 3,
+	BOX_H_grow   = 4,
+	BOX_H_align  = 5,
+	BOX_H_gap    = 6,
 
-	BOX_V_pos =  7,
-	BOX_V_len =  8,
-	BOX_V_pref = 9,
-	BOX_V_shrink=10,
-	BOX_V_grow = 11,
-	BOX_V_align =12,
-	BOX_V_gap =  13
+	BOX_V_pos    = 7,
+	BOX_V_len    = 8,
+	BOX_V_pref   = 9,
+	BOX_V_shrink = 10,
+	BOX_V_grow   = 11,
+	BOX_V_align  = 12,
+	BOX_V_gap    = 13
 };
 
 	
@@ -152,37 +152,39 @@ class SquishyBox
 	virtual void sync();
 	
 	 //sizing functions
-	virtual int x()      { return m[0]; }
-	virtual int w()      { return m[1]; }
-	virtual int pw()     { return m[2]; }
-	virtual int ws()     { return m[3]; }
-	virtual int wg()     { return m[4]; }
-	virtual int halign() { return m[5]; }
-	virtual int hgap()   { return m[6]; }
+	virtual void SetPreferred(int npw,int nws,int nwg,int nhalign,int nhgap, 
+							  int nph,int nhs,int nhg,int nvalign,int nvgap);
+	virtual int x()      { return m[BOX_H_pos   ]; }
+	virtual int w()      { return m[BOX_H_len   ]; }
+	virtual int pw()     { return m[BOX_H_pref  ]; }
+	virtual int ws()     { return m[BOX_H_shrink]; }
+	virtual int wg()     { return m[BOX_H_grow  ]; }
+	virtual int halign() { return m[BOX_H_align ]; }
+	virtual int hgap()   { return m[BOX_H_gap   ]; }
 
-	virtual int y()      { return m[7]; }
-	virtual int h()      { return m[8]; }
-	virtual int ph()     { return m[9]; }
-	virtual int hs()     { return m[10]; }
-	virtual int hg()     { return m[11]; }
-	virtual int valign() { return m[12]; }
-	virtual int vgap()   { return m[13]; }
+	virtual int y()      { return m[BOX_V_pos   ]; }
+	virtual int h()      { return m[BOX_V_len   ]; }
+	virtual int ph()     { return m[BOX_V_pref  ]; }
+	virtual int hs()     { return m[BOX_V_shrink]; }
+	virtual int hg()     { return m[BOX_V_grow  ]; }
+	virtual int valign() { return m[BOX_V_align ]; }
+	virtual int vgap()   { return m[BOX_V_gap   ]; }
 
-	virtual int x(int val)      { return m[0]=val; } 
-	virtual int w(int val)      { return m[1]=val; }
-	virtual int pw(int val)     { return m[2]=val; }
-	virtual int ws(int val)     { return m[3]=val; }
-	virtual int wg(int val)     { return m[4]=val; }
-	virtual int halign(int val) { return m[5]=val; }
-	virtual int hgap(int val)   { return m[6]=val; }
+	virtual int x(int val)      { return m[BOX_H_pos   ]=val; } 
+	virtual int w(int val)      { return m[BOX_H_len   ]=val; }
+	virtual int pw(int val)     { return m[BOX_H_pref  ]=val; }
+	virtual int ws(int val)     { return m[BOX_H_shrink]=val; }
+	virtual int wg(int val)     { return m[BOX_H_grow  ]=val; }
+	virtual int halign(int val) { return m[BOX_H_align ]=val; }
+	virtual int hgap(int val)   { return m[BOX_H_gap   ]=val; }
 
-	virtual int y(int val)      { return m[7]=val; }
-	virtual int h(int val)      { return m[8]=val; }
-	virtual int ph(int val)     { return m[9]=val; }
-	virtual int hs(int val)     { return m[10]=val; }
-	virtual int hg(int val)     { return m[11]=val; }
-	virtual int valign(int val) { return m[12]=val; }
-	virtual int vgap(int val)   { return m[13]=val; }
+	virtual int y(int val)      { return m[BOX_V_pos   ]=val; }
+	virtual int h(int val)      { return m[BOX_V_len   ]=val; }
+	virtual int ph(int val)     { return m[BOX_V_pref  ]=val; }
+	virtual int hs(int val)     { return m[BOX_V_shrink]=val; }
+	virtual int hg(int val)     { return m[BOX_V_grow  ]=val; }
+	virtual int valign(int val) { return m[BOX_V_align ]=val; }
+	virtual int vgap(int val)   { return m[BOX_V_gap   ]=val; }
 
 	virtual int fpenalty() { return fpen; } //0=nothing, <0 force break, >0 never break
 	virtual int fpenalty(int val) { return fpen=val; }

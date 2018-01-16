@@ -261,6 +261,22 @@ SquishyBox::SquishyBox(unsigned int nflags, //!< See above for BOX_* flags
 	pad=padinset=0;
 }
 
+void SquishyBox::SetPreferred(int npw,int nws,int nwg,int nhalign,int nhgap, 
+							  int nph,int nhs,int nhg,int nvalign,int nvgap)
+{
+	m[BOX_H_pref  ] = npw;
+	m[BOX_H_shrink] = nws;
+	m[BOX_H_grow  ] = nwg;
+	m[BOX_H_align ] = nhalign;
+	m[BOX_H_gap   ] = nhgap;
+
+	m[BOX_V_pref  ] = nph;
+	m[BOX_V_shrink] = nhs;
+	m[BOX_V_grow  ] = nhg;
+	m[BOX_V_align ] = nvalign;
+	m[BOX_V_gap   ] = nvgap;
+}
+
 //! hideBox(0) makes the box visible, otherwise, make it hidden. Returns state after call.
 /*! \todo must sync or tag needs to sync if necessary...
  */
