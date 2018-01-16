@@ -55,6 +55,22 @@ namespace Laxkit {
  * Return maxy-miny if maxy>miny. Else return 0.
  */
 	
+DoubleBBox::DoubleBBox(const DoubleRectangle &rect)
+{
+	minx = rect.x;
+	miny = rect.y;
+	maxx = rect.x + rect.width;
+	maxy = rect.y + rect.height;
+}
+
+void DoubleBBox::setbounds(const DoubleRectangle &rect)
+{
+	minx = rect.x;
+	miny = rect.y;
+	maxx = rect.x + rect.width;
+	maxy = rect.y + rect.height;
+}
+
 
 //! Just copy over the bounds.
 void DoubleBBox::setbounds(DoubleBBox *bbox)
@@ -250,6 +266,24 @@ double *DoubleBBox::FitToBox(const DoubleBBox &container, double *m_ret)
 	m_ret[5] = oc.y - o.y;
 
 	return m_ret;
+}
+
+/*! Add these amounts to the bounds. No validity checking is done.
+ * top goes on miny, and bottom goes to maxy.
+ */
+void DoubleBBox::ShiftBounds(double left, double right, double top, double bottom)
+{
+	minx += left;
+	maxx += right;
+	miny += top;
+	maxy += bottom;
+}
+
+/*! Add this amount to each side. This is for convenience to call ExpandBounds(-amount, amount, -amount, amount).
+ */
+void DoubleBBox::ExpandBounds(double amount)
+{
+	ShiftBounds(amount, amount, amount, amount);
 }
 
 
