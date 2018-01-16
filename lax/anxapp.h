@@ -72,6 +72,7 @@ const char *xlib_extension_event_name(int e_type);
 
 unsigned int composekey(unsigned int k1, unsigned int k2);
 
+
 //----------------------- Styling functions ----------------------------
 //---------------------- WindowColors
 class WindowColors : public anObject
@@ -95,33 +96,6 @@ class WindowColors : public anObject
 
 	WindowColors *duplicate();
 };
-
-////---------------------- WindowFonts
-//class WindowFonts : public anObject
-//{
-// public:
-//	 //fonts for normal use in menus, panels, and messages
-//	LaxFont *normal;
-//	LaxFont *bold;
-//	LaxFont *italic;
-//
-//	 //default font in simple edits
-//	LaxFont *edit;
-//
-//	WindowFonts();
-//	~WindowFonts();
-//};
-//
-//WindowFonts::WindowFonts()
-//{	normal=bold=italic=edit=NULL; }
-//
-//WindowFonts::~WindowFonts()
-//{	
-//	if (normal) normal->dec_count();
-//	if (bold) bold->dec_count();
-//	if (italic) italic->dec_count();
-//	if (edit) edit->dec_count();
-//}
 
 
 //-------------------------- aDrawable ----------------------------------------
