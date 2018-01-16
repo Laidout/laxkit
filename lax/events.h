@@ -52,8 +52,7 @@ class LaxKeyboard;
 
 //----- EventData mask types -------
 //These are used in EventData::type.
-//For LAX_RandomEvent, it is assumed that EventData::send_message is defined.
-//*** best way to do this???
+
  //Used by various control windows to determine when
  //to send a message to its owner
 #define LAX_RandomEvent        0
@@ -79,16 +78,17 @@ class LaxKeyboard;
 #define LAX_onGrayed           (1<<17)
 #define LAX_onMapped           (1<<18)
 #define LAX_onUnmapped         (1<<19)
+#define LAX_onThemeChange      (1<<20)
  //---other events
  //sent by window controls for various purposes.
- //event->subtype will some value that makes sense to the control
-#define LAX_ControlEvent       (1<<20)
-#define LAX_ButtonEvent        (1<<21)
-#define LAX_ShortcutEvent      (1<<22)
-#define LAX_ColorEvent         (1<<23)
-#define LAX_UserEvent          (1<<24)
+ //event->subtype will be some value that makes sense to the control
+#define LAX_ControlEvent       (1<<21)
+#define LAX_ButtonEvent        (1<<22)
+#define LAX_ShortcutEvent      (1<<23)
+#define LAX_ColorEvent         (1<<24)
+#define LAX_UserEvent          (1<<25)
  //for when an event is preempted, a flag to ignore:
-#define LAX_DefunctEvent       (1<<25)
+#define LAX_DefunctEvent       (1<<26)
 
 const char *lax_event_name(int e);
 
