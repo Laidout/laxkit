@@ -52,7 +52,7 @@ cairotest: lax laxinterface cairotest.o
 testevents: lax laxinterface testevents.o
 	$(LD) $@.o  -llaxinterfaces -llaxkit $(LDFLAGS) -o $@
 
-themes: lax laxinterface themes.o
+themeeditor: lax laxinterface themeeditor.o
 	$(LD) $@.o  -llaxinterfaces -llaxkit $(LDFLAGS) -o $@
 
 test: lax laxinterface test.o
