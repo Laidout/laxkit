@@ -35,17 +35,22 @@ class ScreenColor
 	int red, green, blue, alpha;
 	char pixel_is_synced;
 	long pixel;
+	int info;
 
-	ScreenColor() { red=green=blue=0; alpha=65535; pixel_is_synced=0; pixel=0; }
+	ScreenColor() { red=green=blue=0; alpha=65535; pixel_is_synced=0; pixel=0; info=0; }
 	ScreenColor(unsigned int color);
 	ScreenColor(int r, int g, int b, int a)
-	  : red(r), green(g), blue(b), alpha(a), pixel_is_synced(0), pixel(0) {}
+	  : red(r), green(g), blue(b), alpha(a), pixel_is_synced(0), pixel(0), info(0) {}
 	ScreenColor(double r, double g, double b, double a)
-	  : red(r*65535), green(g*65535), blue(b*65535), alpha(a*65535), pixel_is_synced(0), pixel(0) {}
+	  : red(r*65535), green(g*65535), blue(b*65535), alpha(a*65535), pixel_is_synced(0), pixel(0), info(0) {}
 
 	void gray(int g, int a=0xffff);
 	void rgb(int r,int g,int b, int a=0xffff);
 	void cmyk(int c, int m, int y, int k, int a=0xffff);
+
+	void gray8(int g, int a=0xff);
+	void rgb8(int r,int g,int b, int a=0xff);
+	void cmyk8(int c, int m, int y, int k, int a=0xff);
 
 	void grayf(double g, double a=1.0);
 	void rgbf(double r,double g,double b, double a=1.0);

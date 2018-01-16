@@ -31,7 +31,7 @@ namespace Laxkit {
 
 //------------------------------- ScreenColor -------------------------------
 /*! \class ScreenColor
- * Fields are range [0..65535].
+ * Fields are range [0..65535] and internally stored as integers.
  */
 
 
@@ -43,6 +43,7 @@ ScreenColor::ScreenColor(unsigned int color)
 	green=g*256;
 	blue=b*256;
 	alpha=65535;
+	info = 0; //user definable extra tag
 }
 
 int ScreenColor::equals(ScreenColor &color)
@@ -70,6 +71,35 @@ void ScreenColor::Set(unsigned int color)
 	green=g*256;
 	blue=b*256;
 	alpha=(0xff000000&color)>>16;
+}
+
+//! Set colors to represent a gray, from range [0..255].
+void ScreenColor::gray8(int g, int a)
+{
+	red = green = blue = (g<<8)|g;
+	alpha = (a<<8)|a;
+}
+
+//! Set colors to represent rgb, from range [0..255].
+void ScreenColor::rgb8(int r,int g,int b, int a)
+{
+	red   = (r<<8)|r;
+	green = (g<<8)|g;
+	blue  = (b<<8)|b;
+	alpha = (a<<8)|a;
+}
+
+//! Set colors to represent cmyk, from range [0..255].
+void ScreenColor::cmyk8(int c, int m, int y, int k, int a)
+{
+	c = (c<<8)|c;
+	m = (m<<8)|m;
+	y = (y<<8)|y;
+	k = (k<<8)|k;
+	a = (a<<8)|a;
+
+	simple_cmyk_to_rgb(c,m,y,k, &red,&green,&blue, 65535);
+	alpha=a;
 }
 
 //! Set colors to represent a gray, range [0..65535].
