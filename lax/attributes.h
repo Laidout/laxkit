@@ -38,11 +38,12 @@ class Attribute {
 	char *name;
 	char *value;
 	char *atttype; // hint about what data type value is
+	char *comment;
 	Laxkit::PtrStack<Attribute> attributes;
 
 	unsigned int flags;
 
-	Attribute() { name=value=atttype=NULL; flags=0; }
+	Attribute() { name=value=atttype=comment=NULL; flags=0; }
 	Attribute(const char *nn, const char *nval,const char *nt=NULL);
 	virtual ~Attribute();
 	virtual Attribute *duplicate();
@@ -61,6 +62,7 @@ class Attribute {
 	virtual Attribute *Top() { if (attributes.n) return attributes.e[attributes.n-1]; return NULL; }
 	virtual int remove(int index);
 	virtual void clear();
+	virtual void Comment(const char *ncomment);
 	virtual int dump_in(const char *filename, Attribute *defines=NULL);
 	virtual int   dump_in          (FILE *f, int Indent,Attribute **stopatsub=NULL);
 	virtual char *dump_in_indented (FILE *f, int indent);
@@ -79,7 +81,7 @@ class AttributeObject : public Laxkit::anObject, public Attribute
 };
 
 //---------------------------------- Dump helper functions ---------------------------------
-void dump_out_value(FILE *f,int indent,const char *value, int noquotes=0);
+void dump_out_value(FILE *f,int indent,const char *value, int noquotes=0, const char *comment=NULL);
 void dump_out_escaped(FILE *f, const char *str, int n);
 void dump_out_indented(FILE *f, int indent, const char *str);
 void dump_out_quoted(FILE *f, const char *value, char quote);

@@ -32,31 +32,33 @@ namespace Laxkit {
 //--------------------------------- Utilities -----------------------------
 const char *lax_event_name(int e)
 {
-	if (e==LAX_RandomEvent) return "LAX_RandomEvent";
-	if (e==LAX_onFocusOn) return "LAX_onFocusOn";
-	if (e==LAX_onFocusOff) return "LAX_onFocusOff";
-	if (e==LAX_onMouseIn) return "LAX_onMouseIn";
-	if (e==LAX_onMouseOut) return "LAX_onMouseOut";
-	if (e==LAX_onMouseMove) return "LAX_onMouseMove";
-	if (e==LAX_onButtonDown) return "LAX_onButtonDown";
-	if (e==LAX_onButtonUp) return "LAX_onButtonUp";
-	if (e==LAX_onKeyDown) return "LAX_onKeyDown";
-	if (e==LAX_onKeyUp) return "LAX_onKeyUp";
-	if (e==LAX_onDeviceChange) return "LAX_onDeviceChange";
-	if (e==LAX_onSubmit) return "LAX_onSubmit";
-	if (e==LAX_onCancel) return "LAX_onCancel";
-	if (e==LAX_onContentChange) return "LAX_onContentChange";
+	if (e==LAX_RandomEvent)       return "LAX_RandomEvent";
+	if (e==LAX_onFocusOn)         return "LAX_onFocusOn";
+	if (e==LAX_onFocusOff)        return "LAX_onFocusOff";
+	if (e==LAX_onMouseIn)         return "LAX_onMouseIn";
+	if (e==LAX_onMouseOut)        return "LAX_onMouseOut";
+	if (e==LAX_onMouseMove)       return "LAX_onMouseMove";
+	if (e==LAX_onButtonDown)      return "LAX_onButtonDown";
+	if (e==LAX_onButtonUp)        return "LAX_onButtonUp";
+	if (e==LAX_onKeyDown)         return "LAX_onKeyDown";
+	if (e==LAX_onKeyUp)           return "LAX_onKeyUp";
+	if (e==LAX_onDeviceChange)    return "LAX_onDeviceChange";
+	if (e==LAX_onSubmit)          return "LAX_onSubmit";
+	if (e==LAX_onCancel)          return "LAX_onCancel";
+	if (e==LAX_onContentChange)   return "LAX_onContentChange";
 	if (e==LAX_onSelectionChange) return "LAX_onSelectionChange";
-	if (e==LAX_onUpdateByEvent) return "LAX_onUpdateByEvent";
-	if (e==LAX_onUngrayed) return "LAX_onUngrayed";
-	if (e==LAX_onGrayed) return "LAX_onGrayed";
-	if (e==LAX_onMapped) return "LAX_onMapped";
-	if (e==LAX_onUnmapped) return "LAX_onUnmapped";
-	if (e==LAX_ControlEvent) return "LAX_ControlEvent";
-	if (e==LAX_ButtonEvent) return "LAX_ButtonEvent";
-	if (e==LAX_ShortcutEvent) return "LAX_ShortcutEvent";
-	if (e==LAX_ColorEvent) return "LAX_ColorEvent";
-	if (e==LAX_UserEvent) return "LAX_UserEvent";
+	if (e==LAX_onUpdateByEvent)   return "LAX_onUpdateByEvent";
+	if (e==LAX_onUngrayed)        return "LAX_onUngrayed";
+	if (e==LAX_onGrayed)          return "LAX_onGrayed";
+	if (e==LAX_onMapped)          return "LAX_onMapped";
+	if (e==LAX_onThemeChange)     return "LAX_onThemeChange";
+	if (e==LAX_onUnmapped)        return "LAX_onUnmapped";
+	if (e==LAX_ControlEvent)      return "LAX_ControlEvent";
+	if (e==LAX_ButtonEvent)       return "LAX_ButtonEvent";
+	if (e==LAX_ShortcutEvent)     return "LAX_ShortcutEvent";
+	if (e==LAX_ColorEvent)        return "LAX_ColorEvent";
+	if (e==LAX_UserEvent)         return "LAX_UserEvent";
+	if (e==LAX_DefunctEvent)      return "LAX_DefunctEvent";
 	return "(unknown)";
 }
 

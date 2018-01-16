@@ -24,6 +24,7 @@
 #define _LAX_DOUBLEBBOX_H
 
 #include <lax/vectors.h>
+#include <lax/rectangles.h>
 
 namespace Laxkit {
 
@@ -34,6 +35,7 @@ class DoubleBBox {
 	DoubleBBox(flatpoint p) { minx=maxx=p.x; miny=maxy=p.y; }
 	DoubleBBox(double mix,double max,double miy,double may) { minx=mix; maxx=max; miny=miy; maxy=may; }
 	DoubleBBox(const DoubleBBox &box) { minx=box.minx; maxx=box.maxx; miny=box.miny; maxy=box.maxy; }
+	DoubleBBox(const DoubleRectangle &rect);
 	virtual ~DoubleBBox() {}
 	virtual void clear() { minx=miny=0; maxx=maxy=-1; }
 	virtual void addtobounds(double x,double y);
@@ -44,6 +46,7 @@ class DoubleBBox {
 	virtual void setbounds(DoubleBBox *bbox);
 	virtual void setbounds(flatpoint *pts,int n);
 	virtual void setbounds(double mix,double max,double miy,double may) { minx=mix; maxx=max; miny=miy; maxy=may; }
+	virtual void setbounds(const DoubleRectangle &rect);
 	virtual int validbounds() { return maxx>=minx && maxy>=miny; }
 	virtual int nonzerobounds() { return maxx>minx && maxy>miny; }
 	virtual int intersect(double mix,double max,double miy,double may, int settointersection=0);
@@ -56,6 +59,8 @@ class DoubleBBox {
 	double MaxDimension() { return boxwidth() > boxheight() ? boxwidth() : boxheight(); }
 	double MinDimension() { return boxwidth() < boxheight() ? boxwidth() : boxheight(); }
 	virtual double *FitToBox(const DoubleBBox &container, double *m_ret);
+	virtual void ShiftBounds(double left, double right, double top, double bottom);
+	virtual void ExpandBounds(double amount);
 };
 	
 } // namespace Laxkit

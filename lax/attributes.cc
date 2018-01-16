@@ -1086,12 +1086,12 @@ char *WholeQuotedAttribute(const char *v)
  *
  * \todo note that this will almost always quote value, and it probably shouldn't for simple values
  */
-void dump_out_value(FILE *f,int indent,const char *value, int noquotes)
+void dump_out_value(FILE *f,int indent,const char *value, int noquotes, const char *comment)
 {
 	if (value) {
 		if (strchr(value,'\n')) {
 			 // if value has \n such as "aoeuaoeu \n aouoeu"
-			fprintf(f," \\\n");
+			fprintf(f," \\%s%s\n", comment ? " #":"", comment ? comment:"");
 			dump_out_indented(f,indent,value);
 			fprintf(f,"\n");
 
@@ -1099,15 +1099,20 @@ void dump_out_value(FILE *f,int indent,const char *value, int noquotes)
 			 // simply written value, but has quotes, so must escape quotes
 			fprintf(f," ");
 			dump_out_escaped(f,value,-1);
-			fprintf(f,"\n");
+			fprintf(f,"%s%s\n", comment ? " #":"", comment ? comment:"");
 
 		} else {
 			 //force quotes when there's space chars
 			if (!strchr(value,' ')) noquotes=1;
-			if (noquotes) fprintf(f," %s\n",value);
-			else fprintf(f," \"%s\"\n",value);
+			if (noquotes) fprintf(f," %s",value);
+			else fprintf(f," \"%s\"",value);
+			if (comment) fprintf(f," #%s\n", comment);
+			else fprintf(f,"\n");
 		}
-	} else fprintf(f,"\n");
+	} else {
+		if (comment) fprintf(f," #%s\n", comment);
+		else fprintf(f,"\n");
+	}
 }
 
 //! Dump out n characters of string, escaping quote characters if necessary.
@@ -1313,23 +1318,33 @@ Attribute::Attribute(const char *nn, const char *val,const char *nt)
 	makestr(name,nn);
 	makestr(value,val);
 	makestr(atttype,nt);
+	comment = NULL;
 	flags=0;
 }
 
 Attribute::~Attribute()
 {
-	if (name) delete[] name;
-	if (value) delete[] value;
-	if (atttype) delete[] atttype;
+	delete[] name;
+	delete[] value;
+	delete[] atttype;
+	delete[] comment;
 }
 
 //! Set name, value, atttype to NULL and flush attributes.
 void Attribute::clear()
 {
-	if (name)    { delete[] name;    name=NULL;    }
-	if (value)   { delete[] value;   value=NULL;   }
-	if (atttype) { delete[] atttype; atttype=NULL; }
+	if (name)    { delete[] name;    name    = NULL; }
+	if (value)   { delete[] value;   value   = NULL; }
+	if (atttype) { delete[] atttype; atttype = NULL; }
+	delete[] comment; comment = NULL;
 	attributes.flush();
+}
+
+/*! Update this->comment. Important: Should not contain newlines.
+ */
+void Attribute::Comment(const char *ncomment)
+{
+	makestr(comment, ncomment);
 }
 
 //! Return a new deep copy of *this.
@@ -1527,25 +1542,38 @@ int Attribute::remove(int index)
 /*! Conveniently, you can call \a dump_out(stdout,0) to dump out the Attribute
  * to the screen.
  *
- * Please note this does not output this->name and value.
+ * Please note this does not output this->name and value. If you need those also,
+ * then use dump_out_ful().
  */
 void Attribute::dump_out(FILE *f, int indent)
 {
 	if (!attributes.n) return;
 	char spc[indent+1]; memset(spc,' ',indent); spc[indent]='\0';
+
+	 //try to print out at least marginally nicely by space padding after name
+	int namewidth = 1, w;
+	for (int c=0; c<attributes.n; c++) {
+		if (!attributes.e[c]->name) continue;
+		w = strlen(attributes.e[c]->name);
+		if (w > namewidth) namewidth = w;
+	}
+	//char spc2[namewidth+1]; memset(spc2,' ',namewidth); spc[namewidth]='\0';
+	char format[10];
+	sprintf(format, "%%-%ds", namewidth);
 	
 	for (int c=0; c<attributes.n; c++) {
 		fprintf(f,"%s",spc);
 
 		 //dump out name
-		if (!attributes.e[c]->name) fprintf(f,"\"\"\n");
+		if (!attributes.e[c]->name) fprintf(f,"\"\"");
 		else if (strchr(attributes.e[c]->name,' ') || strchr(attributes.e[c]->name,'\t'))
 			dump_out_escaped(f,attributes.e[c]->name,-1);//***does this work as intended??
-		else fprintf(f,"%s",attributes.e[c]->name);
+		else fprintf(f,format,attributes.e[c]->name);
+		//else fprintf(f,"%s",attributes.e[c]->name);
 
 		 //dump out value
 		if (!attributes.e[c]->value) fprintf(f,"\n");
-		else dump_out_value(f,indent+2,attributes.e[c]->value);
+		else dump_out_value(f, indent+2, attributes.e[c]->value, 0, attributes.e[c]->comment);
 
 		 //dump out subatts
 		attributes.e[c]->dump_out(f,indent+2);
@@ -1578,7 +1606,7 @@ void Attribute::dump_out_full(FILE *f, int indent)
 	else fprintf(f,"%s",name);
 
 	if (!value) fprintf(f,"\n");
-	else dump_out_value(f,indent+2,value);
+	else dump_out_value(f, indent+2, value);
 	
 	for (int c=0; c<attributes.n; c++) {
 		attributes.e[c]->dump_out(f,indent+2);

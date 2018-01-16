@@ -23,7 +23,6 @@
 #ifndef _LAX_REFCOUNTED_H
 #define _LAX_REFCOUNTED_H
 
-#include <cstring>
 
 namespace Laxkit {
 

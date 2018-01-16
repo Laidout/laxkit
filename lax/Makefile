@@ -99,6 +99,7 @@ objs= \
 	shortcuts.o \
 	resources.o \
 	objectfactory.o \
+	themes.o \
 	anxapp.o \
 	anxapp-laxrc.o \
 	laxoptions.o \
