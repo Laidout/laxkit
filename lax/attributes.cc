@@ -1212,6 +1212,7 @@ char *escape_string(const char *value, char quote, bool include_quotes)
 void dump_out_quoted(FILE *f, const char *value, char quote)
 {
 	char *str = escape_string(value, quote, true);
+	if (!str) return;
 	fprintf(f, str); 
 	delete[] str;
 }
