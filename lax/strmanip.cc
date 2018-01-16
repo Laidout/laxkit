@@ -471,6 +471,16 @@ char *stripws(char *dest,char where)
 	return dest;
 }
 
+/*! Return whether there is whitespace at the beginning or the end.
+ */
+int has_outer_whitespace(const char *str)
+{
+	if (!str) return 0;
+	if (isspace(str[0])) return 1;
+	if (isspace(str[strlen(str)])) return 1;
+	return 0;
+}
+
 //! Insert data into dest.
 /*! dest will be reassigned to a new char[]. If atpos==0, then this
  * function is the same as prependstr(dest,data). If atpos<0 or 
