@@ -841,6 +841,15 @@ int MenuInfo::AddDelimited(const char *newitem,char delimiter, int nid,int where
 	return 0;
 }
 
+/*! Return the top item of curmenu. This is typically the last item you added.
+ */
+MenuItem *MenuInfo::Top()
+{
+	if (!curmenu) return NULL;
+	if (!curmenu->menuitems.n) return NULL;
+	return curmenu->menuitems.e[curmenu->menuitems.n-1];
+}
+
 //! Add item detail to the item at the top of menuitems, or to towhich.
 /*! If there is no recent item, then return 1. On success, return 0.
  */
