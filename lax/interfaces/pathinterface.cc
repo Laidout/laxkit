@@ -3502,6 +3502,11 @@ void PathsData::appendBezArc(flatpoint center, double angle, int num_vertices)
 
 }
 
+void PathsData::appendSvg(const char *d)
+{
+	SvgToPathsData(this, d, NULL, NULL);
+}
+
 //! Convenience to add a rectangle at (x,y) with width and height to whichpath.
 /*! This also calls FindBBox().
  */
@@ -3793,6 +3798,9 @@ void PathsData::MatchTransform(const double *newm)
  *
  * If existingpath==NULL, then return a new PathsData, else append new Path
  * objects to existingpath. existingpath is also returned on success.
+ *
+ * If powerstroke, then take that as an Inkscape powerstroke definition, and
+ * parse accordingly.
  */
 PathsData *SvgToPathsData(PathsData *existingpath, const char *d,char **end_ptr, LaxFiles::Attribute *powerstroke)
 {
