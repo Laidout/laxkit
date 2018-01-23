@@ -61,6 +61,7 @@ class LaxImage : public anObject
 {
   public:
 	ImageLoader *importer;
+	anObject *importer_data;
 
 	char *filename;
 	clock_t lastaccesstime;
