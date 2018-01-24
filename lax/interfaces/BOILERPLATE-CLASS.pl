@@ -7,6 +7,10 @@
 
 
 $Name=$ARGV[0];
+if ($Name eq "") {
+	print "Usage: ./BOILERPLATE-CLASS.pl NameOfThing\n";
+	exit;
+}
 
 $Name =~ s/Interface$//;
 
@@ -25,6 +29,7 @@ $NAME_H =~ s/\./_/;
 open (HFILE, ">$hfile") or die "can't open $hfile";
 open (BOILER_H, "<aninterface-BOILERPLATE.h") or die "can't open aninterface-BOILERPLATE.h!";
 
+print "Creating $hfile\n";
 
 while (defined($line = <BOILER_H>)) {
 	$line =~ s/boilerplate/$name/g;
@@ -47,6 +52,7 @@ close(HFILE);
 open (CCFILE, ">$ccfile") or die "can't open $ccfile";
 open (BOILER_CC, "<aninterface-BOILERPLATE.cc") or die "can't open aninterface-BOILERPLATE.cc!";
 
+print "Creating $ccfile\n";
 
 while (defined($line = <BOILER_CC>)) {
 	$line =~ s/boilerplate/$name/g;
