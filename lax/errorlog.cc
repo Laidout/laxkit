@@ -20,6 +20,7 @@
 //template implementation:
 #include <lax/lists.cc>
 
+#include <cstdio>
 #include <cstdarg>
 
 #include <iostream>
