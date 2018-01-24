@@ -260,7 +260,8 @@ int CacheManager::Remove(MemCachedObject *obj)
  */
 LaxImage::LaxImage(const char *fname)
 {
-	importer=NULL;
+	importer = NULL;
+	importer_data = NULL;
 
 	filename=newstr(fname);
 }
@@ -281,6 +282,7 @@ LaxImage::~LaxImage()
 //	}
 	if (filename) delete[] filename; 
 	if (importer) importer->dec_count();
+	if (importer_data) importer_data->dec_count();
 }
 
 //--------------------------- LaxImage utils --------------------------------------

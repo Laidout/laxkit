@@ -130,6 +130,14 @@ void DoubleBBox::addtobounds(flatpoint p)
 void DoubleBBox::addtobounds(double x,double y)
 { addtobounds(flatpoint(x,y)); }
 
+/*! Basically adds points (x,y) and (x+width, y+height).
+ * Does not care if rect width or height are negative.
+ */
+void DoubleBBox::addtobounds(const DoubleRectangle &rect)
+{
+	addtobounds(rect.x, rect.y);
+	addtobounds(rect.x+rect.width, rect.y+rect.height);
+}
 
 //! Return whether the transformed box touches. **** incomplete implementation
 /*! If settointersection, then set the bounds of *this to the bounding box of the

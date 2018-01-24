@@ -59,6 +59,9 @@ class ObjectContext;
 class anInterface : virtual public Laxkit::EventReceiver,
 					virtual public LaxFiles::DumpUtility
 {
+	char *last_message = NULL; //for PostMessage2(fmt,...)
+	int last_message_n = 0;
+
   protected:
 	Laxkit::ButtonDownInfo buttondown;
 	ViewportWindow *viewport;
@@ -128,6 +131,7 @@ class anInterface : virtual public Laxkit::EventReceiver,
 	virtual int PreRefresh() { return 0; } //todo, needs more thought: done for each active interface in viewport before any objects rendered
 	virtual int Refresh() { needtodraw=0; return 0; }
 	virtual void PostMessage(const char *message);
+	virtual void PostMessage2(const char *fmt, ...);
 	virtual Laxkit::UndoManager *GetUndoManager();
 
 	virtual Laxkit::MenuInfo *ContextMenu(int x,int y,int deviceid, Laxkit::MenuInfo *menu) { return menu; }

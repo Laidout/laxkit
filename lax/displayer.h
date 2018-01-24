@@ -227,7 +227,7 @@ class Displayer : public PanUser, virtual public anObject
 	virtual double glyphsextent(GlyphPlace *glyphs,GlyphPlace **glyphsp,unsigned int numglyphs, double *width,double *height, bool real=false) = 0;
 
 	//draw images
-	virtual int  imageout_within(LaxImage *image, double x,double y, double w,double h);
+	virtual int  imageout_within(LaxImage *image, double x,double y, double w,double h, DoubleRectangle *rect=NULL, int flip=0);
 	virtual int  imageout(LaxImage *image, double x,double y, double w,double h) = 0;
 	virtual void imageout(LaxImage *img,double x,double y) = 0;
 	virtual void imageout(LaxImage *img,double *matrix) = 0;

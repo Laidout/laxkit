@@ -180,6 +180,7 @@ class MenuInfo : public anObject
 	virtual int AddItems(const char **i,int n,int startid); // assume ids sequential, state=0
 	virtual int AddDetail(const char *newitem,LaxImage *img,int nid=0,int ninfo=0, int towhich=-1);
 	virtual int AddSep(const char *name=NULL,int where=-1);
+	virtual MenuItem *Top();
 	virtual int Remove(int which=-1);
 	virtual int SubMenu(const char *ntitle=NULL,int which=-1); // future adds go on a new submenu for current item
 	virtual void EndSubMenu(); // stop adding to a submenu

@@ -267,6 +267,8 @@ anInterface::anInterface()
 	interface_style=0;
 	interface_type=INTERFACE_Tool;
 	needtodraw=1; 
+	last_message = NULL;
+	last_message_n = 0;
 }
 
 //! Constructor to assign owner and id.
@@ -289,6 +291,8 @@ anInterface::anInterface(anInterface *nowner,int nid)
 	interface_style=0;
 	interface_type=INTERFACE_Tool;
 	needtodraw=1; 
+	last_message = NULL;
+	last_message_n = 0;
 }
 
 //! Constructor to assign just the id, set other stuff to 0.
@@ -303,6 +307,8 @@ anInterface::anInterface(int nid)
 	interface_style=0;
 	interface_type=INTERFACE_Tool;
 	needtodraw=1; 
+	last_message = NULL;
+	last_message_n = 0;
 }
 
 anInterface::anInterface(int nid,Displayer *ndp)
@@ -316,6 +322,8 @@ anInterface::anInterface(int nid,Displayer *ndp)
 	interface_style=0;
 	interface_type=INTERFACE_Tool;
 	needtodraw=1; 
+	last_message = NULL;
+	last_message_n = 0;
 
 	dp=ndp; 
 	if (dp) curwindow=dynamic_cast<anXWindow*>(dp->GetDrawable());
@@ -338,6 +346,8 @@ anInterface::anInterface(anInterface *nowner,int nid,Displayer *ndp)
 	interface_style=0;
 	interface_type=INTERFACE_Tool;
 	needtodraw=1; 
+	last_message = NULL;
+	last_message_n = 0;
 
 	dp=ndp; 
 	if (dp) curwindow=dynamic_cast<anXWindow*>(dp->GetDrawable());
@@ -348,6 +358,7 @@ anInterface::~anInterface()
 { 
 	if (child) child->dec_count();
 	delete[] owner_message;
+	delete[] last_message;
 	DBG cerr<<"--- anInterface "<<whattype()<<","<<" destructor"<<endl; 
 }
 
@@ -640,6 +651,29 @@ void anInterface::PostMessage(const char *message)
 {
 	if (viewport) viewport->postmessage(message);
 	else app->postmessage(message);
+}
+
+/*! Printf style message.
+ */
+void anInterface::PostMessage2(const char *fmt, ...)
+{
+	va_list arg;
+
+    va_start(arg, fmt);
+    int c = vsnprintf(last_message, last_message_n, fmt, arg);
+    va_end(arg);
+
+    if (c >= last_message_n) {
+        delete[] last_message;
+        last_message_n = c+100;
+        last_message = new char[last_message_n];
+        va_start(arg, fmt);
+        vsnprintf(last_message, last_message_n, fmt, arg);
+        va_end(arg);
+    }
+
+	if (viewport) viewport->postmessage(last_message);
+	else app->postmessage(last_message);
 }
 
 

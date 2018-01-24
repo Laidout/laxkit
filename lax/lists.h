@@ -98,7 +98,7 @@ class PtrStack
 	virtual int pop(T *&popped,int which=-1,int *local=NULL);
 	virtual T *pop(int which=-1,int *local=NULL); // -1 means from the end, <-1 means return NULL
 	virtual int findindex(T *t);
-	virtual int remove(int which=-1); // which is index
+	virtual int remove(int which); // which is index
 	virtual int remove(T *t);
 	virtual int pushnodup(T *nd,char local,int where=-1);
 	virtual void Delta(int ndelta) { if (ndelta>=0) delta=ndelta; }

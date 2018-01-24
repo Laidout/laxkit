@@ -1297,10 +1297,11 @@ void Displayer::drawnum(double x, double y, int num)
  *   portion of it actually should be rendered.
  */
 
-/*! Draw an image such that it fits with a box with corner at x,y with width w and height h, but preserve the
+/*! Draw an image such that it fits centered within a box with corner at x,y with width w and height h, preserving the
  * aspect ratio of the original image.
+ * If rect is not NULL, then put the found box in it.
  */
-int Displayer::imageout_within(LaxImage *image, double x,double y, double w,double h)
+int Displayer::imageout_within(LaxImage *image, double x,double y, double w,double h, DoubleRectangle *rect, int flip)
 {
 	double a=(double)image->w()/image->h();
 	double a2=w/h;
@@ -1315,6 +1316,14 @@ int Displayer::imageout_within(LaxImage *image, double x,double y, double w,doub
 	x=x+ow/2-w/2;
 	y=y+oh/2-h/2;
 
+	if (rect) {
+		rect->x = x;
+		rect->y = y;
+		rect->width = w;
+		rect->height = h;
+	}
+
+	if (flip) return imageout(image, x,y+h,w,-h);
 	return imageout(image, x,y,w,h);
 }
 
