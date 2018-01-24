@@ -1218,7 +1218,8 @@ void dump_out_quoted(FILE *f, const char *value, char quote)
 {
 	char *str = escape_string(value, quote, true);
 	if (!str) return;
-	fprintf(f, str); 
+	//fprintf(f, str); 
+	fwrite(str, 1, strlen(str), f);
 	delete[] str;
 }
 
