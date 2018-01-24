@@ -20,6 +20,7 @@
 //template implementation:
 #include <lax/lists.cc>
 
+#include <cstdarg>
 
 #include <iostream>
 using namespace std;
@@ -138,6 +139,26 @@ const char *ErrorLog::Message(int i,int *severity,int *info, int *pos,int *line)
 	if (pos) *pos=-1;
 	if (line) *line=-1;
 	return NULL;
+}
+
+/*! Printf style variadic version.
+ */
+int ErrorLog::AddMessage(int severity, int ninfo, int npos,int nline, const char *fmt, ...)
+{
+	va_list arg;
+
+    va_start(arg, fmt);
+    int c = vsnprintf(NULL, 0, fmt, arg);
+    va_end(arg);
+
+	char *message = new char[c+1];
+	va_start(arg, fmt);
+	vsnprintf(message, c+1, fmt, arg);
+	va_end(arg);
+
+	int status = AddMessage(0,NULL,NULL, message, severity,ninfo, npos,nline);
+	delete[] message;
+	return status;
 }
 
 int ErrorLog::AddMessage(const char *desc, int severity, int ninfo, int pos,int line)
