@@ -59,8 +59,8 @@ class ObjectContext;
 class anInterface : virtual public Laxkit::EventReceiver,
 					virtual public LaxFiles::DumpUtility
 {
-	char *last_message = NULL; //for PostMessage2(fmt,...)
-	int last_message_n = 0;
+	char *last_message; //for PostMessage2(fmt,...)
+	int last_message_n;
 
   protected:
 	Laxkit::ButtonDownInfo buttondown;
