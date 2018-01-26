@@ -230,6 +230,24 @@ spacepoint invert(spacepoint p, spacepoint orig);
 void dump_points(const char *label, flatpoint *p,int n, int offset=0);
 flatpoint *SvgToFlatpoints(const char *d, char **endptr, int how, flatpoint *buffer, int buffersize, int *totalpoints, int normalize);
 
+//class Quaternion
+//{
+//  public:
+//	double x,y,z,w;
+//	int info;
+//	spacevector(void) {x=y=z=0; w=1; info=0; }
+//	spacevector(double xx, double yy, double zz, double ww) {x=xx; y=yy; z=zz; w=ww; info=0;}
+//	spacevector(double *v) { x=v[0]; y=v[1]; z=v[2]; w=z[3]; info=0; }
+//	spacevector(const Quaternion &vec) {  x=vec.x; y=vec.y; z=vec.z; w=vec.w; info=vec.info;  }
+//	spacevector operator-();
+//	void normalize();
+//	void set(double xx,double yy,double zz, double ww) { x=xx; y=yy; z=zz; w=ww; }
+//
+//	bool isZero() const { return x==0 && y==0 && z==0 && w==0; }
+//	double norm() const { return sqrt(x*x+y*y+z*z+w*w); }
+//	double norm2() const { return x*x+y*y+z*z+w*w; }
+//};
+
 //} //namespace LaxMath
 
 #endif
