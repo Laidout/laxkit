@@ -30,10 +30,12 @@
 #include <lax/language.h>
 
 
-//You only need this if your new classes directly use any of the 
-//Laxkit stack templates in lax/lists.h. The few templates Laxkit 
-//provides are divided into header.h/implementation.cc.
+//You only need the following includes if your new classes directly use any of the 
+//Laxkit stack templates in lax/lists.h or lax/refptrstack.h. The few templates Laxkit 
+//provides are divided into header.h/implementation.cc, so this provides
+//template implementation:
 //#include <lax/lists.cc>
+//#include <lax/refptrstack.cc>
 
 
 using namespace Laxkit;
@@ -68,7 +70,7 @@ BoilerPlateData::~BoilerPlateData()
 
 /*! \class BoilerPlateInterface
  * \ingroup interfaces
- * \brief Interface to easily adjust mouse pressure map for various purposes.
+ * \brief Exciting interface that does stuff.
  */
 
 
@@ -77,13 +79,13 @@ BoilerPlateInterface::BoilerPlateInterface(anInterface *nowner, int nid, Display
 { ***
 	interface_flags=0;
 
-	showdecs=1;
-	needtodraw=1;
+	showdecs   = 1;
+	needtodraw = 1;
 
-	dataoc=NULL;
-	data=NULL;
+	dataoc     = NULL;
+	data       = NULL;
 
-	sc=NULL; //shortcut list, define as needed in GetShortcuts()
+	sc = NULL; //shortcut list, define as needed in GetShortcuts()
 }
 
 BoilerPlateInterface::~BoilerPlateInterface()
@@ -102,7 +104,7 @@ const char *BoilerPlateInterface::whatdatatype()
 /*! Name as displayed in menus, for instance.
  */
 const char *BoilerPlateInterface::Name()
-{ *** return _("BoilerPlateInterface tool"); }
+{ *** return _("BoilerPlateInterface Tool"); }
 
 
 //! Return new BoilerPlateInterface.
@@ -162,7 +164,7 @@ ObjectContext *BoilerPlateInterface::Context()
 	return dataoc;
 }
 
-/*! Any setup when an interface is activated, which usually means when it is added to 
+/*! Called when an interface is activated, which usually means when it is added to 
  * the interface stack of a viewport.
  */
 int BoilerPlateInterface::InterfaceOn()
@@ -172,7 +174,7 @@ int BoilerPlateInterface::InterfaceOn()
 	return 0;
 }
 
-/*! Any cleanup when an interface is deactivated, which usually means when it is removed from
+/*! Called when an interface is deactivated, which usually means when it is removed from
  * the interface stack of a viewport.
  */
 int BoilerPlateInterface::InterfaceOff()
@@ -183,6 +185,8 @@ int BoilerPlateInterface::InterfaceOff()
 	return 0;
 }
 
+/*! Clear references to d within the interface.
+ */
 void BoilerPlateInterface::Clear(SomeData *d)
 { ***
 	if (dataoc) { delete dataoc; dataoc=NULL; }
@@ -194,6 +198,8 @@ void BoilerPlateInterface::ViewportResized()
 	// if necessary, do stuff in response to the parent window size changed
 }
 
+/*! Return a context specific menu, typically in response to a right click.
+ */
 Laxkit::MenuInfo *BoilerPlateInterface::ContextMenu(int x,int y,int deviceid, Laxkit::MenuInfo *menu)
 { ***
 	if (no menu for x,y) return menu;
@@ -205,17 +211,26 @@ Laxkit::MenuInfo *BoilerPlateInterface::ContextMenu(int x,int y,int deviceid, La
 	menu->AddItem(_("Some menu item"), SOME_MENU_VALUE);
 	menu->AddSep(_("Some separator text"));
 	menu->AddItem(_("Et Cetera"), SOME_OTHER_VALUE);
+	menp->AddItem(_("Item with info"), SOME_ITEM_ID, LAX_OFF, items_info);
+
+	 //include <lax/iconmanager.h> if you want access to default icons
+	LaxImage icon = iconmanager->GetIcon("NewDirectory");
+	menp->AddItem(_("Item with icon"), icon, SOME_ITEM_ID, LAX_OFF, items_info);
 
 	return menu;
 }
 
+/*! Intercept events if necessary, such as from the ContextMenu().
+ */
 int BoilerPlateInterface::Event(const Laxkit::EventData *data, const char *mes)
 {
-    if (!strcmp(mes,"menuevent")) {
-        const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(e_data);
-        int i =s->info2; //id of menu item
+	if (!strcmp(mes,"menuevent")) {
+		 //these are sent by the ContextMenu popup
+		const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(e_data);
+		int i	= s->info2; //id of menu item
+		int info = s->info4; //info of menu item
 
-        if ( i==SOME_MENU_VALUE) {
+		if ( i==SOME_MENU_VALUE) {
 			...
 		}
 
