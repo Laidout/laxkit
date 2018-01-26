@@ -767,6 +767,11 @@ int MenuInfo::AddItemAsIs(MenuItem *mi,char islocal,int where)//where=-1
 	return curmenu->menuitems.n;
 }
 
+int MenuInfo::AddToggleItem(const char *newitem,LaxImage *img,int nid,int ninfo,bool on, int where)
+{
+	return AddItem(newitem,img,nid, LAX_OFF | LAX_ISTOGGLE | (on ? LAX_CHECKED : 0), ninfo,NULL,where,0);
+}
+
 //! Add item at position where, or to end of menu if where<0.
 /*! Please note that the MenuItem that is created is local to the menuitems stack (it will be deleted
  *  when the item stack is flushed), while the passed in submenu is local according to subislocal.
