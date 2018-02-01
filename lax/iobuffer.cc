@@ -25,6 +25,7 @@
 #include <lax/fileutils.h>
 
 #include <cstdarg>
+#include <cstdlib>
 #include <cstring>
 
 
@@ -148,7 +149,7 @@ size_t IOBuffer::Write(const void *ptr, size_t size, size_t nmemb)
 	if (what != WHAT_CString) return 0;
 
 	 //else append to string
-	if (curpos + nmemb * size > max) {
+	if (curpos + (long)(nmemb * size) > max) {
 		Reallocate(curpos + nmemb * size + blocksize + 1);
 	}
 
@@ -240,7 +241,7 @@ int IOBuffer::GetLine(char **lineptr, size_t *n)
 	const char *nextnl = strchr(s+curpos, '\n');
 	if (!nextnl) nextnl = s+slen;
 	else nextnl++;
-	long linel = nextnl - (s+curpos);
+	size_t linel = nextnl - (s+curpos);
 
 	if (linel > *n) {
 		 //reallocate line
@@ -409,6 +410,8 @@ int IOBuffer::OpenCString(const char *str)
 	cstr = str;
 	curpos = 0;
 	slen = strlen(cstr);
+
+	return 0;
 }
 
 
