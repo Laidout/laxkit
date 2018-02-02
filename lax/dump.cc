@@ -23,6 +23,7 @@
 
 #include <lax/dump.h>
 #include <lax/strmanip.h>
+#include <lax/iobuffer.h>
 
 #include <lax/lists.cc>
 
@@ -64,7 +65,7 @@ namespace LaxFiles {
  *   what attributes can be passed in to this object. this would make it a snap to
  *   produce the Attribute equivalent of dtd information..
  */
-/*! \fn  void DumpUtility::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *loadcontext)
+/*! \fn  void DumpUtility::dump_in_atts(Attribute *att,int what,LaxFiles::DumpContext *loadcontext)
  * \brief Read the Attribute and take away what it can.
  *
  * \todo in future might have a flag somehow to remove atts that are processed (flag=1)..
@@ -91,6 +92,23 @@ void DumpUtility::dump_in(FILE *f,int indent,int what,LaxFiles::DumpContext *loa
 	att->dump_in(f,indent);
 	dump_in_atts(att,0,loadcontext);
 	if (Att) *Att=att;
+	else delete att;
+}
+
+/*! Read in string as an attribute,  and pass parsing duties to dump_in_atts().
+ * Return the created Attribute in att if not null.
+ */
+void DumpUtility::dump_in_str(const char *str, int what, DumpContext *context, Attribute **Att)
+{
+	IOBuffer buffer;
+	buffer.OpenCString(str);
+
+	Attribute *att = new Attribute;
+	att->dump_in(buffer, 0);
+
+	dump_in_atts(att,0,context);
+
+	if (Att) *Att = att;
 	else delete att;
 }
 

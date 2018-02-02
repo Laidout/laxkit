@@ -59,8 +59,9 @@ class DumpUtility
 	virtual void       dump_out(FILE *f,int indent,int what,DumpContext *context) =0;
 	virtual Attribute *dump_out_atts(Attribute *att,int what,DumpContext *context) { return NULL; }
 
-	virtual void dump_in (FILE *f,int indent,int what,DumpContext *context,Attribute **att);
-	virtual void dump_in_atts(Attribute *att,int flag,DumpContext *context) =0;
+	virtual void dump_in(FILE *f, int indent, int what, DumpContext *context, Attribute **att);
+	virtual void dump_in_str(const char *str, int what, DumpContext *context, Attribute **att);
+	virtual void dump_in_atts(Attribute *att, int what, DumpContext *context) = 0;
 
 	virtual ~DumpUtility() {}
 };
