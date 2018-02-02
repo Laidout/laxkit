@@ -27,9 +27,12 @@
 #include <lax/lists.h>
 #include <lax/vectors.h>
 #include <lax/anobject.h>
+#include <lax/iobuffer.h>
 #include <cstdio>
 
+
 namespace LaxFiles {
+
 	
 //---------------------------------- class Attribute ---------------------------------
 
@@ -64,6 +67,7 @@ class Attribute {
 	virtual void clear();
 	virtual void Comment(const char *ncomment);
 	virtual int dump_in(const char *filename, Attribute *defines=NULL);
+	virtual int dump_in_str(const char *str, Attribute *defines=NULL);
 	virtual int   dump_in          (FILE *f, int Indent,Attribute **stopatsub=NULL);
 	virtual char *dump_in_indented (FILE *f, int indent);
 	virtual char *dump_in_until    (FILE *f, const char *str, int indent=0);
