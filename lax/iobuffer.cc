@@ -320,6 +320,14 @@ const char *IOBuffer::Filename()
 	return filename;
 }
 
+int IOBuffer::IsOpen()
+{
+	return f != NULL;
+}
+
+/*! If f exists and is not ff, then fclose it.
+ * Takes ff, and will close it in destructor if you don't do UseThis(NULL) beforehand.
+ */
 int IOBuffer::UseThis(FILE *ff)
 {
 	if (f && f != ff) fclose(f);

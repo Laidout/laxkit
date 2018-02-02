@@ -76,6 +76,7 @@ class IOBuffer
 	virtual int SaveStrToFile(const char *filename);
 	virtual int GetStrFromFile(const char *filename, int maxchars=-1);
 	virtual int UseThis(FILE *ff);
+	virtual int IsOpen();
 	//int OpenTempFile();
 
 
