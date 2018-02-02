@@ -116,18 +116,19 @@ int getline_indent_nonblank(char **line, size_t *n,FILE *f, int indent,
 	 //one iteration per line of the file. If the line is just whitespace or
 	 //whitespace plus a comment, then skip it.
 	while (!feof(f)) {
-		pos=ftell(f);
-		c=getline(line,n,f);
-		if (c<=0) break;
-		c=strlen(*line); //does getline read in \0 chars?
-		cc+=c;
-		c-=cut_comment(*line,comment,quote);
-		i=how_indented(*line);
+		pos = ftell(f);
+		c   = getline(line,n,f);
+		if (c <= 0) break;
+		c = strlen(*line); //does getline read in \0 chars?
+		cc += c;
+		c -= cut_comment(*line,comment,quote);
+		i  = how_indented(*line);
+
 		 //if i==c, that means there was whitespace then comment
 		if (skiplines) {
 			if (c==0 || i==c) continue; //skip blank line..
 		}
-		if (i<indent) { // line too short, so return now with blank line..
+		if (i < indent) { // line too short, so return now with blank line..
 			fseek(f,pos,SEEK_SET);
 			if (feof(f)) clearerr(f);
 			if (*line) free(*line);
@@ -677,6 +678,22 @@ char *read_in_whole_file(const char *file, int *chars_ret, int maxchars)
 	fclose(f);
 	if (chars_ret) *chars_ret=numread;
 	return str;
+}
+
+/*! Return 0 for success, or nonzero for couldn't.
+ * If n<0, use strlen(str).
+ */
+int save_string_to_file(const char *str,int n, const char *file)
+{
+	FILE *ff = fopen(file, "w");
+	if (!ff) return 1;
+
+	if (n<0) n = strlen(str);
+	fwrite(str,1,n, ff);
+
+	fclose(ff);
+
+	return 0;
 }
 
 /*! Uses get_current_dir_name(), then returns a new char[], not the malloc'd one get_current_dir_name fetches.

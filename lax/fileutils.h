@@ -57,6 +57,7 @@ char *simplify_path(char *file, int modorig=0);
 char *make_filename_base(const char *f);
 //void get_path_parts(const char *f,const char **dir,const char **file);
 char *read_in_whole_file(const char *file, int *chars_ret, int maxchars=0);
+int save_string_to_file(const char *str,int n, const char *file);
 char *current_directory();
 
 } //namespace LaxFiles
