@@ -36,6 +36,16 @@ namespace LaxFiles {
 	
 //---------------------------------- class Attribute ---------------------------------
 
+
+enum AttributeTypes {
+	ATT_None = -1,
+	ATT_Att = 0,
+	ATT_Json,
+	ATT_Xml,
+	ATT_Css,
+	ATT_MAX
+};
+
 class Attribute {
  public:
 	char *name;
@@ -66,8 +76,13 @@ class Attribute {
 	virtual int remove(int index);
 	virtual void clear();
 	virtual void Comment(const char *ncomment);
-	virtual int dump_in(const char *filename, Attribute *defines=NULL);
-	virtual int dump_in_str(const char *str, Attribute *defines=NULL);
+
+	virtual int   dump_in     (const char *filename, int what=0);
+	virtual int   dump_in_str (const char *str);
+	virtual int   dump_in_json(const char *str);
+	virtual int   dump_in_xml (const char *str);
+
+	virtual int   dump_in          (Laxkit::IOBuffer &f, int Indent,Attribute **stopatsub=NULL);
 	virtual int   dump_in          (FILE *f, int Indent,Attribute **stopatsub=NULL);
 	virtual char *dump_in_indented (FILE *f, int indent);
 	virtual char *dump_in_until    (FILE *f, const char *str, int indent=0);

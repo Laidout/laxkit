@@ -1637,6 +1637,7 @@ char *Attribute::dump_in_indented(FILE *f, int Indent)
 
 		c=getline_indent_nonblank(&line,&n,f,Indent,"#",'"',0); //0 means dont skip lines
 		if (c<=0) break;
+
 		indent=how_indented(line);
 		if (firstindent<0) firstindent=indent;
 
@@ -1912,19 +1913,17 @@ int Attribute::dump_in(FILE *f, int Indent,Attribute **stopatsub)//stopatsub=NUL
 	return numattsread;
 }
 
+int Attribute::dump_in(IOBuffer &f, int Indent,Attribute **stopatsub)
+{
+	cerr << " *** need to implement Attribute::dump_in(IOBuffer &f..)!!"<<endl;
+	return -1;
+}
+
+
 //! Read in a whole database.
 /*! The base is name=file, value=filename.
+ * If what==0, assume att style. 1==json, 2=xml.
  *
- * This currently ignores "define" blocks.
- * This is supposed to offer cascading abilities by following certain rules
- * embodied in the defines, but that is not implemented currently.
- * Each default block changes default values for each entry of that type afterwards
- * in the file. If defines is not NULL, then it is assumed to hold all the relevant
- * definition blocks of the database.
- *
- * \todo *** this function is basically unimplemented.. just opens file, calls the other dump_in.
- * 			need to implement the defines thingy
- * \todo *** doesn't do a whole lot of sanity checking on names
  * \todo *** when dumping in, it is sometimes useful to preserve what the position in the file
  *   at which the attribute is written. this would require an extra long variable in Attribute..
  *   For instance for decent error checking, one wants to know where the error occured, but one
@@ -1932,30 +1931,82 @@ int Attribute::dump_in(FILE *f, int Indent,Attribute **stopatsub)//stopatsub=NUL
  * 
  * Returns 0 for success, otherwise nonzero error.
  */
-int Attribute::dump_in(const char *filename, Attribute *defines)//defines=NULL
+int Attribute::dump_in(const char *filename, int what)
 {
+//	IOBuffer f;
+//	f.OpenFile(filename);
+//
+//	if (!f.IsOpen()) {
+//		DBG cerr <<"Open "<<filename<<" failed."<<endl;
+//		return 1;
+//	}
+//
+//	makestr(name,"file");
+//	makestr(value,filename);
+//	makestr(atttype,NULL);
+//
+//	DBG cerr <<"Reading "<<filename<<"...."<<endl;
+//
+//	dump_in(f,0);
+//
+//	f.Close();
+//	-------------
+	if (what == 1) {
+		if (JsonFileToAttribute(filename, this) == this) return 0;
+		return 1;
+	}
+	if (what == 2) {
+		if (XMLFileToAttribute(this, filename, NULL) == this) return 0;
+		return 1;
+	}
+
 	FILE *f=fopen(filename,"rb");
 	if (!f) {
 		DBG cerr <<"Open "<<filename<<" failed."<<endl;
 		return 1;
 	}
+
 	makestr(name,"file");
 	makestr(value,filename);
 	makestr(atttype,NULL);
+
 	DBG cerr <<"Reading "<<filename<<"...."<<endl;
-	
-//	while (1) { // there are still entries to parse
-//		//***find first block
-//		//block can be:
-//		// default image ...
-//		// type id ...
-//		//***
-//	}
 
 	dump_in(f,0);
-	
+
 	fclose(f);
 	return 0;
+}
+
+/*! Like dump_in(const char*, Attribute*), but use a string instead of reading
+ * in file contents.
+ */
+int Attribute::dump_in_str(const char *str)
+{
+	IOBuffer f;
+	f.OpenCString(str);
+
+	makestr(name,"string");
+	makestr(value,NULL);
+	makestr(atttype,NULL);
+
+	//dump_in(f,0);
+	cerr << " *** need to implement  Attribute::dump_in_str()!"<<endl;
+
+	f.Close();
+	return 0;
+}
+
+int Attribute::dump_in_json(const char *str)
+{
+	cerr << " *** need to implement  Attribute::dump_in_json()!"<<endl;
+	return 1;
+}
+
+int Attribute::dump_in_xml (const char *str)
+{
+	cerr << " *** need to implement  Attribute::dump_in_xml()!"<<endl;
+	return 1;
 }
 
 //! Extract a single "name=value" string. The value can be quoted.
@@ -1968,7 +2019,7 @@ int Attribute::dump_in(const char *filename, Attribute *defines)//defines=NULL
  * parsed from the '=' until whitespace.
  *
  * If you have something like a="1 2 3" with the quotes in str itself, then
- * name="a" and value is "1 2 3" without the quotes. 
+ * name="a" and value is "1 2 3" without the quotes.
  *
  * assign is the single character delimiter, default is '='. In CSS for instance, it might be ':'.
  *
@@ -2790,7 +2841,9 @@ int DumpAttributeToJson(FILE *f, Attribute *att, int indent)
 Attribute *JsonFileToAttribute (const char *jsonfile, Attribute *att)
 {
 	char *contents = read_in_whole_file(jsonfile, NULL, 0);
-	return JsonStringToAttribute(contents, att, NULL);
+	Attribute *a = JsonStringToAttribute(contents, att, NULL);
+	delete[] contents;
+	return a;
 }
 
 /*! This uses Attribute::flags to hint what type the attribute is. See JsonAttTypes.
