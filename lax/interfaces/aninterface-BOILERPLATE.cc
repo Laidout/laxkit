@@ -207,11 +207,11 @@ Laxkit::MenuInfo *BoilerPlateInterface::ContextMenu(int x,int y,int deviceid, La
 	if (!menu) menu=new MenuInfo;
 	if (!menu->n()) menu->AddSep(_("Some new menu header"));
 
-	menu->AddItem(_("Create raw points"), FREEHAND_Raw_Path, LAX_ISTOGGLE|(istyle&FREEHAND_Raw_Path)?LAX_CHECKED:0);
-	menu->AddItem(_("Some menu item"), SOME_MENU_VALUE);
+	menu->AddToggleItem(_("New checkbox"), laximage_icon, YOUR_CHECKBOX_ID, checkbox_info, (istyle & STYLEFLAG) /*on*/, -1 /*where*/);
+	menu->AddItem(_("Some menu item"), YOUR_MENU_VALUE);
 	menu->AddSep(_("Some separator text"));
-	menu->AddItem(_("Et Cetera"), SOME_OTHER_VALUE);
-	menp->AddItem(_("Item with info"), SOME_ITEM_ID, LAX_OFF, items_info);
+	menu->AddItem(_("Et Cetera"), YOUR_OTHER_VALUE);
+	menp->AddItem(_("Item with info"), YOUR_ITEM_ID, LAX_OFF, items_info);
 
 	 //include <lax/iconmanager.h> if you want access to default icons
 	LaxImage icon = iconmanager->GetIcon("NewDirectory");
