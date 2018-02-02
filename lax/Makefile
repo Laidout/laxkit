@@ -80,6 +80,7 @@ objs= \
 	fileutils.o \
 	freedesktop.o \
 	tagged.o \
+	iobuffer.o \
 	attributes.o \
 	units.o \
 	undo.o \
