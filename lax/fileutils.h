@@ -23,6 +23,8 @@
 #ifndef _LAX_FILEUTILS_H
 #define _LAX_FILEUTILS_H
 
+#include <lax/iobuffer.h>
+
 #include <cstdio>
 #include <sys/stat.h>
 
@@ -35,8 +37,9 @@ int getline(char **line, size_t *n,FILE *f);
 #endif  //_LAX_PLATFORM_MAC
 
 int how_indented(char *str,char **strt=NULL);
-int getline_indent_nonblank(char **line, size_t *n,FILE *f, int indent, 
+int getline_indent_nonblank(char **line, size_t *n, IOBuffer &f, int indent, 
 					const char *comment,char quote='"',char skiplines=1, int *lineindent=NULL);
+
 int cut_comment(char *str,const char *cm="#",char quote='"');
 int is_good_filename(const char *filename);
 int check_dirs(const char *dirs,char make_too);

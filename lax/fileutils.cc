@@ -106,7 +106,7 @@ int how_indented(char *str,char **strt)//strt=NULL;
  * 
  * Returns the number of character bytes in the current line.
  */
-int getline_indent_nonblank(char **line, size_t *n,FILE *f, int indent, 
+int getline_indent_nonblank(char **line, size_t *n, IOBuffer &f, int indent, 
 							const char *comment,char quote,char skiplines, int *lineindent)//skiplines=1
 {
 	long pos;
@@ -115,10 +115,11 @@ int getline_indent_nonblank(char **line, size_t *n,FILE *f, int indent,
 
 	 //one iteration per line of the file. If the line is just whitespace or
 	 //whitespace plus a comment, then skip it.
-	while (!feof(f)) {
-		pos = ftell(f);
-		c   = getline(line,n,f);
+	while (!f.IsEOF()) {
+		pos = f.Curpos();
+		c   = f.GetLine(line,n);
 		if (c <= 0) break;
+
 		c = strlen(*line); //does getline read in \0 chars?
 		cc += c;
 		c -= cut_comment(*line,comment,quote);
@@ -129,9 +130,9 @@ int getline_indent_nonblank(char **line, size_t *n,FILE *f, int indent,
 			if (c==0 || i==c) continue; //skip blank line..
 		}
 		if (i < indent) { // line too short, so return now with blank line..
-			fseek(f,pos,SEEK_SET);
-			if (feof(f)) clearerr(f);
-			if (*line) free(*line);
+			f.SetPos(pos);
+			if (f.IsEOF()) f.Clearerr();
+			if (*line) f.FreeGetLinePtr(*line); //free(*line);
 			*line=NULL;
 			*n=0;
 			if (lineindent) *lineindent=i;

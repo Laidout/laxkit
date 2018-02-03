@@ -29,7 +29,12 @@
 #include <cstring>
 
 
-namespace Laxkit {
+#define DBG
+#include <iostream>
+using namespace std;
+
+
+namespace LaxFiles {
 
 
 /*! \class IOBuffer
@@ -70,7 +75,10 @@ IOBuffer::~IOBuffer()
 {
 	delete[] astr;
 	delete[] filename;
-	if (f) fclose(f);
+	if (f) {
+		DBG cerr <<"IOBuffer destructor closing f."<<endl;
+		fclose(f);
+	}
 }
 
 /*! Set the buffer blocksize used when allocating new string space.
@@ -262,6 +270,9 @@ int IOBuffer::GetLine(char **lineptr, size_t *n)
 
 /*! kludge to that calling code can be agnostic about how GetLine() is
  * allocating new lines.
+ *
+ * Note that lineptr is totally independent of IOBuffer. It is not stored
+ * locally anywhere in *this.
  */
 void IOBuffer::FreeGetLinePtr(char *lineptr)
 {
@@ -325,12 +336,12 @@ int IOBuffer::IsOpen()
 	return f != NULL;
 }
 
-/*! If f exists and is not ff, then fclose it.
- * Takes ff, and will close it in destructor if you don't do UseThis(NULL) beforehand.
+/*! This will set up to use ff instead of existing f.
+ * Please note that the previous f WILL NOT BE CLOSED! It will just be forgotten by *this.
+ * Also note that the new ff WILL BE CLOSED in destructor if you don't do UseThis(NULL) beforehand! Important!!
  */
 int IOBuffer::UseThis(FILE *ff)
 {
-	if (f && f != ff) fclose(f);
 	f = ff;
 	what = WHAT_File;
 	return 0;
@@ -448,5 +459,5 @@ int IOBuffer::OpenString(const char *str)
 
 
 
-} //namespace Laxkit;
+} //namespace LaxFiles;
 

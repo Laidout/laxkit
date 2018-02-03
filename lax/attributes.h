@@ -56,22 +56,22 @@ class Attribute {
 
 	unsigned int flags;
 
-	Attribute() { name=value=atttype=comment=NULL; flags=0; }
-	Attribute(const char *nn, const char *nval,const char *nt=NULL);
+	Attribute() { name = value = atttype = comment = NULL;  flags = 0; }
+	Attribute(const char *nn, const char *nval, const char *nt=NULL);
 	virtual ~Attribute();
 	virtual Attribute *duplicate();
-	virtual Attribute *find(const char *fromname,int *i_ret=NULL);
-	virtual const char *findValue(const char *fromname,int *i_ret=NULL);
-	virtual double findDouble(const char *fromname,int *i_ret=NULL);
-	virtual long findLong(const char *fromname,int *i_ret=NULL);
+	virtual Attribute  *find      (const char *fromname, int *i_ret=NULL);
+	virtual const char *findValue (const char *fromname, int *i_ret=NULL);
+	virtual double      findDouble(const char *fromname, int *i_ret=NULL);
+	virtual long        findLong  (const char *fromname, int *i_ret=NULL);
 	virtual Attribute *pushSubAtt(const char *nname, const char *nvalue=NULL);
-	virtual int push(Attribute *att,int where);
+	virtual int push(Attribute *att, int where);
 	virtual int push(const char *nname);
-	virtual int push(const char *nname,const char *nval,int where=-1);
-	virtual int push(const char *nname,long nval,int where=-1);
+	virtual int push(const char *nname,const char *nval,  int where=-1);
+	virtual int push(const char *nname,long nval,         int where=-1);
 	virtual int push(const char *nname,unsigned long nval,int where=-1);
-	virtual int push(const char *nname,int nval,int where=-1);
-	virtual int push(const char *nname,double nval,int where=-1);
+	virtual int push(const char *nname,int nval,          int where=-1);
+	virtual int push(const char *nname,double nval,       int where=-1);
 	virtual Attribute *Top() { if (attributes.n) return attributes.e[attributes.n-1]; return NULL; }
 	virtual int remove(int index);
 	virtual void clear();
@@ -82,10 +82,12 @@ class Attribute {
 	virtual int   dump_in_json(const char *str);
 	virtual int   dump_in_xml (const char *str);
 
-	virtual int   dump_in          (Laxkit::IOBuffer &f, int Indent,Attribute **stopatsub=NULL);
-	virtual int   dump_in          (FILE *f, int Indent,Attribute **stopatsub=NULL);
-	virtual char *dump_in_indented (FILE *f, int indent);
-	virtual char *dump_in_until    (FILE *f, const char *str, int indent=0);
+	virtual int   dump_in     (FILE *f,             int Indent,Attribute **stopatsub=NULL);
+	virtual int   dump_in     (IOBuffer &f, int Indent,Attribute **stopatsub=NULL);
+
+	virtual char *dump_in_indented (IOBuffer &f, int indent);
+	virtual char *dump_in_until    (IOBuffer &f, const char *str, int indent=0);
+
 	virtual void  dump_out         (FILE *f, int Indent);
 	virtual void  dump_out_full    (FILE *f, int Indent);
 };
@@ -107,7 +109,7 @@ void dump_out_quoted(FILE *f, const char *value, char quote);
 
 char *escape_string(const char *value, char quote, bool include_quotes);
 
-void skip_to_next_attribute(FILE *f,int indent);
+void skip_to_next_attribute(IOBuffer &f, int indent);
 
 //---------------------------------- Value Conversion Routines -----------------------------------	
 int ByteSizeAttribute(const char *s, long *ll, char towhat);

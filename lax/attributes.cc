@@ -1263,30 +1263,31 @@ void dump_out_indented(FILE *f, int indent, const char *str)
 //! Skip until the first nonblank, non-comment line that has indentation less or equal to indent.
 /*! If that is the current line, then don't move.
  */
-void skip_to_next_attribute(FILE *f,int indent)
+void skip_to_next_attribute(IOBuffer &f,int indent)
 {
 	long pos;
 	char *line=NULL;
 	size_t n=0;
 	int c,i;
-	while (!feof(f)) {
-		pos=ftell(f);
-		i=0;
-		c=getline_indent_nonblank(&line,&n,f,indent,"#",'"',0, &i); //0 means dont skip lines
+
+	while (!f.IsEOF()) {
+		pos = f.Curpos();
+		i = 0;
+		c = getline_indent_nonblank(&line,&n,f,indent,"#",'"',0, &i); //0 means dont skip lines
 		if (!c) break;
 		if (i<=indent) {
-			fseek(f,pos,SEEK_SET);
+			f.SetPos(pos);
 			break;
 		} 
 	}
-	if (line) free(line);
+	if (line) f.FreeGetLinePtr(line);
 }
 
 
 //---------------------------------- Attribute -----------------------------------	
 /*! \class Attribute
  * \ingroup attributes
- * \brief Basic building block of entries
+ * \brief Class to facilitate Laxkit's file io of data.
  *
  * Attributes have a unique name, a particular value, and any number of additional subattributes.
  * They can read and write what I'm calling ida files. Ida standing for 
@@ -1330,17 +1331,17 @@ Attribute::~Attribute()
 	delete[] comment;
 }
 
-//! Set name, value, atttype to NULL and flush attributes.
+//! Set name, value, atttype, comment to NULL and flush attributes.
 void Attribute::clear()
 {
-	if (name)    { delete[] name;    name    = NULL; }
-	if (value)   { delete[] value;   value   = NULL; }
-	if (atttype) { delete[] atttype; atttype = NULL; }
+	delete[] name;    name    = NULL;
+	delete[] value;   value   = NULL;
+	delete[] atttype; atttype = NULL;
 	delete[] comment; comment = NULL;
 	attributes.flush();
 }
 
-/*! Update this->comment. Important: Should not contain newlines.
+/*! Update this->comment. Important: Currently, should not contain newlines.
  */
 void Attribute::Comment(const char *ncomment)
 {
@@ -1351,7 +1352,9 @@ void Attribute::Comment(const char *ncomment)
 Attribute *Attribute::duplicate()
 {
 	Attribute *att=new Attribute(name,value,atttype);
-	att->flags=flags;
+	att->flags = flags;
+	makestr(att->comment, comment);
+
 	for (int c=0; c<attributes.n; c++) {
 		if (!attributes.e[c]) continue; //tweak to ignore NULL attributes
 		att->push(attributes.e[c]->duplicate(),-1);
@@ -1619,7 +1622,7 @@ void Attribute::dump_out_full(FILE *f, int indent)
  * Comments are stripped from each line. A comment is anything
  * from an unescaped, unquoted '#' character to the end of the line.
  */
-char *Attribute::dump_in_indented(FILE *f, int Indent)
+char *Attribute::dump_in_indented(IOBuffer &f, int Indent)
 {
 	char *line=NULL,*str=NULL,*tline;
 	size_t n;
@@ -1629,34 +1632,34 @@ char *Attribute::dump_in_indented(FILE *f, int Indent)
 	int firstindent=-1;
 	int linenumber=0;
 
-	while (!feof(f)) {
-		pos=ftell(f);
+	while (!f.IsEOF()) {
+		pos = f.Curpos();
 		linenumber++;
 
 		//DBG cerr <<"dump in, line number: "<<linenumber<<endl;
 
-		c=getline_indent_nonblank(&line,&n,f,Indent,"#",'"',0); //0 means dont skip lines
+		c = getline_indent_nonblank(&line,&n,f,Indent,"#",'"',0); //0 means dont skip lines
 		if (c<=0) break;
 
-		indent=how_indented(line);
-		if (firstindent<0) firstindent=indent;
+		indent = how_indented(line);
+		if (firstindent<0) firstindent = indent;
 
-		if (indent<Indent) {
-			fseek(f,pos,SEEK_SET);
-			if (feof(f)) clearerr(f);
-			if (line) free(line);
+		if (indent < Indent) {
+			f.SetPos(pos);
+			if (f.IsEOF()) f.Clearerr();
+			if (line) f.FreeGetLinePtr(line);
 			line=NULL;
 			n=0;
 			return str;
 		}
 		 //preserve spaces beyond Indent, but pull back if less than first 
 		 //indent, but more than Indent
-		if (indent<firstindent) firstindent=indent;
-		else indent=firstindent;
+		if (indent<firstindent) firstindent = indent;
+		else indent = firstindent;
 
-		tline=line+indent;
-		c-=indent;
-		if (c<=0) break;
+		tline = line+indent;
+		c -= indent;
+		if (c <= 0) break;
 		if (linenumber>1) appendstr(str,"\n");
 
 		if (!strcmp(tline,".")) {
@@ -1669,7 +1672,7 @@ char *Attribute::dump_in_indented(FILE *f, int Indent)
 		}
 	}
 	
-	if (line) free(line);
+	if (line) f.FreeGetLinePtr(line);
 	return str;
 }
 
@@ -1679,29 +1682,32 @@ char *Attribute::dump_in_indented(FILE *f, int Indent)
  * Comments are not stripped. The final newline before the tag is not
  * included.
  */
-char *Attribute::dump_in_until(FILE *f, const char *tag, int Indent)//indent=0
+char *Attribute::dump_in_until(IOBuffer &f, const char *tag, int Indent)//indent=0
 {
-	char *str=NULL;
-	char *line=NULL,*tline;
+	char *str  = NULL;
+	char *line = NULL, *tline;
 	size_t n;
 	int c,indent=-1,i;
 	long pos;
-	while (!feof(f)) {
-		pos=ftell(f);
-		c=getline(&line,&n,f);
+
+	while (!f.IsEOF()) {
+		pos = f.Curpos();
+		c = f.GetLine(&line,&n);
 		if (c<=0) break;
-		if (indent==-1) indent=i=how_indented(line);
-		else i=how_indented(line);
-		if (i<Indent) { // not indented enough, so return.
-			fseek(f,pos,SEEK_SET);
-			if (feof(f)) clearerr(f);
-			if (line) free(line);
-			line=NULL;
-			n=0;
+
+		if (indent==-1) indent = i = how_indented(line);
+		else i = how_indented(line);
+
+		if (i < Indent) { // not indented enough, so return.
+			f.SetPos(pos);
+			if (f.IsEOF()) f.Clearerr();
+			if (line) f.FreeGetLinePtr(line);
 			return 0;
-		} else if (i<indent) indent=i;
-		tline=line+indent;
-		c-=indent;
+
+		} else if (i < indent) indent = i;
+		
+		tline = line+indent;
+		c -= indent;
 		//if (c<=0) break; ***use blank lines....
 		if (!strncmp(tline,tag,strlen(tag)) && (!tline[strlen(tag)] || tline[strlen(tag)]=='\n')) {
 			 // tag reached, so break;
@@ -1709,7 +1715,7 @@ char *Attribute::dump_in_until(FILE *f, const char *tag, int Indent)//indent=0
 		}
 		appendstr(str,tline);
 	}
-	if (line) free(line);
+	if (line) f.FreeGetLinePtr(line);
 	if (str[strlen(str)-1]=='\n') str[strlen(str)-1]='\0';
 	return str;
 }
@@ -1727,6 +1733,19 @@ char *removeescapes(char *&str)
 		}
 	}
 	return str;
+}
+
+/*! This function just wraps f in an IOBuffer, and calls dump_in(IOBuffer &f, int Indent,Attribute **stopatsub=NULL)
+ */
+int Attribute::dump_in(FILE *f, int Indent,Attribute **stopatsub)//stopatsub=NULL
+{
+	IOBuffer ff;
+	ff.UseThis(f);
+
+	dump_in(ff,Indent,stopatsub);
+
+	ff.UseThis(NULL);
+	return 0;
 }
 
 //! Read in sub-attribute data, starting after initial line...
@@ -1770,9 +1789,10 @@ char *removeescapes(char *&str)
  * \todo make name==NULL (in file as "") and value=something like "1234\naeuo" behave in
  *   some sort of reasonable way, like have name become "" or ~ or something..
  */
-int Attribute::dump_in(FILE *f, int Indent,Attribute **stopatsub)//stopatsub=NULL
+int Attribute::dump_in(IOBuffer &f, int Indent,Attribute **stopatsub)
 {
-	if (feof(f)) return 0;
+	if (f.IsEOF()) return 0;
+
 	char *line=NULL;
 	int c,indent;
 	size_t n=0;
@@ -1781,25 +1801,26 @@ int Attribute::dump_in(FILE *f, int Indent,Attribute **stopatsub)//stopatsub=NUL
 	Attribute *att=NULL;
 	if (stopatsub) *stopatsub=NULL;
 
-	while (!feof(f)) {
-		c=getline_indent_nonblank(&line,&n,f,Indent,"#",'"',1);
-		if (c<=0) break; // eof or bad line
+	while (!f.IsEOF()) {
+		c = getline_indent_nonblank(&line,&n,f,Indent,"#",'"',1);
+		if (c <= 0) break; // eof or bad line
 		
 		 // now line is on a properly indented line that has no trailing whitespace
-		fld=line;
+		fld = line;
 		while (isspace(*fld)) fld++;
-		indent=fld-line; //*** must check for improperly indented file!!
+		indent = fld-line; //*** must check for improperly indented file!!
 				// the line should be at least Indent as per the above getline
 				// wrong:
 				//   blah
 				//       subblah
 				//     subblah
-		val=fld;
+		val = fld;
 		while (*val && !isspace(*val)) val++;
-		nf=val-fld;
+		nf = val-fld;
 		while (isspace(*val)) val++;
 		fld[nf]='\0';
 		if (val-fld==nf) val=NULL;
+
 		 // now fld points to the potential field name, which goes for nf chars,
 		 // and val points to the start of the value part.
 		 // fld can be:
@@ -1813,73 +1834,66 @@ int Attribute::dump_in(FILE *f, int Indent,Attribute **stopatsub)//stopatsub=NUL
 		 //   < BLAH <-- indented raw read in until BLAH is encountered again. 
 		 //   (NULL)
 		 //   somesimplevalue
-//disabling the add to attribute feature. this should be a post processing feature:
-//		if (*fld=='+') {
-//			fld++; 
-//			nf--;
-//			 // find fld in attributes
-//			for (c=0; c<attributes.n; c++) {
-//				if (!strcmp(fld,attributes.e[c]->name)) {
-//					att=attributes.e[c];
-//					break;
-//				}
-//			}
-//			if (c==attributes.n) att=new Attribute;
-//		}
+
 		if (!att) {
 			att=new Attribute;
 			makestr(att->name,fld);
 			removeescapes(att->name);
 			attributes.push(att);
 		}
+
 		numattsread++;
 		if (!val) {} // do nothing for null value
 		else if (!strcmp(val,"\\")) {
 			//**** there's confusion when line ends in "\   "..
 			 // name \ #comment should have been stripped
 			 //   stuff
-			val=temp=dump_in_indented(f,indent+1);
+			val = temp = dump_in_indented(f,indent+1);
+
 		} else if (!strncmp(val,"<<<",3)) {
 			 // <<< filename
-			val+=3;
+			val += 3;
 			while (isspace(*val)) val++;
 			if (!*val) { 
-				val=NULL; 
+				val = NULL; 
 				DBG cerr <<" <<< broken filename!!"<<endl; 
 			} else {
 				// *** supposed to read in file and put it in attribute
 			}
+
 		} else if (!strncmp(val,"<<",2)) {
 			 // << INDENTEDTAG
-			val+=2;
+			val += 2;
 			while (isspace(*val)) val++;
 			if (!*val) { 
-				val=NULL;
+				val = NULL;
 				DBG cerr <<" <<< broken indented tag!! "<<endl;
 			} else {
-				val=temp=dump_in_until(f,val,indent+1);
+				val = temp = dump_in_until(f,val,indent+1);
 			}
+
 		} else if (*val=='<') {
 			 // < RAWTAG
 			val++;
 			while (isspace(*val)) val++;
 			if (!*val) {
-				val=NULL;
+				val = NULL;
 				DBG cerr <<" <<< broken rawtag!! "<<endl;
 			} else {
-				val=temp=dump_in_until(f,val,0);
+				val = temp = dump_in_until(f,val,0);
 			}
+
 		} else { // is a simple value on name line, check for quotes.. 
 			if (*val=='"') { 
 				 // if end of val is a matched quote, remove quotes..
-				int e=0, //e==1 if a backslash is encountered, and must parse next char
-					m=0, //the number of recognizable chunks, must be 1 at end to remove quotes
-					q=0; //the position of the last unescaped quote
+				int e = 0, //e==1 if a backslash is encountered, and must parse next char
+					m = 0, //the number of recognizable chunks, must be 1 at end to remove quotes
+					q = 0; //the position of the last unescaped quote
 				for (c=1; val[c]!='\0'; c++) {
-					if (e) { e=0; continue; }
-					if (q>0 && !isspace(val[c])) { m=2; break; }
-					if (val[c]=='\\') e=!e;
-					else if (val[c]=='"') { q=c; m++; }
+					if (e) { e = 0; continue; }
+					if (q>0 && !isspace(val[c])) { m = 2; break; }
+					if (val[c]=='\\') e = !e;
+					else if (val[c]=='"') { q = c; m++; }
 				}
 				// if loop was broken 1 before end, then remove quotes
 				if (m==1) { // was matched quote, need to unescape quotes now
@@ -1903,26 +1917,23 @@ int Attribute::dump_in(FILE *f, int Indent,Attribute **stopatsub)//stopatsub=NUL
 		if (stopatsub) {
 			*stopatsub=att;
 			if (temp) delete[] temp;
-			if (line) free(line);
+			if (line) f.FreeGetLinePtr(line);
 			return indent;
 		} else att->dump_in(f,indent+1);
 		att=NULL;
 	}
-	if (temp) delete[] temp;
-	if (line) free(line);
-	return numattsread;
-}
 
-int Attribute::dump_in(IOBuffer &f, int Indent,Attribute **stopatsub)
-{
-	cerr << " *** need to implement Attribute::dump_in(IOBuffer &f..)!!"<<endl;
-	return -1;
+	if (temp) delete[] temp;
+	if (line) f.FreeGetLinePtr(line);
+	return numattsread;
 }
 
 
 //! Read in a whole database.
 /*! The base is name=file, value=filename.
- * If what==0, assume att style. 1==json, 2=xml.
+ * For what, see AttributeTypes. Default is ATT_Att.
+ * Also checks for ATT_Json and ATT_Xml.
+ * Warning that xml may fail for html that does not have closing indications on any tags.
  *
  * \todo *** when dumping in, it is sometimes useful to preserve what the position in the file
  *   at which the attribute is written. this would require an extra long variable in Attribute..
@@ -1933,35 +1944,20 @@ int Attribute::dump_in(IOBuffer &f, int Indent,Attribute **stopatsub)
  */
 int Attribute::dump_in(const char *filename, int what)
 {
-//	IOBuffer f;
-//	f.OpenFile(filename);
-//
-//	if (!f.IsOpen()) {
-//		DBG cerr <<"Open "<<filename<<" failed."<<endl;
-//		return 1;
-//	}
-//
-//	makestr(name,"file");
-//	makestr(value,filename);
-//	makestr(atttype,NULL);
-//
-//	DBG cerr <<"Reading "<<filename<<"...."<<endl;
-//
-//	dump_in(f,0);
-//
-//	f.Close();
-//	-------------
-	if (what == 1) {
+	if (what == ATT_Json) {
 		if (JsonFileToAttribute(filename, this) == this) return 0;
 		return 1;
 	}
-	if (what == 2) {
+	if (what == ATT_Xml) {
 		if (XMLFileToAttribute(this, filename, NULL) == this) return 0;
 		return 1;
 	}
 
-	FILE *f=fopen(filename,"rb");
-	if (!f) {
+//	-------------
+	IOBuffer f;
+	f.OpenFile(filename, "r");
+
+	if (!f.IsOpen()) {
 		DBG cerr <<"Open "<<filename<<" failed."<<endl;
 		return 1;
 	}
@@ -1974,7 +1970,25 @@ int Attribute::dump_in(const char *filename, int what)
 
 	dump_in(f,0);
 
-	fclose(f);
+	f.Close();
+//	-------------
+//	FILE *f=fopen(filename,"rb");
+//	if (!f) {
+//		DBG cerr <<"Open "<<filename<<" failed."<<endl;
+//		return 1;
+//	}
+//
+//	makestr(name,"file");
+//	makestr(value,filename);
+//	makestr(atttype,NULL);
+//
+//	DBG cerr <<"Reading "<<filename<<"...."<<endl;
+//
+//	dump_in(f,0);
+//
+//	fclose(f);
+//	-------------
+
 	return 0;
 }
 
@@ -1997,15 +2011,21 @@ int Attribute::dump_in_str(const char *str)
 	return 0;
 }
 
+/*! Return 0 success, or nonzero error.
+ */
 int Attribute::dump_in_json(const char *str)
 {
-	cerr << " *** need to implement  Attribute::dump_in_json()!"<<endl;
+	if (JsonStringToAttribute (str, this, NULL) == this) return 0;
 	return 1;
 }
 
+/*! Return 0 success, or nonzero error.
+ */
 int Attribute::dump_in_xml (const char *str)
 {
-	cerr << " *** need to implement  Attribute::dump_in_xml()!"<<endl;
+	long pos = 0;
+	const char **stand_alone_tag_list = NULL;
+	if (XMLChunkToAttribute(this, str,strlen(str), &pos, NULL, stand_alone_tag_list) == this) return 0;
 	return 1;
 }
 
@@ -2474,7 +2494,7 @@ Attribute *XMLChunkToAttribute(Attribute *att,
 							   const char **stand_alone_tag_list)
 {
 	if (!att) att=new Attribute;
-	
+
 	char *error=NULL, *value=NULL, *name=NULL;
 	char *nm,*vl,*e;
 	char final;
