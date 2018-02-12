@@ -228,8 +228,9 @@ double bez_segment_length(flatpoint p1,flatpoint c1,flatpoint c2,flatpoint p2, i
  *
  * Naively breaks down each segment into resolution number of pieces.
  *
- * If first_is_v, then the first point in pts is a vertex, not an off line control point.
- * pts must be structured as v-c-c-v-c-c-v or c-v-c-c-v-c.
+ * If first_is_v, then the first point in pts is a vertex,
+ * and points are  v-c-c-v-c-c-v. Otherwise, first point is assumed
+ * to be a tonext control point, so points are c-v-c-c-v-c.
  * Any point info in pts[].info is ignored.
  *
  * If closed, then connect the final vertex with the first vertex.
