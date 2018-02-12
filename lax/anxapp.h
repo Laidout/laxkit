@@ -290,6 +290,7 @@ struct TimerInfo
 	long info;
 	clock_t endtime,firsttick,ticktime;
 	clock_t nexttime;
+	clock_t starttime, lastactualtime;
 	EventReceiver *win;
 	
 	TimerInfo() { info=0; id=0; endtime=firsttick=ticktime=nexttime=0; win=NULL; }
