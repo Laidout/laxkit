@@ -136,6 +136,7 @@ int HexColorAttributeRGB(const char *v,unsigned long *l,const char **endptr);
 int HexColorAttributeRGB(const char *v,Laxkit::ScreenColor *color,const char **endptr);
 int FlatvectorAttribute(const char *v,flatvector *l,char **endptr=NULL);
 int SpacevectorAttribute(const char *v,spacevector *l,char **endptr=NULL);
+int QuaternionAttribute(const char *v,Quaternion *l,char **endptr=NULL);
 
 
 //---------------------------------- XML Conversion helpers -------------------------------

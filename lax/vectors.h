@@ -59,6 +59,7 @@ class spacevector
 	spacevector operator-();
 	void normalize();
 	void set(double xx,double yy,double zz) { x=xx; y=yy; z=zz; }
+	void get(double *v) { v[0]=x; v[1]=y; v[2]=z; }
 
 	bool isZero() const { return x==0 && y==0 && z==0; }
 	double norm() const { return sqrt(x*x+y*y+z*z); }
@@ -102,6 +103,7 @@ class flatvector
 	flatvector operator-();
 	void normalize();
 	void set(double xx,double yy) { x=xx; y=yy; }
+	void get(double *v) { v[0]=x; v[1]=y; }
 
 	bool isZero() const { return x==0 && y==0; }
 	double angle() const { return atan2(y,x); }
@@ -230,23 +232,38 @@ spacepoint invert(spacepoint p, spacepoint orig);
 void dump_points(const char *label, flatpoint *p,int n, int offset=0);
 flatpoint *SvgToFlatpoints(const char *d, char **endptr, int how, flatpoint *buffer, int buffersize, int *totalpoints, int normalize);
 
-//class Quaternion
-//{
-//  public:
-//	double x,y,z,w;
-//	int info;
-//	spacevector(void) {x=y=z=0; w=1; info=0; }
-//	spacevector(double xx, double yy, double zz, double ww) {x=xx; y=yy; z=zz; w=ww; info=0;}
-//	spacevector(double *v) { x=v[0]; y=v[1]; z=v[2]; w=z[3]; info=0; }
-//	spacevector(const Quaternion &vec) {  x=vec.x; y=vec.y; z=vec.z; w=vec.w; info=vec.info;  }
-//	spacevector operator-();
-//	void normalize();
-//	void set(double xx,double yy,double zz, double ww) { x=xx; y=yy; z=zz; w=ww; }
-//
-//	bool isZero() const { return x==0 && y==0 && z==0 && w==0; }
-//	double norm() const { return sqrt(x*x+y*y+z*z+w*w); }
-//	double norm2() const { return x*x+y*y+z*z+w*w; }
-//};
+class Quaternion
+{
+  public:
+	double x,y,z,w;
+	int info;
+	Quaternion(void) {x=y=z=0; w=1; info=0; }
+	Quaternion(double xx, double yy, double zz, double ww) {x=xx; y=yy; z=zz; w=ww; info=0;}
+	Quaternion(double *v) { x=v[0]; y=v[1]; z=v[2]; w=v[3]; info=0; }
+	Quaternion(const Quaternion &vec) {  x=vec.x; y=vec.y; z=vec.z; w=vec.w; info=vec.info;  }
+	Quaternion operator-();
+	void normalize();
+	Quaternion conjugate();
+	void set(double xx,double yy,double zz, double ww) { x=xx; y=yy; z=zz; w=ww; }
+	void set(double *v) { x=v[0]; y=v[1]; z=v[2]; w=v[3]; }
+	void get(double *v) { v[0]=x; v[1]=y; v[2]=z; v[3]=w; }
+
+	bool isZero() const { return x==0 && y==0 && z==0 && w==0; }
+	double norm() const { return sqrt(x*x+y*y+z*z+w*w); }
+	double norm2() const { return x*x+y*y+z*z+w*w; }
+};
+int operator==(Quaternion v1,Quaternion v2);
+int operator!=(Quaternion v1,Quaternion v2);
+Quaternion operator+(Quaternion a,Quaternion b);
+Quaternion operator+=(Quaternion &a,Quaternion b);
+Quaternion operator-(Quaternion a,Quaternion b);
+Quaternion operator-=(Quaternion &a,Quaternion b);
+Quaternion operator*(double r, Quaternion a);  /*const times Quaternion */
+Quaternion operator*(Quaternion a, double r);  /*const times Quaternion */
+Quaternion operator*=(Quaternion &a, double r);  /*const times Quaternion */
+Quaternion operator/(Quaternion a,double r);  /* divide y double */
+Quaternion operator/=(Quaternion &a,double r);
+Quaternion operator*(Quaternion a,Quaternion b);
 
 //} //namespace LaxMath
 
