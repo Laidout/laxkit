@@ -181,6 +181,9 @@ int ScrolledWindow::Event(const EventData *e,const char *mes)
 //! Define the area that the scrollers and thewindow should go in.
 /*! Default is the whole window.
  * Derived classes can redefine this to remove any space that they want to use.
+ *
+ * Scrollers are carved out of outrect to produce inrect, and then adjustinrect()
+ * is called to allow subclasses to further reduce actual item drawing area.
  */
 void ScrolledWindow::findoutrect()
 {
