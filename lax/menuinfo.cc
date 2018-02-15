@@ -1090,7 +1090,7 @@ void MenuInfo::ClearSearch()
 
 //! Progressively search for items, caseless+partial. search==NULL matches all.
 /*! Sets MENU_SEARCH_HIT on matching items.
- *  Sets MENU_SEARCH_PARENT on items that don't match, but who has descendents.
+ *  Sets MENU_SEARCH_PARENT on items that don't match, but who has matching descendents.
  *
  *  If isprogressive, then assume that search is a string that contains the previous search.
  *
