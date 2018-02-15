@@ -38,7 +38,7 @@ namespace Laxkit {
 //------------------------------ SliderPopup ------------------------------
 /*! \class SliderPopup
  * \ingroup menuthings
- * \brief Basically an extended IconSlider to include a popup MenuSelector.
+ * \brief Basically an extended IconSlider to include a popup menu.
  *
  * \todo ******** needs work! update these docs 
  *
@@ -332,14 +332,15 @@ int SliderPopup::Event(const EventData *e,const char *mes)
 	return 0;
 }
 
-//! Create the Popup MenuSelector. Called from LBDown().
+//! Create the popup menu. Called from LBDown().
 void SliderPopup::makePopup(int mouseid)
 {
 	PopupMenu *popup;
 	int justify=0;
-	if (win_style&SLIDER_LEFT) justify|=MENUSEL_LEFT;
-	if (win_style&SLIDER_CENTER) justify|=MENUSEL_CENTER;
-	if (win_style&SLIDER_RIGHT) justify|=MENUSEL_RIGHT;
+	if (win_style&SLIDER_LEFT)   justify|=TREESEL_LEFT;
+	//if (win_style&SLIDER_CENTER) justify|=TREESEL_CENTER; //center is default
+	if (win_style&SLIDER_RIGHT)  justify|=TREESEL_RIGHT;
+
 	popup=new PopupMenu(items->title?items->title:"Item Popup",
 						items->title?items->title:"Item Popup",
 						0,
@@ -348,7 +349,7 @@ void SliderPopup::makePopup(int mouseid)
 						mouseid,
 						items,0,
 						NULL,
-						MENUSEL_GRAPHIC_ON_LEFT|justify);
+						justify);
 
 	popup->pad=pad;
 	popup->Select(curitem);
@@ -373,7 +374,7 @@ int SliderPopup::scan(int x,int y,unsigned int state)
 	return 0;
 }
 
-//! Pop up a MenuSelector with the items in it via popup() when click on arrow.
+//! Pop up a menu with the items in it via popup() when click on arrow.
 /*! \todo *** work out how transfer focus
  */
 int SliderPopup::LBDown(int x,int y,unsigned int state,int count,const LaxMouse *d)

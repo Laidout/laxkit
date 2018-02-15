@@ -40,7 +40,6 @@ namespace Laxkit {
  * \brief Class for a single item checkbox.
  *
  * Essentially, this is a toggle textbutton.
- * To have a list of possibly mutually exclusive check boxes use MenuSelector.
  *
  * <pre>
  *  state==LAX_ON selected, LAX_OFF==not selected

@@ -1185,7 +1185,7 @@ int FileDialog::Event(const EventData *data,const char *mes)
                         object_id,"settings", 
                         0, //mouse to position near?
                         bmenu,1, NULL,
-                        MENUSEL_LEFT|MENUSEL_CHECK_ON_LEFT|MENUSEL_DESTROY_ON_LEAVE);
+                        TREESEL_LEFT);
         popup->pad=5;
         popup->WrapToMouse(0);
         app->rundialog(popup);
