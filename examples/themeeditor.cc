@@ -4,6 +4,8 @@
 
 #include <lax/scroller.h>
 #include <lax/menuinfo.h>
+#include <lax/menubutton.h>
+#include <lax/popupmenu.h>
 #include <lax/rulerwin.h>
 #include <lax/dateselector.h>
 #include <lax/treeselector.h>
@@ -345,6 +347,26 @@ int ThemeControls::init()
 	AddWin(scroller,1,  10,0,10,50,0,    150,0,10000,50,0, -1);
 
 	AddWin(new YesNo(this),1, 200,50,50,50,0, 100,50,50,50,0, -1);
+
+	MenuInfo *pmenu = new MenuInfo;
+	for (int c=0; default_color_names[c]; c++) {
+		pmenu->AddItem(default_color_names[c]);
+		if (c%3==1) {
+			pmenu->SubMenu("Subpmenu");
+			pmenu->AddItem("1");
+			pmenu->AddItem("2");
+			pmenu->AddItem("3");
+			if (c%6==1) {
+				pmenu->SubMenu("Subpmenu");
+				pmenu->AddItem("4");
+				pmenu->AddItem("5");
+				pmenu->AddItem("6");
+				pmenu->EndSubMenu();
+			}
+			pmenu->EndSubMenu();
+		}
+	}
+	AddWin(new MenuButton(this,"menu","menu",MENUBUTTON_DOWNARROW, 0,0,0,0,1, NULL,0,NULL, 0, pmenu,1, "Popup Menu"),1, -1);
 
 	AddNull();
 	AddSpacer(10,0,100000,50, 10,0,0,50);
