@@ -41,47 +41,48 @@ namespace Laxkit {
 #define TREESEL_SCROLLERS            (1LL<<3 )
 #define TREESEL_USE_TITLE            (1LL<<4 )
 #define TREESEL_LIVE_SEARCH          (1LL<<6 )
+#define TREESEL_STATIC_SEARCH        (1LL<<7 )
 
-#define TREESEL_SORT_NUMBERS         (1LL<<7 )
-#define TREESEL_SORT_LETTERS         (1LL<<8 )
-#define TREESEL_SORT_REVERSE         (1LL<<9 )
-#define TREESEL_SORT_IGNORE_CASE     (1LL<<10)
-#define TREESEL_SORT_BY_EXTENSIONS   (1LL<<11)
+#define TREESEL_SORT_NUMBERS         (1LL<<8 )
+#define TREESEL_SORT_LETTERS         (1LL<<9 )
+#define TREESEL_SORT_REVERSE         (1LL<<10)
+#define TREESEL_SORT_IGNORE_CASE     (1LL<<11)
+#define TREESEL_SORT_BY_EXTENSIONS   (1LL<<12)
 
-#define TREESEL_USE_DOT              (1LL<<12)
-#define TREESEL_USE_DOT_DOT          (1LL<<13)
+#define TREESEL_USE_DOT              (1LL<<13)
+#define TREESEL_USE_DOT_DOT          (1LL<<14)
 
-#define TREESEL_ONE_ONLY             (1LL<<14)
-#define TREESEL_ZERO_OR_ONE          (1LL<<15)
-#define TREESEL_SELECT_ANY           (1LL<<16)
-#define TREESEL_SELECT_LEAF_ONLY     (1LL<<17)
-#define TREESEL_SELECT_SUB_ONLY      (1LL<<18)
-#define TREESEL_CURSSELECTS          (1LL<<19)
-#define TREESEL_CURSSENDS            (1LL<<20)
-#define TREESEL_FOLLOW_MOUSE         (1LL<<21)
-#define TREESEL_GRAB_ON_MAP          (1LL<<22)
-#define TREESEL_GRAB_ON_ENTER        (1LL<<23)
+#define TREESEL_ONE_ONLY             (1LL<<15)
+#define TREESEL_ZERO_OR_ONE          (1LL<<16)
+#define TREESEL_SELECT_ANY           (1LL<<17)
+#define TREESEL_SELECT_LEAF_ONLY     (1LL<<18)
+#define TREESEL_SELECT_SUB_ONLY      (1LL<<19)
+#define TREESEL_CURSSELECTS          (1LL<<20)
+#define TREESEL_CURSSENDS            (1LL<<21)
+#define TREESEL_FOLLOW_MOUSE         (1LL<<22)
+#define TREESEL_GRAB_ON_MAP          (1LL<<23)
+#define TREESEL_GRAB_ON_ENTER        (1LL<<24)
 
-#define TREESEL_REARRANGEABLE        (1LL<<24)
-#define TREESEL_EDIT_IN_PLACE        (1LL<<25)
+#define TREESEL_REARRANGEABLE        (1LL<<25)
+#define TREESEL_EDIT_IN_PLACE        (1LL<<26)
 //*** add items?? (more than just editing names)
 //*** remove items??
 
-#define TREESEL_SEND_ON_UP           (1LL<<26)
-#define TREESEL_SEND_ON_ENTER        (1LL<<27)
-#define TREESEL_SEND_IDS             (1LL<<28)
-#define TREESEL_SEND_STRINGS         (1LL<<29)
-#define TREESEL_SEND_PATH            (1LL<<30)
-#define TREESEL_SEND_DETAIL          (1LL<<31)
-#define TREESEL_DESTROY_ON_UP        (1LL<<32)
+#define TREESEL_SEND_ON_UP           (1LL<<27)
+#define TREESEL_SEND_ON_ENTER        (1LL<<28)
+#define TREESEL_SEND_IDS             (1LL<<29)
+#define TREESEL_SEND_STRINGS         (1LL<<30)
+#define TREESEL_SEND_PATH            (1LL<<31)
+#define TREESEL_SEND_DETAIL          (1LL<<32)
+#define TREESEL_DESTROY_ON_UP        (1LL<<33)
 
-#define TREESEL_GRAPHIC_ON_RIGHT     (1LL<<33) //else on left
-#define TREESEL_NO_LINES             (1LL<<34)
-#define TREESEL_FLAT_COLOR           (1LL<<35)
-#define TREESEL_DONT_EXPAND          (1LL<<36)
+#define TREESEL_GRAPHIC_ON_RIGHT     (1LL<<34) //else on left
+#define TREESEL_NO_LINES             (1LL<<35)
+#define TREESEL_FLAT_COLOR           (1LL<<36)
+#define TREESEL_DONT_EXPAND          (1LL<<37)
 
-#define TREESEL_SUB_FOLDER           (1LL<<37) //arrow graphic is a little folder
-#define TREESEL_SUB_ON_RIGHT         (1LL<<38) //draw the submenu indicator on far right side
+#define TREESEL_SUB_FOLDER           (1LL<<38) //arrow graphic is a little folder
+#define TREESEL_SUB_ON_RIGHT         (1LL<<39) //draw the submenu indicator on far right side
 
 //... remember that the buck stops with (1<<63)
 

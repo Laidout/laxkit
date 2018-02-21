@@ -189,6 +189,9 @@ TreeSelector::TreeSelector(anXWindow *parnt,const char *nname,const char *ntitle
 	} else {
 		menu=new MenuInfo;
 	}
+
+	menustyle |= TREESEL_LIVE_SEARCH;
+	if (menustyle & TREESEL_STATIC_SEARCH) showsearch = true;
 }
 
 void TreeSelector::base_init()
@@ -655,6 +658,7 @@ int TreeSelector::ClearSearch()
 int TreeSelector::UpdateSearch(const char *searchterm, bool isprogressive)
 {
 	if (!menu) return 1;
+	if (searchterm && !strcmp(searchterm, " ")) return 1; //don't allow starting a search with a space
 
 	makestr(searchfilter, searchterm);
 
@@ -666,7 +670,7 @@ int TreeSelector::UpdateSearch(const char *searchterm, bool isprogressive)
 		if (isblank(searchfilter)) { //maybe it was "   "
 			delete[] searchfilter;
 			searchfilter=NULL;
-			showsearch = false;
+			if (!HasStyle(TREESEL_STATIC_SEARCH)) showsearch = false;
 
 		} else showsearch = true;
 		findoutrect();
@@ -2508,7 +2512,7 @@ int TreeSelector::WrapToPosition(int screen_x, int screen_y, int screen, anXWind
 	int ypref;
 	//ypref=(curitem%columnsize)*(textheight+leading)+pad;
 	MenuItem *curi = item(curitem);
-	ypref = curi->y;
+	ypref = (curi ? curi->y : 0);
 
 	if (eh>(int)screen_height) eh=screen_height;
 	if (y-ypref+eh>(int)screen_height-2) { // window goes offscreen below when centered on curitem
