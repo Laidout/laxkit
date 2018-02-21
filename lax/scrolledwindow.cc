@@ -215,60 +215,62 @@ void ScrolledWindow::syncWindows(int useinrect)//useinrect==0
 {
 	//***get rect to put the goodies in.. derived classes might want to take up some real estate....
 	
-	int x,y,w,h;
 	findoutrect();
+	inrect = outrect;
+	int x, y, w,h;
 
 	 // yscroller is placed first
 	if (yscroller && yscroller->win_on) {
-		x=win_style&SW_LEFT?0:win_w-scrollwidth;
-		w=scrollwidth;
+		x = (win_style & SW_LEFT) ? outrect.x : outrect.x + outrect.width - scrollwidth;
+		w = scrollwidth;
 		if (panpopup && panpopup->win_on) {
-			h=win_h-scrollwidth;
-			if (win_style&SW_TOP) y=scrollwidth;
-			else y=0;
-		} else { y=0; h=win_h; }
+			h = outrect.height - scrollwidth;
+			if (win_style & SW_TOP) y = outrect.y + scrollwidth;
+			else y = outrect.y;
+		} else { y = outrect.y; h = outrect.height; }
 		yscroller->MoveResize(x,y,w,h);
 	}
 	
 	 // xscroller placed inset by yscroller
 	if (xscroller && xscroller->win_on) {
-		y=win_style&SW_TOP?0:win_h-scrollwidth;
-		h=scrollwidth;
+		y = (win_style & SW_TOP) ? 0 : outrect.y + outrect.height - scrollwidth;
+		h = scrollwidth;
 		if ((yscroller && yscroller->win_on) || (panpopup && panpopup->win_on)) {
-			w=win_w-scrollwidth;
-			if (win_style&SW_LEFT) x=scrollwidth;
-			else x=0;
-		} else { x=0; w=win_w; }
+			w = outrect.width - scrollwidth;
+			if (win_style&SW_LEFT) x = outrect.x + scrollwidth;
+			else x = outrect.x;
+		} else { x = outrect.x; w = outrect.width; }
 		xscroller->MoveResize(x,y,w,h);
 	}
+
 	 // the scroller positioning above already took into account existence of panpopup..
 	if (panpopup && panpopup->win_on) {
-		if (win_style&SW_TOP) y=0; else y=win_h-scrollwidth;
-		if (win_style&SW_LEFT) x=0; else x=win_w-scrollwidth;
+		if (win_style & SW_TOP)  y = outrect.y; else y = outrect.y + outrect.height - scrollwidth;
+		if (win_style & SW_LEFT) x = outrect.x; else x = outrect.x + outrect.width  - scrollwidth;
 		panpopup->MoveResize(x,y,scrollwidth,scrollwidth);
 	}
 
 	 // define inrect
 	if (yscroller && yscroller->win_on) {
-		w=win_w-scrollwidth;
-		if (win_style&SW_LEFT) x=scrollwidth; else x=0;
-	} else { x=0; w=win_w; }
+		w = outrect.width - scrollwidth;
+		if (win_style & SW_LEFT) x = outrect.x + scrollwidth; else x = outrect.x;
+	} else { x = outrect.x;  w = outrect.width; }
 	if (xscroller && xscroller->win_on) {
-		h=win_h-scrollwidth;
-		if (win_style&SW_TOP) y=scrollwidth; else y=0;
-	} else { y=0; h=win_h; }
+		h = outrect.height - scrollwidth;
+		if (win_style & SW_TOP) y = outrect.y + scrollwidth; else y = outrect.y;
+	} else { y = outrect.y;  h = outrect.height; }
 
-	inrect.x=x;
-	inrect.y=y;
-	inrect.width=w;
-	inrect.height=h;
+	inrect.x      = x;
+	inrect.y      = y;
+	inrect.width  = w;
+	inrect.height = h;
 	adjustinrect();
 
 	 // Sync up thewindow, if present
 	if (thewindow) {
 		if (!(win_style&SW_MOVE_WINDOW)) {
-			w-=thewindow->win_border*2;
-			h-=thewindow->win_border*2;
+			w -= thewindow->win_border*2;
+			h -= thewindow->win_border*2;
 			thewindow->MoveResize(x,y,w,h);
 			panner->SetBoxAspect(thewindow->win_w,thewindow->win_h);
 		} else { //*** just move the window around, no resizing required.?? tell panner what?
