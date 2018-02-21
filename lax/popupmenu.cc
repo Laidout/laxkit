@@ -282,9 +282,15 @@ int PopupMenu::MouseMove(int x,int y,unsigned int state,const LaxMouse *d)
 	if (check) {
 		while (check && !check->MouseIn(x+win_x-check->win_x,y+win_y-check->win_y)) check = check->parentmenu;
 	}
+
+
 	if (check) { // is in one of the related windows, just shift the pointer grab
 		DBG cerr <<"---==< Grabbing: "<<check->WindowTitle()<<" ...";
 		//app->rundialog(check);
+		if (outtimer) {
+			app->removetimer(this, outtimer);
+			outtimer = 0;
+		}
 		app->setfocus(check,0,d->paired_keyboard);
 		const_cast<LaxMouse*>(d)->grabDevice(check);
 
@@ -292,8 +298,10 @@ int PopupMenu::MouseMove(int x,int y,unsigned int state,const LaxMouse *d)
 		DBG cerr <<"------< Mouse is not in a popup menu, setting timer to check"<<endl;
 
 		 //make this window idle after a second to check that the mouse is still in a related menu
-		if (!outtimer) {
+		if (outtimer) {
+			// *** there should be a modify timer
 			app->removetimer(this, outtimer);
+			outtimer = 0;
 		}
 		outtimer = app->addtimer(this, 1000, 1000, 1000);
 											
@@ -399,12 +407,22 @@ int PopupMenu::CharInput(unsigned int ch,const char *buffer,int len,unsigned int
 
 int PopupMenu::UpdateSearch(const char *searchterm, bool isprogressive)
 {
+	PopupMenu *top = Top();
+	if (this != top) return top->UpdateSearch(searchterm, isprogressive);
+
 	if (submenu) {
 		submenu->parentmenu = NULL;
 		app->destroywindow(submenu);
 		submenu = NULL;
 	}
 	return TreeSelector::UpdateSearch(searchterm, isprogressive);
+}
+
+PopupMenu *PopupMenu::Top()
+{
+	PopupMenu *top = this;
+	while (top->parentmenu) top = top->parentmenu;
+	return top;
 }
 
 } // namespace Laxkit

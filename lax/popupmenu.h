@@ -35,6 +35,7 @@ class PopupMenu : public TreeSelector
   protected:
 	PopupMenu *parentmenu, *submenu;
 	int outtimer;
+	PopupMenu *Top();
 
   public:
 	PopupMenu(const char *nname, const char *ntitle, unsigned long long style,
