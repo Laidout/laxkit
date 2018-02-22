@@ -59,6 +59,7 @@ class spacevector
 	spacevector operator-();
 	void normalize();
 	void set(double xx,double yy,double zz) { x=xx; y=yy; z=zz; }
+	void set(double *v) { x=v[0]; y=v[1]; z=v[2]; }
 	void get(double *v) { v[0]=x; v[1]=y; v[2]=z; }
 
 	bool isZero() const { return x==0 && y==0 && z==0; }
@@ -103,6 +104,7 @@ class flatvector
 	flatvector operator-();
 	void normalize();
 	void set(double xx,double yy) { x=xx; y=yy; }
+	void set(double *v) { x=v[0]; y=v[1]; }
 	void get(double *v) { v[0]=x; v[1]=y; }
 
 	bool isZero() const { return x==0 && y==0; }
