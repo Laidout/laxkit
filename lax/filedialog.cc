@@ -950,7 +950,7 @@ int FileDialog::Event(const EventData *data,const char *mes)
 {
 	DBG cerr <<"-----file dialog got: "<<mes<<endl;
 
-	const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(data);
+	const SimpleMessage *s = dynamic_cast<const SimpleMessage*>(data);
 
 	if (!strcmp(mes,"new directory")) {
 		if (!s) return 1;
@@ -968,7 +968,7 @@ int FileDialog::Event(const EventData *data,const char *mes)
 
 	} else if (!strcmp(mes,"Bookmarks")) {
 		const StrsEventData *ss=dynamic_cast<const StrsEventData *>(data);
-		int i1=ss->info2; //id of item
+		int i1 = ss->info2; //id of item
 
 		if (i1==-100) {
 			 // show recent
@@ -983,17 +983,18 @@ int FileDialog::Event(const EventData *data,const char *mes)
 		}
 		return 0;
 
-	} else if (!strcmp(mes,"files")) { // from menuselector
+	} else if (!strcmp(mes,"files")) { // from file list treeselector
+
+		MenuItem *item = files->findid(s->info2);
 
 		if (showing_recent) {
 			 //if possible update file and path to reflect curitem, whether or not
 			 // many items are selected.
-			if (s->info1<files->menuitems.n) {
-				const MenuItem *m=filelist->Item(s->info1); 
-				if (m) SetFile(m->name);
+			if (item) {
+				SetFile(item->name);
 
 				if (previewer) {
-					char *blah=fullFilePath(NULL);
+					char *blah = fullFilePath(NULL);
 					previewer->Preview(blah);
 					delete[] blah;
 				}
@@ -1001,27 +1002,31 @@ int FileDialog::Event(const EventData *data,const char *mes)
 		} else {
 
 			 //selected "."
-			if (s->info1==0 && files->menuitems.n && !strcmp(files->menuitems.e[0]->name,"."))
-				{ RefreshDir(); return 0; }
+			if (item && !strcmp(item->name,".")) {
+				RefreshDir();
+				return 0;
+			}
 			
 			 //selected ".."
-			if (s->info1==1 && files->menuitems.n>1 && !strcmp(files->menuitems.e[1]->name,".."))
-				{ GoUp(); return 0; }
+			if (item && !strcmp(item->name,"..")) {
+				GoUp();
+				return 0;
+			}
 
 			 //if possible update file and path to reflect curitem, whether or not
 			 // many items are selected.
-			if (s->info1<files->menuitems.n) {
-				MenuItem *m=files->findFromLine(s->info1);
-				if (m && m->state&LAX_HAS_SUBMENU) {
-					DBG cerr <<"....Cd("<<m->name<<")"<<endl;
-					Cd(m->name);
+			if (item) {
+				if (item->state & LAX_HAS_SUBMENU) {
+					DBG cerr <<"....Cd("<<item->name<<")"<<endl;
+					Cd(item->name);
 					return 0;
 				}
-				char *newfile=files->menuitems.e[s->info1]->name;
+
+				char *newfile = item->name;
 				SetFile(newfile);
 				//file->SetText(newfile);
 				if (previewer) {
-					char *blah=fullFilePath(NULL);
+					char *blah = fullFilePath(NULL);
 					previewer->Preview(blah);
 					delete[] blah;
 				}
