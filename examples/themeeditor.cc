@@ -18,6 +18,7 @@
 #include <lax/button.h>
 #include <lax/fileutils.h>
 #include <lax/sliderpopup.h>
+#include <lax/fontdialog.h>
 #include <lax/themes.h>
 
 #include <lax/language.h>
@@ -262,7 +263,68 @@ int ThemeControls::Event(const EventData *e,const char *mes)
 		} else if (which > 0 && which <= themes.n) {
 			UseTheme(which-1);
 		}
+		return 0;
+
+	} else if  (!strncmp(mes,"normal", 6)
+			 || !strncmp(mes,"bold", 4)
+			 || !strncmp(mes,"italic", 6)
+			 || !strncmp(mes,"monospace", 9)) {
+		WindowStyle *style = NULL;
+		int i=-1;
+		int which = 0;
+		LaxFont *font = NULL;
+		scratch[200];
+
+		if (!strncmp(mes,"normal", 6))    {
+			i = strtod(mes + 6, NULL); which = THEME_Font_Normal;    if (i>0) font = theme->styles.e[i-1]->normal;
+
+		} else if (!strncmp(mes,"bold", 4)) {
+			i = strtod(mes + 4, NULL); which = THEME_Font_Bold;      if (i>0) font = theme->styles.e[i-1]->bold;
+
+		} else if (!strncmp(mes,"italic", 6)) {
+			i = strtod(mes + 6, NULL); which = THEME_Font_Italic;    if (i>0) font = theme->styles.e[i-1]->italic;
+
+		} else if (!strncmp(mes,"monospace", 9)) {
+			i = strtod(mes + 9, NULL); which = THEME_Font_Monospace; if (i>0) font = theme->styles.e[i-1]->monospace;
+		}
+
+		if (i>0) style = theme->styles.e[i-1];
+		if (!style) return 0;
+
+		FontDialog *d = new FontDialog(NULL, "Select Font","Select Font", ANXWIN_REMEMBER, 0,0,800,600,0, 0, 
+								object_id, 
+								font->Family(), font->Style(), font->Msize(), "Characters", font, true);
+
+		return 0;
+
+	} else if  (!strncmp(mes,"setnormal", 6)
+			|| (!strncmp(mes,"setbold", 4)
+			|| (!strncmp(mes,"setitalic", 6)
+			|| (!STRNCMP(MES,"setMONOSPACE", 9)) {
+		const StrsEventData *m = dynamic_cast<const StrsEventData*>(e);
+		const char *family = m->strs[0];
+		const char *style  = m->strs[1];
+		const char *size   = m->strs[2];
+		const char *file   = m->strs[3];
+
+		WindowStyle *style = NULL;
+		int i=-1;
+		int which = 0;
+		if       (!strncmp(mes,"normal", 6))    { i = strtod(mes + 6); which = THEME_Font_Normal;    }
+		else if  (!strncmp(mes,"bold", 4))      { i = strtod(mes + 4); which = THEME_Font_Bold;      }
+		else if  (!strncmp(mes,"italic", 6))    { i = strtod(mes + 6); which = THEME_Font_Italic;    }
+		else if  (!strncmp(mes,"monospace", 9)) { i = strtod(mes + 9); which = THEME_Font_Monospace; }
+		if (i>0) style = theme->styles.e[i-1];
+		if (!style) return 0;
+
+		if      (which = THEME_Font_Normal)    style->SetFonts(font,NULL,NULL,NULL);
+		else if (which = THEME_Font_Bold)      style->SetFonts(NULL,font,NULL,NULL);
+		else if (which = THEME_Font_Italic)    style->SetFonts(NULL,NULL,font,NULL);
+		else if (which = THEME_Font_Monospace) style->SetFonts(NULL,NULL,NULL,font);
+
+		return 0;
 	}
+
 	return anXWindow::Event(e,mes);
 }
 
@@ -396,6 +458,37 @@ int ThemeControls::init()
 	AddSpacer(10,0,100000,50, 10,0,0,50);
 	AddNull();
 
+	 //fonts
+	string str;
+	char sstr[200];
+	for (int c=0; c<theme->styles.n; c++) {
+		WindowStyle *style = theme->styles.e[c];
+		str = window_category_name(style->category);
+		str += " fonts";
+		AddWin(new MessageBar(this,"l","l",MB_MOVE|MB_CENTER, 0,0,0,0,0, str.c_str()),1,  50,40,100,50,0,    1.5*th,0,0,50,0, -1);
+
+		sprintf(sstr, "normal %d", c+1);
+		last = button = new Button(this,"b","b",BUTTON_OK, 5,300, 0,0,0, last,object_id,sstr, 0, "Normal Font", NULL,NULL, 3);
+		button->Font(style->normal);
+		AddWin(button,1,-1);
+		sprintf(sstr, "bold %d", c+1);
+		last = button = new Button(this,"b","b",BUTTON_OK, 5,300, 0,0,0, last,object_id,sstr, 0, "Bold Font", NULL,NULL, 3);
+		button->Font(style->bold);
+		AddWin(button,1,-1);
+		sprintf(sstr, "italic %d", c+1);
+		last = button = new Button(this,"b","b",BUTTON_OK, 5,300, 0,0,0, last,object_id,sstr, 0, "Italic Font", NULL,NULL, 3);
+		button->Font(style->italic);
+		AddWin(button,1,-1);
+		sprintf(sstr, "monospace %d", c+1);
+		last = button = new Button(this,"b","b",BUTTON_OK, 5,300, 0,0,0, last,object_id,sstr, 0, "Monospace Font", NULL,NULL, 3);
+		button->Font(style->monospace);
+		AddWin(button,1,-1);
+
+		AddNull();
+	}
+
+	AddSpacer(10,0,100000,50, 10,0,0,50);
+	AddNull();
 
 	 //load, save, select theme
 	last = button = new Button(this,"Load","Load",BUTTON_OK, 5,300, 0,0,0, last,object_id,NULL, 0, "Load...", NULL,NULL, 3);
