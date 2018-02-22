@@ -228,8 +228,9 @@ double bez_segment_length(flatpoint p1,flatpoint c1,flatpoint c2,flatpoint p2, i
  *
  * Naively breaks down each segment into resolution number of pieces.
  *
- * If first_is_v, then the first point in pts is a vertex, not an off line control point.
- * pts must be structured as v-c-c-v-c-c-v or c-v-c-c-v-c.
+ * If first_is_v, then the first point in pts is a vertex,
+ * and points are  v-c-c-v-c-c-v. Otherwise, first point is assumed
+ * to be a tonext control point, so points are c-v-c-c-v-c.
  * Any point info in pts[].info is ignored.
  *
  * If closed, then connect the final vertex with the first vertex.
@@ -260,7 +261,9 @@ void bez_midpoint(flatpoint p1,flatpoint c1, flatpoint c2, flatpoint p2,
 	npm.set((npp.x+npn.x)/2,(npp.y+npn.y)/2);
 }
 
-/*! For when you only need one intersection on one bezier segment.
+/*! Find intersection of segment (or line) between p1 and p2 with the bezier segment.
+ *
+ * For when you only need one intersection on one bezier segment.
  * Return 1 for hit found, or 0.
  *
  * This just calls the fuller bez_intersections() with appropriate settings.
@@ -281,7 +284,9 @@ int bez_intersection(flatpoint p1,flatpoint p2, int isline,
 	return hits;
 }
 
-/*! Transform points to coordinate system where p1 is the origin, and p2 corresponds
+/*! Find intersection of segment (or line) between p1 and p2 with the bezier path.
+ *
+ * Transform points to coordinate system where p1 is the origin, and p2 corresponds
  * to point (1,0). Then it is easy to find intersections through the segment, or
  * through the line going through p1 and p2, since that is wherever the new x axis is crossed.
  * 

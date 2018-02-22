@@ -1247,7 +1247,7 @@ int ViewportWindow::RBDown(int x,int y,unsigned int state,int count,const Laxkit
 									 object_id,"viewportmenu",
 									 d->id,
 									 menu,1,NULL,
-									 MENUSEL_LEFT));
+									 TREESEL_LEFT));
 		buttondown.clear();
 	}
 	

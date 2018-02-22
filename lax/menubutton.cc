@@ -101,25 +101,11 @@ int MenuButton::SetMenu(MenuInfo *menu, int absorb)
 	return 0;
 }
 
-//! Create the Popup MenuSelector. Called from LBDown().
+//! Create the popup menu. Called from LBDown().
 void MenuButton::makePopup(int mouseid)
 {
 	if (!menuinfo || !menuinfo->n()) return;
 
-//	MenuSelector *popup;
-//	popup=new MenuSelector(NULL,menuinfo->name?menuinfo->name:"Button Popup",
-//					menuinfo->title?menuinfo->title:"Button Popup",
-//					ANXWIN_BARE|ANXWIN_HOVER_FOCUS,
-//					0,0,0,0, 1, 
-//					NULL,win_owner,win_sendthis, 
-//					MENUSEL_ZERO_OR_ONE|MENUSEL_CURSSELECTS
-//					 | MENUSEL_FOLLOW_MOUSE|MENUSEL_SEND_ON_UP
-//					 | MENUSEL_GRAB_ON_MAP|MENUSEL_OUT_CLICK_DESTROYS
-//					 | MENUSEL_CLICK_UP_DESTROYS|MENUSEL_DESTROY_ON_FOCUS_OFF
-//					 | ((win_style&MENUBUTTON_LEFT)?MENUSEL_LEFT:0) 
-//					 | ((win_style&MENUBUTTON_RIGHT)?MENUSEL_RIGHT:0)
-//					 | ((win_style&MENUBUTTON_SEND_STRINGS)?MENUSEL_SEND_STRINGS:0),
-//					menuinfo,0);
 	PopupMenu *popup;
 	popup=new PopupMenu(menuinfo->title?menuinfo->title:"Button Popup",
 						menuinfo->title?menuinfo->title:"Button Popup",
@@ -129,9 +115,9 @@ void MenuButton::makePopup(int mouseid)
 						mouseid,
 						menuinfo,0,
 						NULL,
-						((menubutton_style&MENUBUTTON_SEND_STRINGS)?MENUSEL_SEND_STRINGS:0)
-						 | ((menubutton_style&MENUBUTTON_LEFT)?MENUSEL_LEFT:0)
-						 | ((menubutton_style&MENUBUTTON_RIGHT)?MENUSEL_RIGHT:0)
+						((menubutton_style&MENUBUTTON_SEND_STRINGS) ? TREESEL_SEND_STRINGS :0)
+						 | ((menubutton_style&MENUBUTTON_LEFT)      ? TREESEL_LEFT :0)
+						 | ((menubutton_style&MENUBUTTON_RIGHT)     ? TREESEL_RIGHT :0)
 					   );
 
 	//popup->pad=pad;

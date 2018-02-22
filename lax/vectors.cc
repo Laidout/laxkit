@@ -1541,6 +1541,119 @@ flatpoint *SvgToFlatpoints(const char *d, char **endptr, int how, flatpoint *buf
 	return newpoints;
 }
 
+//---------------------------------- Quaternion ---------------------------------
+/*! \class Quaternion
+ * 4 Dimensional vector (x,y,z,w) == x*i + y*j + z*k + w
+ *
+ * where i*i = j*j == k*k = i*j*k = -1.
+ *
+ */
+
+//! Divide by norm. If null vector, do nothing.
+void Quaternion::normalize()
+{
+	if (x==0 && y==0 && z==0 && w==0) return;
+
+	double d=sqrt(x*x+y*y+z*z+w*w);
+	x/=d;
+	y/=d;
+	z/=d;
+	w/=w;
+}
+
+//! nonzero if x==x, y==y and z==z
+int operator==(Quaternion v1,Quaternion v2)
+{
+	return v1.x==v2.x && v1.y==v2.y && v1.z==v2.z && v1.w==v2.w;
+}
+
+//! nonzero if x!=x || y!=y || z!=z
+int operator!=(Quaternion v1,Quaternion v2)
+{
+	return v1.x!=v2.x || v1.y!=v2.y || v1.z!=v2.z || v1.w!=v2.w;
+}
+
+//! (a,b,c)+(d,e,f)=(a+d, b+e, c+f)
+Quaternion operator+(Quaternion a,Quaternion b)
+{
+	return(Quaternion(a.x+b.x, a.y+b.y, a.z+b.z, a.w+b.w));
+}
+
+//! v+=(a,b,c)  => (v.x+a, v.y+b, v.z+c)
+Quaternion operator+=(Quaternion &a,Quaternion b)
+{
+	return a=a+b;
+}
+
+//! (a,b,c)-(d,e,f)=(a-d, b-e, c-f)
+Quaternion operator-(Quaternion a,Quaternion b)
+{
+	return(Quaternion(a.x-b.x, a.y-b.y, a.z-b.z, a.w-b.w));
+}
+
+//! v-=(a,b,c)  => (v.x-a, v.y-b, v.z-c)
+Quaternion operator-=(Quaternion &a,Quaternion b)
+{
+	return a=a-b;
+}
+
+//! -v  => (-v.x, -v.y, -v.z)
+Quaternion Quaternion::operator-()
+{
+	return(Quaternion(-x,-y,-z,-w));
+}
+
+//! r*(x,y,z)=(r*x, r*y, r*z)
+Quaternion operator*(double r, Quaternion a)  /*const times Quaternion */
+{
+	return(Quaternion(r*a.x, r*a.y, r*a.z, r*a.w));
+}
+
+//! (x,y,z)*r=(r*x, r*y, r*z)
+Quaternion operator*(Quaternion a, double r)  /*const times Quaternion */
+{
+	return(Quaternion(r*a.x, r*a.y, r*a.z, r*a.w));
+}
+
+//! v*=r does v=v*r
+Quaternion operator*=(Quaternion &a, double r)  /*const times Quaternion */
+{
+	return a=a*r;
+}
+
+//! v/r= (v.x/r, v.y/r, v.z/r)
+Quaternion operator/(Quaternion a,double r)  /* divide y double */
+{
+	if (r==0) {
+		vectorop_error=1;
+		return(a); //division by zero!
+	}
+	//else
+	return(Quaternion(a.x/r, a.y/r, a.z/r, a.w/r));
+}
+
+//! Does v=v/r
+Quaternion operator/=(Quaternion &v,double r)
+{
+	return v=v/r;
+}
+
+//! Product. Note multiplication is noncommutative, ie a*b != b*a.
+Quaternion operator*(Quaternion a,Quaternion b)  /*dot product */
+{
+	return Quaternion(
+		(a.w*b.x + a.x*b.w - a.y*b.z + a.z*b.y), //x
+		(a.w*b.y + a.x*b.z + a.y*b.w - a.z*b.x), //y
+		(a.w*b.z - a.x*b.y + a.y*b.x + a.z*b.w), //z
+		(a.w*b.w - a.x*b.x - a.y*b.y - a.z*b.z)  //w
+	);
+}
+
+//! Return the conjugate w - x*i - y*j - z*k
+Quaternion Quaternion::conjugate()
+{
+	return Quaternion(-x,-y,-z,-w);
+}
 
 
 /*! @} */

@@ -68,6 +68,7 @@ CPPFLAGS= $(OPTIMIZATION) $(EXTRAS) $(DEBUGFLAGS) $(FPIC) -I$(LAXDIR)/.. -I/usr/
 
 
 objs= \
+	refcounted.o \
 	anobject.o \
 	lark.o \
 	dump.o \

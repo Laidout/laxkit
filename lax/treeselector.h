@@ -36,48 +36,53 @@ namespace Laxkit {
 
 
  // Item placement and display flags
-#define TREESEL_SUB_PLUS             (1LL<<0)
-#define TREESEL_LEFT                 (1LL<<1)
-#define TREESEL_RIGHT                (1LL<<2)
-#define TREESEL_SCROLLERS            (1LL<<3)
-#define TREESEL_USE_TITLE            (1LL<<4)
-#define TREESEL_LIVE_SEARCH          (1LL<<6)
+#define TREESEL_LEFT                 (1LL<<1 )
+#define TREESEL_RIGHT                (1LL<<2 )
+#define TREESEL_SCROLLERS            (1LL<<3 )
+#define TREESEL_USE_TITLE            (1LL<<4 )
+#define TREESEL_LIVE_SEARCH          (1LL<<6 )
+#define TREESEL_STATIC_SEARCH        (1LL<<7 )
 
-#define TREESEL_SORT_NUMBERS         (1LL<<7)
-#define TREESEL_SORT_LETTERS         (1LL<<8)
-#define TREESEL_SORT_REVERSE         (1LL<<9)
-#define TREESEL_SORT_IGNORE_CASE     (1LL<<10)
-#define TREESEL_SORT_BY_EXTENSIONS   (1LL<<11)
+#define TREESEL_SORT_NUMBERS         (1LL<<8 )
+#define TREESEL_SORT_LETTERS         (1LL<<9 )
+#define TREESEL_SORT_REVERSE         (1LL<<10)
+#define TREESEL_SORT_IGNORE_CASE     (1LL<<11)
+#define TREESEL_SORT_BY_EXTENSIONS   (1LL<<12)
 
-#define TREESEL_USE_DOT              (1LL<<12)
-#define TREESEL_USE_DOT_DOT          (1LL<<13)
+#define TREESEL_USE_DOT              (1LL<<13)
+#define TREESEL_USE_DOT_DOT          (1LL<<14)
 
-#define TREESEL_ONE_ONLY             (1LL<<14)
-#define TREESEL_ZERO_OR_ONE          (1LL<<15)
-#define TREESEL_SELECT_ANY           (1LL<<16)
-#define TREESEL_SELECT_LEAF_ONLY     (1LL<<17)
-#define TREESEL_SELECT_SUB_ONLY      (1LL<<18)
-#define TREESEL_CURSSELECTS          (1LL<<19)
-#define TREESEL_CURSSENDS            (1LL<<20)
-#define TREESEL_FOLLOW_MOUSE         (1LL<<21)
-#define TREESEL_GRAB_ON_MAP          (1LL<<22)
-#define TREESEL_GRAB_ON_ENTER        (1LL<<23)
+#define TREESEL_ONE_ONLY             (1LL<<15)
+#define TREESEL_ZERO_OR_ONE          (1LL<<16)
+#define TREESEL_SELECT_ANY           (1LL<<17)
+#define TREESEL_SELECT_LEAF_ONLY     (1LL<<18)
+#define TREESEL_SELECT_SUB_ONLY      (1LL<<19)
+#define TREESEL_CURSSELECTS          (1LL<<20)
+#define TREESEL_CURSSENDS            (1LL<<21)
+#define TREESEL_FOLLOW_MOUSE         (1LL<<22)
+#define TREESEL_GRAB_ON_MAP          (1LL<<23)
+#define TREESEL_GRAB_ON_ENTER        (1LL<<24)
 
-#define TREESEL_REARRANGEABLE        (1LL<<24)
-#define TREESEL_EDIT_IN_PLACE        (1LL<<25)
+#define TREESEL_REARRANGEABLE        (1LL<<25)
+#define TREESEL_EDIT_IN_PLACE        (1LL<<26)
 //*** add items?? (more than just editing names)
 //*** remove items??
 
-#define TREESEL_SEND_ON_UP           (1LL<<26)
-#define TREESEL_SEND_ON_ENTER        (1LL<<27)
-#define TREESEL_SEND_IDS             (1LL<<28)
-#define TREESEL_SEND_STRINGS         (1LL<<29)
-#define TREESEL_SEND_DETAIL          (1LL<<30)
+#define TREESEL_SEND_ON_UP           (1LL<<27)
+#define TREESEL_SEND_ON_ENTER        (1LL<<28)
+#define TREESEL_SEND_IDS             (1LL<<29)
+#define TREESEL_SEND_STRINGS         (1LL<<30)
+#define TREESEL_SEND_PATH            (1LL<<31)
+#define TREESEL_SEND_DETAIL          (1LL<<32)
+#define TREESEL_DESTROY_ON_UP        (1LL<<33)
 
-#define TREESEL_GRAPHIC_ON_RIGHT     (1LL<<31) //else on left
-#define TREESEL_NO_LINES             (1LL<<32)
+#define TREESEL_GRAPHIC_ON_RIGHT     (1LL<<34) //else on left
+#define TREESEL_NO_LINES             (1LL<<35)
+#define TREESEL_FLAT_COLOR           (1LL<<36)
+#define TREESEL_DONT_EXPAND          (1LL<<37)
 
-#define TREESEL_SUB_FOLDER           (1LL<<33) //arrow graphic is a little folder
+#define TREESEL_SUB_FOLDER           (1LL<<38) //arrow graphic is a little folder
+#define TREESEL_SUB_ON_RIGHT         (1LL<<39) //draw the submenu indicator on far right side
 
 //... remember that the buck stops with (1<<63)
 
@@ -121,10 +126,9 @@ class TreeSelector : public ScrolledWindow
 	virtual void drawsep(const char *name,IntRectangle *rect);
 	virtual void drawSubIndicator(MenuItem *mitem,int x,int y, int selected);
 	virtual void drawitemname(MenuItem *mitem,IntRectangle *rect);
-	virtual void drawitemnameOLD(MenuItem *mitem,IntRectangle *rect);
 	virtual void drawflags(MenuItem *mitem,IntRectangle *rect);
 	virtual int  drawFlagGraphic(char flag, int x,int y,int h);
-	virtual void drawtitle();
+	virtual void drawtitle(int &y);
 	virtual int findmaxwidth(int s,int e, int *h_ret);
 	virtual int findColumnWidth(int which);
 
@@ -141,7 +145,7 @@ class TreeSelector : public ScrolledWindow
 
 	virtual int addToCache(int indent,MenuInfo *menu, int cury);
 	virtual int DrawItems(int indent, MenuInfo *item, int &n, flatpoint offset);
-	virtual void drawItemContents(MenuItem *i,int offsetx,int offsety, int fill, int indent);
+	virtual void drawItemContents(MenuItem *i,int offset_x,int offset_y, int fill, int indent);
 	virtual void drawarrow(int x,int y,int r,int type);
 
 	virtual void editInPlace(int which);
@@ -183,8 +187,8 @@ class TreeSelector : public ScrolledWindow
 
 	TreeSelector(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
 				int xx,int yy,int ww,int hh,int brder,
-				anXWindow *prev,unsigned long nowner=0,const char *mes=0,
-				unsigned long long nmstyle=0,MenuInfo *minfo=NULL); 
+				anXWindow *prev, unsigned long nowner=0, const char *mes=0,
+				unsigned long long nmstyle=0, MenuInfo *minfo=NULL); 
 	virtual ~TreeSelector();
 	virtual int init();
 	virtual void Refresh();
@@ -204,13 +208,15 @@ class TreeSelector : public ScrolledWindow
 	virtual int FocusOn(const FocusChangeData *e);
 	virtual int FocusOff(const FocusChangeData *e);
 	virtual int Event(const EventData *e,const char *mes);
+	virtual int WrapToMouse(int mouseid, anXWindow *onedgeofthis=0);
+	virtual int WrapToPosition(int screen_x, int screen_y, int screen, anXWindow *onedgeofthis=NULL);
 
 	virtual void       dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *savecontext);
     virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *savecontext); 
     virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *loadcontext);
 
-    virtual bool SetStyle(unsigned int style, int newvalue);
-	virtual bool HasStyle(unsigned int style);
+    virtual bool SetStyle(unsigned long long style, int newvalue);
+	virtual bool HasStyle(unsigned long long style);
 
 
 	virtual int movescreen(int dx,int dy);
@@ -227,6 +233,7 @@ class TreeSelector : public ScrolledWindow
 	virtual int SelectId(int which);
 	virtual int Deselect(int which);
 	virtual int RebuildCache();
+	virtual int ShowSearch(bool on=true);
 	virtual int ClearSearch();
 	virtual int UpdateSearch(const char *searchterm, bool isprogressive);
 	

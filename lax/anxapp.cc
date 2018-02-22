@@ -291,15 +291,19 @@ TimerInfo::TimerInfo(EventReceiver *nwin,int duration,int firstt,int tickt,int n
 	info=ninfo;
 	if (tickt<=0) tickt=100;
 
-	clock_t curtime=times(NULL);
-	firsttick=firstt  *sysconf(_SC_CLK_TCK)/1000; // convert firstt to clock ticks
-	ticktime= tickt*sysconf(_SC_CLK_TCK)/1000; // convert ticktime to clock ticks
-	if (duration!=-1) {
-		duration= duration*sysconf(_SC_CLK_TCK)/1000; // convert duration to clock ticks
-		endtime=curtime+duration;
-	} else endtime=-1;
+	clock_t curtime = times(NULL);
+	lastactualtime  = curtime;
+	starttime       = curtime;
 
-	nexttime=curtime+firsttick;
+	firsttick = firstt  *sysconf(_SC_CLK_TCK)/1000; // convert firstt to clock ticks
+	ticktime  = tickt*sysconf(_SC_CLK_TCK)/1000; // convert ticktime to clock ticks
+
+	if (duration != -1) {
+		duration = duration*sysconf(_SC_CLK_TCK)/1000; // convert duration to clock ticks
+		endtime  = curtime+duration;
+	} else endtime =- 1;
+
+	nexttime = curtime+firsttick;
 }
 
 //! Check if a tick needs to be sent, and call win->Idle(id) if necessary.
@@ -311,8 +315,14 @@ TimerInfo::TimerInfo(EventReceiver *nwin,int duration,int firstt,int tickt,int n
 int TimerInfo::checktime(clock_t tm)
 {
 	int t=0;
-	while (nexttime<=tm) { t++; nexttime+=ticktime; }
+	while (nexttime<=tm) { t++; nexttime+=ticktime; } //skips ticks potentially
 
+	clock_t curtime = times(NULL);
+	//double delta   = (curtime - lastactualtime)/(double)sysconf(_SC_CLK_TCK);
+	//double elapsed = (curtime - starttime     )/(double)sysconf(_SC_CLK_TCK);
+	lastactualtime = curtime;
+
+	//if (t && win && win->Idle(id, delta, elapsed)) {
 	if (t && win && win->Idle(id)) {
 		return -1; //nonzero win->Idle means remove timer
 	}
@@ -2461,7 +2471,7 @@ void anXApp::settimeout(struct timeval *timeout)
 	currenttime=times(&tmsstruct); // get current time
 
 	for (int c=0; c<timers.n; c++) {
-		if (timers.e[c]->checktime(currenttime)<0) { 
+		if (timers.e[c]->checktime(currenttime)<0) {  //this calls Idle if necessary
 			DBG cerr <<"removing timer "<<c<<", id: "<<timers.e[c]->id<<endl;
 			timers.remove(c--); continue; 
 		}

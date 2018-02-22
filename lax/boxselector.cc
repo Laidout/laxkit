@@ -301,6 +301,9 @@ void BoxSelector::Refresh()
 {
 	if (!needtodraw || !wholelist.n || !win_on) return;
 	if (arrangedstate!=1) sync();
+
+	MakeCurrent();
+
 	for (int c=0; c<wholelist.n; c++) {
 		if (!wholelist.e[c]) continue;
 

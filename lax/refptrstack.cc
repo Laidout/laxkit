@@ -44,7 +44,7 @@ namespace Laxkit {
  *
  * In addition to 0 (no special delete behavior), 1 (delete), and 2 (delete[]),
  * there is here also 3 for call dec_count() on the element if it can be cast to
- * anObject. If not, \a delete is called on it.
+ * RefCounted. If not, \a delete is called on it.
  */
 
 template <class T>
@@ -62,7 +62,7 @@ RefPtrStack<T>::~RefPtrStack<T>()
 //! Flush the stack. Makes e==NULL.
 /*! If the element's local==2 then the elements are delete with <tt>delete[]</tt>.
  *  If the local==1 it is just deleted with <tt>delete</tt>. 
- *  If the local==3, then if it can be cast to a anObject, then it's dec_count()
+ *  If the local==3, then if it can be cast to a RefCounted, then it's dec_count()
  *  is called. If it cannot be so cast, then it is simply deleted as if local==1.
  *  If the islocal flag for the element is !=1,2, or 3,
  *  then the element is not delete'd or decremented at all.
@@ -77,7 +77,7 @@ void RefPtrStack<T>::flush()
 				delete[] PtrStack<T>::e[c]; 
 			else if (PtrStack<T>::islocal[c]==LISTS_DELETE_Single) delete PtrStack<T>::e[c];
 			else if (PtrStack<T>::islocal[c]==LISTS_DELETE_Refcount) {
-				anObject *ref=dynamic_cast<anObject *>(PtrStack<T>::e[c]);
+				RefCounted *ref = dynamic_cast<RefCounted *>(PtrStack<T>::e[c]);
 				if (ref) ref->dec_count();
 				else delete PtrStack<T>::e[c];
 			}
@@ -111,7 +111,7 @@ int RefPtrStack<T>::remove(int which) //which=-1
 		if (l==LISTS_DELETE_Array) delete[] t;
 		else if (l==LISTS_DELETE_Single) delete t;
 		else if (l==LISTS_DELETE_Refcount) {
-			anObject *ref=dynamic_cast<anObject *>(t);
+			RefCounted *ref = dynamic_cast<RefCounted *>(t);
 			if (ref) ref->dec_count();
 			else {
 				delete t;
@@ -122,6 +122,15 @@ int RefPtrStack<T>::remove(int which) //which=-1
 	if (t) return 1; else return 0;
 }
 
+/*! Convenience function to basically call remove(findindex(t)), if t is not NULL.
+ */
+template <class T>
+int RefPtrStack<T>::remove(T *t)
+{
+    if (!t) return 0;
+    return remove(PtrStack<T>::findindex(t));
+}
+
 //! Push a pointer onto the stack before index where. Transfers pointer, does not duplicate.
 /*! If called without where, pointer is pushed onto the top (highest n) position.
  *
@@ -130,12 +139,12 @@ int RefPtrStack<T>::remove(int which) //which=-1
  *  then it is delete'd. If local==LISTS_DELETE_Array, then the element will be delete[]'d.
  *  
  *  If local==LISTS_DELETE_Refcount then call dec_count() when the stack would otherwise delete it.
- *  That assumes the element can be cast to anObject. ne's count is incremented
+ *  That assumes the element can be cast to RefCounted. ne's count is incremented
  *  when pushed here.
  *
  *  If local is any other value, then delete is not called on the element.
  *
- *  If the item has LISTS_DELETE_Refcount for its local and it can be cast to anObject, then 
+ *  If the item has LISTS_DELETE_Refcount for its local and it can be cast to RefCounted, then 
  *  inc_count() is called on it.
  * 
  *  Returns the index of the new element on the stack, or -1 if the push failed.
@@ -146,7 +155,7 @@ int RefPtrStack<T>::push(T *ne,char local,int where) // local=-1, where=-1
 	int i=PtrStack<T>::push(ne,local,where);
 	if (i<0) return i;
 	if (PtrStack<T>::islocal[i]==LISTS_DELETE_Refcount) {
-		anObject *ref=dynamic_cast<anObject *>(ne);
+		RefCounted *ref = dynamic_cast<RefCounted *>(ne);
 		if (ref) ref->inc_count();
 	}
 	return i;
