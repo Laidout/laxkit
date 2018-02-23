@@ -159,13 +159,17 @@ class WindowStyle : public anObject
 
 	virtual int SetDefaultColors(const char *type);
 	virtual int SetFonts(LaxFont *nnormal, LaxFont *nbold, LaxFont *nitalic, LaxFont *nmonospace);
+	virtual int NormalFont(LaxFont *nfont);
+	virtual int BoldFont(LaxFont *nfont);
+	virtual int ItalicFont(LaxFont *nfont);
+	virtual int MonospaceFont(LaxFont *nfont);
 	virtual double GetValue(const char *what);
 };
 
 
 //----------------------------- Theme ---------------------------------------
 
-class Theme : public anObject, LaxFiles::DumpUtility
+class Theme : public anObject, public LaxFiles::DumpUtility
 {
   public:
 	char *name; //localized. script name is usual Id()
