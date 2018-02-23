@@ -21,7 +21,9 @@
 #include <lax/fileutils.h>
 #include <lax/sliderpopup.h>
 #include <lax/fontdialog.h>
+#include <lax/filedialog.h>
 #include <lax/themes.h>
+#include <lax/version.h>
 
 #include <lax/language.h>
 
@@ -233,7 +235,7 @@ class ThemeControls : public RowFrame
 ThemeControls::ThemeControls()
   : RowFrame(NULL, "Theme", "Theme", ANXWIN_ESCAPABLE | ROWFRAME_ROWS|ROWFRAME_STRETCH_IN_COL|ROWFRAME_STRETCH_IN_ROW,
   //: RowFrame(NULL, "Theme", "Theme", ANXWIN_ESCAPABLE | ROWFRAME_ROWS|ROWFRAME_STRETCH_IN_COL,
-			0,0,0,0,0,
+			0,0,1200,0,0,
 			NULL,0,NULL)
 {
 	firsttime = 1;
@@ -299,7 +301,7 @@ int ThemeControls::Event(const EventData *e,const char *mes)
 		int i=-1;
 		int which = 0;
 		LaxFont *font = NULL;
-		scratch[200];
+		char scratch[200];
 
 		if (!strncmp(mes,"normal", 6))    {
 			i = strtod(mes + 6, NULL); which = THEME_Font_Normal;    if (i>0) font = theme->styles.e[i-1]->normal;
@@ -317,37 +319,85 @@ int ThemeControls::Event(const EventData *e,const char *mes)
 		if (i>0) style = theme->styles.e[i-1];
 		if (!style) return 0;
 
-		FontDialog *d = new FontDialog(NULL, "Select Font","Select Font", ANXWIN_REMEMBER, 0,0,800,600,0, 0, 
-								object_id, 
+		string sendmes = "set"+string(mes);
+		FontDialog *d = new FontDialog(NULL, "Select Font","Select Font", ANXWIN_REMEMBER, 0,0,800,600,0, 
+								object_id, sendmes.c_str(),
+								0,
 								font->Family(), font->Style(), font->Msize(), "Characters", font, true);
-
+		app->rundialog(d);
 		return 0;
 
-	} else if  (!strncmp(mes,"setnormal", 6)
-			|| (!strncmp(mes,"setbold", 4)
-			|| (!strncmp(mes,"setitalic", 6)
-			|| (!STRNCMP(MES,"setMONOSPACE", 9)) {
+	} else if (!strncmp(mes,"setnormal", 9)
+			|| !strncmp(mes,"setbold", 7)
+			|| !strncmp(mes,"setitalic", 9)
+			|| !strncmp(mes,"setmonospace", 12)) {
+		mes += 3;
+
 		const StrsEventData *m = dynamic_cast<const StrsEventData*>(e);
 		const char *family = m->strs[0];
-		const char *style  = m->strs[1];
-		const char *size   = m->strs[2];
+		const char *sstyle = m->strs[1];
+		double size        = strtod(m->strs[2], NULL);
 		const char *file   = m->strs[3];
 
 		WindowStyle *style = NULL;
 		int i=-1;
 		int which = 0;
-		if       (!strncmp(mes,"normal", 6))    { i = strtod(mes + 6); which = THEME_Font_Normal;    }
-		else if  (!strncmp(mes,"bold", 4))      { i = strtod(mes + 4); which = THEME_Font_Bold;      }
-		else if  (!strncmp(mes,"italic", 6))    { i = strtod(mes + 6); which = THEME_Font_Italic;    }
-		else if  (!strncmp(mes,"monospace", 9)) { i = strtod(mes + 9); which = THEME_Font_Monospace; }
+		if       (!strncmp(mes,"normal", 6))    { i = strtod(mes + 6, NULL); which = THEME_Font_Normal;    }
+		else if  (!strncmp(mes,"bold", 4))      { i = strtod(mes + 4, NULL); which = THEME_Font_Bold;      }
+		else if  (!strncmp(mes,"italic", 6))    { i = strtod(mes + 6, NULL); which = THEME_Font_Italic;    }
+		else if  (!strncmp(mes,"monospace", 9)) { i = strtod(mes + 9, NULL); which = THEME_Font_Monospace; }
 		if (i>0) style = theme->styles.e[i-1];
 		if (!style) return 0;
+
+		LaxFont *font = app->fontmanager->MakeFont(family, sstyle, size, 0);
 
 		if      (which = THEME_Font_Normal)    style->SetFonts(font,NULL,NULL,NULL);
 		else if (which = THEME_Font_Bold)      style->SetFonts(NULL,font,NULL,NULL);
 		else if (which = THEME_Font_Italic)    style->SetFonts(NULL,NULL,font,NULL);
 		else if (which = THEME_Font_Monospace) style->SetFonts(NULL,NULL,NULL,font);
 
+		Button *button = dynamic_cast<Button*>(findChildWindowByName(mes));
+		if (button) button->Font(font);
+
+		return 0;
+
+	} else if (!strcmp(mes,"loadtheme")) {
+		FileDialog *f = new FileDialog(NULL, "Load", _("Load"), ANXWIN_REMEMBER, 0,0,0,0,0,
+									object_id, "loadthemefile", FILES_OPEN_ONE, theme->filename);
+		app->rundialog(f);
+		return 0;
+
+	} else if (!strcmp(mes,"loadthemefile")) {
+		const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(e);
+		FILE *f = fopen(s->str, "r");
+		if (f) {
+			DBG cerr << " *** need to implement verify that it is a theme file"<<endl;
+			Theme *ntheme = new Theme;
+			ntheme->dump_in(f, 0, 0, NULL, NULL);
+			themes.push(ntheme);
+			ntheme->dec_count();
+			UseTheme(themes.n-1);
+			fclose(f);
+		}
+		return 0;
+
+	} else if (!strcmp(mes,"savetheme")) {
+		FileDialog *f = new FileDialog(NULL, "Save", _("Save"), ANXWIN_REMEMBER, 0,0,0,0,0,
+									object_id, "savethemefile", FILES_SAVE, theme->filename);
+		app->rundialog(f);
+		return 0;
+
+	} else if (!strcmp(mes,"savethemefile")) {
+		const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(e);
+		FILE *f = fopen(s->str, "w");
+		if (f) {
+			makestr(theme->filename, s->str);
+			theme->dump_out(f, 0, 0, NULL);
+			fclose(f);
+			DBG cerr <<" Theme saved to "<<s->str<<endl;
+		} else {
+			DBG cerr <<" *** Could not save!"<<endl;
+		}
 		return 0;
 	}
 
@@ -531,19 +581,19 @@ int ThemeControls::init()
 		AddWin(new MessageBar(this,"l","l",MB_MOVE|MB_CENTER, 0,0,0,0,0, str.c_str()),1,  50,40,100,50,0,    1.5*th,0,0,50,0, -1);
 
 		sprintf(sstr, "normal %d", c+1);
-		last = button = new Button(this,"b","b",BUTTON_OK, 5,300, 0,0,0, last,object_id,sstr, 0, "Normal Font", NULL,NULL, 3);
+		last = button = new Button(this,sstr,"b",BUTTON_OK, 5,300, 0,0,0, last,object_id,sstr, 0, "Normal Font", NULL,NULL, 3);
 		button->Font(style->normal);
 		AddWin(button,1,-1);
 		sprintf(sstr, "bold %d", c+1);
-		last = button = new Button(this,"b","b",BUTTON_OK, 5,300, 0,0,0, last,object_id,sstr, 0, "Bold Font", NULL,NULL, 3);
+		last = button = new Button(this,sstr,"b",BUTTON_OK, 5,300, 0,0,0, last,object_id,sstr, 0, "Bold Font", NULL,NULL, 3);
 		button->Font(style->bold);
 		AddWin(button,1,-1);
 		sprintf(sstr, "italic %d", c+1);
-		last = button = new Button(this,"b","b",BUTTON_OK, 5,300, 0,0,0, last,object_id,sstr, 0, "Italic Font", NULL,NULL, 3);
+		last = button = new Button(this,sstr,"b",BUTTON_OK, 5,300, 0,0,0, last,object_id,sstr, 0, "Italic Font", NULL,NULL, 3);
 		button->Font(style->italic);
 		AddWin(button,1,-1);
 		sprintf(sstr, "monospace %d", c+1);
-		last = button = new Button(this,"b","b",BUTTON_OK, 5,300, 0,0,0, last,object_id,sstr, 0, "Monospace Font", NULL,NULL, 3);
+		last = button = new Button(this,sstr,"b",BUTTON_OK, 5,300, 0,0,0, last,object_id,sstr, 0, "Monospace Font", NULL,NULL, 3);
 		button->Font(style->monospace);
 		AddWin(button,1,-1);
 
@@ -554,9 +604,9 @@ int ThemeControls::init()
 	AddNull();
 
 	 //load, save, select theme
-	last = button = new Button(this,"Load","Load",BUTTON_OK, 5,300, 0,0,0, last,object_id,NULL, 0, "Load...", NULL,NULL, 3);
+	last = button = new Button(this,"Load","Load",BUTTON_OK, 5,300, 0,0,0, last,object_id,"loadtheme", 0, "Load...", NULL,NULL, 3);
 	AddWin(button,1,-1);
-	last = button = new Button(this,"Save","Save",BUTTON_OK, 5,300, 0,0,0, last,object_id,NULL, 0, "Save...", NULL,NULL, 3);
+	last = button = new Button(this,"Save","Save",BUTTON_OK, 5,300, 0,0,0, last,object_id,"savetheme", 0, "Save...", NULL,NULL, 3);
 	AddWin(button,1,-1);
 
 	LineInput *linp = new LineInput(this,"lineinput","lineinput",0, 0,0,400,50,0, NULL,0,NULL, "Theme name", _("default"));
