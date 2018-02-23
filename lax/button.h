@@ -61,7 +61,7 @@ class Button : public ButtonBase
 	virtual const char *Label(unsigned int which);
 	virtual const char *Label(const char *nlabel);
 	virtual const char *Label() { return label; }
-	virtual int Font(LaxFont *font);
+	virtual int Font(LaxFont *nfont);
 	virtual void draw();
 	virtual void WrapToExtent(int which);
 
