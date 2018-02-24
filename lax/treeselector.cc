@@ -899,6 +899,7 @@ int TreeSelector::addToCache(int indent,MenuInfo *mmenu, int cury)
 		ii=i;
 		while (ii) {
 			getitemextent(ii, &ww,&hhh, NULL,NULL);
+			if (hhh == 0) hhh = textheight;
 			ii->x=xx; //note: x will not be accurate for details
 			ii->y=cury;
 			ii->w=ww;
@@ -1221,8 +1222,8 @@ void TreeSelector::drawItemContents(MenuItem *i,int offset_x,int offset_y, int f
 	itemspot.height = i->h;
 
 	 // If itemspot not onscreen, return
-	if (itemspot.x+itemspot.width <=inrect.x || itemspot.x>=inrect.x+inrect.width ||
-		itemspot.y+itemspot.height<=inrect.y || itemspot.y>=inrect.y+inrect.height) {
+	if (itemspot.x+itemspot.width <inrect.x || itemspot.x>inrect.x+inrect.width ||
+		itemspot.y+itemspot.height<inrect.y || itemspot.y>inrect.y+inrect.height) {
 		//DBG cerr <<"Item "<<c<<" not on screen...."<<endl;
 		return;
 	}
