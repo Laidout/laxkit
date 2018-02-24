@@ -311,9 +311,9 @@ int PopupMenu::MouseMove(int x,int y,unsigned int state,const LaxMouse *d)
 
 /*! If there are no mice in any of the related menus, then destroy all the related menus.
  */
-int PopupMenu::Idle(int tid)
+int PopupMenu::Idle(int tid, double delta)
 {
-	if (tid != outtimer) return TreeSelector::Idle(tid);
+	if (tid != outtimer) return TreeSelector::Idle(tid,delta);
 	app->removetimer(this,tid);
 	outtimer = 0;
 

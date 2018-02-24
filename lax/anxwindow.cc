@@ -182,11 +182,11 @@ Drawable aDrawable::xlibDrawable(int which)
  * Any window appearance updating is done here. This is called only when there are no more
  * events in anXApp's event queue.
  */
-/*! \fn int anXWindow::Idle(int tid=0)
+/*! \fn int anXWindow::Idle(int tid, double delta)
  * \brief anXWindow::Idle() is an empty placeholeder. Just returns 1.
  *
  * This function will be called if there is a timer that ticks off. The 
- * timer's id is passed as tid.
+ * timer's id is passed as tid. delta is the time in seconds since the last tick.
  *
  * If Idle returns 1, then the timer is removed. If Idles returns
  * 0, the timer is left active. This makes it very easy to turn

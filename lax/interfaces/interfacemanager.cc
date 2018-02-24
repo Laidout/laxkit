@@ -87,8 +87,9 @@ Laxkit::Displayer *InterfaceManager::GetPreviewDisplayer()
 }
 
 /*! Return a new Displayer object for some specific purpose.
- * By convention, purpose==DRAWS_Screen means a displayer fit for screen display,
- * and DRAWS_Hires means a displayer meant for print, that is, for high resolution rendering.
+ * By convention, purpose==DRAWS_Screen means a displayer fit for screen display which
+ * may choose speed over quality, and DRAWS_Hires means a displayer meant for print,
+ * that is, for high resolution rendering but perhaps slower.
  *
  * Note that unlike GetPreviewDisplayer(), this returns a new object, and thus must
  * be dec_counted when done.

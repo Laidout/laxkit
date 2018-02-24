@@ -30,8 +30,8 @@ class Win : public anXWindow
     double period; //seconds for scale pulse
     double step;  //in seconds
 	double offsetx,offsety; //for checkerboard pattern
-	bool paused;
-	int frame;
+	bool   paused;
+	int    frame;
 
     Win(double time_step_seconds);
     virtual void Refresh();

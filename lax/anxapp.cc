@@ -278,7 +278,7 @@ WindowColors *WindowColors::duplicate()
  * converted to clock ticks. If duration==-1, then duration is taken to be 1 million,
  * which is 1000 hours.
  * 
- * For the span of the timer, win->Idle(timer->id) is called every tickt milliseconds (the first 
+ * For the span of the timer, win->Idle(timer->id,timer->delta) is called every tickt milliseconds (the first 
  * tick is sent after firstt milliseconds), until the time is after the current time plus duration.
  *
  * Please not that if the current time is several ticks ahead of the last tick, then only one tick is sent
@@ -306,7 +306,21 @@ TimerInfo::TimerInfo(EventReceiver *nwin,int duration,int firstt,int tickt,int n
 	nexttime = curtime+firsttick;
 }
 
-//! Check if a tick needs to be sent, and call win->Idle(id) if necessary.
+/*! Update with new values (given in milliseconds). duration is time since last tick.
+ * If next <=0 then don't update. same for duration.
+ */
+void TimerInfo::Update(int next, int duration)
+{
+	if (duration > 0) {
+		duration = duration * sysconf(_SC_CLK_TCK)/1000; // convert duration to clock ticks
+		endtime  = duration + lastactualtime;
+	}
+	if (next > 0) {
+		ticktime = next * sysconf(_SC_CLK_TCK)/1000; // convert ticktime to clock ticks
+	}
+}
+
+//! Check if a tick needs to be sent, and call win->Idle() if necessary.
 /*! Updates nexttime, which is the next time at which a tick should occur.
  * Returns -1 if the timer has expired, else return the number of ticks that have happened.
  * Thus, 0 means a tick has not occured. If a window.Idle(id) returns nonzero, then
@@ -318,12 +332,11 @@ int TimerInfo::checktime(clock_t tm)
 	while (nexttime<=tm) { t++; nexttime+=ticktime; } //skips ticks potentially
 
 	clock_t curtime = times(NULL);
-	//double delta   = (curtime - lastactualtime)/(double)sysconf(_SC_CLK_TCK);
+	delta   = (curtime - lastactualtime)/(double)sysconf(_SC_CLK_TCK);
 	//double elapsed = (curtime - starttime     )/(double)sysconf(_SC_CLK_TCK);
 	lastactualtime = curtime;
 
-	//if (t && win && win->Idle(id, delta, elapsed)) {
-	if (t && win && win->Idle(id)) {
+	if (t && win && win->Idle(id, delta)) {
 		return -1; //nonzero win->Idle means remove timer
 	}
 
@@ -3054,6 +3067,24 @@ int anXApp::addtimer(EventReceiver *win, //!< The window to create the timer for
 
 	DBG cerr <<"addtimer: "<<win->object_id<<"  id:"<<nid<<"  duration:"<<duration<<"  next:"<<next<< " ms"<<"   numtimers="<<timers.n<<endl;
 	return nid;
+}
+
+/*! Update a timer to have new next and duration values (in ms).
+ * If duration or next <=0 then do not update that.
+ * Return 0 for success, or nonnegative for can't find timer.
+ * duration is the time from right now.
+ */
+int anXApp::modifytimer(EventReceiver *win, int timerid,int next,int duration)
+{
+	if (!win) return 0;
+
+	for (int c=0; c<timers.n; c++) {
+		if (win == timers.e[c]->win && timerid == timers.e[c]->id) {
+			timers.e[c]->Update(next, duration);
+			return 0;
+		}
+	}
+	return -1;
 }
 
 //! This removes a timer manually.

@@ -68,7 +68,7 @@ class Scroller : public PanUser, public anXWindow
 	virtual ~Scroller();
 	virtual int Event(const EventData *e,const char *mes);
 	virtual void Refresh();
-	virtual int Idle(int id=0);
+	virtual int Idle(int id, double delta);
 	virtual int MoveResize(int nx,int ny,int nw,int nh);
 	virtual int Resize(int nw,int nh);
 	virtual int RBDown(int mx,int my,unsigned int state,int count,const LaxMouse *d);

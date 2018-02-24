@@ -484,7 +484,7 @@ int Scroller::MouseMove(int mx,int my,unsigned int state,const LaxMouse *d)
  *
  * \todo this does not properly distinguish between left and right clicks...
  */
-int Scroller::Idle(int id) 
+int Scroller::Idle(int id, double delta) 
 {
 	DBG cerr <<"  scroller idle, buttondown="<<buttondown.any()<<"..."<<endl;
 

@@ -216,7 +216,7 @@ class anXWindow : virtual public EventReceiver,
 	virtual int  preinit();
 	virtual int  init() { return 0; }
 	virtual int  close();
-	virtual int  Idle(int tid=0) { return 1; }
+	virtual int  Idle(int tid, double delta) { return 1; }
 	virtual void Refresh() { Needtodraw(0); }
 	virtual Displayer *MakeCurrent();
 	virtual Displayer *GetDisplayer();
@@ -291,11 +291,13 @@ struct TimerInfo
 	clock_t endtime,firsttick,ticktime;
 	clock_t nexttime;
 	clock_t starttime, lastactualtime;
+	double delta;
 	EventReceiver *win;
 	
 	TimerInfo() { info=0; id=0; endtime=firsttick=ticktime=nexttime=0; win=NULL; }
 	TimerInfo(EventReceiver *nwin,int duration,int firstt,int tickt,int nid,long ninfo);
 	int checktime(clock_t tm);
+	void Update(int next, int duration);
 };
 
 //--------------------------- ScreenInformation -------------------------------
@@ -490,6 +492,7 @@ class anXApp : virtual public anObject
 	 //timer management
 	virtual int SetMaxTimeout(int timeoutmax);
 	virtual int addtimer(EventReceiver *win,int strt,int next,int duration);
+	virtual int modifytimer(EventReceiver *win, int timerid,int next,int duration);
 	virtual int addmousetimer(EventReceiver *win);
 	virtual int removetimer(EventReceiver *w,int timerid);
 };

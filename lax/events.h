@@ -245,7 +245,7 @@ class EventReceiver : virtual public anObject
 	EventReceiver();
 	virtual ~EventReceiver();
 	virtual int Event(const EventData *data,const char *mes);
-	virtual int  Idle(int tid=0) { return 1; } //1 means remove timer. *** should make a specific Frame event for more detail??
+	virtual int  Idle(int tid, double delta) { return 1; } //1 means remove timer. *** should make a specific Frame event for more detail??
 };
 
 

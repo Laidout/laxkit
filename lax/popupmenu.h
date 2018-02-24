@@ -47,7 +47,7 @@ class PopupMenu : public TreeSelector
 				);
 	virtual ~PopupMenu();
 	virtual const char *whattype() { return "PopupMenu"; }
-	virtual int Idle(int tid=0);
+	virtual int Idle(int tid, double delta);
 	virtual int MouseMove(int x,int y,unsigned int state,const LaxMouse *d);
 	virtual int RBDown(int x,int y,unsigned int state,int count,const LaxMouse *d);
 	virtual int RBUp(int x,int y,unsigned int state,const LaxMouse *d);

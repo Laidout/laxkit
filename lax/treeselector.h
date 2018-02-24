@@ -202,7 +202,7 @@ class TreeSelector : public ScrolledWindow
 	virtual int WheelUp(int x,int y,unsigned int state,int count,const LaxMouse *d);
 	virtual int WheelDown(int x,int y,unsigned int state,int count,const LaxMouse *d);
 	virtual int MouseMove(int x,int y,unsigned int state,const LaxMouse *d);
-	virtual int Idle(int tid);
+	virtual int Idle(int tid, double delta);
 	virtual int MoveResize(int nx,int ny,int nw,int nh);
 	virtual int Resize(int nw,int nh);
 	virtual int FocusOn(const FocusChangeData *e);

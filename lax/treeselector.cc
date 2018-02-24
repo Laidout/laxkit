@@ -1492,7 +1492,7 @@ int TreeSelector::send(int deviceid)
 		app->SendMessage(strs,win_owner,win_sendthis,object_id);
 
 	} else {
-		 //send SimpleMessage with out text
+		 //send SimpleMessage without text
 		MenuItem *itm = item(curitem);
 
 		SimpleMessage *ievent=new SimpleMessage;
@@ -2192,7 +2192,7 @@ int TreeSelector::MouseMove(int x,int y,unsigned int state,const LaxMouse *d)
 //! Autoscroll if necessary**** todo
 /*! \todo *** must autoscroll when mouse over arrow and FOLLOW_MOUSE
  */
-int TreeSelector::Idle(int tid)
+int TreeSelector::Idle(int tid, double delta)
 { // ***
 //	if (tid!=timerid) return 1;
 //	
