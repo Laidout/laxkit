@@ -74,6 +74,7 @@ class Affine
 
 	virtual Affine Inversion();
 	virtual void Invert();
+	virtual bool IsInvertible();
 	virtual flatpoint transformPoint(flatpoint p);
 	virtual flatpoint transformPointInverse(flatpoint p);
 	virtual flatpoint transformVector(flatpoint p);
