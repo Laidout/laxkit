@@ -453,6 +453,13 @@ void Affine::Invert()
 	transform_copy(_m,mm);
 }
 
+/*! Return whether the matrix is degenerate or not.
+ */
+bool Affine::IsInvertible()
+{
+	return (_m[0]*_m[3]-_m[1]*_m[2]) == 0;
+}
+
 flatpoint Affine::transformPoint(flatpoint p)
 {
 	return transform_point(_m,p);

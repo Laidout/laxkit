@@ -746,6 +746,27 @@ int SpacevectorAttribute(const char *v,spacevector *vec,char **endptr)
 	return 1;
 }
 
+//! Return from something like "1 2 3 4", "1,2,3,4", "(1,2,3,4)", or "(1 2 3 4)".
+/*! Return 1 if successful, else 0.
+ */
+int QuaternionAttribute(const char *v,Quaternion *vec,char **endptr)
+{
+	while (isspace(*v)) v++;
+	int paren=(*v=='(');
+	if (paren) v++;
+	char *end;
+	double fv[4];
+	int n=DoubleListAttribute(v,fv,4,&end);
+	if (n!=4) return 0;
+	v=end;
+	while (isspace(*v)) v++;
+	if (paren && *v!=')') return 0; //need closing parenthesis!
+	else if (paren) v++;
+	if (endptr) *endptr=const_cast<char *>(v);
+	(*vec).x=fv[0]; (*vec).y=fv[1]; (*vec).z=fv[2]; (*vec).z=fv[3];
+	return 1;
+}
+
 //! Turn v into an unsigned long, put in l if successful, return 1. Else don't change l and return 0.
 /*! \ingroup attributes
  */

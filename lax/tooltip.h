@@ -37,7 +37,7 @@ class ToolTip : public anXWindow
 	int textheight,fasc;
 	ToolTip(const char *newtext,int mouse);
 	~ToolTip();
-	virtual int Idle(int tid=0);
+	virtual int Idle(int tid, double delta);
 	virtual void Refresh();
 	virtual int Event(const EventData *d,const char *mes);
 

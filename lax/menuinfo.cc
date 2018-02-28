@@ -52,20 +52,13 @@ namespace Laxkit {
  * created beforehand. Each item can be tagged with MENU_HAS_SUBMENU to indicate
  * that a submenu is available if necessary.
  * 
- * The Laxkit window classes that use this structure are 
- * \link Laxkit::MenuSelector MenuSelector \endlink, 
- * \link Laxkit::PopupMenu PopupMenu\endlink, and 
- * \link Laxkit::StrSliderPopup\endlink.
- *
- * *** fltk has neat add like \n
- * add("File")\n
- * add("File/1st file itme")\n
- * add("File/2nd...")
+ * Usage:
  * <pre>
  *  menu.Add("blah1",id=1,grayed)
  *  menu.Add("blah2",2)
  *  menu.SubMenu([title])
  *   menu.Add("a")
+ *   menu.AddToggleItem("text", icon);
  *   menu.Add("b")
  *    menu.SubMenu([title],position==last added)
  *    menu.Add("1")
@@ -455,7 +448,7 @@ const char *MenuItem::GetString(int detail)
  * \ingroup menuthings
  * \brief General container for menu types of lists.
  *
- * This class stores lists that are used by MenuSelector, StrSliderPopup, and PopupMenu.
+ * This class stores lists that are used by TreeSelector, StrSliderPopup, and PopupMenu for instance.
  * It is basically a stack of MenuItem objects, and an optional title.
  *
  *
@@ -1090,7 +1083,7 @@ void MenuInfo::ClearSearch()
 
 //! Progressively search for items, caseless+partial. search==NULL matches all.
 /*! Sets MENU_SEARCH_HIT on matching items.
- *  Sets MENU_SEARCH_PARENT on items that don't match, but who has descendents.
+ *  Sets MENU_SEARCH_PARENT on items that don't match, but who has matching descendents.
  *
  *  If isprogressive, then assume that search is a string that contains the previous search.
  *

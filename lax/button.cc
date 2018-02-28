@@ -134,10 +134,16 @@ void Button::WrapToExtent(int which)
 }
 
 /*! Use this font. NULL means use system default.
+ * will inc count of font (when it's not already the font).
  */
-int Button::Font(LaxFont *font)
+int Button::Font(LaxFont *nfont)
 {
-	cerr << " *** implement Button::Font(LaxFont *font)!!"<<endl;
+	if (nfont != font) {
+		if (font) font->dec_count();
+		font = nfont;
+		if (nfont) nfont->inc_count();
+	}
+	needtodraw=1;
 	return 1;
 }
 
@@ -252,6 +258,9 @@ void Button::draw()
 {
 	Displayer *dp = GetDisplayer();
 	dp->MakeCurrent(this);
+	if (font) {
+		dp->font(font, font->textheight());
+	}
 	dp->NewFG(mousein?win_colors->moverbg:win_colors->bg);
 	dp->drawrectangle(0,0, win_w,win_h, 1);
 	
@@ -311,6 +320,10 @@ void Button::draw()
 			|| !(win_style&IBUT_FLAT)
 			|| ((win_style&IBUT_FLAT) && state!=LAX_OFF))
 		dp->drawBevel(bevel,highlight,shadow,state, 0,0, win_w,win_h);
+
+	if (font) {
+		dp->font(app->defaultlaxfont, app->defaultlaxfont->textheight());
+	}
 }
 
 

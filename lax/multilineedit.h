@@ -73,7 +73,7 @@ class MultiLineEdit : public TextXEditBaseUtf8
 	virtual int WheelDown(int x,int y,unsigned int state,int count,const LaxMouse *d);
 	virtual int WheelUp(int x,int y,unsigned int state,int count,const LaxMouse *d);
 	virtual int MouseMove(int x,int y,unsigned int state,const LaxMouse *d);
-	virtual int Idle(int tid=0);
+	virtual int Idle(int tid, double delta);
 	virtual int Resize(int nw,int nh);
 	virtual int MoveResize(int nx,int ny,int nw,int nh);
 	virtual void Refresh();

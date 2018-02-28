@@ -32,12 +32,13 @@ class RefPtrStack : public PtrStack<T>
 {
  protected:
  public:
-	RefPtrStack(char nar=3);
+	RefPtrStack(char nar = LISTS_DELETE_Refcount);
 	virtual ~RefPtrStack();
 	virtual void flush();
 	virtual int push(T *nd,char local=-1,int where=-1);
 	virtual int pushnodup(T *nd,char local=-1,int where=-1);
 	virtual int remove(int which=-1); // which is index
+	virtual int remove(T *t);
 };
 
 

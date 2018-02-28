@@ -10,6 +10,12 @@
 #include <lax/laxutils.h>
 #include <lax/transformmath.h>
 
+//for times():
+#include <ctime>
+//for sysconf(_SC_CLK_TCK):
+#include <unistd.h>
+
+
 #include <iostream>
 using namespace std;
 using namespace Laxkit;
@@ -24,8 +30,8 @@ class Win : public anXWindow
     double period; //seconds for scale pulse
     double step;  //in seconds
 	double offsetx,offsety; //for checkerboard pattern
-	bool paused;
-	int frame;
+	bool   paused;
+	int    frame;
 
     Win(double time_step_seconds);
     virtual void Refresh();
@@ -142,6 +148,18 @@ void Win::Refresh()
 
     dp->NewFG(win_colors->fg);
     dp->drawlines(pts, 4, 1, 1);
+
+
+	//make a red ball cross the window diagonally
+	long clock_ticks_per_second = sysconf(_SC_CLK_TCK);
+	long duration = (1. /*seconds*/) * clock_ticks_per_second; //seconds for traversal
+
+	time_t time = times(NULL);
+	double pos = (time % duration) / (float)duration;
+	dp->NewFG(1.,0.,0.);
+	dp->drawpoint(win_w*pos, win_h*pos, 10, 1);
+
+
 
     SwapBuffers();
     needtodraw=0;

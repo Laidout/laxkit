@@ -1581,7 +1581,7 @@ int MenuSelector::MouseMove(int x,int y,unsigned int state,const LaxMouse *d)
 //! Autoscroll if necessary****TODO
 /*! \todo *** must autoscroll when mouse over arrow and FOLLOW_MOUSE
  */
-int MenuSelector::Idle(int tid)
+int MenuSelector::Idle(int tid, double delta)
 {//***
 //	if (tid!=timerid) return 1;
 //	

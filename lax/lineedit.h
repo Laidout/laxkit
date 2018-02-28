@@ -87,7 +87,7 @@ class LineEdit : public TextXEditBaseUtf8
 	virtual int RBUp(int x,int y,unsigned int ,const LaxMouse *d);
 	virtual int WheelUp(int x,int y,unsigned int state,int count,const Laxkit::LaxMouse *d);
 	virtual int WheelDown(int x,int y,unsigned int state,int count,const Laxkit::LaxMouse *d);
-	virtual int Idle(int tid=0); // for autoscroll
+	virtual int Idle(int tid, double delta); // for autoscroll
 	virtual int MouseMove(int x,int y,unsigned int state,const LaxMouse *d);
 	virtual int Resize(int nw,int nh);
 	virtual void Refresh();

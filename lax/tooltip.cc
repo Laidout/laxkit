@@ -144,7 +144,7 @@ int ToolTip::Event(const EventData *e,const char *mes)
 /*! Also, the tooltip destroys itself by checking for any key or mouse event in the X event queue,
  * for any window.
  */
-int ToolTip::Idle(int tid)
+int ToolTip::Idle(int tid, double delta)
 {
 	DBG cerr <<"ToolTip \""<<thetext<<"\" idle"<<endl;
 	if (tid) app->destroywindow(this);

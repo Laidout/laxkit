@@ -18,21 +18,26 @@
 //    License along with this library; if not, write to the Free Software
 //    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
-//    Copyright (C) 2004-2010 by Tom Lechner
+//    Copyright (C) 2018 by Tom Lechner
 //
 #ifndef _LAX_POPUPMENU_H
 #define _LAX_POPUPMENU_H
 
-#include <lax/menuselector.h>
+
+#include <lax/treeselector.h>
+
 
 namespace Laxkit {
 
-class PopupMenu : public MenuSelector
+
+class PopupMenu : public TreeSelector
 {
- protected:
-	PopupMenu *parentmenu,*submenu;
-//	int createsubwindow();
- public:
+  protected:
+	PopupMenu *parentmenu, *submenu;
+	int outtimer;
+	PopupMenu *Top();
+
+  public:
 	PopupMenu(const char *nname, const char *ntitle, unsigned long long style,
 				int xx,int yy,int ww,int hh,int brder,
 				unsigned long nowner,const char *mes,
@@ -42,26 +47,18 @@ class PopupMenu : public MenuSelector
 				);
 	virtual ~PopupMenu();
 	virtual const char *whattype() { return "PopupMenu"; }
-	virtual int Idle(int tid=0);
+	virtual int Idle(int tid, double delta);
 	virtual int MouseMove(int x,int y,unsigned int state,const LaxMouse *d);
 	virtual int RBDown(int x,int y,unsigned int state,int count,const LaxMouse *d);
 	virtual int RBUp(int x,int y,unsigned int state,const LaxMouse *d);
 	virtual int CharInput(unsigned int ch,const char *buffer,int len,unsigned int state,const LaxKeyboard *d);
+	virtual int UpdateSearch(const char *searchterm, bool isprogressive);
 
 	virtual char MouseIn(int x,int y); // return whether the mouse is in the window or not
 	virtual void addselect(int i,unsigned int state);
 
-//	virtual int Add(char *name,int nid,int nstate=1);
-//	virutal int AddSep();
-//	virtual void SubMenu();
-//	virtual void EndSubMenu();
-//	virtual void Refresh();
-//	virtual MenuItem *finditem(int idnumber);
-//	virtual int gray(int idnumber,int on);
-//	virtual remove(int idnumber);
-//	virtual void UpdateMenu();
-
 };
+
 
 } // namespace Laxkit
 

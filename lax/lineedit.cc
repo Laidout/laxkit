@@ -1071,7 +1071,7 @@ int LineEdit::RBUp(int x,int y,unsigned int state,const LaxMouse *d)
 }
 
 //! For autoscroll: TODO!!
-int LineEdit::Idle(int) 
+int LineEdit::Idle(int tid, double delta) 
 { //***autoscroll on right button or left button
 	return 0;
 //	if (!(buttondown&RIGHTBUTTON)) return 0;

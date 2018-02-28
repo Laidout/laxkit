@@ -38,8 +38,6 @@ namespace Laxkit {
  * \brief Sub class of MenuItem to read in directories only when needed.
  *
  * Uses info to say whether to followlinks or not (1 is yes).
- *
- * *** TODO: sync up all the options with QuickFileOpen/FileDialog/MenuSelector/PopupMenu
  */
 
 

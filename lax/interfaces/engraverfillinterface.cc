@@ -1033,7 +1033,7 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
                                      object_id,"sharetrace",
                                      d->id,
                                      menu,1,NULL,
-                                     MENUSEL_LEFT));
+                                     TREESEL_LEFT));
 			return 0;
 
 		} else if (over==ENGRAVE_Trace_Continuous) {
@@ -1102,7 +1102,7 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
                                      object_id,"traceobjectmenu",
                                      d->id,
                                      menu,1,NULL,
-                                     MENUSEL_LEFT));
+                                     TREESEL_LEFT));
 			return 0;
 
 		 //------------dashes
@@ -1115,7 +1115,7 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
                                      object_id,"sharedash",
                                      d->id,
                                      menu,1,NULL,
-                                     MENUSEL_LEFT));
+                                     TREESEL_LEFT));
 			return 0;
 
 		} else if (over==ENGRAVE_Dash_Name) {
@@ -1164,7 +1164,7 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
                                      object_id,"sharedirection",
                                      d->id,
                                      menu,1,NULL,
-                                     MENUSEL_LEFT));
+                                     TREESEL_LEFT));
 			return 0;
 
 		} else if (over==ENGRAVE_Direction_Name) {
@@ -1196,7 +1196,7 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
                                      object_id,"directiontype",
                                      d->id,
                                      menu,1,NULL,
-                                     MENUSEL_LEFT));
+                                     TREESEL_LEFT));
 			return 0;
 
 		} else if (over==ENGRAVE_Direction_Profile_Scale) {
@@ -1229,7 +1229,7 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
                                      object_id,"lineprofilemenu",
                                      d->id,
                                      menu,1,NULL,
-                                     MENUSEL_LEFT));
+                                     TREESEL_LEFT));
 			return 0;
 
 		} else if (over==ENGRAVE_Direction_Seed) {
@@ -1286,7 +1286,7 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
                                      object_id,"sharespacing",
                                      d->id,
                                      menu,1,NULL,
-                                     MENUSEL_LEFT));
+                                     TREESEL_LEFT));
 			return 0;
 
 		} else if (over==ENGRAVE_Spacing_Name) {
@@ -1332,7 +1332,7 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
 										 object_id,"spacingmenu",
 										 d->id,
 										 menu,1,NULL,
-										 MENUSEL_LEFT));
+										 TREESEL_LEFT));
 
 			}
 

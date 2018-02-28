@@ -655,7 +655,7 @@ int RulerWindow::RBUp(int x,int y,unsigned int state,const LaxMouse *d)
 						d->id,
 						menu,1,
 						NULL,
-						MENUSEL_LEFT|MENUSEL_GRAPHIC_ON_LEFT);
+						TREESEL_LEFT);
 	popup->WrapToMouse(d->id);
 	app->rundialog(popup);
 

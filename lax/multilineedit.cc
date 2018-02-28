@@ -1367,7 +1367,7 @@ int MultiLineEdit::MouseMove(int x,int y,unsigned int state,const LaxMouse *d)
 
 /*! currently empty...
  */
-int MultiLineEdit::Idle(int tid)//tid=0
+int MultiLineEdit::Idle(int tid, double delta)
 { 
 	return 0;
 }

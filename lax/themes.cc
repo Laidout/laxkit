@@ -26,6 +26,8 @@
 #include <lax/anxapp.h>
 #include <lax/fileutils.h>
 #include <lax/language.h>
+#include <lax/version.h>
+
 
 //template implementations
 #include <lax/refptrstack.cc>
@@ -318,6 +320,36 @@ void WindowStyle::dump_in_atts(Attribute *att,int flag,DumpContext *context)
 			DoubleAttribute(value, &diff_highlight);
 
 
+		} else if (!strcmp(name,"font_normal")) {
+			LaxFont *newfont = anXApp::app->fontmanager->dump_in_font(att->attributes.e[c], context);
+			if (newfont) {
+				NormalFont(newfont);
+				newfont->dec_count();
+			}
+
+		} else if (!strcmp(name,"font_bold")) {
+			LaxFont *newfont = anXApp::app->fontmanager->dump_in_font(att->attributes.e[c], context);
+			if (newfont) {
+				BoldFont(newfont);
+				newfont->dec_count();
+			}
+
+		} else if (!strcmp(name,"font_italic")) {
+			LaxFont *newfont = anXApp::app->fontmanager->dump_in_font(att->attributes.e[c], context);
+			if (newfont) {
+				ItalicFont(newfont);
+				newfont->dec_count();
+			}
+
+		} else if (!strcmp(name,"font_monospace")) {
+			LaxFont *newfont = anXApp::app->fontmanager->dump_in_font(att->attributes.e[c], context);
+			if (newfont) {
+				MonospaceFont(newfont);
+				newfont->dec_count();
+			}
+
+
+
 		} else {
  			 //try for a color
 			ScreenColor color;
@@ -350,7 +382,7 @@ void WindowStyle::dump_in_atts(Attribute *att,int flag,DumpContext *context)
 				} else if (!strcmp(name,"deactivate")) {
 					deactivate = color;
 				}
-			} 
+			}
 		}
 	}
 }
@@ -370,38 +402,62 @@ double WindowStyle::GetValue(const char *what)
 	return 0;
 }
 
+/*! Set to nfont if nfont!=NULL.
+ */
+int WindowStyle::NormalFont(LaxFont *nfont)
+{
+	if (!nfont || nfont == normal) return 0;
+	if (normal) normal->dec_count();
+	normal = nfont;
+	normal->inc_count();
+	return 1;
+}
+
+/*! Set to nfont if nfont!=NULL.
+ */
+int WindowStyle::BoldFont(LaxFont *nfont)
+{
+	if (!nfont || nfont == bold) return 0;
+	if (bold) bold->dec_count();
+	bold = nfont;
+	bold->inc_count();
+	return 1;
+}
+
+/*! Set to nfont if nfont!=NULL.
+ */
+int WindowStyle::ItalicFont(LaxFont *nfont)
+{
+	if (!nfont || nfont == italic) return 0;
+	if (italic) italic->dec_count();
+	italic = nfont;
+	italic->inc_count();
+	return 1;
+}
+
+/*! Set to nfont if nfont!=NULL.
+ */
+int WindowStyle::MonospaceFont(LaxFont *nfont)
+{
+	if (!nfont || nfont == monospace) return 0;
+	if (monospace) monospace->dec_count();
+	monospace = nfont;
+	monospace->inc_count();
+	return 1;
+}
 
 /*! If not null, replace the old font with the new. If the new is null, then don't replace.
- * Incs counts. Returns number of fonts changed.
+ * Incs counts. Returns number of fonts changed. If the font is the same as current, that doesn't count.
  */
 int WindowStyle::SetFonts(LaxFont *nnormal, LaxFont *nbold, LaxFont *nitalic, LaxFont *nmonospace)
 {
 	int n=0;
 
-	if (nnormal && nnormal != normal) {
-		if (normal) normal->dec_count();
-		normal = nnormal;
-		normal->inc_count();
-		n++;
-	}
-	if (nbold && nbold != bold) {
-		if (bold) bold->dec_count();
-		bold = nbold;
-		bold->inc_count();
-		n++;
-	}
-	if (nitalic && nitalic != italic) {
-		if (italic) italic->dec_count();
-		italic = nitalic;
-		italic->inc_count();
-		n++;
-	}
-	if (nmonospace && nmonospace != monospace) {
-		if (monospace) monospace->dec_count();
-		monospace = nmonospace;
-		monospace->inc_count();
-		n++;
-	}
+	if (NormalFont   (nnormal)   ) n++;
+	if (BoldFont     (nbold)     ) n++;
+	if (ItalicFont   (nitalic)   ) n++;
+	if (MonospaceFont(nmonospace)) n++;
+
 	return n;
 }
 
@@ -759,7 +815,7 @@ void Theme::dump_out(FILE *f,int indent,int what,DumpContext *context)
 {
 	Attribute att;
 	char spc[indent+1]; memset(spc,' ',indent); spc[indent]='\0';
-	fprintf(f, "%s#Laxkit Theme\n", spc);
+	fprintf(f, "%s#Laxkit %s Theme\n", LAXKIT_VERSION, spc);
 	dump_out_atts(&att,what,context);
 	att.dump_out(f,indent);
 }

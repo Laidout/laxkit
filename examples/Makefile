@@ -29,6 +29,7 @@ CPPFLAGS= $(DEBUGFLAGS) -I$(LAXDIR)/.. `freetype-config --cflags`
 examples= \
 	laxhello \
 	interfs \
+	themeeditor \
 	timers
 
 

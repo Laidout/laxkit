@@ -23,20 +23,20 @@
 #ifndef _LAX_ANOBJECT_H
 #define _LAX_ANOBJECT_H
 
+#include <lax/refcounted.h>
 #include <cstring>
 
 namespace Laxkit {
 
 
-class anObject 
+class anObject : virtual public RefCounted
 {
   protected:
-	int _count;
 
   public:
-	int suppress_debug;
 	unsigned long object_id;
 	char *object_idstr;
+
 	anObject();
 	virtual ~anObject();
 	virtual const char *whattype() { return "anObject"; }
@@ -44,7 +44,6 @@ class anObject
 	virtual anObject *duplicate(anObject *ref) { return NULL; }
 	virtual int inc_count();
 	virtual int dec_count();
-	virtual int the_count() { return _count; }
 	virtual const char *Id();
 	virtual const char *Id(const char *newid);
 	virtual void touchContents();
