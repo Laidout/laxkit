@@ -203,6 +203,7 @@ class Displayer : public PanUser, virtual public anObject
 	virtual void drawBevel(double bevel,unsigned long highlight,unsigned long shadow, int state,double x,double y,double w,double h);
 
 	//draw things
+	virtual void drawthing(flatpoint p, double rx, double ry, int tofill, DrawThingTypes thing);
 	virtual void drawthing(double x, double y, double rx, double ry, int tofill, DrawThingTypes thing); // draws same orientation on screen
 	virtual void drawthing(double x, double y, double rx, double ry, DrawThingTypes thing,unsigned long fg,unsigned long bg,int lwidth=1);
 	virtual void drawarrow(flatpoint p,flatpoint v,int rfromp=0,double len=10,char reallength=1,int portion=3);

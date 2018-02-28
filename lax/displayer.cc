@@ -993,6 +993,13 @@ void Displayer::drawarrow(flatpoint p,flatpoint v,int rfromp,double len,char rea
 	if (portion&2) drawline(p2,p2-v/3-transpose(v)/4); //other half
 }
 
+/*! Convenience function to just call drawthing(p.x,p.y, ...);
+ */
+void Displayer::drawthing(flatpoint p, double rx, double ry, int tofill, DrawThingTypes thing)
+{
+	drawthing(p.x, p.y, rx,ry, tofill, thing);
+}
+
 void Displayer::drawthing(double x, double y, double rx, double ry, DrawThingTypes thing,unsigned long fg,unsigned long bg,int lwidth)
 {
 	if (lwidth>=0) LineAttributes(lwidth,0,CapRound,JoinRound);
