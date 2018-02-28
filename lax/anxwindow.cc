@@ -1175,16 +1175,30 @@ int anXWindow::event(XEvent *e)
 
 			DBG cerr <<"..typ("<<WindowTitle()<<"):ConfigureNotify..";
 			DBG cerr <<" or="<<e->xconfigure.override_redirect<<" ";
+
+			//On ubuntu, maximizing does not properly adjust the coordinates, so we
+			//manually query the location and dimensions of the window
+			XWindowAttributes actual; 
+			XGetWindowAttributes(app->dpy, xlib_window, &actual);
+			Window cr;
+			int X, Y, W = actual.width, H = actual.height;
+			XTranslateCoordinates(app->dpy, xlib_window, actual.root, 0, 0, &X, &Y, &cr);
+
+			DBG cerr <<"getatts says xywh: "<<X<<","<<Y<<" "<<W<<'x'<<H<<"  ";
+
+
+
 			if (e->xconfigure.override_redirect) { 
-				DBG cerr<<endl;
+				// break if in a ResizeRequest
+				DBG cerr<<"...in override_redirect, assuming in ResizeRequest"<<endl;
 				break;
-			}// break if in a ResizeRequest
-			DBG cerr <<"new x,y,w,h:";
+			}
+			DBG cerr <<"new x,y,w,h: ";
 
 			 // x
 			if (e->xconfigure.x!=win_x) { 
 				DBG cerr <<"*"; 
-				win_x=e->xconfigure.x; 
+				win_x = e->xconfigure.x; 
 			}
 			DBG cerr <<e->xconfigure.x<<',';
 			
@@ -1203,6 +1217,11 @@ int anXWindow::event(XEvent *e)
 			DBG if (e->xconfigure.height!=win_h) { DBG cerr <<"*"; }
 			DBG cerr <<e->xconfigure.height<<"../config\n ";
 			DBG cerr <<endl;
+
+
+			// ***  trying manual resize here
+			//if (win_on) MoveResize(X,Y,W,H);
+
 		} break;
 
 		case ResizeRequest: {
@@ -1210,12 +1229,12 @@ int anXWindow::event(XEvent *e)
 
 			DBG cerr <<"..typ("<<WindowTitle()<<"):ResizeRequest.."<<endl;
 		 	 // set override redirect
-			xlib_win_xatts.override_redirect=True;
+			xlib_win_xatts.override_redirect = True;
 			XChangeWindowAttributes(app->dpy,xlib_window,CWOverrideRedirect,&xlib_win_xatts);
 			 // must manual resize
 			Resize(e->xresizerequest.width,e->xresizerequest.height);
 			 // remove override redirect
-			xlib_win_xatts.override_redirect=False;
+			xlib_win_xatts.override_redirect = False;
 			XChangeWindowAttributes(app->dpy,xlib_window,CWOverrideRedirect,&xlib_win_xatts);
 			needtodraw=1;
 			DBG cerr <<"/rr"<<endl;
