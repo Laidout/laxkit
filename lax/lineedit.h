@@ -52,6 +52,7 @@ enum LineEditStyleFlags {
 	LINEEDIT_DESTROY_ON_ENTER =(1<<28),
 	LINEEDIT_GRAB_ON_MAP      =(1<<29),
 	LINEEDIT_CLEAR_X          =(1<<30),
+	LINEEDIT_SEND_CONTROLS    =(1<<31),
 	LINEEDIT_MAX
 };
 
