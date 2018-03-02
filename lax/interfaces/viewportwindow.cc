@@ -995,16 +995,25 @@ int ViewportWindow::deletekid(anXWindow *w)
 	return anXWindow::deletekid(w);
 }
 
+void ViewportWindow::ClearInputBox()
+{
+	if (temp_input) {
+		app->destroywindow(temp_input);
+		temp_input = NULL;
+	}
+}
+
 /*! Return NULL if temp_input already there. Else return the newly created window.
  */
 Laxkit::anXWindow *ViewportWindow::SetupInputBox(unsigned long owner_id, const char *label, const char *text, const char *message,
-									const Laxkit::DoubleBBox &bounds, const char *ntooltip)
+									const Laxkit::DoubleBBox &bounds, const char *ntooltip, bool send_controls)
 {
 	if (temp_input) return NULL;
 
 	 //1. set up a LineEdit to get some input
 	 //2. temporarily toggle off viewport grab mode if necessary, to keep input in the edit
-	int x=bounds.minx, y=bounds.miny, w=bounds.maxx-bounds.minx, h=bounds.maxy-bounds.miny;
+	int border = 3;
+	int x=bounds.minx-border, y=bounds.miny-border, w=bounds.maxx-bounds.minx, h=bounds.maxy-bounds.miny;
 
 	if (y+h>win_h) y-=y+h-win_h+8;
 	else if (y<0) y=0;
@@ -1012,8 +1021,9 @@ Laxkit::anXWindow *ViewportWindow::SetupInputBox(unsigned long owner_id, const c
 	else if (x<0) x=0;
 
 	LineEdit *le= new LineEdit(this, label,label,
-								LINEEDIT_DESTROY_ON_ENTER|LINEEDIT_GRAB_ON_MAP|ANXWIN_ESCAPABLE|ANXWIN_OUT_CLICK_DESTROYS|ANXWIN_HOVER_FOCUS,
-								x,y,w,h, 4, //border
+								(send_controls ? LINEEDIT_SEND_CONTROLS : 0)
+								 | LINEEDIT_DESTROY_ON_ENTER|LINEEDIT_GRAB_ON_MAP|ANXWIN_ESCAPABLE|ANXWIN_OUT_CLICK_DESTROYS|ANXWIN_HOVER_FOCUS,
+								x,y,w,h, border,
 								NULL,owner_id,message,
 								text);
 	if (ntooltip) le->tooltip(ntooltip);
@@ -1025,8 +1035,8 @@ Laxkit::anXWindow *ViewportWindow::SetupInputBox(unsigned long owner_id, const c
 	temp_input_interface=owner_id;
 	makestr(temp_input_label, label);
 
-	temp_grab=win_style&ANXWIN_HOVER_FOCUS;
-	win_style&=~ANXWIN_HOVER_FOCUS;
+	temp_grab = win_style&ANXWIN_HOVER_FOCUS;
+	win_style &= ~ANXWIN_HOVER_FOCUS;
 
 	needtodraw=1;
 	return le;

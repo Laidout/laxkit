@@ -224,7 +224,9 @@ class ViewportWindow : public Laxkit::PanUser, public Laxkit::anXWindow
 
 	 //helper for grabbing custom input for interfaces
 	virtual Laxkit::anXWindow *SetupInputBox(unsigned long owner_id, const char *label, const char *text, const char *message,
-											 const Laxkit::DoubleBBox &bounds, const char *ntooltip=NULL);
+											 const Laxkit::DoubleBBox &bounds, const char *ntooltip=NULL, bool send_controls=false);
+	virtual Laxkit::anXWindow *GetInputBox() { return temp_input; }
+	virtual void ClearInputBox();
 };
 
 } // namespace LaxInterfaces
