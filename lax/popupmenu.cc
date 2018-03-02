@@ -133,7 +133,7 @@ PopupMenu::PopupMenu(const char *nname, const char *ntitle, unsigned long long s
 	if (usethismenu && absorb_count) usethismenu->dec_count(); //was inc'd in TreeSelector
 
 	if (!nparentmenu) menustyle |= TREESEL_GRAB_ON_MAP;
-	if (menu) Select(0); //*** if 0 has a menu then popit up!! also should wrap near parentmenu->selected item!!
+	//if (menu) Select(0); //*** if 0 has a menu then popit up!! also should wrap near parentmenu->selected item!!
 	if (mouseid) WrapToMouse(mouseid,nparentmenu);
 	else WrapToPosition(xx,yy,0,nparentmenu);
 
@@ -185,30 +185,42 @@ PopupMenu::~PopupMenu()
 //	return 0;
 //}
 
+void PopupMenu::RemoveSubmenu()
+{
+	if (!submenu) return;
+	submenu->parentmenu=NULL; // Important: detach the submenu(s) before destroying.
+	app->destroywindow(submenu);
+	submenu=NULL;
+}
+
 //! Must capture before and after selecting, to control what popups should be up.
 void PopupMenu::addselect(int i,unsigned int state)
 {
-	int oldcuritem = curitem;
+	//int oldcuritem = curitem;
 	TreeSelector::addselect(i,state);
 
-	if (curitem != oldcuritem) { // must potentially tinker with the popped up menu.
-		 // must remove the old popped up submenu(s)
-		MenuItem *ii = item(oldcuritem);
+	 // must remove the old popped up submenu(s)
+	//MenuItem *ii = item(oldcuritem);
 
-		if (ii && ii->hasSub() && submenu) { 
-			submenu->parentmenu=NULL; // Important: detach the submenu(s) before destroying.
-			app->destroywindow(submenu);
-			submenu=NULL;
-		}
+//	if (curitem >= 0 && ii && ii->hasSub() && submenu) { 
+//		submenu->parentmenu=NULL; // Important: detach the submenu(s) before destroying.
+//		app->destroywindow(submenu);
+//		submenu=NULL;
+//	}
 
-		 // must establish a new popped up submenu
-		 //*** this needs work, maybe need a MenuItem::Open/CloseSubmenu()??
-		 //*** when wrapping to mouse is always Selecting 0, and so makes 
-		 //almost the whole menu down below the screen...
-		ii = item(curitem);
+	 // must establish a new popped up submenu
+	 //*** this needs work, maybe need a MenuItem::Open/CloseSubmenu()??
+	 //*** when wrapping to mouse is always Selecting 0, and so makes 
+	 //almost the whole menu down below the screen...
+	MenuItem *ii = item(curitem);
 
-		if (ii && ii->hasSub()) { 
-			MenuInfo *minfo = ii->GetSubmenu(1);
+	if (ii && ii->hasSub()) { 
+		MenuInfo *minfo = ii->GetSubmenu(1);
+		//if (minfo->NumVisible() == 0) minfo = NULL;
+		
+		if (minfo && (!submenu || submenu->Menu() != minfo)) {
+			RemoveSubmenu();
+
 			char *blah = numtostr((int)getUniqueNumber()); //make a unique window name for debugging purposes
 			IntRectangle rect;
 			findRect(curitem,&rect);
@@ -229,7 +241,7 @@ void PopupMenu::addselect(int i,unsigned int state)
 			//DBG if (submenu->window) app->setfocus(submenu);
 			//DBG else cerr <<"============Set focus fail!"<<endl;
 		}
-	}
+	} else if (ii) RemoveSubmenu();
 }
 
 //! Right button currently just escapes out of the window.
