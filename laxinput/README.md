@@ -25,7 +25,7 @@ It is currently only for quickly remapping the X device hierarchy.
 
 Compiling
 ---------
-You will need the Laxkit (http://laxkit.sourceforge.net). Set the path to the Laxkit headers
+You will need the Laxkit (https://github.com/Laidout/laxkit). Set the path to the Laxkit headers
 if necessary in the Makefile. You will also need makedepend, which on Debian systems is in xutils-dev.
 
 If you need to download the Laxkit fresh, then do this:

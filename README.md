@@ -4,7 +4,6 @@ THE LAXKIT
 Version 0.0.8.1  
 Released under the LGPL  
 http://github.com/Laidout/laxkit  
-http://laxkit.sourceforge.net  
 
 
 WHAT IS IT
