@@ -1,13 +1,13 @@
 //
 //	
 //    The Laxkit, a windowing toolkit
-//    Please consult http://laxkit.sourceforge.net about where to send any
+//    Please consult https://github.com/Laidout/laxkit about where to send any
 //    correspondence about this software.
 //
 //    This library is free software; you can redistribute it and/or
 //    modify it under the terms of the GNU Library General Public
 //    License as published by the Free Software Foundation; either
-//    version 2 of the License, or (at your option) any later version.
+//    version 3 of the License, or (at your option) any later version.
 //
 //    This library is distributed in the hope that it will be useful,
 //    but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
 //    Library General Public License for more details.
 //
 //    You should have received a copy of the GNU Library General Public
-//    License along with this library; if not, write to the Free Software
-//    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//    License along with this library; If not, see <http://www.gnu.org/licenses/>.
 //
 //    Copyright (c) 2004-2015 Tom Lechner
 //
@@ -344,6 +343,7 @@ int LineEdit::Modified(int m)//m=1
  *  If i==1, then enter was pressed.
  *  If i==2, then the edit got the focus.
  *  If i==3, then the edit lost the focus.
+ *  If i==-1, then this is control notification, and info2==char, info3==state.
  */
 int LineEdit::send(int i)
 {
@@ -569,6 +569,15 @@ int LineEdit::CharInput(unsigned int ch,const char *buffer,int len,unsigned int 
 	if (!thefont) {
 		cerr <<"No font in "<<WindowTitle()<<"! This shouldn't happen."<<endl;
 		return anXWindow::CharInput(ch,buffer,len,state,d);;
+	}
+
+	if ((win_style & LINEEDIT_SEND_CONTROLS)
+			&& (ch == '\t' || ch == LAX_Up || ch == LAX_Down)) {
+		
+		SimpleMessage *data=new SimpleMessage(NULL, -1, ch,state, 0, win_sendthis);
+		app->SendMessage(data, win_owner, win_sendthis, object_id);
+
+		return 0;
 	}
 
 	int c=0;

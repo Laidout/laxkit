@@ -1,13 +1,13 @@
 //
 //	
 //    The Laxkit, a windowing toolkit
-//    Please consult http://laxkit.sourceforge.net about where to send any
+//    Please consult https://github.com/Laidout/laxkit about where to send any
 //    correspondence about this software.
 //
 //    This library is free software; you can redistribute it and/or
 //    modify it under the terms of the GNU Library General Public
 //    License as published by the Free Software Foundation; either
-//    version 2 of the License, or (at your option) any later version.
+//    version 3 of the License, or (at your option) any later version.
 //
 //    This library is distributed in the hope that it will be useful,
 //    but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -15,8 +15,7 @@
 //    Library General Public License for more details.
 //
 //    You should have received a copy of the GNU Library General Public
-//    License along with this library; if not, write to the Free Software
-//    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//    License along with this library; If not, see <http://www.gnu.org/licenses/>.
 //
 //    Copyright (C) 2012-2014 by Tom Lechner
 //
@@ -366,7 +365,12 @@ int TreeSelector::FocusOff(const FocusChangeData *e)
 {
 	DBG cerr <<"TreeSelector "<<WindowTitle()<<" FocusOff..."<<endl;
 
+	if (HasStyle(TREESEL_FOLLOW_MOUSE)) {
+		addselect(-1, 0);
+	}
+
 	int c=anXWindow::FocusOff(e);
+
 //	if (!win_active) {
 //		if (menustyle&TREESEL_DESTROY_ON_FOCUS_OFF) {
 //			app->destroywindow(this);
@@ -1735,50 +1739,43 @@ void TreeSelector::addselect(int i,unsigned int state)
 {
 	DBG cerr <<(WindowTitle())<<" addselect:"<<i<<" state="<<state<<endl;
 	int c;
-	MenuItem *mitem=item(i),*titem;
-	if (!mitem) return;
-	if (mitem->state&LAX_SEPARATOR) return;
+	MenuItem *mitem = item(i),*titem;
+	//if (!mitem) return;
+	//if (mitem->state&LAX_SEPARATOR) return;
 
-	if (!(state&ShiftMask) || menustyle&(TREESEL_ZERO_OR_ONE|TREESEL_ONE_ONLY)) { // select individual
-		int oldstate=mitem->state;
+	if (!(state&ShiftMask) || menustyle&(TREESEL_ZERO_OR_ONE|TREESEL_ONE_ONLY)) {
+		 //shift not pressed, or select zero or one
+
+		int oldstate = mitem ? mitem->state : 0;
 		if (!(state&ControlMask)) {
 			 // unselect others
-			if (selection.n) oldstate=LAX_OFF;
+			if (selection.n) oldstate = LAX_OFF;
 			for (c=selection.n-1; c>=0; c--) { // turn off all the ones that are on
-				titem=selection.e[c];
+				titem = selection.e[c];
 				selection.remove(c);
-				titem->state&=~(LAX_ON|LAX_OFF|MENU_SELECTED); 
-				titem->state|=LAX_OFF; 
-				//drawitem(visibleitems.menuitems.findindex(titem));
+				titem->state &= ~(LAX_ON|LAX_OFF|MENU_SELECTED); 
+				titem->state |= LAX_OFF; 
 			}
 		}
 
-		//int newstate=(LAX_ON|MENU_SELECTED);
-		//mitem->state=(mitem->state&~(LAX_ON|LAX_OFF|MENU_SELECTED)) | newstate;
-		//if (newstate&LAX_ON) {
-		//	selection.pushnodup(mitem,0);
-		//} else {
-		//	selection.remove(selection.findindex(mitem));
-		//}
-		//---------
-		if ((menustyle&TREESEL_ONE_ONLY) || oldstate==0 || (oldstate&LAX_MSTATE_MASK)==LAX_OFF) {
-			 //turn on
-			mitem->state=(mitem->state&~(LAX_ON|LAX_OFF|MENU_SELECTED))|(LAX_ON|MENU_SELECTED);
-			selection.pushnodup(mitem,0);
-			
-		//} else if ((oldstate&(LAX_ON|LAX_OFF|MENU_SELECTED))==LAX_ON) {
-		} else if ((oldstate&(LAX_ON|LAX_OFF))==LAX_ON) {
-			 //turn off
-			mitem->state=(mitem->state&~(LAX_ON|LAX_OFF|MENU_SELECTED))|LAX_OFF;
-			selection.remove(selection.findindex(mitem));
+		if (mitem) {
+			if ((menustyle&TREESEL_ONE_ONLY) || oldstate==0 || (oldstate&LAX_MSTATE_MASK)==LAX_OFF) {
+				 //turn on
+				mitem->state = (mitem->state & ~(LAX_ON|LAX_OFF|MENU_SELECTED)) | (LAX_ON|MENU_SELECTED);
+				selection.pushnodup(mitem,0);
+				
+			//} else if ((oldstate&(LAX_ON|LAX_OFF|MENU_SELECTED))==LAX_ON) {
+			} else if ((oldstate & (LAX_ON|LAX_OFF))==LAX_ON) {
+				 //turn off
+				mitem->state=(mitem->state & ~(LAX_ON|LAX_OFF|MENU_SELECTED)) | LAX_OFF;
+				selection.remove(selection.findindex(mitem));
+			}
 		}
 
-		c=ccuritem;
-		ccuritem=curitem=i;
-		curmenuitem=mitem;
-		//drawitem(c);       // draw off old ccuritem
-		//drawitem(curitem); // draw on curitem==ccuritem
-		needtodraw|=2;
+		ccuritem = curitem = i;
+		curmenuitem = mitem;
+
+		needtodraw |= 2;
 
 	} else if (state&ShiftMask) { // select range
 		int start,end;
@@ -2131,7 +2128,7 @@ int TreeSelector::MouseMove(int x,int y,unsigned int state,const LaxMouse *d)
 			
 		if (i<0) i=0;
 		if (i>=numItems()) i=numItems()-1;
-		if (i!=ccuritem) {
+		//if (i!=ccuritem) {
 			if (HasStyle(TREESEL_FOLLOW_MOUSE)) {
 				//if (menustyle&(TREESEL_CURSSELECTS)) addselect(i,state);
 				//else {
@@ -2141,7 +2138,7 @@ int TreeSelector::MouseMove(int x,int y,unsigned int state,const LaxMouse *d)
 					needtodraw|=2;
 				//}
 			}
-		}
+		//}
 		return 0;
 	}
 

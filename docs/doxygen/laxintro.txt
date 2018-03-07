@@ -35,7 +35,7 @@ is this documentation, which needs a bit of clean up.
 
 \section downloading Downloading
 
-The Laxkit is currently hosted at: http://laxkit.sourceforge.net
+The Laxkit is currently hosted at: https://github.com/Laidout/laxkit
 
 \section compiling Compiling
 
@@ -43,7 +43,7 @@ The Laxkit depends on:
 - <a href="http://www.libpng.org/pub/png/libpng.html">libpng</a><br>
 - <a href="http://www.x.org">X11</a><br>
 - <a href="http://www.cups.org">cups</a><br>
-- <a href="http://freetype.sourceforge.net/index2.html">freetype</a><br>
+- <a href="http://freetype.org">freetype</a><br>
 - <a href="http://www.enlightenment.org/Libraries/Imlib2/">Imlib2</a><br>
 
 Soon, it will likely also depend on:<br>

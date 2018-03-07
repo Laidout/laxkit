@@ -24,7 +24,7 @@ Description: Laxkit, a C++ Gui Toolkit, dev files
  This package contains the library and header files needed to
  compile programs using the Laxkit.
  .
- http://laxkit.sourceforge.org
+ https://github.com/Laidout/laxkit
 
 Package: liblaxkit-doc
 Section: doc
@@ -44,7 +44,7 @@ Description: Laxkit documentation
  .
  This package contains the Laxkit documentation.
  .
- http://laxkit.sourceforge.org
+ https://github.com/Laidout/laxkit
 
 Package: laxinput
 Section: utils
@@ -55,5 +55,5 @@ Description: Configure keyboards and mice under Xinput2
  and dropping devices to and from master devices. This allows you to
  use 2 mice independently at the same time, for instance.
  .
- http://laxkit.sourceforge.org
+ https://github.com/Laidout/laxkit
 

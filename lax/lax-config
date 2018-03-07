@@ -1,8 +1,19 @@
 #!/usr/bin/perl
 
+#
+#
+#
+#
+die "This is really old and needs updating before using!!!";
+#
+#
+#
+#
+
+
 $LaxkitVersion="0.0.8.1";
 #$prefix="/usr/local/lib";
-$prefix="/home/tom/p/sourceforge/laxkit/lax";
+$prefix="/usr/local/";
 $iprefix="/interfaces";
 
 $imlibflags=`imlib2-config --libs`;
