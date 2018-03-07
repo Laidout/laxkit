@@ -965,7 +965,7 @@ int anXWindow::FocusOff(const FocusChangeData *e)
  */
 int anXWindow::Resize(int nw,int nh)
 {
-	DBG cerr << "anXWindow::Resize-"<<object_id<<":"<<WindowTitle()<<"  w,h:"<<nw<<','<<nh<<endl;
+	DBG cerr << "anXWindow::Resize(obj:"<<object_id<<"):"<<WindowTitle()<<"  w,h:"<<nw<<','<<nh<<endl;
 //	return MoveResize(win_x,win_y,nw,nh);
 	if (nw<=0 || nh<=0) return 1;
 
@@ -973,8 +973,8 @@ int anXWindow::Resize(int nw,int nh)
 	if (xlib_window) XResizeWindow(app->dpy,xlib_window,nw,nh);
 #endif //_LAX_PLATFORM_XLIB
 
-	win_w=nw;
-	win_h=nh;
+	win_w = nw;
+	win_h = nh;
 
 	Displayer *dp=GetDisplayer();
 	//dp->MakeCurrent(this);
@@ -1129,8 +1129,9 @@ int anXWindow::Event(const EventData *data,const char *mes)
  */
 int anXWindow::event(XEvent *e)
 {
-	//DBG cerr <<endl<<"anXWindow::event \""<<WindowTitle()
-	//DBG        <<"\" got event "<<event_name(e->type)<<" "<<e->xany.serial<<endl;
+	DBG cerr <<endl<<"anXWindow::event \""<<WindowTitle()
+	DBG        <<"\" got event "<<xlib_event_name(e->type)<<" "<<e->xany.serial<<endl;
+
 	switch(e->type) {
 		 case ClientMessage: {
 		 	char *aname=XGetAtomName(app->dpy,e->xclient.message_type);
@@ -1175,59 +1176,55 @@ int anXWindow::event(XEvent *e)
 
 			DBG cerr <<"..typ("<<WindowTitle()<<"):ConfigureNotify..";
 			DBG cerr <<" or="<<e->xconfigure.override_redirect<<" ";
+			DBG cerr <<" conf to: "<<e->xconfigure.x<<','<<e->xconfigure.y<<','<<" "<<e->xconfigure.width<<','<<e->xconfigure.height<<endl;
+			DBG cerr <<" old xywh: "<<win_x<<','<<win_y<<" "<<win_w<<'x'<<win_h<<endl;
 
 			//On ubuntu, maximizing does not properly adjust the coordinates, so we
 			//manually query the location and dimensions of the window
 			XWindowAttributes actual; 
 			XGetWindowAttributes(app->dpy, xlib_window, &actual);
 			Window cr;
+			 //find where window currently is, which we hope is same as confignotify, but it might not be, esp. x,y
 			int X, Y, W = actual.width, H = actual.height;
 			XTranslateCoordinates(app->dpy, xlib_window, actual.root, 0, 0, &X, &Y, &cr);
 
-			DBG cerr <<"getatts says xywh: "<<X<<","<<Y<<" "<<W<<'x'<<H<<"  ";
+			DBG cerr <<"getatts says xywh: "<<X<<","<<Y<<" "<<W<<'x'<<H<<"  "<<endl;
 
+			if (win_parent) break; //assume child windows are all explicitly user controlled
 
+//			if (e->xconfigure.override_redirect) { 
+//				// break if in a ResizeRequest
+//				DBG cerr<<"...in override_redirect, assuming in ResizeRequest"<<endl;
+//				break;
+//			}
 
-			if (e->xconfigure.override_redirect) { 
-				// break if in a ResizeRequest
-				DBG cerr<<"...in override_redirect, assuming in ResizeRequest"<<endl;
-				break;
-			}
-			DBG cerr <<"new x,y,w,h: ";
+			bool diffloc = false, diffsize = false;
 
-			 // x
-			if (e->xconfigure.x!=win_x) { 
-				DBG cerr <<"*"; 
-				win_x = e->xconfigure.x; 
-			}
-			DBG cerr <<e->xconfigure.x<<',';
-			
-			 // y
-			if (e->xconfigure.y!=win_y) { 
-				DBG cerr <<"*";
-				win_y=e->xconfigure.y; 
-			}
-			DBG cerr <<e->xconfigure.y<<',';
-			
 			 // w, if unmapped, resizes are not setting w/h, why not???
-			DBG if (e->xconfigure.width!=win_w) { cerr <<"*"; }
-			DBG cerr <<e->xconfigure.width<<',';
-			
-			 // h
-			DBG if (e->xconfigure.height!=win_h) { DBG cerr <<"*"; }
-			DBG cerr <<e->xconfigure.height<<"../config\n ";
-			DBG cerr <<endl;
+			//if (e->xconfigure.x      != win_x) { win_x = e->xconfigure.x;      diffloc  = true; }
+			//if (e->xconfigure.y      != win_y) { win_y = e->xconfigure.y;      diffloc  = true; }
+			if (e->xconfigure.width  != win_w) { W     = e->xconfigure.width;  diffsize = true; }
+			if (e->xconfigure.height != win_h) { H     = e->xconfigure.height; diffsize = true; }
+			if (X != win_x) { win_x = X; diffloc  = true; }
+			if (Y != win_y) { win_y = Y; diffloc  = true; }
+			//if (W != win_w) { W     = W; diffsize = true; }
+			//if (H != win_h) { H     = H; diffsize = true; }
 
+			DBG if (diffloc) cerr <<"  diff location"<<endl;
 
 			// ***  trying manual resize here
-			//if (win_on) MoveResize(X,Y,W,H);
+			if (win_on) {
+				//if (diffloc) MoveResize(X,Y,W,H);
+				//else 
+				if (diffsize) Resize(W,H);
+			}
 
 		} break;
 
 		case ResizeRequest: {
-			 //icccm says to set override redirect, manually XResizeWindow, the remove override redirect
+			 //icccm says to set override redirect, manually XResizeWindow, then remove override redirect
 
-			DBG cerr <<"..typ("<<WindowTitle()<<"):ResizeRequest.."<<endl;
+			DBG cerr <<"..typ("<<WindowTitle()<<"):ResizeRequest.. wh: "<<e->xresizerequest.width<<", "<<e->xresizerequest.height<<endl;
 		 	 // set override redirect
 			xlib_win_xatts.override_redirect = True;
 			XChangeWindowAttributes(app->dpy,xlib_window,CWOverrideRedirect,&xlib_win_xatts);
@@ -1441,6 +1438,14 @@ int anXWindow::CharInput(unsigned int ch, const char *buffer,int len,unsigned in
 	if (ch!='\t') return 1;
 	if ((state&LAX_STATE_MASK)==ShiftMask) return SelectPrevControl(kb);
 	if ((state&LAX_STATE_MASK)==0) return SelectNextControl(kb);
+
+
+	// ***************
+//	if (ch==' ') {
+//		XWindowAttributes actual; 
+//		XGetWindowAttributes(app->dpy, xlib_window, &actual);
+//		Resize(w,h);
+//	}
 	return 1;
 }
 
