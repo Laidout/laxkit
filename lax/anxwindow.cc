@@ -1217,7 +1217,7 @@ int anXWindow::event(XEvent *e)
 			if (win_on) {
 				//if (diffloc) MoveResize(X,Y,W,H);
 				//else 
-				if (diffsize) Resize(W,H);
+				if (!e->xconfigure.override_redirect && diffsize) Resize(W,H);
 			}
 
 		} break;
