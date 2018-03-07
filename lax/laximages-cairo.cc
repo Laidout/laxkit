@@ -207,7 +207,7 @@ LaxCairoImage::~LaxCairoImage()
 unsigned char *LaxCairoImage::getImageBuffer()
 {
 	if (!image) image=Image();
-	DBG cerr <<" LaxCairoImage::getImageBuffer()"<<endl;
+	DBG cerr <<" LaxCairoImage::getImageBuffer() "<<w()<<" x "<<h()<<endl;
 
 	 //cairo buffers have premultiplied alpha
 	cairo_surface_flush(image);
