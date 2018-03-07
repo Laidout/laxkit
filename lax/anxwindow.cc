@@ -1211,7 +1211,9 @@ int anXWindow::event(XEvent *e)
 
 			DBG if (diffloc) cerr <<"  diff location"<<endl;
 
-			// ***  trying manual resize here
+			// ***  trying manual resize here. Gnome maximizing somehow doesn't
+			//    trigger proper window resizing here. Doing a resize here fixes that *most* of the time.
+			//    Need to find solution to this!!
 			if (win_on) {
 				//if (diffloc) MoveResize(X,Y,W,H);
 				//else 
