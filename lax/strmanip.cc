@@ -810,7 +810,7 @@ char **splitonspace(char *str,int *n_ret)
 /*! Return index in null terminated list if str is in there.
  * else return -1.
  */
-int findInList(char *name, const char **names)
+int findInList(const char *name, const char **names)
 {
 	for (int c=0; names[c]; c++) {
 		if (!strcmp(name, names[c])) return c;
