@@ -30,12 +30,12 @@ class Win : public anXWindow
     double period; //seconds for scale pulse
     double step;  //in seconds
 	double offsetx,offsety; //for checkerboard pattern
-	bool   paused;
+	int    paused;
 	int    frame;
 
     Win(double time_step_seconds);
     virtual void Refresh();
-    virtual int  Idle(int tid=0);
+    virtual int  Idle(int tid, double delta);
     virtual int CharInput(unsigned int ch, const char *buffer,int len,unsigned int state, const LaxKeyboard *kb);
 
 	void Update(int frames_to_advance);
@@ -43,7 +43,7 @@ class Win : public anXWindow
 
 
 Win::Win(double time_step_seconds)
-    :anXWindow(NULL,"win","win",ANXWIN_ESCAPABLE|ANXWIN_DOUBLEBUFFER, 0,0,300,300,0, NULL,0,NULL)
+    :anXWindow(NULL,"win","win",ANXWIN_ESCAPABLE|ANXWIN_DOUBLEBUFFER, 400,100,350,300,0, NULL,0,NULL)
 {
     scale      = (win_w<win_h?win_w:win_h) /4;
     angle      = 0;
@@ -53,7 +53,7 @@ Win::Win(double time_step_seconds)
     cur_time   = 0;
 	frame      = 0;
     period     = 2;
-	paused     = true;
+	paused     = false;
 
 	offsetx    = 100;
 	offsety    = 0;
@@ -63,11 +63,10 @@ Win::Win(double time_step_seconds)
 	Update(1);
 }
 
-int  Win::Idle(int tid)
+int  Win::Idle(int tid, double delta)
 {
 	if (paused) return 0;
 
-    //cerr <<"tick "<<frame<< "  time: "<<cur_time<<endl;
 	Update(1);
 
     return 0;
@@ -114,7 +113,11 @@ int Win::CharInput(unsigned int ch, const char *buffer,int len,unsigned int stat
 
     } else if (ch==' ') {
 		paused = !paused;
+		cout << (paused ? "paused" : "play") <<endl;
 		return 0;
+
+    } else if (ch=='m') {
+		Resize(700, 100);
     }
 
     return anXWindow::CharInput(ch,buffer,len,state,kb); //still need to return for default ESC behavior
