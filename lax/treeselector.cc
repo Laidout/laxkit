@@ -1300,7 +1300,7 @@ void TreeSelector::drawItemContents(MenuItem *i,int offset_x,int offset_y, int f
 				//draw checkmark if ii is a toggle
 				double th = dp->textheight();
 				if (ii->state & LAX_CHECKED) {
-					dp->drawthing(itemspot.x+th/2,itemspot.y+itemspot.height/2, th/3,th/3, 1, THING_Check);
+					dp->drawthing(itemspot.x+th/2,itemspot.y+itemspot.height/2, th/3,-th/3, 1, THING_Check);
 				}
 				itemspot.width -= th;
 				itemspot.x += th;
