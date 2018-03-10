@@ -328,18 +328,20 @@ void TimerInfo::Update(int next, int duration)
 int TimerInfo::checktime(clock_t tm)
 {
 	int t=0;
-	while (nexttime<=tm) { t++; nexttime+=ticktime; } //skips ticks potentially
+	while (nexttime <= tm) { t++; nexttime += ticktime; } //skips ticks potentially
 
-	clock_t curtime = times(NULL);
-	delta   = (curtime - lastactualtime)/(double)sysconf(_SC_CLK_TCK);
-	//double elapsed = (curtime - starttime     )/(double)sysconf(_SC_CLK_TCK);
-	lastactualtime = curtime;
+	if (t && win) {
+		clock_t curtime = times(NULL);
+		delta   = (curtime - lastactualtime)/(double)sysconf(_SC_CLK_TCK);
+		//double elapsed = (curtime - starttime     )/(double)sysconf(_SC_CLK_TCK);
+		lastactualtime = curtime;
 
-	if (t && win && win->Idle(id, delta)) {
-		return -1; //nonzero win->Idle means remove timer
+		if (win->Idle(id, delta)) {
+			return -1; //nonzero win->Idle means remove timer
+		}
 	}
 
-	if (endtime!=-1 && nexttime>endtime) {
+	if (endtime != -1 && nexttime>endtime) {
 		return -1;
 	}
 	
