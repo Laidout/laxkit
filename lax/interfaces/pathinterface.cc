@@ -4048,7 +4048,7 @@ PathInterface::~PathInterface()
 
 const char *PathInterface::Name()
 {
-	return _("Path Tool");
+	return _("Path");
 }
 
 /*! Set various flags in pathi_style. Returns old state.

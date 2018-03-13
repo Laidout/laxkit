@@ -693,7 +693,7 @@ ColorPatchInterface::~ColorPatchInterface()
 }
 
 const char *ColorPatchInterface::Name()
-{ return _("Color Patch Tool"); }
+{ return _("Color Mesh"); }
 
 anInterface *ColorPatchInterface::duplicate(anInterface *dup)//dup=NULL;
 {

@@ -214,7 +214,7 @@ EngraverFillInterface::~EngraverFillInterface()
 }
 
 const char *EngraverFillInterface::Name()
-{ return _("Engraver Fill Tool"); }
+{ return _("Engraver Fill"); }
 
 anInterface *EngraverFillInterface::duplicate(anInterface *dup)//dup=NULL;
 {

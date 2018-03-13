@@ -1246,7 +1246,7 @@ const char *TextOnPathInterface::whatdatatype()
 /*! Name as displayed in menus, for instance.
  */
 const char *TextOnPathInterface::Name()
-{ return _("Text On Path Tool"); }
+{ return _("Text On Path"); }
 
 
 //! Return new TextOnPathInterface.

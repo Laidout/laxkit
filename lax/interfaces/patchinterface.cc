@@ -2795,7 +2795,7 @@ anInterface *PatchInterface::duplicate(anInterface *dup)//dup=NULL
 }
 
 const char *PatchInterface::Name()
-{ return _("Patch Tool"); }
+{ return _("Mesh Transform"); }
 
 Laxkit::MenuInfo *PatchInterface::ContextMenu(int x,int y,int deviceid, Laxkit::MenuInfo *menu)
 {

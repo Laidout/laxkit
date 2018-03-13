@@ -1553,7 +1553,7 @@ anInterface *CaptionInterface::duplicate(anInterface *dup)
 }
 
 const char *CaptionInterface::Name()
-{ return _("Caption Tool"); }
+{ return _("Caption"); }
 
 //! Sets showdecs=1, and needtodraw=1.
 int CaptionInterface::InterfaceOn()

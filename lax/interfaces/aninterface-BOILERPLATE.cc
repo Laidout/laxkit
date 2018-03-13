@@ -103,7 +103,7 @@ const char *BoilerPlateInterface::whatdatatype()
 /*! Name as displayed in menus, for instance.
  */
 const char *BoilerPlateInterface::Name()
-{ *** return _("BoilerPlateInterface Tool"); }
+{ *** return _("BoilerPlate Interface"); }
 
 
 //! Return new BoilerPlateInterface.

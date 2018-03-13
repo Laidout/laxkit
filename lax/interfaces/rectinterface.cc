@@ -208,7 +208,7 @@ RectInterface::~RectInterface()
 }
 		
 const char *RectInterface::Name()
-{ return _("Affine Tool"); }
+{ return _("Affine"); }
 
 anInterface *RectInterface::duplicate(anInterface *dup)//dup=NULL
 {

@@ -366,7 +366,7 @@ ImagePatchInterface::~ImagePatchInterface()
 }
 
 const char *ImagePatchInterface::Name()
-{ return _("Image Patch Tool"); }
+{ return _("Image Mesh"); }
 
 anInterface *ImagePatchInterface::duplicate(anInterface *dup)//dup=NULL;
 {

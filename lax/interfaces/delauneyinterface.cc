@@ -459,7 +459,7 @@ const char *DelauneyInterface::whatdatatype()
 /*! Name as displayed in menus, for instance.
  */
 const char *DelauneyInterface::Name()
-{ return _("Delauney/Voronoi Tool"); }
+{ return _("Delauney/Voronoi"); }
 
 
 //! Return new DelauneyInterface.

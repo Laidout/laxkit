@@ -989,9 +989,9 @@ const char *GradientInterface::IconId()
  */
 const char *GradientInterface::Name()
 {
-	if (gradienttype==2) return _("Radial Gradient Tool");
-	if (gradienttype==1) return _("Linear Gradient Tool");
-	return _("Gradient Tool");
+	if (gradienttype==2) return _("Radial Gradient");
+	if (gradienttype==1) return _("Linear Gradient");
+	return _("Gradient");
 }
 
 //! Sets showdecs=1, and needtodraw=1.

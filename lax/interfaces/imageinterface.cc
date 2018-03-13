@@ -550,7 +550,7 @@ ImageInterface::~ImageInterface()
 }
 
 const char *ImageInterface::Name()
-{ return _("Image Tool"); }
+{ return _("Image"); }
 
 //! Return new ImageInterface.
 /*! If dup!=NULL and it cannot be cast to ImageInterface, then return NULL.

@@ -355,7 +355,7 @@ void EllipseInterface::Dp(Laxkit::Displayer *ndp)
 
 const char *EllipseInterface::Name()
 {
-	return _("Ellipse Tool");
+	return _("Ellipse");
 }
 
 //! Return new EllipseInterface.

@@ -75,7 +75,7 @@ ObjectInterface::~ObjectInterface()
 }
 		
 const char *ObjectInterface::Name()
-{ return _("Object Tool"); }
+{ return _("Object"); }
 
 anInterface *ObjectInterface::duplicate(anInterface *dup)//dup=NULL
 {
