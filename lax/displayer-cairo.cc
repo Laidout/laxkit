@@ -234,11 +234,12 @@ int DisplayerCairo::EndDrawing()
  */
 int DisplayerCairo::CurrentResized(aDrawable *buffer, int nwidth,int nheight)
 {
-	if (buffer!=dr) return 1;
+	if (buffer != dr) return 1;
 
 	if (buffer->xlibDrawable(1)==0
 			|| buffer->xlibDrawable(0)==buffer->xlibDrawable(1)) {
 		 //not double buffered, easy..
+		DBG cerr <<"cairo_xlib_surface_set_size("<<nwidth<<nheight<<")"<<endl;
 		if (surface) cairo_xlib_surface_set_size(surface, nwidth,nheight);
 		//cairo_xlib_surface_set_drawable(surface,w, nwidth,nheight);
 		return 0;
