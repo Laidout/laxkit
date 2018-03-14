@@ -94,10 +94,12 @@ class Attribute {
 class AttributeObject : public Laxkit::anObject, public Attribute
 {
   public:
+	anObject *data;
 	AttributeObject();
 	AttributeObject(const char *nn, const char *nval,const char *nt=NULL);
 	virtual ~AttributeObject();
 	virtual Attribute *duplicate(); 
+	virtual void SetData(anObject *ndata, int absorb);
 };
 
 //---------------------------------- Dump helper functions ---------------------------------

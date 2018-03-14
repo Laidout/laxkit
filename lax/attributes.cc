@@ -2154,24 +2154,44 @@ Attribute *NameValueToAttribute(Attribute *att,const char *str, char assign, cha
 
 AttributeObject::AttributeObject()
   : Attribute()
-{}
+{
+	data = NULL;
+}
 
 AttributeObject::AttributeObject(const char *nn, const char *nval,const char *nt)
   : Attribute(nn,nval,nt)
-{}
+{
+	data = NULL;
+}
 
 AttributeObject::~AttributeObject()
-{}
+{
+	if (data) data->dec_count();
+}
 
 Attribute *AttributeObject::duplicate()
 {
-	Attribute *att=new AttributeObject(name,value,atttype);
+	AttributeObject *att=new AttributeObject(name,value,atttype);
 	att->flags=flags;
 	for (int c=0; c<attributes.n; c++) {
 		if (!attributes.e[c]) continue; //tweak to ignore NULL attributes
 		att->push(attributes.e[c]->duplicate(),-1);
 	}
+
+	if (data) att->SetData(data->duplicate(NULL), 1);
 	return att;
+}
+
+void AttributeObject::SetData(anObject *ndata, int absorb)
+{
+	if (!ndata && !data) return;
+	if (ndata && ndata == data) {
+		if (absorb) ndata->dec_count();
+	} else {
+		if (data) data->dec_count();
+		data = ndata;
+		if (data && !absorb) data->inc_count();
+	}
 }
 
 //---------------------------------- XML Conversion Helpers -----------------------------------	
