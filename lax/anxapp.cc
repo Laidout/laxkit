@@ -2284,62 +2284,6 @@ int anXApp::addwindow(anXWindow *w,char mapit,char absorb_count) // mapit==1, ab
 
 			default_icon->doneWithBuffer(data);
 		}
-
-//		 //set old school icon hint if Imlib is handy to retrieve X pixmap/clipmask
-//		if (!xh || (xh->flags&IconPixmapHint)==0) {
-//			DBG cerr << "Setting up default icon..."<<endl;
-//			 //***this is clunky!!
-//
-//			Pixmap default_icon_data=0;
-//			Pixmap default_icon_mask=0;
-//
-//
-//			//bool stillblank=true;
-//#ifdef LAX_USES_CAIRO
-//			if (!strcmp(backend, "cairo")) {
-//				//***
-//			}
-//#endif
-//#ifdef LAX_USES_IMLIB
-//			if (default_icon_data == 0) {
-//			//if (!strcmp(backend, "xlib")) {
-//				DBG cerr << "Using Imlib to set up default icon..."<<endl;
-//
-//				XSetWindowAttributes xatts;
-//				Window win=XCreateWindow(dpy,
-//							DefaultRootWindow(dpy),
-//							0,0,1,1,
-//							0,
-//							CopyFromParent, //depth
-//							CopyFromParent, //class, from: InputOutput, InputOnly, CopyFromParent
-//							vis,
-//							0,&xatts);
-//
-//				imlib_context_set_display(dpy);
-//			    imlib_context_set_visual(vis);
-//			    imlib_context_set_colormap(DefaultColormap(dpy, DefaultScreen(dpy)));
-//				imlib_context_set_drawable(win);
-//				Imlib_Image imlibimage=imlib_load_image(default_icon_file);
-//				if (imlibimage) {
-//					imlib_context_set_image(imlibimage);
-//					imlib_render_pixmaps_for_whole_image(&default_icon_data, &default_icon_mask);
-//					imlib_free_image();
-//				} else {
-//					cerr <<" WARNING! could not load default icon for xh: "<<default_icon_file<<endl;
-//				}
-//			}
-//#endif
-//
-//			XDestroyWindow(dpy,win);
-//
-//			if (default_icon_data) {
-//				DBG cerr <<"Found default icon image data"<<endl;
-//				if (!xh) xh = XAllocWMHints();
-//				xh->flags |= IconPixmapHint|IconMaskHint;
-//				xh->icon_pixmap = default_icon_data;
-//				xh->icon_mask   = default_icon_mask;
-//			}
-//		}
 	}
 
 	if (xh) XSetWMHints(dpy,w->xlib_window,xh);
@@ -2350,7 +2294,7 @@ int anXApp::addwindow(anXWindow *w,char mapit,char absorb_count) // mapit==1, ab
 		XSetWMNormalHints(dpy,w->xlib_window,sizehints);
 		if (!w->xlib_win_sizehints) XFree(sizehints);
 	}
-	
+
 	 // ------ map the window
 	if (mapit) {
 		XMapWindow(dpy,w->xlib_window);
@@ -2839,7 +2783,7 @@ int anXApp::setfocus(anXWindow *win, clock_t t, const LaxKeyboard *kb)
  */
 void anXApp::processXevent(XEvent *xevent)
 {
-	//DBG cerr <<"processXevent() on "<<xlib_event_name(xevent->xany.type)<<endl;
+	DBG cerr <<"processXevent() on "<<xlib_event_name(xevent->xany.type)<<endl;
 
 	EventReceiver *rr=NULL;
 	anXWindow *ww=NULL; //note that rr might not have an associated ww!!
