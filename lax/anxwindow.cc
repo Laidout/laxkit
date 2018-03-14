@@ -975,8 +975,7 @@ int anXWindow::Resize(int nw,int nh)
 	win_w = nw;
 	win_h = nh;
 
-	Displayer *dp=GetDisplayer();
-	//dp->MakeCurrent(this);
+	Displayer *dp = MakeCurrent();
 	dp->CurrentResized(this, nw,nh);
 
 	needtodraw|=1;
@@ -1005,8 +1004,7 @@ int anXWindow::MoveResize(int nx,int ny,int nw,int nh)
 	win_w=nw;
 	win_h=nh;
 
-	Displayer *dp=GetDisplayer();
-	//dp->MakeCurrent(this);
+	Displayer *dp = MakeCurrent();
 	dp->CurrentResized(this, nw,nh);
 
 	needtodraw|=1;
@@ -1134,7 +1132,8 @@ int anXWindow::event(XEvent *e)
 	switch(e->type) {
 		 case ClientMessage: {
 		 	char *aname=XGetAtomName(app->dpy,e->xclient.message_type);
-			//DBG cerr << "ClientMessage for "<<WindowTitle()<<": "<<aname<<endl;
+			DBG cerr << "ClientMessage for "<<WindowTitle()<<": "<<aname<<endl;
+
 			if (strcmp(aname,"WM_PROTOCOLS")==0) {
 				 //check for delete window
 				XFree(aname);
@@ -1178,16 +1177,32 @@ int anXWindow::event(XEvent *e)
 			DBG cerr <<" conf to: "<<e->xconfigure.x<<','<<e->xconfigure.y<<','<<" "<<e->xconfigure.width<<','<<e->xconfigure.height<<endl;
 			DBG cerr <<" old xywh: "<<win_x<<','<<win_y<<" "<<win_w<<'x'<<win_h<<endl;
 
+
+			XWindowAttributes actual;
+			Window cr;
+			int X,Y,W,H;
+
+			DBG //----------------
+			DBG if (xlib_backbuffer) {
+			DBG 	XGetWindowAttributes(app->dpy, xlib_window, &actual);
+			DBG 	 //find where window currently is, which we hope is same as confignotify, but it might not be, esp. x,y
+			DBG 	W = actual.width;
+			DBG 	H = actual.height;
+			DBG 	XTranslateCoordinates(app->dpy, xlib_window, actual.root, 0, 0, &X, &Y, &cr);
+			DBG 	cerr <<"getatts xlib_backbuffer says xywh: "<<X<<","<<Y<<" "<<W<<'x'<<H<<"  "<<endl;
+			DBG }
+			DBG //---------------
+
 			//On ubuntu, maximizing does not properly adjust the coordinates, so we
 			//manually query the location and dimensions of the window
-			XWindowAttributes actual; 
 			XGetWindowAttributes(app->dpy, xlib_window, &actual);
-			Window cr;
 			 //find where window currently is, which we hope is same as confignotify, but it might not be, esp. x,y
-			int X, Y, W = actual.width, H = actual.height;
+			W = actual.width;
+			H = actual.height;
 			XTranslateCoordinates(app->dpy, xlib_window, actual.root, 0, 0, &X, &Y, &cr);
 
-			DBG cerr <<"getatts says xywh: "<<X<<","<<Y<<" "<<W<<'x'<<H<<"  "<<endl;
+			DBG cerr <<"getatts xlib_window says xywh: "<<X<<","<<Y<<" "<<W<<'x'<<H<<"  "<<endl;
+
 
 			if (win_parent) break; //assume child windows are all explicitly user controlled
 
@@ -1235,7 +1250,7 @@ int anXWindow::event(XEvent *e)
 			xlib_win_xatts.override_redirect = False;
 			XChangeWindowAttributes(app->dpy,xlib_window,CWOverrideRedirect,&xlib_win_xatts);
 			needtodraw=1;
-			DBG cerr <<"/rr"<<endl;
+			DBG cerr <<"..end ResizeRequest"<<endl;
 		} break;
 
 		case MapNotify: {
@@ -1256,7 +1271,6 @@ int anXWindow::event(XEvent *e)
 					win_on=0;
 				}
 			} break;
-
 
 		//
 		//------- Selection handling. copy/paste and drag and drop:
