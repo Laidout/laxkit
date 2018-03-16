@@ -129,13 +129,21 @@ CurveInfo::~CurveInfo()
 CurveInfo &CurveInfo::operator=(CurveInfo &l)
 {
 	SetTitle(l.title);
-	SetXBounds(l.xmin,l.xmax,l.xlabel,false);
-	SetYBounds(l.ymin,l.ymax,l.ylabel,false);
+	SetXBounds(l.xmin,l.xmax, l.xlabel,false);
+	SetYBounds(l.ymin,l.ymax, l.ylabel,false);
 	curvetype=l.curvetype;
 	wrap=l.wrap;
 	SetDataRaw(l.points.e,l.points.n);
 	return l;
 }
+
+anObject *CurveInfo::duplicate(anObject *ref)
+{
+	CurveInfo *nc = new CurveInfo;
+	*nc = *this;
+	return nc;
+}
+
 
 void CurveInfo::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
 {
