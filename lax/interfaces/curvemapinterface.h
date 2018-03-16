@@ -44,6 +44,7 @@ class CurveMapInterface : public anInterface
 
 	int show_label_ranges;
 	int show_labels;
+	int show_hover;
 	int always_refresh_lookup;
 	int highlighteditable;
 
@@ -62,7 +63,10 @@ class CurveMapInterface : public anInterface
 
  public:
 	enum CurveMapStyles {
-		Escapable
+		Escapable      = (1<<0),
+		RealSpace      = (1<<1),
+		RealSpaceMouse = (1<<2),
+		Expandable     = (1<<3)
 	};
 	enum CurveMapInterfaceEditable {
 		YMax  =(1<<0),
@@ -94,6 +98,7 @@ class CurveMapInterface : public anInterface
 	virtual int InitializeResources();
 
 	virtual int Refresh();
+	virtual int DrawData(Laxkit::anObject *ndata, Laxkit::anObject *a1=NULL,Laxkit::anObject *a2=NULL,int info=0);
 	virtual int LBDown(int x,int y,unsigned int state,int count,const Laxkit::LaxMouse *d);
 	virtual int LBUp(int x,int y,unsigned int state,const Laxkit::LaxMouse *d);
 	virtual int WheelUp(int x,int y,unsigned int state,int count,const Laxkit::LaxMouse *d);
@@ -111,10 +116,10 @@ class CurveMapInterface : public anInterface
 
 	 //curve specific functions:
 	virtual void ChangeEditable(unsigned int which, int on);
-	virtual void SetupRect(int x,int y,int w,int h);
-	virtual int scaneditable(int x,int y);
-	virtual int scan(int x,int y);
-	virtual int scannear(int x,int y, flatpoint *p_ret, int *index);
+	virtual void SetupRect(double x,double y,double w,double h);
+	virtual int scaneditable(double x,double y);
+	virtual int scan(double x,double y);
+	virtual int scannear(double x,double y, flatpoint *p_ret, int *index);
 	virtual int MakeLookupTable(int *table,int numentries, int minvalue, int maxvalue);
 	virtual void send(int which=0);
 	virtual double f(double x);

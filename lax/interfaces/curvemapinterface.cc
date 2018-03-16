@@ -59,21 +59,22 @@ CurveMapInterface::CurveMapInterface(int nid, Laxkit::Displayer *ndp,
 						const char *yl, double nymin, double nymax)
 				: anInterface(nid,ndp)
 {
-	firsttime=1;
+	firsttime = 1;
 
-	padouter=padinner=5;
+	padouter = padinner = 5;
 
-	smallnumbers=app->fontmanager->MakeFont("Sans","",app->defaultlaxfont->textheight()/2,0);
+	smallnumbers = app->fontmanager->MakeFont("Sans","",app->defaultlaxfont->textheight()/2,0);
 	DBG smallnumbers->suppress_debug=1;
 
-	style=0;
-	editable=0;
-	always_refresh_lookup=1;
-	highlighteditable=0;
-	lasthover=-1;
+	style    = 0;
+	editable = 0;
+	always_refresh_lookup = 1;
+	highlighteditable = 0;
+	lasthover = -1;
 
-	show_label_ranges=1;
-	show_labels=1;
+	show_label_ranges = 1;
+	show_labels = 1;
+	show_hover  = 1;
 
 	win_colors=app->color_panel;
 	win_colors->inc_count();
@@ -129,7 +130,7 @@ void CurveMapInterface::Clear(SomeData *d)
 }
 
 //! Set values in rect to fit within rectangle x,y,w,h.
-void CurveMapInterface::SetupRect(int x,int y,int w,int h)
+void CurveMapInterface::SetupRect(double x,double y,double w,double h)
 {
 	if (w>0 && h>0) {
 		bounds.x=x;
@@ -138,10 +139,10 @@ void CurveMapInterface::SetupRect(int x,int y,int w,int h)
 		bounds.height=h;
 	}
 
-	rect.x=x+padouter;
-	rect.y=y+padouter;
-	rect.width=w-2*padouter;
-	rect.height=h-2*padouter;
+	rect.x      = x + padouter;
+	rect.y      = y + padouter;
+	rect.width  = w-2*padouter;
+	rect.height = h-2*padouter;
 
 
 	int textheight=dp->textheight();
@@ -153,12 +154,12 @@ void CurveMapInterface::SetupRect(int x,int y,int w,int h)
 		}
 
 		if (curveinfo->xlabel) {
-			rect.height-=padinner+smallnumbers->textheight(); //remove number height
+			rect.height -= padinner+smallnumbers->textheight(); //remove number height
 		}
 	}
 
 	if (show_label_ranges) {
-		if (!show_labels) rect.height-=padinner+smallnumbers->textheight(); //remove number height
+		if (!show_labels || !curveinfo->xlabel) rect.height -= padinner + smallnumbers->textheight(); //remove number height
 
 		//char scratch[100];
 		int extent=0;
@@ -174,8 +175,8 @@ void CurveMapInterface::SetupRect(int x,int y,int w,int h)
 		//extent+=padinner;
 		//rect.x+=extent;
 		extent=dp->textextent(smallnumbers, "5.5",-1, NULL,NULL,NULL,NULL,0);
-		rect.x    += padinner + extent;
-		rect.width-= padinner + extent;
+		rect.x     += padinner + extent;
+		rect.width -= padinner + extent;
 	}
 
 	needtodraw=1;
@@ -275,6 +276,25 @@ int CurveMapInterface::SetInfo(CurveInfo *info)
 	return 0;
 }
 
+int CurveMapInterface::DrawData(Laxkit::anObject *ndata, Laxkit::anObject *a1, Laxkit::anObject *a2, int info)
+{
+	CurveInfo *curve = dynamic_cast<CurveInfo*>(ndata);
+	if (!curve) return 0;
+
+	CurveInfo *_curveinfo = curveinfo;
+	curveinfo = curve;
+	int _lasthover = lasthover;   lasthover = -1;
+	int _showhover = show_hover;  show_hover = 0;
+
+	int status = Refresh();
+
+	lasthover  = _lasthover;
+	curveinfo  = _curveinfo;
+	show_hover = _showhover;
+
+	return status;
+}
+
 int CurveMapInterface::Refresh()
 {
 	if (!needtodraw) return 0;
@@ -286,7 +306,8 @@ int CurveMapInterface::Refresh()
 	}
 
 
-	dp->DrawScreen();
+	if ((style & RealSpace) == 0) dp->DrawScreen();
+
 	dp->LineAttributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
 
 	//--------------
@@ -299,7 +320,7 @@ int CurveMapInterface::Refresh()
 	dp->NewBG(graph_color);
 	dp->drawrectangle(rect.x,rect.y,rect.width,rect.height, 2);
 
-	DBG if (rect.pointIsIn(hoverpoint.x,hoverpoint.y)) {
+	DBG if (show_hover && rect.pointIsIn(hoverpoint.x,hoverpoint.y)) {
 	DBG 	dp->drawline(hoverpoint.x-5,hoverpoint.y, hoverpoint.x+5,hoverpoint.y);
 	DBG 	dp->drawline(hoverpoint.x,hoverpoint.y-5, hoverpoint.x,hoverpoint.y+5);
 	DBG }
@@ -310,7 +331,7 @@ int CurveMapInterface::Refresh()
 		dp->NewFG(coloravg(graph_color,win_colors->fg,.9));
 		int y;
 		for (int x=rect.x; x<rect.x+rect.width; x++) {
-			y=(rect.height-histogram[int(double(x-rect.x)/rect.width * hist_n)]/1000.*rect.height) + rect.y;
+			y = (rect.height-histogram[int(double(x-rect.x)/rect.width * hist_n)]/1000.*rect.height) + rect.y;
 			dp->drawline(x,rect.y+rect.width, x,y);
 		}
 	}
@@ -322,17 +343,22 @@ int CurveMapInterface::Refresh()
 	if (highlighteditable) {
 		dp->NewFG(coloravg(win_colors->bg,win_colors->fg,.1));
 
-		if (highlighteditable==YUnits)
+		if (highlighteditable == YUnits)
 			dp->drawrectangle(0,0,rect.x,rect.y,1);
-		else if (highlighteditable==XUnits)
+
+		else if (highlighteditable == XUnits)
 			dp->drawrectangle(rect.x+rect.width*.25,rect.y+rect.height, rect.width*.5,bounds.height-(rect.y+rect.height),1);
-		else if (highlighteditable==XMax)
+
+		else if (highlighteditable == XMax)
 			dp->drawrectangle(rect.x+rect.width*.75,rect.y+rect.height, rect.width*.25,bounds.height-(rect.y+rect.height),1);
-		else if (highlighteditable==XMin)
+
+		else if (highlighteditable == XMin)
 			dp->drawrectangle(rect.x,rect.y+rect.height, rect.width*.25,bounds.height-(rect.y+rect.height),1);
-		else if (highlighteditable==YMax)
+
+		else if (highlighteditable == YMax)
 			dp->drawrectangle(bounds.x,rect.y, rect.x-bounds.x,rect.height*.3,1);
-		else if (highlighteditable==YMin)
+
+		else if (highlighteditable == YMin)
 			dp->drawrectangle(bounds.x,rect.y+rect.height*.7,rect.x,rect.height*.3,1);
 
 		dp->NewFG(win_colors->fg);
@@ -355,7 +381,7 @@ int CurveMapInterface::Refresh()
 		int e;
 		int x;
 
-		if (buttondown.any()) {
+		if (buttondown.any() && show_hover) {
 			sprintf(scratch,  "%.4g, %.4g",lastpoint.x,lastpoint.y);
 			dp->textout(rect.x,rect.y, scratch,-1, LAX_LEFT|LAX_TOP);
 		}
@@ -442,7 +468,7 @@ int CurveMapInterface::Refresh()
 	}
 
 
-	dp->DrawReal();
+	if ((style & RealSpace) == 0) dp->DrawReal();
 	needtodraw=0;
 	return 0;
 
@@ -457,7 +483,7 @@ void CurveMapInterface::ChangeEditable(unsigned int which, int on)
 
 /*! Scan for the various editable lables.
  */
-int CurveMapInterface::scaneditable(int x,int y)
+int CurveMapInterface::scaneditable(double x,double y)
 {
 	int found=0;
 	if (x<rect.x) {
@@ -475,7 +501,7 @@ int CurveMapInterface::scaneditable(int x,int y)
 }
 
 //! Scan for existing point, return index in curveinfo->points, or -1 for not found.
-int CurveMapInterface::scan(int x,int y)
+int CurveMapInterface::scan(double x,double y)
 {
 	double scandistance=10;
 	flatpoint fp(x,y);
@@ -503,10 +529,10 @@ int CurveMapInterface::scan(int x,int y)
  *
  * If x,y is not within a certain scan distance, then point is not detected.
  */
-int CurveMapInterface::scannear(int x,int y, flatpoint *p_ret, int *index)
+int CurveMapInterface::scannear(double x,double y, flatpoint *p_ret, int *index)
 {
 
-	flatpoint p(((double)x-rect.x)/rect.width, ((double)rect.y+rect.height-y)/rect.height);
+	flatpoint p((x-rect.x)/rect.width, (rect.y+rect.height-y)/rect.height);
 	flatpoint lp;
 	flatpoint v,p1,p2;
 	double scandistance=20./rect.height;
@@ -533,11 +559,18 @@ int CurveMapInterface::scannear(int x,int y, flatpoint *p_ret, int *index)
 
 int CurveMapInterface::LBDown(int x,int y,unsigned int state,int count,const LaxMouse *d)
 {
-	int pp=scan(x,y);
+	double xx=x, yy=y;
+	if (style & RealSpaceMouse) {
+		flatpoint p = dp->screentoreal(x,y);
+		xx = p.x;
+		yy = p.y;
+	}
+
+	int pp = scan(xx,yy);
 	DBG cerr <<"scan: "<<pp<<endl;
 
-	draglimbo=-1;
-	if (pp>=0) {
+	draglimbo = -1;
+	if (pp >= 0) {
 
 		 //found existing
 		buttondown.down(d->id, LEFTBUTTON, x,y, pp);
@@ -545,14 +578,14 @@ int CurveMapInterface::LBDown(int x,int y,unsigned int state,int count,const Lax
 	}
 
 	flatpoint p;
-	if (scannear(x,y, &p, &pp)) {
+	if (scannear(xx,yy, &p, &pp)) {
 		curveinfo->points.push(p,pp);
 		buttondown.down(d->id, LEFTBUTTON, x,y, pp);
 		needtodraw=1;
 		return 0;
 	}
 	
-	int e=scaneditable(x,y);
+	int e = scaneditable(xx,yy);
 	if (e) {
 		buttondown.down(d->id, LEFTBUTTON, x,y, -e);
 		needtodraw=1;
@@ -584,16 +617,25 @@ int CurveMapInterface::LBUp(int x,int y,unsigned int state,const LaxMouse *d)
  */
 int CurveMapInterface::MouseMove(int x,int y,unsigned int state,const LaxMouse *m)
 {
-	hoverpoint=flatpoint(x,y);
-	DBG if (rect.pointIsIn(x,y)) needtodraw=1;
+	double xx=x, yy=y;
+	flatpoint rp;
+	if (style & RealSpaceMouse) {
+		rp = dp->screentoreal(x,y);
+		xx = rp.x;
+		yy = rp.y;
+	}
+	DBG cerr <<"x,y: "<<x<<','<<y<<"  rect: "<<rect.x<<','<<rect.y<<" "<<rect.width<<"x"<<rect.height<<endl;
+
+	hoverpoint = flatpoint(xx,yy);
+	DBG if (rect.pointIsIn(xx,yy)) needtodraw=1;
 
 	//DBG flatpoint fpp;
 	//DBG int ii=-1;
-	//DBG scannear(x,y, &fpp,&ii);
+	//DBG scannear(xx,yy, &fpp,&ii);
 	//DBG cerr <<"scannear: "<<ii<<"  fp:"<<fpp.x<<','<<fpp.y<<endl;
 
 	if (!buttondown.any(m->id,LEFTBUTTON)) {
-		int e=scaneditable(x,y);
+		int e = scaneditable(xx,yy);
 		if (e) {
 			highlighteditable=e;		
 			needtodraw=1;
@@ -605,24 +647,30 @@ int CurveMapInterface::MouseMove(int x,int y,unsigned int state,const LaxMouse *
 			return 0;
 		}
 
-		int hover=scan(x,y);
-		if (hover!=lasthover) { lasthover=hover; needtodraw=1; }
+		int hover = scan(xx,yy);
+		if (hover != lasthover) { lasthover=hover; needtodraw=1; }
 		DBG cerr <<"curvemap scan: "<<lasthover<<endl;
 
 		return 1;
 	}
 
 
-	int ox,oy;
-	buttondown.move(m->id, x,y, &ox, &oy);
-	
-	int pp=-5;
+	int oxi,oyi;
+	buttondown.move(m->id, x,y, &oxi, &oyi);
+	double ox=oxi, oy=oyi;
+	if (style & RealSpaceMouse) {
+		rp = dp->screentoreal(oxi,oyi);
+		ox = rp.x;
+		oy = rp.y;
+	}
+
+	int pp = -5;
 	buttondown.getextrainfo(m->id,LEFTBUTTON, &pp);
 
 	if (pp<0 && pp!=-5) {
-		pp=-pp;
-		//double dx=x-ox;
-		double dy=y-oy;
+		pp = -pp;
+		//double dx=xx-ox;
+		double dy=yy-oy;
 		//YMax  =(1<<0),
 		//YMin  =(1<<1),
 		//XMax  =(1<<2),
@@ -641,10 +689,10 @@ int CurveMapInterface::MouseMove(int x,int y,unsigned int state,const LaxMouse *
 
 	if (pp<0) return 0;
 
-	if (draglimbo<0 && (x<rect.x || x>rect.x+rect.width)) {
+	if (draglimbo<0 && (xx<rect.x || xx>rect.x+rect.width)) {
 		if (pp>0 && pp<curveinfo->points.n-1) {
 			 //remove point if drag outside
-			draglimbo=pp;
+			draglimbo = pp;
 			curveinfo->points.pop(pp);
 			curveinfo->MakeFakeCurve();
 			needtodraw=1;
@@ -655,11 +703,11 @@ int CurveMapInterface::MouseMove(int x,int y,unsigned int state,const LaxMouse *
 		}
 
 	}
-	if (draglimbo>=0 && rect.pointIsIn(x,y)) {
+	if (draglimbo>=0 && rect.pointIsIn(xx,yy)) {
 		 //add point if drag to inside
-		flatpoint p(((double)x-rect.x)/rect.width,((double)rect.y+rect.height-y)/rect.height);
+		flatpoint p(((double)xx-rect.x)/rect.width,((double)rect.y+rect.height-yy)/rect.height);
 		curveinfo->points.push(p,pp);
-		p=ClampPoint(p,draglimbo);
+		p = ClampPoint(p,draglimbo);
 		curveinfo->points.e[pp]=p;
 		
 
@@ -674,18 +722,18 @@ int CurveMapInterface::MouseMove(int x,int y,unsigned int state,const LaxMouse *
 	
 	if (draglimbo>=0) return 0;
 
-	flatpoint d=flatpoint(x,y)-flatpoint(ox,oy);
-	d.x/=rect.width;
-	d.y/=-rect.height;
+	flatpoint d=flatpoint(xx,yy) - flatpoint(ox,oy);
+	d.x /= rect.width;
+	d.y /= -rect.height;
 	
-	curveinfo->points.e[pp]+=d;
+	curveinfo->points.e[pp] += d;
 
 	 //clamp to y boundaries
 	if (curveinfo->points.e[pp].y<0) curveinfo->points.e[pp].y=0;
 	if (curveinfo->points.e[pp].y>1) curveinfo->points.e[pp].y=1;
 
 	 //clamp to x boundaries of current segment
-	if (pp==0) {
+	if (pp == 0) {
 		if (curveinfo->points.e[pp].x<0) curveinfo->points.e[pp].x=0;
 		else if (curveinfo->points.n>1 && curveinfo->points.e[pp].x>curveinfo->points.e[pp+1].x) 
 			curveinfo->points.e[pp].x=curveinfo->points.e[pp+1].x;
