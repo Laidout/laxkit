@@ -1,5 +1,5 @@
 //
-//	
+//
 //    The Laxkit, a windowing toolkit
 //    Please consult https://github.com/Laidout/laxkit about where to send any
 //    correspondence about this software.
@@ -39,9 +39,9 @@ namespace Laxkit {
 
 Previewable::Previewable()
 {
-	preview=NULL;
-	previewtime=0; //time at which preview was last rendered
-    modtime=0;     //time of most recent modification that should trigger a preview rerender
+	preview    = NULL;
+	previewtime= 0; //time at which preview was last rendered
+    modtime    = 0;     //time of most recent modification that should trigger a preview rerender
 }
 
 Previewable::~Previewable()
@@ -54,8 +54,8 @@ Previewable::~Previewable()
  */
 void Previewable::touchContents()
 {
-    previewtime=0; //time() doesn't change often enough, so we have to force this to 0..
-    modtime=time(NULL);
+    previewtime= 0; //time() doesn't change often enough, so we have to force this to 0..
+    modtime    = time(NULL);
 }
 
 LaxImage *Previewable::GetPreview()
@@ -64,7 +64,7 @@ LaxImage *Previewable::GetPreview()
     return preview;
 }
 
-/*! Set up a LaxImage to hold a preview, then call renderToBufferImage() to 
+/*! Set up a LaxImage to hold a preview, then call renderToBufferImage() to
  * actually render the preview.
  */
 int Previewable::GeneratePreview(int w, int h)
@@ -121,7 +121,7 @@ int Previewable::GeneratePreview(int w, int h)
     }
 
     if (renderToBufferImage(preview)==0) {
-		 previewtime=time(NULL);
+		 previewtime = time(NULL);
 
 	} else {
          //render direct to image didn't work, so try the old style render to char[] buffer...
@@ -133,7 +133,7 @@ int Previewable::GeneratePreview(int w, int h)
 
     }
 
-	return (previewtime>=modtime); 
+	return (previewtime >= modtime);
 }
 
 
