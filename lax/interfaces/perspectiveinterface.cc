@@ -377,6 +377,11 @@ PerspectiveTransform::PerspectiveTransform()
 
 PerspectiveTransform::PerspectiveTransform(flatpoint *nsrcPts, flatpoint *ndstPts)
 {
+	SetPoints(nsrcPts, ndstPts);
+}
+
+int PerspectiveTransform::SetPoints(flatpoint *nsrcPts, flatpoint *ndstPts)
+{
 	for (int c=0; c<4; c++) {
 		srcPts[2*c  ] = nsrcPts[c].x;
 		srcPts[2*c+1] = nsrcPts[c].y;
@@ -384,10 +389,8 @@ PerspectiveTransform::PerspectiveTransform(flatpoint *nsrcPts, flatpoint *ndstPt
 		dstPts[2*c+1] = ndstPts[c].y;
 	}
 
-	//memcpy(this.srcPts, srcPts, 4*sizeof(flatpoint));
-	//memcpy(this.dstPts, dstPts, 4*sizeof(flatpoint));
-
 	ComputeTransform();
+	return 0;
 }
 
 void PerspectiveTransform::ResetTransform()
