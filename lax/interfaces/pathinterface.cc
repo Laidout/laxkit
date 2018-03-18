@@ -3597,6 +3597,23 @@ Coordinate *PathsData::GetCoordinate(int pathi, double t)
 	return p;
 }
 
+/*! Remove specified path, return 0 on success. -1 if path doesn't exist.
+ * If popped_ret != NULL, then return the removed path there.
+ * Calling code needs to delete any returned path.
+ */
+int PathsData::RemovePath(int index, Path **popped_ret)
+{
+	if (index<0 || index >=paths.n) return 1;
+	if (popped_ret) {
+		*popped_ret = paths.pop(index);
+		return 0;
+	}
+
+	paths.remove(index);
+	touchContents();
+	return 0;
+}
+
 /*! Return that path, or if index==-1, return top path. Returns direct reference to it, NOT a copy.
  * Else Return NULL if index out of range.
  */

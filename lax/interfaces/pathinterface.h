@@ -225,6 +225,7 @@ class PathsData : virtual public SomeData
 //	virtual int AddAfter(Coordinate *afterwhich,flatpoint p); 
 //	virtual int Delete(Coordinate *which); // returns num left in stack
 	virtual void clear(int which=-1);
+	virtual int RemovePath(int index, Path **popped_ret);
 
 	virtual int ConnectEndpoints(Coordinate *from,int fromi, Coordinate *to,int toi);
 	virtual void ApplyTransform();
