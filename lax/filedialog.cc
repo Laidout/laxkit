@@ -527,7 +527,8 @@ int FileDialog::init()
 	last=tree=new TreeSelector(hstack,"Bookmarks","Bookmarks", SW_RIGHT,
 							0,0,0,0, 1,
 							last,object_id,"Bookmarks",
-							TREESEL_SEND_ON_UP |TREESEL_LEFT |TREESEL_ONE_ONLY |TREESEL_SEND_STRINGS |TREESEL_NO_LINES,
+							TREESEL_SEND_ON_UP |TREESEL_LEFT |TREESEL_ONE_ONLY |TREESEL_SEND_STRINGS
+							 | TREESEL_NO_LINES |TREESEL_DONT_EXPAND,
 							bookmarkmenu); //incs bookmarkmenu count, should have 2 afterwards here
 	bookmarkmenu->dec_count();
 	tree->SendDetail(1);
@@ -644,7 +645,7 @@ int FileDialog::init()
 							0,0,0,0, 1,
 							last,object_id,"files",
 							//TREESEL_SEND_ON_UP|TREESEL_CURSSELECTS| TREESEL_LEFT| TREESEL_SUB_FOLDER,
-							TREESEL_SEND_ON_UP |TREESEL_LEFT |TREESEL_SUB_FOLDER |TREESEL_NO_LINES,
+							TREESEL_SEND_ON_UP |TREESEL_LEFT |TREESEL_SUB_FOLDER |TREESEL_NO_LINES |TREESEL_DONT_EXPAND,
 							files);
 	last->installColors(app->color_edits);
 	filelist->tooltip(_("Choose from these files.\nRight-click drag or wheel scrolls"));
@@ -984,11 +985,11 @@ int FileDialog::Event(const EventData *data,const char *mes)
 
 	} else if (!strcmp(mes,"files")) { // from file list treeselector
 
-		MenuItem *item = files->findid(s->info2);
 
 		if (showing_recent) {
 			 //if possible update file and path to reflect curitem, whether or not
 			 // many items are selected.
+			MenuItem *item = filelist->GetItem(s->info1);
 			if (item) {
 				SetFile(item->name);
 
@@ -998,7 +999,9 @@ int FileDialog::Event(const EventData *data,const char *mes)
 					delete[] blah;
 				}
 			}
+
 		} else {
+			MenuItem *item = files->findid(s->info2);
 
 			 //selected "."
 			if (item && !strcmp(item->name,".")) {
