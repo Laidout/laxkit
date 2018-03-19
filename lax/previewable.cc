@@ -40,8 +40,8 @@ namespace Laxkit {
 Previewable::Previewable()
 {
 	preview    = NULL;
-	previewtime= 0; //time at which preview was last rendered
-    modtime    = 0;     //time of most recent modification that should trigger a preview rerender
+	previewtime= 0; //times() at which preview was last rendered
+    modtime    = 0; //times() of most recent modification that should trigger a preview rerender
 }
 
 Previewable::~Previewable()
@@ -54,13 +54,13 @@ Previewable::~Previewable()
  */
 void Previewable::touchContents()
 {
-    previewtime= 0; //time() doesn't change often enough, so we have to force this to 0..
-    modtime    = time(NULL);
+    previewtime = 0;
+    modtime     = times(NULL);
 }
 
 LaxImage *Previewable::GetPreview()
 {
-	if (previewtime<modtime || !preview) GeneratePreview(-1,-1);
+	if (previewtime < modtime || !preview) GeneratePreview(-1,-1);
     return preview;
 }
 
@@ -86,6 +86,7 @@ int Previewable::GeneratePreview(int w, int h)
         if (maxx-minx>maxy-miny) w=maxdim;
 		else h=maxdim;
     }
+
     if (w<=0 && h>0) w=(maxx-minx)*h/(maxy-miny);
     else if (w>0 && h<=0) h=(maxy-miny)*w/(maxx-minx);
 
@@ -93,17 +94,17 @@ int Previewable::GeneratePreview(int w, int h)
     if (h<=0) h=1;
 
      //protect against growing sizes...
-    if (w>maxdim) {
+    if (w > maxdim) {
         double aspect=(double)h/w;
-        w=maxdim;
-        h=maxdim*aspect;
-        if (h<=0) h=1;
+        w = maxdim;
+        h = maxdim*aspect;
+        if (h <= 0) h = 1;
     }
     if (h>maxdim) {
         double aspect=(double)w/h;
-        h=maxdim;
-        w=maxdim*aspect;
-        if (w<=0) w=1;
+        h = maxdim;
+        w = maxdim*aspect;
+        if (w <= 0) w = 1;
     }
 
  	//if (preview && (w!=preview->w() || h!=preview->h())) {
@@ -111,25 +112,25 @@ int Previewable::GeneratePreview(int w, int h)
                     (float)h/preview->h()>1.05 || (float)h/preview->h()<.95)) {
          //delete old preview and make new only when changing size of preview more that 5%-ish in x or y
         preview->dec_count();
-        preview=NULL;
+        preview = NULL;
         DBG cerr <<"removed old preview..."<<endl;
     }
 
-    if (!preview) {
+    if (!preview && CanRenderPreview()) {
         DBG cerr <<"old preview didn't exist, so creating new one..."<<endl;
-        preview=create_new_image(w,h);
+        preview = create_new_image(w,h);
     }
 
-    if (renderToBufferImage(preview)==0) {
-		 previewtime = time(NULL);
+    if (preview && renderToBufferImage(preview)==0) {
+		 previewtime = times(NULL);
 
 	} else {
          //render direct to image didn't work, so try the old style render to char[] buffer...
-		previewtime=0;
+		previewtime = 0;
         //unsigned char *buffer = preview->getImageBuffer();
         //renderToBuffer(buffer,w,h,w*4,8,4);
         //preview->doneWithBuffer(buffer);
-    	//previewtime=time(NULL);
+    	//previewtime=times(NULL);
 
     }
 

@@ -1,5 +1,5 @@
 //
-//	
+//
 //    The Laxkit, a windowing toolkit
 //    Please consult https://github.com/Laidout/laxkit about where to send any
 //    correspondence about this software.
@@ -39,11 +39,12 @@ class Previewable : virtual public DoubleBBox
 	virtual ~Previewable();
 
 	LaxImage *preview;
-	std::time_t previewtime;
-    std::time_t modtime;     
+	std::clock_t previewtime;
+    std::clock_t modtime;
 
 	virtual void touchContents();
 	virtual bool HasOldPreview() { return modtime > previewtime; }
+	virtual bool CanRenderPreview() { return false; }
 	virtual LaxImage *GetPreview();
 	virtual int GeneratePreview(int width, int height);
 
