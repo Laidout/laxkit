@@ -64,7 +64,7 @@ class GradientStrip : virtual public Resourceable, virtual public LaxFiles::Dump
 
 	class GradientSpot
 	{
-	 public:
+	  public:
 		unsigned int flags; //maybe Gimp_Spots
 		
 		char *name;
@@ -143,7 +143,7 @@ class GradientStrip : virtual public Resourceable, virtual public LaxFiles::Dump
 
 	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
 	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
-	virtual void dump_in (FILE *f,int indent,int what,DumpContext *context,Attribute **att);
+	virtual void dump_in (FILE *f,int indent,int what,LaxFiles::DumpContext *context,LaxFiles::Attribute **att);
 	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context);
 
 	virtual int renderToBufferImage(LaxImage *image);
