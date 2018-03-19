@@ -290,7 +290,7 @@ void DoubleBBox::ShiftBounds(double left, double right, double top, double botto
  */
 void DoubleBBox::ExpandBounds(double amount)
 {
-	ShiftBounds(amount, amount, amount, amount);
+	ShiftBounds(-amount, amount, -amount, amount);
 }
 
 
