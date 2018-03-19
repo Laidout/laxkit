@@ -105,6 +105,8 @@ objs= \
 	anxapp.o \
 	anxapp-laxrc.o \
 	laxoptions.o \
+	previewable.o \
+	gradientstrip.o \
 	anxwindow.o \
 	newwindowobject.o \
 	tooltip.o \
