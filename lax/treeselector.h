@@ -235,16 +235,17 @@ class TreeSelector : public ScrolledWindow
 	virtual int ShowSearch(bool on=true);
 	virtual int ClearSearch();
 	virtual int UpdateSearch(const char *searchterm, bool isprogressive);
-	
+
 	virtual void SendDetail(int which);
 	virtual int GetSelectedIndex(int i);
 	virtual MenuItem *GetSelected(int i);
+	virtual MenuItem *GetItem(int i);
 	virtual int NumSelected();
 
 	//virtual int WhichSelected(unsigned int state);
 	virtual void SetLineHeight(int ntotalheight,int newleading, char forcearrange);
 	virtual void Sync();
-	
+
 	//virtual int RemoveItem(int whichid);
 	//virtual int RemoveItem(const char *i);
 	virtual void Sort(int t, int detail);

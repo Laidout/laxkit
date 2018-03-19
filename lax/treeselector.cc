@@ -402,6 +402,13 @@ MenuItem *TreeSelector::GetSelected(int i)
 	return selection.e[i];
 }
 
+//! Return the ith selelected item. i must be in range [0..NumSelected()-1].
+MenuItem *TreeSelector::GetItem(int i)
+{
+	if (i<0 || i>=visibleitems.n()) return NULL;
+	return visibleitems.e(i);
+}
+
 //! Return how many items are currently selected
 int TreeSelector::NumSelected()
 {
