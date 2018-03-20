@@ -133,7 +133,7 @@ int TabFrame::init()
 		mapWindow(c,0); // turn off initially
 	}
 
-	SelectN(0);
+	SelectN(curtab >=0 ? curtab : 0);
 	return 0;
 }
 
@@ -290,13 +290,13 @@ int TabFrame::AddWin(anXWindow *nwin,int absorbcount, const char *nlabel,const c
  */
 int TabFrame::SelectN(int which)
 {
-	which=BoxSelector::SelectN(which);
-	if (which<0 || which>=wholelist.n || which==curtab) return curbox;
+	which = BoxSelector::SelectN(which);
+	if (which<0 || which>=wholelist.n) return curbox;
 	TabBox *b;
 	b=dynamic_cast<TabBox *>(wholelist.e[which]);
 	if (!b) return curbox;
 	mapWindow(curtab,0); // turn off old tab
-	curtab=which;
+	curtab = which;
 	mapWindow(curtab,1); // turn on new tab
 	return curbox;
 }
@@ -311,6 +311,7 @@ int TabFrame::SelectN(int which)
  */
 int TabFrame::mapWindow(int which,int mapit) //mapit=1
 {
+	if (!ValidDrawable()) return 1;
 	if (which<0 || which>=wholelist.n) return 1;
 	TabBox *b;
 	b=dynamic_cast<TabBox *>(wholelist.e[which]);
