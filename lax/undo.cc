@@ -172,12 +172,19 @@ int UndoManager::Undo()
 		cerr <<" *** missing undo context!"<<endl;
 		return 2;
 	}
-	if (current->context->Undo(current)==0) {
-		current->direction=REDOABLE;
-		current=current->prev;
-		return 0;
-	}
-	return 3; //undo failed
+
+	int isauto;
+	do {
+		isauto = current->isauto;
+		if (current->context->Undo(current)==0) {
+			current->direction = REDOABLE;
+			current=current->prev;
+		} else {
+			return 3;
+		}
+	} while (isauto);
+
+	return 0;
 }
 
 //! Default is to call current->context->Redo(), and move current.
