@@ -79,46 +79,44 @@ const char *lax_event_name(int e)
 
 EventData::EventData()
 {
-	isuserevent=1;
-	send_message=NULL;
-	type=LAX_UserEvent;
-	subtype = 0;
-	usertype = 0;
-
-	from=0;
-	to=0;
-	send_time=0; 
-	propagate=0;
-
-	next=NULL;
+	isuserevent  = 1;
+	send_message = NULL;
+	type         = LAX_UserEvent;
+	subtype      = 0;
+	usertype     = 0;
+	from         = 0;
+	to           = 0;
+	send_time    = 0; 
+	propagate    = 0;
+	next = NULL;
 }
 
 EventData::EventData(const char *message, unsigned long fromwindow, unsigned long towindow)
 {
-	isuserevent=1;
-	type=LAX_UserEvent;
-	send_message=newstr(message);
-	from=fromwindow;
-	to=towindow;
-	send_time=0; 
-	propagate=0;
-	next=NULL;
-	subtype = 0;
-	usertype = 0;
+	isuserevent = 1;
+	type        = LAX_UserEvent;
+	send_message= newstr(message);
+	from        = fromwindow;
+	to          = towindow;
+	send_time   = 0; 
+	propagate   = 0;
+	next        = NULL;
+	subtype     = 0;
+	usertype    = 0;
 }
 
-EventData::EventData(int message, unsigned long fromwindow, unsigned long towindow)
+EventData::EventData(LaxEventType message, unsigned long fromwindow, unsigned long towindow)
 {
-	isuserevent=1;
-	type=message;
-	subtype = 0;
-	usertype = 0;
-	send_message=NULL;
-	from=fromwindow;
-	to=towindow;
-	send_time=0; 
-	propagate=0;
-	next=NULL;
+	isuserevent = 1;
+	type        = message;
+	subtype     = 0;
+	usertype    = 0;
+	send_message= NULL;
+	from        = fromwindow;
+	to          = towindow;
+	send_time   = 0; 
+	propagate   = 0;
+	next        = NULL;
 }
 
 EventData::~EventData()
@@ -144,7 +142,7 @@ EventData::~EventData()
  * info can be any number, for instance could indicate the type of thing in str.
  */
 
-SimpleMessage::SimpleMessage(unsigned long t, unsigned long f, unsigned long tp, const char *newmes)
+SimpleMessage::SimpleMessage(unsigned long t, unsigned long f, LaxEventType tp, const char *newmes)
 {
 	to=t;
 	from=f;
@@ -231,13 +229,13 @@ StrsEventData::~StrsEventData()
  *
  * ntype can be either LAX_onFocusOn or LAX_onFocusOff.
  */
-InOutData::InOutData(int ntype)
+InOutData::InOutData(LaxEventType ntype)
   : device(NULL),
 	target(NULL),
 	x(0),
 	y(0),
 	child(0)
-{ type=ntype; }
+{ type = ntype; }
 
 
 //-------------------------- MouseEventData
@@ -252,7 +250,7 @@ InOutData::InOutData(int ntype)
  * \todo implement adequate controls for retrieving attached valuator data like pressure, etc.
  */
 
-MouseEventData::MouseEventData(int ntype)
+MouseEventData::MouseEventData(LaxEventType ntype)
   : x(0),
 	y(0),
 	button(0),
@@ -262,7 +260,7 @@ MouseEventData::MouseEventData(int ntype)
 	tilt(0),
 	depth(0),
 	modifiers(0)
-{ type=ntype; }
+{ type = ntype; }
 
 MouseEventData::~MouseEventData()
 {}
@@ -282,10 +280,10 @@ MouseEventData::~MouseEventData()
  * and buffer will be NULL.
  */
 
-KeyEventData::KeyEventData(int ntype)
+KeyEventData::KeyEventData(LaxEventType ntype)
   : buffer(NULL),
 	len(0)
-{ type=ntype; }
+{ type = ntype; }
 
 KeyEventData::~KeyEventData()
 {

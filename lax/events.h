@@ -54,40 +54,44 @@ class LaxKeyboard;
 
  //Used by various control windows to determine when
  //to send a message to its owner
-#define LAX_RandomEvent        0
- //input and device events
-#define LAX_onFocusOn          (1<<0)
-#define LAX_onFocusOff         (1<<1)
-#define LAX_onMouseIn          (1<<2)
-#define LAX_onMouseOut         (1<<3)
-#define LAX_onMouseMove        (1<<4)
-#define LAX_onButtonDown       (1<<5)
-#define LAX_onButtonUp         (1<<6)
-#define LAX_onKeyDown          (1<<7)
-#define LAX_onKeyUp            (1<<8)
-#define LAX_onDeviceChange     (1<<9)
-#define LAX_onFrame            (1<<10)
- //state events
-#define LAX_onSubmit           (1<<11)
-#define LAX_onCancel           (1<<12)
-#define LAX_onContentChange    (1<<13)
-#define LAX_onSelectionChange  (1<<14)
-#define LAX_onUpdateByEvent    (1<<15)
-#define LAX_onUngrayed         (1<<16)
-#define LAX_onGrayed           (1<<17)
-#define LAX_onMapped           (1<<18)
-#define LAX_onUnmapped         (1<<19)
-#define LAX_onThemeChange      (1<<20)
- //---other events
- //sent by window controls for various purposes.
- //event->subtype will be some value that makes sense to the control
-#define LAX_ControlEvent       (1<<21)
-#define LAX_ButtonEvent        (1<<22)
-#define LAX_ShortcutEvent      (1<<23)
-#define LAX_ColorEvent         (1<<24)
-#define LAX_UserEvent          (1<<25)
- //for when an event is preempted, a flag to ignore:
-#define LAX_DefunctEvent       (1<<26)
+enum LaxEventType {
+	 LAX_RandomEvent = 0,
+	  //input and device events
+	 LAX_onFocusOn,
+	 LAX_onFocusOff,
+	 LAX_onMouseIn,
+	 LAX_onMouseOut,
+	 LAX_onMouseMove,
+	 LAX_onButtonDown,
+	 LAX_onButtonUp,
+	 LAX_onKeyDown,
+	 LAX_onKeyUp,
+	 LAX_onDeviceChange,
+	 LAX_onFrame,
+	  //state events
+	 LAX_onSubmit,
+	 LAX_onCancel,
+	 LAX_onContentChange,
+	 LAX_onSelectionChange,
+	 LAX_onUpdateByEvent,
+	 LAX_onUngrayed,
+	 LAX_onGrayed,
+	 LAX_onMapped,
+	 LAX_onUnmapped,
+	 LAX_onThemeChange,
+	  //---other events
+	  //sent by window controls for various purposes.
+	  //event->subtype will be some value that makes sense to the control
+	 LAX_ControlEvent,
+	 LAX_ButtonEvent,
+	 LAX_ShortcutEvent,
+	 LAX_ColorEvent,
+	 LAX_UserEvent,
+	  //for when an event is preempted, a flag to ignore:
+	 LAX_DefunctEvent,
+
+	 LAX_MAX_BUILTIN_EVENT
+};
 
 const char *lax_event_name(int e);
 
@@ -100,7 +104,7 @@ class EventData
  private:
 	int isuserevent;
  public:
-	unsigned long type;
+	LaxEventType type;
 	unsigned long subtype;
 	int usertype;
 	char *send_message;
@@ -116,8 +120,8 @@ class EventData
 	EventData *next;
 
 	EventData();
-	EventData(const char *message, unsigned long fromwindow=0, unsigned long towindow=0);
-	EventData(int message,         unsigned long fromwindow=0, unsigned long towindow=0);
+	EventData(const char *message,  unsigned long fromwindow=0, unsigned long towindow=0);
+	EventData(LaxEventType message, unsigned long fromwindow=0, unsigned long towindow=0);
 	virtual ~EventData();
 };
 
@@ -141,7 +145,7 @@ class SimpleMessage : public EventData
 
 	SimpleMessage() { object=NULL; str=NULL; info1=info2=info3=info4=0; }
 	SimpleMessage(anObject *obj);
-	SimpleMessage(unsigned long t, unsigned long f, unsigned long tp, const char *newmes=NULL);
+	SimpleMessage(unsigned long t, unsigned long f, LaxEventType tp, const char *newmes=NULL);
 	SimpleMessage(const char *nstr, int i1,int i2,int i3,int i4,
 				 const char *message=NULL,unsigned long fromwindow=0, unsigned long towindow=0);
 	virtual ~SimpleMessage();
@@ -174,7 +178,7 @@ class InOutData : public EventData
 	anXWindow *target;
 	int x,y;
 	unsigned long child;
-	InOutData(int ntype);
+	InOutData(LaxEventType ntype);
 };
 
 typedef InOutData FocusChangeData;
@@ -192,7 +196,7 @@ class MouseEventData : public EventData
 	anXWindow *target;
 	LaxMouse *device;
 
-	MouseEventData(int ntype);
+	MouseEventData(LaxEventType ntype);
 	virtual ~MouseEventData();
 };
 
@@ -208,7 +212,7 @@ class KeyEventData : public EventData
 	LaxKeyboard *device;
 	anXWindow *target;
 
-	KeyEventData(int ntype);
+	KeyEventData(LaxEventType ntype);
 	virtual ~KeyEventData();
 };
 

@@ -231,6 +231,8 @@ int ButtonBase::Event(const EventData *e,const char *mes)
 			}
 			//DBG cerr <<"  ButtonBase::event:Leave:"<<WindowTitle()<<": state:"<<state<<"  oldstate:"<<oldstate<<endl;
 		} break;
+
+		default: break;
 	}
 	return anXWindow::Event(e,mes);
 }
