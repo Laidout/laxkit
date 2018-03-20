@@ -41,6 +41,7 @@ class InterfaceManager : public Laxkit::anObject
   private:
 	static InterfaceManager *default_manager;
 	int preview_size;
+	double thin_line;
 	Laxkit::Displayer *previewer;
 
   public:
@@ -71,6 +72,7 @@ class InterfaceManager : public Laxkit::anObject
 	virtual SomeData *NewDataObject(int type);
 
 	virtual int PreviewSize();
+	virtual double ScreenLine() { return thin_line; } //change for high res screens
 
 	virtual int Resourcify(Laxkit::anObject *resource, const char *type=NULL);
 

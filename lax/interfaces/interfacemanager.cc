@@ -55,11 +55,12 @@ InterfaceManager *InterfaceManager::default_manager=NULL;
 
 InterfaceManager::InterfaceManager()
 {
-	tools=NULL;
-	resources=NULL;
-	datafactory=NULL;
-	preview_size=300;
-	previewer=NULL;
+	tools        = NULL;
+	resources    = NULL;
+	datafactory  = NULL;
+	thin_line    = 1;
+	preview_size = 300;
+	previewer    = NULL;
 }
 
 InterfaceManager::~InterfaceManager()
