@@ -799,6 +799,12 @@ int ObjectInterface::PerformAction(int action)
 		needtodraw=1;
 		return 0;
 
+	} else if (action==RIA_FlipHorizontal || action==RIA_FlipVertical) {
+		UpdateInitial();
+		int status = RectInterface::PerformAction(action);
+		InstallTransformUndo();
+		return status;
+
 	}
 
 	return RectInterface::PerformAction(action);
