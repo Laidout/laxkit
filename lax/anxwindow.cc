@@ -465,8 +465,8 @@ void anXWindow::WindowTitle(const char *newtitle)
 //-------------------------style functions
 
 //! Control various window related basic styling of win_style.
-/*! The default is to set and unset style bit in win_style, as long as stylebit is not within
- *  ANXWIN_MASK. Warning: do not randomly call this
+/*! The default is to set and unset style bit in win_style.
+ *  Warning: do not randomly call this
  *  function unless you know what you're doing, as most predefined windows have specific ways
  *  to manage win_style.
  *
@@ -479,7 +479,7 @@ void anXWindow::WindowTitle(const char *newtitle)
  */
 int anXWindow::setWinStyle(unsigned int stylebit, int newvalue)
 {
-	if (stylebit&ANXWIN_MASK) return 1;
+	//if (stylebit&ANXWIN_MASK) return 1;
 	if (newvalue) win_style|=stylebit;
 	else win_style&=~stylebit;
 	return 0;
