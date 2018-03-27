@@ -1504,7 +1504,7 @@ int TreeSelector::send(int deviceid)
 		app->SendMessage(strs,win_owner,win_sendthis,object_id);
 
 	} else {
-		 //send SimpleMessage without text
+		 //send SimpleMessage
 		MenuItem *itm = item(curitem);
 
 		SimpleMessage *ievent=new SimpleMessage;
@@ -1523,7 +1523,7 @@ int TreeSelector::send(int deviceid)
             }
 
         } else {
-			//makestr(ievent->str, itm->name);
+			makestr(ievent->str, itm->name);
 		}
 		 
 
