@@ -193,7 +193,8 @@ class ResourceManager : public anObject, public LaxFiles::DumpUtility
 
 
 	 //type management
-	MenuInfo *ResourceMenu(const char *type, bool include_recent, MenuInfo *menu);
+	virtual MenuInfo *ResourceMenu(const char *type, bool include_recent, MenuInfo *menu);
+	virtual int NumResources(const char *type);
 	virtual ResourceType *AddResourceType(const char *name, const char *Name, const char *description, LaxImage *icon);
 	virtual ResourceType *FindType(const char *name);
 	virtual ResourceType *GetTypeFromIndex(int which) { if (which>=0 && which<types.n) return types.e[which]; return NULL; }

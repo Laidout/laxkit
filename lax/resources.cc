@@ -26,7 +26,10 @@
 #include <lax/strmanip.h>
 #include <lax/fileutils.h>
 #include <lax/misc.h>
+#include <lax/language.h>
 
+
+//template implementation:
 #include <lax/refptrstack.cc>
 
 
@@ -476,7 +479,12 @@ MenuInfo *ResourceType::AppendMenu(MenuInfo *menu, bool do_favorites, int *numad
 
 		} else {
 			 //normal resource
-			menu->AddItem(r->Name, r->icon, r->object_id, LAX_OFF, do_favorites ? r->favorite : -1, NULL);
+			menu->AddItem(r->Name ? r->Name : (r->name ? r->name : _("(unnamed)")),
+						  r->icon,
+						  r->object_id, //id, later event->info2
+						  LAX_OFF,
+						  do_favorites ? r->favorite : -1, //later event->info4
+						  NULL);
 			*numadded += 1;
 		}
 	}
@@ -543,6 +551,13 @@ MenuInfo *ResourceManager::ResourceMenu(const char *type, bool include_recent, M
 	rtype->AppendMenu(menu, false, &numadded);
 
 	return menu;
+}
+
+int ResourceManager::NumResources(const char *type)
+{
+	ResourceType *rtype=FindType(type);
+	if (!rtype) return 0;
+	return rtype->resources.n;
 }
 
 /*! Add the usual directories to search in, according to the XDG Base Directory Specification.
