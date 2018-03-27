@@ -819,6 +819,18 @@ int findInList(const char *name, const char **names)
 	return -1;
 }
 
+/*! Return index in list if str is in there.
+ * else return -1.
+ */
+int findInList(const char *name, const char **names, int numnames)
+{
+	for (int c=0; c<numnames; c++) {
+		if (!strcmp(name, names[c])) return c;
+	}
+
+	return -1;
+}
+
 //! Return 1 if file starts with '/' or '~/'
 int is_absolute_path(const char *file)
 {
