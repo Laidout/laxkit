@@ -496,6 +496,31 @@ void GradientStrip::SetLinear(flatpoint pp1,flatpoint pp2,double rr1,double rr2)
 	touchContents();
 }
 
+int GradientStrip::SetStock(GradStockType which)
+{
+	colors.flush();
+
+	if (which == WhiteToBlack) {
+		AddColor(0, 1,1,1,1);
+		AddColor(1, 0,0,0,1);
+
+	} else if (which == BlackToWhite) {
+		AddColor(0, 0,0,0,1);
+		AddColor(1, 1,1,1,1);
+
+	} else if (which == TranspToWhite) {
+		AddColor(0, 1,1,1,0);
+		AddColor(1, 1,1,1,1);
+
+	} else if (which == WhiteToTransp) {
+		AddColor(0, 1,1,1,1);
+		AddColor(1, 1,1,1,0);
+
+	} else return 1;
+
+	return 0;
+}
+
 /*! Replace any current colors so gradient is col1 -> col2.
  *
  * If reset_bounds, set p1 to the origin, p1 to (1,0), (tmin,tmax)=(0,1).

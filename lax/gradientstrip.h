@@ -62,6 +62,13 @@ class GradientStrip : virtual public Resourceable, virtual public LaxFiles::Dump
 	bool IsLinear();
 	bool IsPalette(); 
 
+	enum GradInterpType {
+		Constant,
+		LinearInterp,
+		Quadratic,
+		Cubic
+	};
+
 	class GradientSpot
 	{
 	  public:
@@ -90,6 +97,12 @@ class GradientStrip : virtual public Resourceable, virtual public LaxFiles::Dump
 		virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context);
 	};
 
+	enum GradStockType {
+		WhiteToBlack,
+		BlackToWhite,
+		TranspToWhite,
+		WhiteToTransp
+	};
 
 	flatpoint p1, p2;
 	double r1, r2;
@@ -136,6 +149,7 @@ class GradientStrip : virtual public Resourceable, virtual public LaxFiles::Dump
 	virtual int SetColor(int index, double red,double green,double blue,double alpha);
 	virtual int SetColor(int index, Laxkit::ScreenColor *col);
 	virtual int SetColor(int index, Color *col, bool dup);
+	virtual int SetStock(GradStockType which);
 
 	virtual Color *WhatColor(double t) { return WhatColor(t, (Color*)NULL); }
 	virtual Color *WhatColor(double t, Color *col);
