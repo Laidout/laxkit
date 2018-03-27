@@ -29,12 +29,16 @@
 #include <lax/transformmath.h>
 #include <lax/colors.h>
 
-#include <lax/lists.cc>
-
 #include <unistd.h>
 #include <sys/file.h>
 #include <limits.h>
 #include <iostream>
+
+
+//template implementation:
+#include <lax/lists.cc>
+
+
 using namespace std;
 #define DBG 
 
@@ -1483,6 +1487,25 @@ int Attribute::push(const char *nname)
 {
 	Attribute *v=new Attribute(nname,NULL,NULL);
 	return push(v,-1);
+}
+
+int Attribute::pushStr(const char *nname, int where, const char *fmt, ...)
+{
+    va_list arg;
+
+    va_start(arg, fmt);
+    int c = vsnprintf(NULL, 0, fmt, arg);
+    va_end(arg);
+
+    char *message = new char[c+1];
+    va_start(arg, fmt);
+    vsnprintf(message, c+1, fmt, arg);
+    va_end(arg);
+
+    int status = push(nname, message, where);
+    delete[] message;
+    return status;
+
 }
 
 //! Push a simple nname==nval attribute onto this.
