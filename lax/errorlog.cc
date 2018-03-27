@@ -149,6 +149,20 @@ const char *ErrorLog::Message(int i,int *severity,int *info, int *pos,int *line)
 	return NULL;
 }
 
+int ErrorLog::AddError(int ninfo, int npos,int nline, const char *fmt, ...)
+{
+	va_list arg;
+    va_start(arg, fmt);
+    int status = AddMessage(ERROR_Fail, ninfo, npos, nline, fmt, arg);
+    va_end(arg);
+	return status;
+}
+
+int ErrorLog::AddError(const char *desc, int ninfo, int pos,int line)
+{
+	return AddMessage(0,NULL,NULL,desc,ERROR_Fail,ninfo, pos,line);
+}
+
 /*! Printf style variadic version.
  */
 int ErrorLog::AddMessage(int severity, int ninfo, int npos,int nline, const char *fmt, ...)
