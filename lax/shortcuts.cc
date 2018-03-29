@@ -734,61 +734,83 @@ int ShortcutManager::SaveHTML(const char *file)
 
 	if (!isblank(setname)) fprintf(f,"%s<br/><br/>\n\n",XMLCharsToEntities(setname,buffer2,bufferlen));
 
-	const char *shift  ="+";
-	const char *control="^";
-	const char *alt    ="&amp;";
-	const char *meta   ="~";
+	//const char *shift  ="+";
+	//const char *control="^";
+	//const char *alt    ="&amp;";
+	//const char *meta   ="~";
 
 	fprintf(f,"<!DOCTYPE html>\n"
-			  "<html>\n"
-	          "<head>\n"
-			  "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n"
-			  "<meta charset=\"utf-8\">\n"
-	          "<title>%s</title>\n"
-	          "\n"
-	          "<style type=\"text/css\">\n"
-	          "table.formattable {\n"
-	          "	border-width: 1px 1px 1px 1px;\n"
-	          "	border-spacing: 0px;\n"
-	          "	border-style: outset outset outset outset;\n"
-	          "	border-color: gray gray gray gray;\n"
-	          "	border-collapse: collapse;\n"
-	          "	#background-color: white;\n"
-	          "}\n"
-	          "table.formattable th {\n"
-	          "	border-width: 1px 1px 1px 1px;\n"
-	          "	padding: 1px 1px 1px 1px;\n"
-	          "	border-style: inset inset inset inset;\n"
-	          "	border-color: gray gray gray gray;\n"
-	          "	-moz-border-radius: 0px 0px 0px 0px;\n"
-	          "}\n"
-	          "table.formattable td {\n"
-	          "	border-width: 1px 1px 1px 1px;\n"
-	          "	border-style: inset inset inset inset;\n"
-	          "	border-color: gray gray gray gray;\n"
-	          "	padding: 3px 3px 3px 3px;\n"
-	          "	-moz-border-radius: 0px 0px 0px 0px;\n"
-	          "}\n"
-	          "td.area { background-color: #cccccc; }\n"
-	          "td.key { background-color: #ffffff; }\n"
-	          "td.id { background-color: #dddddd; }\n"
-	          "td.description { background-color: #ffffff; }\n"
-	          "</style>\n"
-	          "\n"
-	          "</head>\n"
-	          "<body>\n\n"
-			  "<h1>%s</h1>\n",
+				"<html>\n"
+				"<head>\n"
+				"<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n"
+				"<meta charset=\"utf-8\">\n"
+				"<title>%s</title>\n"
+				"\n"
+				"<style type=\"text/css\">\n"
+				".cntlkey, .metakey, .altkey, .shiftkey {\n"
+				"	border: 1px solid #bbb;\n"
+				"	background-color: #ddd;\n"
+				"	padding: .25em;\n"
+				"	margin: .1em;\n"
+				"	border-radius: .4em;\n"
+				"	-moz-border-radius: .4em;\n"
+				"	font-family: sans-serif, courier;\n"
+				"	font-size: 85%%;\n"
+				"	display: inline-block;\n"
+				"}\n"
+				"\n"
+				".cntlkey::before  { content: \"control\"; }\n"
+				".altkey::before   { content: \"alt\"; }\n"
+				".metakey::before  { content: \"meta\"; }\n"
+				".shiftkey::before { content: \"shift\"; }\n"
+				"\n"
+				".keystyle {\n"
+				"    padding-left: .3em;\n"
+				"    padding-right: .75em;\n"
+				"    /*text-transform: uppercase;*/\n"
+				"}\n"
+				"\n"
+				"table.formattable {\n"
+				"	border-width: 1px 1px 1px 1px;\n"
+				"	border-spacing: 0px;\n"
+				"	border-style: outset outset outset outset;\n"
+				"	border-color: #888;\n"
+				"	border-collapse: collapse;\n"
+				"}\n"
+				"table.formattable th {\n"
+				"	border-width: 1px 1px 1px 1px;\n"
+				"	padding: 1px 1px 1px 1px;\n"
+				"	border-style: inset inset inset inset;\n"
+				"	border-color: #ccc;\n"
+				"	-moz-border-radius: 0px;\n"
+				"}\n"
+				"table.formattable td {\n"
+				"	border-width: 1px 1px 1px 1px;\n"
+				"	border-style: inset inset inset inset;\n"
+				"	border-color: #ccc;\n"
+				"	padding: .2em .5em .2em .5em;\n"
+				"	-moz-border-radius: 0px;\n"
+				"}\n"
+				"td.area { background-color: #cccccc; }\n"
+				"td.key { background-color: #ffffff; text-align: right; }\n"
+				"td.id { background-color: #dddddd; }\n"
+				"td.description { background-color: #ffffff; }\n"
+				"</style>\n"
+				"\n"
+				"</head>\n"
+				"<body>\n\n"
+				"<h1>%s</h1>\n",
 				settitle?XMLCharsToEntities(settitle,buffer2,bufferlen):"Shortcuts",
 				settitle?XMLCharsToEntities(settitle,buffer2,bufferlen):"Shortcuts");
 	
 	 //output available modifier aliases
-	fprintf(f,"Modifiers<br/>\n");
-	fprintf(f,"<table>\n");
-	fprintf(f,"  <tr><td>Shift   </td><td>%s</td></tr>\n",shift);
-	fprintf(f,"  <tr><td>Control </td><td>%s</td></tr>\n",control);
-	fprintf(f,"  <tr><td>Alt     </td><td>%s</td></tr>\n",alt);
-	fprintf(f,"  <tr><td>Meta    </td><td>%s</td></tr>\n",meta);
-	fprintf(f,"</table>\n");
+	//fprintf(f,"Modifiers<br/>\n");
+	//fprintf(f,"<table>\n");
+	//fprintf(f,"  <tr><td>Shift   </td><td>%s</td></tr>\n",shift);
+	//fprintf(f,"  <tr><td>Control </td><td>%s</td></tr>\n",control);
+	//fprintf(f,"  <tr><td>Alt     </td><td>%s</td></tr>\n",alt);
+	//fprintf(f,"  <tr><td>Meta    </td><td>%s</td></tr>\n",meta);
+	//fprintf(f,"</table>\n");
 
 	 //output the shortcuts
 	ShortcutDefs *s;
@@ -800,21 +822,39 @@ int ShortcutManager::SaveHTML(const char *file)
 	fprintf(f,"<table class=\"formattable\">\n");
 	for (int c=0; c<shortcuts.n; c++) {
 		fprintf(f,"<tr><td colspan=\"3\" class=\"area\">%s</td></tr>\n",shortcuts.e[c]->area);
-		s=shortcuts.e[c]->Shortcuts();
-		a=shortcuts.e[c]->Actions();
+		s = shortcuts.e[c]->Shortcuts();
+		a = shortcuts.e[c]->Actions();
 
 		 //output all bound keys
 		if (s) {
 			for (int c2=0; c2<s->n; c2++) {
-				fprintf(f,"  <tr><td class=\"key\">%-10s</td>", XMLCharsToEntities(ShortcutString(s->e[c2], buffer), buffer2,bufferlen));
-
+				fputs("  <tr>", f);
 				if (a) aa=a->FindAction(s->e[c2]->action); else aa=NULL;
+
+				 //key
+				fputs("<td class=\"key\">", f);
+				if (s->e[c2]->keys->state&ShiftMask)   fputs("<span class=\"shiftkey\"></span>",f);
+				if (s->e[c2]->keys->state&ControlMask) fputs("<span class=\"cntlkey\"></span>" ,f);
+				if (s->e[c2]->keys->state&AltMask)     fputs("<span class=\"altkey\"></span>"  ,f); 
+				if (s->e[c2]->keys->state&MetaMask)    fputs("<span class=\"metakey\"></span>" ,f);
+
+				key_name_from_value(s->e[c2]->keys->key, buffer);
+				fprintf(f, "<span class=\"keystyle\">%s</span></td>", buffer);
+
+				 //description
 				if (aa) {
-					 //print out string id and commented out description
-					fprintf(f,"<td class=\"id\">%-25s</td><td class=\"description\">", XMLCharsToEntities(aa->name, buffer2, bufferlen));
+					fputs("<td class=\"description\">", f);
 					if (!isblank(aa->description)) fprintf(f,"%s",XMLCharsToEntities(aa->description, buffer2, bufferlen));
-					fprintf(f,"</td></tr>\n");
-				} else fprintf(f,"<td class=\"id\">%d</td><td class=\"description\"></td>\n",s->e[c2]->action); //print out number only
+					fprintf(f,"</td>");
+				} else fputs("<td class=\"description\"></td>\n", f);
+
+				 //name
+				if (aa) {
+					 //print out string id
+					fprintf(f,"<td class=\"id\">%s</td>", XMLCharsToEntities(aa->name, buffer2, bufferlen));
+				} else fprintf(f,"<td class=\"id\">%d</td>",s->e[c2]->action); //print out number only
+
+				fputs("</tr>\n", f);
 			}
 		}
 
@@ -824,13 +864,22 @@ int ShortcutManager::SaveHTML(const char *file)
 			for (c2=0; c2<a->n; c2++) {
 				if (s && s->FindShortcutFromAction(a->e[c2]->id,0)) continue; //action is bound!
 
-				fprintf(f,"  <tr><td class=\"key\">none      </td><td class=\"id\">%-25s</td><td class=\"description\">",
-						XMLCharsToEntities(a->e[c2]->name, buffer2, bufferlen));
+				fputs("  <tr>", f);
 
+				//key
+				fputs("<td class=\"key\">none</td>",f);
+				
+				 //description
+				fputs("<td class=\"description\">", f);
 				if (!isblank(a->e[c2]->description)) {
 					fprintf(f,"%s", XMLCharsToEntities(a->e[c2]->description, buffer2, bufferlen));
-				}
-				fprintf(f,"</td></tr>\n");
+				} else fputs("</td>", f);
+
+				 //action
+				fprintf(f, "<td class=\"id\">%s</td>", XMLCharsToEntities(a->e[c2]->name, buffer2, bufferlen));
+
+
+				fputs("</tr>\n",f);
 			}
 		}
 	}
