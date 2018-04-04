@@ -145,6 +145,8 @@ static inline int fastFloor(double x) {
  * C++ version of OpenSimplex noise.
  * Ported from C version by Stephen M. Cameron, which was ported from Kurt Spencer's java implementation.
  * 
+ * Usage, just instatiate OpenSimplexNoise(seed) which initializes state,
+ * and call Evalute() as much as you want. Easy!
  */
 
 
