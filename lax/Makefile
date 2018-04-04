@@ -251,4 +251,5 @@ dist-clean: clean
 .PHONY: clean docs interfaces hidegarbage unhidegarbage
 clean:
 	rm -f *.o *.a *.so
+	cd interfaces && $(MAKE) clean
 
