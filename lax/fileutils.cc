@@ -665,19 +665,73 @@ char *make_filename_base(const char *f)
 char *read_in_whole_file(const char *file, int *chars_ret, int maxchars)
 {
 	if (isblank(file)) return NULL;
-	if (file_exists(file,1,NULL)!=S_IFREG) return NULL;
-	int size=file_size(file,1,NULL);
-	if (size<=0) return NULL;
-	if (maxchars>0 && size>maxchars) size=maxchars;
-	FILE *f=fopen(file,"r");
+	if (file_exists(file,1,NULL) != S_IFREG) return NULL;
+	int size = file_size(file,1,NULL);
+	if (size <= 0) return NULL;
+	if (maxchars > 0 && size > maxchars) size = maxchars;
+	FILE *f = fopen(file,"r");
 	if (!f) return NULL;
-	char *str=new char[size+1];
-	int numread=fread(str,1,size,f);
-	if (numread<=0) { delete str; str=NULL; numread=0; }
+	char *str = new char[size+1];
+	int numread = fread(str,1,size,f);
+	if (numread <= 0) { delete str; str=NULL; numread=0; }
 	else str[numread]='\0';
 	fclose(f);
-	if (chars_ret) *chars_ret=numread;
+	if (chars_ret) *chars_ret = numread;
 	return str;
+}
+
+/*! Like read_in_whole_file(), but on open FILE where you don't know how much is there.
+ * Here, grab chunks of 1024 bytes until eof.
+ * Return number of bytes read in chars_read_ret.
+ * Makes returned_bytes[chars_read_ret]='\\0'.
+ */
+char *pipe_in_whole_file(FILE *f, int *chars_read_ret)
+{
+	char *data = NULL; //the data
+	char *buf = NULL;  //running counter per read chunk within data
+	int c;
+	int n = 0, max = 0;
+
+	data = new char[1024];
+	buf = data;
+	max = 1024;
+
+
+	while (!feof(f)) {
+		c = fread(buf,1,1024, f);
+		n += c;
+
+		if (c == 0) {
+			if (feof(f)) {
+				break;
+			} else if (ferror(f)) {
+				break;
+			}
+		}
+
+		 //realloc
+		if (!feof(f)) {
+			char *ndata = new char[max+1024];
+			memcpy(ndata, data, max);
+			delete[] data;
+			data = ndata;
+			buf = data + n;
+			max += 1024;
+		}
+	}
+	
+	if (n==max) {
+		 //this'll only happen about 1/1024 times
+		char *ndata = new char[max+5];
+		memcpy(ndata, data, max);
+		delete[] data;
+		data = ndata;
+		max += 5;
+	}
+	data[n] = '\0';
+
+	if (chars_read_ret) *chars_read_ret = n;
+	return data;
 }
 
 /*! Return 0 for success, or nonzero for couldn't.
