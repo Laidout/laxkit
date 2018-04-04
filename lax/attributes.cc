@@ -2677,7 +2677,8 @@ Attribute *XMLChunkToAttribute(Attribute *att,
 				if (error) c=c2; //reposition to start of mystery tag
 				if (C) *C=c;
 			}
-		}
+
+		} else c++; //was at final char, which was a '<'
 	}
 	DBG if (error) cerr <<"XML-in error: "<<error<<" near "<<(name?name:"unknown")<<endl;
 	 
