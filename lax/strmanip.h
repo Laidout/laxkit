@@ -34,6 +34,7 @@ char *newstr(const char *str);
 char *newnstr(const char *str,int n);
 char *makestr(char *&dest,const char *src);
 char *makenstr(char *&dest,const char *src,unsigned int n);
+char *makestrmore(char *&dest, int slen, int num_bytes, bool isdiff);
 char *insertstr(char *&dest,const char *data,int atpos);
 char *prependnstr(char *&dest,const char *src,int n);
 char *prependstr(char *&dest,const char *src);

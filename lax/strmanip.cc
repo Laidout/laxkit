@@ -223,6 +223,22 @@ char *makestr(char *&dest,const char *src)
 	return strcpy(dest,src);
 }
 
+/*! Basically realloc(). If num_bytes would result in a smaller allocation, nothing is done.
+ * If isdiff, then add num_bytes to strlen. Else allocate that num_bytes in new string.
+ */
+char *makestrmore(char *&dest, int slen, int num_bytes, bool isdiff)
+{
+	if (num_bytes <= 0) return dest;
+	if (slen < 0) slen = (dest ? strlen(dest) : 0);
+	if (!isdiff && num_bytes < slen+1) return dest;
+	if (isdiff) slen = slen+1 + num_bytes; else slen = num_bytes;
+	char *newdest = new char[num_bytes];
+	if (dest) strcpy(newdest, dest); else newdest[0]='\0';
+	delete[] dest;
+	dest = newdest;
+	return dest;
+}
+
  //! Like makestr, but only grabs the first n characters of src.
  /*! \return Returns a pointer to what dest now points to.
   *
