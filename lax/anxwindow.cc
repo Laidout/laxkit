@@ -480,8 +480,8 @@ void anXWindow::WindowTitle(const char *newtitle)
 int anXWindow::setWinStyle(unsigned int stylebit, int newvalue)
 {
 	//if (stylebit&ANXWIN_MASK) return 1;
-	if (newvalue) win_style|=stylebit;
-	else win_style&=~stylebit;
+	if (newvalue) win_style |= stylebit;
+	else win_style &= ~stylebit;
 	return 0;
 }
 
