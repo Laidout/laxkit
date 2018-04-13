@@ -281,7 +281,8 @@ MouseEventData::~MouseEventData()
  */
 
 KeyEventData::KeyEventData(LaxEventType ntype)
-  : buffer(NULL),
+  : keycode(0), //Value specific to keyboard physical key. Should be 8 <= keycode <= 255
+	buffer(NULL),
 	len(0)
 { type = ntype; }
 

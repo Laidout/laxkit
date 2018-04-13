@@ -310,18 +310,6 @@ int LaxMouse::TiltY()
  *   examples, or some simpler system.
  */
 
-// ****************WORK IN PROGRESS FOR MULTIKEYBOARD
-//class Keyboard
-//{
-// public:
-//	Display *dpy;
-//	int id;
-//	anXWindow *focus;
-//	XIM xim;
-//	XIC xim_ic;
-//	XIC SetIC(anXWindow *win);
-//};
-
 
 LaxKeyboard::LaxKeyboard()
  :  paired_mouse(NULL),
@@ -1653,78 +1641,80 @@ int XInput2Keyboard::eventFilter(EventData **events_ret,XEvent *xev,anXWindow *w
 	if (!cookie->data && !XGetEventData(anXApp::app->dpy, cookie)) return 0;
 
 
-	if (cookie->evtype==KeyPress) {
-		XIDeviceEvent *dev=(XIDeviceEvent*)cookie->data;
-		if (dev->deviceid!=(int)xid) return 0;
+	if (cookie->evtype == KeyPress) {
+		XIDeviceEvent *dev = (XIDeviceEvent*)cookie->data;
+		if (dev->deviceid != (int)xid) return 0;
 		if (!ww) ww=anXApp::app->findwindow_xlib(dev->event);
 		if (!ww || !ww->win_active) return 0;
 
-		char *buffer=NULL;
-		int len=0;
-		unsigned int key=0;
-		unsigned int state=dev->mods.effective;
+		char *buffer = NULL;
+		int len = 0;
+		unsigned int key = 0;
+		unsigned int state = dev->mods.effective;
 
 		XEvent kev;//**** HACK!! not sure how to sanely translate XI key events to normal input
-		kev.xkey.type=KeyPress;
-		kev.xkey.time=dev->time;
-		kev.xkey.display=anXApp::app->dpy;
-		kev.xkey.keycode=dev->detail;
-		kev.xkey.state=state;
+		kev.xkey.type    = KeyPress;
+		kev.xkey.time    = dev->time;
+		kev.xkey.display = anXApp::app->dpy;
+		kev.xkey.keycode = dev->detail;
+		kev.xkey.state   = state;
 
 		//***** not working: if (anXApp::app->filterKeyEvents(this, ww, &kev,key,buffer,len,state)!=0) return 0;
 		char ch;
 		KeySym keysym;  
 		XLookupString(&kev.xkey,&ch,1,&keysym,NULL);
-		key=filterkeysym(keysym,&state); //convert to a Laxkit keycode
+		key = filterkeysym(keysym, &state); //convert to a Laxkit keycode
 
 		DBG cerr <<"key down: device "<<dev->deviceid<<",  source "<<dev->sourceid<<", detail:"<<dev->detail
 		DBG		 <<" fake:"<<key <<endl;
 
-		KeyEventData *k=new KeyEventData(LAX_onKeyDown);
-		k->propagate=1;
-		k->device=this;
-		k->to=ww->object_id;
-		k->target=ww;
-		k->buffer=buffer;
-		k->len=len;
-		k->key=key;
-		k->modifiers=state;
+		KeyEventData *k = new KeyEventData(LAX_onKeyDown);
+		k->propagate = 1;
+		k->device    = this;
+		k->to        = ww->object_id;
+		k->target    = ww;
+		k->buffer    = buffer;
+		k->len       = len;
+		k->keycode   = dev->detail;
+		k->key       = key;
+		k->modifiers = state;
 
-		isinput=1;
-		*events_ret=k;
+		isinput = 1;
+		*events_ret = k;
 		return 1;
 
-	} else if (cookie->evtype==XI_KeyRelease) {
-		XIDeviceEvent *dev=(XIDeviceEvent*)cookie->data;
-		if (dev->deviceid!=(int)xid) return 0;
-		if (!ww) ww=anXApp::app->findwindow_xlib(dev->event);
+	} else if (cookie->evtype == XI_KeyRelease) {
+		XIDeviceEvent *dev = (XIDeviceEvent*)cookie->data;
+		if (dev->deviceid != (int)xid) return 0;
+		if (!ww) ww = anXApp::app->findwindow_xlib(dev->event);
 		if (!ww || !ww->win_active) return 0;
 
-		KeyEventData *k=new KeyEventData(LAX_onKeyUp);
+		KeyEventData *k = new KeyEventData(LAX_onKeyUp);
 
 		char ch;
 		KeySym keysym;  
-		unsigned int state=dev->mods.effective;
+		unsigned int state = dev->mods.effective;
 
-		XKeyEvent kev;//**** HACK!! not sure how to sanely translate XI key events to normal input
-		kev.display=anXApp::app->dpy;
-		kev.keycode=dev->detail;
-		kev.state=state;
+		XKeyEvent kev;//**** HACK!! not sure how to sanely translate XI key events to normal input, so using a fake old key event
+		kev.display = anXApp::app->dpy;
+		kev.keycode = dev->detail;
+		kev.state   = state;
 
 
 		 //simple lookup, we are really only interested in control, shift, alt, meta,
 		 //or perhaps a space bar going up..
 		XLookupString(&kev,&ch,1,&keysym,NULL);
-		k->key=filterkeysym(keysym,&state); //convert to a Laxkit keycode
+		k->key = filterkeysym(keysym,&state); //convert to a Laxkit keycode
 
-		k->device=this;
-		k->propagate=1;
-		k->to=ww->object_id;
-		k->target=ww;
-		k->modifiers=state;
+		k->device    = this;
+		k->propagate = 1;
+		k->to        = ww->object_id;
+		k->target    = ww;
+		k->modifiers = state;
+		k->keycode   = dev->detail;
 
-		isinput=1;
-		*events_ret=k;
+		isinput = 1;
+		*events_ret = k;
 		return 1;
 
 	} else if (cookie->evtype==XI_FocusIn) {

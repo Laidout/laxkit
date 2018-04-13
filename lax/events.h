@@ -206,6 +206,7 @@ class KeyEventData : public EventData
  public:
 	unsigned int key;
 	unsigned int modifiers;
+	int keycode;
 	char *buffer;
 	int len;
 
