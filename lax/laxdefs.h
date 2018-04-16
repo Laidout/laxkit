@@ -186,6 +186,10 @@ typedef enum {
 #define NumLockMask       (1<<4) 
 #define MetaMask          (1<<6) 
 
+// a mask for when a key has both left and right versions, like shift, control, and alt.
+// If this is present in mods, then it is a right key, else a left key
+#define RightKeyMask      (1<<13)
+
 #define LeftButtonMask    (1<<8) 
 #define MiddleButtonMask  (1<<9) 
 #define RightButtonMask   (1<<10)
@@ -196,50 +200,51 @@ typedef enum {
 
 
 //----------------------------- Special Keys ----------------------------------
-//---these are currently mostly the same as Xlib keysyms
-//   except that tab and enter map to \t and \r.
-//   Otherwise, using keysym for now.
-//   Maybe someday will use unicode values, and these control keys may be something
-//   like 0x02000000+whatever
+//---these are adapted slightly from Xlib keysyms.
+//   See /usr/include/X11/keysymdef.h and /usr/include/X11/XF86keysym.h.
+//   The equivalent unicode values are used when available.
+//   Legacy keysyms that have no unicode and are less than 
+//   0x10000000 get or'd with LAX_SPKEY. Note not all of them are
+//   given corresponding LAX_* defines.
+
+//value or'd to various x11 keysyms that don't correspond to unicode
+#define LAX_SPKEY    0x20000000
 
 #define LAX_NULL     0
-#define LAX_Shift    0xffe1 
-#define LAX_Control  0xffe3
-#define LAX_Esc      0xff1b
-#define LAX_Menu     0xff67
-#define LAX_Pause    0xff13
-#define LAX_Alt      0xffe9
-#define LAX_Meta     0xffe7
-#define LAX_Del      0xffff
-#define LAX_Bksp     0xff08
+#define LAX_Shift    (LAX_SPKEY | 0xffe1)
+#define LAX_Control  (LAX_SPKEY | 0xffe3)
+#define LAX_Esc      (LAX_SPKEY | 0xff1b)
+#define LAX_Menu     (LAX_SPKEY | 0xff67)
+#define LAX_Pause    (LAX_SPKEY | 0xff13)
+#define LAX_Alt      (LAX_SPKEY | 0xffe9)
+#define LAX_Meta     (LAX_SPKEY | 0xffe7)
+#define LAX_Del      (LAX_SPKEY | 0xffff)
+#define LAX_Bksp     (LAX_SPKEY | 0xff08)
 #define LAX_Tab      9
-#define LAX_Ins      0xff63
-#define LAX_Home     0xff50
-#define LAX_End      0xff57
+#define LAX_Ins      (LAX_SPKEY | 0xff63)
+#define LAX_Home     (LAX_SPKEY | 0xff50)
+#define LAX_End      (LAX_SPKEY | 0xff57)
 #define LAX_Enter    13
-#define LAX_Pgup     0xff55
-#define LAX_Pgdown   0xff56
-#define LAX_F1       0xffbe
-#define LAX_F2       0xffbf
-#define LAX_F3       0xffc0
-#define LAX_F4       0xffc1
-#define LAX_F5       0xffc2
-#define LAX_F6       0xffc3
-#define LAX_F7       0xffc4
-#define LAX_F8       0xffc5
-#define LAX_F9       0xffc6
-#define LAX_F10      0xffc7
-#define LAX_F11      0xffc8
-#define LAX_F12      0xffc9
-#define LAX_Left     0xff51
-#define LAX_Up       0xff52
-#define LAX_Down     0xff54
-#define LAX_Right    0xff53
-#define LAX_Numlock  0xff7f
-#define LAX_Capslock 0xffe5
-
-//a rather arbitrary limit to what char codes are considered printable.
-#define LAX_Max_Normal_Char 0xff00
+#define LAX_Pgup     (LAX_SPKEY | 0xff55)
+#define LAX_Pgdown   (LAX_SPKEY | 0xff56)
+#define LAX_F1       (LAX_SPKEY | 0xffbe)
+#define LAX_F2       (LAX_SPKEY | 0xffbf)
+#define LAX_F3       (LAX_SPKEY | 0xffc0)
+#define LAX_F4       (LAX_SPKEY | 0xffc1)
+#define LAX_F5       (LAX_SPKEY | 0xffc2)
+#define LAX_F6       (LAX_SPKEY | 0xffc3)
+#define LAX_F7       (LAX_SPKEY | 0xffc4)
+#define LAX_F8       (LAX_SPKEY | 0xffc5)
+#define LAX_F9       (LAX_SPKEY | 0xffc6)
+#define LAX_F10      (LAX_SPKEY | 0xffc7)
+#define LAX_F11      (LAX_SPKEY | 0xffc8)
+#define LAX_F12      (LAX_SPKEY | 0xffc9)
+#define LAX_Left     (LAX_SPKEY | 0xff51)
+#define LAX_Up       (LAX_SPKEY | 0xff52)
+#define LAX_Down     (LAX_SPKEY | 0xff54)
+#define LAX_Right    (LAX_SPKEY | 0xff53)
+#define LAX_Numlock  (LAX_SPKEY | 0xff7f)
+#define LAX_Capslock (LAX_SPKEY | 0xffe5)
 
 //The following are basically one for one with XF86XK_* from /usr/include/X11/XF86keysym.h
 //They map various special keys found on different keyboards.

@@ -1662,7 +1662,7 @@ int XInput2Keyboard::eventFilter(EventData **events_ret,XEvent *xev,anXWindow *w
 		//***** not working: if (anXApp::app->filterKeyEvents(this, ww, &kev,key,buffer,len,state)!=0) return 0;
 		char ch;
 		KeySym keysym;  
-		XLookupString(&kev.xkey,&ch,1,&keysym,NULL);
+		XLookupString(&kev.xkey, &ch,1, &keysym, NULL);
 		key = filterkeysym(keysym, &state); //convert to a Laxkit keycode
 
 		DBG cerr <<"key down: device "<<dev->deviceid<<",  source "<<dev->sourceid<<", detail:"<<dev->detail

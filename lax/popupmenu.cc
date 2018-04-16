@@ -394,7 +394,7 @@ int PopupMenu::CharInput(unsigned int ch,const char *buffer,int len,unsigned int
 
 	if ((ch==LAX_Esc && top->searchfilter)
 		|| (ch==LAX_Bksp && top->searchfilter) 
-		|| (((state&LAX_STATE_MASK)|ShiftMask)==ShiftMask && ch < LAX_Max_Normal_Char && HasStyle(TREESEL_LIVE_SEARCH))
+		|| (((state&LAX_STATE_MASK)|ShiftMask)==ShiftMask && ch < 0x1000000 && HasStyle(TREESEL_LIVE_SEARCH))
 	   ) {
 		//search related things.. this needs to be updated when TreeSelector ifs get updated
 		// pass to top menu

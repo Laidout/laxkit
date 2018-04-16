@@ -1713,7 +1713,7 @@ int TreeSelector::CharInput(unsigned int ch,const char *buffer,int len,unsigned 
 		needtodraw=1;
 		return 0;
 
-	} else if (((state&LAX_STATE_MASK)|ShiftMask)==ShiftMask && ch < LAX_Max_Normal_Char && HasStyle(TREESEL_LIVE_SEARCH)) {
+	} else if (((state&LAX_STATE_MASK)|ShiftMask)==ShiftMask && HasStyle(TREESEL_LIVE_SEARCH)) {
 		 // update searchterm
 		char *old = newstr(searchfilter);
 		char s[10];

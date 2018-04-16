@@ -3612,11 +3612,67 @@ static const char dead_keys[] = {
   'v',	// XK_dead_caron
   ',',	// XK_dead_cedilla
   ','	// XK_dead_ogonek
-//   0,	// XK_dead_iota
-//   0,	// XK_dead_voiced_sound
-//   0,	// XK_dead_semivoiced_sound
-//   0	// XK_dead_belowdot
+
+//	   //others:
+//	0 //XK_dead_iota                     0xfe5d
+//	0 //XK_dead_voiced_sound             0xfe5e
+//	0 //XK_dead_semivoiced_sound         0xfe5f
+//	0 //XK_dead_belowdot                 0xfe60
+//	0 //XK_dead_hook                     0xfe61
+//	0 //XK_dead_horn                     0xfe62
+//	0 //XK_dead_stroke                   0xfe63
+//	0 //XK_dead_abovecomma               0xfe64
+//	0 //XK_dead_psili                    0xfe64  /* alias for dead_abovecomma */
+//	0 //XK_dead_abovereversedcomma       0xfe65
+//	0 //XK_dead_dasia                    0xfe65  /* alias for dead_abovereversedcomma */
+//	0 //XK_dead_doublegrave              0xfe66
+//	0 //XK_dead_belowring                0xfe67
+//	0 //XK_dead_belowmacron              0xfe68
+//	0 //XK_dead_belowcircumflex          0xfe69
+//	0 //XK_dead_belowtilde               0xfe6a
+//	0 //XK_dead_belowbreve               0xfe6b
+//	0 //XK_dead_belowdiaeresis           0xfe6c
+//	0 //XK_dead_invertedbreve            0xfe6d
+//	0 //XK_dead_belowcomma               0xfe6e
+//	0 //XK_dead_currency                 0xfe6f
+//
+//	/* extra dead elements for German T3 layout */
+//	0 //XK_dead_lowline                  0xfe90
+//	0 //XK_dead_aboveverticalline        0xfe91
+//	0 //XK_dead_belowverticalline        0xfe92
+//	0 //XK_dead_longsolidusoverlay       0xfe93
+//
+//	/* dead vowels for universal syllable entry */
+//	0 //XK_dead_a                        0xfe80
+//	0 //XK_dead_A                        0xfe81
+//	0 //XK_dead_e                        0xfe82
+//	0 //XK_dead_E                        0xfe83
+//	0 //XK_dead_i                        0xfe84
+//	0 //XK_dead_I                        0xfe85
+//	0 //XK_dead_o                        0xfe86
+//	0 //XK_dead_O                        0xfe87
+//	0 //XK_dead_u                        0xfe88
+//	0 //XK_dead_U                        0xfe89
+//	0 //XK_dead_small_schwa              0xfe8a
+//	0 //XK_dead_capital_schwa            0xfe8b
 };
+
+/*! Return index in dead_keys if k is a deadkey.
+ */
+int GetDeadkeyIndex(unsigned int k)
+{
+	if (k >= 0x2000fe50 && k <= 0x2000fe5b) return k-0x2000fe50;
+
+	return -1;
+}
+
+int IsDeadkey(unsigned int key)
+{
+	 //corresponding to X11 deadkeys or'd with LAX_SPKEY...
+	return (key >= 0x2000fe50 && key <= 0x2000fe6f)
+		|| (key >= 0x2000fe80 && key <= 0x2000fe8c)
+		|| (key >= 0x2000fe90 && key <= 0x2000fe93);
+}
 
 //! From 2 keys, typically an ascii key and a dead key, compose another.
 /*! If k1 and k2 are not deadkeys and k1 and k2 are greater than 127, then 0 is returned.
@@ -3632,14 +3688,17 @@ static const char dead_keys[] = {
 unsigned int composekey(unsigned int k1, unsigned int k2)
 {
 	char ch1,ch2;
+	int i;
 
-	if (k1 >= 0xfe50 && k1 <= 0xfe5b) ch1 = dead_keys[k1-0xfe50];
+	i = GetDeadkeyIndex(k1);
+	if (i >= 0) ch1 = dead_keys[i];
 	else if (k1>127) return 0;
-	else ch1=k1;
+	else ch1 = k1;
 
-	if (k2 >= 0xfe50 && k2 <= 0xfe5b) ch2 = dead_keys[k1-0xfe50];
+	i = GetDeadkeyIndex(k2);
+	if (i >= 0) ch2 = dead_keys[i];
 	else if (k2>127) return 0;
-	else ch2=k2;
+	else ch2 = k2;
 	
 	if      (ch1 == ';') ch1 = ':';
 	else if (ch1 == '|') ch1 = '/';
@@ -3668,7 +3727,7 @@ unsigned int composekey(unsigned int k1, unsigned int k2)
 	 //search for the pair in either order:
 	for (const char *p = compose_pairs; *p; p += 2) {
 		if (((p[0] == ch2) && (p[1] == ch1)) || (p[1] == ch2 && p[0] == ch1)) {
-			int code = (p-compose_pairs)/2+0xA0;
+			int code = (p-compose_pairs)/2 + 0xA0;
 			return code;
 		}
 	}
@@ -3683,17 +3742,19 @@ unsigned int composekey(unsigned int k1, unsigned int k2)
 
 #ifdef _LAX_PLATFORM_XLIB
 
-/*! \todo since I don't understand how XIM works, this stuff will stay here for the time being.
+/*! NOTE: *** This is not currently used!
+ *
+ * \todo since I don't understand how XIM works, this stuff will stay here for the time being.
  *    really it should be mpx compliant!!!
  *  \todo *** this is rather messy and needs serious debugging:
  */
 int anXApp::filterKeyEvents(LaxKeyboard *kb, anXWindow *win,
 							XEvent *e,unsigned int &key, char *&buffer, int &len, unsigned int &state)
 {
-	if (kb!=xim_current_device || win->object_id!=xim_current_window) {
+	if (kb != xim_current_device || win->object_id != xim_current_window) {
 		 //reset xim
-		xim_current_device=kb;
-		xim_current_window=win->object_id;
+		xim_current_device = kb;
+		xim_current_window = win->object_id;
 		CreateXInputContext();
 
 		XSetICValues(xim_ic,
@@ -3702,21 +3763,22 @@ int anXApp::filterKeyEvents(LaxKeyboard *kb, anXWindow *win,
 		XSetICFocus(xim_ic);
 	}
 
-	buffer=NULL;
-	len=0;
-	key=0;
-	state=e->xkey.state;
+	buffer = NULL;
+	len    = 0;
+	key    = 0;
+	state  = e->xkey.state;
 
-	KeySym keysym=0;  
-	int maxbuf=20;
-	buffer=new char[maxbuf];
-	buffer[0]='\0';
+	KeySym keysym = 0;
+	int maxbuf = 20;
+	buffer = new char[maxbuf];
+	buffer[0] = '\0';
 
 	if (xim) {
 		DBG cerr <<"anXApp::filterKeyEvents(): using x input method on keypress..."<<endl;
 		 //using x input method...
 		Status status;
 		buffer[0]=0;
+
 		do {
 			len=Xutf8LookupString(xim_ic, &e->xkey, buffer, maxbuf-1, &keysym, &status);
 			if (status==XBufferOverflow) {
@@ -3733,8 +3795,10 @@ int anXApp::filterKeyEvents(LaxKeyboard *kb, anXWindow *win,
 			 //else status is one of: XLookupChars | XLookupKeySym | XLookupBoth
 			break;
 		} while (1);
+
 		buffer[len]='\0';
-		if (status==XLookupChars || status==XLookupBoth) {
+
+		if (status == XLookupChars || status == XLookupBoth) {
 			DBG cerr <<"  "<<(status==XLookupChars?"XLookupChars":"XLookupBoth")<<endl;
 
 			 //remove the control-char remapping that Xutf8LookupString() apparently does
@@ -3742,38 +3806,41 @@ int anXApp::filterKeyEvents(LaxKeyboard *kb, anXWindow *win,
 			else key=utf8decode(buffer,buffer+len,&len);
 
 			DBG cerr <<"  "<<len<<" chars inputed: "<<(len?buffer:"(none)")<<", 1st="<<(int)buffer[0]<<endl;
+
 		} else {
 			 //was XLookupKeysym, use the old standby. probably not an actual printing character:
 			delete[] buffer; buffer=NULL; len=0;
 			char ch;
-			len=XLookupString(&e->xkey,&ch,1,&keysym,NULL);
-			key=filterkeysym(keysym,&state);
+			len = XLookupString(&e->xkey,&ch,1,&keysym,NULL);
+			key = filterkeysym(keysym,&state);
 
 			DBG cerr<<"  ***keysym but no translated string:"<<keysym<<endl;
 		}
-		if (keysym>=0xfe50 && keysym<=0xfe62) {
-			 //is a dead key
+
+		 //check for dead keys, that get combined with the following inputted character
+		if (IsDeadkey(key)) {
 			if (!xim_deadkey) { 
 				 //next key input will be combined with this deadkey
-				xim_deadkey=keysym; 
+				xim_deadkey = key; 
 				delete[] buffer; 
 				return 1;  //no final output yet
 			}
-			key=keysym;
 		}
-		if (key==8) key=LAX_Bksp;
-		else if (key==127) key=LAX_Del;
-		else if (key==27) key=LAX_Esc;
+
+		if      (key == 8)   key = LAX_Bksp;
+		else if (key == 127) key = LAX_Del;
+		else if (key == 27)  key = LAX_Esc;
 		if (key==LAX_Bksp || key==LAX_Del || key==LAX_Esc) { delete[] buffer; buffer=NULL; len=0; }
+
 	} else {
 		 //no app->xim, use plain old Latin-1 lookup
 		DBG cerr <<"not using x input method on keypress...";
 		len=XLookupString(&e->xkey,buffer,maxbuf,&keysym,NULL);
 		buffer[len]='\0';
-		key=filterkeysym(keysym,&state);
+		key = filterkeysym(keysym,&state);
 		DBG cerr <<"  key:"<<(int)key<<endl;
 	}
-	
+
 	//DBG cerr << win_title<<": keypress ";
 	//DBG cerr.setf(ios_base::hex,ios_base::basefield);
 	//DBG cerr <<"  keysym:"<<keysym;
@@ -3781,41 +3848,52 @@ int anXApp::filterKeyEvents(LaxKeyboard *kb, anXWindow *win,
 	//DBG cerr <<"  name:"<<XKeysymToString(keysym)<<endl;
 
 	 //***I have no idea if this actually works as intended
-	if (keysym==XK_Multi_key) { xim_deadkey=~0; delete[] buffer; return 1; }
-	else if (xim_deadkey==(unsigned int)~0) { 
+	if (keysym == XK_Multi_key) {
+		xim_deadkey = ~0;
+		delete[] buffer;
+		return 1;
+
+	} else if (xim_deadkey == (unsigned int)~0) { 
 		 //might be composekey then some single key, rather than compose then 2 keys..
-		xim_deadkey=composekey(key,0);
+		xim_deadkey = composekey(key,0);
+
 		if (xim_deadkey) {
 			 //modify buffer
-			if (!buffer) buffer=new char[len+1];
-			len=utf8encode(xim_deadkey,buffer);
+			if (!buffer) buffer = new char[len+1];
+			len = utf8encode(xim_deadkey,buffer);
 			buffer[len]='\0';
-			key=xim_deadkey;
-			xim_deadkey=0;
+			key = xim_deadkey;
+			xim_deadkey = 0;
 		} else {
-			xim_deadkey=key;
+			xim_deadkey = key;
 			delete[] buffer;
 			return 1; //no final output yet
 		}
+
 	} else if (xim_deadkey) {
 		 //combine current key with xim_deadkey
-		key=composekey(xim_deadkey,key);
-		xim_deadkey=0;
+		key = composekey(xim_deadkey,key);
+		xim_deadkey = 0;
 	}
 
 	return 0;
 }
 
 
-//! Converts an Xlib keysym to a Laxkit key value.
-/*! This is called when deciphering key input from X via Xutf8LookupString(), when it returns 
- * a keysym but no buffer data.
- * It is then assumed that the keysym corresponds to some control or function key.
+/*! Converts an Xlib keysym to a Laxkit key value. This value is usually Unicode, but with
+ * some extras corresponding to special keyboard control keys or legacy X11 keysyms.
+ *
+ * This is called when deciphering key input from X via XLookupString() or Xutf8LookupString(),
+ * when it returns a keysym but no buffer data. It is then assumed that the keysym 
+ * corresponds to some control or function key.
  *
  * If the keysym corresponds directly to a UCS value, then that value is returned. This happens
- * when the keysym>0x01000000 and less than 0x02000000. The UCS value is then keysym&0x00ffffff.
+ * when the keysym>0x01000000 and less than 0x01110000. The UCS value is then keysym&0x00ffffff.
  *
  * If a keypad key is detected, then state is modified to have KeypadMask set.
+ * 
+ * Shift, Control, Alt, Meta/Super keys have left and right versions in X, but they are mapped only
+ * to a single Shift, control, alt, meta, BUT state gets or'd with RightKeyMask for the right handed ones.
  *
  * Look in laxdefs.h for a number of key codes corresponding to various "extra" keys found
  * on some keyboards.
@@ -3835,22 +3913,22 @@ unsigned int filterkeysym(KeySym keysym,unsigned int *state)
 	if (keysym>=XK_KP_0 && keysym<=XK_KP_9) return '0'+(keysym-XK_KP_0); //keypad numbers
 
 	 //return UCS if there already
-	if ((keysym&0xff000000) == 0x01000000) return keysym&0xffffff;
+	if (keysym >= 0x01000100 && keysym <= 0x0110ffff) return keysym&0xffffff;
 
 	 //map control keys
 	switch(keysym) {
-		case 0:					uch=0;           break;
-		case XK_Shift_L:			
-		case XK_Shift_R:		uch=LAX_Shift;   break;
-		case XK_Control_L:		
-		case XK_Control_R:		uch=LAX_Control; break;
-		case XK_Escape: 		uch=LAX_Esc;     break;
-		case XK_Menu:           uch=LAX_Menu;    break; // The menu button isn't like alt/cntl/shift/meta
-		case XK_Pause:			uch=LAX_Pause;   break;
-		case XK_Alt_L:
-		case XK_Alt_R:			uch=LAX_Alt;     break;
-		case XK_Super_L:
-		case XK_Super_R:		uch=LAX_Meta;    break; // that extra mod key
+		case 0:					uch = 0;           break;
+		case XK_Shift_R:		*state |= RightKeyMask;
+		case XK_Shift_L:		uch = LAX_Shift;   break;	
+		case XK_Control_R:		*state |= RightKeyMask;
+		case XK_Control_L:		uch = LAX_Control; break;
+		case XK_Escape: 		uch = LAX_Esc;     break;
+		case XK_Menu:           uch = LAX_Menu;   break; // The menu button isn't like alt/cntl/shift/meta
+		case XK_Pause:			uch = LAX_Pause; break;
+		case XK_Alt_R:			*state |= RightKeyMask;
+		case XK_Alt_L:          uch = LAX_Alt;   break;
+		case XK_Super_R:		*state |= RightKeyMask;
+		case XK_Super_L:        uch = LAX_Meta;  break; // that extra mod key
 		case XK_KP_Delete:
 		case XK_Delete: 		uch=LAX_Del;     break;
 		case XK_BackSpace:		uch=LAX_Bksp;    break;
@@ -3905,7 +3983,15 @@ unsigned int filterkeysym(KeySym keysym,unsigned int *state)
 		//case XK_KP_Separator:   uch=???;         break;
 		//case XK_KP_Begin:       uch=???;         break;
 	}
-	if (!uch && keysym>=32) return (unsigned int) keysym;
+
+	//note any remaining keysyms MIGHT collide with unicode values when they are legacy X11 keysyms in range 0x0100 -0x20ff,
+	//so these get or'd with LAX_SPKEY==0x20000000
+	if (!uch && keysym >= 0x100 && keysym < 0x01000100) {
+		uch = (unsigned int) keysym | LAX_SPKEY;
+		//cerr << " *** legacy x11 keysym "<<keysym<<"! please let developers know" << endl;
+	}
+
+	if (!uch && keysym>=32) return (unsigned int) keysym; //hopefully this is just latin-1 chars
 	return uch;
 }
 
