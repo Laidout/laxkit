@@ -13,6 +13,8 @@ window icon management, need to be able to set for any window on the fly
 
 -----------------------------------------------------------------------------
 
+implement ibus support for better input methods
+
 further implementation needed:
     ellipseinterface.h
     measureinterface.h
