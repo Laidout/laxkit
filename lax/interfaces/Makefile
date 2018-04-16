@@ -59,6 +59,7 @@ objs= \
 	texttopath.o \
 	groupdata.o \
 	perspectiveinterface.o \
+	stackpartinterface.o \
 
 #	linesinterface.o \
 #	measureinterface.o \
