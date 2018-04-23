@@ -221,11 +221,11 @@ Laxkit::MenuInfo *BoilerPlateInterface::ContextMenu(int x,int y,int deviceid, La
 
 /*! Intercept events if necessary, such as from the ContextMenu().
  */
-int BoilerPlateInterface::Event(const Laxkit::EventData *data, const char *mes)
+int BoilerPlateInterface::Event(const Laxkit::EventData *evdata, const char *mes)
 {
 	if (!strcmp(mes,"menuevent")) {
 		 //these are sent by the ContextMenu popup
-		const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(e_data);
+		const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(evdata);
 		int i	= s->info2; //id of menu item
 		int info = s->info4; //info of menu item
 
@@ -274,7 +274,6 @@ int BoilerPlateInterface::Refresh()
 
 
 
-
 	 //draw some text name
 	dp->DrawScreen();
 	dp->LineAttributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
@@ -282,6 +281,11 @@ int BoilerPlateInterface::Refresh()
 	dp->textout((dp->Maxx+dp->Minx)/2,(dp->Maxy+dp->Miny)/2, "Blah!",,-1, LAX_CENTER);
 	dp->drawline(dp->Minx,dp->Miny, dp->Maxx,dp->Maxy);
 	dp->DrawReal();
+
+
+	if (showdecs) {
+		// draw interface decorations on top of interface data
+	}
 
 	return 0;
 }
@@ -347,7 +351,9 @@ int BoilerPlateInterface::LBDown(int x,int y,unsigned int state,int count, const
 
 	 // Check for clicking down on controls for existing data
 	if (data && data->pointin(screentoreal(x,y))) {
-		buttondown.down(d->id,LEFTBUTTON,x,y, some_hover_value);
+		int action1 = something;
+		int action2 = something_else;
+		buttondown.down(d->id,LEFTBUTTON,x,y, action1, action2);
 
 		if ((state&LAX_STATE_MASK)==0) {
 			//plain click in object. do something!
@@ -450,6 +456,12 @@ int BoilerPlateInterface::MouseMove(int x,int y,unsigned int state, const Laxkit
 	}
 
 	//else deal with mouse dragging...
+
+	int oldx, oldy;
+    int action1, action2;
+    buttondown.move(d->id,x,y, &oldx,&oldy);
+    buttondown.getextrainfo(d->id,LEFTBUTTON, &action1, &action2);
+
 	
 
 	//needtodraw=1;

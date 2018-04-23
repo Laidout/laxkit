@@ -83,6 +83,7 @@ class BoilerPlateInterface : public anInterface
 	virtual int InterfaceOn();
 	virtual int InterfaceOff();
 	virtual void Clear(SomeData *d);
+	virtual int DrawData(anObject *ndata,anObject *a1,anObject *a2,int info);
 	virtual int Refresh();
 	virtual int MouseMove(int x,int y,unsigned int state, const Laxkit::LaxMouse *d);
 	virtual int LBDown(int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d);
