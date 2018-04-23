@@ -401,6 +401,9 @@ int IOBuffer::SaveStrToFile(const char *file_name)
  * Closes f if it exists.
  *
  * Read at most maxchars. If maxchars <0, then read the whole thing.
+ *
+ * End result is if you read in the whole file from disk to a string,
+ * then called OpenString(on_that_string).
  */
 int IOBuffer::GetStrFromFile(const char *file_name, int maxchars)
 {
@@ -410,10 +413,14 @@ int IOBuffer::GetStrFromFile(const char *file_name, int maxchars)
 	else makestr(filename, file_name);
 
 	what = WHAT_String;
+	curpos = 0;
 
 	delete[] astr;
 	astr = LaxFiles::read_in_whole_file(file_name, NULL, maxchars);
-	if (astr) return 0;
+	if (astr) {
+		slen = strlen(astr);
+		return 0;
+	}
 	return 1;
 }
 
