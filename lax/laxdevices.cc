@@ -1667,6 +1667,12 @@ int XInput2Keyboard::eventFilter(EventData **events_ret,XEvent *xev,anXWindow *w
 
 		DBG cerr <<"key down: device "<<dev->deviceid<<",  source "<<dev->sourceid<<", detail:"<<dev->detail
 		DBG		 <<" fake:"<<key <<endl;
+		DBG 
+		DBG cerr <<" XLookupKeysyms for "<<kev.xkey.keycode<<": "
+		DBG 	 <<     XLookupKeysym(&kev.xkey, 0)
+		DBG		 <<' '<<XLookupKeysym(&kev.xkey, 1)
+		DBG 	 <<' '<<XLookupKeysym(&kev.xkey, 2)
+		DBG 	 <<' '<<XLookupKeysym(&kev.xkey, 3)<<' '<<endl;
 
 		KeyEventData *k = new KeyEventData(LAX_onKeyDown);
 		k->propagate = 1;
