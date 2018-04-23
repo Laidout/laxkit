@@ -40,7 +40,7 @@ namespace LaxInterfaces {
 //	virtual flatpoint transformInverse(flatpoint p)       = 0;
 //};
 
-class PerspectiveTransform
+class PerspectiveTransform : public Laxkit::anObject
 {
 	double *getNormalizationCoefficients(double *src, double *dst, bool isInverse);
 
@@ -94,7 +94,7 @@ class PerspectiveInterface : public anInterface
 	bool show_grid;
 	bool continuous_update;
 
-	PerspectiveTransform transform;
+	PerspectiveTransform *transform;
 
 	int hover;
 	int needtoremap;

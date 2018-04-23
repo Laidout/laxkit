@@ -729,6 +729,8 @@ PerspectiveInterface::PerspectiveInterface(anInterface *nowner, int nid, Display
 	persped      = NULL;
 
 	sc           = NULL; //shortcut list, define as needed in GetShortcuts()
+
+	transform    = new PerspectiveTransform();
 }
 
 PerspectiveInterface::~PerspectiveInterface()
@@ -738,6 +740,7 @@ PerspectiveInterface::~PerspectiveInterface()
 	if (sc) sc->dec_count();
 	if (initial) initial->dec_count();
 	if (persped) persped->dec_count();
+	if (transform) transform->dec_count();
 }
 
 const char *PerspectiveInterface::whatdatatype()
@@ -777,7 +780,7 @@ int PerspectiveInterface::SetupPreviewImages()
 
 	if (!persped) persped = create_new_image(200,200);
 
-	transform.MapImage(data, initial, persped, 1);
+	transform->MapImage(data, initial, persped, 1);
 	return 0;
 }
 
@@ -787,7 +790,7 @@ int PerspectiveInterface::UseThisObject(ObjectContext *oc)
 	if (!oc) return 0;
 
 	//SomeData *ndata=dynamic_cast<PerspectiveData *>(oc->obj);
-	SomeData *ndata=oc->obj;
+	SomeData *ndata = oc->obj;
 	if (!ndata) return 0;
 
 	if (data && data!=ndata) {
@@ -796,33 +799,33 @@ int PerspectiveInterface::UseThisObject(ObjectContext *oc)
 	if (dataoc) delete dataoc;
 	dataoc = oc->duplicate();
 
-	if (data!=ndata) {
-		data=ndata;
+	if (data != ndata) {
+		data = ndata;
 		data->inc_count();
 	}
 
 	 //1,2,3,4  ->  ll,lr,ul,ur
 	//flatpoint v(data->boxwidth()*.1, data->boxheight()*.1); //offset from actual corner a little
-	//transform.from_ll = transform.to_ll = data->transformPoint(flatpoint(data->minx,data->miny)+v);
-	//transform.from_lr = transform.to_lr = data->transformPoint(flatpoint(data->maxx,data->miny)+flatpoint(-v.x,v.y));
-	//transform.from_ul = transform.to_ul = data->transformPoint(flatpoint(data->minx,data->maxy)+flatpoint(v.x,-v.y));
-	//transform.from_ur = transform.to_ur = data->transformPoint(flatpoint(data->maxx,data->maxy)+flatpoint(-v.x,-v.y));
+	//transform->from_ll = transform->to_ll = data->transformPoint(flatpoint(data->minx,data->miny)+v);
+	//transform->from_lr = transform->to_lr = data->transformPoint(flatpoint(data->maxx,data->miny)+flatpoint(-v.x,v.y));
+	//transform->from_ul = transform->to_ul = data->transformPoint(flatpoint(data->minx,data->maxy)+flatpoint(v.x,-v.y));
+	//transform->from_ur = transform->to_ur = data->transformPoint(flatpoint(data->maxx,data->maxy)+flatpoint(-v.x,-v.y));
 	//----
-	transform.from_ll = transform.to_ll = data->transformPoint(flatpoint(data->minx,data->miny)); //obj parent coords
-	transform.from_lr = transform.to_lr = data->transformPoint(flatpoint(data->maxx,data->miny));
-	transform.from_ul = transform.to_ul = data->transformPoint(flatpoint(data->minx,data->maxy));
-	transform.from_ur = transform.to_ur = data->transformPoint(flatpoint(data->maxx,data->maxy));
+	transform->from_ll = transform->to_ll = data->transformPoint(flatpoint(data->minx,data->miny)); //obj parent coords
+	transform->from_lr = transform->to_lr = data->transformPoint(flatpoint(data->maxx,data->miny));
+	transform->from_ul = transform->to_ul = data->transformPoint(flatpoint(data->minx,data->maxy));
+	transform->from_ur = transform->to_ur = data->transformPoint(flatpoint(data->maxx,data->maxy));
 	//----
-	//transform.from_ll = transform.to_ll = flatpoint(data->minx,data->miny); //obj coords
-	//transform.from_lr = transform.to_lr = flatpoint(data->maxx,data->miny);
-	//transform.from_ul = transform.to_ul = flatpoint(data->minx,data->maxy);
-	//transform.from_ur = transform.to_ur = flatpoint(data->maxx,data->maxy);
+	//transform->from_ll = transform->to_ll = flatpoint(data->minx,data->miny); //obj coords
+	//transform->from_lr = transform->to_lr = flatpoint(data->maxx,data->miny);
+	//transform->from_ul = transform->to_ul = flatpoint(data->minx,data->maxy);
+	//transform->from_ur = transform->to_ur = flatpoint(data->maxx,data->maxy);
 	//----
 	//Affine a=ndata->GetTransformToContext(false, 0);
-	//transform.from_ll = transform.to_ll = a.transformPoint(flatpoint(data->minx,data->miny));
-	//transform.from_lr = transform.to_lr = a.transformPoint(flatpoint(data->maxx,data->miny));
-	//transform.from_ul = transform.to_ul = a.transformPoint(flatpoint(data->minx,data->maxy));
-	//transform.from_ur = transform.to_ur = a.transformPoint(flatpoint(data->maxx,data->maxy));
+	//transform->from_ll = transform->to_ll = a.transformPoint(flatpoint(data->minx,data->miny));
+	//transform->from_lr = transform->to_lr = a.transformPoint(flatpoint(data->maxx,data->miny));
+	//transform->from_ul = transform->to_ul = a.transformPoint(flatpoint(data->minx,data->maxy));
+	//transform->from_ur = transform->to_ur = a.transformPoint(flatpoint(data->maxx,data->maxy));
 
 	ComputeTransform();
 	SetupPreviewImages();
@@ -841,26 +844,26 @@ int PerspectiveInterface::UseThisObject(ObjectContext *oc)
  */
 flatpoint PerspectiveInterface::ComputePoint(double x,double y)
 {
-	return transform.transform(x,y);
+	return transform->transform(x,y);
 }
 
 //void PerspectiveInterface::SetPoints(flatpoint nfrom_ll, flatpoint nfrom_lr, flatpoint nfrom_ul, flatpoint nfrom_ur,
 //									 flatpoint nto_ll,   flatpoint nto_lr,   flatpoint nto_ul,   flatpoint nto_ur)
 //{
-//	transform.to_ll=nto_ll;
-//	transform.to_lr=nto_lr;
-//	transform.to_ul=nto_ul;
-//	transform.to_ur=nto_ur;
+//	transform->to_ll=nto_ll;
+//	transform->to_lr=nto_lr;
+//	transform->to_ul=nto_ul;
+//	transform->to_ur=nto_ur;
 //
-//	transform.from_ll=nfrom_ll;
-//	transform.from_lr=nfrom_lr;
-//	transform.from_ul=nfrom_ul;
-//	transform.from_ur=nfrom_ur;
+//	transform->from_ll=nfrom_ll;
+//	transform->from_lr=nfrom_lr;
+//	transform->from_ul=nfrom_ul;
+//	transform->from_ur=nfrom_ur;
 //}
 
 void PerspectiveInterface::ResetTransform()
 {
-	transform.ResetTransform();
+	transform->ResetTransform();
 
 	needtoremap=0;
 	needtodraw=1;
@@ -868,26 +871,21 @@ void PerspectiveInterface::ResetTransform()
 
 void PerspectiveInterface::ComputeTransform()
 {
-	transform.ComputeTransform();
+	transform->ComputeTransform();
 	needtoremap=0;
 }
 
-/*! Normally this will accept some common things like changes to line styles, like a current color.
- */
 int PerspectiveInterface::UseThis(anObject *nobj, unsigned int mask)
 {
-//	if (!nobj) return 1;
-//	LineStyle *ls=dynamic_cast<LineStyle *>(nobj);
-//	if (ls!=NULL) {
-//		if (mask&GCForeground) {
-//			linecolor=ls->color;
-//		}
-////		if (mask&GCLineWidth) {
-////			linecolor.width=ls->width;
-////		}
-//		needtodraw=1;
-//		return 1;
-//	}
+	if (!nobj) return 1;
+
+	if (dynamic_cast<PerspectiveTransform*>(nobj)) {
+		if (transform) transform->dec_count();
+		transform = dynamic_cast<PerspectiveTransform*>(nobj);
+		needtodraw=1;
+		return 0;
+	}
+
 	return 0;
 }
 
@@ -1002,7 +1000,7 @@ int PerspectiveInterface::Refresh()
 
 	if (needtoremap) {
 		ComputeTransform();
-		if (buttondown.any() && continuous_update && initial) transform.MapImage(data, initial, persped, 1);
+		if (buttondown.any() && continuous_update && initial) transform->MapImage(data, initial, persped, 1);
 	}
 
 
@@ -1023,10 +1021,10 @@ int PerspectiveInterface::Refresh()
 	flatpoint from_ur(data->transformPoint(flatpoint(data->maxx, data->maxy)));
 
 	 //computed transformed corners (not necessarily the same as the control points!)
-	flatpoint to_ll = transform.transform(from_ll);
-	flatpoint to_lr = transform.transform(from_lr);
-	flatpoint to_ul = transform.transform(from_ul);
-	flatpoint to_ur = transform.transform(from_ur);
+	flatpoint to_ll = transform->transform(from_ll);
+	flatpoint to_lr = transform->transform(from_lr);
+	flatpoint to_ul = transform->transform(from_ul);
+	flatpoint to_ur = transform->transform(from_ur);
 
 	flatpoint l = from_ul - from_ll; //points bottom from fromp
 	flatpoint r = from_ur - from_lr;
@@ -1050,12 +1048,12 @@ int PerspectiveInterface::Refresh()
 	if (show_grid) {
 		flatpoint p1,p2;
 		for (int c=1; c<lines; c++) {
-			p1=transform.transform(from_ll+c/(float)(lines)*l);
-			p2=transform.transform(from_lr+c/(float)(lines)*r);
+			p1=transform->transform(from_ll+c/(float)(lines)*l);
+			p2=transform->transform(from_lr+c/(float)(lines)*r);
 			dp->drawline(p1,p2); //horiz line
 
-			p1=transform.transform(from_ll+c/(float)(lines)*b);
-			p2=transform.transform(from_ul+c/(float)(lines)*t);
+			p1=transform->transform(from_ll+c/(float)(lines)*b);
+			p2=transform->transform(from_ul+c/(float)(lines)*t);
 			dp->drawline(p1,p2); //vert line
 		}
 	}
@@ -1072,34 +1070,34 @@ int PerspectiveInterface::Refresh()
 
 	 //_to_ control points , draw slightly thicker to stand out more
 	dp->LineWidthScreen(2);
-	dp->drawpoint(transform.to_ll, 10, 0); //actual to points
-	dp->drawpoint(transform.to_lr, 10, 0);
-	dp->drawpoint(transform.to_ul, 10, 0);
-	dp->drawpoint(transform.to_ur, 10, 0);
+	dp->drawpoint(transform->to_ll, 10, 0); //actual to points
+	dp->drawpoint(transform->to_lr, 10, 0);
+	dp->drawpoint(transform->to_ul, 10, 0);
+	dp->drawpoint(transform->to_ur, 10, 0);
 
 	 //show hovered point
 	dp->NewFG(.25,.25,.25);
 	dp->LineWidthScreen(1);
-	dp->drawpoint(transform.to_ll, 10, hover==PERSP_ll ? 2 : 0);
-	dp->drawpoint(transform.to_lr, 10, hover==PERSP_lr ? 2 : 0);
-	dp->drawpoint(transform.to_ul, 10, hover==PERSP_ul ? 2 : 0);
-	dp->drawpoint(transform.to_ur, 10, hover==PERSP_ur ? 2 : 0);
+	dp->drawpoint(transform->to_ll, 10, hover==PERSP_ll ? 2 : 0);
+	dp->drawpoint(transform->to_lr, 10, hover==PERSP_lr ? 2 : 0);
+	dp->drawpoint(transform->to_ul, 10, hover==PERSP_ul ? 2 : 0);
+	dp->drawpoint(transform->to_ur, 10, hover==PERSP_ur ? 2 : 0);
 
 
-	//DBG:
-	DBG dp->NewFG(0.,0.,1.);
-	DBG dp->drawpoint(mousep, 7, 0);
-
-	DBG dp->NewFG(1.,0.,0.);
-	DBG initialp = transform.transformInverse(mousep); //transformed -> original
-	DBG dp->drawpoint(initialp, 5, 1);
-
-	DBG dp->NewFG(0.,1.,0.);
-	DBG dp->drawpoint(transform.transform(mousep), 5, 1); //original -> transformed
-
-	DBG char str[200];
-	DBG sprintf(str, "mouse: %f,%f, invtrans: %f,%f", mousep.x,mousep.y, initialp.x,initialp.y);
-	DBG PostMessage(str);
+	//DBG: show some transformed points
+//	DBG dp->NewFG(0.,0.,1.);
+//	DBG dp->drawpoint(mousep, 7, 0);
+//
+//	DBG dp->NewFG(1.,0.,0.);
+//	DBG initialp = transform->transformInverse(mousep); //transformed -> original
+//	DBG dp->drawpoint(initialp, 5, 1);
+//
+//	DBG dp->NewFG(0.,1.,0.);
+//	DBG dp->drawpoint(transform->transform(mousep), 5, 1); //original -> transformed
+//
+//	DBG char str[200];
+//	DBG sprintf(str, "mouse: %f,%f, invtrans: %f,%f", mousep.x,mousep.y, initialp.x,initialp.y);
+//	DBG PostMessage(str);
 
 
 	dp->PopAxes();
@@ -1139,10 +1137,10 @@ int PerspectiveInterface::scan(double x, double y)
 
 	flatpoint p(x,y);
 	flatpoint pts[4] = {
-		realtoscreen(transform.to_ll), //remember to_ll, etc should be in obj parent space
-		realtoscreen(transform.to_lr),
-		realtoscreen(transform.to_ur),
-		realtoscreen(transform.to_ul)
+		realtoscreen(transform->to_ll), //remember to_ll, etc should be in obj parent space
+		realtoscreen(transform->to_lr),
+		realtoscreen(transform->to_ur),
+		realtoscreen(transform->to_ul)
 	};
 
 	if (pts[0].distanceTo(p)<grab) return PERSP_ll;
@@ -1189,7 +1187,7 @@ int PerspectiveInterface::LBUp(int x,int y,unsigned int state, const Laxkit::Lax
 {
 	int action=0;
 	buttondown.up(d->id,LEFTBUTTON, &action);
-	if (action != PERSP_None && !continuous_update && initial) transform.MapImage(data, initial, persped, 1);
+	if (action != PERSP_None && !continuous_update && initial) transform->MapImage(data, initial, persped, 1);
 	return 0; //return 0 for absorbing event, or 1 for ignoring
 }
 
@@ -1200,6 +1198,8 @@ int PerspectiveInterface::MouseMove(int x,int y,unsigned int state, const Laxkit
 	DBG 	mousep = screentoreal(x,y); //should be obj parent coords
 	DBG 	needtodraw=1;
 	DBG }
+
+	DBG cerr <<" PerspectiveInterface::MouseMove "<<x<<','<<y<<endl;
 
 
 	if (!buttondown.any()) {
@@ -1223,10 +1223,10 @@ int PerspectiveInterface::MouseMove(int x,int y,unsigned int state, const Laxkit
 
 	flatpoint dv = screentoreal(x,y) - screentoreal(lx,ly);
 
-	if (h == PERSP_ll || h == PERSP_Move) transform.to_ll += dv;
-	if (h == PERSP_lr || h == PERSP_Move) transform.to_lr += dv;
-	if (h == PERSP_ul || h == PERSP_Move) transform.to_ul += dv;
-	if (h == PERSP_ur || h == PERSP_Move) transform.to_ur += dv;
+	if (h == PERSP_ll || h == PERSP_Move) transform->to_ll += dv;
+	if (h == PERSP_lr || h == PERSP_Move) transform->to_lr += dv;
+	if (h == PERSP_ul || h == PERSP_Move) transform->to_ul += dv;
+	if (h == PERSP_ur || h == PERSP_Move) transform->to_ur += dv;
 
 	needtoremap=1;
 
