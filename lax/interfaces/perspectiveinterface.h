@@ -93,6 +93,7 @@ class PerspectiveInterface : public anInterface
 	
 	bool show_grid;
 	bool continuous_update;
+	bool dont_update_transform;
 
 	PerspectiveTransform *transform;
 
