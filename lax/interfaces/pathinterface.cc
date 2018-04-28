@@ -7224,8 +7224,13 @@ int PathInterface::PerformAction(int action)
 
 		//update the viewport color box
 		ScreenColor *col;
-		if (colortofill) col = &data->fillstyle->color;
-		else col = &data->linestyle->color;
+		if (colortofill) {
+			if (!data->fillstyle) {
+				ScreenColor col(1.,1.,1.,1.);
+				data->fill(&col);
+			}
+			col = &data->fillstyle->color;
+		} else col = &data->linestyle->color;
 
 		SimpleColorEventData *e=new SimpleColorEventData( 65535, col->red, col->green, col->blue, col->alpha, 0);
 		app->SendMessage(e, curwindow->win_parent->object_id, "make curcolor", object_id);
