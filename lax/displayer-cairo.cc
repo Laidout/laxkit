@@ -242,6 +242,8 @@ int DisplayerCairo::CurrentResized(aDrawable *buffer, int nwidth,int nheight)
 		DBG cerr <<"cairo_xlib_surface_set_size("<<nwidth<<nheight<<")"<<endl;
 		if (surface) cairo_xlib_surface_set_size(surface, nwidth,nheight);
 		//cairo_xlib_surface_set_drawable(surface,w, nwidth,nheight);
+		Maxx = nwidth;
+		Maxy = nheight;
 		return 0;
 	}
 
