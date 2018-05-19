@@ -242,6 +242,7 @@ void MessageBar::Refresh()
 		dp->textout(ox+indents[c],oy+c*height, thetext[c],l, LAX_LEFT|LAX_BASELINE);
 	}
 
+	if (win_style & ANXWIN_DOUBLEBUFFER) SwapBuffers();
 	needtodraw=0;
 	return;
 }
