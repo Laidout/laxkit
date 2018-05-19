@@ -662,9 +662,10 @@ void anXWindow::SetupBackBuffer()
 #endif //_LAX_PLATFORM_XLIB
 }
 
-//! Swap buffers. This should be called from Refresh() if VIEWPORT_BACK_BUFFER is set in win_style.
-/*! Default is to call <tt>XdbeSwapBuffers(app->dpy,&swapinfo,1)</tt>
+/*! Swap buffers. This should be called from Refresh() if ANXWIN_BACKBUFFER is set in win_style.
+ * Default is to call <tt>XdbeSwapBuffers(app->dpy,&swapinfo,1)</tt>
  * with <tt>swapinfo.swap_window=window</tt> and <tt>swapinfo.swap_action=XdbeBackground</tt>.
+ * If xlib_backbuffer==0, then nothing is done.
  */
 void anXWindow::SwapBuffers()
 {
