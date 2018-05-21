@@ -725,7 +725,7 @@ int FileDialog::newBookmark(const char *pth, const char *name)
 	 //check marks for duplicates
 	if (att) {
 		for (int c=0; c<att->attributes.n; c++) {
-			if (!strcmp(pth,att->attributes.e[c]->name)) return -1;
+			if (!strcmp(pth,att->attributes.e[c]->value)) return -1;
 		}
 	}
 
@@ -803,20 +803,14 @@ MenuInfo *FileDialog::BuildBookmarks()
 
 	Attribute *att=app->AppResource("Bookmarks");
 	if (att) {
-		int c2;
 		for (int c=0; c<att->attributes.n; c++) {
-			for (c2=0; c2<bookmarkmenu->menuitems.n; c2++) {
-				if (!strcmp(bookmarkmenu->menuitems.e[c2]->name, att->attributes.e[c]->name)) break;
-				// *** should really check against actual path, not just name compare
-			}
-			if (c2<att->attributes.n) continue; //skip if already there!
 
 			const char *name =att->attributes.e[c]->name;
 			const char *value=att->attributes.e[c]->value;
-			if (isblank(value)) value=name;
+			if (isblank(value)) continue;
 
 			bookmarkmenu->AddItem(isblank(lax_basename(name)) ? name : lax_basename(name));
-            bookmarkmenu->AddDetail(value,NULL);
+			bookmarkmenu->AddDetail(value,NULL);
 		}
 	}
 
