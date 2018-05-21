@@ -1475,6 +1475,7 @@ Attribute *Attribute::pushSubAtt(const char *nname, const char *nvalue)
 //! Push a full blown, already constructed Attribute onto the attribute stack.
 /*! If where==-1, then push onto the top of the stack.
  * The calling code must not delete the att. It is now the responsibility of *this.
+ * Returns the index of the newly pushed att, or -1 if pushing failed.
  */
 int Attribute::push(Attribute *att,int where)
 { 
@@ -1506,6 +1507,13 @@ int Attribute::pushStr(const char *nname, int where, const char *fmt, ...)
     delete[] message;
     return status;
 
+}
+
+int Attribute::push(const char *nname,const char *nval, const char *ncomment, int where)
+{
+	int i = push(nname, nval, where);
+	attributes.e[i]->Comment(ncomment);
+	return i;
 }
 
 //! Push a simple nname==nval attribute onto this.

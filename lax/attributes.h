@@ -67,6 +67,7 @@ class Attribute {
 	virtual int push(Attribute *att, int where);
 	virtual int push(const char *nname);
 	virtual int pushStr(const char *nname, int where, const char *fmt, ...);
+	virtual int push(const char *nname,const char *nval, const char *ncomment, int where=-1);
 	virtual int push(const char *nname,const char *nval,  int where=-1);
 	virtual int push(const char *nname,long nval,         int where=-1);
 	virtual int push(const char *nname,unsigned long nval,int where=-1);
