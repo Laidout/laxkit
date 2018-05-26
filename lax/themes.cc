@@ -679,6 +679,7 @@ Theme::Theme(const char *nname)
 	default_padx = 5;
 	default_pady = 5;
 	default_bevel = 5;
+	interface_scale = 1; //all sizes should be multiplied with this
 
 	firstclk = 1000/7;
 	dblclk   = 1000/5;

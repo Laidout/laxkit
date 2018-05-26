@@ -178,6 +178,7 @@ class Theme : public anObject, public LaxFiles::DumpUtility
 	double default_padx;
 	double default_pady;
 	double default_bevel;
+	double interface_scale;
 
 	unsigned int firstclk; //how long after first click to wait before idle "clicks", in ms
 	unsigned int dblclk;   //time between clicks that counts as a double click, in ms
