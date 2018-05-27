@@ -43,7 +43,7 @@ class ImageData : public Laxkit::ImageInfo, virtual public SomeData
 
 
 	ImageData(const char *nfilename=NULL, const char *npreview=NULL, 
-			  int maxpx=0, int maxpy=0, char delpreview=0);
+			  int maxpx=0, int maxpy=0, char delpreview=0, int nindex=0);
 	virtual ~ImageData();
 	virtual const char *whattype() { return "ImageData"; }
 	ImageData &operator=(ImageData &i);
@@ -54,7 +54,7 @@ class ImageData : public Laxkit::ImageInfo, virtual public SomeData
 	virtual int SetImage(Laxkit::LaxImage *newimage, Laxkit::LaxImage *newpreview);
 	virtual void SetDescription(const char *ndesc);
 	virtual int UsePreview(const char *npreview, int maxpx=0, int maxpy=0, char del=0);
-	virtual int LoadImage(const char *fname, const char *npreview=NULL, int maxpx=0, int maxpy=0, char del=0,char fit=0);
+	virtual int LoadImage(const char *fname, const char *npreview=NULL, int maxpx=0, int maxpy=0, char del=0,char fit=0,int index=0);
 	virtual const char *Filename();
 	
 	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);

@@ -50,6 +50,7 @@ ImageInfo::ImageInfo()
 	filename=previewfile=title=description=NULL;
 	previewflags=0;
 	next=NULL;
+	index = 0;
 }
 
 ImageInfo::ImageInfo(const char *f,const char *p,const char *t,const char *d,int pf)
@@ -60,6 +61,7 @@ ImageInfo::ImageInfo(const char *f,const char *p,const char *t,const char *d,int
 	description=newstr(d);
 	previewflags=pf;
 	next=NULL;
+	index = 0;
 }
 
 /*! Delete the strings and next.
@@ -83,6 +85,7 @@ ImageInfo &ImageInfo::operator=(ImageInfo &f)
 	makestr(title,f.title);
 	previewflags=f.previewflags;
 	mask=f.mask;
+	index = f.index;
 	return f;
 }
 

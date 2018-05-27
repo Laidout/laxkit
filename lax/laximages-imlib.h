@@ -91,7 +91,7 @@ class ImlibLoader : public ImageLoader
 
 	virtual bool CanLoadFile(const char *file);
 	virtual bool CanLoadFormat(const char *format); 
-	virtual int PingFile(const char *file, int *width, int *height, long *filesize);
+	virtual int PingFile(const char *file, int *width, int *height, long *filesize, int *subfiles);
 	virtual int LoadToMemory(LaxImage *img);
 
 	 //return a LaxImage in target_format.
@@ -101,7 +101,8 @@ class ImlibLoader : public ImageLoader
 								 int required_state, //any of metrics, or image data, or preview data
 								 int target_format,
 								 int *actual_format,
-								 bool ping_only);
+								 bool ping_only,
+								 int index);
 };
 
 

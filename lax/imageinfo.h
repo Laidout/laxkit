@@ -38,6 +38,7 @@ class ImageInfo : virtual public anObject, virtual public Tagged
 {
  public:
 	char *filename;
+	int index;
 	char *previewfile;
 	char *title;
 	char *description;

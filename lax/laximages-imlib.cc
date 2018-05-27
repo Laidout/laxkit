@@ -609,7 +609,7 @@ bool ImlibLoader::CanLoadFormat(const char *format)
  *
  * filesize returns size in bytes.
  */
-int ImlibLoader::PingFile(const char *file, int *width, int *height, long *filesize)
+int ImlibLoader::PingFile(const char *file, int *width, int *height, long *filesize, int *subfiles)
 {
 	Imlib_Image img = imlib_load_image(file);
 	if (!img) return 1;
@@ -625,6 +625,8 @@ int ImlibLoader::PingFile(const char *file, int *width, int *height, long *files
 	if (filesize) {
 		*filesize = LaxFiles::file_size(file, 1, NULL);
 	}
+
+	if (subfiles) *subfiles = 1;
 
 	imlib_free_image();
 	return 0;
@@ -698,7 +700,8 @@ LaxImage *ImlibLoader::load_image(const char *filename,
 								 int required_state, //any of metrics, or image data, or preview data
 								 int target_format,
 								 int *actual_format,
-								 bool ping_only)
+								 bool ping_only,
+								 int index)
 {
 	LaxImlibImage *iimg = dynamic_cast<LaxImlibImage*>(load_imlib_image_with_preview(filename, previewfile, maxx,maxy, previewimage_ret));
 	if (!iimg) return NULL;

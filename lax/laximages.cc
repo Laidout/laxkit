@@ -263,6 +263,7 @@ LaxImage::LaxImage(const char *fname)
 	importer_data = NULL;
 
 	filename=newstr(fname);
+	index = 1; //for things like multipage rasterized like pdf, or gif frames
 }
 
 /*! If *** delpreview and previewfile, then unlink(previewfile). Note that this is hazardous,
@@ -412,7 +413,6 @@ GeneratePreviewFunc generate_preview_image = NULL;
  * gtk has module image loaders in lib directory. these are activated on call only.
  *
  * implement: 
- *   imlib loader
  *   graphicsmagick loader
  *   cairo loader
  */
@@ -564,7 +564,8 @@ LaxImage *load_image_with_loaders(const char *file,
 								 int required_state, //!< Or'd combo of LaxImageState
 								 int target_format, //!< LaxImageTypes, for starters. 0 means use default. Non zero is return NULL for can't.
 								 int *actual_format,
-								 bool ping_only) //!< If possible, do not actually load the pixel data, just things like width and height
+								 bool ping_only, //!< If possible, do not actually load the pixel data, just things like width and height
+								 int index)
 {
 	if (!file) return NULL;
 
@@ -585,7 +586,8 @@ LaxImage *load_image_with_loaders(const char *file,
 								 required_state,
 								 target_format,
 								 actual_format,
-								 ping_only);
+								 ping_only,
+								 index);
 		if (image) {
 			if (actual_format) *actual_format = loader->format;
 			DBG cerr <<"load_image_with_loaders() done"<<endl;

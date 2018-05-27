@@ -412,7 +412,7 @@ int laxcairo_generate_preview(const char *original,
 						   int width, int height, int fit)
 {
 
-	LaxImage *img = load_image_with_loaders(original, NULL,0,0,NULL, 0,LAX_IMAGE_CAIRO,NULL, false);
+	LaxImage *img = load_image_with_loaders(original, NULL,0,0,NULL, 0,LAX_IMAGE_CAIRO,NULL, false, 0);
 	LaxCairoImage *cimg = dynamic_cast<LaxCairoImage*>(img);
 
 	cairo_surface_t *image=NULL, *pimage;
@@ -555,7 +555,7 @@ LaxImage *load_cairo_image(const char *filename)
 
 	if (!image) { 
 		 //cairo load failed, try other loaders
-		LaxImage *img = load_image_with_loaders(filename, NULL,0,0,NULL, 0, LAX_IMAGE_CAIRO, NULL, false);
+		LaxImage *img = load_image_with_loaders(filename, NULL,0,0,NULL, 0, LAX_IMAGE_CAIRO, NULL, false, 0);
 		return img;
 	}
 

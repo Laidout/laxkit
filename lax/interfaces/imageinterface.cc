@@ -88,17 +88,19 @@ namespace LaxInterfaces {
  *
  * If npreview, load_image_with_preview() is used, otherwise load_image() is used.
  */
-ImageData::ImageData(const char *nfilename, const char *npreview, int maxpx, int maxpy, char delpreview)
+ImageData::ImageData(const char *nfilename, const char *npreview, int maxpx, int maxpy, char delpreview, int nindex)
 	: ImageInfo(nfilename,npreview,NULL,NULL,0)
 {
 	DBG cerr <<"in ImageData constructor"<<endl;
-	previewflag=(delpreview?0:1);
-	image=NULL;
-	previewimage=NULL;
-	flags|=SOMEDATA_KEEP_1_TO_1;
+
+	index = nindex;
+	previewflag = (delpreview?0:1);
+	image = NULL;
+	previewimage = NULL;
+	flags |= SOMEDATA_KEEP_1_TO_1;
 
 	if (!filename) return;
-	LoadImage(nfilename, npreview, maxpx, maxpy, delpreview,0);
+	LoadImage(nfilename, npreview, maxpx, maxpy, delpreview, 0, nindex);
 }
 
 ImageData::~ImageData()
@@ -127,7 +129,7 @@ SomeData *ImageData::duplicate(SomeData *dup)
 	}
 
 	//newimage->LoadImage(image->filename, previewimage ? previewimage->filename : NULL, 0,0,0,0);
-	newimage->LoadImage(filename, previewfile, 0,0,0,0);
+	newimage->LoadImage(filename, previewfile, 0,0,0,0, index);
 
 	 //somedata elements:
 	dup->setbounds(minx,maxx,miny,maxy);
@@ -144,7 +146,7 @@ ImageData &ImageData::operator=(ImageData &i)
 	maxx=i.maxx;
 	miny=i.miny;
 	maxy=i.maxy;
-	if (i.image) LoadImage(i.image->filename, previewimage ? previewimage->filename : NULL,0,0,0,1);
+	if (i.image) LoadImage(i.image->filename, previewimage ? previewimage->filename : NULL,0,0,0,1, i.index);
 	return i;
 }
 
@@ -263,6 +265,8 @@ LaxFiles::Attribute *ImageData::dump_out_atts(LaxFiles::Attribute *att,int what,
 		if (previewfile && previewflag&1) att->push("previewfile",previewfile);
 	}
 
+	att->push("index",index);
+
 	att->push("width", maxx-minx);
 	att->push("height",maxy-miny);
 
@@ -310,6 +314,8 @@ void ImageData::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *cont
 			fname=value;
 		} else if (!strcmp(name,"previewfile")) {
 			pname=value;
+		} else if (!strcmp(name,"index")) {
+			IntAttribute(value, &index);
 		}
 	}
 
@@ -330,7 +336,7 @@ void ImageData::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *cont
 		if (!isblank(pname)) previewflag|=1;
 		 // load an image with existing preview, do not destroy that preview when
 		 // image is destroyed:
-		if (LoadImage(fname,pname,0,0,0,1)) {
+		if (LoadImage(fname,pname,0,0,0,1, index)) {
 			 // error loading image, so use the above w,h
 			minx=miny=0;
 			maxx=w;
@@ -395,7 +401,7 @@ const char *ImageData::Filename()
  *
  * Pass 1 for del if the preview should be deleted when image is destroyed.
  */
-int ImageData::LoadImage(const char *fname, const char *npreview, int maxpx, int maxpy, char del,char fit)
+int ImageData::LoadImage(const char *fname, const char *npreview, int maxpx, int maxpy, char del,char fit,int index)
 {
 	makestr(filename,fname);
 	makestr(previewfile,npreview);
@@ -407,7 +413,7 @@ int ImageData::LoadImage(const char *fname, const char *npreview, int maxpx, int
 	//if (npreview) t=load_image_with_preview(fname,npreview,maxpx,maxpy, &p);
 	//else t=load_image(fname);
 	//--------
-	t=load_image_with_loaders(fname, npreview,maxpx,maxpy,&p, 0,-1, NULL, true);
+	t = load_image_with_loaders(fname, npreview,maxpx,maxpy,&p, 0,-1, NULL, true, index);
 
 	if (t) {
 		image=t;
@@ -448,7 +454,7 @@ int ImageData::UsePreview(const char *npreview, int maxpx, int maxpy, char del)
 
 	//***should pop out old LaxImage::previewfile, and drop in new, generating if necessary...
 	//***check that this works
-	LoadImage(filename,npreview,maxpx,maxpy,del);
+	LoadImage(filename,npreview,maxpx,maxpy,del, 0);
 
 	return 0;
 }
@@ -598,10 +604,10 @@ int ImageInterface::UseThis(anObject *nobj,unsigned int mask)
 	if (nobj==data) return 1;
 
 	if (data && dynamic_cast<ImageInfo *>(nobj)) {
-		ImageInfo *imageinfo=dynamic_cast<ImageInfo *>(nobj);
+		ImageInfo *imageinfo = dynamic_cast<ImageInfo *>(nobj);
 		data->SetDescription(imageinfo->description);
 		 //load new image if one is provided, and auto fit to old image area
-		data->LoadImage(imageinfo->filename,imageinfo->previewfile, 0,0,0, 1);
+		data->LoadImage(imageinfo->filename,imageinfo->previewfile, 0,0,0, 1, imageinfo->index);
 		return 1;
 
 //	} else if (dynamic_cast<ImageData *>(nobj)) {
