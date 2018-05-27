@@ -37,6 +37,7 @@
 
 
 using namespace Laxkit;
+using namespace LaxFiles;
 
 
 #include <iostream>
@@ -395,10 +396,10 @@ int PerspectiveTransform::SetPoints(flatpoint *nsrcPts, flatpoint *ndstPts)
 
 void PerspectiveTransform::ResetTransform()
 {
-	to_ll=from_ll;
-	to_lr=from_lr;
-	to_ul=from_ul;
-	to_ur=from_ur;
+	to_ll = from_ll;
+	to_lr = from_lr;
+	to_ul = from_ul;
+	to_ur = from_ur;
 
 	coeffs[0]=coeffs[4]=coeffs[8]=1;
 	coeffs[1]=coeffs[2]=coeffs[3]=coeffs[5]=coeffs[6]=coeffs[7]=0;
@@ -696,6 +697,79 @@ int PerspectiveTransform::MapImage(SomeData *obj, LaxImage *initial, LaxImage *p
 	return 0;
 }
 
+void PerspectiveTransform::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
+{
+	Attribute att;
+	dump_out_atts(&att, what, context);
+	att.dump_out(f,indent);
+}
+
+LaxFiles::Attribute *PerspectiveTransform::dump_out_atts(LaxFiles::Attribute *att,int what, LaxFiles::DumpContext *context)
+{
+	if (!att) att = new Attribute();
+	if (what == -1) {
+		att->push("from_ll","(0,0)", "Lower left original");
+		att->push("from_ul","(0,1)", "Upper left original");
+		att->push("from_lr","(1,0)", "Lower right original");
+		att->push("from_ur","(1,1)", "upper right original");
+		att->push("to_ll",  "(0,0)", "Lower left transformed");
+		att->push("to_ul",  "(0,1)", "Upper left transformed");
+		att->push("to_lr",  "(1,0)", "Lower right transformed");
+		att->push("to_ur",  "(1,1)", "upper right transformed");
+		return att;
+	}
+
+	att->pushStr("from_ll", -1, "(%.10g, %.10g)", from_ll.x, from_ll.y);
+	att->pushStr("from_ul", -1, "(%.10g, %.10g)", from_ul.x, from_ul.y);
+	att->pushStr("from_lr", -1, "(%.10g, %.10g)", from_lr.x, from_lr.y);
+	att->pushStr("from_ur", -1, "(%.10g, %.10g)", from_ur.x, from_ur.y);
+	att->pushStr("to_ll", -1, "(%.10g, %.10g)", to_ll.x, to_ll.y);
+	att->pushStr("to_ul", -1, "(%.10g, %.10g)", to_ul.x, to_ul.y);
+	att->pushStr("to_lr", -1, "(%.10g, %.10g)", to_lr.x, to_lr.y);
+	att->pushStr("to_ur", -1, "(%.10g, %.10g)", to_ur.x, to_ur.y);
+
+	return att;
+}
+
+void PerspectiveTransform::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context)
+{
+	char *name,*value;
+
+    for (int c=0; c<att->attributes.n; c++) {
+        name= att->attributes.e[c]->name;
+        value=att->attributes.e[c]->value;
+
+        if (!strcmp(name,"from_ll")) {
+			FlatvectorAttribute(value, &from_ll);
+
+		} else if (!strcmp(name,"from_ul")) {
+			FlatvectorAttribute(value, &from_ul);
+
+		} else if (!strcmp(name,"from_lr")) {
+			FlatvectorAttribute(value, &from_lr);
+
+		} else if (!strcmp(name,"from_ur")) {
+			FlatvectorAttribute(value, &from_ul);
+
+		} else if (!strcmp(name,"to_ll")) {
+			FlatvectorAttribute(value, &to_ll);
+
+		} else if (!strcmp(name,"to_ul")) {
+			FlatvectorAttribute(value, &to_ul);
+
+		} else if (!strcmp(name,"to_lr")) {
+			FlatvectorAttribute(value, &to_lr);
+
+		} else if (!strcmp(name,"to_ur")) {
+			FlatvectorAttribute(value, &to_ur);
+		}
+	}
+
+
+	ComputeTransform();
+
+}
+
 
 //---------------------------------- End Perspective Transform Utils -----------------------------
 
@@ -713,7 +787,7 @@ int PerspectiveTransform::MapImage(SomeData *obj, LaxImage *initial, LaxImage *p
 PerspectiveInterface::PerspectiveInterface(anInterface *nowner, int nid, Displayer *ndp)
   : anInterface(nowner,nid,ndp)
 {
-	interface_flags=0;
+	interface_flags = 0;
 
 	hover        = PERSP_None;
 	showdecs     = 1;
@@ -867,7 +941,21 @@ flatpoint PerspectiveInterface::ComputePoint(double x,double y)
 
 void PerspectiveInterface::ResetTransform()
 {
+	flatpoint from_ll(data->minx, data->miny);
+	flatpoint from_lr(data->maxx, data->miny);
+	flatpoint from_ul(data->minx, data->maxy);
+	flatpoint from_ur(data->maxx, data->maxy);
+
+	if (interface_flags & PERSP_Parent_Space) {
+		from_ll = data->transformPoint(from_ll);
+		from_lr = data->transformPoint(from_lr);
+		from_ul = data->transformPoint(from_ul);
+		from_ur = data->transformPoint(from_ur);
+	}
+
+	transform->SetFrom(from_ll, from_lr, from_ul, from_ur);
 	transform->ResetTransform();
+	Modified();
 
 	needtoremap=0;
 	needtodraw=1;
@@ -940,32 +1028,27 @@ void PerspectiveInterface::ViewportResized()
 
 Laxkit::MenuInfo *PerspectiveInterface::ContextMenu(int x,int y,int deviceid, Laxkit::MenuInfo *menu)
 {
-	return menu;
+	if (!menu) menu = new MenuInfo;
 
-//	if (no menu for x,y) return NULL;
-//
-//	if (!menu) menu=new MenuInfo;
-//	if (!menu->n()) menu->AddSep(_("Some new menu header"));
-//
-//	menu->AddItem(_("Create raw points"), FREEHAND_Raw_Path, LAX_ISTOGGLE|(istyle&FREEHAND_Raw_Path)?LAX_CHECKED:0);
-//	menu->AddItem(_("Some menu item"), SOME_MENU_VALUE);
-//	menu->AddSep(_("Some separator text"));
-//	menu->AddItem(_("Et Cetera"), SOME_OTHER_VALUE);
-//	return menu;
+	if (menu->n()) menu->AddSep(_("Perspective"));
+
+	menu->AddItem(_("Reset"), PERSP_Reset);
+	return menu;
 }
 
 int PerspectiveInterface::Event(const Laxkit::EventData *data, const char *mes)
 {
-//    if (!strcmp(mes,"menuevent")) {
-//        const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(e_data);
-//        int i =s->info2; //id of menu item
-//
-//        if ( i==SOME_MENU_VALUE) {
-//			...
-//		}
-//
-//		return 0;
-//	}
+    if (!strcmp(mes,"menuevent")) {
+        const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(data);
+        int i =s->info2; //id of menu item
+
+        if ( i == PERSP_Reset) {
+			PerformAction(PERSP_Reset);
+			return 0;
+		}
+
+		return 0;
+	}
 
 	return 1; //event not absorbed
 }
@@ -1017,16 +1100,28 @@ int PerspectiveInterface::Refresh()
 
 	//we are in obj coords
 
-	Affine a(*data);
-	a.Invert(); //this nullifies the obj transform
-	dp->PushAndNewTransform(a.m());
-	//so now we are in obj parent coords
+
+	if (interface_flags & PERSP_Parent_Space) {
+		Affine a(*data);
+		a.Invert(); //this nullifies the obj transform
+		dp->PushAndNewTransform(a.m());
+		//so now we are in obj parent coords
+	} else {
+		dp->PushAxes();
+	}
 
 	//original corners
-	flatpoint from_ll(data->transformPoint(flatpoint(data->minx, data->miny)));
-	flatpoint from_lr(data->transformPoint(flatpoint(data->maxx, data->miny)));
-	flatpoint from_ul(data->transformPoint(flatpoint(data->minx, data->maxy)));
-	flatpoint from_ur(data->transformPoint(flatpoint(data->maxx, data->maxy)));
+	flatpoint from_ll(data->minx, data->miny);
+	flatpoint from_lr(data->maxx, data->miny);
+	flatpoint from_ul(data->minx, data->maxy);
+	flatpoint from_ur(data->maxx, data->maxy);
+
+	if (interface_flags & PERSP_Parent_Space) {
+		from_ll = data->transformPoint(from_ll);
+		from_lr = data->transformPoint(from_lr);
+		from_ul = data->transformPoint(from_ul);
+		from_ur = data->transformPoint(from_ur);
+	}
 
 	 //computed transformed corners (not necessarily the same as the control points!)
 	flatpoint to_ll = transform->transform(from_ll);
@@ -1120,6 +1215,8 @@ int PerspectiveInterface::Refresh()
  */
 int PerspectiveInterface::OtherObjectCheck(int x,int y,unsigned int state)
 {
+	if (interface_flags & PERSP_Dont_Change_Object) return 0;
+
 	ObjectContext *oc=NULL;
 	viewport->FindObject(x,y,NULL,NULL,1,&oc);
 	SomeData *obj=NULL;
@@ -1150,6 +1247,18 @@ int PerspectiveInterface::scan(double x, double y)
 		realtoscreen(transform->to_ur),
 		realtoscreen(transform->to_ul)
 	};
+
+	if ((interface_flags & PERSP_Parent_Space) || !data) {
+		pts[0] = realtoscreen(transform->to_ll);
+		pts[1] = realtoscreen(transform->to_lr);
+		pts[2] = realtoscreen(transform->to_ur);
+		pts[3] = realtoscreen(transform->to_ul);
+	} else {
+		pts[0] = realtoscreen(data->transformPoint(transform->to_ll));
+		pts[1] = realtoscreen(data->transformPoint(transform->to_lr));
+		pts[2] = realtoscreen(data->transformPoint(transform->to_ur));
+		pts[3] = realtoscreen(data->transformPoint(transform->to_ul));
+	}
 
 	if (pts[0].distanceTo(p)<grab) return PERSP_ll;
 	if (pts[1].distanceTo(p)<grab) return PERSP_lr;
@@ -1197,8 +1306,18 @@ int PerspectiveInterface::LBUp(int x,int y,unsigned int state, const Laxkit::Lax
 
 	int action=0;
 	buttondown.up(d->id,LEFTBUTTON, &action);
-	if (action != PERSP_None && !continuous_update && initial) transform->MapImage(data, initial, persped, 1);
+	if (action != PERSP_None && !continuous_update && initial) {
+		transform->MapImage(data, initial, persped, 1);
+		Modified();
+	}
 	return 0; //return 0 for absorbing event, or 1 for ignoring
+}
+
+/*! This is called whenever there's been a user induced change in the transform,
+ * like by dragging on screen handles.
+ */
+void PerspectiveInterface::Modified()
+{
 }
 
 
@@ -1231,7 +1350,13 @@ int PerspectiveInterface::MouseMove(int x,int y,unsigned int state, const Laxkit
 	buttondown.move(d->id, x,y, &lx,&ly);
 	buttondown.getextrainfo(d->id, LEFTBUTTON, &h);
 
-	flatpoint dv = screentoreal(x,y) - screentoreal(lx,ly);
+	flatpoint dv;
+	if ((interface_flags & PERSP_Parent_Space) || !data) {
+		dv = screentoreal(x,y) - screentoreal(lx,ly);
+	} else {
+		dv = data->transformPointInverse(screentoreal(x,y)) - data->transformPointInverse(screentoreal(lx,ly));
+	}
+	if (dv.x == 0 && dv.y == 0) return 0;
 
 	if (h == PERSP_ll || h == PERSP_Move) transform->to_ll += dv;
 	if (h == PERSP_lr || h == PERSP_Move) transform->to_lr += dv;
@@ -1240,7 +1365,7 @@ int PerspectiveInterface::MouseMove(int x,int y,unsigned int state, const Laxkit
 
 	needtoremap=1;
 
-	if (continuous_update && dataoc) {
+	if (continuous_update && data) {
 		 //transform a path... do this here for testing purposes.
 		 // *** move somewhere responsible later!!!
 		//ComputeTransform();
@@ -1248,6 +1373,8 @@ int PerspectiveInterface::MouseMove(int x,int y,unsigned int state, const Laxkit
 		//if (data) {
 
 		//}
+		//------------
+		Modified();
 	}
 
 

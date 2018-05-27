@@ -71,6 +71,11 @@ class PerspectiveTransform : public Laxkit::anObject
 	flatpoint transformInverse(flatpoint p);
 
 	virtual int MapImage(SomeData *obj, Laxkit::LaxImage *initial, Laxkit::LaxImage *persped, int direction);
+
+    virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
+    virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what, LaxFiles::DumpContext *context);
+    virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
+
 };
 
 //--------------------------- PerspectiveInterface -------------------------------------
@@ -107,6 +112,8 @@ class PerspectiveInterface : public anInterface
 	virtual int OtherObjectCheck(int x,int y,unsigned int state);
 	virtual int SetupPreviewImages();
 
+	virtual void Modified();
+
   public:
 	enum PerspPoints {
 		PERSP_None=0,
@@ -114,11 +121,19 @@ class PerspectiveInterface : public anInterface
 		PERSP_lr,
 		PERSP_ul,
 		PERSP_ur,
+
 		PERSP_Move,
 		PERSP_Reset,
 		PERSP_Grid,
 		PERSP_Preview,
+
 		PERSP_MAX
+	};
+
+	enum PerspFlags {
+		PERSP_Dont_Change_Object = (1<<0),
+		PERSP_Parent_Space = (1<<1), //otherwise default to object space
+		PERSP_FLAGS_MAX = 1
 	};
 
 	unsigned int interface_flags;
