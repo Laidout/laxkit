@@ -154,7 +154,7 @@ class PatchData : virtual public SomeData
 	virtual void zap(); // zap to bbox
 	virtual int subdivide(int r,double rt,int c,double ct);
 	virtual int subdivide(int xn=2,int yn=2);
-	virtual void grow(int where, double *tr);
+	virtual void grow(int where, const double *tr);
 	virtual void collapse(int rr,int cc);
 	virtual void InterpolateControls(int whichcontrols);
 	virtual int warpPatch(flatpoint center, double r1,double r2, double s,double e);

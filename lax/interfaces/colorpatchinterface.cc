@@ -457,7 +457,7 @@ int ColorPatchData::TransferColors(int oldxsize, int oldysize)
  *
  * This uses PatchData::grow(), then adjusts the color array accordingly.
  */
-void ColorPatchData::grow(int where, double *tr)
+void ColorPatchData::grow(int where, const double *tr)
 {
 	int oldxsize=xsize/3+1,oldysize=ysize/3+1;
 	PatchData::grow(where,tr);

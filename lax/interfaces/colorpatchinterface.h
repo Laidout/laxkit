@@ -52,7 +52,7 @@ class ColorPatchData : public PatchData
 	virtual void SetColor(int pr,int pc,int red=0,int green=0,int blue=0,int alpha=0xffff);
 	virtual void SetColor(int pr,int pc, Laxkit::ScreenColor *col);
 	virtual void collapse(int rr,int cc);
-	virtual void grow(int where, double *tr);
+	virtual void grow(int where, const double *tr);
 	virtual int subdivide(int r,double rt,int c,double ct);
 	virtual int subdivide(int xn=2,int yn=2);
 	virtual int UpdateFromPath();
