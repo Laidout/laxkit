@@ -118,6 +118,7 @@ void MenuButton::makePopup(int mouseid)
 						 | ((menubutton_style&MENUBUTTON_LEFT)      ? TREESEL_LEFT :0)
 						 | ((menubutton_style&MENUBUTTON_RIGHT)     ? TREESEL_RIGHT :0)
 					   );
+	popup->ClearSearch(); //in case there was a previous menuinfo search messing things up
 
 	//popup->pad=pad;
 	popup->pad=app->defaultlaxfont->textheight()/3;
