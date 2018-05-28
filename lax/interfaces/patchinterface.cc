@@ -1778,7 +1778,7 @@ int PatchData::coordsInSubPatch(flatpoint p,int r,int c,double maxd, double *s_r
  * The new edge is the tr(oldedge), and the intervening controls are interpolated.
  * tr is a 6 member affine transform.
  */
-void PatchData::grow(int where, double *tr)
+void PatchData::grow(int where, const double *tr)
 {
 	if (where==0) {
 		 //add to the left
