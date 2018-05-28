@@ -296,6 +296,7 @@ int SliderPopup::send()
 	SimpleMessage *ievent=new SimpleMessage;
 	if (win_style&SLIDER_SEND_STRING) makestr(ievent->str,items->menuitems.e[curitem]->name);
 	ievent->info1=items->menuitems.e[curitem]->id;
+	ievent->info2=items->menuitems.e[curitem]->id;
 	app->SendMessage(ievent,win_owner,win_sendthis,object_id);
 	needtodraw=1;
 	return 1;
@@ -309,11 +310,19 @@ int SliderPopup::Event(const EventData *e,const char *mes)
 	
 	 // So now the button was released, and we must determine the
 	 // ON elements in menuinfo
-	int ncuritem;
+	int ncuritem = -1;
 	const SimpleMessage *m=dynamic_cast<const SimpleMessage*>(e);
 	
-	DBG cerr <<"----SliderPopup got popup event curitem:"<< m->info1<<endl;
-	ncuritem= m->info1; // this is the curitem just before popup destroyed itself
+	DBG cerr <<"----SliderPopup got popup event curitem:"<< m->info1<<", id:"<<m->info2<<endl;
+	//ncuritem= m->info1; // this is the curitem just before popup destroyed itself
+
+	for (int c=0; c<items->menuitems.n; c++) {
+		if (m->info2 == items->menuitems.e[c]->id) {
+			ncuritem = c;
+			break;
+		}
+	}
+
 	if (ncuritem>=0 && ncuritem<items->menuitems.n && !(items->menuitems.e[ncuritem]->state&(LAX_GRAY|LAX_SEPARATOR))) {
 		if (curitem>=0 && items->menuitems.e[curitem]->state&LAX_ON) {
 			items->menuitems.e[curitem]->state=
@@ -340,6 +349,7 @@ void SliderPopup::makePopup(int mouseid)
 	//if (win_style&SLIDER_CENTER) justify|=TREESEL_CENTER; //center is default
 	if (win_style&SLIDER_RIGHT)  justify|=TREESEL_RIGHT;
 
+	items->ClearSearch();
 	popup=new PopupMenu(items->title?items->title:"Item Popup",
 						items->title?items->title:"Item Popup",
 						0,
