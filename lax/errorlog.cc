@@ -28,7 +28,6 @@
 #include <lax/lists.cc>
 
 #include <cstdio>
-#include <cstdarg>
 
 #include <iostream>
 using namespace std;
@@ -153,7 +152,7 @@ int ErrorLog::AddError(int ninfo, int npos,int nline, const char *fmt, ...)
 {
 	va_list arg;
     va_start(arg, fmt);
-    int status = AddMessage(ERROR_Fail, ninfo, npos, nline, fmt, arg);
+    int status = vAddMessage(ERROR_Fail, ninfo, npos, nline, fmt, arg);
     va_end(arg);
 	return status;
 }
@@ -161,6 +160,24 @@ int ErrorLog::AddError(int ninfo, int npos,int nline, const char *fmt, ...)
 int ErrorLog::AddError(const char *desc, int ninfo, int pos,int line)
 {
 	return AddMessage(0,NULL,NULL,desc,ERROR_Fail,ninfo, pos,line);
+}
+
+int ErrorLog::vAddMessage(int severity, int ninfo, int npos,int nline, const char *fmt, va_list arg)
+{
+	//va_list arg;
+
+    //va_start(arg, fmt);
+    int c = vsnprintf(NULL, 0, fmt, arg);
+    //va_end(arg);
+
+	char *message = new char[c+1+10];
+	//va_start(arg, fmt);
+	vsnprintf(message, c+1, fmt, arg);
+	//va_end(arg);
+
+	int status = AddMessage(0,NULL,NULL, message, severity,ninfo, npos,nline);
+	delete[] message;
+	return status;
 }
 
 /*! Printf style variadic version.
@@ -173,7 +190,7 @@ int ErrorLog::AddMessage(int severity, int ninfo, int npos,int nline, const char
     int c = vsnprintf(NULL, 0, fmt, arg);
     va_end(arg);
 
-	char *message = new char[c+1];
+	char *message = new char[c+1+10];
 	va_start(arg, fmt);
 	vsnprintf(message, c+1, fmt, arg);
 	va_end(arg);
