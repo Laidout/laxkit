@@ -835,8 +835,12 @@ const char *PerspectiveInterface::Name()
  */
 anInterface *PerspectiveInterface::duplicate(anInterface *dup)
 {
-	if (dup==NULL) dup=new PerspectiveInterface(NULL,id,NULL);
-	else if (!dynamic_cast<PerspectiveInterface *>(dup)) return NULL;
+	if (dup==NULL) {
+		PerspectiveInterface *p = new PerspectiveInterface(NULL,id,NULL);
+		dup = p;
+		p->interface_flags = interface_flags;
+
+	} else if (!dynamic_cast<PerspectiveInterface *>(dup)) return NULL;
 	return anInterface::duplicate(dup);
 }
 
