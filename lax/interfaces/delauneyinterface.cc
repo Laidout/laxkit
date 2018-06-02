@@ -54,7 +54,72 @@ namespace LaxInterfaces {
 int DelauneyTriangulate(flatpoint *pts, int nv, IndexTriangle *tri_ret, int *ntri_ret);
 
 
-//------------------------------- DelauneyInterface ---------------------------------
+
+//------------------------------- Point list generators ---------------------------------
+
+flatpoint *GenerateRandomRectPoints(int seed, flatpoint *points, int n, double minx, double maxx, double miny, double maxy)
+{
+	if (!points) points = new flatpoint[n];
+
+	if (seed) srandom(seed);
+
+	for (int c=0; c<n; c++) {
+		points[c] = flatpoint(minx + (maxx-minx)*(double)random()/RAND_MAX, miny + (maxy-miny)*(double)random()/RAND_MAX);
+	}
+
+	return points;
+}
+
+flatpoint *GenerateGridPoints(flatpoint *p, int numx, int numy, double minx, double maxx, double miny, double maxy)
+{
+	if (!p) p = new flatpoint[numx*numy];
+
+	int i = 0;
+	double xx, yy;
+	double dx = (maxx-minx)/numx;
+	double dy = (maxy-miny)/numy;
+
+	yy = miny;
+	for (int y=0; y<numy; y++) {
+	  xx = minx;
+	  for (int x=0; x<numx; x++) {
+		p[i].set(xx, yy);
+		xx += dx;
+	  }
+	  yy += dy;
+	}
+
+	return p;
+}
+
+/*! Return an array of random doubles. If seed!=0, use that for srandom().
+ * If d==NULL, then return a new double[n]. Else return d, which is assumed to be able to hold n doubles.
+ */
+double *RandomDoubles(int seed, double *d, int n, double min, double max)
+{
+	if (seed) srandom(seed);
+
+	if (!d) d = new double[n];
+	for (int c=0; c<n; c++) d[0] = min + (max-min)*((double)random()/RAND_MAX);
+
+	return d;
+}
+
+/*! Return an array of random ints. If seed!=0, use that for srandom().
+ * If a==NULL, then return a new int[n]. Else return d, which is assumed to be able to hold n ints.
+ */
+int *RandomInts(int seed, int *a, int n, int min, int max)
+{
+	if (seed) srandom(seed);
+
+	if (!a) a = new int[n];
+	for (int c=0; c<n; c++) a[c] = min + (double)random()/RAND_MAX*(max-min) + .5;
+
+	return a;
+}
+
+
+//------------------------------- VoronoiData ---------------------------------
 
 /*! \class VoronoiData
  *
@@ -651,6 +716,23 @@ ObjectContext *DelauneyInterface::Context()
 	return voc;
 }
 
+enum VoronoiActions {
+	VORON_Grid_Of_Points,
+	VORON_Square_Of_Points,
+	VORON_Circle_Of_Points,
+	VORON_Cluster_Of_Points
+};
+
+Laxkit::MenuInfo *DelauneyInterface::ContextMenu(int x,int y,int deviceid, MenuInfo *menu)
+{
+	if (!menu) menu = new MenuInfo();
+	//menu->AddItem(_("Grid of points"), VORON_Grid_Of_Points);
+	//menu->AddItem(_("Square of points"), VORON_Square_Of_Points);
+	//menu->AddItem(_("Circle of points"), VORON_Circle_Of_Points);
+	//menu->AddItem(_("Cluster of points"), VORON_Cluster_Of_Points);
+	return menu;
+}
+
 int DelauneyInterface::InterfaceOn()
 {
     needtodraw=1;
@@ -962,6 +1044,17 @@ int DelauneyInterface::Event(const Laxkit::EventData *e_data, const char *mes)
 		makestr(last_export, s->str);
 		PostMessage(_("Saved."));
 		return 0;
+
+	} else if (!strcmp(mes,"menuevent")) {
+        const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(e_data);
+        int i =s->info2; //id of menu item
+
+		if (i == VORON_Square_Of_Points) {
+		} else if (i == VORON_Circle_Of_Points) {
+		} else if (i == VORON_Cluster_Of_Points) {
+		}
+
+		return 0;   
 	}
 
     return 1;
