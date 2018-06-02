@@ -446,11 +446,12 @@ int ColorPatchData::TransferColors(int oldxsize, int oldysize)
 	return 0;
 }
 
-//! Grow the patch off an edge.
-/*! If where==0, add a column to the left.
- *  If where==1, add a row to the top.
- *  If where==2, add a column to the right.
- *  If where==3, add a row to the bottom.
+/*! Grow the patch off an edge.
+ *
+ *  If where==LAX_LEFT, add a column to the left (-x).
+ *  If where==LAX_TOP, add a row to the top (+y).
+ *  If where==LAX_RIGHT, add a column to the right (+x).
+ *  If where==LAX_BOTTOM, add a row to the bottom (-y).
  *
  * The new edge is the oldedge+v, and the intervening controls are interpolated.
  * The new colors are duplicates of the old edge's colors.
@@ -468,17 +469,18 @@ void ColorPatchData::grow(int where, const double *tr)
 	int colorsize=nxs*nys;
 	ScreenColor *ncolors=new ScreenColor[colorsize];
 		
-	if (where==0) { 
+	if (where == LAX_LEFT) {
 		 //add to the left
 		for (int r=0; r<nys; r++) {
 			memcpy(ncolors+r*nxs+1, colors+r*oldxsize,oldxsize*sizeof(ScreenColor));
 			ncolors[r*nxs]=colors[r*oldxsize];
 		}
-	} else if (where==1) { 
+	} else if (where == LAX_TOP) {
 		 //add to the top
 		memcpy(ncolors,colors,oldxsize*oldysize*sizeof(ScreenColor));
 		memcpy(ncolors+oldxsize*oldysize,colors+oldxsize*(oldysize-1),oldxsize*sizeof(ScreenColor));
-	} else if (where==2) { 
+
+	} else if (where == LAX_RIGHT) {
 		 //add to the right
 		for (int r=0; r<nys; r++) {
 			memcpy(ncolors+r*nxs, colors+r*oldxsize,oldxsize*sizeof(ScreenColor));

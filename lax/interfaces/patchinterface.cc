@@ -1769,18 +1769,19 @@ int PatchData::coordsInSubPatch(flatpoint p,int r,int c,double maxd, double *s_r
 	return 1;
 }
 
-//! Grow the patch off an edge.
-/*! If where==0, add a column to the left.
- *  If where==1, add a row to the top.
- *  If where==2, add a column to the right.
- *  If where==3, add a row to the bottom.
+/*! Grow the patch off an edge.
+ *
+ *  If where==LAX_LEFT, add a column to the left (-x).
+ *  If where==LAX_TOP, add a row to the top (+y).
+ *  If where==LAX_RIGHT, add a column to the right (+x).
+ *  If where==LAX_BOTTOM, add a row to the bottom (-y).
  *
  * The new edge is the tr(oldedge), and the intervening controls are interpolated.
  * tr is a 6 member affine transform.
  */
 void PatchData::grow(int where, const double *tr)
 {
-	if (where==0) {
+	if (where == LAX_LEFT) {
 		 //add to the left
 		flatpoint v;
 		flatpoint *np=new flatpoint[(xsize+3)*ysize];
@@ -1800,7 +1801,7 @@ void PatchData::grow(int where, const double *tr)
 		touchContents();
 		FindBBox();
 
-	} else if (where==1) { 
+	} else if (where == LAX_TOP) {
 		 //add to the top
 		flatpoint v;
 		flatpoint *np=new flatpoint[xsize*(ysize+3)];
@@ -1819,7 +1820,7 @@ void PatchData::grow(int where, const double *tr)
 		touchContents();
 		FindBBox();
 
-	} else if (where==2) {
+	} else if (where == LAX_RIGHT) {
 		 //add to the right
 		flatpoint v;
 		flatpoint *np=new flatpoint[(xsize+3)*ysize];
@@ -3807,10 +3808,10 @@ int PatchInterface::LBUp(int x,int y,unsigned int state,const Laxkit::LaxMouse *
 	buttondown.up(d->id,LEFTBUTTON);
 	if (dragmode==DRAG_ADD_EDGE || dragmode==DRAG_SHIFT_EDGE) {
 		 //add off to side
-		if (overv==0) data->grow(0,movetransform);
-		else if (overv>0) data->grow(2,movetransform);
-		else if (overh==0) data->grow(3,movetransform);
-		else if (overh>0) data->grow(1,movetransform);
+		if (overv==0)      data->grow(LAX_LEFT,  movetransform);
+		else if (overv>0)  data->grow(LAX_RIGHT, movetransform);
+		else if (overh==0) data->grow(LAX_BOTTOM,movetransform);
+		else if (overh>0)  data->grow(LAX_TOP,   movetransform);
 		overv=overh=-1;
 		overstate=0;
 		needtodraw=1;

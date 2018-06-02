@@ -86,7 +86,8 @@ class PatchRenderContext
 //goes in PatchData::style:
 enum PatchDataStyles {
 	PATCH_SMOOTH    =(1<<0),
-	PATCH_MAX
+	PATCH_Units_BBox=(1<<1), //flag that can be used on import to correspond to svg gradientUnits
+	PATCH_MAX = 1
 };
 
 
