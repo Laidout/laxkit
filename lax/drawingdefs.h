@@ -70,6 +70,7 @@ enum LaxCapStyle
 {
 	LAXCAP_Butt=1,
 	LAXCAP_Round,
+	LAXCAP_Square,
 	LAXCAP_Projecting,
 	LAXCAP_Zero_Width,
 	LAXCAP_Custom,
@@ -93,6 +94,13 @@ enum LaxFillRule
 	LAXFILL_Nonzero,
 	LAXFILL_EvenOdd,
 	LAXFILL_MAX
+};
+
+enum LaxFillStyle
+{
+	LAXFILL_Solid = LAXFILL_MAX,
+	LAXFILL_Pattern,
+	LAXFILLSTYLE_MAX
 };
 
 enum DrawThingTypes {
