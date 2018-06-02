@@ -45,55 +45,55 @@ namespace LaxInterfaces {
 
 LineStyle::LineStyle()
 {
-	mask=~0;
+	mask = ~0;
 
-	width=0;//hairline
-	widthtype=1;//0 for screen width, 1 for real width
-	color.red=color.green=0;
-	color.blue=color.alpha=0xffff;
-	color2=NULL;
+	width      = 0;//hairline
+	widthtype  = 1;//0 for screen width, 1 for real width
+	color.red  = color.green = 0;
+	color.blue = color.alpha = 0xffff;
+	color2     = NULL;
 
-	capstyle=LAXCAP_Butt;
-	endcapstyle=0; //0 means use capstyle? .. need better cap support, use engraver line quality??
+	capstyle   = LAXCAP_Butt;
+	endcapstyle = 0; //0 means use capstyle? .. need better cap support, use engraver line quality??
 	//dash_start_caps=LAXCAP_Butt;
 	//dash_end_caps  =LAXCAP_Butt;
 
-	joinstyle=LAXJOIN_Miter; 
-	miterlimit=100; //so this means 100*(line thickness)
-	function=LAXOP_Over;
+	joinstyle = LAXJOIN_Miter; 
+	miterlimit = 100; //so this means 100*(line thickness)
+	function = LAXOP_Over;
 
 	 //dashes todo:
 	 // on/off, dashes is list of lengths proportional to width of on and off
 	 // off/on, dashes is list of lengths proportional to width of on and off
 	 // broken, dashes holds settings for zero_threshhold, broken_threshhold, and other stuff..
-	dotdash=0;
-	dash_offset=0;
-	dashes=NULL;
-	numdashes=0;
+	dotdash     = 0;
+	dash_offset = 0;
+	dashes      = NULL;
+	numdashes   = 0;
 }
 
 /*! r,g,b,a are in range 0..65535
  */
 LineStyle::LineStyle(int r,int g,int b, int a, double w,int cap,int join,int dot,int func)
 {
-	mask=~0;
+	mask = ~0;
 
-	color.red=r;
-	color.green=g;
-	color.blue=b;
-	color.alpha=a;
-	color2=NULL;
-	width=w;
-	widthtype=1;
-	capstyle=cap;
-	joinstyle=join;
-	miterlimit=100; //so this means 100*(line thickness)
-	function=func;
+	color.red   = r;
+	color.green = g;
+	color.blue  = b;
+	color.alpha = a;
+	color2      = NULL;
+	width       = w;
+	widthtype   = 1;
+	capstyle    = cap;
+	joinstyle   = join;
+	miterlimit  = 100; //so this means 100*(line thickness)
+	function    = func;
 
-	dotdash=dot;
-	dash_offset=0;
-	dashes=NULL;
-	numdashes=0;
+	dotdash     = dot;
+	dash_offset = 0;
+	dashes      = NULL;
+	numdashes   = 0;
 }
 
 LineStyle::LineStyle(const LineStyle &l) 
