@@ -4496,7 +4496,7 @@ int PathInterface::Refresh()
 		fstyle=data->fillstyle;//default for all data paths
 		if (!fstyle) fstyle=defaultfill;   //default for interface
 	}
-	bool hasfill=(fstyle && fstyle->fillstyle!=FillNone);
+	bool hasfill=(fstyle && fstyle->fillstyle != FillNone && fstyle->function != LAXOP_None);
 	bool ignoreweights= (data->style&PathsData::PATHS_Ignore_Weights) 
 				|| !(pathi_style&PATHI_Render_With_Cache);
 
