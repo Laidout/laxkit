@@ -392,8 +392,8 @@ int SimpleColorAttribute(const char *v,unsigned long *color_ret, Laxkit::ScreenC
 {
 	double colors[5];
 	const char *endpp=NULL;
-	int status=SimpleColorAttribute(v, colors, &endpp);
-	if (status!=0) return status;
+	int status = SimpleColorAttribute(v, colors, &endpp);
+	if (status != 0) return status;
 	if (end_ptr) *end_ptr=endpp;
 
 	if (color_ret) {
@@ -463,12 +463,12 @@ int SimpleColorAttribute(const char *v, double *colors, const char **end_ptr)
 	int numcc=0; //3=rgb or hsl, 1=gray, 4=cmyk
 
 	if (*v=='#') {
-		unsigned long color;
+		ScreenColor color;
 		if (HexColorAttributeRGB(v, &color, end_ptr)==0) return 1;
-		colors[0]= (color&0xff)/255.;
-		colors[1]=((color&0xff00)>>8)/255.;
-		colors[2]=((color&0xff0000)>>16)/255.;
-		colors[3]=((color&0xff000000)>>24)/255.;
+		colors[0] = color.Red();
+		colors[1] = color.Green();
+		colors[2] = color.Blue();
+		colors[3] = color.Alpha();
 		return 0;
 	}
 
@@ -505,6 +505,7 @@ int SimpleColorAttribute(const char *v, double *colors, const char **end_ptr)
 		else if (!strncasecmp(v,"purple",6))  { r=0x80; g=0x00; b=0x80; v+=6; }
 		else if (!strncasecmp(v,"fuchsia",7)) { r=0xff; g=0x00; b=0xff; v+=7; }
 		else if (!strncasecmp(v,"white",5))   { r=0xff; g=0xff; b=0xff; v+=5; }
+		else if (!strncasecmp(v,"black",5))   { r=0x00; g=0x00; b=0x00; v+=5; }
 		else if (!strncasecmp(v,"lime",4))    { r=0x00; g=0xff; b=0x00; v+=4; }
 		else if (!strncasecmp(v,"green",5))   { r=0x00; g=0x80; b=0x00; v+=5; }
 		else if (!strncasecmp(v,"navy",4))    { r=0x00; g=0x00; b=0x80; v+=4; }
@@ -521,6 +522,9 @@ int SimpleColorAttribute(const char *v, double *colors, const char **end_ptr)
 			if (end_ptr) *end_ptr=v;
 			return 0;
 		}
+
+		cerr << " *** could not parse svg color: "<<v<<endl;
+		return 1;
 	}
 
 
