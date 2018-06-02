@@ -55,6 +55,7 @@ class SimpleUnit : public anObject
 	int id;
 	double scaling;
 	PtrStack<char> names; //0,1,2 are short name, singular, plural
+	char *label;
 	SimpleUnit *next;
 
 	int defaultunits;
@@ -64,9 +65,9 @@ class SimpleUnit : public anObject
 
 	virtual int UnitId(const char *name,int len=-1);
 	virtual const char *UnitName(int uid);
-	virtual int UnitInfo(const char *name, int *iid, double *scale, char **shortname, char **singular,char **plural);
-	virtual int UnitInfoIndex(int index, int *iid, double *scale, char **shortname, char **singular,char **plural);
-	virtual int UnitInfoId(int id, double *scale, char **shortname, char **singular,char **plural);
+	virtual int UnitInfo(const char *name, int *iid, double *scale, char **shortname, char **singular,char **plural, const char **label_ret);
+	virtual int UnitInfoIndex(int index, int *iid, double *scale, char **shortname, char **singular,char **plural, const char **label_ret);
+	virtual int UnitInfoId(int id, double *scale, char **shortname, char **singular,char **plural, const char **label_ret);
 	virtual double GetFactor(int fromunits, int tounits);
 	virtual int DefaultUnits();
 	virtual int DefaultUnits(const char *units);
@@ -75,7 +76,7 @@ class SimpleUnit : public anObject
 
 	virtual int NumberOfUnits();
 	virtual const SimpleUnit *Find(int id);
-	virtual int AddUnits(int nid, double scale, const char *shortname, const char *singular,const char *plural);
+	virtual int AddUnits(int nid, double scale, const char *shortname, const char *singular,const char *plural, const char *nlabel=NULL);
 	virtual double Convert(double value, const char *from, const char *to, int *error_ret);
 	virtual double Convert(double value, int from_id, int to_id, int *error_ret);
 };

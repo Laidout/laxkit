@@ -225,7 +225,7 @@ RulerWindow::RulerWindow(anXWindow *parnt,const char *nname,const char *ntitle,u
 	DBG cerr <<"baseunits on ruler creation:"<<baseunits<<endl;
 
 	if (base_units) {
-		units->UnitInfo(base_units,&baseunits,NULL,NULL,NULL,NULL);
+		units->UnitInfo(base_units,&baseunits,NULL,NULL,NULL,NULL,NULL);
 	}
 	if (win_style&RULER_STANDARD || baseunits==UNITS_Inches) {
 		base=12;
@@ -604,14 +604,14 @@ int RulerWindow::NumberOfUnits()
 }
 
 //! Return positive for info found, or 0 for not found.
-int RulerWindow::UnitInfo(int index, const char **name, int *id, double *scale, int *sdiv, int *ssdiv)
+int RulerWindow::UnitInfo(int index, const char **name, int *id, double *scale, int *sdiv, int *ssdiv, const char **label)
 {
 	if (index<0 || index>=NumberOfUnits()) return 0;
 
 	int iid;
 	char *nm;
 	UnitManager *units=GetUnitManager();
-	units->UnitInfoIndex(index, &iid, scale, NULL, NULL, &nm);
+	units->UnitInfoIndex(index, &iid, scale, NULL, NULL, &nm, label);
 
 	if (name)   *name=nm;
 	if (id)       *id=iid;
@@ -628,16 +628,24 @@ int RulerWindow::RBUp(int x,int y,unsigned int state,const LaxMouse *d)
 
 	MenuInfo *menu=new MenuInfo(_("Units"));
 
-	const char *name;
-	const char *current=NULL;
+	const char *name, *nm;
+	const char *current = NULL;
+	const char *label = NULL;
+	char buffer[200];
 	int id;
 
 	for (int c=0; c<NumberOfUnits(); c++) {
-		UnitInfo(c, &name, &id, NULL,NULL,NULL);
-		//menu->AddItem(name, id, id==units->defaultunits?LAX_CHECKED|LAX_ISTOGGLE:0);
-		menu->AddItem(name, id, (id==currentunits?LAX_CHECKED:0)|LAX_ISTOGGLE, 0);
+		UnitInfo(c, &name, &id, NULL,NULL,NULL, &label);
+		nm = name;
+		if (label) {
+			sprintf(buffer, "%s. %s", name, label);
+			nm = buffer;
+		}
+
+		menu->AddItem(nm, id, (id == currentunits ? LAX_CHECKED : 0) | LAX_ISTOGGLE, 0);
 		if (id==currentunits) current=name;
 	}
+
 	if (current && menu->n() && (win_style&RULER_UNITS_MENU_ALWAYS)) {
 		menu->AddSep();
 		char scratch[strlen(_("Always use %s"))+strlen(current)+1];
@@ -687,7 +695,7 @@ int RulerWindow::Event(const EventData *e,const char *mes)
 	double scale;
 
 	for (int c=0; c<NumberOfUnits(); c++) {
-		UnitInfo(c, &name, &id, &scale, &sdiv, &ssdiv);
+		UnitInfo(c, &name, &id, &scale, &sdiv, &ssdiv, NULL);
 		if (item_id==id) { 
 			SetCurrentUnits(name);
 			if (win_owner) {
@@ -715,7 +723,7 @@ int RulerWindow::Event(const EventData *e,const char *mes)
 int RulerWindow::SetBaseUnits(int units)
 {
 	UnitManager *u=GetUnitManager();
-	if (u->UnitInfoId(units,NULL,NULL,NULL,NULL)==0) {
+	if (u->UnitInfoId(units,NULL,NULL,NULL,NULL,NULL)==0) {
 		baseunits=units;
 		umag=u->GetFactor(baseunits,currentunits);
 		needtodraw=1;
@@ -728,7 +736,7 @@ int RulerWindow::SetBaseUnits(const char *units)
 {
 	UnitManager *u=GetUnitManager();
 	int id;
-	if (u->UnitInfo(units,&id,NULL,NULL,NULL,NULL)==0) {
+	if (u->UnitInfo(units,&id,NULL,NULL,NULL,NULL,NULL)==0) {
 		baseunits=id;
 		umag=u->GetFactor(baseunits,currentunits);
 		needtodraw=1;
@@ -744,7 +752,7 @@ int RulerWindow::SetCurrentUnits(const char *units)
 {
 	UnitManager *u=GetUnitManager();
 	int id;
-	if (u->UnitInfo(units,&id,NULL,NULL,NULL,NULL)==0 && id!=currentunits)
+	if (u->UnitInfo(units,&id,NULL,NULL,NULL,NULL,NULL)==0 && id!=currentunits)
 		return SetCurrentUnits(id);
 	return 1;
 }
@@ -756,7 +764,7 @@ int RulerWindow::SetCurrentUnits(int id)
 	if (id==currentunits) return 0;
 
 	UnitManager *u=GetUnitManager();
-	if (u->UnitInfoId(id,NULL,NULL,NULL,NULL)==0) {
+	if (u->UnitInfoId(id,NULL,NULL,NULL,NULL,NULL)==0) {
 		currentunits=id;
 		if (id==UNITS_Feet || id==UNITS_Inches) {
 			subdiv=2;
@@ -859,7 +867,7 @@ Attribute *RulerWindow::dump_out_atts(Attribute *att,int what,LaxFiles::DumpCont
 
 	char *unitname=NULL;
 	UnitManager *units=GetUnitManager();
-	units->UnitInfoId(baseunits,NULL,&unitname,NULL,NULL);
+	units->UnitInfoId(baseunits,NULL,&unitname,NULL,NULL,NULL);
 	att->push("units",unitname);
 
 	if (win_style&RULER_X) {

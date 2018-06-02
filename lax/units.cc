@@ -62,9 +62,9 @@ SimpleUnit *CreateDefaultUnits(SimpleUnit *units, bool include_px, bool include_
 	units->AddUnits(UNITS_CM,        .01,      _("cm"), _("centimeter"),_("centimeters"));
 	units->AddUnits(UNITS_MM,        .001,     _("mm"), _("millimeter"),_("millimeters"));
 	units->AddUnits(UNITS_Meters,    1,        _("m"),   _("meter"),    _("meters"));
-	units->AddUnits(UNITS_Points,    .0254/72, _("pt"),   _("point"),   _("points"));
-	units->AddUnits(UNITS_SvgPoints, .0254/90, _("svgpt"),_("svgpoint"),_("svgpoints"));
-	units->AddUnits(UNITS_CSSPoints, .0254/96, _("csspt"),_("csspoint"),_("csspoints"));
+	units->AddUnits(UNITS_Points,    .0254/72, _("pt"),   _("point"),   _("points"), _("72 ppi"));
+	units->AddUnits(UNITS_SvgPoints, .0254/90, _("svgpt"),_("svgpoint"),_("svgpoints"), _("Legacy 90 ppi"));
+	units->AddUnits(UNITS_CSSPoints, .0254/96, _("csspt"),_("csspoint"),_("csspoints"), _("96 ppi"));
 
 	if (include_px) units->AddUnits(UNITS_Pixels, 1, _("px"), _("pixel"), _("pixels"));
 	if (include_em) units->AddUnits(UNITS_Em,     1, _("em"), _("em"),    _("em"));
@@ -111,15 +111,17 @@ void SetUnitManager(UnitManager *manager)
 SimpleUnit::SimpleUnit()
   : names(2)
 {
-	id=0;
-	scaling=0;
-	next=NULL;
-	defaultunits=0;
+	id = 0;
+	scaling = 0;
+	next = NULL;
+	defaultunits = 0;
+	label = NULL;
 }
 
 SimpleUnit::~SimpleUnit()
 {
 	if (next) delete next;
+	delete[] label;
 }
 
 int SimpleUnit::NumberOfUnits()
@@ -157,48 +159,52 @@ const char *SimpleUnit::UnitName(int uid)
 //! Retrieve some information about a unit, using id value as a key (not index #).
 /*! Return 0 for success or nonzero for error.
  */
-int SimpleUnit::UnitInfoId(int id, double *scale, char **shortname, char **singular,char **plural)
+int SimpleUnit::UnitInfoId(int id, double *scale, char **shortname, char **singular,char **plural, const char **label_ret)
 {
 	SimpleUnit *f=find(id);
 	if (!f) return 1;
 
-	if (scale) *scale=f->scaling;
-	if (shortname) *shortname=f->names.e[0];
-	if (singular) *singular=f->names.e[1];
-	if (plural) *plural=f->names.e[2];
+	if (scale)     *scale     = f->scaling;
+	if (shortname) *shortname = f->names.e[0];
+	if (singular)  *singular  = f->names.e[1];
+	if (plural)    *plural    = f->names.e[2];
+	if (label_ret) *label_ret = f->label;
 	return 0;
 }
 
 //! Retrieve some information about a unit, using index value as a key (not id #).
 /*! Return 0 for success or nonzero for error.
  */
-int SimpleUnit::UnitInfoIndex(int index, int *iid, double *scale, char **shortname, char **singular,char **plural)
+int SimpleUnit::UnitInfoIndex(int index, int *iid, double *scale, char **shortname, char **singular,char **plural, const char **label_ret)
 {
 	SimpleUnit *f=this;
 	if (!f->scaling) return 1;
 	while (f && index) { f=f->next; index--; }
 	if (!f) return 1;
 
-	if (iid) *iid=f->id;
-	if (scale) *scale=f->scaling;
-	if (shortname) *shortname=f->names.e[0];
-	if (singular) *singular=f->names.e[1];
-	if (plural) *plural=f->names.e[2];
+	if (iid)       *iid       = f->id;
+	if (scale)     *scale     = f->scaling;
+	if (shortname) *shortname = f->names.e[0];
+	if (singular)  *singular  = f->names.e[1];
+	if (plural)    *plural    = f->names.e[2];
+	if (label_ret) *label_ret = f->label;
 	return 0;
 }
 
 //! Retrieve some information about a unit.
 /*! Return 0 for success or nonzero for error.
  */
-int SimpleUnit::UnitInfo(const char *name, int *iid, double *scale, char **shortname, char **singular,char **plural)
+int SimpleUnit::UnitInfo(const char *name, int *iid, double *scale, char **shortname, char **singular,char **plural, const char **label_ret)
 {
-	SimpleUnit *f=find(name);
+	SimpleUnit *f = find(name);
 	if (!f) return 1;
-	if (iid) *iid=f->id;
-	if (scale) *scale=f->scaling;
-	if (shortname) *shortname=names.e[0];
-	if (singular) *singular=names.e[1];
-	if (plural) *plural=names.e[2];
+
+	if (iid)       *iid       = f->id;
+	if (scale)     *scale     = f->scaling;
+	if (shortname) *shortname = names.e[0];
+	if (singular)  *singular  = names.e[1];
+	if (plural)    *plural    = names.e[2];
+	if (label_ret) *label_ret = label;
 	return 0;
 }
 
@@ -253,7 +259,7 @@ double SimpleUnit::GetFactor(int fromunits, int tounits)
 
 /*! You should always define shortname. You may pass NULL for singular or plural.
  */
-int SimpleUnit::AddUnits(int nid, double scale, const char *shortname, const char *singular,const char *plural)
+int SimpleUnit::AddUnits(int nid, double scale, const char *shortname, const char *singular,const char *plural, const char *nlabel)
 {
 	SimpleUnit *u=this;
 	if (scaling) { //this unit already taken, need to advance to a new one
@@ -267,6 +273,7 @@ int SimpleUnit::AddUnits(int nid, double scale, const char *shortname, const cha
 	u->names.push(newstr(shortname));
 	if (singular) u->names.push(newstr(singular));
 	if (plural)   u->names.push(newstr(plural));
+	if (nlabel)   makestr(u->label, nlabel);
 	return 0;
 }
 

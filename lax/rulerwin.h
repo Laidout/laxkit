@@ -58,7 +58,7 @@ namespace Laxkit {
 
 class RulerWindow : public anXWindow
 {
- protected:
+  protected:
 	double start,end,mag,umag; // real*mag=screen
 	double tf,stf,sstf;
 	anXWindow *trackwindow;
@@ -68,8 +68,9 @@ class RulerWindow : public anXWindow
 	virtual void drawtext(double n,int pos,int &textpos,int toff);
 
 	virtual int NumberOfUnits();
-	virtual int UnitInfo(int index, const char **name, int *id, double *scale, int *sdiv, int *ssdiv);
- public:
+	virtual int UnitInfo(int index, const char **name, int *id, double *scale, int *sdiv, int *ssdiv, const char **label);
+
+  public:
 	unsigned long bgcolor,numcolor,tickcolor,curposcolor,subtickcolor,subsubtickcolor;
 	double base,unit;
 	double curpos;
