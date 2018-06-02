@@ -160,6 +160,7 @@ class DelauneyInterface : public anInterface
 	virtual int UseThisObject(ObjectContext *oc);
 	virtual int InterfaceOn();
 	virtual int InterfaceOff();
+	virtual Laxkit::MenuInfo *ContextMenu(int x,int y,int deviceid, Laxkit::MenuInfo *menu);
 
 	virtual ObjectContext *Context();
 
