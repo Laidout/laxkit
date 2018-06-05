@@ -625,24 +625,24 @@ int SomeData::pointin(flatpoint pp,int pin)
 int SomeData::fitto(double *boxm,DoubleBBox *box,double alignx,double aligny, int whentoscale)
 {
 	if (!box) return 1;
-	alignx/=100;
-	aligny/=100;
+	alignx /= 100;
+	aligny /= 100;
 	if (boxm) m(boxm);
-	double scale=1;
-	flatpoint banchor(box->minx*(1-alignx)+box->maxx*alignx, box->miny*(1-aligny)+box->maxy*aligny),
-	          manchor(minx*(1-alignx)+maxx*alignx, miny*(1-aligny)+maxy*aligny);
-	banchor=transform_point(m(),banchor);
+	double scale = 1;
+	flatpoint banchor(box->minx*(1-alignx) + box->maxx*alignx, box->miny*(1-aligny) + box->maxy*aligny),
+	          manchor(minx*(1-alignx) + maxx*alignx, miny*(1-aligny) + maxy*aligny);
+	banchor = transform_point(m(),banchor);
 
 	if (whentoscale==2 || (whentoscale==1 && (maxx-minx>box->maxx-box->minx || maxy-miny>box->maxy-box->miny))) {
 		 // make new scaling only when it doesn't already fit in box
-		scale=(box->maxx-box->minx)/(maxx-minx);
-		double yscale=(box->maxy-box->miny)/(maxy-miny);
-		if (yscale<scale) scale=yscale;
+		scale = (box->maxx-box->minx)/(maxx-minx);
+		double yscale = (box->maxy-box->miny)/(maxy-miny);
+		if (yscale < scale) scale = yscale;
 
 		xaxis(xaxis()*scale);
 		yaxis(yaxis()*scale);
 	}
-	origin(origin()+banchor-transform_point(m(),manchor));
+	origin(origin() + banchor - transform_point(m(), manchor));
 
 	return 0;
 }
