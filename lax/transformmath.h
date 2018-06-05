@@ -62,6 +62,7 @@ class Affine
 	virtual void Stretch(flatpoint anchor1, flatpoint anchor2, flatpoint newanchor2);
 	virtual void AnchorShear(flatpoint anchor1, flatpoint anchor2, flatpoint anchor3, flatpoint newanchor3);
 	virtual void Scale(double s);
+	virtual void Scale(double sx,double sy);
 	virtual void Scale(flatpoint o, double s);
 	virtual void Scale(flatpoint o, double sx,double sy);
 	virtual void Scale(flatpoint anchor1, flatpoint anchor2, flatpoint newanchor2);

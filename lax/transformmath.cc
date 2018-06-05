@@ -362,7 +362,17 @@ void Affine::Scale(double s)
 	_m[5]*=s;
 }
 
-//! Scale around point o.
+void Affine::Scale(double sx, double sy)
+{
+	_m[0]*=sx;
+	_m[1]*=sx;
+	_m[2]*=sy;
+	_m[3]*=sy;
+	_m[4]*=sx;
+	_m[5]*=sy;
+}
+
+//! Scale around point o of parent space.
 void Affine::Scale(flatpoint o, double s)
 {
 	flatpoint to=transform_point_inverse(_m,o);
@@ -370,6 +380,7 @@ void Affine::Scale(flatpoint o, double s)
 	origin(origin()-transform_point(_m,to)+o);
 }
 
+//! Scale around point o of parent space.
 void Affine::Scale(flatpoint o,double sx,double sy)
 {
 	flatpoint to=transform_point_inverse(_m,o);
