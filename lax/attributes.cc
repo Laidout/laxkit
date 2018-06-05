@@ -477,7 +477,7 @@ int SimpleColorAttribute(const char *v, double *colors, const char **end_ptr)
 		numcc=3;
 		type=LAX_COLOR_RGB;
 
-	} else if (strcasestr(v,"gray")==v) {
+	} else if (strcasestr(v,"gray")==v && v[5]=='(') {
 		v+=4;
 		numcc=1;
 		type=LAX_COLOR_GRAY;
@@ -512,7 +512,7 @@ int SimpleColorAttribute(const char *v, double *colors, const char **end_ptr)
 		else if (!strncasecmp(v,"blue",4))    { r=0x00; g=0x00; b=0xff; v+=4; }
 		else if (!strncasecmp(v,"aqua",4))    { r=0x00; g=0xff; b=0xff; v+=4; }
 		else if (!strncasecmp(v,"teal",4))    { r=0x00; g=0x80; b=0x80; v+=4; }
-		else if (!strncasecmp(v,"cyan",4))    { r=0x00; g=0xff; b=0xff; v+=4; } //not css, but is x11 color, widely accepted
+		else if (!strncasecmp(v,"cyan",4))    { r=0x00; g=0xff; b=0xff; v+=4; } //not css1 or 2, but is x11 color and css3, widely accepted
 
 		if (r>=0) {
 			colors[0]=r/255.;
