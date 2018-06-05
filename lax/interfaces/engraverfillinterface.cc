@@ -896,17 +896,6 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
 			} else {
 				if (trace->traceobject) trace->ClearCache(true);
 			}
-		} else if (over==ENGRAVE_Trace_Object_Name) {
-			EngraverTraceSettings *trace=(group ? group->trace : &default_trace);
-			if (!trace->traceobject) return 0;
-
-			MenuItem *item=panel.findid(over);
-			double th=dp->textheight();
-			int yy= panelbox.miny + item->y + ((y-panelbox.miny-item->y)/th+1)*th;
-			DoubleBBox bounds(item->x+panelbox.minx+th,item->x+panelbox.minx+th + item->w,
-								yy,yy+th);
-			viewport->SetupInputBox(object_id, NULL, trace->traceobject->Id(), "renametraceobject", bounds);
-			return 0;
 		}
 
 		if (!edata) return 0;
@@ -964,7 +953,7 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
 			if (current_group>=edata->groups.n-1) current_group=0;
 			else current_group++;
 			needtodraw=1;
-			return 0; 
+			return 0;
 			
 		} else if (over==ENGRAVE_Group_Down) {
 			if (!edata || !edata->groups.n) return 0;
@@ -1022,9 +1011,12 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
 			needtodraw=1;
 			return 0;
 
+		} //group things
 
 		 //------------tracing
-		} else if (over==ENGRAVE_Trace_Same_As || over==ENGRAVE_Trace_Menu) {
+		EngraverTraceSettings *trace = (group ? group->trace : &default_trace);
+
+		if (over==ENGRAVE_Trace_Same_As || over==ENGRAVE_Trace_Menu) {
 			MenuInfo *menu=GetGroupMenu(ENGRAVE_Tracing);
 
 	        if (menu) app->rundialog(new PopupMenu("Share Group","Share Group", 0,
@@ -1075,10 +1067,19 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
 			eventgroup=current_group;
 			eventobject=edata->object_id;
 
-		} else if (over==ENGRAVE_Trace_Object_Menu) {
+		} else if (over==ENGRAVE_Trace_Object_Name && trace->traceobject) {
+			MenuItem *item=panel.findid(over);
+			double th=dp->textheight();
+			int yy= panelbox.miny + item->y + ((y-panelbox.miny-item->y)/th+1)*th;
+			DoubleBBox bounds(item->x+panelbox.minx+th,item->x+panelbox.minx+th + item->w,
+								yy,yy+th);
+			viewport->SetupInputBox(object_id, NULL, trace->traceobject->Id(), "renametraceobject", bounds);
+			return 0;
+
+		} else if (over==ENGRAVE_Trace_Object_Menu || (over == ENGRAVE_Trace_Object_Name && !trace->traceobject)) {
 			MenuInfo *menu=new MenuInfo(_("Trace object"));
 
-			EngraverPointGroup *group=(edata?edata->GroupFromIndex(current_group):NULL);
+			//EngraverPointGroup *group=(edata?edata->GroupFromIndex(current_group):NULL);
 			menu->AddItem(_("New Linear Gradient"), ENGRAVE_Trace_Linear_Gradient,LAX_OFF,-2);
 			menu->AddItem(_("New Radial Gradient"), ENGRAVE_Trace_Radial_Gradient,LAX_OFF,-2);
 			menu->AddItem(_("Snapshot of current"), ENGRAVE_Trace_Snapshot,       LAX_OFF,-2);
@@ -1103,6 +1104,7 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
                                      menu,1,NULL,
                                      TREESEL_LEFT));
 			return 0;
+
 
 		 //------------dashes
 		} else if (over==ENGRAVE_Dash_Same_As || over==ENGRAVE_Dash_Menu) {
@@ -1153,6 +1155,7 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
 				viewport->SetupInputBox(object_id, NULL, str, "dashseed", bounds);
 			}
 			return 0;
+
 
 		 //------------------- Direction
 		} else if (over==ENGRAVE_Direction_Same_As || over==ENGRAVE_Direction_Menu) {
@@ -2534,10 +2537,7 @@ int EngraverFillInterface::Refresh()
 	EngraverTraceSettings *trace=(group ? group->trace : &default_trace);
 
 	if (show_trace_object) {
-	  //if (viewport && trace->traceobject && trace->traceobject->object && trace->traceobj_opacity>.5 // **** .5 since actual opacity not working
-	  if (viewport && trace->traceobject && trace->traceobject->object && trace->traceobj_opacity>0 
-			) {
-			//&& (mode==EMODE_Trace || show_trace_object)) {
+	  if (viewport && trace->traceobject && trace->traceobject->object && trace->traceobj_opacity > 0) {
 
 		Affine a;
 		if (edata) a=edata->GetTransformToContext(true, 0);//supposed to be inverse from edata to base real
