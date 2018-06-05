@@ -627,16 +627,21 @@ int GradientData::AddColor(double t,ScreenColor *col)
  */
 int GradientData::AddColor(double t,int red,int green,int blue,int alpha)
 {
-	int c=0;
-	if (t<colors.e[0]->t) {
-		 // move p1
-		double clen=colors.e[colors.n-1]->t-colors.e[0]->t;
+	if (colors.n == 0) {
+		//don't actually have to do anything.. assume p1==p2 already
+
+	} else if (t<colors.e[0]->t) {
+		 // move p1 if necessary
+		double clen = colors.e[colors.n-1]->t-colors.e[0]->t;
 		p1-=(colors.e[0]->t-t)/clen*(p2-p1);
+
 	} else if (t>colors.e[colors.n-1]->t) {
-		 // move p2
-		double clen=colors.e[colors.n-1]->t-colors.e[0]->t;
+		 // move p2 if necessary
+		double clen = colors.e[colors.n-1]->t-colors.e[0]->t;
 		p2-=(colors.e[colors.n-1]->t-t)/clen*(p2-p1);
 	}
+
+	int c=0;
 	while (c<colors.n && t>colors.e[c]->t) c++;
 	GradientDataSpot *gds=new GradientDataSpot(t,red,green,blue,alpha);
 	colors.push(gds,1,c);
