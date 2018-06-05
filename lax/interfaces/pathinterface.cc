@@ -729,8 +729,8 @@ int bez_reduce_approximate(NumStack<flatpoint> *list, double epsilon)
 				c2++;
 			}
 
-			DBG if (list->e[c2].info&LINE_Cap) cerr <<"Line cap at: "<<c2<<endl;
-			DBG dump_points("seg found:", list->e+segstart, c2-segstart+1, segstart);
+			//DBG if (list->e[c2].info&LINE_Cap) cerr <<"Line cap at: "<<c2<<endl;
+			//DBG dump_points("seg found:", list->e+segstart, c2-segstart+1, segstart);
 
 			segend=c2;
 			segn=segend-segstart+1;
@@ -738,10 +738,10 @@ int bez_reduce_approximate(NumStack<flatpoint> *list, double epsilon)
 			if (segn<=2) continue; //segment was just a point or a single line, so go to next
 
 
-			DBG cerr <<"------list.n="<<list->n<<"   thisstart="<<thisstart<<"   thisend="<<thisend<<endl;
-			DBG cerr <<"   segstart="<<segstart<<"   segend="<<segend<<"   segn="<<segn<<endl;
+			//DBG cerr <<"------list.n="<<list->n<<"   thisstart="<<thisstart<<"   thisend="<<thisend<<endl;
+			//DBG cerr <<"   segstart="<<segstart<<"   segend="<<segend<<"   segn="<<segn<<endl;
 
-			DBG for (int cc=0; cc<list->n; cc++) { list->e[cc].info2=cc; }
+			//DBG for (int cc=0; cc<list->n; cc++) { list->e[cc].info2=cc; }
 
 			 //reduce as necessary
 //			diffn=0;
@@ -783,10 +783,10 @@ int bez_reduce_approximate(NumStack<flatpoint> *list, double epsilon)
 			if (c2!=list->n-1) {
 				 //move points beyond current segment out past where new points must go
 				memmove(list->e+segstart + 3*segn-2 + (((wrap&1)?1:0)+((wrap&2)?1:0)),  list->e+c2+1, (list->n-c2-1)*sizeof(flatpoint));
-				DBG cerr <<" memmove( list->e + "<<segstart + 3*segn-2 + (((wrap&1)?1:0)+((wrap&2)?1:0))<<", "<<c2+1<<", "<<(list->n-c2-1)<<"*sizeof(flatpoint))"<<endl;
+				//DBG cerr <<" memmove( list->e + "<<segstart + 3*segn-2 + (((wrap&1)?1:0)+((wrap&2)?1:0))<<", "<<c2+1<<", "<<(list->n-c2-1)<<"*sizeof(flatpoint))"<<endl;
 			}
 			memcpy(list->e+segstart, bsamples.e + ((wrap&1) ? 0 : 1), (3*segn-(((wrap&1)?0:1)+((wrap&2)?0:1)))*sizeof(flatpoint));
-			DBG cerr <<" memcpy( list->e + "<<segstart<<", bsamples+"<<((wrap&1) ? 0 : 1)<<", "<<(3*segn-(((wrap&1)?0:1)+((wrap&2)?0:1)))<<"*sizeof(flatpoint))"<<endl;
+			//DBG cerr <<" memcpy( list->e + "<<segstart<<", bsamples+"<<((wrap&1) ? 0 : 1)<<", "<<(3*segn-(((wrap&1)?0:1)+((wrap&2)?0:1)))<<"*sizeof(flatpoint))"<<endl;
 
 			diffn=2*segn-2+(((wrap&1)?1:0)+((wrap&2)?1:0));
 
