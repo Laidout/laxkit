@@ -1725,6 +1725,7 @@ int CaptionInterface::Refresh()
 	needtodraw=0;
 
 	if (extrahover) {
+		 //draw ouline of another caption
 		dp->NewFG(255,0,255);
 		dp->LineAttributes(1,LineSolid,CapRound,JoinRound);
 		
@@ -1792,7 +1793,7 @@ int CaptionInterface::Refresh()
 	bbox.addtobounds(lr);
 	if (!bbox.intersect(dp->Minx,dp->Maxx,dp->Miny,dp->Maxy)) {
 		DBG cerr <<"----------------CaptionData outside viewport"<<endl;
-		if (!coc) dp->PopAxes();
+		//if (!coc) dp->PopAxes();
 		return -1;
 	}
 	//---or---
@@ -1891,8 +1892,6 @@ int CaptionInterface::Refresh()
 		int texttoosmall=0;
 		if (height<1) {
 			texttoosmall=1;
-			//*** just draw little lines
-			//return 0;
 		}
 
 		 //draw the text
