@@ -551,7 +551,7 @@ int ViewportWindow::FindObjects(Laxkit::DoubleBBox *box, char real, char ascurob
 }
 
 /*! \fn int ViewportWindow::FindObject(int x,int y, const char *dtype, 
- *			SomeData *exclude, int start,ObjectContext **oc)
+ *			SomeData *exclude, int start,ObjectContext **oc, int searcharea)
  * \brief Iteratively find an object with whattype dtype under screen position (x,y).
  *
  * This default function does nothing but set oc to NULL and returns 0. It should be
@@ -607,7 +607,7 @@ int ViewportWindow::FindObjects(Laxkit::DoubleBBox *box, char real, char ascurob
  * current object, if it likes. 
  */
 int ViewportWindow::FindObject(int x,int y, const char *dtype, 
-					SomeData *exclude, int start,ObjectContext **oc)
+					SomeData *exclude, int start,ObjectContext **oc, int searcharea)
 {
 	if (oc) *oc=NULL;
 	return 0;

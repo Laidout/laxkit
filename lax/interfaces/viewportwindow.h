@@ -71,6 +71,24 @@ class ObjectContext
 };
 
 //---------------------------- ViewportWindow ----------------------
+
+enum SearchFlags {
+	SEARCH_None      = 0,
+
+	 //search mode
+	SEARCH_Find      = (1<<0),
+	SEARCH_Select    = (1<<1),
+
+	 //searhc criteria
+	SEARCH_Any       = (1<<2),
+	SEARCH_Visible   = (1<<3),
+	SEARCH_SameLevel = (1<<4),
+	SEARCH_SameOrUnderLevel = (1<<5),
+
+	SEARCH_MAX = 5
+};
+
+
 enum ViewportWindowActions {
 	VIEWPORT_ZoomIn=1,
 	VIEWPORT_ZoomOut,
@@ -202,7 +220,7 @@ class ViewportWindow : public Laxkit::PanUser, public Laxkit::anXWindow
 	
 	 //Object searching and selecting
 	virtual int FindObject(int x,int y, const char *dtype, 
-					SomeData *exclude, int start,ObjectContext **oc);
+					SomeData *exclude, int start,ObjectContext **oc, int searcharea=0);
 	virtual int FindObjects(Laxkit::DoubleBBox *box, char real, char ascurobj,
 							SomeData ***data_ret, ObjectContext ***c_ret);
 	virtual int SelectObject(int i);
