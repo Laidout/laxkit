@@ -75,6 +75,7 @@ class ObjectInterface : public RectInterface
 	virtual void deletedata();
 	virtual void Clear(SomeData *d=NULL);
 	virtual int UseThis(anObject *newdata,unsigned int);
+    virtual int UseThisObject(ObjectContext *oc);
 	virtual int DrawData(anObject *ndata,anObject *a1,anObject *a2,int);
 	virtual int LBDown(int x,int y,unsigned int state,int count,const Laxkit::LaxMouse *d);
 	virtual int LBUp(int x,int y,unsigned int state,const Laxkit::LaxMouse *d);

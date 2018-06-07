@@ -94,6 +94,13 @@ int ObjectInterface::UseThis(anObject *newdata,unsigned int) // assumes not use 
 	return 0;
 }
 
+int ObjectInterface::UseThisObject(ObjectContext *oc)
+{
+	if (!oc) return 0;
+	if (selection->n()) selection->Flush();
+	return AddToSelection(oc);
+}
+
 ////! Set up xaxislen, yaxislen, xdir, and ydir from somedata.
 ///*! If first==1 then the data is newly installed. Otherwise, this
 // * is called from an LBDown, and compensates for any changes made
