@@ -53,7 +53,7 @@ class ViewportWithStack : public ViewportWindow
 	
 	virtual int FindObject(int x,int y, const char *dtype, 
 						   SomeData *exclude, int start,
-						   ObjectContext **oc);
+						   ObjectContext **oc, int searcharea);
 	virtual int ChangeObject(ObjectContext *oc, int switchtool);
 	virtual int ChangeContext(int x,int y,ObjectContext **oc);
 	virtual int SelectObject(int i);

@@ -204,7 +204,7 @@ int ViewportWithStack::SelectObject(int i)
  * NULL is returned. NULL is also returned when no matches are found at all.
  */
 int ViewportWithStack::FindObject(int x,int y, const char *dtype, 
-					SomeData *exclude, int start,ObjectContext **oc)
+					SomeData *exclude, int start,ObjectContext **oc, int searcharea)
 {
 	if (datastack.n==0) {
 		if (oc) *oc=NULL;
