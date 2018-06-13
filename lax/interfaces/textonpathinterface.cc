@@ -999,8 +999,8 @@ SomeData *TextOnPath::ConvertToPaths(bool use_clones, Laxkit::RefPtrStack<SomeDa
 				}
 			}
 
+			 //make glyph outline if necessary
 			if (!outline) {
-				 //make glyph
 				//ft_error = FT_Load_Glyph(ft_faces[layer], glyph->index, FT_LOAD_NO_SCALE);
 				ft_error = FT_Load_Glyph(ft_faces[layer], glyph->index, FT_LOAD_NO_BITMAP);
 				if (ft_error != 0) continue;
@@ -1081,12 +1081,12 @@ SomeData *TextOnPath::ConvertToPaths(bool use_clones, Laxkit::RefPtrStack<SomeDa
 			} else {
 				 //add duplicate of glyph to existing overall object
 
-				if (layer>=layers.n) {
+				if (layer >= layers.n) {
 					PathsData *nlayer = dynamic_cast<PathsData*>(imanager->NewDataObject("PathsData"));
 					layers.push(nlayer);
 					nlayer->dec_count();
 
-					pobject=layers.e[layer];
+					pobject = layers.e[layer];
 					ScreenColor color;
 					if (palette) {
 						color.rgbf(
@@ -1113,12 +1113,13 @@ SomeData *TextOnPath::ConvertToPaths(bool use_clones, Laxkit::RefPtrStack<SomeDa
 					Coordinate *coord = newchar->paths.e[p]->path;
 					Coordinate *start = coord;
 
-						start=coord;
+						start = coord;
 						do {
+							coord->fp.y = -coord->fp.y;
 							coord->fp = rotate(coord->fp, glyph->rotation);
 							coord->fp += glyph->position;
 							coord = coord->next;
-						} while (coord && coord!=start);
+						} while (coord && coord != start);
 				}
 
 				 //transfer all paths from newchar to pobject
@@ -1167,12 +1168,12 @@ SomeData *TextOnPath::ConvertToPaths(bool use_clones, Laxkit::RefPtrStack<SomeDa
 	if (layers.n) {
 		for (int l=0; l<layers.n; l++) {
 			pobject = layers.e[l];
-			//pobject->m(m());
 			pobject->FindBBox();
 		}
 
 		if (layers.n==1) {
 			layers.e[0]->inc_count();
+			layers.e[0]->m(m());
 			return layers.e[0];
 		}
 
@@ -1185,6 +1186,7 @@ SomeData *TextOnPath::ConvertToPaths(bool use_clones, Laxkit::RefPtrStack<SomeDa
 		}
 
 		group->FindBBox();
+		group->m(m());
 
 		return group;
 	}
@@ -2445,7 +2447,7 @@ int TextOnPathInterface::PerformAction(int action)
 			return 0;
 		}
 
-		newdata->FlipV();
+		//newdata->FlipV();
 
 		 //add data to viewport, and select tool for it
 		ObjectContext *oc=NULL;
