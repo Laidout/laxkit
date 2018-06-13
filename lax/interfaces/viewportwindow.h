@@ -73,19 +73,21 @@ class ObjectContext
 //---------------------------- ViewportWindow ----------------------
 
 enum SearchFlags {
-	SEARCH_None      = 0,
+	SEARCH_None       = 0,
 
 	 //search mode
-	SEARCH_Find      = (1<<0),
-	SEARCH_Select    = (1<<1),
+	SEARCH_Find       = (1<<0),
+	SEARCH_Select     = (1<<1),
 
 	 //searhc criteria
-	SEARCH_Any       = (1<<2),
-	SEARCH_Visible   = (1<<3),
-	SEARCH_SameLevel = (1<<4),
+	SEARCH_Any        = (1<<2),
+	SEARCH_Visible    = (1<<3),
+	SEARCH_SameLevel  = (1<<4),
 	SEARCH_SameOrUnderLevel = (1<<5),
+	SEARCH_Children   = (1<<6),
+	SEARCH_UnderMouse = (1<<7),
 
-	SEARCH_MAX = 5
+	SEARCH_MAX = 7
 };
 
 
