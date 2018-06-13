@@ -435,11 +435,11 @@ int ObjectInterface::LBDown(int x,int y,unsigned int state,int count,const Laxki
 	DBG cerr << "  in obj lbd..";
 
 	buttondown.down(d->id,LEFTBUTTON,x,y);
-	dragmode=DRAG_NONE;
+	dragmode = DRAG_NONE;
 
 	if (data) {
 		 //there is already a selection
-		style|=RECT_OBJECT_SHUNT;
+		style |= RECT_OBJECT_SHUNT;
 		RectInterface::LBDown(x,y,state,count,d);
 
 		int curpoint;
@@ -459,8 +459,10 @@ int ObjectInterface::LBDown(int x,int y,unsigned int state,int count,const Laxki
 	if (viewport) {
 		ObjectContext *oc=NULL;
 		SomeData *obj=NULL;
-		int c=viewport->FindObject(x,y,NULL,NULL,1,&oc);
-		if (c>0) obj=oc->obj;
+		int searchcriteria = SEARCH_SameLevel;
+		int c = viewport->FindObject(x,y,NULL,NULL,1,&oc, searchcriteria);
+
+		if (c > 0) obj = oc->obj;
 		if (obj) {
 			viewport->ChangeObject(oc,0);
 			AddToSelection(oc);
