@@ -5256,16 +5256,19 @@ int EngraverFillInterface::Event(const Laxkit::EventData *e_data, const char *me
 		if (info==-2) {
 			if (id==ENGRAVE_Trace_Linear_Gradient) {
 				group->InstallTraceGradient('l', NULL, 1);
+				Trace();
 				needtodraw=1;
 				return 0;
 
 			} else if (id==ENGRAVE_Trace_Radial_Gradient) {
 				group->InstallTraceGradient('r', NULL, 1);
+				Trace();
 				needtodraw=1;
 				return 0;
 
 			} else if (id==ENGRAVE_Trace_Snapshot) {       
 				group->TraceFromSnapshot();
+				Trace();
 				needtodraw=1;
 				return 0;
 
@@ -5796,6 +5799,7 @@ int EngraverFillInterface::Event(const Laxkit::EventData *e_data, const char *me
 		} else {
 			group->Fill(edata,-1);
 			edata->Sync(false);
+			Trace();
 		}
 
 		PostMessage(group->direction->TypeName());
