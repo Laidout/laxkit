@@ -261,6 +261,14 @@ double Color::ChannelValue(int channel)
 	return values[channel];
 }
 
+/*! Some systems use value ranges outside 0 to 1, so this returns a normalized value.
+ */
+double Color::ChannelValue0To1(int channel)
+{
+	if (channel<0 || channel>=nvalues || channel>=system->primaries.n) return -1;
+	return (values[channel] - system->ChannelMinimum(channel)) / (system->ChannelMaximum(channel) - system->ChannelMinimum(channel));
+}
+
 /*! Set and return new value.
  * WARNING! This function does no validation checking against system.
  */

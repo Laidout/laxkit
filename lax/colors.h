@@ -131,6 +131,7 @@ class Color : public Laxkit::anObject, public LaxFiles::DumpUtility
 
 	virtual double NumChannels() { return nvalues; }
 	virtual double ChannelValue(int channel);
+	virtual double ChannelValue0To1(int channel);
 	virtual double ChannelValue(int channel, double newvalue);
 
 	virtual char *dump_out_simple_string();
