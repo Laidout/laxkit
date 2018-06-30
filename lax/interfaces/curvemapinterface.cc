@@ -487,17 +487,34 @@ int CurveMapInterface::scaneditable(double x,double y)
 {
 	int found=0;
 	if (x<rect.x) {
-		if (y<rect.y) found=YUnits;
-		else if (y<rect.y+rect.height/3) found=YMax;
-		else if (y>rect.y+rect.height*2/3) found=YMin;
+		if (y<rect.y) found = YUnits;
+		else if (y<rect.y+rect.height/3) found = YMax;
+		else if (y>rect.y+rect.height*2/3) found = YMin;
 
 	} else if (y>rect.y+rect.height) {
-		if (x<rect.x+rect.width*.25) found=XMin;
-		else if (x<rect.x+rect.width*.75) found=XUnits;
-		else if (x>=rect.x+rect.width*.75) found=XMax;
+		if (x<rect.x+rect.width*.25) found = XMin;
+		else if (x<rect.x+rect.width*.75) found = XUnits;
+		else if (x>=rect.x+rect.width*.75) found = XMax;
 	}
 	found=(found&editable);
+
 	return found;
+}
+
+int CurveMapInterface::scanExpandable(double x,double y)
+{
+	if (style & Expandable) {
+		if (x > rect.x + rect.width*.8 && x < rect.x + rect.width) {
+			if (y > rect.y + rect.height*.8 && y < rect.y + rect.height) return ExpandLR;
+			if (y > rect.y && y < rect.y + .2*rect.height) return ExpandUR;
+
+		} else if (x > rect.x && x < rect.x + .2*rect.width) {
+			if (y > rect.y + rect.height*.8 && y < rect.y + rect.height) return ExpandLL;
+			if (y > rect.y && y < rect.y + .2*rect.height) return ExpandUL;
+		}
+	}
+
+	return 0;
 }
 
 //! Scan for existing point, return index in curveinfo->points, or -1 for not found.
@@ -650,6 +667,11 @@ int CurveMapInterface::MouseMove(int x,int y,unsigned int state,const LaxMouse *
 		int hover = scan(xx,yy);
 		if (hover != lasthover) { lasthover=hover; needtodraw=1; }
 		DBG cerr <<"curvemap scan: "<<lasthover<<endl;
+
+		if (hover != 0) return 1;
+
+		hover = scanExpandable(xx,yy);
+		if (hover != lasthover) { lasthover=hover; needtodraw=1; }
 
 		return 1;
 	}

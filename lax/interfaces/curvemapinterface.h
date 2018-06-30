@@ -74,7 +74,12 @@ class CurveMapInterface : public anInterface
 		XMax  =(1<<2),
 		XMin  =(1<<3),
 		YUnits=(1<<4),
-		XUnits=(1<<5)
+		XUnits=(1<<5),
+		ExpandUL = -2,
+		ExpandUR = -3,
+		ExpandLL = -4,
+		ExpandLR = -5,
+		AddNear  = -6
 	};
 
 	unsigned int style;
@@ -118,6 +123,7 @@ class CurveMapInterface : public anInterface
 	virtual void ChangeEditable(unsigned int which, int on);
 	virtual void SetupRect(double x,double y,double w,double h);
 	virtual int scaneditable(double x,double y);
+	virtual int scanExpandable(double x,double y);
 	virtual int scan(double x,double y);
 	virtual int scannear(double x,double y, flatpoint *p_ret, int *index);
 	virtual int MakeLookupTable(int *table,int numentries, int minvalue, int maxvalue);
