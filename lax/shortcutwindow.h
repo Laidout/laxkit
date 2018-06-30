@@ -46,6 +46,7 @@ class ShortcutWindow : public Laxkit::RowFrame
 	unsigned long swin_style;
 	int search_type;
 	void UpdateSearch();
+
  public:
 	char *textheader;
 
