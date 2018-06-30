@@ -201,7 +201,7 @@ int ShortcutTreeSelector::CharInput(unsigned int ch, const char *buffer,int len,
 {
 
 	if (wait_for==NULL) {
-		if (ch==LAX_Bksp || ch==LAX_Del) {
+		if (isblank(searchfilter) && (ch==LAX_Bksp || ch==LAX_Del)) {
 			 // clear key from item being hovered over
 			unsigned int oldkey, oldstate;
 			MenuItem *i=item(ccuritem);
