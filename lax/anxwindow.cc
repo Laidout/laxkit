@@ -1213,15 +1213,22 @@ int anXWindow::event(XEvent *e)
 //				break;
 //			}
 
-			bool diffloc = false, diffsize = false;
+			DBG bool diffloc = false;
+			bool diffsize = false;
 
 			 // w, if unmapped, resizes are not setting w/h, why not???
 			//if (e->xconfigure.x      != win_x) { win_x = e->xconfigure.x;      diffloc  = true; }
 			//if (e->xconfigure.y      != win_y) { win_y = e->xconfigure.y;      diffloc  = true; }
 			if (e->xconfigure.width  != win_w) { W     = e->xconfigure.width;  diffsize = true; }
 			if (e->xconfigure.height != win_h) { H     = e->xconfigure.height; diffsize = true; }
-			if (X != win_x) { win_x = X; diffloc  = true; }
-			if (Y != win_y) { win_y = Y; diffloc  = true; }
+			if (X != win_x) {
+				win_x = X;
+				DBG diffloc  = true;
+			}
+			if (Y != win_y) {
+				win_y = Y;
+				DBG diffloc  = true;
+			}
 			//if (W != win_w) { W     = W; diffsize = true; }
 			//if (H != win_h) { H     = H; diffsize = true; }
 
