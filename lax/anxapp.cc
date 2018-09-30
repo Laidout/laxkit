@@ -1004,6 +1004,8 @@ int anXApp::initX(int argc,char **argv)
 						  &scr->mmheight,
 						  &scr->depth
 					   );
+		DBG cerr <<"Screen info ["<<c<<"] xywh: "<<scr->x<<','<<scr->y<<' '<<scr->width<<"x"<<scr->height
+		DBG 	 <<"  mmwh: "<<scr->mmwidth<<'x'<<scr->mmheight<<" depth: "<<scr->depth<<endl;
 		if (c != numscreens-1) { scr->next = new ScreenInformation; scr = scr->next; }
 	}
 
@@ -2273,7 +2275,8 @@ int anXApp::addwindow(anXWindow *w,char mapit,char absorb_count) // mapit==1, ab
 //			ndata[7] = (height&0xff);
 
 			Atom _net_wm_icon = XInternAtom(dpy,"_NET_WM_ICON",False);
-			int status = XChangeProperty(dpy,
+			DBG int status =
+			XChangeProperty(dpy,
 							w->xlib_window,
 							_net_wm_icon,
 							XA_CARDINAL,
