@@ -176,9 +176,9 @@ int FontScanner::Scan(int which, const char *nfile)
 
 		if (strncmp((char*)buffer, "wOFF", 4)) throw 2;
 
-		int filesize=(((((buffer[8]<<8)|buffer[9])<<8)|buffer[10])<<8)|buffer[11];
 		int numtables = (buffer[12]<<8) | buffer[13];
 
+		DBG int filesize=(((((buffer[8]<<8)|buffer[9])<<8)|buffer[10])<<8)|buffer[11];
 		DBG cerr << "file: "<<file<<endl;
 		DBG cerr << "file size: "<<filesize<<endl;
 		DBG cerr << "Num tables: "<<numtables<<endl;
@@ -314,7 +314,7 @@ int FontScanner::ScanCpal()
 	 //now cpal stored in cpalorigtable[cpal_origlen]
 	unsigned char *ptr = cpalorigtable;
 
-	int cpal_table_version = (ptr[0]<<8)|ptr[1];
+	DBG int cpal_table_version = (ptr[0]<<8)|ptr[1];
 	ptr+=2;
 
 	int num_palette_entries = (ptr[0]<<8)|ptr[1]; //per palette
@@ -323,14 +323,14 @@ int FontScanner::ScanCpal()
 	int num_palettes = (ptr[0]<<8)|ptr[1];
 	ptr+=2;
 
-	int num_colors = (ptr[0]<<8)|ptr[1];
+	DBG int num_colors = (ptr[0]<<8)|ptr[1];
 	ptr+=2;
 
 	long first_color_offset = (((((ptr[0]<<8)|ptr[1])<<8)|ptr[2])<<8)|ptr[3]; //from cpal start
 	ptr+=4; 
 
 	int palcolor_starts[num_palettes];
-	unsigned char red, green, blue, alpha;
+	DBG unsigned char red, green, blue, alpha;
 
 
 	DBG cerr <<"CPAL table version "<<cpal_table_version<<endl;
@@ -346,10 +346,12 @@ int FontScanner::ScanCpal()
 		
 		unsigned char *colors = cpalorigtable + first_color_offset + 4*palcolor_starts[c];
 		for (int c2=0; c2<num_palette_entries; c2++) { //each color is in order  b g r a
-			blue  = *colors;  colors++;
-			green = *colors;  colors++;
-			red   = *colors;  colors++;
-			alpha = *colors;  colors++;
+			DBG blue  = colors[0];
+			DBG green = colors[1];
+			DBG red   = colors[2];
+			DBG alpha = colors[3];
+
+			colors += 4;
 
 			DBG cerr << "    color "<<c2<<", rgba: "<<red<<" "<<green<<" "<<blue<<" "<<alpha<<endl;
 		}
@@ -420,7 +422,7 @@ int FontScanner::ScanColr()
 	} 
 
 	unsigned char *ptr = colrorigtable;
-	int colr_table_version = (ptr[0]<<8)|ptr[1];
+	DBG int colr_table_version = (ptr[0]<<8)|ptr[1];
 	DBG cerr <<" colr table version: "<<colr_table_version<<endl;
 	ptr+=2;
 
@@ -544,7 +546,7 @@ int FontScanner::ScanSvg()
 		 //now svg stored in char[origlen] svgorigtable
 		unsigned char *ptr = svgorigtable;
 
-		int svg_table_version = (ptr[0]<<8)|ptr[1];
+		DBG int svg_table_version = (ptr[0]<<8)|ptr[1];
 		ptr+=2;
 
 		DBG cerr <<" svg table version: "<<svg_table_version<<endl;
