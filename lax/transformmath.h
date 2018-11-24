@@ -114,6 +114,9 @@ class AffineStack : public Affine
 	virtual int NumAxes() const { return axesstack.n; } //num stored axes, not including current _m
 	virtual int GetAxes(int which, double *mm);
 	virtual int PushAxes();
+	virtual int PushAndNewAxes(const double *m);
+	virtual int PushAndNewAxes(const Affine &m);
+	virtual int PushAndNewAxes(double a,double b,double c,double d,double x0,double y0);
 	virtual int PopAxes(double *m_ret=NULL);
 	virtual void ClearAxes();
 };

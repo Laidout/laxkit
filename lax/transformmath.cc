@@ -528,9 +528,45 @@ int AffineStack::PushAxes()
 	return axesstack.n;
 }
 
+/*! Return value is how many levels in axesstack after pushing.
+ */
+int AffineStack::PushAndNewAxes(const double *m)
+{
+    double *tctm=new double[6];
+    transform_copy(tctm,_m);
+    axesstack.push(tctm,2);
+	transform_copy(_m, m);
+
+	return axesstack.n;
+}
+
+/*! Return value is how many levels in axesstack after pushing.
+ */
+int AffineStack::PushAndNewAxes(const Affine &m)
+{
+    double *tctm=new double[6];
+    transform_copy(tctm,_m);
+    axesstack.push(tctm,2);
+	transform_copy(_m, m.m());
+
+	return axesstack.n;
+}
+
+/*! Return value is how many levels in axesstack after pushing.
+ */
+int AffineStack::PushAndNewAxes(double a,double b,double c,double d,double x0,double y0)
+{
+    double *tctm=new double[6];
+    transform_copy(tctm,_m);
+    axesstack.push(tctm,2);
+	m(a,b,c,d,x0,y0);
+
+	return axesstack.n;
+}
+
 /*! Return value is how many levels still in axesstack after popping.
  * 
- * If m_ret!=NULL, then return the discarded array.
+ * If m_ret!=NULL, then copy the popped values into an already allocated m_ret.
  */
 int AffineStack::PopAxes(double *m_ret)
 {
@@ -544,6 +580,8 @@ int AffineStack::PopAxes(double *m_ret)
 	return axesstack.n;
 }
 
+/*! Flush the stack, and set ourselves to identity.
+ */
 void AffineStack::ClearAxes()
 {
 	axesstack.flush();
