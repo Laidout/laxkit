@@ -842,7 +842,7 @@ void ResourceManager::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::D
 			type=FindType(value);
 			if (!type) type=AddResourceType(value,value,NULL,NULL);
 
-			for (int c2=0; c2<att->attributes.n; c2++) {
+			for (int c2=0; c2<att->attributes.e[c]->attributes.n; c2++) {
 				name= att->attributes.e[c]->attributes.e[c2]->name;
 				value=att->attributes.e[c]->attributes.e[c2]->value;
 
