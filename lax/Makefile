@@ -63,7 +63,7 @@ LDFLAGS= -L/usr/X11R6/lib -lX11 -lm  -lpng
 #FPIC=
 FPIC= -fPIC
 
-CPPFLAGS= $(OPTIMIZATION) $(EXTRAS) $(DEBUGFLAGS) $(FPIC) -I$(LAXDIR)/.. -I/usr/X11R6/include -Wall `freetype-config --cflags`
+CPPFLAGS= $(OPTIMIZATION) $(EXTRAS) $(DEBUGFLAGS) $(FPIC) -I$(LAXDIR)/.. -I/usr/X11R6/include -Wall `pkg-config --cflags freetype2`
 
 
 

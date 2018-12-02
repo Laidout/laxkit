@@ -17,7 +17,7 @@ DEBUGFLAGS= -g -gdwarf-2
 #FPIC=
 FPIC= -fPIC
 
-CPPFLAGS= $(OPTIMIZATION) $(EXTRAS) $(DEBUGFLAGS) $(FPIC) -I$(LAXDIR)/.. `freetype-config --cflags` -Wall
+CPPFLAGS= $(OPTIMIZATION) $(EXTRAS) $(DEBUGFLAGS) $(FPIC) -I$(LAXDIR)/.. `pkg-config --cflags freetype2` -Wall
 
 
 objs= \
