@@ -273,7 +273,7 @@ Drawable aDrawable::xlibDrawable(int which)
  *
  * This function is called during processing of the delete protocol
  */
-/*! \fn int anXWindow::MouseMove(int x,int y,unsigned int state)
+/*! \fn int anXWindow::MouseMove(int x,int y,unsigned int state, const LaxMouse *m)
  * \brief Empty placeholder, just returns 1.
  */
 /*! \fn unsigned long anXWindow::win_owner
