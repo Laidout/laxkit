@@ -26,6 +26,7 @@ using namespace std;
 #define DBG 
 
 #include <lax/laxutils.h>
+#include <lax/screeninformation.h>
 
 namespace Laxkit {
 
@@ -72,7 +73,7 @@ ToolTip::ToolTip(const char *newtext,int mouse)
 	thetext=new char[strlen(newtext)+1];
 	strcpy(thetext,newtext);
 
-	 // Automatically find w,h
+	 // Automatically wrap win_w,win_h to text extents
 	int nl=0,t;
 	win_w=0;
 	int c=0,c2=0;
@@ -86,15 +87,19 @@ ToolTip::ToolTip(const char *newtext,int mouse)
 		if (thetext[c]!='\0') c++;
 	}
 	DBG cerr <<"Tooltip:  nl="<<nl<<endl;
-	textheight=app->defaultlaxfont->textheight();
-	win_w+=app->default_padx*2;
-	win_h =app->default_pady*2 + nl*textheight;
+	textheight = app->defaultlaxfont->textheight();
+	win_w += app->default_padx*2;
+	win_h  = app->default_pady*2 + nl*textheight;
 
-	 // Automatically find x,y
-	int rx=0,ry=0;
-	if (mouse_id>0) mouseposition(mouse_id, NULL, &rx,&ry, NULL,NULL);
-	if (rx-win_w<0) win_x=rx; else win_x=rx-win_w;
-	if (ry-(1+nl)*textheight<0) win_y=ry+32; else win_y=ry-(1+nl)*textheight;
+	 // Automatically place so it is near but not on mouse, and contained in a monitor
+	int rx = 0, ry = 0, scx = 0, scy = 0;
+	ScreenInformation *scr = NULL;
+	if (mouse_id > 0) {
+		mouseposition(mouse_id, NULL, &rx,&ry, NULL,NULL, NULL, &scr);
+		if (scr != NULL) { scx = scr->x; scy = scr->y; }
+	}
+	if (rx-win_w < scx) win_x = rx + textheight; else win_x = rx-win_w;
+	if (ry-(1+nl)*textheight < scy) win_y = ry+textheight; else win_y = ry-(1+nl)*textheight;
 	
 	c=strlen(thetext)-20;
 	if (c<0) c=0;
