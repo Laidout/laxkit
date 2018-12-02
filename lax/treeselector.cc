@@ -2449,8 +2449,12 @@ int TreeSelector::WrapToPosition(int screen_x, int screen_y, int screen, anXWind
 	int px,py,     // what will be the window x,y
 		ew=0,eh=0; // extent of wrapped window
 	int screen_width,screen_height;
-	int x=screen_x, y=screen_y;
-	app->ScreenInfo(screen, NULL,NULL, &screen_width, &screen_height, NULL,NULL,NULL, NULL);
+	int x = screen_x, y = screen_y, scrx, scry;
+	ScreenInformation *scr = app->FindNearestMonitor(screen, screen_x, screen_y);
+	scrx = scr->x;
+	scry = scr->y;
+	screen_width = scr->width;
+	screen_height= scr->height;
 
 	 // -----find extent: ew,eh *** this only finds the text extent
 	if (textheight==0) textheight=app->defaultlaxfont->textheight();
@@ -2502,16 +2506,17 @@ int TreeSelector::WrapToPosition(int screen_x, int screen_y, int screen, anXWind
 	y -= textheight/2;
 
 	 // ------find placement of popup px,py based on ew,eh, x,y
-	int arrowwidth=15; // the amount aside from the pointer to shift to
+	int arrowwidth = 15; // the amount aside from the pointer to shift to
 	 // first set horizontal:
 	 // Try to put popup to left of x,y, which are now in screen coords
 	 // set x:
-	if (x-arrowwidth-ew>0) { // popup fits to the left
-		px=x-arrowwidth-ew;
+	if (x-arrowwidth-ew > scrx) { // popup fits to the left
+		px = x-arrowwidth-ew;
 	} else { //put popup at right
-		px=x+arrowwidth;
-		if (px+ew>(int)screen_width) px=screen_width-ew;
+		px = x+arrowwidth;
+		if (px+ew > scrx + screen_width) px = scrx + screen_width - ew; //put up against right side of screen
 	}
+
 	 // then set vertical: hopefully with item centered at y
 	 // also find out offset necessary to put the currently selected item near the mouse
 	int ypref;
@@ -2519,29 +2524,29 @@ int TreeSelector::WrapToPosition(int screen_x, int screen_y, int screen, anXWind
 	MenuItem *curi = item(curitem);
 	ypref = (curi ? curi->y : 0);
 
-	if (eh>(int)screen_height) eh=screen_height;
-	if (y-ypref+eh>(int)screen_height-2) { // window goes offscreen below when centered on curitem
-		py=screen_height-eh-2;
+	if (eh > (int)screen_height) eh = screen_height;
+	if (y-ypref+eh > scry + (int)screen_height-2) { // window goes offscreen below when centered on curitem
+		py = scry + screen_height-eh-2;
 		//extrapad=y-py-ypref;
-	} else if (y-ypref<0) { // window goes offscreen top when centered on curitem
-		py=0;
+	} else if (y-ypref < scry) { // window goes offscreen top when centered on curitem
+		py = scry;
 		//extrapad=y-ypref-py;
 	} else { // popup fits vertically just fine
-		py=y-ypref;
+		py = y-ypref;
 	}
 
 	 // Move window horizontally to be near right edge of window if possible
 	if (onedgeofthis) {
-		int wx=onedgeofthis->win_x;
-		//int wy=onedgeofthis->win_y;
-		int bd=onedgeofthis->win_border;
-		unsigned int ww=onedgeofthis->win_w;
-		//unsigned int wh=onedgeofthis->win_h;
+		int wx = onedgeofthis->win_x;
+		//int wy = onedgeofthis->win_y;
+		int bd = onedgeofthis->win_border;
+		unsigned int ww = onedgeofthis->win_w;
+		//unsigned int wh = onedgeofthis->win_h;
 
-		px=wx+ww+bd;
-		if (px+ew>(int)screen_width) {
-			px=wx-bd-ew;
-			if (px<0) px=0;
+		px = wx+ww+bd;
+		if (px+ew > (int)screen_width) {
+			px = wx-bd-ew;
+			if (px<0) px = 0;
 		}
 	}
 	
