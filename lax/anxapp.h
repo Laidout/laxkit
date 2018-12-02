@@ -299,24 +299,6 @@ struct TimerInfo
 	void Update(int next, int duration);
 };
 
-//--------------------------- ScreenInformation -------------------------------
-class ScreenInformation
-{
-  public:
-	int screen; //screen number
-	int x,y, width,height;
-	int mmwidth,mmheight;
-	int depth;
-	int virtualscreen; //id of virtual screen, if screen is part of a larger setup
-
-	ScreenInformation *next;
-
-	ScreenInformation() { next = NULL; }
-	~ScreenInformation() { if (next) delete next; }
-	int HowMany() { return 1 + (next ? next->HowMany() : 0); }
-	ScreenInformation *Get(int i) { if (i==0) return this; else { if (next && i>0) return next->Get(i-1); else return NULL; } }
-};
-
 //---------------------------- anXApp --------------------------------------
 class anXApp : virtual public anObject
 {
@@ -332,7 +314,8 @@ class anXApp : virtual public anObject
 	char              donotusex;
 	char              use_xinput;
 	Display          *dpy;
-	int               screen;
+	//int               screen;
+	//int               default_vscreen;
 	Visual           *vis;
 	Window            bump_xid;
 
@@ -460,7 +443,7 @@ class anXApp : virtual public anObject
 	virtual int AppResource(LaxFiles::Attribute *resource);
 	virtual int DefaultIcon(const char *file);
 	virtual int DefaultIcon(LaxImage *image, int absorb_count);
-	virtual int ScreenInfo(int screen,int *x,int *y, int *width,int *height,int *mmwidth,int *mmheight,int *depth,int *virt);
+	virtual int ScreenInfo(int screen,int *x,int *y, int *width,int *height,int *mmwidth,int *mmheight,int *depth,int *monitor);
 	virtual const char *Locale() const { return default_language; }
 	virtual void Locale(const char *);
 
@@ -481,6 +464,10 @@ class anXApp : virtual public anObject
 	virtual int setfocus(anXWindow *win,clock_t t=0,const LaxKeyboard *kb=NULL);
 	virtual int destroywindow(anXWindow *w);
 	virtual int ClearTransients(anXWindow *w);
+
+	 //system level queries
+	virtual void RefreshScreenInfo();
+	virtual ScreenInformation *FindNearestMonitor(int screen, double x, double y);
 
 	 //drag-n-drop, cutting and pasting helpers
 	virtual void postmessage(const char *str);

@@ -261,21 +261,21 @@ int mouseisin(int mouse_id, anXWindow *win)
  *
  * If mouse_id==0, then find for a default mouse.
  */
-int mouseposition(int mouse_id, anXWindow *win, int *x, int *y, unsigned int *state,anXWindow **child,int *screen)//child=NULL
+int mouseposition(int mouse_id, anXWindow *win, int *x, int *y, unsigned int *state,anXWindow **child,int *screen, ScreenInformation **monitor)//child=NULL
 {
 	if (win && !win->win_on) return 1;
 	
-	LaxMouse *mouse=anXApp::app->devicemanager->findMouse(mouse_id);
+	LaxMouse *mouse = anXApp::app->devicemanager->findMouse(mouse_id);
 	if (!mouse) return 2;
 
 	double xx,yy;
 	unsigned int mods;
-	int er=mouse->getInfo(win, screen, child, &xx,&yy, &mods, NULL, NULL, NULL);
-	if (er!=0) return 3;
+	int er = mouse->getInfo(win, screen, child, &xx,&yy, &mods, NULL, NULL, NULL, monitor);
+	if (er != 0) return 3;
 
-	if (state) *state=mods;
-	if (x) *x=xx;
-	if (y) *y=yy;
+	if (state) *state = mods;
+	if (x) *x = xx;
+	if (y) *y = yy;
 	
 	return 0;
 }

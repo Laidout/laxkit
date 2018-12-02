@@ -247,7 +247,7 @@ int PressureMapInterface::MouseMove(int x,int y,unsigned int state, const Laxkit
 	if (!buttondown.any()) return 1;
 
 	double pressure, tiltx,tilty;
-	const_cast<LaxMouse*>(d)->getInfo(NULL,NULL,NULL,NULL,NULL,NULL,&pressure,&tiltx,&tilty);
+	const_cast<LaxMouse*>(d)->getInfo(NULL,NULL,NULL,NULL,NULL,NULL,&pressure,&tiltx,&tilty,NULL);
 
 	int i=pressure*100;
 	if (i<0) i=0;

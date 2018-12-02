@@ -361,7 +361,7 @@ int FreehandInterface::MouseMove(int x,int y,unsigned int state, const Laxkit::L
 	RawPoint *pp=new RawPoint(p);
 
 	double xx,yy;
-	const_cast<LaxMouse*>(d)->getInfo(NULL,NULL,NULL,&xx,&yy,NULL,&pp->pressure,&pp->tiltx,&pp->tilty);
+	const_cast<LaxMouse*>(d)->getInfo(NULL,NULL,NULL,&xx,&yy,NULL,&pp->pressure,&pp->tiltx,&pp->tilty,NULL);
 
 	pp->time=times(NULL);
 	p=dp->screentoreal(xx,yy);

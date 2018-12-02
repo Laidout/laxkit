@@ -36,6 +36,7 @@
 
 #include <lax/events.h>
 #include <lax/lists.h>
+#include <lax/screeninformation.h>
 
 namespace Laxkit {
 
@@ -119,7 +120,8 @@ class LaxMouse : public LaxDevice
 	virtual int getInfo(anXWindow *win,
 						int *screen, anXWindow **child,
 						double *x, double *y, unsigned int *mods,
-						double *pressure, double *tiltx, double *tilty)=0;
+						double *pressure, double *tiltx, double *tilty,
+						ScreenInformation **screenInfo) = 0;
 	virtual int Pressure();
 	virtual int TiltX();
 	virtual int TiltY();
@@ -188,7 +190,8 @@ class CoreXlibPointer : public LaxMouse
 	virtual int getInfo(anXWindow *win,
 						int *screen, anXWindow **child,
 						double *x, double *y, unsigned int *mods,
-						double *pressure, double *tiltx, double *tilty);
+						double *pressure, double *tiltx, double *tilty,
+						ScreenInformation **screenInfo);
 };
 
 //------------------------------------- CoreXlibKeyboard -----------------------------------
@@ -226,7 +229,8 @@ class XInput2Pointer : public LaxMouse
 	virtual int getInfo(anXWindow *win,
 						int *screen, anXWindow **child,
 						double *x, double *y, unsigned int *mods,
-						double *pressure, double *tiltx, double *tilty);
+						double *pressure, double *tiltx, double *tilty,
+						ScreenInformation **screenInfo);
 };
 
 

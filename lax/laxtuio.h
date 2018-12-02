@@ -51,7 +51,7 @@ class TouchObject : public LaxMouse
 	virtual int getInfo(anXWindow *win,
 						int *screen, anXWindow **child,
 						double *x, double *y, unsigned int *mods,
-						double *pressure, double *tiltx, double *tilty);
+						double *pressure, double *tiltx, double *tilty, ScreenInformation **screenInfo);
 	virtual int Set(double xx,double yy,double xxv,double yyv,double aa);
 };
 

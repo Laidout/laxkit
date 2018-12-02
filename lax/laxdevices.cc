@@ -570,7 +570,7 @@ int CoreXlibPointer::grabDevice(anXWindow *win)
 int CoreXlibPointer::getInfo(anXWindow *win,
 							 int *screen, anXWindow **child,
 							 double *x, double *y, unsigned int *mods,
-							 double *pressure, double *tiltx, double *tilty) //extra goodies
+							 double *pressure, double *tiltx, double *tilty, ScreenInformation **screenInfo) //extra goodies
 {
 	Window rt=0,chld=0, xwin=0;
 	int rx,ry,xx,yy;
@@ -1172,7 +1172,7 @@ int XInput2Pointer::grabDevice(anXWindow *win)
 int XInput2Pointer::getInfo(anXWindow *win,
 							 int *screen, anXWindow **child,
 							 double *x, double *y, unsigned int *mods,
-							 double *pressure, double *tiltx, double *tilty) //extra goodies
+							 double *pressure, double *tiltx, double *tilty, ScreenInformation **screenInfo) //extra goodies
 {
 	Window xwin=0;
 	if (win)   xwin=win->xlib_window;
@@ -1184,7 +1184,8 @@ int XInput2Pointer::getInfo(anXWindow *win,
 	XIButtonState buttonstate; //these are structs...
 	XIModifierState modstate;
 	XIGroupState groupstate;
-	Bool er=XIQueryPointer(
+
+	Bool er = XIQueryPointer(
 			anXApp::app->dpy,//    Display*            display,
 			xid,             //    int                 deviceid,
 			xwin,            //    Window              win,
@@ -1198,10 +1199,11 @@ int XInput2Pointer::getInfo(anXWindow *win,
 			&modstate,       //    XIModifierState     *mods,
 			&groupstate      //    XIGroupState        *group
 		);
-	if (er==False && !win) { //we are looking for root window coords, but don't know the root window...
+
+	if (er == False && !win) { //we are looking for root window coords, but don't know the root window...
 		 //requery using root of screen mouse is actually in, 
 		 //rather than our guess of DefaultRootWindow
-		er=XIQueryPointer(
+		er = XIQueryPointer(
 			anXApp::app->dpy,//    Display*            display,
 			xid,             //    int                 deviceid,
 			rt,              //    Window              win,
@@ -1216,14 +1218,23 @@ int XInput2Pointer::getInfo(anXWindow *win,
 			&groupstate      //    XIGroupState        *group
 		);
 	}
-	if (screen) {
-		int numscreens=ScreenCount(anXApp::app->dpy);
+
+	int screen_num = -1;
+	if (screen || screenInfo) {
+		int numscreens = ScreenCount(anXApp::app->dpy);
 		int c;
-		for (c=0; c<numscreens; c++) 
-			if (rt==RootWindow(anXApp::app->dpy,c)) { *screen=c; break; }
+		for (c=0; c<numscreens; c++) if (rt == RootWindow(anXApp::app->dpy,c)) { screen_num = c; break; }
 		//if (c==numscreens) ; --->  hopefully this never happens!!
+		
+		if (screenInfo) {
+			//find monitor nearest to rx,ry
+			*screenInfo = anXApp::app->FindNearestMonitor(screen_num, drx, dry);
+		}
+
+		if (screen) *screen = screen_num;
 	}
-	if (er==False) return 1;
+
+	if (er == False) return 1;
 
 	if (child) {
 		 //we need to zero in on the actual child window

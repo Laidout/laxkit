@@ -2267,7 +2267,7 @@ int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit
 			int recachewhich; //1 for thickness change, 2 for blockout change, 4 for position change
 			
 			double pressure=1;
-			const_cast<LaxMouse*>(mouse)->getInfo(NULL,NULL,NULL,NULL,NULL,NULL,&pressure,NULL,NULL); //final 2 are tiltx and tilty
+			const_cast<LaxMouse*>(mouse)->getInfo(NULL,NULL,NULL,NULL,NULL,NULL,&pressure,NULL,NULL,NULL); //final 2 are tiltx, tilty, scrinfo
 
 			for (int o=0; o<selection->n(); o++) {
 				obj=dynamic_cast<EngraverFillData *>(selection->e(o)->obj);

@@ -80,9 +80,9 @@ void set_color_shift_info(unsigned int rm, unsigned int gm, unsigned int bm, uns
 
  //mouse and coordinate utilities
 int translate_window_coordinates(anXWindow *from, int x, int y, anXWindow *to, int *xx, int *yy, anXWindow **kid);
-int mouseposition(int mouse_id, anXWindow *win, int *x, int *y, unsigned int *state,anXWindow **child,int *screen=NULL);
+int mouseposition(int mouse_id, anXWindow *win, int *x, int *y, unsigned int *state,anXWindow **child,int *screen=NULL, ScreenInformation **monitor=NULL);
 //Window xouseposition(XID mouse_id, int *x, int *y, unsigned int *state,anXWindow **child,Window *childw);
-int mouseisin(XID mouse_id, anXWindow *win);
+int mouseisin(int mouse_id, anXWindow *win);
 unsigned long screen_color_at_mouse(int mouse_id);
 
 

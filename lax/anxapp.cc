@@ -28,6 +28,8 @@
 #include <cerrno>
 
 
+#include <lax/configured.h>
+
 
 #ifdef _LAX_PLATFORM_XLIB
 
@@ -35,6 +37,7 @@
 #define XK_XKB_KEYS
 #include <X11/Xatom.h>
 #include <X11/keysymdef.h>
+#include <X11/extensions/Xrandr.h>
 
 #ifdef LAX_USES_XINPUT2
 #include <X11/extensions/XI2.h>
@@ -48,8 +51,6 @@
 #endif
 #endif //_LAX_PLATFORM_XLIB
 
-
-#include <lax/configured.h>
 
 
 //-------backends---------
@@ -99,7 +100,6 @@ using namespace std;
  * *** readup window classes and imp as per said guidelines
  * *** support for joysticks, wiimotes, tuio, osc, other
  * *** gl, fontconfig/freetype support?
- * *** multiple screen support
  * *** be able to ensure some degree of thread safety
  * 
  * *** WM_ICON_NAME, XGetIconSizes, ...
@@ -348,10 +348,12 @@ int TimerInfo::checktime(clock_t tm)
 	return t;
 }
 
+
 //-------------------------- aDrawable ----------------------------------------
 /*! \class aDrawable
  * \brief Class to facilitate various double buffer and in-memory pixmap rendering.
  */
+
 
 //------------------------------------ anXApp -----------------------------------
 
@@ -490,9 +492,6 @@ anXApp *anXApp::app=NULL;
  * to something before init() is called. In init(), getlaxrc(NULL,app_profile) is called, in
  * order to try to grab any further profile values from the laxrc file if any.
  */
-/*! \var int anXApp::screen
- * \brief The default screen for dpy, the X connection.
- */
 /*! \var ScreenInformation *anXApp::screeninfo
  * \brief X, y, Width, height, width in mm, height in mm, and depth of each available screen.
  */
@@ -541,6 +540,10 @@ anXApp *anXApp::app=NULL;
  * some specific language. Otherwise, uses the current language settings
  * for your environment.
  */
+/*! \var int anXApp::screen
+ * \brief The default screen for dpy, the X connection.
+ */
+
 
 //! Constructor. Sets anXApp::app==this.
 /*! Sets load_dir and save_dir to the current directory.
@@ -576,7 +579,7 @@ anXApp::anXApp()
 
 	default_language=newstr("");
 
-	screen=0;
+	//screen=0;
 
 	 //base default styling
 	color_panel=color_menu=color_edits=color_buttons=NULL; //these are initialized in init()
@@ -986,30 +989,10 @@ int anXApp::initX(int argc,char **argv)
 		exit(1); 
 	}
 
-	screen = DefaultScreen(dpy);
-	int numscreens = XScreenCount(dpy);
-	if (screeninfo) delete screeninfo;
+	//screen = DefaultScreen(dpy);
+	RefreshScreenInfo();
 
-	screeninfo = new ScreenInformation;
-	ScreenInformation *scr = screeninfo;
-
-	for (int c=0; c<numscreens; c++) {
-		scr->screen = c;
-		scr->virtualscreen = -1;
-		xlib_ScreenInfo(c,&scr->x,
-						  &scr->y,
-						  &scr->width,
-						  &scr->height,
-						  &scr->mmwidth,
-						  &scr->mmheight,
-						  &scr->depth
-					   );
-		DBG cerr <<"Screen info ["<<c<<"] xywh: "<<scr->x<<','<<scr->y<<' '<<scr->width<<"x"<<scr->height
-		DBG 	 <<"  mmwh: "<<scr->mmwidth<<'x'<<scr->mmheight<<" depth: "<<scr->depth<<endl;
-		if (c != numscreens-1) { scr->next = new ScreenInformation; scr = scr->next; }
-	}
-
-	vis = DefaultVisual(dpy,screen);
+	vis = DefaultVisual(dpy,DefaultScreen(dpy));
 	if (vis->c_class != DirectColor && vis->c_class != TrueColor) {
 		cerr << "This program must be run with TrueColor or DirectColor.\n";
 		exit(1);
@@ -1241,6 +1224,8 @@ int anXApp::DefaultIcon(LaxImage *image, int absorb_count)
  */
 int anXApp::xlib_ScreenInfo(int screen,int *x, int *y, int *width,int *height,int *mmwidth,int *mmheight,int *depth)
 {
+	cerr <<"xlib_ScreenInfo() DEPRECATED"<<endl;
+
 	Window root = RootWindow(dpy,screen);
 	Window rootret;
 	int xx,yy;
@@ -1256,7 +1241,77 @@ int anXApp::xlib_ScreenInfo(int screen,int *x, int *y, int *width,int *height,in
 	if (mmheight) { *mmwidth = DisplayHeightMM(dpy,screen); n++; }
 	return n;
 }
+
 #endif //_LAX_PLATFORM_XLIB
+
+/*! Delete any old screeninfo, and repopulate with current monitor configurations.
+ * Uses Xrandr extension.
+ */
+void anXApp::RefreshScreenInfo()
+{
+	if (screeninfo) delete screeninfo;
+	screeninfo = NULL;
+
+#ifdef _LAX_PLATFORM_XLIB
+	int numscreens = XScreenCount(dpy);
+
+	ScreenInformation *sinfo = NULL;
+	int i=0;
+    for (int c=0; c<numscreens; c++) {
+
+		int n=0;
+		XRRMonitorInfo *monitors = XRRGetMonitors(dpy, RootWindow(dpy,c), false, &n);
+		if (n == -1) {
+			DBG cerr << "get monitors failed for screen "<<c<<"!!\n";
+			continue;
+		}
+
+		for (int c2=0; c2<n; c2++) {
+
+			if (sinfo == NULL) {
+				screeninfo = sinfo = new ScreenInformation;
+			} else {
+				sinfo->next = new ScreenInformation();
+				sinfo = sinfo->next;
+			}
+
+			char *str = XGetAtomName(dpy, monitors[c2].name);
+			DBG cerr << "Monitor " << str<<endl
+				<<"  screen: "<<c
+				<<"  primary: "<<(monitors[c2].primary ? "yes" : "no")<< endl
+				<<"  x     :  "<<monitors[c2].x<<endl
+				<<"  y     :  "<<monitors[c2].y      <<endl
+				<<"  width :  "<<monitors[c2].width  <<endl
+				<<"  height:  "<<monitors[c2].height <<endl
+				<<"  mwidth:  "<<monitors[c2].mwidth <<endl
+				<<"  mheigh:  "<<monitors[c2].mheight<<endl
+				<<"  noutputs:"<<monitors[c2].noutput<<endl
+				;
+
+			sinfo->name    = newstr(str);
+			sinfo->screen  = c;
+			sinfo->monitor = i;
+			sinfo->x       = monitors[c2].x;
+			sinfo->y       = monitors[c2].y      ;
+			sinfo->width   = monitors[c2].width  ;
+			sinfo->height  = monitors[c2].height ;
+			sinfo->mmwidth = monitors[c2].mwidth ;
+			sinfo->mmheight= monitors[c2].mheight;
+			sinfo->primary = monitors[c2].primary;
+			sinfo->depth   = -1;
+
+			XFree(str);
+
+			i++;
+		}
+		// not really sure if monitors need to be XFree'd, but trying anyway
+		XFree(monitors);
+    }
+#endif //_LAX_PLATFORM_XLIB
+}
+
+
+
 
 //! Return information about a screen, based on information in screeninfo which gets defined in init().
 /*! Return the width, height, and depth information about a screen, if the
@@ -1265,7 +1320,7 @@ int anXApp::xlib_ScreenInfo(int screen,int *x, int *y, int *width,int *height,in
  *
  * Return how many of the requested variables were found (this is 0 for none found).
  */
-int anXApp::ScreenInfo(int screen,int *x,int *y, int *width,int *height,int *mmwidth,int *mmheight,int *depth,int *virt)
+int anXApp::ScreenInfo(int screen,int *x,int *y, int *width,int *height,int *mmwidth,int *mmheight,int *depth, int *monitor)
 {
 	if (!screeninfo || screen<0 || screen >= screeninfo->HowMany()) return 0;
 	ScreenInformation *scr = screeninfo->Get(screen);
@@ -1278,9 +1333,32 @@ int anXApp::ScreenInfo(int screen,int *x,int *y, int *width,int *height,int *mmw
 	if (mmwidth) { *mmwidth = scr->mmwidth;  n++; }
 	if (mmheight){ *mmheight= scr->mmheight; n++; }
 	if (depth)   { *depth   = scr->depth;    n++; }
-	if (virt)    { *virt    = scr->virtualscreen; n++; }
+	if (monitor) { *monitor = scr->monitor;  n++; }
 
 	return n;
+}
+
+/*! Return the monitor closest to root coordinates x,y on screen. If the mouse is not actually in any monitor for this
+ * screen, then return the one it's nearest to.
+ */
+ScreenInformation *anXApp::FindNearestMonitor(int screen, double x, double y)
+{
+	ScreenInformation *nearest = NULL;
+	//double d = 1000000;
+
+	for (ScreenInformation *scr = screeninfo; scr; scr = scr->next)
+	{
+		if (screen != scr->screen) continue;
+		if (x >= scr->x && x <= scr->x + scr->width && y >= scr->y && y <= scr->y + scr->height) {
+			//is actually in screen. Done!
+			return scr;
+		}
+
+		// *** to do it right needs distance to rectangle, an irritating thing to compute
+		if (nearest == nullptr) nearest = scr;
+	}
+
+	return nearest;
 }
 
 #ifdef _LAX_PLATFORM_XLIB
@@ -2059,10 +2137,11 @@ int anXApp::addwindow(anXWindow *w,char mapit,char absorb_count) // mapit==1, ab
 	if (w->win_style&ANXWIN_CENTER) {
 		DBG cerr << "addwindow: Centering "<<w->WindowTitle()<<endl;
 		if (!w->win_parent) {
-			if (!sizehints) sizehints=XAllocSizeHints();
-			Screen *scr=DefaultScreenOfDisplay(dpy);
-			w->win_x=(scr->width-w->win_w)/2;
-			w->win_y=(scr->height-w->win_h)/2;
+			if (!sizehints) sizehints = XAllocSizeHints();
+			Screen *scr = DefaultScreenOfDisplay(dpy);
+			w->win_x = (scr->width-w->win_w)/2;
+			w->win_y = (scr->height-w->win_h)/2;
+
 			if (sizehints) {
 				DBG cerr <<"doingwin_sizehintsfor"<<w->WindowTitle()<<endl;
 				// The initial x and y become the upper left corner of the window
@@ -2083,16 +2162,16 @@ int anXApp::addwindow(anXWindow *w,char mapit,char absorb_count) // mapit==1, ab
 		if (!sizehints) sizehints=XAllocSizeHints();
 		Screen *scr=DefaultScreenOfDisplay(dpy);
 
-		if (w->win_x>scr->width) w->win_x=scr->width-10;
-		else if (w->win_x+w->win_w<0) w->win_x=10-w->win_w;
-		if (w->win_y>scr->height) w->win_y=scr->height-10;
-		else if (w->win_y+w->win_h<0) w->win_y=10-w->win_h;
+		if (w->win_x > scr->width) w->win_x = scr->width-10;
+		else if (w->win_x+w->win_w < 0) w->win_x = 10-w->win_w;
+		if (w->win_y > scr->height) w->win_y = scr->height-10;
+		else if (w->win_y+w->win_h < 0) w->win_y = 10-w->win_h;
 
-		sizehints->x=w->win_x;
-		sizehints->y=w->win_y;
-		sizehints->width=w->win_w;
-		sizehints->height=w->win_h;
-		sizehints->flags|=USPosition|USSize;
+		sizehints->x = w->win_x;
+		sizehints->y = w->win_y;
+		sizehints->width = w->win_w;
+		sizehints->height = w->win_h;
+		sizehints->flags |= USPosition|USSize;
 	}
 	
 	DBG cerr << "addwindow::create:"<<w->WindowTitle()<<"  x,y:"<<w->win_x<<','<<w->win_y<<"  w,h:"<<w->win_w<<','<<w->win_h<<endl;
