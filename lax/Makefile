@@ -102,6 +102,7 @@ objs= \
 	resources.o \
 	objectfactory.o \
 	themes.o \
+	screeninformation.o \
 	anxapp.o \
 	anxapp-laxrc.o \
 	laxoptions.o \
