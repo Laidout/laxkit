@@ -15,7 +15,6 @@
 //for sysconf(_SC_CLK_TCK):
 #include <unistd.h>
 
-
 #include <iostream>
 using namespace std;
 using namespace Laxkit;
@@ -39,11 +38,12 @@ class Win : public anXWindow
     virtual int CharInput(unsigned int ch, const char *buffer,int len,unsigned int state, const LaxKeyboard *kb);
 
 	void Update(int frames_to_advance);
+
 };
 
 
 Win::Win(double time_step_seconds)
-    :anXWindow(NULL,"win","win",ANXWIN_ESCAPABLE|ANXWIN_DOUBLEBUFFER, 400,100,350,300,0, NULL,0,NULL)
+    :anXWindow(NULL,"win","win",ANXWIN_ESCAPABLE|ANXWIN_DOUBLEBUFFER, 400,200,350,300,0, NULL,0,NULL)
 {
     scale      = (win_w<win_h?win_w:win_h) /4;
     angle      = 0;
@@ -163,10 +163,11 @@ void Win::Refresh()
 	dp->drawpoint(win_w*pos, win_h*pos, 10, 1);
 
 
-
     SwapBuffers();
     needtodraw=0;
 }
+
+
 
 int main(int argc,char **argv)
 {
