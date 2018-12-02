@@ -255,7 +255,7 @@ int LaxCairoImage::doneWithBuffer(unsigned char *bbuffer)
 	cairo_format_t format=cairo_image_surface_get_format(image);
 
 	if (format==CAIRO_FORMAT_ARGB32 || format==CAIRO_FORMAT_RGB24) {
-		cerr <<"*** need to correctly apply premultiplied in cairo image / buffer exchange"<<endl;
+		//DBG cerr <<"*** need to correctly apply premultiplied in cairo image / buffer exchange"<<endl;
 
 		unsigned char *p=buffer, *pb=bbuffer;
 		for (int c=0; c<height; c++) {
