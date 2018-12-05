@@ -382,7 +382,8 @@ anXWindow::anXWindow(anXWindow *parnt, const char *nname, const char *ntitle,
 	prevcontrol=NULL;
 	if (prev) prev->ConnectControl(this,1);
 
-	win_colors=NULL; 
+	win_colors = NULL; 
+	win_themecolors = NULL;
 	//installColors(app->color_panel);
 
 #ifdef _LAX_PLATFORM_XLIB
@@ -420,6 +421,7 @@ anXWindow::~anXWindow()
 	if (win_title) delete[] win_title;
 
 	if (win_colors) win_colors->dec_count();
+	if (win_themecolors) win_themecolors->dec_count();
 
 	if (win_tooltip) delete[] win_tooltip;
 
@@ -499,6 +501,29 @@ void anXWindow::installColors(WindowColors *newcolors)
 	if (win_colors) win_colors->dec_count();
 	if (newcolors) newcolors->inc_count();
 	win_colors=newcolors;
+}
+
+//! Dec_count old and inc_count new.
+void anXWindow::installColors(WindowStyle *newcolors)
+{
+	if (!newcolors) return;
+	if (win_themecolors) win_themecolors->dec_count();
+	if (newcolors) newcolors->inc_count();
+	win_themecolors = newcolors;
+
+	if (win_colors) {
+		win_colors->fg  	  = newcolors->fg.Pixel();
+		win_colors->bg  	  = newcolors->bg.Pixel();
+		win_colors->hfg  	  = newcolors->fghl.Pixel();
+		win_colors->hbg  	  = newcolors->bghl.Pixel();
+		win_colors->moverfg	  = newcolors->fghover.Pixel();
+		win_colors->moverbg	  = newcolors->bghover.Pixel();
+		win_colors->grayedfg  = newcolors->fggray.Pixel();
+		win_colors->color1	  = newcolors->color1.Pixel();
+		win_colors->color2	  = newcolors->color2.Pixel();
+		win_colors->activate  = newcolors->activate.Pixel();
+		win_colors->deactivate= newcolors->deactivate.Pixel();
+	}
 }
 
 //! Return a ShortcutHandler that contains stacks of bound shortcuts and possible window actions.
@@ -1070,7 +1095,9 @@ int anXWindow::Event(const EventData *data,const char *mes)
 		return MouseMove(me->x, me->y, me->modifiers, me->device);
 	}
 
-	if (data->type==LAX_onDeviceChange) return DeviceChange(dynamic_cast<const DeviceEventData*>(data));
+	if (data->type == LAX_onDeviceChange) return DeviceChange(dynamic_cast<const DeviceEventData*>(data));
+
+	if (data->type == LAX_onThemeChange) return ThemeChange(app->theme);
 
 	if (data->type == LAX_onMouseIn) {
 		 //set mouse cursor
