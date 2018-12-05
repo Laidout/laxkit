@@ -192,6 +192,7 @@ class Displayer : public PanUser, virtual public anObject
 	virtual int drawrealline(flatline &ln,int num);
 	virtual void drawcircle(double x,double y,double radius,int fill);
 	virtual void drawcircle(flatpoint p,double radius,int fill);
+	virtual void drawellipseWH(double x,double y,double xradius,double yradius,double start_angle=0,double end_angle=0,int fill=0);
 	virtual void drawellipse(double x,double y,double xradius,double yradius,double start_angle=0,double end_angle=0,int fill=0);
 	virtual void drawellipse(flatpoint p,double xradius,double yradius,double start_angle=0,double end_angle=0,int fill=0);
 	virtual void drawarc(flatpoint p,double xr,double yr,double start_angle=0,double end_angle=0);

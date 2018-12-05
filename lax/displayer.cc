@@ -887,6 +887,14 @@ void Displayer::drawellipse(flatpoint p,double xradius,double yradius,double sta
 	}
 }
 
+/*! Convenience function to pass in rectangle x,y,w,h which is converted to center and x,y radii
+ * and passed to drawellipse().
+ */
+void Displayer::drawellipseWH(double x,double y,double w,double h,double start_angle,double end_angle,int fill)
+{
+	drawellipse(flatpoint(x+w/2,y+h/2), w/2,h/2, start_angle,end_angle, fill);
+}
+
 //! Draw an ellipse with center at real point p..
 /*!  This ellipse is (xr*(x-p.x))^2 + (yr*(y-p.y))^2 = 1.
  * If f is distance from center to a focus, then f=sqrt(xr*xr-yr*yr) if xr>yr,
