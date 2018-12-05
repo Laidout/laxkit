@@ -26,6 +26,7 @@
 #include <lax/screencolor.h>
 #include <lax/dump.h>
 #include <lax/fontmanager.h>
+#include <lax/iconmanager.h>
 
 
 namespace Laxkit {
@@ -67,7 +68,8 @@ enum ThemeThings {
 	THEME_COLOR_LAST,
 
 	 //values
-	THEME_Hover_Add = 30000,
+	THEME_VALUES_FIRST = 30000,
+	THEME_Diff_Hover_Add,
 	THEME_Highlight_Add,
 	THEME_Focus_Add,
 	THEME_Alternate_Add,
@@ -81,8 +83,21 @@ enum ThemeThings {
 	THEME_Dblclk,
 	THEME_Idleclk,
 
+	THEME_Diff_BG_Hover,
+	THEME_Diff_BG_Highlight,
+	THEME_Diff_BG_Focus,
+	THEME_Diff_BG_Alternate,
+	THEME_Diff_FG_Hover,
+	THEME_Diff_FG_Highlight,
+	THEME_Diff_FG_Focus,
+	THEME_Diff_FG_Alternate,
+	THEME_Diff_Shadow,
+	THEME_Diff_Highlight,
+	THEME_VALUES_LAST,
+
 	 //fonts
-	THEME_Font_Normal = 40000,
+	THEME_FONT_FIRST = 40000,
+	THEME_Font_Normal,
 	THEME_Font_Bold,
 	THEME_Font_Italic,
 	THEME_Font_Monospace,
@@ -143,7 +158,8 @@ class WindowStyle : public anObject
 
 
 	 //---other
-	//std::map<string, string> extra_values;
+	//std::map<string, anObject*> extra_values;
+	LaxFiles::AttributeObject extra;
 
 
 	WindowStyle(int ncategory = THEME_Panel);
@@ -163,6 +179,7 @@ class WindowStyle : public anObject
 	virtual int ItalicFont(LaxFont *nfont);
 	virtual int MonospaceFont(LaxFont *nfont);
 	virtual double GetValue(const char *what);
+	virtual double GetValue(ThemeThings what);
 };
 
 
@@ -190,8 +207,9 @@ class Theme : public anObject, public LaxFiles::DumpUtility
 	RefPtrStack<WindowStyle> styles; //panel, edit, menu, button
 
 	 //icons
-	PtrStack<char> icon_dirs;
+	IconManager iconmanager;
 
+	LaxFiles::AttributeObject extra;
 
 	Theme(const char *nname=NULL);
 	virtual ~Theme();

@@ -48,6 +48,8 @@
 #include <lax/laxdevices.h>
 #include <lax/shortcuts.h>
 #include <lax/laximages.h>
+#include <lax/themes.h>
+
 
 namespace Laxkit {
 
@@ -185,6 +187,7 @@ class anXWindow : virtual public EventReceiver,
  public:
 
 	WindowColors  *win_colors;
+	WindowStyle   *win_themecolors;
 	anXApp        *app;
  	char          *win_name;
  	char          *win_title;
@@ -227,6 +230,7 @@ class anXWindow : virtual public EventReceiver,
 	virtual int setWinStyle(unsigned int stylebit, int newvalue);
 	virtual int getWinStyle(unsigned int stylebit);
 	virtual void installColors(WindowColors *newcolors);
+	virtual void installColors(WindowStyle *newcolors);
 	virtual ShortcutHandler *GetShortcuts();
 	virtual int PerformAction(int action_number);
 
@@ -248,6 +252,7 @@ class anXWindow : virtual public EventReceiver,
 	virtual int RBUp(int x,int y,unsigned int state,const LaxMouse *d) { return 1; }
 	virtual int WheelUp(int x,int y,unsigned int state,int count,const LaxMouse *d) { return 1; }
 	virtual int WheelDown(int x,int y,unsigned int state,int count,const LaxMouse *d) { return 1; }
+	virtual int ThemeChange(Theme *theme) { needtodraw = 1; return 1; }
 
 	virtual int FocusOn(const FocusChangeData *e);
 	virtual int FocusOff(const FocusChangeData *e);
@@ -282,6 +287,7 @@ class anXWindow : virtual public EventReceiver,
 	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
 };
 
+
 //-------------------------- TimerInfo ----------------------------------------
 struct TimerInfo
 {
@@ -298,6 +304,7 @@ struct TimerInfo
 	int checktime(clock_t tm);
 	void Update(int next, int duration);
 };
+
 
 //---------------------------- anXApp --------------------------------------
 class anXApp : virtual public anObject
@@ -408,6 +415,7 @@ class anXApp : virtual public anObject
 	int            tooltips;
 
 	 //default Styling
+	Theme         *theme;
 	WindowColors *color_panel, *color_menu, *color_edits, *color_buttons;
 	unsigned long  color_tooltip_bg, color_tooltip_fg;
 	unsigned long  color_activeborder, color_inactiveborder;
@@ -427,7 +435,7 @@ class anXApp : virtual public anObject
 	virtual const char *whattype() { return "anXApp"; }
 
 	 //app main operational functions
-	virtual int   Theme(const char *theme);
+	virtual int SetTheme(const char *themeName);
 	virtual int Backend(const char *which);
 	virtual int    init(int argc,char **argv);
 	virtual int   initX(int argc,char **argv);

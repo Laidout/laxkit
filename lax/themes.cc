@@ -204,8 +204,8 @@ Attribute *WindowStyle::dump_out_atts(Attribute *att,int what,DumpContext *conte
 	att->push("diff_fg_highlight", diff_fg_highlight);
 	att->push("diff_fg_focus"    , diff_fg_focus    );
 	att->push("diff_fg_alternate", diff_fg_alternate);
-	att->push("diff_shadow"      , diff_shadow);
-	att->push("diff_highlight"   , diff_highlight);
+	att->push("diff_shadow"      , diff_shadow      );
+	att->push("diff_highlight"   , diff_highlight   );
 
 	sprintf(scratch, "rgbaf(%.10g, %.10g, %.10g, %.10g)", fg.Red(),fg.Green(),fg.Blue(),fg.Alpha());
 	att->push("fg", scratch);
@@ -398,6 +398,21 @@ double WindowStyle::GetValue(const char *what)
 	if (!strcmp(what, "diff_fg_alternate")) return diff_fg_alternate;
 	if (!strcmp(what, "diff_shadow"      )) return diff_shadow;
 	if (!strcmp(what, "diff_highlight"   )) return diff_highlight;
+	return 0;
+}
+
+double WindowStyle::GetValue(ThemeThings what)
+{
+	if (what == THEME_Diff_BG_Hover    ) return diff_bg_hover;
+	if (what == THEME_Diff_BG_Highlight) return diff_bg_highlight;
+	if (what == THEME_Diff_BG_Focus    ) return diff_bg_focus;
+	if (what == THEME_Diff_BG_Alternate) return diff_bg_alternate;
+	if (what == THEME_Diff_FG_Hover    ) return diff_fg_hover;
+	if (what == THEME_Diff_FG_Highlight) return diff_fg_highlight;
+	if (what == THEME_Diff_FG_Focus    ) return diff_fg_focus;
+	if (what == THEME_Diff_FG_Alternate) return diff_fg_alternate;
+	if (what == THEME_Diff_Shadow      ) return diff_shadow;
+	if (what == THEME_Diff_Highlight   ) return diff_highlight;
 	return 0;
 }
 
@@ -670,7 +685,6 @@ int WindowStyle::SetDefaultColors(const char *type)
 /*! Create a blank theme with no defined styles.
  */
 Theme::Theme(const char *nname)
-  : icon_dirs(LISTS_DELETE_Array)
 {
 	name = newstr(nname);
 	filename = NULL;
@@ -833,14 +847,15 @@ Attribute *Theme::dump_out_atts(Attribute *att,int what,DumpContext *context)
 
 	att->push("name", name);
 
-	for (int c=0; c<icon_dirs.n; c++) {
-		att->push("icon_dir", icon_dirs.e[c]);
+	for (int c=0; c<iconmanager.NumPaths(); c++) {
+		att->push("icon_dir", iconmanager.GetPath(c));
 	} 
 
 	att->push("default_border_width", default_border_width);
 	att->push("default_padx", default_padx);
 	att->push("default_pady", default_pady);
 	att->push("default_bevel", default_bevel);
+	att->push("interface_scale", interface_scale);
 
 	att->push("first_click",  (int)firstclk);  att->Top()->Comment("milliseconds before idle clicking after first click");
 	att->push("double_click", (int)dblclk);    att->Top()->Comment("millisecond limit for double click");
@@ -898,12 +913,15 @@ void Theme::dump_in_atts(Attribute *att,int flag,DumpContext *context)
         } else if (!strcmp(name,"default_pady")) {
             DoubleAttribute(value,&default_pady);
 
+        } else if (!strcmp(name,"interface_scale")) {
+            DoubleAttribute(value,&interface_scale);
+
         } else if (!strcmp(name,"default_pady")) {
 			double d;
             if (DoubleAttribute(value,&d)) { default_padx = default_pady = d; }
  
         } else if (!strcmp(name,"icon_dir")) {
-			if (file_exists(value,1,NULL) == S_IFDIR) icon_dirs.push(value);
+			if (file_exists(value,1,NULL) == S_IFDIR) iconmanager.AddPath(value);
 		}
 	}
 

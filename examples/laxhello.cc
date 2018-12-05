@@ -15,7 +15,7 @@ using namespace Laxkit;
 int main(int argc,char **argv)
 {
 	anXApp app;
-	app.Theme("Dark"); //built in are Dark, or Light (default)
+	app.SetTheme("Dark"); //built in are Dark, or Light (default)
 	app.init(argc,argv);
 
 	app.addwindow(new MessageBar(NULL,"mesbar","Read me!",ANXWIN_ESCAPABLE|MB_MOVE, 100,100,200,100,0, "Blah!"));

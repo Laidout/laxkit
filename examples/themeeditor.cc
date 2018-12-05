@@ -217,6 +217,8 @@ class ThemeControls : public RowFrame
 
 	int firsttime;
 
+	RefPtrStack<anXWindow> testWindows;
+
 	ThemeControls();
 	virtual ~ThemeControls();
 
@@ -228,6 +230,7 @@ class ThemeControls : public RowFrame
 	virtual int init();
 	virtual int Event(const EventData *e,const char *mes);
 	virtual int UseTheme(int which);
+	virtual void UpdateWindows();
 
 	void SyncFromTheme();
 };
@@ -235,7 +238,7 @@ class ThemeControls : public RowFrame
 ThemeControls::ThemeControls()
   : RowFrame(NULL, "Theme", "Theme", ANXWIN_ESCAPABLE | ROWFRAME_ROWS|ROWFRAME_STRETCH_IN_COL|ROWFRAME_STRETCH_IN_ROW,
   //: RowFrame(NULL, "Theme", "Theme", ANXWIN_ESCAPABLE | ROWFRAME_ROWS|ROWFRAME_STRETCH_IN_COL,
-			0,0,1200,0,0,
+			0,0,1200,800,0,
 			NULL,0,NULL)
 {
 	firsttime = 1;
@@ -429,9 +432,11 @@ int ThemeControls::init()
 	LineInput *test_lineedit = new LineInput(this,"lineinput","lineinput",0, 0,0,200,50,0, NULL,0,NULL, "Input", "stuff stuff stuff");
 	test_lineedit->GetLineEdit()->SetSelection(5,10);
 	AddWin(test_lineedit,1, -1);
+	testWindows.push(test_lineedit);
 
 	button = new Button(this,"Test button","Test button",BUTTON_OK, 5,300, 0,0,0, NULL,0,NULL, 0, "Test Button", NULL,NULL, 3);
 	AddWin(button,1, -1);
+	testWindows.push(button);
 
 	MenuInfo *menu = new MenuInfo;
 	for (int c=0; default_color_names[c]; c++) {
@@ -454,11 +459,15 @@ int ThemeControls::init()
 	TreeSelector *tree = new TreeSelector(this,"Test tree","Test tree",0, 0,0, 150,150,1, NULL,0,NULL, TREESEL_FOLLOW_MOUSE, menu);
 	menu->dec_count();
 	AddWin(tree,1, -1);
+	testWindows.push(tree);
 
 	Scroller *scroller = new Scroller(this,"test","test",SC_YSCROLL, 0,0,0,0,1, NULL,0,NULL, NULL, 0,1000, 200, 10, 400, 600);
 	AddWin(scroller,1,  10,0,10,50,0,    150,0,10000,50,0, -1);
+	testWindows.push(scroller);
 
-	AddWin(new YesNo(this),1, 200,50,50,50,0, 100,50,50,50,0, -1);
+	anXWindow *awindow = new YesNo(this);
+	AddWin(awindow,1, 200,50,50,50,0, 100,50,50,50,0, -1);
+	testWindows.push(awindow);
 
 	MenuInfo *pmenu = new MenuInfo;
 	for (int c=0; default_color_names[c]; c++) {
@@ -478,7 +487,9 @@ int ThemeControls::init()
 			pmenu->EndSubMenu();
 		}
 	}
-	AddWin(new MenuButton(this,"menu","menu",MENUBUTTON_DOWNARROW, 0,0,0,0,1, NULL,0,NULL, 0, pmenu,1, "Popup Menu"),1, -1);
+	MenuButton *menubutton = new MenuButton(this,"menu","menu",MENUBUTTON_DOWNARROW, 0,0,0,0,1, NULL,0,NULL, 0, pmenu,1, "Popup Menu");
+	AddWin(menubutton,1, -1);
+	testWindows.push(menubutton);
 
 	AddNull();
 	AddSpacer(10,0,100000,50, 10,0,0,50);
@@ -486,7 +497,7 @@ int ThemeControls::init()
 
 
 
-	 //status bar
+	 //-----status bar
 	last = status = mes = new MessageBar(this,"message2","message2",MB_MOVE|MB_CENTER, 0,100,0,0,0, "Stuff!");
 	AddWin(mes,1,  100,0,10000,50,0,    th*1.2,0,10000,50,0, -1);
 	AddNull();
@@ -639,6 +650,13 @@ int ThemeControls::init()
 	SyncFromTheme();
 }
 
+void ThemeControls::UpdateWindows()
+{
+	for (int c=0; c<testWindows.n; c++) {
+		testWindows.e[c]->ThemeChange(theme);
+	}
+}
+
 void ThemeControls::SyncFromTheme()
 {
 	 //colors
@@ -678,6 +696,7 @@ void ThemeControls::SyncFromTheme()
 	idleclk ->SetText((int)theme->idleclk );
 	
 
+	UpdateWindows();
 
 	needtodraw = 1;
 }

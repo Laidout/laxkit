@@ -42,7 +42,7 @@ int main(int argc,char **argv)
 	anXApp app;
 	app.Backend("xlib");
 	//app.Backend("cairo");
-	app.Theme("Dark");
+	app.SetTheme("Dark");
 
 	app.init(argc,argv);
 

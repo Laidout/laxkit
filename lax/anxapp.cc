@@ -579,56 +579,57 @@ anXApp::anXApp()
 
 	default_language=newstr("");
 
-	//screen=0;
-
-	 //base default styling
-	color_panel=color_menu=color_edits=color_buttons=NULL; //these are initialized in init()
-
-	 // set up the default loading and saving directories to the current directory.
-	char *dir=getcwd(NULL,0);
-	if (dir) {
-		load_dir=newstr(dir);
-		save_dir=newstr(dir);
-		free(dir);
-	} else load_dir=save_dir=NULL;
-	
 	copybuffer=NULL;
 	currentfocus=NULL;
-	app_profile=NULL;
-	backend=LAX_DEFAULT_BACKEND;
+	backend = LAX_DEFAULT_BACKEND;
+
 	ttcount=0;
 	tooltips=1000; // time to wait till tooltip pops up in milliseconds, 0==no tooltips
 
-	dontstop=1;
+	 // set up the default loading and saving directories to the current directory.
+	char *dir = getcwd(NULL,0);
+	if (dir) {
+		load_dir = newstr(dir);
+		save_dir = newstr(dir);
+		free(dir);
+	} else load_dir = save_dir = NULL;
 	
-	 // default click times, in clock ticks
-	dblclk=(unsigned int)(1./5*1000); // _SC_CLK_TCK=ticks per second, put dblclk in milliseconds, which is the time in events..
-	firstclk=sysconf(_SC_CLK_TCK)/7;
-	idleclk=sysconf(_SC_CLK_TCK)/15;
-	DBG cerr <<"_SC_CLK_TCK="<<sysconf(_SC_CLK_TCK)<<"  dblclk:"<<dblclk<<" firstclk:"<<firstclk<<" idleclk:"<<idleclk<<endl;
-
-	dataevents=dataevente=NULL;
-
-	fontmanager=NULL;
-	defaultlaxfont=NULL;
-
-	textfontstr   =newstr("sans-12");//***maybe should migrate this to fontmanager?
-	controlfontstr=newstr("sans-12");//***maybe should migrate this to fontmanager?
+	dontstop=1;
 
 	default_icon_file=NULL;
 	default_icon=NULL;
 
+	dataevents = dataevente = NULL;
+	
+
+	 //base default styling
+	app_profile=NULL;
+	theme = NULL;
+	color_panel=color_menu=color_edits=color_buttons=NULL; //these are initialized in init()
+
+	 // default click times, in clock ticks
+	dblclk   = (unsigned int)(1./5*1000); // _SC_CLK_TCK=ticks per second, put dblclk in milliseconds, which is the time in events..
+	firstclk = sysconf(_SC_CLK_TCK)/7;
+	idleclk  = sysconf(_SC_CLK_TCK)/15;
+	DBG cerr <<"_SC_CLK_TCK="<<sysconf(_SC_CLK_TCK)<<"  dblclk:"<<dblclk<<" firstclk:"<<firstclk<<" idleclk:"<<idleclk<<endl;
+
+	fontmanager=NULL;
+	defaultlaxfont=NULL;
+
+	textfontstr   =newstr("sans-12");
+	controlfontstr=newstr("sans-12");
 
 	default_border_width=1;
 	default_padx=5;
 	default_pady=5; 
 	default_bevel=5;
 
+
 	 //set up standard mutexes
 	pthread_mutex_init(&event_mutex,NULL);
 }
 
-//! Destructor.
+
 /*! Calls close(), and generally deallocates any remaining things.
  */
 anXApp::~anXApp()
@@ -646,6 +647,7 @@ anXApp::~anXApp()
 	if (copybuffer) delete[] copybuffer;
 
 	
+	if (theme)         theme->dec_count();
 	if (color_panel)   color_panel->dec_count();
 	if (color_menu)    color_menu->dec_count();
 	if (color_edits)   color_edits->dec_count();
@@ -666,14 +668,14 @@ void anXApp::Locale(const char *lang)
 }
 
 /*! This should be called immediately after contstructor.
- * It merely sets app_profile to theme. app_profile is used 
+ * It merely sets app_profile to themeName. app_profile is used 
  * later on to determine default color options.
  *
  * Default is to simply return 0.
  */
-int anXApp::Theme(const char *theme)
+int anXApp::SetTheme(const char *themeName)
 {
-	makestr(app_profile,theme);
+	makestr(app_profile,themeName);
 	return 0;
 }
 

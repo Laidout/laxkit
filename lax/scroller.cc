@@ -166,6 +166,14 @@ Scroller::Scroller(anXWindow *parnt,const char *nname, const char *ntitle, unsig
 Scroller::~Scroller()
 {}
 
+
+int Scroller::ThemeChange(Theme *theme)
+{
+	installColors(theme->GetStyle(THEME_Panel));
+	return 0;
+}
+
+
 //------------------- interface elements:
 
 //! Control-, and control-. toggle the arrow style.
@@ -591,9 +599,10 @@ void Scroller::Refresh()
 void Scroller::drawtrack()
 {
 	// draw the track line
-	foreground_color(win_colors->fg);
-	if (win_style&SC_XSCROLL) draw_line(this, 0,int(win_h/2)+.5, win_w,int(win_h/2)+.5);
-	else draw_line(this, int(win_w/2)+.5,0, int(win_w/2)+.5,win_h);
+	Displayer *dp = GetDisplayer();
+	dp->NewFG(win_colors->fg);
+	if (win_style&SC_XSCROLL) dp->drawline(0,int(win_h/2)+.5, win_w,int(win_h/2)+.5);
+	else dp->drawline(int(win_w/2)+.5,0, int(win_w/2)+.5,win_h);
 	drawarrows();
 }
 
@@ -616,13 +625,16 @@ void Scroller::drawarrows()
 		t1=THING_Triangle_Up; t2=THING_Triangle_Down;
 		r=(ah<win_w?ah:win_w)/2;
 	}
-	draw_thing(this, x1,y1,r,r, t1, win_colors->fg,win_colors->color1);
-	draw_thing(this, x2,y2,r,r, t2, win_colors->fg,win_colors->color1);
+	Displayer *dp = GetDisplayer();
+	dp->drawthing(x1,y1,r,r, t1, win_colors->fg,win_colors->color1);
+	dp->drawthing(x2,y2,r,r, t2, win_colors->fg,win_colors->color1);
 }
 
 //! Draw the track box including the zoom handles if required.
 void Scroller::drawtrackbox()
 {
+	Displayer *dp = GetDisplayer();
+
 	 // get placement of the track box
 	long poss,pose;
 	int zzh=(win_style&SC_ZOOM?zh:0);
@@ -653,19 +665,27 @@ void Scroller::drawtrackbox()
 	 // draw the box without zoom handles
 	if (!(win_style&SC_ZOOM) || zzh==0) {
 		if (win_style&SC_XSCROLL) {
-			foreground_color(win_colors->color1); 
-			fill_arc_wh(this, poss,0, (pose-poss),win_h-1, 0,2*M_PI);
-			foreground_color(win_colors->fg); 
-			draw_arc_wh(this, poss,0, (pose-poss),win_h-1, 0,2*M_PI);
+			dp->NewFG(win_colors->color1); 
+
+			//fill_arc_wh(this, poss,0, (pose-poss),win_h-1, 0,2*M_PI);
+			dp->drawellipseWH(poss,0, (pose-poss),win_h-1, 0,2*M_PI, 1);
+
+			dp->NewFG(win_colors->fg); 
+			//draw_arc_wh(this, poss,0, (pose-poss),win_h-1, 0,2*M_PI);
+			dp->drawellipseWH(poss,0, (pose-poss),win_h-1, 0,2*M_PI, 0);
 			if (!wholelen) // for selbox too big 
-				draw_arc_wh(this, poss+(pose-poss)/4,(win_h-1)/4, (pose-poss)/2,(win_h-1)/2, 0,2*M_PI);
+				//draw_arc_wh(this, poss+(pose-poss)/4,(win_h-1)/4, (pose-poss)/2,(win_h-1)/2, 0,2*M_PI);
+				dp->drawellipseWH(poss+(pose-poss)/4,(win_h-1)/4, (pose-poss)/2,(win_h-1)/2, 0,2*M_PI, 0);
 		} else {
-			foreground_color(win_colors->color1); 
-			fill_arc_wh(this, 0,poss, win_w-1,(pose-poss), 0,2*M_PI);
-			foreground_color(win_colors->fg); 
-			draw_arc_wh(this, 0,poss, win_w-1,(pose-poss), 0,2*M_PI);
+			dp->NewFG(win_colors->color1); 
+			//fill_arc_wh(this, 0,poss, win_w-1,(pose-poss), 0,2*M_PI);
+			dp->drawellipseWH(0,poss, win_w-1,(pose-poss), 0,2*M_PI, 1);
+			dp->NewFG(win_colors->fg); 
+			//draw_arc_wh(this, 0,poss, win_w-1,(pose-poss), 0,2*M_PI);
+			dp->drawellipseWH(0,poss, win_w-1,(pose-poss), 0,2*M_PI, 0);
 			if (!wholelen) // for selbox larger than wholebox, draw another oval inside trackbox
-				draw_arc_wh(this, (win_w-1)/4,poss+(pose-poss)/4, (win_w-1)/2,(pose-poss)/2, 0,2*M_PI);
+				//draw_arc_wh(this, (win_w-1)/4,poss+(pose-poss)/4, (win_w-1)/2,(pose-poss)/2, 0,2*M_PI);
+				dp->drawellipseWH((win_w-1)/4,poss+(pose-poss)/4, (win_w-1)/2,(pose-poss)/2, 0,2*M_PI, 0);
 		}
 	} else { // draw trackbox with zoom handles
 		 // draw track box body
@@ -677,32 +697,41 @@ void Scroller::drawtrackbox()
 		}
 
 		 // draw zoom handles
-		foreground_color(win_colors->color1); 
+		dp->NewFG(win_colors->color1); 
 		 // draw filled
 		if (win_style&SC_XSCROLL) {
-			fill_arc_wh(this, poss-zh,0, 2*zh-1,win_h-1, 0,0);
-			fill_arc_wh(this, pose-zh,0, 2*zh-1,win_h-1, 0,0);
+			//fill_arc_wh(this, poss-zh,0, 2*zh-1,win_h-1, 0,0);
+			//fill_arc_wh(this, pose-zh,0, 2*zh-1,win_h-1, 0,0);
+			dp->drawellipseWH(poss-zh,0, 2*zh-1,win_h-1, 0,0, 1);
+			dp->drawellipseWH(pose-zh,0, 2*zh-1,win_h-1, 0,0, 1);
 		} else {
-			fill_arc_wh(this, 0,poss-zh, win_w-1,2*zh-1, 0,0);
-			fill_arc_wh(this, 0,pose-zh, win_w-1,2*zh-1, 0,0);
+			//fill_arc_wh(this, 0,poss-zh, win_w-1,2*zh-1, 0,0);
+			//fill_arc_wh(this, 0,pose-zh, win_w-1,2*zh-1, 0,0);
+			dp->drawellipseWH(0,poss-zh, win_w-1,2*zh-1, 0,0, 1);
+			dp->drawellipseWH(0,pose-zh, win_w-1,2*zh-1, 0,0, 1);
 		}
 		 // draw outline
-		foreground_color(win_colors->fg); 
+		dp->NewFG(win_colors->fg); 
 		if (win_style&SC_XSCROLL) {
-			draw_arc_wh(this, poss-zh,0, 2*zh-1,win_h-1, 0,0);
-			draw_arc_wh(this, pose-zh,0, 2*zh-1,win_h-1, 0,0);
+			//draw_arc_wh(this, poss-zh,0, 2*zh-1,win_h-1, 0,0);
+			//draw_arc_wh(this, pose-zh,0, 2*zh-1,win_h-1, 0,0);
+			dp->drawellipseWH(poss-zh,0, 2*zh-1,win_h-1, 0,0, 0);
+			dp->drawellipseWH(pose-zh,0, 2*zh-1,win_h-1, 0,0, 0);
 		} else {
-			draw_arc_wh(this, 0,poss-zh, win_w-1,2*zh-1, 0,0);
-			draw_arc_wh(this, 0,pose-zh, win_w-1,2*zh-1, 0,0);
+			//draw_arc_wh(this, 0,poss-zh, win_w-1,2*zh-1, 0,0);
+			//draw_arc_wh(this, 0,pose-zh, win_w-1,2*zh-1, 0,0);
+			dp->drawellipseWH(0,poss-zh, win_w-1,2*zh-1, 0,0, 0);
+			dp->drawellipseWH(0,pose-zh, win_w-1,2*zh-1, 0,0, 0);
 		}
 
 		 // draw central rectangular part of the trackbox
-		foreground_color(win_colors->color1); 
-		fill_rectangle(this, x,y, w,h);
-		foreground_color(win_colors->fg);
-		draw_rectangle(this, x,y, w,h);
+		dp->NewFG(win_colors->color1); 
+		dp->drawrectangle(x,y, w,h, 1);
+		dp->NewFG(win_colors->fg);
+		dp->drawrectangle(x,y, w,h, 0);
 		if (!wholelen) // for selbox larger than wholebox, draw another oval inside trackbox
-			draw_arc_wh(this, x+w/4,y+h/4, w/2,h/2, 0,2*M_PI);
+			//draw_arc_wh(this, x+w/4,y+h/4, w/2,h/2, 0,2*M_PI);
+			dp->drawellipseWH(x+w/4,y+h/4, w/2,h/2, 0,2*M_PI, 0);
 		
 	}
 }
