@@ -814,6 +814,20 @@ int ObjectInterface::PerformAction(int action)
 		InstallTransformUndo();
 		return status;
 
+	} else if (action == OIA_Delete) {
+		dontclear=1;
+		Selection *sel = selection->duplicate();
+		while (sel->n()) {
+			viewport->ChangeObject(sel->e(0),0);
+			viewport->DeleteObject();
+			sel->Remove(0);
+		}
+		delete sel;
+		selection->Flush();
+		dontclear=0;
+		deletedata();
+		needtodraw=1;
+		return 0;
 	}
 
 	return RectInterface::PerformAction(action);
@@ -879,18 +893,7 @@ int ObjectInterface::CharInput(unsigned int ch, const char *buffer,int len,unsig
 		return c;
 
 	} else if ((ch==LAX_Del || ch==LAX_Bksp) && (state&LAX_STATE_MASK)==0) { //delete
-		dontclear=1;
-		Selection *sel = selection->duplicate();
-		while (sel->n()) {
-			viewport->ChangeObject(sel->e(0),0);
-			viewport->DeleteObject();
-			sel->Remove(0);
-		}
-		delete sel;
-		selection->Flush();
-		dontclear=0;
-		deletedata();
-		needtodraw=1;
+		PerformAction(OIA_Delete);
 		return 0;
 	}
 

@@ -43,6 +43,7 @@ enum ObjectInterfaceActions {
 	OIA_Group = RIA_MAX,
 	OIA_Ungroup,
 	OIA_ToggleGroup,
+	OIA_Delete,
 	OIA_MAX
 };
 
