@@ -432,7 +432,7 @@ void Affine::Flip(flatpoint f1,flatpoint f2)
 }
 
 //! this=this*m
-void Affine::Multiply(Affine &m)
+void Affine::Multiply(const Affine &m)
 {
 	double result[6];
 	transform_mult(result,_m,m.m());
@@ -440,7 +440,7 @@ void Affine::Multiply(Affine &m)
 }
 
 //! this=m*this
-void Affine::PreMultiply(Affine &m)
+void Affine::PreMultiply(const Affine &m)
 {
 	double result[6];
 	transform_mult(result,m.m(),_m);
