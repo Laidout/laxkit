@@ -58,7 +58,7 @@ IconSlider::IconSlider(anXWindow *parnt,const char *nname,const char *ntitle,uns
 	: ItemSlider(parnt,nname,ntitle,nstyle,xx,yy,ww,hh,brder,prev,nowner,nsendthis)
 {
 	lastitem=curitem;
-	installColors(app->color_panel);
+	InstallColors(THEME_Panel);
 	gap=3;
 
 	items=nitems;
@@ -74,8 +74,9 @@ void IconSlider::Refresh()
 {
 	if (!win_on || !needtodraw || curitem<0) return;
 
-	foreground_color(win_colors->bg);
-	fill_rectangle(this, 0,0,win_w,win_h);
+	Displayer *dp=GetDisplayer();
+	dp->NewFG(win_themestyle->bg);
+	dp->drawrectangle(0,0,win_w,win_h, 1);
 
 	char *label=items->menuitems.e[curitem]->name;
 	MenuItem *item=items->menuitems.e[curitem];

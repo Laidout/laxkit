@@ -516,7 +516,7 @@ unsigned long DisplayerCairo::NewFG(int r,int g,int b,int a)
 }
 
 //! Set new foreground. Color components are 0..0xffff.
-unsigned long DisplayerCairo::NewFG(ScreenColor *col)
+unsigned long DisplayerCairo::NewFG(const ScreenColor *col)
 {
 	return NewFG((double)col->red/65535,(double)col->green/65535,(double)col->blue/65535,(double)col->alpha/65535);
 }
@@ -530,7 +530,7 @@ unsigned long DisplayerCairo::NewFG(Color *col)
 }
 
 //! Set new background. Color components are 0..0xffff.
-unsigned long DisplayerCairo::NewBG(ScreenColor *col)
+unsigned long DisplayerCairo::NewBG(const ScreenColor *col)
 {
 	return NewBG((double)col->red/65535,(double)col->green/65535,(double)col->blue/65535,(double)col->alpha/65535);
 }
@@ -732,9 +732,9 @@ void DisplayerCairo::ClearTransparent()
 	cairo_set_operator(cr,CAIRO_OPERATOR_SOURCE);
 
 	if (xw) cairo_set_source_rgba(cr,
-					((xw->win_colors->bg&0xff0000)>>16)/255.,
-					((xw->win_colors->bg&0xff00)>>8)/255.,
-					(xw->win_colors->bg&0xff)/255.,
+					((xw->win_themestyle->bg.Pixel()&0xff0000)>>16)/255.,
+					((xw->win_themestyle->bg.Pixel()&0xff00)>>8)/255.,
+					 (xw->win_themestyle->bg.Pixel()&0xff)/255.,
 					0.);
 	else cairo_set_source_rgba(cr, bgRed, bgGreen, bgBlue, 0.0);
 
@@ -759,9 +759,9 @@ void DisplayerCairo::ClearWindow()
 		cairo_set_operator(cr,CAIRO_OPERATOR_OVER);
 
 		if (xw) cairo_set_source_rgba(cr,
-						((xw->win_colors->bg&0xff0000)>>16)/255.,
-						((xw->win_colors->bg&0xff00)>>8)/255.,
-						(xw->win_colors->bg&0xff)/255.,
+						((xw->win_themestyle->bg.Pixel()&0xff0000)>>16)/255.,
+						((xw->win_themestyle->bg.Pixel()&0xff00)>>8)/255.,
+						 (xw->win_themestyle->bg.Pixel()&0xff)/255.,
 						1.);
 		else cairo_set_source_rgba(cr, bgRed, bgGreen, bgBlue, 1.0);
 

@@ -335,8 +335,8 @@ int StackPartInterface::Refresh()
 	dp->DrawScreen();
 	dp->LineAttributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
 
-	dp->NewFG(curwindow->win_colors->fg);
-	dp->NewBG(curwindow->win_colors->fg);
+	dp->NewFG(curwindow->win_themestyle->fg);
+	dp->NewBG(curwindow->win_themestyle->fg);
 
 	StackParts::StackNode *node;
 	for (int c=0; c<data->n(); c++) {

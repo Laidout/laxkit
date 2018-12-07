@@ -221,8 +221,8 @@ ViewportWindow::ViewportWindow(Laxkit::anXWindow *parnt,const char *nname,const 
 		  
 {
 	 //make our own local copy of colors
-	win_colors=new WindowColors;
-	*win_colors=*app->color_panel;
+	win_themestyle = new WindowStyle;
+	*win_themestyle = *app->theme->GetStyle(THEME_Panel);
 
 	xruler=yruler=NULL;
 	xscroller=yscroller=NULL;
@@ -905,7 +905,7 @@ void ViewportWindow::Refresh()
 
 	dp->Updates(0);
 
-	dp->NewBG(win_colors->bg);
+	dp->NewBG(win_themestyle->bg);
 	dp->ClearWindow();
 	int c;
 	for (c=0; c<interfaces.n; c++) interfaces.e[c]->needtodraw=1;//***
@@ -955,13 +955,13 @@ void ViewportWindow::Refresh()
 
 		if (temp_input && temp_input_label) {
 			dp->DrawScreen();
- 			dp->NewBG(temp_input->win_colors->bg);
- 			dp->NewFG(temp_input->win_colors->fg);
+ 			dp->NewBG(temp_input->win_themestyle->bg);
+ 			dp->NewFG(temp_input->win_themestyle->fg);
 			int th=dp->textheight();
 			dp->drawRoundedRect(temp_input->win_x-5,temp_input->win_y-1.2*th-5,          
 	                            temp_input->win_w+temp_input->win_border*2+10, 1.2*th+temp_input->win_h+temp_input->win_border*2,
 								5, 0, 5, 0, 2);
- 			dp->NewFG(temp_input->win_colors->fg);
+ 			dp->NewFG(temp_input->win_themestyle->fg);
 			dp->textout(temp_input->win_x,temp_input->win_y, temp_input_label,-1, LAX_LEFT|LAX_BOTTOM);
 			dp->DrawReal();
 		}

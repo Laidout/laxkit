@@ -594,7 +594,7 @@ int DelauneyInterface::Refresh()
 
 
 	 //delauney triangles
-	dp->NewFG(coloravg(curwindow->win_colors->fg,curwindow->win_colors->bg));
+	dp->NewFG(coloravg(curwindow->win_themestyle->fg,curwindow->win_themestyle->bg));
 	dp->LineWidth(data->width_delauney);
 	flatpoint center,p,v;
 

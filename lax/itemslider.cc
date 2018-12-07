@@ -58,7 +58,7 @@ ItemSlider::ItemSlider(anXWindow *parnt,const char *nname,const char *ntitle,uns
 	curitem=-1;
 	hover=0;
 
-	installColors(app->color_panel);
+	InstallColors(THEME_Panel);
 }
 
 //! Empty virtual.

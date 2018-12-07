@@ -1752,6 +1752,17 @@ void Displayer::Newmag(double xs,double ys)//ys=-1
 
 //----------------------------------- Colors
 
+unsigned long Displayer::NewFG(const ScreenColor &col)
+{
+	return NewFG(&col);
+}
+
+unsigned long Displayer::NewBG(const ScreenColor &col)
+{
+	return NewBG(&col);
+}
+
+
 /*! \fn unsigned long Displayer::NewFG(double r,double g,double b,double a)
  * \brief Set new foreground color. Typically usage is NewFG(app->rgbcolor(.5,.8,0,1.0)).
  * Component range is [0..1.0].
@@ -1762,7 +1773,7 @@ void Displayer::Newmag(double xs,double ys)//ys=-1
  *  Component range is currently 0..255.... subject to change.
  */
 
-/*! \fn unsigned long Displayer::NewFG(ScreenColor *col)
+/*! \fn unsigned long Displayer::NewFG(const ScreenColor *col)
  * \brief Set new foreground. Color components are 0..0xffff.
  */
 

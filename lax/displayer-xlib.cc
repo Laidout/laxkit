@@ -374,7 +374,7 @@ void DisplayerXlib::ClearWindow()
 
 	//if (xw && dr->xlibDrawable(-1)==dr->xlibDrawable(1)) {
 		 //if using double buffer, XClearWindow will crash your program, so clear manually
-		if (xw) XSetForeground(dpy,gc, (xw->win_colors?xw->win_colors->bg:0));
+		if (xw) XSetForeground(dpy,gc, (xw->win_themestyle ? xw->win_themestyle->bg.Pixel():0));
 		else XSetForeground(dpy,gc, bgcolor);
 		XSetFunction(dpy,gc, GXcopy);
 		XFillRectangle(dpy,w,gc, Minx,Miny,Maxx-Minx,Maxy-Miny);
@@ -1499,7 +1499,7 @@ unsigned long DisplayerXlib::NewFG(int r,int g,int b,int a)
 }
 
 //! Set new foreground. Color components are 0..0xffff.
-unsigned long DisplayerXlib::NewFG(ScreenColor *col)
+unsigned long DisplayerXlib::NewFG(const ScreenColor *col)
 {
 	unsigned long old=fgcolor;
 	fgcolor=rgbcolor(col->red>>8,col->green>>8,col->blue>>8);
@@ -1525,7 +1525,7 @@ unsigned long DisplayerXlib::NewFG(unsigned long ncol)
 }
 
 //! Set new foreground. Color components are 0..0xffff.
-unsigned long DisplayerXlib::NewBG(ScreenColor *col)
+unsigned long DisplayerXlib::NewBG(const ScreenColor *col)
 {
 	unsigned long old=bgcolor;
 	bgcolor=rgbcolor(col->red>>8,col->green>>8,col->blue>>8);

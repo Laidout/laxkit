@@ -75,28 +75,28 @@ unsigned int composekey(unsigned int k1, unsigned int k2);
 
 
 //----------------------- Styling functions ----------------------------
-//---------------------- WindowColors
-class WindowColors : public anObject
-{
- public:
-	unsigned long fg; //8 bit argb
-	unsigned long bg;
-	unsigned long hfg;
-	unsigned long hbg;
-	unsigned long moverfg; // (assume highlighted irrelevant)
-	unsigned long moverbg;
-	unsigned long grayedfg; //assume bg is same as normal bg
-	unsigned long color1;
-	unsigned long color2;
-	unsigned long activate;  //usually green for go
-	unsigned long deactivate;//usually red for stop
-
-	WindowColors();
-	WindowColors(const WindowColors &l);
-	WindowColors &operator=(WindowColors &l);
-
-	WindowColors *duplicate();
-};
+////---------------------- WindowColors
+//class WindowColors : public anObject
+//{
+// public:
+//	unsigned long fg; //8 bit argb
+//	unsigned long bg;
+//	unsigned long hfg;
+//	unsigned long hbg;
+//	unsigned long moverfg; // (assume highlighted irrelevant)
+//	unsigned long moverbg;
+//	unsigned long grayedfg; //assume bg is same as normal bg
+//	unsigned long color1;
+//	unsigned long color2;
+//	unsigned long activate;  //usually green for go
+//	unsigned long deactivate;//usually red for stop
+//
+//	WindowColors();
+//	WindowColors(const WindowColors &l);
+//	WindowColors &operator=(WindowColors &l);
+//
+//	WindowColors *duplicate();
+//};
 
 
 //-------------------------- aDrawable ----------------------------------------
@@ -186,8 +186,8 @@ class anXWindow : virtual public EventReceiver,
 
  public:
 
-	WindowColors  *win_colors;
-	WindowStyle   *win_themecolors;
+	//WindowColors  *win_colors;
+	WindowStyle   *win_themestyle;
 	anXApp        *app;
  	char          *win_name;
  	char          *win_title;
@@ -229,8 +229,8 @@ class anXWindow : virtual public EventReceiver,
 	 //style functions
 	virtual int setWinStyle(unsigned int stylebit, int newvalue);
 	virtual int getWinStyle(unsigned int stylebit);
-	virtual void installColors(WindowColors *newcolors);
-	virtual void installColors(WindowStyle *newcolors);
+	virtual bool InstallColors(int category);
+	virtual void InstallColors(WindowStyle *newcolors);
 	virtual ShortcutHandler *GetShortcuts();
 	virtual int PerformAction(int action_number);
 
@@ -252,7 +252,7 @@ class anXWindow : virtual public EventReceiver,
 	virtual int RBUp(int x,int y,unsigned int state,const LaxMouse *d) { return 1; }
 	virtual int WheelUp(int x,int y,unsigned int state,int count,const LaxMouse *d) { return 1; }
 	virtual int WheelDown(int x,int y,unsigned int state,int count,const LaxMouse *d) { return 1; }
-	virtual int ThemeChange(Theme *theme) { needtodraw = 1; return 1; }
+	virtual int ThemeChange(Theme *theme);
 
 	virtual int FocusOn(const FocusChangeData *e);
 	virtual int FocusOff(const FocusChangeData *e);
@@ -385,7 +385,6 @@ class anXApp : virtual public anObject
 	virtual int getlaxrc(const char *filename,const char *profile);
 	virtual void dump_in_rc(LaxFiles::Attribute *att, const char *profile);
 	virtual void dump_out_rc(FILE *f, const char *profile, int indent, int what);
-	virtual void dump_in_colors(LaxFiles::Attribute *att);
 
 	 //event loop helper functions
 	virtual void destroyqueued();
@@ -416,7 +415,6 @@ class anXApp : virtual public anObject
 
 	 //default Styling
 	Theme         *theme;
-	WindowColors *color_panel, *color_menu, *color_edits, *color_buttons;
 	unsigned long  color_tooltip_bg, color_tooltip_fg;
 	unsigned long  color_activeborder, color_inactiveborder;
 	int            default_border_width;

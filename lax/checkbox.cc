@@ -92,7 +92,9 @@ CheckBox::CheckBox(anXWindow *parnt,const char *nname,const char *ntitle,unsigne
 	grect.width=grect.height;
 	state=LAX_OFF;
 
-	pitcolor=app->color_edits->bg;
+	InstallColors(THEME_Edit);
+
+	pitcolor = win_themestyle->bg.Pixel();
 	
 	if (hh<2) { // wrap window to v textextent
 		win_h=2*pad+app->defaultlaxfont->textheight();
@@ -101,10 +103,6 @@ CheckBox::CheckBox(anXWindow *parnt,const char *nname,const char *ntitle,unsigne
 		win_w=grect.height + 3*pad + trect.width;
 	}
 	setPlacement();
-
-	if (win_colors) win_colors->dec_count();
-	win_colors=app->color_panel;
-	win_colors->inc_count();
 
 
 	DBG cerr << win_name<<": "<<(label?label:"(no label)")<<",  x,y:"<<win_x<<','<<win_y<<"  w,h:"<<win_w<<','<<win_h<<endl;
@@ -156,7 +154,7 @@ void CheckBox::drawgraphic()
 						grect.width/2,grect.height/2, 0,0, 1);
 		
 		 //inner circle
-		dp->NewFG(win_colors->fg);
+		dp->NewFG(win_themestyle->fg);
 		if (state==LAX_ON) 
 			dp->drawellipse(grect.x+grect.width/2,grect.y+grect.height/2, grect.width/4,grect.height/4, 0,0, 1);
 
@@ -171,7 +169,7 @@ void CheckBox::drawgraphic()
 void CheckBox::draw()
 { 
 	Displayer *dp=MakeCurrent();
-    dp->NewFG(mousein ? win_colors->moverbg : win_colors->bg);
+    dp->NewFG(mousein ? win_themestyle->bghover : win_themestyle->bg);
 
 	dp->drawrectangle(0,0, win_w,win_h, 1);
 	drawgraphic();
@@ -182,7 +180,7 @@ void CheckBox::draw()
 	//dp->textextent(label,-1,&ex,&ey,&fasc,&fdes);
 	//getextent(label,-1,&ex,&ey,&fasc,&fdes);
 	
-    dp->NewFG(win_colors->fg);
+    dp->NewFG(win_themestyle->fg);
 	dp->textout(trect.x+trect.width/2,trect.y+trect.height/2, label,strlen(label), LAX_CENTER);
 
 	//drawbevel(0);

@@ -73,7 +73,7 @@ PaletteWindow::PaletteWindow(anXWindow *parnt,const char *nname,const char *ntit
 	curcolor=ccolor=-1;
 	pad=app->default_padx;
 	
-	installColors(app->color_panel);
+	InstallColors(THEME_Panel);
 
 	findInrect();
 }
@@ -141,12 +141,12 @@ void PaletteWindow::Refresh()
 
 	 // draw head stuff
 	const char *blah;
-	dp->NewFG(win_colors->bg);
+	dp->NewFG(win_themestyle->bg);
 	dp->BlendMode(LAXOP_Over);
 	dp->drawrectangle(0,0,win_w,app->defaultlaxfont->textheight(), 1);
 			
 	if (palette->name) blah=palette->name; else blah="(untitled)";
-	dp->NewFG(win_colors->fg);
+	dp->NewFG(win_themestyle->fg);
 	int cc=dp->textout(pad,pad, blah,strlen(blah), LAX_LEFT|LAX_TOP);
 
 	int r,g,b;
@@ -191,12 +191,12 @@ void PaletteWindow::Refresh()
 		x+=dx;
 //		if ((i+1)%xn==0) {
 //			 //blank out to the right
-//			dp->NewFG(win_colors->bg);
+//			dp->NewFG(win_themestyle->bg);
 //			fill_rectangle(this, x,y,win_w-x,dy);
 //		}
 	}
 //	 //blank out unused space
-//	dp->NewFG(win_colors->bg);
+//	dp->NewFG(win_themestyle->bg);
 //	fill_rectangle(this, x,y,win_w-x,dy);
 //	fill_rectangle(this, 0,y+dy,win_w,win_h-y);
 	

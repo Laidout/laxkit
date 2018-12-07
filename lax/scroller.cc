@@ -155,9 +155,10 @@ Scroller::Scroller(anXWindow *parnt,const char *nname, const char *ntitle, unsig
 	if (ncpe<ncp) ncpe=ncp+nes;
 	if (ncpe>nmaxs) ncpe=nmaxs;
 
-	installColors(app->color_panel);
+	//installColors(app->color_panel);
+	InstallColors(THEME_Panel);
 
-	if (npan==NULL) { // pan has just been created, must put the given values into it.
+	if (npan == NULL) { // pan has just been created, must put the given values into it.
 		panner->SetStuff(win_style&SC_XSCROLL?1:2,nmins,nmaxs,nps,nes,ncp,ncpe);
 	}
 }
@@ -167,11 +168,11 @@ Scroller::~Scroller()
 {}
 
 
-int Scroller::ThemeChange(Theme *theme)
-{
-	installColors(theme->GetStyle(THEME_Panel));
-	return 0;
-}
+//int Scroller::ThemeChange(Theme *theme)
+//{
+//	installColors(theme->GetStyle(THEME_Panel));
+//	return 0;
+//}
 
 
 //------------------- interface elements:
@@ -600,8 +601,8 @@ void Scroller::drawtrack()
 {
 	// draw the track line
 	Displayer *dp = GetDisplayer();
-	dp->NewFG(win_colors->fg);
-	if (win_style&SC_XSCROLL) dp->drawline(0,int(win_h/2)+.5, win_w,int(win_h/2)+.5);
+	dp->NewFG(&win_themestyle->fg);
+	if (win_style & SC_XSCROLL) dp->drawline(0,int(win_h/2)+.5, win_w,int(win_h/2)+.5);
 	else dp->drawline(int(win_w/2)+.5,0, int(win_w/2)+.5,win_h);
 	drawarrows();
 }
@@ -626,8 +627,8 @@ void Scroller::drawarrows()
 		r=(ah<win_w?ah:win_w)/2;
 	}
 	Displayer *dp = GetDisplayer();
-	dp->drawthing(x1,y1,r,r, t1, win_colors->fg,win_colors->color1);
-	dp->drawthing(x2,y2,r,r, t2, win_colors->fg,win_colors->color1);
+	dp->drawthing(x1,y1,r,r, t1, win_themestyle->fg.Pixel(), win_themestyle->color1.Pixel());
+	dp->drawthing(x2,y2,r,r, t2, win_themestyle->fg.Pixel(), win_themestyle->color1.Pixel());
 }
 
 //! Draw the track box including the zoom handles if required.
@@ -665,22 +666,22 @@ void Scroller::drawtrackbox()
 	 // draw the box without zoom handles
 	if (!(win_style&SC_ZOOM) || zzh==0) {
 		if (win_style&SC_XSCROLL) {
-			dp->NewFG(win_colors->color1); 
+			dp->NewFG(&win_themestyle->color1); 
 
 			//fill_arc_wh(this, poss,0, (pose-poss),win_h-1, 0,2*M_PI);
 			dp->drawellipseWH(poss,0, (pose-poss),win_h-1, 0,2*M_PI, 1);
 
-			dp->NewFG(win_colors->fg); 
+			dp->NewFG(win_themestyle->fg); 
 			//draw_arc_wh(this, poss,0, (pose-poss),win_h-1, 0,2*M_PI);
 			dp->drawellipseWH(poss,0, (pose-poss),win_h-1, 0,2*M_PI, 0);
 			if (!wholelen) // for selbox too big 
 				//draw_arc_wh(this, poss+(pose-poss)/4,(win_h-1)/4, (pose-poss)/2,(win_h-1)/2, 0,2*M_PI);
 				dp->drawellipseWH(poss+(pose-poss)/4,(win_h-1)/4, (pose-poss)/2,(win_h-1)/2, 0,2*M_PI, 0);
 		} else {
-			dp->NewFG(win_colors->color1); 
+			dp->NewFG(win_themestyle->color1); 
 			//fill_arc_wh(this, 0,poss, win_w-1,(pose-poss), 0,2*M_PI);
 			dp->drawellipseWH(0,poss, win_w-1,(pose-poss), 0,2*M_PI, 1);
-			dp->NewFG(win_colors->fg); 
+			dp->NewFG(win_themestyle->fg); 
 			//draw_arc_wh(this, 0,poss, win_w-1,(pose-poss), 0,2*M_PI);
 			dp->drawellipseWH(0,poss, win_w-1,(pose-poss), 0,2*M_PI, 0);
 			if (!wholelen) // for selbox larger than wholebox, draw another oval inside trackbox
@@ -697,7 +698,7 @@ void Scroller::drawtrackbox()
 		}
 
 		 // draw zoom handles
-		dp->NewFG(win_colors->color1); 
+		dp->NewFG(win_themestyle->color1); 
 		 // draw filled
 		if (win_style&SC_XSCROLL) {
 			//fill_arc_wh(this, poss-zh,0, 2*zh-1,win_h-1, 0,0);
@@ -711,7 +712,7 @@ void Scroller::drawtrackbox()
 			dp->drawellipseWH(0,pose-zh, win_w-1,2*zh-1, 0,0, 1);
 		}
 		 // draw outline
-		dp->NewFG(win_colors->fg); 
+		dp->NewFG(win_themestyle->fg); 
 		if (win_style&SC_XSCROLL) {
 			//draw_arc_wh(this, poss-zh,0, 2*zh-1,win_h-1, 0,0);
 			//draw_arc_wh(this, pose-zh,0, 2*zh-1,win_h-1, 0,0);
@@ -725,9 +726,9 @@ void Scroller::drawtrackbox()
 		}
 
 		 // draw central rectangular part of the trackbox
-		dp->NewFG(win_colors->color1); 
+		dp->NewFG(win_themestyle->color1); 
 		dp->drawrectangle(x,y, w,h, 1);
-		dp->NewFG(win_colors->fg);
+		dp->NewFG(&win_themestyle->fg);
 		dp->drawrectangle(x,y, w,h, 0);
 		if (!wholelen) // for selbox larger than wholebox, draw another oval inside trackbox
 			//draw_arc_wh(this, x+w/4,y+h/4, w/2,h/2, 0,2*M_PI);

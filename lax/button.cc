@@ -260,7 +260,7 @@ void Button::draw()
 	if (font) {
 		dp->font(font, font->textheight());
 	}
-	dp->NewFG(mousein?win_colors->moverbg:win_colors->bg);
+	dp->NewFG(mousein ? win_themestyle->bghover : win_themestyle->bg);
 	dp->drawrectangle(0,0, win_w,win_h, 1);
 	
 	unsigned int what=labelstyle;
@@ -307,11 +307,11 @@ void Button::draw()
 			if (Grayed()) dp->setSourceAlpha(1.);
 			//image_out(i,this,ix+offset.x,iy+offset.y);
 			i->doneForNow();
-		} else dp->drawthing(ix+iw/2,iy+iy/2, iw/2,ih/2, (DrawThingTypes)thing, win_colors->fg, win_colors->color1);
+		} else dp->drawthing(ix+iw/2,iy+iy/2, iw/2,ih/2, (DrawThingTypes)thing, win_themestyle->fg.Pixel(), win_themestyle->color1.Pixel());
 	}
 
 	if (l) {
-		dp->NewFG((state==LAX_GRAY||Grayed())?win_colors->grayedfg:win_colors->fg);
+		dp->NewFG((state==LAX_GRAY||Grayed()) ? win_themestyle->fggray : win_themestyle->fg);
 		dp->textout(tx+offset.x,ty+offset.y, l,-1, LAX_LEFT|LAX_TOP);
 	}
 	

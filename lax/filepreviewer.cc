@@ -284,8 +284,8 @@ void FilePreviewer::Refresh()
 	} else {
 		needtodraw=0;
 
-		dp->NewBG(win_colors->bg);
-		dp->NewFG(win_colors->fg);
+		dp->NewBG(win_themestyle->bg);
+		dp->NewFG(win_themestyle->fg);
 		dp->ClearWindow();
 		
 		if (image) {
@@ -333,11 +333,11 @@ void FilePreviewer::Refresh()
 
 		double w,h;
 		dp->textextent(text,-1,&w,&h);
-		dp->NewFG(win_colors->bg);
+		dp->NewFG(win_themestyle->bg);
 		dp->drawrectangle(win_w/2-w/2 - 2,win_h-h - 4,w+4,h+4, 1);
 		dp->drawthing(win_w/2-w/2-2,win_h-h/2-2, h/2,h/2+2, 1,THING_Circle);
 		dp->drawthing(win_w/2+w/2+2,win_h-h/2-2, h/2,h/2+2, 1,THING_Circle);
-		dp->NewFG(win_colors->fg);
+		dp->NewFG(win_themestyle->fg);
 		dp->textout(win_w/2,win_h-2, text,-1, LAX_HCENTER|LAX_BOTTOM);
 		delete[] text;
 
@@ -347,11 +347,11 @@ void FilePreviewer::Refresh()
 			sprintf(size,"%d x %d",image->w(),image->h());
 
 			dp->textextent(size,-1,&w,&h);
-			dp->NewFG(win_colors->bg);
+			dp->NewFG(win_themestyle->bg);
 			dp->drawrectangle(win_w/2-w/2 - 2,win_h-2*h - 4,w+4,h+4, 1);
 			dp->drawthing(win_w/2-w/2-2,win_h-h/2-2-h, h/2,h/2+2, 1,THING_Circle);
 			dp->drawthing(win_w/2+w/2+2,win_h-h/2-2-h, h/2,h/2+2, 1,THING_Circle);
-			dp->NewFG(win_colors->fg);
+			dp->NewFG(win_themestyle->fg);
 			dp->textout(win_w/2,win_h-2-h, size,-1, LAX_HCENTER|LAX_BOTTOM);
 		}
 		

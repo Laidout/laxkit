@@ -68,6 +68,7 @@ void fill_with_transparency(aDrawable *win, ScreenColor &color, double square, d
 
  //color utitilies
 ScreenColor *coloravg(ScreenColor *result, ScreenColor *a, ScreenColor *b,float r=.5);
+unsigned long coloravg(const ScreenColor &a, const ScreenColor &b,float r=.5);
 unsigned long pixelfromcolor(ScreenColor *col);
 unsigned long standoutcolor(const Laxkit::ScreenColor &color, bool bw);
 

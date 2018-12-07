@@ -246,18 +246,19 @@ class RowColBox : public ListBox
 
 
 
-//-------------------------------------- tables ------------------------
+//-------------------------------------- TableLayout ------------------------
 
-class TableData 
+class TableLayout : public ListBox 
 { 
- public: 
-	int i,j,rowspan,colspan; 
-	SquishyBox *box; 
+  public: 
+	TableLayout();
+	virtual ~TableLayout();
+	NumStack<int> rowspan, colspan;
 };
 
 class TableBox : public SquishyBox
 {
- public:
+  public:
 	int i,j; // row i, column j == coordinates of upper left corner
 	int rowspan,colspan;
 	//int cellpadding; <-- use SquishyBox::pad

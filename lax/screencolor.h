@@ -66,7 +66,7 @@ class ScreenColor
 	void Average(ScreenColor *result, const ScreenColor &color, double r);
 	void Clamp();
 
-	unsigned long Pixel();
+	unsigned long Pixel() const;
 	int equals(ScreenColor &color);
 	int equals(double r,double g,double b, double a);
 };

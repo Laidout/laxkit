@@ -203,8 +203,8 @@ EngraverFillInterface::EngraverFillInterface(int nid,Displayer *ndp)
 
 	fgcolor.rgbf(0.,0.,0.);
 	bgcolor.rgbf(1.,1.,1.);
-	activate_color  =app->color_panel->activate;
-	deactivate_color=app->color_panel->deactivate;
+	activate_color   = app->theme->GetStyle(THEME_Panel)->activate.Pixel();
+	deactivate_color = app->theme->GetStyle(THEME_Panel)->deactivate.Pixel();
 }
 
 //! Empty destructor.

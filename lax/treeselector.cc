@@ -219,9 +219,7 @@ void TreeSelector::base_init()
 	sort_detail  = -1;
 	sort_descending = 0;
 
-	//installColors(app->color_buttons);
-	//installColors(app->color_edits);
-	installColors(app->color_panel);
+	InstallColors(THEME_Panel);
 
 	menu=NULL;
 }
@@ -534,8 +532,8 @@ int TreeSelector::SetFirst(int which,int x,int y)
 int TreeSelector::init()
 {
 	ScrolledWindow::init(); //this calls syncWindows, causing inrect and pagesize to get set
-    highlight=coloravg(win_colors->bg,rgbcolor(255,255,255));
-	shadow   =coloravg(win_colors->bg,rgbcolor(0,0,0));
+    highlight=coloravg(win_themestyle->bg,rgbcolor(255,255,255));
+	shadow   =coloravg(win_themestyle->bg,rgbcolor(0,0,0));
 	
 	leading=1;
 	if (textheight==0) textheight=get_default_font()->textheight()+leading;
@@ -1034,9 +1032,9 @@ void TreeSelector::Refresh()
 
 	 //draw column info
 	if (columns.n) {
-		dp->NewFG(coloravg(win_colors->fg,win_colors->bg,.8));
+		dp->NewFG(coloravg(win_themestyle->fg,win_themestyle->bg,.8));
 		dp->drawrectangle(0,y, win_w,textheight, 1);
-		dp->NewFG(win_colors->fg);
+		dp->NewFG(win_themestyle->fg);
 		dp->drawline(0,y+textheight, win_w,y+textheight);
 
 		for (int c=0; c<columns.n; c++) {
@@ -1055,10 +1053,10 @@ void TreeSelector::Refresh()
 	}
 
 	if (showsearch) {
-		dp->NewFG(coloravg(win_colors->bg,win_colors->fg, .25));
+		dp->NewFG(coloravg(win_themestyle->bg,win_themestyle->fg, .25));
 		dp->drawRoundedRect(inrect.x,y+pad, inrect.width,textheight, textheight/2,0, textheight/2,0, 1, 15);
 
-		dp->NewFG(win_colors->fg);
+		dp->NewFG(win_themestyle->fg);
 		//double w = dp->textextent(searchfilter,-1, NULL,NULL);
 		dp->textout(textheight,y+pad, searchfilter,-1, LAX_LEFT|LAX_TOP);
 	}
@@ -1081,8 +1079,8 @@ int TreeSelector::DrawItems(int indent, MenuInfo *mmenu, int &n, flatpoint offse
 
 	MenuItem *i;
 	int yy;
-	unsigned long oddcolor=coloravg(win_colors->bg,win_colors->fg, .05);
-	unsigned long linecolor=win_colors->fg;
+	unsigned long oddcolor=coloravg(win_themestyle->bg,win_themestyle->fg, .05);
+	unsigned long linecolor=win_themestyle->fg.Pixel();
 	unsigned long col;
 
 	int tree_offset=0; //offset of tree lines due to being in a particular column
@@ -1099,8 +1097,8 @@ int TreeSelector::DrawItems(int indent, MenuInfo *mmenu, int &n, flatpoint offse
 
 		 //draw background
 		if (i->isSelected()) {
-			col=win_colors->hbg;
-			if (n%2==0) col=coloravg(col,win_colors->fg,.05); //slightly darker for odd lines
+			col = win_themestyle->bghl.Pixel();
+			if (n%2==0) col=coloravg(col,win_themestyle->fg,.05); //slightly darker for odd lines
 
 		} else {
 			if (n%2==0 && !HasStyle(TREESEL_FLAT_COLOR)) {
@@ -1108,14 +1106,14 @@ int TreeSelector::DrawItems(int indent, MenuInfo *mmenu, int &n, flatpoint offse
 				col=oddcolor;
 			} else {
 				 //draw bg as bg
-				col=win_colors->bg;
+				col = win_themestyle->bg.Pixel();
 			}
 		}
 
 		 //highlight more if is focused item
 		if (i==item(ccuritem)) {
 			DBG cerr <<" Item "<<n<<" is focused item, making darker"<<endl;
-			col=coloravg(col,win_colors->fg,.1);
+			col=coloravg(col,win_themestyle->fg,.1);
 		}
 		dp->NewFG(col);
 		dp->drawrectangle(offset.x+0,offset.y+i->y, win_w,i->h, 1);
@@ -1190,9 +1188,9 @@ void TreeSelector::drawSubIndicator(MenuItem *mitem,int x,int y, int selected)
 void TreeSelector::drawarrow(int x,int y,int r,int type)
 {
 	Displayer *dp = GetDisplayer();
-	dp->NewFG(win_colors->color1); // inside the arrow
+	dp->NewFG(win_themestyle->color1); // inside the arrow
 	dp->drawthing(x,y,r,r,1,(DrawThingTypes)type);
-	dp->NewFG(win_colors->fg); // border of the arrow
+	dp->NewFG(win_themestyle->fg); // border of the arrow
 	dp->drawthing(x,y,r,r,0,(DrawThingTypes)type);
 }
 
@@ -1201,9 +1199,9 @@ void TreeSelector::drawtitle(int &y)
 {
 	if (!menu || !menu->title) return;
 	Displayer *dp = GetDisplayer();
-	dp->NewFG(win_colors->fg); // background of title
+	dp->NewFG(win_themestyle->fg); // background of title
 	dp->drawrectangle(0,y+pad, win_w,textheight+leading, 1);
-	dp->NewFG(win_colors->fg); // foreground of title
+	dp->NewFG(win_themestyle->fg); // foreground of title
 	dp->textout(win_w/2,y+pad, menu->title,-1, LAX_CENTER|LAX_TOP);
 	y += textheight+leading;
 }
@@ -1248,17 +1246,17 @@ void TreeSelector::drawItemContents(MenuItem *i,int offset_x,int offset_y, int f
 
 		if (i->isSelected()) {
 			 //draw bg selected
-			color=win_colors->hbg;
+			color = win_themestyle->bghl.Pixel();
 		} else {
 			int n=visibleitems.menuitems.findindex(i);
 
 			 //draw bg slightly darker on odd lines
-			if (n%2==1) color=coloravg(win_colors->bg,win_colors->fg, .05);
-			else color=win_colors->bg;
+			if (n%2==1) color=coloravg(win_themestyle->bg,win_themestyle->fg, .05);
+			else color = win_themestyle->bg.Pixel();
 		}
 
 		int isccuritem=(i==item(ccuritem));
-		if (isccuritem) color=coloravg(color,win_colors->fg,.05);
+		if (isccuritem) color=coloravg(color,win_themestyle->fg,.05);
 		dp->NewFG(color);
 		dp->drawrectangle(offset_x+i->x,offset_y+i->y, inrect.x+inrect.width-(offset_x+i->x),i->h, 1);
 	}
@@ -1402,18 +1400,18 @@ void TreeSelector::drawitemname(MenuItem *mitem,IntRectangle *rect)
 	//DBG cerr<<"menu "<<(menu->title?menu->title:"untitled")<<" item "<<c<<": "<<(mitem->state&LAX_HAS_SUBMENU?1:0)<<endl;
 	if ((mitem->state&LAX_MSTATE_MASK)>LAX_ON) { // grayed, hidden=0, off=1, on=2, so this is same as>2
 		//DBG cerr <<"item "<<(mitem->state&LAX_ON?1:0)<<" "<<mitem->name<<endl;
-		g=win_colors->bg;
-		f=win_colors->grayedfg;
+		g = win_themestyle->bg.Pixel();
+		f = win_themestyle->fggray.Pixel();
 	} else {
 		//DBG cerr <<"item "<<(mitem->state&LAX_ON?1:0)<<" "<<mitem->name<<endl;
-		g=win_colors->bg;
-		f=win_colors->fg;
+		g = win_themestyle->bg.Pixel();
+		f = win_themestyle->fg.Pixel();
 	}
 
 	 // do the actual drawing
 	if (mitem->state&LAX_ON) { // draw on
-		g=win_colors->hbg;
-		f=win_colors->hfg;
+		g = win_themestyle->bghl.Pixel();
+		f = win_themestyle->fghl.Pixel();
 	} 
 	 // add a little extra hightlight if item is ccuritem
 	//if (!(menustyle&TREESEL_ZERO_OR_ONE)) if (mitem==item(ccuritem)) g=coloravg(f,g,.85);
@@ -1431,21 +1429,21 @@ void TreeSelector::drawitemname(MenuItem *mitem,IntRectangle *rect)
 
 }
 
-//! Draw a separator (default is just a win_colors->grayedfg colored line) across rect widthwise.
+//! Draw a separator (default is just a win_themestyle->grayedfg colored line) across rect widthwise.
 void TreeSelector::drawsep(const char *name,IntRectangle *rect)
 {
 	Displayer *dp = GetDisplayer();
 
-	dp->NewFG(win_colors->grayedfg); 
+	dp->NewFG(win_themestyle->fggray); 
 	dp->drawline(rect->x,int(rect->y+rect->height/2)+.5, rect->x+rect->width-1,int(rect->y+rect->height/2)+.5);
 
 	if (!isblank(name)) {
 		int extent = dp->textextent(name, -1, NULL, NULL);
 		 //blank out area
-		dp->NewFG(win_colors->bg); 
+		dp->NewFG(win_themestyle->bg); 
 		dp->drawrectangle(rect->x+rect->width/2-extent/2-2,rect->y,extent+4,rect->height, 1);
 		 //draw name
-		dp->NewFG(win_colors->grayedfg); 
+		dp->NewFG(win_themestyle->fggray); 
 		dp->textout(rect->x+rect->width/2,rect->y+rect->height/2, name,-1, LAX_CENTER);
 	}
 }

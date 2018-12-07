@@ -56,6 +56,7 @@ class Scroller : public PanUser, public anXWindow
 	int tid;
 	int idlemx,idlemy;
 	virtual void redoarrows();
+
  public:
 	 // colors:
 	unsigned long bordercolor,wholecolor,trackcolor;
@@ -78,7 +79,6 @@ class Scroller : public PanUser, public anXWindow
 	virtual int WheelDown(int x,int y,unsigned int state,int count,const LaxMouse *d);
 	virtual int MouseMove(int mx,int my, unsigned int state,const LaxMouse *d);
 	virtual int CharInput(unsigned int ch,const char *buffer,int len,unsigned int state,const LaxKeyboard *d);
-    virtual int ThemeChange(Theme *theme);
 
 	virtual void drawarrows();
 	virtual void drawtrack();

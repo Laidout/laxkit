@@ -314,11 +314,11 @@ MenuSelector::MenuSelector(anXWindow *parnt,const char *nname,const char *ntitle
 		menustyle|=MENUSEL_CHECK_ON_LEFT;
 
 	if (menustyle&MENUSEL_BUTTONCOLORS) {
-		installColors(app->color_buttons);
+		InstallColors(THEME_Button);
 	} else if (menustyle&MENUSEL_TEXTCOLORS) {
-		installColors(app->color_edits);
+		InstallColors(THEME_Edit);
 	} else { // just use regular panel colors
-		installColors(app->color_panel);
+		InstallColors(THEME_Panel);
 	}
 
 	if (usethismenu) {
@@ -425,8 +425,8 @@ int MenuSelector::SetFirst(int which,int x,int y)
 int MenuSelector::init()
 { 
 	ScrolledWindow::init(); //this calls syncWindows, causing inrect and pagesize to get set
-    highlight=coloravg(win_colors->bg,rgbcolor(255,255,255));
-	shadow   =coloravg(win_colors->bg,rgbcolor(0,0,0));
+    highlight=coloravg(win_themestyle->bg,rgbcolor(255,255,255));
+	shadow   =coloravg(win_themestyle->bg,rgbcolor(0,0,0));
 
 	if (leading==0) { if (menustyle&MENUSEL_CHECKBOXES) leading=pad; else leading=1; }
 	if (textheight==0) SetLineHeight(app->defaultlaxfont->textheight()+leading,leading,0);
@@ -717,11 +717,11 @@ double MenuSelector::getitemextent(MenuItem *mitem, //!< the index, MUST already
 void MenuSelector::drawStatusGraphic(int x,int y,int state)
 {
 	if (menustyle&MENUSEL_CHECKBOXES) { // draw the circle with textbg first
-		foreground_color(win_colors->bg);
+		foreground_color(win_themestyle->bg.Pixel());
 		fill_arc_wh(this, x,y, sgw,textheight, 0,2*M_PI);
 	}
 	
-	foreground_color(win_colors->fg);
+	foreground_color(win_themestyle->fg.Pixel());
 	if (state&LAX_ON) fill_arc_wh(this, x+sgw/4,y+sgw/4, sgw/2,sgw/2, 0,2*M_PI);
 
 	foreground_color(highlight);
@@ -736,18 +736,18 @@ void MenuSelector::drawStatusGraphic(int x,int y,int state)
 }
 
 
-//! Draw a separator (default is just a win_colors->grayedfg colored line) across rect widthwise.
+//! Draw a separator (default is just a win_themestyle->grayedfg colored line) across rect widthwise.
 void MenuSelector::drawsep(const char *name,IntRectangle *rect)
 {
-	foreground_color(win_colors->grayedfg); 
+	foreground_color(win_themestyle->fggray.Pixel()); 
 	draw_line(this, rect->x,rect->y+rect->height/2, rect->x+rect->width-1,rect->y+rect->height/2);
 	if (!isblank(name)) {
 		int extent=getextent(name, -1, NULL, NULL, NULL, NULL, 0);
 		 //blank out area
-		foreground_color(win_colors->bg); 
+		foreground_color(win_themestyle->bg.Pixel()); 
 		fill_rectangle(this, rect->x+rect->width/2-extent/2-2,rect->y,extent+4,rect->height);
 		 //draw name
-		foreground_color(win_colors->grayedfg); 
+		foreground_color(win_themestyle->fggray.Pixel()); 
 		textout(this, name,-1,rect->x+rect->width/2,rect->y+rect->height/2,LAX_CENTER);
 	}
 }
@@ -771,9 +771,9 @@ void MenuSelector::drawsubindicator(MenuItem *mitem,int x,int y)
 						 flatpoint(x,       y+h/3),
 						 flatpoint(x,       y+h*2/3)
 						};
-		foreground_color(win_colors->color1); // only draw highlighted if not checkboxes
+		foreground_color(win_themestyle->color1.Pixel()); // only draw highlighted if not checkboxes
 		fill_polygon(this, p,8);
-		foreground_color(win_colors->fg); // only draw highlighted if not checkboxes
+		foreground_color(win_themestyle->fg.Pixel()); // only draw highlighted if not checkboxes
 		draw_lines(this, p,8,1);
 //***	if (mitem->state&LAX_OPEN) { // draw open folder
 //		} else { // draw closed folder
@@ -792,7 +792,7 @@ void MenuSelector::drawcheck(int on, int x,int y)
 {
 	if (!on) return;
 
-	foreground_color(win_colors->fg);
+	foreground_color(win_themestyle->fg.Pixel());
 	draw_thing(this, x+checkw/2,y+(textheight+leading)/2, .7*checkw,-.7*(textheight+leading/2), 1, THING_Check);
 }
 
@@ -812,19 +812,19 @@ void MenuSelector::drawitemname(MenuItem *mitem,IntRectangle *rect)
 	//DBG cerr<<"menu "<<(menu->title?menu->title:"untitled")<<" item "<<c<<": "<<(mitem->state&LAX_HAS_SUBMENU?1:0)<<endl;
 	if ((mitem->state&LAX_MSTATE_MASK)>LAX_ON) { // grayed, hidden=0, off=1, on=2, so this is same as>2
 		//DBG cerr <<"item "<<(mitem->state&LAX_ON?1:0)<<" "<<mitem->name<<endl;
-		g=win_colors->bg;
-		f=win_colors->grayedfg;
+		g=win_themestyle->bg.Pixel();
+		f=win_themestyle->fggray.Pixel();
 	} else {
 		//DBG cerr <<"item "<<(mitem->state&LAX_ON?1:0)<<" "<<mitem->name<<endl;
-		g=win_colors->bg;
-		f=win_colors->fg;
+		g=win_themestyle->bg.Pixel();
+		f=win_themestyle->fg.Pixel();
 	}
 
 	 // do the actual drawing
 	if (!(menustyle&(MENUSEL_CHECKBOXES|MENUSEL_CHECKS))) { // draw as menu, check boxes don't hightlight
 		if (mitem->state&LAX_ON) { // draw on
-			g=win_colors->hbg;
-			f=win_colors->hfg;
+			g=win_themestyle->bghl.Pixel();
+			f=win_themestyle->fghl.Pixel();
 		} 
 		 // add a little extra hightlight if item is ccuritem
 		if (!(menustyle&MENUSEL_ZERO_OR_ONE)) if (mitem==item(ccuritem)) g=coloravg(f,g,.85);
@@ -843,7 +843,7 @@ void MenuSelector::drawitemname(MenuItem *mitem,IntRectangle *rect)
 // *** ccuritem should add extra highlight, not these little circles which are kind of annoying
 //	 // draw little markers for ccuritem
 //	if (mitem==item(ccuritem) && win_active) {
-//		foreground_color(win_colors->fg);
+//		foreground_color(win_themestyle->fg);
 //		draw_arc_wh(this, rect->x,rect->y+textheight/3, textheight/3,textheight/3, 0,2*M_PI);
 //		draw_arc_wh(this, rect->x+rect->width-1-textheight/3,rect->y+textheight/3,textheight/3,textheight/3, 0,2*M_PI);
 //	}
@@ -875,7 +875,7 @@ void MenuSelector::drawitemname(MenuItem *mitem,IntRectangle *rect)
  */
 void MenuSelector::drawitem(MenuItem *mitem,IntRectangle *itemspot)
 {
-	foreground_color(win_colors->bg);
+	foreground_color(win_themestyle->bg.Pixel());
 	if (!ValidDrawable()) return;
 	fill_rectangle(this, itemspot->x,itemspot->y,itemspot->width,itemspot->height);
 
@@ -976,9 +976,9 @@ int MenuSelector::findRect(int c,IntRectangle *itemspot)
  */
 void MenuSelector::drawarrow(int x,int y,int r,int type)
 {
-	foreground_color(win_colors->color1); // inside the arrow
+	foreground_color(win_themestyle->color1.Pixel()); // inside the arrow
 	draw_thing(this, x,y,r,r,1,(DrawThingTypes)type);
-	foreground_color(win_colors->fg); // border of the arrow
+	foreground_color(win_themestyle->fg.Pixel()); // border of the arrow
 	draw_thing(this, x,y,r,r,0,(DrawThingTypes)type);
 }
 
@@ -986,9 +986,9 @@ void MenuSelector::drawarrow(int x,int y,int r,int type)
 void MenuSelector::drawtitle()
 {
 	if (!menu || !menu->title) return;
-	foreground_color(win_colors->fg); // background of title
+	foreground_color(win_themestyle->fg.Pixel()); // background of title
 	fill_rectangle(this, 0,pad, win_w,textheight+leading);
-	foreground_color(win_colors->fg); // foreground of title
+	foreground_color(win_themestyle->fg.Pixel()); // foreground of title
 	textout(this,menu->title,-1,win_w/2,pad,LAX_CENTER|LAX_TOP);
 }
 
@@ -1027,7 +1027,7 @@ void MenuSelector::Refresh()
 	for (c=0; c<numItems(); c++) drawitem(c);
 	
 	// //*** for debugging, draw box around inrect
-	//foreground_color(coloravg(win_colors->bg,win_colors->fg,.5));
+	//foreground_color(coloravg(win_themestyle->bg,win_themestyle->fg,.5));
 	//draw_rectangle(this,inrect.x,inrect.y,inrect.width,inrect.height);
 	
 	 // draw More arrows if necessary

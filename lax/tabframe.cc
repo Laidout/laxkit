@@ -170,7 +170,7 @@ void TabFrame::DrawTab(IconBox *b, int selected, int iscurbox)
 	dp->curveto(flatpoint(xx+ww,yy), flatpoint(xx+ww,yy+hh), flatpoint(xx+ww+hh/3,yy+hh));
 	dp->closed();
 
-	dp->NewFG(selected ? win_colors->moverbg : win_colors->bg);
+	dp->NewFG(selected ? win_themestyle->bghover : win_themestyle->bg);
 	dp->fill(0);
 
 	if (iscurbox) { //draw extra line to window border
@@ -186,7 +186,7 @@ void TabFrame::DrawTab(IconBox *b, int selected, int iscurbox)
 		dp->lineto(win_w, yy+hh-1); 
 	}
 
-	dp->NewFG(coloravg(win_colors->fg, win_colors->bg));
+	dp->NewFG(coloravg(win_themestyle->fg.Pixel(), win_themestyle->bg.Pixel()));
 	dp->stroke(0);
 
 	//dp->NewFG(win_colors->bg);
@@ -212,7 +212,7 @@ void TabFrame::DrawTab(IconBox *b, int selected, int iscurbox)
 	if (l && tx>LAX_WAY_OFF) {
 		tx+=dx;
 		ty+=dy;
-		dp->NewFG(win_colors->fg);
+		dp->NewFG(win_themestyle->fg);
 		dp->textout(tx,ty, l,-1, LAX_LEFT|LAX_TOP);
 	}
 }
@@ -237,7 +237,7 @@ void TabFrame::Refresh()
 	for (int c=0; c<list.n; c++) {
 		ListBox *row = dynamic_cast<ListBox*>(list.e[c]);
 
-		dp->NewFG(coloravg(win_colors->fg,win_colors->bg,.8));
+		dp->NewFG(coloravg(win_themestyle->fg.Pixel(), win_themestyle->bg.Pixel(),.8));
 		dp->drawrectangle(0,row->y()-padinset, win_w,row->h()+padinset-1, 1);
 
 		int i = row->list.findindex(cbox);

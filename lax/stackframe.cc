@@ -81,7 +81,7 @@ StackFrame::StackFrame(anXWindow *parnt,const char *nname,const char *ntitle,uns
 		int ngap)
 	: anXWindow(parnt,nname,ntitle,nstyle,xx,yy,ww,hh,brder,prev,nowner,nsend)
 {
-	installColors(app->color_panel);
+	InstallColors(THEME_Panel);
 
 	if (win_style&STACKF_VERTICAL) flags=(flags&~BOX_HORIZONTAL)|BOX_VERTICAL;
 	else flags=(flags&~BOX_VERTICAL)|BOX_HORIZONTAL;
@@ -146,9 +146,9 @@ void StackFrame::Refresh()
 
 	Displayer *dp=MakeCurrent();
 
-	unsigned long highlight=coloravg(win_colors->bg,rgbcolor(255,255,255));
-	unsigned long shadow   =coloravg(win_colors->bg,rgbcolor(0,0,0));
-	unsigned long dots     =coloravg(win_colors->bg,win_colors->fg);
+	unsigned long highlight=coloravg(win_themestyle->bg,rgbcolor(255,255,255));
+	unsigned long shadow   =coloravg(win_themestyle->bg,rgbcolor(0,0,0));
+	unsigned long dots     =coloravg(win_themestyle->bg,win_themestyle->fg);
 	
 	dp->ClearWindow();
 

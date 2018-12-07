@@ -144,7 +144,7 @@ MultiLineEdit::MultiLineEdit(anXWindow *prnt,const char *nname,const char *ntitl
 { 			// nstyle=0, newtext=NULL, cntlchar=0; newtext copied
 	modified=0;
 
-	installColors(app->color_edits);
+	InstallColors(THEME_Edit);
 	wscolor=rgbcolor(0,64,255);
 	con=cx=cy=cdir=0;
 	oldsellen=0;
@@ -1626,7 +1626,7 @@ void MultiLineEdit::Refresh()
 		double th=thefont->textheight();
 		Displayer *dp=GetDisplayer();
 		dp->BlendMode(LAXOP_Over);
-		dp->NewFG(coloravg(win_colors->bg,win_colors->fg));
+		dp->NewFG(coloravg(win_themestyle->bg,win_themestyle->fg));
 
 		int nl=numlines;
 		if (!onlf(thetext[textlen-1])) nl++;
@@ -1644,8 +1644,10 @@ void MultiLineEdit::DrawText(int black) // black=1
 	int cline=0,spy;
 	char check=1;
 	//if (black) XClearWindow();
-	background_color(win_colors->bg);
-	foreground_color(win_colors->fg);
+
+	Displayer *dp=GetDisplayer();
+	dp->NewBG(win_themestyle->bg);
+	dp->NewFG(win_themestyle->fg);
 	if (curline+nlines<lpers+1 && linestats[curline+nlines].start==textlen) nlines=0;
 	if (nlines==0) nlines=lpers+1;
 	if (dpos==0) dpos=-1;

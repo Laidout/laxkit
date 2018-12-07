@@ -133,7 +133,7 @@ ColorSliders::ColorSliders(anXWindow *parnt,const char *nname,const char *ntitle
 	DefineSystems(COLORBLOCK_RGB|COLORBLOCK_CMYK|COLORBLOCK_HSL|COLORBLOCK_Alpha);
 	DefineBars();
 
-	installColors(app->color_panel);
+	InstallColors(THEME_Panel);
 
 
 	 //try to place window near (nearx,neary)
@@ -363,7 +363,7 @@ void ColorSliders::Refresh()
 
 	 //paint highlighted current in gap
 	if (current>=0) {
-		dp->NewFG(coloravg(win_colors->fg,win_colors->bg,.8));
+		dp->NewFG(coloravg(win_themestyle->fg,win_themestyle->bg,.8));
 		int xx=x, yy=y;
 		if (win_style&COLORSLIDERS_Vertical) {
 			xx+=current*(w+gap);
@@ -374,11 +374,11 @@ void ColorSliders::Refresh()
 		dp->drawrectangle(xx-gap,yy-gap, w+2*gap,h+2*gap, 1);
 
 	} else if (current==ONPOS_Hex) {
-		dp->NewFG(coloravg(win_colors->fg,win_colors->bg,.8));
+		dp->NewFG(coloravg(win_themestyle->fg,win_themestyle->bg,.8));
 		dp->drawrectangle(hex.x-gap,hex.y-gap,hex.width+2*gap,hex.height+2*gap, 1);
 
 	} else if (current==ONPOS_Old || current==ONPOS_New) {
-		dp->NewFG(coloravg(win_colors->fg,win_colors->bg,.8));
+		dp->NewFG(coloravg(win_themestyle->fg,win_themestyle->bg,.8));
 		dp->drawrectangle(oldnew.x-gap,oldnew.y-gap,oldnew.width+2*gap,oldnew.height+2*gap, 1);
 	}
 
@@ -608,7 +608,7 @@ void ColorSliders::Refresh()
 
 	if (!(win_style&COLORSLIDERS_HideHex)) {
 		char str[20];
-		dp->NewFG(win_colors->fg);
+		dp->NewFG(win_themestyle->fg);
 		dp->textout(hex.x+hex.width/2,hex.y+hex.height/2, HexValue(str),-1, LAX_CENTER);
 	}
 

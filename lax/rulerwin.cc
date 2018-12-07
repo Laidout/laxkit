@@ -192,14 +192,14 @@ RulerWindow::RulerWindow(anXWindow *parnt,const char *nname,const char *ntitle,u
 	DBG if (win_style&RULER_Y) cerr <<"Y";
 	DBG cerr <<endl;
 
-	curpos=0;
-	mag=1;
-	screenoffset=0;
-	start=0;
-	end=0;
+	screenoffset = 0;
+	curpos = 0;
+	mag    = 1;
+	start  = 0;
+	end    = 0;
+	unit   = 1;
+	smallnumbers = app->fontmanager->MakeFont("Sans","",app->defaultlaxfont->textheight()/2,0);
 	needtodraw=1;
-	unit=1;
-	smallnumbers=app->fontmanager->MakeFont("Sans","",app->defaultlaxfont->textheight()/2,0);
 	DBG smallnumbers->suppress_debug=1;
 	
 		// set fractional width of ticks
@@ -210,18 +210,18 @@ RulerWindow::RulerWindow(anXWindow *parnt,const char *nname,const char *ntitle,u
 	stf=.4;
 	sstf=.3;
 	
-	installColors(app->color_panel);
-	numcolor=win_colors->fg;
-	tickcolor=win_colors->fg;
-	subtickcolor=coloravg(win_colors->fg,win_colors->bg,.3333);
-	subsubtickcolor=coloravg(win_colors->fg,win_colors->bg,.6666);
-	curposcolor=rgbcolor(0,254,0);
+	InstallColors(THEME_Panel);
+	numcolor = win_themestyle->fg.Pixel();
+	tickcolor = win_themestyle->fg.Pixel();
+	subtickcolor = coloravg(win_themestyle->fg,win_themestyle->bg,.3333);
+	subsubtickcolor = coloravg(win_themestyle->fg,win_themestyle->bg,.6666);
+	curposcolor = rgbcolor(0,254,0);
 
-	trackwindow=NULL;
+	trackwindow = NULL;
 
-	UnitManager *units=GetUnitManager();
+	UnitManager *units = GetUnitManager();
 	//baseunits=UNITS_None;
-	baseunits=units->DefaultUnits();
+	baseunits = units->DefaultUnits();
 	DBG cerr <<"baseunits on ruler creation:"<<baseunits<<endl;
 
 	if (base_units) {
@@ -251,6 +251,16 @@ RulerWindow::~RulerWindow()
 {
 	if (smallnumbers) smallnumbers->dec_count();
 }
+
+int RulerWindow::ThemeChange(Theme *theme)
+{
+	anXWindow::ThemeChange(theme);
+	numcolor = win_themestyle->fg.Pixel();
+	tickcolor = win_themestyle->fg.Pixel();
+	subtickcolor = coloravg(win_themestyle->fg,win_themestyle->bg,.3333);
+	subsubtickcolor = coloravg(win_themestyle->fg,win_themestyle->bg,.6666);
+}
+
 
 //! Create a pixmap to hold what's behind the moving bar.
 int RulerWindow::init()
@@ -323,7 +333,7 @@ void RulerWindow::Refresh()
 
 	 // draw all
 	if (needtodraw&1) {
-		dp->NewFG(win_colors->bg);
+		dp->NewFG(win_themestyle->bg);
 		dp->drawrectangle(0,0,win_w,win_h, 1);
 
 		double ustart=start*umag; //start and end in current units, rather than base units

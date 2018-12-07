@@ -182,7 +182,7 @@ LineInput::LineInput(anXWindow *parnt,const char *nname,const char *ntitle,unsig
 		}
 	}
 
-	installColors(app->color_panel);
+	InstallColors(THEME_Panel);
 
 	SetPlacement(); // sets lx,ly, le size and place
 	
@@ -383,7 +383,7 @@ void LineInput::Refresh()
 	if (label) {
 		Displayer *dp=MakeCurrent();
 		dp->ClearWindow();
-		dp->NewFG(win_colors->fg);
+		dp->NewFG(win_themestyle->fg);
 		dp->font(app->defaultlaxfont);
 		dp->textout(lx,ly, label,strlen(label), LAX_LEFT|LAX_BASELINE);
 	}

@@ -135,9 +135,9 @@ ColorBox::ColorBox(anXWindow *parnt,const char *nname,const char *ntitle, unsign
 	needtodraw=1;
 
 	 //create our own copy of default colors..
-	win_colors=new WindowColors;
-	*win_colors=*app->color_panel;
-	win_colors->bg=rgbcolor(Red()*255, Green()*255, Blue()*255);
+	win_themestyle = new WindowStyle;
+	*win_themestyle = *app->theme->GetStyle(THEME_Panel);
+	win_themestyle->bg.rgbf(Red(), Green(), Blue());
 
 	sc=NULL;
 }
@@ -235,7 +235,7 @@ int ColorBox::init()
 
 void ColorBox::Updated()
 {
-	win_colors->bg=rgbcolor(Red()*255, Green()*255, Blue()*255);
+	win_themestyle->bg=rgbcolor(Red()*255, Green()*255, Blue()*255);
 	needtodraw=1;
 }
 
@@ -404,7 +404,7 @@ int ColorBox::Event(const EventData *e,const char *mes)
 		}
 
 		Set(ce->colorsystem, cc[0],cc[1],cc[2],cc[3],cc[4]);
-		win_colors->bg=rgbcolor(Red()*255, Green()*255, Blue()*255);
+		win_themestyle->bg=rgbcolor(Red()*255, Green()*255, Blue()*255);
 		send();
 		needtodraw=1;
 		return 0;
@@ -523,7 +523,7 @@ int ColorBox::MouseMove(int x,int y,unsigned int state, const LaxMouse *d)
 		}
 	}
 
-	win_colors->bg=rgbcolor(Red()*255, Green()*255, Blue()*255);
+	win_themestyle->bg=rgbcolor(Red()*255, Green()*255, Blue()*255);
 	needtodraw=1;
 	
 	char blah[100];
@@ -565,13 +565,13 @@ void ColorBox::Refresh()
 
 		} else {
 			 //single color
-			dp->NewFG(win_colors->bg);
+			dp->NewFG(win_themestyle->bg);
 			dp->drawrectangle(0,0,win_w,win_h, 1);
 		}
 
 		if (Alpha()<1) {
-			win_colors->bg=rgbcolor(Red()*255, Green()*255, Blue()*255);
-			dp->NewFG(coloravg(0,win_colors->bg, Alpha()));
+			win_themestyle->bg=rgbcolor(Red()*255, Green()*255, Blue()*255);
+			dp->NewFG(coloravg(0,win_themestyle->bg, Alpha()));
 			dp->drawthing(win_w/2,win_h/2,win_w/2,win_h/2,1,THING_Diamond);
 		}
 	}

@@ -1080,9 +1080,8 @@ int RowColBox::distributeBoxes(int setmetrics)
 //------------------------------------------------------------------------------------------
 //------------------------------------ Tables ----------------------------------------------
 
-/*! \class TableData
+/*! \class TableLayout
  * \ingroup boxarrangers
- * \brief Class used internally for the data of tables, oddly enough.
  *
  * Contains i,j,rowspan,colspan, and a pointer to the actual SquishyBox.
  *
@@ -1090,44 +1089,13 @@ int RowColBox::distributeBoxes(int setmetrics)
  */
 
 
-/*! \class TableBox 
- * \ingroup boxarrangers
- * extra table options, not for cells:
- * 		border, cellspacing
- *
- *  ***For proper adding, the box MUST be a TableBox or SquishBox2. how  to 
- *  	have table data that is any kind of SquishyBox?
- *  	class TableData { public: int i,j,rowspan,colspan; SquishBox2 *box; }
- *
- *  \todo ***please note that this class is totally unimplemented.
- */
-//class TableBox : public SquishyBox
-//{
-// public:
-//	int i,j; // row i, column j == coordinates of upper left corner
-//	int rowspan,colspan;
-//	//int cellpadding; <-- use SquishyBox::pad
-//};
-//--OR--
-//class TableLayout : public SquishyBox
-//{
-// public:
-//	PtrStack<TableBox> boxes; <--*** can just use SquishyBox::list
-//	int cellspacing;
-//	*** is this really necessary? just make sure that the tableboxes are in the proper order?
-//	void Init();
-//	void NewRow();
-//	void Push(TableData *box);
-//	void Push(SquishBox2 *box); // constructs a TableData first...*** how exactly??
-//	void Push(SquishyBox *box,int ii,int jj,int nrowspan,ncolspan);
-//};
-//
-////! Arrange a bunch of TableBoxes into a table.
-///*! The cellspacing becomes the pad of the returned SquishyBox.
-// */
-//SquishyBox *ArrangeTable(int options,int cellspacing,TableBox **boxes,int n,SquishyBox *tablebox_ret)
-//{***
-//}
+TableLayout::TableLayout()
+{
+}
+
+TableLayout::~TableLayout()
+{
+}
 
 
 

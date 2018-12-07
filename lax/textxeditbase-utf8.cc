@@ -320,7 +320,7 @@ int TextXEditBaseUtf8::DrawTabLine()
 	Displayer *dp=GetDisplayer();
 
 	 //blank out where the line will be printed
-	dp->NewFG(win_colors->bg);
+	dp->NewFG(win_themestyle->bg);
 	dp->drawrectangle(0,cy-textascent-10, win_w,10, 1);
 	dp->NewFG(wscolor);
 	
@@ -491,11 +491,11 @@ void TextXEditBaseUtf8::docaret(int w)
 void TextXEditBaseUtf8::Colors(int hl)
 {
 	if (hl) {
-		curtextcolor=win_colors->hfg;
-		curbkcolor=win_colors->hbg;
+		curtextcolor = win_themestyle->fghl.Pixel();
+		curbkcolor   = win_themestyle->bghl.Pixel();
 	} else {
-		curtextcolor=win_colors->fg;
-		curbkcolor=ValidColor(valid);
+		curtextcolor = win_themestyle->fg.Pixel();
+		curbkcolor = ValidColor(valid);
 	}
 
 	dp->NewFG(curtextcolor);
@@ -504,10 +504,10 @@ void TextXEditBaseUtf8::Colors(int hl)
 
 unsigned long TextXEditBaseUtf8::ValidColor(int which)
 {
-	if (valid==1) return win_colors->bg;
+	if (valid==1) return win_themestyle->bg.Pixel();
 	if (valid==0) return bkwrongcolor;
 	if (valid==2) return bkwrongcolor2;
-	return win_colors->bg;
+	return win_themestyle->bg.Pixel();
 }
 
 //! Fill x,y,w,h with curbkcolor.
@@ -753,7 +753,7 @@ int TextXEditBaseUtf8::TextOut(int x,int y,char *str,long len,long eof) // len=1
 	 // been put into position according to tabtype
 	//DBG cerr <<"  --p="<<p;
 	if (p || nlf || len>=eof) { // if there are chars to draw or newlen
-		if (curbkcolor==win_colors->hbg) Black(x,y-textascent,pix,textheight);
+		if (curbkcolor == win_themestyle->bghl.Pixel()) Black(x,y-textascent,pix,textheight);
 
 		//int r,g,b;
 		//colorrgb(curtextcolor,&r,&g,&b);

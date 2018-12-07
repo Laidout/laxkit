@@ -683,6 +683,7 @@ int WindowStyle::SetDefaultColors(const char *type)
 
 
 /*! Create a blank theme with no defined styles.
+ * nname is only assigned, it is not interpreted as anything.
  */
 Theme::Theme(const char *nname)
 {
@@ -706,6 +707,17 @@ Theme::~Theme()
 {
 	delete[] name;
 	delete[] filename;
+}
+
+/*! Return the default theme for "Light", "Gray", or "Dark".
+ * If themename is not one of those, then return NULL.
+ */
+Theme *Theme::DefaultTheme(const char *themename) 
+{
+	if (strcasecmp(themename, "Light") && strcasecmp(themename, "Gray") && strcasecmp(themename, "Dark")) return NULL;
+	Theme *theme = new Theme(themename);
+	theme->AddDefaults(themename);
+	return theme;
 }
 
 /*! Install default theme styles. Built in which are "Light" (the default), "Dark", and "Gray".

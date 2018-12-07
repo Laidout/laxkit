@@ -62,7 +62,7 @@ DateSelector::DateSelector(anXWindow *parnt,const char *nname,const char *ntitle
 							int year,int month,int day, int secinday)
 	: anXWindow(parnt,nname,ntitle,nstyle,nx,ny,nw,nh,brder,prev,nowner,mes)
 {
-	installColors(app->color_edits);
+	InstallColors(THEME_Edit);
 
 	memset(&date, 0, sizeof(struct tm));
 	SetDate(year,month,day, 0);
@@ -184,7 +184,7 @@ void DateSelector::Refresh()
 
 	 //blank out background
 	clear_window(this);
-	foreground_color(coloravg(win_colors->bg,win_colors->fg,.2));
+	foreground_color(coloravg(win_themestyle->bg,win_themestyle->fg,.2));
 	fill_rectangle(this, 0,0,win_w,headerlines*h);
 
 
@@ -208,7 +208,7 @@ void DateSelector::Refresh()
 	}
 
 	 //draw arrow buttons, month and year
-	foreground_color(win_colors->fg);
+	foreground_color(win_themestyle->fg.Pixel());
 	draw_thing(this, h/2,y+h/2, h/2,h/2, 1, THING_Double_Triangle_Left);
 	draw_thing(this, 2*h,y+h/2, h/4,h/2, 1, THING_Triangle_Left);
 	sprintf(buf,"%s %d",monthname(primarymonth,1),primaryyear);
@@ -229,19 +229,19 @@ void DateSelector::Refresh()
 	while (y<win_h) {
 		 //highlight mouse over box
 		if (c==mo_col && r==mo_row) {
-			foreground_color(coloravg(win_colors->fg,win_colors->bg,.9));
+			foreground_color(coloravg(win_themestyle->fg,win_themestyle->bg,.9));
 			fill_rectangle(this, c*win_w/7,y, win_w/7,textheight);
 		}
 
 		 //box around current day
 		if (day==date.tm_mday && month==date.tm_mon && year==date.tm_year) {
-			foreground_color(win_colors->fg);
+			foreground_color(win_themestyle->fg.Pixel());
 			draw_rectangle(this, c*win_w/7,y, win_w/7,textheight);
 		}
 
 		 //make primary month more prominent
-		if (month==primarymonth && year==primaryyear) foreground_color(win_colors->fg);
-		else foreground_color(coloravg(win_colors->fg,win_colors->bg,.5));
+		if (month==primarymonth && year==primaryyear) foreground_color(win_themestyle->fg.Pixel());
+		else foreground_color(coloravg(win_themestyle->fg,win_themestyle->bg,.5));
 
 		sprintf(buf,"%d",day);
 		textout(this, buf,-1, (c+.5)*colwidth,y, LAX_HCENTER|LAX_TOP);

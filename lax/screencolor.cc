@@ -57,7 +57,7 @@ int ScreenColor::equals(double r,double g,double b, double a)
 
 /*! Return 0xAARRGGBB. Always recomputes, does not rely on this->pixel.
  */
-unsigned long ScreenColor::Pixel()
+unsigned long ScreenColor::Pixel() const
 {
 	return (blue>>8) | ((green>>8)<<8) | ((red>>8)<<16) | ((alpha>>8)<<24);
 }

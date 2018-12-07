@@ -116,13 +116,13 @@ class DisplayerCairo : public Displayer
 	 //@{
 	virtual unsigned long NewFG(double r,double g,double b,double a=1.0);
 	virtual unsigned long NewFG(unsigned long ncol);
-	virtual unsigned long NewFG(ScreenColor *col);
+	virtual unsigned long NewFG(const ScreenColor *col);
 	virtual unsigned long NewFG(Color *col);
 	virtual unsigned long NewFG(int r,int g,int b,int a=255);
 	virtual unsigned long NewBG(double r,double g,double b,double a=1.0);
 	virtual unsigned long NewBG(int r,int g,int b,int a=255);
 	virtual unsigned long NewBG(unsigned long nc);
-	virtual unsigned long NewBG(ScreenColor *col);
+	virtual unsigned long NewBG(const ScreenColor *col);
 	virtual unsigned long FG();
 	virtual unsigned long BG();
 	virtual double LineWidth(double newwidth);

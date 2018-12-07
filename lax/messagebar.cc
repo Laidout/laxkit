@@ -97,7 +97,7 @@ MessageBar::MessageBar(anXWindow *pwindow,const char *nname,const char *ntitle,u
 	}
 	SetupMetrics(); //sets win_w and win_h if nh==0
 
-	installColors(app->color_panel);
+	InstallColors(THEME_Panel);
 }
 
 MessageBar::~MessageBar()
@@ -231,8 +231,8 @@ void MessageBar::Refresh()
 	Displayer *dp=MakeCurrent();
 	dp->font(app->defaultlaxfont);
 
-	dp->NewBG(win_colors->bg);
-	dp->NewFG(win_colors->fg);
+	dp->NewBG(win_themestyle->bg.Pixel());
+	dp->NewFG(win_themestyle->fg);
 	dp->ClearWindow();
 
 	int l=0;

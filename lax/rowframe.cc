@@ -164,7 +164,7 @@ RowFrame::RowFrame(anXWindow *parnt,const char *nname,const char *ntitle,unsigne
 	else if (win_style&ROWFRAME_BOTTOM) flags|=BOX_BOTTOM;
 	////DBG cerr <<flags<<endl;
 
-	installColors(app->color_panel);
+	InstallColors(THEME_Panel);
 }
 
 RowFrame::~RowFrame()

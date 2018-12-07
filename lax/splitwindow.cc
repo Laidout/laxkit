@@ -227,7 +227,7 @@ SplitWindow::SplitWindow(anXWindow *parnt,const char *nname,const char *ntitle,u
 	lastactivewindow=NULL;
 	lastbox = -1;
 
-	installColors(app->color_panel);
+	InstallColors(THEME_Panel);
 
 	//win_pointer_shape = LAX_MOUSE_Pan;
 }
@@ -287,16 +287,16 @@ void SplitWindow::Refresh()
 	
 	 //*** draw a big X for the panes that do not actually have windows in them
 	char blah[300]; // ********* change this to dynamic alloc?
-	dp->NewFG(win_colors->fg);
+	dp->NewFG(win_themestyle->fg);
 
 	unsigned long highlight, shadow;
-	highlight=coloravg(win_colors->bg,rgbcolor(255,255,255));
-	shadow   =coloravg(win_colors->bg,rgbcolor(0,0,0));
+	highlight=coloravg(win_themestyle->bg,rgbcolor(255,255,255));
+	shadow   =coloravg(win_themestyle->bg,rgbcolor(0,0,0));
 	
 	dp->BlendMode(LAXOP_Over);
 
 	if (mode==MAXIMIZED) {
-		foreground_color(win_colors->bg);
+		foreground_color(win_themestyle->bg.Pixel());
 		fill_rectangle(this, 0,0,win_w,win_h);
 		if (win_style&SPLIT_BEVEL) {
 			dp->drawBevel(space/2,highlight,shadow,LAX_OFF,0,0,win_w,win_h);
@@ -312,7 +312,7 @@ void SplitWindow::Refresh()
 		for (int c=0; c<windows.n; c++) {
 			if (!windows.e[c]->win() || !windows.e[c]->win()->win_on) {
 				 // draw big x if no window
-				foreground_color(win_colors->bg);
+				foreground_color(win_themestyle->bg.Pixel());
 				fill_rectangle(this,
 							   windows.e[c]->x1+space/2,windows.e[c]->y1+space/2,
 							   windows.e[c]->x2-windows.e[c]->x1-space,
@@ -322,7 +322,7 @@ void SplitWindow::Refresh()
 							   windows.e[c]->x2-windows.e[c]->x1-space,
 							   windows.e[c]->y2-windows.e[c]->y1-space);
 				
-				foreground_color(win_colors->fg);
+				foreground_color(win_themestyle->fg.Pixel());
 				if (windows.e[c]->win())
 					if (windows.e[c]->win()->win_title) sprintf(blah,"%d, %s",c,windows.e[c]->win()->win_title);
 					else sprintf(blah,"%d, no title",c);
@@ -335,8 +335,8 @@ void SplitWindow::Refresh()
 				 //draw boundary
 				unsigned long hl = highlight, sd = shadow;
 				if (mousein && windows.e[c]->win() && windows.e[c]->win() == lastactivewindow) {
-					hl = coloravg(win_colors->bg,rgbcolor(255,255,255), .8);
-					sd = coloravg(win_colors->bg,rgbcolor(255,255,255), .3);
+					hl = coloravg(win_themestyle->bg,rgbcolor(255,255,255), .8);
+					sd = coloravg(win_themestyle->bg,rgbcolor(255,255,255), .3);
 				}
 				dp->drawBevel(space/2, hl,sd, LAX_OFF,
 						windows.e[c]->x1,windows.e[c]->y1,
@@ -1105,7 +1105,7 @@ void SplitWindow::drawsplitmarks()
 {
 	if (!curbox) return;
 	drawing_function(LAXOP_Xor);
-	foreground_color(win_colors->fg);
+	foreground_color(win_themestyle->fg.Pixel());
 	if (mode==HORIZ_SPLIT) {
 		draw_line(this, curx,curbox->y1, curx,curbox->y2);
 	} else {
@@ -1129,7 +1129,7 @@ void SplitWindow::drawmovemarks(int on) //on=1
 	//DBG cerr <<"  line: "<<sminx<<","<<cury<<" to "<<smaxx<<","<<cury<<endl;
 
 	if (on) foreground_color(rgbcolor(255,255,255));
-	else foreground_color(win_colors->bg);
+	else foreground_color(win_themestyle->bg.Pixel());
 	drawing_function(LAXOP_Over);
 
 	if (laffected.n+raffected.n>0) draw_line(this, curx,sminy,curx,smaxy);

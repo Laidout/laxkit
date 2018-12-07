@@ -67,7 +67,7 @@ NumSlider::NumSlider(anXWindow *parnt,const char *nname,const char *ntitle,unsig
 	labelbase=NULL;
 	makestr(label,nlabel);
 
-	installColors(app->color_panel);
+	InstallColors(THEME_Panel);
 
 	if (win_w==0 || win_h==0) wraptoextent();
 }
@@ -97,7 +97,7 @@ NumSlider::NumSlider(anXWindow *parnt,const char *nname,const char *ntitle,unsig
 	labelbase=NULL;
 	makestr(label,nlabel);
 
-	installColors(app->color_panel);
+	InstallColors(THEME_Panel);
 
 	if (win_w==0 || win_h==0) wraptoextent();
 }
@@ -157,7 +157,7 @@ void NumSlider::Refresh()
 
 	Displayer *dp=MakeCurrent();
 	if (hover) {
-		dp->NewFG(coloravg(win_colors->bg,win_colors->fg,.07));
+		dp->NewFG(coloravg(win_themestyle->bg,win_themestyle->fg,.07));
 		dp->drawrectangle(0,0,win_w,win_h, 1);
 	} else dp->ClearWindow();
 
@@ -169,7 +169,7 @@ void NumSlider::Refresh()
 	if (win_style&EDITABLE) ww=text_height();
 
 	 // draw left arrow
-	dp->NewFG(coloravg(win_colors->bg,win_colors->fg,.2));
+	dp->NewFG(coloravg(win_themestyle->bg,win_themestyle->fg,.2));
 	dp->drawthing(hh/2,win_h/2, hh/2,hh/2, hover==LAX_LEFT?1:0, THING_Triangle_Left);
 
 	 // draw right arrow
@@ -178,12 +178,12 @@ void NumSlider::Refresh()
 
 	 //draw number
 	if (hover==LAX_CENTER) {
-		dp->NewFG(coloravg(win_colors->bg,win_colors->fg,.2));
+		dp->NewFG(coloravg(win_themestyle->bg,win_themestyle->fg,.2));
 		hh=text_height()*1.1;
 		dp->drawrectangle(ww,win_h/2-hh/2,win_w-2*ww,hh, 1);
 	}
 
-	dp->NewFG(win_colors->fg);
+	dp->NewFG(win_themestyle->fg);
 	char num[31+((labelbase?labelbase:label)?strlen((labelbase?labelbase:label)):0)];
 	if (labelbase) sprintf(num,labelbase,curnum);
 	else {

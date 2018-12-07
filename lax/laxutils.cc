@@ -547,6 +547,11 @@ void set_color_shift_info(unsigned int rm, unsigned int gm, unsigned int bm, uns
 	DBG cerr <<"alpha_size:"<<alpha_size<<" shift:"<<alpha_shift<<endl;
 }
 
+unsigned long coloravg(const ScreenColor &a, const ScreenColor &b,float r)
+{
+	return coloravg(a.Pixel(), b.Pixel(), r);
+}
+
 //! Return a scaled average of 2 colors. Returns equivalent of a*(1-r) + b*r
 /*! default is straight average (r=1/2).
  */

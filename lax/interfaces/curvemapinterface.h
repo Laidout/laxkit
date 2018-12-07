@@ -40,7 +40,7 @@ class CurveMapInterface : public anInterface
 	unsigned int curve_win_style;
 	int firsttime;
 	Laxkit::CurveInfo *curveinfo;
-	Laxkit::WindowColors *win_colors;
+	Laxkit::WindowStyle *win_themestyle;
 
 	int show_label_ranges;
 	int show_labels;

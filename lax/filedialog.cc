@@ -532,7 +532,7 @@ int FileDialog::init()
 							bookmarkmenu); //incs bookmarkmenu count, should have 2 afterwards here
 	bookmarkmenu->dec_count();
 	tree->SendDetail(1);
-	tree->installColors(app->color_edits);
+	tree->InstallColors(THEME_Edit);
 	tree->Wrap();
 	left->AddWin(tree,1, tree->win_w,tree->win_w,500,50,0, 300,0,1000,50,0, -1);
 
@@ -647,7 +647,7 @@ int FileDialog::init()
 							//TREESEL_SEND_ON_UP|TREESEL_CURSSELECTS| TREESEL_LEFT| TREESEL_SUB_FOLDER,
 							TREESEL_SEND_ON_UP |TREESEL_LEFT |TREESEL_SUB_FOLDER |TREESEL_NO_LINES |TREESEL_DONT_EXPAND,
 							files);
-	last->installColors(app->color_edits);
+	last->InstallColors(THEME_Edit);
 	filelist->tooltip(_("Choose from these files.\nRight-click drag or wheel scrolls"));
 	filelist->AddColumn(_("Name"), NULL, 0,1);
 	filelist->AddColumn(_("Size"), NULL, 0,0, TreeSelector::ColumnInfo::ColumnBytes);

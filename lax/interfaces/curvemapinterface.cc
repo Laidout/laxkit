@@ -76,10 +76,10 @@ CurveMapInterface::CurveMapInterface(int nid, Laxkit::Displayer *ndp,
 	show_labels = 1;
 	show_hover  = 1;
 
-	win_colors=app->color_panel;
-	win_colors->inc_count();
-	curve_color=win_colors->fg;
-	graph_color=app->color_edits->bg;
+	win_themestyle = app->theme->GetStyle(THEME_Panel);
+	win_themestyle->inc_count();
+	curve_color = win_themestyle->fg.Pixel();
+	graph_color = app->theme->GetStyle(THEME_Edit)->bg.Pixel();
 
 	curveinfo=new CurveInfo(nctitle, xl,nxmin,nxmax, yl,nymin,nymax);
 
@@ -91,7 +91,7 @@ CurveMapInterface::CurveMapInterface(int nid, Laxkit::Displayer *ndp,
 
 CurveMapInterface::~CurveMapInterface()
 {
-	if (win_colors) win_colors->dec_count();
+	if (win_themestyle) win_themestyle->dec_count();
 	if (smallnumbers) smallnumbers->dec_count();
 	if (curveinfo) curveinfo->dec_count();
 
@@ -311,8 +311,8 @@ int CurveMapInterface::Refresh()
 	dp->LineAttributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
 
 	//--------------
-	dp->NewBG(win_colors->bg);
-	dp->NewFG(win_colors->fg);
+	dp->NewBG(win_themestyle->bg);
+	dp->NewFG(win_themestyle->fg);
 	//dp->ClearWindow();
 
 	 //blank out graph area
@@ -328,7 +328,7 @@ int CurveMapInterface::Refresh()
 
 	 //draw histogram, if any
 	if (histogram) {
-		dp->NewFG(coloravg(graph_color,win_colors->fg,.9));
+		dp->NewFG(coloravg(graph_color,win_themestyle->fg,.9));
 		int y;
 		for (int x=rect.x; x<rect.x+rect.width; x++) {
 			y = (rect.height-histogram[int(double(x-rect.x)/rect.width * hist_n)]/1000.*rect.height) + rect.y;
@@ -337,11 +337,11 @@ int CurveMapInterface::Refresh()
 	}
 
 
-	dp->NewFG(win_colors->fg);
+	dp->NewFG(win_themestyle->fg);
 
 	 //draw various highlighted backgrounds of editables
 	if (highlighteditable) {
-		dp->NewFG(coloravg(win_colors->bg,win_colors->fg,.1));
+		dp->NewFG(coloravg(win_themestyle->bg,win_themestyle->fg,.1));
 
 		if (highlighteditable == YUnits)
 			dp->drawrectangle(0,0,rect.x,rect.y,1);
@@ -361,7 +361,7 @@ int CurveMapInterface::Refresh()
 		else if (highlighteditable == YMin)
 			dp->drawrectangle(bounds.x,rect.y+rect.height*.7,rect.x,rect.height*.3,1);
 
-		dp->NewFG(win_colors->fg);
+		dp->NewFG(win_themestyle->fg);
 	}
 
 	 //draw various labels

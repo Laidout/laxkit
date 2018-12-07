@@ -199,7 +199,7 @@ void IconSelector::drawbox(int which)
 	
 	Displayer *dp = GetDisplayer();
 
-	dp->NewFG(which==hoverbox ? win_colors->moverbg : win_colors->bg);
+	dp->NewFG(which==hoverbox ? win_themestyle->bghover : win_themestyle->bg);
 	dp->drawrectangle(b->x() - b->pad,  b->y() - b->pad,    b->w() + 2*b->pad,  b->h() + 2*b->pad, 1);
 
 	 // Set  tx,ty  px,py
@@ -220,7 +220,7 @@ void IconSelector::drawbox(int which)
 	if (l && tx>LAX_WAY_OFF) {
 		tx+=dx;
 		ty+=dy;
-		dp->NewFG(win_colors->fg);
+		dp->NewFG(win_themestyle->fg);
 		dp->textout(tx,ty, l,-1, LAX_LEFT|LAX_TOP);
 	}
 	

@@ -214,6 +214,8 @@ class Theme : public anObject, public LaxFiles::DumpUtility
 	Theme(const char *nname=NULL);
 	virtual ~Theme();
 
+	static Theme *DefaultTheme(const char *themename);
+
 	virtual WindowStyle *GetStyle(int category);
 	virtual int GetInt(int what);
 	virtual double GetDouble(int what);

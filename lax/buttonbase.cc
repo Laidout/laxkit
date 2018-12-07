@@ -113,11 +113,10 @@ ButtonBase::ButtonBase(anXWindow *parnt,const char *nname,const char *ntitle,uns
 	id=nid;
 	button_style=win_style&(~ANXWIN_MASK);
 
-	win_colors=app->color_buttons;
-	win_colors->inc_count();
+	InstallColors(THEME_Button);
 
-    highlight=coloravg(win_colors->bg,rgbcolor(255,255,255));
-	shadow=coloravg(win_colors->bg,rgbcolor(0,0,0));
+    highlight = coloravg(win_themestyle->bg.Pixel(),rgbcolor(255,255,255));
+	shadow = coloravg(win_themestyle->bg.Pixel(),rgbcolor(0,0,0));
 }
 
 //! Detaches button from a button group, if any.

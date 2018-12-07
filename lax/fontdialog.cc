@@ -249,7 +249,7 @@ void FontLayersWindow::Refresh()
 	Displayer *dp=MakeCurrent();
 	dp->ClearWindow();
     dp->LineAttributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
-	dp->NewFG(win_colors->fg);
+	dp->NewFG(win_themestyle->fg);
 
 	if (mode==0) {
 		DBG int over=0;
@@ -261,11 +261,11 @@ void FontLayersWindow::Refresh()
 			 //draw highlighted
 
 			DBG cerr <<" over"<<over<<endl;
-			dp->NewFG(coloravg(win_colors->bg,win_colors->fg,.1));
+			dp->NewFG(coloravg(win_themestyle->bg,win_themestyle->fg,.1));
 			int w=dp->textextent(_("Layers..."),-1,NULL,NULL) + 2*pad;
 			dp->drawrectangle(win_w-w,0, w,win_h, 1);
 		}
-		dp->NewFG(win_colors->fg);
+		dp->NewFG(win_themestyle->fg);
 		dp->textout(win_w-pad,win_h/2, _("Layers..."),-1, LAX_RIGHT|LAX_VCENTER);
 		return;
 	}
@@ -279,7 +279,7 @@ void FontLayersWindow::Refresh()
 	if (!grabbed && lasthover==LAYERS_Off) { dp->NewFG(1.0,0.0,0.0); dp->LineWidth(2); }
 	dp->drawline(xx,win_h/2-boxwidth/2, xx+boxwidth,win_h/2+boxwidth/2);
 	dp->drawline(xx,win_h/2+boxwidth/2, xx+boxwidth,win_h/2-boxwidth/2);
-	dp->NewFG(win_colors->fg);
+	dp->NewFG(win_themestyle->fg);
 	dp->LineWidth(1);
 
 	 //draw trash
@@ -287,13 +287,13 @@ void FontLayersWindow::Refresh()
 	if ((!grabbed && lasthover==LAYERS_Trash) || (grabbed && lasthover<=0)) { dp->NewFG(1.0,0.0,0.0); dp->LineWidth(2); }
 	dp->drawline(xx+boxwidth*.2,win_h/2-boxwidth*.3, xx+boxwidth*.8,win_h/2+boxwidth*.3);
 	dp->drawline(xx+boxwidth*.2,win_h/2+boxwidth*.3, xx+boxwidth*.8,win_h/2-boxwidth*.3);
-	dp->NewFG(win_colors->fg);
+	dp->NewFG(win_themestyle->fg);
 	dp->LineWidth(1);
 	
 	 //draw new layer
 	xx-=boxwidth;
 	if (!grabbed && lasthover==LAYERS_New) {
-		dp->NewBG(coloravg(win_colors->bg,win_colors->fg,.1));
+		dp->NewBG(coloravg(win_themestyle->bg,win_themestyle->fg,.1));
 		dp->drawrectangle(xx+boxwidth*.1,win_h/2-boxwidth*.4, boxwidth*.8,boxwidth*.8, 2);
 	} else {
 		dp->drawrectangle(xx+boxwidth*.1,win_h/2-boxwidth*.4, boxwidth*.8,boxwidth*.8, 0);
@@ -318,7 +318,7 @@ void FontLayersWindow::Refresh()
 
 		if (!grabbed && c==current_layer) dp->LineWidth(4);
 		if (!grabbed && lasthover==c) {
-			dp->NewBG(coloravg(win_colors->bg,win_colors->fg,.1));
+			dp->NewBG(coloravg(win_themestyle->bg,win_themestyle->fg,.1));
 			dp->drawrectangle(xx,win_h/2-boxwidth/2, boxwidth,boxwidth, 2);
 		} else {
 			dp->drawrectangle(xx,win_h/2-boxwidth/2, boxwidth,boxwidth, 0);
@@ -341,8 +341,8 @@ void FontLayersWindow::Refresh()
 		int x,y;
 		buttondown.getcurrent(device, LEFTBUTTON, &x, &y);
 
-		dp->NewBG(win_colors->bg);
-		dp->NewFG(win_colors->fg);
+		dp->NewBG(win_themestyle->bg);
+		dp->NewFG(win_themestyle->fg);
 		dp->drawrectangle(x-offset.x,  y-offset.y,  boxwidth,boxwidth, 2);
 
 		sprintf(str,"%d",grabbed);
@@ -558,7 +558,7 @@ int FontDialog::init()
 									 |TREESEL_LEFT
 									 |TREESEL_ONE_ONLY,
 									mfonts);
-	fontlist->installColors(app->color_edits);
+	fontlist->InstallColors(THEME_Edit);
 	//fontlist->tooltip(_("Select one of these"));
 	AddWin(fontlist,1, 200,100,1000,50,0, 30,0,2000,50,0, -1);
 
@@ -574,8 +574,8 @@ int FontDialog::init()
 								0,0,0,0,0,
 								last,object_id,"sample",
 								sampletext,TEXT_CENTER);
-	WindowColors *ncolors=app->color_edits->duplicate();
-	text->installColors(ncolors);
+	WindowStyle *ncolors = app->theme->GetStyle(THEME_Edit)->duplicate();
+	text->InstallColors(ncolors);
 	ncolors->dec_count();
 //	if (orig>=0) {
 //		LaxFont *newfont=app->fontmanager->MakeFont(fonts->e[orig]->family, fonts->e[orig]->style, defaultsize, 0);
@@ -598,7 +598,7 @@ int FontDialog::init()
 	if (!palette) palette=new Palette;
 
 	 //bg
-	colorrgb(text->win_colors->bg, &r,&g,&b);
+	colorrgb(text->win_themestyle->bg.Pixel(), &r,&g,&b);
 	colorbox=new ColorBox(this,"bg","bg",COLORBOX_SEND_ALL, 0,0,textheight*2,textheight*2,1, NULL,object_id,"bg", 
 							   LAX_COLOR_RGB,1./255, r/255.,g/255.,b/255.,a/255.,0);
 	colorbox->tooltip(_("Sample background"));
@@ -618,7 +618,7 @@ int FontDialog::init()
 				a=255*palette->colors.e[c]->channels[3]/(double)palette->colors.e[c]->maxcolor;
 			} else {
 				a=255;
-				colorrgb(text->win_colors->fg, &r,&g,&b);
+				colorrgb(text->win_themestyle->fg.Pixel(), &r,&g,&b);
 			}
 
 			colorbox=new ColorBox(this, str,str, COLORBOX_SEND_ALL, 0,0,textheight*2,textheight*2,1, NULL,object_id,str,
@@ -628,7 +628,7 @@ int FontDialog::init()
 		}
 
 	} else {
-		colorrgb(text->win_colors->fg, &r,&g,&b);
+		colorrgb(text->win_themestyle->fg.Pixel(), &r,&g,&b);
 		colorbox=new ColorBox(this,"fg1","fg1",COLORBOX_SEND_ALL, 0,0,textheight*2,textheight*2,1, NULL,object_id,"fg1", 
 								   LAX_COLOR_RGB,1./255, r/255.,g/255.,b/255.,a/255.,0);
 		colorbox->tooltip(_("Sample foreground"));
@@ -650,14 +650,14 @@ int FontDialog::init()
 //------old vertical stack of colors:
 //	StackFrame *stack=new StackFrame(this, "vstack",NULL, STACKF_VERTICAL|STACKF_NOT_SIZEABLE, 0,0,0,0,0, NULL,0,NULL,0);
 //	int r,g,b;
-//	colorrgb(text->win_colors->fg, &r,&g,&b);
+//	colorrgb(text->win_themestyle->fg, &r,&g,&b);
 //	ColorBox *colorbox;
 //	colorbox=new ColorBox(stack,"fg","fg",COLORBOX_SEND_ALL, 0,0,textheight*2,textheight*2,1, NULL,object_id,"fg", 
 //							   LAX_COLOR_RGB,1./255, r/255.,g/255.,b/255.,1.0,0);
 //	colorbox->tooltip(_("Sample foreground"));
 //	stack->AddWin(colorbox, 1, textheight*2,0,0,50,0, textheight*2,0,100,50,0);
 //
-//	colorrgb(text->win_colors->bg, &r,&g,&b);
+//	colorrgb(text->win_themestyle->bg, &r,&g,&b);
 //	colorbox=new ColorBox(stack,"bg","bg",COLORBOX_SEND_ALL, 0,0,textheight*2,textheight*2,1, NULL,object_id,"bg", 
 //							   LAX_COLOR_RGB,1./255, r/255.,g/255.,b/255.,1.0,0);
 //	colorbox->tooltip(_("Sample background"));
@@ -872,7 +872,7 @@ int FontDialog::Event(const EventData *data,const char *mes)
         if (!ce) return 0;
 
 		unsigned long color=rgbcolorf(ce->channels[0]/(double)ce->max, ce->channels[1]/(double)ce->max, ce->channels[2]/(double)ce->max);
-		if (!strcmp(mes,"bg")) text->win_colors->bg=color;
+		if (!strcmp(mes,"bg")) text->win_themestyle->bg=color;
 		else {
 			 //fg
 			int which=strtol(mes+2,NULL,10);
@@ -885,7 +885,7 @@ int FontDialog::Event(const EventData *data,const char *mes)
 				palette->colors.e[which-1]->channels[3]=ce->channels[3];
 				palette->colors.e[which-1]->maxcolor=ce->max;
 			}
-			text->win_colors->fg=color;
+			text->win_themestyle->fg=color;
 		}
 		text->Needtodraw(1);
 		return 0;
@@ -1013,7 +1013,7 @@ void FontDialog::UpdateColorBoxes()
 		a=palette->colors.e[numboxes-1]->channels[3]/(double)palette->colors.e[numboxes-1]->maxcolor;
 	} else {
 		int rr,gg,bb;
-		colorrgb(text->win_colors->fg, &rr,&gg,&bb);
+		colorrgb(text->win_themestyle->fg.Pixel(), &rr,&gg,&bb);
 		r=rr/255.;
 		g=gg/255.;
 		b=bb/255.;

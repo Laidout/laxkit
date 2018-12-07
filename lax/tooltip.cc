@@ -106,10 +106,7 @@ ToolTip::ToolTip(const char *newtext,int mouse)
 	app->addtimer(this,5000+c*50,5000+c*50,5001+c*50); // last for max of 5 seconds + 1sec / 20 chars
 	//DBG cerr <<"Done Creating Tooltip..."<<endl;
 
-	installColors(new WindowColors);
-	win_colors->dec_count();
-	win_colors->fg=app->color_tooltip_fg;
-	win_colors->bg=app->color_tooltip_bg;
+	InstallColors(THEME_Tooltip);
 }
 
 ToolTip::~ToolTip()
@@ -123,11 +120,13 @@ void ToolTip::Refresh()
 {
 	if (!needtodraw || !win_on || !thetext) return;
 	
-	background_color(win_colors->bg);
-	foreground_color(win_colors->fg);
-	clear_window(this);
+	Displayer *dp = MakeCurrent();
 
-	textout_multiline(this, thetext, -1, app->default_padx,app->default_pady, LAX_LEFT|LAX_TOP);
+	dp->NewFG(win_themestyle->bg);
+	dp->NewBG(win_themestyle->fg.Pixel());
+	dp->ClearWindow();
+
+	dp->textout(app->theme->default_padx,app->theme->default_pady, thetext,-1, LAX_LEFT|LAX_TOP);
 	needtodraw=0;
 }
 

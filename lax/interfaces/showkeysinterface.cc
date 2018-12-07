@@ -150,7 +150,7 @@ int ShowKeysInterface::Refresh()
 	if (currentkey==0 && (currentstate&LAX_STATE_MASK)==0) return 0;
 
 	dp->LineAttributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
-	dp->NewFG(curwindow->win_colors->fg);
+	dp->NewFG(curwindow->win_themestyle->fg);
 
 	dp->DrawScreen();
 
@@ -191,11 +191,11 @@ int ShowKeysInterface::DrawBox(const char *str,int x,int y)
 	double pad=th/4;
 
 	double ww=dp->textextent(str,-1,NULL,NULL);
-	dp->NewFG(coloravg(curwindow->win_colors->fg, curwindow->win_colors->bg, .5));
-	dp->NewBG(coloravg(curwindow->win_colors->fg, curwindow->win_colors->bg, .9));
+	dp->NewFG(coloravg(curwindow->win_themestyle->fg, curwindow->win_themestyle->bg, .5));
+	dp->NewBG(coloravg(curwindow->win_themestyle->fg, curwindow->win_themestyle->bg, .9));
 	dp->drawRoundedRect(x-ww-2*pad, y-th-2*pad, ww+2*pad,th+2*pad, pad,false, pad,false, 2);
 
-	dp->NewFG(curwindow->win_colors->fg);
+	dp->NewFG(curwindow->win_themestyle->fg);
 	dp->textout(x-pad,y-pad, str,-1, LAX_BOTTOM|LAX_RIGHT);
 
 	return x-ww-2*pad;

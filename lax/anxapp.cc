@@ -166,94 +166,7 @@ anXWindow *TopWindow(anXWindow *win)
 
 
 
-//---------------------- WindowColors ---------------------------------
-/*! \class WindowColors
- * \brief Holds basic color styling info.
- */
 
-WindowColors::WindowColors()
-{
-	 //these are standard "Light" colors for anXApp::color_panel
-	fg  	  =rgbcolor( 32, 32, 32);
-	bg  	  =rgbcolor(192,192,192);
-	hfg  	  =rgbcolor(  0,  0,  0);
-	hbg  	  =rgbcolor(127,127,127);
-	moverfg	  =rgbcolor( 32, 32, 32);
-	moverbg	  =rgbcolor(164,164,164);
-	grayedfg  =rgbcolor(100,100,100);
-	color1	  =rgbcolor(128,128,128);
-	color2	  =rgbcolor(128,128,128);
-	activate  =rgbcolor(  0,200,  0);
-	deactivate=rgbcolor(255,100,100);
-}
-
-//! Initialize the color info.
-WindowColors::WindowColors(const WindowColors &l)
-{
-	fg  	  = l.fg;
-	bg  	  = l.bg;
-	hfg  	  = l.hfg;
-	hbg  	  = l.hbg;
-	moverfg	  = l.moverfg;
-	moverbg	  = l.moverbg;
-	grayedfg  = l.grayedfg;
-	color1	  = l.color1;
-	color2	  = l.color2;
-	activate  = l.activate;
-	deactivate= l.deactivate;
-}
-
-//! Copy the color info.
-WindowColors &WindowColors::operator=(WindowColors &l)
-{
-	fg  	  = l.fg;
-	bg  	  = l.bg;
-	hfg  	  = l.hfg;
-	hbg  	  = l.hbg;
-	moverfg	  = l.moverfg;
-	moverbg	  = l.moverbg;
-	grayedfg  = l.grayedfg;
-	color1	  = l.color1;
-	color2	  = l.color2;
-	activate  = l.activate;
-	deactivate= l.deactivate;
-	return l;
-}
-
-WindowColors *WindowColors::duplicate()
-{
-	WindowColors *ncolor=new WindowColors(*this);
-	return ncolor;
-}
-
-
-//---------------------- WindowFonts ---------------------------------
-///*! \class WindowFonts
-// * \brief Holds basic styling info about fonts.
-// */
-//
-//WindowFonts::WindowFonts()
-//{	normal=bold=italic=edit=NULL; }
-//
-//WindowFonts::WindowFonts(LaxFont *nnormal, LaxFont *nbold, LaxFont *nitalic, LaxFont *nmono)
-//{
-//	normal=nnormal;
-//	bold=nbold;
-//	italic=nitalic;
-//	mono=nmono;
-//
-//	if (normal) normal->inc_count();
-//	if (bold) bold->inc_count();
-//	if (italic) italic->inc_count();
-//	if (mono) mono->inc_count();
-//}
-//WindowFonts::~WindowFonts()
-//{	
-//	if (normal) normal->dec_count();
-//	if (bold) bold->dec_count();
-//	if (italic) italic->dec_count();
-//	if (edit) edit->dec_count();
-//}
 
 
 //---------------------------------- TimerInfo --------------------------------
@@ -605,7 +518,6 @@ anXApp::anXApp()
 	 //base default styling
 	app_profile=NULL;
 	theme = NULL;
-	color_panel=color_menu=color_edits=color_buttons=NULL; //these are initialized in init()
 
 	 // default click times, in clock ticks
 	dblclk   = (unsigned int)(1./5*1000); // _SC_CLK_TCK=ticks per second, put dblclk in milliseconds, which is the time in events..
@@ -648,10 +560,6 @@ anXApp::~anXApp()
 
 	
 	if (theme)         theme->dec_count();
-	if (color_panel)   color_panel->dec_count();
-	if (color_menu)    color_menu->dec_count();
-	if (color_edits)   color_edits->dec_count();
-	if (color_buttons) color_buttons->dec_count();
 
 	if (screeninfo) delete screeninfo;
 
@@ -2101,11 +2009,11 @@ int anXApp::addwindow(anXWindow *w,char mapit,char absorb_count) // mapit==1, ab
 	}
 
 	 //set default background color
-	WindowColors *wc=w->win_colors;
-	if (!wc) wc=color_panel;
+	WindowStyle *wc = w->win_themestyle;
+	if (!wc) wc = (theme ? theme->GetStyle(THEME_Panel) : NULL);
 	if (wc) {
-		w->xlib_win_xatts.background_pixel=wc->bg; 
-		w->xlib_win_xattsmask|=CWBackPixel;
+		w->xlib_win_xatts.background_pixel = wc->bg.Pixel();
+		w->xlib_win_xattsmask |= CWBackPixel;
 	}
 
 	if (w->win_pointer_shape) {
@@ -2245,7 +2153,7 @@ int anXApp::addwindow(anXWindow *w,char mapit,char absorb_count) // mapit==1, ab
 	}
 
 
-	if (!w->win_colors) w->installColors(color_panel); //just in case
+	if (!w->win_themestyle) w->InstallColors(THEME_Panel); //just in case
 
 	int c=w->init(); // window must set win_hints, win_sizehints here, if wanted
 	if (c!=0) { //window size has been changed... *** please note this doesn't work as expected!! 

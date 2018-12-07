@@ -148,7 +148,7 @@ BoxSelector::BoxSelector(anXWindow *parnt,const char *nname,const char *ntitle,u
 						)
 		: anXWindow(parnt,nname,ntitle,nstyle,xx,yy,ww,hh,brder,prev,nowner,nsendmes)
 {
-	installColors(app->color_panel);
+	InstallColors(THEME_Panel);
 
 	padinset=npad;
 	bevel=1;
@@ -221,8 +221,8 @@ BoxSelector::~BoxSelector()
 int BoxSelector::init()
 { 
 	sync();
-    highlight=coloravg(win_colors->bg,rgbcolor(255,255,255));
-	shadow=coloravg(win_colors->bg,rgbcolor(0,0,0));
+    highlight = coloravg(win_themestyle->bg.Pixel(),rgbcolor(255,255,255));
+	shadow = coloravg(win_themestyle->bg.Pixel(),rgbcolor(0,0,0));
 	return 0;
 }
 

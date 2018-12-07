@@ -47,7 +47,7 @@ enum MessageBarTypes {
 
 class MessageBar : public anXWindow
 {
-   protected:
+  protected:
 	int lbdown,firsttime;
 	int msx,msy,ox,oy;
 	double ex,ey,fasc,fdes,height; // ex,ey are extents
@@ -56,7 +56,8 @@ class MessageBar : public anXWindow
 	double *indents;
 	unsigned long textcolor,bkcolor,bordercolor;
 	ButtonDownInfo buttondown;
-   public:
+
+ public:
 	int padx,pady;
 	MessageBar(anXWindow *pwindow,
 				const char *nname,

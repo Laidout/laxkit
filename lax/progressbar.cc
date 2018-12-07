@@ -76,7 +76,7 @@ ProgressBar::ProgressBar(anXWindow *parnt,const char *nname,const char *ntitle,u
 					int xx,int yy,int ww,int hh,int brder)
 	: anXWindow(parnt,nname,ntitle,nstyle,xx,yy,ww,hh,brder, NULL,0,NULL)
 {
-	installColors(app->color_panel);
+	InstallColors(THEME_Panel);
 
 	needtodraw=1;
 	oldprogress=0;
@@ -103,12 +103,14 @@ void ProgressBar::Drawbar()
 	if (win_w<4 || win_h<4 || win_w>1600 || win_h>1600) return;
 	DBG cerr <<"progress bar "<<WindowTitle()<<": "<<win_w<<','<<win_h<<endl;
 
+	Displayer *dp=GetDisplayer();
+
 	if (win_style&PROGRESS_OVAL) {
 		int start=oldprogress,w;
 		if (needtodraw&1) { // drawall
 			DBG cerr <<"  progressbar draw all";
 			start=0;
-			clear_window(this);
+			dp->ClearWindow();
 		}
 		long c,end=progress;
 		if (end<start) {
@@ -118,23 +120,23 @@ void ProgressBar::Drawbar()
 		}
 		for (c=start; c<=end; c++) {
 			w=(int)(win_w/2*c/(float)max);
-			foreground_color(coloravg(win_colors->bg,win_colors->fg,c/(float)max));
-			draw_arc_wh(this, w,0, win_w-2*w,win_h, 0,2*M_PI);
+			dp->NewFG(coloravg(win_themestyle->bg,win_themestyle->fg,c/(float)max));
+			dp->drawellipseWH(w,0, win_w-2*w,win_h, 0,2*M_PI, 0);
 		}
 		//a
 		//DBG cerr <<<<"drawing"<<endl;
 		w=(int)(win_w/2*progress/(float)max);
-		foreground_color(win_colors->bg);
-		fill_arc_wh(this, w,0, win_w-2*w,win_h, 0,2*M_PI);
-		foreground_color(coloravg(win_colors->bg,win_colors->fg,progress/(float)max));
-		draw_arc_wh(this, w,0, win_w-2*w,win_h, 0,2*M_PI);
+		dp->NewFG(win_themestyle->bg);
+		dp->drawellipseWH(w,0, win_w-2*w,win_h, 0,2*M_PI, 1);
+		dp->NewFG(coloravg(win_themestyle->bg, win_themestyle->fg, progress/(float)max));
+		dp->drawellipseWH(w,0, win_w-2*w,win_h, 0,2*M_PI, 0);
 
 	} else {
-		foreground_color(win_colors->fg);
-		fill_rectangle(this, 0,0,(int)((float) progress/(float)max * win_w),win_h);
-		foreground_color(win_colors->bg);
-		fill_rectangle(this, (int)((float) progress/(float)max * win_w),0,  
-				win_w-(int)((float) progress/(float)max * win_w) , win_h);
+		dp->NewFG(win_themestyle->fg);
+		dp->drawrectangle(0,0,(int)((float) progress/(float)max * win_w),win_h, 1);
+		dp->NewFG(win_themestyle->bg);
+		dp->drawrectangle((int)((float) progress/(float)max * win_w),0,  
+				win_w-(int)((float) progress/(float)max * win_w) , win_h, 1);
 	}
 }
 

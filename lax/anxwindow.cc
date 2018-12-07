@@ -382,8 +382,8 @@ anXWindow::anXWindow(anXWindow *parnt, const char *nname, const char *ntitle,
 	prevcontrol=NULL;
 	if (prev) prev->ConnectControl(this,1);
 
-	win_colors = NULL; 
-	win_themecolors = NULL;
+	//win_colors = NULL; 
+	win_themestyle = NULL;
 	//installColors(app->color_panel);
 
 #ifdef _LAX_PLATFORM_XLIB
@@ -420,8 +420,8 @@ anXWindow::~anXWindow()
 	if (win_name) delete[] win_name;
 	if (win_title) delete[] win_title;
 
-	if (win_colors) win_colors->dec_count();
-	if (win_themecolors) win_themecolors->dec_count();
+	//if (win_colors) win_colors->dec_count();
+	if (win_themestyle) win_themestyle->dec_count();
 
 	if (win_tooltip) delete[] win_tooltip;
 
@@ -495,36 +495,69 @@ int anXWindow::getWinStyle(unsigned int stylebit)
 	return win_style&stylebit;
 }
 
-//! Dec_count old and inc_count new.
-void anXWindow::installColors(WindowColors *newcolors)
+////! Dec_count old and inc_count new.
+//void anXWindow::installColors(WindowColors *newcolors)
+//{
+//	cerr << "installColors(WindowColors) deprecated!"<<endl;
+//
+//	if (win_colors) win_colors->dec_count();
+//	if (newcolors) newcolors->inc_count();
+//	win_colors=newcolors;
+//}
+
+/*! category must be one on THEME_Panel, THEME_Edit, THEME_Button, THEME_Menu, or THEME_Tooltip, otherwise nothing done. 
+ * This will install from the default theme (app->theme). Dec_count old and inc_count new.
+ * Return true if changed, else false.
+ */
+bool anXWindow::InstallColors(int category)
 {
-	if (win_colors) win_colors->dec_count();
-	if (newcolors) newcolors->inc_count();
-	win_colors=newcolors;
+	if (!app->theme) return false;
+	WindowStyle *style = app->theme->GetStyle(category);
+	if (!style) return false;
+	if (style) style->inc_count();
+	if (win_themestyle) win_themestyle->dec_count();
+	win_themestyle = style;
+	return true;
 }
 
-//! Dec_count old and inc_count new.
-void anXWindow::installColors(WindowStyle *newcolors)
+//! Dec_count old and inc_count new. If null, then remove old and replace with nothing.
+void anXWindow::InstallColors(WindowStyle *newcolors)
 {
 	if (!newcolors) return;
-	if (win_themecolors) win_themecolors->dec_count();
 	if (newcolors) newcolors->inc_count();
-	win_themecolors = newcolors;
+	if (win_themestyle) win_themestyle->dec_count();
+	win_themestyle = newcolors;
 
-	if (win_colors) {
-		win_colors->fg  	  = newcolors->fg.Pixel();
-		win_colors->bg  	  = newcolors->bg.Pixel();
-		win_colors->hfg  	  = newcolors->fghl.Pixel();
-		win_colors->hbg  	  = newcolors->bghl.Pixel();
-		win_colors->moverfg	  = newcolors->fghover.Pixel();
-		win_colors->moverbg	  = newcolors->bghover.Pixel();
-		win_colors->grayedfg  = newcolors->fggray.Pixel();
-		win_colors->color1	  = newcolors->color1.Pixel();
-		win_colors->color2	  = newcolors->color2.Pixel();
-		win_colors->activate  = newcolors->activate.Pixel();
-		win_colors->deactivate= newcolors->deactivate.Pixel();
-	}
+//	if (win_colors) {
+//		win_colors->fg  	  = newcolors->fg.Pixel();
+//		win_colors->bg  	  = newcolors->bg.Pixel();
+//		win_colors->hfg  	  = newcolors->fghl.Pixel();
+//		win_colors->hbg  	  = newcolors->bghl.Pixel();
+//		win_colors->moverfg	  = newcolors->fghover.Pixel();
+//		win_colors->moverbg	  = newcolors->bghover.Pixel();
+//		win_colors->grayedfg  = newcolors->fggray.Pixel();
+//		win_colors->color1	  = newcolors->color1.Pixel();
+//		win_colors->color2	  = newcolors->color2.Pixel();
+//		win_colors->activate  = newcolors->activate.Pixel();
+//		win_colors->deactivate= newcolors->deactivate.Pixel();
+//	}
 }
+
+/*! Default is to replace the current style with the WindowStyle in theme of the same category. If not found,
+ * nothing is done.
+ * Return 0 for changed, nonzero for not changed.
+ */
+int anXWindow::ThemeChange(Theme *theme)
+{
+	if (!win_themestyle) return 1;
+	WindowStyle *newstyle = theme->GetStyle(win_themestyle->category);
+	if (!newstyle) return 1;
+	needtodraw=1;
+	if (newstyle == win_themestyle) return 0;
+    InstallColors(newstyle);
+    return 0;
+}
+
 
 //! Return a ShortcutHandler that contains stacks of bound shortcuts and possible window actions.
 /*! NULL means there are none defined for this window.
@@ -601,10 +634,11 @@ Attribute *anXWindow::dump_out_atts(Attribute *att,int what,LaxFiles::DumpContex
 	}
 
 	 //output indicator for defaults
-	if (win_colors==app->color_panel) att->push("win_colors","default_panel");
-	else if (win_colors==app->color_menu) att->push("win_colors","default_menu");
-	else if (win_colors==app->color_edits) att->push("win_colors","default_edits");
-	else if (win_colors==app->color_buttons) att->push("win_colors","default_buttons");
+	if      (win_themestyle->category == THEME_Panel)   att->push("win_themestyle","default_panel");
+	else if (win_themestyle->category == THEME_Menu)    att->push("win_themestyle","default_menu");
+	else if (win_themestyle->category == THEME_Edit)    att->push("win_themestyle","default_edits");
+	else if (win_themestyle->category == THEME_Button)  att->push("win_themestyle","default_buttons");
+	else if (win_themestyle->category == THEME_Tooltip) att->push("win_themestyle","default_tooltip");
 	// else custom colors, which subclasses should output...
 
 	// *** fonts
@@ -654,10 +688,11 @@ void anXWindow::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *cont
 		} else if (!strcmp(name,"win_flags")) {
 			if (!isblank(value)) {
 	 			 //input indicator for defaults
-				if (!strcmp(value,"default_panel")) installColors(app->color_panel);
-				else if (!strcmp(value,"default_menu")) installColors(app->color_menu);
-				else if (!strcmp(value,"default_edits")) installColors(app->color_edits);
-				else if (!strcmp(value,"default_buttons")) installColors(app->color_buttons);
+				if      (!strcmp(value,"default_panel"))   InstallColors(THEME_Panel);
+				else if (!strcmp(value,"default_menu"))    InstallColors(THEME_Menu);
+				else if (!strcmp(value,"default_edits"))   InstallColors(THEME_Edit);
+				else if (!strcmp(value,"default_buttons")) InstallColors(THEME_Button);
+				else if (!strcmp(value,"default_tooltip")) InstallColors(THEME_Tooltip);
 				// else custom colors, which subclasses should input...
 			}
 		}
@@ -1107,6 +1142,7 @@ int anXWindow::Event(const EventData *data,const char *mes)
 
 	return 1;
 }
+
 
 #ifdef _LAX_PLATFORM_XLIB
 //! Xlib event receiver.

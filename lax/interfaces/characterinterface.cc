@@ -290,9 +290,9 @@ int CharacterInterface::Refresh()
 
 
 	 //draw recent box
-	unsigned int linecolor=coloravg(curwindow->win_colors->fg,curwindow->win_colors->bg, .5);
-	unsigned int textcolor=coloravg(curwindow->win_colors->fg,curwindow->win_colors->bg, .2);
-	unsigned int bgcolor  =coloravg(curwindow->win_colors->fg,curwindow->win_colors->bg, .9);
+	unsigned int linecolor=coloravg(curwindow->win_themestyle->fg,curwindow->win_themestyle->bg, .5);
+	unsigned int textcolor=coloravg(curwindow->win_themestyle->fg,curwindow->win_themestyle->bg, .2);
+	unsigned int bgcolor  =coloravg(curwindow->win_themestyle->fg,curwindow->win_themestyle->bg, .9);
 	dp->NewFG(linecolor);
 	dp->NewBG(bgcolor);
 
@@ -338,8 +338,8 @@ int CharacterInterface::Refresh()
 		if (i>=chars.n) break;
 
 		if (i==current && curcategory==INSCHAR_MainBox) {
-			dp->NewFG(curwindow->win_colors->fg);
-			dp->NewBG(curwindow->win_colors->bg);
+			dp->NewFG(curwindow->win_themestyle->fg);
+			dp->NewBG(curwindow->win_themestyle->bg);
 			dp->LineWidthScreen(3);
 			dp->drawrectangle(x+.5, y+.5, boxwidth,boxwidth, 2);
 			dp->LineWidthScreen(1);
@@ -363,7 +363,7 @@ int CharacterInterface::Refresh()
 	}
 
 	if (chars.n==0) {
-		dp->NewFG(curwindow->win_colors->fg);
+		dp->NewFG(curwindow->win_themestyle->fg);
 		dp->textout(curwindow->win_w/2,curwindow->win_h/2, _("Could not scan font for characters!"),-1, LAX_CENTER);
 	}
 

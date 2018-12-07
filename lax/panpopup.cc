@@ -53,7 +53,7 @@ PanPopup::PanPopup(anXWindow *pwindow,const char *nname,const char *ntitle,unsig
 	needtodraw=1;
 	padx=pady=0;
 
-	installColors(app->color_panel);
+	InstallColors(THEME_Panel);
 }
 
 //! Empty default destructor
@@ -107,10 +107,10 @@ void PanPopup::Refresh()
 		p[c].y=p[c].y*win_h/12;
 	}
 
-	dp->NewFG(win_colors->color1);
+	dp->NewFG(win_themestyle->color1);
 	dp->drawlines(p,25, 1, 1);
 
-	dp->NewFG(win_colors->fg);
+	dp->NewFG(win_themestyle->fg);
 	dp->drawlines(p,25, 1, 0);
 
 	needtodraw=0;

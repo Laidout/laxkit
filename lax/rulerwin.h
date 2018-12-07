@@ -81,6 +81,7 @@ class RulerWindow : public anXWindow
 						anXWindow *prev=NULL,unsigned long nowner=0,const char *nsend=NULL,
 						const char *base_units=NULL, int syncwithscreen=1);
 	virtual ~RulerWindow();
+    virtual int ThemeChange(Theme *theme);
 	virtual int init();
 	virtual int Event(const EventData *e,const char *mes);
 	virtual void Refresh();

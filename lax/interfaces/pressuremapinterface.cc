@@ -158,7 +158,7 @@ int PressureMapInterface::Refresh()
 
 
 	 //draw device name
-	//dp->NewFG(curwindow->win_colors->fg);
+	//dp->NewFG(curwindow->win_themestyle->fg);
 	//dp->textout((dp->Maxx+dp->Minx)/2,5, device_name.c_str(),-1, LAX_TOP|LAX_HCENTER);
 
 	 //draw scratch area
@@ -174,10 +174,10 @@ int PressureMapInterface::Refresh()
 	double sh;
 	int i;
 
-	dp->NewFG(coloravg(rgbcolorf(0.,0.,1.),curwindow->win_colors->bg));
+	dp->NewFG(coloravg(rgbcolorf(0.,0.,1.),curwindow->win_themestyle->bg));
 	dp->drawrectangle(x,y,w,-h,0);
 
-	dp->NewFG(coloravg(curwindow->win_colors->fg,curwindow->win_colors->bg));
+	dp->NewFG(coloravg(curwindow->win_themestyle->fg,curwindow->win_themestyle->bg));
 	for (int c=0; c<num_histogram_samples; c++) {
 		i=histogram.e[c];
 
@@ -199,7 +199,7 @@ int PressureMapInterface::Refresh()
 	x=(dp->Maxx+dp->Minx)/2-w/2;
 	y=dp->Miny+(dp->Maxy-dp->Miny)*.75;
 	
-	dp->NewFG(coloravg(rgbcolorf(0.,0.,1.),curwindow->win_colors->bg));
+	dp->NewFG(coloravg(rgbcolorf(0.,0.,1.),curwindow->win_themestyle->bg));
 	dp->drawrectangle(x,y,w,h,0);
 
 	dp->NewFG(0.,0.,1.);

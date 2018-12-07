@@ -115,9 +115,10 @@ void SliderPopup::WrapToExtent()
 //! Draw the little arrow to indicate that there's something to be popped up.
 void SliderPopup::drawarrow()
 {
-	draw_thing(this, 
-			  win_w-arrowwidth/2,win_h/2,arrowwidth/2,arrowwidth/2,
-			  THING_Triangle_Down, win_colors->fg, win_colors->color1);
+	Displayer *dp = GetDisplayer();
+	dp->drawthing(
+			  win_w-arrowwidth/2,win_h/2, arrowwidth/2,arrowwidth/2,
+			  THING_Triangle_Down, win_themestyle->fg.Pixel(), win_themestyle->color1.Pixel());
 }
 
 //! Draw the item text, and the little popup arrow.
@@ -127,12 +128,12 @@ void SliderPopup::Refresh()
 
 	Displayer *dp=MakeCurrent();
 
-	dp->NewBG(win_colors->bg);
+	dp->NewBG(win_themestyle->bg);
 	if (hover) {
-		dp->NewFG(coloravg(win_colors->bg,win_colors->fg,.07));
+		dp->NewFG(coloravg(win_themestyle->bg,win_themestyle->fg,.07));
 		dp->drawrectangle(0,0, win_w,win_h, 1);
 	} else dp->ClearWindow();
-	dp->NewFG(win_colors->fg);
+	dp->NewFG(win_themestyle->fg);
 	
 	char *label=items->menuitems.e[curitem]->name;
 	MenuItem *item=items->menuitems.e[curitem];
@@ -147,10 +148,10 @@ void SliderPopup::Refresh()
 	if (ix!=LAX_WAY_OFF) image_out(img,this,(win_w-arrowwidth-w)/2+ix,(win_h-h)/2+iy);
 
 	if (hover==LAX_LEFT) {
-		dp->NewFG(coloravg(win_colors->bg,win_colors->fg,.3)); 
+		dp->NewFG(coloravg(win_themestyle->bg,win_themestyle->fg,.3)); 
 		dp->drawthing(arrowwidth/2,win_h/2,arrowwidth/2,arrowwidth/2, 1, THING_Triangle_Left);
 	} else if (hover==LAX_RIGHT) {
-		dp->NewFG(coloravg(win_colors->bg,win_colors->fg,.3)); 
+		dp->NewFG(coloravg(win_themestyle->bg,win_themestyle->fg,.3)); 
 		dp->drawthing(win_w-arrowwidth-arrowwidth/2,win_h/2,arrowwidth/2,arrowwidth/2, 1, THING_Triangle_Right);
 	}
 

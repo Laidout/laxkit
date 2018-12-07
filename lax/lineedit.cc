@@ -113,11 +113,11 @@ LineEdit::LineEdit(anXWindow *parnt,const char *nname,const char *ntitle,unsigne
 	blanktext=NULL;
 	lasthover=0;
 	
-	installColors(app->color_edits);
+	InstallColors(THEME_Edit);
 
-	bkwrongcolor=coloravg(rgbcolor(255,0,0),win_colors->bg,.7);
-	bkwrongcolor2=coloravg(rgbcolor(255,255,0),win_colors->bg,.7);
-	wscolor=coloravg(coloravg(win_colors->fg,win_colors->bg), rgbcolor(0,0,255));
+	bkwrongcolor  = coloravg(rgbcolor(255,0,0),win_themestyle->bg.Pixel(),.7);
+	bkwrongcolor2 = coloravg(rgbcolor(255,255,0),win_themestyle->bg.Pixel(),.7);
+	wscolor       = coloravg(coloravg(win_themestyle->fg.Pixel(),win_themestyle->bg.Pixel()), rgbcolor(0,0,255));
 	
 	con=cx=cy=0;
 	newline=newline2=0;
@@ -233,7 +233,7 @@ void LineEdit::Refresh()
 		Displayer *dp=GetDisplayer();
 		dp->LineWidth(2);
 		if (lasthover==0) {
-			dp->NewFG(coloravg(win_colors->fg,win_colors->bg));
+			dp->NewFG(coloravg(win_themestyle->fg.Pixel(),win_themestyle->bg.Pixel()));
 		} else {
 			dp->NewFG(1.0,0.,0.);
 		}
