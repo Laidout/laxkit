@@ -141,6 +141,11 @@ TextXEditBaseUtf8::TextXEditBaseUtf8(anXWindow *parnt,const char *nname,const ch
 
 	padx=0;
 	pady=0;
+
+	if (thefont == NULL) {
+		if (win_themestyle) UseThisFont(win_themestyle->normal);
+		else UseThisFont(app->defaultlaxfont);
+	}
 }
 
 /*! Decrements count of thefont.
