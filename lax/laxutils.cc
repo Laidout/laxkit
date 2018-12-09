@@ -390,50 +390,6 @@ char *LaxopToString(int function, char *str_ret, int len, int *len_ret)
 	return str_ret;
 }
 
-//! Just pass mode onto dp->BlendMode(mode).
-LaxCompositeOp drawing_function(LaxCompositeOp mode)
-{
-	return dp->BlendMode(mode);
-}
-
-//! Set characteristics of drawn lines.
-void drawing_line_attributes(double width, int type, int cap, int join)
-{
-	dp->LineAttributes(width, type, cap, join);
-}
-
-
-static unsigned long default_bg_color=0;
-static unsigned long default_fg_color=0;
-
-//! Set the new default background color, and return the old one.
-unsigned long background_color(unsigned long newcolor)
-{
-	unsigned long l=dp->NewBG(newcolor);
-	default_bg_color=newcolor;
-	return l;
-}
-
-void foreground_color(double r,double g,double b,double a)
-{ dp->NewFG(r,g,b,a); }
-
-void background_color(double r,double g,double b)
-{ dp->NewBG(r,g,b); }
-
-
-//! Set the new default foreground color.
-/*! Returns the old foreground color.
- */
-unsigned long foreground_color(unsigned long newcolor)
-{
-	unsigned long l=dp->NewFG(newcolor);
-	default_fg_color=newcolor;
-
-	int r,g,b;
-	colorrgb(newcolor, &r, &g, &b);
-
-	return l;
-}
 
 
 
@@ -597,6 +553,7 @@ unsigned long rgbcolorf(double r,double g,double b)
 }
 
 //----------------------------- Various drawing utilities -------------------------
+
 
 
 //! Get coordinates for various graphical things. Coordinates are in a square bound by x=[0..scale], y=[0..scale].
@@ -1161,111 +1118,10 @@ flatpoint *draw_thing_coordinates(DrawThingTypes thing, flatpoint *buffer, int b
 	return buffer;
 }
 
-//! Draw a little graphic with current foreground and line width.
-/*! Return 1 for drawn, 0 for unknown thing. 
- *
- * bounding box is x:[x-rx,x+rx], y:[y-ry,y+ry].
- *
- * If fill==0, then only the outline is drawn.
- * If fill==1, then the outline is with the current foreground, and the thing
- * is filled also with the current foreground.
- * If fill==2, then the outline is with the current foreground, 
- * and the thing is filled with a background bg.
- * \todo *** implement the different fill options!!
- *
- * thing is any of the DrawThingTypes enum, particularly: \n
- *  circle\n
- *  square\n
- *  diamond\n
- *  triangle pointing up\n
- *  triangle pointing down\n
- *  triangle pointing right\n
- *  triangle pointing left\n
- *  +\n
- *  x\n
- *  *\n
- *  circle with + in it\n
- *  circle with x in it\n
- *
- *  \todo double triangles, triangle pointing to line, eject.  arrows, double sided arrows, pan arrow
- */
-int draw_thing(aDrawable *win,double x, double y, double rx, double ry,int fill, DrawThingTypes thing)
-{
-	dp->MakeCurrent(win);
-	dp->drawthing(x,y, rx,ry, fill,thing);
-	return 0;
-}
-
-//! Draw a thing with outline color fg, and insides color bg.
-/*! See the other draw_thing() for the meaning of thing.
- * The default foreground and background colors will be fg and bg after this function is called.
- * This essentially just sets new line width, foreground and background colors, and calls the other draw_thing()
- * with fill=2.
- *
- * Return 1 for thing drawn, or 0 for unknown thing.
- */
-int draw_thing(aDrawable *win,double x, double y, double rx, double ry, DrawThingTypes thing,unsigned long fg,unsigned long bg,int lwidth)
-{
-	dp->MakeCurrent(win);
-	dp->drawthing(x,y, rx,ry, thing, fg,bg,lwidth);
-	return 0;
-}
-
-/*! Fill region x,y,w,h with checkerboard pattern square number of pixels per smallest square.
- */
-void fill_faux_transparent(aDrawable *win, ScreenColor &color, int x, int y, int w, int h, int square)
-{
-	cerr << " *** fill_faux_transparent() deprecated! Fix your code or it will break soon!!"<<endl;
-    unsigned int bg1=coloravg(rgbcolorf(.3,.3,.3),color.Pixel(), color.alpha/65535.);
-    unsigned int bg2=coloravg(rgbcolorf(.6,.6,.6),color.Pixel(), color.alpha/65535.);
-    int ww=square,hh;
-    int a=0;
-
-    for (int xx=x; xx<x+w; xx+=square) {
-        a=(xx/square)%2;
-        hh=square;
-        if (xx+ww>x+w) ww=x+w-xx;
-        for (int yy=y; yy<y+h; yy+=square) {
-            if (yy+hh>y+h) hh=y+h-yy;
-            foreground_color(a ? bg1 : bg2);
-            fill_rectangle(win, xx,yy,ww,hh);
-            a=!a;
-        }
-        ww=square;
-    }
-}
-
-void fill_with_transparency(aDrawable *win, ScreenColor &color, double square, double x,double y,double w,double h)
-{
-	cerr << " *** fill_with_transparency() deprecated! Fix your code or it will break soon!!"<<endl;
-
-    unsigned int bg1=coloravg(rgbcolorf(.3,.3,.3),color.Pixel(), color.alpha/65535.);
-    unsigned int bg2=coloravg(rgbcolorf(.6,.6,.6),color.Pixel(), color.alpha/65535.);
-    int ww=square,hh;
-    int a=0;
-
-    for (double xx=x; xx<x+w; xx+=square) {
-        a=int(xx/square)%2;
-        hh=square;
-        if (xx+ww>x+w) ww=x+w-xx;
-        for (int yy=y; yy<y+h; yy+=square) {
-            if (yy+hh>y+h) hh=y+h-yy;
-            foreground_color(a ? bg1 : bg2);
-            fill_rectangle(win, xx,yy,ww,hh);
-            a=!a;
-        }
-        ww=square;
-    }
-}
-
-
 /*! which must be COLOR_None, COLOR_Knockout, or COLOR_Registration.
  */
-void draw_special_color(aDrawable *win, int which, double square, double x, double y, double w, double h)
+void draw_special_color(Displayer *dp, int which, double square, double x, double y, double w, double h)
 {
-    Displayer *dp=GetDefaultDisplayer();
-    dp->MakeCurrent(win);//should have been done already
-
     if (which==COLOR_None) {
 		 //none
         dp->NewFG(~0);
@@ -1298,8 +1154,9 @@ void draw_special_color(aDrawable *win, int which, double square, double x, doub
 		 //knockout
         dp->LineAttributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
         ScreenColor color(0,0,0,0);
-        fill_with_transparency(win,color,square, x,y,w,h);
-        //dp->drawrectangle(x,y,w,h, 1);
+		dp->NewFG(.3,.3,.3);
+		dp->NewBG(.6,.6,.6);
+		dp->drawCheckerboard(x,y,w,h, square, 0,0);
 
         dp->NewFG(1.,1.,1.);
         dp->moveto(x,y+h*.5);
@@ -1322,169 +1179,8 @@ void draw_special_color(aDrawable *win, int which, double square, double x, doub
 	dp->LineAttributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
 }
 
-//! Clear the window area.
-/*! Just call dp->ClearWindow() after dp->MakeCurrent(win).
- */
-void clear_window(anXWindow *win)
-{
-	dp->MakeCurrent(win);
-	dp->ClearWindow();
-}
 
-//! Draw a rectangle on win with the current foreground color.
-void draw_rectangle(aDrawable *win, double x, double y, double w, double h)
-{ 
-	dp->MakeCurrent(win);
-	dp->drawrectangle(x,y,w,h, 0);
-}
-
-//! Fill a rectangle on win with the current foreground color.
-void fill_rectangle(aDrawable *win, double x, double y, double w, double h)
-{ 
-	dp->MakeCurrent(win);
-	dp->drawrectangle(x,y,w,h, 1);
-}
-
-//! Draw a line in screen coordinates.
-void draw_line(aDrawable *win, double x1,double y1, double x2,double y2)
-{
-	dp->MakeCurrent(win);
-	dp->drawline(x1,y1, x2,y2);
-}
-
-//! Draw an optionally filled arc. Angles are in radians.
-void draw_arc(aDrawable *win, double x,double y, double xradius, double yradius, double start_radians, double end_radians)
-{
-	dp->MakeCurrent(win);
-	dp->drawarc(flatpoint(x,y), xradius,yradius, start_radians,end_radians);
-}
-
-void fill_arc(aDrawable *win, double x,double y, double xradius, double yradius, double start_radians, double end_radians)
-{
-	dp->MakeCurrent(win);
-	dp->drawellipse(x,y, xradius,yradius, start_radians,end_radians, 1);
-}
-
-void draw_arc_wh(aDrawable *win, double x,double y, double width, double height, double start_radians, double end_radians)
-{ draw_arc(win, x+width/2,y+height/2,width/2,height/2,start_radians,end_radians); }
-
-void fill_arc_wh(aDrawable *win, double x,double y, double width, double height, double start_radians, double end_radians)
-{ fill_arc(win, x+width/2,y+height/2,width/2,height/2,start_radians,end_radians); }
-
-//! Draw a line connecting the dots in p.
-/*! If isclosed, then make sure that the final point connects to the initial point.
- */
-void draw_lines(aDrawable *win, flatpoint *p, int n, int isclosed)
-{
-	dp->MakeCurrent(win);
-	dp->drawlines(p,n, isclosed,0);
-}
-
-//! Fill a polygon line connecting the dots in p with the current foreground color.
-void fill_polygon(aDrawable *win, flatpoint *p, int n)
-{
-	dp->MakeCurrent(win);
-	dp->drawlines(p,n, 1,1);
-}
-
-//-------------------------- Text drawing utilities -----------------------------
-
-LaxFont *get_default_font()
-{
-	//return dp->???
-	return anXApp::app->defaultlaxfont;
-}
-
-//! Find the text extent with the default font for the given utf8 text.
-/*! If len<0, then use strlen(str). len is number of bytes, not number of utf8 characters.
- *
- * fasc,fdes are for font, not for actual visual text bounds.
- *  r=1 means use visual (r for real) ascent/descent rather than that for font.
- *
- *  Returns the x advance. The actual width is put in ex.
- *
- *  \todo r doesn't work any more. returns height, but not sure how to get actual visual ascent and descent!
- *  \todo this is a little messy with mixup between advance and extent.
- */
-double getextent(const char *str,int len,double *ex,double *ey,double *fasc,double *fdes,char r)
-{
-	return getextent(NULL,str,len,ex,ey,fasc,fdes,r);
-}
-
-//! Find the text extent with the given font for the given utf8 text.
-/*! If font==NULL, then use the default font.
- *
- * If len<0, then use strlen(str). len is number of bytes, not number of utf8 characters.
- *
- * fasc,fdes are for font, not for actual visual text bounds.
- *  r=1 means use visual (r for real) ascent/descent rather than that for font.
- *
- *  Returns the x advance. The actual width is put in ex.
- *
- *  \todo r doesn't work any more. returns height, but not sure how to get actual visual ascent and descent!
- *  \todo this is a little messy with mixup between advance and extent.
- */
-double getextent(LaxFont *font, const char *str,int len,double *ex,double *ey,double *fasc,double *fdes,char r)
-{
-	return dp->textextent(font, str,len, ex,ey,fasc,fdes,r);
-}
-
-double text_height()
-{ return dp->textheight(); }
-
-
-//! Write one line of utf8 text out with the default LaxFont. Uses foreground color only.
-/*! Defaults to center alignment. align can be set to some or'd combination of LAX_LEFT, LAX_HCENTER,
- *  LAX_RIGHT, LAX_TOP, LAX_VCENTER, LAX_BASELINE, LAX_BOTTOM. Note that LAX_CENTER is the same
- *  as LAX_HCENTER|LAX_VCENTER. These center, right, baseline, etc. are
- *  relative to the given x and y coordinates. 
- *
- *  Writes the first len bytes of thetext. If len is equal to zero, nothing is drawn. 
- *  If len is less than 0, then strlen(thetext) is used.
- *
- *  Returns the pixel length of the string.
- */
-double textout(aDrawable *win,const char *thetext,int len,double x,double y,unsigned long align)
-{
-	return textout(win,NULL,thetext,len,x,y,align);
-}
-
-double textout(aDrawable *win,LaxFont *font, const char *thetext,int len,double x,double y,unsigned long align)
-{
-	dp->MakeCurrent(win);
-	if (font) dp->font(font);
-	double ret=dp->textout(x,y, thetext,len, align);
-	if (font) dp->font(anXApp::app->defaultlaxfont,-1);
-	return ret;
-}
-
-double textout_matrix(aDrawable *win, double *m,const char *thetext,int len,double x,double y,unsigned long align)
-{
-	dp->MakeCurrent(win);
-	return dp->textout(m, x,y, thetext,len, align);
-}
-
-double textout_rotated(aDrawable *win, double radians,const char *thetext,int len,double x,double y,unsigned long align)
-{
-	dp->MakeCurrent(win);
-	return dp->textout(radians, x,y, thetext,len, align);
-}
-
-double textout_rotated(aDrawable *win, LaxFont *font, double radians,const char *thetext,int len,double x,double y,unsigned long align)
-{
-	dp->MakeCurrent(win);
-	dp->font(font);
-	double ret=dp->textout(radians, x,y, thetext,len, align);
-	if (font) dp->font(anXApp::app->defaultlaxfont,-1);
-	return ret;
-}
-
-//! Write out possibly many lines of text. Each line delimited with a '\n'.
-double textout_multiline(aDrawable *win,const char *thetext,int len,double x,double y,unsigned long align)
-{
-	dp->MakeCurrent(win);
-	return dp->textout(x,y, thetext,len, align);
-}
+//---------------------------- Alignment Helpers ------------------------------------------
 
 //! Figure out the extent and placement of an image and a label.
 /*! This lays out a text label (IBUT_TEXT_ONLY), an icon (IBUT_ICON_ONLY), 
@@ -1508,7 +1204,7 @@ double textout_multiline(aDrawable *win,const char *thetext,int len,double x,dou
  *    LAX_TEXT_OVER_ICON   (5)
  *    LAX_ICON_STYLE_MASK  (7)
  */
-void get_placement(LaxImage *image,const char *label,int gap,unsigned int how,
+void get_placement(LaxImage *image, LaxFont *font, const char *label,int gap,unsigned int how,
 					int *w,int *h,int *tx,int *ty,int *ix,int *iy)
 {
 	LaxImage *i=NULL;
@@ -1516,7 +1212,10 @@ void get_placement(LaxImage *image,const char *label,int gap,unsigned int how,
 	if (!image || how==LAX_TEXT_ONLY || how==LAX_TEXT_ICON || how==LAX_ICON_TEXT) l=label;
 	if (image && (how==LAX_ICON_ONLY || how==LAX_TEXT_ICON || how==LAX_ICON_TEXT)) i=image;
 	double th=0,tw=0,iw=0,ih=0,hh;
-	if (l) getextent(l,-1,&tw,&th,NULL,NULL,0);
+	if (l && font) {
+		tw = font->Extent(l,-1);
+		th = font->textheight();
+	}
 	if (i) { iw=image->w(); ih=image->h(); }
 	hh=(ih>th?ih:th);
 	if (h) *h=hh;
@@ -1548,7 +1247,7 @@ void get_placement(LaxImage *image,const char *label,int gap,unsigned int how,
 //! Figure out how to place a box with dimensions thingw,thingh next to a text label.
 /*! See the other get_placement() for info about how.
  */
-void get_placement(int thingw,int thingh,const char *label,int gap,unsigned int how,
+void get_placement(int thingw,int thingh, LaxFont *font, const char *label,int gap,unsigned int how,
 					int *w,int *h,int *tx,int *ty,int *ix,int *iy)
 {
 	const char *l=NULL;
@@ -1557,7 +1256,10 @@ void get_placement(int thingw,int thingh,const char *label,int gap,unsigned int 
 	if (how==LAX_ICON_ONLY || how==LAX_TEXT_ICON || how==LAX_ICON_TEXT) usei=1;
 	double th=0,tw=0,iw=0,ih=0,hh=0;
 
-	if (l) getextent(l,-1,&tw,&th,NULL,NULL,0);
+	if (l && font) {
+		th = font->textheight();
+		tw = font->Extent(l,-1);
+	}
 
 	iw=thingw; ih=thingh;
 	hh=(ih>th?ih:th);
@@ -1634,6 +1336,8 @@ int flow_id(const char *dir)
 	else if (!strcasecmp(dir, "btrl")) return LAX_BTRL;
 	return -1; 
 }
+
+
 
 
 

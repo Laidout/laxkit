@@ -126,8 +126,8 @@ Button::~Button()
 void Button::WrapToExtent(int which)
 {
 	int w,h;
-	if (image || thing==THING_None) get_placement(image,label,gap,labelstyle,&w,&h, NULL,NULL,NULL,NULL);
-	else get_placement(thingw,thingh,label,gap,labelstyle,&w,&h, NULL,NULL,NULL,NULL);
+	if (image || thing==THING_None) get_placement(image,win_themestyle->normal,label,gap,labelstyle,&w,&h, NULL,NULL,NULL,NULL);
+	else get_placement(thingw,thingh,win_themestyle->normal,label,gap,labelstyle,&w,&h, NULL,NULL,NULL,NULL);
 	if (which&1) win_w=w+2*bevel+2*pad;
 	if (which&2) win_h=h+2*bevel+2*pad;
 }
@@ -305,7 +305,6 @@ void Button::draw()
 			if (Grayed()) dp->setSourceAlpha(.4);
 			dp->imageout(i, ix,iy);
 			if (Grayed()) dp->setSourceAlpha(1.);
-			//image_out(i,this,ix+offset.x,iy+offset.y);
 			i->doneForNow();
 		} else dp->drawthing(ix+iw/2,iy+iy/2, iw/2,ih/2, (DrawThingTypes)thing, win_themestyle->fg.Pixel(), win_themestyle->color1.Pixel());
 	}

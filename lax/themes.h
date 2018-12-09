@@ -207,7 +207,7 @@ class Theme : public anObject, public LaxFiles::DumpUtility
 	RefPtrStack<WindowStyle> styles; //panel, edit, menu, button
 
 	 //icons
-	IconManager iconmanager;
+	IconManager *iconmanager;
 
 	LaxFiles::AttributeObject extra;
 

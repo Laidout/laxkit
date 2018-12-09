@@ -701,10 +701,13 @@ Theme::Theme(const char *nname)
 	idleclk  = 1000/15;
 
 	tooltips = 1000;
+
+	iconmanager = new IconManager();
 }
 
 Theme::~Theme()
 {
+	if (iconmanager) iconmanager->dec_count();
 	delete[] name;
 	delete[] filename;
 }
@@ -729,7 +732,7 @@ int Theme::AddDefaults(const char *which)
 
 	if (!strcasecmp(which, "Light") || !strcasecmp(which, "Dark") || !strcasecmp(which, "Gray")) {
 
-		LaxFont *font = (anXApp::app ? anXApp::app->defaultlaxfont : NULL);;
+		LaxFont *font = (anXApp::app ? anXApp::app->defaultlaxfont : NULL);
 		WindowStyle *s = NULL;
 		
 		const int categories[] = { THEME_Panel, THEME_Edit, THEME_Menu, THEME_Button, THEME_Tooltip, 0 };
@@ -859,8 +862,8 @@ Attribute *Theme::dump_out_atts(Attribute *att,int what,DumpContext *context)
 
 	att->push("name", name);
 
-	for (int c=0; c<iconmanager.NumPaths(); c++) {
-		att->push("icon_dir", iconmanager.GetPath(c));
+	for (int c=0; c<iconmanager->NumPaths(); c++) {
+		att->push("icon_dir", iconmanager->GetPath(c));
 	} 
 
 	att->push("default_border_width", default_border_width);
@@ -933,7 +936,7 @@ void Theme::dump_in_atts(Attribute *att,int flag,DumpContext *context)
             if (DoubleAttribute(value,&d)) { default_padx = default_pady = d; }
  
         } else if (!strcmp(name,"icon_dir")) {
-			if (file_exists(value,1,NULL) == S_IFDIR) iconmanager.AddPath(value);
+			if (file_exists(value,1,NULL) == S_IFDIR) iconmanager->AddPath(value);
 		}
 	}
 

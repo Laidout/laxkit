@@ -167,7 +167,7 @@ int ItemSlider::LBUp(int x,int y,unsigned int state,const LaxMouse *d)
 	int ww=win_w/2;
 
 	if (win_style&EDITABLE) {
-		ww=text_height();
+		ww = win_themestyle->normal->textheight();
 		if (dragged<movewidth && x>=ww && x<win_w-ww) {
 			Mode(1);
 			return 0;
@@ -193,7 +193,7 @@ int ItemSlider::Mode(int newmode)
 int ItemSlider::scan(int x,int y,unsigned int state)
 {
 	int ww=win_w/2;
-	if (win_style&EDITABLE) ww=text_height();
+	if (win_style&EDITABLE) ww = win_themestyle->normal->textheight();
 
 	if (x<ww) return LAX_LEFT;
 	else if (x>win_w-ww) return LAX_RIGHT;

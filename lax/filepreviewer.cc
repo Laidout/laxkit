@@ -303,11 +303,6 @@ void FilePreviewer::Refresh()
 
 			w=int(w*scale);
 			h=int(h*scale);
-			//image_out_rotated(image, this, win_w/2-w/2,win_h/2-h/2, win_w/2+w/2,win_h/2-h/2);
-			//image_out_rotated(image, this, win_w/2-w/2,win_h/2-h/2, w,0);
-			//dp->imageout(image, win_w/2-w/2,win_h/2-h/2, w,-h);
-
-			//dp->imageout(image, win_w/2-w/2,win_h/2+h/2, w,-h);
 			dp->imageout(image, win_w/2-w/2,win_h/2-h/2, w,h);
 
 		} else {

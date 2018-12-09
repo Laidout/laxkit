@@ -296,8 +296,8 @@ void SplitWindow::Refresh()
 	dp->BlendMode(LAXOP_Over);
 
 	if (mode==MAXIMIZED) {
-		foreground_color(win_themestyle->bg.Pixel());
-		fill_rectangle(this, 0,0,win_w,win_h);
+		dp->NewFG(win_themestyle->bg.Pixel());
+		dp->drawrectangle(0,0,win_w,win_h, 1);
 		if (win_style&SPLIT_BEVEL) {
 			dp->drawBevel(space/2,highlight,shadow,LAX_OFF,0,0,win_w,win_h);
 		}
@@ -306,29 +306,29 @@ void SplitWindow::Refresh()
 			if (curbox->win()->win_title) sprintf(blah,"%d, %s",c,curbox->win()->win_title);
 			else sprintf(blah,"%d, no title",c);
 		else sprintf(blah,"%d",c);
-		textout(this, blah,-1,win_w/2,win_h/2,LAX_CENTER);
+		dp->textout(win_w/2,win_h/2, blah,-1, LAX_CENTER);
 
 	} else {
 		for (int c=0; c<windows.n; c++) {
 			if (!windows.e[c]->win() || !windows.e[c]->win()->win_on) {
 				 // draw big x if no window
-				foreground_color(win_themestyle->bg.Pixel());
-				fill_rectangle(this,
+				dp->NewFG(win_themestyle->bg.Pixel());
+				dp->drawrectangle(
 							   windows.e[c]->x1+space/2,windows.e[c]->y1+space/2,
 							   windows.e[c]->x2-windows.e[c]->x1-space,
-							   windows.e[c]->y2-windows.e[c]->y1-space);
-				draw_rectangle(this,
+							   windows.e[c]->y2-windows.e[c]->y1-space, 1);
+				dp->drawrectangle(
 							   windows.e[c]->x1+space/2,windows.e[c]->y1+space/2,
 							   windows.e[c]->x2-windows.e[c]->x1-space,
-							   windows.e[c]->y2-windows.e[c]->y1-space);
+							   windows.e[c]->y2-windows.e[c]->y1-space, 0);
 				
-				foreground_color(win_themestyle->fg.Pixel());
+				dp->NewFG(win_themestyle->fg.Pixel());
 				if (windows.e[c]->win())
 					if (windows.e[c]->win()->win_title) sprintf(blah,"%d, %s",c,windows.e[c]->win()->win_title);
 					else sprintf(blah,"%d, no title",c);
 				else sprintf(blah,"%d",c);
-				textout(this, blah,-1,(windows.e[c]->x1+windows.e[c]->x2)/2,
-									  (windows.e[c]->y1+windows.e[c]->y2)/2,LAX_CENTER);
+				dp->textout((windows.e[c]->x1+windows.e[c]->x2)/2, (windows.e[c]->y1+windows.e[c]->y2)/2,
+									  blah,-1, LAX_CENTER);
 			}
 
 			if (win_style&SPLIT_BEVEL) {
@@ -1104,14 +1104,16 @@ int SplitWindow::splitthewindow(anXWindow *fillwindow,int whichside)//fillwindow
 void SplitWindow::drawsplitmarks()
 {
 	if (!curbox) return;
-	drawing_function(LAXOP_Xor);
-	foreground_color(win_themestyle->fg.Pixel());
+
+	Displayer *dp = GetDisplayer();
+	dp->BlendMode(LAXOP_Xor);
+	dp->NewFG(win_themestyle->fg.Pixel());
 	if (mode==HORIZ_SPLIT) {
-		draw_line(this, curx,curbox->y1, curx,curbox->y2);
+		dp->drawline(curx,curbox->y1, curx,curbox->y2);
 	} else {
-		draw_line(this, curbox->x1,cury, curbox->x2,cury);
+		dp->drawline(curbox->x1,cury, curbox->x2,cury);
 	}
-	drawing_function(LAXOP_Over);
+	dp->BlendMode(LAXOP_Over);
 }
 
 //! Draw vertical and/or horizontal lines when adjusting window boundaries.
@@ -1123,17 +1125,18 @@ void SplitWindow::drawsplitmarks()
  */
 void SplitWindow::drawmovemarks(int on) //on=1
 {
+	Displayer *dp = GetDisplayer();
 	//DBG if (on) cerr <<"draw on "<<minx<<','<<maxx<<' '<<miny<<','<<maxy<<' '<<curx<<','<<cury<<endl;
 	//DBG else cerr <<"draw off "<<minx<<','<<maxx<<' '<<miny<<','<<maxy<<' '<<curx<<','<<cury<<endl;
 	//DBG cerr <<"  line: "<<curx<<","<<sminy<<" to "<<curx<<","<<smaxy<<endl;
 	//DBG cerr <<"  line: "<<sminx<<","<<cury<<" to "<<smaxx<<","<<cury<<endl;
 
-	if (on) foreground_color(rgbcolor(255,255,255));
-	else foreground_color(win_themestyle->bg.Pixel());
-	drawing_function(LAXOP_Over);
+	if (on) dp->NewFG(rgbcolor(255,255,255));
+	else dp->NewFG(win_themestyle->bg.Pixel());
+	dp->BlendMode(LAXOP_Over);
 
-	if (laffected.n+raffected.n>0) draw_line(this, curx,sminy,curx,smaxy);
-	if (baffected.n+taffected.n>0) draw_line(this, sminx,cury,smaxx,cury);
+	if (laffected.n+raffected.n>0) dp->drawline(curx,sminy,curx,smaxy);
+	if (baffected.n+taffected.n>0) dp->drawline(sminx,cury,smaxx,cury);
 }
 
 //! Move the Mouse

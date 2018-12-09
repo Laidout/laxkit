@@ -145,6 +145,9 @@ class aDrawable
  // INPUTS blocks pointer/key/enter/leave/focusin/out events, lets Expose through
 #define LAX_DIALOG_INPUTS (1|2|4|8|16|32|64|(1<<21))
 	
+
+const int AUTOPLACE = -100000;
+
 class anXWindow : virtual public EventReceiver, 
 				  virtual public Tagged,
 				  virtual public LaxFiles::DumpUtility,
@@ -186,7 +189,6 @@ class anXWindow : virtual public EventReceiver,
 
  public:
 
-	//WindowColors  *win_colors;
 	WindowStyle   *win_themestyle;
 	anXApp        *app;
  	char          *win_name;

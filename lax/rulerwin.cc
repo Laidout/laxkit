@@ -259,6 +259,7 @@ int RulerWindow::ThemeChange(Theme *theme)
 	tickcolor = win_themestyle->fg.Pixel();
 	subtickcolor = coloravg(win_themestyle->fg,win_themestyle->bg,.3333);
 	subsubtickcolor = coloravg(win_themestyle->fg,win_themestyle->bg,.6666);
+	return 0;
 }
 
 

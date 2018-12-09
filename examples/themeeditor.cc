@@ -173,14 +173,14 @@ class YesNo : public anXWindow
 		Displayer *dp = MakeCurrent();
 		dp->ClearWindow();
 
-		dp->NewFG(win_colors->activate);
+		dp->NewFG(win_themestyle->activate);
 		dp->drawcircle(win_w/4,win_h/2, win_w/7, 1);
-		dp->NewFG(win_colors->fg);
+		dp->NewFG(win_themestyle->fg);
 		dp->textout(win_w/4,win_h/2, "Yes",-1, LAX_CENTER);
 
-		dp->NewFG(win_colors->deactivate);
+		dp->NewFG(win_themestyle->deactivate);
 		dp->drawcircle(win_w*3/4,win_h/2, win_w/7, 1);
-		dp->NewFG(win_colors->fg);
+		dp->NewFG(win_themestyle->fg);
 		dp->textout(win_w*3/4,win_h/2, "No",-1, LAX_CENTER);
 	}
 };

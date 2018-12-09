@@ -154,7 +154,7 @@ void IconSelector::FillBox(IconBox *b,const char *nlabel,LaxImage *img,int nid)
 	}
 	
 	double tw=0,th=0;
-	if (nlabel) tw=getextent(nlabel,-1,&tw,&th,NULL,NULL,0)+2*padg;
+	if (nlabel) tw = win_themestyle->normal->Extent(nlabel,-1,&tw,&th,NULL,NULL) + 2*padg;
 	
 	b->w(tw+iw);
 	b->pw(tw+iw);
@@ -206,7 +206,7 @@ void IconSelector::drawbox(int which)
 	int w,h,tx,ty,ix,iy,dx,dy;
 	LaxImage *i=b->image;
 	const char *l=b->label;
-	get_placement(i,l,padg,labelstyle,&w,&h,&tx,&ty,&ix,&iy);
+	get_placement(i,win_themestyle->normal,l,padg,labelstyle,&w,&h,&tx,&ty,&ix,&iy);
 	dx=b->x()+(b->w()-w)/2;
 	dy=b->y()+(b->h()-h)/2;
 

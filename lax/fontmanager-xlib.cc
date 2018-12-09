@@ -125,7 +125,7 @@ void LaxFontXlib::ResetStyle(const char *nstyle)
 	makestr(style, nstyle);
 }
 
-double LaxFontXlib::extent(const char *str,int len)
+double LaxFontXlib::Extent(const char *str,int len)
 {
 	cerr << " *** need to implement LaxFontXlib::extent()"<<endl;
 	return 0;

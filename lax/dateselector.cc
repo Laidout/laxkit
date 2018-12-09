@@ -72,8 +72,8 @@ DateSelector::DateSelector(anXWindow *parnt,const char *nname,const char *ntitle
 
 	if (win_h==0 || win_w==0) {
 		int h=app->defaultlaxfont->textheight();
-		if (win_h<=0) win_h=h*(8+((win_style&DATESEL_WITH_TIME)?1:0));
-		if (win_w<=0) win_w=getextent("   00  00  00  00  00  00  00   ",-1,NULL,NULL);
+		if (win_h <= 0) win_h = h*(8+((win_style&DATESEL_WITH_TIME)?1:0));
+		if (win_w <= 0) win_w = win_themestyle->normal->Extent("   00  00  00  00  00  00  00   ",-1);
 	}
 
 	headerlines=((win_style&DATESEL_WITH_TIME)?1:0)+2;
@@ -155,8 +155,10 @@ void DateSelector::Refresh()
 {
 	if (!win_on || !needtodraw) return;
 
-	int textheight=app->defaultlaxfont->textheight();
-	int h=textheight;
+	Displayer *dp = MakeCurrent();
+
+	int textheight = win_themestyle->normal->textheight();
+	int h = textheight;
 	int y=0;
 	int bufmax=300;
 	char buf[300];
@@ -183,9 +185,9 @@ void DateSelector::Refresh()
 	}
 
 	 //blank out background
-	clear_window(this);
-	foreground_color(coloravg(win_themestyle->bg,win_themestyle->fg,.2));
-	fill_rectangle(this, 0,0,win_w,headerlines*h);
+	dp->ClearWindow();
+	dp->NewFG(coloravg(win_themestyle->bg,win_themestyle->fg,.2));
+	dp->drawrectangle(0,0,win_w,headerlines*h, 1);
 
 
 //           5:23 pm
@@ -203,25 +205,25 @@ void DateSelector::Refresh()
 	if (win_style&DATESEL_WITH_TIME) {
 		//size_t strftime(char *s, size_t max, const char *format, const struct tm *tm);
 		size_t n=strftime(buf,bufmax, "%r", &date);
-		textout(this, buf,n, win_w/2,y, LAX_HCENTER|LAX_TOP);
-		y+=textheight;
+		dp->textout(win_w/2,y, buf,n, LAX_HCENTER|LAX_TOP);
+		y += textheight;
 	}
 
 	 //draw arrow buttons, month and year
-	foreground_color(win_themestyle->fg.Pixel());
-	draw_thing(this, h/2,y+h/2, h/2,h/2, 1, THING_Double_Triangle_Left);
-	draw_thing(this, 2*h,y+h/2, h/4,h/2, 1, THING_Triangle_Left);
+	dp->NewFG(win_themestyle->fg.Pixel());
+	dp->drawthing(h/2,y+h/2, h/2,h/2, 1, THING_Double_Triangle_Left);
+	dp->drawthing(2*h,y+h/2, h/4,h/2, 1, THING_Triangle_Left);
 	sprintf(buf,"%s %d",monthname(primarymonth,1),primaryyear);
-	textout(this, buf,-1, win_w/2,y, LAX_HCENTER|LAX_TOP);
-	draw_thing(this, win_w-2*textheight,y+h/2, h/4,h/2, 1, THING_Triangle_Right);
-	draw_thing(this, win_w-h/2,y+h/2, h/2,h/2, 1, THING_Double_Triangle_Right);
-	y+=textheight;
+	dp->textout(win_w/2,y, buf,-1, LAX_HCENTER|LAX_TOP);
+	dp->drawthing(win_w-2*textheight,y+h/2, h/4,h/2, 1, THING_Triangle_Right);
+	dp->drawthing(win_w-h/2,y+h/2, h/2,h/2, 1, THING_Double_Triangle_Right);
+	y += textheight;
 
 	 //draw day of week names
 	for (int c=0; c<7; c++) {
-		textout(this, dayofweek(c,0,(win_style&DATESEL_MONDAY_FIRST)?1:0),-1, (c+.5)*colwidth,y, LAX_HCENTER|LAX_TOP);
+		dp->textout((c+.5)*colwidth,y, dayofweek(c,0,(win_style&DATESEL_MONDAY_FIRST)?1:0),-1, LAX_HCENTER|LAX_TOP);
 	}
-	y+=textheight;
+	y += textheight;
 
 	 //draw days
 
@@ -229,22 +231,22 @@ void DateSelector::Refresh()
 	while (y<win_h) {
 		 //highlight mouse over box
 		if (c==mo_col && r==mo_row) {
-			foreground_color(coloravg(win_themestyle->fg,win_themestyle->bg,.9));
-			fill_rectangle(this, c*win_w/7,y, win_w/7,textheight);
+			dp->NewFG(coloravg(win_themestyle->fg,win_themestyle->bg,.9));
+			dp->drawrectangle(c*win_w/7,y, win_w/7,textheight, 1);
 		}
 
 		 //box around current day
 		if (day==date.tm_mday && month==date.tm_mon && year==date.tm_year) {
-			foreground_color(win_themestyle->fg.Pixel());
-			draw_rectangle(this, c*win_w/7,y, win_w/7,textheight);
+			dp->NewFG(win_themestyle->fg.Pixel());
+			dp->drawrectangle(c*win_w/7,y, win_w/7,textheight, 0);
 		}
 
 		 //make primary month more prominent
-		if (month==primarymonth && year==primaryyear) foreground_color(win_themestyle->fg.Pixel());
-		else foreground_color(coloravg(win_themestyle->fg,win_themestyle->bg,.5));
+		if (month==primarymonth && year==primaryyear) dp->NewFG(win_themestyle->fg.Pixel());
+		else dp->NewFG(coloravg(win_themestyle->fg,win_themestyle->bg,.5));
 
 		sprintf(buf,"%d",day);
-		textout(this, buf,-1, (c+.5)*colwidth,y, LAX_HCENTER|LAX_TOP);
+		dp->textout((c+.5)*colwidth,y, buf,-1, LAX_HCENTER|LAX_TOP);
 
 		day++;
 		if (day>days_in_month(month,year)) {

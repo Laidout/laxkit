@@ -1755,7 +1755,7 @@ void MultiLineEdit::settextrect()
 		char nn[sz+1];
 		memset(nn, '0', sz);
 		nn[sz]='\0';
-		double w=thefont->extent(nn,sz);
+		double w=thefont->Extent(nn,sz);
 
 		textrect.x += w+padx;
 		textrect.width -= w+padx;

@@ -543,7 +543,7 @@ void ColorBox::Refresh()
 	dp->ClearWindow();
 
 	if (colorspecial!=COLOR_Normal) {
-		draw_special_color(this, colorspecial, 20, 0,0,win_w,win_h);
+		draw_special_color(dp, colorspecial, 20, 0,0,win_w,win_h);
 
 	} else {
 		if (win_style&(COLORBOX_FGBG|COLORBOX_STROKEFILL)) {

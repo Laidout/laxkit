@@ -1232,8 +1232,8 @@ void ColorSliders::updateSliderRect()
 	sliders.width=win_w;
 	sliders.height=win_h;
 
-	double hexh=text_height();
-	double hexw=getextent("#00000000",-1, NULL,NULL)+2*gap;
+	double hexh = win_themestyle->normal->textheight();
+	double hexw = win_themestyle->normal->Extent("#00000000",-1)+2*gap;
 
 	hex.width=oldnew.width=-1;
 	if (win_style&COLORSLIDERS_Vertical) {

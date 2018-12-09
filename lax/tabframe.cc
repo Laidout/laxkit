@@ -197,7 +197,7 @@ void TabFrame::DrawTab(IconBox *b, int selected, int iscurbox)
 	int w,h,tx,ty,ix,iy,dx,dy;
 	LaxImage *i=b->image;
 	const char *l=b->label;
-	get_placement(i,l,padg,labelstyle,&w,&h,&tx,&ty,&ix,&iy);
+	get_placement(i,win_themestyle->normal,l,padg,labelstyle,&w,&h,&tx,&ty,&ix,&iy);
 	dx=b->x()+(b->w()-w)/2;
 	dy=b->y()+(b->h()-h)/2;
 

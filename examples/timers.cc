@@ -58,7 +58,7 @@ Win::Win(double time_step_seconds)
 	offsetx    = 100;
 	offsety    = 0;
 
-    installColors(app->color_panel);
+    InstallColors(THEME_Panel);
 
 	Update(1);
 }
@@ -131,8 +131,8 @@ void Win::Refresh()
     dp->ClearWindow();
 
 	 //checkerboard
-    dp->NewFG(coloravg(win_colors->fg, win_colors->bg, .4));
-    dp->NewBG(coloravg(win_colors->fg, win_colors->bg, .6));
+    dp->NewFG(coloravg(win_themestyle->fg, win_themestyle->bg, .4));
+    dp->NewBG(coloravg(win_themestyle->fg, win_themestyle->bg, .6));
 	dp->drawCheckerboard(0,0,win_w,win_h, 20, offsetx,offsety);
 
 	 //spinning square
@@ -149,7 +149,7 @@ void Win::Refresh()
     for (int c=0; c<4; c++) pts[c]=m.transformPoint(pts[c]);
 
 
-    dp->NewFG(win_colors->fg);
+    dp->NewFG(win_themestyle->fg);
     dp->drawlines(pts, 4, 1, 1);
 
 

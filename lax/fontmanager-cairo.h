@@ -64,7 +64,7 @@ class LaxFontCairo : public LaxFont
 	virtual double textheight();
 	virtual double ascent();
 	virtual double descent();
-	virtual double extent(const char *str,int len);
+	virtual double Extent(const char *str,int len);
 	virtual double Resize(double newsize);
 };
 

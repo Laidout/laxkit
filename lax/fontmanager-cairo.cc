@@ -426,7 +426,7 @@ double LaxFontCairo::descent()
 
 /*! Returns the x advance.
  */
-double LaxFontCairo::extent(const char *str,int len)
+double LaxFontCairo::Extent(const char *str,int len)
 {
 	if (!str) return 0;
 	if (len<0) len=strlen(str);

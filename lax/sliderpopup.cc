@@ -101,7 +101,7 @@ void SliderPopup::WrapToExtent()
 		item=items->menuitems.e[c];
 		if (item) img=item->image; else img=NULL;
 		
-		get_placement(img,label,gap,(win_style&SLIDER_WHAT_MASK)>>21,
+		get_placement(img,win_themestyle->normal,label,gap,(win_style&SLIDER_WHAT_MASK)>>21,
 					  &w,&h,NULL,NULL,NULL,NULL);
 		if (w>maxw) maxw=w;
 		if (h>maxh) maxh=h;
@@ -142,10 +142,10 @@ void SliderPopup::Refresh()
 		
 	 // draw item
 	int tx,ty,ix,iy,w,h;
-	get_placement(img,label,gap,(win_style&SLIDER_WHAT_MASK)>>21,
+	get_placement(img,win_themestyle->normal,label,gap,(win_style&SLIDER_WHAT_MASK)>>21,
 				  &w,&h,&tx,&ty,&ix,&iy);
 	if (tx!=LAX_WAY_OFF) dp->textout((win_w-arrowwidth-w)/2+tx,(win_h-h)/2+ty, label,-1, LAX_LEFT|LAX_TOP);
-	if (ix!=LAX_WAY_OFF) image_out(img,this,(win_w-arrowwidth-w)/2+ix,(win_h-h)/2+iy);
+	if (ix!=LAX_WAY_OFF) dp->imageout(img, (win_w-arrowwidth-w)/2+ix,(win_h-h)/2+iy);
 
 	if (hover==LAX_LEFT) {
 		dp->NewFG(coloravg(win_themestyle->bg,win_themestyle->fg,.3)); 
@@ -374,7 +374,7 @@ void SliderPopup::makePopup(int mouseid)
 int SliderPopup::scan(int x,int y,unsigned int state)
 {
 	int ww=win_w/2;
-	if (win_style&EDITABLE) ww=text_height();
+	if (win_style&EDITABLE) ww = win_themestyle->normal->textheight();
 
 	if (x<ww) return LAX_LEFT;
 	else if (x>win_w-arrowwidth) return SLIDER_POP_MENU;

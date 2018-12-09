@@ -288,9 +288,11 @@ void ShortcutTreeSelector::Refresh()
 	TreeSelector::Refresh();
 	skipswap=0;
 
+	Displayer *dp = MakeCurrent();
+
 	if (wait_for) {
-		foreground_color(0.,1.,0.);
-		textout(this, _("<<press>>"), -1, wait_for->x+offsetx,wait_for->y+offsety,LAX_LEFT|LAX_TOP);
+		dp->NewFG(0.,1.,0.);
+		dp->textout(wait_for->x+offsetx,wait_for->y+offsety, _("<<press>>"), -1,  LAX_LEFT|LAX_TOP);
 	}
 
 	SwapBuffers();
@@ -412,7 +414,7 @@ int ShortcutWindow::init()
 	ShortcutManager *manager=GetDefaultShortcutManager();
 
 
-	int textheight=text_height();
+	int textheight = win_themestyle->normal->textheight();
 
 	anXWindow *last=NULL;
 

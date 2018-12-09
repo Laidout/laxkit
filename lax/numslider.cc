@@ -136,9 +136,9 @@ void NumSlider::wraptoextent()
 	double x,y,x2,y2;
 
 	if (label) sprintf(num,"%s%d ",label,(int)max); else sprintf(num,"%d ",(int)max);
-	getextent(num,-1,&x,&y);
+	win_themestyle->normal->Extent(num,-1,&x,&y,NULL,NULL);
 	if (label) sprintf(num,"%s%d ",label,(int)min); else sprintf(num,"%d ",(int)min);
-	getextent(num,-1,&x2,&y2);
+	win_themestyle->normal->Extent(num,-1,&x2,&y2,NULL,NULL);
 
 	if (x2>x) x=x2;
 	if (y2>y) y=y2;
@@ -166,7 +166,7 @@ void NumSlider::Refresh()
 	 //draw arrows
 	int ww=win_w/2;
 	int hh=win_h/2;
-	if (win_style&EDITABLE) ww=text_height();
+	if (win_style&EDITABLE) ww = win_themestyle->normal->textheight();
 
 	 // draw left arrow
 	dp->NewFG(coloravg(win_themestyle->bg,win_themestyle->fg,.2));
@@ -179,7 +179,7 @@ void NumSlider::Refresh()
 	 //draw number
 	if (hover==LAX_CENTER) {
 		dp->NewFG(coloravg(win_themestyle->bg,win_themestyle->fg,.2));
-		hh=text_height()*1.1;
+		hh = win_themestyle->normal->textheight()*1.1;
 		dp->drawrectangle(ww,win_h/2-hh/2,win_w-2*ww,hh, 1);
 	}
 

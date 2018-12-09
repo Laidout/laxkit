@@ -68,6 +68,7 @@ ToolTip::ToolTip(const char *newtext,int mouse)
 	numtips++;
 	needtodraw=1;
 	win_border=1;
+	InstallColors(THEME_Tooltip);
 	
 	if (!newtext) newtext="TOOLTIP MISSING";
 	thetext=new char[strlen(newtext)+1];
@@ -82,7 +83,7 @@ ToolTip::ToolTip(const char *newtext,int mouse)
 		while (thetext[c]!='\0' && thetext[c]!='\n') c++;
 		nl++;
 		if (c==c2) continue;
-	    t=getextent(thetext+c2,c-c2, NULL,NULL);
+	    t = win_themestyle->normal->Extent(thetext+c2,c-c2);
 		if (t>win_w) win_w=t;
 		if (thetext[c]!='\0') c++;
 	}
@@ -106,7 +107,6 @@ ToolTip::ToolTip(const char *newtext,int mouse)
 	app->addtimer(this,5000+c*50,5000+c*50,5001+c*50); // last for max of 5 seconds + 1sec / 20 chars
 	//DBG cerr <<"Done Creating Tooltip..."<<endl;
 
-	InstallColors(THEME_Tooltip);
 }
 
 ToolTip::~ToolTip()
@@ -122,8 +122,8 @@ void ToolTip::Refresh()
 	
 	Displayer *dp = MakeCurrent();
 
-	dp->NewFG(win_themestyle->bg);
-	dp->NewBG(win_themestyle->fg.Pixel());
+	dp->NewFG(win_themestyle->fg);
+	dp->NewBG(win_themestyle->bg);
 	dp->ClearWindow();
 
 	dp->textout(app->theme->default_padx,app->theme->default_pady, thetext,-1, LAX_LEFT|LAX_TOP);

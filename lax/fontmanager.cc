@@ -197,6 +197,18 @@ LaxFont::~LaxFont()
  * \brief Change the size of the cached font, keeping the font type and style. Returns newsize on success, or 0 on error.
  */
 
+/*! Convenince function to return several characteristics at once.
+ */
+double LaxFont::Extent(const char *str,int len, double *w, double *h, double *asc, double *desc)
+{
+	double ww = Extent(str,len);
+	if (w) *w = ww;
+	if (h) *h = textheight();
+	if (asc) *asc = ascent();
+	if (desc) *desc = descent();
+	return ww;
+}
+
 
 LaxFont *LaxFont::duplicate()
 {

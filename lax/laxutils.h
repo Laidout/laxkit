@@ -39,32 +39,9 @@ namespace Laxkit {
 int StringToLaxop(const char *str);
 char *LaxopToString(int function, char *str_ret, int len, int *len_ret);
 
-LaxCompositeOp drawing_function(LaxCompositeOp mode);
-void drawing_line_attributes(double width, int type, int cap, int join);
-//ScreenColor forground_color(ScreenColor &color);
-//ScreenColor background_color(ScreenColor &color);
-void foreground_color(double r,double g,double b,double a=1);
-void background_color(double r,double g,double b);
-unsigned long foreground_color(unsigned long newcolor);
-unsigned long background_color(unsigned long newcolor);
 
-void clear_window(anXWindow *win);
-void draw_rectangle(aDrawable *win, double x, double y, double w, double h);
-void fill_rectangle(aDrawable *win, double x, double y, double w, double h);
-void draw_line(aDrawable *win, double x1,double y1, double x2,double y2);
-void draw_arc(aDrawable *win, double x,double y, double xradius, double yradius, double start_radians, double end_radians);
-void draw_arc_wh(aDrawable *win, double x,double y, double width, double height, double start_radians, double end_radians);
-void fill_arc(aDrawable *win, double x,double y, double xradius, double yradius, double start_radians, double end_radians);
-void fill_arc_wh(aDrawable *win, double x,double y, double width, double height, double start_radians, double end_radians);
-void draw_lines(aDrawable *win, flatpoint *p, int n, int isclosed);
-void fill_polygon(aDrawable *win, flatpoint *p, int n);
-void fill_faux_transparent(aDrawable *win, ScreenColor &color, int x, int y, int w, int h, int square);
-
-int draw_thing(aDrawable *win,double x, double y, double rx, double ry, int fill, DrawThingTypes thing);
-int draw_thing(aDrawable *win,double x, double y, double rx, double ry, DrawThingTypes thing,unsigned long fg,unsigned long bg,int lwidth=1);
+void draw_special_color(Displayer *dp, int which, double square, double x, double y, double w, double h);
 flatpoint *draw_thing_coordinates(DrawThingTypes thing, flatpoint *buffer, int buffer_size, int *n_ret,double scale=1,DoubleBBox *bounds=NULL);
-void draw_special_color(aDrawable *win, int which, double square, double x, double y, double w, double h);
-void fill_with_transparency(aDrawable *win, ScreenColor &color, double square, double x,double y,double w,double h);
 
  //color utitilies
 ScreenColor *coloravg(ScreenColor *result, ScreenColor *a, ScreenColor *b,float r=.5);
@@ -98,29 +75,14 @@ unsigned long screen_color_at_mouse(int mouse_id);
 #define LAX_ICON_STYLE_MASK  (7)
 #define LAX_WAY_OFF          (-1000000)
 
+void get_placement(LaxImage *image, LaxFont *font, const char *label,int gap,unsigned int how,
+					int *w,int *h,int *tx,int *ty,int *ix,int *iy);
+void get_placement(int thingw, int thingh, LaxFont *font,const char *label,int gap,unsigned int how,
+					int *w,int *h,int *tx,int *ty,int *ix,int *iy);
+
 const char *flow_name(int direction);
 const char *flow_name_translated(int direction);
 int flow_id(const char *direction);
-
-double text_height();
-LaxFont *get_default_font();
-double getextent(const char *str,int len, double *ex,double *ey,double *fasc=NULL,double *fdes=NULL,char r=0);
-double getextent(LaxFont *font, const char *str,int len,double *ex,double *ey,double *fasc,double *fdes,char r=0);
-
-double textout(aDrawable *win,const char *thetext,int len,double x,double y,unsigned long align);
-double textout(aDrawable *win,LaxFont *font,const char *thetext,int len,double x,double y,unsigned long align);
-double textout_rotated(aDrawable *win, double radians,const char *thetext,int len,double x,double y,unsigned long align);
-double textout_rotated(aDrawable *win, LaxFont *font, double radians,const char *thetext,int len,double x,double y,unsigned long align);
-double textout_matrix(aDrawable *win, double *m,const char *thetext,int len,double x,double y,unsigned long align);
-
-double textout_multiline(aDrawable *win,const char *thetext,int len,double x,double y,unsigned long align);
-
-void get_placement(LaxImage *image,const char *label,int gap,unsigned int how,
-					int *w,int *h,int *tx,int *ty,int *ix,int *iy);
-void get_placement(int thingw, int thingh,const char *label,int gap,unsigned int how,
-					int *w,int *h,int *tx,int *ty,int *ix,int *iy);
-
-
 
 
 

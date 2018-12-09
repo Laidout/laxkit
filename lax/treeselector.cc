@@ -535,9 +535,9 @@ int TreeSelector::init()
     highlight=coloravg(win_themestyle->bg,rgbcolor(255,255,255));
 	shadow   =coloravg(win_themestyle->bg,rgbcolor(0,0,0));
 	
-	leading=1;
-	if (textheight==0) textheight=get_default_font()->textheight()+leading;
-	iwidth=textheight;
+	leading = 1;
+	if (textheight==0) textheight = win_themestyle->normal->textheight() + leading;
+	iwidth = textheight;
 	
 	DBG cerr <<"--"<<WindowTitle()<<": textheight, leading="<<textheight<<','<<leading<<endl;
 	
@@ -782,7 +782,7 @@ int TreeSelector::findmaxwidth(int s,int e, int *h_ret)
 		getgraphicextent(mitem,&ww,&hh);
 		if (hh>h) h=hh;
 		if (ww) t=ww+padg; else t=0;
-		t+=2*pad+getextent(mitem->name,-1,NULL,NULL);
+		t += 2*pad + win_themestyle->normal->Extent(mitem->name,-1);
 		if (t>w) w=t;
 	}
 	w += iwidth;
@@ -811,7 +811,7 @@ int TreeSelector::findColumnWidth(int which)
 	double w=0,h=0,ww=0,hh=0,t;
 	MenuItem *mitem;
 
-	if (columns.e[which]->title) w=2*pad+getextent(columns.e[which]->title,-1,NULL,NULL);
+	if (columns.e[which]->title) w=2*pad + win_themestyle->normal->Extent(columns.e[which]->title,-1);
 
 	int col;
 	for (int c=s; c<=e; c++) {
@@ -826,7 +826,7 @@ int TreeSelector::findColumnWidth(int which)
 		getgraphicextent(mitem,&ww,&hh);
 		if (hh>h) h=hh;
 		if (ww) t=ww+padg; else t=0;
-		t+=2*pad+getextent(mitem->name,-1,NULL,NULL);
+		t += 2*pad + win_themestyle->normal->Extent(mitem->name,-1);
 		if (t>w) w=t;
 	}
 	w+=iwidth;
@@ -951,7 +951,7 @@ double TreeSelector::getitemextent(MenuItem *mitem, //!< the index, MUST already
 {
 	double gw,gh;
 	getgraphicextent(mitem,&gw,&gh);
-	double ww=getextent(mitem->name,-1,w,h,NULL,NULL);
+	double ww = win_themestyle->normal->Extent(mitem->name,-1,w,h,NULL,NULL);
 	if (menustyle&TREESEL_GRAPHIC_ON_RIGHT) {
 		if (tx) *tx=0;
 		if (gx) *gx=(ww?ww+padg:0);
@@ -1136,8 +1136,8 @@ int TreeSelector::DrawItems(int indent, MenuInfo *mmenu, int &n, flatpoint offse
 				 //item is open submenu
 				int newy = DrawItems(indent+1,i->GetSubmenu(),n,offset);
 				if (!HasStyle(TREESEL_NO_LINES)) {
-					draw_line(this, tree_offset+offset.x+(.5+indent)*iwidth, offset.y+yy,
-									tree_offset+offset.x+(.5+indent)*iwidth, offset.y+newy); //vertical line
+					dp->drawline(tree_offset+offset.x+(.5+indent)*iwidth, offset.y+yy,
+								 tree_offset+offset.x+(.5+indent)*iwidth, offset.y+newy); //vertical line
 				}
 				yy = newy;
 			} else {
@@ -1385,9 +1385,11 @@ int TreeSelector::drawFlagGraphic(char flag, int x,int y,int h)
  */
 void TreeSelector::drawitemname(MenuItem *mitem,IntRectangle *rect)
 {
+	Displayer *dp = GetDisplayer();
+
 	unsigned long f,g;
 	double fasc,tx,gx,iw;
-	fasc=get_default_font()->ascent();
+	fasc = win_themestyle->normal->ascent();
 
 	getitemextent(mitem,&iw,NULL,&gx,&tx); // status graphic and name x coordinate
 
@@ -1420,11 +1422,11 @@ void TreeSelector::drawitemname(MenuItem *mitem,IntRectangle *rect)
 	//fill_rectangle(this, rect->x,rect->y,rect->width,rect->height);
 
 
-	foreground_color(f);
-	background_color(g);
-	if (mitem->name) textout(this, mitem->name,strlen(mitem->name), tx,rect->y+fasc+leading/2, LAX_LEFT|LAX_BASELINE);
+	dp->NewFG(f);
+	dp->NewBG(g);
+	if (mitem->name) dp->textout(tx,rect->y+fasc+leading/2, mitem->name,strlen(mitem->name), LAX_LEFT|LAX_BASELINE);
 	if (mitem && mitem->image) {
-		image_out(mitem->image, this, gx, rect->y);
+		dp->imageout(mitem->image, gx, rect->y);
 	}
 
 }

@@ -95,9 +95,9 @@ MessageBar::MessageBar(anXWindow *pwindow,const char *nname,const char *ntitle,u
 	if ((win_style&(MB_CENTER|MB_LEFT|MB_RIGHT|MB_TOP|MB_BOTTOM))==0) { // default center
 		win_style=(win_style&(~(MB_CENTER|MB_LEFT|MB_RIGHT|MB_TOP|MB_BOTTOM)))|MB_CENTER;
 	}
-	SetupMetrics(); //sets win_w and win_h if nh==0
 
 	InstallColors(THEME_Panel);
+	SetupMetrics(); //sets win_w and win_h if nh==0
 }
 
 MessageBar::~MessageBar()
@@ -189,7 +189,7 @@ int MessageBar::SetupMetrics()
 	int n;
 	ex=0;
 	for (n=0; n<nlines; n++) {
-		getextent(thetext[n],strlen(thetext[n]), &indents[n], &height, &fasc, &fdes, 0);
+		win_themestyle->normal->Extent(thetext[n],strlen(thetext[n]), &indents[n], &height, &fasc, &fdes);
 		if (indents[n]>ex) ex=indents[n];
 	}
 	ey=nlines*height;

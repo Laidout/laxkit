@@ -117,7 +117,8 @@ class LaxFont : public anObject
 	virtual const char *Style();
 	virtual const char *FontFile();
 	virtual const char *PostscriptName();
-	virtual double extent(const char *str,int len) = 0;
+	virtual double Extent(const char *str,int len) = 0;
+	virtual double Extent(const char *str,int len, double *w, double *h, double *asc, double *desc);
 	virtual double Resize(double newsize) = 0;
 
 	 //stuff for layered color fonts

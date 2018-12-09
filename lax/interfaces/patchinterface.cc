@@ -91,7 +91,8 @@ showmat::~showmat() { delete[] M; }
 
 void showmat::Refresh()
 {
-	clear_window(this);
+	Displayer *dp = MakeCurrent();
+	dp->ClearWindow();
 	int r,c;
 	char str[100];
 	flatpoint f;
@@ -99,8 +100,7 @@ void showmat::Refresh()
 		for (c=0; c<x; c++) {
 			f=M[r*x+c];
 			sprintf(str,"%.2f,%.2f",f.x,f.y);
-			textout(this,str,-1,c*100,r*20,LAX_TOP|LAX_LEFT);
-//void textout(Drawable drawable,const char *thetext,int len,int x,int y,unsigned long align);
+			dp->textout(c*100,r*20,str,-1,LAX_TOP|LAX_LEFT);
 		}
 	needtodraw=0;
 }

@@ -74,7 +74,7 @@ void IconSlider::Refresh()
 {
 	if (!win_on || !needtodraw || curitem<0) return;
 
-	Displayer *dp=GetDisplayer();
+	Displayer *dp = MakeCurrent();
 	dp->NewFG(win_themestyle->bg);
 	dp->drawrectangle(0,0,win_w,win_h, 1);
 
@@ -84,10 +84,10 @@ void IconSlider::Refresh()
 	if (item) img=item->image;
 		
 	int tx,ty,ix,iy;
-	get_placement(img,label,gap,(win_style&ICONSLIDER_WHAT_MASK)>>20,
+	get_placement(img,win_themestyle->normal,label,gap,(win_style&ICONSLIDER_WHAT_MASK)>>20,
 		NULL,NULL,&tx,&ty,&ix,&iy);
-	if (tx!=LAX_WAY_OFF) textout(this, label,-1,tx,ty,LAX_LEFT|LAX_TOP);
-	if (ix!=LAX_WAY_OFF) image_out(img,this,ix,iy);
+	if (tx!=LAX_WAY_OFF) dp->textout(tx,ty,label,-1,LAX_LEFT|LAX_TOP);
+	if (ix!=LAX_WAY_OFF) dp->imageout(img,ix,iy);
 	
 	needtodraw=0;
 }

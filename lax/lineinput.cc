@@ -121,6 +121,8 @@ LineInput::LineInput(anXWindow *parnt,const char *nname,const char *ntitle,unsig
 		: anXWindow(parnt,nname,ntitle,nstyle,xx,yy,ww,hh,brder,NULL,nowner,nsend)
 {
 	if ((win_style&(LINP_ONTOP|LINP_ONBOTTOM|LINP_ONLEFT|LINP_ONRIGHT))==0) win_style|=LINP_ONLEFT;
+	InstallColors(THEME_Panel);
+
 	padx=npadx;
 	pady=npady;
 	padly=npadly;
@@ -132,7 +134,7 @@ LineInput::LineInput(anXWindow *parnt,const char *nname,const char *ntitle,unsig
 	leh=nleh;
 
 	double lw=0,lh=0,fasc=0,fdes=0,textheight;
-	if (label) getextent(label,-1,&lw,&lh,&fasc,&fdes);
+	if (label) win_themestyle->normal->Extent(label,-1,&lw,&lh,&fasc,&fdes);
 	else {
 		fasc=app->defaultlaxfont->ascent();
 		fdes=app->defaultlaxfont->descent();
@@ -182,7 +184,6 @@ LineInput::LineInput(anXWindow *parnt,const char *nname,const char *ntitle,unsig
 		}
 	}
 
-	InstallColors(THEME_Panel);
 
 	SetPlacement(); // sets lx,ly, le size and place
 	
@@ -286,7 +287,7 @@ void LineInput::SetPlacement()
 {
 	int lex=0,ley=0,nlew=0,nleh=0;
 	double lw=0,lh=0,fasc=0,fdes=0,textheight;
-	if (label) getextent(label,-1,&lw,&lh,&fasc,&fdes);
+	if (label) win_themestyle->normal->Extent(label,-1,&lw,&lh,&fasc,&fdes);
 	labelw=lw;
 	textheight=fasc+fdes;
 	

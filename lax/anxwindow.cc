@@ -382,9 +382,7 @@ anXWindow::anXWindow(anXWindow *parnt, const char *nname, const char *ntitle,
 	prevcontrol=NULL;
 	if (prev) prev->ConnectControl(this,1);
 
-	//win_colors = NULL; 
 	win_themestyle = NULL;
-	//installColors(app->color_panel);
 
 #ifdef _LAX_PLATFORM_XLIB
 	 //set up Xlib specific stuff
@@ -420,7 +418,6 @@ anXWindow::~anXWindow()
 	if (win_name) delete[] win_name;
 	if (win_title) delete[] win_title;
 
-	//if (win_colors) win_colors->dec_count();
 	if (win_themestyle) win_themestyle->dec_count();
 
 	if (win_tooltip) delete[] win_tooltip;
@@ -495,15 +492,6 @@ int anXWindow::getWinStyle(unsigned int stylebit)
 	return win_style&stylebit;
 }
 
-////! Dec_count old and inc_count new.
-//void anXWindow::installColors(WindowColors *newcolors)
-//{
-//	cerr << "installColors(WindowColors) deprecated!"<<endl;
-//
-//	if (win_colors) win_colors->dec_count();
-//	if (newcolors) newcolors->inc_count();
-//	win_colors=newcolors;
-//}
 
 /*! category must be one on THEME_Panel, THEME_Edit, THEME_Button, THEME_Menu, or THEME_Tooltip, otherwise nothing done. 
  * This will install from the default theme (app->theme). Dec_count old and inc_count new.
@@ -527,20 +515,6 @@ void anXWindow::InstallColors(WindowStyle *newcolors)
 	if (newcolors) newcolors->inc_count();
 	if (win_themestyle) win_themestyle->dec_count();
 	win_themestyle = newcolors;
-
-//	if (win_colors) {
-//		win_colors->fg  	  = newcolors->fg.Pixel();
-//		win_colors->bg  	  = newcolors->bg.Pixel();
-//		win_colors->hfg  	  = newcolors->fghl.Pixel();
-//		win_colors->hbg  	  = newcolors->bghl.Pixel();
-//		win_colors->moverfg	  = newcolors->fghover.Pixel();
-//		win_colors->moverbg	  = newcolors->bghover.Pixel();
-//		win_colors->grayedfg  = newcolors->fggray.Pixel();
-//		win_colors->color1	  = newcolors->color1.Pixel();
-//		win_colors->color2	  = newcolors->color2.Pixel();
-//		win_colors->activate  = newcolors->activate.Pixel();
-//		win_colors->deactivate= newcolors->deactivate.Pixel();
-//	}
 }
 
 /*! Default is to replace the current style with the WindowStyle in theme of the same category. If not found,

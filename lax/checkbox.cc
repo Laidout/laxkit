@@ -85,14 +85,14 @@ CheckBox::CheckBox(anXWindow *parnt,const char *nname,const char *ntitle,unsigne
 {
 	win_style=(win_style&~BUTTON_MOMENTARY)|BUTTON_TOGGLE;
 
-	 //*** maybe include bevel just for easier levelling with buttons??
-	trect.width=(unsigned int) getextent(label,-1, NULL,NULL);
-	grect.y=trect.y=pad;
-	grect.height=trect.height=win_h-2*pad;
-	grect.width=grect.height;
-	state=LAX_OFF;
-
 	InstallColors(THEME_Edit);
+
+	 //*** maybe include bevel just for easier levelling with buttons??
+	trect.width = (unsigned int) win_themestyle->normal->Extent(label,-1);
+	grect.y = trect.y = pad;
+	grect.height = trect.height = win_h-2*pad;
+	grect.width = grect.height;
+	state = LAX_OFF;
 
 	pitcolor = win_themestyle->bg.Pixel();
 	
