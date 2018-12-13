@@ -4291,6 +4291,26 @@ int PathInterface::toggleclosed(int c) //c=-1
 	return 0;
 }
 
+/*! Install an orphan PathsData with an additional matrix.
+ * Sets mode PATHI_Path_Is_MM_Real.
+ */
+int PathInterface::UseThisObject(PathsData *ndata, const double *extramatrix)
+{
+	if (data && data!=ndata) deletedata();
+	if (data != ndata) {
+		data = ndata;
+		data->inc_count();
+	}
+	if (poc) delete poc;
+	poc = nullptr;
+	extram.m(extramatrix);
+
+	pathi_style &= ~(PATHI_Path_Is_Screen | PATHI_Path_Is_M_Screen | PATHI_Path_Is_Real | PATHI_Path_Is_M_Real);
+	pathi_style |= PATHI_Path_Is_MM_Real;
+	needtodraw = 1;
+	return 1;
+}
+
 int PathInterface::UseThisObject(ObjectContext *oc)
 {
 	if (!oc) return 0;
@@ -4467,6 +4487,10 @@ int PathInterface::Refresh()
 	FillStyle *fstyle=NULL;
 
 	if (pathi_style&PATHI_Path_Is_M_Real) {
+		dp->PushAndNewTransform(data->m());
+
+	} else if (pathi_style&PATHI_Path_Is_MM_Real) {
+		dp->PushAndNewTransform(extram.m());
 		dp->PushAndNewTransform(data->m());
 	}
 
@@ -4824,6 +4848,9 @@ int PathInterface::Refresh()
 
 	if (pathi_style&PATHI_Path_Is_M_Real) {
 		dp->PopAxes();
+	} else if (pathi_style&PATHI_Path_Is_MM_Real) {
+		dp->PopAxes();
+		dp->PopAxes();
 	}
 
 	dp->DrawImmediately(olddraw);
@@ -5121,6 +5148,9 @@ flatpoint PathInterface::realtoscreen(flatpoint r)
 		//if (viewport) return viewport->realtoscreen(r);
 		return dp->realtoscreen(r);
 
+	} else if (pathi_style&PATHI_Path_Is_MM_Real) {
+		return dp->realtoscreen(extram.transformPoint(r));
+
 	} else if (pathi_style&PATHI_Path_Is_Real) {//***might not work
 		return dp->realtoscreen(r);
 
@@ -5142,6 +5172,9 @@ flatpoint PathInterface::screentoreal(int x,int y)
 	if (pathi_style&PATHI_Path_Is_M_Real) {
 		//if (viewport) return viewport->screentoreal(x,y);
 		return dp->screentoreal(x,y);
+
+	} else if (pathi_style&PATHI_Path_Is_MM_Real) {
+		return extram.transformPointInverse(dp->screentoreal(x,y));
 
 	} else if (pathi_style&PATHI_Path_Is_Real) {
 		return dp->screentoreal(x,y);//***might not work

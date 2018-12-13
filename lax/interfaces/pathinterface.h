@@ -306,16 +306,17 @@ enum PathInterfaceSettings {
 	PATHI_Path_Is_M_Screen =(1<<3),
 	PATHI_Path_Is_Real     =(1<<4),
 	PATHI_Path_Is_M_Real   =(1<<5),
-	PATHI_Esc_Off_Sub      =(1<<6),
-	PATHI_Plain_Click_Add  =(1<<7),
-	PATHI_No_Weights       =(1<<8),
-	PATHI_Single_Weight    =(1<<9),
-	PATHI_No_Offset        =(1<<10),
-	PATHI_No_Angle_Weight  =(1<<11),
-	PATHI_Render_With_Cache=(1<<12),
-	PATHI_Hide_Path        =(1<<13),
-	PATHI_Send_On_Changes  =(1<<14),
-	PATHI_Defer_Render     =(1<<15)
+	PATHI_Path_Is_MM_Real  =(1<<6), //transform = obj->m * extram
+	PATHI_Esc_Off_Sub      =(1<<7),
+	PATHI_Plain_Click_Add  =(1<<8),
+	PATHI_No_Weights       =(1<<9),
+	PATHI_Single_Weight    =(1<<10),
+	PATHI_No_Offset        =(1<<11),
+	PATHI_No_Angle_Weight  =(1<<12),
+	PATHI_Render_With_Cache=(1<<13),
+	PATHI_Hide_Path        =(1<<14),
+	PATHI_Send_On_Changes  =(1<<15),
+	PATHI_Defer_Render     =(1<<16)
 };
 
 enum PathInterfaceActions {
@@ -424,6 +425,7 @@ class PathInterface : public anInterface
 	flatpoint hoverpoint;
 	flatpoint hoverdir;
 	flatpoint hoversegment[4];
+	Laxkit::Affine extram;
 	int lasth; //direction of toggling selected handle
 	
 	//Laxkit::PtrStack<PathOperator> pathops; 
@@ -494,6 +496,7 @@ class PathInterface : public anInterface
 	virtual ObjectContext *Context() { return poc; }
 	virtual int Refresh();
 	virtual int UseThisObject(ObjectContext *oc);
+	virtual int UseThisObject(PathsData *pathobject, const double *extramatrix);
 	virtual int UseThis(Laxkit::anObject *newdata,unsigned int mask=0);
 	virtual int InterfaceOn();
 	virtual int InterfaceOff();
