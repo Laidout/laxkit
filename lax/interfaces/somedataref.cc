@@ -54,9 +54,9 @@ SomeDataRef::SomeDataRef()
  */
 SomeDataRef::SomeDataRef(SomeData *d)
 { 
-	clone_group=0;
-	thedata=d;
-	thedata_id=newstr(d->Id());
+	clone_group = 0;
+	thedata = d;
+	thedata_id = (d ? newstr(d->Id()) : NULL);
 	if (thedata) {
 		m(thedata->m());
 		d->inc_count();
