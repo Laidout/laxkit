@@ -5769,8 +5769,8 @@ int PathInterface::LBDown(int x,int y,unsigned int state,int count,const LaxMous
 			}
 			if (viewport && !data) viewport->ChangeContext(x,y,NULL);
 
-			AddPoint(screentoreal(x,y));
-			buttondown.moveinfo(d->id,LEFTBUTTON, state,HOVER_AddingPoint); //1 means we are adding a point, used to control
+			if (AddPoint(screentoreal(x,y)) == 0)
+				buttondown.moveinfo(d->id,LEFTBUTTON, state,HOVER_AddingPoint); //1 means we are adding a point, used to control
 			//if adding bez or poly point
 
 		} else if ((state&(ControlMask|AltMask|MetaMask|ShiftMask))==ShiftMask) {
@@ -5942,6 +5942,8 @@ void PathInterface::clearSelection()
 /*! Flushes curpoints, assigns curvertex to something meanindful.
  * Assumes that p is real coordinates, not screen coordinates, and
  * that what we are adding starts and stops with a vertex.
+ *
+ * Returns 0 for added, nonzero for not addded.
  */
 int PathInterface::AddPoint(flatpoint p)
 {
@@ -5962,6 +5964,7 @@ int PathInterface::AddPoint(flatpoint p)
 
 	if (!curvertex) {
 		//start new subpath
+		if ((pathi_style&PATHI_One_Path_Only) && data->paths.n >= 1) return 1;
 		data->pushEmpty();
 		curpath=data->paths.e[data->paths.n-1];
 	}
