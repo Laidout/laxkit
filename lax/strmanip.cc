@@ -67,6 +67,23 @@ int isblank(const char *str) //,int n)
 	return 0;
 }
 
+/*! Return a new char[] from printf style arguments.
+ */
+char *newprintfstr(const char *fmt, ...)
+{
+    va_list arg;
+    va_start(arg, fmt);
+    int c = vsnprintf(NULL, 0, fmt, arg);
+    va_end(arg);
+
+    char *message = new char[c+1+10];
+    va_start(arg, fmt);
+    vsnprintf(message, c+1, fmt, arg);
+    va_end(arg);
+    return message;
+}
+
+
 //! This turns an integer into a string with any base.
 /*! base can be any number greater than 1 and less than 37.
  * For bases greater than 10, lowercase letters are used.

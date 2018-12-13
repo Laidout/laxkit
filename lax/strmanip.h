@@ -24,9 +24,11 @@
 
 
 #include <cstring>
+#include <cstdarg>
 
 int isblank(const char *str);
 char *itoa(int a,char *dest,int base=10); /* does not null terminate */
+char *newprintfstr(const char *fmt, ...);
 char *numtostr(int num, int par=0);
 char *numtostr(double num, int par=0); /* par=1 => (5) not 5 */
 char *numtostr(char *dest,int buflen,double num,int par=0);
