@@ -50,9 +50,6 @@ namespace Laxkit {
  * The following function pointers can be redefined if you prefer to use your own
  * kind of LaxImage. They function like the Imlib equivalents.
  * \code
- *   ImageOutFunc        image_out        
- *   ImageOutRotatedFunc image_out_rotated
- *   ImageOutSkewedFunc  image_out_skewed 
  *   LoadImageFunc       load_image       
  *   *** update me!!
  * \endcode
@@ -285,6 +282,7 @@ LaxImage::~LaxImage()
 	if (importer_data) importer_data->dec_count();
 }
 
+
 //--------------------------- LaxImage utils --------------------------------------
 /*! \typedef int (*DefaultImageTypeFunc)()
  * \brief Returns what the default image format is.
@@ -292,49 +290,6 @@ LaxImage::~LaxImage()
  * For the forseeable future, this will be LAX_IMAGE_IMLIB or LAX_IMAGE_CAIRO.
  */
 DefaultImageTypeFunc default_image_type = NULL;
-
-
-//------------------ image_out_* 
-
-/*! \typedef void ImageOutFunc(LaxImage *image, aDrawable *win, int ulx, int uly)
- * \brief Simply oriented drawing of image to aDrawable.
- *
- * Draw an image with upper left corner at window coordinates (ulx,uly). Positive y is down.
- */
-/*! \typedef void ImageOutRotatedFunc(LaxImage *image, aDrawable *win, int ulx,int uly, int urx,int ury)
- * \brief Drawing image to aDrawable with rotation and scaling.
- * 
- * Draw an image so that the upper left and right corners are at (ulx,uly) and (ulx+urx,uly+ury).
- */
-/*! \typedef void ImageOutSkewedFunc(LaxImage *image, aDrawable *win, int ulx,int uly, int urx,int ury, int llx, int lly)
- * \brief Drawing image to aDrawable with rotation, scaling, and skewing.
- * 
- * Draw an image so that the upper left and right corners are at (ulx,uly) and (ulx+urx,uly+ury), and the
- * lower left corner is at (ulx+llx,uly+lly).
- */
-/*! \typedef void (*ImageOutMatrixFunc)(LaxImage *image, aDrawable *win, double *m)
- * \brief Drawing an image to aDrawable with an affine matrix.
- */
-
-//! The default image to window drawing function.
-/*! \ingroup laximages
- */
-ImageOutFunc        image_out         = NULL;
-
-//! The default image to window drawing function with rotation and scaling.
-/*! \ingroup laximages
- */
-ImageOutRotatedFunc image_out_rotated = NULL;
-
-//! The default image to window drawing function with skewing.
-/*! \ingroup laximages
- */
-ImageOutSkewedFunc  image_out_skewed  = NULL;
-
-//! The default image to window drawing function with an affine matrix.
-/*! \ingroup laximages
- */
-ImageOutMatrixFunc  image_out_matrix  = NULL;
 
 
 

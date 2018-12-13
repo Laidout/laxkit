@@ -68,11 +68,6 @@ void InitCairoBackend()
 	 //set up default image functions
 	default_image_type = laxcairo_image_type;
 
-	image_out               = laxcairo_image_out;
-	image_out_rotated       = laxcairo_image_out_rotated;
-	image_out_skewed        = laxcairo_image_out_skewed;
-	image_out_matrix        = laxcairo_image_out_matrix;
-
 	save_image              = save_image_cairo;
 	load_image              = load_cairo_image;
 	load_image_with_preview = load_cairo_image_with_preview;

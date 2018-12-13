@@ -69,11 +69,6 @@ class LaxCairoImage : public LaxImage
 
 int laxcairo_image_type();
 
-void laxcairo_image_out(LaxImage *image, aDrawable *win, int ulx, int uly);
-void laxcairo_image_out_rotated(LaxImage *image, aDrawable *win, int ulx,int uly, int urx,int ury);
-void laxcairo_image_out_skewed(LaxImage *image, aDrawable *win, int ulx,int uly, int urx,int ury, int llx, int lly);
-void laxcairo_image_out_matrix(LaxImage *image, aDrawable *win, double *m);
-
 LaxImage *load_cairo_image(const char *filename);
 LaxImage *load_cairo_image_with_preview(const char *filename,const char *previewfile,int maxx,int maxy,LaxImage **previewimage_ret);
 int laxcairo_generate_preview(const char *original, const char *preview, const char *format,int maxw, int maxh, int fit);

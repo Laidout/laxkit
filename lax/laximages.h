@@ -89,17 +89,6 @@ class LaxImage : public anObject
 typedef int (*DefaultImageTypeFunc)();
 extern DefaultImageTypeFunc default_image_type;
 
-//---------------- image_out_* 
-
-typedef void (*ImageOutFunc)(LaxImage *image, aDrawable *win, int ulx, int uly);
-typedef void (*ImageOutRotatedFunc)(LaxImage *image, aDrawable *win, int ulx,int uly, int urx,int ury);
-typedef void (*ImageOutSkewedFunc)(LaxImage *image, aDrawable *win, int ulx,int uly, int urx,int ury, int llx, int lly);
-typedef void (*ImageOutMatrixFunc)(LaxImage *image, aDrawable *win, double *m);
-
-extern ImageOutFunc        image_out;
-extern ImageOutRotatedFunc image_out_rotated;
-extern ImageOutSkewedFunc  image_out_skewed;
-extern ImageOutMatrixFunc  image_out_matrix;
 
 
 //---------------- base preview creation
@@ -146,6 +135,7 @@ class ImageLoader : public anObject
 	ImageLoader(const char *newname, int nformat);
 	virtual ~ImageLoader();
 
+	//-------------- static funcs
 	static int NumLoaders();
 	static ImageLoader *GetLoaderByIndex(int which);
 	static ImageLoader *GetLoaderById(unsigned long id);
@@ -154,12 +144,22 @@ class ImageLoader : public anObject
 	static int RemoveLoader(int which);
 	static int FlushLoaders();
 
+	static LaxImage *LoadImage(const char *file,
+                               const char *previewfile, int maxw,int maxh, LaxImage **preview_ret,
+                               int required_state,
+                               int target_format,
+                               int *actual_format,
+                               bool ping_only,
+                               int index);
+	static int Ping(const char *file, int *width, int *height, long *filesize, int *subfiles); //return 0 for success. subfiles is number of "frames" in file
 
+
+	//-------------- Per loader functions:
 	int SetLoaderPriority(int where);
 
 	virtual bool CanLoadFile(const char *file) = 0;
 	virtual bool CanLoadFormat(const char *format) = 0; 
-	virtual int PingFile(const char *file, int *width, int *height, long *filesize, int *subfiles) = 0; //return 0 for success
+	virtual int PingFile(const char *file, int *width, int *height, long *filesize, int *subfiles) = 0; //return 0 for success. subfiles is number of "frames" in file
 	virtual int LoadToMemory(LaxImage *img) = 0;
 
 	 //return a LaxImage in target_format.

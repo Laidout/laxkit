@@ -480,60 +480,6 @@ int laxcairo_generate_preview(const char *original,
 
 
 
-/*! \ingroup laximages
- * Set image, set drawable, then uses cairo_render_image_on_drawable().
- */
-void laxcairo_image_out(LaxImage *image, aDrawable *win, int ulx, int uly)
-{
-	if (!dynamic_cast<LaxCairoImage *>(image)) return;
-
-//	cairo_surface_t *surface=cairo_xlib_surface_create(win->app->dpy, win->xlibDrawable(), win->app->vis, win->win_w,win->win_h);
-//	cairo_t *cr=cairo_create(surface);
-//
-//	cairo_set_source_surface(cr,dynamic_cast<LaxCairoImage *>(image)->Image());
-//	cairo_paint();
-//	cairo_destroy(cr);
-//	cairo_dostroy_surface(surface);
-//	----
-	Displayer *dp=GetDefaultDisplayer();
-	dp->MakeCurrent(win);
-	dp->imageout(image,ulx,uly);
-}
-
-/*! \ingroup laximages
- * Set image, set drawable, then uses Displayer::imageout_rotated().
- */
-void laxcairo_image_out_rotated(LaxImage *image, aDrawable *win, int ulx,int uly, int urx,int ury)
-{
-	if (!dynamic_cast<LaxCairoImage *>(image)) return;
-	Displayer *dp=GetDefaultDisplayer();
-	dp->MakeCurrent(win);
-	dp->imageout_rotated(image, ulx,uly, urx,ury);
-}
-
-/*! \ingroup laximages
- * Set image, set drawable, then uses cairo_render_image_on_drawable_skewed().
- */
-void laxcairo_image_out_skewed(LaxImage *image, aDrawable *win, int ulx,int uly, int urx,int ury, int llx, int lly)
-{
-	if (!dynamic_cast<LaxCairoImage *>(image)) return;
-	Displayer *dp=GetDefaultDisplayer();
-	dp->MakeCurrent(win);
-	dp->imageout_skewed(image, ulx,uly, urx,ury, llx,lly);
-}
-
-/*! \ingroup laximages
- * Set image, set drawable, then uses cairo_render_image_on_drawable_skewed() according to 
- * the affine matrix m.
- */
-void laxcairo_image_out_matrix(LaxImage *image, aDrawable *win, double *m)
-{
-	if (!dynamic_cast<LaxCairoImage *>(image)) return;
-	Displayer *dp=GetDefaultDisplayer();
-	dp->MakeCurrent(win);
-	dp->imageout(image, m);
-}
-
 
 //! Function that returns a new LaxCairoImage.
 /*! \ingroup laximages

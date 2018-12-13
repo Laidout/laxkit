@@ -65,10 +65,6 @@ void laximlib_alternate_drawable(Drawable drawable);
  //----------default image function replacements
 int laximlib_image_type();
 
-void laximlib_image_out(LaxImage *image, aDrawable *win, int ulx, int uly);
-void laximlib_image_out_rotated(LaxImage *image, aDrawable *win, int ulx,int uly, int urx,int ury);
-void laximlib_image_out_skewed(LaxImage *image, aDrawable *win, int ulx,int uly, int urx,int ury, int llx, int lly);
-void laximlib_image_out_matrix(LaxImage *image, aDrawable *win, double *m);
 
 int save_imlib_image(LaxImage *image, const char *filename, const char *format);
 
