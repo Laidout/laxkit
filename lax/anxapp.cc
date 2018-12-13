@@ -2775,7 +2775,7 @@ int anXApp::setfocus(anXWindow *win, clock_t t, const LaxKeyboard *kb)
  */
 void anXApp::processXevent(XEvent *xevent)
 {
-	DBG cerr <<"processXevent() on "<<xlib_event_name(xevent->xany.type)<<endl;
+	//DBG cerr <<"processXevent() on "<<xlib_event_name(xevent->xany.type)<<endl;
 
 	EventReceiver *rr=NULL;
 	anXWindow *ww=NULL; //note that rr might not have an associated ww!!

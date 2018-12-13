@@ -1164,8 +1164,8 @@ int anXWindow::Event(const EventData *data,const char *mes)
  */
 int anXWindow::event(XEvent *e)
 {
-	DBG cerr <<endl<<"anXWindow::event \""<<WindowTitle()
-	DBG        <<"\" got event "<<xlib_event_name(e->type)<<" "<<e->xany.serial<<endl;
+	//DBG cerr <<endl<<"anXWindow::event \""<<WindowTitle()
+	//DBG        <<"\" got event "<<xlib_event_name(e->type)<<" "<<e->xany.serial<<endl;
 
 	switch(e->type) {
 		 case ClientMessage: {
