@@ -52,6 +52,8 @@ class LaxImlibImage : public LaxImage
 
 	virtual unsigned char *getImageBuffer();
 	virtual int doneWithBuffer(unsigned char *buffer);
+
+	virtual int Save(const char *tofile = nullptr, const char *format = nullptr); //format==null guess from extension
 };
 
 
@@ -99,6 +101,8 @@ class ImlibLoader : public ImageLoader
 								 int *actual_format,
 								 bool ping_only,
 								 int index);
+	virtual LaxImage *CreateImage(int width, int height, int format = LAX_IMAGE_DEFAULT);
+	virtual LaxImage *CreateImageFromBuffer(unsigned char *data, int width, int height, int stride, int format = LAX_IMAGE_DEFAULT);
 };
 
 

@@ -407,12 +407,13 @@ void ImageDialog::updateImageInfo()
  */
 char *ImageDialog::reallyGeneratePreview()
 {
-	long width=side->GetLineEdit()->GetLong(NULL);
-	if (width<=10) return newstr("Too small to fit preview inside.");
-	if (generate_preview_image(imageinfo->filename,imageinfo->previewfile,"jpg",width,width,1))
+	long width = side->GetLineEdit()->GetLong(NULL);
+	if (width <= 10) return newstr("Too small to fit preview inside.");
+
+	if (GeneratePreviewFile(imageinfo->filename,imageinfo->previewfile,"jpg",width,width,1))
 		return newstr("Error making preview.");
 
-	LaxImage *image=load_image(imageinfo->previewfile);
+	LaxImage *image = ImageLoader::LoadImage(imageinfo->previewfile);
 	if (image) {
 		image->dec_count();
 	}

@@ -29,6 +29,8 @@
 #include <lax/strmanip.h>
 #include <lax/vectors.h>
 #include <lax/transformmath.h>
+#include <lax/singletonkeeper.h>
+#include <lax/laxutils.h>
 
 
 #include <iostream>
@@ -293,65 +295,89 @@ DefaultImageTypeFunc default_image_type = NULL;
 
 
 
-//------------------- load_image 
-
-/*! \typedef LaxImage *(*ImageFromBufferFunc)(unsigned char *buffer, int w, int h)
- * \brief Create a LaxImage from ARGB 8 bit data.
- */
-/*! \typedef LaxImage *LoadImageFunc(const char *filename)
- * \brief The type of function that loads a file to a LaxImage. Defines load_image().
- */
-/*! \typedef LaxImage *(*LoadImageWithPreviewFunc)(const char *filename,const char *pfile,int maxx,int maxy, LaxImage **preview_ret)
- * \brief Loads an image, using a preview image.
- *
- */
-/*! \typedef LaxImage *(*CreateNewImageFunc)(int w, int h)
- * \brief Type of function that creates a new image based on a certain width and height.
- */
-
-//! The default image loading function.
-/*! \ingroup laximages
- *
- * This must be initialized to some function. InitImlibBackend(), or InitCairoBackend() for instance.
- */
-LoadImageFunc            load_image              = NULL;
-LoadImageWithPreviewFunc load_image_with_preview = NULL;
-ImageFromBufferFunc      image_from_buffer       = NULL;
-CreateNewImageFunc       create_new_image        = NULL;
-
-
-
-//------------------- save_image 
-
-/*! \typedef int (*SaveImageFunc)(LaxImage *image, const char *filename, const char *format);
- *
- * Returns 0 for success, or nonzero for some kind of error, not saved.
- */
-
-SaveImageFunc  save_image=NULL;
-
-
 //---------------------- preview creation
 
-/*! \typedef int (*GeneratePreviewImageFunc)(const char *original_file, const char *to_preview_file, int width, int height, int fit)
- * \brief Function pointer type to a preview image creator.
- *
- * This sort of function basically creates a copy of original into preview with the given
- * width and height. If fit!=0, then fit the image within a box that is width x height, but
- * has the same aspect as the original image.
- *
- * WARNING: this does no sanity checking on file names, and will force an overwrite.
- * It is the responsibility of the calling code to do those things, and to ensure
- * that the preview file path is writable.
- *
- * Returns 0 for preview created. Otherwise nonzero.
+
+/*! Load in original_file, and Save a resized version of image to to_preview_file.
+ * If fit, maintain aspect ratio to found bounds that fit within a box width x height.
+ * Return 0 for success or nonzero for error and not saved.
  */
+int GeneratePreviewFile(const char *original_file,
+						   const char *to_preview_file, 
+						   const char *format, 
+						   int width, int height, int fit,
+						   LaxImage **main_ret, LaxImage **preview_ret)
+{
+	LaxImage *image = ImageLoader::LoadImage(original_file,
+								 nullptr, 0,0, nullptr,
+								 LAX_IMAGE_WHOLE,
+								 LAX_IMAGE_DEFAULT, //!< LaxImageTypes, for starters. 0 and LAX_IMAGE_DEFAULT both mean use default. Non zero is return NULL for can't.
+								 NULL,
+								 false, //!< If possible, do not actually load the pixel data, just things like width and height
+								 0);
+	if (!image) return 1;
+	int status = GeneratePreviewFile(image, to_preview_file, format, width, height, fit);
+	if (main_ret) *main_ret = image;
+	else image->dec_count();
+	return status;
+}
 
-/*! \brief The base preview creator.
+
+/*! Save a resized version of image to to_preview_file.
+ * If fit, maintain aspect ratio to found bounds that fit within a box width x height.
+ * Return 0 for success or nonzero for error and not saved.
  */
-GeneratePreviewFunc generate_preview_image = NULL;
+int GeneratePreviewFile(LaxImage *image,
+						   const char *to_preview_file, 
+						   const char *format, 
+						   int width, int height, int fit, LaxImage **preview_ret)
+{
+	if (!image || !to_preview_file || to_preview_file[0] == '\0') return 1;
 
+	LaxImage *preview = GeneratePreview(image, width, height, fit);
+	if (!preview) return 2;
 
+	preview->Save(to_preview_file, format);
+	if (preview_ret) *preview_ret = preview;
+	else preview->dec_count();
+
+	return 0;
+}
+
+/*! Save a resized version of image to to_preview_file.
+ * If fit, maintain aspect ratio to found bounds that fit within a box width x height.
+ */
+LaxImage *GeneratePreview(LaxImage *image, int width, int height, int fit)
+{
+	if (!image) return NULL;
+
+	int owidth  = image->w(),
+	    oheight = image->h();
+	
+	if (fit) {
+		 //figure out dimensions of new preview
+		double a = double(oheight)/owidth;
+		int ww = width, hh = height;
+		if (a*ww > hh) {
+			height = hh;
+			width = int(hh/a);
+		} else {
+			width = ww;
+			height = int(ww*a);
+		}
+		if (height==0) height=1;
+		if (width ==0) width =1;
+	}
+
+	if (width<=0 || height<=0) return NULL;
+
+	LaxImage *preview = ImageLoader::NewImage(width,height);
+	Displayer *dp = GetDefaultDisplayer();
+	dp->MakeCurrent(preview);
+	dp->imageout(image, 0,0, width, height);
+
+	return preview;
+}
 
 
 //------------------------------- ImageLoader stuff -------------------------------------
@@ -406,6 +432,18 @@ int ImageLoader::NumLoaders()
 	return n;
 }
 
+ImageLoader *ImageLoader::GetLoaderByFormat(int format)
+{
+	if (!loaders) return NULL; 
+
+	ImageLoader *loader=loaders;
+	while (loader) {
+		if (loader->format == format) return loader;
+	}
+
+	return NULL;
+}
+
 /*! Static function to retrieve a particular loader.
  */
 ImageLoader *ImageLoader::GetLoaderById(unsigned long id)
@@ -434,6 +472,9 @@ ImageLoader *ImageLoader::GetLoaderByIndex(int which)
 }
 
 
+SingletonKeeper loaderKeeper;
+
+
 /*! Static function to add loader to list of available loaders.
  *  This function takes possession of the loader. If it is later removed, loader->dec_count()
  * is called on it. If the loader cannot be installed for some reason, it's count is decremented also.
@@ -443,7 +484,11 @@ ImageLoader *ImageLoader::GetLoaderByIndex(int which)
 int ImageLoader::AddLoader(ImageLoader *loader, int where)
 {
 	if (!loader) return 1;
-	if (!loaders) { loaders=loader; return 0; }
+	if (!loaders) {
+		loaders=loader;
+		loaderKeeper.SetObject(loader, true);
+		return 0;
+	}
 
 	if (where<0) where=NumLoaders()+1;
 
@@ -480,7 +525,8 @@ int ImageLoader::RemoveLoader(int which)
 	if (loader->prev) loader->prev->next = loader->next;
 	if (loader->next) loader->next->prev = loader->prev;
 	loader->next=loader->prev=NULL;
-	loader->dec_count();
+	if (loaders == NULL) loaderKeeper.SetObject(NULL, false);
+	else loader->dec_count();
 
 	return 0;
 }
@@ -490,7 +536,8 @@ int ImageLoader::RemoveLoader(int which)
 int ImageLoader::FlushLoaders()
 {
 	if (loaders) {
-		loaders->dec_count();
+		loaderKeeper.SetObject(NULL, false);
+		//loaders->dec_count();
 		loaders=NULL;
 	}
 	return 0;
@@ -514,8 +561,15 @@ int ImageLoader::SetLoaderPriority(int where)
 }
 
 
-LaxImage *load_image_with_loaders(const char *file,
-								  const char *previewfile, int maxw,int maxh, LaxImage **preview_ret,
+/*! Try to load file into the default image format.
+ */
+LaxImage *ImageLoader::LoadImage(const char *file)
+{
+	return LoadImage(file, NULL,0,0,NULL, 0, LAX_IMAGE_DEFAULT, NULL, true, 0);
+}
+
+LaxImage *ImageLoader::LoadImage(const char *file,
+								 const char *previewfile, int maxw,int maxh, LaxImage **preview_ret,
 								 int required_state, //!< Or'd combo of LaxImageState
 								 int target_format, //!< LaxImageTypes, for starters. 0 means use default. Non zero is return NULL for can't.
 								 int *actual_format,
@@ -524,13 +578,13 @@ LaxImage *load_image_with_loaders(const char *file,
 {
 	if (!file) return NULL;
 
-	DBG cerr <<"load_image_with_loaders()..."<<file<<endl;
+	DBG cerr <<"ImageLoader::LoadImage()..."<<file<<endl;
 
-	if (target_format<0) target_format = default_image_type();
+	if (target_format<=0 || target_format == LAX_IMAGE_DEFAULT) target_format = default_image_type();
 
 	ImageLoader *loader = ImageLoader::GetLoaderByIndex(0);
 	if (!loader) {
-		DBG cerr <<"load_image_with_loaders() no loaders!"<<endl;
+		DBG cerr <<"ImageLoader::LoadImage() no loaders!"<<endl;
 		return NULL;
 	}
 
@@ -551,9 +605,26 @@ LaxImage *load_image_with_loaders(const char *file,
 		loader = loader->next;
 	}
 
-	DBG cerr <<"load_image_with_loaders() couldn't load "<<file<<endl;
+	DBG cerr <<"ImageLoader::LoadImage() couldn't load "<<file<<endl;
 	return NULL;
 }
+
+LaxImage *ImageLoader::NewImage(int width, int height, int format)
+{
+	if (format == LAX_IMAGE_DEFAULT) format = default_image_type();
+	ImageLoader *loader = GetLoaderByFormat(format);
+	if (!loader) return NULL;
+	return loader->CreateImage(width, height, format);
+}
+
+LaxImage *ImageLoader::NewImageFromBuffer(unsigned char *data, int width, int height, int stride, int format)
+{
+	if (format == LAX_IMAGE_DEFAULT) format = default_image_type();
+	ImageLoader *loader = GetLoaderByFormat(format);
+	if (!loader) return NULL;
+	return loader->CreateImageFromBuffer(data, width, height, stride, format);
+}
+
 
 
 //---------------------------------------------------------------------------------------

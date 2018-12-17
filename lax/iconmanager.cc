@@ -119,7 +119,7 @@ IconManager::~IconManager()
 //! Return -1 for fail to load file.
 int IconManager::InstallIcon(const char *nname, int nid, const char *file)
 {
-	LaxImage *img=load_image(file);
+	LaxImage *img = ImageLoader::LoadImage(file);
 	if (!img) return -1;
 	return InstallIcon(nname,nid,img);
 }
@@ -156,7 +156,7 @@ LaxImage *IconManager::findicon(const char *name)
 		appendstr(path,"/");
 		appendstr(path,name);
 		appendstr(path,".png");
-		img=load_image(path);
+		img = ImageLoader::LoadImage(path);
 		delete[] path;
 		if (img) break;
 	}

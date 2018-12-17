@@ -62,6 +62,8 @@ class LaxCairoImage : public LaxImage
 	virtual int createFromData_ARGB8(int width, int height, int stride, const unsigned char *data);
 	virtual unsigned char *getImageBuffer();
 	virtual int doneWithBuffer(unsigned char *buffer);
+
+	virtual int Save(const char *tofile = nullptr, const char *format = nullptr); //format==null guess from extension
 };
 
 
@@ -77,6 +79,34 @@ LaxImage *image_from_buffer_cairo(unsigned char *buffer, int w, int h, int strid
 LaxImage *create_new_cairo_image(int w, int h);
 
 int save_image_cairo(LaxImage *image, const char *filename, const char *format);
+
+
+////--------------------------- CairoLoader --------------------------------------
+//class CairoLoader : public ImageLoader
+//{
+//  protected:
+//
+//  public:
+//	CairoLoader();
+//	virtual ~CairoLoader();
+//
+//	virtual bool CanLoadFile(const char *file);
+//	virtual bool CanLoadFormat(const char *format); 
+//	virtual int PingFile(const char *file, int *width, int *height, long *filesize, int *subfiles);
+//	virtual int LoadToMemory(LaxImage *img);
+//
+//	 //return a LaxImage in target_format.
+//	 //If must_be_that_format and target_format cannot be created, then return NULL.
+//	virtual LaxImage *load_image(const char *filename, 
+//								 const char *previewfile, int maxx, int maxy, LaxImage **previewimage_ret,
+//								 int required_state, //any of metrics, or image data, or preview data
+//								 int target_format,
+//								 int *actual_format,
+//								 bool ping_only,
+//								 int index);
+//	virtual LaxImage *CreateImage(int width, int height, int format = LAX_IMAGE_DEFAULT);
+//	virtual LaxImage *CreateImageFromBuffer(unsigned char *data, int width, int height, int stride, int format = LAX_IMAGE_DEFAULT);
+//};
 
 
 } //namespace Laxkit

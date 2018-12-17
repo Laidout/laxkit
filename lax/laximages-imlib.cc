@@ -157,8 +157,8 @@ LaxImlibImage::LaxImlibImage(const char *original, const char *npfile,int maxx,i
 			imlib_free_image();
 
 			 //****make sure previewfile is writable
-			
-			 
+
+
 			 //figure out dimensions of new preview
 			double a=double(height)/width;
 			int dwidth, dheight;
@@ -170,7 +170,9 @@ LaxImlibImage::LaxImlibImage(const char *original, const char *npfile,int maxx,i
 				dheight=int(maxx*a);
 			}
 
-			generate_preview_image(original,npfile,"jpg",dwidth,dheight,0);
+			//generate_preview_image(original,npfile,"jpg",dwidth,dheight,0);
+			GeneratePreviewFile(original, npfile, "jpg", dwidth, dheight, 0);
+
 
 			pimage=imlib_load_image(npfile);
 			if (pimage) {
@@ -194,6 +196,27 @@ LaxImlibImage::~LaxImlibImage()
 		image=NULL;
 		whichimage=0;
 	}
+}
+
+/*! format==null guess from extension
+ * Return 0 for success or nonzero for failure and not saved.
+ * Warning: does no clobber check.
+ */
+int LaxImlibImage::Save(const char *tofile, const char *format)
+{
+	if (!image) image = Image();
+	if (!image) return 1;
+	if (!tofile) tofile = filename;
+	if (!tofile) return 2;
+
+	imlib_context_set_image(image);
+	if (format) imlib_image_set_format(format); //*** should have option for this
+	 //imlib_save_image() is a void f(), which sucks because we 
+	 //don't know if it was actually written
+	if (!tofile) tofile = filename;
+	imlib_save_image(tofile);
+
+	return 0;
 }
 
 void LaxImlibImage::clear()
@@ -420,8 +443,9 @@ LaxImage *load_imlib_image_with_preview(const char *filename,const char *preview
 	if (previewimage_ret) {
 	  if (!isblank(previewfile) && previewimage_ret) {
 		 //this will create previewfile on disk if it doesn't already exist:
-		LaxImlibImage *pimg=new LaxImlibImage(filename, previewfile, maxx,maxy);
-		pimg->doneForNow();
+		LaxImage *pimg = NULL;
+		GeneratePreviewFile(img, previewfile, "png", maxx, maxy, 1, &pimg);
+		if (pimg) pimg->doneForNow();
 
 		*previewimage_ret = pimg;
 
@@ -676,6 +700,18 @@ LaxImage *ImlibLoader::load_image(const char *filename,
 #endif //uses cairo
 
 	return NULL;
+}
+
+LaxImage *ImlibLoader::CreateImage(int width, int height, int format)
+{
+	if (format != LAX_IMAGE_IMLIB) return NULL;
+	return create_new_imlib_image(width, height);
+}
+
+LaxImage *ImlibLoader::CreateImageFromBuffer(unsigned char *data, int width, int height, int stride, int format)
+{
+	if (format != LAX_IMAGE_IMLIB) return NULL;
+	return image_from_buffer_imlib(data, width, height, stride);
 }
 
 

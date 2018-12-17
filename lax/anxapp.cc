@@ -2225,8 +2225,8 @@ int anXApp::addwindow(anXWindow *w,char mapit,char absorb_count) // mapit==1, ab
 
 	 //set window icon
 	if (!w->win_parent && (default_icon || default_icon_file)) {
-		if (!default_icon && load_image != NULL) {
-			default_icon = load_image(default_icon_file);
+		if (!default_icon) {
+			default_icon = ImageLoader::LoadImage(default_icon_file);
 			if (!default_icon) {
 				cerr <<" WARNING! could not load default icon: "<<default_icon_file<<endl;
 			}

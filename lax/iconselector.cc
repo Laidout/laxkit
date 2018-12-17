@@ -127,7 +127,7 @@ IconSelector::~IconSelector()
 //! Loads image, then calls FillBox(IconBox *,const char *,LaxImage *,int).
 void IconSelector::FillBox(IconBox *b,const char *nlabel,const char *filename,int nid)
 {
-	FillBox(b,nlabel,load_image(filename),nid);
+	FillBox(b,nlabel, ImageLoader::LoadImage(filename),nid);
 }
 
 //! Fill the given box with the label, and the icon from filename.
@@ -169,7 +169,7 @@ void IconSelector::FillBox(IconBox *b,const char *nlabel,LaxImage *img,int nid)
 //! Just returns AddBox(NULL,load_image(filename),makebw).
 int IconSelector::AddBox(const char *nlabel,const char *filename,int nid)
 {
-	return AddBox(NULL,load_image(filename),nid);
+	return AddBox(NULL, ImageLoader::LoadImage(filename),nid);
 }
 
 //! Add box and return its index.

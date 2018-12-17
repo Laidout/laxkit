@@ -157,7 +157,7 @@ LaxImage *LineProfile::CreatePreview(int pwidth,int pheight)
 		}
 	}
 	if (!preview) {
-		preview=create_new_image(pwidth,pheight);
+		preview = ImageLoader::NewImage(pwidth,pheight);
 	}
 
 	unsigned char *data=preview->getImageBuffer();

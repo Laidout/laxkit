@@ -858,7 +858,7 @@ int PerspectiveInterface::SetupPreviewImages()
 	if (!initial) return 1;
 	initial->inc_count();
 
-	if (!persped) persped = create_new_image(200,200);
+	if (!persped) persped = ImageLoader::NewImage(200,200);
 
 	transform->MapImage(data, initial, persped, 1);
 	return 0;

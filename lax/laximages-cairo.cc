@@ -397,6 +397,18 @@ cairo_surface_t *LaxCairoImage::Image()
 	return image;
 }
 
+/*! format==null guess from extension
+ * Return 0 for success or nonzero for failure and not saved.
+ * Warning: does no clobber check.
+ */
+int LaxCairoImage::Save(const char *tofile, const char *format)
+{
+	if (tofile == nullptr) tofile = filename;
+	return save_image_cairo(this, tofile, format);
+}
+
+
+
 //------------------- LaxCairoImage utils
 
 //! Generate a preview image. Return 0 for success.
@@ -412,7 +424,7 @@ int laxcairo_generate_preview(const char *original,
 						   int width, int height, int fit)
 {
 
-	LaxImage *img = load_image_with_loaders(original, NULL,0,0,NULL, 0,LAX_IMAGE_CAIRO,NULL, false, 0);
+	LaxImage *img = ImageLoader::LoadImage(original, NULL,0,0,NULL, 0,LAX_IMAGE_CAIRO,NULL, false, 0);
 	LaxCairoImage *cimg = dynamic_cast<LaxCairoImage*>(img);
 
 	cairo_surface_t *image=NULL, *pimage;
@@ -449,7 +461,7 @@ int laxcairo_generate_preview(const char *original,
 	}
 
 	if (width>0 && height>0) {
-		//pimage=cairo_create_cropped_scaled_image(0,0, owidth,oheight, width,height);
+		//pimage = cairo_create_cropped_scaled_image(0,0, owidth,oheight, width,height);
 		pimage = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width,height);
 		cairo_t *cr = cairo_create(pimage);
 		cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
@@ -501,7 +513,7 @@ LaxImage *load_cairo_image(const char *filename)
 
 	if (!image) { 
 		 //cairo load failed, try other loaders
-		LaxImage *img = load_image_with_loaders(filename, NULL,0,0,NULL, 0, LAX_IMAGE_CAIRO, NULL, false, 0);
+		LaxImage *img = ImageLoader::LoadImage(filename, NULL,0,0,NULL, 0, LAX_IMAGE_CAIRO, NULL, false, 0);
 		return img;
 	}
 
@@ -595,6 +607,10 @@ int save_image_cairo(LaxImage *image, const char *filename, const char *format)
 
 	cairo_surface_t *surface=img->image;
 	if (!surface) return 2;
+
+	if (format && strcmp(format, "png")) {
+		cerr << "Warning: trying to save cairo image to "<<format<<", but save only handles png"<<endl;
+	}
 
 	cairo_status_t status = cairo_surface_write_to_png(surface, filename);
 	if (status!=CAIRO_STATUS_SUCCESS) {

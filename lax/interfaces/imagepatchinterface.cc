@@ -283,7 +283,7 @@ int ImagePatchData::SetImage(const char *fname)
 {
 	if (!fname) return -1;
 
-	LaxImage *t = load_image(fname);
+	LaxImage *t = ImageLoader::LoadImage(fname);
 	if (t) {
 		makestr(filename,fname);
 		unsigned char *data = t->getImageBuffer(); //BGRABGRA..

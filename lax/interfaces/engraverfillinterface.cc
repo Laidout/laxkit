@@ -5539,7 +5539,7 @@ int EngraverFillInterface::Event(const Laxkit::EventData *e_data, const char *me
 		if (!group) return 0;
 		ImageData *idata=group->CreateFromSnapshot();
 		if (!idata) return 0;
-		save_image(idata->image,s->str,NULL);
+		idata->image->Save(s->str,NULL);
 		idata->dec_count();
 
 		// *** note: no check for writability... maybe save failed!!
@@ -5558,7 +5558,7 @@ int EngraverFillInterface::Event(const Laxkit::EventData *e_data, const char *me
 		if (!idata) { PostMessage(_("Can't save that type of trace object. Lazy programmers.")); return 0; }
 		img=idata->image;
 		if (!img) { PostMessage(_("Missing image for trace object!")); return 0; }
-		if (save_image(img, s->str, NULL)==0) PostMessage(_("Saved."));
+		if (img->Save(s->str, NULL)==0) PostMessage(_("Saved."));
 		else PostMessage(_("Unable to save."));
 
 		return 0;
@@ -5566,7 +5566,7 @@ int EngraverFillInterface::Event(const Laxkit::EventData *e_data, const char *me
 	} else if (!strcmp(mes,"loadimage")) {
         const StrEventData *s=dynamic_cast<const StrEventData *>(e_data);
 		if (!s || isblank(s->str)) return 0;
-		LaxImage *img=load_image(s->str);
+		LaxImage *img = ImageLoader::LoadImage(s->str);
 		const char *bname=lax_basename(s->str);
 		if (!img) {
 			char buf[strlen(_("Could not load %s"))+strlen(bname)+1];
@@ -5854,7 +5854,7 @@ int EngraverFillInterface::Event(const Laxkit::EventData *e_data, const char *me
 			ImageData *idata=group->SpacingSnapshot();
 
 			DBG cerr <<" Saving spacing snapshot to test-spacing.png.."<<endl;
-			DBG save_image(idata->image, "test-spacing.png", NULL);
+			DBG idata->image->Save("test-spacing.png", NULL);
 
 			idata->dec_count(); 
 

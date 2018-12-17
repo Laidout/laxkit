@@ -343,7 +343,7 @@ void SomeData::GeneratePreview(int w,int h)
 
 	if (!preview) {
 		DBG cerr <<"old preview didn't exist, so creating new one..."<<endl;
-		preview=create_new_image(w,h);
+		preview = ImageLoader::NewImage(w,h);
 	} 
 
 	if (renderToBufferImage(preview)!=0) { 

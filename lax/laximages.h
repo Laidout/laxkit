@@ -35,15 +35,16 @@ class aDrawable;
 //--------------------------- LaxImage --------------------------------------
 enum LaxImageTypes {
 	LAX_IMAGE_NULL = 0,
-	LAX_IMAGE_BUFFER,
-	LAX_IMAGE_XIMAGE,
-	LAX_IMAGE_PIXMAP,
+	LAX_IMAGE_DEFAULT,
+	LAX_IMAGE_BUFFER, //not implemented
+	LAX_IMAGE_XIMAGE, //not implemented
+	LAX_IMAGE_PIXMAP, //not implemented
 	LAX_IMAGE_IMLIB,
 	LAX_IMAGE_CAIRO,
-	LAX_IMAGE_ANTIGRAIN,
+	LAX_IMAGE_ANTIGRAIN, //not implemented
 	LAX_IMAGE_GRAPHICSMAGICK,
-	LAX_IMAGE_GL,
-	LAX_IMAGE_ANIMATED,
+	LAX_IMAGE_GL, //not implemented
+	LAX_IMAGE_ANIMATED, //not implemented
 	LAX_IMAGE_FIRST_USER_TYPE=1000
 };
 
@@ -81,6 +82,8 @@ class LaxImage : public anObject
 
 	//virtual int MaxMemoryUsed();
 	//virtual int dec_count();
+
+	virtual int Save(const char *tofile = nullptr, const char *format = nullptr) = 0; //format==null guess from extension
 };
 
 
@@ -91,32 +94,13 @@ extern DefaultImageTypeFunc default_image_type;
 
 
 
-//---------------- base preview creation
-typedef int  (*GeneratePreviewFunc)(const char *original_file, 
-									const char *to_preview_file,
-									const char *format,int width, int height, int fit); 
-extern GeneratePreviewFunc generate_preview_image;
+//---------------- File or Image preview creation
 
+LaxImage *GeneratePreview(LaxImage *image, int width, int height, int fit);
+int GeneratePreviewFile(LaxImage *image, const char *to_preview_file, const char *format, int width, int height, int fit, LaxImage **preview_ret=nullptr);
+int GeneratePreviewFile(const char *original_file, const char *to_preview_file, const char *format, int width, int height, int fit,
+						   LaxImage **main_ret=nullptr, LaxImage **preview_ret=nullptr);
 
-//---------------- load_image 
-
-typedef LaxImage *(*CreateNewImageFunc)(int w, int h);
-typedef LaxImage *(*ImageFromBufferFunc)(unsigned char *buffer, int w, int h, int stride);
-typedef LaxImage *(*LoadImageFunc)(const char *filename);
-typedef LaxImage *(*LoadImageWithPreviewFunc)(const char *filename,const char *previewfile,
-											  int maxx,int maxy,LaxImage **previewimage_ret);
-
-extern CreateNewImageFunc       create_new_image;
-extern ImageFromBufferFunc      image_from_buffer;
-extern LoadImageFunc            load_image;
-extern LoadImageWithPreviewFunc load_image_with_preview;
-
-
-//---------------- save_image 
-
-typedef int (*SaveImageFunc)(LaxImage *image, const char *filename, const char *format);
-
-extern SaveImageFunc  save_image;
 
 
 //------------------------------- ImageLoader stuff -------------------------------------
@@ -139,6 +123,7 @@ class ImageLoader : public anObject
 	static int NumLoaders();
 	static ImageLoader *GetLoaderByIndex(int which);
 	static ImageLoader *GetLoaderById(unsigned long id);
+	static ImageLoader *GetLoaderByFormat(int format);
 	static int AddLoader(ImageLoader *loader, int where);
 	static int LoadLoader(const char *file, int where); //load dynamic module
 	static int RemoveLoader(int which);
@@ -151,7 +136,10 @@ class ImageLoader : public anObject
                                int *actual_format,
                                bool ping_only,
                                int index);
+	static LaxImage *LoadImage(const char *file);
 	static int Ping(const char *file, int *width, int *height, long *filesize, int *subfiles); //return 0 for success. subfiles is number of "frames" in file
+	static LaxImage *NewImage(int width, int height, int format = LAX_IMAGE_DEFAULT);
+	static LaxImage *NewImageFromBuffer(unsigned char *data, int width, int height, int stride, int format = LAX_IMAGE_DEFAULT);
 
 
 	//-------------- Per loader functions:
@@ -162,6 +150,7 @@ class ImageLoader : public anObject
 	virtual int PingFile(const char *file, int *width, int *height, long *filesize, int *subfiles) = 0; //return 0 for success. subfiles is number of "frames" in file
 	virtual int LoadToMemory(LaxImage *img) = 0;
 
+
 	 //return a LaxImage in target_format.
 	 //If target_format==0, then return any format.
 	virtual LaxImage *load_image(const char *filename, 
@@ -171,15 +160,17 @@ class ImageLoader : public anObject
 								 int *actual_format,
 								 bool ping_only,
 								 int index) = 0;
+	virtual LaxImage *CreateImage(int width, int height, int format = LAX_IMAGE_DEFAULT) = 0;
+	virtual LaxImage *CreateImageFromBuffer(unsigned char *data, int width, int height, int stride, int format = LAX_IMAGE_DEFAULT) = 0;
 };
 
-LaxImage *load_image_with_loaders(const char *file,
-								  const char *previewfile, int maxw,int maxh, LaxImage **preview_ret,
-								  int required_state,
-								  int target_format,
-								  int *actual_format,
-								  bool ping_only,
-								  int index);
+//LaxImage *load_image_with_loaders(const char *file,
+//								  const char *previewfile, int maxw,int maxh, LaxImage **preview_ret,
+//								  int required_state,
+//								  int target_format,
+//								  int *actual_format,
+//								  bool ping_only,
+//								  int index);
 
 
 } //namespace Laxkit

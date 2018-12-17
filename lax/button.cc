@@ -226,8 +226,8 @@ int Button::SetIcon(const char *filename,int makebw) // makebw=0
 	if (bwimage) bwimage->dec_count();
 	image=bwimage=NULL;
 	
-	thing=THING_None;
-	image=load_image(filename);
+	thing = THING_None;
+	image = ImageLoader::LoadImage(filename);
 	needtodraw=1;
 	return image?0:1;
 }
