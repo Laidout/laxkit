@@ -17,7 +17,7 @@
 //    You should have received a copy of the GNU Library General Public
 //    License along with this library; If not, see <http://www.gnu.org/licenses/>.
 //
-//    Copyright (C) 2004-2013 by Tom Lechner
+//    Copyright (C) 2004-2018 by Tom Lechner
 //
 #ifndef _LAX_ANXAPP_H
 #define _LAX_ANXAPP_H
@@ -26,7 +26,6 @@
 
 #ifdef _LAX_PLATFORM_XLIB
 #include <X11/Xlib.h>
-//#include <X11/Xft/Xft.h>
 #include <X11/Xutil.h>
 #include <X11/extensions/Xdbe.h>
 #endif //_LAX_PLATFORM_XLIB
