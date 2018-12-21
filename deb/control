@@ -1,0 +1,59 @@
+Source: laxkit
+Section: graphics
+Priority: optional
+Maintainer: Tom Lechner <tomscoding@gmail.com>
+Build-Depends: debhelper (>= 11), libx11-dev, libimlib2-dev, libpng-dev, libfreetype6-dev, libxext-dev, libcups2-dev
+Standards-Version: 4.1.2
+
+Package: liblaxkit
+Section: libdevel
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Laxkit, a C++ Gui Toolkit, dev files
+ The Laxkit has a core windowing system with
+ common windows like scrollbars, text edits, and
+ the like, and also has several interfaces
+ for manipulating various art related objects, particularly
+ vector graphics objects like gradients, bezier patch gradients,
+ image distortions, and paths.
+ .
+ The kit is still rather rough, but at least 1 out of 6.5 billion
+ people is already using it for applications that he uses in the
+ field.
+ .
+ This package contains the library and header files needed to
+ compile programs using the Laxkit.
+ .
+ https://github.com/Laidout/laxkit
+
+Package: liblaxkit-doc
+Section: doc
+Architecture: all
+Depends: ${misc:Depends}
+Description: Laxkit documentation
+ The Laxkit has a core windowing system with
+ common windows like scrollbars, text edits, and
+ the like, and also has several interfaces
+ for manipulating various art related objects, particularly
+ vector graphics objects like gradients, bezier patch gradients,
+ image distortions, and paths.
+ .
+ The kit is still rather rough, but at least 1 out of 6.5 billion
+ people is already using it for applications that he uses in the
+ field.
+ .
+ This package contains the Laxkit documentation.
+ .
+ https://github.com/Laidout/laxkit
+
+Package: laxinput
+Section: utils
+Architecture: all
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Configure keyboards and mice under Xinput2
+ Laxinput lets you configure the XInput2 device hierarchy by dragging
+ and dropping devices to and from master devices. This allows you to
+ use 2 mice independently at the same time, for instance.
+ .
+ https://github.com/Laidout/laxkit
+

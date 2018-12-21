@@ -1,0 +1,2 @@
+debian/laxkit/usr/lib/liblax* /usr/lib
+debian/laxkit/usr/include/lax-0.0.8.1 /usr/include
