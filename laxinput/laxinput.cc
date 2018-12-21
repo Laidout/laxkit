@@ -283,7 +283,7 @@ LaxInputManagerWindow::LaxInputManagerWindow(anXWindow *parnt, const char *nname
 	transform_identity(view_m);
 	mouse_hover=-1;
 	mouse_grab=-1;
-	installColors(app->color_panel);
+	InstallColors(THEME_Panel);
 	addandremove=1;
 	message=NULL;
 
@@ -761,7 +761,10 @@ int LaxInputManagerWindow::RepositionDeviceBoxes()
 
 		if (devices.e[c]->type==ADD_NEW_DEVICE) y+=textheight/2;
 		devices.e[c]->minx=off;
-		ww=getextent(text,-1,NULL,NULL,NULL,NULL,1)+textheight;
+
+		
+		ww = win_themestyle->normal->Extent(text, -1) + textheight;
+		//ww = getextent(text,-1,NULL,NULL,NULL,NULL,1)+textheight;
 		if (ww>w) w=ww;
 		devices.e[c]->maxx=off+ww;
 		devices.e[c]->miny=y;
@@ -1358,16 +1361,17 @@ void LaxInputManagerWindow::Refresh()
 
 	Needtodraw(0);
 
-	clear_window(this);
-	//foreground_color(win_colors->bg);
-	//fill_rectangle(this,0,0,win_w,win_h);
+	Displayer *dp = MakeCurrent();
+
+
+	dp->ClearWindow();
 
 	flatpoint p1,p2;
 	int textheight=app->defaultlaxfont->textheight();
 	unsigned long fillbg;
 	unsigned long bg1, bg2;
-	bg1=win_colors->bg;
-	bg2=coloravg(bg1,win_colors->fg,.1);
+	bg1 = win_themestyle->bg.Pixel();
+	bg2 = coloravg(bg1,win_themestyle->fg.Pixel(),.1);
 	int whichbg=1;
 	int fill;
 
@@ -1382,36 +1386,36 @@ void LaxInputManagerWindow::Refresh()
 		p2=transform_point(view_m, devices.e[c]->maxx,devices.e[c]->maxy);
 
 		fill=0;
-		fillbg=win_colors->bg;
+		fillbg = win_themestyle->bg.Pixel();
 		if (!(devices.e[c]->locked&LOCK_CLICKABLE)) {
-			if (mouse_hover==c) {
+			if (mouse_hover == c) {
 				if (buttondown.isdown(0,LEFTBUTTON)) {
-					fillbg=coloravg(win_colors->bg,rgbcolor(0,255,0),.2); //greenish tint
-					fill=1;
+					fillbg = coloravg(win_themestyle->bg.Pixel(),rgbcolor(0,255,0),.2); //greenish tint
+					fill = 1;
 				} else {
-					fillbg=coloravg(win_colors->bg,win_colors->fg,.2); //tint toward fg
-					fill=1;
+					fillbg = coloravg(win_themestyle->bg.Pixel(),win_themestyle->fg,.2); //tint toward fg
+					fill = 1;
 				}
 			} else if (mouse_grab==c) {
 				 //mouse_grab>=0 implies button is down
-				fillbg=coloravg(win_colors->bg,rgbcolor(0,255,0),.2); //greenish tint
-				fill=1;
+				fillbg = coloravg(win_themestyle->bg.Pixel(),rgbcolor(0,255,0),.2); //greenish tint
+				fill = 1;
 			}
 		}
 		
 		 //draw alternating master group bg
-		foreground_color(whichbg?bg2:bg1);
-		fill_rectangle(this, 0,p1.y+1, win_w, p2.y-p1.y-1);
+		dp->NewFG(whichbg?bg2:bg1);
+		dp->drawrectangle(0,p1.y+1, win_w, p2.y-p1.y-1, 1);
 
 		 //draw boxes
 		if (fill) {
-			foreground_color(fillbg);
-			fill_rectangle(this, p1.x,p1.y, p2.x-p1.x, p2.y-p1.y);
+			dp->NewFG(fillbg);
+			dp->drawrectangle(p1.x,p1.y, p2.x-p1.x, p2.y-p1.y, 1);
 		}
 
-		foreground_color(rgbcolor(0,0,0));
-		draw_rectangle(this, p1.x,p1.y, p2.x-p1.x, p2.y-p1.y);
-		textout(this, devices.e[c]->name.c_str(), -1, p1.x+textheight/2,p1.y+textheight/4, LAX_TOP|LAX_LEFT);
+		dp->NewFG(rgbcolor(0,0,0));
+		dp->drawrectangle(p1.x,p1.y, p2.x-p1.x, p2.y-p1.y, 0);
+		dp->textout(p1.x+textheight/2,p1.y+textheight/4, devices.e[c]->name.c_str(), -1, LAX_TOP|LAX_LEFT);
 
 		//DBG cerr <<"textout: "<<devices.e[c]->name.c_str()<<endl;
 	}
@@ -1433,23 +1437,23 @@ void LaxInputManagerWindow::Refresh()
 			p1.y+=(y-yy);
 			p2.y+=(y-yy);
 
-			foreground_color(coloravg(win_colors->bg,rgbcolor(0,255,0),.2)); //greenish tint
-			fill_rectangle(this, p1.x,p1.y, p2.x-p1.x, p2.y-p1.y);
+			dp->NewFG(coloravg(win_themestyle->bg,rgbcolor(0,255,0),.2)); //greenish tint
+			dp->drawrectangle(p1.x,p1.y, p2.x-p1.x, p2.y-p1.y, 1);
 
-			foreground_color(rgbcolor(0,0,0));
-			draw_rectangle(this, p1.x,p1.y, p2.x-p1.x, p2.y-p1.y);
-			textout(this, dev->name.c_str(), -1, p1.x+textheight/2,p1.y+textheight/4, LAX_TOP|LAX_LEFT);
+			dp->NewFG(rgbcolor(0,0,0));
+			dp->drawrectangle(p1.x,p1.y, p2.x-p1.x, p2.y-p1.y, 0);
+			dp->textout(p1.x+textheight/2,p1.y+textheight/4, dev->name.c_str(), -1, LAX_TOP|LAX_LEFT);
 		}
 	}
 
 	if (message) {
-		int w=getextent(message,-1,NULL,NULL,NULL,NULL,1)+textheight;
+		int w = win_themestyle->normal->Extent(message,-1) + textheight;
 
-		foreground_color(coloravg(win_colors->bg,rgbcolor(0,255,0),.2)); //greenish tint
-		fill_rectangle(this, 0,win_h-2*textheight, w,win_h);
+		dp->NewFG(coloravg(win_themestyle->bg.Pixel(),rgbcolor(0,255,0),.2)); //greenish tint
+		dp->drawrectangle(0,win_h-2*textheight, w,win_h, 1);
 
-		foreground_color(rgbcolor(0,0,0));
-		textout(this, message,-1, textheight/2,win_h-textheight, LAX_VCENTER|LAX_LEFT);
+		dp->NewFG(rgbcolor(0,0,0));
+		dp->textout(textheight/2,win_h-textheight, message,-1, LAX_VCENTER|LAX_LEFT);
 	}
 
 	SwapBuffers();
