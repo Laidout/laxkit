@@ -52,7 +52,6 @@
 #endif //_LAX_PLATFORM_XLIB
 
 
-
 //-------backends---------
 #ifdef LAX_USES_IMLIB
 #include <lax/laximlib.h>
@@ -62,6 +61,11 @@
 #ifdef LAX_USES_CAIRO
 #include <lax/laxcairo.h>
 #endif
+
+#ifdef LAX_USES_GRAPHICSMAGICK
+#include <lax/laxgm.h>
+#endif
+
 
 
 #include <lax/anxapp.h>
@@ -829,6 +833,13 @@ int anXApp::has(int what)
 		return 0;
 #endif
 
+	} else if (what==LAX_HAS_GRAPHICSMAGICK) {
+#ifdef LAX_USES_GRAPHICSMAGICK
+		return 1;
+#else
+		return 0;
+#endif
+
 	} else if (what==LAX_HAS_XINPUT2) {
 #ifdef LAX_USES_XINPUT2
 		return 1;
@@ -918,6 +929,10 @@ int anXApp::initX(int argc,char **argv)
 
 #ifdef LAX_USES_CAIRO
 	InitLaxCairo(false);
+#endif
+
+#ifdef LAX_USES_GRAPHICSMAGICK
+	InitLaxGraphicsMagick(false);
 #endif
 
 
