@@ -94,6 +94,7 @@ objs= \
 	laximages-cairo.o \
 	laximlib.o \
 	laxcairo.o \
+	laxgm.o \
 	dateutils.o \
 	screencolor.o \
 	laxdevices.o \
