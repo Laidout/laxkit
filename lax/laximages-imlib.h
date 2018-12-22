@@ -23,10 +23,17 @@
 #ifndef _LAX_LAXIMAGES_IMLIB_H
 #define _LAX_LAXIMAGES_IMLIB_H
 
+
+#include <lax/configured.h>
+
+#ifdef LAX_USES_IMLIB
+
+
 #include <lax/laximages.h>
 #include <Imlib2.h>
 
 namespace Laxkit {
+
 
 //--------------------------- LaxImlibImage --------------------------------------
 class LaxImlibImage : public LaxImage
@@ -109,5 +116,6 @@ class ImlibLoader : public ImageLoader
 
 } //namespace Laxkit
 
+#endif //LAX_USES_IMLIB
 #endif
 

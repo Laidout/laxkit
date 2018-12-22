@@ -20,7 +20,6 @@
 //    Copyright (C) 2010 by Tom Lechner
 //
 
-#include <X11/Xlib.h>
 #include <lax/laximages-imlib.h>
 #include <lax/strmanip.h>
 #include <lax/vectors.h>
@@ -28,6 +27,8 @@
 #include <lax/anxapp.h>
 #include <lax/fileutils.h>
 
+
+#ifdef LAX_USES_IMLIB
 
 #ifdef LAX_USES_CAIRO
 #include <lax/laximages-cairo.h>
@@ -717,5 +718,7 @@ LaxImage *ImlibLoader::CreateImageFromBuffer(unsigned char *data, int width, int
 
 
 } //namespace Laxkit
+
+#endif //LAX_USES_IMLIB
 
 
