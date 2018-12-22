@@ -23,6 +23,8 @@
 #define _LAX_DISPLAYER_XLIB_H
 
 
+#include <lax/configured.h>
+
 #ifdef LAX_USES_IMLIB
 
 
