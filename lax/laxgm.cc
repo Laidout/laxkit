@@ -49,7 +49,7 @@ namespace Laxkit {
 //--------------------------- InitLaxGraphicsMagick() --------------------------------------
 //! Initialize GraphicsMagick2 using settings in anXApp::app.
 /*! \ingroup misc
- * This should be called after anXApp::init() has been called, and of course before using 
+ * This should be called after anXApp::init() has been called, and of course before using
  * GraphicsMagick2 functions.
  *
  * This will set up the default graphics backend to GraphicsMagick. This means all the functions
@@ -66,7 +66,7 @@ namespace Laxkit {
 void InitLaxGraphicsMagick(bool with_backend)
 {
 	 //initialize settings within GraphicsMagick
-	InitializeMagick(NULL);
+	Magick::InitializeMagick(nullptr);
 
 	 //install GraphicsMagick loader
 	GraphicsMagickLoader *loader=new GraphicsMagickLoader();
@@ -82,7 +82,7 @@ void InitLaxGraphicsMagick(bool with_backend)
 void InitGraphicsMagick2Backend()
 {
 	 //set up default image functions
-	default_image_type = laxGraphicsMagick_image_type;
+	default_image_type = lax_gm_image_type;
 }
 
 
@@ -102,13 +102,13 @@ namespace Laxkit {
 //! GraphicsMagick2 support not compiled in, this just prints a warning and returns.
 /*! \ingroup misc
  */
-void InitLaxGraphicsMagick(int megabytes, bool with_backend) 
+void InitLaxGraphicsMagick(bool with_backend)
 {
 	printf(" ** Warning! InitLaxGraphicsMagick() was called, but "
 			" GraphicsMagick support was not compiled into the Laxkit.\n");
 }
 
-void InitGraphicsMagick2Backend() 
+void InitGraphicsMagick2Backend()
 {
 	printf(" ** Warning! InitGraphicsMagick2Backend() was called, but "
 			" GraphicsMagick2 support was not compiled into the Laxkit.\n");
