@@ -80,12 +80,6 @@ LaxCairoImage::LaxCairoImage()
  * If !fname and img, then set flag=0 (do not free image during LaxImage lifetime).
  *
  * Note that Cairo docs say loading, reading off things, then freeing is a good thing.
- *
- * 
- * \todo *** needs to be some error checking when generating new previews
- * \todo scaling to maxx OR maxy if either 0 not implemented. both must currently be nonzero.
- * \todo when generating preview, might be wise to have check for freedesktop thumb locations to enforce
- *    proper sizing
  */
 LaxCairoImage::LaxCairoImage(const char *fname, cairo_surface_t *img)
 	: LaxImage(fname)
