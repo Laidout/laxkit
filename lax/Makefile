@@ -47,8 +47,6 @@ INSTALL=install
 
 include ../Makefile-toinclude
 
-#EXTRAS:= $(EXTRAS) 
-#-DLAX_USES_IMLIB  -DLAX_USES_CAIRO
 LAXDIR= .
 LAXOBJDIR=objs
 
@@ -63,7 +61,7 @@ LDFLAGS= -L/usr/X11R6/lib -lX11 -lm  -lpng
 #FPIC=
 FPIC= -fPIC
 
-CPPFLAGS= $(OPTIMIZATION) $(EXTRAS) $(DEBUGFLAGS) $(FPIC) -I$(LAXDIR)/.. -I/usr/X11R6/include -Wall `pkg-config --cflags freetype2`
+CPPFLAGS= $(OPTIMIZATION) $(EXTRA_LAX_CFLAGS) $(DEBUGFLAGS) $(FPIC) -I$(LAXDIR)/.. -I/usr/X11R6/include -Wall `pkg-config --cflags freetype2`
 
 
 
@@ -173,7 +171,6 @@ objs= \
 	filedialog.o \
 	imagedialog.o \
 	simpleprint.o \
-	printdialog.o \
 	fontdialog.o \
 	dateselector.o \
 	splitwindow.o \
@@ -181,6 +178,7 @@ objs= \
 	shortcutwindow.o \
 	curveinfo.o \
 
+#	printdialog.o \
 #	tableframe.o \
 #	colorselector.o \
 #
