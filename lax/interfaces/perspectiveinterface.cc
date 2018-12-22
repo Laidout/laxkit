@@ -550,7 +550,7 @@ double *PerspectiveTransform::getNormalizationCoefficients(double *src, double *
 		matC = Numeric_inv(8,8, tempmat);
 		DeallocateMatrix(8, tempmat);
 
-	} catch(exception e) {
+	} catch(exception &e) {
 		err=1;
 		cerr << "PerspectiveTransform Matrix invert error! "<<e.what()<<endl;
 		matX[0]=matX[4]=matX[8]=1;
