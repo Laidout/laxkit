@@ -500,7 +500,9 @@ SomeData *PatchData::duplicate(SomeData *dup)
 		p->griddivisions=griddivisions;
 		if (points) {
 			p->points=new flatpoint[xsize*ysize];
-			memcpy(p->points,points,xsize*ysize*sizeof(flatpoint));
+			int n = xsize*ysize;
+			for (int c=0; c<n; c++) p->points[c] = points[c];
+			//memcpy(p->points,points,xsize*ysize*sizeof(flatpoint));
 		}
 		p->xsize=xsize;
 		p->ysize=ysize;
@@ -711,7 +713,10 @@ void PatchData::CopyMeshPoints(PatchData *patch, bool usepath)
 		xsize=patch->xsize;
 		ysize=patch->ysize;
 
-		memcpy(points,patch->points, patch->xsize*patch->ysize*sizeof(flatpoint));
+		int n = patch->xsize*patch->ysize;
+		for (int c=0; c<n; c++) points[c] = patch->points[c];
+		//memcpy(points,patch->points, patch->xsize*patch->ysize*sizeof(flatpoint));
+
 		NeedToUpdateCache(0,-1, 0,-1);
 		FindBBox();
 	}
@@ -883,7 +888,10 @@ flatpoint *PatchData::bezAtEdge(flatpoint *p,int i,int row)
 		int r=i*3;
 		if (r<0 || r>=ysize) return NULL;
 		if (!p) p=new flatpoint[xsize];
-		memcpy(p,points+r*xsize,xsize*sizeof(flatpoint));
+
+		//memcpy(p,points+r*xsize,xsize*sizeof(flatpoint));
+		for (int c=0; c<xsize; c++) p[c] = points[r*xsize + c];
+
 		return p;
 	}
 	
@@ -1788,7 +1796,9 @@ void PatchData::grow(int where, const double *tr)
 		int nxs=xsize+3;
 		for (int r=0; r<ysize; r++) {
 			 // interpolate controls between old edge and new points
-			memcpy(np+r*nxs+3,points+r*xsize,xsize*sizeof(flatpoint));
+			//memcpy(np+r*nxs+3,points+r*xsize,xsize*sizeof(flatpoint));
+			for (int i=0; i<xsize; i++) np[r*nxs+3+i] = points[r*xsize + i];
+
 			np[  r*nxs]=transform_point(tr,points[r*xsize]);
 			v=np[r*nxs]-points[r*xsize];
 			np[2+r*nxs]=points[r*xsize]+v/3;
@@ -1805,7 +1815,11 @@ void PatchData::grow(int where, const double *tr)
 		 //add to the top
 		flatpoint v;
 		flatpoint *np=new flatpoint[xsize*(ysize+3)];
-		memcpy(np,points,xsize*ysize*sizeof(flatpoint));
+
+		//memcpy(np,points,xsize*ysize*sizeof(flatpoint));
+		int n = xsize*ysize;
+		for (int c=0; c<n; c++) np[c] = points[c];
+
 		for (int i=xsize*(ysize-1); i<ysize*xsize; i++) {
 			 // interpolate controls between old edge and new points
 			np[i+3*xsize]=transform_point(tr,points[i]);
@@ -1827,7 +1841,9 @@ void PatchData::grow(int where, const double *tr)
 		int nxs=xsize+3;
 		for (int r=0; r<ysize; r++) {
 			 // interpolate controls between old edge and new points
-			memcpy(np+r*nxs,points+r*xsize,xsize*sizeof(flatpoint));
+			//memcpy(np+r*nxs,points+r*xsize,xsize*sizeof(flatpoint));
+			for (int i=0; i<xsize; i++) np[r*nxs + i] = points[r*xsize + i];
+
 			np[(r+1)*nxs-1]=transform_point(tr,points[(r+1)*xsize-1]);
 			v=np[(r+1)*nxs-1]-points[(r+1)*xsize-1];
 			np[(r+1)*nxs-3]=points[(r+1)*xsize-1]+v/3;
@@ -1844,7 +1860,11 @@ void PatchData::grow(int where, const double *tr)
 		 //add to the bottom
 		flatpoint v;
 		flatpoint *np=new flatpoint[xsize*(ysize+3)];
-		memcpy(np+3*xsize,points,xsize*ysize*sizeof(flatpoint));
+
+		//memcpy(np+3*xsize,points,xsize*ysize*sizeof(flatpoint));
+		int n = xsize*ysize;
+		for (int c=0; c<n; c++) np[3*xsize + c] = points[c];
+
 		for (int i=0; i<xsize; i++) {
 			 // interpolate controls between old edge and new points
 			np[i        ]=transform_point(tr,points[i]);
@@ -1886,11 +1906,13 @@ void PatchData::collapse(int rr,int cc)
 		flatpoint *np=new flatpoint[nxs*nys];
 		if (cc==0) {
 			for (r=0; r<ysize; r++) {
-				memcpy(np+r*nxs,points+3+r*xsize,nxs*sizeof(flatpoint));
+				//memcpy(np+r*nxs,points+3+r*xsize,nxs*sizeof(flatpoint));
+				for (int i=0; i<nxs; i++) np[r*nxs + i] = points[3+r*xsize + i];
 			}
 		} else if (cc==xsize-1) {
 			for (r=0; r<ysize; r++) {
-				memcpy(np+r*nxs,points+r*xsize,nxs*sizeof(flatpoint));
+				//memcpy(np+r*nxs,points+r*xsize,nxs*sizeof(flatpoint));
+				for (int i=0; i<nxs; i++) np[r*nxs + i] = points[r*xsize + i];
 			}
 		} else {
 			for (r=0; r<ysize; r++) {
@@ -1923,10 +1945,17 @@ void PatchData::collapse(int rr,int cc)
 		nxs=xsize;
 		nys=ysize-3;
 		flatpoint *np=new flatpoint[nxs*nys];
+
 		if (rr==0) {
-			memcpy(np,points+3*xsize,xsize*nys*sizeof(flatpoint));
+			//memcpy(np,points+3*xsize,xsize*nys*sizeof(flatpoint));
+			int n=xsize*nys;
+			for (int i=0; i<n; i++) np[i] = points[3*xsize + i];
+
 		} else if (rr==ysize-1) {
-			memcpy(np,points,xsize*nys*sizeof(flatpoint));
+			//memcpy(np,points,xsize*nys*sizeof(flatpoint));
+			int n = xsize*nys;
+			for (int i=0; i<n; i++) np[i] = points[i];
+
 		} else {
 			for (c=0; c<xsize; c++) {
 				 //copy below
@@ -1950,6 +1979,17 @@ void PatchData::collapse(int rr,int cc)
 		NeedToUpdateCache(0,-1,0,-1);
 	}
 }
+
+//workaround for new and eroneous g++ nag warnings about nontriviality of lax vector classes..
+void Memmove(flatpoint *dest, flatpoint *src, int n)
+{
+	if (src > dest) {
+		for (int c=n-1; c>=0; c--) dest[c] = src[c];
+	} else {
+		for (int c=0; c<n; c++) dest[c] = src[c];
+	}
+}
+
 
 //! Subdivide a single row number r, position rt, and a single column c, position ct.
 /*! If r<0, then do not subdivide on a row. Same for when c<0. if r or c are
@@ -1980,16 +2020,18 @@ int PatchData::subdivide(int r,double rt,int c,double ct)
 	 //reallocate the points array.. the new array gets shifted around below
 	int rr,r2,r3, cc,c2,c3, i;
 	flatpoint *np=new flatpoint[nxs*nys];
-	for (rr=0; rr<ysize; rr++) memcpy(np+rr*nxs, points+rr*xsize, xsize*sizeof(flatpoint));
+	for (rr=0; rr<ysize; rr++) {
+		//memcpy(np+rr*nxs, points+rr*xsize, xsize*sizeof(flatpoint));
+		for (i=0; i<xsize; i++) np[rr*nxs + i] = points[rr*xsize + i];
+	}
 
 	double newGx[16],newGy[16], oldGx[16],oldGy[16], oldM[16],Mt[16], oldN[16],N[16], C[16];
 	if (r>=0) {
 		 //subdivide a row
 		if (r<ysize-4) {
 			 //make room for new row by shifting the unaffected rows up
-			//DBG cerr <<endl<<" --- r:"<<r<<", move "<<xsize*(ysize-r-3)<<" flatpoints from "<<(r+3)*xsize<<" to "<<(r+6)*xsize<<endl;
-			//memmove(np+(r+6)*xsize,np+(r+3)*xsize,xsize*(ysize-r-3)*sizeof(flatpoint));
-			memmove(np+(r+6)*nxs, np+(r+3)*nxs, nxs*(ysize-r-3)*sizeof(flatpoint));
+			//memmove(np+(r+6)*nxs, np+(r+3)*nxs, nxs*(ysize-r-3)*sizeof(flatpoint));
+			Memmove(np+(r+6)*nxs, np+(r+3)*nxs, nxs*(ysize-r-3));
 		}
 		for (cc=0; cc<xsize-1; cc+=3) {
 			 //for each subpatch along the row
@@ -2033,14 +2075,17 @@ int PatchData::subdivide(int r,double rt,int c,double ct)
 			ysize=nys;
 			delete[] points;
 			points=new flatpoint[xsize*ysize];
-			for (rr=0; rr<ysize; rr++) memcpy(points+rr*xsize, np+rr*nxs, xsize*sizeof(flatpoint));
+			for (rr=0; rr<ysize; rr++) {
+				//memcpy(points+rr*xsize, np+rr*nxs, xsize*sizeof(flatpoint));
+				for (int i=0; i<xsize; i++) points[rr*xsize + i] = np[rr*nxs + i];
+			}
 		}
 		 //subdivide a column
 		if (c<xsize-4) {
 			 //make room for new row by shifting the unaffected columns to the right
 			for (rr=0; rr<nys; rr++) {
-				//DBG cerr <<endl<<" --- c:"<<c<<", move "<<(xsize-c-3) <<" flatpoints from "<<rr*xsize+c+3 <<" to "<<rr*xsize+c+6<<endl;
-				memmove(np+rr*nxs+c+6, np+rr*nxs+c+3, (xsize-c-3)*sizeof(flatpoint));
+				//memmove(np+rr*nxs+c+6, np+rr*nxs+c+3, (xsize-c-3)*sizeof(flatpoint));
+				Memmove(np+rr*nxs+c+6, np+rr*nxs+c+3, (xsize-c-3));
 			}
 		}
 		for (rr=0; rr<nys-1; rr+=3) {

@@ -782,10 +782,18 @@ int bez_reduce_approximate(NumStack<flatpoint> *list, double epsilon)
 			list->Allocate(list->n+2*segn);
 			if (c2!=list->n-1) {
 				 //move points beyond current segment out past where new points must go
-				memmove(list->e+segstart + 3*segn-2 + (((wrap&1)?1:0)+((wrap&2)?1:0)),  list->e+c2+1, (list->n-c2-1)*sizeof(flatpoint));
+				//memmove(list->e+segstart + 3*segn-2 + (((wrap&1)?1:0)+((wrap&2)?1:0)),  list->e+c2+1, (list->n-c2-1)*sizeof(flatpoint));
+				//----------
+				int num = (list->n-c2-1);
+				int from = c2+1;
+				int to = segstart + 3*segn-2 + (((wrap&1)?1:0)+((wrap&2)?1:0));
+				if (from > to) for (int c3=0; c3<num; c3++) list->e[to+c3] = list->e[from+c3];
+				else for (int c3=num-1; c3>=0; c3--) list->e[to+c3] = list->e[from+c3];
+
 				//DBG cerr <<" memmove( list->e + "<<segstart + 3*segn-2 + (((wrap&1)?1:0)+((wrap&2)?1:0))<<", "<<c2+1<<", "<<(list->n-c2-1)<<"*sizeof(flatpoint))"<<endl;
 			}
-			memcpy(list->e+segstart, bsamples.e + ((wrap&1) ? 0 : 1), (3*segn-(((wrap&1)?0:1)+((wrap&2)?0:1)))*sizeof(flatpoint));
+			//memcpy(list->e+segstart, bsamples.e + ((wrap&1) ? 0 : 1), (3*segn-(((wrap&1)?0:1)+((wrap&2)?0:1)))*sizeof(flatpoint));
+			for (int c3=0; c3<(3*segn-(((wrap&1)?0:1)+((wrap&2)?0:1))); c3++) list->e[segstart+c3] = bsamples.e[((wrap&1) ? 0 : 1) + c3];
 			//DBG cerr <<" memcpy( list->e + "<<segstart<<", bsamples+"<<((wrap&1) ? 0 : 1)<<", "<<(3*segn-(((wrap&1)?0:1)+((wrap&2)?0:1)))<<"*sizeof(flatpoint))"<<endl;
 
 			diffn=2*segn-2+(((wrap&1)?1:0)+((wrap&2)?1:0));

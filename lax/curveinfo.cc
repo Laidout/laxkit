@@ -366,7 +366,8 @@ void CurveInfo::SetDataRaw(flatpoint *p, int n)
 
 	points.Allocate(n);
 	//points.CopyRange(0, p,n);
-	memcpy(points.e,p,n*sizeof(flatpoint));
+	//memcpy(points.e,p,n*sizeof(flatpoint));
+	for (int c=0; c<n; c++) points.e[c] = p[c];
 	points.n=n;
 }
 
