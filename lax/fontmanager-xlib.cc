@@ -21,6 +21,11 @@
 //
 
 
+#include <lax/configured.h>
+
+#ifdef LAX_USES_XLIB
+
+
 #include <lax/fontmanager-xlib.h>
 #include <lax/strmanip.h>
 #include <lax/anxapp.h>
@@ -392,3 +397,6 @@ LaxFont *FontManagerXlib::MakeFont(const char *family, const char *style, double
 
 
 } // namespace Laxkit
+
+#endif //LAX_USES_XLIB
+
