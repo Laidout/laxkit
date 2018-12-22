@@ -28,9 +28,10 @@
 
 #ifdef LAX_USES_GRAPHICSMAGICK
 
-#include <lax/laximages.h>
 
 #include <GraphicsMagick/Magick++.h>
+
+#include <lax/laximages.h> 
 
 
 namespace Laxkit {
@@ -40,28 +41,32 @@ namespace Laxkit {
 //--------------------------- LaxGMImage --------------------------------------
 class LaxGMImage : public LaxImage
 {
- protected:
+  private:
+	void CopyBufferToPixels(unsigned char *buffer);
+
+  protected:
 	char flag;
 	int display_count;
 
- public:
+  public:
 	static int GeneratePreview();
 	static int GMImageType() { return LAX_IMAGE_GRAPHICSMAGICK; }
 	static LaxImage *LoadImage(const char *file_name);
 
-	bool has_image;
+	enum HasImage { NoImage, HasPing, HasData };
+	HasImage has_image;
 	Magick::Image image;
-	Magick::PixelPacket *pixel_packet;
+	Magick::PixelPacket *pixel_cache;
 	int width,height;
 
 	LaxGMImage();
-	LaxGMImage(const char *fname, Magick::Image img);
+	LaxGMImage(const char *fname, Magick::Image *img);
 	LaxGMImage(const char *original, const char *fname, int maxw, int maxh);
-	LaxImage(int width, int height);
-	LaxImage(unsigned char *buffer, int w, int h, int stride);
+	LaxGMImage(int width, int height);
+	LaxGMImage(unsigned char *buffer, int w, int h, int stride);
 	virtual ~LaxGMImage();
 
-	virtual Magick::Image Image();
+	virtual bool Image(Magick::Image *img_ret);
 	virtual void doneForNow();
 	virtual unsigned int imagestate();
 	virtual int imagetype() { return LAX_IMAGE_GRAPHICSMAGICK; }
@@ -69,12 +74,12 @@ class LaxGMImage : public LaxImage
 	virtual int h() { return height; }
 	virtual void clear();
 
-	virtual int createFromData_ARGB8(int width, int height, int stride, const unsigned char *data);
 	virtual unsigned char *getImageBuffer();
 	virtual int doneWithBuffer(unsigned char *buffer);
 
+	virtual int Ping(const char *file);
 	virtual int Load(const char *file);
-	virtual int Save(const char *file=NULL);
+	virtual int Save(const char *tofile = nullptr, const char *format = nullptr); //format==null guess from extension
 };
 
 

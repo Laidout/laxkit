@@ -21,12 +21,15 @@
 //
 
 
+#include <lax/laximages-gm.h>
+
+
+#ifdef LAX_USES_GRAPHICSMAGICK
 
 
 #include <cstdio>
 #include <errno.h>
 
-#include <lax/laximages-gm.h>
 #include <lax/strmanip.h>
 #include <lax/vectors.h>
 #include <lax/transformmath.h>
@@ -34,14 +37,15 @@
 #include <lax/laxutils.h>
 #include <lax/fileutils.h>
 
+#ifdef LAX_USES_CAIRO
+#include <lax/laximages-cairo.h>
+#endif
+
 
 #include <iostream>
 using namespace std;
 #define DBG 
 
-
-
-#ifdef LAX_USES_GraphicsMagick
 
 
 
@@ -53,7 +57,7 @@ namespace Laxkit {
 
 
 
-int laxgm_image_type()
+int lax_gm_image_type()
 { return LAX_IMAGE_GRAPHICSMAGICK; }
 
 
@@ -77,57 +81,90 @@ LaxGMImage::LaxGMImage()
 { 
 	display_count = 0;
 
-	has_image = false;
+	has_image = NoImage;
 	width = height = 0;
-	pixel_packet =NULL;
+	pixel_cache =NULL;
 }
 
 /*! If fname and img, then assume that img corresponds to fname, read dimensions from img,
  * then free it.
  * If fname and !img, then get the dims from gm by loading fname and reading off dims.
  *
- * Note that GraphicsMagick docs say loading, reading off things, then freeing is a good thing.
- *
- * 
- * \todo *** needs to be some error checking when generating new previews
- * \todo scaling to maxx OR maxy if either 0 not implemented. both must currently be nonzero.
- * \todo when generating preview, might be wise to have check for freedesktop thumb locations to enforce
- *    proper sizing
  */
 LaxGMImage::LaxGMImage(const char *fname, Magick::Image *img)
 	: LaxImage(fname)
 {
 	display_count = 0; 
-	has_image = false;
+	has_image = NoImage;
 	width = height = 0;
-	pixel_packet =NULL;
+	pixel_cache =NULL;
 
-	if (!img) {
-		if (fname) {
-			try {
-				image.read(fname);
-				has_image = true;
-			} catch (Exception &error_ ) {
-				DBG cerr <<"GraphicsMagick Error loading "<<file<<endl;
-			}
+	if (img) image = *img;
+
+	if (fname) {
+		try {
+			image.ping(fname);
+			has_image = HasPing;
+		} catch (Magick::Exception &error_ ) {
+			DBG cerr <<"GraphicsMagick Error loading "<<fname<<endl;
 		}
-	} else {
-		has_image = true;
-		image = *img;
 	}
 
-	if (has_image) {
+	if (has_image != NoImage) {
 		width  = image.baseColumns();
 		height = image.baseRows();
 	}
 }
 
-LaxImage::LaxImage(int width, int height)
+LaxGMImage::LaxGMImage(int w, int h)
+  : LaxImage(nullptr)
 {
+	if (w < 0) w = 0;
+	if (h < 0) h = 0;
+	if (w == 0 || h == 0) w=h=0;
+
+	display_count = 0; 
+	has_image = NoImage;
+	pixel_cache =NULL;
+	width = w;
+	height = h;
+
+	if (width > 0 && height > 0) {
+		char scratch[100];
+		sprintf(scratch,"%dx%d", width, height);
+		image.size(scratch);
+		image.read("xc:transparent");
+		has_image = HasData;
+	}
 }
 
-LaxImage::LaxImage(unsigned char *buffer, int w, int h, int stride)
+/*! Create new LaxGMImage from an 8 bit BGRABGRA... buffer.
+ * buffer is not deleted, calling code must dispose of it.
+ */
+LaxGMImage::LaxGMImage(unsigned char *buffer, int w, int h, int stride)
+  : LaxImage(nullptr)
 {
+	if (w < 0) w = 0;
+	if (h < 0) h = 0;
+	if (w == 0 || h == 0) w=h=0;
+
+	display_count = 0; 
+	has_image = NoImage;
+	pixel_cache =NULL;
+	width = w;
+	height = h;
+
+	if (buffer != nullptr && width > 0 && height > 0) {
+		char scratch[100];
+		sprintf(scratch,"%dx%d", width,height);
+		image.size(scratch);
+		//image.read("xc:transparent");
+
+		pixel_cache = image.getPixels(0,0,width,height);
+
+		CopyBufferToPixels(buffer);
+		has_image = HasData;
+	}
 }
 
 //! Free image if it happens to exist.
@@ -142,14 +179,14 @@ LaxGMImage::~LaxGMImage()
  */
 unsigned char *LaxGMImage::getImageBuffer()
 {
-	if (!has_image) Image();
-	if (!has_image) return nullptr;
+	if (has_image != HasData) Image(NULL);
+	if (has_image != HasData) return nullptr;
 
 	DBG cerr <<" LaxGMImage::getImageBuffer() "<<w()<<" x "<<h()<<endl;
 
 	image.modifyImage();
 	// Set the image type to TrueColor DirectClass representation.
-	image.type(TrueColorType);
+	image.type(Magick::TrueColorType);
 
 	// Request pixel region with size 60x40, and top origin at 20x30
 	if (pixel_cache == nullptr) pixel_cache = image.getPixels(0,0,width,height);
@@ -163,13 +200,13 @@ unsigned char *LaxGMImage::getImageBuffer()
 	int shift = QuantumDepth - 8;
 
 	unsigned char *p = buffer;
-	PixelPacket *pixel = pixel_cache;
+	Magick::PixelPacket *pixel = pixel_cache;
 	for (int y=0; y<height; y++) {
 		for (int x=0; x<width; x++) {
-			p[0] = pixel.blue >> shift;
-			p[1] = pixel.green >> shift;
-			p[2] = pixel.red >> shift;
-			p[3] = 256 - (pixel.opacity >> shift);
+			p[0] = pixel->blue >> shift;
+			p[1] = pixel->green >> shift;
+			p[2] = pixel->red >> shift;
+			p[3] = 256 - (pixel->opacity >> shift);
 
 			p  += 4;
 			pixel += 1;
@@ -186,107 +223,127 @@ unsigned char *LaxGMImage::getImageBuffer()
  */
 int LaxGMImage::doneWithBuffer(unsigned char *bbuffer)
 {
-	if (has_image) {
+	if (has_image == HasData) {
 
 		//copy back buffer
-		unsigned char *p = buffer;
-		PixelPacket *pixel = pixel_cache;
-		int shift = QuantumDepth - 8;
-
-		if (shift == 0) {
-			for (int y=0; y<height; y++) {
-				for (int x=0; x<width; x++) {
-					pixel.blue    = p[0];
-					pixel.green   = p[1];
-					pixel.red     = p[2];
-					pixel.opacity = 256-p[3];
-
-					p  += 4;
-					pixel += 1;
-				}
-			}
-
-		} else if (shift == 8) {
-			unsigned int o;
-			for (int y=0; y<height; y++) {
-				for (int x=0; x<width; x++) {
-					pixel.blue    = (p[0] << 8) | p[0];
-					pixel.green   = (p[1] << 8) | p[1];
-					pixel.red     = (p[2] << 8) | p[2];
-					o = 256-p[3];
-					pixel.opacity = (o << 8) | o;
-
-					p  += 4;
-					pixel += 1;
-				}
-			}
-
-		} else if (shift == 24) {
-			unsigned int o;
-			for (int y=0; y<height; y++) {
-				for (int x=0; x<width; x++) {
-					pixel.blue    = (((p[0] << 8) | p[0]) << 8) | p[0];
-					pixel.green   = (((p[1] << 8) | p[1]) << 8) | p[1];
-					pixel.red     = (((p[2] << 8) | p[2]) << 8) | p[2];
-					o = 256-p[3];
-					pixel.opacity = (((o << 8) | o) << 8) | o;
-
-					p  += 4;
-					pixel += 1;
-				}
-			}
-		}
-
-		image.syncPixels();
+		CopyBufferToPixels(bbuffer);
 	}
 
-	pixel_packet = nullptr;
+	pixel_cache = nullptr;
 	delete[] bbuffer;
 	return 0;
 }
 
-//! Create a LaxGMImage from raw 8 bit data, arranged ARGB.
-/*! If stride!=0, then each row takes up this many bytes. If stride==0, then
- * assume 4*width.
- *
- * 8 bit ARGB happens to be compatible with both Imlib2 and cairo.
- *
- * The data is copied to a new buffer, which is stored within the object.
- *
- * Returns 0 for success, or 1 for error in processing, for instance, if the stride
- * is not a reasonable value.
+/*! Assumes pixel_cache and width and height are set to expected things.
  */
-int LaxGMImage::createFromData_ARGB8(int nwidth, int nheight, int stride, const unsigned char *data)
-{ ***
-	if (!data) return 1;
-	clear();
+void LaxGMImage::CopyBufferToPixels(unsigned char *buffer)
+{
+	//copy back buffer
+	unsigned char *p = buffer;
+	Magick::PixelPacket *pixel = pixel_cache;
+	int shift = QuantumDepth - 8;
 
-	image=gm_image_surface_create(GraphicsMagick_FORMAT_ARGB32, nwidth,nheight);
-	width =nwidth;
-	height=nheight;
-	gm_t *cr=gm_create(image);
+	if (shift == 0) {
+		for (int y=0; y<height; y++) {
+			for (int x=0; x<width; x++) {
+				pixel->blue    = p[0];
+				pixel->green   = p[1];
+				pixel->red     = p[2];
+				pixel->opacity = 256-p[3];
 
-	gm_surface_t *image;
-	image=gm_image_surface_create_for_data(const_cast<unsigned char*>(data),GraphicsMagick_FORMAT_ARGB32, nwidth,nheight, stride);
-	//if (!image) return NULL;
-	gm_set_source_surface(cr,image, 0,0);
-	gm_paint(cr);
-	gm_surface_destroy(image);
-	gm_destroy(cr);
+				p  += 4;
+				pixel += 1;
+			}
+		}
 
+	} else if (shift == 8) {
+		unsigned int o;
+		for (int y=0; y<height; y++) {
+			for (int x=0; x<width; x++) {
+				pixel->blue    = (p[0] << 8) | p[0];
+				pixel->green   = (p[1] << 8) | p[1];
+				pixel->red     = (p[2] << 8) | p[2];
+				o = 256-p[3];
+				pixel->opacity = (o << 8) | o;
 
+				p  += 4;
+				pixel += 1;
+			}
+		}
 
-	return 0;
+	} else if (shift == 24) {
+		unsigned int o;
+		for (int y=0; y<height; y++) {
+			for (int x=0; x<width; x++) {
+				pixel->blue    = (((p[0] << 8) | p[0]) << 8) | p[0];
+				pixel->green   = (((p[1] << 8) | p[1]) << 8) | p[1];
+				pixel->red     = (((p[2] << 8) | p[2]) << 8) | p[2];
+				o = 256-p[3];
+				pixel->opacity = (((o << 8) | o) << 8) | o;
+
+				p  += 4;
+				pixel += 1;
+			}
+		}
+	}
+
+	image.syncPixels();
 }
 
+
+/*! Query file for width and height only. Does not actually load full image.
+ * Return 0 for success, nonzero failure.
+ */
+int LaxGMImage::Ping(const char *file)
+{
+	if (!file) file = filename;
+	if (!file) return 1;
+
+    try {
+        image.ping(file);
+		width  = image.baseColumns();
+		height = image.baseRows();
+		if (file != filename) makestr(filename, file);
+    } catch (Magick::Exception &error_ ) {
+        DBG cerr <<"GraphicsMagick Error pinging "<<file<<endl;
+        return 2;
+    }
+	return 1;
+}
+
+/*! Return 0 for success, nonzero failure.
+ */
 int LaxGMImage::Load(const char *file)
 {
-	***
+	if (!file) file = filename;
+	if (!file) return 1;
+
+    try {
+        image.read(file);
+		width  = image.baseColumns();
+		height = image.baseRows();
+		has_image = HasData;
+		if (file != filename) makestr(filename, file);
+    } catch (Magick::Exception &error_ ) {
+		has_image = NoImage;
+        DBG cerr <<"GraphicsMagick Error loading "<<file<<endl;
+        return 2;
+    }
+	return 1;
 }
 
-int LaxGMImage::Save(const char *file)
+/*! If format==null guess from extension.
+ * Return 0 for success, nonzero failure.
+ */
+int LaxGMImage::Save(const char *tofile, const char *format)
 {
-	***
+	if (!tofile) tofile = filename;
+	if (!tofile) return 1;
+
+	if (format) image.magick(format);
+	image.write(tofile);
+
+	return 0;
 }
 
 void LaxGMImage::clear()
@@ -295,7 +352,7 @@ void LaxGMImage::clear()
 	if (filename) { delete[] filename; filename=NULL; }
 	width = height = 0;
 
-	has_image = false;
+	has_image = NoImage;
 	image = Magick::Image();
 }
 
@@ -303,7 +360,7 @@ unsigned int LaxGMImage::imagestate()
 {
 	return (filename ? LAX_IMAGE_HAS_FILE : 0) |
 		   (width>0 ? LAX_IMAGE_METRICS : 0) |
-		   (has_image ? LAX_IMAGE_WHOLE : 0);
+		   (has_image==HasData ? LAX_IMAGE_WHOLE : 0);
 }
 
 
@@ -313,27 +370,33 @@ unsigned int LaxGMImage::imagestate()
  */
 void LaxGMImage::doneForNow()
 {
-	if (!image || flag) return;
+	if (has_image == NoImage || flag) return;
 
 	if (display_count>0) display_count--;
 }
 
-//! Return the image. Loads from filename if !image.
-/*! Attempts to load the previewfile. If that fails, then
- * attempts to load the real file.
- *
- * which==0 is get default (whichever is already loaded, or if none loaded, then 
- * preview if avaible, else main image), 1 is main, 2 is preview.
- * If 1 and main is unavailable, or 2 and the preview is unavailable, then NULL is
- * returned.
- *
- * \todo note that if image is already loaded, this function does not yet switch to
- *   the proper one..
+/*! Return the Image in img_ret. Loads from filename if !image.
+ * Returns true if data exists, else false if we have no pixel data.
  */
-Magick::Image LaxGMImage::Image()
+bool LaxGMImage::Image(Magick::Image *img_ret)
 {
+	if (has_image == HasData) {
+		if (img_ret) *img_ret = image;
+		return true;
+	}
+	if (!filename) return false;
+
+	try {
+		image.read(filename);
+		has_image = HasData;
+	} catch (Magick::Exception &error_ ) {
+		DBG cerr <<"GraphicsMagick Error loading "<<filename<<endl;
+		return false;
+	}
+
 	display_count++;
-	return image;
+	if (img_ret) *img_ret = image;
+	return true;
 }
 
 
@@ -344,7 +407,7 @@ Magick::Image LaxGMImage::Image()
  */
 
 GraphicsMagickLoader::GraphicsMagickLoader()
-  : ImageLoader("GraphicsMagick", LAX_IMAGE_GraphicsMagick)
+  : ImageLoader("GraphicsMagick", LAX_IMAGE_GRAPHICSMAGICK)
 {}
 
 GraphicsMagickLoader::~GraphicsMagickLoader()
@@ -354,8 +417,9 @@ GraphicsMagickLoader::~GraphicsMagickLoader()
 bool GraphicsMagickLoader::CanLoadFile(const char *file)
 {
     try {
-        image.read(file);
-    } catch (Exception &error_ ) {
+		Magick::Image image;
+		image.ping(file);
+    } catch (Magick::Exception &error_ ) {
         DBG cerr <<"GraphicsMagick Error loading "<<file<<endl;
         return false;
     }
@@ -376,7 +440,7 @@ int GraphicsMagickLoader::PingFile(const char *file, int *width, int *height, lo
 	Magick::Image img;
     try {
         img.ping(file);
-    } catch (Exception &error_ ) {
+    } catch (Magick::Exception &error_ ) {
         DBG cerr <<"GraphicsMagick Error loading "<<file<<endl;
         return 1;
     }
@@ -393,9 +457,9 @@ int GraphicsMagickLoader::PingFile(const char *file, int *width, int *height, lo
 
     if (subfiles) {
          //find number of readable frames
-        list<Magick::image> imagelist;
-        Magick::readImages( &imagelist, file );
-        *subfiles = imagelist.size();
+        //list<Magick::Image> imagelist;
+        //Magick::readImages( &imagelist, file );
+        //*subfiles = imagelist.size();
     }
 
 	return 0;
@@ -407,9 +471,49 @@ int GraphicsMagickLoader::LoadToMemory(LaxImage *img)
 {
 	if (dynamic_cast<LaxGMImage*>(img)) {
 		 //nothing really to do, GraphicsMagick does caching automatically
-		dynamic_cast<LaxGMImage*>(img)->Image();
+		dynamic_cast<LaxGMImage*>(img)->Image(NULL);
 		return 0;
 	}
+
+#ifdef LAX_USES_CAIRO
+	if (dynamic_cast<LaxCairoImage*>(img)) {
+		LaxCairoImage *cimg = dynamic_cast<LaxCairoImage*>(img);
+		Magick::Image image;
+		try {
+			image.read(cimg->filename);
+
+			image.type(Magick::TrueColorType);
+
+			// Request pixel region with size 60x40, and top origin at 20x30
+			int width = img->w();
+			int height = img->h();
+			const Magick::PixelPacket *pixel_cache = image.getConstPixels(0,0,width,height);
+
+			unsigned char buffer[width*height*4];
+
+			int shift = QuantumDepth - 8;
+
+			unsigned char *p = buffer;
+			const Magick::PixelPacket *pixel = pixel_cache;
+			for (int y=0; y<height; y++) {
+				for (int x=0; x<width; x++) {
+					p[0] = pixel->blue >> shift;
+					p[1] = pixel->green >> shift;
+					p[2] = pixel->red >> shift;
+					p[3] = 256 - (pixel->opacity >> shift);
+
+					p  += 4;
+					pixel += 1;
+				}
+			}
+
+			cimg->createFromData_ARGB8(width, height, width*4, buffer);
+		} catch (Magick::Exception &error_ ) {
+			return 1;
+		}
+		return 0;
+	}
+#endif
 
 	return 2;
 }
@@ -439,6 +543,35 @@ LaxCairoImage *MakeCairoFromGraphicsMagick(LaxGMImage *iimg, bool ping_only)
 }
 #endif
 
+LaxGMImage *load_gm_image_with_preview(const char *filename, const char *previewfile, int maxx, int maxy, LaxImage **previewimage_ret)
+{
+	Magick::Image image;
+	try {
+		image.ping(filename);
+	} catch (Magick::Exception &error_ ) {
+		DBG cerr <<"GraphicsMagick Error loading "<<filename<<endl;
+		return NULL;
+	}
+
+	LaxGMImage *img = new LaxGMImage(filename, &image);
+	img->doneForNow();
+
+	if (previewimage_ret) {
+	  if (!isblank(previewfile) && previewimage_ret) {
+		 //this will create previewfile on disk if it doesn't already exist:
+		LaxImage *pimg = NULL;
+		GeneratePreviewFile(img, previewfile, "png", maxx, maxy, 1, &pimg);
+		if (pimg) pimg->doneForNow();
+
+		*previewimage_ret = dynamic_cast<LaxImage*>(pimg);
+
+	  } else {
+		*previewimage_ret = NULL;
+	  }
+	}
+
+	return img;
+}
 
  //return a LaxImage in target_format.
  //If must_be_that_format and target_format cannot be created, then return NULL.
@@ -476,7 +609,7 @@ LaxImage *GraphicsMagickLoader::load_image(const char *filename,
 
 		if (previewimage_ret && *previewimage_ret) {
 			 //convert preview image, if any, to cairo
-			iimg = dynamic_cast<LaxGraphicsMagickImage*>(*previewimage_ret);
+			iimg = dynamic_cast<LaxGMImage*>(*previewimage_ret);
 			
 			LaxCairoImage *pimage = MakeCairoFromGraphicsMagick(iimg, true); //assume previews ok to load straight in
 			iimg->dec_count();
@@ -497,37 +630,35 @@ LaxImage *GraphicsMagickLoader::load_image(const char *filename,
 LaxImage *GraphicsMagickLoader::CreateImage(int width, int height, int format)
 {
 	if (format != LAX_IMAGE_GRAPHICSMAGICK) return NULL;
-	return LaxGMImage::NewImage(width, height);
+	return dynamic_cast<LaxImage*>(new LaxGMImage(width, height));
 }
 
 LaxImage *GraphicsMagickLoader::CreateImageFromBuffer(unsigned char *data, int width, int height, int stride, int format)
 {
 	if (format != LAX_IMAGE_GRAPHICSMAGICK) return NULL;
-	return LaxGMImage::NewImage(data, width, height, stride);
+	return dynamic_cast<LaxImage*>(new LaxGMImage(data, width, height, stride));
 }
 
 
 } //namespace Laxkit
+
+
 
 
 
 #else
 //-------------------------if no gm support:-------------------------------------
 
-
+#include <lax/laximages.h> 
 
 namespace Laxkit {
-
 
 
 int lax_gm_image_type()
 { return LAX_IMAGE_GRAPHICSMAGICK; }
 
 
-
-
-
 } //namespace Laxkit
 
-#endif
+#endif //LAX_USES_GRAPHICSMAGICK
 
