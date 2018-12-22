@@ -23,7 +23,7 @@
 #define _LAX_DISPLAYER_XLIB_H
 
 
-//#ifdef LAX_USES_IMLIB
+#ifdef LAX_USES_IMLIB
 
 
 #include <X11/Xft/Xft.h>
@@ -231,5 +231,6 @@ class DisplayerXlib : public Displayer
 
 } // namespace Laxkit
 
-#endif
-//#endif
+#endif //LAX_USES_IMLIB
+#endif //_LAX_DISPLAYER_XLIB_H
+

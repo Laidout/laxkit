@@ -21,6 +21,9 @@
 //
 
 
+#ifdef LAX_USES_IMLIB
+
+
 #include <lax/lists.cc>
 #include <lax/displayer-xlib.h>
 #include <lax/fontmanager-xlib.h>
@@ -35,7 +38,9 @@
 #include <iostream>
 #define DBG 
 
+
 using namespace std;
+
 
 namespace Laxkit {
 
@@ -1757,4 +1762,6 @@ int DisplayerXlib::EndDrawing()
 }
 
 } // namespace Laxkit
+
+#endif //LAX_USES_IMLIB
 
