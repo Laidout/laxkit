@@ -20,7 +20,7 @@ endif
 
 
 LD=g++
-LDFLAGS= -L/usr/X11R6/lib -lX11 -lm -lcairo `pkg-config --libs freetype2` `imlib2-config --libs` $(OPTIONALLIBS) -lfontconfig -lXext -lXi -lXft -lXrandr -lcrypto -lharfbuzz -L$(LAXDIR) -L$(LAXIDIR)
+LDFLAGS= -L/usr/X11R6/lib -L$(LAXDIR) -L$(LAXIDIR) -lX11 -lm -lcairo `pkg-config --libs freetype2` `imlib2-config --libs` -lfontconfig -lXext -lXi -lXft -lXrandr -lcrypto -lharfbuzz $(OPTIONALLIBS) $(EXTRA_LAX_LIBS)
 DEBUGFLAGS= -g -gdwarf-2
 CPPFLAGS= $(DEBUGFLAGS) -I$(LAXDIR)/.. -std=c++11 `pkg-config --cflags freetype2`
 
