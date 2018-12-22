@@ -21,9 +21,9 @@ OPTIONALLIBS=
 
  #USEXLIB to compile functions for the xlib rendering backend
 USEXLIB="yes"
-USEIMLIB="yes"
 USECAIRO="yes"
-USEGRAPHICSMAGICK="yes"
+USEIMLIB="build"
+USEGRAPHICSMAGICK="not build"
 USEXINPUT2="yes"
 USEGL="yes"
 USESQLITE="yes"
@@ -60,16 +60,18 @@ while true ; do
         echo "Whizbang Laxkit configuration script options."
 		echo ""
         echo " --help                       Show this stuff"
-        echo " --prefix=/where/to/install   Default /usr/local"
-        echo " --configdir=/path/to/config  Default ~/.laxkit/(version)"
+        echo " --prefix=/where/to/install   Defaults to $PREFIX"
+        echo " --configdir=/path/to/config  Defaults to $LAXKITCONFIGDIRBASE/$LAXKITVERSION"
 		echo " --platform=x11               Only x11 is implemented. Someday also headless or qt."
 #		echo " --disable-gl                 Do not build opengl components. Default is to built them."
-        echo " --disable-graphicsmagick     Do not build GraphicsMagick components. Default is to built them."
-        echo " --disable-cairo              Do not build cairo components. Default is to built them."
-        echo " --disable-imlib              Do not build Imlib2 components. Default is to built them."
+        echo " --disable-graphicsmagick     Do not build GraphicsMagick components. Default is to $USEGRAPHICSMAGICK them."
+        echo " --enable-graphicsmagick      Build GraphicsMagick components. Default is to $USEGRAPHICSMAGICK them."
+#       echo " --disable-cairo              Do not build cairo components. Default is to build them."
         echo " --disable-xinput2            Use this option if you do not have at least Xorg 7.5 for MPX."
-        echo " --disable-sqlite             Optional. Used to get font tags in Fontmatrix database (if it exists)"
-		echo " --backend=cairo              Use xlib or cairo. cairo is default. xlib is deprecated."
+        echo " --disable-sqlite             If not disabled, sqlite is Used to get font tags in Fontmatrix database (if it exists)"
+        echo " --enable-imlib               Build Imlib2 components. Default is to $USEIMLIB them."
+        echo " --disable-imlib              Don't build Imlib2 components. Default is to $USEIMLIB them."
+		echo " --backend=cairo              Only cairo is supported for now."
 #       echo " --onamac                     Include this if you are compiling on a Mac."
 		echo " --force                      Try to compile even when libraries are not detected by ./configure"
 		echo " --version=OtherVersionNum    You may force Laxkit to compile with a different"
@@ -93,8 +95,8 @@ while true ; do
 		unset USEGRAPHICSMAGICK
 		shift;;
 
-	--disable-imlib)
-		unset USEIMLIB
+	--enable-imlib)
+		USEIMLIB="yes"
 		shift;;
 
 	--disable-cairo)
@@ -158,13 +160,19 @@ while true ; do
 done
 
 
+if [ $USEIMLIB == "build" ] ;  then USEIMLIB="yes"; else unset USEIMLIB;  fi
+if [ $USEGRAPHICSMAGICK == "build" ] ;  then USEGRAPHICSMAGICK="yes"; else unset USEGRAPHICSMAGICK;  fi
+
+
 #if [ x$USEGL    != x ] ;   then EXTRAS="$EXTRAS -DLAX_USES_GL";   fi
 #if [ x$USEIMLIB != x ] ;   then EXTRAS="$EXTRAS -DLAX_USES_IMLIB";   fi
 #if [ x$USECAIRO != x ] ;   then EXTRAS="$EXTRAS -DLAX_USES_CAIRO";   fi
 #if [ x$USEXINPUT2 != x ] ; then EXTRAS="$EXTRAS -DLAX_USES_XINPUT2"; fi
 
-if [ x$USEIMLIB$USECAIRO == x ] ; 
-	then echo "You must use at least one of Imlib or Cairo."; 
+#if [ x$USEIMLIB$USECAIRO == x ] ; 
+if [ x$USECAIRO == x ] ; 
+	#then echo "You must use at least one of Imlib or Cairo."; 
+	then echo "You must use Cairo."; 
 	exit 1;
 fi
 
@@ -241,6 +249,16 @@ fi
 if [ $PLATFORM != "x11" -a $PLATFORM != "headless" -a $PLATFORM != "qt" ] ;
 	then PLATFORM="x11";
 fi
+
+
+#
+# Set up extra libraries
+#
+if [ x$USEGRAPHICSMAGICK != x ] ; then
+	EXTRAS="$EXTRAS `pkg-config --cflags GraphicsMagick++`";
+fi
+
+
 
 
  ##
