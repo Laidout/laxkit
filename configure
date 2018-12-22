@@ -15,7 +15,8 @@ LAXKITCONFIGDIRBASE="~/.config/laxkit"
 PREFIX="/usr/local"
 
 #---capabilities
-EXTRAS=
+EXTRA_CFLAGS=
+EXTRA_LIBS=
 OPTIONAL=
 OPTIONALLIBS=
 
@@ -95,8 +96,16 @@ while true ; do
 		unset USEGRAPHICSMAGICK
 		shift;;
 
+	--enable-graphicsmagick)
+		USEGRAPHICSMAGICK="yes"
+		shift;;
+
 	--enable-imlib)
 		USEIMLIB="yes"
+		shift;;
+
+	--disable-imlib)
+		unset USEIMLIB
 		shift;;
 
 	--disable-cairo)
@@ -160,14 +169,10 @@ while true ; do
 done
 
 
-if [ $USEIMLIB == "build" ] ;  then USEIMLIB="yes"; else unset USEIMLIB;  fi
-if [ $USEGRAPHICSMAGICK == "build" ] ;  then USEGRAPHICSMAGICK="yes"; else unset USEGRAPHICSMAGICK;  fi
+if [ "$USEIMLIB" == "build" ] ;  then USEIMLIB="yes"; elif [ "$USEIMLIB" != "yes" ] ; then unset USEIMLIB;  fi
+if [ "$USEGRAPHICSMAGICK" == "build" ] ;  then USEGRAPHICSMAGICK="yes"; elif [ "$USEGRAPHICSMAGICK" != "yes" ] ; then unset USEGRAPHICSMAGICK;  fi
 
 
-#if [ x$USEGL    != x ] ;   then EXTRAS="$EXTRAS -DLAX_USES_GL";   fi
-#if [ x$USEIMLIB != x ] ;   then EXTRAS="$EXTRAS -DLAX_USES_IMLIB";   fi
-#if [ x$USECAIRO != x ] ;   then EXTRAS="$EXTRAS -DLAX_USES_CAIRO";   fi
-#if [ x$USEXINPUT2 != x ] ; then EXTRAS="$EXTRAS -DLAX_USES_XINPUT2"; fi
 
 #if [ x$USEIMLIB$USECAIRO == x ] ; 
 if [ x$USECAIRO == x ] ; 
@@ -255,7 +260,8 @@ fi
 # Set up extra libraries
 #
 if [ x$USEGRAPHICSMAGICK != x ] ; then
-	EXTRAS="$EXTRAS `pkg-config --cflags GraphicsMagick++`";
+	EXTRA_CFLAGS="$EXTRA_CFLAGS `pkg-config --cflags GraphicsMagick++`";
+	EXTRA_LIBS="$EXTRA_LIBS `pkg-config --libs GraphicsMagick++`";
 fi
 
 
@@ -321,7 +327,8 @@ echo " # ----          BY ./configure             -----" >> Makefile-toinclude
 echo "" >> Makefile-toinclude
 echo "PREFIX=$PREFIX" >> Makefile-toinclude
 echo "LAXKITVERSION=$LAXKITVERSION" >> Makefile-toinclude
-echo "EXTRAS=$EXTRAS" >> Makefile-toinclude
+echo "EXTRA_LAX_CFLAGS=$EXTRA_CFLAGS" >> Makefile-toinclude
+echo "EXTRA_LAX_LIBS=$EXTRA_LIBS" >> Makefile-toinclude
 echo "OPTIONALLIBS=$OPTIONALLIBS" >> Makefile-toinclude
 if [ x$USESQLITE  != x ] ; then echo "LAX_USES_SQLITE=yes" >> Makefile-toinclude; fi
 echo "" >> Makefile-toinclude
