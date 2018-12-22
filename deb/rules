@@ -1,16 +1,6 @@
 #!/usr/bin/make -f
-# -*- makefile -*-
-# Sample debian/rules that uses debhelper.
-# This file was originally written by Joey Hess and Craig Small.
-# As a special exception, when this file is copied by dh-make into a
-# dh-make output file, you may use that output file without restriction.
-# This special exception was added by Craig Small in version 0.37 of dh-make.
 
-# Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
-
-
-
 
 CPPFLAGS = -Wall -g
 
@@ -23,35 +13,26 @@ endif
 configure: configure-stamp
 configure-stamp:
 	dh_testdir
-	# Add here commands to configure the package.
-
 	$(CURDIR)/configure --prefix=$(CURDIR)/debian/laxkit/usr
-
 	touch configure-stamp
-
 
 build: build-stamp
 
 build-stamp: configure-stamp 
 	dh_testdir
-
 	# Add here commands to compile the package.
 	touch lax/makedepend
 	touch lax/interfaces/makedepend
 	$(MAKE)
 	$(MAKE) docs
-	#docbook-to-man debian/laxkit.sgml > laxkit.1
-
 	touch build-stamp
 
 clean:
 	dh_testdir
 	dh_testroot
 	rm -f build-stamp configure-stamp
-
 	# Add here commands to clean up after the build process.
 	-$(MAKE) clean
-
 	dh_clean 
 
 install: build
@@ -59,7 +40,6 @@ install: build
 	dh_testroot
 	dh_clean -k 
 	dh_installdirs
-
 	# Add here commands to install the package into debian/laxkit.
 	$(MAKE) install DESTDIR=$(CURDIR)/debian/liblaxkit
 	$(MAKE) install-docs DESTDIR=$(CURDIR)/debian/liblaxkit-doc
@@ -103,4 +83,3 @@ binary-arch: build install
 binary: binary-indep binary-arch
 
 .PHONY: build clean binary-indep binary-arch binary install configure
-
