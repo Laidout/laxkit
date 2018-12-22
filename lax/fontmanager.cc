@@ -53,7 +53,10 @@ using namespace std;
 #include <sqlite3.h>
 #endif
 
+
+//template implementation:
 #include <lax/lists.cc>
+
 
 using namespace LaxFiles;
 
