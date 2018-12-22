@@ -92,6 +92,7 @@ objs= \
 	laximages.o \
 	laximages-imlib.o \
 	laximages-cairo.o \
+	laximages-gm.o \
 	laximlib.o \
 	laxcairo.o \
 	laxgm.o \
