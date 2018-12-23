@@ -410,6 +410,8 @@ ImageLoader::ImageLoader(const char *newname, int nformat)
 
 ImageLoader::~ImageLoader()
 {
+	DBG cerr << "ImageLoader destructor "<<name<<", object_id: "<<object_id<<endl;
+
 	 //assumes prev is deleted separately
 	if (next) {
 		next->prev=NULL;
