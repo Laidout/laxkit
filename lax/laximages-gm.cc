@@ -26,7 +26,6 @@
 
 #ifdef LAX_USES_GRAPHICSMAGICK
 
-
 #include <cstdio>
 #include <errno.h>
 
@@ -86,10 +85,7 @@ LaxGMImage::LaxGMImage()
 	pixel_cache =NULL;
 }
 
-/*! If fname and img, then assume that img corresponds to fname, read dimensions from img,
- * then free it.
- * If fname and !img, then get the dims from gm by loading fname and reading off dims.
- *
+/*! Image is pinged, not read.
  */
 LaxGMImage::LaxGMImage(const char *fname, Magick::Image *img)
 	: LaxImage(fname)
@@ -206,7 +202,7 @@ unsigned char *LaxGMImage::getImageBuffer()
 			p[0] = pixel->blue >> shift;
 			p[1] = pixel->green >> shift;
 			p[2] = pixel->red >> shift;
-			p[3] = 256 - (pixel->opacity >> shift);
+			p[3] = 255 - (pixel->opacity >> shift);
 
 			p  += 4;
 			pixel += 1;
@@ -249,7 +245,7 @@ void LaxGMImage::CopyBufferToPixels(unsigned char *buffer)
 				pixel->blue    = p[0];
 				pixel->green   = p[1];
 				pixel->red     = p[2];
-				pixel->opacity = 256-p[3];
+				pixel->opacity = 255-p[3];
 
 				p  += 4;
 				pixel += 1;
@@ -263,7 +259,7 @@ void LaxGMImage::CopyBufferToPixels(unsigned char *buffer)
 				pixel->blue    = (p[0] << 8) | p[0];
 				pixel->green   = (p[1] << 8) | p[1];
 				pixel->red     = (p[2] << 8) | p[2];
-				o = 256-p[3];
+				o = 255-p[3];
 				pixel->opacity = (o << 8) | o;
 
 				p  += 4;
@@ -278,7 +274,7 @@ void LaxGMImage::CopyBufferToPixels(unsigned char *buffer)
 				pixel->blue    = (((p[0] << 8) | p[0]) << 8) | p[0];
 				pixel->green   = (((p[1] << 8) | p[1]) << 8) | p[1];
 				pixel->red     = (((p[2] << 8) | p[2]) << 8) | p[2];
-				o = 256-p[3];
+				o = 255-p[3];
 				pixel->opacity = (((o << 8) | o) << 8) | o;
 
 				p  += 4;
@@ -500,7 +496,8 @@ int GraphicsMagickLoader::LoadToMemory(LaxImage *img)
 					p[0] = pixel->blue >> shift;
 					p[1] = pixel->green >> shift;
 					p[2] = pixel->red >> shift;
-					p[3] = 256 - (pixel->opacity >> shift);
+					//p[3] = (pixel->opacity >> shift);
+					p[3] = 255 - (pixel->opacity >> shift);
 
 					p  += 4;
 					pixel += 1;
