@@ -408,9 +408,9 @@ int CaptionData::RecacheLine(int linei)
 			hb_buffer_guess_segment_properties (hb_buffer); //guesses direction, script, language 
 			hb_buffer_get_segment_properties (hb_buffer, &seg_properties);
 
-			if (dir!=HB_DIRECTION_INVALID)   seg_properties.direction = dir;      else dir      = seg_properties.direction;
-			if (hblang!=NULL)                seg_properties.language  = hblang;   else hblang   = seg_properties.language;
-			if (hbscript!=HB_SCRIPT_UNKNOWN) seg_properties.script    = hbscript; else hbscript = seg_properties.script;
+			if (dir != HB_DIRECTION_INVALID)   seg_properties.direction = dir;      else dir      = seg_properties.direction;
+			if (hblang != NULL)                seg_properties.language  = hblang;   else hblang   = seg_properties.language;
+			if (hbscript != HB_SCRIPT_UNKNOWN) seg_properties.script    = hbscript; else hbscript = seg_properties.script;
 
 			hb_buffer_set_segment_properties (hb_buffer, &seg_properties);
 
@@ -430,14 +430,19 @@ int CaptionData::RecacheLine(int linei)
 		//*** foreach (feature in feature_string) set for hb_font
 		//hb_ot_layout_language_get_feature_tags()
 		//
+
 		unsigned int lang_index=0;
 		unsigned int script_index=0;
-		hb_tag_t script_tag1, script_tag2;
-		hb_ot_tags_from_script(hbscript, &script_tag1, &script_tag2);
+		hb_tag_t script_tag1;
+		hb_tag_t lang_tag;
+		unsigned int n_script_tags = 1;
+		unsigned int n_lang_tags = 1;
+
+		hb_ot_tags_from_script_and_language(hbscript, hblang, &n_script_tags, &script_tag1, &n_lang_tags, &lang_tag);
+
 		hb_ot_layout_table_find_script (hb_face, HB_OT_TAG_GSUB, script_tag1, &script_index);
 
-		hb_tag_t lang_tag = hb_ot_tag_from_language (hblang);
-		hb_ot_layout_script_find_language (hb_face, HB_OT_TAG_GSUB, script_index, lang_tag, &lang_index);
+		hb_ot_layout_script_select_language (hb_face, HB_OT_TAG_GSUB, script_index, 1, &lang_tag, &lang_index);
 
 		unsigned int count = 80;
 		hb_tag_t myResult[count];
