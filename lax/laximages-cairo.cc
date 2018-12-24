@@ -369,7 +369,7 @@ void LaxCairoImage::doneForNow()
 cairo_surface_t *LaxCairoImage::Image()
 {
 	if (!image) {
-		if (importer && filename) {
+		if (importer) {
 			importer->LoadToMemory(this);
 
 		} else {
