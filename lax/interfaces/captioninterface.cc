@@ -433,8 +433,17 @@ int CaptionData::RecacheLine(int linei)
 
 		unsigned int lang_index=0;
 		unsigned int script_index=0;
-		hb_tag_t script_tag1;
+
+#ifdef HARFBUZZ_BELOW_2_0
+		hb_tag_t script_tag1, script_tag2;
+		hb_ot_tags_from_script(hbscript, &script_tag1, &script_tag2);
+
+		hb_tag_t lang_tag = hb_ot_tag_from_language (hblang);
+		hb_ot_layout_script_find_language (hb_face, HB_OT_TAG_GSUB, script_index, lang_tag, &lang_index);
+
+#else
 		hb_tag_t lang_tag;
+		hb_tag_t script_tag1;
 		unsigned int n_script_tags = 1;
 		unsigned int n_lang_tags = 1;
 
@@ -443,6 +452,7 @@ int CaptionData::RecacheLine(int linei)
 		hb_ot_layout_table_find_script (hb_face, HB_OT_TAG_GSUB, script_tag1, &script_index);
 
 		hb_ot_layout_script_select_language (hb_face, HB_OT_TAG_GSUB, script_index, 1, &lang_tag, &lang_index);
+#endif
 
 		unsigned int count = 80;
 		hb_tag_t myResult[count];
