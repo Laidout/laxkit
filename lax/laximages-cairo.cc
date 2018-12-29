@@ -278,23 +278,60 @@ int LaxCairoImage::doneWithBuffer(unsigned char *bbuffer)
  * Returns 0 for success, or 1 for error in processing, for instance, if the stride
  * is not a reasonable value.
  */
-int LaxCairoImage::createFromData_ARGB8(int nwidth, int nheight, int stride, const unsigned char *data)
+int LaxCairoImage::createFromData_ARGB8(int nwidth, int nheight, int stride, const unsigned char *data, bool not_premultiplied)
 {
 	if (!data) return 1;
 	clear();
 
-	image=cairo_image_surface_create(CAIRO_FORMAT_ARGB32, nwidth,nheight);
-	width =nwidth;
-	height=nheight;
-	cairo_t *cr=cairo_create(image);
+	image  = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, nwidth,nheight);
+	width  = nwidth;
+	height = nheight;
+	cairo_t *cr = cairo_create(image);
+
+	if (stride == 0) stride = 4*nwidth;
+
+	unsigned char *data_to_use = const_cast<unsigned char*>(data);
+
+	unsigned char *premultiplied = nullptr;
+	if (not_premultiplied) {
+		//.... hmm, endian problems maybe?? seems like this wasn't really needed not so long ago
+		 //cairo expects premultiplied, so we need to adjust data...
+
+		premultiplied = new unsigned char[4*width*height];
+		data_to_use = premultiplied;
+
+		unsigned char *pp = premultiplied;
+		const unsigned char *oo = data;
+		unsigned char alpha;
+		for (int y=0; y<height; y++) {
+			int ooi = 0;
+			for (int x=0; x<width; x++) {
+				alpha = oo[ooi+3];
+				pp[3] = alpha;
+				pp[2] = (int)oo[ooi+2] * alpha / 256; //r
+				pp[1] = (int)oo[ooi+1] * alpha / 256; //g
+				pp[0] = (int)oo[ooi+0] * alpha / 256; //b
+	 
+				pp += 4;
+				ooi += 4;
+
+			}
+			oo += stride;
+		}
+
+		stride = 4*width;
+	}
 
 	cairo_surface_t *image;
-	image=cairo_image_surface_create_for_data(const_cast<unsigned char*>(data),CAIRO_FORMAT_ARGB32, nwidth,nheight, stride);
+	image = cairo_image_surface_create_for_data(data_to_use, CAIRO_FORMAT_ARGB32, nwidth,nheight, stride);
 	//if (!image) return NULL;
+	//cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
+	cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
 	cairo_set_source_surface(cr,image, 0,0);
 	cairo_paint(cr);
 	cairo_surface_destroy(image);
 	cairo_destroy(cr);
+	if (premultiplied) delete[] premultiplied;
 
 
 	 //---alternate method: keep external buffer around:

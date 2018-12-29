@@ -59,7 +59,7 @@ class LaxCairoImage : public LaxImage
 	virtual int h() { return height; }
 	virtual void clear();
 
-	virtual int createFromData_ARGB8(int width, int height, int stride, const unsigned char *data);
+	virtual int createFromData_ARGB8(int width, int height, int stride, const unsigned char *data, bool not_premultiplied);
 	virtual unsigned char *getImageBuffer();
 	virtual int doneWithBuffer(unsigned char *buffer);
 

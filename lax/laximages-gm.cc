@@ -504,7 +504,7 @@ int GraphicsMagickLoader::LoadToMemory(LaxImage *img)
 				}
 			}
 
-			cimg->createFromData_ARGB8(width, height, width*4, buffer);
+			cimg->createFromData_ARGB8(width, height, width*4, buffer, true);
 		} catch (Magick::Exception &error_ ) {
 			return 1;
 		}
@@ -532,7 +532,7 @@ LaxCairoImage *MakeCairoFromGraphicsMagick(LaxGMImage *iimg, bool ping_only)
 	} else {
 		 //copy over buffer from GraphicsMagick image
 		unsigned char *data = iimg->getImageBuffer();
-		cimage->createFromData_ARGB8(iimg->w(), iimg->h(), 4*iimg->w(), data);
+		cimage->createFromData_ARGB8(iimg->w(), iimg->h(), 4*iimg->w(), data, true);
 		iimg->doneWithBuffer(data);
 	}
 

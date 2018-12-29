@@ -611,8 +611,8 @@ int ImlibLoader::LoadToMemory(LaxImage *img)
 			cimg->width= imlib_image_get_width();
 			cimg->height=imlib_image_get_height();
 		}
-		unsigned char *data = (unsigned char *)imlib_image_get_data();
-		cimg->createFromData_ARGB8(cimg->width, cimg->height, 4*cimg->width, data);
+		unsigned char *data = (unsigned char *)imlib_image_get_data(); //this data is ARGB ARGB...
+		cimg->createFromData_ARGB8(cimg->width, cimg->height, 4*cimg->width, data, true);
 		imlib_image_put_back_data((DATA32 *)data);
 
 		cimg->Image(); //incs cimg->display_count++;
@@ -640,7 +640,7 @@ LaxCairoImage *MakeCairoFromImlib(LaxImlibImage *iimg, bool ping_only)
 	} else {
 		 //copy over buffer from imlib image
 		unsigned char *data = iimg->getImageBuffer();
-		cimage->createFromData_ARGB8(iimg->w(), iimg->h(), 4*iimg->w(), data);
+		cimage->createFromData_ARGB8(iimg->w(), iimg->h(), 4*iimg->w(), data, true);
 		iimg->doneWithBuffer(data);
 	}
 
