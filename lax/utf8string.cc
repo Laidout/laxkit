@@ -30,6 +30,8 @@
 #include <lax/utf8string.h>
 #include <lax/utf8utils.h>
 
+#define DBG
+
 
 using namespace std;
 
@@ -52,15 +54,21 @@ namespace Laxkit {
 unsigned int Utf8String::CHARBLOCKSIZE = 20;
 
 
+DBG static int num = 0;
 
 Utf8String::Utf8String()
  : s(nullptr), bytes_allocated(0), num_chars(0), num_bytes(0)
-{}
+{
+	debug_which = num;
+	num++;
+	cerr <<"Utf8String constructor default "<<debug_which<<endl;
+
+}
 
 /*! n is bytes. If n<0, then use strlen(str).
  */
 Utf8String::Utf8String(const char *str, int n)
- : s(nullptr), bytes_allocated(0), num_chars(0), num_bytes(0)
+  : Utf8String()
 {
 	if (n<0) n = (str ? strlen(str) : 0);
 	bytes_allocated = (n/CHARBLOCKSIZE + 1)*CHARBLOCKSIZE + 1;
@@ -69,11 +77,14 @@ Utf8String::Utf8String(const char *str, int n)
 	s[n] = '\0';
 	num_bytes = n;
 	updateNumChars();
+
+	cerr <<"Utf8String constructor string,len"<<endl;
 }
 
 Utf8String::Utf8String(const Utf8String &str)
   : Utf8String(str.c_str(), -1)
 {
+	cerr <<"Utf8String constructor &utf8string"<<endl;
 }
 
 Utf8String::Utf8String(const Utf8String *str)
@@ -89,6 +100,8 @@ Utf8String::Utf8String(int i)
 	sprintf(s, "%d", i);
 	num_bytes = strlen(s);
 	updateNumChars();
+
+	cerr <<"Utf8String constructor int"<<endl;
 }
 
 Utf8String::Utf8String(double d)
@@ -99,6 +112,8 @@ Utf8String::Utf8String(double d)
 	sprintf(s, "%f", d);
 	num_bytes = strlen(s);
 	updateNumChars();
+
+	cerr <<"Utf8String constructor double"<<endl;
 }
 
 /*! Note that arguments need to be old school primitive types.
@@ -119,12 +134,24 @@ Utf8String::Utf8String(const char *fmt, ...)
     va_end(arg);
 	num_bytes = strlen(s);
 	updateNumChars();
+
+	cerr <<"Utf8String constructor fmt"<<endl;
 }
 
 
 Utf8String::~Utf8String()
 {
+	cerr <<"Utf8String destructor, which: "<<debug_which<<"  str: "<<(s ? s : "null")<<endl;
 	delete[] s;
+	s = nullptr;
+}
+
+Utf8String &Utf8String::operator=(const Utf8String &str)
+{
+	if (s == str.c_str()) return *this;
+	Clear();
+	Append(str);
+	return *this;
 }
 
 
@@ -304,6 +331,32 @@ unsigned long Utf8String::prev(int byte_index)
 	return utf8back_index(s, byte_index, num_bytes);
 }
 
+
+void Utf8String::Sprintf(const char *fmt, ...)
+{
+    va_list arg;
+    va_start(arg, fmt);
+    int c = vsnprintf(NULL, 0, fmt, arg);
+    va_end(arg);
+
+	if (s && c > bytes_allocated) {
+		delete[] s;
+		bytes_allocated = 0;
+		num_bytes = num_chars = 0;
+		s = nullptr;
+	}
+
+	if (s == nullptr) {
+		bytes_allocated = c+1+10;
+		s = new char[bytes_allocated];
+	}
+
+    va_start(arg, fmt);
+    vsnprintf(s, c+1, fmt, arg);
+    va_end(arg);
+	num_bytes = strlen(s);
+	updateNumChars();
+}
 
 void Utf8String::Append(const Utf8String &str)
 {
@@ -509,6 +562,7 @@ Utf8String operator+=(Utf8String &s, const Utf8String &str)
 	s.Append(str);
 	return s;
 }
+
 
 
 } // namespace Laxkit

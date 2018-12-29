@@ -31,6 +31,8 @@ namespace Laxkit {
 
 class Utf8String
 {
+	int debug_which;
+
   protected:
 	char *s;
 	long bytes_allocated;
@@ -57,7 +59,8 @@ class Utf8String
 	void Clear();
 
 	//operator=(const char *str);
-	//operator=(const Utf8String &str);
+	//Utf8String &operator=(Utf8String &str);
+	Utf8String &operator=(const Utf8String &str);
 
 	int Strcmp(const Utf8String &str) const;
 	int Strcasecmp(const Utf8String &str) const;
@@ -76,6 +79,7 @@ class Utf8String
 	unsigned long next(int byte_index);
 	unsigned long prev(int byte_index);
 	
+	void Sprintf(const char *fmt, ...);
 	void Append(const Utf8String &str);
 	void Append(const char *str);
 	void Prepend(const Utf8String &str);
@@ -105,12 +109,13 @@ class Utf8String
 Utf8String operator+=(Utf8String &s, const char *str);
 Utf8String operator+=(Utf8String &s, const Utf8String &str);
 
-bool operator==(const Utf8String &a, const Utf8String &b) { return a.Strcmp(b) == 0; }
-bool operator!=(const Utf8String &a, const Utf8String &b) { return a.Strcmp(b) != 0; }
-bool operator<=(const Utf8String &a, const Utf8String &b) { return a.Strcmp(b) <= 0; }
-bool operator< (const Utf8String &a, const Utf8String &b) { return a.Strcmp(b) <  0; }
-bool operator>=(const Utf8String &a, const Utf8String &b) { return a.Strcmp(b) >= 0; }
-bool operator> (const Utf8String &a, const Utf8String &b) { return a.Strcmp(b) >  0; }
+
+inline bool operator==(const Utf8String &a, const Utf8String &b) { return a.Strcmp(b) == 0; }
+inline bool operator!=(const Utf8String &a, const Utf8String &b) { return a.Strcmp(b) != 0; }
+inline bool operator<=(const Utf8String &a, const Utf8String &b) { return a.Strcmp(b) <= 0; }
+inline bool operator< (const Utf8String &a, const Utf8String &b) { return a.Strcmp(b) <  0; }
+inline bool operator>=(const Utf8String &a, const Utf8String &b) { return a.Strcmp(b) >= 0; }
+inline bool operator> (const Utf8String &a, const Utf8String &b) { return a.Strcmp(b) >  0; }
 
 Utf8String operator+(const Utf8String &a, const char *b);
 Utf8String operator+(const char *a, const Utf8String &b);

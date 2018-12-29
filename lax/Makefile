@@ -73,6 +73,7 @@ objs= \
 	errorlog.o \
 	strmanip.o \
 	utf8utils.o \
+	utf8string.o \
 	transformmath.o \
 	vectors.o \
 	doublebbox.o \
