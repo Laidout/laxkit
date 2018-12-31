@@ -58,6 +58,9 @@ void InitLaxCairo(bool with_backend)
 
 	 //set various base functions
 	if (with_backend) InitCairoBackend();
+
+	CairoImageLoader *loader=new CairoImageLoader();
+	ImageLoader::AddLoader(loader,-1);
 }
 
 /*! This will set up the default graphics backend to cairo. This means all the functions
