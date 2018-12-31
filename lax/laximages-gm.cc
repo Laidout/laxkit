@@ -453,9 +453,10 @@ int GraphicsMagickLoader::PingFile(const char *file, int *width, int *height, lo
 
     if (subfiles) {
          //find number of readable frames
-        //list<Magick::Image> imagelist;
-        //Magick::readImages( &imagelist, file );
-        //*subfiles = imagelist.size();
+		 // *** NOTE!! this might read in all frames? not ping?
+        list<Magick::Image> imagelist;
+        Magick::readImages( &imagelist, file );
+        *subfiles = imagelist.size();
     }
 
 	return 0;
