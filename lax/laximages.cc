@@ -438,9 +438,10 @@ ImageLoader *ImageLoader::GetLoaderByFormat(int format)
 {
 	if (!loaders) return NULL; 
 
-	ImageLoader *loader=loaders;
+	ImageLoader *loader = loaders;
 	while (loader) {
 		if (loader->format == format) return loader;
+		loader = loader->next;
 	}
 
 	return NULL;
@@ -455,6 +456,7 @@ ImageLoader *ImageLoader::GetLoaderById(unsigned long id)
 	ImageLoader *loader=loaders;
 	while (loader) {
 		if (loader->object_id == id) return loader;
+		loader = loader->next;
 	}
 
 	return NULL;
@@ -467,8 +469,8 @@ ImageLoader *ImageLoader::GetLoaderByIndex(int which)
 	if (!loaders) return NULL; 
 	if (which<0) return NULL;
 
-	ImageLoader *loader=loaders;
-	while (which>0 && loader) { loader=loader->next; which--; }
+	ImageLoader *loader = loaders;
+	while (which>0 && loader) { loader = loader->next; which--; }
 
 	return loader;
 }
@@ -487,25 +489,26 @@ int ImageLoader::AddLoader(ImageLoader *loader, int where)
 {
 	if (!loader) return 1;
 	if (!loaders) {
-		loaders=loader;
+		loaders = loader;
 		loaderKeeper.SetObject(loader, true);
 		return 0;
 	}
 
-	if (where<0) where=NumLoaders()+1;
+	if (where < 0) where = NumLoaders()+1;
 
-	if (where==0) {
-		loader->next=loaders;
-		if (loaders) loaders->prev=loader;
-		loaders=loader;
+	if (where == 0) {
+		loader->next = loaders;
+		if (loaders) loaders->prev = loader;
+		loaders = loader;
+		loaderKeeper.SetObject(loaders, true);
 		return 0;
 	}
 
 	 //else add after some loader
 	ImageLoader *l;
-	for (l=loaders; l->next && where>0; l=l->next) where--;
+	for (l = loaders; l->next && where>0; l=l->next) where--;
 
-	loader->next=l->next;
+	loader->next = l->next;
 	if (l->next) l->next->prev=loader;
 
 	loader->prev=l;
@@ -609,6 +612,27 @@ LaxImage *ImageLoader::LoadImage(const char *file,
 
 	DBG cerr <<"ImageLoader::LoadImage() couldn't load "<<file<<endl;
 	return NULL;
+}
+
+/*! Ping an image file without fully loading it or instantiating a LaxImage.
+ * Return 0 for success. subfiles is number of "frames" in file.
+ * This runs through the loader list until loader->PingFile() returns 0.
+ */
+int ImageLoader::Ping(const char *file, int *width, int *height, long *filesize, int *subfiles)
+{
+	ImageLoader *loader = ImageLoader::GetLoaderByIndex(0);
+	if (!loader) {
+		DBG cerr <<"ImageLoader::Ping() no loaders!"<<endl;
+		return 1;
+	}
+
+	while (loader) {
+		if (loader->PingFile(file, width, height, filesize, subfiles) == 0)
+			return 0;
+		loader = loader->next;
+	}
+
+	return 2;
 }
 
 LaxImage *ImageLoader::NewImage(int width, int height, int format)
