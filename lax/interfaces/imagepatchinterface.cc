@@ -56,7 +56,6 @@ extern double Binv[16];
  * See ImagePatchInterface.
  *
  * \todo *** should have option to offset the color data within the patch!!!
- * \todo should not depend on Imlib
  */
 /*! \var char *ImagePatchData::filename
  * \brief The file (if any) that idata corresponds to.
@@ -276,8 +275,6 @@ void ImagePatchData::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext 
 /*! *** on error, the old stuff is kept.
  *
  * This makes idata hold 8bit ARGB samples, not necessarily ready for display on the screen.
- * Note that this is the same as is returned in Imlib's
- * imlib_image_get_data_for_reading_only().
  */
 int ImagePatchData::SetImage(const char *fname)
 {

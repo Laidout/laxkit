@@ -2666,7 +2666,6 @@ void PatchData::patchpoint(PatchRenderContext *context,double s0,double ds,doubl
 		
 	WhatColor(0,0, &col[a][0]);
 
-	//ImlibPolygon polygon;
 	for (r=0,t=0,tt=t0; r<=n; r++,t+=d,tt+=dt) {
 		getT(T,t);
 		for (c=0,s=0,ss=s0; c<=n; c++,s+=d,ss+=ds) {
@@ -2693,18 +2692,6 @@ void PatchData::patchpoint(PatchRenderContext *context,double s0,double ds,doubl
 				renderTriangleToBuffer(context->buffer, context->bufferwidth, context->bufferheight,
 									   pp[i+3],pp[i+1],pp[i+2],
 									   &col[a][c]);
-//				imlib_context_set_color((col[a][c]&0xff0000)  >>16,
-//										(col[a][c]&0xff00)    >>8,
-//										(col[a][c]&0xff),
-//										(col[a][c]&0xff000000)>>24
-//									   );
-//				polygon=imlib_polygon_new();
-//				imlib_polygon_add_point(polygon,  pp[i  ].x, pp[i  ].y);
-//				imlib_polygon_add_point(polygon,  pp[i+1].x, pp[i+1].y);
-//				imlib_polygon_add_point(polygon,  pp[i+2].x, pp[i+2].y);
-//				imlib_polygon_add_point(polygon,  pp[i+3].x, pp[i+3].y);
-//				imlib_image_fill_polygon(polygon);
-//				imlib_polygon_free(polygon);
 			}
 		}
 		a^=1;
