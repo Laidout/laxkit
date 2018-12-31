@@ -592,7 +592,7 @@ int anXApp::SetTheme(const char *themeName)
 }
 
 /*! If they have been compiled in, which can be one of:
- *   "xlib"  (uses xlib and imlib for graphics rendering)
+ *   "xlib"  (deprecated, uses xlib and imlib for graphics rendering)
  *   "cairo" (uses cairo for rendering. Can use imlib for image loading)
  *   "gl"    (unimplemented)
  *
@@ -923,16 +923,16 @@ int anXApp::initX(int argc,char **argv)
 	DBG cerr <<"Attempting backend: "<<(backend?backend:"(none specified)")<<endl;
 
 	 //first just initialize things, but don't install render functions
+#ifdef LAX_USES_GRAPHICSMAGICK
+	InitLaxGraphicsMagick(false);
+#endif
+
 #ifdef LAX_USES_IMLIB
 	InitLaxImlib(1000, false); //number is imlib cache mem size limit in megabytes. this should be configurable!!!
 #endif
 
 #ifdef LAX_USES_CAIRO
 	InitLaxCairo(false);
-#endif
-
-#ifdef LAX_USES_GRAPHICSMAGICK
-	InitLaxGraphicsMagick(false);
 #endif
 
 
@@ -1107,8 +1107,7 @@ char *anXApp::GetBuffer()
 
 //! Set the default icon to the image in file.
 /*! This only works after anXApp has opened an X connection, and should be done
- * before any windows are added. You must also call InitLaxImlib() before calling this.
- * This function does nothing if Imlib2 is not available.
+ * before any windows are added. 
  *
  * Top level windows get their icon hint set to this.
  *
@@ -1117,7 +1116,6 @@ char *anXApp::GetBuffer()
  * \todo must implement checking for appropriate size for icons, currently just
  *    assumes 48x48 is proper, and that is what is in file...
  * \todo must implement freedesktop _NET_WM_ICON. currently just does xwmhints
- * \todo must implement some way to avoid direct dependence on Imlib
  */
 int anXApp::DefaultIcon(const char *file)
 {
