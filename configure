@@ -33,7 +33,7 @@ HARFBUZZVERSION="2.0"
 ONAMAC="no"
 FORCE="no"
 
- #x11, or qt
+ #x11, or (unimplemented): qt, headless
 PLATFORM="x11"
 
 LAXKITBACKEND="cairo"
@@ -258,8 +258,11 @@ fi
 
 
 #if [[ $PLATFORM != "x11" && $PLATFORM != "mac" && $PLATFORM != "windows" ]] ;
-if [ $PLATFORM != "x11" -a $PLATFORM != "headless" -a $PLATFORM != "qt" ] ;
-	then PLATFORM="x11";
+#if [ $PLATFORM != "x11" -a $PLATFORM != "headless" -a $PLATFORM != "qt" ] ;
+if [ $PLATFORM != "x11" ] ;
+	echo "Unknown platform $PLATFORM!";
+	exit 1
+#	then PLATFORM="x11";
 fi
 
 
