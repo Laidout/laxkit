@@ -259,7 +259,7 @@ fi
 
 #if [[ $PLATFORM != "x11" && $PLATFORM != "mac" && $PLATFORM != "windows" ]] ;
 #if [ $PLATFORM != "x11" -a $PLATFORM != "headless" -a $PLATFORM != "qt" ] ;
-if [ $PLATFORM != "x11" ] ;
+if [ $PLATFORM != "x11" ] ; then
 	echo "Unknown platform $PLATFORM!";
 	exit 1
 #	then PLATFORM="x11";
