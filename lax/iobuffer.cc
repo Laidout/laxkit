@@ -26,6 +26,9 @@
 #include <cstdarg>
 #include <cstdlib>
 #include <cstring>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/file.h>
 
 
 #define DBG
@@ -62,6 +65,7 @@ IOBuffer::IOBuffer()
 	slen = 0;   //num of defined bytes in str or cstr
 	max  = 0; //maximum space allocated
 
+	fd   = 0; //file descriptor used in OpenFileLocked() and CloseAndUnlock()
 	f    = NULL;
 	filename = NULL;
 
@@ -343,6 +347,52 @@ int IOBuffer::UseThis(FILE *ff)
 {
 	f = ff;
 	what = WHAT_File;
+	return 0;
+}
+
+/*! Like OpenFile(), but also flock() the file and also setlocale to "C" before doing input.
+ * If you use this, you MUST close with CloseAndUnlock().
+ * Return 0 for success, or nonzero error.
+ */
+int IOBuffer::OpenFileLocked(const char *file_name, const char *mode, bool shield_locale)
+{
+	cerr << " *** need to implement OpenFileLocked()"<<endl;
+
+	what = WHAT_File;
+	if (f) fclose(f);
+	makestr(filename, file_name);
+
+	int modei = (!strcmp(mode, "r") ? O_RDONLY : (!strcmp(mode,"w") ? O_WRONLY : (!strcmp(mode,"wr") || !strcmp(mode, "rw") ? O_RDWR : 0)));
+	if (modei == 0) return 1;
+
+    fd = open(filename, modei);
+	if (fd <= 0) {
+		return -1;
+	}
+	flock(fd,LOCK_EX);
+	f = fdopen(fd, mode);
+	if (!f) {
+		close(fd);
+		return -2;
+	}
+
+	setlocale(LC_ALL,"C");
+	return 0;
+}
+
+/*! Un-flocks, does setlocale(LC_ALL,""), and closes f.
+ * Return 0 for success.
+ */
+int IOBuffer::CloseAndUnlock()
+{
+	if (f) {
+		flock(fd,LOCK_UN);
+		int status = fclose(f);// this closes fd too
+		setlocale(LC_ALL,"");
+		f = NULL;
+		fd = 0;
+		return status;
+	}
 	return 0;
 }
 
