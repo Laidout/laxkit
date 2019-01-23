@@ -78,8 +78,8 @@ Button::Button(anXWindow *parnt,const char *nname,const char *ntitle,unsigned lo
 {
 	font=NULL;
 
-	pad=npad; if (pad<0) pad=app->default_padx;
-	gap=npad; if (gap<0) gap=app->default_padx;
+	pad = npad; if (pad<0) pad = app->theme->default_padx;
+	gap = npad; if (gap<0) gap = app->theme->default_padx;
 	state=oldstate=1;
 
 	thing=THING_None;

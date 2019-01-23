@@ -89,8 +89,8 @@ ToolTip::ToolTip(const char *newtext,int mouse)
 	}
 	DBG cerr <<"Tooltip:  nl="<<nl<<endl;
 	textheight = app->defaultlaxfont->textheight();
-	win_w += app->default_padx*2;
-	win_h  = app->default_pady*2 + nl*textheight;
+	win_w += app->theme->default_padx*2;
+	win_h  = app->theme->default_pady*2 + nl*textheight;
 
 	 // Automatically place so it is near but not on mouse, and contained in a monitor
 	int rx = 0, ry = 0, scx = 0, scy = 0;
