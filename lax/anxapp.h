@@ -98,6 +98,9 @@ class aDrawable
 
 //-------------------------- anXWindow ----------------------------------------
 
+//for minimal window size sanity checking:
+#define LAX_MAX_WINDOW_SIZE 10000
+
 #define ANXWIN_MASK           (0xffff)
 #define ANXWIN_TRANSIENT      (1<<0)
 #define ANXWIN_NOT_DELETEABLE (1<<1)
@@ -396,12 +399,13 @@ class anXApp : virtual public anObject
 
 	 //default Styling
 	Theme         *theme;
-	unsigned long  color_tooltip_bg, color_tooltip_fg;
-	unsigned long  color_activeborder, color_inactiveborder;
-	int            default_border_width;
-	int			   default_padx;
-	int			   default_pady;
-	int			   default_bevel;
+//	unsigned long  color_tooltip_bg, color_tooltip_fg;
+//	unsigned long  color_activeborder, color_inactiveborder;
+//	int            default_border_width;
+//	int			   default_padx;
+//	int			   default_pady;
+//	int			   default_bevel;
+	int            max_window_size;
 
 	unsigned int   dblclk,firstclk,idleclk;
 

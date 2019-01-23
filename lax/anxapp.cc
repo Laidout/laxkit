@@ -535,10 +535,12 @@ anXApp::anXApp()
 	textfontstr   =newstr("sans-12");
 	controlfontstr=newstr("sans-12");
 
-	default_border_width=1;
-	default_padx=5;
-	default_pady=5; 
-	default_bevel=5;
+	//default_border_width=1;
+	//default_padx=5;
+	//default_pady=5; 
+	//default_bevel=5;
+
+	max_window_size = 10000;
 
 
 	 //set up standard mutexes
@@ -876,7 +878,6 @@ int anXApp::initNoX(int argc,char **argv)
 
 	 // setup default colors and border width, then update with any rc files
 	setupdefaultcolors();
-	default_border_width=1;
 	getlaxrc(NULL,app_profile);
 	
 	 // setup default graphics context
@@ -2002,6 +2003,8 @@ int anXApp::addwindow(anXWindow *w,char mapit,char absorb_count) // mapit==1, ab
 		DBG cerr << "win app!=app.\n";
 		w->app=this;
 	}
+
+	if (w->win_themestyle) w->win_border = theme->default_border_width;
 	
 	 //----- add window to app's internal stack:
 	if (w->win_parent==NULL) {

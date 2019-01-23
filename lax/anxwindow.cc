@@ -325,20 +325,7 @@ Drawable aDrawable::xlibDrawable(int which)
 /*! Just assigns all the passed in variables to their given values,
  * and everything else to 0/NULL.
  *
- * If brder<0, then set win_border to app->default_inactiveborder.
- *
  * <pre>
- *  These attributes are set here:
- *   win_xatts.border_pixel=app->color_inactiveborder;
- *   win_xattsmask|=CWEventMask|CWBorderPixel; // set to 0 in anXWindow
- *   win_xatts.event_mask|=FocusChangeMask|StructureNotifyMask|ResizeRedirectMask|
- * 						  ExposureMask|EnterWindowMask|LeaveWindowMask;
- * </pre>
- * 
- * See <a href="xlibforlaxkit.html">Xlib Primer for Laxkit</a> for what other events Constructors can set for.
- *
- * <pre>
- *  
  *  Constructor, appends itself to the (incomplete) tab loop in prev.
  *  Later, it is assumed that that loop in prev is not yet a closed loop, ie that
  *  some prev->prev->... is NULL.
@@ -358,41 +345,44 @@ anXWindow::anXWindow(anXWindow *parnt, const char *nname, const char *ntitle,
 					const char *nsend //!< The control message to send
 				)
 {
-	app=anXApp::app;
+	app = anXApp::app;
 
-	win_screen=-1;
-	win_on=0;
-	win_active=0;
-	needtodraw=1;
-	win_parent=parnt;
-	win_x=xx; win_y=yy; win_w=ww; win_h=hh;
-	win_border=(brder<0?app->default_border_width:brder);
-	win_style=nstyle;
-	win_pointer_shape=0;
+	win_screen = -1;
+	win_on     = 0;
+	win_active = 0;
+	needtodraw = 1;
+	win_parent = parnt;
+	win_x      = xx;
+	win_y      = yy;
+	win_w      = ww;
+	win_h      = hh;
+	win_border = 0;
+	win_style  = nstyle;
+	win_pointer_shape = 0;
 
-	win_tooltip=NULL;
-	win_title=newstr(ntitle);
-	win_name=newstr(nname);
+	win_tooltip = NULL;
+	win_title   = newstr(ntitle);
+	win_name    = newstr(nname);
 
 	 //set window ownership and message
-	win_owner=nowner; 
-	win_owner_send_mask=0;
-	if (nsend) win_sendthis=newstr(nsend); else win_sendthis=NULL;
-	nextcontrol=NULL; 
-	prevcontrol=NULL;
+	win_owner = nowner; 
+	win_owner_send_mask = 0;
+	if (nsend) win_sendthis = newstr(nsend); else win_sendthis = NULL;
+	nextcontrol = NULL; 
+	prevcontrol = NULL;
 	if (prev) prev->ConnectControl(this,1);
 
 	win_themestyle = NULL;
 
 #ifdef _LAX_PLATFORM_XLIB
 	 //set up Xlib specific stuff
-	xlib_win_hints=NULL;
-	xlib_win_sizehints=NULL;
-	xlib_win_xattsmask=0;
-	xlib_win_xatts.event_mask=0;
-	xlib_win_xatts.border_pixel=app->color_inactiveborder;
-	xlib_win_xattsmask|=CWEventMask|CWBorderPixel; // set to 0 in anXWindow
-	xlib_win_xatts.event_mask|=StructureNotifyMask|ResizeRedirectMask|ExposureMask|VisibilityChangeMask;
+	xlib_win_hints = NULL;
+	xlib_win_sizehints = NULL;
+	xlib_win_xattsmask = 0;
+	xlib_win_xatts.event_mask = 0;
+	xlib_win_xatts.border_pixel = 0; //app->color_inactiveborder;
+	xlib_win_xattsmask |= CWEventMask|CWBorderPixel; // set to 0 in anXWindow
+	xlib_win_xatts.event_mask |= StructureNotifyMask|ResizeRedirectMask|ExposureMask|VisibilityChangeMask;
 #endif //_LAX_PLATFORM_XLIB
 }
 
@@ -941,7 +931,7 @@ int anXWindow::FocusOn(const FocusChangeData *e)
 		win_active++;
 
 #ifdef _LAX_PLATFORM_XLIB
-		xlib_win_xatts.border_pixel=app->color_activeborder;
+		xlib_win_xatts.border_pixel = (win_themestyle ? win_themestyle->active_border.Pixel() : 0);
 		XChangeWindowAttributes(app->dpy,xlib_window,CWBorderPixel,&xlib_win_xatts);
 		DBG cerr <<WindowTitle()<<": real focus on"<<endl;
  
@@ -972,8 +962,8 @@ int anXWindow::FocusOff(const FocusChangeData *e)
 		if (win_active<0) win_active=0; //kludge to cover up not receiving focus events sometimes
 		if (!win_active) {
 #ifdef _LAX_PLATFORM_XLIB
-			xlib_win_xatts.border_pixel=app->color_inactiveborder;
-			if (xlib_window) XChangeWindowAttributes(app->dpy,xlib_window,CWBorderPixel,&xlib_win_xatts);
+			xlib_win_xatts.border_pixel = (win_themestyle ? win_themestyle->inactive_border.Pixel() : 0);
+			if (xlib_window) XChangeWindowAttributes(app->dpy, xlib_window, CWBorderPixel, &xlib_win_xatts);
 #endif //_LAX_PLATFORM_XLIB
 		}
 		DBG cerr <<WindowTitle()<<": real focus off"<<endl;
