@@ -64,6 +64,9 @@ void WinFrameBox::NewWindow(anXWindow *nwin)
 }
 
 
+#define LAX_MAX_WINDOW_SIZE 10000
+
+
 //! Resize the window to have the current settings for x,y,w,h.
 /*! The SquishyBox x,y,w,h should have been set already, this
  * function just resizes the window to those values.
@@ -85,9 +88,9 @@ void WinFrameBox::sync()
 	if (!window) return;
 
 	 // some basic sanity checking, make windows smaller than 2000, clamps w,h, not pref w,h
-	if (w()>2000) w(2000);
+	if (w()>LAX_MAX_WINDOW_SIZE) w(LAX_MAX_WINDOW_SIZE);
 	else if (w()<0) w(0);
-	if (h()>2000) h(2000);
+	if (h()>LAX_MAX_WINDOW_SIZE) h(LAX_MAX_WINDOW_SIZE);
 	else if (h()<0) h(0);
 
 	//**** something messed up here: not doing border right*** not sub from width??
