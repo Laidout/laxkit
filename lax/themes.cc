@@ -693,7 +693,7 @@ Theme::Theme(const char *nname)
 	default_border_width = 1;
 	default_padx = 5;
 	default_pady = 5;
-	default_bevel = 5;
+	default_bevel = 2;
 	interface_scale = 1; //all sizes should be multiplied with this
 
 	firstclk = 1000/7;
