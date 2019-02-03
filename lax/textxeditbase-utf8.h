@@ -87,6 +87,8 @@ class TextXEditBaseUtf8 : public anXWindow, public TextEditBaseUtf8
 	virtual int selectionDropped(const unsigned char *data,unsigned long len,const char *actual_type,const char *which);
 	virtual char *getSelectionData(int *len,const char *property,const char *targettype,const char *selection);
 
+	virtual double TextExtent(const char *str, int len, double *width=nullptr,double *height=nullptr,double *ascent=nullptr,double *descent=nullptr);
+
  public:
 	TextXEditBaseUtf8(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
 							 int xx,int yy,int ww,int hh,int brder,
