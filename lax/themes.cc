@@ -690,7 +690,7 @@ Theme::Theme(const char *nname)
 	name = newstr(nname);
 	filename = NULL;
 
-	default_border_width = 1;
+	default_border_width = 0;
 	default_padx = 5;
 	default_pady = 5;
 	default_bevel = 2;
