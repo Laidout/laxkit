@@ -80,6 +80,7 @@ class LaxGMImage : public LaxImage
 	virtual int Ping(const char *file);
 	virtual int Load(const char *file);
 	virtual int Save(const char *tofile = nullptr, const char *format = nullptr); //format==null guess from extension
+	virtual void Set(double r, double g, double b, double a);
 };
 
 

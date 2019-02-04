@@ -83,6 +83,7 @@ class LaxImage : public anObject
 	//virtual int MaxMemoryUsed();
 	//virtual int dec_count();
 
+	virtual void Set(double r, double g, double b, double a) = 0;
 	virtual int Save(const char *tofile = nullptr, const char *format = nullptr) = 0; //format==null guess from extension
 };
 

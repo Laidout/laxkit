@@ -220,6 +220,11 @@ int LaxImlibImage::Save(const char *tofile, const char *format)
 	return 0;
 }
 
+void LaxImlibImage::Set(double r, double g, double b, double a)
+{
+	DBG cerr << " *** LaxImlibImage::Set() unimplemented"<<endl;
+}
+
 void LaxImlibImage::clear()
 {
 	if (image) {

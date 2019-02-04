@@ -64,6 +64,7 @@ class LaxCairoImage : public LaxImage
 	virtual unsigned char *getImageBuffer();
 	virtual int doneWithBuffer(unsigned char *buffer);
 
+	virtual void Set(double r, double g, double b, double a);
 	virtual int Save(const char *tofile = nullptr, const char *format = nullptr); //format==null guess from extension
 };
 

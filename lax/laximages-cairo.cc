@@ -657,6 +657,17 @@ int LaxCairoImage::Save(const char *tofile, const char *format)
 	return save_image_cairo(this, tofile, format);
 }
 
+void LaxCairoImage::Set(double r, double g, double b, double a)
+{
+	if (!image) return;
+
+	cairo_t *cr = cairo_create(image);
+	cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
+	cairo_set_source_rgba(cr, r,g,b,a);
+	cairo_paint(cr);
+	cairo_destroy(cr);
+}
+
 
 
 

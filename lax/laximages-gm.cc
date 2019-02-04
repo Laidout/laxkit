@@ -342,6 +342,14 @@ int LaxGMImage::Save(const char *tofile, const char *format)
 	return 0;
 }
 
+void LaxGMImage::Set(double r, double g, double b, double a)
+{
+	if (!has_image) return;
+
+	//image.fillColor(ColorRGB(r,g,b));
+	DBG cerr << " *** NEED TO IMPLEMENT LaxGMImage::Set"<<endl;
+}
+
 void LaxGMImage::clear()
 {	
 	 //free any image data
