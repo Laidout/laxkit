@@ -45,7 +45,7 @@ class Affine
 	Affine &operator*=(Affine const &m);
 	Affine operator*(Affine const m);
 	virtual ~Affine();
-	virtual void set(Affine a);
+	virtual void set(Affine const &a);
 	virtual void setIdentity();
 	virtual bool isIdentity();
 	virtual void setRotation(double angle);
