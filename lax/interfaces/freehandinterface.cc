@@ -744,14 +744,14 @@ int FreehandInterface::send(int i)
 
 		 // *** set up test gradient:
 		ScreenColor col1(1.,0.,0.,1.), col2(0.,0.,1.,1.);
-		GradientData gradient(flatpoint(0,0),flatpoint(1,0),0,1,&col1,&col2,GRADIENT_LINEAR);
-		gradient.AddColor(.5, 0,65535,0,65535);
+		GradientData gradient(flatpoint(0,0),flatpoint(1,0),0,1,&col1,&col2, GradientData::GRADIENT_LINEAR);
+		gradient.AddColor(.5, 0.,1.,0.,1.);
 
 		if (freehand_style&(FREEHAND_Double_Mesh)) {
-			int ncol=gradient.colors.n;
+			int ncol = gradient.NumColors();
 			for (int c=0; c<ncol-1; c++) {
-				gradient.AddColor(gradient.colors.e[ncol-1]->t+(gradient.colors.e[ncol-1]->t-gradient.colors.e[ncol-2-c]->t),
-								  &gradient.colors.e[ncol-2-c]->color);
+				gradient.AddColor(gradient.strip->colors.e[ncol-1]->t+(gradient.strip->colors.e[ncol-1]->t-gradient.strip->colors.e[ncol-2-c]->t),
+								  &gradient.strip->colors.e[ncol-2-c]->color->screen);
 			}
 		}
 
@@ -761,7 +761,7 @@ int FreehandInterface::send(int i)
 
 
 		//mesh->Set(0,0,1,1, 1,points_top.n-1, Patch_Coons); //create as 1 row, subdivide later
-		mesh->Set(0,0,1,1, gradient.colors.n-1,points_top.n-1, Patch_Coons); //create as 1 row, subdivide later
+		mesh->Set(0,0,1,1, gradient.NumColors()-1,points_top.n-1, Patch_Coons); //create as 1 row, subdivide later
 		Coordinate *cct=coord_t->next;
 		Coordinate *ccb=coord_b->next;
 		int r;
@@ -788,9 +788,9 @@ int FreehandInterface::send(int i)
 			}
 
 			 //middle points and colors
-			mesh->SetColor(0,c/3, &gradient.colors.e[0]->color);
+			mesh->SetColor(0,c/3, &gradient.strip->colors.e[0]->color->screen);
 			double rr=0, lrr=0;
-			for (int row=0; row<gradient.colors.n-1; row++) {
+			for (int row=0; row<gradient.NumColors()-1; row++) {
 			  lrr=rr;
 			  rr=gradient.GetNormalizedT(row+1);
 
@@ -799,16 +799,16 @@ int FreehandInterface::send(int i)
 				  v=mesh->points[(mesh->ysize-1)*mesh->xsize+col]-p;
 				  for (r=0; r<3; r++) {
 					if (row==0 && r==0) continue;
-					if (row==gradient.colors.n-1 && r==2) continue;
+					if (row==gradient.NumColors()-1 && r==2) continue;
 					if (col%3!=0 && r!=0) continue;
 					if (c==mesh->xsize-1 && col>c) continue;
 
 					mesh->points[(row*3+r)*mesh->xsize+col] = p + v*(lrr+r*(rr-lrr)/3);
-					if (r==0) mesh->SetColor(row,col/3, &gradient.colors.e[row]->color);
+					if (r==0) mesh->SetColor(row,col/3, &gradient.strip->colors.e[row]->color->screen);
 				  }
 			  }
 			}
-			mesh->SetColor(mesh->ysize/3,c/3, &gradient.colors.e[gradient.colors.n-1]->color);
+			mesh->SetColor(mesh->ysize/3,c/3, &gradient.strip->colors.e[gradient.strip->colors.n-1]->color->screen);
 		}
 		mesh->InterpolateControls(Patch_Coons);
 		mesh->FindBBox();

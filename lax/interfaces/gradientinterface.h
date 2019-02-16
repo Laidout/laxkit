@@ -26,59 +26,61 @@
 #include <lax/interfaces/somedata.h>
 #include <lax/interfaces/linestyle.h>
 #include <lax/screencolor.h>
+#include <lax/gradientstrip.h>
+
 
 namespace LaxInterfaces {
 
 
-#define GRADIENT_RADIAL      (1<<0)
-#define GRADIENT_LINEAR      (1<<1)
-#define GRADIENT_FILL_PARENT (1<<2)
 
-//--------------------------------- GradientDataSpot ----------------------------
-
-class GradientDataSpot
-{
- public:
-	double t;
-	Laxkit::ScreenColor color;
-	GradientDataSpot(double tt,Laxkit::ScreenColor *col);
-	GradientDataSpot(double tt,int rr,int gg,int bb,int aa);
-	virtual ~GradientDataSpot() {}
-	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
-	virtual void dump_in(FILE *f,int indent,LaxFiles::DumpContext *context,LaxFiles::Attribute **Att=NULL);
-	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
-};
 
 //--------------------------------- GradientData ----------------------------
 class GradientData : virtual public SomeData
 {
- protected:
+  protected:
   	
- public:
+  public:
+	enum GradentDataStyle {
+		GRADIENT_RADIAL      = (1<<0),
+		GRADIENT_LINEAR      = (1<<1),
+		GRADIENT_FILL_PARENT = (1<<2)
+	};
+
 	unsigned int style;
-	double p1, p2, r1, r2, a;
-	Laxkit::PtrStack<GradientDataSpot> colors;
+	double hint_a;
+
+	Laxkit::GradientStrip *strip;
 
 	GradientData();
 	GradientData(flatpoint pp1,flatpoint pp2,double rr1,double rr2,
 			Laxkit::ScreenColor *col1,Laxkit::ScreenColor *col2,unsigned int stle);
-	virtual ~GradientData() {}
+	virtual ~GradientData();
 
+	virtual double *GradientTransform(double *result, bool invert);
 	virtual int IsRadial() { return style&GRADIENT_RADIAL; }
+	virtual int IsLinear() { return style&GRADIENT_LINEAR; }
+	virtual void SetRadial();
+	virtual void SetLinear();
+	virtual void SetRadial(flatpoint pp1,flatpoint pp2,double rr1,double rr2,
+			Laxkit::ScreenColor *col1,Laxkit::ScreenColor *col2);
+	virtual void SetLinear(flatpoint pp1,flatpoint pp2,double rr1,double rr2,
+			Laxkit::ScreenColor *col1,Laxkit::ScreenColor *col2);
 	virtual void Set(flatpoint pp1,flatpoint pp2,double rr1,double rr2,
-			Laxkit::ScreenColor *col1,Laxkit::ScreenColor *col2,unsigned int stle);
+			Laxkit::ScreenColor *col1,Laxkit::ScreenColor *col2, unsigned int stle);
 	virtual const char *whattype() { return "GradientData"; }
 	virtual SomeData *duplicate(SomeData *dup);
 	virtual void FindBBox();
+	virtual int Set(Laxkit::GradientStrip *newstrip, int absorb);
 	virtual int pointin(flatpoint pp,int pin=1);
 	virtual int ShiftPoint(int which,double dt);
 	virtual double GetNormalizedT(int i);
-	virtual int AddColor(double t,int red,int green,int blue,int alpha);
+	virtual int NumColors();
+	virtual double AddColor(double t,double red,double green,double blue,double alpha);
 	virtual int AddColor(double t,Laxkit::ScreenColor *col);
+	virtual int AddColor(Laxkit::GradientStrip::GradientSpot *spot);
 	virtual int WhatColor(flatpoint p, Laxkit::ScreenColor *col);
 	virtual int WhatColor(double t,Laxkit::ScreenColor *col);
 	virtual int WhatColor(double t,double *col);
-	virtual int AddColor(GradientDataSpot *spot);
 	virtual void FlipColors();
 
 	virtual int renderToBuffer(unsigned char *buffer, int bufw, int bufh, int bufstride, int bufdepth, int bufchannels);
@@ -93,7 +95,7 @@ class GradientData : virtual public SomeData
 
 class GradientInterface : public anInterface
 {
- protected:
+  protected:
 	int mx,my,draggingmode;
 	int curpoint; //-1=whole thing, >=0 is color point, -2 is none
 	Laxkit::NumStack<int> curpoints;
@@ -102,7 +104,8 @@ class GradientInterface : public anInterface
 
 	Laxkit::ShortcutHandler *sc;
 	virtual int PerformAction(int action);
- public:
+
+  public:
 	 // these are gradient state:
 	unsigned long controlcolor;
 	int creationstyle,showdecs,usepreview;
@@ -111,6 +114,7 @@ class GradientInterface : public anInterface
 	double creater1,creater2;
 	int gradienttype;
 
+	Laxkit::GradientStrip *strip;
 	GradientData *data;
 	ObjectContext *goc;
 
@@ -126,7 +130,9 @@ class GradientInterface : public anInterface
 	virtual int InterfaceOff();
 	virtual int UseThis(Laxkit::anObject *newdata,unsigned int); // assumes not use local
 	virtual int UseThisObject(ObjectContext *oc);
+	virtual int UseThisObject(Laxkit::GradientStrip *nstrip);
 	virtual void Clear(SomeData *d) { if ((!d && data) || (d && d==data)) { data->dec_count(); data=NULL; } }
+	virtual void SetupRect(double x,double y,double w,double h);
 
 	virtual int LBDown(int x,int y,unsigned int state,int count,const Laxkit::LaxMouse *d);
 	virtual int LBUp(int x,int y,unsigned int state,const Laxkit::LaxMouse *d);
@@ -144,7 +150,7 @@ class GradientInterface : public anInterface
 	virtual int scan(int x,int y);
 	virtual int SelectPoint(int c);
 	virtual void deletedata();
-	virtual ObjectContext *Context() { return goc; }
+	virtual ObjectContext *Context();
 	virtual flatpoint getpoint(int c, int trans);
 	virtual int sendcolor(Laxkit::ScreenColor *col);
 };

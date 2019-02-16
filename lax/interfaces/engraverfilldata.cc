@@ -3625,7 +3625,7 @@ void EngraverPointGroup::InstallTraceGradient(char type, GradientData *ngradient
 		flatpoint p1(0,0), p2(1,0);
 		if (type=='r') p2.x=0;
 		ScreenColor col1(1.0,1.0,1.0,1.0), col2(0.0,0.0,0.0,1.0);
-		gradient=new GradientData(p1,p2,0,1, &col1,&col2, type=='l' ? GRADIENT_LINEAR : GRADIENT_RADIAL);
+		gradient = new GradientData(p1,p2,0,1, &col1,&col2, type=='l' ? GradientData::GRADIENT_LINEAR : GradientData::GRADIENT_RADIAL);
 		gradient->FindBBox();
 
 		Affine aa(owner->GetTransformToContext(false,0));

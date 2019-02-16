@@ -24,11 +24,16 @@
 #include <lax/displayer.h>
 #include <lax/attributes.h>
 
+
 #include <iostream>
 #define DBG
 
 using namespace std;
 using namespace LaxFiles;
+
+
+//template implementation:
+#include <lax/lists.cc>
 
 
 namespace Laxkit {
@@ -102,7 +107,7 @@ GradientStrip::GradientSpot::GradientSpot(double tt,double ss,ScreenColor *col)
 	s=ss;
 	ns=0;
 
-	color=ColorManager::newColor(LAX_COLOR_RGB, col);
+	color = ColorManager::newColor(LAX_COLOR_RGB, col);
 
 	 //for compatibility with gimp gradients:
 	midposition=.5; //0..1, is along segment of this point to next
@@ -298,9 +303,9 @@ LaxFiles::Attribute *GradientStrip::GradientSpot::dump_out_atts(LaxFiles::Attrib
  */
 
 
-/*! Create new blank gradient.
+/*! Create new blank gradient. If init, install colors white to black, 0..1. Else create with no colors.
  */
-GradientStrip::GradientStrip()
+GradientStrip::GradientStrip(int init)
 {
 	name=file=NULL;
 
@@ -316,7 +321,7 @@ GradientStrip::GradientStrip()
 	tmin=smin=0;
 	tmax=smax=1;
 
-	FlushColors(true); //sets white to black
+	if (init) FlushColors(true); //sets white to black
 }
 
 
@@ -364,6 +369,34 @@ GradientStrip::GradientStrip(Color *col1, int dup1, Color *col2, int dup2)
 	tmax=1;
 
 	Set(col1,dup1, col2,dup2, false);
+}
+
+GradientStrip::GradientStrip(flatpoint from, flatpoint to, double rr1, double rr2, Color *col1, int dup1, Color *col2, int dup2)
+{
+	name = file = NULL;
+	gradient_flags = 0;
+	num_columns_hint = 0;
+
+	p1 = from;
+	p2 = to;
+	r1 = rr1;
+	r2 = rr2;
+
+	if (col1 || col2) Set(col1,dup1, col2,dup2, false);
+}
+
+GradientStrip::GradientStrip(flatpoint from, flatpoint to, double rr1, double rr2, Laxkit::ScreenColor *col1, Laxkit::ScreenColor *col2)
+{
+	name = file = NULL;
+	gradient_flags = 0;
+	num_columns_hint = 0;
+
+	p1 = from;
+	p2 = to;
+	r1 = rr1;
+	r2 = rr2;
+
+	if (col1 || col2) Set(col1, col2, false);
 }
 
 GradientStrip::~GradientStrip()
@@ -610,7 +643,7 @@ void GradientStrip::dump_in (FILE *f,int indent,int what,DumpContext *context,At
 	}
 }
 
-/*! Reads in from something like:
+/*! Reads in from something like this. p1 and p2 can also be flatvectors:
  * <pre>
  *  matrix 1 0 0 1 0 0
  *  p1 0
@@ -641,10 +674,22 @@ void GradientStrip::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *
 		value=att->attributes.e[c]->value;
 
 		if (!strcmp(name,"p1")) {
-			FlatvectorAttribute(value,&p1,&e);
+			if (!FlatvectorAttribute(value,&p1,&e)) {
+				double d = 0;
+				if (DoubleAttribute(value, &d)) {
+					p1.x = d;
+					p1.y = 0;
+				}
+			}
 
 		} else if (!strcmp(name,"p2")) {
-			FlatvectorAttribute(value,&p2,&e);
+			if (!FlatvectorAttribute(value,&p2,&e)) {
+				double d = 0;
+				if (DoubleAttribute(value, &d)) {
+					p2.x = d;
+					p2.y = 0;
+				}
+			}
 
 		} else if (!strcmp(name,"r1")) {
 			DoubleAttribute(value,&r1,&e);
@@ -781,8 +826,8 @@ void GradientStrip::UpdateNormalized(bool set)
 {
 	if (!colors.n) return;
 
-	tmin=colors.e[0]->t;
-	tmax=colors.e[colors.n]->t;
+	tmin = colors.e[0]->t;
+	tmax = colors.e[colors.n-1]->t;
 
 	for (int c=0; c<colors.n; c++) {
 		if (colors.e[c]->t < tmin) tmin=colors.e[c]->t;
@@ -817,6 +862,14 @@ double GradientStrip::GetNormalizedT(int index)
 int GradientStrip::NumColors()
 {
 	return colors.n;
+}
+
+/*! Range of t values of the stops. If no stops, then 0.
+ */
+double GradientStrip::TRange()
+{
+	if (!colors.n) return 0;
+	return colors.e[colors.n-1]->t - colors.e[0]->t;
 }
 
 /*! If reset, then replace all with a gradient from 0..1 with white to black.

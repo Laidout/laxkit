@@ -52,6 +52,7 @@ class GradientStrip : virtual public Resourceable, virtual public LaxFiles::Dump
 		Repeat     = (1<<5),
 		FlipRepeat = (1<<7),
 		Read_only  = (1<<8),
+		Fill       = (1<<9),
 		MAX
 	};
 
@@ -115,9 +116,11 @@ class GradientStrip : virtual public Resourceable, virtual public LaxFiles::Dump
 
 	int continue_left, continue_right; //0 for stop, 1 for continue with closest color, 2 for flip, 3 for repeat
 
-	GradientStrip();
+	GradientStrip(int init=0);
 	GradientStrip(Laxkit::ScreenColor *col1,Laxkit::ScreenColor *col2);
 	GradientStrip(Color *col1, int dup1, Color *col2, int dup2); 
+	GradientStrip(flatpoint from, flatpoint to, double rr1, double rr2, Color *col1, int dup1, Color *col2, int dup2); 
+	GradientStrip(flatpoint from, flatpoint to, double rr1, double rr2, Laxkit::ScreenColor *col1, Laxkit::ScreenColor *col2); 
 	virtual ~GradientStrip();
 	virtual const char *whattype() { return IsPalette() ? "Palette" : "GradientStrip"; }
 	virtual anObject *duplicate(anObject *ref);
@@ -130,6 +133,7 @@ class GradientStrip : virtual public Resourceable, virtual public LaxFiles::Dump
 	virtual void SetLinear(flatpoint pp1, flatpoint pp2, double rr1, double rr2);
 
 	virtual int NumColors();
+	virtual double TRange();
 	virtual Color *GetColor(int index);
 	virtual GradientSpot *GetColorSpot(int index);
 	virtual int FlushColors(bool reset);
