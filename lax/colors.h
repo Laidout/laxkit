@@ -28,6 +28,7 @@
 #include <lax/dump.h>
 #include <lax/screencolor.h>
 #include <lax/events.h>
+#include <lax/singletonkeeper.h>
 
 //#include <lcms.h>
 
@@ -244,7 +245,7 @@ ColorSystem *Create_XYZ_System(bool with_alpha);
 class ColorManager : public anObject
 {
   private:
-	static ColorManager *default_manager;
+	static SingletonKeeper keeper;
 
   protected: 
 	PtrStack<ColorSystem> systems;
@@ -253,8 +254,8 @@ class ColorManager : public anObject
 	static ColorManager *GetDefault(bool create=true);
 	static void SetDefault(ColorManager *manager);
 
-	static Color *newColor(int system, int nvalues, ...);
-	static Color *newColor(int nvalues, ScreenColor *color);
+	static Color *newColor(int systemid, int nvalues, ...);
+	static Color *newColor(int systemid, ScreenColor *color);
 	static Color *newColor(LaxFiles::Attribute *att);
 
 		

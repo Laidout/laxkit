@@ -930,12 +930,14 @@ ColorSystem *Create_XYZ_System(bool with_alpha)
  * Basics are rgb, gray, cmy, cmyk, yuv, hsv.
  */
 
-ColorManager *ColorManager::default_manager = NULL;
+SingletonKeeper ColorManager::keeper;
 
 ColorManager *ColorManager::GetDefault(bool create)
 {
+	ColorManager *default_manager = dynamic_cast<ColorManager*>(keeper.GetObject());
 	if (!default_manager && create) {
 		default_manager = new ColorManager();
+		keeper.SetObject(default_manager, 1);
 	}
 
 	return default_manager;
@@ -945,10 +947,10 @@ ColorManager *ColorManager::GetDefault(bool create)
  */
 void ColorManager::SetDefault(ColorManager *manager)
 {
+	ColorManager *default_manager = dynamic_cast<ColorManager*>(keeper.GetObject());
+
 	if (manager == default_manager) return;
-	if (default_manager) default_manager->dec_count();
-	default_manager = manager;
-	if (default_manager) default_manager->inc_count();
+	keeper.SetObject(manager, 0);
 }
 
 /*! Static function to return a random color.
@@ -974,11 +976,12 @@ Color *ColorManager::newColor(int systemid, int nvalues, ...)
 	return color;
 } 
 
-/*! Static function to convert ScreenColor to Color.
+/*! Static function to convert ScreenColor to a systemid (such as LAX_COLOR_RGB) Color.
  */
-Color *ColorManager::newColor(int nvalues, ScreenColor *color)
+Color *ColorManager::newColor(int systemid, ScreenColor *color)
 {
-	return newColor(LAX_COLOR_RGB, 4, color->red/65535., color->green/65535., color->blue/65535., color->alpha/65535);
+	if (!color) return nullptr;
+	return newColor(systemid, 4, color->red/65535., color->green/65535., color->blue/65535., color->alpha/65535);
 }
 
 Color *ColorManager::newColor(LaxFiles::Attribute *att)
