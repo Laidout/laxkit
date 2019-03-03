@@ -43,7 +43,8 @@ class GradientData : virtual public SomeData
 	enum GradentDataStyle {
 		GRADIENT_RADIAL      = (1<<0),
 		GRADIENT_LINEAR      = (1<<1),
-		GRADIENT_FILL_PARENT = (1<<2)
+		GRADIENT_FILL_PARENT = (1<<2),
+		GRADIENT_X_Only      = (1<<3)
 	};
 
 	unsigned int style;
@@ -99,7 +100,7 @@ class GradientInterface : public anInterface
 	int mx,my,draggingmode;
 	int curpoint; //-1=whole thing, >=0 is color point, -2 is none
 	Laxkit::NumStack<int> curpoints;
-	virtual void newData(int x,int y);
+	virtual void newData(double x, double y);
 	flatpoint leftp;
 
 	Laxkit::ShortcutHandler *sc;
