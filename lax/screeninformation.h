@@ -39,8 +39,8 @@ class ScreenInformation
 
 	ScreenInformation *next;
 
-	ScreenInformation() { next = nullptr; }
-	~ScreenInformation() { delete name; if (next) delete next; }
+	ScreenInformation() { next = nullptr; name = nullptr; }
+	~ScreenInformation();
 	int HowMany() { return 1 + (next ? next->HowMany() : 0); }
 	ScreenInformation *Get(int i) { if (i==0) return this; else { if (next && i>0) return next->Get(i-1); else return nullptr; } }
 	ScreenInformation *Get(char *which);
