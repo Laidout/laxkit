@@ -160,19 +160,20 @@ ColorEventData::~ColorEventData()
 
 Color::Color()
 {
-	colorsystemid=0;
-	color_type=COLOR_Normal;
-	system=NULL;
-	nvalues=0;
-	alpha=1.0;
-	values=NULL;
-	name=NULL;
+	colorsystemid = 0;
+	color_type = COLOR_Normal;
+	system  = NULL;
+	nvalues = 0;
+	alpha   = 1.0;
+	values  = NULL;
+	name    = NULL;
 }
 
 Color::~Color()
 {
 	if (name) delete[] name;
 	if (system) system->dec_count();
+	delete[] values;
 }
 
 Color::Color(const Color &c)
@@ -182,17 +183,18 @@ Color::Color(const Color &c)
 		system=c.system;
 		if (system) system->inc_count();
 	}
-	if (system) colorsystemid=system->SystemId();
-	else colorsystemid=c.colorsystemid;
+	if (system) colorsystemid = system->SystemId();
+	else colorsystemid = c.colorsystemid;
 	color_type = c.color_type;
-	alpha=c.alpha;
+	alpha = c.alpha;
 	makestr(name,c.name);
-	if (nvalues>c.nvalues) {
-		delete[] values; values=NULL;
-		nvalues=c.nvalues;
-		if (nvalues) values=new double[nvalues];
+
+	nvalues = c.nvalues;
+	if (nvalues) {
+		values = new double[nvalues];
+		memcpy(c.values, values, nvalues*sizeof(double));
 	}
-	if (nvalues) memcpy(c.values,values,nvalues*sizeof(double));
+	else values = nullptr;
 }
 
 Color &Color::operator=(Color &c)
@@ -202,10 +204,10 @@ Color &Color::operator=(Color &c)
 		system=c.system;
 		if (system) system->inc_count();
 	}
-	if (system) colorsystemid=system->SystemId();
-	else colorsystemid=c.colorsystemid;
+	if (system) colorsystemid = system->SystemId();
+	else colorsystemid = c.colorsystemid;
 	color_type = c.color_type;
-	alpha=c.alpha;
+	alpha = c.alpha;
 	makestr(name,c.name);
 	if (nvalues>c.nvalues) {
 		delete[] values;
@@ -257,7 +259,7 @@ int Color::ColorType()
  */
 double Color::ChannelValue(int channel)
 {
-	if (channel<0 || channel>=nvalues || channel>=system->primaries.n) return -1;
+	if (channel<0 || channel >= nvalues) return -1;
 	return values[channel];
 }
 
@@ -265,7 +267,7 @@ double Color::ChannelValue(int channel)
  */
 double Color::ChannelValue0To1(int channel)
 {
-	if (channel<0 || channel>=nvalues || channel>=system->primaries.n) return -1;
+	if (channel<0 || channel >= nvalues) return -1;
 	return (values[channel] - system->ChannelMinimum(channel)) / (system->ChannelMaximum(channel) - system->ChannelMinimum(channel));
 }
 
@@ -274,7 +276,7 @@ double Color::ChannelValue0To1(int channel)
  */
 double Color::ChannelValue(int channel, double newvalue)
 {
-	if (channel<0 || channel>=nvalues || channel>=system->primaries.n) return -1;
+	if (channel<0 || channel >= nvalues) return -1;
 	values[channel] = newvalue;
 	return newvalue;
 }
@@ -320,6 +322,16 @@ int Color::UpdateToSystem(Color *color)
 	return 0;
 }
 
+void Color::UpdateScreenColor()
+{
+	int systemid = ColorSystemId();
+	if (systemid == LAX_COLOR_RGB) {
+		screen.rgbf(values[0],values[1],values[2],values[3]);
+	} else if (systemid == LAX_COLOR_GRAY) {
+		screen.grayf(values[0],values[1]);
+	}
+}
+
 /*! Make the color be valid for this system, and ensure there are the right number
  * of channels.
  */
@@ -339,27 +351,44 @@ void Color::InstallSystem(ColorSystem *newsystem)
 
 		if (nvalues) {
 			values = new double[nvalues];
-			for (int c=0; c<nvalues; c++) values[0]=0;
+			for (int c=0; c<nvalues; c++) values[c]=0;
 		}
 	}
+}
+
+char *Color::dump_out_simple_string()
+{
+	int n = 0;
+	n = dump_out_simple_string(nullptr, n);
+	char *str = new char[n];
+	dump_out_simple_string(str, n);
+	return str;
 }
 
 /*! For instance, an sRGB might be output as "rgbaf(1.0, 0.0, 0.0, .5)".
  *
  * If system!=NULL, then use system->shortnames as the base.
  * If system==NULL, then assume rgb.
+ *
+ * If color==null or n is less than the number of chars needed, return the number needed.
  */
-char *Color::dump_out_simple_string()
+int Color::dump_out_simple_string(char *color, int n)
 {
-	char *color=NULL;
+	int needed=0;
+	if (color == nullptr) {
+		if (color_type==COLOR_Normal) {
+			if (nvalues==0) needed = 100;
+			else needed = (nvalues+1) * 20;
+		} else needed = 13;
+	}
+	if (needed > n) return needed;
 
 	if (color_type==COLOR_Normal) {
 		if (nvalues==0) {
 			 //fallback to using ScreenColor
-			color=new char[20*4+10];
 			sprintf(color, "rgbaf(%.10g,%.10g,%.10g,%.10g)",
 				screen.Red(), screen.Green(), screen.Blue(), screen.Alpha());
-			return color; 
+			return strlen(color);
 		}
 
 		const char *base=NULL;
@@ -380,7 +409,6 @@ char *Color::dump_out_simple_string()
 			else base="rgb";
 		}
 
-		color=new char[strlen(base)+3+20*nvalues+2];
 		sprintf(color, "%s%sf(", base, hasalpha ? "a" : "");
 
 		char *ptr;
@@ -395,12 +423,12 @@ char *Color::dump_out_simple_string()
 		ptr[1]='\0';
 
 	} else {
-		if (color_type==COLOR_None) color=newstr("none");
-		else if (color_type==COLOR_Knockout) color=newstr("knockout");
-		else if (color_type==COLOR_Registration) color=newstr("registration");
+		if (color_type==COLOR_None) sprintf(color, "none");
+		else if (color_type==COLOR_Knockout) sprintf(color, "knockout");
+		else if (color_type==COLOR_Registration) sprintf(color, "registration");
 	}
 
-	return color;
+	return strlen(color);
 }
 
 void Color::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
@@ -687,10 +715,13 @@ Color *ColorSystem::newColor(int nvalues, va_list argptr)
 	color->InstallSystem(this);
 
 	for (int c=0; c<nvalues && c<NumChannels(); c++) {
-		color->ChannelValue(c, va_arg(argptr, double));
+		double val = va_arg(argptr, double);
+		DBG cerr << "add to color at "<<c<<": "<<val<<endl;
+		color->ChannelValue(c, val);
 	}
+	color->UpdateScreenColor();
 
-	return NULL;
+	return color;
 }
 
 /*! Return if it is ok to use alpha for this system. The channel is assumed
@@ -714,7 +745,7 @@ int ColorSystem::NumChannels()
  */
 double ColorSystem::ChannelMinimum(int channel)
 {
-	if (channel<0 || channel>=primaries.n) return 0;
+	if (channel<0 || channel >= primaries.n) return 0;
 	return primaries.e[channel]->minvalue;
 }
 
@@ -722,7 +753,7 @@ double ColorSystem::ChannelMinimum(int channel)
  */
 double ColorSystem::ChannelMaximum(int channel)
 {
-	if (channel<0 || channel>=primaries.n) return 0;
+	if (channel<0 || channel >= primaries.n) return 0;
 	return primaries.e[channel]->maxvalue;
 }
 
@@ -771,7 +802,7 @@ ColorSystem *Create_sRGB_System(bool with_alpha)
 	makestr(rgb->name,_("sRGB"));
 	makestr(rgb->shortnames,"rgb");
 	rgb->systemid = LAX_COLOR_RGB;
-	if (with_alpha) rgb->style|=COLOR_Has_Alpha;
+	if (with_alpha) rgb->style |= COLOR_Has_Alpha;
 
 	//rgb->iccprofile=***;
 
@@ -802,7 +833,7 @@ ColorSystem *Create_Gray_System(bool with_alpha)
 	makestr(gray->name,_("Gray"));
 	makestr(gray->shortnames,"gray");
 	gray->systemid = LAX_COLOR_GRAY;
-	if (with_alpha) gray->style|=COLOR_Has_Alpha;
+	if (with_alpha) gray->style |= COLOR_Has_Alpha;
 
 	//gray->iccprofile=***;
 
@@ -823,7 +854,7 @@ ColorSystem *Create_Generic_CMYK_System(bool with_alpha)
 	makestr(cmyk->name,_("Generic CMYK"));
 	makestr(cmyk->shortnames,"cmyk");
 	cmyk->systemid = LAX_COLOR_CMYK;
-	if (with_alpha) cmyk->style|=COLOR_Has_Alpha;
+	if (with_alpha) cmyk->style |= COLOR_Has_Alpha;
 
 	//cmyk->iccprofile=***;
 
@@ -861,7 +892,7 @@ ColorSystem *Create_CieLab_System(bool with_alpha)
 	makestr(cielab->name,_("CieL*a*b*"));
 	makestr(cielab->shortnames,"cielab");
 	cielab->systemid = LAX_COLOR_CieLAB;
-	if (with_alpha) cielab->style|=COLOR_Has_Alpha;
+	if (with_alpha) cielab->style |= COLOR_Has_Alpha;
 
 	//cielab->iccprofile=***;
 
@@ -934,6 +965,7 @@ SingletonKeeper ColorManager::keeper;
 
 ColorManager *ColorManager::GetDefault(bool create)
 {
+	DBG cerr << "ColorManager::GetDefault()"<<endl;
 	ColorManager *default_manager = dynamic_cast<ColorManager*>(keeper.GetObject());
 	if (!default_manager && create) {
 		default_manager = new ColorManager();
@@ -947,6 +979,8 @@ ColorManager *ColorManager::GetDefault(bool create)
  */
 void ColorManager::SetDefault(ColorManager *manager)
 {
+	DBG cerr << "ColorManager::SetDefault()"<<endl;
+
 	ColorManager *default_manager = dynamic_cast<ColorManager*>(keeper.GetObject());
 
 	if (manager == default_manager) return;
@@ -981,7 +1015,7 @@ Color *ColorManager::newColor(int systemid, int nvalues, ...)
 Color *ColorManager::newColor(int systemid, ScreenColor *color)
 {
 	if (!color) return nullptr;
-	return newColor(systemid, 4, color->red/65535., color->green/65535., color->blue/65535., color->alpha/65535);
+	return newColor(systemid, 4, color->red/65535., color->green/65535., color->blue/65535., color->alpha/65535.);
 }
 
 Color *ColorManager::newColor(LaxFiles::Attribute *att)
@@ -996,6 +1030,8 @@ Color *ColorManager::newColor(LaxFiles::Attribute *att)
 
 ColorManager::ColorManager()
 {
+	Id("ColorManager");
+	DBG cerr <<"ColorManager "<<(Id()?Id():"unnamed")<<" constructor"<<endl;
 }
 
 ColorManager::~ColorManager()
