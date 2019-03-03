@@ -244,8 +244,15 @@ void GradientStrip::GradientSpot::dump_out(FILE *f,int indent,int what,LaxFiles:
 		fprintf(f,"%stransition %s", spc, transition ? "rgb" : "hsv");
 	}
 
-	fprintf(f,"%scolor\n",spc);
-	color->dump_out(f,indent+2,what,context);
+	int n=0;
+	n = color->dump_out_simple_string(nullptr, n);
+	char *str = new char[n];
+	color->dump_out_simple_string(str, n);
+
+	fprintf(f,"%scolor %s\n",spc, str);
+	delete[] str;
+
+	//color->dump_out(f,indent+2,what,context);
 }
 
 /*! If what==-1, then dump out a psuedocode mockup of what gets dumped.
@@ -1055,7 +1062,7 @@ Color *GradientStrip::WhatColor(double t, Color *col)
 	if (nt <= colors.e[0]->nt) {
 		*color = *colors.e[0]->color;
 
-	} else if (nt >= colors.e[colors.n]->nt) {
+	} else if (nt >= colors.e[colors.n-1]->nt) {
 		*color = *colors.e[colors.n-1]->color;
 
 	} else {
@@ -1111,8 +1118,8 @@ int GradientStrip::WhatColor(double t, ScreenColor *col)
 	if (nt <= colors.e[0]->nt) {
 		*col = colors.e[0]->color->screen;
 
-	} else if (nt >= colors.e[colors.n]->nt) {
-		*col = colors.e[colors.n]->color->screen;
+	} else if (nt >= colors.e[colors.n-1]->nt) {
+		*col = colors.e[colors.n-1]->color->screen;
 
 	} else {
 		int c=0;
