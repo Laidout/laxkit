@@ -80,13 +80,13 @@ Button::Button(anXWindow *parnt,const char *nname,const char *ntitle,unsigned lo
 
 	pad = npad; if (pad<0) pad = app->theme->default_padx;
 	gap = npad; if (gap<0) gap = app->theme->default_padx;
-	state=oldstate=1;
+	state = oldstate = 1;
 
-	thing=THING_None;
-	thingw=thingh=0;
+	thing = THING_None;
+	thingw = thingh = 0;
 
-	label=newstr(nlabel);
-	labelstyle=LAX_ICON_TEXT;
+	label = newstr(nlabel);
+	labelstyle = LAX_ICON_TEXT;
 
 	if (win_style&IBUT_TEXT_ONLY) labelstyle=LAX_TEXT_ONLY;
 	else if (win_style&IBUT_ICON_ONLY) labelstyle=LAX_ICON_ONLY;
@@ -117,6 +117,7 @@ Button::Button(anXWindow *parnt,const char *nname,const char *ntitle,unsigned lo
 //! Calls dec_count() on images.
 Button::~Button()
 {
+	delete[] label;
 	if (font)    font   ->dec_count();
 	if (image)   image  ->dec_count();
 	if (bwimage) bwimage->dec_count();
