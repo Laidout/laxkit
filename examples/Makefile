@@ -69,6 +69,9 @@ thingpreviewer: lax thingpreviewer.o
 timers: lax timers.o
 	$(LD) $@.o -llaxkit $(LDFLAGS) -o $@
 
+stopwatch: lax laxinterface stopwatch.o
+	$(LD) $@.o -llaxkit $(LDFLAGS) -o $@
+
 stationrotater: lax stationrotater.o
 	$(LD) $@.o -llaxkit $(LDFLAGS) -o $@
 
