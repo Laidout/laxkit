@@ -1504,7 +1504,8 @@ flatpoint *SvgToFlatpoints(const char *d, char **endptr, int how, flatpoint *buf
 
 	flatpoint *newpoints = points.extractArray(totalpoints);
 	if (buffer) {
-		memcpy(buffer, newpoints, (*totalpoints)*sizeof(flatpoint));
+		//memcpy(buffer, newpoints, (*totalpoints)*sizeof(flatpoint));
+		for (int c=0; c<*totalpoints; c++) buffer[c] = newpoints[c];
 		delete[] newpoints;
 		newpoints=buffer;
 	}

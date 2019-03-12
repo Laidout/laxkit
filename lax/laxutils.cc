@@ -27,6 +27,7 @@
 #include <cmath>
 #include <errno.h>
 
+#include <lax/configured.h>
 #include <lax/laxutils.h>
 #include <lax/bezutils.h>
 #include <lax/language.h>
@@ -85,8 +86,10 @@ Displayer *newDisplayer_cairo(aDrawable *w)
 #endif 
 
 #ifdef LAX_USES_XLIB
+#ifdef LAX_USES_IMLIB
 Displayer *newDisplayer_xlib(aDrawable *w)
 { return new DisplayerXlib(w); }
+#endif
 #endif
 
 
@@ -144,7 +147,9 @@ int SetNewDisplayerFunc(const char *backend)
         } else if (!strcmp(backend,"xlib")) {
 
 #ifdef LAX_USES_XLIB
+#ifdef LAX_USES_IMLIB
             if (!func) func=newDisplayer_xlib;
+#endif
 #endif
             if (!func) {
                 cerr <<" Ack! Trying to initialize xlib displayer, but no xlib in Laxkit!!"<<endl;
@@ -641,7 +646,8 @@ flatpoint *draw_thing_coordinates(DrawThingTypes thing, flatpoint *buffer, int b
 
 		if (!buffer) buffer=pts;
 		else {
-			memcpy(buffer, pts, n*sizeof(flatpoint));
+			//memcpy(buffer, pts, n*sizeof(flatpoint));
+			for (int c=0; c<n; c++) buffer[c] = pts[c];
 			delete[] pts;
 		}
 		*n_ret=n;
@@ -662,7 +668,8 @@ flatpoint *draw_thing_coordinates(DrawThingTypes thing, flatpoint *buffer, int b
 
 		if (!buffer) buffer=pts;
 		else {
-			memcpy(buffer, pts, n*sizeof(flatpoint));
+			//memcpy(buffer, pts, n*sizeof(flatpoint));
+			for (int c=0; c<n; c++) buffer[c] = pts[c];
 			delete[] pts;
 		}
 		*n_ret=n;
@@ -684,7 +691,8 @@ flatpoint *draw_thing_coordinates(DrawThingTypes thing, flatpoint *buffer, int b
 
 		if (!buffer) buffer=pts;
 		else {
-			memcpy(buffer, pts, n*sizeof(flatpoint));
+			//memcpy(buffer, pts, n*sizeof(flatpoint));
+			for (int c=0; c<n; c++) buffer[c] = pts[c];
 			delete[] pts;
 		}
 		*n_ret=n;
@@ -932,7 +940,8 @@ flatpoint *draw_thing_coordinates(DrawThingTypes thing, flatpoint *buffer, int b
 			p[c].y=p[c].y/12;
 		}
 		p[24].info=LINE_Closed;
-		memcpy(buffer,p,25*sizeof(flatpoint));
+		//memcpy(buffer,p,25*sizeof(flatpoint));
+		for (int c=0; c<25; c++) buffer[c] = p[c];
 
 	} else if (thing==THING_Check) {
 		if ((buffer && buffer_size<4) || (!buffer && buffer_size>=0)) { *n_ret=4; return NULL; }

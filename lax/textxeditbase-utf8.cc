@@ -199,24 +199,34 @@ int hexify(char *str, int i)
 	return strlen(str);
 }
 
+double TextXEditBaseUtf8::TextExtent(const char *str, int len, double *width,double *height,double *ascent,double *descent)
+{
+	if (dp == nullptr) dp = MakeCurrent();
+	return dp->textextent(str,len, width,height,ascent,descent);
+}
+
 //! Returns real char width with r==1, else returns the custom hexified if r==0.
 /*! WARNING: this is found from individual characters in the font, not from the context of the character.
  */
 int TextXEditBaseUtf8::charwidth(int ch,int r) //r=0
 {
-	if (ch==32) return thefont->Extent(" ",-1);
+	//if (ch==32) return thefont->Extent(" ",-1);
+	if (ch==32) return TextExtent(" ",-1);
 
 	char c[20];
 	int l;
 	l=utf8encode(ch,c);
 	c[l]='\0';
 
-	if (r==1) return thefont->Extent(c,-1);
+	//if (r==1) return thefont->Extent(c,-1);
+	if (r==1) return TextExtent(c,-1);
 
-	int w = thefont->Extent(c,-1);
+	//int w = thefont->Extent(c,-1);
+	int w = TextExtent(c,-1);
 	if (w) return w;
 	hexify(c,ch);
-	w = thefont->Extent(c,-1);
+	//w = thefont->Extent(c,-1);
+	w = TextExtent(c,-1);
 	return w;
 }
 
@@ -840,7 +850,8 @@ int TextXEditBaseUtf8::ExtentAndStr(char *str,long len,char *&blah,long &p)
 	}
 	int pix;
 	double ww;
-	ww = thefont->Extent(blah,p);
+	//ww = thefont->Extent(blah,p);
+	ww = TextExtent(blah,p);
 	pix=ww;
 
 	//DBG cerr <<"  e&s:="<<p<<" strlen="<<strlen(blah);
@@ -868,7 +879,8 @@ int TextXEditBaseUtf8::GetExtent(long pos,long end,int lsofar,long eof) //lsofar
 	 //for right or center justified, or no tabs, return normal extents
 	double ww;
 	if ((textstyle&(TEXT_RIGHT|TEXT_CENTER)) || !(textstyle&TEXT_TABS_STOPS)) {
-		ww = thefont->Extent(thetext+pos,end-pos);
+		//ww = thefont->Extent(thetext+pos,end-pos);
+		ww = TextExtent(thetext+pos,end-pos);
 		lsofar+=ww;
 		 //*** note that this is wrong: it does not take into account mapping of missing chars
 		 //    and probably not tabs
@@ -893,11 +905,13 @@ int TextXEditBaseUtf8::GetExtent(long pos,long end,int lsofar,long eof) //lsofar
 		 //find the char extent of the current tab segment,
 		 // makes ppos at end of current tab segment
 		while (ppos<eot && thetext[ppos]!='\t' && !onlf(ppos)) ppos++;
-		ww = thefont->Extent(thetext+pos,ppos-pos);
+		//ww = thefont->Extent(thetext+pos,ppos-pos);
+		ww = TextExtent(thetext+pos,ppos-pos);
 		slen = ww;
 
 		if (ppos>=end) {
-			ww = thefont->Extent(thetext+pos,end-pos);
+			//ww = thefont->Extent(thetext+pos,end-pos);
+			ww = TextExtent(thetext+pos,end-pos);
 			pslen = ww;
 		}
 		
@@ -911,7 +925,8 @@ int TextXEditBaseUtf8::GetExtent(long pos,long end,int lsofar,long eof) //lsofar
 			thetext[ppos]=ch;
 
 			if (charpos) {
-				ww = thefont->Extent(thetext+pos,charpos-thetext);
+				//ww = thefont->Extent(thetext+pos,charpos-thetext);
+				ww = TextExtent(thetext+pos,charpos-thetext);
 				tlen=ww;
 			} else {
 				tabtype=RIGHT_TAB;
@@ -984,7 +999,8 @@ long TextXEditBaseUtf8::GetPos(long pos,int pix,int lsofar,long eof) //lsofar=0,
 		while (pos2<end) { 
 			 //*** note that this is wrong: it does not take into account mapping of missing chars
 			pos3=nextpos(pos2);
-			thefont->Extent(thetext+pos,pos3-pos, &ww,&hh, NULL,NULL);
+			//thefont->Extent(thetext+pos,pos3-pos, &ww,&hh, NULL,NULL);
+			TextExtent(thetext+pos,pos3-pos, &ww,&hh, NULL,NULL);
 			tlsofar=lsofar+ww;
 			mid=(tlsofar+lastpix)/2;
 			DBG cerr <<pix<<"  "<<lsofar<<"  "<<"  mid:"<<mid<<"  "<<tlsofar<<endl;
@@ -1027,7 +1043,8 @@ long TextXEditBaseUtf8::GetPos(long pos,int pix,int lsofar,long eof) //lsofar=0,
 				else topos=eotabseg;
 		} else topos=eotabseg;
 
-		thefont->Extent(thetext+pos,topos-pos, &ww,&hh, NULL,NULL);
+		//thefont->Extent(thetext+pos,topos-pos, &ww,&hh, NULL,NULL);
+		TextExtent(thetext+pos,topos-pos, &ww,&hh, NULL,NULL);
 		seg=ww;
 
 		switch (tabtype) {
@@ -1053,7 +1070,8 @@ long TextXEditBaseUtf8::GetPos(long pos,int pix,int lsofar,long eof) //lsofar=0,
 		while (pos2<eotabseg) {
 			 //*** probably not quite right:
 			pos3=nextpos(pos2);
-			thefont->Extent(thetext+pos,pos3-pos);
+			//thefont->Extent(thetext+pos,pos3-pos);
+			TextExtent(thetext+pos,pos3-pos);
 			lsofar2=lsofar+ww;
 			mid=(last+lsofar2)/2;
 

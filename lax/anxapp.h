@@ -17,7 +17,7 @@
 //    You should have received a copy of the GNU Library General Public
 //    License along with this library; If not, see <http://www.gnu.org/licenses/>.
 //
-//    Copyright (C) 2004-2013 by Tom Lechner
+//    Copyright (C) 2004-2018 by Tom Lechner
 //
 #ifndef _LAX_ANXAPP_H
 #define _LAX_ANXAPP_H
@@ -26,7 +26,6 @@
 
 #ifdef _LAX_PLATFORM_XLIB
 #include <X11/Xlib.h>
-//#include <X11/Xft/Xft.h>
 #include <X11/Xutil.h>
 #include <X11/extensions/Xdbe.h>
 #endif //_LAX_PLATFORM_XLIB
@@ -60,6 +59,7 @@ class Displayer;
 class FontManager;
 class LaxFont;
 
+
 //----------------------------- Misc ------------------------------
 
 anXWindow *TopWindow(anXWindow *win);
@@ -74,31 +74,6 @@ const char *xlib_extension_event_name(int e_type);
 unsigned int composekey(unsigned int k1, unsigned int k2);
 
 
-//----------------------- Styling functions ----------------------------
-////---------------------- WindowColors
-//class WindowColors : public anObject
-//{
-// public:
-//	unsigned long fg; //8 bit argb
-//	unsigned long bg;
-//	unsigned long hfg;
-//	unsigned long hbg;
-//	unsigned long moverfg; // (assume highlighted irrelevant)
-//	unsigned long moverbg;
-//	unsigned long grayedfg; //assume bg is same as normal bg
-//	unsigned long color1;
-//	unsigned long color2;
-//	unsigned long activate;  //usually green for go
-//	unsigned long deactivate;//usually red for stop
-//
-//	WindowColors();
-//	WindowColors(const WindowColors &l);
-//	WindowColors &operator=(WindowColors &l);
-//
-//	WindowColors *duplicate();
-//};
-
-
 //-------------------------- aDrawable ----------------------------------------
 class aDrawable
 {
@@ -107,17 +82,24 @@ class aDrawable
 	XdbeBackBuffer xlib_backbuffer;
 	Window   xlib_window;
 	Drawable xlibDrawable(int which=-1);
-#endif
-#ifdef _LAX_PLATFORM_QT
+
+	aDrawable(Drawable d=0) { xlib_window=d; xlib_backbuffer=None; }
+	virtual int ValidDrawable() { if (xlib_window) return 1; else return 0; }
+#elif defined(_LAX_PLATFORM_QT)
+#elif defined(_LAX_PLATFORM_HEADLESS)
+	aDrawable(Drawable d=0) {}
+	virtual int ValidDrawable() { return 0; }
 #endif
 
-	aDrawable(Drawable d=0) { xlib_window=d; xlib_backbuffer=None; };
 	virtual ~aDrawable() {}
 	virtual int DrawableType() { return 1; }
-	virtual int ValidDrawable() { if (xlib_window) return 1; else return 0; }
 };
 
+
 //-------------------------- anXWindow ----------------------------------------
+
+//for minimal window size sanity checking:
+#define LAX_MAX_WINDOW_SIZE 10000
 
 #define ANXWIN_MASK           (0xffff)
 #define ANXWIN_TRANSIENT      (1<<0)
@@ -417,12 +399,13 @@ class anXApp : virtual public anObject
 
 	 //default Styling
 	Theme         *theme;
-	unsigned long  color_tooltip_bg, color_tooltip_fg;
-	unsigned long  color_activeborder, color_inactiveborder;
-	int            default_border_width;
-	int			   default_padx;
-	int			   default_pady;
-	int			   default_bevel;
+//	unsigned long  color_tooltip_bg, color_tooltip_fg;
+//	unsigned long  color_activeborder, color_inactiveborder;
+//	int            default_border_width;
+//	int			   default_padx;
+//	int			   default_pady;
+//	int			   default_bevel;
+	int            max_window_size;
 
 	unsigned int   dblclk,firstclk,idleclk;
 

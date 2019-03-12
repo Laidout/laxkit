@@ -95,7 +95,7 @@ class flatvector
 	double x,y;
 	int info;
 	int info2;
-	flatvector(void) {x=y=0; info=0; info2=0; }
+	flatvector(void) { x=y=0; info=0; info2=0; }
 	flatvector(double xx, double yy) { x=xx; y=yy; info=0; info2=0; }
 	flatvector(double xx, double yy, int ninfo) { x=xx; y=yy; info=ninfo; info2=0; }
 	flatvector(double *v) { x=v[0]; y=v[1]; info=0; info2=0; }
@@ -110,6 +110,7 @@ class flatvector
 	double angle() const { return atan2(y,x); }
 	double norm() const { return sqrt(x*x+y*y); }
 	double norm2() const { return x*x+y*y; }
+	flatvector transpose() const { return flatvector(-y,x); }
 	double cross(flatvector v) const { return x*v.y-y*v.x; } /*magnitude and sign of cross product, which points in z direction */
 	double distanceTo(flatvector v) const { return sqrt((v.x-x)*(v.x-x)+(v.y-y)*(v.y-y)); }
 };

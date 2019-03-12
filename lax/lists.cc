@@ -156,12 +156,13 @@ const NumStack<T> &NumStack<T>::operator=(const NumStack<T> &numstack)
 template <class T>
 int NumStack<T>::Allocate(int newmax)
 {
-	if (newmax<max) return max;
-	T *newt=new T[newmax];
-	if (n) memcpy(newt,e,n*sizeof(T)); //copy over old data
+	if (newmax < max) return max;
+	T *newt = new T[newmax];
+	//if (n) memcpy(newt,e,n*sizeof(T)); //copy over old data
+	if (n) for (int c=0; c<n; c++) newt[c] = e[c]; //copy over old data
 	delete[] e;
-	e=newt;
-	max=newmax;
+	e = newt;
+	max = newmax;
 	return max;
 }
 
@@ -277,13 +278,17 @@ int NumStack<T>::push(T ne,int where) // where=-1, pushes before which
 	if (n+1>max) {
 		if (delta) max+=delta; else max++;
 		T *temp=new T[max];
-		if (where>0) memcpy(temp,e,where*sizeof(T));
-		if (where<n) memcpy(temp+where+1,e+where,(n-where)*sizeof(T));
+		//if (where>0) memcpy(temp,e,where*sizeof(T));
+		//if (where<n) memcpy(temp+where+1,e+where,(n-where)*sizeof(T));
+		//----
+		if (where>0) for (int c=0; c<where; c++) temp[c] = e[c];
+		if (where<n) for (int c=0; c<n-where; c++) temp[where+1+c] = e[where+c];
 		temp[where]=ne;
 		delete[] e;
 		e=temp;
 	} else {
-		if (where<n) memmove(e+where+1,e+where,(n-where)*sizeof(T));
+		//if (where<n) memmove(e+where+1,e+where,(n-where)*sizeof(T));
+		if (where<n) for (int c=n; c>where; c--) e[c] = e[c-1];
 		e[where]=ne;
 	}
 	n++;
@@ -314,14 +319,18 @@ T NumStack<T>::pop(int which) // which=-1
 	if (n<max-2*delta) { // shrink the allocated space
 		if (n==0) { delete[] e; e=NULL; max=0; }
 		else {
-			max-=delta;
-			T *temp=new T[max];
-			if (which>0) memcpy(temp,e,which*sizeof(T));
-			if (which<n) memcpy(temp+which,e+which+1,(n-which)*sizeof(T));
+			max -= delta;
+			T *temp = new T[max];
+			//if (which>0) memcpy(temp,e,which*sizeof(T));
+			//if (which<n) memcpy(temp+which,e+which+1,(n-which)*sizeof(T));
+			//---------
+			if (which>0) for (int c=0; c<which; c++) temp[c] = e[c];
+			if (which<n) for (int c=0; c<n-which; c++) temp[which+c] = e[which+1+c];
 			delete[] e;
 			e=temp;
 		}
-	} else memmove(e+which,e+which+1,(n-which)*sizeof(T)); 
+	//} else memmove(e+which,e+which+1,(n-which)*sizeof(T)); 
+	} else for (int c=0; c<n-which; c++) e[which+c] = e[which+1+c];
 	return popped;
 }
 

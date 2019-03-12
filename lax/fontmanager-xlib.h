@@ -22,6 +22,13 @@
 #ifndef _LAX_FONTMANAGER_XLIB_H
 #define _LAX_FONTMANAGER_XLIB_H
 
+
+#include <lax/configured.h>
+
+
+#ifdef LAX_USES_XLIB
+
+
 #include <X11/Xlib.h>
 #include <X11/Xft/Xft.h>
 #include <lax/lists.h>
@@ -92,5 +99,6 @@ FontManager *newFontManager_xlib();
 
 } //namespace Laxkit
 
+#endif //LAX_USES_XLIB
 #endif
 

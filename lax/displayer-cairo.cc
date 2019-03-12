@@ -116,15 +116,17 @@ void DisplayerCairo::base_init()
 	isinternal=0;
 	imagebuffer=NULL;
 
+#ifdef _LAX_PLATFORM_XLIB
 	if (xw) {
-		dpy=xw->app->dpy;
-		vis=xw->app->vis;
-		w=xw->xlib_window;
+		dpy = xw->app->dpy;
+		vis = xw->app->vis;
+		w   = xw->xlib_window;
 	} else {
-		dpy=anXApp::app->dpy;
-		vis=anXApp::app->vis;
-		w=0;
+		dpy = anXApp::app->dpy;
+		vis = anXApp::app->vis;
+		w   = 0;
 	}
+#endif
 
 	blendmode=LAXOP_Over;
 	on=0;
@@ -179,7 +181,6 @@ Displayer *DisplayerCairo::duplicate()
 }
 
 
-//Display *DisplayerCairo::GetDpy() { return dpy; }
 cairo_t *DisplayerCairo::GetCairo() { return cr; }
 
 
@@ -326,16 +327,15 @@ int DisplayerCairo::MakeCurrent(aDrawable *buffer)
 
 	if (cr && surface && buffer==dr && w==buffer->xlibDrawable()) return 0; //already current!
 
-	dr=buffer;
-	xw=dynamic_cast<anXWindow*>(buffer);
-	w=buffer->xlibDrawable();
-	if (imagebuffer) { imagebuffer->dec_count(); imagebuffer=NULL; }
+	dr = buffer;
+	xw = dynamic_cast<anXWindow*>(buffer);
+	w = buffer->xlibDrawable();
+	if (imagebuffer) { imagebuffer->dec_count(); imagebuffer = NULL; }
 
-	//w=buffer->xlibDrawable(1);
-	//if (!w) w=buffer->xlibDrawable(0);
 
 	if (!xw) {
-		 //if buffer is probably an xlib Pixmap:
+#ifdef _LAX_PLATFORM_XLIB
+		 //buffer was not an anXWindow, buffer is probably an xlib Pixmap or something:
 		Window rootwin;
 		int x,y;
 		unsigned int width,height,bwidth,depth;
@@ -343,6 +343,7 @@ int DisplayerCairo::MakeCurrent(aDrawable *buffer)
 		Minx=Miny=0;
 		Maxx=width;
 		Maxy=height;
+#endif
 	} else {
 		Minx=Miny=0;
 		Maxx=xw->win_w;
@@ -357,6 +358,7 @@ int DisplayerCairo::MakeCurrent(aDrawable *buffer)
 		isinternal=0;
 	}
 
+#ifdef _LAX_PLATFORM_XLIB
 	if (!surface) {
 		 //no existing surface, need to remap to an xlib_surface
 		if (cr) { cairo_destroy(cr); cr=NULL; }
@@ -366,6 +368,7 @@ int DisplayerCairo::MakeCurrent(aDrawable *buffer)
 		 //we already have an xlib surface, just need to point to current xlib drawable
 		cairo_xlib_surface_set_drawable(surface,w, Maxx,Maxy);
 	}
+#endif
 
 	if (!cr) {
 		cr=cairo_create(surface);
@@ -751,27 +754,23 @@ void DisplayerCairo::ClearWindow()
 	//DBG cerr <<"--displayer ClearWindow:MinMaxx,:["<<Minx<<","<<Maxx
 	//DBG		<<"] MinMaxy:["<<Miny<<","<<Maxy<<"] x0,y0:"<<ctm[4]<<","<<ctm[5]<<endl;
 
-	//if (xw==NULL || (xw && dr->xlibDrawable(-1)==dr->xlibDrawable(1))) {
-		 //if using double buffer, XClearWindow will crash your program, so clear manually
-		cairo_save(cr);
-		cairo_identity_matrix(cr);
-		cairo_operator_t oldmode=cairo_get_operator(cr);
-		cairo_set_operator(cr,CAIRO_OPERATOR_OVER);
+	cairo_save(cr);
+	cairo_identity_matrix(cr);
+	cairo_operator_t oldmode=cairo_get_operator(cr);
+	cairo_set_operator(cr,CAIRO_OPERATOR_OVER);
 
-		if (xw) cairo_set_source_rgba(cr,
-						((xw->win_themestyle->bg.Pixel()&0xff0000)>>16)/255.,
-						((xw->win_themestyle->bg.Pixel()&0xff00)>>8)/255.,
-						 (xw->win_themestyle->bg.Pixel()&0xff)/255.,
-						1.);
-		else cairo_set_source_rgba(cr, bgRed, bgGreen, bgBlue, 1.0);
+	if (xw) cairo_set_source_rgba(cr,
+					((xw->win_themestyle->bg.Pixel()&0xff0000)>>16)/255.,
+					((xw->win_themestyle->bg.Pixel()&0xff00)>>8)/255.,
+					 (xw->win_themestyle->bg.Pixel()&0xff)/255.,
+					1.);
+	else cairo_set_source_rgba(cr, bgRed, bgGreen, bgBlue, 1.0);
 
-		cairo_rectangle(cr, Minx,Miny,Maxx-Minx+1,Maxy-Miny+1);
-		cairo_fill(cr);
-		cairo_set_source_rgba(cr, fgRed, fgGreen, fgBlue, fgAlpha);
-		cairo_set_operator(cr,oldmode);
-		cairo_restore(cr);
-
-	//} //else XClearWindow(dpy, w);
+	cairo_rectangle(cr, Minx,Miny,Maxx-Minx+1,Maxy-Miny+1);
+	cairo_fill(cr);
+	cairo_set_source_rgba(cr, fgRed, fgGreen, fgBlue, fgAlpha);
+	cairo_set_operator(cr,oldmode);
+	cairo_restore(cr);
 }
 
 //! Install a clip mask from a polyline (line is automatically closed)

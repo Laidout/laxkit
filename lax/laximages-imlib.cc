@@ -20,7 +20,6 @@
 //    Copyright (C) 2010 by Tom Lechner
 //
 
-#include <X11/Xlib.h>
 #include <lax/laximages-imlib.h>
 #include <lax/strmanip.h>
 #include <lax/vectors.h>
@@ -28,6 +27,8 @@
 #include <lax/anxapp.h>
 #include <lax/fileutils.h>
 
+
+#ifdef LAX_USES_IMLIB
 
 #ifdef LAX_USES_CAIRO
 #include <lax/laximages-cairo.h>
@@ -157,8 +158,8 @@ LaxImlibImage::LaxImlibImage(const char *original, const char *npfile,int maxx,i
 			imlib_free_image();
 
 			 //****make sure previewfile is writable
-			
-			 
+
+
 			 //figure out dimensions of new preview
 			double a=double(height)/width;
 			int dwidth, dheight;
@@ -170,7 +171,9 @@ LaxImlibImage::LaxImlibImage(const char *original, const char *npfile,int maxx,i
 				dheight=int(maxx*a);
 			}
 
-			generate_preview_image(original,npfile,"jpg",dwidth,dheight,0);
+			//generate_preview_image(original,npfile,"jpg",dwidth,dheight,0);
+			GeneratePreviewFile(original, npfile, "jpg", dwidth, dheight, 0);
+
 
 			pimage=imlib_load_image(npfile);
 			if (pimage) {
@@ -194,6 +197,32 @@ LaxImlibImage::~LaxImlibImage()
 		image=NULL;
 		whichimage=0;
 	}
+}
+
+/*! format==null guess from extension
+ * Return 0 for success or nonzero for failure and not saved.
+ * Warning: does no clobber check.
+ */
+int LaxImlibImage::Save(const char *tofile, const char *format)
+{
+	if (!image) image = Image();
+	if (!image) return 1;
+	if (!tofile) tofile = filename;
+	if (!tofile) return 2;
+
+	imlib_context_set_image(image);
+	if (format) imlib_image_set_format(format); //*** should have option for this
+	 //imlib_save_image() is a void f(), which sucks because we 
+	 //don't know if it was actually written
+	if (!tofile) tofile = filename;
+	imlib_save_image(tofile);
+
+	return 0;
+}
+
+void LaxImlibImage::Set(double r, double g, double b, double a)
+{
+	DBG cerr << " *** LaxImlibImage::Set() unimplemented"<<endl;
 }
 
 void LaxImlibImage::clear()
@@ -347,75 +376,6 @@ void laximlib_update_alpha(int alpha)
 
  //----------default image function replacements
 
-/*! \ingroup laximages
- * Set image, set drawable, then uses imlib_render_image_on_drawable().
- */
-void laximlib_image_out(LaxImage *image, aDrawable *win, int ulx, int uly)
-{
-	if (image->imagetype()!=LAX_IMAGE_IMLIB) return;
-
-	//if (alpha>=0) laximage_set_alpha(int(alpha*255+.5));
-
-	imlib_context_set_image(static_cast<LaxImlibImage *>(image)->Image());
-	imlib_context_set_drawable(alternate_drawable?alternate_drawable:win->xlibDrawable());
-	imlib_render_image_on_drawable(ulx,uly);
-}
-
-/*! \ingroup laximages
- * Set image, set drawable, then uses imlib_render_image_on_drawable_at_angle().
- */
-void laximlib_image_out_rotated(LaxImage *image, aDrawable *win, int ulx,int uly, int urx,int ury)
-{
-	if (image->imagetype()!=LAX_IMAGE_IMLIB) return;
-	imlib_context_set_image(static_cast<LaxImlibImage *>(image)->Image());
-	imlib_context_set_drawable(alternate_drawable?alternate_drawable:win->xlibDrawable());
-	imlib_render_image_on_drawable_at_angle(0,0, 
-								imlib_image_get_width(),imlib_image_get_height(),
-								ulx,uly,
-								urx,ury);
-}
-
-/*! \ingroup laximages
- * Set image, set drawable, then uses imlib_render_image_on_drawable_skewed().
- */
-void laximlib_image_out_skewed(LaxImage *image, aDrawable *win, int ulx,int uly, int urx,int ury, int llx, int lly)
-{
-	if (image->imagetype()!=LAX_IMAGE_IMLIB) return;
-	imlib_context_set_image(static_cast<LaxImlibImage *>(image)->Image());
-	imlib_context_set_drawable(alternate_drawable?alternate_drawable:win->xlibDrawable());
-	imlib_render_image_on_drawable_skewed(0,0, 
-								imlib_image_get_width(),imlib_image_get_height(),
-								ulx,uly,
-								urx,ury,
-								llx,lly);
-}
-
-/*! \ingroup laximages
- * Set image, set drawable, then uses imlib_render_image_on_drawable_skewed() according to 
- * the affine matrix m.
- */
-void laximlib_image_out_matrix(LaxImage *image, aDrawable *win, double *m)
-{
-	if (image->imagetype()!=LAX_IMAGE_IMLIB) return;
-
-	imlib_context_set_image(static_cast<LaxImlibImage *>(image)->Image());
-	imlib_context_set_drawable(alternate_drawable?alternate_drawable:win->xlibDrawable());
-
-	int w,h;
-	w=imlib_image_get_width();
-	h=imlib_image_get_height();
-
-	flatpoint ul,ur,ll;
-	ul=transform_point(m, 0,0);
-	ur=transform_point(m, w,0)-ul;
-	ll=transform_point(m, 0,h)-ul;
-
-	imlib_render_image_on_drawable_skewed(0,0, 
-										w,h,
-										(int)ul.x,(int)ul.y,
-										(int)ur.x,(int)ur.y,
-										(int)ll.x,(int)ll.y);
-}
 
 //! Simply return a new imlib image.
 /*! Note that this image will not be cached, since it is not associated
@@ -489,8 +449,9 @@ LaxImage *load_imlib_image_with_preview(const char *filename,const char *preview
 	if (previewimage_ret) {
 	  if (!isblank(previewfile) && previewimage_ret) {
 		 //this will create previewfile on disk if it doesn't already exist:
-		LaxImlibImage *pimg=new LaxImlibImage(filename, previewfile, maxx,maxy);
-		pimg->doneForNow();
+		LaxImage *pimg = NULL;
+		GeneratePreviewFile(img, previewfile, "png", maxx, maxy, 1, &pimg);
+		if (pimg) pimg->doneForNow();
 
 		*previewimage_ret = pimg;
 
@@ -655,8 +616,8 @@ int ImlibLoader::LoadToMemory(LaxImage *img)
 			cimg->width= imlib_image_get_width();
 			cimg->height=imlib_image_get_height();
 		}
-		unsigned char *data = (unsigned char *)imlib_image_get_data();
-		cimg->createFromData_ARGB8(cimg->width, cimg->height, 4*cimg->width, data);
+		unsigned char *data = (unsigned char *)imlib_image_get_data(); //this data is ARGB ARGB...
+		cimg->createFromData_ARGB8(cimg->width, cimg->height, 4*cimg->width, data, true);
 		imlib_image_put_back_data((DATA32 *)data);
 
 		cimg->Image(); //incs cimg->display_count++;
@@ -684,7 +645,7 @@ LaxCairoImage *MakeCairoFromImlib(LaxImlibImage *iimg, bool ping_only)
 	} else {
 		 //copy over buffer from imlib image
 		unsigned char *data = iimg->getImageBuffer();
-		cimage->createFromData_ARGB8(iimg->w(), iimg->h(), 4*iimg->w(), data);
+		cimage->createFromData_ARGB8(iimg->w(), iimg->h(), 4*iimg->w(), data, true);
 		iimg->doneWithBuffer(data);
 	}
 
@@ -747,8 +708,22 @@ LaxImage *ImlibLoader::load_image(const char *filename,
 	return NULL;
 }
 
+LaxImage *ImlibLoader::CreateImage(int width, int height, int format)
+{
+	if (format != LAX_IMAGE_IMLIB) return NULL;
+	return create_new_imlib_image(width, height);
+}
+
+LaxImage *ImlibLoader::CreateImageFromBuffer(unsigned char *data, int width, int height, int stride, int format)
+{
+	if (format != LAX_IMAGE_IMLIB) return NULL;
+	return image_from_buffer_imlib(data, width, height, stride);
+}
+
 
 
 } //namespace Laxkit
+
+#endif //LAX_USES_IMLIB
 
 

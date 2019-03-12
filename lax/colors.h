@@ -28,6 +28,7 @@
 #include <lax/dump.h>
 #include <lax/screencolor.h>
 #include <lax/events.h>
+#include <lax/singletonkeeper.h>
 
 //#include <lcms.h>
 
@@ -111,7 +112,7 @@ class Color : public Laxkit::anObject, public LaxFiles::DumpUtility
 
 	ColorSystem *system;
 	int colorsystemid; //usually same as system->systemid, see BasicColorSystems
-	int nvalues; // num values, put here so you don't have to always look them up in system definition
+	int nvalues; // num values, usually numprimaries+alpha. put here so you don't have to always look them up in system definition
 	double *values; // the values for each primary plus alpha at the end (if any)
 
 	ScreenColor screen;
@@ -128,6 +129,7 @@ class Color : public Laxkit::anObject, public LaxFiles::DumpUtility
 	virtual int ColorSystemId();
 	virtual int UpdateToSystem(Color *color);
 	virtual void InstallSystem(ColorSystem *newsystem);
+	virtual void UpdateScreenColor();
 
 	virtual double NumChannels() { return nvalues; }
 	virtual double ChannelValue(int channel);
@@ -135,6 +137,7 @@ class Color : public Laxkit::anObject, public LaxFiles::DumpUtility
 	virtual double ChannelValue(int channel, double newvalue);
 
 	virtual char *dump_out_simple_string();
+	virtual int dump_out_simple_string(char *color, int n);
 	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
     virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context);
     virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
@@ -244,17 +247,17 @@ ColorSystem *Create_XYZ_System(bool with_alpha);
 class ColorManager : public anObject
 {
   private:
-	static ColorManager *default_manager;
+	static SingletonKeeper keeper;
 
   protected: 
-	PtrStack<ColorSystem> systems;
+	RefPtrStack<ColorSystem> systems;
 
   public:
 	static ColorManager *GetDefault(bool create=true);
 	static void SetDefault(ColorManager *manager);
 
-	static Color *newColor(int system, int nvalues, ...);
-	static Color *newColor(int nvalues, ScreenColor *color);
+	static Color *newColor(int systemid, int nvalues, ...);
+	static Color *newColor(int systemid, ScreenColor *color);
 	static Color *newColor(LaxFiles::Attribute *att);
 
 		

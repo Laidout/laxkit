@@ -58,6 +58,9 @@ void InitLaxCairo(bool with_backend)
 
 	 //set various base functions
 	if (with_backend) InitCairoBackend();
+
+	CairoImageLoader *loader=new CairoImageLoader();
+	ImageLoader::AddLoader(loader,-1);
 }
 
 /*! This will set up the default graphics backend to cairo. This means all the functions
@@ -68,18 +71,13 @@ void InitCairoBackend()
 	 //set up default image functions
 	default_image_type = laxcairo_image_type;
 
-	image_out               = laxcairo_image_out;
-	image_out_rotated       = laxcairo_image_out_rotated;
-	image_out_skewed        = laxcairo_image_out_skewed;
-	image_out_matrix        = laxcairo_image_out_matrix;
+	//save_image              = save_image_cairo;
+	//load_image              = load_cairo_image;
+	//load_image_with_preview = load_cairo_image_with_preview;
+	//generate_preview_image  = laxcairo_generate_preview;
 
-	save_image              = save_image_cairo;
-	load_image              = load_cairo_image;
-	load_image_with_preview = load_cairo_image_with_preview;
-	generate_preview_image  = laxcairo_generate_preview;
-
-	create_new_image  = create_new_cairo_image;
-	image_from_buffer = image_from_buffer_cairo;
+	//create_new_image  = create_new_cairo_image;
+	//image_from_buffer = image_from_buffer_cairo;
 
 	SetNewFontManagerFunc("cairo");
 	SetNewDisplayerFunc("cairo");

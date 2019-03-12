@@ -73,6 +73,7 @@ class anInterface : virtual public Laxkit::EventReceiver,
 	int id;
 	unsigned long interface_style;
 	int interface_type;
+	Laxkit::DoubleBBox bounds;
 
 	Laxkit::anXApp *app;
 	Laxkit::anXWindow *curwindow;

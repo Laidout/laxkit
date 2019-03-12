@@ -31,9 +31,9 @@ LAXIDIR=$(LAXDIR)/interfaces
 LAXOBJDIR=$(LAXDIR)
 
 LD=g++
-LDFLAGS= -L/usr/X11R6/lib -lX11 -lm -lcairo `imlib2-config --libs` `freetype-config --libs` $(OPTIONALLIBS) -lfontconfig -lXext -lXi -lXft -lssl -L$(LAXDIR) -L$(LAXIDIR)
+LDFLAGS= -L/usr/X11R6/lib -lX11 -lm -lcairo `imlib2-config --libs` `pkg-config --libs freetype2` $(OPTIONALLIBS) $(EXTRA_LAX_LIBS) -lfontconfig -lXext -lXi -lXft -lXrandr -lssl -L$(LAXDIR) -L$(LAXIDIR)
 DEBUGFLAGS= -g -Wall
-CPPFLAGS= $(DEBUGFLAGS) -I$(LAXDIR)/.. `freetype-config --cflags`
+CPPFLAGS= $(DEBUGFLAGS) $(EXTRA_LAX_CFLAGS) -I$(LAXDIR)/.. `pkg-config --cflags freetype2`
 
 
 
@@ -41,6 +41,7 @@ CPPFLAGS= $(DEBUGFLAGS) -I$(LAXDIR)/.. `freetype-config --cflags`
 
 
 laxinput: lax laxinput.o
+	echo "extra libs: $(EXTRA_LIBS)"
 	$(LD) $@.o -llaxkit $(LDFLAGS) -o $@
 
 #$(LD) $(LDFLAGS) $@.o -llaxkit -o $@

@@ -188,11 +188,11 @@ void CurveMapInterface::SetupRect(double x,double y,double w,double h)
  */
 void CurveMapInterface::send(int which)
 {
-//	if (win_owner) {
-//		SimpleMessage *ev=new SimpleMessage;
-//		ev->info1=which;
-//		app->SendMessage(ev,win_owner,win_sendthis,object_id);
-//	}
+	if (owner && owner_message) {
+		SimpleMessage *ev=new SimpleMessage;
+		ev->info1=which;
+		app->SendMessage(ev,owner->object_id,owner_message,object_id);
+	}
 }
 
 double CurveMapInterface::f(double x)

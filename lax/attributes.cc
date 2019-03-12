@@ -2008,7 +2008,6 @@ int Attribute::dump_in(const char *filename, int what)
 		return 1;
 	}
 
-//	-------------
 	IOBuffer f;
 	f.OpenFile(filename, "r");
 
@@ -2026,23 +2025,6 @@ int Attribute::dump_in(const char *filename, int what)
 	dump_in(f,0);
 
 	f.Close();
-//	-------------
-//	FILE *f=fopen(filename,"rb");
-//	if (!f) {
-//		DBG cerr <<"Open "<<filename<<" failed."<<endl;
-//		return 1;
-//	}
-//
-//	makestr(name,"file");
-//	makestr(value,filename);
-//	makestr(atttype,NULL);
-//
-//	DBG cerr <<"Reading "<<filename<<"...."<<endl;
-//
-//	dump_in(f,0);
-//
-//	fclose(f);
-//	-------------
 
 	return 0;
 }

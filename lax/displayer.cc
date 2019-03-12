@@ -27,7 +27,6 @@
 #include <lax/transformmath.h>
 #include <lax/bezutils.h>
 #include <lax/laxutils.h>
-#include <lax/laximages-imlib.h>
 
 #include <cstring>
 

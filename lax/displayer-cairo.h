@@ -85,11 +85,6 @@ class DisplayerCairo : public Displayer
 	virtual ~DisplayerCairo();
 	virtual Displayer *duplicate();
 
-	 /*! \name Window and Xlib specific helper functions: */
-	 //@{
-	//virtual Display *GetDpy();
-	 //@}
-
 	 /*! \name Cairo specific helper functions: */
 	 //@{
 	virtual cairo_t *GetCairo();

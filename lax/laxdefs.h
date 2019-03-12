@@ -42,6 +42,7 @@ namespace Laxkit {
 #define LAX_HAS_CAIRO   1
 #define LAX_HAS_GL      2
 #define LAX_HAS_XINPUT2 3
+#define LAX_HAS_GRAPHICSMAGICK 4
 
 
 //-------------------- Misc stuff that needs a better category name -----------------------

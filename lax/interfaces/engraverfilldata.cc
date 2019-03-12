@@ -1322,7 +1322,7 @@ NormalDirectionMap::NormalDirectionMap()
 
 NormalDirectionMap::NormalDirectionMap(const char *file)
 {   
-    normal_map=load_image(file);
+    normal_map = ImageLoader::LoadImage(file);
 	data=NULL;
 	width=height=0;
 	angle=0;
@@ -1363,7 +1363,7 @@ int NormalDirectionMap::Load(const char *file)
 		return 0;
 	}
 
-	LaxImage *img=load_image(file);
+	LaxImage *img = ImageLoader::LoadImage(file);
 	if (!img) return 1;
 
 	if (normal_map) normal_map->dec_count();
@@ -1711,7 +1711,7 @@ int TraceObject::UpdateCache()
 		return 1;
 	}
 
-	DBG save_image(img, "DBG-trace.png", "png");
+	DBG img->Save("DBG-trace.png", "png");
 
 	delete ddp;
 
@@ -2954,7 +2954,7 @@ ImageData *EngraverPointGroup::SpacingSnapshot()
 	LinePoint *l,*lstart;
 	flatpoint p1,c1,c2,p2;
 
-	LaxImage *image=create_new_image(mapwidth,mapheight);
+	LaxImage *image = ImageLoader::NewImage(mapwidth,mapheight);
 	unsigned char *data=image->getImageBuffer();
 	memset(data, 255, mapwidth*mapheight*4);
 
@@ -3042,7 +3042,7 @@ ImageData *EngraverPointGroup::CreateFromSnapshot()
 	proc->MakeValueMap(img, mapwidth,mapheight, blur, bbox, points.e,points.n, true);
 
 	 //convert img to actual image and install 
-	LaxImage *image=create_new_image(mapwidth,mapheight);
+	LaxImage *image = ImageLoader::NewImage(mapwidth,mapheight);
 	unsigned char *data=image->getImageBuffer();
 	int ii=0,i=0;
 	for (int y=0; y<mapheight; y++) {
@@ -3057,7 +3057,7 @@ ImageData *EngraverPointGroup::CreateFromSnapshot()
 	//DBG cerr <<endl;
 	image->doneWithBuffer(data);
 
-	DBG save_image(image, "snapshot.png", "png");
+	DBG image->Save("snapshot.png", "png");
 
 	 //create and return new ImageData mapped to correspond to edata bounding box
 	ImageData *idata=new ImageData;
@@ -3625,7 +3625,7 @@ void EngraverPointGroup::InstallTraceGradient(char type, GradientData *ngradient
 		flatpoint p1(0,0), p2(1,0);
 		if (type=='r') p2.x=0;
 		ScreenColor col1(1.0,1.0,1.0,1.0), col2(0.0,0.0,0.0,1.0);
-		gradient=new GradientData(p1,p2,0,1, &col1,&col2, type=='l' ? GRADIENT_LINEAR : GRADIENT_RADIAL);
+		gradient = new GradientData(p1,p2,0,1, &col1,&col2, type=='l' ? GradientData::GRADIENT_LINEAR : GradientData::GRADIENT_RADIAL);
 		gradient->FindBBox();
 
 		Affine aa(owner->GetTransformToContext(false,0));

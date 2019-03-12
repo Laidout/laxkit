@@ -107,11 +107,11 @@ ButtonBase::ButtonBase(anXWindow *parnt,const char *nname,const char *ntitle,uns
 {
 	prevbutton=nextbutton=NULL;
 	
-	state=oldstate=LAX_OFF; 
-	mousein=0;
-	bevel=app->default_bevel;
-	id=nid;
-	button_style=win_style&(~ANXWIN_MASK);
+	state = oldstate = LAX_OFF; 
+	mousein = 0;
+	bevel = app->theme->default_bevel;
+	id = nid;
+	button_style = win_style&(~ANXWIN_MASK);
 
 	InstallColors(THEME_Button);
 

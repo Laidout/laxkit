@@ -17,37 +17,22 @@
 //    You should have received a copy of the GNU Library General Public
 //    License along with this library; If not, see <http://www.gnu.org/licenses/>.
 //
-//    Copyright (C) 2004-2013 by Tom Lechner
+//    Copyright (C) 2018 by Tom Lechner
 //
-#ifndef _LAX_SCREENINFORMATION_H
-#define _LAX_SCREENINFORMATION_H
+#ifndef LAX_GRAPHICSMAGICK_H
+#define LAX_GRAPHICSMAGICK_H
 
 
 namespace Laxkit {
 
-//--------------------------- ScreenInformation -------------------------------
-class ScreenInformation
-{
-  public:
-	char *name;
-	int primary;
-	int screen; //screen number, can contain many monitors
-	int monitor; //id of monitor within larger virtual screen space
-	int x,y, width,height;
-	int mmwidth,mmheight;
-	int depth;
-
-	ScreenInformation *next;
-
-	ScreenInformation() { next = nullptr; name = nullptr; }
-	~ScreenInformation();
-	int HowMany() { return 1 + (next ? next->HowMany() : 0); }
-	ScreenInformation *Get(int i) { if (i==0) return this; else { if (next && i>0) return next->Get(i-1); else return nullptr; } }
-	ScreenInformation *Get(char *which);
-};
-
-} //namespace Laxkit
+void InitLaxGraphicsMagick(bool with_backend);
+void InitGraphicsMagick2Backend();
 
 
-#endif
+
+} // namespace Laxkit
+
+
+#endif  //LAX_GRAPHICSMAGICK_H
+
 

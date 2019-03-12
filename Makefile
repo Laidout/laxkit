@@ -134,8 +134,11 @@ depends:
 	cd lax && $(MAKE) depends
 	cd lax/interfaces && $(MAKE) depends
 
-deb:
-	if [ ! -e debian ] ; then ln -s debian-lo debian; fi
+
+#link debian to deb if not there.. Debian guidelines say don't put 
+#a "debian" directory in upstream sources by default.
+deb: touchdepends
+	if [ ! -e debian ] ; then ln -s deb debian; fi
 	dpkg-buildpackage -rfakeroot
 
 

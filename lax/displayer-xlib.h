@@ -22,6 +22,15 @@
 #ifndef _LAX_DISPLAYER_XLIB_H
 #define _LAX_DISPLAYER_XLIB_H
 
+
+#include <lax/configured.h>
+
+#ifdef LAX_USES_IMLIB
+
+
+#include <X11/Xft/Xft.h>
+
+
 #include <lax/anxapp.h>
 #include <lax/vectors.h>
 #include <lax/pancontroller.h>
@@ -224,4 +233,6 @@ class DisplayerXlib : public Displayer
 
 } // namespace Laxkit
 
-#endif
+#endif //LAX_USES_IMLIB
+#endif //_LAX_DISPLAYER_XLIB_H
+

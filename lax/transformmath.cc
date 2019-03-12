@@ -118,7 +118,7 @@ Affine Affine::operator*(Affine const m)
 Affine::~Affine()
 {}
 
-void Affine::set(Affine a)
+void Affine::set(Affine const &a)
 { transform_copy(_m,a.m()); }
 
 void Affine::setIdentity()

@@ -10,27 +10,30 @@
 
 
 LAXKITVERSION=0.0.8.1
-LAXKITCONFIGDIRBASE="~/.laxkit"
+LAXKITCONFIGDIRBASE="~/.config/laxkit"
 #LAXKITCONFIGDIR="$LAXKITCONFIGDIRBASE/$LAXKITVERSION"
 PREFIX="/usr/local"
 
 #---capabilities
-EXTRAS=
+EXTRA_CFLAGS=
+EXTRA_LIBS=
 OPTIONAL=
 OPTIONALLIBS=
 
  #USEXLIB to compile functions for the xlib rendering backend
 USEXLIB="yes"
-USEIMLIB="yes"
 USECAIRO="yes"
+USEIMLIB="build"
+USEGRAPHICSMAGICK="not build"
 USEXINPUT2="yes"
 USEGL="yes"
 USESQLITE="yes"
 
+HARFBUZZVERSION="2.0"
 ONAMAC="no"
 FORCE="no"
 
- #x11, or qt
+ #x11, or (unimplemented): qt, headless
 PLATFORM="x11"
 
 LAXKITBACKEND="cairo"
@@ -57,19 +60,21 @@ while true ; do
   case "$option" in
     -h | --help) 
         echo "Whizbang Laxkit configuration script options."
-#		echo "Please note that at least one of Imlib2 or Cairo must be used. Both"
-#		echo "are built by default."
 		echo ""
         echo " --help                       Show this stuff"
-        echo " --prefix=/where/to/install   Default /usr/local"
-        echo " --configdir=/path/to/config  Default ~/.laxkit/(version)"
+        echo " --prefix=/where/to/install   Defaults to $PREFIX"
+        echo " --configdir=/path/to/config  Defaults to $LAXKITCONFIGDIRBASE/$LAXKITVERSION"
 		echo " --platform=x11               Only x11 is implemented. Someday also headless or qt."
 #		echo " --disable-gl                 Do not build opengl components. Default is to built them."
-        echo " --disable-imlib              Do not build Imlib2 components. Default is to built them."
-        echo " --disable-cairo              Do not build cairo components. Default is to built them."
+        echo " --disable-graphicsmagick     Do not build GraphicsMagick components. Default is to $USEGRAPHICSMAGICK them."
+        echo " --enable-graphicsmagick      Build GraphicsMagick components. Default is to $USEGRAPHICSMAGICK them."
+#       echo " --disable-cairo              Do not build cairo components. Default is to build them."
         echo " --disable-xinput2            Use this option if you do not have at least Xorg 7.5 for MPX."
-        echo " --disable-sqlite             Optional. Used to get font tags in Fontmatrix database (if it exists)"
-		echo " --backend=cairo              Use xlib or cairo. cairo is default. xlib is deprecated."
+        echo " --disable-sqlite             If not disabled, sqlite is Used to get font tags in Fontmatrix database (if it exists)"
+        echo " --enable-imlib               Build Imlib2 components. Default is to $USEIMLIB them."
+        echo " --disable-imlib              Don't build Imlib2 components. Default is to $USEIMLIB them."
+		echo " --backend=cairo              Only cairo is supported for now."
+		echo " --harfbuzz=2.0               What version of harfbuzz you are using. Preferably use 2.0 or later."
 #       echo " --onamac                     Include this if you are compiling on a Mac."
 		echo " --force                      Try to compile even when libraries are not detected by ./configure"
 		echo " --version=OtherVersionNum    You may force Laxkit to compile with a different"
@@ -89,6 +94,18 @@ while true ; do
 		unset USEGL
 		shift;;
 
+	--disable-graphicsmagick)
+		unset USEGRAPHICSMAGICK
+		shift;;
+
+	--enable-graphicsmagick)
+		USEGRAPHICSMAGICK="yes"
+		shift;;
+
+	--enable-imlib)
+		USEIMLIB="yes"
+		shift;;
+
 	--disable-imlib)
 		unset USEIMLIB
 		shift;;
@@ -102,6 +119,11 @@ while true ; do
 		shift;;
 
 	--disable-sqlite)
+		unset USESQLITE
+		shift;;
+
+	--harfbuzz)
+		HARFBUZZVERSION=$optarg;
 		unset USESQLITE
 		shift;;
 
@@ -154,13 +176,15 @@ while true ; do
 done
 
 
-#if [ x$USEGL    != x ] ;   then EXTRAS="$EXTRAS -DLAX_USES_GL";   fi
-#if [ x$USEIMLIB != x ] ;   then EXTRAS="$EXTRAS -DLAX_USES_IMLIB";   fi
-#if [ x$USECAIRO != x ] ;   then EXTRAS="$EXTRAS -DLAX_USES_CAIRO";   fi
-#if [ x$USEXINPUT2 != x ] ; then EXTRAS="$EXTRAS -DLAX_USES_XINPUT2"; fi
+if [ "$USEIMLIB" == "build" ] ;  then USEIMLIB="yes"; elif [ "$USEIMLIB" != "yes" ] ; then unset USEIMLIB;  fi
+if [ "$USEGRAPHICSMAGICK" == "build" ] ;  then USEGRAPHICSMAGICK="yes"; elif [ "$USEGRAPHICSMAGICK" != "yes" ] ; then unset USEGRAPHICSMAGICK;  fi
 
-if [ x$USEIMLIB$USECAIRO == x ] ; 
-	then echo "You must use at least one of Imlib or Cairo."; 
+
+
+#if [ x$USEIMLIB$USECAIRO == x ] ; 
+if [ x$USECAIRO == x ] ; 
+	#then echo "You must use at least one of Imlib or Cairo."; 
+	then echo "You must use Cairo."; 
 	exit 1;
 fi
 
@@ -186,6 +210,7 @@ LAXDIR="$PREFIX/include/lax"
 NEED='x11  freetype2  harfbuzz'
 if [ x$USEIMLIB != x ] ; then NEED="$NEED imlib2"; fi
 if [ x$USECAIRO != x ] ; then NEED="$NEED cairo"; fi
+if [ x$USEGRAPHICSMAGICK != x ] ; then NEED="$NEED GraphicsMagick++"; fi
 NUM='1'
 
 for NAME in $NEED; do
@@ -233,9 +258,23 @@ fi
 
 
 #if [[ $PLATFORM != "x11" && $PLATFORM != "mac" && $PLATFORM != "windows" ]] ;
-if [ $PLATFORM != "x11" -a $PLATFORM != "headless" -a $PLATFORM != "qt" ] ;
-	then PLATFORM="x11";
+#if [ $PLATFORM != "x11" -a $PLATFORM != "headless" -a $PLATFORM != "qt" ] ;
+if [ $PLATFORM != "x11" ] ; then
+	echo "Unknown platform $PLATFORM!";
+	exit 1
+#	then PLATFORM="x11";
 fi
+
+
+#
+# Set up extra libraries
+#
+if [ x$USEGRAPHICSMAGICK != x ] ; then
+	EXTRA_CFLAGS="$EXTRA_CFLAGS `pkg-config --cflags GraphicsMagick++`";
+	EXTRA_LIBS="$EXTRA_LIBS `pkg-config --libs GraphicsMagick++`";
+fi
+
+
 
 
  ##
@@ -256,7 +295,7 @@ echo "" >> lax/version.h
 
 
  ##
- ## generate lax/configured.h by putting install_prefix where the code can access it!
+ ## generate lax/configured.h
  ##
 echo "Generating lax/configured.h..."
 
@@ -280,11 +319,15 @@ if [ x$USEXLIB    != x ] ; then echo "#define LAX_USES_XLIB" >> lax/configured.h
 if [ x$USEXINPUT2 != x ] ; then echo "#define LAX_USES_XINPUT2" >> lax/configured.h; fi
 if [ x$USEIMLIB   != x ] ; then echo "#define LAX_USES_IMLIB" >> lax/configured.h; fi
 if [ x$USECAIRO   != x ] ; then echo "#define LAX_USES_CAIRO" >> lax/configured.h; fi
+if [ x$USEGRAPHICSMAGICK != x ] ; then echo "#define LAX_USES_GRAPHICSMAGICK" >> lax/configured.h; fi
 if [ x$USESQLITE  != x ] ; then echo "#define LAX_USES_SQLITE" >> lax/configured.h; fi
 echo "" >> lax/configured.h
 echo "#endif" >> lax/configured.h
 echo "" >> lax/configured.h
 
+
+
+if [ $HARFBUZZVERSION \< "2.0" ] ; then EXTRA_CFLAGS="$EXTRA_CFLAGS -DHARFBUZZ_BELOW_2_0"; fi
 
  ##
  ## generate Makefile-toinclude
@@ -296,10 +339,13 @@ echo " # ----          BY ./configure             -----" >> Makefile-toinclude
 echo "" >> Makefile-toinclude
 echo "PREFIX=$PREFIX" >> Makefile-toinclude
 echo "LAXKITVERSION=$LAXKITVERSION" >> Makefile-toinclude
-echo "EXTRAS=$EXTRAS" >> Makefile-toinclude
+echo "EXTRA_LAX_CFLAGS=$EXTRA_CFLAGS" >> Makefile-toinclude
+echo "EXTRA_LAX_LIBS=$EXTRA_LIBS" >> Makefile-toinclude
 echo "OPTIONALLIBS=$OPTIONALLIBS" >> Makefile-toinclude
 if [ x$USESQLITE  != x ] ; then echo "LAX_USES_SQLITE=yes" >> Makefile-toinclude; fi
 echo "" >> Makefile-toinclude
+
+
 
  ##
  ## write out config.log
@@ -313,59 +359,72 @@ echo \
     Install here:  $PREFIX
 " >> config.log
 if [ x$USEXINPUT2 != x ] ; 
-then echo "     Use XInput2:  yes" >> config.log; 
-else echo "     Use XInput2:  no"  >> config.log; 
+then echo "        Use XInput2:  yes" >> config.log; 
+else echo "        Use XInput2:  no"  >> config.log; 
 fi
-if [ x$USEIMLIB != x ] ; 
-then echo "      Use Imlib2:  yes" >> config.log; 
-else echo "      Use Imlib2:  no"  >> config.log; 
+if [ x$USEGRAPHICSMAGICK != x ] ; 
+then echo " Use GraphicsMagick:  yes" >> config.log; 
+else echo " Use GraphicsMagick:  no"  >> config.log; 
 fi
 if [ x$USECAIRO != x ] ; 
-then echo "       Use Cairo:  yes" >> config.log; 
-else echo "       Use Cairo:  no"  >> config.log; 
+then echo "          Use Cairo:  yes" >> config.log; 
+else echo "          Use Cairo:  no"  >> config.log; 
+fi
+if [ x$USEIMLIB != x ] ; 
+then echo "         Use Imlib2:  yes" >> config.log; 
+else echo "         Use Imlib2:  no"  >> config.log; 
 fi
 if [ x$USEGL != x ] ; 
-then echo "          Use GL:  yes" >> config.log; 
-else echo "          Use GL:  no"  >> config.log; 
+then echo "             Use GL:  yes" >> config.log; 
+else echo "             Use GL:  no"  >> config.log; 
 fi
 if [ x$USESQLITE != x ] ; 
-then echo "      Use Sqlite:  yes" >> config.log; 
-else echo "      Use Sqlite:  no"  >> config.log; 
+then echo "         Use Sqlite:  yes" >> config.log; 
+else echo "         Use Sqlite:  no"  >> config.log; 
 fi
-echo " Default backend:  $LAXKITBACKEND" >> config.log
-echo "        Platform:  $PLATFORM" >> config.log
+echo      "           Harfbuzz:  $HARFBUZZVERSION"  >> config.log; 
+echo      "    Default backend:  $LAXKITBACKEND" >> config.log
+echo      "           Platform:  $PLATFORM" >> config.log
 
 
 
+ ##
+ ## Echo to console
+ ##
 echo 
-echo "       Configuration Summary"
-echo "  " `date`
-echo "----------------------------------"
-echo "  Laxkit version:  $LAXKITVERSION"
-echo "  Lax Config dir:  $LAXKITCONFIGDIR"
-echo "    Install here:  $PREFIX"
+echo "          Configuration Summary"
+echo "     " `date`
+echo "----------------------------------------"
+echo "     Laxkit version:  $LAXKITVERSION"
+echo "     Lax Config dir:  $LAXKITCONFIGDIR"
+echo "       Install here:  $PREFIX"
 if [ x$USEXINPUT2 != x ] ; 
-then echo "     Use XInput2:  yes"; 
-else echo "     Use XInput2:  no"; 
+then echo "        Use XInput2:  yes"; 
+else echo "        Use XInput2:  no"; 
 fi
-if [ x$USEIMLIB != x ] ; 
-then echo "      Use Imlib2:  yes"; 
-else echo "      Use Imlib2:  no"; 
+if [ x$USEGRAPHICSMAGICK != x ] ; 
+then echo " Use GraphicsMagick:  yes"; 
+else echo " Use GraphicsMagick:  no" ; 
 fi
 if [ x$USECAIRO != x ] ; 
-then echo "       Use Cairo:  yes"; 
-else echo "       Use Cairo:  no"; 
+then echo "          Use Cairo:  yes"; 
+else echo "          Use Cairo:  no"; 
+fi
+if [ x$USEIMLIB != x ] ; 
+then echo "         Use Imlib2:  yes"; 
+else echo "         Use Imlib2:  no"; 
 fi
 if [ x$USEGL != x ] ; 
-then echo "          Use GL:  yes"; 
-else echo "          Use GL:  no"; 
+then echo "             Use GL:  yes"; 
+else echo "             Use GL:  no"; 
 fi
 if [ x$USESQLITE != x ] ; 
-then echo "      Use Sqlite:  yes"; 
-else echo "      Use Sqlite:  no" ; 
+then echo "         Use Sqlite:  yes"; 
+else echo "         Use Sqlite:  no" ; 
 fi
-echo " Default backend:  $LAXKITBACKEND"
-echo "        Platform:  $PLATFORM"
+echo      "           Harfbuzz:  $HARFBUZZVERSION"
+echo      "    Default backend:  $LAXKITBACKEND"
+echo      "           Platform:  $PLATFORM"
 echo
 echo "Now type make to build.";
 

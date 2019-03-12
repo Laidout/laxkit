@@ -78,7 +78,7 @@ Win::Win()
 {
 	current_thing=THING_None;
 
-    installColors(app->color_panel);
+    InstallColors(THEME_Panel);
 }
 
 int Win::CharInput(unsigned int ch, const char *buffer,int len,unsigned int state, const LaxKeyboard *kb)
@@ -105,31 +105,36 @@ void Win::Refresh()
 {
     if (!needtodraw) return;
 
-    clear_window(this);
+	Displayer *dp = MakeCurrent();
+    dp->ClearWindow();
 
 
-    foreground_color(win_colors->fg);
-    background_color(coloravg(win_colors->bg, win_colors->fg, .1));
+    dp->NewFG(win_themestyle->fg);
+    dp->NewBG(coloravg(win_themestyle->bg, win_themestyle->fg, .1));
 
 	int pad=win_h*.1;
 	int w=(win_w-4*pad)/3;
-	int banner=2*text_height();
+	int banner = 2*dp->textheight();
 	int h=win_h-banner-2*pad;
 	if (h<w) w=h;
 
 	 //draw in grid with different fill types
-	textout(this,"Fill==0",-1, 1*win_w/6,win_h, LAX_BOTTOM|LAX_HCENTER);
-	draw_thing(this, 1*win_w/6,pad+banner+h/2,     w/2,-(w/2), 0, current_thing);
+	dp->textout(1*win_w/6,win_h, "Fill==0",-1, LAX_BOTTOM|LAX_HCENTER);
+	dp->drawthing(1*win_w/6,pad+banner+h/2,     w/2,-(w/2), 0, current_thing);
 
-	textout(this,"Fill==1",-1, 3*win_w/6,win_h, LAX_BOTTOM|LAX_HCENTER);
-	draw_thing(this, 3*win_w/6,pad+banner+h/2,     w/2,-(w/2), 1, current_thing);
+	dp->textout(3*win_w/6,win_h,"Fill==1",-1, LAX_BOTTOM|LAX_HCENTER);
+	dp->drawthing(3*win_w/6,pad+banner+h/2,     w/2,-(w/2), 1, current_thing);
 
-	textout(this,"Fill==2",-1, 5*win_w/6,win_h, LAX_BOTTOM|LAX_HCENTER);
-	draw_thing(this, 5*win_w/6,pad+banner+h/2,     w/2,-(w/2), 2, current_thing);
+	dp->textout(5*win_w/6,win_h, "Fill==2",-1, LAX_BOTTOM|LAX_HCENTER);
+	dp->drawthing(5*win_w/6,pad+banner+h/2,     w/2,-(w/2), 2, current_thing);
 
 
 
-	textout(this, thing_name(current_thing),-1, win_w/2,pad+banner/2, LAX_CENTER);
+	//draw name
+	char scratch[300];
+	sprintf(scratch, "%s (%d/%d)", thing_name(current_thing), current_thing - THING_None, THING_MAX-THING_None-1);
+	dp->textout(win_w/2,pad+banner/2, scratch,-1, LAX_CENTER);
+
 
     SwapBuffers();
     needtodraw=0;

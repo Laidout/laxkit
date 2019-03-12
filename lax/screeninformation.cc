@@ -43,6 +43,12 @@ ScreenInformation *ScreenInformation::Get(char *which)
 	return next->Get(which);
 }
 
+ScreenInformation::~ScreenInformation()
+{
+	delete name;
+	if (next) delete next;
+}
+
 
 } //namespace Laxkit
 

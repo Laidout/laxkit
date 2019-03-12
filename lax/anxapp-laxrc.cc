@@ -134,15 +134,15 @@ namespace Laxkit {
  */
 void anXApp::setupdefaultcolors()
 {
-	default_border_width= 1;
-	default_padx        = 5;
-	default_pady        = 5;
-	default_bevel       = 2;
+	//default_border_width= 1;
+	//default_padx        = 5;
+	//default_pady        = 5;
+	//default_bevel       = 2;
 
-	color_tooltip_fg    = rgbcolor(0,0,0);
-	color_tooltip_bg    = rgbcolor(255,255,128);
-	color_inactiveborder= rgbcolor(128,128,128);
-	color_activeborder  = rgbcolor(90,90,90);
+	//color_tooltip_fg    = rgbcolor(0,0,0);
+	//color_tooltip_bg    = rgbcolor(255,255,128);
+	//color_inactiveborder= rgbcolor(128,128,128);
+	//color_activeborder  = rgbcolor(90,90,90);
 
 	if (!theme) {
 		theme = new Theme(app_profile ? app_profile : "Light");
@@ -222,16 +222,16 @@ void anXApp::dump_out_rc(FILE *f, const char *profile, int indent, int what)
 	}
 
 	//obsolete stuff:
-	fprintf(f,"%sfirstclk       %u  #in milliseconds, delay to repeating events for mouse downs\n",spc,firstclk);
-	fprintf(f,"%sdblclk         %u  #in ms, time afterwhich clicks are single clicks\n",spc,dblclk);
-	fprintf(f,"%sidleclk        %u  #in ms, time to send fake clicks when holding down a mouse button\n",spc,idleclk);
-	fprintf(f,"%stooltips       %d  #in ms, time to wait before bringing up tooltips. 0 means no tooltips\n",spc,tooltips);
-	fprintf(f,"%sbevel          %d  #default pixel bevel width\n",spc,default_bevel);
-	fprintf(f,"%sdefault_border %d  #default pixel border width\n",spc,default_border_width);
-	fprintf(f,"%sdefault_padx   %d  #default pixel horizontal padding\n",spc,default_padx);
-	fprintf(f,"%sdefault_pady   %d  #default pixel vertical padding\n",spc,default_pady);
-	fprintf(f,"%stextfont       %s  #a fontconfig string\n",spc,textfontstr?textfontstr:"none");
-	fprintf(f,"%scontrolfont    %s  #a fontconfig string\n",spc,controlfontstr?controlfontstr:"none");
+	//fprintf(f,"%sfirstclk       %u  #in milliseconds, delay to repeating events for mouse downs\n",spc,firstclk);
+	//fprintf(f,"%sdblclk         %u  #in ms, time afterwhich clicks are single clicks\n",spc,dblclk);
+	//fprintf(f,"%sidleclk        %u  #in ms, time to send fake clicks when holding down a mouse button\n",spc,idleclk);
+	//fprintf(f,"%stooltips       %d  #in ms, time to wait before bringing up tooltips. 0 means no tooltips\n",spc,tooltips);
+	//fprintf(f,"%sbevel          %d  #default pixel bevel width\n",spc,default_bevel);
+	//fprintf(f,"%sdefault_border %d  #default pixel border width\n",spc,default_border_width);
+	//fprintf(f,"%sdefault_padx   %d  #default pixel horizontal padding\n",spc,default_padx);
+	//fprintf(f,"%sdefault_pady   %d  #default pixel vertical padding\n",spc,default_pady);
+	//fprintf(f,"%stextfont       %s  #a fontconfig string\n",spc,textfontstr?textfontstr:"none");
+	//fprintf(f,"%scontrolfont    %s  #a fontconfig string\n",spc,controlfontstr?controlfontstr:"none");
 }
 
 

@@ -49,6 +49,217 @@ using namespace std;
 namespace Laxkit {
 
 
+//------------------- LaxCairoImage utils
+
+//! Generate a preview image. Return 0 for success.
+/*! WARNING: this does no sanity checking on file names, and will force an overwrite.
+ * It is the responsibility of the calling code to do those things, and to
+ * ensure that preview is in fact a writable path.
+ * 
+ * \todo *** afterwards, make sure preview was actually written
+ */
+int laxcairo_generate_preview(const char *original,
+						   const char *preview, 
+						   const char *format, 
+						   int width, int height, int fit)
+{
+
+	LaxImage *img = ImageLoader::LoadImage(original, NULL,0,0,NULL, 0,LAX_IMAGE_CAIRO,NULL, false, 0);
+	LaxCairoImage *cimg = dynamic_cast<LaxCairoImage*>(img);
+
+	cairo_surface_t *image=NULL, *pimage;
+	if (cimg) image = cimg->Image();
+
+	if (!image) {
+		if (img) { img->dec_count(); img = NULL; }
+		image = cairo_image_surface_create_from_png(original);
+		if (cairo_surface_status(image)!=CAIRO_STATUS_SUCCESS) {
+			cairo_surface_destroy(image);
+			image=NULL;
+		}
+	}
+
+	if (!image) {
+		if (img) img->dec_count();
+		return 1;
+	}
+
+	int owidth= cairo_image_surface_get_width(image),
+	    oheight=cairo_image_surface_get_height(image);
+	
+	if (fit) {
+		 //figure out dimensions of new preview
+		double a=double(oheight)/owidth;
+		int ww=width, hh=height;
+		if (a*ww>hh) {
+			height=hh;
+			width=int(hh/a);
+		} else {
+			width=ww;
+			height=int(ww*a);
+		}
+	}
+
+	if (width>0 && height>0) {
+		//pimage = cairo_create_cropped_scaled_image(0,0, owidth,oheight, width,height);
+		pimage = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width,height);
+		cairo_t *cr = cairo_create(pimage);
+		cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
+		cairo_scale(cr,(double)width/owidth,(double)height/oheight);
+		cairo_set_source_surface(cr,image, 0,0);
+		cairo_paint(cr);
+		cairo_destroy(cr);
+	}
+
+	if (!img) cairo_surface_destroy(image);
+	image=NULL;
+
+	if (width<=0 || height<=0) {
+		if (img) img->dec_count();
+		return 2;
+	}
+
+	cairo_status_t status=cairo_surface_write_to_png(pimage,preview);
+	if (status!=CAIRO_STATUS_SUCCESS) {
+		DBG cerr <<"Error saving cairo preview: "<<cairo_status_to_string(status)<<endl;
+	}
+	cairo_surface_destroy(pimage);
+
+	if (img) img->dec_count();
+	return 0;
+}
+
+
+
+
+
+//! Function that returns a new LaxCairoImage.
+/*! \ingroup laximages
+ *  This loads the image, grabs the dimensions and does LaxCairoImage::doneForNow().
+ *
+ * To use a preview image, see _load_cairo_image_with_preview().
+ */
+LaxImage *load_cairo_image(const char *filename)
+{
+	if (!filename) return NULL;
+	if (LaxFiles::file_exists(filename,1,NULL) != S_IFREG) return NULL; //some systems cairo does not fail politely on file not found
+
+	cairo_surface_t *image;
+	image=cairo_image_surface_create_from_png(filename);
+	if (cairo_surface_status(image)!=CAIRO_STATUS_SUCCESS) {
+		cairo_surface_destroy(image);
+		image=NULL;
+	}
+
+	if (!image) { 
+		 //cairo load failed, try other loaders
+		LaxImage *img = ImageLoader::LoadImage(filename, NULL,0,0,NULL, 0, LAX_IMAGE_CAIRO, NULL, false, 0);
+		return img;
+	}
+
+	LaxCairoImage *img=new LaxCairoImage(filename,image);
+	img->doneForNow();
+	return img;
+}
+
+//! Function that returns a new LaxCairoImage with preview.
+/*! \ingroup laximages
+ *  This loads the images, grabs the dimensions. If the preview path does not exist,
+ *  then a new preview is generated that is within the bounds of maxx and maxy,
+ *  and saved to the path if possible. 
+ *
+ *  If the preview already exists, then use it, without regenerating. If the preview path
+ *  is not a valid image, then previewfile is set to NULL, but filename is still used as possible.
+ *
+ *  LaxCairoImage::doneForNow() is finally called.
+ */
+LaxImage *load_cairo_image_with_preview(const char *filename,
+										 const char *previewfile,
+										 int maxx,int maxy,
+										 LaxImage **previewimage_ret)
+{
+	cairo_surface_t *image = cairo_image_surface_create_from_png(filename);
+	if (cairo_surface_status(image)!=CAIRO_STATUS_SUCCESS) {
+		cairo_surface_destroy(image);
+		image=NULL;
+	}
+	if (!image) return NULL;
+
+	LaxCairoImage *img=new LaxCairoImage(filename, image);
+	img->doneForNow();
+
+	if (previewimage_ret) {
+		LaxCairoImage *pimg=new LaxCairoImage(filename, previewfile, maxx,maxy);
+		pimg->doneForNow();
+
+		*previewimage_ret = pimg;
+	}
+
+	return img;
+}
+
+//! Simply return a new imlib image.
+/*! Note that this image will not be cached, since it is not associated
+ * with a file.
+ */
+LaxImage *create_new_cairo_image(int w, int h)
+{
+	cairo_surface_t *image;
+	image=cairo_image_surface_create(CAIRO_FORMAT_ARGB32, w,h);
+	if (!image) return NULL;
+	LaxCairoImage *img=new LaxCairoImage(NULL,image);
+	img->doneForNow();
+	return img;
+}
+
+
+//! Basically create a nem Imlib_Image, and copy buffer to its data.
+/*! buffer is assumed to be ARGB 8 bit data.
+ *
+ * Note that this image will not be cached, since it is not associated
+ * with a file.
+ */
+LaxImage *image_from_buffer_cairo(unsigned char *buffer, int w, int h, int stride)
+{
+	cairo_surface_t *ii=cairo_image_surface_create(CAIRO_FORMAT_ARGB32, w,h);
+	cairo_t *cr=cairo_create(ii);
+
+	cairo_surface_t *image;
+	image=cairo_image_surface_create_for_data(buffer,CAIRO_FORMAT_ARGB32, w,h,stride);
+	//if (!image) return NULL;
+	cairo_set_source_surface(cr,image, 0,0);
+	cairo_paint(cr);
+	cairo_surface_destroy(image);
+
+	LaxCairoImage *img=new LaxCairoImage(NULL,ii);
+	img->doneForNow();
+	return img;
+}
+
+int laxcairo_image_type()
+{ return LAX_IMAGE_CAIRO; }
+
+
+int save_image_cairo(LaxImage *image, const char *filename, const char *format)
+{
+	LaxCairoImage *img = dynamic_cast<LaxCairoImage *>(image);
+	if (!img) return 1;
+
+	cairo_surface_t *surface = img->image;
+	if (!surface) return 2;
+
+	if (format && strcmp(format, "png")) {
+		cerr << "Warning: trying to save cairo image to "<<format<<", but save only handles png"<<endl;
+	}
+
+	cairo_status_t status = cairo_surface_write_to_png(surface, filename);
+	if (status!=CAIRO_STATUS_SUCCESS) {
+		DBG cerr <<"Error saving cairo preview: "<<cairo_status_to_string(status)<<endl;
+		return 1;
+	}
+	return 0;
+}
+
 //--------------------------- LaxCairoImage --------------------------------------
 /*! \class LaxCairoImage
  * \brief A LaxImage based on cairo image surfaces in a cairo_surface_t.
@@ -74,18 +285,20 @@ LaxCairoImage::LaxCairoImage()
 	width=height=0;
 }
 
+LaxCairoImage::LaxCairoImage(int w, int h)
+  : LaxCairoImage()
+{
+	width  = w;
+	height = h;
+	image = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width,height);
+}
+
 /*! If fname and img, then assume that img corresponds to fname, read dimensions from img,
  * then free it.
  * If fname and !img, then get the dims from cairo by loading fname and reading off dims.
  * If !fname and img, then set flag=0 (do not free image during LaxImage lifetime).
  *
  * Note that Cairo docs say loading, reading off things, then freeing is a good thing.
- *
- * 
- * \todo *** needs to be some error checking when generating new previews
- * \todo scaling to maxx OR maxy if either 0 not implemented. both must currently be nonzero.
- * \todo when generating preview, might be wise to have check for freedesktop thumb locations to enforce
- *    proper sizing
  */
 LaxCairoImage::LaxCairoImage(const char *fname, cairo_surface_t *img)
 	: LaxImage(fname)
@@ -183,7 +396,7 @@ LaxCairoImage::LaxCairoImage(const char *original, const char *fname, int maxw, 
 			DBG cerr << " *** FINISH IMPLEMENTING LaxCairoImage::LaxCairoImage(const char *fname, int maxw, int maxh)!!"<<endl;
 
 			//generate_preview_image(filename,previewfile,"jpg",dwidth,dheight,0);
-			image=nimage;
+			image = nimage;
 
 		} else {
 			cairo_surface_destroy(pimage);
@@ -284,23 +497,60 @@ int LaxCairoImage::doneWithBuffer(unsigned char *bbuffer)
  * Returns 0 for success, or 1 for error in processing, for instance, if the stride
  * is not a reasonable value.
  */
-int LaxCairoImage::createFromData_ARGB8(int nwidth, int nheight, int stride, const unsigned char *data)
+int LaxCairoImage::createFromData_ARGB8(int nwidth, int nheight, int stride, const unsigned char *data, bool not_premultiplied)
 {
 	if (!data) return 1;
 	clear();
 
-	image=cairo_image_surface_create(CAIRO_FORMAT_ARGB32, nwidth,nheight);
-	width =nwidth;
-	height=nheight;
-	cairo_t *cr=cairo_create(image);
+	image  = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, nwidth,nheight);
+	width  = nwidth;
+	height = nheight;
+	cairo_t *cr = cairo_create(image);
+
+	if (stride == 0) stride = 4*nwidth;
+
+	unsigned char *data_to_use = const_cast<unsigned char*>(data);
+
+	unsigned char *premultiplied = nullptr;
+	if (not_premultiplied) {
+		//.... hmm, endian problems maybe?? seems like this wasn't really needed not so long ago
+		 //cairo expects premultiplied, so we need to adjust data...
+
+		premultiplied = new unsigned char[4*width*height];
+		data_to_use = premultiplied;
+
+		unsigned char *pp = premultiplied;
+		const unsigned char *oo = data;
+		unsigned char alpha;
+		for (int y=0; y<height; y++) {
+			int ooi = 0;
+			for (int x=0; x<width; x++) {
+				alpha = oo[ooi+3];
+				pp[3] = alpha;
+				pp[2] = (int)oo[ooi+2] * alpha / 256; //r
+				pp[1] = (int)oo[ooi+1] * alpha / 256; //g
+				pp[0] = (int)oo[ooi+0] * alpha / 256; //b
+	 
+				pp += 4;
+				ooi += 4;
+
+			}
+			oo += stride;
+		}
+
+		stride = 4*width;
+	}
 
 	cairo_surface_t *image;
-	image=cairo_image_surface_create_for_data(const_cast<unsigned char*>(data),CAIRO_FORMAT_ARGB32, nwidth,nheight, stride);
+	image = cairo_image_surface_create_for_data(data_to_use, CAIRO_FORMAT_ARGB32, nwidth,nheight, stride);
 	//if (!image) return NULL;
+	//cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
+	cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
 	cairo_set_source_surface(cr,image, 0,0);
 	cairo_paint(cr);
 	cairo_surface_destroy(image);
 	cairo_destroy(cr);
+	if (premultiplied) delete[] premultiplied;
 
 
 	 //---alternate method: keep external buffer around:
@@ -375,7 +625,7 @@ void LaxCairoImage::doneForNow()
 cairo_surface_t *LaxCairoImage::Image()
 {
 	if (!image) {
-		if (importer && filename) {
+		if (importer) {
 			importer->LoadToMemory(this);
 
 		} else {
@@ -397,267 +647,124 @@ cairo_surface_t *LaxCairoImage::Image()
 	return image;
 }
 
-//------------------- LaxCairoImage utils
-
-//! Generate a preview image. Return 0 for success.
-/*! WARNING: this does no sanity checking on file names, and will force an overwrite.
- * It is the responsibility of the calling code to do those things, and to
- * ensure that preview is in fact a writable path.
- * 
- * \todo *** afterwards, make sure preview was actually written
+/*! format==null guess from extension
+ * Return 0 for success or nonzero for failure and not saved.
+ * Warning: does no clobber check.
  */
-int laxcairo_generate_preview(const char *original,
-						   const char *preview, 
-						   const char *format, 
-						   int width, int height, int fit)
+int LaxCairoImage::Save(const char *tofile, const char *format)
 {
-
-	LaxImage *img = load_image_with_loaders(original, NULL,0,0,NULL, 0,LAX_IMAGE_CAIRO,NULL, false, 0);
-	LaxCairoImage *cimg = dynamic_cast<LaxCairoImage*>(img);
-
-	cairo_surface_t *image=NULL, *pimage;
-	if (cimg) image = cimg->Image();
-
-	if (!image) {
-		if (img) { img->dec_count(); img = NULL; }
-		image = cairo_image_surface_create_from_png(original);
-		if (cairo_surface_status(image)!=CAIRO_STATUS_SUCCESS) {
-			cairo_surface_destroy(image);
-			image=NULL;
-		}
-	}
-
-	if (!image) {
-		if (img) img->dec_count();
-		return 1;
-	}
-
-	int owidth= cairo_image_surface_get_width(image),
-	    oheight=cairo_image_surface_get_height(image);
-	
-	if (fit) {
-		 //figure out dimensions of new preview
-		double a=double(oheight)/owidth;
-		int ww=width, hh=height;
-		if (a*ww>hh) {
-			height=hh;
-			width=int(hh/a);
-		} else {
-			width=ww;
-			height=int(ww*a);
-		}
-	}
-
-	if (width>0 && height>0) {
-		//pimage=cairo_create_cropped_scaled_image(0,0, owidth,oheight, width,height);
-		pimage = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width,height);
-		cairo_t *cr = cairo_create(pimage);
-		cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
-		cairo_scale(cr,(double)width/owidth,(double)height/oheight);
-		cairo_set_source_surface(cr,image, 0,0);
-		cairo_paint(cr);
-		cairo_destroy(cr);
-	}
-
-	if (!img) cairo_surface_destroy(image);
-	image=NULL;
-
-	if (width<=0 || height<=0) {
-		if (img) img->dec_count();
-		return 2;
-	}
-
-	cairo_status_t status=cairo_surface_write_to_png(pimage,preview);
-	if (status!=CAIRO_STATUS_SUCCESS) {
-		DBG cerr <<"Error saving cairo preview: "<<cairo_status_to_string(status)<<endl;
-	}
-	cairo_surface_destroy(pimage);
-
-	if (img) img->dec_count();
-	return 0;
+	if (tofile == nullptr) tofile = filename;
+	return save_image_cairo(this, tofile, format);
 }
 
-
-
-
-/*! \ingroup laximages
- * Set image, set drawable, then uses cairo_render_image_on_drawable().
- */
-void laxcairo_image_out(LaxImage *image, aDrawable *win, int ulx, int uly)
+void LaxCairoImage::Set(double r, double g, double b, double a)
 {
-	if (!dynamic_cast<LaxCairoImage *>(image)) return;
+	if (!image) return;
 
-//	cairo_surface_t *surface=cairo_xlib_surface_create(win->app->dpy, win->xlibDrawable(), win->app->vis, win->win_w,win->win_h);
-//	cairo_t *cr=cairo_create(surface);
-//
-//	cairo_set_source_surface(cr,dynamic_cast<LaxCairoImage *>(image)->Image());
-//	cairo_paint();
-//	cairo_destroy(cr);
-//	cairo_dostroy_surface(surface);
-//	----
-	Displayer *dp=GetDefaultDisplayer();
-	dp->MakeCurrent(win);
-	dp->imageout(image,ulx,uly);
-}
-
-/*! \ingroup laximages
- * Set image, set drawable, then uses Displayer::imageout_rotated().
- */
-void laxcairo_image_out_rotated(LaxImage *image, aDrawable *win, int ulx,int uly, int urx,int ury)
-{
-	if (!dynamic_cast<LaxCairoImage *>(image)) return;
-	Displayer *dp=GetDefaultDisplayer();
-	dp->MakeCurrent(win);
-	dp->imageout_rotated(image, ulx,uly, urx,ury);
-}
-
-/*! \ingroup laximages
- * Set image, set drawable, then uses cairo_render_image_on_drawable_skewed().
- */
-void laxcairo_image_out_skewed(LaxImage *image, aDrawable *win, int ulx,int uly, int urx,int ury, int llx, int lly)
-{
-	if (!dynamic_cast<LaxCairoImage *>(image)) return;
-	Displayer *dp=GetDefaultDisplayer();
-	dp->MakeCurrent(win);
-	dp->imageout_skewed(image, ulx,uly, urx,ury, llx,lly);
-}
-
-/*! \ingroup laximages
- * Set image, set drawable, then uses cairo_render_image_on_drawable_skewed() according to 
- * the affine matrix m.
- */
-void laxcairo_image_out_matrix(LaxImage *image, aDrawable *win, double *m)
-{
-	if (!dynamic_cast<LaxCairoImage *>(image)) return;
-	Displayer *dp=GetDefaultDisplayer();
-	dp->MakeCurrent(win);
-	dp->imageout(image, m);
-}
-
-
-//! Function that returns a new LaxCairoImage.
-/*! \ingroup laximages
- *  This loads the image, grabs the dimensions and does LaxCairoImage::doneForNow().
- *
- * To use a preview image, see _load_cairo_image_with_preview().
- */
-LaxImage *load_cairo_image(const char *filename)
-{
-	if (!filename) return NULL;
-	if (LaxFiles::file_exists(filename,1,NULL) != S_IFREG) return NULL; //some systems cairo does not fail politely on file not found
-
-	cairo_surface_t *image;
-	image=cairo_image_surface_create_from_png(filename);
-	if (cairo_surface_status(image)!=CAIRO_STATUS_SUCCESS) {
-		cairo_surface_destroy(image);
-		image=NULL;
-	}
-
-	if (!image) { 
-		 //cairo load failed, try other loaders
-		LaxImage *img = load_image_with_loaders(filename, NULL,0,0,NULL, 0, LAX_IMAGE_CAIRO, NULL, false, 0);
-		return img;
-	}
-
-	LaxCairoImage *img=new LaxCairoImage(filename,image);
-	img->doneForNow();
-	return img;
-}
-
-//! Function that returns a new LaxCairoImage with preview.
-/*! \ingroup laximages
- *  This loads the images, grabs the dimensions. If the preview path does not exist,
- *  then a new preview is generated that is within the bounds of maxx and maxy,
- *  and saved to the path if possible. 
- *
- *  If the preview already exists, then use it, without regenerating. If the preview path
- *  is not a valid image, then previewfile is set to NULL, but filename is still used as possible.
- *
- *  LaxCairoImage::doneForNow() is finally called.
- */
-LaxImage *load_cairo_image_with_preview(const char *filename,
-										 const char *previewfile,
-										 int maxx,int maxy,
-										 LaxImage **previewimage_ret)
-{
-	cairo_surface_t *image = cairo_image_surface_create_from_png(filename);
-	if (cairo_surface_status(image)!=CAIRO_STATUS_SUCCESS) {
-		cairo_surface_destroy(image);
-		image=NULL;
-	}
-	if (!image) return NULL;
-
-	LaxCairoImage *img=new LaxCairoImage(filename, image);
-	img->doneForNow();
-
-	if (previewimage_ret) {
-		LaxCairoImage *pimg=new LaxCairoImage(filename, previewfile, maxx,maxy);
-		pimg->doneForNow();
-
-		*previewimage_ret = pimg;
-	}
-
-	return img;
-}
-
-//! Simply return a new imlib image.
-/*! Note that this image will not be cached, since it is not associated
- * with a file.
- */
-LaxImage *create_new_cairo_image(int w, int h)
-{
-	cairo_surface_t *image;
-	image=cairo_image_surface_create(CAIRO_FORMAT_ARGB32, w,h);
-	if (!image) return NULL;
-	LaxCairoImage *img=new LaxCairoImage(NULL,image);
-	img->doneForNow();
-	return img;
-}
-
-
-//! Basically create a nem Imlib_Image, and copy buffer to its data.
-/*! buffer is assumed to be ARGB 8 bit data.
- *
- * Note that this image will not be cached, since it is not associated
- * with a file.
- */
-LaxImage *image_from_buffer_cairo(unsigned char *buffer, int w, int h, int stride)
-{
-	cairo_surface_t *ii=cairo_image_surface_create(CAIRO_FORMAT_ARGB32, w,h);
-	cairo_t *cr=cairo_create(ii);
-
-	cairo_surface_t *image;
-	image=cairo_image_surface_create_for_data(buffer,CAIRO_FORMAT_ARGB32, w,h,stride);
-	//if (!image) return NULL;
-	cairo_set_source_surface(cr,image, 0,0);
+	cairo_t *cr = cairo_create(image);
+	cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
+	cairo_set_source_rgba(cr, r,g,b,a);
 	cairo_paint(cr);
-	cairo_surface_destroy(image);
-
-	LaxCairoImage *img=new LaxCairoImage(NULL,ii);
-	img->doneForNow();
-	return img;
+	cairo_destroy(cr);
 }
 
-int laxcairo_image_type()
-{ return LAX_IMAGE_CAIRO; }
 
 
-int save_image_cairo(LaxImage *image, const char *filename, const char *format)
+
+//--------------------------- CairoImageLoader --------------------------------------
+/*! \class CairoImageLoader
+ *
+ * Loads image via CairoImage2.
+ */
+
+CairoImageLoader::CairoImageLoader()
+  : ImageLoader("CairoImage", LAX_IMAGE_CAIRO)
+{}
+
+CairoImageLoader::~CairoImageLoader()
+{}
+
+
+bool IsPng(const char *file)
 {
-	LaxCairoImage *img = dynamic_cast<LaxCairoImage *>(image);
-	if (!img) return 1;
+	FILE *f = fopen(file, "r");
+	if (!f) return false;
 
-	cairo_surface_t *surface=img->image;
-	if (!surface) return 2;
+	char ch[8];
+	fread(ch, 1, 8, f);
+	fclose(f);
 
-	cairo_status_t status = cairo_surface_write_to_png(surface, filename);
-	if (status!=CAIRO_STATUS_SUCCESS) {
-		DBG cerr <<"Error saving cairo preview: "<<cairo_status_to_string(status)<<endl;
-		return 1;
-	}
-	return 0;
+	if (ch[0] != 137) return false;
+	if (ch[0] !=  80) return false;
+	if (ch[0] !=  78) return false;
+	if (ch[0] !=  71) return false;
+	if (ch[0] !=  13) return false;
+	if (ch[0] !=  10) return false;
+	if (ch[0] !=  26) return false;
+	if (ch[0] !=  10) return false;
+	return true;
 }
 
+bool CairoImageLoader::CanLoadFile(const char *file)
+{
+	//no, for now
+	return false;
+
+	 //Scan for png signature. Assume we can load any png.
+	//return IsPng(file);
+}
+
+bool CairoImageLoader::CanLoadFormat(const char *format)
+{
+	return false;
+	//return strcasecmp(format, "png") == 0;
+}
+
+/*! For now, we cannot ping anything. Punt to next loader.
+ */
+int CairoImageLoader::PingFile(const char *file, int *width, int *height, long *filesize, int *subfiles)
+{
+	return 1;
+}
+
+/*! Return 0 for success, nonzero for could not load to memory.
+ */
+int CairoImageLoader::LoadToMemory(LaxImage *img)
+{ 
+	return 1;
+}
+
+
+LaxImage *CairoImageLoader::load_image(const char *filename, 
+								 const char *previewfile, int maxx, int maxy, LaxImage **previewimage_ret,
+								 int required_state, //any of metrics, or image data, or preview data
+								 int target_format,
+								 int *actual_format,
+								 bool ping_only,
+								 int index)
+{
+	//for now we assume we cannot actually load anything..
+	return NULL; 
+
+	//if (target_format != LAX_IMAGE_CAIRO) return NULL;
+	//if (!IsPng(filename)) return NULL;
+}
+
+LaxImage *CairoImageLoader::CreateImage(int width, int height, int format)
+{
+	if (format != LAX_IMAGE_CAIRO) return NULL;
+	return dynamic_cast<LaxImage*>(new LaxCairoImage(width, height));
+}
+
+LaxImage *CairoImageLoader::CreateImageFromBuffer(unsigned char *data, int width, int height, int stride, int format)
+{
+	if (format != LAX_IMAGE_CAIRO) return NULL;
+
+	LaxCairoImage *img = new LaxCairoImage();
+	img->createFromData_ARGB8(width,height,stride, data, true);
+
+	return dynamic_cast<LaxImage*>(img);
+}
 
 } //namespace Laxkit
 

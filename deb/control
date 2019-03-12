@@ -2,8 +2,8 @@ Source: laxkit
 Section: graphics
 Priority: optional
 Maintainer: Tom Lechner <tomscoding@gmail.com>
-Build-Depends: debhelper (>= 7.0.0), libx11-dev, libimlib2-dev, libpng12-dev, libfreetype6-dev, libxext-dev, libcups2-dev
-Standards-Version: 3.8.4
+Build-Depends: debhelper (>= 11), libx11-dev, libimlib2-dev, libpng-dev, libfreetype6-dev, libxext-dev, libcups2-dev
+Standards-Version: 4.1.2
 
 Package: liblaxkit
 Section: libdevel

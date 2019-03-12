@@ -254,7 +254,7 @@ MenuItem::MenuItem(LaxImage *img)
 MenuItem::MenuItem(const char *newitem,const char *img,int nid,unsigned int nstate,int ninfo,MenuInfo *nsub,int sublocal)
 {
 	base_init(newitem,nid,nstate,ninfo,nsub,sublocal);
-	image=load_image(img);
+	image = ImageLoader::LoadImage(img);
 }
 
 //! img pointer is transfered. Its count is not incremented.

@@ -366,7 +366,8 @@ void CurveInfo::SetDataRaw(flatpoint *p, int n)
 
 	points.Allocate(n);
 	//points.CopyRange(0, p,n);
-	memcpy(points.e,p,n*sizeof(flatpoint));
+	//memcpy(points.e,p,n*sizeof(flatpoint));
+	for (int c=0; c<n; c++) points.e[c] = p[c];
 	points.n=n;
 }
 
@@ -810,16 +811,22 @@ void CurveInfo::MakeFakeCurve()
 		 //find a previous point to work with
 		if (c==0) {
 			if (wrap) opp=points.e[points.n-1]-flatpoint(1,0);
-			else { opp=points.e[0]; opp.x=0; }
+			else {
+				opp = points.e[0];
+				opp.x = 0;
+			}
 		} else opp=points.e[c-1];
 
 		 //find a next point to work with
-		if (c==points.n-1) {
-			if (wrap) opn=points.e[0]+flatpoint(1,0);
-			else { opn=points.e[c]; opn.x=1; }
+		if (c == points.n-1) {
+			if (wrap) opn = points.e[0]+flatpoint(1,0);
+			else {
+				opn = points.e[c];
+				opn.x=1;
+			}
 		} else opn=points.e[c+1];
 
-		v=opn-opp;
+		v = opn-opp;
 		v.normalize();
 
 		p=points.e[c];
@@ -844,15 +851,31 @@ void CurveInfo::MakeFakeCurve()
 		fauxpoints.push(pn);
 	}
 
+	 //special treatment for endpoints, make tangents mirror tangent of nearby point
+	if (!wrap && points.n > 2) {
+		v = fauxpoints.e[4] - fauxpoints.e[1];
+		v.normalize();
+		opn = fauxpoints.e[3] - fauxpoints.e[4];
+		fauxpoints.e[2] = fauxpoints.e[1] - (opn || v) + (opn |= v);
+
+		int n = fauxpoints.n;
+		v = fauxpoints.e[n-2] - fauxpoints.e[n-5];
+		v.normalize();
+		opp = fauxpoints.e[n-4] - fauxpoints.e[n-5];
+		fauxpoints.e[n-3] = fauxpoints.e[n-2] - (opp || v) + (opp |= v);
+	}
+
 	 //add previous and final points if necessary
 	if (wrap) {
 		int added=0;
+		//add final point shifted by -1 on x
 		if (fauxpoints.e[1].x>0) {
 		    fauxpoints.push(fauxpoints.e[fauxpoints.n-1]-flatpoint(1,0), 0);
 		    fauxpoints.push(fauxpoints.e[fauxpoints.n-2]-flatpoint(1,0), 0);
 		    fauxpoints.push(fauxpoints.e[fauxpoints.n-3]-flatpoint(1,0), 0);
 			added=3;
 		}
+		//add initial point shifte by +1 on x
 		if (fauxpoints.e[points.n-2].x<1) {
 		    fauxpoints.push(fauxpoints.e[added+0]+flatpoint(1,0));
 		    fauxpoints.push(fauxpoints.e[added+1]+flatpoint(1,0));

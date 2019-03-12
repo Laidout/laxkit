@@ -70,10 +70,10 @@ PaletteWindow::PaletteWindow(anXWindow *parnt,const char *nname,const char *ntit
 	//LoadPalette("/usr/share/gimp/2.0/palettes/Plasma.gpl");
 	palette=rainbowPalette(27,18,255, 1);
 
-	curcolor=ccolor=-1;
-	pad=app->default_padx;
+	curcolor = ccolor = -1;
 	
 	InstallColors(THEME_Panel);
+	pad = app->theme->default_padx;
 
 	findInrect();
 }

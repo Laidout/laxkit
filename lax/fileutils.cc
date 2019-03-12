@@ -260,6 +260,53 @@ int check_dirs(const char *dirs,char make_too)
 	return t!=S_IFDIR?c:-1;
 }
 
+/*! Create directories in dirs if they don't exist. Returns number of directories created.
+ * If depth==0, then assume every path component in dirs is a directory.
+ * If depth>0, then only do that many deep, so "1/2/3/4/5" with a depth of 3 will
+ * create "1/2/3".
+ * If depth<0, then create (num components)+depth, so "1/2/3/4/5" with a depth
+ * of -1 will create "1/2/3/4".
+ */
+int CheckDirs(const char *dirstr, int depth)
+{
+	int n = 0, nn = 0;
+	char **dirs = split(dirstr, '/', &n);
+
+	if (depth > 0 || depth == 0) depth = n;
+	if( depth < 0) depth = n + depth;
+	if (depth<0) depth = 0;
+
+	//store old curdir
+	char *curdir = current_directory();
+	
+	int t = 0;
+	if (chdir(dirs[0]) != 0) {
+		//could not go to dir!!
+
+	} else {
+		for (int c=0; c<depth; c++) {
+			t = file_exists(dirs[c],1,NULL);
+			if (t && t != S_IFDIR) {
+				 // existed, but was not a directory
+				break;
+			} else if (t == 0) {
+				 // not there, create the dir
+				if (mkdir(dirs[c],0755) != 0) { t =- 1; break; }
+				t = S_IFDIR;
+				chdir(dirs[c]);
+			}
+			nn++;
+		}
+
+		//restore old curdir
+		chdir(curdir);
+	}
+
+	delete[] curdir;
+	deletestrs(dirs, n);
+	return t != S_IFDIR ? nn : -1;
+}
+
 //! Strip out characters not in: <tt>[a-zA-Z0-9+=-_.% ]</tt>.
 /*! If the filename is nothing but illegal characters, then return NULL.
  */

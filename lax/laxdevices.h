@@ -24,7 +24,6 @@
 
 #ifdef _LAX_PLATFORM_XLIB
 #include <X11/Xlib.h>
-#include <X11/Xft/Xft.h>
 #include <X11/Xutil.h>
 #ifdef LAX_USES_XINPUT2
 #include <X11/extensions/XInput2.h>

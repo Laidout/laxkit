@@ -89,18 +89,13 @@ void InitImlib2Backend()
 	 //set up default image functions
 	default_image_type = laximlib_image_type;
 
-	image_out         =laximlib_image_out;
-	image_out_rotated =laximlib_image_out_rotated;
-	image_out_skewed  =laximlib_image_out_skewed;
-	image_out_matrix  =laximlib_image_out_matrix;
+	//save_image              =save_imlib_image;
+	//load_image              =load_imlib_image;
+	//load_image_with_preview =load_imlib_image_with_preview;
+	//generate_preview_image  =laximlib_generate_preview;
 
-	save_image              =save_imlib_image;
-	load_image              =load_imlib_image;
-	load_image_with_preview =load_imlib_image_with_preview;
-	generate_preview_image  =laximlib_generate_preview;
-
-	create_new_image  = create_new_imlib_image;
-	image_from_buffer = image_from_buffer_imlib;
+	//create_new_image  = create_new_imlib_image;
+	//image_from_buffer = image_from_buffer_imlib;
 }
 
 

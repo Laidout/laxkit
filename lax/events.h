@@ -27,7 +27,6 @@
 #ifdef _LAX_PLATFORM_XLIB
 #include <X11/Xlib.h>
 #include <X11/Xatom.h>
-#include <X11/Xft/Xft.h>
 #include <X11/Xutil.h>
 #endif //_LAX_PLATFORM_XLIB
 

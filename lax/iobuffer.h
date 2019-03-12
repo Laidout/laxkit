@@ -42,6 +42,7 @@ class IOBuffer
 
 	char *filename;
 	FILE *f;
+	int fd;
 
 	const char *errormessage;
 	int errorstate;
@@ -70,10 +71,12 @@ class IOBuffer
 
 	 //----file specific
 	virtual const char *Filename();
-	virtual int OpenFile(const char *filename, const char *mode);
+	virtual int OpenFile(const char *file_name, const char *mode);
+	virtual int OpenFileLocked(const char *file_name, const char *mode, bool shield_locale);
 	virtual int Close();
-	virtual int SaveStrToFile(const char *filename);
-	virtual int GetStrFromFile(const char *filename, int maxchars=-1);
+	virtual int CloseAndUnlock();
+	virtual int SaveStrToFile(const char *file_name);
+	virtual int GetStrFromFile(const char *file_name, int maxchars=-1);
 	virtual int UseThis(FILE *ff);
 	virtual int IsOpen();
 	//int OpenTempFile();

@@ -44,19 +44,24 @@ using namespace std;
 
 namespace LaxInterfaces {
 
-#define SOMEDATA_KEEP_ASPECT    (1<<0)
-#define SOMEDATA_KEEP_1_TO_1    (1<<1)
-#define SOMEDATA_LOCK_SHEAR     (1<<2)
-#define SOMEDATA_LOCK_ROTATION  (1<<3)
-#define SOMEDATA_LOCK_SCALEX    (1<<4)
-#define SOMEDATA_LOCK_SCALEY    (1<<5)
-#define SOMEDATA_LOCK_POSITION  (1<<6)
+
+//for SomeData::flags:
+enum SomeDataFlags {
+	SOMEDATA_KEEP_ASPECT    = (1<<0),
+	SOMEDATA_KEEP_1_TO_1    = (1<<1),
+	SOMEDATA_LOCK_SHEAR     = (1<<2),
+	SOMEDATA_LOCK_ROTATION  = (1<<3),
+	SOMEDATA_LOCK_SCALEX    = (1<<4),
+	SOMEDATA_LOCK_SCALEY    = (1<<5),
+	SOMEDATA_LOCK_POSITION  = (1<<6),
  //only object tool can touch it
-#define SOMEDATA_LOCK_CONTENTS  (1<<7)
+	SOMEDATA_LOCK_CONTENTS  = (1<<7),
  //child objects are not selectable
-#define SOMEDATA_LOCK_KIDS      (1<<8)
-#define SOMEDATA_UNSELECTABLE   (1<<9)
-#define SOMEDATA_UNEDITABLE     (1<<10)
+	SOMEDATA_LOCK_KIDS      = (1<<8),
+	SOMEDATA_UNSELECTABLE   = (1<<9),
+	SOMEDATA_UNEDITABLE     = (1<<10),
+	SOMEDATA_FLAGS_MAX      = 10
+};
 
 
 /*! for GroupData::locks */

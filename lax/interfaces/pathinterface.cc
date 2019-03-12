@@ -782,10 +782,18 @@ int bez_reduce_approximate(NumStack<flatpoint> *list, double epsilon)
 			list->Allocate(list->n+2*segn);
 			if (c2!=list->n-1) {
 				 //move points beyond current segment out past where new points must go
-				memmove(list->e+segstart + 3*segn-2 + (((wrap&1)?1:0)+((wrap&2)?1:0)),  list->e+c2+1, (list->n-c2-1)*sizeof(flatpoint));
+				//memmove(list->e+segstart + 3*segn-2 + (((wrap&1)?1:0)+((wrap&2)?1:0)),  list->e+c2+1, (list->n-c2-1)*sizeof(flatpoint));
+				//----------
+				int num = (list->n-c2-1);
+				int from = c2+1;
+				int to = segstart + 3*segn-2 + (((wrap&1)?1:0)+((wrap&2)?1:0));
+				if (from > to) for (int c3=0; c3<num; c3++) list->e[to+c3] = list->e[from+c3];
+				else for (int c3=num-1; c3>=0; c3--) list->e[to+c3] = list->e[from+c3];
+
 				//DBG cerr <<" memmove( list->e + "<<segstart + 3*segn-2 + (((wrap&1)?1:0)+((wrap&2)?1:0))<<", "<<c2+1<<", "<<(list->n-c2-1)<<"*sizeof(flatpoint))"<<endl;
 			}
-			memcpy(list->e+segstart, bsamples.e + ((wrap&1) ? 0 : 1), (3*segn-(((wrap&1)?0:1)+((wrap&2)?0:1)))*sizeof(flatpoint));
+			//memcpy(list->e+segstart, bsamples.e + ((wrap&1) ? 0 : 1), (3*segn-(((wrap&1)?0:1)+((wrap&2)?0:1)))*sizeof(flatpoint));
+			for (int c3=0; c3<(3*segn-(((wrap&1)?0:1)+((wrap&2)?0:1))); c3++) list->e[segstart+c3] = bsamples.e[((wrap&1) ? 0 : 1) + c3];
 			//DBG cerr <<" memcpy( list->e + "<<segstart<<", bsamples+"<<((wrap&1) ? 0 : 1)<<", "<<(3*segn-(((wrap&1)?0:1)+((wrap&2)?0:1)))<<"*sizeof(flatpoint))"<<endl;
 
 			diffn=2*segn-2+(((wrap&1)?1:0)+((wrap&2)?1:0));
@@ -4291,6 +4299,26 @@ int PathInterface::toggleclosed(int c) //c=-1
 	return 0;
 }
 
+/*! Install an orphan PathsData with an additional matrix.
+ * Sets mode PATHI_Path_Is_MM_Real.
+ */
+int PathInterface::UseThisObject(PathsData *ndata, const double *extramatrix)
+{
+	if (data && data!=ndata) deletedata();
+	if (data != ndata) {
+		data = ndata;
+		data->inc_count();
+	}
+	if (poc) delete poc;
+	poc = nullptr;
+	extram.m(extramatrix);
+
+	pathi_style &= ~(PATHI_Path_Is_Screen | PATHI_Path_Is_M_Screen | PATHI_Path_Is_Real | PATHI_Path_Is_M_Real);
+	pathi_style |= PATHI_Path_Is_MM_Real;
+	needtodraw = 1;
+	return 1;
+}
+
 int PathInterface::UseThisObject(ObjectContext *oc)
 {
 	if (!oc) return 0;
@@ -4467,6 +4495,10 @@ int PathInterface::Refresh()
 	FillStyle *fstyle=NULL;
 
 	if (pathi_style&PATHI_Path_Is_M_Real) {
+		dp->PushAndNewTransform(data->m());
+
+	} else if (pathi_style&PATHI_Path_Is_MM_Real) {
+		dp->PushAndNewTransform(extram.m());
 		dp->PushAndNewTransform(data->m());
 	}
 
@@ -4824,6 +4856,9 @@ int PathInterface::Refresh()
 
 	if (pathi_style&PATHI_Path_Is_M_Real) {
 		dp->PopAxes();
+	} else if (pathi_style&PATHI_Path_Is_MM_Real) {
+		dp->PopAxes();
+		dp->PopAxes();
 	}
 
 	dp->DrawImmediately(olddraw);
@@ -5121,6 +5156,9 @@ flatpoint PathInterface::realtoscreen(flatpoint r)
 		//if (viewport) return viewport->realtoscreen(r);
 		return dp->realtoscreen(r);
 
+	} else if (pathi_style&PATHI_Path_Is_MM_Real) {
+		return dp->realtoscreen(extram.transformPoint(r));
+
 	} else if (pathi_style&PATHI_Path_Is_Real) {//***might not work
 		return dp->realtoscreen(r);
 
@@ -5142,6 +5180,9 @@ flatpoint PathInterface::screentoreal(int x,int y)
 	if (pathi_style&PATHI_Path_Is_M_Real) {
 		//if (viewport) return viewport->screentoreal(x,y);
 		return dp->screentoreal(x,y);
+
+	} else if (pathi_style&PATHI_Path_Is_MM_Real) {
+		return extram.transformPointInverse(dp->screentoreal(x,y));
 
 	} else if (pathi_style&PATHI_Path_Is_Real) {
 		return dp->screentoreal(x,y);//***might not work
@@ -5736,8 +5777,8 @@ int PathInterface::LBDown(int x,int y,unsigned int state,int count,const LaxMous
 			}
 			if (viewport && !data) viewport->ChangeContext(x,y,NULL);
 
-			AddPoint(screentoreal(x,y));
-			buttondown.moveinfo(d->id,LEFTBUTTON, state,HOVER_AddingPoint); //1 means we are adding a point, used to control
+			if (AddPoint(screentoreal(x,y)) == 0)
+				buttondown.moveinfo(d->id,LEFTBUTTON, state,HOVER_AddingPoint); //1 means we are adding a point, used to control
 			//if adding bez or poly point
 
 		} else if ((state&(ControlMask|AltMask|MetaMask|ShiftMask))==ShiftMask) {
@@ -5909,6 +5950,8 @@ void PathInterface::clearSelection()
 /*! Flushes curpoints, assigns curvertex to something meanindful.
  * Assumes that p is real coordinates, not screen coordinates, and
  * that what we are adding starts and stops with a vertex.
+ *
+ * Returns 0 for added, nonzero for not addded.
  */
 int PathInterface::AddPoint(flatpoint p)
 {
@@ -5929,6 +5972,7 @@ int PathInterface::AddPoint(flatpoint p)
 
 	if (!curvertex) {
 		//start new subpath
+		if ((pathi_style&PATHI_One_Path_Only) && data->paths.n >= 1) return 1;
 		data->pushEmpty();
 		curpath=data->paths.e[data->paths.n-1];
 	}

@@ -211,7 +211,7 @@ int FilePreviewer::Preview(const char *file)
 		return 0; 
 	}
 
-	image=load_image(file);
+	image = ImageLoader::LoadImage(file);
 	if (image) { state=3; return 0; }
 	
 	char blah[25+strlen(file)];
