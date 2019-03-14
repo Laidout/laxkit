@@ -39,6 +39,10 @@ using namespace std;
 //----------------------------- main() ------------------------------
 int main(int argc,char **argv)
 {
+	ColorManager *colorManager = ColorManager::GetDefault();
+	colorManager->AddSystem(Create_sRGB_System(true), true);
+
+
 	anXApp app;
 	app.Backend("xlib");
 	//app.Backend("cairo");
@@ -62,12 +66,12 @@ int main(int argc,char **argv)
 	int i=100, current=100;
 	//viewer->AddTool(new    CaptionInterface(i++,NULL,"New text\nline 2\n  spaced line 3"), 1,0);
 	viewer->AddTool(new     ObjectInterface(i++,NULL), 1,0);
-	//viewer->AddTool(new   GradientInterface(i++,NULL), 1,0);
+	viewer->AddTool(new   GradientInterface(i++,NULL), 1,0); current = i;
 	//viewer->AddTool(new      ImageInterface(i++,NULL), 1,0);
-	viewer->AddTool(new      PatchInterface(i++,NULL), 1,0);
+	//viewer->AddTool(new      PatchInterface(i++,NULL), 1,0);
 	//viewer->AddTool(new ColorPatchInterface(i++,NULL), 1,0);
 	//viewer->AddTool(new       RectInterface(i++,NULL), 1,0);
-	viewer->AddTool(new       PathInterface(i++,NULL), 1,0);
+	//viewer->AddTool(new       PathInterface(i++,NULL), 1,0);
 	//viewer->AddTool(new   FreehandInterface(NULL, i++,NULL), 1,0); current=i-1;
 	//viewer->AddTool(new   PressureMapInterface(NULL, i++,NULL), 1,0);
 	//viewer->AddTool(new EngraverFillInterface(i++,NULL), 1,0);
