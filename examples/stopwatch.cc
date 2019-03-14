@@ -130,6 +130,8 @@ void StopWatch::Reset()
 	laps.flush();
 	start_time = 0;
 	pause_time = 0;
+	start_clock = 0;
+	pause_clock = 0;
 }
 
 void StopWatch::Lap()
@@ -168,28 +170,45 @@ double StopWatch::CurTime()
 
 class StopWatchWindow : public anXWindow, public StopWatch
 {
+  protected:
 	char scratch[200];
+	LaxFont *font, *time_font;
+
+	enum ClickOn {
+		Nothing,
+		Laps,
+		StartPause,
+		LapReset
+	};
+	ClickOn mover;
+	char *laptext;
 
   public:
 	double fps;
 	int timerid;
 
     StopWatchWindow();
+    virtual ~StopWatchWindow();
     virtual void Refresh();
     virtual int  Idle(int tid, double delta);
     virtual int CharInput(unsigned int ch, const char *buffer,int len,unsigned int state, const LaxKeyboard *kb);
 	virtual int LBDown(int x,int y,unsigned int state,int count,const LaxMouse *d);
+	virtual int MouseMove (int x,int y,unsigned int state, const LaxMouse *m);
+	virtual ClickOn scan(int x,int y);
 
 	virtual void Start();
 	virtual double Pause();
 	virtual void Reset();
 	virtual void Lap(); //add time to laps list
 	virtual void SetTime(double time);
+	virtual void UpdateLapText(int how);
+
+	virtual char *getSelectionData(int *len,const char *property,const char *targettype,const char *selection);
 };
 
 
 StopWatchWindow::StopWatchWindow()
-  : anXWindow(NULL,"win","win",ANXWIN_ESCAPABLE|ANXWIN_DOUBLEBUFFER, 400,200,350,300,0, NULL,0,NULL)
+  : anXWindow(NULL,"win","win",ANXWIN_ESCAPABLE|ANXWIN_DOUBLEBUFFER|ANXWIN_CENTER, -1,-1,350,300,0, NULL,0,NULL)
 {
     InstallColors(THEME_Panel);
 
@@ -199,7 +218,21 @@ StopWatchWindow::StopWatchWindow()
 	//play/pause button
 	//lap/reset button
 	
+	font = win_themestyle->normal;
+	font->inc_count();
+	time_font = win_themestyle->monospace->duplicate();
+	time_font->Resize(time_font->textheight()*2);
+
 	fps = 30;
+	mover = Nothing;
+	laptext = nullptr;
+}
+
+StopWatchWindow::~StopWatchWindow()
+{
+	font->dec_count();
+	time_font->dec_count();
+	delete[] laptext;
 }
 
 int  StopWatchWindow::Idle(int tid, double delta)
@@ -235,12 +268,66 @@ int StopWatchWindow::CharInput(unsigned int ch, const char *buffer,int len,unsig
     return anXWindow::CharInput(ch,buffer,len,state,kb); //still need to return for default ESC behavior
 }
 
-int StopWatchWindow::LBDown(int x,int y,unsigned int state,int count,const LaxMouse *d)
+StopWatchWindow::ClickOn StopWatchWindow::scan(int x,int y)
 {
-	if (playing) Pause();
-	else Start();
+	double th  = font->textheight();
+	double th2 = time_font->textheight();
+	double oy;
+
+	double L = laps.n * th;
+	if (L + th2 + 2*th > win_h) {
+		oy = win_h - 2*th - th2 - L;
+	} else if (L < win_h/2 - th2/2) {
+		oy = win_h/2 - th2/2 - L;
+	} else {
+		oy = 0;
+	}
+
+	if (y >= oy && y < oy + L) return Laps;
+	if (y >= oy + L && y < oy + L + th2 + th) return StartPause;
+	if (y >= oy + L + th2 + th && y < oy + L + th2 + 2*th) return LapReset;
+	return Nothing;
 }
 
+int StopWatchWindow::LBDown(int x,int y,unsigned int state,int count,const LaxMouse *d)
+{
+	mover = scan(x,y);
+
+	if (mover == StartPause || mover == Nothing) {
+		if (playing) Pause();
+		else Start();
+
+	} else if (mover == LapReset) {
+		if (playing) Lap();
+		else Reset();
+
+	} else if (mover == Laps) {
+		UpdateLapText(0);
+		if (laptext != nullptr) {
+			app->CopytoBuffer(laptext,-1);
+			selectionCopy(0);
+			selectionCopy(1);
+		}
+	}
+
+	needtodraw = 1;
+	return 0;
+} 
+
+char *StopWatchWindow::getSelectionData(int *len,const char *property,const char *targettype,const char *selection)
+{
+	if (!laptext) return nullptr;
+
+	char *str = nullptr;
+	makestr(str, laptext);
+	*len = strlen(str);
+	return str;
+}
+
+/*! Under 60 seconds, return just seconds.
+ * Under 60 minutes, return "m:ss.ss".
+ * Else return "h:mm:ss.ss".
+ */
 void FormattedTime(double time, char *buffer)
 {
 	if (time < 60) sprintf(buffer, "%.02f", time);
@@ -255,15 +342,52 @@ void FormattedTime(double time, char *buffer)
 	}
 }
 
+void StopWatchWindow::UpdateLapText(int how)
+{
+	char scratch[100];
+	delete[] laptext;
+	laptext = nullptr;
+	for (int c=0; c<laps.n; c++) {
+		FormattedTime(laps[c], scratch);
+		appendline(laptext, scratch);
+	}
+}
+
+int StopWatchWindow::MouseMove(int x,int y,unsigned int state, const LaxMouse *m)
+{
+	ClickOn mo = scan(x,y);
+	if (mo != mover) {
+		mover = mo;
+		needtodraw = 1;
+	}
+	return 0;
+}
+
+
 void StopWatchWindow::Refresh()
 {
     if (!needtodraw) return;
 
 	Displayer *dp = MakeCurrent();
     dp->ClearWindow();
+	dp->font(font);
 
+
+
+	double y = 0;
 	double th = dp->textheight();
-	double y = th/2;
+	double th2 = time_font->textheight();
+
+
+	double L = laps.n * th;
+	if (L + th2 + 2*th > win_h) {
+		y = win_h - 2*th - th2 - L;
+	} else if (L < win_h/2 - th2/2) {
+		y = win_h/2 - th2/2 - L;
+	} else {
+		y = 0;
+	}
+
 
 
 	//------------ laps
@@ -271,26 +395,38 @@ void StopWatchWindow::Refresh()
 		FormattedTime(laps[c], scratch);
 		sprintf(scratch + strlen(scratch), " - ");
 		FormattedTime(laps[c] - (c>0 ? laps[c-1] : 0), scratch + strlen(scratch));
-		dp->textout(win_w/2, y, scratch, -1, LAX_CENTER);
+		dp->textout(win_w/2, y, scratch, -1, LAX_HCENTER|LAX_TOP);
 		y += th;
 	}
 
 
 	//----------- current time
 	//draw hh:mm:ss.sssss
-	//clock_t curtime = times(NULL);
 	double time = CurTime();
 	FormattedTime(time, scratch); 
 
-	dp->textout(win_w/2,y, scratch,-1);
-	y += th;
+	if (mover == StartPause) {
+		dp->NewFG(coloravg(win_themestyle->fg, win_themestyle->bg, .9));
+		dp->drawrectangle(0,y, win_w,th2+th, 1);
+		dp->NewFG(win_themestyle->fg);
+	}
+
+	dp->font(time_font);
+	dp->textout(win_w/2,y, scratch,-1, LAX_HCENTER|LAX_TOP);
+	y += dp->textheight();
+	dp->font(font);
 
 
 	//-------- buttons
-	dp->textout(win_w/2, y, playing ? _("Pause") : _("Start"), -1, LAX_CENTER);
+	dp->textout(win_w/2, y, playing ? _("Pause") : _("Start"), -1, LAX_HCENTER|LAX_TOP);
 	y += th;
 
-	dp->textout(win_w/2, y, playing ? _("Lap") : _("Reset"), -1, LAX_CENTER);
+	if (mover == LapReset) {
+		dp->NewFG(coloravg(win_themestyle->fg, win_themestyle->bg, .9));
+		dp->drawrectangle(0,y, win_w,th, 1);
+		dp->NewFG(win_themestyle->fg);
+	}
+	dp->textout(win_w/2, y, playing ? _("Lap") : _("Reset"), -1, LAX_HCENTER|LAX_TOP);
 	y += th;
 
     SwapBuffers();
