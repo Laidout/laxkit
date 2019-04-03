@@ -114,9 +114,9 @@ class TextXEditBaseUtf8 : public anXWindow, public TextEditBaseUtf8
 	virtual void DrawText(int black=-1) = 0;
 	virtual int DrawLineOfText(int x,int y,long pos,long len,char &check,long eof=-1);
 	virtual int TextOut(int x,int y,char *str,long len,long eof);
-	virtual int ExtentAndStr(char *str,long len,char *&blah,long &p);
-	virtual int GetExtent(long pos,long end,int lsofar=0,long eof=-1); //lsofar=0,eof=-1
-	virtual long GetPos(long pos,int pix,int lsofar=0,long eof=-1); //lsofar=0,eof=-1
+	virtual double ExtentAndStr(char *str,long len,char *&blah,long &p);
+	virtual double GetExtent(long pos,long end,double lsofar=0,long eof=-1); //lsofar=0,eof=-1
+	virtual long GetPos(long pos,double pix,double lsofar=0,long eof=-1); //lsofar=0,eof=-1
 	virtual int SetupMetrics();
 	virtual int UseThisFont(LaxFont *newfont);
 	virtual LaxFont *GetFont();

@@ -225,7 +225,7 @@ TextEditBaseUtf8::~TextEditBaseUtf8()
 //! For CHAR_TABS, returns the character to center on, or 0 if no such tab there.
 /*! The number returned is the UCS code for the character. 
  */
-int TextEditBaseUtf8::GetTabChar(int atpix)
+int TextEditBaseUtf8::GetTabChar(double atpix)
 {
 	return 0;
 } 
@@ -233,7 +233,7 @@ int TextEditBaseUtf8::GetTabChar(int atpix)
 //! Redefine for custom tabstops, default is even spacing with tabwidth pixels
 /*! Returns the next tab stop which is at a pixel position greater than atpix.
  */
-int TextEditBaseUtf8::GetNextTab(int atpix) 
+double TextEditBaseUtf8::GetNextTab(double atpix) 
 {
 	return (atpix/tabwidth+1)*tabwidth;
 }
@@ -246,7 +246,7 @@ int TextEditBaseUtf8::GetNextTab(int atpix)
  *  to TextEditBaseUtf8. They are more or less implemented in TextXEditBase, in conjunction
  *  with the function GetTabChar().
  */
-int TextEditBaseUtf8::GetNextTab(int atpix,int &tabtype) 
+double TextEditBaseUtf8::GetNextTab(double atpix,int &tabtype) 
 {
 	tabtype=LEFT_TAB;
 	return GetNextTab(atpix);

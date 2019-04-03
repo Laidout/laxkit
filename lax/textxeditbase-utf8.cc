@@ -201,8 +201,9 @@ int hexify(char *str, int i)
 
 double TextXEditBaseUtf8::TextExtent(const char *str, int len, double *width,double *height,double *ascent,double *descent)
 {
-	if (dp == nullptr) dp = MakeCurrent();
-	return dp->textextent(str,len, width,height,ascent,descent);
+	//if (dp == nullptr) dp = MakeCurrent();
+	return thefont->Extent(str,len, width,height,ascent,descent);
+	//return dp->textextent(str,len, width,height,ascent,descent);
 }
 
 //! Returns real char width with r==1, else returns the custom hexified if r==0.
@@ -210,7 +211,6 @@ double TextXEditBaseUtf8::TextExtent(const char *str, int len, double *width,dou
  */
 int TextXEditBaseUtf8::charwidth(int ch,int r) //r=0
 {
-	//if (ch==32) return thefont->Extent(" ",-1);
 	if (ch==32) return TextExtent(" ",-1);
 
 	char c[20];
@@ -218,14 +218,11 @@ int TextXEditBaseUtf8::charwidth(int ch,int r) //r=0
 	l=utf8encode(ch,c);
 	c[l]='\0';
 
-	//if (r==1) return thefont->Extent(c,-1);
 	if (r==1) return TextExtent(c,-1);
 
-	//int w = thefont->Extent(c,-1);
 	int w = TextExtent(c,-1);
 	if (w) return w;
 	hexify(c,ch);
-	//w = thefont->Extent(c,-1);
 	w = TextExtent(c,-1);
 	return w;
 }
@@ -719,7 +716,7 @@ int TextXEditBaseUtf8::TextOut(int x,int y,char *str,long len,long eof) // len=1
 
 		c=GetNextTab(x+curlineoffset,tabtype); // make c==tabbedto point
 		if (tabtype==CHAR_TAB) {
-			tabchar=GetTabChar(c);
+			tabchar = GetTabChar(c);
 			if (tabchar=='\0') tabtype=CENTER_TAB; 
 			tabutf[utf8encode(tabchar,tabutf)]='\0';
 		}
@@ -811,7 +808,7 @@ int TextXEditBaseUtf8::TextOut(int x,int y,char *str,long len,long eof) // len=1
  *
  * The previos contents of blah, if any, are ignored. They are not delete[]'d if blah!=NULL.
  */
-int TextXEditBaseUtf8::ExtentAndStr(char *str,long len,char *&blah,long &p)
+double TextXEditBaseUtf8::ExtentAndStr(char *str,long len,char *&blah,long &p)
 {
 	 //*** some other way to check for ridiculously huge single lines? just let them be?
 	if (len>2000) { len=2000; }
@@ -850,7 +847,6 @@ int TextXEditBaseUtf8::ExtentAndStr(char *str,long len,char *&blah,long &p)
 	}
 	int pix;
 	double ww;
-	//ww = thefont->Extent(blah,p);
 	ww = TextExtent(blah,p);
 	pix=ww;
 
@@ -871,7 +867,7 @@ int TextXEditBaseUtf8::ExtentAndStr(char *str,long len,char *&blah,long &p)
  *
  * \todo *** must fix the not taking into account missing chars..
  */
-int TextXEditBaseUtf8::GetExtent(long pos,long end,int lsofar,long eof) //lsofar=0, eof==-1
+double TextXEditBaseUtf8::GetExtent(long pos, long end, double lsofar, long eof) //lsofar=0, eof==-1
 {
 	if (end<=pos) return 0;
 	if (eof<0) eof=textlen;
@@ -879,7 +875,6 @@ int TextXEditBaseUtf8::GetExtent(long pos,long end,int lsofar,long eof) //lsofar
 	 //for right or center justified, or no tabs, return normal extents
 	double ww;
 	if ((textstyle&(TEXT_RIGHT|TEXT_CENTER)) || !(textstyle&TEXT_TABS_STOPS)) {
-		//ww = thefont->Extent(thetext+pos,end-pos);
 		ww = TextExtent(thetext+pos,end-pos);
 		lsofar+=ww;
 		 //*** note that this is wrong: it does not take into account mapping of missing chars
@@ -905,12 +900,10 @@ int TextXEditBaseUtf8::GetExtent(long pos,long end,int lsofar,long eof) //lsofar
 		 //find the char extent of the current tab segment,
 		 // makes ppos at end of current tab segment
 		while (ppos<eot && thetext[ppos]!='\t' && !onlf(ppos)) ppos++;
-		//ww = thefont->Extent(thetext+pos,ppos-pos);
 		ww = TextExtent(thetext+pos,ppos-pos);
 		slen = ww;
 
 		if (ppos>=end) {
-			//ww = thefont->Extent(thetext+pos,end-pos);
 			ww = TextExtent(thetext+pos,end-pos);
 			pslen = ww;
 		}
@@ -925,7 +918,6 @@ int TextXEditBaseUtf8::GetExtent(long pos,long end,int lsofar,long eof) //lsofar
 			thetext[ppos]=ch;
 
 			if (charpos) {
-				//ww = thefont->Extent(thetext+pos,charpos-thetext);
 				ww = TextExtent(thetext+pos,charpos-thetext);
 				tlen=ww;
 			} else {
@@ -960,11 +952,11 @@ int TextXEditBaseUtf8::GetExtent(long pos,long end,int lsofar,long eof) //lsofar
 		pos=ppos;
 
 		 // then get info for next tab
-		if (thetext[pos]=='\t') {
-			tabbedto=GetNextTab(lsofar,tabtype);
-			if (tabtype==CHAR_TAB) {
-				tabchar=GetTabChar(tabbedto);
-				tabutf[utf8encode(tabchar,tabutf)]='\0';
+		if (thetext[pos] == '\t') {
+			tabbedto = GetNextTab(lsofar,tabtype);
+			if (tabtype == CHAR_TAB) {
+				tabchar = GetTabChar(tabbedto);
+				tabutf[utf8encode(tabchar,tabutf)] = '\0';
 			}
 		}
 	} //while (pos<=eot)
@@ -981,7 +973,7 @@ int TextXEditBaseUtf8::GetExtent(long pos,long end,int lsofar,long eof) //lsofar
  *
  * \todo mishandles missing chars
  */
-long TextXEditBaseUtf8::GetPos(long pos,int pix,int lsofar,long eof) //lsofar=0, eof=-1
+long TextXEditBaseUtf8::GetPos(long pos, double pix, double lsofar,long eof) //lsofar=0, eof=-1
 {
 	DBG cerr <<endl;
 	long end=pos;
@@ -991,15 +983,14 @@ long TextXEditBaseUtf8::GetPos(long pos,int pix,int lsofar,long eof) //lsofar=0,
 
 	double ww,hh;
 	if ((textstyle&(TEXT_RIGHT|TEXT_CENTER)) || !(textstyle&TEXT_TABS_STOPS)) {
-		int tlsofar;
-		int lastpix=lsofar, mid;
+		double tlsofar;
+		double lastpix=lsofar, mid;
 		long pos2=pos;
 		long pos3;
 
 		while (pos2<end) { 
 			 //*** note that this is wrong: it does not take into account mapping of missing chars
-			pos3=nextpos(pos2);
-			//thefont->Extent(thetext+pos,pos3-pos, &ww,&hh, NULL,NULL);
+			pos3 = nextpos(pos2);
 			TextExtent(thetext+pos,pos3-pos, &ww,&hh, NULL,NULL);
 			tlsofar=lsofar+ww;
 			mid=(tlsofar+lastpix)/2;
@@ -1014,21 +1005,23 @@ long TextXEditBaseUtf8::GetPos(long pos,int pix,int lsofar,long eof) //lsofar=0,
 	}
  
 	 // get extent for next segment, determine tabtype, scan for lsofar in it.
-	int tabbedto=lsofar,tabtype=LEFT_TAB;
-	int tabchar='\0';
+	double tabbedto = lsofar;
+	int tabtype = LEFT_TAB;
+	int tabchar = '\0';
 	char tabutf[6];
-	int pos2,last,mid,lsofar2;
+	int pos2;
+	double last, mid, lsofar2;
+	double seg;   //pixel length of the current tab segment
 	int eotabseg, //char pos right after the end of the current tab segment
-		seg,      //pixel length of the current tab segment
 		topos;    //char pos to center a tab around, or the end of the tab segment
 
 	while (pos<end) {
 		 // pos is assumed to be placed after the previous tab
-		eotabseg=pos; // eotabseg is set to point at next tab/eol/eof
-		seg=0; 		// seg is pixel length of current tab segment
-		if (tabtype==CHAR_TAB) {
-			tabchar=GetTabChar(tabbedto); 
-			if (tabchar=='\0') tabtype=CENTER_TAB; 
+		eotabseg = pos; // eotabseg is set to point at next tab/eol/eof
+		seg = 0; 		// seg is pixel length of current tab segment
+		if (tabtype == CHAR_TAB) {
+			tabchar = GetTabChar(tabbedto); 
+			if (tabchar == '\0') tabtype = CENTER_TAB; 
 		}
 
 		while (eotabseg<eof && !onlf(eotabseg) && thetext[eotabseg]!='\t') eotabseg++;
@@ -1043,13 +1036,12 @@ long TextXEditBaseUtf8::GetPos(long pos,int pix,int lsofar,long eof) //lsofar=0,
 				else topos=eotabseg;
 		} else topos=eotabseg;
 
-		//thefont->Extent(thetext+pos,topos-pos, &ww,&hh, NULL,NULL);
 		TextExtent(thetext+pos,topos-pos, &ww,&hh, NULL,NULL);
-		seg=ww;
+		seg = ww;
 
 		switch (tabtype) {
 			case LEFT_TAB:
-				lsofar=tabbedto;
+				lsofar = tabbedto;
 				break;
 			case RIGHT_TAB:
 				if (tabbedto-seg>lsofar) lsofar=tabbedto-seg;
@@ -1058,7 +1050,7 @@ long TextXEditBaseUtf8::GetPos(long pos,int pix,int lsofar,long eof) //lsofar=0,
 				if (tabbedto-seg/2>lsofar) lsofar=tabbedto-seg/2;
 				break;
 			case CHAR_TAB: // really should be able to make right do double time, just with a partial seg
-				if (tabbedto-seg>lsofar) lsofar=tabbedto-seg; 
+				if (tabbedto-seg>lsofar) lsofar = tabbedto-seg; 
 				break;
 		}
 		DBG cerr <<"-pos="<<pos<<"  lsofar="<<lsofar<<"  eotabseg="<<eotabseg<<"  seg="<<seg<<endl;
@@ -1067,22 +1059,21 @@ long TextXEditBaseUtf8::GetPos(long pos,int pix,int lsofar,long eof) //lsofar=0,
 		last=lsofar;
 
 		long pos3;
-		while (pos2<eotabseg) {
+		while (pos2 < eotabseg) {
 			 //*** probably not quite right:
-			pos3=nextpos(pos2);
-			//thefont->Extent(thetext+pos,pos3-pos);
-			TextExtent(thetext+pos,pos3-pos);
-			lsofar2=lsofar+ww;
-			mid=(last+lsofar2)/2;
+			pos3 = nextpos(pos2);
+			ww = TextExtent(thetext+pos,pos3-pos);
+			lsofar2 = lsofar+ww;
+			mid = (last+lsofar2)/2;
 
-			if (pix<mid) return pos2;
-			if (pix<lsofar2) return nextpos(pos2);
-			last=lsofar2;
-			pos2=nextpos(pos2);
+			if (pix < mid) return pos2;
+			if (pix < lsofar2) return nextpos(pos2);
+			last = lsofar2;
+			pos2 = nextpos(pos2);
 		}
-		lsofar=lsofar;
-		pos=pos2;
-		if (thetext[pos]=='\t') { tabbedto=GetNextTab(lsofar,tabtype); pos++; }
+		lsofar = lsofar;
+		pos = pos2;
+		if (thetext[pos]=='\t') { tabbedto = GetNextTab(lsofar, tabtype); pos++; }
 	}
 	return pos;
 }

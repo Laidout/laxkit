@@ -115,9 +115,9 @@ class TextEditBaseUtf8 : virtual public Undoable
 	TextEditBaseUtf8(const char *newtext=NULL,unsigned long nstyle=0,unsigned int ncntlchar=0);
 	virtual ~TextEditBaseUtf8();
 	virtual int charwidth(unsigned int usc,int actual=0) { return 1; }
-	virtual int GetTabChar(int atpix);
-	virtual int GetNextTab(int atpix); // redefine for custom tabstops, default is even spacing with tabwidth pixels
-	virtual int GetNextTab(int atpix,int &tabtype); // defaults to LEFT_TAB, calls GetNextTab(atpix)
+	virtual int GetTabChar(double atpix);
+	virtual double GetNextTab(double atpix); // redefine for custom tabstops, default is even spacing with tabwidth pixels
+	virtual double GetNextTab(double atpix,int &tabtype); // defaults to LEFT_TAB, calls GetNextTab(atpix)
 
 	virtual int inschar(unsigned int ucs,char a=1); // a==1 means put curpos after the insert
 	virtual int insstring(const char *blah,int after=0);
