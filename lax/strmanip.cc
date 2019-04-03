@@ -220,7 +220,7 @@ char *newnstr(const char *str,int n)
 char *newstr(const char *str)
 {
 	if (!str) return NULL;
-	char *dup=new char[strlen(str)+1];
+	char *dup = new char[strlen(str)+1];
 	strcpy(dup,str);
 	return dup;
 }
