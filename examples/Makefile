@@ -36,40 +36,19 @@ examples= \
 all: laxhello interfs timers
 
 
+cairotest: lax laxinterface cairotest.o
+	$(LD) $@.o  -llaxinterfaces -llaxkit -lharfbuzz $(LDFLAGS) -o $@
+
 interfs: lax laxinterface interfs.o
 	$(LD) interfs.o -llaxinterfaces -llaxkit $(LDFLAGS) -o $@
 
 interfs2: lax laxinterface interfs2.o
 	$(LD) interfs2.o normalinterface.o joininterface.o -llaxinterfaces -llaxkit $(LDFLAGS) -o $@
 
-vfill: lax laxinterface vfill.o
-	$(LD) vfill.o  -llaxinterfaces -llaxkit $(LDFLAGS) -o $@
-
-#vfill.o: vfill.cc /home/tom/other/p/github/laxkit/lax/interfaces/engravermapping.cc /home/tom/other/p/github/laxkit/lax/interfaces/RESEARCH/blur.cc
-
-cairotest: lax laxinterface cairotest.o
-	$(LD) $@.o  -llaxinterfaces -llaxkit -lharfbuzz $(LDFLAGS) -o $@
-
-testevents: lax laxinterface testevents.o
-	$(LD) $@.o  -llaxinterfaces -llaxkit $(LDFLAGS) -o $@
-
-themeeditor: lax laxinterface themeeditor.o
-	$(LD) $@.o  -llaxinterfaces -llaxkit $(LDFLAGS) -o $@
-
-test: lax laxinterface test.o
-	$(LD) $@.o  -llaxinterfaces -llaxkit $(LDFLAGS) -o $@
-
-test2: lax laxinterface test2.o
-	$(LD) $@.o  -llaxinterfaces -llaxkit $(LDFLAGS) -o $@
-
-
 laxhello: lax laxinterface laxhello.cc laxhello.o
 	$(LD) $@.o -llaxinterfaces -llaxkit $(LDFLAGS) -o $@
 
-thingpreviewer: lax thingpreviewer.o
-	$(LD) $@.o -llaxkit $(LDFLAGS) -o $@
-
-timers: lax timers.o
+panel: lax laxinterface panel.o
 	$(LD) $@.o -llaxkit $(LDFLAGS) -o $@
 
 stopwatch: lax laxinterface stopwatch.o
@@ -77,6 +56,28 @@ stopwatch: lax laxinterface stopwatch.o
 
 stationrotater: lax stationrotater.o
 	$(LD) $@.o -llaxkit $(LDFLAGS) -o $@
+
+test: lax laxinterface test.o
+	$(LD) $@.o  -llaxinterfaces -llaxkit $(LDFLAGS) -o $@
+
+test2: lax laxinterface test2.o
+	$(LD) $@.o  -llaxinterfaces -llaxkit $(LDFLAGS) -o $@
+
+testevents: lax laxinterface testevents.o
+	$(LD) $@.o  -llaxinterfaces -llaxkit $(LDFLAGS) -o $@
+
+themeeditor: lax laxinterface themeeditor.o
+	$(LD) $@.o  -llaxinterfaces -llaxkit $(LDFLAGS) -o $@
+
+thingpreviewer: lax thingpreviewer.o
+	$(LD) $@.o -llaxkit $(LDFLAGS) -o $@
+
+timers: lax timers.o
+	$(LD) $@.o -llaxkit $(LDFLAGS) -o $@
+
+vfill: lax laxinterface vfill.o
+	$(LD) vfill.o  -llaxinterfaces -llaxkit $(LDFLAGS) -o $@
+
 
 depends:
 	touch makedepend
