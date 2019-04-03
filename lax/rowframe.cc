@@ -204,6 +204,8 @@ void RowFrame::Refresh()
  */
 int RowFrame::Sync(int add) // add=0, if 1 means addwindow
 {
+	DBG cerr << "RowFrame::Sync..."<<endl;
+
 	//m[0],m[6] are box x,y and should be non zero only for top level boxes (not quite the same as window)
 	w(win_w?win_w:BOX_SHOULD_WRAP); // the BOX_SHOULD_WRAP forces a wrap to extent
 	h(win_h?win_h:BOX_SHOULD_WRAP);
@@ -394,6 +396,10 @@ int RowFrame::AddWin(anXWindow *win,      //!< The window to add
  * box just in order to add a window.
  * 
  * The end result is for win to be pushed onto the top of wholelist.
+ *
+ * Generally islocal will be 0 or 1 depending on whether we need to
+ * take position of the reference or not. This value is ultimately
+ * fed into a RefPtrStack.
  */
 int RowFrame::AddWin(WinFrameBox *box,char islocal,int where)//where=-1 
 { 
