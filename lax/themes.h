@@ -145,6 +145,7 @@ class WindowStyle : public anObject
 
     ScreenColor active_border;
     ScreenColor inactive_border;
+	double border_width;
 
 	//NumStack<ScreenColor> extra_colors;
 

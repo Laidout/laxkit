@@ -85,6 +85,8 @@ WindowStyle::WindowStyle(int ncategory)
 	diff_shadow      = -.1;
 	diff_highlight   = .1;
 
+	border_width = -1;
+
 	SetDefaultColors("Light");
 }
 
@@ -122,6 +124,7 @@ WindowStyle::WindowStyle(const WindowStyle &l)
 
     active_border   = l.active_border;
     inactive_border = l.inactive_border; 
+	border_width    = l.border_width;
 
 	normal    = NULL;
 	bold      = NULL;
@@ -163,6 +166,7 @@ WindowStyle &WindowStyle::operator=(WindowStyle &l)
 
     active_border   = l.active_border;
     inactive_border = l.inactive_border;
+	border_width    = l.border_width;
 
 	SetFonts(l.normal, l.bold, l.italic, l.monospace);
 
@@ -242,6 +246,8 @@ Attribute *WindowStyle::dump_out_atts(Attribute *att,int what,DumpContext *conte
 
 	sprintf(scratch, "rgbaf(%.10g, %.10g, %.10g, %.10g)", deactivate.Red(),deactivate.Green(),deactivate.Blue(),deactivate.Alpha());
 	att->push("deactivate", scratch);
+
+	att->push("border_width", border_width);
 
 
 	if (normal) {
@@ -347,6 +353,8 @@ void WindowStyle::dump_in_atts(Attribute *att,int flag,DumpContext *context)
 				newfont->dec_count();
 			}
 
+		} else if (!strcmp(name,"border_width")) {
+			DoubleAttribute(value, &border_width);
 
 
 		} else {
@@ -398,6 +406,7 @@ double WindowStyle::GetValue(const char *what)
 	if (!strcmp(what, "diff_fg_alternate")) return diff_fg_alternate;
 	if (!strcmp(what, "diff_shadow"      )) return diff_shadow;
 	if (!strcmp(what, "diff_highlight"   )) return diff_highlight;
+	if (!strcmp(what, "border_width"     )) return border_width;
 	return 0;
 }
 
@@ -413,6 +422,7 @@ double WindowStyle::GetValue(ThemeThings what)
 	if (what == THEME_Diff_FG_Alternate) return diff_fg_alternate;
 	if (what == THEME_Diff_Shadow      ) return diff_shadow;
 	if (what == THEME_Diff_Highlight   ) return diff_highlight;
+	if (what == THEME_Border_Width     ) return border_width;
 	return 0;
 }
 
@@ -733,6 +743,7 @@ int Theme::AddDefaults(const char *which)
 	if (!strcasecmp(which, "Light") || !strcasecmp(which, "Dark") || !strcasecmp(which, "Gray")) {
 
 		LaxFont *font = (anXApp::app ? anXApp::app->defaultlaxfont : NULL);
+		LaxFont *mono = (anXApp::app ? anXApp::app->fontmanager->MakeFont("Courier", nullptr, font->textheight(), -1) : NULL);
 		WindowStyle *s = NULL;
 		
 		const int categories[] = { THEME_Panel, THEME_Edit, THEME_Menu, THEME_Button, THEME_Tooltip, 0 };
@@ -740,10 +751,12 @@ int Theme::AddDefaults(const char *which)
 		for (int c=0; categories[c]; c++) {
 			s = new WindowStyle(categories[c]);
 			s->SetDefaultColors(which);
-			if (font) s->SetFonts(font, font, font, font);
+			if (font) s->SetFonts(font, font, font, mono);
 			styles.push(s);
 			s->dec_count();
 		}
+
+		mono->dec_count();
 
 		return 0;
 	}
