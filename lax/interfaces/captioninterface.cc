@@ -597,7 +597,7 @@ double CaptionData::ComputeLineLen(int line)
 //	}
 //
 //	if (!font || line>=lines.n) return 0;
-//	return font->extent(lines.e[line],strlen(lines.e[line]));
+//	return font->Extent(lines.e[line],strlen(lines.e[line]));
 }
 
 /*! Find line and byte position within.
@@ -665,7 +665,7 @@ int CaptionData::FindPos(double y, double x, int *line, int *pos)
 //		pp=utf8fwd(lines.e[l]+p, lines.e[l], lines.e[l]+strlen(lines.e[l]));
 //		p=pp-lines.e[l];
 //
-//		w=font->extent(lines.e[l], p);
+//		w=font->Extent(lines.e[l], p);
 //		if (x<(lastw+w)/2) { p=utf8back_index(lines.e[l],p-1,strlen(lines.e[l])); break; }
 //		lastw=w;
 //	}
