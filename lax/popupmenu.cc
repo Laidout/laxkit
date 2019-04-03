@@ -136,7 +136,8 @@ PopupMenu::PopupMenu(const char *nname, const char *ntitle, unsigned long long s
 	if (mouseid) WrapToMouse(mouseid,nparentmenu);
 	else WrapToPosition(xx,yy,0,nparentmenu);
 
-	pad=app->defaultlaxfont->textheight()/3;
+	pad = app->defaultlaxfont->textheight()/3;
+	win_border = 1;
 
 	outtimer = 0;
 
