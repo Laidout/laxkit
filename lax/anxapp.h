@@ -179,7 +179,7 @@ class anXWindow : virtual public EventReceiver,
 	int           win_screen;
 	unsigned long win_style;
 	int           win_x,win_y,win_w,win_h;
-	unsigned int  win_border;
+	int           win_border;
 	int           win_pointer_shape;
 	char          win_on;
 	char          win_active;

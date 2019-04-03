@@ -1999,12 +1999,17 @@ int anXApp::addwindow(anXWindow *w,char mapit,char absorb_count) // mapit==1, ab
 {
 #ifdef _LAX_PLATFORM_XLIB
 	if (w==NULL || w->xlib_window) return 1; // do not create if it is already created.
-	if (w->app!=this) {
+
+	if (w->app != this) {
 		DBG cerr << "win app!=app.\n";
-		w->app=this;
+		w->app = this;
 	}
 
-	if (w->win_themestyle) w->win_border = theme->default_border_width;
+	if (w->win_border < 0) {
+		if (w->win_themestyle && w->win_themestyle->border_width >= 0)
+			 w->win_border = w->win_themestyle->border_width;
+		else w->win_border = theme->default_border_width;
+	}
 	
 	 //----- add window to app's internal stack:
 	if (w->win_parent==NULL) {
@@ -2046,9 +2051,9 @@ int anXApp::addwindow(anXWindow *w,char mapit,char absorb_count) // mapit==1, ab
 	}
 
 	 //for no-decorations style, *** this also stays on every desktop!!
-	if (w->win_style&ANXWIN_BARE) {
-		w->xlib_win_xatts.override_redirect=True;
-		w->xlib_win_xattsmask|=CWOverrideRedirect;
+	if (w->win_style & ANXWIN_BARE) {
+		w->xlib_win_xatts.override_redirect = True;
+		w->xlib_win_xattsmask |= CWOverrideRedirect;
 	}
 
 	 // preinit exists because I haven't figured out why XResizeWindow doesn't seem to have any effect
@@ -2101,7 +2106,7 @@ int anXApp::addwindow(anXWindow *w,char mapit,char absorb_count) // mapit==1, ab
 	}
 	
 	DBG cerr << "addwindow::create:"<<w->WindowTitle()<<"  x,y:"<<w->win_x<<','<<w->win_y<<"  w,h:"<<w->win_w<<','<<w->win_h<<endl;
-	Window win=XCreateWindow(dpy,
+	Window win = XCreateWindow(dpy,
 					(w->win_parent?w->win_parent->xlib_window:DefaultRootWindow(dpy)),
 					w->win_x,w->win_y, (w->win_w?w->win_w:1),(w->win_h?w->win_h:1),
 					w->win_border,
@@ -2111,7 +2116,7 @@ int anXApp::addwindow(anXWindow *w,char mapit,char absorb_count) // mapit==1, ab
 					w->xlib_win_xattsmask,&w->xlib_win_xatts);
 	if (!win) {
 		DBG cerr <<" ----win==0 for "<<w->WindowTitle()<<", aborting add, unable to XCreateWindow"<<endl;
-		w->xlib_window=0;
+		w->xlib_window = 0;
 		return 1;
 	}
 	w->xlib_window=win;
