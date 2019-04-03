@@ -109,9 +109,9 @@ LineEdit::LineEdit(anXWindow *parnt,const char *nname,const char *ntitle,unsigne
 			unsigned int ntstyle) //!< See TextEditBaseUtf8 for what goes in this.
 			 : TextXEditBaseUtf8(parnt,nname,ntitle,nstyle,xx,yy,ww,hh,brder,prev,nowner,nsend,newtext,ntstyle,'\\')
 { 			// ntstyle=0, newtext=NULL, cntlchar=0; newtext copied
-	qualifier=NULL;
-	blanktext=NULL;
-	lasthover=0;
+	qualifier = NULL;
+	blanktext = NULL;
+	lasthover = 0;
 	
 	InstallColors(THEME_Edit);
 
@@ -119,26 +119,27 @@ LineEdit::LineEdit(anXWindow *parnt,const char *nname,const char *ntitle,unsigne
 	bkwrongcolor2 = coloravg(rgbcolor(255,255,0),win_themestyle->bg.Pixel(),.7);
 	wscolor       = coloravg(coloravg(win_themestyle->fg.Pixel(),win_themestyle->bg.Pixel()), rgbcolor(0,0,255));
 	
-	con=cx=cy=0;
-	newline=newline2=0;
+	con = cx = cy = 0;
+	newline = newline2 = 0;
 
-	textheight=0;
-	padx=0; pady=0;
-	firsttime=1;
-	needtodraw=1;
+	textheight = win_themestyle->normal->textheight();
+	padx = textheight * .2;
+	pady = textheight * .2;
+	firsttime = 1;
+	needtodraw = 1;
 
-	modified=0;
+	modified = 0;
 	//thetext=NULL;
 	//SetText(newtext);
 	//maxtextlen=0;
 
-	sellen=curpos=selstart=0;
-	oldsellen=0;
-	curlineoffset=-padx;
-	dpos=0;
-	mostpixwide=10;
+	sellen = curpos = selstart = 0;
+	oldsellen = 0;
+	curlineoffset = -padx;
+	dpos = 0;
+	mostpixwide = 10;
 
-	valid=1;
+	valid = 1;
 
 	win_pointer_shape=LAX_MOUSE_Text;
 }
@@ -153,7 +154,7 @@ LineEdit::~LineEdit()
 int LineEdit::init()
 {
 	TextXEditBaseUtf8::init();
-	curlineoffset=-padx;
+	curlineoffset = -padx;
 	if (!win_owner) SetOwner(win_parent);
 	return 0;
 }
@@ -461,7 +462,7 @@ int LineEdit::SetText(double newtext)
 int LineEdit::SetText(const char *newtext)
 { 
 	if (TextEditBaseUtf8::SetText(newtext)) return 1;
-	curlineoffset=-padx;
+	curlineoffset = -padx;
 	findcaret();
 	Modified(0);
 	needtodraw=1;
@@ -836,7 +837,7 @@ long LineEdit::findpos(int pix)
 	//DBG cerr <<"\nFind:"<<l<<','<<pix;
 	if (pix<0) pix=0;
 
-	long newpos=GetPos(0,pix);
+	long newpos = GetPos(0,pix);
 	DBG cerr <<"found pos:"<<newpos<<endl;
 	return newpos;
 }
@@ -847,8 +848,8 @@ long LineEdit::findpos(int pix)
  */
 void LineEdit::findcaret()
 { 
-	cx=GetExtent(0,curpos,0)-curlineoffset;
-	cy=win_h/2-textheight/2+textascent;
+	cx = GetExtent(0,curpos,0) - curlineoffset;
+	cy = win_h/2 - textheight/2 + textascent;
 
 	DBG cerr <<"foundcaret: "<<cx<<','<<cy<<endl;
 }
@@ -867,7 +868,7 @@ int LineEdit::LBDown(int x,int y, unsigned int state,int count,const LaxMouse *d
 	}
 
 	//DBG cerr <<"lineedit before lbdown curpos:"<<curpos<<"  textlen:"<<textlen<<endl;
-	count=(count-1)%3+1;
+	count = (count-1)%3+1;
 	if (count>2) { // select all
 		curpos=textlen;
 		selstart=0;
@@ -879,7 +880,7 @@ int LineEdit::LBDown(int x,int y, unsigned int state,int count,const LaxMouse *d
 
 	if (count>1) return LBDblClick(x,y,state,d);
 	 // desel, addtosel, dragdrop, repos
-	long newpos=findpos(x+curlineoffset);
+	long newpos = findpos(x+curlineoffset);
 	//DBG cerr <<"lineedit lbdown found newpos:"<<newpos<<"  textlen:"<<textlen<<endl;
 
 	if (state&ShiftMask) { // add to sel
