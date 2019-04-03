@@ -356,7 +356,7 @@ anXWindow::anXWindow(anXWindow *parnt, const char *nname, const char *ntitle,
 	win_y      = yy;
 	win_w      = ww;
 	win_h      = hh;
-	win_border = 0;
+	win_border = -1;
 	win_style  = nstyle;
 	win_pointer_shape = 0;
 
