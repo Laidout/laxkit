@@ -41,8 +41,8 @@ namespace Laxkit {
 class DisplayerCairo : public Displayer
 {
  protected:
-	char *buffer;
-	int bufferlen;
+	char *tbuffer;
+	int tbufferlen;
 	virtual int reallocBuffer(int len);
 
 	LaxImage *imagebuffer;

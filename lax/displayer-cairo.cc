@@ -110,8 +110,8 @@ DisplayerCairo::DisplayerCairo(anXWindow *nxw,PanController *pan)
 
 void DisplayerCairo::base_init()
 {
-	buffer=NULL;
-	bufferlen=0;
+	tbuffer=NULL;
+	tbufferlen=0;
 
 	isinternal=0;
 	imagebuffer=NULL;
@@ -322,7 +322,7 @@ int DisplayerCairo::MakeCurrent(aDrawable *buffer)
 	if (cr && cairo_status(cr)!=CAIRO_STATUS_SUCCESS) {
 		cerr << " *** WARNING!!! cairo in error status: "<<cairo_status_to_string(cairo_status(cr))<<"!! recreating cr..."<<endl;
 		cairo_destroy(cr);
-		cr=NULL;		
+		cr=NULL;
 	}
 
 	if (cr && surface && buffer==dr && w==buffer->xlibDrawable()) return 0; //already current!
@@ -1323,7 +1323,7 @@ double DisplayerCairo::textextent(LaxFont *thisfont, const char *str,int len, do
 	//DBG cerr <<" font curfont 2: "<<cairo_font_face_get_reference_count(oldfont ? oldfont : curfont) <<endl;
 
 
-	if (len>bufferlen) reallocBuffer(len);
+	if (len > tbufferlen) reallocBuffer(len);
 
 	int tempcr=0;
 	if (!cr) {
@@ -1344,9 +1344,9 @@ double DisplayerCairo::textextent(LaxFont *thisfont, const char *str,int len, do
 	}
 
 	cairo_text_extents_t extents;
-	memcpy(buffer,str,len);
-	buffer[len]='\0';
-	cairo_text_extents(cr, buffer, &extents);
+	memcpy(tbuffer,str,len);
+	tbuffer[len]='\0';
+	cairo_text_extents(cr, tbuffer, &extents);
 
 	cairo_font_extents_t fextents;
 	cairo_font_extents(cr, &fextents);
@@ -1398,13 +1398,13 @@ void DisplayerCairo::initFont()
  */
 int DisplayerCairo::reallocBuffer(int len)
 {
-	if (len<bufferlen) return bufferlen;
+	if (len < tbufferlen) return tbufferlen;
 
-	if (buffer) delete[] buffer;
-	bufferlen=len+30;
-	buffer=new char[bufferlen];
+	if (tbuffer) delete[] tbuffer;
+	tbufferlen = len+30;
+	tbuffer = new char[tbufferlen];
 
-	return bufferlen;
+	return tbufferlen;
 }
 
 //! Draw a single line of text at x,y.
@@ -1413,32 +1413,32 @@ int DisplayerCairo::reallocBuffer(int len)
 double DisplayerCairo::textout_line(double x,double y,const char *str,int len,unsigned long align)
 {
 	if (!str) return 0;
-	if (len<0) len=strlen(str);
-	if (len==0) return 0;
-	if (len>bufferlen) reallocBuffer(len);
-	strncpy(buffer,str,len);
-	buffer[len]='\0';
+	if (len < 0) len = strlen(str);
+	if (len == 0) return 0;
+	if (len > tbufferlen) reallocBuffer(len);
+	strncpy(tbuffer,str,len);
+	tbuffer[len]='\0';
 
 	if (!curfont) initFont();
 
 	cairo_text_extents_t extents;
-	cairo_text_extents(cr, buffer, &extents);
+	cairo_text_extents(cr, tbuffer, &extents);
 
     double ox,oy;
-	if (align&LAX_LEFT) ox=x;
-	else if (align&LAX_RIGHT) ox=x-extents.width;
-	else ox=x-extents.width/2; //center
+	if (align & LAX_LEFT) ox = x;
+	else if (align & LAX_RIGHT) ox = x-extents.width;
+	else ox = x-extents.width/2; //center
 
-    if (align&LAX_TOP) oy=y+curfont_extents.ascent;
-    else if (align&LAX_BOTTOM) oy=y-(curfont_extents.height-curfont_extents.ascent);
-    else if (align&LAX_BASELINE) oy=y;
+    if (align & LAX_TOP) oy=y+curfont_extents.ascent;
+    else if (align & LAX_BOTTOM) oy=y-(curfont_extents.height-curfont_extents.ascent);
+    else if (align & LAX_BASELINE) oy=y;
     else oy=y - (curfont_extents.height)/2 + curfont_extents.ascent; //center
 
 
 	cairo_move_to(cr, ox,oy);
 	if (len==0) return 0;
 
-	if (laxfont->Layers()==1) cairo_show_text(cr, buffer);
+	if (laxfont->Layers()==1) cairo_show_text(cr, tbuffer);
 	else {
 		 //layered color font...
 		LaxFontCairo *f = laxfont;
@@ -1460,7 +1460,7 @@ double DisplayerCairo::textout_line(double x,double y,const char *str,int len,un
 			}
 			cairo_move_to(cr, ox,oy);
 			cairo_set_font_face(cr,f->font);
-			cairo_show_text(cr, buffer);
+			cairo_show_text(cr, tbuffer);
 			f=dynamic_cast<LaxFontCairo*>(f->NextLayer());
 			l++;
 		}
