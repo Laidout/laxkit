@@ -132,6 +132,8 @@ TextXEditBaseUtf8::TextXEditBaseUtf8(anXWindow *parnt,const char *nname,const ch
 	con=0;
 	valid=1;
 	curlineoffset=0;
+	textascent = textdescent = 0;
+	textheight = 0;
 
 	firsttime=1; //used as a flag to trigger SetupMetrics() at the start of next Refresh()
 	dp=NULL;
