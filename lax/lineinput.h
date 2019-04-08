@@ -39,7 +39,8 @@
 #define LINP_FILE      (1<<26)
 #define LINP_FILESAVE  (1<<27)
 #define LINP_DIRECTORY (1<<28)
-#define LINP_STYLEMASK ((1<<16)|(1<<17)|(1<<18)|(1<<19)|(1<<20)|(1<<21)|(1<<22)|(1<<23)|(1<<24)|(1<<25)|(1<<26)|(1<<27)|(1<<28))
+#define LINP_SEND_ANY  (1<<29)
+#define LINP_STYLEMASK ((1<<16)|(1<<17)|(1<<18)|(1<<19)|(1<<20)|(1<<21)|(1<<22)|(1<<23)|(1<<24)|(1<<25)|(1<<26)|(1<<27)|(1<<28)|(1<<29))
 
 
 
@@ -86,6 +87,7 @@ class LineInput : public anXWindow
 	virtual int CloseControlLoop() { if (le) return le->CloseControlLoop(); return 0; }
 	virtual LineEdit *GetLineEdit();
 	virtual void Qualifier(const char *nqualifier);
+    virtual void SetType(unsigned long what);
 
     virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context);
     virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);

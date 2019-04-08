@@ -151,13 +151,15 @@ LineInput::LineInput(anXWindow *parnt,const char *nname,const char *ntitle,unsig
 	appendstr(letitle,"-le");
 	unsigned long extrastyle=0;
 
-	if (win_style&LINP_FILE) extrastyle|=LINEEDIT_FILE;
-	else if (win_style&LINP_FILESAVE) extrastyle|=LINEEDIT_FILESAVE;
-	else if (win_style&LINP_DIRECTORY) extrastyle|=LINEEDIT_DIRECTORY;
-	else if (win_style&LINP_INT) extrastyle|=LINEEDIT_INT;
-	else if (win_style&LINP_FLOAT) extrastyle|=LINEEDIT_FLOAT;
+	if      (win_style & LINP_FILE)      extrastyle |= LINEEDIT_FILE;
+	else if (win_style & LINP_FILESAVE)  extrastyle |= LINEEDIT_FILESAVE;
+	else if (win_style & LINP_DIRECTORY) extrastyle |= LINEEDIT_DIRECTORY;
+	else if (win_style & LINP_INT)       extrastyle |= LINEEDIT_INT;
+	else if (win_style & LINP_FLOAT)     extrastyle |= LINEEDIT_FLOAT;
+
+	if (win_style & LINP_SEND_ANY)  extrastyle |= LINEEDIT_SEND_ANY_CHANGE;
 	
-	le=new LineEdit(this,letitle,NULL,extrastyle|(nstyle&~(ANXWIN_ESCAPABLE|ANXWIN_CENTER|LINP_STYLEMASK)), 0,0, 0,0, brder?brder:1, 
+	le=new LineEdit(this,letitle,NULL,extrastyle|(nstyle&~(ANXWIN_ESCAPABLE|ANXWIN_CENTER|LINP_STYLEMASK)), 0,0, 0,0, 1, 
 			prev,win_owner,nsend,
 			newtext,ntstyle);
 	DBG cerr <<"lineinput new LineEdit style: "<<le->win_style<<endl;
@@ -196,6 +198,11 @@ LineInput::~LineInput()
 void LineInput::Qualifier(const char *nqualifier)
 {
 	if (le) le->Qualifier(nqualifier);
+}
+
+void LineInput::SetType(unsigned long what)
+{
+	if (le) le->SetType(what);
 }
 
 //! Set same tip for le.

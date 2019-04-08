@@ -285,6 +285,24 @@ void LineEdit::Valid(int v,unsigned long col)
 	}
 }
 
+const unsigned int ValueTypeMask = 
+	  LINEEDIT_INT       
+	| LINEEDIT_FLOAT     
+	| LINEEDIT_FILE      
+	| LINEEDIT_FILESAVE  
+	| LINEEDIT_DIRECTORY 
+	| LINEEDIT_PASSWORD  
+	| LINEEDIT_DATE      
+	| LINEEDIT_TIME
+	;
+
+void LineEdit::SetType(unsigned long what)
+{
+	win_style &= ~ValueTypeMask;
+	if ((what & ValueTypeMask) != 0) setWinStyle(what, 1);
+	Modified(0);
+}
+
 void LineEdit::Qualifier(const char *nqualifier)
 {
 	makestr(qualifier,nqualifier);
