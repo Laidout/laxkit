@@ -1006,7 +1006,8 @@ double *TransformAttribute(const char *v,double *m,char **endptr)
 char *QuotedAttribute(const char *v,char **endptr)
 {
 	if (!v) return NULL;
-	char *s=new char[strlen(v)+1],*sp=s;
+	char *s = new char[strlen(v)+1];
+	char *sp= s;
 	const char *p=v;
 	char quote=0;
 
@@ -1022,7 +1023,7 @@ char *QuotedAttribute(const char *v,char **endptr)
 
 	} else {
 		 // there were initial quotes..
-		quote=*p;
+		quote = *p;
 		p++; //skip initial quote
 		while (1) {
 			while (*p && *p!='\\' && *p!=quote) { *sp=*p; sp++; p++; }
@@ -1032,17 +1033,17 @@ char *QuotedAttribute(const char *v,char **endptr)
 				break;
 			}
 			if (!*p) break;
-			if (!*(p+1)) { *sp++=*p++; break; }
+			if (!*(p+1)) { *sp++ = *p++; break; }
 			p++;
-			if (*p=='n') *sp++='\n';
-			else if (*p=='t') *sp++='\t';
-			else *sp++=*p;
+			if (*p=='n') *sp++ = '\n';
+			else if (*p=='t') *sp++ = '\t';
+			else *sp++ = *p;
 			p++;
 		}
 	}
 	
-	*sp='\0';
-	if (endptr) *endptr=const_cast<char *>(p);
+	*sp = '\0';
+	if (endptr) *endptr = const_cast<char *>(p);
 	return s;
 }
 
@@ -2092,13 +2093,15 @@ int Attribute::dump_in_xml (const char *str)
 int NameValueAttribute(const char *str, char **name, char **value, char **end_ptr, 
 					   char assign,char delim,const char *stopat)
 {
+	*name = *value = NULL;
+
 	while (isspace(*str)) str++;
 	const char *s=str;
 	char *e=NULL;
 
 	 //find a string of non-whitespace characters
 	while (*s && !isspace(*s) && *s!=delim && *s!=assign && !(stopat && strchr(stopat,*s))) s++;
-	if (s==str) {
+	if (s == str) {
 		if (delim && *str==delim) str++;
 		 // there was nothing there but whitespace
 		if (end_ptr) *end_ptr=const_cast<char *>(str);
@@ -2106,29 +2109,29 @@ int NameValueAttribute(const char *str, char **name, char **value, char **end_pt
 	}
 	 
 	 //so found a name
-	*name=newnstr(str,s-str);
-	str=s;
+	*name = newnstr(str,s-str);
+	str = s;
 	while (isspace(*str)) str++;
 	if (*str!=assign) {
 		 //name but no value
 		if (delim && *str==delim) str++;
-		*value=NULL;
-		if (end_ptr) *end_ptr=const_cast<char *>(str);
+		*value = NULL;
+		if (end_ptr) *end_ptr = const_cast<char *>(str);
 		return 0; //*** might want to return 1?
 	}
 	 
 	 // so theres an '=', but not sure if there's a value yet
 	str++; //skip over the assign char
 	while (isspace(*str)) str++; //str now points to the start of value
-	if (*str=='"' || *str=='\'') *value=QuotedAttribute(str,&e);
+	if (*str=='"' || *str=='\'') *value = QuotedAttribute(str,&e);
 	else if (*str) {
-		e=const_cast<char *>(str);
+		e = const_cast<char *>(str);
 		while (*e && !isspace(*e) && *e!=delim && !(stopat && strchr(stopat,*e))) e++;
-		*value=newnstr(str,e-str);
+		*value = newnstr(str,e-str);
 	}
 	if (!*value) {
 		 // no value found but there was an '='
-		if (end_ptr) *end_ptr=const_cast<char *>(str); //points to where value would start
+		if (end_ptr) *end_ptr = const_cast<char *>(str); //points to where value would start
 		return 2;
 	}
 
@@ -2614,11 +2617,15 @@ Attribute *XMLChunkToAttribute(Attribute *att,
 				 // name=value
 				 // name="value"
 				 // name = "val; val  val \" vala \""
+				nm = vl = nullptr;
 				NameValueAttribute(buf+c, &nm, &vl, &e, '=', 0, "/>");
-				if (e!=buf+c) {
+				if (e != buf+c) {
 					att->attributes.e[att->attributes.n-1]->push(nm,vl);
 					c=e-buf;
-				} else break;
+				} //else break;
+				delete[] nm;
+				delete[] vl;
+				if (e == buf+c) break;
 				skipws(buf,n,&c);
 			}
 			
