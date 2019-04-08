@@ -213,14 +213,14 @@ int touch_recently_used_xbel(const char *file, const char *mime,
 						if (att2) makestr(att2->value, mod_time);
 						else att2=att->pushSubAtt("modified", mod_time);
 					}
-					att2=att->find("count");
+					att2 = att->find("count");
 					if (att2) {
-						int count=strtol(att2->value,NULL,10);
+						int count = strtol(att2->value,NULL,10);
 						count++;
 						char str[10];
 						sprintf(str,"%d",count);
 						makestr(att2->value,str);
-					} else makestr(att2->value, "1");
+					} else att->push("count", "1");
 					break;
 				}
 			}
