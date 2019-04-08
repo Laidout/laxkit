@@ -58,7 +58,7 @@ class Utf8String
 	long Capacity() { return bytes_allocated; }
 	void Clear();
 
-	//operator=(const char *str);
+	Utf8String &operator=(const char *str);
 	//Utf8String &operator=(Utf8String &str);
 	Utf8String &operator=(const Utf8String &str);
 

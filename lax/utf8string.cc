@@ -154,6 +154,13 @@ Utf8String &Utf8String::operator=(const Utf8String &str)
 	return *this;
 }
 
+Utf8String &Utf8String::operator=(const char *str)
+{
+	Clear();
+	Append(str);
+	return *this;
+}
+
 
 
 /*! Return the actual char[] that stores the string, and zero out ourselves.
