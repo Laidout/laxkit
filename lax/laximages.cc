@@ -346,6 +346,7 @@ int GeneratePreviewFile(LaxImage *image,
 
 /*! Save a resized version of image to to_preview_file.
  * If fit, maintain aspect ratio to found bounds that fit within a box width x height.
+ * Please note this uses GetDefaultDisplayer().
  */
 LaxImage *GeneratePreview(LaxImage *image, int width, int height, int fit)
 {
@@ -375,6 +376,7 @@ LaxImage *GeneratePreview(LaxImage *image, int width, int height, int fit)
 	Displayer *dp = GetDefaultDisplayer();
 	dp->MakeCurrent(preview);
 	dp->imageout(image, 0,0, width, height);
+	dp->EndDrawing();
 
 	return preview;
 }
