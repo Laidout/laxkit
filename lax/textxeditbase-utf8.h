@@ -121,6 +121,7 @@ class TextXEditBaseUtf8 : public anXWindow, public TextEditBaseUtf8
 	virtual int UseThisFont(LaxFont *newfont);
 	virtual LaxFont *GetFont();
 	virtual unsigned long ValidColor(int which);
+	virtual int IsValid() { return valid; }
 };
 
 } // namespace Laxkit
