@@ -29,6 +29,7 @@
 
 #include <lax/utf8string.h>
 #include <lax/utf8utils.h>
+#include <lax/strmanip.h>
 
 #define DBG
 
@@ -346,7 +347,7 @@ void Utf8String::Sprintf(const char *fmt, ...)
     int c = vsnprintf(NULL, 0, fmt, arg);
     va_end(arg);
 
-	if (s && c > bytes_allocated) {
+	if (s && c+1 > bytes_allocated) {
 		delete[] s;
 		bytes_allocated = 0;
 		num_bytes = num_chars = 0;
@@ -384,6 +385,8 @@ void Utf8String::Append(const char *str)
 		delete[] s;
 		s = newdest;
 	}
+	num_bytes = strlen(s);
+	updateNumChars();
 }
 
 void Utf8String::Prepend(const Utf8String &str)
@@ -459,9 +462,20 @@ long Utf8String::Findr(unsigned int ch, int startat)
 	return Findr(chstr, startat, false);
 }
 
-int Utf8String::Replace(const char *newstr, const char *oldstr, bool all)
-{ //***
-	cerr << "AAA! IMPLEMENT int Utf8String::Replace(const char *newstr, const char *oldstr, bool all)!!"<<endl;
+/*! Replace occurences of oldstr with newstr.
+ */
+int Utf8String::Replace(const char *new_str, const char *oldstr, bool all)
+{
+	if (!s || isblank(oldstr)) return 0;
+
+	char *news;
+	if (all) news = replaceall(s, oldstr, new_str);
+	else news = replacefirst(s, oldstr, new_str);
+	delete[] s;
+	s = news;
+	num_bytes = strlen(s);
+	updateNumChars();
+
 	return 0;
 }
 
