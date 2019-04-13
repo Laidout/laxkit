@@ -22,6 +22,7 @@
 
 
 #include <lax/lineinput.h>
+#include <lax/quickfileopen.h>
 #include <lax/laxutils.h>
 
 
@@ -132,6 +133,7 @@ LineInput::LineInput(anXWindow *parnt,const char *nname,const char *ntitle,unsig
 	labelw=0;
 	lew=nlew;
 	leh=nleh;
+	helper = nullptr;
 
 	double lw=0,lh=0,fasc=0,fdes=0,textheight;
 	if (label) win_themestyle->normal->Extent(label,-1,&lw,&lh,&fasc,&fdes);
@@ -159,13 +161,24 @@ LineInput::LineInput(anXWindow *parnt,const char *nname,const char *ntitle,unsig
 
 	if (win_style & LINP_SEND_ANY)  extrastyle |= LINEEDIT_SEND_ANY_CHANGE;
 	
-	le=new LineEdit(this,letitle,NULL,extrastyle|(nstyle&~(ANXWIN_ESCAPABLE|ANXWIN_CENTER|LINP_STYLEMASK)), 0,0, 0,0, 1, 
+	le = new LineEdit(this,letitle,NULL,extrastyle|(nstyle&~(ANXWIN_ESCAPABLE|ANXWIN_CENTER|LINP_STYLEMASK)), 0,0, 0,0, 1, 
 			prev,win_owner,nsend,
 			newtext,ntstyle);
 	DBG cerr <<"lineinput new LineEdit style: "<<le->win_style<<endl;
 	le->padx=padlx;
 	le->pady=padly;
 	delete[] letitle;
+
+
+	if (extrastyle & (LINEEDIT_FILE | LINEEDIT_FILESAVE | LINEEDIT_DIRECTORY)) {
+		DBG cerr << "Adding helper for file LineInput"<<endl;
+		//helper = new Button(this, "helper",nullptr, 0, 0,0,0,0,1, le, object_id, "helper", 1, "...");
+
+		helper = new QuickFileOpen(this,"new file",nullptr,ANXWIN_REMEMBER, 0,0,0,0, 1,
+                          nullptr,object_id,"helper",
+                          (extrastyle & LINEEDIT_FILE) ? FILES_OPEN_ONE : FILES_SAVE,
+                          this);
+	}
 
 	if (leh==0) leh=2*padly+textheight; // set to textheight always, not remainder
 	
@@ -184,6 +197,7 @@ LineInput::LineInput(anXWindow *parnt,const char *nname,const char *ntitle,unsig
 		} else { // to win_w add the greater of lw or nlew
 			if (nlew>lw) win_w+=nlew; else win_w+=lw;
 		}
+		if (helper) win_w += helper->win_w;
 	}
 
 
@@ -193,7 +207,9 @@ LineInput::LineInput(anXWindow *parnt,const char *nname,const char *ntitle,unsig
 }
 
 LineInput::~LineInput()
-{ if (label) delete[] label; }
+{
+	if (label) delete[] label;
+}
 
 void LineInput::Qualifier(const char *nqualifier)
 {
@@ -216,9 +232,11 @@ const char *LineInput::tooltip(const char *ntip)
 //! Take any StrEventData and set thetext from it.
 int LineInput::Event(const EventData *data,const char *mes)
 {
+	DBG cerr <<" LineInput event: "<<(mes ? mes : "--")<<endl;
+
 	if (!dynamic_cast<const StrEventData *>(data)) return 1;
 
-	if (strcmp(mes,"lineinput-popup-style")) {
+	if (!strcmp(mes,"lineinput-popup-style")) {
 		if (!win_owner || !(win_style&LINP_POPUP)) return 1;
 		
 		 //send the text, then destroy this window
@@ -228,6 +246,12 @@ int LineInput::Event(const EventData *data,const char *mes)
 		sendd->str=str;
 		app->SendMessage(sendd,win_owner,win_sendthis,object_id);
 		app->destroywindow(this);
+		return 0;
+
+	} else if (!strcmp(mes,"helper")) {
+		const StrEventData *sdata = dynamic_cast<const StrEventData *>(data);
+		SetText(sdata->str);
+		le->Modified(1);
 		return 0;
 	}
 
@@ -295,8 +319,8 @@ void LineInput::SetPlacement()
 	int lex=0,ley=0,nlew=0,nleh=0;
 	double lw=0,lh=0,fasc=0,fdes=0,textheight;
 	if (label) win_themestyle->normal->Extent(label,-1,&lw,&lh,&fasc,&fdes);
-	labelw=lw;
-	textheight=fasc+fdes;
+	labelw = lw;
+	textheight = fasc+fdes;
 	
 	if (win_style&(LINP_ONTOP|LINP_ONBOTTOM)) { // assume h centered
 		if (lew>0) nlew=lew;
@@ -343,6 +367,11 @@ void LineInput::SetPlacement()
 		ly+=(ley-oldley);
 	}
 
+	if (helper) {
+		nlew -= helper->win_w;
+		helper->MoveResize(lex + nlew,ley, helper->win_w,nleh);
+	}
+
 	le->MoveResize(lex,ley,nlew,nleh);
 	
 	DBG cerr <<"SetPlacement "<<WindowTitle()<<": le of LineInput: x,y:"<<le->win_x<<","<<le->win_y
@@ -365,6 +394,7 @@ int LineInput::init()
 	if (win_style&LINP_POPUP) { // sends StrEventData instead of simple atom
 		le->SetOwner(this,"lineinput-popup-style");
 	}
+	app->addwindow(helper);
 	return 0;
 }
 

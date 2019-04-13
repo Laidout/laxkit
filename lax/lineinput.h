@@ -49,6 +49,7 @@ namespace Laxkit {
 class LineInput : public anXWindow
 {
   protected:
+	anXWindow *helper;
 	LineEdit *le;
 	char *label;
 	int labelw; //preferred width of the label
