@@ -30,6 +30,7 @@
 #include <lax/button.h>
 
 
+//note: FILES_* get passed into ndstyle, NOT win_style
 #define FILES_GLOBAL_BOOKMARK  (1<<15)
 
 #define FILES_MINIMAL          (1<<16)
