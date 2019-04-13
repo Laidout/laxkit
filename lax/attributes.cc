@@ -1124,7 +1124,8 @@ void dump_out_value(FILE *f,int indent,const char *value, int noquotes, const ch
 			dump_out_indented(f,indent,value);
 			fprintf(f,"\n");
 
-		} else if ((strchr(value,'#') || strchr(value,'"')) && !noquotes) {
+		} else if (strpbrk(value,"#\"<>") && !noquotes) {
+		//} else if ((strchr(value,'#') || strchr(value,'"')) && !noquotes) {
 			 // simply written value, but has quotes, so must escape quotes
 			fprintf(f," ");
 			dump_out_escaped(f,value,-1);
@@ -1132,7 +1133,8 @@ void dump_out_value(FILE *f,int indent,const char *value, int noquotes, const ch
 
 		} else {
 			 //force quotes when there's space chars
-			if (!strchr(value,' ')) noquotes=1;
+			//if (!strchr(value,' ')) noquotes=1;
+			if (!strpbrk(value," <>")) noquotes=1;
 			if (noquotes) fprintf(f," %s",value);
 			else fprintf(f," \"%s\"",value);
 			if (comment) fprintf(f," #%s\n", comment);
@@ -1168,7 +1170,8 @@ void dump_out_escaped(FILE *f, const char *str, int n)
 	if (n<0) n=strlen(str);
 	if (n==0) { fprintf(f,"\"\""); return; } // empty but not null string
 	const char *s=str;
-	const char *ss=strchr(s,'#');
+	//const char *ss=strchr(s,'#');
+	const char *ss = strpbrk(s,"#><");
 	if (*str!='"' && !(isspace(*str) || isspace(str[n-1])) && !(ss && ss-str<n)) {
 		 // no start or ending whitespace, no '#',
 		 // and doesn't start with a quote

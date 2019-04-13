@@ -77,6 +77,8 @@ class Attribute {
 	virtual int remove(int index);
 	virtual void clear();
 	virtual void Comment(const char *ncomment);
+	virtual int NumAtts() { return attributes.n; }
+	virtual Attribute *Att(int index) { return index >= 0 && index < attributes.n ? attributes.e[index] : nullptr; }
 
 	virtual int   dump_in     (const char *filename, int what=0);
 	virtual int   dump_in_str (const char *str);
