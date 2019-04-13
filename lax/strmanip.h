@@ -55,6 +55,7 @@ int squish(char *exprs,int p1,int p2); /* remove p1-p2, including p2 */
 							/* returns #chars removed */
 char *replace(char *&dest,const char *data,int s,int e,int *newe);
                                      /* put in [p1,p2], p2=new p2 */
+char *replacefirst(const char *str, const char *old, const char *newstr);
 char *replaceall(const char *dest,const char *old,const char *newn,int s=0,int e=-1);
 char *replaceallname(const char *dest,const char *old,const char *newn);
 char *getnamestring(const char *buf);

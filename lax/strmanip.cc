@@ -600,7 +600,7 @@ char *replaceall(const char *dest,const char *old,const char *newn,int s,int e)/
 	if (!dest) return NULL;
 	if (s<0) s=0;
 	if (e<s || e>=(int)strlen(dest)) e=strlen(dest)-1;
-	
+
 	char *ndest=NULL;
 	const char *p=dest+s,*f=p;
 	if (s) ndest=newnstr(dest,s);
@@ -613,6 +613,25 @@ char *replaceall(const char *dest,const char *old,const char *newn,int s,int e)/
 	}
 	appendstr(ndest,p);
 	return ndest;
+}
+
+/*! Return new char[].
+ */
+char *replacefirst(const char *str, const char *old, const char *nstr)
+{
+	if (!str || !old) return newstr(str);
+
+	const char *s = strstr(str, old);
+	if (!s) return newstr(str);
+
+	char *strn = nullptr;
+
+	if (s > str) strn = newnstr(str, s-str);
+	if (!isblank(nstr)) appendstr(strn, nstr);
+	int l = s-str + strlen(old);
+	if (str[l] != '\0') appendstr(strn, str+l);
+
+	return strn;
 }
 
  //! Replace all name occurences in dest of old with newn.
