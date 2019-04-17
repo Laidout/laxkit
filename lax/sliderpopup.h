@@ -38,6 +38,7 @@ namespace Laxkit {
 #define SLIDER_RIGHT        (1<<26)
 #define SLIDER_CENTER       (1<<27)
 #define SLIDER_SKIP_TOGGLES (1<<28)
+#define SLIDER_POP_ONLY     (1<<29)
 	
  //used as a menuitem state, show in menu, but not prev/next
  //note to programmer: this define must cooperate with MENU_* defines in menuinfo.h

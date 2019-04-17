@@ -147,12 +147,14 @@ void SliderPopup::Refresh()
 	if (tx!=LAX_WAY_OFF) dp->textout((win_w-arrowwidth-w)/2+tx,(win_h-h)/2+ty, label,-1, LAX_LEFT|LAX_TOP);
 	if (ix!=LAX_WAY_OFF) dp->imageout(img, (win_w-arrowwidth-w)/2+ix,(win_h-h)/2+iy);
 
-	if (hover==LAX_LEFT) {
-		dp->NewFG(coloravg(win_themestyle->bg,win_themestyle->fg,.3)); 
-		dp->drawthing(arrowwidth/2,win_h/2,arrowwidth/2,arrowwidth/2, 1, THING_Triangle_Left);
-	} else if (hover==LAX_RIGHT) {
-		dp->NewFG(coloravg(win_themestyle->bg,win_themestyle->fg,.3)); 
-		dp->drawthing(win_w-arrowwidth-arrowwidth/2,win_h/2,arrowwidth/2,arrowwidth/2, 1, THING_Triangle_Right);
+	if (!(win_style & SLIDER_POP_ONLY)) {
+		if (hover==LAX_LEFT) {
+			dp->NewFG(coloravg(win_themestyle->bg,win_themestyle->fg,.3)); 
+			dp->drawthing(arrowwidth/2,win_h/2,arrowwidth/2,arrowwidth/2, 1, THING_Triangle_Left);
+		} else if (hover==LAX_RIGHT) {
+			dp->NewFG(coloravg(win_themestyle->bg,win_themestyle->fg,.3)); 
+			dp->drawthing(win_w-arrowwidth-arrowwidth/2,win_h/2,arrowwidth/2,arrowwidth/2, 1, THING_Triangle_Right);
+		}
 	}
 
 	 // draw popup arrow
@@ -389,7 +391,7 @@ int SliderPopup::scan(int x,int y,unsigned int state)
  */
 int SliderPopup::LBDown(int x,int y,unsigned int state,int count,const LaxMouse *d)
 {
-	if (x<win_w-arrowwidth || !items) return ItemSlider::LBDown(x,y,state,count,d);
+	if (!(win_style & SLIDER_POP_ONLY) && (x<win_w-arrowwidth || !items)) return ItemSlider::LBDown(x,y,state,count,d);
 	
 	makePopup(d->id);
 	return 0;
