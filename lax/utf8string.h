@@ -104,6 +104,7 @@ class Utf8String
 	bool EndsWith(const Utf8String &str);
 	bool StartsWith(const char *str);
 	bool StartsWith(const Utf8String &str);
+	bool IsEmpty();
 };
 
 Utf8String operator+=(Utf8String &s, const char *str);

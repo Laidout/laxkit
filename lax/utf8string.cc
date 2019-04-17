@@ -550,6 +550,13 @@ bool Utf8String::StartsWith(const Utf8String &str)
 	return StartsWith(str.c_str());
 }
 
+/*! Return if string has no characters.
+ */
+bool Utf8String::IsEmpty()
+{
+	return s == nullptr || *s == '\0';
+}
+
 
 Utf8String operator+(const Utf8String &a, const char *b)
 {
