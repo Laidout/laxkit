@@ -604,6 +604,11 @@ int LineEdit::CharInput(unsigned int ch,const char *buffer,int len,unsigned int 
 			|| ((win_style&LINEEDIT_CNTLTAB_NEXT) && (state&ControlMask)))
 		return anXWindow::CharInput('\t',NULL,0,state,d);
 
+	if (dp == nullptr) {
+		dp = MakeCurrent();
+		dp->font(thefont, thefont->textheight());
+	}
+
 	if (!(state&ControlMask) && (ch=='\t' || (ch>=32 && ch<255)) && !readonly()) {
 		 //insert the character
 		if (sellen) replacesel(ch);
@@ -878,6 +883,13 @@ int LineEdit::LBDown(int x,int y, unsigned int state,int count,const LaxMouse *d
 { 
 	buttondown.down(d->id, LEFTBUTTON, x,y);
 
+	//double oldheight = -1;
+	if (dp == nullptr) {
+		dp = MakeCurrent();
+		//oldheight = dp->textheight();
+		dp->font(thefont, thefont->textheight());
+	}
+
 	if (x>win_w-textheight-padx && (win_style&LINEEDIT_CLEAR_X)) {
 		SetText("");
 		buttondown.up(d->id, LEFTBUTTON);
@@ -916,6 +928,11 @@ int LineEdit::LBDown(int x,int y, unsigned int state,int count,const LaxMouse *d
 //! Double clicking selects a whole word, or whole chunk of whitespace.
 int LineEdit::LBDblClick(int x,int y, int state,const LaxMouse *d)
 {
+	if (dp == nullptr) {
+		dp = MakeCurrent();
+		dp->font(thefont, thefont->textheight());
+	}
+
 	 // select word
 	int c=0;
 	long newpos=findpos(x+curlineoffset);
@@ -952,6 +969,11 @@ int LineEdit::LBUp(int x,int y, unsigned int state,const LaxMouse *d )
 
 int LineEdit::WheelUp(int x,int y,unsigned int state,int count,const Laxkit::LaxMouse *d)
 {
+	if (dp == nullptr) {
+		dp = MakeCurrent();
+		dp->font(thefont, thefont->textheight());
+	}
+
 	if (win_style&(LINEEDIT_INT|LINEEDIT_FLOAT)) {
 		 //wheel to change specific digits
 
@@ -1036,6 +1058,11 @@ int LineEdit::WheelUp(int x,int y,unsigned int state,int count,const Laxkit::Lax
 
 int LineEdit::WheelDown(int x,int y,unsigned int state,int count,const Laxkit::LaxMouse *d)
 {
+	if (dp == nullptr) {
+		dp = MakeCurrent();
+		dp->font(thefont, thefont->textheight());
+	}
+
 	if (win_style&(LINEEDIT_INT|LINEEDIT_FLOAT)) {
 		 //wheel to change specific digits
 
@@ -1126,6 +1153,11 @@ int LineEdit::MouseMove(int x,int y,unsigned int state,const LaxMouse *d)
 		} else lasthover=0;
 		if (lasthover!=oldhover) needtodraw=1;
 		return 0;
+	}
+
+	if (dp == nullptr) {
+		dp = MakeCurrent();
+		dp->font(thefont, thefont->textheight());
 	}
 
 	if (buttondown.isdown(d->id,LEFTBUTTON)) {

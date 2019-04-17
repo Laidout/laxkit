@@ -204,14 +204,14 @@ int hexify(char *str, int i)
 double TextXEditBaseUtf8::TextExtent(const char *str, int len, double *width,double *height,double *ascent,double *descent)
 {
 	//if (dp == nullptr) dp = MakeCurrent();
-	return thefont->Extent(str,len, width,height,ascent,descent);
-	//return dp->textextent(str,len, width,height,ascent,descent);
+	//return thefont->Extent(str,len, width,height,ascent,descent);
+	return dp->textextent(str,len, width,height,ascent,descent);
 }
 
 //! Returns real char width with r==1, else returns the custom hexified if r==0.
 /*! WARNING: this is found from individual characters in the font, not from the context of the character.
  */
-int TextXEditBaseUtf8::charwidth(int ch,int r) //r=0
+double TextXEditBaseUtf8::charwidth(int ch,int r) //r=0
 {
 	if (ch==32) return TextExtent(" ",-1);
 
@@ -400,6 +400,10 @@ void TextXEditBaseUtf8::Refresh()
 	if (!win_on) return;
 	//DBG cerr << "\nEditor painting";
 	
+	dp = MakeCurrent();
+	double oldheight = dp->textheight();
+	dp->font(thefont, thefont->textheight());
+
 	if (firsttime) { 
 		firsttime=0; 
 		if (SetupMetrics()) { //couldn't set up yet for some reason
@@ -408,9 +412,11 @@ void TextXEditBaseUtf8::Refresh()
 		}
 	}
 
-	dp=MakeCurrent();
-	double oldheight=dp->textheight();
-	dp->font(thefont, thefont->textheight());
+	//DBG cerr <<"Str pix len font: " << thefont->Extent(thetext, -1)<<endl;
+	//DBG cerr <<"Str pix len dp  : " << dp->textextent(thetext,-1, NULL,NULL,NULL,NULL) << endl;
+	//DBG cerr <<"first char width fnt: " << thefont->Extent(thetext,1)<<endl;
+	//DBG cerr <<"first char width dp:  " << dp->textextent(thetext,1, NULL,NULL,NULL,NULL)<<endl;
+
 	
 	DBG DisplayerCairo *ddp=dynamic_cast<DisplayerCairo*>(dp);
 	DBG if (ddp && ddp->GetCairo()) cerr <<" TextXEditBaseUtf8 refresh, cairo status:  "<<cairo_status_to_string(cairo_status(ddp->GetCairo())) <<endl;
@@ -434,7 +440,7 @@ void TextXEditBaseUtf8::Refresh()
 	}
 
 	dp->font(app->defaultlaxfont, oldheight);
-	dp=NULL;
+	dp = NULL;
 	
 	needtodraw=0;
 }
@@ -525,7 +531,7 @@ unsigned long TextXEditBaseUtf8::ValidColor(int which)
 }
 
 //! Fill x,y,w,h with curbkcolor.
-void TextXEditBaseUtf8::Black(int x,int y,int w,int h)
+void TextXEditBaseUtf8::Black(double x,double y,double w,double h)
 {
 	dp->NewFG(curbkcolor);
 	dp->drawrectangle(x,y,w,h, 1);
@@ -547,31 +553,30 @@ void TextXEditBaseUtf8::Black(int x,int y,int w,int h)
  * \todo is clipping really necessary? Sure it leaks when text out of bounds.. only a problem
  *   when textrect is very different from window and nothing else covers up overflow..
  */
-int TextXEditBaseUtf8::DrawLineOfText(int x,int y,long pos,long len,char &check,long eof) 
+double TextXEditBaseUtf8::DrawLineOfText(double x,double y,long pos,long len,char &check,long eof) 
 {
-	if (eof<0) eof=textlen;
+	if (eof<0) eof = textlen;
 
 	//DBG cerr <<endl<<"DrawLineOfText in "<<WindowTitle()<<endl;
 	//DBG cerr <<" Lot: pos:"<<pos<<"  textlen(or eof):"<<eof<<"  sellen:"<<sellen<<"  selstart:"<<selstart<<"  curpos:"<<curpos<<endl;
 	//DBG cerr <<" Draw in rect:"<<textrect.x<<','<<textrect.y<<" "<<textrect.width<<'x'<<textrect.height<<endl;
 	 
 	 //return if text to draw is out of bounds
-	if (x>textrect.x+textrect.width || y-textascent>textrect.y+textrect.height) {
-		//XSetClipMask(app->dpy,app->gc(),None);
+	if (x > textrect.x+textrect.width || y-textascent > textrect.y+textrect.height) {
 		return x;
 	}
 
 	 //set len to appropriate value: eol or eof if len was -1
-	if (len==-1) {
-		len=0;
+	if (len == -1) {
+		len = 0;
 		while (pos+len<eof && !onlf(pos+len)) len++;
 		if (pos+len!=eof && !(textstyle&TEXT_NLONLY)) len++; //add 1 for 2-char newlines
 		len++; // tacks on the \n or \0 
 	}
 
-	long temp=pos+len;
+	long temp = pos+len;
 	//DBG cerr <<" len="<<len<<endl;
-	long selbegin=0,selend=0;
+	long selbegin = 0, selend = 0;
 	char hl;
 	if (check && sellen) {
 		if (curpos<selstart) { selbegin=curpos; selend=selstart; }
@@ -579,7 +584,6 @@ int TextXEditBaseUtf8::DrawLineOfText(int x,int y,long pos,long len,char &check,
 	}
 	//DBG cerr <<" Lot: selbegin:"<<selbegin<<"  selend:"<<selend<<endl;
 	if (len<1 && x<textrect.x) {
-		//XSetClipMask(app->dpy,app->gc(),None);
 		return x;
 	}
 
@@ -592,15 +596,15 @@ int TextXEditBaseUtf8::DrawLineOfText(int x,int y,long pos,long len,char &check,
 		if (pos>=selend) {
 			hl=0; check=0;
 			Colors(0);
-			x=TextOut(x,y,thetext+pos,temp-pos,eof);
+			x = TextOut(x,y,thetext+pos,temp-pos,eof);
 		} else {
-			if (pos>=selbegin) { Colors(1); hl=1; }
+			if (pos >= selbegin) { Colors(1); hl=1; }
 			else { hl=0; Colors(0); }
 
 			 // 1st non-highlighted segment
 			if (!hl && selbegin<temp) {
 				//DBG cerr <<"1st no hi--";
-				x=TextOut(x,y,thetext+pos,selbegin-pos,eof);
+				x = TextOut(x,y,thetext+pos,selbegin-pos,eof);
 				Colors(1);
 				hl=1;
 				pos=selbegin;
@@ -609,29 +613,28 @@ int TextXEditBaseUtf8::DrawLineOfText(int x,int y,long pos,long len,char &check,
 			if (hl) {
 				//DBG cerr <<"2nd hi--pos="<<pos<<"  ";
 				if (selend<temp) {
-					x=TextOut(x,y,thetext+pos,selend-pos,eof);
+					x = TextOut(x,y,thetext+pos,selend-pos,eof);
 					pos=selend;
 					Colors(0);
 					hl=0;
 					check=0;
 				} else {
-					x=TextOut(x,y,thetext+pos,temp-pos,eof);
+					x = TextOut(x,y,thetext+pos,temp-pos,eof);
 				}
 			}
 			 // print final non-highlighted segment
 			if (!hl) {
 				//DBG cerr <<"3rd no hi--pos="<<pos<<"  ";
-				x=TextOut(x,y,thetext+pos,temp-pos,eof);
+				x = TextOut(x,y,thetext+pos,temp-pos,eof);
 			}
 		}
 	} else {
 		 // assume whole line is not highlighted 
 		//DBG cerr <<"no hi--pos="<<pos;
-		x=TextOut(x,y,thetext+pos,len,eof);
+		x = TextOut(x,y,thetext+pos,len,eof);
 	}
 	//DBG cerr <<endl;
 	
-	//XSetClipMask(app->dpy,app->gc(),None);
 	return x;
 }
 
@@ -652,7 +655,7 @@ int TextXEditBaseUtf8::DrawLineOfText(int x,int y,long pos,long len,char &check,
  *
  * \todo break off the actual string output to laxutils::textout()?
  */
-int TextXEditBaseUtf8::TextOut(int x,int y,char *str,long len,long eof) // len=1 prints 1 char,
+double TextXEditBaseUtf8::TextOut(double x,double y,char *str,long len,long eof) // len=1 prints 1 char,
 {
 	if (len<1 || x>textrect.x+textrect.width) return 0; // DrawLineOfText checks for y bounds
 	if (eof<0) eof=textlen-(str-thetext);
@@ -666,8 +669,9 @@ int TextXEditBaseUtf8::TextOut(int x,int y,char *str,long len,long eof) // len=1
 	long p;
 	int c2;
 	char *blah=NULL;
-	long c=0,newstart=0,newlen=0;
-	int pix;
+	long newstart=0, newlen=0;
+	double c;
+	double pix;
 	char tabfound=0,tabatfirst=0,nlf=0;
 	 
 	 // scan for initial tab, and next tab
@@ -704,7 +708,7 @@ int TextXEditBaseUtf8::TextOut(int x,int y,char *str,long len,long eof) // len=1
 	 // blah is set here to the actual utf8 string that must be printed, with char substitutions
 	 //  for dead chars, and extraneous newlines and such
 	 // p is the length of blah
-	pix=ExtentAndStr(str,len-nlf,blah,p);
+	pix = ExtentAndStr(str,len-nlf,blah,p);
 	if (nlf) {
 		nlf=1;
 		blah[p++]=' '; //add a space for a final newline
@@ -716,7 +720,7 @@ int TextXEditBaseUtf8::TextOut(int x,int y,char *str,long len,long eof) // len=1
 		int tabchar=0;
 		char tabutf[5]; //temp buffer for utf8 char from ucs
 
-		c=GetNextTab(x+curlineoffset,tabtype); // make c==tabbedto point
+		c = GetNextTab(x+curlineoffset,tabtype); // make c==tabbedto point
 		if (tabtype==CHAR_TAB) {
 			tabchar = GetTabChar(c);
 			if (tabchar=='\0') tabtype=CENTER_TAB; 
@@ -724,14 +728,14 @@ int TextXEditBaseUtf8::TextOut(int x,int y,char *str,long len,long eof) // len=1
 		}
 
 		 // blackout from current to the tab stop
-		c-=curlineoffset; // make c a screen pos
+		c -= curlineoffset; // make c a screen pos
 		Black(x,y-textascent, c-x,textheight);
 
 		int chunkpix=-1;
 		
 		 //For char tabs, find extent until the char
-		if (tabtype==CHAR_TAB) {
-			char ch=str[len];
+		if (tabtype == CHAR_TAB) {
+			char ch = str[len];
 			str[len]='\0';//we don't want to waste time scanning a huge str!
 			char *charpos=strstr(str,tabutf);
 			str[len]=ch;
@@ -745,9 +749,9 @@ int TextXEditBaseUtf8::TextOut(int x,int y,char *str,long len,long eof) // len=1
 		}
 		
 		 // update c to point to start of current segment after positioning according to tab
-		if (tabtype==RIGHT_TAB)       { if (c-chunkpix>x) c-=chunkpix; else c=x; }
-		else if (tabtype==CENTER_TAB) { if (c-chunkpix/2>x) c-=chunkpix/2; else c=x; }
-		else if (tabtype==CHAR_TAB)   { if (c-chunkpix>x) c-=chunkpix; else c=x; }
+		if (tabtype==RIGHT_TAB)       { if (c-chunkpix>x)   c -= chunkpix;   else c=x; }
+		else if (tabtype==CENTER_TAB) { if (c-chunkpix/2>x) c -= chunkpix/2; else c=x; }
+		else if (tabtype==CHAR_TAB)   { if (c-chunkpix>x)   c -= chunkpix;   else c=x; }
 		//else LEFT_TAB, nothing needs to be changed
 		
 		if (textstyle&TEXT_SHOW_WHITESPACE && x<textrect.x+textrect.width) {
@@ -758,10 +762,10 @@ int TextXEditBaseUtf8::TextOut(int x,int y,char *str,long len,long eof) // len=1
 			dp->drawline(c,y+textdescent-textheight/3, x,y);
 			dp->NewFG(curtextcolor);
 		}
-		x=c; //now x points to where the text actually gets printed
+		x = c; //now x points to where the text actually gets printed
 	}
 
-	c=x;
+	c = x;
 
 	 // At this point, c is assumed to point to the pixel start of current segment, after it has 
 	 // been put into position according to tabtype
@@ -784,7 +788,7 @@ int TextXEditBaseUtf8::TextOut(int x,int y,char *str,long len,long eof) // len=1
 				if (blah[c2]==' ') {
 					dp->drawline(c+spwidth/2,y, c+spwidth/2,y-2);
 				}
-				c+=charwidth(blah[c2]);
+				c += charwidth(blah[c2]);
 			}
 			if (nlf  && c<win_w) // draw slash for eol
 				dp->drawline(c,y-(int)(textascent*.6), c+charwidth(' '),y);
@@ -796,9 +800,9 @@ int TextXEditBaseUtf8::TextOut(int x,int y,char *str,long len,long eof) // len=1
 
 	//DBG cerr <<" --print:"<<'"'<<blah<<'"'<<endl;
 	delete[] blah;
-	x+=pix;
+	x += pix;
 
-	if (tabfound) x=TextOut(x,y,str+newstart,newlen,eof-newstart);
+	if (tabfound) x = TextOut(x,y,str+newstart,newlen,eof-newstart);
 	return x;
 }
 
@@ -871,33 +875,33 @@ double TextXEditBaseUtf8::ExtentAndStr(char *str,long len,char *&blah,long &p)
  */
 double TextXEditBaseUtf8::GetExtent(long pos, long end, double lsofar, long eof) //lsofar=0, eof==-1
 {
-	if (end<=pos) return 0;
-	if (eof<0) eof=textlen;
+	if (end <= pos) return 0;
+	if (eof < 0) eof = textlen;
 
 	 //for right or center justified, or no tabs, return normal extents
 	double ww;
 	if ((textstyle&(TEXT_RIGHT|TEXT_CENTER)) || !(textstyle&TEXT_TABS_STOPS)) {
 		ww = TextExtent(thetext+pos,end-pos);
-		lsofar+=ww;
+		lsofar += ww;
 		 //*** note that this is wrong: it does not take into account mapping of missing chars
 		 //    and probably not tabs
 		return lsofar;
 	}
 
-	int ppos=pos, // temporary position pointer
-		slen=0,   // Segment LENgth in pixels
-		pslen=0,  // Partial Segment LENgth in pixels
-		tlen=0;   // Tabchar LENgth in pixels, length from segment start to the beginning of tabchar
-	long eot=end; // the byte position right after end of chars in the current tab segment
-	int tabbedto=lsofar,tabtype=LEFT_TAB;
-	int tabchar=0;
+	int ppos  = pos, // temporary position pointer
+		slen  = 0,   // Segment LENgth in pixels
+		pslen = 0,   // Partial Segment LENgth in pixels
+		tlen  = 0;   // Tabchar LENgth in pixels, length from segment start to the beginning of tabchar
+	long eot  = end; // the byte position right after end of chars in the current tab segment
+	int tabbedto = lsofar, tabtype = LEFT_TAB;
+	int tabchar = 0;
 	char tabutf[6];
 	
 	 // put eot on next eol, eof, or at first tab after end
 	while (eot<eof && thetext[eot]!='\t' && !onlf(eot)) eot++;
 	
 	//DBG cerr <<"pos<=eot: ";
-	while (pos<=eot) { 
+	while (pos <= eot) { 
 		//DBG cerr <<".";
 		 //find the char extent of the current tab segment,
 		 // makes ppos at end of current tab segment
@@ -905,13 +909,13 @@ double TextXEditBaseUtf8::GetExtent(long pos, long end, double lsofar, long eof)
 		ww = TextExtent(thetext+pos,ppos-pos);
 		slen = ww;
 
-		if (ppos>=end) {
+		if (ppos >= end) {
 			ww = TextExtent(thetext+pos,end-pos);
 			pslen = ww;
 		}
 		
 		 //find out the length in the segment until the char for a char_tab
-		if (tabtype==CHAR_TAB && tabchar) {
+		if (tabtype == CHAR_TAB && tabchar) {
 			tabutf[utf8encode(tabchar,tabutf)]='\0';
 
 			char ch=thetext[ppos];
@@ -951,7 +955,7 @@ double TextXEditBaseUtf8::GetExtent(long pos, long end, double lsofar, long eof)
 		}
 
 		ppos++;
-		pos=ppos;
+		pos = ppos;
 
 		 // then get info for next tab
 		if (thetext[pos] == '\t') {
@@ -966,7 +970,7 @@ double TextXEditBaseUtf8::GetExtent(long pos, long end, double lsofar, long eof)
 	return lsofar; // note: this should never be reached
 }
 	
-//! Returns maximum pos less than or equal to an arbitrary window pixel position.
+//! Returns maximum char pos less than or equal to an arbitrary window pixel position.
 /*! This is basically used to find a position underneath the mouse.
  * Assumes lsofar set to something reasonable for pos, as if it was on a lefttab.
  * Handles tabs.
@@ -990,17 +994,17 @@ long TextXEditBaseUtf8::GetPos(long pos, double pix, double lsofar,long eof) //l
 		long pos2=pos;
 		long pos3;
 
-		while (pos2<end) { 
+		while (pos2 < end) { 
 			 //*** note that this is wrong: it does not take into account mapping of missing chars
 			pos3 = nextpos(pos2);
 			TextExtent(thetext+pos,pos3-pos, &ww,&hh, NULL,NULL);
-			tlsofar=lsofar+ww;
-			mid=(tlsofar+lastpix)/2;
+			tlsofar = lsofar+ww;
+			mid = (tlsofar+lastpix)/2;
 			DBG cerr <<pix<<"  "<<lsofar<<"  "<<"  mid:"<<mid<<"  "<<tlsofar<<endl;
-			if (mid>pix) break;
-			if (tlsofar>pix) { pos2=nextpos(pos2); break; }
-			lastpix=tlsofar;
-			pos2=nextpos(pos2);
+			if (mid > pix) break;
+			if (tlsofar > pix) { pos2=nextpos(pos2); break; }
+			lastpix = tlsofar;
+			pos2 = nextpos(pos2);
 		}
 		DBG cerr <<"GetPos: "<<pos2;
 		return pos2;
@@ -1116,9 +1120,9 @@ int TextXEditBaseUtf8::SetupMetrics()
 	//textheight=thefont->textheight();
 	//textascent=thefont->ascent();
 	//textdescent=thefont->descent();
-	textheight =thefont->textheight();
-	textascent =thefont->ascent();
-	textdescent=thefont->descent();
+	textheight  = thefont->textheight();
+	textascent  = thefont->ascent();
+	textdescent = thefont->descent();
 	
 	return 0;
 }
@@ -1130,17 +1134,17 @@ int TextXEditBaseUtf8::SetupMetrics()
  */
 void TextXEditBaseUtf8::settextrect()
 {
-	textrect.x=0;
-	textrect.y=0;
-	textrect.width=win_w;
-	textrect.height=win_h;
+	textrect.x = 0;
+	textrect.y = 0;
+	textrect.width  = win_w;
+	textrect.height = win_h;
 }
 
 /*! Default is to set textrect equal to the new window bounds.
  */
 int TextXEditBaseUtf8::MoveResize(int nx,int ny,int nw,int nh)
 {
-	int c=anXWindow::MoveResize(nx,ny,nw,nh);
+	int c = anXWindow::MoveResize(nx,ny,nw,nh);
 	settextrect();
 	return c;
 }
@@ -1149,7 +1153,7 @@ int TextXEditBaseUtf8::MoveResize(int nx,int ny,int nw,int nh)
  */
 int TextXEditBaseUtf8::Resize(int nw,int nh)
 {
-	int c=anXWindow::Resize(nw,nh);
+	int c = anXWindow::Resize(nw,nh);
 	settextrect();
 	return c;
 }

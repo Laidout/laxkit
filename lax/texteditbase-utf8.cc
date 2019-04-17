@@ -55,7 +55,7 @@ namespace Laxkit {
  * a big character array of text. These include inserting and deleting single
  * characters and strings of characters, and finding words and lines near
  * a given point. Actual formating, displaying, and such are not handled in this class.
- * TextXEditBase and classes derived from in handle displaying.
+ * TextXEditBase and classes derived from it handle displaying.
  *
  * It can handle any of the 3 main systems of line delimiting commonly found
  * in text files: '\\n' for unix/linux, 
@@ -132,7 +132,6 @@ namespace Laxkit {
  * #define TEXT_CURS_PAST_NL        (1<<24)
  * \endcode
  *
- * \todo ***finish putting in Modified() to whatever modifies!!!
  * \todo implement max/min textlen/numlines
  */
 
@@ -184,33 +183,33 @@ enum TextUndoTypes {
  */
 TextEditBaseUtf8::TextEditBaseUtf8(const char *newtext,unsigned long nstyle,unsigned int ncntlchar)
 { 			// nstyle=0, newtext=NULL, ncntlchar=0; newtext copied
-	textstyle=nstyle;
-	if ((textstyle&(TEXT_LEFT|TEXT_RIGHT|TEXT_CENTER))==0) textstyle|=TEXT_LEFT;
-	if ((textstyle&(TEXT_CNTL_BANG|TEXT_CNTL_HEX|TEXT_CNTL_NONE))==0) textstyle|=TEXT_CNTL_BANG;
-	if (textstyle&TEXT_CRLF) SetDelimiter('\r','\n');
-	else if (textstyle&TEXT_CR) { SetDelimiter('\r',0); textstyle|=TEXT_NLONLY; }
+	textstyle = nstyle;
+	if ((textstyle & (TEXT_LEFT|TEXT_RIGHT|TEXT_CENTER)) == 0) textstyle |= TEXT_LEFT;
+	if ((textstyle & (TEXT_CNTL_BANG|TEXT_CNTL_HEX|TEXT_CNTL_NONE))==0) textstyle |= TEXT_CNTL_BANG;
+	if (textstyle & TEXT_CRLF) SetDelimiter('\r','\n');
+	else if (textstyle & TEXT_CR) { SetDelimiter('\r',0); textstyle |= TEXT_NLONLY; }
 	else { SetDelimiter('\n',0); textstyle|=TEXT_NLONLY; }
-	if (!(textstyle&(TEXT_TABS_NONE|TEXT_TABS_STOPS|TEXT_TABS_EVEN|TEXT_TABS_SPACES))) textstyle|=TEXT_TABS_EVEN;
-	if ((textstyle&(TEXT_NOSCROLLERS|TEXT_SCROLLERS|TEXT_TRANSIENT_SCROLL))==0) textstyle|=TEXT_SCROLLERS;
-	if (textstyle&TEXT_TABS_EVEN) textstyle|=TEXT_TABS_STOPS;
+	if (!(textstyle & (TEXT_TABS_NONE|TEXT_TABS_STOPS|TEXT_TABS_EVEN|TEXT_TABS_SPACES))) textstyle |= TEXT_TABS_EVEN;
+	if ((textstyle & (TEXT_NOSCROLLERS|TEXT_SCROLLERS|TEXT_TRANSIENT_SCROLL))==0) textstyle |= TEXT_SCROLLERS;
+	if (textstyle & TEXT_TABS_EVEN) textstyle |= TEXT_TABS_STOPS;
 	
-	modified=0; 
-	tabwidth=4;
-	cutbuffer=NULL;
-	thetext=NULL;
-	textlen=0;
-	maxlines=maxtextlen=mintextlen=minlines=0;
+	modified  = 0; 
+	tabwidth  = 4;
+	cutbuffer = NULL;
+	thetext   = NULL;
+	textlen   = 0;
+	maxlines  = maxtextlen = mintextlen = minlines = 0;
 	if (ncntlchar<33) if (textstyle&TEXT_CNTL_BANG) cntlchar=(unsigned int) '!'; else cntlchar=(unsigned int) '\\';
-	else cntlchar=ncntlchar;
-	cntlmovedist=10;
+	else cntlchar = ncntlchar;
+	cntlmovedist = 10;
 
-	curpos=0;
-	modpos=0;
-	selstart=sellen=0;
+	curpos = 0;
+	modpos = 0;
+	selstart = sellen = 0;
 
-	undomode=0;
+	undomode = 0;
 	SetText(newtext);
-	undomode=1;
+	undomode = 1;
 }
 
 //! delete[] thetext and cutbuffer.
@@ -230,8 +229,8 @@ int TextEditBaseUtf8::GetTabChar(double atpix)
 	return 0;
 } 
 
-//! Redefine for custom tabstops, default is even spacing with tabwidth pixels
 /*! Returns the next tab stop which is at a pixel position greater than atpix.
+ * Redefine for custom tabstops, default is even spacing with tabwidth pixels
  */
 double TextEditBaseUtf8::GetNextTab(double atpix) 
 {
@@ -257,12 +256,12 @@ double TextEditBaseUtf8::GetNextTab(double atpix,int &tabtype)
  * added on to the summed widths of previous characters, which is a false assumption
  * for various non-english languages!
  */
-int TextEditBaseUtf8::Getpixwide(long p) 
+double TextEditBaseUtf8::Getpixwide(long p) 
 {
-	int pix=0;
+	double pix=0;
 	while (p<textlen && !onlf(p)) {
-		pix+=charwidth(p);
-		p=nextpos(p);
+		pix += charwidth(p);
+		p = nextpos(p);
 	}
 	return pix;
 }

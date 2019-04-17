@@ -71,12 +71,12 @@ class TextXEditBaseUtf8 : public anXWindow, public TextEditBaseUtf8
  protected:
  	LaxFont *thefont;
 	int valid; 
-	int cx,cy,oldx,oldy,curlineoffset;
+	double cx,cy,oldx,oldy,curlineoffset;
 	int padx,pady;
  	char firsttime,con;
  	long dpos,nlines;
 	long oldsellen,oldcp;
-	int textascent,textheight,textdescent;
+	double textascent,textheight,textdescent;
 	unsigned long curtextcolor,textbgcolor;
 	unsigned long curbkcolor,bkwrongcolor,bkwrongcolor2,wscolor;
 	DoubleRectangle textrect;
@@ -103,17 +103,17 @@ class TextXEditBaseUtf8 : public anXWindow, public TextEditBaseUtf8
 	virtual int MoveResize(int nx,int ny,int nw,int nh);
 	virtual int Resize(int nw,int nh);
 
-	virtual int charwidth(int ch,int r=0);
+	virtual double charwidth(int ch,int r=0);
 	virtual int Cut(); 
 	virtual int Copy();
 	virtual int Paste();
 	virtual void Colors(int hl);
-	virtual void Black(int x,int y,int w,int h);
+	virtual void Black(double x,double y,double w,double h);
 	virtual int DrawTabLine();
 	virtual void DrawCaret(int flag=0,int on=1); // flag=0,on=1 
 	virtual void DrawText(int black=-1) = 0;
-	virtual int DrawLineOfText(int x,int y,long pos,long len,char &check,long eof=-1);
-	virtual int TextOut(int x,int y,char *str,long len,long eof);
+	virtual double DrawLineOfText(double x,double y,long pos,long len,char &check,long eof=-1);
+	virtual double TextOut(double x,double y,char *str,long len,long eof);
 	virtual double ExtentAndStr(char *str,long len,char *&blah,long &p);
 	virtual double GetExtent(long pos,long end,double lsofar=0,long eof=-1); //lsofar=0,eof=-1
 	virtual long GetPos(long pos,double pix,double lsofar=0,long eof=-1); //lsofar=0,eof=-1

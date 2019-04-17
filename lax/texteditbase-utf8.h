@@ -114,7 +114,7 @@ class TextEditBaseUtf8 : virtual public Undoable
   public:
 	TextEditBaseUtf8(const char *newtext=NULL,unsigned long nstyle=0,unsigned int ncntlchar=0);
 	virtual ~TextEditBaseUtf8();
-	virtual int charwidth(unsigned int usc,int actual=0) { return 1; }
+	virtual double charwidth(unsigned int usc,int actual=0) { return 1; }
 	virtual int GetTabChar(double atpix);
 	virtual double GetNextTab(double atpix); // redefine for custom tabstops, default is even spacing with tabwidth pixels
 	virtual double GetNextTab(double atpix,int &tabtype); // defaults to LEFT_TAB, calls GetNextTab(atpix)
@@ -143,7 +143,7 @@ class TextEditBaseUtf8 : virtual public Undoable
 	virtual long GetNumLines();
 	virtual long Getnlines(long s=-1,long e=-1);
 	virtual long Getcharswide();  // total # chars with letter,nonprint,tabs,etc, not actual width
-	virtual int Getpixwide(long linenum); // return pix wide of line
+	virtual double Getpixwide(long linenum); // return pix wide of line
 	virtual int Modified(int m=1);
 
 	virtual int Cut(); // default is for internal cutbuffer
