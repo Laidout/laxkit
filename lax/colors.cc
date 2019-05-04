@@ -367,7 +367,7 @@ char *Color::dump_out_simple_string()
 
 /*! For instance, an sRGB might be output as "rgbaf(1.0, 0.0, 0.0, .5)".
  *
- * If system!=NULL, then use system->shortnames as the base.
+ * If system!=NULL, then use system->shortname as the base.
  * If system==NULL, then assume rgb.
  *
  * If color==null or n is less than the number of chars needed, return the number needed.
@@ -395,8 +395,8 @@ int Color::dump_out_simple_string(char *color, int n)
 		int hasalpha=1;
 
 		if (system) {
-			base=system->shortnames;
-			hasalpha=system->HasAlpha();
+			base = system->shortname;
+			hasalpha = system->HasAlpha();
 		} else {
 			if      (colorsystemid==LAX_COLOR_RGB   ) base="rgb";
 			else if (colorsystemid==LAX_COLOR_CMYK  ) base="cmyk";
@@ -488,8 +488,8 @@ void Color::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext
 			DoubleAttribute(value, &alpha);
 
 		} else if (!strcmp(name,"system")) {
-			//ColorSystem *sys=colormanager.FindSystem(value);
-			ColorSystem *sys=NULL;
+			ColorManager *colormanager = ColorManager::GetDefault();
+			ColorSystem *sys = colormanager->FindSystem(value);
 			if (system != sys) {
 				if (system) system->dec_count();
 				system=sys;
@@ -625,6 +625,7 @@ void ColorRef::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpCont
 { //***
 	Attribute *att2 = att->find("ref");
 	if (!att2) return;
+	cerr << " *** NEED TO IMPLEMENT ColorRef::dump_in_atts()"<<endl;
 }
 
 
@@ -683,16 +684,16 @@ ColorPrimary::~ColorPrimary()
 
 ColorSystem::ColorSystem()
 {
-	name=NULL;
-	shortnames=NULL;
-	//iccprofile=NULL;
-	style=0;
+	name = NULL;
+	shortname = NULL;
+	//iccprofile = NULL;
+	style = 0;
 }
 
 ColorSystem::~ColorSystem()
 {
 	delete[] name;
-	delete[] shortnames;
+	delete[] shortname;
 	//cmsCloseProfile(iccprofile);
 	primaries.flush();
 }
@@ -800,7 +801,7 @@ ColorSystem *Create_sRGB_System(bool with_alpha)
 {
 	ColorSystem *rgb=new ColorSystem;
 	makestr(rgb->name,_("sRGB"));
-	makestr(rgb->shortnames,"rgb");
+	makestr(rgb->shortname,"rgb");
 	rgb->systemid = LAX_COLOR_RGB;
 	if (with_alpha) rgb->style |= COLOR_Has_Alpha;
 
@@ -831,7 +832,7 @@ ColorSystem *Create_Gray_System(bool with_alpha)
 {
 	ColorSystem *gray=new ColorSystem;
 	makestr(gray->name,_("Gray"));
-	makestr(gray->shortnames,"gray");
+	makestr(gray->shortname,"gray");
 	gray->systemid = LAX_COLOR_GRAY;
 	if (with_alpha) gray->style |= COLOR_Has_Alpha;
 
@@ -852,7 +853,7 @@ ColorSystem *Create_Generic_CMYK_System(bool with_alpha)
 {
 	ColorSystem *cmyk=new ColorSystem;
 	makestr(cmyk->name,_("Generic CMYK"));
-	makestr(cmyk->shortnames,"cmyk");
+	makestr(cmyk->shortname,"cmyk");
 	cmyk->systemid = LAX_COLOR_CMYK;
 	if (with_alpha) cmyk->style |= COLOR_Has_Alpha;
 
@@ -890,7 +891,7 @@ ColorSystem *Create_CieLab_System(bool with_alpha)
 {
 	ColorSystem *cielab=new ColorSystem;
 	makestr(cielab->name,_("CieL*a*b*"));
-	makestr(cielab->shortnames,"cielab");
+	makestr(cielab->shortname,"cielab");
 	cielab->systemid = LAX_COLOR_CieLAB;
 	if (with_alpha) cielab->style |= COLOR_Has_Alpha;
 
@@ -922,7 +923,7 @@ ColorSystem *Create_XYZ_System(bool with_alpha)
 
 	ColorSystem *xyz=new ColorSystem;
 	makestr(xyz->name,_("XYZ"));
-	makestr(xyz->shortnames,"xyz");
+	makestr(xyz->shortname,"xyz");
 	xyz->systemid = LAX_COLOR_XYZ;
 	if (with_alpha) xyz->style|=COLOR_Has_Alpha;
 
@@ -1020,12 +1021,24 @@ Color *ColorManager::newColor(int systemid, ScreenColor *color)
 
 Color *ColorManager::newColor(LaxFiles::Attribute *att)
 {
-	// ***
-	cerr << " *** IMPLEMENT ColorManager::newColor(Attribute)!!!!"<<endl;
+	if (!att) return nullptr;
+
 	//examine att->value, if it starts with an alnum string matching one of a system's shortnames,
 	//then use that system, and assign values in parentheses.
 	//Else search in att->attributes for system, and search based on that
-	return NULL;
+
+	if (att->attributes.n) {
+		cerr << " *** FINISH IMPLEMENTING ColorManager::newColor(Attribute)!!!!"<<endl;
+
+	} else {
+		if (isblank(att->value)) return nullptr;
+		double v[5];
+
+		if (SimpleColorAttribute(att->value, v, nullptr) != 0) return nullptr;
+		return ColorManager::newColor(LAX_COLOR_RGB, 4, v[0], v[1], v[2], v[3]);
+	}
+
+	return nullptr;
 }
 
 ColorManager::ColorManager()
@@ -1057,6 +1070,23 @@ int ColorManager::AddSystem(ColorSystem *system, bool absorb)
 	if (absorb) system->dec_count();
 
 	return 0;
+}
+
+ColorSystem *ColorManager::FindSystem(const char *name)
+{
+	if (isblank(name)) return nullptr;
+
+	//caselessly search unique names
+	for (int c=0; c<systems.n; c++) {
+		if (!strcasecmp(systems.e[c]->shortname, name)) return systems.e[c];
+	}
+
+	//search human readable names
+	for (int c=0; c<systems.n; c++) {
+		if (!strcasecmp(systems.e[c]->name, name)) return systems.e[c];
+	}
+
+	return nullptr;
 }
 
 

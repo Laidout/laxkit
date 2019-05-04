@@ -205,8 +205,8 @@ class Color;
 class ColorSystem: public Laxkit::anObject, public LaxFiles::DumpUtility 
 {
  public:
-	char *name;
-	char *shortnames; //list of possible short descriptors for this system for use in file i/o
+	char *name; //human readable
+	char *shortname; //unique short name for this system for use in file i/o
 	unsigned long style;
 	int systemid;
 	
@@ -264,6 +264,7 @@ class ColorManager : public anObject
 	ColorManager();
 	virtual ~ColorManager();
 	virtual int AddSystem(ColorSystem *system, bool absorb);
+	virtual ColorSystem *FindSystem(const char *name);
 };
 
 
