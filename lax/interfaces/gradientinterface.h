@@ -71,7 +71,7 @@ class GradientData : virtual public SomeData
 	virtual const char *whattype() { return "GradientData"; }
 	virtual SomeData *duplicate(SomeData *dup);
 	virtual void FindBBox();
-	virtual int Set(Laxkit::GradientStrip *newstrip, int absorb);
+	virtual int Set(Laxkit::GradientStrip *newstrip, int absorb, bool keep_placement);
 	virtual int pointin(flatpoint pp,int pin=1);
 	virtual int ShiftPoint(int which,double dt);
 	virtual double GetNormalizedT(int i);
@@ -79,10 +79,12 @@ class GradientData : virtual public SomeData
 	virtual double AddColor(double t,double red,double green,double blue,double alpha);
 	virtual int AddColor(double t,Laxkit::ScreenColor *col);
 	virtual int AddColor(Laxkit::GradientStrip::GradientSpot *spot);
-	virtual int WhatColor(flatpoint p, Laxkit::ScreenColor *col);
-	virtual int WhatColor(double t,Laxkit::ScreenColor *col);
-	virtual int WhatColor(double t,double *col);
+	virtual int WhatColor(flatpoint p, Laxkit::ScreenColor *col, bool is_normalized);
+	virtual int WhatColor(double t,Laxkit::ScreenColor *col, bool is_normalized);
+	virtual int WhatColor(double t,double *col, bool is_normalized);
 	virtual void FlipColors();
+	virtual float MinT();
+	virtual float MaxT();
 
 	virtual int renderToBuffer(unsigned char *buffer, int bufw, int bufh, int bufstride, int bufdepth, int bufchannels);
 
@@ -102,11 +104,21 @@ class GradientInterface : public anInterface
 	Laxkit::NumStack<int> curpoints;
 	virtual void newData(double x, double y);
 	flatpoint leftp;
+	GradientData *strip_data;
 
 	Laxkit::ShortcutHandler *sc;
 	virtual int PerformAction(int action);
 
   public:
+	enum DisplayStyles {
+        Escapable      = (1<<0),
+        RealSpace      = (1<<1),
+        RealSpaceMouse = (1<<2),
+        Expandable     = (1<<3),
+        EditStrip      = (1<<4)
+    };
+
+
 	 // these are gradient state:
 	unsigned long controlcolor;
 	int creationstyle,showdecs,usepreview;
@@ -114,6 +126,8 @@ class GradientInterface : public anInterface
 	flatpoint createv;
 	double creater1,creater2;
 	int gradienttype;
+    unsigned int style; //DisplayStyles
+
 
 	Laxkit::GradientStrip *strip;
 	GradientData *data;
@@ -135,12 +149,15 @@ class GradientInterface : public anInterface
 	virtual void Clear(SomeData *d) { if ((!d && data) || (d && d==data)) { data->dec_count(); data=NULL; } }
 	virtual void SetupRect(double x,double y,double w,double h);
 
+    virtual flatpoint screentoreal(int x,int y);
+	virtual int Event(const Laxkit::EventData *data, const char *mes);
 	virtual int LBDown(int x,int y,unsigned int state,int count,const Laxkit::LaxMouse *d);
 	virtual int LBUp(int x,int y,unsigned int state,const Laxkit::LaxMouse *d);
 	virtual int MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMouse *d);
 	virtual int CharInput(unsigned int ch, const char *buffer,int len,unsigned int state,const Laxkit::LaxKeyboard *d);
 
 	virtual int Refresh();
+	virtual void DrawOutline(double width, double r,double g,double b);
 	virtual void drawLinear();
 	virtual void drawLinear2();
 	virtual void drawRadial();
