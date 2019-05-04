@@ -203,6 +203,12 @@ int hexify(char *str, int i)
 
 double TextXEditBaseUtf8::TextExtent(const char *str, int len, double *width,double *height,double *ascent,double *descent)
 {
+	if (!dp) {
+		dp = MakeCurrent();
+		//double oldheight = dp->textheight();
+		dp->font(thefont, thefont->textheight());
+	}
+
 	//if (dp == nullptr) dp = MakeCurrent();
 	//return thefont->Extent(str,len, width,height,ascent,descent);
 	return dp->textextent(str,len, width,height,ascent,descent);
