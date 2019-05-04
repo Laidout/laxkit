@@ -393,7 +393,7 @@ int ColorBase::Set(int newtype, double c0,double c1,double c2,double c3,double c
  */
 void ColorBase::SetRGB(double rr,double gg,double bb,double aa)
 {
-	Set(LAX_COLOR_RGB, rr,gg,bb,aa, 0);
+	Set(LAX_COLOR_RGB, rr,gg,bb,aa >= 0 ? aa : 1, 0);
 	DBG cerr <<" ColorBase set new rgb color:"<<Red()<<','<<Green()<<','<<Blue()<<" a:"<<Alpha()<<endl;
 }
 
