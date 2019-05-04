@@ -477,7 +477,7 @@ int SimpleColorAttribute(const char *v, double *colors, const char **end_ptr)
 		numcc=3;
 		type=LAX_COLOR_RGB;
 
-	} else if (strcasestr(v,"gray")==v && v[5]=='(') {
+	} else if (strcasestr(v,"gray")==v) {
 		v+=4;
 		numcc=1;
 		type=LAX_COLOR_GRAY;
