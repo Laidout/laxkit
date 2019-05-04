@@ -53,87 +53,112 @@ namespace Laxkit {
  */
 GradientStrip::GradientSpot::GradientSpot(GradientStrip::GradientSpot *spot, bool dup_color)
 {
-	flags=0;
-	name=NULL;
-
-	t=spot->t;
-	nt=spot->nt;
-	s=spot->s;
-	ns=spot->ns;
-
-	if (dup_color && spot->color) color = spot->color->duplicate();
-	else {
-		color = spot->color;
-		if (color) color->inc_count();
-	}
+	flags = 0;
+	name = NULL;
 
 	 //for compatibility with gimp gradients:
-	midposition  =spot->midposition ;
-	interpolation=spot->interpolation;
-	transition   =spot->transition   ;
+	midposition   =.5; //0..1, is along segment of this point to next
+	interpolation = 0; //like gimp? 0=linear, 1=curved, 2=sinusoidal, 3=sphere inc, 4=sphere dec
+	transition    = 0; //how to vary the color, a line in rgb or in hsv
+
+	if (spot) {
+		t  = spot->t;
+		nt = spot->nt;
+		s  = spot->s;
+		ns = spot->ns;
+	} else {
+		t  = 0;
+		nt = 0;
+		s  = 0;
+		ns = 0;
+	}
+
+	if (spot) {
+		if (dup_color && spot->color) color = spot->color->duplicate();
+		else {
+			color = spot->color;
+			if (color) color->inc_count();
+		}
+
+		 //for compatibility with gimp gradients:
+		midposition  =spot->midposition ;
+		interpolation=spot->interpolation;
+		transition   =spot->transition   ;
+
+	} else {
+		ScreenColor scolor(0,0,0,1);
+		color = ColorManager::newColor(LAX_COLOR_RGB, &scolor);
+	}
+
 }
 
 /*! If dup, then use a duplicate of col, else inc its count.
  */
 GradientStrip::GradientSpot::GradientSpot(double tt,double ss,Color *col, bool dup)
 {
-	flags=0;
-	name=NULL;
-
-	t=tt;
-	nt=0;
-	s=ss;
-	ns=0;
-
-	if (dup) color = col->duplicate();
-	else {
-		color = col;
-		if (color) color->inc_count();
-	}
+	flags = 0;
+	name = NULL;
 
 	 //for compatibility with gimp gradients:
-	midposition=.5; //0..1, is along segment of this point to next
-	interpolation=0; //like gimp? 0=linear, 1=curved, 2=sinusoidal, 3=sphere inc, 4=sphere dec
-	transition=0; //how to vary the color, a line in rgb or in hsv
+	midposition   =.5; //0..1, is along segment of this point to next
+	interpolation = 0; //like gimp? 0=linear, 1=curved, 2=sinusoidal, 3=sphere inc, 4=sphere dec
+	transition    = 0; //how to vary the color, a line in rgb or in hsv
+
+	t  = tt;
+	nt = 0;
+	s  = ss;
+	ns = 0;
+
+	if (col) {
+		if (dup) color = col->duplicate();
+		else {
+			color = col;
+			color->inc_count();
+		}
+	}
+	else {
+		ScreenColor scolor(0,0,0,1);
+		color = ColorManager::newColor(LAX_COLOR_RGB, &scolor);
+	}
 }
 
 GradientStrip::GradientSpot::GradientSpot(double tt,double ss,ScreenColor *col)
 {
-	flags=0;
-	name=NULL;
+	flags = 0;
+	name = NULL;
 
-	t=tt;
-	nt=0;
-	s=ss;
-	ns=0;
+	t  = tt;
+	nt = 0;
+	s  = ss;
+	ns = 0;
 
 	color = ColorManager::newColor(LAX_COLOR_RGB, col);
 
 	 //for compatibility with gimp gradients:
-	midposition=.5; //0..1, is along segment of this point to next
-	interpolation=0; //like gimp? 0=linear, 1=curved, 2=sinusoidal, 3=sphere inc, 4=sphere dec
-	transition=0; //how to vary the color, a line in rgb or in hsv
+	midposition   = .5; //0..1, is along segment of this point to next
+	interpolation = 0; //like gimp? 0=linear, 1=curved, 2=sinusoidal, 3=sphere inc, 4=sphere dec
+	transition    = 0; //how to vary the color, a line in rgb or in hsv
 }
 
 /*! rr,gg,bb,aa in range [0..1]
  */
 GradientStrip::GradientSpot::GradientSpot(double tt,double ss, double rr,double gg,double bb,double aa)
 {
-	flags=0;
-	name=NULL;
+	flags = 0;
+	name = NULL;
 
-	t=tt;
-	nt=0;
-	s=ss;
-	ns=0;
+	t  = tt;
+	nt = 0;
+	s  = ss;
+	ns = 0;
 
 	ScreenColor scolor(rr,gg,bb,aa);
-	color=ColorManager::newColor(LAX_COLOR_RGB, &scolor);
+	color = ColorManager::newColor(LAX_COLOR_RGB, &scolor);
 
 	 //for compatibility with gimp gradients:
-	midposition=.5; //0..1, is along segment of this point to next
-	interpolation=0; //like gimp? 0=linear, 1=curved, 2=sinusoidal, 3=sphere inc, 4=sphere dec
-	transition=0; //how to vary the color, a line in rgb or in hsv
+	midposition   = .5; //0..1, is along segment of this point to next
+	interpolation = 0; //like gimp? 0=linear, 1=curved, 2=sinusoidal, 3=sphere inc, 4=sphere dec
+	transition    = 0; //how to vary the color, a line in rgb or in hsv
 }
 	
 GradientStrip::GradientSpot::~GradientSpot()
@@ -199,8 +224,21 @@ void GradientStrip::GradientSpot::dump_in_atts(Attribute *att,int flag,LaxFiles:
 			if (ncolor) {
 				if (color) color->dec_count();
 				color = ncolor;
-				color->inc_count();
 			} 
+
+		} else if (!strcmp(name,"rgba")) { //note: this is only for Laidout .097 and below
+			double vv[4];
+			int nc = DoubleListAttribute(value, vv, 4);
+			if (nc >= 3) {
+				if (nc == 3) vv[3] = 65535;
+				for (int c2=0; c2<4; c2++) vv[c2] /= 65535.0;
+				
+				Color *ncolor = ColorManager::newColor(LAX_COLOR_RGB, 4, vv[0], vv[1], vv[2], vv[3]);
+				if (ncolor) {
+					if (color) color->dec_count();
+					color = ncolor;
+				} 
+			}
 		}
 	}
 
@@ -293,8 +331,16 @@ LaxFiles::Attribute *GradientStrip::GradientSpot::dump_out_atts(LaxFiles::Attrib
 		att->push("transition", transition ? "rgb" : "hsv");
 	}
 
-	Attribute *att2 = att->pushSubAtt("color");
-	color->dump_out_atts(att2,what,context);
+	int n=0;
+	n = color->dump_out_simple_string(nullptr, n);
+	char *str = new char[n];
+	color->dump_out_simple_string(str, n);
+
+	att->push("color", str);
+	delete[] str;
+
+	//Attribute *att2 = att->pushSubAtt("color");
+	//color->dump_out_atts(att2,what,context);
 
 	return att;
 }
@@ -879,6 +925,18 @@ double GradientStrip::TRange()
 	return colors.e[colors.n-1]->t - colors.e[0]->t;
 }
 
+double GradientStrip::MinT()
+{
+	if (!colors.n) return 0;
+	return colors.e[0]->t;
+}
+
+double GradientStrip::MaxT()
+{
+	if (!colors.n) return 0;
+	return colors.e[colors.n-1]->t;
+}
+
 /*! If reset, then replace all with a gradient from 0..1 with white to black.
  * If !reset, then flush all colors, and leave undefined.
  */
@@ -1018,7 +1076,7 @@ int GradientStrip::AddColor(double t, Color *color, bool dup)
 		Color *usecolor = color;
 		if (!usecolor) {
 			 //interpolate color
-			usecolor = WhatColor(t);
+			usecolor = WhatColor(t, false);
 			dup=false;
 		}
 
@@ -1036,9 +1094,9 @@ int GradientStrip::AddColor(double t, Color *color, bool dup)
  *
  * col, if not NULL, MUST be a plain Color, not a ColorRef.
  */
-Color *GradientStrip::WhatColor(double t, Color *col)
+Color *GradientStrip::WhatColor(double t, Color *col, bool is_normalized)
 {
-	double nt=(tmax>tmin ? (t-tmin)/(tmax-tmin) : 0);
+	double nt = (is_normalized ? t : (tmax>tmin ? (t-tmin)/(tmax-tmin) : 0));
 
 	if (nt<0 || nt>1) {
 		 //if nt out of bounds, check to see how to compute the value.
@@ -1095,9 +1153,9 @@ Color *GradientStrip::WhatColor(double t, Color *col)
  *
  * \todo need to implement the smoother Gimp_Spots flags
  */
-int GradientStrip::WhatColor(double t, ScreenColor *col)
+int GradientStrip::WhatColor(double t, ScreenColor *col, bool is_normalized)
 {
-	double nt=(tmax>tmin ? (t-tmin)/(tmax-tmin) : 0);
+	double nt = (is_normalized ? t : (tmax>tmin ? (t-tmin)/(tmax-tmin) : 0));
 
 	if (nt<0 || nt>1) {
 		 //if nt out of bounds, check to see how to compute the value.

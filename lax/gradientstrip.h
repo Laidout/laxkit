@@ -134,6 +134,8 @@ class GradientStrip : virtual public Resourceable, virtual public LaxFiles::Dump
 
 	virtual int NumColors();
 	virtual double TRange();
+	virtual double MinT();
+    virtual double MaxT();
 	virtual Color *GetColor(int index);
 	virtual GradientSpot *GetColorSpot(int index);
 	virtual int FlushColors(bool reset);
@@ -155,9 +157,9 @@ class GradientStrip : virtual public Resourceable, virtual public LaxFiles::Dump
 	virtual int SetColor(int index, Color *col, bool dup);
 	virtual int SetStock(GradStockType which);
 
-	virtual Color *WhatColor(double t) { return WhatColor(t, (Color*)NULL); }
-	virtual Color *WhatColor(double t, Color *col);
-	virtual int WhatColor(double t, Laxkit::ScreenColor *col);
+	virtual Color *WhatColor(double t, bool is_normalized) { return WhatColor(t, (Color*)nullptr, is_normalized); }
+	virtual Color *WhatColor(double t, Color *col, bool is_normalized);
+	virtual int WhatColor(double t, Laxkit::ScreenColor *col, bool is_normalized);
 
 	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
 	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
