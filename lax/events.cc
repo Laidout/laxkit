@@ -169,10 +169,10 @@ SimpleMessage::SimpleMessage(const char *nstr, int i1,int i2,int i3,int i4,
  */
 SimpleMessage::SimpleMessage(anObject *obj)
 {
-	object=obj;
+	object = obj;
 	if (object) object->inc_count();
-	info1=info2=info3=info4=0; 
-	str=NULL;
+	info1 = info2 = info3 = info4 = 0; 
+	str = NULL;
 }
 
 SimpleMessage::~SimpleMessage()
@@ -182,7 +182,7 @@ SimpleMessage::~SimpleMessage()
 }
 
 //! Return pointer to the object.
-/*! The returned object needs to have it's count incremented if it is to be used.
+/*! The returned object needs to have its count incremented if it is to be used.
  */
 anObject *SimpleMessage::TheObject() const
 { return object; }
