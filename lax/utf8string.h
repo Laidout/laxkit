@@ -69,6 +69,7 @@ class Utf8String
 	void InsertBytes(char *newstr, int len);
 
 	const char *c_str() const { return s; }
+	const char *c_str_nonnull() const { return s ? s : ""; }
 	unsigned int ch(int pos);
 	unsigned int ch(int pos, unsigned int newch);
 	unsigned int ch_b(int pos);
