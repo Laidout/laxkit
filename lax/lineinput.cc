@@ -324,11 +324,11 @@ void LineInput::SetPlacement()
 	
 	if (win_style&(LINP_ONTOP|LINP_ONBOTTOM)) { // assume h centered
 		if (lew>0) nlew=lew;
-		else nlew=win_w-2*padlx-2*le->win_border;
-		if (nlew+2*(int)le->win_border>win_w-2*padlx) nlew=win_w-2*padlx-2*le->win_border;
+		else nlew=win_w-2*padlx-2*le->WindowBorder();
+		if (nlew+2*(int)le->WindowBorder() > win_w-2*padlx) nlew=win_w-2*padlx-2*le->WindowBorder();
 			
 		if (leh==0) nleh=2*pady+textheight;
-		else if (leh<0) nleh=win_h-2*le->win_border-3*padly-lh;
+		else if (leh<0) nleh=win_h-2*le->WindowBorder()-3*padly-lh;
 		else nleh=leh;
 				
 		lex=win_w/2-nlew/2;
@@ -346,20 +346,20 @@ void LineInput::SetPlacement()
 
 	} else if (win_style&(LINP_ONLEFT|LINP_ONRIGHT)) {
 		if (lew>0) nlew=lew;
-		else nlew=win_w-3*padlx-2*le->win_border-lw;
-		if (nlew>win_w-3*padlx-2*(int)le->win_border-lw) nlew=win_w-3*padlx-2*le->win_border-lw;
+		else nlew=win_w-3*padlx-2*le->WindowBorder() - lw;
+		if (nlew>win_w-3*padlx-2*(int)le->WindowBorder() - lw) nlew=win_w-3*padlx-2*le->WindowBorder() - lw;
 			
 		if (leh==0) nleh=2*pady+textheight;
-		else if (leh<0) nleh=win_h-2*le->win_border-3*padly;
+		else if (leh<0) nleh=win_h-2*le->WindowBorder() - 3*padly;
 		else nleh=leh;
 		
 		ley=padly;
-		ly=padly+padx+le->win_border+fasc;
+		ly=padly+padx+le->WindowBorder() + fasc;
 		if (win_style&LINP_ONRIGHT) {
 			lex=padlx;
-			lx=padlx+nlew+2*le->win_border+padlx;
+			lx=padlx+nlew+2*le->WindowBorder() + padlx;
 		} else { // ONLEFT
-			lex=win_w-padlx-2*le->win_border-nlew;
+			lex=win_w-padlx-2*le->WindowBorder() - nlew;
 			lx=lex-padlx-lw;
 		}
 		int oldley=ley;

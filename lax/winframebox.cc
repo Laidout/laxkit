@@ -95,7 +95,7 @@ void WinFrameBox::sync()
 
 	//**** something messed up here: not doing border right*** not sub from width??
 	//is this still true?
-	window->MoveResize(x()-window->win_border,y()-window->win_border, w(),h());
+	window->MoveResize(x() - window->WindowBorder(), y()-window->WindowBorder(), w(),h());
 }
 
 

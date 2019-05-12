@@ -2033,6 +2033,7 @@ int anXApp::addwindow(anXWindow *w,char mapit,char absorb_count) // mapit==1, ab
 	WindowStyle *wc = w->win_themestyle;
 	if (!wc) wc = (theme ? theme->GetStyle(THEME_Panel) : NULL);
 	if (wc) {
+		w->xlib_win_xatts.border_pixel = wc->inactive_border.Pixel();
 		w->xlib_win_xatts.background_pixel = wc->bg.Pixel();
 		w->xlib_win_xattsmask |= CWBackPixel;
 	}

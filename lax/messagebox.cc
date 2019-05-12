@@ -132,11 +132,11 @@ int MessageBox::preinit()
 	win_h=h();
 
 	Screen *screen=DefaultScreenOfDisplay(app->dpy);
-	if (win_h+2*(int)win_border>(int)screen->height) { 
-		win_h=screen->height-2*win_border;
+	if (win_h+2*(int)WindowBorder()>(int)screen->height) { 
+		win_h=screen->height-2*WindowBorder();
 	}
-	if (win_w+2*(int)win_border>(int)screen->width) { 
-		win_w=screen->width-2*win_border;
+	if (win_w+2*(int)WindowBorder()>(int)screen->width) { 
+		win_w=screen->width-2*WindowBorder();
 	}
 	return 0;
 }

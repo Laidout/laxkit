@@ -191,6 +191,7 @@ class anXWindow : virtual public EventReceiver,
 			anXWindow *prev,unsigned long nowner,const char *nsend);
 	virtual ~anXWindow();
 	virtual const char *whattype() { return "anXWindow"; }
+	virtual int WindowBorder();
 	virtual const char *WindowTitle(int which=0);
 	virtual void WindowTitle(const char *newtitle);
 	virtual const char *tooltip(int mouseid=0);

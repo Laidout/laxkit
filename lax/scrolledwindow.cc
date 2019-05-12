@@ -268,8 +268,8 @@ void ScrolledWindow::syncWindows(int useinrect)//useinrect==0
 	 // Sync up thewindow, if present
 	if (thewindow) {
 		if (!(win_style&SW_MOVE_WINDOW)) {
-			w -= thewindow->win_border*2;
-			h -= thewindow->win_border*2;
+			w -= thewindow->WindowBorder()*2;
+			h -= thewindow->WindowBorder()*2;
 			thewindow->MoveResize(x,y,w,h);
 			panner->SetBoxAspect(thewindow->win_w,thewindow->win_h);
 		} else { //*** just move the window around, no resizing required.?? tell panner what?

@@ -381,7 +381,7 @@ int RowFrame::AddWin(anXWindow *win,      //!< The window to add
 //				int ny,int nh,int nph,int nhs,int nhg,int nvalign);
 	wf=new WinFrameBox(win, 0,npw,npw,nws,nwg,nhalign,nhgap, 0,nph,nph,nhs,nhg,nvalign,nvgap);
 	if (win) {
-		wf->pad=win->win_border;
+		wf->pad=win->WindowBorder();
 		if (win->win_parent!=this) app->reparent(win,this);
 		if (absorbcount) win->dec_count();
 	}

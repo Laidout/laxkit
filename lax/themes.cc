@@ -618,6 +618,9 @@ int WindowStyle::SetDefaultColors(const char *type)
 		}
 
     } else { //Light
+		active_border  .rgbf(.4,.4,.4);
+		inactive_border.rgbf(.55,.55,.55); 
+
 		if (category == THEME_Panel || category == THEME_Tooltip) {
 			fg        .rgbf(.13,.13,.13);
 			bg        .rgbf(.75,.75,.75);

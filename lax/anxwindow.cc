@@ -356,7 +356,7 @@ anXWindow::anXWindow(anXWindow *parnt, const char *nname, const char *ntitle,
 	win_y      = yy;
 	win_w      = ww;
 	win_h      = hh;
-	win_border = -1;
+	win_border = brder;
 	win_style  = nstyle;
 	win_pointer_shape = 0;
 
@@ -423,6 +423,15 @@ anXWindow::~anXWindow()
 
 	if (nextcontrol) { nextcontrol->prevcontrol=prevcontrol; }
 	if (prevcontrol) { prevcontrol->nextcontrol=nextcontrol; } 
+}
+
+/*! If win_border == -1, return theme->border_width.
+ */
+int anXWindow::WindowBorder()
+{
+	if (win_border >= 0) return win_border;
+	if (win_themestyle && win_themestyle->border_width >= 0) return win_themestyle->border_width;
+	return 0;
 }
 
 //! Return basically the name of the window.
