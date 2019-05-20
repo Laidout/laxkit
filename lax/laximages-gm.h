@@ -60,7 +60,7 @@ class LaxGMImage : public LaxImage
 	int width,height;
 
 	LaxGMImage();
-	LaxGMImage(const char *fname, Magick::Image *img);
+	LaxGMImage(const char *fname, Magick::Image *img, int nindex);
 	LaxGMImage(const char *original, const char *fname, int maxw, int maxh);
 	LaxGMImage(int width, int height);
 	LaxGMImage(unsigned char *buffer, int w, int h, int stride);
@@ -78,7 +78,7 @@ class LaxGMImage : public LaxImage
 	virtual int doneWithBuffer(unsigned char *buffer);
 
 	virtual int Ping(const char *file);
-	virtual int Load(const char *file);
+	virtual int Load(const char *file, int atindex);
 	virtual int Save(const char *tofile = nullptr, const char *format = nullptr); //format==null guess from extension
 	virtual void Set(double r, double g, double b, double a);
 };

@@ -617,7 +617,7 @@ LaxImage *ImageLoader::LoadImage(const char *file,
 }
 
 /*! Ping an image file without fully loading it or instantiating a LaxImage.
- * Return 0 for success. subfiles is number of "frames" in file.
+ * Return 0 for success, or nonzero for can't ping. subfiles is number of "frames" in file.
  * This runs through the loader list until loader->PingFile() returns 0.
  */
 int ImageLoader::Ping(const char *file, int *width, int *height, long *filesize, int *subfiles)

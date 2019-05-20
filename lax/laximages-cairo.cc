@@ -245,7 +245,7 @@ int save_image_cairo(LaxImage *image, const char *filename, const char *format)
 	LaxCairoImage *img = dynamic_cast<LaxCairoImage *>(image);
 	if (!img) return 1;
 
-	cairo_surface_t *surface = img->image;
+	cairo_surface_t *surface = img->Image();
 	if (!surface) return 2;
 
 	if (format && strcmp(format, "png")) {

@@ -87,9 +87,10 @@ LaxGMImage::LaxGMImage()
 
 /*! Image is pinged, not read.
  */
-LaxGMImage::LaxGMImage(const char *fname, Magick::Image *img)
+LaxGMImage::LaxGMImage(const char *fname, Magick::Image *img, int nindex)
 	: LaxImage(fname)
 {
+	index = nindex;
 	display_count = 0; 
 	has_image = NoImage;
 	width = height = 0;
@@ -242,9 +243,9 @@ void LaxGMImage::CopyBufferToPixels(unsigned char *buffer)
 	if (shift == 0) {
 		for (int y=0; y<height; y++) {
 			for (int x=0; x<width; x++) {
-				pixel->blue    = p[0];
+				pixel->blue	= p[0];
 				pixel->green   = p[1];
-				pixel->red     = p[2];
+				pixel->red	 = p[2];
 				pixel->opacity = 255-p[3];
 
 				p  += 4;
@@ -256,9 +257,9 @@ void LaxGMImage::CopyBufferToPixels(unsigned char *buffer)
 		unsigned int o;
 		for (int y=0; y<height; y++) {
 			for (int x=0; x<width; x++) {
-				pixel->blue    = (p[0] << 8) | p[0];
+				pixel->blue	= (p[0] << 8) | p[0];
 				pixel->green   = (p[1] << 8) | p[1];
-				pixel->red     = (p[2] << 8) | p[2];
+				pixel->red	 = (p[2] << 8) | p[2];
 				o = 255-p[3];
 				pixel->opacity = (o << 8) | o;
 
@@ -271,9 +272,9 @@ void LaxGMImage::CopyBufferToPixels(unsigned char *buffer)
 		unsigned int o;
 		for (int y=0; y<height; y++) {
 			for (int x=0; x<width; x++) {
-				pixel->blue    = (((p[0] << 8) | p[0]) << 8) | p[0];
+				pixel->blue	= (((p[0] << 8) | p[0]) << 8) | p[0];
 				pixel->green   = (((p[1] << 8) | p[1]) << 8) | p[1];
-				pixel->red     = (((p[2] << 8) | p[2]) << 8) | p[2];
+				pixel->red	 = (((p[2] << 8) | p[2]) << 8) | p[2];
 				o = 255-p[3];
 				pixel->opacity = (((o << 8) | o) << 8) | o;
 
@@ -295,36 +296,42 @@ int LaxGMImage::Ping(const char *file)
 	if (!file) file = filename;
 	if (!file) return 1;
 
-    try {
-        image.ping(file);
+	try {
+		image.ping(file);
 		width  = image.baseColumns();
 		height = image.baseRows();
 		if (file != filename) makestr(filename, file);
-    } catch (Magick::Exception &error_ ) {
-        DBG cerr <<"GraphicsMagick Error pinging "<<file<<endl;
-        return 2;
-    }
+	} catch (Magick::Exception &error_ ) {
+		DBG cerr <<"GraphicsMagick Error pinging "<<file<<endl;
+		return 2;
+	}
 	return 1;
 }
 
 /*! Return 0 for success, nonzero failure.
+ * If atindex >= 0, then use that as index of a subimage. If not available, default to 0.
+ * If atindex <0, then use current index.
  */
-int LaxGMImage::Load(const char *file)
+int LaxGMImage::Load(const char *file, int atindex)
 {
 	if (!file) file = filename;
 	if (!file) return 1;
 
-    try {
-        image.read(file);
-		width  = image.baseColumns();
-		height = image.baseRows();
-		has_image = HasData;
-		if (file != filename) makestr(filename, file);
-    } catch (Magick::Exception &error_ ) {
-		has_image = NoImage;
-        DBG cerr <<"GraphicsMagick Error loading "<<file<<endl;
-        return 2;
-    }
+	if (atindex >= 0) index = atindex;
+	if (file != filename) makestr(filename, file);
+	has_image = NoImage;
+	return Image(nullptr);
+
+//	try {
+//		image.read(file);
+//		width  = image.baseColumns();
+//		height = image.baseRows();
+//		has_image = HasData;
+//	} catch (Magick::Exception &error_ ) {
+//		has_image = NoImage;
+//		DBG cerr <<"GraphicsMagick Error loading "<<file<<endl;
+//		return 2;
+//	}
 	return 1;
 }
 
@@ -379,6 +386,56 @@ void LaxGMImage::doneForNow()
 	if (display_count>0) display_count--;
 }
 
+/*! Return true on success.
+ */
+bool LoadFrame(const char *filename, int index, Magick::Image *image_ret)
+{
+	if (image_ret) *image_ret = nullptr;
+	Magick::Image gif;
+	try {
+		gif.read(filename);
+	} catch (Magick::Exception &error) {
+		DBG cerr << "Error reading multiframe image in "<<filename<<": "<<error.what() <<endl;
+		return false;
+	}
+
+	//int delay     = gif.animationDelay(); // hundredths of seconds per frame
+	int disposal  = gif.gifDisposeMethod();
+	//int width     = gif.baseColumns();
+    //int height    = gif.baseRows();
+	Magick::Color bg  = gif.backgroundColor();
+
+	try {
+		list<Magick::Image> imagelist;
+		Magick::readImages( &imagelist, filename );
+		int numframes = imagelist.size();
+		if (numframes == 0) return false;
+		if (index < 0 || index >= numframes) index = 0;
+
+		Magick::Image image;
+			//stack frames up if necessary..
+		int c=0;
+		for (list<Magick::Image>::iterator gmimg = imagelist.begin(); gmimg != imagelist.end(); gmimg++) {
+			if (disposal == 1) {
+				if (c == 0) image = *gmimg;
+				else image.composite(*gmimg, 0,0, Magick::OverCompositeOp);
+			} else {
+				if (c == index) image = *gmimg;
+			}
+			c++;
+			if (c>index) break;
+		}
+
+		if (image_ret) *image_ret = image;
+
+	} catch (Magick::Exception &error) {
+		DBG cerr << "Error reading multiframe image in "<<filename<<": "<<error.what() <<endl;
+		return false;
+	}
+
+	return true;
+}
+
 /*! Return the Image in img_ret. Loads from filename if !image.
  * Returns true if data exists, else false if we have no pixel data.
  */
@@ -391,8 +448,13 @@ bool LaxGMImage::Image(Magick::Image *img_ret)
 	if (!filename) return false;
 
 	try {
-		image.read(filename);
-		has_image = HasData;
+		if (index > 0) {
+			if (LoadFrame(filename, index, &image))
+				has_image = HasData;
+		} else {
+			image.read(filename);
+			has_image = HasData;
+		}
 	} catch (Magick::Exception &error_ ) {
 		DBG cerr <<"GraphicsMagick Error loading "<<filename<<endl;
 		return false;
@@ -420,13 +482,13 @@ GraphicsMagickLoader::~GraphicsMagickLoader()
 
 bool GraphicsMagickLoader::CanLoadFile(const char *file)
 {
-    try {
+	try {
 		Magick::Image image;
 		image.ping(file);
-    } catch (Magick::Exception &error_ ) {
-        DBG cerr <<"GraphicsMagick Error loading "<<file<<endl;
-        return false;
-    }
+	} catch (Magick::Exception &error_ ) {
+		DBG cerr <<"GraphicsMagick Error loading "<<file<<endl;
+		return false;
+	}
 	return true;
 }
 
@@ -442,12 +504,12 @@ bool GraphicsMagickLoader::CanLoadFormat(const char *format)
 int GraphicsMagickLoader::PingFile(const char *file, int *width, int *height, long *filesize, int *subfiles)
 {
 	Magick::Image img;
-    try {
-        img.ping(file);
-    } catch (Magick::Exception &error_ ) {
-        DBG cerr <<"GraphicsMagick Error loading "<<file<<endl;
-        return 1;
-    }
+	try {
+		img.ping(file);
+	} catch (Magick::Exception &error_ ) {
+		DBG cerr <<"GraphicsMagick Error loading "<<file<<endl;
+		return 1;
+	}
 
 	if (width || height) {
 		if (width)  *width  = img.baseColumns();
@@ -459,13 +521,13 @@ int GraphicsMagickLoader::PingFile(const char *file, int *width, int *height, lo
 		*filesize = img.fileSize();
 	}
 
-    if (subfiles) {
-         //find number of readable frames
+	if (subfiles) {
+		 //find number of readable frames
 		 // *** NOTE!! this might read in all frames? not ping?
-        list<Magick::Image> imagelist;
-        Magick::readImages( &imagelist, file );
-        *subfiles = imagelist.size();
-    }
+		list<Magick::Image> imagelist;
+		Magick::readImages( &imagelist, file );
+		*subfiles = imagelist.size();
+	}
 
 	return 0;
 }
@@ -475,7 +537,7 @@ int GraphicsMagickLoader::PingFile(const char *file, int *width, int *height, lo
 int GraphicsMagickLoader::LoadToMemory(LaxImage *img)
 {
 	if (dynamic_cast<LaxGMImage*>(img)) {
-		 //nothing really to do, GraphicsMagick does caching automatically
+		 //nothing really to do
 		dynamic_cast<LaxGMImage*>(img)->Image(NULL);
 		return 0;
 	}
@@ -483,9 +545,13 @@ int GraphicsMagickLoader::LoadToMemory(LaxImage *img)
 #ifdef LAX_USES_CAIRO
 	if (dynamic_cast<LaxCairoImage*>(img)) {
 		LaxCairoImage *cimg = dynamic_cast<LaxCairoImage*>(img);
+
 		Magick::Image image;
 		try {
-			image.read(cimg->filename);
+			if (img->index == 0) image.read(cimg->filename);
+			else {
+				LoadFrame(cimg->filename, cimg->index, &image);
+			}
 
 			image.type(Magick::TrueColorType);
 
@@ -532,6 +598,7 @@ LaxCairoImage *MakeCairoFromGraphicsMagick(LaxGMImage *iimg, bool ping_only)
 {
 	LaxCairoImage *cimage = new LaxCairoImage();
 	makestr(cimage->filename, iimg->filename);
+	cimage->index =  iimg->index;
 
 	if (ping_only) {
 		 //only set dimensions. The importer will have to install actual image on call later
@@ -549,7 +616,7 @@ LaxCairoImage *MakeCairoFromGraphicsMagick(LaxGMImage *iimg, bool ping_only)
 }
 #endif
 
-LaxGMImage *load_gm_image_with_preview(const char *filename, const char *previewfile, int maxx, int maxy, LaxImage **previewimage_ret)
+LaxGMImage *load_gm_image_with_preview(const char *filename, const char *previewfile, int maxx, int maxy, LaxImage **previewimage_ret, int index)
 {
 	Magick::Image image;
 	try {
@@ -559,7 +626,7 @@ LaxGMImage *load_gm_image_with_preview(const char *filename, const char *preview
 		return NULL;
 	}
 
-	LaxGMImage *img = new LaxGMImage(filename, &image);
+	LaxGMImage *img = new LaxGMImage(filename, &image, index);
 	img->doneForNow();
 
 	if (previewimage_ret) {
@@ -589,7 +656,7 @@ LaxImage *GraphicsMagickLoader::load_image(const char *filename,
 								 bool ping_only,
 								 int index)
 {
-	LaxGMImage *iimg = dynamic_cast<LaxGMImage*>(load_gm_image_with_preview(filename, previewfile, maxx,maxy, previewimage_ret));
+	LaxGMImage *iimg = dynamic_cast<LaxGMImage*>(load_gm_image_with_preview(filename, previewfile, maxx,maxy, previewimage_ret, index));
 	if (!iimg) return NULL;
 	
 	if (target_format == 0 || target_format == LAX_IMAGE_GRAPHICSMAGICK) {
