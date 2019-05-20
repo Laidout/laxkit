@@ -114,6 +114,17 @@ CheckBox::CheckBox(anXWindow *parnt,const char *nname,const char *ntitle,unsigne
 //! Empty virtual destructor
 CheckBox::~CheckBox() {}
 
+bool CheckBox::Checked()
+{
+	return State() == LAX_ON;
+}
+
+bool CheckBox::Checked(bool yes)
+{
+	State(yes ? LAX_ON : LAX_OFF);
+	return State();
+}
+
 //! Sync up the placement of things.
 void CheckBox::setPlacement()
 {
