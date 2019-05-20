@@ -439,6 +439,14 @@ void Affine::Multiply(const Affine &m)
 	transform_copy(_m,result);
 }
 
+//! this=this*m
+void Affine::Multiply(const double *m)
+{
+	double result[6];
+	transform_mult(result,_m,m);
+	transform_copy(_m,result);
+}
+
 //! this=m*this
 void Affine::PreMultiply(const Affine &m)
 {

@@ -70,6 +70,7 @@ class Affine
 	virtual void FlipV();
 	virtual void Flip(flatpoint f1,flatpoint f2);
 	virtual void Multiply(const Affine &m);
+	virtual void Multiply(const double *m);
 	virtual void PreMultiply(const Affine &m);
 
 	virtual Affine Inversion();
