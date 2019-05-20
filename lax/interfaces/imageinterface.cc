@@ -181,6 +181,7 @@ void ImageData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *cont
 
 	if (what==-1) {
 		fprintf(f,"%sfilename /path/to/file\n",spc);
+		fprintf(f,"%sindex 0     #which subimage contained in filename to use\n",spc);
 		fprintf(f,"%spreviewfile /path/to/preview/file  #if not absolute, is relative to filename\n",spc);
 		fprintf(f,"%swidth 100           #in pixels, overriden by the actual dimensions of the image when read in.\n",spc);
 		fprintf(f,"%sheight 100          #If the file is not found or broken, then these dimensions are used.\n",spc);
@@ -219,6 +220,7 @@ void ImageData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *cont
 		if (previewfile && previewflag&1)
 			fprintf(f,"%spreviewfile \"%s\"\n",spc, previewfile);
 	}
+	fprintf(f,"%sindex %d\n", spc, (image ? image->index : 0));
 	fprintf(f,"%swidth %.10g\n",spc,maxx-minx);
 	fprintf(f,"%sheight %.10g\n",spc,maxy-miny);
 	fprintf(f,"%smatrix %.10g %.10g %.10g %.10g %.10g %.10g\n",spc,
@@ -235,6 +237,7 @@ LaxFiles::Attribute *ImageData::dump_out_atts(LaxFiles::Attribute *att,int what,
 
 	if (what==-1) {
 		att->push("filename /path/to/file");
+		att->push("index 0", "#Which subimage inside filename to use");
 		att->push("previewfile /path/to/preview/file","#if not absolute, is relative to filename");
 		att->push("width 100","#in pixels, overriden by the actual dimensions of the image when read in.");
 		att->push("height 100","#If the file is not found or broken, then these dimensions are used.");
