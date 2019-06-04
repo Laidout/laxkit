@@ -44,7 +44,7 @@ namespace Laxkit {
  * This class is a little comparable to the Adjustment widget of Gtkmm, except
  * that it is 2 dimensional, and handles zooming.
  * 
- * The rectangle that is the bounds of workspace runs x: [min[0],max[0]] and 
+ * The wholebox (bounds of workspace) runs x: [min[0],max[0]] and 
  * y: [min[1],max[1]]. The amount supposedly viewable is [start,end] within
  * that range. Internally, the positions and bounds are stored as type long.
  *
@@ -843,8 +843,17 @@ int PanController::SetSize(int which, long nmin,long nmax,long nps)
 	return which+1;
 }
 
-//! Set the minimum selection size and maximum selection size.
-/*! \todo make sure the current selbox doesn't exceed bounds.
+/*! Set the selection box.
+ */
+void PanController::SetSelection(long xmin,long xmax,long ymin,long ymax)
+{
+	start[0] = xmin;
+	start[1] = ymin;
+	end[0]   = xmax;
+	end[1]   = ymax;
+}
+
+/*! Set the minimum selection size and maximum selection size.
  */
 void PanController::SetSelBounds(int which, long small,long big)
 {
@@ -893,7 +902,7 @@ int PanController::SetStuff(int which,long nmin,long nmax,long nps,long nes,long
 	return 1;
 }
 
-//! Set both the dimensions of the workspace, preserving proportionally the selbox.
+//! Set both the dimensions of the workspace in min[] and max[], preserving proportionally the selbox.
 /*! Returns the value of validateSelbox, which should indicate whether
  * some other values had to be changed.
  */

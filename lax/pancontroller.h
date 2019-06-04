@@ -66,6 +66,7 @@ class PanController : virtual public anObject
 	virtual double GetMagToBox(int which,int boxwidth,long *wholestartret,long *wholeendret);
 	virtual double GetMagToWhole(int which,int trackwidth,long *boxstartret,long *boxendret);
 	virtual void SetSelBounds(int which, long small,long big);
+	virtual void SetSelection(long xmin,long xmax,long ymin,long ymax);
 	virtual void SetPixelAspect(double npixaspect=1.0);
 	virtual double findpixelaspect();
 	virtual void SetBoxAspect(int w,int h);
