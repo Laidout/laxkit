@@ -82,6 +82,7 @@ class SimpleColorEventData : public EventData
 	SimpleColorEventData(int nmax, int r,   int g, int b, int a, int nid);
 	SimpleColorEventData(int nmax, int c,   int m, int y, int k, int a,  int nid);
 	virtual ~SimpleColorEventData();
+	virtual double Valuef(int i) const;
 };
 
 

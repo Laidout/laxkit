@@ -126,6 +126,12 @@ SimpleColorEventData::~SimpleColorEventData()
 	if (channels) delete[] channels;
 }
 
+double SimpleColorEventData::Valuef(int i) const
+{
+	if (i<0 || i>= numchannels) return 0;
+	return channels[i] / (double) max;
+}
+
 
 //------------------------------- ColorEventData -------------------------------
 ColorEventData::ColorEventData()
