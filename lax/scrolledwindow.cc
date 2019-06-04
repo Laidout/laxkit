@@ -1,7 +1,7 @@
 //
 //	
 //    The Laxkit, a windowing toolkit
-//    Copyright (C) 2004-2006,2010 by Tom Lechner
+//    Copyright (C) 2004-2006,2010,2019 by Tom Lechner
 //    Please consult https://github.com/Laidout/laxkit about where to send any
 //
 //    This library is free software; you can redistribute it and/or
@@ -22,6 +22,10 @@
 
 #include <lax/scrolledwindow.h>
 
+#include <iostream>
+#define DBG
+using namespace std;
+
 namespace Laxkit {
 
 /*! \class ScrolledWindow
@@ -34,33 +38,7 @@ namespace Laxkit {
  * \todo *** should have option to either resize thewindow to fit within the space not taken
  * by scrollers, and pass on panchange events to
  * that window, OR have thewindow be just a huge window that the scrollbars automatically
- * move around!!! That would be quite useful for containing dialogs....
- * 
- * \code
- *  #include <lax/scrolledwindow.h>
- * 
- *   // If you do not specify TOP or BOTTOM, then the horizontal scroller is not included.
- *   // Likewise for LEFT and RIGHT regarding the vertical scroller.
- *   // Put an x scroller on either top or bottom
- *  #define SW_TOP         (1<<16)
- *  #define SW_BOTTOM      (1<<17)
- *   // Put a y scroller on either left or right
- *  #define SW_LEFT        (1<<18)
- *  #define SW_RIGHT       (1<<19)
- *   // inlude a PanWindow in corner between the scrollers
- *  #define SW_INCLUDE_PAN (1<<20)
- *   // Always have x or y scrollers, they do not go away when not needed.
- *  #define SW_ALWAYS_X    (1<<21)
- *  #define SW_ALWAYS_Y    (1<<22)
- *   // Allow scrolling in the x or y direction
- *  #define SW_X_ZOOMABLE  (1<<23)
- *  #define SW_Y_ZOOMABLE  (1<<24)
- *   // When zooming, preserve the aspect ratio of the boxed area.
- *  #define SW_SYNC_XY     (1<<25)
- *   // Move around a subwindow in response to scroll events,
- *   // Otherwise default is to simply relay pan changes to thewindow.
- *  #define SW_MOVE_WINDOW (1<<26)
- * \endcode
+ * move around.
  */
 /*! \var IntRectangle ScrolledWindow::inrect
  * \brief The rectangle that thewindow resides in.
@@ -86,10 +64,10 @@ ScrolledWindow::ScrolledWindow(anXWindow *parnt,const char *nname,const char *nt
 	: PanUser(pan),
 	  anXWindow (parnt,nname,ntitle,nstyle,xx,yy,ww,hh,brder,prev,nowner,nsend)
 {
-	scrollwidth=15;
-	thewindow=NULL;
-	xscroller=yscroller=NULL;
-	panpopup=NULL;
+	scrollwidth = 15;
+	thewindow = NULL;
+	xscroller = yscroller = NULL;
+	panpopup = NULL;
 }
 
 //! Send what? huh?***
@@ -111,7 +89,6 @@ int ScrolledWindow::init()
 	//				PanController *npan,
 	//				long nmins=0,long nmaxs=0,long nps=0,long nes=0,long ncp=-1,long ncpe=-1); // ncp=ncpe=-1
 
-	 //***got to improve panner api
 	panner->tell(this);
 //	panner->SetStuff(1, -5*win_w,5*win_w, 90,5, -win_w,win_w);
 //	panner->SetStuff(2, -5*win_h,5*win_h, 90,5, -win_h,win_h);
@@ -120,18 +97,25 @@ int ScrolledWindow::init()
 //	panner->SetCurPos(2,-win_h,win_h);
 	panner->SetBoxAspect(win_w-scrollwidth,win_h-scrollwidth);
 
+	if (HasWinStyle(SW_MOVE_WINDOW)) {
+		if (thewindow) {
+			panner->SetWholebox(0,thewindow->win_w, 0,thewindow->win_h);
+			panner->SetSelection(0,inrect.width, 0,inrect.height);
+		}
+	}
+
 	if (win_style&(SW_TOP|SW_BOTTOM)) {
-		if (!xscroller) xscroller=new Scroller(this,"sw-xscroller",NULL,
-							SC_XSCROLL|SC_ABOTTOM|(win_style&SW_X_ZOOMABLE?SC_ZOOM:0),
-							0,(win_style&SW_TOP?0:win_h-scrollwidth), win_w,scrollwidth, 0,
+		if (!xscroller) xscroller = new Scroller(this,"sw-xscroller",NULL,
+							SC_XSCROLL | SC_ABOTTOM | (win_style & SW_X_ZOOMABLE ? SC_ZOOM : 0),
+							0,(win_style & SW_TOP ? 0 : win_h-scrollwidth), win_w,scrollwidth, 0,
 							NULL,0,"xscroll",
 							panner,0);
 		app->addwindow(xscroller);
 	}
 	if (win_style&(SW_LEFT|SW_RIGHT)) {
 		if (!yscroller) yscroller=new Scroller(this,"sw-yscroller",NULL,
-							SC_YSCROLL|SC_ABOTTOM|(win_style&SW_X_ZOOMABLE?SC_ZOOM:0),  //*** abottom adjustable??
-							(win_style&SW_RIGHT?win_w-scrollwidth:0),(win_style&SW_TOP?scrollwidth:0), //x,y
+							SC_YSCROLL | SC_ABOTTOM | (win_style & SW_X_ZOOMABLE ? SC_ZOOM : 0),  //*** abottom adjustable??
+							(win_style & SW_RIGHT ? win_w-scrollwidth : 0),(win_style & SW_TOP ? scrollwidth : 0), //x,y
 							scrollwidth,win_h-scrollwidth, 0, //w,h,border
 							NULL,0,"yscroll",
 							panner,0);
@@ -163,7 +147,8 @@ int ScrolledWindow::UseThisWindow(anXWindow *nwindow)
 		panner->tellPop(thewindow);
 		app->destroywindow(thewindow);
 	}
-	thewindow=nwindow;
+
+	thewindow = nwindow;
 	panner->tell(thewindow);
 	app->reparent(thewindow,this); // app takes care of whether kid/parent->windows exist yet.
 	syncWindows();
@@ -174,6 +159,10 @@ int ScrolledWindow::UseThisWindow(anXWindow *nwindow)
  */
 int ScrolledWindow::Event(const EventData *e,const char *mes)
 {
+	if (!strcmp(mes, "pan change")) {
+		syncWindows();
+	}
+
 	return anXWindow::Event(e,mes);
 }
 
@@ -186,10 +175,10 @@ int ScrolledWindow::Event(const EventData *e,const char *mes)
  */
 void ScrolledWindow::findoutrect()
 {
-	outrect.x=0;
-	outrect.y=0;
-	outrect.width= win_w;
-	outrect.height=win_h;
+	outrect.x = 0;
+	outrect.y = 0;
+	outrect.width  = win_w;
+	outrect.height = win_h;
 }
 
 //! Called as final command in syncWindows.
@@ -205,18 +194,37 @@ void ScrolledWindow::adjustinrect() {}
 /*! Calls findoutrect(), then syncs the windows, then sets inrect, and finally
  * calls adjustinrect().
  *
- * \todo parameter useinrect is not used, in fact, i can't remember what I put it there for...
- * maybe it'll come back to me..
- *
  * \todo *** window shifting rather than relay messages is not implemented yet
  */
-void ScrolledWindow::syncWindows(int useinrect)//useinrect==0
+void ScrolledWindow::syncWindows()
 {
 	//***get rect to put the goodies in.. derived classes might want to take up some real estate....
 	
 	findoutrect();
 	inrect = outrect;
 	int x, y, w,h;
+
+	if (win_style & SW_MOVE_WINDOW) {
+		//turn on and off scrollers based on contained window size
+		if (!thewindow) {
+			if (xscroller && xscroller->win_on) app->unmapwindow(xscroller);
+			if (yscroller && yscroller->win_on) app->unmapwindow(yscroller);
+
+		} else {
+			if (thewindow->win_w >= outrect.width - scrollwidth) {
+				if (xscroller) {
+					if (!xscroller->win_on) app->mapwindow(xscroller);
+				}
+			} else if (xscroller) app->unmapwindow(xscroller);
+
+			if (thewindow->win_h >= outrect.height - scrollwidth) {
+				if (yscroller) {
+					if (!yscroller->win_on) app->mapwindow(yscroller);
+				}
+			} else if (yscroller) app->unmapwindow(yscroller);
+		}
+	}
+
 
 	 // yscroller is placed first
 	if (yscroller && yscroller->win_on) {
@@ -227,6 +235,7 @@ void ScrolledWindow::syncWindows(int useinrect)//useinrect==0
 			if (win_style & SW_TOP) y = outrect.y + scrollwidth;
 			else y = outrect.y;
 		} else { y = outrect.y; h = outrect.height; }
+
 		yscroller->MoveResize(x,y,w,h);
 	}
 	
@@ -239,6 +248,7 @@ void ScrolledWindow::syncWindows(int useinrect)//useinrect==0
 			if (win_style&SW_LEFT) x = outrect.x + scrollwidth;
 			else x = outrect.x;
 		} else { x = outrect.x; w = outrect.width; }
+
 		xscroller->MoveResize(x,y,w,h);
 	}
 
@@ -249,7 +259,7 @@ void ScrolledWindow::syncWindows(int useinrect)//useinrect==0
 		panpopup->MoveResize(x,y,scrollwidth,scrollwidth);
 	}
 
-	 // define inrect
+	 // define inrect.. note this is done after scroller positioning above
 	if (yscroller && yscroller->win_on) {
 		w = outrect.width - scrollwidth;
 		if (win_style & SW_LEFT) x = outrect.x + scrollwidth; else x = outrect.x;
@@ -264,15 +274,22 @@ void ScrolledWindow::syncWindows(int useinrect)//useinrect==0
 	inrect.width  = w;
 	inrect.height = h;
 	adjustinrect();
+	x = inrect.x     ;
+	y = inrect.y     ;
+	w = inrect.width ;
+	h = inrect.height;
 
 	 // Sync up thewindow, if present
 	if (thewindow) {
-		if (!(win_style&SW_MOVE_WINDOW)) {
+		if (!(win_style & SW_MOVE_WINDOW)) {
 			w -= thewindow->WindowBorder()*2;
 			h -= thewindow->WindowBorder()*2;
 			thewindow->MoveResize(x,y,w,h);
 			panner->SetBoxAspect(thewindow->win_w,thewindow->win_h);
-		} else { //*** just move the window around, no resizing required.?? tell panner what?
+		} else {
+			//thewindow is wholebox, so...
+			thewindow->MoveResize(x-(panner->start[0]-panner->min[0]), y-(panner->start[1]-panner->min[1]),
+					thewindow->win_w, thewindow->win_h);
 		}
 	} else {
 		panner->SetBoxAspect(inrect.width,inrect.height);
@@ -283,6 +300,11 @@ void ScrolledWindow::syncWindows(int useinrect)//useinrect==0
 int ScrolledWindow::MoveResize(int nx,int ny,int nw,int nh)
 {
 	anXWindow::MoveResize(nx,ny,nw,nh);
+
+	if (win_style & SW_MOVE_WINDOW) {
+		panner->SetSelection(panner->start[0], panner->start[0]+win_w, panner->start[1], panner->start[1]+win_h);
+	}
+
 	syncWindows();
 	return 0;
 }
@@ -291,6 +313,11 @@ int ScrolledWindow::MoveResize(int nx,int ny,int nw,int nh)
 int ScrolledWindow::Resize(int nw,int nh)
 {
 	anXWindow::Resize(nw,nh);
+
+	if (win_style & SW_MOVE_WINDOW) {
+		panner->SetSelection(panner->start[0], panner->start[0]+win_w, panner->start[1], panner->start[1]+win_h);
+	}
+
 	syncWindows();
 	return 0;
 }
