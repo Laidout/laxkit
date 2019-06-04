@@ -151,7 +151,6 @@ objs= \
 	checkbox.o \
 	progressbar.o \
 	scrolledwindow.o \
-	menuselector.o \
 	popupmenu.o \
 	menubutton.o \
 	sliderpopup.o \
