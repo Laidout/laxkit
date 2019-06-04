@@ -48,7 +48,7 @@ class SliderPopup : public ItemSlider
 {
   protected:
 	MenuInfo *items;
-	int itemsislocal;
+
 	virtual void drawarrow();
 	virtual int send();
 	virtual int getid(int i);
@@ -60,7 +60,7 @@ class SliderPopup : public ItemSlider
 	SliderPopup(anXWindow *parnt,const char *nname,const char *ntitle,
 				unsigned long nstyle, int xx,int yy,int ww,int hh,int brder,
 				anXWindow *prev,unsigned long nowner,const char *nsendthis,
-				MenuInfo *nitems=NULL,int ilocal=1);
+				MenuInfo *nitems=NULL,int absorb=1);
 	virtual ~SliderPopup();
 	virtual void Refresh();
 	virtual int Event(const EventData *e,const char *mes);

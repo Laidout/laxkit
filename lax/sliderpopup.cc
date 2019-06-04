@@ -56,17 +56,16 @@ namespace Laxkit {
 SliderPopup::SliderPopup(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
 		int xx,int yy,int ww,int hh,int brder,
 		anXWindow *prev,unsigned long nowner,const char *mes,
-		MenuInfo *nitems,int ilocal)
+		MenuInfo *nitems, int absorb)
 	: ItemSlider(parnt,nname,ntitle,nstyle,xx,yy,ww,hh,brder,prev,nowner,mes)
 {
 	curitem=-1;
 
 	if (nitems) {
-		items=nitems;
-		itemsislocal=ilocal;
+		items = nitems;
+		if (!absorb) items->inc_count();
 	} else {
-		items=new MenuInfo;
-		itemsislocal=1;
+		items = new MenuInfo;
 	}
 
 	pad=gap=app->defaultlaxfont->textheight()/3;
@@ -79,7 +78,7 @@ SliderPopup::SliderPopup(anXWindow *parnt,const char *nname,const char *ntitle,u
 //! Delete items if it is local.
 SliderPopup::~SliderPopup()
 {
-	if (itemsislocal) delete items;
+	if (items) items->dec_count();
 }
 
 //! Set the dimensions to the maximum bounds of the entries.
@@ -262,9 +261,8 @@ int SliderPopup::GetState(int which, int extrastate)
 int SliderPopup::Flush(int completely)
 {
 	if (completely) {
-		if (itemsislocal) delete items;
-		items=new MenuInfo;
-		itemsislocal=1;
+		if (items) items->dec_count();
+		items = new MenuInfo;
 	} else items->Flush();
 	return 0;
 }
