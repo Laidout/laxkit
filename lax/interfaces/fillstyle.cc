@@ -44,7 +44,7 @@ namespace LaxInterfaces {
 
 FillStyle::FillStyle()
 {
-	function=Laxkit::LAXOP_Over;
+	function = Laxkit::LAXOP_Over;
 
 	color.red=color.green=0;
 	color.blue=color.alpha=0xffff;
@@ -63,7 +63,7 @@ FillStyle::FillStyle(int r,int g,int b, int a,int fr,int fs,int f)
 	color2=NULL;
 	fillrule=fr;
 	fillstyle=fs;
-	function=f;
+	function = f;
 }
 
 FillStyle::~FillStyle()
@@ -173,15 +173,15 @@ void FillStyle::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *cont
 //! Return whether the style will cause any fill or not.
 int FillStyle::hasFill()
 {
-	return fillstyle==0 || function==LAXOP_Dest || function==LAXOP_None || fillstyle==FillNone;
+	return fillstyle == 0 || function == LAXOP_Dest || function == LAXOP_None || fillstyle == FillNone;
 }
 
 /*! Returns old fill rule.
  */
 int FillStyle::FillRule(int newrule)
 {
-	int old=fillrule;
-	fillrule=newrule;
+	int old = fillrule;
+	fillrule = newrule;
 	return old;
 }
 

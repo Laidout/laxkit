@@ -42,6 +42,7 @@ class FillStyle : public Laxkit::anObject, public LaxFiles::DumpUtility
 	int fillstyle;
 	int function;
 	unsigned long mask;
+
 	FillStyle();
 	FillStyle(int r,int g,int b, int a,int fr,int fs,int f);
 	FillStyle(const FillStyle &f) 
