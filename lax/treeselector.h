@@ -137,7 +137,7 @@ class TreeSelector : public ScrolledWindow
 	virtual int findColumn(int x);
 	virtual int findRect(int c,IntRectangle *itemspot);
 	virtual void arrangeItems();
-	virtual void syncWindows(int useinrect=0);
+	virtual void syncWindows();
 	virtual int makeinwindow();
 	virtual int numItems();
 	virtual MenuItem *item(int i,char skipcache=0);

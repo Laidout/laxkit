@@ -143,7 +143,7 @@ TreeSelector::ColumnInfo::~ColumnInfo()
 /*! \var int TreeSelector::mousedragmode
  * \brief Flag for whether the mouse has been dragged since a button was down.
  *
- * If it is a simple move, then mousedragmode==1. If the menuselector is REARRANGEABLE,
+ * If it is a simple move, then mousedragmode==1. If the treer is REARRANGEABLE,
  * and items are in the process of being moved, then mousedragmode==2.
  */
 /*! \var unsigned long TreeSelector::highlight
@@ -2327,9 +2327,9 @@ int TreeSelector::WheelDown(int x,int y,unsigned int state,int count,const LaxMo
 //! Called same for ScrolledWindow, then arrangeItems.
 /*! Has the effect of resizing scrollers, and remapping inrect and outrect.
  */
-void TreeSelector::syncWindows(int useinrect)//useinrect=0
+void TreeSelector::syncWindows()
 {
-	ScrolledWindow::syncWindows(useinrect);
+	ScrolledWindow::syncWindows();
 	arrangeItems();
 	makeinwindow();
 	needtodraw=1;
