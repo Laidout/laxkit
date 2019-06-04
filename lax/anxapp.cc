@@ -1755,7 +1755,7 @@ int anXApp::SendMessage(EventData *data, unsigned long toobj, const char *mes, u
 
 	pthread_mutex_unlock(&event_mutex);
 
-	DBG cerr <<" ***** anXApp queued message: "<<(data->send_message?data->send_message:lax_event_name(data->type))<<endl;
+	//DBG cerr <<" ***** anXApp queued message: "<<(data->send_message?data->send_message:lax_event_name(data->type))<<endl;
 	
 	return 0;
 }

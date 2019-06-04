@@ -498,8 +498,8 @@ int FontDialog::init()
 	 //------search
 	last=search=new LineInput(this,"search","search",0, 0,0,0,0, 0, last,object_id,"search", 
 							_("Search"),NULL,0, 0,0,2,2,2,2);
-	search->GetLineEdit()->setWinStyle(LINEEDIT_SEND_ANY_CHANGE, 1);
-	search->GetLineEdit()->setWinStyle(LINEEDIT_CLEAR_X, 1);
+	search->GetLineEdit()->SetWinStyle(LINEEDIT_SEND_ANY_CHANGE, 1);
+	search->GetLineEdit()->SetWinStyle(LINEEDIT_CLEAR_X, 1);
 	search->tooltip(_("Search among fonts"));
 	AddWin(search,1, 20,10,5000,50,0, search->win_h,0,0,50,0, -1);
 

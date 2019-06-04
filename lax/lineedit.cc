@@ -47,9 +47,6 @@ namespace Laxkit {
  * The right and center justified styles replace the tabs with spaces when
  * the text is displayed (not in the actual text).
  * 
- * \todo LINEEDIT_POPUP==LINEEDIT_DESTROY_ON_FOCUS_OFF|DESTROY_ON_SEND|LINEEDIT_GRAB_ON_MAP 
- *   for things like menuselector edit in place, or strinputslider
- *
  * \code
  *  // this is to require that cntl-tab be pressed to go to next control
  *  // otherwise just tab does it
@@ -299,7 +296,7 @@ const unsigned int ValueTypeMask =
 void LineEdit::SetType(unsigned long what)
 {
 	win_style &= ~ValueTypeMask;
-	if ((what & ValueTypeMask) != 0) setWinStyle(what, 1);
+	if ((what & ValueTypeMask) != 0) SetWinStyle(what, 1);
 	Modified(0);
 }
 

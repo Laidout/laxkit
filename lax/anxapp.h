@@ -212,8 +212,8 @@ class anXWindow : virtual public EventReceiver,
 	virtual int  deletenow() { return 1; }
 
 	 //style functions
-	virtual int setWinStyle(unsigned int stylebit, int newvalue);
-	virtual int getWinStyle(unsigned int stylebit);
+	virtual int SetWinStyle(unsigned int stylebit, int newvalue);
+	virtual int HasWinStyle(unsigned int stylebit);
 	virtual bool InstallColors(int category);
 	virtual void InstallColors(WindowStyle *newcolors);
 	virtual ShortcutHandler *GetShortcuts();

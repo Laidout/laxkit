@@ -476,7 +476,7 @@ void DateSelector::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *c
 		value=att->attributes.e[c]->value;
 
 		if (!strcmp(name,"withtime")) {
-			setWinStyle(DATESEL_WITH_TIME,1);
+			SetWinStyle(DATESEL_WITH_TIME,1);
 
 		} else if (!strcmp(name,"date")) {
 			strptime(value, "%Y-%m-%d", &date);

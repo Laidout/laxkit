@@ -227,7 +227,7 @@ FileDialog::FileDialog(anXWindow *parnt,const char *nname,const char *ntitle,uns
 
 	 //set up mask input
 	last=mask=new LineInput(this,"mask",NULL,0, 0,0,0,0, 0, last,object_id,"new mask", _("Mask:"),nmask?nmask:"*",0, 0,0,2,2,2,2);
-	mask->GetLineEdit()->setWinStyle(LINEEDIT_CLEAR_X, 1);
+	mask->GetLineEdit()->SetWinStyle(LINEEDIT_CLEAR_X, 1);
 	//mask->tooltip(_("Space separated list of\nmasks to apply to the path"));
 	mask->tooltip(_("Filter filenames by this mask"));
 	
@@ -1245,7 +1245,7 @@ int FileDialog::closeWindow()
  * id will typically be 1 for "ok", and any other number will be the id from 
  * any additional final buttons.
  *
- * \todo if FILES_OPEN_MANY but none selected in the menuselector, defaults to
+ * \todo if FILES_OPEN_MANY but none selected in the list, defaults to
  *    sending a StrEventData rather than a StrsEventData... should probably make
  *    it send StrsEventData with one string...?
  */

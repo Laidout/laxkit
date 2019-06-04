@@ -927,10 +927,10 @@ void Scroller::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *conte
 		value=att->attributes.e[c]->value;
 
 		if (!strcmp(name,"vertical")) {
-			setWinStyle(SC_YSCROLL,1);
+			SetWinStyle(SC_YSCROLL,1);
 
 		} else if (!strcmp(name,"horizontal")) {
-			setWinStyle(SC_XSCROLL,1);
+			SetWinStyle(SC_XSCROLL,1);
 
 		} else if (!strcmp(name,"curpos")) {
 			LongAttribute(value,&ncp);

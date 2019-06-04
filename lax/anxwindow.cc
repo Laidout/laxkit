@@ -475,7 +475,7 @@ void anXWindow::WindowTitle(const char *newtitle)
  *    laxkit namespace, rather then have a million goofy defines. It would then be up to
  *    the window to interperet the newvalue and set accordingly.
  */
-int anXWindow::setWinStyle(unsigned int stylebit, int newvalue)
+int anXWindow::SetWinStyle(unsigned int stylebit, int newvalue)
 {
 	//if (stylebit&ANXWIN_MASK) return 1;
 	if (newvalue) win_style |= stylebit;
@@ -484,9 +484,9 @@ int anXWindow::setWinStyle(unsigned int stylebit, int newvalue)
 }
 
 //! Currently, simply return win_style&stylebit.
-/*! \todo like setWinStyle(), this is rather limited and needs further thought...
+/*! \todo like SetWinStyle(), this is rather limited and needs further thought...
  */
-int anXWindow::getWinStyle(unsigned int stylebit)
+int anXWindow::HasWinStyle(unsigned int stylebit)
 {
 	return win_style&stylebit;
 }
@@ -648,14 +648,14 @@ void anXWindow::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *cont
 			int n=0;
 			char **flags=splitspace(value,&n);
 			for (int c2=0; c2<n; c2++) {
-				if (!strcmp(flags[c2],"grayed"      )) setWinStyle(ANXWIN_GRAYED      ,1);
-				if (!strcmp(flags[c2],"remember"    )) setWinStyle(ANXWIN_REMEMBER    ,1);
-				if (!strcmp(flags[c2],"dndaware"    )) setWinStyle(ANXWIN_XDND_AWARE  ,1);
-				if (!strcmp(flags[c2],"bare"        )) setWinStyle(ANXWIN_BARE        ,1);
-				if (!strcmp(flags[c2],"center"      )) setWinStyle(ANXWIN_CENTER      ,1);
-				if (!strcmp(flags[c2],"fullscreen"  )) setWinStyle(ANXWIN_FULLSCREEN  ,1);
-				if (!strcmp(flags[c2],"escapable"   )) setWinStyle(ANXWIN_ESCAPABLE   ,1);
-				if (!strcmp(flags[c2],"doublebuffer")) setWinStyle(ANXWIN_DOUBLEBUFFER,1);
+				if (!strcmp(flags[c2],"grayed"      )) SetWinStyle(ANXWIN_GRAYED      ,1);
+				if (!strcmp(flags[c2],"remember"    )) SetWinStyle(ANXWIN_REMEMBER    ,1);
+				if (!strcmp(flags[c2],"dndaware"    )) SetWinStyle(ANXWIN_XDND_AWARE  ,1);
+				if (!strcmp(flags[c2],"bare"        )) SetWinStyle(ANXWIN_BARE        ,1);
+				if (!strcmp(flags[c2],"center"      )) SetWinStyle(ANXWIN_CENTER      ,1);
+				if (!strcmp(flags[c2],"fullscreen"  )) SetWinStyle(ANXWIN_FULLSCREEN  ,1);
+				if (!strcmp(flags[c2],"escapable"   )) SetWinStyle(ANXWIN_ESCAPABLE   ,1);
+				if (!strcmp(flags[c2],"doublebuffer")) SetWinStyle(ANXWIN_DOUBLEBUFFER,1);
 			}
 			deletestrs(flags,n);
 		} else if (!strcmp(name,"win_flags")) {

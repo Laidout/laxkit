@@ -62,12 +62,12 @@ MenuButton::MenuButton(anXWindow *parnt,const char *nname,const char *ntitle,uns
 	menuinfo=menu;
 	if (menu && !absorb) menu->inc_count();
 
-	if (nstyle&MENUBUTTON_ICON_ONLY)      setWinStyle(IBUT_ICON_ONLY, 1);
-	else if (nstyle&MENUBUTTON_TEXT_ONLY) setWinStyle(IBUT_TEXT_ONLY, 1);
-	else if (nstyle&MENUBUTTON_TEXT_ICON) setWinStyle(IBUT_TEXT_ICON, 1);
-	else if (nstyle&MENUBUTTON_ICON_TEXT) setWinStyle(IBUT_ICON_TEXT, 1);
+	if (nstyle&MENUBUTTON_ICON_ONLY)      SetWinStyle(IBUT_ICON_ONLY, 1);
+	else if (nstyle&MENUBUTTON_TEXT_ONLY) SetWinStyle(IBUT_TEXT_ONLY, 1);
+	else if (nstyle&MENUBUTTON_TEXT_ICON) SetWinStyle(IBUT_TEXT_ICON, 1);
+	else if (nstyle&MENUBUTTON_ICON_TEXT) SetWinStyle(IBUT_ICON_TEXT, 1);
 
-	if (nstyle&MENUBUTTON_FLAT)      setWinStyle(MENUBUTTON_FLAT, 1);
+	if (nstyle&MENUBUTTON_FLAT)      SetWinStyle(MENUBUTTON_FLAT, 1);
 
 	if (nstyle&MENUBUTTON_TEXT_ONLY) labelstyle=LAX_TEXT_ONLY;
 	else if (nstyle&MENUBUTTON_ICON_ONLY) labelstyle=LAX_ICON_ONLY;

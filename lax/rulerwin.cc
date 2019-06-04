@@ -904,12 +904,12 @@ void RulerWindow::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *co
 		value=att->attributes.e[c]->value;
 
 		if (!strcmp(name,"vertical")) {
-			setWinStyle(RULER_Y,1);
-			setWinStyle(RULER_X,0);
+			SetWinStyle(RULER_Y,1);
+			SetWinStyle(RULER_X,0);
 
 		} else if (!strcmp(name,"horizontal")) {
-			setWinStyle(RULER_X,1);
-			setWinStyle(RULER_Y,0);
+			SetWinStyle(RULER_X,1);
+			SetWinStyle(RULER_Y,0);
 
 		} else if (!strcmp(name,"subdiv")) {
 			IntAttribute(value,&subdiv);
@@ -924,8 +924,8 @@ void RulerWindow::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *co
 			SetBaseUnits(value);
 
 		} else if (!strcmp(name,"tickalign")) {
-			if (!strcmp(value,"top") || !strcmp(value,"left")) setWinStyle(RULER_TOPTICKS,1);
-			else if (!strcmp(value,"bottom") || !strcmp(value,"right")) setWinStyle(RULER_BOTTOMTICKS,1);
+			if (!strcmp(value,"top") || !strcmp(value,"left")) SetWinStyle(RULER_TOPTICKS,1);
+			else if (!strcmp(value,"bottom") || !strcmp(value,"right")) SetWinStyle(RULER_BOTTOMTICKS,1);
 
 		}
 	}

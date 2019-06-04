@@ -369,12 +369,12 @@ void Button::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *context
 		value=att->attributes.e[c]->value;
 
 		if (!strcmp(name,"momentary")) {
-			setWinStyle(BUTTON_MOMENTARY,1);
-			setWinStyle(BUTTON_TOGGLE,0);
+			SetWinStyle(BUTTON_MOMENTARY,1);
+			SetWinStyle(BUTTON_TOGGLE,0);
 
 		} else if (!strcmp(name,"toggle")) {
-			setWinStyle(BUTTON_MOMENTARY,0);
-			setWinStyle(BUTTON_TOGGLE,1);
+			SetWinStyle(BUTTON_MOMENTARY,0);
+			SetWinStyle(BUTTON_TOGGLE,1);
 
 		} else if (!strcmp(name,"text")) {
 			Label(value);
