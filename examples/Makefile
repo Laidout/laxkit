@@ -48,6 +48,9 @@ interfs2: lax laxinterface interfs2.o
 laxhello: lax laxinterface laxhello.cc laxhello.o
 	$(LD) $@.o -llaxinterfaces -llaxkit $(LDFLAGS) -o $@
 
+widgets: lax laxinterface widgets.cc widgets.o
+	$(LD) $@.o -llaxkit $(LDFLAGS) -o $@
+
 panel: lax laxinterface panel.o
 	$(LD) $@.o -llaxkit $(LDFLAGS) -o $@
 
