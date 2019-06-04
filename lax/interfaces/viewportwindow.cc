@@ -1003,6 +1003,7 @@ void ViewportWindow::ClearInputBox()
 }
 
 /*! Return NULL if temp_input already there. Else return the newly created window.
+ * If send_controls, send on pressing up, down, or tab.
  */
 Laxkit::anXWindow *ViewportWindow::SetupInputBox(unsigned long owner_id, const char *label, const char *text, const char *message,
 									const Laxkit::DoubleBBox &bounds, const char *ntooltip, bool send_controls)
