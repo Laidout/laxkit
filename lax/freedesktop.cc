@@ -690,7 +690,10 @@ char *recently_used(const char *mimetype,const char *group, int includewhat)
 }
 
 //! Return a MenuInfo of recent files.
-/*! If mimetype!=NULL, then return only items of that type.
+/*! If existingmenu != null, then append with the files.
+ * Otherwise, return a new MenuInfo.
+ *
+ * If mimetype!=NULL, then return only items of that type.
  * If group!=NULL, then return items in only that group. If there are private
  * items in the raw list, then return them only if its group matches the group
  * you are looking for.
@@ -774,7 +777,6 @@ char *recently_used(const char *mimetype,const char *group, int includewhat)
  *  
  * </pre>
  *
- * \todo support the other commonly used recent file: ~/.local/share/recently-used.xbel
  * \todo not a whole lot of error checking in here yet.
  */
 Laxkit::MenuInfo *recently_used(const char *recentfile, const char *mimetype,const char *group, int includewhat, Laxkit::MenuInfo *existingmenu)
