@@ -49,6 +49,7 @@ class Utf8String
 	Utf8String(const Utf8String &str);
 	Utf8String(const Utf8String *str);
 	Utf8String(int i);
+	Utf8String(long i);
 	Utf8String(double d);
 	Utf8String(const char *fmt, ...);
 	virtual ~Utf8String();

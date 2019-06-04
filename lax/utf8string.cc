@@ -105,6 +105,18 @@ Utf8String::Utf8String(int i)
 	cerr <<"Utf8String constructor int"<<endl;
 }
 
+Utf8String::Utf8String(long i)
+  : Utf8String()
+{
+	s = new char[50];
+	bytes_allocated = 50;
+	sprintf(s, "%ld", i);
+	num_bytes = strlen(s);
+	updateNumChars();
+
+	cerr <<"Utf8String constructor int"<<endl;
+}
+
 Utf8String::Utf8String(double d)
   : Utf8String()
 {
