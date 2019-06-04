@@ -194,7 +194,7 @@ int PrintDialog::init()
 	 // -----Print To
 	AddWin(new MessageBar(this,"printtomes",NULL,MB_MOVE, 0,0,0,0,1, "Print To:"),1,-1);
 
-	last=strpop=new SliderPopup(this,"printto",NULL,0, 0,0,0,0,1, NULL,object_id,"printto",NULL,0);
+	last = strpop = new SliderPopup(this,"printto",NULL,0, 0,0,0,0,1, NULL,object_id,"printto",NULL,0);
 	char blah[300];//***check max name..
 	for (c=0; c<numdests; c++) {
 		if (dests[c].instance) sprintf(blah,"%s/%s",dests[c].name,dests[c].instance);
