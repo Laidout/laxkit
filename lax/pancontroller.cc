@@ -294,7 +294,7 @@ void PanController::sendMessages()
 	}
 }
 
-//! Set so that end-start+1==nps. Returns new actual end-start+1;
+//! which is 1 for x, 2 for y. Set so that end-start+1==nps. Returns new actual end-start+1;
 long PanController::SetPageSize(int which,long nps)
 {
 	if (which!=1 && which!=2) return 0;
