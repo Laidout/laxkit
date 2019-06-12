@@ -390,9 +390,9 @@ int Scroller::WheelUp(int mx,int my,unsigned  int state,int count,const LaxMouse
 	if (buttondown.any()) return 1;
 
 	long change;
-	if (state&ShiftMask && state&ControlMask) change=PageUp(5);
-	else if (state&ShiftMask || state&ControlMask) change=PageUp(1); 
-	else change=OneUp();
+	if (state&ShiftMask && state&ControlMask) change=PageDown(5);
+	else if (state&ShiftMask || state&ControlMask) change=PageDown(1); 
+	else change=OneDown();
 	if (change) { needtodraw|=2; send(change); }
 	return 0;
 }
@@ -403,9 +403,9 @@ int Scroller::WheelDown(int mx,int my,unsigned  int state,int count,const LaxMou
 	if (buttondown.any()) return 1;
 
 	long change;
-	if (state&ShiftMask && state&ControlMask) change=PageDown(5);
-	else if (state&ShiftMask || state&ControlMask) change=PageDown(1); 
-	else change=OneDown();
+	if (state&ShiftMask && state&ControlMask) change=PageUp(5);
+	else if (state&ShiftMask || state&ControlMask) change=PageUp(1); 
+	else change=OneUp();
 	if (change) { needtodraw|=2; send(change); }
 	return 0;
 }
