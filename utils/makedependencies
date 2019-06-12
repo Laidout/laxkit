@@ -29,7 +29,7 @@ import re
 
 #--------------------------------------------- Setup
 
-defaultOutputFile = "makedependTEST"
+defaultOutputFile = "makedepend"
 
 
 parser = argparse.ArgumentParser(description =  'Create dependencies for make.')
@@ -48,9 +48,10 @@ if (args.outputFile == None or args.outputFile == ""):
     print ("Output file not specified, using ", args.outputFile)
 else:
     print ("output file: ", args.outputFile)
-print ("includes: ", args.includes)
-#print ("files: ", args.files)
-#print ("verbose: ", args.verbose)
+if (args.verbose): 
+    print ("includes: ", args.includes)
+    #print ("files: ", args.files)
+    #print ("verbose: ", args.verbose)
 print ()
 
 
@@ -61,20 +62,44 @@ def AddIncludes(file, dependencies):
     if (args.verbose):
         print ("Add includes from: ",file)
 
+    if not os.path.isfile(file):
+        print (" - Warning! Cannot open dependency: ", file)
+        return;
     with open(file) as fin:
         line = fin.readline()
         while (line):
+            ff = None
             match = quoted.match(line)
             if (match):
                 #check = os.path.relpath(match.group(1), file)
-                check = match.group(1)
+                ff = match.group(1)
+                check = ff
                 rel = os.path.dirname(file)
                 if rel != "": rel = rel + '/'
                 check = os.path.abspath(rel + check)
-                if check not in dependencies:
-                    dependencies.append(check)
-                    if args.verbose: print ("  found: ", check)
-                    AddIncludes(check, dependencies)
+                if check in dependencies:
+                    ff = None
+                else:
+                    if os.path.isfile(check):
+                        dependencies.append(check)
+                        if args.verbose: print ("  found: ", check)
+                        AddIncludes(check, dependencies)
+                        check = None
+                    else:
+                        found = False
+                        check = ""
+                        if args.includes:
+                            for incdir in args.includes:
+                                check = os.path.abspath(incdir + '/' + ff)
+                                if os.path.isfile(check):
+                                    if check not in dependencies:
+                                        dependencies.append(check)
+                                        AddIncludes(check, dependencies)
+                                    found = True
+                                    break
+                        if args.verbose:
+                            if found: print("  found with includes: ", ff, '->', check)
+                            else:     print(" - Warning! Could not find included file: " + ff)
 
                 #makedependFile.write(objectfile+': ' + check + "\n")
                 #print ("  found: ", match.group(1), '->', pathToFile + check)
@@ -91,19 +116,14 @@ def AddIncludes(file, dependencies):
                         for incdir in args.includes:
                             check = os.path.abspath(incdir + '/' + ff)
                             if os.path.isfile(check):
-                                if check in dependencies:
-                                    found = True
-                                    continue
-                                else:
-                                    #check = os.path.relpath(check);
+                                if check not in dependencies:
                                     dependencies.append(check)
                                     AddIncludes(check, dependencies)
-                                    #makedependFile.write(objectfile+': ' + check + "\n")
-                                    found = True
-                                    break
+                                found = True
+                                break
                     if args.verbose:
                         if found: print("  found bracketed: ", ff, '->', check)
-                        else:     print("  Could not find included file: " + ff)
+                        else:     print(" - Warning! Could not find included file: " + ff)
                               
             line = fin.readline()
 
