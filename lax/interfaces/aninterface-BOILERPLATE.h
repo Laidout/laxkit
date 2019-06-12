@@ -35,13 +35,28 @@ class BoilerPlateData : virtual public SomeData
   public:
 	BoilerPlateData();
 	virtual ~BoilerPlateData();
+
+	virtual const char *whattype() { return "BoilerPlateData"; }
+	virtual void FindBBox();
+	virtual SomeData *duplicate(SomeData *dup);
+
 };
 
 
 //--------------------------- BoilerPlateInterface -------------------------------------
 
+class BoilerPlateToolSettings : public Laxkit::anObject
+{
+  public:
+	int curpoint;
+	Laxkit::NumStack<int> curpoints;
+	double default_linewidth;
+};
+
 class BoilerPlateInterface : public anInterface
 {
+	static SingletonKeeper settingsObject;
+
   protected:
 	int showdecs;
 
@@ -49,6 +64,8 @@ class BoilerPlateInterface : public anInterface
 
 	BoilerPlateData *data; //points to dataoc->obj
 	ObjectContext *dataoc;
+
+	BoilerPlateToolSettings *settings;
 
 	int hover;
 	virtual int scan(int x, int y, unsigned int state);
@@ -77,6 +94,8 @@ class BoilerPlateInterface : public anInterface
 	virtual int Event(const Laxkit::EventData *data, const char *mes);
 	virtual Laxkit::ShortcutHandler *GetShortcuts();
 	virtual int PerformAction(int action);
+	virtual void deletedata();
+	virtual BoilerPlateData *newData();
 
 	virtual int UseThis(Laxkit::anObject *nlinestyle,unsigned int mask=0);
 	virtual int UseThisObject(ObjectContext *oc);

@@ -56,11 +56,20 @@ namespace LaxInterfaces {
  */
 
 BoilerPlateData::BoilerPlateData()
-{
+{ ***
 }
 
 BoilerPlateData::~BoilerPlateData()
-{
+{ ***
+}
+
+void BoilerPlateData::FindBBox()
+{ ***
+	//compute bounds in minx,maxx, miny,maxy.
+}
+
+SomeData *BoilerPlateData::duplicate(SomeData *dup)
+{ ***
 }
 
 
@@ -288,6 +297,16 @@ int BoilerPlateInterface::Refresh()
 	}
 
 	return 0;
+}
+
+void BoilerPlateInterface::deletedata()
+{
+	if (data) { data->dec_count(); data=NULL; }
+    if (dataoc) { delete dataoc; dataoc=NULL; }
+}
+
+BoilerPlateData *BoilerPlateInterface::newData()
+{
 }
 
 /*! Check for clicking down on other objects, possibly changing control to that other object.
