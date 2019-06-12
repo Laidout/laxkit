@@ -232,7 +232,7 @@ liblaxkit.a: $(objs)
 #----------------- Other ---------------------------
 depends:
 	touch makedepend
-	makedepend -fmakedepend -I$(LAXDIR)/.. -Y *.cc
+	../utils/makedependencies -fmakedepend -I$(LAXDIR)/.. *.cc
 	cd interfaces && $(MAKE) depends
 
 include makedepend

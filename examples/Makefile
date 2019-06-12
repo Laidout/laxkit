@@ -84,7 +84,7 @@ vfill: lax laxinterface vfill.o
 
 depends:
 	touch makedepend
-	makedepend -fmakedepend -I$(LAXDIR)/.. -Y *.cc
+	../utils/makedependencies -fmakedepend -I$(LAXDIR)/.. *.cc
 	#cd interfaces && $(MAKE) depends
 
 #-----------------------------------------------

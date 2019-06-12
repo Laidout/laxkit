@@ -87,7 +87,7 @@ docs:
 
 depends:
 	touch makedepend
-	makedepend -fmakedepend -I$(LAXDIR)/.. -Y *.cc
+	../../utils/makedependencies -fmakedepend -I$(LAXDIR)/.. *.cc
 
 include makedepend
 
