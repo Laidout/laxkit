@@ -653,7 +653,7 @@ int ListBox::distributeBoxes(int setmetrics) //setmetrics=0
 		
 		boxes[c]->sync();
 
-		DBG cerr <<"before sync"<<c<<": "<<m[pos]<<','<<m[vert+pos]<<"  "<<m[len]<<"x"<<m[vert+len]
+		DBG cerr <<"after sync"<<c<<": "<<m[pos]<<','<<m[vert+pos]<<"  "<<m[len]<<"x"<<m[vert+len]
 		DBG		<<" pref:("<<m[pref]<<','<<m[shrink]<<','<<m[grow]
 		DBG 	<<" x "<<m[vert+pref]<<','<<m[vert+shrink]<<','<<m[vert+grow]<<")"<<endl;
 	}
