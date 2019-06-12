@@ -69,6 +69,7 @@ class LineStyle : public Laxkit::anObject, public LaxFiles::DumpUtility
 	virtual ~LineStyle();
 	virtual void Color(int r,int g,int b,int a);
 	virtual void Colorf(double r,double g,double b,double a);
+	virtual void Colorf(const Laxkit::ScreenColor &col);
 	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
 	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
 	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what, LaxFiles::DumpContext *context);

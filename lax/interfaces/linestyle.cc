@@ -164,6 +164,11 @@ void LineStyle::Colorf(double r,double g,double b,double a)
 	color.alpha=a*65535;
 }
 
+void LineStyle::Colorf(const Laxkit::ScreenColor &col)
+{
+	Colorf(col.Red(), col.Green(), col.Blue(), col.Alpha());
+}
+
 //! Dump in.
 void LineStyle::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *context)
 {
