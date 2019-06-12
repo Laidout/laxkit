@@ -203,31 +203,36 @@ void ScrolledWindow::syncWindows()
 	findoutrect();
 	inrect = outrect;
 	int x, y, w,h;
+	bool xon = false, yon = false;
 
 	if (win_style & SW_MOVE_WINDOW) {
 		//turn on and off scrollers based on contained window size
 		if (!thewindow) {
-			if (xscroller && xscroller->win_on) app->unmapwindow(xscroller);
-			if (yscroller && yscroller->win_on) app->unmapwindow(yscroller);
+			if (xscroller && xscroller->win_on) { app->unmapwindow(xscroller); xon = false; }
+			if (yscroller && yscroller->win_on) { app->unmapwindow(yscroller); yon = false; }
 
 		} else {
 			if (thewindow->win_w >= outrect.width - scrollwidth) {
 				if (xscroller) {
-					if (!xscroller->win_on) app->mapwindow(xscroller);
+					if (!xscroller->win_on) { app->mapwindow(xscroller); xon = true; }
 				}
-			} else if (xscroller) app->unmapwindow(xscroller);
+			} else if (xscroller) { app->unmapwindow(xscroller); xon = false; }
 
 			if (thewindow->win_h >= outrect.height - scrollwidth) {
 				if (yscroller) {
-					if (!yscroller->win_on) app->mapwindow(yscroller);
+					if (!yscroller->win_on) { app->mapwindow(yscroller); yon = true; }
 				}
-			} else if (yscroller) app->unmapwindow(yscroller);
+			} else if (yscroller) { app->unmapwindow(yscroller); yon = false; }
 		}
 	}
 
+	xon = (xscroller && xscroller->win_on);
+	yon = (yscroller && yscroller->win_on);
+
 
 	 // yscroller is placed first
-	if (yscroller && yscroller->win_on) {
+	//if (yscroller && yscroller->win_on) {
+	if (yscroller && yon) {
 		x = (win_style & SW_LEFT) ? outrect.x : outrect.x + outrect.width - scrollwidth;
 		w = scrollwidth;
 		if (panpopup && panpopup->win_on) {
@@ -240,7 +245,8 @@ void ScrolledWindow::syncWindows()
 	}
 	
 	 // xscroller placed inset by yscroller
-	if (xscroller && xscroller->win_on) {
+	//if (xscroller && xscroller->win_on) {
+	if (xscroller && xon) {
 		y = (win_style & SW_TOP) ? 0 : outrect.y + outrect.height - scrollwidth;
 		h = scrollwidth;
 		if ((yscroller && yscroller->win_on) || (panpopup && panpopup->win_on)) {
@@ -260,11 +266,11 @@ void ScrolledWindow::syncWindows()
 	}
 
 	 // define inrect.. note this is done after scroller positioning above
-	if (yscroller && yscroller->win_on) {
-		w = outrect.width - scrollwidth;
+	if (yscroller && yon) {
+		w = outrect.width - 1.5*scrollwidth;
 		if (win_style & SW_LEFT) x = outrect.x + scrollwidth; else x = outrect.x;
 	} else { x = outrect.x;  w = outrect.width; }
-	if (xscroller && xscroller->win_on) {
+	if (xscroller && xon) {
 		h = outrect.height - scrollwidth;
 		if (win_style & SW_TOP) y = outrect.y + scrollwidth; else y = outrect.y;
 	} else { y = outrect.y;  h = outrect.height; }
@@ -286,10 +292,16 @@ void ScrolledWindow::syncWindows()
 			h -= thewindow->WindowBorder()*2;
 			thewindow->MoveResize(x,y,w,h);
 			panner->SetBoxAspect(thewindow->win_w,thewindow->win_h);
+
 		} else {
 			//thewindow is wholebox, so...
+			//cout << "move scrolled window before: "<<thewindow->win_name<<"  "<<thewindow->win_x<<"  "<<thewindow->win_y<<"  "<<thewindow->win_w<<"  "<<thewindow->win_h<<endl;
+			//cout << " new x,y: "<<x-(panner->start[0]-panner->min[0])<<','<< y-(panner->start[1]-panner->min[1])<<endl;
+
 			thewindow->MoveResize(x-(panner->start[0]-panner->min[0]), y-(panner->start[1]-panner->min[1]),
-					thewindow->win_w, thewindow->win_h);
+					thewindow->win_w < inrect.width ? inrect.width : win_w, thewindow->win_h);
+
+			//cout << "move scrolled window after:  "<<thewindow->win_name<<"  "<<thewindow->win_x<<"  "<<thewindow->win_y<<"  "<<thewindow->win_w<<"  "<<thewindow->win_h<<endl;
 		}
 	} else {
 		panner->SetBoxAspect(inrect.width,inrect.height);
@@ -303,6 +315,7 @@ int ScrolledWindow::MoveResize(int nx,int ny,int nw,int nh)
 
 	if (win_style & SW_MOVE_WINDOW) {
 		panner->SetSelection(panner->start[0], panner->start[0]+win_w, panner->start[1], panner->start[1]+win_h);
+		panner->pagesize[1] = win_h*2/3;
 	}
 
 	syncWindows();
