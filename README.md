@@ -40,7 +40,7 @@ You will need the development files for:
  
 On Debian systems, you can get them with this command:
 
-    apt-get install g++ pkg-config libpng12-dev libreadline-dev libx11-dev libxext-dev libxi-dev libxft-dev libcups2-dev libimlib2-dev libfontconfig-dev libfreetype6-dev libssl-dev xutils-dev libcairo2-dev libharfbuzz-dev libsqlite3-dev
+    apt-get install g++ pkg-config libpng12-dev libreadline-dev libx11-dev libxext-dev libxi-dev libxft-dev libcups2-dev libimlib2-dev libfontconfig-dev libfreetype6-dev libssl-dev libcairo2-dev libharfbuzz-dev libsqlite3-dev
 
 On Fedora, it looks more like this:
 
