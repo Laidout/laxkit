@@ -128,6 +128,7 @@ class Path : public LaxFiles::DumpUtility, public Laxkit::DoubleBBox
 	virtual int Line(LineStyle *nlinestyle);
 	virtual int LineColor(Laxkit::ScreenColor *ncolor);
 	virtual int RemoveDoubles(double threshhold);
+	virtual int Reverse();
 
 	 //weight node related
 	virtual bool Weighted();
@@ -153,7 +154,6 @@ class Path : public LaxFiles::DumpUtility, public Laxkit::DoubleBBox
 						            flatpoint *ptop, flatpoint *pbottom,
 									double *offset, double *width, double *angle);
 	virtual flatpoint ClosestPoint(flatpoint point, double *disttopath, double *distalongpath, double *tdist);
-	virtual int Reverse();
 	virtual double Length(double tstart,double tend);
 	virtual double distance_to_t(double distance, int *err);
 	virtual double t_to_distance(double t, int *err);
