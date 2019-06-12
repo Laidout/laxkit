@@ -57,10 +57,10 @@ class ScreenColor
 
 	void Set(unsigned int color);
 
-	double Red()   { return red  /65535.; }
-	double Green() { return green/65535.; }
-	double Blue()  { return blue /65535.; }
-	double Alpha() { return alpha/65535.; }
+	double Red()   const { return red  /65535.; }
+	double Green() const { return green/65535.; }
+	double Blue()  const { return blue /65535.; }
+	double Alpha() const { return alpha/65535.; }
 
 	void AddDiff(double r, double g, double b);
 	void Average(ScreenColor *result, const ScreenColor &color, double r);
