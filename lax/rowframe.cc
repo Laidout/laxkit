@@ -211,6 +211,10 @@ int RowFrame::Sync(int add) // add=0, if 1 means addwindow
 	h(win_h?win_h:BOX_SHOULD_WRAP);
 	sync(); //this is supposed to map dimensions and coords of all subwindows
 
+	if (w() != win_w || h() != win_h) {
+		MoveResize(x(),y(), w(),h());
+	}
+
 	if (add) {
 		anXWindow *win;
 		WinFrameBox *winbox;
