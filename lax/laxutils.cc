@@ -426,6 +426,12 @@ unsigned long standoutcolor(const Laxkit::ScreenColor &color, bool bw)
     return col.Pixel();
 }
 
+void StandoutColor(const Laxkit::ScreenColor &color, bool bw, Laxkit::ScreenColor &color_ret)
+{
+	unsigned long col = standoutcolor(color, bw);
+	color_ret.Set(col);
+}
+
 
 //! result=a*(1-r)+b*r. Returns result.
 ScreenColor *coloravg(ScreenColor *result, ScreenColor *a, ScreenColor *b,float r) //r==.5
