@@ -63,6 +63,7 @@ char *read_in_whole_file(const char *file, int *chars_ret, int maxchars=0);
 char *pipe_in_whole_file(FILE *f, int *chars_read_ret);
 int save_string_to_file(const char *str,int n, const char *file);
 char *current_directory();
+char *ExecutablePath();
 
 } //namespace LaxFiles
 

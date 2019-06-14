@@ -27,6 +27,7 @@
 #include <cctype>
 #include <cstdlib>
 #include <cerrno>
+#include <climits>
 #include <unistd.h>
 
 
@@ -805,6 +806,17 @@ char *current_directory()
     char *npath=newstr(t);
 	free(t);
 	return npath;
+}
+
+
+/*! Return new char[] with path to current executable, grabbed from /proc/self/exe.
+ */
+char *ExecutablePath()
+{
+	char path[PATH_MAX];
+    ssize_t nbytes = readlink("/proc/self/exe", path, PATH_MAX-1);
+	if (nbytes > 0) return newstr(path);
+	return nullptr;
 }
 
 
