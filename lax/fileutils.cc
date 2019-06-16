@@ -411,6 +411,12 @@ int readable_file(const char *filename,FILE **ff)//ff=NULL
 	return 1;
 }
 
+char *simplify_path(const char *origfile)
+{
+	char *path = newstr(origfile);
+	return simplify_path(path, 1);
+}
+
 //! Collapses any excess stuff like '/a/../b' which becomes '/b'.
 /*! \ingroup fileutils
  * Returns a new'd char[] if modorig==0. Otherwise, the content of origfile is
@@ -815,8 +821,13 @@ char *ExecutablePath()
 {
 	char path[PATH_MAX];
     ssize_t nbytes = readlink("/proc/self/exe", path, PATH_MAX-1);
-	if (nbytes > 0) return newstr(path);
+	if (nbytes > 0) {
+		path[nbytes] = '\0';
+		return newstr(path);
+	}
 	return nullptr;
+
+	//note: on systems where /proc/self/exe isn't available, argv[0] must be parsed for a variety of formats
 }
 
 
