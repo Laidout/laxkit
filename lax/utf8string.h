@@ -46,6 +46,7 @@ class Utf8String
 
 	Utf8String();
 	Utf8String(const char *str, int n);
+	Utf8String(char *str, int n, bool insert);
 	Utf8String(const Utf8String &str);
 	Utf8String(const Utf8String *str);
 	Utf8String(int i);

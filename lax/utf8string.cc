@@ -82,6 +82,26 @@ Utf8String::Utf8String(const char *str, int n)
 	cerr <<"Utf8String constructor string,len"<<endl;
 }
 
+/*! n is bytes. If n<0, then use strlen(str). If insert, then take
+ * possession of str. Else str is copied.
+ */
+Utf8String::Utf8String(char *str, int n, bool insert)
+  : Utf8String()
+{
+	if (n<0) n = (str ? strlen(str) : 0);
+	bytes_allocated = (n/CHARBLOCKSIZE + 1)*CHARBLOCKSIZE + 1;
+	if (insert) s = str;
+	else {
+		s = new char[bytes_allocated];
+		strncpy(s,str,n);
+		s[n] = '\0';
+	}
+	num_bytes = n;
+	updateNumChars();
+
+	cerr <<"Utf8String constructor string,len"<<endl;
+}
+
 Utf8String::Utf8String(const Utf8String &str)
   : Utf8String(str.c_str(), -1)
 {
