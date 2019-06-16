@@ -40,9 +40,7 @@ static IconManager *default_iconmanager=NULL;
 /*! If default_iconmanager is NULL, create and install a new Laxkit::IconManager as default.
  * Set with IconManager::SetDefault().
  * 
- * By default, there are NO icon paths defined. The standard directory for Laxkit provided
- * icons is LAX_SHARED_DIRECTORY/icons.
- * LAX_SHARED_DIRECTORY is defined in configured.h.
+ * By default, there are NO icon paths defined. Use AddPath() to register new paths.
  */
 IconManager* IconManager::GetDefault()
 {
