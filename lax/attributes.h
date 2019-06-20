@@ -63,7 +63,7 @@ class Attribute {
 	virtual const char *findValue (const char *fromname, int *i_ret=NULL);
 	virtual double      findDouble(const char *fromname, int *i_ret=NULL);
 	virtual long        findLong  (const char *fromname, int *i_ret=NULL);
-	virtual Attribute *pushSubAtt(const char *nname, const char *nvalue=NULL);
+	virtual Attribute *pushSubAtt(const char *nname, const char *nvalue=nullptr, const char *ncomment=nullptr);
 	virtual int push(Attribute *att, int where);
 	virtual int push(const char *nname);
 	virtual int pushStr(const char *nname, int where, const char *fmt, ...);
@@ -133,7 +133,7 @@ char *QuotedAttribute(const char *v,char **endptr=NULL);
 char *WholeQuotedAttribute(const char *v);
 int BooleanAttribute(const char *v);
 int NameValueAttribute(const char *str, char **name, char **value, char **end_ptr,
-					   char assign='=',char delim=0,const char *stopat=NULL);
+					   char assign='=',char delim=0,const char *stopat = nullptr, const char *stopat2 = nullptr);
 Attribute *NameValueToAttribute(Attribute *att,const char *str, char assign, char delim);
 int SimpleColorAttribute(const char *v,unsigned long *color_ret, Laxkit::ScreenColor *scolor_ret, const char **end_ptr);
 int SimpleColorAttribute(const char *v, double *colors, const char **end_ptr);

@@ -1473,9 +1473,9 @@ Attribute *Attribute::find(const char *fromname,int *i_ret)
 /*! Allow for easier pushing of subatts. Push a new one with given name and value,
  * and return pointer to it.
  */
-Attribute *Attribute::pushSubAtt(const char *nname, const char *nvalue)
+Attribute *Attribute::pushSubAtt(const char *nname, const char *nvalue, const char *ncomment)
 {
-	Attribute *att=new Attribute(nname,nvalue);
+	Attribute *att=new Attribute(nname,nvalue,ncomment);
 	push(att,-1);
 	return att;
 }
@@ -2094,16 +2094,21 @@ int Attribute::dump_in_xml (const char *str)
  * is encountered, end_ptr will point to the following character.
  */
 int NameValueAttribute(const char *str, char **name, char **value, char **end_ptr, 
-					   char assign,char delim,const char *stopat)
+					   char assign,char delim,const char *stopat, const char *stopat2)
 {
-	*name = *value = NULL;
+	*name = *value = nullptr;
 
 	while (isspace(*str)) str++;
 	const char *s=str;
-	char *e=NULL;
+	char *e = nullptr;
 
 	 //find a string of non-whitespace characters
-	while (*s && !isspace(*s) && *s!=delim && *s!=assign && !(stopat && strchr(stopat,*s))) s++;
+	while (*s && !isspace(*s)
+			&& *s!=delim
+			&& *s!=assign
+			&& !(stopat  && strchr(stopat,*s))
+			&& !(stopat2 && strchr(stopat2,*s)))
+		s++;
 	if (s == str) {
 		if (delim && *str==delim) str++;
 		 // there was nothing there but whitespace
@@ -2115,10 +2120,10 @@ int NameValueAttribute(const char *str, char **name, char **value, char **end_pt
 	*name = newnstr(str,s-str);
 	str = s;
 	while (isspace(*str)) str++;
-	if (*str!=assign) {
+	if (*str != assign) {
 		 //name but no value
 		if (delim && *str==delim) str++;
-		*value = NULL;
+		*value = nullptr;
 		if (end_ptr) *end_ptr = const_cast<char *>(str);
 		return 0; //*** might want to return 1?
 	}
@@ -2127,9 +2132,9 @@ int NameValueAttribute(const char *str, char **name, char **value, char **end_pt
 	str++; //skip over the assign char
 	while (isspace(*str)) str++; //str now points to the start of value
 	if (*str=='"' || *str=='\'') *value = QuotedAttribute(str,&e);
-	else if (*str) {
+	else if (*str) { //read in raw text until stopat or whitespace
 		e = const_cast<char *>(str);
-		while (*e && !isspace(*e) && *e!=delim && !(stopat && strchr(stopat,*e))) e++;
+		while (*e && !isspace(*e) && *e!=delim && !(stopat && strchr(stopat,*e)) && !(stopat2 && strchr(stopat2,*e))) e++;
 		*value = newnstr(str,e-str);
 	}
 	if (!*value) {
@@ -2621,14 +2626,14 @@ Attribute *XMLChunkToAttribute(Attribute *att,
 				 // name="value"
 				 // name = "val; val  val \" vala \""
 				nm = vl = nullptr;
-				NameValueAttribute(buf+c, &nm, &vl, &e, '=', 0, "/>");
+				NameValueAttribute(buf+c, &nm, &vl, &e, '=', 0, "/>", ">");
 				if (e != buf+c) {
 					att->attributes.e[att->attributes.n-1]->push(nm,vl);
-					c=e-buf;
-				} //else break;
-				delete[] nm;
-				delete[] vl;
-				if (e == buf+c) break;
+					c = e-buf;
+					delete[] nm; nm = nullptr;
+					delete[] vl; vl = nullptr;
+				} else break;
+				//if (e == buf+c) break;
 				skipws(buf,n,&c);
 			}
 			
