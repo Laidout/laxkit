@@ -190,15 +190,16 @@ WindowStyle *WindowStyle::duplicate()
 Attribute *WindowStyle::dump_out_atts(Attribute *att,int what,DumpContext *context)
 {
 	if (what==-1) {
+		return dump_out_atts(att,0,context);
 		return att;
 	}
 
 	char scratch[200];
 
+	
 	const char *cat = window_category_name(category);
 	if (!cat) cat = Id();
-	att->push("category", cat);
-
+	att->push("category", cat, "Can be one of: panel, menu, edit, button, tooltip");
 
 	att->push("diff_bg_hover"    , diff_bg_hover    );
 	att->push("diff_bg_highlight", diff_bg_highlight);
@@ -860,7 +861,7 @@ void Theme::dump_out(FILE *f,int indent,int what,DumpContext *context)
 {
 	Attribute att;
 	char spc[indent+1]; memset(spc,' ',indent); spc[indent]='\0';
-	fprintf(f, "%s#Laxkit %s Theme\n", LAXKIT_VERSION, spc);
+	fprintf(f, "%s#Laxkit %s Theme\n", spc, LAXKIT_VERSION);
 	dump_out_atts(&att,what,context);
 	att.dump_out(f,indent);
 }
@@ -870,16 +871,23 @@ Attribute *Theme::dump_out_atts(Attribute *att,int what,DumpContext *context)
 	if (!att) att = new Attribute;
 
 	if (what==-1) {
-		//att->push("firstclk; //how long after first click to wait before idle "clicks", in ms
-		//att->push("dblclk;   //time between clicks that counts as a double click, in ms
-		//att->push("idleclk;  //time between idle fake clicks, in ms
+		att->push("name", name, "Some identifier for the theme");
+		att->push("icon_dir", "/path/to/a/dir", "Include any number of these.");
+		att->push("default_border_width", "1");
+		att->push("default_padx", "5");
+		att->push("default_pady", "5");
+		att->push("default_bevel", default_bevel);
+		att->push("interface_scale", interface_scale);
+
+		att->push("first_click",  "140",  "milliseconds before idle clicking after first click");
+		att->push("double_click", "200",  "millisecond limit for double click");
+		att->push("idle_click",   "66",   "milliseconds between idle clicks"); 
+		att->push("tooltips",     "1000", "#millisecond delay before popping up, or 0 for never");
+
+		Attribute *att2 = att->pushSubAtt("windowstyle", nullptr, "One of these blocks each for panel, menu, edit, button, tooltip");
+		styles.e[0]->dump_out_atts(att2, -1, context);
+
 		return att;
-	}
-
-	att->push("name", name);
-
-	for (int c=0; c<iconmanager->NumPaths(); c++) {
-		att->push("icon_dir", iconmanager->GetPath(c));
 	} 
 
 	att->push("default_border_width", default_border_width);
