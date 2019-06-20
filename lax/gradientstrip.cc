@@ -1064,7 +1064,7 @@ int GradientStrip::AddColor(double t, Color *color, bool dup)
 	int c=0; 
 	while (c<colors.n && t>colors.e[c]->t) c++;
 
-	if (t == colors.e[c]->t) {
+	if (c < colors.n && t == colors.e[c]->t) {
 		if (color) {
 			 //replace color
 			colors.e[c]->color->dec_count();
