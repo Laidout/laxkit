@@ -24,7 +24,7 @@ int main(int argc,char **argv)
 									0,0,400,600,0, nullptr);
 
 	//RowFrame *rowframe = new RowFrame();
-	MessageBar *messagebar = new MessageBar(NULL,"mesbar","Read me!",ANXWIN_ESCAPABLE|MB_MOVE, 0,0,0,0,1,
+	MessageBar *messagebar = new MessageBar(NULL,"mesbar","Read me!",MB_MOVE, 0,0,0,0,1,
 			"111111111\n"
 			"222222222\n"
 			"333333333\n"
