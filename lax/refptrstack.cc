@@ -58,7 +58,7 @@ RefPtrStack<T>::~RefPtrStack<T>()
 	flush();
 }
 
-//! Flush the stack. Makes e==NULL.
+//! Flush the stack. Makes e==nullptr.
 /*! If the element's local==2 then the elements are delete with <tt>delete[]</tt>.
  *  If the local==1 it is just deleted with <tt>delete</tt>. 
  *  If the local==3, then if it can be cast to a RefCounted, then it's dec_count()
@@ -69,21 +69,24 @@ RefPtrStack<T>::~RefPtrStack<T>()
 template <class T>
 void RefPtrStack<T>::flush()
 {	
-	if (PtrStack<T>::n==0) return;
+	if (PtrStack<T>::n == 0) return;
 	for (int c=0; c<PtrStack<T>::n; c++) {
 		if (PtrStack<T>::e[c]) {
-			if (PtrStack<T>::islocal[c]==LISTS_DELETE_Array) 
+			if (PtrStack<T>::islocal[c] == LISTS_DELETE_Array) {
 				delete[] PtrStack<T>::e[c]; 
-			else if (PtrStack<T>::islocal[c]==LISTS_DELETE_Single) delete PtrStack<T>::e[c];
-			else if (PtrStack<T>::islocal[c]==LISTS_DELETE_Refcount) {
+
+			} else if (PtrStack<T>::islocal[c] == LISTS_DELETE_Single) {
+				delete PtrStack<T>::e[c];
+
+			} else if (PtrStack<T>::islocal[c] == LISTS_DELETE_Refcount) {
 				RefCounted *ref = dynamic_cast<RefCounted *>(PtrStack<T>::e[c]);
 				if (ref) ref->dec_count();
 				else delete PtrStack<T>::e[c];
 			}
 		}
 	}
-	delete[] PtrStack<T>::e;       PtrStack<T>::e=NULL;
-	delete[] PtrStack<T>::islocal; PtrStack<T>::islocal=NULL;
+	delete[] PtrStack<T>::e;       PtrStack<T>::e = nullptr;
+	delete[] PtrStack<T>::islocal; PtrStack<T>::islocal = nullptr;
 	PtrStack<T>::n=0;
 	PtrStack<T>::max=0;
 }
@@ -104,12 +107,12 @@ int RefPtrStack<T>::remove(int which) //which=-1
 	if (which<0 || which>=PtrStack<T>::n) which=PtrStack<T>::n-1;
 	if (which<0) return 0;
 
-	char l=PtrStack<T>::islocal[which];
-	T *t=PtrStack<T>::pop(which);
+	char l = PtrStack<T>::islocal[which];
+	T *t = PtrStack<T>::pop(which);
 	if (t) {
-		if (l==LISTS_DELETE_Array) delete[] t;
-		else if (l==LISTS_DELETE_Single) delete t;
-		else if (l==LISTS_DELETE_Refcount) {
+		if (l == LISTS_DELETE_Array) delete[] t;
+		else if (l == LISTS_DELETE_Single) delete t;
+		else if (l == LISTS_DELETE_Refcount) {
 			RefCounted *ref = dynamic_cast<RefCounted *>(t);
 			if (ref) ref->dec_count();
 			else {
@@ -121,7 +124,7 @@ int RefPtrStack<T>::remove(int which) //which=-1
 	if (t) return 1; else return 0;
 }
 
-/*! Convenience function to basically call remove(findindex(t)), if t is not NULL.
+/*! Convenience function to basically call remove(findindex(t)), if t is not nullptr.
  */
 template <class T>
 int RefPtrStack<T>::remove(T *t)
@@ -149,11 +152,11 @@ int RefPtrStack<T>::remove(T *t)
  *  Returns the index of the new element on the stack, or -1 if the push failed.
  */
 template <class T>
-int RefPtrStack<T>::push(T *ne,char local,int where) // local=-1, where=-1
+int RefPtrStack<T>::push(T *ne, char local, int where) // local=-1, where=-1
 {
-	int i=PtrStack<T>::push(ne,local,where);
-	if (i<0) return i;
-	if (PtrStack<T>::islocal[i]==LISTS_DELETE_Refcount) {
+	int i = PtrStack<T>::push(ne,local,where);
+	if (i < 0) return i;
+	if (PtrStack<T>::islocal[i] == LISTS_DELETE_Refcount) {
 		RefCounted *ref = dynamic_cast<RefCounted *>(ne);
 		if (ref) ref->inc_count();
 	}
