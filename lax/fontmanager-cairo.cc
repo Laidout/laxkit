@@ -67,9 +67,9 @@ class GlyphOutline
 
 GlyphOutline::GlyphOutline()
 {
-	color=NULL;
+	color=nullptr;
 	numpoints=0;
-	points=NULL;
+	points=nullptr;
 }
 
 GlyphOutline::~GlyphOutline()
@@ -114,10 +114,10 @@ UserFontGlyph *UserFont::Glyph(unsigned long glyph)
 		else { e=m; }
 	}
 
-	return NULL;
+	return nullptr;
 }
 
-UserFont *temp_font=NULL; //global var hack due to cairo's poor hard coded user font api
+UserFont *temp_font=nullptr; //global var hack due to cairo's poor hard coded user font api
 
 cairo_status_t renderUserFontGlyph(cairo_scaled_font_t *scaled_font,
                                 unsigned long  glyphid,
@@ -167,8 +167,8 @@ cairo_status_t renderUserFontGlyph(cairo_scaled_font_t *scaled_font,
 LaxFontCairo::LaxFontCairo()
 {
 	height_over_M=0;
-	font=NULL;
-	scaledfont=NULL;
+	font=nullptr;
+	scaledfont=nullptr;
 	options=cairo_font_options_create();
 	//cairo_matrix_t matrix;
 	//cairo_matrix_init_identity(&matrix);
@@ -177,29 +177,29 @@ LaxFontCairo::LaxFontCairo()
 //! Constructor.
 LaxFontCairo::LaxFontCairo(const char *fontconfigstr,int nid)
 {
-	font=NULL;
-	scaledfont=NULL;
-	options=NULL;
+	font = nullptr;
+	scaledfont = nullptr;
+	options = nullptr;
 
 	FcResult result;
-	FcPattern *pattern=FcNameParse((FcChar8*)fontconfigstr);
-	FcPattern *pattern2=pattern;
+	FcPattern *pattern = FcNameParse((FcChar8*)fontconfigstr);
+	FcPattern *pattern2 = pattern;
 
 
-	int weight=0;
-	result=FcPatternGetInteger(pattern, FC_WEIGHT,0, &weight);
-	if (result!=FcResultMatch) {
+	int weight = 0;
+	result = FcPatternGetInteger(pattern, FC_WEIGHT,0, &weight);
+	if (result != FcResultMatch) {
 		 //add normal weight
 		FcPatternAddInteger(pattern, FC_WEIGHT, FC_WEIGHT_REGULAR);
 	}
 
-	FontManager *manager=GetDefaultFontManager();
-	FcConfig *fcconfig=manager->GetConfig();
+	FontManager *manager = GetDefaultFontManager();
+	FcConfig *fcconfig = manager->GetConfig();
 
 	FcConfigSubstitute (fcconfig, pattern, FcMatchPattern);
 	FcDefaultSubstitute(pattern);
 	FcPattern *found = FcFontMatch(fcconfig, pattern, &result);
-	if (result==FcResultMatch) { pattern2=found; }
+	if (result == FcResultMatch) { pattern2 = found; }
 
 
 	//DBG cerr <<"LaxFontCairo constructor: pattern from string: "<<(fontconfigstr?fontconfigstr:"\"\"")<<endl;
@@ -207,29 +207,30 @@ LaxFontCairo::LaxFontCairo(const char *fontconfigstr,int nid)
 	//DBG cerr <<"---found from pattern:"<<endl;
 	//DBG if (found) FcPatternPrint(found); //*** uses stdout, not stderr!!!
 
-	font=cairo_ft_font_face_create_for_pattern(pattern2);
-	double height=1;
+	font = cairo_ft_font_face_create_for_pattern(pattern2);
+	double height = 1;
 	FcPatternGetDouble(pattern, FC_SIZE, 0, &height);
 
 	FcValue v;
 
-	result=FcPatternGet(pattern2,FC_FAMILY,0,&v);
-	if (result==FcResultMatch) makestr(family, (const char *)v.u.s);
+	result = FcPatternGet(pattern2,FC_FAMILY,0,&v);
+	if (result == FcResultMatch) makestr(family, (const char *)v.u.s);
 
-	result=FcPatternGet(pattern2,FC_STYLE,0,&v);
-	if (result==FcResultMatch) makestr(style, (const char *)v.u.s);
+	result = FcPatternGet(pattern2,FC_STYLE,0,&v);
+	if (result == FcResultMatch) makestr(style, (const char *)v.u.s);
 
-	result=FcPatternGet(pattern2,FC_FILE,0,&v);
-	if (result==FcResultMatch) makestr(fontfile, (const char *)v.u.s);
+	result = FcPatternGet(pattern2,FC_FILE,0,&v);
+	if (result == FcResultMatch) makestr(fontfile, (const char *)v.u.s);
 
 	FcPatternDestroy(pattern);
+	if (found) FcPatternDestroy(found);
 
 	cairo_matrix_t matrix;
 	cairo_matrix_init_scale(&matrix, height, height);
 	cairo_matrix_t identity;
 	cairo_matrix_init_identity(&identity);
-	options=cairo_font_options_create();
-	scaledfont=cairo_scaled_font_create(font, &matrix, &identity, options);
+	options = cairo_font_options_create();
+	scaledfont = cairo_scaled_font_create(font, &matrix, &identity, options);
 
 	//const cairo_matrix_t *font_matrix,
     //const cairo_matrix_t *ctm,
@@ -238,9 +239,9 @@ LaxFontCairo::LaxFontCairo(const char *fontconfigstr,int nid)
 
 	cairo_scaled_font_extents(scaledfont, &extents);
 
-    height_over_M=extents.height/height; // *** note: unreliable!  
+    height_over_M = extents.height/height; // *** note: unreliable!  
 
-	if (nid>0) id=nid;
+	if (nid > 0) id = nid;
 }
 
 LaxFontCairo::LaxFontCairo(const char *nfamily, const char *nstyle, double size, int nid)
@@ -250,12 +251,12 @@ LaxFontCairo::LaxFontCairo(const char *nfamily, const char *nstyle, double size,
 	id=nid;
 	if (!id) id=getUniqueNumber();
 
-	font=NULL;
-	scaledfont=NULL;
+	font=nullptr;
+	scaledfont=nullptr;
 	options=cairo_font_options_create();
 
 	height_over_M=0; 
-	SetFromFile(NULL, nfamily, nstyle, size);
+	SetFromFile(nullptr, nfamily, nstyle, size);
 }
 
 LaxFontCairo::~LaxFontCairo()
@@ -314,15 +315,15 @@ const char *LaxFontCairo::PostscriptName()
  */
 int LaxFontCairo::SetFromFile(const char *nfile, const char *nfamily, const char *nstyle, double size)
 {
-	if (fontfile && nfile && !strcmp(nfile,fontfile) && size==extents.height) { 
+	if (fontfile && nfile && !strcmp(nfile,fontfile) && size == extents.height) { 
 		return 0;
 	}
 
 	delete[] psname;
-	psname=NULL;
+	psname = nullptr;
 
 	 //find new!
-	FcPattern *pattern=FcPatternCreate();
+	FcPattern *pattern = FcPatternCreate();
 
 	FcValue value;
 	if (nfile) {
@@ -340,13 +341,13 @@ int LaxFontCairo::SetFromFile(const char *nfile, const char *nfamily, const char
 		FcPatternAdd(pattern, FC_STYLE, value, FcTrue);
 	}
 
-	char *nnfile=NULL;
+	char *nnfile = nullptr;
 	if (!nfile) {
 		//we need to do some extra work to get a file name, as I don't see a way to get it directly from cairo
 		FcPatternAddInteger(pattern, FC_WEIGHT, FC_WEIGHT_REGULAR);
 
-		FontManager *manager=GetDefaultFontManager();
-		FcConfig *fcconfig=manager->GetConfig();
+		FontManager *manager = GetDefaultFontManager();
+		FcConfig *fcconfig = manager->GetConfig();
 		FcResult result;
 		FcValue v; 
 
@@ -354,29 +355,31 @@ int LaxFontCairo::SetFromFile(const char *nfile, const char *nfamily, const char
 		FcConfigSubstitute (fcconfig, pattern, FcMatchPattern);
 		FcDefaultSubstitute(pattern);
 		FcPattern *found = FcFontMatch(fcconfig, pattern, &result);
-		if (result==FcResultMatch) {
+		if (result == FcResultMatch) {
 			FcPattern *pattern2 = FcPatternDuplicate(found);
 			FcPatternDestroy(pattern);
 			pattern = pattern2;
 		}
 
-		result=FcPatternGet(pattern,FC_FILE,0,&v);
-		if (result==FcResultMatch) makestr(nnfile, (const char *)v.u.s);
-		nfile=nnfile;
+		result = FcPatternGet(pattern,FC_FILE,0,&v);
+		if (result == FcResultMatch) makestr(nnfile, (const char *)v.u.s);
+		nfile = nnfile;
+
+		FcPatternDestroy(found);
 	}
 
-	cairo_font_face_t *newfont=cairo_ft_font_face_create_for_pattern(pattern);
+	cairo_font_face_t *newfont = cairo_ft_font_face_create_for_pattern(pattern);
 	FcPatternDestroy(pattern);
 
 
-	if (cairo_font_face_status(newfont)!=CAIRO_STATUS_SUCCESS) {
+	if (cairo_font_face_status(newfont) != CAIRO_STATUS_SUCCESS) {
 		cairo_font_face_destroy(newfont);
 		return 1;
 	}
 
 	makestr(fontfile, nfile);
-	makestr(family, nfamily ? nfamily : NULL);// *** look up from fontconfig??
-	makestr(style, nstyle ? nstyle : NULL); // ***
+	makestr(family, nfamily ? nfamily : nullptr);// *** look up from fontconfig??
+	makestr(style, nstyle ? nstyle : nullptr); // ***
 	delete[] nnfile;
 
 
@@ -385,21 +388,21 @@ int LaxFontCairo::SetFromFile(const char *nfile, const char *nfamily, const char
 	if (font) cairo_font_face_destroy(font);
 	if (options) cairo_font_options_destroy(options);
 
-	font=newfont;
+	font = newfont;
 
 	cairo_matrix_t m, ctm;
 	cairo_matrix_init_scale(&m,size,size);
 	cairo_matrix_init_identity(&ctm);
 
 	options=cairo_font_options_create();
-	scaledfont=cairo_scaled_font_create(font, &m, &ctm, options);
+	scaledfont = cairo_scaled_font_create(font, &m, &ctm, options);
 	cairo_scaled_font_extents(scaledfont, &extents);
 
-    height_over_M=extents.height/size;
+    height_over_M = extents.height/size;
 
 	cairo_matrix_init_scale(&m,size/height_over_M,size/height_over_M);
 	cairo_scaled_font_destroy(scaledfont);
-	scaledfont=cairo_scaled_font_create(font, &m, &ctm, options);
+	scaledfont = cairo_scaled_font_create(font, &m, &ctm, options);
     cairo_scaled_font_extents(scaledfont, &extents); 
 	return 0;
 }
@@ -455,7 +458,7 @@ double LaxFontCairo::Extent(const char *str,int len)
  */
 double LaxFontCairo::Resize(double newsize)
 {
-	if (scaledfont) { cairo_scaled_font_destroy(scaledfont); scaledfont=NULL; }
+	if (scaledfont) { cairo_scaled_font_destroy(scaledfont); scaledfont=nullptr; }
 	if (!font) return 0;
 
 
@@ -518,8 +521,8 @@ double LaxFontCairo::contextcharwidth(char *start,char *pos,int real,double *wid
 FontManagerCairo::FontManagerCairo()
 	: RefPtrStack<LaxFont>()
 {
-	ref_cr=NULL;
-	ref_surface=NULL;
+	ref_cr=nullptr;
+	ref_surface=nullptr;
 }
 
 FontManagerCairo::~FontManagerCairo()
@@ -549,11 +552,11 @@ LaxFont *FontManagerCairo::MakeFontFromStr(const char *fcstr, int nid)
  * If the font is already on the stack, nothing is done.
  *
  * The font's count is incremented.
- * Returns the font object or NULL on error.
+ * Returns the font object or nullptr on error.
  */
 LaxFont *FontManagerCairo::Add(LaxFont *font,int nid)
 {
-	if (!font) return NULL;
+	if (!font) return nullptr;
 	if (nid<0) nid=getUniqueNumber();
 	pushnodup(font); //incs count if not already on stack
 	return font;
@@ -561,7 +564,7 @@ LaxFont *FontManagerCairo::Add(LaxFont *font,int nid)
 
 
 //! Add a count of 1 to the LaxFont with the given id, and return the corresponding font object.
-/*! Returns the LaxFont object, or NULL if object not found.
+/*! Returns the LaxFont object, or nullptr if object not found.
  *
  * Please remember that when you are all done with the font, you must decrement its count.
  */
@@ -574,19 +577,19 @@ LaxFont *FontManagerCairo::CheckOut(int id)
 			return e[c];
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
 //! Create and return a LaxFont, but do not store it within the fontmanager.
 /*! This file and size are passed along to fontconfig.
- * If fontconfig cannot do anything with it, NULL is returned.
+ * If fontconfig cannot do anything with it, nullptr is returned.
  */
 LaxFont *FontManagerCairo::MakeFontFromFile(const char *file, const char *nfamily, const char *nstyle, double size, int nid)
 {
 	LaxFontCairo *newfont=new LaxFontCairo();
 	if (newfont->SetFromFile(file, nfamily, nstyle, size)!=0) {
 		delete newfont;
-		return NULL;
+		return nullptr;
 	}
 
 	return newfont;
@@ -594,7 +597,7 @@ LaxFont *FontManagerCairo::MakeFontFromFile(const char *file, const char *nfamil
 
 //! Create and return a LaxFont, but do not store it within the fontmanager.
 /*! This family, style, and size are passed along to fontconfig.
- * If fontconfig cannot do anything with it, NULL is returned.
+ * If fontconfig cannot do anything with it, nullptr is returned.
  */
 LaxFont *FontManagerCairo::MakeFont(const char *family, const char *style, double size, int nid)
 {
