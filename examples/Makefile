@@ -33,7 +33,7 @@ examples= \
 	timers
 
 
-all: laxhello interfs timers
+all: $(examples)
 
 
 cairotest: lax laxinterface cairotest.o
