@@ -1181,7 +1181,7 @@ int XInput2Pointer::getInfo(anXWindow *win,
 	 //XInput2:
 	double drx, dry, dxx, dyy; //sub pixel accuracy!
 	Window rt=0, chld=0;
-	XIButtonState buttonstate; //these are structs...
+	XIButtonState buttonstate; //these are structs. buttonstate->mask must be free'd
 	XIModifierState modstate;
 	XIGroupState groupstate;
 
@@ -1199,6 +1199,7 @@ int XInput2Pointer::getInfo(anXWindow *win,
 			&modstate,       //    XIModifierState     *mods,
 			&groupstate      //    XIGroupState        *group
 		);
+	free(buttonstate.mask);
 
 	if (er == False && !win) { //we are looking for root window coords, but don't know the root window...
 		 //requery using root of screen mouse is actually in, 
@@ -1217,6 +1218,7 @@ int XInput2Pointer::getInfo(anXWindow *win,
 			&modstate,       //    XIModifierState     *mods,
 			&groupstate      //    XIGroupState        *group
 		);
+		free(buttonstate.mask);
 	}
 
 	int screen_num = -1;
@@ -1254,6 +1256,7 @@ int XInput2Pointer::getInfo(anXWindow *win,
 				&modstate,       //    XIModifierState     *mods,
 				&groupstate      //    XIGroupState        *group
 			);
+			free(buttonstate.mask);
 		}
 		*child=(xwin ? anXApp::app->findwindow_xlib(xwin) : NULL);
 	}
