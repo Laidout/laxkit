@@ -220,8 +220,10 @@ SomeData *GradientData::duplicate(SomeData *dup)
 	}
 
 	g->style = style;
-	GradientStrip *nstrip = dynamic_cast<GradientStrip*>(strip->duplicate(nullptr));
-	if (strip) g->Set(nstrip, 1, false);
+	if (strip) {
+		GradientStrip *nstrip = dynamic_cast<GradientStrip*>(strip->duplicate(nullptr));
+		g->Set(nstrip, 1, false);
+	}
 
 	 //somedata elements:
 	dup->bboxstyle = bboxstyle;
@@ -275,12 +277,12 @@ void GradientData::Set(flatpoint pp1,flatpoint pp2,double rr1,double rr2,
 	//origin(pp1);
 
 	GradientStrip *newstrip = new GradientStrip(pp1,pp2, rr1,rr2, col1, col2);
-	Set(newstrip, 0, false);
+	Set(newstrip, 1, false);
 
 	touchContents();
 
-	DBG cerr <<"new GradientData:Set"<<endl;
-	DBG dump_out(stderr,2,0,NULL);
+	//DBG cerr <<"GradientData::Set"<<endl;
+	//DBG dump_out(stderr,2,0,NULL);
 }
 
 /*! Return the extra transform that aligns p2-p1 to an x axis, with p1 at the origin.
