@@ -515,33 +515,33 @@ int GradientStrip::maxPreviewSize()
  */
 anObject *GradientStrip::duplicate(anObject *dup)
 {
-	GradientStrip *g=dynamic_cast<GradientStrip*>(dup);
-	if (!g && !dup) return NULL; //was not GradientStrip!
+	GradientStrip *g = dynamic_cast<GradientStrip*>(dup);
+	if (dup && !g) return nullptr; //supplied reference was not GradientStrip!
 
 	if (!dup) {
-		dup=newGradientStrip();
+		dup = newGradientStrip();
 		if (dup) {
+			g = dynamic_cast<GradientStrip*>(dup);
 			g->setbounds(minx,maxx,miny,maxy);
-			g=dynamic_cast<GradientStrip*>(dup);
 		}
 	} 
 
 	if (!g) {
-		g=new GradientStrip();
-		dup=g;
+		g = new GradientStrip();
+		dup = g;
 	}
 
 	g->gradient_flags = gradient_flags;
 
-	g->tmin=tmin;
-	g->tmax=tmax;
-	g->smin=smin;
-	g->smax=smax;
+	g->tmin = tmin;
+	g->tmax = tmax;
+	g->smin = smin;
+	g->smax = smax;
 
-	g->p1=p1;
-	g->p2=p2;
-	g->r1=r1;
-	g->r2=r2;
+	g->p1 = p1;
+	g->p2 = p2;
+	g->r1 = r1;
+	g->r2 = r2;
 
 	for (int c=0; c<colors.n; c++) {
 		g->colors.push(new GradientStrip::GradientSpot(colors.e[c]));
