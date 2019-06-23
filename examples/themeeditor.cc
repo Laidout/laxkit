@@ -648,6 +648,8 @@ int ThemeControls::init()
 
 	Sync(1);
 	SyncFromTheme();
+
+	return 0;
 }
 
 void ThemeControls::UpdateWindows()
@@ -775,7 +777,6 @@ int main(int argc,char **argv)
 	makestr(app.textfontstr,"sans-20");
 	makestr(app.controlfontstr,"sans-15");
 	app.init(argc,argv);
-	app.default_bevel=3;
 
 
 	 //------------add windows
