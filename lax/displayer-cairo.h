@@ -81,7 +81,7 @@ class DisplayerCairo : public Displayer
 	void base_init();
 
  public:
-	DisplayerCairo(anXWindow *nxw=NULL,PanController *pan=NULL);
+	DisplayerCairo(anXWindow *nxw = nullptr, PanController *pan = nullptr);
 	virtual ~DisplayerCairo();
 	virtual Displayer *duplicate();
 

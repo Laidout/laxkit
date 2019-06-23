@@ -100,7 +100,7 @@ void dump_transforms(cairo_t *cr, double *d)
 
 
 
-/*! set cr=NULL, and surface=NULL.
+/*! set cr=nullptr, and surface=nullptr.
  */
 DisplayerCairo::DisplayerCairo(anXWindow *nxw,PanController *pan) 
 	: Displayer(nxw,pan)
@@ -110,11 +110,11 @@ DisplayerCairo::DisplayerCairo(anXWindow *nxw,PanController *pan)
 
 void DisplayerCairo::base_init()
 {
-	tbuffer=NULL;
-	tbufferlen=0;
+	tbuffer = nullptr;
+	tbufferlen = 0;
 
-	isinternal=0;
-	imagebuffer=NULL;
+	isinternal = 0;
+	imagebuffer = nullptr;
 
 #ifdef _LAX_PLATFORM_XLIB
 	if (xw) {
@@ -131,21 +131,21 @@ void DisplayerCairo::base_init()
 	blendmode=LAXOP_Over;
 	on=0;
 
-	cr=NULL;
-	laxfont=NULL;
-	curfont=NULL;
-	curscaledfont=NULL; // *** not currently used
+	cr=nullptr;
+	laxfont=nullptr;
+	curfont=nullptr;
+	curscaledfont=nullptr; // *** not currently used
 	_textheight=0;
 	height_over_M=0; // = (M square height: cairo_set_font_size parameter) / (actual font height) 
 
-	target=NULL;
-	surface=NULL;
-	ref_surface=NULL;
-	mask=NULL;
-	mask_pattern=NULL;
-	source=NULL;
+	target=nullptr;
+	surface=nullptr;
+	ref_surface=nullptr;
+	mask=nullptr;
+	mask_pattern=nullptr;
+	source=nullptr;
 
-	cairo_glyphs=NULL;
+	cairo_glyphs=nullptr;
 	numalloc_glyphs=0;
 
 	fgRed=fgGreen=fgBlue=fgAlpha=1.0;
@@ -173,6 +173,7 @@ DisplayerCairo::~DisplayerCairo()
 	if (imagebuffer) imagebuffer->dec_count();
 
 	delete[] cairo_glyphs;
+	delete[] tbuffer;
 }
 
 Displayer *DisplayerCairo::duplicate()
@@ -213,20 +214,20 @@ int DisplayerCairo::StartDrawing(aDrawable *buffer)
 /*! Free any resources allocated for drawing in this object created during StartDrawing() or MakeCurrent()..
  *
  *  This resets all the drawing bits to 0. Be warned that most of the functions in
- * DisplayerCairo do not check for a NULL context or NULL surface!!
+ * DisplayerCairo do not check for a nullptr context or nullptr surface!!
  *
- * If xw==NULL, then also call Updates(1);
+ * If xw==nullptr, then also call Updates(1);
  */
 int DisplayerCairo::EndDrawing()
 {
-	if (xw==NULL) Updates(1);
-	//if (xw) { xw->dec_count(); xw=NULL; }
+	if (xw==nullptr) Updates(1);
+	//if (xw) { xw->dec_count(); xw=nullptr; }
 
-	if (cr)           { cairo_destroy(cr); cr=NULL; }
-	if (surface)      { cairo_surface_destroy(surface);      surface=NULL; }
-	if (mask)         { cairo_surface_destroy(mask);         mask=NULL;    }
-	if (mask_pattern) { cairo_pattern_destroy(mask_pattern); mask_pattern=NULL; }
-	if (source)       { cairo_surface_destroy(source);       source=NULL;  }
+	if (cr)           { cairo_destroy(cr); cr=nullptr; }
+	if (surface)      { cairo_surface_destroy(surface);      surface=nullptr; }
+	if (mask)         { cairo_surface_destroy(mask);         mask=nullptr;    }
+	if (mask_pattern) { cairo_pattern_destroy(mask_pattern); mask_pattern=nullptr; }
+	if (source)       { cairo_surface_destroy(source);       source=nullptr;  }
 	return 0;
 }
 
@@ -268,12 +269,12 @@ int DisplayerCairo::MakeCurrent(LaxImage *buffer)
 		imagebuffer=buffer;
 		imagebuffer->inc_count();
 
-		if (cr) { cairo_destroy(cr); cr=NULL; }
-		if (surface) { cairo_surface_destroy(surface); surface=NULL; }
+		if (cr) { cairo_destroy(cr); cr=nullptr; }
+		if (surface) { cairo_surface_destroy(surface); surface=nullptr; }
 	}
 
-	dr=NULL;
-	xw=NULL;
+	dr=nullptr;
+	xw=nullptr;
 	w=0;
 
 	Minx=Miny=0;
@@ -282,14 +283,14 @@ int DisplayerCairo::MakeCurrent(LaxImage *buffer)
 
 	if (isinternal) {
 		 //we need to destroy internal, as we are now using external buffer
-		if (cr) { cairo_destroy(cr); cr=NULL; }
+		if (cr) { cairo_destroy(cr); cr=nullptr; }
 		if (surface) cairo_surface_destroy(surface);
-		surface=NULL;
+		surface=nullptr;
 		isinternal=0;
 	}
 
 	if (surface!=img->image) {
-		if (cr) { cairo_destroy(cr); cr=NULL; }
+		if (cr) { cairo_destroy(cr); cr=nullptr; }
 		if (surface) cairo_surface_destroy(surface);
 		surface=img->image;
 		cairo_surface_reference(surface);
@@ -322,7 +323,7 @@ int DisplayerCairo::MakeCurrent(aDrawable *buffer)
 	if (cr && cairo_status(cr)!=CAIRO_STATUS_SUCCESS) {
 		cerr << " *** WARNING!!! cairo in error status: "<<cairo_status_to_string(cairo_status(cr))<<"!! recreating cr..."<<endl;
 		cairo_destroy(cr);
-		cr=NULL;
+		cr=nullptr;
 	}
 
 	if (cr && surface && buffer==dr && w==buffer->xlibDrawable()) return 0; //already current!
@@ -330,7 +331,7 @@ int DisplayerCairo::MakeCurrent(aDrawable *buffer)
 	dr = buffer;
 	xw = dynamic_cast<anXWindow*>(buffer);
 	w = buffer->xlibDrawable();
-	if (imagebuffer) { imagebuffer->dec_count(); imagebuffer = NULL; }
+	if (imagebuffer) { imagebuffer->dec_count(); imagebuffer = nullptr; }
 
 
 	if (!xw) {
@@ -352,17 +353,17 @@ int DisplayerCairo::MakeCurrent(aDrawable *buffer)
 
 	if (isinternal) {
 		 //we need to destroy internal, as we are now using external buffer
-		if (cr) { cairo_destroy(cr); cr=NULL; }
+		if (cr) { cairo_destroy(cr); cr=nullptr; }
 		if (surface) cairo_surface_destroy(surface);
-		surface=NULL;
+		surface=nullptr;
 		isinternal=0;
 	}
 
 #ifdef _LAX_PLATFORM_XLIB
 	if (!surface) {
 		 //no existing surface, need to remap to an xlib_surface
-		if (cr) { cairo_destroy(cr); cr=NULL; }
-		surface=cairo_xlib_surface_create(dpy,w,vis,Maxx,Maxy);
+		if (cr) { cairo_destroy(cr); cr = nullptr; }
+		surface = cairo_xlib_surface_create(dpy,w,vis,Maxx,Maxy);
 
 	} else if (cairo_xlib_surface_get_drawable(surface)!=w) {
 		 //we already have an xlib surface, just need to point to current xlib drawable
@@ -408,11 +409,11 @@ int DisplayerCairo::ClearDrawable(aDrawable *drawable)
 	if (!cr || !surface || drawable!=dr) return 1; //already cleared!
 
 	if (surface) cairo_surface_destroy(surface);
-	surface=NULL;
-	if (cr) { cairo_destroy(cr); cr=NULL; }
-	isinternal=0;
+	surface = nullptr;
+	if (cr) { cairo_destroy(cr); cr = nullptr; }
+	isinternal = 0;
 
-	dr=NULL;
+	dr = nullptr;
 
 	DBG cerr <<"DisplayerCairo::ClearDrawable()"<<endl;
 	return 0;
@@ -423,7 +424,7 @@ int DisplayerCairo::ClearDrawable(aDrawable *drawable)
  */
 LaxImage *DisplayerCairo::GetSurface()
 {
-	if (!surface) return NULL;
+	if (!surface) return nullptr;
 	if (imagebuffer) {
 		imagebuffer->inc_count();
 		return imagebuffer;
@@ -433,7 +434,7 @@ LaxImage *DisplayerCairo::GetSurface()
 	cairo_t *cc=cairo_create(s);
 	cairo_set_source_surface(cc,surface, 0,0);
 	cairo_paint(cc);
-	LaxCairoImage *img=new LaxCairoImage(NULL,s);
+	LaxCairoImage *img=new LaxCairoImage(nullptr,s);
 	cairo_destroy(cc);
 	return img;
 }
@@ -441,10 +442,10 @@ LaxImage *DisplayerCairo::GetSurface()
 //! Remove old surface, and create a fresh surface to perform drawing operations on.
 int DisplayerCairo::CreateSurface(int width,int height, int type)
 {
-	xw=NULL;
-	dr=NULL;
+	xw=nullptr;
+	dr=nullptr;
 	w=0;
-	if (imagebuffer) { imagebuffer->dec_count(); imagebuffer=NULL; }
+	if (imagebuffer) { imagebuffer->dec_count(); imagebuffer=nullptr; }
 
 	if (surface) cairo_surface_destroy(surface);
 	if (cr) cairo_destroy(cr);
@@ -646,8 +647,8 @@ LaxCompositeOp DisplayerCairo::BlendMode(LaxCompositeOp mode)
 
 double DisplayerCairo::setSourceAlpha(double alpha)
 {
-	if (mask) { cairo_surface_destroy(mask); mask=NULL; }
-	if (mask_pattern) { cairo_pattern_destroy(mask_pattern); mask_pattern=NULL; }
+	if (mask) { cairo_surface_destroy(mask); mask=nullptr; }
+	if (mask_pattern) { cairo_pattern_destroy(mask_pattern); mask_pattern=nullptr; }
 
 	if (alpha<0) alpha=0;
 
@@ -694,7 +695,7 @@ void DisplayerCairo::LineAttributes(double width,int dash,int cap,int join)
 	if (width>=0) cairo_set_line_width(cr,width);
 
 	if (dash>=0) {
-		if (dash==LineSolid) cairo_set_dash(cr,NULL,0,0);
+		if (dash==LineSolid) cairo_set_dash(cr,nullptr,0,0);
 		else {
 			double l=width*5;
 			if (l<=0) l=1;
@@ -818,15 +819,15 @@ void DisplayerCairo::PopClip()
 //! Remove any mask
 void DisplayerCairo::ClearClip()
 {
-	if (mask) { cairo_surface_destroy(mask); mask=NULL; }
-	if (mask_pattern) { cairo_pattern_destroy(mask_pattern); mask_pattern=NULL; }
+	if (mask) { cairo_surface_destroy(mask); mask=nullptr; }
+	if (mask_pattern) { cairo_pattern_destroy(mask_pattern); mask_pattern=nullptr; }
 	cairo_reset_clip(cr);
 }
 
 //! Return whether there is an active mask.
 int DisplayerCairo::activeMask()
 {
-	return mask!=NULL || mask_pattern!=NULL;
+	return mask!=nullptr || mask_pattern!=nullptr;
 }
 
 //! Drawing operations following a call here will operate on the mask surface.
@@ -1198,7 +1199,7 @@ int DisplayerCairo::font(LaxFont *nfont, double size)
 		cairo_font_face_reference(curfont);
 	}
 
-	if (curscaledfont) { cairo_scaled_font_destroy(curscaledfont); curscaledfont=NULL; }
+	if (curscaledfont) { cairo_scaled_font_destroy(curscaledfont); curscaledfont=nullptr; }
 
 	if (cr) {
 		cairo_set_font_face(cr,curfont); 
@@ -1278,7 +1279,7 @@ int DisplayerCairo::fontsize(double size)
 
 	_textheight=size;
 
-	if (tempcr) { cairo_destroy(cr); cr=NULL; }
+	if (tempcr) { cairo_destroy(cr); cr=nullptr; }
 
 	//DBG cerr <<"---fontsize end"<<endl;
 	return 0;
@@ -1293,7 +1294,7 @@ double DisplayerCairo::textextent(LaxFont *thisfont, const char *str,int len, do
 { 
 	//DBG cerr <<"-------cairo textextent-------"<<endl;
 
-	LaxFont *oldfont=NULL;
+	LaxFont *oldfont=nullptr;
 	//double oldheight=0;
 
 	LaxFontCairo *cfont=dynamic_cast<LaxFontCairo*>(thisfont);
@@ -1301,7 +1302,7 @@ double DisplayerCairo::textextent(LaxFont *thisfont, const char *str,int len, do
 	if (!curfont) initFont();
 
 	if (len<0) len=(str ? strlen(str) : 0);
-	if (str==NULL || len==0 || (!curfont && !cfont)) {
+	if (str==nullptr || len==0 || (!curfont && !cfont)) {
 		if (width) *width=0;
 		if (height) *height=0;
 		if (ascent) *ascent=0;
@@ -1356,7 +1357,7 @@ double DisplayerCairo::textextent(LaxFont *thisfont, const char *str,int len, do
 	if (height)  { if (real) *height=extents.height; else *height=fextents.height; }
 	if (width)   { if (real) *width =extents.width;  else *width=extents.x_advance; }
 
-	if (tempcr) { cairo_destroy(cr); cr=NULL; }
+	if (tempcr) { cairo_destroy(cr); cr=nullptr; }
 
 	//DBG if (oldfont) cerr <<" curfont count: "<<cairo_font_face_get_reference_count(oldfont) <<endl;
 	//DBG if (cfont) cerr <<" temp font: "<<cairo_font_face_get_reference_count(cfont->font) <<endl;
