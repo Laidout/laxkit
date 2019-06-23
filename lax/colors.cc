@@ -26,6 +26,7 @@
 #include <lax/refptrstack.cc>
 #include <lax/strmanip.h>
 #include <lax/language.h>
+#include <lax/singletonkeeper.h>
 
 
 
@@ -198,7 +199,7 @@ Color::Color(const Color &c)
 	nvalues = c.nvalues;
 	if (nvalues) {
 		values = new double[nvalues];
-		memcpy(c.values, values, nvalues*sizeof(double));
+		memcpy(values, c.values, nvalues*sizeof(double));
 	}
 	else values = nullptr;
 }
@@ -968,15 +969,16 @@ ColorSystem *Create_XYZ_System(bool with_alpha)
  * Basics are rgb, gray, cmy, cmyk, yuv, hsv.
  */
 
-SingletonKeeper ColorManager::keeper;
+
+static SingletonKeeper cmKeeper;
 
 ColorManager *ColorManager::GetDefault(bool create)
 {
 	DBG cerr << "ColorManager::GetDefault()"<<endl;
-	ColorManager *default_manager = dynamic_cast<ColorManager*>(keeper.GetObject());
+	ColorManager *default_manager = dynamic_cast<ColorManager*>(cmKeeper.GetObject());
 	if (!default_manager && create) {
 		default_manager = new ColorManager();
-		keeper.SetObject(default_manager, 1);
+		cmKeeper.SetObject(default_manager, 1);
 	}
 
 	return default_manager;
@@ -988,10 +990,10 @@ void ColorManager::SetDefault(ColorManager *manager)
 {
 	DBG cerr << "ColorManager::SetDefault()"<<endl;
 
-	ColorManager *default_manager = dynamic_cast<ColorManager*>(keeper.GetObject());
+	ColorManager *default_manager = dynamic_cast<ColorManager*>(cmKeeper.GetObject());
 
 	if (manager == default_manager) return;
-	keeper.SetObject(manager, 0);
+	cmKeeper.SetObject(manager, 0);
 }
 
 /*! Static function to return a random color.
