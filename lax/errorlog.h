@@ -82,7 +82,7 @@ class ErrorLog
 	virtual int AddMessage(int severity, int ninfo, int npos,int nline, const char *fmt, ...);
 	virtual int AddMessage(const char *desc, int severity, int ninfo=0, int npos=0,int nline=0);
 	virtual int AddMessage(unsigned int objid, const char *objidstr, const char *npath, const char *desc, int severity, int ninfo=0, int npos=0,int nline=0);
-	virtual const char *Message(int i,int *severity,int *info, int *pos=NULL,int *line=NULL);
+	virtual const char *Message(int i,int *severity,int *info, int *pos = nullptr, int *line = nullptr);
 	virtual int Total() { return messages.n; }
 	virtual ErrorLogNode *Message(int i);
 	virtual const char *MessageStr(int i);
