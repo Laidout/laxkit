@@ -128,28 +128,28 @@ void DisplayerCairo::base_init()
 	}
 #endif
 
-	blendmode=LAXOP_Over;
-	on=0;
+	blendmode = LAXOP_Over;
+	on = 0;
 
-	cr=nullptr;
-	laxfont=nullptr;
-	curfont=nullptr;
-	curscaledfont=nullptr; // *** not currently used
-	_textheight=0;
-	height_over_M=0; // = (M square height: cairo_set_font_size parameter) / (actual font height) 
+	cr = nullptr;
+	laxfont = nullptr;
+	curfont = nullptr;
+	curscaledfont = nullptr; // *** not currently used
+	_textheight = 0;
+	height_over_M = 0; // = (M square height: cairo_set_font_size parameter) / (actual font height) 
 
-	target=nullptr;
-	surface=nullptr;
-	ref_surface=nullptr;
-	mask=nullptr;
-	mask_pattern=nullptr;
-	source=nullptr;
+	target  = nullptr;
+	surface = nullptr;
+	ref_surface = nullptr;
+	mask = nullptr;
+	mask_pattern = nullptr;
+	source = nullptr;
 
-	cairo_glyphs=nullptr;
-	numalloc_glyphs=0;
+	cairo_glyphs = nullptr;
+	numalloc_glyphs = 0;
 
-	fgRed=fgGreen=fgBlue=fgAlpha=1.0;
-	bgRed=bgGreen=bgBlue=0; bgAlpha=1;
+	fgRed = fgGreen = fgBlue = fgAlpha = 1.0;
+	bgRed = bgGreen = bgBlue = 0; bgAlpha = 1;
 
 	transform_identity(ctm);
 	transform_identity(ictm);
@@ -194,12 +194,6 @@ void DisplayerCairo::SwapBuffers()
 void DisplayerCairo::BackBuffer(int on)
 { cout <<"*** imp DisplayerCairo::backbuffer()"<<endl; }
 
-//void DisplayerCairo::WrapWindow(anXWindow *nw)
-//{
-//	Displayer::WrapWindow(nw);
-//	MakeCurrent(nw);
-//}
-
 //! This sets up internals for drawing onto buffer, and wraps window if the min/max seem to not be set.
 int DisplayerCairo::StartDrawing(aDrawable *buffer)
 {
@@ -220,14 +214,13 @@ int DisplayerCairo::StartDrawing(aDrawable *buffer)
  */
 int DisplayerCairo::EndDrawing()
 {
-	if (xw==nullptr) Updates(1);
-	//if (xw) { xw->dec_count(); xw=nullptr; }
+	if (xw == nullptr) Updates(1);
 
-	if (cr)           { cairo_destroy(cr); cr=nullptr; }
-	if (surface)      { cairo_surface_destroy(surface);      surface=nullptr; }
-	if (mask)         { cairo_surface_destroy(mask);         mask=nullptr;    }
-	if (mask_pattern) { cairo_pattern_destroy(mask_pattern); mask_pattern=nullptr; }
-	if (source)       { cairo_surface_destroy(source);       source=nullptr;  }
+	if (cr)           { cairo_destroy(cr);                   cr = nullptr;           }
+	if (surface)      { cairo_surface_destroy(surface);      surface = nullptr;      }
+	if (mask)         { cairo_surface_destroy(mask);         mask = nullptr;         }
+	if (mask_pattern) { cairo_pattern_destroy(mask_pattern); mask_pattern = nullptr; }
+	if (source)       { cairo_surface_destroy(source);       source = nullptr;       }
 	return 0;
 }
 
@@ -289,16 +282,16 @@ int DisplayerCairo::MakeCurrent(LaxImage *buffer)
 		isinternal=0;
 	}
 
-	if (surface!=img->image) {
-		if (cr) { cairo_destroy(cr); cr=nullptr; }
+	if (surface != img->image) {
+		if (cr) { cairo_destroy(cr); cr = nullptr; }
 		if (surface) cairo_surface_destroy(surface);
-		surface=img->image;
+		surface = img->image;
 		cairo_surface_reference(surface);
 	}
 
 
 	if (!cr) {
-		cr=cairo_create(surface);
+		cr = cairo_create(surface);
 
 		if (!curfont) initFont();
 		cairo_set_font_face(cr,curfont);
@@ -320,13 +313,13 @@ int DisplayerCairo::MakeCurrent(aDrawable *buffer)
 {
 	if (!buffer) { EndDrawing(); return -1; }
 
-	if (cr && cairo_status(cr)!=CAIRO_STATUS_SUCCESS) {
+	if (cr && cairo_status(cr) != CAIRO_STATUS_SUCCESS) {
 		cerr << " *** WARNING!!! cairo in error status: "<<cairo_status_to_string(cairo_status(cr))<<"!! recreating cr..."<<endl;
 		cairo_destroy(cr);
-		cr=nullptr;
+		cr = nullptr;
 	}
 
-	if (cr && surface && buffer==dr && w==buffer->xlibDrawable()) return 0; //already current!
+	if (cr && surface && buffer == dr && w == buffer->xlibDrawable()) return 0; //already current!
 
 	dr = buffer;
 	xw = dynamic_cast<anXWindow*>(buffer);
@@ -353,10 +346,9 @@ int DisplayerCairo::MakeCurrent(aDrawable *buffer)
 
 	if (isinternal) {
 		 //we need to destroy internal, as we are now using external buffer
-		if (cr) { cairo_destroy(cr); cr=nullptr; }
-		if (surface) cairo_surface_destroy(surface);
-		surface=nullptr;
-		isinternal=0;
+		if (cr) { cairo_destroy(cr); cr = nullptr; }
+		if (surface) { cairo_surface_destroy(surface); surface = nullptr; }
+		isinternal = 0;
 	}
 
 #ifdef _LAX_PLATFORM_XLIB
@@ -372,7 +364,7 @@ int DisplayerCairo::MakeCurrent(aDrawable *buffer)
 #endif
 
 	if (!cr) {
-		cr=cairo_create(surface);
+		cr = cairo_create(surface);
 
 		if (!curfont) initFont();
 		cairo_set_font_face(cr,curfont);
@@ -408,8 +400,7 @@ int DisplayerCairo::ClearDrawable(aDrawable *drawable)
 {
 	if (!cr || !surface || drawable!=dr) return 1; //already cleared!
 
-	if (surface) cairo_surface_destroy(surface);
-	surface = nullptr;
+	if (surface) { cairo_surface_destroy(surface); surface = nullptr; }
 	if (cr) { cairo_destroy(cr); cr = nullptr; }
 	isinternal = 0;
 
@@ -450,9 +441,9 @@ int DisplayerCairo::CreateSurface(int width,int height, int type)
 	if (surface) cairo_surface_destroy(surface);
 	if (cr) cairo_destroy(cr);
 
-	isinternal=1;
-	surface=cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width,height);
-	cr=cairo_create(surface);
+	isinternal = 1;
+	surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width,height);
+	cr = cairo_create(surface);
 
 	cairo_matrix_t m;
 	if (real_coordinates) cairo_matrix_init(&m, ctm[0], ctm[1], ctm[2], ctm[3], ctm[4], ctm[5]);
@@ -1243,10 +1234,10 @@ int DisplayerCairo::fontsize(double size)
 	if (!cr) {
 		 //use ref_surface for reference
 		if (!surface && !ref_surface) {
-			ref_surface=cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 10,10);
+			ref_surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 10,10);
 		}
 
-		cr=cairo_create(surface ? surface : ref_surface);
+		cr = cairo_create(surface ? surface : ref_surface);
 		if (!curfont) initFont();
 
 		//DBG cerr <<" fontsize, temp cr, status before set font face:  "<<cairo_status_to_string(cairo_status(cr)) <<endl;
@@ -1333,7 +1324,7 @@ double DisplayerCairo::textextent(LaxFont *thisfont, const char *str,int len, do
 			ref_surface=cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 10,10);
 		}
 
-		cr=cairo_create(surface ? surface : ref_surface);
+		cr = cairo_create(surface ? surface : ref_surface);
 		cairo_matrix_t m;
 		if (real_coordinates) cairo_matrix_init(&m, ctm[0], ctm[1], ctm[2], ctm[3], ctm[4], ctm[5]);
 		else cairo_matrix_init(&m, 1,0,0,1,0,0);
@@ -1384,15 +1375,6 @@ void DisplayerCairo::initFont()
 	//LaxFont *def=anXApp::app->defaultlaxfont;
 	//font("sans","normal",def->textheight());
 	font(anXApp::app->defaultlaxfont, anXApp::app->defaultlaxfont->textheight());
-
-//	if (!cr) {
-//		if (!surface) CreateSurface(50,50,0);
-//	}
-
-//	if (cr) {
-//		cairo_set_font_face(cr, curfont);
-//		cairo_set_font_size(cr, pixelsize);
-//	}
 }
 
 /*! Reallocate text scratch buffer, only when necessary.
@@ -1739,23 +1721,8 @@ int DisplayerCairo::imageout(LaxImage *image, double x,double y, double w,double
 	double sx=w/image->w();
 	double sy=h/image->h();
 
-	//--------------------
-	//cairo_save(cr);
-	//cairo_matrix_t m;
-	//cairo_matrix_init(&m, sx,0,0,-sy, x,y+h);
-    //
-	//cairo_set_source_surface(cr, t, 0,0);
-	//if (mask) cairo_mask_surface(cr,mask,0,0);
-	//else cairo_paint(cr);
-    //
-	//***
-    //
-	//cairo_restore(cr);
-	//--------------------
 	double m[6];
-
 	transform_set(m, sx,0,0,sy, x,y);
-	//transform_set(m, sx,0,0,-sy, x,y+h);
 
 	if (real_coordinates) {
 		PushAndNewTransform(m);
@@ -1770,7 +1737,6 @@ int DisplayerCairo::imageout(LaxImage *image, double x,double y, double w,double
 		imageout(image,0,0);
 		cairo_restore(cr);
 	}
-	//--------------------
 
 	return 0;
 }
@@ -1840,13 +1806,6 @@ void DisplayerCairo::imageout(LaxImage *img,double angle, double x,double y)
  */
 flatpoint DisplayerCairo::realtoscreen(flatpoint p)
 {
-//	if (!cr) MakeCurrent(dr);
-//
-//	if (real_coordinates) {
-//		double x=p.x,y=p.y;
-//		cairo_user_to_device(cr, &x,&y);
-//		return flatpoint(x,y);
-//	}
 	return transform_point(ctm,p);
 } 
 
@@ -1858,67 +1817,31 @@ flatpoint DisplayerCairo::realtoscreen(flatpoint p)
  */
 flatpoint DisplayerCairo::realtoscreen(double x,double y)
 {
-//	if (!cr) MakeCurrent(dr);
-//
-//	if (real_coordinates) {
-//		double xx=x,yy=y;
-//		cairo_user_to_device(cr, &xx,&yy);
-//		return flatpoint(xx,yy);
-//	}
 	return transform_point(ctm,flatpoint(x,y));
 }
 
 //! Convert screen point (x,y) to real coordinates.
 flatpoint DisplayerCairo::screentoreal(int x,int y)
 {
-//	if (!cr) MakeCurrent(dr);
-//
-//	if (real_coordinates) {
-//		double xx=x,yy=y;
-//		cairo_device_to_user(cr, &xx,&yy);
-//		return flatpoint(xx,yy);
-//	}
 	return transform_point(ictm,flatpoint(x,y));
 }
 
 //! Convert screen point to real coordinates.
 flatpoint DisplayerCairo::screentoreal(flatpoint p)
 {
-//	if (!cr) MakeCurrent(dr);
-
-//	if (real_coordinates) {
-//		double xx=p.x,yy=p.y;
-//		cairo_device_to_user(cr, &xx,&yy);
-//		return flatpoint(xx,yy);
-//	}
 	return transform_point(ictm,p);
 }
 
 //! Return a pointer to the current transformation matrix.
 const double *DisplayerCairo::Getctm()
 {
-	//--- bad to rely on cr:
-	//cairo_matrix_t m;
-	//cairo_get_matrix(cr, &m);
-	//transform_set(ctm, m.xx,m.yx, m.xy,m.yy, m.x0,m.y0);
 	return ctm;
 }
 
 //! Return a pointer to the inverse of the current transformation matrix.
 const double *DisplayerCairo::Getictm()
 {
-	//cairo_matrix_t m;
-	//cairo_get_matrix(cr, &m);
-	//cairo_matrix_invert(&m);
-	//transform_set(ictm, m.xx,m.yx, m.xy,m.yy, m.x0,m.y0);
-	//return ictm;
-	//----
-
-	//DBG cerr <<"ictm before: "; dumpctm(ictm);
-
 	transform_invert(ictm,ctm);
-
-	//DBG cerr <<"ictm after sync with ctm: "; dumpctm(ictm);
 	return ictm;
 }
 
@@ -2059,24 +1982,15 @@ void DisplayerCairo::PushAxes()
 {
 	if (cr) cairo_save(cr);
 
-	//DBG flatpoint oldp=transform_point(ctm, flatpoint(0,0));
-
 	double *tctm=new double[6];
 	transform_copy(tctm,ctm);
 	axesstack.push(tctm,2);
-
-	//DBG flatpoint newp=transform_point(ctm, flatpoint(0,0));
-	//DBG double ctmdist=norm(newp-oldp);
-	//DBG if (ctmdist>200) BUG_CATCHER("PushAxes", ctmdist);
 }
 
 //! Recover the last pushed axes. Relying on cr existing is problematic.
 void DisplayerCairo::PopAxes()
 {
 	if (axesstack.n==0) return;
-
-//	----------------------------
-	//DBG flatpoint oldp=transform_point(ctm, flatpoint(0,0));
 
 	if (cr) {
 		cairo_restore(cr);
@@ -2087,11 +2001,6 @@ void DisplayerCairo::PopAxes()
 		transform_copy(ctm,tctm);
 		delete[] tctm;
 	}
-
-	//DBG flatpoint newp=transform_point(ctm, flatpoint(0,0));
-	//DBG double ctmdist=norm(newp-oldp);
-	//DBG if (ctmdist>200) BUG_CATCHER("PopAxes", ctmdist);
-
 
 	transform_invert(ictm,ctm); 
 }

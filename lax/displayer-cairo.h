@@ -95,7 +95,6 @@ class DisplayerCairo : public Displayer
 	 //@{ 
 	virtual void SwapBuffers();
 	virtual void BackBuffer(int on);
-	//virtual void WrapWindow(anXWindow *nw);
 	virtual int StartDrawing(aDrawable *buffer);
 	virtual int MakeCurrent(aDrawable *buffer);
 	virtual int MakeCurrent(LaxImage *buffer);
