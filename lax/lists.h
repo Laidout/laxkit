@@ -24,10 +24,6 @@
 
 namespace Laxkit {
 
-#ifndef NULL
-#define NULL 0
-#endif
-
 
 //------------------------------- NumStack --------------------------------------
 
@@ -39,7 +35,7 @@ class NumStack
  public:
 	int n;
 	T *e;
-	NumStack() : delta(10), max(0), n(0),e(NULL) {}
+	NumStack() : delta(10), max(0), n(0),e(nullptr) {}
 	NumStack(const NumStack &numstack); // copy constructor
 	NumStack &operator=(NumStack &numstack); // equals operator
 	const NumStack &operator=(const NumStack &numstack); // equals operator
@@ -58,7 +54,7 @@ class NumStack
 	virtual int Delta() { return delta; }
 	virtual int Allocated() { return max; }
 	virtual int Allocate(int newmax);
-	virtual T *extractArray(int *nn=NULL);
+	virtual T *extractArray(int *nn=nullptr);
 	virtual int insertArray(T *a,int nn);
 };
 
@@ -67,10 +63,10 @@ class NumStack
 
 // NOTE: these numbers should not change, they are, alas, hardcoded in many places
 enum ListsDeleteType {
-	LISTS_DELETE_None=0,
-	LISTS_DELETE_Single=1,
-	LISTS_DELETE_Array=2,
-	LISTS_DELETE_Refcount=3,
+	LISTS_DELETE_None     = 0,
+	LISTS_DELETE_Single   = 1,
+	LISTS_DELETE_Array    = 2,
+	LISTS_DELETE_Refcount = 3,
 	LISTS_DELETE_MAX
 };
 
@@ -85,30 +81,31 @@ class PtrStack
 	char *islocal;
 	int n;
 	T **e;
-	PtrStack(char nar=LISTS_DELETE_Single);
+	PtrStack(char nar = LISTS_DELETE_Single);
 	virtual ~PtrStack();
-	virtual T *operator[](int i) { if (i>=0 && i<n) return e[i]; else return NULL; }
+	virtual T *operator[](int i) { if (i>=0 && i<n) return e[i]; else return nullptr; }
 	virtual void flush();
 	virtual int howmany() { return n; }
 	virtual void swap(int i1,int i2);
 	virtual void slide(int i1,int i2);
 	virtual int push(T *nd,char local=-1,int where=-1);
-	virtual int popp(T *topop,int *local=NULL);
-	virtual int pop(T *&popped,int which=-1,int *local=NULL);
-	virtual T *pop(int which=-1,int *local=NULL); // -1 means from the end, <-1 means return NULL
+	virtual int popp(T *topop,int *local=nullptr);
+	virtual int pop(T *&popped,int which=-1,int *local=nullptr);
+	virtual T *pop(int which=-1,int *local=nullptr); // -1 means from the end, <-1 means return nullptr
 	virtual int findindex(T *t);
 	virtual int remove(int which); // which is index
 	virtual int remove(T *t);
 	virtual int pushnodup(T *nd,char local,int where=-1);
 	virtual void Delta(int ndelta) { if (ndelta>=0) delta=ndelta; }
 	virtual int Delta() { return delta; }
-	virtual T **extractArrays(char **local=NULL,int *nn=NULL);
+	virtual T **extractArrays(char **local=nullptr,int *nn=nullptr);
 	virtual int insertArrays(T **a,char *nl,int nn);
 	virtual int Allocated();
 	virtual int Allocate(int newmax);
 };
 
 } // namespace Laxkit;
+
 
 #ifdef LAX_LISTS_SOURCE_TOO
 #include <lax/lists.cc>

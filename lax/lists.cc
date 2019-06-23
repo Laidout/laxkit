@@ -1,5 +1,5 @@
 //
-//	
+//
 //    The Laxkit, a windowing toolkit
 //    Please consult https://github.com/Laidout/laxkit about where to send any
 //    correspondence about this software.
@@ -33,6 +33,9 @@
 #include <cstring>
 
 
+#define DBG
+#include <iostream>
+using namespace std;
 
 
 namespace Laxkit {
@@ -43,9 +46,9 @@ namespace Laxkit {
  *
  * The templates defined by Laxkit are a basic stack (NumStack, by value, not pointers), a pointer stack (PtrStack),
  * a reference counting pointer stack (RefCounter).
- * 
+ *
  * Please note that stacks replace its entire array when necessary, pop does not necessarily make new array.
- * 
+ *
  * If you have a huge stack of objects, these classes are probably not the best things to use.
  *
  * \todo implement a doubly linked list of pointers (PtrList).
@@ -58,7 +61,7 @@ namespace Laxkit {
  * IMPORTANT: Do not use this to stack classes that have special allocations in them!! Internally,
  * this class uses memcpy and memmove to work on its elements. It does not trigger any assingment
  * operator.
- * 
+ *
  * The internal array has max elements allocated. When an item is pushed, and the number of
  * actual elements is greater than max, then the array is reallocated with max+delta spaces.
  * If an element is popped, and the number of elements is less than max-2*delta, then the array
@@ -95,7 +98,7 @@ namespace Laxkit {
  * elements are in e.
  */
 /*! \fn NumStack<T>::NumStack()
- * \brief Constructor, creates null list, n=max=0, e=NULL, delta=10.
+ * \brief Constructor, creates null list, n=max=0, e=nullptr, delta=10.
  */
 
 
@@ -104,7 +107,7 @@ namespace Laxkit {
  */
 template <class T>
 NumStack<T>::NumStack(const NumStack<T> &numstack)
-	: delta(10), max(0), n(0),e(NULL)
+	: delta(10), max(0), n(0),e(nullptr)
 {
 	delta=numstack.delta;
 	if (numstack.e) {
@@ -166,19 +169,19 @@ int NumStack<T>::Allocate(int newmax)
 	return max;
 }
 
-//! Return the e array, and set e to NULL, max=n=0.
+//! Return the e array, and set e to nullptr, max=n=0.
 template <class T>
-T* NumStack<T>::extractArray(int *nn)//n=NULL
+T* NumStack<T>::extractArray(int *nn)//n=nullptr
 {
 	T *ee=e;
 	if (nn) *nn=n;
-	e=NULL;
+	e=nullptr;
 	max=n=0;
 	return ee;
 }
 
 //! Flush, then use a as the new array.
-/*! Note that it is assumed that flush sets e=NULL.
+/*! Note that it is assumed that flush sets e=nullptr.
  * e is then set to a. No element copying is done, the actual
  * array a is used. Does not alter delta, sets max=nn.
  *
@@ -207,7 +210,7 @@ int NumStack<T>::findindex(T t) // returns index of first element equal to t
 	return -2;
 }
 
-//! Swap the elements with indices i1 and i2. 
+//! Swap the elements with indices i1 and i2.
 /*! If i1 or i2 is out of bounds, then substitute the top of the stack for it.
  */
 template <class T>
@@ -220,7 +223,7 @@ void NumStack<T>::swap(int i1,int i2)
 	e[i1]=e[i2];
 	e[i2]=t;
 }
-	
+
 //! Should probably remove this function..
 template <class T>
 T &NumStack<T>::operator[](int i) // *** beware out of bounds values
@@ -229,20 +232,20 @@ T &NumStack<T>::operator[](int i) // *** beware out of bounds values
 	return e[i];
 }
 
-//! Deletes e, sets e=NULL, sets n and max to 0.
+//! Deletes e, sets e=nullptr, sets n and max to 0.
 template <class T>
 void NumStack<T>::flush()
-{	
+{
 	delete[] e;
-	e=NULL;
-	n=0;
-	max=0;
+	e = nullptr;
+	n = 0;
+	max = 0;
 }
 
 //! Just set n to 0. Unlike flush(), do not deallocate e.
 template <class T>
 void NumStack<T>::flush_n()
-{	
+{
 	n=0;
 }
 
@@ -296,7 +299,7 @@ int NumStack<T>::push(T ne,int where) // where=-1, pushes before which
 }
 
 //! Removes an element like pop(), but returns 0 if element found, else 1 if not found.
-template <class T> 
+template <class T>
 int NumStack<T>::remove(int which)
 {
 	if (which<0 || which>=n) return 1;
@@ -305,19 +308,19 @@ int NumStack<T>::remove(int which)
 }
 
 //! Pop which.
-/*! Shrink the array if the new n<max-2*delta. 
+/*! Shrink the array if the new n<max-2*delta.
  * Returns the number of elements on the stack.
  */
-template <class T> 
+template <class T>
 T NumStack<T>::pop(int which) // which=-1
 {
 	T popped=T();
 	if (n==0) return popped;
 	if (which<0 || which>=n) which=n-1;
 	popped=e[which];
-	n--; 
+	n--;
 	if (n<max-2*delta) { // shrink the allocated space
-		if (n==0) { delete[] e; e=NULL; max=0; }
+		if (n==0) { delete[] e; e=nullptr; max=0; }
 		else {
 			max -= delta;
 			T *temp = new T[max];
@@ -329,7 +332,7 @@ T NumStack<T>::pop(int which) // which=-1
 			delete[] e;
 			e=temp;
 		}
-	//} else memmove(e+which,e+which+1,(n-which)*sizeof(T)); 
+	//} else memmove(e+which,e+which+1,(n-which)*sizeof(T));
 	} else for (int c=0; c<n-which; c++) e[which+c] = e[which+1+c];
 	return popped;
 }
@@ -344,9 +347,9 @@ T NumStack<T>::pop(int which) // which=-1
  * actual elements is greater than max, then the array is reallocated with max+delta spaces.
  * If an element is popped, and the number of elements is less than max-2*delta, then the array
  * is reallocated with max-delta spaces.
- * 
+ *
  * If created PtrStack(2), then all the elements are assumed to be arrays, and
- * will be deleted with a call like <tt>delete[] element</tt> rather 
+ * will be deleted with a call like <tt>delete[] element</tt> rather
  * than <tt>delete element</tt>. If PtrStack(1) (the defualt constructor),
  * then default is delete item. If PtrStack(0),
  * then default is to not delete at all.
@@ -354,7 +357,7 @@ T NumStack<T>::pop(int which) // which=-1
  * When elements are pushed, there is the option of
  * specifying that the stack should not delete the element at all. Calling push(blah,1) means
  * that "delete blah" will be called when removing the item or flushing the stack. Calling push(blah,2)
- * means that "delete[] blah" will be called. When push(blah,-1) is called, the value of arrays 
+ * means that "delete[] blah" will be called. When push(blah,-1) is called, the value of arrays
  * is used for its local tag. push(blah, any other number) will result in the element not being
  * delete'd at all.
  */
@@ -388,17 +391,17 @@ T NumStack<T>::pop(int which) // which=-1
  * \brief The default local value for elements of the stack.
  *
  * Uses ListsDeleteType.
- * This should be LISTS_DELETE_Array to delete[] elements, rather than just delete (LISTS_DELETE_Single, the 
+ * This should be LISTS_DELETE_Array to delete[] elements, rather than just delete (LISTS_DELETE_Single, the
  * default) or LIST_DELETE_None to not delete at all.
  */
 /*! \fn PtrStack<T>::PtrStack(char nar)
- * 
+ *
  * nar uses ListsDeleteType.
- * nar should be LISTS_DELETE_Array to delete[] elements, rather than just delete (LISTS_DELETE_Single, the 
+ * nar should be LISTS_DELETE_Array to delete[] elements, rather than just delete (LISTS_DELETE_Single, the
  * default) or LIST_DELETE_None to not delete at all.
  */
 /*! \fn T *PtrStack<T>::operator[](int i)
- * \brief Return pointer to element i, or NULL.
+ * \brief Return pointer to element i, or nullptr.
  */
 
 
@@ -407,19 +410,19 @@ PtrStack<T>::PtrStack(char nar)
 	: max(0),
 	  delta(10),
 	  arrays(nar),
-	  islocal(NULL),
+	  islocal(nullptr),
 	  n(0),
-	  e(NULL)
+	  e(nullptr)
 {}
 
 //! PtrStack Destructor, just calls flush().
 template <class T>
 PtrStack<T>::~PtrStack<T>()
-{ 
-	flush(); 
+{
+	flush();
 }
 
-//! Swap the elements with indices i1 and i2. 
+//! Swap the elements with indices i1 and i2.
 /*! If i1 or i2 is out of bounds, then substitute the top of the stack for it.
  */
 template <class T>
@@ -448,11 +451,11 @@ void PtrStack<T>::slide(int i1,int i2)
 }
 
 //! Flush, then use a as the new array.
-/*! Note that it is assumed that flush sets e and islocal=NULL.
+/*! Note that it is assumed that flush sets e and islocal=nullptr.
  * e is then set to a. No element copying is done, the actual
  * arrays a and nl are used. Does not alter delta, sets max=nn.
  *
- * If nl==NULL, the islocal array is filled with the
+ * If nl==nullptr, the islocal array is filled with the
  * value of the arrays variable.
  *
  * Returns 0 for success, nonzero for error.
@@ -476,40 +479,41 @@ int PtrStack<T>::insertArrays(T **a,char *nl,int nn)
 	return 0;
 }
 
-//! Return the e and islocal arrays, and internally set them to NULL, max=n=0.
-/*! If local==NULL, then just delete local, rather than return it.
+//! Return the e and islocal arrays, and internally set them to nullptr, max=n=0.
+/*! If local==nullptr, then just delete local, rather than return it.
  */
 template <class T>
-T **PtrStack<T>::extractArrays(char **local,int *nn)//local=NULL, nn=NULL
+T **PtrStack<T>::extractArrays(char **local,int *nn)//local=nullptr, nn=nullptr
 {
-	T **ee=e;
-	if (local) *local=islocal;
+	T **ee = e;
+	e = nullptr;
+	if (local) *local = islocal;
+	else delete[] islocal;
+	islocal = nullptr;
 	if (nn) *nn=n;
-	else { delete[] islocal; islocal=NULL; }
-	e=NULL;
-	max=n=0;
+	max = n = 0;
 	return ee;
 }
 
-//! Flush the stack. Makes e==NULL.
+//! Flush the stack. Makes e==nullptr.
 /*! If the element's local==2 then the elements are delete with <tt>delete[]</tt>.
- *  If the local==1 it is just deleted with <tt>delete</tt>. 
+ *  If the local==1 it is just deleted with <tt>delete</tt>.
  *  If the islocal flag for the element is !=1 or 2,
  *  then the element is not delete'd at all.
  */
 template <class T>
 void PtrStack<T>::flush()
-{	
-	if (n==0) return;
-	for (int c=0; c<n; c++) 
+{
+	if (n == 0) return;
+	for (int c=0; c<n; c++)
 		if (e[c]) {
-			if (islocal[c]==LISTS_DELETE_Array) delete[] e[c];
-			else if (islocal[c]==LISTS_DELETE_Single) delete e[c];
+			if (islocal[c] == LISTS_DELETE_Array) delete[] e[c];
+			else if (islocal[c] == LISTS_DELETE_Single) delete e[c];
 		}
-	delete[] e; e=NULL;
-	delete[] islocal; islocal=NULL;
-	n=0;
-	max=0;
+	delete[] e; e = nullptr;
+	delete[] islocal; islocal = nullptr;
+	n = 0;
+	max = 0;
 }
 
 //! Find the index (in the range [0,n-1]) corresponding to the pointer t.
@@ -522,7 +526,7 @@ template <class T>
 int PtrStack<T>::findindex(T *t) // returns index of first element equal to t
 {
 	int c;
-	for (c=0; c<n; c++) if (e[c]==t) return c;
+	for (c=0; c<n; c++) if (e[c] == t) return c;
 	return -2;
 }
 
@@ -540,11 +544,11 @@ int PtrStack<T>::remove(int which) //which=-1
 	if (which<0 || which>=n) which=n-1;
 	if (which<0) return 0;
 
-	char l=islocal[which];
-	T *t=pop(which);
+	char l = islocal[which];
+	T *t = pop(which);
 	if (t) {
-		if (l==LISTS_DELETE_Array) delete[] t;
-		else if (l==LISTS_DELETE_Single) delete t;
+		if (l == LISTS_DELETE_Array) delete[] t;
+		else if (l == LISTS_DELETE_Single) delete t;
 	}
 	if (t) return 1; else return 0; //note t is deleted now, we just want to know if we had an address
 }
@@ -552,7 +556,7 @@ int PtrStack<T>::remove(int which) //which=-1
 //! Pop and delete (according to islocal) the element if it exists in the stack.
 /*! This is basically a convenience function that just returns remove(findindex(t)).
  *
- * Return 1 if an item is removed, else 0. Passing in NULL returns 0.
+ * Return 1 if an item is removed, else 0. Passing in nullptr returns 0.
  */
 template <class T>
 int PtrStack<T>::remove(T *t)
@@ -568,8 +572,8 @@ int PtrStack<T>::remove(T *t)
  *  If local==1, then when the stack flushes or the the element is removed,
  *  then it is delete'd. If local==2, then the element will be delete[]'d.
  *  If local is any other value, then delete is not called on the element.
- *  
- *  Please note that pushing NULL objects is ok.
+ *
+ *  Please note that pushing nullptr objects is ok.
  *
  *  Returns the index of the new element on the stack, or -1 if the push failed.
  */
@@ -577,43 +581,44 @@ template <class T>
 int PtrStack<T>::push(T *ne,char local,int where) // local=-1, where=-1
 {
 	if (where<0 || where>n) where=n;
-	if (local==-1) local=arrays;
-	if (n==0) {
-		n=1;
-		if (max==0) { 
-			if (delta==0) max=1; else max=delta; 
-			e=new T*[max]; 
-			islocal=new char[max];
+	if (local == -1) local=arrays;
+	if (n == 0) {
+		n = 1;
+		if (max == 0) {
+			DBG cerr << "PtrStack::push, max==0 and e: "<<(e ? "NOT NULL" : "null")<<endl;
+			if (delta == 0) max = 1; else max = delta;
+			e = new T*[max]; //e and islocal should always have been null before here
+			islocal = new char[max];
 		}
-		e[0]=ne;
-		islocal[0]=local;
+		e[0] = ne;
+		islocal[0] = local;
 		return 0;
 	}
-	if (n+1>max) {
-		if (delta) max+=delta; else max++;
-		T **temp=new T*[max];
-		char *templ=new char[max];
-		if (where>0) { 
-			memcpy(temp,e,where*sizeof(T*)); 
-			memcpy(templ,islocal,where*sizeof(char)); 
+	if (n+1 > max) {
+		if (delta) max += delta; else max++;
+		T **temp = new T*[max];
+		char *templ = new char[max];
+		if (where > 0) {
+			memcpy(temp, e, where*sizeof(T*));
+			memcpy(templ, islocal, where*sizeof(char));
 		}
-		if (where<n) { 
-			memcpy(temp+where+1,e+where,(n-where)*sizeof(T*)); 
-			memcpy(templ+where+1,islocal+where,(n-where)*sizeof(char)); 
+		if (where < n) {
+			memcpy(temp+where+1,  e+where,       (n-where)*sizeof(T*));
+			memcpy(templ+where+1, islocal+where, (n-where)*sizeof(char));
 		}
-		temp[where]=ne;
-		templ[where]=local;
+		temp[where]  = ne;
+		templ[where] = local;
 		delete[] e;
 		delete[] islocal;
-		e=temp;
-		islocal=templ;
+		e = temp;
+		islocal = templ;
 	} else {
-		if (where<n) {
-			memmove(e+where+1,e+where,(n-where)*sizeof(T*)); 
-			memmove(islocal+where+1,islocal+where,(n-where)*sizeof(char)); 
+		if (where < n) {
+			memmove(e+where+1,       e+where,       (n-where)*sizeof(T*));
+			memmove(islocal+where+1, islocal+where, (n-where)*sizeof(char));
 		}
-		e[where]=ne;
-		islocal[where]=local;
+		e[where] = ne;
+		islocal[where] = local;
 	}
 	n++;
 	return where;
@@ -621,128 +626,131 @@ int PtrStack<T>::push(T *ne,char local,int where) // local=-1, where=-1
 
 //! Pushes an element only if it is not already on the stack.
 /*! Please note that this checks for whether anything on the stack points
- * to the same address that the supplied pointer points to, 
+ * to the same address that the supplied pointer points to,
  * (address equality) NOT whether the contents of whatever the pointer points to match
- * the contents of any element on the stack (content equality).  
+ * the contents of any element on the stack (content equality).
  *
  * If item already exists, where is ignored... should it cause a swap instead?
  *
  * local is interpreted same way as in normal push(): -1 use default, 1 delete item,
  * 2 delete[] item. Other value, don't delete item.
  *
- * Returns -1 if the item was pushed, otherwise the index of the item in the stack. 
+ * Returns -1 if the item was pushed, otherwise the index of the item in the stack.
  */
 template <class T>
 int PtrStack<T>::pushnodup(T *ne,char local,int where)//where=-1
 {
 	int c;
-	for (c=0; c<n; c++) if (e[c]==ne) break;
-	if (c==n) { push(ne,local,where); return -1; }
+	for (c=0; c<n; c++) if (e[c] == ne) break;
+	if (c == n) { push(ne,local,where); return -1; }
 	return c;
 }
 
 //! Pop the first item that points where topop points.
 /*! Return 1 if item popped, else 0.
  *
- * If local!=NULL, then put whether the item was local there.
+ * If local!=nullptr, then put whether the item was local there.
  */
-template <class T> 
-int PtrStack<T>::popp(T *topop,int *local) 
+template <class T>
+int PtrStack<T>::popp(T *topop,int *local)
 {
 	int c;
-	for (c=0; c<n; c++) if (e[c]==topop) break;
-	if (c==n) return 0;
+	for (c=0; c<n; c++) if (e[c] == topop) break;
+	if (c == n) return 0;
 	pop(c,local);
 	return 1;
 }
 
 //! Pop element with index which, or the top if which not specified
 /*! If which==-1 (the default) then pop off the top (highest index) of the stack.
- * If which==-2, do nothing (see findindex()) and return NULL.
- * 
- * \return Returns the popped pointer, or NULL on error.
+ * If which==-2, do nothing (see findindex()) and return nullptr.
  *
- * If local!=NULL, then put whether the item was local there.
+ * \return Returns the popped pointer, or nullptr on error.
+ *
+ * If local!=nullptr, then put whether the item was local there.
  */
-template <class T> 
-T *PtrStack<T>::pop(int which,int *local) // which==-1,local=NULL
+template <class T>
+T *PtrStack<T>::pop(int which,int *local) // which==-1,local=nullptr
 {
-	if (which<-1 || n==0) return NULL;
-	if (which<0 || which>=n) which=n-1;
-	T *popped=e[which];
-	if (local) *local=islocal[which];
+	if (which < -1 || n == 0) return nullptr;
+	if (which < 0 || which >= n) which = n-1;
+	T *popped = e[which];
+	if (local) *local = islocal[which];
 	n--;
-	if (n<max-2*delta) { // shrink the allocated space
-		if (n==0) { delete[] e; e=NULL; delete[] islocal; islocal=NULL; max=0; }
-		else {
-			max-=delta;
-			T **temp=new T*[max];
-			char *templ=new char[max];
-			if (which>0) { 
-				memcpy(temp,e,which*sizeof(T*));
-				memcpy(templ,islocal,which*sizeof(char)); 
+	if (n < max-2*delta) { // shrink the allocated space
+		if (n == 0) {
+			delete[] e; e=nullptr;
+			delete[] islocal; islocal=nullptr;
+			max = 0;
+		} else {
+			max -= delta;
+			T **temp = new T*[max];
+			char *templ = new char[max];
+			if (which > 0) {
+				memcpy(temp, e, which*sizeof(T*));
+				memcpy(templ, islocal, which*sizeof(char));
 			}
-			if (which<n) {
-				memcpy(temp+which,e+which+1,(n-which)*sizeof(T*)); 
-				memcpy(templ+which,islocal+which+1,(n-which)*sizeof(char)); 
+			if (which < n) {
+				memcpy(temp+which, e+which+1, (n-which)*sizeof(T*));
+				memcpy(templ+which, islocal+which+1, (n-which)*sizeof(char));
 			}
 			delete[] e;
 			delete[] islocal;
-			e=temp;
-			islocal=templ;
+			e = temp;
+			islocal = templ;
 		}
 	} else {
-		memmove(e+which,e+which+1,(n-which)*sizeof(T*)); 
-		memmove(islocal+which,islocal+which+1,(n-which)*sizeof(char)); 
+		memmove(e+which, e+which+1, (n-which)*sizeof(T*));
+		memmove(islocal+which, islocal+which+1, (n-which)*sizeof(char));
 	}
 	return popped;
 }
 
 //! Pop element with index which (defaults to top), and make popped point to it.
-/*! If there is no element to return, popped is set to NULL. If which is out of
+/*! If there is no element to return, popped is set to nullptr. If which is out of
  *  bounds, then the top most element is popped.
  *
- * If local!=NULL, then put whether the item was local there.
- *  
+ * If local!=nullptr, then put whether the item was local there.
+ *
  * Returns the number of elements still in the stack.
  */
-template <class T> 
-int PtrStack<T>::pop(T *&popped,int which,int *local) // which=-1,local=NULL 
+template <class T>
+int PtrStack<T>::pop(T *&popped,int which,int *local) // which=-1,local=nullptr
 {
-	if (n==0) { popped=NULL; return 0; }
-	popped=pop(which,local);
+	if (n == 0) { popped = nullptr; return 0; }
+	popped = pop(which,local);
 	return n;
 }
 
 /*! Return the number of item pointers currently allocated.
  * This is just this->max.
  */
-template <class T> 
+template <class T>
 int PtrStack<T>::Allocated()
 { return max; }
 
 //! Ensure that the number of allocated is at least newmax.
 /*! If newmax<max, then nothing is done and max is returned.
  * The new (or old) number of allocated elements is returned.
- * Elements beyond n are initialized to NULL.
+ * Elements beyond n are initialized to nullptr.
  */
 template <class T>
 int PtrStack<T>::Allocate(int newmax)
 {
-	if (newmax<max) return max;
+	if (newmax < max) return max;
 
-	T **newt=new T*[newmax];
-	if (n) memcpy(newt,e,n*sizeof(T*));
+	T **newt = new T*[newmax];
+	if (n) memcpy(newt, e, n*sizeof(T*));
 	delete[] e;
-	e=newt;
+	e = newt;
 
-	char *templ=new char[max];
-	if (n) memcpy(templ,islocal,n*sizeof(char)); 
+	char *templ = new char[max];
+	if (n) memcpy(templ,islocal,n*sizeof(char));
 	delete[] islocal;
-	islocal=templ;
+	islocal = templ;
 
-	max=newmax;
-	for (int c=n; c<max; c++) e[c]=NULL;
+	max = newmax;
+	for (int c=n; c<max; c++) e[c] = nullptr;
 
 	return max;
 }
