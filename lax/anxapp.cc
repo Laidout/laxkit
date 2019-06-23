@@ -17,7 +17,7 @@
 //    You should have received a copy of the GNU Library General Public
 //    License along with this library; If not, see <http://www.gnu.org/licenses/>.
 //
-//    Copyright (C) 2004-2013 by Tom Lechner
+//    Copyright (C) 2004-2019 by Tom Lechner
 //
 
  
@@ -67,7 +67,6 @@
 #endif
 
 
-
 #include <lax/anxapp.h>
 #include <lax/laxutils.h>
 #include <lax/strmanip.h>
@@ -76,9 +75,10 @@
 #include <lax/laxutils.h>
 #include <lax/mouseshapes.h>
 
-//template instantiations:
+//template implementations:
 #include <lax/lists.cc>
 #include <lax/refptrstack.cc>
+
 
 #include <iostream>
 using namespace std;
@@ -93,22 +93,13 @@ using namespace std;
  * <pre>
  *  TODO:
  * 
- * 
- * *** VITAL!! improve focus handling, which currently REALLY SUCKS!
+ * *** Improve focus handling.
  * ***  if leave a window, then enter again, put focus on what was focused last
  * ***  focus handling generally pretty bad.
- * ***  AFTER_CLICK_FOCUS???
  * *** shortcuts, an event catch-all, if events propagate past topwindows.
- * *** cooperate somewhat with various freedesktop.org guidelines
- * ***    and/or import and export to how those guidelines say to keep track of things.
- * *** readup window classes and imp as per said guidelines
- * *** support for joysticks, wiimotes, tuio, osc, other
- * *** gl, fontconfig/freetype support?
+ * *** readup window classes and imp as per said guidelines, see freedesktop.org for various specs
+ * *** gl, better fontconfig/freetype support
  * *** be able to ensure some degree of thread safety
- * 
- * *** WM_ICON_NAME, XGetIconSizes, ...
- * *** WM_ICON_SIZE <- usually set by window manager?
- * *** urgent hint in XWMHints??
  * 
  * *** think some more about fltk's callbacks and gtkmm signal connecting... could implement something
  * sort of similar (see ShortCut/action stuff shortcut.cc)
@@ -529,11 +520,11 @@ anXApp::anXApp()
 	idleclk  = sysconf(_SC_CLK_TCK)/15;
 	DBG cerr <<"_SC_CLK_TCK="<<sysconf(_SC_CLK_TCK)<<"  dblclk:"<<dblclk<<" firstclk:"<<firstclk<<" idleclk:"<<idleclk<<endl;
 
-	fontmanager=NULL;
-	defaultlaxfont=NULL;
+	fontmanager    = NULL;
+	defaultlaxfont = NULL;
 
-	textfontstr   =newstr("sans-12");
-	controlfontstr=newstr("sans-12");
+	textfontstr    = newstr("sans-12");
+	controlfontstr = newstr("sans-12");
 
 	//default_border_width=1;
 	//default_padx=5;
@@ -559,6 +550,7 @@ anXApp::~anXApp()
 	delete[] default_language;
 	delete[] default_icon_file;
 	delete[] app_profile;
+	delete[] textfontstr;
 	if (load_dir) delete[] load_dir;
 	if (save_dir) delete[] save_dir;
 	if (controlfontstr) delete[] controlfontstr;
