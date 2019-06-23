@@ -401,9 +401,6 @@ LaxImage *GeneratePreview(LaxImage *image, int width, int height, int fit)
  */
 
 
-ImageLoader *ImageLoader::loaders = NULL;
-
-
 ImageLoader::ImageLoader(const char *newname, int nformat)
   : name(newstr(newname)),
 	format(nformat),
@@ -478,7 +475,8 @@ ImageLoader *ImageLoader::GetLoaderByIndex(int which)
 }
 
 
-SingletonKeeper loaderKeeper;
+ImageLoader *ImageLoader::loaders = NULL;
+static SingletonKeeper loaderKeeper;
 
 
 /*! Static function to add loader to list of available loaders.
@@ -524,15 +522,15 @@ int ImageLoader::AddLoader(ImageLoader *loader, int where)
  */
 int ImageLoader::RemoveLoader(int which)
 {
-	ImageLoader *loader=GetLoaderByIndex(which);
+	ImageLoader *loader = GetLoaderByIndex(which);
 	if (!loader) return 1;
 
 	if (which==0) loaders=loaders->next;
 
 	if (loader->prev) loader->prev->next = loader->next;
 	if (loader->next) loader->next->prev = loader->prev;
-	loader->next=loader->prev=NULL;
-	if (loaders == NULL) loaderKeeper.SetObject(NULL, false);
+	loader->next = loader->prev = nullptr;
+	if (loaders == nullptr) loaderKeeper.SetObject(nullptr, false);
 	else loader->dec_count();
 
 	return 0;
@@ -543,9 +541,8 @@ int ImageLoader::RemoveLoader(int which)
 int ImageLoader::FlushLoaders()
 {
 	if (loaders) {
-		loaderKeeper.SetObject(NULL, false);
-		//loaders->dec_count();
-		loaders=NULL;
+		loaderKeeper.SetObject(nullptr, false);
+		loaders = nullptr;
 	}
 	return 0;
 }
