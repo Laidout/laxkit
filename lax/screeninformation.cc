@@ -38,14 +38,14 @@ namespace Laxkit {
 ScreenInformation *ScreenInformation::Get(char *which)
 {
 	if (which == nullptr || which[0]=='\0') return nullptr;
-	if (!strcmp(which, name)) return this;
+	if (name && !strcmp(which, name)) return this;
 	if (!next) return nullptr;
 	return next->Get(which);
 }
 
 ScreenInformation::~ScreenInformation()
 {
-	delete name;
+	delete[] name;
 	if (next) delete next;
 }
 
