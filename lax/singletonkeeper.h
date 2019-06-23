@@ -30,10 +30,10 @@ namespace Laxkit {
 
 /*! \class SingletonKeeper
  *
- * Automate singleton removal.. not sure if this is a good idea, but damned if it doesn't make
+ * Automate singleton management.. not sure if this is a good idea, but damned if it doesn't make
  * resource management easier.
  *
- * Meant to be a value object, so it finally deletes when it goes out of context at program end.
+ * Meant to be a value object, so it finally deletes when it goes out of scope at program end.
  */
 class SingletonKeeper
 {
@@ -41,22 +41,18 @@ class SingletonKeeper
 	anObject *object;
 
   public:
-	SingletonKeeper(anObject *obj=NULL, bool absorb=false) { object=obj; if (object && !absorb) object->inc_count(); }
+	SingletonKeeper(anObject *obj = nullptr, bool absorb = false) { object = obj; if (object && !absorb) object->inc_count(); }
 	~SingletonKeeper() { if (object) object->dec_count(); } //this happens on going out of scope
 	anObject *GetObject() { return object; }
 	void SetObject(anObject *nobj, bool absorb) {
 		if (object) object->dec_count();
-		object=nobj;
+		object = nobj;
 		if (object && !absorb) object->inc_count();
 	}
 };
 
-//SingletonDestroyer colormanagerkeeper;
-//... then the static GetDefault()/SetDefault() will update colormanagerkeeper
-//... so ColorManager not created initially, but once it is created somewhere else,
-//... it will be removed when colormanagerkeeper goes out of scope, ie at program termination
-
 } // namespace Laxkit
+
 
 #endif
 
