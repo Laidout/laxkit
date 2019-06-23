@@ -122,6 +122,7 @@ CurveInfo::~CurveInfo()
 	if (xlabel) delete[] xlabel;
 	if (ylabel) delete[] ylabel;
 	if (title ) delete[] title;
+	delete[] lookup;
 	
 	if (guides) delete guides;
 }
