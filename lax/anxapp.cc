@@ -545,6 +545,7 @@ anXApp::~anXApp()
 {
 	close();
 
+
 	if (default_icon) default_icon->dec_count();
 
 	delete[] default_language;
@@ -1016,12 +1017,12 @@ int anXApp::close()
 	 //not necessarily x dependent stuff:
 	if (fontmanager) { delete fontmanager; fontmanager=NULL; }
 
-	if (!dpy) return 0;
 
-
-	 //close all x dependent stuff:
+	 //close all window dependent stuff:
 
 	SetDefaultDisplayer(NULL);
+
+	if (defaultlaxfont) { defaultlaxfont->dec_count(); defaultlaxfont=NULL; }
 
 	 //-------close down any device manager
 	if (devicemanager) { delete devicemanager; devicemanager=NULL; }
@@ -1030,9 +1031,9 @@ int anXApp::close()
 	 // topwindows autodestructs, but must call any remaining necessary XDestroyWindow
 	for (int c=0; c<topwindows.howmany(); c++) {
 #ifdef _LAX_PLATFORM_XLIB
-		if (topwindows.e[c]->xlib_window!=0) {
+		if (topwindows.e[c]->xlib_window != 0) {
 			XDestroyWindow(dpy,topwindows.e[c]->xlib_window); // also destroys sub(Window)s
-			topwindows.e[c]->xlib_window=0;
+			topwindows.e[c]->xlib_window = 0;
 		}
 #endif //_LAX_PLATFORM_XLIB
 	}
@@ -1055,16 +1056,18 @@ int anXApp::close()
 		xim=NULL; 
 	}
 
+	if (xim_fontset) {
+		XFreeFontSet(dpy, xim_fontset);
+		xim_fontset = nullptr;
+	}
+
 	 //------------close display
-	DBG cerr <<"closing display.."<<endl;
-	XCloseDisplay(dpy);
+	if (dpy) {
+		DBG cerr <<"closing display.."<<endl;
+		XCloseDisplay(dpy);
+		dpy = nullptr;
+	}
 #endif //_LAX_PLATFORM_XLIB
-
-	 //--------destroy any x dependent things
-	if (defaultlaxfont) { defaultlaxfont->dec_count(); defaultlaxfont=NULL; }
-
-	dpy=NULL; 
-	DBG cerr <<"closing display done."<<endl;
 
 
 	return 0;
