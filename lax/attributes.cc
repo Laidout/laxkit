@@ -2598,7 +2598,7 @@ Attribute *XMLChunkToAttribute(Attribute *att,
 			if (c==c2) {
 				makestr(error,"Empty Tag! Aborting..");
 				break;
-			} else name=newnstr(buf+c2,c-c2);
+			} else name = newnstr(buf+c2,c-c2);
 			att->push(name);
 			
 			 //detect <?... ?> and <!...> and <!--...-->
@@ -2610,6 +2610,7 @@ Attribute *XMLChunkToAttribute(Attribute *att,
 				makenstr(att->attributes.e[att->attributes.n-1]->value,buf+c,c2);
 				c=c+c2+3;
 				if (c>n) c=n;
+				delete[] name; name = nullptr;
 				continue;
 			} else if (name[0]=='!') {
 				final='!';
@@ -2688,8 +2689,10 @@ Attribute *XMLChunkToAttribute(Attribute *att,
 			}
 
 		} else c++; //was at final char, which was a '<'
+
+		delete[] name;  name = nullptr;
 	}
-	DBG if (error) cerr <<"XML-in error: "<<error<<" near "<<(name?name:"unknown")<<endl;
+	DBG if (error) cerr <<"XML-in error: "<<error<<endl;
 	 
 	 //slightly flatten attribute for simple values, so
 	 //<title>blah</title> -->  name=title, value=blah
@@ -2805,6 +2808,7 @@ Attribute *InlineCSSToAttribute (const char *thecss, Attribute *att)
 		delete[] namevalue;
 	}
 
+	delete[] css;
 	delete[] strs;
 
 	//------------------
