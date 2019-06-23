@@ -157,7 +157,7 @@ Utf8String::Utf8String(const char *fmt, ...)
 {
     va_list arg;
     va_start(arg, fmt);
-    int c = vsnprintf(NULL, 0, fmt, arg);
+    int c = vsnprintf(nullptr, 0, fmt, arg);
     va_end(arg);
 
 	bytes_allocated = c+1+10;
@@ -223,8 +223,8 @@ void Utf8String::InsertBytes(char *newstr, int len)
 	if (len<0) len = strlen(newstr);
 	num_bytes = len;
 	bytes_allocated = len+1;
-	updateNumChars();
 	s = newstr;
+	updateNumChars();
 }
 
 void Utf8String::Clear()
@@ -376,7 +376,7 @@ void Utf8String::Sprintf(const char *fmt, ...)
 {
     va_list arg;
     va_start(arg, fmt);
-    int c = vsnprintf(NULL, 0, fmt, arg);
+    int c = vsnprintf(nullptr, 0, fmt, arg);
     va_end(arg);
 
 	if (s && c+1 > bytes_allocated) {
@@ -549,7 +549,7 @@ void Utf8String::RTrim()
 	while (num_bytes > 0 && isspace(s[num_bytes-1])) num_bytes--;
 }
 
-/*! Return null terminated list of splits. Returns NULL if none.
+/*! Return null terminated list of splits. Returns nullptr if none.
  * Optionally return the number of strings in num_ret, not including the terminating null.
  */
 Utf8String *Utf8String::Split(const char *on_this, int *num_ret)
