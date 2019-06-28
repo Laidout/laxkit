@@ -193,6 +193,7 @@ Color::Color(const Color &c)
 	if (system) colorsystemid = system->SystemId();
 	else colorsystemid = c.colorsystemid;
 	color_type = c.color_type;
+	screen = c.screen;
 	alpha = c.alpha;
 	makestr(name,c.name);
 
@@ -215,6 +216,7 @@ Color &Color::operator=(Color &c)
 	else colorsystemid = c.colorsystemid;
 	color_type = c.color_type;
 	alpha = c.alpha;
+	screen = c.screen;
 	makestr(name,c.name);
 	if (nvalues>c.nvalues) {
 		delete[] values;
