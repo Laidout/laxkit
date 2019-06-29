@@ -69,7 +69,7 @@ namespace Laxkit {
 SimpleColorEventData::SimpleColorEventData()
 {
 	numchannels=0;
-	channels=NULL;
+	channels=nullptr;
 	colorsystem=0;
 	colorspecial=0;
 	max=0;
@@ -138,7 +138,7 @@ double SimpleColorEventData::Valuef(int i) const
 ColorEventData::ColorEventData()
 {
 	id=info=0;
-	color=NULL;
+	color=nullptr;
 	type=LAX_ColorEvent;
 }
 
@@ -167,13 +167,13 @@ ColorEventData::~ColorEventData()
 
 Color::Color()
 {
-	colorsystemid = 0;
-	color_type = COLOR_Normal;
-	system  = NULL;
-	nvalues = 0;
-	alpha   = 1.0;
-	values  = NULL;
-	name    = NULL;
+    colorsystemid = 0;
+    color_type    = COLOR_Normal;
+    system        = nullptr;
+    nvalues       = 0;
+    alpha         = 1.0;
+    values        = nullptr;
+    name          = nullptr;
 }
 
 Color::~Color()
@@ -184,6 +184,7 @@ Color::~Color()
 }
 
 Color::Color(const Color &c)
+  : Color()
 {
 	if (system!=c.system) {
 		if (system) system->dec_count();
@@ -195,7 +196,7 @@ Color::Color(const Color &c)
 	color_type = c.color_type;
 	screen = c.screen;
 	alpha = c.alpha;
-	makestr(name,c.name);
+	name = newstr(c.name);
 
 	nvalues = c.nvalues;
 	if (nvalues) {
@@ -290,7 +291,7 @@ double Color::ChannelValue(int channel, double newvalue)
 	return newvalue;
 }
 
-/*! Return name if not NULL, otherwise return Id().
+/*! Return name if not nullptr, otherwise return Id().
  */
 const char *Color::Name()
 {
@@ -298,7 +299,7 @@ const char *Color::Name()
 	return name;
 }
 
-/*! Return system->object_id or colorsytemid if system==NULL;
+/*! Return system->object_id or colorsytemid if system==nullptr;
  */
 int Color::ColorSystemId()
 {
@@ -318,7 +319,7 @@ int Color::UpdateToSystem(Color *color)
 
 		if (nvalues != color->NumChannels()) {
 			delete[] values;
-			values=NULL;
+			values=nullptr;
 			nvalues=color->NumChannels();
 
 			if (nvalues) {
@@ -355,7 +356,7 @@ void Color::InstallSystem(ColorSystem *newsystem)
 
 	if (nvalues != system->NumChannels()) {
 		delete[] values;
-		values=NULL;
+		values=nullptr;
 		nvalues = system->NumChannels();
 
 		if (nvalues) {
@@ -376,8 +377,8 @@ char *Color::dump_out_simple_string()
 
 /*! For instance, an sRGB might be output as "rgbaf(1.0, 0.0, 0.0, .5)".
  *
- * If system!=NULL, then use system->shortname as the base.
- * If system==NULL, then assume rgb.
+ * If system!=nullptr, then use system->shortname as the base.
+ * If system==nullptr, then assume rgb.
  *
  * If color==null or n is less than the number of chars needed, return the number needed.
  */
@@ -400,7 +401,7 @@ int Color::dump_out_simple_string(char *color, int n)
 			return strlen(color);
 		}
 
-		const char *base=NULL;
+		const char *base=nullptr;
 		int hasalpha=1;
 
 		if (system) {
@@ -517,7 +518,7 @@ void Color::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext
 
 		} else if (!strcmp(name,"values")) {
 			int nn=0;
-			double *list=NULL;
+			double *list=nullptr;
 			DoubleListAttribute(value,&list,&nn);
 			if (nn) {
 				nvalues=nn;
@@ -552,7 +553,7 @@ void Color::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext
 ColorRef::ColorRef(Color *newcolor)
 {
 	state=-1;
-	color=NULL;
+	color=nullptr;
 	Reference(newcolor);
 }
 
@@ -603,7 +604,7 @@ double ColorRef::ChannelValue(int channel, double newvalue)
 }
 
 /*! Change the color that this ColorRef references.
- * Incs newcolor. If newcolor is NULL, nothing is done.
+ * Incs newcolor. If newcolor is nullptr, nothing is done.
  * Return 0 for changed (or newcolor was already the color), 1 for not changed.
  */
 int ColorRef::Reference(Color *newcolor)
@@ -664,7 +665,7 @@ void ColorRef::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpCont
 
 ColorPrimary::ColorPrimary()
 {
-	name=NULL;
+	name=nullptr;
 	minvalue=0;
 	maxvalue=1;
 }
@@ -693,9 +694,9 @@ ColorPrimary::~ColorPrimary()
 
 ColorSystem::ColorSystem()
 {
-	name = NULL;
-	shortname = NULL;
-	//iccprofile = NULL;
+	name = nullptr;
+	shortname = nullptr;
+	//iccprofile = nullptr;
 	style = 0;
 }
 
@@ -1009,7 +1010,7 @@ Color *ColorManager::newColor(int systemid, int nvalues, ...)
 	va_list argptr;
 	va_start(argptr, nvalues);
 
-	Color *color=NULL;
+	Color *color=nullptr;
 	for (int c=0; c<manager->systems.n; c++) {
 		if (systemid == manager->systems.e[c]->SystemId()) {
 			color=manager->systems.e[c]->newColor(nvalues, argptr);
