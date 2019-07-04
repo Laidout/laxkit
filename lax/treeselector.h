@@ -73,15 +73,16 @@ namespace Laxkit {
 #define TREESEL_SEND_STRINGS         (1LL<<30)
 #define TREESEL_SEND_PATH            (1LL<<31)
 #define TREESEL_SEND_DETAIL          (1LL<<32)
-#define TREESEL_DESTROY_ON_UP        (1LL<<33)
+#define TREESEL_SEND_HOVERED         (1LL<<33)
+#define TREESEL_DESTROY_ON_UP        (1LL<<34)
 
-#define TREESEL_GRAPHIC_ON_RIGHT     (1LL<<34) //else on left
-#define TREESEL_NO_LINES             (1LL<<35)
-#define TREESEL_FLAT_COLOR           (1LL<<36)
-#define TREESEL_DONT_EXPAND          (1LL<<37)
+#define TREESEL_GRAPHIC_ON_RIGHT     (1LL<<35) //else on left
+#define TREESEL_NO_LINES             (1LL<<36)
+#define TREESEL_FLAT_COLOR           (1LL<<37)
+#define TREESEL_DONT_EXPAND          (1LL<<38)
 
-#define TREESEL_SUB_FOLDER           (1LL<<38) //arrow graphic is a little folder
-#define TREESEL_SUB_ON_RIGHT         (1LL<<39) //draw the submenu indicator on far right side
+#define TREESEL_SUB_FOLDER           (1LL<<39) //arrow graphic is a little folder
+#define TREESEL_SUB_ON_RIGHT         (1LL<<40) //draw the submenu indicator on far right side
 
 //... remember that the buck stops with (1<<63)
 
@@ -131,7 +132,7 @@ class TreeSelector : public ScrolledWindow
 	virtual int findmaxwidth(int s,int e, int *h_ret);
 	virtual int findColumnWidth(int which);
 
-	virtual int send(int deviceid);
+	virtual int send(int deviceid, bool forhovered = false);
 	virtual void addselect(int i,unsigned int state);
 	virtual int findItem(int x,int y, int *onsub);
 	virtual int findColumn(int x);
@@ -187,7 +188,7 @@ class TreeSelector : public ScrolledWindow
 	TreeSelector(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
 				int xx,int yy,int ww,int hh,int brder,
 				anXWindow *prev, unsigned long nowner=0, const char *mes=0,
-				unsigned long long nmstyle=0, MenuInfo *minfo=NULL); 
+				unsigned long long nmstyle=0, MenuInfo *minfo = nullptr); 
 	virtual ~TreeSelector();
 	virtual int init();
 	virtual void Refresh();
@@ -208,7 +209,7 @@ class TreeSelector : public ScrolledWindow
 	virtual int FocusOff(const FocusChangeData *e);
 	virtual int Event(const EventData *e,const char *mes);
 	virtual int WrapToMouse(int mouseid, anXWindow *onedgeofthis=0);
-	virtual int WrapToPosition(int screen_x, int screen_y, int screen, anXWindow *onedgeofthis=NULL);
+	virtual int WrapToPosition(int screen_x, int screen_y, int screen, anXWindow *onedgeofthis = nullptr);
 
 	virtual void       dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *savecontext);
     virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *savecontext); 

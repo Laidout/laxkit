@@ -310,8 +310,8 @@ void TreeSelector::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::Dump
 		if (!strcmp(name,"columns")) {
 			 //each line is (column name) (column width)
 			for (int c2=0; c2<att->attributes.e[c]->attributes.n; c2++) {
-				name= att->attributes.e[c]->attributes.e[c2]->name;
-				value=att->attributes.e[c]->attributes.e[c2]->value;
+				name  = att->attributes.e[c]->attributes.e[c2]->name;
+				value = att->attributes.e[c]->attributes.e[c2]->value;
 
 				DBG cerr << " *** need to finish implementing reading in column positions for TreeSelector"<<endl;
 
@@ -597,12 +597,12 @@ void TreeSelector::RemapColumns()
 	double pos=0;
 	int nfills=0;
 	for (int c=0; c<columns.n; c++) {
-		//if (columns.e[c]->width<=0) {
-			columns.e[c]->width=findColumnWidth(c);
-			if (columns.e[c]->width_type==1) nfills++;
-			//if (columns.e[c]->width<=0) columns.e[c]->width=100;
-		//}
-		columns.e[c]->pos=pos;
+		if (columns.e[c]->width<=0) {
+			columns.e[c]->width = findColumnWidth(c);
+			if (columns.e[c]->width_type == 1) nfills++;
+			//if (columns.e[c]->width<=0) columns.e[c]->width = 100;
+		}
+		columns.e[c]->pos = pos;
 		pos += columns.e[c]->width;
 		totalwidth += columns.e[c]->width;
 	}
@@ -1475,7 +1475,7 @@ void TreeSelector::SendDetail(int which)
  * \todo *** there needs to be option to send id or list of ids..
  * \todo maybe send device id of the device that triggered the send
  */
-int TreeSelector::send(int deviceid)
+int TreeSelector::send(int deviceid, bool forhovered)
 {
 	DBG cerr <<WindowTitle()<<" send"<<endl;
 	if (!win_owner || !win_sendthis) return 0;
@@ -1510,7 +1510,7 @@ int TreeSelector::send(int deviceid)
 		SimpleMessage *ievent=new SimpleMessage;
 		ievent->info1 = curitem; 
 		ievent->info2 = (curitem>=0 && curitem<numItems() ? itm->id : curitem);
-		ievent->info3 = selection.n;
+		ievent->info3 = forhovered; //old: selection.n;
 		ievent->info4 = (curitem>=0 && curitem<numItems() ? itm->info : 0);
 
         if (menustyle & TREESEL_SEND_PATH) {
@@ -2142,6 +2142,7 @@ int TreeSelector::MouseMove(int x,int y,unsigned int state,const LaxMouse *d)
 					//curitem  = i;
 					ccuritem = i;
 					addselect(ccuritem,0);
+					if (HasStyle(TREESEL_SEND_HOVERED)) send(0, true);
 					needtodraw|=2;
 				//}
 			}

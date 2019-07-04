@@ -124,6 +124,7 @@ PopupMenu::PopupMenu(const char *nname, const char *ntitle, unsigned long long s
 					 |TREESEL_GRAPHIC_ON_RIGHT
 					 |TREESEL_SEND_STRINGS
 					 |TREESEL_SEND_PATH
+					 |TREESEL_SEND_HOVERED
 					 |TREESEL_LIVE_SEARCH 
 					)
 			   );
