@@ -691,11 +691,11 @@ Attribute *EngraverDirection::dump_out_atts(Attribute *att,int what,LaxFiles::Du
 
 		//att->push("",      "#");
 
-		att->push("type","linear      #or radial, circular");
-		att->push("position","(.5,.5) #default origin for the pattern ");
-		att->push("direction","(1,0)  #default direction for the pattern ");
-		att->push("grow","true        #whether to grow lines, or have predetermined lines");
-		att->push("parameter","#extra parameters for the line type");
+		att->push("type","linear", "or radial, circular");
+		att->push("position","(.5,.5)", "default origin for the pattern ");
+		att->push("direction","(1,0)", "default direction for the pattern ");
+		att->push("grow", "true", "whether to grow lines, or have predetermined lines");
+		att->push("parameter",nullptr, "extra parameters for the line type");
 		return att;
 	}
 

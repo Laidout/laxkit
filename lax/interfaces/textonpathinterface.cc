@@ -244,10 +244,20 @@ Attribute *TextOnPath::dump_out_atts(Attribute *att,int what,DumpContext *contex
 
     if (what==-1) {
 		 //dump description
-		att->push("matrix", "#An affine matrix of 6 numbers");
-        att->push("baseline_type","path #or offset|stroke|otherstroke|envelope");
-        att->push("baseline",".5em #number for how much to offset text from baseline_type");
-        //att->push("","");
+		att->push("matrix", "1 0 0 1 0 0", "An affine matrix of 6 numbers");
+        att->push("baseline_type","path",  "or offset|stroke|otherstroke|envelope");
+        att->push("baseline",     ".5em",  "number for how much to offset text from baseline_type");
+        att->push("start_offset",".5","Distance from path start to begin text");
+        //att->push("end_offset","0","TODo.. Distance from path end text can't go past");
+        //att->push("rotation","0","TODo.. Extra rotation to apply to glyphs");
+        att->push("text_start","0","First byte of text to use");
+        att->push("text_end","0","Byte after final text character");
+        att->push("text","The text");
+        att->push("pathindex","0","Which subpath of pathobject to use");
+        Attribute *att2 = att->pushSubAtt("pathobject",nullptr,"A PathsData");
+		att2->push("...");
+        //att->push("","","");
+        //att->push("","","");
 		// *** finish this!
 
 		return att;
