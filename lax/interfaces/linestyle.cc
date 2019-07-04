@@ -216,14 +216,13 @@ LaxFiles::Attribute *LineStyle::dump_out_atts(LaxFiles::Attribute *att,int what,
 	if (!att) att=new Attribute;
 
 	if (what==-1) {
-		//att->push("mask                   #what is active in this linestyle");
-		att->push("color","rgbaf(1,1,1,1)   #rgba in range [0..1]");
-		att->push("capstyle","round         #or miter, projecting, zero");
-		att->push("joinstyle","round        #or miter, bevel, extrapolate");
-		att->push("miterlimit","100         #means limit is 100*width");
-		att->push("dotdash","5              #an integer whose bits define an on-off pattern");
-		att->push("width","1  #width of the line");
-		att->push("function","Over          #Blend mode. Common is None or Over");
+		att->push("color","rgbaf(1,1,1,1)", "rgba in range [0..1]");
+		att->push("capstyle","round",       "or miter, butt, projecting, zero");
+		att->push("joinstyle","round",      "or miter, bevel, extrapolate");
+		att->push("miterlimit","100",       "means limit is 100*width");
+		att->push("dotdash","5",            "an integer whose bits define an on-off pattern");
+		att->push("width","1",              "width of the line");
+		att->push("function","Over",        "Blend mode. Common is None or Over");
 
 		return att;
 	}
