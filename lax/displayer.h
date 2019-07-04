@@ -222,6 +222,7 @@ class Displayer : public PanUser, virtual public anObject
 	virtual double textextent(LaxFont *thisfont, const char *str,int len, double *width,double *height,double *ascent,double *descent,char real) = 0;
 	virtual double textextent(const char *str,int len, double *width,double *height,double *ascent=NULL,double *descent=NULL,char real=0);
 	virtual double textout_halo(double offset, double x,double y,const char *str,int len=0,unsigned long align=LAX_CENTER);
+	virtual double textout_bg(double pad, double x,double y,const char *str,int len = 0, unsigned long align = LAX_CENTER, bool rounded = true);
 	virtual double textout(flatpoint p,const char *str,int len=0,unsigned long align=LAX_CENTER);
 	virtual double textout(double x,double y,const char *str,int len=0,unsigned long align=LAX_CENTER) = 0;
 	virtual double textout(double *matrix,double x,double y,const char *str,int len=0,unsigned long align=LAX_CENTER) = 0;

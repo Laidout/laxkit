@@ -514,6 +514,38 @@ double Displayer::textout_halo(double offset, double x,double y,const char *str,
 	return textout(x,y, str,len,align);
 }
 
+/*! Write out text with BG color background first, then on top with FG.
+ */
+double Displayer::textout_bg(double pad, double x,double y,const char *str,int len,unsigned long align, bool rounded)
+{
+	unsigned long oldfg = FG();
+	NewFG(BG());
+	double w,h;
+	textextent(str,len, &w,&h);
+	if (align & LAX_RIGHT) x -= w;
+	else if (align & LAX_HCENTER) x -= w/2;
+	if (align & LAX_TOP) y += h;
+	else if (align & LAX_VCENTER) y += h/2;
+
+	if (rounded) {
+		drawRoundedRect(x-pad,y-h-pad, w+2*pad, h+2*pad, .5,true, textheight()/2,false, 1);
+	//virtual void drawRoundedRect(double x,double y,double w,double h,
+                                //double vround, bool vispercent, double hround, bool hispercent,
+                                //int tofill, int whichcorners=0xf);
+	} else {
+		moveto(x-pad, y+pad);
+		lineto(x+w+pad, y+pad);
+		lineto(x+w+pad, y-h-pad);
+		lineto(x-pad, y-h-pad);
+		closed();
+		fill(0);
+	}
+
+	NewFG(oldfg);
+	return textout(x,y, str,len, LAX_LEFT|LAX_BOTTOM);
+}
+
+
 double Displayer::textout(flatpoint p,const char *str,int len,unsigned long align)
 {
 	return textout(p.x,p.y, str,len, align);
