@@ -648,6 +648,7 @@ void anInterface::Dp(Displayer *ndp)
 //! If viewport, use that, else app->postmessage().
 void anInterface::PostMessage(const char *message)
 {
+	if (message == nullptr) message = "";
 	if (viewport) viewport->postmessage(message);
 	else app->postmessage(message);
 }
