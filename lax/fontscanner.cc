@@ -27,11 +27,12 @@
 #include <zlib.h> 
 #include <cstdio>
 
-//#include <lax/language.h>
-//#include <lax/bezutils.h>
+#include <lax/language.h>
 #include <lax/strmanip.h>
 
 
+//template implementation:
+#include <lax/lists.cc>
 
 
 #define DBG
@@ -47,8 +48,11 @@ namespace Laxkit {
 
 /*! \class FontScanner
  * Object that can scan font files for SVG, colr, and cpal tables.
+ * Note that FreeType since 2.10 can natively handle CPAL/COLR, so scanning for
+ * those might be obsolete here as time goes on. However SVG still can use CPAL,
+ * and so far it appears unlikely svg parsing will become a part of FreeType.
  *
- * The CPAL table is converted into a Palette.
+ * The CPAL table is converted into a GradientStrip.
  *
  * The COLR table is turned into a stack of ColrGlyphMap.
  *
@@ -56,37 +60,37 @@ namespace Laxkit {
  * detail ranges of glyphs encoded within svg documents embedded in svgtable.
  * Each SvgEntry specifies one range. Note that there may be multiple ranges,
  * thus multiple SvgEntry objects, that refer to the same svg document
- * is svgtable. It is up to other code to convert these char strings into
- * usable graphics objects, perhaps in part via XMLChunkToAttribute().
+ * in svgtable. It is up to other code to convert these char strings into
+ * usable graphics objects.
  */
 
 
 FontScanner::FontScanner(const char *nfile)
 {
-	svgtable=NULL;
-	svg_offset=0;
-	svg_complen=0;
-	svg_origlen=0;
+    svgtable    = nullptr;
+    svg_offset  = 0;
+    svg_complen = 0; //compressed length of svg table in the file
+    svg_origlen = 0; //length of SVG table as reported by the file, this many + 1 bytes stored in buffer svgtable,
 
-	cpal_offset=0;
-	cpal_complen=0;
-	cpal_origlen=0;
+    cpal_offset  = 0;
+    cpal_complen = 0;
+    cpal_origlen = 0;
 
-	colr_offset=0;
-	colr_complen=0;
-	colr_origlen=0;
+    colr_offset  = 0;
+    colr_complen = 0;
+    colr_origlen = 0;
 
-	palette=NULL;
-	file=newstr(nfile);
-	ff=NULL;
+    palette = nullptr;
+    file    = newstr(nfile);
+    ff      = nullptr;
 }
 
 FontScanner::~FontScanner()
 {
-	delete[] svgtable;
 	if (palette) palette->dec_count();
-	delete[] file;
 	if (ff) fclose(ff);
+	delete[] svgtable;
+	delete[] file;
 }
 
 /*! Set current file to nfile, and return isWoffFile(nfile).
@@ -103,16 +107,16 @@ bool FontScanner::isWoffFile(const char *maybefile)
 {
 	//should check the wOFF start, and file size.. should be good indicator..
 
-	FILE *f=fopen(maybefile, "r");
-	if (!f) return false;
+    FILE *f = fopen(maybefile, "r");
+    if (!f) return false;
 
-	char buffer[45];
-	buffer[44]='\0';
-	fread(buffer,1,44, f); //reads in whole header
-	fclose(f);
+    char buffer[45];
+    buffer[44] = '\0';
+    fread(buffer, 1, 44, f);  // reads in whole header
+    fclose(f);
 
-	if (!strncmp(buffer, "wOFF", 4)) return true;
-	return false;
+    if (!strncmp(buffer, "wOFF", 4)) return true;
+    return false;
 }
 
 //WOFFHeader	    File header with basic font type and version, along with offsets to metadata and private data blocks.
@@ -141,6 +145,7 @@ bool FontScanner::isWoffFile(const char *maybefile)
 //FontTables        The font data tables from the input sfnt font, compressed to reduce bandwidth requirements.
 //ExtendedMetadata  An optional block of extended metadata, represented in XML format and compressed for storage in the WOFF file.
 //PrivateData       An optional block of private data for the font designer, foundry, or vendor to use.
+
 /*! Scan for CPAL, COLR, or SVG tables. If which==0, check for existence only.
  * If which!=0, then: 
  * whole&1 for CPAL, whole&2 for COLR, whole&4 for SVG.
@@ -149,34 +154,44 @@ int FontScanner::Scan(int which, const char *nfile)
 {
 	if (nfile) makestr(file, nfile);
 
-	FILE *f=fopen(file, "r");
+	FILE *f = fopen(file, "r");
 	if (!f) return 1;
 
-	ff=f;
+	ff = f;
 
-	int err=0;
+	int err = 0;
 	unsigned char buffer[45], tag[5];
-	buffer[44]='\0';
-	tag[4]='\0';
+	buffer[44] = '\0';
+	tag[4] = '\0';
 	fread(buffer,1,44, f); //reads in whole header
 
 	try {
-		svg_offset=0;
-		svg_complen=0;
-		svg_origlen=0;
+        svg_offset  = 0;
+        svg_complen = 0;
+        svg_origlen = 0;
 
-		cpal_offset=0;
-		cpal_complen=0;
-		cpal_origlen=0;
+        cpal_offset  = 0;
+        cpal_complen = 0;
+        cpal_origlen = 0;
 
-		colr_offset=0;
-		colr_complen=0;
-		colr_origlen=0;
+        colr_offset  = 0;
+        colr_complen = 0;
+        colr_origlen = 0;
 
+		//ttf: 00 01 00 00 00  <-  "OpenType fonts that contain TrueType outlines should use the value of 0x00010000 for the sfntVersion."
+		//--or--   74 72 75 65 00 ("true")  in the Apple specification. Don't use that for otf
+		//
+		//otf: 4f 54 54 f4 00 "OTTO"
 
-		if (strncmp((char*)buffer, "wOFF", 4)) throw 2;
+        //if (strncmp((char*)buffer, "wOFF", 4)) throw _("Not a wOFF");
+		//-----
+        if (strncmp((char*)buffer, "wOFF", 4) && strncmp((char*)buffer, "OTTO", 4))
+			throw _("Not a wOFF or an otf font!");
 
 		int numtables = (buffer[12]<<8) | buffer[13];
+		if (numtables > 200) {
+			throw (_("Way too many tables in font file. Something's probably gone wrong!"));
+		}
 
 		DBG int filesize=(((((buffer[8]<<8)|buffer[9])<<8)|buffer[10])<<8)|buffer[11];
 		DBG cerr << "file: "<<file<<endl;
@@ -198,50 +213,56 @@ int FontScanner::Scan(int which, const char *nfile)
 			unsigned int origLength  =(((((buffer[12]<<8)|buffer[13])<<8)|buffer[14])<<8)|buffer[15];
 			unsigned int origChecksum=(((((buffer[16]<<8)|buffer[17])<<8)|buffer[18])<<8)|buffer[19];
 
-			if (!strcmp((char*)tag, "SVG ")) {
-				svg_offset =offset;
-				svg_complen=compLength;
-				svg_origlen=origLength;
+            if (!strcmp((char *)tag, "SVG ")) {
+                svg_offset  = offset;
+                svg_complen = compLength;
+                svg_origlen = origLength;
 
-			} else if (!strcmp((char*)tag, "CPAL")) {
-				cpal_offset =offset;
-				cpal_complen=compLength;
-				cpal_origlen=origLength;
+            } else if (!strcmp((char *)tag, "CPAL")) {
+                cpal_offset  = offset;
+                cpal_complen = compLength;
+                cpal_origlen = origLength;
 
-			} else if (!strcmp((char*)tag, "COLR")) {
-				colr_offset =offset;
-				colr_complen=compLength;
-				colr_origlen=origLength;
-			}
+            } else if (!strcmp((char *)tag, "COLR")) {
+                colr_offset  = offset;
+                colr_complen = compLength;
+                colr_origlen = origLength;
+            }
 
-			printf("Found table %s   offset: %6d   compressed len: %6d   origl: %6d   origchecksum: %d\n", 
-					tag, offset, compLength, origLength, origChecksum);
+            DBG printf("Found table %s   offset: %6d   compressed len: %6d   origl: %6d   origchecksum: %u\n", 
+			DBG		tag, offset, compLength, origLength, origChecksum);
 		}
 
 	} catch (int e) {
-		err=e;
+	} catch (const char *msg) {
+		DBG cerr << msg <<endl;
+		err = 100;
 	}
 
-	if (which&1) ScanCpal();
-	if (which&2) ScanColr();
-	if (which&4) ScanSvg();
+	DBG if (svg_offset > 0) cerr << "Found svg table"<<endl;
+	DBG if (cpal_offset > 0) cerr << "Found cpal table"<<endl;
+	DBG if (colr_offset > 0) cerr << "Found colr table"<<endl;
 
-	ff=NULL;
-	fclose(f);
-	return err;
+    if (cpal_offset > 0 && which & (int)FontType::CPAL) err |= ScanCpal();
+    if (colr_offset > 0 && which & (int)FontType::COLR) err |= ScanColr();
+    if ( svg_offset > 0 && which & (int)FontType::SVG)  err |= ScanSvg();
+
+    ff = nullptr;
+    fclose(f);
+    return err;
 }
 
 /*! Return 0 for succes, nonzero for no cpal.
  *
- * If this->ff!=NULL, then use that. else open this->file.
+ * If this->ff!=nullptr, then use that. else open this->file.
  */
 int FontScanner::ScanCpal()
 {
 	if (!cpal_offset) return 1;
 
-	FILE *f=ff;
-	if (!f) f=fopen(file, "r");
-	if (!f) return 1;
+    FILE *f = ff;
+    if (!f) f = fopen(file, "r");
+    if (!f) return 1;
 
 	DBG cerr <<"\nCPAL table found, attempting to read..."<<endl;
 
@@ -301,10 +322,14 @@ int FontScanner::ScanCpal()
 		uLongf actuallen=cpal_origlen;
 		int status = uncompress((Bytef*)cpalorigtable, &actuallen,  (Bytef*)cpalcomptable, cpal_complen);
 
-		if (status == Z_OK) cerr <<"Uncompress success!"<<endl;
-		else if (status == Z_MEM_ERROR)  cerr <<"Uncompress memory error!"<<endl;
-		else if (status == Z_BUF_ERROR)  cerr <<"Uncompress buffer error!"<<endl;
-		else if (status == Z_DATA_ERROR) cerr <<"Uncompress data error!"<<endl;
+		if (status == Z_OK) {
+			DBG cerr <<"Uncompress success!"<<endl;
+		} else {
+			DBG if (status == Z_MEM_ERROR)  cerr <<"Uncompress memory error!"<<endl;
+			DBG else if (status == Z_BUF_ERROR)  cerr <<"Uncompress buffer error!"<<endl;
+			DBG else if (status == Z_DATA_ERROR) cerr <<"Uncompress data error!"<<endl;
+			return 2;
+		}
 
 			
 		cpal_origlen = actuallen;
@@ -330,37 +355,38 @@ int FontScanner::ScanCpal()
 	ptr+=4; 
 
 	int palcolor_starts[num_palettes];
-	DBG unsigned char red, green, blue, alpha;
 
+    DBG cerr << "CPAL table version " << cpal_table_version << endl;
+    DBG cerr << "  number of colors: " << num_colors << endl;
+    DBG cerr << "  number of palettes: " << num_palettes << endl;
+    DBG cerr << "  number of palette entries: " << num_palette_entries << endl;
+	DBG unsigned int red, green, blue, alpha;
 
-	DBG cerr <<"CPAL table version "<<cpal_table_version<<endl;
-	DBG cerr <<"  number of colors: "<<num_colors<<endl;
-	DBG cerr <<"  number of palettes: "<<num_palettes<<endl;
-	DBG cerr <<"  number of palette entries: "<<num_palette_entries<<endl;
+	if (palette == nullptr) palette = new GradientStrip;
 
-	for (int c=0; c<num_palettes; c++) {
+    for (int c=0; c<num_palettes; c++) {
 		palcolor_starts[c] = (ptr[0]<<8)|ptr[1];
-		ptr+=2;
+        ptr += 2;
 
-		DBG cerr << "  Palette "<<c<<", colors start at: "<<palcolor_starts[c]<<endl;
+        DBG cerr << "  Palette "<<c<<", colors start at: "<<palcolor_starts[c]<<endl;
 		
 		unsigned char *colors = cpalorigtable + first_color_offset + 4*palcolor_starts[c];
-		for (int c2=0; c2<num_palette_entries; c2++) { //each color is in order  b g r a
-			DBG blue  = colors[0];
+        for (int c2 = 0; c2 < num_palette_entries; c2++) {  // each color is in order  b g r a
+            DBG blue  = colors[0];
 			DBG green = colors[1];
 			DBG red   = colors[2];
 			DBG alpha = colors[3];
+			DBG cerr << "    color "<<c2<<", rgba: "<<red<<" "<<green<<" "<<blue<<" "<<alpha<<endl;
+
+			palette->AddColor(c2, colors[2]/255., colors[1]/255., colors[0]/255., colors[3]/255.);
 
 			colors += 4;
-
-			DBG cerr << "    color "<<c2<<", rgba: "<<red<<" "<<green<<" "<<blue<<" "<<alpha<<endl;
 		}
-
 	}
 
-	if (f!=ff) fclose(f);
+    if (f != ff) fclose(f);
 
-	return 0;
+    return 0;
 }
 
 /*! Return 0 for succes, nonzero for no colr.
@@ -411,10 +437,14 @@ int FontScanner::ScanColr()
 		uLongf actuallen=colr_origlen;
 		int status = uncompress((Bytef*)colrorigtable, &actuallen,  (Bytef*)colrcomptable, colr_complen);
 
-		if (status == Z_OK) cerr <<"Uncompress success!"<<endl;
-		else if (status == Z_MEM_ERROR)  cerr <<"Uncompress memory error!"<<endl;
-		else if (status == Z_BUF_ERROR)  cerr <<"Uncompress buffer error!"<<endl;
-		else if (status == Z_DATA_ERROR) cerr <<"Uncompress data error!"<<endl;
+		if (status == Z_OK) {
+			DBG cerr <<"Uncompress success!"<<endl;
+		} else {
+			DBG if (status == Z_MEM_ERROR)  cerr <<"Uncompress memory error!"<<endl;
+			DBG else if (status == Z_BUF_ERROR)  cerr <<"Uncompress buffer error!"<<endl;
+			DBG else if (status == Z_DATA_ERROR) cerr <<"Uncompress data error!"<<endl;
+			return 2;
+		}
 
 			
 		colr_origlen = actuallen;
@@ -479,16 +509,17 @@ int FontScanner::ScanColr()
 }
 
 /*! Return 0 for succes, nonzero for no svg.
+ * This will populate svgtable and svgentries.
  */
 int FontScanner::ScanSvg()
 {
 	if (!svg_offset) return 1;
 
-	FILE *f=ff;
-	if (!f) f=fopen(file, "r");
-	if (!f) return 1;
+    FILE *f = ff;
+    if (!f) f = fopen(file, "r");
+    if (!f) return 1;
 
-	DBG cerr <<"\nSVG table found, attempting to read..."<<endl;
+    DBG cerr <<"\nSVG table found, attempting to read..."<<endl;
 
 	//----------------------------- SVG table: -----------------------------------
 	// USHORT 	version 	Table version (starting at 0). Set to 0.
@@ -512,6 +543,7 @@ int FontScanner::ScanSvg()
 	//  "SVG documents processed with the font document referencing mode must use the secure animated processing mode."
 
 
+	int err = 0;
 
 	unsigned char svgcomptable[svg_complen];
 	svgtable = new unsigned char[svg_origlen+1];
@@ -522,13 +554,13 @@ int FontScanner::ScanSvg()
 
 	try {
 		if (svg_complen == svg_origlen) {
-			 //it wasn't compressed
+			 //it wasn't compressed, we can just copy over directly
 			strncpy((char*)svgorigtable, (char*)svgcomptable, svg_complen);
 			svgorigtable[svg_complen]='\0';
 
 		} else {
-			uLongf actuallen=svg_origlen;
-			int status = uncompress((Bytef*)svgorigtable, &actuallen,  (Bytef*)svgcomptable, svg_complen);
+            uLongf actuallen = svg_origlen;
+            int status = uncompress((Bytef*)svgorigtable, &actuallen,  (Bytef*)svgcomptable, svg_complen);
 
 			if (status != Z_OK) {
 				DBG if (status == Z_MEM_ERROR)  cerr <<"Uncompress memory error!"<<endl;
@@ -570,23 +602,16 @@ int FontScanner::ScanSvg()
 
 		SvgEntry *entry;
 		for (unsigned int c=0; c<numentries; c++) {
-			entry=new SvgEntry;
+			entry = new SvgEntry;
 			entry->startglyph = (ptr[0]<<8)|ptr[1];  ptr+=2;
 			entry->endglyph   = (ptr[0]<<8)|ptr[1];  ptr+=2;
-			entry->offset     = (((((ptr[0]<<8)|ptr[1])<<8)|ptr[2])<<8)|ptr[3];  ptr+=4; 
+			entry->offset     = offsetToDocIndex + ((((((ptr[0]<<8)|ptr[1])<<8)|ptr[2])<<8)|ptr[3]);  ptr+=4; 
 			entry->len        = (((((ptr[0]<<8)|ptr[1])<<8)|ptr[2])<<8)|ptr[3];  ptr+=4;
 			svgentries.push(entry,1);
 
 			//svgentries[c].svg = new char[svgentries[c].len+1];
 			//strncpy(svgentries[c].svg, (char*)(docIndexStart + svgentries[c].offset), svgentries[c].len);
 			//svgentries[c].svg[svgentries[c].len] = '\0';
-
-			 //dump out the svg to file
-			//DBG char file[200]; // *** NOTE!! they might be using the same svg document, just different glyph ranges!!
-			//DBG sprintf(file, "glyphs/glyph-%d-%d.svg", svgentries[c].startglyph, svgentries[c].endglyph);
-			//DBG FILE *fout = fopen(file, "w");
-			//DBG fwrite(svgentries[c].svg, 1, svgentries[c].len, fout);
-			//DBG fclose(fout);
 		}
 
 
@@ -597,17 +622,49 @@ int FontScanner::ScanSvg()
 		//DBG cerr <<"SVG table:\n"<<svgorigtable<<endl;
 
 
-	} catch (int err) {
-		DBG cerr <<"...Error reading in svg table, pretending svg table is not there."<<endl;
+	} catch (int errr) {
+		DBG cerr <<"...Error "<<errr<<"reading in svg table, pretending svg table is not there."<<endl;
+		err = errr;
 
-		delete[] svgtable;
-		svgtable=NULL;
-		svg_offset=0;
+        delete[] svgtable;
+        svgtable = nullptr;
+        svg_offset = 0;
+    }
+
+    if (f != ff) fclose(f);
+
+    return err;
+}
+
+/*! Output one file for each entry in svgentries.
+ * Files will be of the form "glyph-%d.svg" if there is only one glpyh for that, or
+ * "glyph-%d-$d.svg" when there is a range.
+ *
+ * Please note that there might be duplicate files created, only with different ranges defined.
+ * \todo do something about potentially duplicated files.
+ */
+void FontScanner::SvgDump(const char *directory)
+{
+	if (!svgentries.n) return;
+	if (!directory) directory = "./";
+
+	for (int c=0; c<svgentries.n; c++) {
+		SvgEntry *entry = svgentries.e[c];
+
+		char file[strlen(directory) + 200];
+		if (entry->startglyph == entry->endglyph)
+			 sprintf(file, "%s/glyph-%d.svg",    directory, entry->startglyph);
+		else sprintf(file, "%s/glyph-%d-%d.svg", directory, entry->startglyph, entry->endglyph);
+
+		FILE *fout = fopen(file, "w");
+		if (!fout) {
+			DBG cerr << "WARNING! Could not open "<<file<< " for writing glyph. Aborting!"<<endl;
+			break;
+		}
+		DBG cerr << "Writing "<<file<<endl;
+		fwrite(svgtable + entry->offset, 1, entry->len, fout);
+		fclose(fout);
 	}
-
-	if (f!=ff) fclose(f);
-
-	return 0;
 }
 
 

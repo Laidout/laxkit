@@ -26,9 +26,19 @@
 #include <cstdio>
 
 #include <lax/fontmanager.h>
+#include <lax/gradientstrip.h>
 
 namespace Laxkit {
 
+enum class FontType : int {
+	Unknown = 0,
+	WOFF,
+	OTF,
+	TTF,
+	CPAL = (1<<0),
+	COLR = (1<<1),
+	SVG  = (1<<2)
+};
 
 class FontScanner
 {
@@ -55,7 +65,7 @@ class FontScanner
 	unsigned int cpal_offset;
 	unsigned int cpal_complen;
 	unsigned int cpal_origlen;
-	Palette *palette;
+	GradientStrip *palette;
 
 	 //COLR components
 	unsigned int colr_offset;
@@ -64,19 +74,21 @@ class FontScanner
 	PtrStack<ColrGlyphMap> colr_maps;
 
 
-	FontScanner(const char *nfile=NULL);
+	FontScanner(const char *nfile = nullptr);
 	virtual ~FontScanner();
 	virtual bool isWoffFile(const char *maybefile);
-	virtual int Scan(int which=0, const char *nfile=NULL);
+	virtual int Scan(int which=0, const char *nfile = nullptr);
 	virtual bool Use(const char *nfile);
 
-	virtual bool HasCpal() { return cpal_offset>0; }
-	virtual bool HasColr() { return colr_offset>0; }
-	virtual bool HasSvg()  { return  svg_offset>0; }
+	virtual bool HasCpal() { return cpal_offset > 0; }
+	virtual bool HasColr() { return colr_offset > 0; }
+	virtual bool HasSvg()  { return  svg_offset > 0; }
 
 	virtual int ScanCpal();
 	virtual int ScanColr();
 	virtual int ScanSvg ();
+
+	virtual void SvgDump(const char *directory);
 };
 
 
