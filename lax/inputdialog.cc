@@ -71,7 +71,7 @@ InputDialog::InputDialog(anXWindow *parnt, const char *nname,const char *ntitle,
 			  NULL,object_id,"mes input",
 			  starttext);
 	le->padx=3;
-	AddWin(le,1, 250,0,1000,50,0, app->defaultlaxfont->textheight()+6,0,0,50,0, -1);
+	AddWin(le,1, 250,0,1000,50,0, win_themestyle->normal->textheight()+6,0,0,50,0, -1);
 	AddNull();
 	anXWindow *w=le;
 	if (button1) w=AddButton(button1,id1,w);

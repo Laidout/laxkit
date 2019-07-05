@@ -192,13 +192,15 @@ RulerWindow::RulerWindow(anXWindow *parnt,const char *nname,const char *ntitle,u
 	DBG if (win_style&RULER_Y) cerr <<"Y";
 	DBG cerr <<endl;
 
+	InstallColors(THEME_Panel);
+
 	screenoffset = 0;
 	curpos = 0;
 	mag    = 1;
 	start  = 0;
 	end    = 0;
 	unit   = 1;
-	smallnumbers = app->fontmanager->MakeFont("Sans","",app->defaultlaxfont->textheight()/2,0);
+	smallnumbers = app->fontmanager->MakeFont("Sans","", win_themestyle->normal->textheight()/2,0);
 	needtodraw=1;
 	DBG smallnumbers->suppress_debug=1;
 	
@@ -210,7 +212,6 @@ RulerWindow::RulerWindow(anXWindow *parnt,const char *nname,const char *ntitle,u
 	stf=.4;
 	sstf=.3;
 	
-	InstallColors(THEME_Panel);
 	numcolor = win_themestyle->fg.Pixel();
 	tickcolor = win_themestyle->fg.Pixel();
 	subtickcolor = coloravg(win_themestyle->fg,win_themestyle->bg,.3333);
@@ -458,11 +459,8 @@ void RulerWindow::Refresh()
 		}
 	}
 
-	dp->font(app->defaultlaxfont,app->defaultlaxfont->textheight());
-
 	SwapBuffers();
 	needtodraw=0;
-	//DBG cerr <<endl;
 }
 
 //! Automatically set screenoffset based on win.

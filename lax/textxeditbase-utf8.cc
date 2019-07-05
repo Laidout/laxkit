@@ -144,6 +144,7 @@ TextXEditBaseUtf8::TextXEditBaseUtf8(anXWindow *parnt,const char *nname,const ch
 	padx=0;
 	pady=0;
 
+	InstallColors(THEME_Edit);
 	if (thefont == NULL) {
 		if (win_themestyle) UseThisFont(win_themestyle->normal);
 		else UseThisFont(app->defaultlaxfont);
@@ -1114,18 +1115,14 @@ LaxFont *TextXEditBaseUtf8::GetFont()
 	return thefont;
 }
 
-/*! Sets thefont=app->defaultlaxfont, and assigns textheight, textascent, and textdescent accordingly.
- * Increments the count of app->defaultlaxfont.
+/*! Make sure thefont isn't null, and assigns textheight, textascent, and textdescent accordingly.
  */
 int TextXEditBaseUtf8::SetupMetrics()
 {
-	if (thefont==NULL) {
-		thefont=app->defaultlaxfont;
+	if (thefont == nullptr) {
+		thefont = win_themestyle->normal;
 		thefont->inc_count();
 	}
-	//textheight=thefont->textheight();
-	//textascent=thefont->ascent();
-	//textdescent=thefont->descent();
 	textheight  = thefont->textheight();
 	textascent  = thefont->ascent();
 	textdescent = thefont->descent();

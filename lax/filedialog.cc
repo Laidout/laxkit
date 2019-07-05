@@ -242,8 +242,8 @@ FileDialog::FileDialog(anXWindow *parnt,const char *nname,const char *ntitle,uns
 	if (nnpath) delete[] nnpath;
 
 	 //add an ok and optionally a cancel button to wholelist here, rather than in init()
-	int textheight=app->defaultlaxfont->textheight();
-	int linpheight=textheight+6;
+	int textheight = win_themestyle->normal->textheight();
+	int linpheight = textheight + 6;
 
 	unsigned long okbutton=BUTTON_OK;
 	if (dialog_style&(FILES_SAVE|FILES_SAVE_AS)) okbutton=BUTTON_SAVE;
@@ -448,10 +448,10 @@ int FileDialog::getDirectory(const char *npath)
 int FileDialog::preinit()
 {
 	anXWindow::preinit();
-	if (win_w==0) win_w=500;
-	if (win_h==0) {
-		int textheight=app->defaultlaxfont->textheight();
-		win_h=20*(textheight+7)+20;
+	if (win_w == 0) win_w = 500;
+	if (win_h == 0) {
+		int textheight = win_themestyle->normal->textheight();
+		win_h = 20 * (textheight + 7) + 20;
 	}
 	return 0;
 }
@@ -463,10 +463,10 @@ int FileDialog::init()
 {
 	if (!ValidDrawable()) return 1;
 
-	int textheight=app->defaultlaxfont->textheight();
-	int linpheight=textheight+6;
-	anXWindow *last=NULL;
-	Button *tbut=NULL;
+	int        textheight = win_themestyle->normal->textheight();
+	int        linpheight = textheight + 6;
+	anXWindow *last       = NULL;
+	Button *   tbut       = NULL;
 	if (finalbuttons<0) finalbuttons=0; //points to the "Ok" button that maybe is already there from constructor
 
 

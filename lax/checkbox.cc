@@ -100,10 +100,10 @@ CheckBox::CheckBox(anXWindow *parnt,const char *nname,const char *ntitle,unsigne
 	pitcolor = pit.Pixel();
 	
 	if (hh<2) { // wrap window to v textextent
-		win_h=2*pad+app->defaultlaxfont->textheight();
+		win_h = 2 * pad + win_themestyle->normal->textheight();
 	}
 	if (ww<2) { // wrap window to h textextent
-		win_w=grect.height + 3*pad + trect.width;
+		win_w = grect.height + 3 * pad + trect.width;
 	}
 	setPlacement();
 

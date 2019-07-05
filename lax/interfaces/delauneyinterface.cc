@@ -589,8 +589,7 @@ int DelauneyInterface::Refresh()
 	if (!data) return 0;
 
 	dp->LineAttributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
-	dp->font(anXApp::app->defaultlaxfont);
-	dp->fontsize(anXApp::app->defaultlaxfont->textheight() / dp->Getmag());
+	dp->font(curwindow->win_themestyle->normal, curwindow->win_themestyle->normal->textheight() / dp->Getmag());
 
 
 	 //delauney triangles

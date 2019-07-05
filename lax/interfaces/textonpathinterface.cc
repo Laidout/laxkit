@@ -256,9 +256,6 @@ Attribute *TextOnPath::dump_out_atts(Attribute *att,int what,DumpContext *contex
         att->push("pathindex","0","Which subpath of pathobject to use");
         Attribute *att2 = att->pushSubAtt("pathobject",nullptr,"A PathsData");
 		att2->push("...");
-        //att->push("","","");
-        //att->push("","","");
-		// *** finish this!
 
 		return att;
     }

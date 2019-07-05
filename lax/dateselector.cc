@@ -71,7 +71,7 @@ DateSelector::DateSelector(anXWindow *parnt,const char *nname,const char *ntitle
 	date.tm_sec=(secinday-date.tm_hour*60)*60-date.tm_min*60;
 
 	if (win_h==0 || win_w==0) {
-		int h=app->defaultlaxfont->textheight();
+		int h = win_themestyle->normal->textheight();
 		if (win_h <= 0) win_h = h*(8+((win_style&DATESEL_WITH_TIME)?1:0));
 		if (win_w <= 0) win_w = win_themestyle->normal->Extent("   00  00  00  00  00  00  00   ",-1);
 	}
@@ -346,7 +346,7 @@ int DateSelector::MouseMove(int x,int y,unsigned int state, const LaxMouse *d)
 {
 	buttondown.move(d->id,x,y);
 
-	int textheight=app->defaultlaxfont->textheight();
+	int textheight = win_themestyle->normal->textheight();
 	int row=-1,col=-1;
 
 	mo_month=mo_day=mo_year=-1;

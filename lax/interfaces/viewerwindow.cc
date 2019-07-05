@@ -168,8 +168,9 @@ int ViewerWindow::init()
 
 	 //now actually add the windows
 
-	rulerh=25;
-	scrollerh=15;
+	double th = win_themestyle->normal->textheight();
+	rulerh    = th * 1.4;
+	scrollerh = th * 1.2;
 
 	if (yruler) AddWin(NULL,0,    rulerh,0,0,50,0,    rulerh,0,0,50,0, -1); // spacer square between rulers
 	if (xruler) AddWin(xruler,1,  10000,9990,0,50,0,  rulerh,0,0,50,0, -1);
@@ -196,7 +197,7 @@ int ViewerWindow::init()
                          zoommenu,1, //menu
                          "o", //label
                          NULL,NULL,
-                         app->defaultlaxfont->textheight()/4);
+                         win_themestyle->normal->textheight()/4);
 		menub->SetGraphic(THING_Magnifying_Glass, 0,0);
 		AddWin(menub,1, scrollerh,0,scrollerh,50,0, scrollerh,0,scrollerh,50,0, -1); 
 		 //note: this will be put next to mesbar if no xscroller

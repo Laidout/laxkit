@@ -440,8 +440,8 @@ int FontDialog::init()
 	//int textheight=app->defaultfont->max_bounds.ascent+app->defaultfont->max_bounds.descent;
 	//int linpheight=textheight+6;
 
-	anXWindow *last=NULL;
-	double textheight=app->defaultlaxfont->textheight();
+	anXWindow *last = NULL;
+	double textheight = win_themestyle->normal->textheight();
 
 	 //------font family
 	 // *** type in box progressively limits what's displayed in list 
@@ -470,7 +470,6 @@ int FontDialog::init()
 							0,0,0,0, 1, last,object_id,"fontsize", 
 							_("Size"), 0,1000000, defaultsize, .5);
 	fontsize->tooltip(_("Size of the font"));
-	//fontsize->SetText(app->defaultlaxfont->textheight());
 	AddWin(fontsize,1, 150,100,1000,50,0, fontsize->win_h,0,0,50,0, -1);
 
 	AddNull();
@@ -734,8 +733,9 @@ void FontDialog::UpdateSample()
 
 	double samplesize=size;
 	LaxFont *samplefont = thefont;
-	if (size<app->defaultlaxfont->textheight()/2)      samplesize = app->defaultlaxfont->textheight()/2;
-	else if (size>app->defaultlaxfont->textheight()*5) samplesize = app->defaultlaxfont->textheight()*5;
+	double th = win_themestyle->normal->textheight();
+	if      (size < th / 2) samplesize = th / 2;
+	else if (size > th * 5) samplesize = th * 5;
 
 	if (samplesize != size) {
 		samplefont = samplefont->duplicate();
@@ -1004,7 +1004,7 @@ void FontDialog::UpdateColorBoxes()
 	}
 
 	 //add new color boxes and palette entries as necessary
-	double textheight=app->defaultlaxfont->textheight();
+	double textheight = win_themestyle->normal->textheight();
 	double r,g,b,a;
 	if (numboxes>0 && numboxes-1<palette->colors.n) {
 		r=palette->colors.e[numboxes-1]->channels[0]/(double)palette->colors.e[numboxes-1]->maxcolor;

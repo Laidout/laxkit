@@ -140,7 +140,7 @@ int TabFrame::init()
 void TabFrame::FillBox(IconBox *b,const char *nlabel,LaxImage *img, int nid)
 {
 	IconSelector::FillBox(b,nlabel,img,nid);
-	double pad = app->defaultlaxfont->textheight()/3;
+	double pad = win_themestyle->normal->textheight()/3;
 	b->h (b->h()  + pad);
 	b->w (b->w()  + pad);
 	b->ph(b->ph() + pad);
@@ -226,6 +226,7 @@ void TabFrame::Refresh()
 	}
 
 	Displayer *dp=MakeCurrent();
+	dp->font(win_themestyle->normal, win_themestyle->normal->textheight());
 	dp->ClearWindow();
 	dp->LineWidth(1);
 	needtodraw=0;

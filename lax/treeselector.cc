@@ -2458,7 +2458,7 @@ int TreeSelector::WrapToPosition(int screen_x, int screen_y, int screen, anXWind
 	screen_height= scr->height;
 
 	 // -----find extent: ew,eh *** this only finds the text extent
-	if (textheight==0) textheight=app->defaultlaxfont->textheight();
+	if (textheight == 0) textheight = win_themestyle->normal->textheight();
 	if (leading==0) {
 		//------
 		leading=1;

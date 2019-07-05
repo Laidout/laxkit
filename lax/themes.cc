@@ -708,7 +708,7 @@ Theme::Theme(const char *nname)
 	default_padx = 5;
 	default_pady = 5;
 	default_bevel = 2;
-	interface_scale = 1; //all sizes should be multiplied with this
+	ui_scale = 1; //all sizes should be multiplied with this
 
 	firstclk = 1000/7;
 	dblclk   = 1000/5;
@@ -877,12 +877,12 @@ Attribute *Theme::dump_out_atts(Attribute *att,int what,DumpContext *context)
 		att->push("default_padx", "5");
 		att->push("default_pady", "5");
 		att->push("default_bevel", default_bevel);
-		att->push("interface_scale", interface_scale);
+		att->push("ui_scale", ui_scale);
 
 		att->push("first_click",  "140",  "milliseconds before idle clicking after first click");
 		att->push("double_click", "200",  "millisecond limit for double click");
 		att->push("idle_click",   "66",   "milliseconds between idle clicks"); 
-		att->push("tooltips",     "1000", "#millisecond delay before popping up, or 0 for never");
+		att->push("tooltips",     "1000", "millisecond delay before popping up, or 0 for never");
 
 		Attribute *att2 = att->pushSubAtt("windowstyle", nullptr, "One of these blocks each for panel, menu, edit, button, tooltip");
 		styles.e[0]->dump_out_atts(att2, -1, context);
@@ -894,12 +894,12 @@ Attribute *Theme::dump_out_atts(Attribute *att,int what,DumpContext *context)
 	att->push("default_padx", default_padx);
 	att->push("default_pady", default_pady);
 	att->push("default_bevel", default_bevel);
-	att->push("interface_scale", interface_scale);
+	att->push("ui_scale", ui_scale);
 
 	att->push("first_click",  (int)firstclk);  att->Top()->Comment("milliseconds before idle clicking after first click");
 	att->push("double_click", (int)dblclk);    att->Top()->Comment("millisecond limit for double click");
 	att->push("idle_click",   (int)idleclk);   att->Top()->Comment("milliseconds between idle clicks"); 
-	att->push("tooltips",     tooltips);       att->Top()->Comment("#millisecond delay before popping up, or 0 for never");
+	att->push("tooltips",     tooltips);       att->Top()->Comment("millisecond delay before popping up, or 0 for never");
 
 	for (int c=0; c<styles.n; c++) {
 		WindowStyle *style = styles.e[c];
@@ -923,10 +923,23 @@ void Theme::dump_in_atts(Attribute *att,int flag,DumpContext *context)
 			if (!isblank(value)) makestr(this->name, value);
 
 		} else if (!strcmp(name,"windowstyle")) {
-			WindowStyle *style = new WindowStyle();
+			WindowStyle *style = nullptr;
+			Attribute *cat = att->attributes.e[c]->find("category");
+			bool newstyle = false;
+			if (cat)  {
+				for (int c2=0; c2<styles.n; c2++) {
+					if (!strcmp(cat->value, window_category_name(styles.e[c2]->category)))
+						style = styles.e[c2];
+				}
+				newstyle = true;
+			}
+			if (!style) style = new WindowStyle();
+			
 			style->dump_in_atts(att->attributes.e[c], flag, context);
-			styles.push(style);
-			style->dec_count();
+			if (newstyle) {
+				styles.push(style);
+				style->dec_count();
+			}
 
         } else if (!strcmp(name,"first_click")) {
             UIntAttribute(value,&firstclk);
@@ -952,8 +965,8 @@ void Theme::dump_in_atts(Attribute *att,int flag,DumpContext *context)
         } else if (!strcmp(name,"default_pady")) {
             DoubleAttribute(value,&default_pady);
 
-        } else if (!strcmp(name,"interface_scale")) {
-            DoubleAttribute(value,&interface_scale);
+        } else if (!strcmp(name,"ui_scale")) {
+            DoubleAttribute(value,&ui_scale);
 
         } else if (!strcmp(name,"default_pady")) {
 			double d;

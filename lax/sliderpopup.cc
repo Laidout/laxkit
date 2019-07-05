@@ -68,11 +68,11 @@ SliderPopup::SliderPopup(anXWindow *parnt,const char *nname,const char *ntitle,u
 		items = new MenuInfo;
 	}
 
-	pad=gap=app->defaultlaxfont->textheight()/3;
-	if (win_h==0) {
-		win_h=2*pad+app->defaultlaxfont->textheight();
+	pad = gap = win_themestyle->normal->textheight()/3;
+	if (win_h == 0) {
+		win_h = 2*pad + win_themestyle->normal->textheight();
 	}
-	arrowwidth=app->defaultlaxfont->textheight()*2/3;
+	arrowwidth = win_themestyle->normal->textheight()*2/3;
 }
 
 //! Delete items if it is local.

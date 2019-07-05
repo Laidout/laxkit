@@ -228,8 +228,8 @@ void MessageBar::Refresh()
 
 	//DBG cerr <<"mesbar("<<WindowTitle()<<")drawing at: "<<ox<<','<<oy<<endl;
 	
-	Displayer *dp=MakeCurrent();
-	dp->font(app->defaultlaxfont);
+	Displayer *dp = MakeCurrent();
+	dp->font(win_themestyle->normal);
 
 	dp->NewBG(win_themestyle->bg.Pixel());
 	dp->NewFG(win_themestyle->fg);

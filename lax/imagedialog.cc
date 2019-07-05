@@ -113,8 +113,8 @@ int ImageDialog::preinit()
 	anXWindow::preinit();
 	if (win_w==0) win_w=500;
 	if (win_h==0) {
-		int textheight=app->defaultlaxfont->textheight();
-		win_h=12*(textheight+7)+20;
+		int textheight = win_themestyle->normal->textheight();
+		win_h = 12 * (textheight + 7) + 20;
 	}
 	return 0;
 }
@@ -131,12 +131,12 @@ int ImageDialog::init()
 {
 	if (!xlib_window) return 1;
 
-	int textheight=app->defaultlaxfont->textheight();
-	int linpheight=textheight+6;
-	anXWindow *last=NULL;
-	Button *tbut=NULL;
+	int        textheight = win_themestyle->normal->textheight();
+	int        linpheight = textheight + 6;
+	anXWindow *last       = NULL;
+	Button *   tbut       = NULL;
 
-	 //--------------- FilePreviewer
+	//--------------- FilePreviewer
 	last=previewer=newFilePreviewer();
 	//***warning, hack!:
 	previewer->Preview(imageinfo->filename);

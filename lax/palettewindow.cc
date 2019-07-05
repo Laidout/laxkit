@@ -143,7 +143,7 @@ void PaletteWindow::Refresh()
 	const char *blah;
 	dp->NewFG(win_themestyle->bg);
 	dp->BlendMode(LAXOP_Over);
-	dp->drawrectangle(0,0,win_w,app->defaultlaxfont->textheight(), 1);
+	dp->drawrectangle(0,0,win_w, win_themestyle->normal->textheight(), 1);
 			
 	if (palette->name) blah=palette->name; else blah="(untitled)";
 	dp->NewFG(win_themestyle->fg);
@@ -169,7 +169,7 @@ void PaletteWindow::Refresh()
 		ccc=win_w-cc-ccc-4*pad;
 		if (ccc>0) {
 			dp->NewFG(rgbcolor(r,g,b));
-			dp->drawrectangle(cc+2*pad,0, ccc,app->defaultlaxfont->textheight()+2*pad,1);
+			dp->drawrectangle(cc+2*pad,0, ccc, win_themestyle->normal->textheight()+2*pad,1);
 		}
 	}
 
@@ -340,10 +340,10 @@ int PaletteWindow::MouseMove(int x,int y,unsigned int state,const LaxMouse *d)
  */
 void PaletteWindow::findInrect()
 {
-	inrect.x=0;
-	inrect.y=app->defaultlaxfont->textheight() + 2*pad;
+	inrect.x = 0;
+	inrect.y = win_themestyle->normal->textheight() + 2*pad;
 	inrect.width=  win_w;
-	inrect.height= win_h - app->defaultlaxfont->textheight() - 2*pad;
+	inrect.height= win_h - win_themestyle->normal->textheight() - 2*pad;
 	if (inrect.width<1) inrect.width=1;
 	if (inrect.height<1) inrect.height=1;
 	

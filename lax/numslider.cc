@@ -161,7 +161,7 @@ void NumSlider::Refresh()
 		dp->drawrectangle(0,0,win_w,win_h, 1);
 	} else dp->ClearWindow();
 
-	dp->font(app->defaultlaxfont);
+	dp->font(win_themestyle->normal);
 
 	 //draw arrows
 	int ww=win_w/2;

@@ -206,7 +206,7 @@ int Button::SetGraphic(int newthing, int newwidth, int newheight)
 			GetDisplayer()->textextent(label,-1,NULL,&th);
 			thingw=th/2;
 		}
-		else thingw=app->defaultlaxfont->textheight()/2;
+		else thingw = win_themestyle->normal->textheight()/2;
 	}
 	if (thingh<=0) thingh=thingw;
 
@@ -260,6 +260,15 @@ void Button::draw()
 	dp->MakeCurrent(this);
 	if (font) {
 		dp->font(font, font->textheight());
+	} else {
+		dp->font(win_themestyle->normal, win_themestyle->normal->textheight());
+		//cout << "font size: "<<win_themestyle->normal->textheight()<<endl;
+		Attribute att;
+		win_themestyle->normal->dump_out_atts(&att, 0, nullptr);
+		att.dump_out(stdout, 0);
+		//att.clear();
+		//win_themestyle->dump_out_atts(&att, 0, nullptr);
+		//att.dump_out(stdout, 0);
 	}
 	dp->NewFG(mousein ? win_themestyle->bghover : win_themestyle->bg);
 	dp->drawrectangle(0,0, win_w,win_h, 1);
@@ -320,9 +329,9 @@ void Button::draw()
 			|| ((win_style&IBUT_FLAT) && state!=LAX_OFF))
 		dp->drawBevel(bevel,highlight,shadow,state, 0,0, win_w,win_h);
 
-	if (font) {
-		dp->font(app->defaultlaxfont, app->defaultlaxfont->textheight());
-	}
+	//if (font || win_themestyle->normal) {
+	//	dp->font(app->defaultlaxfont, app->defaultlaxfont->textheight());
+	//}
 }
 
 

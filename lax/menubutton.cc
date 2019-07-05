@@ -121,7 +121,7 @@ void MenuButton::makePopup(int mouseid)
 	popup->ClearSearch(); //in case there was a previous menuinfo search messing things up
 
 	//popup->pad=pad;
-	popup->pad=app->defaultlaxfont->textheight()/3;
+	popup->pad = win_themestyle->normal->textheight()/3;
 	popup->Select(0);
 //	popup->SetFirst(curitem,x,y); 
 	popup->WrapToMouse(mouseid);

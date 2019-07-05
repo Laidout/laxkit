@@ -138,8 +138,8 @@ LineInput::LineInput(anXWindow *parnt,const char *nname,const char *ntitle,unsig
 	double lw=0,lh=0,fasc=0,fdes=0,textheight;
 	if (label) win_themestyle->normal->Extent(label,-1,&lw,&lh,&fasc,&fdes);
 	else {
-		fasc=app->defaultlaxfont->ascent();
-		fdes=app->defaultlaxfont->descent();
+		fasc = win_themestyle->normal->ascent();
+		fdes = win_themestyle->normal->descent();
 	}
 	textheight=fasc+fdes;
 
@@ -422,7 +422,7 @@ void LineInput::Refresh()
 		Displayer *dp=MakeCurrent();
 		dp->ClearWindow();
 		dp->NewFG(win_themestyle->fg);
-		dp->font(app->defaultlaxfont);
+		dp->font(win_themestyle->normal);
 		dp->textout(lx,ly, label,strlen(label), LAX_LEFT|LAX_BASELINE);
 	}
 	needtodraw=0;

@@ -1014,6 +1014,10 @@ Laxkit::anXWindow *ViewportWindow::SetupInputBox(unsigned long owner_id, const c
 	 //2. temporarily toggle off viewport grab mode if necessary, to keep input in the edit
 	int border = 3;
 	int x=bounds.minx-border, y=bounds.miny-border, w=bounds.maxx-bounds.minx, h=bounds.maxy-bounds.miny;
+	if (fabs(h) < 1e-5) {
+		h = 1.2 * win_themestyle->normal->textheight();
+		y -= h/2;
+	}
 
 	if (y+h>win_h) y-=y+h-win_h+8;
 	else if (y<0) y=0;

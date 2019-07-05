@@ -176,8 +176,8 @@ int PrintDialog::preinit()
 	anXWindow::preinit();
 	if (win_w==0) win_w=500;
 	if (win_h==0) {
-		int textheight=app->defaultlaxfont->textheight();
-		win_h=12*(textheight+7)+20;
+		int textheight = win_themestyle->normal->textheight();
+		win_h = 12 * (textheight + 7) + 20;
 	}
 	return 0;
 }
@@ -189,9 +189,9 @@ int PrintDialog::init()
 	Button *tbut;
 	anXWindow *last=NULL;
 	int c,c2=-1;
-	int linpheight=2*app->defaultlaxfont->textheight();
-	
-	 // -----Print To
+	int linpheight = 2 * win_themestyle->normal->textheight();
+
+	// -----Print To
 	AddWin(new MessageBar(this,"printtomes",NULL,MB_MOVE, 0,0,0,0,1, "Print To:"),1,-1);
 
 	last = strpop = new SliderPopup(this,"printto",NULL,0, 0,0,0,0,1, NULL,object_id,"printto",NULL,0);
