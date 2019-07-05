@@ -199,8 +199,8 @@ void anXApp::dump_out_rc(FILE *f, const char *profile, int indent, int what)
 	char spc[indent+3]; memset(spc,' ',indent+2); spc[indent]='\0';
 
 	if (what==-1) {
-		fprintf(f,"%s#profile profilename #Which theme to use. Should be before defs of any actual themes.\n",spc);
-		fprintf(f,"%s#theme ThemeName     #You can have any number of themes, profile chooses which one to actually use.\n",spc);
+		fprintf(f,"%sprofile profilename #Which theme to use. Should be before defs of any actual themes.\n",spc);
+		fprintf(f,"%stheme ThemeName     #You can have any number of themes, profile chooses which one to actually use.\n",spc);
 		if (theme) theme->dump_out(f,indent+2, -1, NULL);
 		else {
 			Theme t;
@@ -245,17 +245,19 @@ void anXApp::dump_in_rc(Attribute *att, const char *profile)
 		name =att->attributes.e[c]->name;
 		value=att->attributes.e[c]->value;
 
-
 		if (!strcmp(name,"profile")) {
 			if (!value || !profile || strcmp(value,profile)) continue;
 			profile = value;
 
 		} else if (!strcmp(name,"theme")) {
 			if (isblank(profile) || (!isblank(profile) && value && !strcmp(profile, value))) {
-				Theme *thme = new Theme(profile);
-				thme->dump_in_atts(att->attributes.e[c], 0, NULL);
-				if (theme) theme->dec_count();
-				theme = thme;
+				//Theme *thme = new Theme(profile);
+				//thme->dump_in_atts(att->attributes.e[c], 0, NULL);
+				//if (theme) theme->dec_count();
+				//theme = thme;
+				//----
+				if (!theme) theme = new Theme(profile);
+				theme->dump_in_atts(att->attributes.e[c], 0, NULL);
 			}
 		}
 	}
