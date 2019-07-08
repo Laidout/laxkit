@@ -39,6 +39,9 @@ class ViewportWithStack : public ViewportWindow
 	virtual void ClearSearch();
 
  public:
+	bool draw_axes;
+	bool draw_bounding_boxes;
+
 	Laxkit::RefPtrStack<SomeData> datastack;
  	ViewportWithStack(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
 					int xx,int yy,int ww,int hh,int brder,Laxkit::Displayer *ndp=NULL);

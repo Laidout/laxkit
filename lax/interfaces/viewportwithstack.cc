@@ -62,6 +62,9 @@ ViewportWithStack::ViewportWithStack(Laxkit::anXWindow *parnt,const char *nname,
 {
 	vpwsfirsttime=1;
 
+	draw_axes = true;
+	draw_bounding_boxes = false;
+
 	foundtypeobj=new ObjectContext;
 	foundobj=new ObjectContext;
 	firstobj=new ObjectContext;
@@ -371,12 +374,12 @@ void ViewportWithStack::Refresh()
 	 //draw sample square 200x200
 	dp->LineAttributes(1,LineSolid,LAXCAP_Butt,LAXJOIN_Miter);
 	dp->NewFG(.5,.5,.5);
-	dp->drawline(-100,-100, 100,-100);
-	dp->drawline( 100,-100, 100, 100);
-	dp->drawline( 100, 100,-100, 100);
-	dp->drawline(-100, 100,-100,-100);
+	//dp->drawline(-100,-100, 100,-100);
+	//dp->drawline( 100,-100, 100, 100);
+	//dp->drawline( 100, 100,-100, 100);
+	//dp->drawline(-100, 100,-100,-100);
 
-	dp->drawaxes(10);
+	if (draw_axes) dp->drawaxes(10);
 
 	
 	if (needtodraw) {
@@ -430,7 +433,7 @@ void ViewportWithStack::Refresh()
 					transformToContext(m,oc,0,1);
 					dp->PushAndNewTransform(m);
 				}
-				if (dd) {
+				if (dd && draw_bounding_boxes) {
 					 //draw bounding box
 					dp->LineAttributes(1,LineSolid,LAXCAP_Butt,LAXJOIN_Miter);
 					dp->BlendMode(LAXOP_Over);
