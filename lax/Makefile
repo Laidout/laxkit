@@ -177,6 +177,7 @@ objs= \
 	treeselector.o \
 	shortcutwindow.o \
 	curveinfo.o \
+	rspline.o \
 
 #	printdialog.o \
 #	tableframe.o \
