@@ -183,7 +183,8 @@ void CheckBox::drawgraphic()
 void CheckBox::draw()
 { 
 	Displayer *dp=MakeCurrent();
-    dp->NewFG(mousein ? win_themestyle->bghover : win_themestyle->bg);
+	dp->font(win_themestyle->normal, win_themestyle->normal->textheight());
+	dp->NewFG(mousein ? win_themestyle->bghover : win_themestyle->bg);
 
 	dp->drawrectangle(0,0, win_w,win_h, 1);
 	drawgraphic();
