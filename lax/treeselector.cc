@@ -1016,6 +1016,7 @@ void TreeSelector::Refresh()
 
 
 	Displayer *dp=MakeCurrent();
+	dp->font(win_themestyle->normal, win_themestyle->normal->textheight());
 	dp->ClearWindow();
 	dp->LineAttributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
 

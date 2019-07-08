@@ -126,6 +126,7 @@ void SliderPopup::Refresh()
 	if (!win_on || !needtodraw) return;
 
 	Displayer *dp=MakeCurrent();
+	dp->font(win_themestyle->normal, win_themestyle->normal->textheight());
 
 	dp->NewBG(win_themestyle->bg);
 	if (hover) {
