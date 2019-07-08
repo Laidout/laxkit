@@ -21,7 +21,6 @@
 //
 
 
-#include <lax/lists.cc>
 #include <lax/displayer.h>
 #include <lax/doublebbox.h>
 #include <lax/transformmath.h>
@@ -32,9 +31,6 @@
 
 #include <iostream>
 #define DBG 
-
-
-
 
 
 
@@ -74,9 +70,8 @@ namespace Laxkit {
  * 
  * \todo *** this could be automated a little more, maybe the ruler could
  *   watch a panner too? or watch a displayer??? maybe not, rulers are doubles, panners are longs
- * \todo *** have to coordinate panner->minsel/maxsel and upperbound/lowerbound.\n
  * \todo ***heell, perhaps combine displayer and panner to DoublePanner? would simplify some things...
- * \todo *** require ctm and ictm be kept up always?? would make this just slightly faster
+ * \todo *** have to coordinate panner->minsel/maxsel and upperbound/lowerbound.\n
  *
  *
  * <pre>
