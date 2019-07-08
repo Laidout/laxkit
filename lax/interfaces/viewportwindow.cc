@@ -222,7 +222,7 @@ ViewportWindow::ViewportWindow(Laxkit::anXWindow *parnt,const char *nname,const 
 {
 	 //make our own local copy of colors
 	win_themestyle = new WindowStyle;
-	*win_themestyle = *app->theme->GetStyle(THEME_Panel);
+	*win_themestyle = *app->theme->GetStyle(THEME_Edit);
 
 	xruler=yruler=NULL;
 	xscroller=yscroller=NULL;
