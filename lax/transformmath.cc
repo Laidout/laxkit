@@ -27,6 +27,7 @@
 #include <cstring>
 #include <cstdlib>
 
+//template implementation:
 #include <lax/lists.cc>
 
 
@@ -72,7 +73,7 @@ namespace Laxkit {
 Affine::Affine()
 { transform_identity(_m); }
 
-//! If mm==NULL, set identity.
+//! If mm==nullptr, set identity.
 Affine::Affine(const double *mm)
 {
 	if (mm) memcpy(_m,mm, 6*sizeof(double));
@@ -196,7 +197,7 @@ void Affine::Unshear(int preserve_x, int normalize)
 		}
 	}
     //touchContents();
-    //modtime=time(NULL);
+    //modtime=time(nullptr);
 }
 
 //! Make x and y both be unit vectors, but point in the same direction as before.
@@ -574,7 +575,7 @@ int AffineStack::PushAndNewAxes(double a,double b,double c,double d,double x0,do
 
 /*! Return value is how many levels still in axesstack after popping.
  * 
- * If m_ret!=NULL, then copy the popped values into an already allocated m_ret.
+ * If m_ret!=nullptr, then copy the popped values into an already allocated m_ret.
  */
 int AffineStack::PopAxes(double *m_ret)
 {
@@ -626,18 +627,18 @@ void dumpctm(const double *d)
 }
 
 
-//! Return identity matrix. If result==NULL, then return a new'd double[6].
+//! Return identity matrix. If result==nullptr, then return a new'd double[6].
 /*! \ingroup transformmath
  */
 double *transform_identity(double *result)
 {
-	if (result==NULL) result=new double[6];
+	if (result == nullptr) result=new double[6];
 	result[1]=result[2]=result[4]=result[5]=0;
 	result[0]=result[3]=1;
 	return result;
 }
 
-//! Invert m into result. If result==NULL, then return a new double[6].
+//! Invert m into result. If result==nullptr, then return a new double[6].
 /*! \ingroup transformmath
  * <pre>
  *      [ a  b  0 ]
@@ -651,7 +652,7 @@ double *transform_identity(double *result)
  */
 double *transform_invert(double *result,const double *m)
 {
-	if (result==NULL) result=new double[6];
+	if (result==nullptr) result=new double[6];
 	double d=m[0]*m[3]-m[1]*m[2];
 	result[0]=m[3]/d;
 	result[1]=-m[1]/d;
@@ -674,12 +675,12 @@ int is_degenerate_transform(const double *m)
  *      [ tx ty 1 ]
  * </pre>
  *
- * If result is NULL, then return a new double[6] with the result.
+ * If result is nullptr, then return a new double[6] with the result.
  * result should not point to the same place as m or n.
  */
 double *transform_mult(double *result,const double *a,const double *b)
 {
-	if (result==NULL) result=new double[6];
+	if (result==nullptr) result=new double[6];
 	result[0]=a[0]*b[0]+a[1]*b[2];
 	result[1]=a[0]*b[1]+a[1]*b[3];
 	result[2]=a[2]*b[0]+a[3]*b[2];
@@ -690,13 +691,13 @@ double *transform_mult(double *result,const double *a,const double *b)
 }
 
 /*! Return the transform T such that a*T = b.
- * Put in result, or if result==NULL, then return new double[6].
- * Return NULL if a is not invertable.
+ * Put in result, or if result==nullptr, then return new double[6].
+ * Return nullptr if a is not invertable.
  */
 double *transform_diff(double *result,const double *a,const double *b)
 {
-	if (is_degenerate_transform(a)) return NULL;
-	if (result==NULL) result = new double[6];
+	if (is_degenerate_transform(a)) return nullptr;
+	if (result==nullptr) result = new double[6];
 
 	double m[6];
 	transform_invert(m,a);
@@ -705,13 +706,13 @@ double *transform_diff(double *result,const double *a,const double *b)
 	return result;
 }
 
-//! Rotate m by angle. If m==NULL, then return a new'd double[6] with rotation angle.
+//! Rotate m by angle. If m==nullptr, then return a new'd double[6] with rotation angle.
 /*! \ingroup transformmath
  * If m is supplied, then m becomes rotation*m.
  */
 double *transform_rotate(double *m, double angle)
 {
-	if (m==NULL) m=transform_identity(NULL);
+	if (m==nullptr) m=transform_identity(nullptr);
 	double r[6],s[6];
 	r[4]=r[5]=0;
 	r[0]=cos(angle);
@@ -725,12 +726,12 @@ double *transform_rotate(double *m, double angle)
 
 
 
-//! Find a transform from the given flat basis. Return new double[6] if result==NULL.
+//! Find a transform from the given flat basis. Return new double[6] if result==nullptr.
 /*! \ingroup transformmath
  */
 double *transform_from_basis(double *result,flatpoint o,flatpoint x,flatpoint y)
 {
-	if (result==NULL) result=new double[6]; //*** how about typedef double[6] Trans; return type Trans??
+	if (result==nullptr) result=new double[6]; //*** how about typedef double[6] Trans; return type Trans??
 	result[0]=x.x;
 	result[1]=x.y;
 	result[2]=y.x;
@@ -769,7 +770,7 @@ double *transform_from_basics(double *result,double x,double y,
 								double angle, //!< rotation in radians of the xaxis from (1,0)
 								double shear) //!< rotation in radians of the yaxis from transpose(xaxis)
 {
-	if (result==NULL) result=new double[6];
+	if (result==nullptr) result=new double[6];
 
 	flatpoint xx(sx,0),yy;
 	if (angle!=0) xx=rotate(xx,angle,0);
@@ -805,11 +806,11 @@ void transform_to_basics(double *m,double *x,double *y,double *sx,double *sy,dou
 //! Simple set m[]={a,b,c,d,x0,y0}
 /*! \ingroup transformmath 
  * 
- * If m==NULL, then return a new'd double[6]
+ * If m==nullptr, then return a new'd double[6]
  */
 double *transform_set(double *m,double a,double b,double c,double d,double x0,double y0)
 {
-	if (m==NULL) m=new double[6];
+	if (m==nullptr) m=new double[6];
 	m[0]=a;
 	m[1]=b;
 	m[2]=c;
@@ -820,7 +821,7 @@ double *transform_set(double *m,double a,double b,double c,double d,double x0,do
 }
 
 ////! Create a transform from a string.
-///*! If m==NULL, then return a new double[6], else put result in m.
+///*! If m==nullptr, then return a new double[6], else put result in m.
 // *
 // * str can be something like "1 0 0 1 0 0" or 
 // */
@@ -941,7 +942,7 @@ double get_magnification(const double *m, flatpoint v)
 #define FixedToDouble(f) (((double)(f))/65536)
 
 //! Create as possible an affine transform from M, which has 16.16 fixed point elements.
-/*! If result is NULL, then create and return a new double[6].
+/*! If result is nullptr, then create and return a new double[6].
  *
  * This is mainly to assist in using XTransform in the XRender extension,
  * which allows full 3x3 transformations. This might not be so useful, and
@@ -977,10 +978,10 @@ void transform_to_3x3_fixed(int M[3][3],double *m)
 }
 
 //! Based on an svg transform in v, return the equivalent 6 member affine transform.
-/*! If m==NULL, then return a new double[6]. Else assume m has room for 6 doubles, 
+/*! If m==nullptr, then return a new double[6]. Else assume m has room for 6 doubles, 
  * and return m.
  *
- * On error, return NULL. If m!=NULL, it gets set to identity on error.
+ * On error, return nullptr. If m!=nullptr, it gets set to identity on error.
  *
  * \todo this needs thorough testing
  * \todo should make the reverse too, breaking down to only scale, or only translate,
@@ -988,7 +989,7 @@ void transform_to_3x3_fixed(int M[3][3],double *m)
  */
 double *svgtransform(const char *v, double *m)
 {
-	if (!v) return NULL;
+	if (!v) return nullptr;
 	double *mm=m;
 	if (!m) m=new double[6];
 	transform_identity(m);
@@ -1075,10 +1076,10 @@ double *svgtransform(const char *v, double *m)
 			}
 		}
 	} catch(...) {
-		if (m!=mm) delete[] m; //m was created above, original m was NULL
+		if (m!=mm) delete[] m; //m was created above, original m was nullptr
 		else transform_identity(m);
 
-		return NULL;
+		return nullptr;
 	}
 	return m;
 }
