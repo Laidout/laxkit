@@ -711,11 +711,11 @@ int ViewportWindow::UseTheseRulers(RulerWindow *x,RulerWindow *y)
  */
 int ViewportWindow::Needtodraw()
 {
-	DBG if (needtodraw) cerr <<"  Yes, it needs to draw.\n"; else cerr <<"  viewport doesn't need to draw"<<endl;
+	//DBG if (needtodraw) cerr <<"  Yes, it needs to draw.\n"; else cerr <<"  viewport doesn't need to draw"<<endl;
 	if (needtodraw) return needtodraw;
 	for (int c=0; c<interfaces.n; c++) {
 		if (interfaces.e[c]->needtodraw) { 
-			DBG cerr <<"interface "<<interfaces.e[c]->whattype()<<" needs to draw "<<interfaces.e[c]->needtodraw<<endl;
+			//DBG cerr <<"interface "<<interfaces.e[c]->whattype()<<" needs to draw "<<interfaces.e[c]->needtodraw<<endl;
 			needtodraw=1; 
 		}
 	}
