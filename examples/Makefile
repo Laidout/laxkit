@@ -30,6 +30,7 @@ examples= \
 	laxhello \
 	interfs \
 	themeeditor \
+	spirocurves \
 	timers
 
 
@@ -53,6 +54,9 @@ widgets: lax laxinterface widgets.cc widgets.o
 
 panel: lax laxinterface panel.o
 	$(LD) $@.o -llaxkit $(LDFLAGS) -o $@
+
+spirocurves: lax laxinterface spirocurves.o
+	$(LD) $@.o -llaxinterfaces -llaxkit  $(LDFLAGS) -o $@
 
 stopwatch: lax laxinterface stopwatch.o
 	$(LD) $@.o -llaxkit $(LDFLAGS) -o $@
