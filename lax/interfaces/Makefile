@@ -60,6 +60,7 @@ objs= \
 	groupdata.o \
 	perspectiveinterface.o \
 	stackpartinterface.o \
+	simplepathinterface.o \
 
 #	linesinterface.o \
 #	measureinterface.o \
