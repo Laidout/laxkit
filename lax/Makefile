@@ -177,13 +177,15 @@ objs= \
 	treeselector.o \
 	shortcutwindow.o \
 	curveinfo.o \
-	rspline.o \
 
 #	printdialog.o \
 #	tableframe.o \
 #	colorselector.o \
 #
 
+otherobjs= \
+	spiro/rspline.o \
+	spiro/spiro.o
 
 
 
@@ -201,14 +203,15 @@ all: $(objs) liblaxkit.a interfaces liblaxkit.so.$(LAXKITVERSION)
 # like #defining DBG to be: //
 hidegarbage:
 	./hidegarbage *.cc
-	cd interfaces && $(MAKE) hidegarbage
+	$(MAKE) -C interfaces hidegarbage
+	$(MAKE) -C spiro hidegarbage
 
 # This changes in *.cc all occurrences of 
 # '(whitespace)//DBG' to '(same ws)DBG'.
 unhidegarbage:
 	./hidegarbage -0 *.cc
-	cd interfaces && $(MAKE) unhidegarbage
-
+	$(MAKE) -C interfaces unhidegarbage
+	$(MAKE) -C spiro unhidegarbage
 
 
 docs:
@@ -216,6 +219,9 @@ docs:
 
 interfaces:
 	cd interfaces && $(MAKE) all
+
+spiro:
+	cd spiro && $(MAKE) all
 
 
 #----------------- Dynamic libs ---------------------------
@@ -226,15 +232,16 @@ liblaxkit.so.$(LAXKITVERSION): $(objs)
 
 
 #----------------- Static libs ---------------------------
-liblaxkit.a: $(objs)
-	ar cr $@ $(objs)
+liblaxkit.a: spiro $(objs)
+	ar cr $@ $(objs) $(otherobjs)
 
 
 #----------------- Other ---------------------------
 depends:
 	touch makedepend
 	../utils/makedependencies -fmakedepend -I$(LAXDIR)/.. *.cc
-	cd interfaces && $(MAKE) depends
+	$(MAKE) -C interfaces depends
+	$(MAKE) -C spiro depends
 
 include makedepend
 
@@ -250,8 +257,9 @@ include makedepend
 dist-clean: clean
 	rm -f install.log
 
-.PHONY: clean docs interfaces hidegarbage unhidegarbage
+.PHONY: clean docs interfaces spiro hidegarbage unhidegarbage
 clean:
 	rm -f *.o *.a *.so
-	cd interfaces && $(MAKE) clean
+	$(MAKE) -C interfaces clean
+	$(MAKE) -C spiro clean
 
