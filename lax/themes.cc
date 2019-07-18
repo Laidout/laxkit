@@ -708,7 +708,8 @@ Theme::Theme(const char *nname)
 	default_padx = 5;
 	default_pady = 5;
 	default_bevel = 2;
-	ui_scale = 1; //all sizes should be multiplied with this
+	base_font_size = 12;
+	ui_scale = -1; //all sizes should be multiplied with this. if -1, then use default gleaned from GTK_SCALE or QT_SCREEN_SCALE_FACTOR, or 1 if neither of those exist
 
 	firstclk = 1000/7;
 	dblclk   = 1000/5;
@@ -777,6 +778,17 @@ int Theme::GetInt(int what)
 
 double Theme::GetDouble(int what)
 {
+	if (what == THEME_UI_Scale) {
+		if (ui_scale > 0) return ui_scale;
+		char *str = getenv("GTK_SCALE");
+		if (!str) str = getenv("QT_SCALE_FACTOR");
+		if (str) {
+			double scale = strtod(str, nullptr);
+			if (scale > 0) ui_scale = scale;
+		}
+		return 1;
+	}
+
 	if (what == THEME_Border_Width) return default_border_width;
 	if (what == THEME_Padx) return default_padx;
 	if (what == THEME_Pady) return default_pady;
@@ -877,7 +889,8 @@ Attribute *Theme::dump_out_atts(Attribute *att,int what,DumpContext *context)
 		att->push("default_padx", "5");
 		att->push("default_pady", "5");
 		att->push("default_bevel", default_bevel);
-		att->push("ui_scale", ui_scale);
+		att->push("base_font_size", base_font_size);
+		att->push("ui_scale", "default", "If > 0, then scale fonts, bevels, etc by this. If default, try to guess appropriate values");
 
 		att->push("first_click",  "140",  "milliseconds before idle clicking after first click");
 		att->push("double_click", "200",  "millisecond limit for double click");
@@ -894,7 +907,9 @@ Attribute *Theme::dump_out_atts(Attribute *att,int what,DumpContext *context)
 	att->push("default_padx", default_padx);
 	att->push("default_pady", default_pady);
 	att->push("default_bevel", default_bevel);
-	att->push("ui_scale", ui_scale);
+	att->push("base_font_size", base_font_size);
+	if (ui_scale > 0) att->push("ui_scale", ui_scale);
+	else att->push("ui_scale", "default");
 
 	att->push("first_click",  (int)firstclk);  att->Top()->Comment("milliseconds before idle clicking after first click");
 	att->push("double_click", (int)dblclk);    att->Top()->Comment("millisecond limit for double click");

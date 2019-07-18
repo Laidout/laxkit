@@ -73,6 +73,7 @@ enum ThemeThings {
 	THEME_Highlight_Add,
 	THEME_Focus_Add,
 	THEME_Alternate_Add,
+	THEME_UI_Scale,
 
 	THEME_Border_Width,
 	THEME_Padx,
@@ -196,6 +197,7 @@ class Theme : public anObject, public LaxFiles::DumpUtility
 	double default_padx;
 	double default_pady;
 	double default_bevel;
+	double base_font_size;
 	double ui_scale;
 
 	unsigned int firstclk; //how long after first click to wait before idle "clicks", in ms
