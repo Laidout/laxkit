@@ -13,7 +13,7 @@ It has a number of user interfaces for manipulating various common two
 dimensional vector art objects like bezier curves with variable widths,
 gradients, and meshes.
 
-The main driving force behind Laxkit development is as a windowing
+The main driving force behind development is to provide the windowing
 backend for the desktop publishing program Laidout (http://www.laidout.org).
 
 The goal of the kit is to make the creation of art related programs
@@ -26,9 +26,6 @@ object properties instead of low level input boxes off to the side.
 
 There is copius documentation of the source accessible through doxygen by 
 running 'make docs'.
-
-Another partially implemented goal of the Laxkit is to provide an interface
-kit supporting multi-pointer, multi-keyboard, and multi-touch surfaces.
 
 
 COMPILING RELEASES (NOT GIT)
