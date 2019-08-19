@@ -26,6 +26,7 @@
 #include <lax/interfaces/somedatafactory.h>
 #include <lax/interfaces/interfacemanager.h>
 #include <lax/laxutils.h>
+#include <lax/utf8string.h>
 #include <lax/language.h>
 
 #include "simplepathinterface.h"
@@ -35,13 +36,14 @@
 #include <lax/lists.cc>
 
 
-using namespace Laxkit;
-
 
 #include <iostream>
 using namespace std;
 #define DBG 
 
+
+using namespace Laxkit;
+using namespace LaxFiles;
 
 namespace LaxInterfaces {
 
@@ -84,6 +86,21 @@ const char *SimplePathData::PathTypeName(SimplePathData::Interpolation interpola
 	return nullptr;
 }
 
+const char *SimplePathData::PointTypeName(SimplePathData::PointType pointtype)
+{
+	switch(pointtype) {
+		case SimplePathData::Default     :    return "Default"     ;
+		case SimplePathData::Smooth      :    return "Smooth"      ;
+		case SimplePathData::Corner      :    return "Corner"      ;
+		case SimplePathData::Spiro_G4    :    return "Spiro_G4"    ;
+		case SimplePathData::Spiro_G2    :    return "Spiro_G2"    ;
+		case SimplePathData::Spiro_Left  :    return "Spiro_Left"  ;
+		case SimplePathData::Spiro_Right :    return "Spiro_Right" ;
+		case SimplePathData::Spiro_Anchor:    return "Spiro_Anchor";
+		case SimplePathData::Spiro_Handle:    return "Spiro_Handle";
+	}
+	return nullptr;
+}
 
 //-------------vvvvvvvvvvvvvvv-------- Old Spiro Callbacks --------------------
 struct SimplePathSpiroCtx
@@ -355,6 +372,86 @@ void SimplePathData::TangentAtIndex(int index, flatpoint &prev, flatpoint &next)
 //	}
 }
 
+void SimplePathData::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context)
+{
+}
+
+void SimplePathData::dump_out(FILE *f,int indent,int what,DumpContext *context)
+{
+    Attribute att;
+    dump_out_atts(&att,what,context);
+    att.dump_out(f,indent);
+}
+
+LaxFiles::Attribute *SimplePathData::dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *savecontext)
+{
+	if (what == -1) {
+		return att;
+	}
+
+	if (!att) att = new Attribute();
+
+	Utf8String str;
+
+	att->push("type", PathTypeName(interpolation));
+	att->push("linewidth", linewidth);
+	str.Sprintf("rgbaf(%.10g, %.10g, %.10g, %.10g)", color.Red(), color.Green(), color.Blue(), color.Alpha());
+	att->push("color", str.c_str());
+	if (closed) att->push("closed");
+
+	if (mpoints.n) {
+		Attribute *att2 = att->pushSubAtt("points");
+
+		for (int c=0; c<mpoints.n; c++) {
+			Point *point = mpoints.e[c];
+
+			str.Sprintf("(%.10g, %.10g) %s %.10g %s %.10g", point->p.x, point->p.y,
+					PointTypeName((SimplePathData::PointType)point->ltype), point->ltheta,
+					PointTypeName((SimplePathData::PointType)point->rtype), point->rtheta);
+			att2->push(PointTypeName((SimplePathData::PointType)point->type), str.c_str());
+		}
+	}
+
+	return att;
+}
+
+char *SimplePathData::GetSvgPath()
+{
+	// *** BROKEN FIX ME!!! combine from Displayer::drawFormattedPoints
+	
+	if (!pointcache.n) return nullptr;
+
+	Utf8String str, str2;
+
+	int i=0;
+	if ((pointcache.e[0].info & LINE_Bez) == 0) i=0;
+	else if ((pointcache.e[1].info & LINE_Bez) == 0) i=1;
+	else if ((pointcache.e[2].info & LINE_Bez) == 0) i=2;
+		
+	str2.Sprintf("M %.10g %.10g ", pointcache[i].x, pointcache[i].y);
+	str.Append(str2);
+
+	for (int c=i+1; c<pointcache.n; c++) {
+		if ((pointcache[c].info & LINE_Bez) == 0) {
+			//line
+			str2.Sprintf("L %.10g %.10g ", pointcache[c].x, pointcache[c].y);
+			str.Append(str2);
+		} else {
+			//curve, assume two control points
+			str2.Sprintf("C %.10g %.10g %.10g %.10g %.10g %.10g ", pointcache[c].x, pointcache[c].y, pointcache[c+1].x, pointcache[c+1].y, pointcache[c+2].x, pointcache[c+2].y);
+			str.Append(str2);
+			c += 2;
+		}
+
+		if (pointcache[c].info & (LINE_Closed | LINE_Open)) {
+			str.Append("z");
+		}
+	}
+
+	char *sstr = str.ExtractBytes(nullptr, nullptr, nullptr);
+	return sstr;
+}
+
 
 //--------------------------- SimplePathInterface -------------------------------------
 
@@ -604,6 +701,13 @@ Laxkit::MenuInfo *SimplePathInterface::ContextMenu(int x,int y,int deviceid, Lax
 		menu->AddItem(_("Auto"  ), SIMPLEPATH_Spiro_Auto  );
 	}
 
+	if (data->mpoints.n) {
+		menu->AddSep();
+		menu->AddItem(_("Load"), SIMPLEPATH_Load);
+		menu->AddItem(_("Save"), SIMPLEPATH_Save);
+		menu->AddItem(_("Save as bezier"), SIMPLEPATH_Save_Bezier);
+	}
+
 	return menu;
 }
 
@@ -638,6 +742,25 @@ int SimplePathInterface::Event(const Laxkit::EventData *evdata, const char *mes)
 				  || i == SIMPLEPATH_Spiro_Smooth
 				  || i == SIMPLEPATH_Spiro_Auto) {
 			  PerformAction(i);
+
+		  } else if (i == SIMPLEPATH_Save_Bezier) {
+			  PostMessage(_("NEED TO IMPLEMENT SAVE BEZ"));
+			  return 0;
+
+		  } else if (i == SIMPLEPATH_Save) {
+			  FILE *f = fopen("test.path", "w");
+			  if (f) {
+				  fprintf(f, "#SimplePathData\n");
+				  data->dump_out(f, 0, 0, nullptr);
+				  fclose(f);
+				  PostMessage(_("Saved."));
+			  }
+			  return 0;
+
+		  } else if (i == SIMPLEPATH_Load) {
+			  PostMessage(_("NEED TO IMPLEMENT LOAD"));
+			  return 0;
+
 		  }
 
 		}

@@ -46,8 +46,6 @@ class SimplePathData : virtual public SomeData
 		NewSpiro
 	};
 
-	static const char *PathTypeName(Interpolation interpolation);
-
 	enum PointType {
 		Default,
 		Smooth,
@@ -60,15 +58,19 @@ class SimplePathData : virtual public SomeData
 		Spiro_Handle
 	};
 
+	static const char *PathTypeName(Interpolation interpolation);
+	static const char *PointTypeName(PointType pointtype);
+
 	class Point
 	{
 	  public:
-		flatvector p;
 		int type;
+		flatvector p;
 		double ltheta;
 		double rtheta;
 		int ltype;
 		int rtype;
+
 		Point()
 		{
 			type = Smooth;
@@ -121,6 +123,11 @@ class SimplePathData : virtual public SomeData
 	virtual int AddPoint(flatvector p, int where);
 	virtual int AddPoint(flatvector p, int type, int ltype, double ltheta, int rtype, double rtheta, int where);
 	virtual void RemoveAt(int index);
+
+	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
+	virtual void dump_out(FILE *f, int indent, int what, LaxFiles::DumpContext *context);
+	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *savecontext);
+	virtual char *GetSvgPath();
 };
 
 
@@ -176,6 +183,10 @@ class SimplePathInterface : public anInterface
 		SIMPLEPATH_Spiro_Right,
 		SIMPLEPATH_Spiro_Anchor,
 		SIMPLEPATH_Spiro_Handle,
+
+		SIMPLEPATH_Load,
+		SIMPLEPATH_Save,
+		SIMPLEPATH_Save_Bezier,
 
 		SIMPLEPATH_ShowBez,
 		SIMPLEPATH_ToggleClosed,
