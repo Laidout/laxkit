@@ -1989,32 +1989,33 @@ int TreeSelector::findItem(int x,int y, int *onsub)
 {
 	x -= offsetx + inrect.x;
 	y -= offsety + inrect.y;
-	int s=0,e=visibleitems.n()-1, m;
+	int s=0, e=visibleitems.n()-1, m;
 	
 	MenuItem *i;
-	int which=-1;
-	while (e>=s) {
-		i=item(s);
+	int which = -1;
+	int itemgap = 1;
+	while (e >= s) {
+		i = item(s);
 
 		if (y < i->y) return -1;
-		if (y >= i->y && y <= i->y+i->h) { which=s; break; }
+		if (y >= i->y && y <= i->y + i->h + itemgap) { which=s; break; }
 
-		i=item(e);
+		i = item(e);
 		if (y >= i->y+i->h) return e+1;
-		if (y >= i->y && y <= i->y+i->h) { which=e; break; }
+		if (y >= i->y && y <= i->y + i->h + itemgap) { which=e; break; }
 
-		m=(e+s)/2;
+		m = (e+s)/2;
 		if (m==e || m==s) return -1;
 
-		i=item(m);
-		if (y >= i->y && y <= i->y+i->h) { which=m; break; }
+		i = item(m);
+		if (y >= i->y && y <= i->y + i->h + itemgap) { which=m; break; }
 
 		if (y < i->y) { s++; e=m-1; }
 		else { s=m+1; e--; }
 	}
 
 	if (which<0) return -1;
-	i=item(which);
+	i = item(which);
 
 	int indent=0;
 	MenuItem *ii=i;
