@@ -82,19 +82,25 @@ StackFrame::StackFrame(anXWindow *parnt,const char *nname,const char *ntitle,uns
 	: anXWindow(parnt,nname,ntitle,nstyle,xx,yy,ww,hh,brder,prev,nowner,nsend)
 {
 	InstallColors(THEME_Panel);
+	//WindowStyle *style = app->theme->GetStyle(THEME_Panel)->duplicate();
+	//style->fg.rgbf(0,1,0);
+	//style->bg.rgbf(1,0,0);
+	//InstallColors(style);
+	//style->dec_count();
 
-	if (win_style&STACKF_VERTICAL) flags=(flags&~BOX_HORIZONTAL)|BOX_VERTICAL;
-	else flags=(flags&~BOX_VERTICAL)|BOX_HORIZONTAL;
+	if (win_style & STACKF_VERTICAL)
+		 flags = (flags & ~BOX_HORIZONTAL) | BOX_VERTICAL;
+	else flags = (flags & ~BOX_VERTICAL) | BOX_HORIZONTAL;
 
-	gap=ngap/2*2;
-	if (gap<0) gap=0;
+	if (ngap < 0) gap = win_themestyle->normal->textheight() / 2;
+	else gap = ngap / 2 * 2;
 
-	pos=NULL;
-	whichbar=-1;
+	pos = nullptr;
+	whichbar = -1;
 
-	curshape=0;
-	//if (win_style&STACKF_VERTICAL) win_pointer_shape=LAX_MOUSE_UpDown;
-	//else win_pointer_shape=LAX_MOUSE_LeftRight;
+	curshape = 0;
+	// if (win_style&STACKF_VERTICAL) win_pointer_shape=LAX_MOUSE_UpDown;
+	// else win_pointer_shape=LAX_MOUSE_LeftRight;
 }
 
 StackFrame::~StackFrame()
@@ -125,7 +131,7 @@ void StackFrame::sync()
 	//ListBox::sync();
 }
 
-//! Return pointer to the childe window at index.
+//! Return pointer to the child window at index.
 anXWindow *StackFrame::childWindow(int index)
 {
 	if (index<0 || index>=list.n) return NULL;
@@ -154,47 +160,75 @@ void StackFrame::Refresh()
 
 	SquishyBox *b;
 	for (int c=0; c<list.n; c++) {
-		b=list.e[c];
+		b = list.e[c];
 
-		if (win_style&STACKF_BEVEL) {
+		if (win_style & STACKF_BEVEL) {
 			dp->drawBevel(gap/2, highlight,shadow, LAX_OFF, b->x()-gap/2,b->y()-gap/2, b->w()+gap,b->h()+gap);
 
 		} else {
-			 //draw little dots on draggable bars if gap>0
+			// draw little dots on draggable bars if gap>0
 			dp->NewFG(dots);
 			if (c==list.n-1) continue;
 
 			int p;
 			if (win_style&STACKF_VERTICAL) {
-				p=(int)(pos[c]*win_h);
+				p = (int)(pos[c] * win_h);
+
+				if (c == whichbar) {
+					dp->NewFG(coloravg(win_themestyle->bg, win_themestyle->fg, .2));
+					dp->drawrectangle(0,p-gap/2, win_w,gap, 1);
+					dp->NewFG(dots);
+				}
+
 				dp->drawthing(win_w/2  ,p, 2,2, 1,THING_Circle);
 				dp->drawthing(win_w/2-5,p, 2,2, 1,THING_Circle);
 				dp->drawthing(win_w/2+5,p, 2,2, 1,THING_Circle);
 			} else {
 				p=(int)(pos[c]*win_w);
+
+				if (c == whichbar) {
+					dp->NewFG(coloravg(win_themestyle->bg, win_themestyle->fg, .2));
+					dp->drawrectangle(p-gap/2,0, gap,win_h, 1);
+					dp->NewFG(dots);
+				}
+
 				dp->drawthing(p,win_h/2  , 2,2, 1,THING_Circle);
 				dp->drawthing(p,win_h/2-5, 2,2, 1,THING_Circle);
 				dp->drawthing(p,win_h/2+5, 2,2, 1,THING_Circle);
 			}
-		} 
+		}
 	}
 }
 
 int StackFrame::Event(const EventData *e,const char *mes)
 {
-	if (e->type==LAX_onMouseOut) {
-		if (curshape!=0) {
-			const EnterExitData *ee=dynamic_cast<const EnterExitData*>(e);
-			dynamic_cast<LaxMouse*>(ee->device)->setMouseShape(this,0);
-			curshape=0;
+	if (e->type == LAX_onMouseOut) {
+		if (curshape != 0) {
+			const EnterExitData *ee = dynamic_cast<const EnterExitData *>(e);
+			dynamic_cast<LaxMouse *>(ee->device)->setMouseShape(this, 0);
+			curshape = 0;
 		}
-	} else if (e->type==LAX_onMouseIn) {
-		const EnterExitData *ee=dynamic_cast<const EnterExitData*>(e);
-		int whichbar=findWhichBar(ee->x,ee->y);
-		if (whichbar>=0) {
-			if (win_style&STACKF_VERTICAL) curshape=LAX_MOUSE_UpDown;
-			else curshape=LAX_MOUSE_LeftRight;
-		} else curshape=0;
+		if (!buttondown.any()) {
+			whichbar = -1;
+			needtodraw = 1;
+		}
+		DBG cerr << "Stackframe exit: "<<whichbar<<endl;
+
+	} else if (e->type == LAX_onMouseIn) {
+		const EnterExitData *ee = dynamic_cast<const EnterExitData *>(e);
+
+		if (!buttondown.any()) {
+			whichbar = findWhichBar(ee->x, ee->y);
+		}
+		needtodraw = 1;
+		DBG cerr << "Stackframe enter: "<<whichbar<<endl;
+
+		if (whichbar >= 0) {
+			if (win_style & STACKF_VERTICAL)
+				 curshape = LAX_MOUSE_UpDown;
+			else curshape = LAX_MOUSE_LeftRight;
+
+		} else curshape = 0;
 
 		dynamic_cast<LaxMouse*>(ee->device)->setMouseShape(this,curshape);
 	}
@@ -204,10 +238,11 @@ int StackFrame::Event(const EventData *e,const char *mes)
 
 int StackFrame::LBDown(int x,int y,unsigned int state,int count,const LaxMouse *d)
 {
-	if (list.n<=1) return 0;
+	if (list.n <= 1) return 0;
 
-	whichbar=findWhichBar(x,y);
-	buttondown.down(d->id,LEFTBUTTON,x,y,whichbar);
+	whichbar = findWhichBar(x, y);
+	if (whichbar >= 0) buttondown.down(d->id, LEFTBUTTON, x, y, whichbar);
+	needtodraw = 1;
 
 	return 0;
 }
@@ -232,6 +267,7 @@ int StackFrame::findWhichBar(int x,int y)
 int StackFrame::LBUp(int x,int y,unsigned int state,const LaxMouse *d)
 {
 	buttondown.up(d->id,LEFTBUTTON);
+	needtodraw = 1;
 	return 0;
 }
 
