@@ -408,16 +408,16 @@ unsigned long standoutcolor(const Laxkit::ScreenColor &color, bool bw)
 
 	if (bw) {
 		 //convert to grayscale, then pick opposite black or white
-		int g=simple_rgb_to_gray(color.red,color.green,color.blue,65535);
-		if (g<32768) col.red=col.green=col.blue=65535;
-		else col.red=col.green=col.blue=0;
+		 int g = simple_rgb_to_gray(color.red, color.green, color.blue, 65535);
+		 if (g < 32768) col.red = col.green = col.blue = 65535;
+		 else col.red = col.green = col.blue = 0;
 
 	} else {
 		 //for each channel, choose furthest max or min
-		int nummax=0;
-		if (color.red<32768) { col.red=65535; nummax++; }
-		if (color.green<32768) { col.green=65535; nummax++; }
-		if (color.blue<32768) { col.blue=65535; nummax++; }
+		int nummax = 0;
+		if (color.red   < 32768) { col.red   = 65535; nummax++; }
+		if (color.green < 32768) { col.green = 65535; nummax++; }
+		if (color.blue  < 32768) { col.blue  = 65535; nummax++; }
 		if (bw) {
 			if (nummax<2) col.rgbf(0.,0.,0.,1.); //black
 			else col.rgbf(1.,1.,1.,1.);
