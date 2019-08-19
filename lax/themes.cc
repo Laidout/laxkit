@@ -626,7 +626,7 @@ int WindowStyle::SetDefaultColors(const char *type)
 			fg        .rgbf(.13,.13,.13);
 			bg        .rgbf(.75,.75,.75);
 			fghl      .rgbf( 0., 0., 0.);
-			bghl      .rgbf( .5, .5, .5);
+			bghl      .rgbf( .6, .6, .6);
 			fghover   .rgbf(.13,.13,.13);
 			bghover   .rgbf(.64,.64,.64);
 			fggray    .rgbf( .4, .4, .4);
