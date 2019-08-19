@@ -348,15 +348,15 @@ T NumStack<T>::pop(int which) // which=-1
  * If an element is popped, and the number of elements is less than max-2*delta, then the array
  * is reallocated with max-delta spaces.
  *
- * If created PtrStack(2), then all the elements are assumed to be arrays, and
+ * If created PtrStack(LISTS_DELETE_Array), then all the elements are assumed to be arrays, and
  * will be deleted with a call like <tt>delete[] element</tt> rather
- * than <tt>delete element</tt>. If PtrStack(1) (the defualt constructor),
- * then default is delete item. If PtrStack(0),
+ * than <tt>delete element</tt>. If PtrStack(LISTS_DELETE_Single) (the default constructor),
+ * then default is delete item. If PtrStack(LISTS_DELETE_None),
  * then default is to not delete at all.
  *
  * When elements are pushed, there is the option of
- * specifying that the stack should not delete the element at all. Calling push(blah,1) means
- * that "delete blah" will be called when removing the item or flushing the stack. Calling push(blah,2)
+ * specifying that the stack should not delete the element at all. Calling push(blah,LISTS_DELETE_Single) means
+ * that "delete blah" will be called when removing the item or flushing the stack. Calling push(blah,LISTS_DELETE_Array)
  * means that "delete[] blah" will be called. When push(blah,-1) is called, the value of arrays
  * is used for its local tag. push(blah, any other number) will result in the element not being
  * delete'd at all.
@@ -469,12 +469,13 @@ template <class T>
 int PtrStack<T>::insertArrays(T **a,char *nl,int nn)
 {
 	flush();
-	e=a;
-	max=n=nn;
-	if (nl) islocal=nl;
+	DBG cerr <<"PtrStack e is "<<(e ? "not null" : "null")<<endl;
+	e = a;
+	max = n = nn;
+	if (nl) islocal = nl;
 	else {
-		islocal=new char[n];
-		for (int c=0; c<n; c++) islocal[c]=arrays;
+		islocal = new char[n];
+		for (int c=0; c<n; c++) islocal[c] = arrays;
 	}
 	return 0;
 }
@@ -608,8 +609,9 @@ int PtrStack<T>::push(T *ne,char local,int where) // local=-1, where=-1
 		}
 		temp[where]  = ne;
 		templ[where] = local;
-		delete[] e;
-		delete[] islocal;
+		delete[] e; e = nullptr;
+		delete[] islocal; islocal = nullptr;
+		DBG cerr <<"PtrStack e is "<<(e ? "not null" : "null")<<endl;
 		e = temp;
 		islocal = templ;
 	} else {
@@ -694,8 +696,10 @@ T *PtrStack<T>::pop(int which,int *local) // which==-1,local=nullptr
 				memcpy(temp+which, e+which+1, (n-which)*sizeof(T*));
 				memcpy(templ+which, islocal+which+1, (n-which)*sizeof(char));
 			}
-			delete[] e;
-			delete[] islocal;
+			delete[] e; e = nullptr;
+			delete[] islocal; islocal = nullptr;
+
+			DBG cerr <<"PtrStack e is "<<(e ? "not null" : "null")<<endl;
 			e = temp;
 			islocal = templ;
 		}
@@ -741,7 +745,8 @@ int PtrStack<T>::Allocate(int newmax)
 
 	T **newt = new T*[newmax];
 	if (n) memcpy(newt, e, n*sizeof(T*));
-	delete[] e;
+	delete[] e; e = nullptr;
+	DBG cerr <<"PtrStack e is "<<(e ? "not null" : "null")<<endl;
 	e = newt;
 
 	char *templ = new char[max];
