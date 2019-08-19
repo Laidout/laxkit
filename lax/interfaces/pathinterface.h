@@ -289,7 +289,7 @@ class PathOperator : public Laxkit::anObject
 
 	virtual int ShiftPoint(Coordinate *pp,flatpoint d) = 0;
 	virtual int Rotate(flatpoint o,double angle,Coordinate *pp) = 0;
-	virtual int Scale(flatpoint o,double f,int contsrain, Coordinate *pp) = 0;
+	virtual int Scale(flatpoint o,double f,int constrain, Coordinate *pp) = 0;
 
 	//virtual int UseThis(***);
 };

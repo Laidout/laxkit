@@ -3927,8 +3927,8 @@ PathsData *SvgToPathsData(PathsData *existingpath, const char *d,char **end_ptr,
 
 PathOperator::PathOperator(int nid)
 {
-	id=nid;
-	if (nid<0) id=getUniqueNumber();
+	id = nid;
+	if (nid < 0) id = getUniqueNumber();
 }
 
 PathOperator::~PathOperator()
