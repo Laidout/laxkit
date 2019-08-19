@@ -224,13 +224,13 @@ void ShortcutKBWindow::UpdateCurrent()
 	//keyboard->Needtodraw(1);
 }
 
-//--------------------------------------- ShortcutTreeSelector -----------------------------------------------
+//--------------------------------------- ShortcutTreeSelector2 -----------------------------------------------
 
-/*! \class ShortcutTreeSelector
+/*! \class ShortcutTreeSelector2
  * Redefine to capture key input...
  * \todo there should probably be a better way for parents to intercept input to kids...
  */
-class ShortcutTreeSelector : public TreeSelector
+class ShortcutTreeSelector2 : public TreeSelector
 {
 	double shiftext, controlext, metaext, altext;
 
@@ -238,11 +238,11 @@ class ShortcutTreeSelector : public TreeSelector
 	MenuItem *wait_for;
 	int skipswap;
 
-	ShortcutTreeSelector(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
+	ShortcutTreeSelector2(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
 			             int xx,int yy,int ww,int hh,int brder,
 						 anXWindow *prev,unsigned long nowner=0,const char *mes=0,
 						 unsigned long long nmstyle=0,MenuInfo *minfo=nullptr);
-	~ShortcutTreeSelector();
+	~ShortcutTreeSelector2();
 	virtual void Refresh();
 	virtual void SwapBuffers();
 	virtual int LBDown(int x,int y,unsigned int state,int count,const LaxMouse *d);
@@ -257,7 +257,7 @@ class ShortcutTreeSelector : public TreeSelector
 	virtual double drawMod(Displayer *dp,double x,double y, int mod);
 };
 
-ShortcutTreeSelector::ShortcutTreeSelector(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
+ShortcutTreeSelector2::ShortcutTreeSelector2(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
 			             int xx,int yy,int ww,int hh,int brder,
 						 anXWindow *prev,unsigned long nowner,const char *mes,
 						 unsigned long long nmstyle,MenuInfo *minfo)
@@ -265,15 +265,15 @@ ShortcutTreeSelector::ShortcutTreeSelector(anXWindow *parnt,const char *nname,co
 {
 	wait_for=nullptr;
 	skipswap=0;
-	DBG cerr <<"in ShortcutTreeSelector(), id="<<object_id<<endl;
+	DBG cerr <<"in ShortcutTreeSelector2(), id="<<object_id<<endl;
 }
 
-ShortcutTreeSelector::~ShortcutTreeSelector()
+ShortcutTreeSelector2::~ShortcutTreeSelector2()
 {
-	DBG cerr <<"in ~ShortcutTreeSelector(), id="<<object_id<<endl;
+	DBG cerr <<"in ~ShortcutTreeSelector2(), id="<<object_id<<endl;
 }
 
-int ShortcutTreeSelector::LBDown(int x,int y,unsigned int state,int count,const LaxMouse *d)
+int ShortcutTreeSelector2::LBDown(int x,int y,unsigned int state,int count,const LaxMouse *d)
 {
 	if (wait_for) {
 		wait_for=nullptr;
@@ -283,7 +283,7 @@ int ShortcutTreeSelector::LBDown(int x,int y,unsigned int state,int count,const 
 	return TreeSelector::LBDown(x,y,state,count, d);
 }
 
-int ShortcutTreeSelector::MouseMove(int x,int y,unsigned int state,const LaxMouse *d)
+int ShortcutTreeSelector2::MouseMove(int x,int y,unsigned int state,const LaxMouse *d)
 {
 	if (wait_for) {
 		return 0;
@@ -291,7 +291,7 @@ int ShortcutTreeSelector::MouseMove(int x,int y,unsigned int state,const LaxMous
 	return TreeSelector::MouseMove(x,y,state,d);
 }
 
-int ShortcutTreeSelector::LBUp(int x,int y,unsigned int state,const LaxMouse *d)
+int ShortcutTreeSelector2::LBUp(int x,int y,unsigned int state,const LaxMouse *d)
 {
 	if (!buttondown.isdown(d->id,LEFTBUTTON)) return 1;
 
@@ -378,14 +378,14 @@ static void AddAreaToMenu(MenuInfo *aream, ShortcutHandler *handler)
  * shift, control, alt, or windows/meta key return 0.
  * return 1 for key ok.
  */
-int ShortcutTreeSelector::isPressableKey(unsigned int ch)
+int ShortcutTreeSelector2::isPressableKey(unsigned int ch)
 {
 	if (ch==LAX_Shift || ch==LAX_Control || ch==LAX_Alt || ch==LAX_Meta) return 0;
 	if (ch==LAX_Esc) return -1;
 	return 1;
 }
 
-int ShortcutTreeSelector::CharInput(unsigned int ch, const char *buffer,int len,unsigned int state,const Laxkit::LaxKeyboard *d)
+int ShortcutTreeSelector2::CharInput(unsigned int ch, const char *buffer,int len,unsigned int state,const Laxkit::LaxKeyboard *d)
 {
 
 	if (wait_for==nullptr) {
@@ -469,7 +469,7 @@ int ShortcutTreeSelector::CharInput(unsigned int ch, const char *buffer,int len,
 /*! Call TreeSelector::Refresh(), then if we are waiting for a key,
  * overwrite that cell to prompt for input.
  */
-void ShortcutTreeSelector::Refresh()
+void ShortcutTreeSelector2::Refresh()
 {
 	if (!win_on || !needtodraw) return;
 
@@ -493,7 +493,7 @@ void ShortcutTreeSelector::Refresh()
 	SwapBuffers();
 }
 
-void ShortcutTreeSelector::drawItemContents(MenuItem *i,int offset_x,int offset_y, int fill, int indent)
+void ShortcutTreeSelector2::drawItemContents(MenuItem *i,int offset_x,int offset_y, int fill, int indent)
 {
 	if (i->NumDetail() == 0) {
 		TreeSelector::drawItemContents(i, offset_x,offset_y, fill, indent);
@@ -520,7 +520,7 @@ void ShortcutTreeSelector::drawItemContents(MenuItem *i,int offset_x,int offset_
 
 }
 
-double ShortcutTreeSelector::getitemextent(MenuItem *mitem, //!< the index, MUST already be in bounds
+double ShortcutTreeSelector2::getitemextent(MenuItem *mitem, //!< the index, MUST already be in bounds
                                 double *w, //!< Put the x extent here
                                 double *h, //!< Put the y extent here
                                 double *gx, //!< Where the graphic would start, relative to whole item
@@ -532,7 +532,7 @@ double ShortcutTreeSelector::getitemextent(MenuItem *mitem, //!< the index, MUST
 	return xx;
 }
 
-double ShortcutTreeSelector::drawMod(Displayer *dp,double x,double y, int mod)
+double ShortcutTreeSelector2::drawMod(Displayer *dp,double x,double y, int mod)
 {
 	const char *text = nullptr;
 	if (mod == ShiftMask)        text = _("Shift");
@@ -546,7 +546,7 @@ double ShortcutTreeSelector::drawMod(Displayer *dp,double x,double y, int mod)
 
 /*! Hack to overlay something during a Refresh.
  */
-void ShortcutTreeSelector::SwapBuffers()
+void ShortcutTreeSelector2::SwapBuffers()
 {
 	if (skipswap) return;
 	anXWindow::SwapBuffers();
@@ -557,7 +557,7 @@ void ShortcutTreeSelector::SwapBuffers()
  *
  * If setinput!=0, then update the search input box.
  */
-void ShortcutTreeSelector::UpdateSearch(MenuInfo *m,const char *str, int search_type)
+void ShortcutTreeSelector2::UpdateSearch(MenuInfo *m,const char *str, int search_type)
 {
 	if (m==nullptr) m=menu;
 	needtobuildcache=1;
@@ -630,7 +630,7 @@ ShortcutWindow2::ShortcutWindow2(Laxkit::anXWindow *parnt,const char *nname,cons
 	textheader  = nullptr;
 	keyboard    = nullptr;
 
-	ShortcutTreeSelector *tree = new ShortcutTreeSelector(this, "tree","tree",SW_RIGHT, 0,0,0,0,0, 
+	ShortcutTreeSelector2 *tree = new ShortcutTreeSelector2(this, "tree","tree",SW_RIGHT, 0,0,0,0,0, 
 						nullptr,this->object_id,"tree", TREESEL_NO_LINES,nullptr);
 	//tree->AddColumn(_("Key"),nullptr,-1);
 	//tree->AddColumn(_("Action"),nullptr,-1);
@@ -793,7 +793,7 @@ int ShortcutWindow2::init()
 	hframe->AddWin(areawindow,1);
 
 	//right side, shortcuts for currently selected areas
-	ShortcutTreeSelector *tree = dynamic_cast<ShortcutTreeSelector*>(findChildWindowByName("tree", true));
+	ShortcutTreeSelector2 *tree = dynamic_cast<ShortcutTreeSelector2*>(findChildWindowByName("tree", true));
 	tree->InstallMenu(menu);
 	menu->dec_count();
 
@@ -869,7 +869,7 @@ void ShortcutWindow2::UpdateSearch()
 {
 	LineInput *b=(LineInput*)findChildWindowByName("searchterm");
 	if (!b) return;
-	ShortcutTreeSelector *t=(ShortcutTreeSelector*)findChildWindowByName("tree", true);
+	ShortcutTreeSelector2 *t=(ShortcutTreeSelector2*)findChildWindowByName("tree", true);
 	
 	t->Menu()->ClearSearch();
 	t->UpdateSearch(nullptr, b->GetCText(), search_type);
@@ -910,7 +910,7 @@ int ShortcutWindow2::SelectArea(const char *area)
 		} //else menu->AddItem(manager->shortcuts.e[c]->area); //add closed
 	}
 
-	ShortcutTreeSelector *tree = dynamic_cast<ShortcutTreeSelector*>(findChildWindowByName("tree", true));
+	ShortcutTreeSelector2 *tree = dynamic_cast<ShortcutTreeSelector2*>(findChildWindowByName("tree", true));
 	tree->InstallMenu(menu);
 	menu->dec_count();
 	keyboard->UpdateCurrent();
@@ -950,7 +950,7 @@ int ShortcutWindow2::Event(const Laxkit::EventData *e,const char *mes)
 			key->tag = 0;
 			 
 			//update action list
-			//ShortcutTreeSelector *tree = dynamic_cast<ShortcutTreeSelector*>(findChildWindowByName("tree", true));
+			//ShortcutTreeSelector2 *tree = dynamic_cast<ShortcutTreeSelector2*>(findChildWindowByName("tree", true));
 			SelectArea(keyboard->current_area.c_str());
 
 			needtodraw=1;
