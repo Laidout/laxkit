@@ -316,7 +316,7 @@ void Button::draw()
 			dp->imageout(i, ix,iy);
 			if (Grayed()) dp->setSourceAlpha(1.);
 			i->doneForNow();
-		} else dp->drawthing(ix+iw/2,iy+iy/2, iw/2,ih/2, (DrawThingTypes)thing, win_themestyle->fg.Pixel(), win_themestyle->color1.Pixel());
+		} else dp->drawthing(ix+iw/2,iy+ih/2, iw/2,ih/2, (DrawThingTypes)thing, win_themestyle->fg.Pixel(), win_themestyle->color1.Pixel());
 	}
 
 	if (l) {
