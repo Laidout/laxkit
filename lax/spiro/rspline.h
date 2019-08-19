@@ -25,6 +25,7 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <functional>
 
 
 namespace NewSpiro {
@@ -251,6 +252,12 @@ class Spline
 	void solve();
 	void computeCurvatureBlending();
 	std::shared_ptr<BezPath> render(); //convert to bez path
+	void renderWithFunctions(
+							std::function<void(double x,double y)> moveto,
+							std::function<void(double x,double y)> lineto,
+							std::function<void(double x1,double y1,double x2,double y2,double x3,double y3)> curveto,
+							std::function<void()> closepath
+							);
 	std::string renderSvg(); //convert to svg d string
 	ControlPoint &pt(int i, int start);
 

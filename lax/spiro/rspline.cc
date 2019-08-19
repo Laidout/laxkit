@@ -1180,13 +1180,15 @@ void Spline::computeCurvatureBlending()
 	}
 }
 
-std::shared_ptr<BezPath> Spline::render()
+void Spline::renderWithFunctions(
+							std::function<void(double x,double y)> moveto,
+							std::function<void(double x,double y)> lineto,
+							std::function<void(double x1,double y1,double x2,double y2,double x3,double y3)> curveto,
+							std::function<void()> closepath
+							)
 {
-	std::shared_ptr<BezPath> path = std::make_shared<BezPath>();
-	//BezPath *path = new BezPath;
-
 	if (this->ctrlPts.size() == 0) {
-		return path;
+		return;
 	}
 
 	// **** something wrong with end point smooth on all smooth closed path. when all auto smooth, end point is corner.
@@ -1194,11 +1196,11 @@ std::shared_ptr<BezPath> Spline::render()
 	// Manual smoothing of the end point works.
 
 	ControlPoint &pt0 = this->ctrlPts[0];
-	path->moveto(pt0.pt.x, pt0.pt.y);
+	moveto(pt0.pt.x, pt0.pt.y);
 	int length = this->ctrlPts.size() - (this->isClosed ? 0 : 1);
 
 	for (int i = 0; i < length; i++) {
-		path->mark(i);
+		//path->mark(i);
 		ControlPoint &ptI  = this->pt(i, 0);
 		ControlPoint &ptI1 = this->pt(i + 1, 0);
 		double dx = ptI1.pt.x - ptI.pt.x;
@@ -1235,12 +1237,25 @@ std::shared_ptr<BezPath> Spline::render()
 		c.push_back(ptI1.pt.x);
 		c.push_back(ptI1.pt.y);
 		for (uint j = 0; j < c.size(); j += 6) {
-			path->curveto(c[j], c[j + 1], c[j + 2], c[j + 3], c[j + 4], c[j + 5]);
+			curveto(c[j], c[j + 1], c[j + 2], c[j + 3], c[j + 4], c[j + 5]);
 		}
 	}
 	if (this->isClosed) {
-		path->closepath();
+		closepath();
 	}
+}
+
+std::shared_ptr<BezPath> Spline::render()
+{
+	std::shared_ptr<BezPath> path = std::make_shared<BezPath>();
+
+	renderWithFunctions(
+			[&](double x,double y) { path->moveto(x,y); },
+			[&](double x,double y) { path->lineto(x,y); },
+			[&](double x1,double y1, double x2,double y2, double x3,double y3) { path->curveto(x1,y1, x2,y2, x3,y3); },
+			[&]() { path->closepath(); }
+			);
+
 	return path;
 }
 
