@@ -49,6 +49,7 @@ class Utf8String
 	Utf8String(char *str, int n, bool insert);
 	Utf8String(const Utf8String &str);
 	Utf8String(const Utf8String *str);
+	Utf8String(Utf8String &&str);
 	Utf8String(int i);
 	Utf8String(long i);
 	Utf8String(double d);
@@ -68,7 +69,7 @@ class Utf8String
 	int Strcasecmp(const Utf8String &str) const;
 
 	char *ExtractBytes(int *chars, int *bytes, int *allocated);
-	void InsertBytes(char *newstr, int len);
+	void InsertBytes(char *newstr, int len, int allocated);
 
 	const char *c_str() const { return s; }
 	const char *c_str_nonnull() const { return s ? s : ""; }

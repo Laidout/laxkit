@@ -105,7 +105,16 @@ Utf8String::Utf8String(char *str, int n, bool insert)
 Utf8String::Utf8String(const Utf8String &str)
   : Utf8String(str.c_str(), -1)
 {
-	cerr <<"Utf8String constructor &utf8string"<<endl;
+	//DBG cerr <<"Utf8String constructor &utf8string"<<endl;
+}
+
+Utf8String::Utf8String(Utf8String &&str)
+{
+	//for move semantics, transfer str's pointer to ourself
+	int ch, sz, al;
+	s = str.ExtractBytes(&ch, &sz, &al);
+	num_bytes = sz;
+	bytes_allocated = al;
 }
 
 Utf8String::Utf8String(const Utf8String *str)
@@ -215,15 +224,17 @@ char *Utf8String::ExtractBytes(int *chars, int *bytes, int *allocated)
  * You must ensure that pointer transfer of newstr is valid.
  * This is basically the reverse of ExtractBytes().
  * If len<0, use strlen(newstr) as len.
- * We assume bytes_allocated == len+1.
+ * We assume allocated is a valid number of bytes.
  */
-void Utf8String::InsertBytes(char *newstr, int len)
+void Utf8String::InsertBytes(char *newstr, int len, int allocated)
 {
 	if (s) delete[] s;
-	if (len<0) len = strlen(newstr);
+	if (len<0) len = (newstr ? strlen(newstr) : 0);
+	if (allocated <= 0) allocated = len+1;
 	num_bytes = len;
-	bytes_allocated = len+1;
+	bytes_allocated = allocated;
 	s = newstr;
+	if (!s) bytes_allocated = allocated = 0;
 	updateNumChars();
 }
 
@@ -370,7 +381,6 @@ unsigned long Utf8String::prev(int byte_index)
 	byte_index--;
 	return utf8back_index(s, byte_index, num_bytes);
 }
-
 
 void Utf8String::Sprintf(const char *fmt, ...)
 {
