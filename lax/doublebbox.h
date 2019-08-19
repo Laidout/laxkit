@@ -46,6 +46,7 @@ class DoubleBBox {
 	virtual void setbounds(DoubleBBox *bbox);
 	virtual void setbounds(flatpoint *pts,int n);
 	virtual void setbounds(double mix,double max,double miy,double may) { minx=mix; maxx=max; miny=miy; maxy=may; }
+	virtual void setboundsXYWH(double x,double y,double w,double h) { minx=x; maxx=x+w; miny=y; maxy=y+h; }
 	virtual void setbounds(const DoubleRectangle &rect);
 	virtual int validbounds() { return maxx>=minx && maxy>=miny; }
 	virtual int nonzerobounds() { return maxx>minx && maxy>miny; }
