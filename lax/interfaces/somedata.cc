@@ -378,19 +378,17 @@ Laxkit::LaxImage *SomeData::GetPreview()
 	return NULL;
 }
 
-//! Dump in an attribute, then call dump_in_atts(thatatt,0).
+//! Dump in an Attribute, then call dump_in_atts(thatatt,0).
 /*! If Att!=NULL, then return the attribute used to read in the stuff.
  * This allows holding classes to have extra attributes within the spot field to
  * exist and not be discarded.
- *
- * ***perhaps?: The fields actually used are removed from the attribute?
  */
 void SomeData::dump_in(FILE *f,int indent,LaxFiles::DumpContext *context, Attribute **Att)
 {
-	Attribute *att=new Attribute;
-	att->dump_in(f,indent);
-	dump_in_atts(att,0,context);
-	if (Att) *Att=att;
+	Attribute *att = new Attribute;
+	att->dump_in(f, indent);
+	dump_in_atts(att, 0, context);
+	if (Att) *Att = att;
 	else delete att;
 }
 
@@ -495,15 +493,15 @@ Attribute *SomeData::dump_out_atts(Attribute *att,int what,LaxFiles::DumpContext
 	if (!att) att=new LaxFiles::Attribute("SomeData",NULL);
 
 	if (what==-1) {
-		att->push("matrix", _("An affine matrix of 6 numbers"));
-		att->push("minx", _("Minimum x bound"));
-		att->push("maxx", _("Maximum x bound"));
-		att->push("miny", _("Minimum y bound"));
-		att->push("maxy", _("Maximum y bound"));
+		att->push("matrix", "1 0 0 1 0 0", _("An affine matrix of 6 numbers"));
+		att->push("minx", "0", _("Minimum x bound"));
+		att->push("maxx", "1", _("Maximum x bound"));
+		att->push("miny", "0", _("Minimum y bound"));
+		att->push("maxy", "1", _("Maximum y bound"));
 		//att->push("bboxstyle", _("Style for this box"));
-		att->push("selectable", "#Whether object is user selectable");
-		att->push("visible", "#Whether object is visible");
-		att->push("locks", "#combination of: contents position rotation scale shear kids selectable");
+		att->push("selectable", "true", "Whether object is user selectable");
+		att->push("visible", "true", "Whether object is visible");
+		att->push("locks", "position", "combination of: contents position rotation scale shear kids selectable");
 		return att;
 	}
 
