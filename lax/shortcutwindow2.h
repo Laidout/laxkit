@@ -37,9 +37,9 @@ namespace Laxkit {
 
 enum ShortcutWindow2Styles
 {
-	SHORTCUTW_Show_Search = (1<<16),
-	SHORTCUTW_Load_Save   = (1<<17),
-	SHORTCUTW_MAX
+	SHORTCUTW2_Show_Search = (1<<16),
+	SHORTCUTW2_Load_Save   = (1<<17),
+	SHORTCUTW2_MAX
 };
 
 class ShortcutKBWindow : public KeyboardWindow

@@ -646,7 +646,7 @@ ShortcutWindow2::~ShortcutWindow2()
 	delete[] textheader;
 
 	if (sc) sc->dec_count();
-	if (keyboard) keyboard->dec_count();
+	//if (keyboard) keyboard->dec_count();
 	if (initialarea) delete[] initialarea;
 
 	DBG cerr <<"in ~ShortcutWindow2(), id="<<object_id<<endl;
