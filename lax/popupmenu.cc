@@ -134,6 +134,10 @@ PopupMenu::PopupMenu(const char *nname, const char *ntitle, unsigned long long s
 
 	if (!nparentmenu) menustyle |= TREESEL_GRAB_ON_MAP;
 	//if (menu) Select(0); //*** if 0 has a menu then popit up!! also should wrap near parentmenu->selected item!!
+	if (mouseid<0) {
+		LaxMouse *m = app->devicemanager->findMouse(0);
+		if (m) mouseid = m->id;
+	}
 	if (mouseid) WrapToMouse(mouseid,nparentmenu);
 	else WrapToPosition(xx,yy,0,nparentmenu);
 
