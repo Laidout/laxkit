@@ -175,7 +175,9 @@ objs= \
 	dateselector.o \
 	splitwindow.o \
 	treeselector.o \
+	keyboardwindow.o \
 	shortcutwindow.o \
+	shortcutwindow2.o \
 	curveinfo.o \
 
 #	printdialog.o \
