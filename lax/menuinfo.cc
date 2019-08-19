@@ -411,6 +411,16 @@ MenuItem *MenuItem::GetDetail(int i)
 	return NULL;
 }
 
+/*! Return the number of subdetails (not including *this).
+ */
+int MenuItem::NumDetail()
+{
+	int n = 0;
+	MenuItem *i = this;
+	while (i->nextdetail) { n++; i=i->nextdetail; }
+	return n;
+}
+
 //! Install detail to end of nextdetail list.
 int MenuItem::AddDetail(MenuItem *detail)
 {
@@ -648,23 +658,23 @@ MenuInfo *MenuInfo::findparent(MenuInfo *m,int *index) //index=NULL
 void MenuInfo::sort(int start,int end, int detail) // sort in 1,2,3..  
 {
 	//DBG cerr <<"--quick sort:"<<start<<" "<<end<<endl;
-	if (end<0) end=menuitems.n-1;
-	if (start>=end) return;
+	if (end < 0) end = curmenu->menuitems.n-1;
+	if (start >= end) return;
 
 	int s,e;
-	MenuItem *mid=menuitems.e[end];
+	MenuItem *mid = curmenu->menuitems.e[end];
 	MenuItem *mi;
-	s=start;
-	e=end;
+	s = start;
+	e = end;
 
-	while (s<=e) {
-		if (Compare(menuitems.e[s],detail, mid,detail)<0) { s++; continue; }
-		if (Compare(menuitems.e[e],detail, mid,detail)>0) { e--; continue; }
+	while (s <= e) {
+		if (Compare(curmenu->menuitems.e[s],detail, mid,detail)<0) { s++; continue; }
+		if (Compare(curmenu->menuitems.e[e],detail, mid,detail)>0) { e--; continue; }
 
 		//DBG cerr <<"=== sort swap: "<<s<<','<<e<<endl;
-		mi=menuitems.e[s];
-		menuitems.e[s]=menuitems.e[e];
-		menuitems.e[e]=mi;
+		mi = curmenu->menuitems.e[s];
+		curmenu->menuitems.e[s] = curmenu->menuitems.e[e];
+		curmenu->menuitems.e[e] = mi;
 		s++;
 		e--;
 	}
@@ -681,7 +691,7 @@ void MenuInfo::sort(int start,int end, int detail) // sort in 1,2,3..
 void MenuInfo::Sort(int detail,int newsortstyle) 
 {
 	if (newsortstyle) SetCompareFunc(newsortstyle);
-	sort(0,menuitems.n-1, detail);
+	sort(0, curmenu->menuitems.n-1, detail);
 }
 
 //! Set the compare function to some "int (*func)(const char *,const char *).

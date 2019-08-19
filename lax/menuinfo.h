@@ -117,6 +117,7 @@ class MenuItem : public anObject
 	virtual int AddDetail(MenuItem *detail);
 	virtual int AddDetail(const char *newitem,LaxImage *img=NULL,int nid=0,int ninfo=0);
 	virtual MenuItem *GetDetail(int i);
+	virtual int NumDetail();
 	virtual void SetState(unsigned newstate, int on);
 
 	virtual const char *GetString(int detail);
