@@ -86,6 +86,7 @@ class RowFrame : public anXWindow, public RowColBox
 	virtual anXWindow *findWindow(const char *name);
 	virtual SquishyBox *findBox(anXWindow *win);
 	virtual int AddNull(int where=-1);
+	virtual int AddHSpacer(int npw, int where=-1);
 	virtual int AddHSpacer(int npw,int nws,int nwg,int nhalign, int where=-1);
 	virtual int AddVSpacer(int npw,int nws,int nwg,int nhalign, int where=-1);
 	virtual int AddSpacer(int npw,int nws,int nwg,int nhalign,

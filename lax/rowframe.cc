@@ -342,6 +342,11 @@ int RowFrame::AddWin(anXWindow *win,int absorbcount,int where)//where=-1
 }
 
 
+int RowFrame::AddHSpacer(int npw, int where)
+{
+	return AddWin(NULL,0, npw,0,0,50,0, 0,0,0,0,0, where);
+}
+
 int RowFrame::AddHSpacer(int npw,int nws,int nwg,int nhalign, int where)
 {
 	return AddWin(NULL,0, npw,nws,nwg,nhalign,0, 0,0,0,0,0, where);
