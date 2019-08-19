@@ -22,7 +22,9 @@
 
 #include <lax/shortcuts.h>
 #include <lax/strmanip.h>
+#include <lax/language.h>
 
+//template implementation:
 #include <lax/lists.cc>
 #include <lax/refptrstack.cc>
 
@@ -244,6 +246,12 @@ WindowAction *WindowActions::FindAction(int action)
 	return NULL;
 }
 
+WindowAction *WindowActions::ActionAt(int index)
+{
+	if (index < 0 || index >= n) return nullptr;
+	return e[index];
+}
+
 int WindowActions::Add(int nid, const char *nname, const char *desc, const char *icon, int nmode, int assign)
 {
 	 //sort by nname on add:
@@ -422,11 +430,11 @@ int ShortcutHandler::FindShortcutFromAction(int action, int startingfrom)
 	return shortcuts->findindex(def);
 }
 
-int ShortcutHandler::InstallShortcuts(ShortcutDefs *cuts)
+int ShortcutHandler::InstallShortcuts(ShortcutDefs *cuts, bool absorb)
 {
 	if (shortcuts) shortcuts->dec_count();
-	shortcuts=cuts;
-	if (shortcuts) shortcuts->inc_count();
+	shortcuts = cuts;
+	if (shortcuts && !absorb) shortcuts->inc_count();
 	return 0;
 }
 
@@ -524,6 +532,8 @@ int ShortcutHandler::UpdateKey(unsigned int key, unsigned int state, unsigned in
  * which keys are mapped to which actions. This will try to preserve the order
  * of the shortcuts.
  *
+ * Action is removed from oldkey+oldstate+mode, and applied to newkey+newstate+mode.
+ *
  * Return -1 for old equals new, so nothing done.
  */
 int ShortcutHandler::ReassignKey(unsigned int newkey, unsigned int newstate,
@@ -601,6 +611,8 @@ int ShortcutManager::AddArea(const char *area, ShortcutHandler *handler)
 	return 0;
 }
 
+/*! identify area as being able to exist in a parent environment.
+ */
 int ShortcutManager::AreaParent(const char *area, const char *parent)
 {
 	cerr << " *** need to adequately implement AreaParent()!"<<endl;
@@ -966,7 +978,7 @@ void ShortcutManager::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext
 		 //output all bound keys
 		if (s) {
 			for (int c2=0; c2<s->n; c2++) {
-				fprintf(f,"%s  %-10s ",spc,ShortcutString(s->e[c2], buffer));
+				fprintf(f,"%s  %-10s ",spc,ShortcutString(s->e[c2], buffer, false));
 				if (a) aa=a->FindAction(s->e[c2]->action); else aa=NULL;
 				if (aa) {
 					 //print out string id and commented out description
@@ -997,9 +1009,9 @@ void ShortcutManager::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext
 }
 
 //! Just call the other ShortcutString() with key and state.
-char *ShortcutManager::ShortcutString(ShortcutDef *def, char *buffer)
+char *ShortcutManager::ShortcutString(ShortcutDef *def, char *buffer, bool mods_as_words)
 {
-	return ShortcutString(def->keys->key,def->keys->state,buffer);
+	return ShortcutString(def->keys->key, def->keys->state, buffer, mods_as_words);
 }
 
 /*! It would be good to have buffer at least 20 bytes long.
@@ -1007,18 +1019,24 @@ char *ShortcutManager::ShortcutString(ShortcutDef *def, char *buffer)
  *
  * See KeyAndState() for the reverse of this.
  */
-char *ShortcutManager::ShortcutString(unsigned int key, unsigned long state, char *buffer)
+char *ShortcutManager::ShortcutString(unsigned int key, unsigned long state, char *buffer, bool mods_as_words)
 {
-	int l=0;
-	*buffer=0;
+	*buffer = 0;
 
 	 //add mods
-	if (state&ShiftMask)   { strcat(buffer,"+"); l++; }
-	if (state&ControlMask) { strcat(buffer,"^"); l++; }
-	if (state&AltMask)     { strcat(buffer,"&"); l++; }
-	if (state&MetaMask)    { strcat(buffer,"~"); l++; }
+	if (mods_as_words) {
+		if (state & ShiftMask)   { strcat(buffer,_("Shift "));   }
+		if (state & ControlMask) { strcat(buffer,_("Control ")); }
+		if (state & AltMask)     { strcat(buffer,_("Alt "));     }
+		if (state & MetaMask)    { strcat(buffer,_("Meta "));    }
+	} else {
+		if (state & ShiftMask)   { strcat(buffer,"+"); }
+		if (state & ControlMask) { strcat(buffer,"^"); }
+		if (state & AltMask)     { strcat(buffer,"&"); }
+		if (state & MetaMask)    { strcat(buffer,"~"); }
+	}
 
-	key_name_from_value(key,buffer+l);
+	key_name_from_value(key,buffer+strlen(buffer));
 
 	return buffer;
 }
@@ -1066,21 +1084,21 @@ void ShortcutManager::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::D
 
 			handler=FindHandler(value);
 			if (!handler) {
-				handler=new ShortcutHandler(value);
+				handler = new ShortcutHandler(value);
 				shortcuts.push(handler);
 				handler->dec_count();
 			}
-			handler->InstallShortcuts(new ShortcutDefs); //warning! totaly removes old keys
+			handler->InstallShortcuts(new ShortcutDefs, true); //warning! totaly removes old keys
 
 			for (int c2=0; c2<att->attributes.e[c]->attributes.n; c2++) {
-				kstr= att->attributes.e[c]->attributes.e[c2]->name;
-				value=att->attributes.e[c]->attributes.e[c2]->value;
+				kstr  = att->attributes.e[c]->attributes.e[c2]->name;
+				value = att->attributes.e[c]->attributes.e[c2]->value;
 
 				if (KeyAndState(kstr, &key,&state)==0) continue;
-				actionnum=handler->FindActionNumber(value);
-				if (actionnum<0) {
+				actionnum = handler->FindActionNumber(value);
+				if (actionnum < 0) {
 					char *after;
-					actionnum=strtol(value,&after,10);
+					actionnum = strtol(value,&after,10);
 					if (*after) continue; //was not a valid number, and action name not found
 				}
 				handler->AddShortcut(key,state,0, actionnum);
@@ -1097,15 +1115,15 @@ int ShortcutManager::KeyAndState(const char *str, unsigned int *key,unsigned int
 {
 	int mods=0, k;
 	while (str && *str) {
-		if (!strncasecmp(str,"shift-",6)) { mods|=ShiftMask; str+=6; continue; }
-		if (!strncasecmp(str,"alt-",4)) { mods|=AltMask; str+=4; continue; }
-		if (!strncasecmp(str,"Control-",8)) { mods|=ControlMask; str+=8; continue; }
-		if (!strncasecmp(str,"meta-",5)) { mods|=MetaMask; str+=5; continue; }
+		if (!strncasecmp(str,"shift-",6))   { mods |= ShiftMask;   str+=6; continue; }
+		if (!strncasecmp(str,"alt-",4))     { mods |= AltMask;     str+=4; continue; }
+		if (!strncasecmp(str,"Control-",8)) { mods |= ControlMask; str+=8; continue; }
+		if (!strncasecmp(str,"meta-",5))    { mods |= MetaMask;    str+=5; continue; }
 		if (str[1]!='\0') {
-			if (str[0]=='+') { mods|=ShiftMask;   str++; continue; }
-			if (str[0]=='&') { mods|=AltMask;     str++; continue; }
-			if (str[0]=='^') { mods|=ControlMask; str++; continue; }
-			if (str[0]=='~') { mods|=MetaMask;    str++; continue; }
+			if (str[0]=='+') { mods |= ShiftMask;   str++; continue; }
+			if (str[0]=='&') { mods |= AltMask;     str++; continue; }
+			if (str[0]=='^') { mods |= ControlMask; str++; continue; }
+			if (str[0]=='~') { mods |= MetaMask;    str++; continue; }
 		}
 		break;
 	}
@@ -1151,6 +1169,13 @@ int ShortcutManager::ClearKeys()
 		s->flush();
 	}
 	return 0;
+}
+
+WindowAction *ShortcutManager::FindAction(const char *area, unsigned int key, unsigned int state, int mode)
+{
+	ShortcutHandler *areah = FindHandler(area);
+	if (!areah) return nullptr;
+	return areah->FindAction(key,state,mode);
 }
 
 

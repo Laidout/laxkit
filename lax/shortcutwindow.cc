@@ -155,7 +155,7 @@ static void AddAreaToMenu(MenuInfo *aream, ShortcutHandler *handler)
 		char buffer[1000];
 		for (int c2=0; c2<s->n; c2++) {
 			buffer[0]='\0';
-			manager->ShortcutString(s->e[c2], keyb);
+			manager->ShortcutString(s->e[c2], keyb, false);
 			aream->AddItem(keyb);
 
 			if (a) aa=a->FindAction(s->e[c2]->action); else aa=NULL;
@@ -240,7 +240,7 @@ int ShortcutTreeSelector::CharInput(unsigned int ch, const char *buffer,int len,
 
 	char keyb[50]; //new key
 	ShortcutManager *manager=GetDefaultShortcutManager();
-	manager->ShortcutString(ch,state, keyb);
+	manager->ShortcutString(ch,state, keyb, false);
 
 	if (!strcmp(keyb,wait_for->name)) {
 		//it's the same key

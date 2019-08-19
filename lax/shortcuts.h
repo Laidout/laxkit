@@ -34,6 +34,13 @@
 
 namespace Laxkit {
 
+
+//----------------------------------- utils ------------------------------------
+
+const char *key_name_from_value(int ch,char *buf);
+int key_value_from_name(const char *k);
+
+
 //----------------------------------- KeyInfo ------------------------------------
 class KeyInfo
 {
@@ -116,6 +123,7 @@ class WindowActions : public anObject, public PtrStack<WindowAction>
 	virtual int Add(int nid, const char *nname, const char *desc, const char *icon, int nmode, int assign);
 	virtual int AddMode(int mode, const char *modestr, const char *name, const char *desc);
 	virtual WindowAction *FindAction(int action);
+	virtual WindowAction *ActionAt(int index);
 };
 
 
@@ -148,7 +156,7 @@ class ShortcutHandler : public Laxkit::anObject
 	virtual ShortcutDefs *Shortcuts();
 	virtual int FindShortcutIndex(unsigned int key, unsigned int state, int mode);
 	virtual int FindShortcutFromAction(int action, int startingfrom);
-	virtual int InstallShortcuts(ShortcutDefs *cuts);
+	virtual int InstallShortcuts(ShortcutDefs *cuts, bool absorb);
 
 	virtual int AddMode(int mode, const char *modestr, const char *name, const char *desc);
 	virtual int AddShortcut(unsigned int key, unsigned int state, unsigned int mode, unsigned int action);
@@ -191,8 +199,8 @@ class ShortcutManager : public LaxFiles::DumpUtility, public anObject
 	virtual int SaveHTML(const char *file=NULL);
 	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *savecontext);
 	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *loadcontext);
-	virtual char *ShortcutString(ShortcutDef *def, char *buffer);
-	virtual char *ShortcutString(unsigned int key, unsigned long state, char *buffer);
+	virtual char *ShortcutString(ShortcutDef *def, char *buffer, bool mods_as_words);
+	virtual char *ShortcutString(unsigned int key, unsigned long state, char *buffer, bool mods_as_words);
 	virtual int KeyAndState(const char *str, unsigned int *key,unsigned int *state);
 
 	virtual int ClearKeys();
@@ -200,6 +208,8 @@ class ShortcutManager : public LaxFiles::DumpUtility, public anObject
 	virtual int ReassignKey(const char *area, unsigned int newkey, unsigned int newstate,
 											  unsigned int oldkey, unsigned int oldstate,
 											  unsigned int mode, unsigned int action);
+
+	virtual WindowAction *FindAction(const char *area, unsigned int key, unsigned int state, int mode);
 };
 
 void InstallShortcutManager(ShortcutManager *manager);
