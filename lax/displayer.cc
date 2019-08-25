@@ -1627,12 +1627,12 @@ void Displayer::Newangle(double angle,int dir,int dec)
 }
 
 //! Zoom around real point p.
-void Displayer::Zoomr(double m,flatpoint p)
+void Displayer::Zoomr(double m, flatpoint p)
 {
-	flatpoint po=realtoscreen(p);
+	flatpoint po = realtoscreen(p);
 	Zoom(m);
-	po=realtoscreen(p)-po;
-	ShiftScreen(po.x,po.y);
+	po = realtoscreen(p)-po;
+	ShiftScreen(-po.x,-po.y);
 }
 
 //! Zoom around screen point x,y.
