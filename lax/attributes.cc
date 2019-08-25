@@ -1403,6 +1403,8 @@ Attribute *Attribute::duplicate()
  */
 const char *Attribute::findValue(const char *fromname,int *i_ret)
 {
+	if (i_ret) *i_ret=-1;
+	if (!fromname) return nullptr;
 	for (int c=0; c<attributes.n; c++)
 		if (attributes.e[c]->name && !strcmp(attributes.e[c]->name,fromname)) {
 			if (!isblank(attributes.e[c]->value)) {
@@ -1412,8 +1414,7 @@ const char *Attribute::findValue(const char *fromname,int *i_ret)
 			}
 			break;
 		}
-	if (i_ret) *i_ret=-1;
-	return NULL;
+	return nullptr;
 }
 
 //! Convenience function to search for a subattribute, and convert its value to a double.
@@ -1424,15 +1425,16 @@ const char *Attribute::findValue(const char *fromname,int *i_ret)
  */
 double Attribute::findDouble(const char *fromname,int *i_ret)
 {
+	if (i_ret) *i_ret=-1;
+	if (!fromname) return 0;
 	for (int c=0; c<attributes.n; c++)
 		if (attributes.e[c]->name && !strcmp(attributes.e[c]->name,fromname)) {
 			if (!isblank(attributes.e[c]->value)) {
 				if (i_ret) *i_ret=c;
-				return strtod(attributes.e[c]->value,NULL);
+				return strtod(attributes.e[c]->value, nullptr);
 			}
 			break;
 		}
-	if (i_ret) *i_ret=-1;
 	return 0;
 }
 
@@ -1444,6 +1446,8 @@ double Attribute::findDouble(const char *fromname,int *i_ret)
  */
 long Attribute::findLong(const char *fromname,int *i_ret)
 {
+	if (i_ret) *i_ret=-1;
+	if (!fromname) return 0;
 	for (int c=0; c<attributes.n; c++)
 		if (attributes.e[c]->name && !strcmp(attributes.e[c]->name,fromname)) {
 			if (!isblank(attributes.e[c]->value)) {
@@ -1452,7 +1456,6 @@ long Attribute::findLong(const char *fromname,int *i_ret)
 			}
 			break;
 		}
-	if (i_ret) *i_ret=-1;
 	return 0;
 }
 
@@ -1461,13 +1464,14 @@ long Attribute::findLong(const char *fromname,int *i_ret)
  */
 Attribute *Attribute::find(const char *fromname,int *i_ret)
 {
+	if (i_ret) *i_ret=-1;
+	if (!fromname) return nullptr;
 	for (int c=0; c<attributes.n; c++)
 		if (attributes.e[c]->name && !strcmp(attributes.e[c]->name,fromname)) {
 			if (i_ret) *i_ret=c;
 			return attributes.e[c];
 		}
-	if (i_ret) *i_ret=-1;
-	return NULL;
+	return nullptr;
 }
 
 /*! Allow for easier pushing of subatts. Push a new one with given name and value,
