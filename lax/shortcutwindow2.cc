@@ -30,6 +30,7 @@
 #include <lax/popupmenu.h>
 #include <lax/button.h>
 #include <lax/language.h>
+#include <lax/draggingdndwindow.h>
 
 
 #include <iostream>
@@ -60,13 +61,68 @@ ShortcutKBWindow::ShortcutKBWindow(anXWindow *parnt, const char *nname, const ch
 									const char *kb)
   : KeyboardWindow(parnt, nname, ntitle, nstyle, xx,yy,ww,hh,brder, prev,nowner,nsend, kb)
 {
-	ttip = nullptr;
+	//ttip = nullptr;
 	rbdown = -1;
 	rbdown_ch = 0;
 	rbdown_mods = 0;
 	rbdown_mode = 0;
 
 	current_mode = 0;
+	dnd_hover_key = -1;
+}
+
+/*! -1 for Escape or other chars that are supposed to break out of key waiting.
+ * shift, control, alt, or windows/meta key return 0.
+ * return 1 for key ok.
+ */
+static int IsPressableKey(unsigned int ch)
+{
+	if (ch==LAX_Shift || ch==LAX_Control || ch==LAX_Alt || ch==LAX_Meta) return 0;
+	if (ch==LAX_Esc) return -1;
+	return 1;
+}
+
+int ShortcutKBWindow::DropHover(double x, double y)
+{
+	int i = scan(x,y);
+	DBG cerr <<" drop hover "<<x<<","<<y<<", scanned: "<<i<<endl;
+	if (i != dnd_hover_key) {
+		if (i >= 0) {
+			Key *key = keyboard->keys[i];
+			DBG cerr <<" ch: "<<key->keymaps.e[0]->ch<<endl;
+			if (IsPressableKey(key->keymaps.e[0]->ch) != 1)
+				i = -1;
+			DBG cerr <<" i: "<<i<<endl;
+		}
+
+		dnd_hover_key = i;
+		//hovered = i;
+		needtodraw = 1;
+	}
+	return i;
+}
+
+void ShortcutKBWindow::PostRefresh(Displayer *dp)
+{
+	if (dnd_hover_key < 0) return;
+
+	//draw outline over 
+	Key *key = keyboard->key(dnd_hover_key);
+	if (!key) return;
+
+	//geez, there is a better way to do this maybe than repeating all this stuff here:
+	double xs = keyboard->width /keyboard->basewidth;
+	double ys = keyboard->height/keyboard->baseheight;
+	double x  = margin + keyboard->x+key->position.x*xs;
+	double y  = margin + keyboard->y+key->position.y*ys;
+	double x2 = margin + (keyboard->x+key->position.x+key->position.width)*xs;
+	double y2 = margin + (keyboard->y+key->position.y+key->position.height)*ys;
+	double w  = x2-x - gap;
+	double h  = y2-y - gap;
+
+	dp->NewFG(win_themestyle->activate);
+	dp->LineWidthScreen(3);
+	dp->drawrectangle(x,y,w,h, 0);
 }
 
 void ShortcutKBWindow::DrawMouseOverTip(Key *key, double x, double y, double w, double h)
@@ -90,6 +146,9 @@ void ShortcutKBWindow::DrawMouseOverTip(Key *key, double x, double y, double w, 
 	double ww = dp->textextent(action->description,-1, nullptr,nullptr);
 	x += w/2;
 	y += h + th;
+	if (x-w/2 < 0) x = -w/2;
+	else if (x+w/2 > win_w) x = win_w - w/2;
+	if (y+2*th > win_h) y -= h+3*th;
 	dp->drawrectangle(x-ww/2-th, y, ww+2*th, 2*th, 2);
 	dp->textout(x,y+th, action->description,-1, LAX_CENTER);
 }
@@ -162,19 +221,19 @@ int ShortcutKBWindow::RBDown(int x,int y,unsigned int state,int count,const LaxM
 			menu->SubMenu();
 			WindowActions *actions = handler->Actions();
 			for (int c=0; c<actions->n; c++) {
-				menu->AddItem(actions->e[c]->name, SCKB_New_Action + c);//actions->e[c]->id);
+				menu->AddItem(actions->e[c]->description, SCKB_New_Action + c);//actions->e[c]->id);
 			}
 			menu->Sort();
 			menu->AddSep();
 			menu->AddItem(_("New action..."), SCKB_New_Action);
 			menu->EndSubMenu();
-			menu->AddSep();
+			//menu->AddSep();
 		}
 	}
 
-	menu->AddItem("en_qwerty", KMENU_Select_Keyboard,0, 0);
-	menu->AddItem("en_dvorak", KMENU_Select_Keyboard,0, 1);
-	menu->AddItem(_("Load keyboard..."), KMENU_Load_Keyboard);
+	//menu->AddItem("en_qwerty", KMENU_Select_Keyboard,0, 0);
+	//menu->AddItem("en_dvorak", KMENU_Select_Keyboard,0, 1);
+	//menu->AddItem(_("Load keyboard..."), KMENU_Load_Keyboard);
 
 
 	app->rundialog(new PopupMenu("Shortcuts",_("Shortcuts"), 0,
@@ -233,9 +292,15 @@ void ShortcutKBWindow::UpdateCurrent()
 class ShortcutTreeSelector2 : public TreeSelector
 {
 	double shiftext, controlext, metaext, altext;
+	ShortcutKBWindow *last_maybe_dnd;
+	int last_maybe_dnd_i;
+	int down_on;
+	DraggingDNDWindow *dnd_window;
+
+	void NotifyParent();
 
   public:
-	MenuItem *wait_for;
+	MenuItem *wait_for; //nonnull when waiting for key input for this action
 	int skipswap;
 
 	ShortcutTreeSelector2(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
@@ -263,22 +328,40 @@ ShortcutTreeSelector2::ShortcutTreeSelector2(anXWindow *parnt,const char *nname,
 						 unsigned long long nmstyle,MenuInfo *minfo)
   : TreeSelector(parnt,nname,ntitle,nstyle|ANXWIN_HOVER_FOCUS,xx,yy,ww,hh,brder,prev,nowner,mes,nmstyle/*|TREESEL_FOLLOW_MOUSE*/,minfo)
 {
-	wait_for=nullptr;
-	skipswap=0;
+	dnd_window = nullptr;;
+	wait_for = nullptr;
+	last_maybe_dnd = nullptr;
+	skipswap = 0;
 	DBG cerr <<"in ShortcutTreeSelector2(), id="<<object_id<<endl;
 }
 
 ShortcutTreeSelector2::~ShortcutTreeSelector2()
 {
 	DBG cerr <<"in ~ShortcutTreeSelector2(), id="<<object_id<<endl;
+	if (dnd_window) app->destroywindow(dnd_window);
 }
 
 int ShortcutTreeSelector2::LBDown(int x,int y,unsigned int state,int count,const LaxMouse *d)
 {
-	if (wait_for) {
-		wait_for=nullptr;
-		needtodraw=1;
-		return 0;
+	last_maybe_dnd = nullptr;
+	int onsub=0;
+    int ii = findItem(x,y, &onsub);
+	down_on = -1;
+	MenuItem *iii = item(ii);
+	if (iii && iii->state & LAX_ON) {
+		down_on = ii;
+		if (wait_for) {
+			//stop waiting for input
+			wait_for = nullptr;
+			needtodraw = 1;
+			return 0;
+		}
+	} else {
+		//clicking down on a non-selected item. turn off input wait if it was on
+		if (wait_for) {
+			wait_for = nullptr;
+			needtodraw = 1;
+		}
 	}
 	return TreeSelector::LBDown(x,y,state,count, d);
 }
@@ -288,6 +371,56 @@ int ShortcutTreeSelector2::MouseMove(int x,int y,unsigned int state,const LaxMou
 	if (wait_for) {
 		return 0;
 	}
+
+	if (down_on >= 0 && buttondown.isdragged(d->id, LEFTBUTTON)) {
+		if (down_on) {
+			if (!dnd_window) {
+				Displayer *dp = MakeCurrent();
+
+				MenuItem *mitem = item(down_on);
+				mitem = mitem->GetDetail(2);
+				
+				const char *str = mitem->name;
+				double w = dp->textextent(str,-1,nullptr,nullptr);
+				double th = dp->textheight();
+				dnd_window = new DraggingDNDWindow("dnd",nullptr, ANXWIN_BARE,
+											0,0,w+th,1.5*th, 1,
+											0,nullptr,
+											d->id, -w/2, th);
+				dnd_window->SetRenderer([str](anXWindow *win,Displayer *dp) {
+						dp->ClearWindow();
+						dp->NewFG(win->win_themestyle->fg);
+						dp->font(win->win_themestyle->normal, win->win_themestyle->normal->textheight());
+						dp->textout(win->win_w/2,win->win_h/2, str,-1);
+					});
+
+				app->addwindow(dnd_window);
+			}
+		}
+
+		anXWindow *win;
+		app->findDropCandidate(this, x,y, &win);
+		if (win) {
+			ShortcutKBWindow *kbwin = dynamic_cast<ShortcutKBWindow *>(win);
+			if (kbwin) {
+				DBG cerr <<"@@@@@@@@@@@ kb drop maybe!"<<endl;
+				int xx,yy;
+				translate_window_coordinates(this, x,y, kbwin,&xx,&yy, nullptr);
+				last_maybe_dnd_i = kbwin->DropHover(xx,yy);
+				// *** need to change mods during drag
+				if (last_maybe_dnd && last_maybe_dnd != kbwin) {
+					last_maybe_dnd->DropHover(-1000,-1000);
+				}
+				last_maybe_dnd = kbwin;
+
+			} else if (last_maybe_dnd) {
+				last_maybe_dnd->DropHover(-1000,-1000);
+				last_maybe_dnd = nullptr;
+			}
+		}
+		return 0;
+	}
+
 	return TreeSelector::MouseMove(x,y,state,d);
 }
 
@@ -295,30 +428,75 @@ int ShortcutTreeSelector2::LBUp(int x,int y,unsigned int state,const LaxMouse *d
 {
 	if (!buttondown.isdown(d->id,LEFTBUTTON)) return 1;
 
-	if (mousedragmode!=0) return TreeSelector::LBUp(x,y,state,d);
+	if (dnd_window) {
+		//app->destroywindow(dnd_window);
+		dnd_window->Done();
+		dnd_window = nullptr;
+	}
 
-	int onsub=0;
-    int i=findItem(x,y,&onsub);
+	if (last_maybe_dnd) {
+		 //complete dropping of action onto a key
+		if (down_on >= 0 && last_maybe_dnd_i >= 0) {
+
+			// dragged up an action that had a key associated with it
+			// dragged up an action with no key
+
+			Key *key = last_maybe_dnd->GetKeyboard()->key(last_maybe_dnd_i);
+			unsigned int mods = last_maybe_dnd->CurrentMods();
+			Keymap *keymap = key->keymaps.e[mods == ShiftMask && key->keymaps.n > 1 ? 1 : 0];
+			MenuItem *mitem = item(down_on);
+
+			ShortcutManager *manager = GetDefaultShortcutManager();
+			ShortcutHandler *handler = manager->FindHandler(last_maybe_dnd->current_area.c_str());
+
+			unsigned int oldkey, oldstate;
+			manager->KeyAndState(mitem->name, &oldkey, &oldstate);
+
+			handler->ReassignKey(keymap->ch, mods, oldkey, oldstate, mitem->nextdetail->id, mitem->nextdetail->info);
+
+			//update keyboard
+			NotifyParent();
+
+			//update action list menu
+			char keyb[20];
+			key_name_from_value(keymap->ch, keyb);
+			makestr(mitem->name, keyb);
+			mitem->id = keymap->ch;
+			mitem->info = last_maybe_dnd->CurrentMods();
+		}
+		last_maybe_dnd->DropHover(-1000,-1000);
+		last_maybe_dnd = nullptr;
+		buttondown.up(d->id,LEFTBUTTON);
+		needtodraw = 1;
+		return 0;
+	}
+
+	if (mousedragmode != 0) return TreeSelector::LBUp(x, y, state, d);
+
+	int onsub = 0;
+	int i = findItem(x, y, &onsub);
 
 	if (onsub) return TreeSelector::LBUp(x,y,state,d);
-	MenuItem *mi=item(i);
+	MenuItem *mi = item(i);
 	if (mi && !mi->isSelected()) addselect(i,0);
 
 	int detailhovered=-1, item=-1;
 	buttondown.getextrainfo(d->id,LEFTBUTTON, &item,&detailhovered);
 	if (detailhovered>0 || item<0 || item>=numItems()) return TreeSelector::LBUp(x,y,state,d);
 
-	int isdragged=buttondown.isdragged(d->id,LEFTBUTTON);
+	int isdragged = buttondown.isdragged(d->id, LEFTBUTTON);
 	buttondown.up(d->id,LEFTBUTTON);
 	if (isdragged) return TreeSelector::LBUp(x,y,state,d);;
 
-	MenuItem *mitem=visibleitems.e(item);
+	MenuItem *mitem = visibleitems.e(item);
 	if (!mitem->parent || !mitem->parent->parent) return TreeSelector::LBUp(x,y,state,d);;
 	// *** note this assumes having no parent item means this is a key-action instance
 
 	 //now we know there was no dragging, and we click down on first detail block, so expect new key...
-	wait_for=mitem;
-	needtodraw=1;
+	if (down_on >= 0) {
+		wait_for = mitem;
+		needtodraw = 1;
+	}
 
 	// *** assumes the flat view, each area is top level, keys are subs of that
 
@@ -405,6 +583,7 @@ int ShortcutTreeSelector2::CharInput(unsigned int ch, const char *buffer,int len
 			i->parent->menuitems.flush();
 			AddAreaToMenu(i->parent, handler);
 
+			NotifyParent();
 			needtobuildcache=1;
 			needtodraw=1;
 			return 0;
@@ -450,10 +629,11 @@ int ShortcutTreeSelector2::CharInput(unsigned int ch, const char *buffer,int len
 
 	// update menu
 
-	MenuInfo *aream=wait_for->parent;
+	MenuInfo *aream = wait_for->parent;
 	aream->menuitems.flush();
 	AddAreaToMenu(aream, handler);
 
+	NotifyParent();
 
 	needtobuildcache=1;
 	wait_for=nullptr;
@@ -462,9 +642,11 @@ int ShortcutTreeSelector2::CharInput(unsigned int ch, const char *buffer,int len
 	return 0;
 }
 
-
-
-
+void ShortcutTreeSelector2::NotifyParent()
+{
+	SimpleMessage *ev = new SimpleMessage(nullptr, 0,0,0,0, "actionupdate", object_id, win_owner);
+	app->SendMessage(ev);
+}
 
 /*! Call TreeSelector::Refresh(), then if we are waiting for a key,
  * overwrite that cell to prompt for input.
@@ -474,6 +656,7 @@ void ShortcutTreeSelector2::Refresh()
 	if (!win_on || !needtodraw) return;
 
 	Displayer *dp = MakeCurrent();
+	dp->font(win_themestyle->normal, win_themestyle->normal->textheight());
 
 	shiftext   = dp->textextent(_("Shift"),-1, nullptr, nullptr);
 	controlext = dp->textextent(_("Control"),-1, nullptr, nullptr);
@@ -486,6 +669,10 @@ void ShortcutTreeSelector2::Refresh()
 	skipswap=0;
 
 	if (wait_for) {
+		dp->NewFG(win_themestyle->fg);
+		dp->NewBG(win_themestyle->bg);
+		dp->drawrectangle(wait_for->x+offsetx, wait_for->y+offsety, shiftext+controlext+metaext+altext, wait_for->h, 2);
+
 		dp->NewFG(0.,1.,0.);
 		dp->textout(wait_for->x+offsetx,wait_for->y+offsety, _("<<press>>"), -1,  LAX_LEFT|LAX_TOP);
 	}
@@ -624,6 +811,7 @@ ShortcutWindow2::ShortcutWindow2(Laxkit::anXWindow *parnt,const char *nname,cons
 
 	swin_style  = (nstyle & ~ANXWIN_MASK);
 	search_type = SEARCH_TEXT;  // 0 is search text, 1 is search keys
+	use_locale = false;
 
 	initialarea = newstr(place);
 	sc          = nullptr;
@@ -756,7 +944,7 @@ int ShortcutWindow2::init()
 
 //	if (addspacer) { AddVSpacer(textheight/2,0,0,50); AddNull(); }
 
-	
+
 	 //define the shortcuts tree
 	MenuInfo *menu = new MenuInfo;
 	MenuInfo *areas = new MenuInfo;
@@ -782,17 +970,18 @@ int ShortcutWindow2::init()
 
 	StackFrame *hframe = new StackFrame(this, nullptr,nullptr,0, 0,0,0,0,0, nullptr,0,nullptr, -1);
 
-	//left side, all the known areas
+	//-----left side, all the known areas
 	TreeSelector *areawindow = new TreeSelector(hframe, "areas","areas",SW_RIGHT,
 						0,0,0,0,0, nullptr,this->object_id,"areas",
-						TREESEL_SEND_ON_UP | TREESEL_NO_LINES,
+						TREESEL_SEND_ON_UP | TREESEL_NO_LINES | TREESEL_CURSSELECTS | TREESEL_CURSSENDS,
 						nullptr);
 	areawindow->InstallMenu(areas);
 	areawindow->Select(0);
 	areas->dec_count();
 	hframe->AddWin(areawindow,1);
 
-	//right side, shortcuts for currently selected areas
+
+	//-----right side, shortcuts for currently selected areas
 	ShortcutTreeSelector2 *tree = dynamic_cast<ShortcutTreeSelector2*>(findChildWindowByName("tree", true));
 	tree->InstallMenu(menu);
 	menu->dec_count();
@@ -805,6 +994,8 @@ int ShortcutWindow2::init()
 
 	keyboard->UpdateCurrent();
 	Sync(1);
+
+	if (use_locale) ApplyCurrentLocale();
 
 	return 0;
 }
@@ -931,6 +1122,10 @@ int ShortcutWindow2::Event(const Laxkit::EventData *e,const char *mes)
 		const SimpleMessage *s = dynamic_cast<const SimpleMessage*>(e);
 		DBG cerr << "areas change: " <<(s->str ? s->str : "none" )<<endl; //the item
 		SelectArea(s->str);
+		return 0;
+
+	} else if (!strcmp(mes,"actionupdate")) {
+		keyboard->UpdateCurrent();
 		return 0;
 
 	} else if (!strcmp(mes, "kbpopup")) {
@@ -1060,7 +1255,7 @@ int ShortcutWindow2::Event(const Laxkit::EventData *e,const char *mes)
 		menu->AddItem("en_qwerty", KMENU_Select_Keyboard,0, 0);
 		menu->AddItem("en_dvorak", KMENU_Select_Keyboard,0, 1);
 		menu->AddItem(_("Load keyboard..."), KMENU_Load_Keyboard);
-		menu->AddItem(_("Reset Keymap"), KMENU_Reset_Keyboard);
+		menu->AddItem(_("Reset from locale"), KMENU_Reset_Keyboard);
 
 		app->rundialog(new PopupMenu("Settings",_("Settings"), 0,
 								 0,0,0,0,1,
@@ -1075,8 +1270,7 @@ int ShortcutWindow2::Event(const Laxkit::EventData *e,const char *mes)
 
 		if (s->info2 == KMENU_Reset_Keyboard) {
 			DBG cerr << "Reset keyboard to locale..."<<endl;
-			keyboard->GetKeyboard()->ApplyCurrentLocale();
-			SelectArea(keyboard->current_area.c_str());
+			ApplyCurrentLocale();
 			return 0;
 		}
 
@@ -1087,6 +1281,16 @@ int ShortcutWindow2::Event(const Laxkit::EventData *e,const char *mes)
 	//return anXWindow::Event(e,mes);
 }
 
+int ShortcutWindow2::ApplyCurrentLocale()
+{
+	if (!keyboard) {
+		use_locale = true;
+		return 1;
+	}
+	keyboard->GetKeyboard()->ApplyCurrentLocale();
+	SelectArea(keyboard->current_area.c_str());
+	return 0;
+}
 
 
 } //namespace Laxkit

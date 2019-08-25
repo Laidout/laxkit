@@ -249,6 +249,7 @@ class KeyboardWindow : public anXWindow
 	virtual int MoveResize(int nx,int ny,int nw,int nh);
 	virtual int Resize(int nw,int nh);
 	virtual void Refresh();
+	virtual void PostRefresh(Displayer *dp);
 	
 	virtual int scan(int x,int y);
 	virtual int ShiftWindow(int dx,int dy);

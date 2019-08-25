@@ -45,6 +45,7 @@ enum ShortcutWindow2Styles
 class ShortcutKBWindow : public KeyboardWindow
 {
   protected:
+	int dnd_hover_key;
 
   public:
 	int rbdown; //key index
@@ -54,7 +55,7 @@ class ShortcutKBWindow : public KeyboardWindow
 	int current_mode;
 
 	std::string current_area;
-	MessageBar *ttip;
+	//MessageBar *ttip;
 
 	ShortcutKBWindow(anXWindow *parnt, const char *nname, const char *ntitle,
             unsigned long nstyle,
@@ -69,6 +70,8 @@ class ShortcutKBWindow : public KeyboardWindow
 	//virtual int RBUp(int x,int y,unsigned int state,const LaxMouse *d);
 	virtual void UpdateMouseOver(int i);
 	virtual void DrawMouseOverTip(Key *key, double x, double y, double w, double h);
+	virtual int DropHover(double x, double y);
+	virtual void PostRefresh(Displayer *dp);
 };
 
 class ShortcutWindow2 : public Laxkit::StackFrame
@@ -81,6 +84,7 @@ class ShortcutWindow2 : public Laxkit::StackFrame
 	ShortcutKBWindow *keyboard;
 	unsigned long swin_style;
 	int search_type;
+	bool use_locale;
 
 	//std::string current_area;
 
@@ -110,6 +114,7 @@ class ShortcutWindow2 : public Laxkit::StackFrame
 	virtual int CharInput(unsigned int ch, const char *buffer,int len,unsigned int state, const LaxKeyboard *kb);
 	virtual int SetSearch(const char *str, int searchtype=-1);
 	virtual int SelectArea(const char *area);
+	virtual int ApplyCurrentLocale();
 
 	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context);
 	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);

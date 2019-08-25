@@ -548,13 +548,14 @@ void Keyboard::ApplyCurrentLocale()
 
 			const char *str = XlibToNormal(XKeysymToString(list[c*keysyms_per_keycode + c2]));
 			if (!str) continue;
+			unsigned int state = 0;
 			if (c2 == 0) {
 				key->keymaps.e[0]->name = str;
-				key->keymaps.e[0]->ch = list[c*keysyms_per_keycode + c2];
+				key->keymaps.e[0]->ch = filterkeysym(list[c*keysyms_per_keycode + c2], &state);
 			}
 			if (c2 == 1 && key->keymaps.n>1) {
 				key->keymaps.e[1]->name = str;
-				key->keymaps.e[1]->ch = list[c*keysyms_per_keycode + c2];
+				key->keymaps.e[1]->ch = filterkeysym(list[c*keysyms_per_keycode + c2], &state);
 			}
 			printf("%d(%-4x): %-10s ",
 					c2,
@@ -1374,6 +1375,7 @@ void KeyboardWindow::Refresh()
 	if (!keyboard) return;
 
 	Displayer *dp = MakeCurrent();
+	dp->font(win_themestyle->normal, win_themestyle->normal->textheight());
 
 	dp->ClearWindow();
 	dp->NewFG(win_themestyle->fg);
@@ -1440,10 +1442,39 @@ void KeyboardWindow::Refresh()
 	}
 
 	if (hovered >= 0) DrawMouseOverTip(keyboard->keys[hovered], hoverfrom.x, hoverfrom.y, hoverfrom.width, hoverfrom.height);
+	PostRefresh(dp);
 
 	DBG cerr <<endl;
 	SwapBuffers();
 }
+
+void KeyboardWindow::PostRefresh(Displayer *dp) {}
+
+//void KeyboardWindow::DrawKey(Key *key, int mods, double x,double y,double w,double h)
+//{
+//	dp->NewBG(bg);
+//
+//	dp->NewFG(coloravg(win_themestyle->bg, win_themestyle->fg));
+//	//dp->drawrectangle(x,y,w,h, 0);
+//	dp->drawRoundedRect(x,y,w,h, round,false, round,false, 2);
+//
+//	StandoutColor(bg, true, fg);
+//	dp->NewFG(fg);
+//	DrawKeyText(key, currentmods, x,y,w,h);
+//}
+
+static void DrawKeyTextSquished(Displayer *dp, const char *str, double x, double y, double w)
+{
+	double ww = dp->textextent(str, -1, nullptr,nullptr);
+	w *= .8;
+	if (ww >= w) {
+		dp->PushAxes();
+		dp->Zoomr(w/ww, flatpoint(x,y));
+	}
+	dp->textout(x,y, str,-1, LAX_CENTER);
+	if (ww >= w) dp->PopAxes();
+}
+
 
 /*! Write out the key text.
  */
@@ -1456,6 +1487,7 @@ void KeyboardWindow::DrawKeyText(Key *key, int mods, double x,double y,double w,
 		char buffer[20];
 
 		if ((win_style & KBWIN_Show_Double_Row) && n>1) {
+			//sloppy here, only works when there are only two keymaps
 			for (int c2=0; c2<n; c2++) {
 				sprintf(buffer,"%c",key->keymaps.e[c2]->ch);
 
@@ -1466,13 +1498,24 @@ void KeyboardWindow::DrawKeyText(Key *key, int mods, double x,double y,double w,
 			}
 		} else {
 			//DBG cerr << " mods"<<mods;
-			dp->textout(x+w/2,y+h/2, key->keymaps.e[0]->name.c_str(),-1, LAX_CENTER);
+			const char *str = key->keymaps.e[0]->name.c_str();
+			//-----------------
+			DrawKeyTextSquished(dp, str, x+w/2,y+h/2, w);
+			//-----------------
+//			double ww = dp->textextent(str, -1, nullptr,nullptr);
+//			if (ww >= w) {
+//				dp->PushAxes();
+//				dp->Zoomr(w/ww, flatpoint(x,y));
+//			}
+//			dp->textout(x+w/2,y+h/2, str,-1, LAX_CENTER);
+//			if (ww >= w) dp->PopAxes();
 		}
 
 	} else { //we are pressing down modifier keys
 		//DBG cerr << " mods"<<mods;
 		Keymap *map = key->MatchMods(mods);
-		dp->textout(x+w/2,y+h/2, map->name.c_str(),-1, LAX_CENTER);
+		//dp->textout(x+w/2,y+h/2, map->name.c_str(),-1, LAX_CENTER);
+		DrawKeyTextSquished(dp, map->name.c_str(), x+w/2,y+h/2, w);
 	}
 }
 
