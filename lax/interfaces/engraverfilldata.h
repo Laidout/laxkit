@@ -33,6 +33,9 @@
 #include <lax/curveinfo.h>
 #include <lax/noise.h>
 
+// *** for PointCollection callback:
+#include <functional>
+
 
 namespace LaxInterfaces {
 
@@ -244,6 +247,25 @@ enum EngraveLinePointCacheTypes {
 	ENGRAVE_VisualCache, //extra point for on screen display purposes
 	ENGRAVE_EndDash,   //added by dash computations
 	ENGRAVE_StartDash  //added by dash computations
+};
+
+/*! \class PointCollection
+ * Base class for objects that can be changed by anything meant to work on masses of points.
+ */
+class PointCollection
+{
+  public:
+	enum PointMethods {
+		Size,
+		Position
+	};
+	virtual int Depth() = 0; //how many dimensions wide are points stored
+	virtual int Num(int atlevel) = 0; //how many containers at this level
+	virtual flatpoint Point(int index, ...) = 0; //retrieve point
+	virtual void Point(flatpoint newPos, int index, ...) = 0; //set point
+
+	//Update every point with this function
+	virtual int Adjust(std::function<int(const flatpoint &p, flatpoint &newp)> adjustFunc);
 };
 
 class LinePoint;
