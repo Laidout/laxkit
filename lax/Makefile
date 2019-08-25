@@ -178,6 +178,7 @@ objs= \
 	keyboardwindow.o \
 	shortcutwindow.o \
 	shortcutwindow2.o \
+	draggingdndwindow.o \
 	curveinfo.o \
 
 #	printdialog.o \
