@@ -3135,7 +3135,6 @@ void anXApp::postmessage(const char *str)
  * \todo cannot find windows that X knows about that the application doesn't, so cannot
  *   drop to other programs (yet)!
  * \todo this needs work... especially when there are windows on different screens..
- *   laxkit in general does not handle multiple screens well (ie, at all)..
  * \todo  ***** this ignores stacking order!!!
  * \todo this needs to be redone to use a mouse device, which is much easier to find drop candidates..
  *        it is not so necessary to find candidates for arbitrary coordinates.
@@ -3241,6 +3240,10 @@ anXWindow *anXApp::findDropCandidate(anXWindow *ref,int x,int y,anXWindow **drop
 //	return ref;
 }
 
+anXWindow *anXApp::findDropCandidate(anXWindow *ref,int x,int y,anXWindow **drop)
+{
+	return findDropCandidate(ref,x,y,drop, nullptr);
+}
 
 
 // done with anXApp... now for a couple of debugging helpers

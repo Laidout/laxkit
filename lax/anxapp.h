@@ -465,7 +465,10 @@ class anXApp : virtual public anObject
 	virtual void postmessage(const char *str);
 	virtual int CopytoBuffer(const char *stuff,int len);
 	virtual char *GetBuffer();
+#ifdef _LAX_PLATFORM_XLIB
 	virtual anXWindow *findDropCandidate(anXWindow *ref,int x,int y,anXWindow **drop, Window *xlib_window_ret);
+#endif //_LAX_PLATFORM_XLIB
+	virtual anXWindow *findDropCandidate(anXWindow *ref,int x,int y,anXWindow **drop);
 
 	 //timer management
 	virtual int SetMaxTimeout(int timeoutmax);
