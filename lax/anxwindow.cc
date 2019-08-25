@@ -824,8 +824,8 @@ int anXWindow::preinit()
 int anXWindow::close()
 {
 	if (!win_parent && win_style&ANXWIN_REMEMBER) {
-		Attribute *att=dump_out_atts(NULL,0,NULL);
-		app->AppResource(att); //do not delete att!
+		Attribute *att = dump_out_atts(NULL,0,NULL);
+		if (att) app->AppResource(att); //do not delete att!
 	}
 	return 0;
 }
