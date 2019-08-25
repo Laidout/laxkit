@@ -381,6 +381,49 @@ int TabFrame::CharInput(unsigned int ch,const char *buffer,int len,unsigned int 
 }
 
 
+LaxFiles::Attribute *TabFrame::dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context)
+{
+	if (!att) att = new LaxFiles::Attribute(whattype(), nullptr);
+	anXWindow::dump_out_atts(att,what,context);
+
+	att->push("current", curtab);
+
+	for (int c=0; c<NumBoxes(); c++) {
+		TabBox *b = dynamic_cast<TabBox *>(wholelist.e[c]);
+		if (!b) continue;
+		LaxFiles::Attribute *att2 = att->pushSubAtt("window", 
+				b->win ? b->win->win_name : (b->label ? b->label : nullptr));
+		if (!b->win) continue;
+		b->win->dump_out_atts(att2, what, context);
+	}
+
+	return att;
+}
+
+void TabFrame::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context)
+{
+	anXWindow::dump_in_atts(att,flag,context);
+
+	const char *name, *value;
+	int cur = -1;
+	for (int c=0; c<att->attributes.n; c++) {
+		name  = att->attributes.e[c]->name;
+		value = att->attributes.e[c]->value;
+
+		if (!strcmp(name, "window")) {
+			anXWindow *win = findChildWindowByName(value);
+			if (win) {
+				win->dump_in_atts(att->attributes.e[c], flag, context);
+			}
+
+		} else if (!strcmp(name, "current")) {
+			cur = strtol(value, nullptr, 10);
+		}
+	}
+
+	if (cur >= 0) SelectN(cur);
+}
+
 
 } // namespace Laxkit
 
