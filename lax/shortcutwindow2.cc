@@ -1434,7 +1434,7 @@ int ShortcutWindow2::ExportSVG(const char *file, bool with_list, bool with_label
 		   );
 
 	//draw each key
-	fputs("  <g>\n");
+	fputs("  <g>\n", f);
 	for (int c=0; c<kb->keys.n; c++) {
 		Key *k = kb->key(c);
 
@@ -1475,7 +1475,7 @@ int ShortcutWindow2::ExportSVG(const char *file, bool with_list, bool with_label
 				);
 		}
 	}
-	fputs("  </g>\n"); //keys group
+	fputs("  </g>\n", f); //keys group
 
 	fprintf(f, "</g>\n</svg>\n");
 	fclose(f);
