@@ -246,6 +246,7 @@ typedef enum {
 #define LAX_Right    (LAX_SPKEY | 0xff53)
 #define LAX_Numlock  (LAX_SPKEY | 0xff7f)
 #define LAX_Capslock (LAX_SPKEY | 0xffe5)
+#define LAX_ScrollLock (LAX_SPKEY | 0xff14)
 
 //The following are basically one for one with XF86XK_* from /usr/include/X11/XF86keysym.h
 //They map various special keys found on different keyboards.
