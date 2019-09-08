@@ -2947,15 +2947,17 @@ Attribute *JsonFileToAttribute (const char *jsonfile, Attribute *att)
 	return a;
 }
 
-/*! This uses Attribute::flags to hint what type the attribute is. See JsonAttTypes.
- * Also, att->name will hold "null", "true", "false", "int", "float", "array", or "object".
+/*! Read in a single element.
+ *
+ * This uses Attribute::flags to hint what type the attribute is. See JsonAttTypes.
+ * Also, att->name will hold "null", "true", "false", "int", "float", "string", "array", or "object".
  *
  * Null, true, and false will have null att->value. name will be "true", "false", or "null".
  *
  * Something like:
  *
  * <pre>
- *   { "hashname" : [ "array", "of", 5, "stuff", 10.0 ],
+ *   { "hashname" : [ "array", "of", 5, "stuff", 10.0, true ],
  *     "hashname2" " null
  *   }
  * </pre>
@@ -2970,159 +2972,202 @@ Attribute *JsonFileToAttribute (const char *jsonfile, Attribute *att)
  *         int 5
  *         string "stuff"
  *         float 10.0
+ *         boolean true
  *     key hashname2
  *       null
  * </pre>
  */
 Attribute *JsonStringToAttribute (const char *jsonstring, Attribute *att, const char **end_ptr)
 {
-	if (!att) att = new Attribute();
-
 	const char *str = jsonstring;
 	const char *strend;
 	char *endptr;
 
-	while (*str) {
+	while (*str && isspace(*str)) str++;
+
+	if (*str=='t' && !strncmp(str, "true", 4)) {
+		if (!att) att = new Attribute();
+		str += 4;
+		att->flags = JSON_True;
+		makestr(att->name, "boolean");
+		makestr(att->value, "true");
+		if (end_ptr) *end_ptr = str;
+		return att;
+
+	} else if (*str=='f' && !strncmp(str, "false", 5)) {
+		if (!att) att = new Attribute();
+		str += 5;
+		att->flags = JSON_False;
+		makestr(att->name, "boolean");
+		makestr(att->value, "false");
+		if (end_ptr) *end_ptr = str;
+		return att;
+
+	} else if (*str=='n' && !strncmp(str, "null", 4)) {
+		if (!att) att = new Attribute();
+		str += 4;
+		att->flags = JSON_Null;
+		makestr(att->name, "null");
+		makestr(att->value, "null");
+		if (end_ptr) *end_ptr = str;
+		return att;
+
+	} else if (*str=='"') {
+		if (!att) att = new Attribute();
+		char *s = QuotedAttribute(str, &endptr);
+		if (!s || str == endptr) {
+			 // *** uh oh! problem in the parsing!
+			s++;
+			return nullptr;
+
+		} else {
+			if (!att) att = new Attribute();
+			str = endptr;
+			att->flags = JSON_String;
+			makestr(att->name, "string");
+			if (att->value) delete[] att->value;
+			att->value = s;
+			if (end_ptr) *end_ptr = str;
+			return att;
+		}
+
+	} else if (isdigit(*str) || *str == '.') {
+		 //is number
+		int isint = 1;
+		strend = str;
+
+		while (isdigit(*strend)) strend++; //int part
+		if (*strend == '.') { //fraction
+			isint = 0;
+			strend++;
+			while (isdigit(*strend)) strend++;
+		}
+		if (*strend == 'e' || *strend == 'E') {
+			strend++;
+			if (*strend == '+' || *strend == '-') strend++;
+			if (!isdigit(*strend)) {
+				//malformed number!
+				return nullptr;
+			}
+			while (isdigit(*strend)) strend++;
+		}
+		//if (str == strend) { break; }  <- this shouldn't happen
+
+		if (!att) att = new Attribute();
+		makestr(att->name, isint ? "int" : "float");
+		makenstr(att->value, str, strend-str);
+		str = strend;
+
+		if (end_ptr) *end_ptr = str;
+		return att;
+
+	} else if (*str=='[') {
+		str++;
+		bool newatt = false;
+		if (!att) { newatt = true; att = new Attribute(); }
+		makestr(att->name, "array");
+		att->flags = JSON_Array;
+
 		while (*str && isspace(*str)) str++;
-
-		if (*str=='t' && !strncmp(str, "true", 4)) {
-			str += 4;
-			att->push("true");
-			att->Top()->flags = JSON_True;
-
-		} else if (*str=='f' && !strncmp(str, "false", 5)) {
-			str += 5;
-			att->push("false");
-			att->Top()->flags = JSON_False;
-
-		} else if (*str=='n' && !strncmp(str, "null", 4)) {
-			str += 4;
-			att->push("null");
-			att->Top()->flags = JSON_Null;
-
-		} else if (*str=='"') {
-			char *s = QuotedAttribute(str, &endptr);
-			if (!s || str == endptr) {
-				 // *** uh oh! problem in the parsing!
-				s++;
-
-			} else {
-				str = endptr;
-				att->push("string", s);
-				att->Top()->flags = JSON_String;
-				delete[] s;
-			}
-
-		} else if (*str=='[') {
+		while (1) {
+			endptr = nullptr;
+			Attribute *att3 = JsonStringToAttribute(str, nullptr, &strend);
+			if (att3) {
+				att->push(att3, -1);
+				str = strend;
+			} else break;
+			
+			while (*str && isspace(*str)) str++;
+			if (*str != ',') break;
 			str++;
-			Attribute *att2 = att->pushSubAtt("array");
-			att2->flags = JSON_Array;
+		}
 
+		while (*str && isspace(*str)) str++;
+		if (*str != ']') {
+			// *** error!! missing close bracket
+			if (newatt) delete att;
+			return nullptr;
+		}
+
+		str++;
+		if (end_ptr) *end_ptr = str;
+		return att;
+
+	} else if (*str=='{') {
+		str++;
+		bool newatt = false;
+		if (!att) { newatt = true; att = new Attribute(); }
+		makestr(att->name, "object");
+		att->flags = JSON_Object;
+
+		while (1) {
+			//scan for key
 			while (*str && isspace(*str)) str++;
-			while (1) {
-				endptr = NULL;
-				Attribute *att3 = JsonStringToAttribute(str, NULL, &strend);
-				if (att3) {
-					att2->push(att3, -1);
-					str = strend;
-					while (*str && isspace(*str)) str++;
-
-				} else break;
-				
-				while (*str && isspace(*str)) str++;
-				if (*str != ',') break;
-				str++;
-			}
-
-			while (*str && isspace(*str)) str++;
-			if (*str != ']') {
-				// *** error!! missing close bracket
-			}
-
-		} else if (*str=='{') {
-			str++;
-			Attribute *att2 = att->pushSubAtt("object");
-			att2->flags = JSON_Object;
-
-			while (1) {
-
-				while (*str && isspace(*str)) str++;
-				if (*str != '"') {
-					if (*str != '}') {
-						// *** error! expecting a string!
-					}
-					break;
+			if (*str != '"') {
+				if (*str != '}') {
+					//error! expecting a string or empty object!
+					if (newatt) { delete att; att = nullptr; }
+					return nullptr;
 				}
-
-				str++;
-				strend = str+1;
-				while (*strend && *strend != '"') {
-					if (*strend == '\\') strend++;
-					if (*strend) strend++;
-				}
-
-				if (*strend == '\0' || *strend != '"') {
-					// *** badly formed string!
-					break;
-				}
-
-				Attribute *key = new Attribute("key", NULL);
-				makenstr(key->value, str+1, strend-str-1);
-				att2->push(key, -1);
-
-				endptr = NULL;
-				Attribute *value = JsonStringToAttribute(str, NULL, &strend);
-				if (value) {
-					key->push(value, -1);
-					str = strend;
-
-				} else break;
-				
-				while (*str && isspace(*str)) str++;
-				if (*str != ',') break;
-				str++;
-			}
-
-			while (*str && isspace(*str)) str++;
-			if (*str != '}') {
-				// *** error!! missing close curly brace
 				break;
 			}
 
-		} else if (isdigit(*str) || *str == '.') {
-			 //is number
-			int isint = 1;
+			str++;
 			strend = str;
-
-			while (isdigit(*strend)) strend++; //int part
-			if (*strend == '.') { //fraction
-				isint = 0;
-				strend++;
-				while (isdigit(*strend)) strend++;
+			while (*strend && *strend != '"') {
+				if (*strend == '\\') strend++;
+				if (*strend) strend++;
 			}
-			if (*strend == 'e' || *strend == 'E') {
-				strend++;
-				if (*strend == '+' || *strend == '-') strend++;
-				if (!isdigit(*strend)) {
-					// *** malformed number!
-					break;
-				}
-				while (isdigit(*strend)) strend++;
-			}
-			//if (str == strend) { break; }  <- this shouldn't happen
 
-			Attribute *att2 = new Attribute(isint ? "int" : "float", NULL);
-			makenstr(att2->value, str, strend-str);
+			if (*strend == '\0' || *strend != '"') {
+				//badly formed string!
+				if (newatt) { delete att; att = nullptr; }
+				return nullptr;
+			}
+
+			Attribute *key = new Attribute("key", NULL);
+			makenstr(key->value, str, strend-str);
+			att->push(key, -1);
+
+			str = strend+1; //so right after closing quote
+			while (*str && isspace(*str)) str++;
+			if (*str != ':') {
+				//expected object
+				if (newatt) { delete att; att = nullptr; }
+				return nullptr;
+			}
+			str++;
+
+			endptr = NULL;
+			Attribute *value = JsonStringToAttribute(str, NULL, &strend);
+			if (!value) {
+				//expected object
+				if (newatt) { delete att; att = nullptr; }
+				return nullptr;
+			}
+			key->push(value, -1);
 			str = strend;
-
-			att->push(att2, -1);
+			
+			while (*str && isspace(*str)) str++;
+			if (*str != ',') break;
+			str++;
 		}
+
+		while (*str && isspace(*str)) str++;
+		if (*str != '}') {
+			// *** error!! missing close curly brace
+			if (newatt) { delete att; att = nullptr; }
+			return nullptr;
+		}
+
+		str++;
+		if (end_ptr) *end_ptr = str;
+		return att;
 	}
 
-
+	//fail!
 	if (end_ptr) *end_ptr = str;
-
-	return att;
+	return nullptr;
 }
 
 
