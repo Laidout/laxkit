@@ -1322,7 +1322,7 @@ int ShortcutWindow2::Event(const Laxkit::EventData *e,const char *mes)
 		const SimpleMessage *s = dynamic_cast<const SimpleMessage*>(e);
 		if (!s) return 0;
 		//keyboard->GetKeyboard()->ExportSVG(s->str, true, true);
-		ExportSVG(s->str, true, true);
+		ExportSVG(s->str, true, true, keyboard->CurrentMods());
 		return 0;
 
 	} else if (!strcmp(mes,"settingsm")) {
@@ -1409,26 +1409,48 @@ int ShortcutWindow2::ApplyCurrentLocale()
 }
 
 //-------------------------------------- Export SVG --------------------------------
-int ShortcutWindow2::ExportSVG(const char *file, bool with_list, bool with_labels)
+
+/*! If mods == -1, then don't do anything special about mods.
+ * If mods >= 0, then use that as a mod mask for what to output.
+ */
+int ShortcutWindow2::ExportSVG(const char *file, bool with_list, bool with_labels, int mods)
 {
 	Keyboard *kb = keyboard->GetKeyboard();
 
 	FILE *f = fopen(file, "w");
 	if (!f) return 1;
 
+	if (mods == -1) with_labels = false;
+
+	ShortcutManager *manager = GetDefaultShortcutManager();
+	ShortcutHandler *shortcuts = manager->FindHandler(keyboard->current_area.c_str());
+
 	double linewidth  = kb->keys.e[0]->position.height*.02;
 	double textheight = kb->keys.e[0]->position.height*.2;
 	double round = kb->keys.e[0]->position.height * .15;
 	double margin = textheight * 1;
 	string str;
-	double x,y;
+	double x,y, xx,yy, w, h;
+	//char scratch[50], scratch2[50];;
+
+	ScreenColor bg(0.,0.,0.,0.), fg(1.,1.,1.,1.);
+	ScreenColor defbg(0.,0.,0.,0.), deffg(1.,1.,1.,1.);
+	ScreenColor avg;
+	ScreenColor shiftCol, controlCol, altCol, metaCol;
+    ScreenColor curModsColor;
+    keyboard->CurrentModsColor(shiftCol,   ShiftMask);
+    keyboard->CurrentModsColor(controlCol, ControlMask);
+    keyboard->CurrentModsColor(altCol,     AltMask);
+    keyboard->CurrentModsColor(metaCol,    MetaMask);
+    keyboard->CurrentModsColor(curModsColor, mods);
+	//StandoutColor(bg, true, fg);
 
 	fprintf(f, "<svg width=\"%.10gpx\" height=\"%.10gpx\">\n<g>\n",
 			kb->basewidth+2*margin, kb->baseheight+2*margin);
 
 
 	//draw whole keyboard background
-	fprintf(f, "  <rect id=\"board\" style=\"stroke-width:%.10gpx; fill:#aaa; stroke:#333;\" "
+	fprintf(f, "  <rect class=\"kb_bg\" id=\"board\" style=\"stroke-width:%.10gpx; fill:#aaa; stroke:#333;\" "
 			   " rx=\"%.10g\" x=\"%.10g\" y=\"%.10g\" width=\"%.10g\" height=\"%.10g\" />\n",
 			   linewidth, textheight, 0.,0., kb->basewidth+2*margin, kb->baseheight+2*margin
 		   );
@@ -1437,16 +1459,52 @@ int ShortcutWindow2::ExportSVG(const char *file, bool with_list, bool with_label
 	fputs("  <g>\n", f);
 	for (int c=0; c<kb->keys.n; c++) {
 		Key *k = kb->key(c);
+		fg = deffg;
+		bg = defbg;
 
-		fprintf(f, "    <rect style=\"stroke-width:%.10gpx; fill:#fff; stroke:#888;\" "
+		const char *label = nullptr;
+		WindowAction *action = nullptr;
+		if (with_labels) { 
+			for (int c2=0; c2<k->keymaps.n; c2++) {
+				action = shortcuts->FindAction(k->keymaps.e[c2]->ch, mods, 0 /**** current_mode*/);
+				if (action) {
+					label = action->name;
+					break;
+				}
+			}
+		}
+
+		//make mod keys colored
+		if (mods >= 0 && k->mod && (k->mod & mods)) {
+			bool standout = false;
+			if      (k->mod == ShiftMask)   { standout = true; bg = shiftCol; }
+			else if (k->mod == ControlMask) { standout = true; bg = controlCol; }
+			else if (k->mod == AltMask)     { standout = true; bg = altCol; }
+			else if (k->mod == MetaMask)    { standout = true; bg = metaCol; }
+			if (standout) StandoutColor(bg, true, fg);
+		}
+
+		if (action) {
+			bg = curModsColor;
+			StandoutColor(bg, true, fg);
+		}
+
+		coloravg(&avg, &fg, &bg);
+
+		x = margin + k->position.x + round * .3;
+		y = margin + k->position.y + round * .3;
+		w = k->position.width - round * .6;
+		h = k->position.height - round * .6;
+
+		fprintf(f, "    <rect class=\"kb_key\" style=\"stroke-width:%.10gpx; fill:#%02x%02x%02x; stroke:#%02x%02x%02x;\" "
 				   " rx=\"%.10g\" x=\"%.10g\" y=\"%.10g\" width=\"%.10g\" height=\"%.10g\" />\n",
 				    linewidth,
+					bg.red>>8, bg.green>>8, bg.blue>>8, //fill
+					avg.red>>8, avg.green>>8, avg.blue>>8, //stroke
 					round,
-					margin + k->position.x + round * .3,
-					margin + k->position.y + round * .3,
-					k->position.width - round * .6,
-					k->position.height - round * .6
+					x,y,w,h
 				);
+
 		const char *keytext = k->keymaps.n>0 ? k->keymaps.e[0]->name.c_str() : nullptr;
 		if (keytext) {
 			if (keytext[1] == '\0' && keytext[0] >= 'a' && keytext[0] <= 'z') {
@@ -1457,22 +1515,37 @@ int ShortcutWindow2::ExportSVG(const char *file, bool with_list, bool with_label
 
 			if (with_labels) {
 				//make key label upper left
-				x = margin + round + k->position.x;
-				y = margin + round + k->position.y + textheight;
+				xx = margin + round + k->position.x;
+				yy = margin + round + k->position.y + textheight;
 			} else {
 				//center key label
 				// *** need special treatment to try to make fit within key
-				x = margin + k->position.x + k->position.width/2.;
-				y = margin + k->position.y + k->position.height/2. + textheight/2;
+				xx = margin + k->position.x + k->position.width/2.;
+				yy = margin + k->position.y + k->position.height/2. + textheight/2;
 			}
 
-			fprintf(f, "    <text style=\"fill:#000; text-anchor:%s; text-align:center; font-size:%.10gpx;\""
+			fprintf(f, "    <text class=\"kb_key_name\" style=\"fill:#%02x%02x%02x; text-anchor:%s; text-align:center; font-size:%.10gpx;\""
 					   " x=\"%.10g\" y=\"%.10g\"><tspan>%s</tspan></text>\n",
+					fg.red>>8, fg.green>>8, fg.blue>>8, //letter fill
 					with_labels ? "left" : "middle",
 					textheight,
-					x, y,
+					xx, yy,
 					keytext
 				);
+
+			if (with_labels) { //output action name
+				if (label) {
+					fprintf(f,  "    <flowRoot style=\"font-size:%.10gpx; fill:#%02x%02x%02x\">\n"
+								"      <flowRegion> <rect x=\"%.10g\" y=\"%.10g\" width=\"%.10g\" height=\"%.10g\" /> </flowRegion>\n"
+								"      <flowPara>%s</flowPara>\n"
+								"    </flowRoot>\n",
+								textheight * .6,
+								fg.red>>8, fg.green>>8, fg.blue>>8, //letter fill
+								x+round/2, y+h/2, w-round, h/2 - round/2,
+								label
+						   );
+				}
+			}
 		}
 	}
 	fputs("  </g>\n", f); //keys group

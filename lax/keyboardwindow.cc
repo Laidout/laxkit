@@ -469,6 +469,7 @@ const char *XlibToNormal(const char *str)
 	if (!strcmp(str, "equal")) return "=";
 	if (!strcmp(str, "backslash")) return "\\";
 	if (!strcmp(str, "Caps_Lock")) return "Caps";
+	if (!strcmp(str, "Scroll_Lock")) return "Scroll";
 	if (!strcmp(str, "minus")) return "-";
 	if (!strcmp(str, "Shift_L")) return "Shift";
 	if (!strcmp(str, "Shift_R")) return "Shift";
@@ -481,7 +482,7 @@ const char *XlibToNormal(const char *str)
 	if (!strcmp(str, "semicolon")) return ";";
 	if (!strcmp(str, "bar")) return "|";
 	if (!strcmp(str, "Prior")) return "PgUp";
-	if (!strcmp(str, "Next")) return "PgDown";
+	if (!strcmp(str, "Next")) return "PgDn";
 	if (!strcmp(str, "Return")) return "Enter";
 	
 	if (!strcmp(str, "Num_Lock")) return "Num";
@@ -1404,9 +1405,12 @@ int KeyboardWindow::hasHover(int c)
 }
 
 /*! If !currentmods, don't change curModsColor.
+ * If withmods == -1, use currentmods.
  */
-void KeyboardWindow::CurrentModsColor(ScreenColor &curModsColor)
+void KeyboardWindow::CurrentModsColor(ScreenColor &curModsColor, int withmods)
 {
+	if (withmods < 0) withmods = currentmods;
+
 	if (!currentmods) {
 		coloravg(&curModsColor, &defaultKeyBG, &win_themestyle->fg);
 		return;

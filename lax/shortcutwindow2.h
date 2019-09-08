@@ -117,7 +117,7 @@ class ShortcutWindow2 : public Laxkit::StackFrame
 	virtual int SetSearch(const char *str, int searchtype=-1);
 	virtual int SelectArea(const char *area);
 	virtual int ApplyCurrentLocale();
-	virtual int ExportSVG(const char *file, bool with_list, bool with_labels);
+	virtual int ExportSVG(const char *file, bool with_list, bool with_labels, int mods);
 
 	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context);
 	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);

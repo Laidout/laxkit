@@ -222,7 +222,6 @@ class KeyboardWindow : public anXWindow
 	virtual void send(bool down, unsigned int key, unsigned int mods);
 	virtual int hasHover(int c);
     virtual void DrawKeyText(Key *key, int mods, double x,double y,double w,double h);
-	virtual void CurrentModsColor(ScreenColor &curModsColor);
 
   public:
 	int send_type;
@@ -259,6 +258,7 @@ class KeyboardWindow : public anXWindow
 	virtual int Resize(int nw,int nh);
 	virtual void Refresh();
 	virtual void PostRefresh(Displayer *dp);
+	virtual void CurrentModsColor(ScreenColor &curModsColor, int withmods = -1);
 	
 	virtual int scan(int x,int y);
 	virtual int ShiftWindow(int dx,int dy);
