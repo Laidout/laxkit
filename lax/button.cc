@@ -262,13 +262,6 @@ void Button::draw()
 		dp->font(font, font->textheight());
 	} else {
 		dp->font(win_themestyle->normal, win_themestyle->normal->textheight());
-		//cout << "font size: "<<win_themestyle->normal->textheight()<<endl;
-		Attribute att;
-		win_themestyle->normal->dump_out_atts(&att, 0, nullptr);
-		att.dump_out(stdout, 0);
-		//att.clear();
-		//win_themestyle->dump_out_atts(&att, 0, nullptr);
-		//att.dump_out(stdout, 0);
 	}
 	dp->NewFG(mousein ? win_themestyle->bghover : win_themestyle->bg);
 	dp->drawrectangle(0,0, win_w,win_h, 1);
