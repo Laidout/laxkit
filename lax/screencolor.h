@@ -73,6 +73,8 @@ class ScreenColor
 	unsigned long Pixel() const;
 	int equals(ScreenColor &color);
 	int equals(double r,double g,double b, double a);
+
+	void hex(char *buffer, bool use_alpha=true, int depth=8);
 };
 
 } //namespace Laxkit

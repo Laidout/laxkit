@@ -215,6 +215,22 @@ void ScreenColor::Clamp()
 	else if (alpha>65535) alpha=65535;
 }
 
+/*! Write out a hex version to buffer. If depth == 8, then output 6 hex digits. Else output 3 hex digits as
+ * "rrggbb". If use_alpha, then output 8 or 4 digits with alpha in the first place.
+ */
+void ScreenColor::hex(char *buffer, bool use_alpha, int depth)
+{
+	if (depth == 8) {
+		if (use_alpha) 
+			 sprintf(buffer, "%02x%02x%02x%02x", alpha>>8, red>>8, green>>8, blue>>8);
+		else sprintf(buffer, "%02x%02x%02x", red>>8, green>>8, blue>>8);
+	}
+
+	if (use_alpha) 
+		 sprintf(buffer, "%x%x%x%x", alpha>>12, red>>12, green>>12, blue>>12);
+	else sprintf(buffer, "%x%x%x", red>>12, green>>12, blue>>12);
+}
+
 
 } // namespace Laxkit
 
