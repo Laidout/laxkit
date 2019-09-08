@@ -62,6 +62,7 @@ class ShortcutDef
 	KeyInfo *keys;
 	int mode; //this shortcut only activated when win_mode==mode
 	int action;
+	int info1;
 
 	ShortcutDef(unsigned int key, unsigned int state, int a, int m=-1);
 	virtual ~ShortcutDef();
@@ -92,6 +93,7 @@ class WindowAction : public Tagged
 	int mode; //win_mode window must be in for action to be acted on
 	int assignable; //whether to not allow keys to directly bind to them, or be visible to user in menus
 	char *customcode;
+	int info1;
 
 	WindowAction(int nid, const char *nname, const char *desc, const char *icon, int nmode, int assign);
 	virtual ~WindowAction();
@@ -179,7 +181,10 @@ class ShortcutManager : public LaxFiles::DumpUtility, public anObject
   protected:
 
   public:
-	char *settitle, *setname, *setfile;
+	char *settitle;
+	char *subtitle;
+	char *setname;
+	char *setfile;
 	LaxFiles::Attribute tree;
 	RefPtrStack<ShortcutHandler> shortcuts;
 	// map zone -- ShortcutHandler

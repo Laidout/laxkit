@@ -82,6 +82,8 @@ static int IsPressableKey(unsigned int ch)
 	return 1;
 }
 
+/*! Return keys index of key underneath window coordinate (x,y), or -1 if none.
+ */
 int ShortcutKBWindow::DropHover(double x, double y)
 {
 	int i = scan(x,y);
@@ -102,8 +104,26 @@ int ShortcutKBWindow::DropHover(double x, double y)
 	return i;
 }
 
+/*! Make a particular key be highlighted.
+ */
+int ShortcutKBWindow::HighlightKey(int which, unsigned int mods)
+{
+	if (which < 0 || which >= keyboard->keys.n) return false;
+
+	if (mods != currentmods) {
+		currentmods = mods;
+		UpdateCurrent(true);
+	}
+
+	dnd_hover_key = which;
+	needtodraw = 1;
+	return true;
+}
+
 void ShortcutKBWindow::PostRefresh(Displayer *dp)
 {
+	// do some extra when we are hovering over a key, or there's a highlighted key to show
+
 	if (dnd_hover_key < 0) return;
 
 	//draw outline over 
@@ -146,9 +166,11 @@ void ShortcutKBWindow::DrawMouseOverTip(Key *key, double x, double y, double w, 
 	double ww = dp->textextent(action->description,-1, nullptr,nullptr);
 	x += w/2;
 	y += h + th;
-	if (x-w/2 < 0) x = -w/2;
-	else if (x+w/2 > win_w) x = win_w - w/2;
+
+	if (x-ww/2-th < 0) x = ww/2+th;
+	else if (x+ww/2+th > win_w) x = win_w - ww/2 - th;
 	if (y+2*th > win_h) y -= h+3*th;
+
 	dp->drawrectangle(x-ww/2-th, y, ww+2*th, 2*th, 2);
 	dp->textout(x,y+th, action->description,-1, LAX_CENTER);
 }
@@ -196,14 +218,14 @@ int ShortcutKBWindow::RBDown(int x,int y,unsigned int state,int count,const LaxM
 	// Clear Key
 	// Assign existing action
 
-	MenuInfo *menu = new MenuInfo(_("Actions"));
-	//menu->AddSep();
+	MenuInfo *menu = nullptr;
 
 	ShortcutManager *manager = GetDefaultShortcutManager();
 	ShortcutHandler *handler = manager->FindHandler(current_area.c_str());
 
 	int i = scan(x,y);
 	if (i >= 0) {
+		menu = new MenuInfo(_("Actions"));
 		Key *key = keyboard->keys[i];
 		Keymap *keymap = key->MatchMods(currentmods);
 		rbdown = i;
@@ -236,7 +258,7 @@ int ShortcutKBWindow::RBDown(int x,int y,unsigned int state,int count,const LaxM
 	//menu->AddItem(_("Load keyboard..."), KMENU_Load_Keyboard);
 
 
-	app->rundialog(new PopupMenu("Shortcuts",_("Shortcuts"), 0,
+	if (menu) app->rundialog(new PopupMenu("Shortcuts",_("Shortcuts"), 0,
 							 0,0,0,0,1,
 							 win_owner,"kbpopup",
 							 d->id,
@@ -251,7 +273,9 @@ void ShortcutKBWindow::send(bool down, unsigned int key, unsigned int mods)
 	UpdateCurrent();
 }
 
-void ShortcutKBWindow::UpdateCurrent()
+/*! If update_mods, make sure each mod key is on if it currentmods.
+ */
+void ShortcutKBWindow::UpdateCurrent(bool update_mods)
 {
 	if (isblank(current_area.c_str())) {
 		DBG cerr << "Warning! ShortcutWindow2::UpdateCurrent() missing current area!"<<endl;
@@ -269,7 +293,13 @@ void ShortcutKBWindow::UpdateCurrent()
 	for (int c=0; c<kb->keys.n; c++) {
 		//associate keys with particular shortcut definitions (key+mods <-> action)
 		Key *key = kb->keys.e[c];
-		if (key->mod) continue;
+		if (key->mod) {
+			if (update_mods) {
+				if (currentmods & key->mod) key->down++;
+				else key->down = 0;
+			}
+			continue;
+		}
 
 		action = nullptr;
 		for (int c2=0; c2<key->keymaps.n; c2++) {
@@ -297,7 +327,7 @@ class ShortcutTreeSelector2 : public TreeSelector
 	int down_on;
 	DraggingDNDWindow *dnd_window;
 
-	void NotifyParent();
+	void NotifyParent(int what);
 
   public:
 	MenuItem *wait_for; //nonnull when waiting for key input for this action
@@ -349,6 +379,7 @@ int ShortcutTreeSelector2::LBDown(int x,int y,unsigned int state,int count,const
 	down_on = -1;
 	MenuItem *iii = item(ii);
 	if (iii && iii->state & LAX_ON) {
+		//clicking down on something that was down already
 		down_on = ii;
 		if (wait_for) {
 			//stop waiting for input
@@ -455,7 +486,7 @@ int ShortcutTreeSelector2::LBUp(int x,int y,unsigned int state,const LaxMouse *d
 			handler->ReassignKey(keymap->ch, mods, oldkey, oldstate, mitem->nextdetail->id, mitem->nextdetail->info);
 
 			//update keyboard
-			NotifyParent();
+			NotifyParent(0);
 
 			//update action list menu
 			char keyb[20];
@@ -477,6 +508,7 @@ int ShortcutTreeSelector2::LBUp(int x,int y,unsigned int state,const LaxMouse *d
 	int i = findItem(x, y, &onsub);
 
 	if (onsub) return TreeSelector::LBUp(x,y,state,d);
+
 	MenuItem *mi = item(i);
 	if (mi && !mi->isSelected()) addselect(i,0);
 
@@ -496,10 +528,10 @@ int ShortcutTreeSelector2::LBUp(int x,int y,unsigned int state,const LaxMouse *d
 	if (down_on >= 0) {
 		wait_for = mitem;
 		needtodraw = 1;
+
+	} else {
+		NotifyParent(i+1);
 	}
-
-	// *** assumes the flat view, each area is top level, keys are subs of that
-
 
 	return 0;
 }
@@ -526,9 +558,10 @@ static void AddAreaToMenu(MenuInfo *aream, ShortcutHandler *handler)
 
 			if (a) aa = a->FindAction(s->e[c2]->action); else aa=nullptr;
 			if (aa) {
-				 //print out string id and commented out description
+				 //add detail with string id, mode, and action id
 				aream->AddDetail(aa->name,nullptr,aa->mode,aa->id);
 				if (!isblank(aa->description)) 
+				 	//extra detail for longer description
 					aream->AddDetail(aa->description,nullptr);
 			} else {
 				sprintf(buffer,"%d",s->e[c2]->action); //print out number only
@@ -583,7 +616,7 @@ int ShortcutTreeSelector2::CharInput(unsigned int ch, const char *buffer,int len
 			i->parent->menuitems.flush();
 			AddAreaToMenu(i->parent, handler);
 
-			NotifyParent();
+			NotifyParent(0);
 			needtobuildcache=1;
 			needtodraw=1;
 			return 0;
@@ -633,7 +666,7 @@ int ShortcutTreeSelector2::CharInput(unsigned int ch, const char *buffer,int len
 	aream->menuitems.flush();
 	AddAreaToMenu(aream, handler);
 
-	NotifyParent();
+	NotifyParent(0);
 
 	needtobuildcache=1;
 	wait_for=nullptr;
@@ -642,9 +675,9 @@ int ShortcutTreeSelector2::CharInput(unsigned int ch, const char *buffer,int len
 	return 0;
 }
 
-void ShortcutTreeSelector2::NotifyParent()
+void ShortcutTreeSelector2::NotifyParent(int what)
 {
-	SimpleMessage *ev = new SimpleMessage(nullptr, 0,0,0,0, "actionupdate", object_id, win_owner);
+	SimpleMessage *ev = new SimpleMessage(nullptr, what,0,0,0, "actionupdate", object_id, win_owner);
 	app->SendMessage(ev);
 }
 
@@ -953,8 +986,10 @@ int ShortcutWindow2::init()
 	//int initial = -1;
 	if (isblank(place)) place = nullptr;
 
+	if (!place && manager->shortcuts.n > 0) place = manager->shortcuts.e[0]->area;
+
 	for (int c=0; c<manager->shortcuts.n; c++) {
-		if (place && !strcmp(place,manager->shortcuts.e[c]->area)) {
+		if (place && manager->shortcuts.e[c]->area && !strcmp(place,manager->shortcuts.e[c]->area)) {
 			keyboard->current_area = manager->shortcuts.e[c]->area;
 			//initial = c;
 
@@ -1125,7 +1160,23 @@ int ShortcutWindow2::Event(const Laxkit::EventData *e,const char *mes)
 		return 0;
 
 	} else if (!strcmp(mes,"actionupdate")) {
-		keyboard->UpdateCurrent();
+		const SimpleMessage *s = dynamic_cast<const SimpleMessage*>(e);
+		if (s->info1 == 0) {
+			keyboard->UpdateCurrent();
+
+		} else if (s->info1 > 0) {
+			//pressed down on a key, need to highlight it in keyboard
+			ShortcutTreeSelector2 *tree = dynamic_cast<ShortcutTreeSelector2*>(findChildWindowByName("tree", true));
+			const MenuItem *item = tree->Item(s->info1-1);
+			//item[0] key == id, mods == info
+			//item[1] mode == id, action == info
+
+			if (item && item->id != 0) {
+				int index = -1;
+				keyboard->GetKeyboard()->FindKey(0, item->id, item->info, nullptr, &index);
+				if (index >= 0) keyboard->HighlightKey(index, item->info);
+			}
+		}
 		return 0;
 
 	} else if (!strcmp(mes, "kbpopup")) {
@@ -1206,7 +1257,7 @@ int ShortcutWindow2::Event(const Laxkit::EventData *e,const char *mes)
 		// ***
 
 	} else if (!strcmp(mes,"save")) {
-		ShortcutManager *manager=GetDefaultShortcutManager();
+		ShortcutManager *manager = GetDefaultShortcutManager();
 		FileDialog *f=new FileDialog(nullptr,"save",_("Save shortcuts"),0, 0,0,500,500,0,object_id,"savethis",
 									FILES_SAVE|FILES_ASK_TO_OVERWRITE,
 									manager->setfile);
@@ -1238,6 +1289,7 @@ int ShortcutWindow2::Event(const Laxkit::EventData *e,const char *mes)
 		return 0;
 
 	} else if (!strcmp(mes,"loadthis")) {
+		//load key set
 		const SimpleMessage *s = dynamic_cast<const SimpleMessage*>(e);
 		if (!s) return 1;
 		if (isblank(s->str)) return 1;
@@ -1250,12 +1302,7 @@ int ShortcutWindow2::Event(const Laxkit::EventData *e,const char *mes)
 		//*** must merge with existing? currently deletes all old, OR reset actions, just load keys
 
 	} else if (!strcmp(mes,"settings")) {
-		MenuInfo *menu = new MenuInfo(_("Settings"));
-		menu->AddSep(_("Keyboards"));
-		menu->AddItem("en_qwerty", KMENU_Select_Keyboard,0, 0);
-		menu->AddItem("en_dvorak", KMENU_Select_Keyboard,0, 1);
-		menu->AddItem(_("Load keyboard..."), KMENU_Load_Keyboard);
-		menu->AddItem(_("Reset from locale"), KMENU_Reset_Keyboard);
+		MenuInfo *menu = GetSettingsMenu();
 
 		app->rundialog(new PopupMenu("Settings",_("Settings"), 0,
 								 0,0,0,0,1,
@@ -1263,6 +1310,20 @@ int ShortcutWindow2::Event(const Laxkit::EventData *e,const char *mes)
 								 -1,
 								 menu,1,nullptr,
 								 TREESEL_LEFT));
+
+	} else if (!strcmp(mes,"exporthtmllist")) {
+		const SimpleMessage *s = dynamic_cast<const SimpleMessage*>(e);
+		if (!s) return 0;
+		ShortcutManager *manager = GetDefaultShortcutManager();
+		manager->SaveHTML(s->str);
+		return 0;
+
+	} else if (!strcmp(mes,"exportsvg")) {
+		const SimpleMessage *s = dynamic_cast<const SimpleMessage*>(e);
+		if (!s) return 0;
+		//keyboard->GetKeyboard()->ExportSVG(s->str, true, true);
+		ExportSVG(s->str, true, true);
+		return 0;
 
 	} else if (!strcmp(mes,"settingsm")) {
 		const SimpleMessage *s = dynamic_cast<const SimpleMessage*>(e);
@@ -1272,13 +1333,68 @@ int ShortcutWindow2::Event(const Laxkit::EventData *e,const char *mes)
 			DBG cerr << "Reset keyboard to locale..."<<endl;
 			ApplyCurrentLocale();
 			return 0;
+
+		} else if (s->info2 == KMENU_Select_Keyboard) {
+			int which = s->info4;
+			if (which == 0) {
+				keyboard->GetKeyboard()->ApplyDefaultKeycodes();
+				SelectArea(keyboard->current_area.c_str());
+			}
+			//*** maybe other keyboards installed somewhere?
+			return 0;
+
+		} else if (s->info2 == KMENU_Load_Keyboard) {
+			FileDialog *f = new FileDialog(nullptr,"loadkeyboard",_("Load keyboard..."),ANXWIN_REMEMBER, 0,0,800,500,0,object_id,"loadkeyboard",
+									FILES_OPEN_ONE,
+									nullptr);
+			app->rundialog(f);
+			return 0;
+
+		} else if (s->info2 == KMENU_Export_Html_List) {
+			FileDialog *f = new FileDialog(nullptr,"exporthtmllist",_("Export Html List"),ANXWIN_REMEMBER, 0,0,800,500,0,object_id,"exporthtmllist",
+									FILES_SAVE | FILES_ASK_TO_OVERWRITE,
+									nullptr);
+			app->rundialog(f);
+			return 0;
+
+		} else if (s->info2 == KMENU_Export_SVG) {
+			FileDialog *f = new FileDialog(nullptr,"exportsvg",_("Export SVG"),ANXWIN_REMEMBER, 0,0,800,500,0,object_id,"exportsvg",
+									FILES_SAVE | FILES_ASK_TO_OVERWRITE,
+									nullptr);
+			app->rundialog(f);
+			return 0;
 		}
 
+		return 0;
+
+	} else if (!strcmp(mes,"loadkeyboard")) {
+		const SimpleMessage *s = dynamic_cast<const SimpleMessage*>(e);
+		if (!s || isblank(s->str)) return 0;
+
+		cerr << " *** need to implement loadkeyboard!"<<endl;
+
+		//Keyboard *kb = new Keyboard();
+		//LoadKeyboard(s->str);
 		return 0;
 	}
 
 	return StackFrame::Event(e,mes);
 	//return anXWindow::Event(e,mes);
+}
+
+MenuInfo *ShortcutWindow2::GetSettingsMenu()
+{
+	MenuInfo *menu = new MenuInfo(_("Settings"));
+	menu->AddSep(_("Export"));
+	menu->AddItem(_("Export SVG"), KMENU_Export_SVG);
+	//menu->AddItem(_("Export ShortcutMapper"), KMENU_Export_ShortcutMapper);
+	menu->AddItem(_("Export HTML List"), KMENU_Export_Html_List);
+	menu->AddSep(_("Keyboards"));
+	menu->AddItem("en_qwerty", KMENU_Select_Keyboard,0, 0);
+	//menu->AddItem("en_dvorak", KMENU_Select_Keyboard,0, 1);
+	menu->AddItem(_("Load keyboard..."), KMENU_Load_Keyboard);
+	menu->AddItem(_("Reset from locale"), KMENU_Reset_Keyboard);
+	return menu;
 }
 
 int ShortcutWindow2::ApplyCurrentLocale()
@@ -1290,6 +1406,80 @@ int ShortcutWindow2::ApplyCurrentLocale()
 	keyboard->GetKeyboard()->ApplyCurrentLocale();
 	SelectArea(keyboard->current_area.c_str());
 	return 0;
+}
+
+//-------------------------------------- Export SVG --------------------------------
+int ShortcutWindow2::ExportSVG(const char *file, bool with_list, bool with_labels)
+{
+	Keyboard *kb = keyboard->GetKeyboard();
+
+	FILE *f = fopen(file, "w");
+	if (!f) return 1;
+
+	double linewidth  = kb->keys.e[0]->position.height*.02;
+	double textheight = kb->keys.e[0]->position.height*.2;
+	double round = kb->keys.e[0]->position.height * .15;
+	double margin = textheight * 1;
+	string str;
+	double x,y;
+
+	fprintf(f, "<svg width=\"%.10gpx\" height=\"%.10gpx\">\n<g>\n",
+			kb->basewidth+2*margin, kb->baseheight+2*margin);
+
+
+	//draw whole keyboard background
+	fprintf(f, "  <rect id=\"board\" style=\"stroke-width:%.10gpx; fill:#aaa; stroke:#333;\" "
+			   " rx=\"%.10g\" x=\"%.10g\" y=\"%.10g\" width=\"%.10g\" height=\"%.10g\" />\n",
+			   linewidth, textheight, 0.,0., kb->basewidth+2*margin, kb->baseheight+2*margin
+		   );
+
+	//draw each key
+	fputs("  <g>\n");
+	for (int c=0; c<kb->keys.n; c++) {
+		Key *k = kb->key(c);
+
+		fprintf(f, "    <rect style=\"stroke-width:%.10gpx; fill:#fff; stroke:#888;\" "
+				   " rx=\"%.10g\" x=\"%.10g\" y=\"%.10g\" width=\"%.10g\" height=\"%.10g\" />\n",
+				    linewidth,
+					round,
+					margin + k->position.x + round * .3,
+					margin + k->position.y + round * .3,
+					k->position.width - round * .6,
+					k->position.height - round * .6
+				);
+		const char *keytext = k->keymaps.n>0 ? k->keymaps.e[0]->name.c_str() : nullptr;
+		if (keytext) {
+			if (keytext[1] == '\0' && keytext[0] >= 'a' && keytext[0] <= 'z') {
+				str = keytext;
+				str[0] = toupper(str[0]);
+				keytext = str.c_str();
+			}
+
+			if (with_labels) {
+				//make key label upper left
+				x = margin + round + k->position.x;
+				y = margin + round + k->position.y + textheight;
+			} else {
+				//center key label
+				// *** need special treatment to try to make fit within key
+				x = margin + k->position.x + k->position.width/2.;
+				y = margin + k->position.y + k->position.height/2. + textheight/2;
+			}
+
+			fprintf(f, "    <text style=\"fill:#000; text-anchor:%s; text-align:center; font-size:%.10gpx;\""
+					   " x=\"%.10g\" y=\"%.10g\"><tspan>%s</tspan></text>\n",
+					with_labels ? "left" : "middle",
+					textheight,
+					x, y,
+					keytext
+				);
+		}
+	}
+	fputs("  </g>\n"); //keys group
+
+	fprintf(f, "</g>\n</svg>\n");
+	fclose(f);
+    return 0;
 }
 
 

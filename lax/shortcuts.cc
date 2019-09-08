@@ -107,6 +107,7 @@ ShortcutDef::ShortcutDef(unsigned int key, unsigned int state, int m, int a)
 {
 	 //else define a single key shortcut
 	keys=new KeyInfo(key,state,0);
+	info1 = 0;
 }
 
 ShortcutDef::~ShortcutDef()
@@ -183,13 +184,14 @@ ShortcutDef *ShortcutDefs::FindShortcutFromAction(int action, int startingfrom)
 
 WindowAction::WindowAction(int nid, const char *nname, const char *desc, const char *icon, int nmode, int assign)
 {
-	id=nid;
-	name=newstr(nname);
-	description=newstr(desc);
-	iconname=newstr(icon);
-	mode=nmode;
-	assignable=assign;
-	customcode=NULL;
+	id          = nid;
+	name        = newstr(nname);
+	description = newstr(desc);
+	iconname    = newstr(icon);
+	mode        = nmode;
+	assignable  = assign;
+	customcode  = NULL;
+	info1       = 0;
 }
 
 WindowAction::~WindowAction()
@@ -252,6 +254,8 @@ WindowAction *WindowActions::ActionAt(int index)
 	return e[index];
 }
 
+/*! Returns the stack index of the new action.
+ */
 int WindowActions::Add(int nid, const char *nname, const char *desc, const char *icon, int nmode, int assign)
 {
 	 //sort by nname on add:
@@ -262,10 +266,11 @@ int WindowActions::Add(int nid, const char *nname, const char *desc, const char 
 	return push(new WindowAction(nid,nname,desc,icon,nmode,assign), 1, c);
 }
 
+/*! Returns the stack index of the new mode description.
+ */
 int WindowActions::AddMode(int mode, const char *modestr, const char *name, const char *desc)
 {
-	modes.push(new WindowModeInfo(mode,modestr,name,desc));
-	return 0;
+	return modes.push(new WindowModeInfo(mode,modestr,name,desc));
 }
 
 
@@ -457,12 +462,11 @@ unsigned int ShortcutHandler::Add(unsigned int action, unsigned int key, unsigne
 	return 0;
 }
 
-//! Add a window action.
+//! Add a window action. Return index in stack.
 unsigned int ShortcutHandler::AddAction(unsigned int action, const char *nname, const char *desc, const char *icon, unsigned int mode, int assign)
 {
 	if (!actions) actions=new WindowActions();
-	actions->push(new WindowAction(action, nname,desc,icon,mode,assign));
-	return 0;
+	return actions->push(new WindowAction(action, nname,desc,icon,mode,assign));
 }
 
 //! Remove action from actions stack, and remove any shortcuts bound to that action number.
@@ -577,14 +581,16 @@ int ShortcutHandler::ReassignKey(unsigned int newkey, unsigned int newstate,
 
 ShortcutManager::ShortcutManager()
 {
-	settitle=newstr("Shortcuts");
-	setname=NULL;
-	setfile=NULL;
+	settitle = newstr("Shortcuts");
+	subtitle = nullptr;
+	setname  = nullptr;
+	setfile  = nullptr;
 }
 
 ShortcutManager::~ShortcutManager()
 {
 	delete[] settitle;
+	delete[] subtitle;
 	delete[] setname;
 	delete[] setfile;
 }
@@ -819,8 +825,8 @@ int ShortcutManager::SaveHTML(const char *file)
 				"</head>\n"
 				"<body>\n\n"
 				"<h1>%s</h1>\n",
-				settitle?XMLCharsToEntities(settitle,buffer2,bufferlen):"Shortcuts",
-				settitle?XMLCharsToEntities(settitle,buffer2,bufferlen):"Shortcuts");
+				settitle ? XMLCharsToEntities(settitle,buffer2,bufferlen) : "Shortcuts",
+				settitle ? XMLCharsToEntities(settitle,buffer2,bufferlen) : "Shortcuts");
 	
 	 //output available modifier aliases
 	//fprintf(f,"Modifiers<br/>\n");
@@ -838,7 +844,7 @@ int ShortcutManager::SaveHTML(const char *file)
 	char buffer[100];
 
 
-	fprintf(f,"<table class=\"formattable\">\n");
+	fprintf(f,"<div>\n<table class=\"formattable\">\n");
 	for (int c=0; c<shortcuts.n; c++) {
 		fprintf(f,"<tr><td colspan=\"3\" class=\"area\">%s</td></tr>\n",shortcuts.e[c]->area);
 		s = shortcuts.e[c]->Shortcuts();
@@ -858,7 +864,8 @@ int ShortcutManager::SaveHTML(const char *file)
 				if (s->e[c2]->keys->state&MetaMask)    fputs("<span class=\"metakey\"></span>" ,f);
 
 				key_name_from_value(s->e[c2]->keys->key, buffer);
-				fprintf(f, "<span class=\"keystyle\">%s</span></td>", buffer);
+				XMLCharsToEntities(buffer, buffer2, bufferlen);
+				fprintf(f, "<span class=\"keystyle\">%s</span></td>", buffer2);
 
 				 //description
 				if (aa) {
@@ -902,7 +909,7 @@ int ShortcutManager::SaveHTML(const char *file)
 			}
 		}
 	}
-	fprintf(f,"</table>\n");
+	fprintf(f,"</table>\n</div>");
 	fprintf(f,"</body>\n");
 
 	if (f!=stdout) fclose(f);

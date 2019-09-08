@@ -36,6 +36,11 @@
 
 namespace Laxkit {
 
+
+//----------------------------------- helper funcs ----------------------------------
+const char *XlibToNormal(const char *str);
+
+
 //----------------------------------- Keymap ----------------------------------
 class Keymap
 {
@@ -166,7 +171,7 @@ class Keyboard : public Laxkit::DoubleRectangle
 					   int mod=0, int keycode=0);
 
 	virtual Key *key(int i) { return i >= 0 && i < keys.n ? keys.e[i] : nullptr; }
-    virtual Key *FindKey(int keycode, unsigned int ch, unsigned int state, Keymap **kmap=nullptr);
+    virtual Key *FindKey(int keycode, unsigned int ch, unsigned int state, Keymap **kmap=nullptr, int *index_ret=nullptr);
 	virtual Key *FindKeyFromKeycode(int keycode, unsigned int state, Keymap **kmap);
 	virtual const char *Name();
 	virtual KeyModStyle *ModStyle(int mod);
@@ -175,6 +180,7 @@ class Keyboard : public Laxkit::DoubleRectangle
 	virtual int ExportSVG(const char *file, bool with_list, bool with_labels);
 
 	virtual void ApplyCurrentLocale();
+	virtual void ApplyDefaultKeycodes();
 };
 
 
@@ -192,6 +198,9 @@ enum KWinActions {
 	KMENU_Load_Keyboard,
 	KMENU_Save_Keyboard,
 	KMENU_Reset_Keyboard,
+	KMENU_Export_SVG,
+	KMENU_Export_Html_List,
+	KMENU_Export_ShortcutMapper,
 	KMENU_MAX
 };
 

@@ -64,7 +64,7 @@ class ShortcutKBWindow : public KeyboardWindow
             const char *kb);
 	virtual ~ShortcutKBWindow() {}
 	virtual int Event(const Laxkit::EventData *e,const char *mes);
-	virtual void UpdateCurrent();
+	virtual void UpdateCurrent(bool update_mods=false);
     virtual void send(bool down, unsigned int key, unsigned int mods);
 	virtual int RBDown(int x,int y,unsigned int state,int count,const LaxMouse *d);
 	//virtual int RBUp(int x,int y,unsigned int state,const LaxMouse *d);
@@ -72,6 +72,7 @@ class ShortcutKBWindow : public KeyboardWindow
 	virtual void DrawMouseOverTip(Key *key, double x, double y, double w, double h);
 	virtual int DropHover(double x, double y);
 	virtual void PostRefresh(Displayer *dp);
+	virtual int HighlightKey(int which, unsigned int mods);
 };
 
 class ShortcutWindow2 : public Laxkit::StackFrame
@@ -89,6 +90,7 @@ class ShortcutWindow2 : public Laxkit::StackFrame
 	//std::string current_area;
 
 	void UpdateSearch();
+	virtual MenuInfo *GetSettingsMenu();
 
 	//virtual void UpdateCurrent();
 
@@ -115,6 +117,7 @@ class ShortcutWindow2 : public Laxkit::StackFrame
 	virtual int SetSearch(const char *str, int searchtype=-1);
 	virtual int SelectArea(const char *area);
 	virtual int ApplyCurrentLocale();
+	virtual int ExportSVG(const char *file, bool with_list, bool with_labels);
 
 	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context);
 	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);

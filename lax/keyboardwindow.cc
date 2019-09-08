@@ -395,7 +395,7 @@ const char *Keyboard::Name()
  * If no match, search for ch.
  * Returns nullptr if not found.
  */
-Key *Keyboard::FindKey(int keycode, unsigned int ch, unsigned int state, Keymap **kmap)
+Key *Keyboard::FindKey(int keycode, unsigned int ch, unsigned int state, Keymap **kmap, int *index_ret)
 {
     if (keycode > 0) {
         for (int c = 0; c < keys.n; c++) {
@@ -403,10 +403,12 @@ Key *Keyboard::FindKey(int keycode, unsigned int ch, unsigned int state, Keymap 
                 for (int c2 = 0; c2 < keys.e[c]->keymaps.n; c2++) {
                     if (ch == keys.e[c]->keymaps.e[c2]->ch && state == keys.e[c]->keymaps.e[c2]->mods) {
                         if (kmap) *kmap = keys.e[c]->keymaps.e[c2];
+						if (index_ret) *index_ret = c;
                         return keys.e[c];
                     }
                 }
                 if (kmap) *kmap = keys.e[c]->keymaps.e[0];
+				if (index_ret) *index_ret = c;
                 return keys.e[c];
             }
         }
@@ -417,12 +419,14 @@ Key *Keyboard::FindKey(int keycode, unsigned int ch, unsigned int state, Keymap 
         for (int c2 = 0; c2 < keys.e[c]->keymaps.n; c2++) {
             if (ch == keys.e[c]->keymaps.e[c2]->ch) {
                 if (kmap) *kmap = keys.e[c]->keymaps.e[c2];
+				if (index_ret) *index_ret = c;
                 return keys.e[c];
             }
         }
     }
 
     if (kmap) *kmap = nullptr;
+	if (index_ret) *index_ret = -1;
     return nullptr;
 }
 
@@ -478,23 +482,37 @@ const char *XlibToNormal(const char *str)
 	if (!strcmp(str, "bar")) return "|";
 	if (!strcmp(str, "Prior")) return "PgUp";
 	if (!strcmp(str, "Next")) return "PgDown";
+	if (!strcmp(str, "Return")) return "Enter";
 	
 	if (!strcmp(str, "Num_Lock")) return "Num";
 	if (!strcmp(str, "KP_Divide")) return "/";
 	if (!strcmp(str, "KP_Multiply")) return "*";
 	if (!strcmp(str, "KP_Add")) return "+";
 	if (!strcmp(str, "KP_Subtract")) return "-";
-	if (!strcmp(str, "KP_Home")) return "Home";
-	if (!strcmp(str, "KP_Up")) return "Up";
-	if (!strcmp(str, "KP_Left")) return "Left";
-	if (!strcmp(str, "KP_Right")) return "Right";
-	if (!strcmp(str, "KP_Down")) return "Down";
-	if (!strcmp(str, "KP_End")) return "End";
-	if (!strcmp(str, "KP_Prior")) return "PgUp";
-	if (!strcmp(str, "KP_Next")) return "PgDown";
-	if (!strcmp(str, "KP_Insert")) return "Ins";
-	if (!strcmp(str, "KP_Delete")) return "Del";
 	if (!strcmp(str, "KP_Enter")) return "Enter";
+
+	if (!strcmp(str, "KP_Home")) return "7";
+	if (!strcmp(str, "KP_Up")) return "8";
+	if (!strcmp(str, "KP_Left")) return "4";
+	if (!strcmp(str, "KP_Right")) return "6";
+	if (!strcmp(str, "KP_Down")) return "2";
+	if (!strcmp(str, "KP_End")) return "1";
+	if (!strcmp(str, "KP_Prior")) return "9";
+	if (!strcmp(str, "KP_Next")) return "3";
+	if (!strcmp(str, "KP_Insert")) return "0";
+	if (!strcmp(str, "KP_Delete")) return ".";
+	if (!strcmp(str, "KP_Begin")) return "5";
+	//-----
+	//if (!strcmp(str, "KP_Home")) return "Home";
+	//if (!strcmp(str, "KP_Up")) return "Up";
+	//if (!strcmp(str, "KP_Left")) return "Left";
+	//if (!strcmp(str, "KP_Right")) return "Right";
+	//if (!strcmp(str, "KP_Down")) return "Down";
+	//if (!strcmp(str, "KP_End")) return "End";
+	//if (!strcmp(str, "KP_Prior")) return "PgUp";
+	//if (!strcmp(str, "KP_Next")) return "PgDown";
+	//if (!strcmp(str, "KP_Insert")) return "Ins";
+	//if (!strcmp(str, "KP_Delete")) return "Del";
 	//if (!strcmp(str, "KP_Begin")) return "Begin";
 
 	if (!strcmp(str, "asciitilde")) return "~";
@@ -539,7 +557,7 @@ void Keyboard::ApplyCurrentLocale()
 	KeySym *list = XGetKeyboardMapping(anXApp::app->dpy, first_keycode, num_keycodes, &keysyms_per_keycode);
 
 	for (int c=0; c<num_keycodes; c++) {
-		printf("%02x/%d: ", c + first_keycode, c + first_keycode);
+		//printf("%02x/%d: ", c + first_keycode, c + first_keycode);
 
 		Key *key = FindKeyFromKeycode(first_keycode + c, 0, nullptr);
 		if (!key) continue;
@@ -557,35 +575,67 @@ void Keyboard::ApplyCurrentLocale()
 				key->keymaps.e[1]->name = str;
 				key->keymaps.e[1]->ch = filterkeysym(list[c*keysyms_per_keycode + c2], &state);
 			}
-			printf("%d(%-4x): %-10s ",
-					c2,
-					(unsigned int)list[c*keysyms_per_keycode + c2],
-					str ? str : "(none)");
+			//printf("%d(%-4x): %-10s ",
+			//		c2,
+			//		(unsigned int)list[c*keysyms_per_keycode + c2],
+			//		str ? str : "(none)");
 		}
-		printf("\n");
+		//printf("\n");
 	}
 
-
 	XFree(list);
+}
 
+
+/*! Apply default key mappings from en_qwerty.
+ */
+void Keyboard::ApplyDefaultKeycodes()
+{
+	for (int c=0; c<keys.n; c++) {
+		Key *key = keys.e[c];
+		int ii = -1;
+
+		for (int c2=0; en_qwerty[c2].keycode != 0; c2++) {
+			if ((int)en_qwerty[c2].keycode == keys.e[c]->keycode) {
+				ii = c2;
+				break;
+			}
+		}
+
+		if (ii == -1) continue; //couldn't find key!
+		key->keymaps.e[0]->name = en_qwerty[ii].normal;
+		if (key->keymaps.n > 1) key->keymaps.e[1]->name = en_qwerty[ii].shift;
+	}
 }
 
 
 //-------------------------------------- Export SVG --------------------------------
+
+/*! Export the keyboard with simple key labels to an svg.
+ */
 int Keyboard::ExportSVG(const char *file, bool with_list, bool with_labels)
 {
-    DBG cerr <<" *** must finish implementing Keyboard::ExportSVG(const char *file)!!!"<<endl;
-
 	FILE *f = fopen(file, "w");
 	if (!f) return 1;
 
-	fprintf(f, "<svg>\n<g>\n");
-
 	double linewidth  = keys.e[0]->position.height*.02;
-	double textheight = keys.e[0]->position.height*.3;
+	double textheight = keys.e[0]->position.height*.2;
 	double round = keys.e[0]->position.height * .15;
+	double margin = textheight * 1;
+	string str;
+	double x,y;
+
+	fprintf(f, "<svg width=\"%.10gpx\" height=\"%.10gpx\">\n<g>\n",
+			basewidth+2*margin, baseheight+2*margin);
 
 
+	//draw whole keyboard background
+	fprintf(f, "  <rect id=\"board\" style=\"stroke-width:%.10gpx; fill:#aaa; stroke:#333;\" "
+			   " rx=\"%.10g\" x=\"%.10g\" y=\"%.10g\" width=\"%.10g\" height=\"%.10g\" />\n",
+			   linewidth, textheight, 0.,0., basewidth+2*margin, baseheight+2*margin
+		   );
+
+	//draw each key
 	for (int c=0; c<keys.n; c++) {
 		Key *k = key(c);
 
@@ -593,18 +643,34 @@ int Keyboard::ExportSVG(const char *file, bool with_list, bool with_labels)
 				   " rx=\"%.10g\" x=\"%.10g\" y=\"%.10g\" width=\"%.10g\" height=\"%.10g\" />\n",
 				    linewidth,
 					round,
-					k->position.x + round * .3,
-					k->position.y + round * .3,
+					margin + k->position.x + round * .3,
+					margin + k->position.y + round * .3,
 					k->position.width - round * .6,
 					k->position.height - round * .6
 				);
 		const char *keytext = k->keymaps.n>0 ? k->keymaps.e[0]->name.c_str() : nullptr;
 		if (keytext) {
+			if (keytext[1] == '\0' && keytext[0] >= 'a' && keytext[0] <= 'z') {
+				str = keytext;
+				str[0] = toupper(str[0]);
+				keytext = str.c_str();
+			}
+
+			if (with_labels) {
+				//make key label upper left
+				x = margin + k->position.x + textheight/2.;
+				y = margin + k->position.y + textheight;
+			} else {
+				//center key label
+				// *** need special treatment to try to make fit within key
+				x = margin + k->position.x + k->position.width/2.;
+				y = margin + k->position.y + k->position.height/2. + textheight/2;
+			}
+
 			fprintf(f, "  <text style=\"fill:#000; text-anchor:middle; text-align:center; font-size:%.10gpx;\""
 					   " x=\"%.10g\" y=\"%.10g\"><tspan>%s</tspan></text>\n",
 					textheight,
-					k->position.x + k->position.width/2.,
-					k->position.y + k->position.height/2. + textheight/2,
+					x, y,
 					keytext
 				);
 		}
