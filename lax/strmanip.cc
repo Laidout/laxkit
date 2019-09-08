@@ -533,7 +533,7 @@ char *insertstr(char *&dest,const char *data,int atpos)
 	char *newdata=new char[strlen(dest)+strlen(data)+1];
 	if (atpos<0 || atpos>=(int)strlen(dest)) return appendstr(dest,data);
 	if (atpos==0) return prependstr(dest,data);
-	strncpy(newdata,data,atpos);
+	strncpy(newdata,dest,atpos);
 	strcpy(newdata+atpos,data);
 	strcat(newdata,dest+atpos);
 	delete[] dest;
