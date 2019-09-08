@@ -452,6 +452,12 @@ void Utf8String::Prepend(const char *str)
 	}
 }
 
+void Utf8String::InsertAt(const char *str, int byte_index)
+{	
+	insertstr(s, str, byte_index);
+	updateNumChars();
+}
+
 /*! Find first occurence of str from byte position startat.
  * Return -1 for not found, or >=0 for byte index of found.
  */
