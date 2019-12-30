@@ -114,7 +114,7 @@ IconSelector::IconSelector(anXWindow *parnt,const char *nname,const char *ntitle
 		: BoxSelector(parnt,nname,ntitle,nstyle,xx,yy,ww,hh,brder,prev,nowner,nsendmes,npad)
 {
 	// npad is the inset, padg is space between icon and text
-	padg=npadg;
+	padg = npadg;
 
 	if (win_style&STRICON_STR_ICON) labelstyle=LAX_TEXT_ICON;
 	else labelstyle=LAX_ICON_TEXT;
