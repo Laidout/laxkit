@@ -1,6 +1,10 @@
 window overhaul:
 ----------------
 ----tasks:
+loadable window configurations
+window controls tied to variables
+
+
 work out selecting for events, especially non-X events: man select(), use file descriptors??
   how to break out of select() from random threads?
 
@@ -9,11 +13,13 @@ work out details for a generic event filter,
 	  allow using the same mechanism for mouse gesture recognition AND for shortcuts, allowing
 	  windows to respond only to basic events, rather that catching by redefining all
 	  the input routines
+
 work out rendering system independent of Xlib, see todo in laxutils.cc
-  -> :initX() would need to call function to init default graphics handling
-  -> anXApp::DefaultIcon() requires LaxImage? right now hardcoded to imlib
-iron out something workable for fontdialog and matrix textout. investigate pango
-repair now broken text editor's dealing with fonts with missing glyphs
+  -> DONE :initX() would need to call function to init default graphics handling
+  -> DONE anXApp::DefaultIcon() requires LaxImage? right now hardcoded to imlib
+  -> DONE iron out something workable for fontdialog
+  -> repair now broken text editor's dealing with fonts with missing glyphs
+
 multiple device implementation:
   -> focus handling should be one focus per keyboard. fix in app->destroywindow()
        research _NET_ACTIVE_WINDOW, rather than WM_TAKE_FOCUS... how does this work for MPX??
@@ -42,6 +48,11 @@ DONE  remove dependence on non-Xft font things in LaxFont
 
 -------------------------------NOTES-----------------------------
 
+       UI
+-------------------------------------
+see ui.att
+
+
 		DIALOGS
 -------------------------------------
 separate dialog_style from win_style in all dialogs? Sometimes too confusing otherwise!!
@@ -62,8 +73,6 @@ custom event loops to accommodate threaded, and offshoot windows??
 
 before mapping: _NET_WM_WINDOW_TYPE
 determine extra wm decorations: _NET_FRAME_EXTENTS
-
-
 
 
 ----keyboards---
@@ -95,7 +104,13 @@ DONE event propagation? (only for mouse and key events)
 
 
 
+--------------------------------------------
+--------------------------------------------
 -----------all below DONE-------------------
+--------------------------------------------
+--------------------------------------------
+
+
 			EVENTS
 -----------------------------------
 DONE need to do experiments with XInput to figure out how to get and relay events
