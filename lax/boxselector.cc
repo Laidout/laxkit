@@ -195,25 +195,36 @@ BoxSelector::~BoxSelector()
 {
 }
 
-////! Wraps the window to the bounding box of the laid out wholelist.
-///*!  This is meant to be called after Arrange, and before init, and before adding to a frame,
-// *  so that you can use the computed extents for frame/init setup.
-// *  Otherwise, Resize/MoveResize must be called explicitly. ***huh?
-// */
-//void BoxSelector::WrapToExtent()
-//{ ***
-//	win_w=bbox.width;
-//	win_h=bbox.height;
-//	
+//! Wraps the window to the bounding box of the laid out boxes
+int BoxSelector::WrapToExtent()
+{
+	// *** this should have a WrapToWidth(width)
+	win_w = BOX_SHOULD_WRAP;
+	win_h = BOX_SHOULD_WRAP;
+	w(BOX_SHOULD_WRAP);
+	h(BOX_SHOULD_WRAP);
+	sync();
+
+	if (ValidDrawable()) {
+		//has been initialized into platform already, we have to use resize mechanism
+		//TODO: this may fail when window is created but not mapped.. TEST!
+		MoveResize(win_x, win_y, w(), h());
+	} else {
+		win_w = w();
+		win_h = h();
+	}
+	
 //	 // must shift all wholelist.e[c]->x/y
-//	int dx=bbox.x,
-//		dy=bbox.y;
-//	bbox.x=bbox.y=0;
+//	int dx = bbox.x,
+//		dy = bbox.y;
+//	bbox.x = bbox.y = 0;
 //	for (int c=0; c<wholelist.n; c++) {
-//		wholelist.e[c]->x-=dx;
-//		wholelist.e[c]->y-=dy;
+//		wholelist.e[c]->x -= dx;
+//		wholelist.e[c]->y -= dy;
 //	}
-//}
+
+	return 0;
+}
 
 //! Default BoxSelector init only calls sync().
 /*! Also sets the hightlight and shadow colors.
@@ -225,11 +236,6 @@ int BoxSelector::init()
 	shadow = coloravg(win_themestyle->bg.Pixel(),rgbcolor(0,0,0));
 	return 0;
 }
-
-//void TabFrame::sync()
-//{
-//	if (x()!=win_x || y()!=win_y || w()!=win_w || h()!=win_h) 
-//}
 
 //! Set the w/h, then calls SquishyBox::sync().
 /*! This is called from init() and from the SquishyBox arranger.

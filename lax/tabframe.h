@@ -60,6 +60,7 @@ class TabFrame : public IconSelector
 	virtual void FillBox(IconBox *b,const char *nlabel,LaxImage *img, int nid);
 
  public:
+	TabFrame(anXWindow *parnt = nullptr, unsigned long nstyle = TabFrame_Top);
 	TabFrame(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
                       int xx,int yy,int ww,int hh,int brder,
                       anXWindow *prev,unsigned long nowner,const char *nsendmes,
@@ -71,6 +72,7 @@ class TabFrame : public IconSelector
 
 	virtual int AddWin(anXWindow *nwin,int absorbcount,const char *nlabel,const char *iconfilename, int makebw);
 	virtual int SelectN(int which);
+	virtual int WrapToExtent();
 	virtual int CharInput(unsigned int ch,const char *buffer,int len,unsigned int state,const LaxKeyboard *d);
 	virtual int WheelUp(int x,int y,unsigned int state,int count,const LaxMouse *d);
 	virtual int WheelDown(int x,int y,unsigned int state,int count,const LaxMouse *d);

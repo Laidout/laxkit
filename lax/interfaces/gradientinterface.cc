@@ -463,6 +463,32 @@ void GradientData::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *c
 	FindBBox();
 }
 
+LaxFiles::Attribute *GradientData::dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *savecontext)
+{
+	if (att == nullptr) att = new LaxFiles::Attribute();
+
+	if (what == -1) {
+		att->push("matrix", "1 0 0 1 0 0", "the affine transform affecting this gradient");
+		if (strip) strip->dump_out_atts(att, -1, savecontext);
+		else {
+			GradientStrip strp;
+			strp.dump_out_atts(att, -1, savecontext);
+		}
+		return att;
+	}
+
+	char str[120];
+	sprintf(str,"%.10g %.10g %.10g %.10g %.10g %.10g",
+				m(0),m(1),m(2),m(3),m(4),m(5));
+	att->push("matrix",str);
+
+	if (strip) {
+		strip->dump_out_atts(att,what,savecontext);
+	}
+
+	return att;
+}
+
 /*! \ingroup interfaces
  * Dump out a GradientData. Prints matrix, p, v, and the spots.
  *
@@ -475,7 +501,6 @@ void GradientData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *c
 {
 	char spc[indent+1]; memset(spc,' ',indent); spc[indent]='\0';
 	if (what==-1) {
-		fprintf(f,"%s#Gradients lie on the x axis from p1 to p2\n",spc);
 		fprintf(f,"%smatrix 1 0 0 1 0 0  #the affine transform affecting this gradient\n",spc);
 		fprintf(f,"%sp1 (0,0) #the starting coordinate\n",spc);
 		fprintf(f,"%sp2 (1,0) #the ending coordinate\n",spc);

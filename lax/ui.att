@@ -119,15 +119,6 @@ IconSlider
   choice "text 3"
 
 
-MenuSelector      #list of things as in a menu, OR as list of checkboxes
-  type togglelist
-  curitem 2
-
-  item "text 1"
-    icon "blah"
-  item "text 2"
-
-
 TreeSelector
   curitem 4
   item (collapsed) itemid

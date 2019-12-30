@@ -107,16 +107,32 @@ TabBox::~TabBox()
  */
 
 
+TabFrame::TabFrame(anXWindow *parnt, unsigned long nstyle)
+	: TabFrame(parnt, "tabframe", nullptr, nstyle, 0,0,0,0,0,nullptr,0,nullptr,0,0)
+	//: IconSelector(parnt,"tabframe",nullptr,
+				   //nstyle | BOXSEL_ONE_ONLY | BOXSEL_LEFT | BOXSEL_TOP | BOXSEL_ROWS,
+				   //0,0,0,0,0,nullptr,0,nullptr,0,0)
+{
+	//curtab = -1;
+	//if (padinset) 
+}
+
+
 TabFrame::TabFrame(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
                       int xx,int yy,int ww,int hh,int brder,
 					  anXWindow *prev,unsigned long nowner,const char *nsendmes,
                       int npad,int npadg)
 	: IconSelector(parnt,nname,ntitle,
-				   nstyle | BOXSEL_ONE_ONLY,
+				   nstyle | BOXSEL_ONE_ONLY | BOXSEL_LEFT | BOXSEL_TOP | BOXSEL_ROWS,
 				   xx,yy,ww,hh,brder,prev,nowner,nsendmes,npad,npadg)
 {
-	//***
-	curtab=-1;
+	curtab = -1;
+	if (padinset <= 0) {
+		padinset = win_themestyle->normal->textheight()/2;
+	}
+	if (padg <= 0) {
+		padg = win_themestyle->normal->textheight()/2;
+	}
 }
 
 
@@ -145,6 +161,14 @@ void TabFrame::FillBox(IconBox *b,const char *nlabel,LaxImage *img, int nid)
 	b->w (b->w()  + pad);
 	b->ph(b->ph() + pad);
 	b->pw(b->pw() + pad);
+}
+
+/*! Wrap to extent of the selection boxes plus the maximum extent of the sub windows.
+ */
+int TabFrame::WrapToExtent()
+{
+	cerr << "TODO!!!!  int TabFrame::WrapToExtent()"<<endl;
+	return BoxSelector::WrapToExtent();
 }
 
 void TabFrame::drawbox(int which)

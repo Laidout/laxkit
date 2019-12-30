@@ -102,7 +102,7 @@ class BoxSelector : public anXWindow, public RowColBox
 	virtual void sync();
 	virtual int init();
 	virtual int Event(const EventData *e,const char *mes);
-//	virtual void WrapToExtent();
+	virtual int WrapToExtent();
 	virtual int MoveResize(int nx,int ny,int nw,int nh);
 	virtual int Resize(int nw,int nh);
 	virtual void Refresh();

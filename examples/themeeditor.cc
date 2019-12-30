@@ -22,6 +22,8 @@
 #include <lax/sliderpopup.h>
 #include <lax/fontdialog.h>
 #include <lax/filedialog.h>
+#include <lax/scrolledwindow.h>
+#include <lax/tabframe.h>
 #include <lax/themes.h>
 #include <lax/version.h>
 
@@ -49,6 +51,18 @@ using namespace LaxFiles;
 //  [colors           ]
 //  [strips][ mockup  ]
 //  [icons]
+//
+// Export to other systems, like Gimp, Krita, etc
+// Import from other systems
+//
+// Base Colors | Color Diffs | Fonts | Metrics | Icons
+//
+// 
+// click drag to select multiples
+// click shift drag to add to current selection
+// click shift to add/remove under mouse to current selection
+//
+// click to activate color/value/font/icon_dir editor
 //
 
 
@@ -87,7 +101,7 @@ const char *default_color_names[] = {
 		"Deactivate",
 		"Border Active",
 		"Border Inactive",
-		NULL
+		nullptr
 	};
 const char *short_color_names[] = {
 		"fg",
@@ -104,7 +118,7 @@ const char *short_color_names[] = {
 		"no",
 		"active",
 		"inactive",
-		NULL
+		nullptr
 	};
 
 const char *diffs[] = {
@@ -118,7 +132,7 @@ const char *diffs[] = {
 		"diff_fg_alternate",
 		"diff_shadow"      ,
 		"diff_highlight"   ,
-		NULL
+		nullptr
 	};
 
 
@@ -141,7 +155,7 @@ ColorBox2::ColorBox2(anXWindow *parnt,const char *nname,const char *ntitle,unsig
              anXWindow *prev,unsigned long owner,const char *mes,
              int ctype, double nstep,
              double c0,double c1,double c2,double c3,double c4)
-	: ColorBox(parnt,nname,ntitle,nstyle, nx,ny,nw,nh,brder, prev,owner,mes, ctype,nstep,c0,c1,c2,c3,c4,NULL)
+	: ColorBox(parnt,nname,ntitle,nstyle, nx,ny,nw,nh,brder, prev,owner,mes, ctype,nstep,c0,c1,c2,c3,c4,nullptr)
 {
 }
 
@@ -164,7 +178,7 @@ int ColorBox2::Event(const EventData *e,const char *mes)
 class YesNo : public anXWindow
 {
   public:
-	YesNo(anXWindow *parent) : anXWindow(parent, "yesno","yesno", 0, 0,0,0,0,1, NULL,0,NULL) {}
+	YesNo(anXWindow *parent) : anXWindow(parent, "yesno","yesno", 0, 0,0,0,0,1, nullptr,0,nullptr) {}
 
 	virtual void Refresh() {
 		if (!needtodraw) return;
@@ -213,13 +227,13 @@ class ThemeControls : public RowFrame
 	WindowStyle *panel, *edit, *menu, *button;
 	
 	MessageBar *status;
-	LineInput *border, *bevel, *pad, *tooltips, *firstclk, *dblclk, *idleclk;
+	LineInput *uiscale, *border, *bevel, *pad, *tooltips, *firstclk, *dblclk, *idleclk;
 
 	int firsttime;
 
 	RefPtrStack<anXWindow> testWindows;
 
-	ThemeControls();
+	ThemeControls(anXWindow *prnt);
 	virtual ~ThemeControls();
 
 	virtual int CharInput(unsigned int ch, const char *buffer,int len,unsigned int state, const LaxKeyboard *kb);
@@ -235,11 +249,13 @@ class ThemeControls : public RowFrame
 	void SyncFromTheme();
 };
 
-ThemeControls::ThemeControls()
-  : RowFrame(NULL, "Theme", "Theme", ANXWIN_ESCAPABLE | ROWFRAME_ROWS|ROWFRAME_STRETCH_IN_COL|ROWFRAME_STRETCH_IN_ROW,
-  //: RowFrame(NULL, "Theme", "Theme", ANXWIN_ESCAPABLE | ROWFRAME_ROWS|ROWFRAME_STRETCH_IN_COL,
+ThemeControls::ThemeControls(anXWindow *prnt)
+  : RowFrame(prnt, "Theme Controls", "Theme Controls",
+		    ROWFRAME_ROWS, 
+			//ROWFRAME_STRETCH_IN_COL,// |
+			//ROWFRAME_STRETCH_IN_ROW,
 			0,0,1200,800,0,
-			NULL,0,NULL)
+			nullptr,0,nullptr)
 {
 	firsttime = 1;
 
@@ -300,30 +316,30 @@ int ThemeControls::Event(const EventData *e,const char *mes)
 			 || !strncmp(mes,"bold", 4)
 			 || !strncmp(mes,"italic", 6)
 			 || !strncmp(mes,"monospace", 9)) {
-		WindowStyle *style = NULL;
+		WindowStyle *style = nullptr;
 		int i=-1;
 		int which = 0;
-		LaxFont *font = NULL;
+		LaxFont *font = nullptr;
 		char scratch[200];
 
 		if (!strncmp(mes,"normal", 6))    {
-			i = strtod(mes + 6, NULL); which = THEME_Font_Normal;    if (i>0) font = theme->styles.e[i-1]->normal;
+			i = strtod(mes + 6, nullptr); which = THEME_Font_Normal;    if (i>0) font = theme->styles.e[i-1]->normal;
 
 		} else if (!strncmp(mes,"bold", 4)) {
-			i = strtod(mes + 4, NULL); which = THEME_Font_Bold;      if (i>0) font = theme->styles.e[i-1]->bold;
+			i = strtod(mes + 4, nullptr); which = THEME_Font_Bold;      if (i>0) font = theme->styles.e[i-1]->bold;
 
 		} else if (!strncmp(mes,"italic", 6)) {
-			i = strtod(mes + 6, NULL); which = THEME_Font_Italic;    if (i>0) font = theme->styles.e[i-1]->italic;
+			i = strtod(mes + 6, nullptr); which = THEME_Font_Italic;    if (i>0) font = theme->styles.e[i-1]->italic;
 
 		} else if (!strncmp(mes,"monospace", 9)) {
-			i = strtod(mes + 9, NULL); which = THEME_Font_Monospace; if (i>0) font = theme->styles.e[i-1]->monospace;
+			i = strtod(mes + 9, nullptr); which = THEME_Font_Monospace; if (i>0) font = theme->styles.e[i-1]->monospace;
 		}
 
 		if (i>0) style = theme->styles.e[i-1];
 		if (!style) return 0;
 
 		string sendmes = "set"+string(mes);
-		FontDialog *d = new FontDialog(NULL, "Select Font","Select Font", ANXWIN_REMEMBER, 0,0,800,600,0, 
+		FontDialog *d = new FontDialog(nullptr, "Select Font","Select Font", ANXWIN_REMEMBER, 0,0,800,600,0, 
 								object_id, sendmes.c_str(),
 								0,
 								font->Family(), font->Style(), font->Msize(), "Characters", font, true);
@@ -339,33 +355,33 @@ int ThemeControls::Event(const EventData *e,const char *mes)
 		const StrsEventData *m = dynamic_cast<const StrsEventData*>(e);
 		const char *family = m->strs[0];
 		const char *sstyle = m->strs[1];
-		double size        = strtod(m->strs[2], NULL);
+		double size        = strtod(m->strs[2], nullptr);
 		const char *file   = m->strs[3];
 
-		WindowStyle *style = NULL;
+		WindowStyle *style = nullptr;
 		int i=-1;
 		int which = 0;
-		if       (!strncmp(mes,"normal", 6))    { i = strtod(mes + 6, NULL); which = THEME_Font_Normal;    }
-		else if  (!strncmp(mes,"bold", 4))      { i = strtod(mes + 4, NULL); which = THEME_Font_Bold;      }
-		else if  (!strncmp(mes,"italic", 6))    { i = strtod(mes + 6, NULL); which = THEME_Font_Italic;    }
-		else if  (!strncmp(mes,"monospace", 9)) { i = strtod(mes + 9, NULL); which = THEME_Font_Monospace; }
+		if       (!strncmp(mes,"normal", 6))    { i = strtod(mes + 6, nullptr); which = THEME_Font_Normal;    }
+		else if  (!strncmp(mes,"bold", 4))      { i = strtod(mes + 4, nullptr); which = THEME_Font_Bold;      }
+		else if  (!strncmp(mes,"italic", 6))    { i = strtod(mes + 6, nullptr); which = THEME_Font_Italic;    }
+		else if  (!strncmp(mes,"monospace", 9)) { i = strtod(mes + 9, nullptr); which = THEME_Font_Monospace; }
 		if (i>0) style = theme->styles.e[i-1];
 		if (!style) return 0;
 
 		LaxFont *font = app->fontmanager->MakeFont(family, sstyle, size, 0);
 
-		if      (which = THEME_Font_Normal)    style->SetFonts(font,NULL,NULL,NULL);
-		else if (which = THEME_Font_Bold)      style->SetFonts(NULL,font,NULL,NULL);
-		else if (which = THEME_Font_Italic)    style->SetFonts(NULL,NULL,font,NULL);
-		else if (which = THEME_Font_Monospace) style->SetFonts(NULL,NULL,NULL,font);
+		if      (which = THEME_Font_Normal)    style->SetFonts(font,nullptr,nullptr,nullptr);
+		else if (which = THEME_Font_Bold)      style->SetFonts(nullptr,font,nullptr,nullptr);
+		else if (which = THEME_Font_Italic)    style->SetFonts(nullptr,nullptr,font,nullptr);
+		else if (which = THEME_Font_Monospace) style->SetFonts(nullptr,nullptr,nullptr,font);
 
-		Button *button = dynamic_cast<Button*>(findChildWindowByName(mes));
+		Button *button = dynamic_cast<Button*>(findChildWindowByName(mes, true));
 		if (button) button->Font(font);
 
 		return 0;
 
 	} else if (!strcmp(mes,"loadtheme")) {
-		FileDialog *f = new FileDialog(NULL, "Load", _("Load"), ANXWIN_REMEMBER, 0,0,0,0,0,
+		FileDialog *f = new FileDialog(nullptr, "Load", _("Load"), ANXWIN_REMEMBER, 0,0,0,0,0,
 									object_id, "loadthemefile", FILES_OPEN_ONE, theme->filename);
 		app->rundialog(f);
 		return 0;
@@ -376,7 +392,7 @@ int ThemeControls::Event(const EventData *e,const char *mes)
 		if (f) {
 			DBG cerr << " *** need to implement verify that it is a theme file"<<endl;
 			Theme *ntheme = new Theme;
-			ntheme->dump_in(f, 0, 0, NULL, NULL);
+			ntheme->dump_in(f, 0, 0, nullptr, nullptr);
 			themes.push(ntheme);
 			ntheme->dec_count();
 			UseTheme(themes.n-1);
@@ -385,7 +401,7 @@ int ThemeControls::Event(const EventData *e,const char *mes)
 		return 0;
 
 	} else if (!strcmp(mes,"savetheme")) {
-		FileDialog *f = new FileDialog(NULL, "Save", _("Save"), ANXWIN_REMEMBER, 0,0,0,0,0,
+		FileDialog *f = new FileDialog(nullptr, "Save", _("Save"), ANXWIN_REMEMBER, 0,0,0,0,0,
 									object_id, "savethemefile", FILES_SAVE, theme->filename);
 		app->rundialog(f);
 		return 0;
@@ -395,7 +411,7 @@ int ThemeControls::Event(const EventData *e,const char *mes)
 		FILE *f = fopen(s->str, "w");
 		if (f) {
 			makestr(theme->filename, s->str);
-			theme->dump_out(f, 0, 0, NULL);
+			theme->dump_out(f, 0, 0, nullptr);
 			fclose(f);
 			DBG cerr <<" Theme saved to "<<s->str<<endl;
 		} else {
@@ -422,19 +438,19 @@ int ThemeControls::init()
 {
 	double th=app->defaultlaxfont->textheight();
 
-	anXWindow *last=NULL;
-	Button *button=NULL;
-	MessageBar *mes=NULL;
+	anXWindow *last = nullptr;
+	Button *button  = nullptr;
+	MessageBar *mes = nullptr;
 
 
 	//---------add mockup
 
-	LineInput *test_lineedit = new LineInput(this,"lineinput","lineinput",0, 0,0,200,50,0, NULL,0,NULL, "Input", "stuff stuff stuff");
+	LineInput *test_lineedit = new LineInput(this,"lineinput","lineinput",0, 0,0,200,50,0, nullptr,0,nullptr, "Input", "stuff stuff stuff");
 	test_lineedit->GetLineEdit()->SetSelection(5,10);
 	AddWin(test_lineedit,1, -1);
 	testWindows.push(test_lineedit);
 
-	button = new Button(this,"Test button","Test button",BUTTON_OK, 5,300, 0,0,0, NULL,0,NULL, 0, "Test Button", NULL,NULL, 3);
+	button = new Button(this,"Test button","Test button",BUTTON_OK, 5,300, 0,2*th,0, nullptr,0,nullptr, 0, "Test Button", nullptr,nullptr, 3);
 	AddWin(button,1, -1);
 	testWindows.push(button);
 
@@ -456,13 +472,13 @@ int ThemeControls::init()
 			menu->EndSubMenu();
 		}
 	}
-	TreeSelector *tree = new TreeSelector(this,"Test tree","Test tree",0, 0,0, 150,150,1, NULL,0,NULL, TREESEL_FOLLOW_MOUSE, menu);
+	TreeSelector *tree = new TreeSelector(this,"Test tree","Test tree",0, 0,0, 150,150,1, nullptr,0,nullptr, TREESEL_FOLLOW_MOUSE, menu);
 	menu->dec_count();
 	AddWin(tree,1, -1);
 	testWindows.push(tree);
 
-	Scroller *scroller = new Scroller(this,"test","test",SC_YSCROLL, 0,0,0,0,1, NULL,0,NULL, NULL, 0,1000, 200, 10, 400, 600);
-	AddWin(scroller,1,  10,0,10,50,0,    150,0,10000,50,0, -1);
+	Scroller *scroller = new Scroller(this,"test","test",SC_YSCROLL, 0,0,0,0,1, nullptr,0,nullptr, nullptr, 0,1000, 200, 10, 400, 600);
+	AddWin(scroller,1,  10,0,10,50,0,    150,0,0,50,0, -1);
 	testWindows.push(scroller);
 
 	anXWindow *awindow = new YesNo(this);
@@ -487,7 +503,7 @@ int ThemeControls::init()
 			pmenu->EndSubMenu();
 		}
 	}
-	MenuButton *menubutton = new MenuButton(this,"menu","menu",MENUBUTTON_DOWNARROW, 0,0,0,0,1, NULL,0,NULL, 0, pmenu,1, "Popup Menu");
+	MenuButton *menubutton = new MenuButton(this,"menu","menu",MENUBUTTON_DOWNARROW, 0,0,0,0,1, nullptr,0,nullptr, 0, pmenu,1, "Popup Menu");
 	AddWin(menubutton,1, -1);
 	testWindows.push(menubutton);
 
@@ -499,132 +515,178 @@ int ThemeControls::init()
 
 	 //-----status bar
 	last = status = mes = new MessageBar(this,"message2","message2",MB_MOVE|MB_CENTER, 0,100,0,0,0, "Stuff!");
-	AddWin(mes,1,  100,0,10000,50,0,    th*1.2,0,10000,50,0, -1);
+	AddWin(mes,1,  100,0,10000,50,0,    th*1.2,0,th,50,0, -1);
 	AddNull();
 
 
+	TabFrame *tabs = new TabFrame();
+	double running_height = 0;
+
+	//---------------- base colors
+	RowFrame *rows = new RowFrame();
 	 //column labels
-	AddWin(new MessageBar(this,"l","l",MB_MOVE|MB_CENTER, 0,100,0,0,0, ""        ),1,  50,40,100,50,0,    1.5*th,0,0,50,0, -1);
+	rows->AddWin(new MessageBar(rows,"l","l",MB_MOVE|MB_CENTER, 0,100,0,0,0, ""        ),1,  50,40,100,50,0,    1.5*th,0,0,50,0, -1);
 	for (int c2=0; short_color_names[c2]; c2++) {
-		AddWin(new MessageBar(this,"l","l",MB_MOVE|MB_CENTER, 0,100,0,0,0, short_color_names[c2]),1,  50,40,100,50,0,    1.5*th,0,0,50,0, -1);
+		rows->AddWin(new MessageBar(rows,"l","l",MB_MOVE|MB_CENTER, 0,100,0,0,0, short_color_names[c2]),1,  50,40,100,50,0,    1.5*th,0,0,50,0, -1);
 	}
-	AddNull();
+	rows->AddNull();
 
 	 //color rows
 	ScreenColor *color;
 	for (int c=0; c<theme->styles.n; c++) {
 		WindowStyle *style = theme->styles.e[c];
-		AddWin(new MessageBar(this,"l","l",MB_MOVE|MB_CENTER, 0,100,0,0,0, window_category_name(style->category)),1,  50,40,100,50,0,    1.5*th,0,0,50,0, -1);
+		rows->AddWin(new MessageBar(rows,"l","l",MB_MOVE|MB_CENTER, 0,100,0,0,0, window_category_name(style->category)),1,
+				50,40,100,50,0,    1.5*th,0,0,50,0, -1);
 
 		for (int c2=0; default_colors[c2]; c2++) {
 			color = theme->GetScreenColor(style->category, default_colors[c2]);
 			ColorArea *box = new ColorArea(color, style->category, default_colors[c2]);
-			box->SetPreferred(50,40,100,50,0,  50,40,100,50,0);
-			Push(box, 0, -1);
+			box->SetPreferred(50,40,100,50,0,  1.5 * th,0,0,50,0);
+			rows->Push(box, 0, -1);
 			colorareas.push(box,1);
 		}
-		AddNull();
+		rows->AddNull();
 	}
 
+	running_height = MAX(running_height, (3+6*1.5)*th);
+	tabs->AddWin(rows,1, "Colors",      nullptr, 0); 
 
-	//diffs
-	AddWin(new MessageBar(this,"l","l",MB_MOVE|MB_CENTER, 0,0,0,0,0, ""        ),1,  50,40,100,50,0,    1.5*th,0,0,50,0, -1);
 
-	AddWin(new MessageBar(this,"l","l",MB_MOVE|MB_CENTER, 0,0,0,0,0, "+bg_hover    "),1,  50,40,100,50,0,    1.5*th,0,0,50,0, -1);
-	AddWin(new MessageBar(this,"l","l",MB_MOVE|MB_CENTER, 0,0,0,0,0, "+bg_highlight"),1,  50,40,100,50,0,    1.5*th,0,0,50,0, -1);
-	AddWin(new MessageBar(this,"l","l",MB_MOVE|MB_CENTER, 0,0,0,0,0, "+bg_focus    "),1,  50,40,100,50,0,    1.5*th,0,0,50,0, -1);
-	AddWin(new MessageBar(this,"l","l",MB_MOVE|MB_CENTER, 0,0,0,0,0, "+bg_alternate"),1,  50,40,100,50,0,    1.5*th,0,0,50,0, -1);
-	AddWin(new MessageBar(this,"l","l",MB_MOVE|MB_CENTER, 0,0,0,0,0, "+fg_hover    "),1,  50,40,100,50,0,    1.5*th,0,0,50,0, -1);
-	AddWin(new MessageBar(this,"l","l",MB_MOVE|MB_CENTER, 0,0,0,0,0, "+fg_highlight"),1,  50,40,100,50,0,    1.5*th,0,0,50,0, -1);
-	AddWin(new MessageBar(this,"l","l",MB_MOVE|MB_CENTER, 0,0,0,0,0, "+fg_focus    "),1,  50,40,100,50,0,    1.5*th,0,0,50,0, -1);
-	AddWin(new MessageBar(this,"l","l",MB_MOVE|MB_CENTER, 0,0,0,0,0, "+fg_alternate"),1,  50,40,100,50,0,    1.5*th,0,0,50,0, -1);
-	AddWin(new MessageBar(this,"l","l",MB_MOVE|MB_CENTER, 0,0,0,0,0, "+shadow      "),1,  50,40,100,50,0,    1.5*th,0,0,50,0, -1);
-	AddWin(new MessageBar(this,"l","l",MB_MOVE|MB_CENTER, 0,0,0,0,0, "+highlight   "),1,  50,40,100,50,0,    1.5*th,0,0,50,0, -1);
-	AddNull();
+	//------------diffs
+	rows = new RowFrame();
+	rows->AddWin(new MessageBar(rows,"l","l",MB_CENTER, 0,0,0,0,0, ""        ),1,  50,40,100,50,0,    1.5*th,0,0,50,0, -1);
+
+	rows->AddWin(new MessageBar(rows,"l","l",MB_CENTER, 0,0,0,0,0, "+bg_hover    "),1,  50,40,100,50,0,    1.5*th,0,0,50,0, -1);
+	rows->AddWin(new MessageBar(rows,"l","l",MB_CENTER, 0,0,0,0,0, "+bg_highlight"),1,  50,40,100,50,0,    1.5*th,0,0,50,0, -1);
+	rows->AddWin(new MessageBar(rows,"l","l",MB_CENTER, 0,0,0,0,0, "+bg_focus    "),1,  50,40,100,50,0,    1.5*th,0,0,50,0, -1);
+	rows->AddWin(new MessageBar(rows,"l","l",MB_CENTER, 0,0,0,0,0, "+bg_alternate"),1,  50,40,100,50,0,    1.5*th,0,0,50,0, -1);
+	rows->AddWin(new MessageBar(rows,"l","l",MB_CENTER, 0,0,0,0,0, "+fg_hover    "),1,  50,40,100,50,0,    1.5*th,0,0,50,0, -1);
+	rows->AddWin(new MessageBar(rows,"l","l",MB_CENTER, 0,0,0,0,0, "+fg_highlight"),1,  50,40,100,50,0,    1.5*th,0,0,50,0, -1);
+	rows->AddWin(new MessageBar(rows,"l","l",MB_CENTER, 0,0,0,0,0, "+fg_focus    "),1,  50,40,100,50,0,    1.5*th,0,0,50,0, -1);
+	rows->AddWin(new MessageBar(rows,"l","l",MB_CENTER, 0,0,0,0,0, "+fg_alternate"),1,  50,40,100,50,0,    1.5*th,0,0,50,0, -1);
+	rows->AddWin(new MessageBar(rows,"l","l",MB_CENTER, 0,0,0,0,0, "+shadow      "),1,  50,40,100,50,0,    1.5*th,0,0,50,0, -1);
+	rows->AddWin(new MessageBar(rows,"l","l",MB_CENTER, 0,0,0,0,0, "+highlight   "),1,  50,40,100,50,0,    1.5*th,0,0,50,0, -1);
+	rows->AddNull();
 	
 	for (int c=0; c<theme->styles.n; c++) {
 		WindowStyle *style = theme->styles.e[c];
-		AddWin(new MessageBar(this,"l","l",MB_MOVE|MB_CENTER, 0,0,0,0,0, window_category_name(style->category)),1,  50,40,100,50,0,    1.5*th,0,0,50,0, -1);
+		rows->AddWin(new MessageBar(rows,"l","l",MB_MOVE|MB_CENTER, 0,0,0,0,0, window_category_name(style->category)),1,
+					50,40,100,50,0,    1.5*th,0,0,50,0, -1);
 
 		for (int c2=0; diffs[c2]; c2++) {
 			string name;
 			name = name + window_category_name(style->category) + "/" + diffs[c2];
 
-			last = new LineEdit(this,name.c_str(),name.c_str(),0, 0,0, 100,0,0, last,object_id,diffs[c2], ".....");
-			AddWin(last,1,  50,40,100,50,0,    1.5*th,0,0,50,0, -1);                                              
+			last = new LineEdit(rows,name.c_str(),name.c_str(),0, 0,0, 100,0,0, last,object_id,diffs[c2], ".....");
+			rows->AddWin(last,1,  50,40,100,50,0,    1.5*th,0,0,50,0, -1);                                              
 		}
-		AddNull();
+		rows->AddNull();
 	}
 
-	AddSpacer(10,0,100000,50, 10,0,0,50);
-	AddNull();
+	running_height = MAX(running_height, (3+6*1.5)*th);
+	tabs->AddWin(rows,1, "Color Diffs", nullptr, 0); 
 
-	 //theme wide values
-	last = border = new LineInput(this,"Border","Border",0, 5,415, 100,0,0, last,object_id,"border", "Border",".....");
-	AddWin(last,1,-1);
-	last = bevel = new LineInput(this,"Bevel","Bevel",0, 5,415, 100,0,0, last,object_id,"bevel", "Bevel",".....");
-	AddWin(last,1,-1);
-	last = pad = new LineInput(this,"Pad","Pad",0, 5,415, 100,0,0, last,object_id,"pad", "Pad",".....");
-	AddWin(last,1,-1);
-	last = tooltips = new LineInput(this,"Tooltips","Tooltips",0, 5,415, 150,0,0, last,object_id,"tooltips", "Tooltips",".....");
-	last->tooltip(_("Milliseconds before popping tooltips, or 0 for never"));
-	AddWin(last,1,-1);
-	last = firstclk = new LineInput(this,"firstclk","firstclk",0, 5,415, 100,0,0, last,object_id,"firstclk", "Firstclk",".....");
-	last->tooltip(_("Milliseconds after first click before idle clicking"));
-	AddWin(last,1,-1);
-	last = dblclk = new LineInput(this,"dblclk","dblclk",0, 5,415, 100,0,0, last,object_id,"dblclk", "dblclk",".....");
-	last->tooltip(_("Millisecond threshhold for double clicks"));
-	AddWin(last,1,-1);
-	last = idleclk = new LineInput(this,"idleclk","idleclk",0, 5,415, 100,0,0, last,object_id,"idleclk", "idleclk",".....");
-	last->tooltip(_("Milliseconds between idle clicks"));
-	AddWin(last,1,-1);
-	AddNull();
-	AddSpacer(10,0,100000,50, 10,0,0,50);
-	AddNull();
 
-	 //fonts
+	 //--------------fonts
+	rows = new RowFrame();
 	string str;
 	char sstr[200];
 	for (int c=0; c<theme->styles.n; c++) {
 		WindowStyle *style = theme->styles.e[c];
 		str = window_category_name(style->category);
 		str += " fonts";
-		AddWin(new MessageBar(this,"l","l",MB_MOVE|MB_CENTER, 0,0,0,0,0, str.c_str()),1,  50,40,100,50,0,    1.5*th,0,0,50,0, -1);
+		rows->AddWin(new MessageBar(rows,"l","l",MB_MOVE|MB_CENTER, 0,0,0,0,0, str.c_str()),1,  50,40,100,50,0,    1.5*th,0,0,50,0, -1);
 
 		sprintf(sstr, "normal %d", c+1);
-		last = button = new Button(this,sstr,"b",BUTTON_OK, 5,300, 0,0,0, last,object_id,sstr, 0, "Normal Font", NULL,NULL, 3);
+		last = button = new Button(rows,sstr,"b",BUTTON_OK, 5,300, 0,0,0, last,object_id,sstr, 0, "Normal Font", nullptr,nullptr, 3);
 		button->Font(style->normal);
-		AddWin(button,1,-1);
+		rows->AddWin(button,1,-1);
 		sprintf(sstr, "bold %d", c+1);
-		last = button = new Button(this,sstr,"b",BUTTON_OK, 5,300, 0,0,0, last,object_id,sstr, 0, "Bold Font", NULL,NULL, 3);
+		last = button = new Button(rows,sstr,"b",BUTTON_OK, 5,300, 0,0,0, last,object_id,sstr, 0, "Bold Font", nullptr,nullptr, 3);
 		button->Font(style->bold);
-		AddWin(button,1,-1);
+		rows->AddWin(button,1,-1);
 		sprintf(sstr, "italic %d", c+1);
-		last = button = new Button(this,sstr,"b",BUTTON_OK, 5,300, 0,0,0, last,object_id,sstr, 0, "Italic Font", NULL,NULL, 3);
+		last = button = new Button(rows,sstr,"b",BUTTON_OK, 5,300, 0,0,0, last,object_id,sstr, 0, "Italic Font", nullptr,nullptr, 3);
 		button->Font(style->italic);
-		AddWin(button,1,-1);
+		rows->AddWin(button,1,-1);
 		sprintf(sstr, "monospace %d", c+1);
-		last = button = new Button(this,sstr,"b",BUTTON_OK, 5,300, 0,0,0, last,object_id,sstr, 0, "Monospace Font", NULL,NULL, 3);
+		last = button = new Button(rows,sstr,"b",BUTTON_OK, 5,300, 0,0,0, last,object_id,sstr, 0, "Monospace Font", nullptr,nullptr, 3);
 		button->Font(style->monospace);
-		AddWin(button,1,-1);
+		rows->AddWin(button,1,-1);
 
-		AddNull();
+		rows->AddNull();
 	}
 
+	running_height = MAX(running_height, 5*1.5*th);
+	tabs->AddWin(rows,1, "Fonts",       nullptr, 0); 
+
+
+	 //---------------theme wide values
+	rows = new RowFrame();
+	last = uiscale = new LineInput(rows,"UI Scale","UI Scale",LINP_FLOAT, 5,415, 100,0,0, last,object_id,"uiscale", "UI Scale",".....");
+	uiscale->tooltip(_("If -1, then use environment variable GTK_SCALE\nor QT_SCALE_FACTOR, whichever exists"));
+	rows->AddWin(last,1,-1);
+	last = border = new LineInput(rows,"Border","Border",LINP_FLOAT, 5,415, 100,0,0, last,object_id,"border", "Border",".....");
+	rows->AddWin(last,1,-1);
+	last = bevel = new LineInput(rows,"Bevel","Bevel",LINP_FLOAT, 5,415, 100,0,0, last,object_id,"bevel", "Bevel",".....");
+	rows->AddWin(last,1,-1);
+	last = pad = new LineInput(rows,"Pad","Pad",LINP_FLOAT, 5,415, 100,0,0, last,object_id,"pad", "Pad",".....");
+	rows->AddWin(last,1,-1);
+	rows->AddNull();
+	last = tooltips = new LineInput(rows,"Tooltips","Tooltips",LINP_INT, 5,415, 150,0,0, last,object_id,"tooltips", "Tooltips",".....");
+	last->tooltip(_("Milliseconds before popping tooltips, or 0 for never"));
+	rows->AddWin(last,1,-1);
+	rows->AddNull();
+	last = firstclk = new LineInput(rows,"firstclk","firstclk",LINP_INT, 5,415, 100,0,0, last,object_id,"firstclk", "Firstclk",".....");
+	last->tooltip(_("Milliseconds after first click before idle clicking"));
+	rows->AddWin(last,1,-1);
+	last = dblclk = new LineInput(rows,"dblclk","dblclk",LINP_INT, 5,415, 100,0,0, last,object_id,"dblclk", "dblclk",".....");
+	last->tooltip(_("Millisecond threshhold for double clicks"));
+	rows->AddWin(last,1,-1);
+	last = idleclk = new LineInput(rows,"idleclk","idleclk",LINP_INT, 5,415, 100,0,0, last,object_id,"idleclk", "idleclk",".....");
+	last->tooltip(_("Milliseconds between idle clicks"));
+	rows->AddWin(last,1,-1);
+	rows->AddNull();
+
+	running_height = MAX(running_height, 3*1.5*th);
+	tabs->AddWin(rows,1, "Metrics",     nullptr, 0); 
+
+
+	//---------------------------- Icons
+	// Default dirs:
+	//   dir 1
+	//   dir 2
+	// per category:
+	//   override dir
+	//
+	//
+	tabs->AddWin(new MessageBar(tabs,"l","l",MB_CENTER, 0,100,0,0,0, "TODO 5"),1, "Icons",       nullptr, 0); 
+
+
+
+	//---------------- add the tab window
+	//tabs->WrapToExtent();
+	//AddWin(tabs,1, 1000,500,3000,50,0, tabs->win_h,0,0,50,0, -1);
+	AddWin(tabs,1, 1000,500,3000,50,0, running_height,0,0,50,0, -1);
+	AddNull();
+
+
+
+
+	 //---------------------load, save, select theme
 	AddSpacer(10,0,100000,50, 10,0,0,50);
 	AddNull();
 
-	 //load, save, select theme
-	last = button = new Button(this,"Load","Load",BUTTON_OK, 5,300, 0,0,0, last,object_id,"loadtheme", 0, "Load...", NULL,NULL, 3);
+	last = button = new Button(this,"Load","Load",BUTTON_OK, 5,300, 0,0,0, last,object_id,"loadtheme", 0, "Load...", nullptr,nullptr, 3);
 	AddWin(button,1,-1);
-	last = button = new Button(this,"Save","Save",BUTTON_OK, 5,300, 0,0,0, last,object_id,"savetheme", 0, "Save...", NULL,NULL, 3);
+	last = button = new Button(this,"Save","Save",BUTTON_OK, 5,300, 0,0,0, last,object_id,"savetheme", 0, "Save...", nullptr,nullptr, 3);
 	AddWin(button,1,-1);
 
-	LineInput *linp = new LineInput(this,"lineinput","lineinput",0, 0,0,400,50,0, NULL,0,NULL, "Theme name", _("default"));
+	LineInput *linp = new LineInput(this,"lineinput","lineinput",0, 0,0,400,50,0, nullptr,0,nullptr, "Theme name", _("default"));
 	AddWin(linp,1, -1);
 
 
-	SliderPopup *p=new SliderPopup(this,"view type",NULL,0, 0,0,0,0,1, NULL,object_id,"selectTheme");
+	SliderPopup *p=new SliderPopup(this,"view type",nullptr,0, 0,0,0,0,1, nullptr,object_id,"selectTheme");
 	for (int c=0; c<themes.n; c++) {
 		p->AddItem(themes.e[c]->name,c+1);
 	}
@@ -640,7 +702,7 @@ int ThemeControls::init()
 	
 
 	//ColorSliders *sliders;
-	//last = sliders = new ColorSliders(this, "colors", "colors", 0, 0,0,0,0,0, last,object_id,NULL, LAX_RGB,1, 1.,1.,1.);
+	//last = sliders = new ColorSliders(this, "colors", "colors", 0, 0,0,0,0,0, last,object_id,nullptr, LAX_RGB,1, 1.,1.,1.);
 	//AddWin(sliders, 1,-1);
 
 
@@ -681,7 +743,7 @@ void ThemeControls::SyncFromTheme()
 		for (int c2=0; diffs[c2]; c2++) {
 			string name;
 			name = name + window_category_name(style->category) + "/" + diffs[c2];
-			lin = dynamic_cast<LineEdit*>(findChildWindowByName(name.c_str()));
+			lin = dynamic_cast<LineEdit*>(findChildWindowByName(name.c_str(), true));
 			lin->SetText(style->GetValue(diffs[c2]));
 
 		}
@@ -689,6 +751,7 @@ void ThemeControls::SyncFromTheme()
 	}
 
 	 //themewide
+	uiscale ->SetText(theme->ui_scale);
 	border  ->SetText(theme->default_border_width);
 	pad     ->SetText(theme->default_padx);
 	bevel   ->SetText(theme->default_bevel);
@@ -717,14 +780,13 @@ void ThemeControls::Refresh()
 	RowFrame::Refresh();
 	needtodraw=0;
 
-	Displayer *dp = MakeCurrent();
-
-	for (int c=0; c<colorareas.n; c++) {
-		ColorArea *area = colorareas.e[c];
-		dp->NewFG(&area->color);
-		dp->drawrectangle(area->x()+1, area->y()+1, area->w()-2, area->h()-2, 1);
-
-	}
+//	Displayer *dp = MakeCurrent();
+//
+//	for (int c=0; c<colorareas.n; c++) {
+//		ColorArea *area = colorareas.e[c];
+//		dp->NewFG(&area->color);
+//		dp->drawrectangle(area->x()+1, area->y()+1, area->w()-2, area->h()-2, 1);
+//	}
 }
 
 int ThemeControls::CharInput(unsigned int ch, const char *buffer,int len,unsigned int state, const LaxKeyboard *kb)
@@ -769,7 +831,7 @@ int main(int argc,char **argv)
 
 	//Theme theme("Test theme!");
 	//theme.AddDefaults("Light");
-	//theme.dump_out(stdout, 0, 0, NULL);
+	//theme.dump_out(stdout, 0, 0, nullptr);
 
 	 //------------initialize 
 	anXApp app;
@@ -781,7 +843,13 @@ int main(int argc,char **argv)
 
 	 //------------add windows
 
-	app.addwindow(new ThemeControls());
+	ScrolledWindow *container = new ScrolledWindow(nullptr, "Theme", _("Theme"), ANXWIN_ESCAPABLE | SW_RIGHT | SW_MOVE_WINDOW,
+			0,0,1024,500,0, nullptr);
+	ThemeControls *controls = new ThemeControls(nullptr);
+	container->UseThisWindow(controls);
+	app.addwindow(container);
+	//app.addwindow(controls);
+
 
 
 	 //-----------now run!

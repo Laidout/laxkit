@@ -37,7 +37,9 @@ using namespace std;
 
 
 
-// these defines are to make indexing the SquishyBox::m[] meaningful
+// these defines are to make indexing the SquishyBox::m[] meaningful.
+// They should mirror the SquishyBoxMetrics enum, with vert being the
+// start of the vertical metrics.
 #define pos    0
 #define len    1
 #define pref   2

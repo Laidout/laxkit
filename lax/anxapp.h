@@ -183,6 +183,7 @@ class anXWindow : virtual public EventReceiver,
 	int           win_pointer_shape;
 	char          win_on;
 	char          win_active;
+	double        win_uiscale; //while this can be per window, usually it reflects global theme->ui_scale
 	
 	 //core functions needed by anXApp
 	anXWindow(anXWindow *parnt, const char *nname, const char *ntitle,
