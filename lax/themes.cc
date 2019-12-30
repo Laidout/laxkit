@@ -981,6 +981,7 @@ void Theme::dump_in_atts(Attribute *att,int flag,DumpContext *context)
             DoubleAttribute(value,&default_pady);
 
         } else if (!strcmp(name,"ui_scale")) {
+			if (value && !strcasecmp(value, "default")) ui_scale = -1;
             DoubleAttribute(value,&ui_scale);
 
         } else if (!strcmp(name,"default_pady")) {

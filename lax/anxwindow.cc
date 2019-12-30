@@ -359,6 +359,7 @@ anXWindow::anXWindow(anXWindow *parnt, const char *nname, const char *ntitle,
 	win_border = brder;
 	win_style  = nstyle;
 	win_pointer_shape = 0;
+	win_uiscale = 1;
 
 	win_tooltip = NULL;
 	win_title   = newstr(ntitle);
@@ -516,8 +517,9 @@ void anXWindow::InstallColors(WindowStyle *newcolors)
 	win_themestyle = newcolors;
 }
 
-/*! Default is to replace the current style with the WindowStyle in theme of the same category. If not found,
- * nothing is done.
+/*! Default is to replace the current style with the WindowStyle in theme of the same category.
+ * This will call InstalColors() with the new style of the same category as the old style.
+ * If a new style of the same category is not found, nothing is done.,
  * Return 0 for changed, nonzero for not changed.
  */
 int anXWindow::ThemeChange(Theme *theme)
