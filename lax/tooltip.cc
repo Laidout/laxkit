@@ -122,6 +122,7 @@ void ToolTip::Refresh()
 	
 	Displayer *dp = MakeCurrent();
 
+	dp->font(win_themestyle->normal, win_themestyle->normal->textheight());
 	dp->NewFG(win_themestyle->fg);
 	dp->NewBG(win_themestyle->bg);
 	dp->ClearWindow();
