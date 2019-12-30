@@ -677,14 +677,23 @@ void anInterface::PostMessage2(const char *fmt, ...)
 }
 
 
-//! Default settings saving is to output nothing.
+//! Write out settings. Default writes out nothing.
 void anInterface::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *savecontext)
 {
 }
 
-//! Placeholder for dumping in settings.
+//! Placeholder for dumping in settings. Currently does nothing.
 void anInterface::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *loadcontext)
 {
+}
+
+/*! Placeholder for dumping out settings. Default just returns att.
+ * Subclasses that do output need to create a new Attribute if att==null, and fill with
+ * appropriate settings that will be read back in with dump_in_atts().
+ */
+LaxFiles::Attribute *anInterface::dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *savecontext)
+{
+	return att;
 }
 
 /*! By default just return InterfaceManager::GetUndoManager() from the default manager..
