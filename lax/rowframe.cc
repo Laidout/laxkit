@@ -99,6 +99,12 @@ namespace Laxkit {
  */
 
 
+RowFrame::RowFrame(anXWindow *parnt, unsigned long nstyle, const char *nname)
+  : RowFrame(parnt, nname ? nname : "rows", nullptr, nstyle, 0,0,0,0,0, nullptr,0,nullptr)
+{
+}
+
+
  //! RowFrame constructor.
  /*! If the width or the height are 0, then it is implied that the window should size
   *  itself to wrap around the laid out windows, using a huge value (BOX_SHOULD_WRAP) for whichever

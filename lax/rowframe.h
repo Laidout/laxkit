@@ -72,6 +72,7 @@ class RowFrame : public anXWindow, public RowColBox
  protected:
  public:	
 	unsigned long highlight,shadow,mobkcolor,bkcolor;
+	RowFrame(anXWindow *parnt = nullptr, unsigned long nstyle = ROWFRAME_ROWS, const char *name = nullptr);
 	RowFrame(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
 						int xx,int yy,int ww,int hh,int brder,
 						anXWindow *prev,unsigned long owner,const char *mes,
