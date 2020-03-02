@@ -39,6 +39,7 @@ class anObject : virtual public RefCounted
 	anObject();
 	virtual ~anObject();
 	virtual const char *whattype() { return "anObject"; }
+	virtual bool istype(const char *type);
 	virtual anObject *ObjectOwner() { return NULL; }
 	virtual anObject *duplicate(anObject *ref) { return NULL; }
 	virtual int inc_count();

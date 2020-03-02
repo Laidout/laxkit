@@ -70,6 +70,14 @@ anObject::anObject()
  * really designed for.
  */
 
+/*! Default is just return !strcmp(type, whattype()), because writing out the whole strcmp thing is ugly.
+ * Note this is just a convenience, you might be better off with dynamic_cast calls instead.
+ */
+bool anObject::istype(const char *type)
+{
+	return !strcmp(type, whattype());
+}
+
 
 //! Empty virtual destructor.
 anObject::~anObject()
