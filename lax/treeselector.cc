@@ -143,7 +143,7 @@ TreeSelector::ColumnInfo::~ColumnInfo()
 /*! \var int TreeSelector::mousedragmode
  * \brief Flag for whether the mouse has been dragged since a button was down.
  *
- * If it is a simple move, then mousedragmode==1. If the treer is REARRANGEABLE,
+ * If it is a simple move, then mousedragmode==1. If the tree is REARRANGEABLE,
  * and items are in the process of being moved, then mousedragmode==2.
  */
 /*! \var unsigned long TreeSelector::highlight
