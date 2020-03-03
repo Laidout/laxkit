@@ -645,7 +645,6 @@ int SomeData::fitto(double *boxm,DoubleBBox *box,double alignx,double aligny, in
 	return 0;
 }
 
-
 /*! Return concatenation of parent transforms.
  * Note this is not valid beyond containing page.
  *  
@@ -684,6 +683,24 @@ int SomeData::NestedDepth()
     SomeData *d=this->GetParent();
     while (d) { d=d->GetParent(); n++; }
 	return n;
+}
+
+SomeData *SomeData::FindCommonParent(SomeData *other)
+{
+	if (!other) return nullptr;
+	if (other == this) return this;
+
+	SomeData *p1 = this;
+	while (p1) {
+		SomeData *p2 = other;
+		while (p2) {
+			if (p2 == p1) return p1;
+			p2 = p2->GetParent();
+		}
+		p1 = p1->GetParent();
+	}
+
+	return nullptr;
 }
 
 
