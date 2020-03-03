@@ -3331,7 +3331,10 @@ double PathsData::Length(int pathi, double tstart,double tend)
 	return paths.e[pathi]->Length(tstart,tend);
 }
 
-/*! If frompathi<0 or toi<0, then search for a path containing from, likewise for to.
+/*! Connect paths via closing them. So connecting endpoints from same path will simple close it.
+ * Connecting form different paths will merge the paths, and "close" the gap between the endpoints.
+ *
+ * If frompathi<0 or toi<0, then search for a path containing from, likewise for to.
  * from and to must be endpoints, and may or may not be on same path.
  *
  * Return 0 for success, or nonzero for couldn't connect and nothing done.
@@ -3606,7 +3609,7 @@ Coordinate *PathsData::GetCoordinate(int pathi, double t)
 }
 
 /*! Remove specified path, return 0 on success. -1 if path doesn't exist.
- * If popped_ret != NULL, then return the removed path there.
+ * If popped_ret != NULL, then return the removed path there. Otherwise path is dec_counted.
  * Calling code needs to delete any returned path.
  */
 int PathsData::RemovePath(int index, Path **popped_ret)
@@ -3809,6 +3812,65 @@ void PathsData::MatchTransform(const double *newm)
 	}
 	m(newm);
 	FindBBox();
+}
+
+/*! Combine path objects, and optionally merge near endpoints.
+ * If otherPath == this, then extract_paths_from_other is ignored, and duplicate paths from ourself are inserted but
+ * still transformed by transform_from_other.
+ *
+ * If endpoint_merge_threshhold < 0, then simply append other paths to ourself. Otherwise,
+ * connect any old endpoints that are near any new endpoints.
+ *
+ * if extract_paths_from_other, then transfer the subpath objects directly rather than creating duplicate subpaths.
+ *
+ * if !return_new, then append any new subpaths to *this, otherwise, don't modify *this and return a new object.
+ */
+PathsData *PathsData::MergeWith(PathsData *otherPath,
+								double *transform_from_other,
+								double endpoint_merge_threshhold,
+								bool extract_paths_from_other,
+								bool return_new)
+{
+	if (!otherPath) {
+		DBG cerr << "Trying to PathsData::MergeWith( other path == null)!"<<endl;
+		return nullptr;
+	}
+
+	if (otherPath == this) extract_paths_from_other = false;
+
+	PathsData *path_ret = nullptr;
+	if (return_new) {
+		path_ret = dynamic_cast<PathsData*>(duplicate(nullptr));
+	} else path_ret = this;
+
+	int cur_path_count = paths.n;
+	for (int c=0; otherPath->paths.n; c++) {
+		Path *path = nullptr;
+		if (extract_paths_from_other) {
+			otherPath->RemovePath(c, &path);
+			c--;
+		}
+		else {
+			path = otherPath->paths[c]->duplicate();
+		}
+		paths.push(path);
+		if (transform_from_other) {
+			Coordinate *p, *start;
+
+			start = p = path->path;
+			do {
+				p->p(transform_point(transform_from_other,p->p()));
+				p = p->next;
+			} while (p && p!=start);
+		}
+	}
+
+	if (endpoint_merge_threshhold >= 0) {
+		cerr <<" **** TODO merge path combine"<<endl;
+	}
+
+	path_ret->FindBBox();
+	return path_ret;
 }
 
 

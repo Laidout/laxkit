@@ -244,6 +244,8 @@ class PathsData : virtual public SomeData
 	virtual Path *GetPath(int index);
 	virtual Path *GetOffsetPath(int index);
 
+	virtual PathsData *MergeWith(PathsData *otherPath, double *transform_from_other, double endpoint_merge_threshhold, bool extract_paths_from_other, bool return_new);
+
 	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
 	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what, LaxFiles::DumpContext *context);
 	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
