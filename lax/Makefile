@@ -246,7 +246,7 @@ depends:
 	$(MAKE) -C interfaces depends
 	$(MAKE) -C spiro depends
 
-include makedepend
+-include makedepend
 
 
 #------- Testing Stuff ----------------
