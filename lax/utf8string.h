@@ -79,10 +79,14 @@ class Utf8String
 	unsigned int ch_b(int pos, unsigned int newch);
 	unsigned int byte(int pos) { if (pos>=0 && pos<num_bytes) return s[pos]; return 0; }
 	unsigned int byte(int pos, unsigned int newbyte);
+	char &operator[](int);
 
 	unsigned long next(int byte_index);
 	unsigned long prev(int byte_index);
 	
+	Utf8String &Set(const char *str);
+	Utf8String &Set(const Utf8String &str);
+	Utf8String &BackslashChars(const char *chars = "\"\n\t\r");
 	void Sprintf(const char *fmt, ...);
 	void Append(const Utf8String &str);
 	void Append(const char *str);
@@ -112,8 +116,8 @@ class Utf8String
 	bool IsEmpty();
 };
 
-Utf8String operator+=(Utf8String &s, const char *str);
-Utf8String operator+=(Utf8String &s, const Utf8String &str);
+Utf8String &operator+=(Utf8String &s, const char *str);
+Utf8String &operator+=(Utf8String &s, const Utf8String &str);
 
 
 inline bool operator==(const Utf8String &a, const Utf8String &b) { return a.Strcmp(b) == 0; }

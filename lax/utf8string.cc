@@ -366,6 +366,14 @@ unsigned int Utf8String::byte(int byte_index, unsigned int newbyte)
 	return newbyte;
 }
 
+/*! Basically does what byte() does. If you pass in an out of bounds value, error results.
+ */
+char &Utf8String::operator[](int i)
+{
+	if (i >= 0 && i <= num_bytes) return s[i];
+	throw std::runtime_error("Out of bounds index for Laxkit::Utf8String!");
+}
+
 /*! Return the byte position of the next utf8 character after curpos.
  */
 unsigned long Utf8String::next(int byte_index)
@@ -380,6 +388,18 @@ unsigned long Utf8String::prev(int byte_index)
 	if (byte_index == 0) return 0;
 	byte_index--;
 	return utf8back_index(s, byte_index, num_bytes);
+}
+
+Utf8String &Utf8String::Set(const char *str)
+{
+	*this = str;
+	return *this;
+}
+
+Utf8String &Utf8String::Set(const Utf8String &str)
+{
+	*this = str;
+	return *this;
 }
 
 void Utf8String::Sprintf(const char *fmt, ...)
@@ -565,6 +585,59 @@ void Utf8String::RTrim()
 	while (num_bytes > 0 && isspace(s[num_bytes-1])) num_bytes--;
 }
 
+/*! Any char in chars gets a backslash before it.
+ */
+Utf8String &Utf8String::BackslashChars(const char *chars)
+{
+	if (!chars) return *this;
+
+    int ne = 0;
+    const char *v = s;
+    while (*v) {
+		if (strchr(chars, *v)) ne++;
+        v++;
+    }
+
+    if (ne == 0) return *this;
+
+	long newlen = strlen(s) + ne + 1;
+	char *nv = s;
+	if (newlen > bytes_allocated) {
+    	nv = new char[newlen];
+	}
+    char *v2 = nv + newlen-1;
+	*v2 = '\0';
+	v2--;
+    v = s + strlen(s)-1;
+
+    char r=0;
+    while (true) {
+        r = 0;
+
+		if (strchr(chars, *v)) {
+			if (*v=='\n') r='n';
+			else if (*v=='\r') r='r';
+			else if (*v=='\t') r='t';
+			else if (*v=='\\') r='\\';
+			else r = *v;
+		}
+
+        if (r) {
+            *v2 = r; v2--;
+            *v2 = '\\';
+        } else *v2=*v;
+
+		if (v==s) break;
+        v--;
+        v2--;
+    }
+
+	if (nv != s) InsertBytes(nv, newlen-1, newlen);
+
+    return *this;
+}
+
+
 /*! Return null terminated list of splits. Returns nullptr if none.
  * Optionally return the number of strings in num_ret, not including the terminating null.
  */
@@ -627,13 +700,13 @@ Utf8String operator+(const Utf8String &a, const Utf8String &b)
 	return str;
 }
 
-Utf8String operator+=(Utf8String &s, const char *str)
+Utf8String &operator+=(Utf8String &s, const char *str)
 {
 	s.Append(str);
 	return s;
 }
 
-Utf8String operator+=(Utf8String &s, const Utf8String &str)
+Utf8String &operator+=(Utf8String &s, const Utf8String &str)
 {
 	s.Append(str);
 	return s;
