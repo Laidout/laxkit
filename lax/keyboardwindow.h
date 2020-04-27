@@ -178,6 +178,7 @@ class Keyboard : public Laxkit::DoubleRectangle
 
     virtual int ImportXkb(const char *file, int index);
 	virtual int ExportSVG(const char *file, bool with_list, bool with_labels);
+	virtual int ExportJSON(const char *file);
 
 	virtual void ApplyCurrentLocale();
 	virtual void ApplyDefaultKeycodes();
@@ -199,6 +200,7 @@ enum KWinActions {
 	KMENU_Save_Keyboard,
 	KMENU_Reset_Keyboard,
 	KMENU_Export_SVG,
+	KMENU_Export_JSON,
 	KMENU_Export_Html_List,
 	KMENU_Export_ShortcutMapper,
 	KMENU_MAX

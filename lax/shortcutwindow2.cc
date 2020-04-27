@@ -1325,6 +1325,14 @@ int ShortcutWindow2::Event(const Laxkit::EventData *e,const char *mes)
 		ExportSVG(s->str, true, true, keyboard->CurrentMods());
 		return 0;
 
+	} else if (!strcmp(mes,"exportjson")) {
+		const SimpleMessage *s = dynamic_cast<const SimpleMessage*>(e);
+		if (!s) return 0;
+		//ExportJSON(s->str, true, true, keyboard->CurrentMods());
+		//ExportJSON(s->str);
+		keyboard->GetKeyboard()->ExportJSON(s->str);
+		return 0;
+
 	} else if (!strcmp(mes,"settingsm")) {
 		const SimpleMessage *s = dynamic_cast<const SimpleMessage*>(e);
 		if (!s) return 1;
@@ -1363,6 +1371,13 @@ int ShortcutWindow2::Event(const Laxkit::EventData *e,const char *mes)
 									nullptr);
 			app->rundialog(f);
 			return 0;
+
+		} else if (s->info2 == KMENU_Export_JSON) {
+			FileDialog *f = new FileDialog(nullptr,"exportjson",_("Export SVG"),ANXWIN_REMEMBER, 0,0,800,500,0,object_id,"exportjson",
+									FILES_SAVE | FILES_ASK_TO_OVERWRITE,
+									nullptr);
+			app->rundialog(f);
+			return 0;
 		}
 
 		return 0;
@@ -1387,6 +1402,7 @@ MenuInfo *ShortcutWindow2::GetSettingsMenu()
 	MenuInfo *menu = new MenuInfo(_("Settings"));
 	menu->AddSep(_("Export"));
 	menu->AddItem(_("Export SVG"), KMENU_Export_SVG);
+	menu->AddItem(_("Export JSON"), KMENU_Export_JSON);
 	//menu->AddItem(_("Export ShortcutMapper"), KMENU_Export_ShortcutMapper);
 	menu->AddItem(_("Export HTML List"), KMENU_Export_Html_List);
 	menu->AddSep(_("Keyboards"));

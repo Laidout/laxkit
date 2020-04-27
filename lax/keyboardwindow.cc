@@ -24,6 +24,7 @@
 #include <lax/laxutils.h>
 #include <lax/strmanip.h>
 #include <lax/fileutils.h>
+#include <lax/utf8string.h>
 
 #include <cstring>
 #include <X11/Xlib.h>
@@ -682,6 +683,95 @@ int Keyboard::ExportSVG(const char *file, bool with_list, bool with_labels)
     return 0;
 }
 
+
+//-------------------------------------- Export JSON --------------------------------
+
+/*! Export the keyboard with simple key labels to an svg.
+ */
+int Keyboard::ExportJSON(const char *file)
+{
+	FILE *f = fopen(file, "w");
+	if (!f) return 1;
+
+	double linewidth  = keys.e[0]->position.height*.02;
+	double textheight = keys.e[0]->position.height*.2;
+	double round = keys.e[0]->position.height * .15;
+	double margin = textheight * 1;
+	string str;
+	Utf8String ss;
+	Utf8String keytext;
+
+	// ***** TODO!!! need to sanitize strings for valid json!
+	fprintf(f, "{\n");
+	fprintf(f, "  \"name\": \"%s\",\n", ss.Set(name.c_str()).BackslashChars("\"\n\t\r\\").c_str());
+	fprintf(f, "  \"description\": \"%s\",\n", ss.Set(description.c_str()).BackslashChars("\"\n\t\r\\").c_str());
+	fprintf(f, "  \"language\": \"%s\",\n", ss.Set(language.c_str()).BackslashChars("\"\n\t\r\\").c_str());
+
+	fprintf(f, "  \"width\": %.10g,\n",  basewidth  + 2*margin);
+	fprintf(f, "  \"height\": %.10g,\n", baseheight + 2*margin);
+
+
+	//draw whole keyboard background
+	fprintf(f, "  \"background-fill\":   \"#aaaaaa\",\n");
+	fprintf(f, "  \"background-stroke\": \"#333333\",\n");
+	fprintf(f, "  \"stroke-width\": %.10g,\n", linewidth);
+
+
+	//draw each key
+	fprintf(f, "  \"keys\": [\n");
+	for (int c=0; c<keys.n; c++) {
+		Key *k = key(c);
+		fprintf(f, "    {\n"
+		           "      \"x\": %.10g,\n"
+		           "      \"y\": %.10g,\n"
+		           "      \"w\": %.10g,\n"
+		           "      \"h\": %.10g,\n",
+					margin + k->position.x + round * .3,
+					margin + k->position.y + round * .3,
+					k->position.width - round * .6,
+					k->position.height - round * .6
+				);
+
+		fprintf(f, "      \"scancode\": %d,\n", k->keycode);
+		const char *modstr = "";
+		if (k->mod == ShiftMask) modstr = "Shift";
+		else if (k->mod == AltMask) modstr = "Alt";
+		else if (k->mod == ControlMask) modstr = "Control";
+		else if (k->mod == MetaMask) modstr = "Meta";
+		fprintf(f, "      \"is_mod\": \"%s\",\n", modstr);
+
+		keytext = (k->keymaps.n>0 ? k->keymaps.e[0]->name.c_str() : "");
+		if (keytext[1] == '\0' && keytext[0] >= 'a' && keytext[0] <= 'z') {
+			keytext[0] = toupper(keytext[0]);
+		}
+		fprintf(f, "      \"label\": \"%s\"%s\n", keytext.BackslashChars("\"\n\t\r\\").c_str(), k->keymaps.n>1 ? "," : "");
+
+		Utf8String modtext;
+		if (k->keymaps.n > 1) {
+			fprintf(f, "      \"mods\": [\n");
+			for (int c2=1; c2 < k->keymaps.n; c2++) {
+				keytext = k->keymaps.e[c2]->name.c_str();
+
+				modtext = "";
+				if (k->keymaps.e[c2]->mods & ShiftMask)   modtext += "Shift ";
+				if (k->keymaps.e[c2]->mods & AltMask)     modtext += "Alt ";
+				if (k->keymaps.e[c2]->mods & ControlMask) modtext += "Control ";
+				if (k->keymaps.e[c2]->mods & MetaMask)    modtext += "Meta ";
+
+				fprintf(f, "        { \"mod\": \"%s\", \"label\": \"%s\" }%s\n",
+						modtext.c_str(), keytext.BackslashChars("\"\n\t\r\\").c_str(), c2 == k->keymaps.n-1 ? "" : ",");
+
+			}
+			fprintf(f, "      ]\n");
+		}
+		fprintf(f, "    }%s\n", (c == keys.n-1 ? "" : ","));
+	}
+
+	fprintf(f, "  ]\n"); //end of keys
+	fprintf(f, "}\n");
+	fclose(f);
+    return 0;
+}
 
 //-------------------------------------- Import Xkb --------------------------------
 
