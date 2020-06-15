@@ -286,9 +286,10 @@ int SomeData::renderToBufferImage(LaxImage *image)
  *
  *  Subclasses need not redefine this function. They need only redefine renderToBuffer().
  */
-void SomeData::GeneratePreview(int w,int h)
+int SomeData::GeneratePreview(int w,int h)
 {
-	if (usepreview!=1 || maxx<minx || maxy<miny) return;
+	if (usepreview!=1 || maxx<minx || maxy<miny)
+		return (previewtime >= modtime);
 
 	DBG cerr <<"...SomeData::GeneratePreview()"<<endl;
 
@@ -350,10 +351,12 @@ void SomeData::GeneratePreview(int w,int h)
 		 //render direct to image didn't work, so try the old style render to char[] buffer...
 		unsigned char *buffer = preview->getImageBuffer(); 
 		renderToBuffer(buffer,w,h,w*4,8,4); 
-		preview->doneWithBuffer(buffer); 
-	}
+		if (preview->doneWithBuffer(buffer) == 0)
+			previewtime = time(NULL);
 
-	previewtime=time(NULL);
+	} else previewtime = time(NULL);
+
+	return (previewtime >= modtime);
 }
 
 /*! Set previewtime to 0 to force a preview refresh, and modtime=time(NULL).

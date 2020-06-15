@@ -31,6 +31,7 @@
 #include <lax/laximages.h>
 #include <lax/transformmath.h>
 #include <lax/resources.h>
+#include <lax/previewable.h>
 #include <lax/undo.h>
 
 #include <cstdio>
@@ -79,22 +80,19 @@ enum GroupDataLockTypes {
 class SomeData :  virtual public Laxkit::Resourceable,
 				  virtual public Laxkit::Affine,
 				  virtual public Laxkit::DoubleBBox,
-				  virtual public Laxkit::Undoable
+				  virtual public Laxkit::Undoable,
+				  virtual public Laxkit::Previewable
 {
   protected:
 
   public:
 	 //preview mechanism
-	Laxkit::LaxImage *preview;
 	int usepreview;
-	std::time_t previewtime;
-	std::time_t modtime;
-	virtual bool HasOldPreview() { return modtime > previewtime; }
 
 	virtual Laxkit::LaxImage *GetPreview();
-	virtual void GeneratePreview(int w,int h);
-	virtual int renderToBuffer(unsigned char *buffer, int bufw, int bufh, int bufstride, int bufdepth, int bufchannels);
+	virtual int GeneratePreview(int w,int h);
 	virtual int renderToBufferImage(Laxkit::LaxImage *image);
+	virtual int renderToBuffer(unsigned char *buffer, int bufw, int bufh, int bufstride, int bufdepth, int bufchannels);
 
 	int modified; //hint for what has been modified
 	virtual void touchContents();
