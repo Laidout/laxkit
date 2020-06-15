@@ -2066,19 +2066,32 @@ int anXApp::addwindow(anXWindow *w,char mapit,char absorb_count) // mapit==1, ab
 		if (!w->win_parent) {
 			if (!sizehints) sizehints = XAllocSizeHints();
 			Screen *scr = DefaultScreenOfDisplay(dpy);
-			w->win_x = (scr->width-w->win_w)/2;
-			w->win_y = (scr->height-w->win_h)/2;
+
+			LaxMouse *mouse = devicemanager->findMouse(0);
+			if (mouse) {
+				double xx,yy;
+				ScreenInformation *monitor = nullptr;
+				int er = mouse->getInfo(nullptr, nullptr, nullptr, &xx,&yy, nullptr, nullptr, nullptr, nullptr, &monitor);
+				if (er == 0) {
+					w->win_x = monitor->x + monitor->width/2  - w->win_w/2;
+					w->win_y = monitor->y + monitor->height/2 - w->win_h/2;
+				} else mouse = nullptr;
+			}
+			if (!mouse) {
+				w->win_x    = (scr->width  - w->win_w) / 2;
+				w->win_y    = (scr->height - w->win_h) / 2;
+			}
 
 			if (sizehints) {
 				DBG cerr <<"doingwin_sizehintsfor"<<w->WindowTitle()<<endl;
 				// The initial x and y become the upper left corner of the window
 				//manager decorations. how to figure out how much room those decorations take,
 				//so as to place things on the screen accurately? like full screen view?
-				sizehints->x=w->win_x;
-				sizehints->y=w->win_y;
-				sizehints->width=w->win_w;
-				sizehints->height=w->win_h;
-				sizehints->flags|=USPosition|USSize;
+				sizehints->x      = w->win_x;
+				sizehints->y      = w->win_y;
+				sizehints->width  = w->win_w;
+				sizehints->height = w->win_h;
+				sizehints->flags |= USPosition | USSize;
 			}
 		} else {
 			w->win_x=(w->win_parent->win_w-w->win_w)/2;
