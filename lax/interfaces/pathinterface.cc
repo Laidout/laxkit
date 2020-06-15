@@ -3843,7 +3843,7 @@ PathsData *PathsData::MergeWith(PathsData *otherPath,
 		path_ret = dynamic_cast<PathsData*>(duplicate(nullptr));
 	} else path_ret = this;
 
-	int cur_path_count = paths.n;
+	//int cur_path_count = paths.n;
 	for (int c=0; otherPath->paths.n; c++) {
 		Path *path = nullptr;
 		if (extract_paths_from_other) {
@@ -7955,8 +7955,8 @@ int SetClipFromPaths(Laxkit::Displayer *dp, LaxInterfaces::SomeData *outline, co
         if (!path->paths.e[c]->path) continue;
 		if (!path->paths.e[c]->IsClosed()) continue; // only include closed paths
 
-
-        start=p=path->paths.e[c]->path;
+ 
+		start = p = path->paths.e[c]->path->firstPoint(1);
 
 		if (extra_m) dp->moveto(transform_point(extra_m, p->p()));
 		else dp->moveto(p->p());
