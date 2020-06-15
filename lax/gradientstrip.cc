@@ -301,14 +301,14 @@ LaxFiles::Attribute *GradientStrip::GradientSpot::dump_out_atts(LaxFiles::Attrib
 	if (!att) att=new Attribute;
 
 	if (what==-1) {
-		att->push("name", "#optional name for this spot");
-		att->push("t", "#the spot on the x axis to place the color, customarily the spots will"
-					   "cover the whole range [0..1] but that range is not mandatory");
-		att->push("nt","#like t, but normalized to the range [0..1]. Recomputed on reading in GradientStrip");
-		att->push("s", "#the spot on the y axis to place the color, customarily the spots will"
-		               "cover the whole range [0..1] but that range is not mandatory");
-		att->push("ns","1 #like s, but normalized to the range [0..1]. Recomputed on reading in GradientStrip");
-		att->push("color", "#like rgbaf(1,1,1,1) or grayf(.5)");
+		att->push("name", "Human Readable", "optional name for this spot");
+		att->push("t", "0", "the spot on the x axis to place the color, customarily the spots will"
+					        "cover the whole range [0..1] but that range is not mandatory");
+		att->push("nt","0", "like t, but normalized to the range [0..1]. Recomputed on reading in GradientStrip");
+		att->push("s", "1", "the spot on the y axis to place the color, customarily the spots will"
+		                    "cover the whole range [0..1] but that range is not mandatory");
+		att->push("ns","1", "like s, but normalized to the range [0..1]. Recomputed on reading in GradientStrip");
+		att->push("color", "rgba(1,1,1,1)", "for instance grayf(.5)");
 		return att;
 	}
 
@@ -556,11 +556,11 @@ anObject *GradientStrip::duplicate(anObject *dup)
 void GradientStrip::SetRadial(flatpoint pp1, flatpoint pp2, double rr1, double rr2)
 {
 	SetFlags(Radial, true);
-		
-	p1=pp1;
-	p2=pp2;
-	r1=rr1;
-	r2=rr2;
+
+	p1 = pp1;
+	p2 = pp2;
+	r1 = rr1;
+	r2 = rr2;
 
 	touchContents();
 }
@@ -573,11 +573,11 @@ void GradientStrip::SetRadial(flatpoint pp1, flatpoint pp2, double rr1, double r
 void GradientStrip::SetLinear(flatpoint pp1,flatpoint pp2,double rr1,double rr2)
 {
 	SetFlags(Linear, true);
-		
-	p1=pp1;
-	p2=pp2;
-	r1=rr1;
-	r2=rr2;
+
+	p1 = pp1;
+	p2 = pp2;
+	r1 = rr1;
+	r2 = rr2;
 
 	touchContents();
 }
@@ -830,14 +830,14 @@ LaxFiles::Attribute *GradientStrip::dump_out_atts(LaxFiles::Attribute *att,int w
 	if (!att) att=new Attribute;
 
 	if (what==-1) {
-		att->push("p1", "(0,0) #the starting coordinate");
-		att->push("p2", "(1,0) #the ending coordinate");
-		att->push("r1", "0     #the starting radius (radial) or the +y extent (linear)");
-		att->push("r2", " 0     #the ending radius (radial) or the -y extent (linear)");
-		att->push("num_columns"," #hint for number of columns in palette view");
-		att->push("radial","#Specifies a radial gradient");
-		att->push("linear","#Specifies a linear gradient");
-		Attribute *att2=att->pushSubAtt("spot","#There will be at least two gradient data spots, such as this:");
+		att->push("p1", "(0,0)", "the starting coordinate");
+		att->push("p2", "(1,0)", "the ending coordinate");
+		att->push("r1", "0",     "the starting radius (radial) or the +y extent (linear)");
+		att->push("r2", "0",     "the ending radius (radial) or the -y extent (linear)");
+		att->push("num_columns", "hint for number of columns in palette view");
+		att->push("radial",nullptr, "Specifies a radial gradient");
+		att->push("linear",nullptr, "Specifies a linear gradient");
+		Attribute *att2=att->pushSubAtt("spot",nullptr,"There will be at least two gradient data spots, such as this:");
 
 		if (colors.n) colors.e[0]->dump_out_atts(att2,what,context);
 		else {

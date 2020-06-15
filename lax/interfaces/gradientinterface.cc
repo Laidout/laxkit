@@ -159,12 +159,16 @@ namespace LaxInterfaces {
  * This is automatically determined by GradientInterface.
  */
 
+
 //! Default constructor, leaves strip null.
 GradientData::GradientData()
 {
-	strip = nullptr;
-	style=0;
-	usepreview=1;
+	r1 = 1;
+	r2 = 1;
+	strip            = nullptr;
+	style            = 0;
+	usepreview       = 1;
+	use_strip_points = false;
 }
 
 //! Create new basic gradient pp1 to pp2. Sets col1 at 0 and col2 at 1
@@ -173,11 +177,14 @@ GradientData::GradientData()
 GradientData::GradientData(flatpoint pp1,flatpoint pp2,double rr1,double rr2,
 			ScreenColor *col1,ScreenColor *col2,unsigned int stle)
 {
-	strip = nullptr;
+	r1 = 1;
+	r2 = 1;
+	strip            = nullptr;
+	style            = 0;
+	usepreview       = 1;
+	use_strip_points = false;
 
 	Set(pp1,pp2,rr1,rr2,col1,col2,stle);
-
-	usepreview=1;
 }
 
 GradientData::~GradientData()
@@ -186,20 +193,49 @@ GradientData::~GradientData()
 }
 
 
-int GradientData::Set(Laxkit::GradientStrip *newstrip, int absorb, bool keep_placement)
+flatpoint GradientData::P1(flatpoint p)
 {
-	flatpoint p1,p2;
-	double r1,r2;
-	if (strip && keep_placement) { p1 = strip->p1; p2 = strip->p2; r1 = strip->r1; r2 = strip->r2; }
-	if (strip != newstrip) {
-		if (strip) strip->dec_count();
-		strip = newstrip;
-	}
-	if (strip && !absorb) strip->inc_count();
-	if (strip && keep_placement) { strip->p1 = p1; strip->p2 = p2; strip->r1 = r1; strip->r2 = r2; }
-	return 0;
+	if (use_strip_points && strip) return strip->p1 = p;
+	else return p1 = p;
 }
 
+flatpoint GradientData::P1() const
+{
+	return use_strip_points && strip ? strip->p1 : p1;
+}
+
+flatpoint GradientData::P2(flatpoint p)
+{
+	if (use_strip_points && strip) return strip->p2 = p;
+	else return p2 = p;
+}
+
+flatpoint GradientData::P2() const
+{
+	return use_strip_points && strip ? strip->p2 : p2;
+}
+
+float GradientData::R1(float r)
+{
+	if (use_strip_points && strip) return strip->r1 = r;
+	else return r1 = r;
+}
+
+float GradientData::R1() const
+{
+	return use_strip_points && strip ? strip->r1 : r1;
+}
+
+float GradientData::R2(float r)
+{
+	if (use_strip_points && strip) return strip->r2 = r;
+	else return r2 = r;
+}
+
+float GradientData::R2() const
+{
+	return use_strip_points && strip ? strip->r2 : r2;
+}
 
 SomeData *GradientData::duplicate(SomeData *dup)
 {
@@ -220,9 +256,14 @@ SomeData *GradientData::duplicate(SomeData *dup)
 	}
 
 	g->style = style;
+	g->r1 = r1;
+	g->r2 = r2;
+	g->p1 = p1;
+	g->p2 = p2;
+	g->use_strip_points = use_strip_points;
 	if (strip) {
 		GradientStrip *nstrip = dynamic_cast<GradientStrip*>(strip->duplicate(nullptr));
-		g->Set(nstrip, 1, false);
+		g->Set(nstrip, 1, false, true);
 	}
 
 	 //somedata elements:
@@ -243,6 +284,28 @@ void GradientData::SetLinear()
 	style = (style&~(GRADIENT_LINEAR|GRADIENT_RADIAL))|GRADIENT_LINEAR;
 }
 
+/*! Set radial style and color line. Does not change colors in strip.
+ */
+void GradientData::SetRadial(flatpoint pp1,flatpoint pp2,double rr1,double rr2)
+{
+	style = (style&~(GRADIENT_LINEAR|GRADIENT_RADIAL))|GRADIENT_RADIAL;
+	P1(pp1);
+	P2(pp2);
+	R1(rr1);
+	R2(rr2);
+}
+
+/*! Set linear style and color line. Does not change colors in strip.
+ */
+void GradientData::SetLinear(flatpoint pp1,flatpoint pp2,double rr1,double rr2)
+{
+	style = (style&~(GRADIENT_LINEAR|GRADIENT_RADIAL))|GRADIENT_LINEAR;
+	P1(pp1);
+	P2(pp2);
+	R1(rr1);
+	R2(rr2);
+}
+
 void GradientData::SetRadial(flatpoint pp1,flatpoint pp2,double rr1,double rr2,
 			ScreenColor *col1,ScreenColor *col2)
 {
@@ -255,29 +318,40 @@ void GradientData::SetLinear(flatpoint pp1,flatpoint pp2,double rr1,double rr2,
 	Set(pp1,pp2,rr1,rr2,col1,col2,GRADIENT_LINEAR);
 }
 
-//! Set so gradient is pp1 to pp2. Sets col1 at 0 and col2 at 1. Creates a new gradient strip.
+
+/*! If own_resource, then newstrip->SetResourceOwner(this) is called.
+ */
+int GradientData::Set(Laxkit::GradientStrip *newstrip, int absorb, bool keep_placement, bool own_resource)
+{
+	flatpoint p1,p2;
+	double r1,r2;
+	if (strip && keep_placement) { p1 = P1(); p2 = P2(); r1 = R1(); r2 = R2(); }
+	if (strip != newstrip) {
+		if (strip) strip->dec_count();
+		strip = newstrip;
+	}
+	if (strip && !absorb) strip->inc_count();
+	if (strip && keep_placement) { P1(p1); P2(p2); R1(r1); R2(r2); }
+	return 0;
+}
+
+/*! Create a new GradientStrip and set so gradient is pp1 to pp2. Sets col1 at 0 and col2 at 1.
+ */
 void GradientData::Set(flatpoint pp1,flatpoint pp2,double rr1,double rr2,
 			ScreenColor *col1,ScreenColor *col2,unsigned int stle)
 {
 	style = stle;
 
-	//old style aligning to axis:
-	//if (norm(pp2-pp1)<1e-5) {
-		//xaxis(flatpoint(1,0));
-		//yaxis(flatpoint(0,1));
-		//p1=0;
-		//p2=0;
-
-	//} else {
-		//xaxis(pp2-pp1);
-		//yaxis(transpose(pp2-pp1));
-		//p1=0;
-		//p2=1;
-	//}
-	//origin(pp1);
-
-	GradientStrip *newstrip = new GradientStrip(pp1,pp2, rr1,rr2, col1, col2);
-	Set(newstrip, 1, false);
+	if (col1 || col2) {
+		GradientStrip *newstrip = new GradientStrip(pp1,pp2, rr1,rr2, col1, col2);
+		Set(newstrip, 1, false, true);
+	}
+	if (!use_strip_points) {
+		p1 = pp1;
+		p2 = pp2;
+		r1 = rr1;
+		r2 = rr2;
+	}
 
 	touchContents();
 
@@ -291,12 +365,12 @@ void GradientData::Set(flatpoint pp1,flatpoint pp2,double rr1,double rr2,
 double *GradientData::GradientTransform(double *result, bool invert)
 {
 	if (result == nullptr) result = new double[6];
-	flatpoint v = strip->p2 - strip->p1;
+	flatpoint v = P2() - P1();
 
-	if (v.norm() < 1e-5) transform_from_basis(result, strip->p1, flatpoint(1,0), flatpoint(0,1));
+	if (v.norm() < 1e-5) transform_from_basis(result, P1(), flatpoint(1,0), flatpoint(0,1));
 	else {
 		v.normalize();
-		transform_from_basis(result, strip->p1, v, v.transpose());
+		transform_from_basis(result, P1(), v, v.transpose());
 	}
 
 	if (invert) {
@@ -314,54 +388,38 @@ int GradientData::pointin(flatpoint pp,int pin)
 {
 	if (!strip) return 0;
 
-//	char scratch[300];
-//	sprintf(scratch, "x,y: %f, %f", pp.x,pp.y);
-
 	double x,y,mm[6];
 	transform_invert(mm,m());
 	pp = transform_point(mm,pp); //so now in object coords
-	double d = (strip->p1 - strip->p2).norm();
-
-
-//	sprintf(scratch+strlen(scratch), "   d: %f,   min,max: %f, %f,   r1,r2: %f, %f    grad point %f, %f",
-//			d,
-//			MinT(), MaxT(),
-//			strip->r1, strip->r2,
-//			(pp.x - minx)/boxwidth(),(pp.y - miny)/boxheight());
-
+	double d = (P1() - P2()).norm();
 
 	GradientTransform(mm, true); //object space to gradient space
 	pp = transform_point(mm, pp); //now in gradient space
 	x = pp.x;
 	y = pp.y;
 
-	
-//	sprintf(scratch+strlen(scratch), "    inv: %f,%f", pp.x,pp.y);
-//	cout << scratch << endl;
-
 
 	if (IsLinear()) {
 		int in = 0;
-		if (strip->r1 > -strip->r2) 
-			in = x >= 0 && x <= d && y >= -strip->r2 && y <= strip->r1;
-		else in = x >= 0 && x <= d && y >= strip->r1 && y <= -strip->r2;
-		//cout << "point is in: "<<in<<endl;
+		if (R1() > -R2()) 
+			in = x >= 0 && x <= d && y >= -R2() && y <= R1();
+		else in = x >= 0 && x <= d && y >= R1() && y <= -R2();
 		return in;
 		
 	} else {
-		flatpoint pp1 = transform_point(mm, strip->p1);
-		flatpoint pp2 = transform_point(mm, strip->p2);
+		flatpoint pp1 = transform_point(mm, P1());
+		flatpoint pp2 = transform_point(mm, P2());
 
 		 //note that it could just be a line though if o1!=o2, that is not dealt with here...
-		if (strip->r2==0 && strip->r1==0) {
+		if (R2() == 0 && R1() == 0) {
 			DBG cerr <<"point not in gradient "<<object_id<<endl;
 			return 0;
 		}
-		if ((x-pp1.x)*(x-pp1.x)+y*y < strip->r1*strip->r1) {
+		if ((x-pp1.x)*(x-pp1.x)+y*y < R1()*R1()) {
 			DBG cerr <<"point in gradient "<<object_id<<endl;
 			return 1;
 		} // is in circle 1
-		if ((x-pp2.x)*(x-pp2.x)+y*y < strip->r2*strip->r2) {
+		if ((x-pp2.x)*(x-pp2.x)+y*y < R2()*R2()) {
 			DBG cerr <<"point not in gradient "<<object_id<<endl;
 			return 1;
 		} // is in circle 2
@@ -370,19 +428,19 @@ int GradientData::pointin(flatpoint pp,int pin)
 		 //for this method, start circle cannot be totally in end circle, and vice versa.
 		 //checks whether is inside the trapezoidal region connecting
 		 //the starting and ending circles
-		if (pp1.x-fabs(strip->r1)>=pp2.x-fabs(strip->r2) && pp1.x+fabs(strip->r1)<=pp2.x+fabs(strip->r2)) {
+		if (pp1.x-fabs(R1())>=pp2.x-fabs(R2()) && pp1.x+fabs(R1())<=pp2.x+fabs(R2())) {
 			DBG cerr <<"point not in gradient "<<object_id<<endl;
 			return 0;
 		} // circle 1 is inside circle 2
-		if (pp2.x-fabs(strip->r2)>=pp1.x-fabs(strip->r1) && pp2.x+fabs(strip->r2)<=pp1.x+fabs(strip->r1)) {
+		if (pp2.x-fabs(R2())>=pp1.x-fabs(R1()) && pp2.x+fabs(R2())<=pp1.x+fabs(R1())) {
 			DBG cerr <<"point not in gradient "<<object_id<<endl;
 			return 0;
 		} // circle 2 is inside circle 1
 
 
 		double d = pp2.x-pp1.x, a2;
-		double rr1 = strip->r1,
-			   rr2 = strip->r2,
+		double rr1 = R1(),
+			   rr2 = R2(),
 			   o1 = pp1.x,
 			   o2 = pp2.x;
 		if (d<0) { //swap rr1,rr2 and o1,o2
@@ -426,27 +484,31 @@ int GradientData::pointin(flatpoint pp,int pin)
  *  p2 1
  *  r1 0
  *  r2 10
- *  spot
- *    t 0
- *    rgba 255 100 50 255
- *  spot
- *    t 1
- *    rgba 0 0 0 0
- *  radial
+ *  colors
+ *    radial
+ *    spot
+ *      t 0
+ *      rgba 255 100 50 255
+ *    spot
+ *      t 1
+ *      rgba 0 0 0 0
  * </pre>
  */
 void GradientData::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *context)
 {
 	if (!att) return;
 	char *name,*value;
+	char *e;
 	SomeData::dump_in_atts(att,flag,context);
 
-	if (!strip) strip = new GradientStrip();
-	strip->dump_in_atts(att, flag, context);
+	if (att->findValue("spot")) { //for backwards compatibility
+		if (!strip) strip = new GradientStrip();
+		strip->dump_in_atts(att, flag, context);
+	}
 
 	for (int c=0; c<att->attributes.n; c++) {
-		name=att->attributes.e[c]->name;
-		value=att->attributes.e[c]->value;
+		name  = att->attributes.e[c]->name;
+		value = att->attributes.e[c]->value;
 
 		if (!strcmp(name,"linear")) {
 			if (BooleanAttribute(value)) SetLinear();
@@ -455,6 +517,45 @@ void GradientData::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *c
 		} else if (!strcmp(name,"radial")) {
 			if (!BooleanAttribute(value)) SetLinear();
 			else SetRadial();
+
+		} else if (!strcmp(name,"use_strip_points")) {
+			use_strip_points = BooleanAttribute(value);
+
+		} else if (!strcmp(name,"colors")) {
+			if (!strip) strip = new GradientStrip();
+			strip->dump_in_atts(att->attributes.e[c], flag, context);
+
+		} else if (!strcmp(name,"p1")) {
+			flatpoint p;
+            if (!FlatvectorAttribute(value,&p,&e)) {
+                double d = 0;
+                if (DoubleAttribute(value, &d)) {
+                    p.x = d;
+                    p.y = 0;
+                }
+            }
+			P1(p);
+
+        } else if (!strcmp(name,"p2")) {
+			flatpoint p;
+            if (!FlatvectorAttribute(value,&p,&e)) {
+                double d = 0;
+                if (DoubleAttribute(value, &d)) {
+                    p.x = d;
+                    p.y = 0;
+                }
+				P2(p);
+            }
+
+        } else if (!strcmp(name,"r1")) {
+			double r;
+            DoubleAttribute(value,&r,&e);
+			R1(r);
+
+        } else if (!strcmp(name,"r2")) {
+			double r;
+            DoubleAttribute(value,&r,&e);
+			R2(r);
 		}
 	}
 	hint_a = 0;
@@ -469,21 +570,37 @@ LaxFiles::Attribute *GradientData::dump_out_atts(LaxFiles::Attribute *att,int wh
 
 	if (what == -1) {
 		att->push("matrix", "1 0 0 1 0 0", "the affine transform affecting this gradient");
-		if (strip) strip->dump_out_atts(att, -1, savecontext);
+        att->push("p1", "(0,0)", "the starting coordinate");
+        att->push("p2", "(1,0)", "the ending coordinate");
+        att->push("r1", "0",     "the starting radius (radial) or the +y extent (linear)");
+        att->push("r2", "0",     "the ending radius (radial) or the -y extent (linear)");
+		att->push("use_strip_points", "false", "Use the points within gradient strip");
+
+		Attribute *att2 = att->pushSubAtt("colors");
+		if (strip) strip->dump_out_atts(att2, -1, savecontext);
 		else {
 			GradientStrip strp;
-			strp.dump_out_atts(att, -1, savecontext);
+			strp.dump_out_atts(att2, -1, savecontext);
 		}
 		return att;
 	}
 
-	char str[120];
-	sprintf(str,"%.10g %.10g %.10g %.10g %.10g %.10g",
+	char scratch[120];
+	sprintf(scratch,"%.10g %.10g %.10g %.10g %.10g %.10g",
 				m(0),m(1),m(2),m(3),m(4),m(5));
-	att->push("matrix",str);
+	att->push("matrix",scratch);
+
+	att->push("use_strip_points", use_strip_points ? "true" : "false");
+    sprintf(scratch, "(%.10g, %.10g)", P1().x,P1().y);
+    att->push("p1", scratch);
+    sprintf(scratch, "(%.10g, %.10g)", P2().x,P2().y);
+    att->push("p2", scratch);
+    att->push("r1", R1());
+    att->push("r2", R2());
 
 	if (strip) {
-		strip->dump_out_atts(att,what,savecontext);
+		Attribute *att2 = att->pushSubAtt("colors");
+		strip->dump_out_atts(att2,what,savecontext);
 	}
 
 	return att;
@@ -499,39 +616,9 @@ LaxFiles::Attribute *GradientData::dump_out_atts(LaxFiles::Attribute *att,int wh
  */
 void GradientData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
 {
-	char spc[indent+1]; memset(spc,' ',indent); spc[indent]='\0';
-	if (what==-1) {
-		fprintf(f,"%smatrix 1 0 0 1 0 0  #the affine transform affecting this gradient\n",spc);
-		fprintf(f,"%sp1 (0,0) #the starting coordinate\n",spc);
-		fprintf(f,"%sp2 (1,0) #the ending coordinate\n",spc);
-		fprintf(f,"%sr1 0     #the starting radius (radial) or the +y extent (linear)\n",spc);
-		fprintf(f,"%sr2 0     #the ending radius (radial) or the -y extent (linear)\n",spc);
-		//fprintf(f,"%sa  0    #an offset to place the color controls of the gradient spots\n",spc);
-		fprintf(f,"%sradial  #Specifies a radial gradient\n",spc);
-		fprintf(f,"%slinear  #Specifies a linear gradient\n",spc);
-		fprintf(f,"%sspot    #There will be at least two gradient data spots, such as this:\n",spc);
-		if (strip && strip->colors.n) strip->colors.e[0]->dump_out(f,indent+2,-1,NULL);
-		else {
-			GradientStrip::GradientSpot g(0,0, .5,1.,1.,1.);
-			g.dump_out(f,indent+2,-1,NULL);
-		}
-		return;
-	}
-	fprintf(f,"%smatrix %.10g %.10g %.10g %.10g %.10g %.10g\n",
-			spc,m(0),m(1),m(2),m(3),m(4),m(5));
-	if (strip) {
-		fprintf(f,"%sp1 (%.10g,%.10g)\n",spc, strip->p1.x,strip->p1.y);
-		fprintf(f,"%sp2 (%.10g,%.10g)\n",spc, strip->p2.x,strip->p2.y);
-		fprintf(f,"%sr1 %.10g\n",spc, strip->r1);
-		fprintf(f,"%sr2 %.10g\n",spc, strip->r2);
-		//fprintf(f,"%sa %.10g\n",spc,a);
-		fprintf(f,"%s%s\n",spc, (style & GRADIENT_RADIAL ? "radial" : "linear"));
-
-		for (int c=0; c<strip->colors.n; c++) {
-			fprintf(f,"%sspot #%d\n",spc,c);
-			strip->colors.e[c]->dump_out(f,indent+2,0,context);
-		}
-	}
+	Attribute att;
+    dump_out_atts(&att,what,context);
+    att.dump_out(f,indent);
 }
 
 //! Find bounding box of a rectangle for linear, or the circles for radial.
@@ -542,29 +629,29 @@ void GradientData::FindBBox()
 	if (IsRadial()) {
 		clear();
 
-		addtobounds(strip->p1-flatpoint(fabs(strip->r1),0));
-		addtobounds(strip->p1+flatpoint(fabs(strip->r1),0));
-		addtobounds(strip->p1-flatpoint(0,fabs(strip->r1)));
-		addtobounds(strip->p1+flatpoint(0,fabs(strip->r1)));
+		addtobounds(P1()-flatpoint(fabs(R1()),0));
+		addtobounds(P1()+flatpoint(fabs(R1()),0));
+		addtobounds(P1()-flatpoint(0,fabs(R1())));
+		addtobounds(P1()+flatpoint(0,fabs(R1())));
 
-		addtobounds(strip->p2-flatpoint(fabs(strip->r2),0));
-		addtobounds(strip->p2+flatpoint(fabs(strip->r2),0));
-		addtobounds(strip->p2-flatpoint(0,fabs(strip->r2)));
-		addtobounds(strip->p2+flatpoint(0,fabs(strip->r2)));
+		addtobounds(P2()-flatpoint(fabs(R2()),0));
+		addtobounds(P2()+flatpoint(fabs(R2()),0));
+		addtobounds(P2()-flatpoint(0,fabs(R2())));
+		addtobounds(P2()+flatpoint(0,fabs(R2())));
 
 	} else {
 		double mm[6];
 		GradientTransform(mm, false);
 
 		clear();
-		addtobounds(strip->p1);
-		addtobounds(strip->p2);
-		addtobounds(transform_point(mm,0, strip->r1));
-		addtobounds(transform_point(mm,0,-strip->r1));
+		addtobounds(P1());
+		addtobounds(P2());
+		addtobounds(transform_point(mm,0, R1()));
+		addtobounds(transform_point(mm,0,-R1()));
 
-		double d = (strip->p2-strip->p1).norm();
-		addtobounds(transform_point(mm,d, strip->r2));
-		addtobounds(transform_point(mm,d,-strip->r2));
+		double d = (P2()-P1()).norm();
+		addtobounds(transform_point(mm,d, R2()));
+		addtobounds(transform_point(mm,d,-R2()));
 	}
 	DBG cerr <<"gradient "<<object_id<<": x:"<<minx<<','<<maxx<<"  y:"<<miny<<','<<maxy<<endl;
 }
@@ -649,17 +736,17 @@ int GradientData::WhatColor(flatpoint p, Laxkit::ScreenColor *col, bool is_norma
 	double mm[6];
 	GradientTransform(mm, true);
 	p = transform_point(mm, p);
-	flatpoint pp1 = transform_point(mm, strip->p1);
-	flatpoint pp2 = transform_point(mm, strip->p2);
+	flatpoint pp1 = transform_point(mm, P1());
+	flatpoint pp2 = transform_point(mm, P2());
 
 	double x=p.x;
 	double y=p.y;
 
 	if (!IsRadial()) {
 		 //linear gradient, much easier
-		if (strip->r1 >strip->r2) {
-			if (y>strip->r1 || y<strip->r2) return 1; //out of y bounds
-		} else if (y<strip->r1 || y>strip->r2) return 2;
+		if (R1() >R2()) {
+			if (y>R1() || y<R2()) return 1; //out of y bounds
+		} else if (y<R1() || y>R2()) return 2;
 
 		if (pp1.x < pp2.x) {
 			if (x<pp1.x || x>pp2.x) return 3;
@@ -676,7 +763,7 @@ int GradientData::WhatColor(flatpoint p, Laxkit::ScreenColor *col, bool is_norma
 //		 //circle 1 is entirely contained in circle 2
 //	}
 	 // ***** HACK! just looks in plane circle 2 radius centered at p2
-	return WhatColor(strip->colors.e[0]->t + (strip->colors.e[strip->colors.n-1]->t-strip->colors.e[0]->t)*norm(p - flatpoint(pp2.x,0))/strip->r2, col, is_normalized);
+	return WhatColor(strip->colors.e[0]->t + (strip->colors.e[strip->colors.n-1]->t-strip->colors.e[0]->t)*norm(p - flatpoint(pp2.x,0))/R2(), col, is_normalized);
 }
 
 //! Figure out what color lays at coordinate t.
@@ -1036,9 +1123,10 @@ void GradientInterface::SetupRect(double x,double y,double w,double h)
 	bounds.setbounds(x,x+w, y,y+h);
 
 	if (data && (style & EditStrip)) {
-		data->strip->p1 = bounds.BBoxPoint(0,.5);
-		data->strip->p2 = bounds.BBoxPoint(1,.5);
-		data->strip->r1 = strip->r2 = bounds.boxheight()/2;
+		data->P1(bounds.BBoxPoint(0,.5));
+		data->P2(bounds.BBoxPoint(1,.5));
+		data->R1(bounds.boxheight()/2);
+		data->R2(bounds.boxheight()/2);
 		data->FindBBox();
 	}
 }
@@ -1075,7 +1163,7 @@ int GradientInterface::UseThisObject(Laxkit::GradientStrip *nstrip)
 	data->SetLinear(flatpoint(bounds.minx, bounds.boxheight()/2), flatpoint(bounds.maxx, bounds.boxheight()/2),
 				bounds.boxheight()/2, bounds.boxheight()/2,
 				nullptr,nullptr);
-	data->Set(strip, 0, true);
+	data->Set(strip, 0, true, true);
 	data->FindBBox();
 
 	needtodraw=1;
@@ -1176,8 +1264,8 @@ int GradientInterface::DrawData(anObject *ndata,anObject *a1,anObject *a2,int)
  */
 void GradientInterface::drawLinear2()
 {
-	flatpoint p1 = data->strip->p1;
-	flatpoint p2 = data->strip->p2;
+	flatpoint p1 = data->P1();
+	flatpoint p2 = data->P2();
 
 	double offsets[data->strip->colors.n];
 	ScreenColor colors[data->strip->colors.n];
@@ -1196,10 +1284,10 @@ void GradientInterface::drawLinear2()
 	data->GradientTransform(mm, false);
 	double d = (p2-p1).norm();
 
-	dp->moveto(transform_point(mm, 0, data->strip->r1));
-	dp->lineto(transform_point(mm, d, data->strip->r1));
-	dp->lineto(transform_point(mm, d,-data->strip->r2));
-	dp->lineto(transform_point(mm, 0,-data->strip->r2));
+	dp->moveto(transform_point(mm, 0, data->R1()));
+	dp->lineto(transform_point(mm, d, data->R1()));
+	dp->lineto(transform_point(mm, d,-data->R2()));
+	dp->lineto(transform_point(mm, 0,-data->R2()));
 	dp->closed();
 	dp->fill(0);
 
@@ -1227,7 +1315,7 @@ void GradientInterface::drawLinear()
 
 	double mm[6];
 	data->GradientTransform(mm, false);
-	double d = (data->strip->p2 - data->strip->p1).norm();
+	double d = (data->P2() - data->P1()).norm();
 
 	cstart = data->strip->colors.e[0]->t;
 	clen = data->strip->colors.e[data->strip->colors.n-1]->t - cstart;
@@ -1267,8 +1355,8 @@ void GradientInterface::drawLinear()
 			}
 		}
 
-		v1 = dp->realtoscreen(transform_point(mm, flatpoint(0,data->strip->r1)) - dp->realtoscreen(flatpoint(0,0)));
-		v2 = dp->realtoscreen(transform_point(mm, flatpoint(0,data->strip->r2)) - dp->realtoscreen(flatpoint(0,0)));
+		v1 = dp->realtoscreen(transform_point(mm, flatpoint(0,data->R1())) - dp->realtoscreen(flatpoint(0,0)));
+		v2 = dp->realtoscreen(transform_point(mm, flatpoint(0,data->R2())) - dp->realtoscreen(flatpoint(0,0)));
 
 		for (c2=0; c2<=len; c2++) {
 			coloravg(&col,&color0,&color1,(float)c2/len);
@@ -1290,8 +1378,8 @@ void GradientInterface::drawRadial2()
 
 	if (!data->strip) return;
 
-	flatpoint p1 = data->strip->p1;
-	flatpoint p2 = data->strip->p2;
+	flatpoint p1 = data->P1();
+	flatpoint p2 = data->P2();
 
 	double offsets[data->strip->colors.n];
 	ScreenColor colors[data->strip->colors.n];
@@ -1302,7 +1390,7 @@ void GradientInterface::drawRadial2()
 	}
 
 	 //the number: 0=none, 1=repeat, 2=reflect, 3=pad
-	dp->setRadialGradient(0, p1.x,p1.y,data->strip->r1, p2.x,p2.y,data->strip->r2, offsets, colors, data->strip->colors.n);
+	dp->setRadialGradient(0, p1.x,p1.y,data->R1(), p2.x,p2.y,data->R2(), offsets, colors, data->strip->colors.n);
 
 	dp->drawrectangle(data->minx,data->miny, data->maxx-data->minx, data->maxy-data->miny, 1);
 	dp->fill(0);
@@ -1327,13 +1415,13 @@ void GradientInterface::drawRadial()
 	//flatpoint points[ell];
 
 	dp->DrawScreen();
-	O1 = dp->realtoscreen(data->strip->p1); //the data's p1 and p2
-	O2 = dp->realtoscreen(data->strip->p2);
+	O1 = dp->realtoscreen(data->P1()); //the data's p1 and p2
+	O2 = dp->realtoscreen(data->P2());
 	cstart = data->strip->colors.e[0]->t;
 	clen = data->strip->TRange();
 
-	R1 = data->strip->r1;
-	R2 = data->strip->r2;
+	R1 = data->R1();
+	R2 = data->R2();
 
 	xaxis = dp->realtoscreen(flatpoint(1,0))-dp->realtoscreen(flatpoint(0,0));
 	s = 1/norm(xaxis);
@@ -1385,8 +1473,8 @@ void GradientInterface::drawRadialLine(double t)
 	flatpoint points[ell];
 
 
-	O1 = dp->realtoscreen(data->strip->p1);
-	O2 = dp->realtoscreen(data->strip->p2);
+	O1 = dp->realtoscreen(data->P1());
+	O2 = dp->realtoscreen(data->P2());
 	o = (1-t)*O1+t*O2;
 
 	xaxis = dp->realtoscreen(flatpoint(1,0))-dp->realtoscreen(flatpoint(0,0));
@@ -1395,7 +1483,7 @@ void GradientInterface::drawRadialLine(double t)
 	yaxis = dp->realtoscreen(flatpoint(0,1))-dp->realtoscreen(flatpoint(0,0));
 	yaxis *= s;
 
-	r = ((1-t)*data->strip->r1 + t*data->strip->r2)/s;
+	r = ((1-t)*data->R1() + t*data->R2())/s;
 	for (c3=0; c3<ell; c3++) {
 		p = o + r*cos((float)c3/(ell-1)*2*M_PI)*xaxis + r*sin((float)c3/(ell-1)*2*M_PI)*yaxis;
 		points[c3].x = p.x;
@@ -1419,11 +1507,11 @@ void GradientInterface::DrawOutline(double width, double r,double g,double b)
 
 	if (data->IsLinear()) {
 		flatpoint ul,ur,ll,lr;
-		double d = (data->strip->p2 - data->strip->p1).norm();
-		ul = transform_point(mm, flatpoint(0, data->strip->r1));
-		ur = transform_point(mm, flatpoint(d, data->strip->r1));
-		ll = transform_point(mm, flatpoint(0,-data->strip->r2));
-		lr = transform_point(mm, flatpoint(d,-data->strip->r2));
+		double d = (data->P2() - data->P1()).norm();
+		ul = transform_point(mm, flatpoint(0, data->R1()));
+		ur = transform_point(mm, flatpoint(d, data->R1()));
+		ll = transform_point(mm, flatpoint(0,-data->R2()));
+		lr = transform_point(mm, flatpoint(d,-data->R2()));
 
 		dp->drawline(ul, ur);
 		dp->drawline(ur, lr);
@@ -1473,7 +1561,7 @@ int GradientInterface::Refresh()
 
 	//dp->drawline(data->minx,data->miny, data->maxx,data->maxy);
 	//dp->drawline(data->maxx,data->miny, data->minx,data->maxy);
-	//dp->drawline(data->strip->p1, data->strip->p2);
+	//dp->drawline(data->P1(), data->P2());
 
 
 	// draw control points
@@ -1491,9 +1579,9 @@ int GradientInterface::Refresh()
 		int c;
 
 		// draw arrow on p1 to p2 and a line between color spots
-		//dp->drawline(data->strip->p1, data->strip->p2);
+		//dp->drawline(data->P1(), data->P2());
 		if (style & EditStrip) {
-		} else dp->drawarrow(data->strip->p1, data->strip->p2 - data->strip->p1, 0,1,2);
+		} else dp->drawarrow(data->P1(), data->P2() - data->P1(), 0,1,2);
 		//dp->drawarrow(getpoint(GP_p1,0), getpoint(GP_p2,0) - getpoint(GP_p1,0), 0,1,2);
 
 		//dp->drawline(getpoint(0,0), getpoint(data->NumColors()-1, 0));
@@ -1520,11 +1608,11 @@ int GradientInterface::Refresh()
 			flatpoint ul,ur,ll,lr;
 			double mm[6];
 			data->GradientTransform(mm, false);
-			double d = (data->strip->p2 - data->strip->p1).norm();
-			ul = transform_point(mm, flatpoint(0, data->strip->r1));
-			ur = transform_point(mm, flatpoint(d, data->strip->r1));
-			ll = transform_point(mm, flatpoint(0,-data->strip->r2));
-			lr = transform_point(mm, flatpoint(d,-data->strip->r2));
+			double d = (data->P2() - data->P1()).norm();
+			ul = transform_point(mm, flatpoint(0, data->R1()));
+			ur = transform_point(mm, flatpoint(d, data->R1()));
+			ll = transform_point(mm, flatpoint(0,-data->R2()));
+			lr = transform_point(mm, flatpoint(d,-data->R2()));
 			dp->LineWidthScreen(6);
 			dp->NewFG(controlcolor);
 
@@ -1593,20 +1681,20 @@ flatpoint GradientInterface::getpoint(int c, int trans)
 	if (!data || !(c >= GP_MinMoveable && c<data->NumColors())) return flatpoint();
 
 	flatpoint p;
-	double d = (data->strip->p2 - data->strip->p1).norm();
+	double d = (data->P2() - data->P1()).norm();
 
 	if (c == GP_a) {
 		if (data->IsRadial())
-			p = flatpoint(cos(data->hint_a)*data->strip->r1, sin(data->hint_a)*data->strip->r1);
+			p = flatpoint(cos(data->hint_a)*data->R1(), sin(data->hint_a)*data->R1());
 		else p = flatpoint(0,data->hint_a);
 
 	} else if (c == GP_r1) //r1
-		if (data->IsRadial()) p = flatpoint(0,data->strip->r1);
-		else p = flatpoint(0,data->strip->r1);
+		if (data->IsRadial()) p = flatpoint(0,data->R1());
+		else p = flatpoint(0,data->R1());
 
 	else if (c == GP_r2) //r2
-		if (data->IsRadial()) p = flatpoint(d,data->strip->r2);
-		else p = flatpoint(0,-data->strip->r2);
+		if (data->IsRadial()) p = flatpoint(d,data->R2());
+		else p = flatpoint(0,-data->R2());
 
 	else if (c == GP_p2) p.x = d;
 	else if (c == GP_p1) p.x = 0;
@@ -1619,8 +1707,8 @@ flatpoint GradientInterface::getpoint(int c, int trans)
 			flatpoint p1,p2;
 			if (data->strip->IsRadial()) {
 				// distribute at angle ??? corresponding to their spot on screen..
-				p1 = flatpoint(0 + cos(data->hint_a)*data->strip->r1, sin(data->hint_a)*data->strip->r1);
-				p2 = flatpoint(d + cos(data->hint_a)*data->strip->r2, sin(data->hint_a)*data->strip->r2);
+				p1 = flatpoint(0 + cos(data->hint_a)*data->R1(), sin(data->hint_a)*data->R1());
+				p2 = flatpoint(d + cos(data->hint_a)*data->R2(), sin(data->hint_a)*data->R2());
 			} else {
 				p1 = flatpoint(0, data->hint_a);
 				p2 = flatpoint(d, data->hint_a);
@@ -1673,7 +1761,7 @@ int GradientInterface::scan(int x,int y)
 
     //DBG cout <<"--- dumpctm transform: ";
     //DBG 	for (int c=0; c<6; c++) cout<<data->m(c)<<(c<5?", ":"   ");
-    //DBG cout <<"  p1: "<<data->strip->p1.x<<','<<data->strip->p1.y<<"  p2: "<<data->strip->p2.x<<','<<data->strip->p2.y<<"  data b: "<<data->minx<<','<<data->maxx<<','<<data->miny<<','<<data->maxy<<endl;
+    //DBG cout <<"  p1: "<<data->P1().x<<','<<data->P1().y<<"  p2: "<<data->P2().x<<','<<data->P2().y<<"  data b: "<<data->minx<<','<<data->maxx<<','<<data->miny<<','<<data->maxy<<endl;
 
 
 	//sprintf(scratch, "grad bounds %f %f  %f %f", data->minx,data->maxx, data->miny,data->maxy);
@@ -1696,22 +1784,22 @@ int GradientInterface::scan(int x,int y)
 	flatpoint p3;
 	if (data->IsRadial()) {
 		d = sqrt(d);
-		dd = norm(p2 - data->strip->p1);
-		if (fabs(dd-fabs(data->strip->r1))<d) return GP_r1;
+		dd = norm(p2 - data->P1());
+		if (fabs(dd-fabs(data->R1()))<d) return GP_r1;
 
-		dd=norm(p2 - data->strip->p2);
-		if (fabs(dd - fabs(data->strip->r2))<d) return GP_r2;
+		dd=norm(p2 - data->P2());
+		if (fabs(dd - fabs(data->R2()))<d) return GP_r2;
 
 	} else { // linear gradient
 		if ((style & EditStrip) == 0) {
 			flatpoint ul,ur,ll,lr;
 			double mm[6];
 			data->GradientTransform(mm, false);
-			double sd = (data->strip->p2 - data->strip->p1).norm();
-			ul = flatpoint(transform_point(mm, flatpoint(0,  data->strip->r1)));
-			ur = flatpoint(transform_point(mm, flatpoint(sd, data->strip->r1)));
-			ll = flatpoint(transform_point(mm, flatpoint(0, -data->strip->r2)));
-			lr = flatpoint(transform_point(mm, flatpoint(sd,-data->strip->r2)));
+			double sd = (data->P2() - data->P1()).norm();
+			ul = flatpoint(transform_point(mm, flatpoint(0,  data->R1())));
+			ur = flatpoint(transform_point(mm, flatpoint(sd, data->R1())));
+			ll = flatpoint(transform_point(mm, flatpoint(0, -data->R2())));
+			lr = flatpoint(transform_point(mm, flatpoint(sd,-data->R2())));
 			d=sqrt(d);
 
 			if (distance(p,ul,ur) < d) return GP_r1;
@@ -2068,9 +2156,9 @@ int GradientInterface::MouseMove(int x,int y,unsigned int state,const LaxMouse *
 	double mm[6];
 	data->GradientTransform(mm, true);
 	d = transform_vector(mm, d);
-	flatpoint pp1 = transform_point(mm, data->strip->p1);
-	flatpoint pp2 = transform_point(mm, data->strip->p2);
-	//flatpoint v = data->strip->p2 - data->strip->p1;
+	flatpoint pp1 = transform_point(mm, data->P1());
+	flatpoint pp2 = transform_point(mm, data->P2());
+	//flatpoint v = data->P2() - data->P1();
 
 	DBG cerr <<" ------------ pp1: "<<pp1.x<<","<<pp1.y<<"  pp2: "<<pp2.x<<','<<pp2.y<<endl;
 
@@ -2082,15 +2170,15 @@ int GradientInterface::MouseMove(int x,int y,unsigned int state,const LaxMouse *
 	} else if (movepoint == GP_r1) {
 		if (data->IsRadial()) {
 			flatpoint r1 = d + transform_point(mm, transform_point_inverse(data->m(),screentoreal(mx,my)) - getpoint(GP_p1,0));
-			data->strip->r1 = norm(r1);
-			if (  fabs((pp2.x + fabs(data->strip->r2)) - (pp1.x + fabs(data->strip->r1)))
-				< fabs((pp2.x - fabs(data->strip->r2)) - (pp1.x - fabs(data->strip->r1)))) {
+			data->R1(norm(r1));
+			if (  fabs((pp2.x + fabs(data->R2())) - (pp1.x + fabs(data->R1())))
+				< fabs((pp2.x - fabs(data->R2())) - (pp1.x - fabs(data->R1())))) {
 				data->hint_a = M_PI;
 			} else data->hint_a = 0;
 
 		} else {
-			data->strip->r1 += d.y;
-			if ((state&LAX_STATE_MASK)!=ShiftMask) data->strip->r2 += d.y;
+			data->R1(data->R1() + d.y);
+			if ((state&LAX_STATE_MASK)!=ShiftMask) data->R2(data->R2() + d.y);
 		}
 		data->touchContents();
 		needtodraw=1;
@@ -2098,14 +2186,14 @@ int GradientInterface::MouseMove(int x,int y,unsigned int state,const LaxMouse *
 	} else if (movepoint==GP_r2) {
 		if (data->IsRadial()) {
 			flatpoint r2 = d  + transform_point(mm, transform_point_inverse(data->m(),screentoreal(mx,my)) - getpoint(GP_p2,0));
-			data->strip->r2 = norm(r2);
-			if ( fabs((pp2.x + fabs(data->strip->r2)) - (pp1.x + fabs(data->strip->r1)))
-				<fabs((pp2.x - fabs(data->strip->r2)) - (pp1.x - fabs(data->strip->r1)))) {
+			data->R2(norm(r2));
+			if ( fabs((pp2.x + fabs(data->R2())) - (pp1.x + fabs(data->R1())))
+				<fabs((pp2.x - fabs(data->R2())) - (pp1.x - fabs(data->R1())))) {
 				data->hint_a=M_PI;
 			} else data->hint_a=0;
 		} else {
-			data->strip->r2 -= d.y;
-			if ((state&LAX_STATE_MASK)!=ShiftMask) data->strip->r1 -= d.y;
+			data->R2(data->R2() -d.y);
+			if ((state&LAX_STATE_MASK)!=ShiftMask) data->R1(data->R1() - d.y);
 		}
 		data->touchContents();
 		needtodraw=1;
@@ -2140,13 +2228,13 @@ int GradientInterface::MouseMove(int x,int y,unsigned int state,const LaxMouse *
 		//	d = transform_vector(m, d||np);
 		//}
 
-		if (movepoint == GP_p1) data->strip->p1 += od;
-		else data->strip->p2 += od;
+		if (movepoint == GP_p1) data->P1(data->P1() + od);
+		else data->P2(data->P2() + od);
 
 		data->touchContents();
 		if (data->IsRadial()) {
-			if ( fabs((pp2.x + fabs(data->strip->r2)) - (pp1.x + fabs(data->strip->r1)))
-				<fabs((pp2.x - fabs(data->strip->r2)) - (pp1.x - fabs(data->strip->r1)))) {
+			if ( fabs((pp2.x + fabs(data->R2())) - (pp1.x + fabs(data->R1())))
+				<fabs((pp2.x - fabs(data->R2())) - (pp1.x - fabs(data->R1())))) {
 				data->hint_a = M_PI;
 			} else data->hint_a = 0;
 		}
@@ -2156,7 +2244,7 @@ int GradientInterface::MouseMove(int x,int y,unsigned int state,const LaxMouse *
 		 // move curpoints
 		int cp;
 		double plen,clen,cstart;
-		plen = (data->strip->p2 - data->strip->p1).norm();
+		plen = (data->P2() - data->P1()).norm();
 		cstart = data->strip->colors.e[0]->t;
 		clen = data->strip->colors.e[data->NumColors()-1]->t - cstart;
 
@@ -2194,13 +2282,13 @@ int GradientInterface::MouseMove(int x,int y,unsigned int state,const LaxMouse *
 
 			 // check if points were shifted past previous p1 and p2 points
 			 // and change p1 and/or p2 if so
-			flatpoint v = data->strip->p2 - data->strip->p1;
+			flatpoint v = data->P2() - data->P1();
 			v.normalize();
 			double nclen = data->strip->colors.e[data->strip->colors.n-1]->t - data->strip->colors.e[0]->t;
 			if (data->strip->colors.e[0]->t != cstart || nclen != clen) {
 				double m = plen/clen;
-				data->strip->p1 += (data->strip->colors.e[0]->t - cstart)*m * v;
-				data->strip->p2 += (data->strip->colors.e[0]->t + nclen - (cstart+clen))*m * v;
+				data->P1(data->P1() + (data->strip->colors.e[0]->t - cstart)*m * v);
+				data->P2(data->P2() + (data->strip->colors.e[0]->t + nclen - (cstart+clen))*m * v);
 			}
 		}
 	}
@@ -2321,8 +2409,8 @@ int GradientInterface::PerformAction(int action)
 		if (!data || !data->strip || (curpoints.n==0 && curpoint<GP_MinMoveable)) return 0;
 
 		int c;
-		if (curpoint==GP_r1) data->strip->r1=0;
-		else if (curpoint==GP_r2) data->strip->r2=0;
+		if (curpoint==GP_r1) data->R1(0);
+		else if (curpoint==GP_r2) data->R2(0);
 		else if (curpoints.n) while (curpoints.n) {
 			c = curpoints.pop();
 			DBG cerr <<"--- deleting gradient spot "<<c<<endl;
@@ -2331,13 +2419,13 @@ int GradientInterface::PerformAction(int action)
 			if (c==0) {
 				 // move p1 to new first color spot
 				flatpoint p = getpoint(0,0);
-				data->strip->p1 = p;
+				data->P1(p);
 				continue;
 			}
 			if (c >= data->strip->colors.n) {
 				 // move p2 to new last color spot
 				flatpoint p = getpoint(data->strip->colors.n-1,0);
-				data->strip->p2 = p;
+				data->P2(p);
 				continue;
 			}
 		}

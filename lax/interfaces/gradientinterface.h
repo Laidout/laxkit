@@ -38,6 +38,8 @@ namespace LaxInterfaces {
 class GradientData : virtual public SomeData
 {
   protected:
+	flatpoint p1,p2;
+	float r1, r2;
   	
   public:
 	enum GradentDataStyle {
@@ -49,6 +51,7 @@ class GradientData : virtual public SomeData
 
 	unsigned int style;
 	double hint_a;
+	bool use_strip_points;
 
 	Laxkit::GradientStrip *strip;
 
@@ -56,23 +59,25 @@ class GradientData : virtual public SomeData
 	GradientData(flatpoint pp1,flatpoint pp2,double rr1,double rr2,
 			Laxkit::ScreenColor *col1,Laxkit::ScreenColor *col2,unsigned int stle);
 	virtual ~GradientData();
+	virtual const char *whattype() { return "GradientData"; }
+	virtual SomeData *duplicate(SomeData *dup);
+	virtual void FindBBox();
+	virtual int pointin(flatpoint pp,int pin=1);
 
 	virtual double *GradientTransform(double *result, bool invert);
 	virtual int IsRadial() { return style&GRADIENT_RADIAL; }
 	virtual int IsLinear() { return style&GRADIENT_LINEAR; }
 	virtual void SetRadial();
 	virtual void SetLinear();
+	virtual void SetRadial(flatpoint pp1,flatpoint pp2,double rr1,double rr2);
+	virtual void SetLinear(flatpoint pp1,flatpoint pp2,double rr1,double rr2);
 	virtual void SetRadial(flatpoint pp1,flatpoint pp2,double rr1,double rr2,
 			Laxkit::ScreenColor *col1,Laxkit::ScreenColor *col2);
 	virtual void SetLinear(flatpoint pp1,flatpoint pp2,double rr1,double rr2,
 			Laxkit::ScreenColor *col1,Laxkit::ScreenColor *col2);
 	virtual void Set(flatpoint pp1,flatpoint pp2,double rr1,double rr2,
 			Laxkit::ScreenColor *col1,Laxkit::ScreenColor *col2, unsigned int stle);
-	virtual const char *whattype() { return "GradientData"; }
-	virtual SomeData *duplicate(SomeData *dup);
-	virtual void FindBBox();
-	virtual int Set(Laxkit::GradientStrip *newstrip, int absorb, bool keep_placement);
-	virtual int pointin(flatpoint pp,int pin=1);
+	virtual int Set(Laxkit::GradientStrip *newstrip, int absorb, bool keep_placement, bool own_resource);
 	virtual int ShiftPoint(int which,double dt);
 	virtual double GetNormalizedT(int i);
 	virtual int NumColors();
@@ -85,6 +90,15 @@ class GradientData : virtual public SomeData
 	virtual void FlipColors();
 	virtual float MinT();
 	virtual float MaxT();
+
+	virtual flatpoint P1(flatpoint p);
+	virtual flatpoint P1() const;
+	virtual flatpoint P2(flatpoint p);
+	virtual flatpoint P2() const;
+	virtual float R1(float r);
+	virtual float R1() const;
+	virtual float R2(float r);
+	virtual float R2() const;
 
 	virtual int renderToBuffer(unsigned char *buffer, int bufw, int bufh, int bufstride, int bufdepth, int bufchannels);
 
