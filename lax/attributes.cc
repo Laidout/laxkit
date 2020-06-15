@@ -2958,7 +2958,7 @@ Attribute *JsonFileToAttribute (const char *jsonfile, Attribute *att)
  *
  * <pre>
  *   { "hashname" : [ "array", "of", 5, "stuff", 10.0, true ],
- *     "hashname2" " null
+ *     "hashname2" : null
  *   }
  * </pre>
  *
