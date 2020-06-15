@@ -1174,11 +1174,11 @@ int XInput2Pointer::getInfo(anXWindow *win,
 							 double *x, double *y, unsigned int *mods,
 							 double *pressure, double *tiltx, double *tilty, ScreenInformation **screenInfo) //extra goodies
 {
-	Window xwin=0;
-	if (win)   xwin=win->xlib_window;
-	if (!xwin) xwin=DefaultRootWindow(anXApp::app->dpy);
+	Window xwin = 0;
+	if (win)   xwin = win->xlib_window;
+	if (!xwin) xwin = DefaultRootWindow(anXApp::app->dpy);
 
-	 //XInput2:
+	// XInput2:
 	double drx, dry, dxx, dyy; //sub pixel accuracy!
 	Window rt=0, chld=0;
 	XIButtonState buttonstate; //these are structs. buttonstate->mask must be free'd
