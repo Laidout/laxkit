@@ -137,33 +137,41 @@ namespace Laxkit {
  * This is a six valued array, see intro for discussion.
  */
 
+#define DEFAULT_LOWER_BOUND (1e-7)
+#define DEFAULT_UPPER_BOUND (1e+4)
+
+Displayer::Displayer()
+ : PanUser(nullptr)
+{
+	displayer_style = 0;
+	render_target   = DRAWS_Screen;
+	updatepanner = 1;
+
+	dr = nullptr;
+	xw = nullptr;
+	palette = nullptr;
+
+	upperbound = DEFAULT_UPPER_BOUND;
+	lowerbound = DEFAULT_LOWER_BOUND;
+
+	Minx = Maxx = Miny = Maxy = 0;
+	spaceminx = spaceminy = spacemaxx = spacemaxy = 0;
+
+	num_bez_div = 30;
+
+	draw_immediately    = 1;
+	real_coordinates    = 1;
+	decimal             = 0;
+	default_righthanded = false;
+
+	on = 0;
+}
 
 Displayer::Displayer(aDrawable *d)
-  : PanUser(NULL)
+  : Displayer() 
 {
-	displayer_style=0;
-	render_target=DRAWS_Screen;
-
-	updatepanner=1;
 	dr=d;
 	xw=dynamic_cast<anXWindow*>(d);
-
-	upperbound=1e+3;
-	lowerbound=1e-6;
-
-	Minx=Maxx=Miny=Maxy=0;
-	spaceminx=spaceminy=spacemaxx=spacemaxy=0;
-
-	num_bez_div=30;
-
-	draw_immediately=1;
-	real_coordinates=1;
-	decimal=0;
-	default_righthanded=false;
-
-	palette=NULL;
-
-	on=0;
 }
 
 
@@ -172,34 +180,11 @@ Displayer::Displayer(aDrawable *d)
  * fgcolor=white, bg=black
  */
 Displayer::Displayer(anXWindow *nxw,PanController *pan) 
-  : PanUser(pan)
+  : Displayer()
 {
-	displayer_style=0;
-	render_target=DRAWS_Screen;
-
-	updatepanner=1;
-	xw=nxw;
-	dr=nxw;
-
-	upperbound=1e+3;
-	lowerbound=1e-5;
-
-	Minx=Maxx=Miny=Maxy=0;
-	spaceminx=spaceminy=spacemaxx=spacemaxy=0;
-
-	num_bez_div=30;
-
-	draw_immediately=1;
-	real_coordinates=1;
-	decimal=0;
-	default_righthanded=false;
-
-	palette=NULL;
-
-	on=0;
-
-	//transform_identity(ctm);
-	//transform_identity(ictm);
+	PanUser::UseThisPanner(pan);
+	xw = nxw;
+	dr = nxw;
 }
 
 //! Destructor.

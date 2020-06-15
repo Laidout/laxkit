@@ -85,8 +85,9 @@ class Displayer : public PanUser, virtual public anObject
 	double upperbound,lowerbound;
 	int Minx,Maxx,Miny,Maxy;    // screen coords of viewport bounding box
 
+	Displayer();
 	Displayer(aDrawable *d);
-	Displayer(anXWindow *w=NULL,PanController *pan=NULL);
+	Displayer(anXWindow *w, PanController *pan = nullptr);
 	virtual ~Displayer();
 	virtual Displayer *duplicate() = 0;
 
