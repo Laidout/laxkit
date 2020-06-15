@@ -64,6 +64,11 @@ LaxImage *Previewable::GetPreview()
     return preview;
 }
 
+int Previewable::maxPreviewSize()
+{
+	return 200;
+} 
+
 /*! Set up a LaxImage to hold a preview, then call renderToBufferImage() to
  * actually render the preview.
  */

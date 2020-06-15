@@ -49,7 +49,7 @@ class Previewable : virtual public DoubleBBox
 	virtual int GeneratePreview(int width, int height);
 
 	virtual int renderToBufferImage(LaxImage *image) = 0;
-	virtual int maxPreviewSize() = 0;
+	virtual int maxPreviewSize();
 };
 
 
