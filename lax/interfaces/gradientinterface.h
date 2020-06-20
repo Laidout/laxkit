@@ -49,9 +49,13 @@ class GradientData : virtual public SomeData
 		GRADIENT_X_Only      = (1<<3)
 	};
 
+	virtual int dec_count();
+
 	unsigned int style;
 	double hint_a;
 	bool use_strip_points;
+	bool fill_parent;
+	int spread_method;
 
 	Laxkit::GradientStrip *strip;
 
@@ -133,6 +137,27 @@ class GradientInterface : public anInterface
         EditStrip      = (1<<4)
     };
 
+	enum GradientInterfaceActions {
+		GRAD_SelectLeft,
+		GRAD_SelectRight,
+		GRAD_Decorations,
+		GRAD_Flip,
+		GRAD_MakeLinear,
+		GRAD_MakeRadial,
+		GRAD_Select,
+		GRAD_Delete,
+		GRAD_Spread_None,
+		GRAD_Spread_Repeat,
+		GRAD_Spread_Reflect,
+		GRAD_Spread_Pad,
+		GRAD_Spread_Next,
+		GRAD_Spread_Prev,
+		GRAD_Toggle_Fill_Parent,
+
+		GRAD_MAX
+	};
+
+
 
 	 // these are gradient state:
 	unsigned long controlcolor;
@@ -165,6 +190,7 @@ class GradientInterface : public anInterface
 	virtual void SetupRect(double x,double y,double w,double h);
 
     virtual flatpoint screentoreal(int x,int y);
+	Laxkit::MenuInfo *ContextMenu(int x,int y,int deviceid, Laxkit::MenuInfo *menu);
 	virtual int Event(const Laxkit::EventData *data, const char *mes);
 	virtual int LBDown(int x,int y,unsigned int state,int count,const Laxkit::LaxMouse *d);
 	virtual int LBUp(int x,int y,unsigned int state,const Laxkit::LaxMouse *d);

@@ -857,6 +857,8 @@ bool DisplayerCairo::Capability(DisplayerFeature what)
 }
 
 /*! Set the foreground "color" to be a linear gradient.
+ * See LaxSpreadStyle for values of extend.
+ * extend is 0..3 for none, repeat, reflect, pad.
  */
 void DisplayerCairo::setLinearGradient(int extend, double x1,double y1, double x2,double y2, double *offsets, ScreenColor *colors, int n)
 {
@@ -881,11 +883,10 @@ void DisplayerCairo::setLinearGradient(int extend, double x1,double y1, double x
 
 	 // can be CAIRO_EXTEND_NONE, CAIRO_EXTEND_REPEAT, CAIRO_EXTEND_REFLECT, or CAIRO_EXTEND_PAD
 	 // pad is default for gradients, none default for surfaces
-	if (extend==0) cairo_pattern_set_extend (gradient, CAIRO_EXTEND_NONE);
-	else if (extend==1) cairo_pattern_set_extend (gradient, CAIRO_EXTEND_REPEAT);
-	else if (extend==2) cairo_pattern_set_extend (gradient, CAIRO_EXTEND_REFLECT);
-	else if (extend==3) cairo_pattern_set_extend (gradient, CAIRO_EXTEND_PAD);
-
+	if      (extend == LAXSPREAD_None)    cairo_pattern_set_extend(gradient, CAIRO_EXTEND_NONE);
+	else if (extend == LAXSPREAD_Repeat)  cairo_pattern_set_extend(gradient, CAIRO_EXTEND_REPEAT);
+	else if (extend == LAXSPREAD_Reflect) cairo_pattern_set_extend(gradient, CAIRO_EXTEND_REFLECT);
+	else if (extend == LAXSPREAD_Pad)     cairo_pattern_set_extend(gradient, CAIRO_EXTEND_PAD);
 
 	double r,g,b,a;
 	for (int c=0; c<n; c++) {
@@ -908,6 +909,7 @@ void DisplayerCairo::setLinearGradient(int extend, double x1,double y1, double x
 }
 
 /*! Set the foreground "color" to be a radial gradient.
+ * extend is 0..3 for none, repeat, reflect, pad.
  */
 //void DisplayerCairo::setRadialGradient(int extend, double x1,double y1, double r1, double x2,double y2, double r2, GradientStrip *colors)
 void DisplayerCairo::setRadialGradient(int extend, double x1,double y1, double r1, double x2,double y2, double r2, double *offsets, ScreenColor *colors, int n)
@@ -921,11 +923,10 @@ void DisplayerCairo::setRadialGradient(int extend, double x1,double y1, double r
 
 	 // can be CAIRO_EXTEND_NONE, CAIRO_EXTEND_REPEAT, CAIRO_EXTEND_REFLECT, or CAIRO_EXTEND_PAD
 	 // pad is default for gradients, none default for surfaces
-	if (extend==0) cairo_pattern_set_extend (gradient, CAIRO_EXTEND_NONE);
-	else if (extend==1) cairo_pattern_set_extend (gradient, CAIRO_EXTEND_REPEAT);
-	else if (extend==2) cairo_pattern_set_extend (gradient, CAIRO_EXTEND_REFLECT);
-	else if (extend==3) cairo_pattern_set_extend (gradient, CAIRO_EXTEND_PAD);
-
+	if      (extend == LAXSPREAD_None)    cairo_pattern_set_extend(gradient, CAIRO_EXTEND_NONE);
+	else if (extend == LAXSPREAD_Repeat)  cairo_pattern_set_extend(gradient, CAIRO_EXTEND_REPEAT);
+	else if (extend == LAXSPREAD_Reflect) cairo_pattern_set_extend(gradient, CAIRO_EXTEND_REFLECT);
+	else if (extend == LAXSPREAD_Pad)     cairo_pattern_set_extend(gradient, CAIRO_EXTEND_PAD);
 
 	double r,g,b,a;
 	for (int c=0; c<n; c++) {

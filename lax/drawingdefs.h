@@ -66,6 +66,15 @@ enum LaxCompositeOp
 	LAXOP_MAX
 };
 
+enum LaxSpreadStyle
+{
+	LAXSPREAD_None    = 0,
+	LAXSPREAD_Repeat  = 1,
+	LAXSPREAD_Reflect = 2,
+	LAXSPREAD_Pad     = 3,
+	LAXSPREAD_MAX
+};
+
 enum LaxCapStyle
 {
 	LAXCAP_Butt=1,
