@@ -208,6 +208,8 @@ void SomeData::Unlock(int which)
 
 /*! Like Laxkit::DoubleBBox::BBoxPoint(x,y), but if transform_to_parent==true,
  * then transform the point by m().
+ * Point (0,0) is returned as (minx,miny)
+ * and (1,1) is returned as (maxx, maxy).
  */
 flatpoint SomeData::BBoxPoint(double x,double y, bool transform_to_parent)
 {
