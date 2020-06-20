@@ -79,6 +79,7 @@ class Affine
 	virtual flatpoint transformPoint(flatpoint p);
 	virtual flatpoint transformPointInverse(flatpoint p);
 	virtual flatpoint transformVector(flatpoint p);
+	virtual flatpoint transformVectorInverse(flatpoint p);
 
 	virtual const double *m() const { return _m; }
 	virtual void   m(const double *mm);
@@ -143,6 +144,7 @@ flatpoint transform_point_inverse(const double *m,double x,double y);
 flatpoint transform_point(const double *m,flatpoint p);
 flatpoint transform_point(const double *m,double x,double y);
 flatpoint transform_vector(const double *m,flatpoint p);
+flatpoint transform_vector_inverse(const double *m, flatpoint v);
 double get_imagnification(const double *m, double vx, double vy);
 double get_imagnification(const double *m, flatpoint v);
 double get_magnification(const double *m, double vx, double vy);

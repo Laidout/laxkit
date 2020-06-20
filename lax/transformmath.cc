@@ -495,6 +495,11 @@ flatpoint Affine::transformVector(flatpoint p)
 	return transform_vector(_m,p);
 }
 
+flatpoint Affine::transformVectorInverse(flatpoint p)
+{
+	return transform_vector_inverse(_m,p);
+}
+
 void Affine::m(const double *mm)
 { memcpy(_m,mm, 6*sizeof(double)); }
 
@@ -906,6 +911,13 @@ flatpoint transform_point(const double *m,flatpoint p)
 flatpoint transform_vector(const double *m,flatpoint p)
 {
 	return flatpoint(m[0]*p.x + m[2]*p.y,m[1]*p.x+m[3]*p.y);
+}
+
+flatpoint transform_vector_inverse(const double *m,flatpoint v)
+{
+	double mm[6];
+	transform_invert(mm,m);
+	return flatpoint(mm[0]*v.x + mm[2]*v.y,mm[1]*v.x+mm[3]*v.y);
 }
 
 /*! Basically, return norm(vx,vy)/norm(transform_point_inverse(m, vx,vy)).
