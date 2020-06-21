@@ -82,7 +82,7 @@ class GradientData : virtual public SomeData
 	virtual void Set(flatpoint pp1,flatpoint pp2,double rr1,double rr2,
 			Laxkit::ScreenColor *col1,Laxkit::ScreenColor *col2, unsigned int stle);
 	virtual int Set(Laxkit::GradientStrip *newstrip, int absorb, bool keep_placement, bool own_resource);
-	virtual int ShiftPoint(int which,double dt);
+	virtual int ShiftPoint(int which, double dt, bool clamp);
 	virtual double GetNormalizedT(int i);
 	virtual int NumColors();
 	virtual double AddColor(double t,double red,double green,double blue,double alpha);
@@ -203,7 +203,7 @@ class GradientInterface : public anInterface
 	virtual void drawLinear2();
 	virtual void drawRadial();
 	virtual void drawRadial2();
-	virtual void drawRadialLine(double t);
+	virtual void drawRadialLine(double t, bool thick);
 	virtual int DrawData(Laxkit::anObject *ndata,Laxkit::anObject *a1=NULL,Laxkit::anObject *a2=NULL,int info=0);
 
 	virtual int scan(int x,int y);

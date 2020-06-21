@@ -139,7 +139,7 @@ class GradientStrip : virtual public Resourceable, virtual public LaxFiles::Dump
 	virtual Color *GetColor(int index);
 	virtual GradientSpot *GetColorSpot(int index);
 	virtual int FlushColors(bool reset);
-	virtual int ShiftPoint(int which,double dt);
+	virtual int ShiftPoint(int which, double dt, bool clamp);
 	virtual void FlipColors();
 	virtual void UpdateNormalized(bool set=false);
 	virtual double GetNormalizedT(int index);

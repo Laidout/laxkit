@@ -719,10 +719,10 @@ double GradientData::GetNormalizedT(int i)
 //! Move the color which to a new t position.
 /*! Note this is the GradientData independent t value.
  */
-int GradientData::ShiftPoint(int which,double dt)
+int GradientData::ShiftPoint(int which,double dt, bool clamp)
 {
 	if (!strip) return -1;
-	which = strip->ShiftPoint(which, dt);
+	which = strip->ShiftPoint(which, dt, clamp);
 	FindBBox();
 	touchContents();
 	return which;
@@ -1424,7 +1424,7 @@ void GradientInterface::drawRadial()
 /*! Uses the current color and line width settings. This should only be called
  * from Refresh, as it assumes dp to be set to gradient space.
  */
-void GradientInterface::drawRadialLine(double t)
+void GradientInterface::drawRadialLine(double t, bool thick)
 {
 	flatpoint o,p,cp,O1,O2,o1,o2,xaxis,yaxis,v;
 	double r,s;
@@ -1450,7 +1450,7 @@ void GradientInterface::drawRadialLine(double t)
 		//DBG cerr <<c2<<":"<<c3<<": p="<<p.x<<','<<p.y<<"  "<<points[c3].x<<','<<points[c3].y<<endl;
 	}
 	dp->DrawScreen();
-	dp->LineWidthScreen(6);
+	dp->LineWidthScreen(thick ? 6 : 1);
 	dp->drawlines(points,ell,1,0);
 	dp->DrawReal();
 }
@@ -1543,12 +1543,29 @@ int GradientInterface::Refresh()
 		} else dp->drawarrow(data->P1(), data->P2() - data->P1(), 0,1,2);
 		//dp->drawarrow(getpoint(GP_p1,0), getpoint(GP_p2,0) - getpoint(GP_p1,0), 0,1,2);
 
-		//dp->drawline(getpoint(0,0), getpoint(data->NumColors()-1, 0));
 
-		// draw the spots (draw open)
+		if (data->IsRadial()) {
+			drawRadialLine(0, curpoint == GP_r1 || curpoint == GP_p1 || curpoint == 0);
+			drawRadialLine(1, curpoint == GP_r2 || curpoint == GP_p2 ||curpoint == data->NumColors()-1);
+
+			//draw line for color strip on radial
+			if (data->strip->colors.n > 1) {
+				dp->NewFG(controlcolor);
+				dp->LineWidthScreen(1);
+				dp->drawline(getpoint(0,0), getpoint(data->strip->colors.n-1, 0));
+			}
+		}
+
 		dp->DrawScreen();
 		dp->LineWidthScreen(1);
 
+		if (data->IsRadial()) { //draw little nuggets for p1 and p2
+			dp->NewFG(controlcolor);
+			dp->drawpoint(dp->realtoscreen(getpoint(GP_p1,0)),2,1);
+			dp->drawpoint(dp->realtoscreen(getpoint(GP_p2,0)),2,1);
+		}
+
+		// draw the spots (draw open)
 		for (int c=0; c<data->strip->colors.n; c++) {
 			p = dp->realtoscreen(getpoint(c,0));
 			dp->NewFG(&data->strip->colors.e[c]->color->screen);
@@ -1557,10 +1574,9 @@ int GradientInterface::Refresh()
 
 			//if (c<0) dp->draw((int)p.x,(int)p.y,5,5,0,(c==GP_p1 || c==GP_p2)?3:2);
 			//else
-			dp->drawpoint(p.x,p.y, (c==curpoint?5:3),0);
+			dp->drawpoint(p.x, p.y, (c == curpoint ? 5 : 3), 0);
 		}
 		dp->DrawReal();
-
 
 		//draw special points
 		if (curpoint<0 && curpoint>=GP_Min) {
@@ -1575,13 +1591,7 @@ int GradientInterface::Refresh()
 			dp->LineWidthScreen(6);
 			dp->NewFG(controlcolor);
 
-			if (data->IsRadial()) {
-				if (curpoint == GP_r1) {
-					drawRadialLine(0);
-				} else if (curpoint == GP_r2) {
-					drawRadialLine(1);
-				}
-			} else {
+			if (data->IsLinear()) {
 				if (curpoint == GP_p1 || curpoint == GP_p1_bar) {
 					dp->drawline(ul,ll);
 
@@ -1765,6 +1775,15 @@ int GradientInterface::scan(int x,int y)
 		c = data->pointin(data->transformPoint(p));
 		if (!c) closest = GP_OutsideData;
 		else closest = GP_DataNoPoint;
+	}
+
+	if (data->IsRadial()) {
+		//check for radial p1 and p2 after everything else
+		dd = norm(p - data->P1());
+		if (dd < threshhold) return GP_p1;
+
+		dd = norm(p - data->P2());
+		if (dd < threshhold) return GP_p2;
 	}
 
 	DBG cerr <<" found:"<<closest<<endl;
@@ -2140,7 +2159,7 @@ int GradientInterface::MouseMove(int x,int y,unsigned int state,const LaxMouse *
 	flatpoint od = d; //change in pos in object space
 	double mm[6];
 	data->GradientTransform(mm, true);
-	d = transform_vector(mm, d);
+	d = transform_vector(mm, d); //change in mouse pos in gradient space
 	flatpoint pp1 = transform_point(mm, data->P1());
 	flatpoint pp2 = transform_point(mm, data->P2());
 	//flatpoint v = data->P2() - data->P1();
@@ -2202,35 +2221,6 @@ int GradientInterface::MouseMove(int x,int y,unsigned int state,const LaxMouse *
 		needtodraw = 1;
 
 	} else if (movepoint==GP_p2 || movepoint==GP_p1) {
-		//if (((state&LAX_STATE_MASK)==ShiftMask && draggingmode==DRAG_NORMAL)
-		//	 || ((state&LAX_STATE_MASK)==0 && draggingmode==DRAG_NEW)) {
-        //
-		//	 //rotate as well as shift p1 or p2
-		//	d = screentoreal(x,y) - screentoreal(mx,my);
-		//	flatpoint ip, //invariant point
-		//			  oldp1 = getpoint(GP_p1,1),
-		//	          oldp2 = getpoint(GP_p2,1),
-		//			  newp2 = oldp2 + d,
-		//			  op,np;
-		//	if (movepoint == GP_p2) ip = oldp1; else ip = oldp2;
-		//	op = oldp2-oldp1;
-		//	np = newp2-oldp1;
-		//	if ((op*op)*(np*np)!=0) {
-		//		double a = asin((op.x*np.y-op.y*np.x)/sqrt((op*op)*(np*np)));
-		//		if (movepoint == GP_p1) a = -a;
-		//		data->xaxis(rotate(data->xaxis(),a,0));
-		//		data->yaxis(rotate(data->yaxis(),a,0));
-		//	}
-		//	 //sync up the invariant point
-		//	if (movepoint==GP_p1) ip=getpoint(GP_p2,1)-ip;
-		//		else ip=getpoint(GP_p1,1)-ip;
-		//	data->origin(data->origin()-ip);
-		//	data->modtime=time(NULL);
-        //
-		//	 //remap d
-		//	d = transform_vector(m, d||np);
-		//}
-
 		if (movepoint == GP_p1) data->P1(data->P1() + od);
 		else data->P2(data->P2() + od);
 
@@ -2247,7 +2237,10 @@ int GradientInterface::MouseMove(int x,int y,unsigned int state,const LaxMouse *
 		 // move curpoints
 		int cp;
 		double plen,clen,cstart;
-		plen = (data->P2() - data->P1()).norm();
+		flatpoint pc1 = transform_point(mm, getpoint(0,0));
+		flatpoint pc2 = transform_point(mm, getpoint(data->NumColors()-1,0));
+		plen = (pc1 - pc2).norm();
+		double dx = distparallel(d, pc2-pc1);
 		cstart = data->strip->colors.e[0]->t;
 		clen = data->strip->colors.e[data->NumColors()-1]->t - cstart;
 
@@ -2262,8 +2255,8 @@ int GradientInterface::MouseMove(int x,int y,unsigned int state,const LaxMouse *
 				DBG 	cerr <<"*** mv grad point n-1"<<endl;
 				DBG }
 
-				 //d is in p space, but t shifts in t space
-				curpoints.e[c] = data->ShiftPoint(curpoints.e[c], d.x/plen*clen);
+				 //d is in gradient space, but t shifts in t space
+				curpoints.e[c] = data->ShiftPoint(curpoints.e[c], dx/plen*clen, true);
 				DBG cerr <<"curpoint["<<c<<"] now is: "<<curpoints.e[c]<<endl;
 
 				 // the shifting reorders the spots, and messes up curpoints so this corrects that

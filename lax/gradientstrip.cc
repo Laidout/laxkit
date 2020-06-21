@@ -969,14 +969,22 @@ GradientStrip::GradientSpot *GradientStrip::GetColorSpot(int index)
 
 /*! Move the color index which to new_t = old_t + dt, rearranging color's stack position if necessary.*
  *  Note this is the GradientStrip t value, not normalized nt.
+ *  If clamp, then clamp to min,max for the strip.
  *
  *  Returns the index of which color after shifting.
  */
-int GradientStrip::ShiftPoint(int which,double dt)
+int GradientStrip::ShiftPoint(int which, double dt, bool clamp)
 {
 	if (which<0 || which>=colors.n) return which;
 
-	colors.e[which]->t+=dt;
+	double min = colors.e[0]->t;
+	double max = colors.e[colors.n-1]->t;
+	colors.e[which]->t += dt;
+	if (clamp) {
+		if (colors.e[which]->t > max) colors.e[which]->t = max;
+		else if (colors.e[which]->t < min) colors.e[which]->t = min;
+	}
+	
 	GradientStrip::GradientSpot *tmp=colors.e[which];
 
 	while (which>0 && tmp->t<colors.e[which-1]->t) {
