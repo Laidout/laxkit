@@ -1,0 +1,38 @@
+#
+# Ignore build byproducts
+*.o
+*.bak
+laxinput/laxinput
+*.a
+*.so.*
+lax/icons/*.png
+
+
+#
+# Ignore examples paraphernalia
+examples/*
+!examples/Makefile
+!examples/interfs.cc
+!examples/laxhello.cc
+!examples/spirocurves.cc
+!examples/stopwatch.cc
+!examples/themeeditor.cc
+!examples/thingpreviewer.cc
+!examples/timers.cc
+!examples/widgets.cc
+
+
+#
+# Ignore configure byproducts
+makedepend
+config.log
+Makefile-toinclude
+lax/version.h
+lax/configured.h
+
+
+#
+# Ignore editing byproducts
+*.swp
+*.swo
+lax/temp
