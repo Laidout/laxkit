@@ -128,8 +128,8 @@ flatvector operator*=(flatvector &a, double r);  /*const times flatvector */
 flatvector operator/(flatvector a,double r);  /*flatvector by const */
 flatvector operator/=(flatvector &a,double r);  /*flatvector by const */
 double operator*(flatvector a,flatvector b);  /*dot product */
-flatvector operator||(flatvector a, flatvector b); /*gives part of x parallel to y*/
-flatvector operator|=(flatvector a, flatvector b); /*gives part of x*/
+flatvector operator||(flatvector a, flatvector b); /*the part of a that is parallel to b*/
+flatvector operator|=(flatvector a, flatvector b); /*the part of a that is perpendicular to b*/
 double distparallel(flatvector a, flatvector b); /*gives part of a parallel to b*/
 int isnotvector(flatvector v);
 int areparallel(flatvector v1, flatvector v2);
