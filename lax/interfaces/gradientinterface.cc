@@ -124,10 +124,6 @@ using namespace std;
 #define DBG
 
 
-#define SHOWCOLORS 2
-#define SHOWCONTROLS 1
-
-
 namespace LaxInterfaces {
 
 
@@ -175,7 +171,7 @@ GradientData::GradientData()
 	usepreview       = 1;
 	use_strip_points = false;
 	fill_parent      = false;
-	spread_method    = LAXSPREAD_Pad;
+	spread_method    = LAXSPREAD_None;
 }
 
 //! Create new basic gradient pp1 to pp2. Sets col1 at 0 and col2 at 1
@@ -965,7 +961,7 @@ GradientInterface::GradientInterface(int nid,Displayer *ndp) : anInterface(nid,n
 	strip = nullptr;
 	data  = nullptr;
 	goc   = nullptr;
-	showdecs = SHOWCONTROLS | SHOWCOLORS;
+	showdecs = ShowControls;
 	curpoint = GP_Nothing;
 	creationstyle = 0;
 	createv = flatpoint(20,0);
@@ -1023,7 +1019,8 @@ const char *GradientInterface::Name()
 //! Sets showdecs to show colors only, and needtodraw=1.
 int GradientInterface::InterfaceOn()
 {
-	showdecs = SHOWCOLORS | SHOWCONTROLS;
+	//showdecs = ShowControls;
+	showdecs = ShowColors | ShowControls;
 	needtodraw = 1;
 	return 0;
 }
@@ -1045,6 +1042,8 @@ void GradientInterface::deletedata()
 	if (strip) { strip->dec_count(); strip = nullptr; }
 	if (data) { data->dec_count(); data = nullptr; }
 	if (goc) { delete goc; goc = nullptr; }
+	curpoints.flush();
+	curpoint = GP_Nothing;
 }
 
 void GradientInterface::SetupRect(double x,double y,double w,double h)
@@ -1097,6 +1096,8 @@ int GradientInterface::UseThisObject(Laxkit::GradientStrip *nstrip)
 	data->Set(strip, 0, true, true);
 	data->FindBBox();
 
+	curpoints.flush();
+	curpoint=GP_Nothing;
 	needtodraw=1;
 	return 1;
 }
@@ -1181,7 +1182,7 @@ int GradientInterface::DrawData(anObject *ndata,anObject *a1,anObject *a2,int)
 	GradientData *gd=data;
 	data=dynamic_cast<GradientData *>(ndata);
 	int td = showdecs, ntd = needtodraw;
-	showdecs = SHOWCOLORS;
+	showdecs = ShowColors;
 	needtodraw = 1;
 	Refresh();
 	needtodraw=ntd;
@@ -1499,7 +1500,7 @@ int GradientInterface::Refresh()
 
 
 	// draw the color
-	if (showdecs & SHOWCOLORS && data->strip->colors.n) {
+	if ((showdecs & ShowColors) && data->strip->colors.n) {
 		int d = 1;
 		if (usepreview) {
 			LaxImage *preview = data->GetPreview();
@@ -1524,7 +1525,7 @@ int GradientInterface::Refresh()
 
 
 	// draw control points
-	if (showdecs & SHOWCONTROLS) {
+	if (showdecs & ShowControls) {
 		dp->BlendMode(LAXOP_Over);
 
 		//DBG draw outline:
@@ -2256,7 +2257,8 @@ int GradientInterface::MouseMove(int x,int y,unsigned int state,const LaxMouse *
 				DBG }
 
 				 //d is in gradient space, but t shifts in t space
-				curpoints.e[c] = data->ShiftPoint(curpoints.e[c], dx/plen*clen, true);
+				bool clamp = data->IsRadial();
+				curpoints.e[c] = data->ShiftPoint(curpoints.e[c], dx/plen*clen, clamp);
 				DBG cerr <<"curpoint["<<c<<"] now is: "<<curpoints.e[c]<<endl;
 
 				 // the shifting reorders the spots, and messes up curpoints so this corrects that
@@ -2298,31 +2300,30 @@ int GradientInterface::MouseMove(int x,int y,unsigned int state,const LaxMouse *
 Laxkit::ShortcutHandler *GradientInterface::GetShortcuts()
 {
 	if (sc) return sc;
-	ShortcutManager *manager=GetDefaultShortcutManager();
-	sc=manager->NewHandler(whattype());
+	ShortcutManager *manager = GetDefaultShortcutManager();
+	sc = manager->NewHandler(whattype());
 	if (sc) return sc;
 
-	//virtual int Add(int nid, const char *nname, const char *desc, const char *icon, int nmode, int assign);
+	sc = new ShortcutHandler(whattype());
 
-	sc=new ShortcutHandler(whattype());
-
-	sc->Add(GRAD_SelectLeft,  LAX_Left,0,0,  "SelectNext",  _("Select next"),NULL,0);
-	sc->Add(GRAD_SelectRight, LAX_Right,0,0, "SelectPrev",  _("Select previous"),NULL,0);
-	sc->Add(GRAD_Decorations, 'd',0,0,       "Decorations", _("Toggle decorations"),NULL,0);
-	sc->Add(GRAD_Flip,        'f',0,0,       "FlipColors",  _("Flip order of colors"),NULL,0);
-	sc->Add(GRAD_MakeLinear,  'l',0,0,       "Linear",      _("Convert to linear gradient"),NULL,0);
-	sc->Add(GRAD_MakeRadial,  'r',0,0,       "Radial",      _("Convert to Radial gradient"),NULL,0);
-	sc->Add(GRAD_Select,      'a',0,0,       "Select",      _("Select all, or deselect"),NULL,0);
-	sc->Add(GRAD_Delete,      LAX_Del,0,0,   "Delete",      _("Delete"),NULL,0);
+	sc->Add(GRAD_SelectLeft,  LAX_Left,0,0,  "SelectNext",  _("Select next"), nullptr, 0);
+	sc->Add(GRAD_SelectRight, LAX_Right,0,0, "SelectPrev",  _("Select previous"), nullptr, 0);
+	sc->Add(GRAD_Decorations, 'd',0,0,       "Decorations", _("Toggle decorations"), nullptr, 0);
+	sc->Add(GRAD_Flip,        'f',0,0,       "FlipColors",  _("Flip order of colors"), nullptr, 0);
+	sc->Add(GRAD_MakeLinear,  'l',0,0,       "Linear",      _("Convert to linear gradient"), nullptr, 0);
+	sc->Add(GRAD_MakeRadial,  'r',0,0,       "Radial",      _("Convert to Radial gradient"), nullptr, 0);
+	sc->Add(GRAD_Select,      'a',0,0,       "Select",      _("Select all, or deselect"), nullptr, 0);
+	sc->Add(GRAD_Delete,      LAX_Del,0,0,   "Delete",      _("Delete"), nullptr, 0);
 	sc->AddShortcut(LAX_Bksp,0,0, GRAD_Delete);
 
-	sc->Add(GRAD_Spread_Next,        'a',0,0,        "SpreadNext"      , _("Set next spread type"),NULL,0);
-	sc->Add(GRAD_Spread_Prev,        'a',ShiftMask,0,"SpreadPrev"      , _("Set previous spread type"),NULL,0);
-	sc->Add(GRAD_Spread_None,        'a',0,0,        "SpreadNone"      , _("No color spread"),NULL,0);
-	sc->Add(GRAD_Spread_Repeat,      'a',0,0,        "SpreadRepeat"    , _("Repeat colors"),NULL,0);
-	sc->Add(GRAD_Spread_Reflect,     'a',0,0,        "SpreadReflect"   , _("Reflect colors"),NULL,0);
-	sc->Add(GRAD_Spread_Pad,         'a',0,0,        "SpreadPad"       , _("Extend colors"),NULL,0);
-	sc->Add(GRAD_Toggle_Fill_Parent, 'a',0,0,        "ToggleFillParent", _("Toggle fill parent"),NULL,0);
+	sc->Add(GRAD_Toggle_Fill_Parent, 'p',0,0,        "ToggleFillParent", _("Toggle fill parent"), nullptr, 0);
+	sc->Add(GRAD_Spread_Next,        's',0,0,        "SpreadNext"      , _("Set next color spread type"), nullptr, 0);
+	sc->Add(GRAD_Spread_Prev,        's',ShiftMask,0,"SpreadPrev"      , _("Set previous color spread type"), nullptr, 0);
+
+	sc->AddAction(GRAD_Spread_None,        "SpreadNone"      , _("No color spread"), nullptr, 0, 0);
+	sc->AddAction(GRAD_Spread_Repeat,      "SpreadRepeat"    , _("Repeat colors"),   nullptr, 0, 0);
+	sc->AddAction(GRAD_Spread_Reflect,     "SpreadReflect"   , _("Reflect colors"),  nullptr, 0, 0);
+	sc->AddAction(GRAD_Spread_Pad,         "SpreadPad"       , _("Extend colors"),   nullptr, 0, 0);
 
 
 	manager->AddArea(whattype(),sc);
@@ -2352,12 +2353,12 @@ int GradientInterface::PerformAction(int action)
 		return 0;
 
 	} else if (action==GRAD_Decorations) {
-		if (--showdecs<0) showdecs = SHOWCONTROLS | SHOWCOLORS;
+		if (--showdecs<0) showdecs = ShowControls | ShowColors;
 		switch (showdecs) {
 			case 0: PostMessage(_("Don't show object on top, no decorations")); break;
-			case SHOWCONTROLS: PostMessage(_("Don't show object on top, but show decorations")); break;
-			case SHOWCOLORS: PostMessage(_("Show object on top without decorations")); break;
-			case SHOWCONTROLS | SHOWCOLORS: PostMessage(_("Show object on top with decorations")); break;
+			case ShowControls: PostMessage(_("Don't show object on top, but show decorations")); break;
+			case ShowColors: PostMessage(_("Show object on top without decorations")); break;
+			case ShowControls | ShowColors: PostMessage(_("Show object on top with decorations")); break;
 		}
 		needtodraw=1;
 		return 0;

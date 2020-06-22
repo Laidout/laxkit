@@ -157,6 +157,10 @@ class GradientInterface : public anInterface
 		GRAD_MAX
 	};
 
+	enum GradientDecs {
+		ShowControls = (1<<0),
+		ShowColors = (1<<1)
+	};
 
 
 	 // these are gradient state:
