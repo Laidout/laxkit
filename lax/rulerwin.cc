@@ -647,7 +647,7 @@ int RulerWindow::RBUp(int x,int y,unsigned int state,const LaxMouse *d)
 		UnitInfo(c, &name, &id, NULL,NULL,NULL, &label);
 		nm = name;
 		if (label) {
-			sprintf(buffer, "%s. %s", name, label);
+			sprintf(buffer, "%s: %s", name, label);
 			nm = buffer;
 		}
 
