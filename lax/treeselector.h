@@ -190,6 +190,7 @@ class TreeSelector : public ScrolledWindow
 				anXWindow *prev, unsigned long nowner=0, const char *mes=0,
 				unsigned long long nmstyle=0, MenuInfo *minfo = nullptr); 
 	virtual ~TreeSelector();
+	virtual const char *whattype() { return "TreeSelector"; }
 	virtual int init();
 	virtual void Refresh();
 	virtual int CharInput(unsigned int ch,const char *buffer,int len,unsigned int state,const LaxKeyboard *d);
