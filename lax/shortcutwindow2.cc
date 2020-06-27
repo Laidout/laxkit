@@ -876,11 +876,11 @@ ShortcutWindow2::~ShortcutWindow2()
 
 int ShortcutWindow2::init()
 {
-	//keyboard 
-	//
-	//[display type] [search]_____________________x [expandall][contractall]
 	//[current set:]_____________[save set][load set]
 	//
+	//keyboard 
+	//
+	//[ area list ]               [ key list ]
 	//display types:
 	//  as input tree
 	//  area, sorted by key
@@ -1043,7 +1043,7 @@ int ShortcutWindow2::CharInput(unsigned int ch, const char *buffer,int len,unsig
 
 LaxFiles::Attribute *ShortcutWindow2::dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context)
 {
-	att=anXWindow::dump_out_atts(att,what,context);
+	att = StackFrame::dump_out_atts(att,what,context);
 	TreeSelector *tree = dynamic_cast<TreeSelector*>(findChildWindowByName("tree", true));
 
 	if (tree && tree->columns.n) {
@@ -1061,7 +1061,7 @@ LaxFiles::Attribute *ShortcutWindow2::dump_out_atts(LaxFiles::Attribute *att,int
 
 void ShortcutWindow2::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context)
 {
-	anXWindow::dump_in_atts(att,flag,context);
+	StackFrame::dump_in_atts(att,flag,context);
 
 	TreeSelector *tree=dynamic_cast<TreeSelector*>(findChildWindowByName("tree", true));
 	if (!tree) return;

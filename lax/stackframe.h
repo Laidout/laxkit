@@ -83,6 +83,9 @@ class StackFrame : public anXWindow, public ListBox
 					int npw,int nws,int nwg,int nhalign,int nhgap,
 					int nph,int nhs,int nhg,int nvalign,int nvgap,
 					int where=-1);
+	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context);
+	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
+
 };
 
 

@@ -589,6 +589,48 @@ int StackFrame::AddWin(anXWindow *win,int absorbcount,int where)//where==-1
 	return AddWin(win,absorbcount, win->win_w?win->win_w:5,0,0,50,0, win->win_h?win->win_h:5,0,0,50,0, where);
 }
 
+LaxFiles::Attribute *StackFrame::dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context)
+{
+	anXWindow::dump_out_atts(att, what, context);
+
+	if (!att) att = new LaxFiles::Attribute();
+	LaxFiles::Attribute *metrics = att->pushSubAtt("metrics");
+
+	for (int c=0; c<list.n; c++) {
+		SquishyBox *box = list.e[c];
+		if (!box) continue;
+
+		LaxFiles::Attribute *boxa = metrics->pushSubAtt("box");
+		boxa->push("x"     , box->x()     );
+		boxa->push("w"     , box->w()     );
+		boxa->push("pw"    , box->pw()    );
+		boxa->push("ws"    , box->ws()    );
+		boxa->push("wg"    , box->wg()    );
+		boxa->push("halign", box->halign());
+		boxa->push("hgap"  , box->hgap()  );
+		boxa->push("y"     , box->x()     );
+		boxa->push("h"     , box->w()     );
+		boxa->push("ph"    , box->pw()    );
+		boxa->push("hs"    , box->ws()    );
+		boxa->push("hg"    , box->wg()    );
+		boxa->push("valign", box->halign());
+		boxa->push("vgap"  , box->hgap()  );
+
+		anXWindow *win = childWindow(c);
+		if (win) {
+			LaxFiles::Attribute *wina = boxa->pushSubAtt("window", win->whattype());
+			win->dump_out_atts(wina, what, context);
+		}
+	}
+
+	return att;
+}
+
+void StackFrame::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context)
+{
+	anXWindow::dump_in_atts(att, flag, context);
+}
+
 
 
 
