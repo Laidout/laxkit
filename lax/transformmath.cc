@@ -262,9 +262,9 @@ void Affine::Rotate(double angle, flatpoint around_point)
 	double r[6],s[6];
 	r[4]=r[5]=0;
 	r[0]=cos(angle);
-	r[1]=-sin(angle);
 	r[2]=sin(angle);
-	r[3]=cos(angle);
+	r[1]=-r[2];
+	r[3]=r[0];
 	transform_mult(s,mm,r);
 	transform_copy(mm,s);
 
@@ -1013,12 +1013,12 @@ double *svgtransform(const char *v, double *m)
 	try {
 		while (*v) {
 			op=0;
-			if (!strncmp(v,"matrix",6))         { v+=6; op=1; }
-			else if (!strncmp(v,"translate",6)) { v+=9; op=2; }
-			else if (!strncmp(v,"scale",6))     { v+=5; op=3; }
-			else if (!strncmp(v,"rotate",6))    { v+=6; op=4; }
-			else if (!strncmp(v,"skewX",6))     { v+=5; op=5; }
-			else if (!strncmp(v,"skewY",6))     { v+=5; op=6; }
+			if      (!strncmp(v,"matrix",   6)) { v+=6; op=1; }
+			else if (!strncmp(v,"translate",9)) { v+=9; op=2; }
+			else if (!strncmp(v,"scale",    5)) { v+=5; op=3; }
+			else if (!strncmp(v,"rotate",   6)) { v+=6; op=4; }
+			else if (!strncmp(v,"skewX",    5)) { v+=5; op=5; }
+			else if (!strncmp(v,"skewY",    5)) { v+=5; op=6; }
 			else break; //no more ops, but unknown string data still, watch out!
 
 			 //skip to numbers
@@ -1045,41 +1045,50 @@ double *svgtransform(const char *v, double *m)
 			if (op==1) { //matrix
 				if (n!=6) throw 3;
 				transform_copy(t,d);
+
 			} else if (op==2) { //translate(dx) (dy==0) or translate(dx,dy)
 				if (n!=1 && n!=2) throw 4;
 				t[4]=d[0];
 				if (n==2) t[5]=d[1];
+
 			} else if (op==3) { //scale(x,y) or scale(z)<-- same as scale(z,z)
-				if (n!=1 && n!=2) throw 5;
-				t[0]=d[0];
-				if (n==2) t[3]=d[1];
-				else t[3]=d[0];
+				if (n != 1 && n != 2) throw 5;
+				t[0] = d[0];
+				if (n == 2) t[3] = d[1];
+				else        t[3] = d[0];
+
 			} else if (op==4) { //rotate(degrees) or rotate(degrees, x,y)
-				if (n!=1 && n!=3) throw 6;
-				d[0]*=180/M_PI; //convert to degrees
-				 //if (n==3) translate(dx, dy) rotate(angle) translate(-dx, -dy)
-				double dx=0, dy=0;
-				if (n==3) { dx=d[1]; dy=d[2]; }
+				if (n != 1 && n != 3) throw 6;
+				d[0] *= -M_PI / 180;  // convert to degrees
+
+				// if (n==3) translate(dx, dy) rotate(angle) translate(-dx, -dy)
+				double dx = 0, dy = 0;
+				if (n == 3) {
+					dx = d[1];
+					dy = d[2];
+				}
 				 //translate
-				m[4]+=dx;
-				m[5]+=dy;
-				 //rotate
-				t[0]=cos(d[0]);
-				t[1]=sin(d[0]);
-				t[2]=-t[1];
-				t[3]=t[0];
-				transform_mult(d,t,m);
-				transform_copy(m,d);
-				 //translate back
-				m[4]-=dx;
-				m[5]-=dy;
-				op=0;
+				m[4] -= dx;
+				m[5] -= dy;
+				// rotate
+				t[0] = cos(d[0]);
+				t[2] = sin(d[0]);
+				t[1] = -t[2];
+				t[3] = t[0];
+				transform_mult(d, m, t);
+				transform_copy(m, d);
+				// translate back
+				m[4] += dx;
+				m[5] += dy;
+				op = 0;
+
 			} else if (op==5) { //skewX(degrees)
 				if (n!=1) throw 7;
-				t[2]=tan(d[0]*180/M_PI);
+				t[2]=tan(d[0]*M_PI/180);
+
 			} else if (op==6) { //skewY(degrees)
 				if (n!=1) throw 8;
-				t[1]=tan(d[0]*180/M_PI);
+				t[1]=tan(d[0]*M_PI/180);
 			}
 			 //apply transform t to m
 			if (op) { //special exception for rotate around point
