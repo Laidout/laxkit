@@ -128,7 +128,7 @@ namespace LaxInterfaces {
  *
  *  For any derived classes, if you ever use the duplicate function please always remember
  *  to actually define your own duplicate function! Otherwise, your duplicate will just
- *  return NULL.
+ *  return nullptr.
  *
  * Interfaces designed for use in a ViewportWindow store their own data internally.
  * Any time they create new data, they must
@@ -189,7 +189,7 @@ namespace LaxInterfaces {
  * \brief Must return nonzero if the data needs to be drawn, that is to say Refresh must be called.
  */
 /*! \fn int anInterface::DrawData(Laxkit::anObject *ndata,
- * 				Laxkit::anObject *a1=NULL,Laxkit::anObject *a2=NULL,int info=0)
+ * 				Laxkit::anObject *a1=nullptr,Laxkit::anObject *a2=nullptr,int info=0)
  * \brief Redefine this for interfaces that can draw data not owned, without loosing current data.
  *
  * Return 1 for nothing drawn, 0 for something drawn. 
@@ -223,7 +223,7 @@ namespace LaxInterfaces {
  * \brief Respond to events, particularly menu events from a menu created from ContextMenu().
  */
 /*! \var ViewportWindow *anInterface::viewport
- * \brief curwindow dynamically cast to ViewportWindow. Thus, it will be NULL if it is not a ViewportWindow.
+ * \brief curwindow dynamically cast to ViewportWindow. Thus, it will be nullptr if it is not a ViewportWindow.
  */
 /*! \var Displayer *anInterface::dp
  * \brief The Displayer used by the controlling window.
@@ -237,7 +237,7 @@ namespace LaxInterfaces {
 /*! \fn void anInterface::Clear(SomeData *d)
  * \brief Clear the data from the interface only if d is the interface's current data.
  *
- * If d==NULL, then the interface should clear any data it has. Otherwise, clear only if
+ * If d==nullptr, then the interface should clear any data it has. Otherwise, clear only if
  * the interface is using d.
  */
 
@@ -255,19 +255,19 @@ namespace LaxInterfaces {
 	
 //!  This constructor assigns id=getUniqueNumber().
 anInterface::anInterface()
-{ 
-	child=owner=NULL; 
-	owner_message=NULL;
-	app=anXApp::app; 
-	curwindow=NULL; 
-	name=NULL; 
-	primary=0;
-	id=getUniqueNumber();
-	interface_style=0;
-	interface_type=INTERFACE_Tool;
-	needtodraw=1; 
-	last_message = NULL;
-	last_message_n = 0;
+{
+	child = owner   = nullptr;
+	owner_message   = nullptr;
+	app             = anXApp::app;
+	curwindow       = nullptr;
+	name            = nullptr;
+	primary         = 0;
+	id              = getUniqueNumber();
+	interface_style = 0;
+	interface_type  = INTERFACE_Tool;
+	needtodraw      = 1;
+	last_message    = nullptr;
+	last_message_n  = 0;
 }
 
 //! Constructor to assign owner and id.
@@ -275,82 +275,36 @@ anInterface::anInterface()
  * \todo *** this isn't so hot, maybe do some check to ensure that owner->child points here?
  */
 anInterface::anInterface(anInterface *nowner,int nid)
+ : anInterface()
 {
-	child=NULL;
-	owner=nowner;
-	owner_message=NULL;
-	app=anXApp::app; 
-	if (nowner) {
-		curwindow=nowner->curwindow;
-	} else {
-		curwindow=NULL;
-	}
-	id=nid;
-	name=NULL;
-	interface_style=0;
-	interface_type=INTERFACE_Tool;
-	needtodraw=1; 
-	last_message = NULL;
-	last_message_n = 0;
+	if (nowner) curwindow = nowner->curwindow;
 }
 
 //! Constructor to assign just the id, set other stuff to 0.
 anInterface::anInterface(int nid)
+ : anInterface()
 {
-	child=owner=NULL;
-	owner_message=NULL;
-	app=anXApp::app; 
-	id=nid;
-	curwindow=NULL;
-	name=NULL;
-	interface_style=0;
-	interface_type=INTERFACE_Tool;
-	needtodraw=1; 
-	last_message = NULL;
-	last_message_n = 0;
+	id = nid;
 }
 
 anInterface::anInterface(int nid,Displayer *ndp)
+ : anInterface()
 { 
-	child=owner=NULL;
-	owner_message=NULL;
-	app=anXApp::app; 
-	id=nid;
-	curwindow=NULL;
-	name=NULL;
-	interface_style=0;
-	interface_type=INTERFACE_Tool;
-	needtodraw=1; 
-	last_message = NULL;
-	last_message_n = 0;
-
-	dp=ndp; 
-	if (dp) curwindow=dynamic_cast<anXWindow*>(dp->GetDrawable());
-	viewport=dynamic_cast<ViewportWindow *>(curwindow); 
+	id = nid;
+	dp = ndp; 
+	if (dp) curwindow = dynamic_cast<anXWindow*>(dp->GetDrawable());
+	viewport = dynamic_cast<ViewportWindow *>(curwindow); 
 }
 
 anInterface::anInterface(anInterface *nowner,int nid,Displayer *ndp)
+ : anInterface()
 {
-	child=NULL;
-	owner=nowner;
-	owner_message=NULL;
-	app=anXApp::app; 
-	if (nowner) {
-		curwindow=nowner->curwindow;
-	} else {
-		curwindow=NULL;
-	}
-	id=nid;
-	name=NULL;
-	interface_style=0;
-	interface_type=INTERFACE_Tool;
-	needtodraw=1; 
-	last_message = NULL;
-	last_message_n = 0;
-
-	dp=ndp; 
-	if (dp) curwindow=dynamic_cast<anXWindow*>(dp->GetDrawable());
-	viewport=dynamic_cast<ViewportWindow *>(curwindow); 
+	owner = nowner;
+	if (nowner) curwindow = nowner->curwindow;
+	id = nid;
+	dp = ndp; 
+	if (dp) curwindow = dynamic_cast<anXWindow*>(dp->GetDrawable());
+	viewport = dynamic_cast<ViewportWindow *>(curwindow); 
 }
 
 anInterface::~anInterface()
@@ -363,18 +317,18 @@ anInterface::~anInterface()
 
 
 //! Return or modify to almost duplicate instance.
-/*! If dup==NULL, then return NULL. Otherwise modify the existing dup.
+/*! If dup==nullptr, then return nullptr. Otherwise modify the existing dup.
  *
- * Copies app, name, interface_style, id. The rest are initialized to NULL.
+ * Copies app, name, interface_style, id. The rest are initialized to nullptr.
  *
- * Normally, subclassed anInterface objects will return a new anInterface if dup=NULL,
+ * Normally, subclassed anInterface objects will return a new anInterface if dup=nullptr,
  * or apply changes to the given dup object, assuming it is of the correct class.
  * This is especially important when setting up a ViewportWindow/ViewerWindow system.
  * In that scenario, the dp and the data if present should not be copied, as they will
  * be assigned new stuff by the window, thus those things are not transferred to the
  * duplicate. Typically, the specific interface will create their
  * own blank instance of themselves, and in doing so, the dp and and data will
- * be set to NULL there.
+ * be set to nullptr there.
  *
  * Typical duplicate function in an interface looks like this:\n
  *
@@ -391,7 +345,7 @@ anInterface::~anInterface()
  */
 anInterface *anInterface::duplicate(anInterface *dup)
 {
-	if (!dup) return NULL; //dup=new anInterface();<- wrong! anInterface is abstract class..
+	if (!dup) return nullptr; //dup=new anInterface();<- wrong! anInterface is abstract class..
 	makestr(dup->name,name);
 	dup->id=id;
 	dup->interface_style=interface_style;
@@ -399,7 +353,7 @@ anInterface *anInterface::duplicate(anInterface *dup)
 }
 
 /*! Classes can use this to tell owner when something's changed. This is not used in anInterface class.
- * Sends owner_message, or whattype() if owner_message is NULL.
+ * Sends owner_message, or whattype() if owner_message is nullptr.
  * event->usertype is set to level.
  *
  * If interface_style & INTERFACE_DontSendOnModified, then don't send when Modified() called.
@@ -420,7 +374,7 @@ void anInterface::Modified(int level)
 }
 
 //! Return a ShortcutHandler that contains stacks of bound shortcuts and possible actions.
-/*! NULL means there are none defined for this interface.
+/*! nullptr means there are none defined for this interface.
  *
  * Interfaces that do use shortcuts, and want them stored in an easy manner should use the
  * ShortcutManager system, accessed with GetDefaultShortcutManager(). They can then install
@@ -428,7 +382,7 @@ void anInterface::Modified(int level)
  * window instances can borrow those.
  */
 ShortcutHandler *anInterface::GetShortcuts()
-{ return NULL; }
+{ return nullptr; }
 
 /*! This method exists to aid standardizing access to shortcut actions from potential scripting.
  * Return 1 for not found or otherwise not done, or 0 for success.
@@ -438,10 +392,10 @@ int anInterface::PerformAction(int actionnumber)
 { return 1; }
 
 
-//! Default just calls Clear(NULL).
+//! Default just calls Clear(nullptr).
 void anInterface::Clear()
 {
-	Clear(NULL);
+	Clear(nullptr);
 }
 
 /*! Applications may call this on the very first time a tool is instantiated.
@@ -457,7 +411,7 @@ int anInterface::InitializeResources()
 	return 0;
 }
 
-/*! Set the window the interface works on to ncur. Returns ncur. If ncur==NULL, then just return current viewport.
+/*! Set the window the interface works on to ncur. Returns ncur. If ncur==nullptr, then just return current viewport.
  * Otherwise returns the new current window.
  */
 Laxkit::anXWindow *anInterface::CurrentWindow(Laxkit::anXWindow *ncur)
@@ -467,10 +421,10 @@ Laxkit::anXWindow *anInterface::CurrentWindow(Laxkit::anXWindow *ncur)
 	return curwindow=ncur;
 }
 
-/*! Will not add ch if child!=NULL.
+/*! Will not add ch if child!=nullptr.
  * If addbefore!=0, then add at index-1 in viewport->interfaces. Else after *this.
  *
- * If viewport==NULL, then just install as child.
+ * If viewport==nullptr, then just install as child.
  *
  * Return 0 success, or nonzero for not added.
  */
@@ -498,9 +452,9 @@ int anInterface::RemoveChild()
 	if (!child) return 1;
 	anInterface *i=child;
 
-	child->owner=NULL;
+	child->owner=nullptr;
 	child->dec_count();
-	child=NULL;
+	child=nullptr;
 
 	if (viewport) viewport->Pop(i,1); //decs count
 	//else i->dec_count();
@@ -551,7 +505,7 @@ int anInterface::InitForCopy()
  * Returns this->DrawData(data,a1,a2,info). Derived classes need only redefine
  * DrawData(anObject *,anObject *,anObject *,int).
  */
-int anInterface::DrawDataDp(Displayer *tdp,SomeData *data,anObject *a1,anObject *a2,int info)//a1=a2=NULL, info=1
+int anInterface::DrawDataDp(Displayer *tdp,SomeData *data,anObject *a1,anObject *a2,int info)//a1=a2=nullptr, info=1
 {
 	Displayer *ttdp=dp;
 	anXWindow *ttw =curwindow;
@@ -627,13 +581,13 @@ double anInterface::GetVMag(int x,int y)
  * If Context() returns something, then the
  * anInterface::dp will have that context applied before the Refresh() is called.
  *
- * Default here is to return NULL. If subclasses do not return something here, they must
+ * Default here is to return nullptr. If subclasses do not return something here, they must
  * apply any extra transform to their Displayer before refreshing. Generally, this means
  * keeping track if Refresh() is called directly from the viewport, or if it is called
  * from DrawDataDp().
  */
 ObjectContext *anInterface::Context()
-{ return NULL; }
+{ return nullptr; }
 
 //! Set the dp to ndp, and update curwindow/viewport.
 void anInterface::Dp(Displayer *ndp) 
