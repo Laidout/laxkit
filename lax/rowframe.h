@@ -78,6 +78,7 @@ class RowFrame : public anXWindow, public RowColBox
 						anXWindow *prev,unsigned long owner,const char *mes,
 						int npad=0);
 	virtual ~RowFrame();
+	virtual const char *whattype() { return "RowFrame"; }
 	virtual int init();
 	virtual int Sync(int add=0); // add=0, if 1 means addwindow
 	virtual int MoveResize(int nx,int ny,int nw,int nh);
