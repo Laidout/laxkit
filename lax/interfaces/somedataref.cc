@@ -72,21 +72,24 @@ SomeDataRef::~SomeDataRef()
 	if (thedata) thedata->dec_count();
 }
 
-//! Replace current object with d.
+/*! Replace current object with d.
+ * If ignore_matrix, then do not change our matrix,
+ * otherwise copy matrix from d.
+ */
 int SomeDataRef::Set(SomeData *d, int ignore_matrix)
 {
-	if (d==thedata) return 0;
+	if (d == thedata) return 0;
 	if (thedata) {
 		thedata->dec_count();
-		makestr(thedata_id,NULL);
+		makestr(thedata_id, NULL);
 	}
-	thedata=d;
+	thedata = d;
 	if (thedata) {
-		thedata_id=newstr(d->Id());
+		thedata_id = newstr(d->Id());
 		if (!ignore_matrix) m(thedata->m());
 		d->inc_count();
 		FindBBox();
-		modtime=thedata->modtime;
+		modtime = thedata->modtime;
 	}
 	return 0;
 }
