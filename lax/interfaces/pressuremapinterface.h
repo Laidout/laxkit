@@ -55,7 +55,6 @@ class PressureMapInterface : public anInterface
 	virtual int send();
 
   public:
-	unsigned int interface_style;
 	double smooth_pixel_threshhold;
 	Laxkit::ScreenColor linecolor;
 

@@ -53,8 +53,6 @@ namespace LaxInterfaces {
 PressureMapInterface::PressureMapInterface(anInterface *nowner, int nid, Displayer *ndp)
  : anInterface(nowner,nid,ndp)
 {
-	interface_style=0;
-
 	linecolor.rgbf(0,0,.5);
 
 	smooth_pixel_threshhold=2;
