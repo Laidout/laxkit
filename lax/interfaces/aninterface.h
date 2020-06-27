@@ -43,9 +43,10 @@ enum anInterFaceTypes {
 
 //! for anInterface::interface_style:
 enum anInterFaceStyles {
-	INTERFACE_DeferChildInput = (1<<0),
+	INTERFACE_DeferChildInput    = (1<<0),
 	INTERFACE_DontSendOnModified = (1<<1),
-	INTERFACE_BITMAX=1
+	INTERFACE_Experimental       = (1<<2),
+	INTERFACE_BITMAX
 };
 
 class ViewportWindow;
