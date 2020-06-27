@@ -572,12 +572,13 @@ double Displayer::textextent(const char *str,int len, double *width,double *heig
 //--------------------- Line Drawing functions
 
 //! Draw the axes, x=red, y=green, real length len
-/*! This will set the color, but not other line attributes.
+/*! This will set the color, but not other line attributes, and prints in real space.
  */
 void Displayer::drawaxes(double len)
 {
-	int real=DrawReal();
+	int real = DrawReal();
 
+	LineWidthScreen(2);
 	NewFG(.4,0.,0.);
 	drawline(flatpoint(0,0),flatpoint(len,0));
 	NewFG(0.,.4,0.);
