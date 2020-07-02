@@ -455,7 +455,9 @@ void FreehandInterface::RecurseReducePressure(RawPointLine *l, int start, int en
 	}
 }
 
-//! Marks any points it thinks should be in the line with flag=1.
+/*! Marks any points it thinks should be in the line with flag=1.
+ * Assumes points are all flag=0 to start. start and end always get marked 1.
+ */
 void FreehandInterface::RecurseReduce(RawPointLine *l, int start, int end, double epsilon)
 {
 	if (end<=start+1) return; 
@@ -464,14 +466,18 @@ void FreehandInterface::RecurseReduce(RawPointLine *l, int start, int end, doubl
 	flatvector vt=transpose(v);
 	vt.normalize();
 
-	l->e[start]->flag=1;
-	l->e[end  ]->flag=1;
+	l->e[start]->flag = 1;
+	l->e[end]->flag   = 1;
 
-	int i=-1;
-	double d=0, dd;
-	for (int c=start+1; c<end; c++) {
-		dd=fabs((l->e[c]->p - l->e[start]->p)*vt);
-		if (dd>d) { d=dd; i=c; }
+	//find point most distant from segment start-end
+	int    i = -1;
+	double d = 0, dd;
+	for (int c = start + 1; c < end; c++) {
+		dd = fabs((l->e[c]->p - l->e[start]->p) * vt);
+		if (dd > d) {
+			d = dd;
+			i = c;
+		}
 	}
 
 	if (d<epsilon) {
