@@ -631,9 +631,12 @@ void anInterface::PostMessage2(const char *fmt, ...)
 }
 
 
-//! Write out settings. Default writes out nothing.
+//! Write out settings. Default dumps out the att returned from dump_out_atts().
 void anInterface::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *savecontext)
 {
+	Attribute att;
+	dump_out_atts(&att, what, savecontext);
+	att.dump_out(f,indent);
 }
 
 //! Placeholder for dumping in settings. Currently does nothing.
