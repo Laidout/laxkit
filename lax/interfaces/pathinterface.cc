@@ -936,10 +936,14 @@ void Path::UpdateWidthCache()
 		}
 	}
 
-	if (!isclosed && linestyle && linestyle->capstyle==LAXCAP_Zero_Width) {
+	if (!isclosed && linestyle && (linestyle->capstyle == LAXCAP_Zero_Width || linestyle->endcapstyle == LAXCAP_Zero_Width)) {
 		 //add zero width to start and end for this cap style
-		cache_width.AddPoint(0,0);
-		cache_width.AddPoint(n,0);
+		if (linestyle->capstyle == LAXCAP_Zero_Width) 
+			cache_width.AddPoint(0,0);
+		if (linestyle->endcapstyle == LAXCAP_Zero_Width 
+				|| (linestyle->endcapstyle == 0 && linestyle->capstyle == LAXCAP_Zero_Width)) {
+			cache_width.AddPoint(n,0);
+		}
 	}
 }
 
@@ -1298,19 +1302,30 @@ void Path::UpdateCache()
 			}
 		}
 
-		int jointype=0;
+		int jointype = 0;
 		if ((list->e[c].info&LINE_Cap)!=0) {
 			if (linestyle) {
-				if      (linestyle->capstyle==LAXCAP_Butt)  jointype=LAXJOIN_Bevel;
-				else if (linestyle->capstyle==LAXCAP_Round) jointype=LAXJOIN_Round;
-				else jointype=LAXJOIN_Bevel;
+				if (c == list->n-1) {
+					//start cap
+					if      (linestyle->capstyle == LAXCAP_Butt)  jointype = LAXJOIN_Bevel;
+					else if (linestyle->capstyle == LAXCAP_Round) jointype = LAXJOIN_Round;
+					else jointype = LAXJOIN_Bevel;
+				} else {
+					//end cap
+					int capstyle = linestyle->endcapstyle;
+					if (capstyle == 0) capstyle = linestyle->capstyle;
+
+					if      (capstyle == LAXCAP_Butt)  jointype = LAXJOIN_Bevel;
+					else if (capstyle == LAXCAP_Round) jointype = LAXJOIN_Round;
+					else jointype = LAXJOIN_Bevel;
+				}
 			}
-			if (!jointype) jointype=LAXJOIN_Bevel;
+			if (!jointype) jointype = LAXJOIN_Bevel;
 		}
 		if ((list->e[c].info&LINE_Join)!=0 && !jointype) {
 			jointype = linestyle ? linestyle->joinstyle : LAXJOIN_Round;
 		} 
-		if (!jointype) continue;
+		if (!jointype) continue; //nothing special to do
 
 		//DBG cerr <<"maybe join, dist to next point="<<norm2(list->e[c]-list->e[c+1])<<endl; 
 
@@ -1516,8 +1531,8 @@ bool Path::ConstantWidth()
 bool Path::Weighted()
 {
 	if (pathweights.n==0) return false;
-	if (linestyle && linestyle->capstyle==LAXCAP_Zero_Width) return true;
-	if (linestyle && linestyle->joinstyle==LAXJOIN_Extrapolate) return true;
+	if (linestyle && (linestyle->capstyle == LAXCAP_Zero_Width || linestyle->endcapstyle == LAXCAP_Zero_Width)) return true;
+	if (linestyle && linestyle->joinstyle == LAXJOIN_Extrapolate) return true;
 
 	if (pathweights.e[0]->offset!=0) return true;
 	if (pathweights.e[0]->angle!=0)  return true;
@@ -3129,14 +3144,14 @@ int PathsData::line(double width,int cap,int join,ScreenColor *color)
 {
 	if (!linestyle) linestyle=new LineStyle;
 
-	if (width>0) linestyle->width=width;
-	if (cap>=0) linestyle->capstyle=cap;
-	if (join>=0) linestyle->joinstyle=join;
-	if (color) linestyle->Color(color->red,color->green,color->blue,color->alpha);
+	if (width > 0) linestyle->width = width;
+	if (cap >= 0)  linestyle->capstyle = cap;
+	if (join >= 0) linestyle->joinstyle = join;
+	if (color) linestyle->Color(color->red, color->green, color->blue, color->alpha);
 
 	for (int c=0; c<paths.n; c++) {
-		if (!paths.e[c]->linestyle || paths.e[c]->linestyle==linestyle) {
-			paths.e[c]->defaultwidth=width;
+		if (!paths.e[c]->linestyle || paths.e[c]->linestyle == linestyle) {
+			paths.e[c]->defaultwidth = width;
 		}
 	}
 
@@ -5621,7 +5636,7 @@ Laxkit::MenuInfo *PathInterface::ContextMenu(int x,int y,int deviceid, MenuInfo 
 
 	menu->AddSep(_("Join Style"));
 	int jstyle = curpath && curpath->linestyle ? curpath->linestyle->joinstyle : -1;
-	if (jstyle<0 && data && data->linestyle) jstyle=data->linestyle->joinstyle;
+	if (jstyle<0 && data && data->linestyle) jstyle = data->linestyle->joinstyle;
 	menu->AddItem(_("Bevel"),       PATHIA_Bevel,       LAX_OFF|LAX_ISTOGGLE|(jstyle==LAXJOIN_Bevel ? LAX_CHECKED : 0), 0);
 	menu->AddItem(_("Miter"),       PATHIA_Miter,       LAX_OFF|LAX_ISTOGGLE|(jstyle==LAXJOIN_Miter ? LAX_CHECKED : 0), 0);
 	menu->AddItem(_("Round"),       PATHIA_Round,       LAX_OFF|LAX_ISTOGGLE|(jstyle==LAXJOIN_Round ? LAX_CHECKED : 0), 0);
@@ -5629,10 +5644,21 @@ Laxkit::MenuInfo *PathInterface::ContextMenu(int x,int y,int deviceid, MenuInfo 
 
 	menu->AddSep(_("Cap Style"));
 	int cstyle = curpath && curpath->linestyle ? curpath->linestyle->capstyle : -1;
-	if (cstyle<0 && data && data->linestyle) cstyle=data->linestyle->capstyle;
+	if (cstyle<0 && data && data->linestyle) cstyle =data->linestyle->capstyle;
+	if (cstyle<0) cstyle = defaultline->capstyle;
+	int ecstyle = curpath && curpath->linestyle ? curpath->linestyle->endcapstyle : -1;
+	if (ecstyle<0 && data && data->linestyle) ecstyle = data->linestyle->endcapstyle;
+	if (ecstyle<0) ecstyle = defaultline->endcapstyle;
 	menu->AddItem(_("Butt"),        PATHIA_CapButt,     LAX_OFF|LAX_ISTOGGLE|(cstyle==LAXCAP_Butt ? LAX_CHECKED : 0), 0);
 	menu->AddItem(_("Round"),       PATHIA_CapRound,    LAX_OFF|LAX_ISTOGGLE|(cstyle==LAXCAP_Round ? LAX_CHECKED : 0), 0);
 	menu->AddItem(_("Zero tips"),   PATHIA_CapZero,     LAX_OFF|LAX_ISTOGGLE|(cstyle==LAXCAP_Zero_Width ? LAX_CHECKED : 0), 0);
+	menu->AddItem(_("End caps"),   0); //  PATHIA_CapZero,     LAX_OFF|LAX_ISTOGGLE|(cstyle==LAXCAP_Zero_Width ? LAX_CHECKED : 0), 0);
+	menu->SubMenu(_("End caps"));
+		menu->AddItem(_("Same as start"),PATHIA_EndCapSame,  LAX_OFF|LAX_ISTOGGLE|(ecstyle==0 ? LAX_CHECKED : 0), 0);
+		menu->AddItem(_("Butt"),         PATHIA_EndCapButt,  LAX_OFF|LAX_ISTOGGLE|(ecstyle==LAXCAP_Butt ? LAX_CHECKED : 0), 0);
+		menu->AddItem(_("Round"),        PATHIA_EndCapRound, LAX_OFF|LAX_ISTOGGLE|(ecstyle==LAXCAP_Round ? LAX_CHECKED : 0), 0);
+		menu->AddItem(_("Zero tips"),    PATHIA_EndCapZero,  LAX_OFF|LAX_ISTOGGLE|(ecstyle==LAXCAP_Zero_Width ? LAX_CHECKED : 0), 0);
+	menu->EndSubMenu();
 
 	if (!(pathi_style&PATHI_One_Path_Only)) {
 		if (menu->n()) menu->AddSep();
@@ -5700,6 +5726,11 @@ int PathInterface::Event(const Laxkit::EventData *e_data, const char *mes)
 				|| i==PATHIA_CapButt
 				|| i==PATHIA_CapRound
 				|| i==PATHIA_CapZero
+
+				|| i==PATHIA_EndCapSame
+				|| i==PATHIA_EndCapButt
+				|| i==PATHIA_EndCapRound
+				|| i==PATHIA_EndCapZero
 
 				|| i==PATHIA_PointTypeSmooth
 				|| i==PATHIA_PointTypeSmoothUnequal
@@ -7366,17 +7397,40 @@ int PathInterface::PerformAction(int action)
 		return 0;
 
 	} else if (action==PATHIA_CapButt || action==PATHIA_CapRound || action==PATHIA_CapZero) {
-		int cap=LAXCAP_Butt;
-		const char *message=_("Cap butt");
+		int cap = LAXCAP_Butt;
+		const char *message = _("Cap butt");
 		if      (action==PATHIA_CapZero)  { cap=LAXCAP_Zero_Width; message=_("Zero tip caps"); }
 		else if (action==PATHIA_CapRound) { cap=LAXCAP_Round;      message=_("Round caps");    }
 
-		data->linestyle->capstyle=cap;
-		for (int c=0; c<data->paths.n; c++) {
-			if (data->paths.e[c]->linestyle) data->paths.e[c]->linestyle->capstyle=cap;
-			else data->paths.e[c]->Line(data->linestyle);
-			data->paths.e[c]->needtorecache=1;
-		}
+		if (data && data->linestyle) {
+			data->linestyle->capstyle = cap;
+			for (int c=0; c<data->paths.n; c++) {
+				if (data->paths.e[c]->linestyle) data->paths.e[c]->linestyle->capstyle = cap;
+				else data->paths.e[c]->Line(data->linestyle);
+				data->paths.e[c]->needtorecache = 1;
+			}
+		} else defaultline->capstyle = cap;
+
+		PostMessage(message);
+		needtodraw=1;
+		return 0;
+
+	} else if (action==PATHIA_EndCapSame || action==PATHIA_EndCapButt || action==PATHIA_EndCapRound || action==PATHIA_EndCapZero) {
+		int cap = LAXCAP_Butt;
+		const char *message=_("End cap butt");
+
+		if      (action == PATHIA_EndCapSame)  { cap = 0;                 message = _("End cap same as start cap"); }
+		else if (action == PATHIA_EndCapZero)  { cap = LAXCAP_Zero_Width; message = _("Zero tip end cap"); }
+		else if (action == PATHIA_EndCapRound) { cap = LAXCAP_Round;      message = _("Round end cap");    }
+
+		if (data && data->linestyle) {
+			data->linestyle->endcapstyle = cap;
+			for (int c=0; c<data->paths.n; c++) {
+				if (data->paths.e[c]->linestyle) data->paths.e[c]->linestyle->endcapstyle = cap;
+				else data->paths.e[c]->Line(data->linestyle);
+				data->paths.e[c]->needtorecache = 1;
+			}
+		} else defaultline->endcapstyle = cap;
 
 		PostMessage(message);
 		needtodraw=1;

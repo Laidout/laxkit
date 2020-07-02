@@ -174,6 +174,7 @@ void LineStyle::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *cont
 {
 	if (!att) return;
 	char *name,*value;
+
 	for (int c=0; c<att->attributes.n; c++) {
 		name= att->attributes.e[c]->name;
 		value=att->attributes.e[c]->value;
@@ -188,10 +189,17 @@ void LineStyle::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *cont
 			DoubleAttribute(value,&width);
 
 		} else if (!strcmp(name,"capstyle")) {
-			if (!strcmp(value,"round")) capstyle=LAXCAP_Round;
- 			else if (!strcmp(value,"projecting")) capstyle=LAXCAP_Projecting;
- 			else if (!strcmp(value,"zero")) capstyle=LAXCAP_Zero_Width;
-			else capstyle=LAXCAP_Butt;
+			if      (!strcmp(value,"round"))      capstyle = LAXCAP_Round;
+ 			else if (!strcmp(value,"projecting")) capstyle = LAXCAP_Projecting;
+ 			else if (!strcmp(value,"zero"))       capstyle = LAXCAP_Zero_Width;
+			else capstyle = LAXCAP_Butt;
+
+		} else if (!strcmp(name,"endcapstyle")) {
+			if      (!strcmp(value,"round"))      endcapstyle = LAXCAP_Round;
+ 			else if (!strcmp(value,"butt"))       endcapstyle = LAXCAP_Butt;
+ 			else if (!strcmp(value,"projecting")) endcapstyle = LAXCAP_Projecting;
+ 			else if (!strcmp(value,"zero"))       endcapstyle = LAXCAP_Zero_Width;
+			else endcapstyle = 0;
 
 		} else if (!strcmp(name,"joinstyle")) {
 			if (!strcmp(value,"round")) joinstyle=LAXJOIN_Round;
@@ -218,6 +226,7 @@ LaxFiles::Attribute *LineStyle::dump_out_atts(LaxFiles::Attribute *att,int what,
 	if (what==-1) {
 		att->push("color","rgbaf(1,1,1,1)", "rgba in range [0..1]");
 		att->push("capstyle","round",       "or miter, butt, projecting, zero");
+		att->push("endcapstyle","round",    "or miter, butt, projecting, zero, same");
 		att->push("joinstyle","round",      "or miter, bevel, extrapolate");
 		att->push("miterlimit","100",       "means limit is 100*width");
 		att->push("dotdash","5",            "an integer whose bits define an on-off pattern");
@@ -241,6 +250,15 @@ LaxFiles::Attribute *LineStyle::dump_out_atts(LaxFiles::Attribute *att,int what,
     else str="?";
 	att->push("capstyle", str);
 
+	if (endcapstyle !=0) {
+		if      (endcapstyle == LAXCAP_Butt) str="butt";
+		else if (endcapstyle == LAXCAP_Round) str="round";
+		else if (endcapstyle == LAXCAP_Projecting) str="projecting";
+		else if (endcapstyle == LAXCAP_Zero_Width) str="zero";
+		else str="?";
+		att->push("endcapstyle", str);
+	}
+
 	if (joinstyle==LAXJOIN_Miter) str="miter";
 	else if (joinstyle==LAXJOIN_Round) str="round";
  	else if (joinstyle==LAXJOIN_Bevel) str="bevel";
@@ -263,47 +281,51 @@ LaxFiles::Attribute *LineStyle::dump_out_atts(LaxFiles::Attribute *att,int what,
 //! ***implement mask!! should only output the actually defined values?
 void LineStyle::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
 {
-	char spc[indent+1]; memset(spc,' ',indent); spc[indent]='\0';
-	if (what==-1) {
-		//fprintf(f,"%smask                   #what is active in this linestyle\n", spc);
-		fprintf(f,"%scolor rgbaf(1,1,1,1)   #rgba in range [0..1]\n",spc);
-		fprintf(f,"%scapstyle round         #or miter, projecting, zero\n", spc);
-		fprintf(f,"%sjoinstyle round        #or miter, bevel, extrapolate\n",spc);
-		fprintf(f,"%smiterlimit 100         #means limit is 100*width\n",spc);
-		fprintf(f,"%sdotdash 5              #an integer whose bits define an on-off pattern\n",  spc);
-		fprintf(f,"%sfunction Over          #Blend mode. Common is None or Over\n", spc);
-		fprintf(f,"%swidth %.10g\n", spc,width);
-		return;
-	}
+	Attribute att;
+	dump_out_atts(&att, what, context);
+	att.dump_out(f,indent);
 
-	const char *str;
-
-	//fprintf(f,"%smask %lu\n", spc,mask);
-	fprintf(f,"%scolor rgbf(%.10g, %.10g, %.10g, %.10g)\n",spc, color.Red(),color.Green(),color.Blue(),color.Alpha());
-
-	if (capstyle==LAXCAP_Butt) str="butt";
-	else if (capstyle==LAXCAP_Round) str="round";
- 	else if (capstyle==LAXCAP_Projecting) str="projecting";
- 	else if (capstyle==LAXCAP_Zero_Width) str="zero";
-    else str="?";
-	fprintf(f,"%scapstyle %s\n", spc,str);
-
-	if (joinstyle==LAXJOIN_Miter) str="miter";
-	else if (joinstyle==LAXJOIN_Round) str="round";
- 	else if (joinstyle==LAXJOIN_Bevel) str="bevel";
- 	else if (joinstyle==LAXJOIN_Extrapolate) str="extrapolate";
-    else str="?";
-	fprintf(f,"%sjoinstyle %s\n",spc,str);
-	fprintf(f,"%smiterlimit %.10g\n",spc,miterlimit);
-
-	fprintf(f,"%sdotdash %d\n",  spc,dotdash);
-	fprintf(f,"%swidth %.10g\n", spc,width);
-
-	char op[50];
-	if (LaxopToString(function, op, 50, NULL) == NULL) {
-		sprintf(op, "%d", function);
-	}
-	fprintf(f,"%sfunction %s\n", spc,op);
+//	char spc[indent+1]; memset(spc,' ',indent); spc[indent]='\0';
+//	if (what==-1) {
+//		//fprintf(f,"%smask                   #what is active in this linestyle\n", spc);
+//		fprintf(f,"%scolor rgbaf(1,1,1,1)   #rgba in range [0..1]\n",spc);
+//		fprintf(f,"%scapstyle round         #or miter, projecting, zero\n", spc);
+//		fprintf(f,"%sjoinstyle round        #or miter, bevel, extrapolate\n",spc);
+//		fprintf(f,"%smiterlimit 100         #means limit is 100*width\n",spc);
+//		fprintf(f,"%sdotdash 5              #an integer whose bits define an on-off pattern\n",  spc);
+//		fprintf(f,"%sfunction Over          #Blend mode. Common is None or Over\n", spc);
+//		fprintf(f,"%swidth %.10g\n", spc,width);
+//		return;
+//	}
+//
+//	const char *str;
+//
+//	//fprintf(f,"%smask %lu\n", spc,mask);
+//	fprintf(f,"%scolor rgbf(%.10g, %.10g, %.10g, %.10g)\n",spc, color.Red(),color.Green(),color.Blue(),color.Alpha());
+//
+//	if (capstyle==LAXCAP_Butt) str="butt";
+//	else if (capstyle==LAXCAP_Round) str="round";
+// 	else if (capstyle==LAXCAP_Projecting) str="projecting";
+// 	else if (capstyle==LAXCAP_Zero_Width) str="zero";
+//    else str="?";
+//	fprintf(f,"%scapstyle %s\n", spc,str);
+//
+//	if (joinstyle==LAXJOIN_Miter) str="miter";
+//	else if (joinstyle==LAXJOIN_Round) str="round";
+// 	else if (joinstyle==LAXJOIN_Bevel) str="bevel";
+// 	else if (joinstyle==LAXJOIN_Extrapolate) str="extrapolate";
+//    else str="?";
+//	fprintf(f,"%sjoinstyle %s\n",spc,str);
+//	fprintf(f,"%smiterlimit %.10g\n",spc,miterlimit);
+//
+//	fprintf(f,"%sdotdash %d\n",  spc,dotdash);
+//	fprintf(f,"%swidth %.10g\n", spc,width);
+//
+//	char op[50];
+//	if (LaxopToString(function, op, 50, NULL) == NULL) {
+//		sprintf(op, "%d", function);
+//	}
+//	fprintf(f,"%sfunction %s\n", spc,op);
 }
 
 

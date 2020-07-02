@@ -380,6 +380,10 @@ enum PathInterfaceActions {
 	PATHIA_CapRound,
 	PATHIA_CapButt,
 	PATHIA_CapZero,
+	PATHIA_EndCapSame,
+	PATHIA_EndCapRound,
+	PATHIA_EndCapButt,
+	PATHIA_EndCapZero,
 
 	PATHIA_MAX
 };
