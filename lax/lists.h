@@ -45,6 +45,7 @@ class NumStack
 	virtual void flush_n();
 	virtual int howmany() { return n; }
 	virtual int findindex(T t);
+	virtual int Contains(T t);
 	virtual void swap(int i1,int i2);
 	virtual int push(T nd,int where=-1);
 	virtual int pushnodup(T nd);
@@ -93,6 +94,7 @@ class PtrStack
 	virtual int pop(T *&popped,int which=-1,int *local=nullptr);
 	virtual T *pop(int which=-1,int *local=nullptr); // -1 means from the end, <-1 means return nullptr
 	virtual int findindex(T *t);
+	virtual int Contains(T *t);
 	virtual int remove(int which); // which is index
 	virtual int remove(T *t);
 	virtual int pushnodup(T *nd,char local,int where=-1);

@@ -209,6 +209,17 @@ int NumStack<T>::findindex(T t) // returns index of first element equal to t
 	return -2;
 }
 
+/*! Return positive number (the element index+1) if element is in list,
+ * otherwise 0.
+ */
+template <class T>
+int NumStack<T>::Contains(T t)
+{
+	int i = findindex(t);
+	if (i >= 0) return i+1;
+	return 0;
+}
+
 //! Swap the elements with indices i1 and i2.
 /*! If i1 or i2 is out of bounds, then substitute the top of the stack for it.
  */
@@ -530,6 +541,16 @@ int PtrStack<T>::findindex(T *t) // returns index of first element equal to t
 	return -2;
 }
 
+/*! Return positive number (the element index+1) if element is in list,
+ * otherwise 0.
+ */
+template <class T>
+int PtrStack<T>::Contains(T *t)
+{
+	int i = findindex(t);
+	if (i >= 0) return i+1;
+	return 0;
+}
 //! Pop and delete (if islocal) the element at index which.
 /*! This purges the element by popping and then (if islocal==1 or 2) deleting it.
  * Default if no index is specified is to remove the top element (which==-1).
