@@ -107,10 +107,11 @@ class AttributeObject : public Laxkit::anObject, public Attribute
 };
 
 //---------------------------------- Dump helper functions ---------------------------------
-void dump_out_value(FILE *f,int indent,const char *value, int noquotes=0, const char *comment=NULL);
+void dump_out_value(FILE *f, int indent, const char *value, int valuewidth = 1, const char *comment = NULL, int commentindent = 1);
 void dump_out_escaped(FILE *f, const char *str, int n);
 void dump_out_indented(FILE *f, int indent, const char *str);
 void dump_out_quoted(FILE *f, const char *value, char quote);
+void dump_out_comment(FILE *f, int indent, const char *comment);
 
 char *escape_string(const char *value, char quote, bool include_quotes);
 

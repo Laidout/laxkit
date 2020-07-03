@@ -686,16 +686,11 @@ Attribute *EngraverDirection::dump_out_atts(Attribute *att,int what,LaxFiles::Du
 	if (!att) att=new Attribute();
 
 	if (what==-1) {
-
-		cerr << "*** FINISH IMP EngraverDirection::dump_out_atts!!!!!"<<endl;
-
-		//att->push("",      "#");
-
-		att->push("type","linear", "or radial, circular");
-		att->push("position","(.5,.5)", "default origin for the pattern ");
-		att->push("direction","(1,0)", "default direction for the pattern ");
-		att->push("grow", "true", "whether to grow lines, or have predetermined lines");
-		att->push("parameter",nullptr, "extra parameters for the line type");
+		att->push("type",      "linear",  "or radial, circular");
+		att->push("position",  "(.5,.5)", "default origin for the pattern ");
+		att->push("direction", "(1,0)",   "default direction for the pattern ");
+		att->push("grow",      "true",    "whether to grow lines, or have predetermined lines");
+		att->push("parameter", nullptr,   "extra parameters for the line type");
 		return att;
 	}
 
@@ -1109,9 +1104,9 @@ LaxFiles::Attribute *EngraverSpacing::dump_out_atts(LaxFiles::Attribute *att,int
 	if (!att) att=new Attribute();
 
 	if (what==-1) {
-		att->push("type",      "#default or map");
-		att->push("spacing",   "#The default spacing");
-		att->push("map (todo)","#a value map for spacing");
+		att->push("type",      nullptr, "default or map");
+		att->push("spacing",   nullptr, "The default spacing");
+		att->push("map (todo)",nullptr, "a value map for spacing");
 		return att;
 	}
 
@@ -1212,16 +1207,16 @@ Attribute *EngraverLineQuality::dump_out_atts(Attribute *att,int what,LaxFiles::
 
 	if (what==-1) {
 
-		att->push("dash_length",      "#This times group->spacing is the length dashes should be between breaks.");
-		att->push("dash_randomness",  "#0 for regular spacing, up to 1 how much to randomize spacing.");
-		att->push("zero_threshhold",  "#Weights below this value are considered off");
-		att->push("broken_threshhold","#Weights below this value are rendered as broken lines.");
-		att->push("dash_taper",       "#How much to shrink weight of dashes as zero weight approaches. 0 is all the way, 1 is not at all.");
-		att->push("density",          "#The minimum dash density. 0 for all blank at 0, 1 for all solid at 0 thickness.");
-		att->push("indashcaps",       "#Line cap at the inside start of a dash. Todo!");
-		att->push("outdashcaps",      "#Line cap at the inside end of a dash. Todo!");
-		att->push("startcaps",        "#Line cap at the start of a whole line. Todo!");
-		att->push("endcaps",          "#Line cap at the end of a whole line. Todo!");
+		att->push("dash_length",      "2", "This times group->spacing is the length dashes should be between breaks.");
+		att->push("dash_randomness",  "0", "0 for regular spacing, up to 1 how much to randomize spacing.");
+		att->push("zero_threshhold",  "0", "Weights below this value are considered off");
+		att->push("broken_threshhold","0", "Weights below this value are rendered as broken lines.");
+		att->push("dash_taper",       "0", "How much to shrink weight of dashes as zero weight approaches. 0 is all the way, 1 is not at all.");
+		att->push("density",          "0", "The minimum dash density. 0 for all blank at 0, 1 for all solid at 0 thickness.");
+		att->push("indashcaps",       "0", "Line cap at the inside start of a dash. Todo!");
+		att->push("outdashcaps",      "0", "Line cap at the inside end of a dash. Todo!");
+		att->push("startcaps",        "0", "Line cap at the start of a whole line. Todo!");
+		att->push("endcaps",          "0", "Line cap at the end of a whole line. Todo!");
 		return att;
 	}
 
@@ -1457,12 +1452,12 @@ Attribute *TraceObject::dump_out_atts(Attribute *att,int what,LaxFiles::DumpCont
 	if (!att) att=new Attribute();
 
 	if (what==-1) {
-		att->push("id", "blah #Id of the object");
-		att->push("snapshot","#a list of points from which to build a snapshot image");
-		att->push("current", "#Use the current settings to base adjustments on");
-		att->push("gradient","#GradientData to use");
-		att->push("image", "#ImageData to use");
-		att->push("object", "#A SomeDataRef to use");
+		att->push("id",       "blah",  "Id of the object");
+		att->push("snapshot", nullptr, "a list of points from which to build a snapshot image");
+		att->push("current",  nullptr, "Use the current settings to base adjustments on");
+		att->push("gradient", nullptr, "GradientData to use");
+		att->push("image",    nullptr, "ImageData to use");
+		att->push("object",   nullptr, "A SomeDataRef to use");
 		return att;
 	}
 
@@ -1864,11 +1859,11 @@ Attribute *EngraverTraceSettings::dump_out_atts(Attribute *att,int what,LaxFiles
 	if (!att) att=new Attribute();
 
 	if (what==-1) {
-		att->push("curve","#The value to weight curve");
-		att->push("view_opacity", "#Opacity of background reference");
-		att->push("show_trace true",   "#Whether to show the trace object at all");
-		att->push("continuous true",   "#Whether to trace continuously");
-		att->push("trace", "#What to trace from");
+		att->push("curve",           nullptr, "The value to weight curve");
+		att->push("view_opacity",    nullptr, "Opacity of background reference");
+		att->push("show_trace true", nullptr, "Whether to show the trace object at all");
+		att->push("continuous true", nullptr, "Whether to trace continuously");
+		att->push("trace",           nullptr, "What to trace from");
 		return att;
 	}
 
@@ -2083,10 +2078,10 @@ LaxFiles::Attribute *EngraverTraceStack::dump_out_atts(LaxFiles::Attribute *att,
 	if (!att) att=new Attribute();
 
 	if (what==-1) {
-		att->push("id", "#id for this stack");
-		Attribute *att2 = att->pushSubAtt("node", "#One or more blocks for trace settings objects plus weight");
-		att2->push("visible","#Whether to use this node");
-		att2->push("amount", "#how much to weight this node (usually 0..1)");
+		att->push("id", "SomeName", "id for this stack");
+		Attribute *att2 = att->pushSubAtt("node", nullptr, "One or more blocks for trace settings objects plus weight");
+		att2->push("visible",nullptr, "Whether to use this node");
+		att2->push("amount", "1",     "How much to weight this node (usually 0..1)");
 		return att;
 	}
 

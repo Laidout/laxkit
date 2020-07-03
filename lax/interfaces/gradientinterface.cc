@@ -520,7 +520,7 @@ void GradientData::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *c
 	char *e;
 	SomeData::dump_in_atts(att,flag,context);
 
-	if (att->findValue("spot")) { //for backwards compatibility
+	if (att->find("spot")) { //for backwards compatibility
 		if (!strip) strip = new GradientStrip();
 		strip->dump_in_atts(att, flag, context);
 	}

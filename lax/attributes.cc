@@ -1101,6 +1101,14 @@ char *WholeQuotedAttribute(const char *v)
 
 //---------------------------------- Dump helper functions ---------------------------------
 
+bool HasEdgeWhitespace(const char *value)
+{
+	if (!value || value[0] == '\0') return false;
+	if (isspace(value[0])) return true;
+	if (isspace(value[strlen(value)-1])) return true;
+	return false;
+}
+
 //! Used to dump out the value part of an attribute.
 /*! This is assumed to already point to the spot in the file right
  * after the name part, assumed to already have been written to file.
@@ -1111,38 +1119,88 @@ char *WholeQuotedAttribute(const char *v)
  * A newline is always the last thing written to the file. If value==NULL,
  * a single newline is written to f.
  *
- * If the string has quotes in it or a number sign, they will be escaped unless noquotes.
+ * If the string has leading or trailing whitespace, or a number sign, they will be escaped.
  *
  * \todo note that this will almost always quote value, and it probably shouldn't for simple values
  */
-void dump_out_value(FILE *f,int indent,const char *value, int noquotes, const char *comment)
+void dump_out_value(FILE *f,int indent,const char *value, int valuewidth, const char *comment, int commentindent)
 {
+	bool quotes = false;
+	char format[10];
+	sprintf(format, " %%-%ds", valuewidth);
+
 	if (value) {
 		if (strchr(value,'\n')) {
-			 // if value has \n such as "aoeuaoeu \n aouoeu"
-			fprintf(f," \\%s%s\n", comment ? " #":"", comment ? comment:"");
+			 // multiline value, need to write out indented block
+			fprintf(f," \\");
+			if (comment) dump_out_comment(f, commentindent, comment);
+			else fwrite("\n",1,1,f);
 			dump_out_indented(f,indent,value);
 			fprintf(f,"\n");
 
-		} else if (strpbrk(value,"#\"<>") && !noquotes) {
-		//} else if ((strchr(value,'#') || strchr(value,'"')) && !noquotes) {
-			 // simply written value, but has quotes, so must escape quotes
+
+			//   "one" two three
+			//   one two "three"
+			//   "aontuhaoetn  oue #"
+			//   aontuhaoetn  oue #
+
+		} else if (strpbrk(value,"\"")) {
+			//a single line value that has chars that need to be escaped, and should have quotes
+
 			fprintf(f," ");
 			dump_out_escaped(f,value,-1);
-			fprintf(f,"%s%s\n", comment ? " #":"", comment ? comment:"");
+
+			if (comment) dump_out_comment(f, commentindent, comment);
+			else fwrite("\n",1,1,f);
 
 		} else {
-			 //force quotes when there's space chars
-			//if (!strchr(value,' ')) noquotes=1;
-			if (!strpbrk(value," <>")) noquotes=1;
-			if (noquotes) fprintf(f," %s",value);
-			else fprintf(f," \"%s\"",value);
-			if (comment) fprintf(f," #%s\n", comment);
-			else fprintf(f,"\n");
+			//a simple value that doesn't need any chars escaped, but still might need quotes
+			
+			 //force quotes when there's edge space chars or pipe chars
+			if (strpbrk(value,"#<>") || HasEdgeWhitespace(value)) quotes = true;
+			if (quotes) {
+				char vv[strlen(value)+3];
+				sprintf(vv, "\"%s\"", value);
+				fprintf(f,format,vv);
+			}
+			else fprintf(f, format, value);
+
+			if (comment) dump_out_comment(f, commentindent, comment);
+			else fwrite("\n",1,1,f);
 		}
 	} else {
-		if (comment) fprintf(f," #%s\n", comment);
-		else fprintf(f,"\n");
+		if (comment) {
+			fprintf(f,format, "");
+			dump_out_comment(f, commentindent, comment);
+			//fprintf(f," #%s\n", comment);
+		} else fprintf(f,"\n");
+	}
+}
+
+/*! Write out comment after hash marks. If there are newlines, write out multiple lines.
+ * If comment is blank, then only output a newline.
+ * Assumes f is already at a proper indent.
+ */
+void dump_out_comment(FILE *f, int indent, const char *comment)
+{
+	if (isblank(comment)) {
+		fwrite("\n",1,1,f);
+		return;
+	}
+	while (*comment) {
+		const char *p = strchr(comment, '\n');
+		if (p) { //found a newline, need to start a new line
+			fwrite(" # ",1,3,f);
+			fwrite(comment, 1, p-comment, f);
+			fwrite("\n",1,1,f);
+			comment = p+1;
+			if (!*comment) break;
+			char spc[indent+1]; memset(spc,' ',indent); spc[indent]='\0';
+			fwrite(spc,1,indent,f);
+		} else {
+			fprintf(f, " #%s\n", comment);
+			break;
+		}
 	}
 }
 
@@ -1150,10 +1208,10 @@ void dump_out_value(FILE *f,int indent,const char *value, int noquotes, const ch
 /*! \ingroup fileutils
  *  If n<0 then dump all characters of str.
  *
- * If str==NULL, then nothing is written out.
+ * If str == nullptr, then nothing is written out.
  *
  * If str has trailing or leading whitespace or it starts with a quote,
- * or it contains a '#' character, then the whole string gets quoted.
+ * or it contains '#', '<', '>' characters, then the whole string gets quoted.
  * Otherwise, it is written as is.
  * 
  * So say str='&nbsp;&nbsp;he said, "blah"', then what gets dumped is:\n
@@ -1167,30 +1225,31 @@ void dump_out_value(FILE *f,int indent,const char *value, int noquotes, const ch
 void dump_out_escaped(FILE *f, const char *str, int n)
 {
 	if (!str) return;
-	if (n<0) n=strlen(str);
-	if (n==0) { fprintf(f,"\"\""); return; } // empty but not null string
-	const char *s=str;
-	//const char *ss=strchr(s,'#');
+	if (n < 0) n = strlen(str);
+	if (n == 0) { fprintf(f, "\"\""); return; }  // empty but not null string
+
+	const char *s = str;
 	const char *ss = strpbrk(s,"#><");
 	if (*str!='"' && !(isspace(*str) || isspace(str[n-1])) && !(ss && ss-str<n)) {
-		 // no start or ending whitespace, no '#',
+		 // no start or ending whitespace, none of: #<>
 		 // and doesn't start with a quote
 		fprintf(f,"%s",str); 
 		return; 
 	}
+
 	 // to be here, external quotes are necessary
-	fprintf(f,"\""); 
+	fprintf(f, "\"");
 	do {
-		ss=strchr(s,'"');
-		if (!ss || ss-str>=n) {
-			fprintf(f,"%s",s);
+		ss = strchr(s, '"');
+		if (!ss || ss - str >= n) {
+			fprintf(f, "%s", s);
 			break;
 		}
-		fwrite(s,1,ss-s,f);
-		fprintf(f,"\\\"");
-		s=ss+1;
-	} while (s-str<n);
-	fprintf(f,"\""); 
+		fwrite(s, 1, ss - s, f);
+		fprintf(f, "\\\"");
+		s = ss + 1;
+	} while (s - str < n);
+	fprintf(f, "\"");
 }
 
 /*! Return a new char[] escaped for use inside a quoted string.
@@ -1604,7 +1663,7 @@ int Attribute::remove(int index)
 	return 0;
 }
 
-//! Write out the subattributes to f, not including this->name/value.
+//! Write out the subattributes to f, NOT including this->name/value.
 /*! Conveniently, you can call \a dump_out(stdout,0) to dump out the Attribute
  * to the screen.
  *
@@ -1617,13 +1676,18 @@ void Attribute::dump_out(FILE *f, int indent)
 	char spc[indent+1]; memset(spc,' ',indent); spc[indent]='\0';
 
 	 //try to print out at least marginally nicely by space padding after name
-	int namewidth = 1, w;
+	int namewidth = 1, valuewidth = 1, w;
 	for (int c=0; c<attributes.n; c++) {
-		if (!attributes.e[c]->name) continue;
-		w = strlen(attributes.e[c]->name);
-		if (w > namewidth) namewidth = w;
+		if (attributes.e[c]->name) {
+			w = strlen(attributes.e[c]->name);
+			if (w > namewidth) namewidth = w;
+		}
+		if (attributes.e[c]->value) {
+			w = strlen(attributes.e[c]->value);
+			if (w > valuewidth) valuewidth = w;
+		}
 	}
-	//char spc2[namewidth+1]; memset(spc2,' ',namewidth); spc[namewidth]='\0';
+
 	char format[10];
 	sprintf(format, "%%-%ds", namewidth);
 	
@@ -1632,33 +1696,25 @@ void Attribute::dump_out(FILE *f, int indent)
 
 		 //dump out name
 		if (!attributes.e[c]->name) fprintf(f,"\"\"");
-		else if (strchr(attributes.e[c]->name,' ') || strchr(attributes.e[c]->name,'\t'))
+		else if (strpbrk(attributes.e[c]->name," #\"<>\n\t"))
+		//else if (strchr(attributes.e[c]->name,' ') || strchr(attributes.e[c]->name,'\t'))
 			dump_out_escaped(f,attributes.e[c]->name,-1);//***does this work as intended??
 		else fprintf(f,format,attributes.e[c]->name);
-		//else fprintf(f,"%s",attributes.e[c]->name);
 
 		 //dump out value
-		if (!attributes.e[c]->value) fprintf(f,"\n");
-		else dump_out_value(f, indent+2, attributes.e[c]->value, 0, attributes.e[c]->comment);
+		//sprintf(format, " %%-%ds", valuewidth);
+		dump_out_value(f, indent+2, attributes.e[c]->value, valuewidth, attributes.e[c]->comment, indent+namewidth+valuewidth+2);
 
 		 //dump out subatts
 		attributes.e[c]->dump_out(f,indent+2);
 	}
 }
 
-//! Write out to f.
-/*! Conveniently, you can call \a dump_out_full(stdout,0) to dump out the Attribute
- * to the screen.
+/*! Convenience function to write the ENTIRE attribute, INCLUDING name, value,
+ * and subattributes  to f, such as with \a dump_out_full(stdout,0).
  *
  * If there is no name, value, or subatts then nothing is written. If name==NULL,
- * then nothing is written for name, but value is still written. This can
- * potentially cause problems when name=NULL and value is something like
- * "1234\naeuo". This will cause a blank line with indent followed by two
- * lines with indent+2: "1234" and "aeuo" beneath it.
- *
- * \todo make name==NULL and value=something like "1234\naeuo" behave in
- *   some sort of reasonable way, like have name become "" or ~ or something..
- *   ... null name gets "", but problems still if name has whitespace..
+ * or empty, then "\"\"" is written for name, but value is still written.
  */
 void Attribute::dump_out_full(FILE *f, int indent)
 {
@@ -1667,8 +1723,8 @@ void Attribute::dump_out_full(FILE *f, int indent)
 	
 	fprintf(f,"%s",spc);
 
-	if (!name) fprintf(f,"\"\"\n");
-	else if (strchr(name,' ') || strchr(name,'\t')) dump_out_escaped(f,name,-1);//***does this work as intended??
+	if (!name || *name == '\0') fprintf(f,"\"\"\n");
+	else if (strpbrk(name, " #<>\n\t\"")) dump_out_escaped(f,name,-1);
 	else fprintf(f,"%s",name);
 
 	if (!value) fprintf(f,"\n");
@@ -1784,7 +1840,7 @@ char *Attribute::dump_in_until(IOBuffer &f, const char *tag, int Indent)//indent
 }
 
 //! Remove backslashes. Double backslash becomes single backslash.
-/*! Note this does not substite characters. Thus "\\t" converts to 't'.
+/*! Note this does not substitute characters. Thus "\\t" converts to 't'.
  */
 char *removeescapes(char *&str)
 {
@@ -1897,9 +1953,10 @@ int Attribute::dump_in(IOBuffer &f, int Indent,Attribute **stopatsub)
 		 //   < BLAH <-- indented raw read in until BLAH is encountered again. 
 		 //   (NULL)
 		 //   somesimplevalue
+		 //   "some quoted value, maybe with escaped \t things"
 
 		if (!att) {
-			att=new Attribute;
+			att = new Attribute;
 			makestr(att->name,fld);
 			removeescapes(att->name);
 			attributes.push(att);
