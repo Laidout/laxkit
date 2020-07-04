@@ -234,34 +234,38 @@ int is_good_filename(const char *filename)
  *   check that those new dirs are still empty?
  * \todo *** always follows links, maybe should have some sanity check for that..
  */
-int check_dirs(const char *dirs,char make_too)
+int check_dirs(const char *dirs, bool make_too, int permissions)
 {
-	char *dir=newstr(dirs),*p;
-	p=dir;
-	while (*p=='/') p++;
-	int c=-1,t=1;
+	char *dir = newstr(dirs);
+	char *p = dir;
+	while (*p == '/') p++;
+	int c = -1, t = 1;
+
 	do {
 		c++;
-		p=strchr(p,'/');
-		if (p) *p='\0';
-		
-		t=file_exists(dir,1,NULL);
-		if (t && t!=S_IFDIR) { 
+		p = strchr(p, '/');
+		if (p) *p = '\0';
+
+		t = file_exists(dir, 1, NULL);
+		if (t && t != S_IFDIR) { 
 			 // existed, but was not a directory
 			break;
 		} else if (t==0) {
 			 // create the dir
-			if (mkdir(dir,0755)!=0) { t=-1; break; }
-			t=S_IFDIR;
+			if (mkdir(dir, permissions) != 0) { t = -1; break; }
+			t = S_IFDIR;
 		}
 		if (p) { *p='/'; p++; }
 	} while (p);
 	
 	delete[] dir;
-	return t!=S_IFDIR?c:-1;
+	return t != S_IFDIR ? c : -1;
 }
 
-/*! Create directories in dirs if they don't exist. Returns number of directories created.
+/*! Create directories in dirs if they don't exist.
+ * Returns number of directories created and now all directories exist,
+ * or return -1 if there was an error creating directories.
+ *
  * If depth==0, then assume every path component in dirs is a directory.
  * If depth>0, then only do that many deep, so "1/2/3/4/5" with a depth of 3 will
  * create "1/2/3".
