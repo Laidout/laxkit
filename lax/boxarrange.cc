@@ -27,14 +27,16 @@
  * \todo *** implement all the LRTB, ...
  */
 
-#include <lax/refptrstack.cc>
 
 #include <lax/boxarrange.h>
+
+//template implementation:
+#include <lax/refptrstack.cc>
+
 
 #include <iostream>
 using namespace std;
 #define DBG 
-
 
 
 // these defines are to make indexing the SquishyBox::m[] meaningful.
@@ -54,13 +56,14 @@ using namespace std;
 #include <iostream>
 using namespace std;
 
+
 namespace Laxkit {
+
 
 /*! \defgroup boxarrangers Box Arrangers
  * 
- * These are functions and classes that can be used to build tables and more
- * complicated nested row and column arrangements. Inside the Laxkit, they are
- * used by RowFrame, the BoxSelector, and TableFrame.
+ * These are functions and classes built around a base of SquishyBox that can be
+ * used to build nested row and column arrangements.
  * 
  * The general setup is a simplification of the box-glue-penalty format of 
  * <a href="http://www.tug.org">TeX</a>, but the glue and box are roughly
@@ -68,7 +71,6 @@ namespace Laxkit {
  */
 	
 	
-//--------------------------------------------
 
 //--------------------------------- Classes --------------------------------------------------
 
@@ -94,7 +96,7 @@ namespace Laxkit {
  * feature that is not implemented would be to have aligning to a baseline.
  *
  * The base SquishyBox only has metric information. 
- * ListBox is a box, with a list of internal boxes. This list can be either a horizontal
+ * ListBox is a box with a list of internal boxes. This list can be either a horizontal
  * or vertical list (flags has BOX_HORIZONTAL (the default) or BOX_VERTICAL), with descriptive options
  * held in flags. More complicated arrangements are made
  * with other derived classes, notably RowColBox and TableBox.
@@ -105,7 +107,7 @@ namespace Laxkit {
  * force line break (<0), and never line break (>0). The glue and box are also roughly combined into this class,
  * such that one would always have box(w1)-(no break)-glue(w2,s,g), and the glue's width, shrink 
  * and grow are always used. In TeX, the glue acts like the space between words, but here, the 
- * boxes all kind of but up against each other. So anyway.
+ * boxes all kind of butt up against each other. So anyway.
  *
  * The horizontal and vertical metric information is stored in the m array, with the
  * horizontal values first  (x,w,pw,ws,wg,halign,hgap), followed by the vertical values 
