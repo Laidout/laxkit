@@ -1,5 +1,5 @@
 //
-//  
+//
 //    The Laxkit, a windowing toolkit
 //    Please consult https://github.com/Laidout/laxkit about where to send any
 //    correspondence about this software.
@@ -199,6 +199,7 @@ class Theme : public anObject, public LaxFiles::DumpUtility
 	double default_bevel;
 	double base_font_size;
 	double ui_scale;
+	double ui_default_ppi;
 
 	unsigned int firstclk; //how long after first click to wait before idle "clicks", in ms
 	unsigned int dblclk;   //time between clicks that counts as a double click, in ms
@@ -241,4 +242,3 @@ const char *window_category_name(int category);
 } //namespace Laxkit
 
 #endif
-
