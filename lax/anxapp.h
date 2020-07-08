@@ -64,14 +64,14 @@ class LaxFont;
 
 anXWindow *TopWindow(anXWindow *win);
 int IsWindowChild(anXWindow *top,anXWindow *check);
+unsigned int composekey(unsigned int k1, unsigned int k2);
+
 
 #ifdef _LAX_PLATFORM_XLIB
 unsigned int filterkeysym(KeySym keysym,unsigned int *state);
 const char *xlib_event_name(int e_type);
 const char *xlib_extension_event_name(int e_type);
 #endif //_LAX_PLATFORM_XLIB
-
-unsigned int composekey(unsigned int k1, unsigned int k2);
 
 
 //-------------------------- aDrawable ----------------------------------------
@@ -137,9 +137,26 @@ class anXWindow : virtual public EventReceiver,
 {
 	friend class anXApp;
 
+
 #ifdef _LAX_PLATFORM_XLIB
- protected:
- public:
+  protected:
+	class XlibDNDData
+	{
+	  public:
+	  	anXWindow *targetTop;
+	  	anXWindow *targetChild;
+	  	XID source_window;
+	  	int preferred_type;
+	  	char **data_types; 
+	  	int num_data_types;
+	  	XlibDNDData();
+	  	~XlibDNDData();
+	  	void SetNames(XID source, char **names, int len);
+	};
+
+	XlibDNDData xdnddata;
+
+  public:
  	 // Very X specific stuff about window status and event capture.
 	XWMHints      *xlib_win_hints;
 	XSizeHints    *xlib_win_sizehints;
@@ -148,6 +165,7 @@ class anXWindow : virtual public EventReceiver,
 
 	virtual int event(XEvent *e);
 #endif //_LAX_PLATFORM_XLIB
+
 
 #ifdef _LAX_PLATFORM_QT
 #endif
