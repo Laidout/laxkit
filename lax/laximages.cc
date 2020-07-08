@@ -252,6 +252,13 @@ int CacheManager::Remove(MemCachedObject *obj)
  *
  * This puts back data that was checked out with getImageBuffer().
  */
+/*! \fn LaxImage *Crop(int x, int y, int width, int height, bool return_new)
+ *
+ * Make the image be the specified rectangle.
+ * If return_new then return a new LaxImage. Else modify current image.
+ * 
+ * Return nullptr on error, such as width or height being non-positive.
+ */
 
 
 /*! fname is file name, but the default base class only sets filename, it does no loading on its own.

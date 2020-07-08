@@ -80,6 +80,7 @@ LaxGMImage::LaxGMImage()
 { 
 	display_count = 0;
 
+	flag = 0;
 	has_image = NoImage;
 	width = height = 0;
 	pixel_cache =NULL;
@@ -92,6 +93,7 @@ LaxGMImage::LaxGMImage(const char *fname, Magick::Image *img, int nindex)
 {
 	index = nindex;
 	display_count = 0; 
+	flag = 0;
 	has_image = NoImage;
 	width = height = 0;
 	pixel_cache =NULL;
@@ -120,7 +122,8 @@ LaxGMImage::LaxGMImage(int w, int h)
 	if (h < 0) h = 0;
 	if (w == 0 || h == 0) w=h=0;
 
-	display_count = 0; 
+	display_count = 0;
+	flag = 0;
 	has_image = NoImage;
 	pixel_cache =NULL;
 	width = w;
@@ -145,7 +148,8 @@ LaxGMImage::LaxGMImage(unsigned char *buffer, int w, int h, int stride)
 	if (h < 0) h = 0;
 	if (w == 0 || h == 0) w=h=0;
 
-	display_count = 0; 
+	display_count = 0;
+	flag = 0;
 	has_image = NoImage;
 	pixel_cache =NULL;
 	width = w;
@@ -374,6 +378,12 @@ unsigned int LaxGMImage::imagestate()
 		   (has_image==HasData ? LAX_IMAGE_WHOLE : 0);
 }
 
+LaxImage *LaxGMImage::Crop(int x, int y, int width, int height, bool return_new)
+{
+	cerr << " *** NEED TO IMPLEMENT LaxGMImage::Crop()!!!" <<endl;
+	return nullptr;
+}
+
 
 /*! Calling this is supposed to make it easier on the memory cache, by allowing
  * other code to free the gm_surface from memory. Calling Image() will place
@@ -546,8 +556,15 @@ int GraphicsMagickLoader::LoadToMemory(LaxImage *img)
 	if (dynamic_cast<LaxCairoImage*>(img)) {
 		LaxCairoImage *cimg = dynamic_cast<LaxCairoImage*>(img);
 
-		Magick::Image image;
 		try {
+			int width = img->w();
+			int height = img->h();
+
+			// Magick::Geometry geometry(width,height);
+			// Magick::ColorRGB color;
+			// Magick::Image image(geometry,color);
+			Magick::Image image;
+
 			if (img->index == 0) image.read(cimg->filename);
 			else {
 				LoadFrame(cimg->filename, cimg->index, &image);
@@ -556,11 +573,9 @@ int GraphicsMagickLoader::LoadToMemory(LaxImage *img)
 			image.type(Magick::TrueColorType);
 
 			// Request pixel region with size 60x40, and top origin at 20x30
-			int width = img->w();
-			int height = img->h();
 			const Magick::PixelPacket *pixel_cache = image.getConstPixels(0,0,width,height);
 
-			unsigned char buffer[width*height*4];
+			unsigned char *buffer = new unsigned char[width*height*4];
 
 			int shift = QuantumDepth - 8;
 
@@ -580,6 +595,7 @@ int GraphicsMagickLoader::LoadToMemory(LaxImage *img)
 			}
 
 			cimg->createFromData_ARGB8(width, height, width*4, buffer, true);
+			delete[] buffer;
 		} catch (Magick::Exception &error_ ) {
 			return 1;
 		}

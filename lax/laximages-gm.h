@@ -73,6 +73,7 @@ class LaxGMImage : public LaxImage
 	virtual int w() { return width; }
 	virtual int h() { return height; }
 	virtual void clear();
+	virtual LaxImage *Crop(int x, int y, int width, int height, bool return_new);
 
 	virtual unsigned char *getImageBuffer();
 	virtual int doneWithBuffer(unsigned char *buffer);

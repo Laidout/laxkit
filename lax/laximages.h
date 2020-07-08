@@ -79,6 +79,7 @@ class LaxImage : public anObject
 
 	virtual unsigned char *getImageBuffer() = 0;
 	virtual int doneWithBuffer(unsigned char *buffer) = 0;
+	virtual LaxImage *Crop(int x, int y, int width, int height, bool return_new) = 0;
 
 	//virtual int MaxMemoryUsed();
 	//virtual int dec_count();

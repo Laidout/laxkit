@@ -413,6 +413,35 @@ LaxCairoImage::~LaxCairoImage()
 	}
 }
 
+/*! Return nullptr for failure.
+ */
+LaxImage *LaxCairoImage::Crop(int x, int y, int width, int height, bool return_new)
+{
+	if (width <= 0 || height <= 0) return nullptr;
+	Image();
+	if (!image) return nullptr;
+
+	cairo_surface_t *cimage = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width,height);
+	
+	cairo_t *cr = cairo_create(cimage);
+	cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
+	cairo_set_source_surface(cr,image, -x,-y);
+	cairo_paint(cr);
+	cairo_destroy(cr);
+
+	if (return_new) {
+		LaxCairoImage *newimage = new LaxCairoImage(nullptr, cimage);
+		return newimage;
+	}
+
+	cairo_surface_destroy(image);
+	image = cimage;
+	this->width = width;
+	this->height = height;
+	return this;
+}
+
+
 /*! MUST be followed up with call to doneWithBuffer().
  *
  * This returns a new uchar[] array.
@@ -643,6 +672,7 @@ cairo_surface_t *LaxCairoImage::Image()
 		}
 	} 
 
+	if (!image) return nullptr;
 	display_count++;
 	return image;
 }

@@ -63,6 +63,7 @@ class LaxCairoImage : public LaxImage
 	virtual int createFromData_ARGB8(int width, int height, int stride, const unsigned char *data, bool not_premultiplied);
 	virtual unsigned char *getImageBuffer();
 	virtual int doneWithBuffer(unsigned char *buffer);
+	virtual LaxImage *Crop(int x, int y, int width, int height, bool return_new);
 
 	virtual void Set(double r, double g, double b, double a);
 	virtual int Save(const char *tofile = nullptr, const char *format = nullptr); //format==null guess from extension

@@ -199,6 +199,13 @@ LaxImlibImage::~LaxImlibImage()
 	}
 }
 
+LaxImage *LaxImlibImage::Crop(int x, int y, int width, int height, bool return_new)
+{
+	cerr << " *** NEED TO IMPLEMENT LaxImlibImage::Crop()!!!" <<endl;
+	return nullptr;
+}
+
+
 /*! format==null guess from extension
  * Return 0 for success or nonzero for failure and not saved.
  * Warning: does no clobber check.
