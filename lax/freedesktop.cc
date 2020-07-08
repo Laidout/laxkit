@@ -1074,7 +1074,10 @@ Laxkit::MenuInfo *get_categorized_bookmarks(const char *file,const char *filetyp
 
 	char *ff=newstr(file);
 	expand_home_inplace(ff);
-	if (file_exists(ff,1,NULL)!=S_IFREG) return NULL;
+	if (file_exists(ff,1,NULL)!=S_IFREG) {
+		delete[] ff;
+		return NULL;
+	}
 	FILE *f=fopen(ff,"r");
 	delete[] ff;
 	if (!f) return NULL;
