@@ -42,7 +42,7 @@ int getline_indent_nonblank(char **line, size_t *n, IOBuffer &f, int indent,
 int cut_comment(char *str,const char *cm="#",char quote='"');
 int is_good_filename(const char *filename);
 int check_dirs(const char *dirs, bool make_too, int permissions = 0700);
-int CheckDirs(const char *dirstr, int depth);
+int CheckDirs(const char *dirstr, int depth, int permissions = 0700);
 int lax_stat(const char *file, int followlink, struct stat *buf);
 int file_exists(const char *filename, int followlink, int *error);
 long file_size(const char *filename, int followlink, int *error);

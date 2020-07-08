@@ -272,7 +272,7 @@ int check_dirs(const char *dirs, bool make_too, int permissions)
  * If depth<0, then create (num components)+depth, so "1/2/3/4/5" with a depth
  * of -1 will create "1/2/3/4".
  */
-int CheckDirs(const char *dirstr, int depth)
+int CheckDirs(const char *dirstr, int depth, int permissions)
 {
 	int n = 0, nn = 0;
 	char **dirs = split(dirstr, '/', &n);
@@ -296,7 +296,7 @@ int CheckDirs(const char *dirstr, int depth)
 				break;
 			} else if (t == 0) {
 				 // not there, create the dir
-				if (mkdir(dirs[c],0755) != 0) { t =- 1; break; }
+				if (mkdir(dirs[c], permissions) != 0) { t =- 1; break; }
 				t = S_IFDIR;
 				chdir(dirs[c]);
 			}
