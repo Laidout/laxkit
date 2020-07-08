@@ -1,5 +1,5 @@
 //
-//	
+//
 //    The Laxkit, a windowing toolkit
 //    Please consult https://github.com/Laidout/laxkit about where to send any
 //    correspondence about this software.
@@ -32,7 +32,7 @@
 
 #include <iostream>
 using namespace std;
-#define DBG 
+#define DBG
 
 using namespace LaxFiles;
 
@@ -44,15 +44,15 @@ namespace Laxkit {
  *   Here is a sample laxrc file. Its location will have been compiled in to the Laxkit.
  *   The default location is ~/.lax/(version)/laxrc. The laxrc file will not by default
  *   be written to by Laxkit programs, only read from.
- * 
+ *
  *   There are a number of settings to define, after which you may include basic profiles,
  *   which will overwrite any previously defined setting, as long as the application wants
  *   to use that profile.
- * 
+ *
  *   \todo directories and fonts are still basically unimplemented..
  *   \todo many windows still need to pay attention to some of these settings, like pad and bevel
  * <pre>
- * 
+ *
  * # this is a comment
  *  # these times are in milliseconds
  * firstclk       142  # <-- 1/7 of second,  for idling, time after button down to send messages
@@ -63,17 +63,17 @@ namespace Laxkit {
  * default_pady   5    #                     default pixel pad around text vertically
  * default_border 1    #                     default border width
  * bevel          2    #                     default bevel width
- * 
- * 
+ *
+ *
  * textfont    Courier-10  #font used for text edits, this is a fontconfig pattern string
  * controlfont Sans-9      #font used for menus, buttons, massage boxes, etc.
- * 
- * 
+ *
+ *
  * directories
  *   colorprofiles /usr/local/colorprofiles:/more/profiles
  *   extrafontdir  /in/addition/to/font/config/dirs:/another/dir
  *   imagedir      /blah/images
- * 
+ *
  * colors  #anything at this base level will be the new default colors for everything
  *   panel
  *     fg         255 0 0
@@ -115,18 +115,18 @@ namespace Laxkit {
  *     grayedfg   128 0 0
  *     color1     64 64 64
  *     color2     64 64 64
- * 
+ *
  * profile light #You can define any profile you want, rather than colors for everything
  *   firstclk 142
  *   dblclk   200
  *   colors
  *     (...all the color categories, panel, menu, etc...)
- * 
+ *
  * </pre>
- * 
+ *
 */
 
-	
+
 //--------------------------------laxrc functions ------------------------------------
 //! Set the builtin Laxkit colors.
 /*! If app_profile is "Dark" then set a dark color scheme. If app_profile is NULL or "Light",
@@ -174,10 +174,10 @@ int anXApp::getlaxrc(const char *filename, const char *profile)
 		DBG cerr << "laxrc not found: "<<(filename?filename:"default location")<<endl;
 		return 1;
 	}
-	
+
 	//resources.dump_in(f,0);*** resources dealt with separately..
 	//  to configured.h-->CONFIG_DIRECTORY/autolaxkitrc
-	
+
 	Attribute att;
 	att.dump_in(f,0,NULL);
 	dump_in_rc(&att,profile);
@@ -220,18 +220,6 @@ void anXApp::dump_out_rc(FILE *f, const char *profile, int indent, int what)
 		fprintf(f,"%stheme\n", spc);
 		theme->dump_out(f, indent+2, what, NULL); //null is context
 	}
-
-	//obsolete stuff:
-	//fprintf(f,"%sfirstclk       %u  #in milliseconds, delay to repeating events for mouse downs\n",spc,firstclk);
-	//fprintf(f,"%sdblclk         %u  #in ms, time afterwhich clicks are single clicks\n",spc,dblclk);
-	//fprintf(f,"%sidleclk        %u  #in ms, time to send fake clicks when holding down a mouse button\n",spc,idleclk);
-	//fprintf(f,"%stooltips       %d  #in ms, time to wait before bringing up tooltips. 0 means no tooltips\n",spc,tooltips);
-	//fprintf(f,"%sbevel          %d  #default pixel bevel width\n",spc,default_bevel);
-	//fprintf(f,"%sdefault_border %d  #default pixel border width\n",spc,default_border_width);
-	//fprintf(f,"%sdefault_padx   %d  #default pixel horizontal padding\n",spc,default_padx);
-	//fprintf(f,"%sdefault_pady   %d  #default pixel vertical padding\n",spc,default_pady);
-	//fprintf(f,"%stextfont       %s  #a fontconfig string\n",spc,textfontstr?textfontstr:"none");
-	//fprintf(f,"%scontrolfont    %s  #a fontconfig string\n",spc,controlfontstr?controlfontstr:"none");
 }
 
 
@@ -240,7 +228,7 @@ void anXApp::dump_out_rc(FILE *f, const char *profile, int indent, int what)
 void anXApp::dump_in_rc(Attribute *att, const char *profile)
 {
 	char *name,*value;
-	
+
 	for (int c=0; c<att->attributes.n; c++) {
 		name =att->attributes.e[c]->name;
 		value=att->attributes.e[c]->value;
@@ -265,4 +253,3 @@ void anXApp::dump_in_rc(Attribute *att, const char *profile)
 
 
 } // namespace Laxkit
-
