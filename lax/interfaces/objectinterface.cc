@@ -622,7 +622,7 @@ int ObjectInterface::GrabSelection(unsigned int state)
  */
 int ObjectInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMouse *d) 
 {
-	DBG cerr <<"objinterf pointinsel: "<<PointInSelection(x,y)<<endl;
+	//DBG cerr <<"objinterf pointinsel: "<<PointInSelection(x,y)<<endl;
 	
 	if (!buttondown.isdown(d->id,LEFTBUTTON) || !data) { return RectInterface::MouseMove(x,y,state,d); }
 	
