@@ -27,7 +27,7 @@
 
 namespace Laxkit {
 	
-int bez_bbox(flatpoint p,flatpoint c,flatpoint d,flatpoint q,Laxkit::DoubleBBox *bbox,double *extrema=0);
+int bez_bbox(flatpoint p,flatpoint c,flatpoint d,flatpoint q,Laxkit::DoubleBBox *bbox,double *extrema=0, const double *extra_m=nullptr);
 double bez_segment_length(flatpoint p1,flatpoint c1,flatpoint c2,flatpoint p2, int npoints);
 double bez_length(flatpoint *pts, int npoints, bool closed, bool first_is_v, int resolution);
 
