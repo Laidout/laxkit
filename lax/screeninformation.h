@@ -1,5 +1,5 @@
 //
-//	
+//
 //    The Laxkit, a windowing toolkit
 //    Please consult https://github.com/Laidout/laxkit about where to send any
 //    correspondence about this software.
@@ -29,7 +29,8 @@ namespace Laxkit {
 class ScreenInformation
 {
   public:
-	char *name;
+    char *id; //ideally such as DP-0, DP-5
+	char *name; //ideally such as "Dell Something"
 	int primary;
 	int screen; //screen number, can contain many monitors
 	int monitor; //id of monitor within larger virtual screen space
@@ -39,7 +40,7 @@ class ScreenInformation
 
 	ScreenInformation *next;
 
-	ScreenInformation() { next = nullptr; name = nullptr; }
+	ScreenInformation() { next = nullptr; name = nullptr; id = nullptr; }
 	~ScreenInformation();
 	int HowMany() { return 1 + (next ? next->HowMany() : 0); }
 	ScreenInformation *Get(int i) { if (i==0) return this; else { if (next && i>0) return next->Get(i-1); else return nullptr; } }
@@ -50,4 +51,3 @@ class ScreenInformation
 
 
 #endif
-

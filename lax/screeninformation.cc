@@ -1,5 +1,5 @@
 //
-//	
+//
 //    The Laxkit, a windowing toolkit
 //    Please consult https://github.com/Laidout/laxkit about where to send any
 //    correspondence about this software.
@@ -45,10 +45,10 @@ ScreenInformation *ScreenInformation::Get(char *which)
 
 ScreenInformation::~ScreenInformation()
 {
+	delete[] id;
 	delete[] name;
 	if (next) delete next;
 }
 
 
 } //namespace Laxkit
-
