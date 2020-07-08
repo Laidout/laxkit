@@ -1161,9 +1161,13 @@ void dump_out_value(FILE *f,int indent,const char *value, int valuewidth, const 
 			if (quotes) {
 				char vv[strlen(value)+3];
 				sprintf(vv, "\"%s\"", value);
-				fprintf(f,format,vv);
+				if (comment) fprintf(f,format,vv);
+				else fprintf(f,"%s",vv); //don't ouput the whitespace padding if we don't have to
 			}
-			else fprintf(f, format, value);
+			else {
+				if (comment) fprintf(f, format, value);
+				else fprintf(f, "%s", value);
+			}
 
 			if (comment) dump_out_comment(f, commentindent, comment);
 			else fwrite("\n",1,1,f);
