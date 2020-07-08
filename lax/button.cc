@@ -1,5 +1,5 @@
 //
-//	
+//
 //    The Laxkit, a windowing toolkit
 //    Please consult https://github.com/Laidout/laxkit about where to send any
 //    correspondence about this software.
@@ -30,7 +30,7 @@
 
 #include <iostream>
 using namespace std;
-#define DBG 
+#define DBG
 
 
 using namespace LaxFiles;
@@ -38,7 +38,7 @@ using namespace LaxFiles;
 namespace Laxkit {
 
 
-	
+
 /*! \class Button
  * \brief Simple class for a button that is an icon with optional label. Sends message when pressed.
  *
@@ -55,7 +55,7 @@ namespace Laxkit {
  *  IBUT_TEXT_ONLY,
  *  IBUT_TEXT_ICON,
  *  IBUT_ICON_TEXT
- * 
+ *
  */
 /*! \fn const char *Button::Label()
  * \brief Return what is the current label.
@@ -106,7 +106,7 @@ Button::Button(anXWindow *parnt,const char *nname,const char *ntitle,unsigned lo
 	image=bwimage=NULL;
 	if (img) SetIcon(img);
 	else if (filename) SetIcon(filename);
-	
+
 	 // wrap window to extent
 	if (ww<2 || hh<2) WrapToExtent((ww<2?1:0)|(hh<2?2:0));
 
@@ -158,27 +158,28 @@ const char *Button::Label(const char *nlabel)
 }
 
 //! Pass in something like BUTTON_OK or BUTTON_CANCEL.
-/*! Choices are: Ok, Cancel, Open, Save, Save As, Save All, 
+/*! Choices are: Ok, Cancel, Open, Save, Save As, Save All,
  * Close, Close All, Quit, Quit Anyway, Print, Preview,
  * Yes, No, and Overwrite.
+ * Note this ONLY returns a string, it does not change internal state.
  */
-const char *Button::Label(unsigned int which) 
+const char *Button::Label(unsigned int which)
 {
 	switch (which) {
-		case BUTTON_OK         : return _("Ok"); 
-		case BUTTON_CANCEL     : return _("Cancel"); 
-		case BUTTON_OPEN       : return _("Open"); 
-		case BUTTON_SAVE       : return _("Save"); 
-		case BUTTON_SAVE_AS    : return _("Save As"); 
-		case BUTTON_SAVE_ALL   : return _("Save All"); 
-		case BUTTON_CLOSE      : return _("Close"); 
-		case BUTTON_CLOSE_ALL  : return _("Close All"); 
-		case BUTTON_QUIT       : return _("Quit"); 
-		case BUTTON_QUIT_ANYWAY: return _("Quit Anyway"); 
-		case BUTTON_PRINT      : return _("Print"); 
-		case BUTTON_PREVIEW    : return _("Preview"); 
-		case BUTTON_YES        : return _("Yes"); 
-		case BUTTON_NO         : return _("No"); 
+		case BUTTON_OK         : return _("Ok");
+		case BUTTON_CANCEL     : return _("Cancel");
+		case BUTTON_OPEN       : return _("Open");
+		case BUTTON_SAVE       : return _("Save");
+		case BUTTON_SAVE_AS    : return _("Save As");
+		case BUTTON_SAVE_ALL   : return _("Save All");
+		case BUTTON_CLOSE      : return _("Close");
+		case BUTTON_CLOSE_ALL  : return _("Close All");
+		case BUTTON_QUIT       : return _("Quit");
+		case BUTTON_QUIT_ANYWAY: return _("Quit Anyway");
+		case BUTTON_PRINT      : return _("Print");
+		case BUTTON_PREVIEW    : return _("Preview");
+		case BUTTON_YES        : return _("Yes");
+		case BUTTON_NO         : return _("No");
 		case BUTTON_OVERWRITE  : return _("Overwrite");
 	}
 	return "";
@@ -222,11 +223,11 @@ int Button::SetGraphic(int newthing, int newwidth, int newheight)
 int Button::SetIcon(const char *filename,int makebw) // makebw=0
 {
 	if (!filename) return 1;
-	
+
 	if (image)   image  ->dec_count();
 	if (bwimage) bwimage->dec_count();
 	image=bwimage=NULL;
-	
+
 	thing = THING_None;
 	image = ImageLoader::LoadImage(filename);
 	needtodraw=1;
@@ -241,13 +242,13 @@ int Button::SetIcon(const char *filename,int makebw) // makebw=0
 int Button::SetIcon(LaxImage *img,int makebw) // makebw=0
 {
 	if (!img || !img->imagestate()) return 1;
-	
+
 	if (image)   image  ->dec_count();
 	if (bwimage) bwimage->dec_count();
 	image=bwimage=NULL;
-	
+
 	image=img;
-	
+
 	needtodraw=1;
 	return 0;
 }
@@ -265,15 +266,15 @@ void Button::draw()
 	}
 	dp->NewFG(mousein ? win_themestyle->bghover : win_themestyle->bg);
 	dp->drawrectangle(0,0, win_w,win_h, 1);
-	
+
 	unsigned int what=labelstyle;
-	
+
 	const char *l=NULL;
 	LaxImage *i=NULL;
 	int usei=0;
 	if (!(image || thing!=THING_None) || what==LAX_TEXT_ONLY || what==LAX_TEXT_ICON || what==LAX_ICON_TEXT) l=label;
 	if ((image || thing!=THING_None) && (what==LAX_ICON_ONLY || what==LAX_TEXT_ICON || what==LAX_ICON_TEXT)) { usei=1; i=image; }
-	
+
 	 // set up placement
 	double tx=0,ty,th=0,tw=0,ix=0,iy,iw=0,ih=0;
 	if (l) dp->textextent(l,-1,&tw,&th);
@@ -298,7 +299,7 @@ void Button::draw()
 
 	//DBG cerr <<" ---------button: "<<whattype()<<"  ix="<<ix<<endl;
 	//DBG cerr <<"            ty:"<<ty<<"  th:"<<th<<endl;
-	
+
 	 // draw the stuff
 	flatpoint offset;
 	if (state&LAX_ON) { offset.x=offset.y=bevel/2; }
@@ -316,7 +317,7 @@ void Button::draw()
 		dp->NewFG((state==LAX_GRAY||Grayed()) ? win_themestyle->fggray : win_themestyle->fg);
 		dp->textout(tx+offset.x,ty+offset.y, l,-1, LAX_LEFT|LAX_TOP);
 	}
-	
+
 	if ((win_style&BUTTON_TOGGLE)
 			|| !(win_style&IBUT_FLAT)
 			|| ((win_style&IBUT_FLAT) && state!=LAX_OFF))
@@ -391,4 +392,3 @@ void Button::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *context
 }
 
 } // namespace Laxkit
-
