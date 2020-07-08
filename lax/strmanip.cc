@@ -949,7 +949,7 @@ char *lax_dirname(const char *path,char appendslash)
 
 /*! If there is a final ".ext" then replace the '.' with a '\\0'.
  *
- * Changes file, returns file.
+ * Changes file, also returns file. Leaves directory path as is (if any).
  */
 char *chop_extension(char *file)
 {
