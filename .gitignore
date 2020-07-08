@@ -36,3 +36,8 @@ lax/configured.h
 *.swp
 *.swo
 lax/temp
+
+
+#
+# Ignore miscellaneous
+lax/WORK
