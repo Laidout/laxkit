@@ -1482,6 +1482,67 @@ void Path::FindBBox()
 }
 
 
+/*! Compute axis aligned bounding box of content transformed by transform.
+ * Note this is more specific than the normal FindBBox().
+ */
+void Path::ComputeAABB(const double *transform, DoubleBBox &box)
+{
+	if (!path) return;
+
+	Coordinate *p=NULL,*t,*start;
+
+	if (Weighted()) {
+		UpdateCache();
+		for (int c=0; c<outlinecache.n; c++) {
+			box.addtobounds(transform_point(transform, outlinecache.e[c]));
+		}
+
+	} else {
+
+		 // First find a vertex point
+		start = t = path->firstPoint(1);
+
+		if (!(t->flags&POINT_VERTEX)) return;//only mysterious control points
+
+		box.addtobounds(transform_point(transform, t->p()));
+
+		 // step through all the rest of the vertices
+		flatpoint c1,c2;
+		while (t) {
+			p=t->next;
+			if (!p || p==start) break;
+
+			if (p->flags&POINT_VERTEX) {
+				 //simple case, just a line segment
+				box.addtobounds(transform_point(transform, p->p()));
+				t=p;
+				continue;
+			}
+			 //else assume bez, find 1st control
+			if (p->flags&POINT_TOPREV) {
+				c1=p->p(); 
+				p=p->next;
+				if (!p) break;
+			} else c1=t->p();
+
+			 //find second control
+			if (p->flags&POINT_TONEXT) {
+				c2=p->p(); 
+				p=t->nextVertex();
+				if (!p) break;
+			} else {
+				p=t->nextVertex();
+				c2=p->p();
+			}
+
+			bez_bbox(t->p(),c1,c2,p->p(), this, nullptr, transform);
+
+			t=p;
+			if (t==start) break;
+		}
+	}
+}
+
 
 
 /*! Always true if absoluteangle is true.
@@ -3708,6 +3769,19 @@ void PathsData::FindBBox()
 		if (!paths.e[c] || !paths.e[c]->path) continue;
 		paths.e[c]->FindBBox();
 		addtobounds(paths.e[c]);
+	}
+}
+
+/*! Compute axis aligned bounding box of content transformed by transform.
+ * Note this is more specific than the normal FindBBox().
+ */
+void PathsData::ComputeAABB(const double *transform, DoubleBBox &box)
+{
+	if (paths.n==0) return;
+
+	for (int c=0; c<paths.n; c++) {
+		if (!paths.e[c] || !paths.e[c]->path) continue;
+		paths.e[c]->ComputeAABB(transform, box);
 	}
 }
 

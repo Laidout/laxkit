@@ -206,6 +206,19 @@ void SomeData::Unlock(int which)
 { locks &= ~which; }
 
 
+/*! Compute axis aligned bounding box of content transformed by transform.
+ * Where FindBBox() finds bounds in object space, this function is designed to wrap
+ * content to another space. Default is to just transform the normal bbox, and add that.
+ */
+void SomeData::ComputeAABB(const double *transform, DoubleBBox &box)
+{
+	if (!validbounds()) return;
+	box.addtobounds(transform_point(transform, BBoxPoint(0,0, false)));
+	box.addtobounds(transform_point(transform, BBoxPoint(1,0, false)));
+	box.addtobounds(transform_point(transform, BBoxPoint(0,1, false)));
+	box.addtobounds(transform_point(transform, BBoxPoint(1,1, false)));
+}
+
 /*! Like Laxkit::DoubleBBox::BBoxPoint(x,y), but if transform_to_parent==true,
  * then transform the point by m().
  * Point (0,0) is returned as (minx,miny)

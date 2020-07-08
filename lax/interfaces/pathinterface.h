@@ -109,6 +109,7 @@ class Path : public LaxFiles::DumpUtility, public Laxkit::DoubleBBox
 	virtual ~Path();
 	virtual Path *duplicate();
 	virtual void FindBBox();
+	virtual void ComputeAABB(const double *transform, DoubleBBox &box);
 
 	 //building functions
 	virtual Coordinate *lastPoint(int v=0);
@@ -191,6 +192,7 @@ class PathsData : virtual public SomeData
 	virtual ~PathsData();
 	virtual const char *whattype() { return "PathsData"; }
 	virtual void FindBBox();
+	virtual void ComputeAABB(const double *transform, DoubleBBox &box);
 	virtual SomeData *duplicate(SomeData *dup);
 
 	virtual int line(double width,int cap=-1,int join=-1,Laxkit::ScreenColor *color=NULL);

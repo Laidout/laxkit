@@ -125,6 +125,7 @@ class SomeData :  virtual public Laxkit::Resourceable,
 	virtual void Unlock(int which);
 
 	virtual void FindBBox() {}
+	virtual void ComputeAABB(const double *transform, DoubleBBox &box);
 	virtual flatpoint BBoxPoint(double x,double y, bool transform_to_parent);
 	virtual flatpoint ReferencePoint(int which, bool transform_to_parent);
 	virtual SomeData *duplicate(SomeData *dup);
