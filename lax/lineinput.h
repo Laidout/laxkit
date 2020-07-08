@@ -23,6 +23,7 @@
 #define _LAX_LINEINPUT_H
 
 
+#include <lax/labeluser.h>
 #include <lax/lineedit.h>
 #include <lax/strmanip.h>
 
@@ -46,7 +47,7 @@
 
 namespace Laxkit {
 
-class LineInput : public anXWindow
+class LineInput : public anXWindow, public LabelUser
 {
   protected:
 	anXWindow *helper;
@@ -74,11 +75,20 @@ class LineInput : public anXWindow
 	virtual int MoveResize(int nx,int ny,int nw,int nh);
 	virtual int Resize(int nw,int nh);
 
+	//from LabelUser
+	virtual double LabelWidth();
+	virtual double LabelWidth(double newwidth);
+	virtual void Label(const char *newLabel);
+	virtual const char *Label();
+	virtual bool LabelOnLeft(); //true: (label) (stuff),  false: (stuff) (label)
+	virtual bool LabelOnLeft(bool onLeft);
+	virtual int LabelAlignment(); //how to align label with the label width. -1 == left, 0 == center, 1 == right
+	virtual int LabelAlignment(int newAlignment);
+
 	virtual char *GetText() { if (le) return le->GetText(); else return NULL; }
 	virtual const char *GetCText() { if (le) return le->GetCText(); else return NULL; }
 	virtual long   GetLong(int *error_ret=NULL);
 	virtual double GetDouble(int *error_ret=NULL);
-	virtual void SetLabel(const char *newlabel);
 	virtual void SetText(const char *newtext);
 	virtual void SetText(int newtext);
 	virtual void SetText(double newtext);

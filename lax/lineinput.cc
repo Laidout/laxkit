@@ -277,14 +277,60 @@ double LineInput::GetDouble(int *error_ret)
 { return le->GetDouble(error_ret); }
 
 
+double LineInput::LabelWidth()
+{
+	return labelw;
+}
+
+double LineInput::LabelWidth(double newwidth)
+{
+	labelw = newwidth;
+	return labelw;
+}
+
 //! Set the label (not the internal edit text).
-void LineInput::SetLabel(const char *newlabel)
+void LineInput::Label(const char *newlabel)
 {
 	if (newlabel) {
 		makestr(label,newlabel);
 		SetPlacement();
 	}
 }
+
+const char *LineInput::Label()
+{
+	return label;
+}
+
+bool LineInput::LabelOnLeft() //true: (label) (stuff),  false: (stuff) (label
+{
+	return (win_style & LINP_ONLEFT) != 0;
+}
+
+bool LineInput::LabelOnLeft(bool onLeft)
+{
+	win_style = (win_style & ~(LINP_ONLEFT | LINP_ONRIGHT)) | (onLeft ? LINP_ONLEFT : LINP_ONRIGHT);
+	return (win_style & LINP_ONLEFT) != 0;
+}
+
+int LineInput::LabelAlignment() //how to align label with the label width. LAX_LEFT, LAX_RIGHT, or LAX_CENTER
+{
+	if (win_style & LINP_LEFT)   return LAX_LEFT;
+	if (win_style & LINP_CENTER) return LAX_CENTER;
+	if (win_style & LINP_RIGHT)  return LAX_RIGHT;
+	return LAX_CENTER;
+}
+
+int LineInput::LabelAlignment(int newAlignment)
+{
+	win_style &= ~(LAX_LEFT | LAX_RIGHT | LAX_CENTER);
+	if (newAlignment == LAX_LEFT) win_style |= LAX_LEFT;
+	else if (newAlignment == LAX_RIGHT) win_style |= LAX_RIGHT;
+	else win_style |= LAX_CENTER;
+
+	return win_style & (LAX_LEFT | LAX_RIGHT | LAX_CENTER);
+}
+
 
 //! Set the text according to the given integer.
 void LineInput::SetText(int newtext)
@@ -459,10 +505,10 @@ Attribute *LineInput::dump_out_atts(Attribute *att,int what,LaxFiles::DumpContex
 	att->push("win_name",win_name);
 	att->push("label",label);
 
-	if (win_style&LINP_ONLEFT) att->push("labelplacement","left");
-	else if (win_style&LINP_ONTOP) att->push("labelplacement","top");
+	if      (win_style&LINP_ONLEFT)   att->push("labelplacement","left");
+	else if (win_style&LINP_ONTOP)    att->push("labelplacement","top");
 	else if (win_style&LINP_ONBOTTOM) att->push("labelplacement","bottom");
-	else if (win_style&LINP_ONRIGHT) att->push("labelplacement","right");
+	else if (win_style&LINP_ONRIGHT)  att->push("labelplacement","right");
 
 	le->dump_out_atts(att,what,savecontext);
 
@@ -486,11 +532,11 @@ void LineInput::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *load
 			makestr(label,value);
 
 		} else if (!strcmp("labelplacement",name)) {
-			win_style&=~LINP_ONLEFT|LINP_ONTOP|LINP_ONBOTTOM|LINP_ONRIGHT;
-			if (!strcmp(value,"left")) win_style|=LINP_ONLEFT;
-			else if (!strcmp(value,"top")) win_style|=LINP_ONTOP;
-			else if (!strcmp(value,"bottom")) win_style|=LINP_ONBOTTOM;
-			else if (!strcmp(value,"right")) win_style|=LINP_ONRIGHT;
+			win_style &= ~(LINP_ONLEFT | LINP_ONTOP | LINP_ONBOTTOM | LINP_ONRIGHT);
+			if (!strcmp(value,"left"))        win_style |= LINP_ONLEFT;
+			else if (!strcmp(value,"top"))    win_style |= LINP_ONTOP;
+			else if (!strcmp(value,"bottom")) win_style |= LINP_ONBOTTOM;
+			else if (!strcmp(value,"right"))  win_style |= LINP_ONRIGHT;
 
 		//else if (!strcmp("font",name)) ***;
 		}
