@@ -34,9 +34,9 @@ further implementation needed:
     implement an event viewer in laxinput
 
 TO IMPLEMENT or drastically improve:
-  tableframe.o 
-  colorselector.o 
-  printdialog.o 
+  tableframe.o
+  colorselector.o
+  printdialog.o
   scrolledwindow <- debug, very clunky
   interfacewindow
 
@@ -55,7 +55,7 @@ LineEdit:
 
 shortcut html output needs to make & -> &amp;, etc
 shortcut needs mode based shortcuts implemented.. just a stub right now
-shortcuts, area info? embed info?  
+shortcuts, area info? embed info?
 
 overwrite box in filedialog:
   in overwrite box, provide name options
@@ -128,7 +128,7 @@ hierarchy changes are selected on Root window... special function at app level t
 could be same function as event catch all for propagated events.
 
 objectinterface:
- SOMEDATA_KEEP_1_TO_1
+ SOMEDATA_KEEP_1_TO_1  or SOMEDATA_KEEP_ASPECT
 
 patch controls: selecting a control point should highlight what segments are affected by changing it
 while moving control points should do recursive draw (faster) then update preview on mouse up
@@ -168,9 +168,9 @@ comply with net_wm_ping --> needs testing
 
 thumbnail spec says you are supposed to add in fields!!
 
-what is behavior supposed to be on sync() if is window?? 
+what is behavior supposed to be on sync() if is window??
 
-debug rowframe, tabframe, etc integration.. 
+debug rowframe, tabframe, etc integration..
 
 buttons should have modifier specific icons?
 
@@ -265,7 +265,7 @@ multiple device implementation:
   -> Xim stuff per keyboard??
   -> implement device groups per user, rather than default keyb/mouse xlib grouping. Otherwise
        modifier determination is irrational
-  -> debug multiscreen 
+  -> debug multiscreen
 
 
 
@@ -279,7 +279,7 @@ separate dialog_style from win_style in all dialogs? Sometimes too confusing oth
             EVENTS
 -----------------------------------
 other kits can connect functions to signals, so when
-a window causes a signal to be sent, notification can be sent to 
+a window causes a signal to be sent, notification can be sent to
 one or more windows, not just to owner. this can be done for any
 event.
 
@@ -315,7 +315,7 @@ DONE onButtonDown(which_button, modifiers, x, y, mouse_id)
 DONE onButtonUp  (which_button, modifiers, x, y, mouse_id)
 DONE onMouseMove (modifiers, x, y, mouse_id)
 DONE Event(EventData *data)
-DONE (in base classes anyway) combine DataEvent with ClientEvent, and abstract all events away from Xlib 
+DONE (in base classes anyway) combine DataEvent with ClientEvent, and abstract all events away from Xlib
 DONE figure out a sane way to do anXWindow/EventCatcher ref counting,
        so as to pave way for any object to receive events, such as interfaces..
 DONE  Remove Atoms from anXWindow user parts. (done except for drag-n-drop)
@@ -349,14 +349,14 @@ DONE defaultlaxfont not being set up properly
 DONE treeview.o
 DONE should absorb menu out click event
 DONE tree view, adding to visibleitems destroys original hierarchy of menu
-DONE StackFrame messed up 
+DONE StackFrame messed up
 DONE checkbox: resize should trigger placement update, or recompute each draw
 DONE rectinterface normal draw not working
-DONE add #ffaaffaa parsing to SimpleColorAttribute() 
+DONE add #ffaaffaa parsing to SimpleColorAttribute()
 
 DONE cairo:
   DONE window sizing is lagging somehow -> seems to be gone in recent unity
-  DONE cairo needs to work with: 
+  DONE cairo needs to work with:
      --bases:
     DONE messagebar.h -> not autowrapping size correctly, multiline
     DONE button.h
@@ -368,7 +368,7 @@ DONE cairo:
     DONE lineedit.h
     DONE lineinput.h
     DONE rulerwin.h
-    DONE scroller.h 
+    DONE scroller.h
     DONE multilineedit.h
     DONE menubutton.h
     DONE menuselector.h
@@ -410,7 +410,7 @@ DONE cairo:
     DONE curvewindow.h
     DONE curvemapinterface.h
     DONE freehandinterface.h
-    DONE patchinterface.h 
+    DONE patchinterface.h
     DONE pathinterface.h -> viewportwithstack, uses same LineStyle for multiple paths??
     DONE gradientinterface.h
     DONE colorpatchinterface.h
@@ -427,5 +427,3 @@ DONE ~/.recently-used  OR  ~/.recently-used.xbel?? <-- old spec says 1st one, us
 DONE update laxinput to have correct repository in readme..
 DONE perhaps redo the whole events setup. relying on X atoms leaves quite a lot of residue in the X server..
 DONE auto double buffering
-
-
