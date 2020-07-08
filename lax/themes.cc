@@ -1,4 +1,4 @@
-//  
+//
 //    The Laxkit, a windowing toolkit
 //    Please consult https://github.com/Laidout/laxkit about where to send any
 //    correspondence about this software.
@@ -45,7 +45,7 @@ namespace Laxkit {
 
 //----------------------------- helpers ---------------------------------------
 
-const char *window_category_name(int category) 
+const char *window_category_name(int category)
 {
 	if      (category == THEME_Panel)   return "panel";
 	else if (category == THEME_Menu)    return "menu";
@@ -123,7 +123,7 @@ WindowStyle::WindowStyle(const WindowStyle &l)
     deactivate= l.deactivate;
 
     active_border   = l.active_border;
-    inactive_border = l.inactive_border; 
+    inactive_border = l.inactive_border;
 	border_width    = l.border_width;
 
 	normal    = NULL;
@@ -171,7 +171,7 @@ WindowStyle &WindowStyle::operator=(WindowStyle &l)
 	SetFonts(l.normal, l.bold, l.italic, l.monospace);
 
 	return l;
-} 
+}
 
 WindowStyle::~WindowStyle()
 {
@@ -196,7 +196,7 @@ Attribute *WindowStyle::dump_out_atts(Attribute *att,int what,DumpContext *conte
 
 	char scratch[200];
 
-	
+
 	const char *cat = window_category_name(category);
 	if (!cat) cat = Id();
 	att->push("category", cat, "Can be one of: panel, menu, edit, button, tooltip");
@@ -500,7 +500,7 @@ int WindowStyle::SetDefaultColors(const char *type)
 
 
 	active_border  .rgbf(.35,.35,.35);
-	inactive_border.rgbf( .5, .5, .5); 
+	inactive_border.rgbf( .5, .5, .5);
 
 	if (!strcasecmp(type, "Dark")) {
 		if (category == THEME_Panel || category == THEME_Tooltip) {
@@ -620,7 +620,7 @@ int WindowStyle::SetDefaultColors(const char *type)
 
     } else { //Light
 		active_border  .rgbf(.4,.4,.4);
-		inactive_border.rgbf(.55,.55,.55); 
+		inactive_border.rgbf(.55,.55,.55);
 
 		if (category == THEME_Panel || category == THEME_Tooltip) {
 			fg        .rgbf(.13,.13,.13);
@@ -691,7 +691,7 @@ int WindowStyle::SetDefaultColors(const char *type)
 
 
 //----------------------------- Theme ---------------------------------------
-/*! \class Theme 
+/*! \class Theme
  * Simple class to store common window styling.
  */
 
@@ -710,6 +710,7 @@ Theme::Theme(const char *nname)
 	default_bevel = 2;
 	base_font_size = 12;
 	ui_scale = -1; //all sizes should be multiplied with this. if -1, then use default gleaned from GTK_SCALE or QT_SCREEN_SCALE_FACTOR, or 1 if neither of those exist
+	ui_default_ppi = 100;
 
 	firstclk = 1000/7;
 	dblclk   = 1000/5;
@@ -730,7 +731,7 @@ Theme::~Theme()
 /*! Return the default theme for "Light", "Gray", or "Dark".
  * If themename is not one of those, then return NULL.
  */
-Theme *Theme::DefaultTheme(const char *themename) 
+Theme *Theme::DefaultTheme(const char *themename)
 {
 	if (strcasecmp(themename, "Light") && strcasecmp(themename, "Gray") && strcasecmp(themename, "Dark")) return NULL;
 	Theme *theme = new Theme(themename);
@@ -750,7 +751,7 @@ int Theme::AddDefaults(const char *which)
 		LaxFont *font = (anXApp::app ? anXApp::app->defaultlaxfont : NULL);
 		LaxFont *mono = (anXApp::app ? anXApp::app->fontmanager->MakeFont("Courier", nullptr, font->textheight(), -1) : NULL);
 		WindowStyle *s = NULL;
-		
+
 		const int categories[] = { THEME_Panel, THEME_Edit, THEME_Menu, THEME_Button, THEME_Tooltip, 0 };
 
 		for (int c=0; categories[c]; c++) {
@@ -862,7 +863,7 @@ ScreenColor *Theme::GetScreenColor(int category, int what)
 			else if (what == THEME_Activate)        return &styles.e[c]->activate;
 			else if (what == THEME_Deactivate)      return &styles.e[c]->deactivate;
 			else if (what == THEME_Border_Active)   return &styles.e[c]->active_border;
-			else if (what == THEME_Border_Inactive) return &styles.e[c]->inactive_border; 
+			else if (what == THEME_Border_Inactive) return &styles.e[c]->inactive_border;
 		}
 	}
 
@@ -894,14 +895,14 @@ Attribute *Theme::dump_out_atts(Attribute *att,int what,DumpContext *context)
 
 		att->push("first_click",  "140",  "milliseconds before idle clicking after first click");
 		att->push("double_click", "200",  "millisecond limit for double click");
-		att->push("idle_click",   "66",   "milliseconds between idle clicks"); 
+		att->push("idle_click",   "66",   "milliseconds between idle clicks");
 		att->push("tooltips",     "1000", "millisecond delay before popping up, or 0 for never");
 
 		Attribute *att2 = att->pushSubAtt("windowstyle", nullptr, "One of these blocks each for panel, menu, edit, button, tooltip");
 		styles.e[0]->dump_out_atts(att2, -1, context);
 
 		return att;
-	} 
+	}
 
 	att->push("default_border_width", default_border_width);
 	att->push("default_padx", default_padx);
@@ -913,7 +914,7 @@ Attribute *Theme::dump_out_atts(Attribute *att,int what,DumpContext *context)
 
 	att->push("first_click",  (int)firstclk);  att->Top()->Comment("milliseconds before idle clicking after first click");
 	att->push("double_click", (int)dblclk);    att->Top()->Comment("millisecond limit for double click");
-	att->push("idle_click",   (int)idleclk);   att->Top()->Comment("milliseconds between idle clicks"); 
+	att->push("idle_click",   (int)idleclk);   att->Top()->Comment("milliseconds between idle clicks");
 	att->push("tooltips",     tooltips);       att->Top()->Comment("millisecond delay before popping up, or 0 for never");
 
 	for (int c=0; c<styles.n; c++) {
@@ -933,7 +934,7 @@ void Theme::dump_in_atts(Attribute *att,int flag,DumpContext *context)
     for (int c=0; c<att->attributes.n; c++) {
         name= att->attributes.e[c]->name;
         value=att->attributes.e[c]->value;
-		
+
         if (!strcmp(name,"name")) {
 			if (!isblank(value)) makestr(this->name, value);
 
@@ -949,7 +950,7 @@ void Theme::dump_in_atts(Attribute *att,int flag,DumpContext *context)
 				newstyle = true;
 			}
 			if (!style) style = new WindowStyle();
-			
+
 			style->dump_in_atts(att->attributes.e[c], flag, context);
 			if (newstyle) {
 				styles.push(style);
@@ -987,7 +988,7 @@ void Theme::dump_in_atts(Attribute *att,int flag,DumpContext *context)
         } else if (!strcmp(name,"default_pady")) {
 			double d;
             if (DoubleAttribute(value,&d)) { default_padx = default_pady = d; }
- 
+
         } else if (!strcmp(name,"icon_dir")) {
 			if (file_exists(value,1,NULL) == S_IFDIR) iconmanager->AddPath(value);
 		}
@@ -997,4 +998,3 @@ void Theme::dump_in_atts(Attribute *att,int flag,DumpContext *context)
 
 
 } //namespace Laxkit
-
