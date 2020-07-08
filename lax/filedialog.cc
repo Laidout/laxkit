@@ -193,8 +193,8 @@ FileDialog::FileDialog(anXWindow *parnt,const char *nname,const char *ntitle,uns
 	anXWindow *last=NULL;
 
 	 //create file input
-	last=file=new LineInput(this,"file",NULL,
-			(dialog_style&FILES_SAVING) ? LINP_FILESAVE : LINP_FILE, 
+	last = file = new LineInput(this,"file",NULL,
+			(dialog_style & FILES_SAVING) ? LINP_FILESAVE : LINP_FILE, 
 			0,0,0,0, 0, NULL,object_id,"new file", _("File?"),lax_basename(nfile),0, 0,0,2,2,2,2);
 	file->tooltip(_("Filename to use"));
 
@@ -202,9 +202,9 @@ FileDialog::FileDialog(anXWindow *parnt,const char *nname,const char *ntitle,uns
 	 //set up path input
 	char *nnpath=NULL;
 	if (npath) {
-		if (file_exists(npath,1,NULL)!=S_IFDIR) {
-			char *t=lax_dirname(npath,0);
-			if (file_exists(t,1,NULL)!=S_IFDIR) npath=NULL;
+		if (file_exists(npath,1,NULL) != S_IFDIR) {
+			char *t = lax_dirname(npath, 0);
+			if (file_exists(t, 1, NULL) != S_IFDIR) npath = NULL;
 			else { nnpath=t; t=NULL; }
 			if (t) delete[] t;
 
@@ -213,15 +213,18 @@ FileDialog::FileDialog(anXWindow *parnt,const char *nname,const char *ntitle,uns
 		}
 	}
 	if (!nnpath && isblank(npath)) {
-		if (dialog_style&FILES_OPENING) nnpath=newstr(app->load_dir);
-		else nnpath=newstr(app->save_dir);
+		char *dir = lax_dirname(nfile, 1);
+		if (dir) {
+			nnpath = dir;
+		} else if (dialog_style & FILES_OPENING) nnpath = newstr(app->load_dir);
+		else nnpath = newstr(app->save_dir);
 	}
 	if (!nnpath && isblank(npath)) {
-		 nnpath=current_directory();
+		 nnpath = current_directory();
 	}
 
 	DBG cerr <<"--------->  nnpath:"<<(nnpath?nnpath:"null")<<"  npath:"<<(npath?npath:"null")<<endl;
-	last=path=new LineInput(this,"path",NULL,LINP_DIRECTORY, 0,0,0,0, 0, last,object_id,"new path", _("Path:"),nnpath,0, 0,0,2,2,2,2);
+	last = path = new LineInput(this,"path",NULL,LINP_DIRECTORY, 0,0,0,0, 0, last,object_id,"new path", _("Path:"),nnpath,0, 0,0,2,2,2,2);
 	path->tooltip(_("Current Directory"));
 	 
 
