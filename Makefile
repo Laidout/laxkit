@@ -38,11 +38,12 @@ DEBUGFLAGS= -g
 LIBDIR=$(PREFIX)/lib
 BINDIR=$(PREFIX)/bin
 
- # header files get installed in this directory like this: includedir/lax-version/lax/*.h
+ # header files get installed in this directory like this: includedir/laxkit/version/lax/*.h
 INCLUDEDIR=$(PREFIX)/include
+LAX_INCLUDE_DIR=$(INCLUDEDIR)/laxkit/$(LAXKITVERSION)/lax
 
  # documentation goes here, like: /usr/share/doc/laxkit/lax-0.0.4
-DOCDIR=$(PREFIX)/share/doc/laxkit/laxkit-$(LAXKITVERSION)
+DOCDIR=$(PREFIX)/share/laxkit/$(LAXKITVERSION)/doc
 
 
 ### If you want to be sure that an install does not clobber anything that exists
@@ -93,14 +94,14 @@ install: lax interfaces laxinput
 		echo '$(LIBDIR)/liblaxinterfaces.a' >> install.log
 	$(INSTALL) -D -m644 $(LAXDIR)/interfaces/liblaxinterfaces.so.$(LAXKITVERSION) $(LIBDIR)/liblaxinterfaces.so.$(LAXKITVERSION) && \
 		echo '$(LIBDIR)/liblaxinterfaces.so.$(LAXKITVERSION)' >> install.log
-	$(INSTALL) -d $(INCLUDEDIR)/lax-$(LAXKITVERSION)/lax/interfaces
-	$(INSTALL) -D -m644 $(LAXDIR)/lists.cc $(INCLUDEDIR)/lax-$(LAXKITVERSION)/lax/lists.cc && \
-		echo '$(LIBDIR)/lists.cc' >> install.log
-	$(INSTALL) -D -m644 $(LAXDIR)/refptrstack.cc $(INCLUDEDIR)/lax-$(LAXKITVERSION)/lax/refptrstack.cc && \
-		echo '$(LIBDIR)/refptrstack.cc' >> install.log
-	$(INSTALL) -D -m644 $(LAXDIR)/*.h $(INCLUDEDIR)/lax-$(LAXKITVERSION)/lax
-	$(INSTALL) -D -m644 $(LAXDIR)/interfaces/*.h $(INCLUDEDIR)/lax-$(LAXKITVERSION)/lax/interfaces
-	ls $(INCLUDEDIR)/lax-$(LAXKITVERSION)/lax/*.h $(INCLUDEDIR)/lax-$(LAXKITVERSION)/lax/interfaces/*.h >> install.log
+	$(INSTALL) -d $(LAX_INCLUDE_DIR)/lax/interfaces
+	$(INSTALL) -D -m644 $(LAXDIR)/lists.cc $(LAX_INCLUDE_DIR)/lax/lists.cc && \
+		echo '$(LAX_INCLUDE_DIR)/lax/lists.cc' >> install.log
+	$(INSTALL) -D -m644 $(LAXDIR)/refptrstack.cc $(LAX_INCLUDE_DIR)/lax/refptrstack.cc && \
+		echo '$(LAX_INCLUDE_DIR)/lax/refptrstack.cc' >> install.log
+	$(INSTALL) -D -m644 $(LAXDIR)/*.h $(LAX_INCLUDE_DIR)/lax
+	$(INSTALL) -D -m644 $(LAXDIR)/interfaces/*.h $(LAX_INCLUDE_DIR)/lax/interfaces
+	ls $(INCLUDEDIR)/lax-$(LAXKITVERSION)/lax/*.h $(LAX_INCLUDE_DIR)/lax/interfaces/*.h >> install.log
 	$(INSTALL) -D -m711 laxinput/laxinput $(BINDIR)/laxinput && \
 		echo '$(BINDIR)/laxinput' >> install.log
 
@@ -110,8 +111,6 @@ uninstall:
 	rm -vf $(LIBDIR)/liblaxinterfaces.a
 	rm -v -rf $(INCLUDEDIR)/lax-$(LAXKITVERSION)
 
-#this mkdir stuff is kind of an ugly hack so that when I do 'svn status' the html dir, which
-#has a million files will not show up
 docs:
 	cd docs && doxygen
 
