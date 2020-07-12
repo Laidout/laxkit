@@ -50,6 +50,14 @@ enum ObjectInterfaceActions {
 class ObjectInterface : public RectInterface
 {
   protected:
+	 //remember dragmode&1 means don't show arrow handles
+	enum MoreDragMode {
+		DRAG_NEW_SELECTION = DRAG_MAX,
+		DRAG_ADD_SELECTION,
+		DRAG_SUBTRACT_SELECTION,
+		DRAG_OBJI_MAX
+	};
+
 	Selection *selection;
 	int dontclear;
 	virtual void Flip(int type);
@@ -83,6 +91,7 @@ class ObjectInterface : public RectInterface
 	virtual int MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMouse *d);
 	virtual int CharInput(unsigned int ch, const char *buffer,int len,unsigned int state,const Laxkit::LaxKeyboard *d);
 	virtual int Refresh();
+	virtual int Event(const Laxkit::EventData *e,const char *mes);
 
 	virtual void TransformSelection(const double *N, int s=-1, int e=-1);
 	virtual int PointInSelection(int x,int y);

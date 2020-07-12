@@ -173,6 +173,22 @@ int ObjectInterface::InterfaceOff()
 	return 0;
 }
 
+int ObjectInterface::Event(const Laxkit::EventData *e,const char *mes)
+{
+	if (!strcmp(mes, "scale_num") || !strcmp(mes, "rotate_num") || !strcmp(mes, "rotate_diff")) {
+		double M[6],M2[6],N[6];
+		transform_copy(M2,data->m());
+		transform_invert(M,M2);
+		RectInterface::Event(e,mes);
+		transform_copy(M2,data->m());
+		transform_mult(N,M,M2); //so now N is the transform in dp space for moving the selection rectangle
+		TransformSelection(N);
+		return 0;
+	}
+
+	return RectInterface::Event(e,mes);
+}
+
 /*! Redefine Clear() to always clear the selection. The default was
  * only to clear if d==somedata.
  */
@@ -411,11 +427,6 @@ int ObjectInterface::PointInSelection(int x,int y)
 	return 0;
 }
 
- //remember dragmode&1 means don't show arrow handles
-#define DRAG_NONE                0
-#define DRAG_NEW_SELECTION       (1|(1<<1))
-#define DRAG_ADD_SELECTION       (1|(2<<1))
-#define DRAG_SUBTRACT_SELECTION  (1|(3<<1))
 
 /*! Always creates a new RectData if not click on a point
  *
@@ -435,7 +446,7 @@ int ObjectInterface::LBDown(int x,int y,unsigned int state,int count,const Laxki
 	DBG cerr << "  in obj lbd..";
 
 	buttondown.down(d->id,LEFTBUTTON,x,y);
-	dragmode = DRAG_NONE;
+	drag_mode = DRAG_None;
 
 	if (data) {
 		 //there is already a selection
@@ -480,9 +491,9 @@ int ObjectInterface::LBDown(int x,int y,unsigned int state,int count,const Laxki
 
 	deletedata();//makes somedata=data=NULL
 	FreeSelection();
-	if ((state&LAX_STATE_MASK)==0) dragmode=DRAG_NEW_SELECTION;
-	if ((state&LAX_STATE_MASK)==ShiftMask) dragmode=DRAG_ADD_SELECTION;
-	if ((state&LAX_STATE_MASK)==ControlMask) dragmode=DRAG_SUBTRACT_SELECTION;
+	if ((state & LAX_STATE_MASK) == 0)           drag_mode = DRAG_NEW_SELECTION;
+	if ((state & LAX_STATE_MASK) == ShiftMask)   drag_mode = DRAG_ADD_SELECTION;
+	if ((state & LAX_STATE_MASK) == ControlMask) drag_mode = DRAG_SUBTRACT_SELECTION;
 
 	somedata=NULL;
 	somedata=dynamic_cast<SomeData*>(somedatafactory()->NewObject(LAX_RECTDATA));
@@ -560,17 +571,18 @@ int ObjectInterface::LBUp(int x,int y,unsigned int state,const Laxkit::LaxMouse 
 
 	 // This is for dragging out an initial rectangle to capture objects in.
 	//if (selection->n()==0 && data) {
-	int dragged=buttondown.isdragged(d->id,LEFTBUTTON);
+	int dragged = buttondown.isdragged(d->id,LEFTBUTTON);
 	if (dragged && data &&
-			(   dragmode==DRAG_ADD_SELECTION 
-			 || dragmode==DRAG_NEW_SELECTION 
-			 || dragmode==DRAG_SUBTRACT_SELECTION)) {
+			(   drag_mode == DRAG_ADD_SELECTION 
+			 || drag_mode == DRAG_NEW_SELECTION 
+			 || drag_mode == DRAG_SUBTRACT_SELECTION)) {
 		GrabSelection(state);
 		buttondown.up(d->id,LEFTBUTTON);
+		drag_mode = DRAG_None;
 		return 0;
 	}
 	
-	int status=RectInterface::LBUp(x,y,state,d);
+	int status = RectInterface::LBUp(x,y,state,d);
 
 	if (dragged && selection->n() && viewport) {
 		for (int c=0; c<selection->n(); c++) {

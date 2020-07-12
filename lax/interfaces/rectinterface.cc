@@ -21,16 +21,19 @@
 //
 
 
+#include <lax/interfaces/interfacemanager.h>
 #include <lax/interfaces/somedatafactory.h>
 #include <lax/interfaces/rectinterface.h>
 #include <lax/transformmath.h>
 #include <lax/laxutils.h>
 #include <lax/language.h>
 
+
 using namespace Laxkit;
 
 
 #include <iostream>
+#include <lax/vectors-out.h>
 using namespace std;
 #define DBG 
 
@@ -153,14 +156,6 @@ void RectData::centercenter()
  * is not notified to insert this new data, unlike in most of the other interfaces. This 
  * makes it easier for other classes to use this class to trace out areas.
  */
-/*! \var char RectInterface::dragmode
- * 
- * 0 means normal.
- * dragmode&1 means do not show the little arrow handles while dragging.
- *
- * This variable can be used by subclasses to signal that dragging is to be used
- * for creating or adding to a selection, for instance.
- */
 /*! \var int RectInterface::maxtouchlen
  * \brief The maximum screen length in pixels that a transform handle is allowed to have.
  */
@@ -169,41 +164,44 @@ void RectData::centercenter()
 
 RectInterface::RectInterface(int nid,Displayer *ndp) : anInterface(nid,ndp)
 {
-	controlcolor .rgbf(0,.58,.7);
-	controltransp.rgbf(0,.58,.7, .4);
+	controlcolor.rgbf(0, .58, .7);
+	controltransp.rgbf(0, .58, .7, .4);
 
-	somedata=data=NULL;
-	showdecs=SHOW_OUTER_HANDLES|SHOW_INNER_HANDLES;
-	mousetarget=0; //whether to show a circle-target underneath mice
-	//style=0;
-	style=RECT_FLIP_AT_SIDES;
-	creationstyle=RECT_ALLOW_SHEAR;
-	createfrompoint=0; // 0=lbd=ulc, 1=lbd=center
-	createx=flatpoint(1,0);
-	createy=flatpoint(0,1);
-	griddivisions=10;
+	somedata = data = NULL;
+	showdecs = SHOW_OUTER_HANDLES | SHOW_INNER_HANDLES;
+	mousetarget = 0;  // whether to show a circle-target underneath mice
+
+	style           = 0; //RECT_FLIP_AT_SIDES;
+	creationstyle   = RECT_ALLOW_SHEAR;
+	createfrompoint = 0;  // 0=lbd=ulc, 1=lbd=center
+	createx         = flatpoint(1, 0);
+	createy         = flatpoint(0, 1);
+	griddivisions   = 10;
 	transform_identity(extra_context);
 	use_extra = false;
 
-	rotatestep=M_PI/12; //15 deg
-	hover=RP_None;
-	constrainx = constrainy = 0;
+	rotatestep       = M_PI / 12;  // 15 deg
+	hover            = RP_None;
+	constrain_to     = 0;                                                      // *** todo! imp this!
+	drag_scale_width = 20 * InterfaceManager::GetDefault(true)->ScreenLine();  // screen pixels
+	drag_mode        = DRAG_None;
+	font             = app->defaultlaxfont; font->inc_count();
 
-	dragmode=0; //should be normal operations. ignored by RectInterface, but can be used by subclasses
-	shiftmode=0; //0 for normal, 1 for was doing single mouse cntl zoom/rotate
+	shiftmode = 0;  // 0 for normal, 1 for was doing single mouse cntl zoom/rotate
 
-	maxtouchlen=15;
-	extrapoints=0;
+	maxtouchlen = 15;
+	extrapoints = 0;
 
-	sc=NULL;
-	
-	needtodraw=1;
+	sc = NULL;
+
+	needtodraw = 1;
 }
 
 RectInterface::~RectInterface() 
 {
 	deletedata();
 	if (sc) sc->dec_count();
+	if (font) font->dec_count();
 	DBG cerr <<"---- in RectInterface destructor"<<endl;
 }
 		
@@ -412,8 +410,8 @@ int RectInterface::Refresh()
 
 	 // draw dotted box around somedata bounding box
 	//if (!(data->style&RECT_OFF)) {
-		dp->LineAttributes(1,LineDoubleDash,LAXCAP_Butt,LAXJOIN_Miter);
 		dp->DrawScreen();
+		dp->LineAttributes(1,LineDoubleDash,LAXCAP_Butt,LAXJOIN_Miter);
 		flatpoint pn[4];
 		dp->drawline(ll,lr);
 		dp->drawline(lr,ur);
@@ -424,11 +422,11 @@ int RectInterface::Refresh()
 		pn[2]=ur;
 		pn[3]=ul;
 		//dp->drawlines(pn,4,1,0);
-		dp->LineAttributes(1,LineSolid,LAXCAP_Butt,LAXJOIN_Miter);
 		dp->DrawReal();
+		dp->LineAttributes(1,LineSolid,LAXCAP_Butt,LAXJOIN_Miter);
 	//}
 
-	 // draw gridlines
+	 // draw gridlines within box
 	//dp->NewFG(data->linestyle.color);
 //	if (data && data->griddivisions>0 && data->griddivisions<50) {
 //		dp->NewFG(&controlcolor);
@@ -457,7 +455,7 @@ int RectInterface::Refresh()
 		//DBG cerr <<"3";
 //		------------------------
 		
-		if ((showdecs&SHOW_OUTER_HANDLES) && (extrapoints==0 || extrapoints==HAS_CENTER1)) {
+		if (shiftmode == 0 && (showdecs&SHOW_OUTER_HANDLES) && (extrapoints==0 || extrapoints==HAS_CENTER1)) {
 			dp->NewBG(&controltransp);
 
 			int xtouchlen, ytouchlen;
@@ -721,6 +719,79 @@ int RectInterface::Refresh()
 		//	dp->drawthing((int)p.x,(int)p.y,5,5,0,THING_Circle_Plus);
 		//}
 
+		if (drag_mode == DRAG_Scale) {
+			//draw drag scale indicator
+			if (!font) { font = app->defaultlaxfont; font->inc_count(); }
+			int ix,iy,x,y;
+			int mouseid = buttondown.whichdown(0,LEFTBUTTON);
+			buttondown.getinitial(mouseid,LEFTBUTTON,&ix,&iy);
+			buttondown.getcurrent(mouseid,LEFTBUTTON,&x,&y);
+			dp->font(font);
+			dp->NewFG(&controltransp);
+			dp->moveto(ix-drag_scale_width*5, iy);
+			dp->lineto(ix+drag_scale_width*5, iy-drag_scale_width);
+			dp->lineto(ix+drag_scale_width*5, iy+drag_scale_width);
+			dp->closed();
+			dp->fill(0);
+			char str[50];
+			double scale = somedata->xaxis().norm()/drag_tr_on_down.xaxis().norm();
+			sprintf(str, "%f", scale);
+			double th = dp->textheight();
+			if (hover == RP_Scale_Num) {
+				// dp->NewFG(controltransp);
+				dp->drawrectangle(x - 5*th, iy-drag_scale_width - 1.5*th, 10*th, 1.5*th, 1);
+				dp->NewFG(0,0,0);
+			}
+			dp->textout(x, iy-drag_scale_width-.25*th, str,-1, LAX_HCENTER|LAX_BOTTOM);
+
+		} else if (drag_mode == DRAG_Rotate) {
+			if (!font) { font = app->defaultlaxfont; font->inc_count(); }
+			int ix,iy;
+			int mouseid = buttondown.whichdown(0,LEFTBUTTON);
+			buttondown.getinitial(mouseid,LEFTBUTTON,&ix,&iy);
+
+			dp->NewFG(&controltransp);
+			dp->LineWidth(InterfaceManager::GetDefault(true)->ScreenLine());
+			dp->drawcircle(drag_rotate_center, drag_rotate_radius, 0);
+			dp->drawcircle(drag_rotate_center, drag_rotate_min_radius, 0);
+			flatvector v;
+			for (int c=0; c<2*M_PI/rotatestep; c++) {
+				v.set(cos(c * rotatestep), sin(c*rotatestep));
+				dp->drawline(drag_rotate_center + drag_rotate_radius * v, drag_rotate_center + 1.05 * drag_rotate_radius * v);
+			}
+			double th = dp->textheight();
+			char str[50];
+			flatpoint p0 = dp->realtoscreen(somedata->transformPointInverse(drag_tr_on_down.transformPoint(flatpoint(0,0))));
+			flatpoint p1 = dp->realtoscreen(somedata->transformPointInverse(drag_tr_on_down.transformPoint(flatpoint(1,0))));
+			v = p1-p0;
+			v.normalize();
+			double angle1 = -v.angle();
+			dp->drawline(flatpoint(ix,iy), flatpoint(ix,iy) + drag_rotate_radius * v);
+
+			p0 = dp->realtoscreen(somedata->BBoxPoint(0,0, false));
+			p1 = dp->realtoscreen(somedata->BBoxPoint(1,0, false));
+			double angle2 = -(p1 - p0).angle();
+			double diff = angle2 - angle1;
+			v = rotate(v, -diff);
+			dp->drawline(flatpoint(ix,iy), flatpoint(ix,iy) + drag_rotate_radius * v);
+			if (diff > M_PI/2) diff -= 2*M_PI;
+			else if (diff < -M_PI/2) diff += 2*M_PI;
+
+			if (hover == RP_Rotate_Diff) {
+				dp->NewFG(controltransp);
+				dp->drawrectangle(drag_rotate_center.x - 2*th, drag_rotate_center.y - drag_rotate_min_radius/2-th/2, 4*th,th, 1);
+				dp->NewFG(0,0,0);
+			}
+			sprintf(str, "%s%.1f", diff > 0 ? "+" : "", diff * 180 / M_PI);
+			dp->textout(drag_rotate_center.x, drag_rotate_center.y - drag_rotate_min_radius/2, str,-1);
+			dp->NewFG(controltransp);
+			if (hover == RP_Rotate_Num) {
+				dp->drawrectangle(drag_rotate_center.x - 2*th, drag_rotate_center.y + drag_rotate_min_radius/2-th/2, 4*th,th, 1);
+				dp->NewFG(0,0,0);
+			}
+			sprintf(str, "%.1f", angle2 * 180 / M_PI);
+			dp->textout(drag_rotate_center.x, drag_rotate_center.y + drag_rotate_min_radius/2, str,-1);
+		}
 
 		dp->DrawReal(); 
 	}
@@ -795,9 +866,14 @@ flatpoint RectInterface::getpoint(int c,int trans)
 
 Laxkit::MenuInfo *RectInterface::ContextMenu(int x,int y,int deviceid, Laxkit::MenuInfo *menu)
 {
-	return menu;
+	// return menu;
 	//----------
-	//MenuInfo *menu=new MenuInfo;
+	if (!menu) menu = new MenuInfo;
+	else menu->AddSep();
+
+	menu->AddToggleItem(_("Show flip controls"), nullptr, RIA_ToggleFlipControls, 0, 
+		(style & (RECT_FLIP_LINE | RECT_FLIP_AT_SIDES)) != 0);
+
 	//menu->AddItem(_("Reset")   ,RECT_Reset);
 	//menu->AddSep(_("Constraints"));
 	//menu->AddItem(_("Aspect")  ,CONSTRAIN_Aspect  ,MENU_ISTOGGLE);
@@ -805,7 +881,76 @@ Laxkit::MenuInfo *RectInterface::ContextMenu(int x,int y,int deviceid, Laxkit::M
 	//menu->AddItem(_("Rotation"),CONSTRAIN_Rotation,MENU_ISTOGGLE);
 	//menu->AddItem(_("Shear")   ,CONSTRAIN_Shear   ,MENU_ISTOGGLE);
 	//menu->AddItem(_("Position"),CONSTRAIN_Position,MENU_ISTOGGLE);
-	//return menu;
+	return menu;
+}
+
+int RectInterface::Event(const Laxkit::EventData *e,const char *mes)
+{
+	if (!strcmp(mes,"menuevent")) {
+		const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(e);
+		int i=s->info2; //id of menu item
+
+		if (i == RIA_ToggleFlipControls) {
+			PerformAction(RIA_ToggleFlipControls);
+			return 0;
+		}
+
+	} else if (!strcmp(mes,"scale_num")) {
+		const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(e);
+		if (!s) return 0;
+
+		double scale = strtod(s->str, nullptr);
+		if (somedata && fabs(scale) > 1e-4) {
+			if (fabs(scale) < .005) scale = (scale < 0 ? -1 : 1) * .005;
+			else if (fabs(scale) > 200) scale = (scale < 0 ? -1 : 1) * 200;
+			somedata->m(drag_tr_on_down.m());
+			flatpoint p = transform_point(somedata->m(), leftp); //screen constant point
+			somedata->xaxis(scale*somedata->xaxis());
+			somedata->yaxis(scale*somedata->yaxis());
+			somedata->origin(somedata->origin()+p-transform_point(somedata->m(),leftp));
+			PostMessage2("Scale by %.5g", scale);
+			syncFromData(0);
+			Modified();
+			needtodraw = 1;
+		}
+		return 0;
+
+	} else if (!strcmp(mes,"rotate_num")) {
+		const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(e);
+		if (!s) return 0;
+		double num = strtod(s->str, nullptr);
+		if (num != 0) {
+			num *= M_PI/180;
+
+			flatpoint p0 = ObjectToScreen(somedata->BBoxPoint(0,0, false));
+			flatpoint p1 = ObjectToScreen(somedata->BBoxPoint(1,0, false));
+			double cura = -(p1-p0).angle();
+
+			double diff = num - cura;
+			flatpoint p = transform_point(somedata->m(),leftp);
+			somedata->xaxis(rotate(somedata->xaxis(),diff,0));
+			somedata->yaxis(rotate(somedata->yaxis(),diff,0));
+			somedata->origin(somedata->origin() + p - transform_point(somedata->m(), leftp));
+		}
+
+		return 0;
+
+	} else if (!strcmp(mes,"rotate_diff")) {
+		const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(e);
+		if (!s) return 0;
+		double num = strtod(s->str, nullptr);
+		if (num != 0) {
+			num *= M_PI/180;
+			flatpoint p = transform_point(somedata->m(),leftp);
+			somedata->xaxis(rotate(somedata->xaxis(),num,0));
+			somedata->yaxis(rotate(somedata->yaxis(),num,0));
+			somedata->origin(somedata->origin() + p - transform_point(somedata->m(), leftp));
+		}
+
+		return 0;
+	}
+
+	return 1;
 }
 
 /*! This is called from the ordinary scan(), but with some things computed already.
@@ -901,8 +1046,8 @@ int RectInterface::scan(int x,int y)
 		if (d<sqrt(fivepix2)) return RP_Flip_Go;
 	}
 
-	match=AlternateScan(flatpoint(x,y), p, xmag,ymag, dd/25); //p is in object coordinates
-	if (match!=RP_None) return match;
+	match = AlternateScan(flatpoint(x,y), p, xmag,ymag, dd/25); //p is in object coordinates
+	if (match != RP_None) return match;
 
 	 //check against drag handles
 	double xtouchlen, ytouchlen; //in real coords, not screen
@@ -998,46 +1143,26 @@ int RectInterface::LBDown(int x,int y,unsigned int state,int count,const Laxkit:
 
 	DBG cerr << "  in RectInterface::LBDown..";
 
-	shiftmode=0;
+	shiftmode = 0;
+	drag_mode = DRAG_None;
 
 	if (somedata) {
 		 //check for interaction with the current data
 
-		int anchors=0;
-		if (extrapoints&HAS_CENTER1) anchors++;
-		if (extrapoints&HAS_CENTER2) anchors++;
-		if (anchors+buttondown.any(0,LEFTBUTTON)>3) return 0; //do not allow more than 3 active points
+		int anchors = 0;
+		if (extrapoints & HAS_CENTER1) anchors++;
+		if (extrapoints & HAS_CENTER2) anchors++;
+		if (anchors + buttondown.any(0,LEFTBUTTON) > 3) return 0; //do not allow more than 3 active points
 
 		leftp = ScreenToObject(x,y);
 
-		int c=scan(x,y);
-		int curpoint=RP_None;
+		int c = scan(x, y);
+		int curpoint = RP_None;
 		DBG cerr <<"scan found: "<<c<<endl;
 
+		drag_tr_on_down.m(somedata->m());
+
 		if ((state&LAX_STATE_MASK)==ControlMask) {
-//				&& (leftp.x<somedata->minx || leftp.x>somedata->maxx
-//					|| leftp.y<somedata->miny || leftp.y>somedata->maxy)) {
-
-			 //from here, you might be single-click scaling, or defining anchors.. we won't know
-			 //until MouseMove
-
-//			if (extrapoints==0) {
-//				//curpoint=RP_Center1;
-//				curpoint=RP_Move;
-//				center1=leftp;
-//				extrapoints|=HAS_CENTER1;
-//			} else if (extrapoints==HAS_CENTER1) {
-//				//curpoint=RP_Center2;
-//				curpoint=RP_Move;
-//				center2=leftp;
-//				extrapoints|=HAS_CENTER2;
-//			} else if (extrapoints==(HAS_CENTER1|HAS_CENTER2)) {
-//				//curpoint=RP_Shearpoint;
-//				curpoint=RP_Move;
-//				shearpoint=leftp;
-//				extrapoints|=HAS_SHEARPOINT;
-//			} else curpoint=RP_Move;
-
 			curpoint=RP_Move;
 
 			if (curpoint!=RP_None) {
@@ -1045,10 +1170,10 @@ int RectInterface::LBDown(int x,int y,unsigned int state,int count,const Laxkit:
 				needtodraw|=2;
 			}
 
-			DBG cerr <<"========  1"<<endl;
-			DBG cerr <<"========lbd: center1 dev:"<<(extrapoints&HAS_CENTER1)<<endl;
-			DBG cerr <<"========lbd: center2 dev:"<<(extrapoints&HAS_CENTER2)<<endl;
-			DBG cerr <<"========lbd:   shear dev:"<<(extrapoints&HAS_SHEARPOINT)<<endl;
+			DBG cerr <<"--------  1"<<endl;
+			DBG cerr <<"--------lbd: center1 dev:"<<(extrapoints&HAS_CENTER1)<<endl;
+			DBG cerr <<"--------lbd: center2 dev:"<<(extrapoints&HAS_CENTER2)<<endl;
+			DBG cerr <<"--------lbd:   shear dev:"<<(extrapoints&HAS_SHEARPOINT)<<endl;
 
 			return 0;
 
@@ -1065,10 +1190,10 @@ int RectInterface::LBDown(int x,int y,unsigned int state,int count,const Laxkit:
 			buttondown.down(d->id,LEFTBUTTON,x,y,curpoint);
 			needtodraw|=2;
 
-			DBG cerr <<"========  2"<<endl;
-			DBG cerr <<"========lbd: center1 dev:"<<(extrapoints&HAS_CENTER1)<<endl;
-			DBG cerr <<"========lbd: center2 dev:"<<(extrapoints&HAS_CENTER2)<<endl;
-			DBG cerr <<"========lbd:   shear dev:"<<(extrapoints&HAS_SHEARPOINT)<<endl;
+			DBG cerr <<"--------  2"<<endl;
+			DBG cerr <<"--------lbd: center1 dev:"<<(extrapoints&HAS_CENTER1)<<endl;
+			DBG cerr <<"--------lbd: center2 dev:"<<(extrapoints&HAS_CENTER2)<<endl;
+			DBG cerr <<"--------lbd:   shear dev:"<<(extrapoints&HAS_SHEARPOINT)<<endl;
 
 			return 0;
 
@@ -1079,10 +1204,10 @@ int RectInterface::LBDown(int x,int y,unsigned int state,int count,const Laxkit:
 
 			needtodraw|=2;
 			//syncFromData(0);
-			DBG cerr <<"========  3"<<endl;
-			DBG cerr <<"========lbd: center1 dev:"<<(extrapoints&HAS_CENTER1)<<endl;
-			DBG cerr <<"========lbd: center2 dev:"<<(extrapoints&HAS_CENTER2)<<endl;
-			DBG cerr <<"========lbd:   shear dev:"<<(extrapoints&HAS_SHEARPOINT)<<endl;
+			DBG cerr <<"--------  3"<<endl;
+			DBG cerr <<"--------lbd: center1 dev:"<<(extrapoints&HAS_CENTER1)<<endl;
+			DBG cerr <<"--------lbd: center2 dev:"<<(extrapoints&HAS_CENTER2)<<endl;
+			DBG cerr <<"--------lbd:   shear dev:"<<(extrapoints&HAS_SHEARPOINT)<<endl;
 
 			return 0;
 		}
@@ -1090,7 +1215,7 @@ int RectInterface::LBDown(int x,int y,unsigned int state,int count,const Laxkit:
 
 
 	 //If this is a superclass of an ObjectInterface, this forces the rect interface
-	 //to not transfer control to some other object and tool... bit of a hack
+	 //to not transfer control to some other object and tool or create a new RectData... bit of a hack
 	if (style&RECT_OBJECT_SHUNT) {
 		if (buttondown.isdown(d->id,LEFTBUTTON)) return 0;
 		return 1;
@@ -1240,12 +1365,52 @@ int RectInterface::LBUp(int x,int y,unsigned int state,const Laxkit::LaxMouse *d
 	DBG cerr <<"========lbd:   shear dev:"<<(extrapoints&HAS_SHEARPOINT)<<endl;
 	DBG cerr <<"========        curpoint:"<<curpoint<<endl;
 
-	if (dragged && shiftmode==1) {
+	if (shiftmode==1) {
+		char str[50];
+		if (drag_mode == DRAG_Scale && hover == RP_Scale_Num) {
+			//we want to input a number for scale
+			double scale = somedata->xaxis().norm()/drag_tr_on_down.xaxis().norm();
+			sprintf(str, "%f", scale);
+			double th = font->textheight();
+			DoubleBBox box(x-5*th, x+5*th, y-.75*th, y+.75*th);
+			viewport->SetupInputBox(object_id, nullptr, str, "scale_num", box);
+			hover = RP_None;
+
+		} else if (drag_mode == DRAG_Rotate && hover == RP_Rotate_Num) {
+			flatpoint p0 = ObjectToScreen(somedata->BBoxPoint(0,0, false));
+			flatpoint p1 = ObjectToScreen(somedata->BBoxPoint(1,0, false));
+			double cura = -(p1-p0).angle();
+					
+			sprintf(str, "%f", cura * 180/M_PI);
+			double th = font->textheight();
+			DoubleBBox box(x-5*th, x+5*th, y-.75*th, y+.75*th);
+			viewport->SetupInputBox(object_id, nullptr, str, "rotate_num", box);
+			hover = RP_None;
+			
+		} else if (drag_mode == DRAG_Rotate && hover == RP_Rotate_Diff) {
+			flatpoint p0 = ObjectToScreen(somedata->transformPointInverse(drag_tr_on_down.transformPoint(flatpoint(0,0))));
+			flatpoint p1 = ObjectToScreen(somedata->transformPointInverse(drag_tr_on_down.transformPoint(flatpoint(1,0))));
+			double origa = -(p1-p0).angle();
+
+			p0 = ObjectToScreen(somedata->BBoxPoint(0,0, false));
+			p1 = ObjectToScreen(somedata->BBoxPoint(1,0, false));
+			double cura = -(p1 - p0).angle();
+			double diff = cura - origa;
+			sprintf(str, "%f", diff * 180/M_PI);
+			double th = font->textheight();
+			DoubleBBox box(x-5*th, x+5*th, y-.75*th, y+.75*th);
+			viewport->SetupInputBox(object_id, nullptr, str, "rotate_diff", box);
+			hover = RP_None;
+			
+		}
+
 		extrapoints=0;
 		shiftmode=0;
+		drag_mode = DRAG_None;
 		needtodraw=1;
 		return 0;
 	}
+
 
 	if (dragged==0) {
 		if (curpoint==RP_Flip_Go || curpoint==RP_Flip_H || curpoint==RP_Flip_V) {
@@ -1330,6 +1495,13 @@ const char *RectInterface::hoverMessage(int p)
 	if (p==RP_Flip_Go) return _("Click to flip, shift-click to keep line");
 	if (p==RP_Shear_N || p==RP_Shear_S || p==RP_Shear_E || p==RP_Shear_W) return _("Shear");
 	return NULL;
+}
+
+flatpoint RectInterface::ObjectToScreen(flatpoint p)
+{
+	p = somedata->transformPoint(p);
+	if (use_extra) p = transform_point(extra_context, p);
+	return dp->realtoscreen(p);
 }
 
 /*! Transform screen point (x,y) to object space, basically (x,y) -> dp->screentoreal -> extra_context^-1 -> somedata^-1.
@@ -1440,7 +1612,7 @@ int RectInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMou
 			return 0;
 		}
 
-		//else is (curpoint==RP_Flip_H || curpoint==RP_Flip_V)
+		//else is (curpoint==RP_Flip_H || curpoint==RP_Flip_V), convert to flip line
 
 		style &= ~RECT_FLIP_AT_SIDES;
 		style |= RECT_FLIP_LINE;
@@ -1464,13 +1636,27 @@ int RectInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMou
 		DBG cerr <<"  initial scr:"<<ix<<","<<iy<<"  real:"<<leftp.x<<','<<leftp.y<<"   "<<somedata->whattype()<<endl;
 
 		if ((state&LAX_STATE_MASK)==0 || (state&LAX_STATE_MASK)==ShiftMask) {
-			somedata->origin(somedata->origin()+d);
+			//if shift, snap to nearest horizontal or vertical
+			drag_mode = DRAG_Move;
+			if ((state&LAX_STATE_MASK) == 0) {
+				somedata->origin(somedata->origin()+d);
+			} else {
+				flatpoint v = flatpoint(x,y) - flatpoint(ix,iy);
+				if (NearestAxis(v) == 'y') x = ix;
+				else y = iy;
+				d = ScreenToObjectParent(x,y) - ScreenToObjectParent(ix,iy);
+				somedata->set(drag_tr_on_down);
+				somedata->origin(somedata->origin()+d);
+			}
 
 		} else if ((state&LAX_STATE_MASK)==ControlMask) {
 			 //scale, with leftp as center
+			drag_mode = DRAG_Scale;
 			double dd=double(x-mx);
 			dd=1+.02*dd;
 			if (dd<0.1) dd=0.1;
+			if (y < iy - drag_scale_width) hover = RP_Scale_Num;
+			else hover = RP_None;
 
 			flatpoint p = transform_point(somedata->m(), leftp); //screen constant point
 			somedata->xaxis(dd*somedata->xaxis());
@@ -1478,13 +1664,55 @@ int RectInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMou
 			somedata->origin(somedata->origin()+p-transform_point(somedata->m(),leftp));
 
 		} else if ((state&LAX_STATE_MASK)==(ControlMask|ShiftMask)) {
-			 // rotate around leftp based on x movement
-			double a;
-			a = (x-mx)/180.0*M_PI;
-			flatpoint p = transform_point(somedata->m(),leftp);
-			somedata->xaxis(rotate(somedata->xaxis(),a,0));
-			somedata->yaxis(rotate(somedata->yaxis(),a,0));
-			somedata->origin(somedata->origin() + p - transform_point(somedata->m(), leftp));
+			 // rotate around leftp
+			double th = font->textheight();
+			if (drag_mode != DRAG_Rotate) {
+				//set up the rotate indicator
+				drag_rotate_radius = th * 7;
+				drag_rotate_min_radius = th*3;
+				//drag_rotate_center = flatpoint(x - drag_rotate_radius, y);
+				drag_rotate_center = flatpoint(ix, iy);
+				flatpoint p0 = ObjectToScreen(somedata->BBoxPoint(0,0, false));
+				flatpoint p1 = ObjectToScreen(somedata->BBoxPoint(1,0, false));					
+				snap_running_angle = (p1-p0).angle();
+			}
+			drag_mode = DRAG_Rotate;
+
+			//whether we might want to input numbers
+			if (x > ix - th*2 && x < ix + th*2) {
+				if (y > iy - drag_rotate_min_radius/2 - th/2 && y < iy - drag_rotate_min_radius/2 + th/2)
+					hover = RP_Rotate_Diff;
+				else if (y > iy + drag_rotate_min_radius/2 - th/2 && y < iy + drag_rotate_min_radius/2 + th/2)
+					hover = RP_Rotate_Num;
+				else hover = RP_None;
+			} else hover = RP_None;
+
+			flatpoint rp(mx-ix, my-iy);
+			flatpoint rv(x-ix, y-iy);
+			double r = rv.norm();
+			if (r > drag_rotate_min_radius) {
+				double a1 = atan2(rp.y, rp.x);
+				double a2 = atan2(rv.y, rv.x);
+				//----
+				double diff;
+				// diff = (x-mx)/180.0*M_PI;
+				diff = a1 - a2;
+				snap_running_angle -= diff;
+				if (r > drag_rotate_radius) {
+					//snap to nearest screen angle
+					flatpoint p0 = ObjectToScreen(somedata->BBoxPoint(0,0, false));
+					flatpoint p1 = ObjectToScreen(somedata->BBoxPoint(1,0, false));
+					double cura = (p1-p0).angle();
+					double a = snap_running_angle;
+					double snap_to = 15*M_PI/180;
+					a = snap_to * int((a + snap_to/2)/ snap_to);
+					diff =  cura-a;
+				}
+				flatpoint p = transform_point(somedata->m(),leftp);
+				somedata->xaxis(rotate(somedata->xaxis(),diff,0));
+				somedata->yaxis(rotate(somedata->yaxis(),diff,0));
+				somedata->origin(somedata->origin() + p - transform_point(somedata->m(), leftp));
+			}
 		}
 
 		needtodraw=1;
@@ -1965,6 +2193,13 @@ int RectInterface::PerformAction(int action)
 		style = (style&~RECT_FLIP_LINE)|RECT_FLIP_AT_SIDES;
 		return 0;
 
+	} else if (action==RIA_ToggleFlipControls) {
+		if (style & RECT_FLIP_LINE) style &= ~RECT_FLIP_LINE; //turn off flip controls
+		else if (style & RECT_FLIP_AT_SIDES) style &= ~RECT_FLIP_AT_SIDES; //turn off flip controls
+		else style |= RECT_FLIP_AT_SIDES;
+		needtodraw=1;
+		return 0;
+
 	} else if (action==RIA_RotateCW) {
 		if (!somedata) return 1;
 		Rotate(-rotatestep);
@@ -1973,13 +2208,6 @@ int RectInterface::PerformAction(int action)
 	} else if (action==RIA_RotateCCW) {
 		if (!somedata) return 1;
 		Rotate(rotatestep);
-		return 0;
-
-	} else if (action==RIA_ToggleFlipControls) {
-		if (style & RECT_FLIP_LINE) style = (style & ~RECT_FLIP_LINE) | RECT_FLIP_AT_SIDES;
-		else if (style & RECT_FLIP_AT_SIDES) style &= ~RECT_FLIP_AT_SIDES;
-		else style |= RECT_FLIP_AT_SIDES;
-		needtodraw=1;
 		return 0;
 
 	} else if (action==RIA_Normalize || action==RIA_Rectify) {
@@ -2099,6 +2327,12 @@ int RectInterface::CharInput(unsigned int ch, const char *buffer,int len,unsigne
 	}
 
 	return 1;
+}
+
+void RectInterface::Mapped()
+{
+	showdecs |= (SHOW_INNER_HANDLES|SHOW_OUTER_HANDLES);
+	needtodraw=1;
 }
  
 void RectInterface::Unmapped()

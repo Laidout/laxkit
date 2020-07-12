@@ -30,12 +30,6 @@
 
 namespace LaxInterfaces {
 
-// x+---->
-//y 1    8    7
-//+ 2    9    6
-//| 3    4    5
-//v
-
 //----------------------------- RectData ----------------------------------
 enum RectDataStyle {
 	RECT_ISSQUARE        =(1<<0),
@@ -102,8 +96,22 @@ class RectInterface : public anInterface
 	flatpoint center1,center2,shearpoint,leftp;
 	flatpoint flip1,flip2;
 	double rotatestep;
+	flatpoint drag_rotate_center;
+	double drag_rotate_radius;
+	double drag_rotate_min_radius; //inside of which you can mouse up on number input
+	double drag_scale_width; //drag vertically outside this lets you select number to edit
+	double snap_running_angle;
+	enum DragMode {
+		DRAG_None,
+		DRAG_Move,
+		DRAG_Scale,
+		DRAG_Rotate,
+		DRAG_MAX
+	};
+	int drag_mode; //See DragMode
+	Laxkit::Affine drag_tr_on_down;
 	int hover;
-	int constrainx, constrainy;
+	char constrain_to; //0, 'x', or 'y'
 	int mousetarget;
 	int shiftmode;
 	flatpoint hoverpoint;
@@ -112,7 +120,8 @@ class RectInterface : public anInterface
 	double xaxislen,yaxislen;
 	double extra_context[6];
 	bool use_extra;
-	char dragmode;
+	Laxkit::LaxFont *font;
+
 	virtual void syncToData();
 	virtual void syncFromData(int first);
 	virtual const char *hoverMessage(int p);
@@ -124,6 +133,7 @@ class RectInterface : public anInterface
 	virtual int GetMode();
 	virtual void Modified(int level=0);
 
+	virtual flatpoint ObjectToScreen(flatpoint p);
 	virtual flatpoint ScreenToObject(double x,double y);
 	virtual flatpoint ScreenToObjectParent(double x,double y);
 
@@ -149,6 +159,7 @@ class RectInterface : public anInterface
 	virtual anInterface *duplicate(anInterface *dup);
 	virtual int InterfaceOn();
 	virtual int InterfaceOff();
+	virtual void Mapped();
 	virtual void Unmapped();
 	virtual int LBDown(int x,int y,unsigned int state,int count,const Laxkit::LaxMouse *d);
 	virtual int FakeLBDown(int x,int y,unsigned int state,int count,const Laxkit::LaxMouse *d);
@@ -161,6 +172,7 @@ class RectInterface : public anInterface
 	virtual int UseThis(Laxkit::anObject *newdata,unsigned int); // assumes not use local
 	virtual void ExtraContext(const double *mm);
 	virtual void Clear(SomeData *d=NULL);
+	virtual int Event(const Laxkit::EventData *e,const char *mes);
 
 	virtual int AlternateScan(flatpoint sp, flatpoint p, double xmag,double ymag, double onepix);
 	virtual int scan(int x,int y);
