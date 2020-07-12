@@ -21,6 +21,7 @@
 //
 
 
+#include <lax/interfaces/interfacemanager.h>
 #include <lax/interfaces/somedatafactory.h>
 #include <lax/interfaces/patchinterface.h>
 #include <lax/transformmath.h>
@@ -3079,6 +3080,7 @@ int PatchInterface::UseThisObject(ObjectContext *oc)
 		}
 	}
 
+	whichcontrols = data->controls;
 	AddToSelection(poc);
 
 	curpoints.flush();
@@ -3582,33 +3584,34 @@ void PatchInterface::drawControlPoints()
 	}
 }
 
-/*! *** need better scanning, to start at point after currently selected
- * // no pick wild,start,end,  picks closest within a distance
- * // *** only checks points, no online jazz
+/*! Find first point under a nearness threshhold, usually around 5 pixels.
+ * Only checks points, nothing else.
  */
 int PatchInterface::scan(int x,int y)
 {
 	if (!data) return -1;
 	flatpoint p,p2;
-	p=screentoreal(x,y);
-	double d=5/dp->Getmag(),dd;//*** Getmag or dp->Getmag??
-	//DBG cerr <<"scan d="<<d<<"(x,y)="<<p.x<<','<<p.y<<endl;
+	p = screentoreal(x,y);
+	double threshhold = InterfaceManager::GetDefault(true)->NearThreshhold2();
+	double d = threshhold / Getmag(); //first one to pass wins
+	double dd;
 
-	d*=d;
-	int closest=-1;
+	d *= d;
+	int closest = -1;
 	// scan for control points
 	int c;
 	for (c=0; c<data->xsize*data->ysize; c++) {
-		p2=transform_point(data->m(),data->points[c]);
-		dd=(p2.x-p.x)*(p2.x-p.x)+(p2.y-p.y)*(p2.y-p.y);
+		p2 = transform_point(data->m(),data->points[c]);
+		dd = (p2-p).norm2();
+		//dd=(p2.x-p.x)*(p2.x-p.x)+(p2.y-p.y)*(p2.y-p.y);
 		//DBG cerr <<"  scan "<<c<<", d="<<dd<<"  ";
-		if (dd<d) {
-			d=dd;
-			closest=c;
+		if (dd < d) {
+			d = dd;
+			closest = c;
 		}
 	}
-	//DBG cerr <<" found:"<<closest<<endl;
-	//DBG cerr <<" scan found closest:"<<closest<<"  at d="<<d<<" (x,y)="<<p.x<<','<<p.y<<endl;
+
+	DBG cerr <<" scan found closest:"<<closest<<"  at d="<<d<<" threshhold px="<<threshhold<<"  (x,y)="<<p.x<<','<<p.y<<endl;
 	return closest; // scan never checks a wildpoint
 }
 
