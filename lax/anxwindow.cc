@@ -58,33 +58,6 @@ namespace Laxkit {
  */
 
 
-/*! \class anXWindow::XlibDNDData
- * Helper class to coordinate X11 based drag and drop.
- */
-anXWindow::XlibDNDData::XlibDNDData()
-{
-	targetTop = targetChild = nullptr;
-	source_window = 0;
-	data_types = nullptr;
-	num_data_types = 0;
-	preferred_type = -1;
-}
-anXWindow::XlibDNDData::~XlibDNDData()
-{
-	if (num_data_types) deletestrs(data_types, num_data_types);
-}
-
-void anXWindow::XlibDNDData::SetNames(XID source, char **names, int len)
-{
-	if (num_data_types) deletestrs(data_types, num_data_types);
-	num_data_types = len;
-	if (len) {
-		data_types = names;
-	}
-
-	source_window = source;
-}
-
 //! Return some Xlib can draw on.
 /*! If which==-1, then return the default drawing surface. When there is double buffering,
  * this means return xlib_backbuffer if it is not 0, otherwise xlib_window.
@@ -100,6 +73,7 @@ Drawable aDrawable::xlibDrawable(int which)
 }
 
 #endif //_LAX_PLATFORM_XLIB
+
 
 //------------------------------------ anXWindow -------------------------------------
 /*! \class anXWindow
@@ -404,6 +378,7 @@ anXWindow::anXWindow(anXWindow *parnt, const char *nname, const char *ntitle,
 
 #ifdef _LAX_PLATFORM_XLIB
 	 //set up Xlib specific stuff
+	xlib_dnd = nullptr;
 	xlib_win_hints = NULL;
 	xlib_win_sizehints = NULL;
 	xlib_win_xattsmask = 0;
@@ -428,6 +403,7 @@ anXWindow::~anXWindow()
 	DBG cerr << " in anxwindow("<<WindowTitle()<<") destructor."<<endl;
 
 #ifdef _LAX_PLATFORM_XLIB
+	if (xlib_dnd) delete xlib_dnd;
 	if (xlib_win_hints) XFree(xlib_win_hints);
 	if (xlib_win_sizehints) XFree(xlib_win_sizehints);
 #endif //_LAX_PLATFORM_XLIB
@@ -1147,6 +1123,67 @@ int anXWindow::Event(const EventData *data,const char *mes)
 
 
 #ifdef _LAX_PLATFORM_XLIB
+
+//initialize statics
+bool anXWindow::xlib_vars_initialized = false;
+Atom anXWindow::LaxDndProperty = 0;
+Atom anXWindow::XdndAware = 0;
+Atom anXWindow::XdndEnter = 0;
+Atom anXWindow::XdndLeave = 0;
+Atom anXWindow::XdndPosition = 0;
+Atom anXWindow::XdndStatus = 0;
+Atom anXWindow::XdndDrop = 0;
+Atom anXWindow::XdndFinished = 0;
+Atom anXWindow::XdndSelection = 0;
+Atom anXWindow::XdndProxy = 0;
+Atom anXWindow::XdndActionList = 0;
+Atom anXWindow::XdndActionDescription = 0;
+Atom anXWindow::XdndActionCopy = 0;
+Atom anXWindow::XdndActionMove = 0;
+Atom anXWindow::XdndActionLink = 0;
+Atom anXWindow::XdndActionAsk = 0;
+Atom anXWindow::XdndActionPrivate = 0;
+Atom anXWindow::XdndTypeList = 0;
+Atom anXWindow::MimeTextUriList = 0;
+Atom anXWindow::MimeTextPlain = 0;
+Atom anXWindow::MimeTextPlainUtf8 = 0;
+Atom anXWindow::MimeTextPlainLatin1 = 0;
+Atom anXWindow::Xlib_TEXT = 0;
+Atom anXWindow::Xlib_UTF8_STRING = 0;
+
+void anXWindow::InitXlibVars(Display *dpy)
+{
+	if (xlib_vars_initialized) return;
+	xlib_vars_initialized = true;
+
+	LaxDndProperty        = XInternAtom(dpy, "LaxDndProperty", False);
+	XdndAware             = XInternAtom(dpy, "XdndAware", False);
+	XdndSelection         = XInternAtom(dpy, "XdndSelection", False);
+	XdndEnter             = XInternAtom(dpy, "XdndEnter", False);
+	XdndLeave             = XInternAtom(dpy, "XdndLeave", False);
+	XdndPosition          = XInternAtom(dpy, "XdndPosition", False);
+	XdndDrop              = XInternAtom(dpy, "XdndDrop", False);
+	XdndFinished          = XInternAtom(dpy, "XdndFinished", False);
+	XdndStatus            = XInternAtom(dpy, "XdndStatus", False);
+	XdndActionCopy        = XInternAtom(dpy, "XdndActionCopy", False);
+	XdndActionMove        = XInternAtom(dpy, "XdndActionMove", False);
+	XdndActionLink        = XInternAtom(dpy, "XdndActionLink", False);
+	XdndActionAsk         = XInternAtom(dpy, "XdndActionAsk", False);
+	XdndActionPrivate     = XInternAtom(dpy, "XdndActionPrivate", False);
+	XdndTypeList          = XInternAtom(dpy, "XdndTypeList", False);
+	XdndActionList        = XInternAtom(dpy, "XdndActionList", False);
+	XdndActionDescription = XInternAtom(dpy, "XdndActionDescription", False);
+
+	// XlibStringType        = XInternAtom(dpy,"XlibStringType",False);
+    MimeTextUriList       = XInternAtom(dpy,"text/uri-list",False);
+    MimeTextPlain         = XInternAtom(dpy,"text/plain",False);
+    MimeTextPlainUtf8     = XInternAtom(dpy,"text/plain;charset=UTF-8",False);
+    MimeTextPlainLatin1   = XInternAtom(dpy,"text/plain;charset=ISO-8859-1",False);
+    Xlib_TEXT             = XInternAtom(dpy,"TEXT",False);
+    Xlib_UTF8_STRING      = XInternAtom(dpy,"UTF8_STRING",False);
+}
+
+
 //! Xlib event receiver.
 /*! Under most circumstances, users can safely ignore this function.
  *
@@ -1221,120 +1258,24 @@ int anXWindow::event(XEvent *e)
 					XSendEvent(app->dpy,e->xany.window, False,(SubstructureNotifyMask|SubstructureRedirectMask), e);
 					return 0;
 				} else XFree(aname);
-		 		aname=XGetAtomName(app->dpy,e->xclient.message_type);
+				aname = XGetAtomName(app->dpy, e->xclient.message_type);
 
 			} else if (strcmp(aname,"XdndEnter")==0) {
-				DBG cerr << "XdndEnter in "<<WindowTitle()<<endl;
-
 				// dnd (drag and drop) started from somewhere!!
-				// see for more in depth description: https://www.freedesktop.org/wiki/Specifications/XDND/
-				// also see blender's implementation: https://github.com/dfelinto/blender/blob/master/extern/xdnd/xdnd.c
-
-				if (xdnddata.source_window != 0) return 0; //ignore any dnd if there is a current dnd
-
-			    XID source_window = e->xclient.data.l[0];
-			    bool more_than_three_types = ((e->xclient.data.l[1] & 1) != 0);
-			    DBG cerr << "  "<< (more_than_three_types ? "more than three types" : "1,2,or 3 types")<<endl;
-			    //data.l[1]:
-			    //     Bit 0 is set if the source supports more than three data types.
-			    //     The high byte contains the protocol version to use (minimum of the source's and target's highest supported versions).
-			    //     The rest of the bits are reserved for future use.
-			    //   if more than 3 types, full list is in XdndTypeList on source
-
-			    //data.l[2,3,4] contain the first three types that the source supports.
-			    //   Unused slots are set to None. The ordering is arbitrary since, in general,
-			    //   the source cannot know what the target prefers.
-			    char **names = nullptr;
-			    int num_names = 0;
-
-			    if (more_than_three_types) {
-					int format;
-					unsigned long len, remaining;
-					unsigned char *data=NULL;
-					// long *idata;
-					Atom actual_type=0;
-					int status = XGetWindowProperty(
-									app->dpy,
-									source_window,
-									XInternAtom(app->dpy, "XdndTypeList", False), //property the selection data is stored in
-									0,0x8000000L,          //offset and max len into property to get
-									False,                 //whether to delete property afterwards
-									AnyPropertyType,      //preferred type (this value is #defined 0)
-									&actual_type,
-									&format, &len, &remaining, &data);
-					if (status == Success) {
-						DBG cerr <<"  dnd type list:"<<endl;
-						if (actual_type != None){
-							char *actual_type_str = XGetAtomName(app->dpy, actual_type);
-							DBG cerr << "   actual type: "<<actual_type_str<<", len: "<<len<<", remaining: "<<remaining<<endl;
-							XFree(actual_type_str);
-
-							names = new char*[len];
-							if (XGetAtomNames(app->dpy, (Atom*)data, len, names)) { //returns non-zero on success. hmm.
-								for (int c=0; c < (int)len; c++) {
-							    	DBG cerr <<"    dnd type available: "<<names[c]<<endl;
-						    	}
-				    			for (int c=0; c < (int)len; c++) {
-				    				char *nm = names[c];
-				    				names[c] = newstr(nm);
-				    				XFree(nm);
-				    			}
-				    			num_names = (int)len;
-					    	} else {
-					    		delete[] names;
-					    		names = nullptr;
-					    	}
-						}
-					}
-					XFree(data);
-			    } else { //1,2,or 3 types only
-			    	names = new char*[3];
-				    for (int c=2; c <= 4; c++) {
-				    	long l = e->xclient.data.l[c];
-				    	if (l == None) break;
-				    	char *tname = XGetAtomName(app->dpy, l);
-				    	DBG cerr <<"  dnd type available: "<<tname<<endl;
-				    	names[c-2] = newstr(tname);
-				    	num_names++;
-				    	XFree(tname);
-				    }
-				}
-
-				bool yes_dnd = false;
-				// *** now need to ask window which if any from list is acceptible
-				// if none, nothing further necessary
-				// if any, need to do protocol for telling source about our interest
-
-				if (yes_dnd) xdnddata.SetNames(source_window, names, num_names);
-				else deletestrs(names, num_names);
+				HandleXdndEnter(e);
 
 			} else if (strcmp(aname,"XdndPosition")==0) {
-				DBG cerr << "XdndPosition in "<<WindowTitle()<<endl;
-
-			    // data.l[0] contains the XID of the source window.
-			    // data.l[1] is reserved for future use (flags).
-			    // data.l[2] contains the coordinates of the mouse position relative to the root window.
-			    //     data.l[2] = (x << 16) | y
-			    // data.l[3] contains the time stamp for retrieving the data. (new in version 1)
-			    // data.l[4] contains the action requested by the user. (new in version 2)
-
-			    // *** if accepting dnd, window has option of updating indicator based on position
-			    // if accepting, we need to send back an XdndStatus message
-
+				HandleXdndPosition(e);
      
 			} else if (strcmp(aname,"XdndDrop")==0) {
 				// Sent from source to target to complete the drop.
-
-				//     data.l[0] contains the XID of the source window.
-				//     data.l[1] is reserved for future use (flags).
-				//     data.l[2] contains the time stamp for retrieving the data. (new in version 1)
-
+				HandleXdndDrop(e);
 
 			} else if (strcmp(aname,"XdndLeave")==0) {
 				DBG cerr << "XdndLeave in "<<WindowTitle()<<endl;
 
-				// *** need to cancel any possible dnd in process
-				xdnddata.source_window = 0;
+				// need to cancel any possible dnd in process
+				if (xlib_dnd) { delete xlib_dnd; xlib_dnd = nullptr; }
 			}
 
 			XFree(aname);
@@ -1467,20 +1408,18 @@ int anXWindow::event(XEvent *e)
 			DBG cerr <<"\n----SelectionNotify this window:"<<xlib_window<<endl;
 			DBG cerr <<	"  requestor:"<<e->xselection.requestor<<endl;
 
-			if (e->xselection.property==0) {
+			if (e->xselection.property == 0) {
 				DBG cerr <<"selection failed!"<<endl;
 				return 0;
 			}
 
-			char *selection=XGetAtomName(app->dpy,e->xselection.selection); 
-			char *target   =XGetAtomName(app->dpy,e->xselection.target);
-			char *property =NULL;
-			if (e->xselection.property) property=XGetAtomName(app->dpy,e->xselection.property);
+			char *selection = XGetAtomName(app->dpy, e->xselection.selection);
+			char *target    = XGetAtomName(app->dpy, e->xselection.target);
+			char *property  = XGetAtomName(app->dpy, e->xselection.property);
 
 			DBG cerr <<"  selection: "<<(selection ? selection :"(no selection)")<<endl;
 			DBG cerr <<"  target: "   <<(target    ? target    :"(no target)")   <<endl;
 			DBG cerr <<"  property: " <<(property  ? property  :"(no property)") <<endl;
-
 
 			Atom actual_type;
 			int format;
@@ -1503,6 +1442,10 @@ int anXWindow::event(XEvent *e)
 
 				if (actualtype) XFree(actualtype);
 				XFree(data);
+			}
+
+			if (e->xselection.selection == XdndSelection) {
+				cerr << " **** Need to send a XDndFinished"<<endl;
 			}
 
 			if (property)  XFree(property);
@@ -1902,8 +1845,6 @@ int anXWindow::selectionPaste(char mid, const char *targettype)
  * (see selectionPaste()) and also drag-and-drop events.
  *
  * Returns 0 if used, nonzero otherwise.
- *
- * \todo do this without Atoms
  */
 int anXWindow::selectionDropped(const unsigned char *data,unsigned long len,const char *actual_type,const char *which)
 {
@@ -1958,6 +1899,315 @@ Displayer *anXWindow::GetDisplayer()
 {
 	return GetDefaultDisplayer();
 }
+
+
+//------------------------------------ DndState -------------------------------------
+
+#ifdef _LAX_PLATFORM_XLIB
+
+/*! \class DndState
+ * Helper class to coordinate Xlib based drag and drop.
+ */
+
+#define XDND_VERSION 5
+
+DndState::DndState()
+{
+	if (!anXWindow::xlib_vars_initialized) anXWindow::InitXlibVars(anXApp::app->dpy);
+
+	version = XDND_VERSION;
+	mode    = Unknown;
+	status  = Uncertain;
+	action  = 0;
+
+	targetTop = targetChild = nullptr;
+	source_window           = 0;
+	data_types              = nullptr;
+	num_data_types          = 0;
+	preferred_type          = -1;
+
+	timestamp = 0;
+  	lastx = lasty = 0; //in a drop candidate
+  	downx = downy = 0; //used when initiating drop
+  	inx = iny = inw = inh = 0;
+  	button = 0; //anXWindow auto detects button up
+}
+
+DndState::~DndState()
+{
+	if (num_data_types) deletestrs(data_types, num_data_types);
+}
+
+/*! Takes names, calling code must not delete.
+ */
+void DndState::SetNames(char **names, int len)
+{
+	if (num_data_types) deletestrs(data_types, num_data_types);
+	num_data_types = len;
+	if (len) {
+		data_types = names;
+	}
+}
+
+void DndState::Clear()
+{
+	mode = Unknown;
+	status = Uncertain;
+	source_window = 0;
+	if (data_types) deletestrs(data_types, num_data_types);
+}
+
+//! Return the version that w is XdndAware for. 0 for not XdndAware.
+int anXWindow::isXdndAware(Window w)
+{
+    Atom actual_type;
+    int format;
+    unsigned long count, remaining;
+    unsigned char *data=NULL;
+    int version=0;
+    XGetWindowProperty(app->dpy, w, XdndAware,
+                        0, 0x8000000L, False, XA_ATOM, &actual_type, &format,
+                        &count, &remaining, &data);
+
+    if (actual_type!=XA_ATOM || format!=32 || count==0 || !data) {
+        //XGetWindowProperty failed
+        if (data) XFree(data);
+        return 0;
+    }
+    version=*(Atom *)data;
+    XFree(data);
+    DBG cerr <<"window "<<w<<" isXdndAware version: "<<version<<endl;
+    return version;
+}
+
+/*! When a drag and drop source hovers over us.
+ */
+int anXWindow::HandleXdndEnter(XEvent *e)
+{
+	// see for more in depth description: https://www.freedesktop.org/wiki/Specifications/XDND/
+	// also see blender's implementation: https://github.com/dfelinto/blender/blob/master/extern/xdnd/xdnd.c
+
+	DBG cerr << "XdndEnter in "<<WindowTitle()<<endl;
+
+	if (xlib_dnd) return 1; //ignore any dnd if there is a current dnd
+
+	xlib_dnd = new DndState();
+
+	//determine Xdnd protocol version. warning: no protocol mishap detection, assuming good for XDND_VERSION
+	xlib_dnd->version = (e->xclient.data.l[1]&0xff000000)>>24;
+    if (xlib_dnd->version > 5) xlib_dnd->version = XDND_VERSION;
+
+	xlib_dnd->mode = DndState::WaitingForDrop;
+    xlib_dnd->source_window = (XID)e->xclient.data.l[0];
+
+    bool more_than_three_types = ((e->xclient.data.l[1] & 1) != 0);
+    DBG cerr << "  "<< (more_than_three_types ? "more than three types" : "1,2,or 3 types")<<endl;
+    //data.l[1]:
+    //     Bit 0 is set if the source supports more than three data types.
+    //     The high byte contains the protocol version to use (minimum of the source's and target's highest supported versions).
+    //     The rest of the bits are reserved for future use.
+    //   if more than 3 types, full list is in XdndTypeList on source
+
+    //data.l[2,3,4] contain the first three types that the source supports.
+    //   Unused slots are set to None. The ordering is arbitrary since, in general,
+    //   the source cannot know what the target prefers.
+    char **names = nullptr;
+    int num_names = 0;
+
+    if (more_than_three_types) {
+		int format;
+		unsigned long len, remaining;
+		unsigned char *data = nullptr;
+		// long *idata;
+		Atom actual_type=0;
+		int status = XGetWindowProperty(
+						app->dpy,
+						xlib_dnd->source_window,
+						XdndTypeList,     //property the selection data is stored in
+						0,0x8000000L,     //offset and max len into property to get
+						False,            //whether to delete property afterwards
+						AnyPropertyType,  //preferred type (this value is #defined 0)
+						&actual_type,
+						&format, &len, &remaining, &data);
+		if (status == Success) {
+			DBG cerr <<"  dnd type list:"<<endl;
+			if (actual_type != None){
+				DBG char *actual_type_str = XGetAtomName(app->dpy, actual_type);
+				DBG cerr << "   actual type: "<<actual_type_str<<", len: "<<len<<", remaining: "<<remaining<<endl;
+				DBG XFree(actual_type_str);
+
+				names = new char*[len+1];
+				if (XGetAtomNames(app->dpy, (Atom*)data, len, names)) { //returns non-zero on success. hmm.
+					for (int c=0; c < (int)len; c++) {
+				    	DBG cerr <<"    dnd type available: "<<names[c]<<endl;
+			    	}
+	    			for (int c=0; c < (int)len; c++) {
+	    				char *nm = names[c];
+	    				names[c] = newstr(nm);
+	    				XFree(nm);
+	    			}
+	    			num_names = (int)len;
+	    			names[len] = nullptr; //null terminate
+		    	} else {
+		    		delete[] names;
+		    		names = nullptr;
+		    	}
+			}
+			XFree(data);
+		}
+    } else { //1,2,or 3 types only
+    	names = new char*[4];
+	    for (int c=2; c <= 4; c++) {
+	    	long l = e->xclient.data.l[c];
+	    	if (l == None) break;
+	    	char *tname = XGetAtomName(app->dpy, l);
+	    	DBG cerr <<"  dnd type available: "<<tname<<endl;
+	    	names[c-2] = newstr(tname);
+	    	num_names++;
+	    	XFree(tname);
+	    }
+	    names[num_names] = nullptr;
+	}
+
+	//whether we accept a drop is handled on XdndPosition messages
+	xlib_dnd->SetNames(names, num_names);
+	return 0;
+}
+
+/*! When a drag and drop source moves around over us, after already entering.
+ */
+int anXWindow::HandleXdndPosition(XEvent *e)
+{
+	DBG cerr << "XdndPosition in "<<WindowTitle()<<endl;
+
+	 // Sent from source to target when the mouse moves. The message contains
+	 // a time stamp, screen coordinates of the mouse, and the requested action.
+	 // The target (us) then sends an XdndStatus message updating whether it still will
+	 // accept the drop, and the bounds within which no more XdndPosition messages
+	 // should be sent.
+
+    // data.l[0] contains the XID of the source window.
+    // data.l[1] is reserved for future use (flags).
+    // data.l[2] contains the coordinates of the mouse position relative to the root window.
+    //     data.l[2] = (x << 16) | y
+    // data.l[3] contains the time stamp for retrieving the data. (new in version 1)
+    // data.l[4] contains the action requested by the user. (new in version 2)
+
+	if (!xlib_dnd) return 0;
+
+	DBG cerr <<"XdndPosition: "<<((e->xclient.data.l[2]>>16)&0xffff)<<","<<(e->xclient.data.l[2]&0xffff)<<endl;
+	DBG char *blah = nullptr;
+	DBG if (e->xclient.data.l[4]) blah=XGetAtomName(app->dpy,e->xclient.data.l[4]);
+	DBG if (blah) { cerr <<"  action from source: "<<blah<<endl; XFree(blah); }
+
+	xlib_dnd->timestamp = e->xclient.data.l[3];
+
+	int x = (e->xclient.data.l[2]>>16)&0xffff; //note these are screen coords
+	int y = (e->xclient.data.l[2]    )&0xffff;
+	xlib_dnd->lastx = x;
+	xlib_dnd->lasty = y;
+
+	xlib_dnd->action = XdndActionPrivate;
+	xlib_dnd->inw = xlib_dnd->inh = 0;
+	IntRectangle rect;
+	// TODO!!!! *** need to translate to window coords
+	int which_type = -1;
+	if (DndWillAcceptDrop(x,y,"", rect, xlib_dnd->data_types, &which_type)) { //e->xclient.data.l[4])) <- the action  TODO!!! deal with actions properly
+		xlib_dnd->status = DndState::Target_Accepts;
+		// *** TODO!!! translate back to window coords from screen coords
+		xlib_dnd->inx = rect.x;
+		xlib_dnd->iny = rect.y;
+		xlib_dnd->inw = rect.width;
+		xlib_dnd->inh = rect.height;
+		xlib_dnd->preferred_type = which_type;
+	} else {
+		xlib_dnd->status = DndState::Target_Refuses;
+		xlib_dnd->action = 0;
+	}
+
+	 // send XdndStatus...
+
+    // data.l[0] contains the XID of the target window. (This is required so XdndStatus messages that
+    //                                                    arrive after XdndLeave is sent will be ignored.)
+    // data.l[1]:
+    //     Bit 0 is set if the current target will accept the drop.
+    //     Bit 1 is set if the target wants XdndPosition messages while the mouse moves inside the rectangle in data.l[2,3].
+    //     The rest of the bits are reserved for future use.
+    // data.l[2,3] contains a rectangle in root coordinates that means "don't send another
+    //             XdndPosition message until the mouse moves out of here". It is legal 
+    //             to specify an empty rectangle. This means "send another message when the mouse
+    //             moves". Even if the rectangle is not empty, it is legal for the source to send 
+    //             XdndPosition messages while in the rectangle. The rectangle is stored in the standard Xlib format of (x,y,w,h):
+    //     data.l[2] = (x << 16) | y
+    //     data.l[3] = (w << 16) | h
+    // data.l[4] contains the action accepted by the target. This is normally only allowed to be
+    //           either the action specified in the XdndPosition message, XdndActionCopy, or XdndActionPrivate.
+    //           None should be sent if the drop will not be accepted. (new in version 2)
+
+	XEvent s;
+	s.xclient.type         = ClientMessage;
+	s.xclient.display      = app->dpy;
+	s.xclient.window       = e->xclient.data.l[0];
+	s.xclient.message_type = XdndStatus;
+	s.xclient.format       = 32;
+	s.xclient.data.l[0]    = xlib_window;
+	s.xclient.data.l[1]    = (xlib_dnd->action ? 1 : 0) | (xlib_dnd->inw ? 2 : 0);
+	s.xclient.data.l[2]    = (((unsigned short)xlib_dnd->inx) << 16) | (unsigned short)xlib_dnd->iny;  // (x<<16)|y
+	s.xclient.data.l[3]    = (((unsigned short)xlib_dnd->inw) << 16) | (unsigned short)xlib_dnd->inh;  // (w<<16)|h
+	s.xclient.data.l[4]    = xlib_dnd->action;
+	DBG cerr <<"   sent XdndStatus to "<<e->xclient.data.l[0]<<endl;
+	XSendEvent(app->dpy, e->xclient.data.l[0], False, 0, &s);
+
+	return 0;
+}
+
+/*! Return whether we will take data based on action, and optionally
+ * fill in rect with the region this response pertains to.
+ * If you do nothing with rect, it is assumed the whole window is relevant.
+ *
+ * Default is to reject drop.
+ */
+bool anXWindow::DndWillAcceptDrop(int x, int y, const char *action, IntRectangle &rect, char **types, int *type_ret)
+{
+	return false;
+}
+
+int anXWindow::HandleXdndDrop(XEvent *e)
+{
+    // This is sent from a source to the target saying that the drop
+    // should actually happen now. The target then calls XConvertSelection()
+    // which results in the source getting a SelectionRequest message.
+    // The source then sends a SelectionNotify to the target, to say that
+    // the target should check its selection window property for the data.
+
+    // data.l[0] contains the XID of the source window.
+    // data.l[1] is reserved for future use (flags).
+    // data.l[2] contains the time stamp for retrieving the data. (new in version 1)
+
+    DBG cerr <<"XdndDrop from "<<e->xclient.data.l[0]<<"  format:"<<e->xclient.format<<endl;
+
+    if (xlib_dnd->status != DndState::Target_Accepts) return 0;
+
+     //XConvertSelection, this sends a SelectionRequest to source, which updates prop on xlib_window
+    Time timestamp = e->xclient.data.l[2];
+    XConvertSelection(app->dpy,
+                      XdndSelection,
+                      XInternAtom(app->dpy, xlib_dnd->data_types[xlib_dnd->preferred_type], false),
+                      LaxDndProperty, //XA_SECONDARY, // property name on target win that data gets put in
+                      xlib_window,
+                      timestamp);
+
+     // if selection has owner, SelectionRequest sent to owner,
+     // then this must wait for SelectionEvent?
+     // else a non-send_event SelectionNotify sent to this.
+    xlib_dnd->source_window = e->xclient.data.l[0]; //note this SHOULD have been the same as previous source_window from prev events
+
+    return 0;
+}
+
+#endif //_LAX_PLATFORM_XLIB
+
+
 
 } // namespace Laxkit
 

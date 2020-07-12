@@ -43,6 +43,7 @@
 #include <lax/fontmanager.h>
 #include <lax/attributes.h>
 #include <lax/misc.h>
+#include <lax/rectangles.h>
 #include <lax/tagged.h>
 #include <lax/laxdevices.h>
 #include <lax/shortcuts.h>
@@ -58,6 +59,7 @@ class DeviceManager;
 class Displayer;
 class FontManager;
 class LaxFont;
+class DndState;
 
 
 //----------------------------- Misc ------------------------------
@@ -140,21 +142,8 @@ class anXWindow : virtual public EventReceiver,
 
 #ifdef _LAX_PLATFORM_XLIB
   protected:
-	class XlibDNDData
-	{
-	  public:
-	  	anXWindow *targetTop;
-	  	anXWindow *targetChild;
-	  	XID source_window;
-	  	int preferred_type;
-	  	char **data_types; 
-	  	int num_data_types;
-	  	XlibDNDData();
-	  	~XlibDNDData();
-	  	void SetNames(XID source, char **names, int len);
-	};
 
-	XlibDNDData xdnddata;
+	DndState *xlib_dnd;
 
   public:
  	 // Very X specific stuff about window status and event capture.
@@ -163,7 +152,44 @@ class anXWindow : virtual public EventReceiver,
 	XSetWindowAttributes xlib_win_xatts;
 	unsigned long  xlib_win_xattsmask;
 
+	static Atom XdndAware;
+    static Atom XdndEnter;
+    static Atom XdndLeave;
+    static Atom XdndPosition;
+    static Atom XdndStatus;
+    static Atom XdndDrop;
+    static Atom XdndFinished;
+    static Atom XdndSelection;
+    static Atom XdndProxy;
+
+    // static Atom JXSelectionWindowProperty;
+    static Atom XdndActionList;
+    static Atom XdndActionDescription;
+    static Atom XdndActionCopy;
+	static Atom XdndActionMove;
+	static Atom XdndActionLink;
+	static Atom XdndActionAsk;
+	static Atom XdndActionPrivate;
+
+    static Atom XdndTypeList;
+    static Atom MimeTextUriList;
+    static Atom MimeTextPlain;
+    static Atom MimeTextPlainUtf8;
+    static Atom MimeTextPlainLatin1;
+    static Atom Xlib_TEXT;
+    static Atom Xlib_UTF8_STRING;
+
+    static Atom LaxDndProperty;
+
+  	static bool xlib_vars_initialized;
+  	static void InitXlibVars(Display *dpy);
+
 	virtual int event(XEvent *e);
+	int isXdndAware(Window w);
+  	int HandleXdndEnter(XEvent *e);
+  	int HandleXdndPosition(XEvent *e);
+	int HandleXdndDrop(XEvent *e);
+
 #endif //_LAX_PLATFORM_XLIB
 
 
@@ -186,6 +212,7 @@ class anXWindow : virtual public EventReceiver,
 	virtual int   selectionPaste(char mid, const char *targettype);
 	virtual int   selectionCopy(char mid);
 	virtual char *getSelectionData(int *len,const char *property,const char *targettype,const char *selection);
+	virtual bool DndWillAcceptDrop(int x, int y, const char *action, IntRectangle &rect, char **types, int *type_ret);
 
  public:
 
@@ -496,6 +523,52 @@ class anXApp : virtual public anObject
 	virtual int addmousetimer(EventReceiver *win);
 	virtual int removetimer(EventReceiver *w,int timerid);
 };
+
+
+//---------------------------- DndState --------------------------------------
+
+#ifdef _LAX_PLATFORM_XLIB
+
+class DndState
+{
+  public:
+  	int version;
+  	anXWindow *targetTop;
+  	anXWindow *targetChild;
+  	XID source_window;
+  	int preferred_type; //among data_types
+  	char **data_types;  //null terminated
+  	int num_data_types;
+  	Atom action;
+
+  	long timestamp;
+  	int lastx, lasty; //in a drop candidate
+  	int downx, downy; //used when initiating drop
+  	int inx, iny, inw, inh;
+  	int button; //anXWindow auto detects button up
+
+  	enum DndStatus {
+  		Uncertain,
+  		Target_Accepts,
+  		Target_Refuses
+  	};
+  	DndStatus status;
+  	enum DndWhat {
+  		Unknown,
+  		Dropping,
+  		WaitingForDrop
+  	};
+  	DndWhat mode;
+
+  	DndState();
+  	~DndState();
+  	void SetNames(char **names, int len);
+  	void Clear();
+
+};
+
+#endif //_LAX_PLATFORM_XLIB
+
 
 } // namespace Laxkit
 

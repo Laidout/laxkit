@@ -904,6 +904,8 @@ int anXApp::initX(int argc,char **argv)
 		exit(1);
 	}
 
+	anXWindow::InitXlibVars(dpy);
+
 	//screen = DefaultScreen(dpy);
 	RefreshScreenInfo();
 
