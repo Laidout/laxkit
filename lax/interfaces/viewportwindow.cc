@@ -1307,7 +1307,7 @@ int ViewportWindow::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMo
 		if (!interfaces.e[c]->MouseMove(x,y,state,d)) ; // do nothing, all interfaces get the mouse move event
 	}
 
-	if (buttondown.isdown(d->id,RIGHTBUTTON) || buttondown.isdown(d->id,MIDDLEBUTTON)) {
+	if (!buttondown.isdown(d->id,LEFTBUTTON) && (buttondown.isdown(d->id,RIGHTBUTTON) || buttondown.isdown(d->id,MIDDLEBUTTON))) {
 		if (buttondown.isdown(d->id,MIDDLEBUTTON) && (state&(ShiftMask|ControlMask))==0) state|=ShiftMask;
 		if (state&ShiftMask && state&ControlMask) {// rotate left==ccw, right==cw
 
