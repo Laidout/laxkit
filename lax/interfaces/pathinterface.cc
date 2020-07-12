@@ -381,8 +381,8 @@ LaxFiles::Attribute *Path::dump_out_atts(LaxFiles::Attribute *att,int what, LaxF
 { 
 	if (what==-1) {
 		if (!att) att=new Attribute;
-		att->push("linestyle", "#standard linestyle attributes");
-		att->push("closed","#flag to indicate that this path is a closed path");
+		att->push("linestyle", nullptr, "standard linestyle attributes");
+		att->push("closed",nullptr,"flag to indicate that this path is a closed path");
 		att->push("points"  "1 2             #a vertex point with corner controls\n"
 							"vs 1 2          #a vertex point with smooth controls\n"
 							"vS 1 2          #a vertex point with really smooth controls\n"
@@ -390,8 +390,8 @@ LaxFiles::Attribute *Path::dump_out_atts(LaxFiles::Attribute *att,int what, LaxF
 							"ve 1 2          #a vertex point with corner equal controls\n"
 							"p 1.5 2.5       #a bezier control point of the previous vertex\n"
 							"n 3 5           #a bezier control point of the next vertex\n");
-		att->push("weight", "1.5 0 1 0       #zero or more weight nodes. Numbers are (t bez parameter) (offset from normal path) (width) (angle, optional)");
-		//att->push("segment controllername  #a non-straight-line and non-bezier segment");
+		att->push("weight", "1.5 0 1 0",     "zero or more weight nodes. Numbers are (t bez parameter) (offset from normal path) (width) (angle, optional)");
+		//att->push("segment controllername","a non-straight-line and non-bezier segment");
 		//att->push("  asbezier p 3 5 n 2 4 5 6  # Important! bezier approximation of the segment.");
 		//att->push("                            # if not present and the controller cannot be found,");
 		//att->push("                            # then this segment is ignored.");
@@ -3304,11 +3304,11 @@ LaxFiles::Attribute *PathsData::dump_out_atts(LaxFiles::Attribute *att,int what,
 	if (!att) att=new Attribute;
 
 	if (what==-1) {
-		att->push("matrix"," 1 0 0 1 0 0  #standard transform matrix");
-		att->push("linestyle","#default line style");
-		att->push("fillstyle","#default fill style");
-		att->push("d","m 1 1 l 1 2 #optional paths defined by svg d path string");
-		Attribute *att2 = att->pushSubAtt("path","#none or more of these, defines single paths");
+		att->push("matrix","1 0 0 1 0 0","standard transform matrix");
+		att->push("linestyle",nullptr,"default line style");
+		att->push("fillstyle",nullptr,"default fill style");
+		att->push("d","m 1 1 l 1 2","optional paths defined by svg d path string");
+		Attribute *att2 = att->pushSubAtt("path",nullptr,"none or more of these, defines single paths");
 		Path p;
 		p.dump_out_atts(att2, what, context);
 		return att;

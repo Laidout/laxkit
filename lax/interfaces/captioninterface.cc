@@ -749,17 +749,17 @@ LaxFiles::Attribute *CaptionData::dump_out_atts(Attribute *att,int what,DumpCont
 	if (!att) att=new Attribute;
 
 	if (what==-1) {
-		att->push("matrix", "An affine matrix of 6 numbers");
-		att->push("fontfamily", "sans      #Family name of font");
-		att->push("fontstyle", "normal     #Style name of font");
-		att->push("fontfile", "/path/to/it #File on disk to use. Overrides whatever is in family and style.");
-		att->push("fontsize", "12          #hopefully this is point size");
-		att->push("linespacing", "1        #percentage different from font's default spacing");
-		att->push("direction", "lrtb       #lrtb, lrbt, rltb, rlbt, tblr, tbrl, btlr, btrl, or guess");
-		att->push("xcentering", "50        #0 is left, 50 is center, 100 is right, or any other number");
-		att->push("ycentering", "50        #0 is top, 50 is center, 100 is bottom, or any other number");
+		att->push("matrix", "1 0 0 1 0 0", "An affine matrix of 6 numbers");
+		att->push("fontfamily", "sans",    "Family name of font");
+		att->push("fontstyle", "normal",   "Style name of font");
+		att->push("fontfile", "/path/to/it","File on disk to use. Overrides whatever is in family and style.");
+		att->push("fontsize", "12",        "hopefully this is point size");
+		att->push("linespacing", "1",      "percentage different from font's default spacing");
+		att->push("direction", "lrtb",     "lrtb, lrbt, rltb, rlbt, tblr, tbrl, btlr, btrl, or guess");
+		att->push("xcentering", "50",      "0 is left, 50 is center, 100 is right, or any other number");
+		att->push("ycentering", "50",      "0 is top, 50 is center, 100 is bottom, or any other number");
 		att->push("color", "rgbaf(1,0,0,1)");
-		att->push("text", "\\  #The actual text\n%s  blah");
+		att->push("text", "The actual text\n%s  blah");
 		return att;
 	}
 
