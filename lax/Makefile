@@ -81,6 +81,7 @@ objs= \
 	freedesktop.o \
 	tagged.o \
 	iobuffer.o \
+	cssutils.o \
 	attributes.o \
 	units.o \
 	undo.o \
