@@ -41,10 +41,18 @@ namespace Laxkit {
 //! Return a unique unsigned long.
 /*! \ingroup misc
  * Keeps a static unsigned long, and increments it by 1 on each call. Starts at 0.
- *
- * \#include <lax/misc.h>
  */ 
 unsigned long getUniqueNumber() 
+{ 
+	static unsigned long uniquenumber=0;
+	return uniquenumber++; 
+}
+
+//! Return a unique unsigned long.
+/*! \ingroup misc
+ * Keeps a static unsigned long, and increments it by 1 on each call. Starts at 0.
+ */ 
+unsigned long getUniqueNumber2() 
 { 
 	static unsigned long uniquenumber=0;
 	return uniquenumber++; 
@@ -61,7 +69,7 @@ char *make_id(const char *base)
 {
     if (!base) base="id";
     char *str=new char[strlen(base)+30];
-    sprintf(str,"%s%ld",base,getUniqueNumber());
+    sprintf(str,"%s%ld",base,getUniqueNumber2());
     return str;
 }
 

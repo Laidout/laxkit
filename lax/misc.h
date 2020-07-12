@@ -27,6 +27,7 @@ namespace Laxkit {
 
 //--------------------------- Unique things ----------------------------------------
 unsigned long getUniqueNumber();
+unsigned long getUniqueNumber2();
 char *make_id(const char *base);
 
 
