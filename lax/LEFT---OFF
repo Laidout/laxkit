@@ -13,7 +13,7 @@ window icon management, need to be able to set for any window on the fly
 
 -----------------------------------------------------------------------------
 
-implement ibus support for better input methods
+implement ibus support for better input methods: https://en.wikipedia.org/wiki/Intelligent_Input_Bus
 
 further implementation needed:
     ellipseinterface.h
@@ -84,10 +84,10 @@ scrollers in interfs.cc example frelled
 dump_out_atts needed for:
   DONE Gradient
   DONE Image
-  Path
+  DONE Path
   Patch
   ColorPatch
-  Caption
+  DONE Caption
 
 dump_out(-1) on windows should do dump_out_atts(), then output:
    name1  #value
@@ -194,11 +194,6 @@ ini file to attribute converter
 Could put all the pure math stuff in LaxMath namespace?
  this includes transformmath, vectors, and interfaces/bezier math
 Could put strmanip.cc/.h in LaxStr namespace.
-
-gotta make a compiler aid:
- make a laxkit.pc for pkg-config
- lax-config --cppflags --ldflags --libs --ldstaticflags --version --help --use* --cpp
-			--make-laxrc <-- dump a generic laxrc to stdout with lots of comments to say how to modify it.
 
 Ultimately need to have pictures of the various widgets in the docs..
 
@@ -427,3 +422,5 @@ DONE ~/.recently-used  OR  ~/.recently-used.xbel?? <-- old spec says 1st one, us
 DONE update laxinput to have correct repository in readme..
 DONE perhaps redo the whole events setup. relying on X atoms leaves quite a lot of residue in the X server..
 DONE auto double buffering
+DONE make a laxkit.pc for pkg-config during ./configure
+
