@@ -24,6 +24,7 @@ examples/*
 
 #
 # Ignore configure byproducts
+laxkit.pc
 makedepend
 config.log
 Makefile-toinclude
