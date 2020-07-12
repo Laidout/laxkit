@@ -42,6 +42,8 @@ class InterfaceManager : public Laxkit::anObject
 	static InterfaceManager *default_manager;
 	int preview_size;
 	double thin_line;
+	double near_threshhold;
+	double near_threshhold2;
 	Laxkit::Displayer *previewer;
 
   public:
@@ -73,6 +75,8 @@ class InterfaceManager : public Laxkit::anObject
 
 	virtual int PreviewSize();
 	virtual double ScreenLine() { return thin_line; } //change for high res screens
+	virtual double NearThreshhold() { return near_threshhold; } //change for high res screens
+	virtual double NearThreshhold2() { return near_threshhold2; } //change for high res screens
 
 	virtual int Resourcify(Laxkit::anObject *resource, const char *type=NULL);
 
