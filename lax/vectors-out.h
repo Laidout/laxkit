@@ -40,7 +40,7 @@ std::ostream &operator<<(std::ostream &os, const spacevector &v) {
 }
 
 std::ostream &operator<<(std::ostream &os, const Quaternion &v) { 
-    return os << '('<<v.x<<','<<v.y<<','<<v.z<<','<<v.w')';
+    return os << '('<<v.x<<','<<v.y<<','<<v.z<<','<<v.w<<')';
 }
 
 std::ostream &operator<<(std::ostream &os, const flatline &v) { 

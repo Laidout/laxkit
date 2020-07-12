@@ -115,6 +115,7 @@ class flatvector
 	double distanceTo(flatvector v) const { return sqrt((v.x-x)*(v.x-x)+(v.y-y)*(v.y-y)); }
 };
 
+char NearestAxis(flatvector v);
 flatvector transpose(flatvector v);
 int operator==(flatvector v1, flatvector v2);
 int operator!=(flatvector v1, flatvector v2);

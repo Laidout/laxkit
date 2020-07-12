@@ -304,6 +304,14 @@ flatvector flatvector::operator-()
 	return flatvector(-x,-y); 
 }
 
+/*! Return which axis 'x' or 'y' v most closely aligns with, or 0 if neither.
+ */
+char NearestAxis(flatvector v)
+{
+	if (v.norm2() < 1e-6) return 0;
+	return fabs(v.y) > fabs(v.x) ? 'y' : 'x';
+}
+
 //! (x,y) --> (-y,x)
 flatvector transpose(flatvector v)
 {
