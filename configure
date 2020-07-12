@@ -9,6 +9,7 @@
 # --prefix=/blah/blah
 
 
+
 LAXKITVERSION=0.0.8.1
 LAXKITCONFIGDIRBASE="~/.config/laxkit"
 #LAXKITCONFIGDIR="$LAXKITCONFIGDIRBASE/$LAXKITVERSION"
@@ -33,6 +34,7 @@ HARFBUZZVERSION="2.0"
 ONAMAC="no"
 FORCE="no"
 RELOCATABLE="no"
+MAKE_LAXKIT_PC="no"
 
 CONFIGCOMMAND="./configure $@"
 
@@ -82,6 +84,7 @@ while true ; do
 #       echo " --onamac                     Include this if you are compiling on a Mac."
 		echo " --relocatable                If present, do not configure with hardcoded paths. All resource paths"
         echo "                                will be determined at runtime relative to the executable."
+		echo " --make-pkgconfig             Create a laxkit.pc file that pkg-config can understand."
 		echo " --force                      Try to compile even when libraries are not detected by ./configure"
 		echo " --version=OtherVersionNum    You may force Laxkit to compile with a different"
 		echo "                                version string."
@@ -90,6 +93,10 @@ while true ; do
 
     --force)
 		FORCE="yes"
+		shift ;;
+
+	--make-pkgconfig)
+		MAKE_LAXKIT_PC="yes"
 		shift ;;
 
 	--relocatable)
@@ -285,6 +292,25 @@ fi
 
 
 
+#
+# Make laxkit.pc
+#
+if [ $MAKE_LAXKIT_PC == "yes" ] ; then
+echo "prefix=$PREFIX" > laxkit.pc
+echo "exec_prefix=\${prefix}" >> laxkit.pc
+echo "libdir=\${exec_prefix}/lib" >> laxkit.pc
+echo "includedir=\${prefix}/include/laxkit/$LAXKITVERSION" >> laxkit.pc
+echo "" >> laxkit.pc
+echo "Name: laxkit" >> laxkit.pc
+echo "Version: $LAXKITVERSION" >> laxkit.pc
+echo "Description: C++ Window Library" >> laxkit.pc
+echo "Requires: GraphicsMagick++ harfbuzz >= 2.0 cairo config" >> laxkit.pc
+echo "Libs: -L\${libdir} -llaxinterfaces -llaxkit -lsqlite3 -lharfbuzz -lfontconfig -lXext -lXi -lXrandr -lcrypto" >> laxkit.pc
+echo "Cflags: -I\${includedir}" >> laxkit.pc
+fi
+
+
+
 
  ##
  ## generate lax/version.h
@@ -407,6 +433,7 @@ echo      "           Platform:  $PLATFORM" >> config.log
  ##
  ## Echo to console
  ##
+echo $CONFIGCOMMAND
 echo 
 echo "          Configuration Summary"
 echo "     " `date`
