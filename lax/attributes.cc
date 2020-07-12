@@ -28,6 +28,7 @@
 #include <lax/misc.h>
 #include <lax/transformmath.h>
 #include <lax/colors.h>
+#include <lax/cssutils.h>
 
 #include <unistd.h>
 #include <sys/file.h>
@@ -493,37 +494,37 @@ int SimpleColorAttribute(const char *v, double *colors, const char **end_ptr)
 		type=LAX_COLOR_HSL;
 
 	} else if (!isdigit(*v)) {
-		 //is same name, so check css like named colors, assume fully opaque
-		int r=-1,g,b;
-		int alpha=0xff;
-		if      (!strncasecmp(v,"transparent",11))  { r=0x00; g=0x00; b=0x00; alpha=0x00; v+=11; }
-		else if (!strncasecmp(v,"maroon",6))  { r=0x80; g=0x00; b=0x00; v+=6; }
-		else if (!strncasecmp(v,"red",3))     { r=0xff; g=0x00; b=0x00; v+=3; }
-		else if (!strncasecmp(v,"orange",6))  { r=0xff; g=0xA5; b=0x00; v+=6; }
-		else if (!strncasecmp(v,"yellow",6))  { r=0xff; g=0xff; b=0x00; v+=6; }
-		else if (!strncasecmp(v,"olive",5))   { r=0x80; g=0x80; b=0x00; v+=5; }
-		else if (!strncasecmp(v,"purple",6))  { r=0x80; g=0x00; b=0x80; v+=6; }
-		else if (!strncasecmp(v,"fuchsia",7)) { r=0xff; g=0x00; b=0xff; v+=7; }
-		else if (!strncasecmp(v,"white",5))   { r=0xff; g=0xff; b=0xff; v+=5; }
-		else if (!strncasecmp(v,"black",5))   { r=0x00; g=0x00; b=0x00; v+=5; }
-		else if (!strncasecmp(v,"lime",4))    { r=0x00; g=0xff; b=0x00; v+=4; }
-		else if (!strncasecmp(v,"green",5))   { r=0x00; g=0x80; b=0x00; v+=5; }
-		else if (!strncasecmp(v,"navy",4))    { r=0x00; g=0x00; b=0x80; v+=4; }
-		else if (!strncasecmp(v,"blue",4))    { r=0x00; g=0x00; b=0xff; v+=4; }
-		else if (!strncasecmp(v,"aqua",4))    { r=0x00; g=0xff; b=0xff; v+=4; }
-		else if (!strncasecmp(v,"teal",4))    { r=0x00; g=0x80; b=0x80; v+=4; }
-		else if (!strncasecmp(v,"cyan",4))    { r=0x00; g=0xff; b=0xff; v+=4; } //not css1 or 2, but is x11 color and css3, widely accepted
+		 //is some name, so check css like named colors, assume fully opaque (except for "transparent")
+		
+		const char *ptr = v;
+		while (isalpha(*ptr)) ptr++;
+		if (ptr-v) {
+			char *nm = newnstr(v,ptr-v);
 
-		if (r>=0) {
-			colors[0]=r/255.;
-			colors[1]=g/255.;
-			colors[2]=b/255.;
-			colors[3]=alpha/255.;
-			if (end_ptr) *end_ptr=v;
-			return 0;
+			bool found = false;
+			ScreenColor col;
+			if (CssNamedColor(nm, &col)) {
+				v = ptr;
+
+				colors[0] = col.Red();
+				colors[1] = col.Green();
+				colors[2] = col.Blue();
+				colors[3] = col.Alpha();
+				if (end_ptr) *end_ptr = v;
+				found = true;
+
+			} else if (!strcasecmp(nm, "transparent")) {
+				v += 11;
+				colors[0] = colors[1] = colors[2] = colors[3] = 0;
+				if (end_ptr) *end_ptr = v;
+				found = true;
+			}
+
+			delete[] nm;
+			return !found;
 		}
 
-		cerr << " *** could not parse svg color: "<<v<<endl;
+		DBG cerr << " *** could not parse svg named color: "<<v<<endl;
 		return 1;
 	}
 
