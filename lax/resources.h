@@ -83,7 +83,13 @@ class Resource : virtual public anObject, virtual public Tagged
 	LaxFiles::Attribute *meta;
 
 	int favorite; //0 for not fav, positive for order in a favorites list
-	int source_type; //0 for object on its own, 1 for object from file, 2 for object from config, -1 for built in (do not dump out)
+	enum SourceType {
+		BuiltIn = -1,
+		Floating,
+		FromFile,
+		FromConfig
+	};
+	SourceType source_type; //0 for object on its own, 1 for object from file, 2 for object from config, -1 for built in (do not dump out)
 	 //stand alone resource
 	 //temp resource: in use by a random object
 	 //resource scanned in from directory
@@ -157,6 +163,7 @@ class ResourceType : public Resource
 	virtual anObject *Find(const char *str, Resource **resource_ret);
 	virtual int AddResource(anObject *object, anObject *ntopowner, const char *name, const char *Name, const char *description,
 							const char *file, LaxImage *icon,bool builtin=false);
+	virtual int NumberNotBuilnIn();
 
 	virtual MenuInfo *AppendMenu(MenuInfo *menu, bool do_favorites, int *numadded);
 };

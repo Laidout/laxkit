@@ -146,62 +146,62 @@ int Resourceable::RemoveUser(anObject *object)
 
 Resource::Resource()
 {
-	object=NULL;
-	topowner=NULL;
+	object   = NULL;
+	topowner = NULL;
 
-	name=NULL;
-	Name=NULL;
-	description=NULL;
-	icon=NULL;
+	name        = NULL;
+	Name        = NULL;
+	description = NULL;
+	icon        = NULL;
 
-	linkable=true; //if false, then checkouts must be duplicates
+	linkable = true;  // if false, then checkouts must be duplicates
 
-	ignore=false;
-	favorite=0;
-	source=NULL;
-	source_type=0; //0 for object on its own,
-				   //1 for object from file,
-				   //3 for resource inserted during a directory scan
-				   //2 for built in (do not dump out)
-				   
-	objecttype=NULL;
-	config=NULL;
-	creation_func=NULL;
+	ignore      = false;
+	favorite    = 0;
+	source      = NULL;
+	source_type = Floating;
+
+	objecttype    = NULL;
+	config        = NULL;
+	creation_func = NULL;
 
 	meta=NULL;
 }
 
 Resource::Resource(anObject *obj, anObject *nowner, const char *nname, const char *nName, const char *ndesc, const char *nfile, LaxImage *nicon)
 {
-	object=obj;
+	object = obj;
 	if (object) object->inc_count();
-	topowner=nowner;
+	topowner = nowner;
 
-	name=newstr(nname);
-	Name=newstr(nName);
-	description=newstr(ndesc);
+	name        = newstr(nname);
+	Name        = newstr(nName);
+	description = newstr(ndesc);
 
-	icon=nicon;
+	icon = nicon;
 	if (icon) icon->inc_count();
 
-	source=newstr(nfile);
-	if (nfile) source_type=1; else source_type=0;
+	source = newstr(nfile);
+	if (nfile)
+		source_type = FromFile;
+	else
+		source_type = Floating;
 
-	linkable=true;
+	linkable = true;
 
-	ignore=false;
-	favorite=0;
+	ignore   = false;
+	favorite = 0;
 
-	objecttype=NULL;
-	config=NULL;
-	creation_func=NULL;
+	objecttype    = NULL;
+	config        = NULL;
+	creation_func = NULL;
 
-	if (dynamic_cast<Resourceable*>(obj)) {
-		Resourceable *r=dynamic_cast<Resourceable*>(obj);
+	if (dynamic_cast<Resourceable *>(obj)) {
+		Resourceable *r = dynamic_cast<Resourceable *>(obj);
 		r->SetResourceOwner(this);
 	}
 
-	meta=NULL;
+	meta = NULL;
 }
 
 Resource::~Resource()
@@ -368,6 +368,21 @@ ResourceType::~ResourceType()
 	if (default_icon) default_icon->dec_count();
 }
 
+/*! Return number of all the resources that are not built in. This is so we don't have to output
+ * sections in save files if we don't have to.
+ */
+int ResourceType::NumberNotBuilnIn()
+{
+	int n = 0;
+	for (int c=0; c<resources.n; c++) {
+		if (dynamic_cast<ResourceType*>(resources.e[c])) {
+			n += dynamic_cast<ResourceType*>(resources.e[c])->NumberNotBuilnIn();
+		} else {
+			if (resources.e[c]->source_type != BuiltIn) n++;
+		}
+	}
+	return n;
+}
 /*! Return 0 for added, -1 for already there and not added.
  * where<0 means add at end of list.
  */
@@ -443,7 +458,7 @@ int ResourceType::AddResource(anObject *nobject, anObject *ntopowner, const char
 	if (Find(object)) return -1;
 
 	Resource *r=new Resource(nobject,ntopowner,nname,nName,ndescription,nfile,nicon);
-	if (builtin) r->source_type=-1;
+	if (builtin) r->source_type = BuiltIn;
 	resources.push(r);
 	r->dec_count();
 
@@ -752,7 +767,8 @@ void ResourceManager::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext
 	for (int c=0; c<types.n; c++) {
 		if (types.e[c]->ignore) continue;
 
-		type=types.e[c];
+		type = types.e[c];
+		if (type->NumberNotBuilnIn() == 0) continue;
 
 		fprintf(f,"%stype %s\n",spc, type->name);
 		if (type->Name)        fprintf(f,"%s  Name %s\n",spc, type->Name);
@@ -793,19 +809,19 @@ void ResourceManager::dump_out_list(ResourceType *type, FILE *f,int indent,int w
 		if (resource->description) fprintf(f,"%s  description %s\n",spc, resource->description);
 		fprintf(f,"%s  favorite %d\n",spc, resource->favorite);
 
-		if (resource->source_type==0 && resource->object) {
+		if (resource->source_type == Resource::Floating && resource->object) {
 			fprintf(f,"%s  object %s\n",spc, resource->object->whattype());
 			if (dynamic_cast<DumpUtility*>(resource->object))
 				dynamic_cast<DumpUtility*>(resource->object)->dump_out(f,indent+4,what,context);
 
-		} else if (resource->source_type==1 && !isblank(resource->source)) {
+		} else if (resource->source_type == Resource::FromFile && !isblank(resource->source)) {
 			fprintf(f,"%s  file %s\n",spc, resource->source);
 
-		} else if (resource->source_type==2 && resource->config) {
+		} else if (resource->source_type == Resource::FromConfig && resource->config) {
 			fprintf(f,"%s  config %s\n",spc, resource->objecttype);
 			resource->config->dump_out(f,indent+4);
 
-		} else if (resource->source_type==-1) {
+		} else if (resource->source_type == Resource::BuiltIn) {
 			fprintf(f,"%s  builtin\n",spc);
 		} 
 	}
@@ -910,7 +926,7 @@ void ResourceManager::dump_in_list_atts(ResourceType *type, LaxFiles::Attribute 
 					resource->favorite=BooleanAttribute(value);
 
 				} else if (!strcmp(name,"object")) {
-					resource->source_type=0;
+					resource->source_type = Resource::Floating;
 					anObject *newobject=NewObjectFromType(value);
 
 					if (dynamic_cast<DumpUtility*>(newobject)) {
@@ -924,18 +940,18 @@ void ResourceManager::dump_in_list_atts(ResourceType *type, LaxFiles::Attribute 
 					}
 
 				} else if (!strcmp(name,"file")) {
-					resource->source_type=1;
+					resource->source_type = Resource::FromFile;
 					makestr(resource->source, value);
 					resourceok=1;
 
 				} else if (!strcmp(name,"config")) {
-					resource->source_type=2;
+					resource->source_type = Resource::FromConfig;
 					makestr(resource->objecttype,value);
 					resource->config=att->attributes.e[c]->attributes.e[c2]->duplicate();
 					resourceok=1;
 
 				} else if (!strcmp(name,"builtin")) {
-					resource->source_type=-1;
+					resource->source_type = Resource::BuiltIn;
 					// *** skip
 
 				}
