@@ -750,8 +750,6 @@ int ShortcutManager::SaveHTML(const char *file)
 	char *buffer2=NULL;
 	int bufferlen=0;
 
-	if (!isblank(setname)) fprintf(f,"%s<br/><br/>\n\n",XMLCharsToEntities(setname,buffer2,bufferlen));
-
 	//const char *shift  ="+";
 	//const char *control="^";
 	//const char *alt    ="&amp;";
@@ -836,6 +834,8 @@ int ShortcutManager::SaveHTML(const char *file)
 	//fprintf(f,"  <tr><td>Alt     </td><td>%s</td></tr>\n",alt);
 	//fprintf(f,"  <tr><td>Meta    </td><td>%s</td></tr>\n",meta);
 	//fprintf(f,"</table>\n");
+
+	if (!isblank(setname)) fprintf(f,"%s<br/><br/>\n\n",XMLCharsToEntities(setname,buffer2,bufferlen));
 
 	 //output the shortcuts
 	ShortcutDefs *s;
