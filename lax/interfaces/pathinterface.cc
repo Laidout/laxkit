@@ -6071,7 +6071,7 @@ int PathInterface::ChangeCurpathop(int newiid)
 	strcpy(blah,"PathInterface now using: ");
 	if (curpathop) strcat(blah,curpathop->whattype());
 	else strcat(blah," plain pathinterface");
-	viewport->postmessage(blah);
+	PostMessage(blah);
 	return 0;
 }
 
@@ -6291,7 +6291,7 @@ void PathInterface::SetPointType(Coordinate *v,int newtype)
 		case BEZ_NSTIFF_NEQUAL: mes=_("Corner"); break;
 		default: mes=_("Corner"); break;
 	}
-	if (mes) viewport->postmessage(mes);
+	if (mes) PostMessage(mes);
 	needtodraw=1;
 }
 

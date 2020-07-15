@@ -603,7 +603,7 @@ void anInterface::Dp(Displayer *ndp)
 void anInterface::PostMessage(const char *message)
 {
 	if (message == nullptr) message = "";
-	if (viewport) viewport->postmessage(message);
+	if (viewport) viewport->PostMessage(message);
 	else app->postmessage(message);
 }
 
@@ -626,7 +626,7 @@ void anInterface::PostMessage2(const char *fmt, ...)
         va_end(arg);
     }
 
-	if (viewport) viewport->postmessage(last_message);
+	if (viewport) viewport->PostMessage(last_message);
 	else app->postmessage(last_message);
 }
 

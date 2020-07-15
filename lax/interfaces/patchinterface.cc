@@ -2935,10 +2935,10 @@ int PatchInterface::Event(const Laxkit::EventData *e_data, const char *mes)
 			else if (i==PATCHA_Full) whichcontrols=Patch_Full_Bezier;
 
 			if (viewport) {
-				if (whichcontrols==Patch_Linear)           viewport->postmessage(_("Edit as a linear patches"));
-				else if (whichcontrols==Patch_Coons)       viewport->postmessage(_("Edit as Coons patches" ));
-				else if (whichcontrols==Patch_Border_Only)  viewport->postmessage(_("Edit with border controls only")); 
-				else if (whichcontrols==Patch_Full_Bezier) viewport->postmessage(_("Edit full cubic bezier patch"));
+				if (whichcontrols==Patch_Linear)           viewport->PostMessage(_("Edit as a linear patches"));
+				else if (whichcontrols==Patch_Coons)       viewport->PostMessage(_("Edit as Coons patches" ));
+				else if (whichcontrols==Patch_Border_Only) viewport->PostMessage(_("Edit with border controls only")); 
+				else if (whichcontrols==Patch_Full_Bezier) viewport->PostMessage(_("Edit full cubic bezier patch"));
 			}
 
 			needtodraw=1;
@@ -4256,8 +4256,8 @@ int PatchInterface::PerformAction(int action)
 	} else if (action==PATCHA_SmoothEdit) {
 		smoothedit=!smoothedit;
 		if (viewport) {
-			if (smoothedit) viewport->postmessage(_("Smooth edit mode"));
-			else viewport->postmessage("Free edit mode");
+			if (smoothedit) viewport->PostMessage(_("Smooth edit mode"));
+			else viewport->PostMessage("Free edit mode");
 		}
 		needtodraw=1;
 		return 0;
@@ -4273,10 +4273,10 @@ int PatchInterface::PerformAction(int action)
 			if (whichcontrols<Patch_Full_Bezier) whichcontrols=Patch_MAX;
 		}
 		if (viewport) {
-			if (whichcontrols==Patch_Linear)           viewport->postmessage(_("Edit as a linear patches"));
-			else if (whichcontrols==Patch_Coons)       viewport->postmessage(_("Edit as Coons patches" ));
-			else if (whichcontrols==Patch_Border_Only)  viewport->postmessage(_("Edit with border controls only")); 
-			else if (whichcontrols==Patch_Full_Bezier) viewport->postmessage(_("Edit full cubic bezier patch"));
+			if (whichcontrols==Patch_Linear)           viewport->PostMessage(_("Edit as a linear patches"));
+			else if (whichcontrols==Patch_Coons)       viewport->PostMessage(_("Edit as Coons patches" ));
+			else if (whichcontrols==Patch_Border_Only) viewport->PostMessage(_("Edit with border controls only")); 
+			else if (whichcontrols==Patch_Full_Bezier) viewport->PostMessage(_("Edit full cubic bezier patch"));
 		}
 		return 0;
 

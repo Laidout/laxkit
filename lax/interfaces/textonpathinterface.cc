@@ -2395,7 +2395,7 @@ int TextOnPathInterface::RemoveChild()
 
 	textonpath->needtorecache=1;
 
-    viewport->postmessage("");
+    PostMessage("");
 
     return c;
 }
@@ -2434,7 +2434,7 @@ int TextOnPathInterface::PerformAction(int action)
 		viewport->Push(&pathinterface,-1,0);
 		needtodraw=1;
 
-		viewport->postmessage(_("Press Enter or Esc to finish editing"));
+		PostMessage(_("Press Enter or Esc to finish editing"));
 		return 0;
 
 	} else if (action==TPATH_OffsetDec) {

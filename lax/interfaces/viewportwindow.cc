@@ -278,7 +278,7 @@ ViewportWindow::~ViewportWindow()
 //! Default is app->postmessage(mes), unless parent is ViewerWindow, then try to set its message bar to mes.
 /*! \todo *** implement a printf-ish postmessage("format string %d",i,....)
  */
-void ViewportWindow::postmessage(const char *mes)
+void ViewportWindow::PostMessage(const char *mes)
 {
 	ViewerWindow *viewer=dynamic_cast<ViewerWindow *>(win_parent); // maybe not always returns non-null
 	if (viewer) viewer->PostMessage(mes);

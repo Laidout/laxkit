@@ -735,13 +735,14 @@ int RectInterface::Refresh()
 			dp->fill(0);
 			char str[50];
 			double scale = somedata->xaxis().norm()/drag_tr_on_down.xaxis().norm();
-			sprintf(str, "%f", scale);
+			sprintf(str, "%.2f", scale);
 			double th = dp->textheight();
-			if (hover == RP_Scale_Num) {
-				// dp->NewFG(controltransp);
-				dp->drawrectangle(x - 5*th, iy-drag_scale_width - 1.5*th, 10*th, 1.5*th, 1);
-				dp->NewFG(0,0,0);
-			}
+			dp->NewFG(&controlcolor);
+			if (hover == RP_Scale_Num) dp->NewFG(&controlcolor);
+			else dp->NewFG(1.,1.,1.,.8);
+			dp->drawrectangle(x - 3*th, iy-drag_scale_width - 1.5*th, 6*th, 1.5*th, 1);
+			if (hover == RP_Scale_Num) dp->NewFG(0,0,0);
+			else dp->NewFG(&controlcolor);
 			dp->textout(x, iy-drag_scale_width-.25*th, str,-1, LAX_HCENTER|LAX_BOTTOM);
 
 		} else if (drag_mode == DRAG_Rotate) {
@@ -750,8 +751,9 @@ int RectInterface::Refresh()
 			int mouseid = buttondown.whichdown(0,LEFTBUTTON);
 			buttondown.getinitial(mouseid,LEFTBUTTON,&ix,&iy);
 
-			dp->NewFG(&controltransp);
-			dp->LineWidth(InterfaceManager::GetDefault(true)->ScreenLine());
+			//lines bg
+			dp->NewFG(1.,1.,1.);
+			dp->LineWidth(2 * InterfaceManager::GetDefault(true)->ScreenLine());
 			dp->drawcircle(drag_rotate_center, drag_rotate_radius, 0);
 			dp->drawcircle(drag_rotate_center, drag_rotate_min_radius, 0);
 			flatvector v;
@@ -759,6 +761,17 @@ int RectInterface::Refresh()
 				v.set(cos(c * rotatestep), sin(c*rotatestep));
 				dp->drawline(drag_rotate_center + drag_rotate_radius * v, drag_rotate_center + 1.05 * drag_rotate_radius * v);
 			}
+
+			//lines fg
+			dp->NewFG(&controltransp);
+			dp->LineWidth(InterfaceManager::GetDefault(true)->ScreenLine());
+			dp->drawcircle(drag_rotate_center, drag_rotate_radius, 0);
+			dp->drawcircle(drag_rotate_center, drag_rotate_min_radius, 0);
+			for (int c=0; c<2*M_PI/rotatestep; c++) {
+				v.set(cos(c * rotatestep), sin(c*rotatestep));
+				dp->drawline(drag_rotate_center + drag_rotate_radius * v, drag_rotate_center + 1.05 * drag_rotate_radius * v);
+			}
+
 			double th = dp->textheight();
 			char str[50];
 			flatpoint p0 = dp->realtoscreen(somedata->transformPointInverse(drag_tr_on_down.transformPoint(flatpoint(0,0))));
@@ -766,6 +779,12 @@ int RectInterface::Refresh()
 			v = p1-p0;
 			v.normalize();
 			double angle1 = -v.angle();
+
+			dp->NewFG(1.,1.,1.);
+			dp->LineWidth(2*InterfaceManager::GetDefault(true)->ScreenLine());
+			dp->drawline(flatpoint(ix,iy), flatpoint(ix,iy) + drag_rotate_radius * v);
+			dp->NewFG(&controltransp);
+			dp->LineWidth(InterfaceManager::GetDefault(true)->ScreenLine());
 			dp->drawline(flatpoint(ix,iy), flatpoint(ix,iy) + drag_rotate_radius * v);
 
 			p0 = dp->realtoscreen(somedata->BBoxPoint(0,0, false));
@@ -773,24 +792,38 @@ int RectInterface::Refresh()
 			double angle2 = -(p1 - p0).angle();
 			double diff = angle2 - angle1;
 			v = rotate(v, -diff);
+
+			dp->NewFG(1.,1.,1.);
+			dp->LineWidth(2*InterfaceManager::GetDefault(true)->ScreenLine());
 			dp->drawline(flatpoint(ix,iy), flatpoint(ix,iy) + drag_rotate_radius * v);
+			dp->LineWidth(InterfaceManager::GetDefault(true)->ScreenLine());
+			dp->NewFG(&controltransp);
+			dp->LineWidth(InterfaceManager::GetDefault(true)->ScreenLine());
+			dp->drawline(flatpoint(ix,iy), flatpoint(ix,iy) + drag_rotate_radius * v);
+			
 			if (diff > M_PI/2) diff -= 2*M_PI;
 			else if (diff < -M_PI/2) diff += 2*M_PI;
 
+			sprintf(str, "%s%.1f", diff > 0 ? "+" : "", diff * 180 / M_PI);
+			dp->NewBG(1.,1.,1.);
 			if (hover == RP_Rotate_Diff) {
-				dp->NewFG(controltransp);
+				dp->NewFG(controlcolor);
 				dp->drawrectangle(drag_rotate_center.x - 2*th, drag_rotate_center.y - drag_rotate_min_radius/2-th/2, 4*th,th, 1);
 				dp->NewFG(0,0,0);
+				dp->textout(drag_rotate_center.x, drag_rotate_center.y - drag_rotate_min_radius/2, str,-1);
+			} else {
+				dp->textout_halo(th*.05,drag_rotate_center.x, drag_rotate_center.y - drag_rotate_min_radius/2, str,-1);
 			}
-			sprintf(str, "%s%.1f", diff > 0 ? "+" : "", diff * 180 / M_PI);
-			dp->textout(drag_rotate_center.x, drag_rotate_center.y - drag_rotate_min_radius/2, str,-1);
-			dp->NewFG(controltransp);
+
+			dp->NewFG(controlcolor);
+			sprintf(str, "%.1f", angle2 * 180 / M_PI);
 			if (hover == RP_Rotate_Num) {
 				dp->drawrectangle(drag_rotate_center.x - 2*th, drag_rotate_center.y + drag_rotate_min_radius/2-th/2, 4*th,th, 1);
 				dp->NewFG(0,0,0);
+				dp->textout(drag_rotate_center.x, drag_rotate_center.y + drag_rotate_min_radius/2, str,-1);
+			} else {
+				dp->textout_halo(th*.05,drag_rotate_center.x, drag_rotate_center.y + drag_rotate_min_radius/2, str,-1);
 			}
-			sprintf(str, "%.1f", angle2 * 180 / M_PI);
-			dp->textout(drag_rotate_center.x, drag_rotate_center.y + drag_rotate_min_radius/2, str,-1);
 		}
 
 		dp->DrawReal(); 
@@ -1637,15 +1670,19 @@ int RectInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMou
 
 		if ((state&LAX_STATE_MASK)==0 || (state&LAX_STATE_MASK)==ShiftMask) {
 			//if shift, snap to nearest horizontal or vertical
+			if (drag_mode != DRAG_Move) {
+				drag_tr_on_down.set(somedata->m());
+			}
 			drag_mode = DRAG_Move;
 			if ((state&LAX_STATE_MASK) == 0) {
 				somedata->origin(somedata->origin()+d);
 			} else {
+				//snap
 				flatpoint v = flatpoint(x,y) - flatpoint(ix,iy);
 				if (NearestAxis(v) == 'y') x = ix;
 				else y = iy;
 				d = ScreenToObjectParent(x,y) - ScreenToObjectParent(ix,iy);
-				somedata->set(drag_tr_on_down);
+				somedata->origin(drag_tr_on_down.origin());
 				somedata->origin(somedata->origin()+d);
 			}
 

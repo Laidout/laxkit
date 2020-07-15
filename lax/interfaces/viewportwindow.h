@@ -204,7 +204,7 @@ class ViewportWindow : public Laxkit::PanUser, public Laxkit::anXWindow
 	virtual anInterface *HasInterface(const char *name, int *index_ret);
 	virtual anInterface *Pop(anInterface *i,char deletetoo=0);
 	virtual anInterface *PopId(int iid,char deletetoo=0);
-	virtual void postmessage(const char *mes);
+	virtual void PostMessage(const char *mes);
 	virtual Laxkit::UndoManager *GetUndoManager();
 
 	 //Object context adding, deleting, and adjusting
