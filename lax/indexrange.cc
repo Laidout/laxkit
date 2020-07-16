@@ -70,14 +70,44 @@ const char *IndexRange::RangeMarker(const char *marker)
 	return range_marker;
 }
 
-/*! Return 0 for succes, or -1 for which not found.
+/*! Return true for succes, or false for which not found.
  */
-int IndexRange::GetRange(int which, int *start, int *end)
+bool IndexRange::GetRange(int which, int *start, int *end)
 {
-	if (which*2 >= indices.n) return -1;
+	if (which*2 >= indices.n) return false;
 	*start = indices.e[which*2];
 	*end   = indices.e[which*2+1];
-	return 0;
+	return true;
+}
+
+bool IndexRange::SetRange(int which, int start, int end)
+{
+	if (which < 0 || which >= indices.n/2) return false;
+	indices.e[which*2] = start;
+	indices.e[which*2+1] = end;
+	return true;
+}
+
+bool IndexRange::RemoveRange(int which)
+{
+	if (which < 0 || which >= indices.n/2) return false;
+	indices.remove(which*2);
+	indices.remove(which*2);
+	str.Clear();
+	return true;
+}
+
+/*! Add a range from start to end (counting from 0).
+ * If where<0, then add to the end, else insert at that position (at where*2 in indices).
+ * Warning: does not bounds checking against max.
+ * Returns the actual index of the range after inserting.
+ */
+int IndexRange::AddRange(int start, int end, int where)
+{
+	if (where < 0 || where >= indices.n) where = indices.n;
+	indices.push(start, where*2);
+	indices.push(end, where*2+1);
+	return where;
 }
 
 /*! Sum of the number of indices in each range.
@@ -237,6 +267,7 @@ int IndexRange::Parse(const char *range, const char **end_ptr, bool use_labels)
 				break;
 			}
 			p = endptr;
+			if (parse_from_one) i--;
 		}
 
 		while (isspace(*p)) p++;
@@ -245,9 +276,10 @@ int IndexRange::Parse(const char *range, const char **end_ptr, bool use_labels)
 			p += strlen(range_marker);
 		} else if (*p == '-' || *p == ':') {
 			p++;
+		} else if (*p == '.') {
+			while (*p == '.') p++; //skip ".." (or any number of . because why not)
 		} else {
 			//no range marker found!
-			if (parse_from_one && i > 0) i--;
 			newi.push(i);
 			newi.push(i);
 			while (isspace(*p) || *p == ',') p++;
@@ -271,11 +303,7 @@ int IndexRange::Parse(const char *range, const char **end_ptr, bool use_labels)
 				break;
 			}
 			p = endptr;
-		}
-
-		if (parse_from_one) {
-			if (i > 0) i--;
-			if (i2 > 0) i2--;
+			if (parse_from_one) i2--;
 		}
 
 		newi.push(i);
@@ -352,7 +380,7 @@ const char *IndexRange::ToString(bool absolute, bool use_labels, bool use_cache)
 	return str.c_str() != nullptr ? str.c_str() : "";
 }
 
-/*! From absolute index i, return corresponding string.
+/*! From absolute index i (starting from 0), return corresponding string.
  * Default is same as i, or i+1 if parse_from_one.
  * Subclasses might redefine to some other label translation.
  *
@@ -365,7 +393,7 @@ void IndexRange::IndexToLabel(int i, Utf8String &str, bool absolute)
 	str.Sprintf("%d", i);
 }
 
-/*! From label string, return 
+/*! From label string, return index counting from 0.
  * Default is same as i, or i+1 if parse_from_one. Negative numbers passed as is.
  * Subclasses might redefine to some other label translation.
  *

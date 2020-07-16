@@ -57,7 +57,10 @@ class IndexRange
 	virtual int Max() { return max; }
 	//virtual int Min(int nmin) { min = nmin; }
 	//virtual int Min() { return min; }
-	virtual int GetRange(int which, int *start, int *end);
+	virtual bool GetRange(int which, int *start, int *end);
+	virtual bool SetRange(int which, int start, int end);
+	virtual bool RemoveRange(int which);
+	virtual int AddRange(int start, int end, int where=-1);
 	virtual const char *RangeMarker() { return range_marker; }
 	virtual const char *RangeMarker(const char *marker);
 
