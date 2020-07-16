@@ -62,8 +62,6 @@ Utf8String::Utf8String()
 {
 	debug_which = num;
 	num++;
-	cerr <<"Utf8String constructor default "<<debug_which<<endl;
-
 }
 
 /*! n is bytes. If n<0, then use strlen(str).
@@ -78,8 +76,6 @@ Utf8String::Utf8String(const char *str, int n)
 	s[n] = '\0';
 	num_bytes = n;
 	updateNumChars();
-
-	cerr <<"Utf8String constructor string,len"<<endl;
 }
 
 /*! n is bytes. If n<0, then use strlen(str). If insert, then take
@@ -98,14 +94,11 @@ Utf8String::Utf8String(char *str, int n, bool insert)
 	}
 	num_bytes = n;
 	updateNumChars();
-
-	cerr <<"Utf8String constructor string,len"<<endl;
 }
 
 Utf8String::Utf8String(const Utf8String &str)
   : Utf8String(str.c_str(), -1)
 {
-	//DBG cerr <<"Utf8String constructor &utf8string"<<endl;
 }
 
 Utf8String::Utf8String(Utf8String &&str)
@@ -130,8 +123,6 @@ Utf8String::Utf8String(int i)
 	sprintf(s, "%d", i);
 	num_bytes = strlen(s);
 	updateNumChars();
-
-	cerr <<"Utf8String constructor int"<<endl;
 }
 
 Utf8String::Utf8String(long i)
@@ -142,8 +133,6 @@ Utf8String::Utf8String(long i)
 	sprintf(s, "%ld", i);
 	num_bytes = strlen(s);
 	updateNumChars();
-
-	cerr <<"Utf8String constructor int"<<endl;
 }
 
 Utf8String::Utf8String(double d)
@@ -154,8 +143,6 @@ Utf8String::Utf8String(double d)
 	sprintf(s, "%f", d);
 	num_bytes = strlen(s);
 	updateNumChars();
-
-	cerr <<"Utf8String constructor double"<<endl;
 }
 
 /*! Note that arguments need to be old school primitive types.
@@ -176,14 +163,11 @@ Utf8String::Utf8String(const char *fmt, ...)
     va_end(arg);
 	num_bytes = strlen(s);
 	updateNumChars();
-
-	cerr <<"Utf8String constructor fmt"<<endl;
 }
 
 
 Utf8String::~Utf8String()
 {
-	cerr <<"Utf8String destructor, which: "<<debug_which<<"  str: "<<(s ? s : "null")<<endl;
 	delete[] s;
 	s = nullptr;
 }
