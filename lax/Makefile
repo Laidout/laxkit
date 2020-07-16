@@ -142,6 +142,7 @@ objs= \
 	buttonbase.o \
 	button.o \
 	imageinfo.o \
+	indexrange.o \
 	lineedit.o \
 	multilineedit.o \
 	promptedit.o \
