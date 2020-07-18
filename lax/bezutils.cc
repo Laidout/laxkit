@@ -1295,7 +1295,7 @@ flatpoint *join_paths(int jointype, double miterlimit,
 		flatpoint p;
 		double index1,index2;
 		int status=intersection(l1,l2, &p, &index1,&index2);
-		cerr <<"status: "<<status<<endl;
+		// DBG cerr <<"status: "<<status<<endl;
 
 		if (status==0) {
 			if (index1>0 && index2>0) {
