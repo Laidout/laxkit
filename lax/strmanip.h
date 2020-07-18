@@ -59,6 +59,7 @@ char *replacefirst(const char *str, const char *old, const char *newstr);
 char *replaceall(const char *dest,const char *old,const char *newn,int s=0,int e=-1);
 char *replaceallname(const char *dest,const char *old,const char *newn);
 char *getnamestring(const char *buf);
+bool IsName(const char *name, const char *vlenstr, int len);
 void deletestrs(char **&strs,int n);
 char **splitspace(const char *stro,int *n_ret);
 char **splitonspace(char *stro,int *n_ret);

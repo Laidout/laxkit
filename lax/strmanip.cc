@@ -683,6 +683,15 @@ char *getnamestring(const char *buf)
 	return tname;
 }
 
+/*! Return whether len == strlen(str) and first len chars of 
+ * vlenstr match str.
+ */
+bool IsName(const char *name, const char *vlenstr, int len)
+{
+	if ((int)strlen(name) != len) return false;
+	return strncmp(name, vlenstr, len) == 0;
+}
+
 //! For char ** arrays, delete each element, then strs itself.
 /*! If n==0, then delete entries until the first NULL entry.
  * Otherwise, delete any non-null entry from 0 to n-1.
