@@ -60,8 +60,9 @@ DBG static int num = 0;
 Utf8String::Utf8String()
  : s(nullptr), bytes_allocated(0), num_chars(0), num_bytes(0)
 {
-	debug_which = num;
-	num++;
+	debug_which = 0;
+	DBG debug_which = num;
+	DBG num++;
 }
 
 /*! n is bytes. If n<0, then use strlen(str).
