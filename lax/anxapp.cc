@@ -1198,16 +1198,16 @@ void anXApp::RefreshScreenInfo()
 
 			char *str = XGetAtomName(dpy, monitors[c2].name);
 			DBG cerr << "Monitor " << str<<endl
-				<<"  screen: "<<c
-				<<"  primary: "<<(monitors[c2].primary ? "yes" : "no")<< endl
-				<<"  x     :  "<<monitors[c2].x<<endl
-				<<"  y     :  "<<monitors[c2].y      <<endl
-				<<"  width :  "<<monitors[c2].width  <<endl
-				<<"  height:  "<<monitors[c2].height <<endl
-				<<"  mwidth:  "<<monitors[c2].mwidth <<endl
-				<<"  mheight: "<<monitors[c2].mheight<<endl
-				<<"  noutputs:"<<monitors[c2].noutput<<endl
-				;
+			DBG 	<<"  screen: "<<c
+			DBG 	<<"  primary: "<<(monitors[c2].primary ? "yes" : "no")<< endl
+			DBG 	<<"  x     :  "<<monitors[c2].x<<endl
+			DBG 	<<"  y     :  "<<monitors[c2].y      <<endl
+			DBG 	<<"  width :  "<<monitors[c2].width  <<endl
+			DBG 	<<"  height:  "<<monitors[c2].height <<endl
+			DBG 	<<"  mwidth:  "<<monitors[c2].mwidth <<endl
+			DBG 	<<"  mheight: "<<monitors[c2].mheight<<endl
+			DBG 	<<"  noutputs:"<<monitors[c2].noutput<<endl
+			DBG 	;
 
             sinfo->id      = newstr(str); //TODO! xrandr returns names like DP-5, not actual monitor names
 			sinfo->name    = newstr(str);//       ideally we can parse the actual monitor name from edid blocks that xrandr can get
