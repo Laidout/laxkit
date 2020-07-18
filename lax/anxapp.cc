@@ -1347,6 +1347,7 @@ int anXApp::destroywindow(anXWindow *w)
 	w->close();
 
 #ifdef _LAX_PLATFORM_XLIB
+	if (w->xlib_dnd) w->xlib_dnd->SetTarget(nullptr, nullptr);
 	Window xxx=w->xlib_window;
 	resetkids(w); //dp->ClearDrawable() on w and all kids, removes from event check, sets ANXWIN_DOOMED
 	if (xxx) {
@@ -3144,6 +3145,9 @@ void anXApp::postmessage(const char *str)
  * Otherwise, also search for any window that X knows about. The window that is found is
  * returned in drop.
  *
+ * If the window is one we know about, it is returned (also in drop). Otherwise nullptr is
+ * returned, but xlib_window_ret is set to the found window.
+ *
  * Ultimately this will be used for more full featured drag and drop.
  *
  * See also mouseposition(), which uses XInput2Pointer::getInfo() which seems to be pretty reliable.
@@ -3202,6 +3206,8 @@ anXWindow *anXApp::findDropCandidate(anXWindow *ref,int x,int y,anXWindow **drop
 	while (child) {
 		xwin=destwin;
 		destwin=child;
+		//DBG anXWindow *CHECK = findwindow_xlib(destwin);
+		//DBG cerr << "  anXApp find drop candidate via x, check: "<<(CHECK ? CHECK->WindowTitle() : "none")<<endl;
 		x=nx;
 		y=ny;
 		status=XTranslateCoordinates(dpy, xwin, destwin, x,y, &nx,&ny, &child);
@@ -3256,6 +3262,8 @@ anXWindow *anXApp::findDropCandidate(anXWindow *ref,int x,int y,anXWindow **drop
 //	return ref;
 }
 
+/*! Platform independent version to find a relevant window within our own process under the cursor.
+ */
 anXWindow *anXApp::findDropCandidate(anXWindow *ref,int x,int y,anXWindow **drop)
 {
 	return findDropCandidate(ref,x,y,drop, nullptr);

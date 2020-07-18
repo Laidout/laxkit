@@ -835,6 +835,21 @@ int anXWindow::close()
 	return 0;
 }
 
+/*! Find the child window that contains this coordinate.
+ * Child window must be on, and within parent window.
+ */
+anXWindow *anXWindow::findContainingChild(int x, int y)
+{
+	if (!win_on) return nullptr;
+	if (x < win_x || x >= win_x + win_w || x < win_y || x >= win_y+win_h) return nullptr;
+	for (int c=0; c<_kids.n; c++) {
+		anXWindow *ret = _kids.e[c]->findContainingChild(x - win_x - win_border, y - win_y - win_border);
+		if (ret) return ret;
+	}
+	return this;
+}
+
+
 //! Find the first immediate child window that has win_name==name.
 /*! If name==NULL, NULL is returned, not the first window that has a NULL name.
  *
@@ -1438,7 +1453,9 @@ int anXWindow::event(XEvent *e)
 				char *actualtype = XGetAtomName(app->dpy,actual_type);
 				DBG if (actualtype) cerr <<" dropping selection of type "<<(actualtype ? actualtype : "(unknown)")<<endl;
 
-				selectionDropped(data,len,actualtype,selection);
+				if (e->xselection.selection == XdndSelection && xlib_dnd && xlib_dnd->targetChild) {
+					xlib_dnd->targetChild->selectionDropped(data,len,actualtype,selection);
+				} else selectionDropped(data,len,actualtype,selection);
 
 				if (actualtype) XFree(actualtype);
 				XFree(data);
@@ -1842,17 +1859,25 @@ int anXWindow::selectionPaste(char mid, const char *targettype)
 }
 
 /*! Called from a SelectionNotify event. This is used for both generic selection events
- * (see selectionPaste()) and also drag-and-drop events.
+ * (see selectionPaste()) and also drag-and-drop (which == XdndSelection) events.
+ *
+ * Typical actual_type values:
+ *  - text/uri-list
+ *  - text/plain
+ *  - text/plain;charset=UTF-8
+ *  - text/plain;charset=ISO-8859-1
+ *  - TEXT
+ *  - UTF8_STRING
  *
  * Returns 0 if used, nonzero otherwise.
  */
 int anXWindow::selectionDropped(const unsigned char *data,unsigned long len,const char *actual_type,const char *which)
 {
-	DBG cerr<<"selectionDropped (default anXWindow):"<<endl;
-	DBG cerr <<"type: "     <<(actual_type ? actual_type : "(no type)")     <<endl;
-	DBG cerr <<"selection: "<<(which       ? which       : "(no selection)")<<endl;
+	DBG cerr<<"anXWindow::selectionDropped() on "<<WindowTitle()<<":"<<endl;
+	DBG cerr <<"  type: "     <<(actual_type ? actual_type : "(no type)")     <<endl;
+	DBG cerr <<"  selection: "<<(which       ? which       : "(no selection)")<<endl;
 
-	DBG if (data) cerr <<"data: "<<endl<<data<<endl;
+	DBG if (data) cerr <<"  data: "<<endl<<data<<endl;
 
 	return 1; 
 }
@@ -1936,6 +1961,21 @@ DndState::DndState()
 DndState::~DndState()
 {
 	if (num_data_types) deletestrs(data_types, num_data_types);
+	if (targetTop)   targetTop  ->dec_count();
+	if (targetChild) targetChild->dec_count();
+}
+
+/*! dec old, inc new, when initializing new dnd targets.
+ * Note this is also called from anXApp::destroywindow() to prevent cyclic ref counting.
+ */
+void DndState::SetTarget(anXWindow *top, anXWindow *child)
+{
+	if (targetTop)   targetTop  ->dec_count();
+	if (targetChild) targetChild->dec_count();
+	targetTop   = top;
+	targetChild = child;
+	if (targetTop)   targetTop  ->inc_count();
+	if (targetChild) targetChild->inc_count();
 }
 
 /*! Takes names, calling code must not delete.
@@ -2112,7 +2152,8 @@ int anXWindow::HandleXdndPosition(XEvent *e)
 	IntRectangle rect;
 	// TODO!!!! *** need to translate to window coords
 	int which_type = -1;
-	if (DndWillAcceptDrop(x,y,"", rect, xlib_dnd->data_types, &which_type)) { //e->xclient.data.l[4])) <- the action  TODO!!! deal with actions properly
+	anXWindow *child_drop = nullptr;
+	if (DndWillAcceptDrop(x,y,"", rect, xlib_dnd->data_types, &which_type, &child_drop)) { //e->xclient.data.l[4])) <- the action  TODO!!! deal with actions properly
 		xlib_dnd->status = DndState::Target_Accepts;
 		// *** TODO!!! translate back to window coords from screen coords
 		xlib_dnd->inx = rect.x;
@@ -2120,6 +2161,7 @@ int anXWindow::HandleXdndPosition(XEvent *e)
 		xlib_dnd->inw = rect.width;
 		xlib_dnd->inh = rect.height;
 		xlib_dnd->preferred_type = which_type;
+		xlib_dnd->SetTarget(this, child_drop);
 	} else {
 		xlib_dnd->status = DndState::Target_Refuses;
 		xlib_dnd->action = 0;
@@ -2165,10 +2207,13 @@ int anXWindow::HandleXdndPosition(XEvent *e)
  * fill in rect with the region this response pertains to.
  * If you do nothing with rect, it is assumed the whole window is relevant.
  *
+ * If a child window under x,y will accept, then return that in child_ret.
+ *
  * Default is to reject drop.
  */
-bool anXWindow::DndWillAcceptDrop(int x, int y, const char *action, IntRectangle &rect, char **types, int *type_ret)
+bool anXWindow::DndWillAcceptDrop(int x, int y, const char *action, IntRectangle &rect, char **types, int *type_ret, anXWindow **child_ret)
 {
+	DBG cerr << "anXWindow::DndWillAcceptDrop"<<endl;
 	return false;
 }
 

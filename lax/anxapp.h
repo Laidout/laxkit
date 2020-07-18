@@ -212,7 +212,6 @@ class anXWindow : virtual public EventReceiver,
 	virtual int   selectionPaste(char mid, const char *targettype);
 	virtual int   selectionCopy(char mid);
 	virtual char *getSelectionData(int *len,const char *property,const char *targettype,const char *selection);
-	virtual bool DndWillAcceptDrop(int x, int y, const char *action, IntRectangle &rect, char **types, int *type_ret);
 
  public:
 
@@ -244,6 +243,7 @@ class anXWindow : virtual public EventReceiver,
 	virtual const char *tooltip(const char *newtooltip);
 	virtual anXWindow *findChildWindowByTitle(const char *title, bool recurse=false);
 	virtual anXWindow *findChildWindowByName(const char *name, bool recurse=false);
+	virtual anXWindow *findContainingChild(int x, int y);
 	virtual int  Grayed();
 	virtual int  Grayed(int g);
 	virtual int  preinit();
@@ -299,6 +299,8 @@ class anXWindow : virtual public EventReceiver,
 
 	virtual void  contentChanged(); //this sends a ContentChange message to owners
 	virtual void  selectionChanged(); //calling this sends a SelectionChange message to owners
+	virtual bool DndWillAcceptDrop(int x, int y, const char *action, IntRectangle &rect, char **types, int *type_ret, anXWindow **child_ret);
+
 
 	anXWindow *nextcontrol,*prevcontrol;
 	virtual anXWindow *GetController();
@@ -563,6 +565,7 @@ class DndState
   	DndState();
   	~DndState();
   	void SetNames(char **names, int len);
+  	void SetTarget(anXWindow *top, anXWindow *child);
   	void Clear();
 
 };
