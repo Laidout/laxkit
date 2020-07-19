@@ -58,9 +58,45 @@ IndexRange::IndexRange()
 	range_marker = newstr("-"); //used in ToString, and ALSO checked in Parse(), along with '-' and ':'
 }
 
+IndexRange::IndexRange(const IndexRange &r)
+  : IndexRange()
+{
+	*this = r;
+}
+
 IndexRange::~IndexRange()
 {
 	delete[] range_marker;
+}
+
+IndexRange &IndexRange::operator=(const IndexRange &r)
+{
+	Clear();
+	parse_from_one = r.parse_from_one;
+	max = r.Max();
+	makestr(range_marker, r.RangeMarker());
+	for (int c=0; c<r.NumRanges(); c++) {
+		int i1,i2;
+		r.GetRange(c, &i1, &i2);
+		AddRange(i1,i2);
+	}
+
+	return *this;
+}
+
+/*! Returns true if any values had to be clamped. If !clamp_existing_to_max, then always return false.
+ */
+bool IndexRange::Max(int nmax, bool clamp_existing_to_max) 
+{
+	max = nmax;
+	bool changed = false;
+	if (clamp_existing_to_max) {
+		for (int c=0; c< indices.n; c++) {
+			if      (indices.e[c] >= max) { changed = true; indices.e[c] = max-1; }
+			else if (indices.e[c] < -max) { changed = true; indices.e[c] = -max; }
+		}
+	}
+	return changed; 
 }
 
 const char *IndexRange::RangeMarker(const char *marker)
@@ -70,9 +106,62 @@ const char *IndexRange::RangeMarker(const char *marker)
 	return range_marker;
 }
 
+/*! Return whether index is found within any range.
+ */
+bool IndexRange::Contains(int index, int *range_ret)
+{
+	for (int c=0; c<indices.n; c+=2) {
+		int i1 = indices.e[c];
+		int i2 = indices.e[c+1];
+		if (i1 < 0) i1 = max + i1;
+		if (i2 < 0) i2 = max + i2;
+
+		if (i2 >= i1) {
+			if (index >= i1 && index <= i2) {
+				if (range_ret) *range_ret = c/2;
+				return true;
+			}
+		} else {
+			if (index >= i2 && index <= i1) {
+				if (range_ret) *range_ret = c/2;
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+//for qsort
+static int cmp_int(const void *i1, const void *i2)
+{
+	if (*((int*)i1) > *((int*)i2)) return 1;
+	if (*((int*)i1) < *((int*)i2)) return -1;
+	return 0;
+}
+
+/*! Return a new int[] with the page indices (count from 0), sorted least to greatest, with no duplicates.
+ * Warning, this currently uses Start() and Next().
+ */
+int *IndexRange::GetSortedList(int *n_ret)
+{
+	if (indices.n == 0) {
+		*n_ret = 0;
+		return nullptr;
+	}
+	NumStack<int> nums;
+	for (int c = Start(); c >= 0; c = Next()) {
+		nums.pushnodup(c);
+	}
+	int *ii = nums.extractArray(n_ret);
+
+	if (*n_ret != 0) qsort(ii, *n_ret, sizeof(int), cmp_int);
+
+	return ii;
+}
+
 /*! Return true for succes, or false for which not found.
  */
-bool IndexRange::GetRange(int which, int *start, int *end)
+bool IndexRange::GetRange(int which, int *start, int *end) const
 {
 	if (which*2 >= indices.n) return false;
 	*start = indices.e[which*2];
@@ -113,16 +202,41 @@ int IndexRange::AddRange(int start, int end, int where)
 /*! Sum of the number of indices in each range.
  * Note that if ranges overlap, the overlapping elements are counted more than once.
  */
-int IndexRange::NumInRanges()
+int IndexRange::NumInRanges() const
 {
 	int n=0;
 	for (int c=0; c<indices.n; c+=2) {
-		if (indices[c+1] >= indices[c])
-			n += indices[c] - indices[c+1] + 1;
+		int i1 = indices.e[c];
+		int i2 = indices.e[c+1];
+		if (i1 < 0) i1 = max + i1;
+		if (i2 < 0) i2 = max + i2;
+
+		if (i2 >= i1)
+			n += i2 - i1 + 1;
 		else
-			n += indices[c+1] - indices[c] + 1;
+			n += i1 - i2 + 1;
 	}
 
+	return n;
+}
+
+/*! Return the number of odd indices. Warning: this uses Start() and Next().
+ */
+int IndexRange::NumOdd()
+{
+	int n = 0;
+	for (int c = Start(); c >= 0; c = Next())
+		if (c % 2 == 1) n++;
+	return n;
+}
+
+/*! Return the number of even indices. Warning: this uses Start() and Next().
+ */
+int IndexRange::NumEven()
+{
+	int n = 0;
+	for (int c = Start(); c >= 0; c = Next())
+		if (c % 2 == 0) n++;
 	return n;
 }
 
@@ -228,6 +342,7 @@ void IndexRange::Clear()
 {
 	cur = -1;
 	curi = curi2 = 0;
+	indices.flush();
 	str.Clear();
 }
 
@@ -237,6 +352,8 @@ void IndexRange::Clear()
  * Negative numbers mean count from end, so -1 means (max-1).
  *
  * If parse_from_one, then a number 1 gets translated to index 0.
+ *
+ * On fail, ranges are not changed.
  *
  * Return 0 for success, nonzero for parse error.
  */

@@ -44,24 +44,30 @@ class IndexRange
 	bool parse_from_one; //whether int range when parsing/tostring starts at 1 (true) or 0 (false, default)
 
 	IndexRange();
+	IndexRange(const IndexRange &r);
 	virtual ~IndexRange();
+	IndexRange &operator=(const IndexRange &r);
 
-	int NumRanges() { return indices.n/2; }
-	int NumInRanges();
+	int NumRanges() const { return indices.n/2; }
+	int NumInRanges() const;
+	int NumOdd();
+	int NumEven();
 	int Start(); //note: loop funcs ignore parse_from_one
 	int Next();
 	int Previous();
 	int Current();
 	int End(); //note: this will set cur, don't use it to check current against end
-	virtual int Max(int nmax) { max = nmax; return max; }
-	virtual int Max() { return max; }
+	virtual bool Max(int nmax, bool clamp_existing_to_max = false);
+	virtual int Max() const { return max; }
 	//virtual int Min(int nmin) { min = nmin; }
 	//virtual int Min() { return min; }
-	virtual bool GetRange(int which, int *start, int *end);
+	virtual bool GetRange(int which, int *start, int *end) const;
 	virtual bool SetRange(int which, int start, int end);
+	virtual bool Contains(int index, int *range_ret=nullptr);
 	virtual bool RemoveRange(int which);
+	virtual int *GetSortedList(int *n_ret);
 	virtual int AddRange(int start, int end, int where=-1);
-	virtual const char *RangeMarker() { return range_marker; }
+	virtual const char *RangeMarker() const { return range_marker; }
 	virtual const char *RangeMarker(const char *marker);
 
 	virtual void Clear();
