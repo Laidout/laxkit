@@ -1352,7 +1352,23 @@ int flow_id(const char *dir)
 	return -1; 
 }
 
+/*! Usage: MaxExtent(font, str1, str2, str3, nullptr)
+ */
+double MaxExtent(LaxFont *font, ...)
+{
+	double max = 0, w;
 
+	va_list arg;
+    va_start(arg, font);
+    const char *str = va_arg(arg, const char *);
+    while (str) {
+    	w = font->Extent(str, -1);
+    	if (w > max) max = w;
+	    str = va_arg(arg, const char *);
+	}
+    va_end(arg);
+	return max;
+}
 
 
 

@@ -39,9 +39,9 @@ namespace Laxkit {
 int StringToLaxop(const char *str);
 char *LaxopToString(int function, char *str_ret, int len, int *len_ret);
 
-
 void draw_special_color(Displayer *dp, int which, double square, double x, double y, double w, double h);
 flatpoint *draw_thing_coordinates(DrawThingTypes thing, flatpoint *buffer, int buffer_size, int *n_ret,double scale=1,DoubleBBox *bounds=NULL);
+
 
  //color utitilies
 ScreenColor *coloravg(ScreenColor *result, ScreenColor *a, ScreenColor *b,float r=.5);
@@ -85,6 +85,7 @@ const char *flow_name(int direction);
 const char *flow_name_translated(int direction);
 int flow_id(const char *direction);
 
+double MaxExtent(LaxFont *font, ...);
 
 
 } //namespace Laxkit
