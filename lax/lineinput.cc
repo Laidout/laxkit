@@ -124,18 +124,19 @@ LineInput::LineInput(anXWindow *parnt,const char *nname,const char *ntitle,unsig
 	if ((win_style&(LINP_ONTOP|LINP_ONBOTTOM|LINP_ONLEFT|LINP_ONRIGHT))==0) win_style|=LINP_ONLEFT;
 	InstallColors(THEME_Panel);
 
-	padx=npadx;
-	pady=npady;
-	padly=npadly;
-	padlx=npadlx;
-	label=NULL;
-	makestr(label,newlabel);
-	labelw=0;
-	lew=nlew;
-	leh=nleh;
+	padx  = npadx;
+	pady  = npady;
+	padly = npadly;
+	padlx = npadlx;
+	label = NULL;
+	makestr(label, newlabel);
+	auto_labelw = true;
+	labelw = 0;
+	lew    = nlew;
+	leh    = nleh;
 	helper = nullptr;
 
-	double lw=0,lh=0,fasc=0,fdes=0,textheight;
+	double lw = 0, lh = 0, fasc = 0, fdes = 0, textheight;
 	if (label) win_themestyle->normal->Extent(label,-1,&lw,&lh,&fasc,&fdes);
 	else {
 		fasc = win_themestyle->normal->ascent();
@@ -143,11 +144,11 @@ LineInput::LineInput(anXWindow *parnt,const char *nname,const char *ntitle,unsig
 	}
 	textheight=fasc+fdes;
 
-	if (padx==-1)  padx =textheight*.15;
-	if (pady==-1)  pady =textheight*.15;
-	if (padly==-1) padly=textheight*.15;
-	if (padlx==-1) padlx=textheight*.15;
-	
+	if (padx  == -1) padx  = textheight * .15;
+	if (pady  == -1) pady  = textheight * .15;
+	if (padly == -1) padly = textheight * .15;
+	if (padlx == -1) padlx = textheight * .15;
+
 	char *letitle=NULL;
 	makestr(letitle,win_name);
 	appendstr(letitle,"-le");
@@ -180,22 +181,22 @@ LineInput::LineInput(anXWindow *parnt,const char *nname,const char *ntitle,unsig
                           this);
 	}
 
-	if (leh==0) leh=2*padly+textheight; // set to textheight always, not remainder
+	if (leh == 0) leh = 2*padly + textheight; // set to textheight always, not remainder
 	
 	 // set win_w and win_h for this window
 	if (win_h<=1) { // wrap height to textheight+pads
-		int nh=textheight+2*padly;
-		if (nleh>nh) nh=nleh;
-		win_h=nh+2*brder+2*pady;
-		if (win_style&(LINP_ONTOP|LINP_ONBOTTOM)) win_h+=padly+textheight;
+		int nh = textheight + 2 * padly;
+		if (nleh > nh) nh = nleh;
+		win_h = nh + 2 * brder + 2 * pady;
+		if (win_style & (LINP_ONTOP | LINP_ONBOTTOM)) win_h += padly + textheight;
 	} 
-	if (win_w<=1) {
-		win_w=2*padlx+2*padx+2*brder; // set win_w equal to the pads
+	if (win_w <= 1) {
+		win_w = 2*padlx+2*padx+2*brder; // set win_w equal to the pads
 		if (win_style&(LINP_ONLEFT|LINP_ONRIGHT)) { // to win_w add lew and lw
-			if (lew>0) win_w+=padx+lew+lw;
-			else win_w+=padlx+lw+lw; // make edit width same as label width
+			if (lew > 0) win_w+=padx+lew+lw;
+			else win_w += padlx+lw+lw; // make edit width same as label width
 		} else { // to win_w add the greater of lw or nlew
-			if (nlew>lw) win_w+=nlew; else win_w+=lw;
+			if (nlew > lw) win_w += nlew; else win_w += lw;
 		}
 		if (helper) win_w += helper->win_w;
 	}
@@ -282,9 +283,13 @@ double LineInput::LabelWidth()
 	return labelw;
 }
 
+/*! Pass in -1 to use auto width.
+ */
 double LineInput::LabelWidth(double newwidth)
 {
 	labelw = newwidth;
+	auto_labelw = (labelw < 0);
+	SetPlacement();
 	return labelw;
 }
 
@@ -362,10 +367,10 @@ void LineInput::SetText(const char *newtext)
  */
 void LineInput::SetPlacement()
 {
-	int lex=0,ley=0,nlew=0,nleh=0;
-	double lw=0,lh=0,fasc=0,fdes=0,textheight;
+	int    lex = 0, ley = 0, nlew = 0, nleh = 0;
+	double lw = 0,  lh = 0,  fasc = 0, fdes = 0, textheight;
 	if (label) win_themestyle->normal->Extent(label,-1,&lw,&lh,&fasc,&fdes);
-	labelw = lw;
+	if (auto_labelw) labelw = lw;
 	textheight = fasc+fdes;
 	
 	if (win_style&(LINP_ONTOP|LINP_ONBOTTOM)) { // assume h centered
@@ -390,27 +395,35 @@ void LineInput::SetPlacement()
 		ley=(win_h-nleh-lh-padly)/2+lh+padly;
 		ly+=(ley-oldley);
 
-	} else if (win_style&(LINP_ONLEFT|LINP_ONRIGHT)) {
-		if (lew>0) nlew=lew;
-		else nlew=win_w-3*padlx-2*le->WindowBorder() - lw;
-		if (nlew>win_w-3*padlx-2*(int)le->WindowBorder() - lw) nlew=win_w-3*padlx-2*le->WindowBorder() - lw;
+	} else if (win_style & (LINP_ONLEFT|LINP_ONRIGHT)) {
+		if (lew > 0) nlew = lew;
+		else nlew = win_w - 3*padlx - 2*le->WindowBorder() - labelw;
+		if (nlew > win_w - 3*padlx - 2*le->WindowBorder() - labelw)
+			nlew = win_w - 3*padlx - 2*le->WindowBorder() - labelw;
 			
-		if (leh==0) nleh=2*pady+textheight;
-		else if (leh<0) nleh=win_h-2*le->WindowBorder() - 3*padly;
-		else nleh=leh;
+		if (leh == 0) nleh = 2*pady + textheight;
+		else if (leh < 0) nleh = win_h - 2*le->WindowBorder() - 3*padly;
+		else nleh = leh;
 		
-		ley=padly;
-		ly=padly+padx+le->WindowBorder() + fasc;
-		if (win_style&LINP_ONRIGHT) {
-			lex=padlx;
-			lx=padlx+nlew+2*le->WindowBorder() + padlx;
-		} else { // ONLEFT
-			lex=win_w-padlx-2*le->WindowBorder() - nlew;
-			lx=lex-padlx-lw;
+		ley = padly;
+		ly = padly + padx + le->WindowBorder() + fasc;
+		if (win_style & LINP_ONRIGHT) { // [line edit] label
+			lex = padlx;
+			lx  = padlx + nlew + 2 * le->WindowBorder() + padlx;
+			if (win_style & LINP_RIGHT) lx = win_w - padlx - lw;
+			else if (win_style & LINP_CENTER) lx = win_w - padlx - labelw/2 - lw/2;
+
+		} else { // ONLEFT   label [line edit]
+			lex = win_w - padlx - 2 * le->WindowBorder() - nlew;
+
+			if (win_style & LINP_RIGHT) lx = lex - padlx - lw;
+			else if (win_style & LINP_CENTER) lx = lex - padlx - labelw/2 - lw/2;
+			else lx  = padlx;
 		}
-		int oldley=ley;
-		ley=(win_h-nleh)/2;
-		ly+=(ley-oldley);
+
+		int oldley = ley;
+		ley = (win_h - nleh) / 2;
+		ly += (ley - oldley);
 	}
 
 	if (helper) {

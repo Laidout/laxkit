@@ -54,6 +54,7 @@ class LineInput : public anXWindow, public LabelUser
 	LineEdit *le;
 	char *label;
 	int labelw; //preferred width of the label
+	int auto_labelw;
 	int lx,ly,lew,leh; // lw,lh<0 means use remainder, >0 is absolute
 	int padx,pady,padlx,padly;
 
