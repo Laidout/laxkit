@@ -191,7 +191,10 @@ int RowFrame::init()
 void RowFrame::Refresh()
 {
 	if (!win_on || !needtodraw || !list.n) return;
-	if (arrangedstate!=1) Sync(0);
+	if (arrangedstate!=1) {
+		SquishyBox::sync(win_x, win_y, win_w, win_h);
+		// Sync(0);
+	}
 	needtodraw=0;
 
 	// ...draw box around the elements for debugging..
@@ -199,6 +202,20 @@ void RowFrame::Refresh()
 	//DBG 	draw_rectangle(this, list.e[c]->x(),list.e[c]->y(), list.e[c]->w(),list.e[c]->h());
 	//DBG draw_line(this, 0,0,win_w,win_h);
 	//DBG draw_line(this, win_w,0, 0,win_h);
+}
+
+void RowFrame::sync()
+{
+	ListBox::sync(); //syncs children
+	// if (x() != win_x || y() != win_y || w() != win_w || h() != win_h) {
+	// 	MoveResize(x(),y(), w(),h());
+	// }
+}
+
+void RowFrame::sync(int xx,int yy,int ww,int hh)
+{
+	SquishyBox::sync(xx,yy,ww,hh);
+	MoveResize(xx,yy,ww,hh);
 }
 
 //! Sync the boxes to win_w/win_h, which are assumed set already.
@@ -212,15 +229,6 @@ int RowFrame::Sync(int add) // add=0, if 1 means addwindow
 {
 	DBG cerr << "RowFrame::Sync..."<<endl;
 
-	//m[0],m[6] are box x,y and should be non zero only for top level boxes (not quite the same as window)
-	w(win_w?win_w:BOX_SHOULD_WRAP); // the BOX_SHOULD_WRAP forces a wrap to extent
-	h(win_h?win_h:BOX_SHOULD_WRAP);
-	sync(); //this is supposed to map dimensions and coords of all subwindows
-
-	if (w() != win_w || h() != win_h) {
-		MoveResize(x(),y(), w(),h());
-	}
-
 	if (add) {
 		anXWindow *win;
 		WinFrameBox *winbox;
@@ -233,6 +241,16 @@ int RowFrame::Sync(int add) // add=0, if 1 means addwindow
 			if (win) app->addwindow(win,1,0); //does nothing if xlib_window already exists...
 		}
 	}
+
+	//m[0],m[6] are box x,y and should be non zero only for top level boxes (not quite the same as window)
+	w(win_w?win_w:BOX_SHOULD_WRAP); // the BOX_SHOULD_WRAP forces a wrap to extent
+	h(win_h?win_h:BOX_SHOULD_WRAP);
+	sync(); //this is supposed to map dimensions and coords of all subwindows
+
+	if (w() != win_w || h() != win_h) {
+		MoveResize(x(),y(), w(),h());
+	}
+
 	arrangedstate=1;
 	return 0;
 }

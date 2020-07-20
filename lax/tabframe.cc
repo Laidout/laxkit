@@ -362,12 +362,12 @@ int TabFrame::mapWindow(int which,int mapit) //mapit=1
 	DBG cerr<<"  "<<x<<','<<y<<' '<<w<<'x'<<h<<endl;
 	if (mapit) {
 		//&& w>0 && h>0) {
-		if (b->win->xlib_window==0) app->addwindow(b->win,1); // add but don't map
+		if (b->win->xlib_window == 0) app->addwindow(b->win,1); // add but don't map
 		else {
 			DBG cerr << "------tabframe calling app map on"<<endl;
 			app->mapwindow((anXWindow *)b->win); // ***don't know why but this is necessary
 		}
-		if (b->win->win_w!=w || b->win->win_h!=h || b->win->win_x!=x || b->win->win_y!=y) 
+		if (b->win->win_w != w || b->win->win_h != h || b->win->win_x != x || b->win->win_y != y)
 			b->win->MoveResize(x,y,w,h); // beware strange things when resizing unmapped windows
 	} else { 
 		DBG cerr <<"------tabframe calling app map off"<<endl;

@@ -655,7 +655,8 @@ int ListBox::distributeBoxes(int setmetrics) //setmetrics=0
 		DBG		<<" pref:("<<m[pref]<<','<<m[shrink]<<','<<m[grow]
 		DBG 	<<" x "<<m[vert+pref]<<','<<m[vert+shrink]<<','<<m[vert+grow]<<")"<<endl;
 		
-		boxes[c]->sync();
+		boxes[c]->sync(boxes[c]->x(), boxes[c]->y(), boxes[c]->w(), boxes[c]->h());
+		// boxes[c]->sync();
 
 		DBG cerr <<"after sync"<<c<<": "<<m[pos]<<','<<m[vert+pos]<<"  "<<m[len]<<"x"<<m[vert+len]
 		DBG		<<" pref:("<<m[pref]<<','<<m[shrink]<<','<<m[grow]
@@ -897,7 +898,7 @@ RowColBox::RowColBox()
 { 
 //	if (flags&BOX_VERTICAL) flags|=BOX_STRETCH_TO_FILL_X;
 //	else flags|=BOX_STRETCH_TO_FILL_Y;
-	arrangedstate=0; 
+	arrangedstate=0; // 0 for list array needs to be updated, 1 for list is current and no need to recompute
 	elementflags=0;
 	filterflags();
 }
