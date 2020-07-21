@@ -384,7 +384,7 @@ int IndexRange::Parse(const char *range, const char **end_ptr, bool use_labels)
 				break;
 			}
 			p = endptr;
-			if (parse_from_one) i--;
+			if (i > 0 && parse_from_one) i--;
 		}
 
 		while (isspace(*p)) p++;
@@ -420,7 +420,7 @@ int IndexRange::Parse(const char *range, const char **end_ptr, bool use_labels)
 				break;
 			}
 			p = endptr;
-			if (parse_from_one) i2--;
+			if (i2 > 0 && parse_from_one) i2--;
 		}
 
 		newi.push(i);
