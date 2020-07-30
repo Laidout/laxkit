@@ -67,44 +67,51 @@ void dumperrorlog(const char *mes,ErrorLog &log)
 
 ErrorLogNode::ErrorLogNode()
 {
-	path=NULL;
-	objectstr_id=NULL;
-	object_id=0;
-	description=NULL;
-	severity=0;
-	info=0;
+	path         = NULL;
+	objectstr_id = NULL;
+	object_id    = 0;
+	description  = NULL;
+	severity     = 0;
+	info         = 0;
+	extra        = nullptr;
 }
 
 ErrorLogNode::ErrorLogNode(unsigned int objid, const char *objidstr, const char *npath, const char *desc, int nseverity,
-							int ninfo, int npos,int nline)
+							int ninfo, int npos,int nline,anObject *ext)
 {
-	path=newstr(npath);
-	description=newstr(desc);
-	severity=nseverity;
-	object_id=objid;
-	objectstr_id=newstr(objidstr);
-	info=ninfo;
-	pos=npos;
-	line=nline;
+	path         = newstr(npath);
+	description  = newstr(desc);
+	severity     = nseverity;
+	object_id    = objid;
+	objectstr_id = newstr(objidstr);
+	info         = ninfo;
+	pos          = npos;
+	line         = nline;
+	extra        = ext;
+	if (extra) extra->inc_count();
 }
 
 ErrorLogNode::~ErrorLogNode()
 {
+	if (extra) extra->dec_count();
 	if (description) delete[] description;
 	if (objectstr_id) delete[] objectstr_id;
 }
 
 void ErrorLogNode::Set(unsigned int objid, const char *objidstr, const char *npath, const char *desc, int nseverity,
-						int ninfo, int npos,int nline)
+						int ninfo, int npos,int nline,anObject *ext)
 {
-	makestr(path,npath);
-	makestr(description,desc);
-	severity=nseverity;
-	object_id=objid;
-	makestr(objectstr_id,objidstr);
-	info=ninfo;
-	pos=npos;
-	line=nline;
+	makestr(path, npath);
+	makestr(description, desc);
+	severity  = nseverity;
+	object_id = objid;
+	makestr(objectstr_id, objidstr);
+	info = ninfo;
+	pos  = npos;
+	line = nline;
+	if (extra) extra->dec_count();
+	extra = ext;
+	if (extra) extra->inc_count();
 }
 
 //---------------------------------- ErrorLog
@@ -130,6 +137,14 @@ void ErrorLog::Clear()
 //! Override if subclassed error logs require extra info in a log message.
 ErrorLogNode *ErrorLog::newErrorLogNode()
 { return new ErrorLogNode(); }
+
+/*! Return the top of messages stack, which should be the last one pushed.
+ */
+ErrorLogNode *ErrorLog::LastMessage()
+{
+	if (messages.n) return messages.e[messages.n-1];
+	return nullptr;
+}
 
 const char *ErrorLog::Message(int i,int *severity,int *info, int *pos,int *line)
 {
@@ -200,17 +215,18 @@ int ErrorLog::AddMessage(int severity, int ninfo, int npos,int nline, const char
 	return status;
 }
 
-int ErrorLog::AddMessage(const char *desc, int severity, int ninfo, int pos,int line)
+int ErrorLog::AddMessage(const char *desc, int severity, int ninfo, int pos,int line, anObject *extra)
 {
-	return AddMessage(0,NULL,NULL,desc,severity,ninfo, pos,line);
+	return AddMessage(0,NULL,NULL,desc,severity,ninfo, pos,line, extra);
 }
 
 /*! Returns number of messages including this one.
  */
-int ErrorLog::AddMessage(unsigned int objid, const char *objidstr, const char *npath, const char *desc, int severity, int ninfo, int pos,int line)
+int ErrorLog::AddMessage(unsigned int objid, const char *objidstr, const char *npath, const char *desc, int severity,
+						int ninfo, int pos,int line, anObject *extra)
 {
 	ErrorLogNode *node=newErrorLogNode();
-	node->Set(objid,objidstr,npath, desc,severity,ninfo,pos,line);
+	node->Set(objid,objidstr,npath, desc,severity,ninfo,pos,line, extra);
 	messages.push(node);
 	return messages.n;
 }

@@ -23,6 +23,7 @@
 #define ERRORLOG_H
 
 
+#include <lax/anobject.h>
 #include <lax/lists.h>
 #include <cstdarg>
 
@@ -61,10 +62,11 @@ class ErrorLogNode
 	char *description;
 	int severity; //"ok", "warning", "fail", "version fail"
 	int info, pos,line; //extra info
+	anObject *extra;
 	ErrorLogNode();
-	ErrorLogNode(unsigned int objid, const char *objidstr, const char *npath, const char *desc, int nseverity,int ninfo, int npos,int nline);
+	ErrorLogNode(unsigned int objid, const char *objidstr, const char *npath, const char *desc, int nseverity,int ninfo, int npos,int nline,anObject *ext);
 	virtual ~ErrorLogNode();
-	virtual void Set(unsigned int objid, const char *objidstr, const char *npath, const char *desc, int nseverity,int ninfo, int npos,int nline);
+	virtual void Set(unsigned int objid, const char *objidstr, const char *npath, const char *desc, int nseverity,int ninfo, int npos,int nline,anObject *ext);
 };
 
 class ErrorLog
@@ -80,11 +82,12 @@ class ErrorLog
 	virtual int AddError(const char *desc, int ninfo=0, int npos=0,int nline=0);
 	virtual int vAddMessage(int severity, int ninfo, int npos,int nline, const char *fmt, va_list arg);
 	virtual int AddMessage(int severity, int ninfo, int npos,int nline, const char *fmt, ...);
-	virtual int AddMessage(const char *desc, int severity, int ninfo=0, int npos=0,int nline=0);
-	virtual int AddMessage(unsigned int objid, const char *objidstr, const char *npath, const char *desc, int severity, int ninfo=0, int npos=0,int nline=0);
+	virtual int AddMessage(const char *desc, int severity, int ninfo=0, int npos=0,int nline=0, anObject *extra = nullptr);
+	virtual int AddMessage(unsigned int objid, const char *objidstr, const char *npath, const char *desc, int severity, int ninfo=0, int npos=0,int nline=0, anObject *extra = nullptr);
 	virtual const char *Message(int i,int *severity,int *info, int *pos = nullptr, int *line = nullptr);
 	virtual int Total() { return messages.n; }
 	virtual ErrorLogNode *Message(int i);
+	virtual ErrorLogNode *LastMessage();
 	virtual const char *MessageStr(int i);
 	virtual char *FullMessageStr();
 	virtual int Warnings(int since=0);
