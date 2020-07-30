@@ -25,7 +25,7 @@ OPTIONALLIBS=
 USEXLIB="yes"
 USECAIRO="yes"
 USEIMLIB="build"
-USEGRAPHICSMAGICK="not build"
+USEGRAPHICSMAGICK="build"
 USEXINPUT2="yes"
 USEGL="yes"
 USESQLITE="yes"
@@ -34,7 +34,8 @@ HARFBUZZVERSION="2.0"
 ONAMAC="no"
 FORCE="no"
 RELOCATABLE="no"
-MAKE_LAXKIT_PC="no"
+MAKE_LAXKIT_PC="yes"
+LAXKIT_PC_LIBS=""
 
 CONFIGCOMMAND="./configure $@"
 
@@ -75,7 +76,7 @@ while true ; do
         echo " --disable-graphicsmagick     Do not build GraphicsMagick components. Default is to $USEGRAPHICSMAGICK them."
         echo " --enable-graphicsmagick      Build GraphicsMagick components. Default is to $USEGRAPHICSMAGICK them."
 #       echo " --disable-cairo              Do not build cairo components. Default is to build them."
-        echo " --disable-xinput2            Use this option if you do not have at least Xorg 7.5 for MPX."
+#       echo " --disable-xinput2            Use this option if you do not have at least Xorg 7.5 for MPX."
         echo " --disable-sqlite             If not disabled, sqlite is Used to get font tags in Fontmatrix database (if it exists)"
         echo " --enable-imlib               Build Imlib2 components. Default is to $USEIMLIB them."
         echo " --disable-imlib              Don't build Imlib2 components. Default is to $USEIMLIB them."
@@ -84,7 +85,7 @@ while true ; do
 #       echo " --onamac                     Include this if you are compiling on a Mac."
 		echo " --relocatable                If present, do not configure with hardcoded paths. All resource paths"
         echo "                                will be determined at runtime relative to the executable."
-		echo " --make-pkgconfig             Create a laxkit.pc file that pkg-config can understand."
+#		echo " --make-pkgconfig             Create a laxkit.pc file that pkg-config can understand."
 		echo " --force                      Try to compile even when libraries are not detected by ./configure"
 		echo " --version=OtherVersionNum    You may force Laxkit to compile with a different"
 		echo "                                version string."
@@ -95,9 +96,9 @@ while true ; do
 		FORCE="yes"
 		shift ;;
 
-	--make-pkgconfig)
-		MAKE_LAXKIT_PC="yes"
-		shift ;;
+#	--make-pkgconfig)
+#		MAKE_LAXKIT_PC="yes"
+#		shift ;;
 
 	--relocatable)
         RELOCATABLE="yes";
@@ -212,20 +213,12 @@ fi
 
 
 # do check for required libraries:
-#   NEEDED      libX11.so.6
-#   NEEDED      libpng12.so.0
-#   NEEDED      libcups.so.2
-#   NEEDED      libImlib2.so.1
-#   NEEDED      libfreetype.so.6
-#   NEEDED      libz.so.1
-#   NEEDED      libXext.so.6
 
  ## The stuff in NEED can be checked with pkg-config. Not all libraries
  ## can be checked this way! (notably cups, apparently)
-#NEED='x11 cupsys freetype2 imlib2 xext'
 NEED='x11  freetype2  harfbuzz'
-if [ x$USEIMLIB != x ] ; then NEED="$NEED imlib2"; fi
-if [ x$USECAIRO != x ] ; then NEED="$NEED cairo"; fi
+if [ x$USEIMLIB != x ] ;          then NEED="$NEED imlib2";           fi
+if [ x$USECAIRO != x ] ;          then NEED="$NEED cairo";            fi
 if [ x$USEGRAPHICSMAGICK != x ] ; then NEED="$NEED GraphicsMagick++"; fi
 NUM='1'
 
@@ -240,7 +233,8 @@ for NAME in $NEED; do
 done
 #echo NUM=$NUM
 
-OPTIONAL='sqlite3'
+OPTIONAL=''
+if [ x$USESQLITE != x ] ; then OPTIONAL="$OPTIONAL sqlite3"; fi
 for NAME in $OPTIONAL; do
     echo -n Checking for $NAME......;
     if [ "`pkg-config --exists --print-errors --errors-to-stdout $NAME`"xxx != "xxx" ] ; then 
@@ -288,8 +282,12 @@ fi
 if [ x$USEGRAPHICSMAGICK != x ] ; then
 	EXTRA_CFLAGS="$EXTRA_CFLAGS `pkg-config --cflags GraphicsMagick++`";
 	EXTRA_LIBS="$EXTRA_LIBS `pkg-config --libs GraphicsMagick++`";
+	LAXKIT_PC_LIBS="$LAXKIT_PC_LIBS GraphicsMagick++"
 fi
 
+if [ x$USEXLIB != x ] ; then
+	EXTRA_LIBS="$EXTRA_LIBS -lXft"
+fi
 
 
 #
@@ -304,11 +302,10 @@ echo "" >> laxkit.pc
 echo "Name: laxkit" >> laxkit.pc
 echo "Version: $LAXKITVERSION" >> laxkit.pc
 echo "Description: C++ Window Library" >> laxkit.pc
-echo "Requires: GraphicsMagick++ harfbuzz >= 2.0 cairo config" >> laxkit.pc
-echo "Libs: -L\${libdir} -llaxinterfaces -llaxkit -lsqlite3 -lharfbuzz -lfontconfig -lXext -lXi -lXrandr -lcrypto" >> laxkit.pc
+echo "Requires: harfbuzz >= 2.0 fontconfig $OPTIONALLIBS $NEED" >> laxkit.pc
+echo "Libs: -L\${libdir} -llaxinterfaces -llaxkit -lXext -lXi -lXrandr -lcrypto" >> laxkit.pc
 echo "Cflags: -I\${includedir}" >> laxkit.pc
 fi
-
 
 
 
@@ -399,10 +396,11 @@ echo \
   Lax Config dir:  $LAXKITCONFIGDIR
     Install here:  $PREFIX
 " >> config.log
-if [ x$USEXINPUT2 != x ] ; 
-then echo "        Use XInput2:  yes" >> config.log; 
-else echo "        Use XInput2:  no"  >> config.log; 
-fi
+
+#if [ x$USEXINPUT2 != x ] ; 
+#then echo "        Use XInput2:  yes" >> config.log; 
+#else echo "        Use XInput2:  no"  >> config.log; 
+#fi
 if [ x$USEGRAPHICSMAGICK != x ] ; 
 then echo " Use GraphicsMagick:  yes" >> config.log; 
 else echo " Use GraphicsMagick:  no"  >> config.log; 
@@ -441,10 +439,11 @@ echo "----------------------------------------"
 echo "     Laxkit version:  $LAXKITVERSION"
 echo "     Lax Config dir:  $LAXKITCONFIGDIR"
 echo "       Install here:  $PREFIX"
-if [ x$USEXINPUT2 != x ] ; 
-then echo "        Use XInput2:  yes"; 
-else echo "        Use XInput2:  no"; 
-fi
+
+#if [ x$USEXINPUT2 != x ] ; 
+#then echo "        Use XInput2:  yes"; 
+#else echo "        Use XInput2:  no"; 
+#fi
 if [ x$USEGRAPHICSMAGICK != x ] ; 
 then echo " Use GraphicsMagick:  yes"; 
 else echo " Use GraphicsMagick:  no" ; 

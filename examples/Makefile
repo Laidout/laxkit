@@ -20,9 +20,9 @@ endif
 
 
 LD=g++
-LDFLAGS= -L/usr/X11R6/lib -L$(LAXDIR) -L$(LAXIDIR) -lX11 -lm -lcairo `pkg-config --libs freetype2` `imlib2-config --libs` -lfontconfig -lXext -lXi -lXft -lXrandr -lcrypto -lharfbuzz $(OPTIONALLIBS) $(EXTRA_LAX_LIBS)
+LDFLAGS= -L$(LAXDIR) -L$(LAXIDIR) -llaxkit -llaxinterfaces `pkg-config --libs ../laxkit.pc` $(EXTRA_LAX_LIBS)
 DEBUGFLAGS= -g -gdwarf-2
-CPPFLAGS= $(DEBUGFLAGS) -I$(LAXDIR)/.. -std=c++11 `pkg-config --cflags freetype2`
+CPPFLAGS= $(DEBUGFLAGS) -I$(LAXDIR)/.. -std=c++11 `pkg-config --cflags ../laxkit.pc`
 
 
 
@@ -47,7 +47,8 @@ interfs2: lax laxinterface interfs2.o
 	$(LD) interfs2.o normalinterface.o joininterface.o -llaxinterfaces -llaxkit $(LDFLAGS) -o $@
 
 laxhello: lax laxinterface laxhello.cc laxhello.o
-	$(LD) $@.o -llaxinterfaces -llaxkit $(LDFLAGS) -o $@
+	$(LD) $@.o  $(LDFLAGS) -o $@
+	#$(LD) $@.o -llaxinterfaces -llaxkit $(LDFLAGS) -o $@
 
 widgets: lax laxinterface widgets.cc widgets.o
 	$(LD) $@.o -llaxkit $(LDFLAGS) -o $@
