@@ -517,13 +517,13 @@ long Utf8String::Findr(unsigned int ch, int startat)
 
 /*! Replace occurences of oldstr with newstr.
  */
-int Utf8String::Replace(const char *new_str, const char *oldstr, bool all)
+int Utf8String::Replace(const char *oldstr, const char *newstr, bool all)
 {
 	if (!s || isblank(oldstr)) return 0;
 
 	char *news;
-	if (all) news = replaceall(s, oldstr, new_str);
-	else news = replacefirst(s, oldstr, new_str);
+	if (all) news = replaceall(s, oldstr, newstr);
+	else news = replacefirst(s, oldstr, newstr);
 	delete[] s;
 	s = news;
 	num_bytes = strlen(s);

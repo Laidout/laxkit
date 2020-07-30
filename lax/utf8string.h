@@ -93,7 +93,7 @@ class Utf8String
 	void Prepend(const Utf8String &str);
 	void Prepend(const char *str);
 	void InsertAt(const char *str, int byte_index);
-	int Replace(const char *newstr, const char *oldstr, bool all);
+	int Replace(const char *oldstr, const char *newstr, bool all);
 	int Erase(long from, long to);
 	void Trim();
 	void LTrim();
