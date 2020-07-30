@@ -592,30 +592,31 @@ char *replace(char *&dest,const char *data,int s,int e,int *newe)
  * *** should probably rewrite to reallocate once.. means counting occurences of old, then substituting.
  *
  * \todo **** this needs work and testing
- *
- * *** maybe have option to replace dest rather than return new?
  */
 char *replaceall(const char *dest,const char *old,const char *newn,int s,int e)//s=0,e=-1
 {
-	if (!dest) return NULL;
-	if (s<0) s=0;
-	if (e<s || e>=(int)strlen(dest)) e=strlen(dest)-1;
+	if (!dest) return nullptr;
+	if (s < 0) s = 0;
+	if (e < s || e >= (int)strlen(dest)) e = strlen(dest) - 1;
 
-	char *ndest=NULL;
-	const char *p=dest+s,*f=p;
-	if (s) ndest=newnstr(dest,s);
-	while (p-dest<e+1) {
-		f=strstr(p,old);
-		if (!f || f-dest+(int)strlen(old)>e+1) { break; }
-		if (f-p) appendnstr(ndest,p,f-p);
-		appendstr(ndest,newn);
-		p=f+strlen(old);
+	char *ndest = nullptr;
+	const char *p = dest + s, *f = p;
+	if (s) ndest = newnstr(dest,s);
+	while (p - dest < e + 1) {
+		f = strstr(p, old);
+		if (!f || f - dest + (int)strlen(old) > e + 1) {
+			break;
+		}
+		if (f - p) appendnstr(ndest, p, f - p);
+		appendstr(ndest, newn);
+		p = f + strlen(old);
 	}
-	appendstr(ndest,p);
+	appendstr(ndest, p);
 	return ndest;
 }
 
-/*! Return new char[].
+/*! Replace first occurrence of old with nstr.
+ * Returns new char[].
  */
 char *replacefirst(const char *str, const char *old, const char *nstr)
 {
