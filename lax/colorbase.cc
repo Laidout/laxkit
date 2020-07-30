@@ -24,6 +24,8 @@
 #include <lax/colorspace.h>
 #include <lax/misc.h>
 #include <lax/colors.h>
+#include <lax/strmanip.h>
+
 
 #include <iostream>
 using namespace std;
@@ -280,6 +282,22 @@ void ColorBase::CieLab(double *lab)
 void ColorBase::XYZ(double *xyz)
 {  xyz[0]=X(); xyz[1]=Y(); xyz[2]=Z(); }
 
+
+bool ColorBase::Parse(const char *buffer, int len, const char **endptr)
+{
+	ScreenColor scolor;
+	double d[5];
+	if (len < 0) len = strlen(buffer);
+	if (len == 0) return false;
+	char *buf = newnstr(buffer,len);
+	bool status = (LaxFiles::SimpleColorAttribute(buf, d, endptr) == 0);
+	if (status) {
+		//success!
+		SetRGB(d[0], d[1], d[2], d[3]);
+	}
+	delete buf;
+	return status;
+}
 
 /*! Return an 8 bit per channel hex argb value in format "#AARRGGBB".
  *

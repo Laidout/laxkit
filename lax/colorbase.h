@@ -76,8 +76,8 @@ class ColorBase
 	virtual void HSL(double *hsl);
 	virtual void CieLab(double *lab);
 	virtual void XYZ(double *xyz);
-	
 
+	virtual bool Parse(const char *buffer, int len, const char **endptr);
 	virtual char *HexValue(char *buffer);
 	virtual int SetHexValue(const char *hex);
 
