@@ -109,6 +109,8 @@ class Path : public LaxFiles::DumpUtility, public Laxkit::DoubleBBox
 	virtual ~Path();
 	virtual Path *duplicate();
 	virtual void FindBBox();
+	virtual void FindBBoxBase(DoubleBBox *ret);
+	virtual void FindBBoxWithWidth(DoubleBBox *ret);
 	virtual void ComputeAABB(const double *transform, DoubleBBox &box);
 
 	 //building functions
@@ -192,6 +194,8 @@ class PathsData : virtual public SomeData
 	virtual ~PathsData();
 	virtual const char *whattype() { return "PathsData"; }
 	virtual void FindBBox();
+	virtual void FindBBoxBase(DoubleBBox *ret);
+	virtual void FindBBoxWithWidth(DoubleBBox *ret);
 	virtual void ComputeAABB(const double *transform, DoubleBBox &box);
 	virtual SomeData *duplicate(SomeData *dup);
 
@@ -215,7 +219,7 @@ class PathsData : virtual public SomeData
 	virtual void append(double x,double y,unsigned long flags=POINT_VERTEX,SegmentControls *ctl=NULL,int whichpath=-1);
 	virtual void append(flatpoint p,unsigned long flags=POINT_VERTEX,SegmentControls *ctl=NULL,int whichpath=-1);
 	virtual void appendRect(double x,double y,double w,double h,SegmentControls *ctl=NULL,int whichpath=-1);
-	virtual void appendEllipse(flatpoint center, double xradius, double yradius, double angle, int num_vertices, bool closed);
+	virtual void appendEllipse(flatpoint center, double xradius, double yradius, double angle, double offset, int num_vertices, int closed);
 	virtual void appendBezArc(flatpoint center, double angle, int num_vertices);
 	virtual void appendSvg(const char *d);
 	virtual void moveTo(flatpoint p,int whichpath=-1);

@@ -957,7 +957,18 @@ void Path::UpdateWidthCache()
  */
 void Path::UpdateCache()
 {
-	if (needtorecache==0) return;
+	if (needtorecache == 0) return;
+
+	cache_angle .Reset(true); //removes all points and leaves blank
+	cache_offset.Reset(true);
+	cache_width .Reset(true);
+	outlinecache.flush();
+	centercache .flush();
+
+	cache_top   .flush();
+	cache_bottom.flush();
+
+	if (!path) return;
 	//if (!Weighted()) { needtorecache=0; return; } // *** always create cache, as custom joins and caps must be dealt with
 
 
@@ -976,15 +987,6 @@ void Path::UpdateCache()
 
 	bool hasangle=Angled();
 	bool hasoffset=HasOffset();
-
-	cache_angle .Reset(true); //removes all points and leaves blank
-	cache_offset.Reset(true);
-	cache_width .Reset(true);
-	outlinecache.flush();
-	centercache .flush();
-
-	cache_top   .flush();
-	cache_bottom.flush();
 
 	Coordinate *p2, *start=p;
 	flatpoint wtop,wbottom;
@@ -1426,58 +1428,85 @@ void Path::UpdateCache()
 //! Sets DoubleBBox::minx,etc.
 void Path::FindBBox()
 {
-	DoubleBBox::clear();
+	DoubleBBox::ClearBBox();
 	if (!path) return;
-
-	Coordinate *p=NULL,*t,*start;
-
 
 	if (Weighted()) {
 		UpdateCache();
 		addtobounds(outlinecache.e, outlinecache.n);
 
 	} else {
-
-		 // First find a vertex point
-		start=t=path->firstPoint(1);
-		if (!(t->flags&POINT_VERTEX)) return;//only mysterious control points
-
-		addtobounds(t->p());
-
-		 // step through all the rest of the vertices
-		flatpoint c1,c2;
-		while (t) {
-			p=t->next;
-			if (!p || p==start) break;
-
-			if (p->flags&POINT_VERTEX) {
-				 //simple case, just a line segment
-				addtobounds(p->p());
-				t=p;
-				continue;
-			}
-			 //else assume bez, find 1st control
-			if (p->flags&POINT_TOPREV) {
-				c1=p->p(); 
-				p=p->next;
-				if (!p) break;
-			} else c1=t->p();
-
-			 //find second control
-			if (p->flags&POINT_TONEXT) {
-				c2=p->p(); 
-				p=t->nextVertex();
-				if (!p) break;
-			} else {
-				p=t->nextVertex();
-				c2=p->p();
-			}
-
-			bez_bbox(t->p(),c1,c2,p->p(), this, NULL);
-
-			t=p;
-			if (t==start) break;
+		FindBBoxBase(this);
+		if (linestyle) {
+			ExpandBounds(linestyle->width);
 		}
+	}
+}
+
+void Path::FindBBoxBase(DoubleBBox *ret)
+{
+	if (!ret) ret = this;
+	ret->ClearBBox();
+	if (!path) return;
+
+	Coordinate *p=NULL,*t,*start;
+
+	 // First find a vertex point
+	start = t = path->firstPoint(1);
+	if (!(t->flags & POINT_VERTEX)) return;//path contains only mysterious control points
+
+	ret->addtobounds(t->p());
+
+	 // step through all the rest of the vertices
+	flatpoint c1,c2;
+	while (t) {
+		p=t->next;
+		if (!p || p==start) break;
+
+		if (p->flags&POINT_VERTEX) {
+			 //simple case, just a line segment
+			ret->addtobounds(p->p());
+			t=p;
+			continue;
+		}
+		 //else assume bez, find 1st control
+		if (p->flags&POINT_TOPREV) {
+			c1=p->p(); 
+			p=p->next;
+			if (!p) break;
+		} else c1=t->p();
+
+		 //find second control
+		if (p->flags&POINT_TONEXT) {
+			c2=p->p(); 
+			p=t->nextVertex();
+			if (!p) break;
+		} else {
+			p=t->nextVertex();
+			c2=p->p();
+		}
+
+		bez_bbox(t->p(),c1,c2,p->p(), ret, NULL);
+
+		t=p;
+		if (t==start) break;
+	}
+}
+
+void Path::FindBBoxWithWidth(DoubleBBox *ret)
+{
+	if (!ret) ret = this;
+	ret->ClearBBox();
+	if (!path) return;
+
+	if (!Weighted()) {
+		FindBBoxBase(ret);
+		if (linestyle) {
+			ret->ExpandBounds(linestyle->width);
+		}
+	} else {
+		UpdateCache();
+		ret->addtobounds(outlinecache.e, outlinecache.n);
 	}
 }
 
@@ -3189,6 +3218,7 @@ int PathsData::MakeStraight(int whichpath, Coordinate *from, Coordinate *to, boo
  */
 void PathsData::clear(int which)
 {
+	touchContents();
 	if (which==-1) {
 		paths.flush();
 		return;
@@ -3519,39 +3549,45 @@ Coordinate *PathsData::LastVertex()
 	return paths.e[paths.n-1]->lastPoint(1);
 }
 
-/*! Create a circular arc, with center, and last point determines radius.
- * Sweep out angle radians. Add at least one new vertex point, and 
- * associated control points.
+/*! Create an ellipse, using num_vertices to sweep out angle radians.
+ * If closed == 1, then close. if closed == 2, then close, but include center point.
  */
-void PathsData::appendEllipse(flatpoint center, double xradius, double yradius, double angle, int num_vertices, bool closed)
+void PathsData::appendEllipse(flatpoint center, double xradius, double yradius, double angle, double offset, int num_vertices, int closed)
 {
-	if (num_vertices<1) num_vertices=1;
+	if (num_vertices<1) num_vertices = 1;
+	if (angle == 0) angle = 2*M_PI;
 
 	//if (closed) num_vertices++;
 
     double xx,yy;
-	flatpoint cp,p,cn;
+	flatpoint cp, p, cn;
 
-	double start_angle=atan2(p.y,p.x);
-	double theta=angle/(num_vertices); //radians between control points
-    double v=4*(2*sin(theta/2)-sin(theta))/3/(1-cos(theta)); //length of control handle
+	double start_angle = offset + angle;
+	double theta = angle / (num_vertices);                              // radians between control points
+	double v = 4 * (2 * sin(theta / 2) - sin(theta)) / 3 / (1 - cos(theta));  // length of control handle
 
 	flatpoint xv(xradius,0);
 	flatpoint yv(0,yradius);
 
-    for (int c=0; c<num_vertices; c++) {
-        xx=cos(start_angle + c*theta);
-        yy=sin(start_angle + c*theta);
+    if (closed == 2) append(center);
 
-        p = center +    xx*xv +    yy*yv;
-        cp=   p    +  v*yy*xv + -v*xx*yv;
-        cn=   p    + -v*yy*xv +  v*xx*yv;
+    for (int c=0; c<num_vertices; c++) {
+        xx = cos(start_angle + c*theta);
+        yy = sin(start_angle + c*theta);
+
+        p  = center +    xx*xv +    yy*yv;
+        cp =   p    +  v*yy*xv + -v*xx*yv;
+        cn =   p    + -v*yy*xv +  v*xx*yv;
 
 		//if (closed && c==num_vertices-1) break;
-		append(cp,POINT_TONEXT);
+		if (!closed || (closed && c != 0) || (closed && c == 0 && (angle == 0 || angle == 2*M_PI)))
+			append(cp,POINT_TONEXT);
 		append(p,POINT_VERTEX);
-		append(cn,POINT_TOPREV);
+		if (!closed || (closed && c < num_vertices-1) || (closed && c == num_vertices-1 && (angle == 0 || angle == 2*M_PI)))
+			append(cn,POINT_TOPREV);
     }
+
+    if (closed) close();
 }
 
 /*! Create a circular arc, with center, and last point determines radius.
@@ -3761,14 +3797,45 @@ int PathsData::hasCoord(Coordinate *co)
 //! Sets SomeData::minx,etc, based on the union of all the paths.
 void PathsData::FindBBox()
 {
-	DoubleBBox::clear();
+	DoubleBBox::ClearBBox();
 	if (paths.n==0) return;
 
 	for (int c=0; c<paths.n; c++) {
-
 		if (!paths.e[c] || !paths.e[c]->path) continue;
 		paths.e[c]->FindBBox();
 		addtobounds(paths.e[c]);
+	}
+}
+
+//! Sets SomeData::minx,etc, based on the union of all the paths.
+void PathsData::FindBBoxBase(DoubleBBox *ret)
+{
+	if (ret == nullptr) ret = this;
+	ret->ClearBBox();
+	if (paths.n==0) return;
+
+	DoubleBBox b;
+	for (int c=0; c<paths.n; c++) {
+		if (!paths.e[c] || !paths.e[c]->path) continue;
+		b.ClearBBox();
+		paths.e[c]->FindBBoxBase(&b);
+		ret->addtobounds(&b);
+	}
+}
+
+void PathsData::FindBBoxWithWidth(DoubleBBox *ret)
+{
+	if (ret == nullptr) ret = this;
+
+	ret->ClearBBox();
+	if (paths.n==0) return;
+
+	DoubleBBox b;
+	for (int c=0; c<paths.n; c++) {
+		if (!paths.e[c] || !paths.e[c]->path) continue;
+		b.ClearBBox();
+		paths.e[c]->FindBBoxWithWidth(&b);
+		ret->addtobounds(&b);
 	}
 }
 
@@ -4702,8 +4769,9 @@ int PathInterface::Refresh()
 	} else if (hasfill || hasstroke) { //used for default system fill/stroke
 		for (int cc=0; cc<data->paths.n; cc++) {
 			// position p to be the first point that is a vertex
-			pdata=data->paths.e[cc];
-			p=pdata->path->firstPoint(1);
+			pdata = data->paths.e[cc];
+			if (!pdata->path) continue;
+			p = pdata->path->firstPoint(1);
 			if (!(p->flags&POINT_VERTEX)) { // is degenerate path: no vertices
 				DBG cerr <<"Degenerate path (shouldn't happen!)"<<endl;
 				continue;
@@ -4794,9 +4862,13 @@ int PathInterface::Refresh()
 
 		for (int cc=0; cc<data->paths.n; cc++) {
 			// position p to be the first point that is a vertex
-			pdata=data->paths.e[cc];
-			p=pdata->path->firstPoint(1);
-			start=p;
+			pdata = data->paths.e[cc];
+			if (!pdata->path) {
+				DBG cerr <<"Degenerate path (shouldn't happen!)"<<endl;
+				continue;
+			}
+			p = pdata->path->firstPoint(1);
+			start = p;
 
 			if (!(p->flags&POINT_VERTEX)) { // is degenerate path: no vertices
 				DBG cerr <<"Degenerate path (shouldn't happen!)"<<endl;
