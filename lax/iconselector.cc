@@ -47,11 +47,15 @@ namespace Laxkit {
  */
 IconBox::IconBox(const char *nlabel,LaxImage *img,int nid)
 	: SelBox(nid)
-{ 
-	id=nid;
-	label=NULL;
-	image=bwimage=NULL;
-	SetBox(nlabel,img,NULL);
+{
+	id    = nid;
+	label = nullptr;
+	image = bwimage = nullptr;
+	use_thing = false;
+	manual_size = false; // else use actual icon size. things always use manual size
+	img_w = img ? img->w() : 10;
+	img_h = img ? img->h() : 10;
+	SetBox(nlabel, img, nullptr);
 }
 
 //! Destructor, deletes the label, and calls dec_count() on image and bwimage.
@@ -65,19 +69,19 @@ IconBox::~IconBox()
 //! Set the label and images to the given label and images.
 /*! Return 0 on success. This does not alter the metric info.
  *
- * Does NOT Call inc_count() on the new images, but DOES call dec_count()
+ * Takes img and bw, so does NOT Call inc_count() on the new images, but DOES call dec_count()
  * on the old image and bwimage.
  */
 int IconBox::SetBox(const char *nlabel,LaxImage *img,LaxImage *bw) 
 {
-	makestr(label,nlabel);
-	if (image) image->dec_count(); 
+	makestr(label, nlabel);
+	if (image) image->dec_count();
 	if (bwimage) bwimage->dec_count();
-	image=bwimage=NULL;
-	
-	bwimage=bw;
-	image=img;
-	
+	image = bwimage = NULL;
+
+	bwimage = bw;
+	image   = img;
+
 	return 0;
 }
 
@@ -145,25 +149,27 @@ void IconSelector::FillBox(IconBox *b,const char *nlabel,LaxImage *img,int nid)
 	if (!b) return;
 
 	 // get icons and set w,h
-	int iw=0,ih=0;
+	int iw = 0, ih = 0;
 	if (img) {
-		b->image=img;
-		iw=b->image->w();
-		ih=b->image->h();
-		//if (makebw) ; //*** make the black and white version
+		b->image = img;
+		if (labelstyle != LAX_TEXT_ONLY) {
+			iw = b->image->w();
+			ih = b->image->h();
+		}
+		// if (makebw) ; //*** make the black and white version
 	}
-	
-	double tw=0,th=0;
-	if (nlabel) tw = win_themestyle->normal->Extent(nlabel,-1,&tw,&th,NULL,NULL) + 2*padg;
-	
-	b->w(tw+iw);
-	b->pw(tw+iw);
-	b->h(th>ih?th:ih);
-	b->ph(th>ih?th:ih);
-	b->id=nid;
-	makestr(b->label,nlabel);
 
-	b->pad=bevel;
+	double tw=0,th=0;
+	if (nlabel && labelstyle != LAX_ICON_ONLY) tw = win_themestyle->normal->Extent(nlabel,-1,&tw,&th,NULL,NULL) + 2*padg;
+
+	b->w (tw + iw);
+	b->pw(tw + iw);
+	b->h (th > ih ? th : ih);
+	b->ph(th > ih ? th : ih);
+	b->id = nid;
+	makestr(b->label, nlabel);
+
+	b->pad = bevel;
 }
 
 //! Just returns AddBox(NULL,load_image(filename),makebw).
@@ -172,7 +178,7 @@ int IconSelector::AddBox(const char *nlabel,const char *filename,int nid)
 	return AddBox(NULL, ImageLoader::LoadImage(filename),nid);
 }
 
-//! Add box and return its index.
+//! Add box and return its index. img is taken, not inc_counted.
 /*! This calls FillBox to set the new boxes elements.
  */
 int IconSelector::AddBox(const char *nlabel,LaxImage *img,int nid)

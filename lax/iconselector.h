@@ -38,6 +38,11 @@ class IconBox : public SelBox
 {
   public:
 	char *label;
+	int thing;
+	bool use_thing;
+	bool manual_size;
+	int img_w; //sep from w(),h() since those are for displayed box, not possible sizes
+	int img_h;
 	LaxImage *image;
 	LaxImage *bwimage;
 
