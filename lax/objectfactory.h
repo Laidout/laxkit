@@ -70,6 +70,7 @@ class ObjectFactory : public anObject
 	virtual ~ObjectFactory() {}
 	virtual const char *whattype() { return "ObjectFactory"; }
 	virtual int findPosition(const char *name, int *exists);
+	virtual int FindType(const char *name);
 	virtual int DefineNewObject(int newid, const char *newname, NewObjectFunc newfunc,DelObjectFunc delfunc, int param=0);
 
 	virtual anObject *NewObject(const char *objtype, anObject *refobj=NULL);

@@ -98,6 +98,16 @@ int ObjectFactory::DefineNewObject(int newid, const char *newname, NewObjectFunc
 	return types.push(node,1,i);
 }
 
+/*! Return index in list of name, or -1 if not found.
+ */
+int ObjectFactory::FindType(const char *name)
+{
+	int exists = 0;
+	int c = findPosition(name, &exists);
+	if (exists) return c;
+	return -1;
+}
+
 /*! Assuming types is sorted, do a binary search for name.
  * If not actually there, return index where it would be.
  */
