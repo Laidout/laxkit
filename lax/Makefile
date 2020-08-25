@@ -139,6 +139,7 @@ objs= \
 	boxselector.o \
 	iconselector.o \
 	tabframe.o \
+	draggableframe.o \
 	buttonbase.o \
 	button.o \
 	imageinfo.o \
