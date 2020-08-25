@@ -213,8 +213,8 @@ void GroupData::FindBBox()
 //! Check the point against all objs.
 int GroupData::pointin(flatpoint pp,int pin)
 { 
-	if (!kids.n) return 0;
 	if (!Selectable()) return 0;
+	if (!kids.n) return SomeData::pointin(pp,pin);
 
 	flatpoint p(((pp-origin())*xaxis())/(xaxis()*xaxis()), 
 		        ((pp-origin())*yaxis())/(yaxis()*yaxis()));
