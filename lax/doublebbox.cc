@@ -44,7 +44,7 @@ namespace Laxkit {
 /*! \fn void DoubleBBox::setbounds(double mix,double max,double miy,double may)
  * \brief Set the bounds to the specified values. 
  */
-/*! \fn void DoubleBBox::clear()
+/*! \fn void DoubleBBox::ClearBBox()
  * \brief Make box invalid: set minx=miny=0 and maxx=maxy=-1. 
  */
 /*! \fn double DoubleBBox::boxwidth() 
