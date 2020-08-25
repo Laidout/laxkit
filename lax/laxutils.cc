@@ -1370,6 +1370,18 @@ double MaxExtent(LaxFont *font, ...)
 	return max;
 }
 
+double MaxExtent(const char **strs, int n, LaxFont *font)
+{
+	double max = 0, w;
+
+    for (int c=0; c<n; c++) {
+    	const char *str = strs[c];
+    	if (!str) continue;
+    	w = font->Extent(str, -1);
+    	if (w > max) max = w;
+	}
+	return max;
+}
 
 
 /*! @} */
