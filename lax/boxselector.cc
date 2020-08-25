@@ -304,7 +304,7 @@ int BoxSelector::send()
  */
 void BoxSelector::Refresh()
 {
-	if (!needtodraw || !wholelist.n || !win_on) return;
+	if (!needtodraw || !wholelist.n || !win_on) { needtodraw = 0; return; }
 	if (arrangedstate!=1) sync();
 
 	MakeCurrent();
