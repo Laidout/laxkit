@@ -297,7 +297,7 @@ void SimplePathData::FindBBox()
 {
     //compute bounds in minx,maxx, miny,maxy.
 
-	DoubleBBox::clear(); 
+	ClearBBox(); 
 
 	for (int c=0; c<mpoints.n; c++) {
 		addtobounds(mpoints.e[c]->p);

@@ -105,23 +105,19 @@ namespace LaxInterfaces {
  */
 SomeData::SomeData()
 {
-	//***if (defaultNewSomeDataFunc!=NULL) defaultNewSomeDataFunc(this);
-		
-	preview    = NULL;
 	usepreview = 0;
-	previewtime= 0;
-	modtime    = 0;
 	modified   = 0;
 
-	locks=0; 
-	visible=true;
-	selectable=true;
+	locks      = 0;
+	visible    = true;
+	selectable = true;
 
-	minx=maxx=miny=maxy=0;
-	bboxstyle=0;
-	flags=0;
-	iid=0;
-	nameid=NULL;
+	minx = maxx = miny = maxy = 0;
+
+	bboxstyle = 0;
+	flags     = 0;
+	iid       = 0;
+	nameid    = NULL;
 
 	DBG cerr <<"SomeData "<<object_id<<" created, count=1"<<endl;
 }
@@ -131,30 +127,24 @@ SomeData::SomeData()
  */
 SomeData::SomeData(double nminx,double nmaxx,double nminy,double nmaxy)
 {
-	//***if (defaultNewSomeDataFunc!=NULL) defaultNewSomeDataFunc(this);
-		
-	preview=NULL;
-	usepreview=0;
-	previewtime=0;
-	modtime=0;
+	usepreview = 0;
 
-	locks=0; 
-	visible=true;
-	selectable=true;
+	locks      = 0;
+	visible    = true;
+	selectable = true;
 
-	setbounds(nminx,nmaxx,nminy,nmaxy);
-	bboxstyle=0;
-	iid=0;
-	flags=0;
-	nameid=NULL;
+	setbounds(nminx, nmaxx, nminy, nmaxy);
+	bboxstyle = 0;
+	iid       = 0;
+	flags     = 0;
+	nameid    = NULL;
 
 	DBG cerr <<"SomeData "<<object_id<<" created, count=1"<<endl;
 }
 
 SomeData::~SomeData()
 {
-	if (preview) preview->dec_count();
-	if (nameid) delete[] nameid;
+	delete[] nameid;
 }
 
 /*! If nameid is blank, then try to create a unique one.
@@ -280,80 +270,111 @@ int SomeData::renderToBuffer(unsigned char *buffer, int bufw, int bufh, int bufs
 }
 
 /*! Render the object to an existing image.
- * .
+ * 
  *  This draws onto buffer such that the object's whole bounding box maps to the whole image.
  *
  * This is currently used to create screen previews.
  * 
- * Default here is just a do nothing placeholder, and only returns 1.
- * On success, it should return 0.
+ * Default here uses InterfaceManager::GetDefault()->DrawDataStraight(), returning > 0 for error,
+ * or 0 on success.
  */
 int SomeData::renderToBufferImage(LaxImage *image)
 {
-	return 1;
+	if (!image) return 1;
+	if (maxx-minx<=0 || maxy-miny<=0) return 2;
+	if (image->w()<=0 || image->h()<=0) return 3;
+
+	DBG cerr <<"^v^v^v^v^V^v^v^v^v SomeData::renderToBufferImage preview image size: "<<image->w()<<" x "<<image->h()<<endl;
+
+	InterfaceManager *imanager = InterfaceManager::GetDefault(true);
+	Displayer *dp = imanager->GetPreviewDisplayer();
+
+
+	if (dp->MakeCurrent(image) != 0) return 3;
+	dp->ClearTransparent();
+
+	DBG dp->NewFG(0.0,1.0,0.0);
+	//DBG dp->NewTransform(1,0,0,1,0,0);
+	//DBG dp->drawline(0,image->h(), image->w(),0);
+	//DBG dp->NewFG(1.0,1.0,1.0);
+	//DBG dp->drawline(minx,miny, maxx,maxy);
+
+	dp->NewTransform(image->w()/(maxx-minx), 0, 0, -image->h()/(maxy-miny), -minx*image->w()/(maxx-minx), image->h()*(1+miny/(maxy-miny)));
+	//DBG dp->NewFG(1.0,0.0,1.0);
+	//DBG dp->drawline(0,image->h(), image->w(),0);
+
+	int oldusepreview = usepreview;
+	usepreview = 0;
+	imanager->DrawDataStraight(dp, this, NULL,NULL, 0);
+
+	//DBG dp->NewFG(1.0,0.0,1.0);
+	//DBG dp->DrawScreen();
+	//DBG dp->LineWidthScreen(2);
+	//DBG dp->drawline(dp->realtoscreen(minx,miny), dp->realtoscreen(maxx,maxy));
+	//DBG dp->drawline(dp->realtoscreen(minx,maxy), dp->realtoscreen(maxx,miny));
+	//DBG dp->DrawReal();
+
+	//DBG save_image(image, "DBG.png", "png");
+
+	usepreview = oldusepreview;
+	return 0;
 }
 
 //! Create a preview image with transparency for a cached screen preview.
-/*! This will return immediately if usepreview!=1 or the bounds are not valid.
+/*! Will create regardless of usepreview. 
+ *  This will return immediately if the bounds are not valid.
  *  If w or h are less than or equal to 0, then use default or previous values for them.
  *  The default is to fit within a box 200x200, with aspect approximately the same
  *  as the object's bounding box.
  *
  *  Subclasses need not redefine this function. They need only redefine renderToBuffer().
  */
-int SomeData::GeneratePreview(int w,int h)
+int SomeData::GeneratePreview(int maxdim)
 {
-	if (usepreview!=1 || maxx<minx || maxy<miny)
+	if (maxx <= minx || maxy <= miny) //bad bounds so return
 		return (previewtime >= modtime);
 
 	DBG cerr <<"...SomeData::GeneratePreview()"<<endl;
 
-	if (preview) {
-		if (w<=0 && h<=0) {
-			w=preview->w();
-			h=preview->h();
-		} 
-		 //make the desired preview dimensions approximately sympatico with
-		 //the actual dimensions of the object
-		if ((w>h && (maxx-minx)<(maxy-miny))) h=0;
-		else if ((w<h && (maxx-minx)>(maxy-miny))) w=0;
-	}
 
-	int maxdim=500;
-	InterfaceManager *im=InterfaceManager::GetDefault(true);
+	if (maxdim <= 0) maxdim = 500;
+	InterfaceManager *im = InterfaceManager::GetDefault(true);
 	if (im) maxdim = im->PreviewSize();
 
-	if (w<=0 && h<=0) {
-		if (im) { if (maxx-minx>maxy-miny) w=im->PreviewSize(); else h=im->PreviewSize(); }
-		else { if (maxx-minx>maxy-miny) w=200; else h=200; }
-	}
-	if (w<=0 && h>0) w=(maxx-minx)*h/(maxy-miny);
-	else if (w>0 && h<=0) h=(maxy-miny)*w/(maxx-minx);
+	int w = 0;
+	int h = 0;
 
-	if (w<=0) w=1;
-	if (h<=0) h=1;
-
-	 //protect against growing sizes...
-	if (w>maxdim) {
-		double aspect=(double)h/w;
-		w=maxdim;
-		h=maxdim*aspect;
-		if (h<=0) h=1;
-	}
-	if (h>maxdim) {
-		double aspect=(double)w/h;
-		h=maxdim;
-		w=maxdim*aspect;
-		if (w<=0) w=1;
+	if (maxx - minx > maxy - miny) {
+		w = maxdim;
+		h = (maxy - miny) * w / (maxx - minx);
+	} else {
+		h = maxdim;
+		w = (maxx - minx) * h / (maxy - miny);
 	}
 
+	if (w <= 0) w = 1;
+	if (h <= 0) h = 1;
+
+	// protect against growing sizes...
+	if (w > maxdim) {
+		double aspect = (double)h / w;
+		w = maxdim;
+		h = maxdim * aspect;
+		if (h <= 0) h = 1;
+	}
+	if (h > maxdim) {
+		double aspect = (double)w / h;
+		h = maxdim;
+		w = maxdim * aspect;
+		if (w <= 0) w = 1;
+	}
 
 	//if (preview && (w!=preview->w() || h!=preview->h())) {
 	if (preview && ((float)w/preview->w()>1.05 || (float)w/preview->w()<.95 ||
 					(float)h/preview->h()>1.05 || (float)h/preview->h()<.95)) {
 		 //delete old preview and make new only when changing size of preview more that 5%-ish in x or y
 		preview->dec_count(); 
-		preview=NULL;
+		preview = nullptr;
 		DBG cerr <<"removed old preview..."<<endl;
 	}
 
@@ -362,12 +383,13 @@ int SomeData::GeneratePreview(int w,int h)
 		preview = ImageLoader::NewImage(w,h);
 	} 
 
-	if (renderToBufferImage(preview)!=0) { 
+	if (renderToBufferImage(preview) != 0) { 
 		 //render direct to image didn't work, so try the old style render to char[] buffer...
 		unsigned char *buffer = preview->getImageBuffer(); 
 		renderToBuffer(buffer,w,h,w*4,8,4); 
-		if (preview->doneWithBuffer(buffer) == 0)
+		if (preview->doneWithBuffer(buffer) == 0) {
 			previewtime = time(NULL);
+		}
 
 	} else previewtime = time(NULL);
 
@@ -389,11 +411,14 @@ void SomeData::touchContents()
  */
 Laxkit::LaxImage *SomeData::GetPreview()
 {
-	if (usepreview==1) {
-		if (previewtime<modtime || !preview) GeneratePreview(-1,-1);
-		return preview;
-	}
-	return NULL;
+	// if (usepreview==1) {
+	// 	if (previewtime<modtime || !preview) GeneratePreview(-1,-1);
+	// 	return preview;
+	// }
+	// return NULL;
+
+	if (previewtime<modtime || !preview) GeneratePreview(0);
+	return preview;
 }
 
 //! Dump in an Attribute, then call dump_in_atts(thatatt,0).
@@ -719,6 +744,20 @@ SomeData *SomeData::FindCommonParent(SomeData *other)
 	}
 
 	return nullptr;
+}
+
+/*! Return the number up from *this until reaching obj.
+ * If not found, return -1.
+ */
+int SomeData::IsChildOf(SomeData *obj)
+{
+	SomeData *o = this;
+	int n = 0;
+	while (o) {
+		if (o == obj) return n;
+		o = o->GetParent();
+	}
+	return -1;
 }
 
 
