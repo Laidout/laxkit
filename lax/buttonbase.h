@@ -26,6 +26,7 @@
 #include <lax/anxapp.h>
 #include <lax/buttondowninfo.h>
 
+//these get put in ButtonBase::button_style
  // sends on LBUp up and mousein
  // it is assumes that there is only standard grayed, on, off
 #define BUTTON_MOMENTARY (1<<16)
@@ -60,6 +61,7 @@ class ButtonBase : public anXWindow
 	ButtonBase *nextbutton,*prevbutton;
 	ButtonDownInfo buttondown;
 	unsigned int button_style;
+
  public:
 	unsigned int highlight,shadow;
 	int bevel;
