@@ -2373,7 +2373,7 @@ int PatchData::renderToBuffer(unsigned char *buffer, int bufw, int bufh, int buf
 		for (coff=0; coff<xsize/3; coff++) {
 			getGt(Gtx,roff*3,coff*3,0);
 			getGt(Gty,roff*3,coff*3,1);
-			bbox.clear();
+			bbox.ClearBBox();
 			for (r=0; r<4; r++) {
 				for (c=0; c<4; c++) {
 					fp=flatpoint(Gtx[c*4+r],Gty[c*4+r]);//fp is in object space, not buffer space
@@ -3890,14 +3890,14 @@ int PatchInterface::findNearVertical(flatpoint fp,double d,double *t_ret,int *i_
 	DoubleBBox bbox;
 	int resolution=2,rrr;
 	for (c=0; c<data->xsize/3+1; c++) {
-		bbox.clear();
+		bbox.ClearBBox();
 		for (r=0; r<data->ysize; r++) {
 			p[r]=data->points[c*3 + r*data->xsize];
 			bbox.addtobounds(p[r]);
 			if (r && r%3==0) {
 				rrr=(int)(MAX(bbox.maxx-bbox.minx,bbox.maxy-bbox.miny)/d*2);
 				if (rrr>resolution) resolution=rrr;
-				bbox.clear();
+				bbox.ClearBBox();
 				bbox.addtobounds(p[r]);
 			}
 		}
@@ -3923,14 +3923,14 @@ int PatchInterface::findNearHorizontal(flatpoint fp,double d,double *t_ret,int *
 	int dd;
 	int resolution=2;
 	for (r=0; r<data->ysize/3+1; r++) {
-		bbox.clear();
+		bbox.ClearBBox();
 		for (c=0; c<data->xsize; c++) {
 			p[c]=data->points[c + 3*r*data->xsize];
 			bbox.addtobounds(p[c]);
 			if (c && c%3==0) {
 				dd=(int)(MAX(bbox.maxx-bbox.minx,bbox.maxy-bbox.miny)/d*2);
 				if (dd>resolution) resolution=dd;
-				bbox.clear();
+				bbox.ClearBBox();
 				bbox.addtobounds(p[c]);
 			}
 		}

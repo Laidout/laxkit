@@ -155,7 +155,7 @@ VoronoiData::~VoronoiData()
 
 void VoronoiData::FindBBox()
 {
-	DoubleBBox::clear();
+	DoubleBBox::ClearBBox();
 	for (int c=0; c<points.n; c++) {
 		addtobounds(points.e[c]);
 	}

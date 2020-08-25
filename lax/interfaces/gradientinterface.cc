@@ -673,7 +673,7 @@ void GradientData::FindBBox()
 	if (!strip || strip->colors.n==0) { maxx=maxy=-1; minx=miny=0; return; }
 
 	if (IsRadial()) {
-		clear();
+		ClearBBox();
 
 		addtobounds(P1()-flatpoint(fabs(R1()),0));
 		addtobounds(P1()+flatpoint(fabs(R1()),0));
@@ -689,7 +689,7 @@ void GradientData::FindBBox()
 		double mm[6];
 		GradientTransform(mm, false);
 
-		clear();
+		ClearBBox();
 		addtobounds(P1());
 		addtobounds(P2());
 		addtobounds(transform_point(mm,0, R1()));

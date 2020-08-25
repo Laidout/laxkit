@@ -110,7 +110,7 @@ TextOnPath::~TextOnPath()
 
 void TextOnPath::FindBBox()
 {
-	clear();//the bounds
+	ClearBBox();//the bounds
 	if (needtorecache) Remap();
 
 	double s;
