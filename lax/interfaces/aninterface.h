@@ -161,6 +161,9 @@ class anInterface : virtual public Laxkit::EventReceiver,
 	virtual flatpoint screentoreal(int x,int y);
 	virtual double Getmag(int c=0);
 	virtual double GetVMag(int x,int y);
+	virtual double UIScale();
+	virtual void ThemeChange(Laxkit::Theme *theme);
+	virtual void UIScaleChange();
 
 	 //input and output
 	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *savecontext);

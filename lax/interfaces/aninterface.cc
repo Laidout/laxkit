@@ -563,6 +563,20 @@ double anInterface::Getmag(int c)
 	return viewport->Getmag(c);
 }
 
+double anInterface::UIScale()
+{
+	if (curwindow) return curwindow->UIScale();
+	return 1.0;
+}
+
+void anInterface::ThemeChange(Theme *theme)
+{
+	UIScaleChange();
+}
+
+void anInterface::UIScaleChange()
+{}
+
 //! Do a little extra checking to find what the magnification is.
 /*! If curwindow is a ViewportWindow, then return same function from ViewportWindow. Otherwise
  * return the usual function from dp.
