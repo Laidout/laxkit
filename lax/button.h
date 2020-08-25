@@ -44,6 +44,14 @@ class Button : public ButtonBase
 
   public:	
 	int pad,gap,labelstyle;
+	enum IconSizeType {
+		Default,
+		Relative_To_Font,
+		Absolute_Pixels,
+		Image_pixels
+	};
+	IconSizeType icon_size_type;
+	double icon_height;
 
 	Button(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
 						int xx,int yy,int ww,int hh,int brder,

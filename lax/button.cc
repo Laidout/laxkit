@@ -77,6 +77,8 @@ Button::Button(anXWindow *parnt,const char *nname,const char *ntitle,unsigned lo
 		: ButtonBase(parnt,nname,ntitle,nstyle,xx,yy,ww,hh,brder,prev,nowner,nsendmes,nid)
 {
 	font=NULL;
+	icon_size_type = Relative_To_Font;
+	icon_height = 1.2;
 
 	pad = npad; if (pad<0) pad = app->theme->default_padx;
 	gap = npad; if (gap<0) gap = app->theme->default_padx;
@@ -88,10 +90,10 @@ Button::Button(anXWindow *parnt,const char *nname,const char *ntitle,unsigned lo
 	label = newstr(nlabel);
 	labelstyle = LAX_ICON_TEXT;
 
-	if (win_style&IBUT_TEXT_ONLY) labelstyle=LAX_TEXT_ONLY;
-	else if (win_style&IBUT_ICON_ONLY) labelstyle=LAX_ICON_ONLY;
-	else if (win_style&IBUT_ICON_TEXT) labelstyle=LAX_ICON_TEXT;
-	else if (win_style&IBUT_TEXT_ICON) labelstyle=LAX_TEXT_ICON;
+	if      (win_style & IBUT_TEXT_ONLY) labelstyle = LAX_TEXT_ONLY;
+	else if (win_style & IBUT_ICON_ONLY) labelstyle = LAX_ICON_ONLY;
+	else if (win_style & IBUT_ICON_TEXT) labelstyle = LAX_ICON_TEXT;
+	else if (win_style & IBUT_TEXT_ICON) labelstyle = LAX_TEXT_ICON;
 
 
 	if (!label && nid>=0) {
@@ -196,22 +198,22 @@ int Button::SetGraphic(int newthing, int newwidth, int newheight)
 {
 	if (image)   image  ->dec_count();
 	if (bwimage) bwimage->dec_count();
-	image=bwimage=NULL;
+	image = bwimage = NULL;
 
-	thing=newthing;
-	thingw=newwidth;
-	thingh=newheight;
-	if (thingw<=0) {
+	thing  = newthing;
+	thingw = newwidth;
+	thingh = newheight;
+	if (thingw <= 0) {
 		if (label) {
 			double th;
-			GetDisplayer()->textextent(label,-1,NULL,&th);
-			thingw=th/2;
-		}
-		else thingw = win_themestyle->normal->textheight()/2;
+			GetDisplayer()->textextent(label, -1, NULL, &th);
+			thingw = th / 2;
+		} else
+			thingw = win_themestyle->normal->textheight() / 2;
 	}
-	if (thingh<=0) thingh=thingw;
+	if (thingh <= 0) thingh = thingw;
 
-	needtodraw=1;
+	needtodraw = 1;
 	return 0;
 }
 
@@ -318,7 +320,7 @@ void Button::draw()
 		dp->textout(tx+offset.x,ty+offset.y, l,-1, LAX_LEFT|LAX_TOP);
 	}
 
-	if ((win_style&BUTTON_TOGGLE)
+	if (((win_style&BUTTON_TOGGLE) && (state != LAX_OFF || (state == LAX_ON && !(win_style&IBUT_FLAT))))
 			|| !(win_style&IBUT_FLAT)
 			|| ((win_style&IBUT_FLAT) && state!=LAX_OFF))
 		dp->drawBevel(bevel,highlight,shadow,state, 0,0, win_w,win_h);
