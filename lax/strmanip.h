@@ -27,6 +27,8 @@
 #include <cstdarg>
 
 int isblank(const char *str);
+int strcmp_safe(const char *s1, const char *s2);
+int strcasecmp_safe(const char *s1, const char *s2);
 char *itoa(int a,char *dest,int base=10); /* does not null terminate */
 char *newprintfstr(const char *fmt, ...);
 char *numtostr(int num, int par=0);

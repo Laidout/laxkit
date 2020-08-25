@@ -67,6 +67,20 @@ int isblank(const char *str) //,int n)
 	return 0;
 }
 
+/*! strcmp that doesn't crash when s1 or s2 are null.
+ */
+int strcmp_safe(const char *s1, const char *s2)
+{
+	return strcmp(s1 ? s1 : "", s2 ? s2 : "");
+}
+
+/*! strcasecmp that doesn't crash when s1 or s2 are null.
+ */
+int strcasecmp_safe(const char *s1, const char *s2)
+{
+	return strcasecmp(s1 ? s1 : "", s2 ? s2 : "");
+}
+
 /*! Return a new char[] from printf style arguments.
  */
 char *newprintfstr(const char *fmt, ...)
