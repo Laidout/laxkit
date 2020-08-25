@@ -363,6 +363,8 @@ int MessageBar::MouseMove(int x,int y,unsigned int state,const LaxMouse *d)
 
 int MessageBar::WheelUp(int x,int y,unsigned int state,int count,const LaxMouse *d)
 {
+	if (!(win_style & MB_MOVE)) return 0;
+
 	if (state&(ShiftMask|ControlMask)) oy+=win_h*3/4; else oy+=20;
 	if (oy-fasc-pady>0 && pady+oy-fasc+ey+pady>win_h) { // box is below upper pad, lower edge is below lower pad
 		if (ey+2*pady<win_h) oy=win_h-ey-pady+fasc; // box fits in window
@@ -374,6 +376,8 @@ int MessageBar::WheelUp(int x,int y,unsigned int state,int count,const LaxMouse 
 
 int MessageBar::WheelDown(int x,int y,unsigned int state,int count,const LaxMouse *d)
 {
+	if (!(win_style & MB_MOVE)) return 0;
+	
 	if (state&(ShiftMask|ControlMask)) oy-=win_h*3/4; else oy-=20;
 	if (oy-fasc-pady<=0 && oy-fasc+pady+ey<win_h) { if (ey+2*pady<win_h) oy=fasc+pady; else oy=win_h-ey-pady+fasc; }
 	needtodraw=1;
@@ -444,14 +448,14 @@ void MessageBar::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *con
 		if (!strcmp(name,"text")) {
 			SetText(value);
 
-		} if (!strcmp(name,"halign")) {
+		} else if (!strcmp(name,"halign")) {
 			win_style&=~(MB_LEFT|MB_CENTERX|MB_RIGHT);
 			if (!strcmp(value,"left")) win_style|=MB_LEFT;
 			else if (!strcmp(value,"center")) win_style|=MB_CENTERX;
 			else if (!strcmp(value,"right")) win_style|=MB_RIGHT;
 			if ((win_style&(MB_LEFT|MB_CENTERX|MB_RIGHT))==0) win_style|=MB_CENTERX;
 
-		} if (!strcmp(name,"valign")) {
+		} else if (!strcmp(name,"valign")) {
 			win_style&=~(MB_TOP|MB_CENTERY|MB_BOTTOM);
 			if (!strcmp(value,"left")) win_style|=MB_TOP;
 			else if (!strcmp(value,"center")) win_style|=MB_CENTERY;
