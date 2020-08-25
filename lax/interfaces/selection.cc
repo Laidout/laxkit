@@ -161,6 +161,14 @@ void Selection::Flush()
 }
 
 
+int Selection::FindIndex(LaxInterfaces::SomeData *obj)
+{
+	for (int c=0; c<objects.n; c++) {
+		if (objects.e[c]->oc->obj == obj) return c;
+	}
+	return -1;
+}
+
 int Selection::FindIndex(LaxInterfaces::ObjectContext *oc)
 {
 	for (int c=0; c<objects.n; c++) {
