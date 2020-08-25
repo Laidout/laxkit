@@ -323,7 +323,7 @@ void ObjectInterface::RemapBounds()
 		if (!selection->n()) return;
 		somedata=data=new RectData();
 	}
-	data->clear();
+	data->ClearBBox();
 	
 	double m[6];
 	if (selection->n()==1) {
@@ -475,6 +475,13 @@ int ObjectInterface::LBDown(int x,int y,unsigned int state,int count,const Laxki
 
 		if (c > 0) obj = oc->obj;
 		if (obj) {
+			for (int c=0; c<selection->n(); c++) {
+				if (obj->IsChildOf(selection->e(c)->obj) >= 0) {
+					//disallow selecting an object if its parent is already selected
+					DBG cerr << "trying to select object "<<obj->Id()<<", but parent already selected: "<<selection->e(c)->obj->Id()<<endl;
+					return 0;
+				}
+			}
 			viewport->ChangeObject(oc,0);
 			AddToSelection(oc);
 			UpdateInitial();
@@ -730,6 +737,10 @@ void ObjectInterface::TransformSelection(const double *N, int s, int e)
 			selection->e(c)->obj->m(M);
 		}
 
+	}
+	for (int c=s; c<=e; c++) {
+		SomeData *pnt = selection->e(c)->obj->GetParent();
+		if (pnt) pnt->FindBBox();
 	}
 }
 
