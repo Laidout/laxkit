@@ -227,7 +227,7 @@ void LineEdit::Refresh()
 	if (!needtodraw) return;
 	TextXEditBaseUtf8::Refresh();
 
-	if ((win_style&LINEEDIT_CLEAR_X)) {
+	if ((win_style & LINEEDIT_CLEAR_X) && textlen > 0) {
 		Displayer *dp=GetDisplayer();
 		dp->LineWidth(2);
 		if (lasthover==0) {
