@@ -90,7 +90,7 @@ class SomeData :  virtual public Laxkit::Resourceable,
 	int usepreview;
 
 	virtual Laxkit::LaxImage *GetPreview();
-	virtual int GeneratePreview(int w,int h);
+	virtual int GeneratePreview(int maxdim);
 	virtual int renderToBufferImage(Laxkit::LaxImage *image);
 	virtual int renderToBuffer(unsigned char *buffer, int bufw, int bufh, int bufstride, int bufdepth, int bufchannels);
 
@@ -134,6 +134,7 @@ class SomeData :  virtual public Laxkit::Resourceable,
 	virtual SomeData *GetParent() { return NULL; }
 	virtual SomeData *SetParent(SomeData *newparent);
 	virtual SomeData *FindCommonParent(SomeData *other);
+	virtual int IsChildOf(SomeData *obj);
 	virtual anObject *ObjectOwner() { return GetParent(); }
 	virtual Laxkit::Affine GetTransformToContext(bool invert, int partial);
 	virtual int NestedDepth();
