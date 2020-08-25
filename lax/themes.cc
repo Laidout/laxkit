@@ -781,13 +781,14 @@ double Theme::GetDouble(int what)
 {
 	if (what == THEME_UI_Scale) {
 		if (ui_scale > 0) return ui_scale;
+		double scale = 1.0;
 		char *str = getenv("GTK_SCALE");
 		if (!str) str = getenv("QT_SCALE_FACTOR");
 		if (str) {
-			double scale = strtod(str, nullptr);
-			if (scale > 0) ui_scale = scale;
+			double s = strtod(str, nullptr);
+			if (s > 0) scale = s;
 		}
-		return 1;
+		return scale;
 	}
 
 	if (what == THEME_Border_Width) return default_border_width;
@@ -897,6 +898,7 @@ Attribute *Theme::dump_out_atts(Attribute *att,int what,DumpContext *context)
 		att->push("double_click", "200",  "millisecond limit for double click");
 		att->push("idle_click",   "66",   "milliseconds between idle clicks");
 		att->push("tooltips",     "1000", "millisecond delay before popping up, or 0 for never");
+		att->push("ui_default_ppi","100", "Default pixels per inch of monitors");
 
 		Attribute *att2 = att->pushSubAtt("windowstyle", nullptr, "One of these blocks each for panel, menu, edit, button, tooltip");
 		styles.e[0]->dump_out_atts(att2, -1, context);
@@ -912,10 +914,11 @@ Attribute *Theme::dump_out_atts(Attribute *att,int what,DumpContext *context)
 	if (ui_scale > 0) att->push("ui_scale", ui_scale);
 	else att->push("ui_scale", "default");
 
-	att->push("first_click",  (int)firstclk);  att->Top()->Comment("milliseconds before idle clicking after first click");
-	att->push("double_click", (int)dblclk);    att->Top()->Comment("millisecond limit for double click");
-	att->push("idle_click",   (int)idleclk);   att->Top()->Comment("milliseconds between idle clicks");
-	att->push("tooltips",     tooltips);       att->Top()->Comment("millisecond delay before popping up, or 0 for never");
+	att->push("first_click",    (int)firstclk);  att->Top()->Comment("milliseconds before idle clicking after first click");
+	att->push("double_click",   (int)dblclk);    att->Top()->Comment("millisecond limit for double click");
+	att->push("idle_click",     (int)idleclk);   att->Top()->Comment("milliseconds between idle clicks");
+	att->push("tooltips",       tooltips);       att->Top()->Comment("millisecond delay before popping up, or 0 for never");
+	att->push("ui_default_ppi", ui_default_ppi);
 
 	for (int c=0; c<styles.n; c++) {
 		WindowStyle *style = styles.e[c];
@@ -984,6 +987,9 @@ void Theme::dump_in_atts(Attribute *att,int flag,DumpContext *context)
         } else if (!strcmp(name,"ui_scale")) {
 			if (value && !strcasecmp(value, "default")) ui_scale = -1;
             DoubleAttribute(value,&ui_scale);
+
+		} else if (!strcmp(name,"ui_default_ppi")) {
+			DoubleAttribute(value,&ui_default_ppi);
 
         } else if (!strcmp(name,"default_pady")) {
 			double d;
