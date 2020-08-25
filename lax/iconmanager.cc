@@ -21,7 +21,10 @@
 //
 
 #include <lax/iconmanager.h>
+#include <lax/singletonkeeper.h>
 #include <lax/strmanip.h>
+
+//template implementation
 #include <lax/lists.cc>
 
 
@@ -35,7 +38,8 @@ namespace Laxkit {
 
 //----------------------------- IconManager default ---------------------------
 
-static IconManager *default_iconmanager=NULL;
+static SingletonKeeper loaderKeeper;
+static IconManager *default_iconmanager = nullptr;
 
 /*! If default_iconmanager is NULL, create and install a new Laxkit::IconManager as default.
  * Set with IconManager::SetDefault().
@@ -44,8 +48,9 @@ static IconManager *default_iconmanager=NULL;
  */
 IconManager* IconManager::GetDefault()
 {
-	if (default_iconmanager==NULL) {
-		default_iconmanager=new IconManager();
+	if (!loaderKeeper.GetObject()) {
+		default_iconmanager = new IconManager();
+		loaderKeeper.SetObject(default_iconmanager, true);
 	}
 	return default_iconmanager;
 }
@@ -59,12 +64,10 @@ IconManager* IconManager::GetDefault()
  */
 IconManager* IconManager::SetDefault(IconManager *newmanager)
 {
-	if (newmanager==default_iconmanager) return default_iconmanager;
+	if (newmanager == default_iconmanager) return default_iconmanager;
 
-	if (default_iconmanager) default_iconmanager->dec_count();
-	default_iconmanager=newmanager;
-	if (default_iconmanager) default_iconmanager->inc_count();
-
+	loaderKeeper.SetObject(newmanager, false);
+	default_iconmanager = newmanager;
 	return default_iconmanager;
 }
 
