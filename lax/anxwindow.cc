@@ -361,6 +361,7 @@ anXWindow::anXWindow(anXWindow *parnt, const char *nname, const char *ntitle,
 	win_style  = nstyle;
 	win_pointer_shape = 0;
 	win_uiscale = 1;
+	win_cur_uiscale = -1;
 
 	win_tooltip = NULL;
 	win_title   = newstr(ntitle);
@@ -533,9 +534,79 @@ int anXWindow::ThemeChange(Theme *theme)
 	needtodraw=1;
 	if (newstyle == win_themestyle) return 0;
     InstallColors(newstyle);
+    UIScaleChange();
     return 0;
 }
 
+/*! Called when there is an ui scale change. Default here is to relay down to _kids.. Subclasses
+ * should redefine if they need to adjust ui elements.
+ */
+void anXWindow::UIScaleChange()
+{
+	for (int c=0; c<_kids.n; c++) {
+		// _kids.e[c]->win_cur_uiscale = -1;
+		_kids.e[c]->UIScaleChange();
+	}
+}
+
+/*! Return win_cur_uiscale if > 0, else normally will be win_uiscale * win_parent->UIScale() * theme->ui_scale.
+ */
+double anXWindow::UIScale()
+{
+	if (win_cur_uiscale > 0) return win_cur_uiscale;
+
+	double scale = (win_uiscale > 0 ? win_uiscale : 1.0);
+    double ps = (win_parent ? win_parent->UIScale() : 1.0);
+    if (ps > 0) scale *= ps;
+
+	if (!win_parent) {
+		char *str;
+		if (app->theme->ui_scale > 0) scale *= app->theme->ui_scale;
+		else {
+			//theme -1 scale means use window/monitor hints
+			//use default gleaned from GTK_SCALE or QT_SCREEN_SCALE_FACTOR, or 1 if neither of those exist
+			DBG const char *what = "GTK_SCALE";
+			str = getenv("GTK_SCALE");
+			if (!str) {
+				DBG what = "QT_SCALE_FACTOR";
+				str = getenv("QT_SCALE_FACTOR");
+			}
+			if (str) {
+				ps = strtod(str, nullptr);
+				if (ps > 0) {
+					scale *= ps;
+					DBG cerr << "Using "<<what<<" == "<<ps<<endl;
+				}
+			}
+		}
+
+		//scale by monitor pixel density
+		str = getenv("QT_AUTO_SCREEN_SCALE_FACTOR");
+		if (app->theme->ui_default_ppi > 0 || (str && str[0] == '1')) {
+			double x = win_x + win_w/2;
+			double y = win_y + win_h/2;
+			ScreenInformation *monitor = app->FindNearestMonitor(0, x,y);
+			if (monitor) {
+				double mm = sqrt(monitor->mmwidth * monitor->mmwidth + monitor->mmheight * monitor->mmheight);
+				if (mm > 0) {
+					double ppi = app->theme->ui_default_ppi;
+					if (ppi <= 0) ppi = 100;
+					double px = sqrt(monitor->width * monitor->width + monitor->height * monitor->height);
+					double px_per_in = px / mm * 10 * 2.54;
+					DBG cerr << "Using monitor pixel density "<<px_per_in<<", extra scale="<<(px_per_in / ppi)<<endl;
+					scale *= px_per_in / ppi;
+				}
+			}
+		}
+	}
+
+	win_cur_uiscale = scale;
+	for (int c=0; c<_kids.n; c++) {
+		_kids.e[c]->win_cur_uiscale = -1;
+		_kids.e[c]->UIScale();
+	}
+	return scale;
+}
 
 //! Return a ShortcutHandler that contains stacks of bound shortcuts and possible window actions.
 /*! NULL means there are none defined for this window.
@@ -1032,6 +1103,14 @@ int anXWindow::Resize(int nw,int nh)
 	Displayer *dp = MakeCurrent();
 	dp->CurrentResized(this, nw,nh);
 
+	if (!win_parent) {
+		// need to remap sizing if monitor has different scale
+		double old_scale = win_cur_uiscale;
+		win_cur_uiscale = -1;
+		UIScale();
+		if (win_cur_uiscale != old_scale) UIScaleChange();
+	}
+
 	needtodraw|=1;
 	return 0;
 }
@@ -1060,6 +1139,14 @@ int anXWindow::MoveResize(int nx,int ny,int nw,int nh)
 
 	Displayer *dp = MakeCurrent();
 	dp->CurrentResized(this, nw,nh);
+
+	if (!win_parent) {
+		// need to remap sizing if monitor has different scale
+		double old_scale = win_cur_uiscale;
+		win_cur_uiscale = -1;
+		UIScale();
+		if (win_cur_uiscale != old_scale) UIScaleChange();
+	}
 
 	needtodraw|=1;
 	DBG cerr <<"    done MoveResize"<<endl;
@@ -1376,6 +1463,12 @@ int anXWindow::event(XEvent *e)
 				//if (diffloc) MoveResize(X,Y,W,H);
 				//else 
 				if (!e->xconfigure.override_redirect && diffsize) Resize(W,H);
+				else if (!win_parent) {
+					double oldscale = win_cur_uiscale;
+					win_cur_uiscale = -1;
+					UIScale();
+					if (win_cur_uiscale != oldscale) UIScaleChange();
+				}
 			}
 
 		} break;

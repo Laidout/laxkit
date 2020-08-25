@@ -228,7 +228,8 @@ class anXWindow : virtual public EventReceiver,
 	char          win_on;
 	char          win_active;
 	double        win_uiscale; //while this can be per window, usually it reflects global theme->ui_scale
-	
+	double        win_cur_uiscale; //if <= 0, makes UIScale recompute
+
 	 //core functions needed by anXApp
 	anXWindow(anXWindow *parnt, const char *nname, const char *ntitle,
 			unsigned long nstyle,
@@ -283,7 +284,10 @@ class anXWindow : virtual public EventReceiver,
 	virtual int RBUp(int x,int y,unsigned int state,const LaxMouse *d) { return 1; }
 	virtual int WheelUp(int x,int y,unsigned int state,int count,const LaxMouse *d) { return 1; }
 	virtual int WheelDown(int x,int y,unsigned int state,int count,const LaxMouse *d) { return 1; }
+
 	virtual int ThemeChange(Theme *theme);
+	virtual void UIScaleChange();
+	virtual double UIScale();
 
 	virtual int FocusOn(const FocusChangeData *e);
 	virtual int FocusOff(const FocusChangeData *e);

@@ -25,6 +25,7 @@
 #include <lax/scrolledwindow.h>
 #include <lax/tabframe.h>
 #include <lax/themes.h>
+#include <lax/utf8string.h>
 #include <lax/version.h>
 
 #include <lax/language.h>
@@ -199,22 +200,230 @@ class YesNo : public anXWindow
 	}
 };
 
-
-//---------------------------------------- ThemeControls -----------------------------------
+//---------------------------------------- ColorArea -----------------------------------
 
 class ColorArea : public SquishyBox
 {
   public:
+  	Utf8String name; //for tooltip
 	ScreenColor color;
 	int category;
 	int which;
+	bool selected;
 
 	ColorArea(ScreenColor *col, int cat, int nwhich) {
 		color = *col;
 		category = cat;
 		which = nwhich;
+		selected = false;
 	}
 };
+
+//---------------------------------------- TableEditor -----------------------------------
+
+class TableEditor : public RowFrame
+{
+  public:
+  	PtrStack<char> rowlabels;
+  	PtrStack<char> columnlabels;
+  	PtrStack<ColorArea> colorareas;
+  	Theme *theme;
+  	int hover_row, hover_col;
+
+  	TableEditor(Theme *theme);
+  	virtual ~TableEditor();
+
+  	// virtual void ColumnLabels(...); //null terminated cchar
+  	// virtual void RowLabels(...); //null terminated cchar
+  	virtual void AddColumn(const char *name);
+  	virtual void AddRow(const char *name);
+	virtual int init();
+
+  	virtual void Refresh();
+	virtual int Event(const EventData *e,const char *mes);
+	virtual int UseTheme(Theme *theme);
+	virtual void SyncFromTheme(Theme *theme);
+
+	virtual SquishyBox *ContentBox(int r, int c, double w,double h);
+	virtual int Scan(int x,int y, int *row, int *col);
+};
+
+TableEditor::TableEditor(Theme *theme)
+  : columnlabels(LISTS_DELETE_Array), rowlabels(LISTS_DELETE_Array)
+{
+	this->theme = theme;
+	theme->inc_count();
+	hover_row = -1;
+	hover_col = -1;
+}
+
+TableEditor::~TableEditor()
+{
+	theme->dec_count();
+}
+
+/*! Return index in colorareas that contains point x,y.
+ */
+int TableEditor::Scan(int x,int y, int *row, int *col)
+{
+	int i = 0;
+	for (int r = 0; r<rowlabels.n; r++) {
+		for (int c=0; c<columnlabels.n; c++) {
+			if (x >= colorareas.e[i]->x() && x <= colorareas.e[i]->x()+colorareas.e[i]->w() &&
+				y >= colorareas.e[i]->y() && y <= colorareas.e[i]->y()+colorareas.e[i]->h()) {
+				*row = r;
+				*col = c;
+				return i;
+			}
+			i++;
+		}
+	}
+	return -1;
+}
+
+void TableEditor::AddColumn(const char *name)
+{
+	columnlabels.push(newstr(name));
+}
+
+void TableEditor::AddRow(const char *name)
+{
+	rowlabels.push(newstr(name));
+}
+
+// void TableEditor::ColumnLabels(bool flush_first, ...) //null terminated cchar
+// {
+//     if (flush_first) columnlabels.flush();
+//     
+//     va_list arg;
+//     va_start(arg, flush_first);
+//     const char *str = va_arg(arg, const char *);
+//     while (str) {
+//     	columnlabels.push(newstr(str));
+// 	    str = va_arg(arg, const char *);
+// 	}
+//     va_end(arg);
+// }
+
+// void TableEditor::RowLabels(bool flush_first, const char *s1, ...) //null terminated cchar
+// {
+//     if (flush_first) columnlabels.flush();
+//     
+//     va_list arg;
+//     va_start(arg, flush_first);
+//     const char *str = va_arg(arg, const char *);
+//     while (str) {
+//     	rowlabels.push(newstr(str));
+// 	    str = va_arg(arg, const char *);
+// 	}
+//     va_end(arg);
+// }
+
+SquishyBox *TableEditor::ContentBox(int r, int c, double w,double h)
+{
+	WindowStyle *style = theme->styles.e[r];
+	ScreenColor *color = theme->GetScreenColor(style->category, default_colors[c]);
+	ColorArea *box = new ColorArea(color, style->category, default_colors[c]);
+	colorareas.push(box,1);
+	return box;
+}
+
+int TableEditor::init()
+{
+	double th = win_themestyle->normal->textheight();
+
+	double colextent = MaxExtent((const char **)columnlabels.e, columnlabels.n, win_themestyle->normal);
+	double rowextent = MaxExtent((const char **)rowlabels.e, rowlabels.n, win_themestyle->normal);
+
+	for (int r = 0; r<rowlabels.n+1; r++) {
+		for (int c=0; c<columnlabels.n+1; c++) {
+			if (r==0 && c==0) { // blank upper left corner
+				AddWin(new MessageBar(this,"ul","ul",MB_CENTER, 0,100,0,0, 0, " "),1,
+					rowextent+th,0,0,50,0,  1.5*th,0,0,50,0, -1);
+
+			} else if (r == 0) { //doing column headers
+				double ex = win_themestyle->normal->Extent(columnlabels.e[c-1], -1);
+				AddWin(new MessageBar(this,"c",nullptr,MB_CENTER, 0,100,0,0, 0, columnlabels.e[c-1]),1,
+					colextent,colextent-ex,100,50,0,  1.5*th,0,0,50,0, -1);
+
+			} else if (c == 0) { //row label
+				AddWin(new MessageBar(this,"r",nullptr,MB_CENTER, 0,100,0,0, 0, rowlabels.e[r-1]),1,
+					colextent+th,0,0,50,0,  1.5*th,0,0,50,0, -1);
+
+			} else { //content
+				double ex = win_themestyle->normal->Extent(columnlabels.e[c-1], -1);
+				SquishyBox *box = ContentBox(r-1, c-1, colextent, th*1.5);
+				box->SetPreferred(colextent,colextent-ex,100,50,0,  1.5 * th,0,0,50,0);
+				Push(box, 0, -1);
+				
+			}
+		}
+		AddNull();
+	}
+	
+	Sync(1);
+	SyncFromTheme(nullptr);
+	return 0;
+}
+
+void TableEditor::Refresh()
+{
+	if (!needtodraw) return;
+	RowFrame::Refresh();
+	needtodraw=0;
+
+	Displayer *dp = MakeCurrent();
+	dp->ClearWindow();
+	double border = 1 * UIScale();
+	for (int c=0; c<colorareas.n; c++) {
+		ColorArea *box = colorareas.e[c];
+		dp->NewFG(box->color);
+		dp->drawrectangle(box->x()+border, box->y()+border, box->w()-border*2, box->h()-border*2, 1);
+	}
+}
+
+int TableEditor::Event(const EventData *e,const char *mes)
+{
+	return anXWindow::Event(e,mes);
+}
+
+void TableEditor::SyncFromTheme(Theme *theme)
+{
+	if (theme && theme != this->theme) {
+		this->theme->dec_count();
+		this->theme = theme;
+		theme->inc_count();
+	} else theme = this->theme;
+
+	 //colors
+	ScreenColor *color;
+	int i=0;
+	for (int c=0; c<theme->styles.n; c++) {
+		WindowStyle *style = theme->styles.e[c];
+		for (int c2=0; default_colors[c2]; c2++) {
+			color = theme->GetScreenColor(style->category, default_colors[c2]);
+			colorareas[i]->color = *color;
+			i++;
+		}
+	}
+	needtodraw = 1;
+}
+
+int TableEditor::UseTheme(Theme *theme)
+{
+	if (theme != this->theme) {
+		this->theme->dec_count();
+		this->theme = theme;
+		theme->inc_count();
+	}
+
+	SyncFromTheme(nullptr);
+	return 0;
+}
+
+
+//---------------------------------------- ThemeControls -----------------------------------
+
 
 class ThemeControls : public RowFrame
 {
@@ -225,7 +434,9 @@ class ThemeControls : public RowFrame
 	PtrStack<ColorArea> colorareas;
 	Theme *theme;
 	WindowStyle *panel, *edit, *menu, *button;
+	TableEditor *colortable;
 	
+	MessageBar *uiscalemessage;
 	MessageBar *status;
 	LineInput *uiscale, *border, *bevel, *pad, *tooltips, *firstclk, *dblclk, *idleclk;
 
@@ -245,9 +456,41 @@ class ThemeControls : public RowFrame
 	virtual int Event(const EventData *e,const char *mes);
 	virtual int UseTheme(int which);
 	virtual void UpdateWindows();
+	// virtual int MoveResize(int nx,int ny,int nw,int nh);
+	// virtual int Resize(int nw,int nh);
+	virtual void UIScaleChange();
 
 	void SyncFromTheme();
 };
+
+void ThemeControls::UIScaleChange()
+{
+	char str[100];
+	win_cur_uiscale = -1;
+	sprintf(str, "current window scale: %f", UIScale());
+	if (uiscalemessage) uiscalemessage->SetText(str);
+
+	anXWindow::UIScaleChange();
+}
+
+// int ThemeControls::MoveResize(int nx,int ny,int nw,int nh)
+// {
+// 	int status = RowFrame::MoveResize(nx,ny,nw,nh);
+// 	char str[100];
+// 	win_cur_uiscale = -1;
+// 	sprintf(str, "current window scale: %f", UIScale());
+// 	if (uiscalemessage) uiscalemessage->SetText(str);
+// 	return status;
+// }
+// int ThemeControls::Resize(int nw,int nh)
+// {
+// 	int status = RowFrame::Resize(nw,nh);
+// 	char str[100];
+// 	win_cur_uiscale = -1;
+// 	sprintf(str, "current window scale: %f", UIScale());
+// 	if (uiscalemessage) uiscalemessage->SetText(str);
+// 	return status;
+// }
 
 ThemeControls::ThemeControls(anXWindow *prnt)
   : RowFrame(prnt, "Theme Controls", "Theme Controls",
@@ -280,6 +523,7 @@ ThemeControls::ThemeControls(anXWindow *prnt)
 	theme = themes.e[0];
 	theme->inc_count();
 
+	uiscalemessage = nullptr;
 
 	//theme = new Theme("Gray");
 	//theme = new Theme("Dark");
@@ -436,11 +680,12 @@ int ThemeControls::UseTheme(int which)
 
 int ThemeControls::init()
 {
-	double th=app->defaultlaxfont->textheight();
+	double th = win_themestyle->normal->textheight();
 
 	anXWindow *last = nullptr;
 	Button *button  = nullptr;
 	MessageBar *mes = nullptr;
+	RowFrame *rows  = nullptr;
 
 
 	//---------add mockup
@@ -450,7 +695,9 @@ int ThemeControls::init()
 	AddWin(test_lineedit,1, -1);
 	testWindows.push(test_lineedit);
 
-	button = new Button(this,"Test button","Test button",BUTTON_OK, 5,300, 0,2*th,0, nullptr,0,nullptr, 0, "Test Button", nullptr,nullptr, 3);
+	LaxImage *img = IconManager::GetDefault()->GetIcon("ImagePatch");
+	button = new Button(this,"Test button","Test button",BUTTON_OK, 5,300, 0,2*th,0, nullptr,0,nullptr, 0, "Test Button", nullptr, img, 3);
+	img->dec_count();
 	AddWin(button,1, -1);
 	testWindows.push(button);
 
@@ -523,33 +770,21 @@ int ThemeControls::init()
 	double running_height = 0;
 
 	//---------------- base colors
-	RowFrame *rows = new RowFrame();
-	 //column labels
-	rows->AddWin(new MessageBar(rows,"l","l",MB_MOVE|MB_CENTER, 0,100,0,0,0, ""        ),1,  50,40,100,50,0,    1.5*th,0,0,50,0, -1);
+	
+	colortable = new TableEditor(theme);
 	for (int c2=0; short_color_names[c2]; c2++) {
-		rows->AddWin(new MessageBar(rows,"l","l",MB_MOVE|MB_CENTER, 0,100,0,0,0, short_color_names[c2]),1,  50,40,100,50,0,    1.5*th,0,0,50,0, -1);
+		colortable->AddColumn(short_color_names[c2]);
 	}
-	rows->AddNull();
-
-	 //color rows
-	ScreenColor *color;
+	double h = 1;
 	for (int c=0; c<theme->styles.n; c++) {
-		WindowStyle *style = theme->styles.e[c];
-		rows->AddWin(new MessageBar(rows,"l","l",MB_MOVE|MB_CENTER, 0,100,0,0,0, window_category_name(style->category)),1,
-				50,40,100,50,0,    1.5*th,0,0,50,0, -1);
-
-		for (int c2=0; default_colors[c2]; c2++) {
-			color = theme->GetScreenColor(style->category, default_colors[c2]);
-			ColorArea *box = new ColorArea(color, style->category, default_colors[c2]);
-			box->SetPreferred(50,40,100,50,0,  1.5 * th,0,0,50,0);
-			rows->Push(box, 0, -1);
-			colorareas.push(box,1);
-		}
-		rows->AddNull();
+		h++;
+		colortable->AddRow(window_category_name(theme->styles.e[c]->category));
 	}
+	colortable->WrapToExtent();
 
-	running_height = MAX(running_height, (3+6*1.5)*th);
-	tabs->AddWin(rows,1, "Colors",      nullptr, 0); 
+	running_height = MAX(running_height, (1+h*1.5)*th);
+	tabs->AddWin(colortable,1, "Colors", nullptr, 0); 
+
 
 
 	//------------diffs
@@ -577,7 +812,7 @@ int ThemeControls::init()
 			string name;
 			name = name + window_category_name(style->category) + "/" + diffs[c2];
 
-			last = new LineEdit(rows,name.c_str(),name.c_str(),0, 0,0, 100,0,0, last,object_id,diffs[c2], ".....");
+			last = new LineEdit(rows,name.c_str(),name.c_str(),0, 0,0, 100,0,1, last,object_id,diffs[c2], ".....");
 			rows->AddWin(last,1,  50,40,100,50,0,    1.5*th,0,0,50,0, -1);                                              
 		}
 		rows->AddNull();
@@ -589,13 +824,13 @@ int ThemeControls::init()
 
 	 //--------------fonts
 	rows = new RowFrame();
-	string str;
+	Utf8String str;
 	char sstr[200];
 	for (int c=0; c<theme->styles.n; c++) {
 		WindowStyle *style = theme->styles.e[c];
 		str = window_category_name(style->category);
 		str += " fonts";
-		rows->AddWin(new MessageBar(rows,"l","l",MB_MOVE|MB_CENTER, 0,0,0,0,0, str.c_str()),1,  50,40,100,50,0,    1.5*th,0,0,50,0, -1);
+		rows->AddWin(new MessageBar(rows,"l","l",MB_CENTER, 0,0,0,0,0, str.c_str()),1,  50,40,100,50,0,    1.5*th,0,0,50,0, -1);
 
 		sprintf(sstr, "normal %d", c+1);
 		last = button = new Button(rows,sstr,"b",BUTTON_OK, 5,300, 0,0,0, last,object_id,sstr, 0, "Normal Font", nullptr,nullptr, 3);
@@ -626,6 +861,10 @@ int ThemeControls::init()
 	last = uiscale = new LineInput(rows,"UI Scale","UI Scale",LINP_FLOAT, 5,415, 100,0,0, last,object_id,"uiscale", "UI Scale",".....");
 	uiscale->tooltip(_("If -1, then use environment variable GTK_SCALE\nor QT_SCALE_FACTOR, whichever exists"));
 	rows->AddWin(last,1,-1);
+	str.Sprintf("current window scale: %f", UIScale());
+	mes = uiscalemessage = new MessageBar(rows,"uimes",nullptr,MB_CENTER, 0,0,0,0,0, str.c_str());
+	rows->AddWin(mes,1,  mes->win_w,0,100,50,0,    1.5*th,0,0,50,0, -1);
+	rows->AddNull();
 	last = border = new LineInput(rows,"Border","Border",LINP_FLOAT, 5,415, 100,0,0, last,object_id,"border", "Border",".....");
 	rows->AddWin(last,1,-1);
 	last = bevel = new LineInput(rows,"Bevel","Bevel",LINP_FLOAT, 5,415, 100,0,0, last,object_id,"bevel", "Bevel",".....");
@@ -660,7 +899,7 @@ int ThemeControls::init()
 	//   override dir
 	//
 	//
-	tabs->AddWin(new MessageBar(tabs,"l","l",MB_CENTER, 0,100,0,0,0, "TODO 5"),1, "Icons",       nullptr, 0); 
+	tabs->AddWin(new MessageBar(tabs,"l","l",MB_CENTER, 0,100,0,0,0, "TODO!!"),1, "Icons",       nullptr, 0); 
 
 
 
@@ -682,20 +921,21 @@ int ThemeControls::init()
 	last = button = new Button(this,"Save","Save",BUTTON_OK, 5,300, 0,0,0, last,object_id,"savetheme", 0, "Save...", nullptr,nullptr, 3);
 	AddWin(button,1,-1);
 
-	LineInput *linp = new LineInput(this,"lineinput","lineinput",0, 0,0,400,50,0, nullptr,0,nullptr, "Theme name", _("default"));
+	LineInput *linp = new LineInput(this,"lineinput","lineinput",0, 0,0,400,th*1.5, 0, nullptr,0,nullptr, "Theme name", _("default"));
 	AddWin(linp,1, -1);
 
 
-	SliderPopup *p=new SliderPopup(this,"view type",nullptr,0, 0,0,0,0,1, nullptr,object_id,"selectTheme");
+	SliderPopup *p=new SliderPopup(this,"view type",nullptr,SLIDER_POP_ONLY, 0,0,0,0,1, nullptr,object_id,"selectTheme");
 	for (int c=0; c<themes.n; c++) {
 		p->AddItem(themes.e[c]->name,c+1);
 	}
 	p->AddSep();
 	p->AddItem(_("New from current"), -1);
+	p->SetState(-1,SLIDER_IGNORE_ON_BROWSE,1);
     p->Select(0);
     p->WrapToExtent();
     p->tooltip(_("Select theme"));
-    AddWin(p,1, p->win_w,0,50,50,0, p->win_h,0,50,50,0, -1);
+    AddWin(p,1, p->win_w,0,50,50,0, p->win_h,0,0,50,0, -1);
 
 
 	AddNull();
@@ -724,16 +964,7 @@ void ThemeControls::UpdateWindows()
 void ThemeControls::SyncFromTheme()
 {
 	 //colors
-	ScreenColor *color;
-	int i=0;
-	for (int c=0; c<theme->styles.n; c++) {
-		WindowStyle *style = theme->styles.e[c];
-		for (int c2=0; default_colors[c2]; c2++) {
-			color = theme->GetScreenColor(style->category, default_colors[c2]);
-			colorareas[i]->color = *color;
-			i++;
-		}
-	}
+	colortable->SyncFromTheme(theme);
 
 	 //diffs	
 	LineEdit *lin;
@@ -840,6 +1071,7 @@ int main(int argc,char **argv)
 	makestr(app.controlfontstr,"sans-15");
 	app.init(argc,argv);
 
+	IconManager::GetDefault()->AddPath("../lax/icons");
 
 	 //------------add windows
 
