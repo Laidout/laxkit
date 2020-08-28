@@ -146,7 +146,12 @@ int DraggableFrame::LBDown(int x,int y,unsigned int state,int count,const LaxMou
 
 	what = scan(x,y,state);
 	hover = what;
-	if (what != WHERE_None) buttondown.down(d->id, LEFTBUTTON, x,y, what);
+
+	if (what != WHERE_None) {
+		//translate_window_coordinates(this, x, y, nullptr, &x, &y, nullptr); //get screen coordinates
+		mouseposition(d->id, nullptr, &x, &y, &state,nullptr);
+		buttondown.down(d->id, LEFTBUTTON, x,y, what);
+	}
 	needtodraw = 1;
 	return 0;
 }
@@ -171,17 +176,21 @@ int DraggableFrame::MouseMove(int xx,int yy,unsigned int state,const LaxMouse *d
 		return 1;
 	}
 
+	//translate_window_coordinates(this, xx, yy, nullptr, &xx, &yy, nullptr); //get screen coordinates
+	mouseposition(d->id, nullptr, &xx, &yy, &state,nullptr);
 
 	int what;
 	int dx, dy;
 	buttondown.move(d->id, xx,yy, &dx, &dy);
 	buttondown.getextrainfo(d->id, LEFTBUTTON, &what);
 	if (what == WHERE_None) return 0;
-	
+	if (!(state & ShiftMask)) what = WHERE_Middle;
+
 	dx = xx - dx;
 	if (!allow_x_resize) dx = 0;
 	dy = yy - dy;
 	if (!allow_y_resize) dy = 0;
+	DBG cerr << "DraggableFrame window x,y: "<<xx<<','<<yy<<"   dx,dy: "<<dx<<','<<dy<<endl;
 
 	int x=win_x, y=win_y, w=win_w, h=win_h;
 
@@ -203,14 +212,19 @@ int DraggableFrame::MouseMove(int xx,int yy,unsigned int state,const LaxMouse *d
 		}
 	}
 
-
-
 	if (w < minx) w = minx;
 	if (h < miny) h = miny;
 
-	int oldx = win_x, oldy = win_y;
+	if (win_parent) {
+		if (x + w > win_parent->win_w) x = win_parent->win_w - w;
+		else if (x < 0) x = 0;
+		if (y + h > win_parent->win_h) y = win_parent->win_h - h;
+		else if (y < 0) y = 0;
+	}
+
+	//int oldx = win_x, oldy = win_y;
 	MoveResize(x,y,w,h);
-	buttondown.move(d->id, xx - (win_x - oldx), yy - (win_y - oldy));
+	//buttondown.move(d->id, xx - (win_x - oldx), yy - (win_y - oldy));
 
 	needtodraw=1;
 	return 0;
@@ -218,7 +232,10 @@ int DraggableFrame::MouseMove(int xx,int yy,unsigned int state,const LaxMouse *d
 
 int DraggableFrame::MoveResize(int nx,int ny,int nw,int nh)
 {
+	DBG int oldx = win_x, oldy = win_y;
 	anXWindow::MoveResize(nx,ny,nw,nh);
+	DBG cerr << "DraggableFrame ---------------------------------MoveResize after anxw::mr x,y: "
+	DBG 	<<win_x<<','<<win_y<<"   w,h: "<<win_w<<','<<win_h<<"   dx,dy: "<<(win_x - oldx)<<','<<(win_y - oldy)<<endl;
 	SyncChild();
 	needtodraw=1;
 	return 0;
@@ -227,6 +244,7 @@ int DraggableFrame::MoveResize(int nx,int ny,int nw,int nh)
 int DraggableFrame::Resize(int nw,int nh)
 {
 	anXWindow::Resize(nw,nh);
+	DBG cerr << "DraggableFrame ------------------------------------Resize after anxw::mr x,y: "<<win_x<<','<<win_y<<"   w,h: "<<win_w<<','<<win_h<<endl;
 	SyncChild();
 	needtodraw=1;
 	return 0;
@@ -251,7 +269,7 @@ int DraggableFrame::SetChild(anXWindow *win)
 
 int DraggableFrame::scan(int x, int y, unsigned int state)
 {
-	if (state & ShiftMask) return WHERE_Middle;
+	//if (!(state & ShiftMask)) return WHERE_Middle;
 
 	int xpad = win_w / 4;
 	int ypad = win_h / 4;
