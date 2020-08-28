@@ -57,18 +57,25 @@ class IconBox : public SelBox
 class IconSelector : public BoxSelector
 { 
   protected:
+  	int tlabelstyle;
+  	int display_type; //0 for normal rows or columns, 1 for vertical list with text
+
   public:
 	int padg,labelstyle;
+	int boxinset;
 	IconSelector(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
 						int xx,int yy,int ww,int hh,int brder,
 						anXWindow *prev,unsigned long nowner,const char *nsendmes,
-						int npadx=0,int npady=0);
+						int npadx=0,int npady=0, int nboxinset=0);
 	~IconSelector();
 	virtual void drawbox(int which);
 	virtual void FillBox(IconBox *b,const char *nlabel,LaxImage *img, int nid);
 	virtual void FillBox(IconBox *b,const char *nlabel,const char *filename, int nid);
 	virtual int AddBox(const char *nlabel,LaxImage *img,int nid);
 	virtual int AddBox(const char *nlabel,const char *filename,int nid);
+	virtual int send();
+	virtual int DisplayAsList(bool yes);
+	virtual int DisplayType() { return display_type; }
 };
 
 

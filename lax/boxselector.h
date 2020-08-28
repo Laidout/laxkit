@@ -92,11 +92,23 @@ class BoxSelector : public anXWindow, public RowColBox
   public:	
 	unsigned long highlight,shadow;
 	int pad,padi,bevel;
+	enum DisplayStyle {
+		BOXES_Flat, //beveled only when on
+		BOXES_Beveled,
+		BOXES_Highlighted
+	};
+	enum SelectionStyle {
+		SEL_One_Only,
+		SEL_Mixed,
+		SEL_List_Select
+	};
+	SelectionStyle selection_style;
+	int display_style;
 
 	BoxSelector(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
 						int xx,int yy,int ww,int hh,int brder,
 						anXWindow *prev,unsigned long nowner,const char *nsendmes,
-						int nid=0,int npad=0);
+						int nid=0,int npad=0, int box_style=BOXES_Flat);
 	virtual ~BoxSelector();
 	virtual const char *whattype() { return "BoxSelector"; }
 	virtual void sync();
@@ -114,6 +126,7 @@ class BoxSelector : public anXWindow, public RowColBox
 
 	virtual int SelectN(int whichindex);
 	virtual int Select(int whichID);
+	virtual void Flush();
 	virtual int MouseInWhich(int x,int y);
 	virtual void drawbox(int which) = 0;
 	virtual int send();

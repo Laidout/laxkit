@@ -144,8 +144,8 @@ SelBox::SelBox(int xx,int yy,int ww,int hh,int nid)
 BoxSelector::BoxSelector(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
 						int xx,int yy,int ww,int hh,int brder,
 						anXWindow *prev,unsigned long nowner,const char *nsendmes,int nid,
-						int npad //!< padinset of *this is set to npad
-						)
+						int npad, //!< padinset of *this is set to npad
+						int box_style)
 		: anXWindow(parnt,nname,ntitle,nstyle,xx,yy,ww,hh,brder,prev,nowner,nsendmes)
 {
 	InstallColors(THEME_Panel);
@@ -155,6 +155,12 @@ BoxSelector::BoxSelector(anXWindow *parnt,const char *nname,const char *ntitle,u
 	padi=1;
 	curbox=-1;
 	hoverbox=-1;
+
+	selection_style = SEL_Mixed;
+	if (win_style & BOXSEL_ONE_ONLY) selection_style = SEL_One_Only;
+
+	display_style = BOXES_Beveled;
+	if (win_style & BOXSEL_FLAT) display_style = BOXES_Flat;
 
 //	filterflags();*** see RowColBox::filterflags
 //	if (win_style&BOXSEL_STRETCHX) elementflags|=BOX_STRETCH_TO_FILL_X;
@@ -304,10 +310,12 @@ int BoxSelector::send()
  */
 void BoxSelector::Refresh()
 {
-	if (!needtodraw || !wholelist.n || !win_on) { needtodraw = 0; return; }
+	if (!needtodraw || !win_on) { needtodraw = 0; return; }
 	if (arrangedstate!=1) sync();
 
-	MakeCurrent();
+	Displayer *dp = MakeCurrent();
+	dp->ClearWindow();
+	dp->font(win_themestyle->normal);
 
 	for (int c=0; c<wholelist.n; c++) {
 		if (!wholelist.e[c]) continue;
@@ -320,9 +328,10 @@ void BoxSelector::Refresh()
 	}
 	
 	needtodraw=0;
+	SwapBuffers();
 }
 
-//! Checks what box the mouse is in, including box pad.
+//! Return index of box the mouse is in.
 int BoxSelector::MouseInWhich(int x,int y)
 { 
 	for (int c=0; c<wholelist.n; c++) {
@@ -345,7 +354,7 @@ void BoxSelector::togglebox(int which,int db) //db=1
 	if (which<0 || which>=wholelist.n || !wholelist.e[which])  return;
 	SelBox *b=dynamic_cast<SelBox *>(wholelist.e[which]);
 	if (!b || !(b->state&(LAX_ON|LAX_OFF))) return;
-	b->state^=(LAX_ON|LAX_OFF);
+	b->state ^= (LAX_ON|LAX_OFF);
 	if (db) drawbox(which);
 }
 
@@ -353,117 +362,14 @@ void BoxSelector::togglebox(int which,int db) //db=1
 int BoxSelector::LBDown(int x,int y,unsigned int state,int count,const LaxMouse *d)
 {
 	int lbdown=MouseInWhich(x,y);
+	DBG cerr << "BoxSelector mouse in: "<<lbdown<<endl;
 	if (lbdown<0) return 0; //do not record press if not pressing in a box!
 	if (buttondown.isdown(0,LEFTBUTTON)) return 0; //only allow one device to be pressing buttons at a time
 
 	buttondown.down(d->id,LEFTBUTTON, x,y, lbdown);
 	if (lbdown>=0 && lbdown<wholelist.n) togglebox(lbdown);
+	needtodraw=1;
 	return 0;
-}
-
-//! Select which box mouse is in, if it is the same as it was clicked down on.
-/*! Selects with SelectN(lbdown), and resets lbdown to -1.
- */
-int BoxSelector::LBUp(int x,int y,unsigned int state,const LaxMouse *d)
-{
-	if (!buttondown.isdown(d->id,LEFTBUTTON)) return 1;
-
-	int lbdown=-1;
-	buttondown.up(d->id,LEFTBUTTON, &lbdown);
-
-	int wherenow=MouseInWhich(x,y);
-	if (wherenow==lbdown) {
-		DBG cerr <<" BoxSelector should send() here"<<endl; //***
-
-		send();
-		SelectN(wherenow);
-	}
-	return 0;
-}
-
-//! Select a box based on box->id, and return curbox.
-/*! This searchs for whichID in boxes, and then returns SelectN(thatbox).
- */
-int BoxSelector::Select(int whichID)
-{ 
-	int c;
-	SelBox *b;
-	for (c=0; c<wholelist.n; c++) {
-		b=dynamic_cast<SelBox *>(wholelist.e[c]);
-		if (!b) continue;
-		if (b->id==whichID) return SelectN(c);
-	}
-	return curbox;
-}
-
-//! Select a box based on its index.
-/*! This acts the same as a mouse clicking it or selecting with space bar.
- *  Derived classes would redefine this to react to which box selected, such
- *  as wanting selection of "normal font" to clear all the other boxes.
- *  Box state should already have been toggled, and have the correct value
- *  before this function is called. This is because LBDown/Up makes a show of
- *  selecting a box without actually selecting it (previews what it would look
- *  like after selecting).
- *
- *  If whichindex is NULL or is grayed, then nothing is done.
- *  If BOXSEL_ONE_ONLY, then all the boxes are cleared and redrawn, and the new box selected and drawn.
- *
- *  Returns curbox.
- */
-int BoxSelector::SelectN(int whichindex)
-{
-	if (whichindex<0 || whichindex>=wholelist.n || !wholelist.e[whichindex]) return curbox;
-
-	SelBox *b;
-	b=dynamic_cast<SelBox *>(wholelist.e[whichindex]);
-	if (!b || b->state&LAX_GRAY) return curbox;
-	curbox=whichindex;
-	
-	// *** should separate this so there is a protected selectbox, which assumes toggled already???
-	// 		or just have SelectN(int whichindex, unsigned int style=on or off)
-
-	if (win_style&BOXSEL_ONE_ONLY) {
-		 // turn OFF all wholelist that are ON
-		for (int c=0; c<wholelist.n; c++) {
-			b=dynamic_cast<SelBox *>(wholelist.e[c]);
-			if (!b || !(b->state&(LAX_ON|LAX_OFF))) continue;
-			if (b->state&LAX_ON) {
-				b->state&=~LAX_ON;
-				b->state|=LAX_OFF;
-				drawbox(c);
-			}
-		}
-		 // call default toggle for box, whichindex here would just turn it ON
-		togglebox(whichindex);
-	}
-	return curbox;
-}
-
-//! Catch EnterNotify and LeaveNotify.
-int BoxSelector::Event(const EventData *e,const char *mes)
-{
-	if (e->type==LAX_onMouseOut) {
-		//DBG cerr <<" Leave:"<<WindowTitle()<<": state:"<<state<<"  oldstate:"<<oldstate<<endl;
-		//DBG cerr <<"  BoxSelector::event:Leave:"<<WindowTitle()<<": state:"<<state<<"  oldstate:"<<oldstate<<endl;
-
-//		if (!buttondown.isdown(0,LEFTBUTTON) && curbox>=0 && curbox<wholelist.n) {
-//			 // if leaving window and button is not pressed, make sure to not draw curbox with hover color...
-//			SelBox *b=dynamic_cast<SelBox *>(wholelist.e[curbox]);
-//			if (b) {
-//				b->state&=~LAX_MOUSEIN;
-//				drawbox(curbox);
-//			}
-//			curbox=-1;
-//		}
-
-		if (!buttondown.isdown(0, LEFTBUTTON) && hoverbox>=0) {
-			 // if leaving window and button is not pressed, make sure to not draw curbox with hover color...
-			hoverbox=-1;
-			curbox=-1;
-			needtodraw=1;
-		}
-	}
-	return anXWindow::Event(e,mes);
 }
 
 //! Keeps track of where mouse is, whether or not a button is pressed.
@@ -505,6 +411,116 @@ int BoxSelector::MouseMove(int x,int y,unsigned int state,const LaxMouse *d)
 
 	hoverbox=wherenow;
 	return 0;
+}
+
+//! Select which box mouse is in, if it is the same as it was clicked down on.
+/*! Selects with SelectN(lbdown), and resets lbdown to -1.
+ */
+int BoxSelector::LBUp(int x,int y,unsigned int state,const LaxMouse *d)
+{
+	if (!buttondown.isdown(d->id,LEFTBUTTON)) return 1;
+
+	int lbdown=-1;
+	buttondown.up(d->id,LEFTBUTTON, &lbdown);
+
+	int wherenow = MouseInWhich(x,y);
+	DBG cerr << "BoxSelector mouse up: "<<wherenow<<"  lbdown: "<<lbdown<<endl;
+	if (wherenow==lbdown) {
+		DBG cerr <<" BoxSelector should send() here"<<endl; //***
+
+		SelectN(wherenow);
+		send();
+	}
+	needtodraw=1;
+	return 0;
+}
+
+//! Select a box based on box->id, and return curbox.
+/*! This searchs for whichID in boxes, and then returns SelectN(thatbox).
+ */
+int BoxSelector::Select(int whichID)
+{ 
+	int c;
+	SelBox *b;
+	for (c=0; c<wholelist.n; c++) {
+		b=dynamic_cast<SelBox *>(wholelist.e[c]);
+		if (!b) continue;
+		if (b->id==whichID) return SelectN(c);
+	}
+	return curbox;
+}
+
+//! Select a box based on its index.
+/*! This acts the same as a mouse clicking it or selecting with space bar.
+ *  Derived classes would redefine this to react to which box selected, such
+ *  as wanting selection of "normal font" to clear all the other boxes.
+ *  Box state should already have been toggled, and have the correct value
+ *  before this function is called. This is because LBDown/Up makes a show of
+ *  selecting a box without actually selecting it (previews what it would look
+ *  like after selecting).
+ *
+ *  If whichindex is NULL or is grayed, then nothing is done.
+ *  If BOXSEL_ONE_ONLY, then all the boxes are cleared and redrawn, and the new box selected and drawn.
+ *
+ *  Returns curbox.
+ */
+int BoxSelector::SelectN(int whichindex)
+{
+	if (whichindex<0 || whichindex>=wholelist.n || !wholelist.e[whichindex]) return curbox;
+
+	SelBox *b;
+	b = dynamic_cast<SelBox *>(wholelist.e[whichindex]);
+	if (!b || b->state & LAX_GRAY) return curbox;
+	curbox = whichindex;
+
+	if (selection_style == SEL_One_Only) {
+		 // turn OFF all wholelist that are ON
+		for (int c=0; c<wholelist.n; c++) {
+			b=dynamic_cast<SelBox *>(wholelist.e[c]);
+			if (!b || !(b->state&(LAX_ON|LAX_OFF))) continue;
+			if (b->state & LAX_ON) {
+				b->state &= ~LAX_ON;
+				b->state |= LAX_OFF;
+				drawbox(c);
+			}
+		}
+		 // call default toggle for box, whichindex here would just turn it ON
+		togglebox(whichindex);
+	}
+	return curbox;
+}
+
+void BoxSelector::Flush()
+{
+	needtodraw = 1;
+	RowColBox::Flush();
+}
+
+//! Catch EnterNotify and LeaveNotify.
+int BoxSelector::Event(const EventData *e,const char *mes)
+{
+	if (e->type==LAX_onMouseOut) {
+		//DBG cerr <<" Leave:"<<WindowTitle()<<": state:"<<state<<"  oldstate:"<<oldstate<<endl;
+		//DBG cerr <<"  BoxSelector::event:Leave:"<<WindowTitle()<<": state:"<<state<<"  oldstate:"<<oldstate<<endl;
+
+//		if (!buttondown.isdown(0,LEFTBUTTON) && curbox>=0 && curbox<wholelist.n) {
+//			 // if leaving window and button is not pressed, make sure to not draw curbox with hover color...
+//			SelBox *b=dynamic_cast<SelBox *>(wholelist.e[curbox]);
+//			if (b) {
+//				b->state&=~LAX_MOUSEIN;
+//				drawbox(curbox);
+//			}
+//			curbox=-1;
+//		}
+
+		if (!buttondown.isdown(0, LEFTBUTTON) && hoverbox>=0) {
+			 // if leaving window and button is not pressed, make sure to not draw curbox with hover color...
+			hoverbox=-1;
+			curbox=-1;
+			needtodraw=1;
+		}
+	}
+	return anXWindow::Event(e,mes);
 }
 
 //! Toggle curbox. ***needs work selecting!=toggling

@@ -62,7 +62,7 @@ IconBox::IconBox(const char *nlabel,LaxImage *img,int nid)
 IconBox::~IconBox() 
 {
 	if (label) delete[] label;
-	if (image)  image  ->dec_count();
+	if (image)   image  ->dec_count();
 	if (bwimage) bwimage->dec_count();
 }
 
@@ -77,7 +77,7 @@ int IconBox::SetBox(const char *nlabel,LaxImage *img,LaxImage *bw)
 	makestr(label, nlabel);
 	if (image) image->dec_count();
 	if (bwimage) bwimage->dec_count();
-	image = bwimage = NULL;
+	image = bwimage = nullptr;
 
 	bwimage = bw;
 	image   = img;
@@ -97,31 +97,32 @@ int IconBox::SetBox(const char *nlabel,LaxImage *img,LaxImage *bw)
  * \code
  *  #define STRICON_STR_ICON   (1<<31)  <-- put the icon after the string, default is other way
  * \endcode
- *
- * \todo
- *   on off mover-on mover-off grayed 
- *   *** must have a make_gray_pixmap
- *   *** MUST coordinate all the states in various controls to use new LAX_* defines
  */
 /*! \var int IconSelector::padg
- * \brief Pad to put around the label, whether or not an icon is present. (the icon is not padded)
+ * \brief Pad to put around the label, whether or not an icon is present. (the icon can be padded with boxinset)
  */
 
 
+#define DTYPE_NORMAL 0
+#define DTYPE_LIST   1
 
 IconSelector::IconSelector(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
 						int xx,int yy,int ww,int hh,int brder,
 						anXWindow *prev,unsigned long nowner,const char *nsendmes,
 						int npad,
-						int npadg //!< npadg is the padding to put around a label. Icons are not padded.
+						int npadg, //!< npadg is the padding to put around a label. Icons are not padded.
+						int nboxinset
 						) //npadg=5
-		: BoxSelector(parnt,nname,ntitle,nstyle,xx,yy,ww,hh,brder,prev,nowner,nsendmes,npad)
+		: BoxSelector(parnt,nname,ntitle,nstyle|ANXWIN_DOUBLEBUFFER,xx,yy,ww,hh,brder,prev,nowner,nsendmes,npad)
 {
 	// npad is the inset, padg is space between icon and text
 	padg = npadg;
+	boxinset = nboxinset;
+	display_type = DTYPE_NORMAL;
 
 	if (win_style&STRICON_STR_ICON) labelstyle=LAX_TEXT_ICON;
 	else labelstyle=LAX_ICON_TEXT;
+	tlabelstyle = labelstyle;
 }
 
 //! Empty destructor.
@@ -151,23 +152,24 @@ void IconSelector::FillBox(IconBox *b,const char *nlabel,LaxImage *img,int nid)
 	 // get icons and set w,h
 	int iw = 0, ih = 0;
 	if (img) {
-		b->image = img;
 		if (labelstyle != LAX_TEXT_ONLY) {
-			iw = b->image->w();
-			ih = b->image->h();
+			iw = img->w() + boxinset;
+			ih = img->h() + boxinset;
 		}
 		// if (makebw) ; //*** make the black and white version
 	}
 
 	double tw=0,th=0;
-	if (nlabel && labelstyle != LAX_ICON_ONLY) tw = win_themestyle->normal->Extent(nlabel,-1,&tw,&th,NULL,NULL) + 2*padg;
+	if (nlabel) tw = win_themestyle->normal->Extent(nlabel,-1,&tw,&th,NULL,NULL) + 2*padg;
+	if (labelstyle == LAX_ICON_ONLY && img) tw = 0;
 
 	b->w (tw + iw);
 	b->pw(tw + iw);
 	b->h (th > ih ? th : ih);
 	b->ph(th > ih ? th : ih);
 	b->id = nid;
-	makestr(b->label, nlabel);
+
+	b->SetBox(nlabel, img, nullptr);
 
 	b->pad = bevel;
 }
@@ -205,7 +207,9 @@ void IconSelector::drawbox(int which)
 	
 	Displayer *dp = GetDisplayer();
 
-	dp->NewFG(which==hoverbox ? win_themestyle->bghover : win_themestyle->bg);
+	if (display_style == BOXES_Highlighted)
+		 dp->NewFG(which==hoverbox ? win_themestyle->bghover : (b->state == LAX_ON ? win_themestyle->bghl : win_themestyle->bg));
+	else dp->NewFG(which==hoverbox ? win_themestyle->bghover : win_themestyle->bg);
 	dp->drawrectangle(b->x() - b->pad,  b->y() - b->pad,    b->w() + 2*b->pad,  b->h() + 2*b->pad, 1);
 
 	 // Set  tx,ty  px,py
@@ -220,7 +224,9 @@ void IconSelector::drawbox(int which)
 	if (i && ix!=LAX_WAY_OFF) {
 		ix+=dx;
 		iy+=dy;
-		dp->imageout(i,ix,iy);
+		// dp->imageout(i,ix,iy);
+		//dp->imageout_within(i, ix,iy+b->h(), i->w(),i->h(), nullptr, 1);
+		dp->imageout(i, ix,iy+b->h()-boxinset, i->w(),-i->h());
 		i->doneForNow();
 	}
 	if (l && tx>LAX_WAY_OFF) {
@@ -230,10 +236,65 @@ void IconSelector::drawbox(int which)
 		dp->textout(tx,ty, l,-1, LAX_LEFT|LAX_TOP);
 	}
 	
-	dp->drawBevel(b->pad,highlight,shadow,b->state, b->x()-b->pad,b->y()-b->pad, b->w()+2*b->pad,b->h()+2*b->pad);
+	if (display_style == BOXES_Flat) {
+		if (b->state == LAX_ON)
+			dp->drawBevel(b->pad,highlight,shadow,b->state, b->x()-b->pad,b->y()-b->pad, b->w()+2*b->pad,b->h()+2*b->pad);
+	} else if (display_style == BOXES_Beveled) {
+		dp->drawBevel(b->pad,highlight,shadow,b->state, b->x()-b->pad,b->y()-b->pad, b->w()+2*b->pad,b->h()+2*b->pad);
+	// } else if (display_style == BOXES_Highlighted) {
+	}
 }
 
+int IconSelector::send()
+{
+	DBG cerr << "IconSelector::send(), curbox: "<<curbox<<" "<<(curbox >=0 && (wholelist.e[curbox]) ? ((IconBox *)(wholelist.e[curbox]))->label : "null")<<endl;
+	if (display_type == DTYPE_NORMAL) return BoxSelector::send();
 
+	SimpleMessage *mevent=new SimpleMessage;
+
+	int n=0;
+	for (int c=0; c<wholelist.n; c++) {
+		if (wholelist.e[c] && ((SelBox *)(wholelist.e[c]))->state&LAX_ON) n++;
+	}
+	mevent->info1 = curbox/2; // current box*** if LAX_ON only?? or first on box?
+	mevent->info2 = (curbox >= 0?((SelBox *)wholelist.e[curbox])->id:0); // id of curbox
+	mevent->info3 = n; // num that are on
+	mevent->info4 = 0; // ***num that are newly changed
+
+	app->SendMessage(mevent,win_owner,win_sendthis,object_id);
+	return 1;
+}
+
+/*! If yes, inserts null boxes to force line breaks, and uses text only display style.
+ */
+int IconSelector::DisplayAsList(bool yes)
+{
+	if ((yes && display_type == DTYPE_LIST) || (!yes && display_type == DTYPE_NORMAL)) return display_type;
+
+	if (yes) { //was not-list, insert nulls and sync
+		display_type = DTYPE_LIST;
+		tlabelstyle = labelstyle;
+		labelstyle = LAX_TEXT_ONLY;
+		for (int c = wholelist.n; c > 0; c--) {
+			Push(NULL,0,c); //AddNull(c);
+			IconBox *b = dynamic_cast<IconBox*>(wholelist.e[c-1]);
+			if (b->image) b->image->inc_count();
+			FillBox(b, b->label, b->image, b->id);
+		}
+
+	} else { //was list, remove nulls and sync
+		display_type = DTYPE_NORMAL;
+		labelstyle = tlabelstyle;
+		for (int c = wholelist.n-1; c >= 0; c-=2) {
+			Pop(c);
+			IconBox *b = dynamic_cast<IconBox*>(wholelist.e[c-1]);
+			if (b->image) b->image->inc_count();
+			FillBox(b, b->label, b->image, b->id);
+		}
+	}
+	sync();
+	return display_type;
+}
 
 } // namespace Laxkit
 
