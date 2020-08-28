@@ -890,7 +890,7 @@ int anXWindow::preinit()
 /*! This function is called before the Xlib window is destroyed, so windows can do any
  * specific cleanup that still depends on that window value here.
  *
- * If win_parent==NULL and win_style&ANXWIN_REMEMBER, then call app->AppResource() with a new Attribute
+ * If win_style&ANXWIN_REMEMBER, then call app->AppResource() with a new Attribute
  * found via dump_out_atts().
  *
  * The Laxkit does not do anything with the default return value, but 0 should mean success.
@@ -899,7 +899,7 @@ int anXWindow::preinit()
  */
 int anXWindow::close()
 {
-	if (!win_parent && win_style&ANXWIN_REMEMBER) {
+	if (win_style&ANXWIN_REMEMBER) {
 		Attribute *att = dump_out_atts(NULL,0,NULL);
 		if (att) app->AppResource(att); //do not delete att!
 	}
