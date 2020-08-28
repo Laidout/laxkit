@@ -374,7 +374,7 @@ void LineInput::SetPlacement()
 	textheight = fasc+fdes;
 	
 	if (win_style&(LINP_ONTOP|LINP_ONBOTTOM)) { // assume h centered
-		if (lew>0) nlew=lew;
+		if (lew>0 && !auto_labelw) nlew=lew;
 		else nlew=win_w-2*padlx-2*le->WindowBorder();
 		if (nlew+2*(int)le->WindowBorder() > win_w-2*padlx) nlew=win_w-2*padlx-2*le->WindowBorder();
 			
@@ -396,7 +396,7 @@ void LineInput::SetPlacement()
 		ly+=(ley-oldley);
 
 	} else if (win_style & (LINP_ONLEFT|LINP_ONRIGHT)) {
-		if (lew > 0) nlew = lew;
+		if (lew > 0 && !auto_labelw) nlew = lew;
 		else nlew = win_w - 3*padlx - 2*le->WindowBorder() - labelw;
 		if (nlew > win_w - 3*padlx - 2*le->WindowBorder() - labelw)
 			nlew = win_w - 3*padlx - 2*le->WindowBorder() - labelw;
