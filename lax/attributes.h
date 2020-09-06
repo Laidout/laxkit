@@ -117,7 +117,7 @@ char *escape_string(const char *value, char quote, bool include_quotes);
 
 void skip_to_next_attribute(IOBuffer &f, int indent);
 
-//---------------------------------- Value Conversion Routines -----------------------------------	
+//---------------------------------- Basic Type Conversion Routines -----------------------------------	
 int ByteSizeAttribute(const char *s, long *ll, char towhat);
 double *TransformAttribute(const char *v,double *m,char **endptr=NULL);
 int DoubleAttribute(const char *v,double *d,char **endptr=NULL);

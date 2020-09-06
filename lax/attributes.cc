@@ -1922,14 +1922,14 @@ int Attribute::dump_in(IOBuffer &f, int Indent,Attribute **stopatsub)
 	size_t n=0;
 	char *val,*fld,*temp=NULL;
 	int nf,numattsread=0;
-	Attribute *att=NULL;
 	if (stopatsub) *stopatsub=NULL;
 
 	while (!f.IsEOF()) {
 		c = getline_indent_nonblank(&line,&n,f,Indent,"#",'"',1);
 		if (c <= 0) break; // eof or bad line
 		
-		 // now line is on a properly indented line that has no trailing whitespace
+		 // now line is on a properly indented line that has no trailing whitespace.
+		 // We need to input name, which can be optionally quoted, otherwise it is continuous non-whitespace
 		fld = line;
 		while (isspace(*fld)) fld++;
 		indent = fld-line; //*** must check for improperly indented file!!
@@ -1938,19 +1938,26 @@ int Attribute::dump_in(IOBuffer &f, int Indent,Attribute **stopatsub)
 				//   blah
 				//       subblah
 				//     subblah
+
+		Attribute *att = new Attribute;
 		val = fld;
-		while (*val && !isspace(*val)) val++;
-		nf = val-fld;
+		if (*val == '\'' || *val == '"') {
+			char *qname = QuotedAttribute(val, &val);
+			att->name = qname;
+		} else {
+			while (*val && !isspace(*val)) val++;
+			nf = val-fld;
+			makenstr(att->name, fld, nf);
+			removeescapes(att->name);
+		}
+
 		while (isspace(*val)) val++;
-		fld[nf]='\0';
-		if (val-fld==nf) val=NULL;
+		if (!*val) val = nullptr;
 
 		 // now fld points to the potential field name, which goes for nf chars,
-		 // and val points to the start of the value part.
-		 // fld can be:
-		 //  blah     <-- append to subatts...
-		 //  +blah    <-- combine with subatt with same name as blah
-		 //  .blah    <-- scope out, search for blah above...??
+		attributes.push(att);
+		 
+		 // val points to the start of the value part.
 		 // val can be: 
 		 //   \       <-- expect simple value indented starting next line..
 		 //   <<<filename <-- signal that format is ATT_VALUE_FILE, contents in file filename 
@@ -1959,13 +1966,6 @@ int Attribute::dump_in(IOBuffer &f, int Indent,Attribute **stopatsub)
 		 //   (NULL)
 		 //   somesimplevalue
 		 //   "some quoted value, maybe with escaped \t things"
-
-		if (!att) {
-			att = new Attribute;
-			makestr(att->name,fld);
-			removeescapes(att->name);
-			attributes.push(att);
-		}
 
 		numattsread++;
 		if (!val) {} // do nothing for null value
@@ -2045,7 +2045,6 @@ int Attribute::dump_in(IOBuffer &f, int Indent,Attribute **stopatsub)
 			if (line) f.FreeGetLinePtr(line);
 			return indent;
 		} else att->dump_in(f,indent+1);
-		att=NULL;
 	}
 
 	if (temp) delete[] temp;
