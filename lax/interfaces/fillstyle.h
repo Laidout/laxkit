@@ -33,7 +33,7 @@
 
 namespace LaxInterfaces {
 
-class FillStyle : public Laxkit::anObject, public LaxFiles::DumpUtility
+class FillStyle : virtual public Laxkit::anObject, virtual public LaxFiles::DumpUtility
 {
   public:
 	Laxkit::Color *color2;
