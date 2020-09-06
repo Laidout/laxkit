@@ -370,6 +370,11 @@ int ColorBase::Set(Color *color)
 	return 0;
 }
 
+int ColorBase::Set(const ScreenColor &color)
+{
+	return Set(LAX_COLOR_RGB, color.Red(), color.Green(), color.Blue(), color.Alpha());
+}
+
 //! Assume rgb, no a
 int ColorBase::Set(unsigned long color)
 {
