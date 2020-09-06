@@ -81,6 +81,16 @@ int strcasecmp_safe(const char *s1, const char *s2)
 	return strcasecmp(s1 ? s1 : "", s2 ? s2 : "");
 }
 
+/*! strcmp that only cares about equality. ok for strings to be null. two null strings equal each other.
+ */
+bool strEquals(const char *s1, const char *s2, bool caseless)
+{
+	if (!s1 && !s2) return true;
+	if ((s1 && !s2) || (!s1 && s2)) return false;
+	if (caseless) return !strcasecmp(s1,s2);
+	return !strcmp(s1,s2);
+}
+
 /*! Return a new char[] from printf style arguments.
  */
 char *newprintfstr(const char *fmt, ...)
@@ -419,6 +429,29 @@ char *appendintstr(char *&dest,int srci)
 		dest=newdest;
 	}
 	return dest;
+}
+
+/*! \ingroup misc
+ * Append src to dest, but escape newlines, tabs, and quotes.
+ */
+char *appendescaped(char *&dest, const char *src, char quote)
+{
+	if (!src) return dest;
+
+	int n=0;
+	for (unsigned int c=0; c<strlen(src); c++) if (src[c]==quote || src[c]=='\n' || src[c]=='\t') n++;
+	if (n==0) return appendstr(dest,src);
+
+	char newsrc[strlen(src)+n+1];
+	n=strlen(src);
+	int i=0;
+	int is=0;
+	while (is<n) {
+		if (src[is]==quote) newsrc[i++]='\\';
+		newsrc[i++]=src[is++];
+	}
+	newsrc[i]='\0';
+	return appendstr(dest,newsrc);
 }
 
  //! Prepend src to dest (returning srcdest).

@@ -29,6 +29,7 @@
 int isblank(const char *str);
 int strcmp_safe(const char *s1, const char *s2);
 int strcasecmp_safe(const char *s1, const char *s2);
+bool strEquals(const char *s1, const char *s2, bool caseless=false);
 char *itoa(int a,char *dest,int base=10); /* does not null terminate */
 char *newprintfstr(const char *fmt, ...);
 char *numtostr(int num, int par=0);
@@ -46,6 +47,7 @@ char *appendnstr(char *&dest,const char *src,int n);
 char *appendstr(char *&dest,const char *src);
 char *appendintstr(char *&dest,int srci);
 char *appendline(char *&dest,const char *src);
+char *appendescaped(char *&dest, const char *src, char quote);
 char *insertstr(char *&dest,const char *src,long pos);
 char *insertnstr(char *&dest,const char *src,long len, long pos);
 char *extendstr(char *&dest,int n);
