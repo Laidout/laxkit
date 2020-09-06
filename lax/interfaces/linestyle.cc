@@ -72,30 +72,6 @@ LineStyle::LineStyle()
 	numdashes   = 0;
 }
 
-/*! r,g,b,a are in range 0..65535
- */
-LineStyle::LineStyle(int r,int g,int b, int a, double w,int cap,int join,int dot,int func)
-{
-	mask = ~0;
-
-	color.red   = r;
-	color.green = g;
-	color.blue  = b;
-	color.alpha = a;
-	color2      = NULL;
-	width       = w;
-	widthtype   = 1;
-	capstyle    = cap;
-	joinstyle   = join;
-	miterlimit  = 100; //so this means 100*(line thickness)
-	function    = func;
-
-	dotdash     = dot;
-	dash_offset = 0;
-	dashes      = NULL;
-	numdashes   = 0;
-}
-
 LineStyle::LineStyle(const LineStyle &l) 
 {
 	width     =l.width;

@@ -42,7 +42,7 @@ enum LineStyleMask {
 	LINESTYLE_MAX
 };
 
-class LineStyle : public Laxkit::anObject, public LaxFiles::DumpUtility
+class LineStyle : virtual public Laxkit::anObject, virtual public LaxFiles::DumpUtility
 {
   public:
   	double width;
@@ -62,8 +62,11 @@ class LineStyle : public Laxkit::anObject, public LaxFiles::DumpUtility
 
 	unsigned long mask;
 
+	// typedef LineStyle *(*NewLineStyleFunc)();
+	// static NewLineStyleFunc newLineStyle;
+	// static LineStyle *DefaultLineStyle() { return new LineStyle(); }
+
 	LineStyle();
-	LineStyle(int r,int g,int b, int a, double w,int cap,int join,int dot,int func);
 	LineStyle(const LineStyle &l);
 	LineStyle &operator=(LineStyle &l);
 	virtual ~LineStyle();
