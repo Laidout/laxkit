@@ -738,7 +738,7 @@ int LineEdit::CharInput(unsigned int ch,const char *buffer,int len,unsigned int 
 
 		case LAX_Home: // home 
 			if (state&ShiftMask && !sellen) selstart=curpos;
-			if (curpos==0) return 0;
+			//if (curpos==0) return 0;
 			curpos=0; 
 			if (state&ShiftMask) sellen=curpos-selstart;
 			else sellen=0;
@@ -748,7 +748,7 @@ int LineEdit::CharInput(unsigned int ch,const char *buffer,int len,unsigned int 
 
 		case LAX_End: // end
 			if (state&ShiftMask && !sellen) selstart=curpos;
-			if (curpos==textlen) return 0;
+			//if (curpos==textlen) return 0;
 			curpos=textlen;
 			if (state&ShiftMask) sellen=curpos-selstart;
 			else sellen=0;
