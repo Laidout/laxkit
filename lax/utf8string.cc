@@ -279,30 +279,6 @@ Utf8String Utf8String::Substr(long from_byte, long to_byte)
 	return Utf8String(s + from_byte, to_byte - from_byte + 1);
 }
 
-/*! Compare against another string. -1 for less than, 0 for equal, 1 for greater than.
- */
-int Utf8String::Strcmp(const Utf8String &str) const
-{
-	if (!s) {
-		if (!str.c_str()) return 0;
-		return 1;
-	}
-	if (!str.c_str()) return -1;
-	return strcmp(s, str.c_str());
-}
-
-/*! Caselessly compare against another string. -1 for less than, 0 for equal, 1 for greater than.
- */
-int Utf8String::Strcasecmp(const Utf8String &str) const
-{
-	if (!s) {
-		if (!str.c_str()) return 0;
-		return 1;
-	}
-	if (!str.c_str()) return -1;
-	return strcasecmp(s, str.c_str());
-}
-
 /*! Return the unicode value for the given character pos.
  */
 unsigned int Utf8String::ch(int char_pos)
@@ -632,7 +608,65 @@ Utf8String *Utf8String::Split(const char *on_this, int *num_ret)
 	return nullptr;
 }
 
-bool Utf8String::EndsWith(const char *str)
+//! Convenience function that just returns Strcmp(str)==0.
+bool Utf8String::Equals(const Utf8String &str, bool caseless) const
+{
+	if (caseless) return Strcmp(str) == 0;
+	return Strcasecmp(str) == 0;
+}
+
+//! Convenience function that just returns Strcmp(str)==0.
+bool Utf8String::Equals(const char *str, bool caseless) const
+{
+	if (caseless) return Strcmp(str) == 0;
+	return Strcasecmp(str) == 0;
+}
+
+/*! Compare against another string. -1 for less than, 0 for equal, 1 for greater than.
+ */
+int Utf8String::Strcmp(const Utf8String &str) const
+{
+	if (!s) {
+		if (!str.c_str()) return 0;
+		return 1;
+	}
+	if (!str.c_str()) return -1;
+	return strcmp(s, str.c_str());
+}
+
+int Utf8String::Strcmp(const char *str) const
+{
+	if (!s) {
+		if (!str) return 0;
+		return 1;
+	}
+	if (!str) return -1;
+	return strcmp(s, str);
+}
+
+/*! Caselessly compare against another string. -1 for less than, 0 for equal, 1 for greater than.
+ */
+int Utf8String::Strcasecmp(const Utf8String &str) const
+{
+	if (!s) {
+		if (!str.c_str()) return 0;
+		return 1;
+	}
+	if (!str.c_str()) return -1;
+	return strcasecmp(s, str.c_str());
+}
+
+int Utf8String::Strcasecmp(const char *str) const
+{
+	if (!s) {
+		if (!str) return 0;
+		return 1;
+	}
+	if (!str) return -1;
+	return strcasecmp(s, str);
+}
+
+bool Utf8String::EndsWith(const char *str) const
 {
 	if (!str) return false;
 	int l = strlen(str);
@@ -640,25 +674,25 @@ bool Utf8String::EndsWith(const char *str)
 	return ::strcmp(s+num_bytes-l, str) == 0;
 }
 
-bool Utf8String::EndsWith(const Utf8String &str)
+bool Utf8String::EndsWith(const Utf8String &str) const
 {
 	return EndsWith(str.c_str());
 }
 
-bool Utf8String::StartsWith(const char *str)
+bool Utf8String::StartsWith(const char *str) const
 {
 	if (!str) return false;
 	return strstr(s, str) == s;
 }
 
-bool Utf8String::StartsWith(const Utf8String &str)
+bool Utf8String::StartsWith(const Utf8String &str) const
 {
 	return StartsWith(str.c_str());
 }
 
 /*! Return if string has no characters.
  */
-bool Utf8String::IsEmpty()
+bool Utf8String::IsEmpty() const
 {
 	return s == nullptr || *s == '\0';
 }

@@ -65,9 +65,6 @@ class Utf8String
 	//Utf8String &operator=(Utf8String &str);
 	Utf8String &operator=(const Utf8String &str);
 
-	int Strcmp(const Utf8String &str) const;
-	int Strcasecmp(const Utf8String &str) const;
-
 	char *ExtractBytes(int *chars, int *bytes, int *allocated);
 	void InsertBytes(char *newstr, int len, int allocated);
 
@@ -109,11 +106,17 @@ class Utf8String
 	long Findr(const Utf8String &str, int startat, int ignorecase);
 	long Findr(unsigned int ch, int startat);
 
-	bool EndsWith(const char *str);
-	bool EndsWith(const Utf8String &str);
-	bool StartsWith(const char *str);
-	bool StartsWith(const Utf8String &str);
-	bool IsEmpty();
+	bool Equals(const Utf8String &str, bool caseless=false) const;
+	bool Equals(const char *str, bool caseless=false) const;
+	int Strcmp(const Utf8String &str) const;
+	int Strcmp(const char *str) const;
+	int Strcasecmp(const Utf8String &str) const;
+	int Strcasecmp(const char *str) const;
+	bool EndsWith(const char *str) const;
+	bool EndsWith(const Utf8String &str) const;
+	bool StartsWith(const char *str) const;
+	bool StartsWith(const Utf8String &str) const;
+	bool IsEmpty() const;
 };
 
 Utf8String &operator+=(Utf8String &s, const char *str);
