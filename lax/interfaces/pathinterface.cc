@@ -3105,6 +3105,23 @@ PathsData::~PathsData()
 	if (fillstyle) fillstyle->dec_count();
 }
 
+int PathsData::Map(std::function<int(const flatpoint &p, flatpoint &newp)> adjustFunc)
+{
+	int changed = 0;
+	flatpoint p;
+	for (int c=0; c<paths.n; c++) {
+		Coordinate *coord = paths.e[c]->path;
+		if (!coord) continue;
+		Coordinate *first = coord;
+		do {
+			if (adjustFunc(coord->fp, coord->fp)) changed++;
+			coord = coord->next;
+		} while (coord && coord != first);
+	}
+	if (changed) touchContents();
+	return changed;
+}
+
 SomeData *PathsData::duplicate(SomeData *dup)
 {
 	PathsData *newp=dynamic_cast<PathsData*>(dup);

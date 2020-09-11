@@ -32,6 +32,7 @@
 #include <lax/screencolor.h>
 #include <lax/dump.h>
 
+#include <functional>
 
 
 namespace LaxInterfaces {
@@ -79,7 +80,7 @@ class Path : public LaxFiles::DumpUtility, public Laxkit::DoubleBBox
 {
  protected:
  public:
-	static Laxkit::PtrStack<PathOperator> basepathops; 
+ 	static Laxkit::PtrStack<PathOperator> basepathops; 
 
 	Coordinate *path; // path is not necessarily the first in a chain, but is a vertex
 	Laxkit::PtrStack<PathWeightNode> pathweights;
@@ -255,6 +256,9 @@ class PathsData : virtual public SomeData
 	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
 	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what, LaxFiles::DumpContext *context);
 	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
+
+	// typedef void (*PointMapFunc)(const flatpoint &p, flatpoint &newp);
+ 	virtual int Map(std::function<int(const flatpoint &p, flatpoint &newp)> adjustFunc);
 };
 
 
