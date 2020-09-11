@@ -908,6 +908,7 @@ double CaptionData::LineSpacing(double newspacing)
 {
 	if (newspacing!=0) linespacing=newspacing;
 	FindBBox();
+	touchContents();
 	return linespacing;
 }
 
@@ -919,6 +920,7 @@ double CaptionData::Size(double newsize)
 	state=0;
 	needtorecache=true;
 	FindBBox();
+	touchContents();
 	return fontsize;
 }
 
@@ -965,6 +967,7 @@ int CaptionData::SetText(const char *newtext)
 	needtorecache=true;
 	state=0;
 	FindBBox();
+	touchContents();
 	return 0;
 }
 
@@ -1161,6 +1164,7 @@ double CaptionData::XCenter(double xcenter)
 	double w(maxx-minx);
 	minx=-xcentering/100*w;
 	maxx=minx+w;
+	touchContents();
 
 	return xcentering;
 }
@@ -1172,6 +1176,7 @@ double CaptionData::YCenter(double ycenter)
 	double h(maxy-miny);
 	miny=-ycentering/100*h;
 	maxy=miny+h;
+	touchContents();
 
 	return ycentering;
 }
@@ -1201,6 +1206,7 @@ int CaptionData::Font(LaxFont *newfont)
 	needtorecache=true;
 	state=0;
 	FindBBox();
+	touchContents();
 
 	return 0;
 }
@@ -1225,6 +1231,7 @@ int CaptionData::Font(const char *file, const char *family,const char *style,dou
 	needtorecache=true;
 	state=0;
 	FindBBox();
+	touchContents();
 
 	return 0;
 }
