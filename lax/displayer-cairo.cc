@@ -1588,40 +1588,51 @@ double DisplayerCairo::glyphsextent(GlyphPlace *glyphs,GlyphPlace **glyphsp, uns
 double DisplayerCairo::textout(double x,double y,const char *str,int len,unsigned long align)
 {
 	if (!cr || !str) return 0;
+	if (len < 0) len = strlen(str);
+	if (!len) return 0;
 
     int n=0;
     const char *nl=str;
     do {
-        nl=strchr(nl,'\n');
+        nl = strchr(nl,'\n');
+        if (nl-str >= len) break;
         if (nl) nl++;
         n++;
     } while (nl);
 
-    if (n==1) {
+    if (n==1 || n == 0) {
 		return textout_line(x,y, str,len, align);
 	}
 
-    const char *text=str;
-    int ret=0;
-    int h=n*textheight();
+    const char *text = str;
+    int ret = 0;
+    int h = n*textheight();
 	flatpoint p;
 
-    int valign= align&(LAX_TOP|LAX_BOTTOM|LAX_VCENTER|LAX_BASELINE);
-    align=align&(LAX_LEFT|LAX_HCENTER|LAX_RIGHT);
-    if (valign==LAX_VCENTER) y-=h/2;
-    else if (valign==LAX_BOTTOM) y-=h;
+    int valign = align&(LAX_TOP|LAX_BOTTOM|LAX_VCENTER|LAX_BASELINE);
+    align = align&(LAX_LEFT|LAX_HCENTER|LAX_RIGHT);
+    if (valign == LAX_VCENTER) y-=h/2;
+    else if (valign == LAX_BOTTOM) y-=h;
 
+    int llen;
     do {
-        nl=strchr(text,'\n');
-        if (!nl) nl=text+strlen(text);
+		nl = strchr(text, '\n');
+		if (!nl) {
+			llen = strlen(text);
+			nl = text + llen;
+		}
+		llen = nl - text;
+		if (llen > len) llen = len;
 
-        ret=textout_line(x,y, text,nl-text, align|LAX_TOP);
-        if (*nl) {
-            y+=textheight();
-            text=nl+1;
-            if (!*text) nl=text;
-        }
-    } while (*nl);
+		ret = textout_line(x, y, text, llen, align | LAX_TOP);
+
+		if (*nl && llen < len) { //there's more text
+			y += textheight();
+			text = nl + 1;
+			len -= llen + 1;
+			if (!*text) nl = text;
+		} else len -= llen;
+	} while (*nl && len > 0);
     return ret;
 }
 
