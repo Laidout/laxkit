@@ -1699,16 +1699,21 @@ void Attribute::dump_out(FILE *f, int indent)
 	for (int c=0; c<attributes.n; c++) {
 		fprintf(f,"%s",spc);
 
-		 //dump out name
-		if (!attributes.e[c]->name) fprintf(f,"\"\"");
-		else if (strpbrk(attributes.e[c]->name," #\"<>\n\t"))
-		//else if (strchr(attributes.e[c]->name,' ') || strchr(attributes.e[c]->name,'\t'))
-			dump_out_escaped(f,attributes.e[c]->name,-1);//***does this work as intended??
-		else fprintf(f,format,attributes.e[c]->name);
+		if (!attributes.e[c]->name && !attributes.e[c]->value && attributes.e[c]->comment) {
+			//no name, no value, only comment
+			fprintf(f, "# %s\n", attributes.e[c]->comment);
+		} else {
+			 //dump out name
+			if (!attributes.e[c]->name) fprintf(f,"\"\"");
+			else if (strpbrk(attributes.e[c]->name," #\"<>\n\t"))
+			//else if (strchr(attributes.e[c]->name,' ') || strchr(attributes.e[c]->name,'\t'))
+				dump_out_escaped(f,attributes.e[c]->name,-1);//***does this work as intended??
+			else fprintf(f,format,attributes.e[c]->name);
 
-		 //dump out value
-		//sprintf(format, " %%-%ds", valuewidth);
-		dump_out_value(f, indent+2, attributes.e[c]->value, valuewidth, attributes.e[c]->comment, indent+namewidth+valuewidth+2);
+			 //dump out value
+			//sprintf(format, " %%-%ds", valuewidth);
+			dump_out_value(f, indent+2, attributes.e[c]->value, valuewidth, attributes.e[c]->comment, indent+namewidth+valuewidth+2);
+		}
 
 		 //dump out subatts
 		attributes.e[c]->dump_out(f,indent+2);
@@ -1723,17 +1728,22 @@ void Attribute::dump_out(FILE *f, int indent)
  */
 void Attribute::dump_out_full(FILE *f, int indent)
 {
-	if (!name && !value && !attributes.n) return;
+	if (!name && !value && !comment && !attributes.n) return;
 	char spc[indent+1]; memset(spc,' ',indent); spc[indent]='\0';
 	
 	fprintf(f,"%s",spc);
 
-	if (!name || *name == '\0') fprintf(f,"\"\"\n");
-	else if (strpbrk(name, " #<>\n\t\"")) dump_out_escaped(f,name,-1);
-	else fprintf(f,"%s",name);
+	if (!name && !value && comment) {
+		fprintf(f, "# %s\n", comment);
 
-	if (!value) fprintf(f,"\n");
-	else dump_out_value(f, indent+2, value);
+	} else {
+		if (!name || *name == '\0') fprintf(f,"\"\"\n");
+		else if (strpbrk(name, " #<>\n\t\"")) dump_out_escaped(f,name,-1);
+		else fprintf(f,"%s",name);
+
+		if (!value) fprintf(f,"\n");
+		else dump_out_value(f, indent+2, value);
+	}
 	
 	for (int c=0; c<attributes.n; c++) {
 		attributes.e[c]->dump_out(f,indent+2);
