@@ -783,7 +783,7 @@ LaxFiles::Attribute *CaptionData::dump_out_atts(Attribute *att,int what,DumpCont
 	att->push("xcentering", xcentering);
 	att->push("ycentering", ycentering);
 
-	sprintf(scratch, "rgbaf(%.10g, %.10g, %.10g, %.10g)\n",
+	sprintf(scratch, "rgbaf(%.10g, %.10g, %.10g, %.10g)",
 						red,green,blue,alpha);
 	att->push("color", scratch);
 

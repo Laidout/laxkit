@@ -26,6 +26,7 @@
 #include <lax/interfaces/patchinterface.h>
 #include <lax/transformmath.h>
 #include <lax/anxapp.h>
+#include <lax/utf8string.h>
 #include <lax/laxutils.h>
 #include <lax/bezutils.h>
 #include <lax/language.h>
@@ -590,6 +591,66 @@ void PatchData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *cont
 		if (c%xsize==0) fprintf(f," #row %d\n",c/xsize);
 		else fprintf(f,"\n");
 	}
+}
+
+LaxFiles::Attribute *PatchData::dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context)
+{
+	if (!att) att = new Attribute;
+	Attribute *att2;
+
+	if (what==-1) {
+		att->push("matrix", "1 0 0 1 0 0", "the affine matrix affecting the patch");
+		att->push("griddivisions","10",    "number of grid lines to display");
+		att->push("xsize", "4",            "number of points in the x direction");
+		att->push("ysize", "4",            "number of points in the y direction");
+		att->push("style","smooth",        "when dragging controls do it so patch is still smooth");
+		att->push("controls","full",       "can also be linear, coons, or border");
+		att2 = att->pushSubAtt("base_path",nullptr,    "If mesh is defined along path, include this single Path object");
+		att2->push("  ...");
+		att2 = att->pushSubAtt("points",nullptr,"all xsize*ysize points, a list by rows of: x y");
+		att2->value = newstr("1.0 1.0\n"
+							 "2.0 1.0\n"
+							 "1.0 2.0\n"
+							 "2.0 2.0\n"
+							 "...");
+		return att;
+	}
+
+	att->pushStr("matrix",-1, "%.10g %.10g %.10g %.10g %.10g %.10g\n",
+			m(0),m(1),m(2),m(3),m(4),m(5));
+	att->push("griddivisions",griddivisions);
+	if (style&PATCH_SMOOTH) att->push("style", "smooth");
+	
+	if (controls==Patch_Linear)           att->push("controls", "linear");
+	else if (controls==Patch_Coons)       att->push("controls", "coons");
+	else if (controls==Patch_Border_Only) att->push("controls", "border"); 
+	else if (controls==Patch_Full_Bezier) att->push("controls", "full");
+	
+	if (base_path) {
+		att2 = att->pushSubAtt("base_path");
+		base_path->dump_out_atts(att2,what,context);
+	}
+
+	att->push("xsize", xsize);
+	att->push("ysize", ysize);
+
+    att->push("minx", minx);
+    att->push("maxx", maxx);
+    att->push("miny", miny);
+    att->push("maxy", maxy);
+
+    Utf8String s,s2;
+    s2.Sprintf("%dx%d",xsize,ysize);
+	att2 = att->pushSubAtt("points", nullptr, s2.c_str());
+	for (int c=0; c<xsize*ysize; c++) {
+		s2.Sprintf("%.10g %.10g\n", points[c].x,points[c].y);
+		s.Append(s2);
+		//if (c%xsize==0) fprintf(f," #row %d\n",c/xsize);
+		//else fprintf(f,"\n");
+	}
+	att2->value = s.ExtractBytes(nullptr, nullptr, nullptr);
+
+	return att;
 }
 
 //! Reverse of the dump_out.

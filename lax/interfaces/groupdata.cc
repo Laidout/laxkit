@@ -25,8 +25,10 @@
 #include <lax/interfaces/interfacemanager.h>
 #include <lax/interfaces/somedatafactory.h>
 #include <lax/transformmath.h>
+#include <lax/utf8string.h>
 #include <lax/language.h>
 
+//template implementation:
 #include <lax/refptrstack.cc>
 
 #include <iostream>
@@ -514,6 +516,66 @@ void GroupData::dump_out_group(FILE *f,int indent,int what,LaxFiles::DumpContext
 	}
 }
 
+LaxFiles::Attribute *GroupData::dump_out_group_atts(LaxFiles::Attribute *att, int what, LaxFiles::DumpContext *context, bool kidsonly)
+{
+	if (!att) att = new Attribute();
+
+	Attribute *att2;
+
+	if (what==-1) {
+		att->push("id","name", "the name of a group. There can be no whitespace in the id");
+		att->push(nullptr, nullptr, "Groups contain any number of drawable objects. Here are all the possible such");
+		att->push(nullptr, nullptr, "objects currently installed:");
+		att->push("object", "1 Group","a subgroup...");
+
+		InterfaceManager *imanager = InterfaceManager::GetDefault(true);
+	    ResourceManager *itools = imanager->GetTools();
+		ResourceType *tools = itools->FindType("tools");
+
+		SomeData *obj;
+		for (int c=0; tools->resources.n; c++) {
+			if (!strcmp(tools->resources.e[c]->name,"Group")) continue;
+			att2 = att->pushSubAtt("object", tools->resources.e[c]->name);
+			obj = imanager->NewDataObject(tools->resources.e[c]->name);
+			obj->dump_out_atts(att2,-1,NULL);
+			delete obj;
+		}
+		return att;
+	}
+
+	Utf8String s;
+	if (!kidsonly) {
+		att->push("id", Id());
+		s.Sprintf("%.10g %.10g %.10g %.10g %.10g %.10g\n", m(0),m(1),m(2),m(3),m(4),m(5));
+		att->push("matrix", s.c_str());
+
+		if (visible) att->push("visible");
+		if (selectable) att->push("selectable");
+
+		if (locks) {
+			s.SetToNone();
+
+			if (locks & OBJLOCK_Contents  ) s.Append("contents ");
+			if (locks & OBJLOCK_Position  ) s.Append("position ");
+			if (locks & OBJLOCK_Rotation  ) s.Append("rotation ");
+			if (locks & OBJLOCK_Scale     ) s.Append("scale ");
+			if (locks & OBJLOCK_Shear     ) s.Append("shear ");
+			if (locks & OBJLOCK_Kids      ) s.Append("kids ");
+			if (locks & OBJLOCK_Selectable) s.Append("selectable "); 
+
+			att->push("locks", s.c_str());
+		}
+	}
+
+	for (int c=0; c<kids.n; c++) {
+		s.Sprintf("%d %s", c, kids.e[c]->whattype());
+		att2 = att->pushSubAtt("object", s.c_str());
+		kids.e[c]->dump_out_atts(att2, 0, context);
+	}
+
+	return att;
+}
+
 void GroupData::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context)
 {
 	 //reads in locks, visible, selectable, min/max
@@ -562,7 +624,7 @@ void GroupData::dump_in_group_atts(LaxFiles::Attribute *att,int flag,LaxFiles::D
 				// currently out put was like: "object 2 ImageData"
 				//***strs[0]==that id
 				InterfaceManager *imanager = InterfaceManager::GetDefault(true);
-				SomeData *data = imanager->NewDataObject(n>1?strs[1]:(n==1?strs[0]:NULL)); //objs have 1 count
+				SomeData *data = imanager->NewDataObject(n>1 ? strs[1] : (n==1 ? strs[0] : NULL)); //objs have 1 count
 
 				if (data) {
 					push(data);

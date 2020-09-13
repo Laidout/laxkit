@@ -38,6 +38,7 @@
 #include <lax/language.h>
 #include <lax/fileutils.h>
 #include <lax/filedialog.h>
+#include <lax/utf8string.h>
 #include <lax/popupmenu.h>
 #include <lax/interfaces/freehandinterface.h>
 #include <lax/interfaces/curvemapinterface.h>
@@ -1070,6 +1071,30 @@ void EngraverSpacing::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext
 	att.dump_out(f,indent);
 }
 
+
+LaxFiles::Attribute *EngraverSpacing::dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *savecontext)
+{
+	if (!att) att=new Attribute();
+
+	if (what==-1) {
+		att->push("type",      nullptr, "default or map");
+		att->push("spacing",   nullptr, "The default spacing");
+		att->push("map (todo)",nullptr, "a value map for spacing");
+		return att;
+	}
+
+	att->push("id", Id());
+	att->push("type", type==0 ? "default" : "map");
+	att->push("spacing",spacing); 
+
+	if (map) {
+		att->push("map","# ToDO!!");
+		// ***
+	}
+
+	return att;
+}
+
 void EngraverSpacing::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context)
 {
 	if (!att) return;
@@ -1098,30 +1123,6 @@ void EngraverSpacing::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::D
 		}
 	}
 }
-
-LaxFiles::Attribute *EngraverSpacing::dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *savecontext)
-{
-	if (!att) att=new Attribute();
-
-	if (what==-1) {
-		att->push("type",      nullptr, "default or map");
-		att->push("spacing",   nullptr, "The default spacing");
-		att->push("map (todo)",nullptr, "a value map for spacing");
-		return att;
-	}
-
-	att->push("id", Id());
-	att->push("type", type==0 ? "default" : "map");
-	att->push("spacing",spacing); 
-
-	if (map) {
-		att->push("map","# ToDO!!");
-		// ***
-	}
-
-	return att;
-}
-
 
 
 //----------------------------- EngraverLineQuality -----------------------------------
@@ -2359,8 +2360,7 @@ void EngraverPointGroup::CopyFrom(EngraverPointGroup *orig, bool keep_name, bool
 	}
 }
 
-void EngraverPointGroup::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context,
-						const char *sharetrace, const char *sharedash)
+void EngraverPointGroup::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
 {
 	char spc[indent+3]; memset(spc,' ',indent); spc[indent]='\0'; 
 
@@ -2430,34 +2430,22 @@ void EngraverPointGroup::dump_out(FILE *f,int indent,int what,LaxFiles::DumpCont
 			color.alpha/65535.);
 	
 	if (trace) {
-		//if (!sharetrace && trace->ResourceOwner()!=this) {
 		if (trace->ResourceOwner()!=this) {
 			 //resource'd trace
 			fprintf(f,"%strace resource: %s\n",spc,trace->Id());
 
 		} else { 
-			//if (sharetrace) fprintf(f,"%strace with: %s\n",spc,sharetrace);
-			//else {
-			//	fprintf(f,"%strace\n",spc);
-			//	trace->dump_out(f,indent+2,what,context);
-			//}
 			fprintf(f,"%strace\n",spc);
 			trace->dump_out(f,indent+2,what,context);
 		}
 	}
 
 	if (dashes) {
-		//if (!sharedash && dashes->ResourceOwner()!=this) {
 		if (dashes->ResourceOwner()!=this) {
 			 //resource'd dashes
-			fprintf(f,"%sdashes resource: %s\n",spc,trace->Id());
+			fprintf(f,"%sdashes resource: %s\n",spc,dashes->Id());
 
 		} else {
-			//if (sharedash) fprintf(f,"%sdashes with: %s\n",spc,sharedash);
-			//else {
-			//	fprintf(f,"%sdashes\n",spc);
-			//	dashes->dump_out(f,indent+2,what,context);
-			//}
 			fprintf(f,"%sdashes\n",spc);
 			dashes->dump_out(f,indent+2,what,context);
 		}
@@ -2466,7 +2454,7 @@ void EngraverPointGroup::dump_out(FILE *f,int indent,int what,LaxFiles::DumpCont
 	if (direction) {
 		if (direction->ResourceOwner()!=this) {
 			 //resource'd direction
-			fprintf(f,"%sdirection resource: %s\n",spc,trace->Id());
+			fprintf(f,"%sdirection resource: %s\n",spc,direction->Id());
 
 		} else {
 			fprintf(f,"%sdirection\n",spc);
@@ -2477,7 +2465,7 @@ void EngraverPointGroup::dump_out(FILE *f,int indent,int what,LaxFiles::DumpCont
 	if (spacing) {
 		if (spacing->ResourceOwner()!=this) {
 			 //resource'd spacing
-			fprintf(f,"%sspacing resource: %s\n",spc,trace->Id());
+			fprintf(f,"%sspacing resource: %s\n",spc,spacing->Id());
 
 		} else {
 			fprintf(f,"%sspacing\n",spc);
@@ -2536,6 +2524,184 @@ void EngraverPointGroup::dump_out(FILE *f,int indent,int what,LaxFiles::DumpCont
 		}
 	}
 
+}
+
+LaxFiles::Attribute *EngraverPointGroup::dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context)
+{
+	if (!att) att = new Attribute;
+	Attribute *att2;
+
+	if (what==-1) {
+		att->push("id 1             #group id number");
+		att->push("name Name        #some name for ");
+
+		att->push("active yes       #yes|no, whether to use this group or not");
+		att->push("linked yes       #yes|no, whether to warp along with other linked groups");
+		att->push("type linear      #or radial, circular, spiral");
+		att->push("position (.5,.5) #default origin for the pattern, range 0..1, spans whole mesh");
+		att->push("directionv (1,0) #default direction for the pattern ");
+		att->push("color rgbaf(1.,1.,1.,1.)  #color of lines in this group");
+		att->push("default_spacing  .1 #default spacing, in object space, not s,t space ");
+
+		att2 = att->pushSubAtt("trace", nullptr, "trace settings. If sharing with a previous group, use \"trace with: pgroup-name\"");
+		if (trace) trace->dump_out_atts(att2,-1,context);
+		else {
+			EngraverTraceSettings t;
+			t.dump_out_atts(att2, -1, context);
+		}
+		
+		att2 = att->pushSubAtt("dashes", "Dash settings");
+		if (dashes) dashes->dump_out_atts(att2,-1,context);
+		else {
+			EngraverLineQuality d;
+			d.dump_out_atts(att2,-1,context);
+		}
+
+		att2 = att->pushSubAtt("direction", nullptr, "Direction settings for auto line creation");
+		if (direction) direction->dump_out_atts(att2,-1,context);
+		else {
+			EngraverDirection d;
+			d.dump_out_atts(att2,-1,context);
+		}
+
+		att2 = att->pushSubAtt("spacing", nullptr, "Spacing settings");
+		if (spacing) spacing->dump_out_atts(att2,-1,context);
+		else {
+			EngraverSpacing d;
+			d.dump_out_atts(att2,-1,context);
+		} 
+
+		att2 = att->pushSubAtt("line", nullptr, "One for each defined line\n"
+								"Any number of points, 1 point per file line. Coordinate is within mesh. Format is: (x,y) weight on|off|end|start");
+		att2->value = newstr("(0.5,0.75) 2 on\n...");
+
+		return att;
+	}
+
+	att->push("id", id);
+	if (!isblank(name)) att->push("name", name);
+	
+	att->push("active", active?"yes":"no");
+	att->push("linked", linked?"yes":"no");
+
+	att->push("default_weight", default_weight);
+
+	att->pushStr("position",   -1, "(%.10g, %.10g)\n", position.x,position.y);
+	att->pushStr("directionv", -1, "(%.10g, %.10g)\n", directionv.x,directionv.y);
+
+
+	att->pushStr("color", -1, "rgbaf(%.10g,%.10g,%.10g,%.10g)",
+			color.red/65535.,
+			color.green/65535.,
+			color.blue/65535.,
+			color.alpha/65535.);
+	
+	if (trace) {
+		if (trace->ResourceOwner()!=this) {
+			 //resource'd trace
+			att->pushStr("trace", -1, "resource: %s",trace->Id());
+
+		} else { 
+			att2 = att->pushSubAtt("trace");
+			trace->dump_out_atts(att2,what,context);
+		}
+	}
+
+	if (dashes) {
+		if (dashes->ResourceOwner()!=this) {
+			 //resource'd dashes
+			att->pushStr("dashes", -1, "resource: %s",dashes->Id());
+
+		} else {
+			att2 = att->pushSubAtt("dashes");
+			dashes->dump_out_atts(att2,what,context);
+		}
+	}
+
+	if (direction) {
+		if (direction->ResourceOwner()!=this) {
+			 //resource'd dashes
+			att->pushStr("direction", -1, "resource: %s",direction->Id());
+
+		} else {
+			att2 = att->pushSubAtt("direction");
+			direction->dump_out_atts(att2,what,context);
+		}
+	}
+
+	if (spacing) {
+		if (spacing->ResourceOwner()!=this) {
+			 //resource'd dashes
+			att->pushStr("spacing", -1, "resource: %s",spacing->Id());
+
+		} else {
+			att2 = att->pushSubAtt("spacing");
+			spacing->dump_out_atts(att2,what,context);
+		}
+	}
+
+	if (default_weight<=0 && direction->default_weight>0) default_weight=direction->default_weight;
+
+	 //finally output the lines
+	LinePoint *p;
+	Utf8String s,s2;
+	const char *ons, *dash;
+	for (int c=0; c<lines.n; c++) {
+		s.Sprintf("%d", c);
+		att2 = att->pushSubAtt("line", nullptr, s.c_str());
+
+		p = lines.e[c];
+		s.SetToNone();
+		while (p) {
+			if (p->on==ENGRAVE_Off) ons="off";
+			else if (p->on==ENGRAVE_On) ons="on";
+			else if (p->on==ENGRAVE_EndPoint) ons="end";
+			else if (p->on==ENGRAVE_StartPoint) ons="start";
+			s2.Sprintf("%s  (%.10g, %.10g) %.10g %s\n", p->s,p->t, p->weight, ons);
+			s.Append(s2);
+
+			p = p->next;
+		}
+		att2->value = s.ExtractBytes(nullptr, nullptr, nullptr);
+		
+		if (lines.e[c]->cache) {
+			s.Sprintf("%d", c);
+			att2 = att->pushSubAtt("linecache", nullptr, s.c_str());
+			s.SetToNone();
+
+			LinePointCache *cc=lines.e[c]->cache;
+			LinePointCache *ccstart=cc;
+			const char *onsd;
+
+			do {
+				if (cc->on==ENGRAVE_Off) ons="off";
+				else if (cc->on==ENGRAVE_On) ons="on";
+				else if (cc->on==ENGRAVE_EndPoint) ons="end";
+				else if (cc->on==ENGRAVE_StartPoint) ons="start";
+
+				if (cc->dashon==ENGRAVE_Off) onsd="off";
+				else if (cc->dashon==ENGRAVE_On) onsd="on";
+				else if (cc->dashon==ENGRAVE_EndPoint) onsd="end";
+				else if (cc->dashon==ENGRAVE_StartPoint) onsd="start";
+
+				if (cc->type==ENGRAVE_Original) dash="orig";
+				else if (cc->type==ENGRAVE_BlockStart ) dash="blockstart";
+				else if (cc->type==ENGRAVE_BlockEnd   ) dash="blockend";
+				else if (cc->type==ENGRAVE_VisualCache) dash="sample";
+				else if (cc->type==ENGRAVE_EndDash    ) dash="dashend";
+				else if (cc->type==ENGRAVE_StartDash  ) dash="dashstart";
+				else dash="unknown";
+
+				s2.Sprintf("%s %.10g (%.10g, %.10g) %.10g %s %s\n", dash, cc->bt, cc->p.x,cc->p.y,cc->weight, ons, onsd);
+				s.Append(s2);
+
+				cc=cc->next;
+			} while (cc && cc!=ccstart);
+			att2->value = s.ExtractBytes(nullptr, nullptr, nullptr);
+		}
+	}
+
+	return att;
 }
 
 void EngraverPointGroup::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context)
@@ -5549,7 +5715,7 @@ void EngraverFillData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContex
 		PatchData::dump_out(f,indent+2,-1,context);
 
 		fprintf(f,"%sgroup            #(1 or more)\n",spc);
-		groups.e[0]->dump_out(f,indent+2,-1,context, NULL,NULL);
+		groups.e[0]->dump_out(f,indent+2,-1,context);
 
 		return;
 	}
@@ -5557,24 +5723,41 @@ void EngraverFillData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContex
 	fprintf(f,"%smesh\n",spc);
 	PatchData::dump_out(f,indent+2,what,context);
 
-	const char *sharetrace=NULL, *sharedash=NULL;
 	for (int c=0; c<groups.n; c++) {
-		sharetrace=NULL;
-		sharedash =NULL;
-
-		for (int c2=0; c2<c; c2++) {
-			if (groups.e[c2]->trace ==groups.e[c]->trace  && groups.e[c]->trace->ResourceOwner()==this) sharetrace=groups.e[c2]->name;
-			if (groups.e[c2]->dashes==groups.e[c]->dashes && groups.e[c]->trace->ResourceOwner()==this) sharedash =groups.e[c2]->name;
-		}
 
 		fprintf(f,"%sgroup\n",spc);
-		groups.e[c]->dump_out(f,indent+2,what,context, sharetrace,sharedash);
+		groups.e[c]->dump_out(f,indent+2,what,context);
 	}
 
 
 	return;
 }
 
+LaxFiles::Attribute *EngraverFillData::dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context)
+{
+	if (!att) att = new Attribute;
+	Attribute *att2;
+
+	if (what==-1) {
+		att2 = att->pushSubAtt("mesh", nullptr, "The mesh used to encase the lines");
+		PatchData::dump_out_atts(att2, -1, context);
+
+		att2 = att->pushSubAtt("group", nullptr, "(1 or more)");
+		groups.e[0]->dump_out_atts(att2, -1,context);
+
+		return att;
+	}
+
+	att2 = att->pushSubAtt("mesh");
+	PatchData::dump_out_atts(att2, what,context);
+
+	for (int c=0; c<groups.n; c++) {
+		att2 = att->pushSubAtt("group");
+		groups.e[c]->dump_out_atts(att2,what,context);
+	}
+
+	return att;
+}
 
 //! Reverse of dump_out.
 void EngraverFillData::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *context)

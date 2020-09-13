@@ -31,6 +31,7 @@
 #include <lax/interfaces/linestyle.h>
 #include <lax/filedialog.h>
 #include <lax/laxutils.h>
+#include <lax/utf8string.h>
 #include <lax/language.h>
 
 
@@ -216,6 +217,67 @@ void VoronoiData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *co
 		}
 	}
 
+}
+
+LaxFiles::Attribute *VoronoiData::dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context)
+{
+	if (!att) att = new Attribute();
+
+	if (what==-1) {
+		att->push("FIX ME", "RIGHT NOW!!!");
+		cerr << " *** need to implement VoronoiData::dump_out() description!!"<<endl;
+		return att;
+	}
+
+    const double *matrix=m();
+    att->pushStr("matrix", -1, "%.10g %.10g %.10g %.10g %.10g %.10g",
+			matrix[0],matrix[1],matrix[2],matrix[3],matrix[4],matrix[5]);
+
+	att->push("show_points",    (show_points   ? "yes" : "no"));
+	att->push("show_delauney",  (show_delauney ? "yes" : "no"));
+	att->push("show_voronoi",   (show_voronoi  ? "yes" : "no"));
+	att->push("show_numbers",   (show_numbers  ? "yes" : "no"));
+
+	att->push("width_points",   width_points  );
+	att->push("width_delauney", width_delauney);
+	att->push("width_voronoi",  width_voronoi );
+
+	char *col=color_delauney->dump_out_simple_string();
+	if (col) att->push("color_delauney", col);
+	delete[] col;
+
+	col=color_voronoi->dump_out_simple_string();
+	if (col) att->push("color_voronoi", col);
+	delete[] col;
+
+	col=color_points->dump_out_simple_string();
+	if (col) att->push("color_points", col);
+	delete[] col;
+	
+
+	Utf8String s, s2;
+	if (points.n) {
+		Attribute *att2 = att->pushSubAtt("points");
+		for (int c=0; c<points.n; c++) {
+			s2.Sprintf("%.10g, %.10g\n", points.e[c].x,points.e[c].y); //oh no! can't really output per line comments with atts!
+			s.Append(s2);
+		}
+		att2->value = s.ExtractBytes(nullptr,nullptr,nullptr);
+	}
+
+	if (triangles.n) {
+		Attribute *att2 = att->pushSubAtt("triangles", nullptr, "(ignored on loading) p1 p2 p3  t1 t2 t3 (<- the triangles on other side of edge)  circumcenter x,y\n");
+		for (int c=0; c<triangles.n; c++) {
+			s.Sprintf("%s  %d %d %d  %d %d %d  %.10g, %.10g  #%d\n", 
+					triangles.e[c].p1,   triangles.e[c].p2,   triangles.e[c].p3,
+					triangles.e[c].t[0], triangles.e[c].t[1], triangles.e[c].t[2],
+					triangles.e[c].circumcenter.x,triangles.e[c].circumcenter.y
+				);
+			att2->value = s.ExtractBytes(nullptr,nullptr,nullptr);
+		}
+	}
+
+	return att;
 }
 
 void VoronoiData::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context)

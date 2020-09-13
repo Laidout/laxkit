@@ -49,6 +49,7 @@ class ImagePatchData : public PatchData
 	virtual const char *whattype() { return "ImagePatchData"; }
 	virtual SomeData *duplicate(SomeData *dup);
 	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
+	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context);
 	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
 
 	virtual unsigned long WhatColorLong(double s,double t);
@@ -58,6 +59,7 @@ class ImagePatchData : public PatchData
 	virtual void zap(); // zap to image
 	virtual int SetImage(const char *fname);
 
+	virtual int renderToBufferImage(Laxkit::LaxImage *image);
 };
 
 

@@ -255,17 +255,20 @@ enum EngraveLinePointCacheTypes {
 class PointCollection
 {
   public:
-	enum PointMethods {
+  	enum PointMethods {
 		Size,
-		Position
+		Position,
+		Rotation,
+		Transform,
+		Extra
 	};
 	virtual int Depth() = 0; //how many dimensions wide are points stored
-	virtual int Num(int atlevel) = 0; //how many containers at this level
-	virtual flatpoint Point(int index, ...) = 0; //retrieve point
-	virtual void Point(flatpoint newPos, int index, ...) = 0; //set point
+	virtual int Num(int dim) = 0; //size of this dimension
+	virtual flatpoint Point(int index, ...) = 0; //retrieve point, as many numbers as Depth()
+	virtual flatpoint Point(flatpoint newPos, int index, ...) = 0; //set point
 
 	//Update every point with this function
-	virtual int Adjust(std::function<int(const flatpoint &p, flatpoint &newp)> adjustFunc);
+	virtual int Map(std::function<int(const flatpoint &p, flatpoint &newp)> adjustFunc) = 0;
 };
 
 class LinePoint;
@@ -759,7 +762,8 @@ class EngraverPointGroup : public DirectionMap
 	virtual int UpdateDashCache();
 	virtual void StripDashes();
 
-	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context,const char *sharetrace, const char *sharedash);
+	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
+	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context);
 	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
 };
 
@@ -819,6 +823,7 @@ class EngraverFillData : virtual public PatchData
 
 	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
 	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
+	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *savecontext);
 	virtual void dump_out_svg(const char *file);
 	virtual PathsData *MakePathsData(int whichgroup);
 

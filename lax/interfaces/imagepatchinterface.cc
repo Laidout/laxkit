@@ -239,6 +239,33 @@ void ImagePatchData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext 
 	fprintf(f,"%siheight %d\n",spc,iheight);
 }
 
+LaxFiles::Attribute *ImagePatchData::dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *dump)
+{
+	att = PatchData::dump_out_atts(att,what,dump);
+	
+	if (what==-1) {
+		att->push("filename", "whicheverfile.jpg", "name of the image used");
+		att->push("iwidth",   "100", "width of the image in pixels for a preview sampling");
+		att->push("iheight",  "100", "iheight of the image in pixels for a preview sampling");
+		return att;
+	}
+
+	if (dump && dump->basedir) {
+		char *tmp = NULL;
+		if (filename) {
+			if (!dump->subs_only || (dump->subs_only && is_in_subdir(filename,dump->basedir)))
+				tmp = relative_file(filename,dump->basedir,1);
+			att->push("filename", tmp?tmp:filename);
+			if (tmp) { delete[] tmp; tmp=NULL; }
+		}
+	} else att->push("filename", filename);
+
+	att->push("iwidth", iwidth);
+	att->push("iheight", iheight);
+
+	return att;
+}
+
 //! Reverse of dump_out.
 void ImagePatchData::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *context)
 {
@@ -334,6 +361,11 @@ void ImagePatchData::zap()
 int ImagePatchData::hasColorData()
 { 
 	return idata?1:0;
+}
+
+int ImagePatchData::renderToBufferImage(Laxkit::LaxImage *image)
+{
+	return -1; //this forces use of PatchData::renderToBuffer()
 }
 
 
