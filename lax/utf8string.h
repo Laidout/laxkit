@@ -60,6 +60,7 @@ class Utf8String
 	long Bytes() { return num_bytes; }
 	long Capacity() { return bytes_allocated; }
 	void Clear();
+	void SetToNone();
 
 	Utf8String &operator=(const char *str);
 	//Utf8String &operator=(Utf8String &str);

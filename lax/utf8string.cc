@@ -223,14 +223,25 @@ void Utf8String::InsertBytes(char *newstr, int len, int allocated)
 	updateNumChars();
 }
 
+/*! Clear, only gauranteed to keep s allocated.
+ */
+void Utf8String::SetToNone()
+{
+	num_chars = 0;
+	num_bytes = 0;
+	if (s) s[0]='\0';
+}
+
+/*! Sets to empty string. If number of bytes allocated > CHARBLOCKSIZE, make s null.
+ */
 void Utf8String::Clear()
 {
-	if (bytes_allocated>CHARBLOCKSIZE) {
+	if (bytes_allocated > CHARBLOCKSIZE) {
 		delete[] s;
 		s = nullptr;
 		bytes_allocated = 0;
-	} else {
-	}
+	} //else keep token amount allocated
+	
 
 	if (s) s[0]='\0';
 
