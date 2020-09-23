@@ -401,8 +401,7 @@ int SomeData::GeneratePreview(int maxdim)
  */
 void SomeData::touchContents()
 { 
-	previewtime=0; //time() doesn't change often enough, so we have to force this to 0..
-	modtime=time(NULL);
+	Previewable::touchContents();
 	if (GetParent()) GetParent()->touchContents();
 }
 
