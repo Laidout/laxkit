@@ -178,7 +178,7 @@ ImageData &ImageData::operator=(ImageData &i)
 void ImageData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
 {
 	Attribute att;
-	dump_out_atts(&att, what, context);
+	ImageData::dump_out_atts(&att, what, context);
 	att.dump_out(f, indent);
 }
 
