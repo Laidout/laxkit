@@ -312,7 +312,7 @@ anInterface::~anInterface()
 	if (child) child->dec_count();
 	delete[] owner_message;
 	delete[] last_message;
-	DBG cerr<<"--- anInterface "<<whattype()<<","<<" destructor"<<endl; 
+	DBG cerr<<"--- anInterface "<<whattype()<<" "<<object_id<<" "<<(object_idstr?object_idstr:"(no id)")<<","<<" destructor"<<endl; 
 }
 
 
@@ -352,7 +352,7 @@ anInterface *anInterface::duplicate(anInterface *dup)
 	return dup;
 }
 
-/*! Classes can use this to tell owner when something's changed. This is not used in anInterface class.
+/*! Subclasses can use this to tell owner when something's changed.
  * Sends owner_message, or whattype() if owner_message is nullptr.
  * event->usertype is set to level.
  *
