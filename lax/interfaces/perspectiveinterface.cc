@@ -476,12 +476,12 @@ void PerspectiveTransform::ComputeTransform()
 	getNormalizationCoefficients(srcPts, dstPts, false);
 	getNormalizationCoefficients(srcPts, dstPts, true);
 
-	cerr << "PerspectiveTransform::ComputeTransform():"<<endl;
-	//cerr << "coeffs:"<<endl << std::setprecision(3) << fixed; //note: needs #include <iomanip>
-	cerr << "coeffs:"<<endl;
-	for (int c=0; c<9; c++) { cerr  << "  "<<coeffs[c]<<','; if (c%3==2) cerr <<endl; }
-	cerr << "coeffsInv:"<<endl;
-	for (int c=0; c<9; c++) { cerr <<"  "<<coeffsInv[c]<<','; if (c%3==2) cerr <<endl; }
+	DBG cerr << "PerspectiveTransform::ComputeTransform():"<<endl;
+	DBG //cerr << "coeffs:"<<endl << std::setprecision(3) << fixed; //note: needs #include <iomanip>
+	DBG cerr << "coeffs:"<<endl;
+	DBG for (int c=0; c<9; c++) { cerr  << "  "<<coeffs[c]<<','; if (c%3==2) cerr <<endl; }
+	DBG cerr << "coeffsInv:"<<endl;
+	DBG for (int c=0; c<9; c++) { cerr <<"  "<<coeffsInv[c]<<','; if (c%3==2) cerr <<endl; }
 }
 
 //The following perspective transform implementation is adapted from:
@@ -789,6 +789,9 @@ PerspectiveInterface::PerspectiveInterface(anInterface *nowner, int nid, Display
 {
 	interface_flags = 0;
 
+	edit_to   = true;
+	edit_from = false;
+
 	hover        = PERSP_None;
 	showdecs     = 1;
 	show_preview = true;
@@ -804,6 +807,9 @@ PerspectiveInterface::PerspectiveInterface(anInterface *nowner, int nid, Display
 	persped      = NULL;
 
 	sc           = NULL; //shortcut list, define as needed in GetShortcuts()
+
+	inpoints.rgbf(.85,.85,.85);
+	outpoints.rgbf(.75,.75,.75);
 
 	transform    = new PerspectiveTransform();
 }
@@ -1112,13 +1118,32 @@ int PerspectiveInterface::Refresh()
 		//so now we are in obj parent coords
 	} else {
 		dp->PushAxes();
+		if (dataoc && dataoc->obj != data) {
+			// we are using a substitute object for dataoc->obj
+			double m[6];
+			transform_invert(m, dataoc->obj->m());
+			dp->PushAndNewTransform(m);
+			dp->PushAndNewTransform(data->m());
+		}
 	}
 
 	//original corners
-	flatpoint from_ll(data->minx, data->miny);
-	flatpoint from_lr(data->maxx, data->miny);
-	flatpoint from_ul(data->minx, data->maxy);
-	flatpoint from_ur(data->maxx, data->maxy);
+	flatpoint from_ll;
+	flatpoint from_lr;
+	flatpoint from_ul;
+	flatpoint from_ur;
+
+	if (!edit_from) {
+		from_ll.set(data->minx, data->miny);
+		from_lr.set(data->maxx, data->miny);
+		from_ul.set(data->minx, data->maxy);
+		from_ur.set(data->maxx, data->maxy);
+	} else {
+		from_ll.set(transform->from_ll.x, transform->from_ll.y);
+		from_lr.set(transform->from_lr.x, transform->from_lr.y);
+		from_ul.set(transform->from_ul.x, transform->from_ul.y);
+		from_ur.set(transform->from_ur.x, transform->from_ur.y);
+	}
 
 	if (interface_flags & PERSP_Parent_Space) {
 		from_ll = data->transformPoint(from_ll);
@@ -1152,7 +1177,7 @@ int PerspectiveInterface::Refresh()
 	dp->LineWidthScreen(1);
 
 	 //draw grid
-	if (show_grid) {
+	if (show_grid && transform->IsValid()) {
 		flatpoint p1,p2;
 		for (int c=1; c<lines; c++) {
 			p1=transform->transform(from_ll+c/(float)(lines)*l);
@@ -1208,6 +1233,10 @@ int PerspectiveInterface::Refresh()
 
 
 	dp->PopAxes();
+	if (!(interface_flags & PERSP_Parent_Space) && dataoc && dataoc->obj != data) {
+		dp->PopAxes();
+		dp->PopAxes();
+	}
 	return 0;
 }
 

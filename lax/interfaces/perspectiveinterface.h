@@ -95,7 +95,8 @@ class PerspectiveInterface : public anInterface
 
 	// *** dbg:
 	flatpoint mousep, initialp;
-	
+
+	bool edit_from, edit_to;	
 	bool show_grid;
 	bool continuous_update;
 	bool dont_update_transform;
@@ -122,6 +123,11 @@ class PerspectiveInterface : public anInterface
 		PERSP_ul,
 		PERSP_ur,
 
+		PERSP_From_ll,
+		PERSP_From_lr,
+		PERSP_From_ul,
+		PERSP_From_ur,
+
 		PERSP_Move,
 		PERSP_Reset,
 		PERSP_Grid,
@@ -130,13 +136,15 @@ class PerspectiveInterface : public anInterface
 		PERSP_MAX
 	};
 
-	enum PerspFlags {
+	enum PerspFlags { // for interface_flags
 		PERSP_Dont_Change_Object = (1<<0),
-		PERSP_Parent_Space = (1<<1), //otherwise default to object space
-		PERSP_FLAGS_MAX = 1
+		PERSP_Editable_From      = (1<<1),
+		PERSP_Parent_Space       = (1<<2), //otherwise default to object space
+		PERSP_FLAGS_MAX = 2
 	};
 
 	unsigned int interface_flags;
+	Laxkit::ScreenColor inpoints, outpoints;
 
 	PerspectiveInterface(anInterface *nowner, int nid,Laxkit::Displayer *ndp);
 	virtual ~PerspectiveInterface();
