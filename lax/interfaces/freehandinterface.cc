@@ -30,6 +30,7 @@
 #include <lax/interfaces/gradientinterface.h>
 #include <lax/language.h>
 
+//template implementation:
 #include <lax/lists.cc>
 
 #include <unistd.h>
@@ -71,22 +72,25 @@ FreehandInterface::FreehandInterface(anInterface *nowner, int nid, Displayer *nd
 	linecolor .rgbf(0,0,.5);
 	pointcolor.rgbf(.5,.5,.5);
 
-	linestyle.color.red  =linestyle.color.alpha=0xffff;
-	linestyle.color.green=linestyle.color.blue =0;
+	linestyle.color.red = linestyle.color.alpha = 0xffff;
+	linestyle.color.green = linestyle.color.blue = 0;
 
-	smooth_pixel_threshhold=2;
-	brush_size=60;
-	ignore_tip_time=10;
-	ignore_clock_t = ignore_tip_time*sysconf(_SC_CLK_TCK)/1000;
+	smooth_pixel_threshhold = 2;
+	brush_size              = 60; //screen pixels
+	ignore_tip_time         = 10;
+	ignore_clock_t          = ignore_tip_time * sysconf(_SC_CLK_TCK) / 1000;
 
 	showdecs=1;
 	needtodraw=1;
 
-	sc=NULL;
+	shape_brush = nullptr;
+
+	sc = nullptr;
 }
 
 FreehandInterface::~FreehandInterface()
 {
+	if (shape_brush) shape_brush->dec_count();
 }
 
 const char *FreehandInterface::Name()
@@ -167,6 +171,9 @@ Laxkit::MenuInfo *FreehandInterface::ContextMenu(int x,int y,int deviceid, Laxki
 	menu->AddItem(_("Create color mesh"),               FREEHAND_Color_Mesh,   LAX_ISTOGGLE|((freehand_style&FREEHAND_Color_Mesh)  ?LAX_CHECKED:0), 0);
 	menu->AddItem(_("Create grid mesh"),                FREEHAND_Grid_Mesh,    LAX_ISTOGGLE|((freehand_style&FREEHAND_Grid_Mesh)   ?LAX_CHECKED:0), 0);
 	menu->AddItem(_("Create symmetric mesh"),           FREEHAND_Double_Mesh,  LAX_ISTOGGLE|((freehand_style&FREEHAND_Double_Mesh) ?LAX_CHECKED:0), 0);
+
+	// menu->AddItem(_("Use shape brush"), FREEHAND_Use_Shape, LAX_ISTOGGLE|((freehand_style&FREEHAND_Bez_Weighted)?LAX_CHECKED:0), 0);
+	// menu->AddItem(_("Select shape for shape brush..."), FREEHAND_Select_Shape, LAX_ISTOGGLE|((freehand_style&FREEHAND_Bez_Weighted)?LAX_CHECKED:0), 0);
 
 	return menu;
 }
@@ -296,7 +303,7 @@ int FreehandInterface::LBDown(int x,int y,unsigned int state,int count, const La
 		deviceids.remove(i);
 	}
 
-	DBG cerr <<"../freehandiLbd\n";
+	DBG cerr <<"../freehand Lbd\n";
 	return 0;
 }
 
@@ -851,6 +858,17 @@ Laxkit::ShortcutHandler *FreehandInterface::GetShortcuts()
 
 int FreehandInterface::PerformAction(int action)
 {
+	return 1;
+}
+
+int FreehandInterface::CharInput(unsigned int ch, const char *buffer,int len,unsigned int state, const Laxkit::LaxKeyboard *d)
+{
+	if (!sc) GetShortcuts();
+	int action = sc->FindActionNumber(ch, state & LAX_STATE_MASK, 0);
+	if (action >= 0) {
+		return PerformAction(action);
+	}
+
 	return 1;
 }
 

@@ -37,19 +37,21 @@ enum FreehandEditorStyles {
 	FREEHAND_Bez_Path        =(1<<4), //Create a bezier PathsData based on a simplified polyline
 	FREEHAND_Bez_Outline     =(1<<5), //Create a bezier PathsData that is the outline of pressure sensitive line
 	FREEHAND_Bez_Weighted    =(1<<6), //Create a bezier PathsData with PathWeightNode markers
+	FREEHAND_Shape_Brush     =(1<<7), //Create a PathsData built from a shape brush
 	
-	FREEHAND_Color_Mesh      =(1<<7), //Create a ColorPatchData using pressure and a gradient
-	FREEHAND_Double_Mesh     =(1<<8), //Create a ColorPatchData where the gradient is mirrored about the middle of the line
-	FREEHAND_Grid_Mesh       =(1<<9), //Create a PatchData
-	FREEHAND_Path_Mesh       =(1<<10), //Create a PatchData based on a bezier weighted path
+	FREEHAND_Color_Mesh      =(1<<8), //Create a ColorPatchData using pressure and a gradient
+	FREEHAND_Double_Mesh     =(1<<9), //Create a ColorPatchData where the gradient is mirrored about the middle of the line
+	FREEHAND_Grid_Mesh       =(1<<10), //Create a PatchData
+	FREEHAND_Path_Mesh       =(1<<11), //Create a PatchData based on a bezier weighted path
 
-	FREEHAND_Mesh            =((1<<7)|(1<<8)|(1<<9)|(1<<10)), //mask for any mesh
-	FREEHAND_All_Types       =((1<<0)|(1<<1)|(1<<2)|(1<<3)|(1<<4)|(1<<5)|(1<<6)|(1<<7)|(1<<8)|(1<<9)|(1<<10)),
 
-	FREEHAND_Till_Closed     =(1<<11), //mouse down drag out a line, up and clicking adds points
-	FREEHAND_Notify_All_Moves=(1<<12), //send events to owner upon every move
-	FREEHAND_Lock_Type       =(1<<13),
-	FREEHAND_Remove_On_Up    =(1<<14), //remove the interface from viewport when button up
+	FREEHAND_Mesh            =((1<<8)|(1<<9)|(1<<10)|(1<<11)), //mask for any mesh
+	FREEHAND_All_Types       =((1<<0)|(1<<1)|(1<<2)|(1<<3)|(1<<4)|(1<<5)|(1<<6)|(1<<7)|(1<<8)|(1<<9)|(1<<10)|(1<<11)),
+
+	FREEHAND_Till_Closed     =(1<<12), //mouse down drag out a line, up and clicking adds points
+	FREEHAND_Notify_All_Moves=(1<<13), //send events to owner upon every move
+	FREEHAND_Lock_Type       =(1<<14),
+	FREEHAND_Remove_On_Up    =(1<<15), //remove the interface from viewport when button up
 
 	FREEHAND_MAX
 };
@@ -75,6 +77,8 @@ class FreehandInterface : public anInterface
 	Laxkit::ShortcutHandler *sc;
 	clock_t ignore_clock_t;
 
+	Laxkit::anObject *shape_brush;
+
 	int findLine(int id);
 
 	virtual int send(int i);
@@ -93,7 +97,7 @@ class FreehandInterface : public anInterface
 	Laxkit::ScreenColor linecolor;
 	Laxkit::ScreenColor pointcolor;
 
-	Laxkit::PtrStack<RawPointLine> lines;
+	Laxkit::PtrStack<RawPointLine> lines; //one line per mouse id
 	Laxkit::NumStack<int> deviceids;
 
 	FreehandInterface(anInterface *nowner, int nid,Laxkit::Displayer *ndp);
@@ -119,7 +123,7 @@ class FreehandInterface : public anInterface
 	virtual int LBUp(int x,int y,unsigned int state, const Laxkit::LaxMouse *d);
 	//virtual int WheelUp  (int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d);
 	//virtual int WheelDown(int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d);
-	//virtual int CharInput(unsigned int ch, const char *buffer,int len,unsigned int state, const Laxkit::LaxKeyboard *d);
+	virtual int CharInput(unsigned int ch, const char *buffer,int len,unsigned int state, const Laxkit::LaxKeyboard *d);
 	//virtual int KeyUp(unsigned int ch,unsigned int state, const Laxkit::LaxKeyboard *d);
 
 	virtual unsigned int SendType(unsigned int type);
