@@ -38,7 +38,9 @@
 namespace LaxInterfaces {
 
 
+class PathsData;
 class PathOperator;
+
 
 //These are added to Coordinate::flags, and devs should ensure they do not conflict with normal flags
 #define BEZ_MASK           (255<<20)
@@ -74,6 +76,18 @@ class PathWeightNode
 	PathWeightNode(double nt,double noffset, double nwidth, double nangle, int ntype=Default);
 	double topOffset() { return offset+width/2; }
 	double bottomOffset() { return offset-width/2; }
+};
+
+class ShapeBrush : public Laxkit::Resourceable
+{
+  public:
+  	double size; //1 keeps brush dimensions
+  	typedef Laxkit::NumStack<flatpoint> FlatpointLine;
+  	Laxkit::PtrStack<FlatpointLine> lines;
+  	PathsData *from_path;
+
+  	ShapeBrush();
+  	virtual ~ShapeBrush();
 };
 
 class Path : public LaxFiles::DumpUtility, public Laxkit::DoubleBBox
@@ -449,6 +463,7 @@ class PathInterface : public anInterface
 
 	Laxkit::ShortcutHandler *sc;
 	virtual int PerformAction(int action);
+	virtual void Modified(int level=0);
 	
 	virtual void clearSelection();
 	virtual PathOperator *getPathOpFromId(int iid);

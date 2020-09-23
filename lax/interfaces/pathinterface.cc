@@ -6678,6 +6678,12 @@ int PathInterface::LBUp(int x,int y,unsigned int state,const LaxMouse *d)
 	return 0;
 }
 
+void PathInterface::Modified(int level)
+{
+	data->touchContents();
+	anInterface::Modified(level);
+}
+
 //! Add a new point at closest point to hoverpoint, which is in data coordinates.
 /*! Return 0 for point added, or 1 for error and couldn't add.
  */
