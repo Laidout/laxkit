@@ -563,6 +563,8 @@ anXApp::~anXApp()
 	if (screeninfo) delete screeninfo;
 
 	pthread_mutex_destroy(&event_mutex);
+
+	if (anXApp::app == this) anXApp::app = nullptr;
 }
 
 /*! Set the string representing the default language. Use "" for system default.
