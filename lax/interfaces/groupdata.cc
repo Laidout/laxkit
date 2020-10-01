@@ -244,6 +244,8 @@ LaxInterfaces::SomeData *GroupData::Child(int i)
 	return kids.e[i];
 }
 
+/*! Find exact match to id. Does NOT compare to self.
+ */
 LaxInterfaces::SomeData *GroupData::FindChild(const char *id)
 {
 	GroupData *o;
