@@ -28,13 +28,12 @@
 namespace Laxkit {
 	
 int bez_bbox(flatpoint p,flatpoint c,flatpoint d,flatpoint q,Laxkit::DoubleBBox *bbox,double *extrema=0, const double *extra_m=nullptr);
+void bez_bbox_simple(flatpoint p,flatpoint c,flatpoint d,flatpoint q,Laxkit::DoubleBBox *bbox);
 double bez_segment_length(flatpoint p1,flatpoint c1,flatpoint c2,flatpoint p2, int npoints);
 double bez_length(flatpoint *pts, int npoints, bool closed, bool first_is_v, int resolution);
 
 flatpoint bez_point(double t,flatpoint p1,flatpoint c1,flatpoint c2,flatpoint p2);
 flatpoint bez_tangent(double t,flatpoint p1,flatpoint c1,flatpoint c2,flatpoint p2);
-void bez_midpoint(flatpoint p1,flatpoint c1, flatpoint c2, flatpoint p2, 
-				flatpoint &nc1, flatpoint &npp, flatpoint &npm, flatpoint &npn, flatpoint &nc2);
 flatpoint bez_acceleration(double t,flatpoint p1,flatpoint c1,flatpoint c2,flatpoint p2);
 flatpoint bez_visual_tangent(double t,flatpoint p1,flatpoint c1,flatpoint c2,flatpoint p2);
 double bez_distance_to_t(double dist, flatpoint p1,flatpoint c1,flatpoint c2,flatpoint p2, int resolution);
@@ -45,8 +44,15 @@ flatpoint *bez_points(flatpoint *to_points,int numsegs,flatpoint *from_points,in
 flatpoint *bez_points(flatpoint *to_points,flatpoint *from_points,int resolution,int ignorefirst);
 flatpoint *bez_points(flatpoint *to_points,flatpoint p1,flatpoint c1,flatpoint c2,flatpoint p2,int resolution,int ignorefirst);
 flatpoint *bez_points_at_samples(flatpoint *to_points,flatpoint p1,flatpoint c1,flatpoint c2,flatpoint p2,double *t,int n,int ignorefirst);
+int bez_subdivide(double *tt,int num_t, flatpoint p1, flatpoint c1, flatpoint c2, flatpoint p2, flatpoint *points_ret);
 void bez_subdivide(double t,flatpoint p1,flatpoint c1,flatpoint c2,flatpoint p2, flatpoint *points_ret);
-
+int bez_subdivide_extrema(flatpoint p1, flatpoint c1, flatpoint c2, flatpoint p2, flatpoint *points_ret);
+void bez_subdivide_decasteljau(flatpoint p1,flatpoint c1, flatpoint c2, flatpoint p2, 
+				flatpoint &nc1, flatpoint &npp, flatpoint &npm, flatpoint &npn, flatpoint &nc2);
+int bez_intersect_bez(const flatpoint &p1_1, const flatpoint &c1_1, const flatpoint &c1_2, const flatpoint &p1_2,
+					  const flatpoint &p2_1, const flatpoint &c2_1, const flatpoint &c2_2, const flatpoint &p2_2,
+					flatpoint *point_ret, double *t1_ret, double *t2_ret, int &num_ret, double threshhold, double t1, double t2, double tdiv,
+					int depth, int maxdepth);
 int bez_intersection(flatpoint p1,flatpoint p2, int isline,
 					flatpoint bp1, flatpoint bc1, flatpoint bc2, flatpoint bp2,
 					int resolution, flatpoint *point_ret, double *t_ret);

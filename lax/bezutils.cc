@@ -23,11 +23,14 @@
 #include <lax/bezutils.h>
 #include <lax/transformmath.h>
 #include <lax/drawingdefs.h>
+#include <lax/vectors-out.h>
 
 
 #include <iostream>
 using namespace std;
 #define DBG 
+
+#define EPSILON (1e-10)
 
 
 /*! \file
@@ -39,10 +42,20 @@ namespace Laxkit {
 
 
 //------------------------------- Bez utils -------------------------------------------
+
+/*! Convenience function to simply add p,c,d,q to bbox.
+ */
+void bez_bbox_simple(flatpoint p,flatpoint c,flatpoint d,flatpoint q,Laxkit::DoubleBBox *bbox)
+{
+	bbox->addtobounds(p);
+	bbox->addtobounds(c);
+	bbox->addtobounds(d);
+	bbox->addtobounds(q);
+}
+
 //! Update a bounding box to include the given bezier segment.
 /*! \ingroup math
- * This assumes that p has already been figured in bbox, and bbox is 
- *   already a suitable bbox. That allows easy bounds checking per segment
+ * This assumes that p is ALREADY in bbox. That allows easy bounds checking per segment
  *   without checking the endpoints more than once.
  *
  * If extrema is not null, it should be a double[5]. It gets filled with the t parameters
@@ -246,10 +259,10 @@ double bez_length(flatpoint *pts, int npoints, bool closed, bool first_is_v, int
 	return length;
 }
 
-/*! Subdivide the segment with the famous bezier subdivision by midpoints algorithm.
+/*! Subdivide the segment with the famous bezier subdivision by de Casteljau's midpoints algorithm.
  * npm is the new point on the path, the other points are associated new control points.
  */
-void bez_midpoint(flatpoint p1,flatpoint c1, flatpoint c2, flatpoint p2, 
+void bez_subdivide_decasteljau(flatpoint p1,flatpoint c1, flatpoint c2, flatpoint p2, 
 				flatpoint &nc1, flatpoint &npp, flatpoint &npm, flatpoint &npn, flatpoint &nc2)
 {
 	nc1.set((p1.x+c1.x)/2,(p1.y+c1.y)/2);
@@ -366,6 +379,77 @@ int bez_intersections(flatpoint P1,flatpoint P2, int isline,
 
 	if (endt) *endt=0;
 	return numhits;
+}
+
+/*! Find intersections between two cubic bezier segments.
+ * point_ret and t_ret should be preallocated to hold up to 9 points. If null, don't return those.
+ * Return value is number of intersections. There can be at most 9.
+ *
+ * t_ret returns t values for the first segment.
+ *
+ * Strategy is to use de Casteljau's algorithm to repeatedly subdivide, and for each overlapping subdivision,
+ * keep going until bbox size is less that threshhold. It is assumed that really small bbox corresponds to 
+ * an actual intersection.
+ */
+int bez_intersect_bez(const flatpoint &p1_1, const flatpoint &c1_1, const flatpoint &c1_2, const flatpoint &p1_2,
+					  const flatpoint &p2_1, const flatpoint &c2_1, const flatpoint &c2_2, const flatpoint &p2_2,
+					  flatpoint *point_ret, double *t1_ret, double *t2_ret, int &num_ret,
+					  double threshhold,
+					  double t1, double t2, double tdiv,
+					  int depth, int maxdepth)
+{
+	if ((maxdepth > 0 && depth > maxdepth) || num_ret == 9) return num_ret;
+
+	// check initial boxes first
+	DoubleBBox b1, b2;
+	bez_bbox_simple(p1_1, c1_1, c1_2, p1_2, &b1);
+	bez_bbox_simple(p2_1, c2_1, c2_2, p2_2, &b2);
+
+	if (!b1.intersect(&b2, false)) return num_ret;
+
+	if (b1.boxwidth() <= threshhold && b1.boxheight() < threshhold && b2.boxwidth() <= threshhold && b2.boxheight() < threshhold) {
+		int c = 0;
+		flatpoint p = (p1_1+p1_2)/2;
+		DBG cerr << endl;
+		for (c=0; c<num_ret; c++) {
+			double dd = norm(point_ret[c] - p);
+			DBG cerr << "bez  compare near point "<<c<<": "<<p<<", d: "<<dd<<", threshholds: "<<dd/threshhold<<endl;
+			if (dd < 8*threshhold) break; //pretty close to duplicate point
+		}
+		if (c == num_ret) {
+			point_ret[num_ret] = p;
+			t1_ret[num_ret] = t1;
+			t2_ret[num_ret] = t2;
+			num_ret++;
+		}
+		return num_ret;
+	}
+
+	//subdivide
+	flatpoint mid1[5];
+	flatpoint mid2[5];
+
+	bez_subdivide_decasteljau(p1_1, c1_1, c1_2, p1_2, mid1[0], mid1[1], mid1[2], mid1[3], mid1[4]);
+	bez_subdivide_decasteljau(p2_1, c2_1, c2_2, p2_2, mid2[0], mid2[1], mid2[2], mid2[3], mid2[4]);
+
+	tdiv /= 2;
+	
+	bez_intersect_bez(p1_1, mid1[0], mid1[1], mid1[2],  p2_1, mid2[0], mid2[1], mid2[2], point_ret, t1_ret, t2_ret, num_ret, threshhold,
+		t1, t2, tdiv, depth+1, maxdepth);
+	if (num_ret == 9) return 9;
+
+	bez_intersect_bez(p1_1, mid1[0], mid1[1], mid1[2],  mid2[2], mid2[3], mid2[4], p2_2, point_ret, t1_ret, t2_ret, num_ret, threshhold,
+		t1, t2+tdiv, tdiv, depth+1, maxdepth);
+	if (num_ret == 9) return 9;
+
+	bez_intersect_bez(mid1[2], mid1[3], mid1[4], p1_2,  p2_1, mid2[0], mid2[1], mid2[2], point_ret, t1_ret, t2_ret, num_ret, threshhold,
+		t1+tdiv, t2, tdiv, depth+1, maxdepth);
+	if (num_ret == 9) return 9;
+
+	bez_intersect_bez(mid1[2], mid1[3], mid1[4], p1_2,  mid2[2], mid2[3], mid2[4], p2_2, point_ret, t1_ret, t2_ret, num_ret, threshhold,
+		t1+tdiv, t2+tdiv, tdiv, depth+1, maxdepth);
+
+	return num_ret;
 }
 
 //! From a physical distance, return the corresponding t parameter value.
@@ -509,18 +593,65 @@ flatpoint bez_visual_tangent(double t,flatpoint p1,flatpoint c1,flatpoint c2,fla
 	return flatpoint(0,0);
 }
 
-///*! Find a bezier subsegment within the given segment. *** better to have subdivide with t[]?
-// *
-// * points_ret must have room for 4 points: (new first point) - (control 1) - (control 2) - (new final point)
-// */
-//void bez_subsegment(double t1,double t2, flatpoint p1,flatpoint c1,flatpoint c2,flatpoint p2, flatpoint *points_ret)
-//{
-//	flatpoint pts[5];
-//	bez_subdivide(t1, p1,c1,c2,p2, pts);
-//
-//
-//	bez_subdivide(t1, p1,c1,c2,p2);
-//}
+/*! Subdivide at each extrema, whether horizontal or vertical.
+ * There can be at most 4 extrema, and points_ret must have been allocated for at least 16 points.
+ * If no extrema, then the initial segment is returned in points_ret.
+ *
+ * Returns number of points in point_ret.
+ */
+int bez_subdivide_extrema(flatpoint p1, flatpoint c1, flatpoint c2, flatpoint p2, flatpoint *points_ret)
+{
+	DoubleBBox box;
+	double extrema[4];
+	int n = bez_bbox(p1,c1,c2,p2, &box);
+	return bez_subdivide(extrema, n, p1, c1, c2, p2, points_ret);
+}
+
+/*! Subdivide segment at given t values in tt, which must be sorted by increasing values.
+*
+* points_ret must have room for 4 + 3*num_t4 points. Less than this might be returned when t
+* values are duplicated or equal 0 or 1.
+*
+* Returns number of points in point_ret. First point in points_ret will be p1, and last will be p2.
+*/
+int bez_subdivide(double *tt,int num_t, flatpoint p1, flatpoint c1, flatpoint c2, flatpoint p2, flatpoint *points_ret)
+{
+	if (!num_t) {
+		points_ret[0] = p1;
+		points_ret[1] = c1;
+		points_ret[2] = c2;
+		points_ret[3] = p2;
+		return 4;
+	}
+
+	double prev_t = 0;
+	int i = 0;
+	flatpoint pts[5];
+	points_ret[i++] = p1;
+
+	for (int c=0; c<num_t; c++) {
+
+		double t = (tt[c] - prev_t) / (1 - prev_t);
+		if (fabs(t-prev_t) < EPSILON) continue;
+		if (fabs(t-1.0) < EPSILON) break;
+
+		bez_subdivide(t, p1,c1,c2,p2, pts);
+
+		points_ret[i++] = pts[0];
+		points_ret[i++] = pts[1];
+		p1 = points_ret[i++] = pts[2];
+		c1 = pts[3];
+		c2 = pts[4];
+
+		prev_t = t;
+	}
+
+	points_ret[i++] = c1;
+	points_ret[i++] = c2;
+	points_ret[i++] = p2;
+
+	return i;
+}
 
 //! Cut the bezier segment in two at t.
 /*! points_ret must be an already allocated array of 5 points. It is filled with the

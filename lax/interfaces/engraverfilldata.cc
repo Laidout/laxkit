@@ -3034,7 +3034,7 @@ void EngraverPointGroup::StripDashes()
 void render_bez_line_recurse(unsigned char *img, int mapwidth, int mapheight, flatpoint p1,flatpoint c1,flatpoint c2,flatpoint p2, double t)
 {
 	flatpoint nc1, npp, npm, npn, nc2;
-	bez_midpoint(p1,c1,c2,p2, nc1, npp, npm, npn, nc2);
+	bez_subdivide_decasteljau(p1,c1,c2,p2, nc1, npp, npm, npn, nc2);
 
 	 //render 2x2 pixel npm:
 	int x=npm.x, y=npm.y;
