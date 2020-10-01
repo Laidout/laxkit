@@ -179,34 +179,26 @@ PtrStack<PathOperator> Path::basepathops;
 Path::Path()
   : path(NULL), linestyle(NULL)
 {
-	//cache_mod_time=0;
-	needtorecache=1;
-	cache_types=0; //if 1, then also compute cache_top and cache_bottom
-	cache_samples=10;
-	defaultwidth=10./72;
-	absoluteangle=false;
+	// cache_mod_time=0;
+	needtorecache = 1;
+	cache_types   = 0;  // if 1, then also compute cache_top and cache_bottom
+	cache_samples = 10;
+	defaultwidth  = 10. / 72;
+	absoluteangle = false;
+	profile       = nullptr;
 
-	//save_cache=true;
-	save_cache=false;
+	// save_cache=true;
+	save_cache = false;
 }
 
 /*! Incs count of linestyle.
  */
 Path::Path(Coordinate *np,LineStyle *nls)
+ : Path()
 {
-	path=np;
+	path = np;
 	linestyle=nls;
 	if (linestyle) linestyle->inc_count();
-	defaultwidth=10./72;
-	absoluteangle=false;
-
-	//cache_mod_time=0;
-	needtorecache=1;
-	cache_samples=10;
-	cache_types=0; //if 1, then also compute cache_top and cache_bottom
-
-	//save_cache=true;
-	save_cache=false;
 }
 
 //! Destructor always deletes path.
@@ -216,6 +208,7 @@ Path::~Path()
 {
 	delete path;
 	if (linestyle) linestyle->dec_count();
+	if (profile) profile->dec_count();
 }
 
 //! Flush all points.
@@ -224,20 +217,54 @@ void Path::clear()
 	delete path;
 	path=NULL;
 	pathweights.flush();
+	// if (profile) { profile->dec_count(); profile = nullptr; }
 	needtorecache=1;
 }
 
 Path *Path::duplicate()
 {
-	Path *newpath=new Path(NULL,linestyle);
-	newpath->defaultwidth=defaultwidth;
-	if (path) newpath->path=path->duplicateAll();
+	Path *newpath = new Path(NULL,linestyle);
+	if (profile) newpath->ApplyLineProfile(profile, true);
+	newpath->defaultwidth = defaultwidth;
+	if (path) newpath->path = path->duplicateAll();
 
 	for (int c=0; c<pathweights.n; c++) {
 		newpath->AddWeightNode(pathweights.e[c]->t,pathweights.e[c]->offset,pathweights.e[c]->width,pathweights.e[c]->angle);
 	}
 
 	return newpath;
+}
+
+/*! Attach a LineProfile. If linked, then path must be updated whenever points change.
+ * If !linked, then apply the profile as width nodes immediately, overwriting any existing weight nodes.
+ */
+int Path::ApplyLineProfile(LineProfile *p, bool linked)
+{
+	if (profile != p) {
+		if (profile) profile->dec_count();
+		profile = p;
+		if (profile) profile->inc_count();
+	}
+	if (!linked) ApplyLineProfile();
+	needtorecache = 1;
+	return 1;
+}
+
+/*! Apply current profile. Return 1 for success, 0 for no profile to apply.
+ */
+int Path::ApplyLineProfile()
+{
+	if (!profile) return 0;
+	pathweights.flush();
+
+	for (int c=0; c<profile->pathweights.n; c++) {
+		PathWeightNode *o = profile->pathweights.e[0];
+		PathWeightNode *w = new PathWeightNode(o->t, o->offset, o->width, o->angle, o->type);
+		pathweights.push(w,1);
+	}
+
+	needtorecache = 1;
+	return 1;
 }
 
 //! Dump out path contents.
@@ -289,6 +316,7 @@ void Path::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
 		fprintf(f,"%s                        #the bezier approximation is appended to the path as bezier points\n",spc);
 		fprintf(f,"%scache                   #This is for reference only. Ignored on read in.\n",spc);
 		fprintf(f,"%s  ...                   #This is for reference only. Ignored on read in.\n",spc);
+		fprintf(f,"%sprofile                 #Optional line profile\n",spc);
 		return;
 	}
 
@@ -299,6 +327,11 @@ void Path::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
 		linestyle->dump_out(f,indent+2,what, context);
 	}
 	if (path==path->lastPoint(0)) fprintf(f,"%sclosed\n",spc);
+
+	if (profile) {
+		fprintf(f,"%sprofile\n",spc);
+		profile->dump_out(f, indent+2, what, context);
+	}
 
 	Coordinate *p=path, *p2=NULL;
 	int n;
@@ -399,7 +432,8 @@ LaxFiles::Attribute *Path::dump_out_atts(LaxFiles::Attribute *att,int what, LaxF
 		//att->push("                        #they are is dependent of the actual controller of the segment.");
 		//att->push("                        #If for some reason the segment controller is not found, then");
 		//att->push("                        #the bezier approximation is appended to the path as bezier points");
-		att->push("cache", "#This is for reference only. Ignored on read in.");
+		att->push("cache", nullptr, "This is for reference only. Ignored on read in.");
+		att->push("profile", nullptr, "Optional line profile");
 
 		return att;
 	}
@@ -411,6 +445,11 @@ LaxFiles::Attribute *Path::dump_out_atts(LaxFiles::Attribute *att,int what, LaxF
 	if (linestyle) {
 		Attribute *att2=att->pushSubAtt("linestyle");
 		linestyle->dump_out_atts(att2, what, context);
+	}
+
+	if (profile) {
+		Attribute *att2 = att->pushSubAtt("profile");
+		profile->dump_out_atts(att2, what, context);
 	}
 
 	if (path==path->lastPoint(0)) att->push("closed");
@@ -551,6 +590,9 @@ void Path::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext 
 			if (c2!=4) continue;
 
 			AddWeightNode(d[0],d[1],d[2],d[3]);
+
+		} else if (!strcmp(name,"profile")) {
+			cerr << " *** NEED TO IMPLEMENT Path::profile dump in !!"<<endl;
 
 		} else if (!strcmp(name,"segment")) {
 			if (isblank(value)) continue;

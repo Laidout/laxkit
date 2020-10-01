@@ -32,6 +32,7 @@
 
 namespace LaxInterfaces {
 
+class PathWeightNode;
 
 //--------------------------- LineProfile -----------------------------
 

@@ -28,6 +28,7 @@
 #include <lax/interfaces/somedata.h>
 #include <lax/interfaces/linestyle.h>
 #include <lax/interfaces/fillstyle.h>
+#include <lax/interfaces/lineprofile.h>
 #include <lax/curveinfo.h>
 #include <lax/screencolor.h>
 #include <lax/dump.h>
@@ -40,6 +41,7 @@ namespace LaxInterfaces {
 
 class PathsData;
 class PathOperator;
+class LineProfile;
 
 
 //These are added to Coordinate::flags, and devs should ensure they do not conflict with normal flags
@@ -99,7 +101,8 @@ class Path : public LaxFiles::DumpUtility, public Laxkit::DoubleBBox
 	Coordinate *path; // path is not necessarily the first in a chain, but is a vertex
 	Laxkit::PtrStack<PathWeightNode> pathweights;
 
-	LineStyle *linestyle; 
+	LineStyle *linestyle;
+	LineProfile *profile;
 	double defaultwidth;
 	bool absoluteangle; //1==absolute, or 0==relative to direction to path, wich angle==0 do default
 
@@ -178,6 +181,9 @@ class Path : public LaxFiles::DumpUtility, public Laxkit::DoubleBBox
 	virtual int NumVertices(bool *isclosed_ret);
 	virtual bool IsClosed();
 	virtual int GetIndex(Coordinate *p, bool ignore_controls);
+
+	virtual int ApplyLineProfile(LineProfile *p, bool linked);
+	virtual int ApplyLineProfile();
 
 	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
 	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what, LaxFiles::DumpContext *context);
