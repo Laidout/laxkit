@@ -76,6 +76,7 @@ objs= \
 	utf8string.o \
 	transformmath.o \
 	vectors.o \
+	vectors-out.o \
 	doublebbox.o \
 	fileutils.o \
 	freedesktop.o \
@@ -183,6 +184,7 @@ objs= \
 	shortcutwindow2.o \
 	draggingdndwindow.o \
 	curveinfo.o \
+	pointset.o \
 
 #	printdialog.o \
 #	tableframe.o \
