@@ -53,7 +53,7 @@ namespace LaxInterfaces {
 
 //forward declarations...
 int DelauneyTriangulate(flatpoint *pts, int nv, IndexTriangle *tri_ret, int *ntri_ret);
-
+int DelauneyTriangulate(PointSet::PointObj **pts, int nv, IndexTriangle *tri_ret, int *ntri_ret);
 
 
 //------------------------------- Point list generators ---------------------------------
@@ -158,7 +158,7 @@ void VoronoiData::FindBBox()
 {
 	DoubleBBox::ClearBBox();
 	for (int c=0; c<points.n; c++) {
-		addtobounds(points.e[c]);
+		addtobounds(points.e[c]->p);
 	}
 }
 
@@ -202,7 +202,7 @@ void VoronoiData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *co
 	if (points.n) {
 		fprintf(f,"%spoints \\\n",spc);
 		for (int c=0; c<points.n; c++) {
-			fprintf(f,"%s  %.10g, %.10g  #%d\n", spc, points.e[c].x,points.e[c].y, c);
+			fprintf(f,"%s  %.10g, %.10g  #%d\n", spc, points.e[c]->p.x,points.e[c]->p.y, c);
 		}
 	}
 
@@ -259,7 +259,7 @@ LaxFiles::Attribute *VoronoiData::dump_out_atts(LaxFiles::Attribute *att,int wha
 	if (points.n) {
 		Attribute *att2 = att->pushSubAtt("points");
 		for (int c=0; c<points.n; c++) {
-			s2.Sprintf("%.10g, %.10g\n", points.e[c].x,points.e[c].y); //oh no! can't really output per line comments with atts!
+			s2.Sprintf("%.10g, %.10g\n", points.e[c]->p.x,points.e[c]->p.y); //oh no! can't really output per line comments with atts!
 			s.Append(s2);
 		}
 		att2->value = s.ExtractBytes(nullptr,nullptr,nullptr);
@@ -268,7 +268,7 @@ LaxFiles::Attribute *VoronoiData::dump_out_atts(LaxFiles::Attribute *att,int wha
 	if (triangles.n) {
 		Attribute *att2 = att->pushSubAtt("triangles", nullptr, "(ignored on loading) p1 p2 p3  t1 t2 t3 (<- the triangles on other side of edge)  circumcenter x,y\n");
 		for (int c=0; c<triangles.n; c++) {
-			s.Sprintf("%s  %d %d %d  %d %d %d  %.10g, %.10g  #%d\n", 
+			s.Sprintf("%d %d %d  %d %d %d  %.10g, %.10g  #%d\n", 
 					triangles.e[c].p1,   triangles.e[c].p2,   triangles.e[c].p3,
 					triangles.e[c].t[0], triangles.e[c].t[1], triangles.e[c].t[2],
 					triangles.e[c].circumcenter.x,triangles.e[c].circumcenter.y
@@ -327,7 +327,7 @@ void VoronoiData::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpC
 					DoubleAttribute(name,&p.y,&value);
 					if (value==name) break;
 
-					points.push(p);
+					AddPoint(p);
 				} else break;
 			}
 
@@ -356,9 +356,9 @@ void VoronoiData::Width(double newwidth, int which)
 flatpoint VoronoiData::Centroid(int triangle)
 {
 	if (triangle<0 || triangle>=triangles.n) return flatpoint(0,0);
-	return ( points.e[triangles.e[triangle].p1]
-			+points.e[triangles.e[triangle].p2]
-			+points.e[triangles.e[triangle].p3]) / 3;
+	return ( points.e[triangles.e[triangle].p1]->p
+			+points.e[triangles.e[triangle].p2]->p
+			+points.e[triangles.e[triangle].p3]->p) / 3;
 }
 
 void VoronoiData::Triangulate()
@@ -440,12 +440,12 @@ void VoronoiData::RebuildVoronoi(bool triangulate_also)
 	flatpoint v;
 
 	for (int c=0; c<points.n; c++) {
-		region=&regions.e[c];
-		region->point=points.e[c];
-		region->next_hull=-1;
+		region            = &regions.e[c];
+		region->point     = points.e[c]->p;
+		region->next_hull = -1;
 		region->tris.flush();
 
-		 //find a triangle that has the point
+		// find a triangle that has the point
 		pos=-1;
 		for (int c2=0; c2<triangles.n; c2++) {
 			pos=triangles.e[c2].Has(c);
@@ -468,9 +468,9 @@ void VoronoiData::RebuildVoronoi(bool triangulate_also)
 				//region->next_hull=tri->p[pos%3];
 				region->tris.push(-inf_points.n-1);
 
-				if (pos==1)      v=points.e[triangles.e[curtri].p2] - points.e[triangles.e[curtri].p1];
-				else if (pos==2) v=points.e[triangles.e[curtri].p3] - points.e[triangles.e[curtri].p2];
-				else             v=points.e[triangles.e[curtri].p1] - points.e[triangles.e[curtri].p3];
+				if (pos==1)      v = points.e[triangles.e[curtri].p2]->p - points.e[triangles.e[curtri].p1]->p;
+				else if (pos==2) v = points.e[triangles.e[curtri].p3]->p - points.e[triangles.e[curtri].p2]->p;
+				else             v = points.e[triangles.e[curtri].p1]->p - points.e[triangles.e[curtri].p3]->p;
 				v=transpose(v);
 				v.normalize();
 
@@ -500,9 +500,9 @@ void VoronoiData::RebuildVoronoi(bool triangulate_also)
 					 //hull edge, need to somehow add infinite ray
 					region->tris.push(-inf_points.n-1, 0);
 
-					if (pos==1)      v=points.e[triangles.e[curtri].p3] - points.e[triangles.e[curtri].p1];
-					else if (pos==2) v=points.e[triangles.e[curtri].p1] - points.e[triangles.e[curtri].p2];
-					else             v=points.e[triangles.e[curtri].p2] - points.e[triangles.e[curtri].p3];
+					if (pos==1)      v = points.e[triangles.e[curtri].p3]->p - points.e[triangles.e[curtri].p1]->p;
+					else if (pos==2) v = points.e[triangles.e[curtri].p1]->p - points.e[triangles.e[curtri].p2]->p;
+					else             v = points.e[triangles.e[curtri].p2]->p - points.e[triangles.e[curtri].p3]->p;
 					v=-transpose(v);
 					v.normalize();
 
@@ -550,6 +550,11 @@ DelauneyInterface::DelauneyInterface(anInterface *nowner, int nid, Displayer *nd
  : anInterface(nowner,nid,ndp)
 {
 	delauney_interface_style=0;
+	num_random = 20;
+	num_x = 5;
+	num_y = 5;
+	previous_create = 0;
+	relax_iters = 1;
 
 	show_numbers = false; 
 	show_arrows  = false;
@@ -662,91 +667,98 @@ int DelauneyInterface::Refresh()
 	dp->NewFG(data->color_delauney);
 	for (int c=0; c<data->triangles.n; c++) {
 		 //draw edges
-		if (show_lines&2) {
-			dp->moveto(data->points.e[data->triangles[c].p1]);
-			dp->lineto(data->points.e[data->triangles[c].p2]);
-			dp->lineto(data->points.e[data->triangles[c].p3]);
+		if (data->show_delauney) {
+			dp->moveto(data->points.e[data->triangles[c].p1]->p);
+			dp->lineto(data->points.e[data->triangles[c].p2]->p);
+			dp->lineto(data->points.e[data->triangles[c].p3]->p);
 			dp->closed();
 			dp->stroke(0);
 		}
 
 		 //draw arrows indicating edge direction
-		center=(data->points.e[data->triangles[c].p1]+data->points.e[data->triangles[c].p2]+data->points.e[data->triangles[c].p3])/3;
+		center = (data->points.e[data->triangles[c].p1]->p
+				+ data->points.e[data->triangles[c].p2]->p
+				+ data->points.e[data->triangles[c].p3]->p)/3;
 		if (show_numbers) dp->drawnum(center.x,center.y, c);
 
-		v=.2*(data->points.e[data->triangles[c].p2]-data->points.e[data->triangles[c].p1]);
-		p=data->points.e[data->triangles[c].p1];
-		p=p+.3*(center-p);
+		v = .2*(data->points.e[data->triangles[c].p2]->p - data->points.e[data->triangles[c].p1]->p);
+		p = data->points.e[data->triangles[c].p1]->p;
+		p = p+.3*(center-p);
 		if (show_arrows) dp->drawarrow(p,v, 0,1,2,3);
 		if (show_numbers) dp->textout(p.x,p.y, "1,",1, LAX_HCENTER);
 
-		v=.2*(data->points.e[data->triangles[c].p3]-data->points.e[data->triangles[c].p2]);
-		p=data->points.e[data->triangles[c].p2];
+		v=.2*(data->points.e[data->triangles[c].p3]->p - data->points.e[data->triangles[c].p2]->p);
+		p=data->points.e[data->triangles[c].p2]->p;
 		p=p+.3*(center-p);
 		if (show_arrows) dp->drawarrow(p,v, 0,1,2,3);
 		if (show_numbers) dp->textout(p.x,p.y, "2,",1, LAX_CENTER);
 
-		v=.2*(data->points.e[data->triangles[c].p1]-data->points.e[data->triangles[c].p3]);
-		p=data->points.e[data->triangles[c].p3];
+		v=.2*(data->points.e[data->triangles[c].p1]->p - data->points.e[data->triangles[c].p3]->p);
+		p=data->points.e[data->triangles[c].p3]->p;
 		p=p+.3*(center-p);
 		if (show_arrows) dp->drawarrow(p,v, 0,1,2,3);
 		if (show_numbers) dp->textout(p.x,p.y, "3,",1, LAX_CENTER);
-
 	}
 
 
+
 //	 //hull edges
-//	dp->LineAttributes(2,LineSolid,LAXCAP_Round,LAXJOIN_Round);
-//	IndexTriangle *tri;
-//	for (int c=0; c<data->triangles.n; c++) {
-//		tri=&data->triangles.e[c];
-//		if (tri->t[0]<0) {
-//			dp->drawline(data->points.e[tri->p1],data->points.e[tri->p2]);
+//	if (data->show_hull) {
+//		dp->LineAttributes(2,LineSolid,LAXCAP_Round,LAXJOIN_Round);
+//		IndexTriangle *tri;
+//		for (int c=0; c<data->triangles.n; c++) {
+//			tri=&data->triangles.e[c];
+//			if (tri->t[0]<0) {
+//				dp->drawline(data->points.e[tri->p1]->p, data->points.e[tri->p2]->p);
+//			}
+//			if (tri->t[1]<0) {
+//				dp->drawline(data->points.e[tri->p2]->p, data->points.e[tri->p3]->p);
+//			}
+//			if (tri->t[2]<0) {
+//				dp->drawline(data->points.e[tri->p3]->p, data->points.e[tri->p1]->p);
+//			}
 //		}
-//		if (tri->t[1]<0) {
-//			dp->drawline(data->points.e[tri->p2],data->points.e[tri->p3]);
-//		}
-//		if (tri->t[2]<0) {
-//			dp->drawline(data->points.e[tri->p3],data->points.e[tri->p1]);
-//		}
+//		dp->LineAttributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
 //	}
-//	dp->LineAttributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
 
 
 	 //points
-	dp->NewFG(data->color_points);
-	for (int c=0; c<data->points.n; c++) {
-		double r=(c==curpoint?2:1)*data->width_points;
-		//dp->drawpoint(data->points.e[c], (c==curpoint?2:1)*data->width_points, 1);
-		dp->drawellipse(data->points.e[c], r,r, 0,2*M_PI, 1);
+	 if (data->show_points) {
+		dp->NewFG(data->color_points);
+		for (int c=0; c<data->points.n; c++) {
+			double r=(c==curpoint?2:1)*data->width_points;
+			//dp->drawpoint(data->points.e[c]->p, (c==curpoint?2:1)*data->width_points, 1);
+			dp->drawellipse(data->points.e[c]->p, r,r, 0,2*M_PI, 1);
 
 
-		if (show_numbers) {
-			dp->drawnum(data->points.e[c].x,data->points.e[c].y, c);
-		}
-
-		if (c==curpoint && data->regions.n) {
-			 //highlight this voronoi cell
-			if (data->regions.e[c].tris.n==0) continue;
-
-			dp->LineWidth(2*data->width_voronoi);
-			int i=data->regions.e[c].tris.e[0];
-			if (i>=0) dp->moveto(data->triangles.e[i].circumcenter);
-			else dp->lineto(data->inf_points.e[-i-1]);
-
-			for (int c2=1; c2<data->regions.e[c].tris.n; c2++) {
-				i=data->regions.e[c].tris.e[c2];
-				if (i>=0) dp->lineto(data->triangles.e[i].circumcenter);
-				else dp->lineto(data->inf_points.e[-i-1]);
+			if (show_numbers) {
+				dp->drawnum(data->points.e[c]->p.x,data->points.e[c]->p.y, c);
 			}
-			dp->closed();
-			dp->stroke(0);
+
+			if (c==curpoint && data->regions.n) {
+				 //highlight this voronoi cell
+				if (data->regions.e[c].tris.n==0) continue;
+
+				dp->LineWidth(2*data->width_voronoi);
+				int i=data->regions.e[c].tris.e[0];
+				if (i>=0) dp->moveto(data->triangles.e[i].circumcenter);
+				else dp->lineto(data->inf_points.e[-i-1]);
+
+				for (int c2=1; c2<data->regions.e[c].tris.n; c2++) {
+					i=data->regions.e[c].tris.e[c2];
+					if (i>=0) dp->lineto(data->triangles.e[i].circumcenter);
+					else dp->lineto(data->inf_points.e[-i-1]);
+				}
+				dp->closed();
+				dp->stroke(0);
+			}
 		}
 	}
 
 
 	 //voronoi lines
-	if (show_lines&1) {
+	// if (show_lines&1) {
+	if (data->show_voronoi) {
 		dp->NewFG(data->color_voronoi);
 		dp->LineWidth(data->width_voronoi);
 		int i;
@@ -777,20 +789,25 @@ ObjectContext *DelauneyInterface::Context()
 	return voc;
 }
 
-enum VoronoiActions {
-	VORON_Grid_Of_Points,
-	VORON_Square_Of_Points,
-	VORON_Circle_Of_Points,
-	VORON_Cluster_Of_Points
-};
-
 Laxkit::MenuInfo *DelauneyInterface::ContextMenu(int x,int y,int deviceid, MenuInfo *menu)
 {
 	if (!menu) menu = new MenuInfo();
-	//menu->AddItem(_("Grid of points"), VORON_Grid_Of_Points);
-	//menu->AddItem(_("Square of points"), VORON_Square_Of_Points);
-	//menu->AddItem(_("Circle of points"), VORON_Circle_Of_Points);
-	//menu->AddItem(_("Cluster of points"), VORON_Cluster_Of_Points);
+
+	menu->AddItem(_("Make random points"), VORONOI_MakeRandomRect);
+	menu->AddItem(_("Make random points in circle"), VORONOI_MakeRandomCircle);
+	menu->AddItem(_("Make grid"), VORONOI_MakeGrid);
+	menu->AddItem(_("Make tri grid in hexagon"), VORONOI_MakeHexChunk);
+	if (data) {
+		menu->AddSep();
+		menu->AddToggleItem(_("Show voronoi shapes"), nullptr, VORONOI_ToggleVoronoi, 0, data->show_voronoi);
+		menu->AddToggleItem(_("Show triangles"),      nullptr, VORONOI_ToggleShapes,  0, data->show_delauney);
+		menu->AddToggleItem(_("Show points"),         nullptr, VORONOI_TogglePoints,  0, data->show_points);
+		menu->AddSep();
+		menu->AddItem(_("Relax"), VORONOI_Relax);
+		menu->AddSep();
+		menu->AddItem(_("New"), VORONOI_New);
+	}
+
 	return menu;
 }
 
@@ -829,7 +846,7 @@ int DelauneyInterface::LBDown(int x,int y,unsigned int state,int count, const La
 
 		curpoint=data->points.n;
 		justadded=true;
-		data->points.push(data->transformPointInverse(screentoreal(x,y)));
+		data->AddPoint(data->transformPointInverse(screentoreal(x,y)));
 		Triangulate();
 	}
 
@@ -875,7 +892,7 @@ int DelauneyInterface::MouseMove(int x,int y,unsigned int state, const Laxkit::L
 		int oldcp=curpoint;
 		int c;
 		for (c=0; c<data->points.n; c++) {
-			if (realtoscreen(data->transformPoint(data->points.e[c])).distanceTo(flatpoint(x,y))<10) break;
+			if (realtoscreen(data->transformPoint(data->points.e[c]->p)).distanceTo(flatpoint(x,y))<10) break;
 		}
 		if (c!=data->points.n) curpoint=c;
 		else curpoint=-1;
@@ -890,7 +907,7 @@ int DelauneyInterface::MouseMove(int x,int y,unsigned int state, const Laxkit::L
 	buttondown.move(m->id, x,y, &lx,&ly);
 
 	flatpoint d=data->transformPointInverse(screentoreal(x,y))-data->transformPointInverse(screentoreal(lx,ly));
-	data->points.e[curpoint]+=d;
+	data->points.e[curpoint]->p += d;
 	Triangulate();
 	
 
@@ -977,8 +994,8 @@ Laxkit::ShortcutHandler *DelauneyInterface::GetShortcuts()
     sc->Add(VORONOI_Thin,          'W',ShiftMask,0,  "Thin",           _("Thin style target"),NULL,0);
     sc->Add(VORONOI_FileExport,    'f',0,0,          "FileOut",        _("Export this point set to a file"),NULL,0); 
     sc->Add(VORONOI_FileImport,    'i',0,0,          "FileIn",         _("Import a point set from a file"),NULL,0); 
-	
-	
+    sc->Add(VORONOI_Relax,         'r',0,0,          "Relax",          _("Relax points"),NULL,0); 
+
     manager->AddArea(whattype(),sc);
 	return sc;
 }
@@ -998,8 +1015,38 @@ int DelauneyInterface::PerformAction(int action)
 	} else if (action==VORONOI_ToggleLines) {
 		show_lines++;
 		if (show_lines>3) show_lines=0;
+		if (data) {
+			data->show_delauney = ((show_lines&2) != 0);
+			data->show_voronoi = ((show_lines&1) != 0);
+		}
+		if      (show_lines == 0) PostMessage(_("Don't show shapes"));
+		else if (show_lines == 1) PostMessage(_("Show voronoi shapes"));
+		else if (show_lines == 2) PostMessage(_("Show delauney triangles"));
+		else if (show_lines == 3) PostMessage(_("Show voronoi and delauney shapes"));
 		needtodraw=1;
 		return 0; 
+
+	} else if (action==VORONOI_TogglePoints) {
+		if (!data) return 0;
+		data->show_points = !data->show_points;
+		needtodraw = 0;
+		return 0;
+
+	} else if (action==VORONOI_ToggleVoronoi) {
+		if (!data) return 0;
+		data->show_voronoi = !data->show_voronoi;
+		needtodraw = 0;
+		return 0;
+
+	} else if (action==VORONOI_ToggleShapes) {
+		if (!data) return 0;
+		data->show_delauney = !data->show_delauney;
+		needtodraw = 0;
+		return 0;
+
+	} else if (action==VORONOI_New) {
+		Clear(nullptr);
+		return 0;
 
 	} else if (action==VORONOI_StyleTarget) {
 		style_target++;
@@ -1049,9 +1096,73 @@ int DelauneyInterface::PerformAction(int action)
 							  NULL));
 		return 0;
 
+	} else if (action == VORONOI_MakeRandomRect) {
+		if (!data) DropNewData();
+		else data->Flush();
+		double w = (dp->Maxx - dp->Minx) / 3 / dp->Getmag();
+		double h = (dp->Maxy - dp->Miny) / 3 / dp->Getmag();
+		data->CreateRandomPoints(num_random, 0, -w, w, -h, h);
+		Triangulate();
+		previous_create = VORONOI_MakeRandomRect;
+		return 0;
+
+
+	} else if (action == VORONOI_MakeRandomCircle) {
+		if (!data) DropNewData();
+		else data->Flush();
+		double r = (dp->Maxy - dp->Miny) / 3 / dp->Getmag();
+		data->CreateRandomRadial(num_random, 0, 0, 0, r);
+		Triangulate();
+		previous_create = VORONOI_MakeRandomCircle;
+		return 0;
+
+	} else if (action == VORONOI_MakeGrid) {
+		if (!data) DropNewData();
+		else data->Flush();
+		double w = (dp->Maxx - dp->Minx) / 3 / dp->Getmag();
+		double h = (dp->Maxy - dp->Miny) / 3 / dp->Getmag();
+		data->CreateGrid(num_x, num_y, -w,-h, 2*w, 2*h, LAX_LRTB);
+		Triangulate();
+		previous_create = VORONOI_MakeGrid;
+		return 0;
+
+	} else if (action == VORONOI_MakeHexChunk) {
+		if (!data) DropNewData();
+		else data->Flush();
+		double r = (dp->Maxy - dp->Miny) / 3 / dp->Getmag();
+		data->CreateHexChunk(r, num_x);
+		Triangulate();
+		previous_create = VORONOI_MakeHexChunk;
+		return 0;
+
+	} else if (action == VORONOI_Relax) {
+		if (!data) return 0;
+		data->Relax(relax_iters, .5, .1);
+		Triangulate();
+		PostMessage(_("Relaxing..."));
+		needtodraw = 1;
+		return 0;
+
 	}
 
 	return 1;
+}
+
+void DelauneyInterface::DropNewData()
+{
+	Clear(nullptr);
+	
+	int x = (dp->Minx + dp->Maxx)/2;
+	int y = (dp->Miny + dp->Maxy)/2;
+
+	data = dynamic_cast<VoronoiData *>(somedatafactory()->NewObject(LAX_VORONOIDATA));
+	if (!data) data = new VoronoiData; 
+
+	viewport->ChangeContext(x,y,NULL);
+	ObjectContext *oc = NULL;
+	viewport->NewData(data,&oc);//viewport adds only its own counts
+	if (voc) { delete voc; voc=NULL; }
+	if (oc) voc = oc->duplicate();
 }
 
 int DelauneyInterface::Event(const Laxkit::EventData *e_data, const char *mes)
@@ -1110,9 +1221,17 @@ int DelauneyInterface::Event(const Laxkit::EventData *e_data, const char *mes)
         const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(e_data);
         int i =s->info2; //id of menu item
 
-		if (i == VORON_Square_Of_Points) {
-		} else if (i == VORON_Circle_Of_Points) {
-		} else if (i == VORON_Cluster_Of_Points) {
+		if (i == VORONOI_MakeRandomRect
+		 || i == VORONOI_MakeRandomCircle
+		 || i == VORONOI_MakeGrid
+		 || i == VORONOI_MakeHexChunk
+		 || i == VORONOI_Relax
+		 || i == VORONOI_TogglePoints
+		 || i == VORONOI_ToggleVoronoi
+		 || i == VORONOI_ToggleShapes
+		 || i == VORONOI_New
+		 ) {
+		 	PerformAction(i);
 		}
 
 		return 0;   
@@ -1190,15 +1309,39 @@ int DelauneyTriangulate(flatpoint *pts, int nv, IndexTriangle *tri_ret, int *ntr
 
     //need to convert indices to what they were before qsort
    for (int c=0; c<*ntri_ret; c++) {
-	   tri_ret[c].p1=p[tri_ret[c].p1].info;
-	   tri_ret[c].p2=p[tri_ret[c].p2].info;
-	   tri_ret[c].p3=p[tri_ret[c].p3].info;
+	   tri_ret[c].p1 = p[tri_ret[c].p1].info;
+	   tri_ret[c].p2 = p[tri_ret[c].p2].info;
+	   tri_ret[c].p3 = p[tri_ret[c].p3].info;
    }
 
 
-   DBG cerr << "Formed "<<(*ntri_ret)<<" triangles"<<endl;
-
+   DBG cerr << "DelauneyTriangulate: Formed "<<(*ntri_ret)<<" triangles"<<endl;
    return 0;
+}
+
+int DelauneyTriangulate(PointSet::PointObj **pts, int nv, IndexTriangle *tri_ret, int *ntri_ret)
+{
+	if (nv < 3) return 1;
+
+	flatpoint p[nv+3];
+	for (int c=0; c<nv; c++) {
+		p[c] = pts[c]->p;
+		p[c].info = c;
+	}
+
+	//need to order points by x
+	qsort(p,nv,sizeof(flatpoint),CompareXCoord);
+	Triangulate(nv,p, tri_ret,ntri_ret);
+
+	//need to convert indices to what they were before qsort
+	for (int c=0; c<*ntri_ret; c++) {
+	   tri_ret[c].p1 = p[tri_ret[c].p1].info;
+	   tri_ret[c].p2 = p[tri_ret[c].p2].info;
+	   tri_ret[c].p3 = p[tri_ret[c].p3].info;
+	}
+
+	DBG cerr << "DelauneyTriangulate: Formed "<<(*ntri_ret)<<" triangles"<<endl;
+	return 0;
 }
 
 
@@ -1215,7 +1358,6 @@ int CompareXCoord(const void *v1,const void *v2)
    else 
       return(0); 
 }       
-
 
 
 //--------------------------

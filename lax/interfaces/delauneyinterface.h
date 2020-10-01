@@ -23,6 +23,7 @@
 #define _LAX_DELAUNEYINTERFACE_H
 
 #include <lax/interfaces/aninterface.h>
+#include <lax/pointset.h>
 
 
 namespace LaxInterfaces { 
@@ -71,7 +72,7 @@ class VoronoiRegion
 	bool operator==(const VoronoiRegion &r) { return r.point==point; }
 };
 
-class VoronoiData : virtual public LaxInterfaces::SomeData
+class VoronoiData : virtual public LaxInterfaces::SomeData, virtual public Laxkit::PointSet
 {
   public:
 	bool show_points;
@@ -80,7 +81,6 @@ class VoronoiData : virtual public LaxInterfaces::SomeData
 	bool show_numbers;
 
 	Laxkit::DoubleBBox containing_rect;
-	Laxkit::NumStack<flatpoint> points;
 	Laxkit::NumStack<IndexTriangle> triangles;
 	Laxkit::NumStack<VoronoiRegion> regions; //1 to 1 with points
 	Laxkit::NumStack<flatpoint> inf_points; //to help approximate infinite rays
@@ -110,7 +110,7 @@ class VoronoiData : virtual public LaxInterfaces::SomeData
 	flatpoint Centroid(int triangle);
 
 };
-
+	
 
 //------------------------------- DelauneyInterface ---------------------------------
 
@@ -119,11 +119,21 @@ enum DelauneyInterfaceActions {
 	VORONOI_ToggleNumbers,
 	VORONOI_ToggleArrows,
 	VORONOI_ToggleLines,
+	VORONOI_ToggleHull,
+	VORONOI_TogglePoints,
+	VORONOI_ToggleVoronoi,
+	VORONOI_ToggleShapes,
 	VORONOI_StyleTarget,
 	VORONOI_Thicken,
 	VORONOI_Thin,
 	VORONOI_FileExport,
 	VORONOI_FileImport,
+	VORONOI_MakeRandomRect,
+	VORONOI_MakeRandomCircle,
+	VORONOI_MakeGrid,
+	VORONOI_MakeHexChunk,
+	VORONOI_Relax,
+	VORONOI_New,
 	VORONOI_MAX
 };
 
@@ -141,11 +151,16 @@ class DelauneyInterface : public anInterface
 
 	Laxkit::ShortcutHandler *sc;
 
+	virtual void DropNewData();
+
   public:
 	bool show_numbers;
 	bool show_arrows;
-	int show_lines; //&1 for voronio &2 for delauney
+	int show_lines; //&1 for voronoi &2 for delauney
 	unsigned int delauney_interface_style;
+	int num_random, num_x, num_y; //inputs for creating funcs
+	int previous_create;
+	int relax_iters;
 
 	DelauneyInterface(anInterface *nowner, int nid,Laxkit::Displayer *ndp);
 	virtual ~DelauneyInterface();
