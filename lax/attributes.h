@@ -22,11 +22,11 @@
 #ifndef _LAX_ATTRIBUTES_H
 #define _LAX_ATTRIBUTES_H
 
-#include <lax/screencolor.h>
 #include <lax/lists.h>
 #include <lax/vectors.h>
 #include <lax/anobject.h>
 #include <lax/iobuffer.h>
+#include <lax/screencolor.h>
 #include <cstdio>
 
 
