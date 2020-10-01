@@ -356,19 +356,19 @@ int FileDialog::getDirectory(const char *npath)
 		 //no hits, add a "." for refresh and ".." for up
 		globfree(&globbuf); 
 
-		files->AddItem("..",NULL,
-				0,               //id
-				//LAX_OFF,   //state
-				LAX_HAS_SUBMENU|LAX_OFF,   //state
-				1,               //*** info 1==follow links
-				NULL,0           //submenu
+		files->AddItem("..",
+				0,       //id
+				1,       //info 1==follow links
+				nullptr, //img
+				-1,     //where
+				LAX_HAS_SUBMENU|LAX_OFF   //state
 			);
-		files->AddItem(".",NULL,
-				1,               //id
-				//LAX_OFF,   //state
-				LAX_HAS_SUBMENU|LAX_OFF,   //state
-				1,               //*** info 1==follow links
-				NULL,0           //submenu
+		files->AddItem(".",
+				1,       //id
+				1,       //*** info 1==follow links
+				nullptr, //img
+				-1,
+				LAX_HAS_SUBMENU|LAX_OFF //state				
 			);
 
 		if (filelist) {
@@ -403,9 +403,10 @@ int FileDialog::getDirectory(const char *npath)
 		 //add filename
 		files->AddItem(basename(globbuf.gl_pathv[c]),
 				c,               //id
-				(hasdir?LAX_HAS_SUBMENU:0)|LAX_OFF,   //state
 				1,               //*** info 1==follow links
-				NULL           //submenu
+				nullptr,
+				-1,
+				(hasdir?LAX_HAS_SUBMENU:0)|LAX_OFF //state
 			);
 
 		 //add file size
@@ -1166,25 +1167,12 @@ int FileDialog::Event(const EventData *data,const char *mes)
 
 		//const char *newitem,LaxImage *img,int nid,unsigned int nstate,int ninfo=0,  MenuInfo *nsub=NULL,int where=-1,char subislocal=1
 
-		bmenu->AddItem(_("Sort ABC"),NULL, SORT_ABC /*id*/,
-				LAX_ISTOGGLE|LAX_OFF|((sortstyle&SORT_ABC) ? LAX_CHECKED : 0),
-				0, NULL,-1,0
-			);
-		bmenu->AddItem(_("Sort CBA"),NULL, SORT_CBA /*id*/,
-				LAX_ISTOGGLE|LAX_OFF|((sortstyle&SORT_CBA) ? LAX_CHECKED : 0),
-				0, NULL,-1,0
-			);
-		bmenu->AddItem(_("Sort caseless"),NULL, SORT_IGNORE_CASE /*id*/,
-				LAX_ISTOGGLE|LAX_OFF|((sortstyle&SORT_IGNORE_CASE) ? LAX_CHECKED : 0),
-				0, NULL,-1,0
-			);
-		bmenu->AddItem(_("Sort directories first"),NULL, SORT_DIRS_FIRST /*id*/,
-				LAX_ISTOGGLE|LAX_OFF|((sortstyle&SORT_DIRS_FIRST) ? LAX_CHECKED : 0),
-				0, NULL,-1,0
-			);
+		bmenu->AddToggleItem(_("Sort ABC"), SORT_ABC /*id*/, 0, (sortstyle&SORT_ABC) != 0 );
+		bmenu->AddToggleItem(_("Sort CBA"), SORT_CBA /*id*/, 0, (sortstyle&SORT_CBA) != 0 );
+		bmenu->AddToggleItem(_("Sort caseless"), SORT_IGNORE_CASE /*id*/, (sortstyle&SORT_IGNORE_CASE) != 0);
+		bmenu->AddToggleItem(_("Sort directories first"), SORT_DIRS_FIRST, (sortstyle&SORT_DIRS_FIRST) != 0);
 
-
-       PopupMenu *popup=new PopupMenu(NULL,_("Settings"), 0,
+        PopupMenu *popup=new PopupMenu(NULL,_("Settings"), 0,
                         0,0,0,0, 1, 
                         object_id,"settings", 
                         0, //mouse to position near?

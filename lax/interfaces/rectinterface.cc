@@ -904,7 +904,7 @@ Laxkit::MenuInfo *RectInterface::ContextMenu(int x,int y,int deviceid, Laxkit::M
 	if (!menu) menu = new MenuInfo;
 	else menu->AddSep();
 
-	menu->AddToggleItem(_("Show flip controls"), nullptr, RIA_ToggleFlipControls, 0, 
+	menu->AddToggleItem(_("Show flip controls"), RIA_ToggleFlipControls, 0, 
 		(style & (RECT_FLIP_LINE | RECT_FLIP_AT_SIDES)) != 0);
 
 	//menu->AddItem(_("Reset")   ,RECT_Reset);

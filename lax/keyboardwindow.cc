@@ -1775,11 +1775,11 @@ int KeyboardWindow::RBDown(int x,int y,unsigned int state,int count,const LaxMou
 int KeyboardWindow::RBUp(int x,int y,unsigned int state,const LaxMouse *d)
 {
 	MenuInfo *menu = new MenuInfo();
-    menu->AddToggleItem(_("Force toggles"), nullptr, 0,0, KMENU_Force_Toggles);
+    menu->AddToggleItem(_("Force toggles"), KMENU_Force_Toggles, 0, false /* ??? */);
 	menu->AddSep();
 
-	menu->AddItem("en_qwerty", KMENU_Select_Keyboard,0, 0);
-	menu->AddItem("en_dvorak", KMENU_Select_Keyboard,0, 1);
+	menu->AddItem("en_qwerty", KMENU_Select_Keyboard, 0);
+	menu->AddItem("en_dvorak", KMENU_Select_Keyboard, 1);
 	menu->AddItem(_("Load keyboard..."), KMENU_Load_Keyboard);
 
 	return 1;

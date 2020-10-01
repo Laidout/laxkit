@@ -494,12 +494,19 @@ MenuInfo *ResourceType::AppendMenu(MenuInfo *menu, bool do_favorites, int *numad
 
 		} else {
 			 //normal resource
+			// menu->AddItem(r->Name ? r->Name : (r->name ? r->name : _("(unnamed)")),
+			// 			  r->icon,
+			// 			  r->object_id, //id, later event->info2
+			// 			  LAX_OFF,
+			// 			  do_favorites ? r->favorite : -1, //later event->info4
+			// 			  NULL);
 			menu->AddItem(r->Name ? r->Name : (r->name ? r->name : _("(unnamed)")),
-						  r->icon,
 						  r->object_id, //id, later event->info2
-						  LAX_OFF,
 						  do_favorites ? r->favorite : -1, //later event->info4
-						  NULL);
+						  r->icon,
+						  -1,
+						  LAX_OFF
+						  );
 			*numadded += 1;
 		}
 	}

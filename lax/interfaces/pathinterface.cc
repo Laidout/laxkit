@@ -5827,25 +5827,18 @@ Laxkit::MenuInfo *PathInterface::ContextMenu(int x,int y,int deviceid, MenuInfo 
 		unsigned int ptype=curpoints.e[0]->flags&BEZ_MASK;
 		for (int c=1; c<curpoints.n; c++) if ((curpoints.e[c]->flags&BEZ_MASK)!=ptype) { ptype=-1; break; }
 		menu->AddSep(_("Point type"));
-		menu->AddItem(_("Smooth"),          PATHIA_PointTypeSmooth,        LAX_OFF|LAX_ISTOGGLE|(ptype==BEZ_STIFF_EQUAL   ? LAX_CHECKED : 0), 0);
-		menu->AddItem(_("Smooth, unequal"), PATHIA_PointTypeSmoothUnequal, LAX_OFF|LAX_ISTOGGLE|(ptype==BEZ_STIFF_NEQUAL  ? LAX_CHECKED : 0), 0);
-		menu->AddItem(_("Corner"),          PATHIA_PointTypeCorner,        LAX_OFF|LAX_ISTOGGLE|(ptype==BEZ_NSTIFF_NEQUAL ? LAX_CHECKED : 0), 0);
-
-		//		jstyle=curpoints.e[0]->flags&POINT_JOIN_MASK;
-		//		menu->AddSep(_("Per Point Join Style"));
-		//		menu->AddItem(_("Bevel"), PATHIA_Bevel, LAX_OFF|LAX_ISTOGGLE|((jstyle&POINT_Bevel) ? LAX_CHECKED : 0));
-		//		menu->AddItem(_("Miter"), PATHIA_Miter, LAX_OFF|LAX_ISTOGGLE|((jstyle&POINT_Miter) ? LAX_CHECKED : 0));
-		//		menu->AddItem(_("Round"), PATHIA_Round, LAX_OFF|LAX_ISTOGGLE|((jstyle&POINT_Round) ? LAX_CHECKED : 0));
-		//		menu->AddItem(_("Extrapolate"), PATHIA_Extrapolate, LAX_OFF|LAX_ISTOGGLE|((jstyle&POINT_Extrapolate) ? LAX_CHECKED : 0));
+		menu->AddToggleItem(_("Smooth"),          PATHIA_PointTypeSmooth,        0, (ptype==BEZ_STIFF_EQUAL));
+		menu->AddToggleItem(_("Smooth, unequal"), PATHIA_PointTypeSmoothUnequal, 0, (ptype==BEZ_STIFF_NEQUAL));
+		menu->AddToggleItem(_("Corner"),          PATHIA_PointTypeCorner,        0, (ptype==BEZ_NSTIFF_NEQUAL));
 	}                                                                                   
 
 	menu->AddSep(_("Join Style"));
 	int jstyle = curpath && curpath->linestyle ? curpath->linestyle->joinstyle : -1;
 	if (jstyle<0 && data && data->linestyle) jstyle = data->linestyle->joinstyle;
-	menu->AddItem(_("Bevel"),       PATHIA_Bevel,       LAX_OFF|LAX_ISTOGGLE|(jstyle==LAXJOIN_Bevel ? LAX_CHECKED : 0), 0);
-	menu->AddItem(_("Miter"),       PATHIA_Miter,       LAX_OFF|LAX_ISTOGGLE|(jstyle==LAXJOIN_Miter ? LAX_CHECKED : 0), 0);
-	menu->AddItem(_("Round"),       PATHIA_Round,       LAX_OFF|LAX_ISTOGGLE|(jstyle==LAXJOIN_Round ? LAX_CHECKED : 0), 0);
-	menu->AddItem(_("Extrapolate"), PATHIA_Extrapolate, LAX_OFF|LAX_ISTOGGLE|(jstyle==LAXJOIN_Extrapolate ? LAX_CHECKED : 0), 0);
+	menu->AddToggleItem(_("Bevel"),       PATHIA_Bevel,       0, (jstyle==LAXJOIN_Bevel));
+	menu->AddToggleItem(_("Miter"),       PATHIA_Miter,       0, (jstyle==LAXJOIN_Miter));
+	menu->AddToggleItem(_("Round"),       PATHIA_Round,       0, (jstyle==LAXJOIN_Round));
+	menu->AddToggleItem(_("Extrapolate"), PATHIA_Extrapolate, 0, (jstyle==LAXJOIN_Extrapolate));
 
 	menu->AddSep(_("Cap Style"));
 	int cstyle = curpath && curpath->linestyle ? curpath->linestyle->capstyle : -1;
@@ -5854,15 +5847,15 @@ Laxkit::MenuInfo *PathInterface::ContextMenu(int x,int y,int deviceid, MenuInfo 
 	int ecstyle = curpath && curpath->linestyle ? curpath->linestyle->endcapstyle : -1;
 	if (ecstyle<0 && data && data->linestyle) ecstyle = data->linestyle->endcapstyle;
 	if (ecstyle<0) ecstyle = defaultline->endcapstyle;
-	menu->AddItem(_("Butt"),        PATHIA_CapButt,     LAX_OFF|LAX_ISTOGGLE|(cstyle==LAXCAP_Butt ? LAX_CHECKED : 0), 0);
-	menu->AddItem(_("Round"),       PATHIA_CapRound,    LAX_OFF|LAX_ISTOGGLE|(cstyle==LAXCAP_Round ? LAX_CHECKED : 0), 0);
-	menu->AddItem(_("Zero tips"),   PATHIA_CapZero,     LAX_OFF|LAX_ISTOGGLE|(cstyle==LAXCAP_Zero_Width ? LAX_CHECKED : 0), 0);
-	menu->AddItem(_("End caps"),   0); //  PATHIA_CapZero,     LAX_OFF|LAX_ISTOGGLE|(cstyle==LAXCAP_Zero_Width ? LAX_CHECKED : 0), 0);
+	menu->AddToggleItem(_("Butt"),        PATHIA_CapButt,  0, (cstyle==LAXCAP_Butt));
+	menu->AddToggleItem(_("Round"),       PATHIA_CapRound, 0, (cstyle==LAXCAP_Round));
+	menu->AddToggleItem(_("Zero tips"),   PATHIA_CapZero,  0, (cstyle==LAXCAP_Zero_Width));
+	menu->AddItem(_("End caps"),   0);
 	menu->SubMenu(_("End caps"));
-		menu->AddItem(_("Same as start"),PATHIA_EndCapSame,  LAX_OFF|LAX_ISTOGGLE|(ecstyle==0 ? LAX_CHECKED : 0), 0);
-		menu->AddItem(_("Butt"),         PATHIA_EndCapButt,  LAX_OFF|LAX_ISTOGGLE|(ecstyle==LAXCAP_Butt ? LAX_CHECKED : 0), 0);
-		menu->AddItem(_("Round"),        PATHIA_EndCapRound, LAX_OFF|LAX_ISTOGGLE|(ecstyle==LAXCAP_Round ? LAX_CHECKED : 0), 0);
-		menu->AddItem(_("Zero tips"),    PATHIA_EndCapZero,  LAX_OFF|LAX_ISTOGGLE|(ecstyle==LAXCAP_Zero_Width ? LAX_CHECKED : 0), 0);
+		menu->AddToggleItem(_("Same as start"),PATHIA_EndCapSame,  0, (ecstyle==0));
+		menu->AddToggleItem(_("Butt"),         PATHIA_EndCapButt,  0, (ecstyle==LAXCAP_Butt));
+		menu->AddToggleItem(_("Round"),        PATHIA_EndCapRound, 0, (ecstyle==LAXCAP_Round));
+		menu->AddToggleItem(_("Zero tips"),    PATHIA_EndCapZero,  0, (ecstyle==LAXCAP_Zero_Width));
 	menu->EndSubMenu();
 
 	if (!(pathi_style&PATHI_One_Path_Only)) {
@@ -5878,13 +5871,13 @@ Laxkit::MenuInfo *PathInterface::ContextMenu(int x,int y,int deviceid, MenuInfo 
 
 	if (!(pathi_style&PATHI_No_Weights)) {
 		if (menu->n()) menu->AddSep();
-		menu->AddItem(_("Show base and center lines"), PATHIA_ToggleBaseline, LAX_OFF|LAX_ISTOGGLE|(show_baselines?LAX_CHECKED:0), 0);
-		menu->AddItem(_("Show weight nodes"), PATHIA_ToggleWeights,  LAX_OFF|LAX_ISTOGGLE|(show_weights?LAX_CHECKED:0), 0);
+		menu->AddToggleItem(_("Show base and center lines"), PATHIA_ToggleBaseline, show_baselines);
+		menu->AddToggleItem(_("Show weight nodes"), PATHIA_ToggleWeights,  show_weights);
 
 		bool angled=false;
 		if (curpath) angled=curpath->absoluteangle;
 		else if (data && data->paths.n) angled=data->paths.e[0]->absoluteangle;
-		menu->AddItem(_("Absolute angles"),  PATHIA_ToggleAbsAngle,  LAX_OFF|LAX_ISTOGGLE|(angled?LAX_CHECKED:0), 0);
+		menu->AddToggleItem(_("Absolute angles"),  PATHIA_ToggleAbsAngle,  angled);
 	}
 
 	//misc actions

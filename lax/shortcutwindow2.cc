@@ -554,7 +554,7 @@ static void AddAreaToMenu(MenuInfo *aream, ShortcutHandler *handler)
 			//manager->ShortcutString(s->e[c2], keyb, true);
 			key_name_from_value(s->e[c2]->keys->key, keyb);
 
-			aream->AddItem(keyb, s->e[c2]->keys->key, LAX_OFF, s->e[c2]->keys[0].state, nullptr);
+			aream->AddItem(keyb, s->e[c2]->keys->key, s->e[c2]->keys[0].state);
 
 			if (a) aa = a->FindAction(s->e[c2]->action); else aa=nullptr;
 			if (aa) {
@@ -993,7 +993,7 @@ int ShortcutWindow2::init()
 			keyboard->current_area = manager->shortcuts.e[c]->area;
 			//initial = c;
 
-			menu->AddItem(manager->shortcuts.e[c]->area,0,MENU_OPEN,0,nullptr,-1,1); //add open
+			menu->AddItem(manager->shortcuts.e[c]->area,0,0,nullptr, -1, MENU_OPEN); //add open
 			menu->SubMenu();
 			AddAreaToMenu(menu->curmenu, manager->shortcuts.e[c]);
 			menu->EndSubMenu();
@@ -1128,7 +1128,7 @@ int ShortcutWindow2::SelectArea(const char *area)
 		if (!strcmp(area, manager->shortcuts.e[c]->area)) {
 			keyboard->current_area = manager->shortcuts.e[c]->area;
 
-			menu->AddItem(manager->shortcuts.e[c]->area,0,MENU_OPEN,0,nullptr,-1,1); //add open
+			menu->AddItem(manager->shortcuts.e[c]->area,0,0,nullptr, -1, MENU_OPEN); //add open
 			menu->SubMenu();
 			AddAreaToMenu(menu->curmenu, manager->shortcuts.e[c]);
 			menu->Sort();

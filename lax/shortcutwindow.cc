@@ -488,7 +488,7 @@ int ShortcutWindow::init()
 
 	for (int c=0; c<manager->shortcuts.n; c++) {
 		if (place && !strcmp(place,manager->shortcuts.e[c]->area))
-			menu->AddItem(manager->shortcuts.e[c]->area,0,MENU_OPEN,0,NULL,-1,1);
+			menu->AddItem(manager->shortcuts.e[c]->area, 0, 0, nullptr, -1, MENU_OPEN);
 		else menu->AddItem(manager->shortcuts.e[c]->area);
 
 		menu->SubMenu();

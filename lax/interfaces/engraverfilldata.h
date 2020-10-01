@@ -249,28 +249,6 @@ enum EngraveLinePointCacheTypes {
 	ENGRAVE_StartDash  //added by dash computations
 };
 
-/*! \class PointCollection
- * Base class for objects that can be changed by anything meant to work on masses of points.
- */
-class PointCollection
-{
-  public:
-  	enum PointMethods {
-		Size,
-		Position,
-		Rotation,
-		Transform,
-		Extra
-	};
-	virtual int Depth() = 0; //how many dimensions wide are points stored
-	virtual int Num(int dim) = 0; //size of this dimension
-	virtual flatpoint Point(int index, ...) = 0; //retrieve point, as many numbers as Depth()
-	virtual flatpoint Point(flatpoint newPos, int index, ...) = 0; //set point
-
-	//Update every point with this function
-	virtual int Map(std::function<int(const flatpoint &p, flatpoint &newp)> adjustFunc) = 0;
-};
-
 class LinePoint;
 
 class LinePointCache

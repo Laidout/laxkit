@@ -669,11 +669,11 @@ Laxkit::MenuInfo *SimplePathInterface::ContextMenu(int x,int y,int deviceid, Lax
 	if (!menu) menu = new MenuInfo;
 
 	menu->AddSep(_("Interpolation"));
-	menu->AddToggleItem(_("Linear   "), nullptr, SIMPLEPATH_Linear   , 0, data->interpolation == SimplePathData::Linear   /*on*/, -1 /*where*/);
-	menu->AddToggleItem(_("Quadratic"), nullptr, SIMPLEPATH_Quadratic, 0, data->interpolation == SimplePathData::Quadratic/*on*/, -1 /*where*/);
-	menu->AddToggleItem(_("Cubic    "), nullptr, SIMPLEPATH_Cubic    , 0, data->interpolation == SimplePathData::Cubic    /*on*/, -1 /*where*/);
-	menu->AddToggleItem(_("Spiro    "), nullptr, SIMPLEPATH_Spiro    , 0, data->interpolation == SimplePathData::Spiro    /*on*/, -1 /*where*/);
-	menu->AddToggleItem(_("NewSpiro "), nullptr, SIMPLEPATH_NewSpiro , 0, data->interpolation == SimplePathData::NewSpiro /*on*/, -1 /*where*/);
+	menu->AddToggleItem(_("Linear   "), SIMPLEPATH_Linear   , 0, data->interpolation == SimplePathData::Linear   /*on*/);
+	menu->AddToggleItem(_("Quadratic"), SIMPLEPATH_Quadratic, 0, data->interpolation == SimplePathData::Quadratic/*on*/);
+	menu->AddToggleItem(_("Cubic    "), SIMPLEPATH_Cubic    , 0, data->interpolation == SimplePathData::Cubic    /*on*/);
+	menu->AddToggleItem(_("Spiro    "), SIMPLEPATH_Spiro    , 0, data->interpolation == SimplePathData::Spiro    /*on*/);
+	menu->AddToggleItem(_("NewSpiro "), SIMPLEPATH_NewSpiro , 0, data->interpolation == SimplePathData::NewSpiro /*on*/);
 
 	if (curpoints.n > 0 && data->interpolation == SimplePathData::Spiro) {
 		menu->AddSep(_("Point Type"));

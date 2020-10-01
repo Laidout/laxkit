@@ -740,7 +740,7 @@ int TreeSelector::AddItem(const char *i,LaxImage *img,int nid,int newstate)
 	if ((newstate&LAX_MSTATE_MASK)==0) newstate|=LAX_OFF;
 	if (numItems()==0 && menustyle&TREESEL_ONE_ONLY && (newstate&LAX_OFF)) // if only one item, make it on
 		newstate=(newstate^LAX_OFF)|LAX_ON;
-	menu->AddItem(i,img,nid,newstate,0,NULL,-1,0); 
+	menu->AddItem(i,nid,0, img, -1, newstate);
 	needtobuildcache=1;
 	return numItems();
 }

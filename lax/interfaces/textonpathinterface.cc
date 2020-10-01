@@ -1417,11 +1417,11 @@ Laxkit::MenuInfo *TextOnPathInterface::ContextMenu(int x,int y,int deviceid, Lax
 	if (!menu) menu=new MenuInfo;
 
 	//if (!menu->n()) menu->AddSep(_("Offset type"));
-	menu->AddItem(_("Baseline from path"),         TextOnPath::FROM_Path, LAX_ISTOGGLE|(textonpath->baseline_type==TextOnPath::FROM_Path ? LAX_CHECKED : 0), 0);
-	menu->AddItem(_("Baseline from offset"),       TextOnPath::FROM_Offset, LAX_ISTOGGLE|(textonpath->baseline_type==TextOnPath::FROM_Offset ? LAX_CHECKED : 0), 0);
-	menu->AddItem(_("Baseline from stroke"),       TextOnPath::FROM_Stroke, LAX_ISTOGGLE|(textonpath->baseline_type==TextOnPath::FROM_Stroke ? LAX_CHECKED : 0), 0);
-	menu->AddItem(_("Baseline from other stroke"), TextOnPath::FROM_Other_Stroke, LAX_ISTOGGLE|(textonpath->baseline_type==TextOnPath::FROM_Other_Stroke ? LAX_CHECKED : 0), 0);
-	menu->AddItem(_("Use envelope for size"),      TextOnPath::FROM_Envelope, LAX_ISTOGGLE|(textonpath->baseline_type==TextOnPath::FROM_Envelope ? LAX_CHECKED : 0), 0);
+	menu->AddToggleItem(_("Baseline from path"),         TextOnPath::FROM_Path,         0, (textonpath->baseline_type==TextOnPath::FROM_Path));
+	menu->AddToggleItem(_("Baseline from offset"),       TextOnPath::FROM_Offset,       0, (textonpath->baseline_type==TextOnPath::FROM_Offset));
+	menu->AddToggleItem(_("Baseline from stroke"),       TextOnPath::FROM_Stroke,       0, (textonpath->baseline_type==TextOnPath::FROM_Stroke));
+	menu->AddToggleItem(_("Baseline from other stroke"), TextOnPath::FROM_Other_Stroke, 0, (textonpath->baseline_type==TextOnPath::FROM_Other_Stroke));
+	menu->AddToggleItem(_("Use envelope for size"),      TextOnPath::FROM_Envelope,     0, (textonpath->baseline_type==TextOnPath::FROM_Envelope));
 	//menu->AddItem(_("Use envelope to stretch"), TPATH_UseStretchEnvelope);
 	menu->AddSep();
 	menu->AddItem(_("Convert to path"), TPATH_ConvertToPath);

@@ -651,7 +651,7 @@ int RulerWindow::RBUp(int x,int y,unsigned int state,const LaxMouse *d)
 			nm = buffer;
 		}
 
-		menu->AddItem(nm, id, (id == currentunits ? LAX_CHECKED : 0) | LAX_ISTOGGLE, 0);
+		menu->AddToggleItem(nm, id, 0, (id == currentunits));
 		if (id==currentunits) current=name;
 	}
 

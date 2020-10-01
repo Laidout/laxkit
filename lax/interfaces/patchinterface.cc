@@ -2911,16 +2911,16 @@ Laxkit::MenuInfo *PatchInterface::ContextMenu(int x,int y,int deviceid, Laxkit::
 	if (data) {
 		if (!menu) menu=new MenuInfo();
 		if (needsheader) { menu->AddSep(_("Mesh")); needsheader=0; }
-		menu->AddItem(_("Base on path"),PATCHA_BaseOnPath, LAX_OFF|LAX_ISTOGGLE|(data->base_path!=NULL ? LAX_CHECKED : 0), 0);
+		menu->AddToggleItem(_("Base on path"),PATCHA_BaseOnPath, 0, data->base_path != nullptr);
 	}
 
 	if (!data || (data && data->base_path==NULL)) {
 		if (!menu) menu=new MenuInfo();
 		menu->AddSep(_("Mesh edit type"));
-		menu->AddItem(_("Full (16 point)"), PATCHA_Full,   LAX_OFF|LAX_ISTOGGLE|(whichcontrols==Patch_Full_Bezier?LAX_CHECKED:0));
-		menu->AddItem(_("Coons (12 point)"),PATCHA_Coons,  LAX_OFF|LAX_ISTOGGLE|(whichcontrols==Patch_Coons?LAX_CHECKED:0));
-		menu->AddItem(_("Borders only"),    PATCHA_Borders,LAX_OFF|LAX_ISTOGGLE|(whichcontrols==Patch_Border_Only?LAX_CHECKED:0));
-		menu->AddItem(_("Linear"),          PATCHA_Linear, LAX_OFF|LAX_ISTOGGLE|(whichcontrols==Patch_Linear?LAX_CHECKED:0));
+		menu->AddToggleItem(_("Full (16 point)"), PATCHA_Full,   0, whichcontrols==Patch_Full_Bezier);
+		menu->AddToggleItem(_("Coons (12 point)"),PATCHA_Coons,  0, whichcontrols==Patch_Coons);
+		menu->AddToggleItem(_("Borders only"),    PATCHA_Borders,0, whichcontrols==Patch_Border_Only);
+		menu->AddToggleItem(_("Linear"),          PATCHA_Linear, 0, whichcontrols==Patch_Linear);
 	}
 
 

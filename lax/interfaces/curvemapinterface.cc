@@ -205,9 +205,9 @@ Laxkit::MenuInfo *CurveMapInterface::ContextMenu(int x,int y,int deviceid, Laxki
 	if (!menu) menu=new MenuInfo(_("Curves"));
 	else if (menu->n()==0) menu->AddSep(_("Curves"));
 
-	menu->AddItem(_("Invert"),    CURVEM_Invert, LAX_OFF, object_id, NULL, -1, 0);
-	menu->AddItem(_("Reset"),     CURVEM_Reset,  LAX_OFF, object_id, NULL, -1, 0);
-	menu->AddItem(_("Select..."), CURVEM_Select, LAX_OFF, object_id, NULL, -1, 0);
+	menu->AddItem(_("Invert"),    CURVEM_Invert, object_id);
+	menu->AddItem(_("Reset"),     CURVEM_Reset,  object_id);
+	menu->AddItem(_("Select..."), CURVEM_Select, object_id);
 	return menu;
 }
 

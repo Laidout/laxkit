@@ -187,18 +187,18 @@ EngraverFillInterface::EngraverFillInterface(int nid,Displayer *ndp)
 	lasthover=ENGRAVE_None;
 
 	IconManager *iconmanager=InterfaceManager::GetDefault(true)->GetIconManager();
-	modes.AddItem(_("Mesh mode"),       iconmanager->GetIcon("EngraverMesh"),        EMODE_Mesh         );
-	modes.AddItem(_("Thickness"),       iconmanager->GetIcon("EngraverThickness"),   EMODE_Thickness    );
-	modes.AddItem(_("Blockout"),        iconmanager->GetIcon("EngraverKnockout"),    EMODE_Blockout     );
-	modes.AddItem(_("Drag mode"),       iconmanager->GetIcon("EngraverDrag"),        EMODE_Drag         );
-	modes.AddItem(_("Push/pull"),       iconmanager->GetIcon("EngraverPushPull"),    EMODE_PushPull     );
-	modes.AddItem(_("Avoid"),           iconmanager->GetIcon("EngraverAvoid"),       EMODE_AvoidToward  );
-	modes.AddItem(_("Twirl"),           iconmanager->GetIcon("EngraverTwirl"),       EMODE_Twirl        );
-	modes.AddItem(_("Turbulence"),      iconmanager->GetIcon("EngraverTurbulence"),  EMODE_Turbulence   );
-	//modes.AddItem(_("Resolution"),      iconmanager->GetIcon("EngraverResolution"), EMODE_Resolution   );
-	modes.AddItem(_("Orientation"),     iconmanager->GetIcon("EngraverOrientation"), EMODE_Orientation  );
-	modes.AddItem(_("Freehand"),        iconmanager->GetIcon("EngraverFreehand"),    EMODE_Freehand     );
-	modes.AddItem(_("Trace adjustment"),iconmanager->GetIcon("EngraverTrace"),       EMODE_Trace        );
+	modes.AddItem(_("Mesh mode"),        EMODE_Mesh,        0, iconmanager->GetIcon("EngraverMesh")         );
+	modes.AddItem(_("Thickness"),        EMODE_Thickness,   0, iconmanager->GetIcon("EngraverThickness")    );
+	modes.AddItem(_("Blockout"),         EMODE_Blockout,    0, iconmanager->GetIcon("EngraverKnockout")     );
+	modes.AddItem(_("Drag mode"),        EMODE_Drag,        0, iconmanager->GetIcon("EngraverDrag")         );
+	modes.AddItem(_("Push/pull"),        EMODE_PushPull,    0, iconmanager->GetIcon("EngraverPushPull")     );
+	modes.AddItem(_("Avoid"),            EMODE_AvoidToward, 0, iconmanager->GetIcon("EngraverAvoid")  );
+	modes.AddItem(_("Twirl"),            EMODE_Twirl,       0, iconmanager->GetIcon("EngraverTwirl")        );
+	modes.AddItem(_("Turbulence"),       EMODE_Turbulence,  0, iconmanager->GetIcon("EngraverTurbulence")   );
+	//modes.AddItem(_("Resolution"),     EMODE_Resolution,  0,   iconmanager->GetIcon("EngraverResolution")   );
+	modes.AddItem(_("Orientation"),      EMODE_Orientation, 0, iconmanager->GetIcon("EngraverOrientation")  );
+	modes.AddItem(_("Freehand"),         EMODE_Freehand,    0, iconmanager->GetIcon("EngraverFreehand")     );
+	modes.AddItem(_("Trace adjustment"), EMODE_Trace,       0, iconmanager->GetIcon("EngraverTrace")        );
 	//modes.AddItem(_("Direction"),       iconmanager->GetIcon("EngraverDirection"), EMODE_Direction    );
 
 	fgcolor.rgbf(0.,0.,0.);
@@ -1080,18 +1080,18 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
 			MenuInfo *menu=new MenuInfo(_("Trace object"));
 
 			//EngraverPointGroup *group=(edata?edata->GroupFromIndex(current_group):NULL);
-			menu->AddItem(_("New Linear Gradient"), ENGRAVE_Trace_Linear_Gradient,LAX_OFF,-2);
-			menu->AddItem(_("New Radial Gradient"), ENGRAVE_Trace_Radial_Gradient,LAX_OFF,-2);
-			menu->AddItem(_("Snapshot of current"), ENGRAVE_Trace_Snapshot,       LAX_OFF,-2);
-			menu->AddItem(_("Use current"),         ENGRAVE_Trace_Current,        LAX_OFF|LAX_GRAY,-2);
-			menu->AddItem(_("Load Image..."),       ENGRAVE_Trace_Load,           LAX_OFF,-2);
-			menu->AddItem(_("Save Image..."),       ENGRAVE_Trace_Save,           LAX_OFF,-2);
-			menu->AddItem(_("Clear trace object"),  ENGRAVE_Trace_Clear,          LAX_OFF,-2);
+			menu->AddItem(_("New Linear Gradient"), ENGRAVE_Trace_Linear_Gradient,-2, nullptr, -1 );
+			menu->AddItem(_("New Radial Gradient"), ENGRAVE_Trace_Radial_Gradient,-2, nullptr, -1 );
+			menu->AddItem(_("Snapshot of current"), ENGRAVE_Trace_Snapshot,       -2, nullptr, -1 );
+			menu->AddItem(_("Use current"),         ENGRAVE_Trace_Current,        -2, nullptr, -1, LAX_GRAY);
+			menu->AddItem(_("Load Image..."),       ENGRAVE_Trace_Load,           -2, nullptr, -1 );
+			menu->AddItem(_("Save Image..."),       ENGRAVE_Trace_Save,           -2, nullptr, -1 );
+			menu->AddItem(_("Clear trace object"),  ENGRAVE_Trace_Clear,          -2, nullptr, -1 );
 
 			if (group->trace->traceobject && group->trace->traceobject->ResourceOwner()!=group->trace)
-				menu->AddItem(_("Make local"),      ENGRAVE_Make_Local,           LAX_OFF,-2);
+				menu->AddItem(_("Make local"),      ENGRAVE_Make_Local,           -2);
 			else
-				menu->AddItem(_("Make shared resource"),ENGRAVE_Make_Shared,      LAX_OFF,-2);
+				menu->AddItem(_("Make shared resource"),ENGRAVE_Make_Shared,      -2);
 
 			menu->AddSep(_("Resources"));
 			ResourceManager *manager=InterfaceManager::GetDefault(true)->GetResourceManager();
@@ -1188,10 +1188,10 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
 		} else if (over==ENGRAVE_Direction_Type) {
 			MenuInfo *menu=new MenuInfo(_("Line type"));
 
-			menu->AddItem(PGroupTypeName(PGROUP_Linear),PGROUP_Linear,  LAX_OFF|LAX_ISTOGGLE|(group->direction->type==PGROUP_Linear?LAX_CHECKED:0),-2);
-			menu->AddItem(PGroupTypeName(PGROUP_Circular),PGROUP_Circular,  LAX_OFF|LAX_ISTOGGLE|(group->direction->type==PGROUP_Circular?LAX_CHECKED:0),-2);
-			menu->AddItem(PGroupTypeName(PGROUP_Radial),PGROUP_Radial,  LAX_OFF|LAX_ISTOGGLE|(group->direction->type==PGROUP_Radial?LAX_CHECKED:0),-2);
-			menu->AddItem(PGroupTypeName(PGROUP_Spiral),PGROUP_Spiral,  LAX_OFF|LAX_ISTOGGLE|(group->direction->type==PGROUP_Spiral?LAX_CHECKED:0),-2);
+			menu->AddToggleItem(PGroupTypeName(PGROUP_Linear),PGROUP_Linear,    -2, (group->direction->type==PGROUP_Linear));
+			menu->AddToggleItem(PGroupTypeName(PGROUP_Circular),PGROUP_Circular,-2, (group->direction->type==PGROUP_Circular));
+			menu->AddToggleItem(PGroupTypeName(PGROUP_Radial),PGROUP_Radial,    -2, (group->direction->type==PGROUP_Radial));
+			menu->AddToggleItem(PGroupTypeName(PGROUP_Spiral),PGROUP_Spiral,    -2, (group->direction->type==PGROUP_Spiral));
 
 	        if (menu) app->rundialog(new PopupMenu("Direction","Direction", 0,
                                      0,0,0,0,1,
@@ -1218,12 +1218,12 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
 			ResourceManager *manager=InterfaceManager::GetDefault(true)->GetResourceManager();
 			manager->ResourceMenu("LineProfile", true, menu);
 			if (n==menu->n()) {
-				menu->AddItem(_("(none)"),(LaxImage*)NULL, 0,LAX_GRAY);
+				menu->AddItem(_("(none)"), 0, 0, nullptr, -1, LAX_GRAY);
 				//menu->AddItem(_("(none)"),0,LAX_GRAY,0,NULL);
 			}
 			if (group->direction->default_profile) {
 				menu->AddSep();
-				menu->AddItem(_("Clear"), -1,LAX_OFF,0,(MenuInfo*)NULL);
+				menu->AddItem(_("Clear"), -1);
 			}
 
 	        app->rundialog(new PopupMenu("Line Profile","Line Profile", 0,
@@ -1618,8 +1618,7 @@ Laxkit::MenuInfo *EngraverFillInterface::GetGroupMenu(int what)
 				else if (what==ENGRAVE_Direction && obj->groups.e[c]->direction==edata->groups.e[current]->direction) shared=1;
 				else if (what==ENGRAVE_Spacing   && obj->groups.e[c]->spacing  ==edata->groups.e[current]->spacing) shared=1;
 				
-				menu->AddItem(obj->groups.e[c]->name, 10000+i, LAX_ISTOGGLE|(shared ? LAX_CHECKED : 0),
-								-3, NULL);
+				menu->AddToggleItem(obj->groups.e[c]->name, 10000+i, -3, shared);
 				i++;
 			}
 		}
@@ -1643,14 +1642,13 @@ Laxkit::MenuInfo *EngraverFillInterface::GetGroupMenu(int what)
 				else if (what==ENGRAVE_Direction && obj->groups.e[c]->direction==edata->groups.e[current]->direction) shared=1;
 				else if (what==ENGRAVE_Spacing   && obj->groups.e[c]->spacing  ==edata->groups.e[current]->spacing)   shared=1;
 				
-				menu->AddItem(obj->groups.e[c]->name, 20000+i, LAX_ISTOGGLE|(shared ? LAX_CHECKED : 0),
-								-3, NULL);
+				menu->AddToggleItem(obj->groups.e[c]->name, 20000+i, -3, shared);
 				i++;
 			}
 		}
 
 		menu->AddSep();
-		menu->AddItem(_("Push to all..."), 1, LAX_OFF, -3,NULL);
+		menu->AddItem(_("Push to all..."), 1, -3);
 	}
 
 	shared=1;
@@ -1659,8 +1657,8 @@ Laxkit::MenuInfo *EngraverFillInterface::GetGroupMenu(int what)
 	else if (what==ENGRAVE_Direction && edata->groups.e[current]->direction->ResourceOwner()==edata->groups.e[current]) shared=0;
 	else if (what==ENGRAVE_Spacing   && edata->groups.e[current]->spacing  ->ResourceOwner()==edata->groups.e[current]) shared=0;
 
-	if (shared) menu->AddItem(_("Make local"),ENGRAVE_Make_Local, LAX_OFF, -4,NULL);
-	else menu->AddItem(_("Make shared resource"),ENGRAVE_Make_Shared, LAX_OFF, -4,NULL);
+	if (shared) menu->AddItem(_("Make local"),ENGRAVE_Make_Local, -4);
+	else menu->AddItem(_("Make shared resource"),ENGRAVE_Make_Shared,-4);
 
 	menu->AddSep(_("Resources"));
 	ResourceManager *manager=InterfaceManager::GetDefault(true)->GetResourceManager();
@@ -6106,7 +6104,7 @@ Laxkit::MenuInfo *EngraverFillInterface::ContextMenu(int x,int y,int deviceid, L
 	MenuItem *i;
 	for (int c=0; c<modes.n(); c++) {
 		i=modes.e(c);
-		menu->AddItem(i->name, i->id, LAX_OFF|LAX_ISTOGGLE|(mode==i->id ? LAX_CHECKED : 0), 0);
+		menu->AddToggleItem(i->name, i->id, 0, (mode==i->id));
 	}
 
 	return menu;

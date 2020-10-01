@@ -799,9 +799,9 @@ Laxkit::MenuInfo *DelauneyInterface::ContextMenu(int x,int y,int deviceid, MenuI
 	menu->AddItem(_("Make tri grid in hexagon"), VORONOI_MakeHexChunk);
 	if (data) {
 		menu->AddSep();
-		menu->AddToggleItem(_("Show voronoi shapes"), nullptr, VORONOI_ToggleVoronoi, 0, data->show_voronoi);
-		menu->AddToggleItem(_("Show triangles"),      nullptr, VORONOI_ToggleShapes,  0, data->show_delauney);
-		menu->AddToggleItem(_("Show points"),         nullptr, VORONOI_TogglePoints,  0, data->show_points);
+		menu->AddToggleItem(_("Show voronoi shapes"), VORONOI_ToggleVoronoi, 0, data->show_voronoi);
+		menu->AddToggleItem(_("Show triangles"),      VORONOI_ToggleShapes,  0, data->show_delauney);
+		menu->AddToggleItem(_("Show points"),         VORONOI_TogglePoints,  0, data->show_points);
 		menu->AddSep();
 		menu->AddItem(_("Relax"), VORONOI_Relax);
 		menu->AddSep();

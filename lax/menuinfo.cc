@@ -566,7 +566,7 @@ MenuInfo::~MenuInfo()
 /*! Returns whatever AddItem returns. */
 int MenuInfo::AddSep(const char *name,int where)
 {
-	return AddItem((name?name:""),NULL,-1,LAX_GRAY|LAX_SEPARATOR,0,NULL,-1,0);
+	return AddItem((name?name:""), 0, 0, nullptr, -1, LAX_GRAY|LAX_SEPARATOR);
 }
 
 //! Future Add*() go on a new submenu for item which, or top of the stack.
@@ -729,22 +729,6 @@ void MenuInfo::SetCompareFunc(int newsortstyle)
 	else Compare=menu_strcmp; //**** default??
 }
 
-//! Add a whole bunch of items at the same time.
-/*! Assigns ids sequentially starting with startid.
- * Does not check for multiple occurences of the ids used.
- * 
- *  Returns number of items added.
- * ***this is cheap, should be optimized for large arrays?? add in one lump, then sort??
- */
-int MenuInfo::AddItems(const char **i,int n,int startid) // assume ids sequential, state=0
-{
-	if (i==NULL || n==0) return 0;
-	int where=curmenu->menuitems.n;
-	for (int c=0; c<n; c++) 
-		if (!isblank(i[c])) AddItem(i[c],startid++,LAX_OFF,0,NULL,where);
-	return n;
-}
-
 //! Add an already made MenuItem.
 /*! Note that mi->parent is set to curmenu.
  * Returns the number of menuitems.
@@ -769,56 +753,20 @@ int MenuInfo::AddItemAsIs(MenuItem *mi,char islocal,int where)//where=-1
 	return curmenu->menuitems.n;
 }
 
-int MenuInfo::AddToggleItem(const char *newitem,LaxImage *img,int nid,int ninfo,bool on, int where)
+int MenuInfo::AddToggleItem(const char *newitem, int nid, int ninfo, bool on, LaxImage *img, int where, int state)
 {
-	return AddItem(newitem,img,nid, LAX_OFF | LAX_ISTOGGLE | (on ? LAX_CHECKED : 0), ninfo,NULL,where,0);
+	return AddItem(newitem, nid, ninfo, img, where, state | LAX_OFF | LAX_ISTOGGLE | (on ? LAX_CHECKED : 0));
 }
 
 //! Add item at position where, or to end of menu if where<0.
 /*! Please note that the MenuItem that is created is local to the menuitems stack (it will be deleted
  *  when the item stack is flushed), while the passed in submenu is local according to subislocal.
  */
-int MenuInfo::AddItem(const char *newitem,LaxImage *img,int nid,int where)
+int MenuInfo::AddItem(const char *newitem, int nid, int info, LaxImage *img, int where, int state)
 {
-	MenuItem *mi=new MenuItem(newitem,img,nid,0,0,NULL,0);
+	MenuItem *mi = new MenuItem(newitem,img,nid, state, info, NULL,0);
 	curmenu->menuitems.push(mi,1,where);
-	mi->parent=curmenu;
-	return curmenu->menuitems.n;
-}
-
-//! Add item at position where, or to end of menu if where<0.
-/*! Please note that the MenuItem that is created is local to the menuitems stack (it will be deleted
- *  when the item stack is flushed), while the passed in submenu is local according to subislocal.
- */
-int MenuInfo::AddItem(const char *newitem,LaxImage *img,int nid,unsigned int nstate,int ninfo,MenuInfo *nsub,int where,char subislocal)
-{
-	MenuItem *mi=new MenuItem(newitem,img,nid,nstate,ninfo,nsub,subislocal);
-	curmenu->menuitems.push(mi,1,where);
-	mi->parent=curmenu;
-	return curmenu->menuitems.n;
-}
-
-//! Add item at position where, or to end of menu if where<0.
-/*! Please note that the MenuItem that is created is local to the menuitems stack (it will be deleted
- *  when the item stack is flushed), while the passed in submenu is local according to subislocal.
- */
-int MenuInfo::AddItem(const char *newitem,int nid,int where)
-{
-	MenuItem *mi=new MenuItem(newitem,nid,LAX_OFF,0,NULL,0);
-	curmenu->menuitems.push(mi,1,where);
-	mi->parent=curmenu;
-	return curmenu->menuitems.n;
-}
-
-//! Add item at position where, or to end of menu if where<0.
-/*! Please note that the MenuItem that is created is local to the menuitems stack (it will be deleted
- *  when the item stack is flushed), while the passed in submenu is local according to subislocal.
- */
-int MenuInfo::AddItem(const char *newitem,int nid,unsigned int nstate,int ninfo,MenuInfo *nsub,int where,char subislocal)
-{
-	MenuItem *mi=new MenuItem(newitem,nid,nstate,ninfo,nsub,subislocal);
-	curmenu->menuitems.push(mi,1,where);
-	mi->parent=curmenu;
+	mi->parent = curmenu;
 	return curmenu->menuitems.n;
 }
 
@@ -827,22 +775,22 @@ int MenuInfo::AddItem(const char *newitem,int nid,unsigned int nstate,int ninfo,
  *
  * where is an index in the final level (-1 for at end).
  */
-int MenuInfo::AddDelimited(const char *newitem,char delimiter, int nid,int where)
+int MenuInfo::AddDelimited(const char *newitem, char delimiter, int nid, int ninfo, LaxImage *img, int where, int state)
 {
 	if (!newitem || !*newitem) return 1;
 	
 	const char *st = strchr(newitem,delimiter);
-	if (!st) return AddItem(newitem,nid);
-
+	if (!st) return AddItem(newitem, nid, ninfo, img, where, state);
+	
 	char *group=newnstr(newitem,st-newitem);
-	int i=curmenu->findIndex(group);
+	int i = curmenu->findIndex(group);
 	if (i<0) {
 		AddItem(group,where);
 		SubMenu();
 	} else {
 		SubMenu(NULL,i);
 	}
-	AddDelimited(st+1,delimiter,nid,where);
+	AddDelimited(st+1, delimiter, nid, ninfo, img, where, state);
 	EndSubMenu();
 
 	return 0;

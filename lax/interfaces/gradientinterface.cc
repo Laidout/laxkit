@@ -1829,12 +1829,12 @@ Laxkit::MenuInfo *GradientInterface::ContextMenu(int x,int y,int deviceid, Laxki
 
     if (!menu) menu=new MenuInfo();
 
-	menu->AddToggleItem(_("Fill parent"), nullptr, GRAD_Toggle_Fill_Parent, 0, data->fill_parent);
+	menu->AddToggleItem(_("Fill parent"), GRAD_Toggle_Fill_Parent, 0, data->fill_parent);
 	menu->AddSep(_("Spread"));
-	menu->AddToggleItem(_("None"),    nullptr, GRAD_Spread_None,    0, data->spread_method == LAXSPREAD_None);
-	menu->AddToggleItem(_("Repeat"),  nullptr, GRAD_Spread_Repeat,  0, data->spread_method == LAXSPREAD_Repeat);
-	menu->AddToggleItem(_("Reflect"), nullptr, GRAD_Spread_Reflect, 0, data->spread_method == LAXSPREAD_Reflect);
-	menu->AddToggleItem(_("Pad"),     nullptr, GRAD_Spread_Pad,     0, data->spread_method == LAXSPREAD_Pad);
+	menu->AddToggleItem(_("None"),    GRAD_Spread_None,    0, data->spread_method == LAXSPREAD_None);
+	menu->AddToggleItem(_("Repeat"),  GRAD_Spread_Repeat,  0, data->spread_method == LAXSPREAD_Repeat);
+	menu->AddToggleItem(_("Reflect"), GRAD_Spread_Reflect, 0, data->spread_method == LAXSPREAD_Reflect);
+	menu->AddToggleItem(_("Pad"),     GRAD_Spread_Pad,     0, data->spread_method == LAXSPREAD_Pad);
 
 	return menu;
 }

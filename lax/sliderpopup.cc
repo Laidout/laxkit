@@ -179,9 +179,12 @@ int SliderPopup::DeleteItem(int id)
  */
 int SliderPopup::AddItems(const char **i,int n,int startid)
 {
-	int c=items->AddItems(i,n,startid);
-	nitems=items->menuitems.n;
-	return c;
+	int oldn = items->menuitems.n;
+	for (int c=0; c<n; c++) {
+		items->AddItem(i[c], startid+c);
+	}
+	nitems = items->menuitems.n;
+	return nitems - oldn;
 }
 
 //! Currently adds a grayed separator with name="", id=0, no submenu, (but it is still legal to add a submenu!!)
