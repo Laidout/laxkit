@@ -41,7 +41,7 @@ namespace Laxkit {
  */
 	
 DBG static int numofanObject=0;
-DBG unsigned int CHECK=881;
+DBG unsigned int CHECK=3502;
 
 //! Set object_id=getUniqueNumber().
 anObject::anObject()
@@ -84,6 +84,10 @@ anObject::~anObject()
 {
 	DBG numofanObject--;
 	DBG cerr <<"anObject tracker "<<object_id<<"   destroyed "<<(object_idstr?object_idstr:"(?)")<<" num of anObjects: "<<numofanObject<<endl;
+
+	DBG if (object_id==CHECK) {
+	DBG 	cerr <<object_id<<" Destructor Agh!"<<endl;
+	DBG }
 
 	if (object_idstr) delete[] object_idstr;
 }
@@ -128,7 +132,7 @@ int anObject::inc_count()
 	_count++;
 
 	DBG if (object_id==CHECK) {
-	DBG 	cerr <<" Agh!"<<endl;
+	DBG 	cerr <<object_id<<" inc_count Agh!"<<endl;
 	DBG }
 	DBG if (!suppress_debug) {
 	DBG   cerr <<"refcounted anobject inc count, now: "<<_count<<endl;
@@ -151,7 +155,7 @@ int anObject::dec_count()
 	DBG   cerr<<(whattype() ? whattype() : "(no whattype)")<<" "<<object_id<<" dec counted: "<<_count<<"  "<<(object_idstr?object_idstr:"(?)")<<endl;
 	DBG }
 	DBG if (object_id==CHECK) {
-	DBG 	cerr <<" Agh!"<<endl;
+	DBG 	cerr <<object_id<<" inc_count Agh!"<<endl;
 	DBG }
 
 	if (_count<=0) {
