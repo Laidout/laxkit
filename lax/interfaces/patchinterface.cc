@@ -2760,6 +2760,46 @@ void PatchData::patchpoint(PatchRenderContext *context,double s0,double ds,doubl
 		WhatColor(0,tt+dt, &col[a][0]);
 	}
 }
+
+/*! Must call as Point(row, column). row and column range 0..ysize and 0..xsize.
+ */
+flatpoint PatchData::Point(int row, ...)
+{
+	va_list argptr;
+	va_start(argptr, row);
+	int col = va_arg(argptr, int);
+	va_end(argptr); 
+
+	int i = row * xsize + col;
+	if (i < 0 || i >= xsize * ysize) return flatpoint();
+	return points[xsize * ysize];
+}
+
+/*! Must call as Point(p, row, column). row and column range 0..ysize and 0..xsize.
+ */
+flatpoint PatchData::Point(flatpoint newPos, int row, ...)
+{
+	va_list argptr;
+	va_start(argptr, row);
+	int col = va_arg(argptr, int);
+	va_end(argptr); 
+
+	int i = row * xsize + col;
+	if (i < 0 || i >= xsize * ysize) return flatpoint();
+	return points[xsize * ysize] = newPos;
+}
+
+int PatchData::Map(std::function<int(const flatpoint &p, flatpoint &newp)> adjustFunc)
+{
+	int n = xsize * ysize;
+	for (int c=0; c<n; c++) {
+		adjustFunc(points[c], points[c]);
+	}
+	touchContents();
+	return n;
+}
+
+
 //----------------------------------- PatchInterface ------------------------------------------
 
 

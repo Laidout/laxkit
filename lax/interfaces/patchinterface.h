@@ -29,6 +29,7 @@
 #include <lax/interfaces/selection.h>
 #include <lax/screencolor.h>
 #include <lax/rectangles.h>
+#include <lax/pointset.h>
 
 
 
@@ -91,7 +92,7 @@ enum PatchDataStyles {
 };
 
 
-class PatchData : virtual public SomeData
+class PatchData : virtual public SomeData, virtual public Laxkit::PointCollection
 {
   protected:
   	
@@ -181,6 +182,15 @@ class PatchData : virtual public SomeData
 	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context);
 	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
 	 //@}
+	
+	/*! \name From PointSet */
+	//@{
+	virtual int Depth() { return 2; } //how many dimensions wide are points stored
+	virtual int NumPoints(int dim) { return dim == 0 ? ysize : xsize; } //0 rows, 1 columns
+	virtual flatpoint Point(int row, ...); //retrieve point, as many numbers as Depth()
+	virtual flatpoint Point(flatpoint newPos, int row, ...); //set point
+	virtual int Map(std::function<int(const flatpoint &p, flatpoint &newp)> adjustFunc); //ret num changed
+	//@}
 };
 
 
