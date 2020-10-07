@@ -344,6 +344,7 @@ EllipseInterface::EllipseInterface(anInterface *nowner, int nid,Displayer *ndp)
 //! Destructor, deletes rinterf.
 EllipseInterface::~EllipseInterface()
 {
+	if (sc) sc->dec_count();
 	DBG cerr <<"----in EllipseInterface destructor"<<endl;
 }
 
