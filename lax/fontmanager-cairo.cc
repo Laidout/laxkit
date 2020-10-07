@@ -177,7 +177,7 @@ LaxFontCairo::LaxFontCairo()
 //! Constructor.
 LaxFontCairo::LaxFontCairo(const char *fontconfigstr,int nid)
 {
-	DBG cerr << "LaxFontCairo constructor from "<<(fontconfigstr?fontconfigstr:"(null)")<<endl;
+	DBG cerr << "LaxFontCairo constructor "<<object_id<<" from "<<(fontconfigstr?fontconfigstr:"(null)")<<endl;
 
 	font = nullptr;
 	scaledfont = nullptr;
