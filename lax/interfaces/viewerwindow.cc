@@ -106,7 +106,7 @@ ViewerWindow::ViewerWindow(anXWindow *parnt,const char *nname,const char *ntitle
 		//viewport=new ViewportWindow(this,"viewport",ANXWIN_HOVER_FOCUS|VIEWPORT_BACK_BUFFER|VIEWPORT_ROTATABLE,0,0,0,0,0);
 	}
 
-	curtool=NULL;
+	curtool = NULL;
 	//lazytool=1; //forces change of primary
 	lazytool=0;
 
@@ -161,7 +161,7 @@ int ViewerWindow::init()
 	if (!yruler && !(viewer_style&VIEWPORT_NO_YRULER))
 		yruler=new RulerWindow(this,"vw Y Ruler",NULL,RULER_Y|RULER_UNITS_MENU, 0,0,0,0,BORDER, NULL,viewport->object_id,"ruler");
 
-	if (!mesbar) mesbar=new MessageBar(this,"vw mesbar",NULL,MB_MOVE, 0,0,0,0,BORDER, curtool?curtool->Name():"Blah Blah Blah");
+	if (!mesbar) mesbar=new MessageBar(this,"vw mesbar",NULL,MB_MOVE, 0,0,0,0,BORDER, curtool ? curtool->Name() : "Blah Blah Blah");
 
 	if (xscroller) viewport->panner->tell(xscroller);//these might be redundant
 	if (yscroller) viewport->panner->tell(yscroller);
@@ -352,10 +352,7 @@ int ViewerWindow::SelectToolFor(const char *datatype,ObjectContext *oc)//data=NU
 	if (oc && !oc->obj) return 2;
 	if (!datatype) datatype=oc->obj->whattype();
 	if (!datatype) return 2;
-//	if (curtool && data && !strcmp(datatype,curtool->whatdatatype())) { <-- unnecessary?
-//		curtool->UseThis(data);
-//		return 0;
-//	}
+
 	int c;
 	for (c=0; c<tools.n; c++) {
 		//if (!strcmp(tools.e[c]->whatdatatype(),datatype)) {
@@ -364,7 +361,7 @@ int ViewerWindow::SelectToolFor(const char *datatype,ObjectContext *oc)//data=NU
 			break;
 		}
 	}
-	if (c==tools.n) return 2;
+	if (c == tools.n) return 2;
 	return !curtool->UseThisObject(oc); // UseThis returns 1 for used..
 }
 
@@ -434,7 +431,7 @@ int ViewerWindow::SelectTool(int id)
 
 	 //else assume is tool like interface, not overlay
 	if (curtool) viewport->Pop(curtool,1); //pop old tool
-	curtool=tools.e[ti];
+	curtool = tools.e[ti];
 
 	DBG cerr <<"ViewerWindow::SelectTool id="<<id<<" ti="<<ti<<": "<<curtool->whattype()<<endl;
 	if (lazytool) curtool->primary=0; else curtool->primary=1;
@@ -452,13 +449,12 @@ int ViewerWindow::PushInterface(anInterface *i,int absorbcount)
 	return viewport->Push(i,-1,absorbcount);
 }
 
-//! Just calls viewportwindow->Pop(i,1)
-/*! This is meant for interfaces that are not exactly tools, such as global shortcuts.
- * The interface is assumed to not be on the tools stack.
+/*! Remove interface from viewport's interfaces stack.
  */
 int ViewerWindow::PopInterface(anInterface *i)
 {
 	viewport->Pop(i,1); //the 1 means dec_count on the popped object
+	if (i == curtool) curtool = nullptr;
 	return 0;
 }
 
@@ -485,13 +481,6 @@ int ViewerWindow::PerformAction(int action)
 	DBG cerr <<"ViewerWindow::PerformAction("<<action<<")"<<endl;
 	if (action==VIEWER_NextTool || action==VIEWER_PreviousTool) {
 		SelectTool(action==VIEWER_NextTool?-1:-2);
-		//----------???
-		//if ((ch=='t' && (state&LAX_STATE_MASK)==0)
-		//		|| (ch=='T' && (state&LAX_STATE_MASK)==ShiftMask)) SelectTool(ch=='t'?-1:-2);
-		//else if ((state&LAX_STATE_MASK)==(ShiftMask|ControlMask)) {
-		//	lazytool=!lazytool;
-		//	if (lazytool) curtool->primary=0; else curtool->primary=1;
-		//}
 		return 0;
 	}
 	return 1; //***
