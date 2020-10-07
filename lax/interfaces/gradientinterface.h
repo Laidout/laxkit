@@ -49,8 +49,6 @@ class GradientData : virtual public SomeData
 		GRADIENT_X_Only      = (1<<3)
 	};
 
-	virtual int dec_count();
-
 	unsigned int style;
 	double hint_a;
 	bool use_strip_points;

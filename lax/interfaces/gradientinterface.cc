@@ -155,11 +155,6 @@ namespace LaxInterfaces {
  * This is automatically determined by GradientInterface.
  */
 
-int GradientData::dec_count()
-{
-	return anObject::dec_count();
-}
-
 
 //! Default constructor, leaves strip null.
 GradientData::GradientData()
