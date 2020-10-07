@@ -80,18 +80,6 @@ class PathWeightNode
 	double bottomOffset() { return offset-width/2; }
 };
 
-class ShapeBrush : public Laxkit::Resourceable
-{
-  public:
-  	double size; //1 keeps brush dimensions
-  	typedef Laxkit::NumStack<flatpoint> FlatpointLine;
-  	Laxkit::PtrStack<FlatpointLine> lines;
-  	PathsData *from_path;
-
-  	ShapeBrush();
-  	virtual ~ShapeBrush();
-};
-
 class Path : public LaxFiles::DumpUtility, public Laxkit::DoubleBBox
 {
  protected:
