@@ -536,6 +536,63 @@ void VoronoiData::RebuildVoronoi(bool triangulate_also)
 //	return -1;
 //}
 
+int VoronoiData::Map(std::function<int(const flatpoint &p, flatpoint &newp)> adjustFunc)
+{
+	int n = PointSet::Map(adjustFunc);
+	// int n = 0;
+	// flatpoint p;
+	// for (int c=0; c<points.n; c++) {
+	// 	if (adjustFunc(points.e[c]->p, p)) {
+	// 		points.e[c]->p = p;
+	// 		n++;
+	// 	}
+	// }
+	RebuildVoronoi(true);
+	return n;
+}
+
+SomeData *VoronoiData::duplicate(SomeData *dup)
+{
+	VoronoiData *newobj = dynamic_cast<VoronoiData*>(dup);
+	if (!newobj && dup) return nullptr; //was not a VoronoiData!
+
+	if (!dup) {
+		dup = dynamic_cast<SomeData*>(somedatafactory()->NewObject(LAX_VORONOIDATA));
+		newobj = dynamic_cast<VoronoiData*>(dup);
+	}
+	if (!newobj) {
+		newobj = new VoronoiData();
+		dup = newobj;
+	}
+
+	for (int c=0; c<points.n; c++) newobj->AddPoint(points.e[c]->p);
+
+	newobj->containing_rect = containing_rect;
+
+	newobj->width_delauney = width_delauney;
+	newobj->width_voronoi = width_voronoi;
+	newobj->width_points = width_points;
+
+	newobj->show_points = show_points;
+	newobj->show_delauney = show_delauney;
+	newobj->show_voronoi = show_voronoi;
+	newobj->show_numbers = show_numbers;
+
+	newobj->color_delauney->dec_count();
+	newobj->color_voronoi->dec_count();
+	newobj->color_points->dec_count();
+	newobj->color_delauney = color_delauney->duplicate();
+	newobj->color_voronoi = color_voronoi->duplicate();
+	newobj->color_points = color_points->duplicate();
+
+	 //somedata elements:
+	dup->setbounds(minx,maxx,miny,maxy);
+	dup->bboxstyle = bboxstyle;
+	dup->m(m());
+
+	RebuildVoronoi(true);
+	return dup;
+}
 
 
 //------------------------------- DelauneyInterface ---------------------------------
@@ -847,6 +904,7 @@ int DelauneyInterface::LBDown(int x,int y,unsigned int state,int count, const La
 		curpoint=data->points.n;
 		justadded=true;
 		data->AddPoint(data->transformPointInverse(screentoreal(x,y)));
+		data->touchContents();
 		Triangulate();
 	}
 
@@ -866,7 +924,7 @@ int DelauneyInterface::LBUp(int x,int y,unsigned int state, const Laxkit::LaxMou
 	int dragged=buttondown.up(d->id,LEFTBUTTON, &point);
 
 	if (!justadded && point == curpoint) {
-		if (dragged<3 && curpoint>=0) data->points.remove(curpoint);
+		if (dragged<3 && curpoint>=0) { data->Remove(curpoint); data->touchContents(); }
 		Triangulate();
 	}
 
@@ -909,7 +967,7 @@ int DelauneyInterface::MouseMove(int x,int y,unsigned int state, const Laxkit::L
 	flatpoint d=data->transformPointInverse(screentoreal(x,y))-data->transformPointInverse(screentoreal(lx,ly));
 	data->points.e[curpoint]->p += d;
 	Triangulate();
-	
+	data->touchContents();
 
 	needtodraw=1;
 	return 0; //MouseMove is always called for all interfaces, return value doesn't inherently matter

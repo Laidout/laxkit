@@ -100,6 +100,7 @@ class VoronoiData : virtual public LaxInterfaces::SomeData, virtual public Laxki
 	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
 	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context);
 	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
+	virtual SomeData *duplicate(SomeData *dup);
 
 	virtual void Triangulate();
 	virtual void RebuildVoronoi(bool triangulate_also=true);
@@ -108,7 +109,7 @@ class VoronoiData : virtual public LaxInterfaces::SomeData, virtual public Laxki
 	virtual void Width(double newwidth, int which=-1);
 
 	flatpoint Centroid(int triangle);
-
+	virtual int Map(std::function<int(const flatpoint &p, flatpoint &newp)> adjustFunc);
 };
 	
 
