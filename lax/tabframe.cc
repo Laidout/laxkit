@@ -281,6 +281,7 @@ void TabFrame::Refresh()
 		if (i>=0) DrawTab(cbox, hbox==cbox, true); 
 	} 
 
+	SwapBuffers();
 }
 
 //! Add a new tab with the given window, label, and icon.
