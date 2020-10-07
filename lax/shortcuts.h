@@ -145,6 +145,7 @@ class ShortcutHandler : public Laxkit::anObject
 	ShortcutHandler(const char *areaname=NULL, ShortcutDefs *cuts=NULL, WindowActions *wactions=NULL);
 	virtual ~ShortcutHandler(); 
 	virtual ShortcutHandler *duplicate();
+	virtual const char *whattype() { return "ShortcutHandler"; }
 
 	virtual int NumActions();
 	virtual WindowAction *Action(int i);

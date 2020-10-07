@@ -607,13 +607,12 @@ int ShortcutManager::AddArea(const char *area, ShortcutDefs *cuts, WindowActions
 	return 0;
 }
 
+/*! Incs count of handler. */
 int ShortcutManager::AddArea(const char *area, ShortcutHandler *handler)
 {
-	ShortcutHandler *h=handler->duplicate();
-	makestr(h->area,area);
-	shortcuts.push(h);
-	h->dec_count();
-	
+	if (!area) area = handler->area;
+	else if (!handler->area || strcmp(area, handler->area)) makestr(handler->area, area);
+	shortcuts.push(handler);
 	return 0;
 }
 
