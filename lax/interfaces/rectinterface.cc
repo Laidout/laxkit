@@ -1268,14 +1268,14 @@ int RectInterface::LBDown(int x,int y,unsigned int state,int count,const Laxkit:
 			somedata=obj;
 			somedata->inc_count();
 			data=dynamic_cast<RectData *>(somedata);
-			if (viewport) viewport->ChangeObject(oc,0); //incs count
+			if (viewport) viewport->ChangeObject(oc,0,true); //incs count
 			showdecs|=SHOW_INNER_HANDLES|SHOW_OUTER_HANDLES;
 			showdecs&=~SHOW_TARGET;
 			needtodraw=1;
 			return 0;
 		}
 
-		if (!primary && c==-1 && viewport->ChangeObject(oc,1)) {
+		if (!primary && c==-1 && viewport->ChangeObject(oc,1,true)) {
 			buttondown.up(d->id,LEFTBUTTON);
 			deletedata();
 			return 0;
