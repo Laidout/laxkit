@@ -62,12 +62,14 @@ void bez_bbox_simple(flatpoint p,flatpoint c,flatpoint d,flatpoint q,Laxkit::Dou
  * corresponding to the extrema of the bez segment (where the tangent to the curve is
  * either vertical or horizontal), where the segment from p to q 
  * corresponds to t=[0,1]. Repeated extrema are only included once.
+ * If is horizontal extrema, its info is 0. If vertical, info is 1.
  *  
  *  Returns the number of extrema (up to 4).
  *  
  * \todo *** something is fishy with quad, occasionally finds way out extreme??
  */
-int bez_bbox(flatpoint p,flatpoint c,flatpoint d,flatpoint q,DoubleBBox *bbox,double *extrema, const double *extra_m)//extrema=NULL
+int bez_bbox(flatpoint p,flatpoint c,flatpoint d,flatpoint q,DoubleBBox *bbox,
+			const double *extra_m, double *extrema, flatpoint *extrema_pret)
 {
 	 // check max min for endpoint q, assume p was done in last 
 	 // check, or prior to calling here
@@ -91,7 +93,11 @@ int bez_bbox(flatpoint p,flatpoint c,flatpoint d,flatpoint q,DoubleBBox *bbox,do
 	if (a1.x==0 && a2.x!=0) { // is quadratic, must deal with sep. from cubic because div by 0
 		t1=-a3.x/2/a2.x;
 		if (t1>=0 && t1<=1) { // found 1 extrema in range
-			if (extrema) extrema[extt++]=t1;
+			if (extrema || extrema_pret) {
+				if (extrema) extrema[extt] = t1;
+				if (extrema_pret) extrema_pret[extt] = bez_point(t1, p,c,d,q);
+				extt++;
+			}
 			bp=(a2*t1 + a3)*t1 + p; // find the bez point
 			DBG cerr <<"x quad ext:"<<t1<<" at:"<<bp.x<<','<<bp.y<<endl;
 			bbox->addtobounds(extra_m ? transform_point(extra_m,bp) : bp);
@@ -104,7 +110,11 @@ int bez_bbox(flatpoint p,flatpoint c,flatpoint d,flatpoint q,DoubleBBox *bbox,do
 			t1=(-2*a2.x+t)/(2*3*a1.x); // t1= (-b + sqrt(b^2-4*a*c))/2a
 			DBG cerr <<"x ext:"<<t1;
 			if (t1>=0 && t1<=1) { // found 1 extrema in range
-				if (extrema) extrema[extt++]=t1;
+				if (extrema || extrema_pret) {
+					if (extrema) extrema[extt] = t1;
+					if (extrema_pret) extrema_pret[extt] = bez_point(t1, p,c,d,q);
+					extt++;
+				}
 				bp=((a1*t1 + a2)*t1 + a3)*t1 + p; // find the bez point
 				DBG cerr <<" at:"<<bp.x<<','<<bp.y<<endl;
 				bbox->addtobounds(extra_m ? transform_point(extra_m,bp) : bp);
@@ -114,7 +124,11 @@ int bez_bbox(flatpoint p,flatpoint c,flatpoint d,flatpoint q,DoubleBBox *bbox,do
 				t1=(-2*a2.x-t)/(2*3*a1.x); // t1= (-b - sqrt(b^2-4*a*c))/2a
 				DBG cerr <<"x2 ext:"<<t1;
 				if (t1>=0 && t1<=1) { // found another x extrema in range
-					if (extrema) extrema[extt++]=t1;
+					if (extrema || extrema_pret) {
+					if (extrema) extrema[extt] = t1;
+						if (extrema_pret) extrema_pret[extt] = bez_point(t1, p,c,d,q);
+						extt++;
+					}
 					bp=((a1*t1 + a2)*t1 + a3)*t1 + p; // find the bez point
 					DBG cerr <<" at:"<<bp.x<<','<<bp.y<<endl;
 					bbox->addtobounds(extra_m ? transform_point(extra_m,bp) : bp);
@@ -128,7 +142,11 @@ int bez_bbox(flatpoint p,flatpoint c,flatpoint d,flatpoint q,DoubleBBox *bbox,do
 	if (a1.y==0 && a2.y!=0) { // is quadratic, must deal with sep. from cubic because div by 0
 		t1=-a3.y/2/a2.y;
 		if (t1>=0 && t1<=1) { // found 1 extrema in range
-			if (extrema) extrema[extt++]=t1;
+			if (extrema || extrema_pret) {
+				if (extrema) extrema[extt] = t1;
+				if (extrema_pret) { extrema_pret[extt] = bez_point(t1, p,c,d,q); extrema_pret[extt].info = 1; }
+				extt++;
+			}
 			bp=(a2*t1 + a3)*t1 + p; // find the bez point
 			DBG cerr <<"y quad ext:"<<t1<<" at:"<<bp.x<<','<<bp.y<<endl;
 			bbox->addtobounds(extra_m ? transform_point(extra_m,bp) : bp);
@@ -140,7 +158,11 @@ int bez_bbox(flatpoint p,flatpoint c,flatpoint d,flatpoint q,DoubleBBox *bbox,do
 			t1=(-2*a2.y+t)/(2*3*a1.y); // t1= (-b + sqrt(b^2-4*a*c))/2a
 			DBG cerr <<"y ext:"<<t1;
 			if (t1>=0 && t1<=1) {
-				if (extrema) extrema[extt++]=t1;
+				if (extrema || extrema_pret) {
+					if (extrema) extrema[extt] = t1;
+					if (extrema_pret) { extrema_pret[extt] = bez_point(t1, p,c,d,q); extrema_pret[extt].info = 1; }
+					extt++;
+				}
 				bp=((a1*t1 + a2)*t1 + a3)*t1 + p; // find the bez point
 				DBG cerr <<" at:"<<bp.x<<','<<bp.y<<endl;
 				bbox->addtobounds(extra_m ? transform_point(extra_m,bp) : bp);
@@ -150,7 +172,11 @@ int bez_bbox(flatpoint p,flatpoint c,flatpoint d,flatpoint q,DoubleBBox *bbox,do
 				t1=(-2*a2.y-t)/(2*3*a1.y); // t1= (-b - sqrt(b^2-4*a*c))/2a
 				DBG cerr <<"y2 ext:"<<t1;
 				if (t1>=0 && t1<=1) {
-					if (extrema) extrema[extt++]=t1;
+					if (extrema || extrema_pret) {
+						if (extrema) extrema[extt] = t1;
+						if (extrema_pret) { extrema_pret[extt] = bez_point(t1, p,c,d,q); extrema_pret[extt].info = 1; }
+						extt++;
+					}
 					bp=((a1*t1 + a2)*t1 + a3)*t1 + p; // find the bez point
 					DBG cerr <<" at:"<<bp.x<<','<<bp.y<<endl;
 					bbox->addtobounds(extra_m ? transform_point(extra_m,bp) : bp);
@@ -160,6 +186,60 @@ int bez_bbox(flatpoint p,flatpoint c,flatpoint d,flatpoint q,DoubleBBox *bbox,do
 		} // else no extrema
 	}
 	return extt;
+}
+
+/*! Convenience function than internally uses bez_bbox(). extrema must be able to hold 5 values.
+ * Number of extrema found is returned. 
+ *
+ * If is horizontal extrema, its info is 0. If vertical, info is 1.
+ */
+int bez_extrema(flatpoint p,flatpoint c,flatpoint d,flatpoint q,double *extrema,flatpoint *extremap)
+{
+	DoubleBBox box;
+	return bez_bbox(p,c,d,q, &box, nullptr, extrema, extremap);
+}
+
+/*! Return the mathematical inflection points, if any.
+ * These are where the second derivative is 0. There can be at most 2: one for x and one for y.
+ * p_ret and t_ret must be either big enough to hold 2 values, or null if you don't care.
+ * Note that if both x and y inflections exist and they are the same point, 2 points are still returned.
+ * 
+ * Returns number of points found. If a points for for y, its info is set to 1, else its info is 0.
+ */
+int bez_inflections(const flatpoint &p1,const flatpoint &c1,const flatpoint &c2,const flatpoint &p2, flatpoint *p_ret, double *t_ret)
+{
+	// bez 2nd derivative:
+	// double a1,a2,a3,a4;
+	// a1=   6 -  6*t;
+	// a2= -12 + 18*t;
+	// a3=   6 - 18*t;
+	// a4=        6*t;
+
+	int n = 0;
+	double denom = -6*p1.x + 18*c1.x - 18*c2.x + 6*p2.x;
+	double numer, t;
+	if (denom != 0) {
+		numer = 6*p1.x - 12*c1.x + 6*c2.x;
+		t = numer / denom;
+		if (t >= 0 && t <= 1) {
+			if (p_ret) p_ret[n] = bez_point(t, p1,c1,c2,p2);
+			if (t_ret) t_ret[n] = t;
+			n++;
+		}
+	}
+
+	denom = -6*p1.y + 18*c1.y - 18*c2.y + 6*p2.y;
+	if (denom != 0) {
+		numer = 6*p1.y - 12*c1.y + 6*c2.y;
+		t = numer / denom;
+		if (t >= 0 && t <= 1) {
+			if (p_ret) { p_ret[n] = bez_point(t, p1,c1,c2,p2); p_ret[n].info = 1; }
+			if (t_ret) t_ret[n] = t;
+			n++;
+		}
+	}
+
+	return n;
 }
 
 //! Return the t parament for the point closest to p in the bezier segment p1,c1,c2,p2.

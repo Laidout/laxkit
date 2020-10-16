@@ -1,6 +1,6 @@
 //
 //	
-//    The Laxkit, a windowing toolkit
+//    The Laxkit, a wfdowing toolkit
 //    Please consult https://github.com/Laidout/laxkit about where to send any
 //    correspondence about this software.
 //
@@ -27,10 +27,13 @@
 
 namespace Laxkit {
 	
-int bez_bbox(flatpoint p,flatpoint c,flatpoint d,flatpoint q,Laxkit::DoubleBBox *bbox,double *extrema=0, const double *extra_m=nullptr);
+int bez_bbox(flatpoint p,flatpoint c,flatpoint d,flatpoint q,Laxkit::DoubleBBox *bbox,
+			const double *extra_m=nullptr, double *extrema=nullptr, flatpoint *extrema_pret=nullptr);
 void bez_bbox_simple(flatpoint p,flatpoint c,flatpoint d,flatpoint q,Laxkit::DoubleBBox *bbox);
 double bez_segment_length(flatpoint p1,flatpoint c1,flatpoint c2,flatpoint p2, int npoints);
 double bez_length(flatpoint *pts, int npoints, bool closed, bool first_is_v, int resolution);
+int bez_inflections(const flatpoint &p1,const flatpoint &c1,const flatpoint &c2,const flatpoint &p2, flatpoint *p_ret, double *t_ret);
+int bez_extrema(flatpoint p,flatpoint c,flatpoint d,flatpoint q,double *extrema,flatpoint *extremap);
 
 flatpoint bez_point(double t,flatpoint p1,flatpoint c1,flatpoint c2,flatpoint p2);
 flatpoint bez_tangent(double t,flatpoint p1,flatpoint c1,flatpoint c2,flatpoint p2);
