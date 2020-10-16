@@ -112,13 +112,16 @@ SomeData *SomeDataRef::GetFinalObject()
 void SomeDataRef::FindBBox()
 {
 	if (!thedata) return;
-	if (modtime>thedata->modtime) return;
+	if (modtime > thedata->modtime) return;
 
-	maxx=thedata->maxx;
-	maxy=thedata->maxy;
-	minx=thedata->minx;
-	miny=thedata->miny;
-	modtime=thedata->modtime;
+	// if (thedata->istype("SomeDataRef")) thedata->FindBBox();
+	thedata->FindBBox();
+
+	maxx = thedata->maxx;
+	maxy = thedata->maxy;
+	minx = thedata->minx;
+	miny = thedata->miny;
+	modtime = thedata->modtime;
 }
 
 SomeData *SomeDataRef::duplicate(SomeData *dup)
