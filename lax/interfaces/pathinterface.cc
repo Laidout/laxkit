@@ -70,7 +70,7 @@ enum PathHoverType {
 	HOVER_Vertex,
 	HOVER_AddingPoint, //helps keep track of whether we add a vertex only, or point with controls
 	HOVER_Handle,
-	HOVER_AddPoint, //for adding point under mouse to existing path
+	HOVER_AddPointOn, //for adding point under mouse to existing path
 	HOVER_Endpoint,
 	HOVER_MergeEndpoints,
 	HOVER_AddSegment,
@@ -1606,7 +1606,7 @@ void Path::ComputeAABB(const double *transform, DoubleBBox &box)
 				c2=p->p();
 			}
 
-			bez_bbox(t->p(),c1,c2,p->p(), this, nullptr, transform);
+			bez_bbox(t->p(),c1,c2,p->p(), this, transform);
 
 			t=p;
 			if (t==start) break;
@@ -2266,6 +2266,57 @@ int Path::addAt(Coordinate *curvertex, Coordinate *np, int after)
 	return 0;
 }
 
+/*! Return 1 for success, 0 for failure (such as curvertex not found).
+ */
+int Path::CutSegment(Coordinate *curvertex, int after, Path **remainder)
+{
+	if (remainder) *remainder = nullptr;
+
+	if (IsClosed()) {
+		openAt(curvertex, after);
+		return 1;
+	}
+
+	// ensure we are at a valid vertex
+	curvertex = curvertex->previousVertex(after ? 1 : 0);
+	if (!curvertex) return 0;
+
+	// cut the path
+	Coordinate *cutafter = curvertex;
+	while (cutafter->next && (cutafter->next->flags & POINT_TOPREV)) cutafter = cutafter->next;
+
+	Path *remains = nullptr;
+	Coordinate *atnext = cutafter->disconnect(true);
+	if (atnext) {
+		if (remainder) {
+			remains = *remainder = new Path(atnext, linestyle);
+			remains->defaultwidth = defaultwidth;
+			if (profile) { remains->profile = profile; profile->inc_count(); }
+		} else delete atnext;
+	}
+
+	//divide weight nodes
+	if (pathweights.n) {
+		int n = NumVertices(nullptr);
+		for (int c=pathweights.n-1; c >= 0; c--) {
+			if (pathweights.e[c]->t <= n) break;
+			PathWeightNode *node = pathweights.pop(c);
+			if (pathweights.e[c]->t <= n+1) {
+				// node in the cut zone
+				delete node;
+				continue;
+			}
+			if (remains) {
+				node->t -= n;
+				remains->pathweights.push(node, 1, 0);
+			}
+		}
+	}
+
+	needtorecache = 1;
+	return 1;
+}
+
 /*! Make the path an open path by cutting the segment either after cc or before.
  *
  * curvertex must be a vertex. Anything else will be skipped when locating curvertex in path.
@@ -2285,25 +2336,25 @@ int Path::openAt(Coordinate *curvertex, int after)
 {
 	if (!path) return 1;
 
-	if (curvertex==NULL) {
-		curvertex=path->previousVertex(0);
-		if (!curvertex) return 2; //is null when path is open
+	if (curvertex == NULL) {
+		curvertex = path->previousVertex(0);
+		if (!curvertex) return 2;  // is null when path is open
 	}
 
-	int i=0;
-	Coordinate *p=path;
-	while (p && p!=curvertex) {
-		p=p->nextVertex(0);
+	int i = 0;
+	Coordinate *p = path;
+	while (p && p != curvertex) {
+		p = p->nextVertex(0);
 		i++;
-		if (p==path) break;
+		if (p == path) break;
 	}
 
 	if (!p) return 2; //path already open!
-	if (p!=curvertex) return 3; //curvertex not in path!!
+	if (p != curvertex) return 3; //curvertex not in path!!
 
 	if (pathweights.n) {
 		if (!after) i--;
-		int numverts=NumVertices(NULL);
+		int numverts = NumVertices(NULL);
 		if (i<0) i=numverts-1;
 
 		//So the vertex to cut after is at index i, and the new first point is at i+1
@@ -3796,6 +3847,47 @@ int PathsData::RemovePath(int index, Path **popped_ret)
 	return 0;
 }
 
+/*! Cut the segment in the after direction from coord.
+ * If the path was closed, it just becomes open.
+ * If the path was open already, then a new subpath will be created from the remainder.
+ * When the cut operation results in a new subpath of a single point, that
+ * subpath is removed or not according to remove_dangling.
+ * If an open path of two vertices is cut, the original path will become a path of one point
+ * and the dangling point is removed according to remove_dangling.
+ *
+ * Return 0 for coord not found.
+ * Return 1 for successful cutting, and coord is still in the path.
+ * Return 2 for successful cutting and a dangling coord was also cut.
+ */
+int PathsData::CutSegment(Coordinate *coord, bool after, bool remove_dangling)
+{
+	int pathi = hasCoord(coord);
+	if (pathi < 0) return 0;
+
+	Path *path = paths.e[pathi];
+	if (path->IsClosed()) {
+		path->openAt(coord, after);
+		return 1; //note if it was a two point closed curve, we will still have a visible segment
+	}
+
+	Path *remainder = nullptr;
+	path->CutSegment(coord, after, &remainder);
+	int ret = 1;
+	if (remainder) {
+		if (remainder->NumVertices(nullptr) == 1 && remove_dangling) {
+			delete remainder; //we don't really care about the dangling
+			// *** Path should really be refcounted
+			// remainder->dec_count(); //we don't really care about the dangling
+			ret = 2;
+		} else {
+			paths.push(remainder, -1, pathi+1);
+		}
+	}
+
+	FindBBox();
+	return ret;
+}
+
 /*! Return that path, or if index==-1, return top path. Returns direct reference to it, NOT a copy.
  * Else Return NULL if index out of range.
  */
@@ -4280,58 +4372,61 @@ PathOperator::~PathOperator()
 //! Contstructor for PathInterface
 PathInterface::PathInterface(int nid,Displayer *ndp, unsigned long nstyle) : anInterface(nid,ndp)
 {
-	primary=1;
+	primary = 1;
 
-	show_weights=true;   //show and allow edit weights.. see also PATHI_No_Weights
-	//show_points=true;   //show and allow edit points and handles
-	show_baselines=false;
-	show_outline=false;
-	defaultweight.width=.01;
+	show_weights = true;  // show and allow edit weights.. see also PATHI_No_Weights
+	// show_points=true;   //show and allow edit points and handles
+	show_baselines      = false;
+	show_outline        = false;
+	defaultweight.width = .01;
 
-	pathi_style=nstyle;
-	addmode=ADDMODE_Bezier;
-	editmode=EDITMODE_AddPoints;
-	colortofill=0;
-	addafter=1;
-	widthstep=1.2;
+	pathi_style = nstyle;
+	addmode     = ADDMODE_Bezier;
+	editmode    = EDITMODE_AddPoints;
+	colortofill = 0;
+	addafter    = 1;
+	widthstep   = 1.2;
 
-	linestyle=defaultline=new LineStyle();
-	linestyle->width=.01;
+	linestyle = defaultline = new LineStyle();
+	linestyle->width        = .01;
 	defaultline->inc_count();
-	linestyle->Color(0xffff,0,0,0xffff);
+	linestyle->Color(0xffff, 0, 0, 0xffff);
 
-	fillstyle=defaultfill=new FillStyle();
+	fillstyle = defaultfill = new FillStyle();
 	defaultfill->inc_count();
-	fillstyle->fillstyle=FillNone;
+	fillstyle->fillstyle = FillNone;
 
-	controlcolor=rgbcolor(0,148,178); // defaults to blueish-white, change right after creation otherwise
-	constrain=3;
+	controlcolor = rgbcolor(0, 148, 178);  // defaults to blueish-white, change right after creation otherwise
+	addcolor     = rgbcolor(100,255,100);
+	constrain    = 3;
 
-	curvertex=NULL;
-	curpath=NULL;
-	curpathop=NULL;
-	curdirp=NULL;
+	curvertex = NULL;
+	curpath   = NULL;
+	curpathop = NULL;
+	curdirp   = NULL;
 
-	child=owner=NULL;
+	child = owner = NULL;
 
-	data=NULL;
-	poc=NULL;
+	data = NULL;
+	poc  = NULL;
 
-	lbfound=NULL;
-	lbselected=1; //whether the most recent left button down added a point to selection that was not previously selected
-	drawhover=0;
-	drawhoveri=-1;
-	drawpathi=-1;
-	hoverdevice=0;
-	lasth=0;
-	showdecs=1;
-	verbose=1;
+	lbfound = NULL;
+	lbselected = 1;  // whether the most recent left button down added a point to selection that was not previously selected
+	drawhover     = 0;
+	drawhoveri    = -1;
+	drawpathi     = -1;
+	hoverdevice   = 0;
+	lasth         = 0;
+	showdecs      = 1;
+	verbose       = 1;
+	show_addpoint = true;
+	arrow_size    = 30;
 
-	creationstyle=0;
+	creationstyle = 0;
 
-	needtodraw=1;
+	needtodraw = 1;
 
-	sc=NULL;
+	sc = NULL;
 }
 
 //! Destructor, delete linestyle and fillstyle, call deletedata().
@@ -4534,6 +4629,55 @@ int PathInterface::DeletePoint(Coordinate *p)
 	return 0;
 }
 
+/*! Cut segments in addafter direction near hoverpoint. 
+ * If segment ends in an endpoint, then remove that endpoint.
+ * If there is only one segment, then remove that subpath.
+ * If segment is closed, then just open the segment.
+ * If segment is open, then create new subpath at the cut.
+ *  Return number of segments cut (0 or 1).
+ */
+int PathInterface::CutSegment()
+{
+	if (!data) return 0;
+
+	curpoints.flush();
+
+	double t;
+	int pathi=-1;
+	//flatpoint newpoint=data->ClosestPoint(hoverpoint, NULL,NULL,&t,&pathi);
+	data->ClosestPoint(hoverpoint, NULL,NULL,&t,&pathi);
+
+	Coordinate *v = data->GetCoordinate(pathi, t);
+	if (!v) return 0;
+
+	SetCurvertex(v, pathi);
+
+	int n =0;
+	// Coordinate *dangling = nullptr;
+	// dangling = (addafter ? curpoints.e[c]->nextVertex(0) : curpoints.e[c]->previousVertex(0));
+	data->CutSegment(curvertex, addafter, true);
+	n++;
+	//--------------
+	// int n =0;
+	// Coordinate *dangling = nullptr;
+	// for (int c=0; curpoints.n; ) {
+	// 	dangling = (addafter ? curpoints.e[c]->nextVertex(0) : curpoints.e[c]->previousVertex(0));
+	// 	if (data->CutSegment(curpoints.e[c], addafter, true) == 2)
+	// 		curpoints.remove(dangling);
+	// 	n++;
+	// }
+
+	// nuke any resulting paths that only have one point
+	if (data->paths.e[pathi]->NumVertices(nullptr) == 1) data->RemovePath(pathi, nullptr);
+	if (pathi < data->paths.n && data->paths.e[pathi]->NumVertices(nullptr) == 1) data->RemovePath(pathi, nullptr);
+	
+	SetCurvertex(nullptr, -1);
+	UpdateAddHint();
+	needtodraw=1;
+	return n;
+}
+
+
 //! Toggle the path containing curvertex open and closed.
 /*! c==-1 toggle, c==0 want open, c==1 want closed
  *
@@ -4600,30 +4744,37 @@ int PathInterface::UseThisObject(ObjectContext *oc)
 {
 	if (!oc) return 0;
 
-	PathsData *ndata=dynamic_cast<PathsData *>(oc->obj);
+	PathsData *ndata = nullptr;
+	if (dynamic_cast<SomeDataRef*>(oc->obj)) {
+		SomeData *o = dynamic_cast<SomeDataRef*>(oc->obj)->GetFinalObject();
+		ndata = dynamic_cast<PathsData *>(o);
+		if (!ndata) return 0;
+	}
+
+	if (!ndata) ndata = dynamic_cast<PathsData *>(oc->obj);
 	if (!ndata) return 0;
 
-	if (data && data!=ndata) deletedata();
+	if ((data && data != ndata) || (poc && poc->obj != oc->obj)) deletedata();
 	if (poc) delete poc;
-	poc=oc->duplicate();
+	poc = oc->duplicate();
 
-	if (data!=ndata) {
-		data=ndata;
+	if (data != ndata) {
+		data = ndata;
 		data->inc_count();
 	}
 
 	if (linestyle) linestyle->dec_count();
-	linestyle=data->linestyle;
-	if (!linestyle) linestyle=defaultline;
+	linestyle = data->linestyle;
+	if (!linestyle) linestyle = defaultline;
 	if (linestyle) linestyle->inc_count();
 
 	if (fillstyle) fillstyle->dec_count();
-	fillstyle=data->fillstyle;
-	if (!fillstyle) fillstyle=defaultfill;
+	fillstyle = data->fillstyle;
+	if (!fillstyle) fillstyle = defaultfill;
 	if (fillstyle) fillstyle->inc_count();
 
-	curvertex=NULL;
-	curpath=NULL;
+	curvertex = NULL;
+	curpath   = NULL;
 	curpoints.flush();
 
 	if (data->paths.n && data->paths.e[data->paths.n-1]->path) {
@@ -4714,17 +4865,20 @@ int PathInterface::DrawDataDp(Displayer *ndp,SomeData *ndata,anObject *a1,anObje
 int PathInterface::DrawData(anObject *ndata,anObject *a1,anObject *a2,int info)//info=0
 {
 	if (!ndata || !dynamic_cast<PathsData *>(ndata)) return 0;
-	int ntd=needtodraw,
-		sd=showdecs;
-	unsigned long olddefer=pathi_style&PATHI_Defer_Render;
-	pathi_style&=~PATHI_Defer_Render;
-	needtodraw=1;
-	showdecs=0;
-	PathsData *d=data;
-	data=dynamic_cast<PathsData *>(ndata);
+	int ntd = needtodraw,
+		sd = showdecs,
+		showadd = show_addpoint;
+	unsigned long olddefer = pathi_style&PATHI_Defer_Render;
+	pathi_style &= ~PATHI_Defer_Render;
+	needtodraw = 1;
+	showdecs = 0;
+	show_addpoint = false;
 
-	LineStyle *ls=linestyle;
-	linestyle=dynamic_cast<LineStyle *>(a1);
+	PathsData *d = data;
+	data = dynamic_cast<PathsData *>(ndata);
+
+	LineStyle *ls = linestyle;
+	linestyle = dynamic_cast<LineStyle *>(a1);
 	if (!linestyle) { linestyle=ls; ls=NULL; }
 
 	FillStyle *fs=fillstyle;
@@ -4734,11 +4888,12 @@ int PathInterface::DrawData(anObject *ndata,anObject *a1,anObject *a2,int info)/
 	Refresh(); // pushes and pops m in Refresh..
 
 	pathi_style|=olddefer;
-	data=d;
+	data = d;
 	if (ls) linestyle=ls;
 	if (fs) fillstyle=fs;
-	showdecs=sd;
-	needtodraw=ntd;
+	showdecs = sd;
+	needtodraw = ntd;
+	show_addpoint = showadd;
 	return 1; //*** should return 1 only if drawn?
 }
 
@@ -5016,10 +5171,6 @@ int PathInterface::Refresh()
 				flatpoint v;
 				if (curvertex) p=curvertex->p(); else p=curdirp->p();
 				dp->DrawReal();
-				if (editmode==EDITMODE_AddPoints) {
-					if (addafter) dp->NewFG(0.,.75,0.);
-					else dp->NewFG(1.,0.,0.);
-				} else dp->NewFG(controlcolor);
 
 				v=curdirv;
 				p=curdirp->p();
@@ -5029,10 +5180,21 @@ int PathInterface::Refresh()
 				p2=dp->realtoscreen(p2);
 				dp->DrawScreen();
 
-				if (drawhover==HOVER_Direction) dp->LineWidthScreen(3);
-				else dp->LineWidthScreen(1);
+				double thin = ScreenLine();
+				if (drawhover==HOVER_Direction) dp->LineWidthScreen(8*thin);
+				else dp->LineWidthScreen(5*thin);
+				dp->NewFG(1.,1.,1.);
+				dp->drawarrow(p,p2-p, (addafter ? 1 : -1) * arrow_size/2*thin, arrow_size*thin, 0, 3, true);
 
-				dp->drawarrow(p,p2-p,6,15,0);
+				if (drawhover==HOVER_Direction) dp->LineWidthScreen(5*thin);
+				else dp->LineWidthScreen(3*thin);
+				if (editmode==EDITMODE_AddPoints) {
+					if (addafter) dp->NewFG(0.,.75,0.);
+					else dp->NewFG(1.,0.,0.);
+				} else dp->NewFG(controlcolor);
+
+				dp->drawarrow(p,p2-p, (addafter ? 1 : -1) * arrow_size/2*thin, arrow_size*thin, 0, 3, true);
+
 				dp->DrawReal();
 
 			}
@@ -5068,6 +5230,17 @@ int PathInterface::Refresh()
 			drawNewPathIndicator(curdirp->p(),curdirp->info);
 		}
 
+		if (show_addpoint && curvertex && (drawhover == HOVER_None || drawhover == HOVER_Endpoint) && !buttondown.any()) {
+			dp->NewFG(addcolor);
+			dp->LineWidthScreen(ScreenLine());
+			dp->moveto(curvertex->p());
+			dp->curveto(add_point_hint[0], add_point_hint[1], add_point_hint[2]);
+			if (show_addpoint > 1) {
+				dp->curveto(add_point_hint[3], add_point_hint[4], add_point_hint[5]);
+			}
+			dp->stroke(0);
+		}
+
 		//DBG //*** for debugging: show number of each
 		//DBG start=pdata->path->firstPoint(1);
 		//DBG p=start->firstPoint();
@@ -5082,10 +5255,22 @@ int PathInterface::Refresh()
 	} // showdecs
 
 	 //draw various hovered points
-	if (drawhover==HOVER_AddPoint) {
+	if (drawhover == HOVER_AddPointOn) {
 		dp->NewFG(0.,.75,0.);
 		dp->LineWidthScreen(2);
 		dp->drawpoint(hoverpoint, 3,0);
+
+	} else if (drawhover == HOVER_CutSegment) {
+		flatpoint sp = dp->realtoscreen(hoverpoint);
+		dp->DrawScreen();
+		double thin = ScreenLine();
+		dp->NewFG(1.,1.,1.);
+		dp->LineWidthScreen(thin*5);
+		dp->drawthing(sp, thin*20, thin*20, 0, THING_X);
+		dp->LineWidthScreen(thin*3);
+		dp->NewFG(1.,0.,0.);
+		dp->drawthing(sp, thin*20, thin*20, 0, THING_X);
+		dp->DrawReal();
 
 	} else if (drawhover==HOVER_AddWeightNode) {
 		int hpathi=-1;
@@ -5380,31 +5565,55 @@ void PathInterface::drawNewPathIndicator(flatpoint p,int which)
  */
 void PathInterface::SetCurvertex(Coordinate *p, int path)
 {
-	if (p==NULL) { curdirp=NULL; curpath=NULL; curvertex=NULL; return; }
+	if (p == NULL) { curdirp=NULL; curpath=NULL ;  curvertex=NULL; return; }
 
-	int i=path;
-	if (i<0) i=data->hasCoord(p);
-	if (i>=0) curpath=data->paths.e[i];
+	int i = path;
+	if (i < 0) i = data->hasCoord(p);
+	if (i >= 0) curpath = data->paths.e[i];
 
 	 //make sure p is on nearest vertex
-	if (!(p->flags&POINT_VERTEX)) {
-		if (p->flags&POINT_TOPREV) {
-			while (p->prev && !(p->flags&POINT_VERTEX)) p=p->prev;
-		} else while (p && p->flags&POINT_TONEXT) p=p->next;
+	if (!(p->flags & POINT_VERTEX)) {
+		if (p->flags & POINT_TOPREV) {
+			while (p->prev && !(p->flags&POINT_VERTEX)) p = p->prev;
+		} else while (p && p->flags&POINT_TONEXT) p = p->next;
 	}
 
-	curvertex=p;
-	curdirp=curvertex;
-	if (addafter) curdirv=curvertex->direction(1); //uses "visual" tangent
-	else          curdirv=curvertex->direction(0);
+	curvertex = p;
+	curdirp = curvertex;
+	if (addafter) curdirv = curvertex->direction(1); //uses "visual" tangent
+	else          curdirv = curvertex->direction(0);
+
+	UpdateAddHint();
+}
+
+void PathInterface::UpdateAddHint()
+{
+	if (!data || !curvertex) return;
+	
+	flatpoint p1,c1,c2,p2;
+	if (curvertex->resolveToControls(p1,c1,c2,p2, addafter) == 0) {
+		show_addpoint = 1;
+		if (addafter && curvertex->next && (curvertex->next->flags & POINT_TOPREV))
+			add_point_hint[0] = curvertex->next->p();
+		else if (!addafter && curvertex->prev && (curvertex->prev->flags & POINT_TONEXT))
+			add_point_hint[0] = curvertex->prev->p();
+		else add_point_hint[0] = curvertex->p();
+	} else {
+		show_addpoint = 2;
+		add_point_hint[0] = c1;
+		add_point_hint[4] = c2;
+		add_point_hint[5] = p2;
+	}
 }
 
 //! Make curdirp be valid for curvertex.
 void PathInterface::UpdateDir()
 {
-	curdirp=curvertex;
-	if (addafter) curdirv=curvertex->direction(1); //uses "visual" tangent
-	else          curdirv=curvertex->direction(0);
+	curdirp = curvertex;
+	if (addafter) curdirv = curvertex->direction(1); //uses "visual" tangent
+	else          curdirv = curvertex->direction(0);
+
+	UpdateAddHint();
 }
 
 //! Note this returns an element in PathInterface's own instances of available pathops, not the PathOp pool
@@ -5429,6 +5638,13 @@ PathOperator *PathInterface::getPathOp(Coordinate *p)
 	return getPathOpFromId(p->controls->iid());
 }
 
+const double *PathInterface::datam()
+{
+	if (poc && poc->obj != data) return poc->obj->m();
+	if (!data) return nullptr;
+	return data->m();
+}
+
 //! This is supposed to return points from data context space to screen space.
 /*! Redefined from anInterface to catch PATHI_Path_Is_M_Real and related styles.
  */
@@ -5445,7 +5661,7 @@ flatpoint PathInterface::realtoscreen(flatpoint r)
 		return dp->realtoscreen(r);
 
 	} else if (pathi_style&PATHI_Path_Is_M_Screen) {//***might not work
-		return transform_point(data->m(),r);
+		return transform_point(datam(),r);
 
 	} else if (pathi_style&PATHI_Path_Is_Screen) {//***might not work
 		return r;
@@ -5470,7 +5686,7 @@ flatpoint PathInterface::screentoreal(int x,int y)
 		return dp->screentoreal(x,y);//***might not work
 
 	} else if (pathi_style&PATHI_Path_Is_M_Screen) {
-		return transform_point_inverse(data->m(),flatpoint(x,y));//***might not work
+		return transform_point_inverse(datam(),flatpoint(x,y));//***might not work
 
 	} else if (pathi_style&PATHI_Path_Is_Screen) {
 		return flatpoint(x,y);//***might not work
@@ -5534,7 +5750,7 @@ int PathInterface::WeightNodePosition(Path *path, PathWeightNode *weight,
 	else pbottom=realtoscreen(pbottom);
 
 	if (needtotransform==1) 
-		vv =realtoscreen(transform_point(data->m(),po+vv)) - realtoscreen(transform_point(data->m(),po));
+		vv =realtoscreen(transform_point(datam(),po+vv)) - realtoscreen(transform_point(datam(),po));
 	else if (needtotransform==2) 
 		vv =dp->realtoscreen(po+vv) - dp->realtoscreen(po);
 	else vv=realtoscreen(po+vv)-realtoscreen(po);
@@ -5627,18 +5843,21 @@ int PathInterface::scanHover(int x,int y,unsigned int state, int *pathi)
 {
 	if (!data) return HOVER_None;
 
-	flatpoint fp=transform_point_inverse(data->m(),screentoreal(x,y));
+	flatpoint fp = transform_point_inverse(datam(),screentoreal(x,y));
 
 	if (      ((pathi_style&PATHI_Plain_Click_Add) && (state&LAX_STATE_MASK)==0)
-		  || (!(pathi_style&PATHI_Plain_Click_Add) && (state&LAX_STATE_MASK)==ControlMask)) {
-		 //scan for closest point to cut
+		  || (!(pathi_style&PATHI_Plain_Click_Add) &&
+		  	 ((state&LAX_STATE_MASK) == ControlMask || (state&LAX_STATE_MASK) == ShiftMask))) {
+		// scan for closest point to cut
 		int dist2;
-		int hpathi=-1;
-		hoverpoint=data->ClosestPoint(fp, NULL,NULL,NULL,&hpathi);
-		dist2=norm2(realtoscreen(transform_point(data->m(), hoverpoint))-flatpoint(x,y));
-		if (dist2<SELECTRADIUS2) {
-			*pathi=hpathi;
-			return HOVER_AddPoint;
+		int hpathi = -1;
+		hoverpoint = data->ClosestPoint(fp, NULL, NULL, NULL, &hpathi);
+		dist2      = norm2(realtoscreen(transform_point(data->m(), hoverpoint)) - flatpoint(x, y));
+		if (dist2 < SELECTRADIUS2) {
+			*pathi = hpathi;
+			if ((state&LAX_STATE_MASK)==ControlMask)
+				return HOVER_AddPointOn;
+			return HOVER_CutSegment;
 		}
 		return HOVER_None;
 
@@ -5653,7 +5872,7 @@ int PathInterface::scanHover(int x,int y,unsigned int state, int *pathi)
 		if (hpathi>=0 && (pathi_style&PATHI_Single_Weight) && data->paths.e[hpathi]->pathweights.n==1)
 			return HOVER_None;
 
-		dist2=norm2(realtoscreen(transform_point(data->m(), hoverpoint))-flatpoint(x,y));
+		dist2=norm2(realtoscreen(transform_point(datam(), hoverpoint))-flatpoint(x,y));
 		DBG cerr << " ************* scanned along path "<<hpathi<<", d="<<sqrt(dist2)<<"..."<<endl;
 		if (dist2<SELECTRADIUS2*2) {
 			DBG cerr << " ************* scanned and found add weight node..."<<endl;
@@ -5665,20 +5884,22 @@ int PathInterface::scanHover(int x,int y,unsigned int state, int *pathi)
 		return HOVER_None;
 
 	} else if (curvertex) {
-		flatpoint p=realtoscreen(transform_point(data->m(), curdirp->p()));
-		flatpoint v=realtoscreen(transform_point(data->m(), curdirp->p()+curdirv))-p;
-		v/=norm(v);
-		p+=transpose(v)*6;
+		// scan for direction arrow in rect aligned with curve arrow_size/2 off point, arrow_size long
+		flatpoint p = realtoscreen(transform_point(datam(), curdirp->p()));
+		flatpoint v = realtoscreen(transform_point(datam(), curdirp->p()+curdirv))-p;
+		if (!addafter) v *= -1;
+		v /= norm(v);
+		p += (transpose(v) - v)*arrow_size/2;
 
-		double dist=distance(flatpoint(x,y), p,p+15*v);
-		if (dist<SELECTRADIUS) return HOVER_Direction;
+		double dist = distance(flatpoint(x,y), p, p + arrow_size*v);
+		if (dist < SELECTRADIUS || dist < arrow_size/3) return HOVER_Direction;
 	}
 
 	return HOVER_None;
 }
 
 //! Scan only against endpoints
-Coordinate *PathInterface::scanEndpoints(int x,int y,int *pathindex,Coordinate *exclude)
+Coordinate *PathInterface::scanEndpoints(int x,int y,int *pathindex,Coordinate *exclude, bool *is_first)
 {
 	if (!data) return NULL;
 	Coordinate *s,*e,*p=NULL;
@@ -5692,15 +5913,18 @@ Coordinate *PathInterface::scanEndpoints(int x,int y,int *pathindex,Coordinate *
 		e=data->paths.e[c]->path->lastPoint(1);
 		if (s==e) continue; //is closed path
 
-		if (s!=exclude && norm2(realtoscreen(transform_point(data->m(), s->p()))-fp)<SELECTRADIUS2) p=s;
-		if (e!=exclude && norm2(realtoscreen(transform_point(data->m(), e->p()))-fp)<SELECTRADIUS2) p=e;
+		if (s!=exclude && norm2(realtoscreen(transform_point(datam(), s->p()))-fp)<SELECTRADIUS2) p = s;
+		if (e!=exclude && norm2(realtoscreen(transform_point(datam(), e->p()))-fp)<SELECTRADIUS2) p = e;
 
-		DBG cerr<<"endpoint s:"<<norm2(realtoscreen(transform_point(data->m(), s->p()))-fp)<<endl;
-		DBG cerr<<"endpoint e:"<<norm2(realtoscreen(transform_point(data->m(), e->p()))-fp)<<endl;
+		DBG cerr<<"endpoint s:"<<norm2(realtoscreen(transform_point(datam(), s->p()))-fp)<<endl;
+		DBG cerr<<"endpoint e:"<<norm2(realtoscreen(transform_point(datam(), e->p()))-fp)<<endl;
 
 		if (p==exclude) p=NULL;
 		if (p) {
-			if (pathindex) *pathindex=c;
+			if (pathindex) *pathindex = c;
+			if (is_first) {
+				*is_first = (p == s);
+			}
 			return p;
 		}
 	}
@@ -5756,7 +5980,7 @@ Coordinate *PathInterface::scan(int x,int y,int pmask, int *pathindex) // pmask=
 					}
 
 				} else if (cp->flags&POINT_VERTEX && !pmask) {
-					p = realtoscreen(transform_point(data->m(),cp->p()));
+					p = realtoscreen(transform_point(datam(),cp->p()));
 					if ((p.x-x)*(p.x-x)+(p.y-y)*(p.y-y)<SELECTRADIUS2) {
 						DBG cerr <<" path scan found vertex on "<<c<<endl;
 						if (pathindex) *pathindex=c;
@@ -5783,7 +6007,7 @@ Coordinate *PathInterface::scan(int x,int y,int pmask, int *pathindex) // pmask=
 			start=cp;
 			do {
 				if (!cp->controls && !(cp->flags&POINT_VERTEX) ) {
-					p=realtoscreen(transform_point(data->m(),cp->p()));
+					p=realtoscreen(transform_point(datam(),cp->p()));
 					if ((p.x-x)*(p.x-x)+(p.y-y)*(p.y-y)<SELECTRADIUS2) {
 						//DBG cerr <<" path scan found control on "<<c<<endl;
 						if (pathindex) *pathindex=c;
@@ -5945,6 +6169,8 @@ int PathInterface::Event(const Laxkit::EventData *e_data, const char *mes)
 				|| i==PATHIA_NewFromStroke
 				|| i==PATHIA_BreakApart
 				|| i==PATHIA_BreakApartChunks
+
+				|| i == PATHIA_CutSegment
 				)
 				PerformAction(i);
 		return 0;
@@ -6004,12 +6230,14 @@ int PathInterface::LBDown(int x,int y,unsigned int state,int count,const LaxMous
 	}
 
 	//catch simple cases
-	if (drawhover==HOVER_WeightTop
-			|| drawhover==HOVER_WeightBottom
-			|| drawhover==HOVER_WeightPosition
-			|| drawhover==HOVER_WeightAngle
-			|| drawhover==HOVER_AddWeightNode
-			|| drawhover==HOVER_RemoveWeightNode) {
+	if (       drawhover == HOVER_WeightTop
+			|| drawhover == HOVER_WeightBottom
+			|| drawhover == HOVER_WeightPosition
+			|| drawhover == HOVER_WeightAngle
+			|| drawhover == HOVER_AddWeightNode
+			|| drawhover == HOVER_RemoveWeightNode
+			|| drawhover == HOVER_CutSegment
+		  ) {
 		buttondown.moveinfo(d->id,LEFTBUTTON, state,drawhover);
 		return 0;
 
@@ -6028,7 +6256,7 @@ int PathInterface::LBDown(int x,int y,unsigned int state,int count,const LaxMous
 	// If new point is toprev or tonext, make curvertex the corresponding vertex.
 
 	if (!lbfound) {
-		if (drawhover==HOVER_AddPoint) {
+		if (drawhover == HOVER_AddPointOn) {
 			//add new point at mouse position
 			if (curpoints.n) curpoints.flush();
 			CutNear(hoverpoint);
@@ -6052,7 +6280,7 @@ int PathInterface::LBDown(int x,int y,unsigned int state,int count,const LaxMous
 					deletedata();
 					data=obj; data->inc_count();
 					poc=oc->duplicate();
-					viewport->ChangeObject(oc,0);//adds 1 to count
+					viewport->ChangeObject(oc,0,true);//adds 1 to count
 					if (data->paths.n && data->paths.e[data->paths.n-1]->path) {
 						SetCurvertex(data->paths.e[data->paths.n-1]->path->lastPoint(1));
 					}
@@ -6060,7 +6288,7 @@ int PathInterface::LBDown(int x,int y,unsigned int state,int count,const LaxMous
 					return 0;
 
 				} else {
-					if (c==-1 && viewport->ChangeObject(oc,1)) { // change to other object type
+					if (c==-1 && viewport->ChangeObject(oc,1,true)) { // change to other object type
 						buttondown.up(d->id,LEFTBUTTON);
 						return 0;
 					}
@@ -6105,7 +6333,7 @@ int PathInterface::LBDown(int x,int y,unsigned int state,int count,const LaxMous
 				//so we need to put a segment between the endpoints
 				if (curpoints.e[0]->isEndpoint()) {
 					int pathi=-1;
-					Coordinate *topoint=scanEndpoints(x,y, &pathi,curpoints.e[0]);
+					Coordinate *topoint=scanEndpoints(x,y, &pathi,curpoints.e[0], nullptr);
 					if (topoint && topoint!=curpoints.e[0] && topoint->isEndpoint()) {
 						ConnectEndpoints(curpoints.e[0],-1, topoint,pathi);
 						needtodraw=1;
@@ -6249,7 +6477,7 @@ int PathInterface::AddPoint(flatpoint p)
 
 	// If there is no data, we must create a new data.
 	if (!data) newPathsData();
-	p=transform_point_inverse(data->m(),p);
+	p = transform_point_inverse(datam(),p);
 
 	// Any new point is added to the appropriate point after curvertex.
 	// For currently degenerate paths, this is simply making the path be a
@@ -6265,7 +6493,7 @@ int PathInterface::AddPoint(flatpoint p)
 		//start new subpath
 		if ((pathi_style&PATHI_One_Path_Only) && data->paths.n >= 1) return 1;
 		data->pushEmpty();
-		curpath=data->paths.e[data->paths.n-1];
+		curpath = data->paths.e[data->paths.n-1];
 	}
 
 	//now curpath exists, curvertex might exist.
@@ -6273,7 +6501,7 @@ int PathInterface::AddPoint(flatpoint p)
 
 	Coordinate *np=NULL, *cp=NULL;
 	if (curpathop) {
-		np=curpathop->newPoint(p); // newPoint defaults to a full unit
+		np = curpathop->newPoint(p); // newPoint defaults to a full unit
 		// *** need to assign cp! maybe pathop has preference for which point you should be on
 	} else {
 		if (addmode==ADDMODE_Point) np=new Coordinate(flatpoint(p),POINT_VERTEX,NULL);
@@ -6285,6 +6513,11 @@ int PathInterface::AddPoint(flatpoint p)
 			np->next->prev=np;
 			if (addafter) cp=np->next; else cp=np->prev;
 		}
+	}
+
+	if (show_addpoint) {
+		add_point_hint[1] = add_point_hint[2] = add_point_hint[3] = p;
+		needtodraw = 1;
 	}
 
 	//If curvertex==NULL, then curpath is currently a null path, thus with no weight nodes
@@ -6326,7 +6559,7 @@ int PathInterface::AddPoint(flatpoint p)
 /* If p is an uncontrolled bezier control point, only that point is removed.
  * If p is an uncontrolled vertex, nothing is done.
  *
- * The actual Coordinates are deleted, and must not be accesed again.
+ * The actual Coordinates are deleted, and must not be accessed again.
  */
 void PathInterface::removeSegment(Coordinate *p)
 {
@@ -6523,18 +6756,24 @@ int PathInterface::LBUp(int x,int y,unsigned int state,const LaxMouse *d)
 	int action;
 	int xi,yi;
 	buttondown.getinitial(d->id,LEFTBUTTON, &xi,&yi);
-	int moved=buttondown.up(d->id,LEFTBUTTON, &i1,&action);
-	if (moved<0) return 1;
+	int moved = buttondown.up(d->id,LEFTBUTTON, &i1,&action);
+	if (moved < 0) return 1;
 
 	//DBG cerr <<"  ***** PathInterface::LBUp action: "<<action<<endl;
 
 	if (action==HOVER_Direction) {
 		if (!moved) {
-			addafter=!addafter;
-			curdirv=-curdirv;
-			drawhover=HOVER_None;
-			needtodraw=1;
+			addafter   = !addafter;
+			curdirv    = -curdirv;
+			drawhover  = HOVER_None;
+			needtodraw = 1;
+			UpdateAddHint();
+			MouseMove(x,y,state,d); //force remap of scan
 		}
+		return 0;
+
+	} else if (action == HOVER_CutSegment) {
+		PerformAction(PATHIA_CutSegment);
 		return 0;
 
 	} else if (action==HOVER_AddWeightNode) {
@@ -6579,9 +6818,10 @@ int PathInterface::LBUp(int x,int y,unsigned int state,const LaxMouse *d)
 
 		} else PostMessage(" ");
 
-		curdirp=curvertex;
-		drawhover=HOVER_None;
-		needtodraw=1;
+		UpdateAddHint();
+		curdirp = curvertex;
+		drawhover = HOVER_None;
+		needtodraw = 1;
 		return 0;
 
 	} else if (drawhover==HOVER_RemoveFromSelection || drawhover==HOVER_AddToSelection) {
@@ -6601,7 +6841,7 @@ int PathInterface::LBUp(int x,int y,unsigned int state,const LaxMouse *d)
 			cp=cp->firstPoint(0);
 			start=cp;
 			do {
-				p=realtoscreen(transform_point(data->m(),cp->p()));
+				p=realtoscreen(transform_point(datam(),cp->p()));
 				DBG cerr <<"scan point "<<p.x<<','<<p.y<<endl;
 				if (box.boxcontains(p.x,p.y)) {
 					if (drawhover==HOVER_RemoveFromSelection) {
@@ -6627,7 +6867,7 @@ int PathInterface::LBUp(int x,int y,unsigned int state,const LaxMouse *d)
 						  //check if moving endpoint onto another endpoint
 						  if (abs(curpoints.e[0]->isEndpoint())==1) {
 							  int pathi=-1;
-							  Coordinate *topoint=scanEndpoints(x,y, &pathi,curpoints.e[0]);
+							  Coordinate *topoint=scanEndpoints(x,y, &pathi,curpoints.e[0], nullptr);
 							  if (topoint && topoint!=curpoints.e[0] && abs(topoint->isEndpoint())==1) {
 								  MergeEndpoints(curpoints.e[0],-1, topoint,pathi);
 								  needtodraw=1;
@@ -6928,19 +7168,19 @@ void PathInterface::hoverMessage()
 {
 	const char *mes="";
 
-	if (drawhover==HOVER_Vertex || drawhover==HOVER_Point || drawhover==HOVER_Handle) mes="";
-	else if (drawhover==HOVER_Endpoint) mes=_("Click to add segment between endpoints");
-	else if (drawhover==HOVER_MergeEndpoints) mes=_("Merge endpoints");
-	else if (drawhover==HOVER_AddPoint) mes=_("Click to add point to segment");
-	else if (drawhover==HOVER_AddWeightNode) mes=_("Click to add new width node");
-	else if (drawhover==HOVER_RemoveWeightNode) mes=_("Click to remove this width node");
-	else if (drawhover==HOVER_WeightPosition) mes=_("Drag weight node position");
-	else if (drawhover==HOVER_WeightTop) mes=_("Drag weight node top");
-	else if (drawhover==HOVER_WeightBottom) mes=_("Drag weight node bottom");
-	else if (drawhover==HOVER_WeightAngle) mes=_("Drag weight node angle");
-	else if (drawhover==HOVER_Direction) mes=_("Click to flip add direction, or drag to select next add");
-	//else if (drawhover==HOVER_Direction) mes=_("Click to change add direction, or drag to start new subpath");
-
+	if      (drawhover == HOVER_Vertex || drawhover==HOVER_Point || drawhover==HOVER_Handle) mes="";
+	else if (drawhover == HOVER_Endpoint)         mes = _("Click to add segment between endpoints");
+	else if (drawhover == HOVER_MergeEndpoints)   mes = _("Merge endpoints");
+	else if (drawhover == HOVER_AddPointOn)       mes = _("Click to add point to segment");
+	else if (drawhover == HOVER_CutSegment)       mes = _("Cut segment");
+	else if (drawhover == HOVER_AddWeightNode)    mes = _("Click to add new width node");
+	else if (drawhover == HOVER_RemoveWeightNode) mes = _("Click to remove this width node");
+	else if (drawhover == HOVER_WeightPosition)   mes = _("Drag weight node position");
+	else if (drawhover == HOVER_WeightTop)        mes = _("Drag weight node top");
+	else if (drawhover == HOVER_WeightBottom)     mes = _("Drag weight node bottom");
+	else if (drawhover == HOVER_WeightAngle)      mes = _("Drag weight node angle");
+	else if (drawhover == HOVER_Direction)        mes = _("Click to flip add direction, or drag to select next add");
+	
 	PostMessage(mes);
 }
 
@@ -6966,13 +7206,27 @@ int PathInterface::MouseMove(int x,int y,unsigned int state,const LaxMouse *mous
 		drawhover=HOVER_None;
 		drawhoveri=-1;
 
+		if (show_addpoint && data) {
+			add_point_hint[1] = add_point_hint[2] = add_point_hint[3] = transform_point_inverse(datam(), screentoreal(x,y));
+			needtodraw = 1;
+		}
+
 		//check for hovering over endpoint when another endpoint is selected
 		if (data && (state&ShiftMask) && curpoints.n==1) {
 			int pathi=-1;
-			Coordinate *topoint=scanEndpoints(x,y, &pathi,curpoints.e[0]);
+			bool isfirst = false;
+			Coordinate *topoint = scanEndpoints(x,y, &pathi,curpoints.e[0], &isfirst);
 			if (topoint && topoint!=curpoints.e[0] && abs(topoint->isEndpoint())==1) {
-				drawhover=HOVER_Endpoint;
-				hoverpoint=topoint->p();
+				drawhover = HOVER_Endpoint;
+				hoverpoint = topoint->p();
+
+				show_addpoint = 1;
+				add_point_hint[2] = topoint->p();
+				if (isfirst) {
+					add_point_hint[1] = (topoint->prev && (topoint->prev->flags & POINT_TONEXT)) ? topoint->prev->p() : topoint->p();
+				} else {
+					add_point_hint[1] = (topoint->next && (topoint->next->flags & POINT_TOPREV)) ? topoint->next->p() : topoint->p();
+				}
 
 				DBG cerr<<"Found hover over endpoint"<<endl;
 				hoverMessage();
@@ -7026,7 +7280,7 @@ int PathInterface::MouseMove(int x,int y,unsigned int state,const LaxMouse *mous
 				defaultweight.width=data->linestyle->width;
 		}
 
-		if (drawhover!=oldhover || drawpathi!=oldpathi || drawhoveri!=oldhoveri || drawhover==HOVER_AddPoint || drawhover==HOVER_AddWeightNode) {
+		if (drawhover!=oldhover || drawpathi!=oldpathi || drawhoveri!=oldhoveri || drawhover==HOVER_AddPointOn || drawhover==HOVER_AddWeightNode) {
 			needtodraw=1;
 			hoverMessage();
 		}
@@ -7045,7 +7299,7 @@ int PathInterface::MouseMove(int x,int y,unsigned int state,const LaxMouse *mous
 
 	flatpoint p1=screentoreal(x,y);
 	flatpoint p2=screentoreal(oldx,oldy);
-	flatpoint d=transform_point_inverse(data->m(),p1)-transform_point_inverse(data->m(),p2);
+	flatpoint d=transform_point_inverse(datam(),p1)-transform_point_inverse(datam(),p2);
 
 	DBG cerr <<"path mm action: "<<action<<endl;
 
@@ -7092,7 +7346,7 @@ int PathInterface::MouseMove(int x,int y,unsigned int state,const LaxMouse *mous
 		flatpoint pp;
 		//--------
 		double t;
-		path->ClosestPoint(transform_point_inverse(data->m(),p1), NULL, NULL, &t);
+		path->ClosestPoint(transform_point_inverse(datam(),p1), NULL, NULL, &t);
 		//drawhoveri=path->MoveWeight(drawhoveri, t);
 		//---------
 		// //try to map node based on relation as when originally clicked down (needs work)
@@ -7189,7 +7443,7 @@ int PathInterface::MouseMove(int x,int y,unsigned int state,const LaxMouse *mous
 			drawhover=HOVER_DirectionSelect;
 			buttondown.moveinfo(mouse->id,LEFTBUTTON, state,HOVER_DirectionSelect);
 			pp=first + v*2 + DIRSELECTRADIUS*(v/norm(v));
-			curdirp->p(transform_point_inverse(data->m(),screentoreal(pp.x,pp.y)));
+			curdirp->p(transform_point_inverse(datam(),screentoreal(pp.x,pp.y)));
 			needtodraw=1;
 		}
 		Modified(0);
@@ -7197,7 +7451,7 @@ int PathInterface::MouseMove(int x,int y,unsigned int state,const LaxMouse *mous
 
 	} else if (action==HOVER_DirectionSelect) {
 		int which=0;
-		flatpoint pp=realtoscreen(transform_point(data->m(),curdirp->p()));
+		flatpoint pp=realtoscreen(transform_point(datam(),curdirp->p()));
 		if (norm2(pp-flatpoint(x,y))>DIRSELECTRADIUS*DIRSELECTRADIUS) which=0;
 		else if (y<pp.y) which=1;
 		else which=2;
@@ -7226,7 +7480,7 @@ int PathInterface::MouseMove(int x,int y,unsigned int state,const LaxMouse *mous
 
 		if (abs(curpoints.e[0]->isEndpoint())==1) {
 			int pathi=-1;
-			Coordinate *topoint=scanEndpoints(x,y, &pathi,curpoints.e[0]);
+			Coordinate *topoint=scanEndpoints(x,y, &pathi,curpoints.e[0], nullptr);
 			int oldhover=drawhover;
 			if (topoint && topoint!=curpoints.e[0] && abs(topoint->isEndpoint())==1) {
 				drawhover=HOVER_MergeEndpoints;
@@ -7284,7 +7538,9 @@ int PathInterface::MouseMove(int x,int y,unsigned int state,const LaxMouse *mous
 				if (curpoints.n) {
 					shiftSelected(d);
 				} else {
-					data->origin(data->origin()+(p1-p2));
+					if (poc && poc->obj != data)
+						poc->obj->origin(poc->obj->origin()+(p1-p2));
+					else data->origin(data->origin()+(p1-p2));
 					needtodraw=1;
 				} 
 			} break;
@@ -7376,6 +7632,7 @@ Laxkit::ShortcutHandler *PathInterface::GetShortcuts()
 	sc->Add(PATHIA_Select,            'a',0,0,        "Select",       _("Select all or deselect"),NULL,0);
 	sc->Add(PATHIA_SelectInPath,      'A',ShiftMask,0,"SelectInPath", _("Select all in path or deselect"),NULL,0);
 	sc->Add(PATHIA_Close,             'c',0,0,        "ToggleClosed", _("Toggle closed"),NULL,0);
+	sc->Add(PATHIA_CutSegment,        'C',ShiftMask,0,"CutSegment",   _("Cut next segment"),NULL,0);
 	sc->Add(PATHIA_Decorations,       'd',0,0,        "Decorations",  _("Toggle decorations"),NULL,0);
 	sc->Add(PATHIA_StartNewPath,      'B',ShiftMask,0,"NewPath",      _("Start a totally new path object"),NULL,0);
 	sc->Add(PATHIA_StartNewSubpath,   'b',0,0,        "NewSubpath",   _("Start a new subpath"),NULL,0);
@@ -7660,7 +7917,8 @@ int PathInterface::PerformAction(int action)
 
 	} else if (action==PATHIA_ToggleAddAfter) {
 		 // Toggle addafter
-		addafter=!addafter;
+		addafter = !addafter;
+		if (curvertex) SetCurvertex(curvertex);
 		needtodraw=1;
 		return 0;
 
@@ -7746,6 +8004,15 @@ int PathInterface::PerformAction(int action)
 		if (!data) return 0;
 		toggleclosed();
 
+		needtodraw=1;
+		return 0;
+
+	} else if (action == PATHIA_CutSegment) {
+		 // Close/Open current path at curpoint
+		if (!data) return 0;
+
+		CutSegment();
+	
 		needtodraw=1;
 		return 0;
 

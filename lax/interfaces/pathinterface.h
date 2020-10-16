@@ -62,7 +62,7 @@ class PathWeightNode
 	double offset; //0 means weight symmetric about path
 	double angle; //see Path::absoluteangle, it affects what this value is
 	double t; //point along path, the bezier parameter: integer t corresponds to line points
-	double center_t; //t position on cached centerline
+	double center_t; //t position on cached centerline (todo)
 
 	enum PathWeightNodeTypes {
 		Default=0,
@@ -131,6 +131,7 @@ class Path : public LaxFiles::DumpUtility, public Laxkit::DoubleBBox
 	virtual void curveTo(flatpoint c1, flatpoint c2, flatpoint p2);
 	virtual int close();
 	virtual int openAt(Coordinate *curvertex, int after);
+	virtual int CutSegment(Coordinate *curvertex, int after, Path **remainder);
 	virtual Coordinate *addAt(double t);
 	virtual int addAt(Coordinate *curvertex, Coordinate *np, int after);
 	virtual void clear();
@@ -241,6 +242,7 @@ class PathsData : virtual public SomeData
 //	virtual int Delete(Coordinate *which); // returns num left in stack
 	virtual void clear(int which=-1);
 	virtual int RemovePath(int index, Path **popped_ret);
+	virtual int CutSegment(Coordinate *coord, bool after, bool remove_dangling);
 
 	virtual int ConnectEndpoints(Coordinate *from,int fromi, Coordinate *to,int toi);
 	virtual void ApplyTransform();
@@ -362,6 +364,7 @@ enum PathInterfaceActions {
 	PATHIA_FlipVertically,
 	PATHIA_FlipHorizontally,
 	PATHIA_Close,
+	PATHIA_CutSegment,
 	PATHIA_Decorations,
 	PATHIA_StartNewPath,
 	PATHIA_StartNewSubpath,
@@ -408,6 +411,8 @@ enum PathInterfaceActions {
 
 class PathInterface : public anInterface
 {
+	const double *datam();
+
  protected:
 	class SelectedPoint //prep for actions on multiple pathsdata objects
 	{
@@ -451,6 +456,9 @@ class PathInterface : public anInterface
 	flatpoint hoversegment[4];
 	Laxkit::Affine extram;
 	int lasth; //direction of toggling selected handle
+
+	int show_addpoint; //0 no, 1 one bez segs, 2 two bez segs (adding within line)
+	flatpoint add_point_hint[6];
 	
 	//Laxkit::PtrStack<PathOperator> pathops; 
 	PathOperator *curpathop;
@@ -466,6 +474,7 @@ class PathInterface : public anInterface
 	virtual void removeSegment(Coordinate *c);
 	virtual Coordinate *scannear(Coordinate *p,char u,double radius=5);
 	virtual void SetCurvertex(Coordinate *p, int path=-1);
+	virtual void UpdateAddHint();
 	virtual void UpdateDir();
 	virtual int WeightNodePosition(Path *path, PathWeightNode *weight,
 									flatpoint *pp_ret, flatpoint *po_ret, flatpoint *ptop_ret, flatpoint *pbottom_ret,
@@ -489,11 +498,13 @@ class PathInterface : public anInterface
  public:
 	 // the following three comprise the default PathInterface settings.
 	unsigned long controlcolor;
+	unsigned long addcolor;
 	unsigned long creationstyle;
 	unsigned long pathi_style;
 	bool show_weights;
 	bool show_baselines;
 	bool show_outline;
+	double arrow_size;
 	
 	Laxkit::PtrStack<Coordinate> curpoints;
 	
@@ -544,7 +555,7 @@ class PathInterface : public anInterface
 	virtual int DeletePoint(Coordinate *p);
 	virtual void deletedata();
 	virtual Coordinate *scan(int x,int y,int pmask=0, int *pathindex=NULL);
-	virtual Coordinate *scanEndpoints(int x,int y,int *pathindex,Coordinate *exclude);
+	virtual Coordinate *scanEndpoints(int x,int y,int *pathindex,Coordinate *exclude, bool *is_first);
 	virtual int scanHover(int x,int y,unsigned int state, int *pathi);
 	virtual int scanWeights(int x,int y,unsigned int state, int *pathindex, int *index);
 	virtual flatpoint screentoreal(int x,int y);
@@ -556,8 +567,39 @@ class PathInterface : public anInterface
 	virtual void MakeCircle();
 	virtual void MakeRect();
 	virtual int CutNear(flatpoint hoverpoint);
+	virtual int CutSegment();
 };
 
+//------------------------- SomeDataUndo -------------------------------
+
+class PathUndo : public Laxkit::UndoData
+{
+  public:
+	enum UndoTypes {
+		MovePoints,
+		DelPoints,
+		AddPoints,
+		AddPath,
+		DelPath,
+		Reorder,
+		ReplacePath,
+		WeightMove,
+		WeightAdd,
+		WeightDel,
+		WeightValues,
+		MAX
+	};
+
+	int type;
+
+	int path_index;
+	Laxkit::NumStack<int> indices;
+	Laxkit::NumStack<flatpoint> points;
+	
+	PathUndo(PathsData *object,
+			     int ntype, int nisauto);
+	virtual const char *Description();
+};
 
 } // namespace LaxInterfaces
 
