@@ -111,68 +111,68 @@ namespace LaxInterfaces {
 //! Your basic constructor.
 Coordinate::Coordinate()
 {
-	next=prev=NULL;
-	controls=NULL;
-	flags=POINT_VERTEX;
-	iid=0;
-	info=0;
-	next_s=0;
-	//DBG cerr <<"+++ New coordinate vertex: "<<fp.x<<','<<fp.y<<endl;
+	next = prev = nullptr;
+	controls    = nullptr;
+	flags       = POINT_VERTEX;
+	iid         = 0;
+	info        = 0;
+	next_s      = 0;
+	anchor      = nullptr;
 }
 
 //! Constructor to make a vertex point at p.
 Coordinate::Coordinate(flatpoint p)
 {
-	fp=p;
-	next=prev=NULL;
-	controls=NULL;
-	flags=POINT_VERTEX;
-	iid=0;
-	info=0;
-	next_s=0;
-	//DBG cerr <<"+++ New coordinate vertex: "<<fp.x<<','<<fp.y<<endl;
+	fp   = p;
+	next = prev = NULL;
+	controls    = NULL;
+	flags       = POINT_VERTEX;
+	iid         = 0;
+	info        = 0;
+	next_s      = 0;
+	anchor      = nullptr;
 }
 
 //! Constructor to make a vertex point at (x,y).
 Coordinate::Coordinate(double x,double y)
 {
-	fp=flatpoint(x,y);
-	next=prev=NULL;
-	controls=NULL;
-	flags=POINT_VERTEX;
-	iid=0;
-	info=0;
-	next_s=0;
-	//DBG cerr <<"+++ New coordinate vertex: "<<fp.x<<','<<fp.y<<endl;
+	fp   = flatpoint(x, y);
+	next = prev = NULL;
+	controls    = NULL;
+	flags       = POINT_VERTEX;
+	iid         = 0;
+	info        = 0;
+	next_s      = 0;
+	anchor      = nullptr;
 }
 
 //! Constructor to make a vertex point at (x,y). Incs count of ctl.
 Coordinate::Coordinate(double x,double y,unsigned long nflags,SegmentControls *ctl) 
-{ 
-	fp=flatpoint(x,y); 
-	next=prev=NULL; 
-	controls=ctl;
+{
+	fp   = flatpoint(x, y);
+	next = prev = NULL;
+	controls    = ctl;
 	if (controls) controls->inc_count();
-	flags=nflags; 
-	iid=0; 
-	info=0; 
-	next_s=0;
-	//DBG cerr <<"+++ New coordinate: "<<fp.x<<','<<fp.y<<endl;
+	flags       = nflags;
+	iid         = 0;
+	info        = 0;
+	next_s      = 0;
+	anchor      = nullptr;
 }
 
 /*! Incs count of ctl.
  */
 Coordinate::Coordinate(flatpoint pp,unsigned long nflags,SegmentControls *ctl) 
-{ 
-	fp=pp; 
-	next=prev=NULL; 
-	controls=ctl;
+{
+	fp   = pp;
+	next = prev = NULL;
+	controls    = ctl;
 	if (controls) controls->inc_count();
-	flags=nflags; 
-	iid=0; 
-	info=0; 
-	next_s=0;
-	//DBG cerr <<"+++ New coordinate: "<<fp.x<<','<<fp.y<<endl;
+	flags       = nflags;
+	iid         = 0;
+	info        = 0;
+	next_s      = 0;
+	anchor      = nullptr;
 }
 
 //! Creates copy with next and prev equal to NULL.
@@ -180,14 +180,15 @@ Coordinate::Coordinate(flatpoint pp,unsigned long nflags,SegmentControls *ctl)
  */
 Coordinate::Coordinate(const Coordinate &p)
 {
-	controls=p.controls;
+	controls = p.controls;
 	if (controls) controls->inc_count();
-	fp=p.fp;
-	flags=p.flags;
-	iid=p.iid;
-	info=p.info;
-	next=prev=NULL;
-	next_s=0;
+	fp    = p.fp;
+	flags = p.flags;
+	iid   = p.iid;
+	info  = p.info;
+	next = prev = NULL;
+	next_s      = 0;
+	anchor      = nullptr;
 }
 
  //! Deletes both prev and next if they exist.
@@ -409,7 +410,7 @@ void Coordinate::connect(Coordinate *np,char after)//after=1
   *
   *  Returns pointer to the coordinate on the other side of the break, if any.
   */
-Coordinate *Coordinate::disconnect(char after)//after=1
+Coordinate *Coordinate::disconnect(bool after)//after=1
 {
 	if (after) {
 		if (next) next->prev=NULL;
@@ -697,39 +698,73 @@ flatpoint Coordinate::direction(int after)
  * If a bezier segment return 2.
  * If there is no next segment, return 0.
  *
+ * If forward, then check in next direction, else check previous direction.
+ *
  * When there is only one next or prev control point, the missing control point is taken
  * to be the same as the adjacent vertex.
  */
-int Coordinate::resolveToControls(flatpoint &p1, flatpoint &c1, flatpoint &c2, flatpoint &p2)
+int Coordinate::resolveToControls(flatpoint &p1, flatpoint &c1, flatpoint &c2, flatpoint &p2, bool forward)
 {
-	if (!nextVertex(0)) return 0;
+	if (forward) {
+		if (!nextVertex(0)) return 0;
 
-	p1=p();
-	Coordinate *pn=next;
-	if (pn->flags&(POINT_TOPREV|POINT_TONEXT)) {
-		 //we do have control points
-		if (pn->flags&POINT_TOPREV) {
-			c1=pn->p();
-			pn=pn->next;
-		} else c1=p();
-		if (!pn) return 0; //no next vertex!
+		p1=p();
+		Coordinate *pn=next;
+		if (pn->flags&(POINT_TOPREV|POINT_TONEXT)) {
+			 //we do have control points
+			if (pn->flags&POINT_TOPREV) {
+				c1=pn->p();
+				pn=pn->next;
+			} else c1=p();
+			if (!pn) return 0; //no next vertex!
 
-		if (pn->flags&POINT_TONEXT) {
-			c2=pn->p();
-			pn=pn->next;
-		} else { //otherwise, should be a vertex
-			c2=pn->p();
+			if (pn->flags&POINT_TONEXT) {
+				c2=pn->p();
+				pn=pn->next;
+			} else { //otherwise, should be a vertex
+				c2=pn->p();
+			}
+			
+			p2=pn->p();
+			return 2;
+
 		}
 		
-		p2=pn->p();
-		return 2;
+		 //we do not have control points, so is just a straight line segment
+		c1=p1;
+		c2=pn->p();
+		p2=c2;
+		return 1;
+	}
 
+	// else previous
+	if (!previousVertex(0)) return 0;
+
+	p1 = p();
+	Coordinate *pn = prev;
+	if (pn->flags & (POINT_TOPREV|POINT_TONEXT)) {
+		 //we do have control points
+		if (pn->flags & POINT_TONEXT) {
+			c1 = pn->p();
+			pn = pn->prev;
+		} else c1 = p();
+		if (!pn) return 0; //no next vertex!
+
+		if (pn->flags & POINT_TOPREV) {
+			c2 = pn->p();
+			pn = pn->prev;
+		} else { //otherwise, should be a vertex
+			c2 = pn->p();
+		}
+		
+		p2 = pn->p();
+		return 2;
 	}
 	
 	 //we do not have control points, so is just a straight line segment
-	c1=p1;
-	c2=pn->p();
-	p2=c2;
+	c1 = p1;
+	c2 = pn->p();
+	p2 = c2;
 	return 1;
 }
 

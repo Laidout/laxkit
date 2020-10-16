@@ -92,15 +92,19 @@ class SegmentControls : public Laxkit::anObject
 #define POINT_JOIN_MASK         (POINT_Miter|POINT_Round|POINT_Bevel|POINT_Extrapolate)
 
 
+class CoordinateAnchor;
+
 class Coordinate
 {
- public:
+  public:
 	flatpoint fp;
 	unsigned long flags;
 	int iid,info;
 	double next_s; //len of following segment
 	SegmentControls *controls;
 	Coordinate *next,*prev;
+
+	CoordinateAnchor *anchor; //for use in graph construction
 
 	Coordinate();
 	Coordinate(flatpoint p);
@@ -131,14 +135,32 @@ class Coordinate
 	virtual int close();
 	virtual int isClosed();
 	virtual void connect(Coordinate *np,char after=1);
-	virtual Coordinate *disconnect(char after=1);
+	virtual Coordinate *disconnect(bool after=true);
 	virtual Coordinate *detach();
 	virtual Coordinate *detachThrough(Coordinate *p);
 	virtual int insert(Coordinate *c,int after=1);
 	virtual int NumPoints(int v);
 	virtual flatpoint direction(int after);
-	virtual int resolveToControls(flatpoint &p1, flatpoint &c1, flatpoint &c2, flatpoint &p2);
+	virtual int resolveToControls(flatpoint &p1, flatpoint &c1, flatpoint &c2, flatpoint &p2, bool forward = true);
 	virtual int getNext(flatpoint &c1, flatpoint &c2, Coordinate *&p2, int &isline);
+};
+
+
+//----------------------------------- CoordinateAnchor ----------------------------------
+
+class CoordinateAnchor : public Coordinate
+{
+  public:
+  	CoordinateAnchor() {}
+  	virtual ~CoordinateAnchor() {}
+
+  	// Laxkit::PtrStack<Coordinate> anchored;
+  	// Laxkit::NumStack<double> t_offsets;
+
+  	void UpdateAnchored();
+  	void AddAnchored(Coordinate *coord, double offset);
+  	void UpdateOffset(Coordinate *coord, double offset);
+  	void RemoveAnchored(Coordinate *coord);
 };
 
 
