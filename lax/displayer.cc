@@ -990,7 +990,7 @@ void Displayer::drawfocusellipse(flatpoint focus1,flatpoint focus2,
  * If portion&1, draw half of the arrow head. If portion&2, draw the other half.
  * So portion==3 draws whole arrow head.
  */
-void Displayer::drawarrow(flatpoint p,flatpoint v,int rfromp,double len,char reallength,int portion)
+void Displayer::drawarrow(flatpoint p,flatpoint v,int rfromp,double len,char reallength,int portion,bool center)
 {
 	double vv=v*v;
 	if (vv==0) return;
@@ -1007,6 +1007,10 @@ void Displayer::drawarrow(flatpoint p,flatpoint v,int rfromp,double len,char rea
 	p+=rfromp*transpose(v);
 	v=len*v;
 	flatpoint p2=v+p;
+	if (center) {
+		p2 -= v/2;
+		p -= v/2;
+	}
 	drawline(p,p2); //line
 	if (portion&1) drawline(p2,p2-v/3+transpose(v)/4); //half of arrow head
 	if (portion&2) drawline(p2,p2-v/3-transpose(v)/4); //other half
