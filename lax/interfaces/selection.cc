@@ -37,8 +37,7 @@ namespace LaxInterfaces {
 SelectedObject::SelectedObject(LaxInterfaces::ObjectContext *noc, int ninfo)
 {
 	info=ninfo;
-	oc=noc->duplicate();
-	//if (oc) obj=oc->obj;
+	oc = noc->duplicate();
 }
 
 SelectedObject::~SelectedObject()
