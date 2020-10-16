@@ -577,6 +577,24 @@ void anInterface::ThemeChange(Theme *theme)
 void anInterface::UIScaleChange()
 {}
 
+double anInterface::ScreenLine()
+{
+	InterfaceManager *imanager=InterfaceManager::GetDefault(true);
+	return imanager->ScreenLine();
+}
+
+double anInterface::NearThreshhold()
+{
+	InterfaceManager *imanager=InterfaceManager::GetDefault(true);
+	return imanager->NearThreshhold();
+}
+
+double anInterface::NearThreshhold2()
+{
+	InterfaceManager *imanager=InterfaceManager::GetDefault(true);
+	return imanager->NearThreshhold2();
+}
+
 //! Do a little extra checking to find what the magnification is.
 /*! If curwindow is a ViewportWindow, then return same function from ViewportWindow. Otherwise
  * return the usual function from dp.
