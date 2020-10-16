@@ -3882,7 +3882,7 @@ int PatchInterface::LBDown(int x,int y,unsigned int state,int count,const Laxkit
 		if (oc) obj=oc->obj;
 		if (c>0) {
 			//found another patch object to work on
-			viewport->ChangeObject(oc,0);
+			viewport->ChangeObject(oc,0,true);
 			deletedata((state&LAX_STATE_MASK)==ShiftMask ? false : true);
 			data=dynamic_cast<PatchData*>(obj);
 			data->inc_count();
@@ -3900,7 +3900,7 @@ int PatchInterface::LBDown(int x,int y,unsigned int state,int count,const Laxkit
 		
 		if (!primary) {
 			 //clicked on some other object, switch to that one
-			if (obj && c==-1 && viewport->ChangeObject(oc,1)) {
+			if (obj && c==-1 && viewport->ChangeObject(oc,1,true)) {
 				buttondown.up(d->id,LEFTBUTTON);
 				deletedata(false); 
 				return 0; 

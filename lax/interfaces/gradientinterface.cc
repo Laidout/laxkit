@@ -2021,11 +2021,11 @@ int GradientInterface::LBDown(int x,int y,unsigned int state,int count,const Lax
 			data->inc_count();
 			if (goc) delete goc;
 			goc=oc->duplicate();
-			if (viewport) viewport->ChangeObject(oc,0);
+			if (viewport) viewport->ChangeObject(oc,0,true);
 			needtodraw=1;
 			return 0;
 		}
-		if (!primary && c==-1 && viewport->ChangeObject(oc,1)) {
+		if (!primary && c==-1 && viewport->ChangeObject(oc,1,true)) {
 			buttondown.up(d->id,LEFTBUTTON);
 			deletedata();
 			return 0;

@@ -1260,7 +1260,7 @@ int PerspectiveInterface::OtherObjectCheck(int x,int y,unsigned int state)
 		 // If this is primary, then it is ok to work on other images, but not click onto
 		 // other types of objects.
 		UseThisObject(oc);
-		if (viewport) viewport->ChangeObject(oc,0);
+		if (viewport) viewport->ChangeObject(oc,0,true);
 		needtodraw=1;
 		return 1;
 

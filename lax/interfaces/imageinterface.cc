@@ -851,7 +851,7 @@ int ImageInterface::LBDown(int x,int y,unsigned int state,int count,const Laxkit
 			if (ioc) delete ioc;
 			ioc=oc->duplicate();
 
-			if (viewport) viewport->ChangeObject(oc,0);
+			if (viewport) viewport->ChangeObject(oc,0,true);
 			needtodraw=1;
 			return 0;
 
@@ -860,7 +860,7 @@ int ImageInterface::LBDown(int x,int y,unsigned int state,int count,const Laxkit
 			 // this is not primary, then switch objects, and switch tools to deal
 			 // with that object.
 			//******* need some way to transfer the LBDown to the new tool
-			if (!primary && c==-1 && viewport->ChangeObject(oc,1)) {
+			if (!primary && c==-1 && viewport->ChangeObject(oc,1,true)) {
 				buttondown.up(d->id,LEFTBUTTON);
 				return 1;
 			}

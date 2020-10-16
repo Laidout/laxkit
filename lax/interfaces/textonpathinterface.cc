@@ -1395,7 +1395,7 @@ void TextOnPathInterface::Clear(SomeData *d)
              //is a blank object, need to remove it
             textonpath->dec_count();
             textonpath=NULL;
-            viewport->ChangeObject(toc, false);
+            viewport->ChangeObject(toc, false,true);
             viewport->DeleteObject(); //this will also result in deletedata
 
         } else {
@@ -1934,7 +1934,7 @@ int TextOnPathInterface::LBDown(int x,int y,unsigned int state,int count, const 
 			if (paths) paths->inc_count();
 		}
 
-        if (viewport) viewport->ChangeObject(oc,0);
+        if (viewport) viewport->ChangeObject(oc,0,true);
         //buttondown.moveinfo(d->id,LEFTBUTTON, TPATH_Move);
 
         defaultsize=textonpath->font->textheight();
@@ -1958,7 +1958,7 @@ int TextOnPathInterface::LBDown(int x,int y,unsigned int state,int count, const 
 			 // *** lay text on this path... need to integrate with TextStreamInterface...
 			//PathsData *pobj=NULL;
 		}
-        if (!primary && c==-1 && viewport->ChangeObject(oc,1)) {
+        if (!primary && c==-1 && viewport->ChangeObject(oc,1,true)) {
             buttondown.up(d->id,LEFTBUTTON);
             return 0;
         }
@@ -2484,7 +2484,7 @@ int TextOnPathInterface::PerformAction(int action)
 		 //add data to viewport, and select tool for it
 		ObjectContext *oc=NULL;
 		viewport->NewData(newdata,&oc);//viewport adds only its own counts
-		//viewport->ChangeObject(oc, 1);
+		//viewport->ChangeObject(oc, 1,true);
 		newdata->dec_count();
 		PostMessage(_("Converted into new object."));
 		return 0;

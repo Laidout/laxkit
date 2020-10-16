@@ -930,7 +930,7 @@ int SimplePathInterface::OtherObjectCheck(int x,int y,unsigned int state)
 		 // If this is primary, then it is ok to work on other images, but not click onto
 		 // other types of objects.
 		UseThisObject(oc); 
-		if (viewport) viewport->ChangeObject(oc,0);
+		if (viewport) viewport->ChangeObject(oc,0,true);
 		needtodraw=1;
 		return 1;
 
@@ -939,7 +939,7 @@ int SimplePathInterface::OtherObjectCheck(int x,int y,unsigned int state)
 		 // if *this is not primary, then switch objects, and switch tools to deal
 		 // with that object.
 		//******* need some way to transfer the LBDown to the new tool
-		if (!primary && c==-1 && viewport->ChangeObject(oc,1)) {
+		if (!primary && c==-1 && viewport->ChangeObject(oc,1,true)) {
 			buttondown.clear();
 			//buttondown.up(d->id,LEFTBUTTON);
 			return 2;

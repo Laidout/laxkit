@@ -1625,7 +1625,7 @@ void CaptionInterface::deletedata()
 			 //is a blank object, need to remove it
 			data->dec_count();
 			data=NULL;
-			viewport->ChangeObject(coc, false);
+			viewport->ChangeObject(coc, false, true);
 			viewport->DeleteObject(); //this will also result in deletedata
 
 		} else {
@@ -2124,7 +2124,7 @@ int CaptionInterface::LBDown(int x,int y,unsigned int state,int count, const Lax
 		if (coc) delete coc;
 		coc=oc->duplicate();
 		
-		if (viewport) viewport->ChangeObject(oc,0);
+		if (viewport) viewport->ChangeObject(oc,0,true);
 		buttondown.moveinfo(d->id,LEFTBUTTON, CAPTION_Move);
 
 		defaultsize=data->fontsize;
@@ -2145,7 +2145,7 @@ int CaptionInterface::LBDown(int x,int y,unsigned int state,int count, const Lax
 		 // this is not primary, then switch objects, and switch tools to deal
 		 // with that object.
 		//******* this will have to be ChangeObject(oc,transfer lbdown) or some such
-		if (!primary && c==-1 && viewport->ChangeObject(oc,1)) {
+		if (!primary && c==-1 && viewport->ChangeObject(oc,1,true)) {
 			buttondown.up(d->id,LEFTBUTTON);
 			return 0;
 		}
@@ -2751,7 +2751,7 @@ int CaptionInterface::PerformAction(int action)
 		 //add data to viewport, and select tool for it
 		ObjectContext *oc=NULL;
 		viewport->NewData(newdata,&oc);//viewport adds only its own counts
-		//viewport->ChangeObject(oc, 1);
+		//viewport->ChangeObject(oc, 1,true);
 		newdata->dec_count();
 		return 0;
 

@@ -482,7 +482,7 @@ int ObjectInterface::LBDown(int x,int y,unsigned int state,int count,const Laxki
 					return 0;
 				}
 			}
-			viewport->ChangeObject(oc,0);
+			viewport->ChangeObject(oc,0,true);
 			AddToSelection(oc);
 			UpdateInitial();
 			buttondown.moveinfo(d->id,LEFTBUTTON,RP_Move);
@@ -841,7 +841,7 @@ int ObjectInterface::PerformAction(int action)
 		dontclear=1;
 		Selection *sel = selection->duplicate();
 		while (sel->n()) {
-			viewport->ChangeObject(sel->e(0),0);
+			viewport->ChangeObject(sel->e(0),0,true);
 			viewport->DeleteObject();
 			sel->Remove(0);
 		}

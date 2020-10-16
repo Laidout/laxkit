@@ -388,7 +388,7 @@ int ViewportWindow::ChangeContext(ObjectContext *oc)
  * \todo *** need mechanism to pass the LBDown grab to the object's interface.. This function
  * is most often called when interfaces cannot find objects of their own to work on on an LBDown.
  */
-int ViewportWindow::ChangeObject(ObjectContext *oc, int switchtool)
+int ViewportWindow::ChangeObject(ObjectContext *oc, int switchtool, bool update_selection)
 {
 	return 0;
 }
@@ -1157,7 +1157,7 @@ int ViewportWindow::LBDown(int x,int y,unsigned int state,int count,const Laxkit
 	 // if here, then mouse down on nothing, so try to select an object...
 	ObjectContext *oc;
 	int c=FindObject(x,y,NULL,NULL,1,&oc);
-	if (c==1) ChangeObject(oc,1);
+	if (c==1) ChangeObject(oc,1, true);
 
 	DBG cerr <<"../ViewportWindow::lbdown\n";
 	return 0;
