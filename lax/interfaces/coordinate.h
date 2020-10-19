@@ -143,6 +143,7 @@ class Coordinate
 	virtual flatpoint direction(int after);
 	virtual int resolveToControls(flatpoint &p1, flatpoint &c1, flatpoint &c2, flatpoint &p2, bool forward = true);
 	virtual int getNext(flatpoint &c1, flatpoint &c2, Coordinate *&p2, int &isline);
+	virtual Coordinate *Traverse(int n);
 };
 
 

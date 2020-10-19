@@ -816,6 +816,19 @@ int Coordinate::getNext(flatpoint &c1, flatpoint &c2, Coordinate *&p2, int &isli
 	return 0;
 }
 
+/*! Step n points off this. If n<0, then go in prev direction.
+ */
+Coordinate *Coordinate::Traverse(int n)
+{
+	Coordinate *it = this;
+	if (n < 0) {
+		while (n && it) { it = it->prev; n++; }
+	}
+	else if (n > 0) {
+		while (n && it) { it = it->next; n--; }
+	}
+	return it;
+}
 
 
 //----------------------------------- Coordinate Shape Makers ----------------------------------
