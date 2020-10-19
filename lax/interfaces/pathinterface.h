@@ -269,6 +269,9 @@ class PathsData : virtual public SomeData
 
 	// typedef void (*PointMapFunc)(const flatpoint &p, flatpoint &newp);
  	virtual int Map(std::function<int(const flatpoint &p, flatpoint &newp)> adjustFunc);
+
+ 	virtual int Undo(Laxkit::UndoData *data); // return 0 for sucess, nonzero error
+	virtual int Redo(Laxkit::UndoData *data); // return 0 for sucess, nonzero error
 };
 
 
@@ -276,7 +279,7 @@ class PathsData : virtual public SomeData
 
 PathsData *SvgToPathsData(PathsData *existingpath, const char *d,char **end_ptr, LaxFiles::Attribute *powerstroke);
 int SetClipFromPaths(Laxkit::Displayer *dp, LaxInterfaces::SomeData *outline, const double *extra_m, bool real=false);
-
+int GetNumPathsData(SomeData *obj, int *num_other);
 
 //-------------------- PathOperator ---------------------------
 	
@@ -393,6 +396,11 @@ enum PathInterfaceActions {
 	PATHIA_NewFromStroke,
 	PATHIA_BreakApart,
 	PATHIA_BreakApartChunks,
+	PATHIA_Subdivide,
+	PATHIA_SubdivideExtrema,
+	PATHIA_SubdivideExtremaH,
+	PATHIA_SubdivideExtremaV,
+	PATHIA_SubdivideInflection,
 
 	PATHIA_Bevel,
 	PATHIA_Miter,
@@ -592,12 +600,13 @@ class PathUndo : public Laxkit::UndoData
 
 	int type;
 
-	int path_index;
+	Path *path;
+	Laxkit::NumStack<int> path_indices;
 	Laxkit::NumStack<int> indices;
 	Laxkit::NumStack<flatpoint> points;
-	
-	PathUndo(PathsData *object,
-			     int ntype, int nisauto);
+
+	PathUndo(PathsData *object, int ntype, int nisauto);
+	~PathUndo();
 	virtual const char *Description();
 };
 

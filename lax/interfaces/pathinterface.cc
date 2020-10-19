@@ -4181,7 +4181,6 @@ PathsData *PathsData::MergeWith(PathsData *otherPath,
 }
 
 
-
 //----------------------- svgtoPathsData ----------------------------------
 //! Turn an svg 'd' attribute to a PathsData.
 /*! This parses via SvgToCoordinate(), then converts the Coordinate list to
@@ -6095,13 +6094,13 @@ Laxkit::MenuInfo *PathInterface::ContextMenu(int x,int y,int deviceid, MenuInfo 
 
 	if (!(pathi_style&PATHI_No_Weights)) {
 		if (menu->n()) menu->AddSep();
-		menu->AddToggleItem(_("Show base and center lines"), PATHIA_ToggleBaseline, show_baselines);
-		menu->AddToggleItem(_("Show weight nodes"), PATHIA_ToggleWeights,  show_weights);
+		menu->AddToggleItem(_("Show base and center lines"), PATHIA_ToggleBaseline, 0, show_baselines);
+		menu->AddToggleItem(_("Show weight nodes"), PATHIA_ToggleWeights, 0, show_weights);
 
 		bool angled=false;
-		if (curpath) angled=curpath->absoluteangle;
-		else if (data && data->paths.n) angled=data->paths.e[0]->absoluteangle;
-		menu->AddToggleItem(_("Absolute angles"),  PATHIA_ToggleAbsAngle,  angled);
+		if (curpath) angled = curpath->absoluteangle;
+		else if (data && data->paths.n) angled = data->paths.e[0]->absoluteangle;
+		menu->AddToggleItem(_("Absolute angles"),  PATHIA_ToggleAbsAngle, 0, angled);
 	}
 
 	//misc actions
@@ -6499,6 +6498,7 @@ int PathInterface::AddPoint(flatpoint p)
 	//now curpath exists, curvertex might exist.
 	curpath->needtorecache=1;
 
+	// allocate new cluster of Coordinate objects
 	Coordinate *np=NULL, *cp=NULL;
 	if (curpathop) {
 		np = curpathop->newPoint(p); // newPoint defaults to a full unit
@@ -6520,20 +6520,19 @@ int PathInterface::AddPoint(flatpoint p)
 		needtodraw = 1;
 	}
 
-	//If curvertex==NULL, then curpath is currently a null path, thus with no weight nodes
+	// If curvertex==NULL, then curpath is currently a null path, thus with no weight nodes
 	if (!curvertex) {
-		curvertex=np->nextVertex(1);
-		curpath->path=curvertex;
-		curpath->needtorecache=1;
+		curvertex = np->nextVertex(1);
+		curpath->path = curvertex;
+		curpath->needtorecache = 1;
 
 		SetCurvertex(curvertex);
 		curpoints.flush();
-		if (!cp) cp=curvertex;
-		curpoints.push(cp,0);
+		if (!cp) cp = curvertex;
+		curpoints.push(cp, 0);
 		data->FindBBox();
 		return 0;
 	}
-
 
 	// There is a curpath and a curvertex, figure out how to insert a new thing in the path.
 
@@ -8413,6 +8412,36 @@ void PathInterface::MakeCircle()
     needtodraw=1;
 }
 
+/*! Return number of PathsData objects contained in obj.
+ * If obj is a GroupData, then also recursively tally all child paths in that.
+ * If obj is a SomeDataRef, then check its final object.
+ * If num_other != null, add number of non path objects to its existing value.
+ */
+int GetNumPathsData(SomeData *obj, int *num_other)
+{
+	int n = 0;
+	int other = 0;
+
+	SomeDataRef *ref = dynamic_cast<SomeDataRef*>(obj);
+	if (ref) {
+		SomeData *o = ref->GetFinalObject();
+		if (o) n += GetNumPathsData(o, num_other);
+	}
+
+	PathsData *pd = dynamic_cast<PathsData*>(obj);
+	if (pd) n++;
+	else other++;
+
+	GroupData *group = dynamic_cast<GroupData*>(obj);
+	if (group) {
+		for (int c=0; c<group->NumKids(); c++) {
+			n += GetNumPathsData(group->Child(c), num_other);
+		}
+	}
+
+	return n;
+}
+
 //! Append clipping paths to dp.
 /*!
  * Converts a a group of PathsData, a SomeDataRef to a PathsData, 
@@ -8529,49 +8558,145 @@ int SetClipFromPaths(Laxkit::Displayer *dp, LaxInterfaces::SomeData *outline, co
 		if (!real) dp->DrawReal();
 	}
 
-//	-----------
-//    Coordinate *start,*p;
-//    int np,maxp=0;
-//    flatpoint *points=NULL;
-//    flatpoint pp;
-//    int c,c2;
-//
-//    for (c=0; c<path->paths.n; c++) {
-//        np=0;
-//        start=p=path->paths.e[c]->path;
-//        if (!p) continue;
-//
-//        do { p=p->next; np++; } while (p && p!=start);
-//
-//        if (p==start) { // only include closed paths
-//            if (np>maxp) {
-//                if (points) delete[] points;
-//                maxp=np;
-//                points=new flatpoint[maxp];
-//            }
-//            n++;
-//            c2=0;
-//            do {
-//                if (extra_m) pp=transform_point(extra_m, p->p());
-//                    else pp=p->p();
-//                points[c2].x = pp.x;
-//                points[c2].y = pp.y;
-//
-//                p=p->next;
-//                c2++;
-//            } while (p && p!=start);
-//
-//            if (!real) dp->DrawScreen();
-//            dp->Clip(points,np,1);
-//            if (!real) dp->DrawReal();
-//            n++;
-//        }
-//    }
-//    if (points) delete[] points;
-//	-----------
-
-
     return n;
+}
+
+
+//-------------------------------- PathUndo ---------------------------------
+
+PathUndo::PathUndo(PathsData *object, int ntype, int nisauto)
+ : UndoData(nisauto)
+{
+	context = object;
+	if (object) object->inc_count();
+
+	type = ntype;
+}
+
+PathUndo::~PathUndo()
+{
+	if (path) delete path;
+}
+
+const char *PathUndo::Description()
+{
+	switch (type) {
+		case MovePoints:   return _("Move points");
+		case DelPoints:    return _("Delete points");
+		case AddPoints:    return _("Add points");
+		case AddPath:      return _("Add Path");
+		case DelPath:      return _("Delete path");
+		case Reorder:      return _("Reorder points");
+		case ReplacePath:  return _("Replace path");
+		case WeightMove:   return _("Move weight");
+		case WeightAdd:    return _("Add weight");
+		case WeightDel:    return _("Delete weight");
+		case WeightValues: return _("Adjust weight");
+	}
+	return nullptr;
+}
+
+/*! Return 0 for sucess, nonzero erro
+ */
+int PathsData::Undo(UndoData *data)
+{
+	PathUndo *undo = dynamic_cast<PathUndo*>(data);
+	if (!undo) return 1;
+
+
+	if (undo->type == PathUndo::MovePoints) {
+		for (int p=0; p<undo->path_indices.n; p++) {
+			Path *path = paths.e[p];
+
+			for (int c=0; c<undo->indices.n; c++) {
+				Coordinate *coord = path->path;
+				coord = coord->Traverse(undo->indices.e[c]);
+				if (!coord) return 1;
+				flatpoint curp = coord->p();
+				coord->p(undo->points.e[c]);
+				undo->points.e[c] = curp;
+			}
+		}
+	
+	} else if (undo->type == PathUndo::AddPath) {
+		//path was added, need to remove it
+		undo->path = paths.pop(undo->path_indices.e[0]);
+
+	} else if (undo->type == PathUndo::DelPath) {
+		//path was deleted, need to add it back
+		paths.push(undo->path, -1, undo->path_indices.e[0]);
+		undo->path = nullptr;
+
+	} else if (undo->type == PathUndo::AddPoints
+			|| undo->type == PathUndo::DelPoints
+			|| undo->type == PathUndo::ReplacePath
+			|| undo->type == PathUndo::WeightMove
+			|| undo->type == PathUndo::WeightAdd
+			|| undo->type == PathUndo::WeightDel
+			|| undo->type == PathUndo::WeightValues
+			) {
+		// all of these just replace the path because weight maintenance is such a pain
+		Path *npath = paths.pop(undo->path_indices.e[0]);
+		paths.push(undo->path, undo->path_indices.e[0]);
+		undo->path = npath;
+	
+	// } else if (type == Reorder) {
+
+	} else return 1;
+
+	touchContents();
+	return 0;
+}
+
+/*! Return 0 for sucess, nonzero erro
+ */
+int PathsData::Redo(UndoData *data)
+{
+	PathUndo *undo = dynamic_cast<PathUndo*>(data);
+	if (!undo) return 1;
+
+	if (undo->type == PathUndo::MovePoints) {
+		for (int p=0; p<undo->path_indices.n; p++) {
+			Path *path = paths.e[p];
+
+			for (int c=0; c<undo->indices.n; c++) {
+				Coordinate *coord = path->path;
+				coord = coord->Traverse(undo->indices.e[c]);
+				if (!coord) return 1;
+				flatpoint curp = coord->p();
+				coord->p(undo->points.e[c]);
+				undo->points.e[c] = curp;
+			}
+		}
+
+	} else if (undo->type == PathUndo::AddPath) {
+		//path was removed in undo, need to add it back
+		paths.push(undo->path, -1, undo->path_indices.e[0]);
+		undo->path = nullptr;
+
+	} else if (undo->type == PathUndo::DelPath) {
+		//path was deleted in undo, need to add it back
+		undo->path = paths.pop(undo->path_indices.e[0]);
+
+	} else if (undo->type == PathUndo::AddPoints
+			|| undo->type == PathUndo::DelPoints
+			|| undo->type == PathUndo::ReplacePath
+			|| undo->type == PathUndo::WeightMove
+			|| undo->type == PathUndo::WeightAdd
+			|| undo->type == PathUndo::WeightDel
+			|| undo->type == PathUndo::WeightValues
+			) {
+		// all of these just replace the path because weight maintenance is such a pain
+		Path *npath = paths.pop(undo->path_indices.e[0]);
+		paths.push(undo->path, -1, undo->path_indices.e[0]);
+		undo->path = npath;
+
+	// } else if (undo->type == Reorder) {
+
+	} else return 1;
+
+	touchContents();
+	return 0;
 }
 
 
