@@ -1942,12 +1942,15 @@ int TreeSelector::LBUp(int x,int y,unsigned int state,const LaxMouse *d)
 	}
 
 	if (hovered>=0) return 0; //was dragging on column divider
-	
+
 	 // do nothing if mouse is outside window.. This is necessary because of grabs.
 	if (x<0 || x>=win_w || y<0 || y>=win_h) { return 0; }
 
+	int curdetailhover=-1;
 	int onsub=0;
-	int i = findItem(x,y,&onsub);
+	int i = findItem(x,y,&onsub, &curdetailhover);
+
+	if (i != item || curdetailhover != hovered) return 0; //up on something not down on
 	if (i<0 || i>=numItems()) return 0; //if not on any item or arrow
 	
 	if (mousedragmode==2) {
@@ -1985,8 +1988,23 @@ int TreeSelector::LBUp(int x,int y,unsigned int state,const LaxMouse *d)
 //! Find the index of the item at window coordinates (x,y).
 /*! The value returned is not necessarily an actual element index. It could be -1, or >=menuitems.n.
  */
-int TreeSelector::findItem(int x,int y, int *onsub)
+int TreeSelector::findItem(int x,int y, int *onsub, int *ondetail)
 {
+	if (ondetail) {
+		*ondetail = -1;
+
+		if (columns.n && y <= inrect.y) {
+			 //check for clicking on column dividers to resize
+			 // *** what about title?
+			for (int c=columns.n-1; c>0; c--) {
+				if (x>columns.e[c]->pos-10 && x<columns.e[c]->pos+10) {
+					*ondetail = c;
+					break;
+				}
+			}
+		}
+	}
+	
 	x -= offsetx + inrect.x;
 	y -= offsety + inrect.y;
 	int s=0, e=visibleitems.n()-1, m;

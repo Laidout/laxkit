@@ -134,7 +134,7 @@ class TreeSelector : public ScrolledWindow
 
 	virtual int send(int deviceid, bool forhovered = false);
 	virtual void addselect(int i,unsigned int state);
-	virtual int findItem(int x,int y, int *onsub);
+	virtual int findItem(int x,int y, int *onsub, int *ondetail = nullptr);
 	virtual int findColumn(int x);
 	virtual int findRect(int c,IntRectangle *itemspot);
 	virtual void arrangeItems();
