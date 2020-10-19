@@ -319,6 +319,12 @@ int ObjectInterface::AddToSelection(Laxkit::PtrStack<ObjectContext> &nselection)
  */
 void ObjectInterface::RemapBounds()
 {
+	if (!selection->n()) {
+		deletedata();
+		needtodraw=1;
+		return;
+	}
+
 	if (!data) {
 		if (!selection->n()) return;
 		somedata=data=new RectData();
@@ -482,7 +488,7 @@ int ObjectInterface::LBDown(int x,int y,unsigned int state,int count,const Laxki
 					return 0;
 				}
 			}
-			viewport->ChangeObject(oc,0,true);
+			viewport->ChangeObject(oc,0,false);
 			AddToSelection(oc);
 			UpdateInitial();
 			buttondown.moveinfo(d->id,LEFTBUTTON,RP_Move);
@@ -841,7 +847,7 @@ int ObjectInterface::PerformAction(int action)
 		dontclear=1;
 		Selection *sel = selection->duplicate();
 		while (sel->n()) {
-			viewport->ChangeObject(sel->e(0),0,true);
+			viewport->ChangeObject(sel->e(0),0,false);
 			viewport->DeleteObject();
 			sel->Remove(0);
 		}
@@ -888,7 +894,7 @@ int ObjectInterface::CharInput(unsigned int ch, const char *buffer,int len,unsig
 			} else if (selection->n() == 0 ) {
 				ObjectContext *oc = viewport->CurrentContext();
 
-				 //context was empty
+				 //if current context has object, force onto selection
 				SomeData *data = viewport->GetObject(oc);
 				if (data && data->Selectable()) {
 					oc->SetObject(data);
