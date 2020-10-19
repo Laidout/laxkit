@@ -34,8 +34,8 @@ class UndoData;
 class Undoable
 {
   public:
-	virtual int Undo(UndoData *data) = 0;
-	virtual int Redo(UndoData *data) = 0;
+	virtual int Undo(UndoData *data) = 0; // return 0 for sucess, nonzero error
+	virtual int Redo(UndoData *data) = 0; // return 0 for sucess, nonzero error
 };
 
 
