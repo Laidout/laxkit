@@ -892,27 +892,10 @@ int PerspectiveInterface::UseThisObject(ObjectContext *oc)
 
 	if (!dont_update_transform) {
 		 //1,2,3,4  ->  ll,lr,ul,ur
-		//flatpoint v(data->boxwidth()*.1, data->boxheight()*.1); //offset from actual corner a little
-		//transform->from_ll = transform->to_ll = data->transformPoint(flatpoint(data->minx,data->miny)+v);
-		//transform->from_lr = transform->to_lr = data->transformPoint(flatpoint(data->maxx,data->miny)+flatpoint(-v.x,v.y));
-		//transform->from_ul = transform->to_ul = data->transformPoint(flatpoint(data->minx,data->maxy)+flatpoint(v.x,-v.y));
-		//transform->from_ur = transform->to_ur = data->transformPoint(flatpoint(data->maxx,data->maxy)+flatpoint(-v.x,-v.y));
-		//----
 		transform->from_ll = transform->to_ll = data->transformPoint(flatpoint(data->minx,data->miny)); //obj parent coords
 		transform->from_lr = transform->to_lr = data->transformPoint(flatpoint(data->maxx,data->miny));
 		transform->from_ul = transform->to_ul = data->transformPoint(flatpoint(data->minx,data->maxy));
 		transform->from_ur = transform->to_ur = data->transformPoint(flatpoint(data->maxx,data->maxy));
-		//----
-		//transform->from_ll = transform->to_ll = flatpoint(data->minx,data->miny); //obj coords
-		//transform->from_lr = transform->to_lr = flatpoint(data->maxx,data->miny);
-		//transform->from_ul = transform->to_ul = flatpoint(data->minx,data->maxy);
-		//transform->from_ur = transform->to_ur = flatpoint(data->maxx,data->maxy);
-		//----
-		//Affine a=ndata->GetTransformToContext(false, 0);
-		//transform->from_ll = transform->to_ll = a.transformPoint(flatpoint(data->minx,data->miny));
-		//transform->from_lr = transform->to_lr = a.transformPoint(flatpoint(data->maxx,data->miny));
-		//transform->from_ul = transform->to_ul = a.transformPoint(flatpoint(data->minx,data->maxy));
-		//transform->from_ur = transform->to_ur = a.transformPoint(flatpoint(data->maxx,data->maxy));
 
 		ComputeTransform();
 		SetupPreviewImages();
