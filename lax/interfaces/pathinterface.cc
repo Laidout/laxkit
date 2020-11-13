@@ -25,14 +25,18 @@
 #include <lax/interfaces/groupdata.h>
 
 #include <lax/interfaces/somedatafactory.h>
+#include <lax/interfaces/interfacemanager.h>
 #include <lax/interfaces/somedata.h>
 #include <lax/interfaces/pathinterface.h>
+#include <lax/interfaces/shapebrush.h>
 #include <lax/interfaces/svgcoord.h>
 #include <lax/laxutils.h>
 #include <lax/bezutils.h>
 #include <lax/transformmath.h>
 #include <lax/language.h>
 
+
+//template implementation:
 #include <lax/lists.cc>
 
 
@@ -82,6 +86,7 @@ enum PathHoverType {
 	HOVER_AddWeightNode,
 	HOVER_RemoveWeightNode,
 	HOVER_Weight,
+	HOVER_WeightOffset,
 	HOVER_WeightTop,
 	HOVER_WeightBottom,
 	HOVER_WeightPosition,
@@ -186,6 +191,7 @@ Path::Path()
 	defaultwidth  = 10. / 72;
 	absoluteangle = false;
 	profile       = nullptr;
+	brush         = nullptr;
 
 	// save_cache=true;
 	save_cache = false;
@@ -209,6 +215,7 @@ Path::~Path()
 	delete path;
 	if (linestyle) linestyle->dec_count();
 	if (profile) profile->dec_count();
+	if (brush) brush->dec_count();
 }
 
 //! Flush all points.
@@ -226,6 +233,7 @@ Path *Path::duplicate()
 	Path *newpath = new Path(NULL,linestyle);
 	if (profile) newpath->ApplyLineProfile(profile, true);
 	newpath->defaultwidth = defaultwidth;
+	if (brush) newpath->UseShapeBrush(brush);
 	if (path) newpath->path = path->duplicateAll();
 
 	for (int c=0; c<pathweights.n; c++) {
@@ -609,6 +617,19 @@ void Path::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext 
 	if (closed && path) path->close();
 	// *** should probably sanitize the weight list
 	needtorecache=1;
+}
+
+int Path::UseShapeBrush(ShapeBrush *newbrush)
+{
+	if (newbrush == brush) return 0;
+	if (brush) brush->dec_count();
+	brush = newbrush;
+	if (brush) {
+		brush->inc_count();
+	}
+	needtorecache = 1;
+
+	return 0;
 }
 
 /*! Return 0 for success.
@@ -1065,6 +1086,7 @@ void Path::UpdateCache()
 	flatpoint c1,c2;
 	p=start;
 	flatpoint pp,po,vv,vt;
+	flatpoint sht, shb;
 	//int ignorefirst=(isclosed?1:0); //index to begin render to segment.. for open paths, must not ignore first
 	int ignorefirst=0; //we need to render the 1st sample point in a segment
 
@@ -1170,6 +1192,7 @@ void Path::UpdateCache()
 			else {
 				vv=bez_visual_tangent(bezt.e[bb], p->p(), c1,c2, p2->p());
 			}
+			vv.normalize();
 			vt=transpose(vv);
 			vt.normalize();
 			po=bez.e[bb] + vt*cache_offset.f(cp+bezt.e[bb]);
@@ -1178,12 +1201,20 @@ void Path::UpdateCache()
 				else vt=rotate(vt, cache_angle.f(cp+bezt.e[bb]));
 			}
 
-			width=cache_width.f(cp+bezt.e[bb]);
-			topp   .push(po + vt*width/2);
-			bottomp.push(po - vt*width/2);
 			if (hasoffset) centerp.push(po);
 
-			if (cache_types&1) {
+			width = cache_width.f(cp+bezt.e[bb]);
+			if (brush) {
+				brush->MinMax(0, vt, shb, sht);
+				topp   .push(po + (sht.x * vv + sht.y * vt)*width/2);
+				bottomp.push(po + (shb.x * vv + shb.y * vt)*width/2);
+
+			} else {
+				topp   .push(po + vt*width/2);
+				bottomp.push(po - vt*width/2);
+			}
+
+			if (cache_types & 1) {
 				cache_top   .push(topp   .e[topp.n   -1]);
 				cache_bottom.push(bottomp.e[bottomp.n-1]);
 			}
@@ -1451,7 +1482,7 @@ void Path::UpdateCache()
 	centercache.insertArray(aa,n);
 	if (closed) centercache.e[centercache.n-1].info|=LINE_Closed;
 
-	if (cache_types&1) {
+	if (cache_types & 1) {
 		 //we create a matched top and bottom point list, ignoring joins (for now)
 		 //such as can be easily used as a basis for a mesh...
 		flatpoint *ppp=new flatpoint[cache_top.n*3];
@@ -1613,8 +1644,6 @@ void Path::ComputeAABB(const double *transform, DoubleBBox &box)
 		}
 	}
 }
-
-
 
 /*! Always true if absoluteangle is true.
  * If not absoluteangle, then true if any weight node angle is nonzero.
@@ -2914,6 +2943,36 @@ int Path::GetIndex(Coordinate *p, bool ignore_controls)
 	return i;
 }
 
+/*! Return 1 for *this completely contains otherpath.
+ * Return -1 for *this contains some, but not all of otherpath.
+ * Return 0 for no points of otherpath in *this.
+ *
+ * This is a very rough approximation that naively checks whether any vertex (control points ignored),
+ * is contained in *this.
+ */
+int Path::Contains(Path *otherpath)
+{
+	if (!otherpath || !otherpath->path) return 0;
+	if (!path) return 0;
+	UpdateCache();
+
+	Coordinate *p, *start;
+	p = start = otherpath->path;
+	int n = 0, ni = 0;
+	do {
+		if (p->flags & POINT_VERTEX) {
+			n++;
+			if (point_is_in_bez(p->p(), centercache.e, centercache.n))
+				ni++;
+		}
+		p = p->next;
+	} while (p && p != start);
+
+	if (!ni) return 0;
+	if (n == ni) return 1;
+	return -1;
+}
+
 //! Find the distance along the path between the bounds, or whole length if tend<tstart.
 double Path::Length(double tstart,double tend)
 {
@@ -3196,6 +3255,16 @@ PathsData::~PathsData()
 {
 	if (linestyle) linestyle->dec_count();
 	if (fillstyle) fillstyle->dec_count();
+}
+
+/*! Note paths with single points count as non-empty.
+ */
+bool PathsData::IsEmpty()
+{
+	for (int c=0; c<paths.n; c++) {
+		if (paths.e[c]->path) return false;
+	}
+	return true;
 }
 
 int PathsData::Map(std::function<int(const flatpoint &p, flatpoint &newp)> adjustFunc)
@@ -4314,7 +4383,7 @@ PathOperator::~PathOperator()
 
 /*! \class PathInterface
  * \ingroup interfaces
- *  \brief The maintainer of all PathOperator classes.
+ *  \brief Edits PathsData objects. Also maintains all PathOperator classes.
  * \code #include <lax/interfaces/pathinterface.h> \endcode
  *
  *  There should only be one main PathInterface. Sub-interfaces for particular segments
@@ -4325,10 +4394,8 @@ PathOperator::~PathOperator()
  *
  * \todo PathInterface should be able to draw single Path objects, not just PathsData?
  * \todo *** unknown PathOperators should be marked with a question mark at middle of path
- * \todo *** MUST make sure that PathsData/Path heads are all vertices. That makes dealing with breakpoints easier
  * \todo *** undo is very important for path editing!!
  * \todo *** must incorporate shift-move on grid lines, angles on 0/90/45/30/60/custom, etc.
- * \todo *** operations like make circle, arrange, flip, etc?
  * \todo *** constrain x/y
  */
 
@@ -4373,8 +4440,9 @@ PathInterface::PathInterface(int nid,Displayer *ndp, unsigned long nstyle) : anI
 {
 	primary = 1;
 
-	show_weights = true;  // show and allow edit weights.. see also PATHI_No_Weights
-	// show_points=true;   //show and allow edit points and handles
+	show_weights        = true;  // show and allow edit weights.. see also PATHI_No_Weights
+	show_points         = true;  // show and allow edit points and handles
+	hide_other_controls = true; // show all control points, or just those on currently selected vertices
 	show_baselines      = false;
 	show_outline        = false;
 	defaultweight.width = .01;
@@ -4420,6 +4488,8 @@ PathInterface::PathInterface(int nid,Displayer *ndp, unsigned long nstyle) : anI
 	verbose       = 1;
 	show_addpoint = true;
 	arrow_size    = 30;
+	last_action   = 0;
+	recent_action = 0;
 
 	creationstyle = 0;
 
@@ -5110,58 +5180,70 @@ int PathInterface::Refresh()
 			p2=NULL;
 			Coordinate *nextp=NULL;
 
-			do { //one loop for each vertex to vertex segment
-				if (p->controls) {
-					 //first find the bounds of the bezier approximated segment
-					 //these bezier points do not get normal bezier control points drawn.
-					 //Control points to actually draw are in p->controls
-					nextp=p->next;
-					while (nextp && nextp!=start && nextp->controls==p->controls) nextp=nextp->next;
-					p=nextp;
+			// draw the points
+			if (show_points) {
+				do { //one loop for each vertex to vertex segment
+					if (p->controls) {
+						 //first find the bounds of the bezier approximated segment
+						 //these bezier points do not get normal bezier control points drawn.
+						 //Control points to actually draw are in p->controls
+						nextp=p->next;
+						while (nextp && nextp!=start && nextp->controls==p->controls) nextp=nextp->next;
+						p=nextp;
 
-					int c2;
-					for (c2=0; c2<Path::basepathops.n; c2++)
-						if (p->controls->iid()==Path::basepathops.e[c2]->id) break;
-					if (c2!=Path::basepathops.n) {
-						Path::basepathops.e[c2]->drawControls(dp, -1, p->controls, showdecs, this);
-					} //else ignore if pathop not found during runtime!! should never happen anyway
+						int c2;
+						for (c2=0; c2<Path::basepathops.n; c2++)
+							if (p->controls->iid()==Path::basepathops.e[c2]->id) break;
+						if (c2!=Path::basepathops.n) {
+							Path::basepathops.e[c2]->drawControls(dp, -1, p->controls, showdecs, this);
+						} //else ignore if pathop not found during runtime!! should never happen anyway
 
-				} else {
-					 //draw normal control points
-					char on=(curpoints.findindex(p)>=0);
-					flatpoint sp=dp->realtoscreen(p->p());
-					dp->DrawScreen();
-					dp->LineWidthScreen(1);
+					} else {
+						 //draw normal control points
+						bool on = (curpoints.findindex(p) >= 0);
+						bool con = IsNearSelected(p);
+						flatpoint sp=dp->realtoscreen(p->p());
+						dp->DrawScreen();
+						dp->LineWidthScreen(1);
 
-					if (p->flags&POINT_VERTEX) {
-						int f=p->flags&BEZ_MASK;
-						if (!f) {
-							if (p->flags&POINT_SMOOTH) f=BEZ_STIFF_NEQUAL;
-							else if (p->flags&POINT_REALLYSMOOTH) f=BEZ_STIFF_EQUAL;
+						if (p->flags&POINT_VERTEX) {
+							int f=p->flags&BEZ_MASK;
+							if (!f) {
+								if (p->flags&POINT_SMOOTH) f=BEZ_STIFF_NEQUAL;
+								else if (p->flags&POINT_REALLYSMOOTH) f=BEZ_STIFF_EQUAL;
+							}
+							switch (f) {
+								 //Inkscape uses: square  = smooth AND smooth-equal
+								 //               diamond = corner
+								 //               circle  = autosmooth
+								case BEZ_STIFF_EQUAL:   dp->drawthing(sp.x,sp.y,5,5,on,THING_Circle);      break;
+								case BEZ_STIFF_NEQUAL:  dp->drawthing(sp.x,sp.y,5,5,on,THING_Diamond);     break;
+								case BEZ_NSTIFF_NEQUAL: dp->drawthing(sp.x,sp.y,5,5,on,THING_Square);      break;
+								case BEZ_NSTIFF_EQUAL:  dp->drawthing(sp.x,sp.y,5,5,on,THING_Triangle_Up); break;
+								default: dp->drawthing(sp.x,sp.y,5,5,on,THING_Circle); break;
+							}
+
+						} else if (p->flags&POINT_TONEXT) {
+							bool doit = !hide_other_controls || con;
+							if (doit) {
+								dp->drawthing(sp.x,sp.y,3,3,on,THING_Circle);
+								dp->drawline(sp,dp->realtoscreen(p->next->p()));
+							}
+
+						} else if (p->flags&POINT_TOPREV) {
+							bool doit = !hide_other_controls || con;
+							if (doit) {
+								dp->drawthing((int)sp.x,(int)sp.y,3,3,on,THING_Circle);
+								dp->drawline(sp,dp->realtoscreen(p->prev->p()));
+							}
 						}
-						switch (f) {
-							 //Inkscape uses: square  = smooth AND smooth-equal
-							 //               diamond = corner
-							 //               circle  = autosmooth
-							case BEZ_STIFF_EQUAL:   dp->drawthing(sp.x,sp.y,5,5,on,THING_Circle);      break;
-							case BEZ_STIFF_NEQUAL:  dp->drawthing(sp.x,sp.y,5,5,on,THING_Diamond);     break;
-							case BEZ_NSTIFF_NEQUAL: dp->drawthing(sp.x,sp.y,5,5,on,THING_Square);      break;
-							case BEZ_NSTIFF_EQUAL:  dp->drawthing(sp.x,sp.y,5,5,on,THING_Triangle_Up); break;
-							default: dp->drawthing(sp.x,sp.y,5,5,on,THING_Circle); break;
-						}
-					} else if (p->flags&POINT_TONEXT) {
-						dp->drawthing(sp.x,sp.y,3,3,on,THING_Circle);
-						dp->drawline(sp,dp->realtoscreen(p->next->p()));
-					} else if (p->flags&POINT_TOPREV) {
-						dp->drawthing((int)sp.x,(int)sp.y,3,3,on,THING_Circle);
-						dp->drawline(sp,dp->realtoscreen(p->prev->p()));
+						dp->DrawReal();
 					}
-					dp->DrawReal();
-				}
 
-				p2=p;
-				p=p->next;
-			} while (p && p!=start);
+					p2=p;
+					p=p->next;
+				} while (p && p!=start);
+			} //if show_points
 
 			 // draw little arrow on curvertex in the next direction (indicates where new points go)
 			//if (curvertex || drawhover==HOVER_Direction) {
@@ -5210,6 +5292,7 @@ int PathInterface::Refresh()
 					if (drawpathi==cc && drawhoveri==cw) {
 					  if (     drawhover==HOVER_Weight
 							|| drawhover==HOVER_WeightPosition
+							|| drawhover==HOVER_WeightOffset
 							|| drawhover==HOVER_WeightTop
 							|| drawhover==HOVER_WeightBottom
 							|| drawhover==HOVER_WeightAngle)
@@ -5432,10 +5515,10 @@ void PathInterface::DrawBaselines()
  *
  * pp and vv are in data space, and it is assumed dp->realtoscreen() incorporates data->m().
  */
-//void PathInterface::drawWeightNode(flatpoint pp,flatpoint vv, double wtop,double wbottom, int isfornew, double angle, bool absoluteangle)
 void PathInterface::drawWeightNode(Path *path, PathWeightNode *weight, int isfornew)
 {
-	double arc=SELECTRADIUS*2;
+	double arc = SELECTRADIUS*2;
+	double thin = ScreenLine();
 
 	//double wtop   =weight->topOffset();
 	//double wbottom=weight->bottomOffset();
@@ -5450,34 +5533,37 @@ void PathInterface::drawWeightNode(Path *path, PathWeightNode *weight, int isfor
 
 	if (isfornew==1) {
 		 //adding
-		dp->LineWidthScreen(2);
+		dp->LineWidthScreen(3*thin);
 		dp->NewFG(0.,.75,0.);
 	} else if (isfornew==-1) {
 		 //removing 
-		dp->LineWidthScreen(3);
+		dp->LineWidthScreen(3*thin);
 		dp->NewFG(.75,0.,0.);
-	} else dp->LineWidthScreen(1);
+	} else dp->LineWidthScreen(1*thin);
 
 
-	 //draw arrow heads
+	 //draw main arrow heads
 	if (isfornew==2) {
 		if (drawhover==HOVER_WeightTop)
-			 dp->LineWidthScreen(3);
-		else dp->LineWidthScreen(1);
+			 dp->LineWidthScreen(3*thin);
+		else dp->LineWidthScreen(1*thin);
 	}
-	dp->drawline(ptop    + arc/3*(-vv+vt), ptop);
-	dp->drawline(ptop                  , ptop   +arc/3*(vv+vt));
-	if (isfornew==2 && drawhover==HOVER_WeightBottom)
-		 dp->LineWidthScreen(3);
-	else dp->LineWidthScreen(1);
+	dp->drawline(ptop + arc/3*(-vv+vt), ptop);
+	dp->drawline(ptop, ptop + arc/3*(vv+vt));
+
+	if (isfornew==2) {
+		if (drawhover==HOVER_WeightBottom)
+			dp->LineWidthScreen(3*thin);
+		else dp->LineWidthScreen(1*thin);
+	}
 	dp->drawline(pbottom + arc/3*(-vv-vt), pbottom);
 	dp->drawline(pbottom               , pbottom+arc/3*(vv-vt));
 
 	 //draw curve connecting the arrow heads
 	if (isfornew==2) {
-		if (drawhover==HOVER_WeightTop || drawhover==HOVER_WeightBottom || drawhover==HOVER_WeightAngle)
-			 dp->LineWidthScreen(1);
-		else dp->LineWidthScreen(3);
+		if (drawhover == HOVER_WeightPosition)
+			 dp->LineWidthScreen(3*thin);
+		else dp->LineWidthScreen(1*thin);
 	}
 	dp->moveto(ptop);
 	dp->curveto(ptop + 1.33*arc*vt,
@@ -5490,18 +5576,41 @@ void PathInterface::drawWeightNode(Path *path, PathWeightNode *weight, int isfor
 	dp->stroke(0);
 
 	 //draw angle arrows
-	if (isfornew==2) {
-		DBG cerr <<" ********** maybe draw 3 weight drawhover:"<<drawhover<<endl;
-		if (drawhover==HOVER_WeightAngle) {
-			dp->LineWidthScreen(3);
-			DBG cerr <<" ********** draw 3 weight"<<endl;
-		}
+	if (isfornew == 2) {
+		if (drawhover == HOVER_WeightAngle) {
+			dp->LineWidthScreen(3 * thin);
+		} else dp->LineWidthScreen(1 * thin);
 	}
 	dp->moveto(ptop + 1.4*arc*vt + .3*arc*vv);
 	dp->lineto(ptop +     arc*vt);
 	dp->curveto(ptop+2.33*arc*vt, ptop + 2.33*arc*vt - arc*vv, ptop + arc*vt - arc*vv);
 	dp->lineto(ptop + 1.4*arc*vt - arc*vv - .3*arc*vv);
 	dp->stroke(0);
+
+	//draw offset arrows
+	if (!(pathi_style & PATHI_No_Offset)) {
+		if (isfornew == 2) {
+			if (drawhover == HOVER_WeightOffset) {
+				dp->LineWidthScreen(3 * thin);
+			} else {
+				dp->LineWidthScreen(1 * thin);
+			}
+		}
+		pp = pbottom - arc/2 * vv - 1.5 * arc * vt;
+		po = pbottom - arc/2 * vv - 3.0 * arc * vt;
+		dp->moveto(pp);
+		dp->lineto(po);
+
+		double sz = .25;
+		dp->moveto(pp - sz * arc * vv - sz * arc * vt);
+		dp->lineto(pp);
+		dp->lineto(pp + sz * arc * vv - sz * arc * vt);
+
+		dp->moveto(po - sz * arc * vv + sz * arc * vt);
+		dp->lineto(po);
+		dp->lineto(po + sz * arc * vv + sz * arc * vt);
+		dp->stroke(0);
+	}
 
 	dp->DrawReal();
 }
@@ -5694,6 +5803,29 @@ flatpoint PathInterface::screentoreal(int x,int y)
 	return anInterface::screentoreal(x,y);
 }
 
+/*! Return whether coord is part of a tonext-vertex-toprev cluster, any of which is currently seleceted.
+ */
+bool PathInterface::IsNearSelected(Coordinate *coord)
+{
+	if (curpoints.findindex(coord) >= 0) return true;
+
+	while (coord->flags & POINT_TOPREV && coord->prev) coord = coord->prev;
+	while (coord->prev && (coord->prev->flags & POINT_TONEXT)) coord = coord->prev;
+
+	while (coord->flags & POINT_TONEXT) {
+		if (curpoints.findindex(coord) >= 0) return true;
+		coord = coord->next;
+	}
+	if (curpoints.findindex(coord) >= 0) return true;
+	coord = coord->next;
+	while (coord && coord->flags & POINT_TOPREV) {
+		if (curpoints.findindex(coord) >= 0) return true;
+		coord = coord->next;
+	}
+
+	return false;
+}
+
 //! Scan within real radius of p. If (u) then point has to be unselected
 /*! Meant to be called in order to start a scan underneath a given point.
  *
@@ -5720,6 +5852,8 @@ Coordinate *PathInterface::scannear(Coordinate *p,char u,double radius) //***rad
  *
  * needtotransform==1 means transform with realtoscreen().
  * needtotransform==2 means transform with dp->realtoscreen().
+ *
+ * vv_ret and vt_ret are normalized.
  */
 int PathInterface::WeightNodePosition(Path *path, PathWeightNode *weight,
 									  flatpoint *pp_ret, flatpoint *po_ret, flatpoint *ptop_ret, flatpoint *pbottom_ret,
@@ -5782,6 +5916,9 @@ int PathInterface::scanWeights(int x,int y,unsigned int state, int *pathindex, i
 	 //   |        vt
 	 //   |  ^      |
 	 //   \--/      v
+	 //    ^
+	 //    |
+	 //    v
 
 	if (!show_weights || !data) return HOVER_None;
 
@@ -5827,6 +5964,11 @@ int PathInterface::scanWeights(int x,int y,unsigned int state, int *pathindex, i
 				*index=cw;
 				*pathindex=c;
 				return HOVER_WeightBottom;
+			}
+			if (yyb <= -arc && yyb >-3*arc) {
+				*index = cw;
+				*pathindex = c;
+				return HOVER_WeightOffset;
 			}
 		}
 	}
@@ -5954,12 +6096,14 @@ Coordinate *PathInterface::scan(int x,int y,int pmask, int *pathindex) // pmask=
 	//flatpoint point=dp->screentoreal(x,y);
 
 	// scan for selected points first, going down from top of stack
-	//***only check the top of the stack (for now)
-	if (curpoints.n) {
-		cp=curpoints.e[curpoints.n-1];
-		p=realtoscreen(cp->p());
-		if ((!pmask || (pmask && cp->iid==pmask)) && (p.x-x)*(p.x-x)+(p.y-y)*(p.y-y)<SELECTRADIUS2) return cp;
+	for (int c=curpoints.n-1; c >= 0; c--) {
+		cp = curpoints.e[c];
+		if (pmask && cp->iid != pmask) continue;
+		p = realtoscreen(transform_point(datam(),cp->p())) - flatpoint(x,y);
+		if (p.norm() < NearThreshhold()) return cp;
 	}
+
+	if (!show_points) return nullptr;
 
 	// scan for vertex points
 	PathOperator *op=NULL;
@@ -5996,25 +6140,36 @@ Coordinate *PathInterface::scan(int x,int y,int pmask, int *pathindex) // pmask=
 	DBG cerr <<"path scan pmask: "<<pmask<<endl;
 	if (pmask) return NULL; //don't scan for controls when there is an active pathop
 
+	// scan for control points of curpoints
+	if (show_points == 1) {
+
+	}
+
 	// scan for control points
+	// if (show_points == 2) {}
 	for (c=0; c<data->paths.n; c++) { //only search for normal control points, controlled was checked above
-		start=cp=data->paths.e[c]->path; //*** doesn't check that paths.e[c] exists, should be ok, though
+		start = cp = data->paths.e[c]->path; //*** doesn't check that paths.e[c] exists, should be ok, though
 		//DBG cerr <<" path scan for controls on 1. path "<<c<<"/"<<data->paths.n<<endl;
 		if (cp) {
 			//DBG cerr <<" path scan for controls on path "<<c<<endl;
-			cp=cp->firstPoint(0);
-			start=cp;
+			cp = cp->firstPoint(0);
+			start = cp;
 			do {
-				if (!cp->controls && !(cp->flags&POINT_VERTEX) ) {
-					p=realtoscreen(transform_point(datam(),cp->p()));
-					if ((p.x-x)*(p.x-x)+(p.y-y)*(p.y-y)<SELECTRADIUS2) {
+				if (!cp->controls && !(cp->flags & POINT_VERTEX) ) {
+					if (hide_other_controls && !IsNearSelected(cp)) {
+						cp = cp->next;
+						continue;
+					}
+
+					p = realtoscreen(transform_point(datam(),cp->p()));
+					if ((p.x-x)*(p.x-x)+(p.y-y)*(p.y-y) < SELECTRADIUS2) {
 						//DBG cerr <<" path scan found control on "<<c<<endl;
-						if (pathindex) *pathindex=c;
+						if (pathindex) *pathindex = c;
 						return cp;
 					}
 				}
-				cp=cp->next;
-			} while (cp && cp!=start);
+				cp = cp->next;
+			} while (cp && cp != start);
 		}
 		//DBG cerr <<" path scan for controls on 2. path "<<c<<"/"<<data->paths.n<<endl;
 	}
@@ -6092,8 +6247,13 @@ Laxkit::MenuInfo *PathInterface::ContextMenu(int x,int y,int deviceid, MenuInfo 
 	//if (***multiple path objects) menu->AddItem(_("Combine"),PATHIA_Combine);
 	// *** need mechanism to insert custom path actions
 
+	// misc decoration showing
+	if (menu->n()) menu->AddSep();
+
+	menu->AddToggleItem(_("Show points"),  PATHIA_ToggleShowPoints, 0, show_points);
+	menu->AddToggleItem(_("Hide other controls"),  PATHIA_ToggleHideControls, 0, hide_other_controls);
+
 	if (!(pathi_style&PATHI_No_Weights)) {
-		if (menu->n()) menu->AddSep();
 		menu->AddToggleItem(_("Show base and center lines"), PATHIA_ToggleBaseline, 0, show_baselines);
 		menu->AddToggleItem(_("Show weight nodes"), PATHIA_ToggleWeights, 0, show_weights);
 
@@ -6106,6 +6266,7 @@ Laxkit::MenuInfo *PathInterface::ContextMenu(int x,int y,int deviceid, MenuInfo 
 	//misc actions
 	if (data) {
 		if (menu->n()) menu->AddSep();
+
 		if (data->Angled()) {
 			menu->AddItem(_("Reset angle"),PATHIA_ResetAngle);
 		}
@@ -6121,11 +6282,10 @@ Laxkit::MenuInfo *PathInterface::ContextMenu(int x,int y,int deviceid, MenuInfo 
 			//menu->AddItem(_("Break apart all"),PATHIA_BreakApart);
 			//menu->AddItem(_("Break apart chunks"),PATHIA_BreakApartChunks);
 		}
+		menu->AddItem(_("Save as a Shape Brush"), PATHIA_SaveAsShapeBrush);
 	}
 
 	//menu->AddItem(_("Combine"),PATHIA_***);
-
-
 
 	return menu;
 }
@@ -6134,44 +6294,11 @@ Laxkit::MenuInfo *PathInterface::ContextMenu(int x,int y,int deviceid, MenuInfo 
 int PathInterface::Event(const Laxkit::EventData *e_data, const char *mes)
 {
 	if (!strcmp(mes,"menuevent")) {
-		const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(e_data);
-		int i =s->info2; //id of menu item
+		const SimpleMessage *s = dynamic_cast<const SimpleMessage*>(e_data);
+		int i = s->info2; //id of menu item
 
-		if (i==PATHIA_StartNewSubpath
-				|| i==PATHIA_StartNewPath
-				|| i==PATHIA_Bevel      
-				|| i==PATHIA_Miter      
-				|| i==PATHIA_Round      
-				|| i==PATHIA_Extrapolate
-
-				|| i==PATHIA_CapButt
-				|| i==PATHIA_CapRound
-				|| i==PATHIA_CapZero
-
-				|| i==PATHIA_EndCapSame
-				|| i==PATHIA_EndCapButt
-				|| i==PATHIA_EndCapRound
-				|| i==PATHIA_EndCapZero
-
-				|| i==PATHIA_PointTypeSmooth
-				|| i==PATHIA_PointTypeSmoothUnequal
-				|| i==PATHIA_PointTypeCorner
-
-				|| i==PATHIA_ToggleBaseline
-				|| i==PATHIA_ToggleWeights
-				|| i==PATHIA_ToggleAbsAngle
-				|| i==PATHIA_ApplyOffset
-				|| i==PATHIA_ResetOffset
-				|| i==PATHIA_MakeStraight
-				|| i==PATHIA_MakeBezStraight
-				|| i==PATHIA_ResetAngle
-				|| i==PATHIA_NewFromStroke
-				|| i==PATHIA_BreakApart
-				|| i==PATHIA_BreakApartChunks
-
-				|| i == PATHIA_CutSegment
-				)
-				PerformAction(i);
+		if (i > PATHIA_None && i < PATHIA_MAX) PerformAction(i);
+		
 		return 0;
 	}
 
@@ -6233,6 +6360,7 @@ int PathInterface::LBDown(int x,int y,unsigned int state,int count,const LaxMous
 			|| drawhover == HOVER_WeightBottom
 			|| drawhover == HOVER_WeightPosition
 			|| drawhover == HOVER_WeightAngle
+			|| drawhover == HOVER_WeightOffset
 			|| drawhover == HOVER_AddWeightNode
 			|| drawhover == HOVER_RemoveWeightNode
 			|| drawhover == HOVER_CutSegment
@@ -6775,7 +6903,7 @@ int PathInterface::LBUp(int x,int y,unsigned int state,const LaxMouse *d)
 		PerformAction(PATHIA_CutSegment);
 		return 0;
 
-	} else if (action==HOVER_AddWeightNode) {
+	} else if (action == HOVER_AddWeightNode) {
 		int pathi=-1;
 		double t;
 		data->ClosestPoint(hoverpoint, NULL,NULL,&t, &pathi);
@@ -7178,6 +7306,7 @@ void PathInterface::hoverMessage()
 	else if (drawhover == HOVER_WeightTop)        mes = _("Drag weight node top");
 	else if (drawhover == HOVER_WeightBottom)     mes = _("Drag weight node bottom");
 	else if (drawhover == HOVER_WeightAngle)      mes = _("Drag weight node angle");
+	else if (drawhover == HOVER_WeightOffset)     mes = _("Drag path offset");
 	else if (drawhover == HOVER_Direction)        mes = _("Click to flip add direction, or drag to select next add");
 	
 	PostMessage(mes);
@@ -7194,7 +7323,8 @@ int PathInterface::MouseMove(int x,int y,unsigned int state,const LaxMouse *mous
 	DBG flatpoint fp=dp->screentoreal(x,y);
 	DBG cerr <<"path mousemove: "<<fp.x<<','<<fp.y;
 	DBG fp=screentoreal(x,y);
-	DBG cerr <<"  rts: "<<fp.x<<','<<fp.y<<endl;
+	DBG cerr <<"path  rts: "<<fp.x<<','<<fp.y<<endl;
+	DBG cerr <<"path  drawhover: "<<drawhover<<endl;
 
 
 	if (!buttondown.isdown(mouse->id,LEFTBUTTON)) {
@@ -7256,18 +7386,20 @@ int PathInterface::MouseMove(int x,int y,unsigned int state,const LaxMouse *mous
 
 		 //else maybe over weight nodes
 		if (show_weights) {
-			drawhover=scanWeights(x,y,state, &drawpathi, &drawhoveri);
-			//DBG if (drawhover!=HOVER_None) cerr <<" mouseover found weight element: "<<drawhover<<endl;
-		}
+			drawhover = scanWeights(x,y,state, &drawpathi, &drawhoveri);
 
-		if ((state&LAX_STATE_MASK)==(ShiftMask|ControlMask)
-			  && (drawhover==HOVER_WeightPosition || drawhover==HOVER_WeightTop
-				  || drawhover==HOVER_WeightBottom || drawhover==HOVER_WeightAngle)) {
-			drawhover=HOVER_RemoveWeightNode;
+			if ((state&LAX_STATE_MASK)==(ShiftMask|ControlMask)
+				  && (drawhover==HOVER_WeightPosition
+				   || drawhover==HOVER_WeightTop
+				   || drawhover==HOVER_WeightBottom
+				   || drawhover==HOVER_WeightAngle
+				   || drawhover==HOVER_WeightOffset)) {
+				drawhover = HOVER_RemoveWeightNode;
+			}
 		}
 
 		 //else maybe something else to hover over:
-		if (drawhover==HOVER_None) drawhover=scanHover(x,y,state, &drawpathi);
+		if (drawhover == HOVER_None) drawhover = scanHover(x,y,state, &drawpathi);
 
 		if (drawhover==HOVER_AddWeightNode) {
 			 // *** should grab characteristics from the found path...
@@ -7279,13 +7411,17 @@ int PathInterface::MouseMove(int x,int y,unsigned int state,const LaxMouse *mous
 				defaultweight.width=data->linestyle->width;
 		}
 
-		if (drawhover!=oldhover || drawpathi!=oldpathi || drawhoveri!=oldhoveri || drawhover==HOVER_AddPointOn || drawhover==HOVER_AddWeightNode) {
+		if (drawhover != oldhover
+		 || drawpathi != oldpathi
+		 || drawhoveri != oldhoveri
+		 || drawhover == HOVER_AddPointOn
+		 || drawhover == HOVER_AddWeightNode) {
 			needtodraw=1;
 			hoverMessage();
 		}
 		return 0;
 	}
-	
+
 	//now left button down assumed..
 	if (!data) return 0;
 
@@ -7366,7 +7502,7 @@ int PathInterface::MouseMove(int x,int y,unsigned int state,const LaxMouse *mous
 		needtodraw=1;
 		return 0;
 
-	} else if (action==HOVER_WeightTop || action==HOVER_WeightBottom) {
+	} else if (action==HOVER_WeightTop || action==HOVER_WeightBottom || action == HOVER_WeightOffset) {
 		if (drawpathi<0) return 0;
 
 		Path *path=data->paths.e[drawpathi];
@@ -7394,32 +7530,33 @@ int PathInterface::MouseMove(int x,int y,unsigned int state,const LaxMouse *mous
 		double boffset=weight->bottomOffset();
 		double dd=d*vt;
 
-		if (action==HOVER_WeightTop) {
-			toffset+=dd;
+		if (action == HOVER_WeightTop) {
+			toffset += dd;
 
-			if (!(pathi_style&PATHI_No_Offset) && (state&LAX_STATE_MASK)==ShiftMask)
-				boffset+=dd; //offset whole width with shift
-			else if (!(pathi_style&PATHI_No_Offset) && (state&LAX_STATE_MASK)==ControlMask)
+			if (!(pathi_style&PATHI_No_Offset) && (state&LAX_STATE_MASK)==ControlMask)
 				; //do nothing to bottom when control to move only one arrow
-			else boffset-=dd;
+			else boffset -= dd;
 
-		} else { //action==HOVER_WeightBottom
-			boffset+=dd;
+		} else if (action == HOVER_WeightBottom) {
+			boffset += dd;
 
-			if (!(pathi_style&PATHI_No_Offset) && (state&LAX_STATE_MASK)==ShiftMask)
-				toffset+=dd; //offset whole width with shift
-			else if (!(pathi_style&PATHI_No_Offset) && (state&LAX_STATE_MASK)==ControlMask)
+			if (!(pathi_style&PATHI_No_Offset) && (state&LAX_STATE_MASK)==ControlMask)
 				; //do nothing to top when control to move only one arrow
-			else toffset-=dd;
+			else toffset -= dd;
+		} else { // action == HOVER_WeightOffset
+			if (!(pathi_style & PATHI_No_Offset)) {
+				toffset += dd;
+				boffset += dd;
+			}
 		}
 
-		weight->width=toffset-boffset;
-		weight->offset=(toffset+boffset)/2;
+		weight->width  = toffset-boffset;
+		weight->offset = (toffset+boffset)/2;
 
-		if (weight->width<0) {
-			if (action==HOVER_WeightTop) action=HOVER_WeightBottom; else action=HOVER_WeightTop;
+		if (weight->width < 0) {
+			if (action == HOVER_WeightTop) action=HOVER_WeightBottom; else action=HOVER_WeightTop;
 			buttondown.moveinfo(mouse->id,LEFTBUTTON, state,action);
-			weight->width=-weight->width;
+			weight->width = -weight->width;
 		}
 
 		data->line(weight->width);
@@ -7590,18 +7727,7 @@ int PathInterface::MouseMove(int x,int y,unsigned int state,const LaxMouse *mous
 
 	Modified(0);
 
-	// *** shortcut to not have to parse curpoints...
-	for (int c=0; c<data->paths.n; c++) data->paths.e[c]->needtorecache=1;
-
-
-// ***** These can be imp as PathInterface modes??
-//	*** flip
-//	*** circle arrange
-//	*** bez arrange
-//	*** distribute
-//	*** shear
-//	*** other arrange??
-
+	data->Recache(false);
 	return 0;
 }
 
@@ -7630,6 +7756,7 @@ Laxkit::ShortcutHandler *PathInterface::GetShortcuts()
 	sc->Add(PATHIA_TogglePointType,   'p',0,0,        "PointType",    _("Change point type"),NULL,0);
 	sc->Add(PATHIA_Select,            'a',0,0,        "Select",       _("Select all or deselect"),NULL,0);
 	sc->Add(PATHIA_SelectInPath,      'A',ShiftMask,0,"SelectInPath", _("Select all in path or deselect"),NULL,0);
+	sc->Add(PATHIA_SelectInvert,      'i',ControlMask,0,"SelectInvert",_("Invert selection"),NULL,0);
 	sc->Add(PATHIA_Close,             'c',0,0,        "ToggleClosed", _("Toggle closed"),NULL,0);
 	sc->Add(PATHIA_CutSegment,        'C',ShiftMask,0,"CutSegment",   _("Cut next segment"),NULL,0);
 	sc->Add(PATHIA_Decorations,       'd',0,0,        "Decorations",  _("Toggle decorations"),NULL,0);
@@ -7651,15 +7778,15 @@ Laxkit::ShortcutHandler *PathInterface::GetShortcuts()
 	sc->Add(PATHIA_FlipVertically,    'v',0,0,        "FlipVertically",  _("Flip selected points vertically"),NULL,0);
 	sc->Add(PATHIA_FlipHorizontally,  'h',0,0,        "FlipHorizontally",_("Flip selected points horizontally"),NULL,0); 
 
-	sc->Add(PATHIA_ApplyOffset,       '_',ControlMask|ShiftMask,0,  "ApplyOffset",  _("Apply offset to current paths"),NULL,0);
-	sc->Add(PATHIA_ResetOffset,       '|',ControlMask|ShiftMask,0,  "ResetOffset",  _("Make offset values (if any) be 0 of current paths"),NULL,0);
+	sc->Add(PATHIA_ApplyOffset,       '_',ControlMask|ShiftMask,0, "ApplyOffset", _("Apply offset to current paths"),NULL,0);
+	sc->Add(PATHIA_ResetOffset,       '|',ControlMask|ShiftMask,0, "ResetOffset", _("Make offset values (if any) be 0 of current paths"),NULL,0);
 	sc->Add(PATHIA_MakeStraight,      '\\',ControlMask,0,"MakeStraight",    _("Make segments of current points be straight"),NULL,0);
 	sc->Add(PATHIA_MakeBezStraight,   '\\',0,0,          "MakeBezStraight", _("Make segments of current points be straight with bezier handles"),NULL,0);
 	sc->Add(PATHIA_ResetAngle,        '<',ShiftMask,0,   "ResetAngle",      _("Make weight angles be zero, and set to not absolute angles"),NULL,0);
 
 	//sc->Add(PATHIA_Combine,           'k',ControlMask,0,    "Combine",      _("Combine multiple path objects into a single path object"),NULL,0);
-	//sc->Add(PATHIA_ExtractPath,       'K',ShiftMask,0,      "ExtractPath",  _("Move paths of current points to a new path object"),NULL,0);
-	//sc->Add(PATHIA_ExtractAll,        'K',ControlMask|ShiftMask,0,"ExtractPaths", _("Create new path objects of each subpath"),NULL,0);
+	//sc->Add(PATHIA_BreakApart,        'K',ShiftMask,0,      "BreakApart",   _("Break paths of current points to new path objects"),NULL,0);
+	//sc->Add(PATHIA_BreakApartChunks,  'K',ControlMask|ShiftMask,0,"BreakApartChunks", _("Break subpaths into new objects, preserving holes"),NULL,0);
 	//sc->Add(PATHIA_Copy,              'c',ControlMask,0,    "Copy",         _("Copy current points to clipboard"),NULL,0);
 	//sc->Add(PATHIA_Cut,               'x',ControlMask,0,    "Cut",          _("Delete selected points"),NULL,0);
 	//sc->Add(PATHIA_Paste,             'v',ControlMask,0,    "Paste",        _("Paste clipboard if it is points"),NULL,0);
@@ -7670,6 +7797,9 @@ Laxkit::ShortcutHandler *PathInterface::GetShortcuts()
 
 int PathInterface::PerformAction(int action)
 {
+	last_action = recent_action;
+	recent_action = action;
+
 	if (action==PATHIA_CurpointOnHandle || action==PATHIA_CurpointOnHandleR) {
 		//toggle between being on a vertex, next point, or prev point
 		
@@ -7739,12 +7869,39 @@ int PathInterface::PerformAction(int action)
 		}
 		return 0;
 
-	} else if (action==PATHIA_FlipHorizontally) {
-		cerr << " *** must implement PATHIA_FlipHorizontally!"<<endl;
+	} else if (action == PATHIA_ToggleShowPoints) {
+		show_points = !show_points;
+		needtodraw = 1;
 		return 0;
 
-	} else if (action==PATHIA_FlipVertically) {
-		cerr << " *** must implement PATHIA_FlipVertically!"<<endl;
+	} else if (action == PATHIA_ToggleHideControls) {
+		hide_other_controls = !hide_other_controls;
+		needtodraw = 1;
+		return 0;
+
+	} else if (action==PATHIA_FlipHorizontally || action==PATHIA_FlipVertically) {
+		if (!data || !curpoints.n) {
+			PostMessage(_("No points to flip!"));
+			return 0;
+		}
+
+		DoubleBBox box;
+		for (int c=0; c<curpoints.n; c++) {
+			box.addtobounds(curpoints.e[c]->p());
+		}
+
+		for (int c=0; c<curpoints.n; c++) {
+			flatpoint fp = curpoints.e[c]->p();
+			if (action == PATHIA_FlipHorizontally)
+				fp.x = box.maxx - (fp.x - box.minx);
+			else fp.y = box.maxy - (fp.y - box.miny);
+			curpoints.e[c]->p(fp);
+		}
+
+		data->Recache();
+		data->FindBBox();
+		PostMessage(_("Points flipped"));
+		needtodraw = 1;
 		return 0;
 
 	} else if (action==PATHIA_Pathop) {
@@ -7761,6 +7918,25 @@ int PathInterface::PerformAction(int action)
 		}
 
 		ChangeCurpathop(idofnew);
+		return 0;
+
+	} else if (action==PATHIA_Copy) {
+		// copy points .. from a path only? copy preserving subpaths?
+		PostMessage(_("NEED TO IMPLEMENT PATHIA_Copy"));
+		return 0;
+
+	} else if (action==PATHIA_Cut) {
+		PostMessage(_("NEED TO IMPLEMENT PATHIA_Cut"));
+		return 0;
+
+	} else if (action==PATHIA_Paste) {
+		// 
+		PostMessage(_("NEED TO IMPLEMENT PATHIA_Paste"));
+		return 0;
+
+	} else if (action==PATHIA_Subdivide) {
+		// if previous action was subdivide, unsubdivide then subdivide with other number
+		PostMessage(_("NEED TO IMPLEMENT PATHIA_Subdivide"));
 		return 0;
 
 	} else if (action==PATHIA_ToggleAbsAngle) {
@@ -7966,6 +8142,33 @@ int PathInterface::PerformAction(int action)
 			}
 		}
 		needtodraw=1;
+		return 0;
+
+	} else if (action==PATHIA_SelectInvert) {
+		if (curpoints.n == 0) PerformAction(PATHIA_Select);
+		Laxkit::PtrStack<Coordinate> points;
+		Coordinate *p,*p2=NULL,*pt;
+		for (int c=0; c<data->paths.n; c++) {
+			p = data->paths.e[c]->path;
+			if (p) {
+				p2 = p = p->firstPoint(0);
+				do {
+					if (curpoints.findindex(p2) < 0) points.push(p2,0);
+					if (p2->controls) {
+						 //select as curpoint only 1 point in a controlled segment
+						pt = p2;
+						while (p2 && p2->controls==pt->controls) p2=p2->next;
+					} else p2 = p2->next;
+				} while (p2 && p2!=p);
+			}
+		}
+		int n;
+		char *local = nullptr;
+		Coordinate **e = points.extractArrays(&local, &n);
+		curpoints.insertArrays(e,local,n);
+		needtodraw = 1;
+
+		PostMessage(_("Selection inverted"));
 		return 0;
 
 	} else if (action==PATHIA_SelectInPath) {
@@ -8208,6 +8411,23 @@ int PathInterface::PerformAction(int action)
 
 	} else if (action==PATHIA_BreakApartChunks) {
 		PostMessage(" *** need to implement PATHIA_BreakApartChunks!!");
+		return 0;
+
+	} else if (action == PATHIA_SaveAsShapeBrush) {
+		if (!data) return 0;
+		if (data->IsEmpty()) {
+			PostMessage(_("Shape brushes can't be empty"));
+			return 0;
+		}
+		InterfaceManager *imanager = InterfaceManager::GetDefault(true);
+		ResourceManager *rm = imanager->GetResourceManager();
+
+		ShapeBrush *brush = new ShapeBrush();
+		brush->CopyFrom(data);
+		brush->Id(data->Id());
+	
+		rm->AddResource("ShapeBrush", brush, nullptr, brush->Id(), brush->Id(), nullptr, nullptr, nullptr, false);
+		brush->dec_count();
 		return 0;
 	}
 

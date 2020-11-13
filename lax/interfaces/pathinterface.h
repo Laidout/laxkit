@@ -29,6 +29,7 @@
 #include <lax/interfaces/linestyle.h>
 #include <lax/interfaces/fillstyle.h>
 #include <lax/interfaces/lineprofile.h>
+// #include <lax/interfaces/shapebrush.h>
 #include <lax/curveinfo.h>
 #include <lax/screencolor.h>
 #include <lax/dump.h>
@@ -42,6 +43,7 @@ namespace LaxInterfaces {
 class PathsData;
 class PathOperator;
 class LineProfile;
+class ShapeBrush;
 
 
 //These are added to Coordinate::flags, and devs should ensure they do not conflict with normal flags
@@ -91,6 +93,7 @@ class Path : public LaxFiles::DumpUtility, public Laxkit::DoubleBBox
 
 	LineStyle *linestyle;
 	LineProfile *profile;
+	ShapeBrush *brush;
 	double defaultwidth;
 	bool absoluteangle; //1==absolute, or 0==relative to direction to path, wich angle==0 do default
 
@@ -104,8 +107,8 @@ class Path : public LaxFiles::DumpUtility, public Laxkit::DoubleBBox
 	Laxkit::CurveInfo cache_angle;
 	Laxkit::NumStack<flatpoint> outlinecache; //bezier c-v-c-...
 	Laxkit::NumStack<flatpoint> centercache; //bezier c-v-c-...
-	Laxkit::NumStack<flatpoint> cache_top; //bezier c-v-c-...
-	Laxkit::NumStack<flatpoint> cache_bottom; //bezier c-v-c-...
+	Laxkit::NumStack<flatpoint> cache_top; //bezier c-v-c-... like top half of outline cache without joins
+	Laxkit::NumStack<flatpoint> cache_bottom; //bezier c-v-c-... like bottom half of outline cache without joins
 	virtual void UpdateS(bool all, int resolution=16);
 	virtual void UpdateCache();
 	virtual void UpdateWidthCache();
@@ -135,8 +138,10 @@ class Path : public LaxFiles::DumpUtility, public Laxkit::DoubleBBox
 	virtual Coordinate *addAt(double t);
 	virtual int addAt(Coordinate *curvertex, Coordinate *np, int after);
 	virtual void clear();
+
 	virtual int Line(LineStyle *nlinestyle);
 	virtual int LineColor(Laxkit::ScreenColor *ncolor);
+	virtual int UseShapeBrush(ShapeBrush *newbrush);
 	virtual int RemoveDoubles(double threshhold);
 	virtual int Reverse();
 
@@ -170,6 +175,7 @@ class Path : public LaxFiles::DumpUtility, public Laxkit::DoubleBBox
 	virtual int NumVertices(bool *isclosed_ret);
 	virtual bool IsClosed();
 	virtual int GetIndex(Coordinate *p, bool ignore_controls);
+	virtual int Contains(Path *otherpath);
 
 	virtual int ApplyLineProfile(LineProfile *p, bool linked);
 	virtual int ApplyLineProfile();
@@ -222,6 +228,7 @@ class PathsData : virtual public SomeData
 	virtual int SetOffset(int whichpath, double towhat);
 	virtual int SetAngle(int whichpath, double towhat, int absolute);
 	virtual int MakeStraight(int whichpath, Coordinate *from, Coordinate *to, bool asbez);
+	virtual bool IsEmpty();
 
 	virtual int hasCoord(Coordinate *co);
 	virtual int pathHasCoord(int pathindex,Coordinate *co);
@@ -345,6 +352,7 @@ enum PathInterfaceSettings {
 };
 
 enum PathInterfaceActions {
+	PATHIA_None = 0,
 	PATHIA_CurpointOnHandle,
 	PATHIA_CurpointOnHandleR,
 	PATHIA_Pathop,
@@ -364,6 +372,7 @@ enum PathInterfaceActions {
 	PATHIA_PointTypeCorner,
 	PATHIA_Select,
 	PATHIA_SelectInPath,
+	PATHIA_SelectInvert,
 	PATHIA_FlipVertically,
 	PATHIA_FlipHorizontally,
 	PATHIA_Close,
@@ -373,6 +382,7 @@ enum PathInterfaceActions {
 	PATHIA_StartNewSubpath,
 	PATHIA_ToggleWeights,
 	PATHIA_ToggleShowPoints,
+	PATHIA_ToggleHideControls,
 	PATHIA_Wider,
 	PATHIA_Thinner,
 	PATHIA_WidthStep,
@@ -386,21 +396,20 @@ enum PathInterfaceActions {
 	PATHIA_ResetAngle,
 	PATHIA_Reverse,
 	PATHIA_Delete,
-	PATHIA_Combine,
-	PATHIA_ExtractPath,
-	PATHIA_ExtractAll,
-	PATHIA_Copy,
-	PATHIA_Cut,
-	PATHIA_Paste,
-	PATHIA_ShowNumbers,
-	PATHIA_NewFromStroke,
-	PATHIA_BreakApart,
-	PATHIA_BreakApartChunks,
-	PATHIA_Subdivide,
-	PATHIA_SubdivideExtrema,
-	PATHIA_SubdivideExtremaH,
-	PATHIA_SubdivideExtremaV,
-	PATHIA_SubdivideInflection,
+	PATHIA_SaveAsShapeBrush,
+	PATHIA_Combine, //todo
+	PATHIA_BreakApart, //todo
+	PATHIA_BreakApartChunks, //todo
+	PATHIA_Copy, //todo
+	PATHIA_Cut, //todo
+	PATHIA_Paste, //todo
+	PATHIA_ShowNumbers, //todo
+	PATHIA_NewFromStroke, //todo
+	PATHIA_Subdivide, //todo
+	PATHIA_SubdivideExtrema, //todo
+	PATHIA_SubdivideExtremaH, //todo
+	PATHIA_SubdivideExtremaV, //todo
+	PATHIA_SubdivideInflection, //todo
 
 	PATHIA_Bevel,
 	PATHIA_Miter,
@@ -428,7 +437,8 @@ class PathInterface : public anInterface
 		ObjectContext *context; //nonlocal ref to context in selection
 		PathsData *paths;
 		int pathindex;
-		Coordinate *point; //if null, then index is which weight node
+		Coordinate *point; //if !null, then index is point (not vertex) index in the path
+		PathWeightNode *weight; //if !null, then index is in weight stack
 		int index;
 	};
 	//Laxkit::PtrStack<SelectedPoint> curpoints;
@@ -464,6 +474,7 @@ class PathInterface : public anInterface
 	flatpoint hoversegment[4];
 	Laxkit::Affine extram;
 	int lasth; //direction of toggling selected handle
+	int last_action, recent_action;
 
 	int show_addpoint; //0 no, 1 one bez segs, 2 two bez segs (adding within line)
 	flatpoint add_point_hint[6];
@@ -481,6 +492,7 @@ class PathInterface : public anInterface
 	virtual void selectPoint(Coordinate *p,char flag);
 	virtual void removeSegment(Coordinate *c);
 	virtual Coordinate *scannear(Coordinate *p,char u,double radius=5);
+	virtual bool IsNearSelected(Coordinate *coord);
 	virtual void SetCurvertex(Coordinate *p, int path=-1);
 	virtual void UpdateAddHint();
 	virtual void UpdateDir();
@@ -510,6 +522,8 @@ class PathInterface : public anInterface
 	unsigned long creationstyle;
 	unsigned long pathi_style;
 	bool show_weights;
+	bool show_points; //0 no, 1 v + c of current, 2 all points
+	bool hide_other_controls;
 	bool show_baselines;
 	bool show_outline;
 	double arrow_size;

@@ -19,8 +19,8 @@
 //
 //    Copyright (C) 2020 by Tom Lechner
 //
-#ifndef _LAX_SHAPEBRUSH_H
-#define _LAX_SHAPEBRUSH_H
+#ifndef _LAX_INTERFACES_SHAPEBRUSH_H
+#define _LAX_INTERFACES_SHAPEBRUSH_H
 
 #include <lax/interfaces/pathinterface.h>
 
@@ -31,12 +31,14 @@ namespace LaxInterfaces {
 class ShapeBrush : public PathsData
 {
   protected:
-  	bool needotoremap;
+  	bool needtoremap;
   	flatpoint last_dir;
-	Laxkit::NumStack<flatpoint> last_minmax;
+    Laxkit::NumStack<flatpoint> last_minmax;
 
   	typedef Laxkit::NumStack<flatpoint> FlatpointLine;
   	Laxkit::PtrStack<FlatpointLine> remapped;
+
+    virtual void Remap();
 
   public:
   	ShapeBrush();

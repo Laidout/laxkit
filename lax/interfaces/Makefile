@@ -43,6 +43,7 @@ objs= \
 	imagepatchinterface.o\
 	lineprofile.o \
 	pathinterface.o \
+	shapebrush.o \
 	freehandinterface.o \
 	captioninterface.o \
 	engraverfilldata.o \
