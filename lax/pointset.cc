@@ -31,6 +31,9 @@ using namespace std;
 #define DBG
 
 
+using namespace LaxFiles;
+
+
 namespace Laxkit {
 
 	
@@ -47,6 +50,41 @@ PointSet::PointSet()
 
 PointSet::~PointSet()
 {
+}
+
+anObject *PointSet::duplicate(anObject *ref)
+{
+	PointSet *set = new PointSet();
+	if (ref) {
+		PointSet *r = dynamic_cast<PointSet*>(ref);
+		if (r) {
+			set->CopyFrom(r, true);
+		}
+	} else set->CopyFrom(this, true);
+	return set;
+}
+
+/*! If with_info == 0, then ignore info.
+ * If with_info == 1, then link info.
+ * If with_info == 2, then duplicate info.
+ *
+ * Warning: does not flush current points, appends.
+ *
+ * Returns number of points added.
+ */
+int PointSet::CopyFrom(PointSet *set, int with_info)
+{
+	if (!set) return 0;
+
+	int n = 0;
+	for (int c=0; c<set->points.n; c++) {
+		anObject *info = nullptr;
+		if (with_info == 1) { info = set->points.e[c]->info; if (info) info->inc_count(); }
+		else if (with_info == 2 && set->points.e[c]->info) info = set->points.e[c]->info->duplicate(nullptr);
+		AddPoint(set->points.e[c]->p, info, true);
+		n++;
+	}
+	return n;
 }
 
 static int cmp_XAscending(const void *v1,const void *v2)
@@ -237,6 +275,20 @@ void PointSet::CreateHexChunk(double side, int points_on_side)
 	}
 }
 
+void PointSet::CreateCircle(int numpoints, double x, double y, double radius)
+{
+    double xx,yy;
+	flatpoint o(x,y), p;
+
+	double theta = 2*M_PI / (numpoints); // radians between control points
+
+    for (int c=0; c<numpoints; c++) {
+        xx = radius * cos(c*theta);
+        yy = radius * sin(c*theta);
+        AddPoint(o + flatpoint(xx,yy));
+    }
+}
+
 /*! Retrieve point, as many numbers as Depth().
  */
 flatpoint PointSet::Point(int index, ...)
@@ -374,15 +426,15 @@ void PointSet::Relax(int maxiterations, double mindist, double damp)
 	DoubleBBox box;
 	GetBBox(box);
 
-	double wholew = box.maxx - box.minx;
-	double wholeh = box.maxy - box.miny;
+	// double wholew = box.maxx - box.minx;
+	// double wholeh = box.maxy - box.miny;
 
 	flatpoint pts[4];
 	pts[0] = flatpoint(box.minx, box.miny);
 	pts[1] = flatpoint(box.maxx, box.miny);
 	pts[2] = flatpoint(box.maxx, box.maxy);
 	pts[3] = flatpoint(box.minx, box.maxy);
-	flatpoint datac = (pts[0]+pts[2])/2;
+	// flatpoint datac = (pts[0]+pts[2])/2;
 
 	flatpoint cc1,cc2;
 	flatpoint d;
@@ -478,6 +530,53 @@ int PointSet::Save(const char *file, int format) //0=lines of x,y
 {
 	cerr << " *** IMPLEMENT PointSet::Save()!!!"<<endl;
 	return 1;
+}
+
+void PointSet::dump_out(FILE *f,int indent,int what,DumpContext *context)
+{
+	Attribute att;
+	dump_out_atts(&att, what, context);
+	att.dump_out(f, indent);
+}
+
+Attribute *PointSet::dump_out_atts(Attribute *att,int what,DumpContext *context)
+{
+	if (!att) att = new Attribute();
+	if (what == -1) {
+		Attribute *att2 = att->pushSubAtt("point", "(1,2)", "Vector, with optional info as subattribute");
+		att2->push("info", "DataTypeName", "Subattributes will be dependent on DataTypeName");
+		return att;
+	}
+
+	Utf8String str;
+	for (int c=0; c<points.n; c++) {
+		str.Sprintf("(%.10g, %.10g)", points.e[c]->p.x, points.e[c]->p.y);
+		Attribute *att2 = att->pushSubAtt("point", "(1,2)", "Vector, with optional info as subattribute");
+		att2->push("info", "DataTypeName", "Subattributes will be dependent on DataTypeName");
+	}
+
+	return att;
+}
+
+void PointSet::dump_in_atts(Attribute *att, int what, DumpContext *context)
+{
+	char *name, *value;
+	for (int c=0; c<att->attributes.n; c++) {
+		name  = att->attributes.e[c]->name;
+		value = att->attributes.e[c]->value;
+
+		if (!strcmp(name, "point")) {
+			flatvector v;
+			if (FlatvectorAttribute(value, &v)) {
+				Attribute *att2 = att->attributes.e[c]->find("info");
+				anObject *info = nullptr;
+				if (att2) {
+					cerr << " *** need to implement import of random info to PointSet!!!"<<endl;
+				}
+				AddPoint(v, info, true);
+			}
+		}
+	}
 }
 
 

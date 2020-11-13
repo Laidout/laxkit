@@ -124,6 +124,14 @@ class PointSet : public PointCollection, virtual public anObject, virtual public
 
 	PointSet();
 	virtual ~PointSet();
+	virtual const char *whattype() { return "PointSet"; }
+	virtual anObject *duplicate(anObject *ref);
+	virtual int CopyFrom(PointSet *set, int with_info);
+
+	// from DumpUtility:
+	virtual void dump_out(FILE *f,int indent,int what, LaxFiles::DumpContext *context);
+	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what, LaxFiles::DumpContext *context);
+	virtual void dump_in_atts(LaxFiles::Attribute *att, int what, LaxFiles::DumpContext *context);
 
 	// i/o
 	virtual int LoadCSV(const char *file, bool has_headers = true, const char *xcolumn="x", const char *ycolumn="y");
@@ -154,6 +162,7 @@ class PointSet : public PointCollection, virtual public anObject, virtual public
 	virtual void CreateRandomRadial(int num, int seed, double x, double y, double radius);
 	virtual void CreateGrid(int numx, int numy, double x, double y, double w, double h, int order);
 	virtual void CreateHexChunk(double side, int points_on_side);
+	virtual void CreateCircle(int numpoints, double x, double y, double radius);
 
 	// operations
 	virtual void Relax(int maxiterations, double mindist, double damp);
