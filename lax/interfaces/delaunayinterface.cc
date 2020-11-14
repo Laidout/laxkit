@@ -20,12 +20,12 @@
 //    Copyright (C) 2015 by Tom Lechner
 //
 //
-//  ---- Delauney Triangulation below:
+//  ---- Delaunay Triangulation below:
 //  Adapted from Paul Bourke's C implementation 
 
 
 
-#include "delauneyinterface.h"
+#include "delaunayinterface.h"
 
 #include <lax/interfaces/somedatafactory.h>
 #include <lax/interfaces/linestyle.h>
@@ -52,8 +52,8 @@ namespace LaxInterfaces {
 
 
 //forward declarations...
-int DelauneyTriangulate(flatpoint *pts, int nv, IndexTriangle *tri_ret, int *ntri_ret);
-int DelauneyTriangulate(PointSet::PointObj **pts, int nv, IndexTriangle *tri_ret, int *ntri_ret);
+int DelaunayTriangulate(flatpoint *pts, int nv, IndexTriangle *tri_ret, int *ntri_ret);
+int DelaunayTriangulate(PointSet::PointObj **pts, int nv, IndexTriangle *tri_ret, int *ntri_ret);
 
 
 //------------------------------- Point list generators ---------------------------------
@@ -124,32 +124,32 @@ int *RandomInts(int seed, int *a, int n, int min, int max)
 
 /*! \class VoronoiData
  *
- * Class to simplify building and computing simple Delauney triangulation and Voronoi nets.
+ * Class to simplify building and computing simple Delaunay triangulation and Voronoi nets.
  */
 
 VoronoiData::VoronoiData()
 {
 	show_points  =true;
-	show_delauney=true;
+	show_delaunay=true;
 	show_voronoi =true;
 	show_numbers =false;
 
-	color_delauney=new Color();  color_delauney->screen.rgbf(1.0,0.0,0.0);
+	color_delaunay=new Color();  color_delaunay->screen.rgbf(1.0,0.0,0.0);
 	color_voronoi =new Color();  color_voronoi ->screen.rgbf(0.0,0.7,0.0);
 	color_points  =new Color();  color_points  ->screen.rgbf(1.0,0.0,1.0); 
 
-	//color_delauney=CreateColor_RGB(1.0,0.0,0.0);
+	//color_delaunay=CreateColor_RGB(1.0,0.0,0.0);
 	//color_voronoi =CreateColor_RGB(0.0,0.7,0.0);
 	//color_points  =CreateColor_RGB(1.0,0.0,1.0); 
 
-	width_delauney=1/10.;
+	width_delaunay=1/10.;
 	width_voronoi=1/10.;
 	width_points=1/10.;
 }
 
 VoronoiData::~VoronoiData()
 {
-	color_delauney->dec_count();
+	color_delaunay->dec_count();
 	color_voronoi ->dec_count();
 	color_points  ->dec_count();
 }
@@ -178,16 +178,16 @@ void VoronoiData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *co
 			spc,matrix[0],matrix[1],matrix[2],matrix[3],matrix[4],matrix[5]);
 
 	fprintf(f,"%sshow_points   %s\n", spc, (show_points   ? "yes" : "no"));
-	fprintf(f,"%sshow_delauney %s\n", spc, (show_delauney ? "yes" : "no"));
+	fprintf(f,"%sshow_delaunay %s\n", spc, (show_delaunay ? "yes" : "no"));
 	fprintf(f,"%sshow_voronoi  %s\n", spc, (show_voronoi  ? "yes" : "no"));
 	fprintf(f,"%sshow_numbers  %s\n", spc, (show_numbers  ? "yes" : "no"));
 
 	fprintf(f,"%swidth_points   %.10g\n", spc, width_points  );
-	fprintf(f,"%swidth_delauney %.10g\n", spc, width_delauney);
+	fprintf(f,"%swidth_delaunay %.10g\n", spc, width_delaunay);
 	fprintf(f,"%swidth_voronoi  %.10g\n", spc, width_voronoi );
 
-	char *col=color_delauney->dump_out_simple_string();
-	if (col) fprintf(f,"%scolor_delauney %s\n", spc, col);
+	char *col=color_delaunay->dump_out_simple_string();
+	if (col) fprintf(f,"%scolor_delaunay %s\n", spc, col);
 	delete[] col;
 
 	col=color_voronoi->dump_out_simple_string();
@@ -234,16 +234,16 @@ LaxFiles::Attribute *VoronoiData::dump_out_atts(LaxFiles::Attribute *att,int wha
 			matrix[0],matrix[1],matrix[2],matrix[3],matrix[4],matrix[5]);
 
 	att->push("show_points",    (show_points   ? "yes" : "no"));
-	att->push("show_delauney",  (show_delauney ? "yes" : "no"));
+	att->push("show_delaunay",  (show_delaunay ? "yes" : "no"));
 	att->push("show_voronoi",   (show_voronoi  ? "yes" : "no"));
 	att->push("show_numbers",   (show_numbers  ? "yes" : "no"));
 
 	att->push("width_points",   width_points  );
-	att->push("width_delauney", width_delauney);
+	att->push("width_delaunay", width_delaunay);
 	att->push("width_voronoi",  width_voronoi );
 
-	char *col=color_delauney->dump_out_simple_string();
-	if (col) att->push("color_delauney", col);
+	char *col=color_delaunay->dump_out_simple_string();
+	if (col) att->push("color_delaunay", col);
 	delete[] col;
 
 	col=color_voronoi->dump_out_simple_string();
@@ -296,8 +296,8 @@ void VoronoiData::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpC
         } else if (!strcmp(name,"show_points"  )) {
 			show_points  =BooleanAttribute(value);
 
-        } else if (!strcmp(name,"show_delauney")) {
-			show_delauney=BooleanAttribute(value);
+        } else if (!strcmp(name,"show_delaunay")) {
+			show_delaunay=BooleanAttribute(value);
 
         } else if (!strcmp(name,"show_voronoi" )) {
 			show_voronoi =BooleanAttribute(value);
@@ -308,8 +308,8 @@ void VoronoiData::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpC
         } else if (!strcmp(name,"width_points"  )) {
 			DoubleAttribute(value, &width_points, NULL);
 
-        } else if (!strcmp(name,"width_delauney")) {
-			DoubleAttribute(value, &width_delauney, NULL);
+        } else if (!strcmp(name,"width_delaunay")) {
+			DoubleAttribute(value, &width_delaunay, NULL);
 
         } else if (!strcmp(name,"width_voronoi" )) {
 			DoubleAttribute(value, &width_voronoi, NULL);
@@ -340,13 +340,13 @@ void VoronoiData::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpC
 /*! Set the width of the lines or points.
  * which<0 sets default for all.
  * &1 is for voronoi lines,
- * &2 is for delauney lines,
+ * &2 is for delaunay lines,
  * &3 is for points.
  */
 void VoronoiData::Width(double newwidth, int which)
 {
 	if (which<0 || which&1) width_voronoi  = newwidth;
-	if (which<0 || which&2) width_delauney = newwidth;
+	if (which<0 || which&2) width_delaunay = newwidth;
 	if (which<0 || which&4) width_points   = newwidth;
 }
 
@@ -370,7 +370,7 @@ void VoronoiData::Triangulate()
 	//triangles.flush();
 	//triangles.Allocate(3*points.n);
 
-	DelauneyTriangulate(points.e,points.n, triangles.e,&triangles.n);
+	DelaunayTriangulate(points.e,points.n, triangles.e,&triangles.n);
 	FindBBox();
 
 	 //reset triangle links
@@ -551,6 +551,15 @@ int VoronoiData::Map(std::function<int(const flatpoint &p, flatpoint &newp)> adj
 	return n;
 }
 
+void VoronoiData::Flush()
+{
+	PointSet::Flush();
+	triangles.flush();
+	regions.flush();
+	inf_points.flush();
+	FindBBox();
+}
+
 SomeData *VoronoiData::duplicate(SomeData *dup)
 {
 	VoronoiData *newobj = dynamic_cast<VoronoiData*>(dup);
@@ -569,19 +578,19 @@ SomeData *VoronoiData::duplicate(SomeData *dup)
 
 	newobj->containing_rect = containing_rect;
 
-	newobj->width_delauney = width_delauney;
+	newobj->width_delaunay = width_delaunay;
 	newobj->width_voronoi = width_voronoi;
 	newobj->width_points = width_points;
 
 	newobj->show_points = show_points;
-	newobj->show_delauney = show_delauney;
+	newobj->show_delaunay = show_delaunay;
 	newobj->show_voronoi = show_voronoi;
 	newobj->show_numbers = show_numbers;
 
-	newobj->color_delauney->dec_count();
+	newobj->color_delaunay->dec_count();
 	newobj->color_voronoi->dec_count();
 	newobj->color_points->dec_count();
-	newobj->color_delauney = color_delauney->duplicate();
+	newobj->color_delaunay = color_delaunay->duplicate();
 	newobj->color_voronoi = color_voronoi->duplicate();
 	newobj->color_points = color_points->duplicate();
 
@@ -595,18 +604,18 @@ SomeData *VoronoiData::duplicate(SomeData *dup)
 }
 
 
-//------------------------------- DelauneyInterface ---------------------------------
+//------------------------------- DelaunayInterface ---------------------------------
 
-/*! \class DelauneyInterface
+/*! \class DelaunayInterface
  * \ingroup interfaces
  * \brief Interface to easily adjust mouse pressure map for various purposes.
  */
 
 
-DelauneyInterface::DelauneyInterface(anInterface *nowner, int nid, Displayer *ndp)
+DelaunayInterface::DelaunayInterface(anInterface *nowner, int nid, Displayer *ndp)
  : anInterface(nowner,nid,ndp)
 {
-	delauney_interface_style=0;
+	delaunay_interface_style=0;
 	num_random = 20;
 	num_x = 5;
 	num_y = 5;
@@ -621,7 +630,7 @@ DelauneyInterface::DelauneyInterface(anInterface *nowner, int nid, Displayer *nd
 	needtodraw   = 1;
 	curpoint     = -1;
 	justadded    = false;
-	style_target = 0; //0 is voronoi border, 1 is delauney tri edges, 2 is points
+	style_target = 0; //0 is voronoi border, 1 is delaunay tri edges, 2 is points
 	last_export  = NULL;
 
 	sc   = NULL;
@@ -631,7 +640,7 @@ DelauneyInterface::DelauneyInterface(anInterface *nowner, int nid, Displayer *nd
 	last_export=newstr("voronoi.data");
 }
 
-DelauneyInterface::~DelauneyInterface()
+DelaunayInterface::~DelaunayInterface()
 {
 	if (sc)   sc->dec_count();
 	if (data) data->dec_count();
@@ -639,7 +648,7 @@ DelauneyInterface::~DelauneyInterface()
 	delete[] last_export;
 }
 
-const char *DelauneyInterface::whatdatatype()
+const char *DelaunayInterface::whatdatatype()
 {  
 	return "VoronoiData";
 	//return NULL; // NULL means this tool is creation only, it cannot edit existing data automatically
@@ -647,21 +656,21 @@ const char *DelauneyInterface::whatdatatype()
 
 /*! Name as displayed in menus, for instance.
  */
-const char *DelauneyInterface::Name()
-{ return _("Delauney/Voronoi"); }
+const char *DelaunayInterface::Name()
+{ return _("Delaunay/Voronoi"); }
 
 
-//! Return new DelauneyInterface.
-/*! If dup!=NULL and it cannot be cast to DelauneyInterface, then return NULL.
+//! Return new DelaunayInterface.
+/*! If dup!=NULL and it cannot be cast to DelaunayInterface, then return NULL.
  */
-anInterface *DelauneyInterface::duplicate(anInterface *dup)
+anInterface *DelaunayInterface::duplicate(anInterface *dup)
 {
-	if (dup==NULL) dup=new DelauneyInterface(NULL,id,NULL);
-	else if (!dynamic_cast<DelauneyInterface *>(dup)) return NULL;
+	if (dup==NULL) dup=new DelaunayInterface(NULL,id,NULL);
+	else if (!dynamic_cast<DelaunayInterface *>(dup)) return NULL;
 	return anInterface::duplicate(dup);
 }
 
-void DelauneyInterface::Clear(SomeData *d)
+void DelaunayInterface::Clear(SomeData *d)
 {
 	if (!d || d==data) {
 		if (data) data->dec_count();
@@ -673,7 +682,7 @@ void DelauneyInterface::Clear(SomeData *d)
 	curpoint = -1;
 }
 
-int DelauneyInterface::DrawData(anObject *ndata,anObject *a1,anObject *a2,int info)
+int DelaunayInterface::DrawData(anObject *ndata,anObject *a1,anObject *a2,int info)
 {
 	if (!ndata || dynamic_cast<VoronoiData *>(ndata)==NULL) return 1;
 
@@ -689,7 +698,7 @@ int DelauneyInterface::DrawData(anObject *ndata,anObject *a1,anObject *a2,int in
 	showdecs=0;
 	needtodraw=1;
 
-	show_lines = (data->show_delauney ? 2 : 0) | (data->show_voronoi ? 1 : 0);
+	show_lines = (data->show_delaunay ? 2 : 0) | (data->show_voronoi ? 1 : 0);
 	show_numbers = false;
 	//show_numbers = data->show_numbers;
 
@@ -705,7 +714,7 @@ int DelauneyInterface::DrawData(anObject *ndata,anObject *a1,anObject *a2,int in
 	return 1;
 }
 
-int DelauneyInterface::Refresh()
+int DelaunayInterface::Refresh()
 { 
 	if (needtodraw==0) return 0;
 	needtodraw=0;
@@ -713,18 +722,17 @@ int DelauneyInterface::Refresh()
 	if (!data) return 0;
 
 	dp->LineAttributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
-	dp->font(curwindow->win_themestyle->normal, curwindow->win_themestyle->normal->textheight() / dp->Getmag());
+	if (curwindow) dp->font(curwindow->win_themestyle->normal, curwindow->win_themestyle->normal->textheight() / dp->Getmag());
 
 
-	 //delauney triangles
-	dp->NewFG(coloravg(curwindow->win_themestyle->fg,curwindow->win_themestyle->bg));
-	dp->LineWidth(data->width_delauney);
+	 //delaunay triangles
+	dp->LineWidth(data->width_delaunay);
 	flatpoint center,p,v;
 
-	dp->NewFG(data->color_delauney);
+	dp->NewFG(data->color_delaunay);
 	for (int c=0; c<data->triangles.n; c++) {
 		 //draw edges
-		if (data->show_delauney) {
+		if (data->show_delaunay) {
 			dp->moveto(data->points.e[data->triangles[c].p1]->p);
 			dp->lineto(data->points.e[data->triangles[c].p2]->p);
 			dp->lineto(data->points.e[data->triangles[c].p3]->p);
@@ -841,12 +849,12 @@ int DelauneyInterface::Refresh()
 	return 0;
 }
 
-ObjectContext *DelauneyInterface::Context()
+ObjectContext *DelaunayInterface::Context()
 {
 	return voc;
 }
 
-Laxkit::MenuInfo *DelauneyInterface::ContextMenu(int x,int y,int deviceid, MenuInfo *menu)
+Laxkit::MenuInfo *DelaunayInterface::ContextMenu(int x,int y,int deviceid, MenuInfo *menu)
 {
 	if (!menu) menu = new MenuInfo();
 
@@ -857,7 +865,7 @@ Laxkit::MenuInfo *DelauneyInterface::ContextMenu(int x,int y,int deviceid, MenuI
 	if (data) {
 		menu->AddSep();
 		menu->AddToggleItem(_("Show voronoi shapes"), VORONOI_ToggleVoronoi, 0, data->show_voronoi);
-		menu->AddToggleItem(_("Show triangles"),      VORONOI_ToggleShapes,  0, data->show_delauney);
+		menu->AddToggleItem(_("Show triangles"),      VORONOI_ToggleShapes,  0, data->show_delaunay);
 		menu->AddToggleItem(_("Show points"),         VORONOI_TogglePoints,  0, data->show_points);
 		menu->AddSep();
 		menu->AddItem(_("Relax"), VORONOI_Relax);
@@ -868,23 +876,23 @@ Laxkit::MenuInfo *DelauneyInterface::ContextMenu(int x,int y,int deviceid, MenuI
 	return menu;
 }
 
-int DelauneyInterface::InterfaceOn()
+int DelaunayInterface::InterfaceOn()
 {
     needtodraw=1;
-    DBG cerr <<"Delauney On()"<<endl;
+    DBG cerr <<"Delaunay On()"<<endl;
     return 0;
 }
 
-int DelauneyInterface::InterfaceOff()
+int DelaunayInterface::InterfaceOff()
 {
     Clear(NULL);
     needtodraw=1;
-    DBG cerr <<"Delauney Off()"<<endl;
+    DBG cerr <<"Delaunay Off()"<<endl;
     return 0;
 }
 
 //! Start a new freehand line.
-int DelauneyInterface::LBDown(int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d) 
+int DelaunayInterface::LBDown(int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d) 
 {
 	justadded = false;
 
@@ -916,7 +924,7 @@ int DelauneyInterface::LBDown(int x,int y,unsigned int state,int count, const La
 }
 
 //! Finish a new freehand line by calling newData with it.
-int DelauneyInterface::LBUp(int x,int y,unsigned int state, const Laxkit::LaxMouse *d) 
+int DelaunayInterface::LBUp(int x,int y,unsigned int state, const Laxkit::LaxMouse *d) 
 {
 	if (!data) return 0;
 
@@ -941,7 +949,7 @@ int DelauneyInterface::LBUp(int x,int y,unsigned int state, const Laxkit::LaxMou
  * bez curve fitting to cut down on unnecessary points should use a timer so 
  * stopping makes sharp corners and closer spaced points?
  */
-int DelauneyInterface::MouseMove(int x,int y,unsigned int state, const Laxkit::LaxMouse *m)
+int DelaunayInterface::MouseMove(int x,int y,unsigned int state, const Laxkit::LaxMouse *m)
 {
 	if (!data) return 0;
 
@@ -974,7 +982,7 @@ int DelauneyInterface::MouseMove(int x,int y,unsigned int state, const Laxkit::L
 }
 
 //! Use the object at oc if it is an ImageData.
-int DelauneyInterface::UseThisObject(ObjectContext *oc)
+int DelaunayInterface::UseThisObject(ObjectContext *oc)
 {
 	if (!oc) return 0;
 
@@ -993,7 +1001,7 @@ int DelauneyInterface::UseThisObject(ObjectContext *oc)
 		data->inc_count();
 	}
 
-	show_lines = (data->show_delauney ? 2 : 0) | (data->show_voronoi ? 1 : 0);
+	show_lines = (data->show_delaunay ? 2 : 0) | (data->show_voronoi ? 1 : 0);
 	show_numbers = data->show_numbers;
 
 	//SimpleColorEventData *e=new SimpleColorEventData( 65535, 0xffff*data->red, 0xffff*data->green, 0xffff*data->blue, 0xffff*data->alpha, 0);
@@ -1003,18 +1011,18 @@ int DelauneyInterface::UseThisObject(ObjectContext *oc)
 	return 1;
 }
 
-int DelauneyInterface::UseThis(Laxkit::anObject *nobj,unsigned int mask)
+int DelaunayInterface::UseThis(Laxkit::anObject *nobj,unsigned int mask)
 {
     if (!nobj) return 1;
 
     if (data && dynamic_cast<LineStyle *>(nobj)) {
-        //DBG cerr <<"Delauney new color stuff"<< endl;
+        //DBG cerr <<"Delaunay new color stuff"<< endl;
 
         LineStyle *nlinestyle=dynamic_cast<LineStyle *>(nobj);
 
         if (nlinestyle->mask&GCForeground) {
 			Color *color=NULL;
-			if (style_target==0)      color = data->color_delauney;
+			if (style_target==0)      color = data->color_delaunay;
 			else if (style_target==1) color = data->color_voronoi;
 			else if (style_target==2) color = data->color_points;
 
@@ -1035,7 +1043,7 @@ int DelauneyInterface::UseThis(Laxkit::anObject *nobj,unsigned int mask)
 }
 
 
-Laxkit::ShortcutHandler *DelauneyInterface::GetShortcuts()
+Laxkit::ShortcutHandler *DelaunayInterface::GetShortcuts()
 {
     if (sc) return sc;
     ShortcutManager *manager=GetDefaultShortcutManager();
@@ -1058,7 +1066,7 @@ Laxkit::ShortcutHandler *DelauneyInterface::GetShortcuts()
 	return sc;
 }
 
-int DelauneyInterface::PerformAction(int action)
+int DelaunayInterface::PerformAction(int action)
 {
     if (action==VORONOI_ToggleNumbers) {
 		show_numbers=!show_numbers;
@@ -1074,13 +1082,13 @@ int DelauneyInterface::PerformAction(int action)
 		show_lines++;
 		if (show_lines>3) show_lines=0;
 		if (data) {
-			data->show_delauney = ((show_lines&2) != 0);
+			data->show_delaunay = ((show_lines&2) != 0);
 			data->show_voronoi = ((show_lines&1) != 0);
 		}
 		if      (show_lines == 0) PostMessage(_("Don't show shapes"));
 		else if (show_lines == 1) PostMessage(_("Show voronoi shapes"));
-		else if (show_lines == 2) PostMessage(_("Show delauney triangles"));
-		else if (show_lines == 3) PostMessage(_("Show voronoi and delauney shapes"));
+		else if (show_lines == 2) PostMessage(_("Show delaunay triangles"));
+		else if (show_lines == 3) PostMessage(_("Show voronoi and delaunay shapes"));
 		needtodraw=1;
 		return 0; 
 
@@ -1098,7 +1106,7 @@ int DelauneyInterface::PerformAction(int action)
 
 	} else if (action==VORONOI_ToggleShapes) {
 		if (!data) return 0;
-		data->show_delauney = !data->show_delauney;
+		data->show_delaunay = !data->show_delaunay;
 		needtodraw = 0;
 		return 0;
 
@@ -1110,7 +1118,7 @@ int DelauneyInterface::PerformAction(int action)
 		style_target++;
 		if (style_target>=3) style_target=0;
 		if (style_target==0) PostMessage(_("Adjust style of voronoi lines"));
-		else if (style_target==1) PostMessage(_("Adjust style of delauney lines"));
+		else if (style_target==1) PostMessage(_("Adjust style of delaunay lines"));
 		else if (style_target==2) PostMessage(_("Adjust style of points"));
 		needtodraw=1;
 		return 0; 
@@ -1121,7 +1129,7 @@ int DelauneyInterface::PerformAction(int action)
 		double factor = (action==VORONOI_Thicken) ? 1.05 : 1/1.05;
 
 		if (style_target==0)      { data->width_voronoi*=factor;  d=data->width_voronoi;  }
-		else if (style_target==1) { data->width_delauney*=factor; d=data->width_delauney; }
+		else if (style_target==1) { data->width_delaunay*=factor; d=data->width_delaunay; }
 		else if (style_target==2) { data->width_points*=factor;   d=data->width_points;   }
 
 		if (d>0) {
@@ -1206,7 +1214,7 @@ int DelauneyInterface::PerformAction(int action)
 	return 1;
 }
 
-void DelauneyInterface::DropNewData()
+void DelaunayInterface::DropNewData()
 {
 	Clear(nullptr);
 	
@@ -1223,7 +1231,7 @@ void DelauneyInterface::DropNewData()
 	if (oc) voc = oc->duplicate();
 }
 
-int DelauneyInterface::Event(const Laxkit::EventData *e_data, const char *mes)
+int DelaunayInterface::Event(const Laxkit::EventData *e_data, const char *mes)
 {
 	if (!strcmp(mes,"loadpoints")) {
         const StrEventData *s=dynamic_cast<const StrEventData *>(e_data);
@@ -1265,7 +1273,7 @@ int DelauneyInterface::Event(const Laxkit::EventData *e_data, const char *mes)
 			return 0;
 		}
 
-		fprintf(f,"#Voronoi/Delauney data...\n\n");
+		fprintf(f,"#Voronoi/Delaunay data...\n\n");
 		data->dump_out(f, 0, 0, NULL);
 		fclose(f);
 
@@ -1298,7 +1306,7 @@ int DelauneyInterface::Event(const Laxkit::EventData *e_data, const char *mes)
     return 1;
 }
 
-int DelauneyInterface::CharInput(unsigned int ch, const char *buffer,int len,unsigned int state, const Laxkit::LaxKeyboard *d)
+int DelaunayInterface::CharInput(unsigned int ch, const char *buffer,int len,unsigned int state, const Laxkit::LaxKeyboard *d)
 { 
     if (!sc) GetShortcuts();
     int action=sc->FindActionNumber(ch,state&LAX_STATE_MASK,0);
@@ -1312,7 +1320,7 @@ int DelauneyInterface::CharInput(unsigned int ch, const char *buffer,int len,uns
 
 
 
-void DelauneyInterface::Triangulate()
+void DelaunayInterface::Triangulate()
 {
 	if (!data || data->points.n<3) return;
 
@@ -1327,7 +1335,7 @@ void DelauneyInterface::Triangulate()
 //-----------------------------------------------------------------------------------------
 //-----------------------------------------------------------------------------------------
 //-----------------------------------------------------------------------------------------
-//-------------------- Delauney Triangulation ---------------------------------------------
+//-------------------- Delaunay Triangulation ---------------------------------------------
 //---------------- Adapted from Paul Bourke's C implementation ----------------------------
 //-----------------------------------------------------------------------------------------
 //-----------------------------------------------------------------------------------------
@@ -1348,12 +1356,12 @@ int Triangulate(int nv,flatpoint *pxyz,IndexTriangle *v,int *ntri);
  *
  * Return 0 for success, 1 for not enough points (need more than 2).
  *
- * Note that the Voronoi diagram is the dual graph of a Delauney triangulation. The Voronoi
+ * Note that the Voronoi diagram is the dual graph of a Delaunay triangulation. The Voronoi
  * cells are all points closest to particular points.
  * It is formed by connecting the centers of all circumcircles of the triangles around each point
- * in a Delauney triangulation.
+ * in a Delaunay triangulation.
  */
-int DelauneyTriangulate(flatpoint *pts, int nv, IndexTriangle *tri_ret, int *ntri_ret)
+int DelaunayTriangulate(flatpoint *pts, int nv, IndexTriangle *tri_ret, int *ntri_ret)
 {
    if (nv < 3) return 1;
 
@@ -1373,11 +1381,11 @@ int DelauneyTriangulate(flatpoint *pts, int nv, IndexTriangle *tri_ret, int *ntr
    }
 
 
-   DBG cerr << "DelauneyTriangulate: Formed "<<(*ntri_ret)<<" triangles"<<endl;
+   DBG cerr << "DelaunayTriangulate: Formed "<<(*ntri_ret)<<" triangles"<<endl;
    return 0;
 }
 
-int DelauneyTriangulate(PointSet::PointObj **pts, int nv, IndexTriangle *tri_ret, int *ntri_ret)
+int DelaunayTriangulate(PointSet::PointObj **pts, int nv, IndexTriangle *tri_ret, int *ntri_ret)
 {
 	if (nv < 3) return 1;
 
@@ -1398,7 +1406,7 @@ int DelauneyTriangulate(PointSet::PointObj **pts, int nv, IndexTriangle *tri_ret
 	   tri_ret[c].p3 = p[tri_ret[c].p3].info;
 	}
 
-	DBG cerr << "DelauneyTriangulate: Formed "<<(*ntri_ret)<<" triangles"<<endl;
+	DBG cerr << "DelaunayTriangulate: Formed "<<(*ntri_ret)<<" triangles"<<endl;
 	return 0;
 }
 
@@ -1623,7 +1631,7 @@ int Triangulate(int nv,flatpoint *pxyz,IndexTriangle *v,int *ntri)
          v[*ntri].p2 = edges[j].p2;
          v[*ntri].p3 = i;
 
-		  //need to grab circumcenter, not necessary for delauney triangles only
+		  //need to grab circumcenter, not necessary for delaunay triangles only
          CircumCircle(0,0,
 				 pxyz[v[*ntri].p1].x,pxyz[v[*ntri].p1].y,
 				 pxyz[v[*ntri].p2].x,pxyz[v[*ntri].p2].y,

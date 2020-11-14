@@ -19,8 +19,8 @@
 //
 //    Copyright (C) 2015 by Tom Lechner
 //
-#ifndef _LAX_DELAUNEYINTERFACE_H
-#define _LAX_DELAUNEYINTERFACE_H
+#ifndef _LAX_DELAUNAYINTERFACE_H
+#define _LAX_DELAUNAYINTERFACE_H
 
 #include <lax/interfaces/aninterface.h>
 #include <lax/pointset.h>
@@ -76,7 +76,7 @@ class VoronoiData : virtual public LaxInterfaces::SomeData, virtual public Laxki
 {
   public:
 	bool show_points;
-	bool show_delauney;
+	bool show_delaunay;
 	bool show_voronoi;
 	bool show_numbers;
 
@@ -85,11 +85,11 @@ class VoronoiData : virtual public LaxInterfaces::SomeData, virtual public Laxki
 	Laxkit::NumStack<VoronoiRegion> regions; //1 to 1 with points
 	Laxkit::NumStack<flatpoint> inf_points; //to help approximate infinite rays
 
-	Laxkit::Color *color_delauney;
+	Laxkit::Color *color_delaunay;
 	Laxkit::Color *color_voronoi;
 	Laxkit::Color *color_points;
 
-	double width_delauney;
+	double width_delaunay;
 	double width_voronoi;
 	double width_points;
 
@@ -102,6 +102,7 @@ class VoronoiData : virtual public LaxInterfaces::SomeData, virtual public Laxki
 	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
 	virtual SomeData *duplicate(SomeData *dup);
 
+	virtual void Flush();
 	virtual void Triangulate();
 	virtual void RebuildVoronoi(bool triangulate_also=true);
 	virtual void Rebuild() { Triangulate(); RebuildVoronoi(); }
@@ -113,10 +114,10 @@ class VoronoiData : virtual public LaxInterfaces::SomeData, virtual public Laxki
 };
 	
 
-//------------------------------- DelauneyInterface ---------------------------------
+//------------------------------- DelaunayInterface ---------------------------------
 
 
-enum DelauneyInterfaceActions {
+enum DelaunayInterfaceActions {
 	VORONOI_ToggleNumbers,
 	VORONOI_ToggleArrows,
 	VORONOI_ToggleLines,
@@ -138,7 +139,7 @@ enum DelauneyInterfaceActions {
 	VORONOI_MAX
 };
 
-class DelauneyInterface : public anInterface
+class DelaunayInterface : public anInterface
 {
   protected:
 	VoronoiData *data;
@@ -157,18 +158,18 @@ class DelauneyInterface : public anInterface
   public:
 	bool show_numbers;
 	bool show_arrows;
-	int show_lines; //&1 for voronoi &2 for delauney
-	unsigned int delauney_interface_style;
+	int show_lines; //&1 for voronoi &2 for delaunay
+	unsigned int delaunay_interface_style;
 	int num_random, num_x, num_y; //inputs for creating funcs
 	int previous_create;
 	int relax_iters;
 
-	DelauneyInterface(anInterface *nowner, int nid,Laxkit::Displayer *ndp);
-	virtual ~DelauneyInterface();
+	DelaunayInterface(anInterface *nowner, int nid,Laxkit::Displayer *ndp);
+	virtual ~DelaunayInterface();
 	virtual anInterface *duplicate(anInterface *dup);
-	virtual const char *IconId() { return "Delauney"; }
+	virtual const char *IconId() { return "Delaunay"; }
 	virtual const char *Name();
-	virtual const char *whattype() { return "DelauneyInterface"; }
+	virtual const char *whattype() { return "DelaunayInterface"; }
 	virtual const char *whatdatatype();
 	virtual int Event(const Laxkit::EventData *e_data, const char *mes);
     virtual int PerformAction(int action);
