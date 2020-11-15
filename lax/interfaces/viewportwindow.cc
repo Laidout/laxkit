@@ -1213,7 +1213,7 @@ int ViewportWindow::MBUp(int x,int y,unsigned int state,const Laxkit::LaxMouse *
 		}
 	}
 	buttondown.up(d->id,MIDDLEBUTTON);
-	DBG cerr <<".mbupDone ";
+	DBG cerr <<".mbupDone " <<endl;
 	return 0;
 }
 
