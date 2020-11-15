@@ -539,7 +539,7 @@ int Scroller::Idle(int id, double delta)
 int Scroller::Event(const EventData *e,const char *mes)
 {
 	if (!strcmp(mes,"pan change")) { 
-		DBG cerr <<"************Scroller got a pan change"<<endl;
+		// DBG cerr <<"************Scroller got a pan change"<<endl;
 		needtodraw|=1;
 		return 0;
 	}
