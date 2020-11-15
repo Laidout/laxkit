@@ -571,8 +571,8 @@ void GradientData::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *c
                     p.x = d;
                     p.y = 0;
                 }
-				P2(p);
             }
+			P2(p);
 
         } else if (!strcmp(name,"r1")) {
 			double r;
