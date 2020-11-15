@@ -4160,6 +4160,22 @@ void PathsData::ApplyTransform()
 	FindBBox();
 }
 
+/*! p is usually in range (0..1,0..1) with 0 being minimum and 1 being maximum.
+ * This will transform all points and move the pathsdata origin so that the 
+ * new pathsdata origin is at the original bbox point.
+ */
+void PathsData::SetOriginToBBoxPoint(flatpoint p)
+{
+	p = BBoxPoint(p.x, p.y, false);
+	flatpoint pp = transformPoint(p);
+	// flatpoint dparent = pp - origin();
+	// flatpoint dlocal = p;
+
+	Affine affine(*this);
+	affine.origin(pp);
+	MatchTransform(affine);
+}
+
 //! Just call MatchTransform(const double *mm).
 void PathsData::MatchTransform(Affine &affine)
 {
@@ -4742,6 +4758,7 @@ int PathInterface::CutSegment()
 	
 	SetCurvertex(nullptr, -1);
 	UpdateAddHint();
+	Modified(0);
 	needtodraw=1;
 	return n;
 }
@@ -5109,7 +5126,7 @@ int PathInterface::Refresh()
 
 	if (hasstroke) {
 		dp->NewFG(&lstyle->color);
-		DBG  cerr <<"New line fg: "<<lstyle->color.red<<"  "<<lstyle->color.green<<"  "<<lstyle->color.blue<<"  "<<lstyle->color.alpha<<endl;
+		// DBG  cerr <<"New line fg: "<<lstyle->color.red<<"  "<<lstyle->color.green<<"  "<<lstyle->color.blue<<"  "<<lstyle->color.alpha<<endl;
 
 		if (!ignoreweights) {
 			 //we need to rebuild path and fill the stroke, since it uses a non-standard outline

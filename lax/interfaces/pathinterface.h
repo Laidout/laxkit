@@ -255,6 +255,7 @@ class PathsData : virtual public SomeData
 	virtual void ApplyTransform();
 	virtual void MatchTransform(Affine &affine);
 	virtual void MatchTransform(const double *mm);
+	virtual void SetOriginToBBoxPoint(flatpoint p);
 
 	virtual flatpoint ClosestPoint(flatpoint point, double *disttopath, double *distalongpath, double *tdist, int *pathi);
 	virtual int Intersect(int pathindex,flatpoint p1,flatpoint p2, int isline, double startt,flatpoint *pts,int ptsn, double *t,int tn);
