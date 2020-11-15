@@ -48,7 +48,7 @@ objs= \
 	captioninterface.o \
 	engraverfilldata.o \
 	engraverfillinterface.o \
-	delauneyinterface.o \
+	delaunayinterface.o \
 	ellipseinterface.o \
 	pressuremapinterface.o \
 	curvemapinterface.o \
