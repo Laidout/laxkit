@@ -341,6 +341,12 @@ int PointSet::Remove(int index)
 	return points.remove(index);
 }
 
+anObject *PointSet::PointInfo(int index)
+{
+	if (index < 0 || index >= points.n) return nullptr;
+	return points.e[index]->info;
+}
+
 flatpoint PointSet::Pop(int which, anObject **data_ret)
 {
 	if (which < 0 || which >= points.n) which = points.n-1;

@@ -153,6 +153,7 @@ class PointSet : public PointCollection, virtual public anObject, virtual public
 	virtual int AddPoint(flatpoint p, anObject *data = nullptr, bool absorb=false);
 	virtual flatpoint Pop(int which, anObject **data_ret = nullptr);
 	virtual int NumPoints() { return points.n; }
+	virtual anObject *PointInfo(int index);
 	virtual int Swap(int index1, int index2);
 	virtual int Slide(int index1, int index2);
 	virtual void Flush();
