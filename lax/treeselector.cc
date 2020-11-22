@@ -1931,9 +1931,6 @@ int TreeSelector::LBUp(int x,int y,unsigned int state,const LaxMouse *d)
 				//visibleitems.Sort(sort_detail);
 				menu->Sort(sort_detail);
 
-				DBG cerr <<"visibleitems after sort:"<<endl;
-				DBG menuinfoDump(&visibleitems,2);
-
 				RebuildCache();
 				needtodraw=1;
 			}
