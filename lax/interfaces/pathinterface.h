@@ -176,6 +176,7 @@ class Path : public LaxFiles::DumpUtility, public Laxkit::DoubleBBox
 	virtual bool IsClosed();
 	virtual int GetIndex(Coordinate *p, bool ignore_controls);
 	virtual int Contains(Path *otherpath);
+	virtual int FindExtrema(Laxkit::NumStack<flatpoint> *points_ret, Laxkit::NumStack<double> *t_ret);
 
 	virtual int ApplyLineProfile(LineProfile *p, bool linked);
 	virtual int ApplyLineProfile();
@@ -260,16 +261,20 @@ class PathsData : virtual public SomeData
 	virtual flatpoint ClosestPoint(flatpoint point, double *disttopath, double *distalongpath, double *tdist, int *pathi);
 	virtual int Intersect(int pathindex,flatpoint p1,flatpoint p2, int isline, double startt,flatpoint *pts,int ptsn, double *t,int tn);
 	virtual int PointAlongPath(int pathindex, double t, int tisdistance, flatpoint *point, flatpoint *tangent);
+	// virtual int Sample(int pathindex, double step, bool step_is_distance, double from, double to, bool fit_step, Laxkit::PtrStack<Affine> &tr_ret);
+	// virtual int SampleN(int pathindex, int n_points, bool step_is_distance, double from, double to, Laxkit::PtrStack<Affine> &tr_ret);
 	virtual Coordinate *GetCoordinate(int pathi, double t);
 	virtual int ReversePath(int pathindex);
 	virtual double Length(int pathi, double tstart,double tend);
+	virtual int FindExtrema(int pathindex, Laxkit::NumStack<flatpoint> *points_ret, Laxkit::NumStack<double> *t_ret);
 	//virtual int NumPoints(int vertices=1);
 
 	virtual int NumPaths() { return paths.n; }
 	virtual Path *GetPath(int index);
 	virtual Path *GetOffsetPath(int index);
 
-	virtual PathsData *MergeWith(PathsData *otherPath, double *transform_from_other, double endpoint_merge_threshhold, bool extract_paths_from_other, bool return_new);
+	virtual PathsData *MergeWith(PathsData *otherPath, double *transform_from_other, double endpoint_merge_threshhold, 
+								 bool extract_paths_from_other, bool return_new);
 
 	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
 	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what, LaxFiles::DumpContext *context);

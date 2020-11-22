@@ -2884,6 +2884,40 @@ flatpoint Path::ClosestPoint(flatpoint point, double *disttopath, double *distal
 	return found;
 }
 
+/*! Find all extrema in the path. For each point,
+ * A point.info is a direction according to its acceleration direction (2nd derivative), so:
+ * if a point is a left, vertical extrema, its info is LAX_RIGHT.
+ * if a point is a right, vertical extrema, its info is LAX_LEFT.
+ * if a point is a top, horizontal extrema, its info is LAX_BOTTOM.
+ * if a point is a bottom, horizontal extrema, its info is LAX_TOP.
+ */
+int Path::FindExtrema(NumStack<flatpoint> *points_ret, NumStack<double> *t_ret)
+{
+	if (!path) return 0;
+
+	int n = 0;
+	Coordinate *p = path, *p2;
+	Coordinate *start = p;
+	flatpoint c1, c2;
+	int isline;
+	double extrema[5];
+	flatpoint extremap[5];
+
+	do {
+		if (p->getNext(c1,c2,p2,isline) != 0) break;
+
+		int ne = bez_extrema(p->p(), c1, c2, p2->p(), extrema, extremap);
+		for (int c=0; c<ne; c++) {
+			if (points_ret)	points_ret->push(extremap[c]);
+			if (t_ret) t_ret->push(extrema[c]);
+		}
+
+		n += ne;
+		p = p2;
+	} while (p && p != start);
+	return n;
+}
+
 /*! Return the number of vertices in the path (points on the line, not control handles).
  *
  * If isclosed_ret!=NULL, then fill it with whether the path is closed or not.
@@ -4111,6 +4145,12 @@ flatpoint PathsData::ClosestPoint(flatpoint point, double *disttopath, double *d
 	if (tdist) *tdist=t;
 	if (pathi) *pathi=pi;
 	return p;
+}
+
+int PathsData::FindExtrema(int pathindex, NumStack<flatpoint> *points_ret, NumStack<double> *t_ret)
+{
+	if (pathindex < 0 || pathindex >= paths.n) return 0;
+	return paths.e[pathindex]->FindExtrema(points_ret, t_ret);
 }
 
 //! Intersect a line with one subpath. p1 and p2 are in path coordinates.
