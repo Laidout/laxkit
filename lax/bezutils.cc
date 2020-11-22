@@ -62,7 +62,8 @@ void bez_bbox_simple(flatpoint p,flatpoint c,flatpoint d,flatpoint q,Laxkit::Dou
  * corresponding to the extrema of the bez segment (where the tangent to the curve is
  * either vertical or horizontal), where the segment from p to q 
  * corresponds to t=[0,1]. Repeated extrema are only included once.
- * If is horizontal extrema, its info is 0. If vertical, info is 1.
+ * The extrema point.info gets LAX_LEFT, LAX_RIGHT, LAX_TOP, or LAX_BOTTOM to
+ * describe the direction of acceleration at the point (positve y is top, positive x is right).
  *  
  *  Returns the number of extrema (up to 4).
  *  
@@ -95,7 +96,10 @@ int bez_bbox(flatpoint p,flatpoint c,flatpoint d,flatpoint q,DoubleBBox *bbox,
 		if (t1>=0 && t1<=1) { // found 1 extrema in range
 			if (extrema || extrema_pret) {
 				if (extrema) extrema[extt] = t1;
-				if (extrema_pret) extrema_pret[extt] = bez_point(t1, p,c,d,q);
+				if (extrema_pret) {
+					extrema_pret[extt] = bez_point(t1, p,c,d,q);
+					extrema_pret[extt].info = accel_direction(t1, p,c,d,q);
+				}
 				extt++;
 			}
 			bp=(a2*t1 + a3)*t1 + p; // find the bez point
@@ -112,7 +116,10 @@ int bez_bbox(flatpoint p,flatpoint c,flatpoint d,flatpoint q,DoubleBBox *bbox,
 			if (t1>=0 && t1<=1) { // found 1 extrema in range
 				if (extrema || extrema_pret) {
 					if (extrema) extrema[extt] = t1;
-					if (extrema_pret) extrema_pret[extt] = bez_point(t1, p,c,d,q);
+					if (extrema_pret) {
+						extrema_pret[extt] = bez_point(t1, p,c,d,q);
+						extrema_pret[extt].info = accel_direction(t1, p,c,d,q);
+					}
 					extt++;
 				}
 				bp=((a1*t1 + a2)*t1 + a3)*t1 + p; // find the bez point
@@ -126,7 +133,10 @@ int bez_bbox(flatpoint p,flatpoint c,flatpoint d,flatpoint q,DoubleBBox *bbox,
 				if (t1>=0 && t1<=1) { // found another x extrema in range
 					if (extrema || extrema_pret) {
 					if (extrema) extrema[extt] = t1;
-						if (extrema_pret) extrema_pret[extt] = bez_point(t1, p,c,d,q);
+						if (extrema_pret) {
+							extrema_pret[extt] = bez_point(t1, p,c,d,q);
+							extrema_pret[extt].info = accel_direction(t1, p,c,d,q);
+						}
 						extt++;
 					}
 					bp=((a1*t1 + a2)*t1 + a3)*t1 + p; // find the bez point
@@ -144,7 +154,10 @@ int bez_bbox(flatpoint p,flatpoint c,flatpoint d,flatpoint q,DoubleBBox *bbox,
 		if (t1>=0 && t1<=1) { // found 1 extrema in range
 			if (extrema || extrema_pret) {
 				if (extrema) extrema[extt] = t1;
-				if (extrema_pret) { extrema_pret[extt] = bez_point(t1, p,c,d,q); extrema_pret[extt].info = 1; }
+				if (extrema_pret) {
+					extrema_pret[extt] = bez_point(t1, p,c,d,q);
+					extrema_pret[extt].info = accel_direction(t1, p,c,d,q);
+				}
 				extt++;
 			}
 			bp=(a2*t1 + a3)*t1 + p; // find the bez point
@@ -160,7 +173,10 @@ int bez_bbox(flatpoint p,flatpoint c,flatpoint d,flatpoint q,DoubleBBox *bbox,
 			if (t1>=0 && t1<=1) {
 				if (extrema || extrema_pret) {
 					if (extrema) extrema[extt] = t1;
-					if (extrema_pret) { extrema_pret[extt] = bez_point(t1, p,c,d,q); extrema_pret[extt].info = 1; }
+					if (extrema_pret) {
+						extrema_pret[extt] = bez_point(t1, p,c,d,q);
+						extrema_pret[extt].info = accel_direction(t1, p,c,d,q);
+					}
 					extt++;
 				}
 				bp=((a1*t1 + a2)*t1 + a3)*t1 + p; // find the bez point
@@ -174,7 +190,10 @@ int bez_bbox(flatpoint p,flatpoint c,flatpoint d,flatpoint q,DoubleBBox *bbox,
 				if (t1>=0 && t1<=1) {
 					if (extrema || extrema_pret) {
 						if (extrema) extrema[extt] = t1;
-						if (extrema_pret) { extrema_pret[extt] = bez_point(t1, p,c,d,q); extrema_pret[extt].info = 1; }
+						if (extrema_pret) {
+							extrema_pret[extt] = bez_point(t1, p,c,d,q);
+							extrema_pret[extt].info = accel_direction(t1, p,c,d,q);
+						}
 						extt++;
 					}
 					bp=((a1*t1 + a2)*t1 + a3)*t1 + p; // find the bez point
@@ -191,7 +210,8 @@ int bez_bbox(flatpoint p,flatpoint c,flatpoint d,flatpoint q,DoubleBBox *bbox,
 /*! Convenience function than internally uses bez_bbox(). extrema must be able to hold 5 values.
  * Number of extrema found is returned. 
  *
- * If is horizontal extrema, its info is 0. If vertical, info is 1.
+ * Each extrema point.info gets LAX_LEFT, LAX_RIGHT, LAX_TOP, or LAX_BOTTOM to
+ * describe the direction of acceleration at the point (positve y is top, positive x is right).
  */
 int bez_extrema(flatpoint p,flatpoint c,flatpoint d,flatpoint q,double *extrema,flatpoint *extremap)
 {
@@ -204,7 +224,7 @@ int bez_extrema(flatpoint p,flatpoint c,flatpoint d,flatpoint q,double *extrema,
  * p_ret and t_ret must be either big enough to hold 2 values, or null if you don't care.
  * Note that if both x and y inflections exist and they are the same point, 2 points are still returned.
  * 
- * Returns number of points found. If a points for for y, its info is set to 1, else its info is 0.
+ * Returns number of points found. If a point is for y, its info is set to 1, else its info is 0.
  */
 int bez_inflections(const flatpoint &p1,const flatpoint &c1,const flatpoint &c2,const flatpoint &p2, flatpoint *p_ret, double *t_ret)
 {
@@ -644,6 +664,14 @@ flatpoint bez_acceleration(double t,flatpoint p1,flatpoint c1,flatpoint c2,flatp
 
 	return (flatpoint((a1*p1.x + a2*c1.x + a3*c2.x + a4*p2.x),
 					  (a1*p1.y + a2*c1.y + a3*c2.y + a4*p2.y)));
+}
+
+/*! Convenience function to compute the acceleration vector at t, then return cardinal_direction(v).
+ */
+int accel_direction(double t, flatvector p, flatvector c, flatvector d, flatvector q)
+{
+	flatvector v = bez_acceleration(t,p,c,d,q);
+	return cardinal_direction(v);
 }
 
 //! Return the visual tangent at t.
