@@ -350,8 +350,39 @@ void VoronoiData::Width(double newwidth, int which)
 	if (which<0 || which&4) width_points   = newwidth;
 }
 
+void VoronoiData::RelaxBarycenter(int iters, double strength)
+{
+	if (NumPoints() < 3) return;
+
+	if (!triangles.n) {
+		RebuildVoronoi(true);
+	}
+
+	NumStack<flatpoint> barycenters;
+	for (int c=0; c<points.n; c++) barycenters.push(flatpoint()); //initiate proper size
+	int is_inf = 0;
+
+	flatpoint p;
+	for (int i=0; i<iters; i++) {
+		for (int c=0; c<points.n; c++) {
+			barycenters.e[c] = BarycenterRegion(c, &is_inf);
+		}
+
+		double smallestdist = 1000000;
+		for (int c = 0; c < points.n; c++) {
+			if (barycenters.e[c].info != 0) continue; //leave alone points of infinite regions
+
+			flatpoint v = barycenters.e[c] - points.e[c]->p;
+			double l = v.norm2();
+			if (l < smallestdist) smallestdist = l;
+			points.e[c]->p += v * strength;
+		}
+		RebuildVoronoi(true);
+	}
+}
+
 /*! Return the centroid of the specified triangle.
- * If triangle invalid, return (0,0).
+ * If triangle invalid index, return (0,0).
  */
 flatpoint VoronoiData::Centroid(int triangle)
 {
@@ -359,6 +390,37 @@ flatpoint VoronoiData::Centroid(int triangle)
 	return ( points.e[triangles.e[triangle].p1]->p
 			+points.e[triangles.e[triangle].p2]->p
 			+points.e[triangles.e[triangle].p3]->p) / 3;
+}
+
+/*! Return centroid of specified index of voronoi region.
+ * Note infinite regions will set is_inf to 1, else it is 0.
+ * If 1, the returned point contains average of all the non-infinite points, and its info will we 1.
+ *
+ * If point is a bad index, is_inf is set to -1.
+ */
+flatpoint VoronoiData::BarycenterRegion(int point, int *is_inf)
+{
+	if (is_inf) *is_inf = 0;
+	if (point < 0 || point >= regions.n) {
+		if (is_inf) *is_inf = -1;
+		return flatpoint();
+	}
+
+	flatpoint pp;
+	int noninf = 0;
+	for (int c=0; c<regions.e[point].tris.n; c++) {
+		if (regions.e[point].tris.e[c] < 0) {
+			if (is_inf) *is_inf = 1;
+		} else {
+			noninf++;
+			int i = regions.e[point].tris.e[c];
+			pp += triangles.e[i].circumcenter;
+		}
+	}
+
+	if (noninf > 0) pp /= noninf;
+	if (noninf != regions.e[point].tris.n) pp.info = 1;
+	return pp;
 }
 
 void VoronoiData::Triangulate()
@@ -869,6 +931,7 @@ Laxkit::MenuInfo *DelaunayInterface::ContextMenu(int x,int y,int deviceid, MenuI
 		menu->AddToggleItem(_("Show points"),         VORONOI_TogglePoints,  0, data->show_points);
 		menu->AddSep();
 		menu->AddItem(_("Relax"), VORONOI_Relax);
+		menu->AddItem(_("Relax forces"), VORONOI_RelaxForce);
 		menu->AddSep();
 		menu->AddItem(_("New"), VORONOI_New);
 	}
@@ -1061,6 +1124,7 @@ Laxkit::ShortcutHandler *DelaunayInterface::GetShortcuts()
     sc->Add(VORONOI_FileExport,    'f',0,0,          "FileOut",        _("Export this point set to a file"),NULL,0); 
     sc->Add(VORONOI_FileImport,    'i',0,0,          "FileIn",         _("Import a point set from a file"),NULL,0); 
     sc->Add(VORONOI_Relax,         'r',0,0,          "Relax",          _("Relax points"),NULL,0); 
+    sc->Add(VORONOI_RelaxForce,    'R',ShiftMask,0,  "RelaxForce",     _("Relax points using forces between points"),NULL,0); 
 
     manager->AddArea(whattype(),sc);
 	return sc;
@@ -1203,7 +1267,17 @@ int DelaunayInterface::PerformAction(int action)
 
 	} else if (action == VORONOI_Relax) {
 		if (!data) return 0;
+		// data->Relax(relax_iters, .5, .1);
+		data->RelaxBarycenter(relax_iters, 1);
+		Triangulate();
+		PostMessage(_("Relaxing..."));
+		needtodraw = 1;
+		return 0;
+
+	} else if (action == VORONOI_RelaxForce) {
+		if (!data) return 0;
 		data->Relax(relax_iters, .5, .1);
+		// data->Relax(relax_iters, 1);
 		Triangulate();
 		PostMessage(_("Relaxing..."));
 		needtodraw = 1;
@@ -1292,6 +1366,7 @@ int DelaunayInterface::Event(const Laxkit::EventData *e_data, const char *mes)
 		 || i == VORONOI_MakeGrid
 		 || i == VORONOI_MakeHexChunk
 		 || i == VORONOI_Relax
+		 || i == VORONOI_RelaxForce
 		 || i == VORONOI_TogglePoints
 		 || i == VORONOI_ToggleVoronoi
 		 || i == VORONOI_ToggleShapes

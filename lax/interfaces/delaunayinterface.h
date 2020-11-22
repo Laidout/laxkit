@@ -63,8 +63,8 @@ class IndexTriangle
 class VoronoiRegion
 {
   public:
-	flatpoint point;
-	Laxkit::NumStack<int> tris; //indices to other VoronoiRegions, point is tri->circumcenter
+	flatpoint point; //should correspond to VoronoiData::points[] (defined in PointSet)
+	Laxkit::NumStack<int> tris; //indices in VoronoiData::triangles
 	int next_hull; //is -1 if this point is not on convex hull
 	int pindex; //index of point in original point collection
 
@@ -109,7 +109,9 @@ class VoronoiData : virtual public LaxInterfaces::SomeData, virtual public Laxki
 
 	virtual void Width(double newwidth, int which=-1);
 
-	flatpoint Centroid(int triangle);
+	virtual void RelaxBarycenter(int iters, double strength);
+	virtual flatpoint Centroid(int triangle);
+	virtual flatpoint BarycenterRegion(int point, int *is_inf);
 	virtual int Map(std::function<int(const flatpoint &p, flatpoint &newp)> adjustFunc);
 };
 	
@@ -135,6 +137,7 @@ enum DelaunayInterfaceActions {
 	VORONOI_MakeGrid,
 	VORONOI_MakeHexChunk,
 	VORONOI_Relax,
+	VORONOI_RelaxForce,
 	VORONOI_New,
 	VORONOI_MAX
 };
