@@ -401,7 +401,9 @@ int PointSet::Closest(flatpoint to_this)
 	return i;
 }
 
-flatpoint PointSet::Centroid()
+/*! Return evenly weighted average of all the points.
+ */
+flatpoint PointSet::Barycenter()
 {
 	flatpoint p;
 	for (int c=0; c<points.n; c++) {
@@ -421,6 +423,9 @@ void PointSet::GetBBox(DoubleBBox &box)
 
 //------------------ Operations ----------------------------
 
+/*! Relax trying to maintain at least mindist between points, but also try to
+ * stay contained within original bounding box.
+ */
 void PointSet::Relax(int maxiterations, double mindist, double damp)
 {
 	if (points.n < 1) return;
@@ -514,7 +519,6 @@ void PointSet::Relax(int maxiterations, double mindist, double damp)
 			points.e[c]->p += forces[c];
 		}
 	}
-
 }
 
 

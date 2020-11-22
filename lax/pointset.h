@@ -144,7 +144,7 @@ class PointSet : public PointCollection, virtual public anObject, virtual public
 
 	// info
 	virtual int Closest(flatpoint to_this);
-	virtual flatpoint Centroid();
+	virtual flatpoint Barycenter();
 	virtual void GetBBox(DoubleBBox &box);
 
 	// list management
