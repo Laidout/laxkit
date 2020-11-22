@@ -97,7 +97,8 @@ class MenuItem : public anObject
 	int subislocal;
 
   public:
-	char *name;
+	char *name; //displayed text
+	char *key; //internal key
 	LaxImage *image;
 	int formathint;
 	int id,info;

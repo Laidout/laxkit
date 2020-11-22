@@ -202,19 +202,20 @@ MenuItem::MenuItem()
 }
 
 void MenuItem::base_init()
-{ 
-	parent=NULL;
-	id=0; 
-	name=NULL;
-	image=NULL;
-	submenu=NULL;
-	state=LAX_OFF; 
-	subislocal=0;
-	info=0;
-	x=y=w=h=0;
+{
+	parent     = nullptr;
+	id         = 0;
+	name       = nullptr;
+	key        = nullptr;
+	image      = nullptr;
+	submenu    = nullptr;
+	state      = LAX_OFF;
+	subislocal = 0;
+	info       = 0;
+	x = y = w = h = 0;
 
-	formathint=0;
-	nextdetail=NULL;
+	formathint = 0;
+	nextdetail = nullptr;
 }
 
 //! Item constructor, straight copy of all fields.
@@ -224,20 +225,21 @@ MenuItem::MenuItem(const char *newitem,int nid,unsigned int nstate,int ninfo,Men
 }
 
 void MenuItem::base_init(const char *newitem,int nid,unsigned int nstate,int ninfo,MenuInfo *nsub,int sublocal)
-{ 
-	parent=NULL;
-	id=nid; 
-	state=nstate; 
-	submenu=nsub; 
-	subislocal=sublocal;
-	name=NULL; 
-	image=NULL;
-	makestr(name,newitem); 
-	info=ninfo; 
-	x=y=w=h=0;
+{
+	parent     = nullptr;
+	id         = nid;
+	state      = nstate;
+	submenu    = nsub;
+	subislocal = sublocal;
+	name       = nullptr;
+	key        = nullptr;
+	image      = nullptr;
+	makestr(name, newitem);
+	info = ninfo;
+	x = y = w = h = 0;
 
-	formathint=0;
-	nextdetail=NULL;
+	formathint = 0;
+	nextdetail = nullptr;
 }
 
 
@@ -267,7 +269,8 @@ MenuItem::MenuItem(const char *newitem,LaxImage *img,int nid,unsigned int nstate
 //! Destructor, deletes name and if subislocal!=0, also deletes submenu.
 MenuItem::~MenuItem()
 {
-	if (name) delete[] name; 
+	delete[] key;
+	delete[] name;
 	if (image) image->dec_count();
 	if (subislocal && submenu) delete submenu; 
 
@@ -598,7 +601,6 @@ void MenuInfo::EndSubMenu()
 	if (curmenu && curmenu!=this) {
 		curmenu=findparent(curmenu,NULL);
 	}
-	DBG menuinfoDump(this,0);
 }
 
 //! Find the parent menu (MenuInfo that has the item, not the MenuItem that has m) of m.
