@@ -368,21 +368,37 @@ ResourceType::~ResourceType()
 	if (default_icon) default_icon->dec_count();
 }
 
-/*! Return number of all the resources that are not built in. This is so we don't have to output
- * sections in save files if we don't have to.
+/*! Return the number of actual resources, excluding folders.
  */
-int ResourceType::NumberNotBuilnIn()
+int ResourceType::NumResources()
 {
 	int n = 0;
 	for (int c=0; c<resources.n; c++) {
 		if (dynamic_cast<ResourceType*>(resources.e[c])) {
-			n += dynamic_cast<ResourceType*>(resources.e[c])->NumberNotBuilnIn();
+			n += dynamic_cast<ResourceType*>(resources.e[c])->NumResources();
+		} else {
+			if (!dynamic_cast<ResourceType*>(resources.e[c])) n++;
+		}
+	}
+	return n;
+}
+
+/*! Return number of all the resources that are not built in. This is so we don't have to output
+ * sections in save files if we don't have to.
+ */
+int ResourceType::NumberNotBuiltIn()
+{
+	int n = 0;
+	for (int c=0; c<resources.n; c++) {
+		if (dynamic_cast<ResourceType*>(resources.e[c])) {
+			n += dynamic_cast<ResourceType*>(resources.e[c])->NumberNotBuiltIn();
 		} else {
 			if (resources.e[c]->source_type != BuiltIn) n++;
 		}
 	}
 	return n;
 }
+
 /*! Return 0 for added, -1 for already there and not added.
  * where<0 means add at end of list.
  */
@@ -486,7 +502,7 @@ MenuInfo *ResourceType::AppendMenu(MenuInfo *menu, bool do_favorites, int *numad
 			int oldn=menu->n();
 			dynamic_cast<ResourceType*>(r)->AppendMenu(menu,do_favorites,numadded);
 			oldn=menu->n()-oldn;
-			*numadded += oldn;
+			if (numadded) *numadded += oldn;
 			if (do_favorites) {
 				if (oldn==0) menu->Remove(-1); //remove added submenu when no items added
 				menu->EndSubMenu();
@@ -507,7 +523,7 @@ MenuInfo *ResourceType::AppendMenu(MenuInfo *menu, bool do_favorites, int *numad
 						  -1,
 						  LAX_OFF
 						  );
-			*numadded += 1;
+			if (numadded) *numadded += 1;
 		}
 	}
 
@@ -775,7 +791,7 @@ void ResourceManager::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext
 		if (types.e[c]->ignore) continue;
 
 		type = types.e[c];
-		if (type->NumberNotBuilnIn() == 0) continue;
+		if (type->NumberNotBuiltIn() == 0) continue;
 
 		fprintf(f,"%stype %s\n",spc, type->name);
 		if (type->Name)        fprintf(f,"%s  Name %s\n",spc, type->Name);

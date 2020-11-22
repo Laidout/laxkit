@@ -163,7 +163,8 @@ class ResourceType : public Resource
 	virtual anObject *Find(const char *str, Resource **resource_ret);
 	virtual int AddResource(anObject *object, anObject *ntopowner, const char *name, const char *Name, const char *description,
 							const char *file, LaxImage *icon,bool builtin=false);
-	virtual int NumberNotBuilnIn();
+	virtual int NumberNotBuiltIn();
+	virtual int NumResources();
 
 	virtual MenuInfo *AppendMenu(MenuInfo *menu, bool do_favorites, int *numadded);
 };
