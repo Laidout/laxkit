@@ -129,7 +129,9 @@ SomeData *ImageData::duplicate(SomeData *dup)
 	}
 
 	//newimage->LoadImage(image->filename, previewimage ? previewimage->filename : NULL, 0,0,0,0);
-	newimage->LoadImage(filename, previewfile, 0,0,0,0, index);
+	if (newimage->LoadImage(filename, previewfile, 0,0,0,0, index) != 0) {
+		newimage->SetImage(image, previewimage);
+	}
 
 	 //somedata elements:
 	dup->setbounds(minx,maxx,miny,maxy);
