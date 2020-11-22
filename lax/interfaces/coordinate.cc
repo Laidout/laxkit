@@ -770,7 +770,8 @@ int Coordinate::resolveToControls(flatpoint &p1, flatpoint &c1, flatpoint &c2, f
 
 /*! If *this is not a vertex, 1 is returned.
  * If there is no next, 2 is returned.
- * Else c1,c2,p2 are set to what is most appropriate to represent a bezier segment.
+ * Else return 0 for points found.
+ * If points found, c1,c2,p2 are set to what is most appropriate to represent a bezier segment.
  *
  * For straight segments (no defined middle control points),
  * c1 and c2 are set at thirds of segment connecting this and next vertex.
