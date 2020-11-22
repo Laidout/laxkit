@@ -26,6 +26,7 @@
 #include <lax/resources.h>
 #include <lax/objectfactory.h>
 #include <lax/curveinfo.h>
+#include <lax/previewable.h>
 
 #include <lax/interfaces/pathinterface.h>
 
@@ -40,22 +41,20 @@ class PathWeightNode;
 #define OBJTYPE_LineProfile 200
 
 
-class LineProfile : public Laxkit::Resourceable, public LaxFiles::DumpUtility
+class LineProfile : public Laxkit::Resourceable, virtual public Laxkit::Previewable, public LaxFiles::DumpUtility
 {
   public:
-	Laxkit::LaxImage *preview;
-
 	double max_height; 
 	double defaultwidth;
 	double mint, maxt;
 	bool wrap;
 
 	Laxkit::PtrStack<PathWeightNode> pathweights;
-	std::time_t nodes_mod_time;
 	int needtorecache;
 	virtual void UpdateCache();
 
 	Laxkit::CurveInfo *width, *offset, *angle; //these are cache values made from pathweights
+	std::time_t nodes_mod_time;
 	std::time_t cache_mod_time;
 
 	 //instance data:
@@ -70,17 +69,17 @@ class LineProfile : public Laxkit::Resourceable, public LaxFiles::DumpUtility
 	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context);
 	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
 
-	virtual Laxkit::LaxImage *CreatePreview(int pwidth,int pheight);
-	virtual Laxkit::LaxImage *Preview();
-	virtual void touchNodes() { nodes_mod_time=times(NULL); }
-
 	virtual void AddNode(double nt,double no,double nw,double nangle);
-	virtual int NeedToRecache() { return nodes_mod_time>cache_mod_time || nodes_mod_time==0; }
+	virtual int NeedToRecache() { return needtorecache || nodes_mod_time>cache_mod_time || nodes_mod_time==0; }
 
 	virtual int GetWeight(double t, double *width, double *offset, double *angle);
 	virtual bool Angled();
 	virtual bool HasOffset();
 	virtual bool ConstantWidth();
+
+	//from Previewable:
+	virtual int renderToBufferImage(Laxkit::LaxImage *image);
+	virtual bool CanRenderPreview() { return true; }
 };
 
 

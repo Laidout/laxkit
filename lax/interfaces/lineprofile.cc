@@ -22,6 +22,7 @@
 
 
 #include <lax/interfaces/lineprofile.h>
+#include <lax/interfaces/interfacemanager.h>
 #include <lax/attributes.h>
 #include <lax/language.h>
 
@@ -118,78 +119,114 @@ int InstallDefaultLineProfiles(ObjectFactory *factory, ResourceManager *resource
 
 LineProfile::LineProfile()
 {
-	mint=0;
-	maxt=1;
-	max_height=0;
-	defaultwidth=1;
-	wrap=0;
+	//for preview size:
+	maxx = 150;
+	maxy = 20;
 
-	preview=NULL;
-	needtorecache=1;
+	mint         = 0;
+	maxt         = 1;
+	max_height   = 0;
+	defaultwidth = 1;
+	wrap         = 0;
 
-	start=0;
-	start_type=0;
-	start_rand_width=0;
+	needtorecache  = 1;
+	nodes_mod_time = 0;
+	cache_mod_time = 0;
 
-	end=1;
-	end_type=0;
-	end_rand_width=0;
+	start            = 0;
+	start_type       = 0;
+	start_rand_width = 0;
 
-	width=offset=angle=NULL;
+	end            = 1;
+	end_type       = 0;
+	end_rand_width = 0;
+
+	width = offset = angle = NULL;
 }
 
 LineProfile::~LineProfile()
 {
-	if (preview) preview->dec_count();
 	if (width)   width  ->dec_count();
 	if (offset)  offset ->dec_count();
 	if (angle)   angle  ->dec_count();
 }
 
-LaxImage *LineProfile::CreatePreview(int pwidth,int pheight)
+int LineProfile::renderToBufferImage(LaxImage *image)
 {
 	// *** should preview angle too
 
-	if (preview) {
-		if (preview->w()!=pwidth || preview->h()!=pheight) {
-			preview->dec_count();
-			preview=NULL;
-		}
-	}
-	if (!preview) {
-		preview = ImageLoader::NewImage(pwidth,pheight);
-	}
+	// unsigned char *data = image->getImageBuffer();
+	// int pwidth = image->w();
+	// int pheight = image->h();
+	// memset(data, 255, pwidth*pheight*4); //all white
 
-	unsigned char *data=preview->getImageBuffer();
-	memset(data, 255, pwidth*pheight*4); //all white
+	// double w,doff,angle;
+	// int v, off;
+	// for (int x=0; x<pwidth; x++) {
+	// 	GetWeight((double)x/pwidth, &w,&doff,&angle);
+	// 	w *= pheight/2;
+	// 	off = pheight/2 + doff*pheight/2;
 
+	// 	int lower = off-w;
+	// 	v = .5 + 255 * (1-(w - int(w))); //antialias edges
+	// 	if (v < 0) v = 0; else if (v > 255) v = 255;
+	// 	if (lower>=0 && lower<pheight) {
+	// 		data[(lower*pwidth + x)*4  ] = v;//b
+	// 		data[(lower*pwidth + x)*4+1] = v;//g
+	// 		data[(lower*pwidth + x)*4+2] = v;//r
+	// 	}
+	// 	int upper = off+w;
+	// 	if (upper>=0 && upper<pheight) {
+	// 		data[(upper*pwidth + x)*4  ] = v;//b
+	// 		data[(upper*pwidth + x)*4+1] = v;//g
+	// 		data[(upper*pwidth + x)*4+2] = v;//r
+	// 	}
+	// 	for (int y = lower+1; y<upper; y++) {
+	// 		if (y>=0 && y<pheight) {
+	// 			data[(y*pwidth + x)*4  ]=0;//b
+	// 			data[(y*pwidth + x)*4+1]=0;//g
+	// 			data[(y*pwidth + x)*4+2]=0;//r
+	// 		}
+	// 	}
+	// }
+
+	// image->doneWithBuffer(data);
+
+	// ------------
+	
+	Displayer *dp = InterfaceManager::GetDefault(true)->GetPreviewDisplayer();
+	dp->MakeCurrent(image);
+
+	int pwidth = image->w();
+	int pheight = image->h();
+	dp->NewBG(1.,1.,1.);
+	dp->NewBG(0.,0.,0.);
+	
 	double w,off,angle;
 	for (int x=0; x<pwidth; x++) {
 		GetWeight((double)x/pwidth, &w,&off,&angle);
-		w*=pheight;
-		off=pheight/2 + off*pheight/2;
+		w *= pheight/2;
+		off = pheight/2 + off*pheight/2;
 
-		for (int y=off-w/2; y<off+w/2; y++) {
-			if (y>=0 && y<pheight) {
-				data[(y*pwidth + x)*4  ]=0;//b
-				data[(y*pwidth + x)*4+1]=0;//g
-				data[(y*pwidth + x)*4+2]=0;//r
-			}
-		}
+		// double lower = off-w;
+		double upper = off+w;
+
+		if (x == 0) dp->moveto(x,upper);
+		else dp->lineto(x,upper);
 	}
+	for (int x=pwidth-1; x >= 0; x--) {
+		GetWeight((double)x/pwidth, &w,&off,&angle);
+		w *= pheight/2;
+		off = pheight/2 + off*pheight/2;
 
-	preview->doneWithBuffer(data);
+		double lower = off-w;
+		// double upper = off+w;
 
-	return preview;
-}
+		dp->lineto(x,lower);
+	}
+	dp->fill(0);
 
-/*! Returns this->preview, or generate a new default one and return that.
- */
-LaxImage *LineProfile::Preview()
-{
-	if (preview) return preview;
-	CreatePreview(150,20);
-	return preview;
+	return 0;
 }
 
 /*! t must range from 0 to 1.

@@ -1508,7 +1508,7 @@ int EngraverFillInterface::NumGroupLines()
 	return n;
 }
 
-/*! Retrun the object and the group index within object based on the visible line number i.
+/*! Return the object and the group index within object based on the visible line number i.
  * i==0 is the first object with -1 for group index, 1 is first object and 0 for group index, and so on.
  */
 EngraverFillData *EngraverFillInterface::GroupFromLineIndex(int i, int *gi)
@@ -4497,7 +4497,7 @@ void EngraverFillInterface::DrawPanel()
 						 //draw in base profile
 						dp->NewFG(&fgcolor);
 						if (group && group->direction->default_profile) {
-							dp->imageout(group->direction->default_profile->Preview(), start,i2y+i2h/4, end-start,i2h/2);
+							dp->imageout(group->direction->default_profile->GetPreview(), start,i2y+i2h/4, end-start,i2h/2);
 						} else { 
 							dp->drawrectangle(start, i2y+i2h/3, end-start,i2h/3, 1);
 						} 
