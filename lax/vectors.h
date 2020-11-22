@@ -99,7 +99,7 @@ class flatvector
 	flatvector(double xx, double yy) { x=xx; y=yy; info=0; info2=0; }
 	flatvector(double xx, double yy, int ninfo) { x=xx; y=yy; info=ninfo; info2=0; }
 	flatvector(double *v) { x=v[0]; y=v[1]; info=0; info2=0; }
-	flatvector(const flatvector &vec) {  x=vec.x; y=vec.y; info=vec.info; info2=0; }
+	flatvector(const flatvector &vec) {  x=vec.x; y=vec.y; info=vec.info; info2=vec.info2; }
 	flatvector operator-();
 	void normalize();
 	void set(double xx,double yy) { x=xx; y=yy; }
@@ -138,6 +138,8 @@ double norm(flatvector p1);
 double norm2(flatvector p1);
 bool clockwise(flatvector p, flatvector v);
 int point_is_in(flatvector p,flatvector *points, int n);
+int cardinal_direction(flatvector v);
+
 typedef flatvector flatpoint;
 
 class Basis

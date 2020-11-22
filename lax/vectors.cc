@@ -29,6 +29,9 @@
 //for SvgToFlatpoints
 #include <lax/attributes.h>
 #include <lax/doublebbox.h>
+#include <lax/laxdefs.h>
+
+//template implementation:
 #include <lax/lists.cc>
 
 #define DBG
@@ -232,6 +235,20 @@ bool clockwise(flatvector p, flatvector v)
 	return p.cross(p+v)<=0;
 }
 
+/*! Return which of north ((0,1) == LAX_TOP), south((0,-1) == LAX_BOTTOM), east((1,0) == LAX_RIGHT),
+ * or west((-1,0) == LAX_LEFT) a vector most points in the direction of.
+ */
+int cardinal_direction(flatvector v)
+{
+	if (v.x > 0) {
+		if (v.x > fabs(v.y)) return LAX_RIGHT;
+		if (v.y > 0) return LAX_TOP;
+		return LAX_BOTTOM;
+	}
+	if (-v.x > fabs(v.y)) return LAX_LEFT;
+	if (v.y > 0) return LAX_TOP;
+	return LAX_BOTTOM;
+}
 
 //! Return the winding number for p in the polyline points.
 /*! Automatically closes points.
