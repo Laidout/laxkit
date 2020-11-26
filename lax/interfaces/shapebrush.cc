@@ -22,6 +22,9 @@
 
 #include <lax/interfaces/shapebrush.h>
 
+//template implementation:
+#include <lax/lists.cc>
+
 
 namespace LaxInterfaces {
 

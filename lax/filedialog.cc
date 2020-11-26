@@ -35,7 +35,6 @@
 #include <lax/iconmanager.h>
 
 #include <lax/fileutils.h>
-using namespace LaxFiles;
 
 #include <unistd.h>
 #include <dirent.h>
@@ -44,6 +43,13 @@ using namespace LaxFiles;
 #include <iostream>
 using namespace std;
 #define DBG 
+
+
+//template implementation:
+#include <lax/lists.cc>
+
+
+using namespace LaxFiles;
 
 
 //Minimal File Selection Dialog
