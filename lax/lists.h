@@ -109,6 +109,7 @@ class PtrStack
 } // namespace Laxkit;
 
 
+//template implementation:
 #ifdef LAX_LISTS_SOURCE_TOO
 #include <lax/lists.cc>
 #endif
