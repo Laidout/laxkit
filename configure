@@ -16,6 +16,9 @@ LAXKITCONFIGDIRBASE="~/.config/laxkit"
 PREFIX="/usr/local"
 
 #---capabilities
+#user provided:
+EXTRA_CPPFLAGS=
+#automatically generated:
 EXTRA_CFLAGS=
 EXTRA_LIBS=
 OPTIONAL=
@@ -83,6 +86,8 @@ while true ; do
 		echo " --backend=cairo              Only cairo is supported for now."
 		echo " --harfbuzz=2.0               What version of harfbuzz you are using. Preferably use 2.0 or later."
 #       echo " --onamac                     Include this if you are compiling on a Mac."
+        echo " --extra-cppflags             Any extra compile flags, such as location of includes not"
+        echo "                                otherwise detected"
 		echo " --relocatable                If present, do not configure with hardcoded paths. All resource paths"
         echo "                                will be determined at runtime relative to the executable."
 #		echo " --make-pkgconfig             Create a laxkit.pc file that pkg-config can understand."
@@ -102,6 +107,14 @@ while true ; do
 
 	--relocatable)
         RELOCATABLE="yes";
+        shift ;;
+
+	--extra-cppflags)
+        if [ -z $optarg ] ; then
+          optarg=$2
+          shift
+        fi
+        EXTRA_CPPFLAGS="$EXTRA_CPPFLAGS $optarg"
         shift ;;
 
     --onamac)
@@ -197,6 +210,7 @@ done
 if [ "$USEIMLIB" == "build" ] ;  then USEIMLIB="yes"; elif [ "$USEIMLIB" != "yes" ] ; then unset USEIMLIB;  fi
 if [ "$USEGRAPHICSMAGICK" == "build" ] ;  then USEGRAPHICSMAGICK="yes"; elif [ "$USEGRAPHICSMAGICK" != "yes" ] ; then unset USEGRAPHICSMAGICK;  fi
 
+EXTRA_CFLAGS="$EXTRA_CFLAGS $EXTRA_CPPFLAGS `pkg-config --cflags GraphicsMagick++`";
 
 
 #if [ x$USEIMLIB$USECAIRO == x ] ; 
@@ -389,7 +403,7 @@ echo "" >> Makefile-toinclude
 echo "$CONFIGCOMMAND"                              > config.log
 echo "" >> config.log
 echo \
-"       Configuration Summary
+"     Laxkit Configuration Summary
 " `date` "  
 ----------------------------------
   Laxkit version:  $LAXKITVERSION
@@ -421,10 +435,11 @@ if [ x$USESQLITE != x ] ;
 then echo "         Use Sqlite:  yes" >> config.log; 
 else echo "         Use Sqlite:  no"  >> config.log; 
 fi
+echo      "     Extra cppflags:  $EXTRA_CPPFLAGS"   >> config.log;
 echo      "        Relocatable:  $RELOCATABLE"      >> config.log;
-echo      "           Harfbuzz:  $HARFBUZZVERSION"  >> config.log; 
-echo      "    Default backend:  $LAXKITBACKEND" >> config.log
-echo      "           Platform:  $PLATFORM" >> config.log
+echo      "           Harfbuzz:  $HARFBUZZVERSION"  >> config.log;
+echo      "    Default backend:  $LAXKITBACKEND"    >> config.log;
+echo      "           Platform:  $PLATFORM"         >> config.log;
 
 
 
@@ -433,7 +448,7 @@ echo      "           Platform:  $PLATFORM" >> config.log
  ##
 echo $CONFIGCOMMAND
 echo 
-echo "          Configuration Summary"
+echo "    Laxkit Configuration Summary"
 echo "     " `date`
 echo "----------------------------------------"
 echo "     Laxkit version:  $LAXKITVERSION"
@@ -464,6 +479,7 @@ if [ x$USESQLITE != x ] ;
 then echo "         Use Sqlite:  yes"; 
 else echo "         Use Sqlite:  no" ; 
 fi
+echo      "     Extra cppflags:  $EXTRA_CPPFLAGS"
 echo      "        Relocatable:  $RELOCATABLE"
 echo      "           Harfbuzz:  $HARFBUZZVERSION"
 echo      "    Default backend:  $LAXKITBACKEND"
