@@ -141,7 +141,7 @@ Utf8String::Utf8String(double d)
 {
 	s = new char[50];
 	bytes_allocated = 50;
-	sprintf(s, "%f", d);
+	sprintf(s, "%.10g", d);
 	num_bytes = strlen(s);
 	updateNumChars();
 }
