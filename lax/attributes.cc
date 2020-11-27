@@ -1693,7 +1693,7 @@ void Attribute::dump_out(FILE *f, int indent)
 		}
 	}
 
-	char format[10];
+	char format[20];
 	sprintf(format, "%%-%ds", namewidth);
 	
 	for (int c=0; c<attributes.n; c++) {

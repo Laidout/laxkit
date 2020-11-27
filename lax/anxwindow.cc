@@ -24,13 +24,13 @@
 #include <X11/Xatom.h>
 #include <X11/X.h>
 
-//#include <lax/anxwindow.h>
-#define LAX_LISTS_SOURCE_TOO
 #include <lax/anxapp.h>
 #include <lax/strmanip.h>
 #include <lax/utf8utils.h>
 #include <lax/laxutils.h>
 
+// template implementation:
+#include <lax/lists.cc>
 #include <lax/refptrstack.cc>
 
 

@@ -27,7 +27,7 @@
 #include <cctype>
 
 
-#define LAX_LISTS_SOURCE_TOO
+//template implementation:
 #include <lax/lists.cc>
 
 

@@ -1170,7 +1170,7 @@ FontDialogFont *FontManager::DumpInFontDialogFont(LaxFiles::Attribute *att)
 
 			layer++;
 			family=style=file=NULL;
-			char colorname[10];
+			char colorname[20];
 			sprintf(colorname,"fg%d",layer);
 
 			for (int c3=0; c3<att->attributes.e[c2]->attributes.n; c3++) {
@@ -1248,7 +1248,7 @@ LaxFont *FontManager::dump_in_font(LaxFiles::Attribute *att, LaxFiles::DumpConte
 		if (!strcmp(name,"layer")) {
 			family=style=file=NULL;
 			layer++;
-			char cname[10];
+			char cname[20];
 			sprintf(cname,"fg%d",layer);
 
 			for (int c3=0; c3<att->attributes.e[c2]->attributes.n; c3++) {

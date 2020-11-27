@@ -366,7 +366,7 @@ void dump_flags(const char *label, unsigned int f)
 	int writing=0;
 	cerr << (label?label:"flags:")<<" ";
 
-	for (int c=31; c>=0; c++) {
+	for (int c=31; c>=0; c--) {
 		if (f&(1<<c)) {
 			writing=1;
 			cerr <<"1";

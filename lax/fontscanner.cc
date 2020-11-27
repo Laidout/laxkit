@@ -112,8 +112,9 @@ bool FontScanner::isWoffFile(const char *maybefile)
 
     char buffer[45];
     buffer[44] = '\0';
-    fread(buffer, 1, 44, f);  // reads in whole header
+    size_t len = fread(buffer, 1, 44, f);  // reads in whole header
     fclose(f);
+	if (len == 0) return false;
 
     if (!strncmp(buffer, "wOFF", 4)) return true;
     return false;
@@ -163,7 +164,8 @@ int FontScanner::Scan(int which, const char *nfile)
 	unsigned char buffer[45], tag[5];
 	buffer[44] = '\0';
 	tag[4] = '\0';
-	fread(buffer,1,44, f); //reads in whole header
+	size_t len = fread(buffer,1,44, f); //reads in whole header
+	if (len != 44) return 1;
 
 	try {
         svg_offset  = 0;
@@ -200,9 +202,11 @@ int FontScanner::Scan(int which, const char *nfile)
 
 		for (int c=0; c<numtables; c++) {
 			fseek(f, 44+c*20, SEEK_SET);
-			fread(buffer,1,20, f);
+			len = fread(buffer,1,20, f);
+			if (len != 20) throw _("Read error");
 
-			strncpy((char*)tag, (char*)buffer, 4);
+			memcpy(tag, buffer, 4);
+			//strncpy((char*)tag, (char*)buffer, 4);
 			if (tag[0]<32) tag[0]=32;
 			if (tag[1]<32) tag[1]=32;
 			if (tag[2]<32) tag[2]=32;
@@ -252,7 +256,7 @@ int FontScanner::Scan(int which, const char *nfile)
     return err;
 }
 
-/*! Return 0 for succes, nonzero for no cpal.
+/*! Return 0 for success, nonzero for no cpal.
  *
  * If this->ff!=nullptr, then use that. else open this->file.
  */
@@ -310,7 +314,8 @@ int FontScanner::ScanCpal()
 	unsigned char cpalorigtable[cpal_origlen+1];
 
 	fseek(f, cpal_offset, SEEK_SET);
-	fread(cpalcomptable, 1,cpal_complen, f);
+	size_t len = fread(cpalcomptable, 1,cpal_complen, f);
+	if (len != cpal_complen) return 2; //read error
 
 	if (cpal_complen == cpal_origlen) {
 		 //it wasn't compressed
@@ -389,7 +394,7 @@ int FontScanner::ScanCpal()
     return 0;
 }
 
-/*! Return 0 for succes, nonzero for no colr.
+/*! Return 0 for success, nonzero for no colr.
  */
 int FontScanner::ScanColr()
 {
@@ -424,7 +429,9 @@ int FontScanner::ScanColr()
 	unsigned char colrorigtable[colr_origlen+1];
 
 	fseek(f, colr_offset, SEEK_SET);
-	fread(colrcomptable, 1,colr_complen, f);
+	size_t len = fread(colrcomptable, 1,colr_complen, f);
+
+	if (len < colr_complen) return 2;
 
 	if (colr_complen == colr_origlen) {
 		 //it wasn't compressed
@@ -550,9 +557,11 @@ int FontScanner::ScanSvg()
 	unsigned char *svgorigtable = svgtable;
 
 	fseek(f, svg_offset, SEEK_SET);
-	fread(svgcomptable, 1,svg_complen, f);
+	size_t len = fread(svgcomptable, 1,svg_complen, f);
 
 	try {
+		if (len < svg_complen) throw 2;
+
 		if (svg_complen == svg_origlen) {
 			 //it wasn't compressed, we can just copy over directly
 			strncpy((char*)svgorigtable, (char*)svgcomptable, svg_complen);

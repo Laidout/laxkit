@@ -298,13 +298,13 @@ int CheckDirs(const char *dirstr, int depth, int permissions)
 				 // not there, create the dir
 				if (mkdir(dirs[c], permissions) != 0) { t =- 1; break; }
 				t = S_IFDIR;
-				chdir(dirs[c]);
+				if (chdir(dirs[c]) != 0) break; //some other error occured
 			}
 			nn++;
 		}
 
 		//restore old curdir
-		chdir(curdir);
+		if (chdir(curdir) != 0) {} //some kind of error happened.. snagging to remove compiler warning
 	}
 
 	delete[] curdir;

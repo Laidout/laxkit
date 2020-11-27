@@ -217,7 +217,7 @@ int touch_recently_used_xbel(const char *file, const char *mime,
 					if (att2) {
 						int count = strtol(att2->value,NULL,10);
 						count++;
-						char str[10];
+						char str[20];
 						sprintf(str,"%d",count);
 						makestr(att2->value,str);
 					} else att->push("count", "1");

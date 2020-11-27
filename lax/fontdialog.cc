@@ -605,7 +605,7 @@ int FontDialog::init()
 
 	 //fg
 	if (thefont) {
-		char str[10];
+		char str[20];
 		for (int c=0; c<thefont->Layers(); c++) {
 			sprintf(str, "fg%d", c+1);
 
@@ -1020,7 +1020,7 @@ void FontDialog::UpdateColorBoxes()
 		a=1.0;
 	}
 
-	char str[10];
+	char str[20];
 	while (numboxes < numlayers) {
 		sprintf(str, "fg%d", numboxes+1);
 

@@ -346,7 +346,7 @@ void ColorSliders::Refresh()
 
 	if (!bars.n) return;
 
-	double pos;
+	double pos = 0;
 	ScreenColor color1, color2;
 	int x=sliders.x+gap,y=sliders.y+gap;
 	double w=sliders.width-2*gap;

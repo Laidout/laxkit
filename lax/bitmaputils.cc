@@ -131,7 +131,7 @@ void MakeValueMap(unsigned char *img, int mapwidth, int mapheight, int blur, con
 	int startline=0, lastline=mapheight; //used to not check regions already filled
 	unsigned char *m1=map1, *m2=map2;
 	int firstzero=0, lastzero=1, nfilled;
-	int stillzero=0, firstnonzero;
+	int stillzero=0, firstnonzero=mapwidth;
 	int ii, sum;
 	//int curstep=2;
 
@@ -361,6 +361,134 @@ int GaussianBlur(int radius, //!< Pixels to blur from to left and right of a giv
 
 	return 0;
 }
+
+// //------------------------------------ Skeleton Thinning ----------------------------
+
+// /*! From 8 bit grayscale image, perform threshhold with 0 being on, 255 being off.
+//  * Then shrink until single pixel widths.
+//  * Assumes in and out are char[width * height].
+//  *
+//  * ```
+//  *  for each pixel, examine vertically and horizontally:
+//  *    all image edges go to 0
+//  *    if black on all sides:
+//  *      keep
+//  *    else:
+//  *      top if 0:
+//  *        if y+2 white keep
+//  *        if y+1 white keep
+//  *        else loose
+//  *      left if 0:
+//  *        if x+2 white keep
+//  *        if x+1 white keep
+//  *        else loose
+//  *      right if 0:
+//  *        if x-1 white keep
+//  *      bottom if 0:
+//  *        if y-1 white keep
+//  *      lose
+//  * ```
+//  */
+// int MakeSkeleton(unsigned char *image_in, int width, int height,
+// 				 unsigned char *image_out,
+// 				 unsigned char threshhold)
+// {
+// 	int n = 0; //number of changed pixels
+
+// 	unsigned char tmp[width * height];
+// 	memcpy(tmp, image_in, width*height);
+
+// #define SKIP = 255
+// #define KEEP = 0
+
+// 	//perform threshhold
+// 	n = width * height;
+// 	unsigned char *ptr = tmp;
+// 	for (int ii=0; ii<n; ii++) {
+// 		ptr[ii] = (image_in[ii] >= threshhold ? SKIP : KEEP);
+// 	}
+
+// 	unsigned char *cur  = tmp;
+// 	unsigned char *next = image_out;
+
+// 	//blank out edges
+// 	int i = (height-1) * width;
+// 	for (int c=0; c<width; c++) {
+// 		next[c] = SKIP;
+// 		next[i+c] = SKIP;
+// 	}
+// 	i = width;
+// 	for (int c=1; c<height-1; c++) {
+// 		next[i] = SKIP;
+// 		next[i+width-1] = SKIP;
+// 		i += width;
+// 	}
+
+// 	//iterate
+// 	unsigned char *nextptr = next;
+// 	unsigned char *top, *bottom, *bottom2, *left, *right, *right2;
+// 	bool keep;
+// 	do {
+// 		n = 0;
+// 		for (int y=1; y<height-1; y++) {
+// 			ptr = cur + width * y + 1;
+// 			nextptr = next + width * y + 1;
+
+// 			for (int x=1; x<width-1; x++) {
+// 				if (*ptr == SKIP) {
+// 					*nextptr = SKIP;
+
+// 				} else {
+// 					keep = false;
+// 					top = ptr - width;
+// 					bottom = ptr + width;
+// 					bottom2 = bottom + width;
+// 					left = ptr - 1;
+// 					right = ptr + 1;
+// 					right2 = right + 1;
+
+// 					//if black on all sides: keep
+// 					if (*top == KEEP && *left == KEEP && *right == KEEP && *bottom == KEEP) {
+// 						keep = true;
+// 					} else {
+// 						if (*top == SKIP) {
+// 							if (*bottom2 == SKIP) keep = true;
+// 							else if (*bottom == SKIP) keep = true;
+// 							//else keep = false;
+// 						}
+// 						if (*left == SKIP) {
+// 							if (*right2 == SKIP) keep = true;
+// 							else if (*right == SKIP) keep = true;
+// 							//else keep = false
+// 						}
+// 						if (*right == SKIP) {
+// 							if (*left == SKIP) keep = true;
+// 						}
+// 						if (*bottom == SKIP) {
+// 							if (*top == SKIP) keep = true;
+// 						}
+// 					}
+// 					if (keep) {
+// 						*nextptr = KEEP;
+// 						n++;
+// 					} else *nextptr = SKIP;
+// 				}
+
+// 				ptr++;
+// 				nextptr++;
+// 			}
+// 		}
+
+// 		//swap buffers
+// 		ptr = cur;
+// 		cur = next;
+// 		next = ptr;
+// 	} while (n);
+
+// 	if (cur != image_out) {
+// 		memcpy(image_out, cur, width*height);
+// 	}
+// }
 
 
 } //namespace Laxkit

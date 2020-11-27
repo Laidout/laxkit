@@ -1102,56 +1102,58 @@ void Displayer::drawFormattedPoints(flatpoint *pts, int n, int tofill)
 	int firstv=-1; //first vertex of current path
 
 	for (int c=0; c<n; c++) {
-		ptype=pts[c].info&(LINE_Bez|LINE_Vertex);
-		if (ptype==0) ptype=LINE_Vertex;
-		else if (ptype==(LINE_Bez|LINE_Vertex)) ptype=LINE_Vertex;
+		ptype = pts[c].info&(LINE_Bez|LINE_Vertex);
+		if (ptype == 0) ptype=LINE_Vertex;
+		else if (ptype == (LINE_Bez|LINE_Vertex)) ptype = LINE_Vertex;
  
-		if (firstv<0) {
+		if (firstv < 0) {
 			 //need to skip initial control points
-			if (ptype==LINE_Vertex) {
+			if (ptype == LINE_Vertex) {
 				moveto(pts[c]);
-				firstv=c;
+				firstv = c;
 			}
 			continue;
 		}
 
-		if (ptype==LINE_Bez) {
-			if (c1<0) { c1=c; }
-			else if (c2<0) { c2=c; }
+		if (ptype == LINE_Bez) { //current point is a control point
+			if (c1 < 0) { c1 = c; }
+			else if (c2 < 0) { c2 = c; }
 
 		} else { 
 			 //we are on a vertex, add current segment
-			if (c1>=0) {
-				if (c2<0) c2=c1;
-				curveto(pts[c1],pts[c2],pts[c]);
-				c1=c2=-1;
+			if (c1 >= 0) {
+				if (c2 < 0) c2 = c1;
+				curveto(pts[c1], pts[c2], pts[c]);
+				c1 = c2 = -1;
 			} else lineto(pts[c]);
 		}
 
-		if (pts[c].info&LINE_Open) {
+		//are we at end of a line?
+		if (pts[c].info & LINE_Open) {
 			closeopen();
-			firstv=-1;
-			start=c+1;
-			c1=c2=-1;
+			firstv = -1;
+			start = c+1;
+			c1 = c2 = -1;
 
-		} else if (pts[c].info&LINE_Closed) {
-			if (ptype==LINE_Vertex) {
-				if (firstv!=start) { //control points at beginning
-					c1=start;
-					if (firstv!=start+1) c2=start+1; else c2=c1;
-					p2=c2+1;
-				}
-			} else if (c1>=0) { //we still need to draw a bez segment
-				if (c2<0) {//here only if final point is c1, need to wrap to get c2
-					if (firstv!=start) { c2=start; p2=c2+1; }
+		} else if (pts[c].info & LINE_Closed) {
+			if (ptype == LINE_Vertex) {
+				if (firstv != start) { //control points at beginning
+					c1 = start;
+					if (firstv != start+1) c2 = start+1; else c2 = c1;
+					p2 = c2+1;
+				} else p2 = start;
+			} else if (c1 >= 0) { //we still need to draw a bez segment
+				if (c2 < 0) {//here only if final point is c1, need to wrap to get c2
+					if (firstv != start) { c2 = start; p2 = c2+1; }
 					else { c2=c1; p2=start; }
-				} else p2=start; //final point was c2
+				} else p2 = start; //final point was c2
 			}
-			if (c1>=0) curveto(pts[c1],pts[c2],pts[p2]);
-			c1=c2=-1;
+
+			if (c1 >= 0) curveto(pts[c1], pts[c2], pts[p2]);
+			c1 = c2 = -1;
 			closed();
-			firstv=-1;
-			start=c+1;
+			firstv = -1;
+			start = c+1;
 			continue;
 		}
 	}

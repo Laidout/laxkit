@@ -330,7 +330,8 @@ int SimplePrint::Print()
 			char *blah=newstr(commandedit->GetCText());
 			appendstr(blah," ");
 			appendstr(blah,printthis);
-			system(blah);
+			int ret = system(blah);
+			if (ret != 0) {} //try to get rid of unused ret value warning
 			DBG cerr << "------ print with this: \""<<blah<<"\""<<endl;
 			delete[] blah;
 			if (win_style&SIMPP_DEL_PRINTTHIS) unlink(printthis);

@@ -1079,7 +1079,7 @@ int TreeSelector::DrawItems(int indent, MenuInfo *mmenu, int &n, flatpoint offse
 	Displayer *dp = GetDisplayer();
 
 	MenuItem *i;
-	int yy;
+	int yy = 0;
 	unsigned long oddcolor=coloravg(win_themestyle->bg,win_themestyle->fg, .05);
 	unsigned long linecolor=win_themestyle->fg.Pixel();
 	unsigned long col;

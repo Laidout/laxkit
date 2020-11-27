@@ -332,8 +332,8 @@ void BezPath::hitTest(double x, double y, HitTestResult *result)
 	result->x = x;
 	result->y = y;
 
-	double curX;
-	double curY;
+	double curX = 0;
+	double curY = 0;
 	int curMark = -1;
 
 	for (BezCommand &cmd : commands) {

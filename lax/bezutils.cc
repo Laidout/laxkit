@@ -319,7 +319,7 @@ double bez_segment_length(flatpoint p1,flatpoint c1,flatpoint c2,flatpoint p2, i
 {
 	double d=0;
 	double dt=1/(double)npoints;
-	double lx,ly, x,y;
+	double lx=0,ly=0, x,y;
 	double a1,a2,a3,a4;
 	for (double t=0; t<=1.0; t+=dt) {
 		a1=(1-t)*(1-t)*(1-t);
@@ -558,7 +558,7 @@ int bez_intersect_bez(const flatpoint &p1_1, const flatpoint &c1_1, const flatpo
 double bez_distance_to_t(double dist, flatpoint p1,flatpoint c1,flatpoint c2,flatpoint p2, int resolution)
 {
 	double dd=0, ddd;
-	double x,y, lx,ly;
+	double x,y, lx=0,ly=0;
 	double t,tt,ttt, a1,a2,a3;
 	double dt=1.0/(resolution-1);
 	int recurse=0;
@@ -600,7 +600,7 @@ double bez_distance_to_t(double dist, flatpoint p1,flatpoint c1,flatpoint c2,fla
 double bez_t_to_distance(double T, flatpoint p1,flatpoint c1,flatpoint c2,flatpoint p2, int resolution)
 {
 	double dd=0;
-	double x,y, lx,ly;
+	double x,y, lx=0,ly=0;
 	double t,tt,ttt, a1,a2,a3;
 	double dt=1.0/(resolution-1);
 	int recurse=0;

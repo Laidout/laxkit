@@ -1562,7 +1562,7 @@ double DisplayerCairo::glyphsextent(GlyphPlace *glyphs,GlyphPlace **glyphsp, uns
     for (unsigned int i = 0; i < numglyphs; i++)
     {
 		if (glyphs) glyph = &glyphs[i];
-		else glyphs = glyphsp[i];
+		else glyph = glyphsp[i];
 
         cairo_glyphs[i].index = glyph->index;
         cairo_glyphs[i].x =   current_x + glyph->x_offset;

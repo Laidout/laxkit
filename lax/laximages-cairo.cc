@@ -67,7 +67,7 @@ int laxcairo_generate_preview(const char *original,
 	LaxImage *img = ImageLoader::LoadImage(original, NULL,0,0,NULL, 0,LAX_IMAGE_CAIRO,NULL, false, 0);
 	LaxCairoImage *cimg = dynamic_cast<LaxCairoImage*>(img);
 
-	cairo_surface_t *image=NULL, *pimage;
+	cairo_surface_t *image = nullptr, *pimage = nullptr;
 	if (cimg) image = cimg->Image();
 
 	if (!image) {
@@ -721,8 +721,9 @@ bool IsPng(const char *file)
 	if (!f) return false;
 
 	char ch[8];
-	fread(ch, 1, 8, f);
+	size_t len = fread(ch, 1, 8, f);
 	fclose(f);
+	if (len == 0) return false;
 
 	if (ch[0] != 137) return false;
 	if (ch[0] !=  80) return false;

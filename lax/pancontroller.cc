@@ -239,10 +239,11 @@ PanController::~PanController()
 //! Push win onto the stack of windows to notify of changes.
 void PanController::tell(anXWindow *win)
 {
-	DBG int c;
-	if (win)
+	DBG int c = -1;
+	if (win) {
 		DBG c=
 		tellstack.pushnodup(win,0);
+	}
 	DBG cerr <<" ---TELL---"<<win->WindowTitle(1)<<"  "<<c<<endl;
 }
 
