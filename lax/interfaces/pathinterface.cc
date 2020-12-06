@@ -2245,7 +2245,7 @@ int Path::close()
  *
  * Return 0 for success, or nonzero error, such as curvertex not in path somewhere.
  */
-int Path::addAt(Coordinate *curvertex, Coordinate *np, int after)
+int Path::AddAt(Coordinate *curvertex, Coordinate *np, int after)
 {
 	int i;
 	if (path->hasCoord(curvertex, &i)==0) return 1;
@@ -2498,6 +2498,43 @@ Coordinate *Path::GetCoordinate(double t)
 	return p;
 }
 
+/*! For each t, insert an extra point, preserving the curve shape.
+ * Return 0 for success or nonzero error.
+ *
+ * If t_ret != null, return the new t values corresponding to the old.
+ */
+int Path::AddAt(double *t, int n, double *t_ret)
+{
+	if (!t || n<=0) return 1;
+
+	bool closed = false;
+	int max = NumVertices(&closed);
+	if (closed) max++;
+	for (int c=0; c<n; c++) if (t[c] < 0 || t[c]>max) return 1;
+
+	double *tt = new double[n];
+	memcpy(tt, t, n*sizeof(double));
+	for (int c=0; c<n; c++) {
+		double tv = tt[c];
+		AddAt(tv);
+		//update remaining t values
+		double tfloor = floor(tv);
+		double tceil = ceil(tv);
+		for (int c2=0; c2<n; c2++) {
+			if (tt[c2] >= tceil) tt[c2]++;
+			else if (tt[c2] > tfloor && tt[c2] <= tv) {
+				tt[c2] = tfloor + (tt[c2]-tfloor) / (tv - tfloor);
+			} else if (tt[c2] > tv && tt[c2] < tceil) {
+				tt[c2] = tv + (tceil - tt[c2]) / (tceil - tv);
+			}
+		}
+	}
+
+	if (t_ret) memcpy(t_ret, tt, n*sizeof(double));
+	delete[] tt;
+	return 0;
+}
+
 /*! Create a new point at t, and return a reference to that new point.
  * It divies up adjacent control handles to maintain shape. If there are no control points, then
  * a linear point is added (1 Coordinate). If there are control handles adjacent, then
@@ -2507,7 +2544,7 @@ Coordinate *Path::GetCoordinate(double t)
  *
  * \todo *** need to sort what happens when you try to cut a segment that has non-bez SegmentControls..
  */
-Coordinate *Path::addAt(double t)
+Coordinate *Path::AddAt(double t)
 {
 	Coordinate *p1=GetCoordinate(t);
 	if (!p1) return NULL;
@@ -2549,16 +2586,104 @@ Coordinate *Path::addAt(double t)
 	 //update weight nodes
 	for (int c=0; c<pathweights.n; c++) {
 		if (pathweights.e[c]->t>=index && pathweights.e[c]->t<=t && tt!=0)
-			pathweights.e[c]->t=index + (pathweights.e[c]->t-index)/tt; //node is to left of addAt t within same bez segment
+			pathweights.e[c]->t=index + (pathweights.e[c]->t-index)/tt; //node is to left of AddAt t within same bez segment
 
 		else if (pathweights.e[c]->t>t && pathweights.e[c]->t<=index+1 && 1-tt!=0)
-			pathweights.e[c]->t=index + 1 + (pathweights.e[c]->t-t)/(1-tt); //node is to right of addAt t within same bez segment
+			pathweights.e[c]->t=index + 1 + (pathweights.e[c]->t-t)/(1-tt); //node is to right of AddAt t within same bez segment
 
 		else if (pathweights.e[c]->t>index+1) pathweights.e[c]->t++; //node is in future bez segment
 	}
 
 	needtorecache=1;
 	return cp;
+}
+
+/*! Cut the path at t. Optionally return the remainder path in new_path_ret.
+ * Return value is 0 for success, or nonzero for error and no cut happens.
+ */
+int Path::CutAt(double t, Path **new_path_ret)
+{
+	if (new_path_ret) *new_path_ret = nullptr;
+
+	Coordinate *p1 = GetCoordinate(t);
+	if (!p1) return 1;
+	int index = t;
+	double tt = t-(int)t;
+	bool closed = IsClosed();
+
+	 //need to install a point between p1 and next vertex p2
+	flatpoint pts[5];
+	Coordinate *c1,*c2,*p2;
+	p2=p1->next;
+	if (p2->flags&POINT_TOPREV) {
+		c1=p2;
+		p2=p2->next;
+	} else c1=p1;
+	if (p2->flags&POINT_TONEXT) {
+		c2=p2;
+		p2=p2->next;
+	} else c2=p2;
+
+	bez_subdivide(tt, p1->p(), c1->p(), c2->p(), p2->p(),  pts);
+	if (c1 != p1) c1->p(pts[0]);
+	if (c2 != p2) c2->p(pts[4]);
+	Coordinate *np, *npp = nullptr, *cp;
+	if (c1==p1 && c2==p2) {
+		 //add segment point, not bez
+		np = new Coordinate(pts[2], POINT_VERTEX | BEZ_NSTIFF_NEQUAL, NULL);
+		if (new_path_ret) npp = new Coordinate(pts[2], POINT_VERTEX | BEZ_NSTIFF_NEQUAL, NULL);
+		cp = np;
+	} else {
+		 //add bez
+		np = new Coordinate(pts[1],POINT_TONEXT,NULL);
+		np->connect(new Coordinate(pts[2],POINT_VERTEX|POINT_REALLYSMOOTH|BEZ_STIFF_EQUAL,NULL),1);
+		np->next->connect(new Coordinate(pts[3],POINT_TOPREV,NULL),1);
+		if (new_path_ret) {
+			npp = new Coordinate(pts[1],POINT_TONEXT,NULL);
+			npp->connect(new Coordinate(pts[2],POINT_VERTEX|POINT_REALLYSMOOTH|BEZ_STIFF_EQUAL,NULL),1);
+			npp->next->connect(new Coordinate(pts[3],POINT_TOPREV,NULL),1);
+		}
+		cp = np->next;
+	}
+
+	c1->insert(np,1);
+	if (!closed) {
+		if (cp->next && (cp->next->flags & POINT_TOPREV)) cp = cp->next;
+		Coordinate *nxt = cp->disconnect(true);
+		if (new_path_ret) {
+			npp->lastPoint(0)->connect(nxt);
+			*new_path_ret = new Path(npp);
+		} else {
+			delete nxt;
+		}
+	}
+
+	 //update weight nodes
+	int fornew = -1;
+	for (int c=0; c<pathweights.n; c++) {
+		if (pathweights.e[c]->t>=index && pathweights.e[c]->t<=t && tt!=0) {
+			pathweights.e[c]->t=index + (pathweights.e[c]->t-index)/tt; //node is to left of t within same bez segment
+
+		} else if (pathweights.e[c]->t>t && pathweights.e[c]->t<=index+1 && 1-tt!=0) {
+			pathweights.e[c]->t=index + 1 + (pathweights.e[c]->t-t)/(1-tt); //node is to right of t within same bez segment
+			if (!closed && fornew == -1) fornew = c;
+
+		} else if (pathweights.e[c]->t>index+1) {
+			pathweights.e[c]->t++; //node is in future bez segment
+		}
+	}
+	if (fornew >= 0) {
+		for (int c=fornew; c<pathweights.n; c++) {
+			if (new_path_ret) {
+				PathWeightNode *node = pathweights.e[c];
+				(*new_path_ret)->AddWeightNode(node->t, node->offset, node->width, node->angle);
+			}
+		}
+		while (pathweights.n > fornew) pathweights.remove(fornew);
+	}
+
+	needtorecache=1;
+	return 2;
 }
 
 //! Find the intersection(s) of the segment (or infinite line) from p1 to p2 and the curve.
@@ -3948,6 +4073,148 @@ int PathsData::RemovePath(int index, Path **popped_ret)
 	paths.remove(index);
 	touchContents();
 	return 0;
+}
+
+/*! Return 0 for success or nonzero error.
+ */
+int PathsData::AddAt(int pathindex, double t)
+{
+	if (pathindex < 0 || pathindex >= paths.n) return 1;
+	if (paths.e[pathindex]->AddAt(t)) return 0;
+	return 2;
+}
+
+/*! Return 0 for success or nonzero error.
+ * If paths == null, then assume path 0.
+ */
+int PathsData::AddAt(int n, int *paths, double *t)
+{
+	NumStack<int> ii;
+	NumStack<double> tt;
+	if (paths) {
+		for (int c=0; c<n; c++) {
+			if (paths[c] < 0 || paths[c] >= n) return 1;
+			ii.push(paths[c]);
+		}
+	} else {
+		for (int c=0; c<n; c++) ii.push(0);
+	}
+	
+	for (int c=0; c<n; c++) {
+		int pathi = ii.e[c];
+		if (pathi < 0) continue;
+
+		tt.flush();
+		for (int c2=0; c2<n; c2++) {
+			if (ii.e[c2] == pathi) tt.push(t[c2]);
+		}
+
+		if (this->paths.e[pathi]->AddAt(tt.e, tt.n, nullptr) != 0) {
+			return 1;
+		}
+
+		for (int c2=0; c2<n; c2++) {
+			if (ii.e[c2] == pathi) ii.e[c2] = -1;
+		}
+	}
+
+	return 0;
+}
+
+/*! For each t, cut the path, possibly creating new paths.
+ * Return 0 for success or nonzero error.
+ */
+int PathsData::CutAt(int n, int *paths, double *t)
+{
+	NumStack<int> ii;
+	NumStack<double> tt;
+
+	if (paths) {
+		for (int c=0; c<n; c++) {
+			if (paths[c] < 0 || paths[c] >= n) return 1;
+			ii.push(paths[c]);
+		}
+	} else {
+		for (int c=0; c<n; c++) ii.push(0);
+	}
+	
+	for (int c=0; c<n; c++) {
+		int pathi = ii.e[c];
+		if (pathi < 0) continue;
+
+		tt.flush();
+		for (int c2=0; c2<n; c2++) {
+			if (ii.e[c2] == pathi) tt.push(t[c2]);
+		}
+
+		double t = tt.e[c];
+		double tf = floor(t);
+		int status = CutAt(pathi, t);
+
+		if (status == 1) { //path is cut, but it's just open now
+			//need to cycle points, cut point is now end of line
+			bool closed;
+			int max = this->paths.e[pathi]->NumVertices(&closed);
+			for (int c2=0; c2<n; c2++) {
+				if (ii.e[c2] != pathi) continue;
+				if (tt.e[c2] < t) {
+					if (tt.e[c2] > tf) {
+						tt.e[c2] = max + (tt.e[c2] - tf)/(t-tf);
+					} else tt.e[c2] += max - tf;
+				} else {
+					if (tt.e[c2] < t) {
+						tt.e[c2] = tt.e[c2] - tf + (tt.e[c2]-t)/(tf+1-t);
+					} else tt.e[c2] -= tf;
+				}
+			}
+
+		} else if (status == 2) { //path is cut, but added a new path
+			// old path still has same start
+			// new path starts at cut point
+			for (int c2=0; c2<n; c2++) {
+				if (ii.e[c2] != pathi) continue;
+				if (tt.e[c2] <= t) {
+					if (tt.e[c2] > tf) {
+						tt.e[c2] = floor(t) + (tt.e[c]-tf)/(t-tf);
+					}
+				} else {
+					if (tt.e[c2] >= tf) {
+						tt.e[c2] -= tf;
+					} else {
+						if (t == tf+1) tt.e[c2] = 0;
+						else tt.e[c2] = (tt.e[c2]-t)/(tf+1-t);
+					}
+				}
+			}
+
+		} else { // 0 means problem, aborted
+			return 1;
+		}
+		
+		// done with this path
+		for (int c2=0; c2<n; c2++) {
+			if (ii.e[c2] == pathi) ii.e[c2] = -1;
+		}
+	}
+
+	return 0;
+}
+
+/*! Cut path at t.
+ * If the path is closed, it becomes open, and 1 is returned.
+ * If it is open, the path is split into two paths, the new path will be at pathindex+1,
+ * and contain the upper t points. 2 is returned.
+ * If t or pathindex is out of range, 0 is returned.
+ */
+int PathsData::CutAt(int pathindex, double t)
+{
+	if (pathindex < 0 || pathindex >= paths.n) return 0;
+
+	Path *newpath = nullptr;
+	int status = paths.e[pathindex]->CutAt(t, &newpath);
+	if (status != 0) return 0;
+	if (newpath) paths.push(newpath, -1, pathindex+1);
+	return newpath ? 2 : 1;
 }
 
 /*! Cut the segment in the after direction from coord.
@@ -6721,7 +6988,7 @@ int PathInterface::AddPoint(flatpoint p)
 
 	// There is a curpath and a curvertex, figure out how to insert a new thing in the path.
 
-	if (curpath->addAt(curvertex, np, addafter)==0) {
+	if (curpath->AddAt(curvertex, np, addafter)==0) {
 		SetCurvertex(np->nextVertex(1)); // *** warning! this might return NULL!! shouldn't really happen though ... right? right?
 		curpoints.flush();
 		if (!cp) cp=curvertex;
@@ -7153,7 +7420,7 @@ int PathInterface::CutNear(flatpoint hoverpoint)
 	//flatpoint newpoint=data->ClosestPoint(hoverpoint, NULL,NULL,&t,&pathi);
 	data->ClosestPoint(hoverpoint, NULL,NULL,&t,&pathi);
 
-	Coordinate *p1=data->paths[pathi]->addAt(t);
+	Coordinate *p1=data->paths[pathi]->AddAt(t);
 	if (!p1) return 1;
 
 	curpath=data->paths.e[pathi];

@@ -135,8 +135,10 @@ class Path : public LaxFiles::DumpUtility, public Laxkit::DoubleBBox
 	virtual int close();
 	virtual int openAt(Coordinate *curvertex, int after);
 	virtual int CutSegment(Coordinate *curvertex, int after, Path **remainder);
-	virtual Coordinate *addAt(double t);
-	virtual int addAt(Coordinate *curvertex, Coordinate *np, int after);
+	virtual Coordinate *AddAt(double t);
+	virtual int AddAt(double *t, int n, double *t_ret);
+	virtual int AddAt(Coordinate *curvertex, Coordinate *np, int after);
+	virtual int CutAt(double t, Path **new_path_ret);
 	virtual void clear();
 
 	virtual int Line(LineStyle *nlinestyle);
@@ -251,6 +253,10 @@ class PathsData : virtual public SomeData
 	virtual void clear(int which=-1);
 	virtual int RemovePath(int index, Path **popped_ret);
 	virtual int CutSegment(Coordinate *coord, bool after, bool remove_dangling);
+	virtual int CutAt(int pathindex, double t);
+	virtual int CutAt(int n, int *paths, double *t);
+	virtual int AddAt(int pathindex, double t);
+	virtual int AddAt(int n, int *paths, double *t);
 
 	virtual int ConnectEndpoints(Coordinate *from,int fromi, Coordinate *to,int toi);
 	virtual void ApplyTransform();
