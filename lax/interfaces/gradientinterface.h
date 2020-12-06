@@ -121,7 +121,11 @@ class GradientInterface : public anInterface
 	Laxkit::NumStack<int> curpoints;
 	virtual void newData(double x, double y);
 	flatpoint leftp;
+	flatpoint hoverdbg, screendbg;
 	GradientData *strip_data;
+
+	bool show_settings_icon;
+	Laxkit::LaxImage *settings_icon;
 
 	Laxkit::ShortcutHandler *sc;
 	virtual int PerformAction(int action);
@@ -132,7 +136,8 @@ class GradientInterface : public anInterface
         RealSpace      = (1<<1),
         RealSpaceMouse = (1<<2),
         Expandable     = (1<<3),
-        EditStrip      = (1<<4)
+        EditStrip      = (1<<4),
+        SettingsIcon   = (1<<5)
     };
 
 	enum GradientInterfaceActions {
@@ -151,6 +156,7 @@ class GradientInterface : public anInterface
 		GRAD_Spread_Next,
 		GRAD_Spread_Prev,
 		GRAD_Toggle_Fill_Parent,
+		GRAD_Settings_Icon,
 
 		GRAD_MAX
 	};

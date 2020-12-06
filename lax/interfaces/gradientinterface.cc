@@ -942,15 +942,11 @@ const char *PointName(int which)
 GradientInterface::GradientInterface(int nid,Displayer *ndp) : anInterface(nid,ndp)
 {
 	usepreview=0;
-	//usepreview=1;
 	controlcolor=rgbcolor(0,148,178);
 	style = 0;
 
 	col1.rgbf(0.,0.,0.,1.);
 	col2.rgbf(1.,1.,1.,1.);
-	//col1.red =col1.blue =0; col1.green=col1.alpha=0xffff;
-	//col1.red =col1.green=0; col1.blue=col1.alpha=0xffff;
-	//col2.blue=col2.green=0; col2.red =col2.alpha=0xffff;
 
 	gradienttype = 0;
 	strip = nullptr;
@@ -964,6 +960,8 @@ GradientInterface::GradientInterface(int nid,Displayer *ndp) : anInterface(nid,n
 	creater1 = 50;
 	creater2 = 50;
 	strip_data = nullptr;
+	show_settings_icon = false;
+	settings_icon = nullptr;
 
 	needtodraw = 1;
 	sc = NULL;
@@ -975,6 +973,7 @@ GradientInterface::~GradientInterface()
 	deletedata();
 	if (sc) sc->dec_count();
 	if (strip_data) strip_data->dec_count();
+	if (settings_icon) settings_icon->dec_count();
 	DBG cerr <<"----in GradientInterface destructor"<<endl;
 }
 
@@ -990,6 +989,7 @@ anInterface *GradientInterface::duplicate(anInterface *dup)//dup=NULL
 	dupp->creater1=creater1;
 	dupp->creater2=creater2;
 	dupp->createv=createv;
+	dupp->style = style;
 	return anInterface::duplicate(dup);
 }
 
@@ -1014,7 +1014,6 @@ const char *GradientInterface::Name()
 //! Sets showdecs to show colors only, and needtodraw=1.
 int GradientInterface::InterfaceOn()
 {
-	//showdecs = ShowControls;
 	showdecs = ShowColors | ShowControls;
 	needtodraw = 1;
 	return 0;
@@ -1493,6 +1492,9 @@ int GradientInterface::Refresh()
 
 	dp->LineAttributes(2,LineSolid,LAXCAP_Butt,LAXJOIN_Miter);
 
+	// DBG dp->drawpoint(dp->realtoscreen(data->transformPointInverse(hoverdbg)), 2,1);
+	// DBG cerr <<"Gradient hover scr: "<<screendbg.x<<','<<screendbg.y<<"  hoverdbg: "<<hoverdbg.x << ','<<hoverdbg.y
+	// DBG      <<"     bounds: x:"<<bounds.minx<<','<<bounds.maxx<<" y:"<<bounds.miny<<','<<bounds.maxy<<endl;
 
 	// draw the color
 	if ((showdecs & ShowColors) && data->strip->colors.n) {
@@ -2083,6 +2085,10 @@ int GradientInterface::MouseMove(int x,int y,unsigned int state,const LaxMouse *
 {
 	DBG cerr <<"--------------gradient point scan:"<<scan(x,y)<<endl;
 	if (!data) { return 1;}
+
+	// DBG screendbg = flatpoint(x,y);
+	// DBG hoverdbg = screentoreal(x,y);
+
 	if (!buttondown.isdown(mouse->id,LEFTBUTTON)) {
 		int c = scan(x,y);
 		if (c != curpoint) {
@@ -2095,12 +2101,9 @@ int GradientInterface::MouseMove(int x,int y,unsigned int state,const LaxMouse *
 		return 1;
 	}
 
+	// DBG cerr << "gradient move point: "<<PointName(curpoint)<<endl;
+
 	flatpoint d = screentoreal(x,y) - screentoreal(mx,my);
-	//flatpoint op=screentoreal(mx,my) - data->p;
-	//flatpoint np=op + d;
-
-	DBG cerr << "gradient move point: "<<PointName(curpoint)<<endl;
-
 	if (curpoint < GP_MinMoveable && curpoint != GP_a && curpoints.n == 0) {
 		if (state&ControlMask && state&ShiftMask) { // +^ rotate
 			 // rotate around p of gradient based on x movement
