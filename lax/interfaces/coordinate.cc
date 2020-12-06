@@ -693,6 +693,71 @@ flatpoint Coordinate::direction(int after)
 	return neg ? -v : v;
 }
 
+int Coordinate::resolveToControls(Coordinate *&p1, Coordinate *&c1, Coordinate *&c2, Coordinate *&p2, bool forward)
+{
+	if (forward) {
+		if (!nextVertex(0)) return 0;
+
+		p1 = this;
+		Coordinate *pn = next;
+		if (pn->flags&(POINT_TOPREV|POINT_TONEXT)) {
+			 //we do have control points
+			if (pn->flags&POINT_TOPREV) {
+				c1 = pn;
+				pn = pn->next;
+			} else c1 = this;
+			if (!pn) return 0; //no next vertex!
+
+			if (pn->flags & POINT_TONEXT) {
+				c2 = pn;
+				pn = pn->next;
+			} else { //otherwise, should be a vertex
+				c2 = pn;
+			}
+			
+			p2 = pn;
+			return 2;
+
+		}
+		
+		 //we do not have control points, so is just a straight line segment
+		c1 = p1;
+		c2 = pn;
+		p2 = c2;
+		return 1;
+	}
+
+	// else previous
+	if (!previousVertex(0)) return 0;
+
+	p1 = this;
+	Coordinate *pn = prev;
+	if (pn->flags & (POINT_TOPREV|POINT_TONEXT)) {
+		 //we do have control points
+		if (pn->flags & POINT_TONEXT) {
+			c1 = pn;
+			pn = pn->prev;
+		} else c1 = this;
+		if (!pn) return 0; //no next vertex!
+
+		if (pn->flags & POINT_TOPREV) {
+			c2 = pn;
+			pn = pn->prev;
+		} else { //otherwise, should be a vertex
+			c2 = pn;
+		}
+		
+		p2 = pn;
+		return 2;
+	}
+	
+	 //we do not have control points, so is just a straight line segment
+	c1 = p1;
+	c2 = pn;
+	p2 = c2;
+	return 1;
+}
+
 /*! Return a bezier segment in p1,c1,c2,p2, based on the segment following *this.
  * If the segment is a straight line then return 1.
  * If a bezier segment return 2.

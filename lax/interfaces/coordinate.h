@@ -126,7 +126,7 @@ class Coordinate
 	virtual Coordinate *previousVertex(int n=0);
 	virtual Coordinate *nextVertex(int n=0);
 	virtual Coordinate *firstPoint(int v=0); // return the first point in open line, or this
-	virtual Coordinate *lastPoint(int v=0); // return the first point in open line, or this
+	virtual Coordinate *lastPoint(int v=0); // return the last point in open line, or this
 	virtual int hasCoord(Coordinate *co, int *index=NULL); // return 1 if c is somewhere in paths
 	virtual void ShiftPoint(flatpoint p) { fp+=p; } //*** this could be an overloaded (Coordinate)+=(flatpoint)
 	virtual Coordinate *duplicate();
@@ -142,6 +142,7 @@ class Coordinate
 	virtual int NumPoints(int v);
 	virtual flatpoint direction(int after);
 	virtual int resolveToControls(flatpoint &p1, flatpoint &c1, flatpoint &c2, flatpoint &p2, bool forward = true);
+	virtual int resolveToControls(Coordinate *&p1, Coordinate *&c1, Coordinate *&c2, Coordinate *&p2, bool forward = true);
 	virtual int getNext(flatpoint &c1, flatpoint &c2, Coordinate *&p2, int &isline);
 	virtual Coordinate *Traverse(int n);
 };
