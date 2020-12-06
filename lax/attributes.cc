@@ -895,17 +895,14 @@ int IntListAttribute(const char *v,int **i,int *n_ret,char **endptr)
 double *TransformAttribute(const char *v,double *m,char **endptr)
 {
 	double matrix[6];
-	if (!m) m=matrix;
-
+	
 	while (isspace(*v)) v++;
 	if (isdigit(*v) || *v=='-' || *v=='.') {
 		 //found a number, so assume a list of 6 numbers
-		int n=DoubleListAttribute(v,matrix,6,endptr);
+		int n = DoubleListAttribute(v, matrix, 6, endptr);
 		if (n!=6) return NULL;
-		if (m==matrix) {
-			m=new double[6];
-			transform_copy(m,matrix);
-		}
+		if (!m) m = new double[6];
+		transform_copy(m,matrix);
 		return m;
 	}
 
@@ -977,7 +974,7 @@ double *TransformAttribute(const char *v,double *m,char **endptr)
 		transform_copy(matrix,tt);
 	}
 
-	if (m==matrix) m=new double[6];
+	if (!m) m = new double[6];
 	transform_copy(m,matrix);
 
 	if (endptr) *endptr=const_cast<char *>(v);
