@@ -457,6 +457,40 @@ int ColorPatchData::UpdateFromPath()
 	return 0;
 }
 
+void ColorPatchData::FlipColorsV()
+{
+	int cxsize = xsize/3+1;
+	int cysize = ysize/3+1;
+
+	ScreenColor col;
+	for (int x=0; x<cxsize; x++) {
+		for (int y=0; y<cysize/2; y++) {
+			int i1 = x + y*cxsize;
+			int i2 = x + (cysize - y -1)*cxsize;
+			col = colors[i1];
+			colors[i1] = colors[i2];
+			colors[i2] = col;
+		}
+	}
+}
+
+void ColorPatchData::FlipColorsH()
+{
+	int cxsize = xsize/3+1;
+	int cysize = ysize/3+1;
+
+	ScreenColor col;
+	for (int x=0; x<cxsize/2; x++) {
+		for (int y=0; y<cysize; y++) {
+			int i1 = x + y*cxsize;
+			int i2 = (cxsize - x -1) + y*cxsize;
+			col = colors[i1];
+			colors[i1] = colors[i2];
+			colors[i2] = col;
+		}
+	}
+}
+
 /*! Call PatchData::CopyMeshPoints(patch) and update color array to be proper size.
  */
 void ColorPatchData::CopyMeshPoints(PatchData *patch, bool usepath)
@@ -528,10 +562,10 @@ int ColorPatchData::TransferColors(int oldxsize, int oldysize)
  *
  * This uses PatchData::grow(), then adjusts the color array accordingly.
  */
-void ColorPatchData::grow(int where, const double *tr)
+void ColorPatchData::grow(int where, const double *tr, bool smooth)
 {
 	int oldxsize=xsize/3+1,oldysize=ysize/3+1;
-	PatchData::grow(where,tr);
+	PatchData::grow(where,tr, smooth);
 	
 	int nxs,nys;
 	nxs=xsize/3+1;
@@ -742,18 +776,12 @@ int ColorPatchData::subdivide(int xn,int yn) //xn,yn=2
  */
 
 
-#define RENDER_NONE  0
-#define RENDER_GRID  1
-#define RENDER_COLOR 2
-#define RENDER_MAX   2
-
-
 ColorPatchInterface::ColorPatchInterface(int nid,Displayer *ndp) : PatchInterface(nid,ndp)
 {
 	cdata=NULL;
-	rendermode=2;
+	rendermode = RENDER_Color;
 	//rendermode=1;
-	drawrendermode=2;
+	drawrendermode = RENDER_Color;
 	recurse=5;
 	//recurse=0;
 }
@@ -881,18 +909,52 @@ int ColorPatchInterface::UseThis(anObject *nobj,unsigned int mask) // assumes no
 	return 0;
 }
 
+Laxkit::MenuInfo *ColorPatchInterface::ContextMenu(int x,int y,int deviceid, Laxkit::MenuInfo *menu)
+{
+	menu = PatchInterface::ContextMenu(x,y,deviceid,menu);
+	if (cdata) {
+		menu->AddSep(_("Color mesh"));
+		menu->AddItem(_("Flip colors horizontally"), COLORMESH_FlipH);
+		menu->AddItem(_("Flip colors vertically"), COLORMESH_FlipV);
+	}
+	return menu;
+}
+
+int ColorPatchInterface::Event(const Laxkit::EventData *e_data, const char *mes)
+{
+	if (!strcmp(mes,"menuevent")) {
+		const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(e_data);
+		int i =s->info2; //id of menu item
+
+		if (i == COLORMESH_FlipV || i == COLORMESH_FlipH) {
+			PerformAction(i);
+			return 0;
+		}
+	}
+
+	return PatchInterface::Event(e_data, mes);
+}
+
 int ColorPatchInterface::PerformAction(int action)
 {
 	if (action==PATCHA_RenderMode) {
-		if (rendermode==0) rendermode=1;
-		else if (rendermode==1) rendermode=2;
-		else rendermode=0;
+		if      (rendermode == RENDER_Grid) rendermode = RENDER_Preview;
+		else if (rendermode == RENDER_Preview) rendermode = RENDER_Color;
+		else rendermode = RENDER_Grid;
 
-		if (rendermode==0) PostMessage(_("Render with grid"));
-		else if (rendermode==1) PostMessage(_("Render with preview"));
-		else if (rendermode==2) PostMessage(_("Render recursively"));
+		if      (rendermode == RENDER_Grid)    PostMessage(_("Render with grid"));
+		else if (rendermode == RENDER_Preview) PostMessage(_("Render with preview"));
+		else if (rendermode == RENDER_Color)   PostMessage(_("Render recursively"));
 
 		needtodraw=1;
+		return 0;
+
+	} else if (action == COLORMESH_FlipH) {
+		if (cdata) cdata->FlipColorsH();
+		return 0;
+
+	} else if (action == COLORMESH_FlipV) {
+		if (cdata) cdata->FlipColorsV();
 		return 0;
 	}
 
@@ -900,7 +962,11 @@ int ColorPatchInterface::PerformAction(int action)
 }
 
 Laxkit::ShortcutHandler *ColorPatchInterface::GetShortcuts()
-{ return PatchInterface::GetShortcuts(); }
+{
+	if (sc) return sc;
+	// else add stuff
+	return PatchInterface::GetShortcuts();
+}
 
 int ColorPatchInterface::CharInput(unsigned int ch, const char *buffer,int len,unsigned int state,const Laxkit::LaxKeyboard *d)
 {
@@ -915,6 +981,8 @@ void ColorPatchInterface::drawControlPoint(int i)
 {
 	if (!data || i<0 || i>=data->xsize*data->ysize) return;
 
+	double thin = ScreenLine();
+
 	flatpoint p;
 	p=dp->realtoscreen(data->points[i]);
 	
@@ -922,17 +990,17 @@ void ColorPatchInterface::drawControlPoint(int i)
 	int r=(i/data->xsize),c=i%data->xsize;
 	unsigned long color;
 	if (r%3==0 && i%3==0) {
-		color=pixelfromcolor(cdata->colors+(r/3*(data->xsize/3+1)+c/3));
-	} else color=controlcolor;
+		color = pixelfromcolor(cdata->colors+(r/3*(data->xsize/3+1)+c/3));
+	} else color = controlcolor;
 
 	dp->DrawScreen();
-	dp->LineWidthScreen(1);
+	dp->LineWidthScreen(thin);
 	dp->NewFG(color);
-	dp->drawpoint((int)p.x,(int)p.y,5,1);
+	dp->drawpoint((int)p.x,(int)p.y,5*thin,1);
 	dp->NewFG(~0);
-	dp->drawpoint((int)p.x,(int)p.y,5,0);
+	dp->drawpoint((int)p.x,(int)p.y,5*thin,0);
 	dp->NewFG(0,0,0);
-	dp->drawpoint((int)p.x,(int)p.y,6,0);
+	dp->drawpoint((int)p.x,(int)p.y,6*thin,0);
 	dp->DrawReal();
 }
 
@@ -955,7 +1023,7 @@ int ColorPatchInterface::Refresh()
 
 	if (!dp->Capability(DRAWS_MeshGradient)) return PatchInterface::Refresh();
 
-	if (rendermode!=2) return PatchInterface::Refresh();
+	if (rendermode != RENDER_Color) return PatchInterface::Refresh();
 
 
 	dp->setMesh(data->MeshHeight(), data->MeshWidth(), data->points, cdata->colors);
@@ -988,7 +1056,7 @@ void ColorPatchInterface::drawpatch2(int roff,int coff)
 void ColorPatchInterface::drawpatch(int roff,int coff)
 {
 	//DBG cerr <<"Draw Color Patch: roff:"<<roff<<"  coff:"<<coff<<"   mode:"<<rendermode<<endl;
-	if (rendermode==0) { PatchInterface::drawpatch(roff,coff); return; }
+	if (rendermode == RENDER_Grid) { PatchInterface::drawpatch(roff,coff); return; }
 
 	DBG cerr <<" - - - ColorPatchInterface::drawpatch()"<<endl;
 

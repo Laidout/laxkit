@@ -52,10 +52,12 @@ class ColorPatchData : public PatchData
 	virtual void SetColor(int pr,int pc,int red=0,int green=0,int blue=0,int alpha=0xffff);
 	virtual void SetColor(int pr,int pc, Laxkit::ScreenColor *col);
 	virtual void collapse(int rr,int cc);
-	virtual void grow(int where, const double *tr);
+	virtual void grow(int where, const double *tr, bool smooth);
 	virtual int subdivide(int r,double rt,int c,double ct);
 	virtual int subdivide(int xn=2,int yn=2);
 	virtual int UpdateFromPath();
+	virtual void FlipColorsV();
+	virtual void FlipColorsH();
 
 	virtual int WhatColor(double s,double t,Laxkit::ScreenColor *color_ret);
 	virtual int hasColorData();
@@ -68,6 +70,12 @@ class ColorPatchData : public PatchData
 
 
 //-------------------------------------- ColorPatchInterface -------------------------
+
+enum ColorMeshActions {
+	COLORMESH_FlipH = PATCHA_MAX,
+	COLORMESH_FlipV,
+	COLORMESH_MAX
+};
 
 class ColorPatchInterface : public PatchInterface
 {
@@ -100,6 +108,8 @@ class ColorPatchInterface : public PatchInterface
 	virtual int UseThisObject(ObjectContext *oc);
 	virtual int UseThis(anObject *newdata,unsigned int mask=0);
 	virtual int UseThis(int id,int ndata);
+	virtual Laxkit::MenuInfo *ContextMenu(int x,int y,int deviceid, Laxkit::MenuInfo *menu);
+	virtual int Event(const Laxkit::EventData *e_data, const char *mes);
 	virtual PatchData *newPatchData(double xx,double yy,double ww,double hh,int nr,int nc,unsigned int stle);
 	virtual int SelectPoint(int c,unsigned int state);
 };

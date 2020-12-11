@@ -133,7 +133,7 @@ EngraverFillInterface::EngraverFillInterface(int nid,Displayer *ndp)
 	primary=1;
 
 	showdecs=SHOW_Points|SHOW_Edges;
-	drawrendermode=rendermode=3;
+	drawrendermode = rendermode = RENDER_Controls_Only;
 	recurse=0;
 	edata=NULL;
 	tracebox=NULL;
@@ -273,7 +273,7 @@ int EngraverFillInterface::UseThis(int id,int ndata)
 			recurse=ndata;
 			sprintf(blah,_("New Recurse Depth %d: "),recurse);
 			PostMessage(blah);
-			if (rendermode>0) needtodraw=1; 
+			if (rendermode != RENDER_Grid) needtodraw=1; 
 		}
 		return 1;
 	}
@@ -4724,13 +4724,13 @@ void EngraverFillInterface::DrawPanelHeader(int open, int hover, const char *nam
 int EngraverFillInterface::PerformAction(int action)
 {
 	if (action==PATCHA_RenderMode) {
-		if (rendermode==0) rendermode=1;
-		else if (rendermode==1) rendermode=2;
-		else rendermode=0;
+		if      (rendermode == RENDER_Grid) rendermode = RENDER_Preview;
+		else if (rendermode == RENDER_Preview) rendermode = RENDER_Color;
+		else rendermode = RENDER_Grid;
 
-		if (rendermode==0) PostMessage(_("Render with grid"));
-		else if (rendermode==1) PostMessage(_("Render with preview"));
-		else if (rendermode==2) PostMessage(_("Render recursively"));
+		if      (rendermode == RENDER_Grid)    PostMessage(_("Render with grid"));
+		else if (rendermode == RENDER_Preview) PostMessage(_("Render with preview"));
+		else if (rendermode == RENDER_Color)   PostMessage(_("Render recursively"));
 
 		needtodraw=1;
 		return 0;

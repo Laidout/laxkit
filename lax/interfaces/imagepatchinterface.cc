@@ -158,10 +158,27 @@ int ImagePatchData::WhatColor(double s,double t,ScreenColor *color_ret)
 {
 	if (!idata) return 1;
 
-	//if (s<0. || s>1. || t<0. || t>1.) return 0;
 	int x,y,i;
 	x=(int)(s*iwidth);
 	y=(int)(t*iheight);
+
+	//-----------------------
+	// if (use_im) {
+	// 	flatpoint p = transform_point(im, x,y);
+	// 	x = p.x;
+	// 	y = p.y;
+	// 	if (x >= 0 && x < iwidth && y >= 0 && y < iheight) {
+	// 		... as below
+	// 	} else {
+	// 		color_ret->alpha = 0;
+	// 		color_ret->red   = 0;
+	// 		color_ret->green = 0;
+	// 		color_ret->blue  = 0;
+	// 	}
+	// } else {
+	// 	.... as below
+	// }
+	//-----------------------
 	if (x<0) x=0; else if (x>=iwidth) x=iwidth-1;
 	if (y<0) y=0; else if (y>=iheight) y=iheight-1;
 	i=y*iwidth+x;
@@ -169,6 +186,7 @@ int ImagePatchData::WhatColor(double s,double t,ScreenColor *color_ret)
 	color_ret->red  =((idata[i]&0xff0000)>>8) | 0xff;
 	color_ret->green= (idata[i]&0xff00) | 0xff;
 	color_ret->blue =((idata[i]&0xff)<<8) | 0xff;
+	//-----------------------
 
 	return 0;
 }
@@ -237,6 +255,10 @@ void ImagePatchData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext 
 	} else fprintf(f,"%sfilename \"%s\"\n",spc,filename);
 	fprintf(f,"%siwidth %d\n",spc,iwidth);
 	fprintf(f,"%siheight %d\n",spc,iheight);
+
+	fprintf(f,"%simatrix %.10g %.10g %.10g %.10g %.10g %.10g\n",
+			spc,im[0],im[1],im[2],im[3],im[4],im[5]);
+
 }
 
 LaxFiles::Attribute *ImagePatchData::dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *dump)
@@ -262,6 +284,11 @@ LaxFiles::Attribute *ImagePatchData::dump_out_atts(LaxFiles::Attribute *att,int 
 
 	att->push("iwidth", iwidth);
 	att->push("iheight", iheight);
+
+	char s[200];
+	sprintf(s,"%.10g %.10g %.10g %.10g %.10g %.10g",
+			im[0],im[1],im[2],im[3],im[4],im[5]);
+	att->push("imatrix", s);
 
 	return att;
 }
@@ -291,6 +318,11 @@ void ImagePatchData::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext 
 
 		} else if (!strcmp(name,"iheight")) {
 			IntAttribute(value,&iheight);
+
+		} else if (!strcmp(name,"imatrix")) {
+			double mm[6];
+			if (DoubleListAttribute(value,mm,6) == 6)
+				transform_copy(im, mm);
 		}
 	}
 
@@ -384,7 +416,7 @@ int ImagePatchData::renderToBufferImage(Laxkit::LaxImage *image)
 
 ImagePatchInterface::ImagePatchInterface(int nid,Displayer *ndp) : PatchInterface(nid,ndp)
 {
-	rendermode=1;
+	rendermode = RENDER_Preview;
 	recurse=0;
 }
 
@@ -437,7 +469,7 @@ int ImagePatchInterface::UseThis(int id,int ndata)
 			recurse=ndata;
 			sprintf(blah,_("New Recurse Depth %d: "),recurse);
 			PostMessage(blah);
-			if (rendermode>0) needtodraw=1; 
+			if (rendermode != RENDER_Grid) needtodraw=1; 
 		}
 		return 1;
 	}
@@ -512,13 +544,13 @@ int ImagePatchInterface::LBDown(int x,int y,unsigned int state,int count,const L
 int ImagePatchInterface::PerformAction(int action)
 {
 	if (action==PATCHA_RenderMode) {
-		if (rendermode==0) rendermode=1;
-		else if (rendermode==1) rendermode=2;
-		else rendermode=0;
+		if      (rendermode == RENDER_Grid) rendermode = RENDER_Preview;
+		else if (rendermode == RENDER_Preview) rendermode = RENDER_Color;
+		else rendermode = RENDER_Grid;
 
-		if (rendermode==0) PostMessage(_("Render with grid"));
-		else if (rendermode==1) PostMessage(_("Render with preview"));
-		else if (rendermode==2) PostMessage(_("Render recursively"));
+		if      (rendermode == RENDER_Grid)    PostMessage(_("Render with grid"));
+		else if (rendermode == RENDER_Preview) PostMessage(_("Render with preview"));
+		else if (rendermode == RENDER_Color)   PostMessage(_("Render recursively"));
 
 		needtodraw=1;
 		return 0;
@@ -545,7 +577,7 @@ int ImagePatchInterface::DrawData(Laxkit::anObject *ndata,anObject *a1,anObject 
 
 //! Draws one patch to the screen. Called from PatchInterface::Refresh().
 /*! The whole patch is made of potentially a whole lot of adjacent
- * patches. If rendermode==0, then just draw the wire outline. Otherwise
+ * patches. If rendermode==RENDER_Grid, then just draw the wire outline. Otherwise
  * do the whole color thing.
  *
  * This function prepares Cx and Cy matrices for patchpoint(). A point in the
@@ -559,7 +591,7 @@ int ImagePatchInterface::DrawData(Laxkit::anObject *ndata,anObject *a1,anObject 
 void ImagePatchInterface::drawpatch(int roff,int coff)
 {
 	//DBG cerr <<"Draw Color Patch: roff:"<<roff<<"  coff:"<<coff<<"   mode:"<<rendermode<<endl;
-	if (rendermode==0) { PatchInterface::drawpatch(roff,coff); return; }
+	if (rendermode == RENDER_Grid) { PatchInterface::drawpatch(roff,coff); return; }
 	
 	DBG cerr <<" - - - ImagePatchInterface::drawpatch()"<<endl;
 

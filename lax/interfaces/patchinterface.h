@@ -156,7 +156,7 @@ class PatchData : virtual public SomeData, virtual public Laxkit::PointCollectio
 	virtual void zap(); // zap to bbox
 	virtual int subdivide(int r,double rt,int c,double ct);
 	virtual int subdivide(int xn=2,int yn=2);
-	virtual void grow(int where, const double *tr);
+	virtual void grow(int where, const double *tr, bool smooth);
 	virtual void collapse(int rr,int cc);
 	virtual void InterpolateControls(int whichcontrols);
 	virtual int warpPatch(flatpoint center, double r1,double r2, double s,double e);
@@ -227,6 +227,7 @@ enum PatchInterfaceActions {
 	PATCHA_SelectAllHorizontally,
 	PATCHA_SelectMoreHorizontally,
 	PATCHA_SelectAround,
+	PATCHA_SelectControls,
 	PATCHA_DeleteSelected,
 	PATCHA_BaseOnPath,
 	PATCHA_DontBaseOnPath,
@@ -280,6 +281,15 @@ class PatchInterface : public anInterface
 		 SHOW_Max    =(1<<3)
 	};
 
+	enum RenderMode {
+		RENDER_None  = -1,
+		RENDER_Grid,
+		RENDER_Preview,
+		RENDER_Color,
+		RENDER_Controls_Only,
+		RENDER_MAX   
+	};
+
 	 // these are the state:
 	unsigned int style;
 	LineStyle linestyle;
@@ -290,8 +300,8 @@ class PatchInterface : public anInterface
 	bool smoothedit;
 	char whichcontrols;
 	int recurse;
-	int rendermode;
-	int drawrendermode;
+	int rendermode; //see RenderMode
+	int drawrendermode; //see RenderMode
 	
 	Selection *selection;
 	PatchData *data;

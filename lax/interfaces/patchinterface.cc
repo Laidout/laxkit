@@ -1045,18 +1045,23 @@ int PatchData::EstablishPath(int preferredaxis)
 	if (preferredaxis==0) {
 		 //line in s direction
 
-		if (MeshHeight()%2==2) {
+		if (MeshHeight()%2==0) {
 			 //easy, just read off bezier from middle points
 			int m=xsize*(ysize/2);
 			for (int c=0; c<xsize; c++) {
-				base_path->append(points[m+c], c%3==0 ? POINT_VERTEX : (c%3==1 ? POINT_TOPREV : POINT_TONEXT), NULL);
+				if (c == 0) base_path->append(2*points[m+c] - points[m+c+1], POINT_TONEXT, NULL);
+				base_path->append(points[m+c], c%3==0 ? (POINT_VERTEX | POINT_SMOOTH) : (c%3==1 ? POINT_TOPREV : POINT_TONEXT), NULL);
+				if (c == xsize-1) base_path->append(2*points[m+c] - points[m+c-1], POINT_TOPREV, NULL);
 			}
 
 		} else {
 			 // average adjacent edge points
 			int m=xsize*(ysize/2-2);
 			for (int c=0; c<xsize; c++) {
-				base_path->append((points[m+c]+points[m+3*xsize+c])/2, c%3==0 ? POINT_VERTEX : (c%3==1 ? POINT_TOPREV : POINT_TONEXT), NULL);
+				flatpoint p = (points[m+c]+points[m+3*xsize+c])/2;
+				if (c == 0) base_path->append(2*p - (points[m+c+1]+points[m+3*xsize+c+1])/2, POINT_TONEXT, NULL);
+				base_path->append(p, c%3==0 ? (POINT_VERTEX | POINT_SMOOTH) : (c%3==1 ? POINT_TOPREV : POINT_TONEXT), NULL);
+				if (c == xsize-1) base_path->append(2*p - (points[m+c-1]+points[m+3*xsize+c-1])/2, POINT_TOPREV, NULL);
 			}
 		}
 
@@ -1066,18 +1071,23 @@ int PatchData::EstablishPath(int preferredaxis)
 		}
 
 	} else {
-		if (MeshWidth()%2==2) {
+		if (MeshWidth()%2==0) {
 			 //easy, just read off bezier from middle points
 			int m=ysize*(xsize/2);
 			for (int c=0; c<ysize; c++) {
-				base_path->append(points[m+c*xsize], c%3==0 ? POINT_VERTEX : (c%3==1 ? POINT_TOPREV : POINT_TONEXT), NULL);
+				if (c == 0) base_path->append(2*points[m+c*xsize] - points[m+(c+1)*xsize], POINT_TONEXT, NULL);
+				base_path->append(points[m+c*xsize], c%3==0 ? (POINT_VERTEX | POINT_SMOOTH) : (c%3==1 ? POINT_TOPREV : POINT_TONEXT), NULL);
+				if (c == ysize-1) base_path->append(2*points[m+c*xsize] - points[m+(c-1)*xsize], POINT_TOPREV, NULL);
 			}
 
 		} else {
 			 // average adjacent edge points
 			int m=ysize*(xsize/2-1);
 			for (int c=0; c<ysize; c++) {
-				base_path->append((points[m+c*xsize]+points[m+3+c*xsize])/2, c%3==0 ? POINT_VERTEX : (c%3==1 ? POINT_TOPREV : POINT_TONEXT), NULL);
+				flatpoint p = (points[m+c*xsize]+points[m+3+c*xsize])/2;
+				if (c == 0) base_path->append(2*p - (points[m+(c+1)*xsize]+points[m+3+(c+1)*xsize])/2, POINT_TONEXT, NULL);
+				base_path->append(p, c%3==0 ? (POINT_VERTEX | POINT_SMOOTH) : (c%3==1 ? POINT_TOPREV : POINT_TONEXT), NULL);
+				if (c == ysize-1) base_path->append(2*p - (points[m+(c-1)*xsize]+points[m+3+(c-1)*xsize])/2, POINT_TOPREV, NULL);
 			}
 		}
 
@@ -1849,22 +1859,33 @@ int PatchData::coordsInSubPatch(flatpoint p,int r,int c,double maxd, double *s_r
  * The new edge is the tr(oldedge), and the intervening controls are interpolated.
  * tr is a 6 member affine transform.
  */
-void PatchData::grow(int where, const double *tr)
+void PatchData::grow(int where, const double *tr, bool smooth)
 {
 	if (where == LAX_LEFT) {
 		 //add to the left
+		double dold, dnew, scale;
 		flatpoint v;
 		flatpoint *np=new flatpoint[(xsize+3)*ysize];
 		int nxs=xsize+3;
 		for (int r=0; r<ysize; r++) {
 			 // interpolate controls between old edge and new points
-			//memcpy(np+r*nxs+3,points+r*xsize,xsize*sizeof(flatpoint));
+			// first the existing points
 			for (int i=0; i<xsize; i++) np[r*nxs+3+i] = points[r*xsize + i];
-
-			np[  r*nxs]=transform_point(tr,points[r*xsize]);
-			v=np[r*nxs]-points[r*xsize];
-			np[2+r*nxs]=points[r*xsize]+v/3;
-			np[1+r*nxs]=points[r*xsize]+v*2/3;
+			// now add in the new
+			np[  r*nxs] = transform_point(tr,points[r*xsize]); //on new edge points
+			v = np[r*nxs]-points[r*xsize]; //new corner - old corner
+			if (smooth) {
+				dnew = v.norm();
+				dold = (points[r*xsize] - points[r*xsize+3]).norm();
+				scale = (fabs(dold)<1e-10 ? 1 : dnew / dold);
+				np[2+r*nxs] = 2*points[r*xsize] - points[1+r*xsize]; //nearer old
+				np[2+r*nxs] = points[r*xsize] + scale * (np[2+r*nxs] - points[r*xsize]);
+				np[1+r*nxs] = transform_point(tr, points[1+r*xsize]); //nearer new
+				np[1+r*nxs] = np[r*nxs] + scale * (np[1+r*nxs] - np[r*nxs]);
+			} else {
+				np[2+r*nxs]=points[r*xsize]+v/3;
+				np[1+r*nxs]=points[r*xsize]+v*2/3;
+			}
 		}
 		delete[] points;
 		points=np;
@@ -1875,19 +1896,28 @@ void PatchData::grow(int where, const double *tr)
 
 	} else if (where == LAX_TOP) {
 		 //add to the top
+		double dold, dnew, scale;
 		flatpoint v;
 		flatpoint *np=new flatpoint[xsize*(ysize+3)];
-
-		//memcpy(np,points,xsize*ysize*sizeof(flatpoint));
 		int n = xsize*ysize;
 		for (int c=0; c<n; c++) np[c] = points[c];
 
 		for (int i=xsize*(ysize-1); i<ysize*xsize; i++) {
 			 // interpolate controls between old edge and new points
-			np[i+3*xsize]=transform_point(tr,points[i]);
-			v=np[i+3*xsize]-points[i];
-			np[i+  xsize]=points[i]+v/3;
-			np[i+2*xsize]=points[i]+v*2/3;
+			np[i+3*xsize] = transform_point(tr,points[i]); //points on edge
+			v = np[i+3*xsize] - points[i];
+			if (smooth) {
+				dnew = v.norm();
+				dold = (points[i] - points[i-3*xsize]).norm();
+				scale = (fabs(dold)<1e-10 ? 1 : dnew / dold);
+				np[i+  xsize] = 2*points[i] - points[i-xsize]; //nearer old
+				np[i+  xsize] = points[i] + scale * (np[i+xsize] - points[i]);
+				np[i+2*xsize] = transform_point(tr, points[i-xsize]); //nearer new
+				np[i+2*xsize] = np[i+3*xsize] + scale * (np[i+2*xsize] - np[i+3*xsize]);
+			} else {
+				np[i+  xsize] = points[i]+v/3; //nearer old
+				np[i+2*xsize] = points[i]+v*2/3; //nearer new
+			}
 		}
 		delete[] points;
 		points=np;
@@ -1898,18 +1928,28 @@ void PatchData::grow(int where, const double *tr)
 
 	} else if (where == LAX_RIGHT) {
 		 //add to the right
+		double dold, dnew, scale;
 		flatpoint v;
 		flatpoint *np=new flatpoint[(xsize+3)*ysize];
 		int nxs=xsize+3;
 		for (int r=0; r<ysize; r++) {
 			 // interpolate controls between old edge and new points
-			//memcpy(np+r*nxs,points+r*xsize,xsize*sizeof(flatpoint));
 			for (int i=0; i<xsize; i++) np[r*nxs + i] = points[r*xsize + i];
 
-			np[(r+1)*nxs-1]=transform_point(tr,points[(r+1)*xsize-1]);
-			v=np[(r+1)*nxs-1]-points[(r+1)*xsize-1];
-			np[(r+1)*nxs-3]=points[(r+1)*xsize-1]+v/3;
-			np[(r+1)*nxs-2]=points[(r+1)*xsize-1]+v*2/3;
+			np[(r+1)*nxs-1] = transform_point(tr,points[(r+1)*xsize-1]); //on new edge
+			v = np[(r+1)*nxs-1]-points[(r+1)*xsize-1];
+			if (smooth) {
+				dnew = v.norm();
+				dold = (points[(r+1)*xsize-1] - points[(r+1)*xsize-4]).norm();
+				scale = (fabs(dold)<1e-10 ? 1 : dnew / dold);
+				np[(r+1)*nxs-3] = 2*points[(r+1)*xsize-1] - points[(r+1)*xsize-2]; //nearer old
+				np[(r+1)*nxs-3] = points[(r+1)*xsize-1] + scale * (np[(r+1)*nxs-3] - points[(r+1)*xsize-1]);
+				np[(r+1)*nxs-2] = transform_point(tr, points[(r+1)*xsize-2]); //nearer new
+				np[(r+1)*nxs-2] = np[(r+1)*nxs-1] + scale * (np[(r+1)*nxs-2] - np[(r+1)*nxs-1]);
+			} else {
+				np[(r+1)*nxs-3] = points[(r+1)*xsize-1]+v/3; //nearer old
+				np[(r+1)*nxs-2] = points[(r+1)*xsize-1]+v*2/3; //nearer new
+			}
 		}
 		delete[] points;
 		points=np;
@@ -1920,19 +1960,28 @@ void PatchData::grow(int where, const double *tr)
 
 	} else {
 		 //add to the bottom
+		double dold, dnew, scale;
 		flatpoint v;
 		flatpoint *np=new flatpoint[xsize*(ysize+3)];
-
-		//memcpy(np+3*xsize,points,xsize*ysize*sizeof(flatpoint));
 		int n = xsize*ysize;
 		for (int c=0; c<n; c++) np[3*xsize + c] = points[c];
 
 		for (int i=0; i<xsize; i++) {
 			 // interpolate controls between old edge and new points
-			np[i        ]=transform_point(tr,points[i]);
-			v=np[i]-points[i];
-			np[i+2*xsize]=points[i]+v/3;
-			np[i+  xsize]=points[i]+v*2/3;
+			np[i] = transform_point(tr,points[i]); //points on edge
+			v = np[i]-points[i];
+			if (smooth) {
+				dnew = v.norm();
+				dold = (points[i] - points[i+3*xsize]).norm();
+				scale = (fabs(dold)<1e-10 ? 1 : dnew / dold);
+				np[i+2*xsize] = 2*points[i] - points[i+xsize]; //nearer old
+				np[i+2*xsize] = points[i] + scale * (np[i+2*xsize] - points[i]);
+				np[i+  xsize] = transform_point(tr, points[i+xsize]); //nearer new
+				np[i+  xsize] = np[i] + scale * (np[i+xsize] - np[i]);
+			} else {
+				np[i+2*xsize]=points[i]+v/3; //nearer old
+				np[i+  xsize]=points[i]+v*2/3; //nearer new
+			}
 		}
 		delete[] points;
 		points=np;
@@ -2042,10 +2091,10 @@ void PatchData::collapse(int rr,int cc)
 	}
 }
 
-//workaround for new and eroneous g++ nag warnings about nontriviality of lax vector classes..
+//workaround for new and erroneous g++ nag warnings about nontriviality of lax vector classes..
 void Memmove(flatpoint *dest, flatpoint *src, int n)
 {
-	if (src > dest) {
+	if (src < dest) {
 		for (int c=n-1; c>=0; c--) dest[c] = src[c];
 	} else {
 		for (int c=0; c<n; c++) dest[c] = src[c];
@@ -2076,15 +2125,14 @@ int PatchData::subdivide(int r,double rt,int c,double ct)
 	if (c>=xsize-1) c=-1;
 	if (r<0 && c<0) return 1;
 	
-	nxs=xsize+(c>=0?3:0);
-	nys=ysize+(r>=0?3:0);
+	nxs = xsize + (c>=0?3:0);
+	nys = ysize + (r>=0?3:0);
 
 	 //reallocate the points array.. the new array gets shifted around below
 	int rr,r2,r3, cc,c2,c3, i;
 	flatpoint *np=new flatpoint[nxs*nys];
 	for (rr=0; rr<ysize; rr++) {
-		//memcpy(np+rr*nxs, points+rr*xsize, xsize*sizeof(flatpoint));
-		for (i=0; i<xsize; i++) np[rr*nxs + i] = points[rr*xsize + i];
+		for (cc=0; cc<xsize; cc++) np[rr*nxs + cc] = points[rr*xsize + cc];
 	}
 
 	double newGx[16],newGy[16], oldGx[16],oldGy[16], oldM[16],Mt[16], oldN[16],N[16], C[16];
@@ -2836,20 +2884,20 @@ int PatchData::Map(std::function<int(const flatpoint &p, flatpoint &newp)> adjus
  * If dragmode==2, then the mouse was clicked on an edge, but the intention is to move the existing
  * edge without creating a new column or row.
  */
-/*! \var int PatchInterface::drawrendermode
+/*! \var int PatchInterface::drawrendermode. See RenderMode.
  * Like rendermode, but is used when Refresh is called from DrawData().
  */
 /*! \var int PatchInterface::rendermode
- * \brief How to draw the overall patch.
+ * \brief How to draw the overall patch. See RenderMode.
  * 
  * In PatchInterface, you can only draw grid lines, but in subclasses like ColorPatchInterface
  * and ImagePatchInterface, you can draw grid lines only, or the color data instead.
  *
- * rendermode==0 means draw only the basic grid lines. 
- * rendermode==1 means use data->preview for the patch, and draw the grid if no preview available. 
- * rendermode==2 means use drawpatches(), which usually would call drawpatch() once for each subpatch in a patch. This would
+ * RENDER_Grid means draw only the basic grid lines. 
+ * RENDER_Preview means use data->preview for the patch, and draw the grid if no preview available. 
+ * RENDER_Color means use drawpatches(), which usually would call drawpatch() once for each subpatch in a patch. This would
  *  be used when you don't want to render previews, but instead draw the patch over each time.
- * rendermode==3 means don't actually draw anything but control stuff.
+ * RENDER_Controls_Only means don't actually draw anything but control stuff.
  */
 
 #define All_Controls     0
@@ -2881,12 +2929,12 @@ PatchInterface::PatchInterface(int nid,Displayer *ndp) : anInterface(nid,ndp)
 	poc=NULL;
 	
 	overv=overh=overch=overcv=-1;
-	overstate=-1;
+	overstate=-1; //is 1 for hovering over something that we are going to cut
 	cuth=cutv=NULL;
 	movepts=NULL;
 	dragmode=0;
 	hoverpoint=-1;
-	rendermode=drawrendermode=1;
+	rendermode = drawrendermode = RENDER_Preview;
 	recurse=0;
 	
 	constrain=0;
@@ -2934,8 +2982,8 @@ const char *PatchInterface::Name()
 
 Laxkit::MenuInfo *PatchInterface::ContextMenu(int x,int y,int deviceid, Laxkit::MenuInfo *menu)
 {
-	int alreadythere=(menu==NULL?0:1);
-	int needsheader=0;
+	int alreadythere = (menu==NULL?0:1);
+	int needsheader = 0;
 	if (menu && menu->n()) needsheader=1;
 
 	 //add path menu items if necessary
@@ -2948,11 +2996,8 @@ Laxkit::MenuInfo *PatchInterface::ContextMenu(int x,int y,int deviceid, Laxkit::
 		needsheader=1;
 	}
 
-	if (data) {
-		if (!menu) menu=new MenuInfo();
-		if (needsheader) { menu->AddSep(_("Mesh")); needsheader=0; }
-		menu->AddToggleItem(_("Base on path"),PATCHA_BaseOnPath, 0, data->base_path != nullptr);
-	}
+	if (!menu) menu = new MenuInfo();
+	if (needsheader) { menu->AddSep(_("Mesh")); needsheader=0; }
 
 	if (!data || (data && data->base_path==NULL)) {
 		if (!menu) menu=new MenuInfo();
@@ -2963,6 +3008,41 @@ Laxkit::MenuInfo *PatchInterface::ContextMenu(int x,int y,int deviceid, Laxkit::
 		menu->AddToggleItem(_("Linear"),          PATCHA_Linear, 0, whichcontrols==Patch_Linear);
 	}
 
+	if (data) {
+		if (menu->n()) menu->AddSep();
+		bool ispath = (data->base_path != nullptr);
+		if (ispath) {
+			menu->AddItem(_("Remove base path"), PATCHA_BaseOnPath);
+
+		} else {
+			menu->AddToggleItem(_("Smooth edit"), PATCHA_SmoothEdit, 0, smoothedit);
+			menu->AddItem(_("Select"));
+			menu->SubMenu();
+			menu->AddItem(_("Corners"), PATCHA_SelectCorners);
+			menu->AddItem(_("Controls of current"), PATCHA_SelectControls);
+			menu->AddItem(_("Middle points"), PATCHA_SelectMids);
+			menu->AddItem(_("Edge middles"), PATCHA_SelectEdgeMids);
+			menu->AddItem(_("Vertical edge middles"), PATCHA_SelectVerticalEdgeMids);
+			menu->AddItem(_("Horizontal edge middles"), PATCHA_SelectHorizontalEdgeMids);
+			menu->AddItem(_("All vertically"), PATCHA_SelectAllVertically);
+			menu->AddItem(_("More vertically"), PATCHA_SelectMoreVertically);
+			menu->AddItem(_("All horizontally"), PATCHA_SelectAllHorizontally);
+			menu->AddItem(_("More horizontally"), PATCHA_SelectMoreHorizontally);
+			menu->AddItem(_("Around"), PATCHA_SelectAround);
+			menu->EndSubMenu();
+
+			menu->AddItem(_("Make circle"), PATCHA_CircleWarp);
+			menu->AddItem(_("Revert to rectangle"), PATCHA_Rectify);
+			
+			menu->AddItem(_("Subdivide"), PATCHA_Subdivide);
+			menu->AddItem(_("Subdivide rows"), PATCHA_SubdivideRows);
+			menu->AddItem(_("Subdivide columns"), PATCHA_SubdivideCols);
+
+			menu->AddItem(_("Base on path"), PATCHA_BaseOnPath);
+		}
+
+
+	}
 
 	if (menu->n()==0 && !alreadythere) { delete menu; return NULL; }
 	return menu;
@@ -3045,10 +3125,26 @@ int PatchInterface::Event(const Laxkit::EventData *e_data, const char *mes)
 			needtodraw=1;
 			return 0;
 
-		} else if (i==PATCHA_SmoothEdit) {
-			PerformAction(PATCHA_SmoothEdit);
+		} else if (i==PATCHA_SmoothEdit
+				|| i == PATCHA_CircleWarp
+				|| i == PATCHA_Subdivide
+				|| i == PATCHA_SubdivideRows
+				|| i == PATCHA_SubdivideCols
+				|| i == PATCHA_SelectCorners
+				|| i == PATCHA_SelectMids
+				|| i == PATCHA_SelectEdgeMids
+				|| i == PATCHA_SelectVerticalEdgeMids
+				|| i == PATCHA_SelectHorizontalEdgeMids
+				|| i == PATCHA_SelectAllVertically
+				|| i == PATCHA_SelectMoreVertically
+				|| i == PATCHA_SelectAllHorizontally
+				|| i == PATCHA_SelectMoreHorizontally
+				|| i == PATCHA_SelectAround
+				|| i == PATCHA_SelectControls
+				|| i == PATCHA_Rectify
+			  ) {
+			PerformAction(i);
 			return 0;
-
 		}
 
 		return 1; //unknown menu item
@@ -3414,9 +3510,9 @@ int PatchInterface::Refresh()
 
 	// draw patches
 	int d=1;
-	if (rendermode==3) d=0;
+	if (rendermode == RENDER_Controls_Only) d=0;
 
-	if (rendermode==1) {
+	if (rendermode == RENDER_Preview) {
 		LaxImage *preview=data->GetPreview();
 		if (preview) {
 			d=dp->imageout(preview,data->minx,data->miny, data->maxx-data->minx, data->maxy-data->miny);
@@ -3426,7 +3522,7 @@ int PatchInterface::Refresh()
 	}
 
 	if (d) {
-		//if (rendermode==2 && data->renderdepth==0) ...
+		//if (rendermode == RENDER_Color && data->renderdepth==0) ...
 		drawpatches();
 	}
 
@@ -3446,12 +3542,14 @@ int PatchInterface::Refresh()
 void PatchInterface::drawControls()
 { 
 	flatpoint p;
-	dp->LineAttributes(1,LineSolid,linestyle.capstyle,linestyle.joinstyle);
+
+	double thin = ScreenLine();
+	dp->LineAttributes(thin, LineSolid,linestyle.capstyle,linestyle.joinstyle);
 
 	// draw patch borders
 	if ((showdecs&SHOW_Edges) && !child) {
 		dp->NewFG(rimcolor);
-		dp->LineWidthScreen(1);
+		dp->LineWidthScreen(thin);
 
 		flatpoint bez[(data->xsize>data->ysize?data->xsize:data->ysize)+1];
 		for (int c=0; c<data->xsize/3+1; c++) {
@@ -3476,7 +3574,7 @@ void PatchInterface::drawControls()
 	// draw hover indicator
 	if (overv>=0) {
 		//DBG cerr <<"hovering over a vertical..."<<endl;
-		dp->LineWidthScreen(5);
+		dp->LineWidthScreen(5*thin);
 
 		//int o=0;
 		//flatpoint p[data->ysize+1 + (dragmode==DRAG_ADD_EDGE?6:0)];
@@ -3532,7 +3630,7 @@ void PatchInterface::drawControls()
 
 	if (overh>=0) {
 		 //draw hovered edge
-		dp->LineWidthScreen(5);
+		dp->LineWidthScreen(5*thin);
 		flatpoint p[data->xsize+1 + (dragmode==DRAG_ADD_EDGE?6:0)];
 		//flatpoint lb=dp->screentoreal(mx,my);
 		for (int c=0; c<data->xsize; c++) {
@@ -3554,24 +3652,24 @@ void PatchInterface::drawControls()
 
 	//draw potential subdividing marks
 	if (overch>=0) {
-		dp->LineWidthScreen(3);
+		dp->LineWidthScreen(3*thin);
 		dp->NewFG(0,255,0);
 		dp->drawbez(cuth,data->xsize/3+1,0,0);
 	}
 	if (overcv>=0) {
-		dp->LineWidthScreen(3);
+		dp->LineWidthScreen(3*thin);
 		dp->NewFG(0,255,0);
 		dp->drawbez(cutv,data->ysize/3+1,0,0);
 	}
 
 	if (dragmode==DRAG_SHIFT_EDGE) {
-		dp->LineWidthScreen(2);
+		dp->LineWidthScreen(3*thin);
 		dp->NewFG(100,100,255);
 		dp->drawline(lbdown,dp->screentoreal(mx,my));
 	}
 
 
-	dp->LineWidthScreen(1);
+	dp->LineWidthScreen(thin);
 
 	// control points
 	//if ((showdecs&SHOW_Points) && data->base_path==NULL) {
@@ -3611,13 +3709,14 @@ void PatchInterface::drawControlPoint(int i)
 	flatpoint p;
 	//p=dp->realtoscreen(data->points[i]);
 	p=data->points[i];
+	double thin = ScreenLine();
 
 	dp->NewFG(controlcolor);
-	dp->drawpoint(p.x,p.y,5,1);
+	dp->drawpoint(p.x,p.y,5*thin,1);
 	dp->NewFG(~0);
-	dp->drawpoint(p.x,p.y,5,0);
+	dp->drawpoint(p.x,p.y,5*thin,0);
 	dp->NewFG(0,0,0);
-	dp->drawpoint(p.x,p.y,6,0);
+	dp->drawpoint(p.x,p.y,6*thin,0);
 }
 
 /*! \todo in the future someday, might be useful to only show control points for "active" subpatches,
@@ -3630,6 +3729,7 @@ void PatchInterface::drawControlPoints()
 	int r,c;
 	flatpoint p;
 	int rr;
+	double thin = ScreenLine();
 
 	for (int c=0; c<data->xsize*data->ysize; c++) {
 		//p=dp->realtoscreen(data->points[c]);
@@ -3638,11 +3738,11 @@ void PatchInterface::drawControlPoints()
 			//draw points with outer black circle, and just inside that a white circle
 			if ((c/data->xsize)%3==0 && (c%data->xsize)%3==0) rr=4; else rr=3;
 			dp->NewFG(controlcolor);
-			dp->drawpoint(p.x,p.y,rr,0);
+			dp->drawpoint(p.x,p.y,rr*thin,0);
 
 			if ((c/data->xsize)%3==0 && (c%data->xsize)%3==0) dp->NewFG(50,50,50); //is vertex point
 			else dp->NewFG((unsigned long)0);//is control point
-			dp->drawpoint(p.x,p.y,rr+1,0);
+			dp->drawpoint(p.x,p.y,(rr+1)*thin,0);
 			
 		} else {
 			//DBG cerr <<" Nope"<<endl;
@@ -3658,16 +3758,17 @@ void PatchInterface::drawControlPoints()
 	dp->NewFG(controlcolor);
 	//draw little arrows for inner controls to point to outer corners
 	if (whichcontrols==Patch_Full_Bezier) {
+		double len = .2 * thin;
 		for (r=0; r<data->ysize-1; r+=3) {
 			for (c=0; c<data->xsize-1; c+=3) {
 				dp->drawarrow(data->points[(r+1)*data->xsize+c+1],
-						data->points[r*data->xsize+c]-data->points[(r+1)*data->xsize+c+1],0,.2,2);
+						data->points[r*data->xsize+c]-data->points[(r+1)*data->xsize+c+1],0,len,2);
 				dp->drawarrow(data->points[(r+1)*data->xsize+c+2],
-						data->points[r*data->xsize+c+3]-data->points[(r+1)*data->xsize+c+2],0,.2,2);
+						data->points[r*data->xsize+c+3]-data->points[(r+1)*data->xsize+c+2],0,len,2);
 				dp->drawarrow(data->points[(r+2)*data->xsize+c+1],
-						data->points[(r+3)*data->xsize+c]-data->points[(r+2)*data->xsize+c+1],0,.2,2);
+						data->points[(r+3)*data->xsize+c]-data->points[(r+2)*data->xsize+c+1],0,len,2);
 				dp->drawarrow(data->points[(r+2)*data->xsize+c+2],
-						data->points[(r+3)*data->xsize+c+3]-data->points[(r+2)*data->xsize+c+2],0,.2,2);
+						data->points[(r+3)*data->xsize+c+3]-data->points[(r+2)*data->xsize+c+2],0,len,2);
 			}
 		}
 	}
@@ -3679,7 +3780,7 @@ void PatchInterface::drawControlPoints()
 		for (int c=0; c<curpoints.n; c++) {
 			//p=dp->realtoscreen(data->points[curpoints.e[c]]);
 			p=data->points[curpoints.e[c]];
-			dp->drawpoint(p.x,p.y,3,1);  // draw curpoint
+			dp->drawpoint(p.x,p.y,3*thin,1);  // draw curpoint
 		}
 		//dp->DrawReal();
 	}
@@ -3806,7 +3907,7 @@ int PatchInterface::LBDown(int x,int y,unsigned int state,int count,const Laxkit
 	buttondown.down(d->id,LEFTBUTTON);
 
 	// click on nothing deselects any selected points
-	if (curpoints.n) {
+	if (curpoints.n && !(overh >= 0 || overv >= 0)) {
 		if ((state&LAX_STATE_MASK)==0) {
 			curpoints.flush();
 			needtodraw=1;
@@ -3824,6 +3925,7 @@ int PatchInterface::LBDown(int x,int y,unsigned int state,int count,const Laxkit
 	if (data && overstate==0 && (overh>=0 || overv>=0)) {
 		if ((state&LAX_STATE_MASK)==0) {
 			int i;
+			curpoints.flush();
 			if (overh>=0) {
 				for (int c=0; c<data->xsize; c++) {
 					i=3*overh*data->xsize+c;
@@ -3944,10 +4046,10 @@ int PatchInterface::LBUp(int x,int y,unsigned int state,const Laxkit::LaxMouse *
 	buttondown.up(d->id,LEFTBUTTON);
 	if (dragmode==DRAG_ADD_EDGE || dragmode==DRAG_SHIFT_EDGE) {
 		 //add off to side
-		if (overv==0)      data->grow(LAX_LEFT,  movetransform);
-		else if (overv>0)  data->grow(LAX_RIGHT, movetransform);
-		else if (overh==0) data->grow(LAX_BOTTOM,movetransform);
-		else if (overh>0)  data->grow(LAX_TOP,   movetransform);
+		if (overv==0)      data->grow(LAX_LEFT,  movetransform, smoothedit);
+		else if (overv>0)  data->grow(LAX_RIGHT, movetransform, smoothedit);
+		else if (overh==0) data->grow(LAX_BOTTOM,movetransform, smoothedit);
+		else if (overh>0)  data->grow(LAX_TOP,   movetransform, smoothedit);
 		overv=overh=-1;
 		overstate=0;
 		needtodraw=1;
@@ -3990,6 +4092,7 @@ int PatchInterface::findNearVertical(flatpoint fp,double d,double *t_ret,int *i_
 	double dd,ddd=1e+10;
 	DoubleBBox bbox;
 	int resolution=2,rrr;
+
 	for (c=0; c<data->xsize/3+1; c++) {
 		bbox.ClearBBox();
 		for (r=0; r<data->ysize; r++) {
@@ -4100,10 +4203,12 @@ int PatchInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMo
 			if ((state&LAX_STATE_MASK)==0 || (state&LAX_STATE_MASK)==ShiftMask) {
 				 //plain hover over edge for adding on rows/cols
 				if (overstate!=0) { overstate=0; needtodraw=1; }
-				//**********should be able to add/shift in middle of the patch
-				if (v>=0 && v!=0 && v!=data->xsize/3) v=-1;
-				if (h>=0 && h!=0 && h!=data->ysize/3) h=-1;
-				if (v>=0 && h>=0) h=-1;
+				if ((state&LAX_STATE_MASK)==ShiftMask) {
+					//make sure shift-hover only allows on outer edges
+					if (v>=0 && v!=0 && v!=data->xsize/3) v=-1;
+					if (h>=0 && h!=0 && h!=data->ysize/3) h=-1;
+					if (v>=0 && h>=0) h=-1;
+				}
 			} else {
 				 //control hover for cutting
 				if ((v==0 || v==data->xsize/3) && data->xsize==4) v=-1; //don't cut if nothing left afterwards!
@@ -4198,6 +4303,7 @@ int PatchInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMo
 	}
 
 	if (curpoints.n==0) {
+		//move whole mesh via transform adjustment
 		flatpoint d=screentoreal(x,y)-screentoreal(mx,my);
 		data->origin(data->origin()+d);
 		mx=x; my=y;
@@ -4264,14 +4370,59 @@ int PatchInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMo
 					}
 				}
 			}
-			 //move remaining control points
-			for (m=0; m<n; m++) {
-				if (ps[m]<0) continue;
-				i=curpoints.e[m];
-				data->points[i]+=d;
+			 //move remaining control points. all vertices should have been removed.
+			for (m = 0; m < n; m++) {
+				if (ps[m] < 0) continue;
+				i = curpoints.e[m];
+				r = i/data->xsize;
+				c = i%data->xsize;
+				data->points[i] += d;
+				if (r%3 == 1 && c%3 == 0) {
+					rr = r - 2;
+					if (rr >= 0) {
+						ii = rr * data->xsize + c;
+						data->points[ii] = 2*data->points[i-data->xsize] - data->points[i];
+						for (c2=m; c2<n; c2++) { // remove ii from ps
+							if (ps[c2]==ii) { ps[c2]=-1; break; }
+						}
+					}
+
+				} else if (r%3 == 2 && c%3 == 0) {
+					rr = r + 2;
+					if (rr < data->ysize) {
+						ii = rr * data->xsize + c;
+						data->points[ii] = 2*data->points[i+data->xsize] - data->points[i];
+						for (c2=m; c2<n; c2++) { // remove ii from ps
+							if (ps[c2]==ii) { ps[c2]=-1; break; }
+						}
+					}
+
+				} else if (r%3 == 0 && c%3 == 1) {
+					cc = c - 2;
+					if (cc >= 0) {
+						ii = r * data->xsize + cc;
+						data->points[ii] = 2*data->points[i-1] - data->points[i];
+						for (c2=m; c2<n; c2++) { // remove ii from ps
+							if (ps[c2]==ii) { ps[c2]=-1; break; }
+						}
+					}
+
+				} else if (r%3 == 0 && c%3 == 2) {
+					cc = c + 2;
+					if (cc < data->xsize) {
+						ii = r * data->xsize + cc;
+						data->points[ii] = 2*data->points[i+1] - data->points[i];
+						for (c2=m; c2<n; c2++) { // remove ii from ps
+							if (ps[c2]==ii) { ps[c2]=-1; break; }
+						}
+					}
+				}
 			}
 			delete[] ps;
-		} else for (int c=0; c<curpoints.n; c++) data->points[curpoints.e[c]]+=d;
+
+		} else { // !smoothedit
+			for (int c=0; c<curpoints.n; c++) data->points[curpoints.e[c]] += d;
+		}
 
 		data->NeedToUpdateCache(0,-1,0,-1);
 	}
@@ -4322,6 +4473,7 @@ Laxkit::ShortcutHandler *PatchInterface::GetShortcuts()
 	sc->Add(PATCHA_SelectVerticalEdgeMids,  '4',0,0,          "SelectVerticalEdgeMids",  _("Select vertical edge controls"),NULL,0);
 	sc->Add(PATCHA_SelectHorizontalEdgeMids,'5',0,0,          "SelectHorizontalEdgeMids",_("Select horizontal edge controls"),NULL,0);
 	sc->Add(PATCHA_SelectAround,            '6',0,0,          "SelectAround",            _("Select points around current points"),NULL,0);
+	sc->Add(PATCHA_SelectControls,          '7',0,0,          "SelectControls",          _("Select any controls of currently selected points"),NULL,0);
 	sc->Add(PATCHA_SelectAllVertically,     'V',ShiftMask,0,  "SelectAllVertically",     _("Select all vertically"),NULL,0);
 	sc->Add(PATCHA_SelectMoreVertically,    'v',0,0,          "SelectMoreVertically",    _("Select next points vertically"),NULL,0);
 	sc->Add(PATCHA_SelectAllHorizontally,   'H',ShiftMask,0,  "SelectAllHorizontally",   _("Select all horizontally"),NULL,0);
@@ -4470,7 +4622,7 @@ int PatchInterface::PerformAction(int action)
 	} else if (action==PATCHA_CircleWarp) {
 		if (!data) return 0;
 		if (data->xsize==4) {
-			const char *mes=_("Patches need more than 1 column of subpatches to warp.");
+			const char *mes=_("Need more than 1 column to warp to circle.");
 			PostMessage(mes);
 			return 0;
 		}
@@ -4599,6 +4751,20 @@ int PatchInterface::PerformAction(int action)
 		for (cc=0; cc<n; cc++) {
 			r=curpoints.e[cc]/data->xsize;
 			c=curpoints.e[cc]%data->xsize;
+			for (int rr=r-1; rr<r+2; rr++)
+				for (i=c-1; i<c+2; i++)
+					if (rr>=0 && rr<data->ysize && i>=0 && i<data->xsize) curpoints.pushnodup((rr)*data->xsize+i);
+		}
+		needtodraw=1;
+		return 0;
+
+	} else if (action==PATCHA_SelectControls) {
+		if (!data) return 0;
+		int cc, n=curpoints.n, i,r,c;
+		for (cc=0; cc<n; cc++) {
+			r=curpoints.e[cc]/data->xsize;
+			c=curpoints.e[cc]%data->xsize;
+			if (!(r%3 == 0 && c%3 == 0)) continue; //ignore if not vertex
 			for (int rr=r-1; rr<r+2; rr++)
 				for (i=c-1; i<c+2; i++)
 					if (rr>=0 && rr<data->ysize && i>=0 && i<data->xsize) curpoints.pushnodup((rr)*data->xsize+i);
