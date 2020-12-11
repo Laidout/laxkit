@@ -337,13 +337,13 @@ int GradientData::Set(Laxkit::GradientStrip *newstrip, int absorb, bool keep_pla
 {
 	flatpoint p1,p2;
 	double r1,r2;
-	if (strip && keep_placement) { p1 = P1(); p2 = P2(); r1 = R1(); r2 = R2(); }
+	if (keep_placement) { p1 = P1(); p2 = P2(); r1 = R1(); r2 = R2(); }
 	if (strip != newstrip) {
 		if (strip) strip->dec_count();
 		strip = newstrip;
 	}
 	if (strip && !absorb) strip->inc_count();
-	if (strip && keep_placement) { P1(p1); P2(p2); R1(r1); R2(r2); }
+	if (keep_placement) { P1(p1); P2(p2); R1(r1); R2(r2); }
 	return 0;
 }
 
@@ -551,6 +551,7 @@ void GradientData::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *c
 		} else if (!strcmp(name,"colors")) {
 			if (!strip) strip = new GradientStrip();
 			strip->dump_in_atts(att->attributes.e[c], flag, context);
+			if (strip->IsRadial()) SetRadial(); else SetLinear();
 
 		} else if (!strcmp(name,"p1")) {
 			flatpoint p;
