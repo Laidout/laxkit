@@ -139,6 +139,7 @@ class Path : public LaxFiles::DumpUtility, public Laxkit::DoubleBBox
 	virtual int AddAt(double *t, int n, double *t_ret);
 	virtual int AddAt(Coordinate *curvertex, Coordinate *np, int after);
 	virtual int CutAt(double t, Path **new_path_ret);
+	virtual int LerpSimple(Path *a, Path *b, double t);
 	virtual void clear();
 
 	virtual int Line(LineStyle *nlinestyle);

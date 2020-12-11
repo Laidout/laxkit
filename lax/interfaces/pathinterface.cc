@@ -1161,6 +1161,7 @@ void Path::UpdateCache()
 			if (p2->flags&POINT_TONEXT) {
 				c2=p2->p();
 				p2=p2->next;
+				if (!p2) break;
 			} else { //otherwise, should be a vertex
 				//p2=p2->next;
 				c2=p2->p();
@@ -2236,6 +2237,60 @@ int Path::close()
 
 	return 0;
 
+}
+
+/*! For each point, lerp. Only goes point for point. Does not add points for smoother morph.
+ * Return 0 for success, nonzero error.
+ */
+int Path::LerpSimple(Path *a, Path *b, double t)
+{
+	if (!a || !a->path || !b ||!b->path) return 1;
+
+	Coordinate *aa, *bb, *astart, *bstart, *p, *pstart, *pprev = nullptr;
+	p = pstart = path;
+	aa = astart = a->path;
+	bb = bstart = b->path;
+
+	do {
+		if (!p) {
+			p = new Coordinate();
+			if (pprev) pprev->insert(p, 1);
+		} else if (p == pstart) {
+			p = new Coordinate();
+			pstart->insert(p, 0);
+		}
+		p->p(t*aa->p() + (1-t)*bb->p());
+
+		aa = aa->next;
+		bb = bb->next;
+		pprev = p;
+		p = p->next;
+	} while(aa && aa != astart && bb && bb != bstart);
+
+	bool closed = IsClosed();
+	if (aa == astart || bb == bstart) { //make sure path is closed
+		if (!closed) close();
+
+		while (p != pstart) {
+			Coordinate *pp = p->next;
+			p->detach();
+			delete p;
+			p = pp;
+		}
+
+	} else { //make sure path is open
+		if (closed) {
+			Coordinate *pp = path;
+			if (pp->prev->flags & POINT_TONEXT) pp = pp->prev;
+			pp->disconnect(false);
+		}
+		if (p && p != pstart) {
+			p->prev->disconnect();
+			delete p;
+		}
+	}
+
+	return 0;
 }
 
 /*! Insert np either after curvertex (after!=0), or before (after==0).
@@ -5795,6 +5850,7 @@ void PathInterface::DrawBaselines()
 				if (p2->flags&POINT_TONEXT) {
 					c2=p2->p();
 					p2=p2->next;
+					if (!p2) break;
 				} else { //otherwise, should be a vertex
 					//p2=p2->next;
 					c2=p2->p();
