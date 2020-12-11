@@ -548,7 +548,7 @@ LaxFiles::Attribute *GroupData::dump_out_group_atts(LaxFiles::Attribute *att, in
 	Utf8String s;
 	if (!kidsonly) {
 		att->push("id", Id());
-		s.Sprintf("%.10g %.10g %.10g %.10g %.10g %.10g\n", m(0),m(1),m(2),m(3),m(4),m(5));
+		s.Sprintf("%.10g %.10g %.10g %.10g %.10g %.10g", m(0),m(1),m(2),m(3),m(4),m(5));
 		att->push("matrix", s.c_str());
 
 		if (visible) att->push("visible");
