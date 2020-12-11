@@ -37,13 +37,14 @@ enum PointInfoTags {
 	LINE_End     =(1<<5),
 
 	LINE_Corner  =(1<<6),
-	LINE_Equal   =(1<<7),
-	LINE_Auto    =(1<<8),
-	LINE_Join    =(1<<9),
-	LINE_Cap     =(1<<10),
-	LINE_Original=(1<<11),
+	LINE_Smooth  =(1<<7),
+	LINE_Equal   =(1<<8),
+	LINE_Auto    =(1<<9),
+	LINE_Join    =(1<<10),
+	LINE_Cap     =(1<<11),
+	LINE_Original=(1<<12),
 
-	LAXLINE_MAX =(11)
+	LAXLINE_MAX =(12)
 };
 
 class spacevector
@@ -113,6 +114,7 @@ class flatvector
 	flatvector transpose() const { return flatvector(-y,x); }
 	double cross(flatvector v) const { return x*v.y-y*v.x; } /*magnitude and sign of cross product, which points in z direction */
 	double distanceTo(flatvector v) const { return sqrt((v.x-x)*(v.x-x)+(v.y-y)*(v.y-y)); }
+	int SmoothnessFlag(const flatvector &v) const;
 };
 
 char NearestAxis(flatvector v);

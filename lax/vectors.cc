@@ -335,6 +335,19 @@ flatvector transpose(flatvector v)
 	return flatvector((-1)*v.y,v.x);
 }
 
+/*! Return how aligned we are with another vector, as if on a path.
+ * Two vectors going in the same direction are considered a corner.
+ * LINE_Corner for corner. LINE_Smooth for smooth but unequal, LINE_Equal for smooth and equal.
+ */
+int flatvector::SmoothnessFlag(const flatvector &v) const
+{
+	double n1 = norm();
+	double n2 = v.norm();
+	if (*this * v > -.999999 * n1*n2) return LINE_Corner;
+	if (fabs(n1-n2) < 1e-6) return LINE_Equal;
+	return LINE_Smooth;
+}
+
 //! True if x==x and y==y
 int operator==(flatvector v1, flatvector v2)
 {
