@@ -549,13 +549,14 @@ int BoilerPlateInterface::KeyUp(unsigned int ch,unsigned int state, const Laxkit
 Laxkit::ShortcutHandler *BoilerPlateInterface::GetShortcuts()
 { ***
 	if (sc) return sc;
-    ShortcutManager *manager=GetDefaultShortcutManager();
-    sc=manager->NewHandler(whattype());
+    ShortcutManager *manager = GetDefaultShortcutManager();
+    sc=manager->FindHandler(whattype());
+    //sc=manager->NewHandler(whattype()); //supposed to make a new handler based on another
     if (sc) return sc;
 
     //virtual int Add(int nid, const char *nname, const char *desc, const char *icon, int nmode, int assign);
 
-    sc=new ShortcutHandler(whattype());
+    sc = new ShortcutHandler(whattype());
 
 	//sc->Add([id number],  [key], [mod mask], [mode], [action string id], [description], [icon], [assignable]);
     sc->Add(BOILERPLATE_Something,  'B',ShiftMask|ControlMask,0, "BaselineJustify", _("Baseline Justify"),NULL,0);
