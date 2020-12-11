@@ -1294,7 +1294,7 @@ int circle_circle_intersection(flatpoint o1, double r1, flatpoint o2, double r2,
  * 
  * Points returned are either vertex points or bez control points.
  * If control points, they will have LINE_Bez in their info.
- * The returned points are always new new points, not any of the original points.
+ * The returned points are always new points, not any of the original points.
  * They would be inserted directly between ap2 and bp1.
  */
 flatpoint *join_paths(int jointype, double miterlimit,
