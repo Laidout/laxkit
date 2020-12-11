@@ -98,7 +98,7 @@ class MenuItem : public anObject
 
   public:
 	char *name; //displayed text
-	char *key; //internal key
+	char *key; //internal key identifier (not keyboard key)
 	LaxImage *image;
 	int formathint;
 	int id,info;
