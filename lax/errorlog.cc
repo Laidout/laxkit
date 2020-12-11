@@ -177,6 +177,20 @@ int ErrorLog::AddError(const char *desc, int ninfo, int pos,int line)
 	return AddMessage(0,NULL,NULL,desc,ERROR_Fail,ninfo, pos,line);
 }
 
+int ErrorLog::AddWarning(int ninfo, int npos,int nline, const char *fmt, ...)
+{
+	va_list arg;
+    va_start(arg, fmt);
+    int status = vAddMessage(ERROR_Warning, ninfo, npos, nline, fmt, arg);
+    va_end(arg);
+	return status;
+}
+
+int ErrorLog::AddWarning(const char *desc, int ninfo, int pos,int line)
+{
+	return AddMessage(0,NULL,NULL,desc,ERROR_Warning,ninfo, pos,line);
+}
+
 int ErrorLog::vAddMessage(int severity, int ninfo, int npos,int nline, const char *fmt, va_list arg)
 {
 	//va_list arg;

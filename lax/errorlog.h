@@ -80,6 +80,8 @@ class ErrorLog
 	virtual ~ErrorLog();
 	virtual int AddError(int ninfo, int npos,int nline, const char *fmt, ...);
 	virtual int AddError(const char *desc, int ninfo=0, int npos=0,int nline=0);
+	virtual int AddWarning(int ninfo, int npos,int nline, const char *fmt, ...);
+	virtual int AddWarning(const char *desc, int ninfo=0, int npos=0,int nline=0);
 	virtual int vAddMessage(int severity, int ninfo, int npos,int nline, const char *fmt, va_list arg);
 	virtual int AddMessage(int severity, int ninfo, int npos,int nline, const char *fmt, ...);
 	virtual int AddMessage(const char *desc, int severity, int ninfo=0, int npos=0,int nline=0, anObject *extra = nullptr);
