@@ -343,6 +343,7 @@ void ColorSliders::Refresh()
 
 	Displayer *dp=MakeCurrent();
 	dp->ClearWindow();
+	dp->font(win_themestyle->normal);
 
 	if (!bars.n) return;
 
