@@ -350,39 +350,41 @@ flatpoint PatchRenderContext::getPoint(double s,double t)
 //! Creates a patch with points=NULL, size=0.
 PatchData::PatchData()
 {
-	renderdepth=0;
-	style=0; 
-	controls=Patch_Full_Bezier;
-	points=NULL;
-	griddivisions=10;
-	xsize=ysize=0;
+	renderdepth   = 0;
+	style         = 0;
+	controls      = Patch_Full_Bezier;
+	points        = NULL;
+	griddivisions = 10;
+	xsize = ysize = 0;
 
-	npoints_boundary=0;
-	boundary_outline=NULL;
+	npoints_boundary = 0;
+	boundary_outline = NULL;
 
-	base_path=NULL;
-	pathdivisions=1;
+	base_path     = NULL;
+	pathdivisions = 1;
+	pathmethod    = 0;
 
-	cache=NULL;
-	ncache=0;
-	needtorecache.set(0,0,-1,-1);
+	cache  = NULL;
+	ncache = 0;
+	needtorecache.set(0, 0, -1, -1);
 }
 
 //! Creates a new patch in rect xx,yy,ww,hh with nr rows and nc columns.
 PatchData::PatchData(double xx,double yy,double ww,double hh,int nr,int nc,unsigned int stle)
 {
-	points=NULL;
-	Set(xx,yy,ww,hh,nr,nc,stle);
+	points = NULL;
+	Set(xx, yy, ww, hh, nr, nc, stle);
 
-	npoints_boundary=0;
-	boundary_outline=NULL;
+	npoints_boundary = 0;
+	boundary_outline = NULL;
 
-	base_path=NULL;
-	pathdivisions=1;
+	base_path     = NULL;
+	pathdivisions = 1;
+	pathmethod    = 0;
 
-	cache=NULL;
-	ncache=0;
-	needtorecache.set(0,0,-1,-1);
+	cache  = NULL;
+	ncache = 0;
+	needtorecache.set(0, 0, -1, -1);
 }
 
 PatchData::~PatchData()
@@ -393,7 +395,8 @@ PatchData::~PatchData()
 	delete[] cache;
 }
 
-/*! If maxcol==mincol-1 or maxrow==minrow-1, then we are saying no need to recache.
+/*! When modified, specify what mesh matrices need to be updated.
+ * If maxcol==mincol-1 or maxrow==minrow-1, then we are saying no need to recache.
  * if maxcol<mincol-1, then recache from mincol to the max size. 
  * if maxrow<minrow-1, then recache from minrow to the max size. 
  */
@@ -412,6 +415,7 @@ void PatchData::NeedToUpdateCache(int mincol,int maxcol, int minrow,int maxrow)
 	needtorecache.height=maxrow-minrow+1;
 }
 
+/*! Update mesh matrices for faster getpoint(). */
 void PatchData::UpdateCache()
 {
 	if (!cache) NeedToUpdateCache(0,-1,0,-1);
@@ -605,6 +609,7 @@ LaxFiles::Attribute *PatchData::dump_out_atts(LaxFiles::Attribute *att,int what,
 		att->push("ysize", "4",            "number of points in the y direction");
 		att->push("style","smooth",        "when dragging controls do it so patch is still smooth");
 		att->push("controls","full",       "can also be linear, coons, or border");
+		att->push("pathmethod", "sampled", "Or extrapolate, how to create mesh from path");
 		att2 = att->pushSubAtt("base_path",nullptr,    "If mesh is defined along path, include this single Path object");
 		att2->push("  ...");
 		att2 = att->pushSubAtt("points",nullptr,"all xsize*ysize points, a list by rows of: x y");
@@ -630,6 +635,8 @@ LaxFiles::Attribute *PatchData::dump_out_atts(LaxFiles::Attribute *att,int what,
 		att2 = att->pushSubAtt("base_path");
 		base_path->dump_out_atts(att2,what,context);
 	}
+
+	att->push("pathmethod", pathmethod == 0 ? "sampled" : "extrapolate");
 
 	att->push("xsize", xsize);
 	att->push("ysize", ysize);
@@ -683,10 +690,16 @@ void PatchData::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *cont
 			style=s;
 
 		} else if (!strcmp(name,"controls")) {
-			if (!strcmp(value,"full"))        controls=Patch_Full_Bezier;
-			else if (!strcmp(value,"linear")) controls=Patch_Linear;
-			else if (!strcmp(value,"coons"))  controls=Patch_Coons;
-			else if (!strcmp(value,"border")) controls=Patch_Border_Only;
+			if (value) {
+				if (!strcmp(value,"full"))        controls = Patch_Full_Bezier;
+				else if (!strcmp(value,"linear")) controls = Patch_Linear;
+				else if (!strcmp(value,"coons"))  controls = Patch_Coons;
+				else if (!strcmp(value,"border")) controls = Patch_Border_Only;
+			}
+
+		} else if (!strcmp(name, "pathmethod")) {
+			if (!strcasecmp_safe(value, "sample")) pathmethod = 0;
+			else pathmethod = 1;
 
 		} else if (!strcmp(name,"base_path")) {
 			if (!base_path) base_path=new PathsData();
@@ -1115,11 +1128,12 @@ int PatchData::UsesPath()
  */
 int PatchData::UpdateFromPath()
 {
-	return UpdateFromPathSampled();
-	//return UpdateFromPathExtrapolate();
+	if (pathmethod == 0) return UpdateFromPathSampled();
+	else return UpdateFromPathExtrapolate();
 }
 
-/*! Return 0 for success, or nonzero for error.
+/*! Compute based on path cache, one patch per vertex (except final vertex).
+ * Return 0 for success, or nonzero for error.
  * See also UpdateFromPath().
  */
 int PatchData::UpdateFromPathSampled()
@@ -1200,7 +1214,8 @@ int PatchData::UpdateFromPathSampled()
 	return 0;
 }
 
-/*! Return 0 for success, or nonzero for error.
+/*! Build one patch per path vertex, plus one for any weight in between vertices.
+ * Return 0 for success, or nonzero for error.
  * See also UpdateFromPath().
  */
 int PatchData::UpdateFromPathExtrapolate()
@@ -3093,8 +3108,15 @@ int PatchInterface::ActivatePathInterface()
 int PatchInterface::Event(const Laxkit::EventData *e_data, const char *mes)
 {
 	if (!strcmp(mes,"menuevent")) {
+
 		const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(e_data);
 		int i =s->info2; //id of menu item
+
+		if (i < PATHIA_MAX) {
+			if (child && child->istype("PathInterface")) {
+				return child->Event(e_data,mes);
+			}
+		}
 
 		if (i==PATCHA_BaseOnPath) {
 			if (data && data->base_path) {

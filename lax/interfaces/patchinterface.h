@@ -107,6 +107,7 @@ class PatchData : virtual public SomeData, virtual public Laxkit::PointCollectio
 	
 	PathsData *base_path; //optionally restrict to a weighted path
 	int pathdivisions; //number of mesh squares to install perpendicular to path
+	int pathmethod; //0 for sampled, 1 for extrapolate
 
 	 //cache transform matrices for faster getPoint()
 	PatchRenderContext *cache;
