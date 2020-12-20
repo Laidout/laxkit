@@ -47,7 +47,7 @@ LineStyle::LineStyle()
 {
 	mask = ~0;
 
-	width      = 0;//hairline
+	width      = 0;
 	widthtype  = 1;//0 for screen width, 1 for real width
 	color.red  = color.green = 0;
 	color.blue = color.alpha = 0xffff;
