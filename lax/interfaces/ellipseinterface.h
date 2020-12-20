@@ -26,7 +26,7 @@
 #include <lax/interfaces/aninterface.h>
 #include <lax/interfaces/rectinterface.h>
 #include <lax/interfaces/somedata.h>
-#include <lax/interfaces/linestyle.h>
+#include <lax/interfaces/pathinterface.h>
 
 //using namespace std;
 
@@ -36,13 +36,7 @@ namespace LaxInterfaces {
 
 //----------------------------- EllipseData -----------------------------
 
-enum EllipseFlags {
-	ELLIPSE_ISCIRCLE = (1<<0),
-	ELLIPSEFLAGS_MAX
-};
-
 enum EllipsePoints {
-	 //dev note: interface code is highly dependent on order here:
 	ELLP_None=0,
 	ELLP_TopLeft,
 	ELLP_Top,
@@ -53,16 +47,20 @@ enum EllipsePoints {
 	ELLP_BottomLeft,
 	ELLP_Bottom,
 	ELLP_BottomRight,
-	ELLP_Focus1,
-	ELLP_Focus2,
 	ELLP_StartAngle,
 	ELLP_EndAngle,
-	ELLP_XRadius,
-	ELLP_YRadius,
+	ELLP_WedgeToggle,
+	ELLP_Focus1,
+	ELLP_Focus2,
+	ELLP_XRadius, //a
+	ELLP_XRadiusN, //a on -x
+	ELLP_YRadius, //b
+	ELLP_YRadiusN, //b on -y
 	ELLP_OuterRadius,
 	ELLP_InnerRadius,
-	ELLP_WildPoint,
+	ELLP_WildPoint, //point that changes c but preserves focal points
 
+	ELLP_Move,
 	ELLP_DragRect,
 	ELLP_DragRectCenter,
 
@@ -74,24 +72,39 @@ class EllipseData : public SomeData
   protected:
   	
   public:
+  	enum EllipseFlags {
+		ELLIPSE_IsCircle = (1<<0),
+		ELLIPSE_NoInner = (1<<1),
+		ELLIPSEFLAGS_MAX
+	};
 
 	unsigned int style;
 	double start,end;
-	double outer_r, inner_r;
+	double inner_r; //actual r = inner_r * (default)
+	double inner_round[4], outer_round[5]; //for rounded corners
 	double a,b;
 	flatpoint center,x,y; //center, x and y axis (in addition to this->m())
-	LineStyle linestyle;
+
+	LineStyle *linestyle;
+	FillStyle *fillstyle;
 
 	EllipseData();
 	virtual ~EllipseData();
 	virtual SomeData *duplicate(SomeData *dup);
 	virtual const char *whattype() { return "EllipseData"; }
-	virtual void usefocus(flatpoint f1,flatpoint f2,double c=-1);
+
+	virtual void InstallDefaultLineStyle();
+	virtual void SetFoci(flatpoint f1,flatpoint f2,double c=-1);
+	virtual void GetFoci(flatpoint *f1,flatpoint *f2,double *c);
 	virtual void FindBBox();
 	virtual void SetStyle(unsigned int s, bool on);
 	virtual bool GetStyle(unsigned int s);
 	virtual flatpoint getpoint(EllipsePoints c, bool transform_to_parent);
+	virtual bool IsCircle() { return a == b; }
+	virtual bool UsesAngles();
+	virtual void MakeAligned();
 
+	virtual PathsData *ToPath();
 
 	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
     virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what, LaxFiles::DumpContext *context);
@@ -104,16 +117,27 @@ class EllipseData : public SomeData
 
 class EllipseInterface : public anInterface
 {
+  public:
+  	enum EllipseActions {
+  		ELLP_UsePaths, //create PathsData objects, else make EllipseData
+  		ELLP_Outline_Only,
+
+		ELLP_ToggleDecs,
+		ELLP_ToggleCircle,
+		ELLP_MAX
+	};
+
   protected:
 	int hover_x,hover_y;
-	int hover_point;
+	EllipsePoints hover_point;
 	EllipsePoints curpoint;
+	flatpoint ref_point;
 	flatpoint createp,createx,createy;
 	int mode;
 
-	bool inrect;
-	RectInterface rinterf;
-	RectData rdata;
+	bool allow_foci;
+	bool allow_angles;
+	bool allow_inner;
 
 	Laxkit::ShortcutHandler *sc;
 	virtual int PerformAction(int action);
@@ -137,11 +161,11 @@ class EllipseInterface : public anInterface
 	virtual void Clear(SomeData *d);
 	virtual Laxkit::ShortcutHandler *GetShortcuts();
 	virtual void Dp(Laxkit::Displayer *ndp);
+	virtual ObjectContext *Context() { return eoc; }
+	virtual int Event(const Laxkit::EventData *e,const char *mes);
 
 	virtual void deletedata();
-	virtual void rectify();
-	virtual void erectify();
-	virtual EllipsePoints scan(int x,int y);
+	virtual EllipsePoints scan(double x,double y, unsigned int state);
 	virtual int LBDown(int x,int y,unsigned int state,int count,const Laxkit::LaxMouse *d);
 	virtual int LBUp(int x,int y,unsigned int state,const Laxkit::LaxMouse *d);
 	virtual int MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMouse *d);
@@ -151,7 +175,7 @@ class EllipseInterface : public anInterface
 	virtual int DrawData(Laxkit::anObject *ndata,Laxkit::anObject *a1=NULL,
 			Laxkit::anObject *a2=NULL,int info=0);
 	virtual int UseThis(Laxkit::anObject *nobj,unsigned int mask=0);
-	virtual flatpoint getpoint(EllipsePoints c, bool inparent=true);
+	virtual flatpoint getpoint(EllipsePoints c, bool inparent);
 };
 
 } // namespace LaxInterfaces
