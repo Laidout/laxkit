@@ -200,7 +200,7 @@ class Displayer : public PanUser, virtual public anObject
 	virtual void drawellipse(flatpoint p,double xradius,double yradius,double start_angle=0,double end_angle=0,int fill=0);
 	virtual void drawarc(flatpoint p,double xr,double yr,double start_angle=0,double end_angle=0);
 	virtual void drawfocusellipse(flatpoint focus1,flatpoint focus2, double c,
-								double start_angle=0,double end_angle=0,int fill=0);
+								double start_angle=0,double end_angle=0,int fill=0, int wedge=2);
 	virtual void drawCheckerboard(double x,double y,double w,double h, double square, double offsetx,double offsety);
 	virtual void drawBevel(double bevel, ScreenColor *highlight, ScreenColor *shadow, int state,double x,double y,double w,double h);
 	virtual void drawBevel(double bevel,unsigned long highlight,unsigned long shadow, int state,double x,double y,double w,double h);

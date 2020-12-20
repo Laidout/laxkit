@@ -930,8 +930,9 @@ void Displayer::drawellipse(double x,double y,double xradius,double yradius,doub
 void Displayer::drawfocusellipse(flatpoint focus1,flatpoint focus2,
 				double c,          //!< Dist from focus to point on ellipse to other focus is c
 				double start_angle,//!< The starting angle
-				double end_angle, //!< The ending angle
-				int tofill         //!< how to fill
+				double end_angle,  //!< The ending angle
+				int tofill,        //!< how to fill
+				int wedge          //!< 0 open, 1 chord, 2 pie slice
 			)
 {
 	if (c==0) return;
@@ -962,7 +963,13 @@ void Displayer::drawfocusellipse(flatpoint focus1,flatpoint focus2,
 		curveto(points[c+1],points[c+2],points[c+3]);
 	}
 	if (whole) curveto(points[11],points[0],points[1]);
-	closed();
+	else {
+		if (wedge == 1) closed();
+		else if (wedge == 2) {
+			lineto(p);
+			closed();
+		}
+	}
 
 	if (draw_immediately) {
 		if (tofill==0) stroke(0);
