@@ -843,8 +843,8 @@ double distance(flatpoint p, flatpoint p1, flatpoint p2)
 	if (p1==p2) return distance(p,p1);
 	flatline l(p2,p1);
 	double t=findindex(p,l);
-	if (t>1) return distance(p,p2);
-	if (t<0) return distance(p,p1);
+	if (t>1) return distance(p,p1);
+	if (t<0) return distance(p,p2);
 	return distance(p,l);
 }
 
