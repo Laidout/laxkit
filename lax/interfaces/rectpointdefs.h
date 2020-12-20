@@ -34,6 +34,7 @@ enum RectHandles {
 	RP_Center1,
 	RP_Center2,
 	RP_Shearpoint,
+	RP_Drag_Rect,
 
 	RP_Rotate_NE,
 	RP_Rotate_NW,
