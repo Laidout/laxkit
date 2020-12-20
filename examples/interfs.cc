@@ -78,7 +78,7 @@ int main(int argc,char **argv)
 
 	// *** older interfaces that don't actually work anymore:
 	//viewer->AddTool(new        BezInterface(i++,NULL), 1,0);
-	//viewer->AddTool(new    EllipseInterface(NULL,i++,NULL), 1,0);
+	viewer->AddTool(new    EllipseInterface(NULL,i++,NULL), 1,0);
 
 	//PathsData *path=SvgToPathsData(NULL,"m 3.3880181,539.58699 -29.2944001,0 -0.1786,20.3309 m 5.2294,21.23339 0,17.4124 24.2436001,0 m -0.1785,-38.64579 -45.4569001,0 0.1786,21.23339 45.4568001,0 m 0,-57.48939 0,89.99999", NULL);
 	//vp.DropObject(path, 50,100);
