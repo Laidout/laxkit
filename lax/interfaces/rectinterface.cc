@@ -1157,11 +1157,11 @@ int RectInterface::SelectPoint(int c)
  * the left button being down, and RP_Move. If !somedata, nothing is done and 1 is returned.
  * On success, 0 is returned.
  */
-int RectInterface::FakeLBDown(int x,int y,unsigned int state,int count,const Laxkit::LaxMouse *d)
+int RectInterface::FakeLBDown(int x,int y,unsigned int state,int count,const Laxkit::LaxMouse *d, int dragaction)
 {
 	if (!somedata) return 1;
 
-	buttondown.down(d->id,LEFTBUTTON,x,y,RP_Move);
+	buttondown.down(d->id,LEFTBUTTON,x,y, dragaction);
 	needtodraw=1;
 	return 0;
 }
@@ -1413,13 +1413,13 @@ int RectInterface::LBUp(int x,int y,unsigned int state,const Laxkit::LaxMouse *d
 			flatpoint p0 = ObjectToScreen(somedata->BBoxPoint(0,0, false));
 			flatpoint p1 = ObjectToScreen(somedata->BBoxPoint(1,0, false));
 			double cura = -(p1-p0).angle();
-					
+
 			sprintf(str, "%f", cura * 180/M_PI);
 			double th = font->textheight();
 			DoubleBBox box(x-5*th, x+5*th, y-.75*th, y+.75*th);
 			viewport->SetupInputBox(object_id, nullptr, str, "rotate_num", box);
 			hover = RP_None;
-			
+
 		} else if (drag_mode == DRAG_Rotate && hover == RP_Rotate_Diff) {
 			flatpoint p0 = ObjectToScreen(somedata->transformPointInverse(drag_tr_on_down.transformPoint(flatpoint(0,0))));
 			flatpoint p1 = ObjectToScreen(somedata->transformPointInverse(drag_tr_on_down.transformPoint(flatpoint(1,0))));
@@ -1604,14 +1604,14 @@ int RectInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMou
 
 	if (mousetarget) mousetarget=0;
 
-	DBG flatpoint xx=somedata->xaxis();
-	DBG flatpoint yy=somedata->yaxis();
-	DBG cerr <<" rect axes: x:"<<xx.x<<','<<xx.y<<"  y:"<<yy.x<<','<<yy.y<<endl;
+	// DBG flatpoint xx=somedata->xaxis();
+	// DBG flatpoint yy=somedata->yaxis();
+	// DBG cerr <<" rect axes: x:"<<xx.x<<','<<xx.y<<"  y:"<<yy.x<<','<<yy.y<<endl;
 
-	DBG cerr <<"========lbd: center1 dev:"<<(extrapoints&HAS_CENTER1)<<endl;
-	DBG cerr <<"========lbd: center2 dev:"<<(extrapoints&HAS_CENTER2)<<endl;
-	DBG cerr <<"========lbd:   shear dev:"<<(extrapoints&HAS_SHEARPOINT)<<endl;
-	DBG cerr <<"            mm: curpoint:"<<curpoint<<endl;
+	// DBG cerr <<"========lbd: center1 dev:"<<(extrapoints&HAS_CENTER1)<<endl;
+	// DBG cerr <<"========lbd: center2 dev:"<<(extrapoints&HAS_CENTER2)<<endl;
+	// DBG cerr <<"========lbd:   shear dev:"<<(extrapoints&HAS_SHEARPOINT)<<endl;
+	// DBG cerr <<"            mm: curpoint:"<<curpoint<<endl;
 
 
 	 // move:    plain-move on center point
@@ -1945,6 +1945,22 @@ int RectInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMou
 		return 0;
 	}
 
+	//------------dragging out a rectangle, change bounds, not transform
+	if (curpoint == RP_Drag_Rect) {
+		flatpoint np = ScreenToObject(x,y);
+		int ix, iy;
+		buttondown.getinitial(mouse->id,LEFTBUTTON,&ix,&iy);
+		op = ScreenToObject(ix,iy);
+		DBG cerr << "  down point: "<<ix<<','<<iy<<"  obj point: "<<op.x<<','<<op.y<<endl;
+		somedata->ClearBBox();
+		somedata->addtobounds(np);
+		somedata->addtobounds(op);
+		somedata->origin(somedata->transformPoint(np));
+		needtodraw|=2;
+		syncFromData(0);
+		Modified();
+		return 0;
+	}
 
 	//--------------deal with shifting handles
 
@@ -2058,7 +2074,9 @@ int RectInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMou
 			   newh=(qt-qb)*ydir; //old span between top and bottom
 		if (dl || dr) {
 			 // correct xaxis
-			xaxislen=neww/(somedata->maxx-somedata->minx);
+			xaxislen = somedata->maxx-somedata->minx;
+			if (xaxislen < 1e-10) xaxislen = 1e-10;
+			xaxislen = neww/xaxislen;
 			somedata->xaxis((fabs(xaxislen)>1e-10?xaxislen:1e-10)*xdir);
 		}
 		if (dt || db) {
