@@ -127,10 +127,13 @@ class Displayer : public PanUser, virtual public anObject
 	virtual unsigned long NewBG(const ScreenColor &col);
 	virtual unsigned long FG() = 0;
 	virtual unsigned long BG() = 0;
+	virtual double LineWidth() = 0;
 	virtual double LineWidth(double newwidth) = 0; //return old
 	virtual double LineWidthScreen(double newwidth) = 0; //return old
 	virtual void LineAttributes(double width,int dash,int cap,int join) = 0;
 	virtual void FillAttributes(int fillstyle, int fillrule) = 0;
+	virtual void Dashes(double *dashes, int num, double offset) = 0;
+	virtual void Dashes(double dashlength);
 	virtual LaxCompositeOp BlendMode(LaxCompositeOp mode) = 0;
 	virtual double setSourceAlpha(double alpha) = 0;
 

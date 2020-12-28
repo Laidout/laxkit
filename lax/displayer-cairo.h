@@ -119,10 +119,12 @@ class DisplayerCairo : public Displayer
 	virtual unsigned long NewBG(const ScreenColor *col);
 	virtual unsigned long FG();
 	virtual unsigned long BG();
+	virtual double LineWidth();
 	virtual double LineWidth(double newwidth);
 	virtual double LineWidthScreen(double newwidth);
 	virtual void LineAttributes(double width,int dash,int cap,int join);
 	virtual void FillAttributes(int fillstyle, int fillrule);
+	virtual void Dashes(double *dashes, int num, double offset);
 	virtual LaxCompositeOp BlendMode(LaxCompositeOp mode);
 	virtual double setSourceAlpha(double alpha);
 	 //@}

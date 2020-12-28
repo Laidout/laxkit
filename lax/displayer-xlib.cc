@@ -632,6 +632,11 @@ double DisplayerXlib::glyphsextent(GlyphPlace *glyphs,GlyphPlace **glyphsp,unsig
 	return 0;
 }
 
+double DisplayerXlib::LineWidth()
+{
+	return linewidth;
+}
+
 double DisplayerXlib::LineWidth(double newwidth)
 {
 	if (newwidth<0) newwidth=0;
@@ -695,6 +700,11 @@ void DisplayerXlib::FillAttributes(int fillstyle, int fillrule)
 
 	XSetFillRule(GetDpy(),GetGC(), fillrule);
 	XSetFillStyle(GetDpy(),GetGC(), fillstyle);
+}
+
+void DisplayerXlib::Dashes(double *dashes, int num, double offset)
+{
+	cerr << " must implement DisplayerXlib::Dashes()"<<endl;
 }
 
 //! Set how to combine drawing elements to the target surface.

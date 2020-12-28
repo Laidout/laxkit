@@ -249,6 +249,13 @@ Displayer::~Displayer()
  * fillstyle can be FillSolid, FillTiled, FillStippled, or FillOpaqueStippled.
  */
 
+/*! Shortcut for simple on/off dashes of specified length as multiple of current line width. 0 means don't do dashes.
+ */
+void Displayer::Dashes(double dashlength)
+{
+	dashlength *= LineWidth();
+	Dashes(&dashlength, dashlength == 0 ? 0 : 1, 0);
+}
 
 /*! \fn LaxCompositeOp Displayer::BlendMode(LaxCompositeOp mode)
  * \brief Set how to combine drawing elements to the target surface, return the old one.

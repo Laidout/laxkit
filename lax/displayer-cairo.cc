@@ -649,6 +649,12 @@ double DisplayerCairo::setSourceAlpha(double alpha)
 	return 1;
 }
 
+double DisplayerCairo::LineWidth()
+{
+	if (!cr) return 0;
+	return cairo_get_line_width(cr);
+}
+
 double DisplayerCairo::LineWidth(double newwidth)
 {
 	if (!cr) return 0;
@@ -688,6 +694,7 @@ void DisplayerCairo::LineAttributes(double width,int dash,int cap,int join)
 	if (dash>=0) {
 		if (dash==LineSolid) cairo_set_dash(cr,nullptr,0,0);
 		else {
+			if (width < 0) width = cairo_get_line_width(cr);
 			double l=width*5;
 			if (l<=0) l=1;
 			cairo_set_dash(cr, &l,1, 0);
@@ -715,6 +722,15 @@ void DisplayerCairo::FillAttributes(int fillstyle, int fillrule)
 
 	if (fillrule==LAXFILL_Nonzero) cairo_set_fill_rule(cr, CAIRO_FILL_RULE_WINDING);
 	else cairo_set_fill_rule(cr, CAIRO_FILL_RULE_EVEN_ODD);
+}
+
+/*! If num is 0, turn of dashes. If num is 1, use on/off same length.
+ * Segments are capped with current path cap style.
+ */
+void DisplayerCairo::Dashes(double *dashes, int num, double offset)
+{
+	if (!cr) return;
+	cairo_set_dash(cr, dashes,num,offset);
 }
 
 /*! Clears to bgcolor with 0 opacity.
