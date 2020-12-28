@@ -42,6 +42,7 @@ int accel_direction(double t, flatvector p, flatvector c, flatvector d, flatvect
 flatpoint bez_visual_tangent(double t,flatpoint p1,flatpoint c1,flatpoint c2,flatpoint p2);
 double bez_distance_to_t(double dist, flatpoint p1,flatpoint c1,flatpoint c2,flatpoint p2, int resolution);
 double bez_t_to_distance(double T, flatpoint p1,flatpoint c1,flatpoint c2,flatpoint p2, int resolution);
+void bez_straight_line(const flatpoint &p1, const flatpoint &p2, flatpoint &c1, flatpoint &c2);
 
 flatpoint *bez_to_points(flatpoint *to_points,flatpoint *from_points,int n,int resolution,int closed);
 flatpoint *bez_points(flatpoint *to_points,int numsegs,flatpoint *from_points,int resolution);

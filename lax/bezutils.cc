@@ -784,6 +784,16 @@ void bez_subdivide(double t,flatpoint p1,flatpoint c1,flatpoint c2,flatpoint p2,
 	points_ret[4]=p2+(1-t)*(c2-p2);
 }
 
+/*! Convenience function to get control points for a straight line between p1 and p2.
+ * control points are situated at thirds of the segment.
+ */
+void bez_straight_line(const flatpoint &p1, const flatpoint &p2, flatpoint &c1, flatpoint &c2)
+{
+	flatpoint v = (p2-p1)/3;
+	c1 = p1 + v;
+	c2 = c1 + v;
+}
+
 //! Return the cubic bezier point at t. t==0 is p1, t==1 is p2.
 /*! \ingroup math
  *  \todo *** make sure this is really optimized!
@@ -1118,7 +1128,8 @@ double bez_arc_handle_length(double radius, double theta)
 
 //! Create an ellipse composed of numsegments bezier segments, or 4 if numsegments<=1.
 /*! Start and end in radians. If start==end, then assume a full circle.
- *
+ * points must be able to hold (numsegments+1)*3 flatpoints.
+ * If points == nullptr, then return a new flatpoint[].
  * Points returned are c-p-c - c-p-c...
  */
 flatpoint *bez_ellipse(flatpoint *points, int numsegments,
