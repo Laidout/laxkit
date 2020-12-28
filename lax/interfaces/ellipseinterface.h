@@ -64,6 +64,19 @@ enum EllipsePoints {
 	ELLP_DragRect,
 	ELLP_DragRectCenter,
 
+	ELLP_UsePaths, //create PathsData objects, else make EllipseData
+	ELLP_Outline_Only,
+
+	ELLP_ToggleDecs,
+	ELLP_ToggleCircle,
+	ELLP_ToggleFoci,
+	ELLP_ToggleColorDest,
+	ELLP_CloseGap,
+	ELLP_UseWedge,
+	ELLP_UseChord,
+	ELLP_UseOpen,
+	ELLP_SetWidth,
+	
 	ELLP_MAX
 };
 
@@ -75,11 +88,16 @@ class EllipseData : public SomeData
   	enum EllipseFlags {
 		ELLIPSE_IsCircle = (1<<0),
 		ELLIPSE_NoInner = (1<<1),
+		ELLIPSE_Wedge = (1<<2),
+		ELLIPSE_Chord = (1<<3),
+		ELLIPSE_Open = (1<<4),
+		ELLIPSE_Closed = (1<<5),
 		ELLIPSEFLAGS_MAX
 	};
 
 	unsigned int style;
 	double start,end;
+	int wedge_type;
 	double inner_r; //actual r = inner_r * (default)
 	double inner_round[4], outer_round[5]; //for rounded corners
 	double a,b;
@@ -104,6 +122,7 @@ class EllipseData : public SomeData
 	virtual bool UsesAngles();
 	virtual void MakeAligned();
 
+	virtual int GetPath(int which, flatpoint *pts_ret);
 	virtual PathsData *ToPath();
 
 	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
@@ -118,26 +137,26 @@ class EllipseData : public SomeData
 class EllipseInterface : public anInterface
 {
   public:
-  	enum EllipseActions {
-  		ELLP_UsePaths, //create PathsData objects, else make EllipseData
-  		ELLP_Outline_Only,
-
-		ELLP_ToggleDecs,
-		ELLP_ToggleCircle,
-		ELLP_MAX
-	};
 
   protected:
 	int hover_x,hover_y;
 	EllipsePoints hover_point;
 	EllipsePoints curpoint;
 	flatpoint ref_point;
+	flatpoint ref_point2;
+	int ref_wedge;
 	flatpoint createp,createx,createy;
 	int mode;
 
 	bool allow_foci;
 	bool allow_angles;
 	bool allow_inner;
+	bool allow_width;
+
+	bool show_foci;
+	bool show_width;
+
+	bool color_stroke;
 
 	Laxkit::ShortcutHandler *sc;
 	virtual int PerformAction(int action);
@@ -163,6 +182,7 @@ class EllipseInterface : public anInterface
 	virtual void Dp(Laxkit::Displayer *ndp);
 	virtual ObjectContext *Context() { return eoc; }
 	virtual int Event(const Laxkit::EventData *e,const char *mes);
+	virtual Laxkit::MenuInfo *ContextMenu(int x,int y,int deviceid, Laxkit::MenuInfo *menu);
 
 	virtual void deletedata();
 	virtual EllipsePoints scan(double x,double y, unsigned int state);

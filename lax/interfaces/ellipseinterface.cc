@@ -23,6 +23,7 @@
 
 #include <lax/interfaces/somedatafactory.h>
 #include <lax/interfaces/ellipseinterface.h>
+#include <lax/bezutils.h>
 #include <lax/language.h>
 
 using namespace Laxkit;
@@ -41,26 +42,19 @@ const char *PointName(EllipsePoints p)
 {
 	switch (p) {
 		case ELLP_None:        return _("None");
-		// case ELLP_TopLeft: return _("TopLeft");
-		// case ELLP_Top: return _("Top");
-		// case ELLP_TopRight: return _("TopRight");
-		// case ELLP_Left: return _("Left");
 		case ELLP_Center:      return _("Center");
-		// case ELLP_Right: return _("Right");
-		// case ELLP_BottomLeft: return _("BottomLeft");
-		// case ELLP_Bottom: return _("Bottom");
-		// case ELLP_BottomRight: return _("BottomRight");
 		case ELLP_Focus1:      return _("Focus1");
 		case ELLP_Focus2:      return _("Focus2");
 		case ELLP_StartAngle:  return _("StartAngle");
 		case ELLP_EndAngle:    return _("EndAngle");
 		case ELLP_XRadius:     return _("XRadius");
-		case ELLP_XRadiusN:     return _("XRadiusN");
+		case ELLP_XRadiusN:    return _("XRadiusN");
 		case ELLP_YRadius:     return _("YRadius");
-		case ELLP_YRadiusN:     return _("YRadiusN");
+		case ELLP_YRadiusN:    return _("YRadiusN");
 		case ELLP_OuterRadius: return _("Outer Radius");
 		case ELLP_InnerRadius: return _("Inner Radius");
 		case ELLP_WildPoint:   return _("Wild point");
+		case ELLP_WedgeToggle: return _("Wedge toggle");
 		default: {
 			DBG cerr << "PointName unknown for: "<<p<<endl;
 			return "?";
@@ -69,6 +63,30 @@ const char *PointName(EllipsePoints p)
 	return "?";
 }
 
+const char *PointMessage(EllipsePoints p)
+{
+	switch (p) {
+		case ELLP_None:        return _("None");
+		case ELLP_Center:      return _("Center");
+		case ELLP_Focus1:      return _("Focus1, delete to make circle");
+		case ELLP_Focus2:      return _("Focus2, delete to make circle");
+		case ELLP_StartAngle:  return _("StartAngle, delete to use full 360");
+		case ELLP_EndAngle:    return _("EndAngle, delete to use full 360");
+		case ELLP_XRadius:     return _("XRadius, delete to make circle");
+		case ELLP_XRadiusN:    return _("XRadius, delete to make circle");
+		case ELLP_YRadius:     return _("YRadius, delete to make circle");
+		case ELLP_YRadiusN:    return _("YRadius, delete to make circle");
+		case ELLP_OuterRadius: return _("Outer Radius");
+		case ELLP_InnerRadius: return _("Inner Radius, delete to remove");
+		case ELLP_WildPoint:   return _("Wild point");
+		case ELLP_WedgeToggle: return _("Wedge toggle, drag to toggle wedge, chord, gap");
+		default: {
+			DBG cerr << "PointName unknown for: "<<p<<endl;
+			return "?";
+		}
+	}
+	return "?";
+}
 
 /*! \class EllipseData
  * \ingroup interfaces
@@ -99,6 +117,7 @@ EllipseData::EllipseData()
 	inner_r   = 0;
 	linestyle = nullptr;
 	fillstyle = nullptr;
+	wedge_type = ELLIPSE_Wedge;
 }
 
 EllipseData::~EllipseData()
@@ -110,7 +129,7 @@ EllipseData::~EllipseData()
 bool EllipseData::UsesAngles()
 {
 	//difference is close to multiple of 2*pi
-	return fmod(fabs(start-end) + .001, 2*M_PI) < .002;
+	return fmod(fabs(start-end) + .001, 2*M_PI) > .002;
 }
 
 void EllipseData::InstallDefaultLineStyle()
@@ -145,6 +164,8 @@ SomeData *EllipseData::duplicate(SomeData *dup)
 	p->end     = end;
 	p->inner_r = inner_r;
 	p->style   = style;
+	p->wedge_type = wedge_type;
+	if (linestyle) p->linestyle = dynamic_cast<LineStyle*>(linestyle->duplicate(nullptr));
 
 	return dup;
 }
@@ -182,6 +203,90 @@ void EllipseData::FindBBox()
 	}
 }
 
+/*! Get a bezier representation of the path.
+ * If which==1, then outer path without wedge.
+ * If which == 2, then inner without wedge, in start..end order.
+ * If which == 3, then inner+outer including wedge. Note that in this case, inner is in order end..start.
+ * 
+ * If which is 1 or 2, then pts_ret must have room for 12 points.
+ * If which is 3, pts_ret must have room for 24 points, but might return 15 if inner_r == 0.
+ * Returned points are c-v-c-c-v-c-c-v-c-c-v-c...
+ * Return value is the number of points written to pts_ret.
+ */
+int EllipseData::GetPath(int which, flatpoint *pts_ret)
+{
+	if (which == 2) { //inner only, without wedge
+		bez_ellipse(pts_ret, 4, center.x, center.y, inner_r*a, inner_r*b, x,y, start,end);
+		return 12;
+	}
+	
+	bez_ellipse(pts_ret, 4, center.x, center.y, a, b, x,y, start,end);
+	if (which != 3) return 12; //outer only, without wedge
+
+	// add inner points
+	if (fabs(inner_r) < 1e-10) { // no inner ring
+		int n = 12;
+		if (UsesAngles()) {
+			flatvector v;
+			if (wedge_type == ELLIPSE_Chord) {
+				v = (pts_ret[10] - pts_ret[1])/3;
+				pts_ret[0] = pts_ret[1] - v;
+				pts_ret[11] = pts_ret[10] + v;
+
+			} else if (wedge_type == ELLIPSE_Open) {
+				pts_ret[11].info = LINE_Open;
+
+			} else { //ELLIPSE_Wedge, point to center
+				v = (pts_ret[10] - center)/3;
+				pts_ret[11] = pts_ret[10] - v;
+				pts_ret[12] = pts_ret[11] - v;
+				pts_ret[13] = center;
+				v = (pts_ret[1] - center)/3;
+				pts_ret[14] = center + v;
+				pts_ret[0] = pts_ret[14] + v;
+				n = 15;
+			}
+		}
+		return n;
+	}
+
+	//get inner points
+	bez_ellipse(pts_ret+12, 4, center.x, center.y, inner_r*a, inner_r*b, x,y, end,start);
+
+	// adjust for wedge
+	if (UsesAngles()) {
+		flatvector v;
+		if (wedge_type == ELLIPSE_Chord) {
+			v = (pts_ret[10] - pts_ret[1])/3;
+			pts_ret[0] = pts_ret[1] - v;
+			pts_ret[11] = pts_ret[10] + v;
+			pts_ret[11].info = LINE_Closed;
+
+			v = (pts_ret[22] - pts_ret[13])/3;
+			pts_ret[12] = pts_ret[13] - v;
+			pts_ret[23] = pts_ret[22] + v;
+			pts_ret[23].info = LINE_Closed;
+
+		} else if (wedge_type == ELLIPSE_Open) {
+			pts_ret[11].info = LINE_Open;
+			pts_ret[23].info = LINE_Open;
+
+		} else { //ELLIPSE_Wedge, connect inner and outer
+			v = (pts_ret[10] - pts_ret[13])/3;
+			pts_ret[11] = pts_ret[10] - v;
+			pts_ret[12] = pts_ret[11] - v;
+			v = (pts_ret[1] - pts_ret[22])/3;
+			pts_ret[23] = pts_ret[22] + v;
+			pts_ret[0] = pts_ret[23] + v;
+		}
+
+	} else { //solid rings, only need to terminate first
+		pts_ret[11].info = LINE_Open;
+		pts_ret[23].info = LINE_Open;
+	}
+	return 24;
+}
+
 /*! If focal points are not both on x or both on y axis, that adjust transform accordingly.
  * This results in origin being ellipse center.
  */
@@ -192,8 +297,22 @@ void EllipseData::MakeAligned()
 
 PathsData *EllipseData::ToPath()
 {
-	cerr << " *** IMPLEMENT EllipseData::ToPath()!!!!"<<endl;
-	return nullptr;
+	PathsData *paths = dynamic_cast<PathsData*>(somedatafactory()->NewObject(LAX_PATHSDATA));
+	if (!paths) paths = new PathsData();
+
+	flatpoint pts[24];
+	int n = GetPath(3, pts);
+	for (int c=0; c<n; c++) {
+		paths->append(pts[c], c%3 == 0 ? POINT_TONEXT : (c%3 == 1 ? POINT_VERTEX : POINT_TOPREV));
+		if (pts[c].info & LINE_Open) paths->pushEmpty();
+		else if (pts[c].info & LINE_Closed) {
+			paths->close();
+			paths->pushEmpty();
+		}
+	}
+
+	paths->m(m());
+	return paths;
 }
 
 /*! In object coordintates. c is the length of a string you would connect f1, f2, and path points with.
@@ -272,22 +391,23 @@ void EllipseData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *co
 	att.dump_out(f,indent);
 }
 
-Attribute *EllipseData::dump_out_atts(Attribute *att,int what,LaxFiles::DumpContext *savecontext)
+Attribute *EllipseData::dump_out_atts(Attribute *att,int what,LaxFiles::DumpContext *context)
 {
 	if (!att) att=new Attribute();
 
 	if (what==-1) { 
-		att->push("id", "somename #String id");
-		att->push("start","0 #starting angle, default radians");
-		att->push("end","0 #ending angle. If equal to start, assume full circle");
-		att->push("inner_r","0 #Inner radius, as fraction of default radius, if any");
-		att->push("a","1 #x axis radius");
-		att->push("b","1 #y axis radius");
-		att->push("center","(0,0) #position of ellipse origin (not object origin)");
-		att->push("x","(1,0) #x axis of ellipse (not object x axis)");
-		att->push("y","(0,1) #y axis of ellipse (not object y axis)");
-		att->push("linestyle"," #(optional) style to draw this ellipse");
-		att->push("flags","circle #tags for how to edit this object");
+		att->push("id", "somename","String id");
+		att->push("start","0","starting angle, default radians");
+		att->push("end","0","ending angle. If equal to start, assume full circle");
+		att->push("inner_r","0", "Inner radius, as fraction of default radius, if any");
+		att->push("a","1","x axis radius");
+		att->push("b","1","y axis radius");
+		att->push("center","(0,0)","position of ellipse origin (not object origin)");
+		att->push("x","(1,0)","x axis of ellipse (not object x axis)");
+		att->push("y","(0,1)","y axis of ellipse (not object y axis)");
+		att->push("linestyle",nullptr,"(optional) style to draw this ellipse");
+		// att->push("flags","circle","tags for how to edit this object");
+		att->push("wedge","wedge","Type of wedge when start != end: wedge, open, or chord");
 		return att;
 	}
 
@@ -297,6 +417,7 @@ Attribute *EllipseData::dump_out_atts(Attribute *att,int what,LaxFiles::DumpCont
 
 	if (style & ELLIPSE_IsCircle) att->push("flags", "circle");
 
+	att->push("wedge", wedge_type==ELLIPSE_Wedge ? "wedge" : wedge_type == ELLIPSE_Chord ? "chord" : "open");
 	att->push("start", start);
 	att->push("end", end);
 	att->push("inner_r", inner_r);
@@ -310,7 +431,14 @@ Attribute *EllipseData::dump_out_atts(Attribute *att,int what,LaxFiles::DumpCont
 	sprintf(scratch,"(%.10g, %.10g)", y.x, y.y);
 	att->push("y", scratch);
 
-	//att->push("linestyle", ); 
+	if (linestyle) {
+		Attribute *att2 = att->pushSubAtt("linestyle");
+		linestyle->dump_out_atts(att2, 0, context);
+	}
+	if (fillstyle) {
+		Attribute *att2 = att->pushSubAtt("fillstyle");
+		fillstyle->dump_out_atts(att2, 0, context);
+	}
 
 	return att;
 }
@@ -352,10 +480,27 @@ void EllipseData::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpC
 		} else if (!strcmp(name,"y")) {
 			FlatvectorAttribute(value, &y); 
 
+		} else if (!strcmp(name,"wedge")) {
+			if (value) {
+				if (!strcmp(value, "wedge")) wedge_type = ELLIPSE_Wedge;
+				else if (!strcmp(value, "chord")) wedge_type = ELLIPSE_Chord;
+				else wedge_type = ELLIPSE_Open;
+			}
 		} else if (!strcmp(name,"linestyle")) {
-			// ***
+			// *** need to account for ref to line resource
+			LineStyle *lstyle = new LineStyle();
+			lstyle->dump_in_atts(att->attributes.e[c], flag, context);
+			if (linestyle) linestyle->dec_count();
+			linestyle = lstyle;
 
-		} else if (!strcmp(name,"flags")) {
+		} else if (!strcmp(name,"fillstyle")) {
+			// *** need to account for ref to line resource
+			FillStyle *style = new FillStyle();
+			style->dump_in_atts(att->attributes.e[c], flag, context);
+			if (fillstyle) fillstyle->dec_count();
+			fillstyle = style;
+
+		// } else if (!strcmp(name,"flags")) {
 			// ***
 		}
 	}
@@ -404,6 +549,12 @@ EllipseInterface::EllipseInterface(anInterface *nowner, int nid,Displayer *ndp)
 	createy         = flatpoint(0, 1);
 	linestyle.width = 1;
 
+	allow_foci = true;
+	allow_angles = true;
+	allow_inner = true;
+	show_foci = true;
+	color_stroke = true;
+
 	mode = ELLP_None;
 
 	needtodraw = 1;
@@ -416,6 +567,7 @@ EllipseInterface::~EllipseInterface()
 {
 	deletedata();
 	if (sc) sc->dec_count();
+	if (eoc) delete eoc;
 	DBG cerr <<"----in EllipseInterface destructor"<<endl;
 }
 
@@ -434,8 +586,10 @@ const char *EllipseInterface::Name()
  */
 anInterface *EllipseInterface::duplicate(anInterface *dup)
 {
-	if (dup==NULL) dup=new EllipseInterface(NULL,id,NULL);
-	else if (!dynamic_cast<EllipseInterface *>(dup)) return NULL;
+	EllipseInterface *edup = dynamic_cast<EllipseInterface *>(dup);
+	if (dup == NULL) dup = edup = new EllipseInterface(NULL,id,NULL);
+	else if (!dup) return NULL;
+	edup->linestyle = linestyle;
 	return anInterface::duplicate(dup);
 }
 
@@ -446,10 +600,17 @@ int EllipseInterface::UseThis(anObject *nobj,unsigned int mask)
 
 	if (dynamic_cast<LineStyle *>(nobj)) { 
 		DBG cerr <<"Ellipse new color stuff"<<endl;
+
 		LineStyle *nlinestyle = dynamic_cast<LineStyle *>(nobj);
-		if (mask&GCForeground) { if (data) data->linestyle->color = nlinestyle->color; else linestyle.color = nlinestyle->color; }
-		if (mask&GCLineWidth)  { if (data) data->linestyle->width = nlinestyle->width; else linestyle.width = nlinestyle->width; }
-		needtodraw=1;
+		if (color_stroke) {
+			if (mask&GCForeground) { if (data) data->linestyle->color = nlinestyle->color; else linestyle.color = nlinestyle->color; }
+			if (mask&GCLineWidth)  { if (data) data->linestyle->width = nlinestyle->width; else linestyle.width = nlinestyle->width; }
+			needtodraw=1;
+		} else {
+			if (!data) return 1;
+			if (!data->fillstyle) data->fillstyle = new FillStyle();
+			data->fillstyle->color = nlinestyle->color;
+		}
 		return 1;
 	}
 
@@ -519,27 +680,52 @@ int EllipseInterface::Refresh()
 
 	DBG cerr <<"  EllipseRefresh showdecs: "<<showdecs<<"  width: "<<data->linestyle->width<<endl;
 		
-	dp->NewFG(&data->linestyle->color);
-	double thin = ScreenLine();
-	dp->LineAttributes(data->linestyle->width,LineSolid,data->linestyle->capstyle,data->linestyle->joinstyle);
+	LineStyle *lstyle = data->linestyle;
+	if (!lstyle) lstyle = &linestyle;
+	FillStyle *fstyle = data->fillstyle;
+	if (fstyle && fstyle->function == LAXOP_None) fstyle = nullptr;
 
-	 // draw just ellipse
+	dp->NewFG(&lstyle->color);
+	double thin = ScreenLine();
+	dp->LineAttributes(lstyle->width, LineSolid, lstyle->capstyle, lstyle->joinstyle);
+
 	flatpoint f1 = getpoint(ELLP_Focus1,false);
 	flatpoint f2 = getpoint(ELLP_Focus2,false);
-	dp->drawfocusellipse(f2, f1,
-			2*(fabs(data->a)>fabs(data->b)?data->a:data->b),
-			data->start,data->end, 0);
-	if (data->inner_r != 0) {
-		flatpoint f = f1;
-		flatpoint center = getpoint(ELLP_Center, false);
-		flatpoint v = (f-center) * data->inner_r;
-		f = center + v;
-		dp->drawfocusellipse(center - v,f,
-			data->inner_r * 2*(fabs(data->a)>fabs(data->b)?data->a:data->b),
-			data->start,data->end, 0);
-	}
 
-	// bool hovered;
+	 // draw just ellipse
+	flatpoint pts[12];
+	int n = data->GetPath(1, pts);
+	dp->moveto(pts[1]);
+	flatpoint p1 = pts[1];
+	for (int c=2; c<n-1; c+= 3) dp->curveto(pts[c], pts[c+1], pts[c+2]);
+	if (!data->UsesAngles()) {
+		dp->curveto(pts[11], pts[0], pts[1]);
+		dp->closed();
+	} else {
+		data->GetPath(2, pts);
+		if (data->wedge_type == EllipseData::ELLIPSE_Wedge) {
+			dp->lineto(pts[10]);
+			for (int c=9; c>=3; c-= 3) dp->curveto(pts[c], pts[c-1], pts[c-2]);
+			dp->lineto(p1);
+
+		} else if (data->wedge_type == EllipseData::ELLIPSE_Chord) {
+			dp->closed();
+			dp->moveto(pts[10]);
+			for (int c=9; c>=3; c-= 3) dp->curveto(pts[c], pts[c-1], pts[c-2]);
+			dp->closed();
+		} else { //open
+			dp->moveto(pts[10]);
+			for (int c=9; c>=3; c-= 3) dp->curveto(pts[c], pts[c-1], pts[c-2]);
+		}
+	}
+	if (fstyle) {
+		dp->NewFG(&fstyle->color);
+		dp->fill(1);
+		dp->NewFG(&lstyle->color);
+		dp->stroke(0);
+	} else {
+		dp->stroke(0);
+	}
 	
 	 // draw control points;
 	if (showdecs) {
@@ -553,34 +739,64 @@ int EllipseInterface::Refresh()
 			dp->LineWidthScreen(thin);
 		}
 
+		if (hover_point == ELLP_InnerRadius) {
+			dp->LineWidthScreen(3*thin);
+			flatpoint v = (f2-f1)/2;
+			dp->drawfocusellipse(center+v*data->inner_r, center-v*data->inner_r,
+				data->inner_r*2*(fabs(data->a)>fabs(data->b)?data->a:data->b), 0,0, 0);
+			dp->LineWidthScreen(thin);
+		}
+
+		// indicator for wedge
+		if (data->UsesAngles()) {
+			double s = data->start, e = data->end;
+			if (s > e) e += 2*M_PI; else e -= 2*M_PI;
+			bez_ellipse(pts, 4, data->center.x, data->center.y, data->a, data->b, data->x,data->y, e, s);
+			dp->LineWidthScreen(thin * (curpoint == ELLP_WedgeToggle ? 3 : 1));
+			dp->Dashes(2);
+			dp->moveto(pts[1]);
+			for (int c=2; c<n-1; c+= 3) dp->curveto(pts[c], pts[c+1], pts[c+2]);
+			dp->stroke(0);
+			dp->Dashes(0);
+		}
+
+		// draw a plus at th center
 		center = getpoint(ELLP_Center, false);
+		dp->LineWidthScreen(thin * (curpoint == ELLP_Center ? 3 : 1));
+		dp->drawthing(center, thin*10/dp->Getmag(), thin*10/dp->Getmag(), 0, THING_Plus);
+		dp->LineWidthScreen(thin);
 
 		 // angle points
 		if (data->UsesAngles() || curpoint == ELLP_StartAngle || curpoint == ELLP_EndAngle) {
 			start = getpoint(ELLP_StartAngle,false);  //hovered = (hover_point == ELLP_StartAngle);
 			end = getpoint(ELLP_EndAngle,false);
-			dp->LineAttributes(thin*(hover_point == ELLP_StartAngle ? 3 : 1), LineDoubleDash, LAXCAP_Butt, LAXJOIN_Round);
+			dp->LineWidthScreen(thin*(hover_point == ELLP_StartAngle ? 3 : 1));
+			dp->Dashes(2);
 			dp->drawline(center, start);
-			dp->LineAttributes(thin*(hover_point == ELLP_EndAngle ? 3 : 1), LineDoubleDash, LAXCAP_Butt, LAXJOIN_Round);
+			dp->LineWidthScreen(thin*(hover_point == ELLP_EndAngle ? 3 : 1));
+			dp->Dashes(2);
 			dp->drawline(center, end);
 
-			dp->LineAttributes(thin, LineSolid, LAXCAP_Butt, LAXJOIN_Round);
+			dp->Dashes(0);
+			dp->LineWidthScreen(thin);
 			dp->drawpoint(start, 3*thin, hover_point == ELLP_StartAngle ? 1 : 0);
 			dp->drawpoint(end, 3*thin, hover_point == ELLP_EndAngle ? 1 : 0);
 		}
 		
 		 // open foci
-		dp->drawpoint(f1, 5*thin, hover_point == ELLP_Focus1 ? 1 : 0); // focus1
-		if (!data->IsCircle()) { // is not circle so draw second focus
-			dp->drawpoint(f2, 5*thin, hover_point == ELLP_Focus2 ? 1 : 0); // focus2
+		if (show_foci && allow_foci) {
+			dp->drawpoint(f1, 5*thin, hover_point == ELLP_Focus1 ? 1 : 0); // focus1
+			if (!data->IsCircle()) { // is not circle so draw second focus
+				dp->drawpoint(f2, 5*thin, hover_point == ELLP_Focus2 ? 1 : 0); // focus2
+			}
 		}
 
 		if (hover_point == ELLP_WildPoint) {
-			dp->LineAttributes(thin, LineDoubleDash, LAXCAP_Butt, LAXJOIN_Round);
+			dp->LineAttributes(thin/dp->Getmag(), LineDoubleDash, LAXCAP_Butt, LAXJOIN_Round);
 			flatpoint hp = dp->screentoreal(hover_x, hover_y);
 			dp->drawline(f1, hp);
 			dp->drawline(f2, hp);
-			dp->LineAttributes(thin, LineSolid, LAXCAP_Butt, LAXJOIN_Round);
+			dp->LineAttributes(thin/dp->Getmag(), LineSolid, LAXCAP_Butt, LAXJOIN_Round);
 		}
 		
 		 // axes
@@ -650,6 +866,7 @@ EllipsePoints EllipseInterface::scan(double x,double y, unsigned int state) //**
 		};
 
 	for (int i = 0; pts[i] != ELLP_None; i++) {
+		if (!(show_foci && allow_foci) && (pts[i] == ELLP_Focus1 || pts[i] == ELLP_Focus2)) continue;
 		p2 = getpoint(pts[i], true);
 		dd = (p2-p).norm();
 		if (dd < d) {
@@ -664,14 +881,22 @@ EllipsePoints EllipseInterface::scan(double x,double y, unsigned int state) //**
 	// ELLP_StartAngle, check segment from center
 	p2 = data->getpoint(ELLP_StartAngle, true);
 	dd = distance(p, center, p2);
-	DBG cerr << "   dist to start: "<<dd<<endl;
-	if (dd < d) { d = dd; closest = ELLP_StartAngle; }
+	//flatpoint startv = p2 - center;
+	if (dd < d) {
+		d = dd;
+		if (state & ShiftMask) closest = ELLP_EndAngle;
+		else closest = ELLP_StartAngle;
+	}
 
 	// ELLP_EndAngle,
 	p2 = data->getpoint(ELLP_EndAngle, true);
 	dd = distance(p, center, p2);
-	DBG cerr << "   dist to end: "<<dd<<endl;
-	if (dd < d) { d = dd; closest = ELLP_EndAngle; }
+	//flatpoint endv = p2 - center;
+	if (dd < d) {
+		d = dd;
+		if (state & ShiftMask) closest = ELLP_StartAngle;
+		else closest = ELLP_EndAngle;
+	}
 
 	// points defined by ellipse edge
 	flatpoint f1 = data->getpoint(ELLP_Focus1, true);
@@ -680,13 +905,42 @@ EllipsePoints EllipseInterface::scan(double x,double y, unsigned int state) //**
 	double pc = norm(p-f1) + norm(p-f2);
 	double dc = norm(p2-f1) + norm(p2-f2);
 	dd = fabs(pc - dc);
-	if (dd < d && dd < threshhold) {
+	if (dd < d && dd < threshhold*2) {
 		d = dd;
-		DBG cerr << "  --------state: "<<state<<endl;
 		if ((state & (ShiftMask|ControlMask)) == (ShiftMask|ControlMask)) closest = ELLP_WildPoint;
 		else if ((state & (ShiftMask|ControlMask)) == ControlMask) closest = ELLP_InnerRadius;
-		else closest = ELLP_OuterRadius;
-		// *** clamp outer rim check on outside
+		else {
+			flatpoint v = p - center;
+			if (data->UsesAngles()) {
+				// if (clockwise(startv, v) == clockwise(v,endv)) closest = ELLP_WedgeToggle;
+				flatpoint pp = data->transformPointInverse(p);
+				v.x = pp*data->x/data->x.norm()/(data->a != 0 ? data->a : 1);
+				v.y = pp*data->y/data->y.norm()/(data->b != 0 ? data->b : 1);
+				double s = (data->start < data->end ? data->start : data->end);
+				double e = (data->start < data->end ? data->end : data->start);
+				s = s - floor(s/(2*M_PI))*2*M_PI; //should make s in 0..2*pi
+				e = s + fabs(data->end - data->start);
+				double a = atan2(v.y, v.x);
+				if (a < 0) a += 2*M_PI;
+				if (e > s && a >= s && a <= e) closest = ELLP_OuterRadius;
+				else if (e < s && a <= s && a >= e) closest = ELLP_OuterRadius;
+				else closest = ELLP_WedgeToggle;
+				DBG cerr << "s: "<<s*180/M_PI<<"  e: "<<e*180/M_PI<<"  a: "<<a*180/M_PI<<"  pt: "<<closest<<endl;
+			}
+			else closest = ELLP_OuterRadius;
+		}
+	}
+
+	// check inner
+	flatpoint v = (f2-f1) * (data->inner_r/2);
+	f1 = center - v;
+	f2 = center + v;
+	pc = norm(p-f1) + norm(p-f2);
+	dc = data->inner_r * dc; //norm(p2-f1) + norm(p2-f2);
+	dd = fabs(pc - dc);
+	if (dd < d && dd < threshhold*2) {
+		d = dd;
+		closest = ELLP_InnerRadius;
 	}
 	
 	DBG cerr << "ellipse closest: d: "<<d<<"  "<<PointName(closest)<<endl;
@@ -705,44 +959,23 @@ int EllipseInterface::LBDown(int x,int y,unsigned int state,int count,const Laxk
 	if (data && over != ELLP_None) {
 		buttondown.down(d->id,LEFTBUTTON,x,y, over);
 		curpoint = over;
+
+		if (curpoint == ELLP_XRadius) 	    ref_point = data->getpoint(ELLP_XRadiusN, true);
+		else if (curpoint == ELLP_XRadiusN) ref_point = data->getpoint(ELLP_XRadius, true);
+		else if (curpoint == ELLP_YRadius)  ref_point = data->getpoint(ELLP_YRadiusN, true);
+		else if (curpoint == ELLP_YRadiusN) ref_point = data->getpoint(ELLP_YRadius, true);
+		else if (curpoint == ELLP_StartAngle) ref_point.x = data->start;
+		else if (curpoint == ELLP_EndAngle) ref_point.x = data->end;
+		ref_point2 = data->getpoint(ELLP_Center, true);
+		if (data->wedge_type == EllipseData::ELLIPSE_Wedge) ref_wedge = 0;
+		else if (data->wedge_type == EllipseData::ELLIPSE_Chord) ref_wedge = 1;
+		else ref_wedge = 2;
 	
-		// if ((state&LAX_STATE_MASK)==(ControlMask|ShiftMask)) { // +^lb move around wildpoint
-		// 	flatpoint p = getpoint(ELLP_Focus1,true),p2=getpoint(ELLP_Focus2, true);
-		// 	data->x=getpoint(ELLP_Focus1, true)-data->center;
-		// 	if (data->x.isZero()==false) data->x/=norm(data->x);
-		// 	else data->x=flatpoint(1,0);
-		// 	data->y=transpose(data->x);
-		// 	double f2=(p-p2)*(p-p2);
-		// 	p=  p-screentoreal(x,y);
-		// 	p2=p2-screentoreal(x,y);
-		// 	double c=sqrt(p*p)+sqrt(p2*p2);
-		// 	data->a=c/2; // automatically puts major axis on x
-		// 	data->b=sqrt(data->a*data->a - f2);
-		// 	// rectify();
-		// 	curpoint=ELLP_WildPoint;
-		// 	needtodraw|=1;
-		// 	return 0;
-
-		// } else if ((state&LAX_STATE_MASK)==ControlMask) { // ^lb focus or end angle
-		// 	if (over == ELLP_Focus1 || over == ELLP_Focus2) { // remove circle restriction
-		// 		curpoint = over;
-		// 		data->SetStyle(EllipseData::ELLIPSE_IsCircle, false);
-		// 		needtodraw|=2;
-		// 		return 0;
-		// 	}
-
-		// } else if ((state&LAX_STATE_MASK)==ShiftMask) { // +lb start angle
-	
-		// } else if ((state&LAX_STATE_MASK)==0) { // straight click
-		// 	curpoint = over;
-		// 	needtodraw |= 2;
-		// 	return 0;
-		// }
-
 		return 0; // other click with data
 	}
 	DBG cerr <<"  noellipsepointfound  ";
 
+	deletedata();
 	
 	 // make new one
 	EllipseData *obj=NULL;
@@ -880,6 +1113,23 @@ int EllipseInterface::LBUp(int x,int y,unsigned int state,const Laxkit::LaxMouse
 	return 0;
 }
 
+Laxkit::MenuInfo *EllipseInterface::ContextMenu(int x,int y,int deviceid, Laxkit::MenuInfo *menu)
+{
+	if (!data) return menu;
+
+	if (!menu) menu = new MenuInfo();
+	if (menu->n()) menu->AddSep(_("Arc"));
+
+	menu->AddToggleItem(_("Show foci"), ELLP_ToggleFoci, 0, show_foci);
+	if (data->UsesAngles()) {
+		menu->AddItem(_("Close"), ELLP_CloseGap);
+		menu->AddToggleItem(_("Wedge"), ELLP_UseWedge, 0, data->wedge_type == EllipseData::ELLIPSE_Wedge);
+		menu->AddToggleItem(_("Chord"), ELLP_UseChord, 0, data->wedge_type == EllipseData::ELLIPSE_Chord);
+		menu->AddToggleItem(_("Open gap"), ELLP_UseOpen, 0, data->wedge_type == EllipseData::ELLIPSE_Open);
+	}
+	return menu;
+}
+
 int EllipseInterface::Event(const Laxkit::EventData *e,const char *mes)
 {
 	const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(e);
@@ -928,6 +1178,24 @@ int EllipseInterface::Event(const Laxkit::EventData *e,const char *mes)
 	} else if (!strcmp(mes,"end_num")) {
 		data->end = num * M_PI/180;
 
+	} else if (!strcmp(mes,"set_width")) {
+		if (num < 0) { PostMessage(_("Number must be non-negative")); return 0; }
+		data->linestyle->width = num;
+
+	} else if (!strcmp(mes,"menuevent")) {
+		const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(e);
+		int i = s->info2; //id of menu item
+
+		if (   i == ELLP_CloseGap
+			|| i == ELLP_UseWedge
+			|| i == ELLP_UseChord 
+			|| i == ELLP_UseOpen
+			|| i == ELLP_ToggleFoci
+		   ) {
+			PerformAction(i);
+			return 0;
+		}
+
 	} else return 1;
 
 	data->FindBBox();
@@ -943,11 +1211,10 @@ int EllipseInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::Lax
 	if (!data) return 1;
 
 	if (!buttondown.any()) {
-		// *** update hover
 		EllipsePoints over = scan(x,y,state);
 		if (over != curpoint || over == ELLP_WildPoint) {
 			curpoint = over;
-			PostMessage(curpoint != ELLP_None ? PointName(curpoint) : nullptr);
+			PostMessage(curpoint != ELLP_None ? PointMessage(curpoint) : nullptr);
 			needtodraw = 1;
 		}
 		hover_point = curpoint;
@@ -981,24 +1248,46 @@ int EllipseInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::Lax
 				flatpoint np = data->transformPointInverse(screentoreal(x,y)) - data->center;
 				op.normalize();
 				np.normalize();
-				data->start += asin(op.cross(np));
-				// double oa = atan2(op.x / data->a, op.y / data->b);
-				// double na = atan2(np.x / data->a, np.y / data->b);
-				// data->start -= na-oa;
+				ref_point.x += asin(op.cross(np));
+				double ang = ref_point.x;
+				if (state & ControlMask) ang = (int)(ang / M_PI * 12) * M_PI/12;
+				//handle special meaning of end == start
+				if (ang > data->start) {
+					if (data->start == data->end) data->end = data->start + 2*M_PI;
+				} else {
+					if (data->start == data->end) data->end = data->start - 2*M_PI;
+				}
+				data->start = ang;
+				if (fabs(data->start - data->end) > 2*M_PI) { //handle when start laps end
+					if (data->start > data->end) data->end += 2*M_PI;
+					else data->end -= 2*M_PI;
+				}
 				DBG cerr << "start: "<<data->start<<"  end: "<<data->end<<endl;
 				needtodraw = 1;
 			}
 
 		} else if (curpoint == ELLP_EndAngle) {
 			if (data->a > 0 && data->b > 0) {
+				if (data->start == data->end) data->end = data->start + 2*M_PI;
 				flatpoint op = data->transformPointInverse(screentoreal(lx,ly)) - data->center;
 				flatpoint np = data->transformPointInverse(screentoreal(x,y)) - data->center;
-				// double oa = atan2(op.x / data->a, op.y / data->b);
-				// double na = atan2(np.x / data->a, np.y / data->b);
-				// data->end -= na-oa;
 				op.normalize();
 				np.normalize();
-				data->end += asin(op.cross(np));
+				ref_point.x += asin(op.cross(np));
+				double ang = ref_point.x;
+				if (state & ControlMask) data->end = (int)(ref_point.x / M_PI * 12) * M_PI/12;
+				//handle special meaning of end == start
+				if (ang > data->end) {
+					if (data->start == data->end) data->end = data->start + 2*M_PI;
+				} else {
+					if (data->start == data->end) data->end = data->start - 2*M_PI;
+				}
+				data->end = ang;
+				if (fabs(data->start - data->end) > 2*M_PI) { //handle when end laps start
+					if (data->start > data->end) data->end += 2*M_PI;
+					else data->end -= 2*M_PI;
+				}
+
 				DBG cerr << "start: "<<data->start<<"  end: "<<data->end<<endl;
 				needtodraw = 1;
 			}
@@ -1032,6 +1321,17 @@ int EllipseInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::Lax
 				needtodraw = 1;
 			}
 
+			if ((state & ControlMask) == 0) { //preserve opposite point
+				flatpoint constant;
+				if (curpoint == ELLP_XRadius)       constant = data->getpoint(ELLP_XRadiusN, true);
+				else if (curpoint == ELLP_XRadiusN) constant = data->getpoint(ELLP_XRadius, true);
+				else if (curpoint == ELLP_YRadius)  constant = data->getpoint(ELLP_YRadiusN, true);
+				else if (curpoint == ELLP_YRadiusN) constant = data->getpoint(ELLP_YRadius, true);
+				data->origin(data->origin() + ref_point - constant);
+			} else { //preserve original center
+				data->origin(data->origin() + ref_point2 - data->getpoint(ELLP_Center, true));
+			}
+
 		} else if (curpoint==ELLP_OuterRadius) {
 			flatpoint op = data->transformPointInverse(screentoreal(lx,ly)) - data->center;
 			flatpoint np = data->transformPointInverse(screentoreal(x,y)) - data->center;
@@ -1052,10 +1352,19 @@ int EllipseInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::Lax
 			needtodraw = 1;
 
 		} else if (curpoint==ELLP_InnerRadius) {
-			flatpoint op = data->transformPointInverse(screentoreal(lx,ly)) - data->center;
-			flatpoint np = data->transformPointInverse(screentoreal(x,y)) - data->center;
-			data->inner_r += np.norm() - op.norm();
-			if (data->inner_r < 0) data->inner_r = 0;
+			if (data->b != 0 && data->a != 0) {
+				// flatpoint op = data->transformPointInverse(screentoreal(lx,ly)) - data->center;
+				// flatpoint np = data->transformPointInverse(screentoreal(x,y)) - data->center;
+				// data->inner_r += np.norm() - op.norm();
+				// if (data->inner_r < 0) data->inner_r = 0;
+				// ----
+				// flatpoint op = data->transformPointInverse(screentoreal(lx,ly)) - data->center;
+				flatpoint np = data->transformPointInverse(screentoreal(x,y)) - data->center;
+				double r = data->a / data->b;
+				double scale = sqrt((np.x*np.x/r/r) + np.y*np.y) / data->b;
+				data->inner_r = scale;
+				needtodraw=1;
+			}
 		
 		} else if (curpoint==ELLP_WildPoint) { //move leaves f1,f2 change c
 			flatpoint p,p2;
@@ -1096,6 +1405,26 @@ int EllipseInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::Lax
 			}
 			// data->FindBBox();
 			needtodraw = 1;
+
+		} else if (curpoint == ELLP_WedgeToggle) {
+			if (data->b == 0 || data->a == 0) return 0;
+			int ix,iy;
+			buttondown.getinitial(mouse->id,LEFTBUTTON,&ix,&iy);
+			flatpoint op = data->transformPointInverse(screentoreal(ix,iy)) - data->center;
+			flatpoint np = data->transformPointInverse(screentoreal(x,y)) - data->center;
+			int w = (np.norm() - op.norm())/(3*NearThreshhold()/dp->Getmag());
+			DBG cerr << "wedge norm: "<<(np.norm() - op.norm())<<"  thresh: "<<(NearThreshhold()/dp->Getmag())<<"  w: "<< (np.norm() - op.norm())/(3*NearThreshhold()/dp->Getmag())<<endl;
+			int old = data->wedge_type;
+			w += ref_wedge;
+			if (w >= 2) data->wedge_type = EllipseData::ELLIPSE_Open;
+			else if (w <= 0) data->wedge_type = EllipseData::ELLIPSE_Wedge;
+			else if (w == 1) data->wedge_type = EllipseData::ELLIPSE_Chord;
+			if (old != data->wedge_type) {
+				if (data->wedge_type == EllipseData::ELLIPSE_Wedge) PostMessage(_("Use wedge"));
+				else if (data->wedge_type == EllipseData::ELLIPSE_Chord) PostMessage(_("Use chord"));
+				else PostMessage(_("Use open"));
+				needtodraw = 1;
+			}
 		}
 
 		hover_x=x; hover_y=y;
@@ -1147,13 +1476,19 @@ int EllipseInterface::CharInput(unsigned int ch, const char *buffer,int len,unsi
 			found = true;
 		}
 
+		if (curpoint == ELLP_Center) {
+			data->center.set(0,0);
+			found = true;
+		}
+
 		if (found) {
 			buttondown.clear();
 			data->FindBBox();
 			needtodraw = 1;
 			curpoint = hover_point = ELLP_None;
-			return 0;
 		}
+
+		return 0; //don't let delete propagate
 	}
 
 	 //check shortcuts
@@ -1186,14 +1521,12 @@ Laxkit::ShortcutHandler *EllipseInterface::GetShortcuts()
 	sc=manager->NewHandler(whattype());
 	if (sc) return sc;
 
+	sc = new ShortcutHandler(whattype());
 
-	sc=new ShortcutHandler(whattype());
-
-	sc->Add(ELLP_ToggleDecs,  'd',0,0,        "ToggleDecs",  _("Toggle decorations"),NULL,0);
+	sc->Add(ELLP_ToggleDecs,  'd',0,0,        "ToggleDecs",    _("Toggle decorations"),NULL,0);
 	sc->Add(ELLP_ToggleCircle,'c',0,0,        "ToggleCircle",  _("Toggle editing as a circle"),NULL,0);
-
-	//sc->Add(PATHIA_WidthStepR,        'W',ControlMask|ShiftMask,0,"WidthStepR", _("Change how much change for width changes"),NULL,0);
-	//sc->AddShortcut(LAX_Bksp,0,0, PATHIA_Delete);
+	sc->Add(ELLP_SetWidth,    'w',0,0,        "ToggleWidth",   _("Toggle width edit"),NULL,0);
+	sc->Add(ELLP_ToggleColorDest,'x',0,0,     "ToggleSetColor",_("Toggle set color"),NULL,0);
 
 	manager->AddArea(whattype(),sc);
 	return sc;
@@ -1212,6 +1545,52 @@ int EllipseInterface::PerformAction(int action)
 		// bool circle=data->GetStyle(EllipseData::ELLIPSE_IsCircle);
 		// data->SetStyle(EllipseData::ELLIPSE_IsCircle, !circle);
 		needtodraw=1;
+		return 0;
+
+	} else if (action == ELLP_CloseGap) {
+		if (!data) return 0;
+		data->start = data->end = 0;
+		needtodraw=1;
+		return 0;
+
+	} else if (action ==  ELLP_UseWedge) {
+		if (!data) return 0;
+		data->wedge_type = EllipseData::ELLIPSE_Wedge;
+		needtodraw=1;
+		return 0;
+
+	} else if (action == ELLP_UseChord) {
+		if (!data) return 0;
+		data->wedge_type = EllipseData::ELLIPSE_Chord;
+		needtodraw=1;
+		return 0;
+
+	} else if (action == ELLP_UseOpen) {
+		if (!data) return 0;
+		data->wedge_type = EllipseData::ELLIPSE_Open;
+		needtodraw=1;
+		return 0;
+
+	} else if (action == ELLP_ToggleFoci) {
+		show_foci = !show_foci;
+		needtodraw = 1;
+		return 0;
+
+	} else if (action == ELLP_SetWidth) {
+		if (!data || !data->linestyle) return 0;
+		char str[30];
+		sprintf(str, "%f", data->linestyle->width);
+		LaxFont *font = curwindow->win_themestyle->normal;
+		double th = font->textheight();
+		double x = (dp->Maxx + dp->Minx)/2;
+		double y = (dp->Maxy + dp->Miny)/2;
+		DoubleBBox box(x-5*th, x+5*th, y-.75*th, y+.75*th);
+		viewport->SetupInputBox(object_id, _("Width"), str, "set_width", box);
+		return 0;
+
+	} else if (action == ELLP_ToggleColorDest) {
+		color_stroke = !color_stroke;
+		PostMessage(color_stroke ? _("Send colors to stroke") : _("Send colors to fill"));
 		return 0;
 	}
 
