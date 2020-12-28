@@ -39,7 +39,6 @@ namespace LaxInterfaces {
 class InterfaceManager : public Laxkit::anObject
 {
   private:
-	static InterfaceManager *default_manager;
 	int preview_size;
 	double thin_line;
 	double near_threshhold;

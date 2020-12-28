@@ -23,6 +23,7 @@
 #include <lax/shortcuts.h>
 #include <lax/strmanip.h>
 #include <lax/language.h>
+#include <lax/singletonkeeper.h>
 
 //template implementation:
 #include <lax/lists.cc>
@@ -642,7 +643,7 @@ int ShortcutManager::AreaParent(const char *area, const char *parent)
 	return 0;
 }
 
-//! Return a new ShortcutHandler object. The action and shortcut lists are refcounted, not duplicated.
+//! Return a duplicate of an existing handler for area. The action and shortcut lists are refcounted, not duplicated.
 ShortcutHandler *ShortcutManager::NewHandler(const char *area)
 {
 	for (int c=0; c<shortcuts.n; c++) {
@@ -1189,7 +1190,7 @@ WindowAction *ShortcutManager::FindAction(const char *area, unsigned int key, un
 
 /*! Retrieve with GetDefaultShortcutManager() and set with InstallShortCutManager().
  */
-static ShortcutManager *default_shortcutmanager=NULL;
+static SingletonKeeper shortcutmanager;
 
 /*! If manager==NULL, then remove the old default. This will result in
  * NO manager being defined. To reallocate one, simply call GetDefaultShortcutManager(),
@@ -1197,13 +1198,11 @@ static ShortcutManager *default_shortcutmanager=NULL;
  * when memory is all being freed.
  *
  * Takes posession of the manager count, meaning if it had a count of 1, it will still
- * have a count of 1, and it will be dec_count()'d when removed.
+ * have a count of 1, and it will be dec_count()'d when removed or on program exit.
  */
 void InstallShortcutManager(ShortcutManager *manager)
 {
-	if (default_shortcutmanager) default_shortcutmanager->dec_count();
-	default_shortcutmanager=manager;
-	if (manager) manager->inc_count();
+	shortcutmanager.SetObject(manager, 1);
 }
 
 //! Return a default shortcut manager.
@@ -1211,16 +1210,14 @@ void InstallShortcutManager(ShortcutManager *manager)
  */
 ShortcutManager *GetDefaultShortcutManager()
 {
-	if (default_shortcutmanager==NULL) { default_shortcutmanager=new ShortcutManager; } 
-	return default_shortcutmanager;
+	ShortcutManager *obj = dynamic_cast<ShortcutManager*>(shortcutmanager.GetObject());
+	if (!obj) {
+		obj = new ShortcutManager;
+		shortcutmanager.SetObject(obj,1);
+	} 
+	return obj;
 }
 
-//! Dec count on the default shortcut manager, and set to null.
-void FinalizeShortcutManager()
-{
-	if (default_shortcutmanager) default_shortcutmanager->dec_count();
-	default_shortcutmanager=NULL;
-}
 
 //-------------------misc helpers, probably should be in laxutils perhaps?
 

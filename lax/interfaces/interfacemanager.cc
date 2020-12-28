@@ -23,7 +23,9 @@
 #include <lax/interfaces/interfacemanager.h>
 #include <lax/interfaces/aninterface.h>
 #include <lax/language.h>
+#include <lax/singletonkeeper.h>
 
+//template implementation:
 #include <lax/lists.cc>
 
 #include <iostream>
@@ -50,8 +52,6 @@ namespace LaxInterfaces {
  *  -a settings manager to ease coordination of interface settings across interface instances
  */
 
-
-InterfaceManager *InterfaceManager::default_manager=NULL;
 
 InterfaceManager::InterfaceManager()
 {
@@ -267,27 +267,28 @@ int InterfaceManager::PreviewSize()
 
 //---------------------default setup 
 
+static SingletonKeeper default_manager;
+// InterfaceManager *InterfaceManager::default_manager=NULL;
+
 
 /*! Return the current default interface manager.
  * If one does not exist and create, then create a new one and set it to current.
  */
 InterfaceManager *InterfaceManager::GetDefault(bool create)
 {
-	if (!default_manager) {
-		default_manager=new InterfaceManager;
+	InterfaceManager *im = dynamic_cast<InterfaceManager*>(default_manager.GetObject());
+	if (!im) {
+		im = new InterfaceManager;
+		default_manager.SetObject(im,1);
 	}
-	return default_manager;
+	return im;
 }
 
 /*! Passing in NULL will clear the current.
  */
 void InterfaceManager::SetDefault(InterfaceManager *nmanager, int absorb_count)
 {
-	if (nmanager!=default_manager) {
-		if (default_manager) default_manager->dec_count();
-		default_manager=nmanager;
-		if (!absorb_count) if (default_manager) default_manager->inc_count();
-	}
+	default_manager.SetObject(nmanager, absorb_count);
 }
 
 

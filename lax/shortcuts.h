@@ -220,7 +220,6 @@ class ShortcutManager : public LaxFiles::DumpUtility, public anObject
 
 void InstallShortcutManager(ShortcutManager *manager);
 ShortcutManager *GetDefaultShortcutManager();
-void FinalizeShortcutManager();
 
 
 } //namespace Laxkit

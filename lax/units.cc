@@ -23,7 +23,10 @@
 #include <lax/units.h>
 #include <lax/language.h>
 #include <lax/strmanip.h>
+#include <lax/singletonkeeper.h>
 
+
+//template implementation:
 #include <lax/lists.cc>
 
 #include <iostream>
@@ -77,13 +80,17 @@ SimpleUnit *CreateDefaultUnits(SimpleUnit *units, bool include_px, bool include_
 //! A general repository for units.
 /*! This starts out as NULL. You would initialize it and retrieve it with GetUnitManager().
  */
-SimpleUnit *unit_manager=NULL;
+static SingletonKeeper unit_manager;
 
 //! Return unit_manager, initializing it with CreateDefaultUnits() if it was NULL, includes px and em units.
 UnitManager *GetUnitManager()
 {
-	if (unit_manager==NULL) unit_manager=CreateDefaultUnits(NULL, true, true);
-	return unit_manager;
+	UnitManager *um = dynamic_cast<UnitManager*>(unit_manager.GetObject());
+	if (!um) {
+		um = CreateDefaultUnits(NULL, true, true);
+		unit_manager.SetObject(um,1);
+	}
+	return um;
 }
 
 /*! If NULL, then clear.
@@ -91,10 +98,7 @@ UnitManager *GetUnitManager()
  */
 void SetUnitManager(UnitManager *manager)
 {
-	if (manager==unit_manager) return;
-	if (unit_manager) delete unit_manager;
-	//if (unit_manager) unit_manager->dec_count();
-	unit_manager=manager;
+	unit_manager.SetObject(manager, 1);
 }
 
 

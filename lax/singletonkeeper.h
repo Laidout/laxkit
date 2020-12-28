@@ -51,6 +51,23 @@ class SingletonKeeper
 	}
 };
 
+template<class T>
+class Singleton
+{
+  protected:
+	T *object;
+
+  public:
+	Singleton(T *obj = nullptr, bool absorb = false) { object = obj; if (object && !absorb) object->inc_count(); }
+	~Singleton() { if (object) object->dec_count(); } //this happens on going out of scope
+	T *GetObject() { return object; }
+	void SetObject(T *nobj, bool absorb) {
+		if (object) object->dec_count();
+		object = nobj;
+		if (object && !absorb) object->inc_count();
+	}
+};
+
 } // namespace Laxkit
 
 
