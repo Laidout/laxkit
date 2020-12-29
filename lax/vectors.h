@@ -108,7 +108,7 @@ class flatvector
 	void get(double *v) { v[0]=x; v[1]=y; }
 
 	bool isZero() const { return x==0 && y==0; }
-	double angle() const { return atan2(y,x); }
+	double angle() const { return atan2(y,x); } //returns [-pi, pi]
 	double norm() const { return sqrt(x*x+y*y); }
 	double norm2() const { return x*x+y*y; }
 	flatvector transpose() const { return flatvector(-y,x); }
