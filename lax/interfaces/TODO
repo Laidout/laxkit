@@ -4,30 +4,9 @@
 
 <pre>
 
-transformers, so patch and paths can select many nodes, apply a transformer object
- shift the nodes, or attach transformer(s) to an image, ...
+See the ROADMAP file for general goals, and the lax/LEFT---OFF file for more specific details
+for implementing those things in the ROADMAP.
 
-
-implement all the DumpUtility funtions for ALL data classes and interfaces!!! Particularly when what==-1,
-then the dump_out() should dump out a psuedocode human readable mock up of what file
-output for that class looks like. It should be documented enough so that someone
-reading it can get a good idea of how to write code for that segment of the file.
-
-put in a what in the dump_in_*, particularly for such like: PathsData::dump_in(FILE*, LAX_SVG)
-
-It might be useful to separate the BlahData from BlahInterface in the *.cc and *.h
-files. This enables processing all the data without the need of the windowing system.
-
-some interfaces still don't have duplicate()
-
-port ImagePatchInterface into the gimp to be used like the other
- rotate/perspective/etc transforms, because it is a feature that I CONSTANTLY ache for
- in the gimp!!!
-
-perhaps have an Interface<template> : public InterfaceWithDp to knock out the basics easily..
-
-
-<hr>
 </pre>
 
 */

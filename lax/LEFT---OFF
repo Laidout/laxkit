@@ -13,10 +13,14 @@ window icon management, need to be able to set for any window on the fly
 
 -----------------------------------------------------------------------------
 
+It might be useful to review that BlahData are as autonomous from BlahInterface as possible.
+
+perhaps have an Interface<template> : public InterfaceWithDp to knock out the basics easily..
+
 implement ibus support for better input methods: https://en.wikipedia.org/wiki/Intelligent_Input_Bus
 
 further implementation needed:
-    ellipseinterface.h
+    DONE ellipseinterface.h
     measureinterface.h
     panelinterface.h
     showkeysinterface.h
@@ -231,7 +235,7 @@ color selection dialog
 
 
 CLEAN UP:
-FileDialog and FilePreviewer
+FileDialog and FilePreviewer. need way to expand filepreviewer
 no zoom, viewerwindow but with integers (ScrolledWindow)
 SplitWindow
 BoxArrange/RowFrame and friends
@@ -251,8 +255,8 @@ work out details for a generic event filter,
       the input routines
 work out rendering system independent of Xlib, see todo in laxutils.cc
   -> :initX() would need to call function to init default graphics handling
-  -> anXApp::DefaultIcon() requires LaxImage? right now hardcoded to imlib
-iron out something workable for fontdialog and matrix textout. investigate pango
+  DONE -> anXApp::DefaultIcon() requires LaxImage? right now hardcoded to imlib
+iron out something workable for fontdialog and matrix textout. investigate pango impl
 repair now broken text editor's dealing with fonts with missing glyphs
 multiple device implementation:
   -> focus handling should be one focus per keyboard. fix in app->destroywindow()
