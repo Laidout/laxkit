@@ -753,6 +753,63 @@ void deletestrs(char **&strs,int n)
 	strs=NULL;
 }
 
+/*! Split str using delim as delimiter. 
+ * The delimiter is removed. The number of fields is put into n_ret,
+ * including the final NULL.
+ *
+ *  Returns a NULL terminated char** holding the fields which are 
+ *  new'd character arrays that are copies from the original str.
+ *  The user must delete these itself,
+ * or call deltestrs(). Empty fields are created as string "".
+ */
+char **split(const char *str,const char *delim,int *n_ret)
+{
+	if (!str || *str == '\0') {
+		if (n_ret) *n_ret=0;
+		return nullptr;
+	}
+
+	int delimlen = strlen(delim);
+	if (delimlen == 0) {
+		if (n_ret) *n_ret = 1;
+		char **ret = new char*[2];
+		ret[0] = newstr(str);
+		ret[1] = nullptr;
+		return ret;
+	}
+
+	const char *t = nullptr;
+	int c, c2 = 0; //, l = strlen(str);
+	int n = 1;  // n is the number of fields
+	for (t = str; t && *t; ) {
+		t = strstr(t, delim);
+		if (t) {
+			n++;
+			t += delimlen;
+		}
+	}
+
+	char **r = new char *[n + 1];
+	r[n] = nullptr;
+	if (n == 1) {
+		r[0] = newstr(str);
+		if (n_ret) *n_ret = 1;
+		return r;
+	}
+	for (c = 0, c2 = 0; c2 < n; c2++) {
+		t = strstr(str + c, delim);
+		if (!t) {
+			t = str + strlen(str);
+		}
+		r[c2] = new char[t - str - c + 1];
+		strncpy(r[c2], str + c, t - str - c);
+		r[c2][t - str - c] = '\0';
+		c = t - str + delimlen;
+	}
+	if (n_ret) *n_ret = n;
+	return r;
+}
+
  //! Split str using delim as delimiter. 
  /*! The delimiter is removed. The number of fields is put into n_ret,
   * including the final NULL.
@@ -947,10 +1004,6 @@ int is_absolute_path(const char *file)
 	if (*file=='~' && (file[1]=='/' || file[1]=='\0')) return 1;
 	return 0;
 }
-
-/*! \todo maybe should move lax_basename(), lax_dirname(), and increment_file() to fileutils? they
- *    only in strmanip because they don't really need the filesystem to operate.
- */
 
 //! Return a pointer to the part of path that starts the file name, or NULL.
 /*! "1/2/" returns NULL. "" returns NULL. "1/2" returns "2".

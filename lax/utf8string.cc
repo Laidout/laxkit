@@ -400,6 +400,33 @@ void Utf8String::Sprintf(const char *fmt, ...)
 	updateNumChars();
 }
 
+void Utf8String::AppendN(const Utf8String &str, int n_bytes)
+{
+	AppendN(str.c_str(), n_bytes);
+}
+
+/*! Note it is your responsibility to ensure n_bytes are actually in str.
+ */
+void Utf8String::AppendN(const char *str, int n_bytes)
+{
+	if (n_bytes <= 0) return;
+	if (!str) return;
+
+	if (!s) {
+		s = new char[n_bytes + 1 + CHARBLOCKSIZE];
+		strncpy(s,str,n_bytes);
+	} else {
+		char *newdest;
+		newdest = new char[strlen(s) + n_bytes + 1 + CHARBLOCKSIZE];
+		strcpy(newdest, s);
+		strncat(newdest, str, n_bytes);
+		delete[] s;
+		s = newdest;
+	}
+	num_bytes = strlen(s);
+	updateNumChars();
+}
+
 void Utf8String::Append(const Utf8String &str)
 {
 	Append(str.c_str());
@@ -614,9 +641,22 @@ Utf8String &Utf8String::BackslashChars(const char *chars)
  * Optionally return the number of strings in num_ret, not including the terminating null.
  */
 Utf8String *Utf8String::Split(const char *on_this, int *num_ret)
-{ //***
-	cerr << "AAAA!! IMPLEMENT Utf8String *Utf8String::Split(const char *on_this, int *num_ret)!!!"<<endl;
-	return nullptr;
+{
+	int n = 0;
+	char **rawstrs = split(s, on_this, &n);
+	if (!n) {
+		if (num_ret) *num_ret = 0;
+		return nullptr;
+	}
+
+	Utf8String *strs = new Utf8String[n+1];
+	strs[n] = nullptr;
+	for (int c=0; c<n; c++) {
+		strs[c].InsertBytes(rawstrs[c], -1, -1);
+	}
+	delete[] rawstrs;
+	if (num_ret) *num_ret = n;
+	return strs;
 }
 
 //! Convenience function that just returns Strcmp(str)==0.

@@ -68,6 +68,7 @@ void deletestrs(char **&strs,int n);
 char **splitspace(const char *stro,int *n_ret);
 char **splitonspace(char *stro,int *n_ret);
 char **split(const char *str,char delim,int *n_ret);
+char **split(const char *str,const char *delim,int *n_ret);
 char **spliton(char *str,char delim,int *n_ret);
 int findInList(const char *name, const char **names);
 int findInList(const char *name, const char **names, int numnames);

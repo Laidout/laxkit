@@ -88,6 +88,8 @@ class Utf8String
 	void Sprintf(const char *fmt, ...);
 	void Append(const Utf8String &str);
 	void Append(const char *str);
+	void AppendN(const Utf8String &str, int n_bytes);
+	void AppendN(const char *str, int n_bytes);
 	void Prepend(const Utf8String &str);
 	void Prepend(const char *str);
 	void InsertAt(const char *str, int byte_index);
