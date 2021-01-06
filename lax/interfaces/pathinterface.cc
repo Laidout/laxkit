@@ -2157,6 +2157,16 @@ Coordinate *Path::lastPoint(int v)
 	return path->lastPoint(v);
 }
 
+/*! If merge_ends >= 0, then collapse endpoints when distance is <= merge_ends.
+ * If absorb_path, then deletes p and transfers all Coordinate objects to ourself.
+ * at is which vertex to insert path at, or < 1 for insert at end. So if at==0, then
+ * basically prepend p to ourself.
+ */
+void Path::AppendPath(Path *p, bool absorb_path, double merge_ends, int at)
+{
+	DBG cerr << " *** IMPLEMENT Path::AppendPath()"<<endl;
+}
+
 /*! Note: adds at end, does not rejigger weight nodes.
  */
 void Path::append(double x,double y,unsigned long flags,SegmentControls *ctl)
@@ -2291,6 +2301,18 @@ int Path::LerpSimple(Path *a, Path *b, double t)
 	}
 
 	return 0;
+}
+
+void Path::Transform(const double *mm)
+{
+	if (!path) return;
+
+	Coordinate *p,*start;
+	start = p = path;
+	do {
+		p->p(transform_point(mm,p->p()));
+		p = p->next;
+	} while (p && p!=start);
 }
 
 /*! Insert np either after curvertex (after!=0), or before (after==0).

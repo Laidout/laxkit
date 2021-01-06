@@ -128,6 +128,7 @@ class Path : public LaxFiles::DumpUtility, public Laxkit::DoubleBBox
 	virtual void append(flatpoint p,unsigned long flags=POINT_VERTEX,SegmentControls *ctl=NULL);
 	virtual void append(Coordinate *coord);
 	virtual void appendBezFromStr(const char *value);
+	virtual void AppendPath(Path *p, bool absorb_path, double merge_ends, int at = -1);
 	virtual int removePoint(Coordinate *p, bool deletetoo);
 	virtual void moveTo(flatpoint p);
 	virtual void lineTo(flatpoint p);
@@ -140,10 +141,13 @@ class Path : public LaxFiles::DumpUtility, public Laxkit::DoubleBBox
 	virtual int AddAt(Coordinate *curvertex, Coordinate *np, int after);
 	virtual int CutAt(double t, Path **new_path_ret);
 	virtual int LerpSimple(Path *a, Path *b, double t);
+	virtual void Transform(const double *mm);
 	virtual void clear();
 
 	virtual int Line(LineStyle *nlinestyle);
 	virtual int LineColor(Laxkit::ScreenColor *ncolor);
+	virtual int ApplyLineProfile(LineProfile *p, bool linked);
+	virtual int ApplyLineProfile();
 	virtual int UseShapeBrush(ShapeBrush *newbrush);
 	virtual int RemoveDoubles(double threshhold);
 	virtual int Reverse();
@@ -180,9 +184,6 @@ class Path : public LaxFiles::DumpUtility, public Laxkit::DoubleBBox
 	virtual int GetIndex(Coordinate *p, bool ignore_controls);
 	virtual int Contains(Path *otherpath);
 	virtual int FindExtrema(Laxkit::NumStack<flatpoint> *points_ret, Laxkit::NumStack<double> *t_ret);
-
-	virtual int ApplyLineProfile(LineProfile *p, bool linked);
-	virtual int ApplyLineProfile();
 
 	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
 	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what, LaxFiles::DumpContext *context);
