@@ -1690,7 +1690,7 @@ Quaternion operator*(Quaternion a,Quaternion b)  /*dot product */
 //! Return the conjugate w - x*i - y*j - z*k
 Quaternion Quaternion::conjugate()
 {
-	return Quaternion(-x,-y,-z,-w);
+	return Quaternion(-x,-y,-z,w);
 }
 
 
