@@ -456,6 +456,14 @@ void Affine::PreMultiply(const Affine &m)
 	transform_copy(_m,result);
 }
 
+//! this=m*this
+void Affine::PreMultiply(const double *m)
+{
+	double result[6];
+	transform_mult(result,m,_m);
+	transform_copy(_m,result);
+}
+
 //! Return a new matrix that is the inverse of this, if possible.
 Affine Affine::Inversion()
 {

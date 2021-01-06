@@ -72,6 +72,7 @@ class Affine
 	virtual void Multiply(const Affine &m);
 	virtual void Multiply(const double *m);
 	virtual void PreMultiply(const Affine &m);
+	virtual void PreMultiply(const double *m);
 
 	virtual Affine Inversion();
 	virtual void Invert();
