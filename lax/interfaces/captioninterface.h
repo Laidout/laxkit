@@ -95,6 +95,7 @@ class CaptionData : virtual public SomeData
 
 	virtual int NeedToRecache();
 	virtual int SetText(const char *newtext);
+	virtual int SetTextEscaped(const char *newtext);
 	virtual char *GetText();
 	virtual bool IsBlank();
 	virtual int NumLines() { return lines.n; }

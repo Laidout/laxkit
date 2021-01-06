@@ -944,6 +944,65 @@ bool CaptionData::IsBlank()
 	return true;
 }
 
+/*! Convert backslashed escapes to normal string.
+ * This means "\\n" is newline, "\\t" tab, "\\U002F" and "\\u002f" are the
+ * corresponding unicode character, "\\(any other char)" is (any other char).
+ */
+int CaptionData::SetTextEscaped(const char *newtext)
+{
+	const char *ptr = newtext ? strchr(newtext, '\\') : nullptr;
+	if (!ptr) return SetText(newtext);
+
+	int slen = strlen(newtext);
+	int maxstr = slen;
+	int spos = 0;
+	char *newstr = new char[maxstr];
+	char ch;
+	newstr[0] = '\0';
+	int from = 0;
+	char utf8[10];
+
+	 // read in the string, translating escaped things as we go
+	while (from < slen) {
+		ch = newtext[from];
+
+		 // escape sequences
+		if (ch == '\\') {
+			ch = 0;
+			if (newtext[from+1]=='n') ch='\n';
+			else if (newtext[from+1]=='t') ch='\t';
+			else if ((newtext[from+1]=='u' || newtext[from+1]=='U')
+				 && isxdigit(newtext[from+2])
+				 && isxdigit(newtext[from+3])
+				 && isxdigit(newtext[from+4])
+				 && isxdigit(newtext[from+5])) {
+				//unicode character
+				char *endptr = nullptr;
+				unsigned int i = strtol(newtext+from+2, &endptr, 16);
+				if (endptr != newtext+from+2) {
+					//was valid number
+					from = endptr - newtext;
+					int len = utf8encode(i, utf8);
+					if (len + spos > maxstr) extendstr(newstr, maxstr, 20+len);
+					strncpy(newstr+spos, utf8, len);
+					spos += len;
+					continue;
+				}
+			}
+			if (ch) from++; else ch='\\';
+		}
+		if (spos == maxstr) extendstr(newstr,maxstr,20);
+		newstr[spos] = ch;
+		spos++;
+		from++;
+	}
+	newstr[spos] = '\0';
+
+	int status = SetText(newstr);
+	delete[] newstr;
+	return status;
+}
+
 //! Set new text.
 /*! Accepts multi line text, where lines are delineated with '\n'.
  * 
