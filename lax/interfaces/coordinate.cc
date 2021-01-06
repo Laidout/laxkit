@@ -232,8 +232,10 @@ const Coordinate &Coordinate::operator=(const Coordinate &p)
 	return *this;
 }
 
-//! Sort of a workaround for copy constructor, copy point, flags, iid, info, but set next, prev to NULL
-/*! I might simply not understand copy constructors, but this function exists in case there
+/*! Duplicate ONLY this Coordinate, NOT any connected points.
+ * 
+ * Sort of a workaround for copy constructor, copy point, flags, iid, info, but set next, prev to NULL
+ * I might simply not understand copy constructors, but this function exists in case there
  * are points that are supposed to be accessed and set the same as a normal Coordinate, but
  * the internals are worked around somehow. Normal copy constructors do not afford such flexiblity.
  *
@@ -406,7 +408,7 @@ void Coordinate::connect(Coordinate *np,char after)//after=1
 
  //! This severs the link between this and this->next (or prev if after=0)
  /*! This function should only be called by PathInterface, PathsData, or Path,
-  *  which take the necessary precautions.
+  *  which take the necessary precautions to prevent clobbering and memory leaks.
   *
   *  Returns pointer to the coordinate on the other side of the break, if any.
   */
