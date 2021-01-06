@@ -91,6 +91,7 @@ GlyphPlace::~GlyphPlace()
 //----------------------------- Extra color font support things -------------------------------------
 
 /*! \class ColrGlyphMap
+ * Aids workaround for rendering CPAL/COLR based opentype fonts.
  */
 
 ColrGlyphMap::ColrGlyphMap(int initial, int n, int *g, int *cols)
@@ -103,8 +104,8 @@ ColrGlyphMap::ColrGlyphMap(int initial, int n, int *g, int *cols)
 		colors = new int[n];
 		memcpy(colors, cols, n*sizeof(int));
 	} else {
-		glyphs=NULL;
-		colors=NULL;
+		glyphs = NULL;
+		colors = NULL;
 	}
 }
 
@@ -120,11 +121,16 @@ ColrGlyphMap::~ColrGlyphMap()
 //	NumStack<ColrGlyphMap> maps;
 //};
 
+/*! \class SvgMap
+ * One per glyph, contains original svg and cached render.
+ */
 class SvgMap
 {
   public:
 	int glyph;
 	//VectorImage *svg;
+	double img_fsize;
+	LaxImage *img;
 };
 
 
@@ -142,18 +148,18 @@ class SvgMap
 
 LaxFont::LaxFont()
 {
-	id=getUniqueNumber();
-	textstyle=0;
-	cntlchar='\\';
+	id        = getUniqueNumber();
+	textstyle = 0;
+	cntlchar  = '\\';
 
-	family=NULL;
-	style=NULL;
-	psname=NULL;
-	fontfile=NULL;
-	fontindex=0;
+	family    = NULL;
+	style     = NULL;
+	psname    = NULL;
+	fontfile  = NULL;
+	fontindex = 0;
 
-	color=NULL;
-	nextlayer=NULL;
+	color     = NULL;
+	nextlayer = NULL;
 }
 
 LaxFont::~LaxFont()
@@ -167,9 +173,6 @@ LaxFont::~LaxFont()
 	if (nextlayer) nextlayer->dec_count();
 }
 
-/*! \fn LaxFont::LaxFont(const char *fontconfigstr,int nid)
- * \brief Constructor. Uses a fontconfig description.
- */
 
 /*! \fn int LaxFont::charwidth(unsigned long chr,int real,double *width=NULL,double *height=NULL)
  * \brief Return the character width of ch.
@@ -185,7 +188,7 @@ LaxFont::~LaxFont()
 
 
 /*! \fn  double textheight()
- * \brief Usually, but NOT ALWAYS,  ascent plus descent. It is the default distance between baselines.
+ * \brief Usually, but NOT ALWAYS, ascent plus descent. It is the default distance between baselines.
  */
 
 /*! \fn  double ascent()

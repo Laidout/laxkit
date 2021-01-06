@@ -35,6 +35,7 @@
 #include <lax/laximages.h>
 #include <lax/lists.h>
 #include <lax/palette.h>
+#include <lax/resources.h>
 
 
 
@@ -72,16 +73,16 @@ struct GlyphPlace
 class ColrGlyphMap
 {
   public:
-	int initial_glyph;
+	int initial_glyph; //base glyph, and also the fallback glyph
 	int numglyphs;
-	int *glyphs;
-	int *colors;
+	int *glyphs; //z order bottom to top
+	int *colors; //index into a palette held elsewhere
 	ColrGlyphMap(int initial, int n, int *g, int *cols);
 	~ColrGlyphMap();
 };
 
 //---------------------------- LaxFont -------------------------------
-class LaxFont : public anObject
+class LaxFont : public Resourceable
 {
   protected:
 	char *family;
