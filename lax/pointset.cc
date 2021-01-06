@@ -561,8 +561,12 @@ Attribute *PointSet::dump_out_atts(Attribute *att,int what,DumpContext *context)
 	Utf8String str;
 	for (int c=0; c<points.n; c++) {
 		str.Sprintf("(%.10g, %.10g)", points.e[c]->p.x, points.e[c]->p.y);
-		Attribute *att2 = att->pushSubAtt("point", "(1,2)", "Vector, with optional info as subattribute");
-		att2->push("info", "DataTypeName", "Subattributes will be dependent on DataTypeName");
+		Attribute *att2 = att->pushSubAtt("point", str.c_str());
+		if (points.e[c]->info) {
+			Attribute *att3 = att2->pushSubAtt("info", points.e[c]->info->whattype());
+			LaxFiles::DumpUtility *dump = dynamic_cast<DumpUtility*>(points.e[c]->info);
+			if (dump) dump->dump_out_atts(att3, what, context);
+		}
 	}
 
 	return att;
