@@ -722,6 +722,7 @@ XIC anXApp::CreateXInputContext()
 		if (xim_ic) {
 			xic_is_over_the_spot = 1;
 			XVaNestedList status_attr;
+			status_area_rect.height = 0; //clear a valgrind warning
 			status_attr = XVaCreateNestedList(0, XNAreaNeeded, &status_area_rect, NULL);
 			if (status_area_rect.height != 0)
 			XGetICValues(xim_ic, XNStatusAttributes, status_attr, NULL);
@@ -1342,7 +1343,7 @@ int anXApp::destroywindow(anXWindow *w)
 	if (!w) return 1;
 	if (w->win_style&ANXWIN_DOOMED) return 0;
 
-	DBG cerr <<"== Destroywindow(\""<<w->whattype()<<" (count:"<<w->_count<<":"
+	DBG cerr <<"-=- Destroywindow(\""<<w->whattype()<<" (count:"<<w->_count<<":"
 	DBG    <<w->WindowTitle()<<"\")...topwindows.n="<<topwindows.n<<endl;
 
 	 //-----close the window and destroy xlib bits of it
