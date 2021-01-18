@@ -1512,7 +1512,7 @@ void Path::FindBBox()
 	} else {
 		FindBBoxBase(this);
 		if (linestyle) {
-			ExpandBounds(linestyle->width);
+			ExpandBounds(linestyle->width/2);
 		}
 	}
 }
