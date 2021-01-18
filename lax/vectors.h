@@ -254,6 +254,8 @@ class Quaternion
 	void set(double xx,double yy,double zz, double ww) { x=xx; y=yy; z=zz; w=ww; }
 	void set(double *v) { x=v[0]; y=v[1]; z=v[2]; w=v[3]; }
 	void get(double *v) { v[0]=x; v[1]=y; v[2]=z; v[3]=w; }
+	void SetEuler(spacevector v);
+	spacevector GetEuler();
 
 	bool isZero() const { return x==0 && y==0 && z==0 && w==0; }
 	double norm() const { return sqrt(x*x+y*y+z*z+w*w); }

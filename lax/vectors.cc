@@ -1599,6 +1599,50 @@ void Quaternion::normalize()
 	w/=w;
 }
 
+void Quaternion::SetEuler(spacevector v)
+{
+	double roll  = v.x;  // yaw (Z), pitch (Y), roll (X)
+	double pitch = v.y;
+	double yaw   = v.z;
+
+	// Abbreviations for the various angular functions
+    double cy = cos(yaw * 0.5);
+    double sy = sin(yaw * 0.5);
+    double cp = cos(pitch * 0.5);
+    double sp = sin(pitch * 0.5);
+    double cr = cos(roll * 0.5);
+    double sr = sin(roll * 0.5);
+
+    w = cr * cp * cy + sr * sp * sy;
+    x = sr * cp * cy - cr * sp * sy;
+    y = cr * sp * cy + sr * cp * sy;
+    z = cr * cp * sy - sr * sp * cy;
+}
+
+spacevector Quaternion::GetEuler()
+{
+	double roll, pitch, yaw;
+	
+    // roll (x-axis rotation)
+    double sinr_cosp = 2 * (w * x + y * z);
+    double cosr_cosp = 1 - 2 * (x * x + y * y);
+    roll = std::atan2(sinr_cosp, cosr_cosp);
+
+    // pitch (y-axis rotation)
+    double sinp = 2 * (w * y - z * x);
+    if (std::abs(sinp) >= 1)
+        pitch = std::copysign(M_PI / 2, sinp); // use 90 degrees if out of range
+    else
+        pitch = std::asin(sinp);
+
+    // yaw (z-axis rotation)
+    double siny_cosp = 2 * (w * z + x * y);
+    double cosy_cosp = 1 - 2 * (y * y + z * z);
+    yaw = std::atan2(siny_cosp, cosy_cosp);
+
+    return spacevector(roll, pitch, yaw);
+}
+
 //! nonzero if x==x, y==y and z==z
 int operator==(Quaternion v1,Quaternion v2)
 {
