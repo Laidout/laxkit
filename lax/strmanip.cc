@@ -81,6 +81,13 @@ int strcasecmp_safe(const char *s1, const char *s2)
 	return strcasecmp(s1 ? s1 : "", s2 ? s2 : "");
 }
 
+/*! strcmp that doesn't crash when s1 or s2 are null.
+ */
+int strncmp_safe(const char *s1, const char *s2, int n)
+{
+	return strncmp(s1 ? s1 : "", s2 ? s2 : "", n);
+}
+
 /*! strcmp that only cares about equality. ok for strings to be null. two null strings equal each other.
  */
 bool strEquals(const char *s1, const char *s2, bool caseless)
