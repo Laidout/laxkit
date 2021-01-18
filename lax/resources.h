@@ -159,12 +159,15 @@ class ResourceType : public Resource
 
 	virtual int AddDir(const char *dir, int where);
 	virtual int RemoveDir(const char *dir);
-	virtual int Find(anObject *object);
+	virtual Resource *Find(anObject *object);
 	virtual anObject *Find(const char *str, Resource **resource_ret);
+	virtual Resource *FindFromRID(unsigned int id);
+	virtual int Remove(anObject *obj);
 	virtual int AddResource(anObject *object, anObject *ntopowner, const char *name, const char *Name, const char *description,
 							const char *file, LaxImage *icon,bool builtin=false);
 	virtual int NumberNotBuiltIn();
 	virtual int NumResources();
+	virtual int MakeNameUnique(char *&thename);
 
 	virtual MenuInfo *AppendMenu(MenuInfo *menu, bool do_favorites, int *numadded);
 };
@@ -195,7 +198,10 @@ class ResourceManager : public anObject, public LaxFiles::DumpUtility
 	virtual int AddResource(const char *type, anObject *object, anObject *ntopowner,
 							const char *name, const char *Name, const char *description, const char *file, LaxImage *icon,
 							bool builtin=false);
+	virtual int RemoveResource(anObject *obj, const char *type);
 	virtual anObject *FindResource(const char *name, const char *type, Resource **resource_ret=NULL);
+	virtual Resource *FindResource(anObject *obj, const char *type);
+	virtual Resource *FindResourceFromRID(unsigned int id, const char *type);
 
 	virtual anObject *NewObjectFromType(const char *type);
 

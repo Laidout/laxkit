@@ -182,10 +182,8 @@ Resource::Resource(anObject *obj, anObject *nowner, const char *nname, const cha
 	if (icon) icon->inc_count();
 
 	source = newstr(nfile);
-	if (nfile)
-		source_type = FromFile;
-	else
-		source_type = Floating;
+	if (nfile) source_type = FromFile;
+	else source_type = Floating;
 
 	linkable = true;
 
@@ -383,6 +381,32 @@ int ResourceType::NumResources()
 	return n;
 }
 
+/*! Make thename a unique name. Return 1 if name is changed, else 0.
+ */
+int ResourceType::MakeNameUnique(char *&thename)
+{
+	int changed = 0;
+	for (int c=0; c<resources.n; c++) {
+		if (dynamic_cast<ResourceType*>(resources.e[c])) { //resource folder
+			if (dynamic_cast<ResourceType*>(resources.e[c])->MakeNameUnique(thename)) {
+				c = -1;
+				changed = 1;
+				continue;
+			}
+		} else { //normal resource
+			if (!strcmp(resources.e[c]->name, thename)) {
+				char *newname = increment_file(thename);
+				delete[] thename;
+				thename = newname;
+				c = -1;
+				changed = 1;
+				continue;
+			}
+		}
+	}
+	return changed;
+}
+
 /*! Return number of all the resources that are not built in. This is so we don't have to output
  * sections in save files if we don't have to.
  */
@@ -412,6 +436,42 @@ int ResourceType::AddDir(const char *dir, int where)
 int ResourceType::RemoveDir(const char *dir)
 {
 	return dirs.RemoveDir(dir);
+}
+
+/*! Return 0 for removed, 1 for not found. */
+int ResourceType::Remove(anObject *obj)
+{
+	for (int c=0; c<resources.n; c++) {
+		if (resources.e[c]->object == obj) {
+			resources.remove(c);
+			return 0;
+		}
+	}
+	ResourceType *rtype;
+	for (int c=0; c<resources.n; c++) {
+		rtype = dynamic_cast<ResourceType*>(resources.e[c]);
+		if (rtype->Remove(obj) == 0) return 0;
+	}
+	return 1;
+}
+
+Resource *ResourceType::FindFromRID(unsigned int id)
+{
+	ResourceType *rt;
+	Resource *res = nullptr;
+
+	for (int c=0; c<resources.n; c++) {
+		 //check sub trees
+		rt = dynamic_cast<ResourceType*>(resources.e[c]);
+		if (rt) {
+			res = rt->FindFromRID(id);
+			if (res) return res;
+		}
+
+		if (resources.e[c]->object_id == id) return resources.e[c];
+	}
+
+	return nullptr;
 }
 
 /*! Find some object that has str in it. Ignore case.
@@ -447,21 +507,22 @@ anObject *ResourceType::Find(const char *str, Resource **resource_ret)
 	return NULL;
 }
 
-/*! Return non zero if object found is resources somewhere. Else return 0.
+/*! Return which Resource contains object, or null if none.
  */
-int ResourceType::Find(anObject *object)
+Resource *ResourceType::Find(anObject *object)
 {
+	Resource *res = nullptr;
 	for (int c=0; c<resources.n; c++) {
-		if (resources.e[c]->object==object) return c+1;
+		if (resources.e[c]->object == object) return resources.e[c];
 
 		 //check sub trees
 		if (dynamic_cast<ResourceType*>(resources.e[c])) {
-			if (dynamic_cast<ResourceType*>(resources.e[c])->Find(object))
-				return 1; 
+			res = dynamic_cast<ResourceType*>(resources.e[c])->Find(object);
+			if (res) return res;
 		}
 	}
 
-	return 0;
+	return nullptr;
 }
 
 /*! Return -1 for already there. 0 for successfully added. Nonzero for error and not added.
@@ -684,6 +745,15 @@ int ResourceManager::AddDirs_XDG(int which_type)
 	return numadded;
 }
 
+/*! Search for Resource->object_id, as might be returned from a ResourceMenu().
+ */
+Resource *ResourceManager::FindResourceFromRID(unsigned int id, const char *type)
+{
+	ResourceType *rtype=FindType(type);
+	if (!rtype) return nullptr;
+	return rtype->FindFromRID(id);
+}
+
 anObject *ResourceManager::FindResource(const char *name, const char *type, Resource **resource_ret)
 {
 	ResourceType *rtype=FindType(type);
@@ -700,6 +770,16 @@ anObject *ResourceManager::FindResource(const char *name, const char *type, Reso
 
 	if (resource_ret) *resource_ret=NULL;
 	return NULL;
+}
+
+Resource *ResourceManager::FindResource(anObject *obj, const char *type)
+{
+	ResourceType *rtype = FindType(type);
+
+	if (!rtype || !obj) return nullptr;
+
+	Resource *res = rtype->Find(obj);
+	return res;
 }
 
 /*!
@@ -725,6 +805,21 @@ int ResourceManager::AddResource(const char *type, //! If NULL, then use object-
 
 	t->AddResource(object,ntopowner, name,Name,description,file,icon, builtin);
 	return 0;
+}
+
+/*! Return 1 for removed, 0 for not found.
+ * Note if removal leaves parent ResourceType empty, that ResourceType is NOT removed.
+ */
+int ResourceManager::RemoveResource(anObject *obj, const char *type)
+{
+	ResourceType *rtype = FindType(type);
+	if (!rtype) return 0;
+	rtype->Remove(obj);
+	Resource *res = FindResource(obj, type);
+	if (!res) return 0;
+
+	rtype->Remove(obj);
+	return 1;
 }
 
 ResourceType *ResourceManager::FindType(const char *name)
