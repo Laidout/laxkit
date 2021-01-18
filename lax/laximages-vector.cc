@@ -4,64 +4,117 @@
 namespace Laxkit {
 
 
-
-
+/*! A vector path object much more streamlined for fast render than the
+ * very complicated PathsData. These are meant to encapsulate basic svg path,
+ * possibly to be used in glyphs of opentype svg fonts, for instance.
+ *
+ * When stroke or fill not given, assume use same from
+ * previous part. When given, assume they will be used until another part
+ * supplies others.
+ */
 class VectorPart
 {
   public:
-	VectorPart();
-	virtual ~VectorPart();
-};
+	enum VectorParts {
+		None,
+		SolidFill,
+		GradientFill,
+		MeshFill,
+		MAX
+	};
 
-class VectorPartPath : public VectorPart
-{
-  public:
 	int numpoints;
-	flatpoint *points;
+	flatpoint *points; //note: might contain multiple paths
+	VectorStroke *stroke;
+	VectorFill *fill;
+
+	VectorPart();
+	~VectorPart();
 };
 
-class VectorPartFill : public VectorPart
+VectorPart::VectorPart()
+{
+	numpoints = 0;
+	points = nullptr;
+	stroke = nullptr;
+	fill = nullptr;
+}
+
+VectorPart::~VectorPart()
+{
+	delete[] points;
+	if (stroke) stroke->dec_count();
+	if (fill)   fill  ->dec_count();
+}
+
+
+class VectorFill : public VectorPart
 {
   public:
+	int type;
+	VectorFill(int type) { this->type = type; }
+	virtual ~VectorFill() {}
 };
 
 class VectorPartStroke : public VectorPart
 {
-  public:
+	int type;
+	VectorStroke(int type) { this->type = type; }
+	virtual ~VectorStroke() {}
 };
 
-class VectorPartLineStyle : public VectorPart
+class VectorPartStroke : public VectorStroke
 {
   public:
-	Color *color;
 	double width;
+	int capstyle;
+	int joinstyle;
+	double miterlimit;
+	int numdashes;
+	double *dashes;
+	double dash_offset;
+
 	VectorPartLineStyle() { color=NULL; }
-	~VectorPartLineStyle() { if (color) color->dec_count(); }
+	virtual ~VectorPartLineStyle() { if (color) color->dec_count(); }
 };
 
-class VectorPartFillStyle : public VectorPart
+class VectorSolid : public VectorFill
 {
   public:
 	Color *color;
 	VectorPartFillStyle() { color=NULL; }
-	~VectorPartFillStyle() { if (color) color->dec_count(); }
+	virtual ~VectorPartFillStyle() { if (color) color->dec_count(); }
 };
 
-class VectorPartGradientFill : public VectorPart
+class VectorGradient : public VectorFill
 {
   public:
 	GradientStrip *strip;
 	VectorPartGradientFill() { strip=NULL; }
-	~VectorPartGradientFill() { if (strip) strip->dec_count(); }
+	virtual ~VectorPartGradientFill() { if (strip) strip->dec_count(); }
 };
 
-class VectorPartMeshFill : public VectorPart
+class VectorMeshFill : public VectorFill
 {
   public:
-	***
+	GradientMesh *mesh;
+	VectorMeshFill() { mesh = nullptr; }
+	virtual ~VectorMeshFill() { if (mesh) mesh->dec_count(); }
+};
+
+class VectorImageFill : public VectorFill
+{
+  public:
+	LaxImage *img;
+	VectorImageFill() { img = nullptr; }
+	virtual ~VectorImageFill() { if (img) img->dec_count(); }
 };
 
 
+//------------------------------ VectorImage ----------------------------
+
+/*! Special image form built from vector paths, with optional fill and stroke.
+ */
 class VectorImage : public LaxImage
 {
   public:
