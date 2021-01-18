@@ -111,6 +111,7 @@ class CaptionData : virtual public SomeData
 	virtual double LineSpacing() { return linespacing; }
 	virtual int FindPos(double y, double x, int *line, int *pos);
 	virtual int RecacheLine(int line);
+	virtual void ColorRGB(double r, double g, double b, double a=-1.0);
 
 
 	virtual int Font(Laxkit::LaxFont *newfont);

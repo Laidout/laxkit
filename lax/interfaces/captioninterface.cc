@@ -454,34 +454,35 @@ int CaptionData::RecacheLine(int linei)
 		hb_ot_layout_script_select_language (hb_face, HB_OT_TAG_GSUB, script_index, 1, &lang_tag, &lang_index);
 #endif
 
-		unsigned int count = 80;
-		hb_tag_t myResult[count];
-		//hb_ot_layout_table_get_feature_tags(hb_font_get_face(hb_font), HB_OT_TAG_GSUB, 0, &count, myResult)
-		//hb_ot_layout_table_get_feature_tags(hb_font_get_face(hb_font), HB_OT_TAG_GPOS, 0, &count, myResult)
-		//
-		//
-		//- hb_ot_layout_table_get_script_tags() to get all scripts for this font;
-		//- for each script index get all languages supported for this script with 
-		//hb_ot_layout_script_get_language_tags();
-		//- at this point it's two dimensional - (script index, language index), 
-		//now get feature set for this pair with:
+		//------getting list of otf features:
+		// unsigned int count = 80;
+		// hb_tag_t myResult[count];
+		// //hb_ot_layout_table_get_feature_tags(hb_font_get_face(hb_font), HB_OT_TAG_GSUB, 0, &count, myResult)
+		// //hb_ot_layout_table_get_feature_tags(hb_font_get_face(hb_font), HB_OT_TAG_GPOS, 0, &count, myResult)
+		// //
+		// //
+		// //- hb_ot_layout_table_get_script_tags() to get all scripts for this font;
+		// //- for each script index get all languages supported for this script with 
+		// //hb_ot_layout_script_get_language_tags();
+		// //- at this point it's two dimensional - (script index, language index), 
+		// //now get feature set for this pair with:
 
-		hb_ot_layout_language_get_feature_tags(hb_face, HB_OT_TAG_GSUB, script_index, lang_index, 0, &count, myResult);
-		DBG cerr <<"for font :"<<font->FontFile()<<":"<<endl;
-		DBG cerr <<" All the GSUB features for cur lang+script:  ";
-		char tagstr[5]; tagstr[4]='\0';
-		for (int cc=0; cc<(int)count; cc++) {
-			hb_tag_to_string(myResult[cc], tagstr);
-			DBG cerr <<tagstr<<"  ";
-		}
-		DBG cerr << endl;
-		hb_ot_layout_language_get_feature_tags(hb_face, HB_OT_TAG_GPOS, script_index, lang_index, 0, &count, myResult);
-		DBG cerr <<" All the GPOS features for cur lang+script:  ";
-		for (int cc=0; cc<(int)count; cc++) {
-			hb_tag_to_string(myResult[cc], tagstr);
-			DBG cerr <<tagstr<<"  ";
-		}
-		DBG cerr << endl;
+		// hb_ot_layout_language_get_feature_tags(hb_face, HB_OT_TAG_GSUB, script_index, lang_index, 0, &count, myResult);
+		// DBG cerr <<"for font :"<<font->FontFile()<<":"<<endl;
+		// DBG cerr <<" All the GSUB features for cur lang+script:  ";
+		// char tagstr[5]; tagstr[4]='\0';
+		// for (int cc=0; cc<(int)count; cc++) {
+		// 	hb_tag_to_string(myResult[cc], tagstr);
+		// 	DBG cerr <<tagstr<<"  ";
+		// }
+		// DBG cerr << endl;
+		// hb_ot_layout_language_get_feature_tags(hb_face, HB_OT_TAG_GPOS, script_index, lang_index, 0, &count, myResult);
+		// DBG cerr <<" All the GPOS features for cur lang+script:  ";
+		// for (int cc=0; cc<(int)count; cc++) {
+		// 	hb_tag_to_string(myResult[cc], tagstr);
+		// 	DBG cerr <<tagstr<<"  ";
+		// }
+		// DBG cerr << endl;
 
 
 		  //Shape it!
@@ -700,9 +701,7 @@ void CaptionData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *co
 
 	if (what==-1) {
 		fprintf(f,"%smatrix 1 0 0 1 0 0   #transform of the whole object\n",spc);
-		fprintf(f,"%sfontfamily sans      #Family name of font\n",spc);
-		fprintf(f,"%sfontstyle normal     #Style name of font\n",spc);
-		fprintf(f,"%sfontfile /path/to/it #File on disk to use. Overrides whatever is in family and style.\n",spc);
+		fprintf(f,"%sfont                 #Font to use\n",spc);
 		fprintf(f,"%sfontsize 12          #hopefully this is point size\n",spc);
 		fprintf(f,"%slinespacing 1        #percentage different from font's default spacing\n",spc);
 		fprintf(f,"%sdirection lrtb       #lrtb, lrbt, rltb, rlbt, tblr, tbrl, btlr, btrl, or guess\n",spc);
@@ -750,9 +749,7 @@ LaxFiles::Attribute *CaptionData::dump_out_atts(Attribute *att,int what,DumpCont
 
 	if (what==-1) {
 		att->push("matrix", "1 0 0 1 0 0", "An affine matrix of 6 numbers");
-		att->push("fontfamily", "sans",    "Family name of font");
-		att->push("fontstyle", "normal",   "Style name of font");
-		att->push("fontfile", "/path/to/it","File on disk to use. Overrides whatever is in family and style.");
+		att->push("font", "...",           "Font to use");
 		att->push("fontsize", "12",        "hopefully this is point size");
 		att->push("linespacing", "1",      "percentage different from font's default spacing");
 		att->push("direction", "lrtb",     "lrtb, lrbt, rltb, rlbt, tblr, tbrl, btlr, btrl, or guess");
@@ -768,8 +765,12 @@ LaxFiles::Attribute *CaptionData::dump_out_atts(Attribute *att,int what,DumpCont
 	att->push("matrix", scratch);
 
 	
-	Attribute *att2=att->pushSubAtt("font");
-	font->dump_out_atts(att2, what, context);
+	if (font->ResourceOwner() != this) {
+		att->pushStr("font", -1, "resource: %s", font->Id());
+	} else {
+		Attribute *att2=att->pushSubAtt("font");
+		font->dump_out_atts(att2, what, context);
+	}
 
 	att->push("fontsize",fontsize);
 	att->push("linespacing",linespacing);
@@ -841,21 +842,33 @@ void CaptionData::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *co
 			SetText(value);
 
 		} else if (!strcmp(name,"font")) {
-			FontManager *fontmanager = InterfaceManager::GetDefault()->GetFontManager();
-			if (newfont) newfont->dec_count();
-			newfont=fontmanager->dump_in_font(att->attributes.e[c], context);
+			if (!strncmp_safe(value, "resource:", 9)) {
+				value += 9;
+				while (isspace(*value)) value++;
+				InterfaceManager *imanager=InterfaceManager::GetDefault(true);
+				ResourceManager *rm=imanager->GetResourceManager();
+				LaxFont *nfont = dynamic_cast<LaxFont*>(rm->FindResource(value,"Font"));
+				if (nfont) {
+					if (newfont) newfont->dec_count();
+					newfont = nfont;
+				} else {
+					DBG cerr << "Missing font resource! "<<value<<endl;
+				}
+
+			} else if (att->attributes.e[c]->attributes.n) {
+				FontManager *fontmanager = InterfaceManager::GetDefault()->GetFontManager();
+				if (newfont) newfont->dec_count();
+				newfont=fontmanager->dump_in_font(att->attributes.e[c], context);
+			}
 
 		} else if (!strcmp(name,"fontfile")) {
 			file=value;
-			//makestr(fontfile, value);
 
 		} else if (!strcmp(name,"fontfamily")) {
 			family=value;
-			//makestr(fontfamily, value);
 
 		} else if (!strcmp(name,"fontstyle")) {
 			style=value;
-			//makestr(fontstyle, value);
 
 		} else if (!strcmp(name,"fontsize")) {
 			DoubleAttribute(value,&fontsize);
@@ -944,6 +957,14 @@ bool CaptionData::IsBlank()
 	return true;
 }
 
+void CaptionData::ColorRGB(double r, double g, double b, double a)
+{
+	red = r;
+	green = g;
+	blue = b;
+	if (a >= 0) alpha = a;
+}
+
 /*! Convert backslashed escapes to normal string.
  * This means "\\n" is newline, "\\t" tab, "\\U002F" and "\\u002f" are the
  * corresponding unicode character, "\\(any other char)" is (any other char).
@@ -982,10 +1003,12 @@ int CaptionData::SetTextEscaped(const char *newtext)
 				if (endptr != newtext+from+2) {
 					//was valid number
 					from = endptr - newtext;
-					int len = utf8encode(i, utf8);
-					if (len + spos > maxstr) extendstr(newstr, maxstr, 20+len);
-					strncpy(newstr+spos, utf8, len);
-					spos += len;
+					if (i >= 32 || i == 10 || i == 9) { //don't allow non-character ascii other than nl, tab
+						int len = utf8encode(i, utf8);
+						if (len + spos > maxstr) extendstr(newstr, maxstr, 20+len);
+						strncpy(newstr+spos, utf8, len);
+						spos += len;
+					}
 					continue;
 				}
 			}
@@ -1260,7 +1283,7 @@ int CaptionData::Font(LaxFont *newfont)
 	makestr(fontstyle, font->Style());
 	makestr(fontfile,  font->FontFile());
 
-	DBG cerr <<"------------ new font size a,d,h, fs: "<<font->ascent()<<", "<<font->descent()<<", "<<font->textheight()<<"   "<<fontsize<<endl;
+	DBG cerr <<"---- caption: linked new font size a,d,h, fs: "<<font->ascent()<<", "<<font->descent()<<", "<<font->textheight()<<"   "<<fontsize<<endl;
 
 	needtorecache=true;
 	state=0;
@@ -1285,7 +1308,7 @@ int CaptionData::Font(const char *file, const char *family,const char *style,dou
 	makestr(fontfamily,family ? family : font->Family());
 	makestr(fontstyle, style  ? style  : font->Style());
 
-	DBG cerr <<"------------ new font size a,d,h, fs: "<<font->ascent()<<", "<<font->descent()<<", "<<font->textheight()<<"   "<<fontsize<<endl;
+	DBG cerr <<"------ caption: new font size a,d,h, fs: "<<font->ascent()<<", "<<font->descent()<<", "<<font->textheight()<<"   "<<fontsize<<endl;
 
 	needtorecache=true;
 	state=0;
@@ -1831,8 +1854,8 @@ int CaptionInterface::Refresh()
 	}
 
 	if (!data) return 1;
-		
-	dp->font(data->fontfamily,data->fontstyle,data->fontsize);//1 for real size, not screen size
+	
+	dp->font(data->font);
 	if (data->NeedToRecache()) {
 		 //need to find line lengths
 		data->FindBBox();
@@ -1855,17 +1878,13 @@ int CaptionInterface::Refresh()
 			  ur=dp->realtoscreen(flatpoint(data->maxx,data->miny)), 
 			  ll=dp->realtoscreen(flatpoint(data->minx,data->maxy)), 
 			  lr=dp->realtoscreen(flatpoint(data->maxx,data->maxy));
-	//flatpoint cursor=ul;
-	//flatpoint advance=ur-ul;
 	flatpoint v=ll-ul;
 	v=v/norm(v);
-	//double boxtotalheight=norm(ul-ll);
-	//double lineheight=boxtotalheight/data->lines.n;
 
-	DBG fprintf(stderr,"draw caption scr coords: %ld: ul:%g,%g ur:%g,%g ll:%g,%g lr:%g,%g\n",
-	DBG		data->object_id,ul.x,ul.y,ur.x,ur.y,ll.x,ll.y,lr.x,lr.y);
-	DBG fprintf(stderr,"     caption bounds:    w:%g  h:%g\n",
-	DBG		norm(ul-ur),norm(ul-ll));
+	// DBG fprintf(stderr,"draw caption scr coords: %ld: ul:%g,%g ur:%g,%g ll:%g,%g lr:%g,%g\n",
+	// DBG		data->object_id,ul.x,ul.y,ur.x,ur.y,ll.x,ll.y,lr.x,lr.y);
+	// DBG fprintf(stderr,"     caption bounds:    w:%g  h:%g\n",
+	// DBG		norm(ul-ur),norm(ul-ll));
 	
 	 // check for positive intersection of transformed image to dp view area
 	DoubleBBox bbox(ul);
@@ -1877,10 +1896,6 @@ int CaptionInterface::Refresh()
 		//if (!coc) dp->PopAxes();
 		return -1;
 	}
-	//---or---
-	//flatpoint pts[4]={dp->screentoreal(ul,ur,ll,lr)}
-	//bbox.bounds(pts,4);
-	//bbox.intersect(data->minx,data->maxx,data->miny,data->maxy, settointersection);
 
 	
 	 // draw control points;
