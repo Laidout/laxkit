@@ -295,7 +295,7 @@ bool ColorBase::Parse(const char *buffer, int len, const char **endptr)
 		//success!
 		SetRGB(d[0], d[1], d[2], d[3]);
 	}
-	delete buf;
+	delete[] buf;
 	return status;
 }
 
