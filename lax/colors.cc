@@ -1030,6 +1030,11 @@ Color *ColorManager::newColor(int systemid, ScreenColor *color)
 	return newColor(systemid, 4, color->red/65535., color->green/65535., color->blue/65535., color->alpha/65535.);
 }
 
+Color *ColorManager::newColor(int systemid, const ScreenColor &color)
+{
+	return newColor(systemid, 4, color.red/65535., color.green/65535., color.blue/65535., color.alpha/65535.);	
+}
+
 Color *ColorManager::newColor(LaxFiles::Attribute *att)
 {
 	if (!att) return nullptr;

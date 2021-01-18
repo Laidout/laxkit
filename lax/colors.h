@@ -255,6 +255,7 @@ class ColorManager : public anObject
 
 	static Color *newColor(int systemid, int nvalues, ...);
 	static Color *newColor(int systemid, ScreenColor *color);
+	static Color *newColor(int systemid, const ScreenColor &color);
 	static Color *newColor(LaxFiles::Attribute *att);
 		
 	ColorManager();
