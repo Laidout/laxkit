@@ -35,8 +35,6 @@
 #include <lax/laximages.h>
 #include <lax/lists.h>
 #include <lax/palette.h>
-#include <lax/resources.h>
-
 
 
 namespace Laxkit {
