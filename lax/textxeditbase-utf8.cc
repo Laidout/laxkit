@@ -278,7 +278,7 @@ int TextXEditBaseUtf8::Paste()
 	if (!c) return 0;
 	insstring(c,1);
 	delete[] c;
-	return 0;
+	return 1;
 }
 
 /*! Xlib specific. Return the selected text, or NULL if no selection.

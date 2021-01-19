@@ -731,7 +731,9 @@ int LineEdit::CharInput(unsigned int ch,const char *buffer,int len,unsigned int 
 			if (state&ControlMask) { // cntl+ins: copy
 				if (sellen) Copy();
 			} else if (state&ShiftMask) { /*shift+ins: paste*/	
-				if (!readonly()) selectionPaste(0,"UTF8_STRING");
+				if (!readonly()) {
+					if (!Paste()) selectionPaste(0,"UTF8_STRING");
+				}
 				needtodraw=1;
 			}		
 			return 0; // ins
