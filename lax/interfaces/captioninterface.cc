@@ -2092,7 +2092,7 @@ int CaptionInterface::UseThis(anObject *newdata,unsigned int) // assumes not use
         DBG cerr <<"Caption new color stuff"<< endl;
         LineStyle *nlinestyle=dynamic_cast<LineStyle *>(newdata);
 
-        if (nlinestyle->mask&GCForeground) {
+        if (nlinestyle->mask & (LINESTYLE_Color | LINESTYLE_Color2)) {
 			data->red  =nlinestyle->color.red/65535.;
 			data->green=nlinestyle->color.green/65535.;
 			data->blue =nlinestyle->color.blue/65535.;

@@ -1134,7 +1134,7 @@ int GradientInterface::UseThis(anObject *newdata,unsigned int) // assumes not us
 	if (data && dynamic_cast<LineStyle *>(newdata)) { // make all selected points have this color
 		DBG cerr <<"Grad new color stuff"<< endl;
 		LineStyle *nlinestyle=dynamic_cast<LineStyle *>(newdata);
-		if (nlinestyle->mask&GCForeground) if (data && curpoints.n) {
+		if (data && curpoints.n && (nlinestyle->mask & (LINESTYLE_Color | LINESTYLE_Color2))) {
 			//int r=data->strip->colors.e[c]->red,g=data->strip->colors.e[c]->green,b=data->strip->colors.e[c]->blue;
 			for (int c=0; c<curpoints.n; c++) {
 				data->strip->SetColor(curpoints.e[c], &nlinestyle->color);

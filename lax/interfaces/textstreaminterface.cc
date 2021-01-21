@@ -112,12 +112,7 @@ int TextStreamInterface::UseThis(anObject *nobj, unsigned int mask)
 //	if (!nobj) return 1;
 //	LineStyle *ls=dynamic_cast<LineStyle *>(nobj);
 //	if (ls!=NULL) {
-//		if (mask&GCForeground) { 
-//			linecolor=ls->color;
-//		}
-////		if (mask&GCLineWidth) {
-////			linecolor.width=ls->width;
-////		}
+//      ***
 //		needtodraw=1;
 //		return 1;
 //	}

@@ -529,6 +529,8 @@ class PathInterface : public anInterface
 	virtual void DrawBaselines();
 	virtual void DrawOutlines();
 
+	virtual void UpdateViewportColor();
+
  public:
 	 // the following three comprise the default PathInterface settings.
 	unsigned long controlcolor;

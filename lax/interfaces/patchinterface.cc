@@ -2808,9 +2808,6 @@ void PatchData::patchpoint(PatchRenderContext *context,double s0,double ds,doubl
 			pp[i]=context->getPoint(S,T); // computes (S Cx T,S Cy T), is already in screen coords
 			
 			if (r>0 && c>0) {
-				//XSetForeground(app->dpy,app->gc(),col[a][c]);
-				//XFillPolygon(app->dpy,dp->GetWindow(),dp->GetGC(),pp+(c-1)*2,4,Convex,CoordModeOrigin);
-				//-------
 				renderTriangleToBuffer(context->buffer, context->bufferwidth, context->bufferheight,
 									   pp[i],pp[i+1],pp[i+2],
 									   &col[a][c]);
@@ -3316,11 +3313,11 @@ int PatchInterface::UseThis(anObject *nobj,unsigned int mask) // assumes not use
 	if (dynamic_cast<LineStyle *>(nobj)) {
 		//DBG cerr <<"PatchInterface: new linestyle"<<endl;
 		LineStyle *nlinestyle=dynamic_cast<LineStyle *>(nobj);
-		if (mask&GCForeground) {
+		if (mask & (LINESTYLE_Color | LINESTYLE_Color2)) {
 			if (data) data->linestyle.color=nlinestyle->color;
 			else linestyle.color=nlinestyle->color;
 		}
-		if (mask&GCLineWidth) {
+		if (mask & LINESTYLE_Width) {
 			if (data) data->linestyle.width=nlinestyle->width; 
 			else linestyle.width=nlinestyle->width;
 		}

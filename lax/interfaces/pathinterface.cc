@@ -424,13 +424,13 @@ LaxFiles::Attribute *Path::dump_out_atts(LaxFiles::Attribute *att,int what, LaxF
 		if (!att) att=new Attribute;
 		att->push("linestyle", nullptr, "standard linestyle attributes");
 		att->push("closed",nullptr,"flag to indicate that this path is a closed path");
-		att->push("points"  "1 2             #a vertex point with corner controls\n"
-							"vs 1 2          #a vertex point with smooth controls\n"
-							"vS 1 2          #a vertex point with really smooth controls\n"
-							"vc 1 2          #a vertex point with corner controls\n"
-							"ve 1 2          #a vertex point with corner equal controls\n"
-							"p 1.5 2.5       #a bezier control point of the previous vertex\n"
-							"n 3 5           #a bezier control point of the next vertex\n");
+		att->push("points", "1 2       \n"
+							"vs 1 2    \n"
+							"vS 1 2    \n"
+							"vc 1 2    \n"
+							"ve 1 2    \n"
+							"p 1.5 2.5 \n"
+							"n 3 5     \n",    "v is vertex, p or n is control for previous or next, s smooth, S really smooth, c corner, e corner-equal");
 		att->push("weight", "1.5 0 1 0",     "zero or more weight nodes. Numbers are (t bez parameter) (offset from normal path) (width) (angle, optional)");
 		//att->push("segment controllername","a non-straight-line and non-bezier segment");
 		//att->push("  asbezier p 3 5 n 2 4 5 6  # Important! bezier approximation of the segment.");
@@ -5199,6 +5199,7 @@ int PathInterface::UseThisObject(PathsData *ndata, const double *extramatrix)
 	if (data != ndata) {
 		data = ndata;
 		data->inc_count();
+		UpdateViewportColor();
 	}
 	if (poc) delete poc;
 	poc = nullptr;
@@ -5251,6 +5252,7 @@ int PathInterface::UseThisObject(ObjectContext *oc)
 		SetCurvertex(data->paths.e[data->paths.n-1]->path->lastPoint(1));
 	}
 
+	UpdateViewportColor();
 	needtodraw=1;
 	return 1;
 }
@@ -5266,14 +5268,14 @@ int PathInterface::UseThis(anObject *newdata,unsigned int mask)
 		 //***
 		DBG cerr <<"LineInterface new color stuff"<<endl;
 		LineStyle *nlinestyle=dynamic_cast<LineStyle *>(newdata);
-		if (mask&GCForeground) {
-			if (colortofill) { if (data) data->fill(&nlinestyle->color); }
-			else {
-				if (data && data->linestyle) data->linestyle->color=nlinestyle->color;
-				else linestyle->color=nlinestyle->color;
-			}
+		if (mask & LINESTYLE_Color) {
+			if (data && data->linestyle) data->linestyle->color=nlinestyle->color;
+			else linestyle->color=nlinestyle->color;
 		}
-		if (mask&GCLineWidth) {
+		if (mask & LINESTYLE_Color2) {
+			if (data) data->fill(&nlinestyle->color);
+		}
+		if (mask & LINESTYLE_Width) {
 			if (data && data->linestyle) data->linestyle->width=nlinestyle->width;
 			else linestyle->width=nlinestyle->width;
 		}
@@ -6702,6 +6704,8 @@ int PathInterface::Event(const Laxkit::EventData *e_data, const char *mes)
 		if (i > PATHIA_None && i < PATHIA_MAX) PerformAction(i);
 		
 		return 0;
+
+	// } else if (!strcmp(mes,"curcolor")) {
 	}
 
 	return 1;
@@ -6813,6 +6817,7 @@ int PathInterface::LBDown(int x,int y,unsigned int state,int count,const LaxMous
 					if (data->paths.n && data->paths.e[data->paths.n-1]->path) {
 						SetCurvertex(data->paths.e[data->paths.n-1]->path->lastPoint(1));
 					}
+					UpdateViewportColor();
 					needtodraw=1;
 					return 0;
 
@@ -7005,7 +7010,10 @@ int PathInterface::AddPoint(flatpoint p)
 {
 
 	// If there is no data, we must create a new data.
-	if (!data) newPathsData();
+	if (!data) {
+		newPathsData();
+		UpdateViewportColor();
+	}
 	p = transform_point_inverse(datam(),p);
 
 	// Any new point is added to the appropriate point after curvertex.
@@ -8151,7 +8159,7 @@ Laxkit::ShortcutHandler *PathInterface::GetShortcuts()
 	sc->Add(PATHIA_ToggleFillRule,    'F',ShiftMask,0,"ToggleFillRule",_("Toggle fill rule"),NULL,0);
 	sc->Add(PATHIA_ToggleFill,        'f',0,0,        "ToggleFill",   _("Toggle fill"),NULL,0);
 	sc->Add(PATHIA_ToggleStroke,      's',0,0,        "ToggleStroke", _("Toggle showing stroke"),NULL,0);
-	sc->Add(PATHIA_ColorFillOrStroke, 'x',0,0,        "ColorDest",    _("Send colors to fill or to stroke"),NULL,0);
+	// sc->Add(PATHIA_ColorFillOrStroke, 'x',0,0,        "ColorDest",    _("Send colors to fill or to stroke"),NULL,0);
 	sc->Add(PATHIA_RollNext,          LAX_Right,0,0,  "RollNext",     _("Select next points"),NULL,0);
 	sc->Add(PATHIA_RollPrev,          LAX_Left,0,0,   "RollPrev",     _("Select previous points"),NULL,0);
 	sc->Add(PATHIA_ToggleAddAfter,    'n',0,0,        "AddAfter",     _("Toggle add after"),NULL,0);
@@ -8370,11 +8378,13 @@ int PathInterface::PerformAction(int action)
 		if (!data) return 0;
 
 		if (data->fillstyle && data->fillstyle->fillstyle!=FillNone) {
-			data->fillstyle->fillstyle=FillNone;
+			data->fillstyle->fillstyle = FillNone;
+			data->fillstyle->function = LAXOP_None;
 			PostMessage(_("Don't fill"));
 		} else {
 			if (!data->fillstyle) data->fillstyle=new FillStyle(*defaultfill);
 			data->fillstyle->fillstyle=FillSolid;
+			data->fillstyle->function = LAXOP_Over;
 			PostMessage(_("Fill"));
 		} 
 		needtodraw=1;
@@ -8392,26 +8402,13 @@ int PathInterface::PerformAction(int action)
 		needtodraw=1;
 		return 0;
 
-	} else if (action==PATHIA_ColorFillOrStroke) {
-		 //toggle send colors to fill or to stroke
-		colortofill=!colortofill;
-		const char *mes=colortofill?_("Send color to fill"):_("Send color to stroke");
-
-		//update the viewport color box
-		ScreenColor *col;
-		if (colortofill) {
-			if (!data->fillstyle) {
-				ScreenColor col(1.,1.,1.,1.);
-				data->fill(&col);
-			}
-			col = &data->fillstyle->color;
-		} else col = &data->linestyle->color;
-
-		SimpleColorEventData *e=new SimpleColorEventData( 65535, col->red, col->green, col->blue, col->alpha, 0);
-		app->SendMessage(e, curwindow->win_parent->object_id, "make curcolor", object_id);
-
-		PostMessage(mes);
-		return 0;
+	// } else if (action==PATHIA_ColorFillOrStroke) {
+	// 	 //toggle send colors to fill or to stroke ..... *** obsolete???
+	// 	colortofill=!colortofill;
+	// 	const char *mes=colortofill?_("Send color to fill"):_("Send color to stroke");
+	// 	UpdateViewportColor();
+	// 	PostMessage(mes);
+	// 	return 0;
 
 	} else if (action==PATHIA_Bevel || action==PATHIA_Miter || action==PATHIA_Round || action==PATHIA_Extrapolate) {
 		int j=LAXJOIN_Bevel;
@@ -8834,6 +8831,31 @@ int PathInterface::PerformAction(int action)
 	}
 
 	return 1;
+}
+
+/*! Update the viewport color box */
+void PathInterface::UpdateViewportColor()
+{
+	if (!data) return;
+
+	ScreenColor *col;
+	if (!data->fillstyle) {
+		// ScreenColor col(1.,1.,1.,1.);
+		data->fill(&data->linestyle->color);
+		data->fillstyle->function = LAXOP_None;
+	}
+	col = &data->fillstyle->color;
+	
+	SimpleColorEventData *e=new SimpleColorEventData( 65535, col->red, col->green, col->blue, col->alpha, 0);
+	e->colormode = COLOR_StrokeFill;
+	e->colorindex = 1;
+	app->SendMessage(e, curwindow->win_parent->object_id, "make curcolor", object_id);
+
+	col = &data->linestyle->color;
+	e = new SimpleColorEventData( 65535, col->red, col->green, col->blue, col->alpha, 0);
+	e->colormode = COLOR_StrokeFill;
+	e->colorindex = 0;
+	app->SendMessage(e, curwindow->win_parent->object_id, "make curcolor", object_id);
 }
 
 int PathInterface::CharInput(unsigned int ch, const char *buffer,int len,unsigned int state,const LaxKeyboard *d)

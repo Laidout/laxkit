@@ -68,14 +68,16 @@ namespace Laxkit {
 
 SimpleColorEventData::SimpleColorEventData()
 {
-	numchannels=0;
-	channels=nullptr;
-	colorsystem=0;
-	colorspecial=0;
-	max=0;
-	id=0;
+	numchannels  = 0;
+	channels     = nullptr;
+	colorindex   = 0;
+	colorsystem  = 0;
+	colorspecial = 0;
+	colormode    = 0;
+	max          = 0;
+	id           = 0;
 
-	type=LAX_ColorEvent; 
+	type = LAX_ColorEvent;
 }
 
 /*! Construct with 4 channel rgba color.
@@ -83,14 +85,17 @@ SimpleColorEventData::SimpleColorEventData()
 SimpleColorEventData::SimpleColorEventData(int nmax, int r,int g, int b, int a, int nid)
 	: max(nmax), numchannels(4)
 {
-	channels=new int[4];
-	channels[0]=r;
-	channels[1]=g;
-	channels[2]=b;
-	channels[3]=a;
-	colorsystem=LAX_COLOR_RGB;
-	type=LAX_ColorEvent; 
-	id=nid;
+	channels     = new int[4];
+	channels[0]  = r;
+	channels[1]  = g;
+	channels[2]  = b;
+	channels[3]  = a;
+	colorindex   = 0;
+	colorsystem  = LAX_COLOR_RGB;
+	colorspecial = 0;
+	colormode    = 0;
+	type         = LAX_ColorEvent;
+	id           = nid;
 }
 
 /*! Construct with 2 channel gray-alpha color.
@@ -98,12 +103,15 @@ SimpleColorEventData::SimpleColorEventData(int nmax, int r,int g, int b, int a, 
 SimpleColorEventData::SimpleColorEventData(int nmax, int gray, int a, int nid)
 	: max(nmax), numchannels(2)
 {
-	channels=new int[2];
-	channels[0]=gray;
-	channels[1]=a;
-	colorsystem=LAX_COLOR_GRAY;
-	type=LAX_ColorEvent;
-	id=nid;
+	channels     = new int[2];
+	channels[0]  = gray;
+	channels[1]  = a;
+	colorindex   = 0;
+	colorsystem  = LAX_COLOR_GRAY;
+	colorspecial = 0;
+	colormode    = 0;
+	type         = LAX_ColorEvent;
+	id           = nid;
 }
 
 /*! Construct with 5 channel cmyka color.
@@ -111,15 +119,18 @@ SimpleColorEventData::SimpleColorEventData(int nmax, int gray, int a, int nid)
 SimpleColorEventData::SimpleColorEventData(int nmax, int c,int m, int y, int k, int a, int nid)
 	: max(nmax), numchannels(5)
 {
-	channels=new int[5];
-	channels[0]=c;
-	channels[1]=m;
-	channels[2]=y;
-	channels[3]=k;
-	channels[4]=a;
-	colorsystem=LAX_COLOR_CMYK;
-	type=LAX_ColorEvent;
-	id=nid;
+	channels     = new int[5];
+	channels[0]  = c;
+	channels[1]  = m;
+	channels[2]  = y;
+	channels[3]  = k;
+	channels[4]  = a;
+	colorindex   = 0;
+	colorsystem  = LAX_COLOR_CMYK;
+	colorspecial = 0;
+	colormode    = 0;
+	type         = LAX_ColorEvent;
+	id           = nid;
 }
 
 SimpleColorEventData::~SimpleColorEventData()
@@ -129,27 +140,31 @@ SimpleColorEventData::~SimpleColorEventData()
 
 double SimpleColorEventData::Valuef(int i) const
 {
-	if (i<0 || i>= numchannels) return 0;
-	return channels[i] / (double) max;
+	if (i < 0 || i >= numchannels) return 0;
+	return channels[i] / (double)max;
 }
 
 
 //------------------------------- ColorEventData -------------------------------
 ColorEventData::ColorEventData()
 {
-	id=info=0;
-	color=nullptr;
-	type=LAX_ColorEvent;
+	id = info  = 0;
+	color      = nullptr;
+	type       = LAX_ColorEvent;
+	colorindex = 0;
+	colormode  = 0;
 }
 
 ColorEventData::ColorEventData(Color *ncolor, int absorbcount, int nid, int ninfo, int ninfo2)
 {
-	color=ncolor;
+	color = ncolor;
 	if (color && !absorbcount) color->inc_count();
-	id=nid;
-	info=ninfo;
-	info2=ninfo2;
-	type=LAX_ColorEvent;
+	id         = nid;
+	info       = ninfo;
+	info2      = ninfo2;
+	colorindex = 0;
+	colormode  = 0;
+	type       = LAX_ColorEvent;
 }
 
 ColorEventData::~ColorEventData()

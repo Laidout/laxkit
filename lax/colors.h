@@ -60,6 +60,8 @@ enum SimpleColorId {
 	COLOR_Stroke,
 	COLOR_Fill,
 	COLOR_Controls,
+	COLOR_FGBG,
+	COLOR_StrokeFill,
 
 	COLOR_CATEGORY_MAX
 };
@@ -70,8 +72,10 @@ class SimpleColorEventData : public EventData
 {
  public:
 	int id;
+	int colorindex;
 	int colorsystem; //one of BasicColorSystems
 	int colorspecial; //one of SimpleColorId
+	int colormode; //0 for single color, or COLOR_FGBG, or COLOR_StrokeFill
 	int max;
 	int numchannels;
 	int *channels;
@@ -95,6 +99,8 @@ class ColorEventData : public EventData
 	Color *color;
 	int id;
 	int info, info2;
+	int colorindex;
+	int colormode; //0 for single color, or COLOR_FGBG, or COLOR_StrokeFill
 
 	ColorEventData();
 	ColorEventData(Color *ncolor,int absorbcount, int nid, int ninfo, int ninfo2);

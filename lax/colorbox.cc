@@ -21,8 +21,8 @@
 //
 
 
-#include <lax/language.h>
 #include <lax/colorbox.h>
+#include <lax/language.h>
 #include <lax/laxutils.h>
 #include <lax/strmanip.h>
 #include <lax/misc.h>
@@ -90,6 +90,10 @@ ColorBox::ColorBox(anXWindow *parnt,const char *nname,const char *ntitle, unsign
   : ColorBase(ctype, c0,c1,c2,c3,c4),
 	anXWindow(parnt,nname,ntitle,nstyle|ANXWIN_DOUBLEBUFFER,nx,ny,nw,nh,brder,prev,nowner,mes)
 {
+	//color1 = color2 = nullptr;
+	strokew = .4;
+	strokeh = .1;
+
 	sendtype=ctype;
 	colorselector=newcolorselector;
 
@@ -144,6 +148,9 @@ ColorBox::ColorBox(anXWindow *parnt,const char *nname,const char *ntitle, unsign
 
 ColorBox::~ColorBox()
 {
+	//if (color1) color1->dec_count();
+	//if (color2) color2->dec_count();
+
 	if (sc) sc->dec_count();
 	if (colorselector) delete colorselector;
 }
@@ -239,6 +246,34 @@ void ColorBox::Updated()
 	needtodraw=1;
 }
 
+int ColorBox::SetIndex(int index)
+{
+	if (index == 0) {
+		colorspecial = special1;
+		colors = color1;
+	} else {
+		colorspecial = special2;
+		colors = color2;
+	}
+	needtodraw = 1;
+	return index ? 1 : 0;
+}
+
+/*! Return 1 for set, else 0. */
+int ColorBox::SetMode(int mode)
+{
+	if      (mode == COLORBOX_FG)         win_style = (win_style & (~(COLORBOX_FGBG|COLORBOX_STROKEFILL|COLORBOX_FG))) | COLORBOX_FG;
+	else if (mode == COLORBOX_FGBG)       win_style = (win_style & (~(COLORBOX_FGBG|COLORBOX_STROKEFILL|COLORBOX_FG))) | COLORBOX_FGBG;
+	else if (mode == COLORBOX_STROKEFILL) win_style = (win_style & (~(COLORBOX_FGBG|COLORBOX_STROKEFILL|COLORBOX_FG))) | COLORBOX_STROKEFILL;
+	else return 0;
+
+	if (mode == COLORBOX_FG) {
+		colorspecial = special1;
+		colors = color1;
+	}
+	needtodraw = 1;
+	return 1;
+}
 
 /*! Should be one of SimpleColorId, but only COLOR_Normal, COLOR_None, COLOR_Knockout, COLOR_Registration
  * are supported by default.
@@ -249,7 +284,7 @@ int ColorBox::SetSpecial(int newspecial)
 	if (newspecial==COLOR_Knockout     && !(win_style&COLORBOX_ALLOW_KNOCKOUT))     return colorspecial;
 	if (newspecial==COLOR_Registration && !(win_style&COLORBOX_ALLOW_REGISTRATION)) return colorspecial;
 
-	int old=ColorBox::SetSpecial(newspecial);
+	int old = ColorBase::SetSpecial(newspecial);
 	needtodraw=1;
 	return old;
 }
@@ -257,11 +292,25 @@ int ColorBox::SetSpecial(int newspecial)
 
 /*! Normalizes all channels to be in range [0..max];
  */
-int ColorBox::send()
+int ColorBox::send(int which)
 {
+	DBG cerr << "send color "<<(which == 1 ? "fill" : (which == 0 ? "stroke" : (colors == color2 ? "fill" : "stroke")))<<endl;
 	if (!win_owner || !win_sendthis) return 0;
 
     SimpleColorEventData *cevent=NULL;
+
+	double *orig_colors = colors;
+	int orig_special = colorspecial;
+
+	bool isfill = false;
+	if (which == -1) isfill = (colors == color2);
+	else if (which) {
+		colors = color2;
+		colorspecial = special2;
+	} else {
+		colors = color1;
+		colorspecial = special1;
+	}
 
     if (sendtype==LAX_COLOR_RGB)
         cevent=new SimpleColorEventData(max,max*Red(),max*Green(),max*Blue(),max*Alpha(),currentid);
@@ -289,11 +338,14 @@ int ColorBox::send()
         DBG cerr <<" WARNING! Unknown color type: "<<sendtype<<endl;
 
     } else {
-		cevent->colorspecial=colorspecial;
-        cevent->colorsystem=sendtype;
+		cevent->colorspecial = colorspecial;
+        cevent->colorsystem = sendtype;
+		cevent->colorindex = isfill ? 1 : 0;
         app->SendMessage(cevent, win_owner,win_sendthis, object_id);
 	}
 
+	colors = orig_colors;
+	colorspecial = orig_special;
 	return 1;
 }
 
@@ -301,6 +353,8 @@ int ColorBox::send()
 //! Change blue by default.
 int ColorBox::RBDown(int x,int y,unsigned int state,int count, const LaxMouse *d)
 {
+	SetCurrentColor(x,y);
+
 	if (!buttondown.any()) {
 		memcpy(oldcolor,colors,5*sizeof(double));
 		oldcolortype=colortype;
@@ -311,6 +365,7 @@ int ColorBox::RBDown(int x,int y,unsigned int state,int count, const LaxMouse *d
 
 int ColorBox::RBUp(int x,int y, unsigned int state, const LaxMouse *d)
 {
+	if (!buttondown.any(d->id, RIGHTBUTTON)) return 0;
 	buttondown.up(d->id, RIGHTBUTTON);
 	if (!buttondown.any(d->id) && ColorChanged()) send();
 	return 0;
@@ -319,6 +374,8 @@ int ColorBox::RBUp(int x,int y, unsigned int state, const LaxMouse *d)
 //! Change green by default.
 int ColorBox::MBDown(int x,int y,unsigned int state,int count, const LaxMouse *d)
 {
+	SetCurrentColor(x,y);
+
 	buttondown.down(d->id, MIDDLEBUTTON, x,y);
 	if (!buttondown.any(d->id)) {
 		memcpy(oldcolor,colors,5*sizeof(double));
@@ -329,9 +386,23 @@ int ColorBox::MBDown(int x,int y,unsigned int state,int count, const LaxMouse *d
 
 int ColorBox::MBUp(int x,int y, unsigned int state, const LaxMouse *d)
 {
+	if (!buttondown.any(d->id, MIDDLEBUTTON)) return 0;
+
 	buttondown.up(d->id, MIDDLEBUTTON);
 	if (!buttondown.any(d->id) && ColorChanged()) send();
 	return 0;
+}
+
+void ColorBox::SetCurrentColor(int x,int y)
+{
+	if (win_style&(COLORBOX_FGBG|COLORBOX_STROKEFILL)) {
+		if (x < win_w * strokew) colors = color1;
+		else if (y < win_h * strokeh) colors = color1;
+		else colors = color2;
+
+	} else {
+		colors = color1;
+	}
 }
 
 //! Change red by default.
@@ -339,6 +410,8 @@ int ColorBox::MBUp(int x,int y, unsigned int state, const LaxMouse *d)
  */
 int ColorBox::LBDown(int x,int y,unsigned int state,int count, const LaxMouse *d)
 {
+	SetCurrentColor(x,y);
+
 	if (!buttondown.any()) {
 		memcpy(oldcolor,colors,5*sizeof(double));
 		oldcolortype=colortype;
@@ -414,6 +487,8 @@ int ColorBox::Event(const EventData *e,const char *mes)
 
 int ColorBox::LBUp(int x,int y,unsigned int state, const LaxMouse *d)
 {
+	if (!buttondown.any(d->id, LEFTBUTTON)) return 0;
+
 	int dragged=buttondown.up(d->id, LEFTBUTTON);
 	if (dragged<3) { 
 		mouseposition(d->id, NULL,&x,&y,NULL,NULL);
@@ -542,39 +617,106 @@ void ColorBox::Refresh()
 	Displayer *dp=MakeCurrent();
 	dp->ClearWindow();
 
-	if (colorspecial!=COLOR_Normal) {
-		draw_special_color(dp, colorspecial, 20, 0,0,win_w,win_h);
+	DBG cerr << "ColorBox::Refresh special1: "<<special1<<", special2: "<<special2<<", special: "<<colorspecial<<", current: "<<(colors == color1 ? "stroke" : "fill")<<endl;
+
+	double *orig_colors = colors;
+	int orig_special = colorspecial;
+
+	colors = color1;
+	bool alpha1 = (special1 == COLOR_Normal && Alpha() < 1);
+	colors = color2;
+	bool alpha2 = (special2 == COLOR_Normal && Alpha() < 1);
+	colors = orig_colors;
+
+	if (alpha1 || alpha2) {
+		//win_themestyle->bg=rgbcolor(Red()*255, Green()*255, Blue()*255);
+		//dp->NewFG(coloravg(0,win_themestyle->bg, Alpha()));
+		//dp->drawthing(win_w/2,win_h/2,win_w/2,win_h/2,1,THING_Diamond);
+		dp->NewFG(.7,.7,.7);
+		dp->NewBG(.3,.3,.3);
+		dp->drawCheckerboard(0,0,win_w,win_h, win_h/4, 0,0);
+	}
+
+	if (win_style&(COLORBOX_FGBG|COLORBOX_STROKEFILL)) {
+		 //two color mode, draw one color over another
+		int offx,offy;
+
+		bool box_on_box = ((win_style & COLORBOX_FGBG) != 0);
+		if (box_on_box) { // boxes of equal size offset in window
+			if (topcolor == color1) {
+				colors = color2;
+				colorspecial = special2;
+				offx=win_w*.2; offy=win_h*.2;
+			} else {
+				colors = color1;
+				colorspecial = special1;
+				offx=0; offy=0;
+			}
+			if (colorspecial != COLOR_Normal) {
+				draw_special_color(dp, colorspecial, 20, offx,offy, win_w*.8,win_h*.8);
+			} else {
+				// dp->NewFG(rgbcolor(Red()*255, Green()*255, Blue()*255));
+				dp->NewFG(Red(), Green(), Blue(), Alpha());
+				dp->drawrectangle(offx,offy, win_w*.8,win_h*.8, 1);
+			}
+
+			if (topcolor == color1) {
+				colors = color1;
+				colorspecial = special1;
+				offx=0; offy=0;
+			} else {
+				colors = color2;
+				colorspecial = special2;
+				offx=win_w*.2; offy=win_h*.2;
+			}
+			if (colorspecial != COLOR_Normal) {
+				draw_special_color(dp, colorspecial, 20, offx,offy, win_w*.8,win_h*.8);
+			} else {
+				// dp->NewFG(rgbcolor(Red()*255, Green()*255, Blue()*255));
+				dp->NewFG(Red(), Green(), Blue(), Alpha());
+				dp->drawrectangle(offx,offy, win_w*.8,win_h*.8, 1);
+			}
+
+		} else { //fill on stroke
+			//stroke color:
+			colors = color1;
+			if (special1 != COLOR_Normal) {
+				draw_special_color(dp, special1, 20, win_w - 2*(1-.5*strokew)*win_w,0, 2*(1-.5*strokew)*win_w,win_h);
+			} else {
+				// dp->NewFG(rgbcolor(Red()*255, Green()*255, Blue()*255));
+				dp->NewFG(Red(), Green(), Blue(), Alpha());
+				dp->drawrectangle(0,0, win_w,win_h, 1);
+			}
+
+			//fill color:
+			colors = color2;
+			if (alpha2) {
+				dp->NewFG(.7,.7,.7);
+				dp->NewBG(.3,.3,.3);
+				dp->drawCheckerboard(win_w*strokew,win_h*strokeh, win_w*(1-strokew),win_h*(1-strokeh), win_h/4, 0,0);
+			}
+			if (special2 != COLOR_Normal) {
+				draw_special_color(dp, special2, 20, win_w*strokew,win_h*strokeh, win_w*(1-strokew),win_h*(1-strokeh));
+			} else {
+				dp->NewFG(Red(), Green(), Blue(), Alpha());
+				// dp->NewFG(rgbcolor(Red()*255, Green()*255, Blue()*255));
+				dp->drawrectangle(win_w*strokew,win_h*strokeh, win_w*(1-strokew),win_h*(1-strokeh), 1);
+			}
+		}
 
 	} else {
-		if (win_style&(COLORBOX_FGBG|COLORBOX_STROKEFILL)) {
-			 //two color mode, draw one color over another
-			double *cc=colors;
-			int offx,offy;
-
-			if (topcolor==color1) { colors=color2; offx=win_w*.2; offy=win_h*.2; }
-			else { colors=color1; offx=0; offy=0; }
-			dp->NewFG(rgbcolor(Red()*255, Green()*255, Blue()*255));
-			dp->drawrectangle(offx,offy, win_w*.8,win_h*.8, 1);
-
-			if (topcolor==color1) { colors=color1; offx=0; offy=0; }
-			else { colors=color2; offx=win_w*.2; offy=win_h*.2; }
-			dp->NewFG(rgbcolor(Red()*255, Green()*255, Blue()*255));
-			dp->drawrectangle(win_w*.2,win_h*.2, win_w*.8,win_h*.8, 1);
-
-			colors=cc;
-
+		 //single color
+		//dp->NewFG(win_themestyle->bg);
+		if (colorspecial != COLOR_Normal) {
+			draw_special_color(dp, colorspecial, 20, 0,0,win_w,win_h);
 		} else {
-			 //single color
-			dp->NewFG(win_themestyle->bg);
+			dp->NewFG(Red(), Green(), Blue(), Alpha());
 			dp->drawrectangle(0,0,win_w,win_h, 1);
 		}
-
-		if (Alpha()<1) {
-			win_themestyle->bg=rgbcolor(Red()*255, Green()*255, Blue()*255);
-			dp->NewFG(coloravg(0,win_themestyle->bg, Alpha()));
-			dp->drawthing(win_w/2,win_h/2,win_w/2,win_h/2,1,THING_Diamond);
-		}
 	}
+
+	colors = orig_colors;
+	colorspecial = orig_special;
 	
 	SwapBuffers();
 	needtodraw=0;
@@ -587,7 +729,6 @@ void ColorBox::Refresh()
 int ColorBox::CharInput(unsigned int ch,const char *buffer,int len,unsigned int state, const LaxKeyboard *d)
 {
 	if (ch=='\t') return anXWindow::CharInput(ch,buffer,len,state,d);
-	
 	
 	 //check shortcuts
 	if (!sc) GetShortcuts();
@@ -613,10 +754,10 @@ int ColorBox::CharInput(unsigned int ch,const char *buffer,int len,unsigned int 
 	else if (buttondown.isdown(d->paired_mouse->id,MIDDLEBUTTON)) b=2;
 	else  b=3;
 
-	if (state&ShiftMask)   b|=SHIFT;
-	if (state&ControlMask) b|=CONTROL;
-	if (state&MetaMask)    b|=META;
-	if (state&AltMask)     b|=ALT;
+	if (state & ShiftMask)   b |= SHIFT;
+	if (state & ControlMask) b |= CONTROL;
+	if (state & MetaMask)    b |= META;
+	if (state & AltMask)     b |= ALT;
 
 	 //clear old mapping
 	for (int c=0; c<8; c++) if (colormap[c]==b) colormap[c]=-1;
@@ -647,19 +788,34 @@ int ColorBox::CharInput(unsigned int ch,const char *buffer,int len,unsigned int 
 
 int ColorBox::PerformAction(int action)
 {
-	if (action==COLORBOXA_SelectNone) {       
+	if (action==COLORBOXA_SelectNormal) {
+		SetSpecial(COLOR_Normal);
+		return 0;
+
+	} else if (action==COLORBOXA_ToggleNone) {
 		if (!(win_style&COLORBOX_ALLOW_NONE)) return 1;
-		SetSpecial(1);
+		SetSpecial(colorspecial == COLOR_Normal ? COLOR_None : COLOR_Normal);
+		return 0;
+
+	} else if (action==COLORBOXA_SelectNone) {
+		if (!(win_style&COLORBOX_ALLOW_NONE)) return 1;
+		SetSpecial(COLOR_None);
 		return 0;
 
 	} else if (action==COLORBOXA_SelectRegistration) {
 		if (!(win_style&COLORBOX_ALLOW_REGISTRATION)) return 1;
-		SetSpecial(2);
+		SetSpecial(COLOR_Registration);
 		return 0;
 
-	} else if (action==COLORBOXA_SelectKnockout) {   
+	} else if (action==COLORBOXA_SelectKnockout) {
 		if (!(win_style&COLORBOX_ALLOW_KNOCKOUT)) return 1;
-		SetSpecial(3);
+		SetSpecial(COLOR_Knockout);
+		return 0;
+
+	} else if (action==COLORBOXA_SwapColors) {
+		if (win_style & COLORBOX_FG) return 1;
+		SwapColors();
+		needtodraw = 1;
 		return 0;
 	}
 
@@ -675,9 +831,12 @@ Laxkit::ShortcutHandler *ColorBox::GetShortcuts()
 
 	sc=new ShortcutHandler(whattype());
 
-	sc->Add(COLORBOXA_SelectNone,          'n',0,0,   "SelectNone",        _("Select \"None\" color"),NULL,0);
+	sc->Add(COLORBOXA_ToggleNone,          'n',0,0,   "ToggleNone",        _("Toggle normal and \"none\" color"),NULL,0);
+	//sc->Add(COLORBOXA_SelectNormal,        'n',0,0,   "SelectNormal",      _("Toggle normal and \"none\" color"),NULL,0);
+	//sc->Add(COLORBOXA_SelectNone,          'x',0,0,   "SelectNone",        _("Select \"None\" color"),NULL,0);
 	sc->Add(COLORBOXA_SelectRegistration,  'r',0,0,   "SelectRegistration",_("Select registration color"),NULL,0);
 	sc->Add(COLORBOXA_SelectKnockout,      'k',0,0,   "SelectKnockout",    _("Select knockout color"),NULL,0);
+	sc->Add(COLORBOXA_SwapColors,          'x',0,0,   "SwapColors",        _("Swap colors"),NULL,0);
 
 	manager->AddArea(whattype(),sc);
 	return sc;

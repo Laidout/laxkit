@@ -200,11 +200,12 @@ int LinesInterface::UseThis(anObject *newdata,unsigned int mask)
 	} else if (dynamic_cast<LineStyle *>(newdata)) { 
 		DBG cerr <<"LinesInterface new color stuff"<<endl;
 		LineStyle *nlinestyle=dynamic_cast<LineStyle *>(newdata);
-		if (mask&GCForeground) {
+
+		if (mask & (LINESTYLE_Color | LINESTYLE_Color2)) {
 			if (data) data->linestyle.color=nlinestyle->color;
 			else linestyle.color=nlinestyle->color;
 		}
-		if (mask&GCLineWidth) {
+		if (mask & LINESTYLE_Width) {
 			if (data) data->linestyle.width=nlinestyle->width;
 			else linestyle.width=nlinestyle->width;
 		}

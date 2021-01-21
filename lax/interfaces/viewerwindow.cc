@@ -239,14 +239,19 @@ int ViewerWindow::Event(const Laxkit::EventData *e,const char *mes)
 			if (!cce) return 0;
 
 			Color *color = cce->color;
+			colorbox->SetIndex(cce->colorindex);
 			colorbox->Set(color->colorsystemid, color->ChannelValue(0), 
 												color->ChannelValue(1), 
 												color->ChannelValue(2), 
 												color->ChannelValue(3), 
 												color->ChannelValue(4)); 
+			if (cce->colormode == 0) colorbox->SetMode(COLORBOX_FG);
+			else if (cce->colormode == COLOR_FGBG) colorbox->SetMode(COLORBOX_FGBG);
+			else if (cce->colormode == COLOR_StrokeFill) colorbox->SetMode(COLORBOX_STROKEFILL);
 			return 0;
 		}
 
+		colorbox->SetIndex(ce->colorindex);
 		if (ce->colorsystem==LAX_COLOR_GRAY)
 			colorbox->SetGray(ce->channels[0]/(double)ce->max,ce->channels[1]/(double)ce->max);
 
@@ -262,6 +267,11 @@ int ViewerWindow::Event(const Laxkit::EventData *e,const char *mes)
 							  ce->channels[2]/(double)ce->max,
 							  ce->channels[3]/(double)ce->max,
 							  ce->channels[4]/(double)ce->max);
+
+		if (ce->colormode == 0) colorbox->SetMode(COLORBOX_FG);
+		else if (ce->colormode == COLOR_FGBG) colorbox->SetMode(COLORBOX_FGBG);
+		else if (ce->colormode == COLOR_StrokeFill) colorbox->SetMode(COLORBOX_STROKEFILL);
+
 		return 0;
 
     } else if (!strcmp(mes,"zoommenu")) {

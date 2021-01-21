@@ -512,14 +512,15 @@ int ViewportWithStack::Event(const EventData *e,const char *mes)
 		} else {
 			cerr << " *** must implement cmyk and gray color event receiving in ViewportWithStack::Event"<<endl;
 		}
+		linestyle.mask = (ce->colorindex == 0 ? LINESTYLE_Color : LINESTYLE_Color2);
 
 //		ViewerWindow *viewer=dynamic_cast<ViewerWindow *>(win_parent); // maybe not always returns non-null
 //		if (viewer) {
 //			if (viewer->curtool) {
-//				if (viewer->curtool->UseThis(&linestyle,GCForeground)) needtodraw=1;
+//				if (viewer->curtool->UseThis(&linestyle, linestyle.mask)) needtodraw=1;
 //			}
 //		} else {
-			for (int c=0; c<interfaces.n; c++) interfaces.e[c]->UseThis(&linestyle,GCForeground);
+			for (int c=0; c<interfaces.n; c++) interfaces.e[c]->UseThis(&linestyle, linestyle.mask);
 			needtodraw=1;
 //		}
 		return 0;

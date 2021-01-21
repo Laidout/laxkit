@@ -51,7 +51,8 @@ class ColorBox : public anXWindow, virtual public ColorBase
 	ButtonDownInfo buttondown;
 	NewWindowObject *colorselector;
 
-	virtual int send();
+	virtual int send(int which=-1);
+	virtual void SetCurrentColor(int x,int y);
 
 	Laxkit::ShortcutHandler *sc;
 	virtual int PerformAction(int action);
@@ -61,13 +62,20 @@ class ColorBox : public anXWindow, virtual public ColorBase
 		COLORBOXA_SelectNone,        
 		COLORBOXA_SelectRegistration,
 		COLORBOXA_SelectKnockout,    
+		COLORBOXA_SelectNormal,    
+		COLORBOXA_SwapColors,    
+		COLORBOXA_ToggleNone,    
 		COLORBOXA_MAX
 	};
 
 	int currentid;
-	double *topcolor;
+	double *topcolor; //for fg/bg mode with one box drawn on the other
 	double step;
 	int sendtype;
+
+	double strokew, strokeh;
+
+	//Color *color1, *color2;
 
 	ColorBox(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
 			 int nx,int ny,int nw,int nh,int brder,
@@ -82,6 +90,8 @@ class ColorBox : public anXWindow, virtual public ColorBase
 	virtual Laxkit::ShortcutHandler *GetShortcuts();
 	virtual int init();
 	virtual int SetSpecial(int newspecial);
+	virtual int SetIndex(int index);
+	virtual int SetMode(int mode);
 	virtual void Refresh();
 	virtual int LBDown(int x,int y,unsigned int state,int count, const LaxMouse *d);
 	virtual int LBUp(int x,int y,unsigned int state, const LaxMouse *d);

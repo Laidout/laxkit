@@ -1349,7 +1349,7 @@ int TextOnPathInterface::UseThis(anObject *nobj, unsigned int mask)
         DBG cerr <<"TextOnPath new color stuff"<< endl;
         LineStyle *nlinestyle=dynamic_cast<LineStyle *>(nobj);
 
-        if (nlinestyle->mask&GCForeground) {
+        if (nlinestyle->mask & (LINESTYLE_Color | LINESTYLE_Color2)) {
             textonpath->color->screen.red  =nlinestyle->color.red;
             textonpath->color->screen.green=nlinestyle->color.green;
             textonpath->color->screen.blue =nlinestyle->color.blue;

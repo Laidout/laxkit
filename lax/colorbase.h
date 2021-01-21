@@ -35,13 +35,13 @@ class ColorBase
   protected:
 	
   public:
-	int colorspecial;
 	int colortype;
 	double channel_min[5],channel_max[5];
 
 	int max;
 	int oldcolortype;
 	int oldcolorspecial;
+	int colorspecial, special1, special2;
 	double oldcolor[5], color1[5],color2[5];
 	double *colors;
 
@@ -82,6 +82,7 @@ class ColorBase
 	virtual char *HexValue(char *buffer);
 	virtual int SetHexValue(const char *hex);
 
+	virtual void SwapColors();
 
 	 //alpha
 	virtual double Alpha(double a);

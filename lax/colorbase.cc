@@ -66,7 +66,7 @@ ColorBase::ColorBase()
 {
 	max=65535;
 
-	colorspecial=COLOR_Normal;
+	colorspecial = special1 = special2 = COLOR_Normal;
 	colortype=LAX_COLOR_RGB;
 	SetColorSystem(colortype);
 
@@ -86,8 +86,8 @@ ColorBase::ColorBase(int ctype, double c0,double c1,double c2,double c3,double c
 {
 	max = nmax;
 
-	colorspecial=COLOR_Normal; //a SimpleColorId
-	colortype=ctype;
+	colorspecial = special1 = special2 = COLOR_Normal; //a SimpleColorId
+	colortype = ctype;
 	SetColorSystem(ctype);
 
 	 //fill in transparency if necessary
@@ -299,6 +299,20 @@ bool ColorBase::Parse(const char *buffer, int len, const char **endptr)
 	return status;
 }
 
+/*! Swap color2 and color1.
+ */
+void ColorBase::SwapColors()
+{
+	double cc[5];
+	memcpy(cc, color2, 5*sizeof(double));
+	memcpy(color2, color1, 5*sizeof(double));
+	memcpy(color1, cc, 5*sizeof(double));
+	int special = special1;
+	special1 = special2;
+	special2 = special;
+	if (colors == color1) colorspecial = special1; else colorspecial = special2;
+}
+
 /*! Return an 8 bit per channel hex argb value in format "#AARRGGBB".
  *
  *  buffer must be at least 10 characters long, or you will segfault.
@@ -345,8 +359,10 @@ int ColorBase::SetHexValue(const char *hex)
  */
 int ColorBase::SetSpecial(int newspecial)
 {
-	int old=colorspecial;
-	colorspecial=newspecial;
+	int old = colorspecial;
+	colorspecial = newspecial;
+	if (colors == color1) special1 = colorspecial;
+	else special2 = colorspecial;
 	return old;
 }
 

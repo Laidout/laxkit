@@ -1083,7 +1083,7 @@ int DelaunayInterface::UseThis(Laxkit::anObject *nobj,unsigned int mask)
 
         LineStyle *nlinestyle=dynamic_cast<LineStyle *>(nobj);
 
-        if (nlinestyle->mask&GCForeground) {
+        if (nlinestyle->mask & (LINESTYLE_Color | LINESTYLE_Color2)) {
 			Color *color=NULL;
 			if (style_target==0)      color = data->color_delaunay;
 			else if (style_target==1) color = data->color_voronoi;

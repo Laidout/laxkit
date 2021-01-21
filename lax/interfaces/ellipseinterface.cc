@@ -602,9 +602,9 @@ int EllipseInterface::UseThis(anObject *nobj,unsigned int mask)
 		DBG cerr <<"Ellipse new color stuff"<<endl;
 
 		LineStyle *nlinestyle = dynamic_cast<LineStyle *>(nobj);
-		if (color_stroke) {
-			if (mask&GCForeground) { if (data) data->linestyle->color = nlinestyle->color; else linestyle.color = nlinestyle->color; }
-			if (mask&GCLineWidth)  { if (data) data->linestyle->width = nlinestyle->width; else linestyle.width = nlinestyle->width; }
+		if (mask & (LINESTYLE_Color | LINESTYLE_Width)) {
+			if (mask & LINESTYLE_Color) { if (data) data->linestyle->color = nlinestyle->color; else linestyle.color = nlinestyle->color; }
+			if (mask & LINESTYLE_Width)  { if (data) data->linestyle->width = nlinestyle->width; else linestyle.width = nlinestyle->width; }
 			needtodraw=1;
 		} else {
 			if (!data) return 1;
@@ -1096,6 +1096,9 @@ int EllipseInterface::LBUp(int x,int y,unsigned int state,const Laxkit::LaxMouse
 			f = data->end * 180 / M_PI;
 			msg = "end_num";
 			label = _("End angle");
+
+		} else if (action == ELLP_WedgeToggle) {
+			data->start = data->end = 0;
 		}
 
 		if (msg) {

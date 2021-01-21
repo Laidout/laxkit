@@ -884,12 +884,15 @@ int ColorPatchInterface::UseThisObject(ObjectContext *oc)
 int ColorPatchInterface::UseThis(anObject *nobj,unsigned int mask) // assumes not use local
 {
     if (!nobj) return 0;
+
 	if (dynamic_cast<ColorPatchData *>(nobj)) { 
 		return PatchInterface::UseThis(nobj,mask);
+
 	} else if (dynamic_cast<LineStyle *>(nobj)) {
 		//DBG cerr <<"ColorPatchInterface: new linestyle"<<endl;
 		LineStyle *nlinestyle=dynamic_cast<LineStyle *>(nobj);
-		if (mask&GCForeground) if (data) {
+
+		if (data && (mask & (LINESTYLE_Color | LINESTYLE_Color2))) {
 			for (int c=0; c<curpoints.n; c++) {
 				 // make all selected vertices have this color
 				if (curpoints.e[c]%data->xsize%3!=0 || curpoints.e[c]/data->xsize%3!=0) continue;
@@ -903,7 +906,6 @@ int ColorPatchInterface::UseThis(anObject *nobj,unsigned int mask) // assumes no
 			}
 			data->touchContents();
 		}
-		//if (mask&GCLineWidth) if (data) data->linestyle.width=nlinestyle->width; else linestyle.width=nlinestyle->width;
 		return 1;
 	}
 	return 0;
@@ -1125,7 +1127,6 @@ void ColorPatchInterface::patchpoint2(PatchRenderContext *context)
 			if (r>0 && c>0) {
 				dp->NewFG(pixelfromcolor(coloravg(&col,coloravg(&cola,col1,col2,s),coloravg(&colb,col3,col4,s),t)));
 				dp->drawlines(pp+(c-1)*2,4,1,1); //draw a filled quadrilateral
-				//XFillPolygon(app->dpy,dp->GetWindow(),app->gc(),pp+(c-1)*2,4,Convex,CoordModeOrigin);
 			}
 		}
 		
