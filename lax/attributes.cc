@@ -1685,7 +1685,10 @@ void Attribute::dump_out(FILE *f, int indent)
 			if (w > namewidth) namewidth = w;
 		}
 		if (attributes.e[c]->value) {
-			w = strlen(attributes.e[c]->value);
+			char *ptr = strchr(attributes.e[c]->value, '\n');
+			if (ptr) {
+				w = ptr - attributes.e[c]->value;
+			} else w = strlen(attributes.e[c]->value);
 			if (w > valuewidth) valuewidth = w;
 		}
 	}
