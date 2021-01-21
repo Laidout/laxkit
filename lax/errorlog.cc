@@ -193,16 +193,16 @@ int ErrorLog::AddWarning(const char *desc, int ninfo, int pos,int line)
 
 int ErrorLog::vAddMessage(int severity, int ninfo, int npos,int nline, const char *fmt, va_list arg)
 {
-	//va_list arg;
+	va_list arg2;
+	va_copy(arg2, arg);
 
-    //va_start(arg, fmt);
-    int c = vsnprintf(NULL, 0, fmt, arg);
-    //va_end(arg);
+    int c = vsnprintf(NULL, 0, fmt, arg2);
+    va_end(arg2);
 
 	char *message = new char[c+1+10];
-	//va_start(arg, fmt);
-	vsnprintf(message, c+1, fmt, arg);
-	//va_end(arg);
+	va_copy(arg2, arg);
+	vsnprintf(message, c+1, fmt, arg2);
+	va_end(arg2);
 
 	int status = AddMessage(0,NULL,NULL, message, severity,ninfo, npos,nline);
 	delete[] message;
