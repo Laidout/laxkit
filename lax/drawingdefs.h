@@ -28,6 +28,7 @@ namespace Laxkit {
 //! Compositing operators for Displayer drawing functions.
 /*!
  * These are basically one to one with Cairo's operators.
+ * Used by LineStyle::function and FillStyle::function.
  */
 enum LaxCompositeOp
 {
