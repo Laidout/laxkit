@@ -151,15 +151,29 @@ void Affine::setRotation(double angle)
 	_m[3]=-y*sin(angle+aangle);
 }
 
+/*! Set angle of xaxis and yaxis..
+ * Does not affect origin. Only sets rotation of axes and preserves scale.
+ */
+void Affine::setShear(double anglex, double angley)
+{
+	double x = norm(xaxis());
+	double y = norm(yaxis());
+	
+	_m[0]= x*cos(anglex);
+	_m[1]=-x*sin(anglex);
+	_m[2]= y*cos(angley);
+	_m[3]=-y*sin(angley);
+}
+
 void Affine::setScale(double sx,double sy)
 {
-	flatpoint v=xaxis();
-	double l2=norm2(v);
-	if (l2) xaxis(v/l2*sx);
+	flatpoint v  = xaxis();
+	double l = norm(v);
+	if (l) xaxis(v / (l * sx));
 
-	v=yaxis();
-	l2=norm2(v);
-	if (l2) yaxis(v/l2*sy);
+	v  = yaxis();
+	l = norm(v);
+	if (l) yaxis(v / (l * sy));
 }
 
 void Affine::setBasis(flatpoint o, flatpoint x,flatpoint y)

@@ -49,6 +49,7 @@ class Affine
 	virtual void setIdentity();
 	virtual bool isIdentity();
 	virtual void setRotation(double angle);
+	virtual void setShear(double anglex, double angley);
 	virtual void setScale(double sx,double sy);
 	virtual void setBasis(flatpoint o, flatpoint x,flatpoint y);
 	virtual void setBasics(double x,double y,double sx,double sy,double angle,double shear);
