@@ -648,6 +648,7 @@ XIC anXApp::CreateXInputContext()
 {
  	 //***this is adapted from fl_new_ic() in src/x11/run.cxx from Fltk.org
 
+	if (xim_ic) return xim_ic;
 	if (!xim) return NULL;
 
 	if (xim_ic) XDestroyIC(xim_ic);
@@ -2812,7 +2813,7 @@ int anXApp::setfocus(anXWindow *win, clock_t t, const LaxKeyboard *kb)
  */
 void anXApp::processXevent(XEvent *xevent)
 {
-	//DBG cerr <<"processXevent() on "<<xlib_event_name(xevent->xany.type)<<endl;
+	DBG cerr <<"processXevent() on "<<xlib_event_name(xevent->xany.type)<<endl;
 
 	EventReceiver *rr=NULL;
 	anXWindow *ww=NULL; //note that rr might not have an associated ww!!
@@ -3781,7 +3782,8 @@ unsigned int composekey(unsigned int k1, unsigned int k2)
 
 #ifdef _LAX_PLATFORM_XLIB
 
-/*! NOTE: *** This is not currently used!
+/*! NOTE: *** This is not currently used! ... used in CoreXlibKeyboard::eventFilter, which these days
+ *            is not used, since XInput2 is used instead
  *
  * \todo since I don't understand how XIM works, this stuff will stay here for the time being.
  *    really it should be mpx compliant!!!
