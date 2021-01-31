@@ -168,6 +168,7 @@ class anInterface : virtual public Laxkit::EventReceiver,
 	virtual double ScreenLine();
 	virtual double NearThreshhold();
 	virtual double NearThreshhold2();
+	virtual double DraggedThreshhold();
 
 	 //input and output
 	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *savecontext);

@@ -278,6 +278,8 @@ anInterface::anInterface(anInterface *nowner,int nid)
  : anInterface()
 {
 	if (nowner) curwindow = nowner->curwindow;
+	id = nid;
+	if (id < 0) id = getUniqueNumber();
 }
 
 //! Constructor to assign just the id, set other stuff to 0.
@@ -285,12 +287,14 @@ anInterface::anInterface(int nid)
  : anInterface()
 {
 	id = nid;
+	if (id < 0) id = getUniqueNumber();
 }
 
 anInterface::anInterface(int nid,Displayer *ndp)
  : anInterface()
 { 
 	id = nid;
+	if (id < 0) id = getUniqueNumber();
 	dp = ndp; 
 	if (dp) curwindow = dynamic_cast<anXWindow*>(dp->GetDrawable());
 	viewport = dynamic_cast<ViewportWindow *>(curwindow); 
@@ -302,6 +306,7 @@ anInterface::anInterface(anInterface *nowner,int nid,Displayer *ndp)
 	owner = nowner;
 	if (nowner) curwindow = nowner->curwindow;
 	id = nid;
+	if (id < 0) id = getUniqueNumber();
 	dp = ndp; 
 	if (dp) curwindow = dynamic_cast<anXWindow*>(dp->GetDrawable());
 	viewport = dynamic_cast<ViewportWindow *>(curwindow); 
@@ -593,6 +598,13 @@ double anInterface::NearThreshhold2()
 {
 	InterfaceManager *imanager=InterfaceManager::GetDefault(true);
 	return imanager->NearThreshhold2();
+}
+
+/*! Screen pixels below which a click down and up is considered not moved.
+ */
+double anInterface::DraggedThreshhold()
+{
+	return 5; // *** should be imanager based and respond to ui or custom settings
 }
 
 //! Do a little extra checking to find what the magnification is.
