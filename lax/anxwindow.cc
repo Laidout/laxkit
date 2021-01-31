@@ -1166,6 +1166,8 @@ int anXWindow::MoveResize(int nx,int ny,int nw,int nh)
  */
 int anXWindow::Event(const EventData *data,const char *mes)
 {
+	DBG cerr <<"event for "<<data->to<<"  from "<<data->from<<": "<<lax_event_name(data->type)<<" \""<<(mes?mes:"-")<<"\""<<endl;
+
 	if (data->type==LAX_onKeyDown) {
 		const KeyEventData *ke=dynamic_cast<const KeyEventData*>(data);
 		return CharInput(ke->key, ke->buffer, ke->len, ke->modifiers, ke->device);
@@ -1331,8 +1333,8 @@ void anXWindow::InitXlibVars(Display *dpy)
  */
 int anXWindow::event(XEvent *e)
 {
-	//DBG cerr <<endl<<"anXWindow::event \""<<WindowTitle()
-	//DBG        <<"\" got event "<<xlib_event_name(e->type)<<" "<<e->xany.serial<<endl;
+	DBG cerr <<endl<<"xevent anXWindow::event() for \""<<WindowTitle()
+	DBG        <<"\", got event "<<xlib_event_name(e->type)<<" "<<e->xany.serial<<endl;
 
 	switch(e->type) {
 		 case ClientMessage: {
