@@ -483,13 +483,15 @@ int bez_intersections(flatpoint P1,flatpoint P2, int isline,
 
 /*! Find intersections between two cubic bezier segments.
  * point_ret and t_ret should be preallocated to hold up to 9 points. If null, don't return those.
- * Return value is number of intersections. There can be at most 9.
+ * Return value is number of intersections (also stored in num_ret). There can be at most 9.
  *
  * t_ret returns t values for the first segment.
  *
  * Strategy is to use de Casteljau's algorithm to repeatedly subdivide, and for each overlapping subdivision,
  * keep going until bbox size is less that threshhold. It is assumed that really small bbox corresponds to 
  * an actual intersection.
+ *
+ * \todo need to check for degenerate cases: control points the same, or both describe a straight line
  */
 int bez_intersect_bez(const flatpoint &p1_1, const flatpoint &c1_1, const flatpoint &c1_2, const flatpoint &p1_2,
 					  const flatpoint &p2_1, const flatpoint &c2_1, const flatpoint &c2_2, const flatpoint &p2_2,
@@ -1121,6 +1123,9 @@ flatpoint *bez_circle(flatpoint *points, int numpoints, double x,double y,double
 	return points;
 }
 
+/*! How long a bezier handle has to be for a given arc of theta radians.
+ * For instance, a 90 degree arc on a unit circle has to be .5523 units long.
+ */
 double bez_arc_handle_length(double radius, double theta)
 {
 	return 4*radius*(2*sin(theta/2)-sin(theta))/3/(1-cos(theta));
