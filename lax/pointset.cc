@@ -347,6 +347,24 @@ anObject *PointSet::PointInfo(int index)
 	return points.e[index]->info;
 }
 
+void PointSet::PointObj::SetInfo(anObject *i, bool absorb) 
+{
+	if (i != info) {
+		if (info) info->dec_count();
+		info = i;
+	}
+	if (!absorb) info->inc_count();
+}
+
+/*! Return 0 for success, or nonzero error such as index out of bounds.
+ */
+int PointSet::SetPointInfo(int index, anObject *data, bool absorb)
+{
+	if (index < 0 || index >= points.n) return 1;
+	points.e[index]->SetInfo(data, absorb);
+	return 0;
+}
+
 flatpoint PointSet::Pop(int which, anObject **data_ret)
 {
 	if (which < 0 || which >= points.n) which = points.n-1;
@@ -426,7 +444,7 @@ void PointSet::GetBBox(DoubleBBox &box)
 /*! Relax trying to maintain at least mindist between points, but also try to
  * stay contained within original bounding box.
  */
-void PointSet::Relax(int maxiterations, double mindist, double damp)
+void PointSet::Relax(int maxiterations, double mindist, double damp, DoubleBBox box)
 {
 	if (points.n < 1) return;
 
@@ -434,18 +452,14 @@ void PointSet::Relax(int maxiterations, double mindist, double damp)
 	double dd;
 
 	// double ff=1; //force multiplier
-	DoubleBBox box;
-	GetBBox(box);
-
-	// double wholew = box.maxx - box.minx;
-	// double wholeh = box.maxy - box.miny;
-
-	flatpoint pts[4];
-	pts[0] = flatpoint(box.minx, box.miny);
-	pts[1] = flatpoint(box.maxx, box.miny);
-	pts[2] = flatpoint(box.maxx, box.maxy);
-	pts[3] = flatpoint(box.minx, box.maxy);
-	// flatpoint datac = (pts[0]+pts[2])/2;
+	
+	// DoubleBBox box;
+	// GetBBox(box);
+	// flatpoint pts[4];
+	// pts[0] = flatpoint(box.minx, box.miny);
+	// pts[1] = flatpoint(box.maxx, box.miny);
+	// pts[2] = flatpoint(box.maxx, box.maxy);
+	// pts[3] = flatpoint(box.minx, box.maxy);
 
 	flatpoint cc1,cc2;
 	flatpoint d;
@@ -503,6 +517,7 @@ void PointSet::Relax(int maxiterations, double mindist, double damp)
 			}
 
 			// // go toward original bounding box if outside
+			//  *** this sucks because bounding box changes each time this func called
 			// if (!point_is_in(cc1, pts,4)) {
 			// 	// if (cc1.x < box.minx) force += flatpoint(box.minx - cc1.x, 0);
 			// 	// else if (cc1.x > box.maxx) force += flatpoint(box.maxx - cc1.x, 0);
@@ -521,6 +536,17 @@ void PointSet::Relax(int maxiterations, double mindist, double damp)
 	}
 }
 
+/*! Make points be point->weight radius away from each other. Optional boundary.
+ */
+void PointSet::RelaxWeighted(int maxiterations, double weightscale, double damp, flatpoint *boundary, int nboundary)
+{
+	cerr << " *** IMPLEMENT PointSet::RelaxWeighted()!!!"<<endl;
+}
+
+void PointSet::MovePoints(double dx, double dy)
+{
+	Map([&](const flatpoint &p, flatpoint &newp) { newp = p+flatpoint(dx,dy); return 1; });
+}
 
 /*! For each point p, set p->info to the index of next hull point, or -1 if not a hull point.
  */
@@ -536,10 +562,22 @@ int PointSet::LoadCSV(const char *file, bool has_headers, const char *xcolumn, c
 	return 1;
 }
 
+#define SAVE_List_XYW 0
+#define SAVE_CSV      1
 int PointSet::Save(const char *file, int format) //0=lines of x,y
 {
-	cerr << " *** IMPLEMENT PointSet::Save()!!!"<<endl;
-	return 1;
+	FILE *f = fopen(file, "w");
+	if (!f) return 1;
+
+	if (format == SAVE_CSV) { //write header
+		fwrite("x, y, weight\n", 1,11, f);
+	}
+	for (int c=0; c<points.n; c++) {
+		fprintf(f, "%.10g, %.10g, %.10g\n", points.e[c]->p.x, points.e[c]->p.y, points.e[c]->weight);
+	}
+
+	fclose(f);
+	return 0;
 }
 
 void PointSet::dump_out(FILE *f,int indent,int what,DumpContext *context)

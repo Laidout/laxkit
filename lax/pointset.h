@@ -110,10 +110,12 @@ class PointSet : public PointCollection, virtual public anObject, virtual public
  	{
  	  public:
  	  	flatpoint p;
+ 	  	double weight;
  	  	anObject *info;
- 	  	PointObj() { info = nullptr; }
- 	  	PointObj(flatpoint pp, anObject *i, bool absorb) { p = pp; info = i; if (i && !absorb) i->inc_count(); }
+ 	  	PointObj() { info = nullptr; weight = 1; }
+ 	  	PointObj(flatpoint pp, anObject *i, bool absorb) { weight = 1; p = pp; info = i; if (i && !absorb) i->inc_count(); }
  	  	virtual ~PointObj() { if (info) info->dec_count(); }
+ 	  	virtual void SetInfo(anObject *i, bool absorb);
  	};
 
  	virtual PointObj *newPointObj(flatpoint pp, anObject *i, bool absorb) { return new PointObj(pp,i,absorb); }
@@ -154,6 +156,7 @@ class PointSet : public PointCollection, virtual public anObject, virtual public
 	virtual flatpoint Pop(int which, anObject **data_ret = nullptr);
 	virtual int NumPoints() { return points.n; }
 	virtual anObject *PointInfo(int index);
+	virtual int SetPointInfo(int index, anObject *data = nullptr, bool absorb=false);
 	virtual int Swap(int index1, int index2);
 	virtual int Slide(int index1, int index2);
 	virtual void Flush();
@@ -166,7 +169,9 @@ class PointSet : public PointCollection, virtual public anObject, virtual public
 	virtual void CreateCircle(int numpoints, double x, double y, double radius);
 
 	// operations
-	virtual void Relax(int maxiterations, double mindist, double damp);
+	virtual void Relax(int maxiterations, double mindist, double damp, DoubleBBox box);
+	virtual void RelaxWeighted(int maxiterations, double weightscale, double damp, flatpoint *boundary, int nboundary);
+	virtual void MovePoints(double dx, double dy);
 
 	//from PointCollection:
 	virtual int Depth() { return 1; } //how many dimensions wide are points stored
