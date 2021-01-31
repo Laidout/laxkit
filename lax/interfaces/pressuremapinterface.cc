@@ -21,7 +21,6 @@
 //
 
 
-
 #include <lax/interfaces/pressuremapinterface.h>
 
 #include <lax/interfaces/somedatafactory.h>
@@ -29,6 +28,7 @@
 #include <lax/laxutils.h>
 #include <lax/language.h>
 
+//template implementation:
 #include <lax/lists.cc>
 
 using namespace Laxkit;
@@ -63,9 +63,12 @@ PressureMapInterface::PressureMapInterface(anInterface *nowner, int nid, Display
 
 	max_ticker=300;
 	cur_ticker=0;
+	ticker_timer = 0;
 	histogram_threshhold=100;
 	max_histogram_value=0;
 	num_histogram_samples=100;
+
+	tick_move = false;
 
 	for (int c=0; c<num_histogram_samples; c++) { histogram.push(0); }
 }
@@ -109,6 +112,7 @@ int PressureMapInterface::InterfaceOn()
 { 
 	showdecs=1;
 	needtodraw=1;
+	ticker_timer = app->addtimer(this, 1.0/30 * 1000, 1.0/30 * 1000, -1);
 	return 0;
 }
 
@@ -117,6 +121,15 @@ int PressureMapInterface::InterfaceOff()
 	Clear(NULL);
 	showdecs=0;
 	needtodraw=1;
+	app->removetimer(this, ticker_timer);
+	ticker_timer = 0;
+	return 0;
+}
+
+int PressureMapInterface::Idle(int tid, double delta)
+{
+	if (!device) return 0;
+	Tick();
 	return 0;
 }
 
@@ -197,7 +210,9 @@ int PressureMapInterface::Refresh()
 	x=(dp->Maxx+dp->Minx)/2-w/2;
 	y=dp->Miny+(dp->Maxy-dp->Miny)*.75;
 	
-	dp->NewFG(coloravg(rgbcolorf(0.,0.,1.),curwindow->win_themestyle->bg));
+	if (buttondown.any())
+		 dp->NewFG(coloravg(rgbcolorf(1.,0.,0.),curwindow->win_themestyle->bg));
+	else dp->NewFG(coloravg(rgbcolorf(0.,0.,1.),curwindow->win_themestyle->bg));
 	dp->drawrectangle(x,y,w,h,0);
 
 	dp->NewFG(0.,0.,1.);
@@ -221,10 +236,8 @@ int PressureMapInterface::Refresh()
 int PressureMapInterface::LBDown(int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d) 
 {
 	buttondown.down(d->id,LEFTBUTTON,x,y);
-	device=d->subid; //normal id is the core mouse, not the controlling sub device
-	DBG cerr <<"device: "<<d->id<<"  subdevice: "<<d->subid<<endl;
-	//LaxDevice *dv=app->devicemanager->findDevice(device);
-	//device_name=dv->name;
+	device = d->subid; //normal id is the core mouse, not the controlling sub device
+
 	needtodraw=1;
 	return 0;
 }
@@ -236,16 +249,14 @@ int PressureMapInterface::LBUp(int x,int y,unsigned int state, const Laxkit::Lax
 	return 0;
 }
 
-/*! \todo *** this isn't very sophisticated, for elegance, should use some kind of 
- * bez curve fitting to cut down on unnecessary points should use a timer so 
- * stopping makes sharp corners and closer spaced points?
- */
-int PressureMapInterface::MouseMove(int x,int y,unsigned int state, const Laxkit::LaxMouse *d)
+void PressureMapInterface::Tick()
 {
-	if (!buttondown.any()) return 1;
-
+	if (!device) return;
+	LaxDevice *d = app->devicemanager->findDeviceSubID(device);
+	if (!d) return;
+	
 	double pressure, tiltx,tilty;
-	const_cast<LaxMouse*>(d)->getInfo(NULL,NULL,NULL,NULL,NULL,NULL,&pressure,&tiltx,&tilty,NULL);
+	dynamic_cast<LaxMouse*>(d)->getInfo(NULL,NULL,NULL,NULL,NULL,NULL,&pressure,&tiltx,&tilty,NULL);
 
 	int i=pressure*100;
 	if (i<0) i=0;
@@ -261,9 +272,21 @@ int PressureMapInterface::MouseMove(int x,int y,unsigned int state, const Laxkit
 		pticker.push(pressure);
 		cur_ticker++;
 		if (cur_ticker==max_ticker) cur_ticker=0;
-	}
+	}	
 
 	DBG cerr <<"pressure:" <<pressure<<endl;
+	needtodraw = 1;
+}
+
+/*! \todo *** this isn't very sophisticated, for elegance, should use some kind of 
+ * bez curve fitting to cut down on unnecessary points should use a timer so 
+ * stopping makes sharp corners and closer spaced points?
+ */
+int PressureMapInterface::MouseMove(int x,int y,unsigned int state, const Laxkit::LaxMouse *d)
+{
+	if (!buttondown.any()) return 1;
+
+	if (tick_move) Tick();
 
 	needtodraw=1;
 	return 0;

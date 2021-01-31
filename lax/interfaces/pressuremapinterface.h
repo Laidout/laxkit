@@ -42,6 +42,9 @@ class PressureMapInterface : public anInterface
 	int max_histogram_value, num_histogram_samples;
 	int histogram_threshhold;
 	int max_ticker, cur_ticker;
+	bool tick_move;
+
+	int ticker_timer;
 
 	int device;
 	std::string device_name;
@@ -53,6 +56,7 @@ class PressureMapInterface : public anInterface
 	//Laxkit::ShortcutHandler *sc;
 
 	virtual int send();
+	virtual void Tick();
 
   public:
 	double smooth_pixel_threshhold;
@@ -66,6 +70,7 @@ class PressureMapInterface : public anInterface
 	const char *whattype() { return "PressureMapInterface"; }
 	const char *whatdatatype() { return NULL; } // is creation only
 	Laxkit::MenuInfo *ContextMenu(int x,int y,int deviceid, Laxkit::MenuInfo *menu);
+	virtual int  Idle(int tid, double delta); //1 means remove timer.
 	//virtual Laxkit::ShortcutHandler *GetShortcuts();
 	//virtual int PerformAction(int action);
 
