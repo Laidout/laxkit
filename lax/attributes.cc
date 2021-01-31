@@ -807,7 +807,7 @@ int LongAttribute(const char *v,long *l,char **endptr)//endptr=NULL
 
 //! Turn v into an int[] of maximum size n. Return the number of integers parsed.
 /*! \ingroup attributes
- * Put in d[] if successful, return number of items parsed. Else don't change d's elements and return 0.
+ * Put in i[] if successful, return number of items parsed. Else don't change i's elements and return 0.
  * The numbers must be separated by whitespace.
  */
 int IntListAttribute(const char *v,int *i,int maxn,char **endptr)//endptr=NULL
