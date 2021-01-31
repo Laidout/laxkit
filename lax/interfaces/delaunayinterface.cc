@@ -350,8 +350,10 @@ void VoronoiData::Width(double newwidth, int which)
 	if (which<0 || which&4) width_points   = newwidth;
 }
 
-void VoronoiData::RelaxBarycenter(int iters, double strength)
+void VoronoiData::RelaxBarycenter(int iters, double strength, DoubleBBox box)
 {
+	// *** TODO implement within box, needs to add extra points to construct boundary
+
 	if (NumPoints() < 3) return;
 
 	if (!triangles.n) {
@@ -681,9 +683,9 @@ DelaunayInterface::DelaunayInterface(anInterface *nowner, int nid, Displayer *nd
 	num_random = 20;
 	num_x = 5;
 	num_y = 5;
-	previous_create = 0;
+	previous_create = VORONOI_MakeRandomRect;
 	relax_iters = 1;
-
+	
 	show_numbers = false; 
 	show_arrows  = false;
 	show_lines   = 3;
@@ -924,6 +926,7 @@ Laxkit::MenuInfo *DelaunayInterface::ContextMenu(int x,int y,int deviceid, MenuI
 	menu->AddItem(_("Make random points in circle"), VORONOI_MakeRandomCircle);
 	menu->AddItem(_("Make grid"), VORONOI_MakeGrid);
 	menu->AddItem(_("Make tri grid in hexagon"), VORONOI_MakeHexChunk);
+
 	if (data) {
 		menu->AddSep();
 		menu->AddToggleItem(_("Show voronoi shapes"), VORONOI_ToggleVoronoi, 0, data->show_voronoi);
@@ -1014,6 +1017,8 @@ int DelaunayInterface::LBUp(int x,int y,unsigned int state, const Laxkit::LaxMou
  */
 int DelaunayInterface::MouseMove(int x,int y,unsigned int state, const Laxkit::LaxMouse *m)
 {
+	move_pos.set(x,y);
+
 	if (!data) return 0;
 
 	if (!buttondown.any()) {
@@ -1123,8 +1128,9 @@ Laxkit::ShortcutHandler *DelaunayInterface::GetShortcuts()
     sc->Add(VORONOI_Thin,          'W',ShiftMask,0,  "Thin",           _("Thin style target"),NULL,0);
     sc->Add(VORONOI_FileExport,    'f',0,0,          "FileOut",        _("Export this point set to a file"),NULL,0); 
     sc->Add(VORONOI_FileImport,    'i',0,0,          "FileIn",         _("Import a point set from a file"),NULL,0); 
-    sc->Add(VORONOI_Relax,         'r',0,0,          "Relax",          _("Relax points"),NULL,0); 
-    sc->Add(VORONOI_RelaxForce,    'R',ShiftMask,0,  "RelaxForce",     _("Relax points using forces between points"),NULL,0); 
+    sc->Add(VORONOI_RepeatLast,    'r',0,0,          "RepeatLast",     _("Repeat last generator"),NULL,0); 
+    sc->Add(VORONOI_Relax,         'R',ShiftMask,0,             "Relax",          _("Relax points"),NULL,0); 
+    sc->Add(VORONOI_RelaxForce,    'R',ShiftMask|ControlMask,0, "RelaxForce",     _("Relax points using forces between points"),NULL,0); 
 
     manager->AddArea(whattype(),sc);
 	return sc;
@@ -1229,19 +1235,22 @@ int DelaunayInterface::PerformAction(int action)
 	} else if (action == VORONOI_MakeRandomRect) {
 		if (!data) DropNewData();
 		else data->Flush();
-		double w = (dp->Maxx - dp->Minx) / 3 / dp->Getmag();
-		double h = (dp->Maxy - dp->Miny) / 3 / dp->Getmag();
-		data->CreateRandomPoints(num_random, 0, -w, w, -h, h);
+		DoubleBBox box;
+		GetDefaultBBox(box);
+		data->CreateRandomPoints(num_random, 0, box.minx, box.maxx, box.miny, box.maxy);
 		Triangulate();
 		previous_create = VORONOI_MakeRandomRect;
 		return 0;
 
-
 	} else if (action == VORONOI_MakeRandomCircle) {
 		if (!data) DropNewData();
 		else data->Flush();
-		double r = (dp->Maxy - dp->Miny) / 3 / dp->Getmag();
-		data->CreateRandomRadial(num_random, 0, 0, 0, r);
+		DoubleBBox box;
+		GetDefaultBBox(box);
+		flatpoint o = box.BBoxPoint(.5,.5);
+		double r1 = box.boxwidth()/2;
+		double r2 = box.boxheight()/2;
+		data->CreateRandomRadial(num_random, 0, o.x, o.y, r1 < r2 ? r1 : r2);
 		Triangulate();
 		previous_create = VORONOI_MakeRandomCircle;
 		return 0;
@@ -1249,9 +1258,9 @@ int DelaunayInterface::PerformAction(int action)
 	} else if (action == VORONOI_MakeGrid) {
 		if (!data) DropNewData();
 		else data->Flush();
-		double w = (dp->Maxx - dp->Minx) / 3 / dp->Getmag();
-		double h = (dp->Maxy - dp->Miny) / 3 / dp->Getmag();
-		data->CreateGrid(num_x, num_y, -w,-h, 2*w, 2*h, LAX_LRTB);
+		DoubleBBox box;
+		GetDefaultBBox(box);
+		data->CreateGrid(num_x, num_y, box.minx,box.miny, box.boxwidth(), box.boxheight(), LAX_LRTB);
 		Triangulate();
 		previous_create = VORONOI_MakeGrid;
 		return 0;
@@ -1259,16 +1268,23 @@ int DelaunayInterface::PerformAction(int action)
 	} else if (action == VORONOI_MakeHexChunk) {
 		if (!data) DropNewData();
 		else data->Flush();
-		double r = (dp->Maxy - dp->Miny) / 3 / dp->Getmag();
-		data->CreateHexChunk(r, num_x);
+		DoubleBBox box;
+		GetDefaultBBox(box);
+		flatpoint o = box.BBoxPoint(.5,.5);
+		double r1 = box.boxwidth()/2;
+		double r2 = box.boxheight()/2;
+		data->CreateHexChunk(r1 < r2 ? r1 : r2, num_x);
+		data->MovePoints(o.x, o.y);
 		Triangulate();
 		previous_create = VORONOI_MakeHexChunk;
 		return 0;
 
 	} else if (action == VORONOI_Relax) {
 		if (!data) return 0;
-		// data->Relax(relax_iters, .5, .1);
-		data->RelaxBarycenter(relax_iters, 1);
+		DoubleBBox box;
+		GetDefaultBBox(box);
+		// data->Relax(relax_iters, .5, .1, box);
+		data->RelaxBarycenter(relax_iters, 1, box);
 		Triangulate();
 		PostMessage(_("Relaxing..."));
 		needtodraw = 1;
@@ -1276,16 +1292,35 @@ int DelaunayInterface::PerformAction(int action)
 
 	} else if (action == VORONOI_RelaxForce) {
 		if (!data) return 0;
-		data->Relax(relax_iters, .5, .1);
+		DoubleBBox box;
+		GetDefaultBBox(box);
+		data->Relax(relax_iters, .5, .1, box);
 		// data->Relax(relax_iters, 1);
 		Triangulate();
 		PostMessage(_("Relaxing..."));
 		needtodraw = 1;
 		return 0;
 
+	} else if (action == VORONOI_RepeatLast) {
+		return PerformAction(previous_create);
 	}
 
 	return 1;
+}
+
+void DelaunayInterface::GetDefaultBBox(Laxkit::DoubleBBox &box)
+{
+	// w/dp->Getmag()
+	box.ClearBBox();
+	flatpoint p = dp->screentoreal(dp->Minx, dp->Miny);
+	flatpoint o = dp->screentoreal((dp->Minx+dp->Maxx)/2, (dp->Miny+dp->Maxy)/2);
+	box.addtobounds(o + (p-o)*.7);
+	p = dp->screentoreal(dp->Maxx, dp->Miny);
+	box.addtobounds(o + (p-o)*.7);
+	p = dp->screentoreal(dp->Maxx, dp->Maxy);
+	box.addtobounds(o + (p-o)*.7);
+	p = dp->screentoreal(dp->Minx, dp->Maxy);
+	box.addtobounds(o + (p-o)*.7);
 }
 
 void DelaunayInterface::DropNewData()
@@ -1364,18 +1399,87 @@ int DelaunayInterface::Event(const Laxkit::EventData *e_data, const char *mes)
 		if (i == VORONOI_MakeRandomRect
 		 || i == VORONOI_MakeRandomCircle
 		 || i == VORONOI_MakeGrid
-		 || i == VORONOI_MakeHexChunk
-		 || i == VORONOI_Relax
+		 || i == VORONOI_MakeHexChunk) {
+			//ask for number
+			const char *mes = nullptr;
+			const char *label = nullptr;
+
+			char str[50];
+			if (i == VORONOI_MakeRandomRect) {
+				mes = "randomrectN";
+				label = _("Num points");
+				sprintf(str, "%d", num_random);
+
+			} else if (i == VORONOI_MakeRandomCircle) {
+				mes = "randomcircleN";
+				label = _("Num points");
+				sprintf(str, "%d", num_random);
+
+			} else if (i == VORONOI_MakeGrid) {
+				mes = "gridN";
+				label = _("Num wide, tall");
+				sprintf(str, "%d, %d", num_x, num_y);
+
+			} else if (i == VORONOI_MakeHexChunk) {
+				mes = "hexN";
+				label = _("Num along edge");
+				sprintf(str, "%d", num_x);
+			}
+
+			double th = app->defaultlaxfont->textheight();
+			DoubleBBox bounds(move_pos.x-5*th, move_pos.x+5*th, move_pos.y-th/2, move_pos.y+th/2);
+			viewport->SetupInputBox(object_id, label, str, mes, bounds);
+			
+		} else if (i == VORONOI_Relax
 		 || i == VORONOI_RelaxForce
 		 || i == VORONOI_TogglePoints
 		 || i == VORONOI_ToggleVoronoi
 		 || i == VORONOI_ToggleShapes
 		 || i == VORONOI_New
+		 || i == VORONOI_RepeatLast
 		 ) {
 		 	PerformAction(i);
 		}
 
-		return 0;   
+		return 0;
+
+	} else if (!strcmp(mes,"randomrectN")) {
+        const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(e_data);
+        int i = 0;
+        if (IntAttribute(s->str, &i) && i > 0) {
+        	num_random = i;
+        	PerformAction(VORONOI_MakeRandomRect);
+        } else PostMessage(_("Huh?"));
+        return 0;
+
+	} else if (!strcmp(mes,"randomcircleN")) {
+		const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(e_data);
+        int i = 0;
+        if (IntAttribute(s->str, &i) && i > 0) {
+        	num_random = i;
+        	PerformAction(VORONOI_MakeRandomCircle);
+        } else PostMessage(_("Huh?"));
+        return 0;
+
+	} else if (!strcmp(mes,"gridN")) {
+		const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(e_data);
+        int i[2];
+        i[0] = i[1] = 0;
+        if (IntListAttribute(s->str, i, 2, nullptr) == 2 && i[0] > 0 && i[1] > 0) {
+        	num_x = i[0];
+        	num_y = i[1];
+        	PerformAction(VORONOI_MakeGrid);
+        } else PostMessage(_("Huh?"));
+        return 0;
+
+	} else if (!strcmp(mes,"hexN")) {
+		const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(e_data);
+        int i = 0;
+        if (IntAttribute(s->str, &i) && i > 0) {
+        	num_x = i;
+        	PerformAction(VORONOI_MakeHexChunk);
+        } else PostMessage(_("Huh?"));
+        return 0;
 	}
 
     return 1;

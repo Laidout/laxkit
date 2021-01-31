@@ -109,7 +109,7 @@ class VoronoiData : virtual public LaxInterfaces::SomeData, virtual public Laxki
 
 	virtual void Width(double newwidth, int which=-1);
 
-	virtual void RelaxBarycenter(int iters, double strength);
+	virtual void RelaxBarycenter(int iters, double strength, Laxkit::DoubleBBox box);
 	virtual flatpoint Centroid(int triangle);
 	virtual flatpoint BarycenterRegion(int point, int *is_inf);
 	virtual int Map(std::function<int(const flatpoint &p, flatpoint &newp)> adjustFunc);
@@ -136,6 +136,7 @@ enum DelaunayInterfaceActions {
 	VORONOI_MakeRandomCircle,
 	VORONOI_MakeGrid,
 	VORONOI_MakeHexChunk,
+	VORONOI_RepeatLast,
 	VORONOI_Relax,
 	VORONOI_RelaxForce,
 	VORONOI_New,
@@ -153,10 +154,13 @@ class DelaunayInterface : public anInterface
 	bool justadded;
 	int style_target;
 	char *last_export;
+	flatpoint move_pos;
+	int previous_create;
 
 	Laxkit::ShortcutHandler *sc;
 
 	virtual void DropNewData();
+	virtual void GetDefaultBBox(Laxkit::DoubleBBox &box);
 
   public:
 	bool show_numbers;
@@ -164,7 +168,6 @@ class DelaunayInterface : public anInterface
 	int show_lines; //&1 for voronoi &2 for delaunay
 	unsigned int delaunay_interface_style;
 	int num_random, num_x, num_y; //inputs for creating funcs
-	int previous_create;
 	int relax_iters;
 
 	DelaunayInterface(anInterface *nowner, int nid,Laxkit::Displayer *ndp);
