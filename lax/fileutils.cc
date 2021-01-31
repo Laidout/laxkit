@@ -834,6 +834,36 @@ char *ExecutablePath()
 	//note: on systems where /proc/self/exe isn't available, argv[0] must be parsed for a variety of formats
 }
 
+/*! Copy file from to to. Return 0 for success or nonzero error.
+ * If !clobber and to exists, then don't copy and return nonzero error.
+ * If clobber, then any file at to is replaced.
+ */
+int CopyFile(const char *from, const char *to, bool clobber)
+{
+	if (!file_exists(from, 1, nullptr)) return 1;
+	if (!clobber && file_exists(to, 1, nullptr)) return 2;
+	FILE *f = fopen(from, "r");
+	if (!f) return 3;
+	FILE *t = fopen(to, "w");
+	if (!t) {
+		fclose(t);
+		return 4;
+	}
+
+	char buf[2048];
+	int c;
+
+	while (!feof(f)) {
+		c = fread(buf, 1, 2048, f);
+		if (c < 2048) break;
+		fwrite(buf, 1, c, t);
+	}
+
+	fclose(f);
+	fclose(t);
+
+	return 0;
+}
 
 
 } //namespace LaxFiles
@@ -887,10 +917,6 @@ long getline(char **lineptr, size_t *n, FILE *stream)
 }
 
 
-
 #endif  //_LAX_PLATFORM_MAC
-
-
-
 
 
