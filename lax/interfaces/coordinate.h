@@ -134,7 +134,7 @@ class Coordinate
 	virtual void append(double x,double y,unsigned long flags=POINT_VERTEX,SegmentControls *ctl=NULL);
 	virtual int close();
 	virtual int isClosed();
-	virtual void connect(Coordinate *np,char after=1);
+	virtual void connect(Coordinate *np, bool after=true);
 	virtual Coordinate *disconnect(bool after=true);
 	virtual Coordinate *detach();
 	virtual Coordinate *detachThrough(Coordinate *p);

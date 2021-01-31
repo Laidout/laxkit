@@ -383,7 +383,7 @@ void Coordinate::append(double x,double y,unsigned long flags,SegmentControls *c
 	newpoint->prev=here;
 }
 
- //! This connects a SINGLE point np either after or before (after==0).
+ //! This connects a SINGLE point np either after *this or before *this (after==0).
  /*! Assumes that np->next==np->prev==NULL. To insert a string of points, use insert().
   *
   * This function only concerns itself with the immediately next connection. It
@@ -391,7 +391,7 @@ void Coordinate::append(double x,double y,unsigned long flags,SegmentControls *c
   * It does not scan down the line. It assumes that the relevant next/prevs
   * are of this and of np are all NULL. It does not do error checking.
   */
-void Coordinate::connect(Coordinate *np,char after)//after=1
+void Coordinate::connect(Coordinate *np, bool after)
 {
 	if (after) {
 		if (next) next->prev=np;
