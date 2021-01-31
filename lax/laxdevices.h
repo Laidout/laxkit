@@ -52,7 +52,11 @@ class LaxDevice
  public:
 	int id;
 	int subid; //an identifier, for instance the xid of the slave device which is current for a master device
+
+#ifdef _LAX_PLATFORM_XLIB
 	XID xid; //XInput2 uses xid. 0 if no associated x device
+#endif
+	
 	char *name;
 	int active; //1 if device is open for business. 0 for not. 
 				//touch devices might implement touch by having 20 possible blobs,
@@ -160,6 +164,7 @@ class DeviceManager
 	virtual int filedescriptors(fd_set *fds, int *n);
 	virtual EventData *getEvents(fd_set *fds);//for any devices that do not use X
 	virtual LaxDevice *findDevice(int id);
+	virtual LaxDevice *findDeviceSubID(int subid);
 	virtual LaxMouse *findMouse(int id);
 
 	virtual int NumDevices() { return devices.n; }

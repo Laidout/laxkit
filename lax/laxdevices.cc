@@ -466,6 +466,13 @@ LaxDevice *DeviceManager::findDevice(int id)
 	return NULL;
 }
 
+//! Return a pointer to the device with the given id, or NULL if not found.
+LaxDevice *DeviceManager::findDeviceSubID(int subid)
+{
+	for (int c=0; c<devices.n; c++) if (devices.e[c]->subid == subid) return devices.e[c];
+	return NULL;
+}
+
 //! Find a LaxMouse with the id, or any mouse if id==0.
 LaxMouse *DeviceManager::findMouse(int id)
 {
