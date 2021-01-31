@@ -1063,29 +1063,40 @@ int FileDialog::Event(const EventData *data,const char *mes)
 
 	} else if (!strcmp(mes,"new file")) {
 		 //text was changed in file input
+		// *** if file is just a file and you hit enter, should trigger send
 
-		 // update path
-		char *full=fullFilePath(NULL);
-		simplify_path(full,1);
-		char *dir,*f=NULL;
-		if (file_exists(full,1,NULL)==S_IFDIR) {
-			dir=full;
-			full=NULL;
-		} else {
-			dir=lax_dirname(full,0);
-			f=newstr(lax_basename(full));
+		if (s->info1 == 1) {
+			const char *ftext = file->GetLineEdit()->GetCText();
+			if (ftext && (strchr(ftext, '/') || strchr(ftext, '\\'))) {
+				 // update path
+				char *full=fullFilePath(NULL);
+				simplify_path(full,1);
+				char *dir,*f=NULL;
+				if (file_exists(full,1,NULL)==S_IFDIR) {
+					dir=full;
+					full=NULL;
+				} else {
+					dir=lax_dirname(full,0);
+					f=newstr(lax_basename(full));
+				}
+				if (dir) {
+					getDirectory(dir);
+					path->SetText(dir);
+					delete[] dir;
+				}
+				int curpos=file->GetLineEdit()->GetCurpos();
+				SetFile(f);
+				file->GetLineEdit()->SetCurpos(curpos);
+				if (f) delete[] f;
+				if (full && previewer) previewer->Preview(full);
+				if (full) delete[] full;
+
+			} else { //file is just a file, trigger send
+				if (!isblank(ftext)) 
+					if (send(1)) closeWindow();
+			}
 		}
-		if (dir) {
-			getDirectory(dir);
-			path->SetText(dir);
-			delete[] dir;
-		}
-		int curpos=file->GetLineEdit()->GetCurpos();
-		SetFile(f);
-		file->GetLineEdit()->SetCurpos(curpos);
-		if (f) delete[] f;
-		if (full && previewer) previewer->Preview(full);
-		if (full) delete[] full;
+
 		return 0;
 
 	} else if (!strcmp(mes,"final")) {
