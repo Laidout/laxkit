@@ -24,7 +24,12 @@
 
 #include <lax/interfaces/aninterface.h>
 #include <lax/interfaces/linestyle.h>
+#include <lax/interfaces/fillstyle.h>
+#include <lax/interfaces/shapebrush.h>
+#include <lax/interfaces/lineprofile.h>
+#include <lax/gradientstrip.h>
 #include <lax/interfaces/coordinate.h>
+
 
 namespace LaxInterfaces { 
 
@@ -59,7 +64,7 @@ enum FreehandEditorStyles {
 class RawPoint {
   public:
 	flatpoint p;
-	int flag;
+	int flag; //used by point simplfier
 	clock_t time;
 	double pressure;
 	double tiltx,tilty;
@@ -72,12 +77,48 @@ typedef Laxkit::PtrStack<RawPoint> RawPointLine;
 class FreehandInterface : public anInterface
 {
   protected:
-	char showdecs;
-	LineStyle linestyle;
-	Laxkit::ShortcutHandler *sc;
-	clock_t ignore_clock_t;
+	enum EditMode { MODE_Normal, MODE_Settings, MODE_BrushSize };
+	EditMode mode;
 
-	Laxkit::anObject *shape_brush;
+	char showdecs;
+	clock_t ignore_clock_t; // ignore_tip_time in clock_t ticks
+	Laxkit::ShortcutHandler *sc;
+
+	Laxkit::PtrStack<RawPointLine> lines; //one line per mouse id
+	Laxkit::NumStack<int> deviceids;
+
+	//----user settings
+	double brush_size; //real size
+	double close_threshhold;
+	double smooth_pixel_threshhold;
+	int ignore_tip_time; //milliseconds of final input to ignore, as pressure produces ugly ends
+	
+	LineStyle default_linestyle;
+	FillStyle default_fillstyle;
+
+	LineStyle *linestyle; //maybe resources.. overrides default
+	FillStyle *fillstyle;
+
+	ShapeBrush *shape_brush;
+	LineProfile *line_profile;
+
+	Laxkit::GradientStrip default_gradient;
+	Laxkit::NumStack<double> gradient_pos;
+	Laxkit::RefPtrStack<Laxkit::GradientStrip> gradients;
+
+	//display settings:
+	Laxkit::ScreenColor linecolor;
+	Laxkit::ScreenColor pointcolor;
+	//----end user settings
+
+	//mode brush size adjust
+	flatpoint size_center;
+	flatpoint last_screen_pos;
+	bool size_dragged;
+
+
+	void SetupSettings();
+	void RefreshSettings();
 
 	int findLine(int id);
 
@@ -90,15 +131,14 @@ class FreehandInterface : public anInterface
 	virtual Coordinate *BezApproximate(RawPointLine *l);
 
   public:
-	unsigned int freehand_style;
-	double brush_size;
-	int ignore_tip_time; //milliseconds of final input to ignore, as pressure produces ugly ends
-	double smooth_pixel_threshhold;
-	Laxkit::ScreenColor linecolor;
-	Laxkit::ScreenColor pointcolor;
+  	enum Actions {
+  		FH_None = 0,
+  		FH_Settings,
+  		FH_MAX
+  	};
 
-	Laxkit::PtrStack<RawPointLine> lines; //one line per mouse id
-	Laxkit::NumStack<int> deviceids;
+	unsigned int freehand_style;
+
 
 	FreehandInterface(anInterface *nowner, int nid,Laxkit::Displayer *ndp);
 	virtual ~FreehandInterface();
@@ -124,10 +164,13 @@ class FreehandInterface : public anInterface
 	//virtual int WheelUp  (int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d);
 	//virtual int WheelDown(int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d);
 	virtual int CharInput(unsigned int ch, const char *buffer,int len,unsigned int state, const Laxkit::LaxKeyboard *d);
-	//virtual int KeyUp(unsigned int ch,unsigned int state, const Laxkit::LaxKeyboard *d);
+	virtual int KeyUp(unsigned int ch,unsigned int state, const Laxkit::LaxKeyboard *d);
 
 	virtual unsigned int SendType(unsigned int type);
+	virtual int Mode(EditMode newmode);
 
+	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *loadcontext);
+	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *savecontext);
 };
 
 } // namespace LaxInterfaces
