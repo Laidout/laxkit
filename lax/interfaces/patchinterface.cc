@@ -24,6 +24,7 @@
 #include <lax/interfaces/interfacemanager.h>
 #include <lax/interfaces/somedatafactory.h>
 #include <lax/interfaces/patchinterface.h>
+#include <lax/interfaces/ellipseinterface.h>
 #include <lax/transformmath.h>
 #include <lax/anxapp.h>
 #include <lax/utf8string.h>
@@ -3060,6 +3061,22 @@ Laxkit::MenuInfo *PatchInterface::ContextMenu(int x,int y,int deviceid, Laxkit::
 	return menu;
 }
 
+int PatchInterface::ActivateCircleInterface()
+{
+	if (child) {
+		if (!strcmp(child->whattype(), "EllipseInterface")) return 0; //already on it!
+		return 2; // some other interface
+	}
+
+	EllipseInterface *el = new EllipseInterface(this, -1, dp);
+
+	child = el;
+	el->owner = this;
+	viewport->Push(el, viewport->HasInterface(object_id)+1,0);
+
+	return 0;
+}
+
 /*! If data->base_path does not exist, nothing is done.
  *
  * If child exists and it is a PathInterface, then tell it to use the current data.
@@ -3074,7 +3091,7 @@ int PatchInterface::ActivatePathInterface()
 	if (child) {
 		if (strcmp(child->whattype(),"PathInterface")) {
 			//child is not a path interface... not sure what to do!!
-			DBG cerr <<" Unknown child inteface in PatchInterface::ActivatePathInterface()"<<endl;
+			DBG cerr <<" Unknown child interface in PatchInterface::ActivatePathInterface()"<<endl;
 			return 2;
 		}
 
@@ -4645,6 +4662,9 @@ int PatchInterface::PerformAction(int action)
 			PostMessage(mes);
 			return 0;
 		}
+
+
+
 		 //*** need to implement clicking select of center r1 r2 s e
 		flatpoint center=screentoreal(curwindow->win_w/2,curwindow->win_h/2);
 		double r1,r2,s,e;

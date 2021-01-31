@@ -267,6 +267,7 @@ class PatchInterface : public anInterface
 	virtual void drawControlPoints();
 	virtual void drawControlPoint(int i);
 	virtual int ActivatePathInterface();
+	virtual int ActivateCircleInterface();
 
 	Laxkit::ShortcutHandler *sc;
 	virtual int PerformAction(int action);
