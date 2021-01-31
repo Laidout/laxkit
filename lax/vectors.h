@@ -58,6 +58,7 @@ class spacevector
 	spacevector(const spacevector &vec) {  x=vec.x; y=vec.y; z=vec.z; info=vec.info;  }
 	spacevector operator-();
 	void normalize();
+	void setLength(double l);
 	void set(double xx,double yy,double zz) { x=xx; y=yy; z=zz; }
 	void set(double *v) { x=v[0]; y=v[1]; z=v[2]; }
 	void get(double *v) { v[0]=x; v[1]=y; v[2]=z; }
@@ -103,6 +104,7 @@ class flatvector
 	flatvector(const flatvector &vec) {  x=vec.x; y=vec.y; info=vec.info; info2=vec.info2; }
 	flatvector operator-();
 	void normalize();
+	void setLength(double l);
 	void set(double xx,double yy) { x=xx; y=yy; }
 	void set(double *v) { x=v[0]; y=v[1]; }
 	void get(double *v) { v[0]=x; v[1]=y; }

@@ -73,6 +73,14 @@ void spacevector::normalize()
 	z/=d;
 }
 
+void spacevector::setLength(double l)
+{
+	double d = norm();
+	if (d == 0) return;
+	x *= l/d;
+	y *= l/d;
+}
+
 //! nonzero if x==x, y==y and z==z
 int operator==(spacevector v1,spacevector v2)
 {
@@ -313,6 +321,14 @@ void flatvector::normalize()
 	double d=sqrt(x*x+y*y);
 	x/=d;
 	y/=d;
+}
+
+void flatvector::setLength(double l)
+{
+	double d = norm();
+	if (d == 0) return;
+	x *= l/d;
+	y *= l/d;
 }
 
 //! v=-v
