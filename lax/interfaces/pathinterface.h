@@ -129,6 +129,7 @@ class Path : public LaxFiles::DumpUtility, public Laxkit::DoubleBBox
 	virtual void append(Coordinate *coord);
 	virtual void appendBezFromStr(const char *value);
 	virtual void AppendPath(Path *p, bool absorb_path, double merge_ends, int at = -1);
+	virtual int MakeRoundedRect(double x, double y, double w, double h, flatpoint *sizes, int numsizes);
 	virtual int removePoint(Coordinate *p, bool deletetoo);
 	virtual void moveTo(flatpoint p);
 	virtual void lineTo(flatpoint p);
@@ -241,6 +242,7 @@ class PathsData : virtual public SomeData
 	virtual void append(double x,double y,unsigned long flags=POINT_VERTEX,SegmentControls *ctl=NULL,int whichpath=-1);
 	virtual void append(flatpoint p,unsigned long flags=POINT_VERTEX,SegmentControls *ctl=NULL,int whichpath=-1);
 	virtual void appendRect(double x,double y,double w,double h,SegmentControls *ctl=NULL,int whichpath=-1);
+	virtual int MakeRoundedRect(int pathi, double x, double y, double w, double h, flatpoint *sizes, int numsizes);
 	virtual void appendEllipse(flatpoint center, double xradius, double yradius, double angle, double offset, int num_vertices, int closed);
 	virtual void appendBezArc(flatpoint center, double angle, int num_vertices);
 	virtual void appendSvg(const char *d);

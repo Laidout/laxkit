@@ -2157,6 +2157,145 @@ Coordinate *Path::lastPoint(int v)
 	return path->lastPoint(v);
 }
 
+/*! Replace the path with a rounded rectangle.
+ *  Returns number of vertices in the resulting path.
+ * 
+ * If numsizes is 1, then sizes[0].x is horizontal radius, and .y is vertical radius for all points.
+ * If numsizes is 4, then sizes is for lower left, lower right, upper right, upper left.
+ * If numsizes is 2 or 3, then it behaves as if it was 1.
+ * If numsizes is > 4, only the first 4 values are used.
+ *
+ * The path points are updated with proper points and flags for a total of between 12 and 24 points, depending
+ * on if the radius at a point is 0 or not. Any extra points already present are removed.
+ *
+ */
+int Path::MakeRoundedRect(double x, double y, double w, double h, flatpoint *sizes, int numsizes)
+{
+	if (!path) path = new Coordinate();
+
+	Coordinate *p = path->firstPoint(0);
+	path = p;
+	if (p->prev) p->disconnect(false);
+	
+	int i[4];
+	i[0] = i[1] = i[2] = i[3] = 0;
+	if (numsizes >= 4) {
+		i[1]=1;
+		i[2]=2;
+		i[3]=3;
+	}
+
+	flatpoint op[4];
+	op[0].set(x,y);
+	op[1].set(x+w,y);
+	op[2].set(x+w,y+h);
+	op[3].set(x,y+h);
+
+	double ins[8]; //in out in out in out ...
+	for (int c=0; c<8; c++) {
+		if (c%2 == 0) ins[c] = sizes[i[c/2]].y;
+		else ins[c] = sizes[i[c/2]].x;
+	}
+
+	double unit_r = bez_arc_handle_length(1, M_PI/2);
+
+	flatpoint vprev, vnext, inp, outp, v;
+	Coordinate *last = nullptr;
+	// double dprev, dnext;
+	int numv = 0;
+	bool skipv;
+
+	for (int c=0; c<4; c++) {
+		vprev = op[(c+3)%4] - op[c];
+		vnext = op[(c+1)%4] - op[c];
+		// dprev = vprev.norm();
+		// dnext = vnext.norm();
+		vprev.normalize();
+		vnext.normalize();
+		inp  = op[c] + vprev * ins[2*c];
+		outp = op[c] + vnext * ins[2*c+1];
+		skipv = false;
+
+		if (c>0) { //connect to prev vertex
+			v = (last->fp - inp)/3;
+			if (v.norm() > 1e-6) {
+				p->fp = inp + 2*v;
+				p->flags = (p->flags & ~(POINT_TONEXT|POINT_VERTEX|POINT_TOPREV)) | POINT_TOPREV;
+				if (!p->next) p->connect(new Coordinate(), true);
+				p = p->next;
+
+				p->fp = inp + v;
+				p->flags = (p->flags & ~(POINT_TONEXT|POINT_VERTEX|POINT_TOPREV)) | POINT_TONEXT;
+				if (!p->next) p->connect(new Coordinate(), true);
+				p = p->next;
+
+			} else skipv = true;
+		}
+
+		if (!skipv) {
+			p->p(inp);
+			p->flags = (p->flags & ~(POINT_TONEXT|POINT_VERTEX|POINT_TOPREV)) | POINT_VERTEX;
+			last = p;
+			numv++;
+			if (!p->next) p->connect(new Coordinate(), true);
+			p = p->next;
+		}
+
+		if (ins[c*2] != 0 || ins[c*2+1] != 0) {
+			//curved corner, v-c-c-v
+			v = op[c] - inp;
+			p->fp = inp + unit_r * v;
+			p->flags = (p->flags & ~(POINT_TONEXT|POINT_VERTEX|POINT_TOPREV)) | POINT_TOPREV;
+			if (!p->next) p->connect(new Coordinate(), true);
+			p = p->next;
+			
+			v = op[c] - outp;
+			p->fp = outp + unit_r * v;
+			p->flags = (p->flags & ~(POINT_TONEXT|POINT_VERTEX|POINT_TOPREV)) | POINT_TONEXT;
+			if (!p->next) p->connect(new Coordinate(), true);
+			p = p->next;
+
+			p->fp = outp;
+			p->flags = (p->flags & ~(POINT_TONEXT|POINT_VERTEX|POINT_TOPREV)) | POINT_VERTEX;
+			last = p;
+			numv++;
+			if (!p->next) p->connect(new Coordinate(), true);
+			p = p->next;
+
+		} // else  simple corner, 1 vertex only, already done
+	}
+
+	// connect final segment
+	v = (path->fp - last->fp)/3;
+	p->fp = last->fp + v;
+	p->flags = (p->flags & ~(POINT_TONEXT|POINT_VERTEX|POINT_TOPREV)) | POINT_TOPREV;
+	if (!p->next) p->connect(new Coordinate(), true);
+	p = p->next;
+
+	p->fp = last->fp + 2*v;
+	p->flags = (p->flags & ~(POINT_TONEXT|POINT_VERTEX|POINT_TOPREV)) | POINT_TONEXT;
+
+	if (p->next) {
+		//delete any extraneous points
+		last = p->next;
+		last->disconnect(false);
+		delete last;
+	}
+
+	p->next = path;
+	path->prev = p;
+
+	//remove extraneous path weights
+	for (int c=pathweights.n-1; c >= 0; c--) {
+		if (pathweights.e[c]->t >= numv) {
+			pathweights.remove(c);
+		}
+	}
+
+	needtorecache = 1;
+	return numv;
+}
+
 /*! If merge_ends >= 0, then collapse endpoints when distance is <= merge_ends.
  * If absorb_path, then deletes p and transfers all Coordinate objects to ourself.
  * at is which vertex to insert path at, or < 1 for insert at end. So if at==0, then
@@ -3673,7 +3812,8 @@ int PathsData::fill(Laxkit::ScreenColor *color)
 	}
 	if (!fillstyle) fillstyle=new FillStyle();
 	fillstyle->Color(color->red,color->green,color->blue,color->alpha);
-	fillstyle->fillstyle=FillSolid;
+	fillstyle->fillstyle= FillSolid;
+	if (fillstyle->function == LAXOP_None) fillstyle->function = LAXOP_Over;
 
 	return 0;
 }
@@ -3846,6 +3986,7 @@ void PathsData::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *cont
 	FindBBox();
 }
 
+//! Find the distance along the path between the bounds, or whole length if tend<tstart.
 double PathsData::Length(int pathi, double tstart,double tend)
 {
 	if (pathi<0 || pathi>=paths.n) return 0;
@@ -4055,6 +4196,21 @@ void PathsData::appendRect(double x,double y,double w,double h,SegmentControls *
 	append(x,y+h,POINT_VERTEX,ctl,whichpath);
 	close(whichpath);
 	FindBBox();
+}
+
+/*! Replace subpath with a rounded rectangle.
+ * If pathi is out of range, then push a new subpath.
+ * Returns number of vertices in the resulting path.
+ */
+int PathsData::MakeRoundedRect(int pathi, double x, double y, double w, double h, flatpoint *sizes, int numsizes)
+{
+	if (pathi < 0 || pathi >= paths.n) {
+		pushEmpty();
+		pathi = paths.n-1;
+	}
+	int ret = paths.e[pathi]->MakeRoundedRect(x,y,w,h,sizes,numsizes);
+	FindBBox();
+	return ret;
 }
 
 void PathsData::appendCoord(Coordinate *coord,int whichpath)
@@ -5388,6 +5544,10 @@ int PathInterface::Refresh()
 	}
 	needtodraw=0;
 
+	// if (!strcmp_safe(data->Id(), "PathsData18")) {
+	// 	cout << "REFRESH"<<endl;
+	// 	data->dump_out(stdout, 2, 0, nullptr);
+	// }
 
 	// ------------ draw data-----------------
 
@@ -8377,7 +8537,7 @@ int PathInterface::PerformAction(int action)
 		 //toggle fill or not
 		if (!data) return 0;
 
-		if (data->fillstyle && data->fillstyle->fillstyle!=FillNone) {
+		if (data->fillstyle && data->fillstyle->function != LAXOP_None && data->fillstyle->fillstyle != FillNone) {
 			data->fillstyle->fillstyle = FillNone;
 			data->fillstyle->function = LAXOP_None;
 			PostMessage(_("Don't fill"));
