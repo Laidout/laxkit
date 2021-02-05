@@ -27,7 +27,9 @@
 #include <lax/anobject.h>
 #include <lax/iobuffer.h>
 #include <lax/screencolor.h>
+
 #include <cstdio>
+#include <functional>
 
 
 namespace LaxFiles {
@@ -66,6 +68,7 @@ class Attribute {
 	virtual Attribute *pushSubAtt(const char *nname, const char *nvalue=nullptr, const char *ncomment=nullptr);
 	virtual int push(Attribute *att, int where);
 	virtual int push(const char *nname);
+	virtual int pushn(const char *nname, int len);
 	virtual int pushStr(const char *nname, int where, const char *fmt, ...);
 	virtual int push(const char *nname,const char *nval, const char *ncomment, int where=-1);
 	virtual int push(const char *nname,const char *nval,  int where=-1);
@@ -184,6 +187,19 @@ int AttributeToJsonFile(const char *jsonfile, Attribute *att, int indent);
 int DumpAttributeToJson(FILE *f, Attribute *att, int indent);
 Attribute *JsonFileToAttribute (const char *jsonfile, Attribute *att);
 Attribute *JsonStringToAttribute (const char *jsonstring, Attribute *att, const char **end_ptr);
+
+
+//---------------------------------- CSV Conversion helpers -------------------------------
+Attribute *CSVFileToAttribute  (Attribute *att, const char *file, const char *delimiter, bool has_headers, int *error_ret);
+Attribute *CSVStringToAttribute(Attribute *att, const char *str, const char *delimiter, bool has_headers, int *error_ret);
+Attribute *CSVToAttribute(Attribute *att, IOBuffer &f, const char *delimiter, bool has_headers, int *error_ret);
+int ParseCSV(IOBuffer &f, const char *delimiter, bool has_headers,
+		std::function<void()> NewRow,
+		std::function<void(const char *content, int len)> NewHeader,
+		std::function<void(const char *content, int len)> NewCell,
+		std::function<void(const char *error)> OnError
+	);
+
 
 } //namespace LaxFiles
 

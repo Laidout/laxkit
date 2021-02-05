@@ -29,6 +29,7 @@
 #include <lax/transformmath.h>
 #include <lax/colors.h>
 #include <lax/cssutils.h>
+#include <lax/language.h>
 
 #include <unistd.h>
 #include <sys/file.h>
@@ -1554,6 +1555,15 @@ int Attribute::push(Attribute *att,int where)
 { 
 	if (att) return attributes.push(att,1,where); 
 	return -1;
+}
+
+/*! Push from a possibly non-null terminated char. len must be >= 0.
+ */
+int Attribute::pushn(const char *nname, int len)
+{
+	Attribute *v = new Attribute();
+	makenstr(v->name, nname, len);
+	return push(v ,-1);
 }
 
 //! Shortcut to push with name and a NULL value to top of stack.
@@ -3241,6 +3251,129 @@ Attribute *JsonStringToAttribute (const char *jsonstring, Attribute *att, const 
 	return nullptr;
 }
 
+
+//---------------------------------- CSV Conversion helpers -------------------------------
+Attribute *CSVFileToAttribute(Attribute *att, const char *file, const char *delimiter, bool has_headers, int *error_ret)
+{
+	IOBuffer buf;
+	if (buf.OpenFile(file, "r") != 0) {
+		if (error_ret) *error_ret = -1;
+		return nullptr;
+	}
+	return CSVToAttribute(att, buf, delimiter, has_headers, error_ret); //reminder: buf auto-closes file
+}
+
+Attribute *CSVStringToAttribute(Attribute *att, const char *str, const char *delimiter, bool has_headers, int *error_ret)
+{
+	IOBuffer buf;
+	if (buf.OpenCString(str) != 0) {
+		if (error_ret) *error_ret = -1;
+		return nullptr;
+	}
+	return CSVToAttribute(att, buf, delimiter, has_headers, error_ret); //reminder: buf auto-closes file
+}
+
+/*! Csv into one subatt per row. Each subatt's subatt is an element in the row.
+ * If att is null, return a new one, else append to att.
+ * On error, error_ret is set (if not null), and nullptr is returned.
+ */
+Attribute *CSVToAttribute(Attribute *att, IOBuffer &f, const char *delimiter, bool has_headers, int *error_ret)
+{
+	bool newatt = false;
+	if (!att) {
+		att = new Attribute();
+		newatt = true;
+	}
+	Attribute *currow = nullptr;
+	long linenum = -1;
+	ParseCSV(f, delimiter, has_headers,
+	 		[&]() { linenum++; currow = att->pushSubAtt("row"); }, //new row
+	 		[&](const char *content, int len) { currow->pushn(content, len); },   // NewHeader,
+	 		[&](const char *content, int len) { currow->pushn(content, len); },   //NewCell
+	 		[&](const char *error) {
+	 			if (newatt) delete att;
+	 			att = nullptr;
+	 		}
+	 		);
+	if (!att && error_ret) *error_ret = -1;
+	return att;
+}
+
+/*! Return 0 for success, nonzero error. */
+int ParseCSV(IOBuffer &f, const char *delimiter, bool has_headers,
+		std::function<void()> NewRow,
+		std::function<void(const char *content, int len)> NewHeader,
+		std::function<void(const char *content, int len)> NewCell,
+		std::function<void(const char *error)> OnError
+	)
+{
+	long linenum = 0;
+	int dlen = strlen(delimiter);
+	char *line = nullptr;
+	char *ptr, *ptr2;
+	size_t n = 0;
+	int c;
+	int err = 0;
+
+	while (!f.IsEOF() && !err) {
+		// pos = f.Curpos();
+		c = f.GetLine(&line,&n);
+		if (!c) break;
+		NewRow();
+
+		ptr = line;
+		if (*ptr == '\n' || (*ptr == '\r' && ptr[1] == '\n')) break; //blank line
+
+		while (ptr && *ptr) {
+			ptr2 = ptr;
+
+			if (*ptr2 != '"') {
+				ptr2 = strstr(ptr, delimiter);
+				if (ptr2) {
+					if (linenum == 0) NewHeader(ptr, ptr2 - ptr);
+					else NewCell(ptr, ptr2-ptr);
+					ptr = ptr2 + dlen;
+
+				} else { //final element
+					ptr2 = ptr;
+					while (*ptr2 && *ptr2 != '\n' && *ptr2 != '\r') ptr2++;
+					if (linenum == 0) NewHeader(ptr, ptr2 - ptr);
+					else NewCell(ptr, ptr2-ptr);
+					break;
+				}
+				ptr2++;
+
+			} else { // read in until unescaped quote.. if eol happens, need to read in next line
+				ptr++;
+				ptr2 = ptr;
+				while (*ptr2 && *ptr2 != '"') {
+					if (*ptr2 == '\\' && ptr2[1] == '"') ptr2 ++;
+					if (!*ptr2 || *ptr2 == '\n' || (*ptr2 == '\r' && ptr2[1] == '\n')) {
+						//hit eol without closing quote, continues on next line
+						// *** punting on multiline cells for now
+						OnError(_("Missing end quote"));
+						err = 1;
+					}
+					ptr2++;
+				}
+				if (!err && *ptr2 != '"') {
+					OnError(_("Missing end quote"));
+					err = 1;
+				} else {
+					if (linenum == 0) NewHeader(ptr, ptr2 - ptr);
+					else NewCell(ptr, ptr2-ptr);
+					ptr = strstr(ptr2, delimiter);
+					if (ptr) ptr += dlen;
+				}
+			}
+		}
+
+		linenum++;
+	}
+	if (line) f.FreeGetLinePtr(line);
+
+	return 0;
+}
 
 } //namespace
 
