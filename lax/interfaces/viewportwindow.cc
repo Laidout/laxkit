@@ -807,6 +807,7 @@ int ViewportWindow::Push(anInterface *i,int where, int absorbcount)
 	if (absorbcount) i->dec_count();
 	i->Dp(dp);
 	i->InterfaceOn();
+	needtodraw = 1;
 	return 0;
 }
 
@@ -860,6 +861,7 @@ anInterface *ViewportWindow::Pop(anInterface *i,char deletetoo)//deletetoo=0
 	if (deletetoo) { interfaces.remove(interfaces.findindex(i)); return NULL; }
 
 	interfaces.popp(i);
+	needtodraw = 1;
 	return i;
 }
 
@@ -1020,7 +1022,7 @@ Laxkit::anXWindow *ViewportWindow::SetupInputBox(unsigned long owner_id, const c
 	}
 
 	if (y+h>win_h) y-=y+h-win_h+8;
-	else if (y<0) y=0;
+	else if (y - (label ? app->defaultlaxfont->textheight() : 0)<0) y = (label ? app->defaultlaxfont->textheight() : 0);
 	if (x+w>win_w) x-=x+w-win_w;
 	else if (x<0) x=0;
 
