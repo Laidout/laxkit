@@ -639,6 +639,7 @@ double bez_t_to_distance(double T, flatpoint p1,flatpoint c1,flatpoint c2,flatpo
 //! Return the numerical tangent at t.
 /*! Note that this is NOT necessarily the visual tangent! If a control point is on the vertex,
  * then the tangent there is the null vector.
+ * Also note the numerical tangent length is 3*(bez handle length).
  */
 flatpoint bez_tangent(double t,flatpoint p1,flatpoint c1,flatpoint c2,flatpoint p2)
 {
