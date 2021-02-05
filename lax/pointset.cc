@@ -58,21 +58,22 @@ anObject *PointSet::duplicate(anObject *ref)
 	if (ref) {
 		PointSet *r = dynamic_cast<PointSet*>(ref);
 		if (r) {
-			set->CopyFrom(r, true);
+			set->CopyFrom(r, 1, 0);
 		}
-	} else set->CopyFrom(this, true);
+	} else set->CopyFrom(this, 1, 0);
 	return set;
 }
 
-/*! If with_info == 0, then ignore info.
+/*! If with_info == 0, then ignore info (any existing info is not modified).
  * If with_info == 1, then link info.
  * If with_info == 2, then duplicate info.
  *
- * Warning: does not flush current points, appends.
+ * If copy_method==0, then replace any current points and clamp to same number of points.
+ * If == 1, append points.
  *
  * Returns number of points added.
  */
-int PointSet::CopyFrom(PointSet *set, int with_info)
+int PointSet::CopyFrom(PointSet *set, int with_info, int copy_method)
 {
 	if (!set) return 0;
 
@@ -81,9 +82,22 @@ int PointSet::CopyFrom(PointSet *set, int with_info)
 		anObject *info = nullptr;
 		if (with_info == 1) { info = set->points.e[c]->info; if (info) info->inc_count(); }
 		else if (with_info == 2 && set->points.e[c]->info) info = set->points.e[c]->info->duplicate(nullptr);
-		AddPoint(set->points.e[c]->p, info, true);
+
+		if (copy_method == 0 || c >= points.n) {
+			AddPoint(set->points.e[c]->p, info, true, set->points.e[c]->weight);
+		} else {
+			points.e[c]->p = set->points.e[c]->p;
+			points.e[c]->weight = set->points.e[c]->weight;
+			if (with_info) points.e[c]->SetInfo(info, true);
+		}
+
 		n++;
 	}
+
+	if (copy_method == 0) {
+		while (points.n > set->points.n) points.remove(points.n-1);
+	}
+
 	return n;
 }
 
@@ -326,14 +340,14 @@ int PointSet::Map(std::function<int(const flatpoint &p, flatpoint &newp)> adjust
 
 //----------------------------- List Management Funcs -----------------------
 
-int PointSet::Insert(int where, flatpoint p, anObject *data, bool absorb)
+int PointSet::Insert(int where, flatpoint p, anObject *data, bool absorb, double weight)
 {
-	return points.push(newPointObj(p,data,absorb), -1, where);
+	return points.push(newPointObj(p,data,absorb,weight), -1, where);
 }
 
-int PointSet::AddPoint(flatpoint p, anObject *data, bool absorb)
+int PointSet::AddPoint(flatpoint p, anObject *data, bool absorb, double weight)
 {
-	return points.push(newPointObj(p,data,absorb));
+	return points.push(newPointObj(p,data,absorb,weight));
 }
 
 int PointSet::Remove(int index)
@@ -362,6 +376,15 @@ int PointSet::SetPointInfo(int index, anObject *data, bool absorb)
 {
 	if (index < 0 || index >= points.n) return 1;
 	points.e[index]->SetInfo(data, absorb);
+	return 0;
+}
+
+/*! Return 0 for success, or nonzero error such as index out of bounds.
+ */
+int PointSet::SetWeight(int index, double weight)
+{
+	if (index < 0 || index >= points.n) return 1;
+	points.e[index]->weight = weight;
 	return 0;
 }
 
@@ -546,6 +569,15 @@ void PointSet::RelaxWeighted(int maxiterations, double weightscale, double damp,
 void PointSet::MovePoints(double dx, double dy)
 {
 	Map([&](const flatpoint &p, flatpoint &newp) { newp = p+flatpoint(dx,dy); return 1; });
+}
+
+void PointSet::Shuffle()
+{
+	int i;
+	for (int c=points.n-1; c>0; c--) {
+		i = c * (double)random()/RAND_MAX;
+		points.swap(c,i);
+	}
 }
 
 /*! For each point p, set p->info to the index of next hull point, or -1 if not a hull point.
