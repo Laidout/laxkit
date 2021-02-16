@@ -120,6 +120,8 @@ class SomeData :  virtual public Laxkit::Resourceable,
 	
 	virtual int Selectable();
 	virtual int Visible();
+	virtual bool Visible(bool show);
+	virtual bool VisibleInTree(SomeData **topmost_hidden_ret = nullptr);
 	virtual int IsLocked(int which);
 	virtual void Lock(int which);
 	virtual void Unlock(int which);

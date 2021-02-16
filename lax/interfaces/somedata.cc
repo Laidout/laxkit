@@ -174,8 +174,27 @@ const char *SomeData::Id(const char *newid)
 int SomeData::Selectable()
 { return selectable | (locks&OBJLOCK_Selectable); }
 
+/*! Return the new visible state (which is show, by default). */
+bool SomeData::Visible(bool show)
+{
+	visible = show;
+	return visible;
+}
+
 int SomeData::Visible()
 { return visible; }
+
+bool SomeData::VisibleInTree(SomeData **topmost_hidden_ret)
+{
+	SomeData *v = nullptr;
+	SomeData *o = this;
+	while (o) {
+		if (!o->visible) v = o;
+		o = o->GetParent();
+	}
+	if (topmost_hidden_ret) *topmost_hidden_ret = v;
+	return v != nullptr;
+}
 
 /*! If which==0, default to OBJLOCK_Selectable.
  */
@@ -284,7 +303,7 @@ int SomeData::renderToBufferImage(LaxImage *image)
 	if (maxx-minx<=0 || maxy-miny<=0) return 2;
 	if (image->w()<=0 || image->h()<=0) return 3;
 
-	DBG cerr <<"^v^v^v^v^V^v^v^v^v SomeData::renderToBufferImage preview image size: "<<image->w()<<" x "<<image->h()<<endl;
+	DBG cerr <<"^v^v^v^v^V^v^v^v^v SomeData::renderToBufferImage preview on "<<(Id() ? Id() : whattype())<<"image size: "<<image->w()<<" x "<<image->h()<<endl;
 
 	InterfaceManager *imanager = InterfaceManager::GetDefault(true);
 	Displayer *dp = imanager->GetPreviewDisplayer();
