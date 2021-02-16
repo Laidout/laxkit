@@ -204,6 +204,9 @@ almostall: $(objs) liblaxkit.a
 all: $(objs) liblaxkit.a interfaces liblaxkit.so.$(LAXKITVERSION)
 	@echo "  -----------Done!-------------" 
 
+compileonly: $(objs) compileinterfaces
+	@echo "  -----------Done!-------------" 
+
 # This changes in *.cc all occurrences of '(whitespace)DBG' to '(same ws)//DBG' and
 # '(whitespace)//DBG' to '(same ws)////DBG'
 # which is useful when assembling for a release, because it disables all the spewing
@@ -227,6 +230,9 @@ docs:
 
 interfaces:
 	cd interfaces && $(MAKE) all
+
+compileinterfaces:
+	cd interfaces && $(MAKE) compileonly
 
 spiro:
 	cd spiro && $(MAKE) all

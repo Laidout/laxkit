@@ -82,6 +82,8 @@ liblaxinterfaces.so.$(LAXKITVERSION): $(objs)
 
 all: liblaxinterfaces.a liblaxinterfaces.so.$(LAXKITVERSION)
 
+compileonly: $(objs)
+
 #------------------- Other --------------------------
 
 docs:
