@@ -446,13 +446,19 @@ MenuItem *TreeSelector::item(int i,char skipcache)
  *
  * Returns index of the new curitem.
  */
-int TreeSelector::Select(int which)
+int TreeSelector::Select(int which, bool replace_selection)
 {
 	if (which<0 || which>=numItems()) return curitem;
 	if (item(which)->state&LAX_ON) item(which)->state^=(LAX_ON|LAX_OFF);
-	addselect(which,0);
+	addselect(which, replace_selection ? 0 : ControlMask);
 	makeinwindow();
 	return curitem;
+}
+
+int TreeSelector::Select(const char *name, bool replace_selection)
+{
+	int which = visibleitems.findIndex(name);
+	return Select(which, replace_selection);
 }
 
 int TreeSelector::SelectId(int id)

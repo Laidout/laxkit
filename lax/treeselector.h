@@ -230,7 +230,8 @@ class TreeSelector : public ScrolledWindow
 
 	virtual int Expand(int which);
 	virtual int Collapse(int which);
-	virtual int Select(int which);
+	virtual int Select(int which, bool replace_selection = true);
+	virtual int Select(const char *name, bool replace_selection);
 	virtual int SelectId(int which);
 	virtual int Deselect(int which);
 	virtual int RebuildCache();
