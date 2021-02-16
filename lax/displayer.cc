@@ -946,7 +946,8 @@ void Displayer::drawfocusellipse(flatpoint focus1,flatpoint focus2,
 
 	if (decimal) { end_angle=end_angle/180.*M_PI; start_angle=start_angle/180.*M_PI; }
 	bool whole=true;
-	if (start_angle==end_angle) { end_angle=start_angle+2*M_PI; }
+	// if (start_angle==end_angle) { end_angle=start_angle+2*M_PI; }
+	if (fmod(fabs(start_angle - end_angle), 2*M_PI) < 1e-7) { end_angle=start_angle+2*M_PI; }
 	else whole=false;
 
 
