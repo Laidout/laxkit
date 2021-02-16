@@ -245,7 +245,21 @@ FileDialog::FileDialog(anXWindow *parnt,const char *nname,const char *ntitle,uns
 	app->addwindow(path,0,0);
 	app->addwindow(mask,0,0); //though these are addwindow'd, they are AddWin'd in init.
 
-	filelist=NULL;
+	//initialize filelist in case we do some special selecting before init:
+	filelist = new TreeSelector(this,"files","files", SW_RIGHT,
+							0,0,0,0, 1,
+							last,object_id,"files",
+							//TREESEL_SEND_ON_UP|TREESEL_CURSSELECTS| TREESEL_LEFT| TREESEL_SUB_FOLDER,
+							TREESEL_SEND_ON_UP |TREESEL_LEFT |TREESEL_SUB_FOLDER |TREESEL_NO_LINES |TREESEL_DONT_EXPAND,
+							files);
+	last->InstallColors(THEME_Edit);
+	filelist->tooltip(_("Choose from these files.\nRight-click drag or wheel scrolls"));
+	filelist->AddColumn(_("Name"), NULL, 0,1);
+	filelist->AddColumn(_("Size"), NULL, 0,0, TreeSelector::ColumnInfo::ColumnBytes);
+	filelist->AddColumn(_("Date"), NULL, 0,0, TreeSelector::ColumnInfo::ColumnDate);
+	filelist->Select(-1);
+	// filelist=NULL;
+	
 	getDirectory(nnpath);
 	NewHistory(nnpath);
 	if (nnpath) delete[] nnpath;
@@ -268,6 +282,8 @@ FileDialog::FileDialog(anXWindow *parnt,const char *nname,const char *ntitle,uns
 								 NULL,object_id,"cancel", 0,NULL,NULL,NULL,3,3);
 		AddWin(last,1, last->win_w,0,50,50,0, linpheight,0,0,50,0, -1);
 	}
+
+	
 
 }
 
@@ -302,7 +318,7 @@ int FileDialog::NewHistory(const char *npath)
  * \todo *** this needs much work to use multiple masks...
  */
 int FileDialog::getDirectory(const char *npath)
-{//***
+{
 	DBG cerr <<"FileDialog::getDirectory()..."<<endl;
 
 	ShowRecent(0);
@@ -651,18 +667,25 @@ int FileDialog::init()
 
 
 	 //file list pane...
-	last=filelist=new TreeSelector(middle,"files","files", SW_RIGHT,
-							0,0,0,0, 1,
-							last,object_id,"files",
-							//TREESEL_SEND_ON_UP|TREESEL_CURSSELECTS| TREESEL_LEFT| TREESEL_SUB_FOLDER,
-							TREESEL_SEND_ON_UP |TREESEL_LEFT |TREESEL_SUB_FOLDER |TREESEL_NO_LINES |TREESEL_DONT_EXPAND,
-							files);
-	last->InstallColors(THEME_Edit);
-	filelist->tooltip(_("Choose from these files.\nRight-click drag or wheel scrolls"));
-	filelist->AddColumn(_("Name"), NULL, 0,1);
-	filelist->AddColumn(_("Size"), NULL, 0,0, TreeSelector::ColumnInfo::ColumnBytes);
-	filelist->AddColumn(_("Date"), NULL, 0,0, TreeSelector::ColumnInfo::ColumnDate);
-	filelist->Select(-1);
+	if (filelist) {
+		app->reparent(filelist, middle);
+		filelist->AddPrevControl(last);
+		last = filelist;
+
+	} else {
+		last=filelist=new TreeSelector(middle,"files","files", SW_RIGHT,
+								0,0,0,0, 1,
+								last,object_id,"files",
+								//TREESEL_SEND_ON_UP|TREESEL_CURSSELECTS| TREESEL_LEFT| TREESEL_SUB_FOLDER,
+								TREESEL_SEND_ON_UP |TREESEL_LEFT |TREESEL_SUB_FOLDER |TREESEL_NO_LINES |TREESEL_DONT_EXPAND,
+								files);
+		last->InstallColors(THEME_Edit);
+		filelist->tooltip(_("Choose from these files.\nRight-click drag or wheel scrolls"));
+		filelist->AddColumn(_("Name"), NULL, 0,1);
+		filelist->AddColumn(_("Size"), NULL, 0,0, TreeSelector::ColumnInfo::ColumnBytes);
+		filelist->AddColumn(_("Date"), NULL, 0,0, TreeSelector::ColumnInfo::ColumnDate);
+		filelist->Select(-1);
+	}
 	middle->AddWin(filelist,1, 300,100,1000,50,0, 400,200,5000,50,0, -1);
 
 	hstack->AddWin(middle,1, 300,100,5000,50,0, 400,200,5000,50,0, -1);
@@ -954,6 +977,11 @@ int FileDialog::Event(const EventData *data,const char *mes)
 {
 	DBG cerr <<"-----file dialog got: "<<mes<<endl;
 
+	if (data->type==LAX_onMapped) {
+        app->setfocus(file,0,NULL);
+        return anXWindow::Event(data,mes);
+    }
+
 	const SimpleMessage *s = dynamic_cast<const SimpleMessage*>(data);
 
 	if (!strcmp(mes,"new directory")) {
@@ -1065,7 +1093,7 @@ int FileDialog::Event(const EventData *data,const char *mes)
 		 //text was changed in file input
 		// *** if file is just a file and you hit enter, should trigger send
 
-		if (s->info1 == 1) {
+		if (s->info1 == 1) { //enter pressed
 			const char *ftext = file->GetLineEdit()->GetCText();
 			if (ftext && (strchr(ftext, '/') || strchr(ftext, '\\'))) {
 				 // update path
@@ -1338,6 +1366,17 @@ int FileDialog::send(int id)
 void FileDialog::RefreshDir() 
 {
 	getDirectory(path->GetCText());
+}
+
+/*! Return 0 for success or nonzero error. */
+int FileDialog::SelectFile(const char *f, bool replace_selection)
+{
+	const char *fname = lax_basename(f);
+	if (!fname) return 1;
+
+	filelist->Select(fname, replace_selection);
+
+	return 0;
 }
 
 //! Assume file is a file path, update file and path fields.

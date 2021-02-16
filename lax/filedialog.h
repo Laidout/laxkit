@@ -123,6 +123,7 @@ class FileDialog : public RowFrame
 	virtual void Cd(const char *to);
 	virtual void RefreshDir();
 	virtual void SetFile(const char *f);
+	virtual int SelectFile(const char *f, bool replace_selection);
 	virtual char *fullFilePath(const char *f);
 	virtual int NewHistory(const char *npath);
 };
