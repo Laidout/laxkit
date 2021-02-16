@@ -754,7 +754,7 @@ bool IsName(const char *name, const char *vlenstr, int len)
  */
 void deletestrs(char **&strs,int n)
 {
-	if (n<0) return;
+	if (n<0 || !strs) return;
 	for (int c=0; (n>0 && c<n) || (n==0 && strs[c]!=NULL); c++) delete[] strs[c];
 	delete[] strs;
 	strs=NULL;
@@ -892,6 +892,57 @@ char **spliton(char *str,char delim,int *n_ret)
 	}
 	r[n]=NULL;
 	if (n_ret) *n_ret=n;
+	return r;
+}
+
+/*! Split on any of '\\r', '\\n', or "\\r\\n". */
+char **splitonnewline(const char *str,int *n_ret)
+{
+	if (!str) {
+		if (n_ret) *n_ret=0;
+		return NULL;
+	}
+
+	int c,c2=0,l=strlen(str);
+	int n=1; // n is the number of fields
+	for (c=0; c<l; c++) {
+		if (str[c] == '\n') n++;
+		else if (str[c] == '\r' && str[c+1] == '\n') { n++; c++; }
+		else if (str[c] == '\r') n++;
+	}
+
+	char **r=new char*[n+1];
+	r[n]=NULL;
+	if (n==1) { 
+		r[0]=NULL; 
+		makestr(r[0],str); 
+		if (n_ret) *n_ret=n;
+		return r; 
+	}
+
+	const char *t, *t2;
+	int dlen = 1;
+	for (c=0,c2=0; c2<n; c2++) {
+		t = strchr(str+c, '\r');
+		t2 = strchr(str+c, '\n');
+		if (t2 < t) t = t2;
+		if (!t && t2) t = t2;
+		if (t && *t == '\r' && t[1] == '\n') dlen = 2;
+		else dlen = 1;
+
+		if (!t) {
+			t=str+strlen(str);
+//			if (t==str+c) { // is blank final entry before eol
+//				r[c2]=new char[1];
+//				r[c2][0]='\0';
+//			}
+		}
+		r[c2]=new char[t-str-c+1];
+		strncpy(r[c2],str+c,t-str-c);
+		r[c2][t-str-c]='\0';
+		c = t-str+dlen;
+	}
+	if (n_ret) *n_ret = n;
 	return r;
 }
 
@@ -1034,12 +1085,14 @@ const char *lax_basename(const char *path)
 
 /*! Like lax_basename, but return a pointer to the extension, if any.
  * If no extension, return NULL.
+ * If a file is all extension (like ".blah"), return null.
+ * If a file has a blank extension (like "blah.") return null.
  */
 const char *lax_extension(const char *path)
 {
 	const char *period = strrchr(path, '.');
 	const char *slash  = strrchr(path, '/');
-	if (slash && period && slash>period) return NULL;
+	if (slash && period && (slash>period || period == slash+1)) return NULL;
 	if (!period) return NULL;
 	if (period[1]=='\0') return NULL;
 	return period+1;
