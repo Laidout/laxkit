@@ -1246,4 +1246,5 @@ int LineEdit::Resize(int nw,int nh)
 	return 0;
 }
 
+
 } // namespace Laxkit

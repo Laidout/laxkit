@@ -91,7 +91,7 @@ class LineEdit : public TextXEditBaseUtf8
 	virtual int MouseMove(int x,int y,unsigned int state,const LaxMouse *d);
 	virtual int Resize(int nw,int nh);
 	virtual void Refresh();
-	
+
 	virtual int LBDblClick(int x,int y, int cntl,const LaxMouse *d);
 
 	virtual void SetType(unsigned long what);
