@@ -103,7 +103,7 @@ int bez_bbox(flatpoint p,flatpoint c,flatpoint d,flatpoint q,DoubleBBox *bbox,
 				extt++;
 			}
 			bp=(a2*t1 + a3)*t1 + p; // find the bez point
-			DBG cerr <<"x quad ext:"<<t1<<" at:"<<bp.x<<','<<bp.y<<endl;
+			//DBG cerr <<"x quad ext:"<<t1<<" at:"<<bp.x<<','<<bp.y<<endl;
 			bbox->addtobounds(extra_m ? transform_point(extra_m,bp) : bp);
 		}
 	} else if (a1.x!=0) { // is full cubic, otherwise is just a straight line
@@ -112,7 +112,7 @@ int bez_bbox(flatpoint p,flatpoint c,flatpoint d,flatpoint q,DoubleBBox *bbox,
 		if (t>=0) { // one extrema
 			t=sqrt(t);
 			t1=(-2*a2.x+t)/(2*3*a1.x); // t1= (-b + sqrt(b^2-4*a*c))/2a
-			DBG cerr <<"x ext:"<<t1;
+			//DBG cerr <<"x ext:"<<t1;
 			if (t1>=0 && t1<=1) { // found 1 extrema in range
 				if (extrema || extrema_pret) {
 					if (extrema) extrema[extt] = t1;
@@ -123,13 +123,13 @@ int bez_bbox(flatpoint p,flatpoint c,flatpoint d,flatpoint q,DoubleBBox *bbox,
 					extt++;
 				}
 				bp=((a1*t1 + a2)*t1 + a3)*t1 + p; // find the bez point
-				DBG cerr <<" at:"<<bp.x<<','<<bp.y<<endl;
+				//DBG cerr <<" at:"<<bp.x<<','<<bp.y<<endl;
 				bbox->addtobounds(extra_m ? transform_point(extra_m,bp) : bp);
 			}
 			DBG else cerr <<endl;
 			if (t) { // if is not a double root
 				t1=(-2*a2.x-t)/(2*3*a1.x); // t1= (-b - sqrt(b^2-4*a*c))/2a
-				DBG cerr <<"x2 ext:"<<t1;
+				//DBG cerr <<"x2 ext:"<<t1;
 				if (t1>=0 && t1<=1) { // found another x extrema in range
 					if (extrema || extrema_pret) {
 					if (extrema) extrema[extt] = t1;
@@ -140,10 +140,10 @@ int bez_bbox(flatpoint p,flatpoint c,flatpoint d,flatpoint q,DoubleBBox *bbox,
 						extt++;
 					}
 					bp=((a1*t1 + a2)*t1 + a3)*t1 + p; // find the bez point
-					DBG cerr <<" at:"<<bp.x<<','<<bp.y<<endl;
+					//DBG cerr <<" at:"<<bp.x<<','<<bp.y<<endl;
 					bbox->addtobounds(extra_m ? transform_point(extra_m,bp) : bp);
 				}
-				DBG else cerr <<endl;
+				//DBG else cerr <<endl;
 			}
 		} // else no extrema
 	}
@@ -161,7 +161,7 @@ int bez_bbox(flatpoint p,flatpoint c,flatpoint d,flatpoint q,DoubleBBox *bbox,
 				extt++;
 			}
 			bp=(a2*t1 + a3)*t1 + p; // find the bez point
-			DBG cerr <<"y quad ext:"<<t1<<" at:"<<bp.x<<','<<bp.y<<endl;
+			//DBG cerr <<"y quad ext:"<<t1<<" at:"<<bp.x<<','<<bp.y<<endl;
 			bbox->addtobounds(extra_m ? transform_point(extra_m,bp) : bp);
 		}
 	} else if (a1.y!=0) { // full cubic
@@ -169,7 +169,7 @@ int bez_bbox(flatpoint p,flatpoint c,flatpoint d,flatpoint q,DoubleBBox *bbox,
 		if (t>=0) { // one extrema
 			t=sqrt(t);
 			t1=(-2*a2.y+t)/(2*3*a1.y); // t1= (-b + sqrt(b^2-4*a*c))/2a
-			DBG cerr <<"y ext:"<<t1;
+			//DBG cerr <<"y ext:"<<t1;
 			if (t1>=0 && t1<=1) {
 				if (extrema || extrema_pret) {
 					if (extrema) extrema[extt] = t1;
@@ -186,7 +186,7 @@ int bez_bbox(flatpoint p,flatpoint c,flatpoint d,flatpoint q,DoubleBBox *bbox,
 			DBG else cerr <<endl;
 			if (t) {
 				t1=(-2*a2.y-t)/(2*3*a1.y); // t1= (-b - sqrt(b^2-4*a*c))/2a
-				DBG cerr <<"y2 ext:"<<t1;
+				//DBG cerr <<"y2 ext:"<<t1;
 				if (t1>=0 && t1<=1) {
 					if (extrema || extrema_pret) {
 						if (extrema) extrema[extt] = t1;
