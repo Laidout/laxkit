@@ -120,6 +120,7 @@ class ImageLoader : public anObject
 
 	ImageLoader(const char *newname, int nformat);
 	virtual ~ImageLoader();
+	virtual const char *whattype() { return "ImageLoader"; }
 
 	//-------------- static funcs
 	static int NumLoaders();

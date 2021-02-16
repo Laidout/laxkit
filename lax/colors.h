@@ -127,6 +127,7 @@ class Color : public Laxkit::anObject, public LaxFiles::DumpUtility
 	Color(const Color &l);
 	Color &operator=(Color &l);
 	virtual ~Color();
+	virtual const char *whattype() { return "Color"; }
 	virtual Color *duplicate();
 
 	virtual const char *Name();
@@ -221,6 +222,7 @@ class ColorSystem: public Laxkit::anObject, public LaxFiles::DumpUtility
 
 	ColorSystem();
 	virtual ~ColorSystem();
+	virtual const char *whattype() { return "ColorSystem"; }
 	virtual const char *Name() { return name; }
 	virtual int SystemId() { return systemid; }
 
@@ -266,6 +268,7 @@ class ColorManager : public anObject
 		
 	ColorManager();
 	virtual ~ColorManager();
+	virtual const char *whattype() { return "ColorManager"; }
 	virtual int AddSystem(ColorSystem *system, bool absorb);
 	virtual ColorSystem *FindSystem(const char *name);
 };
