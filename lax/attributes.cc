@@ -245,6 +245,23 @@ int ByteSizeAttribute(const char *s, long *ll, char towhat)
 	return 0;
 }
 
+/*! Whether len chars of v, stripped of initial and trailing whitespace is only a double value,
+ * so something like "1e-5", "12312.234234", or "123", or anything else strtod() parses to a double.
+ */
+bool IsOnlyDouble(const char *v, int len, double *d_ret)
+{
+	if (!v) return false;
+	while (len && isspace(*v)) { v++; len--; }
+	while (len && isspace(v[len-1])) { len--; }
+	if (!len) return false;
+
+	char *end_ptr = nullptr;
+	double d = strtod(v, &end_ptr);
+	if (end_ptr == v) return false;
+	if (d_ret) *d_ret = d;
+	return true;
+}
+
 //! Turn v into a double, put in d if successful, return 1. Else don't change d and return 0.
 /*! \ingroup attributes
  */
@@ -363,6 +380,25 @@ int IntAttribute(const char *v,int *i,char **endptr)//endptr=NULL
 	if (e==v) return 0;
 	*i=ii;
 	return 1;
+}
+
+/*! Whether len chars of v, stripped of initial and trailing whitespace is only digits.
+ */
+bool IsOnlyInt(const char *v, int len, int *i_ret)
+{
+	if (!v) return false;
+	while (len && isspace(*v)) { v++; len--; }
+	while (len && isspace(v[len-1])) { len--; }
+	if (!len) return false;
+	int ii = 0;
+	while (len) {
+		if (!isdigit(*v)) return false;
+		ii = 10*ii + (int)(*v - '0');
+		len--;
+		v++;
+	}
+	if (i_ret) *i_ret = ii;
+	return true;
 }
 
 //! Figure out if value is yes==true==1 or no==false==0. Return the boolean value.
@@ -3330,14 +3366,14 @@ int ParseCSV(IOBuffer &f, const char *delimiter, bool has_headers,
 			if (*ptr2 != '"') {
 				ptr2 = strstr(ptr, delimiter);
 				if (ptr2) {
-					if (linenum == 0) NewHeader(ptr, ptr2 - ptr);
+					if (linenum == 0 && has_headers) NewHeader(ptr, ptr2 - ptr);
 					else NewCell(ptr, ptr2-ptr);
 					ptr = ptr2 + dlen;
 
 				} else { //final element
 					ptr2 = ptr;
 					while (*ptr2 && *ptr2 != '\n' && *ptr2 != '\r') ptr2++;
-					if (linenum == 0) NewHeader(ptr, ptr2 - ptr);
+					if (linenum == 0 && has_headers) NewHeader(ptr, ptr2 - ptr);
 					else NewCell(ptr, ptr2-ptr);
 					break;
 				}
@@ -3360,7 +3396,7 @@ int ParseCSV(IOBuffer &f, const char *delimiter, bool has_headers,
 					OnError(_("Missing end quote"));
 					err = 1;
 				} else {
-					if (linenum == 0) NewHeader(ptr, ptr2 - ptr);
+					if (linenum == 0 && has_headers) NewHeader(ptr, ptr2 - ptr);
 					else NewCell(ptr, ptr2-ptr);
 					ptr = strstr(ptr2, delimiter);
 					if (ptr) ptr += dlen;

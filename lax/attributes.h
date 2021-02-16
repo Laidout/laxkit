@@ -123,10 +123,12 @@ void skip_to_next_attribute(IOBuffer &f, int indent);
 //---------------------------------- Basic Type Conversion Routines -----------------------------------	
 int ByteSizeAttribute(const char *s, long *ll, char towhat);
 double *TransformAttribute(const char *v,double *m,char **endptr=NULL);
+bool IsOnlyDouble(const char *v, int len, double *d_ret);
 int DoubleAttribute(const char *v,double *d,char **endptr=NULL);
 int DoubleListAttribute(const char *v,double *d,int maxn,char **endptr=NULL);
 int DoubleListAttribute(const char *v,double **d,int *n_ret);
 int FloatAttribute(const char *v,float *f,char **endptr=NULL);
+bool IsOnlyInt(const char *v, int len, int *i_ret);
 int IntAttribute(const char *v,int *i,char **endptr=NULL);
 int UIntAttribute(const char *v,unsigned int *i,char **endptr=NULL);
 int LongAttribute(const char *v,long *l,char **endptr=NULL);
