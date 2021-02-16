@@ -256,6 +256,7 @@ void Affine::Translate(flatvector d)
 	_m[5]+=d.y;
 }
 
+/*! angle in radians */
 void Affine::Rotate(double angle)
 {
 	double mm[6];
