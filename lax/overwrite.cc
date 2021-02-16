@@ -56,7 +56,7 @@ Overwrite::Overwrite(unsigned long nowner, //!< Who to notify
 					 int i1,             //!< Gets put in StrEventData::info1
 					 int i2,             //!< Gets put in StrEventData::info2
 					 int i3)             //!< Gets put in StrEventData::info3
-	: MessageBox(NULL, "overwrite", "Overwrite?", ANXWIN_CENTER, 
+	: MessageBox(NULL, "overwrite", "Overwrite?", ANXWIN_CENTER | ANXWIN_ESCAPABLE, 
 				 0,0,0,0,0, NULL,nowner,mes, _("Overwrite?"))
 {
 	info1=i1;
