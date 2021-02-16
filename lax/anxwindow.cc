@@ -906,20 +906,26 @@ int anXWindow::close()
 	return 0;
 }
 
-/*! Find the child window that contains this coordinate.
+/*! Find the child window that contains this coordinate, which is in *this's coordinate space.
  * Child window must be on, and within parent window.
  */
 anXWindow *anXWindow::findContainingChild(int x, int y)
 {
 	if (!win_on) return nullptr;
-	if (x < win_x || x >= win_x + win_w || x < win_y || x >= win_y+win_h) return nullptr;
+	if (x < 0 || x >= win_w || y < 0 || y >= win_h) return nullptr; //outside window
 	for (int c=0; c<_kids.n; c++) {
-		anXWindow *ret = _kids.e[c]->findContainingChild(x - win_x - win_border, y - win_y - win_border);
+		anXWindow *ret = _kids.e[c]->findContainingChild(x - _kids.e[c]->win_x - _kids.e[c]->win_border,
+														 y - _kids.e[c]->win_y - _kids.e[c]->win_border);
 		if (ret) return ret;
 	}
 	return this;
 }
 
+anXWindow *anXWindow::WindowChild(int index)
+{
+	if (index < 0 || index >= _kids.n) return nullptr;
+	return _kids.e[index];
+}
 
 //! Find the first immediate child window that has win_name==name.
 /*! If name==NULL, NULL is returned, not the first window that has a NULL name.
@@ -1558,6 +1564,7 @@ int anXWindow::event(XEvent *e)
 
 			if (e->xselection.selection == XdndSelection) {
 				cerr << " **** Need to send a XDndFinished"<<endl;
+				if (xlib_dnd) { delete xlib_dnd; xlib_dnd = nullptr; }
 			}
 
 			if (property)  XFree(property);
@@ -1964,6 +1971,8 @@ int anXWindow::selectionPaste(char mid, const char *targettype)
  *  - TEXT
  *  - UTF8_STRING
  *
+ * If which is non-null, it is usually which selection the data is pulled from.
+ * 
  * Returns 0 if used, nonzero otherwise.
  */
 int anXWindow::selectionDropped(const unsigned char *data,unsigned long len,const char *actual_type,const char *which)
@@ -2241,22 +2250,35 @@ int anXWindow::HandleXdndPosition(XEvent *e)
 	int y = (e->xclient.data.l[2]    )&0xffff;
 	xlib_dnd->lastx = x;
 	xlib_dnd->lasty = y;
+	DBG cerr << "Dnd coords: "<<x<<", "<<y<<endl;
 
 	xlib_dnd->action = XdndActionPrivate;
 	xlib_dnd->inw = xlib_dnd->inh = 0;
 	IntRectangle rect;
-	// TODO!!!! *** need to translate to window coords
+	int xx,yy;
+	translate_window_coordinates(nullptr, x, y, this, &xx, &yy, nullptr);
+
 	int which_type = -1;
 	anXWindow *child_drop = nullptr;
-	if (DndWillAcceptDrop(x,y,"", rect, xlib_dnd->data_types, &which_type, &child_drop)) { //e->xclient.data.l[4])) <- the action  TODO!!! deal with actions properly
+	if (DndWillAcceptDrop(xx,yy,"", rect, xlib_dnd->data_types, &which_type, &child_drop)) { //e->xclient.data.l[4])) <- the action  TODO!!! deal with actions properly
 		xlib_dnd->status = DndState::Target_Accepts;
-		// *** TODO!!! translate back to window coords from screen coords
 		xlib_dnd->inx = rect.x;
 		xlib_dnd->iny = rect.y;
 		xlib_dnd->inw = rect.width;
 		xlib_dnd->inh = rect.height;
 		xlib_dnd->preferred_type = which_type;
 		xlib_dnd->SetTarget(this, child_drop);
+
+		if (child_drop && rect.width && rect.height) { //convert child_drop coords to screen coords
+			int xxx,yyy;
+			translate_window_coordinates(child_drop, rect.x,rect.y, nullptr, &xx,&yy, nullptr);
+			translate_window_coordinates(child_drop, rect.x+rect.width,rect.y+rect.height, nullptr, &xxx,&yyy, nullptr);
+			rect.x = xx;
+			rect.y = yy;
+			rect.width = xxx-xx;
+			rect.height = yyy-yy;
+		}
+		
 	} else {
 		xlib_dnd->status = DndState::Target_Refuses;
 		xlib_dnd->action = 0;
@@ -2289,8 +2311,10 @@ int anXWindow::HandleXdndPosition(XEvent *e)
 	s.xclient.format       = 32;
 	s.xclient.data.l[0]    = xlib_window;
 	s.xclient.data.l[1]    = (xlib_dnd->action ? 1 : 0) | (xlib_dnd->inw ? 2 : 0);
-	s.xclient.data.l[2]    = (((unsigned short)xlib_dnd->inx) << 16) | (unsigned short)xlib_dnd->iny;  // (x<<16)|y
-	s.xclient.data.l[3]    = (((unsigned short)xlib_dnd->inw) << 16) | (unsigned short)xlib_dnd->inh;  // (w<<16)|h
+	s.xclient.data.l[2]    = (((unsigned short)rect.x)     << 16) | (unsigned short)rect.y;  // (x<<16)|y
+	s.xclient.data.l[3]    = (((unsigned short)rect.width) << 16) | (unsigned short)rect.height;  // (w<<16)|h
+	// s.xclient.data.l[2]    = (((unsigned short)xlib_dnd->inx) << 16) | (unsigned short)xlib_dnd->iny;  // (x<<16)|y
+	// s.xclient.data.l[3]    = (((unsigned short)xlib_dnd->inw) << 16) | (unsigned short)xlib_dnd->inh;  // (w<<16)|h
 	s.xclient.data.l[4]    = xlib_dnd->action;
 	DBG cerr <<"   sent XdndStatus to "<<e->xclient.data.l[0]<<endl;
 	XSendEvent(app->dpy, e->xclient.data.l[0], False, 0, &s);
@@ -2299,8 +2323,9 @@ int anXWindow::HandleXdndPosition(XEvent *e)
 }
 
 /*! Return whether we will take data based on action, and optionally
- * fill in rect with the region this response pertains to.
+ * fill in rect with the region of the window this response pertains to.
  * If you do nothing with rect, it is assumed the whole window is relevant.
+ * Set type_ret to the index of types for your preferred data type.
  *
  * If a child window under x,y will accept, then return that in child_ret.
  *
@@ -2308,7 +2333,7 @@ int anXWindow::HandleXdndPosition(XEvent *e)
  */
 bool anXWindow::DndWillAcceptDrop(int x, int y, const char *action, IntRectangle &rect, char **types, int *type_ret, anXWindow **child_ret)
 {
-	DBG cerr << "anXWindow::DndWillAcceptDrop"<<endl;
+	DBG cerr << "anXWindow::DndWillAcceptDrop: no (default)"<<endl;
 	return false;
 }
 

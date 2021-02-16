@@ -84,7 +84,6 @@ class TextXEditBaseUtf8 : public anXWindow, public TextEditBaseUtf8
 
 	virtual void docaret(int w=1);
 	virtual void settextrect();
-	virtual int selectionDropped(const unsigned char *data,unsigned long len,const char *actual_type,const char *which);
 	virtual char *getSelectionData(int *len,const char *property,const char *targettype,const char *selection);
 
 	virtual double TextExtent(const char *str, int len, double *width=nullptr,double *height=nullptr,double *ascent=nullptr,double *descent=nullptr);
@@ -102,6 +101,8 @@ class TextXEditBaseUtf8 : public anXWindow, public TextEditBaseUtf8
 	virtual int FocusOff(const FocusChangeData *e);
 	virtual int MoveResize(int nx,int ny,int nw,int nh);
 	virtual int Resize(int nw,int nh);
+	virtual int selectionDropped(const unsigned char *data,unsigned long len,const char *actual_type,const char *which);
+	virtual bool DndWillAcceptDrop(int x, int y, const char *action, IntRectangle &rect, char **types, int *type_ret, anXWindow **child_ret);
 
 	virtual double charwidth(int ch,int r=0);
 	virtual int Cut(); 

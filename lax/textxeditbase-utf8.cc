@@ -326,6 +326,33 @@ int TextXEditBaseUtf8::selectionDropped(const unsigned char *data,unsigned long 
 	return 0;
 }
 
+/*! Return whether we will take data based on action, and optionally
+ * fill in rect with the region of the window this response pertains to.
+ * If you do nothing with rect, it is assumed the whole window is relevant.
+ * Set type_ret to the index of types for your preferred data type.
+ *
+ * If a child window under x,y will accept, then return that in child_ret.
+ *
+ * Default is to reject drop.
+ */
+bool TextXEditBaseUtf8::DndWillAcceptDrop(int x, int y, const char *action, IntRectangle &rect, char **types, int *type_ret, anXWindow **child_ret)
+{
+	// ok for text to StringValue:
+	for (int c=0; types[c]; c++) {
+		if (!strcmp(types[c], "text/plain;charset=UTF-8") || !strcmp(types[c], "UTF8_STRING")) {
+			*type_ret = c;
+			return true;
+		}
+	}
+	for (int c=0; types[c]; c++) {
+		if (!strcmp(types[c], "text/plain") || !strcmp(types[c], "TEXT")) {
+			*type_ret = c;
+			return true;
+		}
+	}
+	return false;
+}
+
 //! Initiate a middle button paste via selectionPaste(1,0).
 int TextXEditBaseUtf8::MBUp(int x,int y,unsigned int state, const LaxMouse *d)
 {

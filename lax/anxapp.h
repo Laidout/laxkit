@@ -245,6 +245,8 @@ class anXWindow : virtual public EventReceiver,
 	virtual anXWindow *findChildWindowByTitle(const char *title, bool recurse=false);
 	virtual anXWindow *findChildWindowByName(const char *name, bool recurse=false);
 	virtual anXWindow *findContainingChild(int x, int y);
+	virtual int NumWindowKids() { return _kids.n; }
+	virtual anXWindow *WindowChild(int index);
 	virtual int  Grayed();
 	virtual int  Grayed(int g);
 	virtual int  preinit();

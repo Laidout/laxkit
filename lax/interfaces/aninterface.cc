@@ -705,6 +705,38 @@ Laxkit::UndoManager *anInterface::GetUndoManager()
 	return imanager->GetUndoManager();
 }
 
+/*! Return whether we will take data based on action, and optionally
+ * fill in rect with the region of the window this response pertains to.
+ * If you do nothing with rect, it is assumed the whole window is relevant.
+ *
+ * Set type_ret to the index of types for your preferred data type.
+ *
+ * If a child window under x,y will accept, then return that in child_ret.
+ *
+ * Default is to reject drop.
+ */
+bool anInterface::DndWillAcceptDrop(int x, int y, const char *action, Laxkit::IntRectangle &rect, char **types, int *type_ret)
+{
+	return false;
+}
+
+/*! Called from a SelectionNotify event. This is used for both generic selection events
+ * (see selectionPaste()) and also drag-and-drop events.
+ *
+ * Typical actual_type values:
+ *  - text/uri-list
+ *  - text/plain
+ *  - text/plain;charset=UTF-8
+ *  - text/plain;charset=ISO-8859-1
+ *  - TEXT
+ *  - UTF8_STRING
+ *
+ * Returns 0 if used, nonzero otherwise.
+ */
+int anInterface::selectionDropped(const unsigned char *data,unsigned long len,const char *actual_type,const char *which)
+{
+	return 1;
+}
 
 
 } // namespace LaxInterfaces

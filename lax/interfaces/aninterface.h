@@ -175,6 +175,9 @@ class anInterface : virtual public Laxkit::EventReceiver,
 	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *loadcontext);
 	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *savecontext);
 
+	//system dnd
+	virtual int selectionDropped(const unsigned char *data,unsigned long len,const char *actual_type,const char *which);
+	virtual bool DndWillAcceptDrop(int x, int y, const char *action, Laxkit::IntRectangle &rect, char **types, int *type_ret);
 };
 
 
