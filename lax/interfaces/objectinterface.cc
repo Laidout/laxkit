@@ -28,6 +28,7 @@
 #include <lax/laxutils.h>
 #include <lax/language.h>
 
+//template implementation:
 #include <lax/lists.cc>
 
 using namespace Laxkit;
@@ -791,6 +792,9 @@ Laxkit::ShortcutHandler *ObjectInterface::GetShortcuts()
 	sc->Add(OIA_Group,       'G',ShiftMask|AltMask|ControlMask,0,"Group",_("Group any, even if only one selected"),NULL,0);
 	sc->Add(OIA_ToggleGroup, 'g',ControlMask,0,           "ToggleGroup", _("Group if many selected, or ungroup if only one group selected"),NULL,0);
 	sc->Add(OIA_Ungroup,     'G',ShiftMask|ControlMask,0, "Ungroup",     _("Ungroup any selected that are groups"),NULL,0);
+	sc->Add(OIA_Hide,        'h',ControlMask,0,           "Hide",        _("Hide selected objects"),NULL,0);
+	sc->Add(OIA_Unhide,      'H',ShiftMask|ControlMask,0, "Unhide",      _("Unhide hidden objects"),NULL,0);
+	sc->AddShortcut('h', AltMask,0, OIA_Unhide); //so like Blender sort of
 
 	return sc;
 }
@@ -856,6 +860,36 @@ int ObjectInterface::PerformAction(int action)
 		dontclear=0;
 		deletedata();
 		needtodraw=1;
+		return 0;
+
+	} else if (action == OIA_Hide) {
+		if (!selection->n()) {
+			PostMessage(_("No objects to hide!"));
+		} else {
+			int n = 0;
+			for (int c=0; c<selection->n(); c++) {
+				if (!selection->e(c)->obj->Visible()) continue;
+				n++;
+				selection->e(c)->obj->Visible(false);
+			}
+			PostMessage2(_("Hid %d objects."), n);
+			if (n) needtodraw = 1;
+		}
+		return 0;
+
+	} else if (action == OIA_Unhide) {
+		if (!selection->n()) {
+			PostMessage(_("No selected objects to unhide!"));
+		} else {
+			int n = 0;
+			for (int c=0; c<selection->n(); c++) {
+				if (selection->e(c)->obj->Visible()) continue;
+				n++;
+				selection->e(c)->obj->Visible(true);
+			}
+			PostMessage2(_("Unhid %d objects."), n);
+			if (n) needtodraw = 1;
+		}
 		return 0;
 	}
 

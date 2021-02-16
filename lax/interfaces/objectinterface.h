@@ -44,6 +44,8 @@ enum ObjectInterfaceActions {
 	OIA_Ungroup,
 	OIA_ToggleGroup,
 	OIA_Delete,
+	OIA_Hide,
+	OIA_Unhide,
 	OIA_MAX
 };
 
