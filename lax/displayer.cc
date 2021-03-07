@@ -1038,6 +1038,8 @@ void Displayer::drawthing(flatpoint p, double rx, double ry, int tofill, DrawThi
 	drawthing(p.x, p.y, rx,ry, tofill, thing);
 }
 
+/*! Draw centered on x,y, with width 2*rx, height 2*ry.
+ */
 void Displayer::drawthing(double x, double y, double rx, double ry, DrawThingTypes thing,unsigned long fg,unsigned long bg,int lwidth)
 {
 	if (lwidth>=0) LineAttributes(lwidth,0,CapRound,JoinRound);
@@ -1063,28 +1065,8 @@ void Displayer::drawthing(double x, double y, double rx, double ry, int tofill, 
 		pts[c].x=x+(2*rx*pts[c].x-rx);
 		pts[c].y=y+(2*ry*pts[c].y-ry);
 	}
+
 	drawFormattedPoints(pts,n,tofill);
-
-	//---------------------------
-//	int nn=0;
-//	int pathtype=0;
-//	int closed=0;
-//	for (int c=0; c<n; c++) {
-//		 // transform coordinate
-//		pts[c].x=x+(2*rx*pts[c].x-rx);
-//		pts[c].y=y+(2*ry*pts[c].y-ry);
-//
-//		if (!(pts[c].info & LINE_Closed) && !(pts[c].info & LINE_End)) {
-//			pathtype=pts[c].info;
-//			continue;
-//		}
-//
-//		if (pts[c].info&LINE_Closed) closed=1; else closed=0;
-//		if (pathtype==0 || pathtype==LINE_Vertex) drawlines(pts+nn,c-nn+1, closed,fill);
-//		else drawbez(pts+nn,(c-nn+1)/3, closed,fill);
-//		nn=c+1;
-//	}
-
 	delete[] pts;
 }
 
