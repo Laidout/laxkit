@@ -81,7 +81,8 @@ class SomeData :  virtual public Laxkit::Resourceable,
 				  virtual public Laxkit::Affine,
 				  virtual public Laxkit::DoubleBBox,
 				  virtual public Laxkit::Undoable,
-				  virtual public Laxkit::Previewable
+				  virtual public Laxkit::Previewable,
+				  virtual public LaxFiles::DumpUtility
 {
   protected:
 
@@ -145,8 +146,8 @@ class SomeData :  virtual public Laxkit::Resourceable,
 	virtual void FlipV();
 
 	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
-	virtual void dump_in(FILE *f,int indent,LaxFiles::DumpContext *context,LaxFiles::Attribute **Att=NULL);
-	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
+	virtual void dump_in(FILE *f, int indent, int what, LaxFiles::DumpContext *context, LaxFiles::Attribute **att);
+	virtual void dump_in_atts(LaxFiles::Attribute *att, int flag, LaxFiles::DumpContext *context);
 	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *savecontext);
 
     virtual int Undo(Laxkit::UndoData *data);
@@ -154,6 +155,9 @@ class SomeData :  virtual public Laxkit::Resourceable,
 
 	virtual int NumResources();
 	virtual int ResourceInfo(int index, Laxkit::anObject **resource_ret);
+
+	virtual Laxkit::anObject *GetProperty(const char *name) { return nullptr; }
+	virtual int SetProperty(const char *name, Laxkit::anObject *prop, bool absorb) { return -1; } //0 for success, nonzero error
 };
 
 

@@ -444,7 +444,7 @@ Laxkit::LaxImage *SomeData::GetPreview()
  * This allows holding classes to have extra attributes within the spot field to
  * exist and not be discarded.
  */
-void SomeData::dump_in(FILE *f,int indent,LaxFiles::DumpContext *context, Attribute **Att)
+void SomeData::dump_in(FILE *f, int indent, int what, LaxFiles::DumpContext *context, Attribute **Att)
 {
 	Attribute *att = new Attribute;
 	att->dump_in(f, indent);
