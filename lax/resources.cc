@@ -534,7 +534,10 @@ int ResourceType::AddResource(anObject *nobject, anObject *ntopowner, const char
 {
 	if (Find(object)) return -1;
 
-	Resource *r=new Resource(nobject,ntopowner,nname,nName,ndescription,nfile,nicon);
+	char *uniquename = newstr(nname);
+	MakeNameUnique(uniquename);
+	Resource *r=new Resource(nobject,ntopowner, uniquename, uniquename, ndescription,nfile,nicon);
+	delete[] uniquename;
 	if (builtin) r->source_type = BuiltIn;
 	resources.push(r);
 	r->dec_count();
@@ -544,9 +547,10 @@ int ResourceType::AddResource(anObject *nobject, anObject *ntopowner, const char
 
 /*! \todo *** should have progressive loading of submenus when resource list is file based and large.
  *
+ * If do_favorites, then append ONLY the favorites menu. Else append the whole menu.
  * The info field of normal items is -1. The info of favorite items is >=0 and represents placement in the list.
  */
-MenuInfo *ResourceType::AppendMenu(MenuInfo *menu, bool do_favorites, int *numadded)
+MenuInfo *ResourceType::AppendMenu(MenuInfo *menu, bool do_favorites, int *numadded, int id_offset, int info)
 {
 	if (!menu) menu=new MenuInfo(name);
 	
@@ -561,7 +565,7 @@ MenuInfo *ResourceType::AppendMenu(MenuInfo *menu, bool do_favorites, int *numad
 			 //sub list...
 			if (do_favorites) menu->SubMenu(r->Name);
 			int oldn=menu->n();
-			dynamic_cast<ResourceType*>(r)->AppendMenu(menu,do_favorites,numadded);
+			dynamic_cast<ResourceType*>(r)->AppendMenu(menu,do_favorites,numadded, id_offset, info);
 			oldn=menu->n()-oldn;
 			if (numadded) *numadded += oldn;
 			if (do_favorites) {
@@ -578,8 +582,8 @@ MenuInfo *ResourceType::AppendMenu(MenuInfo *menu, bool do_favorites, int *numad
 			// 			  do_favorites ? r->favorite : -1, //later event->info4
 			// 			  NULL);
 			menu->AddItem(r->Name ? r->Name : (r->name ? r->name : _("(unnamed)")),
-						  r->object_id, //id, later event->info2
-						  do_favorites ? r->favorite : -1, //later event->info4
+						  id_offset + r->object_id, //id, later event->info2
+						  info, //do_favorites ? r->favorite : -1, //later event->info4
 						  r->icon,
 						  -1,
 						  LAX_OFF
@@ -634,7 +638,7 @@ void ResourceManager::SetObjectFactory(ObjectFactory *factory)
  *
  * If type not found, return NULL.
  */
-MenuInfo *ResourceManager::ResourceMenu(const char *type, bool include_recent, MenuInfo *menu)
+MenuInfo *ResourceManager::ResourceMenu(const char *type, bool include_recent, MenuInfo *menu, int id_offset, int info)
 {
 	ResourceType *rtype=FindType(type);
 	if (!rtype) return NULL;
@@ -643,11 +647,11 @@ MenuInfo *ResourceManager::ResourceMenu(const char *type, bool include_recent, M
 
 	 //first do a favorites menu
 	int numadded=0;
-	rtype->AppendMenu(menu, true, &numadded);
+	rtype->AppendMenu(menu, true, &numadded, id_offset, info);
 	if (numadded) menu->AddSep();
 
 	 //then add full menu
-	rtype->AppendMenu(menu, false, &numadded);
+	rtype->AppendMenu(menu, false, &numadded, id_offset, info);
 
 	return menu;
 }

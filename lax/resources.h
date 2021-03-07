@@ -169,7 +169,7 @@ class ResourceType : public Resource
 	virtual int NumResources();
 	virtual int MakeNameUnique(char *&thename);
 
-	virtual MenuInfo *AppendMenu(MenuInfo *menu, bool do_favorites, int *numadded);
+	virtual MenuInfo *AppendMenu(MenuInfo *menu, bool do_favorites, int *numadded, int id_offset, int info);
 };
 
 
@@ -207,7 +207,7 @@ class ResourceManager : public anObject, public LaxFiles::DumpUtility
 
 
 	 //type management
-	virtual MenuInfo *ResourceMenu(const char *type, bool include_recent, MenuInfo *menu);
+	virtual MenuInfo *ResourceMenu(const char *type, bool include_recent, MenuInfo *menu, int id_offset, int info);
 	virtual int NumResources(const char *type);
 	virtual ResourceType *AddResourceType(const char *name, const char *Name, const char *description, LaxImage *icon);
 	virtual ResourceType *FindType(const char *name);
