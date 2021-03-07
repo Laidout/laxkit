@@ -62,7 +62,7 @@ enum MenuSortStyles {
 //#define LAX_HIDDEN      (0)
 //#define LAX_OFF         (1<<0)
 //#define LAX_ON          (1<<1)
-//#define LAX_GRAY        (1<<2)
+//#define LAX_GRAY        (1<<2) <- not selectable
 //#define LAX_SEPARATOR   (1<<3)
 //#define LAX_MSTATE_MASK (0xff)
 
@@ -76,10 +76,11 @@ enum MenuSortStyles {
 #define MENU_ISTOGGLE    (1<<13)
 #define MENU_CHECKED     (1<<14)
 #define MENU_SELECTED    (1<<15)
+#define MENU_VISUAL_GRAY (1<<16) //any children inherit this grayness.. still selectable
 
-#define MENU_SEARCH_HIDDEN (1<<16)
-#define MENU_SEARCH_PARENT (1<<17)
-#define MENU_SEARCH_HIT    (1<<18)
+#define MENU_SEARCH_HIDDEN (1<<17)
+#define MENU_SEARCH_PARENT (1<<18)
+#define MENU_SEARCH_HIT    (1<<19)
 
 namespace Laxkit {
 
@@ -106,6 +107,7 @@ class MenuItem : public anObject
 	int x,y,w,h;
 	MenuItem *nextdetail;
 	MenuInfo *parent;
+	anObject *extra;
 
 	MenuItem();
 	MenuItem(const char *newitem,int nid,unsigned int nstate,int ninfo,MenuInfo *nsub,int sublocal);
@@ -120,6 +122,7 @@ class MenuItem : public anObject
 	virtual MenuItem *GetDetail(int i);
 	virtual int NumDetail();
 	virtual void SetState(unsigned newstate, int on);
+	virtual void SetExtra(anObject *obj, bool absorb);
 
 	virtual const char *GetString(int detail);
 

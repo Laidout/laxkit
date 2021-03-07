@@ -212,6 +212,7 @@ void MenuItem::base_init()
 	state      = LAX_OFF;
 	subislocal = 0;
 	info       = 0;
+	extra      = nullptr;
 	x = y = w = h = 0;
 
 	formathint = 0;
@@ -234,6 +235,7 @@ void MenuItem::base_init(const char *newitem,int nid,unsigned int nstate,int nin
 	name       = nullptr;
 	key        = nullptr;
 	image      = nullptr;
+	extra      = nullptr;
 	makestr(name, newitem);
 	info = ninfo;
 	x = y = w = h = 0;
@@ -272,6 +274,7 @@ MenuItem::~MenuItem()
 	delete[] key;
 	delete[] name;
 	if (image) image->dec_count();
+	if (extra) extra->dec_count();
 	if (subislocal && submenu) delete submenu; 
 
 	if (nextdetail) delete nextdetail;
@@ -320,6 +323,15 @@ int MenuItem::isSelected(int oron)
 {
 	if (oron) return state&(MENU_SELECTED|LAX_ON);
 	return state&MENU_SELECTED;
+}
+
+void MenuItem::SetExtra(anObject *obj, bool absorb)
+{
+	if (obj != extra) {
+		if (extra) extra->dec_count();
+		extra = obj;
+	}
+	if (!absorb && extra) extra->inc_count();
 }
 
 void MenuItem::SetState(unsigned newstate, int on)
@@ -694,6 +706,19 @@ void MenuInfo::Sort(int detail,int newsortstyle)
 {
 	if (newsortstyle) SetCompareFunc(newsortstyle);
 	sort(0, curmenu->menuitems.n-1, detail);
+
+	if (sortstyle & SORT_DIRS_FIRST) {
+		for (int c=0; c<curmenu->menuitems.n; c++) {
+			if (curmenu->menuitems.e[c]->hasSub()) continue;
+			//now we are on a non-sub
+			for (int c2=c+1; c2<curmenu->menuitems.n; c2++) {
+				if (curmenu->menuitems.e[c2]->hasSub()) {
+					curmenu->menuitems.slide(c2, c);
+					break;
+				}
+			}
+		}
+	}
 }
 
 //! Set the compare function to some "int (*func)(const char *,const char *).
