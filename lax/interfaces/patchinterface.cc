@@ -2379,7 +2379,7 @@ void PatchData::getGt(double *Gt,int roffset,int coffset,int isfory)
  *
  * Return 0 for success, or non-negative for not enough points to warp. 
  */
-int PatchData::warpPatch(flatpoint center, double r1,double r2, double s,double e)
+int PatchData::WarpPatch(flatpoint center, double r1,double r2, double s,double e, const double *extra)
 {
 	if (xsize==0 || ysize==0) return 1;
 	setIdentity();
@@ -2421,6 +2421,12 @@ int PatchData::warpPatch(flatpoint center, double r1,double r2, double s,double 
 		//DBG cerr <<endl;
 	} 
 	//DBG cerr << endl;
+	
+	if (extra) {
+		for (int c=0; c<xsize*ysize; c++) {
+			points[c] = transform_point(extra, points[c]);
+		}
+	}
 
 	NeedToUpdateCache(0,-1,0,-1);
 	FindBBox();
@@ -3063,12 +3069,35 @@ Laxkit::MenuInfo *PatchInterface::ContextMenu(int x,int y,int deviceid, Laxkit::
 
 int PatchInterface::ActivateCircleInterface()
 {
+	if (!data) return 1;
+
 	if (child) {
 		if (!strcmp(child->whattype(), "EllipseInterface")) return 0; //already on it!
 		return 2; // some other interface
 	}
 
 	EllipseInterface *el = new EllipseInterface(this, -1, dp);
+	EllipseData *edata = dynamic_cast<EllipseData*>(data->GetProperty("circle"));
+	if (edata) {
+		edata->inc_count();
+	} else {
+		edata = dynamic_cast<EllipseData *>(somedatafactory()->NewObject(LAX_ELLIPSEDATA));
+		if (!edata) edata = new EllipseData();
+		
+		double thin = ScreenLine()*2;
+		edata->center = screentoreal(curwindow->win_w/2,  curwindow->win_h/2);
+		edata->b = norm(screentoreal(curwindow->win_w*4/5,curwindow->win_h/2)
+				      - screentoreal(curwindow->win_w/2,  curwindow->win_h/2));
+		edata->a = edata->b/2;
+		edata->start = 0;
+		edata->end = 2*M_PI;
+		edata->InstallDefaultLineStyle();
+		edata->linestyle->width = norm(screentoreal(0,0) - screentoreal(thin,0));
+		edata->linestyle->Color(controlcolor);
+		data->SetProperty("circle", edata, false);
+	}
+	el->UseThisObject(poc, edata);
+	edata->dec_count();
 
 	child = el;
 	el->owner = this;
@@ -3192,6 +3221,11 @@ int PatchInterface::Event(const Laxkit::EventData *e_data, const char *mes)
 				needtodraw=1;
 			}
 		}
+		return 0;
+
+	} else if (!strcmp(mes,"EllipseInterface")) {
+		if (!data) return 0;
+		UpdateFromCircle();
 		return 0;
 	}
 
@@ -4185,6 +4219,7 @@ int PatchInterface::findNearHorizontal(flatpoint fp,double d,double *t_ret,int *
 int PatchInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMouse *d) 
 {
 	if (!data) { return 1; }
+	if (child) return 1;
 
 	//if (!buttondown.isdown(d->id,LEFTBUTTON) && !curpoints.n) {
 	if (!buttondown.isdown(d->id,LEFTBUTTON)) {
@@ -4663,21 +4698,8 @@ int PatchInterface::PerformAction(int action)
 			return 0;
 		}
 
-
-
-		 //*** need to implement clicking select of center r1 r2 s e
-		flatpoint center=screentoreal(curwindow->win_w/2,curwindow->win_h/2);
-		double r1,r2,s,e;
-		r1=0;
-		r2=norm(screentoreal(curwindow->win_w*4/5,curwindow->win_h/2)
-				- screentoreal(curwindow->win_w/2,curwindow->win_h/2));
-		r1=r2/2;
-		s=0;
-		e=2*M_PI;
-		data->warpPatch(center,r1,r2,s,e);
-		//data->origin(screentoreal(int(curwindow->win_w/2-(data->maxx-data->minx)/2),
-		//						  int(curwindow->win_h/2-(data->maxy-data->miny)/2)));
-		needtodraw=1;
+		ActivateCircleInterface();
+		UpdateFromCircle();
 		return 0;
 
 	} else if (action==PATCHA_SelectCorners) {
@@ -4815,6 +4837,25 @@ int PatchInterface::PerformAction(int action)
 	return 1;
 }
 
+void PatchInterface::UpdateFromCircle()
+{
+	if (!child || strcmp(child->whattype(), "EllipseInterface")) return; //nothing to update from!
+
+	EllipseInterface *interf = dynamic_cast<EllipseInterface*>(child);
+	EllipseData *edata = interf->data;
+
+	flatpoint center = edata->center;
+	double r1 = edata->a;
+	double r2 = edata->b;
+	double s = edata->start;
+	double e = edata->end;
+
+	data->WarpPatch(center,r1,r2,s,e, edata->m());
+	Modified();
+
+	needtodraw = 1;
+}
+
 int PatchInterface::CharInput(unsigned int ch, const char *buffer,int len,unsigned int state,const Laxkit::LaxKeyboard *d) 
 {
 	if (child) return 1;
@@ -4830,13 +4871,19 @@ int PatchInterface::CharInput(unsigned int ch, const char *buffer,int len,unsign
 	}
 
 	if (ch==LAX_Esc) {
+		if (child) {
+			RemoveChild();
+			needtodraw=1;
+			return 0;
+		}
+
 		if (curpoints.n) {
 			curpoints.flush();
 			needtodraw=1;
 			return 0;
 		}
-
 	}
+
 	//DBG else if (ch=='m' && (state&LAX_STATE_MASK)==(ShiftMask|ControlMask)) {
 	//DBG 	if (!data) return 1;
 	//DBG 	app->addwindow(new showmat(NULL,"Matrix",0, 0,0, 800,500, 0, data->points,data->xsize,data->ysize));
