@@ -347,7 +347,7 @@ class ShortcutTreeSelector2 : public TreeSelector
 	virtual int isPressableKey(unsigned int ch);
 	virtual void UpdateSearch(MenuInfo *m,const char *str, int search_type);
 
-	virtual void drawItemContents(MenuItem *i,int offset_x,int offset_y, int fill, int indent);
+	virtual void drawItemContents(MenuItem *i,int offset_x,int suboffset,int offset_y, int fill, int indent);
 	virtual double getitemextent(MenuItem *mitem, double *w, double *h, double *gx, double *tx);
 	virtual double drawMod(Displayer *dp,double x,double y, int mod);
 };
@@ -713,10 +713,10 @@ void ShortcutTreeSelector2::Refresh()
 	SwapBuffers();
 }
 
-void ShortcutTreeSelector2::drawItemContents(MenuItem *i,int offset_x,int offset_y, int fill, int indent)
+void ShortcutTreeSelector2::drawItemContents(MenuItem *i,int offset_x,int suboffset,int offset_y, int fill, int indent)
 {
 	if (i->NumDetail() == 0) {
-		TreeSelector::drawItemContents(i, offset_x,offset_y, fill, indent);
+		TreeSelector::drawItemContents(i, offset_x,suboffset,offset_y, fill, indent);
 		return;
 	}
 
