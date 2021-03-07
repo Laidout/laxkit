@@ -106,10 +106,13 @@ class TreeSelector : public ScrolledWindow
 	int textheight,lineheight,pagesize;
 	int timerid;
 	int senddetail;
+	int dragflag;
+	char *flagdef;
 
 	MenuInfo *menu; 
 	MenuItem *curmenuitem;
 	int curitem,ccuritem;
+	int ccurdetail, ccurflag;
 	PtrStack<MenuItem> selection;
 
 	char *searchfilter;
@@ -127,14 +130,14 @@ class TreeSelector : public ScrolledWindow
 	virtual void drawSubIndicator(MenuItem *mitem,int x,int y, int selected);
 	virtual void drawitemname(MenuItem *mitem,IntRectangle *rect);
 	virtual void drawflags(MenuItem *mitem,IntRectangle *rect);
-	virtual int  drawFlagGraphic(char flag, int x,int y,int h);
+	virtual int  drawFlagGraphic(char flag, int x,int y,int w,int h);
 	virtual void drawtitle(int &y);
 	virtual int findmaxwidth(int s,int e, int *h_ret);
 	virtual int findColumnWidth(int which);
 
 	virtual int send(int deviceid, bool forhovered = false);
 	virtual void addselect(int i,unsigned int state);
-	virtual int findItem(int x,int y, int *onsub, int *ondetail = nullptr);
+	virtual int findItem(int x,int y, int *onsub, int *ondetail = nullptr, int *onflag = nullptr);
 	virtual int findColumn(int x);
 	virtual int findRect(int c,IntRectangle *itemspot);
 	virtual void arrangeItems();
@@ -143,9 +146,12 @@ class TreeSelector : public ScrolledWindow
 	virtual int numItems();
 	virtual MenuItem *item(int i,char skipcache=0);
 
+	virtual int ToggleFlag(int itemi, int detail, int flag);
+	virtual char ToggleFlag(char current);
+
 	virtual int addToCache(int indent,MenuInfo *menu, int cury);
 	virtual int DrawItems(int indent, MenuInfo *item, int &n, flatpoint offset);
-	virtual void drawItemContents(MenuItem *i,int offset_x,int offset_y, int fill, int indent);
+	virtual void drawItemContents(MenuItem *i,int offset_x,int suboffset,int offset_y, int fill, int indent);
 	virtual void drawarrow(int x,int y,int r,int type);
 
 	virtual void editInPlace(int which);
@@ -171,19 +177,22 @@ class TreeSelector : public ScrolledWindow
 		int type; //uses ColumnInfoType
 		int sort; //0 don't sort, 1 sort ascending, -1 sort descending
 		int sort_type; //overrides default sort for menu
+		CompareFunc compareFunc;
 
 		ColumnInfo(const char *ntitle, int ntype, int whichdetail, int nwidth, int nwtype);
 		~ColumnInfo();
 	};
 	PtrStack<ColumnInfo> columns;
+	float flag_width; // actual width = flag_width * cell height
 	int tree_column;
 	int sort_detail;
 	int sort_descending;
+	bool sort_dirs_first;
 
 	int gap;
 	unsigned long highlight,shadow;
 	unsigned long long menustyle;
-	int padg,pad,leading, iwidth;
+	int padg,pad,leading, iwidth, iconwidth;
 
 	TreeSelector(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
 				int xx,int yy,int ww,int hh,int brder,
@@ -252,6 +261,7 @@ class TreeSelector : public ScrolledWindow
 	//virtual int RemoveItem(int whichid);
 	//virtual int RemoveItem(const char *i);
 	virtual void Sort(int t, int detail);
+	virtual void Sort();
 	virtual int AddItems(const char **i,int n,int startid); // assume ids sequential, state=0
 	virtual int AddItem(const char *i,LaxImage *img,int nid,int newstate);
 

@@ -203,6 +203,8 @@ void TreeSelector::base_init()
 	lineheight   = 0;
 	pagesize     = 0;
 	ccuritem = curitem = 0;
+	ccurdetail   = -1;
+	ccurflag     = -1;
 	curmenuitem  = NULL;
 	timerid      = 0;
 	senddetail   = -1;
@@ -210,7 +212,11 @@ void TreeSelector::base_init()
 	menustyle    = 0;
 	needtobuildcache = 1;
 	iwidth       = 10;
+	iconwidth    = 1; //default width of icon, even if icon missing. 1 == textheight
 	firsttime    = 1;
+	flag_width   = 1;
+	dragflag     = -1;
+	flagdef      = nullptr; //string of byte pairs, like "eElL", checked in ToggleFlag()
 
 	searchfilter = NULL;
 	showsearch   = 0;
@@ -218,6 +224,7 @@ void TreeSelector::base_init()
 	tree_column  = 0; //the column in which to position the tree lines
 	sort_detail  = -1;
 	sort_descending = 0;
+	sort_dirs_first = false;
 
 	InstallColors(THEME_Panel);
 
@@ -229,6 +236,7 @@ TreeSelector::~TreeSelector()
 {
 	if (menu) menu->dec_count();
 	if (searchfilter) delete[] searchfilter;
+	delete[] flagdef;
 
 	DBG visibleitems.Flush();
 }
@@ -260,6 +268,8 @@ int TreeSelector::InstallMenu(MenuInfo *nmenu)
 	needtobuildcache=1;
 	selection.flush();
 	ccuritem=curitem=0;
+	ccurdetail = -1;
+	ccurflag = -1;
 	arrangeItems();
 	//RebuildCache();
 	RemapColumns();
@@ -649,6 +659,19 @@ void TreeSelector::Sort(int t, int detail)
 	if (menu) menu->sort(0,-1,detail);//*** this is now broken potentially cause numItems!=menuitems->n
 }
 
+/*! Sort with current settings.
+ */
+void TreeSelector::Sort()
+{
+	if (!menu) return;
+
+	menu->SetCompareFunc(menu->sortstyle);
+	// visibleitems.SetCompareFunc(menu->sortstyle);
+	menu->Sort(sort_detail);
+	RebuildCache();
+	needtodraw=1;
+}
+
 int TreeSelector::ShowSearch(bool on)
 {
 	showsearch = on;
@@ -697,6 +720,8 @@ int TreeSelector::UpdateSearch(const char *searchterm, bool isprogressive)
 	MenuItem *sitem = item(curitem);
 	curitem = -1;
 	ccuritem = 0;
+	ccurdetail = -1;
+	ccurflag = -1;
 	if (sitem && !sitem->hidden()) {
 		//int i=-1;
 		for (int c=0; c<visibleitems.n(); c++) {
@@ -754,6 +779,9 @@ int TreeSelector::AddItem(const char *i,LaxImage *img,int nid,int newstate)
 double TreeSelector::getgraphicextent(MenuItem *mitem,double *w,double *h)
 {
     if (!mitem || !mitem->image) {
+    	if (iconwidth > 0) {
+    		*w = *h = iconwidth * win_themestyle->normal->textheight();
+    	}
         *w=0;
         *h=0;
         return 0;
@@ -886,6 +914,7 @@ int TreeSelector::RebuildCache()
 
 	if (ccuritem >= numItems()) {
 		ccuritem=curitem = numItems()-1;
+		ccurdetail = ccurflag = -1;
 		curmenuitem=item(ccuritem);
 		makeinwindow();
 	}
@@ -1159,10 +1188,10 @@ int TreeSelector::DrawItems(int indent, MenuInfo *mmenu, int &n, flatpoint offse
 			} else {
 				drawSubIndicator(i, tree_offset+offset.x+indent*iwidth,offset.y+suby, i->isSelected());
 			}
-		}
+		} else suboffset = iwidth;
 
 		 //finally draw actual item contents in cached area
-		drawItemContents(i, offset.x+suboffset,offset.y, 0, (indent+(HasStyle(TREESEL_NO_LINES) ? 0 : 1))*iwidth);
+		drawItemContents(i, offset.x,suboffset,offset.y, 0, (indent+(HasStyle(TREESEL_NO_LINES) ? 0 : 1))*iwidth);
 	}
 
 	return yy;
@@ -1229,7 +1258,7 @@ void TreeSelector::drawtitle(int &y)
  *
  * indent is how much to indent a cell's contents when its column is the tree_column.
  */
-void TreeSelector::drawItemContents(MenuItem *i,int offset_x,int offset_y, int fill, int indent)
+void TreeSelector::drawItemContents(MenuItem *i,int offset_x,int suboffset,int offset_y, int fill, int indent)
 {
 	IntRectangle itemspot;
 	itemspot.x      = i->x+offset_x;
@@ -1289,17 +1318,17 @@ void TreeSelector::drawItemContents(MenuItem *i,int offset_x,int offset_y, int f
 	MenuItem *ii;
 	for (int c=start; c<columns.n; c++) {
 		ii=i;
-		if (c>=0) {
-			itemspot.x=offset_x+columns.e[c]->pos;
-			itemspot.width=columns.e[c]->width;
-			ii=ii->GetDetail(columns.e[c]->detail);
-			if (c==tree_column) {
-				itemspot.width-=indent;
-				itemspot.x+=indent;
+		if (c>=0) { //we have columns
+			itemspot.x = offset_x + columns.e[c]->pos + (c == tree_column ? suboffset : 0);
+			itemspot.width = columns.e[c]->width;
+			ii = ii->GetDetail(columns.e[c]->detail);
+			if (c == tree_column) {
+				itemspot.width -= indent;
+				itemspot.x += indent;
 			}
-			if (columns.e[c]->type==ColumnInfo::ColumnFlags) {
+			if (columns.e[c]->type == ColumnInfo::ColumnFlags) {
 				drawflags(ii, &itemspot);
-				ii=NULL;
+				ii = NULL;
 			}
 		} else {
 			 //c<0 happens when there are no columns, always remove the line space
@@ -1349,9 +1378,9 @@ void TreeSelector::drawflags(MenuItem *mitem,IntRectangle *rect)
 	const char *f=mitem->name;
 	if (!f) return;
 
-	int x=rect->x;
+	int w = flag_width * rect->height;
 	for (unsigned int c=0; c<strlen(f); c++) {
-		x=drawFlagGraphic(f[c], x+rect->height/2,rect->y, rect->height);
+		drawFlagGraphic(f[c], rect->x + c*w, rect->y, w,rect->height);
 	}
 }
 
@@ -1364,25 +1393,25 @@ void TreeSelector::drawflags(MenuItem *mitem,IntRectangle *rect)
  * Otherwise, if a character is ' ', then by default, it is off, and nothing is drawn.
  * If not ' ', then a check mark is drawn.
  *
- * Return the new x size.
+ * Return the new x position.
  */
-int TreeSelector::drawFlagGraphic(char flag, int x,int y,int h)
+int TreeSelector::drawFlagGraphic(char flag, int x,int y,int w,int h)
 {
 	if (flag==' ') return x+h;
 
 	Displayer *dp = GetDisplayer();
 
 	DrawThingTypes thing=THING_Check;
-	if (flag=='l') thing=THING_Unlocked;
-	else if (flag=='L') thing=THING_Locked;
-	else if (flag=='e') thing=THING_Closed_Eye;
-	else if (flag=='E') thing=THING_Open_Eye;
+	if      (flag=='l') thing = THING_Unlocked;
+	else if (flag=='L') thing = THING_Locked;
+	else if (flag=='e') thing = THING_Closed_Eye;
+	else if (flag=='E') thing = THING_Open_Eye;
 
 	dp->NewFG(0,0,0);
 	if (flag=='e' || flag=='E') dp->NewBG(1.,1.,1.);
 	else dp->NewBG(.7,.7,.7);
 	dp->LineAttributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
-	dp->drawthing(x,y+h/2, h*.4,-h*.4, 2, thing);
+	dp->drawthing(x+w/2, y+h/2, w*.4,-w*.4, 2, thing); //draw centered on x, with width h/2
 
 	return x+h;
 }
@@ -1472,7 +1501,7 @@ void TreeSelector::SendDetail(int which)
  * \code
  * info1 = curitem (which might be -1 for nothing)
  * info2 = id of curitem
- * info3 = nitems selected
+ * info3 = hover changed
  * info4 = menuitem->info
  * \endcode
  *
@@ -1662,7 +1691,14 @@ int TreeSelector::CharInput(unsigned int ch,const char *buffer,int len,unsigned 
 		}
 		return 0;
 
-	} else if (ch=='-' && !HasStyle(TREESEL_LIVE_SEARCH)) {  // Collapse current item, or all if control
+	// } else if (ch==LAX_Left) {   ...maybe do something else when multiple columns??
+	// 	MenuItem *item = item(ccuritem);
+	// 	return 0;
+
+	// } else if (ch==LAX_Right) {
+	// 	return 0;
+
+	} else if (ch == LAX_Left || (ch=='-' && !HasStyle(TREESEL_LIVE_SEARCH))) {  // Collapse current item, or all if control
 		if (state&ControlMask) {
 			for (int c=visibleitems.n()-1; c>=0; c--) {
 				if (c>=visibleitems.n()) continue;
@@ -1679,7 +1715,7 @@ int TreeSelector::CharInput(unsigned int ch,const char *buffer,int len,unsigned 
 		}
 		return 0;
 
-	} else if ((ch=='=' || ch=='+') && !HasStyle(TREESEL_LIVE_SEARCH)) {  // Expand current item, or all if control
+	} else if (ch == LAX_Right || ((ch=='=' || ch=='+') && !HasStyle(TREESEL_LIVE_SEARCH))) {  // Expand current item, or all if control
 		if (state&ControlMask) {
 			for (int c=0; c<visibleitems.n(); c++) {
 				if (visibleitems.e(c)->hasSub()) Expand(c);
@@ -1851,24 +1887,14 @@ int TreeSelector::LBDown(int x,int y,unsigned int state,int count,const LaxMouse
 //		}
 //	}
 
-	int detailhover=-1;
-	int item=-1;
+	int detailhover = -1;
+	int flaghover = -1;
+	int item = -1;
 
-	//if (columns.n && y<=inrect.y+textheight) {
-	if (columns.n && y<=inrect.y) {
-		 //check for clicking on column dividers to resize
-		 // *** what about title?
-		for (int c=columns.n-1; c>0; c--) {
-			if (x>columns.e[c]->pos-10 && x<columns.e[c]->pos+10) {
-				detailhover=c;
-				break;
-			}
-		}
-		
-	} else { //no columns displayed
-		int onsub=0;
-		item=findItem(x,y, &onsub);
-	}
+	int onsub=0;
+	item = findItem(x,y, &onsub, &detailhover, &flaghover);
+	ccurflag = flaghover;
+	ccurdetail = detailhover;
 
 	DBG cerr <<"-----click on "<<item<<" detailhover: "<<detailhover<<endl;
 
@@ -1890,9 +1916,9 @@ int TreeSelector::LBUp(int x,int y,unsigned int state,const LaxMouse *d)
 	if (!buttondown.isdown(d->id,LEFTBUTTON)) return 1;
 
 	int hovered=-1, item=-1;
-	int dragamount=buttondown.up(d->id,LEFTBUTTON, &item,&hovered);
+	int dragamount = buttondown.up(d->id,LEFTBUTTON, &item,&hovered);
 	
-	if (item<0 && hovered<0) {
+	if (item == -2 && hovered >= 0) {
 		 //click down and up on column header. Adjust sort.
 		if (dragamount<7) {
 			int column = findColumn(x);
@@ -1944,14 +1970,16 @@ int TreeSelector::LBUp(int x,int y,unsigned int state,const LaxMouse *d)
 		return 0;
 	}
 
-	if (hovered>=0) return 0; //was dragging on column divider
+	// if (hovered>=0) return 0; //was dragging on column divider
+	if (item < 0) return 0; //was dragging on something column header related
 
 	 // do nothing if mouse is outside window.. This is necessary because of grabs.
 	if (x<0 || x>=win_w || y<0 || y>=win_h) { return 0; }
 
-	int curdetailhover=-1;
+	int curdetailhover = -1;
+	int curflaghover = -1;
 	int onsub=0;
-	int i = findItem(x,y,&onsub, &curdetailhover);
+	int i = findItem(x,y,&onsub, &curdetailhover, &curflaghover);
 
 	if (i != item || curdetailhover != hovered) return 0; //up on something not down on
 	if (i<0 || i>=numItems()) return 0; //if not on any item or arrow
@@ -1972,6 +2000,9 @@ int TreeSelector::LBUp(int x,int y,unsigned int state,const LaxMouse *d)
 			arrangeItems();
 			return 0;
 
+		} else if (curflaghover >= 0) {
+			ToggleFlag(i, curdetailhover, curflaghover);
+
 		} else if (HasStyle(TREESEL_EDIT_IN_PLACE)) {
 			editInPlace(i);
 			return 0; 
@@ -1988,21 +2019,65 @@ int TreeSelector::LBUp(int x,int y,unsigned int state,const LaxMouse *d)
 	return 0;
 }
 
+char TreeSelector::ToggleFlag(char current)
+{
+	if (flagdef) {
+		char *ptr = strchr(flagdef, current);
+		if (!ptr) return current;
+
+		if ((ptr - flagdef)%2 == 0) return ptr[1];
+		return *(ptr-1);
+	}
+
+	if (current == 'E') return 'e';
+	if (current == 'e') return 'E';
+	if (current == 'L') return 'l';
+	if (current == 'l') return 'L';
+	if (current != ' ') return ' ';
+	if (current == ' ') return '.';
+	return current;
+}
+
+int TreeSelector::ToggleFlag(int itemi, int detail, int flag)
+{
+	if (detail < 0 || detail >= columns.n) return -1;
+
+	MenuItem *ii = item(itemi);
+	if (!ii) return -1;
+
+	MenuItem *idetail = ii->GetDetail(columns.e[detail]->detail);
+	if (!idetail) return -1;
+
+	if (flag < 0 || flag >= (int)strlen(idetail->name)) return -1;
+
+	idetail->name[flag] = ToggleFlag(idetail->name[flag]);
+
+	return 1;
+}
+
 //! Find the index of the item at window coordinates (x,y).
 /*! The value returned is not necessarily an actual element index. It could be -1, or >=menuitems.n.
  */
-int TreeSelector::findItem(int x,int y, int *onsub, int *ondetail)
+int TreeSelector::findItem(int x,int y, int *onsub, int *ondetail, int *onflag)
 {
+	if (onflag) *onflag = -1;
 	if (ondetail) {
 		*ondetail = -1;
 
 		if (columns.n && y <= inrect.y) {
 			 //check for clicking on column dividers to resize
-			 // *** what about title?
 			for (int c=columns.n-1; c>0; c--) {
 				if (x>columns.e[c]->pos-10 && x<columns.e[c]->pos+10) {
 					*ondetail = c;
-					break;
+					return -1;
+				}
+			}
+
+			 // check for click on any column header
+			for (int c=columns.n-1; c>=0; c--) {
+				if (x>columns.e[c]->pos && x<columns.e[c]->pos+columns.e[c]->width) {
+					*ondetail = c;
+					return -2;
 				}
 			}
 		}
@@ -2052,10 +2127,16 @@ int TreeSelector::findItem(int x,int y, int *onsub, int *ondetail)
 		for (int c=0; c<columns.n; c++) {
 			if (x>=columns.e[c]->pos && x<columns.e[c]->pos+columns.e[c]->width) {
 				col=c;
+				if (ondetail) *ondetail = c;
+
+				if (onflag && columns.e[c]->type == ColumnInfo::ColumnFlags) {
+					*onflag = (x-columns.e[c]->pos) / (flag_width * i->h);
+					//if (*onflag > numflags) *onflag = -1;
+				}
 				break;
 			}
 		}	
-		if (col==tree_column) {
+		if (col==tree_column) { //the column with the layer lines
 			if (x-columns.e[col]->pos > indent*iwidth && x-columns.e[col]->pos < (indent+1)*iwidth) *onsub=1;
 			else *onsub=0;
 		}
@@ -2142,14 +2223,15 @@ int TreeSelector::MBUp(int x,int y,unsigned int state,const LaxMouse *d)
 int TreeSelector::MouseMove(int x,int y,unsigned int state,const LaxMouse *d)
 {
 	int mx,my;
-	int hover=-1;
-	buttondown.getextrainfo(d->id,LEFTBUTTON, NULL, &hover);
+	int hover = -1;
+	int which = -1;
+	buttondown.getextrainfo(d->id,LEFTBUTTON, &which, &hover);
 	buttondown.move(d->id, x,y, &mx,&my);
-	//DBG cerr <<"mx,my:"<<mx<<','<<my<<" x,y:"<<x<<','<<y<<endl;
-
+	
 	int onsub;
-	int i=findItem(x,y, &onsub);
-	DBG cerr <<"tree found item "<<i<<", onsub:"<<onsub<<endl;
+	int ondetail, onflag;
+	int i=findItem(x,y, &onsub, &ondetail, &onflag);
+	DBG cerr <<"tree found item "<<i<<", onsub:"<<onsub<<", ondetail: "<<ondetail<<", onflag: "<<onflag<<endl;
 
 	if (!buttondown.any()) {
 		 // do nothing if mouse is outside window..
@@ -2164,6 +2246,8 @@ int TreeSelector::MouseMove(int x,int y,unsigned int state,const LaxMouse *d)
 				//else {
 					//curitem  = i;
 					ccuritem = i;
+					ccurdetail = ondetail;
+					ccurflag = onflag;
 					addselect(ccuritem,0);
 					if (HasStyle(TREESEL_SEND_HOVERED)) send(0, true);
 					needtodraw|=2;
@@ -2174,7 +2258,7 @@ int TreeSelector::MouseMove(int x,int y,unsigned int state,const LaxMouse *d)
 	}
 
 	if (buttondown.isdown(d->id,LEFTBUTTON)) {
-		if (hover>=0) {
+		if (which < 0 && hover >= 0) {
 			for (int c=hover; c<columns.n; c++) {
 				columns.e[c]->pos+=x-mx;
 			}

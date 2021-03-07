@@ -31,6 +31,7 @@
 
 
 //note: FILES_* get passed into ndstyle, NOT win_style
+#define FILES_DIRS_FIRST       (1<< 0)
 #define FILES_GLOBAL_BOOKMARK  (1<<15)
 
 #define FILES_MINIMAL          (1<<16)

@@ -253,10 +253,13 @@ FileDialog::FileDialog(anXWindow *parnt,const char *nname,const char *ntitle,uns
 							TREESEL_SEND_ON_UP |TREESEL_LEFT |TREESEL_SUB_FOLDER |TREESEL_NO_LINES |TREESEL_DONT_EXPAND,
 							files);
 	last->InstallColors(THEME_Edit);
+	if (dialog_style & FILES_DIRS_FIRST) filelist->sort_dirs_first = true;
 	filelist->tooltip(_("Choose from these files.\nRight-click drag or wheel scrolls"));
 	filelist->AddColumn(_("Name"), NULL, 0,1);
 	filelist->AddColumn(_("Size"), NULL, 0,0, TreeSelector::ColumnInfo::ColumnBytes);
 	filelist->AddColumn(_("Date"), NULL, 0,0, TreeSelector::ColumnInfo::ColumnDate);
+	filelist->sort_detail = 0;
+	filelist->columns[0]->sort = 1;
 	filelist->Select(-1);
 	// filelist=NULL;
 	
@@ -968,6 +971,7 @@ int FileDialog::ShowRecent(int on)
 		else mask->SetText(_("(recent)"));
 	}
 
+	UpdateGray();
 	return showing_recent;
 }
 
@@ -978,7 +982,7 @@ int FileDialog::Event(const EventData *data,const char *mes)
 	DBG cerr <<"-----file dialog got: "<<mes<<endl;
 
 	if (data->type==LAX_onMapped) {
-        app->setfocus(file,0,NULL);
+        app->setfocus(file->GetLineEdit(),0,NULL);
         return anXWindow::Event(data,mes);
     }
 
@@ -1175,7 +1179,11 @@ int FileDialog::Event(const EventData *data,const char *mes)
 
 	} else if (!strcmp(mes,"go back")) {
 		DBG cerr <<"file dialog: "<<mes<<endl;
-		GoBack();
+		if (showing_recent) {
+			ShowRecent(false);
+		} else {
+			GoBack();
+		}
 		return 0;
 
 	} else if (!strcmp(mes,"go forward")) {
@@ -1193,29 +1201,13 @@ int FileDialog::Event(const EventData *data,const char *mes)
 		return 0;
 
 	} else if (!strcmp(mes,"settingsbutton")) { // toggle details/all together
-		MenuInfo *bmenu=new MenuInfo();
 		unsigned int sortstyle = filelist->Menu()->sortstyle;
 
-		enum FileSortMenu {
-			FILES_Dirs_First=1,
-			FILES_Caseless,
-			FILES_ABC,
-			FILES_CBA,
-			FILES_123,
-			FILES_321,
-			FILES_abc123,
-			FILES_cba321,
-			FILES_Reverse,
-			FILES_Detail,
-			FILES_SORT_MAX
-		};
-
-		//const char *newitem,LaxImage *img,int nid,unsigned int nstate,int ninfo=0,  MenuInfo *nsub=NULL,int where=-1,char subislocal=1
-
-		bmenu->AddToggleItem(_("Sort ABC"), SORT_ABC /*id*/, 0, (sortstyle&SORT_ABC) != 0 );
-		bmenu->AddToggleItem(_("Sort CBA"), SORT_CBA /*id*/, 0, (sortstyle&SORT_CBA) != 0 );
-		bmenu->AddToggleItem(_("Sort caseless"), SORT_IGNORE_CASE /*id*/, (sortstyle&SORT_IGNORE_CASE) != 0);
-		bmenu->AddToggleItem(_("Sort directories first"), SORT_DIRS_FIRST, (sortstyle&SORT_DIRS_FIRST) != 0);
+		MenuInfo *bmenu=new MenuInfo();
+		// bmenu->AddToggleItem(_("Sort ABC"), SORT_ABC /*id*/, 0, (sortstyle&SORT_ABC) != 0 );
+		// bmenu->AddToggleItem(_("Sort CBA"), SORT_CBA /*id*/, 0, (sortstyle&SORT_CBA) != 0 );
+		bmenu->AddToggleItem(_("Sort caseless"),          SORT_IGNORE_CASE /*id*/, 0, (sortstyle&SORT_IGNORE_CASE) != 0);
+		bmenu->AddToggleItem(_("Sort directories first"), SORT_DIRS_FIRST,         0, filelist->sort_dirs_first);
 
         PopupMenu *popup=new PopupMenu(NULL,_("Settings"), 0,
                         0,0,0,0, 1, 
@@ -1232,12 +1224,24 @@ int FileDialog::Event(const EventData *data,const char *mes)
 	} else if (!strcmp(mes,"settings")) { // toggle details/all together
 		int id=s->info2;
 
+		MenuInfo *menu = filelist->Menu();
 		if (id==SORT_ABC) {
+			menu->sortstyle = (menu->sortstyle&(SORT_CBA|SORT_ABC)) | SORT_ABC;
+
 		} else if (id==SORT_CBA) {
+			menu->sortstyle = (menu->sortstyle&(SORT_CBA|SORT_ABC)) | SORT_CBA;
+
 		} else if (id==SORT_IGNORE_CASE) {
+			bool ignore = menu->sortstyle & SORT_IGNORE_CASE;
+			menu->sortstyle = (menu->sortstyle & (~SORT_IGNORE_CASE)) | (ignore ? 0: SORT_IGNORE_CASE);
+
 		} else if (id==SORT_DIRS_FIRST) {
+			filelist->sort_dirs_first = !filelist->sort_dirs_first;
+			menu->sortstyle = (menu->sortstyle & SORT_DIRS_FIRST) | (filelist->sort_dirs_first ? SORT_DIRS_FIRST : 0);
 		}
 
+		if (filelist->sort_detail < 0) filelist->sort_detail = 0;
+		filelist->Sort();
 		return 0;
 	}
 
@@ -1477,13 +1481,19 @@ int FileDialog::CharInput(unsigned int ch,const char *buffer,int len,unsigned in
 	if (ch==LAX_Esc) {
 		return !closeWindow();//esc will propagate
 	}
+
+	if (ch == LAX_Tab || (ch == 'l' && state&ControlMask)) {
+		app->setfocus(file->GetLineEdit(),0,NULL);
+		return 0;
+	}
+
 	return anXWindow::CharInput(ch,buffer,len,state,d);
 }
 
 void FileDialog::UpdateGray()
 {
 	Button *back=dynamic_cast<Button*>(findChildWindowByName("fd-back", true));
-	if (back) { if (curhistory<=0) back->Grayed(1); else back->Grayed(0); }
+	if (back) { if (curhistory<=0 && !showing_recent) back->Grayed(1); else back->Grayed(0); }
 
 	Button *fwd =dynamic_cast<Button*>(findChildWindowByName("fd-forward", true));
 	if (fwd) { if (curhistory<0 || curhistory>=history.n-1) fwd->Grayed(1); else fwd->Grayed(0); }
