@@ -122,6 +122,12 @@ LineStyle::~LineStyle()
 	delete[] dashes;
 }
 
+void LineStyle::Color(unsigned long col)
+{
+	ScreenColor cc(col);
+	Colorf(cc);
+}
+
 //! Set the color. Components are 0..0xffff.
 void LineStyle::Color(int r,int g,int b,int a)
 {

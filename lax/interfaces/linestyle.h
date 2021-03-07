@@ -71,6 +71,7 @@ class LineStyle : virtual public Laxkit::anObject, virtual public LaxFiles::Dump
 	LineStyle(const LineStyle &l);
 	LineStyle &operator=(LineStyle &l);
 	virtual ~LineStyle();
+	virtual void Color(unsigned long col);
 	virtual void Color(int r,int g,int b,int a);
 	virtual void Colorf(double r,double g,double b,double a);
 	virtual void Colorf(const Laxkit::ScreenColor &col);
