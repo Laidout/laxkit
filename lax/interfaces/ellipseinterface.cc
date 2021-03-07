@@ -23,6 +23,7 @@
 
 #include <lax/interfaces/somedatafactory.h>
 #include <lax/interfaces/ellipseinterface.h>
+#include <lax/interfaces/somedataref.h>
 #include <lax/bezutils.h>
 #include <lax/language.h>
 
@@ -617,6 +618,37 @@ int EllipseInterface::UseThis(anObject *nobj,unsigned int mask)
 	return 0;
 }
 
+/*! Use oc for the context, but other_object for the final object.
+ * If other_object == null, use oc->obj instead.
+ * Incs count of other_object.
+ *
+ * Return 1 for used, 0 for not used.
+ */
+int EllipseInterface::UseThisObject(ObjectContext *oc, SomeData *other_object)
+{
+	if (!other_object) other_object = oc->obj;
+
+	EllipseData *ndata = dynamic_cast<EllipseData*>(other_object);
+	if (!ndata && dynamic_cast<SomeDataRef*>(other_object)) {
+		SomeData *o = dynamic_cast<SomeDataRef*>(oc->obj)->GetFinalObject();
+		ndata = dynamic_cast<EllipseData *>(o);
+		if (!ndata) return 0;
+	}
+
+	if (!ndata) return 0;
+
+	if (data && data != ndata) deletedata();
+	if (eoc) delete eoc;
+	eoc = oc->duplicate();
+
+	if (data != ndata) {
+		data = ndata;
+		data->inc_count();
+	}
+
+	return 1;
+}
+
 /*! \todo *** should push the RectInterface onto the viewport interfaces stack...
  */
 int EllipseInterface::InterfaceOn()
@@ -678,7 +710,7 @@ int EllipseInterface::Refresh()
 		return 1;
 	}
 
-	DBG cerr <<"  EllipseRefresh showdecs: "<<showdecs<<"  width: "<<data->linestyle->width<<endl;
+	DBG cerr <<"  EllipseRefresh showdecs: "<<showdecs<<"  width: "<<(data->linestyle ? data->linestyle->width : 0)<<endl;
 		
 	LineStyle *lstyle = data->linestyle;
 	if (!lstyle) lstyle = &linestyle;
@@ -1202,6 +1234,7 @@ int EllipseInterface::Event(const Laxkit::EventData *e,const char *mes)
 	} else return 1;
 
 	data->FindBBox();
+	Modified();
 	needtodraw = 1;
 	return 0;
 }
@@ -1232,6 +1265,7 @@ int EllipseInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::Lax
 	if (curpoint != ELLP_None) {
 		if (curpoint == ELLP_Center) {
 			data->center += data->transformPointInverse(screentoreal(x,y)) - data->transformPointInverse(screentoreal(lx,ly));
+			Modified();
 			needtodraw = 1;
 
 		} else if (curpoint==ELLP_Focus2 || curpoint==ELLP_Focus1) {
@@ -1243,6 +1277,7 @@ int EllipseInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::Lax
 			else f1 += d; 
 			
 			data->SetFoci(data->transformPointInverse(f1),data->transformPointInverse(f2),-1); //*** doesn't deal with non-whole ellipse, the segment jumps around
+			Modified();
 			needtodraw|=2; 
 
 		} else if (curpoint == ELLP_StartAngle) {
@@ -1265,6 +1300,7 @@ int EllipseInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::Lax
 					if (data->start > data->end) data->end += 2*M_PI;
 					else data->end -= 2*M_PI;
 				}
+				Modified();
 				DBG cerr << "start: "<<data->start<<"  end: "<<data->end<<endl;
 				needtodraw = 1;
 			}
@@ -1291,6 +1327,7 @@ int EllipseInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::Lax
 					else data->end -= 2*M_PI;
 				}
 
+				Modified();
 				DBG cerr << "start: "<<data->start<<"  end: "<<data->end<<endl;
 				needtodraw = 1;
 			}
@@ -1335,6 +1372,8 @@ int EllipseInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::Lax
 				data->origin(data->origin() + ref_point2 - data->getpoint(ELLP_Center, true));
 			}
 
+			Modified();
+
 		} else if (curpoint==ELLP_OuterRadius) {
 			flatpoint op = data->transformPointInverse(screentoreal(lx,ly)) - data->center;
 			flatpoint np = data->transformPointInverse(screentoreal(x,y)) - data->center;
@@ -1352,6 +1391,7 @@ int EllipseInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::Lax
 				data->a = newb * r;
 				data->b = newb;
 			}
+			Modified();
 			needtodraw = 1;
 
 		} else if (curpoint==ELLP_InnerRadius) {
@@ -1366,6 +1406,7 @@ int EllipseInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::Lax
 				double r = data->a / data->b;
 				double scale = sqrt((np.x*np.x/r/r) + np.y*np.y) / data->b;
 				data->inner_r = scale;
+				Modified();
 				needtodraw=1;
 			}
 		
@@ -1376,6 +1417,7 @@ int EllipseInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::Lax
 			p2=getpoint(ELLP_Focus2, true) - h;
 			data->SetFoci(getpoint(ELLP_Focus1, false), getpoint(ELLP_Focus2, false),sqrt(p*p)+sqrt(p2*p2));
 			// rectify();
+			Modified();
 			needtodraw|=1;
 
 		} else if (curpoint == ELLP_DragRect) {
@@ -1407,6 +1449,7 @@ int EllipseInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::Lax
 					data->origin(data->transformPoint(p1 + flatvector(sgn(p2.x-p1.x) * data->a, sgn(p2.y - p1.y) * data->b)));
 			}
 			// data->FindBBox();
+			Modified();
 			needtodraw = 1;
 
 		} else if (curpoint == ELLP_WedgeToggle) {
@@ -1426,6 +1469,7 @@ int EllipseInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::Lax
 				if (data->wedge_type == EllipseData::ELLIPSE_Wedge) PostMessage(_("Use wedge"));
 				else if (data->wedge_type == EllipseData::ELLIPSE_Chord) PostMessage(_("Use chord"));
 				else PostMessage(_("Use open"));
+				Modified();
 				needtodraw = 1;
 			}
 		}
@@ -1487,6 +1531,7 @@ int EllipseInterface::CharInput(unsigned int ch, const char *buffer,int len,unsi
 		if (found) {
 			buttondown.clear();
 			data->FindBBox();
+			Modified();
 			needtodraw = 1;
 			curpoint = hover_point = ELLP_None;
 		}
@@ -1544,33 +1589,38 @@ int EllipseInterface::PerformAction(int action)
 
 	} else if (action == ELLP_ToggleCircle) {
 		if (!data) return 0;
-		data->b = data->a;
-		// bool circle=data->GetStyle(EllipseData::ELLIPSE_IsCircle);
-		// data->SetStyle(EllipseData::ELLIPSE_IsCircle, !circle);
-		needtodraw=1;
+		if (data->b != data->a) {
+			data->b = data->a;
+			Modified();
+			needtodraw=1;
+		}
 		return 0;
 
 	} else if (action == ELLP_CloseGap) {
 		if (!data) return 0;
 		data->start = data->end = 0;
+		Modified();
 		needtodraw=1;
 		return 0;
 
 	} else if (action ==  ELLP_UseWedge) {
 		if (!data) return 0;
 		data->wedge_type = EllipseData::ELLIPSE_Wedge;
+		Modified();
 		needtodraw=1;
 		return 0;
 
 	} else if (action == ELLP_UseChord) {
 		if (!data) return 0;
 		data->wedge_type = EllipseData::ELLIPSE_Chord;
+		Modified();
 		needtodraw=1;
 		return 0;
 
 	} else if (action == ELLP_UseOpen) {
 		if (!data) return 0;
 		data->wedge_type = EllipseData::ELLIPSE_Open;
+		Modified();
 		needtodraw=1;
 		return 0;
 
