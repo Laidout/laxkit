@@ -78,7 +78,9 @@ SomeDataRef::~SomeDataRef()
  */
 int SomeDataRef::Set(SomeData *d, int ignore_matrix)
 {
-	if (d == thedata) return 0;
+	if (d == thedata) {
+		return 0;
+	}
 	if (thedata) {
 		thedata->dec_count();
 		makestr(thedata_id, NULL);
