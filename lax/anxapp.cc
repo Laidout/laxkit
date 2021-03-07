@@ -1421,11 +1421,11 @@ GC anXApp::gc(int scr, int id) //0=default
  */
 void anXApp::destroyqueued()
 {
-	DBG cerr <<"-DestoryQueued..."<<endl;
+	DBG cerr <<"-DestoryQueued: "<<todelete.n<<"..."<<endl;
 	anXWindow *w=NULL;
 	while (todelete.n) {
 		w=todelete.e[todelete.n-1];
-		DBG cerr <<"  DestroyQueued: object "<<w->object_id<<", title:"<<w->WindowTitle()<<endl;
+		DBG cerr <<"  DestroyQueued: object "<<w->object_id<<", title:"<<w->WindowTitle()<<", type:"<<w->whattype()<<endl;
 
 		if (w->win_parent!=NULL) w->win_parent->deletekid(w); //removes parent count
 		todelete.remove(-1); //remove top item, dec's count
