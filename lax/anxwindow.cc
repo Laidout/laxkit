@@ -409,22 +409,22 @@ anXWindow::~anXWindow()
 	if (xlib_win_sizehints) XFree(xlib_win_sizehints);
 #endif //_LAX_PLATFORM_XLIB
 
-	if (win_sendthis) delete[] win_sendthis;
-	if (win_name) delete[] win_name;
-	if (win_title) delete[] win_title;
-
 	if (win_themestyle) win_themestyle->dec_count();
 
 	if (win_tooltip) delete[] win_tooltip;
 
+	//flush kids manually: don't really need to do this here, but doing it here to make debugging easier
 	DBG int t=_kids.n;
-	DBG cerr <<"anXWindow flushing "<<t<<" kids..."<<endl;
+	DBG cerr <<"anXWindow "<<WindowTitle()<<" flushing "<<t<<" kids..."<<endl;
 	for (int c=0; _kids.n; c++) {
 		DBG cerr <<"remove window "<<_kids.e[0]->whattype()<<","<<
 		DBG    (_kids.e[0]->WindowTitle())<<" "<<c+1<<"/"<<t<<endl;
 		_kids.remove(0);
 	}
-	//_kids.flush(); //don't really need to do this here, but doing it here to make debugging easier
+
+	if (win_sendthis) delete[] win_sendthis;
+	if (win_name) delete[] win_name;
+	if (win_title) delete[] win_title;
 
 	if (nextcontrol) { nextcontrol->prevcontrol=prevcontrol; }
 	if (prevcontrol) { prevcontrol->nextcontrol=nextcontrol; } 
