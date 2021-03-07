@@ -95,6 +95,7 @@ class anInterface : virtual public Laxkit::EventReceiver,
 	virtual int PerformAction(int actionnumber);
 
 	virtual const char *IconId() { return ""; }
+	virtual const char *IconKey() { return IconId(); }
 	virtual const char *Name() { return "An Interface"; }
 	virtual const char *whattype() { return "anInterface"; }
 	virtual const char *whatdatatype() = 0;
