@@ -770,6 +770,22 @@ int Theme::AddDefaults(const char *which)
 	return 1;
 }
 
+/*! Do this after ui_scale or base_font_size changes.
+ */
+int Theme::UpdateFontSizes()
+{
+	double size = ui_scale * base_font_size;
+
+	for (int c=0; c<styles.n; c++) {
+		WindowStyle *style = styles.e[c];
+		if (style->normal   ->textheight() != size) style->normal   ->Resize(size);
+		if (style->bold     ->textheight() != size) style->bold     ->Resize(size);
+		if (style->italic   ->textheight() != size) style->italic   ->Resize(size);
+		if (style->monospace->textheight() != size) style->monospace->Resize(size);
+	}
+	return 0;
+}
+
 /*! Shortcut for int(GetDouble(what)+.5).
  */
 int Theme::GetInt(int what)

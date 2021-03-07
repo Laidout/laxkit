@@ -168,6 +168,7 @@ class WindowStyle : public anObject
     WindowStyle(const WindowStyle &l);
     WindowStyle &operator=(WindowStyle &l);
 	virtual ~WindowStyle();
+	virtual const char *whattype() { return "WindowStyle"; }
 
     WindowStyle *duplicate();
 
@@ -217,6 +218,7 @@ class Theme : public anObject, public LaxFiles::DumpUtility
 
 	Theme(const char *nname=NULL);
 	virtual ~Theme();
+	virtual const char *whattype() { return "Theme"; }
 
 	static Theme *DefaultTheme(const char *themename);
 
@@ -228,6 +230,7 @@ class Theme : public anObject, public LaxFiles::DumpUtility
 	virtual LaxFont *GetFont(int category, int what);
 	virtual LaxImage *GetIcon(const char *key);
 	virtual int AddDefaults(const char *which=NULL);
+	virtual int UpdateFontSizes();
 
 	virtual void       dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
 	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context);
