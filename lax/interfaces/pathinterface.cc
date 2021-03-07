@@ -192,6 +192,7 @@ Path::Path()
 	absoluteangle = false;
 	profile       = nullptr;
 	brush         = nullptr;
+	generator_data = nullptr;
 
 	// save_cache=true;
 	save_cache = false;
@@ -216,6 +217,7 @@ Path::~Path()
 	if (linestyle) linestyle->dec_count();
 	if (profile) profile->dec_count();
 	if (brush) brush->dec_count();
+	if (generator_data) generator_data->dec_count();
 }
 
 //! Flush all points.
@@ -3619,9 +3621,11 @@ int Path::Reverse()
 
 PathsData::PathsData(unsigned long ns)
 {
-	linestyle=NULL;
-	fillstyle=NULL;
-	style=ns; 
+	linestyle      = nullptr;
+	fillstyle      = nullptr;
+	generator_data = nullptr;
+	generator      = -1;
+	style          = ns;
 }
 
 /*! Dec count of linestyle and fillstyle.
@@ -3630,6 +3634,7 @@ PathsData::~PathsData()
 {
 	if (linestyle) linestyle->dec_count();
 	if (fillstyle) fillstyle->dec_count();
+	if (generator_data) generator_data->dec_count();
 }
 
 /*! Note paths with single points count as non-empty.
@@ -6367,24 +6372,28 @@ flatpoint PathInterface::screentoreal(int x,int y)
 	return anInterface::screentoreal(x,y);
 }
 
-/*! Return whether coord is part of a tonext-vertex-toprev cluster, any of which is currently seleceted.
+/*! Return whether coord is part of a v-toprev-tonext-vertex-toprev-tonext-v cluster, any of which is currently seleceted.
  */
 bool PathInterface::IsNearSelected(Coordinate *coord)
 {
 	if (curpoints.findindex(coord) >= 0) return true;
 
-	while (coord->flags & POINT_TOPREV && coord->prev) coord = coord->prev;
-	while (coord->prev && (coord->prev->flags & POINT_TONEXT)) coord = coord->prev;
+	Coordinate *prev = coord, *next = coord;
+	if (prev->flags & POINT_TONEXT) {
+		while (prev->prev && (prev->flags & (POINT_TONEXT | POINT_TOPREV))) prev = prev->prev;
+		while (next->next && (next->flags & (POINT_TONEXT | POINT_TOPREV))) next = next->next;
+		if (next->next && (next->next->flags & POINT_TOPREV)) next = next->next;
 
-	while (coord->flags & POINT_TONEXT) {
-		if (curpoints.findindex(coord) >= 0) return true;
-		coord = coord->next;
+	} else if (prev->flags & POINT_TOPREV) {
+		prev = prev->prev; //should now be on vertex
+		if (prev->prev && prev->prev->flags & POINT_TONEXT) prev = prev->prev;
+		while (next->next && (next->flags & (POINT_TONEXT | POINT_TOPREV))) next = next->next;
 	}
-	if (curpoints.findindex(coord) >= 0) return true;
-	coord = coord->next;
-	while (coord && coord->flags & POINT_TOPREV) {
-		if (curpoints.findindex(coord) >= 0) return true;
-		coord = coord->next;
+
+	while (1) {
+		if (curpoints.findindex(prev) >= 0) return true;
+		if (prev == next) break;
+		prev = prev->next;
 	}
 
 	return false;
@@ -6846,6 +6855,20 @@ Laxkit::MenuInfo *PathInterface::ContextMenu(int x,int y,int deviceid, MenuInfo 
 			//menu->AddItem(_("Break apart all"),PATHIA_BreakApart);
 			//menu->AddItem(_("Break apart chunks"),PATHIA_BreakApartChunks);
 		}
+
+		//---- shape brushes
+		InterfaceManager *imanager = InterfaceManager::GetDefault(true);
+		ResourceManager *rm = imanager->GetResourceManager();
+		ResourceType *resources = rm->FindType("ShapeBrush");
+		if (resources && resources->NumResources()) {
+			menu->AddItem(_("Use Shape Brush"));
+			menu->SubMenu();
+			int numadded = 0;
+			resources->AppendMenu(menu, true, &numadded, PATHIA_MAX, PATHIA_UseShapeBrush);
+			if (numadded) menu->AddSep();
+			resources->AppendMenu(menu, false, &numadded, PATHIA_MAX, PATHIA_UseShapeBrush);
+			menu->EndSubMenu();
+		}
 		menu->AddItem(_("Save as a Shape Brush"), PATHIA_SaveAsShapeBrush);
 	}
 
@@ -6862,6 +6885,9 @@ int PathInterface::Event(const Laxkit::EventData *e_data, const char *mes)
 		int i = s->info2; //id of menu item
 
 		if (i > PATHIA_None && i < PATHIA_MAX) PerformAction(i);
+		if (i > PATHIA_MAX) {
+			//is a resource, shape brush?? line profile
+		}
 		
 		return 0;
 

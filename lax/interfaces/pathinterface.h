@@ -96,7 +96,9 @@ class Path : public LaxFiles::DumpUtility, public Laxkit::DoubleBBox
 	ShapeBrush *brush;
 	double defaultwidth;
 	bool absoluteangle; //1==absolute, or 0==relative to direction to path, wich angle==0 do default
+	Laxkit::anObject *generator_data;
 
+	//------ cache funcs ------
 	int needtorecache;
 	int cache_samples;
 	int cache_types;
@@ -210,6 +212,9 @@ class PathsData : virtual public SomeData
 	Laxkit::PtrStack<Path> paths;
 	LineStyle *linestyle; //!< This is the default line style for any paths that are added.
 	FillStyle *fillstyle; //!< This is the fill style for the collection of paths
+
+	int generator;
+	Laxkit::anObject *generator_data;
 
 	//PathsData(unsigned long ns=(unsigned long)PATHS_Ignore_Weights);
 	PathsData(unsigned long ns=0);
@@ -412,6 +417,8 @@ enum PathInterfaceActions {
 	PATHIA_ResetAngle,
 	PATHIA_Reverse,
 	PATHIA_Delete,
+	PATHIA_UseLineProfile,
+	PATHIA_UseShapeBrush,
 	PATHIA_SaveAsShapeBrush,
 	PATHIA_Combine, //todo
 	PATHIA_BreakApart, //todo
