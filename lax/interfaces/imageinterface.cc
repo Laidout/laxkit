@@ -1148,6 +1148,79 @@ int ImageInterface::CharInput(unsigned int ch, const char *buffer,int len,unsign
 }
 
 
+//------------------------- Undo stuff:
+   
+/*! \class ImageDataUndo 
+ * Class to hold basic bounds and transform undo data for SomeData objects.
+ */
+
+ImageDataUndo::ImageDataUndo(ImageData *object,
+						   Laxkit::Affine *mo,
+						   Laxkit::Affine *nm,
+						   LaxFiles::Attribute *changed_info,
+						   int ntype, int nisauto)
+  : UndoData(nisauto)
+{
+	if (nm) m=*nm;
+	type=ntype;
+
+	if (mo) m_orig=*mo;
+
+	// file = newstr(fname);
+	// preview_file = newstr(pfname);
+
+	info = changed_info;
+
+	context=object;
+	if (object) object->inc_count();
+}
+
+ImageDataUndo::~ImageDataUndo()
+{
+	// delete[] file;
+	// delete[] preview_file;
+	if (info) delete info;
+}
+
+const char *ImageDataUndo::Description()
+{
+	if      (type==ImageDataUndo::UNDO_Transform   ) return _("New transform");
+	// else if (type==ImageDataUndo::UNDO_File        ) return _("Shift");
+	// else if (type==ImageDataUndo::UNDO_PreviewFile ) return _("Rotation");
+	else if (type==ImageDataUndo::UNDO_Info        ) return _("Image Info");
+
+	return NULL;
+}
+
+int ImageData::Undo(UndoData *data)
+{
+	ImageDataUndo *u=dynamic_cast<ImageDataUndo*>(data);
+	if (!u) {
+		return SomeData::Undo(data);
+		return 1;
+	}
+
+	if (u->type==ImageDataUndo::UNDO_Transform) set(u->m_orig);
+
+	set(u->m_orig);
+	touchContents();
+	return 0;
+}
+
+int ImageData::Redo(UndoData *data)
+{
+	ImageDataUndo *u=dynamic_cast<ImageDataUndo*>(data);
+	if (!u) {
+		return SomeData::Redo(data);
+		return 1;
+	}
+
+	if (u->type==ImageDataUndo::UNDO_Transform) { set(u->m); return 0; }
+
+	touchContents();
+	return 0;
+}
+
 
 } // namespace LaxInterfaces
 

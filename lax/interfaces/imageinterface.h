@@ -60,6 +60,9 @@ class ImageData : public Laxkit::ImageInfo, virtual public SomeData
 	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
 	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
 	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *savecontext);
+
+	virtual int Undo(Laxkit::UndoData *data);
+	virtual int Redo(Laxkit::UndoData *data);
 };
 
 //--------------------------------- ImageInterface -------------------------------
@@ -123,6 +126,30 @@ class ImageInterface : public anInterface
 	virtual ImageData *newData();
 };
 
+
+//------------------------- ImageDataUndo -------------------------------
+
+class ImageDataUndo : public Laxkit::UndoData
+{
+  public:
+	enum UTypes {
+		UNDO_Transform  =(1<<0),
+		UNDO_Info       =(1<<1),
+		UNDO_MAX = 1
+	};
+
+	int type;
+	Laxkit::Affine m, m_orig;
+	LaxFiles::Attribute *info;
+
+	ImageDataUndo(ImageData *object,
+			     Laxkit::Affine *mo,
+			     Laxkit::Affine *nm,
+			     LaxFiles::Attribute *changed_info,
+			     int ntype, int nisauto);
+	virtual ~ImageDataUndo();
+	virtual const char *Description();
+};
 
 } // namespace LaxInterfaces
 
