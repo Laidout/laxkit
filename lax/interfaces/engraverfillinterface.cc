@@ -1095,7 +1095,7 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
 
 			menu->AddSep(_("Resources"));
 			ResourceManager *manager=InterfaceManager::GetDefault(true)->GetResourceManager();
-			manager->ResourceMenu("TraceObject", true, menu);
+			manager->ResourceMenu("TraceObject", true, menu, 0, ENGRAVE_Trace_Object);
 
 	        app->rundialog(new PopupMenu("Trace Object","Trace Object", 0,
                                      0,0,0,0,1,
@@ -1216,7 +1216,7 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
 			menu->AddSep(_("Profile Resources"));
 			int n=menu->n();
 			ResourceManager *manager=InterfaceManager::GetDefault(true)->GetResourceManager();
-			manager->ResourceMenu("LineProfile", true, menu);
+			manager->ResourceMenu("LineProfile", true, menu, 0, ENGRAVE_Direction_Profile);
 			if (n==menu->n()) {
 				menu->AddItem(_("(none)"), 0, 0, nullptr, -1, LAX_GRAY);
 				//menu->AddItem(_("(none)"),0,LAX_GRAY,0,NULL);
@@ -1663,10 +1663,10 @@ Laxkit::MenuInfo *EngraverFillInterface::GetGroupMenu(int what)
 	menu->AddSep(_("Resources"));
 	ResourceManager *manager=InterfaceManager::GetDefault(true)->GetResourceManager();
 
-	if      (what==ENGRAVE_Tracing)   manager->ResourceMenu("EngraverTraceSettings", true, menu);
-	else if (what==ENGRAVE_Dashes)    manager->ResourceMenu("EngraverLineQuality",   true, menu);
-	else if (what==ENGRAVE_Direction) manager->ResourceMenu("EngraverDirection",     true, menu);
-	else if (what==ENGRAVE_Spacing  ) manager->ResourceMenu("EngraverSpacing",       true, menu);
+	if      (what==ENGRAVE_Tracing)   manager->ResourceMenu("EngraverTraceSettings", true, menu, 0, ENGRAVE_Tracing);
+	else if (what==ENGRAVE_Dashes)    manager->ResourceMenu("EngraverLineQuality",   true, menu, 0, ENGRAVE_Dashes);
+	else if (what==ENGRAVE_Direction) manager->ResourceMenu("EngraverDirection",     true, menu, 0, ENGRAVE_Direction);
+	else if (what==ENGRAVE_Spacing  ) manager->ResourceMenu("EngraverSpacing",       true, menu, 0, ENGRAVE_Spacing);
 
 	return menu;
 }
