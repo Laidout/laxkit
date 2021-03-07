@@ -80,14 +80,14 @@ void ShapeBrush::CopyFrom(PathsData *pathsdata)
 
 		for (int c2=0; c2<pathsdata->paths.n; c2++) {
 			if (c == c2) continue;
-			if (paths.e[c2]->Contains(paths.e[c]) == 1) {
+			if (pathsdata->paths.e[c2]->Contains(pathsdata->paths.e[c]) == 1) {
 				skip = true;
 				break;
 			}
 		}
 
 		if (skip) continue;
-		Path *path = paths.e[c]->duplicate();
+		Path *path = pathsdata->paths.e[c]->duplicate();
 		paths.push(path);
 	}
 
