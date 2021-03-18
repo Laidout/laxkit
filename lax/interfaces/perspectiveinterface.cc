@@ -1185,18 +1185,19 @@ int PerspectiveInterface::Refresh()
 
 	 //_to_ control points , draw slightly thicker to stand out more
 	dp->LineWidthScreen(2);
-	dp->drawpoint(transform->to_ll, 10, 0); //actual to points
-	dp->drawpoint(transform->to_lr, 10, 0);
-	dp->drawpoint(transform->to_ul, 10, 0);
-	dp->drawpoint(transform->to_ur, 10, 0);
+	double thin = ScreenLine();
+	dp->drawpoint(transform->to_ll, 10*thin, 0); //actual to points
+	dp->drawpoint(transform->to_lr, 10*thin, 0);
+	dp->drawpoint(transform->to_ul, 10*thin, 0);
+	dp->drawpoint(transform->to_ur, 10*thin, 0);
 
 	 //show hovered point
 	dp->NewFG(.25,.25,.25);
 	dp->LineWidthScreen(1);
-	dp->drawpoint(transform->to_ll, 10, hover==PERSP_ll ? 2 : 0);
-	dp->drawpoint(transform->to_lr, 10, hover==PERSP_lr ? 2 : 0);
-	dp->drawpoint(transform->to_ul, 10, hover==PERSP_ul ? 2 : 0);
-	dp->drawpoint(transform->to_ur, 10, hover==PERSP_ur ? 2 : 0);
+	dp->drawpoint(transform->to_ll, 10*thin, hover==PERSP_ll ? 2 : 0);
+	dp->drawpoint(transform->to_lr, 10*thin, hover==PERSP_lr ? 2 : 0);
+	dp->drawpoint(transform->to_ul, 10*thin, hover==PERSP_ul ? 2 : 0);
+	dp->drawpoint(transform->to_ur, 10*thin, hover==PERSP_ur ? 2 : 0);
 
 
 	//DBG: show some transformed points
@@ -1254,7 +1255,7 @@ int PerspectiveInterface::OtherObjectCheck(int x,int y,unsigned int state)
 
 int PerspectiveInterface::scan(double x, double y)
 {
-	double grab=10;
+	double grab = 10*ScreenLine();
 
 	flatpoint p(x,y);
 	flatpoint pts[4] = {

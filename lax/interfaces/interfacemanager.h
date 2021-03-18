@@ -39,13 +39,16 @@ namespace LaxInterfaces {
 class InterfaceManager : public Laxkit::anObject
 {
   private:
+	Laxkit::Displayer *previewer;
+
+  public:
+  	//note anInterface will multiply these by UIScale()
 	int preview_size;
 	double thin_line;
 	double near_threshhold;
 	double near_threshhold2;
-	Laxkit::Displayer *previewer;
+	double dragged_threshhold;
 
-  public:
 	InterfaceManager();
 	virtual ~InterfaceManager();
 
@@ -73,9 +76,10 @@ class InterfaceManager : public Laxkit::anObject
 	virtual SomeData *NewDataObject(int type);
 
 	virtual int PreviewSize();
-	virtual double ScreenLine() { return thin_line; } //change for high res screens
-	virtual double NearThreshhold() { return near_threshhold; } //change for high res screens
-	virtual double NearThreshhold2() { return near_threshhold2; } //change for high res screens
+	virtual double ScreenLine() { return thin_line; }                 //anInterface funcs mult by their UIScale()
+	virtual double NearThreshhold() { return near_threshhold; }       //anInterface funcs mult by their UIScale()
+	virtual double NearThreshhold2() { return near_threshhold2; }     //anInterface funcs mult by their UIScale()
+	virtual double DraggedThreshhold() { return dragged_threshhold; } //anInterface funcs mult by their UIScale()
 
 	virtual int Resourcify(Laxkit::anObject *resource, const char *type=NULL);
 

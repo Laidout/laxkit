@@ -1525,13 +1525,14 @@ int GradientInterface::Refresh()
 	// draw control points
 	if (showdecs & ShowControls) {
 		dp->BlendMode(LAXOP_Over);
+		double thin = ScreenLine();
 
 		//DBG draw outline:
 		DrawOutline(1, 0,0,1);
 
 		dp->NewFG(controlcolor);
 		dp->DrawReal();
-		dp->LineWidthScreen(1);
+		dp->LineWidthScreen(thin);
 
 		flatpoint p;
 		int c;
@@ -1560,20 +1561,20 @@ int GradientInterface::Refresh()
 
 		if (data->IsRadial()) { //draw little nuggets for p1 and p2
 			dp->NewFG(controlcolor);
-			dp->drawpoint(dp->realtoscreen(getpoint(GP_p1,0)),2,1);
-			dp->drawpoint(dp->realtoscreen(getpoint(GP_p2,0)),2,1);
+			dp->drawpoint(dp->realtoscreen(getpoint(GP_p1,0)),2*thin,1);
+			dp->drawpoint(dp->realtoscreen(getpoint(GP_p2,0)),2*thin,1);
 		}
 
 		// draw the spots (draw open)
 		for (int c=0; c<data->strip->colors.n; c++) {
 			p = dp->realtoscreen(getpoint(c,0));
 			dp->NewFG(&data->strip->colors.e[c]->color->screen);
-			dp->drawpoint(p.x,p.y,(c==curpoint?5:3),1);
+			dp->drawpoint(p.x,p.y,(c==curpoint ? 5*thin : 3*thin),1);
 			dp->NewFG(controlcolor);
 
 			//if (c<0) dp->draw((int)p.x,(int)p.y,5,5,0,(c==GP_p1 || c==GP_p2)?3:2);
 			//else
-			dp->drawpoint(p.x, p.y, (c == curpoint ? 5 : 3), 0);
+			dp->drawpoint(p.x, p.y, (c == curpoint ? 5*thin : 3*thin), 0);
 		}
 		dp->DrawReal();
 
@@ -1615,9 +1616,9 @@ int GradientInterface::Refresh()
 			for (c=0; c<curpoints.n; c++) {
 				p = dp->realtoscreen(getpoint(curpoints.e[c],0));
 				dp->NewFG(&data->strip->colors.e[curpoints.e[c]]->color->screen);
-				dp->drawpoint((int)p.x,(int)p.y,5,1);  // draw curpoint
+				dp->drawpoint((int)p.x,(int)p.y, 5*thin, 1);  // draw curpoint
 				dp->NewFG(controlcolor);
-				dp->drawpoint((int)p.x,(int)p.y,5,0);
+				dp->drawpoint((int)p.x,(int)p.y, 5*thin, 0);
 			}
 			dp->DrawReal();
 		}
@@ -1714,7 +1715,7 @@ int GradientInterface::scan(int x,int y)
 
 	flatpoint p,pp;
 	p = screentoreal(x,y); //<-remember this is not including data's transform
-	double d = 5/Getmag(), //d eventually is (5 screen pixels in gradient space)^2
+	double d = 5*ScreenLine()/Getmag(), //d eventually is (5 screen pixels in gradient space)^2
 		   dd = 0;
 	//DBG cout <<" gd scan x,y: "<<x<<','<<y<<"  d="<<d<<"(x,y)="<<p.x<<','<<p.y;
 	double threshhold = d;

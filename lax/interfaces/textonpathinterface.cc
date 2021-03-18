@@ -1665,7 +1665,8 @@ int TextOnPathInterface::Refresh()
  
         //draw size handle
         dp->NewFG(.5,.5,.5,.5);
-        double xs=grabpad/dp->Getmag()/2;
+        double thin = ScreenLine();
+        double xs=grabpad*thin/dp->Getmag()/2;
         //double ys=grabpad/dp->Getmag(1)/2;
         dp->moveto(textonpath->maxx+xs+xs/2, textonpath->miny);
         dp->lineto(textonpath->maxx+xs, textonpath->maxy);
@@ -1716,8 +1717,8 @@ int TextOnPathInterface::Refresh()
 			dp->fill(0);
 
 		} else if (hover_type==TPATH_Move) {
-			double xs=grabpad/dp->Getmag()/2;
-			double ys=grabpad/dp->Getmag(1)/2;
+			double xs=grabpad*thin/dp->Getmag()/2;
+			double ys=grabpad*thin/dp->Getmag(1)/2;
 							
             dp->NewFG(.5,.5,.5,.5);
             dp->drawrectangle(textonpath->minx-xs,textonpath->miny-ys, textonpath->maxx-textonpath->minx+2*xs,ys, 1);
@@ -1801,8 +1802,8 @@ int TextOnPathInterface::scan(int x,int y,unsigned int state, double *alongpath,
                     -realtoscreen(transform_point(textonpath->m(),flatpoint(0,0))));
     double ymag=norm(realtoscreen(transform_point(textonpath->m(),flatpoint(0,1)))
                     -realtoscreen(transform_point(textonpath->m(),flatpoint(0,0))));    
-    double xm=grabpad/xmag/2;
-    double ym=grabpad/ymag/2;
+    double xm=grabpad*ScreenLine()/xmag/2;
+    double ym=grabpad*ScreenLine()/ymag/2;
 	//DBG cerr <<" ------- textonpath: xm="<<xm<<"  ym="<<ym<<endl;
 
 	if (p.x>=textonpath->maxx+xm && p.x<=textonpath->maxx+2*xm && p.y>=textonpath->miny && p.y<=textonpath->maxy)

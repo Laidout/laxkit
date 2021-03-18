@@ -54,14 +54,22 @@ class SliderPopup : public ItemSlider
 	virtual int getid(int i);
 	virtual int numitems() { return items->menuitems.n; }
 	virtual void makePopup(int mouseid);
+	virtual void GetPlacement(double *w,double *h,double *tx,double *ty,double *ix,double *iy, double *iw,double *ih);
 
   public:
 	int arrowwidth,pad,gap;
+
+	static bool default_icon_from_font_size;
+	static double default_icon_height;
+	bool icon_from_font_size;
+	double icon_height;
+
 	SliderPopup(anXWindow *parnt,const char *nname,const char *ntitle,
 				unsigned long nstyle, int xx,int yy,int ww,int hh,int brder,
 				anXWindow *prev,unsigned long nowner,const char *nsendthis,
 				MenuInfo *nitems=NULL,int absorb=1);
 	virtual ~SliderPopup();
+	virtual int ThemeChange(Theme *theme);
 	virtual void Refresh();
 	virtual int Event(const EventData *e,const char *mes);
 	virtual int CharInput(unsigned int ch,const char *buffer,int len,unsigned int state,const LaxKeyboard *d);

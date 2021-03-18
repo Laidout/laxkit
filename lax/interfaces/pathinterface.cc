@@ -5704,11 +5704,15 @@ int PathInterface::Refresh()
 	 
 	dp->DrawImmediately(1);
 
+	double thin = ScreenLine();
+	double BIGR = 5*thin;
+	double SMALLR = 3*thin;
 
 	 //show decorations
 	if (showdecs) {
 		if (show_outline) DrawOutlines();
 		if (show_baselines) DrawBaselines();
+
 
 
 		for (int cc=0; cc<data->paths.n; cc++) {
@@ -5729,8 +5733,8 @@ int PathInterface::Refresh()
 			dp->NewFG(controlcolor);
 
 			 //draw corners just outside path bounding box
-			dp->LineWidthScreen(1);
-			double o=5/dp->Getmag(), //5 pixels outside, 15 pixels long
+			dp->LineWidthScreen(thin);
+			double o=thin * 5/dp->Getmag(), //5 pixels outside, 15 pixels long
 				   ow=(data->maxx-data->minx)/15,
 				   oh=(data->maxy-data->miny)/15;
 			dp->drawline(data->minx-o,data->miny-o, data->minx+ow,data->miny-o);
@@ -5784,24 +5788,24 @@ int PathInterface::Refresh()
 								 //Inkscape uses: square  = smooth AND smooth-equal
 								 //               diamond = corner
 								 //               circle  = autosmooth
-								case BEZ_STIFF_EQUAL:   dp->drawthing(sp.x,sp.y,5,5,on,THING_Circle);      break;
-								case BEZ_STIFF_NEQUAL:  dp->drawthing(sp.x,sp.y,5,5,on,THING_Diamond);     break;
-								case BEZ_NSTIFF_NEQUAL: dp->drawthing(sp.x,sp.y,5,5,on,THING_Square);      break;
-								case BEZ_NSTIFF_EQUAL:  dp->drawthing(sp.x,sp.y,5,5,on,THING_Triangle_Up); break;
-								default: dp->drawthing(sp.x,sp.y,5,5,on,THING_Circle); break;
+								case BEZ_STIFF_EQUAL:   dp->drawthing(sp.x,sp.y,BIGR,BIGR,on,THING_Circle);      break;
+								case BEZ_STIFF_NEQUAL:  dp->drawthing(sp.x,sp.y,BIGR,BIGR,on,THING_Diamond);     break;
+								case BEZ_NSTIFF_NEQUAL: dp->drawthing(sp.x,sp.y,BIGR,BIGR,on,THING_Square);      break;
+								case BEZ_NSTIFF_EQUAL:  dp->drawthing(sp.x,sp.y,BIGR,BIGR,on,THING_Triangle_Up); break;
+								default: dp->drawthing(sp.x,sp.y,BIGR,BIGR,on,THING_Circle); break;
 							}
 
 						} else if (p->flags&POINT_TONEXT) {
 							bool doit = !hide_other_controls || con;
 							if (doit) {
-								dp->drawthing(sp.x,sp.y,3,3,on,THING_Circle);
+								dp->drawthing(sp.x,sp.y,SMALLR,SMALLR,on,THING_Circle);
 								dp->drawline(sp,dp->realtoscreen(p->next->p()));
 							}
 
 						} else if (p->flags&POINT_TOPREV) {
 							bool doit = !hide_other_controls || con;
 							if (doit) {
-								dp->drawthing((int)sp.x,(int)sp.y,3,3,on,THING_Circle);
+								dp->drawthing((int)sp.x,(int)sp.y,SMALLR,SMALLR,on,THING_Circle);
 								dp->drawline(sp,dp->realtoscreen(p->prev->p()));
 							}
 						}
@@ -5829,7 +5833,6 @@ int PathInterface::Refresh()
 				p2=dp->realtoscreen(p2);
 				dp->DrawScreen();
 
-				double thin = ScreenLine();
 				if (drawhover==HOVER_Direction) dp->LineWidthScreen(8*thin);
 				else dp->LineWidthScreen(5*thin);
 				dp->NewFG(1.,1.,1.);
@@ -5939,7 +5942,7 @@ int PathInterface::Refresh()
 
 	} else if (drawhover==HOVER_Vertex || drawhover==HOVER_Point || drawhover==HOVER_Handle) {
 		dp->NewFG(controlcolor);
-		int r= (drawhover==HOVER_Handle?3:5);
+		int r= (drawhover==HOVER_Handle ? SMALLR : BIGR);
 
 		dp->DrawScreen();
 		dp->LineWidthScreen(2);
@@ -6086,8 +6089,8 @@ void PathInterface::DrawBaselines()
  */
 void PathInterface::drawWeightNode(Path *path, PathWeightNode *weight, int isfornew)
 {
-	double arc = SELECTRADIUS*2;
 	double thin = ScreenLine();
+	double arc = SELECTRADIUS*2*thin;
 
 	//double wtop   =weight->topOffset();
 	//double wbottom=weight->bottomOffset();
@@ -6191,7 +6194,7 @@ void PathInterface::drawNewPathIndicator(flatpoint p,int which)
 	dp->DrawScreen();
 	p=dp->realtoscreen(p);
 
-	double radius=DIRSELECTRADIUS;
+	double radius = DIRSELECTRADIUS*ScreenLine();
 	dp->NewFG(1.,1.,1.);
 	dp->LineAttributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
 	dp->drawpoint(p,radius,1); //whole circle
@@ -6495,7 +6498,7 @@ int PathInterface::scanWeights(int x,int y,unsigned int state, int *pathindex, i
 
 	if (!show_weights || !data) return HOVER_None;
 
-	double arc=SELECTRADIUS*2;
+	double arc=SELECTRADIUS*2*ScreenLine();
 	double yyt,yyb,xx;
 	flatpoint fp(x,y);
 	flatpoint sp;
@@ -6567,7 +6570,7 @@ int PathInterface::scanHover(int x,int y,unsigned int state, int *pathi)
 		int hpathi = -1;
 		hoverpoint = data->ClosestPoint(fp, NULL, NULL, NULL, &hpathi);
 		dist2      = norm2(realtoscreen(transform_point(data->m(), hoverpoint)) - flatpoint(x, y));
-		if (dist2 < SELECTRADIUS2) {
+		if (dist2 < SELECTRADIUS2*ScreenLine()) {
 			*pathi = hpathi;
 			if ((state&LAX_STATE_MASK)==ControlMask)
 				return HOVER_AddPointOn;
@@ -6588,7 +6591,7 @@ int PathInterface::scanHover(int x,int y,unsigned int state, int *pathi)
 
 		dist2=norm2(realtoscreen(transform_point(datam(), hoverpoint))-flatpoint(x,y));
 		DBG cerr << " ************* scanned along path "<<hpathi<<", d="<<sqrt(dist2)<<"..."<<endl;
-		if (dist2<SELECTRADIUS2*2) {
+		if (dist2<SELECTRADIUS2*2*ScreenLine()) {
 			DBG cerr << " ************* scanned and found add weight node..."<<endl;
 			//virtual int PointAlongPath(double t, int tisdistance, flatpoint *point, flatpoint *tangent);
 			data->PointAlongPath(hpathi, t, 0, NULL,&hoverdir);
@@ -6603,10 +6606,10 @@ int PathInterface::scanHover(int x,int y,unsigned int state, int *pathi)
 		flatpoint v = realtoscreen(transform_point(datam(), curdirp->p()+curdirv))-p;
 		if (!addafter) v *= -1;
 		v /= norm(v);
-		p += (transpose(v) - v)*arrow_size/2;
+		p += (transpose(v) - v)*arrow_size/2*ScreenLine();
 
-		double dist = distance(flatpoint(x,y), p, p + arrow_size*v);
-		if (dist < SELECTRADIUS || dist < arrow_size/3) return HOVER_Direction;
+		double dist = distance(flatpoint(x,y), p, p + arrow_size*v*ScreenLine());
+		if (dist < SELECTRADIUS*ScreenLine() || dist < arrow_size/3*ScreenLine()) return HOVER_Direction;
 	}
 
 	return HOVER_None;
@@ -6627,8 +6630,8 @@ Coordinate *PathInterface::scanEndpoints(int x,int y,int *pathindex,Coordinate *
 		e=data->paths.e[c]->path->lastPoint(1);
 		if (s==e) continue; //is closed path
 
-		if (s!=exclude && norm2(realtoscreen(transform_point(datam(), s->p()))-fp)<SELECTRADIUS2) p = s;
-		if (e!=exclude && norm2(realtoscreen(transform_point(datam(), e->p()))-fp)<SELECTRADIUS2) p = e;
+		if (s!=exclude && norm2(realtoscreen(transform_point(datam(), s->p()))-fp)<SELECTRADIUS2*ScreenLine()) p = s;
+		if (e!=exclude && norm2(realtoscreen(transform_point(datam(), e->p()))-fp)<SELECTRADIUS2*ScreenLine()) p = e;
 
 		DBG cerr<<"endpoint s:"<<norm2(realtoscreen(transform_point(datam(), s->p()))-fp)<<endl;
 		DBG cerr<<"endpoint e:"<<norm2(realtoscreen(transform_point(datam(), e->p()))-fp)<<endl;
@@ -6697,7 +6700,7 @@ Coordinate *PathInterface::scan(int x,int y,int pmask, int *pathindex) // pmask=
 
 				} else if (cp->flags&POINT_VERTEX && !pmask) {
 					p = realtoscreen(transform_point(datam(),cp->p()));
-					if ((p.x-x)*(p.x-x)+(p.y-y)*(p.y-y)<SELECTRADIUS2) {
+					if ((p.x-x)*(p.x-x)+(p.y-y)*(p.y-y)<SELECTRADIUS2*ScreenLine()) {
 						DBG cerr <<" path scan found vertex on "<<c<<endl;
 						if (pathindex) *pathindex=c;
 						return cp;
@@ -6735,7 +6738,7 @@ Coordinate *PathInterface::scan(int x,int y,int pmask, int *pathindex) // pmask=
 					}
 
 					p = realtoscreen(transform_point(datam(),cp->p()));
-					if ((p.x-x)*(p.x-x)+(p.y-y)*(p.y-y) < SELECTRADIUS2) {
+					if ((p.x-x)*(p.x-x)+(p.y-y)*(p.y-y) < SELECTRADIUS2*ScreenLine()) {
 						//DBG cerr <<" path scan found control on "<<c<<endl;
 						if (pathindex) *pathindex = c;
 						return cp;
@@ -6891,6 +6894,69 @@ int PathInterface::Event(const Laxkit::EventData *e_data, const char *mes)
 		
 		return 0;
 
+	} else if (!strcmp(mes,"setangle")) {
+		const SimpleMessage *s = dynamic_cast<const SimpleMessage*>(e_data);
+		if (!s || !s->str) return 0;
+
+		if (drawpathi >= 0 && drawpathi < data->paths.n && drawhoveri >= 0 && drawhoveri < data->paths.e[drawpathi]->pathweights.n) {
+			PathWeightNode *node = data->paths.e[drawpathi]->pathweights[drawhoveri];
+			double d = strtod(s->str, nullptr) * M_PI / 180;
+
+			if (fabs(d - node->angle) > 1e-6) {
+				node->angle = d;
+				data->paths.e[drawpathi]->needtorecache = 1;
+				needtodraw = 1;
+			}
+		}
+		return 0;
+	
+	} else if (!strcmp(mes,"setpos")) {
+		const SimpleMessage *s = dynamic_cast<const SimpleMessage*>(e_data);
+		if (!s || !s->str) return 0;
+
+		if (drawpathi >= 0 && drawpathi < data->paths.n && drawhoveri >= 0 && drawhoveri < data->paths.e[drawpathi]->pathweights.n) {
+			PathWeightNode *node = data->paths.e[drawpathi]->pathweights[drawhoveri];
+			double d = strtod(s->str, nullptr);
+
+			if (d != node->t) {
+				data->paths.e[drawpathi]->MoveWeight(drawhoveri, d);
+				needtodraw = 1;
+			}
+		}
+		return 0;
+
+	} else if (!strcmp(mes,"setoffset")) {
+		const SimpleMessage *s = dynamic_cast<const SimpleMessage*>(e_data);
+		if (!s || !s->str) return 0;
+
+		if (drawpathi >= 0 && drawpathi < data->paths.n && drawhoveri >= 0 && drawhoveri < data->paths.e[drawpathi]->pathweights.n) {
+			PathWeightNode *node = data->paths.e[drawpathi]->pathweights[drawhoveri];
+			double d = strtod(s->str, nullptr);
+
+			if (d != node->offset) {
+				node->offset = d;
+				data->paths.e[drawpathi]->needtorecache = 1;
+				needtodraw = 1;
+			}
+		}
+		return 0;
+
+	} else if (!strcmp(mes,"setwidth")) {
+		const SimpleMessage *s = dynamic_cast<const SimpleMessage*>(e_data);
+		if (!s || !s->str) return 0;
+
+		if (drawpathi >= 0 && drawpathi < data->paths.n && drawhoveri >= 0 && drawhoveri < data->paths.e[drawpathi]->pathweights.n) {
+			PathWeightNode *node = data->paths.e[drawpathi]->pathweights[drawhoveri];
+			double d = strtod(s->str, nullptr);
+
+			if (d != node->width) {
+				node->width = d;
+				data->paths.e[drawpathi]->needtorecache = 1;
+				needtodraw = 1;
+			}
+		}
+		return 0;
+	
 	// } else if (!strcmp(mes,"curcolor")) {
 	}
 
@@ -7522,9 +7588,42 @@ int PathInterface::LBUp(int x,int y,unsigned int state,const LaxMouse *d)
 		needtodraw=1;
 		return 0;
 
-	} else if (action==HOVER_WeightAngle || action==HOVER_WeightPosition || action==HOVER_WeightTop || action==HOVER_WeightBottom) {
+	} else if (action==HOVER_WeightAngle 
+		    || action==HOVER_WeightPosition
+		    || action==HOVER_WeightOffset
+		    || action==HOVER_WeightTop
+		    || action==HOVER_WeightBottom) {
 		//drawhover=HOVER_None;
 		drawhover=action;
+
+		if (moved < DraggedThreshhold()) {
+			const char *label = nullptr;
+			const char *mes = nullptr;
+			char str[50];
+			if (drawpathi >= 0 && drawpathi < data->paths.n) {
+				if (drawhoveri==-1) {
+					 //we need to install a new path weight node
+					data->paths.e[drawpathi]->AddWeightNode(defaultweight.t, defaultweight.offset, defaultweight.width, defaultweight.angle);
+					drawhoveri=0;
+				}
+				if (drawhoveri >= 0 && drawhoveri < data->paths.e[drawpathi]->pathweights.n) {
+					PathWeightNode *node = data->paths.e[drawpathi]->pathweights[drawhoveri];
+
+					if (action==HOVER_WeightAngle)         { sprintf(str, "%g", node->angle*180/M_PI);  mes = "setangle";  label = _("Angle degrees"); }
+					else if (action==HOVER_WeightPosition) { sprintf(str, "%g", node->t);      mes = "setpos";    label = _("Position"); }
+					else if (action==HOVER_WeightOffset)   { sprintf(str, "%g", node->offset); mes = "setoffset"; label = _("Offset"); }
+					else if (action==HOVER_WeightBottom || action == HOVER_WeightTop)
+						{ sprintf(str, "%g", node->width);  mes = "setwidth";  label = _("Width"); }
+				
+					double th = app->defaultlaxfont->textheight();
+					DoubleBBox bounds(x-5*th, x+5*th, y-th/2, y+th/2);
+					viewport->SetupInputBox(object_id, label, str, mes, bounds);
+					edit_pathi = drawpathi;
+					edit_weighti = drawhoveri;
+				}
+			}
+		}
+
 		needtodraw=1;
 		return 0;
 
@@ -8174,7 +8273,7 @@ int PathInterface::MouseMove(int x,int y,unsigned int state,const LaxMouse *mous
 		if (norm2(v)>200) {
 			drawhover=HOVER_DirectionSelect;
 			buttondown.moveinfo(mouse->id,LEFTBUTTON, state,HOVER_DirectionSelect);
-			pp=first + v*2 + DIRSELECTRADIUS*(v/norm(v));
+			pp=first + v*2 + DIRSELECTRADIUS*ScreenLine()*(v/norm(v));
 			curdirp->p(transform_point_inverse(datam(),screentoreal(pp.x,pp.y)));
 			needtodraw=1;
 		}
@@ -8184,7 +8283,7 @@ int PathInterface::MouseMove(int x,int y,unsigned int state,const LaxMouse *mous
 	} else if (action==HOVER_DirectionSelect) {
 		int which=0;
 		flatpoint pp=realtoscreen(transform_point(datam(),curdirp->p()));
-		if (norm2(pp-flatpoint(x,y))>DIRSELECTRADIUS*DIRSELECTRADIUS) which=0;
+		if (norm2(pp-flatpoint(x,y))>DIRSELECTRADIUS*DIRSELECTRADIUS*ScreenLine()*ScreenLine()) which=0;
 		else if (y<pp.y) which=1;
 		else which=2;
 

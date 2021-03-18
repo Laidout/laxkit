@@ -1218,20 +1218,31 @@ void draw_special_color(Displayer *dp, int which, double square, double x, doubl
  *    LAX_ICON_OVER_TEXT   (4)
  *    LAX_TEXT_OVER_ICON   (5)
  *    LAX_ICON_STYLE_MASK  (7)
+ *
+ * If icon_height != 0
  */
 void get_placement(LaxImage *image, LaxFont *font, const char *label,int gap,unsigned int how,
-					int *w,int *h,int *tx,int *ty,int *ix,int *iy)
+					int *w,int *h,int *tx,int *ty,int *ix,int *iy, double icon_height)
 {
 	LaxImage *i=NULL;
 	const char *l=NULL;
 	if (!image || how==LAX_TEXT_ONLY || how==LAX_TEXT_ICON || how==LAX_ICON_TEXT) l=label;
 	if (image && (how==LAX_ICON_ONLY || how==LAX_TEXT_ICON || how==LAX_ICON_TEXT)) i=image;
+
 	double th=0,tw=0,iw=0,ih=0,hh;
 	if (l && font) {
 		tw = font->Extent(l,-1);
 		th = font->textheight();
 	}
-	if (i) { iw=image->w(); ih=image->h(); }
+	if (i) {
+		if (icon_height > 0) {
+			ih = font->textheight() * icon_height;
+			iw = ih / i->h() * i->w();
+		} else {
+			iw=image->w();
+			ih=image->h();
+		}
+	}
 	hh=(ih>th?ih:th);
 	if (h) *h=hh;
 	if (ty) *ty=(hh-th)/2;
@@ -1264,6 +1275,49 @@ void get_placement(LaxImage *image, LaxFont *font, const char *label,int gap,uns
  */
 void get_placement(int thingw,int thingh, LaxFont *font, const char *label,int gap,unsigned int how,
 					int *w,int *h,int *tx,int *ty,int *ix,int *iy)
+{
+	const char *l=NULL;
+	int usei=0;
+	if (how==LAX_TEXT_ONLY || how==LAX_TEXT_ICON || how==LAX_ICON_TEXT) l=label;
+	if (how==LAX_ICON_ONLY || how==LAX_TEXT_ICON || how==LAX_ICON_TEXT) usei=1;
+	double th=0,tw=0,iw=0,ih=0,hh=0;
+
+	if (l && font) {
+		th = font->textheight();
+		tw = font->Extent(l,-1);
+	}
+
+	iw=thingw; ih=thingh;
+	hh=(ih>th?ih:th);
+	if (h) *h=hh;
+	if (ty) *ty=(hh-th)/2;
+	if (iy) *iy=(hh-ih)/2;
+
+	if (l && usei) {
+		if (w) *w=iw+tw+gap;
+		if (how==LAX_TEXT_ICON) {
+			if (tx) *tx=0;
+			if (ix) *ix=tw+gap;
+		} else {
+			if (ix) *ix=0;
+			if (tx) *tx=iw+gap;
+		}
+	} else if (l) { 
+		if (w) *w=tw;
+		if (tx) *tx=0; 
+		if (ix) *ix=LAX_WAY_OFF;
+	} else if (usei) {
+		if (w) *w=iw;
+		if (ix) *ix=0;
+		if (tx) *tx=LAX_WAY_OFF;
+	}
+}
+
+//! Figure out how to place a box with dimensions thingw,thingh next to a text label.
+/*! See the other get_placement() for info about how.
+ */
+void get_placement(int thingw,int thingh, LaxFont *font, const char *label,int gap,unsigned int how,
+					double *w,double *h,double *tx,double *ty,double *ix,double *iy)
 {
 	const char *l=NULL;
 	int usei=0;

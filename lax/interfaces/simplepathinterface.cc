@@ -473,11 +473,9 @@ SimplePathInterface::SimplePathInterface(anInterface *nowner, int nid, Displayer
 	dataoc     = NULL;
 	data       = NULL;
 
-	double ui_scale = app->theme->GetDouble(THEME_UI_Scale);
-	if (ui_scale <= 0) ui_scale = 1;
-	select_radius = 10 * ui_scale;
-	point_radius  = 10 * ui_scale;
-	theta_radius  = 40 * ui_scale; //expands when rotating handles
+	select_radius = 10;
+	point_radius  = 10;
+	theta_radius  = 40; //expands when rotating handles
 	min_theta_radius = theta_radius;
 	max_theta_radius = theta_radius * 2;
 
@@ -857,13 +855,15 @@ int SimplePathInterface::Refresh()
 		if (selection.validbounds()) {
 		}
 
+		double thin = ScreenLine();
+
 		if (showbez) {
 			if (data->pointcache.n) {
 				dp->NewFG(.2,.2,1.);
 				dp->DrawScreen();
 				// draw interface decorations on top of interface data
 				for (int c=0; c<data->pointcache.n; c++) {
-					dp->drawpoint(dp->realtoscreen(data->pointcache.e[c]), point_radius/2 * ((data->pointcache.e[c].info & LINE_Bez) ? .5 : 1), 1);
+					dp->drawpoint(dp->realtoscreen(data->pointcache.e[c]), thin*point_radius/2 * ((data->pointcache.e[c].info & LINE_Bez) ? .5 : 1), 1);
 				}
 				dp->DrawReal();
 
@@ -874,26 +874,25 @@ int SimplePathInterface::Refresh()
 		dp->DrawScreen();
 		// draw interface decorations on top of interface data
 		flatpoint p;
-		double thin = InterfaceManager::GetDefault(true)->ScreenLine();
 		dp->LineWidth(thin);
 
 		for (int c=0; c<data->mpoints.n; c++) {
 			bool sel = IsSelected(c);
 			p = dp->realtoscreen(data->mpoints.e[c]->p);
 			if (data->mpoints.e[c]->type == SimplePathData::Corner)
-				dp->drawrectangle(p.x - point_radius, p.y - point_radius, 2*point_radius,2*point_radius, sel ? 1 : 0);
-			else dp->drawpoint(p, point_radius, sel ? 1 : 0);
+				dp->drawrectangle(p.x - thin*point_radius, p.y - thin*point_radius, 2*thin*point_radius,2*thin*point_radius, sel ? 1 : 0);
+			else dp->drawpoint(p, thin*point_radius, sel ? 1 : 0);
 
 			if (sel && hover == c && hover_handle != 0) {
 				//draw rotation handle indicator
-				dp->drawpoint(p, theta_radius , 0);
+				dp->drawpoint(p, thin*theta_radius , 0);
 
 				flatvector prev,next;
 				data->TangentAtIndex(c, prev, next);
 				dp->LineWidth(thin * (hover_handle == SIMPLEPATH_Handle || hover_handle == SIMPLEPATH_Left_Handle ? 3 : 1));
-				dp->drawline(p, p - prev * theta_radius);
+				dp->drawline(p, p - prev * thin * theta_radius);
 				dp->LineWidth(thin * (hover_handle == SIMPLEPATH_Handle || hover_handle == SIMPLEPATH_Right_Handle ? 3 : 1));
-				dp->drawline(p, p + next * theta_radius);
+				dp->drawline(p, p + next * thin * theta_radius);
 				dp->LineWidth(thin);
 			}
 		}
@@ -969,9 +968,10 @@ int SimplePathInterface::scan(double x, double y, unsigned int state, int *handl
 
 	if (closest_i_ret) *closest_i_ret = closest_i;
 	if (closest_dist_ret) *closest_dist_ret = closest_dist;
+	double thin = ScreenLine();
 	//int mult = (buttondown.any() ? 2 : 1);
 	if (handle_ret) {
-		if (closest_dist < theta_radius && closest_dist >= select_radius) {
+		if (closest_dist < thin * theta_radius && closest_dist >= thin * select_radius) {
 			SimplePathData::Point *point = data->mpoints.e[closest_i];
 
 			if (point->type == SimplePathData::Corner) {
@@ -991,8 +991,8 @@ int SimplePathInterface::scan(double x, double y, unsigned int state, int *handl
 	}
 
 	if (data->interpolation == SimplePathData::NewSpiro) {
-		if (closest_dist < theta_radius) return closest_i;
-	} else if (closest_dist < select_radius) return closest_i;
+		if (closest_dist < thin * theta_radius) return closest_i;
+	} else if (closest_dist < thin * select_radius) return closest_i;
 	return -1;
 }
 

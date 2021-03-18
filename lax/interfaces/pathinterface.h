@@ -487,11 +487,13 @@ class PathInterface : public anInterface
 	Coordinate *curvertex; // curvertex points to the relevant vertex point, not to the last selected point
 	Coordinate *lbfound;
 	int lbselected;
-	int drawhover;
-	int drawpathi;
-	int drawhoveri;
+	int drawhover; //what hovered
+	int drawpathi; //which subpath hovered
+	int drawhoveri; //can be weight node index
 	int hoverdevice;
 	int hoverpointtype;
+	int edit_pathi; //keep track for numerical input
+	int edit_weighti;
 	flatpoint hoverpoint;
 	flatpoint hoverdir;
 	flatpoint hoversegment[4];

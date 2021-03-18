@@ -61,6 +61,7 @@ InterfaceManager::InterfaceManager()
 	thin_line        = 1;
 	near_threshhold  = 5;
 	near_threshhold2 = 10;
+	dragged_threshhold = 5;
 	preview_size     = 300;
 	previewer        = NULL;
 }

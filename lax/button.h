@@ -42,6 +42,8 @@ class Button : public ButtonBase
 	char *label;
 	LaxFont *font;
 
+	void GetPlacement(double *w,double *h,double *tx,double *ty,double *ix,double *iy, double *iw,double *ih);
+
   public:	
 	int pad,gap,labelstyle;
 	enum IconSizeType {
@@ -50,6 +52,10 @@ class Button : public ButtonBase
 		Absolute_Pixels,
 		Image_pixels
 	};
+
+	static IconSizeType default_icon_size_type;
+	static double default_icon_height;
+
 	IconSizeType icon_size_type;
 	double icon_height;
 
@@ -62,6 +68,7 @@ class Button : public ButtonBase
 						int npad=-1,int ngap=-1);
 	virtual ~Button();
 	virtual const char *whattype() { return "Button"; }
+	virtual int ThemeChange(Theme *theme);
 	virtual int SetGraphic(int newthing, int newwidth, int newheight);
 	virtual int SetIcon(const char *filename,int makebw=0);
 	virtual int SetIcon(LaxImage *img,int makebw=0);

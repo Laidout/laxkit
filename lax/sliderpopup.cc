@@ -52,6 +52,8 @@ namespace Laxkit {
  * \todo Make optional tab-completing input similar to NumInputSlider, perhaps in a subclass.
  */
 
+bool SliderPopup::default_icon_from_font_size = true;
+double SliderPopup::default_icon_height = 1.2;
 
 SliderPopup::SliderPopup(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
 		int xx,int yy,int ww,int hh,int brder,
@@ -59,6 +61,9 @@ SliderPopup::SliderPopup(anXWindow *parnt,const char *nname,const char *ntitle,u
 		MenuInfo *nitems, int absorb)
 	: ItemSlider(parnt,nname,ntitle,nstyle,xx,yy,ww,hh,brder,prev,nowner,mes)
 {
+	icon_from_font_size = default_icon_from_font_size;
+	icon_height = default_icon_height;
+
 	curitem=-1;
 
 	if (nitems) {
@@ -81,6 +86,18 @@ SliderPopup::~SliderPopup()
 	if (items) items->dec_count();
 }
 
+int SliderPopup::ThemeChange(Theme *theme)
+{
+	anXWindow::ThemeChange(theme);
+
+	pad = gap = win_themestyle->normal->textheight()/3;
+	if (win_h == 0) {
+		win_h = 2*pad + win_themestyle->normal->textheight();
+	}
+	arrowwidth = win_themestyle->normal->textheight()*2/3;
+	return 0;
+}
+
 //! Set the dimensions to the maximum bounds of the entries.
 /*! \todo *** this only works before mapping because it sets win_w,win_h
  * directly, rather than through Resize().. should probably think if
@@ -101,7 +118,7 @@ void SliderPopup::WrapToExtent()
 		if (item) img=item->image; else img=NULL;
 		
 		get_placement(img,win_themestyle->normal,label,gap,(win_style&SLIDER_WHAT_MASK)>>21,
-					  &w,&h,NULL,NULL,NULL,NULL);
+					  &w,&h,NULL,NULL,NULL,NULL, icon_from_font_size ? icon_height : 0);
 		if (w>maxw) maxw=w;
 		if (h>maxh) maxh=h;
 	}
@@ -110,6 +127,33 @@ void SliderPopup::WrapToExtent()
 	win_w=maxw;
 	win_h=maxh;
 }
+
+void SliderPopup::GetPlacement(double *w,double *h,double *tx,double *ty,double *ix,double *iy, double *iw,double *ih)
+{
+	// char *label = curitem >= 0 ? items->menuitems.e[curitem]->name : nullptr;
+	// MenuItem *item = curitem >= 0 ? items->menuitems.e[curitem] : nullptr;
+	// LaxImage *image = item ? item->image : nullptr;
+
+	// double ww=0, hh=0;
+
+	// if (image) {
+	// 	if (icon_size_type == Relative_To_Font) {
+	// 		hh = (font ? font : win_themestyle->normal)->textheight() * icon_height;
+	// 	} else {
+	// 		hh = image->h();
+	// 	}
+	// 	ww = hh / image->h() * image->w();
+	// } else {
+	// 	ww = thingw;
+	// 	hh = thingh;
+	// }
+
+	// if (iw) *iw = ww;
+	// if (ih) *ih = hh;
+
+	// get_placement(ww,hh, (font ? font : win_themestyle->normal), label,gap,labelstyle, w,h, tx,ty, ix,iy);
+}
+
 
 //! Draw the little arrow to indicate that there's something to be popped up.
 void SliderPopup::drawarrow()
@@ -126,7 +170,8 @@ void SliderPopup::Refresh()
 	if (!win_on || !needtodraw) return;
 
 	Displayer *dp=MakeCurrent();
-	dp->font(win_themestyle->normal, win_themestyle->normal->textheight());
+	double th = win_themestyle->normal->textheight();
+	dp->font(win_themestyle->normal, th);
 
 	dp->NewBG(win_themestyle->bg);
 	if (hover) {
@@ -143,9 +188,15 @@ void SliderPopup::Refresh()
 	 // draw item
 	int tx,ty,ix,iy,w,h;
 	get_placement(img,win_themestyle->normal,label,gap,(win_style&SLIDER_WHAT_MASK)>>21,
-				  &w,&h,&tx,&ty,&ix,&iy);
-	if (tx!=LAX_WAY_OFF) dp->textout((win_w-arrowwidth-w)/2+tx,(win_h-h)/2+ty, label,-1, LAX_LEFT|LAX_TOP);
-	if (ix!=LAX_WAY_OFF) dp->imageout(img, (win_w-arrowwidth-w)/2+ix,(win_h-h)/2+iy);
+				  &w,&h,&tx,&ty,&ix,&iy, icon_from_font_size ? icon_height : 0);
+	if (tx != LAX_WAY_OFF) dp->textout((win_w-arrowwidth-w)/2+tx,(win_h-h)/2+ty, label,-1, LAX_LEFT|LAX_TOP);
+	if (ix != LAX_WAY_OFF) {
+		if (icon_from_font_size) {
+			dp->imageout(img, (win_w-arrowwidth-w)/2+ix,(win_h-h)/2+iy, img->w() / img->h() * th * icon_height, th * icon_height);
+		} else {
+			dp->imageout(img, (win_w-arrowwidth-w)/2+ix,(win_h-h)/2+iy);
+		}
+	}
 
 	if (!(win_style & SLIDER_POP_ONLY)) {
 		if (hover==LAX_LEFT) {

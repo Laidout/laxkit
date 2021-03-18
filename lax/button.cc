@@ -62,6 +62,9 @@ namespace Laxkit {
  */
 
 
+Button::IconSizeType Button::default_icon_size_type = Button::Relative_To_Font;
+double Button::default_icon_height = 1.2;
+
 
 /*! If img, then install img in preference to filename.
  *
@@ -77,11 +80,11 @@ Button::Button(anXWindow *parnt,const char *nname,const char *ntitle,unsigned lo
 		: ButtonBase(parnt,nname,ntitle,nstyle,xx,yy,ww,hh,brder,prev,nowner,nsendmes,nid)
 {
 	font=NULL;
-	icon_size_type = Relative_To_Font;
-	icon_height = 1.2;
+	icon_size_type = default_icon_size_type;
+	icon_height = default_icon_height;
 
-	pad = npad; if (pad<0) pad = app->theme->default_padx;
-	gap = npad; if (gap<0) gap = app->theme->default_padx;
+	pad = npad; if (pad<0) pad = UIScale() * app->theme->default_padx;
+	gap = npad; if (gap<0) gap = UIScale() * app->theme->default_padx;
 	state = oldstate = 1;
 
 	thing = THING_None;
@@ -125,14 +128,43 @@ Button::~Button()
 	if (bwimage) bwimage->dec_count();
 }
 
+int Button::ThemeChange(Theme *theme)
+{
+	anXWindow::ThemeChange(theme);
+	return 0;
+}
+
+void Button::GetPlacement(double *w,double *h,double *tx,double *ty,double *ix,double *iy, double *iw,double *ih)
+{
+	double ww=0, hh=0;
+
+	if (image) {
+		if (icon_size_type == Relative_To_Font) {
+			hh = (font ? font : win_themestyle->normal)->textheight() * icon_height;
+		} else {
+			hh = image->h();
+		}
+		ww = hh / image->h() * image->w();
+	} else {
+		ww = thingw;
+		hh = thingh;
+	}
+
+	if (iw) *iw = ww;
+	if (ih) *ih = hh;
+
+	get_placement(ww,hh, (font ? font : win_themestyle->normal), label,gap,labelstyle, w,h, tx,ty, ix,iy);
+}
+
 //! Set win_w (if which&1) and win_h (if which&2)  to the extent of the icon/label.
 void Button::WrapToExtent(int which)
 {
-	int w,h;
-	if (image || thing==THING_None) get_placement(image,win_themestyle->normal,label,gap,labelstyle,&w,&h, NULL,NULL,NULL,NULL);
-	else get_placement(thingw,thingh,win_themestyle->normal,label,gap,labelstyle,&w,&h, NULL,NULL,NULL,NULL);
-	if (which&1) win_w=w+2*bevel+2*pad;
-	if (which&2) win_h=h+2*bevel+2*pad;
+	double w=0, h=0;
+
+	GetPlacement(&w,&h, nullptr,nullptr, nullptr,nullptr, nullptr,nullptr);
+
+	if (which&1) win_w = w+2*bevel+2*pad;
+	if (which&2) win_h = h+2*bevel+2*pad;
 }
 
 /*! Use this font. NULL means use system default.
@@ -261,55 +293,56 @@ void Button::draw()
 {
 	Displayer *dp = GetDisplayer();
 	dp->MakeCurrent(this);
+	double th = 0;
 	if (font) {
-		dp->font(font, font->textheight());
+		th = font->textheight();
+		dp->font(font, th);
 	} else {
-		dp->font(win_themestyle->normal, win_themestyle->normal->textheight());
+		th = win_themestyle->normal->textheight();
+		dp->font(win_themestyle->normal, th);
 	}
 	dp->NewFG(mousein ? win_themestyle->bghover : win_themestyle->bg);
 	dp->drawrectangle(0,0, win_w,win_h, 1);
 
 	unsigned int what=labelstyle;
 
-	const char *l=NULL;
-	LaxImage *i=NULL;
-	int usei=0;
-	if (!(image || thing!=THING_None) || what==LAX_TEXT_ONLY || what==LAX_TEXT_ICON || what==LAX_ICON_TEXT) l=label;
-	if ((image || thing!=THING_None) && (what==LAX_ICON_ONLY || what==LAX_TEXT_ICON || what==LAX_ICON_TEXT)) { usei=1; i=image; }
-
 	 // set up placement
-	double tx=0,ty,th=0,tw=0,ix=0,iy,iw=0,ih=0;
-	if (l) dp->textextent(l,-1,&tw,&th);
-	if (usei) {
-		if (image) { iw=image->w(); ih=image->h(); }
-		else { iw=thingw; ih=thingh; }
-	}
+	double w,h, tx=0,ty,tw=0, ix=0,iy,iw=0,ih=0;
+	GetPlacement(&w,&h, &tx,&ty, &ix,&iy, &iw,&ih);
+	
+	const char *l = label;
+	LaxImage *i = image;
+	int usei = 0;
 
-	ty=win_h/2-th/2;
-	iy=win_h/2-ih/2;
+	if (tx == LAX_WAY_OFF) l = nullptr; else tw = (font ? font : win_themestyle->normal)->Extent(l,-1);
+	if (ix == LAX_WAY_OFF) i = nullptr; else usei = 1;
+	
+	ty = win_h/2-th/2;
+	iy = win_h/2-ih/2;
 	if (l && usei) {
-		if (what==LAX_TEXT_ICON) {
-			tx=win_w/2-(tw+iw+gap)/2;
-			ix=tx+tw+gap;
+		if (what == LAX_TEXT_ICON) {
+			tx = win_w/2-(tw+iw+gap)/2;
+			ix = tx+tw+gap;
 		} else {
-			ix=win_w/2-(tw+iw+gap)/2;
-			tx=ix+iw+gap;
+			ix = win_w/2-(tw+iw+gap)/2;
+			tx = ix+iw+gap;
 		}
-	} else if (l) { tx=win_w/2-tw/2;
-	} else if (usei) { ix=win_w/2-iw/2;
-	}
 
-	//DBG cerr <<" ---------button: "<<whattype()<<"  ix="<<ix<<endl;
-	//DBG cerr <<"            ty:"<<ty<<"  th:"<<th<<endl;
+	} else if (l)    {
+		tx = win_w/2 - tw/2;
+
+	} else if (usei) {
+		ix = win_w/2 - iw/2;
+	}
 
 	 // draw the stuff
 	flatpoint offset;
-	if (state&LAX_ON) { offset.x=offset.y=bevel/2; }
+	if (state&LAX_ON) { offset.x = offset.y = bevel/2; }
 
 	if (usei) {
 		if (image) {
 			if (Grayed()) dp->setSourceAlpha(.4);
-			dp->imageout(i, ix,iy);
+			dp->imageout(i, ix,iy, iw,ih);
 			if (Grayed()) dp->setSourceAlpha(1.);
 			i->doneForNow();
 		} else dp->drawthing(ix+iw/2,iy+ih/2, iw/2,ih/2, (DrawThingTypes)thing, win_themestyle->fg.Pixel(), win_themestyle->color1.Pixel());
@@ -322,12 +355,9 @@ void Button::draw()
 
 	if (((win_style&BUTTON_TOGGLE) && (state != LAX_OFF || (state == LAX_ON && !(win_style&IBUT_FLAT))))
 			|| !(win_style&IBUT_FLAT)
-			|| ((win_style&IBUT_FLAT) && state!=LAX_OFF))
+			|| ((win_style&IBUT_FLAT) && state!=LAX_OFF)) {
 		dp->drawBevel(bevel,highlight,shadow,state, 0,0, win_w,win_h);
-
-	//if (font || win_themestyle->normal) {
-	//	dp->font(app->defaultlaxfont, app->defaultlaxfont->textheight());
-	//}
+	}
 }
 
 

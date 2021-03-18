@@ -77,9 +77,11 @@ unsigned long screen_color_at_mouse(int mouse_id);
 #define LAX_WAY_OFF          (-1000000)
 
 void get_placement(LaxImage *image, LaxFont *font, const char *label,int gap,unsigned int how,
-					int *w,int *h,int *tx,int *ty,int *ix,int *iy);
+					int *w,int *h,int *tx,int *ty,int *ix,int *iy, double icon_height=0);
 void get_placement(int thingw, int thingh, LaxFont *font,const char *label,int gap,unsigned int how,
 					int *w,int *h,int *tx,int *ty,int *ix,int *iy);
+void get_placement(int thingw, int thingh, LaxFont *font,const char *label,int gap,unsigned int how,
+					double *w,double *h,double *tx,double *ty,double *ix,double *iy);
 
 const char *flow_name(int direction);
 const char *flow_name_translated(int direction);

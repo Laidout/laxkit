@@ -585,26 +585,27 @@ void anInterface::UIScaleChange()
 double anInterface::ScreenLine()
 {
 	InterfaceManager *imanager=InterfaceManager::GetDefault(true);
-	return imanager->ScreenLine();
+	return UIScale() * imanager->ScreenLine();
 }
 
 double anInterface::NearThreshhold()
 {
 	InterfaceManager *imanager=InterfaceManager::GetDefault(true);
-	return imanager->NearThreshhold();
+	return UIScale() * imanager->NearThreshhold();
 }
 
 double anInterface::NearThreshhold2()
 {
 	InterfaceManager *imanager=InterfaceManager::GetDefault(true);
-	return imanager->NearThreshhold2();
+	return UIScale() * imanager->NearThreshhold2();
 }
 
 /*! Screen pixels below which a click down and up is considered not moved.
  */
 double anInterface::DraggedThreshhold()
 {
-	return 5; // *** should be imanager based and respond to ui or custom settings
+	InterfaceManager *imanager=InterfaceManager::GetDefault(true);
+	return UIScale() * imanager->DraggedThreshhold();
 }
 
 //! Do a little extra checking to find what the magnification is.

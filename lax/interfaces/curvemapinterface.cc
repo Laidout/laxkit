@@ -308,7 +308,8 @@ int CurveMapInterface::Refresh()
 
 	if ((style & RealSpace) == 0) dp->DrawScreen();
 
-	dp->LineAttributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
+	double thin = ScreenLine();
+	dp->LineAttributes(thin, LineSolid,LAXCAP_Round,LAXJOIN_Round);
 
 	//--------------
 	dp->NewBG(win_themestyle->bg);
@@ -423,7 +424,7 @@ int CurveMapInterface::Refresh()
 			p1.y=rect.y + p1.y*rect.height;
 
 			 //draw points
-			dp->drawpoint(p1, 3,0);
+			dp->drawpoint(p1, 3*thin,0);
 
 			if (c==0) { p2=p1; continue; }
 			dp->drawline(p2,p1);
@@ -463,8 +464,8 @@ int CurveMapInterface::Refresh()
 		p1.y=rect.y + p1.y*rect.height;
 
 		 //draw points
-		if (c==lasthover) dp->drawpoint(p1, 5,1);
-		else dp->drawpoint(p1, 3,0);
+		if (c==lasthover) dp->drawpoint(p1, 5*thin,1);
+		else dp->drawpoint(p1, 3*thin,0);
 	}
 
 
@@ -520,7 +521,7 @@ int CurveMapInterface::scanExpandable(double x,double y)
 //! Scan for existing point, return index in curveinfo->points, or -1 for not found.
 int CurveMapInterface::scan(double x,double y)
 {
-	double scandistance=10;
+	double scandistance = 10*ScreenLine();
 	flatpoint fp(x,y);
 	flatpoint p1;
 
@@ -552,7 +553,7 @@ int CurveMapInterface::scannear(double x,double y, flatpoint *p_ret, int *index)
 	flatpoint p((x-rect.x)/rect.width, (rect.y+rect.height-y)/rect.height);
 	flatpoint lp;
 	flatpoint v,p1,p2;
-	double scandistance=20./rect.height;
+	double scandistance=20.*ScreenLine()/rect.height;
 
 	if (p.x<0 || p.x>1 || p.y<0 || p.y>1) return 0;
 

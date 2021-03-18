@@ -461,8 +461,8 @@ int RectInterface::Refresh()
 			int xtouchlen, ytouchlen;
 			xtouchlen=norm(ll-lr)/4;
 			ytouchlen=norm(ul-ll)/4;
-			if (xtouchlen>maxtouchlen) xtouchlen=maxtouchlen;
-			if (ytouchlen>maxtouchlen) ytouchlen=maxtouchlen;
+			if (xtouchlen>maxtouchlen*ScreenLine()) xtouchlen=maxtouchlen*ScreenLine();
+			if (ytouchlen>maxtouchlen*ScreenLine()) ytouchlen=maxtouchlen*ScreenLine();
 
 			flatpoint vx=lr-ll;
 			flatpoint vy=ul-ll;
@@ -680,8 +680,8 @@ int RectInterface::Refresh()
 			double ymag=norm(dp->realtoscreen(flatpoint(0,1))
 							-dp->realtoscreen(flatpoint(0,0)));
 
-			flatpoint p=dp->realtoscreen(somedata->maxx+maxtouchlen/xmag, (somedata->miny+somedata->maxy)/2);
-			flatpoint p2=dp->realtoscreen(somedata->maxx+maxtouchlen/xmag, 1+(somedata->miny+somedata->maxy)/2);
+			flatpoint p =dp->realtoscreen(somedata->maxx+maxtouchlen*ScreenLine()/xmag, (somedata->miny+somedata->maxy)/2);
+			flatpoint p2=dp->realtoscreen(somedata->maxx+maxtouchlen*ScreenLine()/xmag, 1+(somedata->miny+somedata->maxy)/2);
 			flatpoint v=p2-p; v*=7/norm(v);
 
 			if (hover==RP_Flip_V) fill=1; else fill=0;
@@ -689,8 +689,8 @@ int RectInterface::Refresh()
 			dp->drawarrow(p,v,0,1,2);
 			dp->drawarrow(p,-v,0,1,2);
 
-			p=dp->realtoscreen((somedata->minx+somedata->maxx)/2, somedata->maxy+maxtouchlen/ymag);
-			p2=dp->realtoscreen(1+(somedata->minx+somedata->maxx)/2, somedata->maxy+maxtouchlen/ymag);
+			p =dp->realtoscreen(  (somedata->minx+somedata->maxx)/2, somedata->maxy+maxtouchlen*ScreenLine()/ymag);
+			p2=dp->realtoscreen(1+(somedata->minx+somedata->maxx)/2, somedata->maxy+maxtouchlen*ScreenLine()/ymag);
 			v=p2-p; v*=7/norm(v);
 
 			if (hover==RP_Flip_H) fill=1; else fill=0;
@@ -1062,10 +1062,10 @@ int RectInterface::scan(int x,int y)
 
 	 //check against flip controls
 	if (style&RECT_FLIP_AT_SIDES) {
-		flatpoint pp=flatpoint(somedata->maxx+maxtouchlen/xmag, (somedata->miny+somedata->maxy)/2);
+		flatpoint pp=flatpoint(somedata->maxx+maxtouchlen*ScreenLine()/xmag, (somedata->miny+somedata->maxy)/2);
 		if (norm2(p-pp)<fivepix2) return RP_Flip_V;
 
-		pp=flatpoint((somedata->minx+somedata->maxx)/2, somedata->maxy+maxtouchlen/ymag);
+		pp=flatpoint((somedata->minx+somedata->maxx)/2, somedata->maxy+maxtouchlen*ScreenLine()/ymag);
 		if (norm2(p-pp)<fivepix2) return RP_Flip_H;
 
 	} else if (style&RECT_FLIP_LINE) {
@@ -1090,11 +1090,11 @@ int RectInterface::scan(int x,int y)
 	double minx = somedata->minx;
 	double miny = somedata->miny;
 
-	maxtlen=maxtouchlen/xmag;
+	maxtlen=maxtouchlen*ScreenLine()/xmag;
 	xtouchlen=(somedata->maxx-somedata->minx)/4;
 	if (xtouchlen>maxtlen) xtouchlen=maxtlen;
 
-	maxtlen=maxtouchlen/ymag;
+	maxtlen=maxtouchlen*ScreenLine()/ymag;
 	ytouchlen=(somedata->maxy-somedata->miny)/4;
 	if (ytouchlen>maxtlen) ytouchlen=maxtlen;
 
