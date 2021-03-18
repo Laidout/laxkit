@@ -774,7 +774,7 @@ int EllipseInterface::Refresh()
 		if (hover_point == ELLP_InnerRadius) {
 			dp->LineWidthScreen(3*thin);
 			flatpoint v = (f2-f1)/2;
-			dp->drawfocusellipse(center+v*data->inner_r, center-v*data->inner_r,
+			dp->drawfocusellipse(data->center+v*data->inner_r, data->center-v*data->inner_r,
 				data->inner_r*2*(fabs(data->a)>fabs(data->b)?data->a:data->b), 0,0, 0);
 			dp->LineWidthScreen(thin);
 		}
