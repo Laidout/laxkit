@@ -162,6 +162,7 @@ enum CaptionInterfaceActions {
 	CAPTION_Convert_To_Path,
 	CAPTION_Create_Path_Object,
 	CAPTION_Lorem_Ipsum,
+	CAPTION_Font_Dialog,
 
 	CAPT_MAX
 };

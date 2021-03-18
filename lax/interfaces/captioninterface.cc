@@ -1726,6 +1726,9 @@ Laxkit::MenuInfo *CaptionInterface::ContextMenu(int x,int y,int deviceid, Laxkit
 	//menu->AddItem(_("Show all controls"));
 	
 	if (data) {
+		menu->AddItem(_("Insert character..."), CAPTION_InsertChar);
+		menu->AddItem(_("Select font..."), CAPTION_Font_Dialog);
+		menu->AddSep();
 		menu->AddItem(_("Create path object"), CAPTION_Create_Path_Object);
 		//menu->AddItem(_("Convert to path"), CAPTION_Convert_To_Path);
 		//menu->AddItem(_("Convert to path clones"));
@@ -1919,8 +1922,9 @@ int CaptionInterface::Refresh()
 
 		 //draw alignment knobs
 		dp->NewFG(0.0,0.0,1.0,.25);
-		double xs=grabpad/dp->Getmag()/2;
-		double ys=grabpad/dp->Getmag(1)/2;
+		double thin = ScreenLine();
+		double xs=grabpad*thin/dp->Getmag()/2;
+		double ys=grabpad*thin/dp->Getmag(1)/2;
 
 		dp->DrawReal();
 		dp->LineAttributes(-1,LineSolid,CapRound,JoinRound);
@@ -2397,8 +2401,11 @@ int CaptionInterface::Event(const Laxkit::EventData *e_data, const char *mes)
         const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(e_data);
         int i =s->info2; //id of menu item
 
-        if ( i==CAPTION_Convert_To_Path
-          || i==CAPTION_Create_Path_Object) {
+        if ( i == CAPTION_Convert_To_Path
+          || i == CAPTION_Create_Path_Object
+          || i == CAPTION_Font_Dialog
+          || i == CAPTION_InsertChar
+          ) {
 			return PerformAction(i);
 		}
 		return 0;
@@ -2463,8 +2470,8 @@ int CaptionInterface::scan(int x,int y,unsigned int state, int *line, int *pos)
     double ymag=norm(dp->realtoscreen(transform_point(data->m(),flatpoint(0,1)))
                     -dp->realtoscreen(transform_point(data->m(),flatpoint(0,0))));
 
-	double xm=grabpad/xmag/2;
-	double ym=grabpad/ymag/2;
+	double xm = grabpad*ScreenLine()/xmag/2;
+	double ym = grabpad*ScreenLine()/ymag/2;
 	//double xm=grabpad/Getmag();
 	//double ym=grabpad/Getmag(1);
 	DBG cerr <<"caption scan xm: "<<xm<<"  ym: "<<ym<<endl;
@@ -2690,6 +2697,7 @@ Laxkit::ShortcutHandler *CaptionInterface::GetShortcuts()
     sc->Add(CAPTION_InsertChar,      'i',ControlMask,0, "InsertChar"     , _("Insert Character"),NULL,0);
     sc->Add(CAPTION_CombineChars,    'j',ControlMask,0, "CombineChars"   , _("Join Characters if possible"),NULL,0);
     sc->Add(CAPTION_Create_Path_Object,'P',ShiftMask|ControlMask,0, "ConvertToPaths", _("Convert to path object, but keep the old object"),NULL,0);
+    sc->Add(CAPTION_Font_Dialog,     'F',ShiftMask|ControlMask,0, "SelectFont", _("Select font"),NULL,0);
     //sc->Add(CAPTION_Convert_To_Path, 'P',ShiftMask|ControlMask,0, "ConvertToPaths", _("Convert to path object"),NULL,0);
 
     manager->AddArea(whattype(),sc);
@@ -2829,6 +2837,14 @@ int CaptionInterface::PerformAction(int action)
 		newdata->dec_count();
 		return 0;
 
+	} else if (action == CAPTION_Font_Dialog) {
+		if (!data) return 0;
+		app->rundialog(new FontDialog(NULL, "Font",_("Font"),ANXWIN_REMEMBER, 10,10,700,700,0, object_id,"newfont",0,
+					data->fontfamily, data->fontstyle, data->fontsize,
+					NULL, //sample text
+					data->font, true
+					));
+		return 0;
 	}
 
 	return 1;
