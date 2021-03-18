@@ -84,6 +84,7 @@ enum LaxCapStyle
 	LAXCAP_Square,
 	LAXCAP_Projecting,
 	LAXCAP_Zero_Width,
+	LAXCAP_From_Brush,
 	LAXCAP_Custom,
 
 	LAXCAP_MAX
