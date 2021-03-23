@@ -40,8 +40,15 @@ class RefPtrStack : public PtrStack<T>
 	virtual int remove(T *t);
 };
 
-
 } // namespace Laxkit;
+
+
+//template implementation:
+#ifndef LAX_FORCE_NONHEADERONLY_TEMPLATES
+// #ifdef LAX_LISTS_SOURCE_TOO
+#include <lax/refptrstack.cc>
+#endif
+
 
 #endif
 

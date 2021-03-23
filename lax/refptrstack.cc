@@ -26,11 +26,12 @@
 #define _LAX_REFPTRSTACK_CC
 
 #include <lax/anobject.h>
-#include <lax/lists.cc>
 
 #include <cstring>
 
 
+//template implementation:
+#include <lax/lists.cc>
 
 
 namespace Laxkit {

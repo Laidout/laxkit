@@ -110,7 +110,8 @@ class PtrStack
 
 
 //template implementation:
-#ifdef LAX_LISTS_SOURCE_TOO
+#ifndef LAX_FORCE_NONHEADERONLY_TEMPLATES
+// #ifdef LAX_LISTS_SOURCE_TOO
 #include <lax/lists.cc>
 #endif
 
