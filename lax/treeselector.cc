@@ -2228,8 +2228,8 @@ int TreeSelector::MouseMove(int x,int y,unsigned int state,const LaxMouse *d)
 	buttondown.getextrainfo(d->id,LEFTBUTTON, &which, &hover);
 	buttondown.move(d->id, x,y, &mx,&my);
 	
-	int onsub;
-	int ondetail, onflag;
+	int onsub=0;
+	int ondetail=0, onflag=0;
 	int i=findItem(x,y, &onsub, &ondetail, &onflag);
 	DBG cerr <<"tree found item "<<i<<", onsub:"<<onsub<<", ondetail: "<<ondetail<<", onflag: "<<onflag<<endl;
 
