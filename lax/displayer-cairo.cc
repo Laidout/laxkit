@@ -1076,11 +1076,13 @@ void DisplayerCairo::stroke(int preserve)
 
 void DisplayerCairo::moveto(flatpoint p)
 {
+	// DBG cerr << "moveto "<<p.x<<", "<<p.y<<endl;
 	cairo_move_to(cr,p.x,p.y);
 }
 
 void DisplayerCairo::lineto(flatpoint p)
 {
+	// DBG cerr << "lineto "<<p.x<<", "<<p.y<<endl;
 	cairo_line_to(cr,p.x,p.y);
 }
 
