@@ -85,7 +85,7 @@ int QuickFileOpen::send(int deviceid,int direction)
 	app->rundialog(new FileDialog(NULL,title,title, ANXWIN_REMEMBER,
 								0,0,0,0,1, 
 								win_owner,win_sendthis, 
-								type,
+								type | FILES_PREVIEW,
 								path?path->GetCText():NULL,
 								ddir),
 					NULL,1);
