@@ -39,8 +39,9 @@
 #include <lax/language.h>
 
 
-//You need this if you use any of the Laxkit stack templates in lax/lists.h
+//template implementation:
 #include <lax/lists.cc>
+#include <lax/refptrstack.cc>
 
 
 using namespace Laxkit;
@@ -574,7 +575,7 @@ int TextOnPath::Remap()
 	if (end-start<=0) { //ok to have just a bunch of spaces
 		textpathlen=0;
 		needtorecache=0;
-		cachetime=time(NULL);
+		cachetime = times(NULL);
 		return 0;
 	}
 
@@ -863,7 +864,7 @@ int TextOnPath::Remap()
 	}
 
 	needtorecache = 0;
-	cachetime = time(NULL);
+	cachetime = times(NULL);
 	FindBBox();
 	return 0;
 }

@@ -77,7 +77,7 @@ class TextOnPath : virtual public SomeData
 	int numglyphs;
 	Laxkit::PtrStack<OnPathGlyph> glyphs;
 	double textpathlen; //distance along path that text actually occupies
-	std::time_t cachetime;
+	std::clock_t cachetime;
 
 	ObjectContext *pathcontext;
 	PathsData *paths;
