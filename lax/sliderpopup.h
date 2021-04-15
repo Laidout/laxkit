@@ -41,8 +41,8 @@ namespace Laxkit {
 #define SLIDER_POP_ONLY     (1<<29)
 	
  //used as a menuitem state, show in menu, but not prev/next
- //note to programmer: this define must cooperate with MENU_* defines in menuinfo.h
-#define SLIDER_IGNORE_ON_BROWSE (1<<19)
+ //note to programmer: this define must not be any of the MENU_* defines in menuinfo.h
+#define SLIDER_IGNORE_ON_BROWSE (1<<20)
 
 class SliderPopup : public ItemSlider
 {
@@ -84,6 +84,7 @@ class SliderPopup : public ItemSlider
 	virtual int DeleteItem(int id);
 	virtual int AddSep(const char *name=NULL,int where=-1);
 	virtual int AddItem(const char *newitem,int nid);
+	virtual int AddToggleItem(const char *newitem, int nid, int ninfo, bool on);
 	virtual int AddItem(const char *newitem,LaxImage *icon,int nid);
 	virtual int AddItems(const char **newitems,int n,int startid);
 	virtual int SetState(int which, int extrastate, int on);

@@ -111,7 +111,8 @@ void SliderPopup::WrapToExtent()
 	
 	int w,h,maxh=0,maxw=0;
 	for (int c=0; c<items->menuitems.n; c++) {
-		if (items->menuitems.e[c]->state&LAX_SEPARATOR) continue;
+		if (items->menuitems.e[c]->state & LAX_SEPARATOR) continue;
+		if (items->menuitems.e[c]->state & SLIDER_IGNORE_ON_BROWSE) continue;
 
 		label=items->menuitems.e[c]->name;
 		item=items->menuitems.e[c];
@@ -179,32 +180,34 @@ void SliderPopup::Refresh()
 		dp->drawrectangle(0,0, win_w,win_h, 1);
 	} else dp->ClearWindow();
 	dp->NewFG(win_themestyle->fg);
-	
-	char *label=items->menuitems.e[curitem]->name;
-	MenuItem *item=items->menuitems.e[curitem];
-	LaxImage *img=NULL;
-	if (item) img=item->image;
-		
-	 // draw item
-	int tx,ty,ix,iy,w,h;
-	get_placement(img,win_themestyle->normal,label,gap,(win_style&SLIDER_WHAT_MASK)>>21,
-				  &w,&h,&tx,&ty,&ix,&iy, icon_from_font_size ? icon_height : 0);
-	if (tx != LAX_WAY_OFF) dp->textout((win_w-arrowwidth-w)/2+tx,(win_h-h)/2+ty, label,-1, LAX_LEFT|LAX_TOP);
-	if (ix != LAX_WAY_OFF) {
-		if (icon_from_font_size) {
-			dp->imageout(img, (win_w-arrowwidth-w)/2+ix,(win_h-h)/2+iy, img->w() / img->h() * th * icon_height, th * icon_height);
-		} else {
-			dp->imageout(img, (win_w-arrowwidth-w)/2+ix,(win_h-h)/2+iy);
-		}
-	}
 
-	if (!(win_style & SLIDER_POP_ONLY)) {
-		if (hover==LAX_LEFT) {
-			dp->NewFG(coloravg(win_themestyle->bg,win_themestyle->fg,.3)); 
-			dp->drawthing(arrowwidth/2,win_h/2,arrowwidth/2,arrowwidth/2, 1, THING_Triangle_Left);
-		} else if (hover==LAX_RIGHT) {
-			dp->NewFG(coloravg(win_themestyle->bg,win_themestyle->fg,.3)); 
-			dp->drawthing(win_w-arrowwidth-arrowwidth/2,win_h/2,arrowwidth/2,arrowwidth/2, 1, THING_Triangle_Right);
+	if (curitem >= 0) {
+		char *label=items->menuitems.e[curitem]->name;
+		MenuItem *item=items->menuitems.e[curitem];
+		LaxImage *img=NULL;
+		if (item) img=item->image;
+			
+		 // draw item
+		int tx,ty,ix,iy,w,h;
+		get_placement(img,win_themestyle->normal,label,gap,(win_style&SLIDER_WHAT_MASK)>>21,
+					  &w,&h,&tx,&ty,&ix,&iy, icon_from_font_size ? icon_height : 0);
+		if (tx != LAX_WAY_OFF) dp->textout((win_w-arrowwidth-w)/2+tx,(win_h-h)/2+ty, label,-1, LAX_LEFT|LAX_TOP);
+		if (ix != LAX_WAY_OFF) {
+			if (icon_from_font_size) {
+				dp->imageout(img, (win_w-arrowwidth-w)/2+ix,(win_h-h)/2+iy, img->w() / img->h() * th * icon_height, th * icon_height);
+			} else {
+				dp->imageout(img, (win_w-arrowwidth-w)/2+ix,(win_h-h)/2+iy);
+			}
+		}
+
+		if (!(win_style & SLIDER_POP_ONLY)) {
+			if (hover==LAX_LEFT) {
+				dp->NewFG(coloravg(win_themestyle->bg,win_themestyle->fg,.3)); 
+				dp->drawthing(arrowwidth/2,win_h/2,arrowwidth/2,arrowwidth/2, 1, THING_Triangle_Left);
+			} else if (hover==LAX_RIGHT) {
+				dp->NewFG(coloravg(win_themestyle->bg,win_themestyle->fg,.3)); 
+				dp->drawthing(win_w-arrowwidth-arrowwidth/2,win_h/2,arrowwidth/2,arrowwidth/2, 1, THING_Triangle_Right);
+			}
 		}
 	}
 
@@ -254,6 +257,15 @@ int SliderPopup::AddSep(const char *name,int where)
 int SliderPopup::AddItem(const char *newitem,int nid)
 {
 	return AddItem(newitem,NULL,nid);
+}
+
+int SliderPopup::AddToggleItem(const char *newitem, int nid, int ninfo, bool on)
+{
+	items->AddToggleItem(newitem,nid,ninfo,on);
+	needtodraw=1;
+	nitems = items->menuitems.n;
+	if (nitems && curitem<0) curitem = 0;
+	return nitems;
 }
 
 //! Return the number of items. icon's count is not incremented.
@@ -388,17 +400,21 @@ int SliderPopup::Event(const EventData *e,const char *mes)
 			items->menuitems.e[ncuritem]->state=
 				(items->menuitems.e[ncuritem]->state&~LAX_OFF)|LAX_ON;
 		}
+		int oldcuritem = curitem;
 		curitem=ncuritem;
 		send();
+		if (items->menuitems.e[ncuritem]->state & SLIDER_IGNORE_ON_BROWSE) curitem = oldcuritem;
 		needtodraw=1;
 	}
 
 	return 0;
 }
 
-//! Create the popup menu. Called from LBDown().
+//! Create the popup menu if there are more than 0 items. Called from LBDown().
 void SliderPopup::makePopup(int mouseid)
 {
+	if (items->n() == 0) return;
+
 	PopupMenu *popup;
 	int justify=0;
 	if (win_style&SLIDER_LEFT)   justify|=TREESEL_LEFT;
