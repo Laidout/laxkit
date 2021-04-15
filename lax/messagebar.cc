@@ -78,7 +78,7 @@ namespace Laxkit {
  *  win_h are set to the extent of the message plus pads.
  */
 MessageBar::MessageBar(anXWindow *pwindow,const char *nname,const char *ntitle,unsigned long nstyle,
-						int nx,int ny,int nw,int nh,int brder,const char *newtext) 
+						int nx,int ny,int nw,int nh,int brder,const char *newtext, int pad_x, int pad_y) 
 				: anXWindow(pwindow,nname,ntitle,nstyle, nx,ny, nw,nh,brder, NULL,0,NULL) 
 {
 	needtodraw=1;
@@ -90,7 +90,9 @@ MessageBar::MessageBar(anXWindow *pwindow,const char *nname,const char *ntitle,u
 	DBG else cerr <<"New Mesbartext:"<<newtext<<endl;
 
 	SetText(newtext);
-	msx=msy=ox=oy=ex=ey=padx=pady=0;
+	msx=msy=ox=oy=ex=ey=0;
+	padx = pad_x;
+	pady = pad_y;
 
 	if ((win_style&(MB_CENTER|MB_LEFT|MB_RIGHT|MB_TOP|MB_BOTTOM))==0) { // default center
 		win_style=(win_style&(~(MB_CENTER|MB_LEFT|MB_RIGHT|MB_TOP|MB_BOTTOM)))|MB_CENTER;

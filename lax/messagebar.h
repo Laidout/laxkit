@@ -63,7 +63,8 @@ class MessageBar : public anXWindow
 				const char *nname,
 				const char *ntitle,
 				unsigned long nstyle,
-				int nx,int ny,int nw,int nh,int brder,const char *newtext);
+				int nx,int ny,int nw,int nh,int brder,const char *newtext,
+				int pad_x=0, int pad_y=0);
 	virtual ~MessageBar();
 	virtual int SetText(const char *newtext);
 	virtual int SetupMetrics();
