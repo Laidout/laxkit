@@ -2562,6 +2562,7 @@ Attribute *XMLChunkToAttribute(Attribute *att,FILE *f,const char **stand_alone_t
 	long maxbuf=ftell(f)-revertpos;
 	fseek(f,revertpos,SEEK_SET);
 	char buf[maxbuf+1];
+	memset(buf, 0, maxbuf+1); //doing this, while should be unnecessary, clears valgrind warning
 	
 	n=fread(buf,1,maxbuf,f);
 	if (n<=0) return NULL; //error
@@ -2687,7 +2688,7 @@ Attribute *XMLChunkToAttribute(Attribute *att,
 	char *error=NULL, *value=NULL, *name=NULL;
 	char *nm,*vl,*e;
 	char final;
-	long c,c2;
+	long c=0,c2=0;
 	int hassubs=1;
 	if (C) c=*C; else c=0;
 	
