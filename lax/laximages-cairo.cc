@@ -283,6 +283,9 @@ LaxCairoImage::LaxCairoImage()
 
 	image=NULL;
 	width=height=0;
+
+	cache_buffer = nullptr;
+	cache_buffer_size = 0;
 }
 
 LaxCairoImage::LaxCairoImage(int w, int h)
@@ -291,6 +294,9 @@ LaxCairoImage::LaxCairoImage(int w, int h)
 	width  = w;
 	height = h;
 	image = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width,height);
+
+	cache_buffer = nullptr;
+	cache_buffer_size = 0;
 }
 
 /*! If fname and img, then assume that img corresponds to fname, read dimensions from img,
@@ -303,9 +309,11 @@ LaxCairoImage::LaxCairoImage(int w, int h)
 LaxCairoImage::LaxCairoImage(const char *fname, cairo_surface_t *img)
 	: LaxImage(fname)
 {
-	display_count=0; 
-	flag=0;
-	image=NULL;
+	display_count = 0; 
+	flag = 0;
+	image = nullptr;
+	cache_buffer = nullptr;
+	cache_buffer_size = 0;
 
 	if (!img) {
 		if (fname) {
@@ -339,9 +347,11 @@ LaxCairoImage::LaxCairoImage(const char *fname, cairo_surface_t *img)
 LaxCairoImage::LaxCairoImage(const char *original, const char *fname, int maxw, int maxh)
 	: LaxImage(fname)
 {
-	display_count=0;
-	flag=0;
-	image=NULL;
+	display_count = 0;
+	flag = 0;
+	image = nullptr;
+	cache_buffer = nullptr;
+	cache_buffer_size = 0;
 
 	if (maxh==0) maxh=maxw;
 
@@ -411,6 +421,8 @@ LaxCairoImage::~LaxCairoImage()
 		cairo_surface_destroy(image);
 		image=NULL;
 	}
+
+	delete[] cache_buffer;
 }
 
 /*! Return nullptr for failure.
@@ -443,6 +455,8 @@ LaxImage *LaxCairoImage::Crop(int x, int y, int width, int height, bool return_n
 
 
 /*! MUST be followed up with call to doneWithBuffer().
+ * This wil return this->cache_buffer.
+ * cache_buffer will be reallocated if necessary.
  *
  * This returns a new uchar[] array.
  */
@@ -460,7 +474,14 @@ unsigned char *LaxCairoImage::getImageBuffer()
 	int stride=cairo_image_surface_get_stride(image);
 	cairo_format_t format=cairo_image_surface_get_format(image);
 
-	unsigned char *bbuffer=new unsigned char[width*height*4];
+	if (width*height*4 > cache_buffer_size) { delete[] cache_buffer; cache_buffer = nullptr; }
+	if (cache_buffer == nullptr) {
+		cache_buffer_size = width*height*4;
+		cache_buffer = new unsigned char[cache_buffer_size];
+	}
+
+	unsigned char *bbuffer = cache_buffer; //new unsigned char[width*height*4];
+
 	if (format==CAIRO_FORMAT_ARGB32 || format==CAIRO_FORMAT_RGB24) {
 
 		//DBG cerr <<"*** need to correctly apply premultiplied in cairo image / buffer exchange"<<endl;
@@ -508,8 +529,11 @@ int LaxCairoImage::doneWithBuffer(unsigned char *bbuffer)
 	}
 
 
-
-	delete[] bbuffer;
+	if (bbuffer != cache_buffer) {
+		cerr << " *** AAAAA!! Cairo image cache_buffer is something weird!!"<<endl;
+	} else {
+		//delete[] bbuffer;
+	}
 	cairo_surface_mark_dirty (image);
 
 	return 0;
@@ -556,9 +580,9 @@ int LaxCairoImage::createFromData_ARGB8(int nwidth, int nheight, int stride, con
 			for (int x=0; x<width; x++) {
 				alpha = oo[ooi+3];
 				pp[3] = alpha;
-				pp[2] = (int)oo[ooi+2] * alpha / 256; //r
-				pp[1] = (int)oo[ooi+1] * alpha / 256; //g
-				pp[0] = (int)oo[ooi+0] * alpha / 256; //b
+				pp[2] = (int)oo[ooi+2] * alpha / 255; //r
+				pp[1] = (int)oo[ooi+1] * alpha / 255; //g
+				pp[0] = (int)oo[ooi+0] * alpha / 255; //b
 	 
 				pp += 4;
 				ooi += 4;

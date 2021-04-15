@@ -47,6 +47,9 @@ class LaxCairoImage : public LaxImage
 	cairo_surface_t *image;
 	int width,height;
 
+	unsigned char *cache_buffer;
+	long cache_buffer_size;
+
 	LaxCairoImage();
 	LaxCairoImage(int w, int h);
 	LaxCairoImage(const char *fname, cairo_surface_t *img=NULL);
