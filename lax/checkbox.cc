@@ -168,7 +168,7 @@ void CheckBox::drawgraphic()
 						grect.width/2,grect.height/2, 0,0, 1);
 		
 		 //inner circle
-		dp->NewFG(win_themestyle->fg);
+		dp->NewFG(Grayed() ? coloravg(win_themestyle->fg,win_themestyle->bg) : win_themestyle->fg);
 		if (state==LAX_ON) 
 			dp->drawellipse(grect.x+grect.width/2,grect.y+grect.height/2, grect.width/4,grect.height/4, 0,0, 1);
 
@@ -195,7 +195,7 @@ void CheckBox::draw()
 	//dp->textextent(label,-1,&ex,&ey,&fasc,&fdes);
 	//getextent(label,-1,&ex,&ey,&fasc,&fdes);
 	
-    dp->NewFG(win_themestyle->fg);
+    dp->NewFG(Grayed() ? coloravg(win_themestyle->fg,win_themestyle->bg) : win_themestyle->fg);
 	dp->textout(trect.x+trect.width/2,trect.y+trect.height/2, label,strlen(label), LAX_CENTER);
 
 	//drawbevel(0);
