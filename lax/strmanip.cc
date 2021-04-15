@@ -237,8 +237,8 @@ char *newnstr(const char *str,int n)
 		}
 	}
 	if (n==0) return newstr("");
-	if (n>(int)strlen(str)) n=strlen(str);
-	if (n<0) n=strlen(str);
+	int slen = (int)strlen(str);
+	if (n < 0 || n > slen) n = slen;
 	char *dup=new char[n+1];
 	strncpy(dup,str,n);
 	dup[n]='\0';
