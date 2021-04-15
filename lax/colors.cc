@@ -322,6 +322,7 @@ int Color::ColorSystemId()
 }
 
 /*! Make this color have the same settings and number of channels as color.
+ * This DOES NOT do color conversion.
  */
 int Color::UpdateToSystem(Color *color)
 {
