@@ -160,7 +160,7 @@ class PatchData : virtual public SomeData, virtual public Laxkit::PointCollectio
 	virtual void grow(int where, const double *tr, bool smooth);
 	virtual void collapse(int rr,int cc);
 	virtual void InterpolateControls(int whichcontrols);
-	virtual int WarpPatch(flatpoint center, double r1,double r2, double s,double e, const double *extra = nullptr);
+	virtual int WarpPatch(flatpoint center, double A,double B,double inner, double s,double e, const double *extra);
 	virtual int EstablishPath(int preferredaxis);
 	virtual int RemovePath();
 	virtual int InstallPath(PathsData *path);

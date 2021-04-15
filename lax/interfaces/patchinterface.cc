@@ -2379,20 +2379,24 @@ void PatchData::getGt(double *Gt,int roffset,int coffset,int isfory)
  *
  * Return 0 for success, or non-negative for not enough points to warp. 
  */
-int PatchData::WarpPatch(flatpoint center, double r1,double r2, double s,double e, const double *extra)
+int PatchData::WarpPatch(flatpoint center, double A,double B,double inner, double s,double e, const double *extra)
 {
 	if (xsize==0 || ysize==0) return 1;
 	setIdentity();
 	int numverts=xsize/3+1;
+	if (fabs(s-e) < 1e-5) e = s + 2*M_PI;
 	double theta=(e-s)/(numverts-1);
 	flatpoint vt;
 
 	//DBG cerr << "WarpPatch: max i="<<xsize*ysize<<endl;
 	
+	double r1 = 1;
+	double r2 = inner;
+	
 	double rr,v,a;
 	int r,c,i;
 	for (r=0; r<ysize; r++) {
-		rr=r1+(r2-r1)*r/(ysize-1);
+		rr = r1 + (r2-r1)*r/(ysize-1); //so from r2 .. r1
 		 // for angle theta between vertices, bezier control rods must be length v:
 		v=4*rr*(2*sin(theta/2)-sin(theta))/3/(1-cos(theta));
 		
@@ -2402,10 +2406,10 @@ int PatchData::WarpPatch(flatpoint center, double r1,double r2, double s,double 
 			
 			a=s+c/3*theta;
 		 	 // do vertex points
-			points[i]=center+flatpoint(rr*cos(a), rr*sin(a));
+			points[i] = flatpoint(rr*cos(a), rr*sin(a));
 
 			 //compute control points that approximate a circle
-			vt=transpose(points[i]-center);
+			vt=transpose(points[i]);
 			vt=vt*(v/norm(vt));
 			 // do previous control point
 			if (c>0) {
@@ -2419,7 +2423,15 @@ int PatchData::WarpPatch(flatpoint center, double r1,double r2, double s,double 
 			}
 		}
 		//DBG cerr <<endl;
-	} 
+	}
+	//correct for a != b
+	for (r=0; r<ysize; r++) {
+		for (c=0; c<xsize; c++) {
+			i=r*xsize+c;
+			points[i] = center + flatpoint(A*points[i].x, B*points[i].y);
+		}
+		//DBG cerr <<endl;
+	}
 	//DBG cerr << endl;
 	
 	if (extra) {
@@ -2428,8 +2440,8 @@ int PatchData::WarpPatch(flatpoint center, double r1,double r2, double s,double 
 		}
 	}
 
-	NeedToUpdateCache(0,-1,0,-1);
 	FindBBox();
+	NeedToUpdateCache(0,-1,0,-1);
 	return 0;
 }
 
@@ -2593,6 +2605,8 @@ void PatchData::rpatchpoint(PatchRenderContext *context,
 			if (r<0) r=0; else if (r>=context->bufferheight) r=context->bufferheight-1;
 			i=r*context->stride + c*4;
 			//i=r*4*context->bufferwidth + c*4;
+			DBG if (r < 0 || r >= context->bufferheight || c < 0 || c >= context->bufferheight) 
+			DBG 	cerr << "rpatchpoint index out of bounds!! AAA! "<<r<<", "<<c<<endl;
 
 			WhatColor(context->s0+context->ds*s1, context->t0+context->dt*t1, &color);
 			context->buffer[i+3]=(color.alpha&0xff00)>>8;
@@ -2620,6 +2634,8 @@ void PatchData::rpatchpoint(PatchRenderContext *context,
 			if (c<0) c=0; else if (c>=context->bufferwidth) c=context->bufferwidth-1;
 			if (r<0) r=0; else if (r>=context->bufferheight) r=context->bufferheight-1;
 			i=r*context->stride + c*4;
+			DBG if (r < 0 || r >= context->bufferheight || c < 0 || c >= context->bufferheight) 
+			DBG 	cerr << "rpatchpoint index out of bounds!! AAA! "<<r<<", "<<c<<endl;
 
 			WhatColor(context->s0+context->ds*s2, context->t0+context->dt*t1,&color);
 			context->buffer[i+3]=(color.alpha&0xff00)>>8;
@@ -2647,6 +2663,8 @@ void PatchData::rpatchpoint(PatchRenderContext *context,
 			if (c<0) c=0; else if (c>=context->bufferwidth) c=context->bufferwidth-1;
 			if (r<0) r=0; else if (r>=context->bufferheight) r=context->bufferheight-1;
 			i=r*context->stride + c*4;
+			DBG if (r < 0 || r >= context->bufferheight || c < 0 || c >= context->bufferheight) 
+			DBG 	cerr << "rpatchpoint index out of bounds!! AAA! "<<r<<", "<<c<<endl;
 
 			WhatColor(context->s0+context->ds*s1, context->t0+context->dt*t2, &color);
 			context->buffer[i+3]=(color.alpha&0xff00)>>8;
@@ -2674,6 +2692,8 @@ void PatchData::rpatchpoint(PatchRenderContext *context,
 			if (c<0) c=0; else if (c>=context->bufferwidth) c=context->bufferwidth-1;
 			if (r<0) r=0; else if (r>=context->bufferheight) r=context->bufferheight-1;
 			i=r*context->stride + c*4;
+			DBG if (r < 0 || r >= context->bufferheight || c < 0 || c >= context->bufferheight) 
+			DBG 	cerr << "rpatchpoint index out of bounds!! AAA! "<<r<<", "<<c<<endl;
 
 			WhatColor(context->s0+context->ds*s2, context->t0+context->dt*t2, &color);
 			context->buffer[i+3]=(color.alpha&0xff00)>>8;
@@ -3072,14 +3092,17 @@ int PatchInterface::ActivateCircleInterface()
 	if (!data) return 1;
 
 	if (child) {
-		if (!strcmp(child->whattype(), "EllipseInterface")) return 0; //already on it!
+		if (strEquals(child->whattype(), "EllipseInterface")) return 0; //already on it!
 		return 2; // some other interface
 	}
 
 	EllipseInterface *el = new EllipseInterface(this, -1, dp);
+	el->ShowFoci(false);
+
 	EllipseData *edata = dynamic_cast<EllipseData*>(data->GetProperty("circle"));
 	if (edata) {
 		edata->inc_count();
+
 	} else {
 		edata = dynamic_cast<EllipseData *>(somedatafactory()->NewObject(LAX_ELLIPSEDATA));
 		if (!edata) edata = new EllipseData();
@@ -3088,12 +3111,14 @@ int PatchInterface::ActivateCircleInterface()
 		edata->center = screentoreal(curwindow->win_w/2,  curwindow->win_h/2);
 		edata->b = norm(screentoreal(curwindow->win_w*4/5,curwindow->win_h/2)
 				      - screentoreal(curwindow->win_w/2,  curwindow->win_h/2));
-		edata->a = edata->b/2;
+		edata->a = edata->b;
+		edata->inner_r = 0;
 		edata->start = 0;
 		edata->end = 2*M_PI;
 		edata->InstallDefaultLineStyle();
 		edata->linestyle->width = norm(screentoreal(0,0) - screentoreal(thin,0));
 		edata->linestyle->Color(controlcolor);
+		edata->m(data->m());
 		data->SetProperty("circle", edata, false);
 	}
 	el->UseThisObject(poc, edata);
@@ -3102,6 +3127,8 @@ int PatchInterface::ActivateCircleInterface()
 	child = el;
 	el->owner = this;
 	viewport->Push(el, viewport->HasInterface(object_id)+1,0);
+
+	UpdateFromCircle();
 
 	return 0;
 }
@@ -3579,19 +3606,19 @@ int PatchInterface::Refresh()
 
 
 	// draw patches
-	int d=1;
-	if (rendermode == RENDER_Controls_Only) d=0;
+	int dopatches = 1;
+	if (rendermode == RENDER_Controls_Only) dopatches = 0;
 
 	if (rendermode == RENDER_Preview) {
 		LaxImage *preview=data->GetPreview();
 		if (preview) {
-			d=dp->imageout(preview,data->minx,data->miny, data->maxx-data->minx, data->maxy-data->miny);
+			dopatches = dp->imageout(preview,data->minx,data->miny, data->maxx-data->minx, data->maxy-data->miny);
 			//DBG if (d<0) cerr <<"- - - Patch do not use preview"<<endl; else cerr <<"- - - Patch using preview"<<endl;
-			if (d<0) d=1; else d=0; //draw lines if problem with image
+			if (dopatches < 0) dopatches = 1; else dopatches = 0; //draw lines if problem with image
 		}
 	}
 
-	if (d) {
+	if (dopatches) {
 		//if (rendermode == RENDER_Color && data->renderdepth==0) ...
 		drawpatches();
 	}
@@ -4844,21 +4871,23 @@ void PatchInterface::UpdateFromCircle()
 	EllipseInterface *interf = dynamic_cast<EllipseInterface*>(child);
 	EllipseData *edata = interf->data;
 
-	flatpoint center = edata->center;
-	double r1 = edata->a;
-	double r2 = edata->b;
-	double s = edata->start;
-	double e = edata->end;
+	data->WarpPatch(edata->center, edata->a,edata->b,edata->inner_r, edata->start,edata->end, nullptr); //edata->m());
 
-	data->WarpPatch(center,r1,r2,s,e, edata->m());
 	Modified();
-
 	needtodraw = 1;
 }
 
 int PatchInterface::CharInput(unsigned int ch, const char *buffer,int len,unsigned int state,const Laxkit::LaxKeyboard *d) 
 {
-	if (child) return 1;
+	if (child) {
+		if (ch == LAX_Esc) {
+			RemoveChild();
+			needtodraw=1;
+			return 0;
+		}
+		
+		return 1;
+	}
 
 	if (ch==LAX_Shift || ch==LAX_Control) {
 		MouseMove(mx,my,state,d->paired_mouse);
@@ -4871,12 +4900,6 @@ int PatchInterface::CharInput(unsigned int ch, const char *buffer,int len,unsign
 	}
 
 	if (ch==LAX_Esc) {
-		if (child) {
-			RemoveChild();
-			needtodraw=1;
-			return 0;
-		}
-
 		if (curpoints.n) {
 			curpoints.flush();
 			needtodraw=1;
