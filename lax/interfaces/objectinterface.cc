@@ -407,7 +407,7 @@ void ObjectInterface::deletedata()
 //! Flush the selection and remove the bounding rectangle.
 int ObjectInterface::FreeSelection()
 {
-	DBG cerr <<"=== FreeSelection()"<<endl;
+	DBG cerr <<"~~~ FreeSelection()"<<endl;
 	deletedata();
 
 	selection->Flush();
