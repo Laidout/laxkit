@@ -64,27 +64,8 @@ namespace LaxInterfaces {
  * via m(int,double).
  * 
  */
-/*! \var Laxkit::LaxImage *SomeData::preview
- * \brief A preview image potentially to be used to not have to rerender on each refresh.
- *
- * This is an image that scales to the bounds of the data without skewing. Thus, matrix
- * is not applied before rendered. Usually the Displayer will apply any additional transform
- * before compositing to its surface.
- */
 /*! \var int SomeData::usepreview
  * \brief Flag for whether to use SomeData::preview rather than rendering.
- */
-/*! \var time_t SomeData::previewtime
- * \brief The time the preview was generated, if at all, as returned by time().
- *
- * Beware that this is a time in seconds.
- */
-/*! \var time_t SomeData::modtime
- * \brief The time of last modification through a SomeData function.
- *
- * Beware that this is a time in seconds.
- * Please note that of course if you bypass the SomeData functions, then the modtime will
- * not be updated.
  */
 /*! \var int SomeData::iid
  * \brief Id of the interface that should handle this data.
@@ -274,14 +255,11 @@ void SomeData::FlipH()
 //! Render the object to a buffer.
 /*! This draws onto buffer such that the object's whole bounding box maps to the whole buffer.
  *
- * This is mainly used to create screen previews in ARGB 8 bit format. Maybe someday it will be
- * more powerful!!
+ * This is mainly used to create screen previews in ARGB 8 bit format.
+ * bufdepth and bufchannels are not currently used by Laxkit.
  * 
  * Default here is just a do nothing placeholder, and only returns 1.
  * On success, it should return 0.
- *
- * \todo perhaps create a version where one may apply a transform before writing to buffer, then
- *   blend onto it? ...maybe not, better off using some kind of Displayer for that
  */
 int SomeData::renderToBuffer(unsigned char *buffer, int bufw, int bufh, int bufstride, int bufdepth, int bufchannels)
 {
@@ -398,24 +376,26 @@ int SomeData::GeneratePreview(int maxdim)
 	}
 
 	if (!preview) {
-		DBG cerr <<"old preview didn't exist, so creating new one..."<<endl;
+		DBG cerr <<"old preview didn't exist, so creating new one... w,h: "<<w<<", "<<h<<endl;
 		preview = ImageLoader::NewImage(w,h);
-	} 
+	}
 
 	if (renderToBufferImage(preview) != 0) { 
 		 //render direct to image didn't work, so try the old style render to char[] buffer...
+		DBG cerr << "Attempt render preview direct to buffer:"<<endl;
+
 		unsigned char *buffer = preview->getImageBuffer(); 
 		renderToBuffer(buffer,w,h,w*4,8,4); 
 		if (preview->doneWithBuffer(buffer) == 0) {
-			previewtime = time(NULL);
+			previewtime = times(NULL);
 		}
 
-	} else previewtime = time(NULL);
+	} else previewtime = times(NULL);
 
 	return (previewtime >= modtime);
 }
 
-/*! Set previewtime to 0 to force a preview refresh, and modtime=time(NULL).
+/*! Set previewtime to 0 to force a preview refresh, and modtime=times(NULL).
  * If GetParent() is not null, then call touchContents() on it.
  */
 void SomeData::touchContents()
