@@ -705,9 +705,20 @@ int EllipseInterface::DrawData(anObject *ndata,anObject *a1,anObject *a2,int)
 int EllipseInterface::Refresh()
 {
 	if (!dp || !needtodraw) return 0;
+
+
+
 	if (!data) {
 		if (needtodraw) needtodraw=0;
 		return 1;
+	}
+
+	if (eoc && eoc->obj && data != eoc->obj) {
+		double m[6];
+		double m2[6];
+		transform_invert(m, eoc->obj->m());
+		transform_mult(m2, m, data->m());
+		dp->PushAndNewTransform(m2);
 	}
 
 	DBG cerr <<"  EllipseRefresh showdecs: "<<showdecs<<"  width: "<<(data->linestyle ? data->linestyle->width : 0)<<endl;
@@ -849,6 +860,10 @@ int EllipseInterface::Refresh()
 		// 	dp->drawline(data->center, getpoint(hover_point==ELLP_StartAngle?ELLP_EndAngle:ELLP_StartAngle,false)); // draw line of other angle point
 		// 	dp->LineAttributes(thin,LineSolid,LAXCAP_Butt,LAXJOIN_Round);
 		// }
+	}
+
+	if (eoc && eoc->obj && data != eoc->obj) {
+		dp->PopAxes();
 	}
 
 	needtodraw=0;
@@ -1650,6 +1665,13 @@ int EllipseInterface::PerformAction(int action)
 	return 1;
 }
 
+/*! Return whether we can actually see foci. If yes == true, this could be false if allow_foci == false.
+ */
+bool EllipseInterface::ShowFoci(bool yes)
+{
+	show_foci = yes;
+	return show_foci && allow_foci;
+}
 
 
 } // namespace LaxInterfaces 
