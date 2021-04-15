@@ -150,14 +150,14 @@ int ImageDialog::init()
 						3,3);
 	AddWin(tbut,1, tbut->win_w,0,50,50,0, linpheight,0,0,50,0, -1);
 	//-------
-	last=file   =new LineInput(this,"file",NULL,LINP_FILE,    0,0,0,0, 1, last,object_id,"new file", " ",imageinfo->filename);
+	last=file   =new LineInput(this,"file",_("File"),LINP_FILE,    0,0,0,0, 1, last,object_id,"new file", " ",imageinfo->filename);
 	file->GetLineEdit()->SetCurpos(-1);
 	file->tooltip("Filename to use");
 	AddWin(file,1, 200,100,1000,50,0, file->win_h,0,0,50,0, -1);
-	last=tbut=new Button(this,"get new file",NULL,0, 0,0,0,0, 1, 
-						last,object_id,"get new file",
-						0, _("..."),NULL,NULL,3,3);
-	AddWin(tbut,1, tbut->win_w,0,50,50,0, linpheight,0,0,50,0, -1);
+	// last=tbut=new Button(this,"get new file",NULL,0, 0,0,0,0, 1, 
+	// 					last,object_id,"get new file",
+	// 					0, _("..."),NULL,NULL,3,3);
+	// AddWin(tbut,1, tbut->win_w,0,50,50,0, linpheight,0,0,50,0, -1);
 	AddNull();
 	
 	 //------------ Preview
@@ -167,14 +167,14 @@ int ImageDialog::init()
 						3,3);
 	AddWin(tbut,1, tbut->win_w,0,50,50,0, linpheight,0,0,50,0, -1);
 	//----
-	last=preview=new LineInput(this,"preview",NULL,LINP_FILE, 0,0,0,0, 1, last,object_id,"new preview", " ",imageinfo->previewfile);
+	last=preview=new LineInput(this,"preview",_("Preview"),LINP_FILE, 0,0,0,0, 1, last,object_id,"new preview", " ",imageinfo->previewfile);
 	preview->GetLineEdit()->SetCurpos(-1);
 	preview->tooltip("The image's preview file, if any");
 	AddWin(preview,1, 200,100,1000,50,0, preview->win_h,0,0,50,0, -1);
-	last=tbut=new Button(this,"get new preview",NULL,0, 0,0,0,0, 1, 
-						last,object_id,"get new preview",
-						0,"...",NULL,NULL,3,3);
-	AddWin(tbut,1, tbut->win_w,0,50,50,0, linpheight,0,0,50,0, -1);
+	// last=tbut=new Button(this,"get new preview",NULL,0, 0,0,0,0, 1, 
+	// 					last,object_id,"get new preview",
+	// 					0,"...",NULL,NULL,3,3);
+	// AddWin(tbut,1, tbut->win_w,0,50,50,0, linpheight,0,0,50,0, -1);
 	AddNull();
 
 	 //------------ [Re]Generate button
