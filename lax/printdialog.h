@@ -26,7 +26,8 @@
 #include <lax/doublebbox.h>
 
 #include <cups/cups.h>
-#include <cups/ppd.h>
+// #include <cups/ppd.h>
+
 
 namespace Laxkit {
 
@@ -41,38 +42,40 @@ class PrintContext : public EventData
 	unsigned long flags; //landscape/portrait
 	int copies;
 	int pagestart,pageend; //-1==auto
+
 	PrintContext();
 	virtual ~PrintContext();
 };
 
-//--------------------------------- PrintDialog ------------------------------
-#define PRINT_USE_PREVIEW      (1<<16)
-#define PRINT_USE_PS_FILE      (1<<17)
-#define PRINT_USE_EPS_FILE     (1<<18)
-#define PRINT_USE_PDF_FILE     (1<<19)
-#define PRINT_USE_XPRINT       (1<<20)
-#define PRINT_USE_SVG          (1<<21)
-#define PRINT_USE_PNG          (1<<22)
-#define PRINT_USE_JPG          (1<<23)
-#define PRINT_NO_CANCEL_DIALOG (1<<24)
 
+//--------------------------------- PrintDialog ------------------------------
 
 class PrintDialog : public RowFrame
 {
- protected:
+  protected:
 	cups_dest_t *dests;
-	int numdests,dest;
-	ppd_file_t *ppd;
-	cups_option_t *options;
+	int numdests, current_printer;
 	int numoptions;
 	char *filetoprint;
+	char *to_file_path;
 	PrintContext *printcontext;
-	int optionsstart;
+	int optionsstart; //index in wholelist where options widgets start
+
+	// cups_option_t *options;
+	// ppd_file_t *ppd;
+	
 	virtual void addOptions();
- public:
+
+  public:
+  	enum DialogFlags {
+  		PRINT_NO_TO_FILE = (1<<16)
+  	};
+  	unsigned int dialog_flags;
+
  	PrintDialog(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
 			int xx,int yy,int ww,int hh,int brder, 
 			anXWindow *prev,unsigned long nowner,const char *nsend,
+			unsigned int dialog_flags,
 			const char *nfiletoprint=NULL, PrintContext *pt=NULL);
 	virtual ~PrintDialog();
 	virtual const char *whattype() { return "PrintDialog"; }

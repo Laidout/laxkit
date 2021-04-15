@@ -185,8 +185,8 @@ objs= \
 	draggingdndwindow.o \
 	curveinfo.o \
 	pointset.o \
+	printdialog.o \
 
-#	printdialog.o \
 #	tableframe.o \
 #	colorselector.o \
 #
