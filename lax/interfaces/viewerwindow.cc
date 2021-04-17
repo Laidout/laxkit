@@ -93,11 +93,13 @@ ViewerWindow::ViewerWindow(anXWindow *parnt,const char *nname,const char *ntitle
 					xx,yy,ww,hh,brder, NULL,0,NULL,
 					0)
 {
-	viewer_style=nstyle&VIEWPORT_STYLE_MASK;
+	viewer_style = nstyle & VIEWPORT_STYLE_MASK;
 
-	xscroller=yscroller=NULL;
-	xruler=yruler=NULL;
-	mesbar=NULL;
+	xscroller = yscroller = NULL;
+	xruler = yruler = NULL;
+	mesbar          = NULL;
+	last_message    = nullptr;
+	last_message_n  = 0;
 
 	viewport=vw;
 	if (viewport) {
@@ -123,6 +125,28 @@ void ViewerWindow::PostMessage(const char *mes)
 {
 	if (!mesbar) { if (win_on) app->postmessage(mes); }
 	else mesbar->SetText(mes);
+}
+
+/*! Printf style message.
+ */
+void ViewerWindow::PostMessage2(const char *fmt, ...)
+{
+	va_list arg;
+
+    va_start(arg, fmt);
+    int c = vsnprintf(last_message, last_message_n, fmt, arg);
+    va_end(arg);
+
+    if (c >= last_message_n) {
+        delete[] last_message;
+        last_message_n = c+100;
+        last_message = new char[last_message_n];
+        va_start(arg, fmt);
+        vsnprintf(last_message, last_message_n, fmt, arg);
+        va_end(arg);
+    }
+
+    PostMessage(last_message);
 }
 
 //! Try to ensure that the units in the rulers reflect some measure of reality for pixel size.

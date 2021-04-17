@@ -57,6 +57,9 @@ enum ViewerWindowActions {
 
 class ViewerWindow : public Laxkit::RowFrame
 {
+	char *last_message; //for PostMessage2(fmt,...)
+	int last_message_n;
+	
   protected:
 	Laxkit::Scroller *xscroller,*yscroller;
 	Laxkit::RulerWindow *xruler,*yruler;
@@ -85,6 +88,7 @@ class ViewerWindow : public Laxkit::RowFrame
 	virtual int CharInput(unsigned int ch, const char *buffer,int len,unsigned int state,const Laxkit::LaxKeyboard *d);
 	virtual int Event(const Laxkit::EventData *e,const char *mes);
 	virtual void PostMessage(const char *mes);
+	virtual void PostMessage2(const char *fmt, ...);
 	virtual void SetRealUnits();
 	
 	virtual int RemoveTool(int id);
