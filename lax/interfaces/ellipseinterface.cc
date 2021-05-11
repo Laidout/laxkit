@@ -750,6 +750,7 @@ int EllipseInterface::Refresh()
 			dp->lineto(pts[10]);
 			for (int c=9; c>=3; c-= 3) dp->curveto(pts[c], pts[c-1], pts[c-2]);
 			dp->lineto(p1);
+			dp->closed();
 
 		} else if (data->wedge_type == EllipseData::ELLIPSE_Chord) {
 			dp->closed();
