@@ -612,7 +612,7 @@ LaxFiles::Attribute *PatchData::dump_out_atts(LaxFiles::Attribute *att,int what,
 		att->push("controls","full",       "can also be linear, coons, or border");
 		att->push("pathmethod", "sampled", "Or extrapolate, how to create mesh from path");
 		att2 = att->pushSubAtt("base_path",nullptr,    "If mesh is defined along path, include this single Path object");
-		att2->push("  ...");
+		att2->push("...");
 		att2 = att->pushSubAtt("points",nullptr,"all xsize*ysize points, a list by rows of: x y");
 		att2->value = newstr("1.0 1.0\n"
 							 "2.0 1.0\n"
@@ -2950,40 +2950,43 @@ int PatchData::Map(std::function<int(const flatpoint &p, flatpoint &newp)> adjus
 
 PatchInterface::PatchInterface(int nid,Displayer *ndp) : anInterface(nid,ndp)
 {
-	linestyle.width=1;
-	linestyle.Color(0xffff,0,0,0xffff);
-	controlcolor=rgbcolor(200,200,200);
-	rimcolor=rgbcolor(200,100,0);
-	handlecolor=rgbcolor(100,100,0);
-	gridcolor=rgbcolor(255,0,0);
-	oldshowdecs=showdecs=SHOW_Points|SHOW_Edges;
-	style=0;
-	xs=1;
-	ys=1;
-	rdiv=2;
-	cdiv=2;
+	linestyle.width = 1;
+	linestyle.Color(0xffff, 0, 0, 0xffff);
+	controlcolor      = rgbcolor(200, 200, 200);
+	rimcolor          = rgbcolor(200, 100, 0);
+	handlecolor       = rgbcolor(100, 100, 0);
+	gridcolor         = rgbcolor(255, 0, 0);
+	style             = 0;
+	xs                = 1;
+	ys                = 1;
+	rdiv              = 2;
+	cdiv              = 2;
+	auto_select_close = true;
+	auto_close_threshhold = 1e-6;
 
-	selection=NULL;
-	data=NULL;
-	poc=NULL;
-	
-	overv=overh=overch=overcv=-1;
-	overstate=-1; //is 1 for hovering over something that we are going to cut
-	cuth=cutv=NULL;
-	movepts=NULL;
-	dragmode=0;
-	hoverpoint=-1;
-	rendermode = drawrendermode = RENDER_Preview;
-	recurse=0;
-	
-	constrain=0;
-	bx=by=0;
-	whichcontrols=Patch_Full_Bezier;
-	smoothedit=true;
-	
-	needtodraw=1;
+	oldshowdecs = showdecs = SHOW_Points | SHOW_Edges;
 
-	sc=NULL;
+	selection = NULL;
+	data      = NULL;
+	poc       = NULL;
+
+	overv = overh = overch = overcv = -1;
+	overstate   = -1;  // is 1 for hovering over something that we are going to cut
+	cuth = cutv = NULL;
+	movepts     = NULL;
+	dragmode    = 0;
+	hoverpoint  = -1;
+	rendermode  = drawrendermode = RENDER_Preview;
+	recurse     = 0;
+
+	constrain     = 0;
+	whichcontrols = Patch_Full_Bezier;
+	smoothedit    = true;
+	bx = by = 0;
+
+	needtodraw = 1;
+
+	sc = NULL;
 }
 
 PatchInterface::~PatchInterface() 
@@ -3055,6 +3058,7 @@ Laxkit::MenuInfo *PatchInterface::ContextMenu(int x,int y,int deviceid, Laxkit::
 
 		} else {
 			menu->AddToggleItem(_("Smooth edit"), PATCHA_SmoothEdit, 0, smoothedit);
+			menu->AddToggleItem(_("Auto select near"), PATCHA_AutoSelectNear, 0, auto_select_close);
 			menu->AddItem(_("Select"));
 			menu->SubMenu();
 			menu->AddItem(_("Corners"), PATCHA_SelectCorners);
@@ -3222,6 +3226,7 @@ int PatchInterface::Event(const Laxkit::EventData *e_data, const char *mes)
 				|| i == PATCHA_Subdivide
 				|| i == PATCHA_SubdivideRows
 				|| i == PATCHA_SubdivideCols
+				|| i == PATCHA_AutoSelectNear
 				|| i == PATCHA_SelectCorners
 				|| i == PATCHA_SelectMids
 				|| i == PATCHA_SelectEdgeMids
@@ -3793,13 +3798,13 @@ void PatchInterface::drawControls()
 		drawControlPoints();
 
 		// draw hoverpoint
-		drawControlPoint(hoverpoint);
+		drawControlPoint(hoverpoint, true);
 
 	} 
 }
 
 //! Draw a single point. This is for the hoverpoint, and is called from Refresh().
-void PatchInterface::drawControlPoint(int i)
+void PatchInterface::drawControlPoint(int i, bool hovered)
 {
 	if (!data || i<0 || i>=data->xsize*data->ysize) return;
 
@@ -3809,11 +3814,11 @@ void PatchInterface::drawControlPoint(int i)
 	double thin = ScreenLine();
 
 	dp->NewFG(controlcolor);
-	dp->drawpoint(p.x,p.y,5*thin,1);
+	dp->drawpoint(p.x,p.y,5*thin * (hovered ? 1.2 : 1),1);
 	dp->NewFG(~0);
-	dp->drawpoint(p.x,p.y,5*thin,0);
+	dp->drawpoint(p.x,p.y,5*thin * (hovered ? 1.2 : 1),0);
 	dp->NewFG(0,0,0);
-	dp->drawpoint(p.x,p.y,6*thin,0);
+	dp->drawpoint(p.x,p.y,6*thin * (hovered ? 1.2 : 1),0);
 }
 
 /*! \todo in the future someday, might be useful to only show control points for "active" subpatches,
@@ -3950,14 +3955,33 @@ int PatchInterface::SelectPoint(int c,unsigned int state)
 	if (c<0 || c>=data->xsize*data->ysize) return 0;
 	if (!(state&ShiftMask)) curpoints.flush();
 	for (int cc=0; cc<curpoints.n; cc++) {
-		if (c==curpoints.e[cc]) {
+		if (c==curpoints.e[cc]) { // point was selected, deselect
 			curpoints.pop(cc);
+
+			if (auto_select_close) {
+				flatpoint p = data->points[c];
+				for (int c2=curpoints.n-1; c2 >= 0; c2--) {
+					if ((data->points[curpoints.e[c2]] - p).norm() < auto_close_threshhold) {
+						curpoints.pop(c2);
+					}
+				}
+			}
 			needtodraw|=2;
 			return curpoints.n;
 		}
 	}
+
 	curpoints.push(c);
-	needtodraw|=2;
+	if (auto_select_close) {
+		flatpoint p = data->points[c];
+		for (int cc=0; cc<data->xsize*data->ysize; cc++) {
+			if (c == cc) continue;
+			if ((data->points[cc]-p).norm() < auto_close_threshhold) {
+				curpoints.pushnodup(cc);
+			}
+		}
+	}
+	needtodraw |= 2;
 	return curpoints.n;
 }
 
@@ -4727,6 +4751,11 @@ int PatchInterface::PerformAction(int action)
 
 		ActivateCircleInterface();
 		UpdateFromCircle();
+		return 0;
+
+	} else if (action==PATCHA_AutoSelectNear) {
+		auto_select_close = !auto_select_close;
+		PostMessage(auto_select_close ? _("Auto select near") : _("Don't auto select near"));
 		return 0;
 
 	} else if (action==PATCHA_SelectCorners) {

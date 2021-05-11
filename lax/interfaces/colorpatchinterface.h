@@ -101,7 +101,7 @@ class ColorPatchInterface : public PatchInterface
 	virtual int Refresh();
 	virtual void drawpatch(int roff,int coff);
 	virtual void drawpatch2(int roff,int coff);
-	virtual void drawControlPoint(int i);
+	virtual void drawControlPoint(int i, bool hovered);
 	virtual int CharInput(unsigned int ch, const char *buffer,int len,unsigned int state,const Laxkit::LaxKeyboard *d);
 //	virtual int Refresh();
 	virtual int DrawData(anObject *ndata,anObject *a1=NULL,anObject *a2=NULL,int info=0);

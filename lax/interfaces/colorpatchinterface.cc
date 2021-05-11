@@ -979,7 +979,7 @@ int ColorPatchInterface::CharInput(unsigned int ch, const char *buffer,int len,u
 //! Draw a single point as a little filled colored circle.
 /*! This is for the hoverpoint, and is called from PatchInterface::Refresh().
  */
-void ColorPatchInterface::drawControlPoint(int i)
+void ColorPatchInterface::drawControlPoint(int i, bool hovered)
 {
 	if (!data || i<0 || i>=data->xsize*data->ysize) return;
 
@@ -998,11 +998,11 @@ void ColorPatchInterface::drawControlPoint(int i)
 	dp->DrawScreen();
 	dp->LineWidthScreen(thin);
 	dp->NewFG(color);
-	dp->drawpoint((int)p.x,(int)p.y,5*thin,1);
+	dp->drawpoint((int)p.x,(int)p.y,5*thin * (hovered ? 1.2 : 1),1);
 	dp->NewFG(~0);
-	dp->drawpoint((int)p.x,(int)p.y,5*thin,0);
+	dp->drawpoint((int)p.x,(int)p.y,5*thin * (hovered ? 1.2 : 1),0);
 	dp->NewFG(0,0,0);
-	dp->drawpoint((int)p.x,(int)p.y,6*thin,0);
+	dp->drawpoint((int)p.x,(int)p.y,6*thin * (hovered ? 1.2 : 1),0);
 	dp->DrawReal();
 }
 

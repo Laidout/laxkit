@@ -218,6 +218,7 @@ enum PatchInterfaceActions {
 	PATCHA_Rectify,
 	PATCHA_Decorations,
 	PATCHA_CircleWarp,
+	PATCHA_AutoSelectNear,
 	PATCHA_SelectCorners,
 	PATCHA_SelectMids,
 	PATCHA_SelectEdgeMids,
@@ -265,7 +266,7 @@ class PatchInterface : public anInterface
 	virtual int   findNearVertical(flatpoint fp,double d,double *t_ret,int *i_ret);
 	virtual void drawControls();
 	virtual void drawControlPoints();
-	virtual void drawControlPoint(int i);
+	virtual void drawControlPoint(int i, bool hovered);
 	virtual int ActivatePathInterface();
 	virtual int ActivateCircleInterface();
 
@@ -301,6 +302,8 @@ class PatchInterface : public anInterface
 	int showdecs, oldshowdecs; 
 	bool smoothedit;
 	char whichcontrols;
+	bool auto_select_close;
+	double auto_close_threshhold;
 	int recurse;
 	int rendermode; //see RenderMode
 	int drawrendermode; //see RenderMode
