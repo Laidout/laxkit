@@ -263,13 +263,15 @@ for NAME in $OPTIONAL; do
     fi
 done
 
- ## cups doesn't seem to have a pkg-config entry, so do this hackier check
+ ## cups doesn't seem to have a pkg-config entry, so try to check for their custom cups-config
 echo -n Checking for cups......;
-if [ ! -e /usr/include/cups ] ; then 
-    echo "You need to install the development package of Cups."; 
+if [ ! `builtin type -p cups-config` ] ; then
+    echo "Can't find cups-config. You might need to install the development package of Cups."; 
     NUM="";
-else echo "ok"; 
+
+else echo "ok";
 fi
+
 
 echo
 
