@@ -854,6 +854,7 @@ int CopyFile(const char *from, const char *to, bool clobber)
 	return 0;
 }
 
+
 /*! Uses get_current_dir_name(), then returns a new char[], not the malloc'd one get_current_dir_name fetches.
  */
 char *current_directory()
@@ -864,7 +865,7 @@ char *current_directory()
 	char *npath = nullptr;
 	while (1) {
 		char *buf = new char[size];
-		npath = gewcwd(buf, size);
+		npath = getcwd(buf, size);
 		if (npath == nullptr) {
 			delete[] buf;
 			size *= 2;
@@ -882,13 +883,13 @@ char *current_directory()
 }
 
 
-
 } //namespace LaxFiles
 
 
 
+// *** note that getline is POSIX since POSIX.1-2008, so maybe this is obsolete?
+//     and probably this section should have been if !_GNU_SOURCE anyway
 #ifdef _LAX_PLATFORM_MAC
-
 
 /*! Return -1 for eof or other failure.
  * Otherwise, return the number of characters read.
