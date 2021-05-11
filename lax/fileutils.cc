@@ -808,17 +808,6 @@ int save_string_to_file(const char *str,int n, const char *file)
 	return 0;
 }
 
-/*! Uses get_current_dir_name(), then returns a new char[], not the malloc'd one get_current_dir_name fetches.
- */
-char *current_directory()
-{
-	char *t=get_current_dir_name(); // this is a gnu extension _GNU_SOURCE must have been defined somewhere..
-    char *npath=newstr(t);
-	free(t);
-	return npath;
-}
-
-
 /*! Return new char[] with path to current executable, grabbed from /proc/self/exe.
  */
 char *ExecutablePath()
@@ -864,6 +853,34 @@ int CopyFile(const char *from, const char *to, bool clobber)
 
 	return 0;
 }
+
+/*! Uses get_current_dir_name(), then returns a new char[], not the malloc'd one get_current_dir_name fetches.
+ */
+char *current_directory()
+{
+#ifndef _GNU_SOURCE
+	int size = 512;
+	int max = 4096; //if this size fails, you probably have bigger problems
+	char *npath = nullptr;
+	while (1) {
+		char *buf = new char[size];
+		npath = gewcwd(buf, size);
+		if (npath == nullptr) {
+			delete[] buf;
+			size *= 2;
+			if (size > max) break;
+		}
+	}
+
+#else
+	char *buf = get_current_dir_name(); // this is a gnu extension _GNU_SOURCE must have been defined somewhere..
+    char *npath = newstr(buf);
+	free(buf);
+#endif
+
+	return npath;
+}
+
 
 
 } //namespace LaxFiles
