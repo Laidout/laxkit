@@ -169,7 +169,9 @@ void VoronoiData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *co
     spc[indent]='\0';
 
 	if (what==-1) {
-		cerr << " *** need to implement VoronoiData::dump_out() description!!"<<endl;
+		Attribute att;
+		dump_out_atts(&att, -1, context);
+		att.dump_out(f, indent);
 		return;
 	}
 
@@ -224,8 +226,25 @@ LaxFiles::Attribute *VoronoiData::dump_out_atts(LaxFiles::Attribute *att,int wha
 	if (!att) att = new Attribute();
 
 	if (what==-1) {
-		att->push("FIX ME", "RIGHT NOW!!!");
-		cerr << " *** need to implement VoronoiData::dump_out() description!!"<<endl;
+		att->push("matrix", "1 0 0 1 0 0");
+			
+		att->push("show_points",    "yes", "or no");
+		att->push("show_delaunay",  "yes", "or no");
+		att->push("show_voronoi",   "yes", "or no");
+		att->push("show_numbers",   "yes", "or no");
+
+		att->push("width_points",   ".1", "Default radius of point indicators" );
+		att->push("width_delaunay", ".1", "Line width of Delaunay triangles" );
+		att->push("width_voronoi",  ".1", "Line width of Voronoi cells" );
+
+		att->push("color_delaunay", "rgbf(1.0,0.0,0.0)");
+		att->push("color_voronoi",  "rgbf(0.0,0.7,0.0)");
+		att->push("color_points",   "rgbf(1.0,0.0,1.0)");
+		
+		att->push("points", "1.0, 1.0\n...", "List of points");
+
+		att->push("triangles", "0 1 2  3 4 5 .5 .5\n...", "(ignored on loading) p1 p2 p3  t1 t2 t3 (<- the triangles on other side of edge)  circumcenter x,y");
+
 		return att;
 	}
 
