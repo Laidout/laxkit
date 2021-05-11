@@ -302,10 +302,10 @@ LaxFiles::Attribute *GradientStrip::GradientSpot::dump_out_atts(LaxFiles::Attrib
 
 	if (what==-1) {
 		att->push("name", "Human Readable", "optional name for this spot");
-		att->push("t", "0", "the spot on the x axis to place the color, customarily the spots will"
+		att->push("t", "0", "the spot on the x axis to place the color, customarily the spots will "
 					        "cover the whole range [0..1] but that range is not mandatory");
 		att->push("nt","0", "like t, but normalized to the range [0..1]. Recomputed on reading in GradientStrip");
-		att->push("s", "1", "the spot on the y axis to place the color, customarily the spots will"
+		att->push("s", "1", "the spot on the y axis to place the color, customarily the spots will "
 		                    "cover the whole range [0..1] but that range is not mandatory");
 		att->push("ns","1", "like s, but normalized to the range [0..1]. Recomputed on reading in GradientStrip");
 		att->push("color", "rgba(1,1,1,1)", "for instance grayf(.5)");
