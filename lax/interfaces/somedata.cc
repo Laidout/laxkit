@@ -370,9 +370,12 @@ int SomeData::GeneratePreview(int maxdim)
 	if (preview && ((float)w/preview->w()>1.05 || (float)w/preview->w()<.95 ||
 					(float)h/preview->h()>1.05 || (float)h/preview->h()<.95)) {
 		 //delete old preview and make new only when changing size of preview more that 5%-ish in x or y
+		DBG cerr <<"removing old preview..."<<endl;
 		preview->dec_count(); 
 		preview = nullptr;
-		DBG cerr <<"removed old preview..."<<endl;
+	} else if (preview) { //use previous bounds, which might not be the ideal w,h
+		w = preview->w();
+		h = preview->h();
 	}
 
 	if (!preview) {
@@ -380,10 +383,11 @@ int SomeData::GeneratePreview(int maxdim)
 		preview = ImageLoader::NewImage(w,h);
 	}
 
+	DBG cerr << "Render to buffer w,h="<<w<<','<<h<<", preview says: "<<preview->w()<<','<<preview->h()<<endl;
+
 	if (renderToBufferImage(preview) != 0) { 
 		 //render direct to image didn't work, so try the old style render to char[] buffer...
-		DBG cerr << "Attempt render preview direct to buffer:"<<endl;
-
+		DBG cerr << "SomeData::GeneratePreview: Attempt render preview direct to buffer, w,h="<<w<<','<<h<<":"<<endl;
 		unsigned char *buffer = preview->getImageBuffer(); 
 		renderToBuffer(buffer,w,h,w*4,8,4); 
 		if (preview->doneWithBuffer(buffer) == 0) {
