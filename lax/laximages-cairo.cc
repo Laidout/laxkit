@@ -474,7 +474,10 @@ unsigned char *LaxCairoImage::getImageBuffer()
 	int stride=cairo_image_surface_get_stride(image);
 	cairo_format_t format=cairo_image_surface_get_format(image);
 
-	if (width*height*4 > cache_buffer_size) { delete[] cache_buffer; cache_buffer = nullptr; }
+	if (width*height*4 > cache_buffer_size) {
+		delete[] cache_buffer;
+		cache_buffer = nullptr;
+	}
 	if (cache_buffer == nullptr) {
 		cache_buffer_size = width*height*4;
 		cache_buffer = new unsigned char[cache_buffer_size];
