@@ -663,6 +663,105 @@ void PointSet::dump_in_atts(Attribute *att, int what, DumpContext *context)
 	}
 }
 
+//------------------------------------- Poission Disc Points ---------------------------------
+
+/*! This is adapted from SebLague's C# implementation, which was MIT licensed. */
+
+
+static bool IsValid(flatvector candidate, flatvector sampleRegionSize, float cellSize, float radius, NumStack<flatvector> &points, int *grid, int gridxn, int gridyn)
+{
+	if (candidate.x >=0 && candidate.x < sampleRegionSize.x && candidate.y >= 0 && candidate.y < sampleRegionSize.y) {
+		int cellX = (int)(candidate.x/cellSize);
+		int cellY = (int)(candidate.y/cellSize);
+		if (cellX < 0 || cellX >= gridxn || cellY < 0 || cellY >= gridyn) return false;
+		
+		int searchStartX = MAX(0,cellX -2);
+		int searchEndX = MIN(cellX+2,gridxn-1);
+		int searchStartY = MAX(0,cellY -2);
+		int searchEndY = MIN(cellY+2,gridyn-1);
+
+		for (int x = searchStartX; x <= searchEndX; x++) {
+			for (int y = searchStartY; y <= searchEndY; y++) {
+				int pointIndex = grid[x+gridxn*y]-1;
+				if (pointIndex != -1) {
+					float sqrDst = (candidate - points[pointIndex]).norm2();
+					if (sqrDst < radius*radius) {
+						return false;
+					}
+				}
+			}
+		}
+		return true;
+	}
+	return false;
+}
+
+double RandomRange(double min, double max)
+{
+	return min + (max-min)*random()/RAND_MAX;
+}
+
+int RandomRangeInt(int min, int max)
+{
+	return min + random() % (max-min+1);
+}
+
+void PointSet::CreatePoissonPoints(double radius, int seed, double minx, double maxx, double miny, double maxy)
+{
+	if (seed) srandom(seed);
+
+	double cellSize = radius/sqrt(2);
+	flatvector sampleRegionSize(maxx-minx, maxy-miny);
+	int numSamplesBeforeRejection = 30;
+
+	int gridxn = (sampleRegionSize.x/cellSize);
+	int gridyn = (sampleRegionSize.y/cellSize);
+	int *grid = new int[gridxn*gridyn];
+	memset(grid, 0, sizeof(int)*gridxn*gridyn);
+	NumStack<flatvector> points;
+	NumStack<flatvector> spawnPoints;
+
+	spawnPoints.push(sampleRegionSize/2);
+
+	while (spawnPoints.n > 0) {
+		int spawnIndex = RandomRangeInt(0,spawnPoints.n-1);
+		flatvector spawnCentre = spawnPoints[spawnIndex];
+		bool candidateAccepted = false;
+		int gx, gy;
+
+		for (int i = 0; i < numSamplesBeforeRejection; i++)
+		{
+			float angle = random() * M_PI * 2;
+			flatvector dir(sin(angle), cos(angle));
+			flatvector candidate = spawnCentre + dir * RandomRange(radius, 2*radius);
+			gx = candidate.x/cellSize;
+			gy = candidate.y/cellSize;
+			if (IsValid(candidate, sampleRegionSize, cellSize, radius, points, grid, gridxn, gridyn)) {
+				DBG if (!(gx >= 0 && gx < gridxn && gy >= 0 && gy < gridyn)) cerr << gx<<','<<gridxn<<' '<<gy<<','<<gridyn<<" candidate but bad coords... NO!!!!!"<<endl;
+				points.push(candidate);
+				spawnPoints.push(candidate);
+				grid[gx + gy*gridxn] = points.n;
+				candidateAccepted = true;
+				break;
+			}
+		}
+		if (!candidateAccepted) {
+			spawnPoints.remove(spawnIndex);
+		}
+	}
+
+	delete[] grid;
+	for (int c=0; c<points.n; c++) {
+		AddPoint(points.e[c]);
+		//flatpoint(minx + (maxx-minx)*(double)random()/RAND_MAX, miny + (maxy-miny)*(double)random()/RAND_MAX));
+	}
+}
+
+//----------------------------------------------------------------------
+
+
+
+
 
 } //namespace Laxkit
 

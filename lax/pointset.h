@@ -164,6 +164,7 @@ class PointSet : public PointCollection, virtual public anObject, virtual public
 
 	// generators
 	virtual void CreateRandomPoints(int num, int seed, double minx, double maxx, double miny, double maxy);
+	virtual void CreatePoissonPoints(double radius, int seed, double minx, double maxx, double miny, double maxy);
 	virtual void CreateRandomRadial(int num, int seed, double x, double y, double radius);
 	virtual void CreateGrid(int numx, int numy, double x, double y, double w, double h, int order);
 	virtual void CreateHexChunk(double side, int points_on_side);
