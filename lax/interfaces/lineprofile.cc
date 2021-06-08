@@ -429,19 +429,19 @@ LaxFiles::Attribute *LineProfile::dump_out_atts(LaxFiles::Attribute *att,int wha
 	if (what==-1) {
 
 		//att->push("resource_id",      "#unique number for this object, usually readonly, created internally to simplify shared resources upon read in");
-		att->push("max_height","1 #In coordinates spanning mint to maxt along path, max_height messures maximum width of the nodes");
-		att->push("default_width","1 #In same coordinates as max_height");
-		att->push("mint","#Hint about the natural span of the weight points");
-		att->push("maxt","#Hint about the natural span of the weight points");
-		att->push("wrap","true #Whether the profile is designed for closed paths or not");
-		att->push("start_type", "normal #normal or random");
-		att->push("start_rand_width","0 #When random, the spread around start to randomize");
-		att->push("start","Default start position to apply the profile");
-		att->push("end_type", "normal #normal or random");
-		att->push("end_rand_width", "0 #When random, the spread around end to randomize");
-		att->push("end","Default end position to apply the profile");
+		att->push("max_height","1", "In coordinates spanning mint to maxt along path, max_height messures maximum width of the nodes");
+		att->push("default_width","1", "In same coordinates as max_height");
+		att->push("mint",nullptr,"Hint about the natural span of the weight points");
+		att->push("maxt",nullptr,"Hint about the natural span of the weight points");
+		att->push("wrap","true", "Whether the profile is designed for closed paths or not");
+		att->push("start_type", "normal", "normal or random");
+		att->push("start_rand_width","0","When random, the spread around start to randomize");
+		att->push("start","0", "Default start position to apply the profile");
+		att->push("end_type", "normal", "normal or random");
+		att->push("end_rand_width", "0", "When random, the spread around end to randomize");
+		att->push("end","1", "Default end position to apply the profile");
 
-		att->push("weight", "(t) (offset) (width) (angle) #One or more of these");
+		att->push("weight", "0 0 .1 0", "One or more of these: (t) (offset) (width) (angle)");
 		return att;
 	}
 
