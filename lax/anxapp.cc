@@ -2457,12 +2457,27 @@ void anXApp::settimeout(struct timeval *timeout)
 	clock_t currenttime;
 	clock_t earliest=0;
 	currenttime=times(&tmsstruct); // get current time
+    int tid;
 
 	for (int c=0; c<timers.n; c++) {
-		if (timers.e[c]->checktime(currenttime)<0) {  //this calls Idle if necessary
-			DBG cerr <<"removing timer "<<c<<", id: "<<timers.e[c]->id<<endl;
-			timers.remove(c--); continue;
+        tid = timers.e[c]->id;
+		if (timers.e[c]->checktime(currenttime) < 0) {  //this calls Idle if necessary
+            if (c >= timers.n || tid != timers.e[c]->id) {
+                //likely a window removetimer()'d during Idle, we catch here to be nice to sloppy devs
+                c--;
+                continue;
+            }
+			DBG cerr <<"remove timer (expired) "<<c<<", id: "<<timers.e[c]->id<<endl;
+			timers.remove(c);
+            c--;
+            continue;
 		}
+        if (c >= timers.n || tid != timers.e[c]->id) {
+            //likely a window removetimer()'d during Idle, we catch here to be nice to sloppy devs
+            c--;
+            continue;
+        }
+
 		if (c==0) earliest=timers.e[0]->nexttime;
 		if (timers.e[c]->nexttime<earliest) earliest=timers.e[c]->nexttime;
 	}
