@@ -702,6 +702,7 @@ DelaunayInterface::DelaunayInterface(anInterface *nowner, int nid, Displayer *nd
 	num_random = 20;
 	num_x = 5;
 	num_y = 5;
+	poisson_size = .25;
 	previous_create = VORONOI_MakeRandomRect;
 	relax_iters = 1;
 	
@@ -942,6 +943,7 @@ Laxkit::MenuInfo *DelaunayInterface::ContextMenu(int x,int y,int deviceid, MenuI
 	if (!menu) menu = new MenuInfo();
 
 	menu->AddItem(_("Make random points"), VORONOI_MakeRandomRect);
+	menu->AddItem(_("Make random Poisson points"), VORONOI_MakePoisson);
 	menu->AddItem(_("Make random points in circle"), VORONOI_MakeRandomCircle);
 	menu->AddItem(_("Make grid"), VORONOI_MakeGrid);
 	menu->AddItem(_("Make tri grid in hexagon"), VORONOI_MakeHexChunk);
@@ -1261,6 +1263,17 @@ int DelaunayInterface::PerformAction(int action)
 		previous_create = VORONOI_MakeRandomRect;
 		return 0;
 
+	} else if (action == VORONOI_MakePoisson) {
+		if (!data) DropNewData();
+		else data->Flush();
+		DoubleBBox box;
+		GetDefaultBBox(box);
+		data->CreatePoissonPoints(poisson_size, 0, box.minx, box.maxx, box.miny, box.maxy);
+		Triangulate();
+		previous_create = VORONOI_MakePoisson;
+		return 0;
+
+	
 	} else if (action == VORONOI_MakeRandomCircle) {
 		if (!data) DropNewData();
 		else data->Flush();
@@ -1416,6 +1429,7 @@ int DelaunayInterface::Event(const Laxkit::EventData *e_data, const char *mes)
         int i =s->info2; //id of menu item
 
 		if (i == VORONOI_MakeRandomRect
+		 || i == VORONOI_MakePoisson
 		 || i == VORONOI_MakeRandomCircle
 		 || i == VORONOI_MakeGrid
 		 || i == VORONOI_MakeHexChunk) {
@@ -1428,6 +1442,11 @@ int DelaunayInterface::Event(const Laxkit::EventData *e_data, const char *mes)
 				mes = "randomrectN";
 				label = _("Num points");
 				sprintf(str, "%d", num_random);
+
+			} else if (i == VORONOI_MakePoisson) {
+				mes = "poissonSize";
+				label = _("Poisson cell size");
+				sprintf(str, "%f", poisson_size);
 
 			} else if (i == VORONOI_MakeRandomCircle) {
 				mes = "randomcircleN";
@@ -1468,6 +1487,15 @@ int DelaunayInterface::Event(const Laxkit::EventData *e_data, const char *mes)
         if (IntAttribute(s->str, &i) && i > 0) {
         	num_random = i;
         	PerformAction(VORONOI_MakeRandomRect);
+        } else PostMessage(_("Huh?"));
+        return 0;
+
+    } else if (!strcmp(mes,"poissonSize")) {
+        const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(e_data);
+        double d = 0;
+        if (DoubleAttribute(s->str, &d) && d > 0) {
+        	poisson_size = d;
+        	PerformAction(VORONOI_MakePoisson);
         } else PostMessage(_("Huh?"));
         return 0;
 

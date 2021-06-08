@@ -134,6 +134,7 @@ enum DelaunayInterfaceActions {
 	VORONOI_FileImport,
 	VORONOI_MakeRandomRect,
 	VORONOI_MakeRandomCircle,
+	VORONOI_MakePoisson,
 	VORONOI_MakeGrid,
 	VORONOI_MakeHexChunk,
 	VORONOI_RepeatLast,
@@ -168,6 +169,7 @@ class DelaunayInterface : public anInterface
 	int show_lines; //&1 for voronoi &2 for delaunay
 	unsigned int delaunay_interface_style;
 	int num_random, num_x, num_y; //inputs for creating funcs
+	double poisson_size;
 	int relax_iters;
 
 	DelaunayInterface(anInterface *nowner, int nid,Laxkit::Displayer *ndp);
