@@ -80,7 +80,7 @@ enum EllipsePoints {
 	ELLP_MAX
 };
 
-class EllipseData : public SomeData
+class EllipseData : virtual public SomeData
 {
   protected:
   	

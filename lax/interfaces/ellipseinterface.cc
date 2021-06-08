@@ -415,6 +415,8 @@ Attribute *EllipseData::dump_out_atts(Attribute *att,int what,LaxFiles::DumpCont
 	char scratch[100];
 
 	att->push("id", Id());
+	att->pushStr("matrix",-1, "%.10g %.10g %.10g %.10g %.10g %.10g",
+			m(0),m(1),m(2),m(3),m(4),m(5));
 
 	if (style & ELLIPSE_IsCircle) att->push("flags", "circle");
 
@@ -807,7 +809,10 @@ int EllipseInterface::Refresh()
 		// draw a plus at th center
 		center = getpoint(ELLP_Center, false);
 		dp->LineWidthScreen(thin * (curpoint == ELLP_Center ? 3 : 1));
-		dp->drawthing(center, thin*10/dp->Getmag(), thin*10/dp->Getmag(), 0, THING_Plus);
+		double l = thin*10/dp->Getmag();
+		dp->drawline(center - data->x*l, data->center + data->x*l);
+		dp->drawline(center - data->y*l, data->center + data->y*l);
+		//dp->drawthing(center, thin*10/dp->Getmag(), thin*10/dp->Getmag(), 0, THING_Plus);
 		dp->LineWidthScreen(thin);
 
 		 // angle points

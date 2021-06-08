@@ -622,7 +622,7 @@ LaxFiles::Attribute *PatchData::dump_out_atts(LaxFiles::Attribute *att,int what,
 		return att;
 	}
 
-	att->pushStr("matrix",-1, "%.10g %.10g %.10g %.10g %.10g %.10g\n",
+	att->pushStr("matrix",-1, "%.10g %.10g %.10g %.10g %.10g %.10g",
 			m(0),m(1),m(2),m(3),m(4),m(5));
 	att->push("griddivisions",griddivisions);
 	if (style&PATCH_SMOOTH) att->push("style", "smooth");
@@ -2395,36 +2395,41 @@ int PatchData::WarpPatch(flatpoint center, double A,double B,double inner, doubl
 	
 	double rr,v,a;
 	int r,c,i;
+
 	for (r=0; r<ysize; r++) {
 		rr = r1 + (r2-r1)*r/(ysize-1); //so from r2 .. r1
 		 // for angle theta between vertices, bezier control rods must be length v:
-		v=4*rr*(2*sin(theta/2)-sin(theta))/3/(1-cos(theta));
+		v = 4*rr*(2*sin(theta/2)-sin(theta))/3/(1-cos(theta));
 		
 		for (c=0; c<xsize; c+=3) {
-			i=r*xsize+c;
+			i = r*xsize+c;
 			//DBG cerr << i<<"  ";
 			
-			a=s+c/3*theta;
+			a = s+c/3*theta;
 		 	 // do vertex points
 			points[i] = flatpoint(rr*cos(a), rr*sin(a));
 
 			 //compute control points that approximate a circle
-			vt=transpose(points[i]);
-			vt=vt*(v/norm(vt));
+			vt = transpose(points[i]);
+			vt.normalize();
+			vt *= v;
+			//vt = vt*(v/norm(vt));
+
 			 // do previous control point
 			if (c>0) {
 				//DBG cerr <<"-"<< i-1<<"  ";
-				points[i-1]=points[i]-vt;
+				points[i-1] = points[i]-vt;
 			}
 			 // do next control point
 			if (c<xsize-1) {
 				//DBG cerr <<"+"<< i+1<<"  ";
-				points[i+1]=points[i]+vt;
+				points[i+1] = points[i]+vt;
 			}
 		}
 		//DBG cerr <<endl;
 	}
-	//correct for a != b
+
+	//apply actual ellipse radii
 	for (r=0; r<ysize; r++) {
 		for (c=0; c<xsize; c++) {
 			i=r*xsize+c;
@@ -3954,24 +3959,25 @@ int PatchInterface::SelectPoint(int c,unsigned int state)
 	if (!data) return 0;
 	if (c<0 || c>=data->xsize*data->ysize) return 0;
 	if (!(state&ShiftMask)) curpoints.flush();
-	for (int cc=0; cc<curpoints.n; cc++) {
-		if (c==curpoints.e[cc]) { // point was selected, deselect
-			curpoints.pop(cc);
 
-			if (auto_select_close) {
-				flatpoint p = data->points[c];
-				for (int c2=curpoints.n-1; c2 >= 0; c2--) {
-					if ((data->points[curpoints.e[c2]] - p).norm() < auto_close_threshhold) {
-						curpoints.pop(c2);
-					}
-				}
-			}
-			needtodraw|=2;
-			return curpoints.n;
-		}
-	}
+	// for (int cc=0; cc<curpoints.n; cc++) {
+	// 	if (c == curpoints.e[cc]) { // point was selected, deselect
+	// 		curpoints.pop(cc);
 
-	curpoints.push(c);
+	// 		if (auto_select_close) {
+	// 			flatpoint p = data->points[c];
+	// 			for (int c2=curpoints.n-1; c2 >= 0; c2--) {
+	// 				if ((data->points[curpoints.e[c2]] - p).norm() < auto_close_threshhold) {
+	// 					curpoints.pop(c2);
+	// 				}
+	// 			}
+	// 		}
+	// 		needtodraw|=2;
+	// 		return curpoints.n;
+	// 	}
+	// }
+
+	curpoints.pushnodup(c);
 	if (auto_select_close) {
 		flatpoint p = data->points[c];
 		for (int cc=0; cc<data->xsize*data->ysize; cc++) {
@@ -4900,7 +4906,12 @@ void PatchInterface::UpdateFromCircle()
 	EllipseInterface *interf = dynamic_cast<EllipseInterface*>(child);
 	EllipseData *edata = interf->data;
 
-	data->WarpPatch(edata->center, edata->a,edata->b,edata->inner_r, edata->start,edata->end, nullptr); //edata->m());
+	flatpoint center = edata->transformPoint(edata->center);
+	flatpoint x = edata->transformPoint(edata->center + edata->a * edata->x);
+	flatpoint y = edata->transformPoint(edata->center + edata->b * edata->y);
+
+	//data->WarpPatch(edata->center, edata->a,edata->b,edata->inner_r, edata->start,edata->end, nullptr); //edata->m());
+	data->WarpPatch(center, (x-center).norm(), (y-center).norm(), edata->inner_r, edata->start,edata->end, nullptr);
 
 	Modified();
 	needtodraw = 1;
