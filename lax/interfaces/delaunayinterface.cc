@@ -187,6 +187,7 @@ void VoronoiData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *co
 	fprintf(f,"%sshow_delaunay %s\n", spc, (show_delaunay ? "yes" : "no"));
 	fprintf(f,"%sshow_voronoi  %s\n", spc, (show_voronoi  ? "yes" : "no"));
 	fprintf(f,"%sshow_numbers  %s\n", spc, (show_numbers  ? "yes" : "no"));
+	fprintf(f,"%scustom_radii  %s\n", spc, (custom_radii  ? "yes" : "no"));
 
 	fprintf(f,"%swidth_points   %.10g\n", spc, width_points  );
 	fprintf(f,"%swidth_delaunay %.10g\n", spc, width_delaunay);
@@ -236,6 +237,7 @@ LaxFiles::Attribute *VoronoiData::dump_out_atts(LaxFiles::Attribute *att,int wha
 		att->push("show_delaunay",  "yes", "or no");
 		att->push("show_voronoi",   "yes", "or no");
 		att->push("show_numbers",   "yes", "or no");
+		att->push("custom_radii",   "yes", "or no");
 
 		att->push("width_points",   ".1", "Default radius of point indicators" );
 		att->push("width_delaunay", ".1", "Line width of Delaunay triangles" );
@@ -245,7 +247,7 @@ LaxFiles::Attribute *VoronoiData::dump_out_atts(LaxFiles::Attribute *att,int wha
 		att->push("color_voronoi",  "rgbf(0.0,0.7,0.0)");
 		att->push("color_points",   "rgbf(1.0,0.0,1.0)");
 		
-		att->push("points", "1.0, 1.0\n...", "List of points");
+		att->push("points", "1.0, 1.0 .75 3\n...", "List of points: x y [weight [radius]]");
 
 		att->push("triangles", "0 1 2  3 4 5 .5 .5\n...", "(ignored on loading) p1 p2 p3  t1 t2 t3 (<- the triangles on other side of edge)  circumcenter x,y");
 
@@ -260,6 +262,7 @@ LaxFiles::Attribute *VoronoiData::dump_out_atts(LaxFiles::Attribute *att,int wha
 	att->push("show_delaunay",  (show_delaunay ? "yes" : "no"));
 	att->push("show_voronoi",   (show_voronoi  ? "yes" : "no"));
 	att->push("show_numbers",   (show_numbers  ? "yes" : "no"));
+	att->push("custom_radii",   (custom_radii  ? "yes" : "no"));
 
 	att->push("width_points",   width_points  );
 	att->push("width_delaunay", width_delaunay);
@@ -282,7 +285,7 @@ LaxFiles::Attribute *VoronoiData::dump_out_atts(LaxFiles::Attribute *att,int wha
 	if (points.n) {
 		Attribute *att2 = att->pushSubAtt("points");
 		for (int c=0; c<points.n; c++) {
-			s2.Sprintf("%.10g, %.10g\n", points.e[c]->p.x,points.e[c]->p.y); //oh no! can't really output per line comments with atts!
+			s2.Sprintf("%.10g, %.10g %.10g %.10g\n", points.e[c]->p.x, points.e[c]->p.y, points.e[c]->weight, points.e[c]->radius); //oh no! can't really output per line comments with atts!
 			s.Append(s2);
 		}
 		att2->value = s.ExtractBytes(nullptr,nullptr,nullptr);
@@ -328,6 +331,9 @@ void VoronoiData::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpC
         } else if (!strcmp(name,"show_numbers" )) {
 			show_numbers =BooleanAttribute(value);
 
+	    } else if (!strcmp(name,"custom_radii" )) {
+			custom_radii = BooleanAttribute(value);
+
         } else if (!strcmp(name,"width_points"  )) {
 			DoubleAttribute(value, &width_points, NULL);
 
@@ -340,9 +346,11 @@ void VoronoiData::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpC
         } else if (!strcmp(name,"points")) {
 			points.flush();
 
-			double x;
+			double x, w=0, r=0;
 			flatpoint p;
+
 			while (1) {
+
 				DoubleAttribute(value,&x,&name);
 				if (name!=value) {
 					p.x=x;
@@ -350,14 +358,27 @@ void VoronoiData::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpC
 					DoubleAttribute(name,&p.y,&value);
 					if (value==name) break;
 
-					AddPoint(p);
+					//weight
+					while (*name == ' ') name++;
+					if (isdigit(*name) || *name == '-' || *name=='.') {
+						DoubleAttribute(name,&w,&value);
+						if (value==name) break;
+
+						while (*name == ' ') name++;
+						if (isdigit(*name) || *name == '-' || *name=='.') {
+							DoubleAttribute(name,&r,&value);
+							if (value==name) break;
+						}
+					}
+
+					AddPoint(p, nullptr,0, w,r);
 				} else break;
 			}
-
         }
     }
 
 	RebuildVoronoi(true);
+	FindBBox();
 }
 
 /*! Set the width of the lines or points.
@@ -1360,6 +1381,8 @@ int DelaunayInterface::PerformAction(int action)
 		if (data) {
 			data->show_delaunay = ((show_lines&2) != 0);
 			data->show_voronoi = ((show_lines&1) != 0);
+
+			if ((data->show_delaunay || data->show_voronoi) && data->regions.n == 0) Triangulate();
 		}
 		if      (show_lines == 0) PostMessage(_("Don't show shapes"));
 		else if (show_lines == 1) PostMessage(_("Show voronoi shapes"));
@@ -1487,17 +1510,29 @@ int DelaunayInterface::PerformAction(int action)
 
 		LaxImage *img = nullptr;
 		double m[6];
-		if (hover_obj && hover_obj->obj->istype("ImageData")) {
-			ImageData *imgd = dynamic_cast<ImageData*>(hover_obj->obj);
-			img = imgd->image;
-
+		double extra_scale = 1;
+		if (hover_obj) {
 			// poisson_size is page units
 			viewport->transformToContext(m,hover_obj,1,-1);
 			cellsize = transform_vector(m, flatvector(0, cellsize)).norm();
-			cellmax = cell_max * cellsize / cell_min;
 
-		} else {
-			//need to render to big enough image to sample from
+			if (hover_obj->obj->istype("ImageData")) {
+				ImageData *imgd = dynamic_cast<ImageData*>(hover_obj->obj);
+				img = imgd->image;
+				img->inc_count();
+
+			} else {
+				//need to render to big enough image to sample from
+				double w = hover_obj->obj->boxwidth();
+				double h = hover_obj->obj->boxheight();
+				double max = MAX(w, h);
+				extra_scale = 1000/max;
+				img = ImageLoader::NewImage(extra_scale*w, extra_scale*h);
+				hover_obj->obj->renderToBufferImage(img);
+				cellsize *= extra_scale;
+			}
+
+			cellmax = cell_max * cellsize / cell_min;
 		}
 
 		DBG cerr << "stipple with computed cellsize "<<poisson_size<<" -> "<<cellsize<<endl;
@@ -1509,7 +1544,7 @@ int DelaunayInterface::PerformAction(int action)
 			affine.Invert();
 			viewport->transformToContext(m,voc,1,-1);
 			affine.Multiply(m);
-			data->Map([&](const flatpoint &pin, flatpoint &pout) { pout = affine.transformPoint(pin); return 1; } );
+			data->Map([&](const flatpoint &pin, flatpoint &pout) { pout = affine.transformPoint(flatpoint(hover_obj->obj->minx+pin.x/extra_scale, hover_obj->obj->miny+pin.y/extra_scale)); return 1; } );
 		}
 
 		//convert weight 0..1 to radius dot_min..dot_max
@@ -1520,6 +1555,7 @@ int DelaunayInterface::PerformAction(int action)
 		Triangulate();
 		data->FindBBox();
 		previous_create = VORONOI_SamplePoisson;
+		img->dec_count();
 		return 0;
 	
 	} else if (action == VORONOI_MakeRandomCircle) {
