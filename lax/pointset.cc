@@ -388,6 +388,28 @@ int PointSet::SetWeight(int index, double weight)
 	return 0;
 }
 
+/*! Return 0 when not exists. */
+double PointSet::Weight(int index)
+{
+	if (index < 0 || index >= points.n) return 0;
+	return points.e[index]->weight;
+}
+
+/*! Return 0 for success, or nonzero error such as index out of bounds.
+ */
+int PointSet::Radius(int index, double radius)
+{
+	if (index < 0 || index >= points.n) return 1;
+	points.e[index]->radius = radius;
+	return 0;
+}
+
+double PointSet::Radius(int index)
+{
+	if (index < 0 || index >= points.n) return 0;
+	return points.e[index]->radius;
+}
+
 flatpoint PointSet::Pop(int which, anObject **data_ret)
 {
 	if (which < 0 || which >= points.n) which = points.n-1;
@@ -663,9 +685,10 @@ void PointSet::dump_in_atts(Attribute *att, int what, DumpContext *context)
 	}
 }
 
+
 //------------------------------------- Poission Disc Points ---------------------------------
 
-/*! This is adapted from SebLague's C# implementation, which was MIT licensed. */
+/*! This is adapted from Sebastian Lague's C# implementation, which was MIT licensed. */
 
 
 static bool IsValid(flatvector candidate, flatvector sampleRegionSize, float cellSize, float radius, NumStack<flatvector> &points, int *grid, int gridxn, int gridyn)
@@ -674,7 +697,7 @@ static bool IsValid(flatvector candidate, flatvector sampleRegionSize, float cel
 		int cellX = (int)(candidate.x/cellSize);
 		int cellY = (int)(candidate.y/cellSize);
 		if (cellX < 0 || cellX >= gridxn || cellY < 0 || cellY >= gridyn) return false;
-		
+
 		int searchStartX = MAX(0,cellX -2);
 		int searchEndX = MIN(cellX+2,gridxn-1);
 		int searchStartY = MAX(0,cellY -2);
@@ -683,7 +706,7 @@ static bool IsValid(flatvector candidate, flatvector sampleRegionSize, float cel
 		for (int x = searchStartX; x <= searchEndX; x++) {
 			for (int y = searchStartY; y <= searchEndY; y++) {
 				int pointIndex = grid[x+gridxn*y]-1;
-				if (pointIndex != -1) {
+				if (pointIndex >= 0) {
 					float sqrDst = (candidate - points[pointIndex]).norm2();
 					if (sqrDst < radius*radius) {
 						return false;
@@ -752,8 +775,169 @@ void PointSet::CreatePoissonPoints(double radius, int seed, double minx, double 
 
 	delete[] grid;
 	for (int c=0; c<points.n; c++) {
-		AddPoint(points.e[c]);
-		//flatpoint(minx + (maxx-minx)*(double)random()/RAND_MAX, miny + (maxy-miny)*(double)random()/RAND_MAX));
+		AddPoint(points.e[c] + flatpoint(minx,miny));
+	}
+}
+
+
+/*! Mark points within a circle as unavailable. */
+static void ClaimNear(flatvector candidate, flatvector sampleRegionSize, float cellSize, float radius, NumStack<flatvector> &points, 
+					int *grid, int gridxn, int gridyn)
+{
+	if (radius <= 0) return;
+
+	int cellX = (int)(candidate.x/cellSize);
+	int cellY = (int)(candidate.y/cellSize);
+	int extra = radius/cellSize;
+
+	int searchStartX = MAX(0, cellX - extra);
+	int searchEndX = MIN(cellX+extra, gridxn-1);
+	int searchStartY = MAX(0, cellY - extra);
+	int searchEndY = MIN(cellY+extra, gridyn-1);
+
+	flatpoint pt;
+	
+	for (int x = searchStartX; x <= searchEndX; x++) {
+		for (int y = searchStartY; y <= searchEndY; y++) {
+			if (x == cellX && y == cellY) continue;
+
+			int i = x+gridxn*y;
+			int pointIndex = grid[i]-1;
+			if (pointIndex == -2) continue; //already claimed
+			if (pointIndex >= 0 && points[pointIndex].info > 0) continue; //already claimed
+
+			if (pointIndex >= 0) pt = points[pointIndex];
+			else pt.set((x+.5)*cellSize, (y+.5)*cellSize);
+
+			float sqrDst = (candidate - pt).norm2();
+			if (sqrDst < radius*radius) {
+				points[pointIndex].info = 1; //will be ignored later, absorbed by current
+				grid[i] = -1;
+			}
+		}
+	}
+}
+
+static bool IsValid2(flatvector candidate, flatvector sampleRegionSize, float cellSize, float radius, NumStack<flatvector> &points, int *grid, int gridxn, int gridyn)
+{
+	if (candidate.x >=0 && candidate.x < sampleRegionSize.x && candidate.y >= 0 && candidate.y < sampleRegionSize.y) {
+		int cellX = (int)(candidate.x/cellSize);
+		int cellY = (int)(candidate.y/cellSize);
+		if (cellX < 0 || cellX >= gridxn || cellY < 0 || cellY >= gridyn) return false;
+		if (grid[cellX + cellY*gridxn] == -1) return false;
+
+		int searchStartX = MAX(0,cellX -2);
+		int searchEndX = MIN(cellX+2,gridxn-1);
+		int searchStartY = MAX(0,cellY -2);
+		int searchEndY = MIN(cellY+2,gridyn-1);
+
+		for (int x = searchStartX; x <= searchEndX; x++) {
+			for (int y = searchStartY; y <= searchEndY; y++) {
+				int pointIndex = grid[x+gridxn*y]-1;
+				// if (pointIndex == -2) return false;
+				if (pointIndex >= 0) {
+					float sqrDst = (candidate - points[pointIndex]).norm2();
+					if (sqrDst < radius*radius) {
+						return false;
+					}
+				}
+			}
+		}
+		return true;
+	}
+	return false;
+}
+
+
+/*! Image 0..1 maps to min_radius..max_radius.
+ *
+ * DEPRECATED: note this method is rather poor, and will be replaced when I find a better one.
+ */
+void PointSet::SamplePoissonPoints(int seed, LaxImage *img, bool invert, double min_radius, double max_radius)
+{
+	if (seed) srandom(seed);
+
+	int img_w = (img ? img->w() : 8.5);
+	int img_h = (img ? img->h() : 8.5);
+	unsigned char *imgdata = (img ? img->getImageBuffer() : nullptr);
+	double sample, sample2, weight;
+
+	double cellSize = min_radius/sqrt(2);
+	flatvector sampleRegionSize(img_w, img_h);
+	int numSamplesBeforeRejection = 30;
+
+
+	int gridxn = (sampleRegionSize.x/cellSize);
+	int gridyn = (sampleRegionSize.y/cellSize);
+	int *grid = new int[gridxn*gridyn];
+	memset(grid, 0, sizeof(int)*gridxn*gridyn);
+	// int *grid_weight = new int[gridxn*gridyn];
+	// memset(grid_weight, 0, sizeof(int)*gridxn*gridyn);
+
+	NumStack<flatvector> points;
+	NumStack<flatvector> spawnPoints;
+	NumStack<double> weights;
+
+	spawnPoints.push(sampleRegionSize/2);
+
+	while (spawnPoints.n > 0) {
+		int spawnIndex = RandomRangeInt(0,spawnPoints.n-1);
+		flatvector spawnCentre = spawnPoints[spawnIndex];
+		bool candidateAccepted = false;
+		int gx, gy;
+
+		if (img) {
+			int ii = 4*((int)spawnCentre.x + img_w * (img_h - (int)spawnCentre.y));
+			sample = (0.2989*imgdata[ii+2] + 0.5870*imgdata[ii+1] + 0.1140*imgdata[ii])/255;
+		}
+		else sample = spawnCentre.y / img_h;
+		if (invert) sample = 1-sample;
+		sample = min_radius + sample*(max_radius - min_radius);
+
+		for (int i = 0; i < numSamplesBeforeRejection; i++)
+		{
+			float angle = random() * M_PI * 2;
+			flatvector dir(sin(angle), cos(angle));
+			flatvector candidate = spawnCentre + dir * RandomRange(sample, sample + 2*cellSize);
+			gx = candidate.x/cellSize;
+			gy = candidate.y/cellSize;
+			if (!(gx >= 0 && gx < gridxn && gy >= 0 && gy < gridyn)) continue;
+
+			if (img) {
+				// sample2 = imgdata[(int)candidate.x + img_w * (int)candidate.y] / 255.0;
+				int ii = 4*((int)candidate.x + img_w * (img_h - (int)candidate.y));
+				sample2 = (0.2989*imgdata[ii+2] + 0.5870*imgdata[ii+1] + 0.1140*imgdata[ii])/255;
+			} 
+			else sample2 = candidate.y / img_h;
+			if (invert) sample2 = 1-sample2;
+			weight = sample2;
+			sample2 = min_radius + sample2*(max_radius - min_radius);
+
+			if (IsValid2(candidate, sampleRegionSize, cellSize, sample2, points, grid, gridxn, gridyn)) {
+				DBG if (!(gx >= 0 && gx < gridxn && gy >= 0 && gy < gridyn)) cerr << gx<<','<<gridxn<<' '<<gy<<','<<gridyn<<" candidate but bad coords... NO!!!!!"<<endl;
+				points.push(candidate);
+				spawnPoints.push(candidate);
+				grid[gx + gy*gridxn] = points.n;
+
+				weights.push(weight);
+
+				ClaimNear(candidate, sampleRegionSize, cellSize, sample2 - cellSize, points, grid, gridxn, gridyn);
+
+				candidateAccepted = true;
+				break;
+			}
+		}
+		if (!candidateAccepted) {
+			spawnPoints.remove(spawnIndex);
+		}
+	}
+
+	delete[] grid;
+	if (img) img->doneWithBuffer(imgdata);
+
+	for (int c=0; c<points.n; c++) {
+		if (points.e[c].info == 0)
+			AddPoint(points.e[c], nullptr,false, weights[c]);
 	}
 }
 

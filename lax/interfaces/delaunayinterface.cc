@@ -29,6 +29,7 @@
 
 #include <lax/interfaces/somedatafactory.h>
 #include <lax/interfaces/linestyle.h>
+#include <lax/interfaces/imageinterface.h>
 #include <lax/filedialog.h>
 #include <lax/laxutils.h>
 #include <lax/utf8string.h>
@@ -129,14 +130,16 @@ int *RandomInts(int seed, int *a, int n, int min, int max)
 
 VoronoiData::VoronoiData()
 {
-	show_points  =true;
-	show_delaunay=true;
-	show_voronoi =true;
-	show_numbers =false;
+	show_points   = true;
+	show_delaunay = true;
+	show_voronoi  = true;
+	show_numbers  = false;
+	custom_radii  = false;
 
 	color_delaunay=new Color();  color_delaunay->screen.rgbf(1.0,0.0,0.0);
 	color_voronoi =new Color();  color_voronoi ->screen.rgbf(0.0,0.7,0.0);
 	color_points  =new Color();  color_points  ->screen.rgbf(1.0,0.0,1.0); 
+	color_bg = nullptr;
 
 	//color_delaunay=CreateColor_RGB(1.0,0.0,0.0);
 	//color_voronoi =CreateColor_RGB(0.0,0.7,0.0);
@@ -152,6 +155,7 @@ VoronoiData::~VoronoiData()
 	color_delaunay->dec_count();
 	color_voronoi ->dec_count();
 	color_points  ->dec_count();
+	if (color_bg) color_bg->dec_count();
 }
 
 void VoronoiData::FindBBox()
@@ -446,6 +450,11 @@ flatpoint VoronoiData::BarycenterRegion(int point, int *is_inf)
 
 void VoronoiData::Triangulate()
 {
+	if (!show_delaunay && !show_voronoi) {
+		triangles.flush();
+		return;
+	}
+
 	if (points.n<3) return;
 
 	triangles.flush_n();
@@ -509,9 +518,11 @@ void VoronoiData::RebuildVoronoi(bool triangulate_also)
 {
 	if (triangulate_also) Triangulate();
 
-
 	inf_points.flush();
 	regions.flush();
+
+	if (!show_voronoi) return; //skip generating when we don't need it
+
 	regions.Allocate(points.n);
 	regions.n=points.n;
 
@@ -702,10 +713,16 @@ DelaunayInterface::DelaunayInterface(anInterface *nowner, int nid, Displayer *nd
 	num_random = 20;
 	num_x = 5;
 	num_y = 5;
-	poisson_size = .25;
 	previous_create = VORONOI_MakeRandomRect;
 	relax_iters = 1;
-	
+
+	poisson_size = .15;
+	cell_min = .1;
+	cell_max = .6;
+	dot_min = .05;
+	dot_max = .2;
+	invert_sample = false;
+		
 	show_numbers = false; 
 	show_arrows  = false;
 	show_lines   = 3;
@@ -715,11 +732,14 @@ DelaunayInterface::DelaunayInterface(anInterface *nowner, int nid, Displayer *nd
 	curpoint     = -1;
 	justadded    = false;
 	style_target = 0; //0 is voronoi border, 1 is delaunay tri edges, 2 is points
-	last_export  = NULL;
+	last_export  = nullptr;
+	hover_obj    = nullptr;
+	hover_action = 0;
+	mode         = MODE_Normal;
 
-	sc   = NULL;
-	data = NULL;
-	voc  = NULL;
+	sc   = nullptr;
+	data = nullptr;
+	voc  = nullptr;
 	
 	last_export=newstr("voronoi.data");
 }
@@ -729,6 +749,7 @@ DelaunayInterface::~DelaunayInterface()
 	if (sc)   sc->dec_count();
 	if (data) data->dec_count();
 	if (voc)  delete voc;
+	if (hover_obj) delete hover_obj;
 	delete[] last_export;
 }
 
@@ -756,6 +777,8 @@ anInterface *DelaunayInterface::duplicate(anInterface *dup)
 
 void DelaunayInterface::Clear(SomeData *d)
 {
+	mode = MODE_Normal;
+
 	if (!d || d==data) {
 		if (data) data->dec_count();
 		data = NULL;
@@ -778,6 +801,8 @@ int DelaunayInterface::DrawData(anObject *ndata,anObject *a1,anObject *a2,int in
 	int tshow_lines  =show_lines;
 	int tshow_arrows =show_arrows;
 	int tshow_numbers=show_numbers;
+	Mode oldmode = mode;
+	mode = MODE_Normal;
 	curpoint=-1;
 	showdecs=0;
 	needtodraw=1;
@@ -793,6 +818,7 @@ int DelaunayInterface::DrawData(anObject *ndata,anObject *a1,anObject *a2,int in
 	show_arrows =tshow_arrows;
 	show_numbers=tshow_numbers;
 	showdecs=td;
+	mode = oldmode;
 	data=bzd;
 	needtodraw=ntd;
 	return 1;
@@ -803,11 +829,81 @@ int DelaunayInterface::Refresh()
 	if (needtodraw==0) return 0;
 	needtodraw=0;
 
+	if (mode == MODE_SelectObj) {
+		dp->DrawScreen();
+		dp->NewFG(curwindow->win_themestyle->fg);
+		dp->font(curwindow->win_themestyle->normal);
+		dp->textout((dp->Maxx+dp->Minx)/2, dp->Miny+dp->textheight()/2, _("Select object..."),-1, LAX_HCENTER|LAX_TOP);
+		dp->DrawReal();
+
+		if (hover_obj) {
+			 //draw ouline of another caption
+			dp->NewFG(255,0,255);
+			dp->LineAttributes(1,LineSolid,CapRound,JoinRound);
+			dp->LineWidthScreen(3*ScreenLine());
+			
+			double m[6];
+			if (data) {
+				viewport->transformToContext(m,voc,1,-1);
+				dp->PushAndNewTransform(m);
+			}
+
+			viewport->transformToContext(m,hover_obj,0,-1);
+			dp->PushAndNewTransform(m);
+			dp->moveto(hover_obj->obj->minx, hover_obj->obj->miny);
+			dp->lineto(hover_obj->obj->maxx, hover_obj->obj->miny);
+			dp->lineto(hover_obj->obj->maxx, hover_obj->obj->maxy);
+			dp->lineto(hover_obj->obj->minx, hover_obj->obj->maxy);
+			dp->closed();
+			dp->stroke(0);
+			dp->PopAxes(); 
+		}
+
+		if (data) dp->PopAxes();
+		return 0;
+	}
+
 	if (!data) return 0;
+
+	if (mode == MODE_StippleFiddle) {
+		dp->DrawScreen();
+		dp->font(curwindow->win_themestyle->normal);
+		double th = dp->textheight();
+		char scratch[50];
+
+		dp->NewFG(curwindow->win_themestyle->fg);
+		dp->LineWidthScreen(ScreenLine());
+		double mid = (dp->Maxx+dp->Minx)/2;
+		double scl = MAX(dot_min, dot_max);
+		dp->drawcircle(mid-th/2, th, dot_min/scl*th/2, 1);
+		dp->drawcircle(mid+th/2, th, dot_max/scl*th/2, 1);
+		dp->drawrectangle(mid, 1.5*th, th,th, 0);
+		dp->drawrectangle(mid - .75*th, 1.75*th, .25*th,.25*th, 0);
+		
+
+		sprintf(scratch, "%f", dot_min);
+		dp->textout(mid-th*1.5, th/2, scratch,-1, LAX_RIGHT|LAX_TOP);
+		sprintf(scratch, "%f", dot_max);
+		dp->textout(mid+th*1.5, th/2, scratch,-1, LAX_LEFT|LAX_TOP);
+		sprintf(scratch, "%f", cell_min);
+		dp->textout(mid-th*1.5, th/2+th, scratch,-1, LAX_RIGHT|LAX_TOP);
+		sprintf(scratch, "%f", cell_max);
+		dp->textout(mid+th*1.5, th/2+th, scratch,-1, LAX_LEFT|LAX_TOP);
+
+		dp->textout(mid, 2.5*th, _("Invert sample"), -1, LAX_HCENTER|LAX_TOP);
+		
+		dp->DrawReal();
+	}
+
 
 	dp->LineAttributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
 	if (curwindow) dp->font(curwindow->win_themestyle->normal, curwindow->win_themestyle->normal->textheight() / dp->Getmag());
 
+	//background
+	if (data->color_bg && data->color_bg->screen.alpha > 0) {
+		dp->NewFG(data->color_bg->screen);
+		dp->drawrectangle(data->minx,data->miny, data->boxwidth(),data->boxheight(), 1);
+	}
 
 	 //delaunay triangles
 	dp->LineWidth(data->width_delaunay);
@@ -875,8 +971,7 @@ int DelaunayInterface::Refresh()
 	 if (data->show_points) {
 		dp->NewFG(data->color_points);
 		for (int c=0; c<data->points.n; c++) {
-			double r=(c==curpoint?2:1)*data->width_points;
-			//dp->drawpoint(data->points.e[c]->p, (c==curpoint?2:1)*data->width_points, 1);
+			double r = (c==curpoint?2:1)*(data->custom_radii ? data->points.e[c]->radius : data->width_points);
 			dp->drawellipse(data->points.e[c]->p, r,r, 0,2*M_PI, 1);
 
 
@@ -947,6 +1042,7 @@ Laxkit::MenuInfo *DelaunayInterface::ContextMenu(int x,int y,int deviceid, MenuI
 	menu->AddItem(_("Make random points in circle"), VORONOI_MakeRandomCircle);
 	menu->AddItem(_("Make grid"), VORONOI_MakeGrid);
 	menu->AddItem(_("Make tri grid in hexagon"), VORONOI_MakeHexChunk);
+	menu->AddItem(_("Stipple from object..."), VORONOI_SamplePoisson);
 
 	if (data) {
 		menu->AddSep();
@@ -973,6 +1069,7 @@ int DelaunayInterface::InterfaceOn()
 int DelaunayInterface::InterfaceOff()
 {
     Clear(NULL);
+    mode = MODE_Normal;
     needtodraw=1;
     DBG cerr <<"Delaunay Off()"<<endl;
     return 0;
@@ -982,6 +1079,25 @@ int DelaunayInterface::InterfaceOff()
 int DelaunayInterface::LBDown(int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d) 
 {
 	justadded = false;
+
+	if (mode == MODE_SelectObj) {
+		if (hover_obj) PerformAction(VORONOI_SamplePoisson);
+		mode = MODE_StippleFiddle;
+		needtodraw = 1;
+		return 0;
+	}
+
+	if (mode == MODE_StippleFiddle) {
+		double th = curwindow->win_themestyle->normal->textheight();
+		if (y < 3.5*th) {
+			if (y > 2.5*th) {
+				invert_sample = !invert_sample;
+				PerformAction(VORONOI_SamplePoisson);
+				return 0;
+			}
+		}
+		return 0;
+	}
 
 	if (curpoint<0) {
 		if (!data) {
@@ -1013,7 +1129,7 @@ int DelaunayInterface::LBDown(int x,int y,unsigned int state,int count, const La
 //! Finish a new freehand line by calling newData with it.
 int DelaunayInterface::LBUp(int x,int y,unsigned int state, const Laxkit::LaxMouse *d) 
 {
-	if (!data) return 0;
+	if (!data || !buttondown.any()) return 0;
 
 	int point = -1;
 	int dragged=buttondown.up(d->id,LEFTBUTTON, &point);
@@ -1040,10 +1156,47 @@ int DelaunayInterface::MouseMove(int x,int y,unsigned int state, const Laxkit::L
 {
 	move_pos.set(x,y);
 
+	if (mode == MODE_SelectObj) {
+		 //set up to outline potentially editable other captiondata
+		ObjectContext *oc=NULL;
+		int c = viewport->FindObject(x,y, nullptr, nullptr, 1,&oc);
+		DBG cerr <<"DelaunayInterface scan for obj: "<<c<<endl;
+		if (c>0) {
+			DBG cerr <<"DelaunayInterface mouse over: "<<oc->obj->Id()<<endl;
+
+			if (!oc->isequal(hover_obj)) {
+				DBG cerr << "needtodraw yes!"<<endl;
+				if (hover_obj) delete hover_obj;
+				hover_obj  =oc->duplicate();
+				PostMessage2(_("Stipple from %s"), oc->obj->Id());
+				needtodraw=1;
+			}
+
+		} else if (hover_obj) { //hovered over nothing
+			PostMessage("");
+			delete hover_obj;
+			hover_obj = nullptr;
+			DBG cerr << "needtodraw yes!"<<endl;
+			needtodraw=1;
+		}
+		return 0;
+	}
+
+	// if (mode == MODE_StippleFiddle) {
+	// 	double th = curwindow->win_themestyle->normal->textheight();
+	// 	if (y < 3.5*th) {
+	// 		if (y > 2.5*th) {
+				
+	// 		}
+	// 		return 0;
+	// 	}
+	// }
+
 	if (!data) return 0;
 
 	if (!buttondown.any()) {
 		// update any mouse over state
+
 		int oldcp=curpoint;
 		int c;
 		for (c=0; c<data->points.n; c++) {
@@ -1070,6 +1223,32 @@ int DelaunayInterface::MouseMove(int x,int y,unsigned int state, const Laxkit::L
 	return 0; //MouseMove is always called for all interfaces, return value doesn't inherently matter
 }
 
+/*! Update the viewport color box */
+void DelaunayInterface::UpdateViewportColor()
+{
+	if (!data) return;
+
+	ScreenColor *col;
+
+	if (style_target==0)      col = &data->color_delaunay->screen;
+	else if (style_target==1) col = &data->color_voronoi->screen;
+	else if (style_target==2) col = &data->color_points->screen;
+	
+	//fg
+	SimpleColorEventData *e=new SimpleColorEventData( 65535, col->red, col->green, col->blue, col->alpha, 0);
+	e->colormode = COLOR_StrokeFill;
+	e->colorindex = 1;
+	app->SendMessage(e, curwindow->win_parent->object_id, "make curcolor", object_id);
+
+	//bg
+	if (data->color_bg) e = new SimpleColorEventData( 65535, data->color_bg->screen.red, data->color_bg->screen.green, data->color_bg->screen.blue, data->color_bg->screen.alpha, 0);
+	else e = new SimpleColorEventData( 65535, 0,0,0,0, 0);
+	e->colormode = COLOR_StrokeFill;
+	e->colorindex = 0;
+	app->SendMessage(e, curwindow->win_parent->object_id, "make curcolor", object_id);
+}
+
+
 //! Use the object at oc if it is an ImageData.
 int DelaunayInterface::UseThisObject(ObjectContext *oc)
 {
@@ -1092,6 +1271,7 @@ int DelaunayInterface::UseThisObject(ObjectContext *oc)
 
 	show_lines = (data->show_delaunay ? 2 : 0) | (data->show_voronoi ? 1 : 0);
 	show_numbers = data->show_numbers;
+	UpdateViewportColor();
 
 	//SimpleColorEventData *e=new SimpleColorEventData( 65535, 0xffff*data->red, 0xffff*data->green, 0xffff*data->blue, 0xffff*data->alpha, 0);
 	//app->SendMessage(e, curwindow->win_parent->object_id, "make curcolor", object_id);
@@ -1111,14 +1291,21 @@ int DelaunayInterface::UseThis(Laxkit::anObject *nobj,unsigned int mask)
 
         if (nlinestyle->mask & (LINESTYLE_Color | LINESTYLE_Color2)) {
 			Color *color=NULL;
-			if (style_target==0)      color = data->color_delaunay;
-			else if (style_target==1) color = data->color_voronoi;
-			else if (style_target==2) color = data->color_points;
 
-            color->screen.red  =nlinestyle->color.red;
-            color->screen.green=nlinestyle->color.green;
-            color->screen.blue =nlinestyle->color.blue;
-            color->screen.alpha=nlinestyle->color.alpha;
+			if (mask & LINESTYLE_Color2) {
+				if      (style_target==0) color = data->color_delaunay;
+				else if (style_target==1) color = data->color_voronoi;
+				else if (style_target==2) color = data->color_points;
+
+			} else if (mask & LINESTYLE_Color) {
+				if (!data->color_bg) data->color_bg = new Color();
+				color = data->color_bg;
+			}
+
+            color->screen.red   = nlinestyle->color.red;
+            color->screen.green = nlinestyle->color.green;
+            color->screen.blue  = nlinestyle->color.blue;
+            color->screen.alpha = nlinestyle->color.alpha;
 
             needtodraw=1;
         }
@@ -1126,9 +1313,7 @@ int DelaunayInterface::UseThis(Laxkit::anObject *nobj,unsigned int mask)
         return 1;
     }
 
-
     return 0;
-
 }
 
 
@@ -1211,6 +1396,18 @@ int DelaunayInterface::PerformAction(int action)
 		if (style_target==0) PostMessage(_("Adjust style of voronoi lines"));
 		else if (style_target==1) PostMessage(_("Adjust style of delaunay lines"));
 		else if (style_target==2) PostMessage(_("Adjust style of points"));
+
+		ScreenColor *col;
+		if (style_target==0)      col = &data->color_delaunay->screen;
+		else if (style_target==1) col = &data->color_voronoi->screen;
+		else if (style_target==2) col = &data->color_points->screen;
+
+		//fg
+		SimpleColorEventData *e=new SimpleColorEventData( 65535, col->red, col->green, col->blue, col->alpha, 0);
+		e->colormode = COLOR_StrokeFill;
+		e->colorindex = 1;
+		app->SendMessage(e, curwindow->win_parent->object_id, "make curcolor", object_id);
+
 		needtodraw=1;
 		return 0; 
 
@@ -1273,6 +1470,57 @@ int DelaunayInterface::PerformAction(int action)
 		previous_create = VORONOI_MakePoisson;
 		return 0;
 
+	} else if (action == VORONOI_SamplePoisson) {
+		if (!data) {
+			DropNewData();
+			data->show_voronoi = false;
+			data->show_delaunay = false;
+			style_target = 2;
+		}
+		else data->Flush();
+
+		data->custom_radii = true;
+		DoubleBBox box;
+		GetDefaultBBox(box);
+		double cellsize = cell_min;
+		double cellmax = cell_max;
+
+		LaxImage *img = nullptr;
+		double m[6];
+		if (hover_obj && hover_obj->obj->istype("ImageData")) {
+			ImageData *imgd = dynamic_cast<ImageData*>(hover_obj->obj);
+			img = imgd->image;
+
+			// poisson_size is page units
+			viewport->transformToContext(m,hover_obj,1,-1);
+			cellsize = transform_vector(m, flatvector(0, cellsize)).norm();
+			cellmax = cell_max * cellsize / cell_min;
+
+		} else {
+			//need to render to big enough image to sample from
+		}
+
+		DBG cerr << "stipple with computed cellsize "<<poisson_size<<" -> "<<cellsize<<endl;
+		data->SamplePoissonPoints(0, img, invert_sample, cellsize, cellmax);
+
+		//convert image space to our data space
+		if (img) {
+			Affine affine(m);
+			affine.Invert();
+			viewport->transformToContext(m,voc,1,-1);
+			affine.Multiply(m);
+			data->Map([&](const flatpoint &pin, flatpoint &pout) { pout = affine.transformPoint(pin); return 1; } );
+		}
+
+		//convert weight 0..1 to radius dot_min..dot_max
+		for (int c=0; c<data->NumPoints(); c++) {
+			data->Radius(c, dot_min + data->Weight(c) * (dot_max-dot_min));
+		}
+
+		Triangulate();
+		data->FindBBox();
+		previous_create = VORONOI_SamplePoisson;
+		return 0;
 	
 	} else if (action == VORONOI_MakeRandomCircle) {
 		if (!data) DropNewData();
@@ -1370,6 +1618,8 @@ void DelaunayInterface::DropNewData()
 	viewport->NewData(data,&oc);//viewport adds only its own counts
 	if (voc) { delete voc; voc=NULL; }
 	if (oc) voc = oc->duplicate();
+
+	UpdateViewportColor();
 }
 
 int DelaunayInterface::Event(const Laxkit::EventData *e_data, const char *mes)
@@ -1428,6 +1678,12 @@ int DelaunayInterface::Event(const Laxkit::EventData *e_data, const char *mes)
         const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(e_data);
         int i =s->info2; //id of menu item
 
+        if (i == VORONOI_SamplePoisson) {
+        	mode = MODE_SelectObj;
+        	needtodraw = 1;
+        	return 0;
+        }
+
 		if (i == VORONOI_MakeRandomRect
 		 || i == VORONOI_MakePoisson
 		 || i == VORONOI_MakeRandomCircle
@@ -1445,6 +1701,11 @@ int DelaunayInterface::Event(const Laxkit::EventData *e_data, const char *mes)
 
 			} else if (i == VORONOI_MakePoisson) {
 				mes = "poissonSize";
+				label = _("Poisson cell size");
+				sprintf(str, "%f", poisson_size);
+
+			} else if (i == VORONOI_SamplePoisson) {
+				mes = "samplePoissonSize";
 				label = _("Poisson cell size");
 				sprintf(str, "%f", poisson_size);
 
@@ -1499,6 +1760,15 @@ int DelaunayInterface::Event(const Laxkit::EventData *e_data, const char *mes)
         } else PostMessage(_("Huh?"));
         return 0;
 
+    } else if (!strcmp(mes,"samplePoissonSize")) {
+        const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(e_data);
+        double d = 0;
+        if (DoubleAttribute(s->str, &d) && d > 0) {
+        	poisson_size = d;
+        	PerformAction(VORONOI_SamplePoisson);
+        } else PostMessage(_("Huh?"));
+        return 0;
+
 	} else if (!strcmp(mes,"randomcircleN")) {
 		const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(e_data);
         int i = 0;
@@ -1534,6 +1804,52 @@ int DelaunayInterface::Event(const Laxkit::EventData *e_data, const char *mes)
 
 int DelaunayInterface::CharInput(unsigned int ch, const char *buffer,int len,unsigned int state, const Laxkit::LaxKeyboard *d)
 { 
+	if (ch == LAX_Esc && mode != MODE_Normal) {
+		mode = MODE_Normal;
+		needtodraw = 1;
+		return 0;
+	}
+
+	if (mode == MODE_StippleFiddle || (data && data->custom_radii)) {
+		bool caught = false;
+		if (state&ControlMask) {
+			caught = true;
+			if (ch == LAX_Left) {
+				dot_min *= .95;
+			} else if (ch == LAX_Right) {
+				dot_min *= 1.05;
+			} else if (ch == LAX_Up) {
+				dot_max *= 1.05;
+			} else if (ch == LAX_Down) {
+				dot_max *= .95;
+			} else caught = false;
+			if (caught) {
+				//only remap weight to radius, resample not necessary
+				for (int c=0; c<data->NumPoints(); c++) {
+					data->Radius(c, dot_min + data->Weight(c) * (dot_max-dot_min));
+				}
+			}
+		} else if (mode == MODE_StippleFiddle) { //needing resample
+			caught = true;
+			if (ch == LAX_Left) {
+				cell_min *= .95;
+			} else if (ch == LAX_Right) {
+				cell_min *= 1.05;
+				if (cell_min > cell_max) cell_max = cell_min;
+			} else if (ch == LAX_Up) {
+				cell_max *= 1.05;
+			} else if (ch == LAX_Down) {
+				cell_max *= .95;
+				if (cell_min > cell_max) cell_min = cell_max;
+			} else caught = false;
+			if (caught) PerformAction(VORONOI_SamplePoisson);
+		}
+		if (caught) {
+			needtodraw = 1;
+			return 0;
+		}
+	}
+
     if (!sc) GetShortcuts();
     int action=sc->FindActionNumber(ch,state&LAX_STATE_MASK,0);
     if (action>=0) {

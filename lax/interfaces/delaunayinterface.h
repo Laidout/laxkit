@@ -79,6 +79,7 @@ class VoronoiData : virtual public LaxInterfaces::SomeData, virtual public Laxki
 	bool show_delaunay;
 	bool show_voronoi;
 	bool show_numbers;
+	bool custom_radii;
 
 	Laxkit::DoubleBBox containing_rect;
 	Laxkit::NumStack<IndexTriangle> triangles;
@@ -88,6 +89,7 @@ class VoronoiData : virtual public LaxInterfaces::SomeData, virtual public Laxki
 	Laxkit::Color *color_delaunay;
 	Laxkit::Color *color_voronoi;
 	Laxkit::Color *color_points;
+	Laxkit::Color *color_bg;
 
 	double width_delaunay;
 	double width_voronoi;
@@ -135,6 +137,7 @@ enum DelaunayInterfaceActions {
 	VORONOI_MakeRandomRect,
 	VORONOI_MakeRandomCircle,
 	VORONOI_MakePoisson,
+	VORONOI_SamplePoisson,
 	VORONOI_MakeGrid,
 	VORONOI_MakeHexChunk,
 	VORONOI_RepeatLast,
@@ -157,11 +160,23 @@ class DelaunayInterface : public anInterface
 	char *last_export;
 	flatpoint move_pos;
 	int previous_create;
+	ObjectContext *hover_obj; //for sample from
+
+	enum Mode { MODE_Normal, MODE_SelectObj, MODE_StippleFiddle };
+	Mode mode;
+
+	//stipple settings
+	double cell_min, cell_max;
+	double dot_min, dot_max;
+	bool invert_sample;
+	double poisson_size;
+	int hover_action;
 
 	Laxkit::ShortcutHandler *sc;
 
 	virtual void DropNewData();
 	virtual void GetDefaultBBox(Laxkit::DoubleBBox &box);
+	virtual void UpdateViewportColor();
 
   public:
 	bool show_numbers;
@@ -169,7 +184,6 @@ class DelaunayInterface : public anInterface
 	int show_lines; //&1 for voronoi &2 for delaunay
 	unsigned int delaunay_interface_style;
 	int num_random, num_x, num_y; //inputs for creating funcs
-	double poisson_size;
 	int relax_iters;
 
 	DelaunayInterface(anInterface *nowner, int nid,Laxkit::Displayer *ndp);

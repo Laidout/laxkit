@@ -28,6 +28,7 @@
 #include <lax/dump.h>
 #include <lax/doublebbox.h>
 #include <lax/utf8string.h>
+#include <lax/laximages.h>
 
 #include <functional>
 
@@ -110,10 +111,10 @@ class PointSet : public PointCollection, virtual public anObject, virtual public
  	{
  	  public:
  	  	flatpoint p;
- 	  	double weight;
+ 	  	double weight, radius;
  	  	anObject *info;
- 	  	PointObj() { info = nullptr; weight = 1; }
- 	  	PointObj(flatpoint pp, anObject *i, bool absorb, double w=1) { weight = w; p = pp; info = i; if (i && !absorb) i->inc_count(); }
+ 	  	PointObj() { info = nullptr; weight = 1; radius = 1; }
+ 	  	PointObj(flatpoint pp, anObject *i, bool absorb, double w=1, double r=1) { radius = r; weight = w; p = pp; info = i; if (i && !absorb) i->inc_count(); }
  	  	virtual ~PointObj() { if (info) info->dec_count(); }
  	  	virtual void SetInfo(anObject *i, bool absorb);
  	};
@@ -158,17 +159,21 @@ class PointSet : public PointCollection, virtual public anObject, virtual public
 	virtual anObject *PointInfo(int index);
 	virtual int SetPointInfo(int index, anObject *data = nullptr, bool absorb=false);
 	virtual int SetWeight(int index, double weight);
+	virtual double Weight(int index);
+	virtual int Radius(int index, double radius);
+	virtual double Radius(int index);
 	virtual int Swap(int index1, int index2);
 	virtual int Slide(int index1, int index2);
 	virtual void Flush();
 
 	// generators
 	virtual void CreateRandomPoints(int num, int seed, double minx, double maxx, double miny, double maxy);
-	virtual void CreatePoissonPoints(double radius, int seed, double minx, double maxx, double miny, double maxy);
 	virtual void CreateRandomRadial(int num, int seed, double x, double y, double radius);
 	virtual void CreateGrid(int numx, int numy, double x, double y, double w, double h, int order);
 	virtual void CreateHexChunk(double side, int points_on_side);
 	virtual void CreateCircle(int numpoints, double x, double y, double radius);
+	virtual void CreatePoissonPoints(double radius, int seed, double minx, double maxx, double miny, double maxy);
+	virtual void SamplePoissonPoints(int seed, LaxImage *img, bool invert, double min_radius, double max_radius);
 
 	// operations
 	virtual void Relax(int maxiterations, double mindist, double damp, DoubleBBox box);
