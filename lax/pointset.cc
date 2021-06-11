@@ -340,14 +340,14 @@ int PointSet::Map(std::function<int(const flatpoint &p, flatpoint &newp)> adjust
 
 //----------------------------- List Management Funcs -----------------------
 
-int PointSet::Insert(int where, flatpoint p, anObject *data, bool absorb, double weight)
+int PointSet::Insert(int where, flatpoint p, anObject *data, bool absorb, double weight, double radius)
 {
-	return points.push(newPointObj(p,data,absorb,weight), -1, where);
+	return points.push(newPointObj(p,data,absorb,weight,radius), -1, where);
 }
 
-int PointSet::AddPoint(flatpoint p, anObject *data, bool absorb, double weight)
+int PointSet::AddPoint(flatpoint p, anObject *data, bool absorb, double weight, double radius)
 {
-	return points.push(newPointObj(p,data,absorb,weight));
+	return points.push(newPointObj(p,data,absorb,weight,radius));
 }
 
 int PointSet::Remove(int index)

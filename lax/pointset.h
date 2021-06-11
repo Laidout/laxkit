@@ -119,7 +119,7 @@ class PointSet : public PointCollection, virtual public anObject, virtual public
  	  	virtual void SetInfo(anObject *i, bool absorb);
  	};
 
- 	virtual PointObj *newPointObj(flatpoint pp, anObject *i, bool absorb, double weight) { return new PointObj(pp,i,absorb,weight); }
+ 	virtual PointObj *newPointObj(flatpoint pp, anObject *i, bool absorb, double weight, double radius) { return new PointObj(pp,i,absorb,weight,radius); }
 
 	Laxkit::PtrStack<PointObj> points;
 
@@ -151,9 +151,9 @@ class PointSet : public PointCollection, virtual public anObject, virtual public
 	virtual void GetBBox(DoubleBBox &box);
 
 	// list management
-	virtual int Insert(int where, flatpoint p, anObject *data = nullptr, bool absorb = false, double weight = 1);
+	virtual int Insert(int where, flatpoint p, anObject *data = nullptr, bool absorb = false, double weight = 1, double radius=1);
 	virtual int Remove(int index);
-	virtual int AddPoint(flatpoint p, anObject *data = nullptr, bool absorb=false, double weight=1);
+	virtual int AddPoint(flatpoint p, anObject *data = nullptr, bool absorb=false, double weight=1, double radius=1);
 	virtual flatpoint Pop(int which, anObject **data_ret = nullptr);
 	virtual int NumPoints() { return points.n; }
 	virtual anObject *PointInfo(int index);
