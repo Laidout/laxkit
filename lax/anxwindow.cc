@@ -521,7 +521,11 @@ void anXWindow::InstallColors(WindowStyle *newcolors)
 	win_themestyle = newcolors;
 }
 
-/*! Default is to replace the current style with the WindowStyle in theme of the same category.
+/*! This is called automatically when the theme changes. Note that the theme object
+ * might be the same as before, but windows should assume some aspect of it has changed which recquires
+ * updating ui components.
+ * 
+ * Default is to replace the current style with the WindowStyle in theme of the same category.
  * This will call InstalColors() with the new style of the same category as the old style.
  * If a new style of the same category is not found, nothing is done.,
  * Return 0 for changed, nonzero for not changed.
