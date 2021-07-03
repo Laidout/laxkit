@@ -46,10 +46,8 @@
 #include <lax/utf8utils.h>
 #include <lax/language.h>
 
-// *** temp:
-//#include <lax/displayer-cairo.h>
 
-
+//template implementation:
 #include <lax/refptrstack.cc>
 #include <lax/lists.cc>
 
