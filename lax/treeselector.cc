@@ -26,6 +26,9 @@
 #include <lax/language.h>
 #include <lax/utf8utils.h>
 
+#include <cctype>
+
+
 //template implementation
 #include <lax/lists.cc>
 #include <lax/refptrstack.cc>
@@ -1505,13 +1508,17 @@ void TreeSelector::SendDetail(int which)
  * info4 = menuitem->info
  * \endcode
  *
+ * action == 1 means hover changed.
+ * 2 == flag on, 3 == flag off. 2 or 3 implies info4 is the flag character
+ * as specified by actiondetail.
+ *
  * Otherwise, sends a list of the selected strings in a StrsEventData,
  * with info=curitem.
  *
  * \todo *** there needs to be option to send id or list of ids..
  * \todo maybe send device id of the device that triggered the send
  */
-int TreeSelector::send(int deviceid, bool forhovered)
+int TreeSelector::send(int deviceid, int action, int actiondetail)
 {
 	DBG cerr <<WindowTitle()<<" send"<<endl;
 	if (!win_owner || !win_sendthis) return 0;
@@ -1546,8 +1553,12 @@ int TreeSelector::send(int deviceid, bool forhovered)
 		SimpleMessage *ievent=new SimpleMessage;
 		ievent->info1 = curitem; 
 		ievent->info2 = (curitem>=0 && curitem<numItems() ? itm->id : curitem);
-		ievent->info3 = forhovered; //old: selection.n;
+		ievent->info3 = action; //old: selection.n;
 		ievent->info4 = (curitem>=0 && curitem<numItems() ? itm->info : 0);
+
+		if (action == 2 || action == 3) {
+			ievent->info4 = actiondetail;
+		}
 
         if (menustyle & TREESEL_SEND_PATH) {
              //we need to construct something like "Parent/parent/name"
@@ -2002,6 +2013,7 @@ int TreeSelector::LBUp(int x,int y,unsigned int state,const LaxMouse *d)
 
 		} else if (curflaghover >= 0) {
 			ToggleFlag(i, curdetailhover, curflaghover);
+			return 0;
 
 		} else if (HasStyle(TREESEL_EDIT_IN_PLACE)) {
 			editInPlace(i);
@@ -2019,7 +2031,11 @@ int TreeSelector::LBUp(int x,int y,unsigned int state,const LaxMouse *d)
 	return 0;
 }
 
-char TreeSelector::ToggleFlag(char current)
+/*! Return the character that is the opposite of the given character.
+ * By default, check flagdef first. If not found, swap upper and lowercase chars.
+ * If not upper/lower, non-space returns space, space returns '.'.
+ */
+char TreeSelector::ToggleChar(char current)
 {
 	if (flagdef) {
 		char *ptr = strchr(flagdef, current);
@@ -2029,10 +2045,12 @@ char TreeSelector::ToggleFlag(char current)
 		return *(ptr-1);
 	}
 
-	if (current == 'E') return 'e';
-	if (current == 'e') return 'E';
-	if (current == 'L') return 'l';
-	if (current == 'l') return 'L';
+	if (islower(current)) return toupper(current);
+	if (isupper(current)) return tolower(current);
+	// if (current == 'E') return 'e';
+	// if (current == 'e') return 'E';
+	// if (current == 'L') return 'l';
+	// if (current == 'l') return 'L';
 	if (current != ' ') return ' ';
 	if (current == ' ') return '.';
 	return current;
@@ -2050,8 +2068,10 @@ int TreeSelector::ToggleFlag(int itemi, int detail, int flag)
 
 	if (flag < 0 || flag >= (int)strlen(idetail->name)) return -1;
 
-	idetail->name[flag] = ToggleFlag(idetail->name[flag]);
+	idetail->name[flag] = ToggleChar(idetail->name[flag]);
 
+	send(0, 2, idetail->name[flag]);
+	needtodraw = 1;
 	return 1;
 }
 

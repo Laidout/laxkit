@@ -135,7 +135,7 @@ class TreeSelector : public ScrolledWindow
 	virtual int findmaxwidth(int s,int e, int *h_ret);
 	virtual int findColumnWidth(int which);
 
-	virtual int send(int deviceid, bool forhovered = false);
+	virtual int send(int deviceid, int action = 0, int actiondetail=0);
 	virtual void addselect(int i,unsigned int state);
 	virtual int findItem(int x,int y, int *onsub, int *ondetail = nullptr, int *onflag = nullptr);
 	virtual int findColumn(int x);
@@ -147,7 +147,7 @@ class TreeSelector : public ScrolledWindow
 	virtual MenuItem *item(int i,char skipcache=0);
 
 	virtual int ToggleFlag(int itemi, int detail, int flag);
-	virtual char ToggleFlag(char current);
+	virtual char ToggleChar(char current);
 
 	virtual int addToCache(int indent,MenuInfo *menu, int cury);
 	virtual int DrawItems(int indent, MenuInfo *item, int &n, flatpoint offset);
