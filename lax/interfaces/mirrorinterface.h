@@ -23,6 +23,7 @@
 #define _LAX_MIRRORINTERFACE_H
 
 #include <lax/utf8string.h>
+#include <lax/singletonkeeper.h>
 #include <lax/interfaces/aninterface.h>
 
 
@@ -37,7 +38,8 @@ class MirrorData : virtual public SomeData
 	flatpoint p1, p2;
 	bool merge;
 	double merge_threshhold;
-	bool cut_at_mirror;
+	bool cut_at_mirror; //like Blender's bisect
+	bool flip_cut; //like Blender's flip
 	Laxkit::Utf8String label;
 	Laxkit::ScreenColor color;
 
@@ -56,17 +58,18 @@ class MirrorData : virtual public SomeData
 class MirrorToolSettings : public Laxkit::anObject
 {
   public:
-	ScreenColor knob;
-	ScreenColor line;
+	Laxkit::ScreenColor knob;
+	Laxkit::ScreenColor line;
 	double line_width;
 	double knob_size;
+	bool show_labels;
 
 	MirrorToolSettings();
 };
 
 class MirrorInterface : public anInterface
 {
-	static SingletonKeeper settingsObject;
+	static Laxkit::SingletonKeeper settingsObject;
 
   protected:
 	int showdecs;
@@ -76,7 +79,7 @@ class MirrorInterface : public anInterface
 	SomeData *data; //points to dataoc->obj
 	ObjectContext *dataoc; //reference object for mirror coordinate space
 
-	MirrorData *mirror;
+	MirrorData *mirrordata;
 	MirrorToolSettings *settings;
 
 	int hover;
@@ -94,6 +97,10 @@ class MirrorInterface : public anInterface
 		MIRROR_Label,
 		MIRROR_X,
 		MIRROR_Y,
+		MIRROR_Left,
+		MIRROR_Top,
+		MIRROR_Right,
+		MIRROR_Bottom,
 		MIRROR_45,
 		MIRROR_135,
 		MIRROR_Rotate,
@@ -131,15 +138,11 @@ class MirrorInterface : public anInterface
 	virtual int MouseMove(int x,int y,unsigned int state, const Laxkit::LaxMouse *d);
 	virtual int LBDown(int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d);
 	virtual int LBUp(int x,int y,unsigned int state, const Laxkit::LaxMouse *d);
-	virtual int MBDown(int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d);
-	virtual int MBUp(int x,int y,unsigned int state, const Laxkit::LaxMouse *d);
-	//virtual int RBDown(int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d);
-	//virtual int RBUp(int x,int y,unsigned int state, const Laxkit::LaxMouse *d);
-	virtual int WheelUp  (int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d);
-	virtual int WheelDown(int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d);
 	virtual int CharInput(unsigned int ch, const char *buffer,int len,unsigned int state, const Laxkit::LaxKeyboard *d);
 	virtual int KeyUp(unsigned int ch,unsigned int state, const Laxkit::LaxKeyboard *d);
 	virtual void ViewportResized();
+
+	virtual int UpdateData();
 };
 
 } // namespace LaxInterfaces

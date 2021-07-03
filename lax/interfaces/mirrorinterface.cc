@@ -41,16 +41,6 @@ using namespace std;
 namespace LaxInterfaces {
 
 
-//--------------------------- MirrorToolSettings -------------------------------------
-
-MirrorToolSettings::MirrorToolSettings()
-{
-	knob.rgbf(.8, .3, .8);
-	line.rgbf(.6, .1, .6);
-	line_width = 1;
-	knob_size = 5;
-}
-
 
 //--------------------------- MirrorData -------------------------------------
 
@@ -65,6 +55,10 @@ MirrorData::MirrorData()
 	p2.set(1,0);
 	merge = false;
 	merge_threshhold = .01;
+	cut_at_mirror = false;
+	flip_cut = false;
+
+	label = "Label!";
 }
 
 MirrorData::~MirrorData()
@@ -74,7 +68,7 @@ MirrorData::~MirrorData()
 void MirrorData::FindBBox()
 {
 	//compute bounds in minx,maxx, miny,maxy.
-	ClearBox();
+	ClearBBox();
 	addtobounds(p1);
 	addtobounds(p2);
 }
@@ -94,6 +88,17 @@ SomeData *MirrorData::duplicate(SomeData *dup)
 }
 
 
+//--------------------------- MirrorToolSettings -------------------------------------
+
+MirrorToolSettings::MirrorToolSettings()
+{
+	knob.rgbf(.8, .3, .8);
+	line.rgbf(.6, .1, .6);
+	line_width = 1;
+	knob_size = 5;
+	show_labels = true;
+}
+
 
 //--------------------------- MirrorInterface -------------------------------------
 
@@ -107,7 +112,7 @@ SomeData *MirrorData::duplicate(SomeData *dup)
  */
 
 
-
+Laxkit::SingletonKeeper MirrorInterface::settingsObject;
 
 MirrorInterface::MirrorInterface(anInterface *nowner, int nid, Displayer *ndp)
  : anInterface(nowner,nid,ndp)
@@ -116,26 +121,33 @@ MirrorInterface::MirrorInterface(anInterface *nowner, int nid, Displayer *ndp)
 
 	showdecs   = 1;
 	needtodraw = 1;
-	settings   = new MirrorToolSetting();
 
-	dataoc     = NULL;
-	data       = NULL;
+	settings = dynamic_cast<MirrorToolSettings*>(settingsObject.GetObject());
+	if (!settings) {
+		settings = new MirrorToolSettings();
+		settingsObject.SetObject(settings, false);
+	}
 
-	sc = NULL; //shortcut list, define as needed in GetShortcuts()
+	dataoc     = nullptr;
+	data       = nullptr;
+	mirrordata = nullptr;
+
+	sc = nullptr; //shortcut list, define as needed in GetShortcuts()
 }
 
 MirrorInterface::~MirrorInterface()
 {
 	settings->dec_count();
+	if (mirrordata) mirrordata->dec_count();
 	if (dataoc) delete dataoc;
-	if (data) { data->dec_count(); data=NULL; }
+	if (data) { data->dec_count(); data = nullptr; }
 	if (sc) sc->dec_count();
 }
 
 const char *MirrorInterface::whatdatatype()
 { 
-	return "MirrorData";
-	//return NULL; // NULL means this tool is creation only, it cannot edit existing data automatically
+	return nullptr;
+	// return "MirrorData";
 }
 
 /*! Name as displayed in menus, for instance.
@@ -154,22 +166,25 @@ anInterface *MirrorInterface::duplicate(anInterface *dup)
 	return anInterface::duplicate(dup);
 }
 
-//! Use the object at oc if it is an MirrorData.
+//! Use the object as reference for the mirror.
 int MirrorInterface::UseThisObject(ObjectContext *oc)
-{ ***
+{
 	if (!oc) return 0;
 
-	MirrorData *ndata=dynamic_cast<MirrorData *>(oc->obj);
-	if (!ndata) return 0;
+	// MirrorData *ndata=dynamic_cast<MirrorData *>(oc->obj);
+	// if (!ndata) return 0;
 
-	if (data && data!=ndata) deletedata();
+	SomeData *ndata = oc->obj;
+
+	if (data && data != ndata) deletedata();
 	if (dataoc) delete dataoc;
-	dataoc=oc->duplicate();
+	dataoc = oc->duplicate();
 
-	if (data!=ndata) {
-		data=ndata;
+	if (data != ndata) {
+		data = ndata;
 		data->inc_count();
 	}
+
 	needtodraw=1;
 	return 1;
 }
@@ -215,8 +230,9 @@ int MirrorInterface::InterfaceOff()
  */
 void MirrorInterface::Clear(SomeData *d)
 {
-	if (dataoc) { delete dataoc; dataoc=NULL; }
-	if (data) { data->dec_count(); data=NULL; }
+	if (dataoc) { delete dataoc; dataoc = nullptr; }
+	if (data) { data->dec_count(); data = nullptr; }
+	if (mirrordata) { mirrordata->dec_count(); mirrordata = nullptr; }
 }
 
 void MirrorInterface::ViewportResized()
@@ -238,7 +254,8 @@ Laxkit::MenuInfo *MirrorInterface::ContextMenu(int x,int y,int deviceid, Laxkit:
 	menu->AddItem(_("Mirror -45 deg"), MIRROR_135);
 
 	menu->AddSep(_("Some separator text"));
-	menu->AddToggleItem(_("Merge"), nullptr, MIRROR_Merge, 0, mirror_data->merge);
+	menu->AddToggleItem(_("Merge"), MIRROR_Merge, 0, mirrordata->merge);
+	// const char *newitem, int nid=0, int ninfo=0, bool on=false, LaxImage *img=nullptr, int where=-1, int state=0
 	
 	return menu;
 }
@@ -251,7 +268,7 @@ int MirrorInterface::Event(const Laxkit::EventData *evdata, const char *mes)
 		 //these are sent by the ContextMenu popup
 		const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(evdata);
 		int i	= s->info2; //id of menu item
-		int info = s->info4; //info of menu item
+		// int info = s->info4; //info of menu item
 
 		if ( i == MIRROR_X
 		  || i == MIRROR_Y
@@ -273,37 +290,41 @@ int MirrorInterface::Event(const Laxkit::EventData *evdata, const char *mes)
  * This is called during screen refreshes.
  */
 int MirrorInterface::DrawData(anObject *ndata,anObject *a1,anObject *a2,int info)
-{ ***
-	if (!ndata || dynamic_cast<MirrorData *>(ndata)==NULL) return 1;
-
-	MirrorData *bzd=data;
-	data=dynamic_cast<MirrorData *>(ndata);
-
-	 // store any other state we need to remember
-	 // and update to draw just the temporary object, no decorations
-	int td=showdecs,ntd=needtodraw;
-	showdecs=0;
-	needtodraw=1;
-
-	Refresh();
-
-	 //now restore the old state
-	needtodraw=ntd;
-	showdecs=td;
-	data=bzd;
+{ 
 	return 1;
+
+	// if (!ndata || dynamic_cast<MirrorData *>(ndata)==NULL) return 1;
+
+	// MirrorData *bzd=data;
+	// data=dynamic_cast<MirrorData *>(ndata);
+
+	//  // store any other state we need to remember
+	//  // and update to draw just the temporary object, no decorations
+	// int td=showdecs,ntd=needtodraw;
+	// showdecs=0;
+	// needtodraw=1;
+
+	// Refresh();
+
+	//  //now restore the old state
+	// needtodraw=ntd;
+	// showdecs=td;
+	// data=bzd;
+	// return 1;
 }
 
 
 int MirrorInterface::Refresh()
 {
-
 	if (needtodraw==0) return 0;
 	needtodraw=0;
 
+	if (!mirrordata) return 0;
 
 	DoubleBBox box(dp->Minx,dp->Maxx,dp->Miny,dp->Maxy);
-	flatline line(dp->realtoscreen(mirrordata->p1), dp->realtoscreen(mirrordata->p2));
+	flatpoint pp1 = dp->realtoscreen(mirrordata->p1);
+	flatpoint pp2 = dp->realtoscreen(mirrordata->p2);
+	flatline line(pp1, pp2);
 	flatpoint p1,p2;
 	int n = box.IntersectWithLine(line, &p1, &p2, nullptr,nullptr);
 	if (n != 2) return 0;
@@ -311,14 +332,19 @@ int MirrorInterface::Refresh()
 	 //draw some text name
 	dp->DrawScreen();
 	dp->LineAttributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
-	dp->LineWidthScreen(settings->line_width);
-	dp->NewFG(mirrordata->color);
+	dp->LineWidthScreen(settings->line_width * (hover == MIRROR_Line ? 3 : 1));
+	// dp->NewFG(mirrordata->color);
 
-	dp->drawline(dp->Minx,dp->Miny, dp->Maxx,dp->Maxy);
+	dp->NewFG(settings->line);
+	dp->drawline(p1,p2);
 
-	if (mirrordata->label.Bytes()) {
+	dp->NewFG(settings->knob);
+	dp->drawpoint(pp1, settings->knob_size * (hover == MIRROR_P1 ? 2 : 1), 1);
+	dp->drawpoint(pp2, settings->knob_size * (hover == MIRROR_P2 ? 2 : 1), 1);
+
+	if (settings->show_labels && mirrordata->label.Bytes()) {
 		flatpoint v = p2-p1;
-		dp->textout(atan2(v.y, v.x), p1, mirrordata->label.c_str(),-1, LAX_LEFT|LAX_BOTTOM);
+		dp->textout(-atan2(v.y, v.x), pp1.x,pp1.y, mirrordata->label.c_str(),-1, LAX_LEFT|LAX_BOTTOM);
 	}
 
 	dp->DrawReal();
@@ -339,6 +365,7 @@ void MirrorInterface::deletedata()
 
 MirrorData *MirrorInterface::newData()
 {
+	return new MirrorData();
 }
 
 /*! Check for clicking down on other objects, possibly changing control to that other object.
@@ -359,7 +386,7 @@ int MirrorInterface::OtherObjectCheck(int x,int y,unsigned int state)
 		 // If this is primary, then it is ok to work on other images, but not click onto
 		 // other types of objects.
 		UseThisObject(oc); 
-		if (viewport) viewport->ChangeObject(oc,0);
+		if (viewport) viewport->ChangeObject(oc,0,true);
 		needtodraw=1;
 		return 1;
 
@@ -368,8 +395,7 @@ int MirrorInterface::OtherObjectCheck(int x,int y,unsigned int state)
 		 // if *this is not primary, then switch objects, and switch tools to deal
 		 // with that object.
 		//******* need some way to transfer the LBDown to the new tool
-		if (!primary && c==-1 && viewport->ChangeObject(oc,1)) {
-			buttondown.up(d->id,LEFTBUTTON);
+		if (!primary && c==-1 && viewport->ChangeObject(oc,1,true)) {
 			return 2;
 		}
 	}
@@ -383,13 +409,14 @@ int MirrorInterface::scan(int x, int y, unsigned int state)
 
 	flatpoint p = screentoreal(x,y);
 
+	double threshhold = NearThreshhold() / Getmag();
+	double scandist = threshhold; //ScreenLine() * 5 / Getmag(); //scr = getmag * real
 	if ((p - mirrordata->p1).norm() < scandist) return MIRROR_P1;
 	if ((p - mirrordata->p2).norm() < scandist) return MIRROR_P2;
 
 	double t;
 	double d = distance(p, flatline(mirrordata->p2, mirrordata->p1), &t);
 	//if (t > 0 && t < 1) return MIRROR_Segment;
-	double threshhold = NearThreshhold() / Getmag();
 	if (d < threshhold) return MIRROR_Line;
 
 	return MIRROR_None;
@@ -399,7 +426,7 @@ int MirrorInterface::LBDown(int x,int y,unsigned int state,int count, const Laxk
 {
 
 	int nhover = scan(x,y,state);
-	if (nhover != hover) {
+	if (nhover != MIRROR_None) {
 		hover = nhover;
 		buttondown.down(d->id,LEFTBUTTON,x,y, nhover);
 		needtodraw=1;
@@ -437,20 +464,24 @@ int MirrorInterface::LBDown(int x,int y,unsigned int state,int count, const Laxk
 
 
 	 // To be here, must want brand new data plopped into the viewport context
-	if (we want new data) {
+	if (!mirrordata) { //we want new data
 		//NewDataAt(x,y,state);
 
 		if (viewport) viewport->ChangeContext(x,y,NULL);
-		data=newData();
-		needtodraw=1;
-		if (!data) return 0;
+		mirrordata = newData();
+		needtodraw = 1;
+		if (!mirrordata) return 0;
 
 		 //for instance...
-		leftp=screentoreal(x,y);
-		data->origin(leftp);
-		data->xaxis(flatpoint(1,0)/Getmag()/2);
-		data->yaxis(flatpoint(0,1)/Getmag()/2);
-		DBG data->dump_out(stderr,6,0,NULL);
+		mirrordata->p1 = screentoreal(x - ScreenLine()*50,y);
+		mirrordata->p2 = screentoreal(x + ScreenLine()*50,y);
+		// data->origin(leftp);
+		// data->xaxis(flatpoint(1,0)/Getmag()/2);
+		// data->yaxis(flatpoint(0,1)/Getmag()/2);
+		//DBG data->dump_out(stderr,6,0,NULL);
+
+		hover = MIRROR_Line;
+		buttondown.down(d->id,LEFTBUTTON,x,y, hover);
 
 	} else {
 		//we have some other control operation in mind...
@@ -467,16 +498,16 @@ int MirrorInterface::LBUp(int x,int y,unsigned int state, const Laxkit::LaxMouse
 	int action = MIRROR_None;
 	double dragged = buttondown.up(d->id,LEFTBUTTON, &action);
 
-	if (dragged < DragThreshhold()) {
+	if (dragged < DraggedThreshhold()) {
 		if (action == MIRROR_P1 || action == MIRROR_P2) {
 			// start input dialog for point
-			***
+			// ***
 			return 0;
 
 		} else if (action == MIRROR_Line) {
 			// send that we clicked on the line
 			// or maybe edit the label
-			***
+			// ***
 			return 0;
 		}
 	}
@@ -492,11 +523,12 @@ int MirrorInterface::MouseMove(int x,int y,unsigned int state, const Laxkit::Lax
 		int nhover = scan(x,y,state);
 		if (nhover != hover) {
 			hover = nhover;
-			buttondown.down(d->id,LEFTBUTTON,x,y, nhover);
+			// buttondown.down(d->id,LEFTBUTTON,x,y, nhover);
 
 			if (hover == MIRROR_P1) PostMessage(_("Move p1"));
 			else if (hover == MIRROR_P2) PostMessage(_("Move p2"));
 			else if (hover == MIRROR_Line) PostMessage(_("Move line"));
+			else PostMessage("");
 			needtodraw=1;
 			return 0;
 		}
@@ -550,27 +582,28 @@ int MirrorInterface::send()
 }
 
 int MirrorInterface::CharInput(unsigned int ch, const char *buffer,int len,unsigned int state, const Laxkit::LaxKeyboard *d)
-{ ***
-	if ((state&LAX_STATE_MASK)==(ControlMask|ShiftMask|AltMask|MetaMask)) {
-		//deal with various modified keys...
-	}
+{
+	// if ((state&LAX_STATE_MASK)==(ControlMask|ShiftMask|AltMask|MetaMask)) {
+	// 	//deal with various modified keys...
+	// }
 
-	if (ch==LAX_Esc) { //the various possible keys beyond normal ascii printable chars are defined in lax/laxdefs.h
-		if (nothing selected) return 1; //need to return on plain escape, so that default switching to Object tool happens
+	// if (ch==LAX_Esc) { //the various possible keys beyond normal ascii printable chars are defined in lax/laxdefs.h
+	// 	if (nothing selected) return 1; //need to return on plain escape, so that default switching to Object tool happens
 		
-		 //else..
-		ClearSelection();
-		needtodraw=1;
-		return 0;
+	// 	 //else..
+	// 	ClearSelection();
+	// 	needtodraw=1;
+	// 	return 0;
 
-	} else {
-		 //default shortcut processing
+	// } else {
+	// 	 //default shortcut processing
 
-		if (!sc) GetShortcuts();
-		int action=sc->FindActionNumber(ch,state&LAX_STATE_MASK,0);
-		if (action>=0) {
-			return PerformAction(action);
-		}
+	// }
+
+	if (!sc) GetShortcuts();
+	int action=sc->FindActionNumber(ch,state&LAX_STATE_MASK,0);
+	if (action>=0) {
+		return PerformAction(action);
 	}
 
 	return 1; //key not dealt with, propagate to next interface
@@ -594,7 +627,12 @@ Laxkit::ShortcutHandler *MirrorInterface::GetShortcuts()
     sc->Add(MIRROR_X,  'x',0,0, "MirrorH", _("Make the mirror a horizontal line"),NULL,0);
     sc->Add(MIRROR_Y,  'y',0,0, "MirrorV", _("Make the mirror a vertical line"  ),NULL,0);
     sc->Add(MIRROR_45, '\\',0,0,"Mirror45",_("Set mirror to 45 degrees (or -45)"),NULL,0);
-	sc->Add(MIRROR_135,'+',ShiftMask,0,   "ZoomIn"         , _("Zoom in"),NULL,0);
+	// sc->Add(MIRROR_135,'+',ShiftMask,0,   "Mirror135", _("Zoom in"),NULL,0);
+
+	sc->Add(MIRROR_Left,   LAX_Left, 0,0,  "MirrorLeft",   _("Set mirror to left edge of reference object"),NULL,0);
+	sc->Add(MIRROR_Top,    LAX_Up,   0,0,  "MirrorTop",    _("Set mirror to top edge of reference object"),NULL,0);
+	sc->Add(MIRROR_Right,  LAX_Right,0,0,  "MirrorRight",  _("Set mirror to right edge of reference object"),NULL,0);
+	sc->Add(MIRROR_Bottom, LAX_Down, 0,0,  "MirrorBottom", _("Set mirror to bottom edge of reference object"),NULL,0);
 
 	sc->Add(MIRROR_Merge,'m',0,0,   "ToggleMerge", _("Toggle merge"),NULL,0);
 
@@ -607,33 +645,48 @@ Laxkit::ShortcutHandler *MirrorInterface::GetShortcuts()
 int MirrorInterface::PerformAction(int action)
 {
 	switch (action) {
-		case MIRROR X:
-			double len = (p2-p1).norm();
+		case MIRROR_X: {
+			double len = (mirrordata->p2-mirrordata->p1).norm();
 			mirrordata->p2 = flatpoint(mirrordata->p1.x + len, mirrordata->p1.y);
 			if (mirrordata->p2.x == mirrordata->p1.x) mirrordata->p2.x = mirrordata->p1.x+1;
 			needtodraw = 1;
 			return 0;
+		}
 
-		case MIRROR_Y:
-			double len = (p2-p1).norm();
+		case MIRROR_Y: {
+			double len = (mirrordata->p2-mirrordata->p1).norm();
 			mirrordata->p2 = flatpoint(mirrordata->p1.x, mirrordata->p1.y + len);
 			if (mirrordata->p2.y == mirrordata->p1.y) mirrordata->p2.y = mirrordata->p1.y+1;
 			needtodraw = 1;
 			return 0;
+		}
 
-		case MIRROR_45:
-			***
-		case MIRROR_135:
-			***
-		case MIRROR_Rotate:
-			***
+		// case MIRROR_45:
+		// 	***
+		// case MIRROR_135:
+		// 	***
+		// case MIRROR_Rotate:
+		// 	***
+		// case MIRROR_Left:
+		// case MIRROR_Top:
+		// case MIRROR_Right:
+		// case MIRROR_Bottom:
 
-		case MIRROR_Merge:
+		case MIRROR_Merge: {
 			mirrordata->merge = !mirrordata->merge;
+			PostMessage(mirrordata->merge ? _("Merge.") : _("Don't merge."));
 			UpdateData();
 			return 0;
+		}
 	}
+
 	return 1;
+}
+
+int MirrorInterface::UpdateData()
+{
+	// *** do stuff in response to the mirror plane moving
+	return 0;
 }
 
 } // namespace LaxInterfaces

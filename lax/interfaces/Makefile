@@ -62,6 +62,7 @@ objs= \
 	perspectiveinterface.o \
 	stackpartinterface.o \
 	simplepathinterface.o \
+	mirrorinterface.o \
 
 #	linesinterface.o \
 #	measureinterface.o \
