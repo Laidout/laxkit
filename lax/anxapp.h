@@ -441,16 +441,17 @@ class anXApp : virtual public anObject
   public:
 
 	 //Other public variables
-	anXWindow     *currentfocus;
-	static anXApp *app;
-	const char    *backend;
-	char          *app_profile;
-	int            buttoncount;
-	FontManager   *fontmanager;
-	LaxFont       *defaultlaxfont;
-	char          *controlfontstr;
-	char          *textfontstr;
-	DeviceManager *devicemanager;
+	anXWindow       *currentfocus;
+	static anXApp   *app;
+	const char      *backend;
+	char            *app_profile;
+	int              buttoncount;
+	FontManager     *fontmanager;
+	ResourceManager *resourcemanager;
+	LaxFont         *defaultlaxfont;
+	char            *controlfontstr;
+	char            *textfontstr;
+	DeviceManager   *devicemanager;
 
 	int            tooltips;
 

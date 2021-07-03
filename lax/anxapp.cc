@@ -520,8 +520,9 @@ anXApp::anXApp()
 	idleclk  = sysconf(_SC_CLK_TCK)/15;
 	DBG cerr <<"_SC_CLK_TCK="<<sysconf(_SC_CLK_TCK)<<"  dblclk:"<<dblclk<<" firstclk:"<<firstclk<<" idleclk:"<<idleclk<<endl;
 
-	fontmanager    = NULL;
-	defaultlaxfont = NULL;
+	fontmanager     = nullptr;
+	defaultlaxfont  = nullptr;
+    resourcemanager = nullptr;
 
 	textfontstr    = newstr("sans-12");
 	controlfontstr = newstr("sans-12");
@@ -556,6 +557,7 @@ anXApp::~anXApp()
 	if (save_dir) delete[] save_dir;
 	if (controlfontstr) delete[] controlfontstr;
 	if (copybuffer) delete[] copybuffer;
+    if (resourcemanager) resourcemanager->dec_count();
 
 
 	if (theme)         theme->dec_count();
@@ -853,6 +855,8 @@ int anXApp::has(int what)
 //! Init the app. The default is to call initX() if donotusex==0, otherwise wall initNoX().
 int anXApp::init(int argc,char **argv)
 {
+    if (!resourcemanager) resourcemanager = new ResourceManager();
+
 	if (donotusex) return initNoX(argc,argv);
 	return initX(argc,argv);
 }

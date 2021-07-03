@@ -1244,6 +1244,18 @@ LaxFont *FontManager::dump_in_font(LaxFiles::Attribute *att, LaxFiles::DumpConte
 	int layer=0;
 	double fontsize=1;
 
+	value = att->value;
+	if (value && !strncmp(value, "resource:", 9)) {
+		value += 9;
+		while (isspace(*value)) value++;
+
+		LaxFont *font = dynamic_cast<LaxFont*>(anXApp::app->resourcemanager->FindResource(value, "Font"));
+		if (!font) {
+			if (context && context->log) context->log->AddError(_("Missing font resource!"));
+		}
+		return font;
+	}
+
 	for (int c2=0; c2<att->attributes.n; c2++) {
 		name= att->attributes.e[c2]->name;
 		value=att->attributes.e[c2]->value;
