@@ -1719,6 +1719,30 @@ void anXApp::bump()
 //	lseek(bump_fd,0,SEEK_SET);
 }
 
+/*! Send LAX_onThemeChange events to every window (children first).
+ * If theme != null, then replace current theme object.
+ */
+void anXApp::ThemeReconfigure(Theme *theme)
+{
+    if (theme != nullptr && theme != this->theme) {
+        this->theme->dec_count();
+        this->theme = theme;
+        theme->inc_count();
+    } else theme = this->theme;
+
+    for (int c=0; c<topwindows.n; c++)
+        NotifyThemeChange(topwindows.e[c]);
+}
+
+//! Recursive function to call ThemeChange() on all kids of win, then win.
+void anXApp::NotifyThemeChange(anXWindow *win)
+{
+    for (int c=0; c<win->_kids.n; c++) {
+        NotifyThemeChange(win->_kids.e[c]);
+    }
+    win->ThemeChange(theme);
+}
+
 //! Send arbitrary data to a window.
 /*! Applications can derive classes from EventData to easily pass arbitrary chunks of data
  * between windows. This data will be deleted by anXApp eventually. So once SendMessage() is

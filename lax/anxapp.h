@@ -435,6 +435,8 @@ class anXApp : virtual public anObject
 	virtual int checkOutClicks(EventReceiver *obj,MouseEventData *ee);
 	virtual int managefocus(anXWindow *ww, EventData *ev);
 	virtual void tooltipcheck(EventData *event, anXWindow *ww);
+	
+	virtual void NotifyThemeChange(anXWindow *win);
 
   public:
 
@@ -494,6 +496,7 @@ class anXApp : virtual public anObject
 	virtual void Locale(const char *);
 
 	 //special event functions
+	virtual void ThemeReconfigure(Theme *theme=nullptr);
 	virtual void bump();
 	virtual EventReceiver *findEventObj(unsigned long id);
 	virtual int RegisterEventReceiver(EventReceiver *e);
