@@ -216,13 +216,14 @@ class flatline
 
 double distance(spacepoint p1,spacepoint p2);
 double distance(flatpoint p1,flatpoint p2);
-double distance(flatpoint p, flatpoint p1, flatpoint p2);
+double distance(flatpoint p, flatpoint p1, flatpoint p2, double *t_ret=nullptr);
 double distance(flatpoint p, flatline l);
+double distance(const flatpoint &p, const flatline &l, double *t_ret);
 flatpoint operator*(flatline l1, flatline l2);
 int intersection(flatline l1, flatline l2, flatpoint &p);
 int intersection(flatline l1, flatline l2, flatpoint *p, double *index1, double *index2);
 double findindex(flatpoint p,flatline l);   /* p=lp+t*lv, find t,uses p-l.p||l.v */
-int segmentandline(flatpoint p1,flatpoint p2,flatline l,flatpoint &p);
+int segmentandline(const flatpoint &p1,const flatpoint &p2,const flatline &l,flatpoint &p_ret, double *t_ret = nullptr);
 int segmentcross(flatpoint a1,flatpoint a2,flatpoint b1,flatpoint b2,flatpoint &p);
 flatline flatten(spaceline l3d,Basis bas);
 flatpoint flatten(spacepoint pnt, Basis bas);

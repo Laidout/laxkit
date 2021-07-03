@@ -850,18 +850,41 @@ double distance(flatpoint p, flatline l)
 	return fabs((p-l.p)*flatvector(-l.v.y,l.v.x)/sqrt(l.v.x*l.v.x+l.v.y*l.v.y));
 }
 
+//! Distance of point p to line l, with optional return of the line t value.
+double distance(const flatpoint &p, const flatline &l, double *t_ret)
+{
+	if (l.v.x==0 && l.v.y==0) return 5000000;
+	flatpoint pp = p - l.p;
+	double t = l.v * pp / l.v.norm2();
+	if (t_ret) *t_ret = t;
+	return fabs((p-l.p)*flatvector(-l.v.y,l.v.x)/sqrt(l.v.x*l.v.x+l.v.y*l.v.y));
+}
+
 //! Distance of point p to segment between p1 to p2.
 /*! If the point is too far off the segment on either end, then it is just
  * the distance to the corresponding segment endpoint.
+ *
+ * If t_ret != null, then return the line parameter, so if point is closest to
+ * p1, return 0, closest to p1 return 1, or closest to some random point on the segment,
+ * then return that value between 0 and 1.
  */
-double distance(flatpoint p, flatpoint p1, flatpoint p2)
+double distance(flatpoint p, flatpoint p1, flatpoint p2, double *t_ret)
 {
-	if (p1==p2) return distance(p,p1);
+	if (p1==p2) {
+		if (t_ret) *t_ret = 0;
+		return distance(p,p1);
+	}
 	flatline l(p2,p1);
 	double t=findindex(p,l);
-	if (t>1) return distance(p,p1);
-	if (t<0) return distance(p,p2);
-	return distance(p,l);
+	if (t>1) {
+		if (t_ret) *t_ret = 1;
+		return distance(p,p1);
+	}
+	if (t<0) {
+		if (t_ret) *t_ret = 0;
+		return distance(p,p2);
+	}
+	return distance(p,l,t_ret);
 }
 
 //! Return intersection of l1 and l2, no error checking.
@@ -944,14 +967,17 @@ double findindex(flatpoint p,flatline l)   /* p=lp+t*lv, find t */
 //! For segment between p1 and p2, find intersection with line l.
 /*! Returns 1 if there is an intersection, or 0 if there is not.
  */
-int segmentandline(flatpoint p1,flatpoint p2,flatline l,flatpoint &p)
+int segmentandline(const flatpoint &p1,const flatpoint &p2,const flatline &l,flatpoint &p_ret, double *t_ret)
 {						   /* err 0=not on line, 1=ok */
 	flatline l2(p1,p2);
 	int e; //remove e, not needed
-	e=intersection(l2,l,p);
+	e=intersection(l2,l,p_ret);
 	if (e!=0) { return 0; }
-	double t=findindex(p,l2);
-	if (t>=0 && t<=1) return 1;
+	double t=findindex(p_ret,l2);
+	if (t>=0 && t<=1) {
+		if (t_ret) *t_ret = t;
+		return 1;
+	}
 	return 0;
 }
 
