@@ -133,15 +133,15 @@ int BoilerPlateInterface::UseThisObject(ObjectContext *oc)
 	BoilerPlateData *ndata=dynamic_cast<BoilerPlateData *>(oc->obj);
 	if (!ndata) return 0;
 
-	if (data && data!=ndata) deletedata();
+	if (data && data != ndata) deletedata();
 	if (dataoc) delete dataoc;
-	dataoc=oc->duplicate();
+	dataoc = oc->duplicate();
 
-	if (data!=ndata) {
-		data=ndata;
+	if (data != ndata) {
+		data = ndata;
 		data->inc_count();
 	}
-	needtodraw=1;
+	needtodraw = 1;
 	return 1;
 }
 
@@ -365,10 +365,14 @@ int BoilerPlateInterface::LBDown(int x,int y,unsigned int state,int count, const
 
 
 	int nhover = scan(x,y,state);
-	if (nhover != hover) {
+	if (nhover != hover && nhover != ) {
 		hover = nhover;
-		buttondown.down(d->id,LEFTBUTTON,x,y, nhover);
 		needtodraw = 1;
+	}
+
+	if (hover != BOILERPLATE_None) {
+		buttondown.down(d->id,LEFTBUTTON,x,y, hover);
+		return 0;
 	}
 
 
@@ -406,16 +410,19 @@ int BoilerPlateInterface::LBDown(int x,int y,unsigned int state,int count, const
 		//NewDataAt(x,y,state);
 
 		if (viewport) viewport->ChangeContext(x,y,NULL);
-		data=newData();
-		needtodraw=1;
+		data = newData();
+		needtodraw = 1;
 		if (!data) return 0;
 
 		 //for instance...
-		leftp=screentoreal(x,y);
+		leftp = screentoreal(x,y);
 		data->origin(leftp);
 		data->xaxis(flatpoint(1,0)/Getmag()/2);
 		data->yaxis(flatpoint(0,1)/Getmag()/2);
 		DBG data->dump_out(stderr,6,0,NULL);
+
+		hover = BOILERPLATE_Something;
+		buttondown.down(d->id,LEFTBUTTON,x,y, hover);
 
 	} else {
 		//we have some other control operation in mind...
