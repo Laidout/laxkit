@@ -134,6 +134,7 @@ double *transform_invert(double *result,const double *m);
 double *transform_mult(double *result,const double *a,const double *b);
 double *transform_diff(double *result,const double *a,const double *b);
 double *transform_identity(double *result);
+bool transforms_equal(const double *m1, const double *m2, double epsilon=1e-8);
 double *transform_rotate(double *m, double angle);
 double *transform_from_basis(double *result,flatpoint o,flatpoint x,flatpoint y);
 void transform_to_basis(double *m,flatpoint *o,flatpoint *x,flatpoint *y);

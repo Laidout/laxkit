@@ -667,6 +667,12 @@ double *transform_identity(double *result)
 	return result;
 }
 
+bool transforms_equal(const double *m1, const double *m2, double epsilon)
+{
+	return fabs(m1[0]-m2[0])<epsilon && fabs(m1[1]-m2[1])<epsilon && fabs(m1[2]-m2[2])<epsilon
+	    && fabs(m1[3]-m2[3])<epsilon && fabs(m1[4]-m2[4])<epsilon && fabs(m1[5]-m2[5])<epsilon;
+}
+
 //! Invert m into result. If result==nullptr, then return a new double[6].
 /*! \ingroup transformmath
  * <pre>
