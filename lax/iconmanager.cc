@@ -110,8 +110,11 @@ IconNode::~IconNode()
 /*! Icons are added only when needed by GetIcon(), which uses findicon().
  */
 IconManager::IconManager()
-	: icon_path(LISTS_DELETE_Array)
-{}
+	: icon_path(LISTS_DELETE_Array),
+	  broken(LISTS_DELETE_Array)
+{
+	remember_broken = true;
+}
 
 IconManager::~IconManager()
 {
@@ -130,6 +133,12 @@ int IconManager::InstallIcon(const char *nname, int nid, const char *file)
  */
 int IconManager::InstallIcon(const char *nname, int nid, LaxImage *img)
 {
+	//remove from broken if necessary
+	for (int i=broken.n-1; i >= 0; i--) {
+		if (strEquals(nname, broken.e[i]))
+			broken.remove(i);
+	}
+
 	int c;
 	if (nid<=0) {
 		if (n) nid=e[n-1]->id+1; else nid=1;
@@ -148,7 +157,7 @@ int IconManager::InstallIcon(const char *nname, int nid, LaxImage *img)
  * 
  * This function assumes that name is not already in the stack.
  */
-LaxImage *IconManager::findicon(const char *name)
+LaxImage *IconManager::findicon(const char *name, bool save_broken)
 {
 	char *path;
 	LaxImage *img=NULL;
@@ -161,11 +170,52 @@ LaxImage *IconManager::findicon(const char *name)
 		delete[] path;
 		if (img) break;
 	}
+
 	if (img) {
 		InstallIcon(name,-1,img);
 		img->inc_count();
+
+	} else if (save_broken) {
+		int c;
+		for (c=0; c<broken.n; c++) {
+			if (!strcmp(broken.e[c], name)) break;
+		}
+
+		if (c == broken.n) broken.push(newstr(name));
 	}
+
 	return img;
+}
+
+const char *IconManager::Broken(int i)
+{
+	if (i < 0 || i >= broken.n) return nullptr;
+	return broken.e[i];
+}
+
+/*! For each name in broken, rescan from current paths.
+ * Return the number that are still broken.
+ */
+int IconManager::ScanForBroken()
+{
+	for (int c=broken.n-1; c>= 0; c--) {
+		LaxImage *img = nullptr;
+
+		//scan existing in case the name snuck into broken list
+		for (int c2=0; c2<PtrStack<IconNode>::n; c2++) {
+			if (strEquals(broken.e[c], PtrStack<IconNode>::e[c2]->name)) {
+				img = PtrStack<IconNode>::e[c2]->image;
+			}
+		}
+
+		if (!img) img = findicon(broken.e[c], false);
+		if (img) {
+			// found! remove from broken
+			broken.remove(c);
+		}
+	}
+
+	return broken.n;
 }
 
 //! Return how many icons are currently installed.
@@ -183,7 +233,7 @@ Laxkit::LaxImage *IconManager::GetIconByIndex(int index)
 	return PtrStack<IconNode>::e[index]->image;
 }
 
-//! Returns the icon. The icon's count is incremented.
+//! Returns the the existinf icon with id. The icon's count is incremented.
 Laxkit::LaxImage *IconManager::GetIcon(int id)
 {
 	 //rather slow, but then, there won't be a million of them
@@ -207,7 +257,7 @@ Laxkit::LaxImage *IconManager::GetIcon(const char *name)
 			PtrStack<IconNode>::e[c]->image->inc_count();
 			return PtrStack<IconNode>::e[c]->image;
 		}
-	return findicon(name);
+	return findicon(name, remember_broken);
 }
 
 const char *IconManager::GetPath(int index)
@@ -217,7 +267,7 @@ const char *IconManager::GetPath(int index)
 }
 
 //! Add path to index 0 position of the path stack.
-/*! When passed a name that is unrecognized, then the all the icon paths are searched for
+/*! When using GetIcon(name), and name that is unrecognized, then all the icon paths are searched for
  * a loadable image named name.png.
  */
 void IconManager::AddPath(const char *newpath)

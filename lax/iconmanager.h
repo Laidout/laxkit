@@ -46,11 +46,15 @@ class IconManager : public Laxkit::anObject, public Laxkit::PtrStack<IconNode>
 {
   protected:
 	Laxkit::PtrStack<char> icon_path;
-	virtual Laxkit::LaxImage *findicon(const char *name);
+	Laxkit::PtrStack<char> broken;
+
+	virtual Laxkit::LaxImage *findicon(const char *name, bool save_broken);
 
   public:
 	static IconManager* GetDefault();
 	static IconManager* SetDefault(IconManager *newmanager);
+
+	bool remember_broken;
 
 	IconManager();
 	virtual ~IconManager();
@@ -66,6 +70,10 @@ class IconManager : public Laxkit::anObject, public Laxkit::PtrStack<IconNode>
 	virtual int RemovePath(const char *oldpath);
 	virtual int NumPaths() { return icon_path.n; }
 	virtual const char *GetPath(int index);
+
+	virtual int NumBroken() { return broken.n; }
+	virtual const char *Broken(int i);
+	virtual int ScanForBroken();
 };
 
 } //namespace Laxkit
