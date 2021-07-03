@@ -855,6 +855,7 @@ int ImageInterface::LBDown(int x,int y,unsigned int state,int count,const Laxkit
 
 			if (viewport) viewport->ChangeObject(oc,0,true);
 			needtodraw=1;
+			if (data) transform_copy(m_orig, data->m());
 			return 0;
 
 		} else if (c<0) {
@@ -879,6 +880,7 @@ int ImageInterface::LBDown(int x,int y,unsigned int state,int count,const Laxkit
 		data->origin(leftp);
 		data->xaxis(flatpoint(1,0)/Getmag()/2);
 		data->yaxis(flatpoint(0,1)/Getmag()/2);
+		transform_copy(m_orig, data->m());
 
 		DBG data->dump_out(stderr,6,0,NULL);
 		return 0;
@@ -964,10 +966,27 @@ int ImageInterface::Event(const Laxkit::EventData *data, const char *mes)
 int ImageInterface::LBUp(int x,int y,unsigned int state,const Laxkit::LaxMouse *d)
 {
 	if (mode==1 && !mousedragged && data) {
-		DBG cerr <<"**ImageInterface Clear() for no mouse move on new imagedata"<<endl;
+		DBG cerr <<"**ImageInterface Clear() for no mouse move on new imagedata and no dragging"<<endl;
 		if (viewport) viewport->DeleteObject();
 		Clear(NULL);
-	} else if (data && viewport) viewport->ObjectMoved(ioc,1);
+		
+	} else if (data && viewport) {
+		viewport->ObjectMoved(ioc,1);
+
+		if (!transforms_equal(data->m(), m_orig)) {
+			//add transform undo
+			UndoManager *undomanager=GetUndoManager();
+			if (!undomanager) return 0;
+
+			Affine mo(m_orig);
+			undomanager->AddUndo(new SomeDataUndo(data,
+										&mo,NULL,
+										data,NULL,
+										SomeDataUndo::SDUNDO_Transform,
+										false));
+		}
+	}
+
 	mode=0;
 	buttondown.up(d->id,LEFTBUTTON);
 	return 0;
@@ -1004,6 +1023,8 @@ int ImageInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMo
 			o.y=p.y;
 			data->maxy=-dy;
 		}
+
+
 		data->origin(transform_point(data->m(),o));
 		mx=x;
 		my=y;
@@ -1189,7 +1210,7 @@ const char *ImageDataUndo::Description()
 	// else if (type==ImageDataUndo::UNDO_PreviewFile ) return _("Rotation");
 	else if (type==ImageDataUndo::UNDO_Info        ) return _("Image Info");
 
-	return NULL;
+	return nullptr;
 }
 
 int ImageData::Undo(UndoData *data)

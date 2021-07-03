@@ -1746,5 +1746,41 @@ double ViewportWindow::GetVMag(int x,int y)
 	return dp->GetVMag(x,y);
 }
 
+
+//------------------------------------ UndoDatas -------------------------------
+
+class HierarchyUndoData : public UndoData
+{
+  public:
+    enum ObjUndoTypes { ObjAdded, ObjIndex, ObjDelete, ObjReparent };
+    int type;
+
+    ObjectContext *old_oc;
+    ObjectContext *oc;
+
+    HierarchyUndoData(Undoable *context, int type, ObjectContext *noc, int isauto);
+    virtual ~HierarchyUndoData();
+};
+
+HierarchyUndoData::HierarchyUndoData(Undoable *context, int type, ObjectContext *noc, int isauto)
+  : UndoData(isauto)
+{
+    this->context = context;
+    if (context && dynamic_cast<anObject*>(context)) {
+        dynamic_cast<anObject*>(context)->inc_count();
+    }
+
+    this->type = type;
+    oc = noc;
+}
+
+HierarchyUndoData::~HierarchyUndoData()
+{
+    delete oc;
+    delete old_oc;
+}
+
+
+
 } // namespace LaxInterfaces
 

@@ -24,6 +24,7 @@
 
 
 #include <lax/anobject.h>
+#include <lax/attributes.h>
 #include <cstdlib>
 
 namespace Laxkit {
@@ -61,6 +62,22 @@ class UndoData
 	virtual const char *Script() { return NULL; }
 	virtual int Size(); //in bytes of this whole undo instance
 };
+
+
+//--------------------------------------------- MetaUndoData ------------------------------------------
+class MetaUndoData : public UndoData
+{
+  public:
+    int type;
+    LaxFiles::Attribute meta;
+    char *description;
+
+    MetaUndoData(Undoable *context, int ntype, int nisauto, const char *desc);
+    virtual ~MetaUndoData();
+    virtual const char *Description();
+    virtual int Size(); //in bytes of this whole undo instance
+};
+
 
 //--------------------------------------------- UndoManager ------------------------------------------
 class UndoManager : public anObject

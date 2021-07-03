@@ -90,6 +90,10 @@ class ImageInterface : public anInterface
 	ImageData *data;
 	ObjectContext *ioc;
 
+	//undo caching
+	Laxkit::ImageInfo *prev_info;
+	double m_orig[6];
+
 	virtual void runImageDialog();
 	Laxkit::ShortcutHandler *sc;
 	virtual int PerformAction(int action);

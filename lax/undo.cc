@@ -21,6 +21,8 @@
 //
 
 #include <lax/undo.h>
+#include <lax/strmanip.h>
+
 #include <sys/times.h>
 
 
@@ -113,6 +115,49 @@ int UndoData::Size()
 {
 	return 4*sizeof(Undoable*) + 2*sizeof(int) + 2*sizeof(long) + (description ? strlen(description) : 0);
 }
+
+
+
+//--------------------------------------------- MetaUndoData ------------------------------------------
+/*! \class MetaUndoData
+ * Generic class to hold data that can be stored in an LaxFiles::Attribute.
+ */
+
+/*! Incs count of context. */
+MetaUndoData::MetaUndoData(Undoable *context, int ntype, int nisauto, const char *desc)
+  : UndoData(nisauto)
+{
+	type = ntype;
+	makestr(description, desc);
+	this->context = context;
+	if (context && dynamic_cast<anObject*>(context)) {
+		dynamic_cast<anObject*>(context)->inc_count();
+	}
+}
+
+MetaUndoData::~MetaUndoData()
+{
+	delete[] description;
+}
+
+const char *MetaUndoData::Description()
+{
+	return description;
+}
+
+int MetaUndoData::Size() //in bytes of this whole undo instanc
+{
+	int n = (description ? strlen(description) : 0) + 4*meta.attributes.n;
+
+	//note this is a very naive approximation.. checks only stringlen, not allocated.
+	for (int c=0; c<meta.attributes.n; c++) {
+		LaxFiles::Attribute *att = meta.attributes.e[c];
+		n += (att->name ? strlen(att->name) : 0) + (att->value ? strlen(att->value) : 0) + (att->comment ? strlen(att->comment) : 0);
+	}
+	return n;
+}
+
+
 
 
 //--------------------------------------------- UndoManager ------------------------------------------
