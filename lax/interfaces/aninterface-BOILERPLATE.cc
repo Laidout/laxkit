@@ -17,7 +17,7 @@
 //    You should have received a copy of the GNU Library General Public
 //    License along with this library; If not, see <http://www.gnu.org/licenses/>.
 //
-//    Copyright (C) 2018 by Tom Lechner
+//    Copyright (C) 2021 by Tom Lechner
 //
 
 
@@ -238,8 +238,12 @@ int BoilerPlateInterface::Event(const Laxkit::EventData *evdata, const char *mes
 		int i	= s->info2; //id of menu item
 		int info = s->info4; //info of menu item
 
-		if ( i==SOME_MENU_VALUE) {
-			...
+		// check actions first
+		if ( i == SOME_MENU_VALUE
+		  || i == SOME_OTHER_VALUE
+		  ) {
+			PerformAction(i);
+			return 0;
 		}
 
 		return 0; 
@@ -362,9 +366,9 @@ int BoilerPlateInterface::LBDown(int x,int y,unsigned int state,int count, const
 
 	int nhover = scan(x,y,state);
 	if (nhover != hover) {
-		hover=nhover;
+		hover = nhover;
 		buttondown.down(d->id,LEFTBUTTON,x,y, nhover);
-		needtodraw=1;
+		needtodraw = 1;
 	}
 
 
@@ -514,7 +518,7 @@ int BoilerPlateInterface::send()
 int BoilerPlateInterface::CharInput(unsigned int ch, const char *buffer,int len,unsigned int state, const Laxkit::LaxKeyboard *d)
 { ***
 	if ((state&LAX_STATE_MASK)==(ControlMask|ShiftMask|AltMask|MetaMask)) {
-		//deal with various modified keys...
+		//deal with various modified keys being pressed...
 	}
 
 	if (ch==LAX_Esc) { //the various possible keys beyond normal ascii printable chars are defined in lax/laxdefs.h
@@ -532,8 +536,8 @@ int BoilerPlateInterface::CharInput(unsigned int ch, const char *buffer,int len,
 		 //default shortcut processing
 
 		if (!sc) GetShortcuts();
-		int action=sc->FindActionNumber(ch,state&LAX_STATE_MASK,0);
-		if (action>=0) {
+		int action = sc->FindActionNumber(ch,state&LAX_STATE_MASK,0);
+		if (action >= 0) {
 			return PerformAction(action);
 		}
 	}
@@ -543,6 +547,10 @@ int BoilerPlateInterface::CharInput(unsigned int ch, const char *buffer,int len,
 
 int BoilerPlateInterface::KeyUp(unsigned int ch,unsigned int state, const Laxkit::LaxKeyboard *d)
 { ***
+	if ((state&LAX_STATE_MASK) == (ControlMask|ShiftMask|AltMask|MetaMask)) {
+		//deal with various modified keys being released...
+	}
+
 	return 1; //key not dealt with
 }
 

@@ -17,7 +17,7 @@
 //    You should have received a copy of the GNU Library General Public
 //    License along with this library; If not, see <http://www.gnu.org/licenses/>.
 //
-//    Copyright (C) 2018 by Tom Lechner
+//    Copyright (C) 2021 by Tom Lechner
 //
 #ifndef _LAX_BOILERPLATEINTERFACE_H
 #define _LAX_BOILERPLATEINTERFACE_H
