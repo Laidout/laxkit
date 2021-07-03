@@ -53,6 +53,7 @@ class DoubleBBox {
 	virtual int intersect(double mix,double max,double miy,double may, int settointersection=0);
 	virtual int intersect(DoubleBBox *bbox, int settointersection=0);
 	virtual int intersect(const double *m,DoubleBBox *bbox, int touching, int settointersection);
+	virtual int IntersectWithLine(const flatline &line, flatpoint *p1_ret, flatpoint *p2_ret, double *i1_ret=nullptr, double *i2_ret=nullptr);
 	virtual int boxcontains(double x, double y);
 	virtual flatpoint BBoxPoint(double x,double y) const;
 	double boxwidth()  const {  return maxx>minx ? maxx-minx : 0; }

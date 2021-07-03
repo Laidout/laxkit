@@ -232,6 +232,67 @@ int DoubleBBox::intersect(double mix,double max,double miy,double may, int setto
 	return max>=mix && may>=miy;
 }
 
+/*! Find where a line intersects with the box, if any.
+ * Return 0 for no intersection, 1 for 1 intersection (at a corner), or 2 for 2 intersections.
+ * If i1_ret or i2_ret are not null, return the line parameter corresponding to the points,
+ * such that: `p = line.p + i1_ret * line.v`
+ */
+int DoubleBBox::IntersectWithLine(const flatline &line, flatpoint *p1_ret, flatpoint *p2_ret, double *i1_ret, double *i2_ret)
+{
+	if (!validbounds()) return 0;
+
+	flatpoint p1, p2;
+	int found = 0;
+
+	double t;
+	int status = segmentandline(flatpoint(minx, miny), flatpoint(maxx,miny), line, p1, &t);
+	if (status == 1) {
+		if (p1_ret) *p1_ret = p1;
+		if (i1_ret) *i1_ret = t;
+		found++;
+	}
+
+	status = segmentandline(flatpoint(maxx, miny), flatpoint(maxx,maxy), line, p2, &t);
+	if (status == 1 && (!found || (found && distance(p2, p1) < 1e-8))) {
+		if (found) {
+			if (p2_ret) *p2_ret = p2;
+			if (i2_ret) *i2_ret = t;
+			return 2;
+		}
+		if (p1_ret) *p1_ret = p2;
+		if (i1_ret) *i1_ret = t;
+		p1 = p2;
+		found++;
+	}
+
+	status = segmentandline(flatpoint(maxx, maxy), flatpoint(minx,maxy), line, p2, &t);
+	if (status == 1 && (!found || (found && distance(p2, p1) < 1e-8))) {
+		if (found) {
+			if (p2_ret) *p2_ret = p2;
+			if (i2_ret) *i2_ret = t;
+			return 2;
+		}
+		if (p1_ret) *p1_ret = p2;
+		if (i1_ret) *i1_ret = t;
+		p1 = p2;
+		found++;
+	}
+
+	status = segmentandline(flatpoint(minx, maxy), flatpoint(minx,miny), line, p2, &t);
+	if (status == 1 && (!found || (found && distance(p2, p1) < 1e-8))) {
+		if (found) {
+			if (p2_ret) *p2_ret = p2;
+			if (i2_ret) *i2_ret = t;
+			return 2;
+		}
+		if (p1_ret) *p1_ret = p2;
+		if (i1_ret) *i1_ret = t;
+		found++;
+	}
+
+	return found;
+}
+
 //! Return whether the given point is contained within or on the bounds.
 /*! Invalid bounds will always return 0.
  */
