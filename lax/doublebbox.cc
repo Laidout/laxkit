@@ -253,7 +253,7 @@ int DoubleBBox::IntersectWithLine(const flatline &line, flatpoint *p1_ret, flatp
 	}
 
 	status = segmentandline(flatpoint(maxx, miny), flatpoint(maxx,maxy), line, p2, &t);
-	if (status == 1 && (!found || (found && distance(p2, p1) < 1e-8))) {
+	if (status == 1 && (!found || (found && distance(p2, p1) > 1e-8))) {
 		if (found) {
 			if (p2_ret) *p2_ret = p2;
 			if (i2_ret) *i2_ret = t;
@@ -266,7 +266,7 @@ int DoubleBBox::IntersectWithLine(const flatline &line, flatpoint *p1_ret, flatp
 	}
 
 	status = segmentandline(flatpoint(maxx, maxy), flatpoint(minx,maxy), line, p2, &t);
-	if (status == 1 && (!found || (found && distance(p2, p1) < 1e-8))) {
+	if (status == 1 && (!found || (found && distance(p2, p1) > 1e-8))) {
 		if (found) {
 			if (p2_ret) *p2_ret = p2;
 			if (i2_ret) *i2_ret = t;
@@ -279,7 +279,7 @@ int DoubleBBox::IntersectWithLine(const flatline &line, flatpoint *p1_ret, flatp
 	}
 
 	status = segmentandline(flatpoint(minx, maxy), flatpoint(minx,miny), line, p2, &t);
-	if (status == 1 && (!found || (found && distance(p2, p1) < 1e-8))) {
+	if (status == 1 && (!found || (found && distance(p2, p1) > 1e-8))) {
 		if (found) {
 			if (p2_ret) *p2_ret = p2;
 			if (i2_ret) *i2_ret = t;
