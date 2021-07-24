@@ -305,6 +305,14 @@ int SliderPopup::SetState(int which, int extrastate, int on)
 	return 0;
 }
 
+int SliderPopup::GetItemIndex(const char *fromname)
+{
+	if (!fromname) return -1;
+	for (int i=0; i<items->menuitems.n; i++)
+		if (!strcmp(items->menuitems.e[i]->name, fromname)) return i;
+	return -1;
+}
+
 //! Return index in items of item with fromid, or -1 if not found.
 int SliderPopup::GetItemIndex(int fromid)
 {
@@ -539,6 +547,15 @@ int SliderPopup::SelectNext(double multiplier)
 	return getid(curitem);
 }
 
+/*! Returns the new current index, which will be the passed in index, or -1 if out of bounds.
+ */
+int SliderPopup::SelectIndex(int index)
+{
+	if (index < 0 || index >= numitems()) return -1;
+	curitem = index;
+	needtodraw = 1;
+	return curitem;
+}
 
 } // namespace Laxkit
 

@@ -79,6 +79,7 @@ class SliderPopup : public ItemSlider
 
 	virtual int SelectPrevious(double multiplier);
 	virtual int SelectNext(double multiplier);
+	virtual int SelectIndex(int index);
 	virtual const char *GetCurrentItem();
 	virtual int GetCurrentItemIndex();
 	virtual int DeleteItem(int id);
@@ -90,6 +91,7 @@ class SliderPopup : public ItemSlider
 	virtual int SetState(int which, int extrastate, int on);
 	virtual int GetState(int which, int extrastate);
 	virtual int GetItemIndex(int fromid);
+	virtual int GetItemIndex(const char *fromname);
 	virtual int Flush(int completely=0);
 	virtual void WrapToExtent();
 
