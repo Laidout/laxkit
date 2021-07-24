@@ -268,6 +268,7 @@ class PathsData : virtual public SomeData
 	virtual int AddAt(int n, int *paths, double *t);
 
 	virtual int ConnectEndpoints(Coordinate *from,int fromi, Coordinate *to,int toi);
+	virtual int MergeEndpoints(Coordinate *from,int fromi, Coordinate *to,int toi);
 	virtual void ApplyTransform();
 	virtual void MatchTransform(Affine &affine);
 	virtual void MatchTransform(const double *mm);

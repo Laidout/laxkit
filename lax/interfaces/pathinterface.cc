@@ -4059,6 +4059,86 @@ int PathsData::ConnectEndpoints(Coordinate *from,int frompathi, Coordinate *to,i
 	return 0;
 }
 
+/*! Take 2 end points, and make them the same point, merging paths if necessary.
+ * If there is merging and fromi != toi, path toi is removed. Note that if fromi < toi,
+ * then the actual remaining path aftewards will be fromi-1.
+ *
+ * Return 0 for nothing done such as when fromi and toi are bad indices.
+ * Return 1 for merged.
+ */
+int PathsData::MergeEndpoints(Coordinate *from,int fromi, Coordinate *to,int toi)
+{
+	//find which sides they are endpoints
+	//make to be same path direction as from
+
+	if (fromi<0) fromi = hasCoord(from);
+	if (toi<0)   toi = hasCoord(to);
+	if (toi<0 || fromi<0) return 0;
+
+	int fromdir = from->isEndpoint();
+	int todir   = to->isEndpoint();
+	if (!fromdir || !todir) return 0;
+
+	if ((fromdir>0 && todir>0) || (fromdir<0 && todir<0)) ReversePath(toi);
+
+	//need to take prev of from and put on to, removing to's prev (for fromdir>0)
+	Coordinate *fp;
+	Coordinate *tp;
+	Coordinate *tmp;
+
+	//standardize connect order for code below
+	if (fromdir < 0) {
+		tmp    = from;
+		from   = to;
+		to     = tmp;
+		int tt = fromi;
+		fromi  = toi;
+		toi    = tt;
+	}
+
+	//we connect from final path point to beginning path point
+	fp = from->lastPoint(0);
+	tp = to->firstPoint(0);
+
+	//first remove in between control points
+	if (fp->flags & POINT_TOPREV) {
+		fp        = fp->prev;
+		tmp       = fp->next;
+		fp->next  = NULL;
+		tmp->prev = NULL;
+		delete tmp;
+	}
+	if (tp->flags & POINT_TONEXT) {
+		tp        = tp->next;
+		tmp       = tp->prev;
+		tp->prev  = NULL;
+		tmp->next = NULL;
+		delete tmp;
+	}
+
+	// now fp and tp should be vertices, need to remove fp
+	fp        = fp->prev;
+	tmp       = fp->next;
+	fp->next  = NULL;
+	tmp->prev = NULL;
+	delete tmp;
+
+	// finally connect the terminal points
+	fp->next = tp;
+	tp->prev = fp;
+
+	paths.e[fromi]->path = to->firstPoint(1);
+	paths.e[fromi]->needtorecache = 1;
+	
+	if (fromi != toi) {
+		// remove other path
+		paths.e[toi]->path = NULL;
+		paths.remove(toi);
+	}
+
+	return 1;
+}
+
 //! This creates an empty path and puts it on top of the stack.
 /*! This is handy when creating page layout views, for instance, so you can
  * just do pathsdata->append.... pathsdata->pushempty(); pathsdata->append....
@@ -7459,82 +7539,107 @@ int PathInterface::ConnectEndpoints(Coordinate *from,int frompathi, Coordinate *
 	return status;
 }
 
-//! Take 2 end points, and make them the same point, merging paths if necessary.
+/*! Take 2 end points, and make them the same point, merging paths if necessary.
+ * If there is merging and fromi != toi, path toi is removed.
+ */
 int PathInterface::MergeEndpoints(Coordinate *from,int fromi, Coordinate *to,int toi)
 {
 	//find which sides they are endpoints
 	//make to be same path direction as from
 
-	if (fromi<0) fromi=data->hasCoord(from);
-	if (toi<0) toi=data->hasCoord(to);
-	if (toi<0 || fromi<0) return 0;
+	if (fromi < 0) fromi = data->hasCoord(from);
+	if (toi < 0)   toi   = data->hasCoord(to);
+	if (fromi > toi) { // make sure fromi < toi so the curpoint updating below works as expected
+		Coordinate *cc = from;
+		from = to;
+		to = cc;
+		int ii = fromi;
+		fromi = toi;
+		toi = ii;
+	}
 
-	int fromdir=from->isEndpoint();
-	int todir  =to->isEndpoint();
-	if (!fromdir || !todir) return 0;
+	if (!data->MergeEndpoints(from,fromi, to,toi)) {
+		return 0;
+	}
+
 	curpoints.flush();
-
-	if ((fromdir>0 && todir>0) || (fromdir<0 && todir<0)) data->ReversePath(toi);
-
-	//need to take prev of from and put on to, removing to's prev (for fromdir>0)
-	Coordinate *fp;
-	Coordinate *tp;
-	Coordinate *tmp;
-
-	//standardize connect order for code below
-	if (fromdir<0) {
-		tmp=from;
-		from=to;
-		to=tmp;
-		int tt=fromi;
-		fromi=toi;
-		toi=tt;
-	}
-
-	//we connect from final path point to beginning path point
-	fp=from->lastPoint(0);
-	tp=to->firstPoint(0);
-
-	//first remove in between control points
-	if (fp->flags&POINT_TOPREV) {
-		fp=fp->prev;
-		tmp=fp->next;
-		fp->next=NULL;
-		tmp->prev=NULL;
-		delete tmp;
-	}
-	if (tp->flags&POINT_TONEXT) {
-		tp=tp->next;
-		tmp=tp->prev;
-		tp->prev=NULL;
-		tmp->next=NULL;
-		delete tmp;
-	}
-
-	//now fp and tp should be vertices, need to remove fp
-	fp=fp->prev;
-	tmp=fp->next;
-	fp->next=NULL;
-	tmp->prev=NULL;
-	delete tmp;
-
-	//finally connect the terminal points
-	fp->next=tp;
-	tp->prev=fp;
-
-	data->paths.e[fromi]->path=to->firstPoint(1);
-	data->paths.e[fromi]->needtorecache=1;
-	if (fromi!=toi) {
-		//remove other path
-		data->paths.e[toi]->path=NULL;
-		data->paths.remove(toi);
-	}
-
-	curpoints.pushnodup(to,0);
-	SetCurvertex(to);
+	curpoints.pushnodup(data->paths.e[fromi]->path,0);
+	SetCurvertex(data->paths.e[fromi]->path);
 	needtodraw=1;
 
 	return 1;
+	// ---------------
+
+	// if (fromi<0) fromi=data->hasCoord(from);
+	// if (toi<0) toi=data->hasCoord(to);
+	// if (toi<0 || fromi<0) return 0;
+
+	// int fromdir=from->isEndpoint();
+	// int todir  =to->isEndpoint();
+	// if (!fromdir || !todir) return 0;
+	// curpoints.flush();
+
+	// if ((fromdir>0 && todir>0) || (fromdir<0 && todir<0)) data->ReversePath(toi);
+
+	// //need to take prev of from and put on to, removing to's prev (for fromdir>0)
+	// Coordinate *fp;
+	// Coordinate *tp;
+	// Coordinate *tmp;
+
+	// //standardize connect order for code below
+	// if (fromdir<0) {
+	// 	tmp=from;
+	// 	from=to;
+	// 	to=tmp;
+	// 	int tt=fromi;
+	// 	fromi=toi;
+	// 	toi=tt;
+	// }
+
+	// //we connect from final path point to beginning path point
+	// fp=from->lastPoint(0);
+	// tp=to->firstPoint(0);
+
+	// //first remove in between control points
+	// if (fp->flags&POINT_TOPREV) {
+	// 	fp=fp->prev;
+	// 	tmp=fp->next;
+	// 	fp->next=NULL;
+	// 	tmp->prev=NULL;
+	// 	delete tmp;
+	// }
+	// if (tp->flags&POINT_TONEXT) {
+	// 	tp=tp->next;
+	// 	tmp=tp->prev;
+	// 	tp->prev=NULL;
+	// 	tmp->next=NULL;
+	// 	delete tmp;
+	// }
+
+	// //now fp and tp should be vertices, need to remove fp
+	// fp=fp->prev;
+	// tmp=fp->next;
+	// fp->next=NULL;
+	// tmp->prev=NULL;
+	// delete tmp;
+
+	// //finally connect the terminal points
+	// fp->next=tp;
+	// tp->prev=fp;
+
+	// data->paths.e[fromi]->path=to->firstPoint(1);
+	// data->paths.e[fromi]->needtorecache=1;
+	// if (fromi!=toi) {
+	// 	//remove other path
+	// 	data->paths.e[toi]->path=NULL;
+	// 	data->paths.remove(toi);
+	// }
+
+	// curpoints.pushnodup(to,0);
+	// SetCurvertex(to);
+	// needtodraw=1;
+
+	// return 1;
 }
 
 int PathInterface::LBUp(int x,int y,unsigned int state,const LaxMouse *d)
