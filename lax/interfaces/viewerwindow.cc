@@ -409,6 +409,27 @@ int ViewerWindow::SelectTool(const char *type)
 	return 1;
 }
 
+/*! Set visual display of current tool to look like interf.
+ * Note this DOES NOT update tool stack, but WILL set curtool to interf.
+ * If interf is not in the current interface stack, nothing is done and 0 is returned, else 1 is returned.
+ */
+int ViewerWindow::SetAsCurrentTool(anInterface *interf)
+{
+	if (curtool == interf) return 1;
+	int i = -1;
+	for (int c=0; c<tools.n; c++) {
+		if (!strcmp(tools.e[c]->Name(), interf->Name())) {
+			i = c;
+			break;
+		}
+	}
+	if (i<0) return 0;
+
+	curtool = interf;
+
+	return 1;
+}
+
 //! Make the tool with this id the current tool, or previous (id==-2), next (id==-1), or first (id==0). 
 /*! Return 1 for error, 0 for tool selected, -1 for overlay toggled.
  *

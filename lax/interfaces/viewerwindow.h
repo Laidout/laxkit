@@ -98,6 +98,7 @@ class ViewerWindow : public Laxkit::RowFrame
 	virtual int SelectToolFor(const char *datatype,ObjectContext *oc=NULL);
 	virtual anInterface *CurrentTool() { return curtool; }
 	virtual anInterface *FindInterface(const char *which);
+	virtual int SetAsCurrentTool(anInterface *interf);
 
 	virtual int PushInterface(anInterface *i,int absorbcount);
 	virtual int PopInterface(anInterface *i);
