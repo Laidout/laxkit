@@ -31,13 +31,16 @@ namespace Laxkit {
 	
 class MessageBox : public RowFrame
 {
- protected:
- public:
+  private:
+  	anXWindow *last_add;
+  
+  public:
 	
 	MessageBox(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
 						int xx,int yy,int ww,int hh,int brder,
 						anXWindow *prev, unsigned long nowner, const char *nsend,
 						const char *mes);
+	MessageBox(const char *nname, unsigned long nowner, const char *nsend, const char *mes);
 	virtual ~MessageBox() {}
 	virtual const char *whattype() { return "MessageBox"; }
 	virtual int preinit();

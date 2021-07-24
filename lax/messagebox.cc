@@ -28,10 +28,6 @@
 using namespace std;
 #define DBG 
 
-//#define MBOX_WRAP (1<<16)
-//#define MBOX_OK_CANCEL
-//#define MBOX_OK
-//#define MBOX_QUIT_ANYWAY_CANCEL
 
 namespace Laxkit {
 
@@ -40,15 +36,10 @@ namespace Laxkit {
  * \brief Window that puts a message and buttons like OK or Cancel.
  * 
  * The strategy is to create a new MessageBox, then immediately add
- * buttons (with AddButton()) or other windows to it
- * (through the base class RowFrame::AddWin()), before calling
+ * buttons with AddButton(), or other windows 
+ * through the base class RowFrame::AddWin(), before calling
  * app->addwindow().
  * 
- * \todo  standard buttons like OK or Cancel! or whole style like \n
- * Overwrite? Yes No Cancel\n
- * Save "blah"? Yes No Cancel\n
- * Save "blah" before quitting? Yes No\n
- * "blah" unsaved, quit anyway? Yes No\n
  * 
  *  \todo *** incorporate automatic Control Tab Loop thingy
  *  ***first button is always ok??
@@ -68,25 +59,38 @@ MessageBox::MessageBox( anXWindow *parnt, const char *nname,const char *ntitle, 
 						int xx,int yy,int ww,int hh,int brder,
 						anXWindow *prev, unsigned long nowner, const char *nsend,
 						const char *mes)
-		: RowFrame(parnt,nname,ntitle,nstyle|ROWFRAME_CENTER|ROWFRAME_ROWS,
+		: RowFrame(parnt,nname,ntitle,nstyle|ROWFRAME_CENTER|ROWFRAME_ROWS| (ww==0 || hh==0 ? ANXWIN_CENTER : 0),
 				   xx,yy,ww,hh,brder, prev,nowner,nsend)
 {
+	last_add = nullptr;
+
 	if (win_w<=1) w(BOX_SHOULD_WRAP); else { w(win_w); pw(win_w); }
 	if (win_h<=1) h(BOX_SHOULD_WRAP); else { h(win_h); ph(win_h); }
 	//m[1]=m[7]=BOX_SHOULD_WRAP; //***<-- this triggers a wrap in rowcol-figureDims
 
-	padinset=5;
+	double th = win_themestyle->normal->textheight();
+	pad = padinset = th/2;
+
 	if (mes) {
 		AddWin(new MessageBar(this,"mbox-mes",NULL,MB_CENTER|MB_MOVE|MB_COPY, 0,0,0,0, 0, mes), 1,-1);
+		AddNull();
+		AddVSpacer(th/2, th/2, 0, 50, -1);
 		AddNull();
 	}
 }
 
+/*! Shortcut constructor for modal, parentless dialog.
+ */
+MessageBox::MessageBox(const char *nname, unsigned long nowner, const char *nsend, const char *mes)
+ : MessageBox(nullptr, nname, nullptr, ANXWIN_ESCAPABLE, 0,0,0,0,0, nullptr, nowner, nsend, mes)
+{}
+
 //! Destroy on any ClientMessage.
-/*! If the message is a 'mbox-mes', then relay that message to the owner.
+/*! If the message is not a 'mbox-mes', then relay that message to base class.
+ * Otherwise, it is a button press, so relay that to our owner.
  *
  * The data from the relayed event is not changed, but the message_type
- * becomes this->sendthis.
+ * becomes this->sendthis. e->info2 is the button id.
  */
 int MessageBox::Event(const EventData *e,const char *mes)
 {
@@ -160,6 +164,9 @@ int MessageBox::init()
 		cc=dynamic_cast<anXWindow *>(_kids.e[c]);
 		if (cc && !cc->win_owner) cc->SetOwner(this);
 	}
+
+	CloseControlLoop();
+
 	DBG cerr <<"--------win w,h:"<<win_w<<','<<win_h<<endl;
 	DBG cerr <<"------done MessageBox::init"<<endl;
 	return 0;
@@ -177,6 +184,8 @@ int MessageBox::init()
  */
 Button *MessageBox::AddButton(const char *btext,int sendid,anXWindow *prev)
 {
+	if (!prev) last_add = prev;
+
 	 // textbutton will determine the extent of the text, which RowFrame uses 
 	 // with the following form of AddWin.
 	Button *tbut=new Button(this,"button",NULL,0,
@@ -185,6 +194,7 @@ Button *MessageBox::AddButton(const char *btext,int sendid,anXWindow *prev)
 							sendid,
 							btext,NULL,NULL,pad/2,pad/2);
 	if (AddWin(tbut,1,-1)) return NULL;
+	last_add = tbut;
 	return tbut;
 }
 
@@ -199,12 +209,15 @@ Button *MessageBox::AddButton(const char *btext,int sendid,anXWindow *prev)
  */
 Button *MessageBox::AddButton(unsigned int buttontype,anXWindow *prev)
 {
+	if (!prev) last_add = prev;
+
 	Button *tbut=new Button(this,"button",NULL,buttontype,
 							0,0,0,0, 1, 
 							prev, object_id, "mbox-mes",
 							buttontype,
 							NULL,NULL,NULL,pad/2,pad/2);
 	if (AddWin(tbut,1,-1)) return NULL;
+	last_add = tbut;
 	return tbut;
 }
 
