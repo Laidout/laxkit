@@ -1157,9 +1157,9 @@ int ViewportWindow::LBDown(int x,int y,unsigned int state,int count,const Laxkit
 	buttondown.down(d->id,LEFTBUTTON, x,y, state, 0);
 
 	 // if here, then mouse down on nothing, so try to select an object...
-	ObjectContext *oc;
-	int c=FindObject(x,y,NULL,NULL,1,&oc);
-	if (c==1) ChangeObject(oc,1, true);
+	// ObjectContext *oc;
+	// int c=FindObject(x,y,NULL,NULL,1,&oc);
+	// if (c==1) ChangeObject(oc,1, true);
 
 	DBG cerr <<"../ViewportWindow::lbdown\n";
 	return 0;
