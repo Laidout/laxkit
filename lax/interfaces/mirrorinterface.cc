@@ -58,7 +58,7 @@ MirrorData::MirrorData()
 	cut_at_mirror = false;
 	flip_cut = false;
 
-	label = "Label!";
+	// label = "Label!";
 }
 
 MirrorData::~MirrorData()
@@ -126,7 +126,8 @@ MirrorInterface::MirrorInterface(anInterface *nowner, int nid, Displayer *ndp)
 	if (!settings) {
 		settings = new MirrorToolSettings();
 		settingsObject.SetObject(settings, false);
-	}
+	} else settings->inc_count();
+
 
 	dataoc     = nullptr;
 	data       = nullptr;
@@ -253,7 +254,7 @@ Laxkit::MenuInfo *MirrorInterface::ContextMenu(int x,int y,int deviceid, Laxkit:
 	menu->AddItem(_("Mirror 45 deg"), MIRROR_45);
 	menu->AddItem(_("Mirror -45 deg"), MIRROR_135);
 
-	menu->AddSep(_("Some separator text"));
+	menu->AddSep();
 	menu->AddToggleItem(_("Merge"), MIRROR_Merge, 0, mirrordata->merge);
 	// const char *newitem, int nid=0, int ninfo=0, bool on=false, LaxImage *img=nullptr, int where=-1, int state=0
 	
@@ -408,8 +409,10 @@ int MirrorInterface::scan(int x, int y, unsigned int state)
 	if (!mirrordata) return MIRROR_None;
 
 	flatpoint p = screentoreal(x,y);
+	if (data) p = data->transformPointInverse(p);
 
 	double threshhold = NearThreshhold() / Getmag();
+	if (data && !data->xaxis().isZero()) threshhold /= data->xaxis().norm();
 	double scandist = threshhold; //ScreenLine() * 5 / Getmag(); //scr = getmag * real
 	if ((p - mirrordata->p1).norm() < scandist) return MIRROR_P1;
 	if ((p - mirrordata->p2).norm() < scandist) return MIRROR_P2;
@@ -429,6 +432,8 @@ int MirrorInterface::LBDown(int x,int y,unsigned int state,int count, const Laxk
 	if (nhover != MIRROR_None) {
 		hover = nhover;
 		buttondown.down(d->id,LEFTBUTTON,x,y, nhover);
+		drag_p1 = mirrordata->p1;
+		drag_p2 = mirrordata->p2;
 		needtodraw=1;
 		return 0;
 	}
@@ -470,7 +475,7 @@ int MirrorInterface::LBDown(int x,int y,unsigned int state,int count, const Laxk
 		if (viewport) viewport->ChangeContext(x,y,NULL);
 		mirrordata = newData();
 		needtodraw = 1;
-		if (!mirrordata) return 0;
+		if (!mirrordata) return 1;
 
 		 //for instance...
 		mirrordata->p1 = screentoreal(x - ScreenLine()*50,y);
@@ -483,12 +488,14 @@ int MirrorInterface::LBDown(int x,int y,unsigned int state,int count, const Laxk
 		hover = MIRROR_Line;
 		buttondown.down(d->id,LEFTBUTTON,x,y, hover);
 
+		return 0;
+
 	} else {
 		//we have some other control operation in mind...
 	}
 
 	needtodraw=1;
-	return 0; //return 0 for absorbing event, or 1 for ignoring
+	return 1; //return 0 for absorbing event, or 1 for ignoring
 }
 
 int MirrorInterface::LBUp(int x,int y,unsigned int state, const Laxkit::LaxMouse *d) 
@@ -542,24 +549,51 @@ int MirrorInterface::MouseMove(int x,int y,unsigned int state, const Laxkit::Lax
     buttondown.move(d->id,x,y, &oldx,&oldy);
     buttondown.getextrainfo(d->id,LEFTBUTTON, &action1, &action2);
 
+    flatpoint oldpoint = screentoreal(oldx,oldy);
+    flatpoint newpoint = screentoreal(x,y);
+    if (data) {
+    	oldpoint = data->transformPointInverse(oldpoint);
+    	newpoint = data->transformPointInverse(newpoint);
+    }
+
 	if (action1 == MIRROR_P1) {
-		flatpoint diff = screentoreal(x,y) - screentoreal(oldx,oldy);
-		mirrordata->p1 += diff;
+		flatpoint diff = newpoint - oldpoint;
+		drag_p1 += diff;
+		if (state & ControlMask) {
+			// apply snap
+			flatvector v = drag_p1 - drag_p2;
+			double increment = M_PI/12;
+			double angle = (int(atan2(v.y, v.x) / increment)) * increment;
+			v = v.norm() * flatvector(cos(angle), sin(angle));
+			mirrordata->p1 = drag_p2 + v;
+			// apply snap
+		} else mirrordata->p1 = drag_p1;
+		Modified();
 		needtodraw = 1;
 		return 0;
 	}
 
 	if (action1 == MIRROR_P2) {
-		flatpoint diff = screentoreal(x,y) - screentoreal(oldx,oldy);
-		mirrordata->p2 += diff;
+		flatpoint diff = newpoint - oldpoint;
+		drag_p2 += diff;
+		if (state & ControlMask) {
+			// apply snap
+			flatvector v = drag_p2 - drag_p1;
+			double increment = M_PI/12;
+			double angle = (int(atan2(v.y, v.x) / increment)) * increment;
+			v = v.norm() * flatvector(cos(angle), sin(angle));
+			mirrordata->p2 = drag_p1 + v;
+		} else mirrordata->p2 = drag_p2;
+		Modified();
 		needtodraw = 1;
 		return 0;
 	}
 	
 	if (action1 == MIRROR_Line) {
-		flatpoint diff = screentoreal(x,y) - screentoreal(oldx,oldy);
+		flatpoint diff = newpoint - oldpoint;
 		mirrordata->p1 += diff;
 		mirrordata->p2 += diff;
+		Modified();
 		needtodraw = 1;
 		return 0;
 	}
@@ -649,6 +683,7 @@ int MirrorInterface::PerformAction(int action)
 			double len = (mirrordata->p2-mirrordata->p1).norm();
 			mirrordata->p2 = flatpoint(mirrordata->p1.x + len, mirrordata->p1.y);
 			if (mirrordata->p2.x == mirrordata->p1.x) mirrordata->p2.x = mirrordata->p1.x+1;
+			Modified();
 			needtodraw = 1;
 			return 0;
 		}
@@ -657,6 +692,7 @@ int MirrorInterface::PerformAction(int action)
 			double len = (mirrordata->p2-mirrordata->p1).norm();
 			mirrordata->p2 = flatpoint(mirrordata->p1.x, mirrordata->p1.y + len);
 			if (mirrordata->p2.y == mirrordata->p1.y) mirrordata->p2.y = mirrordata->p1.y+1;
+			Modified();
 			needtodraw = 1;
 			return 0;
 		}
@@ -675,6 +711,7 @@ int MirrorInterface::PerformAction(int action)
 		case MIRROR_Merge: {
 			mirrordata->merge = !mirrordata->merge;
 			PostMessage(mirrordata->merge ? _("Merge.") : _("Don't merge."));
+			Modified();
 			UpdateData();
 			return 0;
 		}

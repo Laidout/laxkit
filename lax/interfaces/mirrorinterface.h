@@ -82,6 +82,8 @@ class MirrorInterface : public anInterface
 	MirrorData *mirrordata;
 	MirrorToolSettings *settings;
 
+	flatpoint drag_p1, drag_p2; //cache for snapping ref
+
 	int hover;
 	virtual int scan(int x, int y, unsigned int state);
 	virtual int OtherObjectCheck(int x,int y,unsigned int state);
@@ -91,6 +93,7 @@ class MirrorInterface : public anInterface
   public:
 	enum MirrorActions {
 		MIRROR_None=0,
+
 		MIRROR_P1,
 		MIRROR_P2,
 		MIRROR_Line,
@@ -111,7 +114,11 @@ class MirrorInterface : public anInterface
 		MIRROR_MAX
 	};
 
-	unsigned int interface_flags;
+  	enum MirrorSettings {
+		MIRRORI_Mirror_Is_M_Real,
+		MIRRORI_MAX
+  	};
+	unsigned int interface_flags; //see MirrorSettings
 
 	MirrorInterface(anInterface *nowner, int nid,Laxkit::Displayer *ndp);
 	virtual ~MirrorInterface();
