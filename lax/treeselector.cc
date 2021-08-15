@@ -326,11 +326,12 @@ void TreeSelector::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::Dump
 				name  = att->attributes.e[c]->attributes.e[c2]->name;
 				value = att->attributes.e[c]->attributes.e[c2]->value;
 
-				DBG cerr << " *** need to finish implementing reading in column positions for TreeSelector"<<endl;
+				//DBG cerr << " *** need to finish implementing reading in column positions for TreeSelector"<<endl;
 
 				for (int c3=0; c3<columns.n; c3++) {
 					if (!strcmp(columns.e[c3]->title,name)) {
 						columns.e[c3]->width=strtol(value, NULL, 10);
+						break;
 					}
 				}
 			}
@@ -1500,9 +1501,9 @@ void TreeSelector::SendDetail(int which)
 }
 
 //! Send message to owner.
-/*! If !(menustyle&TREESEL_SEND_STRINGS) Sends SimpleMessage with:
+/*! If `!(menustyle&TREESEL_SEND_STRINGS)` Sends SimpleMessage with:
  * \code
- * info1 = curitem (which might be -1 for nothing)
+ * info1 = curitem index (which might be -1 for nothing)
  * info2 = id of curitem
  * info3 = hover changed
  * info4 = menuitem->info
@@ -1512,16 +1513,19 @@ void TreeSelector::SendDetail(int which)
  * 2 == flag on, 3 == flag off. 2 or 3 implies info4 is the flag character
  * as specified by actiondetail.
  *
- * Otherwise, sends a list of the selected strings in a StrsEventData,
+ * Otherwise, if `menustyle&TREESEL_SEND_STRINGS`, sends a list of the selected strings in a StrsEventData,
  * with info=curitem.
  *
  * \todo *** there needs to be option to send id or list of ids..
  * \todo maybe send device id of the device that triggered the send
  */
-int TreeSelector::send(int deviceid, int action, int actiondetail)
+int TreeSelector::send(int deviceid, int action, int actiondetail, int which)
 {
 	DBG cerr <<WindowTitle()<<" send"<<endl;
 	if (!win_owner || !win_sendthis) return 0;
+
+
+	if (which < 0) which = curitem;
 
 	 // find how many selected
 	if (selection.n==0 && !(menustyle&TREESEL_SEND_ON_UP)) return 0;
@@ -1530,9 +1534,9 @@ int TreeSelector::send(int deviceid, int action, int actiondetail)
 		StrsEventData *strs=new StrsEventData(NULL,win_sendthis,object_id,win_owner);
 		strs->n=selection.n;
 		strs->strs=new char*[selection.n+1];
-		strs->info =curitem;
-		strs->info2=(curitem>=0 && curitem<numItems() ? item(curitem)->id : curitem);
-		strs->info3=(curitem>=0 && curitem<numItems() ? item(curitem)->info : 0);
+		strs->info =which;
+		strs->info2=(which>=0 && which<numItems() ? item(which)->id : which);
+		strs->info3=(which>=0 && which<numItems() ? item(which)->info : 0);
 
 		int i=0;
 		MenuItem *item;
@@ -1548,13 +1552,13 @@ int TreeSelector::send(int deviceid, int action, int actiondetail)
 
 	} else {
 		 //send SimpleMessage
-		MenuItem *itm = item(curitem);
+		MenuItem *itm = item(which);
 
 		SimpleMessage *ievent=new SimpleMessage;
-		ievent->info1 = curitem; 
-		ievent->info2 = (curitem>=0 && curitem<numItems() ? itm->id : curitem);
+		ievent->info1 = which; 
+		ievent->info2 = (which>=0 && which<numItems() ? itm->id : which);
 		ievent->info3 = action; //old: selection.n;
-		ievent->info4 = (curitem>=0 && curitem<numItems() ? itm->info : 0);
+		ievent->info4 = (which>=0 && which<numItems() ? itm->info : 0);
 
 		if (action == 2 || action == 3) {
 			ievent->info4 = actiondetail;
@@ -2070,7 +2074,7 @@ int TreeSelector::ToggleFlag(int itemi, int detail, int flag)
 
 	idetail->name[flag] = ToggleChar(idetail->name[flag]);
 
-	send(0, 2, idetail->name[flag]);
+	send(0, 2, idetail->name[flag], itemi);
 	needtodraw = 1;
 	return 1;
 }

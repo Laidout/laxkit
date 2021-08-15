@@ -388,7 +388,7 @@ int ViewportWindow::ChangeContext(ObjectContext *oc)
  * \todo *** need mechanism to pass the LBDown grab to the object's interface.. This function
  * is most often called when interfaces cannot find objects of their own to work on on an LBDown.
  */
-int ViewportWindow::ChangeObject(ObjectContext *oc, int switchtool, bool update_selection)
+int ViewportWindow::ChangeObject(ObjectContext *oc, bool switchtool, bool replace_selection)
 {
 	return 0;
 }
@@ -469,7 +469,7 @@ Selection *ViewportWindow::GetSelection()
 	return selection;
 }
 
-/*! Passing NULL will clear the selection as known by the viewport.
+/*! Passing NULL will clear the selection as known by the viewport by flushing selection (not by derefing selection).
  */
 int ViewportWindow::SetSelection(Selection *nselection)
 {

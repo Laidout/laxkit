@@ -213,7 +213,7 @@ class ViewportWindow : public Laxkit::PanUser, public Laxkit::anXWindow
 	virtual ObjectContext *ObjectMoved(ObjectContext *oc, int modifyoc);
 	virtual int ChangeContext(int x,int y,ObjectContext **oc);
 	virtual int ChangeContext(ObjectContext *oc);
-	virtual int ChangeObject(ObjectContext *oc, int switchtool, bool update_selection);
+	virtual int ChangeObject(ObjectContext *oc, bool switchtool, bool replace_selection);
 	virtual double *transformToContext(double *m,ObjectContext *oc,int invert,int full);
 	virtual bool IsValidContext(ObjectContext *oc);
 	virtual SomeData *GetObject(ObjectContext *oc);

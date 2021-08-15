@@ -275,7 +275,7 @@ int ObjectInterface::Refresh()
 //	if (selection->n()==0) return;
 //	
 //	if (!data) {
-//		somedata=data=new RectData();
+//		somedata =data=new RectData();
 //	}
 //	data->maxx=data->minx-1;
 //	data->maxy=data->miny-1;
@@ -328,7 +328,7 @@ void ObjectInterface::RemapBounds()
 
 	if (!data) {
 		if (!selection->n()) return;
-		somedata=data=new RectData();
+		somedata =data=new RectData();
 	}
 	data->ClearBBox();
 	
@@ -366,7 +366,7 @@ int ObjectInterface::AddToSelection(ObjectContext *oc)
 	}
 	selection->Add(oc,-1);
 
-	if (!data) somedata=data=new RectData();
+	if (!data) somedata =data=new RectData();
 
 	data->maxx=data->minx-1;
 	data->maxy=data->miny-1;
@@ -503,15 +503,15 @@ int ObjectInterface::LBDown(int x,int y,unsigned int state,int count,const Laxki
 	 // Not clicked on an object, so make new drag area
 	if (viewport) viewport->ChangeContext(x,y,NULL);
 
-	deletedata();//makes somedata=data=NULL
+	deletedata();//makes somedata =data=NULL
 	FreeSelection();
 	if ((state & LAX_STATE_MASK) == 0)           drag_mode = DRAG_NEW_SELECTION;
 	if ((state & LAX_STATE_MASK) == ShiftMask)   drag_mode = DRAG_ADD_SELECTION;
 	if ((state & LAX_STATE_MASK) == ControlMask) drag_mode = DRAG_SUBTRACT_SELECTION;
 
-	somedata=NULL;
-	somedata=dynamic_cast<SomeData*>(somedatafactory()->NewObject(LAX_RECTDATA));
-	if (!somedata) somedata=new RectData;
+	somedata =NULL;
+	somedata =dynamic_cast<SomeData*>(somedatafactory()->NewObject(LAX_RECTDATA));
+	if (!somedata) somedata =new RectData;
 	data=dynamic_cast<RectData *>(somedata); //has count=1
 	if (!data) return 0;
 
