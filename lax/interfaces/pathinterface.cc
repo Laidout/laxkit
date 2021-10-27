@@ -54,6 +54,7 @@ using namespace std;
 
 #define DIRSELECTRADIUS 35
 
+#define APPROX_RES 50
 
 //for use in selectPoint():
 #define PSELECT_FlushPoints  (1<<0)
@@ -1497,7 +1498,7 @@ void Path::UpdateCache()
 		cache_bottom.insertArray(ppp,cache_bottom.n*3);
 	}
 
-	needtorecache=0;
+	needtorecache = 0;
 }
 
 
@@ -1741,6 +1742,42 @@ int Path::ApplyOffset()
 		ClosestPoint(weights.e[c], NULL,NULL, &pathweights.e[c]->t);
 		pathweights.e[c]->offset=0;
 	}
+
+	needtorecache=1;
+	return 1;
+}
+
+/*! Replace path with the upper edge of the stroke, and default width.
+ */
+int Path::ApplyUpperStroke()
+{
+	if (needtorecache) UpdateCache();
+	Coordinate *coord = FlatpointToCoordinate(cache_top.e, cache_top.n);
+	if (!coord) return 0;
+
+	ClearWeights();
+	bool closed = IsClosed();
+	delete path;
+	path = coord;
+	if (closed) close();
+
+	needtorecache=1;
+	return 1;
+}
+
+/*! Replace path with the lower edge of the stroke, and default width.
+ */
+int Path::ApplyLowerStroke()
+{
+	if (needtorecache) UpdateCache();
+	Coordinate *coord = FlatpointToCoordinate(cache_bottom.e, cache_bottom.n);
+	if (!coord) return 0;
+
+	ClearWeights();
+	bool closed = IsClosed();
+	delete path;
+	path = coord;
+	if (closed) close();
 
 	needtorecache=1;
 	return 1;
@@ -2134,6 +2171,12 @@ int Path::removePoint(Coordinate *p, bool deletetoo)
 	return 0;
 }
 
+void Path::ClearWeights()
+{
+	pathweights.flush();
+	needtorecache=1;
+}
+
 /*! Use this when for some reason your weights have been scrambled and are not
  * sorted by t. This is most common after opening a path at random points. When
  * that happens, high t values get converted to low t values.
@@ -2306,6 +2349,14 @@ int Path::MakeRoundedRect(double x, double y, double w, double h, flatpoint *siz
 void Path::AppendPath(Path *p, bool absorb_path, double merge_ends, int at)
 {
 	DBG cerr << " *** IMPLEMENT Path::AppendPath()"<<endl;
+}
+
+/*! Control points (info & LINE_BEZ) in pts must occur in pairs, so vertex-bez-bez-vertex-vertex-...
+ */
+void Path::append(flatpoint *pts, int n)
+{
+	Coordinate *coord = FlatpointToCoordinate(pts,n);
+	append(coord);
 }
 
 /*! Note: adds at end, does not rejigger weight nodes.
@@ -3011,7 +3062,8 @@ int Path::PointInfo(double t, int tisdistance, flatpoint *point, flatpoint *tang
 int Path::PointAlongPath(double t, //!< Either visual distance or bezier parameter, depending on tisdistance
 						 int tisdistance, //!< 1 for visual distance, 0 for t is bez parameter
 						 flatpoint *point, //!< Return point
-						 flatpoint *tangent) //!< Return tangent at point
+						 flatpoint *tangent,
+						 int resolution) //!< Return tangent at point
 {
 	if (!path) return 0;
 
@@ -3066,9 +3118,9 @@ int Path::PointAlongPath(double t, //!< Either visual distance or bezier paramet
 				 //must deal with a bezier segment
 				double tt=0;
 
-				dd=bez_segment_length(p->p(),c1->p(),c2->p(),v2->p(), 50);
+				dd=bez_segment_length(p->p(),c1->p(),c2->p(),v2->p(), resolution);
 				if (-t>dd) { t+=dd; p=v2; continue; } //not on this segment!
-				tt=bez_distance_to_t(-t, p->p(),c1->p(),c2->p(),v2->p(), 50);
+				tt=bez_distance_to_t(-t, p->p(),c1->p(),c2->p(),v2->p(), resolution);
 				
 				if (point) *point=bez_point(tt, p->p(),c1->p(),c2->p(),v2->p());
 				if (tangent) {
@@ -3117,9 +3169,9 @@ int Path::PointAlongPath(double t, //!< Either visual distance or bezier paramet
 			 //must deal with a bezier segment
 			double tt=0;
 			if (tisdistance) {
-				dd=bez_segment_length(p->p(),c1->p(),c2->p(),v2->p(), 50);
+				dd=bez_segment_length(p->p(),c1->p(),c2->p(),v2->p(), resolution);
 				if (t>dd) { t-=dd; p=v2; continue; } //not on this segment!
-				tt=bez_distance_to_t(t, p->p(),c1->p(),c2->p(),v2->p(), 50);
+				tt=bez_distance_to_t(t, p->p(),c1->p(),c2->p(),v2->p(), resolution);
 			} else {
 				 //easy to check when using t parameter
 				if (t>1) { p=v2; t-=1; continue; }
@@ -3148,7 +3200,7 @@ int Path::PointAlongPath(double t, //!< Either visual distance or bezier paramet
 /*! point is assumed to already be in data coordinates.
  * Returns the distance between those, and the t parameter to that path point.
  */
-flatpoint Path::ClosestPoint(flatpoint point, double *disttopath, double *distalongpath, double *tdist)
+flatpoint Path::ClosestPoint(flatpoint point, double *disttopath, double *distalongpath, double *tdist, int resolution)
 {
 	if (!path) return flatpoint();
 	Coordinate *start=path->firstPoint(1);
@@ -3213,7 +3265,7 @@ flatpoint Path::ClosestPoint(flatpoint point, double *disttopath, double *distal
 				t=tt+ttt;  //update tdist for found point
 				vd=vdd+vddd; //update visual distance for closest
 			}
-			vdd+=bez_segment_length(p->p(),c1->p(),c2->p(),v2->p(), 30);   //update running visual distance
+			vdd+=bez_segment_length(p->p(),c1->p(),c2->p(),v2->p(), resolution);   //update running visual distance
 		}
 
 		p=v2;
@@ -3390,7 +3442,7 @@ double Path::Length(double tstart,double tend)
 
 		} else {
 			 //else need to search bez segment
-			d+=bez_segment_length(p->p(),c1->p(),c2->p(),v2->p(), 30);   //update running visual distance
+			d += bez_segment_length(p->p(),c1->p(),c2->p(),v2->p(), 30);   //update running visual distance
 		}
 
 		p=v2;
@@ -3405,7 +3457,7 @@ double Path::Length(double tstart,double tend)
  *
  * \todo If tt<0 this fails... it shouldn't!!
  */
-double Path::t_to_distance(double tt, int *err)
+double Path::t_to_distance(double tt, int *err, int resolution)
 {
 	if (!path) {
 		if (err) *err=0;
@@ -3455,14 +3507,14 @@ double Path::t_to_distance(double tt, int *err)
 
 		} else {
 			 //else need to search bez segment
-			sd=bez_segment_length(p->p(),c1->p(),c2->p(),v2->p(), 30);   //update running visual distance
+			sd=bez_segment_length(p->p(),c1->p(),c2->p(),v2->p(), resolution);   //update running visual distance
 			if (tt>t+1) {
 				d+=sd;
 				p=v2;
 				t++;
 				continue;
 			}
-			d+=bez_t_to_distance(tt-t, p->p(),c1->p(),c2->p(),v2->p(), 30);
+			d+=bez_t_to_distance(tt-t, p->p(),c1->p(),c2->p(),v2->p(), resolution);
 			if (err) *err=1;
 			return d;
 		}
@@ -3477,7 +3529,7 @@ double Path::t_to_distance(double tt, int *err)
 
 /*! If the tt is on the path, set *err=1. else *err=0.
  */
-double Path::distance_to_t(double distance, int *err)
+double Path::distance_to_t(double distance, int *err, int resolution)
 {
 	if (!path) {
 		if (err) *err=0;
@@ -3527,14 +3579,14 @@ double Path::distance_to_t(double distance, int *err)
 
 		} else {
 			 //else need to search bez segment
-			sd=bez_segment_length(p->p(),c1->p(),c2->p(),v2->p(), 30);   //update running visual distance
+			sd=bez_segment_length(p->p(),c1->p(),c2->p(),v2->p(), resolution);   //update running visual distance
 			if (distance>sd) { //not terribly efficient here
 				distance-=sd;
 				p=v2;
 				t++;
 				continue;
 			}
-			t+=bez_distance_to_t(distance, p->p(),c1->p(),c2->p(),v2->p(), 30);
+			t+=bez_distance_to_t(distance, p->p(),c1->p(),c2->p(),v2->p(), resolution);
 			if (err) *err=1;
 			return t;
 		}
@@ -4156,7 +4208,7 @@ void PathsData::pushEmpty(int where,LineStyle *nls)
 	}
 }
 
-/*! Incs count on style, unless it is already installed.
+/*! Incs count on style, unless it is already installed (takes ownership of newlinestyle).
  */
 void PathsData::InstallLineStyle(LineStyle *newlinestyle)
 {
@@ -4696,10 +4748,10 @@ void PathsData::ComputeAABB(const double *transform, DoubleBBox &box)
  *
  * Return 1 for point found, otherwise 0.
  */
-int PathsData::PointAlongPath(int pathindex, double t, int tisdistance, flatpoint *point, flatpoint *tangent)
+int PathsData::PointAlongPath(int pathindex, double t, int tisdistance, flatpoint *point, flatpoint *tangent, int resolution)
 {
 	if (pathindex<0 || pathindex>=paths.n) return 0;
-	return paths.e[pathindex]->PointAlongPath(t,tisdistance,point,tangent);
+	return paths.e[pathindex]->PointAlongPath(t,tisdistance,point,tangent, resolution);
 }
 
 //! Return the point on any of the paths closest to p.
@@ -4707,13 +4759,13 @@ int PathsData::PointAlongPath(int pathindex, double t, int tisdistance, flatpoin
  *
  * Optionally return that distance from the path in dist, the t parameter in tdist, and the path index in pathi.
  */
-flatpoint PathsData::ClosestPoint(flatpoint point, double *disttopath, double *distalongpath, double *tdist, int *pathi)
+flatpoint PathsData::ClosestPoint(flatpoint point, double *disttopath, double *distalongpath, double *tdist, int *pathi, int resolution)
 {
 	double d=100000000,dalong=0,t=0, dto,dd,tt;
 	flatpoint p,pp;
 	int pi=0;
 	for (int c=0; c<paths.n; c++) {
-		pp=paths.e[c]->ClosestPoint(point, &dto,&dd,&tt);
+		pp=paths.e[c]->ClosestPoint(point, &dto,&dd,&tt, resolution);
 		DBG cerr << " ************* scanning along path "<<c<<", d="<<dd<<"..."<<endl;
 		//if (dd<d) {
 		if (dto<d) {
@@ -9229,6 +9281,10 @@ void PathInterface::UpdateViewportColor()
 	if (!data) return;
 
 	ScreenColor *col;
+	if (!data->linestyle) {
+		LineStyle *style = dynamic_cast<LineStyle*>(defaultline->duplicate(nullptr));
+		data->InstallLineStyle(style);
+	}
 	if (!data->fillstyle) {
 		// ScreenColor col(1.,1.,1.,1.);
 		data->fill(&data->linestyle->color);

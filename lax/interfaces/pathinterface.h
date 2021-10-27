@@ -101,8 +101,8 @@ class Path : public LaxFiles::DumpUtility, public Laxkit::DoubleBBox
 	//------ cache funcs ------
 	int needtorecache;
 	int cache_samples;
-	int cache_types;
-	bool save_cache;
+	int cache_types; // If 1, then also compute cache_top and cache_bottom
+	bool save_cache; // Whether to save cache on file out
 	//std::time_t cache_mod_time;
 	Laxkit::CurveInfo cache_offset;
 	Laxkit::CurveInfo cache_width;
@@ -111,7 +111,7 @@ class Path : public LaxFiles::DumpUtility, public Laxkit::DoubleBBox
 	Laxkit::NumStack<flatpoint> centercache; //bezier c-v-c-...
 	Laxkit::NumStack<flatpoint> cache_top; //bezier c-v-c-... like top half of outline cache without joins
 	Laxkit::NumStack<flatpoint> cache_bottom; //bezier c-v-c-... like bottom half of outline cache without joins
-	virtual void UpdateS(bool all, int resolution=16);
+	virtual void UpdateS(bool all, int resolution=30);
 	virtual void UpdateCache();
 	virtual void UpdateWidthCache();
 
@@ -129,6 +129,7 @@ class Path : public LaxFiles::DumpUtility, public Laxkit::DoubleBBox
 	virtual void append(double x,double y,unsigned long flags=POINT_VERTEX,SegmentControls *ctl=NULL);
 	virtual void append(flatpoint p,unsigned long flags=POINT_VERTEX,SegmentControls *ctl=NULL);
 	virtual void append(Coordinate *coord);
+	virtual void append(flatpoint *pts, int n);
 	virtual void appendBezFromStr(const char *value);
 	virtual void AppendPath(Path *p, bool absorb_path, double merge_ends, int at = -1);
 	virtual int MakeRoundedRect(double x, double y, double w, double h, flatpoint *sizes, int numsizes);
@@ -166,7 +167,10 @@ class Path : public LaxFiles::DumpUtility, public Laxkit::DoubleBBox
 	virtual int MoveWeight(int which, double nt);
 	virtual int GetWeight(double t, double *width, double *offset, double *angle);
 	virtual void SortWeights();
+	virtual void ClearWeights();
 	virtual int ApplyOffset();
+	virtual int ApplyUpperStroke();
+	virtual int ApplyLowerStroke();
 	virtual int SetOffset(double towhat, bool diff=false);
 	virtual int SetAngle(double towhat, int absolute);
 	virtual int MakeStraight(Coordinate *from, Coordinate *to, bool asbez);
@@ -174,14 +178,14 @@ class Path : public LaxFiles::DumpUtility, public Laxkit::DoubleBBox
 	 //info functions
 	virtual int Intersect(flatpoint p1,flatpoint p2, int isline, double startt, flatpoint *pts,int ptsn, double *t,int tn);
 	virtual Coordinate *GetCoordinate(double t);
-	virtual int PointAlongPath(double t, int tisdistance, flatpoint *point, flatpoint *tangent);
+	virtual int PointAlongPath(double t, int tisdistance, flatpoint *point, flatpoint *tangent, int resolution=50);
 	virtual int PointInfo(double t, int tisdistance, flatpoint *point, flatpoint *tangentafter, flatpoint *tangentbefore,
 						            flatpoint *ptop, flatpoint *pbottom,
 									double *offset, double *width, double *angle);
-	virtual flatpoint ClosestPoint(flatpoint point, double *disttopath, double *distalongpath, double *tdist);
+	virtual flatpoint ClosestPoint(flatpoint point, double *disttopath, double *distalongpath, double *tdist, int resolution=50);
 	virtual double Length(double tstart,double tend);
-	virtual double distance_to_t(double distance, int *err);
-	virtual double t_to_distance(double t, int *err);
+	virtual double distance_to_t(double distance, int *err, int resolution=50);
+	virtual double t_to_distance(double t, int *err, int resolution=50);
 	virtual int NumVertices(bool *isclosed_ret);
 	virtual bool IsClosed();
 	virtual int GetIndex(Coordinate *p, bool ignore_controls);
@@ -274,9 +278,9 @@ class PathsData : virtual public SomeData
 	virtual void MatchTransform(const double *mm);
 	virtual void SetOriginToBBoxPoint(flatpoint p);
 
-	virtual flatpoint ClosestPoint(flatpoint point, double *disttopath, double *distalongpath, double *tdist, int *pathi);
+	virtual flatpoint ClosestPoint(flatpoint point, double *disttopath, double *distalongpath, double *tdist, int *pathi, int resolution=50);
 	virtual int Intersect(int pathindex,flatpoint p1,flatpoint p2, int isline, double startt,flatpoint *pts,int ptsn, double *t,int tn);
-	virtual int PointAlongPath(int pathindex, double t, int tisdistance, flatpoint *point, flatpoint *tangent);
+	virtual int PointAlongPath(int pathindex, double t, int tisdistance, flatpoint *point, flatpoint *tangent, int resolution=50);
 	// virtual int Sample(int pathindex, double step, bool step_is_distance, double from, double to, bool fit_step, Laxkit::PtrStack<Affine> &tr_ret);
 	// virtual int SampleN(int pathindex, int n_points, bool step_is_distance, double from, double to, Laxkit::PtrStack<Affine> &tr_ret);
 	virtual Coordinate *GetCoordinate(int pathi, double t);
