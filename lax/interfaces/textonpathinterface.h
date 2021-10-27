@@ -49,6 +49,9 @@ class OnPathGlyph : public Laxkit::GlyphPlace
 
 class TextOnPath : virtual public SomeData
 {
+  protected:
+	int needtorecache;
+
   public:
 	unsigned int flags; //what to dump, whether to save text on dump out or just start/end
 
@@ -68,29 +71,30 @@ class TextOnPath : virtual public SomeData
 	double end_offset;
 	double rotation;
 	double path_length;
+	double alignment; //0 == left, 100 == right
 	int pathdirection;
 
 	int start, end; //byte index in text, used text is in range [start, end)
 	char *text;
 
-	int needtorecache;
-	int numglyphs;
+	int numglyphs; //glyphs might have more than this allocated
 	Laxkit::PtrStack<OnPathGlyph> glyphs;
 	double textpathlen; //distance along path that text actually occupies
 	std::clock_t cachetime;
 
-	ObjectContext *pathcontext;
-	PathsData *paths;
+	bool link_to_parent;
+	ObjectContext *pathcontext; //link to another object, relative to ourself
+	PathsData *paths; //if !pathcontext, a local PathsData to use as the reference path. Else points to pathcontext->obj.
 	int pathindex; //path to use within paths
-	Path *path; //local path with offset/stroke already applied, this bath is the baseline of laid out text
-	Path *offsetpath; //path with offset applied
+	Path *path; //if !pathcontext and !paths, a local Path to use as the reference path. Else a dup of paths[pathindex]
+	Path *offsetpath; //this->path with offset/stroke already applied, this path is the baseline of laid out text
 
 	double scale_correction;
 	Laxkit::LaxFont *font;
 	Laxkit::Color *color;
-    char *language; //id matching something in fontmanager
-    char *script;
-    int direction; //rtl, ltr, ttb, btt? use LAX_LRTB stuff?
+	char *language; //id matching something in fontmanager
+	char *script;
+	int direction; //rtl, ltr, ttb, btt? use LAX_LRTB stuff?
 
 
 	unsigned int dumpflags;
@@ -110,15 +114,21 @@ class TextOnPath : virtual public SomeData
 	virtual int Text(const char *newtext, int nstart=0, int nend=-1);
 	virtual int Reallocate(int newn);
 	virtual int Remap();
+	virtual bool NeedToRecache();
+	virtual bool NeedToRecache(bool yes);
 	virtual int Font(Laxkit::LaxFont *newfont);
 	virtual double Size(double newfontsize);
-	virtual int UseThisPath(PathsData *newpaths, int path_index);
-	virtual int UseThisPath(ObjectContext *npathcontext, int path_index);
+	virtual void ColorRGB(double r, double g, double b, double a=-1.0);
 	virtual double Baseline(double newbaseline, bool diff);
 	virtual double Baseline(double newbaseline, bool diff, flatpoint constant);
 	virtual double StartOffset(double newoffset, bool diff);
 	virtual int PathDirection() { return pathdirection; }
 	virtual int PathDirection(int newdir);
+
+	virtual int UseThisPath(PathsData *newpaths, int path_index);
+	virtual int UseThisPath(ObjectContext *npathcontext, int path_index);
+	virtual int LinkToParent(bool yes);
+	virtual bool IsLinkedToParent();
 
 	virtual int PointInfo(double position, flatpoint *point_ret, flatpoint *tangent_ret, double *size_ret);
 
@@ -148,11 +158,13 @@ enum TextOnPathActions {
 	TPATH_BaseAndOff,
 	TPATH_Move,
 	TPATH_Size,
+	TPATH_ConnectTo,
 	TPATH_EditPath,
 	TPATH_ToggleDirection,
 	TPATH_ConvertToPath,
 	TPATH_Text,
 	TPATH_Paste,
+	TPATH_Link_To_Parent,
 	TPATH_MAX	
 };
 
@@ -170,10 +182,11 @@ class TextOnPathInterface : public anInterface
 	PathsData *paths;
 	double temp_path_m[6];
 	ObjectContext *toc;
-
+	
 	double grabpad;
 	double defaultsize;
 
+	ObjectContext *hoverc; // path hover candidate
 	flatpoint lasthover;
 	int hover_type;
 	double hoveralongpath;
@@ -222,6 +235,7 @@ class TextOnPathInterface : public anInterface
 	virtual int Paste(const char *txt,int len, Laxkit::anObject *obj, const char *formathint);
 
 	virtual void FixCaret();
+	virtual int ScanForOther(int x,int y, bool textonpath_only, ObjectContext **oc_ret);
 
 	virtual int scan(int x,int y,unsigned int state, double *alongpath, double *alongt, double *distto);
 };

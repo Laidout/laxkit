@@ -65,35 +65,35 @@ namespace LaxInterfaces {
 
 TextOnPath::TextOnPath()
 {
-	baseline_type=FROM_Offset;
-	baseline=0;
-	start_offset=0; //actual distance along path from start of path
-	end_offset=-1;
-	path_length = -1;
-	pathdirection=0; //0, 2 go forward on path, 1, 3 go backward
+	baseline_type = FROM_Offset;
+	baseline      = 0;
+	start_offset  = 0;  // actual distance along path from start of path
+	end_offset    = -1;
+	path_length   = -1;
+	pathdirection = 0;  // 0, 2 go forward on path, 1, 3 go backward
+	alignment     = 0;
 
-	rotation=0;
+	rotation = 0;
 
-	start=end=-1;
-	text=newstr("");
-	paths=NULL;
-	path=NULL;
-	offsetpath=NULL;
-	pathcontext=NULL; //local copy, deleted in destructor
+	start = end = -1;
+	text        = newstr("");
+	paths       = NULL;
+	path        = NULL;
+	offsetpath  = NULL;
+	pathcontext = NULL;  // local copy, deleted in destructor
 
-	scale_correction=1; //because harfbuzz/cairo font computations suck when font size is below single digits
-	font=NULL;
-	color=new Color; //what about multicolor?
-    direction=-1;
-	language=NULL;
-	script=NULL;
+	scale_correction = 1;  // because harfbuzz/cairo font computations suck when font size is below single digits
+	font             = NULL;
+	color            = ColorManager::newRGBA(0,0,0,1);  // what about multicolor?
+	direction        = -1;
+	language         = NULL;
+	script           = NULL;
 
+	dumpflags = 0;  //&1 = save cache
 
-	dumpflags=0; //&1 = save cache
-
-	cachetime=0;
-	numglyphs=0;
-	needtorecache=1;
+	cachetime     = 0;
+	numglyphs     = 0;
+	needtorecache = 1;
 }
 
 TextOnPath::~TextOnPath()
@@ -137,7 +137,7 @@ SomeData *TextOnPath::duplicate(SomeData *dup)
         i=dynamic_cast<TextOnPath*>(dup);
     }
     if (!i) {
-        i=new TextOnPath();
+        i = new TextOnPath();
         dup=i;
     }
 
@@ -192,7 +192,9 @@ SomeData *TextOnPath::duplicate(SomeData *dup)
 		i->UseThisPath(pathcontext, pathindex);
 
 	} else if (paths) {
-		i->UseThisPath(paths, pathindex);
+		PathsData *newpath = dynamic_cast<PathsData*>(paths->duplicate(nullptr));
+		i->UseThisPath(newpath, pathindex);
+		newpath->dec_count();
 	}
 
 	dup->FindBBox();
@@ -206,29 +208,11 @@ SomeData *TextOnPath::duplicate(SomeData *dup)
 int TextOnPath::Text(const char *newtext, int nstart, int nend)
 {
 	makestr(text, newtext);
-	start=nstart;
-	if (start<0) start=0;
-	if (nend<0) nend=strlen(text);
-	end=nend;
-	needtorecache=1;
-	return 0;
-}
-
-/*! Reallocate cache to be able to hold newn glpyhs.
- *
- * Does not change data stored within the arrays.
- */
-int TextOnPath::Reallocate(int newn)
-{
-	if (newn<numglyphs) return 0;
-
-	numglyphs=newn;
-	glyphs.Allocate(newn);
-	while (glyphs.n<newn) {
-		if (glyphs.e[glyphs.n]==NULL) glyphs.e[glyphs.n] = new OnPathGlyph;
-		glyphs.n++;
-	}
-
+	start = nstart;
+	if (start < 0) start = 0;
+	if (nend < 0) nend = strlen(text);
+	end = nend;
+	needtorecache = 1;
 	return 0;
 }
 
@@ -254,6 +238,8 @@ Attribute *TextOnPath::dump_out_atts(Attribute *att,int what,DumpContext *contex
         att->push("text_start","0","First byte of text to use");
         att->push("text_end","0","Byte after final text character");
         att->push("text","The text");
+		att->push("color","rgbaf(1,0,0,1)");
+		att->push("direction", "forward", "or backward");
         att->push("pathindex","0","Which subpath of pathobject to use");
         Attribute *att2 = att->pushSubAtt("pathobject",nullptr,"A PathsData");
 		att2->push("...");
@@ -265,11 +251,11 @@ Attribute *TextOnPath::dump_out_atts(Attribute *att,int what,DumpContext *contex
     sprintf(scratch, "%.10g %.10g %.10g %.10g %.10g %.10g", m(0),m(1),m(2),m(3),m(4),m(5));
     att->push("matrix", scratch); 
 
-	if (baseline_type==FROM_Path) att->push("baseline_type", "path");
-	else if (baseline_type==FROM_Offset) att->push("baseline_type", "offset");
-	else if (baseline_type==FROM_Stroke) att->push("baseline_type", "stroke");
-	else if (baseline_type==FROM_Other_Stroke) att->push("baseline_type", "otherstroke");
-	else if (baseline_type==FROM_Envelope) att->push("baseline_type", "envelope");
+	if      (baseline_type == FROM_Path)         att->push("baseline_type", "path");
+	else if (baseline_type == FROM_Offset)       att->push("baseline_type", "offset");
+	else if (baseline_type == FROM_Stroke)       att->push("baseline_type", "stroke");
+	else if (baseline_type == FROM_Other_Stroke) att->push("baseline_type", "otherstroke");
+	else if (baseline_type == FROM_Envelope)     att->push("baseline_type", "envelope");
 
 	UnitManager *um=GetUnitManager();
 	const char *u=um->UnitName(baseline_units);
@@ -291,6 +277,10 @@ Attribute *TextOnPath::dump_out_atts(Attribute *att,int what,DumpContext *contex
 		att->push("text_end",   end);
 		att->push("text", text);
 	}
+
+	color->dump_out_simple_string(att, "color");
+
+	att->push("direction", pathdirection % 2 == 0 ? "forward" : "backward");
 
 	if (paths) {
 		att->push("pathindex", pathindex);
@@ -327,6 +317,18 @@ void TextOnPath::dump_in_atts(Attribute *att,int flag,DumpContext *context)
             double mm[6];
             DoubleListAttribute(value,mm,6);
             m(mm);
+
+        } else if (!strcmp(name, "color")) {
+        	Color *newcolor = ColorManager::newColor(att->attributes.e[c]);
+        	if (newcolor) {
+        		color->dec_count();
+        		color = newcolor;
+        	}
+
+        } else if (!strcmp(name, "direction")) {
+        	if (value && !strcasecmp(value, "backward"))
+        		pathdirection = 1;
+        	else pathdirection = 0;
 
         } else if (!strcmp(name,"text_start")) {
 			IntAttribute(value, &start);
@@ -366,7 +368,8 @@ void TextOnPath::dump_in_atts(Attribute *att,int flag,DumpContext *context)
 
         } else if (!strcmp(name,"pathobject")) {
 			if (att->attributes.e[c]->attributes.n) {
-				newpath = new PathsData;
+				//newpath = new PathsData;
+				newpath = dynamic_cast<PathsData*>(somedatafactory()->NewObject(LAX_PATHSDATA));
 				newpath->dump_in_atts(att->attributes.e[c], flag, context);
 			}
 		}
@@ -408,20 +411,67 @@ double TextOnPath::Size(double newfontsize)
     return fs;
 }
 
+void TextOnPath::ColorRGB(double r, double g, double b, double a)
+{
+	Color *newcolor = ColorManager::newRGBA(r,g,b,a);
+	if (newcolor) {
+		color->dec_count();
+		color = newcolor;
+	}
+}
+
+bool TextOnPath::IsLinkedToParent()
+{
+	return link_to_parent;
+	//todo: really need to have a functioning LaxInterfaces::ObjectConfig with the FieldPlace context
+	//return false;
+	//if (!pathcontext) return false;
+}
+
+/*! Return 1 for success or 0 for error, such as parent not a path object.
+ */
+int TextOnPath::LinkToParent(bool yes)
+{
+	PathsData *paths = dynamic_cast<PathsData*>(GetParent());
+	if (!paths) return 0;
+
+	if (yes) {
+		if (paths) paths->dec_count();
+		paths = dynamic_cast<PathsData*>(GetParent());
+		if (!paths) {
+			link_to_parent = false;
+			return 0;
+		}
+		if (pathindex > paths->paths.n) pathindex = paths->paths.n-1;
+		link_to_parent = true;
+
+	} else {
+		if (!paths) return 0;
+		PathsData *newpath = dynamic_cast<PathsData*>(paths->duplicate(nullptr));
+		paths->dec_count();
+		paths = newpath;
+		link_to_parent = false;
+	}
+
+	needtorecache = 1;
+	return 1;
+}
+
+/*! Will link to newpaths and inc count. */
 int TextOnPath::UseThisPath(PathsData *newpaths, int path_index)
 {
-	if (paths!=newpaths) {
+	if (paths != newpaths) {
 		if (paths) paths->dec_count();
 		paths = newpaths;
 		paths->inc_count();
 	}
 
 	pathindex = path_index;
-	if (pathindex<0) pathindex=0;
+	if (pathindex < 0) pathindex = 0;
 
 	path = paths->GetPath(pathindex);
 
-	needtorecache=1;
+	needtorecache = 1;
 	return 0;
 }
 
@@ -429,6 +479,8 @@ int TextOnPath::UseThisPath(PathsData *newpaths, int path_index)
  * If !pathcontext, return -1. If context doesn't point to a PathsData, return 1.
  *
  * A duplicate of pathcontext is made.
+ *
+ * Context can only be relative to *this.
  */
 int TextOnPath::UseThisPath(ObjectContext *npathcontext, int path_index)
 {
@@ -442,22 +494,14 @@ int TextOnPath::UseThisPath(ObjectContext *npathcontext, int path_index)
 	return UseThisPath(newpaths, path_index);
 }
 
-
-// *** maybe have this be held in LaxFont??, just keeps live copies of freetype + harfbuzz fonts
-//class TextCache
-//{
-//  public:
-//
-//};
-
 /*! Make the baseline be newbaseline, of if diff then make it oldbaseline+newbaseline.
  * Returns the new value of baseline.
  */
 double TextOnPath::Baseline(double newbaseline, bool diff)
 {
-	if (diff) baseline+=newbaseline;
-	else baseline=newbaseline;
-	needtorecache=1;
+	if (diff) baseline += newbaseline;
+	else baseline = newbaseline;
+	needtorecache = 1;
 	return baseline;
 }
 
@@ -486,6 +530,8 @@ double TextOnPath::Baseline(double newbaseline, bool diff, flatpoint constant)
 	return baseline;
 }
 
+/*! Set the start_offset, or add to it if diff.
+ */
 double TextOnPath::StartOffset(double newoffset, bool diff)
 {
 	if (diff) start_offset += newoffset;
@@ -546,14 +592,49 @@ int TextOnPath::PointInfo(double position, flatpoint *point_ret, flatpoint *tang
 
 int TextOnPath::PathDirection(int newdir)
 {
-	pathdirection=newdir;
-	if (pathdirection>3) pathdirection=0;
-	if (pathdirection<0) pathdirection=3;
-	needtorecache=1;
+	pathdirection = newdir;
+	if (pathdirection > 3) pathdirection = 0;
+	if (pathdirection < 0) pathdirection = 3;
+	needtorecache = 1;
 	return pathdirection;
 }
 
-/*! Assuming path is updated, align the text to it.
+/*! Reallocate cache to be able to hold newn glpyhs.
+ *
+ * Does not change data stored within the arrays.
+ */
+int TextOnPath::Reallocate(int newn)
+{
+	if (newn<numglyphs) return 0;
+
+	numglyphs=newn;
+	glyphs.Allocate(newn);
+	while (glyphs.n<newn) {
+		if (glyphs.e[glyphs.n]==NULL) glyphs.e[glyphs.n] = new OnPathGlyph;
+		glyphs.n++;
+	}
+
+	return 0;
+}
+
+bool TextOnPath::NeedToRecache()
+{
+	if (link_to_parent && GetParent() && GetParent()->modtime > modtime) {
+		needtorecache = true;
+		return true;
+	}
+	return needtorecache;
+}
+
+/*! Set needtoreache to value of yes.
+ */
+bool TextOnPath::NeedToRecache(bool yes)
+{
+	needtorecache = yes;
+	return needtorecache;
+}
+
+/*! Assuming this->path is not null, update offsetpath, and align the text to it.
  */
 int TextOnPath::Remap()
 {
@@ -561,24 +642,54 @@ int TextOnPath::Remap()
 
 	if (offsetpath) {
 		delete offsetpath;
-		offsetpath=NULL;
+		offsetpath = nullptr;
 	}
 
+	if (link_to_parent) {
+		PathsData *parent = dynamic_cast<PathsData*>(GetParent());
+		if (!parent || !parent->paths.n) return 0;
+		if (pathindex < 0 || pathindex >= parent->paths.n) pathindex = 0;
+		path = parent->paths.e[pathindex];
+	}
+
+	// update offsetpath
 	if (!path) return 0;
 	offsetpath = path->duplicate();
-	if (baseline) {
+	offsetpath->cache_types = 1;
+
+	if (link_to_parent) {
+		double mm[6];
+		transform_invert(mm, m());
+		offsetpath->Transform(mm);
+	}
+
+	if (baseline_type == FROM_Path) {
+		offsetpath->ClearWeights();
+
+	} else if (baseline_type == FROM_Offset) {
+		offsetpath->SetOffset(baseline, true);
+
+	} else if (baseline_type == FROM_Stroke) {
+		offsetpath->SetOffset(baseline, true);
+		offsetpath->ApplyUpperStroke();
+
+	} else if (baseline_type == FROM_Other_Stroke) {
+		offsetpath->SetOffset(baseline, true);
+		offsetpath->ApplyLowerStroke();
+
+	} else if (baseline_type == FROM_Envelope) { //encase in path's stroke outline, scaling glyphs accordingly
 		offsetpath->SetOffset(baseline, true);
 	}
+	
 	offsetpath->ApplyOffset();
 	path_length = offsetpath->Length(0,-1);
 
-	if (end-start<=0) { //ok to have just a bunch of spaces
-		textpathlen=0;
-		needtorecache=0;
-		cachetime = times(NULL);
+	if (end - start <= 0) {  // ok to have just a bunch of spaces
+		textpathlen   = 0;
+		needtorecache = 0;
+		cachetime     = times(NULL);
 		return 0;
 	}
-
 
 	 //set up freetype and hb fonts
 	FontManager *fontmanager = InterfaceManager::GetDefault()->GetFontManager();
@@ -599,10 +710,10 @@ int TextOnPath::Remap()
 
 	 //Figure out direction, if any
 	hb_direction_t dir = HB_DIRECTION_INVALID;
-	if (direction==LAX_LRTB || direction==LAX_LRBT) dir=HB_DIRECTION_LTR;
-	else if (direction==LAX_RLTB || direction==LAX_RLBT) dir=HB_DIRECTION_RTL;
-	else if (direction==LAX_BTLR || direction==LAX_BTRL) dir=HB_DIRECTION_BTT;
-	else if (direction==LAX_TBLR || direction==LAX_TBRL) dir=HB_DIRECTION_TTB;
+	if      (direction == LAX_LRTB || direction == LAX_LRBT) dir = HB_DIRECTION_LTR;
+	else if (direction == LAX_RLTB || direction == LAX_RLBT) dir = HB_DIRECTION_RTL;
+	else if (direction == LAX_BTLR || direction == LAX_BTRL) dir = HB_DIRECTION_BTT;
+	else if (direction == LAX_TBLR || direction == LAX_TBRL) dir = HB_DIRECTION_TTB;
 	// else need to guess direction
 
 
@@ -619,11 +730,6 @@ int TextOnPath::Remap()
 	//str=fontmanager->ScriptString(language);
 	//if (script>=0 && *str) hbscript = hb_script_from_string(str, strlen(str));
 	if (script) hbscript = hb_script_from_string(script, strlen(script));
-
-//	const char *nonblank=NULL;
-//	for (int c=0; c<lines.n; c++) {
-//		if (!isblank(lines.e[c])) nonblank=lines.e[c];
-//	}
 
 
 	 //now figure out lines as necessary
@@ -710,20 +816,23 @@ int TextOnPath::Remap()
 	//now get feature set for this pair with:
 
 	hb_ot_layout_language_get_feature_tags(hb_face, HB_OT_TAG_GSUB, script_index, lang_index, 0, &count, myResult);
+	
 	DBG cerr <<"for font :"<<font->FontFile()<<":"<<endl;
 	DBG cerr <<" All the GSUB features for cur lang+script:  ";
-	char tagstr[5]; tagstr[4]='\0';
-	for (int cc=0; cc<(int)count; cc++) {
-		hb_tag_to_string(myResult[cc], tagstr);
-		DBG cerr <<tagstr<<"  ";
-	}
+	DBG char tagstr[5]; tagstr[4]='\0';
+	DBG for (int cc=0; cc<(int)count; cc++) {
+	DBG 	hb_tag_to_string(myResult[cc], tagstr);
+	DBG 	cerr <<tagstr<<"  ";
+	DBG }
 	DBG cerr << endl;
+
 	hb_ot_layout_language_get_feature_tags(hb_face, HB_OT_TAG_GPOS, script_index, lang_index, 0, &count, myResult);
+	
 	DBG cerr <<" All the GPOS features for cur lang+script:  ";
-	for (int cc=0; cc<(int)count; cc++) {
-		hb_tag_to_string(myResult[cc], tagstr);
-		DBG cerr <<tagstr<<"  ";
-	}
+	DBG for (int cc=0; cc<(int)count; cc++) {
+	DBG 	hb_tag_to_string(myResult[cc], tagstr);
+	DBG 	cerr <<tagstr<<"  ";
+	DBG }
 	DBG cerr << endl;
 
 
@@ -759,7 +868,7 @@ int TextOnPath::Remap()
 	//}
 	//
 
-	int nglyphs     = hb_buffer_get_length (hb_buffer); //glyphs wide
+	int nglyphs              = hb_buffer_get_length (hb_buffer); //glyphs wide
 	hb_glyph_info_t *info    = hb_buffer_get_glyph_infos (hb_buffer, NULL);     //points to inside hb_buffer
 	hb_glyph_position_t *pos = hb_buffer_get_glyph_positions (hb_buffer, NULL); //points to inside hb_buffer
 
@@ -767,7 +876,7 @@ int TextOnPath::Remap()
 	if (glyphs.Allocated() < nglyphs) {
 		Reallocate(nglyphs);
 	}
-	numglyphs=nglyphs;
+	numglyphs = nglyphs;
 
 	double current_x = 0;
 	double current_y = 0;
@@ -776,6 +885,7 @@ int TextOnPath::Remap()
 
 	OnPathGlyph *glyph;
 
+	//convert basic info from the harfbuzz shaping
 	for (int i = 0; i < numglyphs; i++) {
 		glyph = glyphs.e[i];
 
@@ -800,8 +910,7 @@ int TextOnPath::Remap()
 	DBG cerr <<endl;
 
 	textpathlen = width;
-	needtorecache = false;
-
+	
 
 	 //cleanup hb and freetype stuff
 	hb_buffer_destroy (hb_buffer);
@@ -1242,26 +1351,27 @@ SomeData *TextOnPath::ConvertToPaths(bool use_clones, Laxkit::RefPtrStack<SomeDa
 TextOnPathInterface::TextOnPathInterface(anInterface *nowner, int nid)
  : anInterface(nowner,nid,NULL), pathinterface(0,NULL)
 {
-	textonpath_style=0;
-	allow_edit_path=true;
+	textonpath_style = 0;
+	allow_edit_path  = true;
 
-	toc=NULL;
-	textonpath=NULL;
-	paths=NULL;
+	toc        = nullptr;
+	textonpath = nullptr;
+	paths      = nullptr;
+	hoverc     = nullptr;
 
-	sellen=0;
-	caretpos=-1;
-	showdecs=1;
-	needtodraw=1;
-	firsttime=1;
-	showobj=1;
+	sellen     = 0;
+	caretpos   = -1;
+	showdecs   = 1;
+	needtodraw = 1;
+	firsttime  = 1;
+	showobj    = 1;
 
-	grabpad=20;
-	defaultsize=36; //pts
+	grabpad     = 20;
+	defaultsize = 36;  // pts
 
-	hover_type=TPATH_None;
+	hover_type = TPATH_None;
 
-	sc=NULL; //shortcut list, define as needed in GetShortcuts()
+	sc = nullptr;  // shortcut list, define as needed in GetShortcuts()
 }
 
 TextOnPathInterface::~TextOnPathInterface()
@@ -1270,6 +1380,7 @@ TextOnPathInterface::~TextOnPathInterface()
 	if (sc) sc->dec_count();
 	if (paths) paths->dec_count();
 	if (toc) delete toc;
+	if (hoverc) delete hoverc;
 }
 
 const char *TextOnPathInterface::whatdatatype()
@@ -1382,8 +1493,8 @@ int TextOnPathInterface::InterfaceOn()
  */
 int TextOnPathInterface::InterfaceOff()
 {
-	//Clear(NULL);
 	if (child) RemoveChild();
+	Clear(nullptr);
 	showdecs=0;
 	needtodraw=1;
 	return 0;
@@ -1415,15 +1526,23 @@ void TextOnPathInterface::ViewportResized()
 
 Laxkit::MenuInfo *TextOnPathInterface::ContextMenu(int x,int y,int deviceid, Laxkit::MenuInfo *menu)
 {
+	if (!textonpath) return menu;
 	if (!menu) menu=new MenuInfo;
 
 	//if (!menu->n()) menu->AddSep(_("Offset type"));
+	if (menu->n()) menu->AddSep();
+	menu->AddItem(_("Edit path..."), TPATH_EditPath);
+	menu->AddSep();
 	menu->AddToggleItem(_("Baseline from path"),         TextOnPath::FROM_Path,         0, (textonpath->baseline_type==TextOnPath::FROM_Path));
 	menu->AddToggleItem(_("Baseline from offset"),       TextOnPath::FROM_Offset,       0, (textonpath->baseline_type==TextOnPath::FROM_Offset));
 	menu->AddToggleItem(_("Baseline from stroke"),       TextOnPath::FROM_Stroke,       0, (textonpath->baseline_type==TextOnPath::FROM_Stroke));
 	menu->AddToggleItem(_("Baseline from other stroke"), TextOnPath::FROM_Other_Stroke, 0, (textonpath->baseline_type==TextOnPath::FROM_Other_Stroke));
 	menu->AddToggleItem(_("Use envelope for size"),      TextOnPath::FROM_Envelope,     0, (textonpath->baseline_type==TextOnPath::FROM_Envelope));
 	//menu->AddItem(_("Use envelope to stretch"), TPATH_UseStretchEnvelope);
+	menu->AddSep();
+	menu->AddItem(_("Reverse direction"), TPATH_ToggleDirection);
+	if (dynamic_cast<PathsData*>(textonpath->GetParent()))
+		menu->AddToggleItem(_("Link to parent path"), TPATH_Link_To_Parent, 0, textonpath->IsLinkedToParent());
 	menu->AddSep();
 	menu->AddItem(_("Convert to path"), TPATH_ConvertToPath);
 
@@ -1456,7 +1575,7 @@ int TextOnPathInterface::Event(const Laxkit::EventData *e_data, const char *mes)
 
 	} else if (!strcmp(mes, "PathInterface")) {
 		DBG cerr <<" ***** need to update textonpath!"<<endl;
-		textonpath->needtorecache=1;
+		textonpath->NeedToRecache(true);
 		needtodraw=1;
 		return 0;
 
@@ -1466,39 +1585,43 @@ int TextOnPathInterface::Event(const Laxkit::EventData *e_data, const char *mes)
 
 		if (!textonpath) return 0;
 
-        if (i==TPATH_ConvertToPath) {
-			PerformAction(TPATH_ConvertToPath);
+        if (   i == TPATH_ConvertToPath
+        	|| i == TPATH_EditPath
+        	|| i == TPATH_ToggleDirection
+        	|| i == TPATH_Link_To_Parent
+           ) {
+			PerformAction(i);
 			return 0; 
 
 		} else if (i==TextOnPath::FROM_Envelope) {
 			textonpath->baseline_type = TextOnPath::FROM_Envelope;
-			textonpath->needtorecache=1;
+			textonpath->NeedToRecache(true);
 			PostMessage(_("Text size from envelope"));
 			return 0;
 
 		} else if (i==TextOnPath::FROM_Path) {
 			textonpath->baseline_type = TextOnPath::FROM_Path;
-			textonpath->needtorecache=1;
+			textonpath->NeedToRecache(true);
 			PostMessage(_("Text size from envelope"));
 			return 0;
 
 		} else if (i==TextOnPath::FROM_Offset) {
 			textonpath->baseline_type = TextOnPath::FROM_Offset;
-			textonpath->needtorecache=1;
+			textonpath->NeedToRecache(true);
 			PostMessage(_("Text size from envelope"));
 			return 0;
 
 		} else if (i==TextOnPath::FROM_Stroke) {
 			textonpath->baseline_type = TextOnPath::FROM_Stroke;
-			textonpath->needtorecache=1;
+			textonpath->NeedToRecache(true);
 			PostMessage(_("Text size from envelope"));
 			return 0;
 
 		} else if (i==TextOnPath::FROM_Other_Stroke) {
 			textonpath->baseline_type = TextOnPath::FROM_Other_Stroke;
-			textonpath->needtorecache=1;
+			textonpath->NeedToRecache(true);
 			PostMessage(_("Text size from envelope"));
-			return 0; 
+			return 0;
 		}
 
 		//if here, unknown menu item!
@@ -1511,7 +1634,7 @@ int TextOnPathInterface::Event(const Laxkit::EventData *e_data, const char *mes)
         double d=strtod(s->str, &endptr);
 		if (endptr != s->str) {
 			textonpath->baseline = d;
-			textonpath->needtorecache=1;
+			textonpath->NeedToRecache(true);
 			needtodraw=1;
 		}
 
@@ -1524,7 +1647,7 @@ int TextOnPathInterface::Event(const Laxkit::EventData *e_data, const char *mes)
         double d=strtod(s->str, &endptr);
 		if (endptr != s->str) {
 			textonpath->start_offset = d;
-			textonpath->needtorecache=1;
+			textonpath->NeedToRecache(true);
 			needtodraw=1;
 		}
 		return 0;
@@ -1574,17 +1697,49 @@ int TextOnPathInterface::Refresh()
 		firsttime=0;
 	}
 
+	if (hoverc) {
+		 //draw ouline of another caption
+		dp->NewFG(255,0,255);
+		dp->LineAttributes(1,LineSolid,CapRound,JoinRound);
+		
+		double m[6];
+		if (textonpath) {
+			viewport->transformToContext(m,toc,1,-1);
+			dp->PushAndNewTransform(m);
+		}
+
+		viewport->transformToContext(m,hoverc,0,-1);
+		dp->PushAndNewTransform(m);
+		dp->LineWidthScreen(ScreenLine()*2);
+		dp->moveto(hoverc->obj->minx, hoverc->obj->miny);
+		dp->lineto(hoverc->obj->maxx, hoverc->obj->miny);
+		dp->lineto(hoverc->obj->maxx, hoverc->obj->maxy);
+		dp->lineto(hoverc->obj->minx, hoverc->obj->maxy);
+		dp->closed();
+		dp->stroke(0);
+		dp->PopAxes(); 
+
+		if (textonpath) dp->PopAxes();
+	}
+
 	if (!textonpath) return 0;
 
-	if (textonpath->needtorecache) textonpath->Remap();
+	if (textonpath->NeedToRecache()) textonpath->Remap();
 
 
+	// draw path
 	dp->NewFG(0.0,0.0,1.0);
 	if (showdecs) {
 		double m[6];
 		transform_copy(m,paths->m());
 		paths->setIdentity();
+
+		unsigned int noweights = (paths->style & PathsData::PATHS_Ignore_Weights);
+		if (textonpath->baseline_type == TextOnPath::FROM_Path) paths->style &= ~PathsData::PATHS_Ignore_Weights;
+
 		pathinterface.DrawDataDp(dp, paths, NULL,NULL,0);
+
+		if (textonpath->baseline_type == TextOnPath::FROM_Path) paths->style |= noweights;
 		paths->m(m);
 	}
 
@@ -1653,6 +1808,7 @@ int TextOnPathInterface::Refresh()
 				  ll=dp->realtoscreen(flatpoint(textonpath->minx,textonpath->maxy)),
 				  lr=dp->realtoscreen(flatpoint(textonpath->maxx,textonpath->maxy));
  
+ 		//draw box
         dp->NewFG(1.0, 0., 0., .25);
         dp->moveto(ul);
         dp->lineto(ur);
@@ -1675,6 +1831,8 @@ int TextOnPathInterface::Refresh()
         dp->closed();
         if (hover_type==TPATH_Size) dp->fill(0); else dp->stroke(0);
 
+        //draw connect knob
+        //dp->drawpoint();
 
 
 		flatpoint tangent,tv;
@@ -1695,12 +1853,14 @@ int TextOnPathInterface::Refresh()
 		 //draw start offset modifier
 
 		if (hover_type==TPATH_Offset) {
-			dp->moveto(pp +     th*tv -   2*th*tangent);
-			dp->lineto(pp +     th*tv +   2*th*tangent);
-			dp->lineto(pp + 2  *th*tv +     th*tangent);
-			dp->lineto(pp + 1.5*th*tv +     th*tangent);
-			dp->lineto(pp + 1.5*th*tv -     th*tangent);
-			dp->lineto(pp + 2  *th*tv -     th*tangent);
+			double s = th;
+			//double s = 1.5*grabpad*thin/dp->Getmag()/2;
+			dp->moveto(pp +     s*tv -   2*s*tangent);
+			dp->lineto(pp +     s*tv +   2*s*tangent);
+			dp->lineto(pp + 2  *s*tv +     s*tangent);
+			dp->lineto(pp + 1.5*s*tv +     s*tangent);
+			dp->lineto(pp + 1.5*s*tv -     s*tangent);
+			dp->lineto(pp + 2  *s*tv -     s*tangent);
 			dp->closed();
 
 			ScreenColor offsetknobcolor(0.0,0.0,1.0,.25);
@@ -1970,7 +2130,7 @@ int TextOnPathInterface::LBDown(int x,int y,unsigned int state,int count, const 
     Clear(NULL);
 
 	//so no other object underneath, need to create a new one!
-	textonpath=new TextOnPath;
+	textonpath = newData();
 	//textonpath->Text("Testing one two three!!!");
 	textonpath->Text("");
 	LaxFont *font = anXApp::app->defaultlaxfont->duplicate();
@@ -1981,7 +2141,8 @@ int TextOnPathInterface::LBDown(int x,int y,unsigned int state,int count, const 
 
 	 //create new straight line path
 	if (paths) paths->dec_count();
-	paths = new PathsData;
+	//paths = new PathsData();
+	paths = dynamic_cast<PathsData*>(somedatafactory()->NewObject(LAX_PATHSDATA));
 	//paths->style|=PathsData::PATHS_Ignore_Weights;
 	//paths->style|=PathsData::PATHI_Render_With_Cache;
 	paths->moveTo(textonpath->transformPointInverse(screentoreal(x,y)));
@@ -2055,20 +2216,66 @@ int TextOnPathInterface::LBUp(int x,int y,unsigned int state, const Laxkit::LaxM
 }
 
 
+/*! Scan for potential candidate to grab path from. Update hoverc if found. 
+ * Return true for found, or false for not. 
+ * If textonpath_only, then search for whatdatatype(). Else search for "PathsData" objects.
+ */
+int TextOnPathInterface::ScanForOther(int x,int y, bool textonpath_only, ObjectContext **oc_ret)
+{
+	ObjectContext *oc = nullptr;
+    
+    int c=viewport->FindObject(x,y, textonpath_only ? whatdatatype() : "PathsData",NULL,1,&oc);
+    if (c>0) {
+    	if (oc_ret) *oc_ret = oc;
+    	return true;
+    }
+
+	return false;
+}
 
 int TextOnPathInterface::MouseMove(int x,int y,unsigned int state, const Laxkit::LaxMouse *d)
 {
 	if (!buttondown.any()) {
 		double alongpath, alongt;
-		int hover=TPATH_None;
+		int hover = TPATH_None;
+
 		if (!child) {
-			hover=scan(x,y,state, &alongpath, &alongt, NULL);
+			ObjectContext *oc = nullptr;
+			if (ScanForOther(x,y, true, &oc) && (!textonpath || (textonpath && oc->obj != textonpath))) {
+				delete hoverc;
+				hoverc = oc->duplicate();
+				needtodraw = 1;
+			} else if (hoverc) {
+				delete hoverc;
+				hoverc = nullptr;
+				needtodraw = 1;
+			}
+			//----
+			//if (!textonpath) {
+			//	ObjectContext *oc = nullptr;
+			//	if (ScanForOther(x,y, true, &oc)) {
+			//		delete hoverc;
+			//		hoverc = oc->duplicate();
+			//		needtodraw = 1;
+			//	} else if (hoverc) {
+			//		delete hoverc;
+			//		hoverc = nullptr;
+			//		needtodraw = 1;
+			//	}
+
+			//} else if (hoverc) {
+			//	delete hoverc;
+			//	hoverc = nullptr;
+			//	needtodraw = 1;
+			//}
+
+			hover = scan(x,y,state, &alongpath, &alongt, NULL);
 			hoveralongpath = alongpath;
 		}
 
 		DBG cerr <<" TextOnPath hover: "<<hover<<endl;
 
-		if (hover!=hover_type) {
+		if (hover != hover_type) {
 			hover_type = hover;
 
 			if (hover_type==TPATH_Baseline)    PostMessage(_("Drag to change offset from baseline"));
@@ -2100,14 +2307,16 @@ int TextOnPathInterface::MouseMove(int x,int y,unsigned int state, const Laxkit:
 
 	char scratch[200];
 	if (hover==TPATH_Baseline || hover==TPATH_BaseAndOff) {
-		textonpath->Baseline(distto-distto2, true, textonpath->transformPointInverse(screentoreal(x,y)));
+		//textonpath->Baseline(distto-distto2, true, textonpath->transformPointInverse(screentoreal(x,y))); //also adjusts offset.. problematic
+		textonpath->Baseline(distto-distto2, true); //change only baseline
 		sprintf(scratch, _("Baseline %f"), textonpath->baseline);
 		PostMessage(scratch);
 		needtodraw=1;
 	}
+
 	if (hover==TPATH_Offset || hover==TPATH_BaseAndOff) {
 		textonpath->start_offset += (alongpath-alongpath2);
-		textonpath->needtorecache=1;
+		textonpath->NeedToRecache(true);
 		sprintf(scratch, _("Offset %f"), textonpath->start_offset);
 		PostMessage(scratch);
 		needtodraw=1;
@@ -2277,9 +2486,9 @@ TextOnPath *TextOnPathInterface::newData()
     TextOnPath *ndata=NULL;
 
     ndata=dynamic_cast<TextOnPath *>(somedatafactory()->NewObject(LAX_TEXTONPATH));
-    if (!ndata) ndata=new TextOnPath();
+    if (!ndata) ndata = new TextOnPath();
 
-	LaxFont *font = anXApp::app->defaultlaxfont->duplicate(); // *** need some standard!!
+	LaxFont *font = anXApp::app->defaultlaxfont->duplicate(); //todo: *** need some standard!!
 	font->Resize(defaultsize);
 	ndata->Font(font);
 	font->dec_count();
@@ -2308,7 +2517,7 @@ int TextOnPathInterface::Paste(const char *txt,int len, Laxkit::anObject *obj, c
         strncpy(text,txt,len);
         text[len]='\0';
 
-		textonpath=new TextOnPath; 
+		textonpath = newData();
 		textonpath->Text(text);
 
 		LaxFont *font = anXApp::app->defaultlaxfont->duplicate(); // *** need some standard!!
@@ -2395,7 +2604,7 @@ int TextOnPathInterface::RemoveChild()
     int c=anInterface::RemoveChild();
     if (!textonpath) return c;
 
-	textonpath->needtorecache=1;
+	textonpath->NeedToRecache(true);
 
     PostMessage("");
 
@@ -2441,13 +2650,13 @@ int TextOnPathInterface::PerformAction(int action)
 
 	} else if (action==TPATH_OffsetDec) {
 		textonpath->start_offset-=textonpath->font->Msize()/2/72;
-		textonpath->needtorecache=1;
+		textonpath->NeedToRecache(true);
 		needtodraw=1;
 		return 0;
 
 	} else if (action==TPATH_OffsetInc) {
 		textonpath->start_offset+=textonpath->font->Msize()/2/72;
-		textonpath->needtorecache=1;
+		textonpath->NeedToRecache(true);
 		needtodraw=1;
 		return 0;
 
@@ -2493,6 +2702,26 @@ int TextOnPathInterface::PerformAction(int action)
 
 	} else if (action==TPATH_Paste) {
 		viewport->PasteRequest(this, NULL);
+		return 0;
+
+	} else if (action == TPATH_Link_To_Parent) {
+		if (!textonpath) return 0;
+		PathsData *paths = dynamic_cast<PathsData*>(textonpath->GetParent());
+		if (!paths) {
+			PostMessage(_("Parent is not a path object"));
+			return 0;
+		}
+		if (textonpath->IsLinkedToParent()) {
+			textonpath->LinkToParent(false);
+		} else {
+			textonpath->LinkToParent(true);
+		}
+
+		if (paths != textonpath->paths) {
+			if (paths) paths->dec_count();
+			paths=textonpath->paths;
+			if (paths) paths->inc_count();
+		}
 		return 0;
 	}
 
