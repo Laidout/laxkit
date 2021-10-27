@@ -122,6 +122,12 @@ LineStyle::~LineStyle()
 	delete[] dashes;
 }
 
+anObject *LineStyle::duplicate(anObject *ref)
+{
+	LineStyle *style = new LineStyle(*this);
+	return style;
+}
+
 void LineStyle::Color(unsigned long col)
 {
 	ScreenColor cc(col);
