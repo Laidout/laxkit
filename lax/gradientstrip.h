@@ -78,11 +78,12 @@ class GradientStrip : virtual public Resourceable, virtual public LaxFiles::Dump
 		char *name;
 		double t, nt; //user t, normalized t
 		double s, ns; //user s, normalized s, for mixer style display
+		//flatvector in,out; //when curve interpolation
 		Color *color;
 
          //for compatibility with gimp gradients:
         double midposition; //0..1, is along segment of this point to next
-        int interpolation; //like gimp? 0=linear, 1=curved, 2=sinusoidal, 3=sphere inc, 4=sphere dec
+        int interpolation; //like gimp? 0=linear, 1=curved, 2=sinusoidal, 3=sphere inc, 4=sphere dec, 5=constant? 6=curves?
         int transition; //how to vary the color, a line in rgb or in hsv
 
 
@@ -113,6 +114,7 @@ class GradientStrip : virtual public Resourceable, virtual public LaxFiles::Dump
 	double smin, smax; //range for s in colors, hint for mixer display
 
 	PtrStack<GradientSpot> colors;
+	//LaxImage *strip_render; //for non-cairo interpolations, possibly higher res than preview image
 
 	int continue_left, continue_right; //0 for stop, 1 for continue with closest color, 2 for flip, 3 for repeat
 
