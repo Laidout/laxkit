@@ -26,7 +26,7 @@
 namespace LaxInterfaces {
 
 
-/*! Convenience function that just returns the default InterfaceManager.
+/*! Convenience function that just returns the ObjectFactory of the default InterfaceManager.
  */
 Laxkit::ObjectFactory *somedatafactory()
 {
