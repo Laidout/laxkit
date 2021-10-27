@@ -46,24 +46,53 @@ FillStyle::FillStyle()
 {
 	function = Laxkit::LAXOP_Over;
 
-	color.red=color.green=0;
-	color.blue=color.alpha=0xffff;
-	color2=NULL;
+	color.red = color.green = 0;
+	color.blue = color.alpha = 0xffff;
+	color2 = nullptr;
 
-	fillrule=LAXFILL_EvenOdd;
-	fillstyle=FillSolid;
+	fillrule  = LAXFILL_EvenOdd;
+	fillstyle = FillSolid;
+
+	mask = 0;
 }
 
 FillStyle::FillStyle(int r,int g,int b, int a,int fr,int fs,int f)
 {
-	color.red=r;
-	color.green=g;
-	color.blue=b;
-	color.alpha=a;
-	color2=NULL;
-	fillrule=fr;
-	fillstyle=fs;
-	function = f;
+	color.red   = r;
+	color.green = g;
+	color.blue  = b;
+	color.alpha = a;
+	color2      = nullptr;
+	fillrule    = fr;
+	fillstyle   = fs;
+	function    = f;
+	mask        = 0;
+}
+
+FillStyle::FillStyle(const FillStyle &f)
+ : FillStyle()
+{
+	color     = f.color;
+	fillrule  = f.fillrule;
+	fillstyle = f.fillstyle;
+	function  = f.function;
+	mask      = f.mask;
+	if (f.color2) {
+		color2 = f.color2->duplicate();
+	}
+}
+
+FillStyle &FillStyle::operator=(FillStyle &f)
+{
+	color     = f.color;
+	fillrule  = f.fillrule;
+	fillstyle = f.fillstyle;
+	function  = f.function;
+	mask      = f.mask;
+	if (f.color2) {
+		color2 = f.color2->duplicate();
+	}
+	return f;
 }
 
 FillStyle::~FillStyle()
@@ -71,22 +100,28 @@ FillStyle::~FillStyle()
 	if (color2) color2->dec_count();
 }
 
+anObject *FillStyle::duplicate(anObject *ref)
+{
+	FillStyle *style = new FillStyle(*this);
+	return style;
+}
+
 //! Set the color. Components are 0..0xffff.
 void FillStyle::Color(int r,int g,int b,int a)
 {
-	color.red  =r;
-	color.green=g;
-	color.blue =b;
-	color.alpha=a;
+	color.red   = r;
+	color.green = g;
+	color.blue  = b;
+	color.alpha = a;
 }
 
 //! Set the color. Components are 0..1.0.
 void FillStyle::Colorf(double r,double g,double b,double a)
 {
-	color.red  =r*65535;
-	color.green=g*65535;
-	color.blue =b*65535;
-	color.alpha=a*65535;
+	color.red   = r * 65535;
+	color.green = g * 65535;
+	color.blue  = b * 65535;
+	color.alpha = a * 65535;
 }
 
 //! Reverse of dump_out.

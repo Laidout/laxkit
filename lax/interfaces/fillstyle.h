@@ -45,11 +45,10 @@ class FillStyle : virtual public Laxkit::anObject, virtual public LaxFiles::Dump
 
 	FillStyle();
 	FillStyle(int r,int g,int b, int a,int fr,int fs,int f);
-	FillStyle(const FillStyle &f) 
-		{ color=f.color; fillrule=f.fillrule; fillstyle=f.fillstyle; }
-	FillStyle &operator=(FillStyle &f) 
-		{ color=f.color; fillrule=f.fillrule; fillstyle=f.fillstyle; return f; }
+	FillStyle(const FillStyle &f);
+	FillStyle &operator=(FillStyle &f);
 	virtual ~FillStyle();
+	virtual anObject *duplicate(anObject *ref);
 
 	virtual void Color(int r,int g,int b,int a);
 	virtual void Colorf(double r,double g,double b,double a);
