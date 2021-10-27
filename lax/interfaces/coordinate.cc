@@ -695,6 +695,11 @@ flatpoint Coordinate::direction(int after)
 	return neg ? -v : v;
 }
 
+/*! Return 0 if no next.
+ * Return 1 if there is a next, but the segment did not have c1 or c2 points.
+ * Return 2 if there is a next and the segment has control points. In that case, if the segment does not
+ * have c1, then c1 is assigned to p1. If no c2, then c2 gets set to p2. p1 gets set to this.
+ */
 int Coordinate::resolveToControls(Coordinate *&p1, Coordinate *&c1, Coordinate *&c2, Coordinate *&p2, bool forward)
 {
 	if (forward) {
