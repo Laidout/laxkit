@@ -173,6 +173,21 @@ Utf8String::~Utf8String()
 	s = nullptr;
 }
 
+/*! Assignment with move semantics. */
+Utf8String &Utf8String::operator=(Utf8String &&str)
+{
+	//swap ours with theirs
+	int ch, sz, al;
+	char *ss = str.ExtractBytes(&ch, &sz, &al);
+
+	//str.InsertBytes(s, num_bytes, bytes_allocated); .. we aren't swapping, we are moving
+
+	s = ss;
+	num_bytes = sz;
+	bytes_allocated = al;
+	return *this;
+}
+
 Utf8String &Utf8String::operator=(const Utf8String &str)
 {
 	if (s == str.c_str()) return *this;

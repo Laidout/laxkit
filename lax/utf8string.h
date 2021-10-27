@@ -65,6 +65,7 @@ class Utf8String
 	Utf8String &operator=(const char *str);
 	//Utf8String &operator=(Utf8String &str);
 	Utf8String &operator=(const Utf8String &str);
+	Utf8String &operator=(Utf8String &&str);
 
 	char *ExtractBytes(int *chars, int *bytes, int *allocated);
 	void InsertBytes(char *newstr, int len, int allocated);
