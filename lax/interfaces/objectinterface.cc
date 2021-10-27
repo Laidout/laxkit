@@ -341,10 +341,13 @@ void ObjectInterface::RemapBounds()
 		data->m(m);
 		data->addtobounds(selection->e(0)->obj);
 
-	} else for (int c=0; c<selection->n(); c++) {
-		if (viewport) viewport->transformToContext(m,selection->e(c),0,1);
-		else transform_copy(m,selection->e(c)->obj->m());
-		data->addtobounds(m, selection->e(c)->obj);
+	} else {
+		data->setIdentity();
+		for (int c=0; c<selection->n(); c++) {
+			if (viewport) viewport->transformToContext(m,selection->e(c),0,1);
+			else transform_copy(m,selection->e(c)->obj->m());
+			data->addtobounds(m, selection->e(c)->obj);
+		}
 	}
 	syncFromData(1);
 	data->centercenter();
@@ -490,7 +493,8 @@ int ObjectInterface::LBDown(int x,int y,unsigned int state,int count,const Laxki
 				}
 			}
 			viewport->ChangeObject(oc,0,false);
-			AddToSelection(oc);
+			//AddToSelection(oc); ... changeObject should have added id
+			RemapBounds();
 			UpdateInitial();
 			buttondown.moveinfo(d->id,LEFTBUTTON,RP_Move);
 			showdecs|=SHOW_INNER_HANDLES|SHOW_OUTER_HANDLES;
