@@ -101,7 +101,7 @@ class flatvector
 	flatvector(double xx, double yy) { x=xx; y=yy; info=0; info2=0; }
 	flatvector(double xx, double yy, int ninfo) { x=xx; y=yy; info=ninfo; info2=0; }
 	flatvector(double *v) { x=v[0]; y=v[1]; info=0; info2=0; }
-	flatvector(const flatvector &vec) {  x=vec.x; y=vec.y; info=vec.info; info2=vec.info2; }
+	//flatvector(const flatvector &vec) {  x=vec.x; y=vec.y; info=vec.info; info2=vec.info2; }
 	flatvector operator-();
 	void normalize();
 	void setLength(double l);
