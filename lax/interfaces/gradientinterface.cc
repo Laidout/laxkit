@@ -513,6 +513,7 @@ void GradientData::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *c
 	if (!att) return;
 	char *name,*value;
 	char *e;
+	int found_type = -1;
 	SomeData::dump_in_atts(att,flag,context);
 
 	if (att->find("spot")) { //for backwards compatibility
@@ -527,10 +528,12 @@ void GradientData::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *c
 		if (!strcmp(name,"linear")) {
 			if (BooleanAttribute(value)) SetLinear();
 			else SetRadial();
+			found_type = IsRadial() ? 2 : 1;
 
 		} else if (!strcmp(name,"radial")) {
 			if (!BooleanAttribute(value)) SetLinear();
 			else SetRadial();
+			found_type = IsRadial() ? 2 : 1;
 
 		} else if (!strcmp(name,"use_strip_points")) {
 			use_strip_points = BooleanAttribute(value);
@@ -541,17 +544,20 @@ void GradientData::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *c
 		} else if (!strcmp(name,"spread_method")) {
 			int v = -1;
 			if (value) {
-				if      (!strcmp(value, "none"))    v = LAXSPREAD_None;
-				else if (!strcmp(value, "pad"))     v = LAXSPREAD_Pad;
-				else if (!strcmp(value, "reflect")) v = LAXSPREAD_Reflect;
-				else if (!strcmp(value, "repeat"))  v = LAXSPREAD_Repeat;
+				if      (!strcasecmp(value, "none"))    v = LAXSPREAD_None;
+				else if (!strcasecmp(value, "pad"))     v = LAXSPREAD_Pad;
+				else if (!strcasecmp(value, "reflect")) v = LAXSPREAD_Reflect;
+				else if (!strcasecmp(value, "repeat"))  v = LAXSPREAD_Repeat;
 			}
 			if (v != -1) spread_method = v;
 
 		} else if (!strcmp(name,"colors")) {
 			if (!strip) strip = new GradientStrip();
 			strip->dump_in_atts(att->attributes.e[c], flag, context);
-			if (strip->IsRadial()) SetRadial(); else SetLinear();
+			if (found_type == -1) {
+				if (strip->IsRadial()) SetRadial();
+				else SetLinear();
+			}
 
 		} else if (!strcmp(name,"p1")) {
 			flatpoint p;
@@ -605,6 +611,8 @@ LaxFiles::Attribute *GradientData::dump_out_atts(LaxFiles::Attribute *att,int wh
 		att->push("use_strip_points", "false", "Use the points within gradient strip");
 		att->push("fill_parent", "false", "Whether to expand bounding box to match parent, and extend gradient");
 		att->push("spread_method", "pad", "or reflect, repeat, or none. How to extend colors past the main definition");
+		att->push("linear", nullptr, "If present, gradient is linear");
+		att->push("radial", nullptr, "If present, gradient is radial");
 
 		Attribute *att2 = att->pushSubAtt("colors");
 		if (strip) strip->dump_out_atts(att2, -1, savecontext);
@@ -619,6 +627,8 @@ LaxFiles::Attribute *GradientData::dump_out_atts(LaxFiles::Attribute *att,int wh
 	sprintf(scratch,"%.10g %.10g %.10g %.10g %.10g %.10g",
 				m(0),m(1),m(2),m(3),m(4),m(5));
 	att->push("matrix",scratch);
+
+	att->push(IsRadial() ? "radial" : "linear");
 
 	const char *str = nullptr;
 	if      (spread_method == LAXSPREAD_None)    str = "None";
@@ -1826,7 +1836,7 @@ Laxkit::MenuInfo *GradientInterface::ContextMenu(int x,int y,int deviceid, Laxki
 {
 	if (!data) return menu;
 
-    if (!menu) menu=new MenuInfo();
+    if (!menu) menu = new MenuInfo();
 
 	menu->AddToggleItem(_("Fill parent"), GRAD_Toggle_Fill_Parent, 0, data->fill_parent);
 	menu->AddSep(_("Spread"));
@@ -1834,6 +1844,9 @@ Laxkit::MenuInfo *GradientInterface::ContextMenu(int x,int y,int deviceid, Laxki
 	menu->AddToggleItem(_("Repeat"),  GRAD_Spread_Repeat,  0, data->spread_method == LAXSPREAD_Repeat);
 	menu->AddToggleItem(_("Reflect"), GRAD_Spread_Reflect, 0, data->spread_method == LAXSPREAD_Reflect);
 	menu->AddToggleItem(_("Pad"),     GRAD_Spread_Pad,     0, data->spread_method == LAXSPREAD_Pad);
+	menu->AddSep();
+	menu->AddToggleItem(_("Linear"), GRAD_MakeLinear, 0, data->IsLinear());
+	menu->AddToggleItem(_("Radial"), GRAD_MakeRadial, 0, data->IsRadial());
 
 	return menu;
 }
@@ -1872,7 +1885,10 @@ int GradientInterface::Event(const Laxkit::EventData *ev, const char *mes)
 		  || i == GRAD_Spread_Pad
 		  || i == GRAD_Spread_Next
 		  || i == GRAD_Spread_Prev
-		  || i == GRAD_Toggle_Fill_Parent)
+		  || i == GRAD_Toggle_Fill_Parent
+		  || i == GRAD_MakeLinear
+		  || i == GRAD_MakeRadial
+		  )
 		{
 			PerformAction(i);
 		}
