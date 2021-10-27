@@ -145,9 +145,10 @@ class Color : public Laxkit::anObject, public LaxFiles::DumpUtility
 
 	virtual char *dump_out_simple_string();
 	virtual int dump_out_simple_string(char *color, int n);
+	virtual void dump_out_simple_string(LaxFiles::Attribute *att, const char *prop, const char *comment=nullptr);
 	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
-    virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context);
-    virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
+	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context);
+	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
 };
 
 
@@ -265,6 +266,8 @@ class ColorManager : public anObject
 	static Color *newColor(int systemid, ScreenColor *color);
 	static Color *newColor(int systemid, const ScreenColor &color);
 	static Color *newColor(LaxFiles::Attribute *att);
+	static Color *newRGBA(double r, double g, double b, double a);
+	static Color *newRGBA(const ScreenColor &color);
 		
 	ColorManager();
 	virtual ~ColorManager();

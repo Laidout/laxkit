@@ -382,6 +382,8 @@ void Color::InstallSystem(ColorSystem *newsystem)
 	}
 }
 
+/*! Create and return a new char[] with the color string.
+ */
 char *Color::dump_out_simple_string()
 {
 	int n = 0;
@@ -389,6 +391,16 @@ char *Color::dump_out_simple_string()
 	char *str = new char[n];
 	dump_out_simple_string(str, n);
 	return str;
+}
+
+/*! Convenience function to append a short string to a subatt named prop to an Attribute.
+ */
+void Color::dump_out_simple_string(LaxFiles::Attribute *att, const char *prop, const char *comment)
+{
+	char *str = dump_out_simple_string();
+	if (!str) return;
+	att->push(prop, str, comment);
+	delete[] str;
 }
 
 /*! For instance, an sRGB might be output as "rgbaf(1.0, 0.0, 0.0, .5)".
@@ -1015,6 +1027,22 @@ void ColorManager::SetDefault(ColorManager *manager)
 	cmKeeper.SetObject(manager, 0);
 }
 
+/*! Static convenience function to shortcut making a LAX_COLOR_RGB color.
+ * Really just calls newColor(LAX_COLOR_RGB, 4, r,g,b,a).
+ */
+Color *ColorManager::newRGBA(double r, double g, double b, double a)
+{
+	return ColorManager::newColor(LAX_COLOR_RGB, 4, r,g,b,a);
+}
+
+/*! Static convenience function to shortcut making a LAX_COLOR_RGB color.
+ * Really just calls newColor(LAX_COLOR_RGB, color).
+ */
+Color *newRGBA(const ScreenColor &color)
+{
+	return ColorManager::newColor(LAX_COLOR_RGB, color);
+}
+
 /*! Static function to return a random color.
  * Finds the system with systemid in default ColorManager, then
  * returns whatever that system makes.
@@ -1051,6 +1079,9 @@ Color *ColorManager::newColor(int systemid, const ScreenColor &color)
 	return newColor(systemid, 4, color.red/65535., color.green/65535., color.blue/65535., color.alpha/65535.);	
 }
 
+/*! Return a new Color based on att.
+ * \todo IMPLEMENT FULL! currently just reads short color string from att->value
+ */
 Color *ColorManager::newColor(LaxFiles::Attribute *att)
 {
 	if (!att) return nullptr;
