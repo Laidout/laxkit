@@ -479,7 +479,7 @@ anXApp::anXApp()
 	dpy=NULL;
 	vis=NULL;
 	dialog_mask=LAX_DIALOG_INPUTS;
-	donotusex=0;
+	donotusex = false;
 	devicemanager=NULL;
 	//bump_fd=-1;
 	bump_xid=0;
@@ -881,8 +881,53 @@ int anXApp::initNoX(int argc,char **argv)
 	setupdefaultcolors();
 	getlaxrc(NULL,app_profile);
 
+
 	 // setup default graphics context
 	//*** maybe set up some kind of buffer area on demand?
+
+
+     //----------------- set up backends
+    DBG cerr <<"Attempting backend: "<<(backend?backend:"(none specified)")<<endl;
+
+     //first just initialize things, but don't install render functions
+#ifdef LAX_USES_GRAPHICSMAGICK
+    InitLaxGraphicsMagick(false);
+#endif
+
+//...imlib depends explicitly on xlib, so skip this
+//#ifdef LAX_USES_IMLIB
+//    InitLaxImlib(1000, false); //number is imlib cache mem size limit in megabytes. this should be configurable!!!
+//#endif
+
+#ifdef LAX_USES_CAIRO
+    InitLaxCairo(false);
+#endif
+
+     //now install render functions according to backend
+    bool backend_inited = false;
+//#ifdef LAX_USES_IMLIB
+//    if (!strcmp(backend,"xlib")) {
+//        InitImlib2Backend(); //number is imlib cache mem size limit in megabytes. this should be configurable!!!
+//    }
+//#endif
+    if (!strcmp(backend,"cairo")) {
+#ifdef LAX_USES_CAIRO
+        InitCairoBackend();
+        backend_inited = true;
+#endif
+    }
+
+    if (!backend_inited) {
+        cerr <<" ** Could not init backend \""<<backend<<"\"!! aborting!!"<<endl;
+        exit(1);
+    }
+
+    if (!fontmanager) fontmanager = GetDefaultFontManager();
+
+    GetDefaultDisplayer(); //initializes if null
+    defaultlaxfont = fontmanager->MakeFontFromStr(controlfontstr,getUniqueNumber());
+    DBG defaultlaxfont->suppress_debug = 1;
+    //if (load_image==NULL) InitDefaultBackend(); //<-- have this be something configure made?
 
 	return 0;
 }
@@ -906,10 +951,13 @@ int anXApp::initX(int argc,char **argv)
 #ifdef _LAX_PLATFORM_XLIB
 
 	 //---------- set up connection to x server
-	dpy=XOpenDisplay(NULL);
+	dpy = XOpenDisplay(NULL);
 	if (!dpy) {
 		cerr << "Cannot open X server.\n";
-		exit(1);
+        cerr << "Reverting to non-x init.\n";
+        donotusex = true;
+        return initNoX(argc, argv);
+		//exit(1);
 	}
 
 	anXWindow::InitXlibVars(dpy);
@@ -959,11 +1007,11 @@ int anXApp::initX(int argc,char **argv)
 		exit(1);
 	}
 
-	if (!fontmanager) fontmanager=GetDefaultFontManager();
+	if (!fontmanager) fontmanager = GetDefaultFontManager();
 
 	GetDefaultDisplayer(); //initializes if null
-	defaultlaxfont=fontmanager->MakeFontFromStr(controlfontstr,getUniqueNumber());
-	DBG defaultlaxfont->suppress_debug=1;
+	defaultlaxfont = fontmanager->MakeFontFromStr(controlfontstr,getUniqueNumber());
+	DBG defaultlaxfont->suppress_debug = 1;
 	//if (load_image==NULL) InitDefaultBackend(); //<-- have this be something configure made?
 
 
@@ -979,7 +1027,7 @@ int anXApp::initX(int argc,char **argv)
 
 	 //----------- setup default font and xim stuff
 	XSetLocaleModifiers("");
-	xim=XOpenIM(dpy, NULL, NULL, NULL);
+	xim = XOpenIM(dpy, NULL, NULL, NULL);
 
 
 	 //----------------set up device manager if necessary
@@ -998,7 +1046,7 @@ int anXApp::initX(int argc,char **argv)
 
 	 //create a dummy window that makes it easy to break out of select from a different thread
 	XSetWindowAttributes xatts;
-	bump_xid=XCreateWindow(dpy,
+	bump_xid = XCreateWindow(dpy,
 							DefaultRootWindow(dpy),
 							0,0,1,1,
 							0,

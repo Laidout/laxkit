@@ -357,7 +357,7 @@ class anXApp : virtual public anObject
 
   public:
 	 //X specific variables
-	char              donotusex;
+	bool              donotusex;
 	char              use_xinput;
 	Display          *dpy;
 	//int               screen;
