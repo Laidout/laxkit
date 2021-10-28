@@ -348,16 +348,17 @@ struct TimerInfo
 //---------------------------- anXApp --------------------------------------
 class anXApp : virtual public anObject
 {
+  public:
+	bool donotusex;
 
 #ifdef _LAX_PLATFORM_XLIB
- protected:
+  protected:
 	 //X specific protected functions
 	virtual void settimeout(struct timeval *timeout);
 	virtual void processXevent(XEvent *event);
 
   public:
 	 //X specific variables
-	bool              donotusex;
 	char              use_xinput;
 	Display          *dpy;
 	//int               screen;

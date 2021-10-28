@@ -461,60 +461,58 @@ anXApp *anXApp::app=NULL;
 anXApp::anXApp()
 {
 	 //--------- note that nothing in this constructor depends on an x connections
-	screeninfo = NULL;
+	screeninfo = nullptr;
 
 #ifdef _LAX_PLATFORM_XLIB
 	XInitThreads();
-	use_xinput=2;
+	use_xinput = 2;
 
-	xim_current_device=NULL;
-	xim=NULL;
-	xim_ic=NULL;
-	xim_fontset=NULL;
-	xim_deadkey=0;
+	xim_current_device = nullptr;
+	xim                = nullptr;
+	xim_ic             = nullptr;
+	xim_fontset        = nullptr;
+	xim_deadkey        = 0;
+
+	dpy      = nullptr;
+	vis      = nullptr;
+	bump_xid = 0;
 #endif //_LAX_PLATFORM_XLIB
 
+	app           = this;
+	dialog_mask   = LAX_DIALOG_INPUTS;
+	donotusex     = false;
+	devicemanager = nullptr;
+	maxtimeout    = 0;  // override timeout when bump() doesn't work. microseconds
 
-	app=this;
-	dpy=NULL;
-	vis=NULL;
-	dialog_mask=LAX_DIALOG_INPUTS;
-	donotusex = false;
-	devicemanager=NULL;
-	//bump_fd=-1;
-	bump_xid=0;
-	maxtimeout=0; //override timeout when bump() doesn't work. microseconds
+	default_language = newstr("");
 
-	default_language=newstr("");
+	copybuffer   = nullptr;
+	currentfocus = nullptr;
+	backend      = LAX_DEFAULT_BACKEND;
 
-	copybuffer=NULL;
-	currentfocus=NULL;
-	backend = LAX_DEFAULT_BACKEND;
+	ttcount  = 0;
+	tooltips = 1000;  // time to wait till tooltip pops up in milliseconds, 0==no tooltips
 
-	ttcount=0;
-	tooltips=1000; // time to wait till tooltip pops up in milliseconds, 0==no tooltips
-
-	 // set up the default loading and saving directories to the current directory.
-	char *dir = getcwd(NULL,0);
+	// set up the default loading and saving directories to the current directory.
+	char *dir = getcwd(nullptr,0);
 	if (dir) {
 		load_dir = newstr(dir);
 		save_dir = newstr(dir);
 		free(dir);
-	} else load_dir = save_dir = NULL;
+	} else load_dir = save_dir = nullptr;
 
-	dontstop=1;
+	dontstop = 1;
 
-	default_icon_file=NULL;
-	default_icon=NULL;
+	default_icon_file = nullptr;
+	default_icon      = nullptr;
 
-	dataevents = dataevente = NULL;
+	dataevents = dataevente = nullptr;
 
+	// base default styling
+	app_profile = nullptr;
+	theme       = nullptr;
 
-	 //base default styling
-	app_profile=NULL;
-	theme = NULL;
-
-	 // default click times, in clock ticks
+	// default click times, in clock ticks
 	dblclk   = (unsigned int)(1./5*1000); // _SC_CLK_TCK=ticks per second, put dblclk in milliseconds, which is the time in events..
 	firstclk = sysconf(_SC_CLK_TCK)/7;
 	idleclk  = sysconf(_SC_CLK_TCK)/15;
@@ -527,16 +525,11 @@ anXApp::anXApp()
 	textfontstr    = newstr("sans-12");
 	controlfontstr = newstr("sans-12");
 
-	//default_border_width=1;
-	//default_padx=5;
-	//default_pady=5;
-	//default_bevel=5;
-
 	max_window_size = 10000;
 
 
 	 //set up standard mutexes
-	pthread_mutex_init(&event_mutex,NULL);
+	pthread_mutex_init(&event_mutex,nullptr);
 }
 
 
@@ -874,14 +867,6 @@ int anXApp::init(int argc,char **argv)
  */
 int anXApp::initNoX(int argc,char **argv)
 {
-	 //prepare rgbcolor() and colorrgb() to work with 8 bits per channel
-	set_color_shift_info(0xff, 0xff00, 0xff0000, 0xff000000);
-
-	 // setup default colors and border width, then update with any rc files
-	setupdefaultcolors();
-	getlaxrc(NULL,app_profile);
-
-
 	 // setup default graphics context
 	//*** maybe set up some kind of buffer area on demand?
 
@@ -928,6 +913,15 @@ int anXApp::initNoX(int argc,char **argv)
     defaultlaxfont = fontmanager->MakeFontFromStr(controlfontstr,getUniqueNumber());
     DBG defaultlaxfont->suppress_debug = 1;
     //if (load_image==NULL) InitDefaultBackend(); //<-- have this be something configure made?
+
+
+     //prepare rgbcolor() and colorrgb() to work with 8 bits per channel
+    set_color_shift_info(0xff, 0xff00, 0xff0000, 0xff000000);
+
+     // setup default colors and border width, then update with any rc files
+    setupdefaultcolors();
+    getlaxrc(NULL,app_profile);
+
 
 	return 0;
 }
