@@ -26,6 +26,7 @@
 #include <lax/tagged.h>
 #include <lax/refptrstack.h>
 #include <lax/interfaces/somedata.h>
+#include <lax/interfaces/somedataref.h>
 
 
 
@@ -58,6 +59,7 @@ class GroupData :   virtual public Laxkit::Tagged,
  protected:
  public:
 	SomeData *parent;
+	LaxInterfaces::SomeDataRef *proxy_shape; //a ref to a Resource to represent this object: apply proxy_shape->m(), render proxy_shape
 
 	//SomeData *clip; //If not a PathsData, then is an object for a softmask
 	//LaxInterfaces::PathsData *clip_path;
@@ -114,7 +116,6 @@ class GroupData :   virtual public Laxkit::Tagged,
 	virtual int GroupObjs(int n, int *which, int *newgroupindex);
 	virtual int UnGroup(int which);
 	virtual int UnGroup(int n,const int *which);
-	
 };
 
 

@@ -58,7 +58,8 @@ GroupData::GroupData()
 	//clip_path=wrap_path=inset_path=NULL;
 	//autowrap=autoinset=0;
 
-	parent=NULL;
+	parent = nullptr;
+	proxy_shape = nullptr;
 
 	//Id(); //makes this->nameid (of SomeData) be something like `whattype()`12343
 }
@@ -68,6 +69,8 @@ GroupData::GroupData()
  */
 GroupData::~GroupData()
 {
+	if (proxy_shape) proxy_shape->dec_count();
+	
 	//if (clip) clip->dec_count();
 	//if (clip_path) clip_path->dec_count();
 	//if (wrap_path) wrap_path->dec_count();
