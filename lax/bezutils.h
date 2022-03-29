@@ -54,6 +54,7 @@ void bez_subdivide(double t,flatpoint p1,flatpoint c1,flatpoint c2,flatpoint p2,
 int bez_subdivide_extrema(flatpoint p1, flatpoint c1, flatpoint c2, flatpoint p2, flatpoint *points_ret);
 void bez_subdivide_decasteljau(flatpoint p1,flatpoint c1, flatpoint c2, flatpoint p2, 
 				flatpoint &nc1, flatpoint &npp, flatpoint &npm, flatpoint &npn, flatpoint &nc2);
+bool bez_self_intersection(const flatpoint &p1, const flatpoint &c1, const flatpoint &c2, const flatpoint &p2, flatpoint *p_ret, double *t1_ret, double *t2_ret);
 int bez_intersect_bez(const flatpoint &p1_1, const flatpoint &c1_1, const flatpoint &c1_2, const flatpoint &p1_2,
 					  const flatpoint &p2_1, const flatpoint &c2_1, const flatpoint &c2_2, const flatpoint &p2_2,
 					flatpoint *point_ret, double *t1_ret, double *t2_ret, int &num_ret, double threshhold, double t1, double t2, double tdiv,

@@ -481,15 +481,104 @@ int bez_intersections(flatpoint P1,flatpoint P2, int isline,
 	return numhits;
 }
 
+/*! Invert a 2x2 matrix, where the matrix is as follows. Return true if invertible, else false:
+ * ```
+ * | a b |  ->  [a b c d]
+ * | c d |
+ * ```
+ */
+bool Invert_2x2(double* matrix, double *result)
+{
+	double det = matrix[0] * matrix[3] - matrix[1] * matrix[2];
+	if (det == 0) return false;
+	result[0] =  matrix[3] / det;
+	result[1] = -matrix[1] / det;
+	result[2] = -matrix[2] / det;
+	result[3] =  matrix[0] / det;
+	return true;
+}
+
+bool bez_self_intersection(const flatpoint &p1, const flatpoint &c1, const flatpoint &c2, const flatpoint &p2, flatpoint *p_ret, double *t1_ret, double *t2_ret)
+{
+	// This function is adapted from Kinross, which is MIT licensed:
+	// https://gitlab.com/parclytaxel/Kinross/-/blob/6af03fc1ca7a5aec9490168bc7ada5187914c146/kinross/paths.py#L296-338
+	// 
+	// For cubic curves containing a loop, compute the parameters t, u where
+    // B(t) = B(u), i.e. the parameters of self-intersection.
+    // The method name is both a phonetic abbreviation ("c"elf "x")
+    // and an ASCII depiction of a loopy curve.
+    // 
+    // As Bézier curve geometry is invariant under affine transformations,
+    // we can restrict ourselves to some canonical form of the curve.
+    // Then, consider the coordinate polynomials
+    // x(t) = at³+bt²+ct+p
+    // y(t) = dt³+et²+ft+q
+    // and parameters of self-intersection as λ and μ. By definition,
+    // x(λ) - x(μ) = a(λ³-μ³)+b(λ²-μ²)+c(λ-μ) = 0
+    // y(λ) - y(μ) = d(λ³-μ³)+e(λ²-μ²)+f(λ-μ) = 0
+    // Dividing by the trivial solution λ = μ and expanding we get
+    // a(λ²+λμ+μ²)+b(λ+μ)+c = 0
+    // d(λ²+λμ+μ²)+e(λ+μ)+f = 0
+    // In the canonical form chosen here
+    // (https://pomax.github.io/bezierinfo/#canonical) we have
+    // (x-3)(λ²+λμ+μ²)+3(λ+μ) = 0
+    // y(λ²+λμ+μ²)-3(λ+μ)+3 = 0
+    // whereby eliminating λ²+λμ+μ² gives (-3-3y/(x-3))(λ+μ) + 3 = 0
+    // or λ+μ = 1 - y/(x+y-3), followed by λμ = (λ+μ)²+3(λ+μ)/(x-3).
+    // λ and μ can now be found by Viète's formulas.
+    
+    flatvector vx = c2 - c1; //self[2] - self[1]
+    flatvector vy = c1 - p1; //self[1] - self[0]
+    flatvector vz = p2 - p1; //self[3] - self[0]
+
+    //x, y = np.linalg.solve([[vx.real, vy.real],
+    //                        [vx.imag, vy.imag]], [vz.real, vz.imag])
+	double m[4] { vx.x, vy.x, vx.y, vy.y };
+	double r[4];
+	if (!Invert_2x2(m, r)) return false;
+	double x = r[0] * vz.x + r[1] * vz.y;
+	double y = r[2] * vz.x + r[3] * vz.y;
+
+    if (x > 1 ||
+       4 * y > (x + 1) * (3 - x) ||
+       (x > 0 && 2 * y + x < sqrt(3 * x * (4 - x))) ||
+       3 * y < x * (3 - x)) {
+       	// no intersection
+        return false;
+	}
+
+    double rs = 1 - y / (x + y - 3);
+    double rp = rs * (rs + 3 / (x - 3));
+    double x1 = (rs - sqrt(rs * rs - 4 * rp)) / 2;
+    double x2 = rp / x1;
+
+    if (x1 < x2) {
+    	if (t1_ret) *t1_ret = x1;
+    	if (t2_ret) *t2_ret = x2;
+    } else {
+    	if (t1_ret) *t1_ret = x1;
+    	if (t2_ret) *t2_ret = x2;
+    }
+    if (p_ret) {
+    	*p_ret = bez_point(x1, p1,c1,c2,p2);
+    }
+    return true;
+}
+
 /*! Find intersections between two cubic bezier segments.
  * point_ret and t_ret should be preallocated to hold up to 9 points. If null, don't return those.
  * Return value is number of intersections (also stored in num_ret). There can be at most 9.
  *
+ * Please note you must set num to 0 before calling, as this function is recursive, and increments
+ * num_ret as it goes along.
+ * 
  * t_ret returns t values for the first segment.
  *
  * Strategy is to use de Casteljau's algorithm to repeatedly subdivide, and for each overlapping subdivision,
  * keep going until bbox size is less that threshhold. It is assumed that really small bbox corresponds to 
  * an actual intersection.
+ *
+ * Returned values are sorted by t1.
  *
  * \todo need to check for degenerate cases: control points the same, or both describe a straight line
  */
@@ -507,21 +596,37 @@ int bez_intersect_bez(const flatpoint &p1_1, const flatpoint &c1_1, const flatpo
 	bez_bbox_simple(p1_1, c1_1, c1_2, p1_2, &b1);
 	bez_bbox_simple(p2_1, c2_1, c2_2, p2_2, &b2);
 
+	DBG cerr << "bez_intersect: t1: "<<t1<<"  t2: "<<t2<<"  tdiv: "<<tdiv<<"  depth: "<<depth<<endl;
 	if (!b1.intersect(&b2, false)) return num_ret;
 
 	if (b1.boxwidth() <= threshhold && b1.boxheight() < threshhold && b2.boxwidth() <= threshhold && b2.boxheight() < threshhold) {
+		//found intersection
 		int c = 0;
 		flatpoint p = (p1_1+p1_2)/2;
 		DBG cerr << endl;
 		for (c=0; c<num_ret; c++) {
 			double dd = norm(point_ret[c] - p);
-			DBG cerr << "bez  compare near point "<<c<<": "<<p<<", d: "<<dd<<", threshholds: "<<dd/threshhold<<endl;
+			//DBG cerr << "bez  compare near point "<<c<<": "<<p<<", d: "<<dd<<", threshholds: "<<dd/threshhold<<endl;
 			if (dd < 8*threshhold) break; //pretty close to duplicate point
 		}
 		if (c == num_ret) {
-			point_ret[num_ret] = p;
-			t1_ret[num_ret] = t1;
-			t2_ret[num_ret] = t2;
+			int i = 0;
+			while (i < num_ret && t1_ret[i] <= t1) i++;
+			if (i < num_ret) {
+				for (int cc = num_ret; cc > i; cc--) {
+					point_ret[num_ret] = point_ret[cc];
+					t1_ret[num_ret] = t1_ret[cc];
+					t2_ret[num_ret] = t2_ret[cc];
+				}
+
+				point_ret[i] = p;
+				t1_ret[i] = t1;
+				t2_ret[i] = t2;
+			} else {
+				point_ret[num_ret] = p;
+				t1_ret[num_ret] = t1;
+				t2_ret[num_ret] = t2;
+			}
 			num_ret++;
 		}
 		return num_ret;
