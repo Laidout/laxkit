@@ -401,35 +401,35 @@ EngraverLine::~EngraverLine()
 
 EngraverDirection::EngraverDirection()
 {
-	type=PGROUP_Linear;
-	map=NULL;
+	type = PGROUP_Linear;
+	map  = NULL;
 
-	//spacing=1; //default
-	resolution=1; //default samples per spacing unit, default is 1
-	default_weight=.1; //a fraction of spacing 
-	position.x=position.y=.5;
-	direction.x=1; //default
+	// spacing=1; //default
+	resolution     = 1;   // default samples per spacing unit, default is 1
+	default_weight = .1;  // a fraction of spacing
+	position.x = position.y = .5;
+	direction.x    = 1;  // default
 
-	 //line generation tinkering settings
-	seed=0; //for any randomness
-	line_offset=0; //0..1 for random offset per line
-	point_offset=0; //0..1 for random offset per point
-	noise_scale=1; //applied per sample point, but offset per random line, not random at each point
-	
-	default_profile=NULL;
-	start_type=0; //0=normal, 1=random
-	end_type=0;
-	start_rand_width=end_rand_width=0;
-	profile_start=0;
-	profile_end=1;
-	max_height=1;
-	scale_profile=false;
+	// line generation tinkering settings
+	seed         = 0;  // for any randomness
+	line_offset  = 0;  // 0..1 for random offset per line
+	point_offset = 0;  // 0..1 for random offset per point
+	noise_scale  = 1;  // applied per sample point, but offset per random line, not random at each point
 
-	grow_lines=false;
-	merge=true;
-	fill=true;
-	spread=1.5;
-	spread_depth=3;
+	default_profile  = NULL;
+	start_type       = 0;  // 0=normal, 1=random
+	end_type         = 0;
+	start_rand_width = end_rand_width = 0;
+	profile_start    = 0;
+	profile_end      = 1;
+	max_height       = 1;
+	scale_profile    = false;
+
+	grow_lines   = false;
+	merge        = true;
+	fill         = true;
+	spread       = 1.5;
+	spread_depth = 3;
 }
 
 EngraverDirection::~EngraverDirection()
@@ -588,27 +588,27 @@ EngraverDirection::Parameter *EngraverDirection::FindParameter(const char *name)
 EngraverDirection::Parameter::Parameter(const char *nname, const char *nName, int ndtype, char ntype,
 				double nmin,int nmint, double nmax,int nmaxt, double nmingap, double nvalue)
 {
-	name    =newstr(nname);
-	Name    =newstr(nName);
-	type    =ntype;
-	dtype   =ndtype;
-	min     =nmin;
-	max     =nmax;
-	min_type=nmint;
-	max_type=nmaxt;
-	mingap  =nmingap;
-	value   =nvalue;
+	name     = newstr(nname);
+	Name     = newstr(nName);
+	type     = ntype;
+	dtype    = ndtype;
+	min      = nmin;
+	max      = nmax;
+	min_type = nmint;
+	max_type = nmaxt;
+	mingap   = nmingap;
+	value    = nvalue;
 }
 
 EngraverDirection::Parameter::Parameter()
 {
-	name=Name=NULL;
-	type     =0;
-	dtype    =0;
-	min =max =0;
-	min_type =max_type =0;
-	mingap   =0;
-	value    =0;
+	name = Name = NULL;
+	type        = 0;
+	dtype       = 0;
+	min = max   = 0;
+	min_type    = max_type = 0;
+	mingap      = 0;
+	value       = 0;
 }
 
 EngraverDirection::Parameter::~Parameter()
@@ -1342,10 +1342,10 @@ NormalDirectionMap::~NormalDirectionMap()
 void NormalDirectionMap::Clear()
 {
 	if (normal_map) normal_map->dec_count();
-	normal_map=NULL;
+	normal_map = NULL;
 	delete[] data;
-	data=NULL;
-	width=height=0;
+	data = NULL;
+	width = height = 0;
 }
 
 /*! Calling with NULL just calls Clear().
@@ -2262,11 +2262,11 @@ EngraverPointGroup::EngraverPointGroup(EngraverFillData *nowner,
 		spacing->spacing =.1;
 	}
 
-	iorefs=NULL;
+	iorefs = NULL;
 
-	needtotrace=false;
-	needtoreline=false;
-	needtodash=false;
+	needtotrace  = false;
+	needtoreline = false;
+	needtodash   = false;
 }
 
 EngraverPointGroup::~EngraverPointGroup()
@@ -2275,6 +2275,7 @@ EngraverPointGroup::~EngraverPointGroup()
 	if (dashes)    dashes->dec_count();
 	if (direction) direction->dec_count();
 	if (spacing)   spacing  ->dec_count();
+	delete grow_cache;
 	delete[] name;
 	delete[] iorefs;
 }
@@ -4565,41 +4566,50 @@ void EngraverPointGroup::FillCircular(EngraverFillData *data, double nweight)
 
 }
 
+//------------------------- class StarterPoint, used for growing lines --------------------
 /*! \class StarterPoint
  * Class to aid growing engraver lines.
  */
-class StarterPoint
-{
-  public:
-	flatpoint lastdir;
-	int iteration;
-	int piteration;
-	int lineref;
-
-	LinePoint *line, *first, *last;
-	int dodir; //1 for add to +direction, 2 for add to -direction, 3 for both
-
-	StarterPoint (flatpoint p, int indir, double weight,int groupid, int nlineref);
-};
-
+ 
 StarterPoint::StarterPoint(flatpoint p, int indir, double weight,int groupid, int nlineref)
 {
-	first=last=line=new LinePoint(p.x,p.y,weight);
-	iteration=0;
-	piteration=0;
-	dodir=indir;
-	lineref=nlineref;
+	first = last = line = new LinePoint(p.x, p.y, weight);
+	iteration  = 0;
+	piteration = 0;
+	dodir      = indir;
+	lineref    = nlineref;
 }
 
-void EngraverPointGroup::GrowLines2(EngraverFillData *data,
+
+//------------------------ class GrowContext --------------------------
+/*! \class GrowContext
+ * Holds cached data so that processing for growing lines can be spread across multiple frames.
+ */
+
+GrowContext::GrowContext()
+{}
+
+GrowContext::~GrowContext()
+{
+	delete[] scratch_data;
+	if (spacingmap)   spacingmap  ->dec_count();
+	if (weightmap)    weightmap   ->dec_count();
+	if (directionmap) directionmap->dec_count();
+}
+
+
+/*! Initialize growing points. 
+ * If growpoint_ret already has points in it, use those, don't create automatically along edges.
+ */
+GrowContext *EngraverPointGroup::GrowLines_Init(EngraverFillData *data,
 									double resolution, 
 									double defaultspace,  	ValueMap *spacingmap,
 									double defaultweight,   ValueMap *weightmap, 
 									flatpoint directionv,   DirectionMap *directionmap,
-									Laxkit::PtrStack<GrowPointInfo> *growpoint_ret,
-									int iteration_limit)
+									int iteration_limit,
+									Laxkit::PtrStack<GrowPointInfo> *custom_starters
+									)
 {
-
 	//draw on a scratch space, each pixel gets:
 	//  group number
 	//  line number
@@ -4611,11 +4621,29 @@ void EngraverPointGroup::GrowLines2(EngraverFillData *data,
 	//  - Computer whether to merge or split based on neighborhood of point
 	//  - stack push/pulls of adjacent points
 
+	// init scratch space
 	//unsigned char pixels[***];
 	
 
 	 //remove any old lines from same group
 	lines.flush();
+
+	if (grow_cache) delete grow_cache;
+	grow_cache = new GrowContext();
+	GrowContext *context = grow_cache;
+
+	context->resolution = resolution;
+	context->defaultspace = defaultspace;
+	context->spacingmap = spacingmap;
+	if (spacingmap) spacingmap->inc_count();
+	context->defaultweight = defaultweight;
+	context->weightmap = weightmap;
+	if (weightmap) weightmap->inc_count();
+	context->directionv = directionv;
+	context->directionmap = directionmap;
+	if (directionmap) directionmap->inc_count();
+	context->iteration_limit = iteration_limit;
+
 
 
 	 //----Initialize point generators
@@ -4624,19 +4652,20 @@ void EngraverPointGroup::GrowLines2(EngraverFillData *data,
 	double weight=defaultweight;
 	double curspace=defaultspace/data->getScaling(.5,.5,false);
 
-	PtrStack<StarterPoint> generators;
+	PtrStack<StarterPoint> &generators = context->generators;
 	StarterPoint *g;
 
-	if (growpoint_ret && growpoint_ret->n>0) {
+	if (custom_starters && custom_starters->n > 0) {
 		 //use supplied points
-		for (int c=0; c<growpoint_ret->n; c++) {
-			g=new StarterPoint(growpoint_ret->e[c]->p, growpoint_ret->e[c]->godir, weight, id, generators.n);
-			g->line->p=data->getPoint(g->line->s, g->line->t, true);
-			g->line->needtosync=0;
-			generators.push(g,1);
+		for (int c=0; c<custom_starters->n; c++) {
+			g = new StarterPoint(custom_starters->e[c]->p, custom_starters->e[c]->godir, weight, id, generators.n);
+			g->line->p = data->getPoint(g->line->s, g->line->t, true);
+			g->line->needtosync = 0;
+			lines.push(g->line);
+			context->generators.push(g,1);
 		}
 
-	} else if (directionmap && directionmap!=this) {
+	} else if (directionmap && directionmap != this) {
 		 //try to trace out starters based on directionmap
 		// *** begin at center, radiate away
 
@@ -4679,8 +4708,8 @@ void EngraverPointGroup::GrowLines2(EngraverFillData *data,
 					g->line->p=pp;
 					g->line->needtosync=0;
 					lines.push(g->line);
-					generators.push(g,1);
-					if (growpoint_ret) growpoint_ret->push(new GrowPointInfo(p,g->dodir));
+					context->generators.push(g,1);
+					//if (growpoint_ret) growpoint_ret->push(new GrowPointInfo(p,g->dodir));
 				}
 
 				c += ds;
@@ -4731,8 +4760,8 @@ void EngraverPointGroup::GrowLines2(EngraverFillData *data,
 					g->line->p=pp;
 					g->line->needtosync=0;
 					lines.push(g->line);
-					generators.push(g,1);
-					if (growpoint_ret) growpoint_ret->push(new GrowPointInfo(p,g->dodir));
+					context->generators.push(g,1);
+					//if (growpoint_ret) growpoint_ret->push(new GrowPointInfo(p,g->dodir));
 				}
 
 				c += ds;
@@ -4760,49 +4789,62 @@ void EngraverPointGroup::GrowLines2(EngraverFillData *data,
 					curspace = spacingmap->GetValue(pp)/data->getScaling(p.x,p.y,true); //else spacing is constant
 					da=2*M_PI/int(2*M_PI*radius/curspace);
 				}
+
 				if (weightmap)  weight  =weightmap ->GetValue(pp); //else weight is constant
 
 				g=new StarterPoint(p, 3, weight, id, generators.n);
 				g->line->p=pp;
 				g->line->needtosync=0;
 				lines.push(g->line);
-				generators.push(g,1);
-				if (growpoint_ret) growpoint_ret->push(new GrowPointInfo(p,g->dodir));
+				context->generators.push(g,1);
+				//if (growpoint_ret) growpoint_ret->push(new GrowPointInfo(p,g->dodir));
 			} 
 		}
 	}
 
+	return context;
+}
 
-	//
-	// ------ grow points.....
-	//
-	// *****
+/*! Return true if there is more to iterate.
+ */
+bool EngraverPointGroup::GrowLines_Iterate()
+{
+	if (!grow_cache) return false;
+	return false; //TODO!
+}
 
+void EngraverPointGroup::GrowLines_Finish()
+{
+	if (!grow_cache) return;
 
-	 //Add lines to data
-	LinePoint *lp, *ll;
-	for (int c=0; c<lines.n; c++) {
-		lp=lines.e[c];
+	 //Finish off lines
+//	LinePoint *lp, *ll;
+//	for (int c=0; c<lines.n; c++) {
+//		lp=lines.e[c];
+//
+//		 //need to normalize all points
+//		ll=lp;
+//		while (ll) {
+//			ll->s = (ll->s - bounds.minx) / (bounds.maxx - bounds.minx);
+//			ll->t = (ll->t - bounds.miny) / (bounds.maxy - bounds.miny);
+//
+//			if (ll->s >= 1 || ll->t >= 1 || ll->s <= 0 || ll->t <= 0) {
+//				ll->p = data->getPoint(ll->s, ll->t, false);
+//				ll->needtosync = 0;
+//			}
+//			ll = ll->next;
+//		}
+//	}
 
-		 //need to normalize all points
-		ll=lp;
-		while (ll) {
-			ll->s=(ll->s-bounds.minx)/(bounds.maxx-bounds.minx);
-			ll->t=(ll->t-bounds.miny)/(bounds.maxy-bounds.miny);
-			if (ll->s>=1 || ll->t>=1 || ll->s<=0 || ll->t<=0) {
-				ll->p=data->getPoint(ll->s,ll->t, false);
-				ll->needtosync=0;
-			}
-			ll=ll->next;
-		}
-	}
-
-	UpdateDashCache();
+	grow_cache->active = false;
+	//delete grow_cache;
+	//grow_cache = nullptr;
+	UpdateDashCache();	
 }
 
 /*! If growpoint_ret already has points in it, use those, don't create automatically along edges.
  */
-void EngraverPointGroup::GrowLines(EngraverFillData *data,
+void EngraverPointGroup::GrowLines_OLD(EngraverFillData *data,
 									double resolution, 
 									double defaultspace,  	ValueMap *spacingmap,
 									double defaultweight,   ValueMap *weightmap, 
@@ -5874,29 +5916,37 @@ void EngraverFillData::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContex
  */
 void EngraverFillData::Update()
 {
-	bool changed=false;
+	bool changed = false;
 
 	for (int c=0; c<groups.n; c++) {
 		EngraverPointGroup *group = groups.e[c];
 
 		if (group->needtoreline) {
 			if (group->direction->grow_lines) {
-				group->growpoints.flush();
-				group->GrowLines2(this,
+				if (!group->grow_cache) {
+					//initialize growing lines.. this will start iterating growth over many frames
+					group->growpoints.flush();
+					group->GrowLines_Init(this,
 								 group->spacing->spacing/3,
 								 group->spacing->spacing, NULL,
 								 .01, NULL,
 								 group->directionv,group,
-								 &group->growpoints,
-								 1000 //iteration limit
+								 1000, //iteration limit
+								 &group->growpoints
 								);
+				} else {
+					if (!group->GrowLines_Iterate()) {
+						group->GrowLines_Finish();
+						group->needtoreline = false;
+					}
+				}
 			} else {
 				group->Fill(this, -1);
+				group->needtoreline = false;
 			}
 
 			group->UpdateBezCache();
 
-			group->needtoreline=false;
 			if (group->trace->continuous_trace) group->needtotrace =true;
 			group->needtodash  =true;
 

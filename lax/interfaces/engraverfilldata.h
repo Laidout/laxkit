@@ -522,6 +522,80 @@ class NormalDirectionMap : public DirectionMap
 };  
     
 
+//--------------------------- GrowPointInfo -----------------------------
+class GrowPointInfo
+{
+  public:
+	flatpoint p;
+	flatpoint v;
+	int godir;
+	GrowPointInfo(flatpoint pp,flatpoint vv, int gdir) { p=pp; v=vv; godir=gdir; }
+	GrowPointInfo(flatpoint pp, int gdir) { p=pp; godir=gdir; }
+};
+
+
+//------------------------- class StarterPoint, used for growing lines --------------------
+class StarterPoint
+{
+  public:
+	int iteration;
+	int piteration;
+
+	flatpoint p;
+	flatpoint dir;
+	int dodir; //1 for add to +direction, 2 for add to -direction, 3 for both
+
+	int lineref;
+	LinePoint *line;
+	LinePoint *first, *last; //is part of line, will be either the most next or most prev
+
+	StarterPoint (flatpoint p, int indir, double weight,int groupid, int nlineref);
+};
+
+
+//------------------------ GrowContext --------------------------
+class GrowContext
+{
+  public:
+  	struct ScratchData
+  	{
+  		int group;
+  		int line;
+  		int point;
+  		flatpoint dir;
+  	};
+
+  	bool active = true;
+  	ScratchData *scratch_data = nullptr;
+
+  	GrowContext();
+  	~GrowContext();
+
+  	Laxkit::PtrStack<StarterPoint> generators;
+
+  	//EngraverDirection *direction;
+  	//EngraverSpacing *spacing;
+  	//TraceObject *tracing;
+
+  	char *error = nullptr;
+
+  	int iteration = 0;
+	int iteration_limit;
+
+  	EngraverFillData *data = nullptr;
+	double resolution = -1; 
+
+	double defaultspace = 0;
+	ValueMap *spacingmap = nullptr;
+
+	double defaultweight = 0;
+	ValueMap *weightmap = nullptr;
+
+	flatpoint directionv;
+	DirectionMap *directionmap = nullptr;
+};
+
+
 //--------------------------- EngraverDirection -----------------------------
 enum PointGroupType {
 	PGROUP_Unknown=0,
@@ -636,17 +710,6 @@ class EngraverSpacing : public Laxkit::Resourceable, public LaxFiles::DumpUtilit
 };
 
 
-//--------------------------- GrowPointInfo -----------------------------
-class GrowPointInfo
-{
-  public:
-	flatpoint p;
-	flatpoint v;
-	int godir;
-	GrowPointInfo(flatpoint pp,flatpoint vv, int gdir) { p=pp; v=vv; godir=gdir; }
-	GrowPointInfo(flatpoint pp, int gdir) { p=pp; godir=gdir; }
-};
-
 //----------------------------------------------- EngraverPointGroup
 
 
@@ -675,7 +738,9 @@ class EngraverPointGroup : public DirectionMap
 
 	double default_weight; //a fraction of spacing
 	flatpoint position,directionv; //note NOT the same properties as in EngravingDirection, this overrides those
+
 	Laxkit::PtrStack<GrowPointInfo> growpoints;
+	GrowContext *grow_cache = nullptr;
 
 	EngraverTraceSettings *trace; 
 	EngraverLineQuality *dashes;
@@ -720,20 +785,23 @@ class EngraverPointGroup : public DirectionMap
 	virtual ImageData *SpacingSnapshot();
 	virtual int TraceFromSnapshot();
 
-	virtual void GrowLines(EngraverFillData *data,
+	virtual void GrowLines_OLD(EngraverFillData *data,
 									double resolution, 
 									double defaultspace,  	ValueMap *spacingmap,
 									double defaultweight,   ValueMap *weightmap, 
 									flatpoint direction,    DirectionMap *directionmap,
 									Laxkit::PtrStack<GrowPointInfo> *growpoint_ret,
 									int iteration_limit);
-	virtual void GrowLines2(EngraverFillData *data,
-									double resolution, 
-									double defaultspace,  	ValueMap *spacingmap,
-									double defaultweight,   ValueMap *weightmap, 
-									flatpoint direction,    DirectionMap *directionmap,
-									Laxkit::PtrStack<GrowPointInfo> *growpoint_ret,
-									int iteration_limit);
+	virtual GrowContext *GrowLines_Init(EngraverFillData *data,
+								double resolution, 
+								double defaultspace,  	ValueMap *spacingmap,
+								double defaultweight,   ValueMap *weightmap, 
+								flatpoint direction,    DirectionMap *directionmap,
+								int iteration_limit,
+								Laxkit::PtrStack<GrowPointInfo> *custom_starters
+								);
+	virtual bool GrowLines_Iterate();
+	virtual void GrowLines_Finish();
 
 	virtual void UpdateBezCache();
 	virtual void UpdatePositionCache();

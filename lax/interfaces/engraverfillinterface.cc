@@ -1256,7 +1256,7 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
 
 		} else if (over==ENGRAVE_Direction_Grow) {
 			if (dragged<10 && group) {
-				group->direction->grow_lines=!group->direction->grow_lines;
+				group->direction->grow_lines = !group->direction->grow_lines;
 				Grow(true, false);
 				needtodraw=1;
 			}
@@ -2742,11 +2742,11 @@ int EngraverFillInterface::Refresh()
 	if (show_direction) {
 		DirectionMap *map=NULL;
 		if (!map && edata) {
-			EngraverPointGroup *group=edata->GroupFromIndex(current_group);
-			map=group->direction->map;
-			if (!map) map=group;
+			EngraverPointGroup *group = edata->GroupFromIndex(current_group);
+			map = group->direction->map;
+			if (!map) map = group;
 		}
-		if (!map) map=directionmap;
+		if (!map) map = directionmap;
 
 		if (map) {
 			dp->DrawScreen();
@@ -2754,12 +2754,11 @@ int EngraverFillInterface::Refresh()
 			dp->LineWidthScreen(1);
 
 			//double s=1;
-			int step=20;
-			int win_w=dp->Maxx-dp->Minx;
-			int win_h=dp->Maxy-dp->Miny;
-			int ww=win_w - 2*step;
-			int hh=win_h - 2*step;
-
+			int step  = 20;
+			int win_w = dp->Maxx - dp->Minx;
+			int win_h = dp->Maxy - dp->Miny;
+			int ww    = win_w - 2 * step;
+			int hh    = win_h - 2 * step;
 
 			flatpoint v;
 			double vv;
@@ -2887,57 +2886,72 @@ int EngraverFillInterface::Refresh()
 		DrawOrientation(lasthover);
 
 		 //draw starter points for growth mode
-		//if (grow_lines && growpoints.n) {
-		EngraverPointGroup *group=edata->GroupFromIndex(current_group);
-		if (group->direction->grow_lines && group->growpoints.n) {
+		EngraverPointGroup *group = edata->GroupFromIndex(current_group);
+		if (group->direction->grow_lines && group->grow_cache)
+		{
 			dp->DrawScreen();
 
 			flatpoint p, p2;
 			flatpoint v,vt;
 			double len=5;
 
-			for (int c=0; c<group->growpoints.n; c++) {
-				p=group->growpoints.e[c]->p;
-				v=group->Direction(p.x,p.y);
-				v.normalize();
-				p2=edata->getPoint(p.x+.01*v.x, p.y+.01*v.y, false);
-				p2=dp->realtoscreen(p2);
-				p=edata->getPoint(p.x,p.y, false);
-				p=dp->realtoscreen(p);
-				v=p2-p;
-				v.normalize();
-				vt=transpose(v);
+			for (int c=0; c<group->grow_cache->generators.n; c++)
+			{
+				if (group->grow_cache->generators.e[c]->dodir & 1)
+				{
+					dp->NewFG(activate_color);
+				
+					p = group->grow_cache->generators.e[c]->last->p;
+					v = group->Direction(p.x, p.y);
+					v.normalize();
+					p2 = edata->getPoint(p.x + .01 * v.x, p.y + .01 * v.y, false);
+					p2 = dp->realtoscreen(p2);
+					p  = edata->getPoint(p.x, p.y, false);
+					p  = dp->realtoscreen(p);
+					v  = p2 - p;
+					v.normalize();
+					vt = transpose(v);
 
-				if (group->growpoints.e[c]->godir&1) dp->NewFG(activate_color);
-				else dp->NewFG(deactivate_color);
-				dp->moveto(p+vt*len);
-				dp->lineto(p-vt*len);
-				dp->lineto(p+v*2*len);
-				dp->fill(0);
-				//dp->drawthing(p.x+5,p.y, 5,5, 1, THING_Triangle_Right);
+					dp->moveto(p+vt*len);
+					dp->lineto(p-vt*len);
+					dp->lineto(p+v*2*len);
+					dp->fill(0);
+				}
 
-				if (group->growpoints.e[c]->godir&2) dp->NewFG(activate_color); 
-				else dp->NewFG(deactivate_color);
-				dp->moveto(p+vt*len);
-				dp->lineto(p-vt*len);
-				dp->lineto(p-v*2*len);
-				dp->fill(0);
-				//dp->drawthing(p.x-5,p.y, 5,5, 1, THING_Triangle_Left);
+				if (group->grow_cache->generators.e[c]->dodir & 2)
+				{
+					dp->NewFG(activate_color); 
+				
+					p = group->grow_cache->generators.e[c]->first->p;
+					v = group->Direction(p.x, p.y);
+					v.normalize();
+					p2 = edata->getPoint(p.x + .01 * v.x, p.y + .01 * v.y, false);
+					p2 = dp->realtoscreen(p2);
+					p  = edata->getPoint(p.x, p.y, false);
+					p  = dp->realtoscreen(p);
+					v  = p2 - p;
+					v.normalize();
+					vt = transpose(v);
+
+					dp->moveto(p+vt*len);
+					dp->lineto(p-vt*len);
+					dp->lineto(p-v*2*len);
+					dp->fill(0);
+				}
 			}
 
 			dp->DrawReal();
 		}
 
-	} else if ((mode==EMODE_Thickness
-			|| mode==EMODE_Blockout
-			|| mode==EMODE_Drag
-			|| mode==EMODE_Turbulence
-			|| mode==EMODE_PushPull
-		    || mode==EMODE_AvoidToward
-		    || mode==EMODE_Twirl)
-			&& lasthovercategory!=ENGRAVE_Panel
+	} else if ((mode == EMODE_Thickness
+			 || mode == EMODE_Blockout
+			 || mode == EMODE_Drag
+			 || mode == EMODE_Turbulence
+			 || mode == EMODE_PushPull
+		     || mode == EMODE_AvoidToward
+		     || mode == EMODE_Twirl)
+			&& lasthovercategory != ENGRAVE_Panel
 			) {
-
 
 		dp->DrawScreen();
 		dp->LineWidthScreen(1);
@@ -4659,12 +4673,12 @@ void EngraverFillInterface::DrawPanel()
 						dp->closed();
 						dp->fill(0);
 
-						dp->NewFG(1.0,1.0,1.0);
-						dp->textout(i2x+i2w/2-1,i2y+i2h/2-1, "Merge spread Todo!",-1,LAX_CENTER);
-						dp->textout(i2x+i2w/2+1,i2y+i2h/2-1, "Merge spread Todo!",-1,LAX_CENTER);
-						dp->textout(i2x+i2w/2,i2y+i2h/2+1, "Merge spread Todo!",-1,LAX_CENTER);
-						dp->NewFG(&fgcolor);
-						dp->textout(i2x+i2w/2,i2y+i2h/2, "Merge spread Todo!",-1,LAX_CENTER);
+						//dp->NewFG(1.0,1.0,1.0);
+						//dp->textout(i2x+i2w/2-1,i2y+i2h/2-1, "Merge spread Todo!",-1,LAX_CENTER);
+						//dp->textout(i2x+i2w/2+1,i2y+i2h/2-1, "Merge spread Todo!",-1,LAX_CENTER);
+						//dp->textout(i2x+i2w/2,i2y+i2h/2+1, "Merge spread Todo!",-1,LAX_CENTER);
+						//dp->NewFG(&fgcolor);
+						//dp->textout(i2x+i2w/2,i2y+i2h/2, "Merge spread Todo!",-1,LAX_CENTER);
 
 					} else if (item2->id==ENGRAVE_Direction_Seed) {
 						DrawNumInput((group ? group->direction->seed : -1), 1, lasthover==ENGRAVE_Direction_Seed,
@@ -5043,21 +5057,19 @@ void EngraverFillInterface::UpdateDashCaches(EngraverLineQuality *dash)
 int EngraverFillInterface::Grow(bool all, bool allindata)
 {
 	DBG cerr <<"EngraverFillInterface::Grow("<<(all?"true":"false")<<','<<(allindata?"true":"false")<<endl;
-	//return 1;
-	// *** *** ToDO!!!! needs work
 	
 	EngraverPointGroup *group=edata ? edata->GroupFromIndex(current_group) : NULL;
 	if (!group) return 1;
 	if (!group->direction->grow_lines) return 2;
 
 	group->growpoints.flush();
-	group->GrowLines2(edata,
+	group->GrowLines_Init(edata,
 					 group->spacing->spacing/3,
 					 group->spacing->spacing, NULL,
 					 .01, NULL,
 					 group->directionv,group,
-					 &group->growpoints,
-					 1000 //iteration limit
+					 1000, //iteration limit
+					 nullptr //&group->growpoints
 					);
 	edata->touchContents();
 
