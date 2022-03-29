@@ -40,13 +40,14 @@ class DumpContext : public Laxkit::anObject
 	unsigned long initiator; //object_id of top initiating object
 
 	char *basedir;
-	char subs_only;
+	bool subs_only;
+	bool render_proxies = false; //when a group has a proxy_shape defined
 	Laxkit::anObject *extra;
 
 	Laxkit::ErrorLog *log;
 
 	DumpContext();
-	DumpContext(const char *nbasedir,char nsubs_only, unsigned long initer);
+	DumpContext(const char *nbasedir, bool nsubs_only, unsigned long initer);
 	virtual ~DumpContext();
 };
 

@@ -128,27 +128,24 @@ void DumpUtility::dump_in_str(const char *str, int what, DumpContext *context, A
  */
 
 DumpContext::DumpContext()
-	: basedir(NULL), subs_only(0)
+	: basedir(nullptr), subs_only(false)
 {
-	what=0;
-	zone=0;
-
-	initiator=0;
-	extra=NULL;
-
-	log=NULL;
+	what      = 0;
+	zone      = 0;
+	initiator = 0;
+	extra     = nullptr;
+	log       = nullptr;
 }
 
-DumpContext::DumpContext(const char *nbasedir,char nsubs_only, unsigned long initer)
+DumpContext::DumpContext(const char *nbasedir, bool nsubs_only, unsigned long initer)
 {
-	basedir=newstr(nbasedir);
-	subs_only=nsubs_only;
-	initiator=initer;
-	extra=NULL;
-
-	what=0;
-	zone=0;
-	log=NULL;
+	basedir   = newstr(nbasedir);
+	subs_only = nsubs_only;
+	initiator = initer;
+	extra     = nullptr;
+	what      = 0;
+	zone      = 0;
+	log       = nullptr;
 }
 
 /*! Dec count on extra if not NULL.
