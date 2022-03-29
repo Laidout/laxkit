@@ -79,7 +79,7 @@ class VoronoiData : virtual public LaxInterfaces::SomeData, virtual public Laxki
 	bool show_delaunay;
 	bool show_voronoi;
 	bool show_numbers;
-	bool custom_radii;
+	bool custom_radii; //point radius is per point
 
 	Laxkit::DoubleBBox containing_rect;
 	Laxkit::NumStack<IndexTriangle> triangles;
