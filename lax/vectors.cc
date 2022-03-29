@@ -352,8 +352,10 @@ flatvector transpose(flatvector v)
 }
 
 /*! Return how aligned we are with another vector, as if on a path.
- * Two vectors going in the same direction are considered a corner.
- * LINE_Corner for corner. LINE_Smooth for smooth but unequal, LINE_Equal for smooth and equal.
+ * Two vectors going in opposite directions are considered smooth. In this case, return 
+ * LINE_Smooth for smooth but unequal, LINE_Equal for smooth and equal.
+ * All other vectors are corners, including vectors that point in the same direction,
+ * and LINE_Corner is returned.
  */
 int flatvector::SmoothnessFlag(const flatvector &v) const
 {
