@@ -124,10 +124,11 @@ class LaxMouse : public LaxDevice
 						int *screen, anXWindow **child,
 						double *x, double *y, unsigned int *mods,
 						double *pressure, double *tiltx, double *tilty,
-						ScreenInformation **screenInfo) = 0;
-	virtual int Pressure();
-	virtual int TiltX();
-	virtual int TiltY();
+						ScreenInformation **screenInfo) const = 0;
+	virtual double Pressure() const;
+	virtual double TiltX() const;
+	virtual double TiltY() const;
+	virtual void Tilt(double *x, double *y) const;
 };
 
 
@@ -195,7 +196,7 @@ class CoreXlibPointer : public LaxMouse
 						int *screen, anXWindow **child,
 						double *x, double *y, unsigned int *mods,
 						double *pressure, double *tiltx, double *tilty,
-						ScreenInformation **screenInfo);
+						ScreenInformation **screenInfo) const;
 };
 
 //------------------------------------- CoreXlibKeyboard -----------------------------------
@@ -234,7 +235,7 @@ class XInput2Pointer : public LaxMouse
 						int *screen, anXWindow **child,
 						double *x, double *y, unsigned int *mods,
 						double *pressure, double *tiltx, double *tilty,
-						ScreenInformation **screenInfo);
+						ScreenInformation **screenInfo) const;
 };
 
 

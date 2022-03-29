@@ -283,22 +283,30 @@ int LaxMouse::grabDevice(anXWindow *win)
 int LaxMouse::ungrabDevice()
 { return 1; }
 
-int LaxMouse::Pressure()
+double LaxMouse::Pressure() const
 {
-	cerr <<" *** must implement LaxMouse::Pressure()!!"<<endl;
-	return 0;
+	double pressure = 1;
+	getInfo(nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, &pressure, nullptr, nullptr, nullptr);
+	return pressure;
 }
 
-int LaxMouse::TiltX()
+double LaxMouse::TiltX() const
 {
-	cerr <<" *** must implement LaxMouse::TiltX()!!"<<endl;
-	return 0;
+	double tilt = 0;
+	getInfo(nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, &tilt, nullptr, nullptr);
+	return tilt;
 }
 
-int LaxMouse::TiltY()
+double LaxMouse::TiltY() const
 {
-	cerr <<" *** must implement LaxMouse::TiltY()!!"<<endl;
-	return 0;
+	double tilt = 0;
+	getInfo(nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, &tilt, nullptr);
+	return tilt;
+}
+
+void LaxMouse::Tilt(double *x, double *y) const
+{
+	getInfo(nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, x, y, nullptr);
 }
 
 
@@ -577,7 +585,7 @@ int CoreXlibPointer::grabDevice(anXWindow *win)
 int CoreXlibPointer::getInfo(anXWindow *win,
 							 int *screen, anXWindow **child,
 							 double *x, double *y, unsigned int *mods,
-							 double *pressure, double *tiltx, double *tilty, ScreenInformation **screenInfo) //extra goodies
+							 double *pressure, double *tiltx, double *tilty, ScreenInformation **screenInfo) const //extra goodies
 {
 	Window rt=0,chld=0, xwin=0;
 	int rx,ry,xx,yy;
@@ -1179,7 +1187,7 @@ int XInput2Pointer::grabDevice(anXWindow *win)
 int XInput2Pointer::getInfo(anXWindow *win,
 							 int *screen, anXWindow **child,
 							 double *x, double *y, unsigned int *mods,
-							 double *pressure, double *tiltx, double *tilty, ScreenInformation **screenInfo) //extra goodies
+							 double *pressure, double *tiltx, double *tilty, ScreenInformation **screenInfo) const //extra goodies
 {
 	Window xwin = 0;
 	if (win)   xwin = win->xlib_window;
@@ -1300,8 +1308,8 @@ int XInput2Pointer::getInfo(anXWindow *win,
 				if (val->min>=val->max) *pressure=1; 
 				else *pressure=(val->value-val->min)/(val->max-val->min);
 			}
-			if (tiltx && val->number==3)    { *tiltx   =(val->value-val->min)/(val->max-val->min); }
-			if (tilty && val->number==4)    { *tilty   =(val->value-val->min)/(val->max-val->min); }
+			if (tiltx && val->number == 3 && val->max != val->min) { *tiltx = (val->value-val->min)/(val->max-val->min); }
+			if (tilty && val->number == 4 && val->max != val->min) { *tilty = (val->value-val->min)/(val->max-val->min); }
 		}
 
 		XIFreeDeviceInfo(devinfo);
