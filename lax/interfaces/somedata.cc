@@ -690,6 +690,40 @@ int SomeData::fitto(double *boxm,DoubleBBox *box,double alignx,double aligny, in
 	return 0;
 }
 
+/*! Contcatenate depth number of parent transforms.
+ * For instance, depth==2 is this->m * parent->m.
+ */
+Laxkit::Affine SomeData::GetTransforms(int depth, bool invert)
+{
+	Affine a;
+
+	SomeData *d = this;
+	for (int c=0; c<depth; c++) {
+		a.PreMultiply(d->m());
+		d = d->GetParent();
+	}
+
+	if (invert) a.Invert();
+    return a;
+}
+
+/*! Assumes that ascestor is in parent chain. Return transform of it.
+ */
+Laxkit::Affine SomeData::GetTransforms(SomeData *ancestor, bool invert)
+{
+	Affine a;
+
+	SomeData *d = this;
+	do {
+		a.PreMultiply(d->m());
+		if (d == ancestor) break;
+		d = d->GetParent();
+	} while (d);
+
+	if (invert) a.Invert();
+    return a;
+}
+
 /*! Return concatenation of parent transforms.
  * Note this is not valid beyond containing page.
  *  

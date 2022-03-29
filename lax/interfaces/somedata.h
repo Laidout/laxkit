@@ -140,6 +140,8 @@ class SomeData :  virtual public Laxkit::Resourceable,
 	virtual int IsChildOf(SomeData *obj);
 	virtual anObject *ObjectOwner() { return GetParent(); }
 	virtual Laxkit::Affine GetTransformToContext(bool invert, int partial);
+	virtual Laxkit::Affine GetTransforms(int depth, bool invert);
+	virtual Laxkit::Affine GetTransforms(SomeData *ancestor, bool invert);
 	virtual int NestedDepth();
 
 	virtual void FlipH();
