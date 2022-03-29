@@ -164,7 +164,7 @@ class ResourceType : public Resource
 	virtual Resource *FindFromRID(unsigned int id);
 	virtual int Remove(anObject *obj);
 	virtual int AddResource(anObject *object, anObject *ntopowner, const char *name, const char *Name, const char *description,
-							const char *file, LaxImage *icon,bool builtin=false);
+							const char *file, LaxImage *icon,bool builtin=false, const char *menu=nullptr);
 	virtual int NumberNotBuiltIn();
 	virtual int NumResources();
 	virtual int MakeNameUnique(char *&thename);
@@ -197,7 +197,7 @@ class ResourceManager : public anObject, public LaxFiles::DumpUtility
 	 //resource management
 	virtual int AddResource(const char *type, anObject *object, anObject *ntopowner,
 							const char *name, const char *Name, const char *description, const char *file, LaxImage *icon,
-							bool builtin=false);
+							bool builtin=false, const char *menu=nullptr);
 	virtual int RemoveResource(anObject *obj, const char *type);
 	virtual anObject *FindResource(const char *name, const char *type, Resource **resource_ret=NULL);
 	virtual Resource *FindResource(anObject *obj, const char *type);

@@ -423,7 +423,8 @@ int ResourceType::NumberNotBuiltIn()
 	return n;
 }
 
-/*! Return 0 for added, -1 for already there and not added.
+/*! Add a directory to directories list.
+ * Return 0 for added, -1 for already there and not added.
  * where<0 means add at end of list.
  */
 int ResourceType::AddDir(const char *dir, int where)
@@ -431,14 +432,17 @@ int ResourceType::AddDir(const char *dir, int where)
 	return dirs.AddDir(dir, where);
 }
 
-/*! Return 0 for removed, or 1 for not there already.
+/*! Remove a directory from directories list.
+ * Return 0 for removed, or 1 for not there already.
  */
 int ResourceType::RemoveDir(const char *dir)
 {
 	return dirs.RemoveDir(dir);
 }
 
-/*! Return 0 for removed, 1 for not found. */
+/*! Remove resource corresponding to obj.
+ * Return 0 for removed, 1 for not found.
+ */
 int ResourceType::Remove(anObject *obj)
 {
 	for (int c=0; c<resources.n; c++) {
@@ -530,9 +534,11 @@ Resource *ResourceType::Find(anObject *object)
  * object's count will be incremented.
  */
 int ResourceType::AddResource(anObject *nobject, anObject *ntopowner, const char *nname, const char *nName, const char *ndescription,
-								const char *nfile, LaxImage *nicon, bool builtin)
+								const char *nfile, LaxImage *nicon, bool builtin, const char *menu)
 {
 	if (Find(object)) return -1;
+
+	if (menu) cerr << "IMPLEMENT AddResource with extra menu!!!"<<endl;
 
 	char *uniquename = newstr(nname);
 	MakeNameUnique(uniquename);
@@ -791,11 +797,13 @@ Resource *ResourceManager::FindResource(anObject *obj, const char *type)
  *
  * Return 0 for successful add, or nonzero for not added.
  * -1 if object is already there for type.
+ *
+ * If menu != nullptr, then it should be something like "Menukey/Sub-menuKey/Sub-submenuKey".
  */
 int ResourceManager::AddResource(const char *type, //! If NULL, then use object->whattype()
 							anObject *object, anObject *ntopowner,
 							const char *name, const char *Name, const char *description, const char *file, LaxImage *icon,
-							bool builtin)
+							bool builtin, const char *menu)
 {
 	DBG cerr <<"Add resource "<<(object->Id() ? object->Id():"(no id!!)" )<<"..."<<endl;
 	if (!object) return 1;
@@ -804,9 +812,10 @@ int ResourceManager::AddResource(const char *type, //! If NULL, then use object-
 	ResourceType *t=FindType(type);
 	if (!t) {
 		 //resource type not found, add new type with NULL icon and description. Both names will be type
-		t=AddResourceType(type,type,NULL,NULL);
+		t = AddResourceType(type,type,NULL,NULL);
 	}
 
+	// TODO: pass in menu
 	t->AddResource(object,ntopowner, name,Name,description,file,icon, builtin);
 	return 0;
 }
