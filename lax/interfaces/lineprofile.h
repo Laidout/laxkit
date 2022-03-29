@@ -50,17 +50,20 @@ class LineProfile : public Laxkit::Resourceable, virtual public Laxkit::Previewa
 	bool wrap;
 
 	Laxkit::PtrStack<PathWeightNode> pathweights;
-	int needtorecache;
-	virtual void UpdateCache();
 
 	Laxkit::CurveInfo *width, *offset, *angle; //these are cache values made from pathweights
+	int needtorecache;
 	std::time_t nodes_mod_time;
 	std::time_t cache_mod_time;
+	virtual void UpdateCache();
 
 	 //instance data:
 	int start_type, end_type; //0=normal, 1=random
-	double start_rand_width, end_rand_width; //zone around start and end to randomize
-	double start, end;
+	enum class RepeatMode { NoRepeat, Number, Absolute, Fit };
+	RepeatMode repeat_mode = RepeatMode::NoRepeat; //0==no repeat, !=0 is fit close to 
+	double repeat_length = 1;
+	double start_rand_width, end_rand_width; //actual start, end is start+-start_rand_width, end+-end_rand_width
+	double start, end; //range 0..1, and start < end
 
 	LineProfile();
 	virtual ~LineProfile();
