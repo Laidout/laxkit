@@ -133,6 +133,7 @@ class Path : public LaxFiles::DumpUtility, public Laxkit::DoubleBBox
 	virtual void appendBezFromStr(const char *value);
 	virtual void AppendPath(Path *p, bool absorb_path, double merge_ends, int at = -1);
 	virtual int MakeRoundedRect(double x, double y, double w, double h, flatpoint *sizes, int numsizes);
+	virtual int MakeSquircleCubic(double x, double y, double w, double h, double *sizes, int numsizes);
 	virtual int removePoint(Coordinate *p, bool deletetoo);
 	virtual void moveTo(flatpoint p);
 	virtual void lineTo(flatpoint p);
@@ -251,7 +252,9 @@ class PathsData : virtual public SomeData
 	virtual void append(double x,double y,unsigned long flags=POINT_VERTEX,SegmentControls *ctl=NULL,int whichpath=-1);
 	virtual void append(flatpoint p,unsigned long flags=POINT_VERTEX,SegmentControls *ctl=NULL,int whichpath=-1);
 	virtual void appendRect(double x,double y,double w,double h,SegmentControls *ctl=NULL,int whichpath=-1);
+	virtual bool appendRect(DoubleBBox *box, int whichpath=-1);
 	virtual int MakeRoundedRect(int pathi, double x, double y, double w, double h, flatpoint *sizes, int numsizes);
+	virtual int MakeSquircleCubic(int pathi, double x, double y, double w, double h, double *sizes, int numsizes);
 	virtual void appendEllipse(flatpoint center, double xradius, double yradius, double angle, double offset, int num_vertices, int closed);
 	virtual void appendBezArc(flatpoint center, double angle, int num_vertices);
 	virtual void appendSvg(const char *d);
@@ -268,6 +271,7 @@ class PathsData : virtual public SomeData
 	virtual int CutSegment(Coordinate *coord, bool after, bool remove_dangling);
 	virtual int CutAt(int pathindex, double t);
 	virtual int CutAt(int n, int *paths, double *t);
+	virtual int AddAtIntersections(bool segment_loops, bool self_path_only, int pathi=-1);
 	virtual int AddAt(int pathindex, double t);
 	virtual int AddAt(int n, int *paths, double *t);
 

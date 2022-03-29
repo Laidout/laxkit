@@ -2341,6 +2341,134 @@ int Path::MakeRoundedRect(double x, double y, double w, double h, flatpoint *siz
 	return numv;
 }
 
+/*! Replace the path with a sort of squircle.
+ *  Returns number of vertices in the resulting path.
+ *
+ * sizes is a list of handle lengths, as a proportion of the dimension,
+ * in order [top-left, top-right, right-up,right-down, bottom-right, bottom-left, left-down, left-up].
+ *
+ * For instance, if top-left is 1, then the handle length is w/2.
+ *
+ * The resulting path will always be 12 points, with vertices at middle top, middle right, middle bottom, and middle left.
+ */
+int Path::MakeSquircleCubic(double x, double y, double w, double h, double *sizes, int numsizes)
+{
+	if (!path) path = new Coordinate();
+
+	Coordinate *p = path->firstPoint(0);
+	path = p;
+	if (p->prev) p->disconnect(false);
+	
+	flatpoint vprev, vnext, inp, outp, v;
+	Coordinate *last = nullptr;
+	// double dprev, dnext;
+	int numv = 4;
+	
+	int i = 0;
+
+	//top-left
+	p->flags = (p->flags & ~(POINT_TONEXT|POINT_VERTEX|POINT_TOPREV)) | POINT_TONEXT;
+	p->fp = flatpoint(x+w/2 - w/2*sizes[i%numsizes], y);
+	if (!p->next) p->next = new Coordinate();
+	i++;
+	p = p->next;
+
+	//top
+	p->flags = (p->flags & ~(POINT_TONEXT|POINT_VERTEX|POINT_TOPREV)) | POINT_VERTEX;
+	p->fp = flatpoint(x+w/2, y);
+	if (!p->next) p->next = new Coordinate();
+	p = p->next;
+
+	//top-right
+	p->flags = (p->flags & ~(POINT_TONEXT|POINT_VERTEX|POINT_TOPREV)) | POINT_TOPREV;
+	p->fp = flatpoint(x+w/2 + w/2*sizes[i%numsizes], y);
+	if (!p->next) p->next = new Coordinate();
+	i++;
+	p = p->next;
+
+	//right-up
+	p->flags = (p->flags & ~(POINT_TONEXT|POINT_VERTEX|POINT_TOPREV)) | POINT_TONEXT;
+	p->fp = flatpoint(x+w, y+h/2 - h/2*sizes[i%numsizes]);
+	if (!p->next) p->next = new Coordinate();
+	i++;
+	p = p->next;
+
+	//right
+	p->flags = (p->flags & ~(POINT_TONEXT|POINT_VERTEX|POINT_TOPREV)) | POINT_VERTEX;
+	p->fp = flatpoint(x+w, y+h/2);
+	if (!p->next) p->next = new Coordinate();
+	i++;
+	p = p->next;
+
+	//right-down
+	p->flags = (p->flags & ~(POINT_TONEXT|POINT_VERTEX|POINT_TOPREV)) | POINT_TOPREV;
+	p->fp = flatpoint(x+w, y+h/2 + h/2*sizes[i%numsizes]);
+	if (!p->next) p->next = new Coordinate();
+	i++;
+	p = p->next;
+
+	//bottom-right
+	p->flags = (p->flags & ~(POINT_TONEXT|POINT_VERTEX|POINT_TOPREV)) | POINT_TONEXT;
+	p->fp = flatpoint(x+w/2 + w/2*sizes[i%numsizes], y+h);
+	if (!p->next) p->next = new Coordinate();
+	i++;
+	p = p->next;
+
+	//bottom
+	p->flags = (p->flags & ~(POINT_TONEXT|POINT_VERTEX|POINT_TOPREV)) | POINT_VERTEX;
+	p->fp = flatpoint(x+w/2, y+h);
+	if (!p->next) p->next = new Coordinate();
+	p = p->next;
+
+	//bottom-left
+	p->flags = (p->flags & ~(POINT_TONEXT|POINT_VERTEX|POINT_TOPREV)) | POINT_TOPREV;
+	p->fp = flatpoint(x+w/2 - w/2*sizes[i%numsizes], y+h);
+	if (!p->next) p->next = new Coordinate();
+	i++;
+	p = p->next;
+
+	//left-down
+	p->flags = (p->flags & ~(POINT_TONEXT|POINT_VERTEX|POINT_TOPREV)) | POINT_TONEXT;
+	p->fp = flatpoint(x, y+h/2 + h/2*sizes[i%numsizes]);
+	if (!p->next) p->next = new Coordinate();
+	i++;
+	p = p->next;
+
+	//left
+	p->flags = (p->flags & ~(POINT_TONEXT|POINT_VERTEX|POINT_TOPREV)) | POINT_VERTEX;
+	p->fp = flatpoint(x, y+h/2);
+	if (!p->next) p->next = new Coordinate();
+	i++;
+	p = p->next;
+
+	//left-up
+	p->flags = (p->flags & ~(POINT_TONEXT|POINT_VERTEX|POINT_TOPREV)) | POINT_TOPREV;
+	p->fp = flatpoint(x, y+h/2 - h/2*sizes[i%numsizes]);
+	
+	if (p->next) {
+		//delete any extraneous points
+		last = p->next;
+		last->disconnect(false);
+		delete last;
+	}
+
+	p->next = path;
+	path->prev = p;
+	path = p->next;
+
+	//remove extraneous path weights
+	for (int c=pathweights.n-1; c >= 0; c--) {
+		if (pathweights.e[c]->t > numv) {
+			pathweights.remove(c);
+		}
+	}
+
+	needtorecache = 1;
+	return numv;
+}
+
+
+
 /*! If merge_ends >= 0, then collapse endpoints when distance is <= merge_ends.
  * If absorb_path, then deletes p and transfers all Coordinate objects to ourself.
  * at is which vertex to insert path at, or < 1 for insert at end. So if at==0, then
@@ -2506,6 +2634,176 @@ void Path::Transform(const double *mm)
 		p = p->next;
 	} while (p && p!=start);
 }
+
+
+/*! If segment_loops, then check for bezier loops within each segment.
+ * If self_path_only, then only check for path intersections with themselves.
+ * If pathi == -1, then check all paths. If pathi == -1 and !self_path_only, then
+ * also check for intersections between all paths.
+ *
+ * Return value is number of vertices added.
+ */
+int PathsData::AddAtIntersections(bool segment_loops, bool self_path_only, int pathi)
+{
+	flatpoint pts1[4];
+	flatpoint pts2[4];
+	flatpoint pret[10];
+	double foundt1[9], foundt2[9];
+	Coordinate *start1, *p1, *p1next, *c1, *c2;
+	Coordinate *start2, *p2, *p2next;
+	int isline;
+	double threshhold = 1e-5;
+	double maxdepth = 0;
+	int num_slices = 0;
+
+	if (segment_loops) {
+		// check for self loops
+		
+		// check for loops in each segment
+		for (int c3 = 0; c3 < paths.n; c3++) { //foreach path in pathsdata1
+			if (pathi != -1 && pathi != c3) continue;
+			if (!paths.e[c3]->path) continue;
+
+			start1 = p1 = paths.e[c3]->path;
+
+			pts1[0] = p1->p();
+			if (p1->getNext(pts1[1], pts1[2], p1next, isline) != 0) break;
+			pts1[3] = p1next->p();
+
+			do { //foreach segment in path1
+				flatpoint p;
+				double tt[2];
+				if (bez_self_intersection(pts1[0], pts1[1], pts1[2], pts1[3], &p, &tt[0], &tt[1])) {
+					int n = 2;
+					if (tt[0] < 1e-6) { //very close to 0.0, ignore
+						tt[0] = tt[1];
+						n = 1;
+					}
+					if (fabs(tt[1] - 1) < 1e-6) { //very close to 1.0, ignore
+						n--;
+					}
+					if (n > 0) {
+						bez_subdivide(tt, n, pts1[0], pts1[1], pts1[2], pts1[3], pret);
+						if (p1->next->flags & POINT_TOPREV) {
+							c1 = p1->next;
+							c1->p(pret[1]);
+							p1 = c1;
+						} else { //no toprev, need to add
+							p1->insert(new Coordinate(pts1[1], POINT_TOPREV, nullptr), true);
+							p1 = p1->next;
+						}
+
+						if (p1->next->flags & POINT_TONEXT) {
+							c2 = p1->next;
+							c2->p(pret[2]);
+							p1 = c2;
+						} else { //no tonext, need to add
+							p1->insert(new Coordinate(pts1[2], POINT_TONEXT, nullptr), true);
+							p1 = p1->next;
+						}
+
+						p1->insert(new Coordinate(pts1[3], POINT_VERTEX, nullptr), true);
+						p1 = p1->next;
+						p1->insert(new Coordinate(pts1[4], POINT_TOPREV, nullptr), true);
+						p1 = p1->next;
+						p1->insert(new Coordinate(pts1[5], POINT_TONEXT, nullptr), true);
+						p1 = p1->next;
+
+						if (n > 1) {
+							p1->insert(new Coordinate(pts1[6], POINT_VERTEX, nullptr), true);
+							p1 = p1->next;
+							p1->insert(new Coordinate(pts1[7], POINT_TOPREV, nullptr), true);
+							p1 = p1->next;
+							p1->insert(new Coordinate(pts1[8], POINT_TONEXT, nullptr), true);
+							p1 = p1->next;
+						}
+
+						num_slices += n;
+					}
+				}
+
+				p1 = p1next;
+				pts1[0] = p1->p();
+				if (p1->getNext(pts1[1], pts1[2], p1next, isline) != 0) break;
+				pts1[3] = p1next->p();
+			} while (p1 && p1 != start1);
+
+		}
+	}
+
+	NumStack<double> tvals;
+
+	// now check for intersections between whole segments
+	for (int c3 = 0; c3 < paths.n; c3++) {
+		if (!paths.e[c3]->path) continue;
+		if (pathi != -1 && pathi != c3) continue;
+
+		start1 = p1 = paths.e[c3]->path;
+		double t_p1 = 0;
+		double t_p2 = 0;
+
+		do { //foreach segment in path1
+			pts1[0] = p1->p();
+			if (p1->getNext(pts1[1], pts1[2], p1next, isline) != 0) break;
+			pts1[3] = p1next->p();
+
+			for (int c4 = c3; c4 < paths.n; c4++) { //foreach path in pathsdata2
+				if (!paths.e[c4]->path) continue;
+				if (pathi != -1 && pathi != c4) continue;
+
+				start2 = p2 = paths.e[c4]->path;
+				t_p2 = 0;
+
+				do { //foreach segment in path2
+					pts2[0] = p2->p();
+					if (p2->getNext(pts2[1], pts2[2], p2next, isline) != 0) break;
+					pts2[3] = p2next->p();
+
+					if (p2 == p1) continue; // don't intersect identical segments
+
+					//pts2[0] = m2to1.transformPoint(pts2[0]);
+					//pts2[1] = m2to1.transformPoint(pts2[1]);
+					//pts2[2] = m2to1.transformPoint(pts2[2]);
+					//pts2[3] = m2to1.transformPoint(pts2[3]);
+
+					int num = 0;
+					//DBG cerr <<"---at bez t1: "<<t_p1<<" t2: "<<t_p2<<endl;
+					bez_intersect_bez(
+							pts1[0], pts1[1], pts1[2], pts1[3],
+							pts2[0], pts2[1], pts2[2], pts2[3],
+							pret, foundt1, foundt2, num,
+							threshhold,
+							0,0,1,
+							1, maxdepth
+						);
+
+					for (int c5 = 0; c5 < num; c5++) {
+						DBG cerr << "bez_intersect: t1: "<<(t_p1 + foundt1[c5])<<" t2: "<<(t_p2 + foundt2[c5])<<endl;
+
+						tvals.push(t_p1 + foundt1[c5]);
+						//p1->SliceSegment(foundt1, num);
+					}
+					DBG if (num == 0) cerr <<"bez_intersect: No intersections"<<endl;
+
+					p2 = p2next;
+					t_p2 += 1;
+				} while (p2 && p2 != start2);
+			}
+
+			p1 = p1next;
+			t_p1 += 1;
+		} while (p1 && p1 != start1);
+
+		if (tvals.n > 0) {
+			paths.e[c3]->AddAt(tvals.e, tvals.n, nullptr);
+			num_slices += tvals.n;
+			tvals.flush();
+		}
+	}
+
+	return num_slices;
+}
+
 
 /*! Insert np either after curvertex (after!=0), or before (after==0).
  * curvertex must be in this->path somewhere.
@@ -4335,6 +4633,22 @@ void PathsData::appendRect(double x,double y,double w,double h,SegmentControls *
 	FindBBox();
 }
 
+/*! Convenience function to append directly from a DoubleBBox.
+ * If the box is not valid, nothing is added and false is returned. Else true is returned.
+ */
+bool PathsData::appendRect(DoubleBBox *box, int whichpath)
+{
+	if (!box || !box->validbounds()) return false;
+
+	append(box->minx,box->miny, POINT_VERTEX, nullptr, whichpath);
+	append(box->maxx,box->miny, POINT_VERTEX, nullptr, whichpath);
+	append(box->maxx,box->maxy, POINT_VERTEX, nullptr, whichpath);
+	append(box->minx,box->maxy, POINT_VERTEX, nullptr, whichpath);
+	close(whichpath);
+	FindBBox();
+	return true;
+}
+
 /*! Replace subpath with a rounded rectangle.
  * If pathi is out of range, then push a new subpath.
  * Returns number of vertices in the resulting path.
@@ -4346,6 +4660,21 @@ int PathsData::MakeRoundedRect(int pathi, double x, double y, double w, double h
 		pathi = paths.n-1;
 	}
 	int ret = paths.e[pathi]->MakeRoundedRect(x,y,w,h,sizes,numsizes);
+	FindBBox();
+	return ret;
+}
+
+/*! Replace subpath with a cubic squircle.
+ * If pathi is out of range, then push a new subpath.
+ * Returns number of vertices in the resulting path.
+ */
+int PathsData::MakeSquircleCubic(int pathi, double x, double y, double w, double h, double *sizes, int numsizes)
+{
+	if (pathi < 0 || pathi >= paths.n) {
+		pushEmpty();
+		pathi = paths.n-1;
+	}
+	int ret = paths.e[pathi]->MakeSquircleCubic(x,y,w,h,sizes,numsizes);
 	FindBBox();
 	return ret;
 }
@@ -4491,7 +4820,7 @@ int PathsData::AddAt(int n, int *paths, double *t)
 	return 0;
 }
 
-/*! For each t, cut the path, possibly creating new paths.
+/*! For each t in path indices paths, cut the path, possibly creating new paths.
  * Return 0 for success or nonzero error.
  */
 int PathsData::CutAt(int n, int *paths, double *t)
