@@ -78,6 +78,12 @@ class ScrolledWindow : public PanUser, public anXWindow
 	virtual int MoveResize(int nx,int ny,int nw,int nh);
 	virtual int Resize(int nw,int nh);
 	virtual int Event(const EventData *e,const char *mes);
+	virtual int WheelUp(int x,int y,unsigned int state,int count,const LaxMouse *d);
+	virtual int WheelDown(int x,int y,unsigned int state,int count,const LaxMouse *d);
+	//TODO: for middle mouse dragging:
+	// virtual int MouseMove (int x,int y,unsigned int state, const LaxMouse *m) { return 1; }
+	// virtual int MBDown(int x,int y,unsigned int state,int count,const LaxMouse *d) { return 1; }
+	// virtual int MBUp(int x,int y,unsigned int state,const LaxMouse *d) { return 1; }
 };
 
 } // namespace Laxkit

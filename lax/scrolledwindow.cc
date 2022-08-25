@@ -155,8 +155,6 @@ int ScrolledWindow::UseThisWindow(anXWindow *nwindow)
 	return 0;
 }
 
-/*! \todo *** this must respond to panner events and pass them on to the subwindows...
- */
 int ScrolledWindow::Event(const EventData *e,const char *mes)
 {
 	if (!strcmp(mes, "pan change")) {
@@ -332,6 +330,22 @@ int ScrolledWindow::Resize(int nw,int nh)
 	}
 
 	syncWindows();
+	return 0;
+}
+
+/*! Scroll the contents */
+int ScrolledWindow::WheelUp(int x,int y,unsigned int state,int count,const LaxMouse *d)
+{
+	if (!panner) return 1;
+	panner->OneUp(1);
+	return 0;
+}
+
+/*! Scroll the contents */
+int ScrolledWindow::WheelDown(int x,int y,unsigned int state,int count,const LaxMouse *d)
+{
+	if (!panner) return 1;
+	panner->OneDown(1);
 	return 0;
 }
 
