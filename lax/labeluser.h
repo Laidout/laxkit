@@ -24,6 +24,8 @@
 
 namespace Laxkit {
 
+/*! Classes that incorporate a label should use this so that labels can easily be aligned.
+ */
 class LabelUser
 {
   public:
