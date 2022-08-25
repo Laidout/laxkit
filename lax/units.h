@@ -26,6 +26,7 @@
 #include <lax/anobject.h>
 #include <lax/lists.h>
 
+
 namespace Laxkit {
 
 enum UnitTypes {
@@ -37,20 +38,27 @@ enum UnitTypes {
 	UNITS_MM,
 	UNITS_Meters,
 	UNITS_Points,
-	UNITS_SvgPoints,
-	UNITS_CSSPoints,
-	UNITS_Pixels,
-	UNITS_Em,
+	UNITS_SvgPoints, // 90 svgpts == 1 inch
+	UNITS_CSSPoints, // 96 csspts == 1 inch
+	UNITS_Pixels,    // 96 == 1 inch in css, but tricky due to device size
+	UNITS_Picas,     // 1 pc == 12 pt
+	UNITS_em,        // 1 == context font size
+	UNITS_ex,        // 1 == x-height
+	UNITS_ch,        // 1 == width of the 0 character
+	UNITS_rem,       // 1 == font size of root element
+	UNITS_vw,        // 1 == 1% of the width of viewport
+	UNITS_vh,        // 1 == 1% of the height of viewport
+	UNITS_vmin,      // 1 == 1% of the min(width,height) of viewport
+	UNITS_vmax,      // 1 == 1% of the max(width,height) of viewport
 	UNITS_MAX
 };
+
+
+typedef int Unit;
 
 //------------------------------------- SimpleUnit ----------------------------------------
 class SimpleUnit : public anObject
 {
-  protected:
-	virtual SimpleUnit *find(const char *name,int len=-1);
-	virtual SimpleUnit *find(int units);
-
   public:
 	int id;
 	double scaling;
@@ -58,12 +66,26 @@ class SimpleUnit : public anObject
 	char *label;
 	SimpleUnit *next;
 
-	int defaultunits;
-
 	SimpleUnit();
 	virtual ~SimpleUnit();
 
-	virtual int UnitId(const char *name,int len=-1);
+	virtual SimpleUnit *find(const char *name,int len=-1);
+	virtual SimpleUnit *find(int units);
+};
+
+
+class UnitManager : public anObject
+{
+  protected:
+  	SimpleUnit *units = nullptr;
+
+	int defaultunits = UNITS_None;
+
+  public:
+  	UnitManager(bool install_default = true);
+  	virtual ~UnitManager();
+
+  	virtual int UnitId(const char *name,int len=-1);
 	virtual const char *UnitName(int uid);
 	virtual int UnitInfo(const char *name, int *iid, double *scale, char **shortname, char **singular,char **plural, const char **label_ret);
 	virtual int UnitInfoIndex(int index, int *iid, double *scale, char **shortname, char **singular,char **plural, const char **label_ret);
@@ -74,17 +96,16 @@ class SimpleUnit : public anObject
 	virtual int DefaultUnits(int units);
 	virtual int PixelSize(double pixelsize, int intheseunits);
 
-	virtual int NumberOfUnits();
+  	virtual int NumberOfUnits();
 	virtual const SimpleUnit *Find(int id);
 	virtual int AddUnits(int nid, double scale, const char *shortname, const char *singular,const char *plural, const char *nlabel=NULL);
 	virtual double Convert(double value, const char *from, const char *to, int *error_ret);
 	virtual double Convert(double value, int from_id, int to_id, int *error_ret);
 };
 
-typedef SimpleUnit UnitManager;
 
 //------------------------------------- CreateDefaultUnits() ----------------------------------------
-SimpleUnit *CreateDefaultUnits(SimpleUnit *units=NULL);
+UnitManager *CreateDefaultUnits(UnitManager *units = nullptr);
 UnitManager *GetUnitManager();
 void SetUnitManager(UnitManager *manager);
 
