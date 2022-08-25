@@ -13,6 +13,8 @@ window icon management, need to be able to set for any window on the fly
 
 -----------------------------------------------------------------------------
 
+window container system is too cumbersome
+
 It might be useful to review that BlahData are as autonomous from BlahInterface as possible.
 
 perhaps have an Interface<template> : public InterfaceWithDp to knock out the basics easily..

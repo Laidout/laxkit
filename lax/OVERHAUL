@@ -2,7 +2,16 @@ window overhaul:
 ----------------
 ----tasks:
 loadable window configurations
+
+port over Value system from Laidout
+
 window controls tied to variables
+
+put LaxFiles in main Laxkit namespace
+
+make LaxInterfaces be Laxkit::Interfaces
+
+implement undo/redo for all interfaces
 
 
 work out selecting for events, especially non-X events: man select(), use file descriptors??
@@ -95,6 +104,7 @@ CENTER_ON_SCREEN (when initially mapped)
 ESCAPABLE
 FULLSCREEN
 
+for all controls, separate window flags from specific subclass flags
 window icon/application class?
 make sure wm-spec is satisfied
 don't ignore multi screen environments
