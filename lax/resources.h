@@ -48,7 +48,7 @@ class Resourceable : virtual public anObject
 	Resourceable();
 	virtual ~Resourceable(); 
 
-	virtual anObject *ObjectOwner();
+	virtual anObject *ObjectOwner(); //convenience redirect from anObject
 	virtual anObject *ResourceOwner();
 	virtual void SetResourceOwner(anObject *newowner);
 

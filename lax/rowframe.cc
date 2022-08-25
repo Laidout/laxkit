@@ -129,11 +129,11 @@ RowFrame::RowFrame(anXWindow *parnt,const char *nname,const char *ntitle,unsigne
 //	if (ww==0) { m[1]=BOX_SHOULD_WRAP; flags|=BOX_WRAP_TO_X_EXTENT; }
 //	if (hh==0) { m[2]=BOX_SHOULD_WRAP; flags|=BOX_WRAP_TO_Y_EXTENT; }
 	
-	arrangedstate=0;
-	padinset=npad;
-	pad=npad;
-//	bevel=1;
-//	padi=1;
+	arrangedstate = 0;
+	padinset = npad;
+	pad = npad;
+//	bevel = 1;
+//	padi = 1;
 
 	flags=BOX_DONT_PROPAGATE_POS; // will set flags here manually, not use default RowColBox()
 	 //*** set squishy parameters/flags, should rethink this process a bit?
