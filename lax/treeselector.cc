@@ -486,17 +486,61 @@ int TreeSelector::SelectId(int id)
 	return curitem;
 }
 
+int TreeSelector::SelectAtPath(const char **path, int n, bool replace_selection)
+{
+	if (n <= 0) return 1;
+	if (replace_selection) DeselectAll();
+
+	MenuInfo *info = Menu();
+	for (int c=0; c<n; c++) {
+		// *** 1. expand at this level
+		int i = info->findIndex(path[c]);
+		MenuItem *item = info->e(i);
+		if (!item) {
+			DBG cerr << " *** can't find "<<path[c]<<"!!! this shouldn't happen"<<endl;
+			return 1;
+		}
+
+		if (item->hasSub()) item->Open();
+		
+		// *** 2. if at final, select item
+		if (c == n-1) {
+			item->SetState(LAX_ON|MENU_SELECTED, true);
+			selection.pushnodup(item, 0);
+		} else {
+			info = item->GetSubmenu(0);
+		}
+	}
+
+	RebuildCache();
+	return 0;
+}
+
+
 /*! Return 0 for success, or nonzero error.
  */
 int TreeSelector::Deselect(int which)
 {
 	if (which<0 || which>=visibleitems.howmany(0)) return 1;
-	MenuItem *i=item(which);
-	i->state&=~(MENU_SELECTED|LAX_ON|LAX_OFF);
-	i->state|=LAX_OFF;
+	MenuItem *i = item(which);
+	i->state &= ~(MENU_SELECTED|LAX_ON|LAX_OFF);
+	i->state |= LAX_OFF;
 	selection.remove(selection.findindex(i));
-	needtodraw=1;
+	needtodraw = 1;
 	return 0;
+}
+
+int TreeSelector::DeselectAll()
+{
+	int n = selection.n;
+	for (int c = selection.n-1; c>=0; c--) { // turn off all the ones that are on
+		MenuItem *item = selection.e[c];
+		item->state &= ~(LAX_ON|LAX_OFF|MENU_SELECTED); 
+		item->state |= LAX_OFF; 
+		selection.remove(c);
+	}
+	needtodraw = 1;
+	return n;
 }
 
 //! Expand which visible item. If already expanded, then do nothing.
