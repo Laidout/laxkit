@@ -146,7 +146,7 @@ Drawable aDrawable::xlibDrawable(int which)
  *  #define ANXWIN_FULLSCREEN 
  *
  *   Convenience flag to automatically enable closing windows by hitting the escape key.
- *   Works with deletenow()/close()
+ *   Works with deletenow()/Finalize()
  *  #define ANXWIN_ESCAPABLE 
  *
  *   Any window with this set is slated for destruction, and should not be messed with in any way.
@@ -899,14 +899,15 @@ int anXWindow::preinit()
  *
  * The Laxkit does not do anything with the default return value, but 0 should mean success.
  *
- * \todo is win_parent check really necessary? maybe just rely on ANXWIN_REMEMBER?
+ * Each child in _kids will also have child->Finalize() called.
  */
-int anXWindow::close()
+int anXWindow::Finalize()
 {
 	if (win_style&ANXWIN_REMEMBER) {
 		Attribute *att = dump_out_atts(NULL,0,NULL);
 		if (att) app->AppResource(att); //do not delete att!
 	}
+	for (int c=0; c<_kids.n; c++) _kids.e[c]->Finalize();
 	return 0;
 }
 

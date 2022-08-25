@@ -1125,6 +1125,14 @@ int anXApp::close()
 	return 0;
 }
 
+
+void anXApp::quit()
+{
+	dontstop=0;
+	for (int c=0; c<topwindows.n; c++) topwindows.e[c]->Finalize();
+}
+
+
 //! Copy stuff to the X cutbuffer.
 /*! len<0 means make len=strlen(stuff)
  */
@@ -1362,12 +1370,12 @@ void anXApp::resetkids(anXWindow *w)
 	GetDefaultDisplayer()->ClearDrawable(w);
 
 #ifdef _LAX_PLATFORM_XLIB
-	w->xlib_backbuffer=0;
-	w->xlib_window=0;
+	w->xlib_backbuffer = 0;
+	w->xlib_window = 0;
 #endif //_LAX_PLATFORM_XLIB
 
-	w->win_on=0;
-	w->win_style|=ANXWIN_DOOMED;
+	w->win_on = 0;
+	w->win_style |= ANXWIN_DOOMED;
 
 	for (int c=0; c<w->_kids.n; c++) resetkids(w->_kids.e[c]);
 }
@@ -1376,7 +1384,7 @@ void anXApp::resetkids(anXWindow *w)
 /*!  Meant to be called from within windows any old time.
  *  Means window did delete protocol, or just wants to be destroyed.
  *
- *  First w->close() is called, then
+ *  First w->Finalize() is called, then
  *  anXWindow::xlib_window and its subwindows are XDestroyWindowed here and set to 0, and
  *  any associated timers and tooltip checking removed, but
  *  the anXWindow instance is really destroyed at end of event loop in run(), or in app->close().
@@ -1394,7 +1402,7 @@ int anXApp::destroywindow(anXWindow *w)
 	DBG    <<w->WindowTitle()<<"\")...topwindows.n="<<topwindows.n<<endl;
 
 	 //-----close the window and destroy xlib bits of it
-	w->close();
+	w->Finalize();
 
 #ifdef _LAX_PLATFORM_XLIB
 	if (w->xlib_dnd) w->xlib_dnd->SetTarget(nullptr, nullptr);
@@ -1902,24 +1910,24 @@ int anXApp::processSingleDataEvent(EventReceiver *obj,EventData *ee)
 		 //If event rejected, then possibly propagate to parent
 		 // Only mouse and key events are so passed on.
 		if (ww && ww->win_parent) {
-			int c=0;
+			bool propagate = 0;
 
 			if (ee->type==LAX_onMouseMove || ee->type==LAX_onButtonDown || ee->type==LAX_onButtonUp) {
 				 // Mouse event, musttranslate x,y to new window, ***assume win_x and win_y are accurate?
 				 //****must make sure they are!! Check through all the configure notify stuff
 				 //what about window manager decorations?
-				MouseEventData *me=dynamic_cast<MouseEventData*>(ee);
-				me->x+=ww->win_x+ww->win_border;
-				me->y+=ww->win_y+ww->win_border;
-				c=1;
+				MouseEventData *me = dynamic_cast<MouseEventData*>(ee);
+				me->x += ww->win_x+ww->win_border;
+				me->y += ww->win_y+ww->win_border;
+				propagate = true;
 
-			} else if (ee->type==LAX_onKeyDown || ee->type==LAX_onKeyUp) c=1;
+			} else if (ee->type==LAX_onKeyDown || ee->type==LAX_onKeyUp) propagate = true;
 
-			if (c) {
-				anXWindow *w=ww->win_parent;
+			if (propagate) {
+				anXWindow *w = ww->win_parent;
 				while (w) {
-					if (w->Event(ee,ee->send_message?ee->send_message:"")==0) break;
-					w=w->win_parent;
+					if (w->Event(ee,ee->send_message?ee->send_message:"") == 0) break;
+					w = w->win_parent;
 				}
 				//if (!w) eventCatchAll(ee);
 			}

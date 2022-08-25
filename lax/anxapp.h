@@ -251,7 +251,7 @@ class anXWindow : virtual public EventReceiver,
 	virtual int  Grayed(int g);
 	virtual int  preinit();
 	virtual int  init() { return 0; }
-	virtual int  close();
+	virtual int  Finalize();
 	virtual int  Idle(int tid, double delta) { return 1; }
 	virtual void Refresh() { Needtodraw(0); }
 	virtual Displayer *MakeCurrent();
@@ -484,7 +484,7 @@ class anXApp : virtual public anObject
 	virtual int initNoX(int argc,char **argv);
 	virtual int run(); 
 	virtual int close();
-	virtual void quit() { dontstop=0; }
+	virtual void quit();
 
 	 //resources
 	virtual int Tooltips(int on);
