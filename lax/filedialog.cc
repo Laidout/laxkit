@@ -39,6 +39,7 @@
 #include <unistd.h>
 #include <dirent.h>
 #include <glob.h>
+#include <libgen.h>
 
 #include <iostream>
 using namespace std;
@@ -51,7 +52,9 @@ using namespace std;
 
 using namespace LaxFiles;
 
-
+#ifndef GLOB_PERIOD
+	#define GLOB_PERIOD 0
+#endif
 //Minimal File Selection Dialog
 //
 //[bm1] [bm2] [...]

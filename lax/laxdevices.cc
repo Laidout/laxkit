@@ -871,7 +871,8 @@ int CoreXlibKeyboard::eventFilter(EventData **events_ret,
 			f->to=ww->object_id;
 			f->device=this;
 
-			SetFocus(ww,times(NULL),1);
+			tms tms_;
+			SetFocus(ww,times(&tms_),1);
 
 			anXApp::app->xim_deadkey=0;
 			*events_ret=f;
@@ -887,7 +888,8 @@ int CoreXlibKeyboard::eventFilter(EventData **events_ret,
 			FocusChangeData *f=new FocusChangeData(LAX_onFocusOff);
 			f->to=ww->object_id;
 			f->target=ww;
-			f->send_time=times(NULL);
+			tms tms_;
+			f->send_time=times(&tms_);
 			f->device=this;
 
 			anXApp::app->xim_deadkey=0;
@@ -912,7 +914,8 @@ int CoreXlibKeyboard::eventFilter(EventData **events_ret,
 int CoreXlibKeyboard::SetFocus(anXWindow *win, clock_t t,int notifyonly)
 {
 	//***should probably check other keyboards, and if they have same focus window, then remove it from them
-	LaxKeyboard::SetFocus(win,times(NULL),1);
+	tms tms_;
+	LaxKeyboard::SetFocus(win,times(&tms_),1);
 
 	if (!notifyonly) {
 		XWindowAttributes atts;
@@ -1767,8 +1770,8 @@ int XInput2Keyboard::eventFilter(EventData **events_ret,XEvent *xev,anXWindow *w
 			f->target=ww;
 			f->to=ww->object_id;
 			f->device=this;
-
-			SetFocus(ww,times(NULL),1);
+			tms tms_;
+			SetFocus(ww,times(&tms_),1);
 
 			anXApp::app->xim_deadkey=0;
 			*events_ret=f;
@@ -1809,7 +1812,8 @@ int XInput2Keyboard::eventFilter(EventData **events_ret,XEvent *xev,anXWindow *w
 
 int XInput2Keyboard::SetFocus(anXWindow *win, clock_t t,int notifyonly)
 {
-	LaxKeyboard::SetFocus(win,times(NULL),1);
+	tms tms_;
+	LaxKeyboard::SetFocus(win,times(&tms_),1);
 
 	if (!notifyonly) {
 		XWindowAttributes atts;

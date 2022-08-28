@@ -1283,6 +1283,25 @@ char *htmlchars_decode(const char *str, char *buffer)
 	return buffer;
 }
 
+const char *lax_strchrnul(const char *s, int c) {
+	#ifdef _GNU_SOURCE
+		return strchrnul(s, c);
+	#else
+		char* r = (char*)s;
+		do{ r++; }while( *r && *r != c );
+		return r;
+	#endif
+}
+
+char *lax_strchrnul(char *s, int c) {
+	#ifdef _GNU_SOURCE
+		return strchrnul(s, c);
+	#else
+		char* r = (char*)s;
+		do{ r++; }while( *r && *r != c );
+		return r;
+	#endif
+}
 
 /*! @} */
 

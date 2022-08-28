@@ -605,7 +605,7 @@ LaxOption *LaxOptions::remaining()
  */
 LaxOption *LaxOptions::find(const char *long_option, int short_option)
 {
-	for (int c=0; c<howmany(); c++) {
+	for (int c=0; c<how_many(); c++) {
 		if (long_option && e[c]->long_option && !strcmp(long_option,e[c]->long_option))
 			return e[c];
 		if (short_option!=0 && short_option==e[c]->short_option) return e[c];

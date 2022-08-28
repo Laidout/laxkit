@@ -687,7 +687,8 @@ int TextOnPath::Remap()
 	if (end - start <= 0) {  // ok to have just a bunch of spaces
 		textpathlen   = 0;
 		needtorecache = 0;
-		cachetime     = times(NULL);
+		tms tms_;
+		cachetime     = times(&tms_);
 		return 0;
 	}
 
@@ -973,7 +974,8 @@ int TextOnPath::Remap()
 	}
 
 	needtorecache = 0;
-	cachetime = times(NULL);
+	tms tms_;
+	cachetime = times(&tms_);
 	FindBBox();
 	return 0;
 }

@@ -96,12 +96,14 @@ void StopWatch::Start()
 	if (playing) return;
 	playing = true;
 	if (start_clock == 0) {
-		start_clock = pause_clock = times(NULL);
+		tms tms_;
+		start_clock = pause_clock = times(&tms_);
 		start_time = pause_time = 0;
 
 	} else {
 		//need to add offset 
-		clock_t current = times(NULL);
+		tms tms_;
+		clock_t current = times(&tms_);
 		clock_t diff = current - pause_clock;
 		start_clock += diff;
 		pause_clock = current;
@@ -119,7 +121,8 @@ double StopWatch::Pause()
 	if (!playing) return pause_time;
 
 	playing = false;
-	pause_clock = times(NULL);
+	tms tms_;
+	pause_clock = times(&tms_);
 	pause_time = (pause_clock - start_clock) * secs_per_tick;
 	return pause_time - start_time;
 }
@@ -147,8 +150,8 @@ void StopWatch::SetTime(double time)
 //		pause_time = time;
 //		pause_clock = times(NULL);
 //	}
-
-	pause_clock = times(NULL);
+	tms tms_;
+	pause_clock = times(&tms_);
 	start_clock = pause_clock - time * ticks_per_sec;
 	pause_time = time;
 
@@ -160,7 +163,8 @@ void StopWatch::SetTime(double time)
  */
 double StopWatch::CurTime()
 {
-	clock_t clock_time = (playing ? times(NULL) : pause_clock);
+	tms tms_;
+	clock_t clock_time = (playing ? times(&tms_) : pause_clock);
 	double curtime = (clock_time - start_clock) * secs_per_tick;
 	return curtime;
 }

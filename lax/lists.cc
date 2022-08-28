@@ -89,7 +89,7 @@ namespace Laxkit {
 /*! \fn int NumStack::Allocated()
  * \brief Return number of elements currently allocated.
  */
-/*! \fn int NumStack<T>::howmany()
+/*! \fn int NumStack<T>::how_many()
  * \brief Returns how many things are on the stack.
  *
  * This function is not called from within NumStack, so derived classes can
@@ -384,7 +384,7 @@ T NumStack<T>::pop(int which) // which=-1
  * \brief The elements of the stack.
  */
 
-/*! \fn int PtrStack<T>::howmany()
+/*! \fn int PtrStack<T>::how_many()
  * \brief Returns how many things are on the stack.
  *
  * This function is not called from within PtrStack, so derived classes can

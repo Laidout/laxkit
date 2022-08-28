@@ -197,8 +197,8 @@ TimerInfo::TimerInfo(EventReceiver *nwin,int duration,int firstt,int tickt,int n
 	id=nid;
 	info=ninfo;
 	if (tickt<=0) tickt=100;
-
-	clock_t curtime = times(NULL);
+	tms tms_;
+	clock_t curtime = times(&tms_);
 	lastactualtime  = curtime;
 	starttime       = curtime;
 
@@ -239,7 +239,8 @@ int TimerInfo::checktime(clock_t tm)
 	while (nexttime <= tm) { t++; nexttime += ticktime; } //skips ticks potentially
 
 	if (t && win) {
-		clock_t curtime = times(NULL);
+		tms tms_;
+		clock_t curtime = times(&tms_);
 		delta   = (curtime - lastactualtime)/(double)sysconf(_SC_CLK_TCK);
 		//double elapsed = (curtime - starttime     )/(double)sysconf(_SC_CLK_TCK);
 		lastactualtime = curtime;
@@ -1081,7 +1082,7 @@ int anXApp::close()
 
 	 //-------- close down any remaining windows
 	 // topwindows autodestructs, but must call any remaining necessary XDestroyWindow
-	for (int c=0; c<topwindows.howmany(); c++) {
+	for (int c=0; c<topwindows.how_many(); c++) {
 #ifdef _LAX_PLATFORM_XLIB
 		if (topwindows.e[c]->xlib_window != 0) {
 			XDestroyWindow(dpy,topwindows.e[c]->xlib_window); // also destroys sub(Window)s
@@ -2657,7 +2658,7 @@ int anXApp::run()
 
 		//DBG cerr <<"-destroy queued"<<endl;
 		 //--- destroy any requested destruction (before idling and refreshing)
-		if (todelete.howmany()) destroyqueued();
+		if (todelete.how_many()) destroyqueued();
 
 		 //set the timeout limit due to any timers here, before refresh. Sometimes
 		 //windows want to redraw in response to a timer event..
@@ -2687,7 +2688,7 @@ int anXApp::run()
 		 //It is necessary to check for pending here, because anything above might have triggered
 		 //a send event, for instance, and the event will already be pending, but it will not cause
 		 //the X file descriptor to change state..
-		if (!dataevents && !XPending(dpy) && !anytodraw && !todelete.howmany()) {
+		if (!dataevents && !XPending(dpy) && !anytodraw && !todelete.how_many()) {
 			FD_ZERO(&fdset[0]);
 			FD_ZERO(&fdset[1]);
 			FD_ZERO(&fdset[2]);
@@ -2712,7 +2713,7 @@ int anXApp::run()
 //				ftruncate(bump_fd,0);
 //			}
 
-			if (c<0) perror("select returned error: ");
+			//if (c<0) perror("select returned error: ");
 		}
 
 		//if (c==0) processTimers(); //c==0 means time expired, rather than event ready
@@ -3082,7 +3083,8 @@ int anXApp::managefocus(anXWindow *ww, EventData *ev)
 		if (mouse && mouse->paired_keyboard
 				&& mouse->paired_keyboard->current_focus
 				&& mouse->paired_keyboard->current_focus->object_id!=ev->to) {
-			devicemanager->SetFocus(ww,mouse->paired_keyboard,times(NULL),0);
+			tms tms_;
+			devicemanager->SetFocus(ww,mouse->paired_keyboard,times(&tms_),0);
 		}
 		return 0;
 
@@ -3091,7 +3093,8 @@ int anXApp::managefocus(anXWindow *ww, EventData *ev)
 		EnterExitData *ee=dynamic_cast<EnterExitData*>(ev);
 		LaxMouse *mouse=dynamic_cast<LaxMouse*>(ee?ee->device:NULL);
 		if ((ww->win_style&ANXWIN_HOVER_FOCUS) && mouse->paired_keyboard) {
-			devicemanager->SetFocus(ww,mouse->paired_keyboard,times(NULL),0);
+			tms tms_;
+			devicemanager->SetFocus(ww,mouse->paired_keyboard,times(&tms_),0);
 		}
 		return 0;
 	}
@@ -3883,10 +3886,13 @@ int anXApp::filterKeyEvents(LaxKeyboard *kb, anXWindow *win,
 		xim_current_window = win->object_id;
 		CreateXInputContext();
 
-		XSetICValues(xim_ic,
-					XNClientWindow, win->xlib_window,
-					NULL);
-		XSetICFocus(xim_ic);
+		if(xim && xim_ic) {
+			XSetICValues(xim_ic,
+						XNClientWindow, win->xlib_window,
+						NULL);
+			XSetICFocus(xim_ic);
+		}
+
 	}
 
 	buffer = NULL;

@@ -43,7 +43,7 @@ class NumStack
 	virtual T &operator[](int i);
 	virtual void flush();
 	virtual void flush_n();
-	virtual int howmany() { return n; }
+	virtual int how_many() { return n; }
 	virtual int findindex(T t);
 	virtual int Contains(T t);
 	virtual void swap(int i1,int i2);
@@ -86,7 +86,7 @@ class PtrStack
 	virtual ~PtrStack();
 	virtual T *operator[](int i) { if (i>=0 && i<n) return e[i]; else return nullptr; }
 	virtual void flush();
-	virtual int howmany() { return n; }
+	virtual int how_many() { return n; }
 	virtual void swap(int i1,int i2);
 	virtual void slide(int i1,int i2);
 	virtual int push(T *nd,char local=-1,int where=-1);

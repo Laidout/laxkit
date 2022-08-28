@@ -20,6 +20,7 @@
 //    Copyright (C) 2015-2017 by Tom Lechner
 //
 
+#include <string.h>
 
 #include <harfbuzz/hb.h>
 #include <harfbuzz/hb-ft.h>
@@ -1204,7 +1205,7 @@ int CaptionData::InsertString(const char *txt,int len, int line,int pos, int *ne
 	int first=1;
 
 	while (*curline) {
-		char *nl=strchrnul(curline,'\n');
+		char *nl = lax_strchrnul(curline, '\n');
 		if (*nl=='\0' && first) {
 			lines.e[line]=origline;
 			origline=NULL;
