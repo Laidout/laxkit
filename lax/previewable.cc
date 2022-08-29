@@ -55,7 +55,8 @@ Previewable::~Previewable()
 void Previewable::touchContents()
 {
     previewtime = 0;
-    modtime     = times(NULL);
+    tms tms_;
+    modtime     = times(&tms_);
 }
 
 LaxImage *Previewable::GetPreview()
@@ -127,7 +128,8 @@ int Previewable::GeneratePreview(int w, int h)
     }
 
     if (preview && renderToBufferImage(preview)==0) {
-		 previewtime = times(NULL);
+         tms tms_;
+		 previewtime = times(&tms_);
 
 	} else {
          //render direct to image didn't work, so try the old style render to char[] buffer...

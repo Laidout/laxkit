@@ -85,6 +85,8 @@ char *chop_extension(char *file);
 char *htmlchars_encode(const char *str, char *buffer, int len, int *len_ret);
 char *htmlchars_decode(const char *str, char *buffer);
 
+const char *lax_strchrnul(const char *s, int c);
+char *lax_strchrnul(char *s, int c);
 
 #endif
 

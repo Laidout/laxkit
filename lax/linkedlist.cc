@@ -378,7 +378,7 @@ int PtrList<T>::remove(int which) //which=-1
 //	void flush();
 //	void push(T nd);
 //	T pop();
-//	int howmany() { return max; }
+//	int how_many() { return max; }
 //};
 
 

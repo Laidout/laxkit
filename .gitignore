@@ -42,3 +42,5 @@ lax/temp
 #
 # Ignore miscellaneous
 lax/WORK
+.DS_Store
+.vscode

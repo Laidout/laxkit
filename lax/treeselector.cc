@@ -490,7 +490,7 @@ int TreeSelector::SelectId(int id)
  */
 int TreeSelector::Deselect(int which)
 {
-	if (which<0 || which>=visibleitems.howmany(0)) return 1;
+	if (which<0 || which>=visibleitems.how_many(0)) return 1;
 	MenuItem *i=item(which);
 	i->state&=~(MENU_SELECTED|LAX_ON|LAX_OFF);
 	i->state|=LAX_OFF;
@@ -504,7 +504,7 @@ int TreeSelector::Deselect(int which)
  */
 int TreeSelector::Expand(int which)
 {
-	if (which<0 || which>=visibleitems.howmany(0)) return 0;
+	if (which<0 || which>=visibleitems.how_many(0)) return 0;
 	visibleitems.menuitems.e[which]->state|=MENU_OPEN;
 	needtobuildcache=1;
 	needtodraw=1;
@@ -515,7 +515,7 @@ int TreeSelector::Expand(int which)
  */
 int TreeSelector::Collapse(int which)
 {
-	if (which<0 || which>=visibleitems.howmany(0)) return 0;
+	if (which<0 || which>=visibleitems.how_many(0)) return 0;
 
 	MenuItem *parent=item(which);
 	for (int c=selection.n-1; c>=0; c--) {
@@ -538,7 +538,7 @@ int TreeSelector::Collapse(int which)
  */
 int TreeSelector::SetFirst(int which,int x,int y)
 {
-	if (which<0 || which>=visibleitems.howmany(0)) return 1;
+	if (which<0 || which>=visibleitems.how_many(0)) return 1;
 
 	MenuItem *i=item(which);
 	movescreen(0, y - (i->y+i->w/2));

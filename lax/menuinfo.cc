@@ -874,7 +874,7 @@ void MenuInfo::Flush()
  *  right now it does not. note the title of a submenu is not the same as the name
  *  of the item that has the submenu.
  */
-int MenuInfo::howmany(int maxn,int all) // maxn=0, maxn is only consider menuitems.e[c<maxn]
+int MenuInfo::how_many(int maxn,int all) // maxn=0, maxn is only consider menuitems.e[c<maxn]
 {
 	int n=0;
 	if (maxn<=0 || maxn>menuitems.n) maxn=menuitems.n;
@@ -885,7 +885,7 @@ int MenuInfo::howmany(int maxn,int all) // maxn=0, maxn is only consider menuite
 		if (menuitems.e[c]->state&MENU_HAS_SUBMENU)
 			if (all || menuitems.e[c]->state&LAX_OPEN) {
 				MenuInfo *minfo=menuitems.e[c]->GetSubmenu();
-				if (minfo) n+=minfo->howmany(-1,all);
+				if (minfo) n+=minfo->how_many(-1,all);
 			}
 	}
 	return n;
@@ -909,7 +909,7 @@ int MenuInfo::findLine(MenuItem *mi)
 			if (minfo) {
 				i2=minfo->findLine(mi);
 				if (i2>=0) return i+i2;
-				i+=minfo->howmany(-1,0);
+				i+=minfo->how_many(-1,0);
 			}
 		}
 	}
@@ -968,7 +968,7 @@ MenuItem *MenuInfo::findFromLine(int i)
 			MenuInfo *minfo=menuitems.e[c]->GetSubmenu();
 			if (minfo) {
 				if (m=minfo->findFromLine(i), m!=NULL)  return m;
-				else i-=minfo->howmany(-1,0);
+				else i-=minfo->how_many(-1,0);
 			}
 		}
 	}

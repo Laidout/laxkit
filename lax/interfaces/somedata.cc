@@ -391,10 +391,14 @@ int SomeData::GeneratePreview(int maxdim)
 		unsigned char *buffer = preview->getImageBuffer(); 
 		renderToBuffer(buffer,w,h,w*4,8,4); 
 		if (preview->doneWithBuffer(buffer) == 0) {
-			previewtime = times(NULL);
+			tms tms_;
+			previewtime = times(&tms_);
 		}
 
-	} else previewtime = times(NULL);
+	} else  {
+		tms tms_;
+		previewtime = times(&tms_);
+	}
 
 	return (previewtime >= modtime);
 }
