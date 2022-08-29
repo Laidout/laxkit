@@ -483,7 +483,8 @@ int FreehandInterface::MouseMove(int x,int y,unsigned int state, const Laxkit::L
 	double xx,yy;
 	const_cast<LaxMouse*>(d)->getInfo(NULL,NULL,NULL,&xx,&yy,NULL,&pp->pressure,&pp->tiltx,&pp->tilty,NULL);
 
-	pp->time=times(NULL);
+	tms tms_;
+	pp->time=times(&tms_);
 	p=dp->screentoreal(xx,yy);
 	if (pp->pressure<0 || pp->pressure>1) pp->pressure=1; //non-pressure sensitive map to full pressure
 	line->push(pp);

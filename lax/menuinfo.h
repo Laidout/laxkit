@@ -170,7 +170,7 @@ class MenuInfo : public anObject
 	virtual MenuItem *findid(int checkid); // find MenuItem with id==checkid
 	virtual int idexists(int check,MenuInfo *look); // whether an id==check exists somewhere in the menu.
 	virtual int getuniqueid(int trythis=-1); // find a unique id number to use
-	virtual int howmany(int maxn,int all=0); // maxn=0, maxn is only consider menuitems.e[c<maxn]
+	virtual int how_many(int maxn,int all=0); // maxn=0, maxn is only consider menuitems.e[c<maxn]
 
 	virtual int AddItem(const char *newitem, int nid=0, int ninfo=0, LaxImage *img=nullptr, int where=-1, int state=0);
 	virtual int AddDelimited(const char *newitem,char delimiter='/', int nid=0, int ninfo=0, LaxImage *img=nullptr, int where=-1, int state=0);

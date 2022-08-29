@@ -22,7 +22,7 @@ endif
 LD=g++
 LDFLAGS= -L$(LAXDIR) -L$(LAXIDIR) -llaxkit -llaxinterfaces `cups-config --libs` `pkg-config --libs ../laxkit.pc` $(EXTRA_LAX_LIBS)
 DEBUGFLAGS= -g -gdwarf-2
-CPPFLAGS= $(DEBUGFLAGS) -I$(LAXDIR)/.. -std=c++11 `pkg-config --cflags ../laxkit.pc`
+CPPFLAGS= $(DEBUGFLAGS) ${EXTRA_LAX_CFLAGS} -I$(LAXDIR)/.. -std=c++11 `pkg-config --cflags ../laxkit.pc`
 
 
 

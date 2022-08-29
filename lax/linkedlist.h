@@ -63,7 +63,7 @@ class PtrList
 	virtual ~PtrList();
 //	T &operator[](int n);
 	virtual void flush();
-	virtual int howmany() { return num; }
+	virtual int how_many() { return num; }
 	virtual int push(T *nd,char local=1,int where=-1);
 	virtual int pop(T *&popped,int which=-1,char *local=NULL);
 	virtual T *pop(int which=-1); // -1 means from the end, <-1 means return NULL

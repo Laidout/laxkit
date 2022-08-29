@@ -183,8 +183,8 @@ int UndoManager::AddUndo(UndoData *data)
 	//current points to an UndoData that is ready to be undone. It must have isauto==0.
 	//If there are no UndoData nodes, then
 	//current is NULL. In this case, if head is not NULL, then it is a list of redoables.
-
-	data->time=times(NULL);
+	tms tms_;
+	data->time=times(&tms_);
 
      //if any after current, remove them
 	if (current) {
