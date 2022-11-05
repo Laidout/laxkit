@@ -202,7 +202,7 @@ int ButtonBase::send(int deviceid, int direction)
 //! On enter or leave, swap oldstate and newstate.
 int ButtonBase::Event(const EventData *e,const char *mes)
 {
-	DBG cerr <<"ButtonBase::Event :"<<mes<<endl;
+	DBG cerr <<"ButtonBase::Event "<<WindowTitle()<<":"<<mes<<endl;
 	switch (e->type) {
 		case LAX_onMouseIn: {
 			const EnterExitData *ee=dynamic_cast<const EnterExitData *>(e);

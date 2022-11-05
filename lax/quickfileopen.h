@@ -42,8 +42,13 @@ class QuickFileOpen : public Button
 						const char *ndir=NULL,
 						const char *nlabel="...");
 	virtual ~QuickFileOpen();
+	virtual const char *whattype() { return "QuickFileOpen"; }
 	virtual void SetDir(const char *ndir);
 	virtual int send(int deviceid,int direction);
+
+	//*** temp
+	virtual int MoveResize(int nx,int ny,int nw,int nh);
+	virtual int Resize(int nw,int nh);
 };
 
 } // namespace Laxkit

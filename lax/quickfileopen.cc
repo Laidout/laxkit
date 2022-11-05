@@ -35,8 +35,6 @@ namespace Laxkit {
  *
  * A StrEventData with the chosen file is sent to the owner (which is
  * passed in to the constructor).
- *
- * 
  */
 
 //! nowner is who gets sent the StrEventData of the file chosen.
@@ -52,12 +50,12 @@ QuickFileOpen::QuickFileOpen(anXWindow *parnt,const char *nname,const char *ntit
 			 0,
 			 nlabel?nlabel:"...",NULL,NULL)
 {
-	win_style=nstyle|BUTTON_MOMENTARY;
-	type=ntype;
-	path=npath;
-	dir=newstr(ndir);
+	win_style = nstyle | BUTTON_MOMENTARY;
+	type = ntype;
+	path = npath;
+	dir = newstr(ndir);
 	if (!dir && !path) {
-		dir=lax_dirname(path->GetCText(),1);
+		dir = lax_dirname(path->GetCText(),1);
 	}
 }
 
@@ -92,6 +90,16 @@ int QuickFileOpen::send(int deviceid,int direction)
 	delete[] ddir;
 	return 0;
 }
+
+int QuickFileOpen::MoveResize(int nx,int ny,int nw,int nh)
+{
+	return anXWindow::MoveResize(nx,ny,nw,nh);
+}
+int QuickFileOpen::Resize(int nw,int nh)
+{
+	return anXWindow::Resize(nw,nh);
+}
+
 
 
 } // namespace Laxkit

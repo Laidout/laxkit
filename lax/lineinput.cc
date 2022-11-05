@@ -173,9 +173,8 @@ LineInput::LineInput(anXWindow *parnt,const char *nname,const char *ntitle,unsig
 
 	if (extrastyle & (LINEEDIT_FILE | LINEEDIT_FILESAVE | LINEEDIT_DIRECTORY)) {
 		DBG cerr << "Adding helper for file LineInput"<<endl;
-		//helper = new Button(this, "helper",nullptr, 0, 0,0,0,0,1, le, object_id, "helper", 1, "...");
 
-		helper = new QuickFileOpen(this,"new file",nullptr,ANXWIN_REMEMBER, 0,0,0,0, 1,
+		helper = new QuickFileOpen(this,"file helper",nullptr,0, 0,0,0,0, 1,
                           nullptr,object_id,"helper",
                           (extrastyle & LINEEDIT_FILE) ? FILES_OPEN_ONE : FILES_SAVE,
                           this);
@@ -233,7 +232,7 @@ const char *LineInput::tooltip(const char *ntip)
 //! Take any StrEventData and set thetext from it.
 int LineInput::Event(const EventData *data,const char *mes)
 {
-	DBG cerr <<" LineInput event: "<<(mes ? mes : "--")<<endl;
+	DBG cerr <<" LineInput "<<WindowTitle()<<" event: "<<(mes ? mes : "--")<<endl;
 
 	if (!dynamic_cast<const StrEventData *>(data)) return 1;
 
