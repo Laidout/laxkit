@@ -256,10 +256,11 @@ namespace LaxInterfaces {
 //!  This constructor assigns id=getUniqueNumber().
 anInterface::anInterface()
 {
+	viewport        = nullptr;
+	curwindow       = nullptr;
 	child = owner   = nullptr;
 	owner_message   = nullptr;
 	app             = anXApp::app;
-	curwindow       = nullptr;
 	name            = nullptr;
 	primary         = 0;
 	id              = getUniqueNumber();
