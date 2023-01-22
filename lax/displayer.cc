@@ -1004,6 +1004,8 @@ void Displayer::drawfocusellipse(flatpoint focus1,flatpoint focus2,
  *
  * If portion&1, draw half of the arrow head. If portion&2, draw the other half.
  * So portion==3 draws whole arrow head.
+ *
+ * If center, center the arrow at the placement point.
  */
 void Displayer::drawarrow(flatpoint p,flatpoint v,int rfromp,double len,char reallength,int portion,bool center)
 {
