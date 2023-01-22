@@ -37,7 +37,9 @@ class NumStack
 	T *e;
 	NumStack() : delta(10), max(0), n(0),e(nullptr) {}
 	NumStack(const NumStack &numstack); // copy constructor
+	NumStack(NumStack &&numstack); // copy constructor for move
 	NumStack &operator=(NumStack &numstack); // equals operator
+	NumStack &operator=(NumStack &&numstack); // equals operator for move
 	const NumStack &operator=(const NumStack &numstack); // equals operator
 	virtual ~NumStack() { if (e) delete[] e; }
 	virtual T &operator[](int i);
@@ -83,7 +85,9 @@ class PtrStack
 	int n;
 	T **e;
 	PtrStack(char nar = LISTS_DELETE_Single);
+	//PtrStack(PtrStack &&stack);
 	virtual ~PtrStack();
+	//PtrStack &operator=(PtrStack &&stack); // equals operator for move
 	virtual T *operator[](int i) { if (i>=0 && i<n) return e[i]; else return nullptr; }
 	virtual void flush();
 	virtual int how_many() { return n; }

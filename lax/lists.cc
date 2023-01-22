@@ -108,13 +108,27 @@ template <class T>
 NumStack<T>::NumStack(const NumStack<T> &numstack)
 	: delta(10), max(0), n(0),e(nullptr)
 {
-	delta=numstack.delta;
+	delta = numstack.delta;
 	if (numstack.e) {
-		n=numstack.n;
-		max=n+delta;
-		e=new T[max];
+		n   = numstack.n;
+		max = n+delta;
+		e   = new T[max];
 		memcpy(e,numstack.e,n*sizeof(T));
 		//for (int c=0; c<n; c++) e[c]=numstack.e[c];
+	}
+}
+
+template <class T>
+NumStack<T>::NumStack(NumStack<T> &&numstack)
+{
+	e     = nullptr;
+	delta = 10;
+	max   = 0;
+	n     = 0;
+	if (numstack.e) {
+		max   = numstack.max;
+		delta = numstack.delta;
+		e     = numstack.extractArray(&n);
 	}
 }
 
@@ -126,12 +140,27 @@ NumStack<T> &NumStack<T>::operator=(NumStack<T> &numstack)
 {
 	flush();
 	if (numstack.e) {
-		n=numstack.n;
-		max=n+delta;
-		e=new T[max];
+		n   = numstack.n;
+		max = n+delta;
+		e   = new T[max];
 		memcpy(e,numstack.e,n*sizeof(T));
 	}
 	return numstack;
+}
+
+/*! \fn NumStack<T> &NumStack<T>::operator=(NumStack &numstack)
+ * \brief Preserves delta, adjust everything else.
+ */
+template <class T>
+NumStack<T> &NumStack<T>::operator=(NumStack<T> &&numstack)
+{
+	flush();
+	if (numstack.e) {
+		max   = numstack.max;
+		delta = numstack.delta;
+		e     = numstack.ExtractArray(&n);
+	}
+	return *this;
 }
 
 /*! \fn const NumStack<T> &NumStack<T>::operator=(const NumStack &numstack)
