@@ -113,6 +113,7 @@ class VoronoiData : virtual public LaxInterfaces::SomeData, virtual public Laxki
 
 	virtual void RelaxBarycenter(int iters, double strength, Laxkit::DoubleBBox box);
 	virtual flatpoint Centroid(int triangle);
+	virtual flatpoint CentroidRegion(int point, int *is_inf);
 	virtual flatpoint BarycenterRegion(int point, int *is_inf);
 	virtual int Map(std::function<int(const flatpoint &p, flatpoint &newp)> adjustFunc);
 };

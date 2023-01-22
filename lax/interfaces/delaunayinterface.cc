@@ -438,7 +438,7 @@ flatpoint VoronoiData::Centroid(int triangle)
 			+points.e[triangles.e[triangle].p3]->p) / 3;
 }
 
-/*! Return centroid of specified index of voronoi region.
+/*! Return average point of the vertices of voronoi region of point.
  * Note infinite regions will set is_inf to 1, else it is 0.
  * If 1, the returned point contains average of all the non-infinite points, and its info will we 1.
  *
@@ -466,6 +466,55 @@ flatpoint VoronoiData::BarycenterRegion(int point, int *is_inf)
 
 	if (noninf > 0) pp /= noninf;
 	if (noninf != regions.e[point].tris.n) pp.info = 1;
+	return pp;
+}
+
+/*! Return the centroid for the region. If it is an infinite region, is_inf gets set to 1,
+ */
+flatpoint VoronoiData::CentroidRegion(int point, int *is_inf)
+{
+	if (is_inf) *is_inf = 0;
+	if (point < 0 || point >= regions.n) {
+		if (is_inf) *is_inf = -1;
+		return flatpoint();
+	}
+
+	flatpoint pp;
+	int noninf = 0;
+	NumStack<flatpoint> pts;
+
+	for (int c=0; c<regions.e[point].tris.n; c++) {
+		if (regions.e[point].tris.e[c] < 0) {
+			if (is_inf) *is_inf = 1;
+		} else {
+			noninf++;
+			int i = regions.e[point].tris.e[c];
+			pts.push(triangles.e[i].circumcenter);
+		}
+
+	}
+
+	// triangulate region, compute average of centroids weighted by triangle area
+	if (pts.n >= 3) {
+		double total_weight = 0;
+		double weight = triangle_area(pts[0], pts[1], pts[2]);
+		pp = weight * (pts[0] + pts[1] + pts[2])/3;
+		total_weight = weight;
+
+		for (int c2 = 3; c2 < pts.n-1; c2++) {
+			weight = triangle_area(pts[0], pts[c2], pts[c2+1]);
+			total_weight += weight;
+			pp += weight * (pts[0] + pts[c2] + pts[c2+1])/3;
+		}
+
+		pp /= total_weight;
+
+	} else {
+		if (pts.n == 2) pp = (pts[0] + pts[1])/2;
+		else if (pts.n == 1) pp = pts[0];
+	}
+
+	if (noninf != regions.e[point].tris.n) pp.info = 1; // there were infinite segments
 	return pp;
 }
 
@@ -1022,8 +1071,8 @@ int DelaunayInterface::Refresh()
 
 
 	 //voronoi lines
-	// if (show_lines&1) {
 	if (data->show_voronoi) {
+		// each voronoi region's vertices are the circumcenters of the delaunay triangles
 		dp->NewFG(data->color_voronoi);
 		dp->LineWidth(data->width_voronoi);
 		int i;
@@ -2136,8 +2185,8 @@ int Triangulate(int nv,flatpoint *pxyz,IndexTriangle *v,int *ntri)
          if (xc < xp && ((xp-xc)*(xp-xc)) > r)
 				complete[j] = true;
 
-		 v[j].circumcenter.x=xc;
-		 v[j].circumcenter.y=yc;
+		 v[j].circumcenter.x = xc;
+		 v[j].circumcenter.y = yc;
 
          if (inside) {
             /* Check that we haven't exceeded the edge list size */
