@@ -450,6 +450,8 @@ void EllipseData::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpC
 {
 	if (!att) return;
 
+	SomeData::dump_in_atts(att,flag,context);
+
 	char *name,*value;
 
 	for (int c=0; c<att->attributes.n; c++) {
@@ -507,6 +509,8 @@ void EllipseData::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpC
 			// ***
 		}
 	}
+
+	FindBBox();
 }
 
 //----------------------------- EllipseInterface ------------------------
@@ -649,6 +653,11 @@ int EllipseInterface::UseThisObject(ObjectContext *oc, SomeData *other_object)
 	}
 
 	return 1;
+}
+
+int EllipseInterface::UseThisObject(ObjectContext *oc)
+{
+	return UseThisObject(oc, nullptr);
 }
 
 /*! \todo *** should push the RectInterface onto the viewport interfaces stack...
@@ -851,12 +860,19 @@ int EllipseInterface::Refresh()
 		 // axes
 		p = getpoint(ELLP_XRadius,false);
 		dp->drawpoint(p, 3*thin, hover_point == ELLP_XRadius ? 1 : 0);
+		if (hover_point == ELLP_XRadius) dp->drawarrow(p, flatvector(1,0), 0, 20*thin, 0, 3, false);
+
 		p = getpoint(ELLP_XRadiusN,false);
 		dp->drawpoint(p, 3*thin, hover_point == ELLP_XRadiusN ? 1 : 0);
+		if (hover_point == ELLP_XRadiusN) dp->drawarrow(p, flatvector(-1,0), 0, 20*thin, 0, 3, false);
+
 		p = getpoint(ELLP_YRadius,false);
 		dp->drawpoint(p, 3*thin, hover_point == ELLP_YRadius ? 1 : 0);
+		if (hover_point == ELLP_YRadius) dp->drawarrow(p, flatvector(0,1), 0, 20*thin, 0, 3, false);
+
 		p = getpoint(ELLP_YRadiusN,false);
 		dp->drawpoint(p, 3*thin, hover_point == ELLP_YRadiusN ? 1 : 0);
+		if (hover_point == ELLP_YRadiusN) dp->drawarrow(p, flatvector(0,-1), 0, 20*thin, 0, 3, false);
 
 
 		//  // angles
@@ -1355,17 +1371,17 @@ int EllipseInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::Lax
 		
 		} else if (curpoint == ELLP_XRadius || curpoint == ELLP_XRadiusN
 				|| curpoint == ELLP_YRadius || curpoint == ELLP_YRadiusN) {
-			int dox = (curpoint == ELLP_XRadius ? 1 : (curpoint == ELLP_XRadiusN ? -1 : 0));
-			int doy = (curpoint == ELLP_YRadius ? 1 : (curpoint == ELLP_YRadiusN ? -1 : 0));
+			int do_x = (curpoint == ELLP_XRadius ? 1 : (curpoint == ELLP_XRadiusN ? -1 : 0));
+			int do_y = (curpoint == ELLP_YRadius ? 1 : (curpoint == ELLP_YRadiusN ? -1 : 0));
 			if (state & ShiftMask) {
-				if (dox) doy = -1;
-				else if (doy) dox = 1;
+				if (do_x) do_y = -1;
+				else if (do_y) do_x = 1;
 			}
 
-			if (dox) {
+			if (do_x) {
 				flatpoint v = data->transformPointInverse(screentoreal(x,y)) - data->transformPointInverse(screentoreal(lx,ly));
 				double adiff = data->a;
-				data->a += (v*data->x)/data->x.norm() * dox;
+				data->a += (v*data->x)/data->x.norm() * do_x / 2.0;
 				if (data->a < 0) data->a = 0;
 				adiff -= data->a;
 				if (adiff && (state & ControlMask)) { //move origin
@@ -1375,9 +1391,9 @@ int EllipseInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::Lax
 				needtodraw = 1;
 			}
 
-			if (doy) {
+			if (do_y) {
 				flatpoint v = data->transformPointInverse(screentoreal(x,y)) - data->transformPointInverse(screentoreal(lx,ly));
-				data->b += (v*data->y)/data->y.norm() * doy;
+				data->b += (v*data->y)/data->y.norm() * do_y / 2.0;
 				if (data->b < 0) data->b = 0;
 				needtodraw = 1;
 			}

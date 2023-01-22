@@ -196,6 +196,7 @@ class EllipseInterface : public anInterface
 			Laxkit::anObject *a2=NULL,int info=0);
 	virtual int UseThis(Laxkit::anObject *nobj,unsigned int mask=0);
 	virtual int UseThisObject(ObjectContext *oc, SomeData *other_object);
+	virtual int UseThisObject(ObjectContext *oc) override;
 	virtual flatpoint getpoint(EllipsePoints c, bool inparent);
 
 	virtual bool ShowFoci(bool yes);
