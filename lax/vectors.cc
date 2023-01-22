@@ -821,6 +821,12 @@ double angle2(flatvector p1,flatvector p2,int dec)
 	return (dec ? 180/M_PI : 1)*asin(z.z);
 }
 
+double triangle_area(const flatvector &a, const flatvector &b, const flatvector &c)
+{
+	return fabs(a.x * (b.y - c.y) + b.x * (c.y - a.y) + c.x * ( a.y - b.y)) / 2;
+}
+
+
 //---------------------------------- flatline ---------------------------------
 /*! \class flatline
  * \brief 2 dimensional line with point p and direction v.
@@ -908,14 +914,21 @@ flatpoint operator*(flatline l1, flatline l2)
 //! Return intersection of l1 and l2, put point in p, return error code.
 /*! Returns -1 if the lines are the same line, 1 if they are different but
  * parallel, and 0 if they intersect in a single point.
- *
- * \todo not threadsafe!!
  */
 int intersection(flatline l1, flatline l2, flatpoint &p)
-{						/* returns -1=same, 1=parallel, 0=ok */
-	vectorop_error=0;
-	p=l1*l2;
-	return vectorop_error;
+{
+	flatvector temp = transpose(l1.v);
+
+	if (l2.v*temp == 0) {
+		if (distance(l2.p,l1)==0) {
+			p = flatvector(); /* same */
+			return -1;
+		}
+		p = flatvector();
+		return 1; /* parallel */
+	}
+	p = (l2.p+l2.v*((l1.p-l2.p)*temp/(l2.v*temp)));
+	return 0;
 }
 
 //! Find intersection of l1 and l2, and associated data.
@@ -1091,15 +1104,12 @@ void rotate(Basis &b, char w, double ang, int dec)//dec=0
 //! Rotate vector v about an axis.
 spacevector rotate(spacevector v, spacevector axis, double ang, int dec)//dec=0
 {
-	//DBG double normva=norm(v/axis);
-	//DBG std::cerr<<"norm(v/axis): "<<normva;
 	if (norm(v/axis)==0) {
 		DBG std::cerr<<"   no rotation necessary"<<std::endl;
 		return v;
 	}
-	//DBG std::cerr<<"  rotating..."<<std::endl;
 	if (dec) ang*=M_PI/180;
-	//--------------------------
+
 	spacepoint y,x;
 	double r;
 	y=axis/v;
@@ -1111,17 +1121,6 @@ spacevector rotate(spacevector v, spacevector axis, double ang, int dec)//dec=0
 	spacepoint ans=v||axis;
 	ans+=r*cos(ang)*x + r*sin(ang)*y;
 	return ans;
-	//--------------------------
-//	Basis b=Basis(spacevector(),axis,v);
-//	//return norm(v|=axis)*(cos(ang)*b.x+sin(ang)*b.y)+norm(v||axis)*b.z;
-//	
-//	//DBG:
-//	spacepoint vecperp=v|=axis,
-//			   vecpara=v||axis;
-//	double vperp=norm(vecperp),
-//		   vpara=norm(vecpara);
-//	spacepoint ans= vperp*(cos(ang)*b.x+sin(ang)*b.y) + vpara*b.z;
-//	return ans;
 }
 
 //! Rotate the basis about an axis w.

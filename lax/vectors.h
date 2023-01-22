@@ -203,6 +203,9 @@ double angle(spacevector p1,spacevector p2,int dec=0);
 double angle(flatvector p1,flatvector p2,int dec=0);
 double angle_full(flatvector p1,flatvector p2,int dec=0);
 double angle2(flatvector p1,flatvector p2,int dec=0);
+
+double triangle_area(const flatvector &v1, const flatvector &v2, const flatvector &v3);
+
 class flatline
 {
   public:
