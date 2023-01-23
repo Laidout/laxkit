@@ -256,7 +256,7 @@ class LinePointCache
   public:
 	int type; //position, end border, start border, original
 
-	flatpoint p;
+	Laxkit::flatpoint p;
 	double weight;
 	int on; //see EngraveLinePointCacheTypes
 	int dashon;
@@ -287,8 +287,8 @@ class LinePoint
 	double weight_orig;
 	int on; //see EngraveLinePointCacheTypes
 
-	flatpoint p; //(s,t) transformed by the mesh 
-	flatpoint bez_before, bez_after;
+	Laxkit::flatpoint p; //(s,t) transformed by the mesh 
+	Laxkit::flatpoint bez_before, bez_after;
 	double length;
 
 	int needtosync; //0 no, 1: s,t -> p, 2: p->s,t
@@ -338,13 +338,13 @@ class ValueMap : public Laxkit::Resourceable
 	ValueMap() {}
 	virtual ~ValueMap() {}
 	virtual double GetValue(double x,double y) = 0;
-	virtual double GetValue(flatpoint p) { return GetValue(p.x,p.y); }
+	virtual double GetValue(Laxkit::flatpoint p) { return GetValue(p.x,p.y); }
 };
 
 
 //---------------------------------------------- EngraverTraceSettings 
 
-class TraceObject : public Laxkit::Resourceable, public LaxFiles::DumpUtility
+class TraceObject : public Laxkit::Resourceable, public Laxkit::DumpUtility
 {
   public:
 	enum TraceObjectType {
@@ -374,9 +374,9 @@ class TraceObject : public Laxkit::Resourceable, public LaxFiles::DumpUtility
 	virtual const char *whattype() { return "TraceObject"; }
 	virtual Laxkit::anObject *duplicate(Laxkit::anObject *ref);
 
-	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
-	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *savecontext);
-	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
+	virtual void dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *context);
+	virtual Laxkit::Attribute *dump_out_atts(Laxkit::Attribute *att,int what,Laxkit::DumpContext *savecontext);
+	virtual void dump_in_atts(Laxkit::Attribute *att,int flag,Laxkit::DumpContext *context);
 	
 	double GetValue(LinePoint *p, double *transform);
 	void ClearCache(bool obj_too);
@@ -386,7 +386,7 @@ class TraceObject : public Laxkit::Resourceable, public LaxFiles::DumpUtility
 	void Install(TraceObjectType ntype, SomeData *obj);
 };
 
-class EngraverTraceSettings : public Laxkit::Resourceable, public LaxFiles::DumpUtility
+class EngraverTraceSettings : public Laxkit::Resourceable, public Laxkit::DumpUtility
 {
   public:
     enum TraceType {
@@ -418,12 +418,12 @@ class EngraverTraceSettings : public Laxkit::Resourceable, public LaxFiles::Dump
 	void Install(TraceObject *nobject);
 	virtual const char *Identifier();
 
-	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
-	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
-	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *savecontext);
+	virtual void dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *context);
+	virtual void dump_in_atts(Laxkit::Attribute *att,int flag,Laxkit::DumpContext *context);
+	virtual Laxkit::Attribute *dump_out_atts(Laxkit::Attribute *att,int what,Laxkit::DumpContext *savecontext);
 };
 
-class EngraverTraceStack : public Laxkit::Resourceable, public LaxFiles::DumpUtility
+class EngraverTraceStack : public Laxkit::Resourceable, public Laxkit::DumpUtility
 {
   public:
     EngraverTraceStack();
@@ -450,15 +450,15 @@ class EngraverTraceStack : public Laxkit::Resourceable, public LaxFiles::DumpUti
 	virtual int Move(int which, int towhere); //stack slide
 	virtual int Remove(int which);
 
-	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
-	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
-	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *savecontext);
+	virtual void dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *context);
+	virtual void dump_in_atts(Laxkit::Attribute *att,int flag,Laxkit::DumpContext *context);
+	virtual Laxkit::Attribute *dump_out_atts(Laxkit::Attribute *att,int what,Laxkit::DumpContext *savecontext);
 };
 
 
 //----------------------------------------------- EngraverLineQuality
 
-class EngraverLineQuality : public Laxkit::Resourceable, public LaxFiles::DumpUtility
+class EngraverLineQuality : public Laxkit::Resourceable, public Laxkit::DumpUtility
 {
   public:
 	double dash_length;
@@ -479,9 +479,9 @@ class EngraverLineQuality : public Laxkit::Resourceable, public LaxFiles::DumpUt
 	virtual const char *Id();
 	virtual const char *Id(const char *id);
 
-	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
-	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
-	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *savecontext);
+	virtual void dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *context);
+	virtual void dump_in_atts(Laxkit::Attribute *att,int flag,Laxkit::DumpContext *context);
+	virtual Laxkit::Attribute *dump_out_atts(Laxkit::Attribute *att,int what,Laxkit::DumpContext *savecontext);
 
 	int GetNewWeight(double weight, double *weight_ret);
 };
@@ -493,8 +493,8 @@ class DirectionMap : public Laxkit::Resourceable
   public:
 	DirectionMap() {}
 	virtual ~DirectionMap() {}
-	virtual flatpoint Direction(double x,double y) = 0;
-	virtual flatpoint Direction(flatpoint p) { return Direction(p.x,p.y); }
+	virtual Laxkit::flatpoint Direction(double x,double y) = 0;
+	virtual Laxkit::flatpoint Direction(Laxkit::flatpoint p) { return Direction(p.x,p.y); }
 };
 
 
@@ -516,7 +516,7 @@ class NormalDirectionMap : public DirectionMap
     NormalDirectionMap();
     NormalDirectionMap(const char *file);
     virtual ~NormalDirectionMap();
-    virtual flatpoint Direction(double x,double y);
+    virtual Laxkit::flatpoint Direction(double x,double y);
 	virtual int Load(const char *file);
 	virtual void Clear();
 };  
@@ -526,11 +526,11 @@ class NormalDirectionMap : public DirectionMap
 class GrowPointInfo
 {
   public:
-	flatpoint p;
-	flatpoint v;
+	Laxkit::flatpoint p;
+	Laxkit::flatpoint v;
 	int godir;
-	GrowPointInfo(flatpoint pp,flatpoint vv, int gdir) { p=pp; v=vv; godir=gdir; }
-	GrowPointInfo(flatpoint pp, int gdir) { p=pp; godir=gdir; }
+	GrowPointInfo(Laxkit::flatpoint pp,Laxkit::flatpoint vv, int gdir) { p=pp; v=vv; godir=gdir; }
+	GrowPointInfo(Laxkit::flatpoint pp, int gdir) { p=pp; godir=gdir; }
 };
 
 
@@ -541,15 +541,15 @@ class StarterPoint
 	int iteration;
 	int piteration;
 
-	flatpoint p;
-	flatpoint dir;
+	Laxkit::flatpoint p;
+	Laxkit::flatpoint dir;
 	int dodir; //1 for add to +direction, 2 for add to -direction, 3 for both
 
 	int lineref;
 	LinePoint *line;
 	LinePoint *first, *last; //is part of line, will be either the most next or most prev
 
-	StarterPoint (flatpoint p, int indir, double weight,int groupid, int nlineref);
+	StarterPoint (Laxkit::flatpoint p, int indir, double weight,int groupid, int nlineref);
 };
 
 
@@ -562,7 +562,7 @@ class GrowContext
   		int group;
   		int line;
   		int point;
-  		flatpoint dir;
+  		Laxkit::flatpoint dir;
   	};
 
   	bool active = true;
@@ -591,7 +591,7 @@ class GrowContext
 	double defaultweight = 0;
 	ValueMap *weightmap = nullptr;
 
-	flatpoint directionv;
+	Laxkit::flatpoint directionv;
 	DirectionMap *directionmap = nullptr;
 };
 
@@ -614,7 +614,7 @@ enum PointGroupType {
 	PGROUP_MAX
 };
 
-class EngraverDirection : public Laxkit::Resourceable, public LaxFiles::DumpUtility
+class EngraverDirection : public Laxkit::Resourceable, public Laxkit::DumpUtility
 {
   public:
 	class Parameter
@@ -640,7 +640,7 @@ class EngraverDirection : public Laxkit::Resourceable, public LaxFiles::DumpUtil
 	double spacing;  //default
 	double resolution; //default samples per spacing unit, default is 1
 	double default_weight; //a fraction of spacing 
-	flatpoint position, direction; //default
+	Laxkit::flatpoint position, direction; //default
 	Laxkit::PtrStack<Parameter> parameters; //extras beyond position, spacing, rotation
 
 	 //line generation tinkering settings
@@ -681,14 +681,14 @@ class EngraverDirection : public Laxkit::Resourceable, public LaxFiles::DumpUtil
 	virtual int GetStartEnd(double *start_ret, double *end_ret, bool keep_increasing);
 	virtual int InstallProfile(LineProfile *profile, int absorbcount);
 
-	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
-	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
-	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *savecontext);
+	virtual void dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *context);
+	virtual void dump_in_atts(Laxkit::Attribute *att,int flag,Laxkit::DumpContext *context);
+	virtual Laxkit::Attribute *dump_out_atts(Laxkit::Attribute *att,int what,Laxkit::DumpContext *savecontext);
 };
 
 
 //--------------------------- EngraverSpacing -----------------------------
-class EngraverSpacing : public Laxkit::Resourceable, public LaxFiles::DumpUtility
+class EngraverSpacing : public Laxkit::Resourceable, public Laxkit::DumpUtility
 {
   public:
 	int type; //how to get spacing: use default, use grabbed current map, use custom map
@@ -704,9 +704,9 @@ class EngraverSpacing : public Laxkit::Resourceable, public LaxFiles::DumpUtilit
 	virtual const char *Id();
 	virtual const char *Id(const char *id);
 
-	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
-	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
-	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *savecontext);
+	virtual void dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *context);
+	virtual void dump_in_atts(Laxkit::Attribute *att,int flag,Laxkit::DumpContext *context);
+	virtual Laxkit::Attribute *dump_out_atts(Laxkit::Attribute *att,int what,Laxkit::DumpContext *savecontext);
 };
 
 
@@ -737,7 +737,7 @@ class EngraverPointGroup : public DirectionMap
 	bool needtodash;
 
 	double default_weight; //a fraction of spacing
-	flatpoint position,directionv; //note NOT the same properties as in EngravingDirection, this overrides those
+	Laxkit::flatpoint position,directionv; //note NOT the same properties as in EngravingDirection, this overrides those
 
 	Laxkit::PtrStack<GrowPointInfo> growpoints;
 	GrowContext *grow_cache = nullptr;
@@ -752,7 +752,7 @@ class EngraverPointGroup : public DirectionMap
 	Laxkit::PtrStack<LinePoint> lines;
 
 	EngraverPointGroup(EngraverFillData *nowner);
-	EngraverPointGroup(EngraverFillData *nowner,int nid,const char *nname, int ntype, flatpoint npos, flatpoint ndir,
+	EngraverPointGroup(EngraverFillData *nowner,int nid,const char *nname, int ntype, Laxkit::flatpoint npos, Laxkit::flatpoint ndir,
 						EngraverTraceSettings *newtrace,
 						EngraverLineQuality   *newdash,
 						EngraverDirection     *newdir,
@@ -771,7 +771,7 @@ class EngraverPointGroup : public DirectionMap
 	virtual int PointOn(LinePoint *p);
 	virtual int PointOnDash (LinePointCache *p);
 	virtual int CachePointOn(LinePointCache *p);
-	virtual flatpoint Direction(double s,double t);
+	virtual Laxkit::flatpoint Direction(double s,double t);
 	virtual LinePoint *LineFrom(double s,double t);
 
 	virtual int Trace(Laxkit::Affine *aa);
@@ -789,14 +789,14 @@ class EngraverPointGroup : public DirectionMap
 									double resolution, 
 									double defaultspace,  	ValueMap *spacingmap,
 									double defaultweight,   ValueMap *weightmap, 
-									flatpoint direction,    DirectionMap *directionmap,
+									Laxkit::flatpoint direction,    DirectionMap *directionmap,
 									Laxkit::PtrStack<GrowPointInfo> *growpoint_ret,
 									int iteration_limit);
 	virtual GrowContext *GrowLines_Init(EngraverFillData *data,
 								double resolution, 
 								double defaultspace,  	ValueMap *spacingmap,
 								double defaultweight,   ValueMap *weightmap, 
-								flatpoint direction,    DirectionMap *directionmap,
+								Laxkit::flatpoint direction,    DirectionMap *directionmap,
 								int iteration_limit,
 								Laxkit::PtrStack<GrowPointInfo> *custom_starters
 								);
@@ -808,9 +808,9 @@ class EngraverPointGroup : public DirectionMap
 	virtual int UpdateDashCache();
 	virtual void StripDashes();
 
-	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
-	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context);
-	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
+	virtual void dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *context);
+	virtual Laxkit::Attribute *dump_out_atts(Laxkit::Attribute *att,int what,Laxkit::DumpContext *context);
+	virtual void dump_in_atts(Laxkit::Attribute *att,int flag,Laxkit::DumpContext *context);
 };
 
 
@@ -867,9 +867,9 @@ class EngraverFillData : virtual public PatchData
 	virtual void MakeDefaultGroup();
 	virtual int MakeGroupNameUnique(int which);
 
-	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
-	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
-	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *savecontext);
+	virtual void dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *context);
+	virtual void dump_in_atts(Laxkit::Attribute *att,int flag,Laxkit::DumpContext *context);
+	virtual Laxkit::Attribute *dump_out_atts(Laxkit::Attribute *att,int what,Laxkit::DumpContext *savecontext);
 	virtual void dump_out_svg(const char *file);
 	virtual PathsData *MakePathsData(int whichgroup);
 
@@ -885,7 +885,7 @@ class EngraverFillData : virtual public PatchData
 	virtual void Sync(bool asneeded);
 	virtual void ReverseSync(bool asneeded);
 	virtual void UpdatePositionCache();
-	virtual void BezApproximate(Laxkit::NumStack<flatvector> &fauxpoints, Laxkit::NumStack<flatvector> &points);
+	virtual void BezApproximate(Laxkit::NumStack<Laxkit::flatpoint> &fauxpoints, Laxkit::NumStack<Laxkit::flatpoint> &points);
 	virtual void MorePoints(int curgroup);
 	virtual EngraverPointGroup *FindGroup(int id, int *err_ret=NULL);
 	virtual EngraverPointGroup *GroupFromIndex(int index, int *err_ret=NULL);

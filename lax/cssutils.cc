@@ -30,9 +30,6 @@
 #include "cssutils.h"
 
 
-using namespace LaxFiles;
-
-
 namespace Laxkit {
 
 

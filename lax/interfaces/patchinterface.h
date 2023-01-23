@@ -76,9 +76,9 @@ class PatchRenderContext
 		buffer=NULL; bufferwidth=bufferheight=stride=0; numchannels=4; bitsperchannel=8;
 		SS[0]=SS[1]=SS[2]=SS[3]=TT[0]=TT[1]=TT[2]=TT[3]=1;
 	}
-	flatpoint getPoint(double *S,double *T);
+	Laxkit::flatpoint getPoint(double *S,double *T);
 
-	flatpoint getPoint(double s,double t);
+	Laxkit::flatpoint getPoint(double s,double t);
 };
 
 
@@ -99,7 +99,7 @@ class PatchData : virtual public SomeData, virtual public Laxkit::PointCollectio
   public:
 	int renderdepth;
 	int griddivisions; //hint for display of interior of patch
-	flatpoint *points;
+	Laxkit::flatpoint *points;
 	int xsize,ysize; // sizes%3 must == 1, numpoints=xsize*ysize
 	unsigned int style;
 	PatchControls controls;
@@ -118,7 +118,7 @@ class PatchData : virtual public SomeData, virtual public Laxkit::PointCollectio
 
 	 //cached outline for convenience, updated in FindBBox()
 	int npoints_boundary;
-	flatpoint *boundary_outline;
+	Laxkit::flatpoint *boundary_outline;
 
 
 	PatchData(); 
@@ -127,25 +127,25 @@ class PatchData : virtual public SomeData, virtual public Laxkit::PointCollectio
 	virtual const char *whattype() { return "PatchData"; }
 	virtual SomeData *duplicate(SomeData *dup);
 	virtual void FindBBox();
-	virtual int pointin(flatpoint pp,int pin=1);
+	virtual int pointin(Laxkit::flatpoint pp,int pin=1);
 
 	 /*! \name Informational functions */
 	 //@{
 	virtual int hasColorData();
 	virtual int MeshWidth()  { return xsize/3; }
 	virtual int MeshHeight() { return ysize/3; }
-	virtual flatpoint getControlPoint(int r,int c);
-	virtual flatpoint getPoint(double s,double t, bool bysize);
-	virtual flatpoint getPointReverse(double x,double y, int *error_ret);
+	virtual Laxkit::flatpoint getControlPoint(int r,int c);
+	virtual Laxkit::flatpoint getPoint(double s,double t, bool bysize);
+	virtual Laxkit::flatpoint getPointReverse(double x,double y, int *error_ret);
 	virtual double getScaling(double s,double t, bool bysize);
-	virtual flatpoint *bezAtEdge(flatpoint *p,int i,int row);
-	virtual flatpoint *bezCrossSection(flatpoint *p,int i,double t,int row);
-	virtual int bezOfPatch(flatpoint *p,int r,int rl,int c,int cl);
+	virtual Laxkit::flatpoint *bezAtEdge(Laxkit::flatpoint *p,int i,int row);
+	virtual Laxkit::flatpoint *bezCrossSection(Laxkit::flatpoint *p,int i,double t,int row);
+	virtual int bezOfPatch(Laxkit::flatpoint *p,int r,int rl,int c,int cl);
 	virtual void resolveToSubpatch(double s,double t,int &c,double &ss,int &r,double &tt);
 	virtual void resolveFromSubpatch(int c,double ss,int r,double tt,double &s,double &t);
 	virtual void getGt(double *G,int roffset,int coffset,int isfory);
-	virtual int inSubPatch(flatpoint p,int *r_ret,int *c_ret,double *t_ret,double *s_ret,double d);
-	virtual int coordsInSubPatch(flatpoint p,int r,int c,double maxd, double *s_ret,double *t_ret);
+	virtual int inSubPatch(Laxkit::flatpoint p,int *r_ret,int *c_ret,double *t_ret,double *s_ret,double d);
+	virtual int coordsInSubPatch(Laxkit::flatpoint p,int r,int c,double maxd, double *s_ret,double *t_ret);
 	virtual int WhatColor(double s,double t,Laxkit::ScreenColor *color_ret);
 	 //@}
 
@@ -153,14 +153,14 @@ class PatchData : virtual public SomeData, virtual public Laxkit::PointCollectio
 	 //@{
 	virtual void CopyMeshPoints(PatchData *patch, bool usepath);
 	virtual void Set(double xx,double yy,double ww,double hh,int nr,int nc,unsigned int stle);
-	virtual void zap(flatpoint p,flatpoint x,flatpoint y);
+	virtual void zap(Laxkit::flatpoint p,Laxkit::flatpoint x,Laxkit::flatpoint y);
 	virtual void zap(); // zap to bbox
 	virtual int subdivide(int r,double rt,int c,double ct);
 	virtual int subdivide(int xn=2,int yn=2);
 	virtual void grow(int where, const double *tr, bool smooth);
 	virtual void collapse(int rr,int cc);
 	virtual void InterpolateControls(int whichcontrols);
-	virtual int WarpPatch(flatpoint center, double A,double B,double inner, double s,double e, const double *extra);
+	virtual int WarpPatch(Laxkit::flatpoint center, double A,double B,double inner, double s,double e, const double *extra);
 	virtual int EstablishPath(int preferredaxis);
 	virtual int RemovePath();
 	virtual int InstallPath(PathsData *path);
@@ -175,22 +175,22 @@ class PatchData : virtual public SomeData, virtual public Laxkit::PointCollectio
 	 //rendering functions
 	virtual int renderToBuffer(unsigned char *buffer, int bufw, int bufh, int bufstride, int bufdepth, int bufchannels);
 	virtual void rpatchpoint(PatchRenderContext *context,
-								flatpoint ul,flatpoint ur,flatpoint ll,flatpoint lr,
+								Laxkit::flatpoint ul,Laxkit::flatpoint ur,Laxkit::flatpoint ll,Laxkit::flatpoint lr,
 								double s1,double t1, double s2,double t2,int which);
 	virtual void patchpoint(PatchRenderContext *context, double s0,double ds,double t0,double dt,int n);
 	
-	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
-	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context);
-	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
+	virtual void dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *context);
+	virtual Laxkit::Attribute *dump_out_atts(Laxkit::Attribute *att,int what,Laxkit::DumpContext *context);
+	virtual void dump_in_atts(Laxkit::Attribute *att,int flag,Laxkit::DumpContext *context);
 	 //@}
 	
 	/*! \name From PointSet */
 	//@{
 	virtual int Depth() { return 2; } //how many dimensions wide are points stored
 	virtual int NumPoints(int dim) { return dim == 0 ? ysize : xsize; } //0 rows, 1 columns
-	virtual flatpoint Point(int row, ...); //retrieve point, as many numbers as Depth()
-	virtual flatpoint Point(flatpoint newPos, int row, ...); //set point
-	virtual int Map(std::function<int(const flatpoint &p, flatpoint &newp)> adjustFunc); //ret num changed
+	virtual Laxkit::flatpoint Point(int row, ...); //retrieve point, as many numbers as Depth()
+	virtual Laxkit::flatpoint Point(Laxkit::flatpoint newPos, int row, ...); //set point
+	virtual int Map(std::function<int(const Laxkit::flatpoint &p, Laxkit::flatpoint &newp)> adjustFunc); //ret num changed
 	//@}
 };
 
@@ -246,24 +246,24 @@ class PatchInterface : public anInterface
 {
  protected:
 	double movetransform[6];
-	flatpoint *movepts;
-	flatpoint lbdown;
-	flatpoint *cuth,*cutv;
+	Laxkit::flatpoint *movepts;
+	Laxkit::flatpoint lbdown;
+	Laxkit::flatpoint *cuth,*cutv;
 	double cutatct, cutatrt;
 	int overv,overh,overcv,overch,overstate;
 	int dragmode;
 	int hoverpoint;
 
-	flatpoint hovertemp;    //DBG!!
-	flatpoint hovertemprev; //DBG!!
+	Laxkit::flatpoint hovertemp;    //DBG!!
+	Laxkit::flatpoint hovertemprev; //DBG!!
 	
 	int bx,by,mx,my,constrain;
 	Laxkit::NumStack<int> curpoints; 
 	void getG(double *G,int roffset,int coffset,int isfory);
 	virtual int selectablePoint(int i);
 	int mousedragged;
-	virtual int findNearHorizontal(flatpoint fp,double d,double *t_ret,int *i_ret);
-	virtual int   findNearVertical(flatpoint fp,double d,double *t_ret,int *i_ret);
+	virtual int findNearHorizontal(Laxkit::flatpoint fp,double d,double *t_ret,int *i_ret);
+	virtual int   findNearVertical(Laxkit::flatpoint fp,double d,double *t_ret,int *i_ret);
 	virtual void drawControls();
 	virtual void drawControlPoints();
 	virtual void drawControlPoint(int i, bool hovered);

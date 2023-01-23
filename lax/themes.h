@@ -161,7 +161,7 @@ class WindowStyle : public anObject
 
 	 //---other
 	//std::map<string, anObject*> extra_values;
-	LaxFiles::AttributeObject extra;
+	AttributeObject extra;
 
 
 	WindowStyle(int ncategory = THEME_Panel);
@@ -172,8 +172,8 @@ class WindowStyle : public anObject
 
     WindowStyle *duplicate();
 
-	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context);
-	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
+	virtual Attribute *dump_out_atts(Attribute *att,int what,DumpContext *context);
+	virtual void dump_in_atts(Attribute *att,int flag,DumpContext *context);
 
 	virtual int SetDefaultColors(const char *type);
 	virtual int SetFonts(LaxFont *nnormal, LaxFont *nbold, LaxFont *nitalic, LaxFont *nmonospace);
@@ -188,7 +188,7 @@ class WindowStyle : public anObject
 
 //----------------------------- Theme ---------------------------------------
 
-class Theme : public anObject, public LaxFiles::DumpUtility
+class Theme : public anObject, public DumpUtility
 {
   public:
 	char *name; //localized. script name is usual Id()
@@ -214,7 +214,7 @@ class Theme : public anObject, public LaxFiles::DumpUtility
 	 //icons
 	IconManager *iconmanager;
 
-	LaxFiles::AttributeObject extra;
+	AttributeObject extra;
 
 	Theme(const char *nname=NULL);
 	virtual ~Theme();
@@ -232,9 +232,9 @@ class Theme : public anObject, public LaxFiles::DumpUtility
 	virtual int AddDefaults(const char *which=NULL);
 	virtual int UpdateFontSizes();
 
-	virtual void       dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
-	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context);
-	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
+	virtual void       dump_out(FILE *f,int indent,int what,DumpContext *context);
+	virtual Attribute *dump_out_atts(Attribute *att,int what,DumpContext *context);
+	virtual void dump_in_atts(Attribute *att,int flag,DumpContext *context);
 
 };
 

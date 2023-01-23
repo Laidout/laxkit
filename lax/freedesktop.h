@@ -25,7 +25,7 @@
 #include <lax/attributes.h>
 #include <lax/menuinfo.h>
 
-namespace LaxFiles {
+namespace Laxkit {
 
 
 int touch_recently_used_xbel(const char *file, const char *mime,
@@ -46,7 +46,7 @@ char *freedesktop_thumbnail(const char *file, char which='n');
 
 
 
-} //namespace LaxFiles
+} //namespace
 
 #endif
 

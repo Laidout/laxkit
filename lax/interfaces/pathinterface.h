@@ -82,7 +82,7 @@ class PathWeightNode
 	double bottomOffset() { return offset-width/2; }
 };
 
-class Path : public LaxFiles::DumpUtility, public Laxkit::DoubleBBox
+class Path : public Laxkit::DumpUtility, public Laxkit::DoubleBBox
 {
  protected:
  public:
@@ -107,10 +107,10 @@ class Path : public LaxFiles::DumpUtility, public Laxkit::DoubleBBox
 	Laxkit::CurveInfo cache_offset;
 	Laxkit::CurveInfo cache_width;
 	Laxkit::CurveInfo cache_angle;
-	Laxkit::NumStack<flatpoint> outlinecache; //bezier c-v-c-...
-	Laxkit::NumStack<flatpoint> centercache; //bezier c-v-c-...
-	Laxkit::NumStack<flatpoint> cache_top; //bezier c-v-c-... like top half of outline cache without joins
-	Laxkit::NumStack<flatpoint> cache_bottom; //bezier c-v-c-... like bottom half of outline cache without joins
+	Laxkit::NumStack<Laxkit::flatpoint> outlinecache; //bezier c-v-c-...
+	Laxkit::NumStack<Laxkit::flatpoint> centercache; //bezier c-v-c-...
+	Laxkit::NumStack<Laxkit::flatpoint> cache_top; //bezier c-v-c-... like top half of outline cache without joins
+	Laxkit::NumStack<Laxkit::flatpoint> cache_bottom; //bezier c-v-c-... like bottom half of outline cache without joins
 	virtual void UpdateS(bool all, int resolution=30);
 	virtual void UpdateCache();
 	virtual void UpdateWidthCache();
@@ -127,17 +127,17 @@ class Path : public LaxFiles::DumpUtility, public Laxkit::DoubleBBox
 	 //building functions
 	virtual Coordinate *lastPoint(int v=0);
 	virtual void append(double x,double y,unsigned long flags=POINT_VERTEX,SegmentControls *ctl=NULL);
-	virtual void append(flatpoint p,unsigned long flags=POINT_VERTEX,SegmentControls *ctl=NULL);
+	virtual void append(Laxkit::flatpoint p,unsigned long flags=POINT_VERTEX,SegmentControls *ctl=NULL);
 	virtual void append(Coordinate *coord);
-	virtual void append(flatpoint *pts, int n);
+	virtual void append(Laxkit::flatpoint *pts, int n);
 	virtual void appendBezFromStr(const char *value);
 	virtual void AppendPath(Path *p, bool absorb_path, double merge_ends, int at = -1);
-	virtual int MakeRoundedRect(double x, double y, double w, double h, flatpoint *sizes, int numsizes);
+	virtual int MakeRoundedRect(double x, double y, double w, double h, Laxkit::flatpoint *sizes, int numsizes);
 	virtual int MakeSquircleCubic(double x, double y, double w, double h, double *sizes, int numsizes);
 	virtual int removePoint(Coordinate *p, bool deletetoo);
-	virtual void moveTo(flatpoint p);
-	virtual void lineTo(flatpoint p);
-	virtual void curveTo(flatpoint c1, flatpoint c2, flatpoint p2);
+	virtual void moveTo(Laxkit::flatpoint p);
+	virtual void lineTo(Laxkit::flatpoint p);
+	virtual void curveTo(Laxkit::flatpoint c1, Laxkit::flatpoint c2, Laxkit::flatpoint p2);
 	virtual int close();
 	virtual int openAt(Coordinate *curvertex, int after);
 	virtual int CutSegment(Coordinate *curvertex, int after, Path **remainder);
@@ -177,13 +177,13 @@ class Path : public LaxFiles::DumpUtility, public Laxkit::DoubleBBox
 	virtual int MakeStraight(Coordinate *from, Coordinate *to, bool asbez);
 
 	 //info functions
-	virtual int Intersect(flatpoint p1,flatpoint p2, int isline, double startt, flatpoint *pts,int ptsn, double *t,int tn);
+	virtual int Intersect(Laxkit::flatpoint p1,Laxkit::flatpoint p2, int isline, double startt, Laxkit::flatpoint *pts,int ptsn, double *t,int tn);
 	virtual Coordinate *GetCoordinate(double t);
-	virtual int PointAlongPath(double t, int tisdistance, flatpoint *point, flatpoint *tangent, int resolution=50);
-	virtual int PointInfo(double t, int tisdistance, flatpoint *point, flatpoint *tangentafter, flatpoint *tangentbefore,
-						            flatpoint *ptop, flatpoint *pbottom,
+	virtual int PointAlongPath(double t, int tisdistance, Laxkit::flatpoint *point, Laxkit::flatpoint *tangent, int resolution=50);
+	virtual int PointInfo(double t, int tisdistance, Laxkit::flatpoint *point, Laxkit::flatpoint *tangentafter, Laxkit::flatpoint *tangentbefore,
+						            Laxkit::flatpoint *ptop, Laxkit::flatpoint *pbottom,
 									double *offset, double *width, double *angle);
-	virtual flatpoint ClosestPoint(flatpoint point, double *disttopath, double *distalongpath, double *tdist, int resolution=50);
+	virtual Laxkit::flatpoint ClosestPoint(Laxkit::flatpoint point, double *disttopath, double *distalongpath, double *tdist, int resolution=50);
 	virtual double Length(double tstart,double tend);
 	virtual double distance_to_t(double distance, int *err, int resolution=50);
 	virtual double t_to_distance(double t, int *err, int resolution=50);
@@ -191,11 +191,11 @@ class Path : public LaxFiles::DumpUtility, public Laxkit::DoubleBBox
 	virtual bool IsClosed();
 	virtual int GetIndex(Coordinate *p, bool ignore_controls);
 	virtual int Contains(Path *otherpath);
-	virtual int FindExtrema(Laxkit::NumStack<flatpoint> *points_ret, Laxkit::NumStack<double> *t_ret);
+	virtual int FindExtrema(Laxkit::NumStack<Laxkit::flatpoint> *points_ret, Laxkit::NumStack<double> *t_ret);
 
-	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
-	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what, LaxFiles::DumpContext *context);
-	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
+	virtual void dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *context);
+	virtual Laxkit::Attribute *dump_out_atts(Laxkit::Attribute *att,int what, Laxkit::DumpContext *context);
+	virtual void dump_in_atts(Laxkit::Attribute *att,int flag,Laxkit::DumpContext *context);
 };
 
 
@@ -250,17 +250,17 @@ class PathsData : virtual public SomeData
 	virtual int pathHasCoord(int pathindex,Coordinate *co);
 	virtual void appendCoord(Coordinate *coord,int whichpath=-1);
 	virtual void append(double x,double y,unsigned long flags=POINT_VERTEX,SegmentControls *ctl=NULL,int whichpath=-1);
-	virtual void append(flatpoint p,unsigned long flags=POINT_VERTEX,SegmentControls *ctl=NULL,int whichpath=-1);
+	virtual void append(Laxkit::flatpoint p,unsigned long flags=POINT_VERTEX,SegmentControls *ctl=NULL,int whichpath=-1);
 	virtual void appendRect(double x,double y,double w,double h,SegmentControls *ctl=NULL,int whichpath=-1);
 	virtual bool appendRect(DoubleBBox *box, int whichpath=-1);
-	virtual int MakeRoundedRect(int pathi, double x, double y, double w, double h, flatpoint *sizes, int numsizes);
+	virtual int MakeRoundedRect(int pathi, double x, double y, double w, double h, Laxkit::flatpoint *sizes, int numsizes);
 	virtual int MakeSquircleCubic(int pathi, double x, double y, double w, double h, double *sizes, int numsizes);
-	virtual void appendEllipse(flatpoint center, double xradius, double yradius, double angle, double offset, int num_vertices, int closed);
-	virtual void appendBezArc(flatpoint center, double angle, int num_vertices);
+	virtual void appendEllipse(Laxkit::flatpoint center, double xradius, double yradius, double angle, double offset, int num_vertices, int closed);
+	virtual void appendBezArc(Laxkit::flatpoint center, double angle, int num_vertices);
 	virtual void appendSvg(const char *d);
-	virtual void moveTo(flatpoint p,int whichpath=-1);
-	virtual void lineTo(flatpoint p,int whichpath=-1);
-	virtual void curveTo(flatpoint c1, flatpoint c2, flatpoint p2, int whichpath=-1);
+	virtual void moveTo(Laxkit::flatpoint p,int whichpath=-1);
+	virtual void lineTo(Laxkit::flatpoint p,int whichpath=-1);
+	virtual void curveTo(Laxkit::flatpoint c1, Laxkit::flatpoint c2, Laxkit::flatpoint p2, int whichpath=-1);
 	virtual void close(int whichpath=-1);
 	virtual Coordinate *LastVertex();
 	virtual void pushEmpty(int where=-1,LineStyle *nls=NULL);
@@ -280,17 +280,17 @@ class PathsData : virtual public SomeData
 	virtual void ApplyTransform();
 	virtual void MatchTransform(Affine &affine);
 	virtual void MatchTransform(const double *mm);
-	virtual void SetOriginToBBoxPoint(flatpoint p);
+	virtual void SetOriginToBBoxPoint(Laxkit::flatpoint p);
 
-	virtual flatpoint ClosestPoint(flatpoint point, double *disttopath, double *distalongpath, double *tdist, int *pathi, int resolution=50);
-	virtual int Intersect(int pathindex,flatpoint p1,flatpoint p2, int isline, double startt,flatpoint *pts,int ptsn, double *t,int tn);
-	virtual int PointAlongPath(int pathindex, double t, int tisdistance, flatpoint *point, flatpoint *tangent, int resolution=50);
+	virtual Laxkit::flatpoint ClosestPoint(Laxkit::flatpoint point, double *disttopath, double *distalongpath, double *tdist, int *pathi, int resolution=50);
+	virtual int Intersect(int pathindex,Laxkit::flatpoint p1,Laxkit::flatpoint p2, int isline, double startt,Laxkit::flatpoint *pts,int ptsn, double *t,int tn);
+	virtual int PointAlongPath(int pathindex, double t, int tisdistance, Laxkit::flatpoint *point, Laxkit::flatpoint *tangent, int resolution=50);
 	// virtual int Sample(int pathindex, double step, bool step_is_distance, double from, double to, bool fit_step, Laxkit::PtrStack<Affine> &tr_ret);
 	// virtual int SampleN(int pathindex, int n_points, bool step_is_distance, double from, double to, Laxkit::PtrStack<Affine> &tr_ret);
 	virtual Coordinate *GetCoordinate(int pathi, double t);
 	virtual int ReversePath(int pathindex);
 	virtual double Length(int pathi, double tstart,double tend);
-	virtual int FindExtrema(int pathindex, Laxkit::NumStack<flatpoint> *points_ret, Laxkit::NumStack<double> *t_ret);
+	virtual int FindExtrema(int pathindex, Laxkit::NumStack<Laxkit::flatpoint> *points_ret, Laxkit::NumStack<double> *t_ret);
 	//virtual int NumPoints(int vertices=1);
 
 	virtual int NumPaths() { return paths.n; }
@@ -300,12 +300,12 @@ class PathsData : virtual public SomeData
 	virtual PathsData *MergeWith(PathsData *otherPath, double *transform_from_other, double endpoint_merge_threshhold, 
 								 bool extract_paths_from_other, bool return_new);
 
-	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
-	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what, LaxFiles::DumpContext *context);
-	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
+	virtual void dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *context);
+	virtual Laxkit::Attribute *dump_out_atts(Laxkit::Attribute *att,int what, Laxkit::DumpContext *context);
+	virtual void dump_in_atts(Laxkit::Attribute *att,int flag,Laxkit::DumpContext *context);
 
 	// typedef void (*PointMapFunc)(const flatpoint &p, flatpoint &newp);
- 	virtual int Map(std::function<int(const flatpoint &p, flatpoint &newp)> adjustFunc);
+ 	virtual int Map(std::function<int(const Laxkit::flatpoint &p, Laxkit::flatpoint &newp)> adjustFunc);
 
  	virtual int Undo(Laxkit::UndoData *data); // return 0 for sucess, nonzero error
 	virtual int Redo(Laxkit::UndoData *data); // return 0 for sucess, nonzero error
@@ -314,7 +314,7 @@ class PathsData : virtual public SomeData
 
 //-------------------- PathsData utility
 
-PathsData *SvgToPathsData(PathsData *existingpath, const char *d,char **end_ptr, LaxFiles::Attribute *powerstroke);
+PathsData *SvgToPathsData(PathsData *existingpath, const char *d,char **end_ptr, Laxkit::Attribute *powerstroke);
 int SetClipFromPaths(Laxkit::Displayer *dp, LaxInterfaces::SomeData *outline, const double *extra_m, bool real=false);
 int GetNumPathsData(SomeData *obj, int *num_other);
 
@@ -330,8 +330,8 @@ class PathOperator : public Laxkit::anObject
 
 	PathOperator(int nid=-1);
 	virtual ~PathOperator();
-	virtual void dumpOut(FILE *f, int indent, SegmentControls *controls, int what, LaxFiles::DumpContext *context) = 0;
-	virtual void dumpIn(Coordinate *attachto, LaxFiles::Attribute *att, LaxFiles::DumpContext *context) = 0;
+	virtual void dumpOut(FILE *f, int indent, SegmentControls *controls, int what, Laxkit::DumpContext *context) = 0;
+	virtual void dumpIn(Coordinate *attachto, Laxkit::Attribute *att, Laxkit::DumpContext *context) = 0;
 
 	virtual void drawControls(Laxkit::Displayer *dp, int which, SegmentControls *controls,
 							  int showdecs, PathInterface *pathi) = 0;
@@ -347,11 +347,11 @@ class PathOperator : public Laxkit::anObject
 	 // It must not return closed loops. By comparison, a new bez point would create 3
 	 // points: control1--vertex--control2, and would return control1.
 	 // The returned segment must start and end with a vertex.
-	virtual Coordinate *newPoint(flatpoint p) = 0; // pop after/before, prefunit=0 means full unit
+	virtual Coordinate *newPoint(Laxkit::flatpoint p) = 0; // pop after/before, prefunit=0 means full unit
 
-	virtual int ShiftPoint(Coordinate *pp,flatpoint d) = 0;
-	virtual int Rotate(flatpoint o,double angle,Coordinate *pp) = 0;
-	virtual int Scale(flatpoint o,double f,int constrain, Coordinate *pp) = 0;
+	virtual int ShiftPoint(Coordinate *pp,Laxkit::flatpoint d) = 0;
+	virtual int Rotate(Laxkit::flatpoint o,double angle,Coordinate *pp) = 0;
+	virtual int Scale(Laxkit::flatpoint o,double f,int constrain, Coordinate *pp) = 0;
 
 	//virtual int UseThis(***);
 };
@@ -490,7 +490,7 @@ class PathInterface : public anInterface
 	double widthstep;
 	
 	Path *curpath;
-	flatpoint curdirv;
+	Laxkit::flatpoint curdirv;
 	Coordinate *curdirp;
 	Coordinate  defaulthoverp;
 	Coordinate *curvertex; // curvertex points to the relevant vertex point, not to the last selected point
@@ -503,15 +503,15 @@ class PathInterface : public anInterface
 	int hoverpointtype;
 	int edit_pathi; //keep track for numerical input
 	int edit_weighti;
-	flatpoint hoverpoint;
-	flatpoint hoverdir;
-	flatpoint hoversegment[4];
+	Laxkit::flatpoint hoverpoint;
+	Laxkit::flatpoint hoverdir;
+	Laxkit::flatpoint hoversegment[4];
 	Laxkit::Affine extram;
 	int lasth; //direction of toggling selected handle
 	int last_action, recent_action;
 
 	int show_addpoint; //0 no, 1 one bez segs, 2 two bez segs (adding within line)
-	flatpoint add_point_hint[6];
+	Laxkit::flatpoint add_point_hint[6];
 	
 	//Laxkit::PtrStack<PathOperator> pathops; 
 	PathOperator *curpathop;
@@ -531,20 +531,20 @@ class PathInterface : public anInterface
 	virtual void UpdateAddHint();
 	virtual void UpdateDir();
 	virtual int WeightNodePosition(Path *path, PathWeightNode *weight,
-									flatpoint *pp_ret, flatpoint *po_ret, flatpoint *ptop_ret, flatpoint *pbottom_ret,
-									flatpoint *vv_ret, flatpoint *vt_ret,
+									Laxkit::flatpoint *pp_ret, Laxkit::flatpoint *po_ret, Laxkit::flatpoint *ptop_ret, Laxkit::flatpoint *pbottom_ret,
+									Laxkit::flatpoint *vv_ret, Laxkit::flatpoint *vt_ret,
 									int needtotransform);
 
 	virtual int ConnectEndpoints(Coordinate *from,int fromi, Coordinate *to,int toi);
 	virtual int MergeEndpoints(Coordinate *from,int fromi, Coordinate *to,int toi);
 
-	virtual int shiftBezPoint(Coordinate *p,flatpoint d);
-	virtual int shiftSelected(flatpoint d);
-	virtual int scaleSelected(flatpoint center,double f,int constrain);
-	virtual int rotateSelected(flatpoint center,double angle);
+	virtual int shiftBezPoint(Coordinate *p,Laxkit::flatpoint d);
+	virtual int shiftSelected(Laxkit::flatpoint d);
+	virtual int scaleSelected(Laxkit::flatpoint center,double f,int constrain);
+	virtual int rotateSelected(Laxkit::flatpoint center,double angle);
 
 	virtual void hoverMessage();
-	virtual void drawNewPathIndicator(flatpoint p,int which);
+	virtual void drawNewPathIndicator(Laxkit::flatpoint p,int which);
 	virtual void drawWeightNode(Path *path, PathWeightNode *weight, int isfornew);
 	virtual void DrawBaselines();
 	virtual void DrawOutlines();
@@ -616,15 +616,15 @@ class PathInterface : public anInterface
 	virtual Coordinate *scanEndpoints(int x,int y,int *pathindex,Coordinate *exclude, bool *is_first);
 	virtual int scanHover(int x,int y,unsigned int state, int *pathi);
 	virtual int scanWeights(int x,int y,unsigned int state, int *pathindex, int *index);
-	virtual flatpoint screentoreal(int x,int y);
-	virtual flatpoint realtoscreen(flatpoint r);
+	virtual Laxkit::flatpoint screentoreal(int x,int y);
+	virtual Laxkit::flatpoint realtoscreen(Laxkit::flatpoint r);
 	virtual int toggleclosed(int c=-1);
-	virtual int AddPoint(flatpoint p);
+	virtual int AddPoint(Laxkit::flatpoint p);
 	virtual void SetPointType(int newtype);
 	virtual void SetPointType(Coordinate *v,int newtype);
 	virtual void MakeCircle();
 	virtual void MakeRect();
-	virtual int CutNear(flatpoint hoverpoint);
+	virtual int CutNear(Laxkit::flatpoint hoverpoint);
 	virtual int CutSegment();
 };
 
@@ -653,7 +653,7 @@ class PathUndo : public Laxkit::UndoData
 	Path *path;
 	Laxkit::NumStack<int> path_indices;
 	Laxkit::NumStack<int> indices;
-	Laxkit::NumStack<flatpoint> points;
+	Laxkit::NumStack<Laxkit::flatpoint> points;
 
 	PathUndo(PathsData *object, int ntype, int nisauto);
 	~PathUndo();

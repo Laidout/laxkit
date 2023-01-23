@@ -31,7 +31,6 @@
 using namespace std;
 #define DBG 
 
-using namespace LaxFiles;
 
 namespace Laxkit {
 
@@ -156,7 +155,7 @@ int LineEdit::init()
 	return 0;
 }
 
-Attribute *LineEdit::dump_out_atts(Attribute *att,int what,LaxFiles::DumpContext *savecontext)
+Attribute *LineEdit::dump_out_atts(Attribute *att,int what,DumpContext *savecontext)
 {
 	if (!att) att=new Attribute(whattype(),NULL);
 	anXWindow::dump_out_atts(att,what,savecontext);
@@ -189,7 +188,7 @@ Attribute *LineEdit::dump_out_atts(Attribute *att,int what,LaxFiles::DumpContext
 	return att;
 }
 
-void LineEdit::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *loadcontext)
+void LineEdit::dump_in_atts(Attribute *att,int flag,DumpContext *loadcontext)
 {
 	anXWindow::dump_in_atts(att,flag,loadcontext);
 

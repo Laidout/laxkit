@@ -35,7 +35,7 @@ namespace LaxInterfaces {
 class MirrorData : virtual public SomeData
 {
   public:
-	flatpoint p1, p2;
+	Laxkit::flatpoint p1, p2;
 	bool merge;
 	double merge_threshhold;
 	bool cut_at_mirror; //like Blender's bisect
@@ -82,7 +82,7 @@ class MirrorInterface : public anInterface
 	MirrorData *mirrordata;
 	MirrorToolSettings *settings;
 
-	flatpoint drag_p1, drag_p2; //cache for snapping ref
+	Laxkit::flatpoint drag_p1, drag_p2; //cache for snapping ref
 
 	int hover;
 	virtual int scan(int x, int y, unsigned int state);

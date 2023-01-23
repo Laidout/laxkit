@@ -44,7 +44,7 @@
  * char[]s to integers, longs, doubles,
  * integer arrays, etc.
  */
-namespace LaxFiles {
+namespace Laxkit {
 
 ////! Skip lines filled with space, tab, and comments. Assumes already positioned at beginning of line.
 ///*! \ingroup fileutils
@@ -883,7 +883,7 @@ char *current_directory()
 }
 
 
-} //namespace LaxFiles
+} //namespace Laxkit
 
 
 

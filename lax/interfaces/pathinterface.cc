@@ -40,7 +40,6 @@
 #include <lax/lists.cc>
 
 
-using namespace LaxFiles;
 using namespace Laxkit;
 
 #include <iostream>
@@ -300,7 +299,7 @@ int Path::ApplyLineProfile()
  *                            #the bezier approximation is appended to the path as bezier points
  * </pre>
  */
-void Path::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
+void Path::dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *context)
 {
 	char spc[indent+1]; memset(spc,' ',indent); spc[indent]='\0';
 	if (what==-1) {
@@ -421,7 +420,7 @@ void Path::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
 	}
 }
 
-LaxFiles::Attribute *Path::dump_out_atts(LaxFiles::Attribute *att,int what, LaxFiles::DumpContext *context)
+Laxkit::Attribute *Path::dump_out_atts(Laxkit::Attribute *att,int what, Laxkit::DumpContext *context)
 { 
 	if (what==-1) {
 		if (!att) att=new Attribute;
@@ -573,7 +572,7 @@ LaxFiles::Attribute *Path::dump_out_atts(LaxFiles::Attribute *att,int what, LaxF
  *
  * See dump_out() for format expected.
  */
-void Path::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context)
+void Path::dump_in_atts(Laxkit::Attribute *att,int flag,Laxkit::DumpContext *context)
 {
 	if (!att) return;
 	char *name,*value;
@@ -4192,7 +4191,7 @@ int PathsData::fill(Laxkit::ScreenColor *color)
  *
  * Ignores what. Uses 0 for it.
  */
-void PathsData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
+void PathsData::dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *context)
 {
 	char spc[indent+1]; memset(spc,' ',indent); spc[indent]='\0';
 	if (what==-1) {
@@ -4239,7 +4238,7 @@ void PathsData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *cont
 	}
 }
 
-LaxFiles::Attribute *PathsData::dump_out_atts(LaxFiles::Attribute *att,int what, LaxFiles::DumpContext *context)
+Laxkit::Attribute *PathsData::dump_out_atts(Laxkit::Attribute *att,int what, Laxkit::DumpContext *context)
 {
 	if (!att) att=new Attribute;
 
@@ -4299,7 +4298,7 @@ LaxFiles::Attribute *PathsData::dump_out_atts(LaxFiles::Attribute *att,int what,
  * they should have been flushed previously. New paths read in here
  * are appended to paths stack.
  */
-void PathsData::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *context)
+void PathsData::dump_in_atts(Attribute *att,int flag,Laxkit::DumpContext *context)
 {
 	if (!att) return;
 
@@ -5285,7 +5284,7 @@ PathsData *PathsData::MergeWith(PathsData *otherPath,
  * If powerstroke, then take that as an Inkscape powerstroke definition, and
  * parse accordingly.
  */
-PathsData *SvgToPathsData(PathsData *existingpath, const char *d,char **end_ptr, LaxFiles::Attribute *powerstroke)
+PathsData *SvgToPathsData(PathsData *existingpath, const char *d,char **end_ptr, Laxkit::Attribute *powerstroke)
 {
 	Coordinate *coord=SvgToCoordinate(d,0,end_ptr,NULL);
 	if (!coord) return NULL;

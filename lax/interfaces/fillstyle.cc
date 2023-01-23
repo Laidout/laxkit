@@ -23,7 +23,7 @@
 #include <lax/interfaces/fillstyle.h>
 #include <lax/laxutils.h>
 
-using namespace LaxFiles;
+
 using namespace Laxkit;
 
 
@@ -125,7 +125,7 @@ void FillStyle::Colorf(double r,double g,double b,double a)
 }
 
 //! Reverse of dump_out.
-void FillStyle::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *context) 
+void FillStyle::dump_in_atts(Attribute *att,int flag,Laxkit::DumpContext *context) 
 {
 	if (!att) return;
 	char *name,*value;
@@ -156,7 +156,7 @@ void FillStyle::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *cont
 	}
 }
 
-LaxFiles::Attribute *FillStyle::dump_out_atts(LaxFiles::Attribute *att,int what, LaxFiles::DumpContext *context)
+Laxkit::Attribute *FillStyle::dump_out_atts(Laxkit::Attribute *att,int what, Laxkit::DumpContext *context)
 {
 	if (!att) att=new Attribute;
 
@@ -182,7 +182,7 @@ LaxFiles::Attribute *FillStyle::dump_out_atts(LaxFiles::Attribute *att,int what,
 	return att;
 }
 
-void FillStyle::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
+void FillStyle::dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *context)
 {
 	char spc[indent+1]; memset(spc,' ',indent); spc[indent]='\0';
 	if (what==-1) {

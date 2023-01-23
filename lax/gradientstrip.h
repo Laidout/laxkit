@@ -36,7 +36,7 @@ namespace Laxkit {
 
 //--------------------------------- GradientStrip ----------------------------
 
-class GradientStrip : virtual public Resourceable, virtual public LaxFiles::DumpUtility, virtual public Previewable
+class GradientStrip : virtual public Resourceable, virtual public DumpUtility, virtual public Previewable
 {
  protected:
 	unsigned int gradient_flags; //readonly, radial gradient, linear gradient, palette 
@@ -93,10 +93,10 @@ class GradientStrip : virtual public Resourceable, virtual public LaxFiles::Dump
 		GradientSpot(double tt,double ss, double rr,double gg,double bb,double aa);
 		virtual ~GradientSpot();
 
-		virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
-		virtual void dump_in(FILE *f,int indent,LaxFiles::DumpContext *context,LaxFiles::Attribute **Att=NULL);
-		virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
-		virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context);
+		virtual void dump_out(FILE *f,int indent,int what,DumpContext *context);
+		virtual void dump_in(FILE *f,int indent,DumpContext *context,Attribute **Att=NULL);
+		virtual void dump_in_atts(Attribute *att,int flag,DumpContext *context);
+		virtual Attribute *dump_out_atts(Attribute *att,int what,DumpContext *context);
 	};
 
 	enum GradStockType {
@@ -163,10 +163,10 @@ class GradientStrip : virtual public Resourceable, virtual public LaxFiles::Dump
 	virtual Color *WhatColor(double t, Color *col, bool is_normalized);
 	virtual int WhatColor(double t, Laxkit::ScreenColor *col, bool is_normalized);
 
-	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
-	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
-	virtual void dump_in (FILE *f,int indent,int what,LaxFiles::DumpContext *context,LaxFiles::Attribute **att);
-	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context);
+	virtual void dump_out(FILE *f,int indent,int what,DumpContext *context);
+	virtual void dump_in_atts(Attribute *att,int flag,DumpContext *context);
+	virtual void dump_in (FILE *f,int indent,int what,DumpContext *context,Attribute **att);
+	virtual Attribute *dump_out_atts(Attribute *att,int what,DumpContext *context);
 
 	virtual int renderToBufferImage(LaxImage *image);
 	virtual int RenderPalette(LaxImage *image);

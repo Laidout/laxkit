@@ -122,8 +122,8 @@ class MultiLineEdit : public TextXEditBaseUtf8
 
 	virtual void SetStyle(unsigned long style, int on);
 
-    virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context);
-    virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context); 
+    virtual Attribute *dump_out_atts(Attribute *att,int what,DumpContext *context);
+    virtual void dump_in_atts(Attribute *att,int flag,DumpContext *context); 
 };
 
 

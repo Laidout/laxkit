@@ -40,7 +40,7 @@
 using namespace std;
 
 
-namespace LaxFiles {
+namespace Laxkit {
 
 /*! If visited or modified are not null, then update those in the recent file to the current time.
  *
@@ -1266,5 +1266,5 @@ char *freedesktop_thumbnail(const char *file, char which)
 }
 
 
-} //namespace LaxFiles
+} //namespace
 

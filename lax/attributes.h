@@ -32,7 +32,7 @@
 #include <functional>
 
 
-namespace LaxFiles {
+namespace Laxkit {
 
 	
 //---------------------------------- class Attribute ---------------------------------
@@ -203,7 +203,7 @@ int ParseCSV(IOBuffer &f, const char *delimiter, bool has_headers,
 	);
 
 
-} //namespace LaxFiles
+} //namespace Laxkit
 
 #endif
 

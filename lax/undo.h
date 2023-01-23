@@ -69,7 +69,7 @@ class MetaUndoData : public UndoData
 {
   public:
     int type;
-    LaxFiles::Attribute meta;
+    Attribute meta;
     char *description;
 
     MetaUndoData(Undoable *context, int ntype, int nisauto, const char *desc);

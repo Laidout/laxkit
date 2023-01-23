@@ -32,10 +32,10 @@ class ShapeBrush : public PathsData
 {
   protected:
   	bool needtoremap;
-  	flatpoint last_dir;
-    Laxkit::NumStack<flatpoint> last_minmax;
+  	Laxkit::flatpoint last_dir;
+    Laxkit::NumStack<Laxkit::flatpoint> last_minmax;
 
-  	typedef Laxkit::NumStack<flatpoint> FlatpointLine;
+  	typedef Laxkit::NumStack<Laxkit::flatpoint> FlatpointLine;
   	Laxkit::PtrStack<FlatpointLine> remapped;
 
     virtual void Remap();
@@ -46,7 +46,7 @@ class ShapeBrush : public PathsData
 
   	virtual void Normalize();
   	virtual void CopyFrom(PathsData *paths);
-  	virtual void MinMax(int pathi, flatpoint direction, flatpoint &min, flatpoint &max);
+  	virtual void MinMax(int pathi, Laxkit::flatpoint direction, Laxkit::flatpoint &min, Laxkit::flatpoint &max);
 };
 
 

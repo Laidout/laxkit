@@ -48,7 +48,6 @@
 #include <lax/refptrstack.cc>
 
 
-using namespace LaxFiles;
 using namespace Laxkit;
 
 #include <iostream>

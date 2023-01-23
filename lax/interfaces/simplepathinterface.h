@@ -65,7 +65,7 @@ class SimplePathData : virtual public SomeData
 	{
 	  public:
 		int type;
-		flatvector p;
+		Laxkit::flatpoint p;
 		double ltheta;
 		double rtheta;
 		int ltype;
@@ -77,7 +77,7 @@ class SimplePathData : virtual public SomeData
 			ltheta = rtheta = 0;
 			ltype = rtype = Default;
 		}
-		Point(flatvector p, int type, int ltype, double ltheta, int rtype, double rtheta)
+		Point(Laxkit::flatpoint p, int type, int ltype, double ltheta, int rtype, double rtheta)
 		{
 			this->p      = p;
 			this->type   = type;
@@ -91,8 +91,8 @@ class SimplePathData : virtual public SomeData
 	Laxkit::ScreenColor color;
 	Interpolation interpolation;
 	Laxkit::PtrStack<Point> mpoints;
-	//Laxkit::NumStack<flatvector> points;
-	Laxkit::NumStack<flatvector> pointcache;
+	//Laxkit::NumStack<Laxkit::flatpoint> points;
+	Laxkit::NumStack<Laxkit::flatpoint> pointcache;
 	double linewidth;
 	bool closed;
 
@@ -118,15 +118,15 @@ class SimplePathData : virtual public SomeData
 	virtual void BuildNewSpiro();
 	virtual void Interpolate(Interpolation newInterpolation);
 
-	virtual void TangentAtIndex(int index, flatpoint &prev, flatpoint &next);
+	virtual void TangentAtIndex(int index, Laxkit::flatpoint &prev, Laxkit::flatpoint &next);
 
-	virtual int AddPoint(flatvector p, int where);
-	virtual int AddPoint(flatvector p, int type, int ltype, double ltheta, int rtype, double rtheta, int where);
+	virtual int AddPoint(Laxkit::flatpoint p, int where);
+	virtual int AddPoint(Laxkit::flatpoint p, int type, int ltype, double ltheta, int rtype, double rtheta, int where);
 	virtual void RemoveAt(int index);
 
-	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
-	virtual void dump_out(FILE *f, int indent, int what, LaxFiles::DumpContext *context);
-	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *savecontext);
+	virtual void dump_in_atts(Laxkit::Attribute *att,int flag,Laxkit::DumpContext *context);
+	virtual void dump_out(FILE *f, int indent, int what, Laxkit::DumpContext *context);
+	virtual Laxkit::Attribute *dump_out_atts(Laxkit::Attribute *att,int what,Laxkit::DumpContext *savecontext);
 	virtual char *GetSvgPath();
 };
 

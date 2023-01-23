@@ -52,7 +52,6 @@
 #include <lax/refptrstack.cc>
 #include <lax/lists.cc>
 
-using namespace LaxFiles;
 using namespace Laxkit;
 
 #include <iostream>
@@ -694,7 +693,7 @@ int CaptionData::FindPos(double y, double x, int *line, int *pos)
  * </pre>
  *
  */
-void CaptionData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
+void CaptionData::dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *context)
 {
 	char spc[indent+1]; memset(spc,' ',indent); spc[indent]='\0';
 
@@ -742,7 +741,7 @@ void CaptionData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *co
 	}
 }
 
-LaxFiles::Attribute *CaptionData::dump_out_atts(Attribute *att,int what,DumpContext *context)
+Laxkit::Attribute *CaptionData::dump_out_atts(Attribute *att,int what,DumpContext *context)
 {
 	if (!att) att=new Attribute;
 
@@ -797,7 +796,7 @@ LaxFiles::Attribute *CaptionData::dump_out_atts(Attribute *att,int what,DumpCont
 }
 
 //! See dump_out().
-void CaptionData::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *context)
+void CaptionData::dump_in_atts(Attribute *att,int flag,Laxkit::DumpContext *context)
 {
 	if (!att) return;
 

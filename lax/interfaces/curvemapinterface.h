@@ -48,11 +48,11 @@ class CurveMapInterface : public anInterface
 	int always_refresh_lookup;
 	int highlighteditable;
 
-	flatpoint lastpoint; //in real space
+	Laxkit::flatpoint lastpoint; //in real space
 	int lasthover;
-	flatpoint hoverpoint;
+	Laxkit::flatpoint hoverpoint;
 	int draglimbo;
-	flatpoint ClampPoint(flatpoint p, int pp);
+	Laxkit::flatpoint ClampPoint(Laxkit::flatpoint p, int pp);
 
 	int *histogram; //in range [0..1000]
 	int hist_n;
@@ -115,8 +115,8 @@ class CurveMapInterface : public anInterface
 	virtual Laxkit::MenuInfo *ContextMenu(int x,int y,int deviceid, Laxkit::MenuInfo *menu);
 
 	 //serializing aids
-	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context);
-	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
+	virtual Laxkit::Attribute *dump_out_atts(Laxkit::Attribute *att,int what,Laxkit::DumpContext *context);
+	virtual void dump_in_atts(Laxkit::Attribute *att,int flag,Laxkit::DumpContext *context);
 
 
 	 //curve specific functions:
@@ -125,7 +125,7 @@ class CurveMapInterface : public anInterface
 	virtual int scaneditable(double x,double y);
 	virtual int scanExpandable(double x,double y);
 	virtual int scan(double x,double y);
-	virtual int scannear(double x,double y, flatpoint *p_ret, int *index);
+	virtual int scannear(double x,double y, Laxkit::flatpoint *p_ret, int *index);
 	virtual int MakeLookupTable(int *table,int numentries, int minvalue, int maxvalue);
 	virtual void send(int which=0);
 	virtual double f(double x);

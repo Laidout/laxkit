@@ -57,7 +57,7 @@ class ObjectContext;
 
 //------------------------------ anInterface ------------------------------------------
 class anInterface : virtual public Laxkit::EventReceiver,
-					virtual public LaxFiles::DumpUtility
+					virtual public Laxkit::DumpUtility
 {
 	char *last_message; //for PostMessage2(fmt,...)
 	int last_message_n;
@@ -158,8 +158,8 @@ class anInterface : virtual public Laxkit::EventReceiver,
 			Laxkit::anObject *a1=NULL,Laxkit::anObject *a2=NULL,int info=1);
 
 	 // if owning window can be cast to ViewportWindow, then these call corresponding funcs in it:
-	virtual flatpoint realtoscreen(flatpoint r);
-	virtual flatpoint screentoreal(int x,int y);
+	virtual Laxkit::flatpoint realtoscreen(Laxkit::flatpoint r);
+	virtual Laxkit::flatpoint screentoreal(int x,int y);
 	virtual double Getmag(int c=0);
 	virtual double GetVMag(int x,int y);
 
@@ -172,9 +172,9 @@ class anInterface : virtual public Laxkit::EventReceiver,
 	virtual double DraggedThreshhold();
 
 	 //input and output
-	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *savecontext);
-	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *loadcontext);
-	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *savecontext);
+	virtual void dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *savecontext);
+	virtual void dump_in_atts(Laxkit::Attribute *att,int flag,Laxkit::DumpContext *loadcontext);
+	virtual Laxkit::Attribute *dump_out_atts(Laxkit::Attribute *att,int what,Laxkit::DumpContext *savecontext);
 
 	//system dnd
 	virtual int selectionDropped(const unsigned char *data,unsigned long len,const char *actual_type,const char *which);

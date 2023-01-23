@@ -34,9 +34,6 @@ using namespace std;
 #define DBG 
 
 
-using namespace LaxFiles;
-
-
 namespace Laxkit {
 
 
@@ -845,7 +842,7 @@ int RulerWindow::Resize(int nw,int nh)
  *
  * Default is to add attributes for "text", and whatever anXWindow adds.
  */
-Attribute *RulerWindow::dump_out_atts(Attribute *att,int what,LaxFiles::DumpContext *context)
+Attribute *RulerWindow::dump_out_atts(Attribute *att,int what,DumpContext *context)
 {
 	if (!att) att=new Attribute(whattype(),NULL);
 	anXWindow::dump_out_atts(att,what,context);
@@ -892,7 +889,7 @@ Attribute *RulerWindow::dump_out_atts(Attribute *att,int what,LaxFiles::DumpCont
 
 /*! Default is to read in text, and whatever anXWindow reads.
  */
-void RulerWindow::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *context)
+void RulerWindow::dump_in_atts(Attribute *att,int flag,DumpContext *context)
 {
 	anXWindow::dump_in_atts(att,flag,context);
 

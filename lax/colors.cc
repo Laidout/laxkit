@@ -35,9 +35,6 @@
 using namespace std;
 
 
-using namespace LaxFiles;
-
-
 namespace Laxkit {
 
 /*! \defgroup colors Color Management
@@ -395,7 +392,7 @@ char *Color::dump_out_simple_string()
 
 /*! Convenience function to append a short string to a subatt named prop to an Attribute.
  */
-void Color::dump_out_simple_string(LaxFiles::Attribute *att, const char *prop, const char *comment)
+void Color::dump_out_simple_string(Attribute *att, const char *prop, const char *comment)
 {
 	char *str = dump_out_simple_string();
 	if (!str) return;
@@ -469,14 +466,14 @@ int Color::dump_out_simple_string(char *color, int n)
 	return strlen(color);
 }
 
-void Color::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
+void Color::dump_out(FILE *f,int indent,int what,DumpContext *context)
 {
 	Attribute att;
 	dump_out_atts(&att,what,context);
 	att.dump_out(f,indent);
 }
 
-LaxFiles::Attribute *Color::dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *savecontext)
+Attribute *Color::dump_out_atts(Attribute *att,int what,DumpContext *savecontext)
 {
 	if (!att) att=new Attribute;
 
@@ -511,7 +508,7 @@ LaxFiles::Attribute *Color::dump_out_atts(LaxFiles::Attribute *att,int what,LaxF
 	return att;
 }
 
-void Color::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *loadcontext)
+void Color::dump_in_atts(Attribute *att,int flag,DumpContext *loadcontext)
 {
     char *name,*value;
 
@@ -648,7 +645,7 @@ int ColorRef::Reference(Color *newcolor)
 }
 
 
-LaxFiles::Attribute *ColorRef::dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context)
+Attribute *ColorRef::dump_out_atts(Attribute *att,int what,DumpContext *context)
 {
 	if (color) {
 		att=color->dump_out_atts(att,what,context);
@@ -659,7 +656,7 @@ LaxFiles::Attribute *ColorRef::dump_out_atts(LaxFiles::Attribute *att,int what,L
 	return att;
 }
 
-void ColorRef::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context)
+void ColorRef::dump_in_atts(Attribute *att,int flag,DumpContext *context)
 { //***
 	Attribute *att2 = att->find("ref");
 	if (!att2) return;
@@ -796,14 +793,14 @@ double ColorSystem::ChannelMaximum(int channel)
 	return primaries.e[channel]->maxvalue;
 }
 
-void ColorSystem::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
+void ColorSystem::dump_out(FILE *f,int indent,int what,DumpContext *context)
 {
 	Attribute att;
 	dump_out_atts(&att,what,context);
 	att.dump_out(f,indent);
 }
 
-LaxFiles::Attribute *ColorSystem::dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context)
+Attribute *ColorSystem::dump_out_atts(Attribute *att,int what,DumpContext *context)
 {
 	if (!att) att=new Attribute;
 
@@ -824,7 +821,7 @@ LaxFiles::Attribute *ColorSystem::dump_out_atts(LaxFiles::Attribute *att,int wha
 	return att;
 }
 
-void ColorSystem::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context)
+void ColorSystem::dump_in_atts(Attribute *att,int flag,DumpContext *context)
 {
 	cerr <<" *** need to finish implementing ColorSystem::dump_in_atts()!!"<<endl;
 }
@@ -1082,7 +1079,7 @@ Color *ColorManager::newColor(int systemid, const ScreenColor &color)
 /*! Return a new Color based on att.
  * \todo IMPLEMENT FULL! currently just reads short color string from att->value
  */
-Color *ColorManager::newColor(LaxFiles::Attribute *att)
+Color *ColorManager::newColor(Attribute *att)
 {
 	if (!att) return nullptr;
 

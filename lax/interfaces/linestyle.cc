@@ -24,8 +24,8 @@
 #include <lax/drawingdefs.h>
 #include <lax/laxutils.h>
 
+
 using namespace Laxkit;
-using namespace LaxFiles;
 
 
 namespace LaxInterfaces {
@@ -158,7 +158,7 @@ void LineStyle::Colorf(const Laxkit::ScreenColor &col)
 }
 
 //! Dump in.
-void LineStyle::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *context)
+void LineStyle::dump_in_atts(Attribute *att,int flag,Laxkit::DumpContext *context)
 {
 	if (!att) return;
 	char *name,*value;
@@ -207,7 +207,7 @@ void LineStyle::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *cont
 	}
 }
 
-LaxFiles::Attribute *LineStyle::dump_out_atts(LaxFiles::Attribute *att,int what, LaxFiles::DumpContext *context)
+Laxkit::Attribute *LineStyle::dump_out_atts(Laxkit::Attribute *att,int what, Laxkit::DumpContext *context)
 {
 	if (!att) att=new Attribute;
 
@@ -267,7 +267,7 @@ LaxFiles::Attribute *LineStyle::dump_out_atts(LaxFiles::Attribute *att,int what,
 }
 
 //! ***implement mask!! should only output the actually defined values?
-void LineStyle::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
+void LineStyle::dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *context)
 {
 	Attribute att;
 	dump_out_atts(&att, what, context);

@@ -31,13 +31,12 @@
 #include <lax/doublebbox.h>
 #include <lax/laxdefs.h>
 
-//template implementation:
-#include <lax/lists.cc>
-
 #define DBG
 #include <iostream>
 //using namespace std;
 
+
+namespace Laxkit {
 
 /*! \defgroup vectors Various functions for dealing with math vectors
  *	This group defines lots of functions and classes that are handy in dealing with
@@ -1418,7 +1417,7 @@ flatpoint *SvgToFlatpoints(const char *d, char **endptr, int how, flatpoint *buf
 			if (!hascurpoint) throw (7);
 
 			double dd[6];
-			int n=LaxFiles::DoubleListAttribute(p,dd,6,&ee);
+			int n = DoubleListAttribute(p,dd,6,&ee);
 			if (ee==p || n!=6) throw (8);
 			p=ee;
 
@@ -1482,7 +1481,7 @@ flatpoint *SvgToFlatpoints(const char *d, char **endptr, int how, flatpoint *buf
 //			if (!hascurpoint) throw (9);
 //
 //			double dd[7];
-//			int n=LaxFiles::DoubleListAttribute(p,dd,7,&ee);
+//			int n=DoubleListAttribute(p,dd,7,&ee);
 //			if (ee==p || n!=7) throw (10);
 //
 //			double x1=curpoint.x,
@@ -1784,3 +1783,4 @@ Quaternion Quaternion::conjugate()
 /*! @} */
 
 
+} //namespace Laxkit

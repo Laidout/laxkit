@@ -45,7 +45,7 @@ class PathWeightNode;
 	#undef Absolute
 #endif
 
-class LineProfile : public Laxkit::Resourceable, virtual public Laxkit::Previewable, public LaxFiles::DumpUtility
+class LineProfile : public Laxkit::Resourceable, virtual public Laxkit::Previewable, public Laxkit::DumpUtility
 {
   public:
 	double max_height; 
@@ -72,9 +72,9 @@ class LineProfile : public Laxkit::Resourceable, virtual public Laxkit::Previewa
 	LineProfile();
 	virtual ~LineProfile();
 	virtual const char *whattype() { return "LineProfile"; } 
-	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
-	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context);
-	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
+	virtual void dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *context);
+	virtual Laxkit::Attribute *dump_out_atts(Laxkit::Attribute *att,int what,Laxkit::DumpContext *context);
+	virtual void dump_in_atts(Laxkit::Attribute *att,int flag,Laxkit::DumpContext *context);
 
 	virtual void AddNode(double nt,double no,double nw,double nangle);
 	virtual int NeedToRecache() { return needtorecache || nodes_mod_time>cache_mod_time || nodes_mod_time==0; }

@@ -31,7 +31,6 @@ using namespace std;
 
 
 using namespace Laxkit;
-using namespace LaxFiles;
 
 
 namespace LaxInterfaces {
@@ -143,7 +142,7 @@ int CurveWindow::MovePoint(int index, double x,double y)
  *
  * Default is to add attributes for "text", and whatever anXWindow adds.
  */
-Attribute *CurveWindow::dump_out_atts(Attribute *att,int what,LaxFiles::DumpContext *context)
+Attribute *CurveWindow::dump_out_atts(Attribute *att,int what,Laxkit::DumpContext *context)
 { //***
 	if (!att) att=new Attribute(whattype(),NULL);
 	anXWindow::dump_out_atts(att,what,context);
@@ -152,7 +151,7 @@ Attribute *CurveWindow::dump_out_atts(Attribute *att,int what,LaxFiles::DumpCont
 
 /*! Default is to read in text, and whatever anXWindow reads.
  */
-void CurveWindow::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context)
+void CurveWindow::dump_in_atts(Laxkit::Attribute *att,int flag,Laxkit::DumpContext *context)
 { //***
 	anXWindow::dump_in_atts(att,flag,context);
 }

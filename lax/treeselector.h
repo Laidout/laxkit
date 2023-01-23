@@ -221,9 +221,9 @@ class TreeSelector : public ScrolledWindow
 	virtual int WrapToMouse(int mouseid, anXWindow *onedgeofthis=0);
 	virtual int WrapToPosition(int screen_x, int screen_y, int screen, anXWindow *onedgeofthis = nullptr);
 
-	virtual void       dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *savecontext);
-    virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *savecontext); 
-    virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *loadcontext);
+	virtual void       dump_out(FILE *f,int indent,int what,DumpContext *savecontext);
+    virtual Attribute *dump_out_atts(Attribute *att,int what,DumpContext *savecontext); 
+    virtual void dump_in_atts(Attribute *att,int flag,DumpContext *loadcontext);
 
     virtual bool SetStyle(unsigned long long style, int newvalue);
 	virtual bool HasStyle(unsigned long long style);

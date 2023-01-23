@@ -290,7 +290,7 @@ bool ColorBase::Parse(const char *buffer, int len, const char **endptr)
 	if (len < 0) len = strlen(buffer);
 	if (len == 0) return false;
 	char *buf = newnstr(buffer,len);
-	bool status = (LaxFiles::SimpleColorAttribute(buf, d, endptr) == 0);
+	bool status = (SimpleColorAttribute(buf, d, endptr) == 0);
 	if (status) {
 		//success!
 		SetRGB(d[0], d[1], d[2], d[3]);
@@ -333,14 +333,14 @@ char *ColorBase::HexValue(char *buffer)
  *
  * The '#' is optional.
  *
- * Uses LaxFiles::HexColorAttributeRGB().
+ * Uses HexColorAttributeRGB().
  */
 int ColorBase::SetHexValue(const char *hex)
 {
 	if (!hex) return 1;
 
 	ScreenColor color;
-	LaxFiles::HexColorAttributeRGB(hex, &color, NULL);
+	HexColorAttributeRGB(hex, &color, NULL);
 
 	double a=color.alpha/65535.;
 	double r=color.red  /65535.;

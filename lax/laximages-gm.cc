@@ -527,7 +527,7 @@ int GraphicsMagickLoader::PingFile(const char *file, int *width, int *height, lo
 	}
 
 	if (filesize) {
-		//*filesize = LaxFiles::file_size(file, 1, NULL);
+		//*filesize = file_size(file, 1, NULL);
 		*filesize = img.fileSize();
 	}
 

@@ -24,7 +24,7 @@
 
 #include <cmath>
 
-//namespace LaxMath {
+namespace Laxkit {
 
 int vector_error();
 
@@ -280,7 +280,7 @@ Quaternion operator/(Quaternion a,double r);  /* divide y double */
 Quaternion operator/=(Quaternion &a,double r);
 Quaternion operator*(Quaternion a,Quaternion b);
 
-//} //namespace LaxMath
+} //namespace Laxkit
 
 #endif
 

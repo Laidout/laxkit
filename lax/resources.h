@@ -66,7 +66,7 @@ class Resourceable : virtual public anObject
 
 //----------------------------- Resource -------------------------------
 
-typedef anObject *(*ResourceCreateFunc)(LaxFiles::Attribute *att);
+typedef anObject *(*ResourceCreateFunc)(Attribute *att);
 
 class Resource : virtual public anObject, virtual public Tagged
 {
@@ -80,7 +80,7 @@ class Resource : virtual public anObject, virtual public Tagged
 	LaxImage *icon;
 	bool ignore;
 	bool linkable;
-	LaxFiles::Attribute *meta;
+	Attribute *meta;
 
 	int favorite; //0 for not fav, positive for order in a favorites list
 	enum SourceType {
@@ -96,7 +96,7 @@ class Resource : virtual public anObject, virtual public Tagged
 	char *source;
 
 	char *objecttype;
-	LaxFiles::Attribute *config; //when we are creating, not storing.
+	Attribute *config; //when we are creating, not storing.
 	ResourceCreateFunc creation_func;
 	virtual anObject *Create();
 
@@ -176,7 +176,7 @@ class ResourceType : public Resource
 //----------------------------- ResourceManager -------------------------------
 
 
-class ResourceManager : public anObject, public LaxFiles::DumpUtility
+class ResourceManager : public anObject, public DumpUtility
 {
   public:
 	char *app_name; //where app specific resources are located, so search in */app_name/app_version/resource_name/*
@@ -220,11 +220,11 @@ class ResourceManager : public anObject, public LaxFiles::DumpUtility
 
 
 	 //io
-	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
-	virtual void dump_out_list(ResourceType *type, FILE *f,int indent,int what,LaxFiles::DumpContext *context);
-    virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context);
-    virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
-	virtual void dump_in_list_atts(ResourceType *type, LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
+	virtual void dump_out(FILE *f,int indent,int what,DumpContext *context);
+	virtual void dump_out_list(ResourceType *type, FILE *f,int indent,int what,DumpContext *context);
+    virtual Attribute *dump_out_atts(Attribute *att,int what,DumpContext *context);
+    virtual void dump_in_atts(Attribute *att,int flag,DumpContext *context);
+	virtual void dump_in_list_atts(ResourceType *type, Attribute *att,int flag,DumpContext *context);
 
 
 };

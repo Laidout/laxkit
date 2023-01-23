@@ -142,7 +142,7 @@ int laxcairo_generate_preview(const char *original,
 LaxImage *load_cairo_image(const char *filename)
 {
 	if (!filename) return NULL;
-	if (LaxFiles::file_exists(filename,1,NULL) != S_IFREG) return NULL; //some systems cairo does not fail politely on file not found
+	if (file_exists(filename,1,NULL) != S_IFREG) return NULL; //some systems cairo does not fail politely on file not found
 
 	cairo_surface_t *image;
 	image=cairo_image_surface_create_from_png(filename);

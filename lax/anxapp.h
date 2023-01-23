@@ -134,7 +134,7 @@ const int AUTOPLACE = -100000;
 
 class anXWindow : virtual public EventReceiver, 
 				  virtual public Tagged,
-				  virtual public LaxFiles::DumpUtility,
+				  virtual public DumpUtility,
 				  virtual public aDrawable
 {
 	friend class anXApp;
@@ -321,9 +321,9 @@ class anXWindow : virtual public EventReceiver,
 	virtual void SetOwner(unsigned long nowner_id,const char *mes=NULL, unsigned int send_mask=0);
 
 	 //serializing aids
-	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
-	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context);
-	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
+	virtual void dump_out(FILE *f,int indent,int what,DumpContext *context);
+	virtual Attribute *dump_out_atts(Attribute *att,int what,DumpContext *context);
+	virtual void dump_in_atts(Attribute *att,int flag,DumpContext *context);
 };
 
 
@@ -404,7 +404,7 @@ class anXApp : virtual public anObject
 
 	char                    dontstop;
 	unsigned long           dialog_mask;
-	LaxFiles::Attribute     app_resources;
+	Attribute               app_resources;
 	PtrStack<anXWindow>     dialogs;
 	RefPtrStack<anXWindow>  topwindows;
 	RefPtrStack<anXWindow>  outclickwatch;
@@ -423,7 +423,7 @@ class anXApp : virtual public anObject
 	 //initialization helpers
 	virtual void setupdefaultcolors();
 	virtual int getlaxrc(const char *filename,const char *profile);
-	virtual void dump_in_rc(LaxFiles::Attribute *att, const char *profile);
+	virtual void dump_in_rc(Attribute *att, const char *profile);
 	virtual void dump_out_rc(FILE *f, const char *profile, int indent, int what);
 
 	 //event loop helper functions
@@ -489,8 +489,8 @@ class anXApp : virtual public anObject
 	 //resources
 	virtual int Tooltips(int on);
 	virtual int has(int what);
-	virtual LaxFiles::Attribute *AppResource(const char *name);
-	virtual int AppResource(LaxFiles::Attribute *resource);
+	virtual Attribute *AppResource(const char *name);
+	virtual int AppResource(Attribute *resource);
 	virtual int DefaultIcon(const char *file);
 	virtual int DefaultIcon(LaxImage *image, int absorb_count);
 	virtual int ScreenInfo(int screen,int *x,int *y, int *width,int *height,int *mmwidth,int *mmheight,int *depth,int *monitor);

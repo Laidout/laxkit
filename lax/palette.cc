@@ -35,7 +35,6 @@
 using namespace std;
 #define DBG 
 
-using namespace LaxFiles;
 
 namespace Laxkit {
 
@@ -120,7 +119,7 @@ Palette *Palette::duplicate()
 }
 
 //! Dump out the palette to an Attribute, in standard format (what is ignored).
-Attribute *Palette::dump_out_atts(Attribute *att,int what,LaxFiles::DumpContext *context)
+Attribute *Palette::dump_out_atts(Attribute *att,int what,DumpContext *context)
 {
 	if (!att) att=new Attribute;
 
@@ -161,7 +160,7 @@ Attribute *Palette::dump_out_atts(Attribute *att,int what,LaxFiles::DumpContext 
  * number of initial numbers, then the first non-number character signals the start
  * of the name of the color.
  */
-void Palette::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *loadcontext)
+void Palette::dump_in_atts(Attribute *att,int flag,DumpContext *loadcontext)
 {
 	int c;
 	char *value,*name;
@@ -203,7 +202,7 @@ void Palette::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *loadco
  *
  * or LAX_GIMP_PALETTE
  */
-void Palette::dump_in(FILE *f,int indent,int what,LaxFiles::DumpContext *loadcontext,Attribute **Att)
+void Palette::dump_in(FILE *f,int indent,int what,DumpContext *loadcontext,Attribute **Att)
 {
 	if (what==LAX_GIMP_PALETTE) {
 		 // Read in
@@ -272,7 +271,7 @@ void Palette::dump_in(FILE *f,int indent,int what,LaxFiles::DumpContext *loadcon
  * \todo translateable metadata fields?
  * \todo color management, specify color profile to go along with palette
  */
-void Palette::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
+void Palette::dump_out(FILE *f,int indent,int what,DumpContext *context)
 {
 	if (what==LAX_GIMP_PALETTE) {
 		fprintf(f,"GIMP Palette\n");

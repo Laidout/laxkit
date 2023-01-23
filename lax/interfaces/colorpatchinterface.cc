@@ -32,7 +32,6 @@
 using namespace std;
 #define DBG 
 
-using namespace LaxFiles;
 using namespace Laxkit;
 
 namespace LaxInterfaces {
@@ -154,7 +153,7 @@ void ColorPatchData::Set(double xx,double yy,double ww,double hh,int nr,int nc,u
  *   and specification that colors are 8bit, or other bit depth, like have field
  *   "colordepth 16|8|float"
  */
-void ColorPatchData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
+void ColorPatchData::dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *context)
 {
 	char spc[indent+3]; memset(spc,' ',indent); spc[indent]='\0'; 
 	if (what==-1) {
@@ -212,7 +211,7 @@ void ColorPatchData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext 
 	}
 }
 
-LaxFiles::Attribute *ColorPatchData::dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context)
+Laxkit::Attribute *ColorPatchData::dump_out_atts(Laxkit::Attribute *att,int what,Laxkit::DumpContext *context)
 {
 	if (!att) att = new Attribute;
 	Attribute *att2;
@@ -282,7 +281,7 @@ LaxFiles::Attribute *ColorPatchData::dump_out_atts(LaxFiles::Attribute *att,int 
 }
 
 //! Reverse of dump_out().
-void ColorPatchData::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *context)
+void ColorPatchData::dump_in_atts(Attribute *att,int flag,Laxkit::DumpContext *context)
 {
 	if (!att) return;
 	char *name,*value;

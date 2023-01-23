@@ -30,7 +30,6 @@
 #include <cctype>
 
 using namespace std;
-using namespace LaxFiles;
 
 namespace Laxkit {
 

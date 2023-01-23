@@ -44,9 +44,6 @@ using namespace std;
 #define HOVER (-1)
 
 
-using namespace LaxFiles;
-
-
 namespace Laxkit {
 
 

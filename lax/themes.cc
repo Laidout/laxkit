@@ -37,8 +37,6 @@
 #define DBG
 using namespace std;
 
-using namespace LaxFiles;
-
 
 namespace Laxkit {
 

@@ -45,13 +45,11 @@ using namespace std;
 #define DBG 
 
 
-using namespace Laxkit;
-
-namespace LaxFiles {
+namespace Laxkit {
 
 /*! \defgroup attributefileformat Indented Data File Format
  * 
- * The file format used by the LaxFiles::Attribute class is based on indentation delimiting
+ * The file format used by the Attribute class is based on indentation delimiting
  * different fields. You can think of it as a simplified xml, where there is no
  * difference between elements and attributes. The 
  * <a href="laxrc.html">laxrc</a> file uses this structure, as do all the

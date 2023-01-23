@@ -41,7 +41,6 @@
 
 
 using namespace Laxkit;
-using namespace LaxFiles;
 
 
 #include <iostream>
@@ -166,7 +165,7 @@ void VoronoiData::FindBBox()
 	}
 }
 
-void VoronoiData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
+void VoronoiData::dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *context)
 {
     char spc[indent+1];
     memset(spc,' ',indent);
@@ -226,7 +225,7 @@ void VoronoiData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *co
 
 }
 
-LaxFiles::Attribute *VoronoiData::dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context)
+Laxkit::Attribute *VoronoiData::dump_out_atts(Laxkit::Attribute *att,int what,Laxkit::DumpContext *context)
 {
 	if (!att) att = new Attribute();
 
@@ -306,7 +305,7 @@ LaxFiles::Attribute *VoronoiData::dump_out_atts(LaxFiles::Attribute *att,int wha
 	return att;
 }
 
-void VoronoiData::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context)
+void VoronoiData::dump_in_atts(Laxkit::Attribute *att,int flag,Laxkit::DumpContext *context)
 {
     if (!att) return;
     char *name,*value;
@@ -1716,7 +1715,7 @@ int DelaunayInterface::Event(const Laxkit::EventData *e_data, const char *mes)
 			return 0;
 		}
 
-		LaxFiles::Attribute att;
+		Laxkit::Attribute att;
 		if (att.dump_in(s->str)) {
 			PostMessage(_("Could not parse points."));
 			return 0;

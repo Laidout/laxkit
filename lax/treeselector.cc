@@ -280,16 +280,16 @@ int TreeSelector::InstallMenu(MenuInfo *nmenu)
 	return 0;
 }
 
-void TreeSelector::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *savecontext)
+void TreeSelector::dump_out(FILE *f,int indent,int what,DumpContext *savecontext)
 {
-    LaxFiles::Attribute att;
+    Attribute att;
     dump_out_atts(&att,what,savecontext);
     att.dump_out(f,indent);
 }
 
-LaxFiles::Attribute *TreeSelector::dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *savecontext)
+Attribute *TreeSelector::dump_out_atts(Attribute *att,int what,DumpContext *savecontext)
 {
-	if (!att) att=new LaxFiles::Attribute();
+	if (!att) att=new Attribute();
 
 	anXWindow::dump_out_atts(att,what,savecontext);
 
@@ -300,7 +300,7 @@ LaxFiles::Attribute *TreeSelector::dump_out_atts(LaxFiles::Attribute *att,int wh
     }
 
 	if (columns.n) {
-		LaxFiles::Attribute *col=att->pushSubAtt("columns");
+		Attribute *col=att->pushSubAtt("columns");
 		for (int c=0; c<columns.n; c++) {
 			col->push(columns.e[c]->title,  columns.e[c]->width);
 		}
@@ -309,7 +309,7 @@ LaxFiles::Attribute *TreeSelector::dump_out_atts(LaxFiles::Attribute *att,int wh
 	return att;
 }
 
-void TreeSelector::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *loadcontext)
+void TreeSelector::dump_in_atts(Attribute *att,int flag,DumpContext *loadcontext)
 {
 	anXWindow::dump_in_atts(att,flag,loadcontext);
 

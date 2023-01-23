@@ -29,7 +29,7 @@
 
 
 
-namespace LaxFiles {
+namespace Laxkit {
 
 #ifdef _LAX_PLATFORM_MAC
 int getline(char **line, size_t *n,FILE *f);
@@ -67,7 +67,7 @@ char *current_directory();
 char *ExecutablePath();
 int CopyFile(const char *from, const char *to, bool clobber);
 
-} //namespace LaxFiles
+} //namespace
 
 #endif
 

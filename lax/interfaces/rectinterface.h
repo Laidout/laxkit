@@ -58,11 +58,11 @@ class RectData : public SomeData
 	unsigned int style;
 	int griddivisions;
 	int centertype; // like rectinterface numbering, <1 means no center (center=p), >9 means stationary
-	flatpoint center,center2,shearpoint;
+	Laxkit::flatpoint center,center2,shearpoint;
 	LineStyle *linestyle;
 
 	RectData();
-	RectData(flatpoint pp,double ww,double hh,int ct,unsigned int stle);
+	RectData(Laxkit::flatpoint pp,double ww,double hh,int ct,unsigned int stle);
 	virtual ~RectData();
 	virtual void centercenter();
 	virtual const char *whattype() { return "RectData"; }
@@ -92,11 +92,11 @@ class RectInterface : public anInterface
 {
   protected:
 	int lastpoint;
-	flatpoint createp,createx,createy;
-	flatpoint center1,center2,shearpoint,leftp;
-	flatpoint flip1,flip2;
+	Laxkit::flatpoint createp,createx,createy;
+	Laxkit::flatpoint center1,center2,shearpoint,leftp;
+	Laxkit::flatpoint flip1,flip2;
 	double rotatestep;
-	flatpoint drag_rotate_center;
+	Laxkit::flatpoint drag_rotate_center;
 	double drag_rotate_radius;
 	double drag_rotate_min_radius; //inside of which you can mouse up on number input
 	double drag_scale_width; //drag vertically outside this lets you select number to edit
@@ -114,9 +114,9 @@ class RectInterface : public anInterface
 	char constrain_to; //0, 'x', or 'y'
 	int mousetarget;
 	int shiftmode;
-	flatpoint hoverpoint;
+	Laxkit::flatpoint hoverpoint;
 	double rw,rh;
-	flatpoint origin,xdir,ydir;
+	Laxkit::flatpoint origin,xdir,ydir;
 	double xaxislen,yaxislen;
 	double extra_context[6];
 	bool use_extra;
@@ -133,9 +133,9 @@ class RectInterface : public anInterface
 	virtual int GetMode();
 	virtual void Modified(int level=0);
 
-	virtual flatpoint ObjectToScreen(flatpoint p);
-	virtual flatpoint ScreenToObject(double x,double y);
-	virtual flatpoint ScreenToObjectParent(double x,double y);
+	virtual Laxkit::flatpoint ObjectToScreen(Laxkit::flatpoint p);
+	virtual Laxkit::flatpoint ScreenToObject(double x,double y);
+	virtual Laxkit::flatpoint ScreenToObjectParent(double x,double y);
 
   public:
 	int maxtouchlen;
@@ -174,11 +174,11 @@ class RectInterface : public anInterface
 	virtual void Clear(SomeData *d=NULL);
 	virtual int Event(const Laxkit::EventData *e,const char *mes);
 
-	virtual int AlternateScan(flatpoint sp, flatpoint p, double xmag,double ymag, double onepix);
+	virtual int AlternateScan(Laxkit::flatpoint sp, Laxkit::flatpoint p, double xmag,double ymag, double onepix);
 	virtual int scan(int x,int y);
 	virtual int SelectPoint(int c);
 	virtual void deletedata();
-	virtual flatpoint getpoint(int c,int trans);
+	virtual Laxkit::flatpoint getpoint(int c,int trans);
 	virtual void GetOuterRect(Laxkit::DoubleBBox *box, double *mm);
 };
 

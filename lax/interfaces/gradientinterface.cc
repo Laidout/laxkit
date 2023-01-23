@@ -115,8 +115,8 @@
 #include <lax/laxutils.h>
 #include <lax/lists.cc>
 
+
 using namespace Laxkit;
-using namespace LaxFiles;
 
 
 #include <iostream>
@@ -508,7 +508,7 @@ int GradientData::pointin(flatpoint pp,int pin)
  *      rgba 0 0 0 0
  * </pre>
  */
-void GradientData::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *context)
+void GradientData::dump_in_atts(Attribute *att,int flag,Laxkit::DumpContext *context)
 {
 	if (!att) return;
 	char *name,*value;
@@ -598,9 +598,9 @@ void GradientData::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *c
 	FindBBox();
 }
 
-LaxFiles::Attribute *GradientData::dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *savecontext)
+Laxkit::Attribute *GradientData::dump_out_atts(Laxkit::Attribute *att,int what,Laxkit::DumpContext *savecontext)
 {
-	if (att == nullptr) att = new LaxFiles::Attribute();
+	if (att == nullptr) att = new Laxkit::Attribute();
 
 	if (what == -1) {
 		att->push("matrix", "1 0 0 1 0 0", "the affine transform affecting this gradient");
@@ -662,7 +662,7 @@ LaxFiles::Attribute *GradientData::dump_out_atts(LaxFiles::Attribute *att,int wh
  * update this code as change happens.
  * Otherwise dumps out in indented data format as described in dump_in_atts().
  */
-void GradientData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
+void GradientData::dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *context)
 {
 	Attribute att;
     dump_out_atts(&att,what,context);

@@ -27,8 +27,9 @@
 #include <lax/misc.h>
 #include <lax/language.h>
 
+
 using namespace Laxkit;
-using namespace LaxFiles;
+
 
 namespace LaxInterfaces {
 
@@ -140,7 +141,7 @@ SomeData *SomeDataRef::duplicate(SomeData *dup)
 	return dup;
 }
 
-void SomeDataRef::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
+void SomeDataRef::dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *context)
 {
 	char spc[indent+1]; memset(spc,' ',indent); spc[indent]='\0';
 
@@ -166,7 +167,7 @@ void SomeDataRef::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *co
 	fprintf(f,"%smaxy %.10g\n",spc,maxy);
 }
 
-LaxFiles::Attribute *SomeDataRef::dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *savecontext)
+Laxkit::Attribute *SomeDataRef::dump_out_atts(Laxkit::Attribute *att,int what,Laxkit::DumpContext *savecontext)
 {
 	if (!att) att=new Attribute("SomeDataRef",NULL);
 
@@ -190,7 +191,7 @@ LaxFiles::Attribute *SomeDataRef::dump_out_atts(LaxFiles::Attribute *att,int wha
 
 /*! Only read in the id. It is up to the program reading in to substitute references for actual objects.
  */
-void SomeDataRef::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context)
+void SomeDataRef::dump_in_atts(Laxkit::Attribute *att,int flag,Laxkit::DumpContext *context)
 {
 	if (!att) return;
 	SomeData::dump_in_atts(att,flag,context);
@@ -207,7 +208,7 @@ void SomeDataRef::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpC
 	FindBBox();
 }
 
-int SomeDataRef::pointin(flatpoint pp,int pin)
+int SomeDataRef::pointin(Laxkit::flatpoint pp,int pin)
 {
 	if (thedata) {
 		pp=transform_point_inverse(m(),pp);

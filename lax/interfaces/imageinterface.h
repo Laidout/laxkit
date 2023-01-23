@@ -50,16 +50,16 @@ class ImageData : public Laxkit::ImageInfo, virtual public SomeData
 	virtual SomeData *duplicate(SomeData *dup);
 
 	virtual void Flip(int horiz);
-	virtual void Flip(flatpoint f1,flatpoint f2);
+	virtual void Flip(Laxkit::flatpoint f1, Laxkit::flatpoint f2);
 	virtual int SetImage(Laxkit::LaxImage *newimage, Laxkit::LaxImage *newpreview);
 	virtual void SetDescription(const char *ndesc);
 	virtual int UsePreview(const char *npreview, int maxpx=0, int maxpy=0, char del=0);
 	virtual int LoadImage(const char *fname, const char *npreview=NULL, int maxpx=0, int maxpy=0, char del=0,char fit=0,int index=0);
 	virtual const char *Filename();
 	
-	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
-	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
-	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *savecontext);
+	virtual void dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *context);
+	virtual void dump_in_atts(Laxkit::Attribute *att,int flag,Laxkit::DumpContext *context);
+	virtual Laxkit::Attribute *dump_out_atts(Laxkit::Attribute *att,int what,Laxkit::DumpContext *savecontext);
 
 	virtual int Undo(Laxkit::UndoData *data);
 	virtual int Redo(Laxkit::UndoData *data);
@@ -84,7 +84,7 @@ class ImageInterface : public anInterface
 {
  protected:
 	int mode,mousedragged;
-	flatpoint leftp;
+	Laxkit::flatpoint leftp;
 	int mx,my,lx,ly;
 	int max_preview_x, max_preview_y;
 	ImageData *data;
@@ -144,12 +144,12 @@ class ImageDataUndo : public Laxkit::UndoData
 
 	int type;
 	Laxkit::Affine m, m_orig;
-	LaxFiles::Attribute *info;
+	Laxkit::Attribute *info;
 
 	ImageDataUndo(ImageData *object,
 			     Laxkit::Affine *mo,
 			     Laxkit::Affine *nm,
-			     LaxFiles::Attribute *changed_info,
+			     Laxkit::Attribute *changed_info,
 			     int ntype, int nisauto);
 	virtual ~ImageDataUndo();
 	virtual const char *Description();

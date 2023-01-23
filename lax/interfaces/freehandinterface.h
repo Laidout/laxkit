@@ -36,7 +36,7 @@ namespace LaxInterfaces {
 
 enum FreehandEditorStyles {
 	FREEHAND_Coordinates     =(1<<0), //Construct Coordinate points (not implemented)
-	FREEHAND_Flatpoints      =(1<<1), //Create a list of flatpoints (not implemented)
+	FREEHAND_Flatpoints      =(1<<1), //Create a list of Laxkit::flatpoints (not implemented)
 	FREEHAND_Raw_Path        =(1<<2), //Create a straight polyline PathsData with all input points
 	FREEHAND_Poly_Path       =(1<<3), //Create a simplified polyline PathsData, approximated within a threshhold
 	FREEHAND_Bez_Path        =(1<<4), //Create a bezier PathsData based on a simplified polyline
@@ -63,13 +63,13 @@ enum FreehandEditorStyles {
 
 class RawPoint {
   public:
-	flatpoint p;
+	Laxkit::flatpoint p;
 	int flag; //used by point simplfier
 	clock_t time;
 	double pressure;
 	double tiltx,tilty;
 	RawPoint() { time=0; pressure=0; tiltx=tilty=0; flag=0; }
-	RawPoint(flatpoint pp) { p=pp; time=0; pressure=0; tiltx=tilty=0; flag=0; }
+	RawPoint(Laxkit::flatpoint pp) { p=pp; time=0; pressure=0; tiltx=tilty=0; flag=0; }
 };
 
 typedef Laxkit::PtrStack<RawPoint> RawPointLine;
@@ -112,8 +112,8 @@ class FreehandInterface : public anInterface
 	//----end user settings
 
 	//mode brush size adjust
-	flatpoint size_center;
-	flatpoint last_screen_pos;
+	Laxkit::flatpoint size_center;
+	Laxkit::flatpoint last_screen_pos;
 	bool size_dragged;
 
 
@@ -169,8 +169,8 @@ class FreehandInterface : public anInterface
 	virtual unsigned int SendType(unsigned int type);
 	virtual int Mode(EditMode newmode);
 
-	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *loadcontext);
-	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *savecontext);
+	virtual void dump_in_atts(Laxkit::Attribute *att,int flag,Laxkit::DumpContext *loadcontext);
+	virtual Laxkit::Attribute *dump_out_atts(Laxkit::Attribute *att,int what,Laxkit::DumpContext *savecontext);
 };
 
 } // namespace LaxInterfaces

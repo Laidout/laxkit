@@ -47,7 +47,7 @@ class PaletteEntry
 	virtual ~PaletteEntry();
 };
 
-class Palette : public LaxFiles::DumpUtility, public anObject
+class Palette : public DumpUtility, public anObject
 {
  public:
 	int defaultmaxcolor;
@@ -62,10 +62,10 @@ class Palette : public LaxFiles::DumpUtility, public anObject
 	Palette();
 	virtual ~Palette();
 
-	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *savecontext);
-	virtual void dump_in (FILE *f,int indent,int what,LaxFiles::DumpContext *loadcontext,LaxFiles::Attribute **att);
-	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *savecontext);
-	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *loadcontext);
+	virtual void dump_out(FILE *f,int indent,int what,DumpContext *savecontext);
+	virtual void dump_in (FILE *f,int indent,int what,DumpContext *loadcontext,Attribute **att);
+	virtual Attribute *dump_out_atts(Attribute *att,int what,DumpContext *savecontext);
+	virtual void dump_in_atts(Attribute *att,int flag,DumpContext *loadcontext);
 	virtual Palette *duplicate();
 	virtual anObject *duplicate(anObject *ref) { return duplicate(); }
 

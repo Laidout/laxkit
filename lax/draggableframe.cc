@@ -30,9 +30,6 @@ using namespace std;
 #define DBG 
 
 
-using namespace LaxFiles;
-
-
 namespace Laxkit {
 
 /*! \class DraggableFrame
@@ -295,7 +292,7 @@ int DraggableFrame::scan(int x, int y, unsigned int state)
  *
  * Default is to add attributes for "text", and whatever anXWindow adds.
  */
-Attribute *DraggableFrame::dump_out_atts(Attribute *att,int what,LaxFiles::DumpContext *context)
+Attribute *DraggableFrame::dump_out_atts(Attribute *att,int what,DumpContext *context)
 {
 	if (!att) att=new Attribute(whattype(),NULL);
 	anXWindow::dump_out_atts(att,what,context);
@@ -318,7 +315,7 @@ Attribute *DraggableFrame::dump_out_atts(Attribute *att,int what,LaxFiles::DumpC
 
 /*! Default is to read in text, and whatever anXWindow reads.
  */
-void DraggableFrame::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *context)
+void DraggableFrame::dump_in_atts(Attribute *att,int flag,DumpContext *context)
 {
 	anXWindow::dump_in_atts(att,flag,context);
 

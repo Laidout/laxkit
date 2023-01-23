@@ -236,8 +236,8 @@ class ViewportWindow : public Laxkit::PanUser, public Laxkit::anXWindow
 	virtual int selectionDropped(const unsigned char *data,unsigned long len,const char *actual_type, const char *which);
 
 	 // coordinate helper functions
-	virtual flatpoint realtoscreen(flatpoint r);
-	virtual flatpoint screentoreal(int x,int y);
+	virtual Laxkit::flatpoint realtoscreen(Laxkit::flatpoint r);
+	virtual Laxkit::flatpoint screentoreal(int x,int y);
 	virtual double Getmag(int c=0);
 	virtual double GetVMag(int x,int y);
 

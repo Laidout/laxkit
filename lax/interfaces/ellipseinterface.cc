@@ -27,13 +27,13 @@
 #include <lax/bezutils.h>
 #include <lax/language.h>
 
-using namespace Laxkit;
-using namespace LaxFiles;
-
 
 #include <iostream>
 using namespace std;
 #define DBG 
+
+
+using namespace Laxkit;
 
 
 namespace LaxInterfaces {
@@ -385,14 +385,14 @@ flatpoint EllipseData::getpoint(EllipsePoints c, bool transform_to_parent)
 	return p;
 }
 
-void EllipseData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
+void EllipseData::dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *context)
 {
 	Attribute att;
 	dump_out_atts(&att,what,context);
 	att.dump_out(f,indent);
 }
 
-Attribute *EllipseData::dump_out_atts(Attribute *att,int what,LaxFiles::DumpContext *context)
+Attribute *EllipseData::dump_out_atts(Attribute *att,int what,Laxkit::DumpContext *context)
 {
 	if (!att) att=new Attribute();
 
@@ -446,7 +446,7 @@ Attribute *EllipseData::dump_out_atts(Attribute *att,int what,LaxFiles::DumpCont
 	return att;
 }
 
-void EllipseData::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context)
+void EllipseData::dump_in_atts(Laxkit::Attribute *att,int flag,Laxkit::DumpContext *context)
 {
 	if (!att) return;
 

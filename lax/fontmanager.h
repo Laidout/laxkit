@@ -133,8 +133,8 @@ class LaxFont : public Resourceable
 	virtual anObject *GetColor() { return color; } //a Color or Palette
 	virtual int SetColor(anObject *ncolor);
 
-	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att, int what, LaxFiles::DumpContext *context);
-	//virtual void dump_in_atts(LaxFiles::Attribute *att,int flag, LaxFiles::DumpContext *context);
+	virtual Attribute *dump_out_atts(Attribute *att, int what, DumpContext *context);
+	//virtual void dump_in_atts(Attribute *att,int flag, DumpContext *context);
 };
 
 
@@ -237,7 +237,7 @@ class FontManager : public anObject
 
 	virtual int AddDir(const char *dir);
 	virtual int DumpInFontList(const char *file, ErrorLog *log);
-	virtual FontDialogFont *DumpInFontDialogFont(LaxFiles::Attribute *att);
+	virtual FontDialogFont *DumpInFontDialogFont(Attribute *att);
 
 	virtual const char *LanguageString(int id);
 	virtual const char *ScriptString(int id);
@@ -249,7 +249,7 @@ class FontManager : public anObject
 	virtual const char *GetTagName(int id);
 	virtual FontDialogFont *FindFontFromFile(const char *file);
 	 
-	virtual LaxFont *dump_in_font(LaxFiles::Attribute *att, LaxFiles::DumpContext *context);
+	virtual LaxFont *dump_in_font(Attribute *att, DumpContext *context);
 };
 
 

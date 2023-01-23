@@ -104,7 +104,7 @@ class PointCollection
 //---------------------------------- class PointSet ---------------------------------
 
 
-class PointSet : public PointCollection, virtual public anObject, virtual public LaxFiles::DumpUtility
+class PointSet : public PointCollection, virtual public anObject, virtual public DumpUtility
 {
   public:
  	class PointObj
@@ -132,9 +132,9 @@ class PointSet : public PointCollection, virtual public anObject, virtual public
 	virtual int CopyFrom(PointSet *set, int with_info, int copy_method);
 
 	// from DumpUtility:
-	virtual void dump_out(FILE *f,int indent,int what, LaxFiles::DumpContext *context);
-	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what, LaxFiles::DumpContext *context);
-	virtual void dump_in_atts(LaxFiles::Attribute *att, int what, LaxFiles::DumpContext *context);
+	virtual void dump_out(FILE *f,int indent,int what, DumpContext *context);
+	virtual Attribute *dump_out_atts(Attribute *att,int what, DumpContext *context);
+	virtual void dump_in_atts(Attribute *att, int what, DumpContext *context);
 
 	// i/o
 	virtual int LoadCSV(const char *file, bool has_headers = true, const char *xcolumn="x", const char *ycolumn="y");

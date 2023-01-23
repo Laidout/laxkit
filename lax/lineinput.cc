@@ -31,8 +31,6 @@ using namespace std;
 #define DBG 
 
 
-using namespace LaxFiles;
-
 namespace Laxkit {
 
 /*! \class LineInput
@@ -502,7 +500,7 @@ int LineInput::Resize(int nw,int nh)
 	return 0;
 }
 
-Attribute *LineInput::dump_out_atts(Attribute *att,int what,LaxFiles::DumpContext *savecontext)
+Attribute *LineInput::dump_out_atts(Attribute *att,int what,DumpContext *savecontext)
 {
 	if (!att) att=new Attribute(whattype(),NULL);
 	anXWindow::dump_out_atts(att,what,savecontext);
@@ -527,7 +525,7 @@ Attribute *LineInput::dump_out_atts(Attribute *att,int what,LaxFiles::DumpContex
 	return att;
 }
 
-void LineInput::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *loadcontext)
+void LineInput::dump_in_atts(Attribute *att,int flag,DumpContext *loadcontext)
 {
 	anXWindow::dump_in_atts(att,flag,loadcontext);
 	le->dump_in_atts(att,flag,loadcontext);

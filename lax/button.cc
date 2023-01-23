@@ -33,8 +33,6 @@ using namespace std;
 #define DBG
 
 
-using namespace LaxFiles;
-
 namespace Laxkit {
 
 
@@ -365,7 +363,7 @@ void Button::draw()
  *
  * Default is to add attributes for "text", and whatever anXWindow adds.
  */
-Attribute *Button::dump_out_atts(Attribute *att,int what,LaxFiles::DumpContext *context)
+Attribute *Button::dump_out_atts(Attribute *att,int what,DumpContext *context)
 {
 	if (!att) att=new Attribute(whattype(),NULL);
 	anXWindow::dump_out_atts(att,what,context);
@@ -394,7 +392,7 @@ Attribute *Button::dump_out_atts(Attribute *att,int what,LaxFiles::DumpContext *
 
 /*! Default is to read in text, and whatever anXWindow reads.
  */
-void Button::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *context)
+void Button::dump_in_atts(Attribute *att,int flag,DumpContext *context)
 {
 	anXWindow::dump_in_atts(att,flag,context);
 

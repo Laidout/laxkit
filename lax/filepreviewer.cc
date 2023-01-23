@@ -36,7 +36,7 @@
 #include <iostream>
 
 using namespace std;
-using namespace LaxFiles;
+
 
 namespace Laxkit {
 

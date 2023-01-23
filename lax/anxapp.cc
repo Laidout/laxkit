@@ -383,7 +383,7 @@ anXApp *anXApp::app=NULL;
  *  call glXMakeCurrent(dpy, win->xlib_window, cx);  before gl calls
  * </pre>
  */
-/*! \var LaxFiles::Attribute anXApp::app_resources
+/*! \var Attribute anXApp::app_resources
  * \brief A simple resource holder.
  *
  * This is used by, for instance, FileDialog to remember where the dialog was on
@@ -765,7 +765,7 @@ int anXApp::Tooltips(int on)
  * This is currently used by various dialogs to store their window size and position settings,
  * stored by their class name. Also used to store file bookmarks as a resource named "Bookmarks".
  */
-LaxFiles::Attribute *anXApp::AppResource(const char *name)
+Attribute *anXApp::AppResource(const char *name)
 {
 	if (!name) return NULL;
 	return app_resources.find(name);
@@ -781,10 +781,10 @@ LaxFiles::Attribute *anXApp::AppResource(const char *name)
  * \todo might be wise to have reference counted resources, but that's maybe getting too complicated
  *    for what these resources are mainly meant for, that is: info used upon dialog creation
  */
-int anXApp::AppResource(LaxFiles::Attribute *resource)
+int anXApp::AppResource(Attribute *resource)
 {
 	if (!resource) return 1;
-	LaxFiles::Attribute *att=app_resources.find(resource->name);
+	Attribute *att=app_resources.find(resource->name);
 	if (att && att==resource) return 0; //already there
 
 	 //else remove old, push new

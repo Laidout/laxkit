@@ -30,7 +30,6 @@
 #include <lax/language.h>
 #include <lax/fileutils.h>
 
-using namespace LaxFiles;
 using namespace Laxkit;
 
 #include <iostream>
@@ -232,7 +231,7 @@ unsigned long ImagePatchData::WhatColorLong(double s,double t)
  * If what==-1, then output a pseudocode mockup of the format. Otherwise
  * output the format as above.
  */
-void ImagePatchData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
+void ImagePatchData::dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *context)
 {
 	PatchData::dump_out(f,indent,what,context);
 	
@@ -261,7 +260,7 @@ void ImagePatchData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext 
 
 }
 
-LaxFiles::Attribute *ImagePatchData::dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *dump)
+Laxkit::Attribute *ImagePatchData::dump_out_atts(Laxkit::Attribute *att,int what,Laxkit::DumpContext *dump)
 {
 	att = PatchData::dump_out_atts(att,what,dump);
 	
@@ -294,7 +293,7 @@ LaxFiles::Attribute *ImagePatchData::dump_out_atts(LaxFiles::Attribute *att,int 
 }
 
 //! Reverse of dump_out.
-void ImagePatchData::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *context)
+void ImagePatchData::dump_in_atts(Attribute *att,int flag,Laxkit::DumpContext *context)
 {
 	if (!att) return;
 	char *name,*value;

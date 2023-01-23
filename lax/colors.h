@@ -109,7 +109,7 @@ class ColorEventData : public EventData
 
 
 //------------------------------- Color -------------------------------
-class Color : public Laxkit::anObject, public LaxFiles::DumpUtility
+class Color : public Laxkit::anObject, public DumpUtility
 {
  public:
 	char *name; //note this is different than object_idstr which is supposed to be unique
@@ -145,10 +145,10 @@ class Color : public Laxkit::anObject, public LaxFiles::DumpUtility
 
 	virtual char *dump_out_simple_string();
 	virtual int dump_out_simple_string(char *color, int n);
-	virtual void dump_out_simple_string(LaxFiles::Attribute *att, const char *prop, const char *comment=nullptr);
-	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
-	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context);
-	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
+	virtual void dump_out_simple_string(Attribute *att, const char *prop, const char *comment=nullptr);
+	virtual void dump_out(FILE *f,int indent,int what,DumpContext *context);
+	virtual Attribute *dump_out_atts(Attribute *att,int what,DumpContext *context);
+	virtual void dump_in_atts(Attribute *att,int flag,DumpContext *context);
 };
 
 
@@ -171,8 +171,8 @@ class ColorRef : virtual public Laxkit::Color
 	virtual double ChannelValue(int channel);
 	virtual double ChannelValue(int channel, double newvalue);
 
-    virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context);
-    virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
+    virtual Attribute *dump_out_atts(Attribute *att,int what,DumpContext *context);
+    virtual void dump_in_atts(Attribute *att,int flag,DumpContext *context);
 
 	virtual int Reference(Color *newcolor);
 };
@@ -188,7 +188,7 @@ class ColorPrimary
 	ScreenColor screencolor;
 	//LaxImage *pattern; //tilable image for instance for speckled paint in a ColorN space
 	
-	LaxFiles::Attribute atts; //*** this could be a ColorAttribute class, to allow ridiculously adaptable color systems
+	Attribute atts; //*** this could be a ColorAttribute class, to allow ridiculously adaptable color systems
 					//    like being able to define a sparkle or metal speck fill pattern 
 	               // for each i'th attribute
 	ColorPrimary();
@@ -210,7 +210,7 @@ enum ColorSystemStyles {
 
 class Color;
 
-class ColorSystem: public Laxkit::anObject, public LaxFiles::DumpUtility 
+class ColorSystem: public Laxkit::anObject, public DumpUtility 
 {
  public:
 	char *name; //human readable
@@ -237,9 +237,9 @@ class ColorSystem: public Laxkit::anObject, public LaxFiles::DumpUtility
 	 //return an image tile representing the color, speckled inks, for instance
 	//virtual LaxImage *PaintPattern(Color *color); 
 
-	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *savecontext);
-	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *savecontext);
-	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *loadcontext);
+	virtual void dump_out(FILE *f,int indent,int what,DumpContext *savecontext);
+	virtual Attribute *dump_out_atts(Attribute *att,int what,DumpContext *savecontext);
+	virtual void dump_in_atts(Attribute *att,int flag,DumpContext *loadcontext);
 };
 
 
@@ -265,7 +265,7 @@ class ColorManager : public anObject
 	static Color *newColor(int systemid, int nvalues, ...);
 	static Color *newColor(int systemid, ScreenColor *color);
 	static Color *newColor(int systemid, const ScreenColor &color);
-	static Color *newColor(LaxFiles::Attribute *att);
+	static Color *newColor(Attribute *att);
 	static Color *newRGBA(double r, double g, double b, double a);
 	static Color *newRGBA(const ScreenColor &color);
 		

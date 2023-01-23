@@ -25,6 +25,8 @@
 #include <lax/interfaces/pathinterface.h>
 
 
+using namespace Laxkit;
+
 namespace LaxInterfaces {
 
 

@@ -29,7 +29,6 @@
 #include <lax/lists.cc>
 
 
-using namespace LaxFiles;
 using namespace Laxkit;
 
 
@@ -415,14 +414,14 @@ void LineProfile::AddNode(double nt,double no,double nw,double nangle)
 	needtorecache=1;
 }
 
-void LineProfile::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
+void LineProfile::dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *context)
 {
 	Attribute att;
 	dump_out_atts(&att,what,context);
 	att.dump_out(f,indent); 
 }
 
-LaxFiles::Attribute *LineProfile::dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context)
+Laxkit::Attribute *LineProfile::dump_out_atts(Laxkit::Attribute *att,int what,Laxkit::DumpContext *context)
 {
 	if (!att) att=new Attribute();
 
@@ -468,7 +467,7 @@ LaxFiles::Attribute *LineProfile::dump_out_atts(LaxFiles::Attribute *att,int wha
 	return att;
 }
 
-void LineProfile::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context)
+void LineProfile::dump_in_atts(Laxkit::Attribute *att,int flag,Laxkit::DumpContext *context)
 {
 	if (!att) return;
 

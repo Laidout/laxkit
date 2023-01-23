@@ -29,7 +29,6 @@
 #define DBG
 
 using namespace std;
-using namespace LaxFiles;
 
 
 //template implementation:
@@ -173,7 +172,7 @@ GradientStrip::GradientSpot::~GradientSpot()
  * holding classes to have extra attributes within the spot field to
  * exist and not be discarded.
  */
-void GradientStrip::GradientSpot::dump_in(FILE *f,int indent,LaxFiles::DumpContext *context, Attribute **Att)
+void GradientStrip::GradientSpot::dump_in(FILE *f,int indent,DumpContext *context, Attribute **Att)
 {
 	Attribute *att=new Attribute;
 	att->dump_in(f,indent);
@@ -183,7 +182,7 @@ void GradientStrip::GradientSpot::dump_in(FILE *f,int indent,LaxFiles::DumpConte
 }
 
 //! Fill the t, red, green, blue, alpha, based on the corresponding attributes.
-void GradientStrip::GradientSpot::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *context)
+void GradientStrip::GradientSpot::dump_in_atts(Attribute *att,int flag,DumpContext *context)
 {
 	char *value,*name;
 
@@ -249,7 +248,7 @@ void GradientStrip::GradientSpot::dump_in_atts(Attribute *att,int flag,LaxFiles:
 /*! If what==-1, then dump out a psuedocode mockup of what gets dumped.
  * Otherwise dumps out in indented data format described above.
  */
-void GradientStrip::GradientSpot::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
+void GradientStrip::GradientSpot::dump_out(FILE *f,int indent,int what,DumpContext *context)
 {
 	char spc[indent+1]; memset(spc,' ',indent); spc[indent]='\0';
 	if (what==-1) {
@@ -296,7 +295,7 @@ void GradientStrip::GradientSpot::dump_out(FILE *f,int indent,int what,LaxFiles:
 /*! If what==-1, then dump out a psuedocode mockup of what gets dumped.
  * Otherwise dumps out in indented data format described above.
  */
-LaxFiles::Attribute *GradientStrip::GradientSpot::dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context)
+Attribute *GradientStrip::GradientSpot::dump_out_atts(Attribute *att,int what,DumpContext *context)
 {
 	if (!att) att=new Attribute;
 
@@ -714,7 +713,7 @@ void GradientStrip::dump_in (FILE *f,int indent,int what,DumpContext *context,At
  *
  * \todo *** allow import of Gimp, Inkscape/svg, scribus gradients
  */
-void GradientStrip::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *context)
+void GradientStrip::dump_in_atts(Attribute *att,int flag,DumpContext *context)
 {
 	if (!att) return;
 	char *name,*value,*e;
@@ -785,7 +784,7 @@ void GradientStrip::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *
  * update this code as change happens.
  * Otherwise dumps out in indented data format as described in dump_in_atts().
  */
-void GradientStrip::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
+void GradientStrip::dump_out(FILE *f,int indent,int what,DumpContext *context)
 {
 	char spc[indent+1]; memset(spc,' ',indent); spc[indent]='\0';
 	if (what==-1) {
@@ -825,7 +824,7 @@ void GradientStrip::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *
 	}
 }
 
-LaxFiles::Attribute *GradientStrip::dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context)
+Attribute *GradientStrip::dump_out_atts(Attribute *att,int what,DumpContext *context)
 {
 	if (!att) att=new Attribute;
 

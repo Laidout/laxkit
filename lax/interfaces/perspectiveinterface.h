@@ -34,10 +34,10 @@ namespace LaxInterfaces {
 //{
 //  public:
 //	virtual bool IsValid() = 0;
-//	virtual flatpoint transform(flatpoint p)              = 0;
-//	virtual flatpoint transform(double x,double y)        = 0;
-//	virtual flatpoint transformInverse(double x,double y) = 0;
-//	virtual flatpoint transformInverse(flatpoint p)       = 0;
+//	virtual Laxkit::flatpoint transform(Laxkit::flatpoint p)              = 0;
+//	virtual Laxkit::flatpoint transform(double x,double y)        = 0;
+//	virtual Laxkit::flatpoint transformInverse(double x,double y) = 0;
+//	virtual Laxkit::flatpoint transformInverse(Laxkit::flatpoint p)       = 0;
 //};
 
 class PerspectiveTransform : public Laxkit::anObject
@@ -51,30 +51,30 @@ class PerspectiveTransform : public Laxkit::anObject
 	double srcPts[8]; //xyxy...
 	double dstPts[8];
 
-	flatpoint from_ll, from_lr, from_ul, from_ur;
-	flatpoint to_ll,   to_lr,   to_ul,   to_ur;
+	Laxkit::flatpoint from_ll, from_lr, from_ul, from_ur;
+	Laxkit::flatpoint to_ll,   to_lr,   to_ul,   to_ur;
 
 	PerspectiveTransform();
-	PerspectiveTransform(flatpoint *nsrcPts, flatpoint *ndstPts);
+	PerspectiveTransform(Laxkit::flatpoint *nsrcPts, Laxkit::flatpoint *ndstPts);
 
-	virtual int SetPoints(flatpoint *nsrcPts, flatpoint *ndstPts);
-	virtual int SetFrom(flatpoint nfrom_ll, flatpoint nfrom_lr, flatpoint nfrom_ul, flatpoint nfrom_ur);
-	virtual int SetTo  (flatpoint nfrom_ll, flatpoint nfrom_lr, flatpoint nfrom_ul, flatpoint nfrom_ur);
+	virtual int SetPoints(Laxkit::flatpoint *nsrcPts, Laxkit::flatpoint *ndstPts);
+	virtual int SetFrom(Laxkit::flatpoint nfrom_ll, Laxkit::flatpoint nfrom_lr, Laxkit::flatpoint nfrom_ul, Laxkit::flatpoint nfrom_ur);
+	virtual int SetTo  (Laxkit::flatpoint nfrom_ll, Laxkit::flatpoint nfrom_lr, Laxkit::flatpoint nfrom_ul, Laxkit::flatpoint nfrom_ur);
 
 	virtual void ResetTransform();
 	virtual void ComputeTransform();
 	virtual bool IsValid();
 
-	flatpoint transform(flatpoint p);
-	flatpoint transform(double x,double y);
-	flatpoint transformInverse(double x,double y);
-	flatpoint transformInverse(flatpoint p);
+	Laxkit::flatpoint transform(Laxkit::flatpoint p);
+	Laxkit::flatpoint transform(double x,double y);
+	Laxkit::flatpoint transformInverse(double x,double y);
+	Laxkit::flatpoint transformInverse(Laxkit::flatpoint p);
 
 	virtual int MapImage(SomeData *obj, Laxkit::LaxImage *initial, Laxkit::LaxImage *persped, int direction);
 
-    virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
-    virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what, LaxFiles::DumpContext *context);
-    virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
+    virtual void dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *context);
+    virtual Laxkit::Attribute *dump_out_atts(Laxkit::Attribute *att,int what, Laxkit::DumpContext *context);
+    virtual void dump_in_atts(Laxkit::Attribute *att,int flag,Laxkit::DumpContext *context);
 
 };
 
@@ -94,7 +94,7 @@ class PerspectiveInterface : public anInterface
 	Laxkit::LaxImage *initial, *persped;
 
 	// *** dbg:
-	flatpoint mousep, initialp;
+	Laxkit::flatpoint mousep, initialp;
 
 	bool edit_from, edit_to;	
 	bool show_grid;
@@ -107,7 +107,7 @@ class PerspectiveInterface : public anInterface
 	int needtoremap;
 	virtual void ComputeTransform();
 	virtual void ResetTransform();
-	virtual flatpoint ComputePoint(double x,double y);
+	virtual Laxkit::flatpoint ComputePoint(double x,double y);
 
 	virtual int send();
 	virtual int OtherObjectCheck(int x,int y,unsigned int state);

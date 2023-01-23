@@ -406,9 +406,9 @@ int TabFrame::CharInput(unsigned int ch,const char *buffer,int len,unsigned int 
 }
 
 
-LaxFiles::Attribute *TabFrame::dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context)
+Attribute *TabFrame::dump_out_atts(Attribute *att,int what,DumpContext *context)
 {
-	if (!att) att = new LaxFiles::Attribute(whattype(), nullptr);
+	if (!att) att = new Attribute(whattype(), nullptr);
 	anXWindow::dump_out_atts(att,what,context);
 
 	att->push("current", curtab);
@@ -416,7 +416,7 @@ LaxFiles::Attribute *TabFrame::dump_out_atts(LaxFiles::Attribute *att,int what,L
 	for (int c=0; c<NumBoxes(); c++) {
 		TabBox *b = dynamic_cast<TabBox *>(wholelist.e[c]);
 		if (!b) continue;
-		LaxFiles::Attribute *att2 = att->pushSubAtt("window", 
+		Attribute *att2 = att->pushSubAtt("window", 
 				b->win ? b->win->win_name : (b->label ? b->label : nullptr));
 		if (!b->win) continue;
 		b->win->dump_out_atts(att2, what, context);
@@ -425,7 +425,7 @@ LaxFiles::Attribute *TabFrame::dump_out_atts(LaxFiles::Attribute *att,int what,L
 	return att;
 }
 
-void TabFrame::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context)
+void TabFrame::dump_in_atts(Attribute *att,int flag,DumpContext *context)
 {
 	anXWindow::dump_in_atts(att,flag,context);
 

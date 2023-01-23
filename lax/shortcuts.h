@@ -177,7 +177,7 @@ class ShortcutHandler : public Laxkit::anObject
 };
 
 //--------------------------------- ShortcutManager ------------------------------------
-class ShortcutManager : public LaxFiles::DumpUtility, public anObject
+class ShortcutManager : public DumpUtility, public anObject
 {
   protected:
 
@@ -186,7 +186,7 @@ class ShortcutManager : public LaxFiles::DumpUtility, public anObject
 	char *subtitle;
 	char *setname;
 	char *setfile;
-	LaxFiles::Attribute tree;
+	Attribute tree;
 	RefPtrStack<ShortcutHandler> shortcuts;
 	// map zone -- ShortcutHandler
 
@@ -203,8 +203,8 @@ class ShortcutManager : public LaxFiles::DumpUtility, public anObject
 	virtual int LoadKeysOnly(const char *file);
 	virtual int Save(const char *file=NULL, const char *header=NULL);
 	virtual int SaveHTML(const char *file=NULL);
-	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *savecontext);
-	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *loadcontext);
+	virtual void dump_out(FILE *f,int indent,int what,DumpContext *savecontext);
+	virtual void dump_in_atts(Attribute *att,int flag,DumpContext *loadcontext);
 	virtual char *ShortcutString(ShortcutDef *def, char *buffer, bool mods_as_words);
 	virtual char *ShortcutString(unsigned int key, unsigned long state, char *buffer, bool mods_as_words);
 	virtual int KeyAndState(const char *str, unsigned int *key,unsigned int *state);

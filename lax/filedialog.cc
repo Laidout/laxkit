@@ -50,8 +50,6 @@ using namespace std;
 #include <lax/lists.cc>
 
 
-using namespace LaxFiles;
-
 #ifndef GLOB_PERIOD
 	#define GLOB_PERIOD 0
 #endif

@@ -27,9 +27,8 @@
 //template implementation:
 #include <lax/lists.cc>
 
-using namespace Laxkit;
 
-namespace LaxFiles {
+namespace Laxkit {
 	
 //------------------------------------ DumpUtility ---------------------------------
 /*! \class DumpUtility
@@ -49,13 +48,13 @@ namespace LaxFiles {
  *
  */
 
-/*! \fn  void DumpUtility::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *savecontext)
+/*! \fn  void DumpUtility::dump_out(FILE *f,int indent,int what,DumpContext *savecontext)
  * \brief what==0 means write out an Attribute formatted file.
  *
  * what==-1 should mean write out a definition snippet that represents
  * what attributes can be passed in to this object.
  */
-/*! \fn  Attribute *DumpUtility::dump_out_atts(Attribute *att,int what,LaxFiles::DumpContext *savecontext)
+/*! \fn  Attribute *DumpUtility::dump_out_atts(Attribute *att,int what,DumpContext *savecontext)
  * \brief Default is return NULL. what==0 means write out normal Attribute formatted things.
  *
  * If att==NULL, then create and return a new Attribute. Otherwise just
@@ -65,7 +64,7 @@ namespace LaxFiles {
  *   what attributes can be passed in to this object. this would make it a snap to
  *   produce the Attribute equivalent of dtd information..
  */
-/*! \fn  void DumpUtility::dump_in_atts(Attribute *att,int what,LaxFiles::DumpContext *loadcontext)
+/*! \fn  void DumpUtility::dump_in_atts(Attribute *att,int what,DumpContext *loadcontext)
  * \brief Read the Attribute and take away what it can.
  *
  * \todo in future might have a flag somehow to remove atts that are processed (flag=1)..
@@ -86,7 +85,7 @@ namespace LaxFiles {
  *
  * loadcontext, if not NULL, will typically be something like a Laxkit::DumpContext object.
  */
-void DumpUtility::dump_in(FILE *f,int indent,int what,LaxFiles::DumpContext *loadcontext,Attribute **Att)
+void DumpUtility::dump_in(FILE *f,int indent,int what,DumpContext *loadcontext,Attribute **Att)
 {
 	Attribute *att=new Attribute;
 	att->dump_in(f,indent);
@@ -158,4 +157,4 @@ DumpContext::~DumpContext()
 
 
 
-} // namespace LaxFiles
+} // namespace

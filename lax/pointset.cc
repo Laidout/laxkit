@@ -31,9 +31,6 @@ using namespace std;
 #define DBG
 
 
-using namespace LaxFiles;
-
-
 namespace Laxkit {
 
 	
@@ -656,7 +653,7 @@ Attribute *PointSet::dump_out_atts(Attribute *att,int what,DumpContext *context)
 		Attribute *att2 = att->pushSubAtt("point", str.c_str());
 		if (points.e[c]->info) {
 			Attribute *att3 = att2->pushSubAtt("info", points.e[c]->info->whattype());
-			LaxFiles::DumpUtility *dump = dynamic_cast<DumpUtility*>(points.e[c]->info);
+			DumpUtility *dump = dynamic_cast<DumpUtility*>(points.e[c]->info);
 			if (dump) dump->dump_out_atts(att3, what, context);
 		}
 	}

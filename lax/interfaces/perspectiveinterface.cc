@@ -35,9 +35,7 @@
 #include <lax/language.h>
 
 
-
 using namespace Laxkit;
-using namespace LaxFiles;
 
 
 #include <iostream>
@@ -46,8 +44,6 @@ using namespace std;
 
 
 namespace LaxInterfaces {
-
-
 
 
 
@@ -697,14 +693,14 @@ int PerspectiveTransform::MapImage(SomeData *obj, LaxImage *initial, LaxImage *p
 	return 0;
 }
 
-void PerspectiveTransform::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
+void PerspectiveTransform::dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *context)
 {
 	Attribute att;
 	dump_out_atts(&att, what, context);
 	att.dump_out(f,indent);
 }
 
-LaxFiles::Attribute *PerspectiveTransform::dump_out_atts(LaxFiles::Attribute *att,int what, LaxFiles::DumpContext *context)
+Laxkit::Attribute *PerspectiveTransform::dump_out_atts(Laxkit::Attribute *att,int what, Laxkit::DumpContext *context)
 {
 	if (!att) att = new Attribute();
 	if (what == -1) {
@@ -731,7 +727,7 @@ LaxFiles::Attribute *PerspectiveTransform::dump_out_atts(LaxFiles::Attribute *at
 	return att;
 }
 
-void PerspectiveTransform::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context)
+void PerspectiveTransform::dump_in_atts(Laxkit::Attribute *att,int flag,Laxkit::DumpContext *context)
 {
 	char *name,*value;
 

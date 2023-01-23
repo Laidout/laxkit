@@ -28,7 +28,7 @@
 #include <lax/laxdefs.h>
 #include <lax/errorlog.h>
 
-namespace LaxFiles {
+namespace Laxkit {
 
 
 //------------------------------- DumpContext ---------------------------------
@@ -68,7 +68,7 @@ class DumpUtility
 
 
 
-} // namespace LaxFiles
+} // namespace
 
 #endif
 

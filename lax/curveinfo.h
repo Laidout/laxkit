@@ -51,7 +51,7 @@ class CurveInfoGuide
 	virtual ~CurveInfoGuide() { delete[] name; if (next) delete next; }
 };
 
-class CurveInfo : public Resourceable, public LaxFiles::DumpUtility
+class CurveInfo : public Resourceable, public DumpUtility
 {
   private:
 	void base_init();
@@ -130,9 +130,9 @@ class CurveInfo : public Resourceable, public LaxFiles::DumpUtility
 	virtual void LookupDump(const char *label,FILE *f);
 
 	 //serializing aids
-	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
-	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context);
-	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
+	virtual void dump_out(FILE *f,int indent,int what,DumpContext *context);
+	virtual Attribute *dump_out_atts(Attribute *att,int what,DumpContext *context);
+	virtual void dump_in_atts(Attribute *att,int flag,DumpContext *context);
 };
 
 

@@ -32,7 +32,7 @@ namespace LaxInterfaces {
 class ViewportWithStack : public ViewportWindow
 {
  protected:
-	flatpoint lastm;
+	Laxkit::flatpoint lastm;
 	int vpwsfirsttime;
 	ObjectContext *foundobj,*foundtypeobj,*firstobj; //obj just before firstobj should be the last one searched.
 	ObjectContext *curobj;

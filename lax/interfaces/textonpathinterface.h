@@ -38,7 +38,7 @@ namespace LaxInterfaces {
 class OnPathGlyph : public Laxkit::GlyphPlace
 {
   public:
-	flatpoint position; //GlyphPlace x,y are the flat layout
+	Laxkit::flatpoint position; //GlyphPlace x,y are the flat layout
 	double rotation;
 	double scaling;
 	bool visible;
@@ -105,9 +105,9 @@ class TextOnPath : virtual public SomeData
 	virtual const char *whattype() { return "TextOnPath"; }
 	virtual void FindBBox();
 
-	virtual void	   dump_out(FILE *f,int indent,int what, LaxFiles::DumpContext *context);
-	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what, LaxFiles::DumpContext *context); 
-	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag, LaxFiles::DumpContext *context);
+	virtual void	   dump_out(FILE *f,int indent,int what, Laxkit::DumpContext *context);
+	virtual Laxkit::Attribute *dump_out_atts(Laxkit::Attribute *att,int what, Laxkit::DumpContext *context); 
+	virtual void dump_in_atts(Laxkit::Attribute *att,int flag, Laxkit::DumpContext *context);
 	virtual SomeData *duplicate(SomeData *dup);
 
 
@@ -120,7 +120,7 @@ class TextOnPath : virtual public SomeData
 	virtual double Size(double newfontsize);
 	virtual void ColorRGB(double r, double g, double b, double a=-1.0);
 	virtual double Baseline(double newbaseline, bool diff);
-	virtual double Baseline(double newbaseline, bool diff, flatpoint constant);
+	virtual double Baseline(double newbaseline, bool diff, Laxkit::flatpoint constant);
 	virtual double StartOffset(double newoffset, bool diff);
 	virtual int PathDirection() { return pathdirection; }
 	virtual int PathDirection(int newdir);
@@ -130,7 +130,7 @@ class TextOnPath : virtual public SomeData
 	virtual int LinkToParent(bool yes);
 	virtual bool IsLinkedToParent();
 
-	virtual int PointInfo(double position, flatpoint *point_ret, flatpoint *tangent_ret, double *size_ret);
+	virtual int PointInfo(double position, Laxkit::flatpoint *point_ret, Laxkit::flatpoint *tangent_ret, double *size_ret);
 
 	virtual int CharLen();
 	virtual int DeleteChar(int pos,int after, int *newpos);
@@ -187,7 +187,7 @@ class TextOnPathInterface : public anInterface
 	double defaultsize;
 
 	ObjectContext *hoverc; // path hover candidate
-	flatpoint lasthover;
+	Laxkit::flatpoint lasthover;
 	int hover_type;
 	double hoveralongpath;
 	double hovert;

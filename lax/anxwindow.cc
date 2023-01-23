@@ -38,7 +38,6 @@
 using namespace std;
 #define DBG 
 
-using namespace LaxFiles;
 
 namespace Laxkit {
 
@@ -640,7 +639,7 @@ int anXWindow::PerformAction(int action_number)
  * so subclasses need only redefine dump_out_atts() and dump_in_atts()
  * for all the DumpUtility functions to work.
  */
-void anXWindow::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
+void anXWindow::dump_out(FILE *f,int indent,int what,DumpContext *context)
 {
 	Attribute *att=dump_out_atts(NULL,0,context);
 	att->dump_out(f,indent);
@@ -655,7 +654,7 @@ void anXWindow::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *cont
  *   but this opens up potential problems due to possible nesting. How deep
  *   would the replace function?
  */
-Attribute *anXWindow::dump_out_atts(Attribute *att,int what,LaxFiles::DumpContext *context)
+Attribute *anXWindow::dump_out_atts(Attribute *att,int what,DumpContext *context)
 {
 	if (!att) att=new Attribute(whattype(),NULL);
 	char scratch[100];
@@ -706,7 +705,7 @@ Attribute *anXWindow::dump_out_atts(Attribute *att,int what,LaxFiles::DumpContex
  * \todo  at some point, must ensure that the dimensions read in are in part on screen..
  *    though this is really an anXApp::addwindow() task.
  */
-void anXWindow::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *context)
+void anXWindow::dump_in_atts(Attribute *att,int flag,DumpContext *context)
 {
 	char *name,*value;
 

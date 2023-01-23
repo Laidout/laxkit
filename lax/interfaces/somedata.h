@@ -82,7 +82,7 @@ class SomeData :  virtual public Laxkit::Resourceable,
 				  virtual public Laxkit::DoubleBBox,
 				  virtual public Laxkit::Undoable,
 				  virtual public Laxkit::Previewable,
-				  virtual public LaxFiles::DumpUtility
+				  virtual public Laxkit::DumpUtility
 {
   protected:
 
@@ -106,7 +106,7 @@ class SomeData :  virtual public Laxkit::Resourceable,
 	bool visible;
 	bool selectable;
 	int bboxstyle; //useparent
-	flatpoint centerpoint; //used as a passive center by ObjectInterface
+	Laxkit::flatpoint centerpoint; //used as a passive center by ObjectInterface
 	unsigned int flags;
 	int iid; // interface id
 
@@ -129,10 +129,10 @@ class SomeData :  virtual public Laxkit::Resourceable,
 
 	virtual void FindBBox() {}
 	virtual void ComputeAABB(const double *transform, DoubleBBox &box);
-	virtual flatpoint BBoxPoint(double x,double y, bool transform_to_parent);
-	virtual flatpoint ReferencePoint(int which, bool transform_to_parent);
+	virtual Laxkit::flatpoint BBoxPoint(double x,double y, bool transform_to_parent);
+	virtual Laxkit::flatpoint ReferencePoint(int which, bool transform_to_parent);
 	virtual SomeData *duplicate(SomeData *dup);
-	virtual int pointin(flatpoint pp,int pin=1); // return in=1 | on=2 | out=0, default is pointin bbox
+	virtual int pointin(Laxkit::flatpoint pp,int pin=1); // return in=1 | on=2 | out=0, default is pointin bbox
 	virtual int fitto(double *boxm,DoubleBBox *box,double alignx,double aligny, int whentoscale=2);
 	virtual SomeData *GetParent() { return NULL; }
 	virtual SomeData *SetParent(SomeData *newparent);
@@ -147,10 +147,10 @@ class SomeData :  virtual public Laxkit::Resourceable,
 	virtual void FlipH();
 	virtual void FlipV();
 
-	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
-	virtual void dump_in(FILE *f, int indent, int what, LaxFiles::DumpContext *context, LaxFiles::Attribute **att);
-	virtual void dump_in_atts(LaxFiles::Attribute *att, int flag, LaxFiles::DumpContext *context);
-	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *savecontext);
+	virtual void dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *context);
+	virtual void dump_in(FILE *f, int indent, int what, Laxkit::DumpContext *context, Laxkit::Attribute **att);
+	virtual void dump_in_atts(Laxkit::Attribute *att, int flag, Laxkit::DumpContext *context);
+	virtual Laxkit::Attribute *dump_out_atts(Laxkit::Attribute *att,int what,Laxkit::DumpContext *savecontext);
 
     virtual int Undo(Laxkit::UndoData *data);
     virtual int Redo(Laxkit::UndoData *data);

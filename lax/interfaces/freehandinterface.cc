@@ -42,7 +42,6 @@ using namespace std;
 
 
 using namespace Laxkit;
-using namespace LaxFiles;
 
 
 namespace LaxInterfaces {
@@ -1060,7 +1059,7 @@ int FreehandInterface::KeyUp(unsigned int ch,unsigned int state, const Laxkit::L
 	return 1;
 }
 
-void FreehandInterface::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *loadcontext)
+void FreehandInterface::dump_in_atts(Laxkit::Attribute *att,int flag,Laxkit::DumpContext *loadcontext)
 {
 	char *name, *value;
 	for (int c=0; c<att->attributes.n; c++) {
@@ -1098,7 +1097,7 @@ void FreehandInterface::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles:
 	}
 }
 
-LaxFiles::Attribute *FreehandInterface::dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *savecontext)
+Laxkit::Attribute *FreehandInterface::dump_out_atts(Laxkit::Attribute *att,int what,Laxkit::DumpContext *savecontext)
 {
 	if (!att) att = new Attribute();
 	if (what == -1) {

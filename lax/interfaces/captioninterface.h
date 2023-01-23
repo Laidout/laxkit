@@ -127,9 +127,9 @@ class CaptionData : virtual public SomeData
 //	virtual SomeData *ConvertToPaths(bool use_clones, SomeData *clones_to_add_to);
 	virtual SomeData *ConvertToPaths(bool use_clones, Laxkit::RefPtrStack<SomeData> *clones_to_add_to);
 	
-	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
-	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context);
-	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
+	virtual void dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *context);
+	virtual Laxkit::Attribute *dump_out_atts(Laxkit::Attribute *att,int what,Laxkit::DumpContext *context);
+	virtual void dump_in_atts(Laxkit::Attribute *att,int flag,Laxkit::DumpContext *context);
 };
 
 
@@ -172,10 +172,10 @@ class CaptionInterface : public anInterface
 {
   protected:
 	int mode,mousedragged;
-	flatpoint leftp;
+	Laxkit::flatpoint leftp;
 	int caretline,caretpos;
 	int scaretline,scaretpos, sellen;
-	flatpoint caret;
+	Laxkit::flatpoint caret;
 	int lasthover;
 	Laxkit::ShortcutHandler *sc;
 

@@ -79,16 +79,16 @@ class GroupData :   virtual public Laxkit::Tagged,
 
 	 //sub classes MUST redefine pointin() and FindBBox() to point to the proper things.
 	 //default is point to things particular to Groups.
-	virtual int pointin(flatpoint pp,int pin=1);
+	virtual int pointin(Laxkit::flatpoint pp,int pin=1);
 	virtual void FindBBox();
 	virtual LaxInterfaces::SomeData *GetParent();
 	virtual SomeData *SetParent(SomeData *newparent);
 
-	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
-	virtual void dump_out_group(FILE *f,int indent,int what,LaxFiles::DumpContext *context, bool kidsonly);
-	virtual LaxFiles::Attribute *dump_out_group_atts(LaxFiles::Attribute *att, int what, LaxFiles::DumpContext *context, bool kidsonly);
-	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
-	virtual void dump_in_group_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context, bool checksomedata);
+	virtual void dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *context);
+	virtual void dump_out_group(FILE *f,int indent,int what,Laxkit::DumpContext *context, bool kidsonly);
+	virtual Laxkit::Attribute *dump_out_group_atts(Laxkit::Attribute *att, int what, Laxkit::DumpContext *context, bool kidsonly);
+	virtual void dump_in_atts(Laxkit::Attribute *att,int flag,Laxkit::DumpContext *context);
+	virtual void dump_in_group_atts(Laxkit::Attribute *att,int flag,Laxkit::DumpContext *context, bool checksomedata);
 	
 	 //new functions for GroupData
 	//virtual LaxInterfaces::SomeData *EquivalentObject();

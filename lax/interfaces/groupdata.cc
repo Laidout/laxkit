@@ -37,9 +37,7 @@ using namespace std;
 
 
 using namespace Laxkit;
-using namespace LaxFiles;
 using namespace LaxInterfaces;
-
 
 
 namespace LaxInterfaces {
@@ -420,7 +418,7 @@ const char *GroupData::Id(const char *newid)
 { return SomeData::Id(newid); }
 
 //! Dump out iohints and metadata, if any.
-void GroupData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
+void GroupData::dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *context)
 {
 	char spc[indent+1]; memset(spc,' ',indent); spc[indent]='\0';
 	
@@ -473,7 +471,7 @@ void GroupData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *cont
  *
  * \todo automate object management, necessary here for what==-1
  */
-void GroupData::dump_out_group(FILE *f,int indent,int what,LaxFiles::DumpContext *context, bool kidsonly)
+void GroupData::dump_out_group(FILE *f,int indent,int what,Laxkit::DumpContext *context, bool kidsonly)
 {
 	char spc[indent+1]; memset(spc,' ',indent); spc[indent]='\0';
 	if (what==-1) {
@@ -521,7 +519,7 @@ void GroupData::dump_out_group(FILE *f,int indent,int what,LaxFiles::DumpContext
 	}
 }
 
-LaxFiles::Attribute *GroupData::dump_out_group_atts(LaxFiles::Attribute *att, int what, LaxFiles::DumpContext *context, bool kidsonly)
+Laxkit::Attribute *GroupData::dump_out_group_atts(Laxkit::Attribute *att, int what, Laxkit::DumpContext *context, bool kidsonly)
 {
 	if (!att) att = new Attribute();
 
@@ -581,7 +579,7 @@ LaxFiles::Attribute *GroupData::dump_out_group_atts(LaxFiles::Attribute *att, in
 	return att;
 }
 
-void GroupData::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context)
+void GroupData::dump_in_atts(Laxkit::Attribute *att,int flag,Laxkit::DumpContext *context)
 {
 	 //reads in locks, visible, selectable, min/max
 	SomeData::dump_in_atts(att,flag,context);
@@ -611,7 +609,7 @@ void GroupData::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpCon
  * If checksomedata, then also SomeData::dump_in_atts(att,flag,context).
  * The kids should have been flushed before coming here.
  */
-void GroupData::dump_in_group_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context, bool checksomedata)
+void GroupData::dump_in_group_atts(Laxkit::Attribute *att,int flag,Laxkit::DumpContext *context, bool checksomedata)
 {
 	if (checksomedata) SomeData::dump_in_atts(att,flag,context);
 

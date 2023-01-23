@@ -43,7 +43,7 @@ using namespace std;
 
 
 using namespace Laxkit;
-using namespace LaxFiles;
+
 
 namespace LaxInterfaces {
 
@@ -372,7 +372,7 @@ void SimplePathData::TangentAtIndex(int index, flatpoint &prev, flatpoint &next)
 //	}
 }
 
-void SimplePathData::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context)
+void SimplePathData::dump_in_atts(Laxkit::Attribute *att,int flag,Laxkit::DumpContext *context)
 {
 }
 
@@ -383,7 +383,7 @@ void SimplePathData::dump_out(FILE *f,int indent,int what,DumpContext *context)
     att.dump_out(f,indent);
 }
 
-LaxFiles::Attribute *SimplePathData::dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *savecontext)
+Laxkit::Attribute *SimplePathData::dump_out_atts(Laxkit::Attribute *att,int what,Laxkit::DumpContext *savecontext)
 {
 	if (what == -1) {
 		return att;

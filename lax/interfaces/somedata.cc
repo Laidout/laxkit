@@ -32,7 +32,6 @@
 
 #include <lax/lists.cc>
 
-using namespace LaxFiles;
 using namespace Laxkit;
 
 #include <iostream>
@@ -432,7 +431,7 @@ Laxkit::LaxImage *SomeData::GetPreview()
  * This allows holding classes to have extra attributes within the spot field to
  * exist and not be discarded.
  */
-void SomeData::dump_in(FILE *f, int indent, int what, LaxFiles::DumpContext *context, Attribute **Att)
+void SomeData::dump_in(FILE *f, int indent, int what, Laxkit::DumpContext *context, Attribute **Att)
 {
 	Attribute *att = new Attribute;
 	att->dump_in(f, indent);
@@ -442,7 +441,7 @@ void SomeData::dump_in(FILE *f, int indent, int what, LaxFiles::DumpContext *con
 }
 
 //! Reverse of dump_out().
-void SomeData::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *context)
+void SomeData::dump_in_atts(Attribute *att,int flag,Laxkit::DumpContext *context)
 {
 	if (!att) return;
 	char *name,*value;
@@ -509,7 +508,7 @@ void SomeData::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *conte
  * 
  * Ignores what. Uses 0 for it.
  */
-void SomeData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
+void SomeData::dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *context)
 {
 	char spc[indent+1];
 	memset(spc,' ',indent);
@@ -537,9 +536,9 @@ void SomeData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *conte
 	fprintf(f,"\n");
 }
 
-Attribute *SomeData::dump_out_atts(Attribute *att,int what,LaxFiles::DumpContext *context)
+Attribute *SomeData::dump_out_atts(Attribute *att,int what,Laxkit::DumpContext *context)
 {
-	if (!att) att=new LaxFiles::Attribute("SomeData",NULL);
+	if (!att) att=new Laxkit::Attribute("SomeData",NULL);
 
 	if (what==-1) {
 		att->push("matrix", "1 0 0 1 0 0", _("An affine matrix of 6 numbers"));

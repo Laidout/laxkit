@@ -57,9 +57,9 @@ class TextStreamInterface : public anInterface
 	int showdecs;
 	ObjectContext *extrahover;
 	int extra_hover;
-	flatpoint hoverpoint;
+	Laxkit::flatpoint hoverpoint;
 
-	flatpoint flowdir;
+	Laxkit::flatpoint flowdir;
 	double fontheight;
 	PathsData outline;
 	int outline_index;
@@ -69,7 +69,7 @@ class TextStreamInterface : public anInterface
 	Laxkit::ShortcutHandler *sc;
 
 	virtual int send();
-	virtual int scan(int x,int y,unsigned int state, int &index, flatpoint &hovered);
+	virtual int scan(int x,int y,unsigned int state, int &index, Laxkit::flatpoint &hovered);
 	virtual int Track(ObjectContext *oc);
 	virtual int DefineOutline(int which);
 
@@ -106,7 +106,7 @@ class TextStreamInterface : public anInterface
 	virtual int KeyUp(unsigned int ch,unsigned int state, const Laxkit::LaxKeyboard *d);
 	virtual void ViewportResized();
 
-	virtual void FlowDir(flatpoint dir);
+	virtual void FlowDir(Laxkit::flatpoint dir);
 	virtual void FontHeight(double height);
 };
 

@@ -39,9 +39,6 @@
 
 using namespace std;
 
-using namespace LaxFiles;
-
-
 
 namespace Laxkit { 
 
@@ -885,7 +882,7 @@ int ResourceManager::RemoveResourceDir(const char *type, const char *dir)
 }
 
 
-void ResourceManager::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
+void ResourceManager::dump_out(FILE *f,int indent,int what,DumpContext *context)
 {
 	//Attribute att;
 	//dump_out_atts(&att,what,context);
@@ -917,7 +914,7 @@ void ResourceManager::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext
 	}
 }
 
-void ResourceManager::dump_out_list(ResourceType *type, FILE *f,int indent,int what,LaxFiles::DumpContext *context)
+void ResourceManager::dump_out_list(ResourceType *type, FILE *f,int indent,int what,DumpContext *context)
 {
 	if (!type || !type->resources.n) return;
 
@@ -958,7 +955,7 @@ void ResourceManager::dump_out_list(ResourceType *type, FILE *f,int indent,int w
 	}
 }
 
-LaxFiles::Attribute *ResourceManager::dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context)
+Attribute *ResourceManager::dump_out_atts(Attribute *att,int what,DumpContext *context)
 {
 	cerr << " *** need to implement ResourceManager::dump_out_atts()!!"<<endl;
 	return NULL;
@@ -972,7 +969,7 @@ LaxFiles::Attribute *ResourceManager::dump_out_atts(LaxFiles::Attribute *att,int
 
 }
 
-void ResourceManager::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context)
+void ResourceManager::dump_in_atts(Attribute *att,int flag,DumpContext *context)
 {
 	if (!att) return;
 
@@ -1022,7 +1019,7 @@ void ResourceManager::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::D
 
 /*! Separated from main dump_in_atts() so as to allow recursive resource tree input.
  */
-void ResourceManager::dump_in_list_atts(ResourceType *type, LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context)
+void ResourceManager::dump_in_list_atts(ResourceType *type, Attribute *att,int flag,DumpContext *context)
 {
     const char *name,*value;
 

@@ -45,7 +45,6 @@
 
 
 using namespace Laxkit;
-using namespace LaxFiles;
 
 
 #include <iostream>

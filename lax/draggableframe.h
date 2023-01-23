@@ -65,8 +65,8 @@ class DraggableFrame : public anXWindow
 	virtual int SetChild(anXWindow *win); //absorbs
 
 	 //serializing aids
-	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context);
-	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
+	virtual Attribute *dump_out_atts(Attribute *att,int what,DumpContext *context);
+	virtual void dump_in_atts(Attribute *att,int flag,DumpContext *context);
 };
 
 } // namespace Laxkit

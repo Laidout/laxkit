@@ -32,6 +32,10 @@
 #define DBG
 #include <iostream>
 
+
+using namespace Laxkit;
+
+
 namespace LaxInterfaces {
 
 //! Convert an SVG path data snippet to a Coordinate list.
@@ -272,7 +276,7 @@ Coordinate *SvgToCoordinate(const char *d, int how, char **endptr, int *totalpoi
 
 			if (!hascurpoint) throw (7);
 			double dd[6];
-			int n=LaxFiles::DoubleListAttribute(p,dd,6,&ee);
+			int n=DoubleListAttribute(p,dd,6,&ee);
 			if (ee==p || n!=6) throw (8);
 			p=ee;
 			if (lastwasmove) {
@@ -317,7 +321,7 @@ Coordinate *SvgToCoordinate(const char *d, int how, char **endptr, int *totalpoi
 
 			if (!hascurpoint) throw (7);
 			double dd[4];
-			int n=LaxFiles::DoubleListAttribute(p,dd,4,&ee);
+			int n=DoubleListAttribute(p,dd,4,&ee);
 			if (ee==p || n!=4) throw (8);
 			p=ee;
 			if (command=='s') {
@@ -361,7 +365,7 @@ Coordinate *SvgToCoordinate(const char *d, int how, char **endptr, int *totalpoi
 
 			if (!hascurpoint) throw (7);
 			double dd[4];
-			int n=LaxFiles::DoubleListAttribute(p,dd,4,&ee);
+			int n=DoubleListAttribute(p,dd,4,&ee);
 			if (ee==p || n!=4) throw (8);
 			p=ee;
 			flatpoint cc=flatpoint(dd[0],dd[1]);
@@ -401,7 +405,7 @@ Coordinate *SvgToCoordinate(const char *d, int how, char **endptr, int *totalpoi
 
 			if (!hascurpoint) throw (7);
 			double dd[2];
-			int n=LaxFiles::DoubleListAttribute(p,dd,2,&ee);
+			int n=DoubleListAttribute(p,dd,2,&ee);
 			if (ee==p || n!=2) throw (8);
 			p=ee;
 
@@ -463,7 +467,7 @@ Coordinate *SvgToCoordinate(const char *d, int how, char **endptr, int *totalpoi
 			if (!hascurpoint) throw (9);
 
 			double dd[7];
-			int n=LaxFiles::DoubleListAttribute(p,dd,7,&ee);
+			int n=DoubleListAttribute(p,dd,7,&ee);
 			if (ee==p || n!=7) throw (10);
 			p=ee;
 

@@ -58,9 +58,6 @@ using namespace std;
 #include <lax/lists.cc>
 
 
-using namespace LaxFiles;
-
-
 namespace Laxkit {
 
 
@@ -398,7 +395,7 @@ int LaxFont::SetColor(anObject *ncolor)
 	return 0;
 }
 
-LaxFiles::Attribute *LaxFont::dump_out_atts(LaxFiles::Attribute *att, int what, LaxFiles::DumpContext *context)
+Attribute *LaxFont::dump_out_atts(Attribute *att, int what, DumpContext *context)
 {
 	if (!att) att=new Attribute;
 
@@ -1137,7 +1134,7 @@ int FontManager::DumpInFontList(const char *file, ErrorLog *log)
 	return 0;
 }
 
-FontDialogFont *FontManager::DumpInFontDialogFont(LaxFiles::Attribute *att)
+FontDialogFont *FontManager::DumpInFontDialogFont(Attribute *att)
 {
 	int layer=0;
 	const char *file=NULL, *family=NULL, *style=NULL, *id=NULL;
@@ -1235,7 +1232,7 @@ FontDialogFont *FontManager::DumpInFontDialogFont(LaxFiles::Attribute *att)
 	return font;
 }
 
-LaxFont *FontManager::dump_in_font(LaxFiles::Attribute *att, LaxFiles::DumpContext *context)
+LaxFont *FontManager::dump_in_font(Attribute *att, DumpContext *context)
 {
 	LaxFont *newfont=NULL;
 	const char *name, *value;

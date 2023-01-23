@@ -97,7 +97,7 @@ class CoordinateAnchor;
 class Coordinate
 {
   public:
-	flatpoint fp;
+	Laxkit::flatpoint fp;
 	unsigned long flags;
 	int iid,info;
 	double next_s; //len of following segment
@@ -107,9 +107,9 @@ class Coordinate
 	CoordinateAnchor *anchor; //for use in graph construction
 
 	Coordinate();
-	Coordinate(flatpoint p);
+	Coordinate(Laxkit::flatpoint p);
 	Coordinate(double x,double y);
-	Coordinate(flatpoint pp,unsigned long nflags,SegmentControls *ctl);
+	Coordinate(Laxkit::flatpoint pp,unsigned long nflags,SegmentControls *ctl);
 	Coordinate(double x,double y,unsigned long nflags,SegmentControls *ctl);
 	Coordinate(const Coordinate &p);
 	virtual ~Coordinate();
@@ -118,9 +118,9 @@ class Coordinate
 	virtual   void x(double xx) { fp.x=xx; }
 	virtual double y() { return fp.y; }
 	virtual   void y(double yy) { fp.y=yy; }
-	virtual flatpoint p() { return fp; }
+	virtual Laxkit::flatpoint p() { return fp; }
 	virtual      void p(double xx,double yy) { fp.x=xx; fp.y=yy; }
-	virtual      void p(flatpoint pp) { fp=pp; }
+	virtual      void p(Laxkit::flatpoint pp) { fp=pp; }
 	virtual int isAttachedTo(Coordinate *v);
 	virtual int isEndpoint();
 	virtual Coordinate *previousVertex(int n=0);
@@ -128,7 +128,7 @@ class Coordinate
 	virtual Coordinate *firstPoint(int v=0); // return the first point in open line, or this
 	virtual Coordinate *lastPoint(int v=0); // return the last point in open line, or this
 	virtual int hasCoord(Coordinate *co, int *index=NULL); // return 1 if c is somewhere in paths
-	virtual void ShiftPoint(flatpoint p) { fp+=p; } //*** this could be an overloaded (Coordinate)+=(flatpoint)
+	virtual void ShiftPoint(Laxkit::flatpoint p) { fp+=p; } //*** this could be an overloaded (Coordinate)+=(flatpoint)
 	virtual Coordinate *duplicate();
 	virtual Coordinate *duplicateAll();
 	virtual void append(double x,double y,unsigned long flags=POINT_VERTEX,SegmentControls *ctl=NULL);
@@ -140,10 +140,10 @@ class Coordinate
 	virtual Coordinate *detachThrough(Coordinate *p);
 	virtual int insert(Coordinate *c,int after=1);
 	virtual int NumPoints(int v);
-	virtual flatpoint direction(int after);
-	virtual int resolveToControls(flatpoint &p1, flatpoint &c1, flatpoint &c2, flatpoint &p2, bool forward = true);
+	virtual Laxkit::flatpoint direction(int after);
+	virtual int resolveToControls(Laxkit::flatpoint &p1, Laxkit::flatpoint &c1, Laxkit::flatpoint &c2, Laxkit::flatpoint &p2, bool forward = true);
 	virtual int resolveToControls(Coordinate *&p1, Coordinate *&c1, Coordinate *&c2, Coordinate *&p2, bool forward = true);
-	virtual int getNext(flatpoint &c1, flatpoint &c2, Coordinate *&p2, int &isline);
+	virtual int getNext(Laxkit::flatpoint &c1, Laxkit::flatpoint &c2, Coordinate *&p2, int &isline);
 	virtual Coordinate *Traverse(int n);
 };
 
@@ -168,12 +168,12 @@ class CoordinateAnchor : public Coordinate
 
 //----------------------------------- Coordinate Shape Makers ----------------------------------
 
-int CoordinateToFlatpoint(Coordinate *coord, flatpoint **pts);
-Coordinate *FlatpointToCoordinate(flatpoint *points, int n);
-Coordinate *CoordinatePolygon(flatpoint center, double radius, bool point_on_x_axis, int num_sides, int num_winding);
-//Coordinate RoundedRectangle(flatpoint ll, flatpoint ur, double round,double round2);
+int CoordinateToFlatpoint(Coordinate *coord, Laxkit::flatpoint **pts);
+Coordinate *FlatpointToCoordinate(Laxkit::flatpoint *points, int n);
+Coordinate *CoordinatePolygon(Laxkit::flatpoint center, double radius, bool point_on_x_axis, int num_sides, int num_winding);
+//Coordinate RoundedRectangle(Laxkit::flatpoint ll, flatpoint ur, double round,double round2);
 
-Coordinate *BezApproximate(flatpoint *l, int n);
+Coordinate *BezApproximate(Laxkit::flatpoint *l, int n);
 
 } //namespace LaxInterfaces
 

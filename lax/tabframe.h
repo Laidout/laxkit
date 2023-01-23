@@ -76,8 +76,8 @@ class TabFrame : public IconSelector
 	virtual int CharInput(unsigned int ch,const char *buffer,int len,unsigned int state,const LaxKeyboard *d);
 	virtual int WheelUp(int x,int y,unsigned int state,int count,const LaxMouse *d);
 	virtual int WheelDown(int x,int y,unsigned int state,int count,const LaxMouse *d);
-	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context);
-	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
+	virtual Attribute *dump_out_atts(Attribute *att,int what,DumpContext *context);
+	virtual void dump_in_atts(Attribute *att,int flag,DumpContext *context);
 
 };
 

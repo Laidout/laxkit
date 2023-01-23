@@ -97,7 +97,7 @@ class EngraverFillInterface : public PatchInterface
 
 	 //decorations to show..
 	Laxkit::MenuInfo panel;
-	flatpoint list_offset;
+	Laxkit::flatpoint list_offset;
 	bool show_group_list;
 
 	int show_points;
@@ -121,8 +121,8 @@ class EngraverFillInterface : public PatchInterface
 	int lasthover;
 	int lasthovercategory;
 	int lasthoverindex, lasthoverdetail;
-	flatpoint hover;
-	flatpoint hoverdir, hdir[10];
+	Laxkit::flatpoint hover;
+	Laxkit::flatpoint hoverdir, hdir[10];
 	//Selection *selection;
 
 	CurveMapInterface curvemapi;

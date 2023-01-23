@@ -27,7 +27,6 @@
 #include <lax/strmanip.h>
 
 using namespace Laxkit;
-using namespace LaxFiles;
 
 
 #include <iostream>
@@ -678,7 +677,7 @@ void anInterface::PostMessage2(const char *fmt, ...)
 
 
 //! Write out settings. Default dumps out the att returned from dump_out_atts().
-void anInterface::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *savecontext)
+void anInterface::dump_out(FILE *f,int indent,int what,DumpContext *savecontext)
 {
 	Attribute att;
 	dump_out_atts(&att, what, savecontext);
@@ -686,7 +685,7 @@ void anInterface::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *sa
 }
 
 //! Placeholder for dumping in settings. Currently does nothing.
-void anInterface::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *loadcontext)
+void anInterface::dump_in_atts(Attribute *att,int flag,DumpContext *loadcontext)
 {
 }
 
@@ -694,7 +693,7 @@ void anInterface::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *lo
  * Subclasses that do output need to create a new Attribute if att==null, and fill with
  * appropriate settings that will be read back in with dump_in_atts().
  */
-LaxFiles::Attribute *anInterface::dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *savecontext)
+Attribute *anInterface::dump_out_atts(Attribute *att,int what,DumpContext *savecontext)
 {
 	return att;
 }

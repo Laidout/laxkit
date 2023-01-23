@@ -35,8 +35,6 @@ using namespace std;
 #define DBG
 
 
-using namespace LaxFiles;
-
 namespace Laxkit {
 
 
@@ -537,7 +535,7 @@ int ShortcutWindow::CharInput(unsigned int ch, const char *buffer,int len,unsign
 	return anXWindow::CharInput(ch,buffer,len,state,kb);
 }
 
-LaxFiles::Attribute *ShortcutWindow::dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context)
+Attribute *ShortcutWindow::dump_out_atts(Attribute *att,int what,DumpContext *context)
 {
 	att=anXWindow::dump_out_atts(att,what,context);
 	TreeSelector *tree=dynamic_cast<TreeSelector*>(findChildWindowByName("tree"));
@@ -555,7 +553,7 @@ LaxFiles::Attribute *ShortcutWindow::dump_out_atts(LaxFiles::Attribute *att,int 
 	return att;
 }
 
-void ShortcutWindow::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context)
+void ShortcutWindow::dump_in_atts(Attribute *att,int flag,DumpContext *context)
 {
 	anXWindow::dump_in_atts(att,flag,context);
 

@@ -37,7 +37,7 @@ class IndexTriangle
   public:
     int p1,p2,p3;
 	int t[3]; //tris on other side of p1-p2, p2-p3, p3-p1
-	flatpoint circumcenter;
+	Laxkit::flatpoint circumcenter;
 
 	int Has(int pp) {
 		if (p1==pp) return 1;
@@ -63,7 +63,7 @@ class IndexTriangle
 class VoronoiRegion
 {
   public:
-	flatpoint point; //should correspond to VoronoiData::points[] (defined in PointSet)
+	Laxkit::flatpoint point; //should correspond to VoronoiData::points[] (defined in PointSet)
 	Laxkit::NumStack<int> tris; //indices in VoronoiData::triangles
 	int next_hull; //is -1 if this point is not on convex hull
 	int pindex; //index of point in original point collection
@@ -84,7 +84,7 @@ class VoronoiData : virtual public LaxInterfaces::SomeData, virtual public Laxki
 	Laxkit::DoubleBBox containing_rect;
 	Laxkit::NumStack<IndexTriangle> triangles;
 	Laxkit::NumStack<VoronoiRegion> regions; //1 to 1 with points
-	Laxkit::NumStack<flatpoint> inf_points; //to help approximate infinite rays
+	Laxkit::NumStack<Laxkit::flatpoint> inf_points; //to help approximate infinite rays
 
 	Laxkit::Color *color_delaunay;
 	Laxkit::Color *color_voronoi;
@@ -99,9 +99,9 @@ class VoronoiData : virtual public LaxInterfaces::SomeData, virtual public Laxki
 	virtual ~VoronoiData();
 	virtual const char *whattype() { return "VoronoiData"; }
 	virtual void FindBBox();
-	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
-	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context);
-	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
+	virtual void dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *context);
+	virtual Laxkit::Attribute *dump_out_atts(Laxkit::Attribute *att,int what,Laxkit::DumpContext *context);
+	virtual void dump_in_atts(Laxkit::Attribute *att,int flag,Laxkit::DumpContext *context);
 	virtual SomeData *duplicate(SomeData *dup);
 
 	virtual void Flush();
@@ -112,10 +112,10 @@ class VoronoiData : virtual public LaxInterfaces::SomeData, virtual public Laxki
 	virtual void Width(double newwidth, int which=-1);
 
 	virtual void RelaxBarycenter(int iters, double strength, Laxkit::DoubleBBox box);
-	virtual flatpoint Centroid(int triangle);
-	virtual flatpoint CentroidRegion(int point, int *is_inf);
-	virtual flatpoint BarycenterRegion(int point, int *is_inf);
-	virtual int Map(std::function<int(const flatpoint &p, flatpoint &newp)> adjustFunc);
+	virtual Laxkit::flatpoint Centroid(int triangle);
+	virtual Laxkit::flatpoint CentroidRegion(int point, int *is_inf);
+	virtual Laxkit::flatpoint BarycenterRegion(int point, int *is_inf);
+	virtual int Map(std::function<int(const Laxkit::flatpoint &p, Laxkit::flatpoint &newp)> adjustFunc);
 };
 	
 
@@ -159,7 +159,7 @@ class DelaunayInterface : public anInterface
 	bool justadded;
 	int style_target;
 	char *last_export;
-	flatpoint move_pos;
+	Laxkit::flatpoint move_pos;
 	int previous_create;
 	ObjectContext *hover_obj; //for sample from
 

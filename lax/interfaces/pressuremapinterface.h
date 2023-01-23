@@ -36,7 +36,7 @@ class PressureMapInterface : public anInterface
   protected:
 	char showdecs;
 	Laxkit::CurveInfo curve;
-	Laxkit::NumStack<flatpoint> points;
+	Laxkit::NumStack<Laxkit::flatpoint> points;
 	Laxkit::NumStack<double> histogram;
 	Laxkit::NumStack<double> pticker;
 	int max_histogram_value, num_histogram_samples;

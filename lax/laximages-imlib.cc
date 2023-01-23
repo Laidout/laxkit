@@ -591,7 +591,7 @@ int ImlibLoader::PingFile(const char *file, int *width, int *height, long *files
 	}
 
 	if (filesize) {
-		*filesize = LaxFiles::file_size(file, 1, NULL);
+		*filesize = file_size(file, 1, NULL);
 	}
 
 	if (subfiles) *subfiles = 1;

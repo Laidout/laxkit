@@ -70,15 +70,15 @@ class CurveWindow : public Laxkit::anXWindow
 	virtual void ChangeEditable(unsigned int which, int on);
 
 	 //serializing aids
-	virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context);
-	virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
+	virtual Laxkit::Attribute *dump_out_atts(Laxkit::Attribute *att,int what,Laxkit::DumpContext *context);
+	virtual void dump_in_atts(Laxkit::Attribute *att,int flag,Laxkit::DumpContext *context);
 
 
 	 //curve specific functions:
 	virtual void SetupRect();
 	//virtual int scaneditable(int x,int y);
 	//virtual int scan(int x,int y);
-	//virtual int scannear(int x,int y, flatpoint *p_ret, int *index);
+	//virtual int scannear(int x,int y, Laxkit::flatpoint *p_ret, int *index);
 	virtual int MakeLookupTable(int *table,int numentries, int minvalue, int maxvalue);
 	virtual double f(double x);
 	virtual Laxkit::CurveInfo *GetInfo() { return interface.GetInfo(); }

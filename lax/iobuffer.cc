@@ -36,7 +36,7 @@
 using namespace std;
 
 
-namespace LaxFiles {
+namespace Laxkit {
 
 
 /*! \class IOBuffer
@@ -440,8 +440,8 @@ int IOBuffer::SaveStrToFile(const char *file_name)
 	else makestr(filename, file_name);
 	if (!file_name) return 1;
 
-	if      (what == WHAT_String)  return LaxFiles::save_string_to_file(astr, slen, file_name);
-	else if (what == WHAT_CString) return LaxFiles::save_string_to_file(cstr, slen, file_name);
+	if      (what == WHAT_String)  return save_string_to_file(astr, slen, file_name);
+	else if (what == WHAT_CString) return save_string_to_file(cstr, slen, file_name);
 
 	return 0;
 }
@@ -466,7 +466,7 @@ int IOBuffer::GetStrFromFile(const char *file_name, int maxchars)
 	curpos = 0;
 
 	delete[] astr;
-	astr = LaxFiles::read_in_whole_file(file_name, NULL, maxchars);
+	astr = read_in_whole_file(file_name, NULL, maxchars);
 	if (astr) {
 		slen = strlen(astr);
 		return 0;
@@ -515,5 +515,5 @@ int IOBuffer::OpenString(const char *str)
 
 
 
-} //namespace LaxFiles;
+} //namespace
 

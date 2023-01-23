@@ -33,9 +33,6 @@ using namespace std;
 #define DBG 
 
 
-using namespace LaxFiles;
-
-
 namespace Laxkit {
 
 
@@ -148,14 +145,14 @@ anObject *CurveInfo::duplicate(anObject *ref)
 }
 
 
-void CurveInfo::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
+void CurveInfo::dump_out(FILE *f,int indent,int what,DumpContext *context)
 {
     Attribute att;
     dump_out_atts(&att,0,context);
     att.dump_out(f,indent);
 }
 
-LaxFiles::Attribute *CurveInfo::dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context)
+Attribute *CurveInfo::dump_out_atts(Attribute *att,int what,DumpContext *context)
 {
 	if (!att) att=new Attribute(whattype(),NULL);
 
@@ -190,7 +187,7 @@ LaxFiles::Attribute *CurveInfo::dump_out_atts(LaxFiles::Attribute *att,int what,
 
 /*! Please note RefreshLookup() is NOT called here.
  */
-void CurveInfo::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context)
+void CurveInfo::dump_in_atts(Attribute *att,int flag,DumpContext *context)
 {
 	char *name,*value;
 	for (int c=0; c<att->attributes.n; c++) {

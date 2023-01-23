@@ -46,8 +46,8 @@ class CharacterInterface : public anInterface
 	int displaytype; //0: character only,  1: char + U0123,  2: char + U0123 + glyphname
 	double boxwidth;
 	int numwide, numtall;
-	flatpoint offset;
-	flatpoint insertpoint;
+	Laxkit::flatpoint offset;
+	Laxkit::flatpoint insertpoint;
 	Laxkit::DoubleBBox recentbox;
 	Laxkit::DoubleBBox suggestionbox;
 	Laxkit::DoubleBBox bigbox;
@@ -104,7 +104,7 @@ class CharacterInterface : public anInterface
 	virtual int Font(Laxkit::LaxFont *font);
 	virtual int Font(const char *family, const char *style, double size, Laxkit::ScreenColor *color);
 	virtual int Context(const char *str, long pos, long len);
-	virtual void ScreenPosition(flatpoint p);
+	virtual void ScreenPosition(Laxkit::flatpoint p);
 	virtual int scan(int x, int y, unsigned int state, int *category);
 	virtual void SetBoxes();
 

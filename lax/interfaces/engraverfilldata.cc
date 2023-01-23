@@ -49,7 +49,6 @@
 #include <lax/refptrstack.cc>
 
 
-using namespace LaxFiles;
 using namespace Laxkit;
 
 #include <iostream>
@@ -675,14 +674,14 @@ EngraverDirection *EngraverDirection::duplicate()
 	return dup;
 }
 
-void EngraverDirection::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
+void EngraverDirection::dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *context)
 {
 	Attribute att;
 	dump_out_atts(&att,what,context);
 	att.dump_out(f,indent);
 }
 
-Attribute *EngraverDirection::dump_out_atts(Attribute *att,int what,LaxFiles::DumpContext *savecontext)
+Attribute *EngraverDirection::dump_out_atts(Attribute *att,int what,Laxkit::DumpContext *savecontext)
 {
 	if (!att) att=new Attribute();
 
@@ -785,7 +784,7 @@ Attribute *EngraverDirection::dump_out_atts(Attribute *att,int what,LaxFiles::Du
 	return att;
 }
 
-void EngraverDirection::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context)
+void EngraverDirection::dump_in_atts(Laxkit::Attribute *att,int flag,Laxkit::DumpContext *context)
 {
 	if (!att) return;
 
@@ -1064,7 +1063,7 @@ EngraverSpacing *EngraverSpacing::duplicate()
 }
 
 
-void EngraverSpacing::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
+void EngraverSpacing::dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *context)
 {
 	Attribute att;
 	dump_out_atts(&att,what,context);
@@ -1072,7 +1071,7 @@ void EngraverSpacing::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext
 }
 
 
-LaxFiles::Attribute *EngraverSpacing::dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *savecontext)
+Laxkit::Attribute *EngraverSpacing::dump_out_atts(Laxkit::Attribute *att,int what,Laxkit::DumpContext *savecontext)
 {
 	if (!att) att=new Attribute();
 
@@ -1095,7 +1094,7 @@ LaxFiles::Attribute *EngraverSpacing::dump_out_atts(LaxFiles::Attribute *att,int
 	return att;
 }
 
-void EngraverSpacing::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context)
+void EngraverSpacing::dump_in_atts(Laxkit::Attribute *att,int flag,Laxkit::DumpContext *context)
 {
 	if (!att) return;
 
@@ -1195,14 +1194,14 @@ EngraverLineQuality *EngraverLineQuality::duplicate()
 	return dup;
 }
 
-void EngraverLineQuality::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
+void EngraverLineQuality::dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *context)
 {
 	Attribute att;
 	dump_out_atts(&att,what,context);
 	att.dump_out(f,indent);
 }
 
-Attribute *EngraverLineQuality::dump_out_atts(Attribute *att,int what,LaxFiles::DumpContext *savecontext)
+Attribute *EngraverLineQuality::dump_out_atts(Attribute *att,int what,Laxkit::DumpContext *savecontext)
 {
 	if (!att) att=new Attribute();
 
@@ -1236,7 +1235,7 @@ Attribute *EngraverLineQuality::dump_out_atts(Attribute *att,int what,LaxFiles::
 	return att;
 }
 
-void EngraverLineQuality::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context)
+void EngraverLineQuality::dump_in_atts(Laxkit::Attribute *att,int flag,Laxkit::DumpContext *context)
 {
 	if (!att) return;
 
@@ -1441,14 +1440,14 @@ Laxkit::anObject *TraceObject::duplicate(Laxkit::anObject *ref)
 	return dup;
 }
 
-void TraceObject::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
+void TraceObject::dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *context)
 {
 	Attribute att;
 	dump_out_atts(&att,what,context);
 	att.dump_out(f,indent);
 }
 
-Attribute *TraceObject::dump_out_atts(Attribute *att,int what,LaxFiles::DumpContext *savecontext)
+Attribute *TraceObject::dump_out_atts(Attribute *att,int what,Laxkit::DumpContext *savecontext)
 {
 	if (!att) att=new Attribute();
 
@@ -1488,7 +1487,7 @@ Attribute *TraceObject::dump_out_atts(Attribute *att,int what,LaxFiles::DumpCont
 	return att;
 }
 
-void TraceObject::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context)
+void TraceObject::dump_in_atts(Laxkit::Attribute *att,int flag,Laxkit::DumpContext *context)
 {
 	if (!att) return;
 
@@ -1848,14 +1847,14 @@ void EngraverTraceSettings::ClearCache(bool obj_too)
 	}
 }
 
-void EngraverTraceSettings::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
+void EngraverTraceSettings::dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *context)
 {
 	Attribute att;
 	dump_out_atts(&att,what,context);
 	att.dump_out(f,indent);
 }
 
-Attribute *EngraverTraceSettings::dump_out_atts(Attribute *att,int what,LaxFiles::DumpContext *savecontext)
+Attribute *EngraverTraceSettings::dump_out_atts(Attribute *att,int what,Laxkit::DumpContext *savecontext)
 {
 	if (!att) att=new Attribute();
 
@@ -1896,7 +1895,7 @@ Attribute *EngraverTraceSettings::dump_out_atts(Attribute *att,int what,LaxFiles
 	return att;
 }
 
-void EngraverTraceSettings::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context)
+void EngraverTraceSettings::dump_in_atts(Laxkit::Attribute *att,int flag,Laxkit::DumpContext *context)
 {
 	if (!att) return;
 
@@ -2067,14 +2066,14 @@ int EngraverTraceStack::Remove(int which)
 }
 
 
-void EngraverTraceStack::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
+void EngraverTraceStack::dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *context)
 {
 	Attribute att;
 	dump_out_atts(&att,what,context);
 	att.dump_out(f,indent);
 }
 
-LaxFiles::Attribute *EngraverTraceStack::dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *savecontext)
+Laxkit::Attribute *EngraverTraceStack::dump_out_atts(Laxkit::Attribute *att,int what,Laxkit::DumpContext *savecontext)
 {
 	if (!att) att=new Attribute();
 
@@ -2107,7 +2106,7 @@ LaxFiles::Attribute *EngraverTraceStack::dump_out_atts(LaxFiles::Attribute *att,
 	return att;
 }
 
-void EngraverTraceStack::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context)
+void EngraverTraceStack::dump_in_atts(Laxkit::Attribute *att,int flag,Laxkit::DumpContext *context)
 { 
 	if (!att) return;
 
@@ -2361,7 +2360,7 @@ void EngraverPointGroup::CopyFrom(EngraverPointGroup *orig, bool keep_name, bool
 	}
 }
 
-void EngraverPointGroup::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
+void EngraverPointGroup::dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *context)
 {
 	char spc[indent+3]; memset(spc,' ',indent); spc[indent]='\0'; 
 
@@ -2527,7 +2526,7 @@ void EngraverPointGroup::dump_out(FILE *f,int indent,int what,LaxFiles::DumpCont
 
 }
 
-LaxFiles::Attribute *EngraverPointGroup::dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context)
+Laxkit::Attribute *EngraverPointGroup::dump_out_atts(Laxkit::Attribute *att,int what,Laxkit::DumpContext *context)
 {
 	if (!att) att = new Attribute;
 	Attribute *att2;
@@ -2705,7 +2704,7 @@ LaxFiles::Attribute *EngraverPointGroup::dump_out_atts(LaxFiles::Attribute *att,
 	return att;
 }
 
-void EngraverPointGroup::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context)
+void EngraverPointGroup::dump_in_atts(Laxkit::Attribute *att,int flag,Laxkit::DumpContext *context)
 {
 	if (!att) return;
 
@@ -5748,7 +5747,7 @@ void EngraverFillData::Set(double xx,double yy,double ww,double hh,int nr,int nc
  * If what==-1, then output a pseudocode mockup of the format. Otherwise
  * output the format as above.
  */
-void EngraverFillData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
+void EngraverFillData::dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *context)
 {
 	char spc[indent+3]; memset(spc,' ',indent); spc[indent]='\0'; 
 
@@ -5775,7 +5774,7 @@ void EngraverFillData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContex
 	return;
 }
 
-LaxFiles::Attribute *EngraverFillData::dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *context)
+Laxkit::Attribute *EngraverFillData::dump_out_atts(Laxkit::Attribute *att,int what,Laxkit::DumpContext *context)
 {
 	if (!att) att = new Attribute;
 	Attribute *att2;
@@ -5802,7 +5801,7 @@ LaxFiles::Attribute *EngraverFillData::dump_out_atts(LaxFiles::Attribute *att,in
 }
 
 //! Reverse of dump_out.
-void EngraverFillData::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *context)
+void EngraverFillData::dump_in_atts(Attribute *att,int flag,Laxkit::DumpContext *context)
 {
 	if (!att) return;
 

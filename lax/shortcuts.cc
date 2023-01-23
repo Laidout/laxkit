@@ -629,7 +629,7 @@ int ShortcutManager::AreaParent(const char *area, const char *parent)
 		tree.push(area);
 		return 0;
 	}
-	LaxFiles::Attribute *att=tree.find(parent);
+	Attribute *att=tree.find(parent);
 	if (att) {
 		 //add area to existing parent
 		if (att->find(area)) return 0;
@@ -928,7 +928,7 @@ int ShortcutManager::SaveHTML(const char *file)
  *
  * \todo custom modifiers?
  */
-void ShortcutManager::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *savecontext)
+void ShortcutManager::dump_out(FILE *f,int indent,int what,DumpContext *savecontext)
 {
 	char spc[indent+1]; memset(spc,' ',indent); spc[indent]='\0';
 
@@ -1067,7 +1067,7 @@ ShortcutHandler *ShortcutManager::FindHandler(const char *area)
  * Care must be taken to ensure that there are WindowActions defined for the area BEFORE
  * calling this! Otherwise, the non-number actions defined for the key will not map to anything meaningful.
  */
-void ShortcutManager::dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *loadcontext)
+void ShortcutManager::dump_in_atts(Attribute *att,int flag,DumpContext *loadcontext)
 {
     if (!att) return;
     char *name,*value,*kstr;

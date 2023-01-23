@@ -26,6 +26,9 @@
 #include <lax/lists.cc>
 
 
+using namespace Laxkit;
+
+
 namespace LaxInterfaces {
 
 

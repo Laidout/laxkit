@@ -101,7 +101,7 @@ class EllipseData : virtual public SomeData
 	double inner_r; //actual r = inner_r * (default)
 	double inner_round[4], outer_round[5]; //for rounded corners
 	double a,b;
-	flatpoint center,x,y; //center, x and y axis (in addition to this->m())
+	Laxkit::flatpoint center,x,y; //center, x and y axis (in addition to this->m())
 
 	LineStyle *linestyle;
 	FillStyle *fillstyle;
@@ -112,22 +112,22 @@ class EllipseData : virtual public SomeData
 	virtual const char *whattype() { return "EllipseData"; }
 
 	virtual void InstallDefaultLineStyle();
-	virtual void SetFoci(flatpoint f1,flatpoint f2,double c=-1);
-	virtual void GetFoci(flatpoint *f1,flatpoint *f2,double *c);
+	virtual void SetFoci(Laxkit::flatpoint f1,Laxkit::flatpoint f2,double c=-1);
+	virtual void GetFoci(Laxkit::flatpoint *f1,Laxkit::flatpoint *f2,double *c);
 	virtual void FindBBox();
 	virtual void SetStyle(unsigned int s, bool on);
 	virtual bool GetStyle(unsigned int s);
-	virtual flatpoint getpoint(EllipsePoints c, bool transform_to_parent);
+	virtual Laxkit::flatpoint getpoint(EllipsePoints c, bool transform_to_parent);
 	virtual bool IsCircle() { return a == b; }
 	virtual bool UsesAngles();
 	virtual void MakeAligned();
 
-	virtual int GetPath(int which, flatpoint *pts_ret);
+	virtual int GetPath(int which, Laxkit::flatpoint *pts_ret);
 	virtual PathsData *ToPath();
 
-	virtual void dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context);
-    virtual LaxFiles::Attribute *dump_out_atts(LaxFiles::Attribute *att,int what, LaxFiles::DumpContext *context);
-    virtual void dump_in_atts(LaxFiles::Attribute *att,int flag,LaxFiles::DumpContext *context);
+	virtual void dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *context);
+    virtual Laxkit::Attribute *dump_out_atts(Laxkit::Attribute *att,int what, Laxkit::DumpContext *context);
+    virtual void dump_in_atts(Laxkit::Attribute *att,int flag,Laxkit::DumpContext *context);
 };
 
 
@@ -142,10 +142,10 @@ class EllipseInterface : public anInterface
 	int hover_x,hover_y;
 	EllipsePoints hover_point;
 	EllipsePoints curpoint;
-	flatpoint ref_point;
-	flatpoint ref_point2;
+	Laxkit::flatpoint ref_point;
+	Laxkit::flatpoint ref_point2;
 	int ref_wedge;
-	flatpoint createp,createx,createy;
+	Laxkit::flatpoint createp,createx,createy;
 	int mode;
 
 	bool allow_foci;
@@ -197,7 +197,7 @@ class EllipseInterface : public anInterface
 	virtual int UseThis(Laxkit::anObject *nobj,unsigned int mask=0);
 	virtual int UseThisObject(ObjectContext *oc, SomeData *other_object);
 	virtual int UseThisObject(ObjectContext *oc) override;
-	virtual flatpoint getpoint(EllipsePoints c, bool inparent);
+	virtual Laxkit::flatpoint getpoint(EllipsePoints c, bool inparent);
 
 	virtual bool ShowFoci(bool yes);
 };

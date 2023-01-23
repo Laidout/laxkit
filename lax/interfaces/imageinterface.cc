@@ -31,8 +31,9 @@
 #include <lax/laxutils.h>
 #include <lax/language.h>
 
-using namespace LaxFiles;
+
 using namespace Laxkit;
+
 
 #include <iostream>
 using namespace std;
@@ -177,14 +178,14 @@ ImageData &ImageData::operator=(ImageData &i)
  * update this code as change happens.
  * Otherwise dumps out in indented data format as above.
  */
-void ImageData::dump_out(FILE *f,int indent,int what,LaxFiles::DumpContext *context)
+void ImageData::dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *context)
 {
 	Attribute att;
 	ImageData::dump_out_atts(&att, what, context);
 	att.dump_out(f, indent);
 }
 
-LaxFiles::Attribute *ImageData::dump_out_atts(LaxFiles::Attribute *att,int what,LaxFiles::DumpContext *savecontext)
+Laxkit::Attribute *ImageData::dump_out_atts(Laxkit::Attribute *att,int what,Laxkit::DumpContext *savecontext)
 {
    if (!att) att=new Attribute(whattype(),NULL);
 
@@ -245,7 +246,7 @@ LaxFiles::Attribute *ImageData::dump_out_atts(LaxFiles::Attribute *att,int what,
  *
  * If context is a DumpContext, then expand relative paths accordingly.
  */
-void ImageData::dump_in_atts(Attribute *att,int flag,LaxFiles::DumpContext *context)
+void ImageData::dump_in_atts(Attribute *att,int flag,Laxkit::DumpContext *context)
 {
 	if (!att) return;
 	char *name,*value;
@@ -1178,7 +1179,7 @@ int ImageInterface::CharInput(unsigned int ch, const char *buffer,int len,unsign
 ImageDataUndo::ImageDataUndo(ImageData *object,
 						   Laxkit::Affine *mo,
 						   Laxkit::Affine *nm,
-						   LaxFiles::Attribute *changed_info,
+						   Laxkit::Attribute *changed_info,
 						   int ntype, int nisauto)
   : UndoData(nisauto)
 {

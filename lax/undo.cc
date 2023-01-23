@@ -120,7 +120,7 @@ int UndoData::Size()
 
 //--------------------------------------------- MetaUndoData ------------------------------------------
 /*! \class MetaUndoData
- * Generic class to hold data that can be stored in an LaxFiles::Attribute.
+ * Generic class to hold data that can be stored in an Attribute.
  */
 
 /*! Incs count of context. */
@@ -151,7 +151,7 @@ int MetaUndoData::Size() //in bytes of this whole undo instanc
 
 	//note this is a very naive approximation.. checks only stringlen, not allocated.
 	for (int c=0; c<meta.attributes.n; c++) {
-		LaxFiles::Attribute *att = meta.attributes.e[c];
+		Attribute *att = meta.attributes.e[c];
 		n += (att->name ? strlen(att->name) : 0) + (att->value ? strlen(att->value) : 0) + (att->comment ? strlen(att->comment) : 0);
 	}
 	return n;

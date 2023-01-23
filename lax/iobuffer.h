@@ -25,7 +25,7 @@
 #include <cstdio>
 
 
-namespace LaxFiles {
+namespace Laxkit {
 
 
 class IOBuffer
@@ -88,7 +88,7 @@ class IOBuffer
 	//int OpenInString(char *str, long nn, long nmax); //can read and write within the string, does not allocate new. cannot shrink or grow string past allocation
 };
 
-} //namespace LaxFiles;
+} //namespace
 
 #endif
 
