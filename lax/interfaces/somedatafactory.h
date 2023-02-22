@@ -30,6 +30,7 @@ namespace LaxInterfaces {
 
 enum LaxInterfaceDataTypes {
 	LAX_BEZDATA,
+	LAX_BEZNETDATA,
 	LAX_COLORPATCHDATA,
 	LAX_ELLIPSEDATA,
 	LAX_ENGRAVERFILLDATA,

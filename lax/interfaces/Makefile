@@ -27,42 +27,44 @@ objs= \
 	somedataref.o \
 	somedatafactory.o \
 	coordinate.o \
-	svgcoord.o \
 	selection.o \
 	aninterface.o \
 	interfacemanager.o \
 	viewportwindow.o \
 	viewerwindow.o \
 	viewportwithstack.o \
-	rectinterface.o \
-	objectinterface.o \
-	gradientinterface.o \
-	imageinterface.o \
-	patchinterface.o\
-	colorpatchinterface.o \
-	imagepatchinterface.o\
-	lineprofile.o \
-	pathinterface.o \
-	shapebrush.o \
-	freehandinterface.o \
+	beznet.o \
+	beznetinterface.o \
 	captioninterface.o \
-	engraverfilldata.o \
-	engraverfillinterface.o \
-	delaunayinterface.o \
-	ellipseinterface.o \
-	pressuremapinterface.o \
+	characterinterface.o \
+	colorpatchinterface.o \
 	curvemapinterface.o \
 	curvewindow.o \
-	showkeysinterface.o \
-	characterinterface.o \
-	textstreaminterface.o \
-	textonpathinterface.o \
-	texttopath.o \
+	delaunayinterface.o \
+	ellipseinterface.o \
+	engraverfilldata.o \
+	engraverfillinterface.o \
+	freehandinterface.o \
+	gradientinterface.o \
 	groupdata.o \
-	perspectiveinterface.o \
-	stackpartinterface.o \
-	simplepathinterface.o \
+	imageinterface.o \
+	imagepatchinterface.o\
+	lineprofile.o \
 	mirrorinterface.o \
+	objectinterface.o \
+	patchinterface.o\
+	pathinterface.o \
+	perspectiveinterface.o \
+	pressuremapinterface.o \
+	rectinterface.o \
+	shapebrush.o \
+	showkeysinterface.o \
+	simplepathinterface.o \
+	stackpartinterface.o \
+	svgcoord.o \
+	textonpathinterface.o \
+	textstreaminterface.o \
+	texttopath.o \
 
 #	linesinterface.o \
 #	measureinterface.o \
