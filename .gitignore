@@ -6,6 +6,7 @@ laxinput/laxinput
 *.a
 *.so.*
 lax/icons/*.png
+docs/html
 
 
 #
