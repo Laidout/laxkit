@@ -33,6 +33,7 @@
 #include <lax/laxutils.h>
 #include <lax/bezutils.h>
 #include <lax/transformmath.h>
+#include <lax/colorevents.h>
 #include <lax/language.h>
 
 

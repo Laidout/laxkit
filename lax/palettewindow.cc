@@ -24,9 +24,8 @@
 #include <lax/laxutils.h>
 #include <lax/filedialog.h>
 #include <lax/fileutils.h>
-#include <lax/colors.h>
+#include <lax/colorevents.h>
 #include <lax/language.h>
-#include <lax/lists.cc>
 
 #include <sys/stat.h>
 #include <cmath>

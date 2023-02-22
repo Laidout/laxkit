@@ -27,7 +27,7 @@
 #include <lax/interfaces/somedata.h>
 #include <lax/interfaces/linestyle.h>
 #include <lax/transformmath.h>
-#include <lax/colors.h>
+#include <lax/colorevents.h>
 #include <lax/colorbox.h>
 
 #include <lax/refptrstack.cc>

@@ -34,6 +34,7 @@
 #include <lax/laxutils.h>
 #include <lax/bitmaputils.h>
 #include <lax/colorsliders.h>
+#include <lax/colorevents.h>
 #include <lax/strmanip.h>
 #include <lax/language.h>
 #include <lax/fileutils.h>

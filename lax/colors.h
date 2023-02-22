@@ -27,7 +27,6 @@
 #include <lax/anobject.h>
 #include <lax/dump.h>
 #include <lax/screencolor.h>
-#include <lax/events.h>
 
 //#include <lcms.h>
 
@@ -67,45 +66,7 @@ enum SimpleColorId {
 };
 
 
-//------------------------------- SimpleColorEventData ------------------------------
-class SimpleColorEventData : public EventData
-{
- public:
-	int id;
-	int colorindex;
-	int colorsystem; //one of BasicColorSystems
-	int colorspecial; //one of SimpleColorId
-	int colormode; //0 for single color, or COLOR_FGBG, or COLOR_StrokeFill
-	int max;
-	int numchannels;
-	int *channels;
-
-	SimpleColorEventData();
-	SimpleColorEventData(int nmax, int gray,int a, int nid);
-	SimpleColorEventData(int nmax, int r,   int g, int b, int a, int nid);
-	SimpleColorEventData(int nmax, int c,   int m, int y, int k, int a,  int nid);
-	virtual ~SimpleColorEventData();
-	virtual double Valuef(int i) const;
-};
-
-
-//------------------------------- ColorEventData ------------------------------
-class Color;
 class ColorSystem;
-
-class ColorEventData : public EventData
-{
- public:
-	Color *color;
-	int id;
-	int info, info2;
-	int colorindex;
-	int colormode; //0 for single color, or COLOR_FGBG, or COLOR_StrokeFill
-
-	ColorEventData();
-	ColorEventData(Color *ncolor,int absorbcount, int nid, int ninfo, int ninfo2);
-	virtual ~ColorEventData();
-};
 
 
 //------------------------------- Color -------------------------------

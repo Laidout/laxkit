@@ -107,7 +107,7 @@
 
 #include <lax/interfaces/somedatafactory.h>
 #include <lax/language.h>
-#include <lax/colors.h>
+#include <lax/colorevents.h>
 #include <lax/colorsliders.h>
 #include <lax/interfaces/gradientinterface.h>
 

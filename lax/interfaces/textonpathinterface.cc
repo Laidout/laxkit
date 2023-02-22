@@ -36,6 +36,7 @@
 #include <lax/utf8utils.h>
 #include <lax/laxutils.h>
 #include <lax/fontdialog.h>
+#include <lax/colorevents.h>
 #include <lax/language.h>
 
 

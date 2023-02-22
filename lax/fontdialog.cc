@@ -27,11 +27,11 @@
 #include <lax/language.h>
 #include <lax/stackframe.h>
 #include <lax/colorbox.h>
+#include <lax/colorevents.h>
 #include <lax/laxutils.h>
 #include <lax/quickfileopen.h>
 #include <lax/menubutton.h>
 
-#include <lax/lists.cc>
 
 #define DBG
 #include <iostream>

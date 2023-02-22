@@ -25,7 +25,7 @@
 #include <lax/interfaces/colorpatchinterface.h>
 #include <lax/laxutils.h>
 #include <lax/utf8string.h>
-#include <lax/colors.h>
+#include <lax/colorevents.h>
 #include <lax/language.h>
 
 #include <iostream>

@@ -23,6 +23,7 @@
 
 #include <lax/colorsliders.h>
 #include <lax/colorspace.h>
+#include <lax/colorevents.h>
 #include <lax/laxutils.h>
 #include <lax/misc.h>
 #include <lax/language.h>

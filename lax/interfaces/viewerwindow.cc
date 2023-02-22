@@ -22,7 +22,7 @@
 
 
 #include <lax/interfaces/viewerwindow.h>
-#include <lax/colors.h>
+#include <lax/colorevents.h>
 #include <lax/colorbox.h>
 #include <lax/units.h>
 #include <lax/menubutton.h>

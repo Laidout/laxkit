@@ -116,6 +116,7 @@ class VoronoiData : virtual public LaxInterfaces::SomeData, virtual public Laxki
 	virtual Laxkit::flatpoint CentroidRegion(int point, int *is_inf);
 	virtual Laxkit::flatpoint BarycenterRegion(int point, int *is_inf);
 	virtual int Map(std::function<int(const Laxkit::flatpoint &p, Laxkit::flatpoint &newp)> adjustFunc);
+	virtual int GetRegionPolygon(int which, Laxkit::NumStack<Laxkit::flatpoint> &points);
 };
 	
 

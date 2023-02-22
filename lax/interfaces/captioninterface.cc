@@ -38,7 +38,7 @@
 #include <lax/interfaces/linestyle.h>
 #include <lax/interfaces/somedataref.h>
 #include <lax/interfaces/groupdata.h>
-#include <lax/colors.h>
+#include <lax/colorevents.h>
 #include <lax/laxutils.h>
 #include <lax/fontdialog.h>
 #include <lax/fontmanager.h>

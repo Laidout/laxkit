@@ -33,11 +33,12 @@
 #include <lax/filedialog.h>
 #include <lax/laxutils.h>
 #include <lax/utf8string.h>
+#include <lax/colorevents.h>
 #include <lax/language.h>
 
 
 //You need this if you use any of the Laxkit stack templates in lax/lists.h
-#include <lax/lists.cc>
+//#include <lax/lists.cc>
 
 
 using namespace Laxkit;
@@ -713,6 +714,32 @@ int VoronoiData::Map(std::function<int(const flatpoint &p, flatpoint &newp)> adj
 	RebuildVoronoi(true);
 	return n;
 }
+
+
+/*! Return 0 for success, or nonzero for fail.
+ */
+int VoronoiData::GetRegionPolygon(int which, Laxkit::NumStack<Laxkit::flatpoint> &pts)
+{
+	if (which < 0 || which >= regions.n) return 1;
+
+	int i;
+	if (regions.e[which].tris.n == 0) return 2;
+
+	//first point
+	i = regions.e[which].tris.e[0];
+	if (i >= 0) pts.push(triangles.e[i].circumcenter);
+	else pts.push(inf_points.e[-i-1]);
+
+	//the rest of the points
+	for (int c2 = 1; c2 < regions.e[which].tris.n; c2++) {
+		i = regions.e[which].tris.e[c2];
+		if (i >= 0) pts.push(triangles.e[i].circumcenter);
+		else pts.push(inf_points.e[-i-1]);
+	}
+
+	return 0;
+}
+
 
 void VoronoiData::Flush()
 {

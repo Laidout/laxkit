@@ -27,6 +27,7 @@
 #include <lax/strmanip.h>
 #include <lax/misc.h>
 #include <lax/colorsliders.h>
+#include <lax/colorevents.h>
 
 
 #include <iostream>
