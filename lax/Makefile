@@ -66,6 +66,7 @@ CPPFLAGS= $(OPTIMIZATION) $(EXTRA_LAX_CFLAGS) $(DEBUGFLAGS) $(FPIC) -I$(LAXDIR)/
 
 
 objs= \
+    debug.o \
 	refcounted.o \
 	anobject.o \
 	lark.o \
@@ -161,6 +162,7 @@ objs= \
 	quickfileopen.o \
 	colorspace.o \
 	colors.o \
+	colorevents.o \
 	colorbase.o \
 	colorsliders.o \
 	colorbox.o \
