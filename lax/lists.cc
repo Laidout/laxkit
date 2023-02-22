@@ -290,9 +290,7 @@ void NumStack<T>::flush_n()
 
 //! Pushes an element only if it is not already on the stack.
 /*! Returns the index if the item was already on the stack. Otherwise -1, which
- * means that the item got pushed.
- *
- * \todo should probably have -2 for error, though currently no errors are caught.
+ * means that the item got pushed to the top of the stack and its index is n-1.
  */
 template <class T>
 int NumStack<T>::pushnodup(T ne) // push on end returns 1 if pushed

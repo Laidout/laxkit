@@ -738,8 +738,8 @@ char *getnamestring(const char *buf)
 	return tname;
 }
 
-/*! Return whether len == strlen(str) and first len chars of 
- * vlenstr match str.
+/*! Return whether len == strlen(name) and first len chars of 
+ * vlenstr match name.
  */
 bool IsName(const char *name, const char *vlenstr, int len)
 {
