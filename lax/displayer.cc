@@ -1007,7 +1007,7 @@ void Displayer::drawfocusellipse(flatpoint focus1,flatpoint focus2,
  *
  * If center, center the arrow at the placement point.
  */
-void Displayer::drawarrow(flatpoint p,flatpoint v,int rfromp,double len,char reallength,int portion,bool center)
+void Displayer::drawarrow(flatpoint p,flatpoint v,double rfromp,double len,char reallength,int portion,bool center)
 {
 	double vv=v*v;
 	if (vv==0) return;
