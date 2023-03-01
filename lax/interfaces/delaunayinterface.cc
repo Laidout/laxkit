@@ -717,6 +717,7 @@ int VoronoiData::Map(std::function<int(const flatpoint &p, flatpoint &newp)> adj
 
 
 /*! Return 0 for success, or nonzero for fail.
+ * Note dose NOT flush pts.
  */
 int VoronoiData::GetRegionPolygon(int which, Laxkit::NumStack<Laxkit::flatpoint> &pts)
 {
