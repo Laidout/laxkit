@@ -72,16 +72,23 @@ BezNetData *BezNetData::FromVoronoi(VoronoiData *data)
 	NumStack<int> vertex_indices;
 
 	for (int c = 0; c < data->points.n; c++) {
+		points.flush_n();
 		data->GetRegionPolygon(c, points);
 		for (int c2=0; c2<points.n; c2++) {
-			vertices.pushnodup(points.e[c]);
+			vertices.pushnodup(points.e[c2]);
 		}
 	}
 
+	for (int c=0; c<vertices.n; c++) {
+		net->AddVertex(vertices.e[c]);
+	}
+
 	for (int c = 0; c < data->points.n; c++) {
+		points.flush_n();
 		data->GetRegionPolygon(c, points);
+		vertex_indices.flush_n();
 		for (int c2=0; c2<points.n; c2++) {
-			int index = vertices.findindex(points.e[c]);
+			int index = vertices.findindex(points.e[c2]);
 			vertex_indices.push(index, 0);
 		}
 		net->DefinePolygon(vertex_indices);
@@ -181,15 +188,15 @@ HalfEdge *HalfEdge::PreviousAroundVertex(HalfEdge **twin_ret)
 }
 
 
-//-------------------------- BezEdge -------------------------------
-
-/*! \class BezEdge
- * BezEdge allocates the halfedges used in a BezNetData. BezNetData handles management of BezEdge objects.
- * There can be any number of segments of bezier path that corresponds to the half edge, 
- * which are assumed to not intersect with any other BezEdge except at endpoints.
- * coord runs along halfedge, and the reverse of coord runs along twin;
- * If coord == nullptr, then use the points defined in the HalfEdgeVertex objects.
- */
+////-------------------------- BezEdge -------------------------------
+//
+///*! \class BezEdge
+// * BezEdge allocates the halfedges used in a BezNetData. BezNetData handles management of BezEdge objects.
+// * There can be any number of segments of bezier path that corresponds to the half edge, 
+// * which are assumed to not intersect with any other BezEdge except at endpoints.
+// * coord runs along halfedge, and the reverse of coord runs along twin;
+// * If coord == nullptr, then use the points defined in the HalfEdgeVertex objects.
+// */
 
 
 //-------------------------- BezFace -------------------------------
@@ -337,16 +344,16 @@ void BezNetData::RemoveDanglingEdges(BezFace *face)
 }
 
 
-/*! Remove edge from being referenced by anything inside this BezNetData.
- * This involves finding and removing the two halfedges belonging to edge,
- * and merging faces that made the edge.
- *
- * Return 0 for success, or nonzero for some kind of error.
- */
-int BezNetData::RemoveEdge(BezEdge *edge)
-{
-	return RemoveEdge(edge->halfedge);
-}
+///*! Remove edge from being referenced by anything inside this BezNetData.
+// * This involves finding and removing the two halfedges belonging to edge,
+// * and merging faces that made the edge.
+// *
+// * Return 0 for success, or nonzero for some kind of error.
+// */
+//int BezNetData::RemoveEdge(BezEdge *edge)
+//{
+//	return RemoveEdge(edge->halfedge);
+//}
 
 
 /*! Return 0 for success, or nonzero for some kind of error.
@@ -472,10 +479,11 @@ int BezNetData::DefinePolygon(int num_points, ...)
 }
 
 
-BezEdge *BezNetData::FindEdge(HalfEdgeVertex *v1, HalfEdgeVertex *v2, int *dir)
+HalfEdge *BezNetData::FindEdge(HalfEdgeVertex *v1, HalfEdgeVertex *v2, int *dir)
 {
 	for (int c=0; c<edges.n; c++) {
-		BezEdge *edge = edges.e[c];
+		HalfEdge *edge = edges.e[c];
+		
 		if (edge->halfedge) {
 			if (edge->halfedge->vertex == v1) {
 				if (edge->twin) {
@@ -558,7 +566,10 @@ int BezNetData::DefinePolygon(Laxkit::NumStack<int> &points)
     		edge->halfedge->face = face;
     		edge->halfedge->vertex = v1;
 
-    		if (previous) edge->halfedge->prev = previous;
+    		if (previous) {
+    			edge->halfedge->prev = previous;
+    			previous->next = edge->halfedge;
+    		}
     		if (c == points.n-1) {
     			edge->halfedge->next = first;
     			first->prev = edge->halfedge;
@@ -575,11 +586,15 @@ int BezNetData::DefinePolygon(Laxkit::NumStack<int> &points)
     		edge->twin->edge = edge;
     		edge->twin->face = face;
     		edge->twin->vertex = v2;
-    		edge->twin->prev = previous;
+
     		if (c == points.n-1) {
     			edge->twin->next = first;
     			first->prev = edge->twin;
     		}
+
+    		edge->twin->prev = previous;
+    		if (previous) previous->next = edge->twin;
+
     		previous = edge->twin;
     		if (c == 0) first = edge->twin;
 
@@ -592,6 +607,7 @@ int BezNetData::DefinePolygon(Laxkit::NumStack<int> &points)
     		edge->halfedge->face = face;
     		edge->halfedge->vertex = v1;
     		edge->halfedge->prev = previous;
+    		if (previous) previous->next = edge->halfedge;
     		if (c == points.n-1) {
     			edge->twin->next = first;
     			first->prev = edge->twin;
@@ -675,6 +691,39 @@ PathsData *BezNetData::ResolveRegion(int face_a, PathOp op, int face_b, PathsDat
 	}
 
 	return pathsdata;
+}
+
+void BezNetData::dump_in_atts(Laxkit::Attribute *att, int flag, Laxkit::DumpContext *context)
+{
+
+}
+
+Laxkit::Attribute *BezNetData::dump_out_atts(Laxkit::Attribute *att,int what,Laxkit::DumpContext *savecontext)
+{
+	if (what == -1) {
+		// ***
+		return att;
+	}
+
+	if (!att) att = new Attribute();
+
+	if (vertices.n) {
+		Utf8String str;
+		for (int c=0; c<vertices.n; c++) {
+			str += Utf8String("%.10g, %.10g\n", vertices.e[c]->p.x, vertices.e[c]->p.y);
+		}
+		att->push("vertices", str.c_str());
+	}
+
+	if (edges.n) {
+		// ***
+	}
+
+	if (faces.n) {
+		// ***
+	}
+
+	return att;
 }
 
 

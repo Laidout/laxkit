@@ -32,7 +32,7 @@ namespace LaxInterfaces {
 //-------------------------- HalfEdgeVertex -------------------------------
 
 class HalfEdge;
-class BezEdge;
+//class BezEdge;
 class BezFace;
 
 
@@ -62,7 +62,7 @@ public:
 	HalfEdge *twin = nullptr; // note, unlike "pure" implementations, we always have twins, but twin will have null face if non-manifold
 	HalfEdge *next = nullptr; // HalfEdge objects allocated in BezEdge objects, which are in BezNetData::edges
 	HalfEdge *prev = nullptr;
-	BezEdge  *edge = nullptr; // these will be allocated in BezNetData::edges
+	//BezEdge  *edge = nullptr; // these will be allocated in BezNetData::edges
 	BezFace  *face = nullptr; // face that's on the "primary" side. *** define primary!!!
 
 	HalfEdge *NextAroundVertex(HalfEdge **twin_ret = nullptr);
@@ -72,22 +72,22 @@ public:
 
 //-------------------------- BezEdge -------------------------------
 
-class BezEdge
-{
-public:
-	HalfEdge *halfedge = nullptr;
-	HalfEdge *twin = nullptr;
-	int tick = 0;
-
-	Coordinate *coord = nullptr; //custom bezier edge. if null, then use the twin's coord, but in reverse order
-	
-	BezEdge() {}
-	virtual ~BezEdge() {
-		delete coord;
-		delete halfedge;
-		delete twin;
-	}
-};
+//class BezEdge
+//{
+//public:
+//	HalfEdge *halfedge = nullptr;
+//	HalfEdge *twin = nullptr;
+//	int tick = 0;
+//
+//	Coordinate *coord = nullptr; //custom bezier edge. if null, then use the twin's coord, but in reverse order
+//	
+//	BezEdge() {}
+//	virtual ~BezEdge() {
+//		delete coord;
+//		delete halfedge;
+//		delete twin;
+//	}
+//};
 
 
 //-------------------------- BezFace -------------------------------
@@ -130,7 +130,7 @@ class BezNetData : virtual public LaxInterfaces::SomeData
 {
 public:
 	Laxkit::PtrStack<HalfEdgeVertex> vertices;
-	Laxkit::PtrStack<BezEdge> edges;
+	Laxkit::PtrStack<HalfEdge> edges;
 	Laxkit::PtrStack<BezFace> faces;
 
 	BezNetData();
@@ -138,11 +138,13 @@ public:
 	virtual const char *whattype() { return "BezNetData"; }
 	virtual void FindBBox();
 	virtual SomeData *duplicate(SomeData *dup);
+	virtual void dump_in_atts(Laxkit::Attribute *att, int flag, Laxkit::DumpContext *context);
+	virtual Laxkit::Attribute *dump_out_atts(Laxkit::Attribute *att,int what,Laxkit::DumpContext *savecontext);
 
 	int AddPath(PathsData *pdata, int face_mask);
 
 	int RemoveFace(BezFace *face);
-	int RemoveEdge(BezEdge *edge);
+	//int RemoveEdge(BezEdge *edge);
 	int RemoveEdge(HalfEdge *at_edge);
 	int BisectEdge(HalfEdge *at_edge);
 	int AddEdge(HalfEdgeVertex *from, HalfEdgeVertex *to);
@@ -152,7 +154,7 @@ public:
 	int DefinePolygon(Laxkit::NumStack<int> &points);
 
 	HalfEdgeVertex *FindClosestVertex(double threshhold); //use 0 to reqiure exact match
-	BezEdge *FindEdge(HalfEdgeVertex *v1, HalfEdgeVertex *v2, int *direction_ret);
+	HalfEdge *FindEdge(HalfEdgeVertex *v1, HalfEdgeVertex *v2, int *direction_ret);
 
 
 	void RemoveDanglingEdges(BezFace *face);

@@ -285,31 +285,66 @@ int BezNetInterface::Refresh()
 
 	dp->NewFG(settings->default_edge_color);
 	flatpoint p1, p2;
-	double gap = ScreenLine() * 5 * dp->Getmag();
+	double gap = ScreenLine() * 5 / dp->Getmag();
+	DBGL("gap: "<<gap);
 
+	// draw edges
 	for (int c=0; c<data->edges.n; c++) {
 		//todo: *** use the bezier edge, not just straight edge
-		if (!data->edges.e[c]->halfedge || !data->edges.e[c]->twin) continue;
+		//if (!data->edges.e[c]->halfedge || !data->edges.e[c]->twin) continue;
 
-		p1 = data->edges.e[c]->halfedge->vertex->p;
-		p2 = data->edges.e[c]->twin->vertex->p;
+		BezEdge *edge = data->edges.e[c];
+
+		if (edge->halfedge) {
+			p1 = edge->halfedge->vertex->p;
+		} else {
+			if (edge->twin && edge->twin->next) {
+				p1 = edge->twin->next->vertex->p;
+			} else continue;
+		}
+
+		if (edge->twin) {
+			p2 = edge->twin->vertex->p;	
+		} else {
+			if (edge->halfedge && edge->halfedge->next) {
+				p2 = edge->halfedge->next->vertex->p;
+			} else continue;
+		}
 
 		dp->drawline(p1, p2);
 		flatpoint mid = (p1 + p2)/2;
 		flatpoint v = (p2 - p1)/2;
-		if (data->edges.e[c]->halfedge) dp->drawarrow(mid,  v, gap, 1, 2, 1, true);
-		if (data->edges.e[c]->twin    ) dp->drawarrow(mid, -v, gap, 1, 2, 1, true);
+		if (edge->halfedge) dp->drawarrow(mid, -v,  gap, 1, 2, 1, true);
+		if (edge->twin    ) dp->drawarrow(mid, v/2, gap, 1, 2, 1, true);
 	}
 
+	// draw faces
+	for (int c=0; c<data->faces.n; c++) {
+		BezFace *face = data->faces.e[c];
+		if (!face->halfedge) continue;
+
+		HalfEdge *e = face->halfedge;
+		flatpoint p;
+		int n = 0;
+		do {
+			p += e->vertex->p;
+			n++;
+			e = e->next;
+		} while (e && e != face->halfedge);
+		p /= n;
+		dp->drawnum(p.x,p.y, c);
+	}
+
+	// draw points
 	dp->NewFG(settings->default_vertex_color);
 	for (int c=0; c<data->vertices.n; c++) {
 		dp->drawpoint(data->vertices.e[c]->p, 5*ScreenLine(), 1);
 	}
 
 
-	if (showdecs) {
-		// draw interface decorations on top of interface data
-	}
+	//if (showdecs) {
+	//	// draw interface decorations on top of interface data
+	//}
 
 	return 0;
 }
@@ -324,11 +359,20 @@ void BezNetInterface::deletedata()
 
 BezNetData *BezNetInterface::newData()
 {
-	return new BezNetData();
-
 	BezNetData *obj = dynamic_cast<BezNetData*>(somedatafactory()->NewObject(LAX_BEZNETDATA));
 	if (!obj) {
 		obj = new BezNetData();
+
+		VoronoiData vdata;
+		//vdata.CreateRandomPoints(10, 0, 0,2, 0,2);
+		vdata.AddPoint(flatpoint(2,2));
+		vdata.AddPoint(flatpoint(3,2));
+		vdata.AddPoint(flatpoint(4,2));
+		vdata.AddPoint(flatpoint(3,3));
+		//vdata.AddPoint(flatpoint(3,1));
+		vdata.Rebuild();
+		//obj = BezNetData::FromVoronoi(&vdata);
+		obj = BezNetData::FromDelaunay(&vdata);
 	}
 	return obj;	
 }
