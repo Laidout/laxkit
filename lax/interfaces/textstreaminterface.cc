@@ -92,7 +92,7 @@ const char *TextStreamInterface::whatdatatype()
 /*! Name as displayed in menus, for instance.
  */
 const char *TextStreamInterface::Name()
-{ return _("TextStreamInterface tool"); }
+{ return _("Text Stream"); }
 
 
 //! Return new TextStreamInterface.
@@ -404,9 +404,13 @@ int TextStreamInterface::Track(ObjectContext *oc)
 	return 0;
 }
 
+/*! Define the path to show a hover indication.
+ */
 int TextStreamInterface::DefineOutline(int which)
 {
 	outline.clear();
+
+	if (!extrahover) return -1;
 
 	if (dynamic_cast<PathsData*>(extrahover->obj)) {
 		PathsData *paths = dynamic_cast<PathsData*>(extrahover->obj);
@@ -417,20 +421,36 @@ int TextStreamInterface::DefineOutline(int which)
 		return 0;
 	}
 	
+	//  //create basic bounding box outline as default:
+	// Affine m = extrahover->obj->GetTransformToContext(false, 0);
+	// outline.moveTo(m.transformPoint(flatpoint(extrahover->obj->minx,extrahover->obj->miny)));
+	// DBG Coordinate *cc=outline.LastVertex();
+	// DBG cerr <<"--hover\n  moveto: "<<cc->fp.x<<", "<<cc->fp.y<<endl;
+
+	// outline.lineTo(m.transformPoint(flatpoint(extrahover->obj->maxx,extrahover->obj->miny)));
+	// DBG cc=outline.LastVertex(); cerr <<"  lineto: "<<cc->fp.x<<", "<<cc->fp.y<<endl;
+
+	// outline.lineTo(m.transformPoint(flatpoint(extrahover->obj->maxx,extrahover->obj->maxy)));
+	// DBG cc=outline.LastVertex(); cerr <<"  lineto: "<<cc->fp.x<<", "<<cc->fp.y<<endl;
+
+	// outline.lineTo(m.transformPoint(flatpoint(extrahover->obj->minx,extrahover->obj->maxy)));
+	// DBG cc=outline.LastVertex(); cerr <<"  lineto: "<<cc->fp.x<<", "<<cc->fp.y<<endl;
+
 	 //create basic bounding box outline as default:
 	Affine m=extrahover->obj->GetTransformToContext(false, 0);
-	outline.moveTo(m.transformPoint(flatpoint(extrahover->obj->minx,extrahover->obj->miny)));
+	outline.moveTo(flatpoint(extrahover->obj->minx,extrahover->obj->miny));
 	DBG Coordinate *cc=outline.LastVertex();
 	DBG cerr <<"--hover\n  moveto: "<<cc->fp.x<<", "<<cc->fp.y<<endl;
 
-	outline.lineTo(m.transformPoint(flatpoint(extrahover->obj->maxx,extrahover->obj->miny)));
+	outline.lineTo(flatpoint(extrahover->obj->maxx,extrahover->obj->miny));
 	DBG cc=outline.LastVertex(); cerr <<"  lineto: "<<cc->fp.x<<", "<<cc->fp.y<<endl;
 
-	outline.lineTo(m.transformPoint(flatpoint(extrahover->obj->maxx,extrahover->obj->maxy)));
+	outline.lineTo(flatpoint(extrahover->obj->maxx,extrahover->obj->maxy));
 	DBG cc=outline.LastVertex(); cerr <<"  lineto: "<<cc->fp.x<<", "<<cc->fp.y<<endl;
 
-	outline.lineTo(m.transformPoint(flatpoint(extrahover->obj->minx,extrahover->obj->maxy)));
+	outline.lineTo(flatpoint(extrahover->obj->minx,extrahover->obj->maxy));
 	DBG cc=outline.LastVertex(); cerr <<"  lineto: "<<cc->fp.x<<", "<<cc->fp.y<<endl;
+
 
 	outline.close();
 	
