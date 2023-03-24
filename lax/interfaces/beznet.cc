@@ -188,17 +188,6 @@ HalfEdge *HalfEdge::PreviousAroundVertex(HalfEdge **twin_ret)
 }
 
 
-////-------------------------- BezEdge -------------------------------
-//
-///*! \class BezEdge
-// * BezEdge allocates the halfedges used in a BezNetData. BezNetData handles management of BezEdge objects.
-// * There can be any number of segments of bezier path that corresponds to the half edge, 
-// * which are assumed to not intersect with any other BezEdge except at endpoints.
-// * coord runs along halfedge, and the reverse of coord runs along twin;
-// * If coord == nullptr, then use the points defined in the HalfEdgeVertex objects.
-// */
-
-
 //-------------------------- BezFace -------------------------------
 
 /*! \class BezFace
@@ -246,7 +235,7 @@ HalfEdge *BezFace::FirstOuterBoundary(int face_a, int op, int face_b, bool ignor
 {
 	HalfEdge *edge = halfedge;
 	do {
-		if (!ignore_ticked_edges || (ignore_ticked_edges && edge->edge->tick == 0)) {
+		if (!ignore_ticked_edges || (ignore_ticked_edges && edge->tick == 0)) {
 			if (edge->twin == nullptr || edge->twin->face == nullptr) {
 				return edge;
 			}
@@ -295,8 +284,10 @@ void BezNetData::InitTick()
 {
 	for (int c=0; c<faces.n; c++)
 		faces.e[c]->tick = 0;
-	for (int c=0; c<edges.n; c++)
+	for (int c=0; c<edges.n; c++) {
 		edges.e[c]->tick = 0;
+		edges.e[c]->twin->tick = 0;
+	}
 }
 
 /*! Step through edges of face, and if the edge has a vertex with only one edge on it, remove the edge.
@@ -306,6 +297,7 @@ void BezNetData::RemoveDanglingEdges(BezFace *face)
 	if (!face || !face->halfedge) return;
 
 	HalfEdge *h = face->halfedge;
+	HalfEdge *tw;
 	do {
 		if (h->next == h->twin) {
 			h->twin->vertex->halfedge = nullptr; //*** need to clean up orphaned vertices
@@ -315,12 +307,16 @@ void BezNetData::RemoveDanglingEdges(BezFace *face)
 			} else {
 				//whole edge was dangling... face was just a loop around a single edge??
 				h->vertex->halfedge = nullptr;
-				edges.remove(h->edge);
+				tw = h->twin;
+				edges.remove(h);
+				edges.remove(tw);
 				faces.remove(face);
 				return;
 			}
 			HalfEdge *hh = h->prev;
-			edges.remove(h->edge);
+			tw = h->twin;
+			edges.remove(h);
+			edges.remove(tw);
 			h = hh;
 
 		} else if (h->prev == h->twin) {
@@ -331,29 +327,22 @@ void BezNetData::RemoveDanglingEdges(BezFace *face)
 			} else {
 				//whole edge was dangling... face was just a loop around a single edge??
 				h->twin->vertex->halfedge = nullptr; //*** need to clean up orphaned vertices
-				edges.remove(h->edge);
+
+				tw = h->twin;
+				edges.remove(h);
+				edges.remove(tw);
 				faces.remove(face);
 				return;	
 			}
 			//HalfEdge *hh = h->prev; **** FIXME
-			edges.remove(h->edge);
+			tw = h->twin;
+			edges.remove(h);
+			edges.remove(tw);
 		}
 
 		h = h->next;
 	} while (h != face->halfedge);
 }
-
-
-///*! Remove edge from being referenced by anything inside this BezNetData.
-// * This involves finding and removing the two halfedges belonging to edge,
-// * and merging faces that made the edge.
-// *
-// * Return 0 for success, or nonzero for some kind of error.
-// */
-//int BezNetData::RemoveEdge(BezEdge *edge)
-//{
-//	return RemoveEdge(edge->halfedge);
-//}
 
 
 /*! Return 0 for success, or nonzero for some kind of error.
@@ -393,7 +382,7 @@ int BezNetData::RemoveEdge(HalfEdge *at_edge)
 			if (at_edge->vertex->halfedge == at_edge)
 				at_edge->vertex->halfedge = at_edge->next;
 
-			edges.remove(edges.findindex(at_edge->edge));
+			edges.remove(edges.findindex(at_edge));
 
 			RemoveDanglingEdges(keep_face);
 
@@ -483,44 +472,16 @@ HalfEdge *BezNetData::FindEdge(HalfEdgeVertex *v1, HalfEdgeVertex *v2, int *dir)
 {
 	for (int c=0; c<edges.n; c++) {
 		HalfEdge *edge = edges.e[c];
-		
-		if (edge->halfedge) {
-			if (edge->halfedge->vertex == v1) {
-				if (edge->twin) {
-					if (edge->twin->vertex == v2) {
-						if (dir) *dir = 1;
-						return edge;
-					}
-				} else if (edge->halfedge->next) {
-					if (edge->halfedge->next->vertex == v2) {
-						if (dir) *dir = 1;
-						return edge;
-					}
-				}
-			} else if (edge->halfedge->vertex == v2) {
-				if (edge->twin) {
-					if (edge->twin->vertex == v1) {
-						if (dir) *dir = -1;
-						return edge;
-					}
-				} else if (edge->halfedge->next) {
-					if (edge->halfedge->next->vertex == v1) {
-						if (dir) *dir = -1;
-						return edge;
-					}
-				}
+
+		if (edge->vertex == v1) {
+			if (edge->twin->vertex == v2) {
+				if (dir) *dir = 1;
+				return edge;
 			}
-		} else if (edge->twin) {
+		} else if (edge->vertex == v2) {
 			if (edge->twin->vertex == v1) {
-				if (edge->twin->next && edge->twin->next->vertex == v2) {
-					if (dir) *dir = -1;
-					return edge;
-				}
-			} else if (edge->twin->vertex == v2) {
-				if (edge->twin->next && edge->twin->next->vertex == v1) {
-					if (dir) *dir = 1;
-					return edge;
-				}
+				if (dir) *dir = -1;
+				return edge;
 			}
 		}
 	}
@@ -547,43 +508,41 @@ int BezNetData::DefinePolygon(Laxkit::NumStack<int> &points)
     	HalfEdgeVertex *v1 = vertices.e[points[c]];
     	HalfEdgeVertex *v2 = vertices.e[points[(c+1)%points.n]];
 
-    	BezEdge *edge = FindEdge(v1, v2, &dir);
+    	HalfEdge *edge = FindEdge(v1, v2, &dir);
 
     	// edge will be one of:
     	// - null: need to create a new edge, attach to vertices
     	// - half: presumably we will add face to the empty half
     	// - full: bad! trying to add to occupied edge!
-    	if (!edge || (edge->halfedge == nullptr && edge->twin == nullptr)) {
+    	if (!edge || (edge->face == nullptr && edge->twin->face == nullptr)) {
     		//we had either empty edge or no edge
     		if (!edge) {
-    			edge = new BezEdge();
+    			edge = new HalfEdge();
+    			edge->twin = new HalfEdge();
     			edges.push(edge);
     		}
 
     		//now we have an empty edge, need to define things on it
-    		edge->halfedge = new HalfEdge();
-    		edge->halfedge->edge = edge;
-    		edge->halfedge->face = face;
-    		edge->halfedge->vertex = v1;
+    		edge->face = face;
+    		edge->vertex = v1;
+    		if (v1->halfedge == nullptr) v1->halfedge = edge;
+    		edge->twin->vertex = v2;
+    		if (edge->twin->vertex->halfedge == nullptr) edge->twin->vertex->halfedge = edge->twin;
 
     		if (previous) {
-    			edge->halfedge->prev = previous;
-    			previous->next = edge->halfedge;
+    			edge->prev = previous;
+    			previous->next = edge;
     		}
     		if (c == points.n-1) {
-    			edge->halfedge->next = first;
-    			first->prev = edge->halfedge;
+    			edge->next = first;
+    			first->prev = edge;
     		}
 
-    		previous = edge->halfedge;
-    		if (c == 0) first = edge->halfedge;
+    		previous = edge;
+    		if (c == 0) first = edge;
 
-    	} else if (edge->halfedge != nullptr && edge->twin == nullptr)  {
+    	} else if (edge->face != nullptr && edge->twin->face == nullptr)  {
     		//assume we are filling in the opposite edge.. ***should probably sanity check way more in here
-    		edge->twin = new HalfEdge();
-    		edge->halfedge->twin = edge->twin;
-    		edge->twin->twin = edge->halfedge;
-    		edge->twin->edge = edge;
     		edge->twin->face = face;
     		edge->twin->vertex = v2;
 
@@ -598,24 +557,21 @@ int BezNetData::DefinePolygon(Laxkit::NumStack<int> &points)
     		previous = edge->twin;
     		if (c == 0) first = edge->twin;
 
-    	} else if (edge->halfedge == nullptr && edge->twin != nullptr)  {
+    	} else if (edge->face == nullptr && edge->twin->face != nullptr)  {
     		//assume we are filling in the opposite edge.. ***should probably sanity check way more in here
-    		edge->halfedge = new HalfEdge();
-    		edge->twin->twin = edge->halfedge;
-    		edge->halfedge->twin = edge->twin;
-    		edge->halfedge->edge = edge;
-    		edge->halfedge->face = face;
-    		edge->halfedge->vertex = v1;
-    		edge->halfedge->prev = previous;
-    		if (previous) previous->next = edge->halfedge;
+    		edge->face   = face;
+    		edge->vertex = v1;
+    		edge->prev   = previous;
+    		if (previous) previous->next = edge;
     		if (c == points.n-1) {
     			edge->twin->next = first;
     			first->prev = edge->twin;
     		}
-    		previous = edge->halfedge;
-			if (c == 0) first = edge->halfedge;
 
-    	} else if (edge->halfedge != nullptr && edge->twin != nullptr)  {
+    		previous = edge;
+			if (c == 0) first = edge;
+
+    	} else if (edge->face != nullptr && edge->twin->face != nullptr)  {
     		DBGE("Trying to add to full edge, ahhh!");
     		//*** clean up how!?!
     		delete face;
@@ -676,7 +632,8 @@ PathsData *BezNetData::ResolveRegion(int face_a, PathOp op, int face_b, PathsDat
 			do {
 				//curve to boundary
 				pathsdata->append(boundary->next->vertex->p); // *** use actual edge curve
-				boundary->edge->tick = 1;
+				boundary->tick = 1;
+				boundary->twin->tick = 1;
 
 				HalfEdge *next = boundary->next;
 				while (next->twin->face && next->twin->face->tick == 1) {
@@ -708,9 +665,10 @@ Laxkit::Attribute *BezNetData::dump_out_atts(Laxkit::Attribute *att,int what,Lax
 	if (!att) att = new Attribute();
 
 	if (vertices.n) {
-		Utf8String str;
+		Utf8String str, str2;
 		for (int c=0; c<vertices.n; c++) {
-			str += Utf8String("%.10g, %.10g\n", vertices.e[c]->p.x, vertices.e[c]->p.y);
+			str2.Sprintf("%.10g, %.10g\n", vertices.e[c]->p.x, vertices.e[c]->p.y);
+			str += str2;
 		}
 		att->push("vertices", str.c_str());
 	}

@@ -44,7 +44,7 @@ class HalfEdgeVertex
 public:
 	Laxkit::flatpoint p;
 	Laxkit::anObject *extra_info = nullptr;
-	HalfEdge *halfedge = nullptr; // memory of edges are assumed to be managed in BezEdge objects contained in BezNetData.
+	HalfEdge *halfedge = nullptr; // memory of edges are assumed to be managed in BezNetData::edges.
 	HalfEdgeVertex(const Laxkit::flatpoint &pp, HalfEdge *h) { p = pp; halfedge = h; }
 	~HalfEdgeVertex() { if (extra_info) extra_info->dec_count(); }
 
@@ -64,6 +64,7 @@ public:
 	HalfEdge *prev = nullptr;
 	//BezEdge  *edge = nullptr; // these will be allocated in BezNetData::edges
 	BezFace  *face = nullptr; // face that's on the "primary" side. *** define primary!!!
+	int tick       = 0;
 
 	HalfEdge *NextAroundVertex(HalfEdge **twin_ret = nullptr);
 	HalfEdge *PreviousAroundVertex(HalfEdge **twin_ret = nullptr);
@@ -71,6 +72,14 @@ public:
 
 
 //-------------------------- BezEdge -------------------------------
+
+///*! \class BezEdge
+// * BezEdge allocates the halfedges used in a BezNetData. BezNetData handles management of BezEdge objects.
+// * There can be any number of segments of bezier path that corresponds to the half edge, 
+// * which are assumed to not intersect with any other BezEdge except at endpoints.
+// * coord runs along halfedge, and the reverse of coord runs along twin;
+// * If coord == nullptr, then use the points defined in the HalfEdgeVertex objects.
+// */
 
 //class BezEdge
 //{

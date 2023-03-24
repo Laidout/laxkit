@@ -286,36 +286,37 @@ int BezNetInterface::Refresh()
 	dp->NewFG(settings->default_edge_color);
 	flatpoint p1, p2;
 	double gap = ScreenLine() * 5 / dp->Getmag();
-	DBGL("gap: "<<gap);
 
 	// draw edges
 	for (int c=0; c<data->edges.n; c++) {
 		//todo: *** use the bezier edge, not just straight edge
 		//if (!data->edges.e[c]->halfedge || !data->edges.e[c]->twin) continue;
 
-		BezEdge *edge = data->edges.e[c];
+		HalfEdge *edge = data->edges.e[c];
 
-		if (edge->halfedge) {
-			p1 = edge->halfedge->vertex->p;
-		} else {
-			if (edge->twin && edge->twin->next) {
-				p1 = edge->twin->next->vertex->p;
-			} else continue;
-		}
+		p1 = edge->vertex->p;
+		//if (edge->vertex) {
+		//	p1 = edge->vertex->p;
+		//} else {
+		//	if (edge->twin && edge->twin->next) {
+		//		p1 = edge->twin->next->vertex->p;
+		//	} else continue;
+		//}
 
-		if (edge->twin) {
-			p2 = edge->twin->vertex->p;	
-		} else {
-			if (edge->halfedge && edge->halfedge->next) {
-				p2 = edge->halfedge->next->vertex->p;
-			} else continue;
-		}
+		p2 = edge->twin->vertex->p;
+		//if (edge->twin) {
+		//	p2 = edge->twin->vertex->p;	
+		//} else {
+		//	if (edge->halfedge && edge->halfedge->next) {
+		//		p2 = edge->halfedge->next->vertex->p;
+		//	} else continue;
+		//}
 
 		dp->drawline(p1, p2);
 		flatpoint mid = (p1 + p2)/2;
 		flatpoint v = (p2 - p1)/2;
-		if (edge->halfedge) dp->drawarrow(mid, -v,  gap, 1, 2, 1, true);
-		if (edge->twin    ) dp->drawarrow(mid, v/2, gap, 1, 2, 1, true);
+		if (edge->face      ) dp->drawarrow(mid, -v,  gap, 1, 2, 1, true);
+		if (edge->twin->face) dp->drawarrow(mid, v/2, gap, 1, 2, 1, true);
 	}
 
 	// draw faces
@@ -332,6 +333,7 @@ int BezNetInterface::Refresh()
 			e = e->next;
 		} while (e && e != face->halfedge);
 		p /= n;
+		p = dp->realtoscreen(p);
 		dp->drawnum(p.x,p.y, c);
 	}
 
