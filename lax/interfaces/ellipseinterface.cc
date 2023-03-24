@@ -119,6 +119,8 @@ EllipseData::EllipseData()
 	linestyle = nullptr;
 	fillstyle = nullptr;
 	wedge_type = ELLIPSE_Wedge;
+
+	for (int i=0; i<8; i++) { inner_round[i] = outer_round[i] = 0; }
 }
 
 EllipseData::~EllipseData()

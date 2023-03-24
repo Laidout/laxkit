@@ -98,9 +98,9 @@ class EllipseData : virtual public SomeData
 	unsigned int style;
 	double start,end;
 	int wedge_type;
-	double inner_r; //actual r = inner_r * (default)
-	double inner_round[4], outer_round[5]; //for rounded corners
-	double a,b;
+	double inner_r; //actual r = inner_r * (default), for rings
+	double inner_round[8], outer_round[8]; //for rounded corners
+	double a,b; // x and y half height
 	Laxkit::flatpoint center,x,y; //center, x and y axis (in addition to this->m())
 
 	LineStyle *linestyle;
