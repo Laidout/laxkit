@@ -54,7 +54,7 @@ namespace Laxkit {
 
 Resourceable::Resourceable()
 {
-	resource_owner=NULL;
+	resource_owner=nullptr;
 }
 
 Resourceable::~Resourceable()
@@ -80,12 +80,12 @@ Laxkit::anObject *Resourceable::ResourceOwner()
  */
 void Resourceable::SetResourceOwner(anObject *newowner)
 {
-	resource_owner=newowner;
+	resource_owner = newowner;
 }
 
 Laxkit::LaxImage *Resourceable::ResourceIcon()
 {
-	return NULL;
+	return nullptr;
 }
 
 int Resourceable::dec_count()
@@ -143,26 +143,26 @@ int Resourceable::RemoveUser(anObject *object)
 
 Resource::Resource()
 {
-	object   = NULL;
-	topowner = NULL;
+	object   = nullptr;
+	topowner = nullptr;
 
-	name        = NULL;
-	Name        = NULL;
-	description = NULL;
-	icon        = NULL;
+	name        = nullptr;
+	Name        = nullptr;
+	description = nullptr;
+	icon        = nullptr;
 
 	linkable = true;  // if false, then checkouts must be duplicates
 
 	ignore      = false;
 	favorite    = 0;
-	source      = NULL;
+	source      = nullptr;
 	source_type = Floating;
 
-	objecttype    = NULL;
-	config        = NULL;
-	creation_func = NULL;
+	objecttype    = nullptr;
+	config        = nullptr;
+	creation_func = nullptr;
 
-	meta=NULL;
+	meta=nullptr;
 }
 
 Resource::Resource(anObject *obj, anObject *nowner, const char *nname, const char *nName, const char *ndesc, const char *nfile, LaxImage *nicon)
@@ -187,16 +187,16 @@ Resource::Resource(anObject *obj, anObject *nowner, const char *nname, const cha
 	ignore   = false;
 	favorite = 0;
 
-	objecttype    = NULL;
-	config        = NULL;
-	creation_func = NULL;
+	objecttype    = nullptr;
+	config        = nullptr;
+	creation_func = nullptr;
 
 	if (dynamic_cast<Resourceable *>(obj)) {
 		Resourceable *r = dynamic_cast<Resourceable *>(obj);
 		r->SetResourceOwner(this);
 	}
 
-	meta = NULL;
+	meta = nullptr;
 }
 
 Resource::~Resource()
@@ -215,15 +215,30 @@ Resource::~Resource()
 	if (meta)   delete meta;
 }
 
+anObject *Resource::GetObject()
+{
+	if (object) return object;
+	return Create();
+}
+
 /*! Sometimes a resource takes up a lot of memory, so we can store basic config instead,
- * and generate it. If object!=NULL, just return this. Otherwise, create and return.
+ * and generate it. If object!=nullptr, just return this. Otherwise, create and return.
  */
 anObject *Resource::Create()
 {
 	if (object) return object;
-	if (!creation_func) return NULL;
 
-	object=creation_func(config);
+	if (source_type == FromFile) {
+		if (!from_file_func) return nullptr;
+		object = from_file_func(source, config);
+
+	} else if (source_type == FromConfig) {
+		if (!creation_func) return nullptr;
+		object = creation_func(config);
+	}
+
+	Resourceable *r = dynamic_cast<Resourceable*>(object);
+	if (r) r->SetResourceOwner(this);
 	return object;
 }
 
@@ -235,20 +250,20 @@ anObject *Resource::Create()
 
 ResourceDir::ResourceDir()
 {
-	id        =getUniqueNumber();
-	dir       =NULL;
-	last_scan =0;
-	ignore    =false;
-	auto_added=false;
+	id         = getUniqueNumber();
+	dir        = nullptr;
+	last_scan  = 0;
+	ignore     = false;
+	auto_added = false;
 }
 
 ResourceDir::ResourceDir(const char *ndir, bool nignore, bool isauto)
 {
-	id        =getUniqueNumber();
-	dir       =newstr(ndir);
-	last_scan =0;
-	ignore    =nignore;
-	auto_added=isauto;
+	id         = getUniqueNumber();
+	dir        = newstr(ndir);
+	last_scan  = 0;
+	ignore     = nignore;
+	auto_added = isauto;
 }
 
 ResourceDir::~ResourceDir()
@@ -277,10 +292,10 @@ int ResourceDirs::AddDir(const char *ndir, int where)
 {
     if (!ndir) return 1;
 
-    char *dir = full_path_for_file(ndir, NULL);
+    char *dir = full_path_for_file(ndir, nullptr);
     int status=1;
 
-    if (S_ISDIR(file_exists(dir,1,NULL))) {
+    if (S_ISDIR(file_exists(dir,1,nullptr))) {
         int c2=0;
         for ( ; c2<n; c2++) {
             if (!strcmp(dir, e[c2]->dir)) break;
@@ -347,15 +362,15 @@ int ResourceDirs::RemoveDir(const char *dir)
 
 ResourceType::ResourceType()
 {
-	default_icon=NULL;
-	creation_func=NULL;
+	default_icon=nullptr;
+	creation_func=nullptr;
 }
 
 ResourceType::ResourceType(const char *nname, const char *nName, const char *ndesc, LaxImage *nicon)
-  : Resource(NULL,NULL,nname,nName,ndesc,NULL,nicon)
+  : Resource(nullptr,nullptr,nname,nName,ndesc,nullptr,nicon)
 {
-	default_icon=NULL;
-	creation_func=NULL;
+	default_icon=nullptr;
+	creation_func=nullptr;
 }
 
 ResourceType::~ResourceType()
@@ -391,7 +406,7 @@ int ResourceType::MakeNameUnique(char *&thename)
 				continue;
 			}
 		} else { //normal resource
-			if (!strcmp(resources.e[c]->name, thename)) {
+			if (strEquals(resources.e[c]->name, thename)) {
 				char *newname = increment_file(thename);
 				delete[] thename;
 				thename = newname;
@@ -482,11 +497,11 @@ Resource *ResourceType::FindFromRID(unsigned int id)
 anObject *ResourceType::Find(const char *str, Resource **resource_ret)
 {
 	if (!str) {
-		if (resource_ret) *resource_ret=NULL;
-		return NULL;
+		if (resource_ret) *resource_ret=nullptr;
+		return nullptr;
 	}
 
-	anObject *obj=NULL;
+	anObject *obj=nullptr;
 	ResourceType *rt;
 
 	 //search in Name
@@ -504,8 +519,8 @@ anObject *ResourceType::Find(const char *str, Resource **resource_ret)
 		}
 	}
 
-	if (resource_ret) *resource_ret=NULL;
-	return NULL;
+	if (resource_ret) *resource_ret=nullptr;
+	return nullptr;
 }
 
 /*! Return which Resource contains object, or null if none.
@@ -533,13 +548,15 @@ Resource *ResourceType::Find(anObject *object)
 int ResourceType::AddResource(anObject *nobject, anObject *ntopowner, const char *nname, const char *nName, const char *ndescription,
 								const char *nfile, LaxImage *nicon, bool builtin, const char *menu)
 {
-	if (Find(object)) return -1;
+	if (Find(nobject)) return -1;
 
 	if (menu) cerr << "IMPLEMENT AddResource with extra menu!!!"<<endl;
 
 	char *uniquename = newstr(nname);
 	MakeNameUnique(uniquename);
-	Resource *r=new Resource(nobject,ntopowner, uniquename, uniquename, ndescription,nfile,nicon);
+	Resource *r = new Resource(nobject,ntopowner, uniquename, uniquename, ndescription,nfile,nicon);
+	r->from_file_func = from_file_func;
+	r->creation_func = creation_func;
 	delete[] uniquename;
 	if (builtin) r->source_type = BuiltIn;
 	resources.push(r);
@@ -553,7 +570,7 @@ int ResourceType::AddResource(anObject *nobject, anObject *ntopowner, const char
  * If do_favorites, then append ONLY the favorites menu. Else append the whole menu.
  * The info field of normal items is -1. The info of favorite items is >=0 and represents placement in the list.
  */
-MenuInfo *ResourceType::AppendMenu(MenuInfo *menu, bool do_favorites, int *numadded, int id_offset, int info)
+MenuInfo *ResourceType::AppendMenu(MenuInfo *menu, bool do_favorites, int *numadded, int id_offset, int info, anObject *current)
 {
 	if (!menu) menu=new MenuInfo(name);
 	
@@ -567,12 +584,12 @@ MenuInfo *ResourceType::AppendMenu(MenuInfo *menu, bool do_favorites, int *numad
 		if (dynamic_cast<ResourceType*>(r)) {
 			 //sub list...
 			if (do_favorites) menu->SubMenu(r->Name);
-			int oldn=menu->n();
-			dynamic_cast<ResourceType*>(r)->AppendMenu(menu,do_favorites,numadded, id_offset, info);
-			oldn=menu->n()-oldn;
+			int oldn = menu->n();
+			dynamic_cast<ResourceType*>(r)->AppendMenu(menu,do_favorites,numadded, id_offset, info, current);
+			oldn = menu->n()-oldn;
 			if (numadded) *numadded += oldn;
 			if (do_favorites) {
-				if (oldn==0) menu->Remove(-1); //remove added submenu when no items added
+				if (oldn == 0) menu->Remove(-1); //remove added submenu when no items added
 				menu->EndSubMenu();
 			}
 
@@ -583,13 +600,13 @@ MenuInfo *ResourceType::AppendMenu(MenuInfo *menu, bool do_favorites, int *numad
 			// 			  r->object_id, //id, later event->info2
 			// 			  LAX_OFF,
 			// 			  do_favorites ? r->favorite : -1, //later event->info4
-			// 			  NULL);
+			// 			  nullptr);
 			menu->AddItem(r->Name ? r->Name : (r->name ? r->name : _("(unnamed)")),
 						  id_offset + r->object_id, //id, later event->info2
 						  info, //do_favorites ? r->favorite : -1, //later event->info4
 						  r->icon,
 						  -1,
-						  LAX_OFF
+						  LAX_OFF | (current ? LAX_ISTOGGLE : 0) | (current && r->object == current ? LAX_CHECKED : 0)
 						  );
 			if (numadded) *numadded += 1;
 		}
@@ -609,10 +626,10 @@ MenuInfo *ResourceType::AppendMenu(MenuInfo *menu, bool do_favorites, int *numad
 
 ResourceManager::ResourceManager()
 {
-	app_name=NULL;
-	app_version=NULL;
+	app_name=nullptr;
+	app_version=nullptr;
 
-	objectfactory=NULL;
+	objectfactory=nullptr;
 }
 
 ResourceManager::~ResourceManager()
@@ -637,24 +654,24 @@ void ResourceManager::SetObjectFactory(ObjectFactory *factory)
 	}
 }
 
-/*! If menu!=NULL, then append to it. Else return a new one.
+/*! If menu!=nullptr, then append to it. Else return a new one.
  *
- * If type not found, return NULL.
+ * If type not found, return nullptr.
  */
-MenuInfo *ResourceManager::ResourceMenu(const char *type, bool include_recent, MenuInfo *menu, int id_offset, int info)
+MenuInfo *ResourceManager::ResourceMenu(const char *type, bool include_recent, MenuInfo *menu, int id_offset, int info, anObject *current)
 {
 	ResourceType *rtype=FindType(type);
-	if (!rtype) return NULL;
+	if (!rtype) return nullptr;
 
 	if (!menu) menu=new MenuInfo(type);
 
 	 //first do a favorites menu
 	int numadded=0;
-	rtype->AppendMenu(menu, true, &numadded, id_offset, info);
+	rtype->AppendMenu(menu, true, &numadded, id_offset, info, current);
 	if (numadded) menu->AddSep();
 
 	 //then add full menu
-	rtype->AppendMenu(menu, false, &numadded, id_offset, info);
+	rtype->AppendMenu(menu, false, &numadded, id_offset, info, current);
 
 	return menu;
 }
@@ -668,7 +685,7 @@ int ResourceManager::NumResources(const char *type)
 
 /*! Add the usual directories to search in, according to the XDG Base Directory Specification.
  * Resources will be searched in dir[]/app_name/app_version/resource_name.
- * If app_name or app_version are NULL, then that component is not used
+ * If app_name or app_version are nullptr, then that component is not used
  *
  * Some notes about dirs. The XDG Base Directory Specification is at:
  *   http://standards.freedesktop.org/basedir-spec/basedir-spec-latest.html
@@ -688,7 +705,7 @@ int ResourceManager::AddDirs_XDG(int which_type)
 	if (!home) home="~";
 
 	 //create "/app_name/app_version/"
-	char *extra=NULL;
+	char *extra=nullptr;
 	if (app_name) {
 		appendstr(extra,"/");
 		appendstr(extra,app_name);
@@ -726,7 +743,7 @@ int ResourceManager::AddDirs_XDG(int which_type)
 	if (end<0 || end>=types.n) end=types.n;
 
 	ResourceType *type;
-	char *dir=NULL;
+	char *dir=nullptr;
 
 	int numadded=0;
 	for (int c=start; c<=end; c++) {
@@ -741,7 +758,7 @@ int ResourceManager::AddDirs_XDG(int which_type)
 			expand_home_inplace(dir);
 			simplify_path(dir,1);
 
-			if (file_exists(dir,1,NULL)==S_IFDIR) {
+			if (file_exists(dir,1,nullptr)==S_IFDIR) {
 				if (type->AddDir(dir,-1)==0) numadded++;
 			}
 			delete[] dir;
@@ -766,8 +783,8 @@ anObject *ResourceManager::FindResource(const char *name, const char *type, Reso
 	ResourceType *rtype=FindType(type);
 
 	if (!name || !rtype) {
-		if (resource_ret) *resource_ret=NULL;
-		return NULL;
+		if (resource_ret) *resource_ret=nullptr;
+		return nullptr;
 	}
 
 	anObject *obj=rtype->Find(name,resource_ret);
@@ -775,8 +792,8 @@ anObject *ResourceManager::FindResource(const char *name, const char *type, Reso
 		return obj;
 	}
 
-	if (resource_ret) *resource_ret=NULL;
-	return NULL;
+	if (resource_ret) *resource_ret=nullptr;
+	return nullptr;
 }
 
 Resource *ResourceManager::FindResource(anObject *obj, const char *type)
@@ -797,7 +814,7 @@ Resource *ResourceManager::FindResource(anObject *obj, const char *type)
  *
  * If menu != nullptr, then it should be something like "Menukey/Sub-menuKey/Sub-submenuKey".
  */
-int ResourceManager::AddResource(const char *type, //! If NULL, then use object->whattype()
+int ResourceManager::AddResource(const char *type, //! If nullptr, then use object->whattype()
 							anObject *object, anObject *ntopowner,
 							const char *name, const char *Name, const char *description, const char *file, LaxImage *icon,
 							bool builtin, const char *menu)
@@ -806,10 +823,10 @@ int ResourceManager::AddResource(const char *type, //! If NULL, then use object-
 	if (!object) return 1;
 	if (!type) type=object->whattype();
 
-	ResourceType *t=FindType(type);
+	ResourceType *t = FindType(type);
 	if (!t) {
-		 //resource type not found, add new type with NULL icon and description. Both names will be type
-		t = AddResourceType(type,type,NULL,NULL);
+		 //resource type not found, add new type with nullptr icon and description. Both names will be type
+		t = AddResourceType(type,type,nullptr,nullptr);
 	}
 
 	// TODO: pass in menu
@@ -834,23 +851,26 @@ int ResourceManager::RemoveResource(anObject *obj, const char *type)
 
 ResourceType *ResourceManager::FindType(const char *name)
 {
-	if (!name) return NULL;
+	if (!name) return nullptr;
 
 	for (int c=0; c<types.n; c++) {
 		if (!strcmp(name,types.e[c]->name)) return types.e[c];
 	}
-	return NULL;
+	return nullptr;
 }
 
-/*! If resource exists already, then just return that. Else create and add a new one.
+/*! If resource exists already, then just return that WITHOUT updating contents. Else create and add a new one.
  */
-ResourceType *ResourceManager::AddResourceType(const char *name, const char *Name, const char *description, LaxImage *icon)
+ResourceType *ResourceManager::AddResourceType(const char *name, const char *Name, const char *description, LaxImage *icon,
+											   ResourceCreateFunc create_func, ResourceFromFileFunc from_file)
 {
-	ResourceType *t=FindType(name);
+	ResourceType *t = FindType(name);
 	if (t) return t;
 	
 	 //add sorted
-	t=new ResourceType(name,Name,description,icon);
+	t = new ResourceType(name,Name,description,icon);
+	t->from_file_func = from_file;
+	t->creation_func = create_func;
 	int c;
 	for (c=0; c<types.n; c++) {
 		if (strcmp(name,types.e[c]->name)<0) break;
@@ -890,7 +910,7 @@ void ResourceManager::dump_out(FILE *f,int indent,int what,DumpContext *context)
 
 	char spc[indent+3]; memset(spc,' ',indent); spc[indent]='\0';
 
-	ResourceType *type=NULL;
+	ResourceType *type=nullptr;
 
 	for (int c=0; c<types.n; c++) {
 		if (types.e[c]->ignore) continue;
@@ -958,7 +978,7 @@ void ResourceManager::dump_out_list(ResourceType *type, FILE *f,int indent,int w
 Attribute *ResourceManager::dump_out_atts(Attribute *att,int what,DumpContext *context)
 {
 	cerr << " *** need to implement ResourceManager::dump_out_atts()!!"<<endl;
-	return NULL;
+	return nullptr;
 
 //	if (!att) att=new Attribute();
 //
@@ -984,7 +1004,7 @@ void ResourceManager::dump_in_atts(Attribute *att,int flag,DumpContext *context)
 
 		if (!strcmp(name,"type")) {
 			type=FindType(value);
-			if (!type) type=AddResourceType(value,value,NULL,NULL);
+			if (!type) type=AddResourceType(value,value,nullptr,nullptr);
 
 			for (int c2=0; c2<att->attributes.e[c]->attributes.n; c2++) {
 				name= att->attributes.e[c]->attributes.e[c2]->name;
@@ -1028,14 +1048,16 @@ void ResourceManager::dump_in_list_atts(ResourceType *type, Attribute *att,int f
         value=att->attributes.e[c]->value;
 
 		if (!strcmp(name,"sublist")) {
-			ResourceType *sub=new ResourceType(value,value,NULL,NULL);
+			ResourceType *sub=new ResourceType(value,value,nullptr,nullptr);
 			type->resources.push(sub);
 			sub->dec_count();
 			dump_in_list_atts(sub, att->attributes.e[c], flag,context);
 
 		} else if (!strcmp(name,"resource")) {
-			Resource *resource=new Resource;
-			int resourceok=0;
+			Resource *resource = new Resource;
+			resource->from_file_func = type->from_file_func;
+			resource->creation_func = type->creation_func;
+			int resourceok = 0;
 
 			for (int c2=0; c2<att->attributes.e[c]->attributes.n; c2++) {
 				name= att->attributes.e[c]->attributes.e[c2]->name;
@@ -1055,12 +1077,14 @@ void ResourceManager::dump_in_list_atts(ResourceType *type, Attribute *att,int f
 
 				} else if (!strcmp(name,"object")) {
 					resource->source_type = Resource::Floating;
-					anObject *newobject=NewObjectFromType(value);
+					anObject *newobject = NewObjectFromType(value);
 
 					if (dynamic_cast<DumpUtility*>(newobject)) {
 						dynamic_cast<DumpUtility*>(newobject)->dump_in_atts(att->attributes.e[c]->attributes.e[c2], flag,context);
-						resourceok=1;
-						resource->object=newobject;
+						resourceok = 1;
+						resource->object = newobject;
+						if (dynamic_cast<Resourceable*>(newobject))
+							dynamic_cast<Resourceable*>(newobject)->SetResourceOwner(resource);
 						if (!isblank(newobject->object_idstr)) makestr(resource->name,newobject->Id());
 
 					} else if (newobject) {
@@ -1093,7 +1117,7 @@ void ResourceManager::dump_in_list_atts(ResourceType *type, Attribute *att,int f
 
 anObject *ResourceManager::NewObjectFromType(const char *type)
 {
-	if (!objectfactory) return NULL;
+	if (!objectfactory) return nullptr;
 	return objectfactory->NewObject(type);
 }
 

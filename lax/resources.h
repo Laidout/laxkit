@@ -66,7 +66,8 @@ class Resourceable : virtual public anObject
 
 //----------------------------- Resource -------------------------------
 
-typedef anObject *(*ResourceCreateFunc)(Attribute *att);
+typedef anObject *(*ResourceCreateFunc)(Attribute *config);
+typedef anObject *(*ResourceFromFileFunc)(const char *file, Attribute *config);
 
 class Resource : virtual public anObject, virtual public Tagged
 {
@@ -85,11 +86,11 @@ class Resource : virtual public anObject, virtual public Tagged
 	int favorite; //0 for not fav, positive for order in a favorites list
 	enum SourceType {
 		BuiltIn = -1,
-		Floating,
-		FromFile,
-		FromConfig
+		Floating, // defined by what's in memory
+		FromFile, // defined by what's in file
+		FromConfig// defined by this->config
 	};
-	SourceType source_type; //0 for object on its own, 1 for object from file, 2 for object from config, -1 for built in (do not dump out)
+	SourceType source_type;
 	 //stand alone resource
 	 //temp resource: in use by a random object
 	 //resource scanned in from directory
@@ -97,14 +98,15 @@ class Resource : virtual public anObject, virtual public Tagged
 
 	char *objecttype;
 	Attribute *config; //when we are creating, not storing.
-	ResourceCreateFunc creation_func;
+	ResourceCreateFunc creation_func = nullptr;
+	ResourceFromFileFunc from_file_func = nullptr;
 	virtual anObject *Create();
 
 	Resource();
 	Resource(anObject *obj, anObject *nowner, const char *nname, const char *nName, const char *ndesc,  const char *nfile,LaxImage *nicon);
 	virtual ~Resource();
 	virtual const char *whattype() { return "Resource"; }
-
+	virtual anObject *GetObject();
 };
 
 
@@ -148,7 +150,8 @@ class ResourceType : public Resource
 	RefPtrStack<Resource> resources;
 	RefPtrStack<anObject> recent;
 
-	ResourceCreateFunc creation_func; //the default one, may be overridden for particular Resource objects
+	ResourceCreateFunc creation_func = nullptr; //the default one, may be overridden for particular Resource objects
+	ResourceFromFileFunc from_file_func = nullptr;
 
 	LaxImage *default_icon;
 
@@ -169,7 +172,7 @@ class ResourceType : public Resource
 	virtual int NumResources();
 	virtual int MakeNameUnique(char *&thename);
 
-	virtual MenuInfo *AppendMenu(MenuInfo *menu, bool do_favorites, int *numadded, int id_offset, int info);
+	virtual MenuInfo *AppendMenu(MenuInfo *menu, bool do_favorites, int *numadded, int id_offset, int info, anObject *current=nullptr);
 };
 
 
@@ -207,9 +210,10 @@ class ResourceManager : public anObject, public DumpUtility
 
 
 	 //type management
-	virtual MenuInfo *ResourceMenu(const char *type, bool include_recent, MenuInfo *menu, int id_offset, int info);
+	virtual MenuInfo *ResourceMenu(const char *type, bool include_recent, MenuInfo *menu, int id_offset, int info, anObject *current=nullptr);
 	virtual int NumResources(const char *type);
-	virtual ResourceType *AddResourceType(const char *name, const char *Name, const char *description, LaxImage *icon);
+	virtual ResourceType *AddResourceType(const char *name, const char *Name, const char *description, LaxImage *icon,
+				ResourceCreateFunc create_func = nullptr, ResourceFromFileFunc from_file = nullptr);
 	virtual ResourceType *FindType(const char *name);
 	virtual ResourceType *GetTypeFromIndex(int which) { if (which>=0 && which<types.n) return types.e[which]; return NULL; }
 	virtual int NumTypes() { return types.n; }
