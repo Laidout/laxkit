@@ -29,9 +29,9 @@
 #include <cctype>
 
 
-//template implementation
-#include <lax/lists.cc>
-#include <lax/refptrstack.cc>
+////template implementation
+//#include <lax/lists.cc>
+//#include <lax/refptrstack.cc>
 
 
 #include <iostream>
