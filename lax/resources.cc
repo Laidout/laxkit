@@ -552,6 +552,8 @@ int ResourceType::AddResource(anObject *nobject, anObject *ntopowner, const char
 
 	if (menu) cerr << "IMPLEMENT AddResource with extra menu!!!"<<endl;
 
+	if (isblank(nname)) nname = nobject->Id();
+
 	char *uniquename = newstr(nname);
 	MakeNameUnique(uniquename);
 	Resource *r = new Resource(nobject,ntopowner, uniquename, uniquename, ndescription,nfile,nicon);
@@ -565,14 +567,19 @@ int ResourceType::AddResource(anObject *nobject, anObject *ntopowner, const char
 	return 0;
 }
 
-/*! \todo *** should have progressive loading of submenus when resource list is file based and large.
- *
+/*! Construct a menu from resources.
+ * 
+ * The MenuItem::id of added elements are id_offset+(object_id of resource).
+ * 
  * If do_favorites, then append ONLY the favorites menu. Else append the whole menu.
- * The info field of normal items is -1. The info of favorite items is >=0 and represents placement in the list.
+ *
+ * If current != nullptr, then add each item as a checked item.
+ * 
+ * \todo *** should have progressive loading of submenus when resource list is file based and large.
  */
 MenuInfo *ResourceType::AppendMenu(MenuInfo *menu, bool do_favorites, int *numadded, int id_offset, int info, anObject *current)
 {
-	if (!menu) menu=new MenuInfo(name);
+	if (!menu) menu = new MenuInfo(name);
 	
 	Resource *r;
 	for (int c=0; c<resources.n; c++) {
@@ -796,6 +803,9 @@ anObject *ResourceManager::FindResource(const char *name, const char *type, Reso
 	return nullptr;
 }
 
+/*! Search for obj within the given type, and return the Resource container holding it if found.
+ * If not found, return null.
+ */
 Resource *ResourceManager::FindResource(anObject *obj, const char *type)
 {
 	ResourceType *rtype = FindType(type);
@@ -1077,7 +1087,10 @@ void ResourceManager::dump_in_list_atts(ResourceType *type, Attribute *att,int f
 
 				} else if (!strcmp(name,"object")) {
 					resource->source_type = Resource::Floating;
-					anObject *newobject = NewObjectFromType(value);
+
+					anObject *newobject = nullptr;
+					if (type->creation_func) newobject = type->creation_func(nullptr);
+					if (!newobject && objectfactory) newobject = objectfactory->NewObject(value);
 
 					if (dynamic_cast<DumpUtility*>(newobject)) {
 						dynamic_cast<DumpUtility*>(newobject)->dump_in_atts(att->attributes.e[c]->attributes.e[c2], flag,context);
@@ -1117,6 +1130,11 @@ void ResourceManager::dump_in_list_atts(ResourceType *type, Attribute *att,int f
 
 anObject *ResourceManager::NewObjectFromType(const char *type)
 {
+	if (!type) return nullptr;
+	ResourceType *typ = FindType(type);
+	anObject *obj = nullptr;
+	if (typ && typ->creation_func) obj = typ->creation_func(nullptr);
+	if (obj) return obj;
 	if (!objectfactory) return nullptr;
 	return objectfactory->NewObject(type);
 }
