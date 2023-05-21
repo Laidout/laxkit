@@ -73,6 +73,7 @@ BezNetInterface::BezNetInterface(anInterface *nowner, int nid, Displayer *ndp)
 	if (!settings) {
 		settings = new BezNetToolSettings();
 		settingsObject.SetObject(settings, false);
+		settings->dec_count();
 	}
 }
 
