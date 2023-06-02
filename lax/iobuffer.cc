@@ -398,6 +398,7 @@ int IOBuffer::CloseAndUnlock()
 
 /*! Open file_name as a file.
  * return 0 for success, or nonzero error.
+ * `mode` is passed to fopen(), so usually it will be "w" or "r".
  */
 int IOBuffer::OpenFile(const char *file_name, const char *mode)
 {
