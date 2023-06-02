@@ -596,7 +596,7 @@ int bez_intersect_bez(const flatpoint &p1_1, const flatpoint &c1_1, const flatpo
 	bez_bbox_simple(p1_1, c1_1, c1_2, p1_2, &b1);
 	bez_bbox_simple(p2_1, c2_1, c2_2, p2_2, &b2);
 
-	DBG cerr << "bez_intersect: t1: "<<t1<<"  t2: "<<t2<<"  tdiv: "<<tdiv<<"  depth: "<<depth<<endl;
+	//DBG cerr << "bez_intersect: t1: "<<t1<<"  t2: "<<t2<<"  tdiv: "<<tdiv<<"  depth: "<<depth<<endl;
 	if (!b1.intersect(&b2, false)) return num_ret;
 
 	if (b1.boxwidth() <= threshhold && b1.boxheight() < threshhold && b2.boxwidth() <= threshhold && b2.boxheight() < threshhold) {
