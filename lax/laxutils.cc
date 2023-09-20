@@ -45,7 +45,7 @@ using namespace std;
 #include <lax/displayer-cairo.h>
 #endif
 
-#ifdef LAX_USES_XLIB
+#ifdef LAX_USES_XLIB_RENDER
 #include <lax/displayer-xlib.h>
 #endif
 
@@ -85,7 +85,7 @@ Displayer *newDisplayer_cairo(aDrawable *w)
 { return new DisplayerCairo(dynamic_cast<anXWindow*>(w),NULL); }
 #endif 
 
-#ifdef LAX_USES_XLIB
+#ifdef LAX_USES_XLIB_RENDER
 #ifdef LAX_USES_IMLIB
 Displayer *newDisplayer_xlib(aDrawable *w)
 { return new DisplayerXlib(w); }
@@ -146,7 +146,7 @@ int SetNewDisplayerFunc(const char *backend)
 
         } else if (!strcmp(backend,"xlib")) {
 
-#ifdef LAX_USES_XLIB
+#ifdef LAX_USES_XLIB_RENDER
 #ifdef LAX_USES_IMLIB
             if (!func) func=newDisplayer_xlib;
 #endif

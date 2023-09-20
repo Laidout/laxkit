@@ -21,12 +21,16 @@
 //
 
 
+//--------------------------------
+// THIS FILE IS DEPRECATED !!!!
+//--------------------------------
+
+
 #include <lax/displayer-xlib.h>
 
 #ifdef LAX_USES_IMLIB
 
 
-#include <lax/lists.cc>
 #include <lax/fontmanager-xlib.h>
 #include <lax/doublebbox.h>
 #include <lax/transformmath.h>

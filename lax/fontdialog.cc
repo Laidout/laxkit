@@ -302,7 +302,7 @@ void FontLayersWindow::Refresh()
 	dp->drawline(xx+boxwidth/2,win_h/2-boxwidth*.3, xx+boxwidth/2,win_h/2+boxwidth*.3);
 
 	 //draw layers
-	char str[10];
+	char str[12];
 	int i;
 	for (int c=numlayers; c>0; c--) {
 		xx-=boxwidth;

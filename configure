@@ -24,10 +24,10 @@ EXTRA_LIBS=
 OPTIONAL=
 OPTIONALLIBS=
 
- #USEXLIB to compile functions for the xlib rendering backend
-USEXLIB="yes"
+#USE_XLIB_RENDER (previously USEXLIB) to compile functions for the xlib rendering backend
+USE_XLIB_RENDER="no"
 USECAIRO="yes"
-USEIMLIB="build"
+USEIMLIB="not build"
 USEGRAPHICSMAGICK="build"
 USEXINPUT2="yes"
 USEGL="yes"
@@ -295,6 +295,10 @@ fi
 #
 # Set up extra libraries
 #
+if [ x$USEIMLIB != x ] ; then
+	EXTRA_LIBS="$EXTRA_LIBS `imlib2-config --libs`";
+fi
+
 if [ x$USEGRAPHICSMAGICK != x ] ; then
 	EXTRA_CFLAGS="$EXTRA_CFLAGS `pkg-config --cflags GraphicsMagick++`";
 	EXTRA_LIBS="$EXTRA_LIBS `pkg-config --libs GraphicsMagick++`";

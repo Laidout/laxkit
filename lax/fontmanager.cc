@@ -41,7 +41,7 @@ using namespace std;
 #include <lax/fontmanager-cairo.h>
 #endif 
 
-#ifdef LAX_USES_XLIB
+#ifdef LAX_USES_XLIB_RENDER
 #include <lax/fontmanager-xlib.h>
 #endif
 
@@ -1349,7 +1349,7 @@ int SetNewFontManagerFunc(const char *backend)
 
 		} else if (!strcmp(backend,"xlib")) {
 
-#ifdef LAX_USES_XLIB
+#ifdef LAX_USES_XLIB_RENDER
 			if (!func) func=newFontManager_xlib;
 #endif
 			if (!func) {

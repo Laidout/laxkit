@@ -19,6 +19,13 @@
 //
 //    Copyright (C) 2012 by Tom Lechner
 //
+
+
+//--------------------------------
+// THIS FILE IS DEPRECATED !!!!
+//--------------------------------
+
+
 #ifndef _LAX_DISPLAYER_XLIB_H
 #define _LAX_DISPLAYER_XLIB_H
 

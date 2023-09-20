@@ -21,9 +21,15 @@
 //
 
 
+//--------------------------------
+// THIS FILE IS DEPRECATED !!!!
+//--------------------------------
+
+
+
 #include <lax/configured.h>
 
-#ifdef LAX_USES_XLIB
+#ifdef LAX_USES_XLIB_RENDER
 
 
 #include <lax/fontmanager-xlib.h>
@@ -31,8 +37,6 @@
 #include <lax/anxapp.h>
 #include <cstdio>
 
-#include <lax/lists.cc> // this is necessary to instantiate templates
-#include <lax/refptrstack.cc>
 
 static const char hexdigits[17]="0123456789ABCDEF";
 
@@ -398,5 +402,5 @@ LaxFont *FontManagerXlib::MakeFont(const char *family, const char *style, double
 
 } // namespace Laxkit
 
-#endif //LAX_USES_XLIB
+#endif //LAX_USES_XLIB_RENDER
 

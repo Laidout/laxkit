@@ -23,10 +23,15 @@
 #define _LAX_FONTMANAGER_XLIB_H
 
 
+//--------------------------------
+// THIS FILE IS DEPRECATED !!!!
+//--------------------------------
+
+
 #include <lax/configured.h>
 
 
-#ifdef LAX_USES_XLIB
+#ifdef LAX_USES_XLIB_RENDER
 
 
 #include <X11/Xlib.h>
@@ -99,6 +104,6 @@ FontManager *newFontManager_xlib();
 
 } //namespace Laxkit
 
-#endif //LAX_USES_XLIB
+#endif //LAX_USES_XLIB_RENDER
 #endif
 
