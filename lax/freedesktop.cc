@@ -1254,6 +1254,7 @@ char *freedesktop_thumbnail(const char *file, char which)
 	delete[] h;
 	if (!str) cerr <<"**** ERROR!! null str here but there shouldn't be!!"<<endl;
 
+	//TODO: MD5() is deprecated, need to find a suitable replacement
 	MD5((unsigned char *)str, strlen(str), md);
 	h=strrchr(pname,'/')+1;
 	for (int c2=0; c2<16; c2++) {
