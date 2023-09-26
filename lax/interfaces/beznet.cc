@@ -25,6 +25,7 @@
 #include <lax/interfaces/somedatafactory.h>
 
 
+#include <lax/vectors-out.h>
 #include <lax/debug.h>
 
 
@@ -468,6 +469,11 @@ int BezNetData::DefinePolygon(int num_points, ...)
 }
 
 
+/*! Search for an existing edge that has endpoints v1 and v2. If the edge runs
+ * from v1 to v2o then dir = 1, else dir = -1.
+ * 
+ * If no such edge exists, return nullptr, and dir is unchanged.
+ */
 HalfEdge *BezNetData::FindEdge(HalfEdgeVertex *v1, HalfEdgeVertex *v2, int *dir)
 {
 	for (int c=0; c<edges.n; c++) {
@@ -500,6 +506,7 @@ int BezNetData::DefinePolygon(Laxkit::NumStack<int> &points)
 	HalfEdge *previous = nullptr;
 
 	//todo: *** check winding, we want all faces CCW
+	DBGM("DefinePolygon")
 
 	BezFace *face = new BezFace();
 
@@ -508,21 +515,27 @@ int BezNetData::DefinePolygon(Laxkit::NumStack<int> &points)
     	HalfEdgeVertex *v1 = vertices.e[points[c]];
     	HalfEdgeVertex *v2 = vertices.e[points[(c+1)%points.n]];
 
+    	DBGL("connect edge "<<points[c]<<":"<<v1->p<<" to "<<points[(c+1)%points.n]<<":"<<v2->p)
+
     	HalfEdge *edge = FindEdge(v1, v2, &dir);
+    	if (edge && dir == -1) edge = edge->twin;
+    	// so now edge is either null, or starts at v1 and goes to v2.
+    	// for our purposes, edge->face MUST be null
 
     	// edge will be one of:
     	// - null: need to create a new edge, attach to vertices
     	// - half: presumably we will add face to the empty half
     	// - full: bad! trying to add to occupied edge!
     	if (!edge || (edge->face == nullptr && edge->twin->face == nullptr)) {
-    		//we had either empty edge or no edge
+    		//we had either empty edge or null edge
     		if (!edge) {
     			edge = new HalfEdge();
     			edge->twin = new HalfEdge();
+    			edge->twin->twin = edge;
     			edges.push(edge);
     		}
 
-    		//now we have an empty edge, need to define things on it
+    		//now we have a non-null, empty edge, need to define things on it
     		edge->face = face;
     		edge->vertex = v1;
     		if (v1->halfedge == nullptr) v1->halfedge = edge;
@@ -542,27 +555,33 @@ int BezNetData::DefinePolygon(Laxkit::NumStack<int> &points)
     		if (c == 0) first = edge;
 
     	} else if (edge->face != nullptr && edge->twin->face == nullptr)  {
-    		//assume we are filling in the opposite edge.. ***should probably sanity check way more in here
-    		edge->twin->face = face;
-    		edge->twin->vertex = v2;
+    		DBGE("Ahhh!!! trying to add a face to an occupied edge, no!!!!")
+    		//*** clean up how!?!
+    		delete face;
+    		return 1;
+    		// //assume we are filling in the twin face.. ***should probably sanity check way more in here
+    		// edge->twin->face = face;
+    		// edge->twin->vertex = v2;
 
-    		if (c == points.n-1) {
-    			edge->twin->next = first;
-    			first->prev = edge->twin;
-    		}
+    		// if (c == points.n-1) {
+    		// 	edge->twin->next = first;
+    		// 	first->prev = edge->twin;
+    		// }
 
-    		edge->twin->prev = previous;
-    		if (previous) previous->next = edge->twin;
+    		// edge->twin->prev = previous;
+    		// if (previous) previous->next = edge->twin;
 
-    		previous = edge->twin;
-    		if (c == 0) first = edge->twin;
+    		// previous = edge->twin;
+    		// if (c == 0) first = edge->twin;
 
     	} else if (edge->face == nullptr && edge->twin->face != nullptr)  {
-    		//assume we are filling in the opposite edge.. ***should probably sanity check way more in here
+    		//assume we are filling in the edge's face.. ***should probably sanity check way more in here
     		edge->face   = face;
-    		edge->vertex = v1;
-    		edge->prev   = previous;
-    		if (previous) previous->next = edge;
+    		if (edge->vertex == nullptr) edge->vertex = v1;
+
+			edge->prev   = previous;
+			if (previous) previous->next = edge;
+
     		if (c == points.n-1) {
     			edge->twin->next = first;
     			first->prev = edge->twin;
@@ -580,6 +599,7 @@ int BezNetData::DefinePolygon(Laxkit::NumStack<int> &points)
     	}
     }
 
+    face->halfedge = first;
 	faces.push(face);
     return 0;
 }

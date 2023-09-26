@@ -367,15 +367,17 @@ BezNetData *BezNetInterface::newData()
 		obj = new BezNetData();
 
 		VoronoiData vdata;
-		//vdata.CreateRandomPoints(10, 0, 0,2, 0,2);
-		vdata.AddPoint(flatpoint(2,2));
-		vdata.AddPoint(flatpoint(3,2));
-		vdata.AddPoint(flatpoint(4,2));
-		vdata.AddPoint(flatpoint(3,3));
-		//vdata.AddPoint(flatpoint(3,1));
+		vdata.CreateRandomPoints(10, 0, 0,2, 0,2);
+		
+		// vdata.AddPoint(flatpoint(2,2));
+		// vdata.AddPoint(flatpoint(3,2));
+		// vdata.AddPoint(flatpoint(4,2));
+		// vdata.AddPoint(flatpoint(3,3));
+		// vdata.AddPoint(flatpoint(3,1));
+		
 		vdata.Rebuild();
-		//obj = BezNetData::FromVoronoi(&vdata);
-		obj = BezNetData::FromDelaunay(&vdata);
+		obj = BezNetData::FromVoronoi(&vdata);
+		//obj = BezNetData::FromDelaunay(&vdata);
 	}
 	return obj;	
 }

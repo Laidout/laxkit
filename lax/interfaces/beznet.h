@@ -63,7 +63,7 @@ public:
 	HalfEdge *next = nullptr; // HalfEdge objects allocated in BezEdge objects, which are in BezNetData::edges
 	HalfEdge *prev = nullptr;
 	//BezEdge  *edge = nullptr; // these will be allocated in BezNetData::edges
-	BezFace  *face = nullptr; // face that's on the "primary" side. *** define primary!!!
+	BezFace  *face = nullptr; // face of this edge. twin will have separate face. only two faces per total edge allowed.
 	int tick       = 0;
 
 	HalfEdge *NextAroundVertex(HalfEdge **twin_ret = nullptr);
@@ -104,7 +104,7 @@ public:
 class BezFace
 {
 public:
-	HalfEdge *halfedge = nullptr; // initial edge for face definition for which this BezFace is the target face for halfedge.
+	HalfEdge *halfedge = nullptr; // link to initial edge for face definition for which this BezFace is the target face for halfedge.
 
 	int tick = 0;
 	int info = 0;
@@ -138,6 +138,8 @@ enum class PathOp : int {
 class BezNetData : virtual public LaxInterfaces::SomeData
 {
 public:
+	// actual allocation for vertices, edges and faces in the net. Internal links in these things, such as the next edge
+	// in a face, all point to something allocated here.
 	Laxkit::PtrStack<HalfEdgeVertex> vertices;
 	Laxkit::PtrStack<HalfEdge> edges;
 	Laxkit::PtrStack<BezFace> faces;
@@ -172,6 +174,8 @@ public:
 
 	PathsData *ResolveRegion(int face_a, PathOp op, int face_b, PathsData *existing);
 
+
+	// creation functions:
 	static BezNetData *FromDelaunay(VoronoiData *data);
 	static BezNetData *FromVoronoi(VoronoiData *data);
 };
