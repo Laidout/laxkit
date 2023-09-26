@@ -574,7 +574,7 @@ bool bez_self_intersection(const flatpoint &p1, const flatpoint &c1, const flatp
  * 
  * t_ret returns t values for the first segment.
  *
- * Strategy is to use de Casteljau's algorithm to repeatedly subdivide, and for each overlapping subdivision,
+ * Strategy is to use de Casteljau's algorithm to repeatedly subdivide in half, and for each overlapping subdivision,
  * keep going until bbox size is less that threshhold. It is assumed that really small bbox corresponds to 
  * an actual intersection.
  *
@@ -596,33 +596,39 @@ int bez_intersect_bez(const flatpoint &p1_1, const flatpoint &c1_1, const flatpo
 	bez_bbox_simple(p1_1, c1_1, c1_2, p1_2, &b1);
 	bez_bbox_simple(p2_1, c2_1, c2_2, p2_2, &b2);
 
-	//DBG cerr << "bez_intersect: t1: "<<t1<<"  t2: "<<t2<<"  tdiv: "<<tdiv<<"  depth: "<<depth<<endl;
-	if (!b1.intersect(&b2, false)) return num_ret;
+	//DBG cerr << "box1 x:"<<b1.minx<<','<<b1.maxx<<" y:"<<b1.miny<<','<<b1.maxy<<"box2 x:"<<b2.minx<<','<<b2.maxx<<" y:"<<b2.miny<<','<<b2.maxy<<endl;
+	//DBG cerr << "bez_intersect: t1: "<<t1<<"  t2: "<<t2<<"  tdiv: "<<tdiv<<"  depth: "<<depth<<"  num: "<<num_ret<<endl;
+	if (!b1.intersect(&b2, false)) {
+		//DBG cerr << "-"<<endl;
+		return num_ret;
+	}
 
 	if (b1.boxwidth() <= threshhold && b1.boxheight() < threshhold && b2.boxwidth() <= threshhold && b2.boxheight() < threshhold) {
 		//found intersection
 		int c = 0;
 		flatpoint p = (p1_1+p1_2)/2;
-		DBG cerr << endl;
+		//DBG cerr << endl;
 		for (c=0; c<num_ret; c++) {
 			double dd = norm(point_ret[c] - p);
 			//DBG cerr << "bez  compare near point "<<c<<": "<<p<<", d: "<<dd<<", threshholds: "<<dd/threshhold<<endl;
-			if (dd < 8*threshhold) break; //pretty close to duplicate point
+			if (dd < 8*threshhold) break; //pretty close to an existing intersection point
 		}
-		if (c == num_ret) {
+		if (c == num_ret) { // computed point does not match any currently found, so append to list
 			int i = 0;
 			while (i < num_ret && t1_ret[i] <= t1) i++;
 			if (i < num_ret) {
+				//DBG cerr <<"--inserting intersection: t1: "<<t1<<" t2: "<<t2<<" pt: "<<p<<endl;
 				for (int cc = num_ret; cc > i; cc--) {
-					point_ret[num_ret] = point_ret[cc];
-					t1_ret[num_ret] = t1_ret[cc];
-					t2_ret[num_ret] = t2_ret[cc];
+					point_ret[num_ret] = point_ret[cc-1];
+					t1_ret[num_ret] = t1_ret[cc-1];
+					t2_ret[num_ret] = t2_ret[cc-1];
 				}
 
 				point_ret[i] = p;
 				t1_ret[i] = t1;
 				t2_ret[i] = t2;
 			} else {
+				//DBG cerr <<"--adding intersection: t1: "<<t1<<" t2: "<<t2<<" pt: "<<p<<endl;
 				point_ret[num_ret] = p;
 				t1_ret[num_ret] = t1;
 				t2_ret[num_ret] = t2;
