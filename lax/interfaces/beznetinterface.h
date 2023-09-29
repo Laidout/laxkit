@@ -39,12 +39,14 @@ class BezNetToolSettings : public Laxkit::Resourceable
 	double default_linewidth;
 	Laxkit::ScreenColor default_vertex_color;
 	Laxkit::ScreenColor default_edge_color;
+	Laxkit::ScreenColor default_face_color;
 	int curpoint;
 
 	BezNetToolSettings()
 	{
 		default_vertex_color.rgbf(1.0,0.,0.);
 		default_edge_color.rgbf(0.,0.,1.);
+		default_edge_color.rgbf(1.0, 1.0, 1.0, 0.0); //transparent faces
 	}
 
 	virtual ~BezNetToolSettings();
@@ -75,8 +77,10 @@ class BezNetInterface : public anInterface
 
 	BezNetToolSettings *settings;
 
-	int hover;
-	virtual int scan(int x, int y, unsigned int state);
+	int hover = -1;
+	int hover_type = 0;
+
+	virtual int scan(double x, double y, unsigned int state, int *type_ret);
 	virtual int OtherObjectCheck(int x,int y,unsigned int state);
 
 	virtual int send();
@@ -87,6 +91,9 @@ class BezNetInterface : public anInterface
 		BEZNET_RemoveEdge,
 		BEZNET_SplitEdge,
 		BEZNET_BuildArea,
+		BEZNET_Vertex,
+		BEZNET_Egde,
+		BEZNET_Face,
 		BEZNET_MAX
 	};
 

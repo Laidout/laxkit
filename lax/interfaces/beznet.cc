@@ -39,13 +39,14 @@ namespace LaxInterfaces {
 // Half edges make building faces from edges very easy, and explicitly encodes order of lines around vertices.
 
 
-//-------------------------- Funcs -------------------------------
+//-------------------------- Creation Funcs -------------------------------
 
 /*! Static function to convert the Delaunay triangles of data to a BezNetData.
  */
 BezNetData *BezNetData::FromDelaunay(VoronoiData *data)
 {
-	BezNetData *net = new BezNetData();
+	BezNetData *net = dynamic_cast<BezNetData*>(somedatafactory()->NewObject(LAX_BEZNETDATA));
+	if (!net) net = new BezNetData();
 	net->m(data->m());
 
 	for (int c = 0; c < data->points.n; c++) {
@@ -64,7 +65,8 @@ BezNetData *BezNetData::FromDelaunay(VoronoiData *data)
  */
 BezNetData *BezNetData::FromVoronoi(VoronoiData *data)
 {
-	BezNetData *net = new BezNetData();
+	BezNetData *net = dynamic_cast<BezNetData*>(somedatafactory()->NewObject(LAX_BEZNETDATA));
+	if (!net) net = new BezNetData();
 	net->m(data->m());
 
 	NumStack<flatpoint> vertices;
@@ -98,6 +100,25 @@ BezNetData *BezNetData::FromVoronoi(VoronoiData *data)
 	return net;
 }
 
+
+BezNetData *BezNetData::FromPath(PathsData *data)
+{
+	if (!data || data->IsEmpty()) return nullptr;
+
+	BezNetData *net = dynamic_cast<BezNetData*>(somedatafactory()->NewObject(LAX_BEZNETDATA));
+	if (!net) net = new BezNetData();
+
+	// for each subpath, cut on self intersections
+	// Add and intersect each subsequent subpath
+
+
+	DBGE("IMPLEMENT ME!!");
+
+	return net;
+}
+
+
+//-------------------------- Helper Funcs -------------------------------
 
 /*! Face info matching. face_a and face_b are bit masks.
  */
@@ -274,8 +295,9 @@ void BezNetData::FindBBox()
 SomeData *BezNetData::duplicate(SomeData *dup)
 {
 	//FIXME! ***
-	//BezNetData *obj = dynamic_cast<BezNetData*>(somedatafactory()->NewObject(LAX_BEZNETDATA));
-	return new BezNetData();
+	BezNetData *net = dynamic_cast<BezNetData*>(somedatafactory()->NewObject(LAX_BEZNETDATA));
+	if (!net) net = new BezNetData();
+	return net;
 }
 
 /*! Set all face->tick to 0. These are used for stepping over all faces without repeating.
@@ -409,7 +431,7 @@ int BezNetData::RemoveEdge(HalfEdge *at_edge)
 }
 
 
-/*! Add a point to the vertices list, with assumption that it is not connected to anything.
+/*! Add a point to the vertices list, with assumption that it is not connected to anything, near very near to existing points.
  */
 int BezNetData::AddVertex(flatpoint p)
 {
@@ -533,6 +555,7 @@ int BezNetData::DefinePolygon(Laxkit::NumStack<int> &points)
     			edge->twin = new HalfEdge();
     			edge->twin->twin = edge;
     			edges.push(edge);
+    			edges.push(edge->twin);
     		}
 
     		//now we have a non-null, empty edge, need to define things on it

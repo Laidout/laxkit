@@ -62,7 +62,6 @@ public:
 	HalfEdge *twin = nullptr; // note, unlike "pure" implementations, we always have twins, but twin will have null face if non-manifold
 	HalfEdge *next = nullptr; // HalfEdge objects allocated in BezEdge objects, which are in BezNetData::edges
 	HalfEdge *prev = nullptr;
-	//BezEdge  *edge = nullptr; // these will be allocated in BezNetData::edges
 	BezFace  *face = nullptr; // face of this edge. twin will have separate face. only two faces per total edge allowed.
 	int tick       = 0;
 
@@ -178,6 +177,7 @@ public:
 	// creation functions:
 	static BezNetData *FromDelaunay(VoronoiData *data);
 	static BezNetData *FromVoronoi(VoronoiData *data);
+	static BezNetData *FromPath(PathsData *data);
 };
 
 

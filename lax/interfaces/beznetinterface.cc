@@ -420,9 +420,28 @@ int BezNetInterface::OtherObjectCheck(int x,int y,unsigned int state)
 }
 
 
-int BezNetInterface::scan(int x, int y, unsigned int state)
+int BezNetInterface::scan(double x, double y, unsigned int state, int *type_ret)
 {
-	//if (on something) return BEZNET_Something;
+	*type_ret = BEZNET_None;
+
+	if (!data) return BEZNET_None;
+
+	flatpoint p = screentoreal(x,y);
+	double closest_dist = 100000000.0;
+	int closest_index = -1;
+
+	for (int c=0; c<data->vertices.n; c++) {
+		double dist = (data->vertices.e[c]->p - p).norm();
+		if (dist < closest_dist) {
+			closest_index = c;
+			closest_dist = dist;
+		}
+	}
+
+	if (closest_index >= 0) {
+		*type_ret = BEZNET_Vertex;
+		return closest_index;
+	}
 
 	return BEZNET_None;
 }
@@ -430,9 +449,11 @@ int BezNetInterface::scan(int x, int y, unsigned int state)
 
 int BezNetInterface::LBDown(int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d) 
 {
-	int nhover = scan(x,y,state);
-	if (nhover != hover) {
+	int nhover_type = 0;
+	int nhover = scan(x,y,state, &nhover_type);
+	if (nhover != hover || nhover_type != hover_type) {
 		hover = nhover;
+		hover_type = nhover_type;
 		needtodraw = 1;
 	}
 
@@ -516,20 +537,22 @@ int BezNetInterface::LBUp(int x,int y,unsigned int state, const Laxkit::LaxMouse
 
 int BezNetInterface::MouseMove(int x,int y,unsigned int state, const Laxkit::LaxMouse *d)
 {
-//	if (!buttondown.any()) {
-//		// update any mouse over state
-//		int nhover = scan(x,y,state);
-//		if (nhover != hover) {
-//			hover=nhover;
-//			buttondown.down(d->id,LEFTBUTTON,x,y, nhover);
-//
-//			PostMessage(_("Something based on new hover value"));
-//			needtodraw=1;
-//			return 0;
-//		}
-//		return 1;
-//	}
-//
+	if (!buttondown.any()) {
+		// update any mouse over state
+		int nhover_type = 0;
+		int nhover = scan(x,y,state, &nhover_type);
+		if (nhover != hover || nhover_type != hover_type) {
+			hover = nhover;
+			hover_type = nhover_type;
+			buttondown.down(d->id,LEFTBUTTON,x,y, nhover, nhover_type);
+
+			PostMessage2(_("Index %d type %d"), hover, nhover_type);
+			needtodraw = 1;
+			return 0;
+		}
+		return 1;
+	}
+
 //	//else deal with mouse dragging...
 //
 //	int oldx, oldy;
