@@ -280,6 +280,13 @@ Quaternion operator/(Quaternion a,double r);  /* divide y double */
 Quaternion operator/=(Quaternion &a,double r);
 Quaternion operator*(Quaternion a,Quaternion b);
 
+//------------------- Misc vector creation -----------------
+
+int ComputeCatenary3D(const spacevector &P1, const spacevector &P2, double arc_length, spacevector *pts_ret, int samples = 5,
+		double *a_ret = nullptr, double *p_ret = nullptr, double *q_ret = nullptr);
+int ComputeCatenary2D(const flatvector &P1, const flatvector &P2, double arc_length, flatvector *pts_ret, int samples = 5,
+		double *a_ret = nullptr, double *p_ret = nullptr, double *q_ret = nullptr);
+
 } //namespace Laxkit
 
 #endif

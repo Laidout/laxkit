@@ -564,8 +564,8 @@ int operator==(Basis b1,Basis b2)
 //! Transform point v to coordinates in basis.
 spacepoint Basis::transformTo(spacepoint &v)
 {
-	spacevector p=(v-p);
-	return spacevector(p*x/(x*x),p*y/(y*y),p*z/(z*z));
+	spacevector pp = (v-p);
+	return spacevector(pp*x/(x*x), pp*y/(y*y), pp*z/(z*z));
 }
 
 //! Transform point v to coordinates from basis.
@@ -1779,6 +1779,195 @@ Quaternion Quaternion::conjugate()
 	return Quaternion(-x,-y,-z,w);
 }
 
+//------------------- Misc vector creation -----------------
+
+/*! Compute a catenary curve with endpoints P1 and P2, with Y up.
+ * Returns a,p,q,points. You can compute points yourself with: y = a * cosh((x - p)/a) + q + p1.y
+ * 
+ * pts_ret must have been allocated to hold at least samples spacevectors.
+ * 
+ * Return value is just samples.
+ */
+int ComputeCatenary3D(const spacevector &P1, const spacevector &P2, double arc_length, spacevector *pts_ret, int samples,
+		double *a_ret, double *p_ret, double *q_ret)
+{
+	spacevector p1 = P1;
+	spacevector p2 = P2;
+	
+	// solve based on this: http://www.alanzucconi.com/2020/12/13/catenary-2/
+	// read more here: https://en.wikipedia.org/wiki/Catenary#Determining_parameters
+	
+	// make sure p1 is lower than p2
+	//bool reversed = false;
+	if (p2.y < p1.y) {
+		spacevector pp = p1;
+		p1 = p2;
+		p2 = pp;
+		//reversed = true;
+	}
+		
+	spacevector dir = p2 - p1;
+	dir.y = 0;
+	
+	//  we are looking for a function:
+	//    y = a * cosh((x-p) / a) + q
+	//  with end points (x1, y1) and (x2, y2) that correspond to p1 and p2
+	double x1 = 0.0;
+	double x2 = dir.norm();
+	double y1 = p1.y;
+	double y2 = p2.y;
+	
+	double min_dist = (p2-p1).norm() * 1.0001;
+	double l = (arc_length > min_dist ? arc_length : min_dist);
+	
+	double h = x2 - x1;
+	double v = y2 - y1;
+	double sqrtllvv = sqrt(l*l - v*v);
+
+	// Find initial a range to search within
+	int i = 0;
+	double a_min = 0.0;
+	double a_max = 1.0;
+	
+	// grow outer bound
+	while (i < 32 and sqrtllvv < 2 * a_max * sinh(h / (2 * a_max))) {
+		i += 1;
+		a_min = a_max;
+		a_max *= 2;
+	}
+
+	// Binary search for "a" parameter
+	int max_search_depth = 11;
+	i += max_search_depth;
+
+	double a;
+
+	while (i > 0) {
+		i -= 1;
+		a = (a_min + a_max) * 0.5;
+		if (sqrtllvv < 2 * a * sinh(h / (2 * a)))
+			a_min = a;
+		else
+			a_max = a;
+	}
+
+	double p = (h - a * log((l + v) / (l - v))) / 2;
+	double q = (v - l * (1 / tanh(h / (2 * a)))) / 2;
+	
+	
+	// Construct the curve
+	dir.normalize();
+	//spacevector dir_t = spacevector(-dir.z, 0, dir.x);
+	double dx = h / (samples-1);
+	double x = 0.0;
+	
+	for (int ii = 0; ii < samples; ii++) {
+		double y = a * cosh((x - p)/a) + q + p1.y;
+
+		pts_ret[ii] = (x * dir + spacevector(p1.x, y, p1.z));
+		x += dx;
+	}
+	
+	if (a_ret) *a_ret = a;
+	if (p_ret) *p_ret = p;
+	if (q_ret) *q_ret = q;
+
+	return samples;
+}
+
+
+/*! Compute a catenary curve with endpoints P1 and P2, with Y up.
+ * Returns a,p,q,points. You can compute points yourself with: y = a * cosh((x - p)/a) + q + p1.y
+ * 
+ * pts_ret must have been allocated to hold at least samples vectors.
+ * 
+ * Return value is just samples.
+ */
+int ComputeCatenary2D(const flatvector &P1, const flatvector &P2, double arc_length, flatvector *pts_ret, int samples,
+		double *a_ret, double *p_ret, double *q_ret)
+{
+	flatvector p1 = P1;
+	flatvector p2 = P2;
+	
+	// solve based on this: http://www.alanzucconi.com/2020/12/13/catenary-2/
+	// read more here: https://en.wikipedia.org/wiki/Catenary#Determining_parameters
+	
+	// make sure p1 is lower than p2
+	//bool reversed = false;
+	if (p2.y < p1.y) {
+		flatvector pp = p1;
+		p1 = p2;
+		p2 = pp;
+		//reversed = true;
+	}
+		
+	flatvector dir = p2 - p1;
+	dir.y = 0;
+	
+	//  we are looking for a function:
+	//    y = a * cosh((x-p) / a) + q
+	//  with end points (x1, y1) and (x2, y2) that correspond to p1 and p2
+	double x1 = 0.0;
+	double x2 = dir.norm();
+	double y1 = p1.y;
+	double y2 = p2.y;
+	
+	double min_dist = (p2-p1).norm() * 1.0001;
+	double l = (arc_length > min_dist ? arc_length : min_dist);
+	
+	double h = x2 - x1;
+	double v = y2 - y1;
+	double sqrtllvv = sqrt(l*l - v*v);
+
+	// Find initial a range to search within
+	int i = 0;
+	double a_min = 0.0;
+	double a_max = 1.0;
+	
+	// grow outer bound
+	while (i < 32 and sqrtllvv < 2 * a_max * sinh(h / (2 * a_max))) {
+		i += 1;
+		a_min = a_max;
+		a_max *= 2;
+	}
+
+	// Binary search for "a" parameter
+	int max_search_depth = 11;
+	i += max_search_depth;
+
+	double a;
+
+	while (i > 0) {
+		i -= 1;
+		a = (a_min + a_max) * 0.5;
+		if (sqrtllvv < 2 * a * sinh(h / (2 * a)))
+			a_min = a;
+		else
+			a_max = a;
+	}
+
+	double p = (h - a * log((l + v) / (l - v))) / 2;
+	double q = (v - l * (1 / tanh(h / (2 * a)))) / 2;
+	
+	
+	// Construct the curve
+	dir.normalize();
+	double dx = h / (samples-1);
+	double x = 0.0;
+	
+	for (int ii = 0; ii < samples; ii++) {
+		double y = a * cosh((x - p)/a) + q + p1.y;
+
+		pts_ret[ii] = flatvector(x + p1.x, y);
+		x += dx;
+	}
+	
+	if (a_ret) *a_ret = a;
+	if (p_ret) *p_ret = p;
+	if (q_ret) *q_ret = q;
+
+	return samples;
+}
 
 /*! @} */
 
