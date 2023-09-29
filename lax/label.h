@@ -53,7 +53,7 @@ class LabelChunk : public DoubleBBox
 {
   public:
   	enum ContentType { Text, Image, Graphic };
-	ContentType               content = Text;
+	ContentType               content_type = Text;
 	int                       info    = 0;
 	std::vector<unsigned int> text;             // ucs32 glyph indices
 	std::vector<GlyphPlace>   glyphs;  // glyph placement, [x y x y x y ...]
@@ -74,6 +74,7 @@ class Label : public anXWindow
   	unsigned long label_style;
 	int firsttime;
 	ButtonDownInfo buttondown;
+
 	Utf8String rawtext;
 	PtrStack<LabelChunk> thetext;
 	int nlines;
