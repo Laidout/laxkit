@@ -60,7 +60,7 @@ namespace LaxInterfaces {
  * the harddrive) in the LaxImage destructor. The default for ImageData objects is to not
  * delete (previewflag==0).
  *
- * \todo In addition to have filename ande previewimage, perhaps make allowances for
+ * \todo In addition to have filename and previewimage, perhaps make allowances for
  *   a transformedImageCache to facilitate use of ImagePatchData, for instance.....
  *   this is relevant because the ImageInterface has lots of drawing code, and it is easier
  *   to use a temp ImageData than an ImagePatchInterface, for instance, figuring out how to draw it itself?
