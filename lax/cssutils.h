@@ -33,6 +33,7 @@ namespace Laxkit {
 
 enum CSSName {
 	CSS_Unknown,
+	CSS_Error,
 	CSS_Inherit,
 
 	CSS_em,    //Relative to the font-size of the element (2em means 2 times the size of the current font) 	
@@ -50,10 +51,11 @@ enum CSSName {
 	MAX
 };
 
-int CssNamedColor(const char *value, Laxkit::ScreenColor *scolor);
-int CssFontSize(const char *value, double *value_ret, CSSName *relative_ret, int *units_ret, const char **end_ptr);
-int CSSFontWeight(const char *value, const char *&endptr, bool *relative_ret);
-
+int CSSNamedColor(const char *value, Laxkit::ScreenColor *scolor);
+int CSSFontSize(const char *value, double *value_ret, CSSName *relative_ret, int *units_ret, const char **end_ptr);
+int CSSFontWeight(const char *value, const char **endptr, bool *relative_ret);
+int CSSFontStyle(const char *value, const char **endptr);
+int CSSFontVariant(const char *value, const char **endptr);
 
 } //namespace Laxkit
 

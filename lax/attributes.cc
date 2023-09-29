@@ -446,7 +446,7 @@ int SimpleColorAttribute(const char *v,unsigned long *color_ret, Laxkit::ScreenC
 	return 0;
 }
 
-/*! Colors should be enough to potentially hold 5 doubles.
+/*! Colors should be enough to potentially hold 5 doubles, even though only 4 are returned to save on unnecessary allocating.
  * Returned value is rgba clamped to [0..1].
  *
  * The value can be something like "black", "white", "red", "green", "blue", "yellow", "orange",
@@ -538,7 +538,7 @@ int SimpleColorAttribute(const char *v, double *colors, const char **end_ptr)
 
 			bool found = false;
 			ScreenColor col;
-			if (CssNamedColor(nm, &col)) {
+			if (CSSNamedColor(nm, &col)) {
 				v = ptr;
 
 				colors[0] = col.Red();

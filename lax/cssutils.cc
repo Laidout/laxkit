@@ -194,7 +194,7 @@ static const CssColorSpec css_colors[] = {
 /*! Check against the 147 common css named colors.
  * Return nonzero for found, else 0 for not found.
  */
-int CssNamedColor(const char *value, Laxkit::ScreenColor *scolor)
+int CSSNamedColor(const char *value, Laxkit::ScreenColor *scolor)
 {
 	if (num_css_colors <= 0) {
 		num_css_colors = 0;
@@ -243,7 +243,7 @@ int CssNamedColor(const char *value, Laxkit::ScreenColor *scolor)
  *
  * Returns 1 for success or 0 for parse error.
  */
-int CssFontSize(const char *value, double *value_ret, CSSName *relative_ret, int *units_ret, const char **end_ptr) 
+int CSSFontSize(const char *value, double *value_ret, CSSName *relative_ret, int *units_ret, const char **end_ptr) 
 {
 	 //  font-size: 	<absolute-size> | <relative-size> | <length> | <percentage> | inherit
 	 //     absolute-size == xx-small | x-small | small | medium | large | x-large | xx-large 
@@ -317,26 +317,63 @@ int CssFontSize(const char *value, double *value_ret, CSSName *relative_ret, int
  * Otherwise relative_ret is set to false.
  *
  */
-int CSSFontWeight(const char *value, const char *&endptr, bool *relative_ret)
+int CSSFontWeight(const char *value, const char **endptr, bool *relative_ret)
 {
 	int weight=-1;
 	if (relative_ret) *relative_ret = false;
 
-	if (!strncmp(value,"inherit",7))       { endptr = value+7; } //do nothing special
-	else if (!strncmp(value,"normal",6))   { endptr = value+6; weight=400; }
-	else if (!strncmp(value,"bold",4))     { endptr = value+4; weight=700; }
-	else if (!strncmp(value,"bolder", 6))  { endptr = value+6; weight=700; if (relative_ret) *relative_ret = true; } //120% ?
-	else if (!strncmp(value,"lighter", 7)) { endptr = value+7; weight=200; if (relative_ret) *relative_ret = true; } //80% ? 
+	if (!strncmp(value,"inherit",7))       { *endptr = value+7; } //do nothing special
+	else if (!strncmp(value,"normal",6))   { *endptr = value+6; weight=400; }
+	else if (!strncmp(value,"bold",4))     { *endptr = value+4; weight=700; }
+	else if (!strncmp(value,"bolder", 6))  { *endptr = value+6; weight=700; if (relative_ret) *relative_ret = true; } //120% ?
+	else if (!strncmp(value,"lighter", 7)) { *endptr = value+7; weight=200; if (relative_ret) *relative_ret = true; } //80% ? 
 	else if (value[0] >= '1' && value[0] <= '9' &&
 			 value[1] >= '0' && value[1] <= '9' &&
 			 value[2] >= '0' && value[2] <= '9') {
 		//scan in any 3 digit integer between 100 and 999 inclusive... not really css compliant, but what the hay
 		char *end_ptr;
 		weight = strtol(value,&end_ptr,10);
-		endptr = end_ptr;
-	} else endptr = value;
+		*endptr = end_ptr;
+	} else *endptr = value;
 
 	return weight;
+}
+
+
+/*! Return 0 for "normal", 1 for "italic", 2 for "oblique", and set endptr to just after the word.
+ * Else return -1, and endptr will == value.
+ */
+int CSSFontStyle(const char *value, const char **endptr)
+{
+	while (isspace(*value)) value++;
+
+	int italic = -1;
+	*endptr = value;
+	
+    if      (!strncmp(value,"normal", 6)  && !isalnum(value[6])) { italic = 0; *endptr = value + 6; }
+    else if (!strncmp(value,"italic", 6)  && !isalnum(value[6])) { italic = 1; *endptr = value + 6; }
+    else if (!strncmp(value,"oblique", 7) && !isalnum(value[7])) { italic = 2; *endptr = value + 7; }
+    //technically oblique is distorted normal, italic is actual new glyphs
+
+    return italic;
+}
+
+
+int CSSFontVariant(const char *value, const char **endptr)
+{
+	// CSS 2.1 it can be only "normal" or "small-caps".
+	// More recent CSS is more complicated, see: 
+	//    https://developer.mozilla.org/en-US/docs/Web/CSS/font-variant
+
+	while (isspace(*value)) value++;
+
+	int variant = -1;
+	*endptr = value;
+	
+	if      (!strncmp(value,"normal",     6)  && !isalnum(value[6]))  { variant = 0; *endptr = value + 6; }
+    else if (!strncmp(value,"small-caps", 10) && !isalnum(value[10])) { variant = 1; *endptr = value + 10; }
+
+    return variant;
 }
 
 
