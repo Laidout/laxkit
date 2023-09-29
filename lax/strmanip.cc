@@ -288,7 +288,7 @@ char *makestrmore(char *&dest, int slen, int num_bytes, bool isdiff)
 }
 
  //! Like makestr, but only grabs the first n characters of src.
- /*! \return Returns a pointer to what dest now points to.
+ /*! \return Returns a null terminated pointer to what dest now points to.
   *
   * If src==NULL and n>0, then make dest point to a new char[n], with
   * str[0]=0.
