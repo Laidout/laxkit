@@ -1854,6 +1854,4 @@ int reduce_polyline(flatpoint *result, flatpoint *points, int n, double epsilon)
 }
 
 
-
 } // namespace Laxkit
-
