@@ -44,7 +44,7 @@ enum UnitTypes {
 	UNITS_Picas,     // 1 pc == 12 pt
 	UNITS_em,        // 1 == context font size
 	UNITS_ex,        // 1 == x-height
-	UNITS_ch,        // 1 == width of the 0 character
+	UNITS_ch,        // 1 == width of the 0 glyph
 	UNITS_rem,       // 1 == font size of root element
 	UNITS_vw,        // 1 == 1% of the width of viewport
 	UNITS_vh,        // 1 == 1% of the height of viewport
@@ -64,6 +64,7 @@ class SimpleUnit : public anObject
 	double scaling;
 	PtrStack<char> names; //0,1,2 are short name, singular, plural
 	char *label;
+	int relative_key = 0; //TODO: if non-zero, UnitManager uses this key to get correct relative scaling value
 	SimpleUnit *next;
 
 	SimpleUnit();
@@ -85,7 +86,7 @@ class UnitManager : public anObject
   	UnitManager(bool install_default = true);
   	virtual ~UnitManager();
 
-  	virtual int UnitId(const char *name,int len=-1);
+  	virtual int UnitId(const char *name, int len=-1);
 	virtual const char *UnitName(int uid);
 	virtual int UnitInfo(const char *name, int *iid, double *scale, char **shortname, char **singular,char **plural, const char **label_ret);
 	virtual int UnitInfoIndex(int index, int *iid, double *scale, char **shortname, char **singular,char **plural, const char **label_ret);

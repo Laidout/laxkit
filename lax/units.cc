@@ -26,14 +26,61 @@
 #include <lax/singletonkeeper.h>
 
 
-//template implementation:
-#include <lax/lists.cc>
-
 #include <iostream>
 using namespace std;
 #define DBG
 
 namespace Laxkit {
+
+
+//------------------------------------- TODO: work in progress ----------------------------------------
+
+/*! TODO: Class to store full units such as `kg*m/s/s`, should this ever be implemented!!
+ * 
+ * For reference, SI units:
+ * 
+ *     m    meters     length
+ *     s    seconds    time
+ *     kg   kilograms  mass
+ *     A    ampere     current
+ *     K    kelvin     temperature
+ *     mol  mole       amount of something
+ *     cd   candela    luminous intensity
+ * 
+ * Common derived units:
+ * 
+ *     hertz 	Hz 	frequency 	s−1 	
+ *     newton 	N 	force, weight 	kg⋅m⋅s−2 	
+ *     pascal 	Pa 	pressure, stress 	kg⋅m−1⋅s−2 	N/m2 = J/m3
+ *     joule 	J 	energy, work, heat 	kg⋅m2⋅s−2 	N⋅m = Pa⋅m3
+ *     watt 	W 	power, radiant flux 	kg⋅m2⋅s−3 	J/s
+ *     coulomb 	C 	electric charge 	s⋅A 	
+ *     volt 	V 	electric potential, voltage, emf 	kg⋅m2⋅s−3⋅A−1 	W/A = J/C
+ *     farad 	F 	capacitance 	kg−1⋅m−2⋅s4⋅A2 	C/V = C2/J
+ *     ohm 	Ω 	resistance, impedance, reactance 	kg⋅m2⋅s−3⋅A−2 	V/A = J⋅s/C2
+ *     siemens 	S 	electrical conductance 	kg−1⋅m−2⋅s3⋅A2 	Ω−1
+ *     weber 	Wb 	magnetic flux 	kg⋅m2⋅s−2⋅A−1 	V⋅s
+ *     tesla 	T 	magnetic flux density 	kg⋅s−2⋅A−1 	Wb/m2
+ *     henry 	H 	inductance 	kg⋅m2⋅s−2⋅A−2 	Wb/A
+ *     degree Celsius 	°C 	temperature relative to 273.15 K 	K 	
+ *     lumen 	lm 	luminous flux 	cd⋅m2/m2 	cd⋅sr
+ *     lux 	lx 	illuminance 	cd⋅m2/m4 	lm/m2 = cd⋅sr⋅m−2
+ *     becquerel 	Bq 	activity referred to a radionuclide (decays per unit time) 	s−1 	
+ *     gray 	Gy 	absorbed dose (of ionising radiation) 	m2⋅s−2 	J/kg
+ *     sievert 	Sv 	equivalent dose (of ionising radiation) 	m2⋅s−2 	J/kg
+ *     katal 	kat 	catalytic activity 	mol⋅s−1
+ */
+// class Units
+// {
+//   public:
+//   	NumStack<int> numerator;
+//   	NumStack<int> denominator;
+
+//   	Utf8String str; //cached write out of the units
+
+//   	void MultiplyUnits(const NumberUnits &units);
+//   	void DivideUnits(const NumberUnits &units);
+//};
 
 
 //------------------------------------- CreateDefaultUnits() ----------------------------------------
@@ -95,11 +142,12 @@ void SetUnitManager(UnitManager *manager)
 //------------------------------------- SimpleUnit ----------------------------------------
 
 /*! \class SimpleUnit
- * \brief Helper class to convert simple units. Used by UnitManager.
+ * \brief Definition of a single unit.
+ * Used by UnitManager.
  *
  * Units are defined with a some id number, a scaling to a base unit, and possibly many names.
  * The base unit can be what ever you want, but by default in the Laxkit via GetUnitManager()
- * and CreateDefaultUnits(), meters is assumed to be 1.
+ * and CreateDefaultUnits(), meters is a base unit so has scaling 1.
  */
 
 SimpleUnit::SimpleUnit()
@@ -128,12 +176,12 @@ SimpleUnit *SimpleUnit::find(int units)
 
 SimpleUnit *SimpleUnit::find(const char *name,int len)
 {
-	if (len<0) len=strlen(name);
+	if (len < 0) len = strlen(name);
 	SimpleUnit *f;
-	f=this;
+	f = this;
 	while (f) {
 		for (int c=0; c<f->names.n; c++)
-			if (len==(int)strlen(f->names.e[c]) && !strncasecmp(f->names.e[c],name,len)) return f;
+			if (len == (int)strlen(f->names.e[c]) && !strncasecmp(f->names.e[c],name,len)) return f;
 		f=f->next;
 	}
 	return NULL;
@@ -168,7 +216,7 @@ int UnitManager::NumberOfUnits()
 }
 
 //! Return the unit id corresponding to name, or UNITS_None if not found.
-int UnitManager::UnitId(const char *name,int len)
+int UnitManager::UnitId(const char *name, int len)
 {
 	if (!units) return UNITS_None;
 	SimpleUnit *f = units->find(name,len);
