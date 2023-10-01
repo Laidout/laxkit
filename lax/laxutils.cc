@@ -1390,7 +1390,10 @@ const char *flow_name_translated(int direction)
 /*! From "lrtb" return LAX_LRTB, for instance.
  * The 4 character codes are caselessly checked.
  *
- * Unknown dir returns -1.
+ * "lrt" maps to LAX_LRTB.
+ * "rtl" maps to LAX_RLTB.
+ * "auto" maps to -1.
+ * Anything else returns -2.
  */
 int flow_id(const char *dir)
 {
@@ -1403,7 +1406,10 @@ int flow_id(const char *dir)
 	else if (!strcasecmp(dir, "tbrl")) return LAX_TBRL;
 	else if (!strcasecmp(dir, "btlr")) return LAX_BTLR;
 	else if (!strcasecmp(dir, "btrl")) return LAX_BTRL;
-	return -1; 
+	else if (!strcasecmp(dir, "ltr"))  return LAX_LRTB;
+	else if (!strcasecmp(dir, "rtl"))  return LAX_RLTB;
+	else if (!strcasecmp(dir, "auto")) return -1;
+	return -2;
 }
 
 /*! Usage: MaxExtent(font, str1, str2, str3, nullptr)
