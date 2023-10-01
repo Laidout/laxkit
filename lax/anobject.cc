@@ -24,9 +24,12 @@
 #include <lax/misc.h>
 #include <lax/strmanip.h>
 
+#include <sys/times.h>
+
 #include <iostream>
 using namespace std;
 #define DBG 
+
 
 namespace Laxkit {
 
@@ -46,6 +49,8 @@ DBG unsigned int CHECK=3502;
 //! Set object_id=getUniqueNumber().
 anObject::anObject()
 {
+	modtime = 0;
+
 	suppress_debug=0;
 	DBG numofanObject++;
 	
@@ -100,14 +105,14 @@ anObject::~anObject()
  */
 
 
-/*! Called whenever the object contents is changed, usually calls for screen refresh.
+/*! Called whenever the object contents change, which usually calls for screen refresh.
  *
  * Default doesn't actually do anything. See LaxInterfaces::SomeData for more useful stuff.
  */
 void anObject::touchContents()
 { 
-	//previewtime=0; //time() doesn't change often enough, so we have to force this to 0..
-	//modtime=time(NULL); 
+	tms _tms;
+	modtime = times(&_tms); 
 }
 
 

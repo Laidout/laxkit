@@ -32,7 +32,7 @@ namespace Laxkit {
 
 //--------------------------------- Previewable ----------------------------
 
-class Previewable : virtual public DoubleBBox
+class Previewable : virtual public anObject, virtual public DoubleBBox
 {
   public:
 	Previewable();
@@ -40,7 +40,6 @@ class Previewable : virtual public DoubleBBox
 
 	LaxImage *preview;
 	std::clock_t previewtime;
-	std::clock_t modtime;
 
 	virtual void touchContents();
 	virtual bool HasOldPreview() { return modtime > previewtime; }

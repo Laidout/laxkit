@@ -23,7 +23,10 @@
 #define _LAX_ANOBJECT_H
 
 #include <lax/refcounted.h>
+
 #include <cstring>
+#include <ctime>
+
 
 namespace Laxkit {
 
@@ -35,6 +38,7 @@ class anObject : virtual public RefCounted
   public:
 	unsigned long object_id;
 	char *object_idstr;
+	std::clock_t modtime;
 
 	anObject();
 	virtual ~anObject();
