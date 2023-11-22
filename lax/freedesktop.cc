@@ -22,17 +22,15 @@
 
 #include <locale.h>
 #include <sys/file.h>
-#include <openssl/md5.h>
 #include <cstdlib>
 #include <unistd.h>
+#include <openssl/evp.h>
 
 #include <lax/freedesktop.h>
 #include <lax/strmanip.h>
 #include <lax/fileutils.h>
 #include <lax/attributes.h>
 #include <lax/language.h>
-
-#include <lax/lists.cc>
 
 
 #define DBG
@@ -1230,6 +1228,36 @@ int add_bookmark(const char *directory, int where)
 	return 0;
 }
 
+
+/*! The old MD5() openssl is deprecated, but we need it for the freedesktop thumbnail spec, so using this alternative.
+ */
+void freedesktop_md5(const unsigned char *data, int data_len, unsigned char *md5_ret)
+{
+	EVP_MD_CTX *mdctx;
+	//unsigned char *md5_digest;
+	unsigned int md5_digest_len = EVP_MD_size(EVP_md5()); //this should be 16
+	if (md5_digest_len != 16) {
+		cerr << "md5_digest_len != 16, watch out!!" << endl;
+	}
+
+	// MD5_Init
+	mdctx = EVP_MD_CTX_new();
+	EVP_DigestInit_ex(mdctx, EVP_md5(), NULL);
+
+	// MD5_Update
+	EVP_DigestUpdate(mdctx, data, data_len);
+
+	// MD5_Final
+	//md5_digest = (unsigned char *)OPENSSL_malloc(md5_digest_len);
+	//EVP_DigestFinal_ex(mdctx, md5_digest, &md5_digest_len);
+	EVP_DigestFinal_ex(mdctx, md5_ret, &md5_digest_len);
+	if (md5_digest_len != 16) {
+		cerr << "Returned md5_digest_len != 16, watch out!!" << endl;
+	}
+	EVP_MD_CTX_free(mdctx);
+}
+
+
 //! Return the freedesktop thumbnail name corresponding to file.
 /*! If which=='n' (default), then use the "normal" thumbnail, else use the "large" thumbnail.
  *
@@ -1255,7 +1283,9 @@ char *freedesktop_thumbnail(const char *file, char which)
 	if (!str) cerr <<"**** ERROR!! null str here but there shouldn't be!!"<<endl;
 
 	//TODO: MD5() is deprecated, need to find a suitable replacement
-	MD5((unsigned char *)str, strlen(str), md);
+	//MD5((unsigned char *)str, strlen(str), md);
+	freedesktop_md5((unsigned char *)str, strlen(str), md);
+
 	h=strrchr(pname,'/')+1;
 	for (int c2=0; c2<16; c2++) {
 		sprintf(h,"%02x",(int)md[c2]);

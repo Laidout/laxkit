@@ -43,7 +43,7 @@ Laxkit::MenuInfo *get_categorized_bookmarks(const char *file,const char *filetyp
 int add_bookmark(const char *directory, int where);
 
 char *freedesktop_thumbnail(const char *file, char which='n');
-
+void freedesktop_md5(const unsigned char *data, int len, unsigned char *md5_ret);
 
 
 } //namespace
