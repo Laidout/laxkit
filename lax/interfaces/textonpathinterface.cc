@@ -2243,11 +2243,11 @@ int TextOnPathInterface::MouseMove(int x,int y,unsigned int state, const Laxkit:
 
 		if (!child) {
 			ObjectContext *oc = nullptr;
-			if (ScanForOther(x,y, true, &oc) && (!textonpath || (textonpath && oc->obj != textonpath))) {
+			if (ScanForOther(x,y, true, &oc) && (!textonpath || (textonpath && oc->obj != textonpath))) { //scan for other TextOnPath
 				delete hoverc;
 				hoverc = oc->duplicate();
 				needtodraw = 1;
-			} else if (hoverc) {
+			} else if (hoverc) { // hovered over nothing, remove old hover
 				delete hoverc;
 				hoverc = nullptr;
 				needtodraw = 1;

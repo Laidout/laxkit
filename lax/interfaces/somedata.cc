@@ -30,7 +30,6 @@
 #include <lax/strmanip.h>
 #include <lax/language.h>
 
-#include <lax/lists.cc>
 
 using namespace Laxkit;
 
@@ -694,7 +693,7 @@ int SomeData::fitto(double *boxm,DoubleBBox *box,double alignx,double aligny, in
 }
 
 /*! Contcatenate depth number of parent transforms.
- * For instance, depth==2 is this->m * parent->m.
+ * For instance, depth==2 is `parent->m * this->m`.
  */
 Laxkit::Affine SomeData::GetTransforms(int depth, bool invert)
 {
@@ -710,7 +709,8 @@ Laxkit::Affine SomeData::GetTransforms(int depth, bool invert)
     return a;
 }
 
-/*! Assumes that ascestor is in parent chain. Return transform of it.
+/*! Assumes that ascestor is in parent chain, then return a concatenation of transform to it.
+ * So, say you have parent1, whose parent is parent2, then return a transform `parent2 * parent1 * self`.
  */
 Laxkit::Affine SomeData::GetTransforms(SomeData *ancestor, bool invert)
 {

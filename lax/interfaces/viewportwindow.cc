@@ -1055,31 +1055,28 @@ Laxkit::anXWindow *ViewportWindow::SetupInputBox(unsigned long owner_id, const c
  */
 int ViewportWindow::WheelUp(int x,int y,unsigned int state,int count,const Laxkit::LaxMouse *d)
 {
-	for (int c=interfaces.n-1; c>=0; c--) { //***
+	// check for interface wheel first
+	for (int c=interfaces.n-1; c>=0; c--) {
 		if (!interfaces.e[c]->WheelUp(x,y,state,count,d)) 
 			return 0;
 	}
+
 	int w;
-	if ((state&LAX_STATE_MASK)==ControlMask) { // alt-but zoom
+	if ((state&LAX_STATE_MASK)==ControlMask) { // control-wheel for zoom
 		double z=1.15;
-//cout <<"..Zoom:"<<z<<"  ";
 		dp->Zoom(z,x,y);
 		syncWithDp();
 		needtodraw=1;
+
 	} else if ((state&LAX_STATE_MASK)==ShiftMask) { // shift x
-		//if (state&ShiftMask) w=win_w*1/2;
-		//else w=10;
 		w=20;
 		dp->ShiftScreen(w,0);
-//		if (xscroller) xscroller->SetCurPos(xscroller->GetCurPos()+w);
 		syncrulers();
 		needtodraw=1;
-	} else {
-		//if (state&ShiftMask) w=win_h*1/2;
-		//else w=10;
+
+	} else { // shift y
 		w=20;
 		dp->ShiftScreen(0,w);
-//		if (yscroller) yscroller->SetCurPos(yscroller->GetCurPos()+w);
 		syncrulers();
 		needtodraw=1;
 	}

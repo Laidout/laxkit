@@ -27,9 +27,6 @@
 #include <cstring>
 #include <cstdlib>
 
-//template implementation:
-#include <lax/lists.cc>
-
 
 #include <iostream>
 using namespace std;
