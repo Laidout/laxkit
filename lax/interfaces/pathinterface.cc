@@ -37,10 +37,6 @@
 #include <lax/language.h>
 
 
-//template implementation:
-#include <lax/lists.cc>
-
-
 using namespace Laxkit;
 
 #include <iostream>
@@ -7239,7 +7235,8 @@ Laxkit::MenuInfo *PathInterface::ContextMenu(int x,int y,int deviceid, MenuInfo 
 
 
 	if (curpoints.n) {
-		unsigned int ptype=curpoints.e[0]->flags&BEZ_MASK;
+		unsigned int ptype = curpoints.e[0]->flags & BEZ_MASK;
+		if (ptype == 0) ptype = BEZ_STIFF_EQUAL;
 		for (int c=1; c<curpoints.n; c++) if ((curpoints.e[c]->flags&BEZ_MASK)!=ptype) { ptype=-1; break; }
 		menu->AddSep(_("Point type"));
 		menu->AddToggleItem(_("Smooth"),          PATHIA_PointTypeSmooth,        0, (ptype==BEZ_STIFF_EQUAL));
@@ -7351,6 +7348,16 @@ int PathInterface::Event(const Laxkit::EventData *e_data, const char *mes)
 		if (i > PATHIA_None && i < PATHIA_MAX) PerformAction(i);
 		if (i > PATHIA_MAX) {
 			//is a resource, shape brush?? line profile
+			unsigned int obj_id = i - PATHIA_MAX;
+			InterfaceManager *imanager = InterfaceManager::GetDefault(true);
+			ResourceManager *rm = imanager->GetResourceManager();
+
+			if (s->info4 == PATHIA_UseShapeBrush) {
+				ShapeBrush *brush = dynamic_cast<ShapeBrush*>(rm->FindResourceFromRID(obj_id, "ShapeBrush"));
+				if (brush) { // user selected use shape brush
+					PostMessage(_("TODO!!!"));
+				}
+			}
 		}
 		
 		return 0;
@@ -9599,8 +9606,9 @@ int PathInterface::PerformAction(int action)
 		rm->AddResource("ShapeBrush", brush, nullptr, brush->Id(), brush->Id(), nullptr, nullptr, nullptr, false);
 		brush->dec_count();
 		return 0;
-	}
 
+	}
+	
 	return 1;
 }
 
