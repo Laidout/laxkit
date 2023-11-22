@@ -31,7 +31,6 @@
 
 
 
-#include <lax/lists.cc>
 #include <lax/laximages-cairo.h>
 #include <lax/laxutils.h>
 #include <lax/doublebbox.h>
@@ -374,6 +373,7 @@ int DisplayerCairo::MakeCurrent(aDrawable *buffer)
 
 
 	cairo_matrix_t m;
+	//transform_identity(ctm);
 	if (real_coordinates) cairo_matrix_init(&m, ctm[0], ctm[1], ctm[2], ctm[3], ctm[4], ctm[5]);
 	else cairo_matrix_init(&m, 1,0,0,1,0,0);
 	cairo_set_matrix(cr, &m);
@@ -1927,11 +1927,24 @@ void DisplayerCairo::ShiftScreen(double dx,double dy)
 	//DBG dump_transforms(cr, ctm);
 }
 
+bool CairoErrorCheck(cairo_t *cr, bool say_if_ok)
+{
+	if (cr && cairo_status(cr) != CAIRO_STATUS_SUCCESS) {
+		cerr << " *** WARNING!!! cairo in error status: "<<cairo_status_to_string(cairo_status(cr))<< endl;
+		return true;
+	} else if (say_if_ok) {
+		cerr << " --- cairo no error" <<endl;
+	}
+	return false;
+}
+
 //! Set the ctm to these 6 numbers.
 void DisplayerCairo::NewTransform(const double *d)
 {
 	//DBG flatpoint oldp=transform_point(ctm, flatpoint(0,0));
 
+	//DBG cerr << __FILE__<<" NewTransform: ";
+	//DBG dumpctm(d);
 	if (cr && real_coordinates) {
 		cairo_matrix_t m;
 		m.xx=d[0];
@@ -1942,6 +1955,7 @@ void DisplayerCairo::NewTransform(const double *d)
 		m.y0=d[5];
 		cairo_set_matrix(cr, &m);
 	}
+	//CairoErrorCheck(cr, true);
 
 	transform_copy(ctm,d);
 	transform_invert(ictm,ctm);
