@@ -138,7 +138,9 @@ namespace Laxkit {
  */
 
 #define DEFAULT_LOWER_BOUND (1e-7)
-#define DEFAULT_UPPER_BOUND (1e+4)
+// Warning: over this default value seems to result in libfreetype errors somehow:
+// TODO: it would be nice to know the exact bounds and why it wrecks cairo
+#define DEFAULT_UPPER_BOUND (4500)
 
 Displayer::Displayer()
  : PanUser(nullptr)
@@ -176,9 +178,6 @@ Displayer::Displayer(aDrawable *d)
 
 
 //! Constructor, set everything to nothing or identity.
-/*! upperbound=1000, lowerbound=.00001, ctm/ictm=identity,
- * fgcolor=white, bg=black
- */
 Displayer::Displayer(anXWindow *nxw,PanController *pan) 
   : Displayer()
 {
