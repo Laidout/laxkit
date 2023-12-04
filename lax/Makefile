@@ -166,7 +166,6 @@ objs= \
 	colorbase.o \
 	colorsliders.o \
 	colorbox.o \
-	palette.o \
 	palettewindow.o \
 	rulerwin.o \
 	stackframe.o \

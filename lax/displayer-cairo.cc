@@ -1454,10 +1454,10 @@ double DisplayerCairo::textout_line(double x,double y,const char *str,int len,un
 			if (fpalette) {
 				if (l<fpalette->colors.n) {
 					cairo_set_source_rgba(cr,
-							fpalette->colors.e[l]->channels[0]/(double)fpalette->colors.e[l]->maxcolor,
-							fpalette->colors.e[l]->channels[1]/(double)fpalette->colors.e[l]->maxcolor,
-							fpalette->colors.e[l]->channels[2]/(double)fpalette->colors.e[l]->maxcolor,
-							fpalette->colors.e[l]->channels[3]/(double)fpalette->colors.e[l]->maxcolor);
+							fpalette->colors.e[l]->color->values[0],
+							fpalette->colors.e[l]->color->values[1],
+							fpalette->colors.e[l]->color->values[2],
+							fpalette->colors.e[l]->color->values[3]);
 				}
 			}
 			cairo_move_to(cr, ox,oy);
@@ -1543,10 +1543,10 @@ double DisplayerCairo::glyphsout(double x,double y, GlyphPlace *glyphs,GlyphPlac
 			if (fpalette) {
 				if (l<fpalette->colors.n) {
 					cairo_set_source_rgba(cr,
-							fpalette->colors.e[l]->channels[0]/(double)fpalette->colors.e[l]->maxcolor,
-							fpalette->colors.e[l]->channels[1]/(double)fpalette->colors.e[l]->maxcolor,
-							fpalette->colors.e[l]->channels[2]/(double)fpalette->colors.e[l]->maxcolor,
-							fpalette->colors.e[l]->channels[3]/(double)fpalette->colors.e[l]->maxcolor);
+							fpalette->colors.e[l]->color->values[0],
+							fpalette->colors.e[l]->color->values[1],
+							fpalette->colors.e[l]->color->values[2],
+							fpalette->colors.e[l]->color->values[3]);
 				}
 			}
 			//cairo_move_to(cr, ox,oy);

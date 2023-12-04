@@ -1411,10 +1411,10 @@ SomeData *CaptionData::ConvertToPaths(bool use_clones, RefPtrStack<SomeData> *cl
 
 				if (palette) {
 					color.rgbf(
-						palette->colors.e[layer]->channels[0]/(double)palette->colors.e[layer]->maxcolor,
-						palette->colors.e[layer]->channels[1]/(double)palette->colors.e[layer]->maxcolor,
-						palette->colors.e[layer]->channels[2]/(double)palette->colors.e[layer]->maxcolor,
-						palette->colors.e[layer]->channels[3]/(double)palette->colors.e[layer]->maxcolor);
+						palette->colors.e[layer]->color->values[0],
+						palette->colors.e[layer]->color->values[1],
+						palette->colors.e[layer]->color->values[2],
+						palette->colors.e[layer]->color->values[3]);
 				}
 
 				 //has to be first layer, so make new base object
@@ -1481,10 +1481,10 @@ SomeData *CaptionData::ConvertToPaths(bool use_clones, RefPtrStack<SomeData> *cl
 				  ScreenColor color;
 				  if (palette) {
 				  	color.rgbf(
-				  		palette->colors.e[layer]->channels[0]/(double)palette->colors.e[layer]->maxcolor,
-				  		palette->colors.e[layer]->channels[1]/(double)palette->colors.e[layer]->maxcolor,
-				  		palette->colors.e[layer]->channels[2]/(double)palette->colors.e[layer]->maxcolor,
-				  		palette->colors.e[layer]->channels[3]/(double)palette->colors.e[layer]->maxcolor);
+				  		palette->colors.e[layer]->color->values[0],
+				  		palette->colors.e[layer]->color->values[1],
+				  		palette->colors.e[layer]->color->values[2],
+				  		palette->colors.e[layer]->color->values[3]);
 				  } else color.rgbf(red, green, blue, alpha);
 				  pobject->fill(&color);
 				  pobject->line(0);

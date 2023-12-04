@@ -36,12 +36,19 @@ namespace Laxkit {
 
 //--------------------------------- GradientStrip ----------------------------
 
+
 class GradientStrip : virtual public Resourceable, virtual public DumpUtility, virtual public Previewable
 {
  protected:
 	unsigned int gradient_flags; //readonly, radial gradient, linear gradient, palette 
   	
  public:
+ 	enum GradientTypes {
+ 		Default = 0,
+ 		GimpGPL,
+ 		Swatchbooker,
+ 		CSS
+ 	};
 	enum GradientStripFlags { //for gradient_flags
 		StripOnly  = (1<<0),
 		Linear     = (1<<1),
@@ -107,7 +114,7 @@ class GradientStrip : virtual public Resourceable, virtual public DumpUtility, v
 	};
 
 	flatpoint p1, p2;
-	double r1, r2;
+	double r1, r2; // radii for radial gradients, whose centers possibly go from p1 to p2
 
 	int num_columns_hint; //for palette display
 	double tmin, tmax; //range for t in colors
@@ -147,9 +154,9 @@ class GradientStrip : virtual public Resourceable, virtual public DumpUtility, v
 	virtual double GetNormalizedT(int index);
 
 	virtual int AddColor(GradientSpot *spot);
-	virtual int AddColor(double t, double red,double green,double blue,double alpha);
-	virtual int AddColor(double t, Laxkit::ScreenColor *col);
-	virtual int AddColor(double t, Color *col, bool dup);
+	virtual int AddColor(double t, double red,double green,double blue,double alpha, const char *nname=nullptr);
+	virtual int AddColor(double t, Laxkit::ScreenColor *col, const char *nname=nullptr);
+	virtual int AddColor(double t, Color *col, bool dup, const char *nname=nullptr);
 	virtual int RemoveColor(int index);
 
 	virtual void Set(Color *col1, bool dup1, Color *col2, bool dup2, bool reset_bounds);
@@ -168,11 +175,19 @@ class GradientStrip : virtual public Resourceable, virtual public DumpUtility, v
 	virtual void dump_in (FILE *f,int indent,int what,DumpContext *context,Attribute **att);
 	virtual Attribute *dump_out_atts(Attribute *att,int what,DumpContext *context);
 
+	virtual bool ImportGimpPalette(IOBuffer &f);
+
 	virtual int renderToBufferImage(LaxImage *image);
 	virtual int RenderPalette(LaxImage *image);
 	virtual int RenderRadial(LaxImage *image);
 	virtual int RenderLinear(LaxImage *image);
+
+	static GradientStrip *newPalette();
+	static GradientStrip *rainbowPalette(int w, int h, bool include_gray_strip);
+
 };
+
+typedef GradientStrip Palette;
 
 
 } //namespace Laxkit

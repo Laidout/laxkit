@@ -113,15 +113,14 @@
 
 #include <lax/transformmath.h>
 #include <lax/laxutils.h>
-#include <lax/lists.cc>
-
-
-using namespace Laxkit;
 
 
 #include <iostream>
 using namespace std;
 #define DBG
+
+
+using namespace Laxkit;
 
 
 namespace LaxInterfaces {
@@ -1847,6 +1846,15 @@ Laxkit::MenuInfo *GradientInterface::ContextMenu(int x,int y,int deviceid, Laxki
 	menu->AddSep();
 	menu->AddToggleItem(_("Linear"), GRAD_MakeLinear, 0, data->IsLinear());
 	menu->AddToggleItem(_("Radial"), GRAD_MakeRadial, 0, data->IsRadial());
+	//menu->AddSep();
+	//menu->AddItem(_("Drag to sample..."), GRAD_Drag_To_Sample);
+	//
+	ResourceManager *rm = GetResourceManager();
+	if (rm->NumResources("GradientStrip") > 0) {
+		menu->AddSep(_("Resources"));
+		menu = rm->ResourceMenu("GradientStrip", true /*include_recent*/, menu, GRAD_MAX, 1, data ? data->strip : nullptr);
+	}
+	
 
 	return menu;
 }

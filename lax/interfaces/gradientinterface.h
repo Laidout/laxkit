@@ -157,6 +157,7 @@ class GradientInterface : public anInterface
 		GRAD_Spread_Prev,
 		GRAD_Toggle_Fill_Parent,
 		GRAD_Settings_Icon,
+		GRAD_Drag_To_Sample,
 
 		GRAD_MAX
 	};

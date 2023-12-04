@@ -1189,8 +1189,9 @@ FontDialogFont *FontManager::DumpInFontDialogFont(Attribute *att)
 				} else if (!strcmp(name,"color")) {
 					double co[5];
 					if (SimpleColorAttribute(value, co, NULL)==0) {
-						if (!lfont->palette) lfont->palette=new Palette;
-						lfont->palette->AddRGBA(colorname, co[0]*255, co[1]*255, co[2]*255, co[3]*255, 255);
+						if (!lfont->palette) lfont->palette = GradientStrip::newPalette();
+						//lfont->palette->AddRGBA(colorname, co[0]*255, co[1]*255, co[2]*255, co[3]*255, 255);
+						lfont->palette->AddColor(0, co[0], co[1], co[2], co[3], colorname);
 					}
 				}
 			}
@@ -1279,8 +1280,9 @@ LaxFont *FontManager::dump_in_font(Attribute *att, DumpContext *context)
 				} else if (!strcmp(name,"color")) {
 					double co[5];
 					if (SimpleColorAttribute(value, co, NULL)==0) {
-						if (!palette) palette=new Palette;
-						palette->AddRGBA(cname, co[0]*255, co[1]*255, co[2]*255, co[3]*255, 255);
+						if (!palette) palette = GradientStrip::newPalette();
+						//palette->AddRGBA(cname, co[0]*255, co[1]*255, co[2]*255, co[3]*255, 255);
+						palette->AddColor(0, co[0], co[1], co[2], co[3], cname);
 					}
 				}
 			}

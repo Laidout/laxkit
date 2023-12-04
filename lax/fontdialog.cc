@@ -609,12 +609,11 @@ int FontDialog::init()
 		for (int c=0; c<thefont->Layers(); c++) {
 			sprintf(str, "fg%d", c+1);
 
-			 // *** replace all Palette stuff with GradientStrip/Color setup when done implementing it!!
 			if (palette && c<palette->colors.n) {
-				r=255*palette->colors.e[c]->channels[0]/(double)palette->colors.e[c]->maxcolor;
-				g=255*palette->colors.e[c]->channels[1]/(double)palette->colors.e[c]->maxcolor;
-				b=255*palette->colors.e[c]->channels[2]/(double)palette->colors.e[c]->maxcolor;
-				a=255*palette->colors.e[c]->channels[3]/(double)palette->colors.e[c]->maxcolor;
+				r=255*palette->colors.e[c]->color->values[0];
+				g=255*palette->colors.e[c]->color->values[1];
+				b=255*palette->colors.e[c]->color->values[2];
+				a=255*palette->colors.e[c]->color->values[3];
 			} else {
 				a=255;
 				colorrgb(text->win_themestyle->fg.Pixel(), &r,&g,&b);
@@ -875,17 +874,17 @@ int FontDialog::Event(const EventData *data,const char *mes)
 		if (!strcmp(mes,"bg")) text->win_themestyle->bg=color;
 		else {
 			 //fg
-			int which=strtol(mes+2,NULL,10);
-			if (which>0 && which<=palette->colors.n) {
+			int which = strtol(mes+2,NULL,10);
+			if (which > 0 && which <= palette->colors.n) {
 				DBG cerr <<" change color for font layer "<<which<<endl;
 
-				palette->colors.e[which-1]->channels[0]=ce->channels[0];
-				palette->colors.e[which-1]->channels[1]=ce->channels[1];
-				palette->colors.e[which-1]->channels[2]=ce->channels[2];
-				palette->colors.e[which-1]->channels[3]=ce->channels[3];
-				palette->colors.e[which-1]->maxcolor=ce->max;
+				palette->colors.e[which-1]->color->values[0] = ce->channels[0] / (double)ce->max;
+				palette->colors.e[which-1]->color->values[1] = ce->channels[1] / (double)ce->max;
+				palette->colors.e[which-1]->color->values[2] = ce->channels[2] / (double)ce->max;
+				palette->colors.e[which-1]->color->values[3] = ce->channels[3] / (double)ce->max;
+				//palette->colors.e[which-1]->maxcolor=ce->max;
 			}
-			text->win_themestyle->fg=color;
+			text->win_themestyle->fg = color;
 		}
 		text->Needtodraw(1);
 		return 0;
@@ -1007,10 +1006,10 @@ void FontDialog::UpdateColorBoxes()
 	double textheight = win_themestyle->normal->textheight();
 	double r,g,b,a;
 	if (numboxes>0 && numboxes-1<palette->colors.n) {
-		r=palette->colors.e[numboxes-1]->channels[0]/(double)palette->colors.e[numboxes-1]->maxcolor;
-		g=palette->colors.e[numboxes-1]->channels[1]/(double)palette->colors.e[numboxes-1]->maxcolor;
-		b=palette->colors.e[numboxes-1]->channels[2]/(double)palette->colors.e[numboxes-1]->maxcolor;
-		a=palette->colors.e[numboxes-1]->channels[3]/(double)palette->colors.e[numboxes-1]->maxcolor;
+		r = palette->colors.e[numboxes-1]->color->values[0];
+		g = palette->colors.e[numboxes-1]->color->values[1];
+		b = palette->colors.e[numboxes-1]->color->values[2];
+		a = palette->colors.e[numboxes-1]->color->values[3];
 	} else {
 		int rr,gg,bb;
 		colorrgb(text->win_themestyle->fg.Pixel(), &rr,&gg,&bb);
@@ -1035,15 +1034,15 @@ void FontDialog::UpdateColorBoxes()
 
 	for (int c=palette->colors.n+1; palette->colors.n < numboxes; c++) {
 		sprintf(str, "fg%d", c);
-		palette->AddRGBA(str, int(r*255),int(g*255),int(b*255),int(a*255), 255);
+		palette->AddColor(0, r,g,b,a, str);
 	}
 
 	for (int c=i; c<i+numboxes; c++) {
 		box=dynamic_cast<ColorBox *>(findWindowFromIndex(c));
-		box->SetRGB(palette->colors.e[c-i]->channels[0]/(double)palette->colors.e[c-i]->maxcolor,
-					palette->colors.e[c-i]->channels[1]/(double)palette->colors.e[c-i]->maxcolor,
-					palette->colors.e[c-i]->channels[2]/(double)palette->colors.e[c-i]->maxcolor,
-					palette->colors.e[c-i]->channels[3]/(double)palette->colors.e[c-i]->maxcolor
+		box->SetRGB(palette->colors.e[c-i]->color->values[0],
+					palette->colors.e[c-i]->color->values[1],
+					palette->colors.e[c-i]->color->values[2],
+					palette->colors.e[c-i]->color->values[3]
 				);
 
 	}

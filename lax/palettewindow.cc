@@ -30,6 +30,7 @@
 #include <sys/stat.h>
 #include <cmath>
 
+
 #include <iostream>
 using namespace std;
 #define DBG 
@@ -62,11 +63,7 @@ PaletteWindow::PaletteWindow(anXWindow *parnt,const char *nname,const char *ntit
 		anXWindow *prev,unsigned long nowner,const char *nsend)
 	: anXWindow(parnt,nname,ntitle,nstyle|ANXWIN_DOUBLEBUFFER,xx,yy,ww,hh,brder,prev,nowner,nsend)
 {
-	palette=NULL;
-	
-	//***
-	//LoadPalette("/usr/share/gimp/2.0/palettes/Plasma.gpl");
-	palette=rainbowPalette(27,18,255, 1);
+	palette = GradientStrip::rainbowPalette(27,18, true);
 
 	curcolor = ccolor = -1;
 	
@@ -86,16 +83,18 @@ int PaletteWindow::send()
 {
 	if (!win_owner || !win_sendthis || !palette || curcolor<0) return 0;
 
-	SimpleColorEventData *e=new SimpleColorEventData;
+	// SimpleColorEventData *e=new SimpleColorEventData;
 
-	e->max=palette->defaultmaxcolor;
-	e->numchannels=palette->colors.e[curcolor]->numcolors;
-	e->channels=new int[e->numchannels];
-	e->colorsystem=palette->colors.e[curcolor]->color_space;
+	// e->max = 65535;
+	// e->numchannels = palette->colors.e[curcolor]->numcolors;
+	// e->channels=new int[e->numchannels];
+	// e->colorsystem=palette->colors.e[curcolor]->color_space;
 
-	int c;
-	for (c=0; c<palette->colors.e[curcolor]->numcolors; c++) 
-		e->channels[c]=palette->colors.e[curcolor]->channels[c];
+	// int c;
+	// for (c=0; c<palette->colors.e[curcolor]->numcolors; c++) 
+	// 	e->channels[c] = palette->colors.e[curcolor]->channels[c];
+	//------------
+	ColorEventData *e = new ColorEventData(palette->colors.e[curcolor]->color, 0, 0,0,0);
 	
 	app->SendMessage(e,win_owner,win_sendthis,object_id);
 	return 1;
@@ -112,7 +111,7 @@ int PaletteWindow::LoadPalette(const char *file)
 	if (!f) return 1;
 
 	Palette *p=new Palette;
-	p->dump_in(f,0,LAX_GIMP_PALETTE,NULL,NULL);
+	p->dump_in(f, 0, GradientStrip::GimpGPL, NULL, NULL);
 	fclose(f);
 
 	if (p->colors.n) {
@@ -153,9 +152,9 @@ void PaletteWindow::Refresh()
 		int color;
 		if (ccolor>=0) color=ccolor; else color=curcolor;
 		char *blah2=NULL;
-		r=palette->colors.e[color]->channels[0]*255/palette->defaultmaxcolor;
-		g=palette->colors.e[color]->channels[1]*255/palette->defaultmaxcolor;
-		b=palette->colors.e[color]->channels[2]*255/palette->defaultmaxcolor;
+		r = palette->colors.e[color]->color->values[0]*255;
+		g = palette->colors.e[color]->color->values[1]*255;
+		b = palette->colors.e[color]->color->values[2]*255;
 		if (!palette->colors.e[color]->name || !strcmp(palette->colors.e[color]->name,"Untitled")) {
 			blah2=new char[30];
 			sprintf(blah2,"%02X%02X%02X",r,g,b);
@@ -181,12 +180,12 @@ void PaletteWindow::Refresh()
 			x=inrect.x;
 			y+=dy;
 		}
-		r=palette->colors.e[i]->channels[0]*255/palette->defaultmaxcolor;
-		g=palette->colors.e[i]->channels[1]*255/palette->defaultmaxcolor;
-		b=palette->colors.e[i]->channels[2]*255/palette->defaultmaxcolor;
+		r = palette->colors.e[i]->color->values[0] * 255;
+		g = palette->colors.e[i]->color->values[1] * 255;
+		b = palette->colors.e[i]->color->values[2] * 255;
 		dp->NewFG(rgbcolor(r,g,b));
 		dp->drawrectangle(x,y,dx+1,dy+1, 1);
-		x+=dx;
+		x += dx;
 //		if ((i+1)%xn==0) {
 //			 //blank out to the right
 //			dp->NewFG(win_themestyle->bg);
@@ -347,20 +346,20 @@ void PaletteWindow::findInrect()
 	
 	double aspect=double(inrect.height)/inrect.width;
 
-	if (palette->columns>0) {
-		xn=palette->columns;
-		yn=palette->colors.n/xn;
-		if (palette->colors.n%xn!=0) yn++;
+	if (palette->num_columns_hint > 0) {
+		xn = palette->num_columns_hint;
+		yn = palette->colors.n / xn;
+		if (palette->colors.n % xn != 0) yn++;
 	} else {
-		xn=int(ceil(sqrt(palette->colors.n/aspect)));
-		yn=int(xn*aspect);
-		while (xn*yn<palette->colors.n) yn++;
+		xn = int(ceil(sqrt(palette->colors.n / aspect)));
+		yn = int(xn * aspect);
+		while (xn*yn < palette->colors.n) yn++;
 	}
 	
-	dx=double(inrect.width)/xn;
-	dy=double(inrect.height)/yn;
-	if (dx<=0) dx=1;
-	if (dy<=0) dy=1;
+	dx = double(inrect.width)/xn;
+	dy = double(inrect.height)/yn;
+	if (dx <= 0) dx = 1;
+	if (dy <= 0) dy = 1;
 }
 
 //! Resize, then call findInrect().

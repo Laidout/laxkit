@@ -27,12 +27,7 @@
 
 #include <iostream>
 #define DBG
-
 using namespace std;
-
-
-//template implementation:
-#include <lax/lists.cc>
 
 
 namespace Laxkit {
@@ -690,10 +685,61 @@ void GradientStrip::dump_in (FILE *f,int indent,int what,DumpContext *context,At
 	if (what==0) {
 		DumpUtility::dump_in(f,indent,what,context,att);
 
-	} else if (what==1) {
-		 //Gimp Palette...
+	} else if (what == GimpGPL) {
+		IOBuffer io;
+		io.UseThis(f);
+		ImportGimpPalette(io);
 	}
 }
+
+
+/*! This will import a gimp_palette.gpl as a Palette.
+ * Return whether import was successful.
+ */
+bool GradientStrip::ImportGimpPalette(IOBuffer &f)
+{
+	if (f.IsEOF()) return false;
+		
+	char *line = nullptr;
+	int c;
+	size_t n = 0;
+	bool err = false;
+
+	c = f.GetLine(&line,&n);
+	if (c>0 && strncmp(line,"GIMP Palette",12)) { err = true; c = 0; }
+	
+	if (c>0) c = f.GetLine(&line, &n);
+	if (c>0 && !strncmp(line,"Name: ",6)) {
+		makestr(name,line+6);
+		name[strlen(name)-1]='\0';
+	} else c = 0;
+
+	if (c>0) c = f.GetLine(&line, &n);
+	if (c>0 && !strncmp(line,"Columns: ",9)) IntAttribute(line+9, &num_columns_hint);
+
+	int rgb[3], n2;
+	char *e;
+	int ci = 0;
+	while (c>0 && !f.IsEOF()) {
+		c = f.GetLine(&line, &n);
+		if (c <= 0) break;
+		e = nullptr;
+		n2 = IntListAttribute(line, rgb, 3, &e);
+		if (n2 != 3) continue;
+		while (e && isspace(*e)) e++;
+		if (e[strlen(e)-1] == '\n') e[strlen(e)-1] = '\0';
+
+		AddColor(ci, rgb[0], rgb[1], rgb[2], 1.0, e);
+		ci++;
+	} 
+	if (line) free(line);
+
+	if (!err) {
+		gradient_flags |= AsPalette;
+	}
+	return !err;
+}
+
 
 /*! Reads in from something like this. p1 and p2 can also be flatvectors:
  * <pre>
@@ -1027,11 +1073,15 @@ int GradientStrip::RemoveColor(int index)
 	return colors.remove(index);
 }
 
-//! Takes pointer, does not make duplicate.
+/*! Takes pointer, does not make duplicate.
+ *  Returns the index in the strip after adding, or -1 for not added, such as if spot==nullptr.
+ */
 int GradientStrip::AddColor(GradientStrip::GradientSpot *spot)
 {
-	int c=0;
-	while (c<colors.n && spot->t>colors.e[c]->t) c++;
+	if (!spot) return -1;
+
+	int c = 0;
+	while (c < colors.n && spot->t > colors.e[c]->t) c++;
 	colors.push(spot,1,c);
 
 	UpdateNormalized(false);
@@ -1042,21 +1092,23 @@ int GradientStrip::AddColor(GradientStrip::GradientSpot *spot)
 /*! Add a spot with the given color, or interpolated, if col==NULL.
  * If t is already an existing point, then replace that color. In this case, 
  * nothing is done if col==NULL.
+ * Returns the index in the strip after adding, or -1 for not added.
  */
-int GradientStrip::AddColor(double t,ScreenColor *col)
+int GradientStrip::AddColor(double t,ScreenColor *col, const char *nname)
 {
-	if (!col) return AddColor(t, NULL, false);
+	if (!col) return AddColor(t, NULL, false, nname);
 	
-	return AddColor(t, col->red/65535.,col->green/65535.,col->blue/65535.,col->alpha/65535.);
+	return AddColor(t, col->red/65535.,col->green/65535.,col->blue/65535.,col->alpha/65535., nname);
 }
 	
 /*! red, green, blue, alpha are assumed to be in range [0..1]
+ * Returns the index in the strip after adding, or -1 for not added.
  */
-int GradientStrip::AddColor(double t, double red,double green,double blue,double alpha)
+int GradientStrip::AddColor(double t, double red,double green,double blue,double alpha, const char *nname)
 {
 	Color *color = ColorManager::newColor(LAX_COLOR_RGB, 4, red,green,blue,alpha);
 	color->screen.rgbf(red,green,blue,alpha);
-	int status = AddColor(t, color, false);
+	int status = AddColor(t, color, false, nname);
 	color->dec_count();
 	return status;
 }
@@ -1066,8 +1118,10 @@ int GradientStrip::AddColor(double t, double red,double green,double blue,double
  *  If t is already present, then overwrite.
  *  If dup, then duplicate color, else link and inc count.
  *  If color==NULL, then interpolate at t.
+ *
+ * Returns the index in the strip after adding, or -1 for not added.
  */
-int GradientStrip::AddColor(double t, Color *color, bool dup)
+int GradientStrip::AddColor(double t, Color *color, bool dup, const char *nname)
 {
 	int c=0; 
 	while (c<colors.n && t>colors.e[c]->t) c++;
@@ -1085,10 +1139,11 @@ int GradientStrip::AddColor(double t, Color *color, bool dup)
 		if (!usecolor) {
 			 //interpolate color
 			usecolor = WhatColor(t, false);
-			dup=false;
+			dup = false;
 		}
 
-		GradientStrip::GradientSpot *gds=new GradientStrip::GradientSpot(t,0, usecolor,dup);
+		GradientStrip::GradientSpot *gds = new GradientStrip::GradientSpot(t,0, usecolor,dup);
+		if (nname) makestr(gds->name, nname);
 		colors.push(gds,1,c);
 		if (usecolor != color) color->dec_count();
 	} 
@@ -1098,7 +1153,8 @@ int GradientStrip::AddColor(double t, Color *color, bool dup)
 	return c;
 }
 
-/*! Put the color intor col if col!=NULL. Else return a new Color.
+
+/*! Put the color into col if col!=NULL. Else return a new Color.
  *
  * col, if not NULL, MUST be a plain Color, not a ColorRef.
  */
@@ -1307,6 +1363,92 @@ int GradientStrip::RenderRadial(LaxImage *image)
 { //***
 	return RenderLinear(image); //TEMP!!
 }
+
+
+//-------------------------------- Utility functions -------------------------------
+
+/*! Convenience function to set up a new GradientStrip as a Palette. */
+GradientStrip *GradientStrip::newPalette()
+{
+	GradientStrip *palette = new GradientStrip;
+	palette->SetFlags(AsPalette, true);
+	return palette;
+}
+
+
+
+/*! \ingroup misc
+ *
+ * Make a palette with RYGCBM horizontally and white to black vertically.
+ *
+ * If include_gray_strip, then the final row is a transition from full white to full black.
+ */
+GradientStrip *GradientStrip::rainbowPalette(int w, int h, bool include_gray_strip)
+{
+	Palette *p = newPalette();
+	p->num_columns_hint = w;
+	int x, y;
+	double rgb[3];
+	double max = 1.0;
+	
+	if (include_gray_strip) h--;
+	
+	for (y=0; y<h; y++) {
+		for (x=0; x<w; x++) {
+			if (x<w/6) {
+				rgb[0] = max;
+				rgb[1] = (max*x*6/w);
+				rgb[2] = 0;
+			} else if (x<w*2/6) {
+				rgb[0] = max-(max*(6*x-w)/w);
+				rgb[1] = max;
+				rgb[2] = 0;
+			} else if (x<w*3/6) {
+				rgb[0] = 0;
+				rgb[1] = max;
+				rgb[2] = (max*(6*x-2*w)/w);
+			} else if (x<w*4/6) {
+				rgb[0] = 0;
+				rgb[1] = max-(max*(6*x-3*w)/w);
+				rgb[2] = max;
+			} else if (x<w*5/6) {
+				rgb[0] = (max*(6*x-4*w)/w);
+				rgb[1] = 0;
+				rgb[2] = max;
+			} else {
+				rgb[0] = max;
+				rgb[1] = 0;
+				rgb[2] = max-(max*(6*x-5*w)/w);
+			}
+			
+			if (y<h/2) {
+				rgb[0] = rgb[0]*y/(h/2);
+				rgb[1] = rgb[1]*y/(h/2);
+				rgb[2] = rgb[2]*y/(h/2);
+			} else {
+				rgb[0] = max*(y-(h-1)/2)/(h/2)+(rgb[0])*(h-1-y)/(h/2);
+				rgb[1] = max*(y-(h-1)/2)/(h/2)+(rgb[1])*(h-1-y)/(h/2);
+				rgb[2] = max*(y-(h-1)/2)/(h/2)+(rgb[2])*(h-1-y)/(h/2);
+			}
+			if (rgb[0]<0) rgb[0]=0;
+			else if (rgb[0]>max) rgb[0]=max;
+			if (rgb[1]<0) rgb[1]=0;
+			else if (rgb[1]>max) rgb[1]=max;
+			if (rgb[2]<0) rgb[2]=0;
+			else if (rgb[2]>max) rgb[2]=max;
+			p->AddColor(y*w+x, rgb[0], rgb[1], rgb[2], 1.0, nullptr);
+		}
+	}
+	if (include_gray_strip) {
+		for (x=0; x<w; x++) {
+			rgb[0] = rgb[1] = rgb[2] = (max*x/(w-1) + .5);
+			p->AddColor(h*w+x, rgb[0], rgb[1], rgb[2], 1.0, nullptr);
+		}
+
+	}
+	return p;
+}
+
 
 } //namespace Laxkit
 

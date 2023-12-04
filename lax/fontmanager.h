@@ -34,7 +34,7 @@
 #include <lax/resources.h>
 #include <lax/laximages.h>
 #include <lax/lists.h>
-#include <lax/palette.h>
+#include <lax/gradientstrip.h>
 
 
 namespace Laxkit {

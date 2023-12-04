@@ -28,7 +28,7 @@
 #include <lax/rectangles.h>
 #include <lax/lists.h>
 #include <lax/buttondowninfo.h>
-#include <lax/palette.h>
+#include <lax/gradientstrip.h>
 
 namespace Laxkit {
 

@@ -1162,10 +1162,10 @@ SomeData *TextOnPath::ConvertToPaths(bool use_clones, Laxkit::RefPtrStack<SomeDa
 
 					if (palette) {
 						color.rgbf(
-							palette->colors.e[layer]->channels[0]/(double)palette->colors.e[layer]->maxcolor,
-							palette->colors.e[layer]->channels[1]/(double)palette->colors.e[layer]->maxcolor,
-							palette->colors.e[layer]->channels[2]/(double)palette->colors.e[layer]->maxcolor,
-							palette->colors.e[layer]->channels[3]/(double)palette->colors.e[layer]->maxcolor);
+							palette->colors.e[layer]->color->values[0],
+							palette->colors.e[layer]->color->values[1],
+							palette->colors.e[layer]->color->values[2],
+							palette->colors.e[layer]->color->values[3]);
 					}
 
 					 //has to be first layer, so make new base object
@@ -1234,10 +1234,10 @@ SomeData *TextOnPath::ConvertToPaths(bool use_clones, Laxkit::RefPtrStack<SomeDa
 					ScreenColor color;
 					if (palette) {
 						color.rgbf(
-							palette->colors.e[layer]->channels[0]/(double)palette->colors.e[layer]->maxcolor,
-							palette->colors.e[layer]->channels[1]/(double)palette->colors.e[layer]->maxcolor,
-							palette->colors.e[layer]->channels[2]/(double)palette->colors.e[layer]->maxcolor,
-							palette->colors.e[layer]->channels[3]/(double)palette->colors.e[layer]->maxcolor);
+							palette->colors.e[layer]->color->values[0],
+							palette->colors.e[layer]->color->values[1],
+							palette->colors.e[layer]->color->values[2],
+							palette->colors.e[layer]->color->values[3]);
 					} else {
 						color.rgbf(this->color->screen.red/65535.,
 								   this->color->screen.green/65535.,

@@ -32,9 +32,6 @@
 #include <lax/screencolor.h>
 #include <lax/drawingdefs.h>
 
-// *** temporary! maybe!
-#include <lax/palette.h>
-
 #define DISPLAYER_NO_SHEAR (1<<0)
 
 namespace Laxkit {

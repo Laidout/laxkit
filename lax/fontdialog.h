@@ -28,7 +28,7 @@
 #include <lax/treeselector.h>
 #include <lax/numslider.h>
 #include <lax/scroller.h>
-#include <lax/palette.h>
+#include <lax/gradientstrip.h>
 #include <lax/iconselector.h>
 
 
