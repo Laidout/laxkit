@@ -31,7 +31,7 @@ namespace Laxkit {
 class ScreenColor
 {
  public:
-	int red, green, blue, alpha;
+	int red, green, blue, alpha; // in range 0..65535
 	char pixel_is_synced;
 	long pixel;
 	int info;

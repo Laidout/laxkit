@@ -498,6 +498,9 @@ bool Invert_2x2(double* matrix, double *result)
 	return true;
 }
 
+/*! Return whether the segment intersects itself.
+ * Also return the point in p_ret. t1_ret is the lesser t value of the intersection, and t2_ret the greater.
+ */
 bool bez_self_intersection(const flatpoint &p1, const flatpoint &c1, const flatpoint &c2, const flatpoint &p2, flatpoint *p_ret, double *t1_ret, double *t2_ret)
 {
 	// This function is adapted from Kinross, which is MIT licensed:
@@ -568,6 +571,7 @@ bool bez_self_intersection(const flatpoint &p1, const flatpoint &c1, const flatp
 /*! Find intersections between two cubic bezier segments.
  * point_ret and t_ret should be preallocated to hold up to 9 points. If null, don't return those.
  * Return value is number of intersections (also stored in num_ret). There can be at most 9.
+ * Note that this does NOT detect self intersections.
  *
  * Please note you must set num to 0 before calling, as this function is recursive, and increments
  * num_ret as it goes along.
