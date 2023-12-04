@@ -446,17 +446,17 @@ int BezNetData::AddPath(PathsData *pdata, int face_mask)
 {
 	if (!pdata || !pdata->paths.n) return 1;
 
-	// //detect path individual segment self intersections
+	// detect path individual segment self intersections
 	// ***
 
-	// // detect self intersections between path segments
+	// detect self intersections between path segments
 	// ***
 	
 	
-	// // for each bezier segment:
-	// //   detect if start point near existing vertex, need to insert edge if so
-	// //   detect if start point near existing edge, subdivide if so
-	// //   intersect with existing edges
+	// for each bezier segment:
+	//   detect if start point near existing vertex, need to insert edge if so
+	//   detect if start point near existing edge, subdivide if so
+	//   intersect with existing edges
 	   
 	return 1;
 }

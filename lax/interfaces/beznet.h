@@ -32,7 +32,6 @@ namespace LaxInterfaces {
 //-------------------------- HalfEdgeVertex -------------------------------
 
 class HalfEdge;
-//class BezEdge;
 class BezFace;
 
 
@@ -59,43 +58,17 @@ class HalfEdge
 public:
 	// these are all just links to things, the memory is not managed by HalfEdge.
 	HalfEdgeVertex *vertex = nullptr; // originating vertex. HalfEdgeVertex object is allocated in BezNetData::vertices
-	HalfEdge *twin = nullptr; // note, unlike "pure" implementations, we always have twins, but twin will have null face if non-manifold
-	HalfEdge *next = nullptr; // HalfEdge objects allocated in BezEdge objects, which are in BezNetData::edges
-	HalfEdge *prev = nullptr;
-	BezFace  *face = nullptr; // face of this edge. twin will have separate face. only two faces per total edge allowed.
-	int tick       = 0;
+	HalfEdge *twin   = nullptr; // note, unlike "pure" implementations, we always have twins, but twin will have null face if non-manifold
+	HalfEdge *next   = nullptr; // HalfEdge objects allocated in BezEdge objects, which are in BezNetData::edges
+	HalfEdge *prev   = nullptr;
+	HalfEdge *ahead  = nullptr; // A hint that this edge semantically connects forward to this, such as when the net was generated from an overlapping path.
+	HalfEdge *behind = nullptr; // A hint that this edge semantically connects backward to this.
+	BezFace  *face   = nullptr; // face of this edge. twin will have separate face. only two faces per total edge allowed.
+	int tick         = 0;
 
 	HalfEdge *NextAroundVertex(HalfEdge **twin_ret = nullptr);
 	HalfEdge *PreviousAroundVertex(HalfEdge **twin_ret = nullptr);
 };
-
-
-//-------------------------- BezEdge -------------------------------
-
-///*! \class BezEdge
-// * BezEdge allocates the halfedges used in a BezNetData. BezNetData handles management of BezEdge objects.
-// * There can be any number of segments of bezier path that corresponds to the half edge, 
-// * which are assumed to not intersect with any other BezEdge except at endpoints.
-// * coord runs along halfedge, and the reverse of coord runs along twin;
-// * If coord == nullptr, then use the points defined in the HalfEdgeVertex objects.
-// */
-
-//class BezEdge
-//{
-//public:
-//	HalfEdge *halfedge = nullptr;
-//	HalfEdge *twin = nullptr;
-//	int tick = 0;
-//
-//	Coordinate *coord = nullptr; //custom bezier edge. if null, then use the twin's coord, but in reverse order
-//	
-//	BezEdge() {}
-//	virtual ~BezEdge() {
-//		delete coord;
-//		delete halfedge;
-//		delete twin;
-//	}
-//};
 
 
 //-------------------------- BezFace -------------------------------
