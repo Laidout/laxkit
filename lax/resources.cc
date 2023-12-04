@@ -668,13 +668,13 @@ void ResourceManager::SetObjectFactory(ObjectFactory *factory)
  */
 MenuInfo *ResourceManager::ResourceMenu(const char *type, bool include_recent, MenuInfo *menu, int id_offset, int info, anObject *current)
 {
-	ResourceType *rtype=FindType(type);
+	ResourceType *rtype = FindType(type);
 	if (!rtype) return nullptr;
 
-	if (!menu) menu=new MenuInfo(type);
+	if (!menu) menu = new MenuInfo(type);
 
 	 //first do a favorites menu
-	int numadded=0;
+	int numadded = 0;
 	rtype->AppendMenu(menu, true, &numadded, id_offset, info, current);
 	if (numadded) menu->AddSep();
 
