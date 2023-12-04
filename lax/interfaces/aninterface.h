@@ -135,8 +135,9 @@ class anInterface : virtual public Laxkit::EventReceiver,
 	virtual void PostMessage(const char *message);
 	virtual void PostMessage2(const char *fmt, ...);
 	virtual Laxkit::UndoManager *GetUndoManager();
+	virtual Laxkit::ResourceManager *GetResourceManager();
 
-	virtual Laxkit::MenuInfo *ContextMenu(int x,int y,int deviceid, Laxkit::MenuInfo *menu) { return menu; }
+	virtual Laxkit::MenuInfo *ContextMenu(int x,int y,int deviceid, Laxkit::MenuInfo *menu);
 
 	virtual int Paste(const char *txt,int len, Laxkit::anObject *obj, const char *formathint);
 	virtual int GetForCopy(const char **txt,int *len, Laxkit::anObject **obj, const char *formathint);

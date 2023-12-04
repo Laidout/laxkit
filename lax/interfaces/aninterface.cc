@@ -209,15 +209,6 @@ namespace LaxInterfaces {
 /*! \fn int anInterface::UseThis(Laxkit::anObject *ndata,unsigned int mask=0) { return 0; } 
  * \brief Return 1 if interface can use that data, otherwise, the calling code must appropriately dispose of ndata.
  */
-/*! \fn Laxkit::MenuInfo *anInterface::ContextMenu(int x,int y,int deviceid, Laxkit::MenuInfo *menu)
- * \brief Return a context sensitive menu for screen position (x,y).
- *
- * This should be a menu instance that gets deleted by the popped up menu. 
- * The interface should not refer to it again. 
- *
- * Default implementation here is to simply return whatever was in menu. Usually if menu already exists,
- * then this instance will append items to it.
- */
 /*! \fn int anInterface::Event(const Laxkit::EventData *e, const char *mes)
  * \brief Respond to events, particularly menu events from a menu created from ContextMenu().
  */
@@ -698,6 +689,7 @@ Attribute *anInterface::dump_out_atts(Attribute *att,int what,DumpContext *savec
 	return att;
 }
 
+
 /*! By default just return InterfaceManager::GetUndoManager() from the default manager..
  */
 Laxkit::UndoManager *anInterface::GetUndoManager()
@@ -705,6 +697,33 @@ Laxkit::UndoManager *anInterface::GetUndoManager()
 	InterfaceManager *imanager=InterfaceManager::GetDefault(true);
 	return imanager->GetUndoManager();
 }
+
+
+/*! Convenient function to return InterfaceManager::GetDefault(true)->GetResourceManager().
+ */ 
+Laxkit::ResourceManager *anInterface::GetResourceManager()
+{
+	InterfaceManager *imanager = InterfaceManager::GetDefault(true);
+	return imanager->GetResourceManager();
+}
+
+
+/*! Return a context sensitive menu for screen position (x,y).
+ *
+ * This should be a menu instance that gets deleted by the popped up menu. 
+ * The interface should not refer to it again. 
+ *
+ * Default implementation here is to simply return whatever was in menu. Usually if menu already exists,
+ * then this instance will append items to it.
+ *
+ * The ViewportWindow will call this function, and spawn a PopupWindow.
+ * When the menu sends, the event->info2 will have the item->id, and event->info4 will have the item->info.
+ */
+Laxkit::MenuInfo *anInterface::ContextMenu(int x,int y,int deviceid, Laxkit::MenuInfo *menu)
+{
+	return menu;
+}
+
 
 /*! Return whether we will take data based on action, and optionally
  * fill in rect with the region of the window this response pertains to.
