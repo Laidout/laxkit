@@ -37,10 +37,6 @@
 #include <iostream>
 
 
-//template implementation:
-#include <lax/lists.cc>
-
-
 using namespace std;
 #define DBG 
 
