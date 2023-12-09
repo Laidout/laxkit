@@ -71,7 +71,7 @@ class ColorBox : public anXWindow, virtual public ColorBase
 	int currentid;
 	double *topcolor; //for fg/bg mode with one box drawn on the other
 	double step;
-	int sendtype;
+	int sendtype; //LAX_COLOR_*
 
 	double strokew, strokeh;
 

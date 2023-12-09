@@ -542,12 +542,12 @@ void colorrgb(unsigned long col,int *r,int *g,int *b,int *a)
 }
 
 //! Get a pixel value suitable for X graphics functions from the r,g,b components.
-unsigned long rgbcolor(int r,int g,int b)
+unsigned long rgbcolor(int r,int g,int b,int a)
 {
 	unsigned long c= (( r * red_size  /color_size) << red_shift )
 			+ ((g * green_size/color_size) << green_shift )
 			+ ((b * blue_size /color_size) << blue_shift)
-			+ ((0xff * alpha_size /color_size) << alpha_shift);
+			+ ((a * alpha_size /color_size) << alpha_shift);
 
 	return c;
 }

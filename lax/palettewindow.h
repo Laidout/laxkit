@@ -35,9 +35,6 @@ namespace Laxkit {
 
 //-------------------------------- PaletteWindow -----------------------------
 
-#define PALW_DBCLK_TO_LOAD   (1<<16)
-#define PALW_READONLY        (1<<17)
-
 
 class PaletteWindow : public anXWindow
 {
@@ -45,12 +42,45 @@ class PaletteWindow : public anXWindow
 	int xn,yn;
 	double dx,dy;
 	ButtonDownInfo buttondown;
+	bool show_locked_hint = false;
+	Laxkit::ShortcutHandler *sc = nullptr;
+
+	//bool waiting_for_new = false; //flag to transition from new to edit
+	//ColorSliders *color_popup;
 
  public:
+ 	enum Actions {
+ 		ACTION_Export = 1,
+ 		ACTION_Import,
+ 		ACTION_RenamePalette,
+ 		ACTION_DuplicatePalette,
+ 		ACTION_DeletePalette,
+ 		ACTION_SaveAsResource,
+ 		ACTION_RenameColor,
+ 		ACTION_NewColor,
+ 		ACTION_RemoveColor,
+ 		ACTION_EditColor,
+ 		ACTION_DuplicateColor,
+ 		ACTION_NewPalette,
+ 		ACTION_PaletteResource = 1000, //this needs to be > all the above
+ 		ACTION_MAX
+ 	};
+
+ 	enum Hover {
+ 		HOVER_None = -1,
+ 		HOVER_Lock = -1000,
+ 		HOVER_PaletteName,
+ 		HOVER_ColorName,
+ 		HOVER_Color,
+ 		HOVER_ColorSelect,
+ 		HOVER_MAX
+ 	};
+
 	Palette *palette;
 	int pad;
-	int curcolor,ccolor;
-	IntRectangle inrect;
+	int curcolor; // actual current color
+	int hover;
+	IntRectangle inrect; // box that contains only the color grid. pname/curcolor/cname not included
 
 	PaletteWindow(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
 		int xx,int yy,int ww,int hh,int brder,
@@ -63,15 +93,32 @@ class PaletteWindow : public anXWindow
 	virtual int LBUp(int x,int y,unsigned int state,const LaxMouse *d);
 	virtual int RBUp(int x,int y,unsigned int state,const LaxMouse *d);
 	virtual int MouseMove(int x,int y,unsigned int state,const LaxMouse *d);
+	virtual int CharInput(unsigned int ch, const char *buffer,int len,unsigned int state, const LaxKeyboard *kb);
+	virtual int PerformAction(int action);
+	virtual ShortcutHandler *GetShortcuts();
+
 	virtual void Refresh();
 	virtual void findInrect();
-	virtual int findColorIndex(int x,int y);
 	virtual int MoveResize(int nx,int ny,int nw,int nh);
 	virtual int Resize(int nw,int nh);
 
+	// color editing
+	virtual int findColorIndex(int x,int y);
+	virtual void LaunchEditColor();
+	virtual void LaunchNewColor();
+	virtual void RemoveColor();
+	virtual void LaunchRenamePalette();
+	virtual void LaunchRenameColor();
+
+	// palette import / export
+	virtual bool UseThis(Palette *new_palette, bool absorb_count);
 	virtual const char *PaletteDir();
+	virtual void LaunchImportPaletteDialog();
+	virtual void LaunchExportDialog();
 	virtual int LoadPalette(const char *file);
+	virtual int ExportPalette(const char *file, int type);
 };
+
 
 } //namespace Laxkit;
 

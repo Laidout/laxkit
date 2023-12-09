@@ -28,13 +28,12 @@
 #include <lax/popupmenu.h>
 #include <lax/filepreviewer.h>
 #include <lax/inputdialog.h>
-#include <lax/menubutton.h>
 #include <lax/freedesktop.h>
 #include <lax/overwrite.h>
 #include <lax/stackframe.h>
 #include <lax/iconmanager.h>
-
 #include <lax/fileutils.h>
+#include <lax/sliderpopup.h>
 
 #include <unistd.h>
 #include <dirent.h>
@@ -46,13 +45,10 @@ using namespace std;
 #define DBG 
 
 
-//template implementation:
-#include <lax/lists.cc>
-
-
 #ifndef GLOB_PERIOD
 	#define GLOB_PERIOD 0
 #endif
+
 //Minimal File Selection Dialog
 //
 //[bm1] [bm2] [...]
@@ -182,22 +178,24 @@ FileDialog::FileDialog(anXWindow *parnt,const char *nname,const char *ntitle,uns
 			   5),
 	  history(2)
 {
-	dialog_style= ndstyle | FILES_GLOBAL_BOOKMARK;
+	dialog_style = ndstyle | FILES_GLOBAL_BOOKMARK;
 	
-	files=new MenuInfo;
-	recentmenu=new MenuInfo;
+	files      = new MenuInfo;
+	recentmenu = new MenuInfo;
+	file_types = nullptr;
+	file_default_type = -1;
 
-	curhistory=-1;
-	finalbuttons=-1;
-	previewer=NULL;
+	curhistory   = -1;
+	finalbuttons = -1;
+	previewer    = nullptr;
 
-	recentgroup=newstr(nrecentgroup);
-	showing_recent=false;
-	showing_icons=false;
+	recentgroup    = newstr(nrecentgroup);
+	showing_recent = false;
+	showing_icons  = false;
 
 
 	 //-------the rest of this function is building initial file/path/mask/ok controls
-	anXWindow *last=NULL;
+	anXWindow *last = nullptr;
 
 	 //create file input
 	last = file = new LineInput(this,"file",NULL,
@@ -294,8 +292,9 @@ FileDialog::FileDialog(anXWindow *parnt,const char *nname,const char *ntitle,uns
 FileDialog::~FileDialog()
 {
 	if (recentgroup) delete[] recentgroup;
-	if (files) files->dec_count();
-	if (recentmenu) recentmenu->dec_count();
+	if (files)       files->dec_count();
+	if (recentmenu)  recentmenu->dec_count();
+	if (file_types)  file_types->dec_count();
 }
 
 int FileDialog::NewHistory(const char *npath)
@@ -516,19 +515,13 @@ int FileDialog::init()
 	AddNull(finalbuttons++);
 
 
-	
 	AddVSpacer(linpheight/3,0,0,0, finalbuttons++);
 	AddNull(finalbuttons++);
 	
 
-
-
-
-
 	 //---Main list and preview area
 	 //make a 3 pane stack:  Recent/Bookmarks,  Files,  Preview
 	StackFrame *hstack=new StackFrame(this,"hbox","hbox",0, 0,0,0,0,0, NULL,0,NULL, 8);
-	//StackFrame *hstack=new StackFrame(NULL,"hbox","hbox",0, 0,0,0,0,0, NULL,0,NULL, 10);
 
 
 	 //bookmarks pane...
@@ -692,13 +685,26 @@ int FileDialog::init()
 	}
 	middle->AddWin(filelist,1, 300,100,1000,50,0, 400,200,5000,50,0, -1);
 
+	if (dialog_style & FILES_USE_FILE_TYPES) {
+		SliderPopup *slider = new SliderPopup(middle, "types",nullptr,SLIDER_POP_ONLY, 0,0, 0,0, 1, last,object_id,"types", file_types,0);
+		slider->Select(file_default_type);
+		last = slider;
+
+		middle->AddNull();
+		middle->AddVSpacer(textheight/2,0,0,0, -1);
+		middle->AddNull();
+		middle->AddHSpacer(100,100,0,0, -1);
+		middle->AddWin(last,1, 300,100,1000,50,0, linpheight,0,0,50,0, -1);
+		middle->AddHSpacer(100,100,0,0, -1);
+	}
+
 	hstack->AddWin(middle,1, 300,100,5000,50,0, 400,200,5000,50,0, -1);
 
 
 	 //---------preview pane..
-	if (dialog_style&FILES_PREVIEW) {
-		char *blah=fullFilePath(NULL);
-		last=previewer=new FilePreviewer(hstack,"previewer","previewer",MB_MOVE|MB_LEFT, 0,0,0,0, 1, blah);
+	if (dialog_style & FILES_PREVIEW) {
+		char *blah = fullFilePath(nullptr);
+		last = previewer = new FilePreviewer(hstack,"previewer","previewer",MB_MOVE|MB_LEFT, 0,0,0,0, 1, blah);
 		delete[] blah;
 		hstack->AddWin(previewer,1, 100,50,500,50,0, 100,0,1000,50,0, -1);
 	}
@@ -1144,8 +1150,12 @@ int FileDialog::Event(const EventData *data,const char *mes)
 		closeWindow();
 		return 0;
 
+	} else if (!strcmp(mes,"types")) {
+		file_default_type = s->info1;
+		return 0;
+		
 	} else if (!strcmp(mes,"overwrite")) {
-		StrEventData *e=new StrEventData(s->str,1,0,0,0);
+		StrEventData *e = new StrEventData(s->str, 1,(dialog_style & FILES_USE_FILE_TYPES) ? file_default_type : 0,0,0);
 		app->SendMessage(e,win_owner,win_sendthis,object_id);
 		closeWindow();
 		return 0;
@@ -1281,10 +1291,13 @@ int FileDialog::closeWindow()
 }
 
 //! Send the file name(s) to owner.
-/*! Returns 0 if nothing sent. Else nonzero.
+/*! Returns 0 if nothing sent, such as if an Overwrite dialog is popped. Else nonzero.
  *
  * id will typically be 1 for "ok", and any other number will be the id from 
- * any additional final buttons.
+ * any additional final buttons. This will be event->info1.
+ *
+ * If the dialog has FILES_USE_FILE_TYPES, and we are saving, then event->info2
+ * will be the type number.
  *
  * \todo if FILES_OPEN_MANY but none selected in the list, defaults to
  *    sending a StrEventData rather than a StrsEventData... should probably make
@@ -1356,12 +1369,12 @@ int FileDialog::send(int id)
 		return 1;
 	}
 
-	if ((dialog_style&FILES_SAVING) && file_exists(typedinfile,0,NULL)) {
+	if ((dialog_style & FILES_SAVING) && file_exists(typedinfile,0,NULL)) {
 		app->rundialog(new Overwrite(object_id,"overwrite",typedinfile,0,0,0));
 		return 0;
 	}
 
-	StrEventData *e=new StrEventData(typedinfile,id,0,0,0);
+	StrEventData *e = new StrEventData(typedinfile,id,(dialog_style & FILES_USE_FILE_TYPES) ? file_default_type : 0,0,0);
 	app->SendMessage(e,win_owner,win_sendthis,object_id);
 	delete[] typedinfile;
 	return 1;
@@ -1506,13 +1519,21 @@ void FileDialog::UpdateGray()
 	}
 }
 
+/*! If you are using the file types selector, this function needs to be called
+ * before init().
+ */
+void FileDialog::UseFileTypes(MenuInfo *types, int default_type)
+{
+	if (types != file_types) {
+		if (file_types) file_types->dec_count();
+		file_types = types;
+		file_types->inc_count();
+	}
+
+	file_default_type = default_type;
+	dialog_style |= FILES_USE_FILE_TYPES;
+}
 
 
 } // namespace Laxkit
-
-
-
-
-
-
 

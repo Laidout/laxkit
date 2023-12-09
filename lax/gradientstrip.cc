@@ -23,6 +23,8 @@
 #include <lax/gradientstrip.h>
 #include <lax/displayer.h>
 #include <lax/attributes.h>
+#include <lax/utf8string.h>
+#include <lax/language.h>
 
 
 #include <iostream>
@@ -488,6 +490,16 @@ void GradientStrip::SetFlags(unsigned int flags, bool on)
 		if (on) gradient_flags = (gradient_flags & ~(Linear|Radial|StripOnly)) | Radial;
 		else    gradient_flags &= ~Radial; 
 	}
+
+	if (flags & Built_in) {
+		if (on) gradient_flags |= Built_in;
+		else    gradient_flags &= ~Built_in; 
+	}
+
+	if (flags & Read_only) {
+		if (on) gradient_flags |= Read_only;
+		else    gradient_flags &= ~Read_only; 
+	}
 }
 
 bool GradientStrip::IsRadial()  { return gradient_flags & Radial; }
@@ -526,6 +538,7 @@ anObject *GradientStrip::duplicate(anObject *dup)
 	}
 
 	g->gradient_flags = gradient_flags;
+	g->gradient_flags &= ~Built_in;
 
 	g->tmin = tmin;
 	g->tmax = tmax;
@@ -536,6 +549,8 @@ anObject *GradientStrip::duplicate(anObject *dup)
 	g->p2 = p2;
 	g->r1 = r1;
 	g->r2 = r2;
+
+	makestr(g->name, name);
 
 	for (int c=0; c<colors.n; c++) {
 		g->colors.push(new GradientStrip::GradientSpot(colors.e[c]));
@@ -689,6 +704,7 @@ void GradientStrip::dump_in (FILE *f,int indent,int what,DumpContext *context,At
 		IOBuffer io;
 		io.UseThis(f);
 		ImportGimpPalette(io);
+		io.UseThis(nullptr);
 	}
 }
 
@@ -729,7 +745,7 @@ bool GradientStrip::ImportGimpPalette(IOBuffer &f)
 		while (e && isspace(*e)) e++;
 		if (e[strlen(e)-1] == '\n') e[strlen(e)-1] = '\0';
 
-		AddColor(ci, rgb[0], rgb[1], rgb[2], 1.0, e);
+		AddColor(ci, rgb[0]/255., rgb[1]/255., rgb[2]/255., 1.0, e);
 		ci++;
 	} 
 	if (line) free(line);
@@ -738,6 +754,203 @@ bool GradientStrip::ImportGimpPalette(IOBuffer &f)
 		gradient_flags |= AsPalette;
 	}
 	return !err;
+}
+
+bool GradientStrip::ExportGimpGPL(IOBuffer &f)
+{
+	if (f.IsEOF()) return false;
+
+	f.Printf("GIMP Palette\n");
+	f.Printf("Name: %s\n",(name?name:"Untitled"));
+	if (num_columns_hint > 0) f.Printf("Columns: %d\n", num_columns_hint);
+	f.Printf("#\n");
+
+	int c,c2;
+	for (c=0; c < colors.n; c++) {
+		for (c2=0; c2<3 /*colors.e[c]->color->nvalues*/; c2++) {
+			f.Printf("%3d ", int(.5+255*colors.e[c]->color->values[c2]));
+		}
+		if (colors.e[c]->name) f.Printf ("%s\n", colors.e[c]->name);
+		else f.Printf ("%02x%02x%02x\n",
+			(int)(colors.e[c]->color->values[0]*255),
+			(int)(colors.e[c]->color->values[1]*255),
+			(int)(colors.e[c]->color->values[2]*255));
+	}
+
+	return true;
+}
+
+bool GradientStrip::ImportScribusXML(const char *filename)
+{
+	Attribute att;
+	XMLFileToAttribute(&att, filename, nullptr);
+	
+	if (att.attributes.n == 0) return false;
+	Attribute *a = att.find("SCRIBUSCOLORS");
+	if (!a) return false;
+
+	const char *nm = a->findValue("Name");
+
+	a = a->find("content:");
+	if (!a) return false;
+
+	if (nm) makestr(name, nm);
+	double rgbv[3];
+	ScreenColor col;
+
+	for (int c=0; c<a->attributes.n; c++) {
+		const char *nme = a->attributes.e[c]->name;
+		
+		if (strcmp(nme, "COLOR")) continue;
+
+		const char *color_name = a->attributes.e[c]->findValue("NAME");
+		const char *rgb = a->attributes.e[c]->findValue("RGB");
+		const char *cmyk = a->attributes.e[c]->findValue("CMYK");
+
+		if (!rgb && !cmyk) continue;
+
+		if (rgb) {
+			int success = HexColorAttributeRGB(rgb, &col, nullptr);
+			if (!success) continue; //TODO: this is actually an error which should propagate upward
+			rgbv[0] = col.red   / 65535.;
+			rgbv[1] = col.green / 65535.;
+			rgbv[2] = col.blue  / 65535.;
+
+		} else if (cmyk) {
+			// 4 values, in gets mapped: cmyk -> argb
+			int success = HexColorAttributeRGB(cmyk, &col, nullptr);
+			if (!success) continue;
+			double cmyk[4];
+			cmyk[0] = col.alpha / 65535.;
+			cmyk[1] = col.red   / 65535.;
+			cmyk[2] = col.green / 65535.;
+			cmyk[3] = col.blue  / 65535.;
+			simple_cmyk_to_rgb(cmyk, rgbv);
+		}
+		//SPOT == "0" or "1"
+		//REGISTER == "0" or "1"
+		
+		AddColor(0, rgbv[0], rgbv[1], rgbv[2], 1.0, !isblank(color_name) ? color_name : nullptr);
+	}
+
+	gradient_flags |= AsPalette;
+	return true;
+}
+
+bool GradientStrip::ExportScribusXML(IOBuffer &f)
+{
+	if (f.IsEOF()) return false;
+
+	f.Printf("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+	f.Printf("<SCRIBUSCOLORS Name=\"%s\">\n", (name?name:"Untitled"));
+	
+	for (int c=0; c < colors.n; c++) {
+		if (isblank(colors.e[c]->name)) {
+			//TODO: need to account for non-rgb
+			f.Printf("  <COLOR RGB=\"#%02X%02X%02X\" NAME=\"#%02X%02X%02X\" />\n",
+				(int)(colors.e[c]->color->values[0]*255+.5),
+				(int)(colors.e[c]->color->values[1]*255+.5),
+				(int)(colors.e[c]->color->values[2]*255+.5),
+				(int)(colors.e[c]->color->values[0]*255+.5),
+				(int)(colors.e[c]->color->values[1]*255+.5),
+				(int)(colors.e[c]->color->values[2]*255+.5)
+				);
+
+		} else {
+			f.Printf("  <COLOR RGB=\"#%02X%02X%02X\" NAME=\"%s\" />\n",
+				(int)(colors.e[c]->color->values[0]*255+.5),
+				(int)(colors.e[c]->color->values[1]*255+.5),
+				(int)(colors.e[c]->color->values[2]*255+.5),
+				colors.e[c]->name);
+		}
+	}
+
+	f.Printf("</SCRIBUSCOLORS>");
+
+	return true;
+}
+
+
+/*! Export two CSS classes per color, one for "background-color" and one for "color".
+ */
+bool GradientStrip::ExportCSS(IOBuffer &f)
+{
+	if (f.IsEOF()) return false;
+
+	f.Printf("/* Name: %s */\n",(name?name:"Untitled"));
+	
+	Utf8String color_name;
+	Utf8String color;
+
+	for (int c=0; c < colors.n; c++) {
+
+		if (isblank(colors.e[c]->name)) {
+			color_name.Sprintf("hex%02x%02x%02x%02x",
+				(int)(colors.e[c]->color->values[0]*255),
+				(int)(colors.e[c]->color->values[1]*255),
+				(int)(colors.e[c]->color->values[2]*255),
+				(int)(colors.e[c]->color->values[3]*255));
+		} else color_name = colors.e[c]->name;
+		color_name.Replace(" ", "", true);
+
+		color.Sprintf ("rgba(%d, %d, %d, %f)",
+			(int)(colors.e[c]->color->values[0]*255),
+			(int)(colors.e[c]->color->values[1]*255),
+			(int)(colors.e[c]->color->values[2]*255),
+			colors.e[c]->color->values[3]);
+
+		f.Printf(".%s-bg { background-color: %s; }\n", color_name.c_str(), color.c_str());
+		f.Printf(".%s { color: %s; }\n", color_name.c_str(), color.c_str());
+	}
+
+	return true;
+}
+
+
+/*! Export an svg grid filled with the palette.
+ */
+bool GradientStrip::ExportSVGGrid(IOBuffer &f)
+{
+	if (f.IsEOF()) return false;
+
+	f.Printf("<svg width=\"100\" height=\"100\">\n");
+	if (!isblank(name)) f.Printf("<!-- %s -->\n");
+	
+	Utf8String color;
+	int xn, yn;
+	if (num_columns_hint > 0) {
+		xn = num_columns_hint;
+	} else {
+		double aspect = 1.0;
+		xn = int(ceil(sqrt(colors.n / aspect)));
+		if (xn == 0) xn = 1;
+	}
+	yn = (colors.n-1) / xn + 1;
+	if (yn <= 0) yn = 1;
+	
+	double x=0, y=0, w=100.0/xn, h=100.0/yn;
+
+	// draw grid of colors
+	for (int c=0; c < colors.n; c++) {
+
+		color.Sprintf ("rgb(%d, %d, %d)",
+			(int)(colors.e[c]->color->values[0]*255+.5),
+			(int)(colors.e[c]->color->values[1]*255+.5),
+			(int)(colors.e[c]->color->values[2]*255+.5));
+
+		f.Printf("  <rect x=\"%f\" y=\"%f\" width=\"%f\" height=\"%f\" style=\"fill:%s; fill-opacity:%f; stroke:none;\" />\n",
+			x,y,w,h, color.c_str(), colors.e[c]->color->values[3]);
+
+		x += w;
+		if ((c+1)%xn == 0) {
+			y += h;
+			x = 0;
+		}
+	}
+
+	f.Printf("</svg>");
+
+	return true;
 }
 
 
@@ -756,8 +969,6 @@ bool GradientStrip::ImportGimpPalette(IOBuffer &f)
  *    color rgbf(0, 0, 0, 1.0)
  *  radial
  * </pre>
- *
- * \todo *** allow import of Gimp, Inkscape/svg, scribus gradients
  */
 void GradientStrip::dump_in_atts(Attribute *att,int flag,DumpContext *context)
 {
@@ -851,6 +1062,40 @@ void GradientStrip::dump_out(FILE *f,int indent,int what,DumpContext *context)
 		//colors.e[colors.n-1]->dump_out(f,indent+2,-1);//*** should probably check that there are always 2 and not ever 0!
 		return;
 	}
+
+	if (what == GimpGPL) {
+		IOBuffer io;
+		io.UseThis(f);
+		ExportGimpGPL(io);
+		io.UseThis(nullptr);
+		return;
+	}
+
+	if (what == ScribusXML) {
+		IOBuffer io;
+		io.UseThis(f);
+		ExportScribusXML(io);
+		io.UseThis(nullptr);
+		return;
+	}
+
+	if (what == CSSColors) {
+		IOBuffer io;
+		io.UseThis(f);
+		ExportCSS(io);
+		io.UseThis(nullptr);
+		return;
+	}
+
+	if (what == SVGGrid) {
+		IOBuffer io;
+		io.UseThis(f);
+		ExportSVGGrid(io);
+		io.UseThis(nullptr);
+		return;
+	}
+
+	//TODO: if (what == GimpGGR) {}
 
 	if (!IsPalette()) {
 		fprintf(f,"%sp1 (%.10g, %.10g)\n",spc, p1.x,p1.y);
@@ -1110,6 +1355,20 @@ int GradientStrip::AddColor(double t, double red,double green,double blue,double
 	color->screen.rgbf(red,green,blue,alpha);
 	int status = AddColor(t, color, false, nname);
 	color->dec_count();
+	return status;
+}
+
+/*! Add a color without concern for t values for sorting, which are relevant only for gradients.
+ */
+int GradientStrip::AddPaletteColor(double red,double green,double blue,double alpha, const char *nname, int where)
+{
+	Color *color = ColorManager::newColor(LAX_COLOR_RGB, 4, red,green,blue,alpha);
+	color->screen.rgbf(red,green,blue,alpha);
+	GradientStrip::GradientSpot *gds = new GradientStrip::GradientSpot(where,0, color,false);
+	color->dec_count();
+	if (nname) makestr(gds->name, nname);
+
+	int status = colors.push(gds,1,where);	
 	return status;
 }
 
@@ -1386,7 +1645,9 @@ GradientStrip *GradientStrip::newPalette()
 GradientStrip *GradientStrip::rainbowPalette(int w, int h, bool include_gray_strip)
 {
 	Palette *p = newPalette();
+	makestr(p->name, _("Rainbow"));
 	p->num_columns_hint = w;
+
 	int x, y;
 	double rgb[3];
 	double max = 1.0;
@@ -1441,7 +1702,7 @@ GradientStrip *GradientStrip::rainbowPalette(int w, int h, bool include_gray_str
 	}
 	if (include_gray_strip) {
 		for (x=0; x<w; x++) {
-			rgb[0] = rgb[1] = rgb[2] = (max*x/(w-1) + .5);
+			rgb[0] = rgb[1] = rgb[2] = (max*x/(w-1));
 			p->AddColor(h*w+x, rgb[0], rgb[1], rgb[2], 1.0, nullptr);
 		}
 

@@ -72,7 +72,7 @@ int ItemSlider::init()
 }
 
 //! Sends message to owner.
-/*! Sends long data, with <tt>xclient.data.l[0]=getid(curitem)</tt>.
+/*! Sends a SimpleMessage, with event->info1 == id of curitem.
  */
 int ItemSlider::send()
 {

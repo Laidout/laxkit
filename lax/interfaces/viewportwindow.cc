@@ -259,6 +259,9 @@ ViewportWindow::ViewportWindow(Laxkit::anXWindow *parnt,const char *nname,const 
 	temp_input=NULL;
 	temp_input_label=NULL;
 	temp_input_interface=0;
+
+	last_message    = nullptr;
+	last_message_n  = 0;
 }
 
 //! Deletes dp.
@@ -273,6 +276,8 @@ ViewportWindow::~ViewportWindow()
 	if (selection)  selection ->dec_count();
 	if (copysource) copysource->dec_count();
 	if (pastedest)  pastedest ->dec_count();
+
+	delete[] last_message;
 }
 
 //! Default is app->postmessage(mes), unless parent is ViewerWindow, then try to set its message bar to mes.
@@ -283,6 +288,28 @@ void ViewportWindow::PostMessage(const char *mes)
 	ViewerWindow *viewer=dynamic_cast<ViewerWindow *>(win_parent); // maybe not always returns non-null
 	if (viewer) viewer->PostMessage(mes);
 	else app->postmessage(mes);
+}
+
+/*! Printf style message.
+ */
+void ViewportWindow::PostMessage2(const char *fmt, ...)
+{
+	va_list arg;
+
+    va_start(arg, fmt);
+    int c = vsnprintf(last_message, last_message_n, fmt, arg);
+    va_end(arg);
+
+    if (c >= last_message_n) {
+        delete[] last_message;
+        last_message_n = c+100;
+        last_message = new char[last_message_n];
+        va_start(arg, fmt);
+        vsnprintf(last_message, last_message_n, fmt, arg);
+        va_end(arg);
+    }
+
+	PostMessage(last_message);
 }
 
 //! Return the extra transform needed to transform points in oc to viewer space.

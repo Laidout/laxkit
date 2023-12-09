@@ -32,9 +32,6 @@
 #include <lax/lineedit.h>
 #include <lax/strmanip.h>
 
-#include <lax/lists.cc>
-
-
 
 #include <iostream>
 using namespace std;
@@ -43,12 +40,11 @@ using namespace std;
 namespace Laxkit {
 
 
-
-
 //return values for GetPos()
 #define ONPOS_Hex  -2
 #define ONPOS_Old  -3
 #define ONPOS_New  -4
+
 
 //------------------------------------- ColorSliders -------------------------------
 /*! \class ColorSliders
@@ -117,19 +113,22 @@ ColorSliders::ColorSliders(anXWindow *parnt,const char *nname,const char *ntitle
   : anXWindow(parnt,nname,ntitle,ANXWIN_DOUBLEBUFFER|nstyle,nx,ny,nw,nh,brder,prev,owner,mes),
 	ColorBase(ctype, c0,c1,c2,c3,c4)
 {
-	sendtype=ctype; //sliding cmyk/rgb does odd things on conversion, making sliders jump terribly
-						   //this lets one shift input style based on which sliders are last moved, 
-						   //but sends color message based on sendtype.
+	sendtype = ctype;  //sliding cmyk/rgb does odd things on conversion, making sliders jump terribly
+					   //this lets one shift input style based on which sliders are last moved, 
+					   //but sends color message based on sendtype.
 
-	step=nstep;
-	gap=5;
-	current=-1;
-	currenthalf=0;
-	mouseshape=0;
-	square=10;
+	step        = nstep;
+	gap         = 5;
+	current     = -1;
+	currenthalf = 0;
+	mouseshape  = 0;
+	square      = 10;
 
-	if (nw<=0) nw=200;
-	if (nh<=0) nh=400;
+	ok_button   = nullptr;
+	hexedit     = nullptr;
+
+	if (nw <= 0) nw = 200;
+	if (nh <= 0) nh = 400;
 
 	DefineSystems(COLORBLOCK_RGB|COLORBLOCK_CMYK|COLORBLOCK_HSL|COLORBLOCK_Alpha);
 	DefineBars();
@@ -281,6 +280,7 @@ int ColorSliders::init()
 {
 	DefineSystems(COLORBLOCK_RGB |COLORBLOCK_CMYK |COLORBLOCK_HSL |COLORBLOCK_Alpha);
 
+	if ((win_style & COLORSLIDERS_Done_Button) && !ok_button) OkButton();
 	updateSliderRect();
 	return 0;
 }
@@ -292,10 +292,15 @@ void ColorSliders::Updated()
 }
 
 /*! If sending SimpleColorEventData, then all channels are normalized to be in range [0..max].
+ *
+ * If from==0, then proceed with send. If we have an Ok button, then only send if from == 1.
  */
-int ColorSliders::send()
+int ColorSliders::send(int from)
 {
 	if (!win_owner || !win_sendthis) return 0;
+
+	if ((win_style & COLORSLIDERS_Send_Only_Done) && from != 1) return 0;
+
 	DBG cerr <<" ColorSliders SEND "<<win_sendthis<<" to "<<win_owner<<endl;
 
     SimpleColorEventData *cevent=NULL;
@@ -874,8 +879,8 @@ int ColorSliders::GetPos(int x,int y, double *pos, int *half)
 
 int ColorSliders::LBDown(int x,int y,unsigned int state,int count, const LaxMouse *d)
 {
-	if (_kids.n) app->destroywindow(_kids.e[0]); //we are assuming this is a number edit
-
+	ClearHexedit();
+	
 	double pos;
 	int half=0;
 	int bar=GetPos(x,y, &pos,&half);
@@ -905,6 +910,11 @@ int ColorSliders::Event(const EventData *e,const char *mes)
 		send();
 		needtodraw=1;
 		return 0;
+
+	} else if (!strcmp(mes, "ok")) {
+		send(1);
+		app->destroywindow(this);
+		return 0;
 	}
 	return anXWindow::Event(e,mes);
 }
@@ -918,8 +928,21 @@ int ColorSliders::EditHex()
 							  hex.x-border,hex.y-border,hex.width,hex.height,border,
 							  NULL,object_id,"hex",
 							  HexValue(str),0);
+	hexedit = le;
 	app->addwindow(le);
 	return 0;
+}
+
+/*! Safety function to remove the hexedit if it's still there, so as to
+ * prevent nullrefs. */
+void ColorSliders::ClearHexedit()
+{
+	for (int c=0; c<_kids.n; c++) {
+		if (_kids.e[c] == hexedit) {
+			app->destroywindow(hexedit);
+		}
+	}
+	hexedit = nullptr;
 }
 
 int ColorSliders::LBUp(int x,int y,unsigned int state, const LaxMouse *d)
@@ -937,7 +960,7 @@ int ColorSliders::LBUp(int x,int y,unsigned int state, const LaxMouse *d)
 
 int ColorSliders::MBDown(int x,int y,unsigned int state,int count, const LaxMouse *d)
 {
-	if (_kids.n) app->destroywindow(_kids.e[0]); //we are assuming this is a number edit
+	ClearHexedit();
 	return 0;
 }
 
@@ -948,7 +971,7 @@ int ColorSliders::MBUp(int x,int y,unsigned int state, const LaxMouse *d)
 
 int ColorSliders::RBDown(int x,int y,unsigned int state,int count, const LaxMouse *d)
 {
-	if (_kids.n) app->destroywindow(_kids.e[0]); //we are assuming this is a number edit
+	ClearHexedit();
 	return 0;
 }
 
@@ -1023,7 +1046,7 @@ int ColorSliders::MouseMove(int mx,int my, unsigned int state, const LaxMouse *d
 
 int ColorSliders::WheelUp(int x,int y,unsigned int state,int count,const LaxMouse *d)
 {
-	if (_kids.n) app->destroywindow(_kids.e[0]); //we are assuming this is a number edit
+	ClearHexedit();
 
 	double s=step;
 	if ((state&LAX_STATE_MASK)==ShiftMask || (state&LAX_STATE_MASK)==ControlMask) s*=10;
@@ -1040,7 +1063,7 @@ int ColorSliders::WheelUp(int x,int y,unsigned int state,int count,const LaxMous
 
 int ColorSliders::WheelDown(int x,int y,unsigned int state,int count,const LaxMouse *d)
 {
-	if (_kids.n) app->destroywindow(_kids.e[0]); //we are assuming this is a number edit
+	ClearHexedit();
 
 	double s=-step;
 	if ((state&LAX_STATE_MASK)==ShiftMask || (state&LAX_STATE_MASK)==ControlMask) s*=10;
@@ -1229,15 +1252,15 @@ int ColorSliders::CharInput(unsigned int ch,const char *buffer,int len,unsigned 
  */
 void ColorSliders::updateSliderRect()
 {
-	sliders.x=0; //do not include gap
-	sliders.y=0;
-	sliders.width=win_w;
-	sliders.height=win_h;
+	sliders.x      = 0; //do not include gap
+	sliders.y      = 0;
+	sliders.width  = win_w;
+	sliders.height = win_h - (ok_button ? ok_button->win_h : 0);
 
 	double hexh = win_themestyle->normal->textheight();
 	double hexw = win_themestyle->normal->Extent("#00000000",-1)+2*gap;
 
-	hex.width=oldnew.width=-1;
+	hex.width = oldnew.width=-1;
 	if (win_style&COLORSLIDERS_Vertical) {
 		sliders.width-=2*gap;
 		//*** put in hex and oldnew
@@ -1296,6 +1319,9 @@ int ColorSliders::Resize(int nw,int nh)
 {
 	anXWindow::Resize(nw,nh);
 	updateSliderRect();
+	if (ok_button) {
+		ok_button->MoveResize(win_w - ok_button->win_w, win_h - ok_button->win_h, ok_button->win_w, ok_button->win_h);
+	}
 	needtodraw=1;
 	return 0;
 }
@@ -1305,12 +1331,35 @@ int ColorSliders::MoveResize(int nx,int ny,int nw,int nh)
 {
 	anXWindow::MoveResize(nx,ny,nw,nh);
 	updateSliderRect();
+	if (ok_button) {
+		ok_button->MoveResize(win_w - ok_button->win_w, win_h - ok_button->win_h, ok_button->win_w, ok_button->win_h);
+	}
 	needtodraw=1;
 	return 0;
 }
 
+
+/*! Make the window have a done button with a specific label. null translates to "Ok".
+ */
+void ColorSliders::OkButton(const char *label)
+{
+	if (!label) label = _("Ok");
+	if (!ok_button) {
+		double th = win_themestyle->normal->textheight();
+		ok_button = new Button(this, "ok", "ok", 0,
+						win_w/2,win_h-1.5*th, 0,1.5*th, 0,
+						nullptr, object_id, "ok",
+						-1,
+						label,
+						nullptr, nullptr,
+						th/4);
+		app->addwindow(ok_button);
+	}
+
+	ok_button->Label(label);
+}
+
+
 } // namespace Laxkit
-
-
 
 

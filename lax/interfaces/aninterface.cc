@@ -717,7 +717,8 @@ Laxkit::ResourceManager *anInterface::GetResourceManager()
  * then this instance will append items to it.
  *
  * The ViewportWindow will call this function, and spawn a PopupWindow.
- * When the menu sends, the event->info2 will have the item->id, and event->info4 will have the item->info.
+ * When the menu sends, the event->info2 will have the item->id, and event->info4 will have the item->info,
+ * as a "viewportmenu" message.
  */
 Laxkit::MenuInfo *anInterface::ContextMenu(int x,int y,int deviceid, Laxkit::MenuInfo *menu)
 {

@@ -20,18 +20,16 @@
 //    Copyright (C) 2004-2013 by Tom Lechner
 //
 
+#ifdef _LAX_PLATFORM_XLIB
 #include <X11/keysym.h>
 #include <X11/Xatom.h>
 #include <X11/X.h>
+#endif
 
 #include <lax/anxapp.h>
 #include <lax/strmanip.h>
 #include <lax/utf8utils.h>
 #include <lax/laxutils.h>
-
-// template implementation:
-#include <lax/lists.cc>
-#include <lax/refptrstack.cc>
 
 
 #include <iostream>

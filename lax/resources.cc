@@ -29,11 +29,6 @@
 #include <lax/language.h>
 
 
-//template implementation:
-#include <lax/refptrstack.cc>
-
-
-
 #include <iostream>
 #define DBG
 
@@ -81,6 +76,14 @@ Laxkit::anObject *Resourceable::ResourceOwner()
 void Resourceable::SetResourceOwner(anObject *newowner)
 {
 	resource_owner = newowner;
+}
+
+/*! return true if the ResourceOwner() is a Resource object, which should always mean
+ * that the object is known by the ResourceManager.
+ */
+bool Resourceable::IsResourced()
+{
+	return dynamic_cast<Resource*>(ResourceOwner()) != nullptr;
 }
 
 Laxkit::LaxImage *Resourceable::ResourceIcon()

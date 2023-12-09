@@ -32,6 +32,7 @@
 
 //note: FILES_* get passed into ndstyle, NOT win_style
 #define FILES_DIRS_FIRST       (1<< 0)
+#define FILES_USE_FILE_TYPES   (1<< 1)
 #define FILES_GLOBAL_BOOKMARK  (1<<15)
 
 #define FILES_MINIMAL          (1<<16)
@@ -88,6 +89,8 @@ class FileDialog : public RowFrame
 
 	char *recentgroup;
 	MenuInfo *recentmenu;
+	MenuInfo *file_types;
+	int file_default_type;
 	bool showing_recent;
 	bool showing_icons;
 
@@ -127,6 +130,8 @@ class FileDialog : public RowFrame
 	virtual int SelectFile(const char *f, bool replace_selection);
 	virtual char *fullFilePath(const char *f);
 	virtual int NewHistory(const char *npath);
+
+	virtual void UseFileTypes(MenuInfo *types, int default_type);
 };
 
 } //namespace Laxkit

@@ -27,9 +27,6 @@
 #include <lax/language.h>
 #include <lax/doublebbox.h>
 
-//template implementation:
-#include <lax/lists.cc>
-
 #include <sys/stat.h>
 #include <cstdio>
 #include <unistd.h>
@@ -174,11 +171,6 @@ FilePreviewer::~FilePreviewer()
 	if (image) image->dec_count();
 }
 
-//int FilePreviewer::init()
-//{
-//	XSetWindowBackground(app->dpy,window,app->color_bg);
-//	return 0;
-//}
 
 //! Change what is being previewed to file. ***this function currently rather sucks
 int FilePreviewer::Preview(const char *file)
@@ -197,7 +189,6 @@ int FilePreviewer::Preview(const char *file)
 	}
 
 	needtodraw=1;
-	//if (filename && !strcmp(file,filename)) return 0;***always regenerate so skip this line
 	makestr(filename,file);
 	
 	if (image) {

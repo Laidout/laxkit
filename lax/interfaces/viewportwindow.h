@@ -130,6 +130,10 @@ enum ViewportWindowActions {
 
 class ViewportWindow : public Laxkit::PanUser, public Laxkit::anXWindow
 {
+  private:
+	char *last_message; //buffer for PostMessage2(fmt,...)
+	int last_message_n;
+
   protected:
 	int interfacemenu;
 	char firsttime;
@@ -205,6 +209,7 @@ class ViewportWindow : public Laxkit::PanUser, public Laxkit::anXWindow
 	virtual anInterface *Pop(anInterface *i,char deletetoo=0);
 	virtual anInterface *PopId(int iid,char deletetoo=0);
 	virtual void PostMessage(const char *mes);
+	virtual void PostMessage2(const char *fmt, ...);
 	virtual Laxkit::UndoManager *GetUndoManager();
 
 	 //Object context adding, deleting, and adjusting

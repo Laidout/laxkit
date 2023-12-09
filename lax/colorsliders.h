@@ -27,6 +27,7 @@
 #include <lax/colorbase.h>
 #include <lax/buttondowninfo.h>
 #include <lax/rectangles.h>
+#include <lax/button.h>
 #include <lax/lists.h>
 
 
@@ -88,7 +89,8 @@ enum ColorSlidersStyle {
 	COLORSLIDERS_SpecialMask       = ((1<<20)|(1<<21)|(1<<22)), 
 	COLORSLIDERS_Recent            = (1<<24), //unimplemented
 	COLORSLIDERS_FG_and_BG         = (1<<25), //unimplemented
-	COLORSLIDERS_Done_Button       = (1<<26), //unimplemented
+	COLORSLIDERS_Done_Button       = (1<<26),
+	COLORSLIDERS_Send_Only_Done    = (1<<27),
 	COLORSLIDERS_MAX
 };
 
@@ -124,8 +126,13 @@ class ColorSliders : public anXWindow, public ColorBase
 	ButtonDownInfo buttondown;
 	IntRectangle bwcolor, hue;
 	IntRectangle sliders, hex, oldnew, specials;
-	ScreenColor curcolor,original_color;
+	ScreenColor curcolor, original_color;
 	int sendtype;
+
+	// cache some windows for easier recordkeeping
+	Button *ok_button;
+	anXWindow *hexedit; // do not access things in this, you might get nullrefs
+	void ClearHexedit();
 
 	PtrStack<ColorBlockInfo> systems;
 	PtrStack<ColorBarInfo> bars;
@@ -134,7 +141,7 @@ class ColorSliders : public anXWindow, public ColorBase
 
 	virtual int DefineSystems(int which);
 	virtual int DefineBars();
-	virtual int send();
+	virtual int send(int from=0);
 	virtual bool useSpecialLine();
 	virtual void DrawSpecial(int which, int x,int y,int w,int h);
 	
@@ -180,6 +187,8 @@ class ColorSliders : public anXWindow, public ColorBase
 	virtual double GetPosForBar(int whichbar);
 	virtual int FindBar(int type);
 	virtual int EditHex();
+
+	virtual void OkButton(const char *label = nullptr);
 };
 
 

@@ -45,9 +45,14 @@ class GradientStrip : virtual public Resourceable, virtual public DumpUtility, v
  public:
  	enum GradientTypes {
  		Default = 0,
- 		GimpGPL,
- 		Swatchbooker,
- 		CSS
+ 		GimpGPL,      // Gimp palette
+ 		GimpGGR,      // Gimp gradient
+ 		Swatchbooker, // zip format with several files inside
+ 		KritaKPL,     // Krita palette file, a zip of a few files
+ 		SVGGrid,      // export an svg file with an object using the colors
+ 		CSSColors,    // export a bunch of class defs with background set to color, or a css gradient
+ 		ScribusXML,   // a <SCRIBUSCOLORS> block
+ 		TYPE_MAX
  	};
 	enum GradientStripFlags { //for gradient_flags
 		StripOnly  = (1<<0),
@@ -60,6 +65,7 @@ class GradientStrip : virtual public Resourceable, virtual public DumpUtility, v
 		FlipRepeat = (1<<7),
 		Read_only  = (1<<8),
 		Fill       = (1<<9),
+		Built_in   = (1<<10),
 		MAX
 	};
 
@@ -68,7 +74,9 @@ class GradientStrip : virtual public Resourceable, virtual public DumpUtility, v
 	virtual void SetFlags(unsigned int flag, bool on);
 	bool IsRadial();
 	bool IsLinear();
-	bool IsPalette(); 
+	bool IsPalette();
+	bool IsLocked()  { return (gradient_flags & (Read_only | Built_in)) != 0; }
+	bool IsBuiltin() { return (gradient_flags & Built_in) != 0; }
 
 	enum GradInterpType {
 		Constant,
@@ -154,6 +162,7 @@ class GradientStrip : virtual public Resourceable, virtual public DumpUtility, v
 	virtual double GetNormalizedT(int index);
 
 	virtual int AddColor(GradientSpot *spot);
+	virtual int AddPaletteColor(double red,double green,double blue,double alpha, const char *nname=nullptr, int where=-1);
 	virtual int AddColor(double t, double red,double green,double blue,double alpha, const char *nname=nullptr);
 	virtual int AddColor(double t, Laxkit::ScreenColor *col, const char *nname=nullptr);
 	virtual int AddColor(double t, Color *col, bool dup, const char *nname=nullptr);
@@ -175,13 +184,20 @@ class GradientStrip : virtual public Resourceable, virtual public DumpUtility, v
 	virtual void dump_in (FILE *f,int indent,int what,DumpContext *context,Attribute **att);
 	virtual Attribute *dump_out_atts(Attribute *att,int what,DumpContext *context);
 
-	virtual bool ImportGimpPalette(IOBuffer &f);
-
 	virtual int renderToBufferImage(LaxImage *image);
 	virtual int RenderPalette(LaxImage *image);
 	virtual int RenderRadial(LaxImage *image);
 	virtual int RenderLinear(LaxImage *image);
 
+	// import / export
+	virtual bool ImportGimpPalette(IOBuffer &f);
+	virtual bool ImportScribusXML(const char *filename);
+	virtual bool ExportGimpGPL(IOBuffer &f);
+	virtual bool ExportScribusXML(IOBuffer &f);
+	virtual bool ExportCSS(IOBuffer &f);
+	virtual bool ExportSVGGrid(IOBuffer &f);
+
+	// static creation funcs
 	static GradientStrip *newPalette();
 	static GradientStrip *rainbowPalette(int w, int h, bool include_gray_strip);
 

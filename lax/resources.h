@@ -42,7 +42,7 @@ class Resourceable : virtual public anObject
 {
   protected:
 	RefPtrStack<anObject> users;
-	anObject *resource_owner;
+	anObject *resource_owner; // this will be either a local owner or a Resource in app->resourcemanager
 
   public:
 	Resourceable();
@@ -51,6 +51,7 @@ class Resourceable : virtual public anObject
 	virtual anObject *ObjectOwner(); //convenience redirect from anObject
 	virtual anObject *ResourceOwner();
 	virtual void SetResourceOwner(anObject *newowner);
+	virtual bool IsResourced();
 
 	virtual LaxImage *ResourceIcon();
 	virtual const char *WhatResourceType() { return whattype(); }
@@ -230,10 +231,7 @@ class ResourceManager : public anObject, public DumpUtility
     virtual void dump_in_atts(Attribute *att,int flag,DumpContext *context);
 	virtual void dump_in_list_atts(ResourceType *type, Attribute *att,int flag,DumpContext *context);
 
-
 };
-
-
 
 
 } //namespace Laxkit
