@@ -17,7 +17,7 @@
 //    You should have received a copy of the GNU Library General Public
 //    License along with this library; If not, see <http://www.gnu.org/licenses/>.
 //
-//    Copyright (C) 2021 by Tom Lechner
+//    Copyright (C) 2024 by Tom Lechner
 //
 
 
@@ -28,13 +28,6 @@
 #include <lax/laxutils.h>
 #include <lax/language.h>
 
-
-//You only need the following includes if your new classes directly use any of the 
-//Laxkit stack templates in lax/lists.h or lax/refptrstack.h. The few templates Laxkit 
-//provides are divided into header.h/implementation.cc, so this provides
-//template implementation:
-//#include <lax/lists.cc>
-//#include <lax/refptrstack.cc>
 
 
 using namespace Laxkit;
@@ -59,14 +52,17 @@ BoilerPlateData::BoilerPlateData()
 { ***
 }
 
+
 BoilerPlateData::~BoilerPlateData()
 { ***
 }
+
 
 void BoilerPlateData::FindBBox()
 { ***
 	//compute bounds in minx,maxx, miny,maxy.
 }
+
 
 SomeData *BoilerPlateData::duplicate(SomeData *dup)
 { ***
@@ -90,24 +86,34 @@ BoilerPlateInterface::BoilerPlateInterface(anInterface *nowner, int nid, Display
 	showdecs   = 1;
 	needtodraw = 1;
 
-	dataoc     = NULL;
-	data       = NULL;
+	dataoc     = nullptr;
+	data       = nullptr;
 
-	sc = NULL; //shortcut list, define as needed in GetShortcuts()
+	sc = nullptr; //shortcut list, define as needed in GetShortcuts()
+
+	settings = dynamic_cast<BoilerPlateSettings*>(settingsObject.GetObject());
+	if (!settings) {
+		settings = new BoilerPlateSettings();
+		settingsObject.SetObject(settings, false);
+		settings->dec_count();
+	}
 }
+
 
 BoilerPlateInterface::~BoilerPlateInterface()
 { ***
 	if (dataoc) delete dataoc;
-	if (data) { data->dec_count(); data=NULL; }
+	if (data) { data->dec_count(); }
 	if (sc) sc->dec_count();
 }
+
 
 const char *BoilerPlateInterface::whatdatatype()
 { *** 
 	return "BoilerPlateData";
-	//return NULL; // NULL means this tool is creation only, it cannot edit existing data automatically
+	//return nullptr; // nullptr means this tool is creation only, it cannot edit existing data automatically
 }
+
 
 /*! Name as displayed in menus, for instance.
  */
@@ -116,21 +122,22 @@ const char *BoilerPlateInterface::Name()
 
 
 //! Return new BoilerPlateInterface.
-/*! If dup!=NULL and it cannot be cast to BoilerPlateInterface, then return NULL.
+/*! If dup!=nullptr and it cannot be cast to BoilerPlateInterface, then return nullptr.
  */
 anInterface *BoilerPlateInterface::duplicate(anInterface *dup)
 { ***
-	if (dup==NULL) dup=new BoilerPlateInterface(NULL,id,NULL);
-	else if (!dynamic_cast<BoilerPlateInterface *>(dup)) return NULL;
+	if (dup==nullptr) dup=new BoilerPlateInterface(nullptr,id,nullptr);
+	else if (!dynamic_cast<BoilerPlateInterface *>(dup)) return nullptr;
 	return anInterface::duplicate(dup);
 }
+
 
 //! Use the object at oc if it is an BoilerPlateData.
 int BoilerPlateInterface::UseThisObject(ObjectContext *oc)
 {
 	if (!oc) return 0;
 
-	BoilerPlateData *ndata=dynamic_cast<BoilerPlateData *>(oc->obj);
+	BoilerPlateData *ndata = dynamic_cast<BoilerPlateData *>(oc->obj);
 	if (!ndata) return 0;
 
 	if (data && data != ndata) deletedata();
@@ -145,13 +152,14 @@ int BoilerPlateInterface::UseThisObject(ObjectContext *oc)
 	return 1;
 }
 
+
 /*! Normally this will accept some common things like changes to line styles, like a current color.
  */
 int BoilerPlateInterface::UseThis(anObject *nobj, unsigned int mask)
 { ***
 	if (!nobj) return 1;
 	LineStyle *ls=dynamic_cast<LineStyle *>(nobj);
-	if (ls!=NULL) {
+	if (ls!=nullptr) {
 		if (mask & (LINESTYLE_Color | LINESTYLE_Color2)) { 
 			linecolor=ls->color;
 		}
@@ -164,6 +172,7 @@ int BoilerPlateInterface::UseThis(anObject *nobj, unsigned int mask)
 	return 0;
 }
 
+
 /*! Return the object's ObjectContext to make sure that the proper context is already installed
  * before Refresh() is called.
  */
@@ -171,6 +180,7 @@ ObjectContext *BoilerPlateInterface::Context()
 {
 	return dataoc;
 }
+
 
 /*! Called when an interface is activated, which usually means when it is added to 
  * the interface stack of a viewport.
@@ -182,74 +192,31 @@ int BoilerPlateInterface::InterfaceOn()
 	return 0;
 }
 
+
 /*! Called when an interface is deactivated, which usually means when it is removed from
  * the interface stack of a viewport.
  */
 int BoilerPlateInterface::InterfaceOff()
 { *** 
-	Clear(NULL);
+	Clear(nullptr);
 	showdecs=0;
 	needtodraw=1;
 	return 0;
 }
 
+
 /*! Clear references to d within the interface.
  */
 void BoilerPlateInterface::Clear(SomeData *d)
 { ***
-	if (dataoc) { delete dataoc; dataoc=NULL; }
-	if (data) { data->dec_count(); data=NULL; }
+	if (dataoc) { delete dataoc; dataoc=nullptr; }
+	if (data) { data->dec_count(); data=nullptr; }
 }
+
 
 void BoilerPlateInterface::ViewportResized()
 {
 	// if necessary, do stuff in response to the parent window size changed
-}
-
-/*! Return a context specific menu, typically in response to a right click.
- */
-Laxkit::MenuInfo *BoilerPlateInterface::ContextMenu(int x,int y,int deviceid, Laxkit::MenuInfo *menu)
-{ ***
-	if (no menu for x,y) return menu;
-
-	if (!menu) menu=new MenuInfo;
-	if (!menu->n()) menu->AddSep(_("Some new menu header"));
-
-	menu->AddToggleItem(_("New checkbox"), laximage_icon, YOUR_CHECKBOX_ID, checkbox_info, (istyle & STYLEFLAG) /*on*/, -1 /*where*/);
-	menu->AddItem(_("Some menu item"), YOUR_MENU_VALUE);
-	menu->AddSep(_("Some separator text"));
-	menu->AddItem(_("Et Cetera"), YOUR_OTHER_VALUE);
-	menp->AddItem(_("Item with info"), YOUR_ITEM_ID, LAX_OFF, items_info);
-
-	 //include <lax/iconmanager.h> if you want access to default icons
-	LaxImage icon = iconmanager->GetIcon("NewDirectory");
-	menp->AddItem(_("Item with icon"), icon, SOME_ITEM_ID, LAX_OFF, items_info);
-
-	return menu;
-}
-
-/*! Intercept events if necessary, such as from the ContextMenu().
- */
-int BoilerPlateInterface::Event(const Laxkit::EventData *evdata, const char *mes)
-{
-	if (!strcmp(mes,"menuevent")) {
-		 //these are sent by the ContextMenu popup
-		const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(evdata);
-		int i	= s->info2; //id of menu item
-		int info = s->info4; //info of menu item
-
-		// check actions first
-		if ( i == SOME_MENU_VALUE
-		  || i == SOME_OTHER_VALUE
-		  ) {
-			PerformAction(i);
-			return 0;
-		}
-
-		return 0; 
-	}
-
-	return 1; //event not absorbed
 }
 
 
@@ -258,7 +225,7 @@ int BoilerPlateInterface::Event(const Laxkit::EventData *evdata, const char *mes
  */
 int BoilerPlateInterface::DrawData(anObject *ndata,anObject *a1,anObject *a2,int info)
 {
-	if (!ndata || dynamic_cast<BoilerPlateData *>(ndata)==NULL) return 1;
+	if (!ndata || dynamic_cast<BoilerPlateData *>(ndata)==nullptr) return 1;
 
 	BoilerPlateData *bzd=data;
 	data=dynamic_cast<BoilerPlateData *>(ndata);
@@ -303,15 +270,18 @@ int BoilerPlateInterface::Refresh()
 	return 0;
 }
 
+
 void BoilerPlateInterface::deletedata()
 {
-	if (data) { data->dec_count(); data=NULL; }
-    if (dataoc) { delete dataoc; dataoc=NULL; }
+	if (data) { data->dec_count(); data=nullptr; }
+    if (dataoc) { delete dataoc; dataoc=nullptr; }
 }
+
 
 BoilerPlateData *BoilerPlateInterface::newData()
 {
 }
+
 
 /*! Check for clicking down on other objects, possibly changing control to that other object.
  *
@@ -321,9 +291,9 @@ BoilerPlateData *BoilerPlateInterface::newData()
  */
 int BoilerPlateInterface::OtherObjectCheck(int x,int y,unsigned int state) 
 {
-	ObjectContext *oc=NULL;
-	int c=viewport->FindObject(x,y,whatdatatype(),NULL,1,&oc);
-	SomeData *obj=NULL;
+	ObjectContext *oc=nullptr;
+	int c=viewport->FindObject(x,y,whatdatatype(),nullptr,1,&oc);
+	SomeData *obj=nullptr;
 	if (c>=0 && oc && oc->obj && draws(oc->obj->whattype())) obj=oc->obj;
 
 	if (obj) { 
@@ -349,12 +319,14 @@ int BoilerPlateInterface::OtherObjectCheck(int x,int y,unsigned int state)
 	return 0;
 }
 
+
 int BoilerPlateInterface::scan(int x, int y, unsigned int state)
 {
 	if (on something) return BOILERPLATE_Something;
 
 	return BOILERPLATE_None;
 }
+
 
 int BoilerPlateInterface::LBDown(int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d) 
 { ***
@@ -409,7 +381,7 @@ int BoilerPlateInterface::LBDown(int x,int y,unsigned int state,int count, const
 	if (we want new data) {
 		//NewDataAt(x,y,state);
 
-		if (viewport) viewport->ChangeContext(x,y,NULL);
+		if (viewport) viewport->ChangeContext(x,y,nullptr);
 		data = newData();
 		needtodraw = 1;
 		if (!data) return 0;
@@ -419,7 +391,7 @@ int BoilerPlateInterface::LBDown(int x,int y,unsigned int state,int count, const
 		data->origin(leftp);
 		data->xaxis(flatpoint(1,0)/Getmag()/2);
 		data->yaxis(flatpoint(0,1)/Getmag()/2);
-		DBG data->dump_out(stderr,6,0,NULL);
+		DBG data->dump_out(stderr,6,0,nullptr);
 
 		hover = BOILERPLATE_Something;
 		buttondown.down(d->id,LEFTBUTTON,x,y, hover);
@@ -432,11 +404,13 @@ int BoilerPlateInterface::LBDown(int x,int y,unsigned int state,int count, const
 	return 0; //return 0 for absorbing event, or 1 for ignoring
 }
 
+
 int BoilerPlateInterface::LBUp(int x,int y,unsigned int state, const Laxkit::LaxMouse *d) 
 { ***
 	buttondown.up(d->id,LEFTBUTTON);
 	return 0; //return 0 for absorbing event, or 1 for ignoring
 }
+
 
 int BoilerPlateInterface::MBDown(int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d) 
 { ***
@@ -447,11 +421,13 @@ int BoilerPlateInterface::MBDown(int x,int y,unsigned int state,int count, const
 	return 0; //return 0 for absorbing event, or 1 for ignoring
 }
 
+
 int BoilerPlateInterface::MBUp(int x,int y,unsigned int state, const Laxkit::LaxMouse *d) 
 { ***
 	buttondown.up(d->id,MIDDLEBUTTON);
 	return 0; //return 0 for absorbing event, or 1 for ignoring
 }
+
 
 //// NOTE! You probably only need to redefine ContextMenu(), instead of grabbing right button,
 //// Default right button is to pop up a Context menu for the coordinate.
@@ -498,10 +474,12 @@ int BoilerPlateInterface::MouseMove(int x,int y,unsigned int state, const Laxkit
 	return 0; //MouseMove is always called for all interfaces, return value doesn't inherently matter
 }
 
+
 int BoilerPlateInterface::WheelUp(int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d)
 { ***
 	return 1; //wheel up ignored
 }
+
 
 int BoilerPlateInterface::WheelDown(int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d)
 { ***
@@ -516,11 +494,12 @@ int BoilerPlateInterface::send()
 //		app->SendMessage(data,owner->object_id,"BoilerPlateInterface", object_id);
 //
 //	} else {
-//		if (viewport) viewport->NewData(paths,NULL);
+//		if (viewport) viewport->NewData(paths,nullptr);
 //	}
 
 	return 0;
 }
+
 
 int BoilerPlateInterface::CharInput(unsigned int ch, const char *buffer,int len,unsigned int state, const Laxkit::LaxKeyboard *d)
 { ***
@@ -552,6 +531,7 @@ int BoilerPlateInterface::CharInput(unsigned int ch, const char *buffer,int len,
 	return 1; //key not dealt with, propagate to next interface
 }
 
+
 int BoilerPlateInterface::KeyUp(unsigned int ch,unsigned int state, const Laxkit::LaxKeyboard *d)
 { ***
 	if ((state&LAX_STATE_MASK) == (ControlMask|ShiftMask|AltMask|MetaMask)) {
@@ -560,6 +540,7 @@ int BoilerPlateInterface::KeyUp(unsigned int ch,unsigned int state, const Laxkit
 
 	return 1; //key not dealt with
 }
+
 
 Laxkit::ShortcutHandler *BoilerPlateInterface::GetShortcuts()
 { ***
@@ -574,15 +555,64 @@ Laxkit::ShortcutHandler *BoilerPlateInterface::GetShortcuts()
     sc = new ShortcutHandler(whattype());
 
 	//sc->Add([id number],  [key], [mod mask], [mode], [action string id], [description], [icon], [assignable]);
-    sc->Add(BOILERPLATE_Something,  'B',ShiftMask|ControlMask,0, "BaselineJustify", _("Baseline Justify"),NULL,0);
-    sc->Add(BOILERPLATE_Something2, 'b',ControlMask,0, "BottomJustify"  , _("Bottom Justify"  ),NULL,0);
-    sc->Add(BOILERPLATE_Something3, 'd',ControlMask,0, "Decorations"    , _("Toggle Decorations"),NULL,0);
-	sc->Add(BOILERPLATE_Something4, '+',ShiftMask,0,   "ZoomIn"         , _("Zoom in"),NULL,0);
+    sc->Add(BOILERPLATE_Something,  'B',ShiftMask|ControlMask,0, "BaselineJustify", _("Baseline Justify"),nullptr,0);
+    sc->Add(BOILERPLATE_Something2, 'b',ControlMask,0, "BottomJustify"  , _("Bottom Justify"  ),nullptr,0);
+    sc->Add(BOILERPLATE_Something3, 'd',ControlMask,0, "Decorations"    , _("Toggle Decorations"),nullptr,0);
+	sc->Add(BOILERPLATE_Something4, '+',ShiftMask,0,   "ZoomIn"         , _("Zoom in"),nullptr,0);
 	sc->AddShortcut('=',0,0, BOILERPLATE_Something); //add key to existing action
 
     manager->AddArea(whattype(),sc);
     return sc;
 }
+
+
+/*! Return a context specific menu, typically in response to a right click.
+ */
+Laxkit::MenuInfo *BoilerPlateInterface::ContextMenu(int x,int y,int deviceid, Laxkit::MenuInfo *menu)
+{ ***
+	if (no menu for x,y) return menu;
+
+	if (!menu) menu = new MenuInfo;
+	if (!menu->n()) menu->AddSep(_("Some new menu header"));
+
+	menu->AddToggleItem(_("New checkbox"), YOUR_CHECKBOX_ID, checkbox_info, (istyle & STYLEFLAG) /*on*/, nullptr /*icon*/, -1 /*where*/, 0 /*state*/);
+	menu->AddItem(_("Some menu item"), YOUR_MENU_VALUE);
+	menu->AddSep(_("Some separator text")); // a line seperator with some text
+	menu->AddItem(_("Et Cetera"), YOUR_OTHER_VALUE);
+	menu->AddSep(); // a line seperator with no text on it
+
+	 //include <lax/iconmanager.h> if you want access to default icons
+	LaxImage *icon = iconmanager->GetIcon("NewDirectory");
+	menp->AddItem(_("Item with icon"), SOME_ITEM_ID, item_info, icon, -1 /*where*/, 0 /*state*/); //state might be LAX_GRAY for instance
+
+	return menu;
+}
+
+
+/*! Intercept events if necessary, such as from the ContextMenu().
+ */
+int BoilerPlateInterface::Event(const Laxkit::EventData *evdata, const char *mes)
+{
+	if (!strcmp(mes,"menuevent")) {
+		 //these are sent by the ContextMenu popup
+		const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(evdata);
+		int i    = s->info2; //id of menu item
+		int info = s->info4; //info of menu item
+
+		// check actions first
+		if ( i == SOME_MENU_VALUE
+		  || i == SOME_OTHER_VALUE
+		  ) {
+			PerformAction(i);
+			return 0;
+		}
+
+		return 0; 
+	}
+
+	return 1; //event not absorbed
+}
+
 
 /*! Return 0 for action performed, or nonzero for unknown action.
  */

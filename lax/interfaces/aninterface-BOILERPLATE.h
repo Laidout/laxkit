@@ -17,7 +17,7 @@
 //    You should have received a copy of the GNU Library General Public
 //    License along with this library; If not, see <http://www.gnu.org/licenses/>.
 //
-//    Copyright (C) 2021 by Tom Lechner
+//    Copyright (C) 2024 by Tom Lechner
 //
 #ifndef _LAX_BOILERPLATEINTERFACE_H
 #define _LAX_BOILERPLATEINTERFACE_H
@@ -55,7 +55,7 @@ class BoilerPlateToolSettings : public Laxkit::anObject
 
 class BoilerPlateInterface : public anInterface
 {
-	static SingletonKeeper settingsObject;
+	static SingletonKeeper settingsObject; // static so that it is easily shared between all tool instances
 
   protected:
 	int showdecs;
