@@ -486,7 +486,7 @@ class PathInterface : public anInterface
 	 //other state
 	int constrain;
 	int addafter;
-	int colortofill;
+	int colortofill; //whether generic color events should go to fill (1) or stroke (0)
 	double widthstep;
 	
 	Path *curpath;

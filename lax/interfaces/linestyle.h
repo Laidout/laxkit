@@ -36,10 +36,11 @@ enum LineStyleMask {
 	LINESTYLE_Width     =(1<<0),
 	LINESTYLE_Color     =(1<<1),
 	LINESTYLE_Color2    =(1<<2),
-	LINESTYLE_Dash      =(1<<3),
-	LINESTYLE_Joinstyle =(1<<4),
-	LINESTYLE_Miterlimit=(1<<5),
-	LINESTYLE_Capstyle  =(1<<6),
+	LINESTYLE_CurColor  =(1<<3),
+	LINESTYLE_Dash      =(1<<4),
+	LINESTYLE_Joinstyle =(1<<5),
+	LINESTYLE_Miterlimit=(1<<6),
+	LINESTYLE_Capstyle  =(1<<7),
 	LINESTYLE_MAX
 };
 

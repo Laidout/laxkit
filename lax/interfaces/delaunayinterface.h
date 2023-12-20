@@ -79,6 +79,7 @@ class VoronoiData : virtual public LaxInterfaces::SomeData, virtual public Laxki
 	bool show_delaunay;
 	bool show_voronoi;
 	bool show_numbers;
+	bool show_background;
 	bool custom_radii; //point radius is per point
 
 	Laxkit::DoubleBBox containing_rect;
@@ -94,6 +95,7 @@ class VoronoiData : virtual public LaxInterfaces::SomeData, virtual public Laxki
 	double width_delaunay;
 	double width_voronoi;
 	double width_points;
+	double bg_padding[4]; // top right bottom left
 
 	VoronoiData();
 	virtual ~VoronoiData();
@@ -131,6 +133,7 @@ enum DelaunayInterfaceActions {
 	VORONOI_TogglePoints,
 	VORONOI_ToggleVoronoi,
 	VORONOI_ToggleShapes,
+	VORONOI_ToggleBackground,
 	VORONOI_StyleTarget,
 	VORONOI_Thicken,
 	VORONOI_Thin,
@@ -145,6 +148,8 @@ enum DelaunayInterfaceActions {
 	VORONOI_RepeatLast,
 	VORONOI_Relax,
 	VORONOI_RelaxForce,
+	VORONOI_LessPadding,
+	VORONOI_MorePadding,
 	VORONOI_New,
 	VORONOI_MAX
 };

@@ -5468,7 +5468,7 @@ PathInterface::PathInterface(int nid,Displayer *ndp, unsigned long nstyle) : anI
 	pathi_style = nstyle;
 	addmode     = ADDMODE_Bezier;
 	editmode    = EDITMODE_AddPoints;
-	colortofill = 0;
+	colortofill = 0; //obsolete?
 	addafter    = 1;
 	widthstep   = 1.2;
 

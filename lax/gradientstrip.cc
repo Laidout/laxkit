@@ -703,7 +703,13 @@ void GradientStrip::dump_in (FILE *f,int indent,int what,DumpContext *context,At
 	} else if (what == GimpGPL) {
 		IOBuffer io;
 		io.UseThis(f);
-		ImportGimpPalette(io);
+		ImportGimpGPL(io);
+		io.UseThis(nullptr);
+
+	} else if (what == GimpGGR) {
+		IOBuffer io;
+		io.UseThis(f);
+		ImportGimpGGR(io);
 		io.UseThis(nullptr);
 	}
 }
@@ -712,7 +718,7 @@ void GradientStrip::dump_in (FILE *f,int indent,int what,DumpContext *context,At
 /*! This will import a gimp_palette.gpl as a Palette.
  * Return whether import was successful.
  */
-bool GradientStrip::ImportGimpPalette(IOBuffer &f)
+bool GradientStrip::ImportGimpGPL(IOBuffer &f)
 {
 	if (f.IsEOF()) return false;
 		
@@ -779,6 +785,127 @@ bool GradientStrip::ExportGimpGPL(IOBuffer &f)
 
 	return true;
 }
+
+
+/*! This will import a gimp_palette.ggr as a GradientStrip.
+ * Return whether import was successful.
+ */
+bool GradientStrip::ImportGimpGGR(IOBuffer &f)
+{
+	if (f.IsEOF()) return false;
+		
+	char *line = nullptr;
+	int c;
+	size_t n = 0;
+	bool err = false;
+
+	c = f.GetLine(&line,&n);
+	if (c>0 && strncmp(line,"GIMP Gradient",13)) { err = true; c = 0; }
+	
+	if (c>0) c = f.GetLine(&line, &n);
+	if (c>0 && !strncmp(line,"Name: ",6)) {
+		makestr(name,line+6);
+		name[strlen(name)-1]='\0';
+	} else c = 0;
+
+	if (c>0) c = f.GetLine(&line, &n);
+	int num = -1;
+	if (c>0) IntAttribute(line, &num);
+
+	int n2;
+	char *e;
+	int ci = 0;
+	double vals[15];
+	while (c>0 && !f.IsEOF()) {
+		c = f.GetLine(&line, &n);
+		if (c <= 0) break;
+		e = nullptr;
+		n2 = DoubleListAttribute(line, vals, 3, &e);
+		if (n2 < 13) continue; //todo: really this is probably an error
+
+		GradientSpot *spot = new GradientSpot();
+		spot->t = spot->nt = vals[0];
+		double seglen = vals[2] - vals[1];
+		if (fabs(seglen) > 1e-6) {
+			spot->midposition = (vals[1] - vals[0]) / seglen;
+		}
+		spot->color = ColorManager::newColor(LAX_COLOR_RGB, 4, vals[3],vals[4],vals[5],vals[6]);
+		// *** TODO: gimp grads allow different left and right colors, but we are using only the left here
+		AddColor(spot);
+		ci++;
+	} 
+	if (line) free(line);
+
+	if (!err) {
+		gradient_flags |= AsPalette;
+	}
+	return !err;
+}
+
+
+bool GradientStrip::ExportGimpGGR(IOBuffer &f)
+{
+	if (f.IsEOF()) return false;
+
+	f.Printf("GIMP Gradient\n");
+	f.Printf("Name: %s\n",(name?name:"Untitled"));
+	f.Printf("%d\n", colors.n-1);
+
+	 //  0          Left endpoint coordinate
+	 //  1          Midpoint coordinate
+	 //  2          Right endpoint coordinate
+	 //  3          Left endpoint R
+	 //  4          Left endpoint G
+	 //  5          Left endpoint B
+	 //  6          Left endpoint A
+	 //  7          Right endpoint R
+	 //  8          Right endpoint G
+	 //  9          Right endpoint B
+	 // 10          Right endpoint A
+	 // 11          Blending function type
+	 // 			0 = "linear"
+     // 			1 = "curved"
+     // 			2 = "sinusoidal"
+     // 			3 = "spherical (increasing)"
+     // 			4 = "spherical (decreasing)"
+     // 			5 = "step")
+	 // 12          Coloring type
+	 // 			0 = "RGB"
+	 // 			1 = "HSV CCW"
+	 // 			2 = "HSV CW"
+	 // 13          Left endpoint color type
+	 // 			0 = "fixed"
+	 // 			1 = "foreground",
+	 // 			2 = "foreground transparent"
+	 // 			3 = "background",
+	 // 			4 = "background transparent"
+	 // 14          Right endpoint color type
+
+	int c;
+	for (c=0; c < colors.n-1; c++) {
+		// todo: need to handle non-rgba
+		f.Printf("%.6f %.6f %.6f %.6f %.6f %.6f %.6f %.6f %.6f %.6f %.6f %d %d %d %d\n",
+				colors.e[c]->nt, // left
+				colors.e[c]->nt + colors.e[c]->midposition * (colors.e[c+1]->nt - colors.e[c]->nt), // mid point
+				colors.e[c+1]->nt, // right
+				colors.e[c]->color->values[0], // left r
+				colors.e[c]->color->values[1], // left g
+				colors.e[c]->color->values[2], // left b
+				colors.e[c]->color->values[3], // left a
+				colors.e[c+1]->color->values[0], // right r
+				colors.e[c+1]->color->values[1], // right g
+				colors.e[c+1]->color->values[2], // right b
+				colors.e[c+1]->color->values[3], // right a
+				0, // blending function
+				0, // Coloring type
+				0, // left color type
+				0 // right color type
+			);
+	}
+
+	return true;
+}
+
 
 bool GradientStrip::ImportScribusXML(const char *filename)
 {
@@ -873,7 +1000,7 @@ bool GradientStrip::ExportScribusXML(IOBuffer &f)
 
 /*! Export two CSS classes per color, one for "background-color" and one for "color".
  */
-bool GradientStrip::ExportCSS(IOBuffer &f)
+bool GradientStrip::ExportCSSPalette(IOBuffer &f)
 {
 	if (f.IsEOF()) return false;
 
@@ -902,6 +1029,51 @@ bool GradientStrip::ExportCSS(IOBuffer &f)
 		f.Printf(".%s-bg { background-color: %s; }\n", color_name.c_str(), color.c_str());
 		f.Printf(".%s { color: %s; }\n", color_name.c_str(), color.c_str());
 	}
+
+	return true;
+}
+
+
+/*! Export a CSS gradient with fallback to first color, so something like:
+ * <code>
+ *    background: rgb(100,255,100);
+ *    background: linear-gradient(45deg, rgba(100,255,100,1) 0%, rgba(255,100,50,1) 100%);
+ * </code>
+ */
+bool GradientStrip::ExportCSSGradient(IOBuffer &f)
+{
+	if (f.IsEOF()) return false;
+
+	f.Printf("/* Name: %s */\n",(name?name:"Untitled"));
+	
+	Utf8String color;
+
+	color.Sprintf ("rgba(%d, %d, %d, %f)",
+			(int)(colors.e[0]->color->values[0]*255),
+			(int)(colors.e[0]->color->values[1]*255),
+			(int)(colors.e[0]->color->values[2]*255),
+			colors.e[0]->color->values[3]);
+	f.Printf("background: %s;\n", color.c_str());
+
+	if (IsLinear()) {
+		flatpoint v = p1 - p2;
+		double angle = 180.0 / M_PI * atan2(v.y, v.x);
+		f.Printf("background: linear-gradient(%.2fdeg, ", angle);
+	} else {
+		f.Printf("background: radial-gradient(circle, ");
+	}
+
+	for (int c=0; c < colors.n; c++) {
+		color.Sprintf ("rgba(%d, %d, %d, %f)",
+			(int)(colors.e[c]->color->values[0]*255),
+			(int)(colors.e[c]->color->values[1]*255),
+			(int)(colors.e[c]->color->values[2]*255),
+			colors.e[c]->color->values[3]);
+
+		f.Printf("%s %.2f%% ", color.c_str(), 100*colors.e[c]->nt);
+		if (c < colors.n-1) f.Printf(", ");
+	}
+	f.Printf(");\n");
 
 	return true;
 }
@@ -1071,6 +1243,14 @@ void GradientStrip::dump_out(FILE *f,int indent,int what,DumpContext *context)
 		return;
 	}
 
+	if (what == GimpGGR) {
+		IOBuffer io;
+		io.UseThis(f);
+		ExportGimpGGR(io);
+		io.UseThis(nullptr);
+		return;
+	}
+
 	if (what == ScribusXML) {
 		IOBuffer io;
 		io.UseThis(f);
@@ -1082,7 +1262,7 @@ void GradientStrip::dump_out(FILE *f,int indent,int what,DumpContext *context)
 	if (what == CSSColors) {
 		IOBuffer io;
 		io.UseThis(f);
-		ExportCSS(io);
+		ExportCSSPalette(io);
 		io.UseThis(nullptr);
 		return;
 	}
@@ -1095,7 +1275,7 @@ void GradientStrip::dump_out(FILE *f,int indent,int what,DumpContext *context)
 		return;
 	}
 
-	//TODO: if (what == GimpGGR) {}
+	// else default:
 
 	if (!IsPalette()) {
 		fprintf(f,"%sp1 (%.10g, %.10g)\n",spc, p1.x,p1.y);

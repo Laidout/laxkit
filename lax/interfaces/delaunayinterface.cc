@@ -37,10 +37,6 @@
 #include <lax/language.h>
 
 
-//You need this if you use any of the Laxkit stack templates in lax/lists.h
-//#include <lax/lists.cc>
-
-
 using namespace Laxkit;
 
 
@@ -130,24 +126,27 @@ int *RandomInts(int seed, int *a, int n, int min, int max)
 
 VoronoiData::VoronoiData()
 {
-	show_points   = true;
-	show_delaunay = true;
-	show_voronoi  = true;
-	show_numbers  = false;
-	custom_radii  = false;
+	show_points     = true;
+	show_delaunay   = true;
+	show_voronoi    = true;
+	show_numbers    = false;
+	show_background = true; // needs to have color_bg != nullptr
+	custom_radii    = false;
 
-	color_delaunay=new Color();  color_delaunay->screen.rgbf(1.0,0.0,0.0);
-	color_voronoi =new Color();  color_voronoi ->screen.rgbf(0.0,0.7,0.0);
-	color_points  =new Color();  color_points  ->screen.rgbf(1.0,0.0,1.0); 
-	color_bg = nullptr;
+	color_delaunay = new Color();  color_delaunay->screen.rgbf(1.0,0.0,0.0);
+	color_voronoi  = new Color();  color_voronoi ->screen.rgbf(0.0,0.7,0.0);
+	color_points   = new Color();  color_points  ->screen.rgbf(1.0,0.0,1.0); 
+	color_bg       =  nullptr;
 
 	//color_delaunay=CreateColor_RGB(1.0,0.0,0.0);
 	//color_voronoi =CreateColor_RGB(0.0,0.7,0.0);
 	//color_points  =CreateColor_RGB(1.0,0.0,1.0); 
 
-	width_delaunay=1/10.;
-	width_voronoi=1/10.;
-	width_points=1/10.;
+	width_delaunay = 1/10.;
+	width_voronoi  = 1/10.;
+	width_points   = 1/10.;
+ 
+ 	bg_padding[0] = bg_padding[1] = bg_padding[2] = bg_padding[3] = 0.0; // amount to pad background, if any
 }
 
 VoronoiData::~VoronoiData()
@@ -164,6 +163,8 @@ void VoronoiData::FindBBox()
 	for (int c=0; c<points.n; c++) {
 		addtobounds(points.e[c]->p);
 	}
+
+	ShiftBounds(-bg_padding[3], bg_padding[1], -bg_padding[0], bg_padding[2]);
 }
 
 void VoronoiData::dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *context)
@@ -183,15 +184,18 @@ void VoronoiData::dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *cont
     fprintf(f,"%smatrix %.10g %.10g %.10g %.10g %.10g %.10g\n",
 			spc,matrix[0],matrix[1],matrix[2],matrix[3],matrix[4],matrix[5]);
 
-	fprintf(f,"%sshow_points   %s\n", spc, (show_points   ? "yes" : "no"));
-	fprintf(f,"%sshow_delaunay %s\n", spc, (show_delaunay ? "yes" : "no"));
-	fprintf(f,"%sshow_voronoi  %s\n", spc, (show_voronoi  ? "yes" : "no"));
-	fprintf(f,"%sshow_numbers  %s\n", spc, (show_numbers  ? "yes" : "no"));
-	fprintf(f,"%scustom_radii  %s\n", spc, (custom_radii  ? "yes" : "no"));
+	fprintf(f,"%sshow_points     %s\n", spc, (show_points     ? "yes" : "no"));
+	fprintf(f,"%sshow_delaunay   %s\n", spc, (show_delaunay   ? "yes" : "no"));
+	fprintf(f,"%sshow_voronoi    %s\n", spc, (show_voronoi    ? "yes" : "no"));
+	fprintf(f,"%sshow_numbers    %s\n", spc, (show_numbers    ? "yes" : "no"));
+	fprintf(f,"%sshow_background %s\n", spc, (show_background ? "yes" : "no"));
+	fprintf(f,"%scustom_radii    %s\n", spc, (custom_radii    ? "yes" : "no"));
 
 	fprintf(f,"%swidth_points   %.10g\n", spc, width_points  );
 	fprintf(f,"%swidth_delaunay %.10g\n", spc, width_delaunay);
 	fprintf(f,"%swidth_voronoi  %.10g\n", spc, width_voronoi );
+
+	fprintf(f, "%sbg_padding %.10g %.10g %.10g %.10g\n", spc, bg_padding[0], bg_padding[1], bg_padding[2], bg_padding[3]);
 
 	char *col=color_delaunay->dump_out_simple_string();
 	if (col) fprintf(f,"%scolor_delaunay %s\n", spc, col);
@@ -233,11 +237,12 @@ Laxkit::Attribute *VoronoiData::dump_out_atts(Laxkit::Attribute *att,int what,La
 	if (what==-1) {
 		att->push("matrix", "1 0 0 1 0 0");
 			
-		att->push("show_points",    "yes", "or no");
-		att->push("show_delaunay",  "yes", "or no");
-		att->push("show_voronoi",   "yes", "or no");
-		att->push("show_numbers",   "yes", "or no");
-		att->push("custom_radii",   "yes", "or no");
+		att->push("show_points",     "yes", "or no");
+		att->push("show_delaunay",   "yes", "or no");
+		att->push("show_voronoi",    "yes", "or no");
+		att->push("show_numbers",    "yes", "or no");
+		att->push("show_background", "yes", "or no");
+		att->push("custom_radii",    "yes", "or no");
 
 		att->push("width_points",   ".1", "Default radius of point indicators" );
 		att->push("width_delaunay", ".1", "Line width of Delaunay triangles" );
@@ -258,11 +263,14 @@ Laxkit::Attribute *VoronoiData::dump_out_atts(Laxkit::Attribute *att,int what,La
     att->pushStr("matrix", -1, "%.10g %.10g %.10g %.10g %.10g %.10g",
 			matrix[0],matrix[1],matrix[2],matrix[3],matrix[4],matrix[5]);
 
-	att->push("show_points",    (show_points   ? "yes" : "no"));
-	att->push("show_delaunay",  (show_delaunay ? "yes" : "no"));
-	att->push("show_voronoi",   (show_voronoi  ? "yes" : "no"));
-	att->push("show_numbers",   (show_numbers  ? "yes" : "no"));
-	att->push("custom_radii",   (custom_radii  ? "yes" : "no"));
+	att->push("show_points",    (show_points     ? "yes" : "no"));
+	att->push("show_delaunay",  (show_delaunay   ? "yes" : "no"));
+	att->push("show_voronoi",   (show_voronoi    ? "yes" : "no"));
+	att->push("show_numbers",   (show_numbers    ? "yes" : "no"));
+	att->push("show_background",(show_background ? "yes" : "no"));
+	att->push("custom_radii",   (custom_radii    ? "yes" : "no"));
+
+	att->pushStr("bg_padding", -1, "%.10g %.10g %.10g %.10g", bg_padding[0], bg_padding[1], bg_padding[2], bg_padding[3]);
 
 	att->push("width_points",   width_points  );
 	att->push("width_delaunay", width_delaunay);
@@ -330,6 +338,15 @@ void VoronoiData::dump_in_atts(Laxkit::Attribute *att,int flag,Laxkit::DumpConte
 
         } else if (!strcmp(name,"show_numbers" )) {
 			show_numbers =BooleanAttribute(value);
+
+        } else if (!strcmp(name,"show_background" )) {
+			show_background =BooleanAttribute(value);
+
+		} else if (!strcmp(name,"bg_padding" )) {
+			double mm[6];
+            if (DoubleListAttribute(value,mm,4) == 4) {
+            	bg_padding[0] = mm[0]; bg_padding[1] = mm[1]; bg_padding[2] = mm[2]; bg_padding[3] = mm[3];
+            }
 
 	    } else if (!strcmp(name,"custom_radii" )) {
 			custom_radii = BooleanAttribute(value);
@@ -1140,21 +1157,28 @@ Laxkit::MenuInfo *DelaunayInterface::ContextMenu(int x,int y,int deviceid, MenuI
 	menu->AddItem(_("Make grid"), VORONOI_MakeGrid);
 	menu->AddItem(_("Make tri grid in hexagon"), VORONOI_MakeHexChunk);
 	menu->AddItem(_("Stipple from object..."), VORONOI_SamplePoisson);
+	menu->AddSep();
 
 	if (data) {
-		menu->AddSep();
-		menu->AddToggleItem(_("Show voronoi shapes"), VORONOI_ToggleVoronoi, 0, data->show_voronoi);
-		menu->AddToggleItem(_("Show triangles"),      VORONOI_ToggleShapes,  0, data->show_delaunay);
-		menu->AddToggleItem(_("Show points"),         VORONOI_TogglePoints,  0, data->show_points);
+		//menu->AddSep();
+		menu->AddToggleItem(_("Show voronoi shapes"), VORONOI_ToggleVoronoi,    0, data->show_voronoi);
+		menu->AddToggleItem(_("Show triangles"),      VORONOI_ToggleShapes,     0, data->show_delaunay);
+		menu->AddToggleItem(_("Show points"),         VORONOI_TogglePoints,     0, data->show_points);
+		menu->AddToggleItem(_("Show background"),     VORONOI_ToggleBackground, 0, data->show_background);
 		menu->AddSep();
 		menu->AddItem(_("Relax"), VORONOI_Relax);
 		menu->AddItem(_("Relax forces"), VORONOI_RelaxForce);
 		menu->AddSep();
 		menu->AddItem(_("New"), VORONOI_New);
+		menu->AddSep();
+		menu->AddItem(_("Export..."), VORONOI_FileExport);
 	}
+
+	menu->AddItem(_("Import..."), VORONOI_FileImport);
 
 	return menu;
 }
+
 
 int DelaunayInterface::InterfaceOn()
 {
@@ -1434,6 +1458,8 @@ Laxkit::ShortcutHandler *DelaunayInterface::GetShortcuts()
     sc->Add(VORONOI_RepeatLast,    'r',0,0,          "RepeatLast",     _("Repeat last generator"),NULL,0); 
     sc->Add(VORONOI_Relax,         'R',ShiftMask,0,             "Relax",          _("Relax points"),NULL,0); 
     sc->Add(VORONOI_RelaxForce,    'R',ShiftMask|ControlMask,0, "RelaxForce",     _("Relax points using forces between points"),NULL,0); 
+    sc->Add(VORONOI_MorePadding,   'p',0,0,          "MorePadding",    _("Increase background padding slightly"),NULL,0); 
+    sc->Add(VORONOI_LessPadding,   'P',ShiftMask,0,  "LessPadding",    _("Decrease background padding slightly"),NULL,0); 
 
     manager->AddArea(whattype(),sc);
 	return sc;
@@ -1695,6 +1721,28 @@ int DelaunayInterface::PerformAction(int action)
 
 	} else if (action == VORONOI_RepeatLast) {
 		return PerformAction(previous_create);
+
+	} else if (action == VORONOI_MorePadding) {
+		if (!data) return 0;
+		double pad_step = .05;
+		data->bg_padding[0] += pad_step;
+		data->bg_padding[1] += pad_step;
+		data->bg_padding[2] += pad_step;
+		data->bg_padding[3] += pad_step;
+		data->FindBBox();
+		needtodraw = 1;
+		return 0;
+
+	} else if (action == VORONOI_LessPadding) {
+		if (!data) return 0;
+		double pad_step = .05;
+		data->bg_padding[0] -= pad_step; if (data->bg_padding[0] < 0) data->bg_padding[0] = 0;
+		data->bg_padding[1] -= pad_step; if (data->bg_padding[1] < 0) data->bg_padding[1] = 0;
+		data->bg_padding[2] -= pad_step; if (data->bg_padding[2] < 0) data->bg_padding[2] = 0;
+		data->bg_padding[3] -= pad_step; if (data->bg_padding[3] < 0) data->bg_padding[3] = 0;
+		data->FindBBox();
+		needtodraw = 1;
+		return 0;
 	}
 
 	return 1;
@@ -1848,6 +1896,8 @@ int DelaunayInterface::Event(const Laxkit::EventData *e_data, const char *mes)
 		 || i == VORONOI_ToggleShapes
 		 || i == VORONOI_New
 		 || i == VORONOI_RepeatLast
+		 || i == VORONOI_FileExport
+		 || i == VORONOI_FileImport
 		 ) {
 		 	PerformAction(i);
 		}

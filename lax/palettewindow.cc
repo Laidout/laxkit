@@ -78,6 +78,7 @@ PaletteWindow::PaletteWindow(anXWindow *parnt,const char *nname,const char *ntit
 PaletteWindow::~PaletteWindow()
 {
 	if (palette) palette->dec_count();
+	if (sc) sc->dec_count();
 }
 
 
@@ -89,6 +90,7 @@ int PaletteWindow::send()
 	}
 
 	ColorEventData *e = new ColorEventData(palette->colors.e[curcolor]->color, 0, 0,0,0);
+	e->colorindex = -1;
 	
 	app->SendMessage(e,win_owner,win_sendthis,object_id);
 	return 1;
@@ -859,6 +861,7 @@ int PaletteWindow::Resize(int nw,int nh)
 	return c;
 }
 
+
 Laxkit::ShortcutHandler *PaletteWindow::GetShortcuts()
 {
 	if (sc) return sc;
@@ -876,6 +879,7 @@ Laxkit::ShortcutHandler *PaletteWindow::GetShortcuts()
 	manager->AddArea(whattype(),sc);
 	return sc;
 }
+
 
 int PaletteWindow::PerformAction(int action)
 {
