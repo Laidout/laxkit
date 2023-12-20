@@ -290,34 +290,22 @@ int BezNetInterface::Refresh()
 
 	// draw edges
 	for (int c=0; c<data->edges.n; c++) {
-		//todo: *** use the bezier edge, not just straight edge
-		//if (!data->edges.e[c]->halfedge || !data->edges.e[c]->twin) continue;
+		if (data->edges.e[c]->path) {
+			// draw bezier path between vertices
 
-		HalfEdge *edge = data->edges.e[c];
+		} else if (!data->edges.e[c]->path && !(data->edges.e[c]->twin && data->edges.e[c]->twin->path)) {
+			// just draw a straight line
+			HalfEdge *edge = data->edges.e[c];
 
-		p1 = edge->vertex->p;
-		//if (edge->vertex) {
-		//	p1 = edge->vertex->p;
-		//} else {
-		//	if (edge->twin && edge->twin->next) {
-		//		p1 = edge->twin->next->vertex->p;
-		//	} else continue;
-		//}
+			p1 = edge->vertex->p;
+			p2 = edge->twin->vertex->p;
 
-		p2 = edge->twin->vertex->p;
-		//if (edge->twin) {
-		//	p2 = edge->twin->vertex->p;	
-		//} else {
-		//	if (edge->halfedge && edge->halfedge->next) {
-		//		p2 = edge->halfedge->next->vertex->p;
-		//	} else continue;
-		//}
-
-		dp->drawline(p1, p2);
-		flatpoint mid = (p1 + p2)/2;
-		flatpoint v = (p2 - p1)/2;
-		if (edge->face      ) dp->drawarrow(mid, -v,  gap, 1, 2, 1, true);
-		if (edge->twin->face) dp->drawarrow(mid, v/2, gap, 1, 2, 1, true);
+			dp->drawline(p1, p2);
+			flatpoint mid = (p1 + p2)/2;
+			flatpoint v = (p2 - p1)/2;
+			if (edge->face      ) dp->drawarrow(mid, -v,  gap, 1, 2, 1, true);
+			if (edge->twin->face) dp->drawarrow(mid, v/2, gap, 1, 2, 1, true);
+		}
 	}
 
 	// draw faces

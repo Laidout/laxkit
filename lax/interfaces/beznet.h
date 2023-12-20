@@ -64,10 +64,18 @@ public:
 	HalfEdge *ahead  = nullptr; // A hint that this edge semantically connects forward to this, such as when the net was generated from an overlapping path.
 	HalfEdge *behind = nullptr; // A hint that this edge semantically connects backward to this.
 	BezFace  *face   = nullptr; // face of this edge. twin will have separate face. only two faces per total edge allowed.
-	int tick         = 0;
+	
+	// this memory is managed by HalfEdge, and deleted in the destructor:
+	Coordinate *path = nullptr; // If segment is not a straight line, these are the edge between vertex points.
+								// If one halfedge has path != nullptr, then the twin halfedge MUST have its path = nullptr.
+	
+	// convenience variable for miscellaneous stuff
+	int tick = 0;
 
 	HalfEdge *NextAroundVertex(HalfEdge **twin_ret = nullptr);
 	HalfEdge *PreviousAroundVertex(HalfEdge **twin_ret = nullptr);
+
+	~HalfEdge() { if (path) delete path; }
 };
 
 

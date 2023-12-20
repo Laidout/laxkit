@@ -29,6 +29,7 @@
 #include <lax/doublebbox.h>
 #include <lax/utf8string.h>
 #include <lax/laximages.h>
+#include <lax/colors.h>
 
 #include <functional>
 
@@ -112,10 +113,12 @@ class PointSet : public PointCollection, virtual public anObject, virtual public
  	  public:
  	  	flatpoint p;
  	  	double weight, radius;
+ 	  	Color *color;
  	  	anObject *info;
- 	  	PointObj() { info = nullptr; weight = 1; radius = 1; }
- 	  	PointObj(flatpoint pp, anObject *i, bool absorb, double w=1, double r=1) { radius = r; weight = w; p = pp; info = i; if (i && !absorb) i->inc_count(); }
- 	  	virtual ~PointObj() { if (info) info->dec_count(); }
+ 	  	PointObj() { info = nullptr; weight = 1; radius = 1; color = nullptr; }
+ 	  	PointObj(flatpoint pp, anObject *i, bool absorb, double w=1, double r=1)
+ 	  		{ radius = r; weight = w; p = pp; color = nullptr; info = i; if (i && !absorb) i->inc_count(); }
+ 	  	virtual ~PointObj() { if (info) info->dec_count(); if (color) color->dec_count(); }
  	  	virtual void SetInfo(anObject *i, bool absorb);
  	};
 

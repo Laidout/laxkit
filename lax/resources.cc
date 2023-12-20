@@ -667,6 +667,9 @@ void ResourceManager::SetObjectFactory(ObjectFactory *factory)
 
 /*! If menu!=nullptr, then append to it. Else return a new one.
  *
+ * The MenuItem::id of added elements are id_offset+(object_id of resource). If this menu is used in a PopupMenu,
+ * then the SimpleMessage::info2 will contain this id+id_offset, and SimpleMessage::info4 == info.
+ * 
  * If type not found, return nullptr.
  */
 MenuInfo *ResourceManager::ResourceMenu(const char *type, bool include_recent, MenuInfo *menu, int id_offset, int info, anObject *current)
