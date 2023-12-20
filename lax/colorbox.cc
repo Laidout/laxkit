@@ -463,22 +463,28 @@ int ColorBox::Event(const EventData *e,const char *mes)
 	if (!strcmp(mes,"newcolor")) {
 		 // apply message as new current color, pass on to viewport
 		const SimpleColorEventData *ce=dynamic_cast<const SimpleColorEventData *>(e);
-		if (!ce) return 0;
+		if (!ce) {
+			const ColorEventData *ced = dynamic_cast<const ColorEventData*>(e);
+			if (!ced || !ced->color) return 0;
 
-		 //we maybe need to unnormalize if hsv, hsl, or cielab
-		double mx=ce->max;
-		double cc[5];
-		for (int c=0; c<5; c++) cc[c]=ce->channels[c]/mx;
-		if (ce->colorsystem==LAX_COLOR_HSV || ce->colorsystem==LAX_COLOR_HSL) {
-			cc[0]*=360;
-		} else if (ce->colorsystem==LAX_COLOR_CieLAB) {
-			cc[0]*=100;
-			cc[1]=cc[1]*216-108;
-			cc[2]=cc[1]*216-108;
+			Set(ced->color);
+		} else {
+			double cc[5];
+		
+			 //we maybe need to unnormalize if hsv, hsl, or cielab
+			double mx=ce->max;
+			for (int c=0; c<5; c++) cc[c]=ce->channels[c]/mx;
+			if (ce->colorsystem==LAX_COLOR_HSV || ce->colorsystem==LAX_COLOR_HSL) {
+				cc[0]*=360;
+			} else if (ce->colorsystem==LAX_COLOR_CieLAB) {
+				cc[0]*=100;
+				cc[1]=cc[1]*216-108;
+				cc[2]=cc[1]*216-108;
+			}
+			Set(ce->colorsystem, cc[0],cc[1],cc[2],cc[3],cc[4]);
 		}
 
-		Set(ce->colorsystem, cc[0],cc[1],cc[2],cc[3],cc[4]);
-		win_themestyle->bg=rgbcolor(Red()*255, Green()*255, Blue()*255);
+		win_themestyle->bg = rgbcolor(Red()*255, Green()*255, Blue()*255);
 		send();
 		needtodraw=1;
 		return 0;
