@@ -57,9 +57,9 @@ namespace LaxInterfaces {
 
 SimplePathData::SimplePathData()
 {
-	color.grayf(.5);
+	color.grayf(.25);
 	closed = 0;
-	linewidth = 4;
+	linewidth = .5;
 	interpolation = Linear;
 
 	needtoupdate = true;
