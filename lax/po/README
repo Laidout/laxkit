@@ -82,6 +82,7 @@ Any po files you make MUST be encoded as UTF-8 characters.
 
 		foreach *.mo    install $(prefix)/share/locale/`basename $NAME .po`/LC_MESSAGES/laxkit.mo
 
+5. Programs will know which translation file to use with a call to gettext's bindtextdomain().
 
 
 </pre>
