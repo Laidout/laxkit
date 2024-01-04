@@ -192,7 +192,6 @@ class SomeDataUndo : public Laxkit::UndoData
 };
 
 
-
 } // namespace LaxInterfaces
 
 #endif

@@ -22,6 +22,8 @@
 
 #include <lax/undo.h>
 #include <lax/strmanip.h>
+#include <lax/anxapp.h>
+#include <lax/language.h>
 
 #include <sys/times.h>
 
@@ -61,19 +63,27 @@ static unsigned long getUniqueUndoId()
     return uniquenumber++;
 }
 
+static unsigned long getUniqueUndoGroupId()
+{
+    static unsigned long uniquenumber=1;
+    return uniquenumber++;
+}
+
 
 UndoData::UndoData(int nisauto)
 {
-	isauto=nisauto; //whether this undo element must exist connected to the previous undo element
-	if (nisauto) undogroup=getUniqueUndoId();
-	else undogroup=0;
+	undo_id = getUniqueUndoId();
 
-	description=NULL;
-	data=NULL;
-	time=0;
-	context=NULL;
-	direction=UNDOABLE;
-	prev=next=NULL;
+	isauto = nisauto; //whether this undo element must exist connected to the previous undo element
+	if (nisauto) undogroup = getUniqueUndoGroupId();
+	else undogroup = 0;
+
+    description = NULL;
+    data        = NULL;
+    time        = 0;
+    context     = NULL;
+    direction   = UNDOABLE;
+    prev = next = NULL;
 }
 
 /*! If prev==NULL, then delete next, else just remove *this from chain.
@@ -116,6 +126,18 @@ int UndoData::Size()
 	return 4*sizeof(Undoable*) + 2*sizeof(int) + 2*sizeof(long) + (description ? strlen(description) : 0);
 }
 
+/*! Return which UndoData we are on by counting self and all self->prev.
+ */
+int UndoData::GetUndoPosition()
+{
+	int count = 1;
+	UndoData *data = this;
+	while (data->prev) {
+		count++;
+		data = data->prev;
+	}
+	return count;
+}
 
 
 //--------------------------------------------- MetaUndoData ------------------------------------------
@@ -214,21 +236,29 @@ int UndoManager::Undo()
 {
 	if (!current) return 1;
 	if (!current->context) {
-		cerr <<" *** missing undo context!"<<endl;
+		cerr <<" *** missing undo context! "<<current->Description()<<endl;
 		return 2;
 	}
 
 	int isauto;
+	const char *msg = nullptr;
+	unsigned long msg_id = 0;
+	int msg_pos = 0;
+
 	do {
 		isauto = current->isauto;
 		if (current->context->Undo(current)==0) {
+			msg = current->Description();
+			msg_id = current->undo_id;
+			msg_pos = current->GetUndoPosition();
 			current->direction = REDOABLE;
-			current=current->prev;
+			current = current->prev;
 		} else {
 			return 3;
 		}
 	} while (isauto);
 
+	if (msg && anXApp::app) anXApp::app->PostMessage2(_("Undo (%d:%d): %s"), msg_pos, msg_id, msg);
 	return 0;
 }
 
@@ -238,16 +268,35 @@ int UndoManager::Redo()
 	if (!head) return 1;
 	if (current && !current->next) return 2;
 
-	if (current) current=current->next;
-	else current=head;
+	if (current) current = current->next;
+	else current = head;
 
 	if (!current->context) {
-		cerr <<" *** missing undo context!"<<endl;
+		cerr <<" *** missing redo context! "<<current->Description()<<endl;
 		return 3;
 	}
 
+	const char *msg = nullptr;
+	unsigned long msg_id = 0;
+	int msg_pos = 0;
+
 	if (current->context->Redo(current)==0) {
-		current->direction=UNDOABLE;
+		current->direction = UNDOABLE;
+		msg = current->Description();
+		msg_id = current->undo_id;
+		msg_pos = current->GetUndoPosition();
+
+		while (current->next && current->next->isauto) {
+			current = current->next;
+			if (current->context->Redo(current)==0) {
+				current->direction = UNDOABLE;
+			} else {
+				// *** uh oh! broken mid undo stream, a tragedy!
+				return 5;
+			}
+		}
+
+		if (msg && anXApp::app) anXApp::app->PostMessage2(_("Redo (%d:%d): %s"), msg_pos, msg_id, msg);
 		return 0;
 	}
 	return 4; //redo failed
@@ -255,6 +304,7 @@ int UndoManager::Redo()
 
 
 //--------------------------------------------- UndoManager manager ------------------------------------------
+
 static UndoManager *default_undo_manager=NULL;
 static int ok_to_use_undo=true;
 

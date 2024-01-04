@@ -46,6 +46,7 @@ class UndoData
   public:
     Undoable *context;
 	unsigned long undogroup;
+	unsigned long undo_id;
 	char *description;
     clock_t time;
     int direction;
@@ -60,6 +61,7 @@ class UndoData
     virtual int isRedoable();
     virtual const char *Description() = 0;
 	virtual const char *Script() { return NULL; }
+	virtual int GetUndoPosition();
 	virtual int Size(); //in bytes of this whole undo instance
 };
 

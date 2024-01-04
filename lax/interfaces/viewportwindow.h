@@ -70,6 +70,18 @@ class ObjectContext
 	virtual ObjectContext *duplicate();
 };
 
+class SomeDataNewDeleteUndo : public Laxkit::UndoData
+{
+  public:
+  	bool for_new; // this class is used for both new and delete, according to this flag
+  	ObjectContext *oc;
+
+  	SomeDataNewDeleteUndo(ObjectContext *noc, bool is_for_new);
+  	virtual ~SomeDataNewDeleteUndo();
+  	virtual const char *Description();
+};
+
+
 //---------------------------- ViewportWindow ----------------------
 
 enum SearchFlags {

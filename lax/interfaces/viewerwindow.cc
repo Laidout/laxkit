@@ -28,10 +28,6 @@
 #include <lax/menubutton.h>
 #include <lax/language.h>
 
-#include <lax/lists.cc>
-#include <lax/refptrstack.cc>
-
-
 
 #include <iostream>
 using namespace std;

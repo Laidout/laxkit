@@ -83,7 +83,9 @@ enum ImageInterfaceActions {
 class ImageInterface : public anInterface
 {
  protected:
-	int mode,mousedragged;
+ 	enum class Mode { Normal, DragNew };
+	Mode mode;
+	int mousedragged;
 	Laxkit::flatpoint leftp;
 	int mx,my,lx,ly;
 	int max_preview_x, max_preview_y;
@@ -144,12 +146,14 @@ class ImageDataUndo : public Laxkit::UndoData
 
 	int type;
 	Laxkit::Affine m, m_orig;
-	Laxkit::Attribute *info;
+	Laxkit::ImageInfo *info_old = nullptr;
+	Laxkit::ImageInfo *info_new = nullptr;
 
 	ImageDataUndo(ImageData *object,
-			     Laxkit::Affine *mo,
-			     Laxkit::Affine *nm,
-			     Laxkit::Attribute *changed_info,
+			     Laxkit::Affine *m_original,
+			     Laxkit::Affine *m_new,
+			     Laxkit::ImageInfo *old_info,
+			     Laxkit::ImageInfo *new_info,
 			     int ntype, int nisauto);
 	virtual ~ImageDataUndo();
 	virtual const char *Description();

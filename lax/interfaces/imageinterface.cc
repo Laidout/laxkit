@@ -489,20 +489,21 @@ int ImageData::SetImage(LaxImage *newimage, LaxImage *newpreview)
 
 ImageInterface::ImageInterface(int nid,Displayer *ndp,int nstyle) : anInterface(nid,ndp)
 {
-	style=nstyle;
+	style = nstyle;
 
-	data=NULL;
-	ioc=NULL;
+	data = NULL;
+	ioc  = NULL;
 
-	showdecs=1;
-	showobj=true;
-	showfile=0;
-	mode=0;
-	controlcolor=rgbcolor(128,128,128);
+	showdecs = 1;
+	showobj  = true;
+	showfile = 0;
+	mode     = Mode::Normal;
 
-	needtodraw=1;
+	controlcolor = rgbcolor(128,128,128);
 
-	sc=NULL;
+	needtodraw = 1;
+
+	sc = NULL;
 }
 
 ImageInterface::~ImageInterface()
@@ -561,10 +562,28 @@ int ImageInterface::UseThis(anObject *nobj,unsigned int mask)
 	if (nobj==data) return 1;
 
 	if (data && dynamic_cast<ImageInfo *>(nobj)) {
+		UndoManager *undomanager = GetUndoManager();
+		ImageDataUndo *undo_data = nullptr;
+		if (undomanager) undo_data = new ImageDataUndo(data, nullptr, nullptr, nullptr, nullptr, ImageDataUndo::UNDO_Info, false);
+
 		ImageInfo *imageinfo = dynamic_cast<ImageInfo *>(nobj);
+		if (undo_data) {
+			undo_data->info_old = new ImageInfo();
+			*(undo_data->info_old) = *dynamic_cast<ImageInfo*>(data);
+		}
+
 		data->SetDescription(imageinfo->description);
 		 //load new image if one is provided, and auto fit to old image area
+		if (undo_data) undo_data->m_orig = data->m();
 		data->LoadImage(imageinfo->filename,imageinfo->previewfile, 0,0,0, 1, imageinfo->index);
+		if (undo_data) undo_data->m = data->m();
+		
+		if (undo_data) {
+			undo_data->info_new = new ImageInfo();
+			*(undo_data->info_new) = *dynamic_cast<ImageInfo*>(data);
+			undomanager->AddUndo(undo_data);
+		}
+
 		return 1;
 
 //	} else if (dynamic_cast<ImageData *>(nobj)) {
@@ -590,7 +609,7 @@ int ImageInterface::InterfaceOn()
 	DBG cerr <<"imageinterfaceOn()"<<endl;
 	showdecs=1;
 	needtodraw=1;
-	mode=0;
+	mode = Mode::Normal;
 	return 0;
 }
 
@@ -872,7 +891,7 @@ int ImageInterface::LBDown(int x,int y,unsigned int state,int count,const Laxkit
 
 		 // To be here, must want brand new data plopped into the viewport context
 		if (viewport) viewport->ChangeContext(x,y,NULL);
-		mode=1;
+		mode = Mode::DragNew;
 		data=newData(); //data has count of at least one. viewport->NewData() was called here.
 		needtodraw=1;
 		if (!data) return 0;
@@ -934,7 +953,7 @@ void ImageInterface::runImageDialog()
 {
 	 //after Laxkit event system is rewritten, this will be very different:
 	ImageInfo *inf=new ImageInfo(data->filename,data->previewfile,NULL,data->description,0);
-	curwindow->app->rundialog(new ImageDialog(NULL,"imagedialog for imageinterface","Image Properties",
+	curwindow->app->rundialog(new ImageDialog(NULL,"imagedialog for imageinterface",_("Image Properties"),
 					ANXWIN_REMEMBER,
 					0,0,400,400,0,
 					NULL,object_id,"image properties",
@@ -966,7 +985,7 @@ int ImageInterface::Event(const Laxkit::EventData *data, const char *mes)
 //! If data, then call viewport->ObjectMoved(data).
 int ImageInterface::LBUp(int x,int y,unsigned int state,const Laxkit::LaxMouse *d)
 {
-	if (mode==1 && !mousedragged && data) {
+	if (mode == Mode::DragNew && !mousedragged && data) {
 		DBG cerr <<"**ImageInterface Clear() for no mouse move on new imagedata and no dragging"<<endl;
 		if (viewport) viewport->DeleteObject();
 		Clear(NULL);
@@ -988,7 +1007,7 @@ int ImageInterface::LBUp(int x,int y,unsigned int state,const Laxkit::LaxMouse *
 		}
 	}
 
-	mode=0;
+	mode = Mode::Normal;
 	buttondown.up(d->id,LEFTBUTTON);
 	return 0;
 }
@@ -998,8 +1017,8 @@ int ImageInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMo
 	if (!buttondown.any() || !data) return 0;
 	if (x!=mx || y!=my) mousedragged=1;
 
-	 // Section out a simple rectangular area to later drop image into if mode==1
-	if (mode==1) {
+	 // Section out a simple rectangular area to later drop image into if mode == Mode::DragNew
+	if (mode == Mode::DragNew) {
 		double m[6];
 		transform_invert(m,data->m());
 		flatpoint p =screentoreal(x,y);
@@ -1033,7 +1052,7 @@ int ImageInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMo
 		return 0;
 	}
 
-	 // If mode!=1, then do normal rotate and scale
+	 // If mode != Mode::DragNew, then do normal rotate and scale
 	flatpoint d; // amount to shift the image origin.
 	flatpoint p=screentoreal(x,y),    //real point where mouse moved to
 				//real point where mouse clicked:
@@ -1177,38 +1196,39 @@ int ImageInterface::CharInput(unsigned int ch, const char *buffer,int len,unsign
  */
 
 ImageDataUndo::ImageDataUndo(ImageData *object,
-						   Laxkit::Affine *mo,
-						   Laxkit::Affine *nm,
-						   Laxkit::Attribute *changed_info,
+						   Laxkit::Affine *m_original,
+						   Laxkit::Affine *m_new,
+						   Laxkit::ImageInfo *old_info,
+						   Laxkit::ImageInfo *new_info,
 						   int ntype, int nisauto)
   : UndoData(nisauto)
 {
-	if (nm) m=*nm;
-	type=ntype;
+	if (m_new) m = *m_new;
+	type = ntype;
 
-	if (mo) m_orig=*mo;
+	if (m_original) m_orig = *m_original;
 
 	// file = newstr(fname);
 	// preview_file = newstr(pfname);
 
-	info = changed_info;
+	info_old = old_info;
+	info_new = new_info;
 
-	context=object;
+	context = object;
 	if (object) object->inc_count();
 }
 
 ImageDataUndo::~ImageDataUndo()
 {
-	// delete[] file;
-	// delete[] preview_file;
-	if (info) delete info;
+	if (info_new) info_new->dec_count();
+	if (info_old) info_old->dec_count();
 }
 
 const char *ImageDataUndo::Description()
 {
 	if      (type==ImageDataUndo::UNDO_Transform   ) return _("New transform");
-	// else if (type==ImageDataUndo::UNDO_File        ) return _("Shift");
-	// else if (type==ImageDataUndo::UNDO_PreviewFile ) return _("Rotation");
+	// else if (type==ImageDataUndo::UNDO_File        ) return _("New file");
+	// else if (type==ImageDataUndo::UNDO_PreviewFile ) return _("New preview file");
 	else if (type==ImageDataUndo::UNDO_Info        ) return _("Image Info");
 
 	return nullptr;
@@ -1222,9 +1242,16 @@ int ImageData::Undo(UndoData *data)
 		return 1;
 	}
 
-	if (u->type==ImageDataUndo::UNDO_Transform) set(u->m_orig);
+	if (u->type == ImageDataUndo::UNDO_Transform) {
+		set(u->m_orig);
 
-	set(u->m_orig);
+	} else if (u->type == ImageDataUndo::UNDO_Info) {
+		SetDescription(u->info_old->description);
+		 //load new image if one is provided, and auto fit to old image area
+		LoadImage(u->info_old->filename, u->info_old->previewfile, 0,0,0, 1, u->info_old->index);
+		set(u->m_orig);
+	}
+
 	touchContents();
 	return 0;
 }
@@ -1237,7 +1264,16 @@ int ImageData::Redo(UndoData *data)
 		return 1;
 	}
 
-	if (u->type==ImageDataUndo::UNDO_Transform) { set(u->m); return 0; }
+	if (u->type == ImageDataUndo::UNDO_Transform) {
+		set(u->m);
+		return 0;
+
+	} else if (u->type == ImageDataUndo::UNDO_Info) {
+		SetDescription(u->info_new->description);
+		 //load new image if one is provided, and auto fit to old image area
+		LoadImage(u->info_new->filename, u->info_new->previewfile, 0,0,0, 1, u->info_new->index);
+		set(u->m);
+	}
 
 	touchContents();
 	return 0;

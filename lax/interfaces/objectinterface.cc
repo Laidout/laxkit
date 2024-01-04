@@ -28,9 +28,6 @@
 #include <lax/laxutils.h>
 #include <lax/language.h>
 
-//template implementation:
-#include <lax/lists.cc>
-
 using namespace Laxkit;
 
 

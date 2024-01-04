@@ -31,8 +31,6 @@
 #include <lax/popupmenu.h>
 #include <lax/lineedit.h>
 
-#include <lax/lists.cc>
-#include <lax/refptrstack.cc>
 
 // DBG !!!!!
 #include <lax/displayer-cairo.h>
