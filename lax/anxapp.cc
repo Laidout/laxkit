@@ -551,8 +551,9 @@ anXApp::~anXApp()
 	if (save_dir) delete[] save_dir;
 	if (controlfontstr) delete[] controlfontstr;
 	if (copybuffer) delete[] copybuffer;
-    if (resourcemanager) resourcemanager->dec_count();
+	delete[] last_message;
 
+    if (resourcemanager) resourcemanager->dec_count();
 
 	if (theme)         theme->dec_count();
 
@@ -927,6 +928,44 @@ int anXApp::initNoX(int argc,char **argv)
 	return 0;
 }
 
+
+/*! Simple check that assumes XDG_SESSION_TYPE is a defined environment variable.
+ * We need to know this, because as of 2023, color grabbing from root window under Wayland
+ * completely crashes programs without an adequate backtrace.
+ */
+bool IsWayland()
+{
+	const char *session_type = getenv("XDG_SESSION_TYPE");
+	if (!session_type) return false;
+	return (!strcmp(session_type, "wayland"));
+}
+
+
+static int X11_error_handler(Display * d, XErrorEvent * e)
+{
+    cout << "X11 error " << (int)e->error_code << ":  ";
+
+    char buffer[1000];
+    XGetErrorText(d, e->error_code, buffer, 1000);
+    buffer[999] = '\0';
+    cout << "  " <<buffer<<endl;
+
+    cout <<"  error request_code "<<(int)e->request_code<<":  "; // see Xproto.h for these codes
+    char intbuf[30];
+    sprintf(intbuf, "%d", (int)e->request_code);
+    XGetErrorDatabaseText(d, "XRequest", intbuf, "", buffer, 1000);
+    cout <<buffer<<endl;
+
+    cout <<"  error minor_code:   "<<(int)e->minor_code  <<endl; // usually a code from an extension
+    return 0;
+}
+
+void anXApp::SetupX11ErrorHandler()
+{
+	XSetErrorHandler(X11_error_handler);
+}
+
+
 //! Init the app. Open an X connection and set default stuff that depends on that.
 /*! Responsibilities here include:\n
  * - open x connection
@@ -954,6 +993,8 @@ int anXApp::initX(int argc,char **argv)
         return initNoX(argc, argv);
 		//exit(1);
 	}
+
+	SetupX11ErrorHandler();
 
 	anXWindow::InitXlibVars(dpy);
 
@@ -3230,6 +3271,7 @@ int anXApp::refresh(anXWindow *w)
 	return n;
 }
 
+
 //! Anything can call app->postmessage when they want to make some status statement.
 /*! Builtin default is to do nothing. (well, cout something in debug version)
  */
@@ -3237,6 +3279,29 @@ void anXApp::postmessage(const char *str)
 {
 	DBG cout <<str<<endl;
 }
+
+/*! Printf style message.
+ */
+void anXApp::PostMessage2(const char *fmt, ...)
+{
+	va_list arg;
+
+    va_start(arg, fmt);
+    int c = vsnprintf(last_message, last_message_n, fmt, arg);
+    va_end(arg);
+
+    if (c >= last_message_n) {
+        delete[] last_message;
+        last_message_n = c+100;
+        last_message = new char[last_message_n];
+        va_start(arg, fmt);
+        vsnprintf(last_message, last_message_n, fmt, arg);
+        va_end(arg);
+    }
+
+    postmessage(last_message);
+}
+
 
 //! Find a window to potentially drop things into.
 /*! x,y are coordinates in ref. If ref==NULL, then they are coordinates of the root window.

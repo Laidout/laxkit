@@ -348,6 +348,10 @@ struct TimerInfo
 //---------------------------- anXApp --------------------------------------
 class anXApp : virtual public anObject
 {
+  protected:
+  	char *last_message = nullptr; //for PostMessage2(fmt,...)
+	int last_message_n = 0;
+
   public:
 	bool donotusex;
 
@@ -378,6 +382,7 @@ class anXApp : virtual public anObject
 							XEvent *e,unsigned int &key, char *&buffer, int &len, unsigned int &state);
 
 	 //X specific public functions
+	virtual void SetupX11ErrorHandler();
 	virtual XIC CreateXInputContext();
 	virtual GC gc(int scr=0, int id=0);
 	virtual anXWindow *findwindow_xlib(Window win);
@@ -520,8 +525,10 @@ class anXApp : virtual public anObject
 	virtual void RefreshScreenInfo();
 	virtual ScreenInformation *FindNearestMonitor(int screen, double x, double y);
 
-	 //drag-n-drop, cutting and pasting helpers
 	virtual void postmessage(const char *str);
+	virtual void PostMessage2(const char *fmt, ...);
+
+	 //drag-n-drop, cutting and pasting helpers
 	virtual int CopytoBuffer(const char *stuff,int len);
 	virtual char *GetBuffer();
 #ifdef _LAX_PLATFORM_XLIB
