@@ -62,7 +62,7 @@ int translate_window_coordinates(anXWindow *from, int x, int y, anXWindow *to, i
 int mouseposition(int mouse_id, anXWindow *win, int *x, int *y, unsigned int *state,anXWindow **child,int *screen=NULL, ScreenInformation **monitor=NULL);
 //Window xouseposition(XID mouse_id, int *x, int *y, unsigned int *state,anXWindow **child,Window *childw);
 int mouseisin(int mouse_id, anXWindow *win);
-unsigned long screen_color_at_mouse(int mouse_id);
+unsigned long screen_color_at_mouse(int mouse_id, int *error_ret = nullptr);
 
 
  //text utilities

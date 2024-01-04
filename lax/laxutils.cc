@@ -171,17 +171,38 @@ int SetNewDisplayerFunc(const char *backend)
 //! Return the screen pixel color underneath the mouse.
 /*! If mouse_id==0, then get color under a default mouse.
  */
-unsigned long screen_color_at_mouse(int mouse_id)
+unsigned long screen_color_at_mouse(int mouse_id, int *error_ret)
 {
 #ifdef _LAX_PLATFORM_XLIB
-	int xx,yy;
-	mouseposition(mouse_id, NULL,&xx,&yy,NULL,NULL);
-	cout <<"x,y:"<<xx<<","<<yy<<endl;
-	XImage *img=XGetImage(anXApp::app->dpy, DefaultRootWindow(anXApp::app->dpy), 
-						xx,yy, 1,1, ~0, ZPixmap);
-	unsigned long pixel=XGetPixel(img,0,0);
+	Window root = DefaultRootWindow(anXApp::app->dpy);
+	Window child=0, root_win=0;
+    int root_x, root_y, win_x, win_y;
+    unsigned int mask_return;
+    XQueryPointer(anXApp::app->dpy, root, &root_win, &child, &root_x, &root_y, &win_x, &win_y, &mask_return);
+    
+    cout << "root:"<<root<<"  root_win: "<<root_win<<"  child: "<<child<<endl;
+
+    XWindowAttributes child_attr;
+    XGetWindowAttributes(anXApp::app->dpy, child, &child_attr);
+
+    std::printf("  width: %d\theight: %d\tx: %d\ty: %d\n", child_attr.width, child_attr.height, child_attr.x, child_attr.y);
+    std::printf("  mouse_x: %d\tmouse_y: %d\n", win_x, win_y);
+
+    int x_mouse_offset = win_x - child_attr.x;
+    int y_mouse_offset = win_y - child_attr.y;
+    cout << "  x_mouse_offset: "<<x_mouse_offset<<"  y_mouse_offset:  "<< y_mouse_offset << endl;
+
+    XImage *img = XGetImage(anXApp::app->dpy, child, x_mouse_offset, y_mouse_offset, 1, 1, AllPlanes, XYPixmap);
+    if (!img) {
+        DBG cerr << "no image returned by XGetImage" << endl;
+        if (error_ret) *error_ret = 1;
+        return 0;
+    }
+
+	unsigned long pixel = XGetPixel(img,0,0);
 	XDestroyImage(img);
 
+	if (error_ret) *error_ret = 0;
 	return pixel;
 #else
 	return 0;
