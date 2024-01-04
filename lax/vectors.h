@@ -66,6 +66,19 @@ class spacevector
 	bool isZero() const { return x==0 && y==0 && z==0; }
 	double norm() const { return sqrt(x*x+y*y+z*z); }
 	double norm2() const { return x*x+y*y+z*z; }
+
+	// swizzlers
+	// spacevector xzy() { return spacevector(x,z,y); }
+	// spacevector yxz() { return spacevector(y,x,z); }
+	// spacevector yzx() { return spacevector(y,z,x); }
+	// spacevector zxy() { return spacevector(z,x,y); }
+	// spacevector zyx() { return spacevector(z,y,x); }
+	// flatvector xy() { return flatvector(x,y); }
+	// flatvector xz() { return flatvector(x,z); }
+	// flatvector yx() { return flatvector(y,x); }
+	// flatvector yz() { return flatvector(y,z); }
+	// flatvector zx() { return flatvector(z,x); }
+	// flatvector zy() { return flatvector(z,y); }
 };
 
 int operator==(spacevector v1,spacevector v2);
@@ -89,7 +102,6 @@ int isnotvector(spacevector a);
 int areparallel(spacevector v1, spacevector v2);
 double norm(spacevector p1);
 double norm2(spacevector p1);
-typedef spacevector spacepoint;
 
 class flatvector
 {
@@ -145,6 +157,9 @@ int point_is_in(flatvector p,flatvector *points, int n);
 int cardinal_direction(flatvector v);
 
 typedef flatvector flatpoint;
+typedef flatvector Vector2;
+typedef spacevector spacepoint;
+typedef spacevector Vector3;
 
 class Basis
 {
