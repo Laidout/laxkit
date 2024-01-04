@@ -61,12 +61,11 @@ namespace Laxkit {
 
 
 //! Constructor.
-/*! \todo *** need to work out styles, and passing to RowFrame..
- *  
+/*! 
  *  Note that the previewer is not created, and the windows other than file, path and mask
  *  are not created until init(). All initial window layout is done in init().
  *
- * The count of inf will be incremented if not NULL. If it is NULL, then imageinfo gets
+ * The count of inf will be incremented if not nullptr. If it is nullptr, then imageinfo gets
  * a new ImageInfo with a count of 1.
  */
 ImageDialog::ImageDialog(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
@@ -78,13 +77,13 @@ ImageDialog::ImageDialog(anXWindow *parnt,const char *nname,const char *ntitle,u
 			   xx,yy,ww,hh,brder, prev,nowner,nsend,
 			   5)
 {
-	dialog_style=ndstyle;
+	dialog_style = ndstyle;
 	
-	imageinfo=inf;
-	if (imageinfo) imageinfo->inc_count(); else imageinfo=new ImageInfo();
+	imageinfo = inf;
+	if (imageinfo) imageinfo->inc_count(); else imageinfo = new ImageInfo();
 
-	titlee=file=preview=side=NULL;
-	desc=NULL;
+	titlee = file = preview = side = nullptr;
+	desc = nullptr;
 }
 
 /*! Dec count of imageinfo.
@@ -92,7 +91,7 @@ ImageDialog::ImageDialog(anXWindow *parnt,const char *nname,const char *ntitle,u
 ImageDialog::~ImageDialog() 
 {
 	if (imageinfo) imageinfo->dec_count();
-	imageinfo=NULL;
+	imageinfo=nullptr;
 }
 
 //! Return a new FilePreviewer instance.
@@ -101,7 +100,7 @@ ImageDialog::~ImageDialog()
  */
 FilePreviewer *ImageDialog::newFilePreviewer()
 {
-	return new FilePreviewer(this,"previewer",NULL,
+	return new FilePreviewer(this,"previewer",nullptr,
 									 MB_MOVE|FILEPREV_SHOW_DIMS,
 									 0,0,0,0, 1, imageinfo->filename);
 }
@@ -132,8 +131,8 @@ int ImageDialog::init()
 
 	int        textheight = win_themestyle->normal->textheight();
 	int        linpheight = textheight + 6;
-	anXWindow *last       = NULL;
-	Button *   tbut       = NULL;
+	anXWindow *last       = nullptr;
+	Button *   tbut       = nullptr;
 
 	//--------------- FilePreviewer
 	last=previewer=newFilePreviewer();
@@ -143,50 +142,45 @@ int ImageDialog::init()
 	AddNull();
 
 	 //---------- File
-	last=tbut=new Button(this,"preview file",NULL,0, 0,0,0,0, 1, 
+	last=tbut=new Button(this,"preview file",nullptr,0, 0,0,0,0, 1, 
 						last,object_id,"preview file",
-						0,_("File"),NULL,NULL,
+						0,_("File"),nullptr,nullptr,
 						3,3);
+	tbut->tooltip(_("Display file above"));
 	AddWin(tbut,1, tbut->win_w,0,50,50,0, linpheight,0,0,50,0, -1);
 	//-------
-	last=file   =new LineInput(this,"file",_("File"),LINP_FILE,    0,0,0,0, 1, last,object_id,"new file", " ",imageinfo->filename);
+	last=file   =new LineInput(this,"file",_("File"),LINP_FILE | LINP_SEND_ANY,
+							    0,0,0,0, 1, last,object_id,"new file", " ",imageinfo->filename);
 	file->GetLineEdit()->SetCurpos(-1);
 	file->tooltip("Filename to use");
 	AddWin(file,1, 200,100,1000,50,0, file->win_h,0,0,50,0, -1);
-	// last=tbut=new Button(this,"get new file",NULL,0, 0,0,0,0, 1, 
-	// 					last,object_id,"get new file",
-	// 					0, _("..."),NULL,NULL,3,3);
-	// AddWin(tbut,1, tbut->win_w,0,50,50,0, linpheight,0,0,50,0, -1);
 	AddNull();
 	
 	 //------------ Preview
-	last=tbut=new Button(this,"preview preview",NULL,0, 0,0,0,0, 1, 
+	last=tbut=new Button(this,"preview preview",nullptr,0, 0,0,0,0, 1, 
 						last,object_id,"preview preview",
-						0,_("Preview"),NULL,NULL,
+						0,_("Preview"),nullptr,nullptr,
 						3,3);
+	tbut->tooltip(_("Display preview file above"));
 	AddWin(tbut,1, tbut->win_w,0,50,50,0, linpheight,0,0,50,0, -1);
 	//----
 	last=preview=new LineInput(this,"preview",_("Preview"),LINP_FILE, 0,0,0,0, 1, last,object_id,"new preview", " ",imageinfo->previewfile);
 	preview->GetLineEdit()->SetCurpos(-1);
 	preview->tooltip("The image's preview file, if any");
 	AddWin(preview,1, 200,100,1000,50,0, preview->win_h,0,0,50,0, -1);
-	// last=tbut=new Button(this,"get new preview",NULL,0, 0,0,0,0, 1, 
-	// 					last,object_id,"get new preview",
-	// 					0,"...",NULL,NULL,3,3);
-	// AddWin(tbut,1, tbut->win_w,0,50,50,0, linpheight,0,0,50,0, -1);
 	AddNull();
 
 	 //------------ [Re]Generate button
-	int p=file_exists(imageinfo->previewfile,1,NULL);
-	last=tbut=new Button(this,"generate",NULL,0, 0,0,0,0, 1, 
+	int p=file_exists(imageinfo->previewfile,1,nullptr);
+	last=tbut=new Button(this,"generate",nullptr,0, 0,0,0,0, 1, 
 						last,object_id,"generate",
 						0,
-						p?_("Regenerate preview:"):_("Generate preview:"), NULL,NULL,
+						p?_("Regenerate preview:"):_("Generate preview:"), nullptr,nullptr,
 						3,3);
 	if (p && p!=S_IFREG) tbut->State(LAX_GRAY);
 	AddWin(tbut,1, tbut->win_w,0,50,50,0, linpheight,0,0,50,0, -1);
 	 // add field for max preview dimension
-	last=side=new LineInput(this,"side",NULL,0,    0,0,0,0, 1, last,object_id,"new max side", "Fit to:","200");
+	last=side=new LineInput(this,"side",nullptr,0,    0,0,0,0, 1, last,object_id,"new max side", "Fit to:","200");
 	last->tooltip("Generate a preview inside a square this wide in pixels");
 	AddWin(last,1, linpheight*3,linpheight,10,50,0, last->win_h,0,0,50,0, -1);
 	//last=new LineInput(this,"height",0,    0,0,0,0, 1, last,object_id,"new max height", "Height:","200");
@@ -197,7 +191,7 @@ int ImageDialog::init()
 	
 	 //------------ Title
 	if (!(dialog_style&IMGD_NO_TITLE)) {
-		last=titlee =new LineInput(this,"preview",NULL,0, 0,0,0,0, 1, last,object_id,"new title", "Title",imageinfo->title);
+		last=titlee =new LineInput(this,"preview",nullptr,0, 0,0,0,0, 1, last,object_id,"new title", "Title",imageinfo->title);
 		titlee->tooltip("The image's title");
 		AddWin(titlee,1, 200,100,1000,50,0, titlee->win_h,0,0,50,0, -1);
 		AddNull();
@@ -205,9 +199,9 @@ int ImageDialog::init()
 	
 	 //------------ Description
 	if (!(dialog_style&IMGD_NO_DESCRIPTION)) {
-		AddWin(new MessageBar(this,"desc mesbar",NULL,MB_MOVE, 0,0,0,0,1, "Description:"),1,-1);
+		AddWin(new MessageBar(this,"desc mesbar",nullptr,MB_MOVE, 0,0,0,0,1, "Description:"),1,-1);
 		AddNull();
-		last=desc   =new MultiLineEdit(this,"desc",NULL,0,    0,0,0,0, 1, last,object_id,"new desc", 0,imageinfo->description);
+		last=desc   =new MultiLineEdit(this,"desc",nullptr,0,    0,0,0,0, 1, last,object_id,"new desc", 0,imageinfo->description);
 		desc->tooltip("The image's description");
 		AddWin(desc,1, 200,100,1000,50,0, 2*linpheight,0,0,50,0, -1);
 		AddNull();
@@ -220,11 +214,11 @@ int ImageDialog::init()
 	 //--------- final Ok/Cancel
 
 	if (!(dialog_style&IMGD_NO_FINAL_BUTTONS)) {
-		last=tbut=new Button(this,"fd-Ok",NULL,BUTTON_OK, 0,0,0,0, 1, 
-							last,object_id,"ok", 0,NULL,NULL,NULL,3,3);
+		last=tbut=new Button(this,"fd-Ok",nullptr,BUTTON_OK, 0,0,0,0, 1, 
+							last,object_id,"ok", 0,nullptr,nullptr,nullptr,3,3);
 		AddWin(tbut,1, tbut->win_w,0,50,50,0, linpheight,0,0,50,0, -1);
-		last=tbut=new Button(this,"fd-cancel",NULL,BUTTON_CANCEL, 0,0,0,0, 1, 
-						last,object_id,"cancel", 0,NULL,NULL,NULL,3,3);
+		last=tbut=new Button(this,"fd-cancel",nullptr,BUTTON_CANCEL, 0,0,0,0, 1, 
+						last,object_id,"cancel", 0,nullptr,nullptr,nullptr,3,3);
 		AddWin(tbut,1, tbut->win_w,0,50,50,0, linpheight,0,0,50,0, -1);
 	}
 
@@ -258,7 +252,7 @@ int ImageDialog::send()
 		strs[1]=newstr(imageinfo->previewfile);
 		strs[2]=newstr(imageinfo->title);
 		strs[3]=newstr(imageinfo->description);
-		strs[4]=NULL;
+		strs[4]=nullptr;
 		e->strs=strs;
 		e->n=4;
 		anXApp::app->SendMessage(e,win_owner,win_sendthis,0);
@@ -281,7 +275,7 @@ void ImageDialog::closeWindow()
 }
 
 //! Respond to the various controls
-/*! \todo should probably make the imageinfo fields set to NULL if
+/*! \todo should probably make the imageinfo fields set to nullptr if
  *    the corresponding edits return blank strings or strings with only whitespace.
  */
 int ImageDialog::Event(const EventData *data,const char *mes)
@@ -318,8 +312,8 @@ int ImageDialog::Event(const EventData *data,const char *mes)
 		return 0;
 
 	} else if (!strcmp(mes,"new file")) {
-		const char *f=file->GetCText();
-		makestr(imageinfo->filename,f);
+		const char *f = file->GetCText();
+		makestr(imageinfo->filename, f);
 		previewer->Preview(imageinfo->filename);
 		return 0;
 
@@ -358,7 +352,7 @@ int ImageDialog::Event(const EventData *data,const char *mes)
 		return 0;
 
 	} else if (!strcmp(mes,"get new file")) {
-		app->rundialog(new FileDialog(NULL,"get new file",NULL,ANXWIN_REMEMBER,
+		app->rundialog(new FileDialog(nullptr,"get new file",nullptr,ANXWIN_REMEMBER,
 									  0,0,400,500,0,
 									  object_id,"install new file",
 									  FILES_OPEN_ONE|FILES_PREVIEW,
@@ -366,7 +360,7 @@ int ImageDialog::Event(const EventData *data,const char *mes)
 		return 0;
 
 	} else if (!strcmp(mes,"get new preview")) {
-		app->rundialog(new FileDialog(NULL,"install new preview",NULL,ANXWIN_REMEMBER,
+		app->rundialog(new FileDialog(nullptr,"install new preview",nullptr,ANXWIN_REMEMBER,
 									  0,0,400,500,0,object_id,"install new preview",
 									  FILES_OPEN_ONE|FILES_PREVIEW,
 									  preview->GetCText()));
@@ -406,7 +400,7 @@ void ImageDialog::updateImageInfo()
  */
 char *ImageDialog::reallyGeneratePreview()
 {
-	long width = side->GetLineEdit()->GetLong(NULL);
+	long width = side->GetLineEdit()->GetLong(nullptr);
 	if (width <= 10) return newstr("Too small to fit preview inside.");
 
 	if (GeneratePreviewFile(imageinfo->filename,imageinfo->previewfile,"jpg",width,width,1))
@@ -418,7 +412,7 @@ char *ImageDialog::reallyGeneratePreview()
 	}
 
 	previewer->Preview(imageinfo->previewfile);
-	return NULL;
+	return nullptr;
 }
 
 //! Regenerate the preview. Ask to overwrite if force!=0 and imageinfo->previewfile exists already.
@@ -430,14 +424,14 @@ char *ImageDialog::reallyGeneratePreview()
  */
 int ImageDialog::RegeneratePreview(int force)
 {
-	int c=file_exists(imageinfo->previewfile,1,NULL);
+	int c=file_exists(imageinfo->previewfile,1,nullptr);
 	if (c==S_IFREG && !force) {
 		 //ask to overwrite
 		anXWindow *ob=new Overwrite(object_id,"reallyoverwrite", imageinfo->previewfile, 0,0,0);
 		app->rundialog(ob);
 		return 1;
 	}
-	char *error=NULL;
+	char *error=nullptr;
 	if (c && c!=S_IFREG) {
 		error=newstr("Cannot generate preview in:\n");
 		appendstr(error,imageinfo->previewfile);
