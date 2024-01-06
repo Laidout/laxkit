@@ -731,7 +731,7 @@ char *read_in_whole_file(const char *file, int *chars_ret, int maxchars)
 	if (!f) return NULL;
 	char *str = new char[size+1];
 	int numread = fread(str,1,size,f);
-	if (numread <= 0) { delete str; str=NULL; numread=0; }
+	if (numread <= 0) { delete[] str; str=NULL; numread=0; }
 	else str[numread]='\0';
 	fclose(f);
 	if (chars_ret) *chars_ret = numread;
