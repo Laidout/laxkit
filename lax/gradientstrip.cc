@@ -25,6 +25,8 @@
 #include <lax/attributes.h>
 #include <lax/utf8string.h>
 #include <lax/language.h>
+#include <lax/laxzip.h>
+#include <lax/cssutils.h>
 
 
 #include <iostream>
@@ -711,7 +713,185 @@ void GradientStrip::dump_in (FILE *f,int indent,int what,DumpContext *context,At
 		io.UseThis(f);
 		ImportGimpGGR(io);
 		io.UseThis(nullptr);
+
+ 	} else if (what == ScribusXML) {
+ 	//} else if (what == CSSColors) {
+ 	//} else if (what == CSSGradient) {
+	} else if (what == SwatchBooker) {
+ 	} else if (what == KritaKPL) {
 	}
+}
+
+
+/*! error_ret returning 0 means success.
+ * error_ret can also be:
+ * - 1: Missing filename
+ * - 2: Could not open
+ * - 3: Is blank file
+ * - 4: Unknown type
+ */
+int GradientStrip::GuessColorFileFormat(const char *filename, int *error_ret)
+{
+	if (error_ret) *error_ret = 0;
+
+	if (!filename) {
+		if (error_ret) *error_ret = 1;
+		return Unknown;
+	}
+
+	FILE *f = fopen(filename, "r");
+	if (!f) {
+		if (error_ret) *error_ret = 2;
+		return Unknown;
+	}
+
+
+	char buf[500];
+	size_t len = fread(buf, 1, 499, f);
+	buf[len] = '\0';
+	fclose(f);
+
+	if (len == 0) {
+		if (error_ret) *error_ret = 3;
+		return Unknown;
+	}
+
+	int type = Unknown;
+
+	if (!strncmp(buf, "GIMP Palette", 12)) {
+		type = GimpGPL;
+	}
+	
+	if (type == 0 && !strncmp(buf,"GIMP Gradient",13)) {
+		type = GimpGGR;
+	}
+
+	if (type == 0 && strstr(buf, "SCRIBUSCOLORS")) {
+		type = ScribusXML;
+	}
+	
+	if (type == 0 && len > 4 && buf[0] == 'P' && buf[1] == 'K' && buf[2] == 3 && buf[3] == 4) {
+		// seems to be a zip file, could be KPL or SBZ
+		ZipReader zip;
+		if (zip.Open(filename)) {
+			char *buffer = nullptr;
+			unsigned long buf_size = 0;
+			int err = 0;
+
+			buf_size = zip.EntrySize("mimetype", &err);
+			if (err == 0) { //probably a KPL, but lets make more sure
+				buf_size *= 2;
+				buffer = new char[buf_size];
+				unsigned long len = zip.EntryContents("mimetype", buffer, buf_size, &err);
+
+				if (len > 0 && err == 0) {
+					if (strncmp(buffer, "application/x-krita-palette", 27)) {
+						// not a Krita KPL file!
+						err = 1;
+					} else {
+						type = KritaKPL;
+					}
+				}
+
+			}
+
+			if (type == Unknown && err == 0) { // check if swatchbooker
+				unsigned long len = zip.EntrySize("swatchbook.xml", &err);
+				if (len == 0 || err != 0) {
+					err = 1;
+				} else {
+					type = SwatchBooker;
+				}
+			}
+
+			delete[] buffer;
+			zip.Close();
+		}
+	}
+
+	// scrape from random SVG
+	// CSSColors
+	// CSSGradient
+	
+	if (type == Unknown && error_ret) *error_ret = 4;
+	return type;
+}
+
+
+/*! Try to determine the type of filename, and import if possible.
+ * Return true for success, false for fail.
+ *
+ * \todo Really these should be a stack of reader objects or something, not hard coded in GradientStrip.
+ */
+bool GradientStrip::Import(const char *filename, ErrorLog *log)
+{
+	int err = 0;
+	int type = GuessColorFileFormat(filename, &err);
+
+	if (err || type == Unknown) {
+		if (log) log->AddError(0,0,0, _("Could not import %f"));
+		return false;
+	}
+
+	if (type == GimpGPL) {
+		IOBuffer io;
+		int err = 0;
+		if (io.OpenFile(filename, "r") == 0) {
+			if (!ImportGimpGPL(io)) err = 1;
+		} else err = 1;
+
+		if (err) {
+			if (log) log->AddError(0,0,0, _("Error reading Gimp GPL: %f"), filename);
+			return false;
+		}
+		return true;
+	}
+	
+	if (type == GimpGGR) {
+		IOBuffer io;
+		int err = 0;
+		if (io.OpenFile(filename, "r") == 0) {
+			if (!ImportGimpGGR(io)) err = 1;
+		} else err = 1;
+
+		if (err) {
+			if (log) log->AddError(0,0,0, _("Error reading Gimp GGR: %f"), filename);
+			return false;
+		}
+		return true;
+	}
+
+	if (type == ScribusXML) {
+		if (!ImportScribusXML(filename)) err = 1;
+		
+		if (err) {
+			if (log) log->AddError(0,0,0, _("Error reading SwatchBooker: %f"), filename);
+			return false;
+		}
+		return true;
+	}
+
+	if (type == KritaKPL) {
+		if (!ImportKritaKPL(filename)) err = 1;
+		
+		if (err) {
+			if (log) log->AddError(0,0,0, _("Error reading Krita KPL: %f"), filename);
+			return false;
+		}
+		return true;
+	}
+	
+	//if (type == SwatchBooker) {
+	//	if (!ImportSwatchBookerSBZ(filename)) err = 1;
+	//	
+	//	if (err) {
+	//		if (log) log->AddError(0,0,0, _("Error reading Scribus XML: %f"), filename);
+	//		return false;
+	//	}
+	//	return true;
+	//}
+	
+	return false;
 }
 
 
@@ -997,6 +1177,486 @@ bool GradientStrip::ExportScribusXML(IOBuffer &f)
 	return true;
 }
 
+/*! Return true for success, else false.
+ */
+bool GradientStrip::ImportKritaKPL(const char *filename)
+{
+	// KPL files are zip files with file list something like this.
+	//   colorset.xml
+	//   mimetype
+	//   profiles.xml
+	//   sRGB-elle-V2-srgbtrc.icc
+	// 
+	// There may be 0 or more icc files, as specified in the profiles.xml file.
+	// The actual colors are in the colorset.xml file.
+
+	ZipReader zip;
+	if (!zip.Open(filename)) return false;
+
+	char *buffer = nullptr;
+	unsigned long buf_size = 0;
+	int err = 0;
+
+	buf_size = zip.EntrySize("mimetype", &err);
+	if (err != 0) return false;
+
+	buf_size *= 2;
+	buffer = new char[buf_size];
+	unsigned long len = zip.EntryContents("mimetype", buffer, buf_size, &err);
+
+	if (err == 0) {
+		if (strncmp(buffer, "application/x-krita-palette", 27)) {
+			// not a Krita KPL file!
+			err = 1;
+		} else {
+			//*** TODO!!
+			//len = zip.EntrySize("profiles.xml", &err);
+			//if (err == 0) ...
+
+			len = zip.EntrySize("colorset.xml", &err);
+			if (err == 0) {
+				if (len > buf_size) {
+					delete[] buffer;
+					buffer = new char[len];
+					buf_size = len;
+				}
+				len = zip.EntryContents("colorset.xml", buffer, buf_size-1, &err);
+				if (err == 0) {
+					// Read in the colors, a la:
+					// 
+					// <ColorSet rows="20" version="2.0" comment="" columns="16" name="TestPalette">
+					//   <ColorSetEntry spot="false" bitdepth="U16" name="Color 1" id="1">
+					//    <RGB space="sRGB-elle-V2-srgbtrc.icc" b="0.556862771511078" r="0.996078431606293" g="0.760784327983856"/>
+					//    <Position column="0" row="0"/>
+					//   </ColorSetEntry>
+					// </ColorSet>
+
+					Attribute att;
+					buffer[len] = '\0';
+					att.dump_in_xml(buffer);
+
+					Attribute *colorset = att.find("ColorSet");
+					Attribute *colors = nullptr;
+					const char *key;
+					const char *value;
+
+					if (colorset) {
+						for (int c=0; c<colorset->attributes.n; c++) {
+							key   = colorset->attributes.e[c]->name;
+							value = colorset->attributes.e[c]->value;
+
+							if (!strcmp(key, "columns")) {
+								int i = -1;
+								if (IntAttribute(value, &i) && i >= 0) num_columns_hint = i;
+
+							} else if (!strcmp(key, "name")) {
+								makestr(name, value);
+
+							} else if (!strcmp(key, "content:")) {
+								colors = colorset->attributes.e[c];
+							//} else if (!strcmp(key, "comment")) {
+							//	makestr(description, value);
+							}
+						}
+					}
+
+					if (colors) {
+						for (int c=0; c<colors->attributes.n; c++) {
+							key   = colors->attributes.e[c]->name;
+							value = colors->attributes.e[c]->value;
+
+							if (!strcmp(key, "ColorSetEntry")) {
+								const char *color_name = nullptr;
+								//const char *bitdepth = nullptr;
+								const char *space = nullptr;
+								//Color *color = nullptr;
+								//int space_id = -1;
+								double vals[5];
+								//int nvals = 0;
+
+								Attribute *list_att = nullptr;
+								for (int c2=0; c2<colors->attributes.e[c]->attributes.n; c2++) {
+									Attribute *catt = colors->attributes.e[c]->attributes.e[c2];
+									key   = catt->name;
+									value = catt->value;
+
+									if (!strcmp(key, "name")) {
+										color_name = value;
+
+									// } else if (!strcmp(key, "spot")) {
+									// 	bool spot = BooleanAttribute(value);
+
+									// } else if (!strcmp(key, "bitdepth")) {
+									// 	bitdepth = value;
+
+									// } else if (!strcmp(key, "id")) {
+									// 	id = value;
+
+									} else if (!strcmp(key, "content:")) {
+										list_att = catt;
+									}
+								}
+
+								if (list_att) {
+									for (int c3=0; c3<list_att->attributes.n; c3++) {
+										Attribute *col = list_att->attributes.e[c3];
+										key   = col->name;
+										value = col->value;
+
+										if (!strcmp(key, "RGB") || !strcmp(key, "sRGB")) {
+											space = col->attributes.e[c3]->findValue("space");
+											int i = -1;
+											vals[0] = col->findDouble("r", &i);
+											if (i >= 0) {
+												vals[1] = col->findDouble("g", &i);
+												if (i >= 0) {
+													vals[2] = col->findDouble("b", &i);
+												}
+											}
+											if (i >= 0) {
+												//color = ColorManager::newRGBA(vals[0], vals[1], vals[2], 1.0);
+												AddPaletteColor(vals[0], vals[1], vals[2], 1.0, color_name);
+												if (space) cerr << "Devs really need to implement proper color management!!! in "<<__FILE__<<endl;
+											}
+
+										} else if (!strcmp(key, "Gray")) {
+											space = col->attributes.e[c3]->findValue("space");
+											int i = -1;
+											vals[0] = col->findDouble("g", &i);
+											if (i >= 0) {
+												//color = ColorManager::newRGBA(vals[0], vals[0], vals[0], 1.0);
+												AddPaletteColor(vals[0], vals[0], vals[0], 1.0, color_name);
+												if (space) cerr << "Devs really need to implement proper color management!!! in "<<__FILE__<<endl;
+											}
+
+										} else if (!strcmp(key, "CMYK")) {
+											cerr << "Need to implement CMYK from kpl!!"<<endl;
+										} else if (!strcmp(key, "XYZ")) {
+											cerr << "Need to implement XYZ from kpl!!"<<endl;
+										} else if (!strcmp(key, "Lab")) {
+											cerr << "Need to implement Lab from kpl!!"<<endl;
+										} else if (!strcmp(key, "YCrCb")) {
+											cerr << "Need to implement YCrCb from kpl!!"<<endl;
+										//} else if (!strcmp(key, "Position")) {
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	delete[] buffer;
+	zip.Close();
+	return err == 0;
+}
+
+/*! Return true for success, else false.
+ */
+bool GradientStrip::ExportKritaKPL(const char *filename)
+{
+	ZipWriter zip;
+
+	if (!zip.Open(filename, ZipWriter::Truncate)) return false;
+
+	zip.WriteFile("mimetype", "application/x-krita-palette", 27);
+	zip.WriteFile("profiles.xml", "<Profiles></Profiles>", 21);
+	//zip.WriteFile(default_icc, default_icc_buf, default_icc_len);
+	
+	// Something along the lines of:
+	//  <ColorSet rows="20" version="2.0" comment="" columns="16" name="TestPalette">
+	//   <ColorSetEntry spot="false" bitdepth="U16" name="Color 1" id="1">
+	//    <RGB space="sRGB-elle-V2-srgbtrc.icc" b="0.556862771511078" r="0.996078431606293" g="0.760784327983856"/>
+	//    <Position column="0" row="0"/>
+	//   </ColorSetEntry>
+	//  </ColorSet>
+
+	IOBuffer f;
+	int num_cols = num_columns_hint > 0 ? num_columns_hint : 16;
+	int rows = colors.n / num_cols+1; //what is this? color groups or something?
+
+	f.Printf("<ColorSet rows=\"%d\" version=\"2.0\" comment=\"\" columns=\"%d\" name=\"%s\">\n",
+					rows, num_cols, (name ? name : "Untitled"));
+
+	int row=0, col=0;
+	const char *space = ""; //TODO!! replace with real colorspace
+
+	for (int c=0; c < colors.n; c++) {
+		if (isblank(colors.e[c]->name)) {
+			//TODO: need to account for non-rgb
+			f.Printf("  <ColorSetEntry spot=\"false\" bitdepth=\"U8\" name=\"#%02X%02X%02X\" >\n",
+				(int)(colors.e[c]->color->values[0]*255+.5),
+				(int)(colors.e[c]->color->values[1]*255+.5),
+				(int)(colors.e[c]->color->values[2]*255+.5)
+				);
+
+		} else {
+			f.Printf("  <ColorSetEntry spot=\"false\" bitdepth=\"U8\" name=\"%s\" />\n",
+				colors.e[c]->name);
+		}
+
+		f.Printf("    <RGB space=\"%s\" r=\"%f\" g=\"%f\" b=\"%f\" />\n",
+				space,
+				colors.e[c]->color->values[0],
+				colors.e[c]->color->values[1],
+				colors.e[c]->color->values[2]
+				);
+
+		f.Printf("    <Position column=\"%d\" row=\"%d\" />\n", col, row);
+		f.Printf("  </ColorSetEntry>\n");
+		col++;
+		if (col%num_cols == 0) { col = 0; row++; }
+	}
+
+	f.Printf("</ColorSet>");
+
+	zip.WriteFile("colorset.xml", f.GetStringBuffer(), f.GetStringBufferLength());
+
+	zip.Close();
+	return true;
+}
+
+
+/*! Return true for success, else false.
+ */
+bool GradientStrip::ImportSwatchBookerSBZ(const char *filename)
+{
+	// SBZ files are zip files with file list something like this.
+	//   swatchbook.xml <- color list
+	//   profiles/*     <- icc color profile files
+
+	ZipReader zip;
+	if (!zip.Open(filename)) return false;
+
+	char *buffer = nullptr;
+	unsigned long buf_size = 0;
+	int err = 0;
+
+
+	unsigned long len = zip.EntrySize("swatchbook.xml", &err);
+	if (err == 0) {
+		if (len > buf_size) {
+			delete[] buffer;
+			buffer = new char[len];
+			buf_size = len;
+		}
+		len = zip.EntryContents("colorset.xml", buffer, buf_size-1, &err);
+		if (err == 0) {
+			// Read in the colors
+
+			Attribute att;
+			buffer[len] = '\0';
+			att.dump_in_xml(buffer);
+
+			Attribute *swatchbooker = att.find("SwatchBook");
+			if (!swatchbooker) return false;
+
+			Attribute *metadata  = swatchbooker->find("metadata");
+			Attribute *materials = swatchbooker->find("materials");
+			Attribute *book      = swatchbooker->find("book");
+			if (!metadata || !materials || !book) return false;
+			Attribute *list = book->find("content:");
+			if (!list) return false;
+			Attribute *mat_list = materials->find("content:");
+			if (!mat_list) return false;
+
+			metadata = metadata->find("content:");
+			if (!metadata) return false;
+			const char *palette_name = metadata->findValue("dc:title");
+			if (palette_name) makestr(name, palette_name);
+			//todo:  date, description, licences, rights. also translated dc:title blocks
+
+			Attribute *cols = book->find("columns");
+			if (cols) {
+				int c = -1;
+				IntAttribute(cols->value, &c);
+				if (c > 0) num_columns_hint = c;
+			}
+
+			const char *key;
+			//const char *value;
+
+			for (int c=0; c<list->attributes.n; c++) {
+				key   = list->attributes.e[c]->name;
+				//value = list->attributes.e[c]->value;
+
+				if (!strcmp(key, "break")) {
+				} else if (!strcmp(key, "group")) {
+					//has:
+					// <metadata>...</metadata>
+					// <swatch material="abc123" /> 
+					// <spacer />
+				} else if (!strcmp(key, "swatch")) {
+					const char *material_id = list->attributes.e[c]->findValue("material");
+
+					for (int c2=0; c2<mat_list->attributes.n; c2++) {
+						key = mat_list->attributes.e[c2]->name;
+
+						if (!strEquals(key, "color")) continue;
+						Attribute *col = mat_list->attributes.e[c2]->find("content:");
+						if (!col) continue;
+
+						const char *color_id = nullptr;
+						const char *color_name = nullptr;
+						//const char *space = nullptr; // name of the icc profile used
+						const char *model = nullptr;
+						double vals[10];
+						//int nvals = 0;
+
+						Attribute *meta = col->find("metadata");
+						if (meta) {
+							meta = meta->find("content:");
+							if (meta) {
+								color_id = meta->findValue("dc:identifier");
+								if (!strEquals(color_id, material_id)) continue;
+								color_name = meta->findValue("dc:title");
+							}
+						}
+
+						// we found a color, so parse the rest of it!
+						Attribute *values = col->find("values");
+						if (values) {
+							//space = values->findValue("space");
+							model = values->findValue("model");
+							const char *vv = values->findValue("content:");
+
+							if (vv) {
+								//nvals = 
+								DoubleListAttribute(vv, vals, 10, nullptr);
+							}
+						}
+
+						if (strEquals(model, "RGB", true)) {
+							AddPaletteColor(vals[0], vals[1], vals[2], 1.0, color_name);
+
+						} else {
+							cerr << "*** need to implement swatchbooker other than RGB!!"<<endl;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	delete[] buffer;
+	zip.Close();
+	return err == 0;
+}
+
+
+/*! Return true for success, else false.
+ */
+bool GradientStrip::ExportSwatchBookerSBZ(const char *filename)
+{
+	ZipWriter zip;
+
+	if (!zip.Open(filename, ZipWriter::Truncate)) return false;
+
+	//zip.WriteFile("mimetype", "application/x-krita-palette", 27);
+	//zip.WriteFile("profiles.xml", "<Profiles></Profiles>", 21);
+	//zip.WriteFile(default_icc, default_icc_buf, default_icc_len);
+	
+	// Something along the lines of:
+	// *** PUT DOC HERE!!!!
+	
+	IOBuffer f;
+	int num_cols = num_columns_hint > 0 ? num_columns_hint : 16;
+	int rows = colors.n / num_cols+1; //what is this? color groups or something?
+
+
+	time_t rawtime;
+	struct tm *timeinfo;
+	char time_str[100];
+	time(&rawtime);
+	timeinfo = localtime(&rawtime);
+	strftime(time_str, 100, "%Y-%m-%dT%H:%M:%SZ", timeinfo);
+
+	f.Printf(
+		"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+		"<SwatchBook version=\"0.7\"\n"
+		"  xmlns:dc=\"http://purl.org/dc/elements/1.1/\"\n"
+		"  xmlns:dcterms=\"http://purl.org/dc/terms/\"\n"
+		"  xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\">\n"
+		"  <metadata>\n"
+		"    <dc:format>application/swatchbook</dc:format>\n"
+		"    <dc:type rdf:resource=\"http://purl.org/dc/dcmitype/Dataset\" />\n"
+		"    <dc:date>%s</dc:date>\n" // 2010-04-03T10:09:07.600000Z
+		//"    <dc:description>%s</dc:description>\n"
+		"    <dc:title>%s</dc:title>\n"
+		//"    <dc:title xml:lang=\"fr\">Exemple d'échantillonnier</dc:title>\n"
+		//"    <dcterms:license rdf:resource=\"http://creativecommons.org/licenses/by/3.0/\" />\n"
+		"  </metadata>\n",
+		//"A fancy palette" // description
+		time_str,
+		name ? name : "Untitled"
+	);
+
+	f.Printf("  <materials>\n");
+	//int row = 0;
+	//int col = 0;
+	//const char *space = ""; //TODO!! replace with real colorspace
+
+	for (int c=0; c < colors.n; c++) {
+		f.Printf("    <color>\n");
+		f.Printf("      <metadata>\n");
+		if (isblank(colors.e[c]->name)) {
+			//TODO: need to account for non-rgb
+			f.Printf("        <dc:title>#%02X%02X%02X</dc:title>\n",
+				(int)(colors.e[c]->color->values[0]*255+.5),
+				(int)(colors.e[c]->color->values[1]*255+.5),
+				(int)(colors.e[c]->color->values[2]*255+.5)
+				);
+
+		} else {
+			f.Printf("        <dc:title>%s</dc:title>\n",
+				colors.e[c]->name);
+		}
+		f.Printf("        <dc:identifier>%d</dc:identifier>\n", c);
+		f.Printf("      </metadata>\n");
+		f.Printf("      <values model=\"RGB\">%f %f %f</values>\n",
+				//space,
+				colors.e[c]->color->values[0],
+				colors.e[c]->color->values[1],
+				colors.e[c]->color->values[2]
+				);
+		f.Printf("    </color>\n");
+	}
+	f.Printf("  </materials>\n");
+
+	f.Printf("  <book columns=\"%d\" rows=\"%d\">\n", num_cols, rows);
+	//row = 0;
+	//col = 0;
+	for (int c=0; c < colors.n; c++) {
+		f.Printf("    <swatch material=\"%d\" />\n", c);
+		//col++;
+		//if (col%num_cols == 0) { col = 0; row++; f.Printf("    <break />\n"); }
+	}
+	f.Printf("  </book>\n");
+
+	f.Printf("</SwatchBooker>");
+
+	zip.WriteFile("swatchbook.xml", f.GetStringBuffer(), f.GetStringBufferLength());
+	zip.Close();
+	return true;
+}
+
+
+/*! Import something like: `linear-gradient(to left top, blue, red)`.
+ * See `https://developer.mozilla.org/en-US/docs/Web/CSS/gradient` for css gradient spec.
+ *
+ * This imports only one intance of a gradient. If the buffer contains multiple gradients
+ * that must be stacked to render properly, that must be handled in a higher function.
+ *
+ * Return true on success, else false.
+ */
+bool GradientStrip::ImportCSSGradient(const char *buffer, int len, const char **end_ptr_ret)
+{
+	return (Laxkit::CSSGradient(this, buffer, len, end_ptr_ret) == 0);
+}
+
 
 /*! Export two CSS classes per color, one for "background-color" and one for "color".
  */
@@ -1274,6 +1934,14 @@ void GradientStrip::dump_out(FILE *f,int indent,int what,DumpContext *context)
 		io.UseThis(nullptr);
 		return;
 	}
+
+	//if (what == KritaKPL) {
+	//	IOBuffer io;
+	//	io.UseThis(f);
+	//	ExportKritaKPL(io);
+	//	io.UseThis(nullptr);
+	//	return;
+	//}
 
 	// else default:
 

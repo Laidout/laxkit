@@ -144,15 +144,11 @@ void PaletteWindow::LaunchImportPaletteDialog()
  */
 int PaletteWindow::LoadPalette(const char *file)
 {
-	FILE *f = fopen(file,"r");
-	if (!f) return 1;
-
+	ErrorLog log;
 	Palette *p = new Palette;
 	p->SetFlags(GradientStrip::AsPalette, true);
-	p->dump_in(f, 0, GradientStrip::GimpGPL, NULL, NULL);
-	fclose(f);
 
-	if (p->colors.n) {
+	if (p->Import(file, &log)) {
 		if (palette) palette->dec_count();
 		palette = p;
 		app->resourcemanager->AddResource("Palette", p, nullptr, isblank(p->name)?p->Id():p->name, nullptr, nullptr, nullptr, nullptr);
@@ -161,7 +157,10 @@ int PaletteWindow::LoadPalette(const char *file)
 		curcolor = hover = -1;
 		needtodraw = 1;
 		return 0;
-	} 
+	}
+
+	//TODO: should do toast on error
+	DBG dumperrorlog("PaletteWindow::LoadPalette() fail!", log);
 
 	delete p;
 	return 1;
@@ -178,13 +177,13 @@ void PaletteWindow::LaunchExportDialog()
 	dialog->OkButton(_("Export"), nullptr);
 
 	MenuInfo *file_types = new MenuInfo();
-	file_types->AddItem(_("Laidout palette: lop"), GradientStrip::Default);      makestr(file_types->Top()->key, "lop");
+	file_types->AddItem(_("Laidout palette: lop"), GradientStrip::Default);          makestr(file_types->Top()->key, "lop");
 	file_types->AddItem(_("Inkscape or Gimp palette: gpl"), GradientStrip::GimpGPL); makestr(file_types->Top()->key, "gpl");
-	//file_types->AddItem(_("Swatchbooker: sbz"),    GradientStrip::Swatchbooker); makestr(file_types->Top()->key, "sbz");
-	//file_types->AddItem(_("Krita palette: kpl"),   GradientStrip::Krita);        makestr(file_types->Top()->key, "kpl");
-	file_types->AddItem(_("Scribus xml"),          GradientStrip::ScribusXML);   makestr(file_types->Top()->key, "sla");
-	file_types->AddItem(_("SVG grid"),             GradientStrip::SVGGrid);      makestr(file_types->Top()->key, "svg");
-	file_types->AddItem(_("CSS code"),             GradientStrip::CSSColors);    makestr(file_types->Top()->key, "css");
+	file_types->AddItem(_("Swatchbooker: sbz"),    GradientStrip::SwatchBooker);     makestr(file_types->Top()->key, "sbz");
+	file_types->AddItem(_("Krita palette: kpl"),   GradientStrip::KritaKPL);         makestr(file_types->Top()->key, "kpl");
+	file_types->AddItem(_("Scribus xml"),          GradientStrip::ScribusXML);       makestr(file_types->Top()->key, "sla");
+	file_types->AddItem(_("SVG grid"),             GradientStrip::SVGGrid);          makestr(file_types->Top()->key, "svg");
+	file_types->AddItem(_("CSS code"),             GradientStrip::CSSColors);        makestr(file_types->Top()->key, "css");
 	dialog->UseFileTypes(file_types, GradientStrip::GimpGPL);
 
 	app->rundialog(dialog);
@@ -195,11 +194,20 @@ void PaletteWindow::LaunchExportDialog()
  */
 int PaletteWindow::ExportPalette(const char *file, int type)
 {
-	FILE *f = fopen(file,"w");
-	if (!f) return 1;
-	
-	palette->dump_out(f, 0, type, NULL);
-	fclose(f);
+	// intercept the ones that output zip files:
+	if (type == GradientStrip::KritaKPL) {
+		return palette->ExportKritaKPL(file) == false;
+
+	} else if (type == GradientStrip::SwatchBooker) {
+		return palette->ExportSwatchBookerSBZ(file) == false;
+
+	// everything else are just plain single files:
+	} else {
+		FILE *f = fopen(file,"w");
+		if (!f) return 1;
+		palette->dump_out(f, 0, type, NULL);
+		fclose(f);
+	}
 	
 	return 0;
 }
@@ -528,7 +536,7 @@ int PaletteWindow::RBUp(int x,int y,unsigned int state,const LaxMouse *d)
 	menu->AddItem(_("Import..."), ACTION_Import);
 	menu->AddItem(_("Export..."), ACTION_Export);
 
-	app->rundialog(new PopupMenu("Palette Menu","Palette Menu", 0,
+	app->rundialog(new PopupMenu("Palette Menu","Palette Menu", ANXWIN_REMEMBER,
 									 0,0,0,0,1,
 									 object_id,"palettemenu",
 									 d->id,
@@ -557,7 +565,9 @@ int PaletteWindow::Event(const EventData *e,const char *mes)
 	} else if (!strcmp(mes,"exportpalette")) {
 		 //sent from a FileDialog, selecting a file to export palette to.
 		const StrEventData *s = dynamic_cast<const StrEventData *>(e);
-		ExportPalette(s->str, s->info2);
+		int status = ExportPalette(s->str, s->info2);
+		if (status == 0) app->PostMessage2("Export success to: %s", s->str);
+		else app->PostMessage2("Error exporting to %s", s->str);
 		return 0;
 
 	} else if (!strcmp(mes, "palettemenu")) {

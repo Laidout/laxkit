@@ -44,10 +44,11 @@ class GradientStrip : virtual public Resourceable, virtual public DumpUtility, v
   	
  public:
  	enum GradientTypes {
- 		Default = 0,
+ 		Unknown = 0,
+ 		Default,
  		GimpGPL,      // Gimp palette
  		GimpGGR,      // Gimp gradient
- 		Swatchbooker, // zip format with several files inside
+ 		SwatchBooker, // zip format with several files inside
  		KritaKPL,     // Krita palette file, a zip of a few files
  		SVGGrid,      // export an svg file with an object using the colors
  		CSSColors,    // export a bunch of class defs with background set to color, or a css gradient
@@ -191,20 +192,23 @@ class GradientStrip : virtual public Resourceable, virtual public DumpUtility, v
 	virtual int RenderLinear(LaxImage *image);
 
 	// import / export
+	virtual int GuessColorFileFormat(const char *filename, int *error_ret = nullptr);
+	virtual bool Import(const char *filename, ErrorLog *log = nullptr);
 	virtual bool ImportGimpGPL(IOBuffer &f);
 	virtual bool ImportGimpGGR(IOBuffer &f);
 	virtual bool ImportScribusXML(const char *filename);
-	//virtual bool ImportCSSGradient(IOBuffer &f);
-	//virtual bool ImportKritaKPL(const char *filname);
-	//virtual bool ImportSwatchbookerSBZ(const char *filname);
+	virtual bool ImportKritaKPL(const char *filename);
+	virtual bool ImportCSSGradient(const char *buffer, int len, const char **end_ptr_ret);
+	virtual bool ImportSwatchBookerSBZ(const char *filname);
+
 	virtual bool ExportGimpGPL(IOBuffer &f);
 	virtual bool ExportGimpGGR(IOBuffer &f);
 	virtual bool ExportScribusXML(IOBuffer &f);
+	virtual bool ExportKritaKPL(const char *filename);
 	virtual bool ExportCSSPalette(IOBuffer &f);
 	virtual bool ExportCSSGradient(IOBuffer &f);
 	virtual bool ExportSVGGrid(IOBuffer &f);
-	//virtual bool ExportKritaKPL(const char *filname);
-	//virtual bool ExportSwatchbookerSBZ(const char *filname);
+	virtual bool ExportSwatchBookerSBZ(const char *filname);
 
 	// static creation funcs
 	static GradientStrip *newPalette();
