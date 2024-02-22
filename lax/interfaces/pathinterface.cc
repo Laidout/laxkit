@@ -44,14 +44,6 @@ using namespace std;
 #define DBG
 
 
-//square of screen pixel distance for a point to be close enough to a point to select it
-#define SELECTRADIUS2 25
-#define SELECTRADIUS   5
-
-#define DIRSELECTRADIUS 35
-
-#define APPROX_RES 50
-
 //for use in selectPoint():
 #define PSELECT_FlushPoints  (1<<0)
 #define PSELECT_PushPoints   (1<<1)
@@ -5484,6 +5476,7 @@ PathInterface::PathInterface(int nid,Displayer *ndp, unsigned long nstyle) : anI
 	controlcolor = rgbcolor(0, 148, 178);  // defaults to blueish-white, change right after creation otherwise
 	addcolor     = rgbcolor(100,255,100);
 	constrain    = 3;
+	select_radius2 = select_radius * select_radius;
 
 	curvertex = NULL;
 	curpath   = NULL;
@@ -6547,7 +6540,7 @@ void PathInterface::DrawBaselines()
 void PathInterface::drawWeightNode(Path *path, PathWeightNode *weight, int isfornew)
 {
 	double thin = ScreenLine();
-	double arc = SELECTRADIUS*2*thin;
+	double arc = select_radius*2*thin;
 
 	//double wtop   =weight->topOffset();
 	//double wbottom=weight->bottomOffset();
@@ -6651,7 +6644,7 @@ void PathInterface::drawNewPathIndicator(flatpoint p,int which)
 	dp->DrawScreen();
 	p=dp->realtoscreen(p);
 
-	double radius = DIRSELECTRADIUS*ScreenLine();
+	double radius = dir_select_radius*ScreenLine();
 	dp->NewFG(1.,1.,1.);
 	dp->LineAttributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
 	dp->drawpoint(p,radius,1); //whole circle
@@ -6955,7 +6948,7 @@ int PathInterface::scanWeights(int x,int y,unsigned int state, int *pathindex, i
 
 	if (!show_weights || !data) return HOVER_None;
 
-	double arc=SELECTRADIUS*2*ScreenLine();
+	double arc=select_radius*2*ScreenLine();
 	double yyt,yyb,xx;
 	flatpoint fp(x,y);
 	flatpoint sp;
@@ -7027,7 +7020,7 @@ int PathInterface::scanHover(int x,int y,unsigned int state, int *pathi)
 		int hpathi = -1;
 		hoverpoint = data->ClosestPoint(fp, NULL, NULL, NULL, &hpathi);
 		dist2      = norm2(realtoscreen(transform_point(data->m(), hoverpoint)) - flatpoint(x, y));
-		if (dist2 < SELECTRADIUS2*ScreenLine()) {
+		if (dist2 < select_radius2*ScreenLine()) {
 			*pathi = hpathi;
 			if ((state&LAX_STATE_MASK)==ControlMask)
 				return HOVER_AddPointOn;
@@ -7048,7 +7041,7 @@ int PathInterface::scanHover(int x,int y,unsigned int state, int *pathi)
 
 		dist2=norm2(realtoscreen(transform_point(datam(), hoverpoint))-flatpoint(x,y));
 		DBG cerr << " ************* scanned along path "<<hpathi<<", d="<<sqrt(dist2)<<"..."<<endl;
-		if (dist2<SELECTRADIUS2*2*ScreenLine()) {
+		if (dist2<select_radius2*2*ScreenLine()) {
 			DBG cerr << " ************* scanned and found add weight node..."<<endl;
 			//virtual int PointAlongPath(double t, int tisdistance, flatpoint *point, flatpoint *tangent);
 			data->PointAlongPath(hpathi, t, 0, NULL,&hoverdir);
@@ -7066,7 +7059,7 @@ int PathInterface::scanHover(int x,int y,unsigned int state, int *pathi)
 		p += (transpose(v) - v)*arrow_size/2*ScreenLine();
 
 		double dist = distance(flatpoint(x,y), p, p + arrow_size*v*ScreenLine());
-		if (dist < SELECTRADIUS*ScreenLine() || dist < arrow_size/3*ScreenLine()) return HOVER_Direction;
+		if (dist < select_radius*ScreenLine() || dist < arrow_size/3*ScreenLine()) return HOVER_Direction;
 	}
 
 	return HOVER_None;
@@ -7087,8 +7080,8 @@ Coordinate *PathInterface::scanEndpoints(int x,int y,int *pathindex,Coordinate *
 		e=data->paths.e[c]->path->lastPoint(1);
 		if (s==e) continue; //is closed path
 
-		if (s!=exclude && norm2(realtoscreen(transform_point(datam(), s->p()))-fp)<SELECTRADIUS2*ScreenLine()) p = s;
-		if (e!=exclude && norm2(realtoscreen(transform_point(datam(), e->p()))-fp)<SELECTRADIUS2*ScreenLine()) p = e;
+		if (s!=exclude && norm2(realtoscreen(transform_point(datam(), s->p()))-fp)<select_radius2*ScreenLine()) p = s;
+		if (e!=exclude && norm2(realtoscreen(transform_point(datam(), e->p()))-fp)<select_radius2*ScreenLine()) p = e;
 
 		DBG cerr<<"endpoint s:"<<norm2(realtoscreen(transform_point(datam(), s->p()))-fp)<<endl;
 		DBG cerr<<"endpoint e:"<<norm2(realtoscreen(transform_point(datam(), e->p()))-fp)<<endl;
@@ -7157,7 +7150,7 @@ Coordinate *PathInterface::scan(int x,int y,int pmask, int *pathindex) // pmask=
 
 				} else if (cp->flags&POINT_VERTEX && !pmask) {
 					p = realtoscreen(transform_point(datam(),cp->p()));
-					if ((p.x-x)*(p.x-x)+(p.y-y)*(p.y-y)<SELECTRADIUS2*ScreenLine()) {
+					if ((p.x-x)*(p.x-x)+(p.y-y)*(p.y-y)<select_radius2*ScreenLine()) {
 						DBG cerr <<" path scan found vertex on "<<c<<endl;
 						if (pathindex) *pathindex=c;
 						return cp;
@@ -7195,7 +7188,7 @@ Coordinate *PathInterface::scan(int x,int y,int pmask, int *pathindex) // pmask=
 					}
 
 					p = realtoscreen(transform_point(datam(),cp->p()));
-					if ((p.x-x)*(p.x-x)+(p.y-y)*(p.y-y) < SELECTRADIUS2*ScreenLine()) {
+					if ((p.x-x)*(p.x-x)+(p.y-y)*(p.y-y) < select_radius2*ScreenLine()) {
 						//DBG cerr <<" path scan found control on "<<c<<endl;
 						if (pathindex) *pathindex = c;
 						return cp;
@@ -8766,7 +8759,7 @@ int PathInterface::MouseMove(int x,int y,unsigned int state,const LaxMouse *mous
 		if (norm2(v)>200) {
 			drawhover=HOVER_DirectionSelect;
 			buttondown.moveinfo(mouse->id,LEFTBUTTON, state,HOVER_DirectionSelect);
-			pp=first + v*2 + DIRSELECTRADIUS*ScreenLine()*(v/norm(v));
+			pp=first + v*2 + dir_select_radius*ScreenLine()*(v/norm(v));
 			curdirp->p(transform_point_inverse(datam(),screentoreal(pp.x,pp.y)));
 			needtodraw=1;
 		}
@@ -8776,7 +8769,7 @@ int PathInterface::MouseMove(int x,int y,unsigned int state,const LaxMouse *mous
 	} else if (action==HOVER_DirectionSelect) {
 		int which=0;
 		flatpoint pp=realtoscreen(transform_point(datam(),curdirp->p()));
-		if (norm2(pp-flatpoint(x,y))>DIRSELECTRADIUS*DIRSELECTRADIUS*ScreenLine()*ScreenLine()) which=0;
+		if (norm2(pp-flatpoint(x,y))>dir_select_radius*dir_select_radius*ScreenLine()*ScreenLine()) which=0;
 		else if (y<pp.y) which=1;
 		else which=2;
 

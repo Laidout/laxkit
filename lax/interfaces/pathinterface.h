@@ -552,20 +552,25 @@ class PathInterface : public anInterface
 	virtual void UpdateViewportColor();
 
  public:
-	 // the following three comprise the default PathInterface settings.
+	// the following bunch comprise the default PathInterface settings.
 	unsigned long controlcolor;
 	unsigned long addcolor;
 	unsigned long creationstyle;
 	unsigned long pathi_style;
 	bool show_weights;
 	bool show_points; //0 no, 1 v + c of current, 2 all points
-	bool hide_other_controls;
 	bool show_baselines;
 	bool show_outline;
+	bool hide_other_controls;
 	double arrow_size;
+	double select_radius = 5; //!< selection distance
+	double select_radius2; //!< convenince variable for the square of select_radius, must recompute when select_radius changes
+	double dir_select_radius = 35; //!< selection distance for the direction indicator
 	
+	// selection
 	Laxkit::PtrStack<Coordinate> curpoints;
 	
+	// current state
 	int showdecs;
 	int verbose;
 	PathsData *data;
