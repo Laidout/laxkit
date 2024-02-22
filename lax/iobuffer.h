@@ -32,12 +32,12 @@ class IOBuffer
 {
   protected:
 	int blocksize;
-	int what; //0 nothing yet. 1 = FILE, 2 = astr, 3 = cstr
+	int what; // see WHAT_*
 	char filemode; //'r' or 'w'
 
 	char *astr;
 	const char *cstr;
-	long slen;   //length in str or cstr
+	long slen;   //length in astr or cstr
 	long max; //maximum space allocated
 
 	char *filename;
@@ -47,6 +47,13 @@ class IOBuffer
 	const char *errormessage;
 	int errorstate;
 	long curpos;
+
+	enum What {
+		WHAT_None    =0,
+		WHAT_File    ,
+		WHAT_String  ,
+		WHAT_CString
+	};
 
   public:
 	IOBuffer();
@@ -85,6 +92,8 @@ class IOBuffer
 	 //----string specific
 	virtual int OpenCString(const char *str); //reads only, does not allocate a new string
 	virtual int OpenString(const char *str); //copies to a new string, can read, write, and grow the string
+	virtual const char *GetStringBuffer();
+	virtual long GetStringBufferLength();
 	//int OpenInString(char *str, long nn, long nmax); //can read and write within the string, does not allocate new. cannot shrink or grow string past allocation
 };
 

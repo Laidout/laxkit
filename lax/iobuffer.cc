@@ -47,10 +47,6 @@ namespace Laxkit {
  */
 
 
-#define WHAT_None    0
-#define WHAT_File    1
-#define WHAT_String  2
-#define WHAT_CString 3
 
 
 IOBuffer::IOBuffer()
@@ -132,9 +128,11 @@ int IOBuffer::Printf(const char *fmt, ...)
 		return c;
 	}
 	
-	if (what != WHAT_CString) return 0;
+	if (what == WHAT_None) what = WHAT_String;
+	
+	if (what != WHAT_String) return 0;
 
-	 //write to string, expanding if necessary
+	 //write to astr, expanding if necessary
 	va_start(arg, fmt);
 	int c = vsnprintf(NULL, 0, fmt, arg);
 	va_end(arg);
@@ -284,7 +282,8 @@ void IOBuffer::FreeGetLinePtr(char *lineptr)
 }
 
 
-/*! Return 0 for success or nonzero error.
+/*! Set this byte position. If offset < 0, then set offset to end of the file.
+ * Return 0 for success or nonzero error.
  */
 int IOBuffer::SetPos(long offset) //fseek-whence: SEEK_SET, SEEK_CUR, or SEEK_END
 {
@@ -514,6 +513,22 @@ int IOBuffer::OpenString(const char *str)
 	return 0;
 }
 
+/*! Use this only if you know what you are doing.
+ * If the IOBuffer is using a const char, such as after an OpenCString(), then return cstr.
+ * Else return astr is using non-const string.
+ * Else return nullptr if using a FILE.
+ */
+const char *IOBuffer::GetStringBuffer()
+{
+	if (what == WHAT_String) return astr;
+	if (what == WHAT_CString) return cstr;
+	return nullptr;
+}
+
+long IOBuffer::GetStringBufferLength()
+{
+	return slen;
+}
 
 
 } //namespace
