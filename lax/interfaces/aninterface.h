@@ -167,9 +167,9 @@ class anInterface : virtual public Laxkit::EventReceiver,
 	virtual double UIScale();
 	virtual void ThemeChange(Laxkit::Theme *theme);
 	virtual void UIScaleChange();
-	virtual double ScreenLine();
-	virtual double NearThreshhold();
-	virtual double NearThreshhold2();
+	virtual double ScreenLine();      //!< What should be considered the pixel size of a usable thin line.
+	virtual double NearThreshhold();  //!< Default nearness threshhold for tiny points
+	virtual double NearThreshhold2(); //!< Default nearness threshhold for medium sized points
 	virtual double DraggedThreshhold();
 
 	 //input and output

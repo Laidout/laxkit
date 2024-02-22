@@ -570,6 +570,8 @@ void anInterface::ThemeChange(Theme *theme)
 	UIScaleChange();
 }
 
+/*! This is called when there is a change to the app-wide UI scale.
+ */
 void anInterface::UIScaleChange()
 {}
 
