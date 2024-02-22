@@ -31,6 +31,7 @@ int strcmp_safe(const char *s1, const char *s2);
 int strncmp_safe(const char *s1, const char *s2, int n);
 int strcasecmp_safe(const char *s1, const char *s2);
 bool strEquals(const char *s1, const char *s2, bool caseless=false);
+bool strnEquals(const char *s1, const char *s2, int n, bool caseless=false);
 char *itoa(int a,char *dest,int base=10); /* does not null terminate */
 char *newprintfstr(const char *fmt, ...);
 char *numtostr(int num, int par=0);

@@ -98,6 +98,16 @@ bool strEquals(const char *s1, const char *s2, bool caseless)
 	return !strcmp(s1,s2);
 }
 
+/*! strncmp that only cares about equality. ok for strings to be null. two null strings equal each other.
+ */
+bool strEquals(const char *s1, const char *s2, int n, bool caseless)
+{
+	if (!s1 && !s2) return true;
+	if ((s1 && !s2) || (!s1 && s2)) return false;
+	if (caseless) return !strncasecmp(s1,s2,n);
+	return !strncmp(s1,s2,n);
+}
+
 /*! Return a new char[] from printf style arguments.
  */
 char *newprintfstr(const char *fmt, ...)
