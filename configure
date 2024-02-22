@@ -323,7 +323,7 @@ echo "Name: laxkit" >> laxkit.pc
 echo "Version: $LAXKITVERSION" >> laxkit.pc
 echo "Description: C++ Window Library" >> laxkit.pc
 echo "Requires: harfbuzz >= 2.0 fontconfig $OPTIONALLIBS $NEED" >> laxkit.pc
-echo "Libs: -L\${libdir} -llaxinterfaces -llaxkit -lXext -lXi -lXrandr -lcrypto" >> laxkit.pc
+echo "Libs: -L\${libdir} -llaxinterfaces -llaxkit -lXext -lXi -lXrandr -lcrypto -lzip" >> laxkit.pc
 echo "Cflags: -I\${includedir}" >> laxkit.pc
 fi
 
