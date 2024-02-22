@@ -47,6 +47,7 @@ class SimplePathData : virtual public SomeData
 	};
 
 	enum PointType {
+		Unknown,
 		Default,
 		Smooth,
 		Corner,
@@ -90,9 +91,9 @@ class SimplePathData : virtual public SomeData
 
 	Laxkit::ScreenColor color;
 	Interpolation interpolation;
-	Laxkit::PtrStack<Point> mpoints;
+	Laxkit::PtrStack<Point> mpoints; // interactable points
 	//Laxkit::NumStack<Laxkit::flatpoint> points;
-	Laxkit::NumStack<Laxkit::flatpoint> pointcache;
+	Laxkit::NumStack<Laxkit::flatpoint> pointcache; // computed bezier path. either linear (no rods) or cubic segs (2 rods)
 	double linewidth;
 	bool closed;
 
@@ -109,7 +110,7 @@ class SimplePathData : virtual public SomeData
 
 	SimplePathData();
 	virtual ~SimplePathData();
-	virtual const char *whattype() { return "SimplePath"; }
+	virtual const char *whattype() { return "SimplePathData"; }
     virtual void FindBBox();
     virtual SomeData *duplicate(SomeData *dup);
 
@@ -190,19 +191,24 @@ class SimplePathInterface : public anInterface
 
 		SIMPLEPATH_ShowBez,
 		SIMPLEPATH_ToggleClosed,
+		SIMPLEPATH_ThickerLine,
+		SIMPLEPATH_ThinnerLine,
 
 		SIMPLEPATH_MAX
 	};
 
 	unsigned int interface_flags;
 
-	//adjustable settings:
 	int showdecs;
 	bool showbez;
+
+	//adjustable settings:
 	double select_radius;
 	double max_theta_radius;
 	double min_theta_radius;
 	double point_radius;
+	Laxkit::ScreenColor point_color;
+	Laxkit::ScreenColor point_color2; // contrasty outline for point_color
 
 
 	SimplePathInterface(anInterface *nowner, int nid, Laxkit::Displayer *ndp);

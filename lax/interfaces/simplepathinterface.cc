@@ -32,11 +32,6 @@
 #include "simplepathinterface.h"
 
 
-//template implementation:
-#include <lax/lists.cc>
-
-
-
 #include <iostream>
 using namespace std;
 #define DBG 
@@ -89,6 +84,7 @@ const char *SimplePathData::PathTypeName(SimplePathData::Interpolation interpola
 const char *SimplePathData::PointTypeName(SimplePathData::PointType pointtype)
 {
 	switch(pointtype) {
+		case SimplePathData::Unknown     :    return "Unknown"     ;
 		case SimplePathData::Default     :    return "Default"     ;
 		case SimplePathData::Smooth      :    return "Smooth"      ;
 		case SimplePathData::Corner      :    return "Corner"      ;
@@ -473,18 +469,22 @@ SimplePathInterface::SimplePathInterface(anInterface *nowner, int nid, Displayer
 	dataoc     = NULL;
 	data       = NULL;
 
-	select_radius = 10;
-	point_radius  = 10;
-	theta_radius  = 40; //expands when rotating handles
-	min_theta_radius = theta_radius;
-	max_theta_radius = theta_radius * 2;
-
 	timerid       = 0;
 
 	curpoint     = -1;
 	curcontrol   = -1;
 	hover        = -1;
 	hover_handle = 0;
+
+	// settings
+	select_radius = 10;
+	point_radius  = 10;
+	theta_radius  = 40; //expands when rotating handles
+	min_theta_radius = theta_radius;
+	max_theta_radius = theta_radius * 2;
+	point_color.grayf(.8);
+	point_color2.grayf(.2);
+
 
 	sc = NULL; //shortcut list, define as needed in GetShortcuts()
 }
@@ -676,13 +676,14 @@ Laxkit::MenuInfo *SimplePathInterface::ContextMenu(int x,int y,int deviceid, Lax
 	if (curpoints.n > 0 && data->interpolation == SimplePathData::Spiro) {
 		menu->AddSep(_("Point Type"));
 
-		menu->AddItem(_("Corner"), SIMPLEPATH_Spiro_Corner);
-		menu->AddItem(_("G4    "), SIMPLEPATH_Spiro_G4    );
-		menu->AddItem(_("G2    "), SIMPLEPATH_Spiro_G2    );
-		menu->AddItem(_("Left  "), SIMPLEPATH_Spiro_Left  );
-		menu->AddItem(_("Right "), SIMPLEPATH_Spiro_Right );
-		menu->AddItem(_("Anchor"), SIMPLEPATH_Spiro_Anchor);
-		menu->AddItem(_("Handle"), SIMPLEPATH_Spiro_Handle);
+		int ptype = data->mpoints[curpoints.e[0]]->type; //todo: what about rtype??
+		menu->AddToggleItem(_("Corner"), SIMPLEPATH_Spiro_Corner, 0, ptype == SimplePathData::Corner);
+		menu->AddToggleItem(_("G4    "), SIMPLEPATH_Spiro_G4    , 0, ptype == SimplePathData::Spiro_G4    );
+		menu->AddToggleItem(_("G2    "), SIMPLEPATH_Spiro_G2    , 0, ptype == SimplePathData::Spiro_G2    );
+		menu->AddToggleItem(_("Left  "), SIMPLEPATH_Spiro_Left  , 0, ptype == SimplePathData::Spiro_Left  );
+		menu->AddToggleItem(_("Right "), SIMPLEPATH_Spiro_Right , 0, ptype == SimplePathData::Spiro_Right );
+		menu->AddToggleItem(_("Anchor"), SIMPLEPATH_Spiro_Anchor, 0, ptype == SimplePathData::Spiro_Anchor);
+		menu->AddToggleItem(_("Handle"), SIMPLEPATH_Spiro_Handle, 0, ptype == SimplePathData::Spiro_Handle);
 		
 		//    /* For a closed contour add an extra cp with a ty set to */
 		//#define SPIRO_END		'z'
@@ -694,16 +695,17 @@ Laxkit::MenuInfo *SimplePathInterface::ContextMenu(int x,int y,int deviceid, Lax
 	} else if (curpoints.n > 0 && data->interpolation == SimplePathData::NewSpiro) {
 		menu->AddSep(_("Point Type"));
 
-		menu->AddItem(_("Corner"), SIMPLEPATH_Spiro_Corner);
-		menu->AddItem(_("Smooth"), SIMPLEPATH_Spiro_Smooth);
-		menu->AddItem(_("Auto"  ), SIMPLEPATH_Spiro_Auto  );
+		int ptype = data->mpoints[curpoints.e[0]]->type;
+		menu->AddToggleItem(_("Corner"), SIMPLEPATH_Spiro_Corner, 0, ptype == SimplePathData::Corner);
+		menu->AddToggleItem(_("Smooth"), SIMPLEPATH_Spiro_Smooth, 0, ptype == SimplePathData::Smooth);
+		menu->AddToggleItem(_("Auto"  ), SIMPLEPATH_Spiro_Auto  , 0, ptype == SimplePathData::Smooth);
 	}
 
+	menu->AddSep();
+	menu->AddItem(_("Load..."), SIMPLEPATH_Load);
 	if (data->mpoints.n) {
-		menu->AddSep();
-		menu->AddItem(_("Load"), SIMPLEPATH_Load);
-		menu->AddItem(_("Save"), SIMPLEPATH_Save);
-		menu->AddItem(_("Save as bezier"), SIMPLEPATH_Save_Bezier);
+		menu->AddItem(_("Save..."), SIMPLEPATH_Save);
+		menu->AddItem(_("Save as bezier..."), SIMPLEPATH_Save_Bezier);
 	}
 
 	return menu;
@@ -798,7 +800,6 @@ int SimplePathInterface::DrawData(anObject *ndata,anObject *a1,anObject *a2,int 
 
 int SimplePathInterface::Refresh()
 {
-
 	if (needtodraw == 0) return 0;
 	needtodraw = 0;
 
@@ -858,6 +859,7 @@ int SimplePathInterface::Refresh()
 		double thin = ScreenLine();
 
 		if (showbez) {
+			// show the computed bezier points. These are not necessarily selectable depending on mode!
 			if (data->pointcache.n) {
 				dp->NewFG(.2,.2,1.);
 				dp->DrawScreen();
@@ -870,25 +872,41 @@ int SimplePathInterface::Refresh()
 			}
 		}
 
-		dp->NewFG(&data->color);
 		dp->DrawScreen();
 		// draw interface decorations on top of interface data
-		flatpoint p;
+		flatpoint p, p2;
 		dp->LineWidth(thin);
 
 		for (int c=0; c<data->mpoints.n; c++) {
 			bool sel = IsSelected(c);
 			p = dp->realtoscreen(data->mpoints.e[c]->p);
-			if (data->mpoints.e[c]->type == SimplePathData::Corner)
+			if (data->mpoints.e[c]->type == SimplePathData::Corner) {
+				dp->NewFG(&point_color2);
+				dp->LineWidth(2*thin);
 				dp->drawrectangle(p.x - thin*point_radius, p.y - thin*point_radius, 2*thin*point_radius,2*thin*point_radius, sel ? 1 : 0);
-			else dp->drawpoint(p, thin*point_radius, sel ? 1 : 0);
+				dp->NewFG(&point_color);
+				dp->LineWidth(thin);
+				dp->drawrectangle(p.x - thin*point_radius, p.y - thin*point_radius, 2*thin*point_radius,2*thin*point_radius, sel ? 1 : 0);
+			} else {
+				dp->NewFG(&point_color2);
+				dp->LineWidth(2*thin);
+				dp->drawpoint(p, thin*point_radius, sel ? 1 : 0);
+				dp->NewFG(&point_color);
+				dp->LineWidth(thin);
+				dp->drawpoint(p, thin*point_radius, sel ? 1 : 0);
+			}
 
 			if (sel && hover == c && hover_handle != 0) {
 				//draw rotation handle indicator
+				dp->NewFG(&point_color);
 				dp->drawpoint(p, thin*theta_radius , 0);
 
 				flatvector prev,next;
 				data->TangentAtIndex(c, prev, next);
+				p2 = dp->realtoscreen(data->mpoints.e[c]->p + prev);
+				prev = (p2-p).normalized();
+				p2 = dp->realtoscreen(data->mpoints.e[c]->p + next);
+				next = (p2-p).normalized();
 				dp->LineWidth(thin * (hover_handle == SIMPLEPATH_Handle || hover_handle == SIMPLEPATH_Left_Handle ? 3 : 1));
 				dp->drawline(p, p - prev * thin * theta_radius);
 				dp->LineWidth(thin * (hover_handle == SIMPLEPATH_Handle || hover_handle == SIMPLEPATH_Right_Handle ? 3 : 1));
@@ -1160,7 +1178,7 @@ int SimplePathInterface::MouseMove(int x,int y,unsigned int state, const Laxkit:
 	flatpoint oldp = data->transformPointInverse(screentoreal(oldx,oldy));
 	flatpoint newp = data->transformPointInverse(screentoreal(x,y));
 	
-	if (handle != 0) {
+	if (handle != 0) { // we are dragging a handle
 		flatvector p = data->mpoints.e[over]->p;
 		flatvector v = oldp - p;
 		double aOld = atan2(v.y, v.x);
@@ -1298,7 +1316,9 @@ Laxkit::ShortcutHandler *SimplePathInterface::GetShortcuts()
 	//sc->Add([id number],  [key], [mod mask], [mode], [action string id], [description], [icon], [assignable]);
 
     sc->Add(SIMPLEPATH_ShowBez,  'b',0,0, "ShowBez", _("Show cached bezier points"),NULL,0);
-    sc->Add(SIMPLEPATH_ToggleClosed,  'c',0,0, "ToggleClosed", _("Toggle closed path"),NULL,0);
+    sc->Add(SIMPLEPATH_ToggleClosed,  'c',0,0, "ToggleClosed",   _("Toggle closed path"),NULL,0);
+    sc->Add(SIMPLEPATH_ThickerLine,   'l',0,0,        "Thicker", _("Thicken the line"),NULL,0);
+	sc->Add(SIMPLEPATH_ThinnerLine,   'L',ShiftMask,0,"Thinner",  _("Thin the line"),NULL,0);
 
 //    sc->Add(SIMPLEPATH_Something2, 'b',ControlMask,0, "BottomJustify"  , _("Bottom Justify"  ),NULL,0);
 //    sc->Add(SIMPLEPATH_Something3, 'd',ControlMask,0, "Decorations"    , _("Toggle Decorations"),NULL,0);
@@ -1328,6 +1348,20 @@ int SimplePathInterface::PerformAction(int action)
 		needtodraw=1;
 		return 0;
 
+	} else if (action == SIMPLEPATH_ThickerLine) {
+		if (!data) return 0;
+		data->linewidth *= 1.1;
+		PostMessage2(_("Line width: %f"), data->linewidth);
+		needtodraw=1;
+		return 0;
+
+	} else if (action == SIMPLEPATH_ThinnerLine) {
+		if (!data) return 0;
+		data->linewidth /= 1.1;
+		PostMessage2(_("Line width: %f"), data->linewidth);
+		needtodraw=1;
+		return 0;
+
 	} else if (action == SIMPLEPATH_Spiro_Corner) {
 		if (!data) return 0;
 		for (int c=0; c<curpoints.n; c++) {
@@ -1341,9 +1375,10 @@ int SimplePathInterface::PerformAction(int action)
 	} else if (action == SIMPLEPATH_Spiro_Smooth) {
 		if (!data) return 0;
 		for (int c=0; c<curpoints.n; c++) {
-			data->mpoints.e[curpoints.e[c]]->type = SimplePathData::Smooth;
-			data->mpoints.e[curpoints.e[c]]->rtheta = data->mpoints.e[curpoints.e[c]]->ltheta;
-			data->mpoints.e[curpoints.e[c]]->rtype = data->mpoints.e[curpoints.e[c]]->ltype = SimplePathData::Default;
+			SimplePathData::Point *point = data->mpoints.e[curpoints.e[c]];
+			point->type = SimplePathData::Smooth;
+			point->rtheta = point->ltheta;
+			point->rtype = point->ltype = SimplePathData::Default;
 		}
 		data->UpdateInterpolation();
 		data->FindBBox();
