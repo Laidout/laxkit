@@ -98,6 +98,7 @@ objs= \
 	laximlib.o \
 	laxcairo.o \
 	laxgm.o \
+	laxzip.o \
 	dateutils.o \
 	screencolor.o \
 	laxdevices.o \
