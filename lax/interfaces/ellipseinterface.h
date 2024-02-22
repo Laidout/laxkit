@@ -59,24 +59,7 @@ enum EllipsePoints {
 	ELLP_OuterRadius,
 	ELLP_InnerRadius,
 	ELLP_WildPoint, //point that changes c but preserves focal points
-
-	ELLP_Move,
 	ELLP_DragRect,
-	ELLP_DragRectCenter,
-
-	ELLP_UsePaths, //create PathsData objects, else make EllipseData
-	ELLP_Outline_Only,
-
-	ELLP_ToggleDecs,
-	ELLP_ToggleCircle,
-	ELLP_ToggleFoci,
-	ELLP_ToggleColorDest,
-	ELLP_CloseGap,
-	ELLP_UseWedge,
-	ELLP_UseChord,
-	ELLP_UseOpen,
-	ELLP_SetWidth,
-	
 	ELLP_MAX
 };
 
@@ -85,6 +68,7 @@ class EllipseData : virtual public SomeData
   protected:
   	
   public:
+
   	enum EllipseFlags {
 		ELLIPSE_IsCircle = (1<<0),
 		ELLIPSE_NoInner = (1<<1),
@@ -137,6 +121,27 @@ class EllipseData : virtual public SomeData
 class EllipseInterface : public anInterface
 {
   public:
+  	enum EllipseActions {
+		//ELLP_Move,
+		//ELLP_DragRect,
+		//ELLP_DragRectCenter,
+
+		ELLP_UsePaths, //create PathsData objects, else make EllipseData
+		ELLP_Outline_Only,
+
+		ELLP_ToggleDecs,
+		ELLP_ToggleCircle,
+		ELLP_ToggleFoci,
+		ELLP_ToggleColorDest,
+		ELLP_CloseGap,
+		ELLP_FlipGap,
+		ELLP_UseWedge,
+		ELLP_UseChord,
+		ELLP_UseOpen,
+		ELLP_SetWidth,
+		
+		ELLACTIONS_MAX
+	};
 
   protected:
 	int hover_x,hover_y;

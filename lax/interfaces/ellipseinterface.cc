@@ -1196,7 +1196,8 @@ Laxkit::MenuInfo *EllipseInterface::ContextMenu(int x,int y,int deviceid, Laxkit
 
 	menu->AddToggleItem(_("Show foci"), ELLP_ToggleFoci, 0, show_foci);
 	if (data->UsesAngles()) {
-		menu->AddItem(_("Close"), ELLP_CloseGap);
+		menu->AddItem(_("Flip gap"), ELLP_FlipGap);
+		menu->AddItem(_("Close gap"), ELLP_CloseGap);
 		menu->AddToggleItem(_("Wedge"), ELLP_UseWedge, 0, data->wedge_type == EllipseData::ELLIPSE_Wedge);
 		menu->AddToggleItem(_("Chord"), ELLP_UseChord, 0, data->wedge_type == EllipseData::ELLIPSE_Chord);
 		menu->AddToggleItem(_("Open gap"), ELLP_UseOpen, 0, data->wedge_type == EllipseData::ELLIPSE_Open);
@@ -1260,7 +1261,8 @@ int EllipseInterface::Event(const Laxkit::EventData *e,const char *mes)
 		const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(e);
 		int i = s->info2; //id of menu item
 
-		if (   i == ELLP_CloseGap
+		if (   i == ELLP_FlipGap
+			|| i == ELLP_CloseGap
 			|| i == ELLP_UseWedge
 			|| i == ELLP_UseChord 
 			|| i == ELLP_UseOpen
@@ -1633,6 +1635,17 @@ int EllipseInterface::PerformAction(int action)
 			Modified();
 			needtodraw=1;
 		}
+		return 0;
+
+	} else if (action == ELLP_FlipGap) {
+		if (!data) return 0;
+		// double t = data->end;
+		// data->end = data->start;
+		// data->start = t;
+		if (data->end > data->start) data->end -= 2*M_PI;
+		else data->end += 2*M_PI;
+		Modified();
+		needtodraw=1;
 		return 0;
 
 	} else if (action == ELLP_CloseGap) {
