@@ -33,6 +33,54 @@
 namespace Laxkit {
 
 
+//--------------------------- Parsing helpers ----------------------------------
+
+
+/*! Do caseless comparison to "left", "right", "top", or "bottom".
+ * Return LAX_LEFT, etc.
+ */
+int GetLRTB(const char *buffer, long len, const char *&endptr_ret)
+{
+	endptr_ret = buffer;
+	if (len >= 4 && !strncasecmp(buffer, "left",   4)) { endptr_ret = buffer + 4; return LAX_LEFT;   }
+	if (len >= 5 && !strncasecmp(buffer, "right",  5)) { endptr_ret = buffer + 5; return LAX_RIGHT;  }
+	if (len >= 3 && !strncasecmp(buffer, "top",    3)) { endptr_ret = buffer + 3; return LAX_TOP;    }
+	if (len >= 6 && !strncasecmp(buffer, "bottom", 6)) { endptr_ret = buffer + 6; return LAX_BOTTOM; }
+	return 0;
+}
+
+/*! Parse things like "23rad", "-23deg". Converts and returns in radians in angle_ret.
+ * If there is a parse error, angle_ret is not changed.
+ * Return 0 for success, or nonzero for error.
+ */
+int CSSParseAngle(const char *buffer, long len, double &angle_ret, const char *&endptr_ret)
+{
+	char *endptr = nullptr;
+	double angle = strtod(buffer, &endptr);
+	if (endptr - buffer > len || endptr == buffer) return 1;
+
+	//flatvector v;
+	len -= endptr - buffer;
+	buffer = endptr;
+
+	// convert angle to radians
+	bool doit = false;
+	if      (len > 4 && !strncasecmp(buffer, "turn", 4)) { angle *= 2*M_PI;   buffer += 4; doit = true; }
+	else if (len > 3 && !strncasecmp(buffer, "deg",  3)) { angle *= M_PI/180; buffer += 3; doit = true; }
+	else if (len > 3 && !strncasecmp(buffer, "rad",  3)) {                    buffer += 3; doit = true; }
+	else if (len > 4 && !strncasecmp(buffer, "grad", 4)) { angle *= M_PI/200; buffer += 4; doit = true; }
+
+	if (!doit && isalpha(*buffer)) return 2; //seems to be an unknown unit?
+
+	angle_ret = angle;
+	endptr_ret = buffer;
+
+	return 0;
+}
+
+
+//------------------------------ CSS Funcs --------------------------------------
+
 static int num_css_colors = -1;
 
 struct CssColorSpec {
@@ -232,6 +280,188 @@ int CSSNamedColor(const char *value, Laxkit::ScreenColor *scolor)
 
 	return HexColorAttributeRGB(css_colors[match].color, scolor, nullptr);
 }
+
+
+/*! Append colors to gradient.
+ * Return 0 for success, or nonzero for parsing error.
+ */
+int CSSGradient(GradientStrip *gradient, const char *buffer, int len, const char **end_ptr_ret)
+{
+	if (end_ptr_ret) *end_ptr_ret = buffer;
+	if (!buffer || len <= 0) return 1;
+	if (!gradient) return 2;
+
+	// linear-gradient(to left top, blue, red)
+	// linear-gradient(36deg, blue, green 30%, red)
+	// linear-gradient(2.5turn, red 0 50%, blue 50% 100%)
+	// linear-gradient(90deg in hsl shorter hue, red, blue);
+	// linear-gradient(blue, 10%, pink); <- no color for the 10% means at the .1 mark make (blue + pink)/2
+	// repeating-linear-gradient
+	// radial-gradient
+	// repeatin-radial-gradient
+	
+	while (isspace(*buffer) && *buffer && len > 0) { buffer++; len--; }
+	if (len <= 0) return 3;
+
+	char *endptr = nullptr;
+	int type = 0;
+	#define LINEAR 1
+	#define LINEAR_REPEAT 2
+	#define RADIAL 3
+	#define RADIAL_REPEAT 4
+
+	if (len >= 15 && !strncmp(buffer, "linear-gradient", 15)) {
+		buffer += 15; len -= 15; type = LINEAR;
+	} else if (len >= 25 && !strncmp(buffer, "repeating-linear-gradient", 25)) {
+		buffer += 25; len -= 25; type = LINEAR_REPEAT;
+	} else if (len >= 15 && !strncmp(buffer, "radial-gradient", 15)) {
+		buffer += 15; len -= 15; type = RADIAL;
+	} else if (len >= 25 && !strncmp(buffer, "repeating-radial-gradient", 25)) {
+		buffer += 25; len -= 25; type = RADIAL_REPEAT;
+	} else return 4;
+
+	while (isspace(*buffer) && *buffer && len > 0) { buffer++; len--; }
+	
+	if (*buffer != '(' || len == 0) return 5;
+	buffer += 1; len -= 1;
+	while (isspace(*buffer) && *buffer && len > 0) { buffer++; len--; }
+
+	// read first parameter
+	if (type == LINEAR || type == LINEAR_REPEAT) {
+		double angle = strtod(buffer, &endptr);
+		flatvector v;
+		bool doit = false;
+		bool skip_comma = false;
+
+		if (endptr != buffer) {
+			if (endptr - buffer > len) return 6;
+			buffer = endptr;
+
+			// convert angle to radians
+			if (len > 4 && !strncasecmp(buffer, "turn", 4))      { angle *= 2*M_PI;   buffer += 4; len -= 4; doit = true; }
+			else if (len > 3 && !strncasecmp(buffer, "deg", 3))  { angle *= M_PI/180; buffer += 3; len -= 3; doit = true; }
+			else if (len > 3 && !strncasecmp(buffer, "rad", 3))  {                    buffer += 3; len -= 3; doit = true; }
+			else if (len > 4 && !strncasecmp(buffer, "grad", 4)) { angle *= M_PI/200; buffer += 4; len -= 4; doit = true; }
+
+			if (doit) { v.x = cos(angle); v.y = sin(angle); }
+			skip_comma = true;
+
+		} else if (len > 2 && !strncasecmp(buffer, "to", 2)) { //not a number, try alternate angle spec
+			// [ left | right ]  || [ top | bottom ]
+			buffer += 2; len -= 2;
+			while (isspace(*buffer) && *buffer && len > 0) { buffer++; len--; }
+
+			const char *ptr = nullptr;
+			int lrtb = GetLRTB(buffer, len, ptr);
+			if (lrtb) {
+				switch (lrtb) {
+					case LAX_LEFT:   v.x = -1; break;
+					case LAX_RIGHT:  v.x =  1; break;
+					case LAX_TOP:    v.y = -1; break;
+					case LAX_BOTTOM: v.y =  1; break;
+				}
+				len -= ptr - buffer;
+				buffer = ptr;
+			}
+			while (isspace(*buffer) && *buffer && len > 0) { buffer++; len--; }
+			lrtb = GetLRTB(buffer, len, ptr);
+			if (lrtb) {
+				switch (lrtb) {
+					case LAX_LEFT:   v.x = -1; break;
+					case LAX_RIGHT:  v.x =  1; break;
+					case LAX_TOP:    v.y = -1; break;
+					case LAX_BOTTOM: v.y =  1; break;
+				}
+				len -= ptr - buffer;
+				buffer = ptr;
+			}
+			
+			while (isspace(*buffer) && *buffer && len > 0) { buffer++; len--; }
+			v.normalize();
+			skip_comma = true;
+		}
+
+		if (skip_comma) {
+			while (isspace(*buffer) && *buffer && len > 0) { buffer++; len--; }
+			if (len == 0 || *buffer != ',') return false;
+			buffer++; len--;
+			while (isspace(*buffer) && *buffer && len > 0) { buffer++; len--; }
+		}
+		
+	} else { //RADIAL || RADIAL_REPEAT
+			//radial-gradient(ellipse at top, #e66465, transparent),
+			//radial-gradient(circle at bottom right, #e66465, transparent),
+			//radial-gradient(at bottom right, #e66465, transparent),
+			//radial-gradient(#e66465, transparent),
+		return 5; //TODO! implement me!
+	}
+
+	// read spot list, same format for linear and radial
+	// Each spot will be something like: color [pos1 [pos2] ]
+	RefPtrStack<Color> colors;
+	NumStack<double> pos1;
+	NumStack<double> pos2;
+
+	while (len > 0) {
+		double v[5];
+		double from = -1, to = -1;
+
+		const char *cendptr = nullptr;
+		SimpleColorAttribute(buffer, v, &cendptr); //todo: note this does not respect len
+		if (cendptr == buffer) break;
+
+		len -= cendptr - buffer;
+		buffer = cendptr;
+
+		Color *color = ColorManager::newRGBA(v[0], v[1], v[2], v[3]);
+		colors.push(color);
+		color->dec_count();
+
+		while (isspace(*buffer) && *buffer && len > 0) { buffer++; len--; }
+		if (isdigit(*buffer) || *buffer == '.') {
+			from = strtod(buffer, &endptr);
+			if (endptr == buffer) return 5;
+			if (*endptr == '%') { from /= 100; endptr++; }
+			len -= endptr - buffer;
+			buffer = endptr;
+			
+			while (isspace(*buffer) && *buffer && len > 0) { buffer++; len--; }
+			if (isdigit(*buffer) || *buffer == '.') {
+				to = strtod(buffer, &endptr);
+				if (endptr == buffer) return 5;
+				if (*endptr == '%') { to /= 100; endptr++; }
+				len -= endptr - buffer;
+				buffer = endptr;
+			}
+
+			pos1.push(from);
+			pos2.push(to);
+			while (isspace(*buffer) && *buffer && len > 0) { buffer++; len--; }
+		}
+
+		if (*buffer == ')') break;
+		if (*buffer != ',') return 7; // expected end of gradient function!
+		len--;
+		buffer++;
+	}
+
+	if (len < 1 || *buffer != ')') return 8;
+	len--;
+	buffer++;
+
+	if (end_ptr_ret) *end_ptr_ret = buffer;
+
+	// Now build the actual gradient
+	for (int c=0; c<colors.n; c++) {
+		gradient->AddColor(pos1.e[c], colors.e[c], false);
+		//TODO: implement stepped gradients, using pos2
+	}
+	
+	return 0;
+}
+
+
+//------------------------------------ CSS Font Functions -----------------------------------
 
 
 /*! Parse a css font size value.
