@@ -72,6 +72,15 @@ void spacevector::normalize()
 	z/=d;
 }
 
+//! Return a unit vector, preserving angle. If null vector, return a zero vector.
+spacevector spacevector::normalized() const
+{
+	if (x==0 && y==0 && z==0) return spacevector();
+
+	double d = sqrt(x*x + y*y + z*z);
+	return spacevector(x/d, y/d, z/d);
+}
+
 void spacevector::setLength(double l)
 {
 	double d = norm();
@@ -312,7 +321,7 @@ typedef spacevector spacepoint;
  * Namely, see PointInfoTags.
  */
 
-//! Make a unit vector, preserving angle. If null vector, do nothing.
+//! Make this vector a unit vector, preserving angle. If null vector, do nothing.
 void flatvector::normalize()
 {
 	if (x==0 && y==0) return;
@@ -320,6 +329,15 @@ void flatvector::normalize()
 	double d=sqrt(x*x+y*y);
 	x/=d;
 	y/=d;
+}
+
+//! Return a unit vector, preserving angle. If null vector, return a zero vector.
+flatvector flatvector::normalized() const
+{
+	if (x==0 && y==0) return flatvector();
+
+	double d = sqrt(x*x+y*y);
+	return flatvector(x/d, y/d);
 }
 
 void flatvector::setLength(double l)
