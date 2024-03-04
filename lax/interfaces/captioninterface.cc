@@ -102,32 +102,32 @@ static const double LSSIZE=.25;
 CaptionData::CaptionData()
   : lines(2)
 {
-	fontfamily=newstr("sans");
-	fontstyle=newstr("normal");
-	fontfile=NULL;
-	fontsize=12;
-	linespacing=1;
-	font=NULL;
+	fontfamily  = newstr("sans");
+	fontstyle   = newstr("normal");
+	fontfile    = NULL;
+	fontsize    = 24;
+	linespacing = 1;
+	font        = NULL;
 
-	direction=-1;
-	language=NULL;
-	script=NULL;
+	direction = -1;
+	language  = NULL;
+	script    = NULL;
 
-	state=0;
+	state     = 0;
 
-	xcentering=0;
-	ycentering=0;
-	baseline_hint=-1;
+	xcentering    = 0;
+	ycentering    = 0;
+	baseline_hint = -1;
 
 	lines.push(newstr(""));
 	linelengths.push(0);
 	linestats.push(new Linestat(0,0,0,0,0));
 
-	color=NULL;
-	red=green=blue=.5;
-	alpha=1.;
+	color = NULL;
+	red = green = blue = .5;
+	alpha = 1.;
 
-	needtorecache=true;
+	needtorecache = true;
 
 	Font(fontfile, fontfamily, fontstyle, fontsize);
 }
@@ -151,7 +151,7 @@ CaptionData::CaptionData(const char *ntext, const char *nfontfamily, const char 
 	
 	fontsize=fsize;
 	linespacing=1;
-	if (fontsize<=0) fontsize=10;
+	if (fontsize<=0) fontsize=24;
 	font=NULL;
 
 	state=0;  //0 means someone needs to remap extents
@@ -1597,29 +1597,29 @@ SomeData *CaptionData::ConvertToPaths(bool use_clones, RefPtrStack<SomeData> *cl
 
 CaptionInterface::CaptionInterface(int nid,Displayer *ndp) : anInterface(nid,ndp)
 {
-	data=NULL;
-	coc=NULL;
-	extrahover=NULL;
-	showdecs=1;
-	showbaselines=0;
-	showobj=1;
-	mode=0;
-	lasthover=CAPTION_None;
+	data          = NULL;
+	coc           = NULL;
+	extrahover    = NULL;
+	showdecs      = 1;
+	showbaselines = 0;
+	showobj       = 1;
+	mode          = 0;
+	lasthover     = CAPTION_None;
 
-	defaultsize=20;
-	defaultspacing=1;
-	defaultscale=-1;
-	defaultfamily=newstr("sans");
-	defaultstyle=newstr("");
+	defaultsize    = 24;
+	defaultspacing = 1;
+	defaultscale   = -1;
+	defaultfamily  = newstr("sans");
+	defaultstyle   = newstr("");
 
-	grabpad=20;
-	caretline=0;//line number, starting from 0
-	caretpos=0; //position of caret in caretline
-	sellen=0;
-	scaretline=scaretpos=0;
-	needtodraw=1;
+	grabpad    = 20;
+	caretline  = 0;  // line number, starting from 0
+	caretpos   = 0;  // position of caret in caretline
+	sellen     = 0;
+	scaretline = scaretpos = 0;
+	needtodraw = 1;
 
-	baseline_color=rgbcolorf(1.,0.,1.);
+	baseline_color = rgbcolorf(1.,0.,1.);
 
 //	if (newtext) {
 //		if (!data) data=new CaptionData(newtext,
@@ -1630,7 +1630,7 @@ CaptionInterface::CaptionInterface(int nid,Displayer *ndp) : anInterface(nid,ndp
 //						 0); //ycenter
 //	}
 
-	sc=NULL;
+	sc = NULL;
 }
 
 CaptionInterface::~CaptionInterface()
