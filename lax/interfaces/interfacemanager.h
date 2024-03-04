@@ -63,6 +63,7 @@ class InterfaceManager : public Laxkit::anObject
 	virtual Laxkit::ResourceManager *GetResourceManager();
 	virtual Laxkit::ResourceManager *GetTools();
 	virtual anInterface *GetTool(const char *tool);
+	virtual anObject *GetSettings(const char *for_tool);
 	virtual Laxkit::FontManager *GetFontManager();
 	virtual Laxkit::IconManager *GetIconManager();
 	virtual Laxkit::UndoManager *GetUndoManager();

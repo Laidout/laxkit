@@ -106,7 +106,7 @@ Laxkit::Displayer *InterfaceManager::GetDisplayer(int purpose)
 
 /*! The tools ResourceManager object by default has two ResourceTypes.
  *
- * One is "tools", each resource of which is an instance of any interface usuable. This is
+ * One is "tools", each resource of which is an instance of any usable interface. This is
  * a flat list, no nested Resource menus here, or favorites.
  *
  * The other is "settings", each resource of which has id the same the tool it is settings
@@ -129,6 +129,15 @@ anInterface *InterfaceManager::GetTool(const char *tool)
 
 	anInterface *interf = dynamic_cast<anInterface*>(tools->FindResource(tool, "tools"));
 	return interf;
+}
+
+anObject *InterfaceManager::GetSettings(const char *for_tool)
+{
+	if (!tools) GetTools();
+	if (!tools) return NULL;
+
+	anObject *obj = tools->FindResource(tool, "settings");
+	return obj;
 }
 
 ResourceManager *InterfaceManager::GetResourceManager()
