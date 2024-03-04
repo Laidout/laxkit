@@ -136,7 +136,7 @@ anObject *InterfaceManager::GetSettings(const char *for_tool)
 	if (!tools) GetTools();
 	if (!tools) return NULL;
 
-	anObject *obj = tools->FindResource(tool, "settings");
+	anObject *obj = tools->FindResource(for_tool, "settings");
 	return obj;
 }
 
