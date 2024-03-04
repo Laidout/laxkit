@@ -23,6 +23,7 @@
 #define _LAX_CHARACTERINTERFACE_H
 
 #include <lax/interfaces/aninterface.h>
+#include <lax/singletonkeeper.h>
 
 
 namespace LaxInterfaces { 
@@ -32,25 +33,33 @@ namespace LaxInterfaces {
 class CharacterInterface : public anInterface
 {
   protected:
+  	class Settings : public Laxkit::anObject
+  	{
+  	  public:
+  	  	double boxwidth = 30.0;
+  	  	bool show_unicode = false;
+  	  	Laxkit::ScreenColor fg;
+  	  	Laxkit::ScreenColor bg;
+		Laxkit::NumStack<int> recent;
+  	};
+
+	static Laxkit::SingletonKeeper settingsObject;
+	Settings *settings;
+
 	int showdecs;
 	Laxkit::LaxFont *font;
 
-	char *recent;
-	char *suggestions;
-
-	Laxkit::ScreenColor fg, bg;
+	Laxkit::NumStack<int> suggestions;
 
 	int current, curcategory;
 
 	int firsttime;
-	int displaytype; //0: character only,  1: char + U0123,  2: char + U0123 + glyphname
-	double boxwidth;
 	int numwide, numtall;
 	Laxkit::flatpoint offset;
 	Laxkit::flatpoint insertpoint;
 	Laxkit::DoubleBBox recentbox;
 	Laxkit::DoubleBBox suggestionbox;
-	Laxkit::DoubleBBox bigbox;
+	Laxkit::DoubleBBox bigbox; //box that contains main list of characters
 
 	//Laxkit::NumStack<int> ranges;
 	//Laxkit::NumStack<int> starts;
@@ -72,6 +81,14 @@ class CharacterInterface : public anInterface
 		INSCHAR_MAX,
 	};
 
+	enum Actions {
+		CHARI_ToggleUnicode,
+		CHARI_Copy,  //copy current to clipboard
+		CHARI_Paste, //search for first characeter of pasted text
+		CHARI_Search,
+		CHARI_MAX
+	};
+
 	unsigned int character_interface_style;
 
 	CharacterInterface(anInterface *nowner, int nid, Laxkit::Displayer *ndp, Laxkit::LaxFont *nfont);
@@ -85,6 +102,8 @@ class CharacterInterface : public anInterface
 	virtual int Event(const Laxkit::EventData *data, const char *mes);
 	virtual Laxkit::ShortcutHandler *GetShortcuts();
 	virtual int PerformAction(int action);
+	virtual void dump_in_atts(Laxkit::Attribute *att,int flag,Laxkit::DumpContext *loadcontext);
+	virtual Laxkit::Attribute *dump_out_atts(Laxkit::Attribute *att,int what,Laxkit::DumpContext *savecontext);
 
 	virtual int UseThis(Laxkit::anObject *nlinestyle,unsigned int mask=0);
 	virtual int InterfaceOn();

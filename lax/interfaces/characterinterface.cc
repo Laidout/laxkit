@@ -28,18 +28,10 @@
 #include <lax/laxutils.h>
 #include <lax/language.h>
 #include <lax/utf8utils.h>
-
-
-//You need this if you use any of the Laxkit stack templates in lax/lists.h
-#include <lax/lists.cc>
+#include <lax/debug.h>
 
 
 using namespace Laxkit;
-
-
-#include <iostream>
-using namespace std;
-#define DBG 
 
 
 namespace LaxInterfaces {
@@ -53,49 +45,55 @@ namespace LaxInterfaces {
  */
 
 
+// static variable
+SingletonKeeper CharacterInterface::settingsObject;
+
+
 /*! Works on a duplicate of nfont.
  */
 CharacterInterface::CharacterInterface(anInterface *nowner, int nid, Displayer *ndp, LaxFont *nfont)
  : anInterface(nowner,nid,ndp)
 {
-	character_interface_style=0;
+	character_interface_style = 0;
 
-	showdecs=1;
-	needtodraw=1;
+	settings = dynamic_cast<Settings*>(settingsObject.GetObject());
+	if (!settings) {
+		settings = new Settings();
+		settingsObject.SetObject(settings, true);
+		settings->boxwidth = 30;
+	}
+	settings->inc_count();
 
-	sc=NULL; //shortcut list, define as needed in GetShortcuts()
+	showdecs   = 1;
+	needtodraw = 1;
 
-	boxwidth=30;
-	font=NULL;
+	font = nullptr;
 	if (nfont) {
 		font=nfont->duplicate();
 	}
 
-	recent     =NULL;
-	suggestions=NULL; 
-
-	firsttime=1;
-	needtosetchars=true;
-	numwide=0;
-	numtall=0;
+	firsttime      = 1;
+	needtosetchars = true;
+	numwide        = 0;
+	numtall        = 0;
 	insertpoint.set(-1,-1);
 
-	current=-1;
-	curcategory=0;
+	current     = -1;
+	curcategory = 0;
+
+	sc = nullptr;  // shortcut list, define as needed in GetShortcuts()
 }
 
 CharacterInterface::~CharacterInterface()
 {
-	if (sc)   sc->dec_count(); 
-	if (font) font->dec_count();
-
-	delete[] recent;
-	delete[] suggestions;
+	if (sc)       sc->dec_count();
+	if (font)     font->dec_count();
+	if (settings) settings->dec_count();
 }
 
 const char *CharacterInterface::whatdatatype()
 {
-	return NULL; // NULL means this tool is creation only, it cannot edit existing data automatically
+	return nullptr; // nullptr means this tool is creation only, it cannot edit existing data automatically
 }
 
 /*! Name as displayed in menus, for instance.
@@ -105,12 +103,12 @@ const char *CharacterInterface::Name()
 
 
 //! Return new CharacterInterface.
-/*! If dup!=NULL and it cannot be cast to CharacterInterface, then return NULL.
+/*! If dup!=nullptr and it cannot be cast to CharacterInterface, then return nullptr.
  */
 anInterface *CharacterInterface::duplicate(anInterface *dup)
 {
-	if (dup==NULL) dup=new CharacterInterface(NULL,id,NULL,NULL);
-	else if (!dynamic_cast<CharacterInterface *>(dup)) return NULL;
+	if (dup==nullptr) dup=new CharacterInterface(nullptr,id,nullptr,nullptr);
+	else if (!dynamic_cast<CharacterInterface *>(dup)) return nullptr;
 	return anInterface::duplicate(dup);
 }
 
@@ -136,7 +134,7 @@ int CharacterInterface::InterfaceOn()
  */
 int CharacterInterface::InterfaceOff()
 {
-	Clear(NULL);
+	Clear(nullptr);
 	showdecs=0;
 	needtodraw=1;
 	return 0;
@@ -151,27 +149,29 @@ void CharacterInterface::ViewportResized()
 	SetBoxes();
 }
 
+/*! Fill chars with the characters defined in the font.
+ */
 void CharacterInterface::SetupChars()
 {
 	if (!font) return;
 
 	chars.flush_n();
 
-	FT_Library *ft_library=app->fontmanager->GetFreetypeLibrary();
+	FT_Library *ft_library = app->fontmanager->GetFreetypeLibrary();
 	if (!ft_library) return; //this shouldn't happen!
 
 
 	 //scan in from a freetype face
-	FT_Face ft_face=NULL;
+	FT_Face ft_face = nullptr;
 	FT_Error ft_error = FT_New_Face(*ft_library, font->FontFile(), 0, &ft_face);
 	if (ft_error) { 
-		DBG cerr <<" ERROR loading "<<(font->FontFile()?font->FontFile():"(no font file!!)")<<" with FT_New_Face"<<endl;
+		DBGE(" ERROR loading "<<(font->FontFile()?font->FontFile():"(no font file!!)")<<" with FT_New_Face"<<endl);
 		return;
 	}
 
 	 //find defined characters for font, distill in to ranges
 	int code;
-	FT_UInt gindex=0;
+	FT_UInt gindex = 0;
 
 	code = FT_Get_First_Char( ft_face, &gindex );
 
@@ -183,10 +183,10 @@ void CharacterInterface::SetupChars()
 
 	if (ft_face) {
 		FT_Done_Face(ft_face);
-		ft_face=NULL;
+		ft_face = nullptr;
 	}
 
-	needtosetchars=false;
+	needtosetchars = false;
 }
 
 /*! Initialize or reset the various boxes to fit on screen.
@@ -199,10 +199,12 @@ void CharacterInterface::SetupChars()
  */
 void CharacterInterface::SetBoxes()
 {
-	recentbox.maxy = -boxwidth/2;
-	recentbox.miny = -boxwidth/2 - boxwidth*(NumRecent()+1);
-	recentbox.minx = -boxwidth/2;
-	recentbox.maxx =  boxwidth/2;
+	double boxwidth = settings->boxwidth;
+
+	recentbox.miny = -boxwidth*NumRecent()/2;
+	recentbox.maxy =  boxwidth*NumRecent()/2;
+	recentbox.minx = 0; //-boxwidth/2;
+	recentbox.maxx = boxwidth; // boxwidth/2;
 
 	suggestionbox.miny =  boxwidth/2;
 	suggestionbox.maxy =  boxwidth/2 + boxwidth*(NumSuggestions()+1);
@@ -211,31 +213,32 @@ void CharacterInterface::SetBoxes()
 
 
 	bigbox.minx = boxwidth;
-	bigbox.maxx = bigbox.minx + curwindow->win_w - 2.5*boxwidth;
+	bigbox.maxx = bigbox.minx + curwindow->win_w - 2*boxwidth;
 
 	numwide = int(bigbox.boxwidth()/boxwidth);
-	if (numwide<1) numwide=1;
+	if (numwide < 1) numwide = 1;
 	if (needtosetchars) SetupChars();
-	if (chars.n==0) numtall=5; 
+	if (chars.n == 0) numtall = 5; 
 	else numtall = chars.n/numwide+1;
 
-	bigbox.maxx = bigbox.minx + boxwidth*numwide;
+	bigbox.minx = curwindow->win_w/2 - boxwidth*numwide/2;
+	bigbox.maxx = curwindow->win_w/2 + boxwidth*numwide/2;
 	bigbox.miny = -boxwidth*numtall/2;
 	bigbox.maxy =  boxwidth*numtall/2;
 
 	if (insertpoint.x<0 || insertpoint.y<0) {
-		insertpoint.x=boxwidth;
-		insertpoint.y=curwindow->win_h/2;
+		insertpoint.x = 0;
+		insertpoint.y = curwindow->win_h/2;
 	}
 
-	offset=insertpoint;
+	offset = insertpoint;
 
-	needtodraw=1;
+	needtodraw = 1;
 }
 
 Laxkit::MenuInfo *CharacterInterface::ContextMenu(int x,int y,int deviceid, Laxkit::MenuInfo *menu)
 {
-//	if (no menu for x,y) return NULL;
+//	if (no menu for x,y) return nullptr;
 //
 //	if (!menu) menu=new MenuInfo;
 //	if (!menu->n()) menu->AddSep(_("Some new menu header"));
@@ -246,7 +249,7 @@ Laxkit::MenuInfo *CharacterInterface::ContextMenu(int x,int y,int deviceid, Laxk
 //	menu->AddItem(_("Et Cetera"), SOME_OTHER_VALUE);
 //	return menu;
 
-	return NULL;
+	return nullptr;
 }
 
 int CharacterInterface::Event(const Laxkit::EventData *data, const char *mes)
@@ -287,57 +290,24 @@ int CharacterInterface::Refresh()
 
 	dp->DrawScreen();
 	dp->LineAttributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
-
+	double boxwidth = settings->boxwidth;
 
 	 //draw recent box
 	unsigned int linecolor=coloravg(curwindow->win_themestyle->fg,curwindow->win_themestyle->bg, .5);
 	unsigned int textcolor=coloravg(curwindow->win_themestyle->fg,curwindow->win_themestyle->bg, .2);
 	unsigned int bgcolor  =coloravg(curwindow->win_themestyle->fg,curwindow->win_themestyle->bg, .9);
-	dp->NewFG(linecolor);
-	dp->NewBG(bgcolor);
-
-	double x = offset.x+recentbox.minx;
-	double y = offset.y+recentbox.maxy;
-	for (int c=0; c<NumRecent(); c++) {
-		dp->drawrectangle(x+.5, y+.5-boxwidth, boxwidth,boxwidth, 2);
-		y-=boxwidth;
-		if (y<0) break;
-	}
-
-
-	 //draw suggestion boxes
-	x = offset.x+suggestionbox.minx;
-	y = offset.y+suggestionbox.miny;
-	for (int c=0; c<NumSuggestions(); c++) {
-		dp->drawrectangle(x+.5, y+.5, boxwidth,boxwidth, 2);
-		y+=boxwidth;
-		if (y > curwindow->win_h) break;
-	}
-
-
-	 //draw all glpyh boxes
-	int i=0;
-	//int ch=32;
-	char utf8[10];
+	char utf8[20];
 	int len;
 
+	dp->NewBG(bgcolor);
 	dp->font(font, boxwidth*.8);
 
-	for (int rr=0; rr<numtall; rr++) {
-	  x = offset.x + boxwidth;
-	  y = offset.y - numtall*boxwidth/2 + rr*boxwidth;
-
-	  if (y+boxwidth < 0) {
-		  continue;
-	  }
-	  if (y > curwindow->win_h) break;
-
-	  i=rr*numwide;
-
-	  for (int cc=0; cc<numwide; cc++) {
-		if (i>=chars.n) break;
-
-		if (i==current && curcategory==INSCHAR_MainBox) {
+	double x = offset.x + recentbox.minx;
+	double y = offset.y + recentbox.miny;
+	for (int c=0; c<NumRecent(); c++) {
+		dp->NewFG(linecolor);
+		if (c == current && curcategory == INSCHAR_Recent) {
+			// draw highlighted box
 			dp->NewFG(curwindow->win_themestyle->fg);
 			dp->NewBG(curwindow->win_themestyle->bg);
 			dp->LineWidthScreen(3);
@@ -346,23 +316,106 @@ int CharacterInterface::Refresh()
 			dp->NewFG(linecolor);
 			dp->NewBG(bgcolor);
 
-		} else dp->drawrectangle(x+.5, y+.5, boxwidth,boxwidth, 2);
+		} else {
+			// draw normal box
+			dp->drawrectangle(x+.5, y+.5, boxwidth,boxwidth, 2);
+		}
+		//dp->drawrectangle(x+.5, y+.5-boxwidth, boxwidth,boxwidth, 2);
 
 		dp->NewFG(textcolor);
-		len=utf8encode(chars.e[i], utf8);
-		utf8[len]='\0';
+		len = utf8encode(settings->recent.e[c], utf8);
+		utf8[len] = '\0';
 		dp->textout(x+boxwidth/2,y+boxwidth/2, utf8,len, LAX_CENTER);
+
+		y += boxwidth;
+		//if (y<0) break;
+	}
+
+
+	 //draw suggestion boxes
+	x = offset.x+suggestionbox.minx;
+	y = offset.y+suggestionbox.miny;
+	for (int c=0; c<NumSuggestions(); c++) {
+		dp->drawrectangle(x+.5, y+.5, boxwidth,boxwidth, 2);
+		y += boxwidth;
+		if (y > curwindow->win_h) break;
+	}
+
+
+	 //draw all glpyh boxes
+	int i=0;
+	
+	for (int rr=0; rr<numtall; rr++) {
+	  x = offset.x + bigbox.minx;
+	  y = offset.y - numtall*boxwidth/2 + rr*boxwidth;
+
+	  if (y+boxwidth < 0) {
+		  continue;
+	  }
+	  if (y > curwindow->win_h) break;
+
+	  i = rr*numwide;
+
+	  for (int cc=0; cc<numwide; cc++) {
+		if (i >= chars.n) break;
+
+		if (i==current && curcategory==INSCHAR_MainBox) {
+			// draw highlighted box
+			dp->NewFG(curwindow->win_themestyle->fg);
+			dp->NewBG(curwindow->win_themestyle->bg);
+			dp->LineWidthScreen(3);
+			dp->drawrectangle(x+.5, y+.5, boxwidth,boxwidth, 2);
+			dp->LineWidthScreen(1);
+			dp->NewFG(linecolor);
+			dp->NewBG(bgcolor);
+
+		} else {
+			// draw normal box
+			dp->drawrectangle(x+.5, y+.5, boxwidth,boxwidth, 2);
+		}
+
+		dp->NewFG(textcolor);
+		len = utf8encode(chars.e[i], utf8);
+		utf8[len] = '\0';
+		dp->textout(x+boxwidth/2,y+boxwidth/2 - (settings->show_unicode ? boxwidth*.1 : 0), utf8,len, LAX_CENTER);
 
 		dp->NewFG(linecolor);
 
-		x+=boxwidth;
+		x += boxwidth;
 		i++;
 
-		if (x>curwindow->win_w) break;
+		if (x > curwindow->win_w) break;
 	  }
 	}
 
-	if (chars.n==0) {
+	if (settings->show_unicode) {
+		dp->font(font, boxwidth*.2);
+		dp->NewFG(textcolor);
+		i = 0;
+	
+		for (int rr=0; rr<numtall; rr++) {
+			x = offset.x + bigbox.minx;
+			y = offset.y - numtall*boxwidth/2 + rr*boxwidth;
+
+			if (y+boxwidth < 0) continue;
+			if (y > curwindow->win_h) break;
+
+			i = rr*numwide;
+
+			for (int cc=0; cc<numwide; cc++) {
+				if (i >= chars.n) break;
+
+				sprintf(utf8, "U+%04x", chars.e[i]);
+				dp->textout(x+boxwidth/2,y+boxwidth, utf8,-1, LAX_HCENTER | LAX_BOTTOM);
+
+				x += boxwidth;
+				i++;
+				if (x > curwindow->win_w) break;
+			}
+		}
+	}
+
+	if (chars.n == 0) {
 		dp->NewFG(curwindow->win_themestyle->fg);
 		dp->textout(curwindow->win_w/2,curwindow->win_h/2, _("Could not scan font for characters!"),-1, LAX_CENTER);
 	}
@@ -378,7 +431,7 @@ int CharacterInterface::Refresh()
 
 int CharacterInterface::NumRecent()
 {
-	return 0;
+	return settings->recent.n;
 }
 
 int CharacterInterface::NumSuggestions()
@@ -401,11 +454,13 @@ int CharacterInterface::Context(const char *str, long pos, long len)
  */
 int CharacterInterface::Font(Laxkit::LaxFont *nfont)
 { // ***
+	DBGE("IMPLEMENT ME!");
 	return 0;
 }
 
 int CharacterInterface::Font(const char *family, const char *style, double size, Laxkit::ScreenColor *color)
 { // ***
+	DBGE("IMPLEMENT ME!");
 	return 0;
 }
 
@@ -422,50 +477,50 @@ void CharacterInterface::ScreenPosition(flatpoint p)
 
 int CharacterInterface::scan(int x, int y, unsigned int state, int *category)
 {
-	x-=offset.x;
-	y-=offset.y;
+	x -= offset.x;
+	y -= offset.y;
 
 	int ix,iy;
+	double boxwidth = settings->boxwidth;
 
 	if (recentbox.boxcontains(x,y)) {
-		ix=(x-recentbox.minx)/boxwidth;
-		iy=(y-recentbox.miny)/boxwidth;
-		*category=INSCHAR_Recent;
-		return iy*(recentbox.maxx-recentbox.miny)/boxwidth + ix;
-	}            
-	if (suggestionbox.boxcontains(x,y)) {
-		ix=(x-suggestionbox.minx)/boxwidth;
-		iy=(y-suggestionbox.miny)/boxwidth;
-		*category=INSCHAR_Suggestions;
-		return iy*(suggestionbox.maxx-suggestionbox.miny)/boxwidth + ix;
-	}            
-	if (bigbox.boxcontains(x,y)) {
-		ix=(x-bigbox.minx)/boxwidth;
-		iy=(y-bigbox.miny)/boxwidth;
-		*category=INSCHAR_MainBox;
-		if (ix>=0 && ix<numwide) {
-			return iy*numwide + ix;
-		}
+		ix = (x-recentbox.minx)/boxwidth;
+		iy = (y-recentbox.miny)/boxwidth;
+		if (iy >= settings->recent.n) iy = -1;
+		*category = INSCHAR_Recent;
+		cerr << "recent: "<<iy;
 
+		return iy; // recent box is single column
+		//return iy*(recentbox.maxx-recentbox.miny)/boxwidth + ix;
 	}
 
-	*category=0;
+	if (suggestionbox.boxcontains(x,y)) {
+		ix = (x-suggestionbox.minx)/boxwidth;
+		iy = (y-suggestionbox.miny)/boxwidth;
+		*category = INSCHAR_Suggestions;
+		return iy*(suggestionbox.maxx-suggestionbox.miny)/boxwidth + ix;
+	}
+
+	if (bigbox.boxcontains(x,y)) {
+		ix = (x-bigbox.minx)/boxwidth;
+		iy = (y-bigbox.miny)/boxwidth;
+		*category =INSCHAR_MainBox;
+		if (ix >= 0 && ix < numwide) {
+			return iy*numwide + ix;
+		}
+	}
+
+	*category = 0;
 	return -1;
 }
 
 //! Start a new freehand line.
 int CharacterInterface::LBDown(int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d) 
 {
-	int cat=0;
-	int i=scan(x,y, state, &cat);
+	int cat = 0;
+	int i = scan(x,y, state, &cat);
 	buttondown.down(d->id,LEFTBUTTON,x,y, i,cat);
-
-	//int device=d->subid; //normal id is the core mouse, not the controlling sub device
-	//DBG cerr <<"device: "<<d->id<<"  subdevice: "<<d->subid<<endl;
-	//LaxDevice *dv=app->devicemanager->findDevice(device);
-	//device_name=dv->name;
-
-	needtodraw=1;
+	needtodraw = 1;
 	return 0; //return 0 for absorbing event, or 1 for ignoring
 }
 
@@ -505,9 +560,13 @@ int CharacterInterface::MouseMove(int x,int y,unsigned int state, const Laxkit::
 		int i=scan(x,y, state, &cat);
 
 		if (i>=0 && i<chars.n && (i!=current || cat!=curcategory)) {
-			current=i;
-			curcategory=cat;
-			needtodraw=1;
+			current = i;
+			curcategory = cat;
+			needtodraw = 1;
+			if (cat == INSCHAR_MainBox)
+				PostMessage2(_("U+%04x"), chars.e[current]);
+			else if (cat == INSCHAR_Recent)
+				PostMessage2(_("U+%04x"), settings->recent.e[current]);
 		}
 		return 1;
 	}
@@ -531,20 +590,20 @@ int CharacterInterface::MouseMove(int x,int y,unsigned int state, const Laxkit::
 int CharacterInterface::WheelUp(int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d)
 {
 	if ((state&LAX_STATE_MASK)==ControlMask) {
-		boxwidth*=1.2;
-		firsttime=1; //triggers a SetBoxes() on next refresh
+		settings->boxwidth *= 1.2;
+		firsttime = 1; //triggers a SetBoxes() on next refresh
 		insertpoint.set(-1,-1);
-		needtodraw=1;
+		needtodraw = 1;
 		return 0;
 
 	} else {
-		int dy=boxwidth;
-		if (state&ShiftMask) dy*=10;
-		if (state&ControlMask) dy*=10;
-		offset.y+=dy;
+		int dy = settings->boxwidth;
+		if (state & ShiftMask)   dy *= 10;
+		if (state & ControlMask) dy *= 10;
+		offset.y += dy;
 
-		if (offset.y+bigbox.maxy>curwindow->win_h && offset.y+bigbox.miny-boxwidth>0) 
-			offset.y = -bigbox.miny+boxwidth;
+		if (offset.y + bigbox.maxy > curwindow->win_h && offset.y + bigbox.miny - settings->boxwidth > 0) 
+			offset.y = -bigbox.miny+settings->boxwidth;
 		needtodraw=1;
 		return 0;
 	}
@@ -555,21 +614,21 @@ int CharacterInterface::WheelUp(int x,int y,unsigned int state,int count, const 
 int CharacterInterface::WheelDown(int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d)
 {
 	if ((state&LAX_STATE_MASK)==ControlMask) {
-		boxwidth*=.9;
-		if (boxwidth<5) boxwidth=5; //arbitrary lower pixel limit
+		settings->boxwidth *= .9;
+		if (settings->boxwidth < 5) settings->boxwidth = 5; //arbitrary lower pixel limit
 		insertpoint.set(-1,-1);
 		firsttime=1; //triggers a SetBoxes() on next refresh
 		needtodraw=1;
 		return 0;
 
 	} else {
-		int dy=boxwidth;
-		if (state&ShiftMask) dy*=10;
-		if (state&ControlMask) dy*=10;
-		offset.y-=dy;
+		int dy = settings->boxwidth;
+		if (state & ShiftMask)   dy *= 10;
+		if (state & ControlMask) dy *= 10;
+		offset.y -= dy;
 
-		if (offset.y+bigbox.miny<0 && offset.y+bigbox.maxy+boxwidth<curwindow->win_h) 
-			offset.y = curwindow->win_h - (bigbox.maxy + boxwidth);
+		if (offset.y+bigbox.miny<0 && offset.y+bigbox.maxy+settings->boxwidth<curwindow->win_h) 
+			offset.y = curwindow->win_h - (bigbox.maxy + settings->boxwidth);
 		needtodraw=1;
 		return 0;
 	}
@@ -585,37 +644,43 @@ int CharacterInterface::WheelDown(int x,int y,unsigned int state,int count, cons
  */
 int CharacterInterface::send()
 {
-	if (owner && current>=0 && current<chars.n) {
-		char utf8[10];
-		int len=utf8encode(chars.e[current], utf8);
-		utf8[len]='\0';
-		SimpleMessage *data=new SimpleMessage(utf8, chars.e[current], curcategory, 0, 0);
-		app->SendMessage(data,owner->object_id,"insert char", object_id);
+	if (!owner || current < 0) return 1;
 
-	}
+	int code = 0;
+	if (curcategory == INSCHAR_MainBox && current < chars.n) code = chars.e[current];
+	else if (curcategory == INSCHAR_Recent) code = settings->recent.e[current];
+
+	settings->recent.pushnodup(code);
+	char utf8[10];
+	int len = utf8encode(code, utf8);
+	utf8[len] = '\0';
+	SimpleMessage *data = new SimpleMessage(utf8, code, curcategory, 0, 0);
+	app->SendMessage(data,owner->object_id,"insert char", object_id);
 
 	return 0;
 }
 
 int CharacterInterface::CharInput(unsigned int ch, const char *buffer,int len,unsigned int state, const Laxkit::LaxKeyboard *d)
 {
-//	if ((state&LAX_STATE_MASK)==(ControlMask|ShiftMask|AltMask|MetaMask)) {
-//		//deal with various modified keys...
-//	}
-
 //	if (ch==LAX_Esc) { //the various possible keys beyond normal ascii printable chars are defined in lax/laxdefs.h
 //		needtodraw=1;
 //		return 0;
 //	}
 
+	if (!sc) GetShortcuts();
+	int action = sc->FindActionNumber(ch,state&LAX_STATE_MASK,0);
+	if (action >= 0) {
+		return PerformAction(action);
+	}
+
 	if (ch==LAX_Pgdown) {
 		int mult=1;
 		if (state&ControlMask) mult=5;
 		if (state&ShiftMask) mult*=5;
-		offset.y-=boxwidth*10*mult;
+		offset.y -= settings->boxwidth*10*mult;
 
-		if (offset.y+bigbox.miny<0 && offset.y+bigbox.maxy+boxwidth<curwindow->win_h) 
-			offset.y = curwindow->win_h - (bigbox.maxy + boxwidth);
+		if (offset.y+bigbox.miny<0 && offset.y+bigbox.maxy+settings->boxwidth<curwindow->win_h) 
+			offset.y = curwindow->win_h - (bigbox.maxy + settings->boxwidth);
 		needtodraw=1;
 		return 0;
 
@@ -623,20 +688,20 @@ int CharacterInterface::CharInput(unsigned int ch, const char *buffer,int len,un
 		int mult=1;
 		if (state&ControlMask) mult=5;
 		if (state&ShiftMask) mult*=5;
-		offset.y+=boxwidth*10*mult;
+		offset.y += settings->boxwidth*10*mult;
 
-		if (offset.y+bigbox.maxy>curwindow->win_h && offset.y+bigbox.miny-boxwidth>0) 
-			offset.y = -bigbox.miny+boxwidth;
+		if (offset.y+bigbox.maxy>curwindow->win_h && offset.y+bigbox.miny-settings->boxwidth > 0) 
+			offset.y = -bigbox.miny+settings->boxwidth;
 		needtodraw=1;
 		return 0;
 
 	} else if (ch==LAX_End) {
-		offset.y = curwindow->win_h - (bigbox.maxy + boxwidth);
+		offset.y = curwindow->win_h - (bigbox.maxy + settings->boxwidth);
 		needtodraw=1;
 		return 0;
 
 	} else if (ch==LAX_Home) {
-		offset.y = -bigbox.miny+boxwidth;
+		offset.y = -bigbox.miny+settings->boxwidth;
 		needtodraw=1;
 		return 0;
 
@@ -680,12 +745,60 @@ int CharacterInterface::CharInput(unsigned int ch, const char *buffer,int len,un
 
 Laxkit::ShortcutHandler *CharacterInterface::GetShortcuts()
 {
-	return NULL;
+	if (sc) return sc;
+    ShortcutManager *manager=GetDefaultShortcutManager();
+    sc = manager->NewHandler(whattype());
+    if (sc) return sc;
+
+    sc = new ShortcutHandler(whattype());
+
+    sc->Add(CHARI_ToggleUnicode,  'u',ControlMask,0, "ToggleUnicode"  , _("ToggleUnicode"),NULL,0);
+    sc->Add(CHARI_Paste,          'v',ControlMask,0, "Paste"          , _("Paste"),NULL,0);
+    sc->Add(CHARI_Copy,           'c',ControlMask,0, "Copy"           , _("Copy"),NULL,0);
+    sc->Add(CHARI_Search,         '/',0,0, "Search"          , _("Search"),NULL,0);
+    //sc->Add(CAPTION_Convert_To_Path, 'P',ShiftMask|ControlMask,0, "ConvertToPaths", _("Convert to path object"),NULL,0);
+
+    manager->AddArea(whattype(),sc);
+    return sc;
 }
 
 int CharacterInterface::PerformAction(int action)
 { 
+	if (action == CHARI_ToggleUnicode) {
+		settings->show_unicode = !settings->show_unicode;
+		needtodraw = 1;
+		return 0;
+
+	} else if (action == CHARI_Paste) {
+	} else if (action == CHARI_Copy) {
+	} else if (action == CHARI_Search) {
+	}
 	return 1;
+}
+
+//! Placeholder for dumping in settings. Currently does nothing.
+void CharacterInterface::dump_in_atts(Attribute *att,int flag,DumpContext *loadcontext)
+{
+	for (int c=0; c<att->attributes.n; c++) {
+		if (strEquals(att->attributes.e[c]->name, "boxwidth")) {
+			DoubleAttribute(att->attributes.e[c]->value, &(settings->boxwidth));
+
+		} else if (strEquals(att->attributes.e[c]->name, "show_unicode")) {
+			settings->show_unicode = BooleanAttribute(att->attributes.e[c]->value);
+		}
+	}
+}
+
+/*! Placeholder for dumping out settings. Default just returns att.
+ * Subclasses that do output need to create a new Attribute if att==null, and fill with
+ * appropriate settings that will be read back in with dump_in_atts().
+ */
+Attribute *CharacterInterface::dump_out_atts(Attribute *att,int what,DumpContext *savecontext)
+{
+	if (!att) att = new Attribute();
+	att->push("boxwidth", settings->boxwidth);
+	att->push("show_unicode", settings->show_unicode ? "yes": "no");
+	return att;
 }
 
 } // namespace LaxInterfaces
