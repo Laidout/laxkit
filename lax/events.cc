@@ -50,7 +50,7 @@ const char *lax_event_name(int e)
 	if (e==LAX_onUngrayed)        return "LAX_onUngrayed";
 	if (e==LAX_onGrayed)          return "LAX_onGrayed";
 	if (e==LAX_onMapped)          return "LAX_onMapped";
-	if (e==LAX_onThemeChange)     return "LAX_onThemeChange";
+	if (e==LAX_onThemeChanged)    return "LAX_onThemeChanged";
 	if (e==LAX_onUnmapped)        return "LAX_onUnmapped";
 	if (e==LAX_ControlEvent)      return "LAX_ControlEvent";
 	if (e==LAX_ButtonEvent)       return "LAX_ButtonEvent";

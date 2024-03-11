@@ -71,6 +71,7 @@ class ScrolledWindow : public PanUser, public anXWindow
 		int xx,int yy,int ww,int hh,int brder,
 		anXWindow *prev,unsigned long nowner=0,const char *nsend = NULL,
 		PanController *pan = NULL);
+	virtual const char *whattype() { return "ScrolledWindow"; }
 	virtual int init();
 	virtual int send();
 	virtual void syncWindows();

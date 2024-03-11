@@ -20,15 +20,13 @@
 //    Copyright (C) 2004-2010,2015 by Tom Lechner
 //
 
-
-
 #include <lax/textxeditbase-utf8.h>
 #include <lax/utf8utils.h>
 #include <lax/laxutils.h>
 #include <lax/strmanip.h>
 
 // DBG !!!!!
-#include <lax/displayer-cairo.h>
+//#include <lax/displayer-cairo.h>
 
 #include <iostream>
 using namespace std;
@@ -122,30 +120,32 @@ namespace Laxkit {
 TextXEditBaseUtf8::TextXEditBaseUtf8(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
 							 int xx,int yy,int ww,int hh,int brder,
 							 anXWindow *prev,unsigned long nowner,const char *nsend,
-							 const char *newtext,unsigned long ntstyle,int ncntlchar) // newtext=NULL, ntstyle=0 ncntlchar=0
+							 const char *newtext,unsigned long ntstyle,int ncntlchar)
 	: anXWindow(parnt,nname,ntitle,nstyle,xx,yy,ww,hh,brder,prev,nowner,nsend),
  	  TextEditBaseUtf8(newtext,ntstyle,ncntlchar)
 {
-	thefont=NULL;
-	cx=cy=oldx=oldy=0;
-	tabwidth=30;//30pixels, rather than 4 chars by default
-	con=0;
-	valid=1;
-	curlineoffset=0;
+	thefont = nullptr;
+	dp = nullptr;
+
+	cx = cy = oldx = oldy = 0;
+	tabwidth      = 30;  // 30pixels, rather than 4 chars by default
+	con           = 0;
+	valid         = 1;
+	curlineoffset = 0;
+
 	textascent = textdescent = 0;
-	textheight = 0;
+	textheight               = 0;
 
-	firsttime=1; //used as a flag to trigger SetupMetrics() at the start of next Refresh()
-	dp=NULL;
+	firsttime = 1;  // used as a flag to trigger SetupMetrics() at the start of next Refresh()
 
-	bkwrongcolor=~0;
-	bkwrongcolor2=~0;
+	bkwrongcolor  = ~0;
+	bkwrongcolor2 = ~0;
 
-	padx=0;
-	pady=0;
+	padx = 0;
+	pady = 0;
 
 	InstallColors(THEME_Edit);
-	if (thefont == NULL) {
+	if (thefont == nullptr) {
 		if (win_themestyle) UseThisFont(win_themestyle->normal);
 		else UseThisFont(app->defaultlaxfont);
 	}
@@ -207,7 +207,7 @@ double TextXEditBaseUtf8::TextExtent(const char *str, int len, double *width,dou
 	if (!dp) {
 		dp = MakeCurrent();
 		//double oldheight = dp->textheight();
-		dp->font(thefont, thefont->textheight());
+		dp->font(thefont, UIScale() * thefont->textheight());
 	}
 
 	//if (dp == nullptr) dp = MakeCurrent();
@@ -220,7 +220,7 @@ double TextXEditBaseUtf8::TextExtent(const char *str, int len, double *width,dou
  */
 double TextXEditBaseUtf8::charwidth(int ch,int r) //r=0
 {
-	if (ch==32) return TextExtent(" ",-1);
+	if (ch == 32) return TextExtent(" ",-1);
 
 	char c[20];
 	int l;
@@ -234,6 +234,13 @@ double TextXEditBaseUtf8::charwidth(int ch,int r) //r=0
 	hexify(c,ch);
 	w = TextExtent(c,-1);
 	return w;
+}
+
+void TextXEditBaseUtf8::UIScaleChanged()
+{
+	anXWindow::UIScaleChanged();
+	SetupMetrics();
+	needtodraw = 1;
 }
 
 //! Just calls settextrect(), and returns 0.
@@ -435,8 +442,8 @@ void TextXEditBaseUtf8::Refresh()
 	//DBG cerr << "\nEditor painting";
 	
 	dp = MakeCurrent();
-	double oldheight = dp->textheight();
-	dp->font(thefont, thefont->textheight());
+	//double oldheight = dp->textheight();
+	dp->font(thefont, UIScale() * thefont->textheight());
 
 	if (firsttime) { 
 		firsttime=0; 
@@ -452,14 +459,13 @@ void TextXEditBaseUtf8::Refresh()
 	//DBG cerr <<"first char width dp:  " << dp->textextent(thetext,1, NULL,NULL,NULL,NULL)<<endl;
 
 	
-	DBG DisplayerCairo *ddp=dynamic_cast<DisplayerCairo*>(dp);
-	DBG if (ddp && ddp->GetCairo()) cerr <<" TextXEditBaseUtf8 refresh, cairo status:  "<<cairo_status_to_string(cairo_status(ddp->GetCairo())) <<endl;
+	//DBG DisplayerCairo *ddp=dynamic_cast<DisplayerCairo*>(dp);
+	//DBG if (ddp && ddp->GetCairo()) cerr <<" TextXEditBaseUtf8 refresh, cairo status:  "<<cairo_status_to_string(cairo_status(ddp->GetCairo())) <<endl;
 
 	if (needtodraw&1) { // draw all
 		if (textstyle&TEXT_SHOWTABLINE) DrawTabLine();
 		dpos=0; nlines=0;
 		DrawCaret(0,0);
-		//Black(textrect.x,textrect.y,textrect.width,textrect.height);
 		dp->ClearWindow();
 		DrawText(); // defaults to black out
 		if (win_active) DrawCaret(0,1); 
@@ -473,7 +479,7 @@ void TextXEditBaseUtf8::Refresh()
 		DrawCaret(1,1);
 	}
 
-	dp->font(app->defaultlaxfont, oldheight);
+	//dp->font(app->defaultlaxfont, oldheight);
 	dp = NULL;
 	
 	needtodraw=0;
@@ -536,8 +542,8 @@ void TextXEditBaseUtf8::docaret(int w)
 { 
 	dp->BlendMode(LAXOP_Difference);
 	dp->NewFG(~0);
-	if (w) dp->drawrectangle(cx,cy-textascent,2,textheight, 1);
-	else dp->drawrectangle(oldx,oldy-textascent,2,textheight, 1);
+	if (w) dp->drawrectangle(  cx,  cy-textascent, 2*UIScale(), textheight, 1);
+	else   dp->drawrectangle(oldx,oldy-textascent, 2*UIScale(), textheight, 1);
 	dp->BlendMode(LAXOP_Over);
 }
 
@@ -611,7 +617,7 @@ double TextXEditBaseUtf8::DrawLineOfText(double x,double y,long pos,long len,cha
 	long temp = pos+len;
 	//DBG cerr <<" len="<<len<<endl;
 	long selbegin = 0, selend = 0;
-	char hl;
+	bool hl;
 	if (check && sellen) {
 		if (curpos<selstart) { selbegin=curpos; selend=selstart; }
 		else { selbegin=selstart; selend=curpos; }
@@ -628,19 +634,19 @@ double TextXEditBaseUtf8::DrawLineOfText(double x,double y,long pos,long len,cha
 	 // to draw: [pos,temp);
 	if (check) {
 		if (pos>=selend) {
-			hl=0; check=0;
+			hl=false; check=0;
 			Colors(0);
 			x = TextOut(x,y,thetext+pos,temp-pos,eof);
 		} else {
-			if (pos >= selbegin) { Colors(1); hl=1; }
-			else { hl=0; Colors(0); }
+			if (pos >= selbegin) { Colors(1); hl=true; }
+			else { hl=false; Colors(0); }
 
 			 // 1st non-highlighted segment
 			if (!hl && selbegin<temp) {
 				//DBG cerr <<"1st no hi--";
 				x = TextOut(x,y,thetext+pos,selbegin-pos,eof);
 				Colors(1);
-				hl=1;
+				hl=true;
 				pos=selbegin;
 			}
 			 // print highlighted segment
@@ -650,7 +656,7 @@ double TextXEditBaseUtf8::DrawLineOfText(double x,double y,long pos,long len,cha
 					x = TextOut(x,y,thetext+pos,selend-pos,eof);
 					pos=selend;
 					Colors(0);
-					hl=0;
+					hl=false;
 					check=0;
 				} else {
 					x = TextOut(x,y,thetext+pos,temp-pos,eof);
@@ -1150,9 +1156,9 @@ int TextXEditBaseUtf8::SetupMetrics()
 		thefont = win_themestyle->normal;
 		thefont->inc_count();
 	}
-	textheight  = thefont->textheight();
-	textascent  = thefont->ascent();
-	textdescent = thefont->descent();
+	textheight  = UIScale() * thefont->textheight();
+	textascent  = UIScale() * thefont->ascent();
+	textdescent = UIScale() * thefont->descent();
 	
 	return 0;
 }

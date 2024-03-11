@@ -1,5 +1,24 @@
-/**************** themes.cc *****************/
-
+//
+//	
+//    The Laxkit, a windowing toolkit
+//    Please consult https://github.com/Laidout/laxkit about where to send any
+//    correspondence about this software.
+//
+//    This library is free software; you can redistribute it and/or
+//    modify it under the terms of the GNU Library General Public
+//    License as published by the Free Software Foundation; either
+//    version 3 of the License, or (at your option) any later version.
+//
+//    This library is distributed in the hope that it will be useful,
+//    but WITHOUT ANY WARRANTY; without even the implied warranty of
+//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+//    Library General Public License for more details.
+//
+//    You should have received a copy of the GNU Library General Public
+//    License along with this library; If not, see <http://www.gnu.org/licenses/>.
+//
+//    Copyright (C) 2024 by Tom Lechner
+//
 
 
 #include <lax/scroller.h>
@@ -27,19 +46,15 @@
 #include <lax/themes.h>
 #include <lax/utf8string.h>
 #include <lax/version.h>
+#include <lax/debug.h>
 
 #include <lax/language.h>
 
 
-//template implementation:
-#include <lax/refptrstack.cc>
-
-
 #include <string>
-#include <iostream>
+
 using namespace std;
 using namespace Laxkit;
-using namespace LaxFiles;
 
 
 // -------- TO DO ----------
@@ -67,7 +82,7 @@ using namespace LaxFiles;
 //
 
 
-#define DBG
+//#define DBG
 
 
 const int default_colors[] = {
@@ -179,14 +194,18 @@ int ColorBox2::Event(const EventData *e,const char *mes)
 class YesNo : public anXWindow
 {
   public:
-	YesNo(anXWindow *parent) : anXWindow(parent, "yesno","yesno", 0, 0,0,0,0,1, nullptr,0,nullptr) {}
+	YesNo(anXWindow *parent) : anXWindow(parent, "yesno","yesno", 0, 0,0,0,0,1, nullptr,0,nullptr)
+	{
+		InstallColors(THEME_Panel);
+	}
 
 	virtual void Refresh() {
 		if (!needtodraw) return;
-		needtodraw=0;
+		needtodraw = 0;
 
 		Displayer *dp = MakeCurrent();
 		dp->ClearWindow();
+		dp->font(win_themestyle->normal, UIScale() * win_themestyle->normal->textheight());
 
 		dp->NewFG(win_themestyle->activate);
 		dp->drawcircle(win_w/4,win_h/2, win_w/7, 1);
@@ -433,12 +452,19 @@ class ThemeControls : public RowFrame
 	RefPtrStack<Theme> themes;
 	PtrStack<ColorArea> colorareas;
 	Theme *theme;
-	WindowStyle *panel, *edit, *menu, *button;
+	//WindowStyle *panel, *edit, *menu, *button;
 	TableEditor *colortable;
 	
+	LineInput *test_lineedit;
+	CheckBox *test_checkbox;
+	MenuButton *test_menubutton;
+	Button *test_button;
+	TreeSelector *test_treeselector;
+
 	MessageBar *uiscalemessage;
 	MessageBar *status;
-	LineInput *uiscale, *border, *bevel, *pad, *tooltips, *firstclk, *dblclk, *idleclk;
+	LineInput *border, *bevel, *pad, *tooltips, *firstclk, *dblclk, *idleclk;
+	NumSlider *uiscale;
 
 	int firsttime;
 
@@ -446,6 +472,7 @@ class ThemeControls : public RowFrame
 
 	ThemeControls(anXWindow *prnt);
 	virtual ~ThemeControls();
+	virtual const char *whattype() { return "ThemeControls"; }
 
 	virtual int CharInput(unsigned int ch, const char *buffer,int len,unsigned int state, const LaxKeyboard *kb);
 	virtual int MouseMove (int x,int y,unsigned int state, const LaxMouse *m);
@@ -458,20 +485,11 @@ class ThemeControls : public RowFrame
 	virtual void UpdateWindows();
 	// virtual int MoveResize(int nx,int ny,int nw,int nh);
 	// virtual int Resize(int nw,int nh);
-	virtual void UIScaleChange();
+	virtual void UIScaleChanged();
 
 	void SyncFromTheme();
 };
 
-void ThemeControls::UIScaleChange()
-{
-	char str[100];
-	win_cur_uiscale = -1;
-	sprintf(str, "current window scale: %f", UIScale());
-	if (uiscalemessage) uiscalemessage->SetText(str);
-
-	anXWindow::UIScaleChange();
-}
 
 // int ThemeControls::MoveResize(int nx,int ny,int nw,int nh)
 // {
@@ -662,6 +680,18 @@ int ThemeControls::Event(const EventData *e,const char *mes)
 			DBG cerr <<" *** Could not save!"<<endl;
 		}
 		return 0;
+
+	} else if (!strcmp(mes, "uiscaleslide")) {
+		const SimpleMessage *s = dynamic_cast<const SimpleMessage*>(e);
+		double val = -2;
+		if (strEquals(s->str, "default", true)) val = -1;
+		if (val == -1 || DoubleAttribute(s->str, &val)) {
+			if (val <= 0) val = -1;
+			theme->ui_scale = val;
+			DBGL("new theme->ui_scale: "<<val<<endl);
+			UpdateWindows();
+		}
+		return 0;
 	}
 
 	return anXWindow::Event(e,mes);
@@ -678,9 +708,56 @@ int ThemeControls::UseTheme(int which)
 	return 0;
 }
 
+
+void ThemeControls::UpdateWindows()
+{
+	for (int c=0; c<testWindows.n; c++) {
+		testWindows.e[c]->CustomTheme(theme);
+	}
+
+	//--- resize windows
+	double scale = test_lineedit->UIScale();
+	double scaled_th = test_lineedit->UIScale() * test_lineedit->win_themestyle->normal->textheight();
+
+	//LineInput
+	GetBox(0)->pw(scaled_th * 7);
+	GetBox(0)->ph(2*scaled_th);
+	test_lineedit->SetPlacement();
+
+	//TestButton
+	GetBox(1)->pw(2*scaled_th + scale * test_button->win_themestyle->normal->Extent(test_button->Label(),-1));
+	GetBox(1)->ph(2*scaled_th);
+
+	//Test Checkbox
+	GetBox(2)->pw(2*scaled_th + scale * test_checkbox->win_themestyle->normal->Extent(test_checkbox->Label(),-1));
+	GetBox(2)->ph(2*scaled_th);
+
+	//Test MenuButton
+	GetBox(6)->pw(2*scaled_th + scale * test_menubutton->win_themestyle->normal->Extent(test_menubutton->Label(),-1));
+	GetBox(6)->ph(2*scaled_th);
+
+	arrangedstate = 0;
+	needtodraw = 1;
+	//Sync(0);
+}
+
+
+void ThemeControls::UIScaleChanged()
+{
+	char str[100];
+	win_cur_uiscale = -1;
+	sprintf(str, "current window scale: %f", testWindows.e[0]->UIScale());
+	if (uiscalemessage) uiscalemessage->SetText(str);
+
+	anXWindow::UIScaleChanged();
+
+	Sync(0);
+}
+
+
 int ThemeControls::init()
 {
-	double th = win_themestyle->normal->textheight();
+	double th = UIScale() * win_themestyle->normal->textheight();
 
 	anXWindow *last = nullptr;
 	Button *button  = nullptr;
@@ -689,21 +766,32 @@ int ThemeControls::init()
 
 
 	//---------add mockup
-
-	LineInput *test_lineedit = new LineInput(this,"lineinput","lineinput",0, 0,0,200,50,0, nullptr,0,nullptr, "Input", "stuff stuff stuff");
+	// 0
+	last = test_lineedit = new LineInput(this,"lineinput","lineinput",0, 0,0,200,50,0, last,0,nullptr, "Input", "stuff stuff stuff");
 	test_lineedit->GetLineEdit()->SetSelection(5,10);
 	AddWin(test_lineedit,1, -1);
 	testWindows.push(test_lineedit);
 
+	// 1
 	LaxImage *img = IconManager::GetDefault()->GetIcon("ImagePatch");
-	button = new Button(this,"Test button","Test button",BUTTON_OK, 5,300, 0,2*th,0, nullptr,0,nullptr, 0, "Test Button", nullptr, img, 3);
+	last = test_button = button = new Button(this,"Test button","Test button",BUTTON_OK, 5,300, 0,2*th,0, last,0,nullptr, 0, "Test Button", nullptr, img, 3);
 	img->dec_count();
 	AddWin(button,1, -1);
 	testWindows.push(button);
 
+	// 2
+	last = test_checkbox = new CheckBox(this, "checkbox", "checkbox", CHECK_CIRCLE|CHECK_LEFT,
+                             0,0,0,0,0,
+                             last,object_id,nullptr,
+                             "Check this", th/2,th/2);
+	testWindows.push(test_checkbox);
+	AddWin(test_checkbox,1, -1);
+
+	// 3
 	MenuInfo *menu = new MenuInfo;
 	for (int c=0; default_color_names[c]; c++) {
 		menu->AddItem(default_color_names[c]);
+		cerr << c<<": c%3 " << (c%3) <<endl;
 		if (c%3==1) {
 			menu->SubMenu("Submenu");
 			menu->AddItem("1");
@@ -719,20 +807,28 @@ int ThemeControls::init()
 			menu->EndSubMenu();
 		}
 	}
-	TreeSelector *tree = new TreeSelector(this,"Test tree","Test tree",0, 0,0, 150,150,1, nullptr,0,nullptr, TREESEL_FOLLOW_MOUSE, menu);
-	menu->dec_count();
-	AddWin(tree,1, -1);
-	testWindows.push(tree);
 
-	Scroller *scroller = new Scroller(this,"test","test",SC_YSCROLL, 0,0,0,0,1, nullptr,0,nullptr, nullptr, 0,1000, 200, 10, 400, 600);
+	last = test_treeselector = new TreeSelector(this,"Test tree","Test tree",0, 0,0, 150,150,1, last,0,nullptr,
+			TREESEL_FOLLOW_MOUSE | TREESEL_SCROLLERS, menu);
+	menu->dec_count();
+	AddWin(test_treeselector,1, -1);
+	testWindows.push(test_treeselector);
+
+
+	// 4
+	Scroller *scroller;
+	last = scroller = new Scroller(this,"test","test",SC_YSCROLL, 0,0,0,0,1, last,0,nullptr, nullptr, 0,1000, 200, 10, 400, 600);
 	AddWin(scroller,1,  10,0,10,50,0,    150,0,0,50,0, -1);
 	testWindows.push(scroller);
 
+	// 5
 	anXWindow *awindow = new YesNo(this);
 	AddWin(awindow,1, 200,50,50,50,0, 100,50,50,50,0, -1);
 	testWindows.push(awindow);
 
+	// 6
 	MenuInfo *pmenu = new MenuInfo;
+	pmenu->AddItem("First");
 	for (int c=0; default_color_names[c]; c++) {
 		pmenu->AddItem(default_color_names[c]);
 		if (c%3==1) {
@@ -750,15 +846,18 @@ int ThemeControls::init()
 			pmenu->EndSubMenu();
 		}
 	}
-	MenuButton *menubutton = new MenuButton(this,"menu","menu",MENUBUTTON_DOWNARROW, 0,0,0,0,1, nullptr,0,nullptr, 0, pmenu,1, "Popup Menu");
-	AddWin(menubutton,1, -1);
-	testWindows.push(menubutton);
+	pmenu->AddItem("Last");
+	last = test_menubutton = new MenuButton(this,"TestMenu","menu",MENUBUTTON_DOWNARROW, 0,0,0,0,1, last,0,nullptr, 0, pmenu,1, "Popup Menu");
+	AddWin(test_menubutton,1, -1);
+	testWindows.push(test_menubutton);
+
 
 	AddNull();
-	AddSpacer(10,0,100000,50, 10,0,0,50);
+	AddSpacer(10,0,100000,50, 20,0,0,50);
 	AddNull();
 
 
+	//AddVSpacer();
 
 	 //-----status bar
 	last = status = mes = new MessageBar(this,"message2","message2",MB_MOVE|MB_CENTER, 0,100,0,0,0, "Stuff!");
@@ -858,12 +957,25 @@ int ThemeControls::init()
 
 	 //---------------theme wide values
 	rows = new RowFrame();
-	last = uiscale = new LineInput(rows,"UI Scale","UI Scale",LINP_FLOAT, 5,415, 100,0,0, last,object_id,"uiscale", "UI Scale",".....");
-	uiscale->tooltip(_("If -1, then use environment variable GTK_SCALE\nor QT_SCALE_FACTOR, whichever exists"));
+
+	//last = uiscale = new LineInput(rows,"UI Scale","UI Scale",LINP_FLOAT, 5,415, 100,0,0, last,object_id,"uiscale", "UI Scale",".....");
+	//uiscale->tooltip(_("If -1, then use environment variable GTK_SCALE\nor QT_SCALE_FACTOR, whichever exists"));
+	//rows->AddWin(last,1,-1);
+	
+	mes = new MessageBar(rows,"uimes",nullptr,MB_CENTER, 0,0,0,0,0, _("UI Scale"), th*.25,th*.25);
+	rows->AddWin(mes,1,-1);
+	uiscale = new NumSlider(rows,"UIScaleSlider", "UI Scale Slider", 
+		NumSlider::DOUBLES | ItemSlider::EDITABLE | ItemSlider::SENDALL,
+		0,0,win_themestyle->normal->textheight()*5,0,0, last,object_id,"uiscaleslide", nullptr, 0, 100, 1);
+	uiscale->SetFloatRange(0,100,.1);
+	uiscale->tooltip(_("If <= 0, then use environment variable GTK_SCALE\nor QT_SCALE_FACTOR, whichever exists"));
+	last = uiscale;
 	rows->AddWin(last,1,-1);
+
 	str.Sprintf("current window scale: %f", UIScale());
 	mes = uiscalemessage = new MessageBar(rows,"uimes",nullptr,MB_CENTER, 0,0,0,0,0, str.c_str());
 	rows->AddWin(mes,1,  mes->win_w,0,100,50,0,    1.5*th,0,0,50,0, -1);
+
 	rows->AddNull();
 	last = border = new LineInput(rows,"Border","Border",LINP_FLOAT, 5,415, 100,0,0, last,object_id,"border", "Border",".....");
 	rows->AddWin(last,1,-1);
@@ -872,7 +984,7 @@ int ThemeControls::init()
 	last = pad = new LineInput(rows,"Pad","Pad",LINP_FLOAT, 5,415, 100,0,0, last,object_id,"pad", "Pad",".....");
 	rows->AddWin(last,1,-1);
 	rows->AddNull();
-	last = tooltips = new LineInput(rows,"Tooltips","Tooltips",LINP_INT, 5,415, 150,0,0, last,object_id,"tooltips", "Tooltips",".....");
+	last = tooltips = new LineInput(rows,"Tooltips","Tooltips",LINP_INT, 5,415, 150,0,0, last,object_id,"tooltips", "Tooltips (ms)",".....");
 	last->tooltip(_("Milliseconds before popping tooltips, or 0 for never"));
 	rows->AddWin(last,1,-1);
 	rows->AddNull();
@@ -954,13 +1066,6 @@ int ThemeControls::init()
 	return 0;
 }
 
-void ThemeControls::UpdateWindows()
-{
-	for (int c=0; c<testWindows.n; c++) {
-		testWindows.e[c]->ThemeChange(theme);
-	}
-}
-
 void ThemeControls::SyncFromTheme()
 {
 	 //colors
@@ -982,7 +1087,7 @@ void ThemeControls::SyncFromTheme()
 	}
 
 	 //themewide
-	uiscale ->SetText(theme->ui_scale);
+	uiscale ->Select(theme->ui_scale);
 	border  ->SetText(theme->default_border_width);
 	pad     ->SetText(theme->default_padx);
 	bevel   ->SetText(theme->default_bevel);
@@ -1060,11 +1165,7 @@ int ThemeControls::MouseMove(int x,int y,unsigned int state, const LaxMouse *m)
 int main(int argc,char **argv)
 {
 
-	//Theme theme("Test theme!");
-	//theme.AddDefaults("Light");
-	//theme.dump_out(stdout, 0, 0, nullptr);
-
-	 //------------initialize 
+	//------------initialize 
 	anXApp app;
 	app.Backend("cairo");
 	makestr(app.textfontstr,"sans-20");
@@ -1073,18 +1174,26 @@ int main(int argc,char **argv)
 
 	IconManager::GetDefault()->AddPath("../lax/icons");
 
-	 //------------add windows
+	//------------add windows
 
+	int ww = 1024;
+	int wh = 600;
+	int mx,my;
+	ScreenInformation *monitor = nullptr;
+	mouseposition(0, nullptr, &mx, &my, nullptr, nullptr, nullptr, &monitor);
+	int x = monitor->x + monitor->width/2 - ww/2;
+	int y = monitor->y;
+
+	
 	ScrolledWindow *container = new ScrolledWindow(nullptr, "Theme", _("Theme"), ANXWIN_ESCAPABLE | SW_RIGHT | SW_MOVE_WINDOW,
-			0,0,1024,500,0, nullptr);
+			x,y,ww,wh,0, nullptr);
 	ThemeControls *controls = new ThemeControls(nullptr);
 	container->UseThisWindow(controls);
+	//controls->dec_count();
 	app.addwindow(container);
-	//app.addwindow(controls);
 
 
-
-	 //-----------now run!
+	//-----------now run!
 
 	cout <<"------Done adding initial windows in main() -------\n";
 	app.run();

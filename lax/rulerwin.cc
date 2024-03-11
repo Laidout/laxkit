@@ -250,14 +250,13 @@ RulerWindow::~RulerWindow()
 	if (smallnumbers) smallnumbers->dec_count();
 }
 
-int RulerWindow::ThemeChange(Theme *theme)
+void RulerWindow::ThemeChanged()
 {
-	anXWindow::ThemeChange(theme);
+	anXWindow::ThemeChanged();
 	numcolor = win_themestyle->fg.Pixel();
 	tickcolor = win_themestyle->fg.Pixel();
 	subtickcolor = coloravg(win_themestyle->fg,win_themestyle->bg,.3333);
 	subsubtickcolor = coloravg(win_themestyle->fg,win_themestyle->bg,.6666);
-	return 0;
 }
 
 
@@ -281,13 +280,13 @@ void RulerWindow::adjustmetrics()
  */
 void RulerWindow::drawtext(double n,int pos,int &textpos,int toff) // n is real, textpos=minimum screenpos rel to ruler win_w
 {
-	Displayer *dp=GetDisplayer();
+	Displayer *dp = GetDisplayer();
 
 	char thetext[20];
 	if (fabs(n)<1e-7) n=0;
 	sprintf(thetext,"%.4g",((win_style&RULER_UP_IS_POSITIVE)?-n:n));
 	double adv,ex,ey,asc,des;
-	adv=dp->textextent(smallnumbers, thetext,strlen(thetext),&ex,&ey,&asc,&des,0);
+	adv = UIScale() * dp->textextent(smallnumbers, thetext,strlen(thetext),&ex,&ey,&asc,&des,0);
 
 	if (win_style&RULER_X) {
 		//if (pos<textpos || pos+3+adv<textpos || pos>((floor(n/unit)*unit+unit)-ustart)*umag*mag) { 
@@ -297,11 +296,11 @@ void RulerWindow::drawtext(double n,int pos,int &textpos,int toff) // n is real,
 		}
 		if (win_style&RULER_TOPTICKS) toff=win_h-des-2; else toff=2+asc;
 		dp->textout(pos+3,toff, thetext,strlen(thetext), LAX_LEFT|LAX_BASELINE);
-		textpos=pos+adv;
+		textpos = pos+adv;
 
 	} else {
 		 //Draw vertically: gotta rotate the text!!!   ... note: only works in cairo!!
-		if (pos<textpos || pos+3+(des+asc)<textpos
+		if (pos < textpos || pos+3+(des+asc)<textpos
 				//|| pos>((floor(n/unit)*unit+unit)-ustart)*umag*mag) { 
 				) { 
 					// text must fit between textpos and next unit start, else return
@@ -325,10 +324,7 @@ void RulerWindow::Refresh()
 
 	dp->BlendMode(LAXOP_Over);
 	dp->LineAttributes(1,LineSolid,LAXCAP_Butt,LAXJOIN_Miter);
-	dp->font(smallnumbers,smallnumbers->textheight());
-
-
-	//DBG cerr << "*******************rulerwin, winw/h: "<<win_w<<','<<win_h<<endl;
+	dp->font(smallnumbers, UIScale() * smallnumbers->textheight());
 
 	 // draw all
 	if (needtodraw&1) {

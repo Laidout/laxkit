@@ -36,8 +36,6 @@ namespace Laxkit {
 #define CHECK_LEFT          (1<<22)
 #define CHECK_RIGHT         (1<<23)
 #define CHECK_CENTER        (1<<24)
-#define CHECK_CENTERL       (1<<25)
-#define CHECK_CENTERR       (1<<26)
 
 
 class CheckBox : public Button
@@ -45,13 +43,16 @@ class CheckBox : public Button
   protected:
 	IntRectangle grect,trect;
 	unsigned long pitcolor;
+
   public:	
 	CheckBox(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
 				int xx,int yy,int ww,int hh,int brder,
 				anXWindow *prev,unsigned long nowner,const char *nsendmes,
 				const char *nnme=NULL,int npadx=0,int npady=0);
 	virtual ~CheckBox();
+	virtual void UIScaleChanged();
 	virtual const char *Label(const char *nlabel);
+	virtual const char *Label() { return Button::Label(); } //why is this necessary!!!?!
 	virtual void draw();
 	virtual void setPlacement();
 	virtual void drawgraphic();

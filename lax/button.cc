@@ -28,9 +28,6 @@
 #include <lax/strmanip.h>
 #include <lax/language.h>
 
-#include <iostream>
-using namespace std;
-#define DBG
 
 
 namespace Laxkit {
@@ -77,12 +74,12 @@ Button::Button(anXWindow *parnt,const char *nname,const char *ntitle,unsigned lo
 						int npad,int ngap)
 		: ButtonBase(parnt,nname,ntitle,nstyle,xx,yy,ww,hh,brder,prev,nowner,nsendmes,nid)
 {
-	font=NULL;
+	font = nullptr;
 	icon_size_type = default_icon_size_type;
 	icon_height = default_icon_height;
 
-	pad = npad; if (pad<0) pad = UIScale() * app->theme->default_padx;
-	gap = npad; if (gap<0) gap = UIScale() * app->theme->default_padx;
+	pad = npad; if (pad < 0) pad = UIScale() * app->theme->default_padx;
+	gap = npad; if (gap < 0) gap = UIScale() * app->theme->default_padx;
 	state = oldstate = 1;
 
 	thing = THING_None;
@@ -97,24 +94,21 @@ Button::Button(anXWindow *parnt,const char *nname,const char *ntitle,unsigned lo
 	else if (win_style & IBUT_TEXT_ICON) labelstyle = LAX_TEXT_ICON;
 
 
-	if (!label && nid>=0) {
-		const char *maybe=Label(nid);
+	if (!label && nid >= 0) {
+		const char *maybe = Label(nid);
 		if (!isblank(maybe)) Label(maybe);
 	}
-	if (!label && (win_style&BUTTON_TEXT_MASK)) {
-		const char *maybe=Label(win_style&BUTTON_TEXT_MASK);
+	if (!label && (win_style & BUTTON_TEXT_MASK)) {
+		const char *maybe = Label(win_style&BUTTON_TEXT_MASK);
 		if (!isblank(maybe)) Label(maybe);
 	}
 
-	image=bwimage=NULL;
+	image = bwimage = nullptr;
 	if (img) SetIcon(img);
 	else if (filename) SetIcon(filename);
 
 	 // wrap window to extent
 	if (ww<2 || hh<2) WrapToExtent((ww<2?1:0)|(hh<2?2:0));
-
-	//DBG if (image) cerr <<WindowTitle()<<" make image succeeded"<<endl;
-	//DBG else  cerr <<WindowTitle()<<" make image not succeeded"<<endl;
 }
 
 //! Calls dec_count() on images.
@@ -126,10 +120,9 @@ Button::~Button()
 	if (bwimage) bwimage->dec_count();
 }
 
-int Button::ThemeChange(Theme *theme)
+void Button::ThemeChanged()
 {
-	anXWindow::ThemeChange(theme);
-	return 0;
+	anXWindow::ThemeChanged();
 }
 
 void Button::GetPlacement(double *w,double *h,double *tx,double *ty,double *ix,double *iy, double *iw,double *ih)
@@ -138,20 +131,25 @@ void Button::GetPlacement(double *w,double *h,double *tx,double *ty,double *ix,d
 
 	if (image) {
 		if (icon_size_type == Relative_To_Font) {
-			hh = (font ? font : win_themestyle->normal)->textheight() * icon_height;
+			hh = UIScale() * (font ? font : win_themestyle->normal)->textheight() * icon_height;
 		} else {
 			hh = image->h();
 		}
 		ww = hh / image->h() * image->w();
 	} else {
-		ww = thingw;
-		hh = thingh;
+		if (icon_size_type == Relative_To_Font) {
+			ww = UIScale() * thingw;
+			hh = UIScale() * thingh;
+		} else {
+			ww = thingw;
+			hh = thingh;
+		}
 	}
 
 	if (iw) *iw = ww;
 	if (ih) *ih = hh;
 
-	get_placement(ww,hh, (font ? font : win_themestyle->normal), label,gap,labelstyle, w,h, tx,ty, ix,iy);
+	get_placement(ww,hh, (font ? font : win_themestyle->normal), label,gap,labelstyle, w,h, tx,ty, ix,iy, UIScale());
 }
 
 //! Set win_w (if which&1) and win_h (if which&2)  to the extent of the icon/label.
@@ -234,12 +232,13 @@ int Button::SetGraphic(int newthing, int newwidth, int newheight)
 	thingw = newwidth;
 	thingh = newheight;
 	if (thingw <= 0) {
-		if (label) {
-			double th;
-			GetDisplayer()->textextent(label, -1, NULL, &th);
-			thingw = th / 2;
-		} else
-			thingw = win_themestyle->normal->textheight() / 2;
+		thingw = win_themestyle->normal->textheight() / 2;
+		// if (label) {
+		// 	double th;
+		// 	GetDisplayer()->textextent(label, -1, NULL, &th);
+		// 	thingw = th / 2;
+		// } else
+		// 	thingw = win_themestyle->normal->textheight() / 2;
 	}
 	if (thingh <= 0) thingh = thingw;
 
@@ -293,10 +292,10 @@ void Button::draw()
 	dp->MakeCurrent(this);
 	double th = 0;
 	if (font) {
-		th = font->textheight();
+		th = UIScale() * font->textheight();
 		dp->font(font, th);
 	} else {
-		th = win_themestyle->normal->textheight();
+		th = UIScale() * win_themestyle->normal->textheight();
 		dp->font(win_themestyle->normal, th);
 	}
 	dp->NewFG(mousein ? win_themestyle->bghover : win_themestyle->bg);
@@ -312,7 +311,7 @@ void Button::draw()
 	LaxImage *i = image;
 	int usei = 0;
 
-	if (tx == LAX_WAY_OFF) l = nullptr; else tw = (font ? font : win_themestyle->normal)->Extent(l,-1);
+	if (tx == LAX_WAY_OFF) l = nullptr; else tw = UIScale() * (font ? font : win_themestyle->normal)->Extent(l,-1);
 	if (ix == LAX_WAY_OFF) i = nullptr; else usei = 1;
 	
 	ty = win_h/2-th/2;
@@ -343,7 +342,9 @@ void Button::draw()
 			dp->imageout(i, ix,iy, iw,ih);
 			if (Grayed()) dp->setSourceAlpha(1.);
 			i->doneForNow();
-		} else dp->drawthing(ix+iw/2,iy+ih/2, iw/2,ih/2, (DrawThingTypes)thing, win_themestyle->fg.Pixel(), win_themestyle->color1.Pixel());
+		} else {
+			dp->drawthing(ix+iw/2,iy+ih/2, iw/2,ih/2, (DrawThingTypes)thing, win_themestyle->fg.Pixel(), win_themestyle->color1.Pixel());
+		}
 	}
 
 	if (l) {

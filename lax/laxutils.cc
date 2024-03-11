@@ -209,6 +209,23 @@ unsigned long screen_color_at_mouse(int mouse_id, int *error_ret)
 #endif
 }
 
+/*! Return the screen coordinates roughly corresponding to screen coordinates.
+ * x,y are coordinates in window.
+ * 
+ * This is a faster version of translate_window_coordinates(), but this does NOT take in to account
+ * window decorations, so it's probably not totally accurate.
+ */
+void screen_coordinates(int x, int y, anXWindow *window, int *screen_x_ret, int *screen_y_ret)
+{
+	while (window) {
+		x += window->win_x;
+		y += window->win_y;
+		window = window->win_parent;
+	}
+	if (screen_x_ret) *screen_x_ret = x;
+	if (screen_y_ret) *screen_y_ret = y;
+}
+
 /*! Return 1 if windows are on different screens, or 0 for success.
  * If from or to is NULL (but not both), then assume you want the root window of whichever is not null.
  *
@@ -216,6 +233,8 @@ unsigned long screen_color_at_mouse(int mouse_id, int *error_ret)
  *
  * If kid!=NULL, then grab the pointer to the child window of to that contains the coordinates. If the app
  * does not know of any such window, then fill with NULL.
+ *
+ * Note that this can be kind of slow
  */
 int translate_window_coordinates(anXWindow *from, int x, int y, anXWindow *to, int *xx, int *yy, anXWindow **kid)
 {
@@ -1243,7 +1262,7 @@ void draw_special_color(Displayer *dp, int which, double square, double x, doubl
  * If icon_height != 0
  */
 void get_placement(LaxImage *image, LaxFont *font, const char *label,int gap,unsigned int how,
-					int *w,int *h,int *tx,int *ty,int *ix,int *iy, double icon_height)
+					int *w,int *h,int *tx,int *ty,int *ix,int *iy, double icon_height, double ui_scale)
 {
 	LaxImage *i=NULL;
 	const char *l=NULL;
@@ -1252,12 +1271,12 @@ void get_placement(LaxImage *image, LaxFont *font, const char *label,int gap,uns
 
 	double th=0,tw=0,iw=0,ih=0,hh;
 	if (l && font) {
-		tw = font->Extent(l,-1);
-		th = font->textheight();
+		tw = ui_scale * font->Extent(l,-1);
+		th = ui_scale * font->textheight();
 	}
 	if (i) {
 		if (icon_height > 0) {
-			ih = font->textheight() * icon_height;
+			ih = ui_scale * font->textheight() * icon_height;
 			iw = ih / i->h() * i->w();
 		} else {
 			iw=image->w();
@@ -1295,7 +1314,7 @@ void get_placement(LaxImage *image, LaxFont *font, const char *label,int gap,uns
 /*! See the other get_placement() for info about how.
  */
 void get_placement(int thingw,int thingh, LaxFont *font, const char *label,int gap,unsigned int how,
-					int *w,int *h,int *tx,int *ty,int *ix,int *iy)
+					int *w,int *h,int *tx,int *ty,int *ix,int *iy, double ui_scale)
 {
 	const char *l=NULL;
 	int usei=0;
@@ -1304,8 +1323,8 @@ void get_placement(int thingw,int thingh, LaxFont *font, const char *label,int g
 	double th=0,tw=0,iw=0,ih=0,hh=0;
 
 	if (l && font) {
-		th = font->textheight();
-		tw = font->Extent(l,-1);
+		th = ui_scale * font->textheight();
+		tw = ui_scale * font->Extent(l,-1);
 	}
 
 	iw=thingw; ih=thingh;
@@ -1338,7 +1357,7 @@ void get_placement(int thingw,int thingh, LaxFont *font, const char *label,int g
 /*! See the other get_placement() for info about how.
  */
 void get_placement(int thingw,int thingh, LaxFont *font, const char *label,int gap,unsigned int how,
-					double *w,double *h,double *tx,double *ty,double *ix,double *iy)
+					double *w,double *h,double *tx,double *ty,double *ix,double *iy, double ui_scale)
 {
 	const char *l=NULL;
 	int usei=0;
@@ -1347,8 +1366,8 @@ void get_placement(int thingw,int thingh, LaxFont *font, const char *label,int g
 	double th=0,tw=0,iw=0,ih=0,hh=0;
 
 	if (l && font) {
-		th = font->textheight();
-		tw = font->Extent(l,-1);
+		th = ui_scale * font->textheight();
+		tw = ui_scale * font->Extent(l,-1);
 	}
 
 	iw=thingw; ih=thingh;

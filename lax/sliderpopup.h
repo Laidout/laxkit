@@ -69,7 +69,7 @@ class SliderPopup : public ItemSlider
 				anXWindow *prev,unsigned long nowner,const char *nsendthis,
 				MenuInfo *nitems=NULL,int absorb=1);
 	virtual ~SliderPopup();
-	virtual int ThemeChange(Theme *theme);
+	virtual void ThemeChanged();
 	virtual void Refresh();
 	virtual int Event(const EventData *e,const char *mes);
 	virtual int CharInput(unsigned int ch,const char *buffer,int len,unsigned int state,const LaxKeyboard *d);

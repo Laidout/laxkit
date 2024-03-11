@@ -163,14 +163,13 @@ LineInput::LineInput(anXWindow *parnt,const char *nname,const char *ntitle,unsig
 	le = new LineEdit(this,letitle,NULL,extrastyle|(nstyle&~(ANXWIN_ESCAPABLE|ANXWIN_CENTER|LINP_STYLEMASK)), 0,0, 0,0, 1, 
 			prev,win_owner,nsend,
 			newtext,ntstyle);
-	DBG cerr <<"lineinput new LineEdit style: "<<le->win_style<<endl;
-	le->padx=padlx;
-	le->pady=padly;
+	le->padx = padlx;
+	le->pady = padly;
 	delete[] letitle;
 
 
 	if (extrastyle & (LINEEDIT_FILE | LINEEDIT_FILESAVE | LINEEDIT_DIRECTORY)) {
-		DBG cerr << "Adding helper for file LineInput"<<endl;
+		//DBG cerr << "Adding helper for file LineInput"<<endl;
 
 		helper = new QuickFileOpen(this,"file helper",nullptr,0, 0,0,0,0, 1,
                           nullptr,object_id,"helper",
@@ -366,18 +365,25 @@ void LineInput::SetPlacement()
 {
 	int    lex = 0, ley = 0, nlew = 0, nleh = 0;
 	double lw = 0,  lh = 0,  fasc = 0, fdes = 0, textheight;
+	double scale = UIScale();
 	if (label) win_themestyle->normal->Extent(label,-1,&lw,&lh,&fasc,&fdes);
+	lw *= scale;
+	lh *= scale;
+	fasc *= scale;
+	fdes *= scale;
+
 	if (auto_labelw) labelw = lw;
 	textheight = fasc+fdes;
 	
+
 	if (win_style&(LINP_ONTOP|LINP_ONBOTTOM)) { // assume h centered
 		if (lew>0 && !auto_labelw) nlew=lew;
 		else nlew=win_w-2*padlx-2*le->WindowBorder();
 		if (nlew+2*(int)le->WindowBorder() > win_w-2*padlx) nlew=win_w-2*padlx-2*le->WindowBorder();
 			
-		if (leh==0) nleh=2*pady+textheight;
-		else if (leh<0) nleh=win_h-2*le->WindowBorder()-3*padly-lh;
-		else nleh=leh;
+		if (leh==0) nleh = 2*pady+textheight;
+		else if (leh<0) nleh = win_h-2*le->WindowBorder()-3*padly-lh;
+		else nleh = leh;
 				
 		lex=win_w/2-nlew/2;
 		lx=win_w/2-lw/2;
@@ -394,33 +400,34 @@ void LineInput::SetPlacement()
 
 	} else if (win_style & (LINP_ONLEFT|LINP_ONRIGHT)) {
 		if (lew > 0 && !auto_labelw) nlew = lew;
-		else nlew = win_w - 3*padlx - 2*le->WindowBorder() - labelw;
-		if (nlew > win_w - 3*padlx - 2*le->WindowBorder() - labelw)
-			nlew = win_w - 3*padlx - 2*le->WindowBorder() - labelw;
+		else nlew = win_w - 3*scale*padlx - 2*le->WindowBorder() - labelw;
+		if  (nlew > win_w - 3*scale*padlx - 2*le->WindowBorder() - labelw)
+			 nlew = win_w - 3*scale*padlx - 2*le->WindowBorder() - labelw;
 			
-		if (leh == 0) nleh = 2*pady + textheight;
-		else if (leh < 0) nleh = win_h - 2*le->WindowBorder() - 3*padly;
+		if (leh == 0) nleh = 2*scale*pady + textheight;
+		else if (leh < 0) nleh = win_h - 2*le->WindowBorder() - 3*scale*padly;
 		else nleh = leh;
 		
-		ley = padly;
-		ly = padly + padx + le->WindowBorder() + fasc;
+		ley = scale * padly;
+		ly = scale * (padly + padx) + le->WindowBorder() + nleh/2 - textheight/2 + fasc;
+
 		if (win_style & LINP_ONRIGHT) { // [line edit] label
-			lex = padlx;
-			lx  = padlx + nlew + 2 * le->WindowBorder() + padlx;
-			if (win_style & LINP_RIGHT) lx = win_w - padlx - lw;
-			else if (win_style & LINP_CENTER) lx = win_w - padlx - labelw/2 - lw/2;
+			lex = scale*padlx;
+			lx  = scale*(padlx + nlew) + 2 * le->WindowBorder() + scale*padlx;
+			if (win_style & LINP_RIGHT) lx = win_w - scale*padlx - lw;
+			else if (win_style & LINP_CENTER) lx = win_w - scale*padlx - labelw/2 - lw/2;
 
 		} else { // ONLEFT   label [line edit]
-			lex = win_w - padlx - 2 * le->WindowBorder() - nlew;
+			lex = win_w - scale*padlx - 2 * le->WindowBorder() - nlew;
 
-			if (win_style & LINP_RIGHT) lx = lex - padlx - lw;
-			else if (win_style & LINP_CENTER) lx = lex - padlx - labelw/2 - lw/2;
-			else lx  = padlx;
+			if (win_style & LINP_RIGHT) lx = lex - scale*padlx - lw;
+			else if (win_style & LINP_CENTER) lx = lex - scale*padlx - labelw/2 - lw/2;
+			else lx  = scale*padlx;
 		}
 
-		int oldley = ley;
+		//int oldley = ley;
 		ley = (win_h - nleh) / 2;
-		ly += (ley - oldley);
+		//ly += (ley - oldley);
 	}
 
 	if (helper) {
@@ -472,13 +479,14 @@ void LineInput::Refresh()
 {
 	if (!win_on || !needtodraw) { needtodraw=1; return; }
 	
-	DBG cerr <<"LineInput "<<WindowTitle()<<": le of LineInput: x,y:"<<le->win_x<<","<<le->win_y<<endl;
+	DBG cerr <<"LineInput "<<WindowTitle()<<": le of LineInput: x,y:"<<le->win_x<<","<<le->win_y<<", font size: "
+		<<win_themestyle->normal->textheight()<<" uiscale: "<<UIScale()<<endl;
 	
 	if (label) {
-		Displayer *dp=MakeCurrent();
+		Displayer *dp = MakeCurrent();
 		dp->ClearWindow();
 		dp->NewFG(win_themestyle->fg);
-		dp->font(win_themestyle->normal);
+		dp->font(win_themestyle->normal, UIScale() * win_themestyle->normal->textheight());
 		dp->textout(lx,ly, label,strlen(label), LAX_LEFT|LAX_BASELINE);
 	}
 	needtodraw=0;
@@ -499,6 +507,16 @@ int LineInput::Resize(int nw,int nh)
 	SetPlacement();
 	return 0;
 }
+
+
+void LineInput::UIScaleChanged()
+{
+	anXWindow::UIScaleChanged(); //this sends same to children
+	leh = -1;
+	SetPlacement();
+	needtodraw = 1;
+}
+
 
 Attribute *LineInput::dump_out_atts(Attribute *att,int what,DumpContext *savecontext)
 {

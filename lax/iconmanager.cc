@@ -24,16 +24,10 @@
 #include <lax/singletonkeeper.h>
 #include <lax/strmanip.h>
 
-//template implementation
-#include <lax/lists.cc>
+#include <lax/debug.h>
 
-
-#include <iostream>
-using namespace std;
-#define DBG 
 
 namespace Laxkit {
-
 
 
 //----------------------------- IconManager default ---------------------------
@@ -89,7 +83,6 @@ IconNode::IconNode(const char *nname, int nid, LaxImage *img)
 
 IconNode::~IconNode()
 {
-	DBG cerr <<"IconNode destructor"<<endl;
 	if (image) image->dec_count();
 	if (name) delete[] name;
 }
@@ -148,7 +141,7 @@ int IconManager::InstallIcon(const char *nname, int nid, LaxImage *img)
 		while (c<n && e[c]->id>nid) c++;
 	}
 	
-	IconNode *node=new IconNode(nname,nid,img);
+	IconNode *node = new IconNode(nname,nid,img);
 	return push(node,1,c);
 }
 
@@ -233,7 +226,7 @@ Laxkit::LaxImage *IconManager::GetIconByIndex(int index)
 	return PtrStack<IconNode>::e[index]->image;
 }
 
-//! Returns the the existinf icon with id. The icon's count is incremented.
+//! Returns the the existing icon with id. The icon's count is incremented.
 Laxkit::LaxImage *IconManager::GetIcon(int id)
 {
 	 //rather slow, but then, there won't be a million of them
@@ -292,6 +285,52 @@ int IconManager::RemovePath(const char *oldpath)
 	}
 	return 1;
 }
+
+
+/*! Load in all icons found in the paths. This means all openable image files.
+ * Return the number of icons read in.
+ */
+int IconManager::PreloadAll()
+{
+	//PtrStack<char> icons_to_load(LISTS_DELETE_Array);
+	//PtrStack<char> icon_ids(LISTS_DELETE_Array);
+	
+	char *base;
+	int n = 0;
+
+	for (int c = 0; c < icon_path.n; c++) {
+		//scan directory recunsively: icon_path.e[c]
+		std::cerr << " *** FINISH ME!!!" <<std::endl;
+		
+		const char *file = "";
+		const char *bname = lax_basename(file);
+		const char *ext = lax_extension(file);
+		if (!bname) continue;
+		if (!ext) ext = bname + strlen(bname);
+
+		makenstr(base, bname, ext-bname);
+	
+		int i = -1;
+		for (int c=0; c<PtrStack<IconNode>::n; c++) {
+			if (strcmp(base, PtrStack<IconNode>::e[c]->name) == 0) {
+				i = c;
+				break;
+			}
+		}
+
+		if (i >= 0) continue;
+
+		LaxImage *img = ImageLoader::LoadImage(file);
+		if (img) {
+			InstallIcon(base, -1, img);
+			n++;
+		}
+	}
+
+	delete[] base;
+	return n;
+}
+
 
 
 } //namespace Laxkit

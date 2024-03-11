@@ -118,16 +118,13 @@ LineEdit::LineEdit(anXWindow *parnt,const char *nname,const char *ntitle,unsigne
 	con = cx = cy = 0;
 	newline = newline2 = 0;
 
-	textheight = win_themestyle->normal->textheight();
+	textheight = UIScale() * win_themestyle->normal->textheight();
 	padx = textheight * .2;
 	pady = textheight * .2;
 	firsttime = 1;
 	needtodraw = 1;
 
 	modified = 0;
-	//thetext=NULL;
-	//SetText(newtext);
-	//maxtextlen=0;
 
 	sellen = curpos = selstart = 0;
 	oldsellen = 0;
@@ -137,7 +134,7 @@ LineEdit::LineEdit(anXWindow *parnt,const char *nname,const char *ntitle,unsigne
 
 	valid = 1;
 
-	win_pointer_shape=LAX_MOUSE_Text;
+	win_pointer_shape = LAX_MOUSE_Text;
 }
 
 //! Empty destructor.
@@ -234,10 +231,6 @@ void LineEdit::Refresh()
 		} else {
 			dp->NewFG(1.0,0.,0.);
 		}
-		dp->drawline(win_w-padx-.75*textheight,win_h/2-textheight/4, 
-					 win_w-padx-.25*textheight,win_h/2+textheight/4);
-		dp->drawline(win_w-padx-.75*textheight,win_h/2+textheight/4, 
-					 win_w-padx-.25*textheight,win_h/2-textheight/4);
 		dp->LineWidth(1);
 	}
 
@@ -602,7 +595,7 @@ int LineEdit::CharInput(unsigned int ch,const char *buffer,int len,unsigned int 
 
 	if (dp == nullptr) {
 		dp = MakeCurrent();
-		dp->font(thefont, thefont->textheight());
+		dp->font(thefont, UIScale() * thefont->textheight());
 	}
 
 	if (!(state&ControlMask) && (ch=='\t' || (ch>=32 && ch<255)) && !readonly()) {
@@ -885,7 +878,7 @@ int LineEdit::LBDown(int x,int y, unsigned int state,int count,const LaxMouse *d
 	if (dp == nullptr) {
 		dp = MakeCurrent();
 		//oldheight = dp->textheight();
-		dp->font(thefont, thefont->textheight());
+		dp->font(thefont, UIScale() * thefont->textheight());
 	}
 
 	if (x>win_w-textheight-padx && (win_style&LINEEDIT_CLEAR_X)) {
@@ -928,7 +921,7 @@ int LineEdit::LBDblClick(int x,int y, int state,const LaxMouse *d)
 {
 	if (dp == nullptr) {
 		dp = MakeCurrent();
-		dp->font(thefont, thefont->textheight());
+		dp->font(thefont, UIScale() * thefont->textheight());
 	}
 
 	 // select word
@@ -969,7 +962,7 @@ int LineEdit::WheelUp(int x,int y,unsigned int state,int count,const Laxkit::Lax
 {
 	if (dp == nullptr) {
 		dp = MakeCurrent();
-		dp->font(thefont, thefont->textheight());
+		dp->font(thefont, UIScale() * thefont->textheight());
 	}
 
 	if (win_style&(LINEEDIT_INT|LINEEDIT_FLOAT)) {
@@ -1058,7 +1051,7 @@ int LineEdit::WheelDown(int x,int y,unsigned int state,int count,const Laxkit::L
 {
 	if (dp == nullptr) {
 		dp = MakeCurrent();
-		dp->font(thefont, thefont->textheight());
+		dp->font(thefont, UIScale() * thefont->textheight());
 	}
 
 	if (win_style&(LINEEDIT_INT|LINEEDIT_FLOAT)) {
@@ -1155,7 +1148,7 @@ int LineEdit::MouseMove(int x,int y,unsigned int state,const LaxMouse *d)
 
 	if (dp == nullptr) {
 		dp = MakeCurrent();
-		dp->font(thefont, thefont->textheight());
+		dp->font(thefont, UIScale() * thefont->textheight());
 	}
 
 	if (buttondown.isdown(d->id,LEFTBUTTON)) {
@@ -1230,9 +1223,9 @@ void LineEdit::DrawText(int)
  */
 void LineEdit::settextrect()
 {
-	textrect.x=textrect.y=0;
-	textrect.width= win_w;
-	textrect.height=win_h;
+	textrect.x = textrect.y = 0;
+	textrect.width  = win_w;
+	textrect.height = win_h;
 }
 
 int LineEdit::Resize(int nw,int nh)

@@ -133,16 +133,17 @@ PopupMenu::PopupMenu(const char *nname, const char *ntitle, unsigned long long s
 	if (usethismenu && absorb_count) usethismenu->dec_count(); //was inc'd in TreeSelector
 
 	if (!nparentmenu) menustyle |= TREESEL_GRAB_ON_MAP;
-	//if (menu) Select(0); //*** if 0 has a menu then popit up!! also should wrap near parentmenu->selected item!!
+
+	pad = UIScale() * win_themestyle->normal->textheight()/3;
+	win_border = 1;
+
 	if (mouseid<0) {
 		LaxMouse *m = app->devicemanager->findMouse(0);
 		if (m) mouseid = m->id;
 	}
+	originating_mouse = mouseid; //we need this to hack around when we install a custom theme right after constructor
 	if (mouseid) WrapToMouse(mouseid,nparentmenu);
 	else WrapToPosition(xx,yy,0,nparentmenu);
-
-	pad = win_themestyle->normal->textheight()/3;
-	win_border = 1;
 
 	outtimer = 0;
 
@@ -170,6 +171,23 @@ PopupMenu::~PopupMenu()
 	}
 
 }
+
+void PopupMenu::CustomTheme(Theme *new_theme)
+{
+	anXWindow::CustomTheme(new_theme);
+	if (originating_mouse > 0) {
+		//if (mouseid)
+		WrapToMouse(originating_mouse, parentmenu);
+		//else WrapToPosition(xx,yy,0,nparentmenu);
+	}
+}
+
+int PopupMenu::init()
+{
+	originating_mouse = -1; //we don't want to wrap to mouse if we have already init'd
+	return TreeSelector::init();
+}
+
 
 ////! Focus off maybe destroys the menus.
 ///*! Also, if TREESEL_FOCUS_OFF_DESTROYS, then an off focus destroys this window.
@@ -240,6 +258,10 @@ void PopupMenu::addselect(int i,unsigned int state)
 									0,
 									minfo,0,this,
 									menustyle);
+			if (GetTheme() && GetTheme() != app->theme) {
+				submenu->CustomTheme(GetTheme());
+				submenu->WrapToMouse(0, this);
+			}
 			delete[] blah;
 			app->rundialog(submenu,this);
 

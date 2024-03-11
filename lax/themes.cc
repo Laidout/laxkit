@@ -28,10 +28,6 @@
 #include <lax/version.h>
 
 
-//template implementations
-#include <lax/refptrstack.cc>
-
-
 #include <iostream>
 
 #define DBG
@@ -768,11 +764,13 @@ int Theme::AddDefaults(const char *which)
 	return 1;
 }
 
-/*! Do this after ui_scale or base_font_size changes.
+/*! Do this after base_font_size changes. It will ensure that each font is base_font_size.
+ * Note that Theme::ui_scale is applied separately in widgets, not in the font objects themselves.
  */
 int Theme::UpdateFontSizes()
 {
-	double size = ui_scale * base_font_size;
+	//double size = (ui_scale > 0 ? ui_scale : 1.0) * base_font_size;
+	double size = base_font_size;
 
 	for (int c=0; c<styles.n; c++) {
 		WindowStyle *style = styles.e[c];
@@ -912,7 +910,7 @@ Attribute *Theme::dump_out_atts(Attribute *att,int what,DumpContext *context)
 		att->push("double_click", "200",  "millisecond limit for double click");
 		att->push("idle_click",   "66",   "milliseconds between idle clicks");
 		att->push("tooltips",     "1000", "millisecond delay before popping up, or 0 for never");
-		att->push("ui_default_ppi","100", "Default pixels per inch of monitors");
+		att->push("ui_default_ppi","100", "Default pixels per inch of monitors. This is used to scale widgets per monitor pixel density.");
 
 		Attribute *att2 = att->pushSubAtt("windowstyle", nullptr, "One of these blocks each for panel, menu, edit, button, tooltip");
 		styles.e[0]->dump_out_atts(att2, -1, context);
@@ -920,19 +918,20 @@ Attribute *Theme::dump_out_atts(Attribute *att,int what,DumpContext *context)
 		return att;
 	}
 
+	att->push("base_font_size", base_font_size);
+	if (ui_scale > 0) att->push("ui_scale", ui_scale);
+	else att->push("ui_scale", "default");
+	att->push("ui_default_ppi", ui_default_ppi);
+
 	att->push("default_border_width", default_border_width);
 	att->push("default_padx", default_padx);
 	att->push("default_pady", default_pady);
 	att->push("default_bevel", default_bevel);
-	att->push("base_font_size", base_font_size);
-	if (ui_scale > 0) att->push("ui_scale", ui_scale);
-	else att->push("ui_scale", "default");
 
 	att->push("first_click",    (int)firstclk);  att->Top()->Comment("milliseconds before idle clicking after first click");
 	att->push("double_click",   (int)dblclk);    att->Top()->Comment("millisecond limit for double click");
 	att->push("idle_click",     (int)idleclk);   att->Top()->Comment("milliseconds between idle clicks");
 	att->push("tooltips",       tooltips);       att->Top()->Comment("millisecond delay before popping up, or 0 for never");
-	att->push("ui_default_ppi", ui_default_ppi);
 
 	for (int c=0; c<styles.n; c++) {
 		WindowStyle *style = styles.e[c];

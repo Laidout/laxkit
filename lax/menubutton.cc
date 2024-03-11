@@ -58,8 +58,8 @@ MenuButton::MenuButton(anXWindow *parnt,const char *nname,const char *ntitle,uns
 		: Button(parnt,nname,ntitle,nstyle&ANXWIN_MASK,xx,yy,ww,hh,brder,prev,nowner,nsendmes,nid,
 					 nlabel,filename,img,npad,ngap)
 {
-	menubutton_style=nstyle&(~ANXWIN_MASK);
-	menuinfo=menu;
+	menubutton_style = nstyle & (~ANXWIN_MASK);
+	menuinfo = menu;
 	if (menu && !absorb) menu->inc_count();
 
 	if (nstyle&MENUBUTTON_ICON_ONLY)      SetWinStyle(IBUT_ICON_ONLY, 1);
@@ -74,9 +74,9 @@ MenuButton::MenuButton(anXWindow *parnt,const char *nname,const char *ntitle,uns
 	else if (nstyle&MENUBUTTON_ICON_TEXT) labelstyle=LAX_ICON_TEXT;
 	else if (nstyle&MENUBUTTON_TEXT_ICON) labelstyle=LAX_TEXT_ICON;
 
-
-
 	if (nstyle&MENUBUTTON_DOWNARROW) SetGraphic(THING_Triangle_Down,-1,-1);
+
+	if (gap < 0) gap = UIScale() * win_themestyle->normal->textheight()/3;
 
 	if (ww<2 || hh<2) WrapToExtent((ww<2?1:0)|(hh<2?2:0));
 }
@@ -100,14 +100,15 @@ int MenuButton::SetMenu(MenuInfo *menu, int absorb)
 	return 0;
 }
 
+
 //! Create the popup menu. Called from LBDown().
 void MenuButton::makePopup(int mouseid)
 {
 	if (!menuinfo || !menuinfo->n()) return;
 
 	PopupMenu *popup;
-	popup=new PopupMenu(menuinfo->title?menuinfo->title:"Button Popup",
-						menuinfo->title?menuinfo->title:"Button Popup",
+	popup = new PopupMenu(menuinfo->title ? menuinfo->title : "Button Popup",
+						menuinfo->title ? menuinfo->title : "Button Popup",
 						0,
 						0,0,0,0, 1, 
 						win_owner,win_sendthis, 
@@ -118,20 +119,30 @@ void MenuButton::makePopup(int mouseid)
 						 | ((menubutton_style&MENUBUTTON_LEFT)      ? TREESEL_LEFT :0)
 						 | ((menubutton_style&MENUBUTTON_RIGHT)     ? TREESEL_RIGHT :0)
 					   );
+
+	// If there is a custom theme in any of our parents, we need to install in the popup,
+	// since it exists outside the normal parent hierarchy.
+	if (GetTheme() && GetTheme() != app->theme) popup->CustomTheme(GetTheme());
+
+	win_cur_uiscale = -1;
+	popup->win_cur_uiscale = -1;
+	cerr << "menubutton scale: "<<UIScale()<<", popup scale: "<<popup->UIScale()<<endl;
+
 	popup->ClearSearch(); //in case there was a previous menuinfo search messing things up
 
-	//popup->pad=pad;
-	popup->pad = win_themestyle->normal->textheight()/3;
+	//popup->pad = UIScale() * win_themestyle->normal->textheight() / 3;
 	popup->Select(0);
-//	popup->SetFirst(curitem,x,y); 
 	popup->WrapToMouse(mouseid);
 	app->rundialog(popup);
-	mousein=0;
-	needtodraw=1;
+	mousein = 0;
+	needtodraw = 1;
 
-	LaxMouse *m=app->devicemanager->findMouse(mouseid);
-	if (m) app->setfocus(popup,0,m->paired_keyboard);
+	cerr <<"--- menubutton uiscale: "<<UIScale()<<", popup uiscale: "<<popup->UIScale()<<endl;
+
+	LaxMouse *m = app->devicemanager->findMouse(mouseid);
+	if (m) app->setfocus(popup, 0, m->paired_keyboard);
 }
+
 
 //! Any left click down brings up the menu, rather than the default Button::LBDown().
 int MenuButton::LBDown(int x,int y,unsigned int wstate,int count,const LaxMouse *d)

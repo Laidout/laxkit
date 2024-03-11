@@ -49,8 +49,6 @@ namespace Laxkit {
  * 
  *  LEFT:   | O blah        |
  *  RIGHT:  |        blah O |
- *  CENTERL:|    blah O     |
- *  CENTERR:|    O blah     |
  *
  * </pre>
  * \code
@@ -63,8 +61,6 @@ namespace Laxkit {
  * #define CHECK_LEFT          (1<<22)
  * #define CHECK_RIGHT         (1<<23)
  * #define CHECK_CENTER        (1<<24)
- * #define CHECK_CENTERL       (1<<25)
- * #define CHECK_CENTERR       (1<<26)
  * \endcode
  */
 
@@ -88,10 +84,10 @@ CheckBox::CheckBox(anXWindow *parnt,const char *nname,const char *ntitle,unsigne
 	InstallColors(THEME_Panel);
 
 	 //*** maybe include bevel just for easier levelling with buttons??
-	trect.width = (unsigned int) win_themestyle->normal->Extent(label,-1);
+	trect.width = (unsigned int) (UIScale() * win_themestyle->normal->Extent(label,-1));
 	grect.y = trect.y = pad;
 	grect.height = trect.height = win_h-2*pad;
-	grect.width = grect.height;
+	grect.width = UIScale() * win_themestyle->normal->textheight(); //grect.height;
 	state = LAX_OFF;
 
 	ScreenColor pit;
@@ -100,7 +96,7 @@ CheckBox::CheckBox(anXWindow *parnt,const char *nname,const char *ntitle,unsigne
 	pitcolor = pit.Pixel();
 	
 	if (hh<2) { // wrap window to v textextent
-		win_h = 2 * pad + win_themestyle->normal->textheight();
+		win_h = UIScale() * (2 * pad + win_themestyle->normal->textheight());
 	}
 	if (ww<2) { // wrap window to h textextent
 		win_w = grect.height + 3 * pad + trect.width;
@@ -113,6 +109,12 @@ CheckBox::CheckBox(anXWindow *parnt,const char *nname,const char *ntitle,unsigne
 
 //! Empty virtual destructor
 CheckBox::~CheckBox() {}
+
+void CheckBox::UIScaleChanged()
+{
+	trect.width = (unsigned int) (UIScale() * win_themestyle->normal->Extent(label,-1));
+	trect.height = grect.height = grect.width = UIScale() * win_themestyle->normal->textheight();
+}
 
 bool CheckBox::Checked()
 {
@@ -128,21 +130,17 @@ bool CheckBox::Checked(bool yes)
 //! Sync up the placement of things.
 void CheckBox::setPlacement()
 {
-	if (win_style&CHECK_LEFT) {
-		grect.x=pad;
-		trect.x=pad+grect.width+pad;
+	double scale = UIScale();
 
-	} else if (win_style&CHECK_RIGHT) { 
-		grect.x=win_w-pad-grect.width;
-		trect.x=grect.x-pad-trect.width;
+	grect.y = win_h/2 - grect.height/2;
+	trect.y = win_h/2 - trect.height/2;
 
-	} else if (win_style&CHECK_CENTERR) { 
-		grect.x=win_w/2-(grect.width+pad+trect.width)/2;
-		trect.x=grect.x+grect.width+pad;
-
-	} else { // default CENTERL
-		trect.x=win_w/2-(grect.width+pad+trect.width)/2;
-		grect.x=trect.x+trect.width+pad;
+	if (win_style&CHECK_RIGHT) {
+		grect.x = win_w   - scale * pad - grect.width;
+		trect.x = grect.x - scale * pad - trect.width;
+	} else { //if (win_style&CHECK_LEFT) {
+		grect.x = scale * pad;
+		trect.x = scale * pad + grect.width + scale * pad*.6;
 	}
 
 	DBG cerr <<"grect: "<<grect.x<<","<<grect.y<<", "<<grect.width<<","<<grect.height<<endl;
@@ -150,40 +148,40 @@ void CheckBox::setPlacement()
 }
 
 const char *CheckBox::Label(const char *nlabel)
-{//***must determine new grect
-	return Button::Label(nlabel);	
+{
+	const char *ret = Button::Label(nlabel);
+	setPlacement();
+	return ret;
 }
 
-/*! \todo implement other than circle
- */
+
 void CheckBox::drawgraphic()
-{//***
-//	if (win_style&CHECK_CIRCLE) {
-		 //whole graphic area
-		Displayer *dp=GetDisplayer();
-		dp->LineWidthScreen(1);
+{
+	Displayer *dp=GetDisplayer();
+	dp->LineWidthScreen(1);
 
-		dp->NewFG(pitcolor);
-		dp->drawellipse(grect.x+grect.width/2,grect.y+grect.height/2, 
-						grect.width/2,grect.height/2, 0,0, 1);
-		
-		 //inner circle
-		dp->NewFG(Grayed() ? coloravg(win_themestyle->fg,win_themestyle->bg) : win_themestyle->fg);
-		if (state==LAX_ON) 
-			dp->drawellipse(grect.x+grect.width/2,grect.y+grect.height/2, grect.width/4,grect.height/4, 0,0, 1);
+	// outer circle
+	dp->NewFG(pitcolor);
+	dp->drawellipse(grect.x + grect.width/2, grect.y + grect.height/2, 
+					grect.width/2, grect.height/2, 0,0, 1);
+	
+	// inner circle
+	dp->NewFG(Grayed() ? coloravg(win_themestyle->fg,win_themestyle->bg) : win_themestyle->fg);
+	if (state==LAX_ON) 
+		dp->drawellipse(grect.x + grect.width/2, grect.y + grect.height/2,
+						grect.width/4, grect.height/4, 0,0, 1);
 
 
-		dp->NewFG(shadow);
-		dp->drawellipse(grect.x+grect.width/2,grect.y+grect.height/2, 
-						grect.width/2,grect.height/2, 0,0, 0);
-//	} else if (***) {
-//	}
+	dp->NewFG(shadow);
+	dp->drawellipse(grect.x + grect.width/2, grect.y + grect.height/2, 
+					grect.width/2, grect.height/2, 0,0, 0);
 }
+
 
 void CheckBox::draw()
 { 
-	Displayer *dp=MakeCurrent();
-	dp->font(win_themestyle->normal, win_themestyle->normal->textheight());
+	Displayer *dp = MakeCurrent();
+	dp->font(win_themestyle->normal, UIScale() * win_themestyle->normal->textheight());
 	dp->NewFG(mousein ? win_themestyle->bghover : win_themestyle->bg);
 
 	dp->drawrectangle(0,0, win_w,win_h, 1);
@@ -191,14 +189,12 @@ void CheckBox::draw()
 
 	if (!label) return;
 	
-	//double ex,ey,fasc,fdes;
-	//dp->textextent(label,-1,&ex,&ey,&fasc,&fdes);
-	//getextent(label,-1,&ex,&ey,&fasc,&fdes);
-	
     dp->NewFG(Grayed() ? coloravg(win_themestyle->fg,win_themestyle->bg) : win_themestyle->fg);
-	dp->textout(trect.x+trect.width/2,trect.y+trect.height/2, label,strlen(label), LAX_CENTER);
 
-	//drawbevel(0);
+	if (win_style & CHECK_RIGHT)
+		dp->textout(trect.x + trect.width, trect.y+trect.height/2, label,strlen(label), LAX_RIGHT|LAX_VCENTER);
+	else
+		dp->textout(trect.x, trect.y+trect.height/2, label,strlen(label), LAX_LEFT|LAX_VCENTER);
 }
 
 int CheckBox::MoveResize(int nx,int ny,int nw,int nh)

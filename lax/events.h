@@ -77,7 +77,7 @@ enum LaxEventType {
 	 LAX_onGrayed,
 	 LAX_onMapped,
 	 LAX_onUnmapped,
-	 LAX_onThemeChange,
+	 LAX_onThemeChanged,
 	  //---other events
 	  //sent by window controls for various purposes.
 	  //event->subtype will be some value that makes sense to the control

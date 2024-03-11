@@ -165,8 +165,8 @@ class anInterface : virtual public Laxkit::EventReceiver,
 	virtual double GetVMag(int x,int y);
 
 	virtual double UIScale();
-	virtual void ThemeChange(Laxkit::Theme *theme);
-	virtual void UIScaleChange();
+	virtual void ThemeChanged();      //!< Called when container window's theme has changed
+	virtual void UIScaleChanged();
 	virtual double ScreenLine();      //!< What should be considered the pixel size of a usable thin line.
 	virtual double NearThreshhold();  //!< Default nearness threshhold for tiny points
 	virtual double NearThreshhold2(); //!< Default nearness threshhold for medium sized points

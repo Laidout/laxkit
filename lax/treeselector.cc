@@ -29,11 +29,6 @@
 #include <cctype>
 
 
-////template implementation
-//#include <lax/lists.cc>
-//#include <lax/refptrstack.cc>
-
-
 #include <iostream>
 using namespace std;
 #define DBG 
@@ -58,15 +53,15 @@ namespace Laxkit {
 
 TreeSelector::ColumnInfo::ColumnInfo(const char *ntitle, int ntype, int whichdetail, int nwidth, int nwtype)
 {
-	type=ntype; //uses ColumnInfoType
-	if (type==0) type=ColumnString;
-	title=newstr(ntitle);
-	pos=0;
-	detail=whichdetail;
-	width=nwidth;
-	width_type=nwtype;
-	sort=0;
-	sort_type=0;
+	type = ntype;  // uses ColumnInfoType
+	if (type == 0) type = ColumnString;
+	title      = newstr(ntitle);
+	pos        = 0;
+	detail     = whichdetail;
+	width      = nwidth;
+	width_type = nwtype;
+	sort       = 0;
+	sort_type  = 0;
 }
 
 TreeSelector::ColumnInfo::~ColumnInfo()
@@ -96,18 +91,6 @@ TreeSelector::ColumnInfo::~ColumnInfo()
  * the panner wholebox (min and max) is the bounding box of all the items,
  * and the selbox (start and end) is inrect minus the pads. However, any shifting changes 
  * the panner's selbox, but this does not trigger any change in inrect.
- * 
- * <pre>
- *   TODO
- *   *** RemoveItem
- *   *** when mouseover up arrow or autoscroll up, moving down should not shiftscreen
- *   *** scrollbar (x/y) versus up/down arrows and right click dragging??
- *   		  
- *   *** neat from fltk:
- *    		Add("File")
- *    		Add("File/Save")
- *    		Add("File/Save As")....
- * </pre>
  */
 /*! \var MenuInfo *TreeSelector::menu
  * \brief Stores the actual menu items.
@@ -184,12 +167,12 @@ TreeSelector::TreeSelector(anXWindow *parnt,const char *nname,const char *ntitle
 {
 	base_init();
 
-	menustyle=nmstyle;
+	menustyle = nmstyle;
 	if (usethismenu) {
-		menu=usethismenu;
+		menu = usethismenu;
 		menu->inc_count();
 	} else {
-		menu=new MenuInfo;
+		menu = new MenuInfo;
 	}
 
 	menustyle |= TREESEL_LIVE_SEARCH;
@@ -199,8 +182,8 @@ TreeSelector::TreeSelector(anXWindow *parnt,const char *nname,const char *ntitle
 void TreeSelector::base_init()
 {
 	mousedragmode = 0;
-	gap           = 3;
-	pad           = 3;
+	column_gap    = -1;
+	pad           = -1;
 	offsetx = offsety = 0; //offset of everything from inrect.x,inrect.y,  so (screen item).y = item.y + offsety + inrect.y
 	textheight   = 0;
 	lineheight   = 0;
@@ -215,7 +198,7 @@ void TreeSelector::base_init()
 	menustyle    = 0;
 	needtobuildcache = 1;
 	iwidth       = 10;
-	iconwidth    = 1; //default width of icon, even if icon missing. 1 == textheight
+	iconwidth    = 0; //default width of icon, even if icon missing, as fraction of textheight, so 1 == textheight
 	firsttime    = 1;
 	flag_width   = 1;
 	dragflag     = -1;
@@ -231,7 +214,7 @@ void TreeSelector::base_init()
 
 	InstallColors(THEME_Panel);
 
-	menu=NULL;
+	menu = NULL;
 }
 
 //! Destructor, increment count on menu.
@@ -261,22 +244,21 @@ bool TreeSelector::HasStyle(unsigned long long style)
 
 int TreeSelector::InstallMenu(MenuInfo *nmenu)
 {
-	if (menu!=nmenu) {
+	if (menu != nmenu) {
 		if (menu) menu->dec_count();
-		menu=nmenu;
+		menu = nmenu;
 		if (nmenu) nmenu->inc_count();
-		else menu=new MenuInfo;
+		else menu = new MenuInfo;
 	}
 
-	needtobuildcache=1;
+	needtobuildcache = 1;
 	selection.flush();
-	ccuritem=curitem=0;
+	ccuritem = curitem = 0;
 	ccurdetail = -1;
-	ccurflag = -1;
+	ccurflag   = -1;
 	arrangeItems();
-	//RebuildCache();
 	RemapColumns();
-	needtodraw=1;
+	needtodraw = 1;
 	return 0;
 }
 
@@ -289,12 +271,11 @@ void TreeSelector::dump_out(FILE *f,int indent,int what,DumpContext *savecontext
 
 Attribute *TreeSelector::dump_out_atts(Attribute *att,int what,DumpContext *savecontext)
 {
-	if (!att) att=new Attribute();
+	if (!att) att = new Attribute();
 
 	anXWindow::dump_out_atts(att,what,savecontext);
 
-    if (what==-1) {
-
+    if (what == -1) {
 		att->push("columns", "#A list of positions of the columns. Each entry is the name and displayed width of the column");
         return att;
     }
@@ -326,11 +307,9 @@ void TreeSelector::dump_in_atts(Attribute *att,int flag,DumpContext *loadcontext
 				name  = att->attributes.e[c]->attributes.e[c2]->name;
 				value = att->attributes.e[c]->attributes.e[c2]->value;
 
-				//DBG cerr << " *** need to finish implementing reading in column positions for TreeSelector"<<endl;
-
 				for (int c3=0; c3<columns.n; c3++) {
 					if (!strcmp(columns.e[c3]->title,name)) {
-						columns.e[c3]->width=strtol(value, NULL, 10);
+						columns.e[c3]->width = strtol(value, NULL, 10);
 						break;
 					}
 				}
@@ -343,8 +322,7 @@ void TreeSelector::dump_in_atts(Attribute *att,int flag,DumpContext *loadcontext
 //! Focus on draws the char over item.
 int TreeSelector::FocusOn(const FocusChangeData *e)
 {
-	int c=anXWindow::FocusOn(e);
-	//if (win_active) drawitem(ccuritem);
+	int c = anXWindow::FocusOn(e);
 	return c;
 }
 
@@ -352,18 +330,13 @@ int TreeSelector::Event(const EventData *e,const char *mes)
 {
 	DBG cerr << "TreeSelector::Event "<<(mes?mes:"noname")<<endl;
 
-
-    if (e->type==LAX_onMapped && (menustyle & TREESEL_GRAB_ON_MAP)) {
+    if (e->type == LAX_onMapped && (menustyle & TREESEL_GRAB_ON_MAP)) {
         app->setfocus(this,0,NULL);
 
 	} else if (!strcmp(mes, "pan change")) {
-		//makeinwindow();
-		
-		//offsetx = inrect.x-panner->GetCurPos(1);
-		//offsety = inrect.y-panner->GetCurPos(2);
 		offsetx = -panner->GetCurPos(1);
 		offsety = -panner->GetCurPos(2);
-		needtodraw=1;
+		needtodraw = 1;
 		return 0;
 	}
 
@@ -381,7 +354,7 @@ int TreeSelector::FocusOff(const FocusChangeData *e)
 		addselect(-1, 0);
 	}
 
-	int c=anXWindow::FocusOff(e);
+	int c = anXWindow::FocusOff(e);
 
 //	if (!win_active) {
 //		if (menustyle&TREESEL_DESTROY_ON_FOCUS_OFF) {
@@ -564,15 +537,15 @@ int TreeSelector::Collapse(int which)
 	MenuItem *parent=item(which);
 	for (int c=selection.n-1; c>=0; c--) {
 		if (selection.e[c]->hasParent(parent)) {
-			selection.e[c]->state&=~(LAX_ON|LAX_OFF|MENU_SELECTED);
-			selection.e[c]->state|=LAX_OFF;
+			selection.e[c]->state &= ~(LAX_ON|LAX_OFF|MENU_SELECTED);
+			selection.e[c]->state |= LAX_OFF;
 			selection.remove(c);
 		}
 	}
 
-	parent->state&=~MENU_OPEN;
-	needtobuildcache=1;
-	needtodraw=1;
+	parent->state &= ~MENU_OPEN;
+	needtobuildcache = 1;
+	needtodraw = 1;
 	return 1;
 }
 
@@ -584,11 +557,27 @@ int TreeSelector::SetFirst(int which,int x,int y)
 {
 	if (which<0 || which>=visibleitems.how_many(0)) return 1;
 
-	MenuItem *i=item(which);
+	MenuItem *i = item(which);
 	movescreen(0, y - (i->y+i->w/2));
-	needtodraw=1;
+	needtodraw = 1;
 	return 0;
 }
+
+
+void TreeSelector::UIScaleChanged()
+{
+	anXWindow::UIScaleChanged(); //this sends same to children
+	needtodraw = 1;
+
+	double scale = UIScale();
+	leading = 1 * scale;
+	textheight = scale * win_themestyle->normal->textheight();
+	iwidth = textheight;
+	padg = textheight/2;
+
+	RebuildCache();
+}
+
 
 //! Set some values that are derived from other values (pagesize, highlight, shadow, ...).
 /*! Sets the shadow and highlight colors, and determines the pagesize.
@@ -596,22 +585,20 @@ int TreeSelector::SetFirst(int which,int x,int y)
 int TreeSelector::init()
 {
 	ScrolledWindow::init(); //this calls syncWindows, causing inrect and pagesize to get set
-    highlight=coloravg(win_themestyle->bg,rgbcolor(255,255,255));
-	shadow   =coloravg(win_themestyle->bg,rgbcolor(0,0,0));
+    highlight = coloravg(win_themestyle->bg,rgbcolor(255,255,255));
+	shadow    = coloravg(win_themestyle->bg,rgbcolor(0,0,0));
 	
-	leading = 1;
-	if (textheight==0) textheight = win_themestyle->normal->textheight() + leading;
+	double scale = UIScale();
+	leading = 1 * scale;
+	if (textheight <= 0) textheight = scale * win_themestyle->normal->textheight() + leading;
 	iwidth = textheight;
 	
 	DBG cerr <<"--"<<WindowTitle()<<": textheight, leading="<<textheight<<','<<leading<<endl;
 	
-	//if (menustyle&TREESEL_USE_TITLE) offsety+=textheight;
-
-
 	RemapColumns();
 
-	padg=textheight/2;
-	pagesize=inrect.height*.75;
+	padg = textheight/2;
+	pagesize = inrect.height*.75;
 	arrangeItems();
 	return 0;
 }
@@ -626,24 +613,24 @@ int TreeSelector::init()
  */
 int TreeSelector::AddColumn(const char *i,LaxImage *img,int width,int width_type, int ntype, int whichdetail, bool nodup, int sort_override)
 {
-	if (whichdetail<0) whichdetail=columns.n;
-	if (ntype<=0) ntype=ColumnInfo::ColumnString;
+	if (whichdetail < 0) whichdetail = columns.n;
+	if (ntype <= 0) ntype = ColumnInfo::ColumnString;
 
 	int c;
 	for (c=0; c<columns.n; c++) {
 		if (!strcmp(columns.e[c]->title,i) && nodup) {
 			 //column existed
-			columns.e[c]->width=width;
-			columns.e[c]->detail=whichdetail;
-			columns.e[c]->type=ntype;
-			if (sort_override>=0) columns.e[c]->sort_type = sort_override;
+			columns.e[c]->width  = width;
+			columns.e[c]->detail = whichdetail;
+			columns.e[c]->type   = ntype;
+			if (sort_override >= 0) columns.e[c]->sort_type = sort_override;
 			break;
 		}
 	}
 	
-	if (c==columns.n) {
+	if (c == columns.n) {
 		columns.push(new ColumnInfo(i, ntype, whichdetail, width,width_type),1);
-		if (sort_override>=0) columns.e[c]->sort_type = sort_override;
+		if (sort_override >= 0) columns.e[c]->sort_type = sort_override;
 	}
 
 	return 0;
@@ -656,15 +643,14 @@ void TreeSelector::RemapColumns()
 {
 	if (!columns.n) return;
 
-	//offsety+=textheight;
-	int totalwidth=0;
-	double pos=0;
-	int nfills=0;
+	int    totalwidth = 0;
+	double pos        = 0;
+	int    nfills     = 0;
+	
 	for (int c=0; c<columns.n; c++) {
-		if (columns.e[c]->width<=0) {
+		if (columns.e[c]->width <= 0) {
 			columns.e[c]->width = findColumnWidth(c);
 			if (columns.e[c]->width_type == 1) nfills++;
-			//if (columns.e[c]->width<=0) columns.e[c]->width = 100;
 		}
 		columns.e[c]->pos = pos;
 		pos += columns.e[c]->width;
@@ -672,21 +658,21 @@ void TreeSelector::RemapColumns()
 	}
 
 	if (nfills) {
-		pos=0;
+		pos = 0;
 		double fill = (inrect.width-totalwidth)/(float)nfills;
-		if (fill<0) fill=0;
+		if (fill < 0) fill = 0;
 
 		if (fill) for (int c=0; c<columns.n; c++) {
-			columns.e[c]->pos=pos;
-			if (columns.e[c]->width_type==1) {
-				columns.e[c]->width+=fill;
+			columns.e[c]->pos = pos;
+			if (columns.e[c]->width_type == 1) {
+				columns.e[c]->width += fill;
 			}
 
 			pos += columns.e[c]->width;
 		}
 	}
 
-	needtodraw=1;
+	needtodraw = 1;
 }
 
 void TreeSelector::ClearColumns()
@@ -766,15 +752,14 @@ int TreeSelector::UpdateSearch(const char *searchterm, bool isprogressive)
 
 	 //update curitem
 	MenuItem *sitem = item(curitem);
-	curitem = -1;
-	ccuritem = 0;
+	curitem    = -1;
+	ccuritem   = 0;
 	ccurdetail = -1;
-	ccurflag = -1;
+	ccurflag   = -1;
+
 	if (sitem && !sitem->hidden()) {
-		//int i=-1;
 		for (int c=0; c<visibleitems.n(); c++) {
 			if (visibleitems.e(c)->hidden()) continue;
-			//i++;
 			if (sitem == visibleitems.e(c)) {
 				curitem = c;
 				break;
@@ -787,8 +772,8 @@ int TreeSelector::UpdateSearch(const char *searchterm, bool isprogressive)
 		addselect(ccuritem,0);
 	}
 
-	needtobuildcache=1;
-	needtodraw=1;
+	needtobuildcache = 1;
+	needtodraw = 1;
 	return 0;
 }
 
@@ -824,18 +809,19 @@ int TreeSelector::AddItem(const char *i,LaxImage *img,int nid,int newstate)
 	return numItems();
 }
 
-double TreeSelector::getgraphicextent(MenuItem *mitem,double *w,double *h)
+double TreeSelector::getgraphicextent(MenuItem *mitem, double *w, double *h)
 {
     if (!mitem || !mitem->image) {
     	if (iconwidth > 0) {
-    		*w = *h = iconwidth * win_themestyle->normal->textheight();
-    	}
-        *w=0;
-        *h=0;
+    		*w = *h = iconwidth * UIScale() * win_themestyle->normal->textheight();
+    	} else {
+	        *w = 0;
+	        *h = 0;
+	    }
         return 0;
     }
-    *w=mitem->image->w();
-    *h=mitem->image->h();
+    *w = mitem->image->w();
+    *h = mitem->image->h();
 	return *w;
 }
 
@@ -849,27 +835,30 @@ double TreeSelector::getgraphicextent(MenuItem *mitem,double *w,double *h)
  */
 int TreeSelector::findmaxwidth(int s,int e, int *h_ret)
 {
-	if (visibleitems.n()==0) RebuildCache();
+	if (visibleitems.n() == 0) RebuildCache();
 
-	if (e>=0 && e<s) return -1;
-	if (s<0) s=0;
-	if (s>=numItems()) s=numItems()-1;
-	if (e<0 || e>=numItems()) e=numItems()-1;
-	if (s<0 || e<0) return 0;
-	double w=0,h=0,ww=0,hh=0,t;
+	if (e >= 0 && e < s) return -1;
+	if (s < 0) s = 0;
+	if (s >= numItems()) s = numItems()-1;
+	if (e < 0 || e >= numItems()) e = numItems()-1;
+	if (s < 0 || e < 0) return 0;
+	double w=0, h=0, ww=0, hh=0,t;
+	double scale = UIScale();
 	MenuItem *mitem;
 
-	for (int c=s; c<=e; c++) {
+	if (pad < 0) pad = textheight * .2;
+
+	for (int c = s; c <= e; c++) {
 		mitem = item(c);
-		getgraphicextent(mitem,&ww,&hh);
-		if (hh>h) h=hh;
-		if (ww) t=ww+padg; else t=0;
-		t += 2*pad + win_themestyle->normal->Extent(mitem->name,-1);
-		if (t>w) w=t;
+		getgraphicextent(mitem, &ww, &hh);
+		if (hh > h) h = hh;
+		if (ww) t = ww+padg; else t = 0;
+		t += 2*pad + scale * win_themestyle->normal->Extent(mitem->name,-1);
+		if (t > w) w = t;
 	}
 	w += iwidth;
 
-	if (h_ret) *h_ret=h;
+	if (h_ret) *h_ret = h;
 	return w;
 }
 
@@ -886,32 +875,35 @@ void TreeSelector::Wrap()
  */
 int TreeSelector::findColumnWidth(int which)
 {
-	int s=0;
-	int e=numItems()-1;
+	int s = 0;
+	int e = numItems()-1;
 	if (s<0 || e<0) return 0;
 
 	double w=0,h=0,ww=0,hh=0,t;
+	double scale = UIScale();
 	MenuItem *mitem;
 
-	if (columns.e[which]->title) w=2*pad + win_themestyle->normal->Extent(columns.e[which]->title,-1);
+	if (pad < 0) pad = textheight * .2;
+
+	if (columns.e[which]->title) w = 2*pad + scale * win_themestyle->normal->Extent(columns.e[which]->title,-1);
 
 	int col;
 	for (int c=s; c<=e; c++) {
-		mitem=item(c);
-		col=which;
+		mitem = item(c);
+		col = which;
 		while (mitem && col) {
-			mitem=mitem->nextdetail;
+			mitem = mitem->nextdetail;
 			col--;
 		}
 		if (!mitem) continue;
 
 		getgraphicextent(mitem,&ww,&hh);
-		if (hh>h) h=hh;
-		if (ww) t=ww+padg; else t=0;
-		t += 2*pad + win_themestyle->normal->Extent(mitem->name,-1);
-		if (t>w) w=t;
+		if (hh > h) h = hh;
+		if (ww) t = ww + padg; else t = 0;
+		t += 2*pad + scale * win_themestyle->normal->Extent(mitem->name,-1);
+		if (t > w) w = t;
 	}
-	w+=iwidth;
+	w += iwidth;
 
 	return w;
 }
@@ -922,22 +914,21 @@ void TreeSelector::arrangeItems()
 	RebuildCache();
 
 	IntRectangle wholerect; //rectangle around all items. 0,0 is 0,0 for first item
-	wholerect.x=wholerect.y=0;
-	wholerect.width=findmaxwidth(0,-1,NULL);
+	wholerect.x = wholerect.y = 0;
+	wholerect.width = findmaxwidth(0,-1,NULL);
 
-	if (visibleitems.menuitems.n==0) return;
+	if (visibleitems.menuitems.n == 0) return;
 
-	MenuItem *item=visibleitems.menuitems.e[visibleitems.menuitems.n-1];
-	wholerect.height=item->y+item->h;
-	IntRectangle selbox=inrect; //inrect has window coordinates. selbox is screen area mapped to wholerect space
-	selbox.x-=inrect.x;     //selbox width and height should be same w and h as inrect
-	selbox.y-=inrect.y;
+	MenuItem *item = visibleitems.menuitems.e[visibleitems.menuitems.n-1];
+	wholerect.height = item->y + item->h;
+	IntRectangle selbox = inrect; //inrect has window coordinates. selbox is screen area mapped to wholerect space
+	selbox.x -= inrect.x;     //selbox width and height should be same w and h as inrect
+	selbox.y -= inrect.y;
 
-	if (selbox.x<wholerect.x) selbox.x=wholerect.x;
-	if (selbox.y<wholerect.y) selbox.y=wholerect.y;
-	if (selbox.x+selbox.width >wholerect.x+wholerect.width)  selbox.width =wholerect.x+wholerect.width -selbox.x;
-	if (selbox.y+selbox.height>wholerect.y+wholerect.height) selbox.height=wholerect.y+wholerect.height-selbox.y;
-	//if (selbox.y+selbox.height+gap>wholerect.y+wholerect.height) selbox.height=wholerect.y+wholerect.height-selbox.y-gap;
+	if (selbox.x < wholerect.x) selbox.x = wholerect.x;
+	if (selbox.y < wholerect.y) selbox.y = wholerect.y;
+	if (selbox.x + selbox.width  > wholerect.x + wholerect.width)  selbox.width  = wholerect.x + wholerect.width -selbox.x;
+	if (selbox.y + selbox.height > wholerect.y + wholerect.height) selbox.height = wholerect.y + wholerect.height-selbox.y;
 
 	panner->SetWholebox(wholerect.x,wholerect.x+wholerect.width-1,wholerect.y,wholerect.y+wholerect.height-1);
 	panner->SetCurPos(1,selbox.x,selbox.x+selbox.width-1);
@@ -945,8 +936,6 @@ void TreeSelector::arrangeItems()
 
 	offsetx = -panner->GetCurPos(1);
 	offsety = -panner->GetCurPos(2);
-	//offsetx = inrect.x-panner->GetCurPos(1);
-	//offsety = inrect.y-panner->GetCurPos(2);
 }
 
 /*! Update visibleitems.
@@ -958,12 +947,12 @@ int TreeSelector::RebuildCache()
 {
 	visibleitems.Flush();
 	addToCache(0, menu, 0);
-	needtobuildcache=0;
+	needtobuildcache = 0;
 
 	if (ccuritem >= numItems()) {
-		ccuritem=curitem = numItems()-1;
-		ccurdetail = ccurflag = -1;
-		curmenuitem=item(ccuritem);
+		ccuritem    = curitem  = numItems()-1;
+		ccurdetail  = ccurflag = -1;
+		curmenuitem = item(ccuritem);
 		makeinwindow();
 	}
 
@@ -978,38 +967,37 @@ int TreeSelector::RebuildCache()
  */
 int TreeSelector::addToCache(int indent,MenuInfo *mmenu, int cury)
 {
-	//double xx=(indent+1)*iwidth;
-	double xx=0;
+	double xx = 0;
 	double ww,hh, hhh;
 	MenuItem *i, *ii;
 
 	for (int c=0; c<mmenu->n(); c++) {
-		i=mmenu->e(c);
-		if (i->hidden()==1) continue;
+		i = mmenu->e(c);
+		if (i->hidden() == 1) continue;
 	
-		hh=0;
-		ii=i;
+		hh = 0;
+		ii = i;
 		while (ii) {
 			getitemextent(ii, &ww,&hhh, NULL,NULL);
 			if (hhh == 0) hhh = textheight;
-			ii->x=xx; //note: x will not be accurate for details
-			ii->y=cury;
-			ii->w=ww;
-			ii->h=hhh;
+			ii->x = xx; //note: x will not be accurate for details
+			ii->y = cury;
+			ii->w = ww;
+			ii->h = hhh;
 
-			if (hhh>hh) hh=hhh; // *** really should only compute for visible, used columns
-			ii=ii->nextdetail;
+			if (hhh > hh) hh = hhh; // *** really should only compute for visible, used columns
+			ii = ii->nextdetail;
 		}
-		i->h=hh;
+		i->h = hh;
 		visibleitems.AddItemAsIs(i,0);
 
-		cury+=hh+1;
+		cury += hh + 1;
 
 		 //draw any subitems and connecting lines
 		if (i->hasSub()) {
 			if (i->isOpen()) {
 				 //item is open submenu
-				cury=addToCache(indent+1,i->GetSubmenu(),cury);
+				cury = addToCache(indent+1,i->GetSubmenu(),cury);
 			}
 		}
 	}
@@ -1032,18 +1020,23 @@ double TreeSelector::getitemextent(MenuItem *mitem, //!< the index, MUST already
 								double *tx  //!< Where the text would start, relative to whole item
 							)
 {
-	double gw,gh;
-	getgraphicextent(mitem,&gw,&gh);
-	double ww = win_themestyle->normal->Extent(mitem->name,-1,w,h,NULL,NULL);
-	if (menustyle&TREESEL_GRAPHIC_ON_RIGHT) {
-		if (tx) *tx=0;
-		if (gx) *gx=(ww?ww+padg:0);
+	double gw, gh;
+	getgraphicextent(mitem, &gw, &gh);
+	double ww = UIScale() * win_themestyle->normal->Extent(mitem->name,-1,w,h,NULL,NULL);
+	if (h) *h *= UIScale();
+	if (w) *w *= UIScale();
+	if (menustyle & TREESEL_GRAPHIC_ON_RIGHT) {
+		if (tx) *tx = 0;
+		if (gx) *gx = (ww ? ww + padg : 0);
 	} else {
-		if (gx) *gx=0;
-		if (tx) *tx=(gw?gw+padg:0);
+		if (gx) *gx = 0;
+		if (tx) *tx = (gw ? gw + padg : 0);
 	}
-	if (h && gh>*h) *h=gh;
-	if (gw) ww+=padg+gw;
+	if (h && gh > *h) *h = gh;
+	if (gw) {
+		if (w) *w += padg + gw;
+		ww += padg + gw;
+	}
 	return ww;
 }
 
@@ -1054,11 +1047,9 @@ double TreeSelector::getitemextent(MenuItem *mitem, //!< the index, MUST already
  */
 int TreeSelector::findRect(int c,IntRectangle *itemspot)
 {
-	MenuItem *i=item(c);
+	MenuItem *i = item(c);
 	if (!i) return 0;
 
-	//itemspot->x=i->x+offsetx+pad;
-	//itemspot->y=i->y+offsety+pad;
 	itemspot->x      = i->x + offsetx + inrect.x;
 	itemspot->y      = i->y + offsety + inrect.y;
 	itemspot->width  = i->w;
@@ -1091,28 +1082,31 @@ void TreeSelector::Refresh()
 
 	if (firsttime) {
 		makeinwindow();
-		firsttime=0;
+		firsttime = 0;
 	}
 
 	//if (needtobuildcache) RebuildCache();
 	if (needtobuildcache) arrangeItems();
 
+	if (pad < 0) pad = textheight * .2;
+	if (column_gap < 0) column_gap = textheight * .2;
+	double scale = UIScale();
 
-	Displayer *dp=MakeCurrent();
-	dp->font(win_themestyle->normal, win_themestyle->normal->textheight());
+	Displayer *dp = MakeCurrent();
+	dp->font(win_themestyle->normal, scale * win_themestyle->normal->textheight());
 	dp->ClearWindow();
 	dp->LineAttributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
 
-	double th=textheight;
-	int indent=0;
+	double th = textheight;
+	int indent = 0;
 	flatpoint offset(offsetx + inrect.x, offsety + inrect.y); //from window 0,0
-	int n=0;
+	int n = 0;
 	DrawItems(indent,menu,n,offset);
 
 
 	 // Draw title if necessary
-	int y=0;
-	if (menustyle&TREESEL_USE_TITLE) drawtitle(y);
+	int y = 0;
+	if (menustyle & TREESEL_USE_TITLE) drawtitle(y);
 
 	 //draw column info
 	if (columns.n) {
@@ -1121,17 +1115,17 @@ void TreeSelector::Refresh()
 		dp->NewFG(win_themestyle->fg);
 		dp->drawline(0,y+textheight, win_w,y+textheight);
 
-		for (int c=0; c<columns.n; c++) {
-			if (c<columns.n-1) {
+		for (int c = 0; c < columns.n; c++) {
+			if (c < columns.n-1) {
 				dp->drawline(columns.e[c+1]->pos,y, columns.e[c+1]->pos,y+textheight);
 			}
 
 			if (isblank(columns.e[c]->title)) continue;
-			dp->textout(gap+columns.e[c]->pos,y, columns.e[c]->title,-1, LAX_LEFT|LAX_TOP);
+			dp->textout(column_gap+columns.e[c]->pos,y, columns.e[c]->title,-1, LAX_LEFT|LAX_TOP);
 
 			 //draw sort indicator
-			if (columns.e[c]->sort>0)      dp->drawthing(gap+columns.e[c]->pos+columns.e[c]->width-th, y+th/2, th/4,th/4, 1, THING_Triangle_Down);
-			else if (columns.e[c]->sort<0) dp->drawthing(gap+columns.e[c]->pos+columns.e[c]->width-th, y+th/2, th/4,th/4, 1, THING_Triangle_Up);
+			if (columns.e[c]->sort>0)      dp->drawthing(column_gap+columns.e[c]->pos+columns.e[c]->width-th, y+th/2, th/4,th/4, 1, THING_Triangle_Down);
+			else if (columns.e[c]->sort<0) dp->drawthing(column_gap+columns.e[c]->pos+columns.e[c]->width-th, y+th/2, th/4,th/4, 1, THING_Triangle_Up);
 		}
 		y += th;
 	}
@@ -1141,12 +1135,11 @@ void TreeSelector::Refresh()
 		dp->drawRoundedRect(inrect.x,y+pad, inrect.width,textheight, textheight/2,0, textheight/2,0, 1, 15);
 
 		dp->NewFG(win_themestyle->fg);
-		//double w = dp->textextent(searchfilter,-1, NULL,NULL);
 		dp->textout(textheight,y+pad, searchfilter,-1, LAX_LEFT|LAX_TOP);
 	}
 
 	SwapBuffers();
-	needtodraw=0;
+	needtodraw = 0;
 }
 
 /*! Recursively draw all unhidden items in mmenu.
@@ -1163,31 +1156,31 @@ int TreeSelector::DrawItems(int indent, MenuInfo *mmenu, int &n, flatpoint offse
 
 	MenuItem *i;
 	int yy = 0;
-	unsigned long oddcolor=coloravg(win_themestyle->bg,win_themestyle->fg, .05);
-	unsigned long linecolor=win_themestyle->fg.Pixel();
+	unsigned long oddcolor = coloravg(win_themestyle->bg,win_themestyle->fg, .05);
+	unsigned long linecolor = win_themestyle->fg.Pixel();
 	unsigned long col;
 
 	int tree_offset=0; //offset of tree lines due to being in a particular column
 	if (columns.n && tree_column!=0 && tree_column<columns.n) {
-		tree_offset=columns.e[tree_column]->pos;
+		tree_offset = columns.e[tree_column]->pos;
 	}
 
-	for (int c=0; c<mmenu->n(); c++) {
+	for (int c = 0; c < mmenu->n(); c++) {
 		i = mmenu->e(c);
-		if (i->hidden()==1) continue;
+		if (i->hidden() == 1) continue;
 
 		n++;
-		yy=i->y + i->h/2; //so yy in center of row
+		yy = i->y + i->h/2; //so yy in center of row
 
 		 //draw background
 		if (i->isSelected()) {
 			col = win_themestyle->bghl.Pixel();
-			if (n%2==0) col=coloravg(col,win_themestyle->fg,.05); //slightly darker for odd lines
+			if (n%2 == 0) col = coloravg(col, win_themestyle->fg, .05); //slightly darker for odd lines
 
 		} else {
-			if (n%2==0 && !HasStyle(TREESEL_FLAT_COLOR)) {
+			if (n%2 == 0 && !HasStyle(TREESEL_FLAT_COLOR)) {
 				 //draw bg slightly darker
-				col=oddcolor;
+				col = oddcolor;
 			} else {
 				 //draw bg as bg
 				col = win_themestyle->bg.Pixel();
@@ -1195,9 +1188,9 @@ int TreeSelector::DrawItems(int indent, MenuInfo *mmenu, int &n, flatpoint offse
 		}
 
 		 //highlight more if is focused item
-		if (i==item(ccuritem)) {
+		if (i == item(ccuritem)) {
 			DBG cerr <<" Item "<<n<<" is focused item, making darker"<<endl;
-			col=coloravg(col,win_themestyle->fg,.1);
+			col = coloravg(col,win_themestyle->fg,.1);
 		}
 		dp->NewFG(col);
 		dp->drawrectangle(offset.x+0,offset.y+i->y, win_w,i->h, 1);
@@ -1250,16 +1243,16 @@ void TreeSelector::drawSubIndicator(MenuItem *mitem,int x,int y, int selected)
 {
 	if (!mitem->hasSub()) return;
 
-	int arrowtype=0;
-	if (mitem->isOpen()) arrowtype=THING_Triangle_Down;
-	else arrowtype=THING_Triangle_Right;
+	int arrowtype = 0;
+	if (mitem->isOpen()) arrowtype = THING_Triangle_Down;
+	else arrowtype = THING_Triangle_Right;
 
-	int subw=iwidth;
-	x+=subw/2;
-	if (subw>(textheight+leading)) subw=(textheight+leading)/3;
-	else subw/=3;
+	int subw = iwidth;
+	x += subw/2;
+	if (subw > (textheight+leading)) subw = (textheight+leading)/3;
+	else subw /= 3;
 
-	if (menustyle&TREESEL_SUB_FOLDER) { arrowtype=THING_Folder; }
+	if (menustyle & TREESEL_SUB_FOLDER) { arrowtype = THING_Folder; }
 
 	drawarrow(x,y, subw, arrowtype);
 }
@@ -1332,41 +1325,43 @@ void TreeSelector::drawItemContents(MenuItem *i,int offset_x,int suboffset,int o
 			 //draw bg selected
 			color = win_themestyle->bghl.Pixel();
 		} else {
-			int n=visibleitems.menuitems.findindex(i);
+			int n = visibleitems.menuitems.findindex(i);
 
 			 //draw bg slightly darker on odd lines
-			if (n%2==1) color=coloravg(win_themestyle->bg,win_themestyle->fg, .05);
+			if (n%2 == 1) color = coloravg(win_themestyle->bg,win_themestyle->fg, .05);
 			else color = win_themestyle->bg.Pixel();
 		}
 
-		int isccuritem=(i==item(ccuritem));
-		if (isccuritem) color=coloravg(color,win_themestyle->fg,.05);
+		int isccuritem = (i == item(ccuritem));
+		if (isccuritem) color = coloravg(color,win_themestyle->fg,.05);
 		dp->NewFG(color);
 		dp->drawrectangle(offset_x+i->x,offset_y+i->y, inrect.x+inrect.width-(offset_x+i->x),i->h, 1);
 	}
 
+	//DBG dp->NewFG(win_themestyle->fg.Pixel());
+	//DBG dp->drawrectangle(offset_x+i->x,offset_y+i->y, inrect.x+inrect.width-(offset_x+i->x),i->h, 0);
 
 	//now draw actual content of item
 	
-	if (i->state&LAX_SEPARATOR) {
+	if (i->state & LAX_SEPARATOR) {
 		 //draw a separator between edge of tree lines, filling rest of line
-		int tree_offset=0;
+		int tree_offset = 0;
 		if (columns.n && tree_column!=0 && tree_column<columns.n) {
-			tree_offset=columns.e[tree_column]->pos;
+			tree_offset = columns.e[tree_column]->pos;
 		}
-		itemspot.x=offset_x+tree_offset+indent;
-		itemspot.width=inrect.x+inrect.width-itemspot.x;
+		itemspot.x = offset_x+tree_offset+indent;
+		itemspot.width = inrect.x+inrect.width-itemspot.x;
 		drawsep(i->name,&itemspot);
 		return;
 	}
 
 	 // Draw the item icon and text for each detail
-	int start=0;
-	if (columns.n==0) start=-1;
+	int start = 0;
+	if (columns.n == 0) start = -1;
 	MenuItem *ii;
-	for (int c=start; c<columns.n; c++) {
-		ii=i;
-		if (c>=0) { //we have columns
+	for (int c = start; c < columns.n; c++) {
+		ii = i;
+		if (c >= 0) { //we have columns
 			itemspot.x = offset_x + columns.e[c]->pos + (c == tree_column ? suboffset : 0);
 			itemspot.width = columns.e[c]->width;
 			ii = ii->GetDetail(columns.e[c]->detail);
@@ -1398,23 +1393,6 @@ void TreeSelector::drawItemContents(MenuItem *i,int offset_x,int suboffset,int o
 		}
 	}
 }
-
-// *** if removing, update drawItemContents() to not use the "fill" part...
-//
-////! Draw the item with the index value c. ***** no longer used? remove?
-///*!  All the things that go on an item line:\n
-// * [status graphic=whether highlighted][check toggle][graphic icon][text][submenu indicator]
-// *
-// * First, determine if this item is actually on screen, and find the area to draw it in. Return if not on screen.
-// * If it is found, then find the item and call drawitem(theitem,thebounds).
-// */
-//void TreeSelector::drawitem(int c)
-//{
-//	if (!ValidDrawable()) return;
-//
-//	if (c<0 || c>=numItems()) return;
-//	drawItemContents(item(c), offsetx,offsety,1);
-//}
 
 
 /*! flags are parsed from mitem->name. There is one flag per byte of mitem->name.
@@ -1473,29 +1451,23 @@ void TreeSelector::drawitemname(MenuItem *mitem,IntRectangle *rect)
 
 	unsigned long f,g;
 	double fasc,tx,gx,iw;
-	fasc = win_themestyle->normal->ascent();
+	fasc = UIScale() * win_themestyle->normal->ascent();
 
 	getitemextent(mitem,&iw,NULL,&gx,&tx); // status graphic and name x coordinate
 
-	gx+=rect->x; tx+=rect->x; // |blah    |
-	//else if (menustyle&TREESEL_RIGHT) { gx=rect->x+rect->width-iw+gx; tx=rect->x+rect->width-iw+tx; } // |   blah|
-	//else { gx=rect->x+(rect->width-iw+gx)/2; tx=rect->x+(rect->width-iw+tx)/2; } // |   blah   |
-
+	gx += rect->x; tx+=rect->x; // |blah    |
 	
 	 // set proper foreground and background colors
-	//DBG cerr<<"menu "<<(menu->title?menu->title:"untitled")<<" item "<<c<<": "<<(mitem->state&LAX_HAS_SUBMENU?1:0)<<endl;
-	if ((mitem->state&LAX_MSTATE_MASK)>LAX_ON) { // grayed, hidden=0, off=1, on=2, so this is same as>2
-		//DBG cerr <<"item "<<(mitem->state&LAX_ON?1:0)<<" "<<mitem->name<<endl;
+	if ((mitem->state & LAX_MSTATE_MASK) > LAX_ON) { // grayed, hidden=0, off=1, on=2, so this is same as>2
 		g = win_themestyle->bg.Pixel();
 		f = win_themestyle->fggray.Pixel();
 	} else {
-		//DBG cerr <<"item "<<(mitem->state&LAX_ON?1:0)<<" "<<mitem->name<<endl;
 		g = win_themestyle->bg.Pixel();
 		f = win_themestyle->fg.Pixel();
 	}
 
 	 // do the actual drawing
-	if (mitem->state&LAX_ON) { // draw on
+	if (mitem->state & LAX_ON) { // draw on
 		g = win_themestyle->bghl.Pixel();
 		f = win_themestyle->fghl.Pixel();
 	} 
@@ -1540,8 +1512,8 @@ void TreeSelector::drawsep(const char *name,IntRectangle *rect)
  */
 void TreeSelector::SendDetail(int which)
 {
-	senddetail=which;
-	menustyle|=TREESEL_SEND_DETAIL;
+	senddetail = which;
+	menustyle |= TREESEL_SEND_DETAIL;
 }
 
 //! Send message to owner.
@@ -2095,10 +2067,6 @@ char TreeSelector::ToggleChar(char current)
 
 	if (islower(current)) return toupper(current);
 	if (isupper(current)) return tolower(current);
-	// if (current == 'E') return 'e';
-	// if (current == 'e') return 'E';
-	// if (current == 'L') return 'l';
-	// if (current == 'l') return 'L';
 	if (current != ' ') return ' ';
 	if (current == ' ') return '.';
 	return current;
@@ -2252,8 +2220,6 @@ void TreeSelector::editInPlace(int which)
 int TreeSelector::RBDown(int x,int y,unsigned int state,int count,const LaxMouse *d)
 {
 	buttondown.down(d->id,RIGHTBUTTON, x,y);
-	//if (buttondown==RIGHTBUTTON) timerid=app->addmousetimer(this);
-	
 	return 0;
 }
 
@@ -2262,11 +2228,10 @@ int TreeSelector::RBUp(int x,int y,unsigned int state,const LaxMouse *d)
 {
 	if (!buttondown.isdown(d->id,RIGHTBUTTON)) return 1;
 	buttondown.up(d->id,RIGHTBUTTON);
-	//if (!buttondown) app->removetimer(timerid);
 	return 0;
 }
 
-//! Middle button and drag drags the screen around (with potential autoscrolling)
+//! Middle button and drag drags the screen around (with potential autoscrolling)111
 int TreeSelector::MBDown(int x,int y,unsigned int state,int count,const LaxMouse *d)
 {
 	buttondown.down(d->id,MIDDLEBUTTON, x,y);
@@ -2390,7 +2355,7 @@ int TreeSelector::Idle(int tid, double delta)
  */
 int TreeSelector::makeinwindow()
 {
-	if (textheight<=0) return 0;
+	if (textheight <= 0) return 0;
 
 	IntRectangle itemrect;
 	if (!findRect(ccuritem,&itemrect)) return 0;
@@ -2528,22 +2493,23 @@ void TreeSelector::syncWindows()
 void TreeSelector::SetLineHeight(int ntotalheight,int newleading, char forcearrange)
 {
 	 // **** change font size???
-	if (ntotalheight<=0 || newleading<0) return;
-	textheight=ntotalheight-newleading;
-	iwidth=textheight;
-	leading=newleading;
-	padg=textheight/2;
-	if (forcearrange==1) syncWindows(); //syncwindows calls arrangeItems...
-	else if (forcearrange==2) arrangeItems();
-	else if (forcearrange==3) arrangeItems();
-	needtodraw=1;
-	//*** flush any selected items?
+	 if (ntotalheight <= 0 || newleading < 0) return;
+	 textheight = ntotalheight - newleading;
+	 iwidth     = textheight;
+	 leading    = newleading;
+	 padg       = textheight / 2;
+	 if (forcearrange == 1) syncWindows();  // syncwindows calls arrangeItems...
+	 else if (forcearrange == 2) arrangeItems();
+	 else if (forcearrange == 3) arrangeItems();
+	 needtodraw = 1;
+	 //*** flush any selected items?
 }
 	
 //! Set outrect to be the window minus space for title.
 void TreeSelector::findoutrect()
 {
 	outrect.x = outrect.y = 0;
+	if (pad < 0) pad = textheight * .2;
 
 	if (menustyle&TREESEL_USE_TITLE && menu->title) outrect.y += textheight+pad; //one line for title
 	if (columns.n)  outrect.y += textheight+pad; //one line for column heads
@@ -2561,7 +2527,8 @@ void TreeSelector::findoutrect()
  */
 void TreeSelector::adjustinrect()
 {
-	inrect.x      +=   pad; 
+	if (pad < 0) pad = textheight * .2;
+	inrect.x      +=   pad;
 	inrect.width  -= 2*pad;
 	inrect.y      +=   pad;
 	inrect.height -= 2*pad;
@@ -2600,6 +2567,7 @@ int TreeSelector::WrapToMouse(int mouseid, anXWindow *onedgeofthis) //onedgeofth
     return WrapToPosition(x,y,screen,onedgeofthis);
 }
 
+
 /*! Orient the window's size and position to be near the given screen coordinates.
  *
  *  If onedgeofthis is NULL, it prefers to put the window to the left of the mouse. 
@@ -2622,9 +2590,9 @@ int TreeSelector::WrapToPosition(int screen_x, int screen_y, int screen, anXWind
 	 // as close to and to the right of the mouse as possible
 
 	 // get screen geometry
-	int px,py,     // what will be the window x,y
-		ew=0,eh=0; // extent of wrapped window
-	int screen_width,screen_height;
+	int px, py;     // what will be the window x,y
+	int ew=0, eh=0; // extent of wrapped window
+	int screen_width, screen_height;
 	int x = screen_x, y = screen_y, scrx, scry;
 	ScreenInformation *scr = app->FindNearestMonitor(screen, screen_x, screen_y);
 	scrx = scr->x;
@@ -2632,24 +2600,14 @@ int TreeSelector::WrapToPosition(int screen_x, int screen_y, int screen, anXWind
 	screen_width = scr->width;
 	screen_height= scr->height;
 
+	if (textheight <= 0) textheight = UIScale() * win_themestyle->normal->textheight();
+	if (pad < 0) pad = textheight * .2;
+
 	 // -----find extent: ew,eh *** this only finds the text extent
-	if (textheight == 0) textheight = win_themestyle->normal->textheight();
-	if (leading==0) {
-		//------
-		leading=1;
-		//------
-		//if (menustyle&MENUSEL_CHECKBOXES) leading=pad;
-		//else leading=1;
-		//------
-		//MenuItem *im;
-		//int h=textheight;
-		//for (int c=0; c<visibleitems->menuitems.n; c++) {
-		//	im = visibleitems->menuitems.e[c];
-		//	if (!im || !im->image) continue;
-		//	if (im->image->h()>h) h = im->image->h();
-		//	if (h > textheight+leading) leading = h-textheight;
-		//}
+	if (leading == 0) {
+		leading = 1 * UIScale();
 	}
+
 	win_w = screen_width;
 	win_h = screen_height;
 	findoutrect();

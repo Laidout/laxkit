@@ -33,7 +33,7 @@ using namespace std;
 namespace Laxkit {
 
 /*! \class NumSlider
- * \brief A slider control specifically for selecting integer numbers within a range.
+ * \brief A slider control specifically for selecting integer or double numbers within a range.
  *
  * The range is [min,max]. If NUMSLIDER_WRAP is part of win_style, then sliding through
  * numbers wraps around, rather than stops at min or max.
@@ -69,7 +69,7 @@ NumSlider::NumSlider(anXWindow *parnt,const char *nname,const char *ntitle,unsig
 
 	InstallColors(THEME_Panel);
 
-	if (win_w==0 || win_h==0) wraptoextent();
+	if (win_w==0 || win_h==0) WrapToExtent();
 }
 
 NumSlider::NumSlider(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
@@ -77,29 +77,29 @@ NumSlider::NumSlider(anXWindow *parnt,const char *nname,const char *ntitle,unsig
 		anXWindow *prev,unsigned long nowner,const char *nsendthis,const char *nlabel,double nmin,double nmax,double cur, double nstep)
 	: ItemSlider(parnt,nname,ntitle,nstyle,xx,yy,ww,hh,brder,prev,nowner,nsendthis)
 {
-	mode=0;
-	nitems=0;
+	mode   = 0;
+	nitems = 0;
 
-	win_style|=DOUBLES;
-	min=nmin;
-	max=nmax;
-	step=nstep; 
+	win_style |= DOUBLES;
+	min  = nmin;
+	max  = nmax;
+	step = nstep;
 
-	curnum=cur;
-	if (!(win_style&NO_MINIMUM) && curnum<min) curnum=min;
-	else if (!(win_style&NO_MAXIMUM) && curnum>max) curnum=max;
+	curnum = cur;
+	if      (!(win_style & NO_MINIMUM) && curnum < min) curnum = min;
+	else if (!(win_style & NO_MAXIMUM) && curnum > max) curnum = max;
 
-	curitem=curnum;
+	curitem = curnum;
 
-	lastitem=-1;
-	movewidth=2;
-	label=NULL;
-	labelbase=NULL;
-	makestr(label,nlabel);
+	lastitem  = -1;
+	movewidth = 2;
+	label     = NULL;
+	labelbase = NULL;
+	makestr(label, nlabel);
 
 	InstallColors(THEME_Panel);
 
-	if (win_w==0 || win_h==0) wraptoextent();
+	if (win_w == 0 || win_h == 0) WrapToExtent();
 }
 
 NumSlider::~NumSlider()
@@ -130,20 +130,23 @@ const char *NumSlider::Label(const char *nlabel)
 }
 
 //! Find the maximum extent of the items, and set win_w,win_h to them if they are 0.
-void NumSlider::wraptoextent()
+void NumSlider::WrapToExtent()
 {
 	char num[30+(label?strlen(label):0)];
-	double x,y,x2,y2;
+	double ex,ey,ex2,ey2;
 
-	if (label) sprintf(num,"%s%d ",label,(int)max); else sprintf(num,"%d ",(int)max);
-	win_themestyle->normal->Extent(num,-1,&x,&y,NULL,NULL);
-	if (label) sprintf(num,"%s%d ",label,(int)min); else sprintf(num,"%d ",(int)min);
-	win_themestyle->normal->Extent(num,-1,&x2,&y2,NULL,NULL);
+	if (label) sprintf(num,"%s%dMM",label,(int)max); else sprintf(num,"%dMM",(int)max);
+	win_themestyle->normal->Extent(num,-1,&ex,&ey,NULL,NULL);
+	if (label) sprintf(num,"%s%dMM",label,(int)min); else sprintf(num,"%dMM",(int)min);
+	win_themestyle->normal->Extent(num,-1,&ex2,&ey2,NULL,NULL);
 
-	if (x2>x) x=x2;
-	if (y2>y) y=y2;
-	if (win_w==0) win_w=x;
-	if (win_h==0) win_h=y;
+	if (ex2 > ex) ex = ex2;
+	if (ey2 > ey) ey = ey2;
+	ex *= UIScale();
+	ey *= UIScale();
+	double pad = ey * .1;
+	if (win_w == 0) win_w = ex + 2*pad;
+	if (win_h == 0) win_h = ey + 2*pad;
 }
 
 //int NumSlider::MouseMove(int x,int y,unsigned int state,const LaxMouse *d)
@@ -155,18 +158,18 @@ void NumSlider::Refresh()
 	if (!win_on || !needtodraw) return;
 
 
-	Displayer *dp=MakeCurrent();
+	Displayer *dp = MakeCurrent();
 	if (hover) {
 		dp->NewFG(coloravg(win_themestyle->bg,win_themestyle->fg,.07));
 		dp->drawrectangle(0,0,win_w,win_h, 1);
 	} else dp->ClearWindow();
 
-	dp->font(win_themestyle->normal);
+	dp->font(win_themestyle->normal, UIScale() * win_themestyle->normal->textheight());
 
 	 //draw arrows
-	int ww=win_w/2;
-	int hh=win_h/2;
-	if (win_style&EDITABLE) ww = win_themestyle->normal->textheight();
+	int ww = win_w/2;
+	int hh = win_h/2;
+	if (win_style & EDITABLE) ww = UIScale() * win_themestyle->normal->textheight();
 
 	 // draw left arrow
 	dp->NewFG(coloravg(win_themestyle->bg,win_themestyle->fg,.2));
@@ -179,7 +182,7 @@ void NumSlider::Refresh()
 	 //draw number
 	if (hover==LAX_CENTER) {
 		dp->NewFG(coloravg(win_themestyle->bg,win_themestyle->fg,.2));
-		hh = win_themestyle->normal->textheight()*1.1;
+		hh = UIScale() * win_themestyle->normal->textheight() * 1.1;
 		dp->drawrectangle(ww,win_h/2-hh/2,win_w-2*ww,hh, 1);
 	}
 
@@ -261,6 +264,8 @@ int NumSlider::Select(double nn)
 	return curitem;
 }
 
+/*! Mode can be 1 for editing number in a box, or 0 for normal.
+ */
 int NumSlider::Mode(int newmode)
 {
 	if (newmode==1 && mode!=1) {
@@ -269,9 +274,11 @@ int NumSlider::Mode(int newmode)
 		if ((win_style&DOUBLES)) sprintf(num,"%.8g",curnum);
 		else sprintf(num,"%d",(int)curnum);
 
-		LineEdit *le=new LineEdit(this,"inputedit",NULL,
+		double th = win_themestyle->normal->textheight();
+
+		LineEdit *le = new LineEdit(this,"inputedit",NULL,
 			 ANXWIN_OUT_CLICK_DESTROYS|LINEEDIT_DESTROY_ON_ENTER|((win_style&DOUBLES) ? LINEEDIT_FLOAT : LINEEDIT_INT),
-			 0,0, win_w-4,win_h-4,2,
+			 th,0, win_w-4-2*th, win_h-4, 2,
 			 NULL,object_id,"lineedit",
 			 num,0);
 
@@ -291,6 +298,15 @@ int NumSlider::Mode(int newmode)
 
 	needtodraw=1;
 	return mode;
+}
+
+void NumSlider::SetFloatRange(double nmin, double nmax, double nstep)
+{
+	win_style |= DOUBLES;
+	min = nmin;
+	max = nmax;
+	step = nstep;
+	needtodraw = 1;
 }
 
 //! Catches when the lineedit receives enter..
@@ -321,6 +337,34 @@ int NumSlider::Event(const EventData *e,const char *mes)
 	return 0;
 }
 
+int NumSlider::send()
+{
+	cerr << "sending NumSlider"<<endl;
+
+	if (!win_owner || !win_sendthis) return 0;
+
+	SimpleMessage *ievent = new SimpleMessage(NULL, getid(curitem),0,0,0);
+	if (win_style & DOUBLES) ievent->str = newprintfstr("%f", curnum);
+	else ievent->str = newprintfstr("%d", (int)(curnum+.5));
+
+	app->SendMessage(ievent, win_owner, win_sendthis, object_id);
+	needtodraw = 1;
+	return 1;
+}
+
+
+int NumSlider::CharInput(unsigned int ch, const char *buffer,int len,unsigned int state, const LaxKeyboard *kb)
+{
+	if (ch == LAX_Esc) {
+		anXWindow *inputedit = findChildWindowByName("inputedit");
+		if (inputedit) {
+			Mode(0);
+			return 0;
+		}
+	}
+
+	return ItemSlider::CharInput(ch, buffer, len, state, kb);
+}
 
 } // namespace Laxkit
 

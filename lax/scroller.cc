@@ -166,9 +166,9 @@ Scroller::~Scroller()
 {}
 
 
-//int Scroller::ThemeChange(Theme *theme)
+//void Scroller::ThemeChanged()
 //{
-//	installColors(theme->GetStyle(THEME_Panel));
+//	anXWindow::ThemeChanged();
 //	return 0;
 //}
 

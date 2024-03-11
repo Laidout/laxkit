@@ -48,8 +48,6 @@ namespace Laxkit {
  * Uses a MenuInfo class to store the items, which may or may not be local to
  * this window. This enables easy reuse of menu lists. Only the top level of the
  * MenuInfo is used, not submenus.
- *
- * \todo Make optional tab-completing input similar to NumInputSlider, perhaps in a subclass.
  */
 
 bool SliderPopup::default_icon_from_font_size = true;
@@ -64,7 +62,7 @@ SliderPopup::SliderPopup(anXWindow *parnt,const char *nname,const char *ntitle,u
 	icon_from_font_size = default_icon_from_font_size;
 	icon_height = default_icon_height;
 
-	curitem=-1;
+	curitem = -1;
 
 	if (nitems) {
 		items = nitems;
@@ -73,11 +71,12 @@ SliderPopup::SliderPopup(anXWindow *parnt,const char *nname,const char *ntitle,u
 		items = new MenuInfo;
 	}
 
-	pad = gap = win_themestyle->normal->textheight()/3;
+	double th = UIScale() * win_themestyle->normal->textheight();
+	pad = gap = th/3;
 	if (win_h == 0) {
-		win_h = 2*pad + win_themestyle->normal->textheight();
+		win_h = 2*pad + th;
 	}
-	arrowwidth = win_themestyle->normal->textheight()*2/3;
+	arrowwidth = th*2/3;
 }
 
 //! Delete items if it is local.
@@ -86,16 +85,16 @@ SliderPopup::~SliderPopup()
 	if (items) items->dec_count();
 }
 
-int SliderPopup::ThemeChange(Theme *theme)
+void SliderPopup::ThemeChanged()
 {
-	anXWindow::ThemeChange(theme);
+	anXWindow::ThemeChanged();
 
-	pad = gap = win_themestyle->normal->textheight()/3;
+	double th = UIScale() * win_themestyle->normal->textheight();
+	pad = gap = th/3;
 	if (win_h == 0) {
-		win_h = 2*pad + win_themestyle->normal->textheight();
+		win_h = 2*pad + th;
 	}
-	arrowwidth = win_themestyle->normal->textheight()*2/3;
-	return 0;
+	arrowwidth = th*2/3;
 }
 
 //! Set the dimensions to the maximum bounds of the entries.
@@ -114,19 +113,19 @@ void SliderPopup::WrapToExtent()
 		if (items->menuitems.e[c]->state & LAX_SEPARATOR) continue;
 		if (items->menuitems.e[c]->state & SLIDER_IGNORE_ON_BROWSE) continue;
 
-		label=items->menuitems.e[c]->name;
-		item=items->menuitems.e[c];
-		if (item) img=item->image; else img=NULL;
+		label = items->menuitems.e[c]->name;
+		item  = items->menuitems.e[c];
+		if (item) img = item->image; else img = NULL;
 		
 		get_placement(img,win_themestyle->normal,label,gap,(win_style&SLIDER_WHAT_MASK)>>21,
-					  &w,&h,NULL,NULL,NULL,NULL, icon_from_font_size ? icon_height : 0);
-		if (w>maxw) maxw=w;
-		if (h>maxh) maxh=h;
+					  &w,&h,NULL,NULL,NULL,NULL, icon_from_font_size ? icon_height : 0, UIScale());
+		if (w > maxw) maxw = w;
+		if (h > maxh) maxh = h;
 	}
-	maxw+=arrowwidth+2*pad;
-	maxh+=2*pad;
-	win_w=maxw;
-	win_h=maxh;
+	maxw += arrowwidth+2*pad;
+	maxh += 2*pad;
+	win_w = maxw;
+	win_h = maxh;
 }
 
 void SliderPopup::GetPlacement(double *w,double *h,double *tx,double *ty,double *ix,double *iy, double *iw,double *ih)
@@ -170,8 +169,8 @@ void SliderPopup::Refresh()
 {
 	if (!win_on || !needtodraw) return;
 
-	Displayer *dp=MakeCurrent();
-	double th = win_themestyle->normal->textheight();
+	Displayer *dp = MakeCurrent();
+	double th = UIScale() * win_themestyle->normal->textheight();
 	dp->font(win_themestyle->normal, th);
 
 	dp->NewBG(win_themestyle->bg);
@@ -182,15 +181,15 @@ void SliderPopup::Refresh()
 	dp->NewFG(win_themestyle->fg);
 
 	if (curitem >= 0) {
-		char *label=items->menuitems.e[curitem]->name;
-		MenuItem *item=items->menuitems.e[curitem];
-		LaxImage *img=NULL;
-		if (item) img=item->image;
+		char *label = items->menuitems.e[curitem]->name;
+		MenuItem *item = items->menuitems.e[curitem];
+		LaxImage *img = NULL;
+		if (item) img = item->image;
 			
 		 // draw item
 		int tx,ty,ix,iy,w,h;
 		get_placement(img,win_themestyle->normal,label,gap,(win_style&SLIDER_WHAT_MASK)>>21,
-					  &w,&h,&tx,&ty,&ix,&iy, icon_from_font_size ? icon_height : 0);
+					  &w,&h,&tx,&ty,&ix,&iy, icon_from_font_size ? icon_height : 0, UIScale());
 		if (tx != LAX_WAY_OFF) dp->textout((win_w-arrowwidth-w)/2+tx,(win_h-h)/2+ty, label,-1, LAX_LEFT|LAX_TOP);
 		if (ix != LAX_WAY_OFF) {
 			if (icon_from_font_size) {

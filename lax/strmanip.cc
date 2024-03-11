@@ -577,6 +577,21 @@ int has_outer_whitespace(const char *str)
 	return 0;
 }
 
+bool starts_with(const char *str, const char *starts)
+{
+	if (!str || !starts) return false;
+	return (strstr(str, starts) == str);
+}
+
+bool ends_with(const char *str, const char *ends)
+{
+	if (!str || !ends) return false;
+	int l = strlen(ends);
+	int num_bytes = strlen(str);
+	if (l > num_bytes) return false;
+	return strcmp(str + num_bytes-l, ends) == 0;
+}
+
 //! Insert data into dest.
 /*! dest will be reassigned to a new char[]. If atpos==0, then this
  * function is the same as prependstr(dest,data). If atpos<0 or 

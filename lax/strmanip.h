@@ -56,6 +56,8 @@ char *extendstr(char *&dest,int n);
 char *extendstr(char *&dest,int &curmax,int n); /* assumes curmax>strlen */
 char *stripws(char *dest,char where=3);
 int has_outer_whitespace(const char *str);
+bool starts_with(const char *str, const char *starts);
+bool ends_with(const char *str, const char *ends);
 int squish(char *exprs,int p1,int p2); /* remove p1-p2, including p2 */
 						    /* doesn't create new str */
 							/* returns #chars removed */

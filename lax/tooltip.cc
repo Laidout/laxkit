@@ -83,12 +83,12 @@ ToolTip::ToolTip(const char *newtext,int mouse)
 		while (thetext[c]!='\0' && thetext[c]!='\n') c++;
 		nl++;
 		if (c==c2) continue;
-	    t = win_themestyle->normal->Extent(thetext+c2,c-c2);
+	    t = UIScale() * win_themestyle->normal->Extent(thetext+c2,c-c2);
 		if (t>win_w) win_w=t;
 		if (thetext[c]!='\0') c++;
 	}
 	DBG cerr <<"Tooltip:  nl="<<nl<<endl;
-	textheight = win_themestyle->normal->textheight();
+	textheight = UIScale() * win_themestyle->normal->textheight();
 	win_w += app->theme->default_padx*2;
 	win_h  = app->theme->default_pady*2 + nl*textheight;
 
@@ -105,8 +105,6 @@ ToolTip::ToolTip(const char *newtext,int mouse)
 	c=strlen(thetext)-20;
 	if (c<0) c=0;
 	app->addtimer(this,5000+c*50,5000+c*50,5001+c*50); // last for max of 5 seconds + 1sec / 20 chars
-	//DBG cerr <<"Done Creating Tooltip..."<<endl;
-
 }
 
 ToolTip::~ToolTip()
@@ -122,7 +120,7 @@ void ToolTip::Refresh()
 	
 	Displayer *dp = MakeCurrent();
 
-	dp->font(win_themestyle->normal, win_themestyle->normal->textheight());
+	dp->font(win_themestyle->normal, UIScale() * win_themestyle->normal->textheight());
 	dp->NewFG(win_themestyle->fg);
 	dp->NewBG(win_themestyle->bg);
 	dp->ClearWindow();

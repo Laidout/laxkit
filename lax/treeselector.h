@@ -103,7 +103,7 @@ class TreeSelector : public ScrolledWindow
 	int mousedragmode; 
 	int offsetx,offsety;
 	int firstinw;
-	int textheight,lineheight,pagesize;
+	int textheight,lineheight,pagesize; //these have ui scale applied
 	int timerid;
 	int senddetail;
 	int dragflag;
@@ -189,10 +189,11 @@ class TreeSelector : public ScrolledWindow
 	int sort_descending;
 	bool sort_dirs_first;
 
-	int gap;
 	unsigned long highlight,shadow;
 	unsigned long long menustyle;
-	int padg,pad,leading, iwidth, iconwidth;
+	int column_gap;
+	int padg,pad,leading, iwidth;
+	double iconwidth; //1.0 == textheight
 
 	TreeSelector(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
 				int xx,int yy,int ww,int hh,int brder,
@@ -218,6 +219,8 @@ class TreeSelector : public ScrolledWindow
 	virtual int FocusOn(const FocusChangeData *e);
 	virtual int FocusOff(const FocusChangeData *e);
 	virtual int Event(const EventData *e,const char *mes);
+	virtual void UIScaleChanged();
+
 	virtual int WrapToMouse(int mouseid, anXWindow *onedgeofthis=0);
 	virtual int WrapToPosition(int screen_x, int screen_y, int screen, anXWindow *onedgeofthis = nullptr);
 

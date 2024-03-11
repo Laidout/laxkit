@@ -188,7 +188,7 @@ int ViewerWindow::init()
 
 	 //now actually add the windows
 
-	double th = win_themestyle->normal->textheight();
+	double th = UIScale() * win_themestyle->normal->textheight();
 	rulerh    = th * 1.4;
 	scrollerh = th * 1.2;
 

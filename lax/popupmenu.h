@@ -31,6 +31,9 @@ namespace Laxkit {
 
 class PopupMenu : public TreeSelector
 {
+  private:
+  	int originating_mouse;
+
   protected:
 	PopupMenu *parentmenu, *submenu;
 	int outtimer;
@@ -47,6 +50,8 @@ class PopupMenu : public TreeSelector
 				);
 	virtual ~PopupMenu();
 	virtual const char *whattype() { return "PopupMenu"; }
+	virtual void CustomTheme(Theme *new_theme);
+	virtual int init();
 	virtual int Idle(int tid, double delta);
 	virtual int MouseMove(int x,int y,unsigned int state,const LaxMouse *d);
 	virtual int RBDown(int x,int y,unsigned int state,int count,const LaxMouse *d);

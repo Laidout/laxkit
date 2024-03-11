@@ -30,9 +30,6 @@
 
 #include <lax/boxarrange.h>
 
-//template implementation:
-#include <lax/refptrstack.cc>
-
 
 #include <iostream>
 using namespace std;
@@ -101,7 +98,7 @@ namespace Laxkit {
  * held in flags. More complicated arrangements are made
  * with other derived classes, notably RowColBox and TableBox.
  * 
- * This is a moderately adaptible structure to hold info to lay out windows and icons nicely. 
+ * This is a moderately adaptable structure to hold info to lay out windows and icons nicely. 
  * It is simplification of the box-glue-penalty format of 
  * <a href="http://www.tug.org">TeX</a>. Penalties are restricted to nothing special (==0),
  * force line break (<0), and never line break (>0). The glue and box are also roughly combined into this class,

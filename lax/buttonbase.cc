@@ -295,35 +295,35 @@ int ButtonBase::LBUp(int x,int y,unsigned int wstate,const LaxMouse *d)
 	return 0;
 }
 
-//! For Momentary buttons, send() with direction=1.
-int ButtonBase::WheelDown(int x,int y,unsigned int wstate,int count,const LaxMouse *d)
-{
-	if (Grayed()) return 0;
-	if (win_style&BUTTON_MOMENTARY || (!(win_style&BUTTON_TOGGLE))) {
-		//if (state==LAX_ON) state=LAX_OFF;
-		//if (mousein) state=oldstate;
-		state=LAX_OFF;
-		mousein=0;
-		needtodraw=1;
-	}
-	send(d->id,1);
-	return 0;
-}
+// //! For Momentary buttons, send() with direction=1.
+// int ButtonBase::WheelDown(int x,int y,unsigned int wstate,int count,const LaxMouse *d)
+// {
+// 	if (Grayed()) return 0;
+// 	if (win_style&BUTTON_MOMENTARY || (!(win_style&BUTTON_TOGGLE))) {
+// 		//if (state==LAX_ON) state=LAX_OFF;
+// 		//if (mousein) state=oldstate;
+// 		state=LAX_OFF;
+// 		mousein=0;
+// 		needtodraw=1;
+// 	}
+// 	send(d->id,1);
+// 	return 0;
+// }
 
-//! For Momentary buttons, send() with direction=-1.
-int ButtonBase::WheelUp(int x,int y,unsigned int wstate,int count,const LaxMouse *d)
-{
-	if (Grayed()) return 0;
-	if (win_style&BUTTON_MOMENTARY || (!(win_style&BUTTON_TOGGLE))) {
-		//if (state==LAX_ON) state=LAX_OFF;
-		//if (mousein) state=oldstate;
-		state=LAX_OFF;
-		mousein=0;
-		needtodraw=1;
-	}
-	send(d->id,-1);
-	return 0;
-}
+// //! For Momentary buttons, send() with direction=-1.
+// int ButtonBase::WheelUp(int x,int y,unsigned int wstate,int count,const LaxMouse *d)
+// {
+// 	if (Grayed()) return 0;
+// 	if (win_style&BUTTON_MOMENTARY || (!(win_style&BUTTON_TOGGLE))) {
+// 		//if (state==LAX_ON) state=LAX_OFF;
+// 		//if (mousein) state=oldstate;
+// 		state=LAX_OFF;
+// 		mousein=0;
+// 		needtodraw=1;
+// 	}
+// 	send(d->id,-1);
+// 	return 0;
+// }
 
 //! Sends on enter.
 int ButtonBase::CharInput(unsigned int ch,const char *buffer,int len,unsigned int state,const LaxKeyboard *d)

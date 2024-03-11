@@ -167,7 +167,7 @@ int ItemSlider::LBUp(int x,int y,unsigned int state,const LaxMouse *d)
 	int ww=win_w/2;
 
 	if (win_style&EDITABLE) {
-		ww = win_themestyle->normal->textheight();
+		ww = UIScale() * win_themestyle->normal->textheight();
 		if (dragged<movewidth && x>=ww && x<win_w-ww) {
 			Mode(1);
 			return 0;
@@ -192,8 +192,8 @@ int ItemSlider::Mode(int newmode)
 
 int ItemSlider::scan(int x,int y,unsigned int state)
 {
-	int ww=win_w/2;
-	if (win_style&EDITABLE) ww = win_themestyle->normal->textheight();
+	int ww = win_w/2;
+	if (win_style&EDITABLE) ww = UIScale() * win_themestyle->normal->textheight();
 
 	if (x<ww) return LAX_LEFT;
 	else if (x>win_w-ww) return LAX_RIGHT;
@@ -270,6 +270,12 @@ int ItemSlider::Event(const EventData *e,const char *mes)
 	}
 	
 	return anXWindow::Event(e,mes);
+}
+
+
+int ItemSlider::CharInput(unsigned int ch, const char *buffer,int len,unsigned int state, const LaxKeyboard *kb)
+{
+	return anXWindow::CharInput(ch, buffer, len, state, kb);
 }
 
 

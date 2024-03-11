@@ -214,9 +214,9 @@ class anXWindow : virtual public EventReceiver,
 	virtual char *getSelectionData(int *len,const char *property,const char *targettype,const char *selection);
 
  public:
-
-	WindowStyle   *win_themestyle;
 	anXApp        *app;
+ 	Theme         *win_theme;
+	WindowStyle   *win_themestyle;
  	char          *win_name;
  	char          *win_title;
 	anXWindow     *win_parent;
@@ -227,7 +227,6 @@ class anXWindow : virtual public EventReceiver,
 	int           win_pointer_shape;
 	char          win_on;
 	char          win_active;
-	double        win_uiscale; //while this can be per window, usually it reflects global theme->ui_scale
 	double        win_cur_uiscale; //if <= 0, makes UIScale recompute
 
 	 //core functions needed by anXApp
@@ -287,8 +286,10 @@ class anXWindow : virtual public EventReceiver,
 	virtual int WheelUp(int x,int y,unsigned int state,int count,const LaxMouse *d) { return 1; }
 	virtual int WheelDown(int x,int y,unsigned int state,int count,const LaxMouse *d) { return 1; }
 
-	virtual int ThemeChange(Theme *theme);
-	virtual void UIScaleChange();
+	virtual Theme *GetTheme() const;
+	virtual void CustomTheme(Theme *new_theme);
+	virtual void ThemeChanged(); // called when theme changes
+	virtual void UIScaleChanged();
 	virtual double UIScale();
 
 	virtual int FocusOn(const FocusChangeData *e);
@@ -442,8 +443,6 @@ class anXApp : virtual public anObject
 	virtual int managefocus(anXWindow *ww, EventData *ev);
 	virtual void tooltipcheck(EventData *event, anXWindow *ww);
 	
-	virtual void NotifyThemeChange(anXWindow *win);
-
   public:
 
 	 //Other public variables

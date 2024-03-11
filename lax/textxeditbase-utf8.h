@@ -76,7 +76,7 @@ class TextXEditBaseUtf8 : public anXWindow, public TextEditBaseUtf8
  	char firsttime,con;
  	long dpos,nlines;
 	long oldsellen,oldcp;
-	double textascent,textheight,textdescent;
+	double textascent,textheight,textdescent; // these have UIScale applied already
 	unsigned long curtextcolor,textbgcolor;
 	unsigned long curbkcolor,bkwrongcolor,bkwrongcolor2,wscolor;
 	DoubleRectangle textrect;
@@ -95,6 +95,7 @@ class TextXEditBaseUtf8 : public anXWindow, public TextEditBaseUtf8
 							 const char *newtext=NULL,unsigned long ntstyle=0,int ncntlchar=0);
 	virtual ~TextXEditBaseUtf8();
 	virtual int init();
+	virtual void UIScaleChanged();
 	virtual void Refresh();
 	virtual int MBUp(int x,int y,unsigned int state, const LaxMouse *d);
 	virtual int FocusOn(const FocusChangeData *e);

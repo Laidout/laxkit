@@ -46,7 +46,7 @@ class IconManager : public Laxkit::anObject, public Laxkit::PtrStack<IconNode>
 {
   protected:
 	Laxkit::PtrStack<char> icon_path;
-	Laxkit::PtrStack<char> broken;
+	Laxkit::PtrStack<char> broken; //stack of string ids
 
 	virtual Laxkit::LaxImage *findicon(const char *name, bool save_broken);
 
@@ -70,6 +70,7 @@ class IconManager : public Laxkit::anObject, public Laxkit::PtrStack<IconNode>
 	virtual int RemovePath(const char *oldpath);
 	virtual int NumPaths() { return icon_path.n; }
 	virtual const char *GetPath(int index);
+	virtual int PreloadAll();
 
 	virtual int NumBroken() { return broken.n; }
 	virtual const char *Broken(int i);

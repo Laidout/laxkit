@@ -78,16 +78,23 @@ MessageBar::MessageBar(anXWindow *pwindow,const char *nname,const char *ntitle,u
 						int nx,int ny,int nw,int nh,int brder,const char *newtext, int pad_x, int pad_y) 
 				: anXWindow(pwindow,nname,ntitle,nstyle, nx,ny, nw,nh,brder, NULL,0,NULL) 
 {
-	needtodraw=1;
-	firsttime=1;
-	thetext=NULL;
-	nlines=0;
-	indents=NULL;
-	DBG if (!newtext) cerr <<WindowTitle()<<": no new text"<<endl;
-	DBG else cerr <<"New Mesbartext:"<<newtext<<endl;
+	needtodraw = 1;
+	firsttime  = 1;
+	thetext    = NULL;
+	nlines     = 0;
+	indents    = NULL;
+
+	InstallColors(THEME_Panel);
+
+	DBG if (!newtext) cerr << WindowTitle() << ": no new text" << endl;
+	DBG else cerr << "New Mesbartext:" << newtext << endl;
+
+	double th = win_themestyle->normal->textheight();
+	if (pad_x < 0) pad_x = th/3;
+	if (pad_y < 0) pad_y = th/3;
 
 	SetText(newtext);
-	msx=msy=ox=oy=ex=ey=0;
+	msx = msy = ox = oy = ex = ey = 0;
 	padx = pad_x;
 	pady = pad_y;
 
@@ -95,7 +102,6 @@ MessageBar::MessageBar(anXWindow *pwindow,const char *nname,const char *ntitle,u
 		win_style=(win_style&(~(MB_CENTER|MB_LEFT|MB_RIGHT|MB_TOP|MB_BOTTOM)))|MB_CENTER;
 	}
 
-	InstallColors(THEME_Panel);
 	SetupMetrics(); //sets win_w and win_h if nh==0
 }
 
@@ -139,45 +145,45 @@ int MessageBar::SetText(const char *newtext)
 //		inserted breaks, due to wrapping
 
 	if (!newtext) {
-		thetext=new char*[1];
-		thetext[0]=new char[2];
-		thetext[0][0]=' '; thetext[0][1]='\0';
-		indents=new double[1];
-		nlines=1;
-		firsttime=1;
-		needtodraw=1;
+		thetext    = new char *[1];
+		thetext[0] = newstr(" ");
+		indents    = new double[1];
+		nlines     = 1;
+		firsttime  = 1;
+		needtodraw = 1;
 		return 0;
 	}
-	nlines=1;
-	int nl=0;
-	int c,p;
-	int tl=strlen(newtext);
-	for (c=0; c<tl; c++) if (newtext[c]=='\n') nlines++;
-	indents=new double[nlines];
-	thetext=new char*[nlines];
-	
-	 // split text by \n
-	c=0;
-	for (nl=0; nl<nlines; nl++) {
-		p=c;
-		while (p<tl && newtext[p]!='\n') p++;
-		if (p==c) { // blank line
-			thetext[nl]=new char[2];
-			thetext[nl][0]=' ';
-			thetext[nl][1]='\0';
+
+	nlines = 1;
+	int nl = 0;
+	int c, p;
+	int tl = strlen(newtext);
+	for (c = 0; c < tl; c++) if (newtext[c] == '\n') nlines++;
+	indents = new double[nlines];
+	thetext = new char *[nlines];
+
+	// split text by \n
+	c = 0;
+	for (nl = 0; nl < nlines; nl++) {
+		p = c;
+		while (p < tl && newtext[p] != '\n') p++;
+		if (p == c) { // blank line
+			thetext[nl] = newstr(" "); // char[2];
+			//thetext[nl][0]=' ';
+			//thetext[nl][1]='\0';
 			c++;
 			continue;
+
 		}
-		thetext[nl]=new char[p-c+1];
-		strncpy(thetext[nl],newtext+c,p-c);
-		thetext[nl][p-c]='\0';
-		//DBG cerr <<"line "<<nl<<"("<<strlen(thetext[nl])<<"): "<<thetext[nl]<<endl;
-		c=p+1;
+		thetext[nl] = new char[p-c+1];
+		strncpy(thetext[nl], newtext+c, p-c);
+		thetext[nl][p-c] = '\0';
+		c = p+1;
 	}
 		
-	ox=oy=0;
-	firsttime=1;
-	needtodraw=1;
+	ox = oy = 0;
+	firsttime = 1; //forces a call to SetupMetrics() sometime
+	needtodraw = 1;
 	return 0;
 }
 
@@ -185,35 +191,40 @@ int MessageBar::SetText(const char *newtext)
 int MessageBar::SetupMetrics()
 {
 	if (!thetext || !app) return 1;
+	
 	int n;
-	ex=0;
-	for (n=0; n<nlines; n++) {
-		win_themestyle->normal->Extent(thetext[n],strlen(thetext[n]), &indents[n], &height, &fasc, &fdes);
-		if (indents[n]>ex) ex=indents[n];
+	ex = 0;
+	double w;
+	double scale = UIScale();
+
+	for (n = 0; n < nlines; n++) {
+		win_themestyle->normal->Extent(thetext[n],strlen(thetext[n]), &w, &height, &fasc, &fdes);
+		indents[n] = scale * w;
+		if (indents[n] > ex) ex = indents[n];
 	}
-	ey=nlines*height;
 
-	if (win_w==0) win_w=ex+2*padx;
-	if (win_h==0) win_h=ey+2*pady;
+	ey = scale * nlines * height;
 
-	if (win_style&MB_RIGHT) ox=win_w-ex-2*padx;
-	else if (win_style&MB_LEFT) ox=padx; 
-	else ox=(win_w-ex)/2; //center
+	if (win_w <= 0) win_w = ex + 2*scale*padx;
+	if (win_h <= 0) win_h = ey + 2*scale*pady;
 
-	for (n=0; n<nlines; n++) {
-		if (win_style&MB_RIGHT) indents[n]=win_w-indents[n]-2*padx-ox;
-		else if (win_style&MB_LEFT) indents[n]=padx-ox;
-		else indents[n]=(win_w-indents[n])/2-ox; //center
+	if (win_style & MB_RIGHT) ox = win_w - ex - 2*scale*padx;
+	else if (win_style&MB_LEFT) ox = scale*padx; 
+	else ox = (win_w - ex)/2; //center
+
+	for (n = 0; n < nlines; n++) {
+		if (win_style & MB_RIGHT) indents[n] = win_w - indents[n] - 2*scale*padx - ox;
+		else if (win_style & MB_LEFT) indents[n] = scale*padx - ox;
+		else indents[n] = (win_w - indents[n])/2 - ox; //center
 	}
 	
-	if (win_style&MB_TOP) oy=fasc+pady; 
-	else if (win_style&MB_BOTTOM) oy=win_h-ey+fasc-2*pady;
-	else oy=(win_h-ey)/2+fasc; //center
+	if (win_style & MB_TOP) oy = scale*(fasc + pady);
+	else if (win_style & MB_BOTTOM) oy = win_h - ey + scale*(fasc - 2*pady);
+	else oy = (win_h - ey)/2 + scale*fasc; //center
 	
-	//firsttime=0;
 	return 0;
 }
-	
+
 void MessageBar::Refresh()
 {
 	if (!win_on || !needtodraw) return;
@@ -228,7 +239,7 @@ void MessageBar::Refresh()
 	//DBG cerr <<"mesbar("<<WindowTitle()<<")drawing at: "<<ox<<','<<oy<<endl;
 	
 	Displayer *dp = MakeCurrent();
-	dp->font(win_themestyle->normal);
+	dp->font(win_themestyle->normal, UIScale()*win_themestyle->normal->textheight());
 
 	dp->NewBG(win_themestyle->bg.Pixel());
 	dp->NewFG(win_themestyle->fg);
@@ -236,13 +247,13 @@ void MessageBar::Refresh()
 
 	int l=0;
 	for (int c=0; c<nlines; c++) {
-		l=strlen(thetext[c]);
-		if (thetext[c][l-1]=='\n') l--;
-		dp->textout(ox+indents[c],oy+c*height, thetext[c],l, LAX_LEFT|LAX_BASELINE);
+		l = strlen(thetext[c]);
+		if (thetext[c][l-1] == '\n') l--;
+		dp->textout(ox+indents[c], oy+c*UIScale()*height, thetext[c],l, LAX_LEFT|LAX_BASELINE);
 	}
 
 	if (win_style & ANXWIN_DOUBLEBUFFER) SwapBuffers();
-	needtodraw=0;
+	needtodraw = 0;
 	return;
 }
 

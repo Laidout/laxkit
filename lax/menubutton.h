@@ -49,10 +49,10 @@ namespace Laxkit {
 
 class MenuButton : public Button
 { 
- protected:
+  protected:
 	MenuInfo *menuinfo;
 
- public:	
+  public:	
 	unsigned long menubutton_style;
 	MenuButton(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
 						int xx,int yy,int ww,int hh,int brder,
@@ -60,7 +60,7 @@ class MenuButton : public Button
 						MenuInfo *menu=NULL, int absorb=1,
 						const char *nlabel=NULL,
 						const char *filename=NULL,LaxImage *img=NULL,
-						int npad=0,int ngap=0);
+						int npad=-1,int ngap=-1);
 
 	virtual ~MenuButton();
 	virtual const char *whattype() { return "MenuButton"; }

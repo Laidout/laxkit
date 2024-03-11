@@ -565,14 +565,14 @@ double anInterface::UIScale()
 	return 1.0;
 }
 
-void anInterface::ThemeChange(Theme *theme)
+void anInterface::ThemeChanged()
 {
-	UIScaleChange();
+	UIScaleChanged();
 }
 
 /*! This is called when there is a change to the app-wide UI scale.
  */
-void anInterface::UIScaleChange()
+void anInterface::UIScaleChanged()
 {}
 
 double anInterface::ScreenLine()

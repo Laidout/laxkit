@@ -321,12 +321,12 @@ Drawable aDrawable::xlibDrawable(int which)
 
 //! Constructor.
 /*! Just assigns all the passed in variables to their given values,
- * and everything else to 0/NULL.
+ * and everything else to 0/nullptr.
  *
  * <pre>
  *  Constructor, appends itself to the (incomplete) tab loop in prev.
  *  Later, it is assumed that that loop in prev is not yet a closed loop, ie that
- *  some prev->prev->... is NULL.
+ *  some prev->prev->... is nullptr.
  * </pre>
  *
  */
@@ -357,28 +357,28 @@ anXWindow::anXWindow(anXWindow *parnt, const char *nname, const char *ntitle,
 	win_border = brder;
 	win_style  = nstyle;
 	win_pointer_shape = 0;
-	win_uiscale = 1;
 	win_cur_uiscale = -1;
 
-	win_tooltip = NULL;
+	win_tooltip = nullptr;
 	win_title   = newstr(ntitle);
 	win_name    = newstr(nname);
 
 	 //set window ownership and message
 	win_owner = nowner; 
 	win_owner_send_mask = 0;
-	if (nsend) win_sendthis = newstr(nsend); else win_sendthis = NULL;
-	nextcontrol = NULL; 
-	prevcontrol = NULL;
+	if (nsend) win_sendthis = newstr(nsend); else win_sendthis = nullptr;
+	nextcontrol = nullptr; 
+	prevcontrol = nullptr;
 	if (prev) prev->ConnectControl(this,1);
 
-	win_themestyle = NULL;
+	win_theme = nullptr;
+	win_themestyle = nullptr;
 
 #ifdef _LAX_PLATFORM_XLIB
 	 //set up Xlib specific stuff
 	xlib_dnd = nullptr;
-	xlib_win_hints = NULL;
-	xlib_win_sizehints = NULL;
+	xlib_win_hints = nullptr;
+	xlib_win_sizehints = nullptr;
 	xlib_win_xattsmask = 0;
 	xlib_win_xatts.event_mask = 0;
 	xlib_win_xatts.border_pixel = 0; //app->color_inactiveborder;
@@ -422,6 +422,7 @@ anXWindow::~anXWindow()
 	if (win_sendthis) delete[] win_sendthis;
 	if (win_name) delete[] win_name;
 	if (win_title) delete[] win_title;
+	if (win_theme) win_theme->dec_count();
 
 	if (nextcontrol) { nextcontrol->prevcontrol=prevcontrol; }
 	if (prevcontrol) { prevcontrol->nextcontrol=nextcontrol; } 
@@ -437,10 +438,10 @@ int anXWindow::WindowBorder()
 }
 
 //! Return basically the name of the window.
-/*! If which==0, then return win_title, or win_name if win_title==NULL, or "(untitled)" if win_name==NULL.
- * If which==1, return win_name, or win_title if win_name==NULL, or "(unnamed)" if win_title==NULL.
- * If which==2, return win_name, or NULL if name is NULL.
- * If which==3, return win_title, or NULL if title is NULL.
+/*! If which==0, then return win_title, or win_name if win_title==nullptr, or "(untitled)" if win_name==nullptr.
+ * If which==1, return win_name, or win_title if win_name==nullptr, or "(unnamed)" if win_title==nullptr.
+ * If which==2, return win_name, or nullptr if name is nullptr.
+ * If which==3, return win_title, or nullptr if title is nullptr.
  */
 const char *anXWindow::WindowTitle(int which)
 {
@@ -448,7 +449,7 @@ const char *anXWindow::WindowTitle(int which)
 	if (which==1) return win_name?win_name:(win_title?win_title:"(unnamed)");
 	if (which==2) return win_name;
 	if (which==3) return win_title;
-	return NULL;
+	return nullptr;
 }
 
 //! Change the title of the window. This text would usually be displayed in the bar provided by a window manager.
@@ -519,84 +520,115 @@ void anXWindow::InstallColors(WindowStyle *newcolors)
 }
 
 /*! This is called automatically when the theme changes. Note that the theme object
- * might be the same as before, but windows should assume some aspect of it has changed which recquires
+ * might be the same as before, but windows should assume some aspect of it has changed which requires
  * updating ui components.
+ *
+ * ThemeChanged() will also be called on all children.
  * 
  * Default is to replace the current style with the WindowStyle in theme of the same category.
  * This will call InstalColors() with the new style of the same category as the old style.
- * If a new style of the same category is not found, nothing is done.,
- * Return 0 for changed, nonzero for not changed.
+ * If a new style of the same category is not found, nothing is done.
  */
-int anXWindow::ThemeChange(Theme *theme)
+void anXWindow::ThemeChanged()
 {
-	if (!win_themestyle) return 1;
-	WindowStyle *newstyle = theme->GetStyle(win_themestyle->category);
-	if (!newstyle) return 1;
-	needtodraw=1;
-	if (newstyle == win_themestyle) return 0;
-    InstallColors(newstyle);
-    UIScaleChange();
-    return 0;
-}
-
-/*! Called when there is an ui scale change. Default here is to relay down to _kids.. Subclasses
- * should redefine if they need to adjust ui elements.
- */
-void anXWindow::UIScaleChange()
-{
+	win_cur_uiscale = -1;
 	for (int c=0; c<_kids.n; c++) {
-		// _kids.e[c]->win_cur_uiscale = -1;
-		_kids.e[c]->UIScaleChange();
+	    _kids.e[c]->ThemeChanged();
 	}
+
+	if (win_themestyle) {
+		// make sure to use the same category of theme components as the previous theme
+		WindowStyle *newstyle = GetTheme()->GetStyle(win_themestyle->category);
+		if (newstyle) {
+			InstallColors(newstyle);
+		}
+	}
+	UIScaleChanged();
+	needtodraw = 1;
 }
 
-/*! Return win_cur_uiscale if > 0, else normally will be win_uiscale * win_parent->UIScale() * theme->ui_scale.
+/*! Install a custom theme for the window. Its count will be incremented.
+ * Pass in nullptr to use the default theme.
+ */
+void anXWindow::CustomTheme(Theme *new_theme)
+{
+	if (new_theme) new_theme->inc_count();
+	if (win_theme) win_theme->dec_count();
+	win_theme = new_theme;
+	ThemeChanged();
+}
+
+/*! Return the first defined of win_theme, parent's theme, or app->theme.
+ */
+Theme *anXWindow::GetTheme() const
+{
+	if (win_theme) return win_theme;
+	if (win_parent) return win_parent->GetTheme();
+	return app->theme;
+}
+
+/*! Called when there is an ui scale change. Default here is to relay down to _kids.
+ * Subclasses should redefine if they need to adjust ui elements.
+ */
+void anXWindow::UIScaleChanged()
+{
+	win_cur_uiscale = -1;
+	for (int c=0; c<_kids.n; c++) {
+		_kids.e[c]->UIScaleChanged();
+	}
+	needtodraw = 1;
+}
+
+/*! This is called when ui scale is changed for any reason. For instance, the theme may have
+ * changed, or window scale is adapting to a monitor with a different scale.
+ * 
+ * Return win_cur_uiscale if > 0, else normally will be win_uiscale * win_parent->UIScale() * theme->ui_scale.
+ * The returned value will never be <= 0.
  */
 double anXWindow::UIScale()
 {
 	if (win_cur_uiscale > 0) return win_cur_uiscale;
 
-	double scale = (win_uiscale > 0 ? win_uiscale : 1.0);
-    double ps = (win_parent ? win_parent->UIScale() : 1.0);
-    if (ps > 0) scale *= ps;
+	double scale = 1.0; //(win_uiscale > 0 ? win_uiscale : 1.0);
 
-	if (!win_parent) {
-		char *str;
-		if (app->theme->ui_scale > 0) scale *= app->theme->ui_scale;
-		else {
-			//theme -1 scale means use window/monitor hints
-			//use default gleaned from GTK_SCALE or QT_SCREEN_SCALE_FACTOR, or 1 if neither of those exist
-			DBG const char *what = "GTK_SCALE";
-			str = getenv("GTK_SCALE");
-			if (!str) {
-				DBG what = "QT_SCALE_FACTOR";
-				str = getenv("QT_SCALE_FACTOR");
-			}
-			if (str) {
-				ps = strtod(str, nullptr);
-				if (ps > 0) {
-					scale *= ps;
-					DBG cerr << "Using "<<what<<" == "<<ps<<endl;
-				}
+	double theme_scale = GetTheme()->ui_scale;
+
+	const char *str = nullptr;
+	if (theme_scale <= 0) {
+		//theme -1 scale means use window/monitor hints
+		//use default gleaned from GTK_SCALE or QT_SCREEN_SCALE_FACTOR, or 1 if neither of those exist
+		DBG const char *what = "GTK_SCALE";
+		str = getenv("GTK_SCALE");
+		if (!str) {
+			DBG what = "QT_SCALE_FACTOR";
+			str = getenv("QT_SCALE_FACTOR");
+		}
+		if (str) {
+			double s = strtod(str, nullptr);
+			if (s > 0) {
+				scale *= s;
+				DBG cerr << "Using "<<what<<" == "<<s<<endl;
 			}
 		}
+	} else {
+		scale *= theme_scale;
+	}
 
-		//scale by monitor pixel density
-		str = getenv("QT_AUTO_SCREEN_SCALE_FACTOR");
-		if (app->theme->ui_default_ppi > 0 || (str && str[0] == '1')) {
-			double x = win_x + win_w/2;
-			double y = win_y + win_h/2;
-			ScreenInformation *monitor = app->FindNearestMonitor(0, x,y);
-			if (monitor) {
-				double mm = sqrt(monitor->mmwidth * monitor->mmwidth + monitor->mmheight * monitor->mmheight);
-				if (mm > 0) {
-					double ppi = app->theme->ui_default_ppi;
-					if (ppi <= 0) ppi = 100;
-					double px = sqrt(monitor->width * monitor->width + monitor->height * monitor->height);
-					double px_per_in = px / mm * 10 * 2.54;
-					DBG cerr << "Using monitor pixel density "<<px_per_in<<", extra scale="<<(px_per_in / ppi)<<endl;
-					scale *= px_per_in / ppi;
-				}
+	//scale by monitor pixel density
+	str = getenv("QT_AUTO_SCREEN_SCALE_FACTOR"); //this should be "0" or "1"
+	if (GetTheme()->ui_default_ppi > 0 || (str && str[0] == '1')) {
+		int xx, yy;
+		screen_coordinates(win_x + win_w/2, win_y + win_h/2, this, &xx, &yy);
+		ScreenInformation *monitor = app->FindNearestMonitor(0, xx,yy);
+		if (monitor) {
+			double mm = sqrt(monitor->mmwidth * monitor->mmwidth + monitor->mmheight * monitor->mmheight);
+			if (mm > 0) {
+				double ppi = GetTheme()->ui_default_ppi;
+				if (ppi <= 0) ppi = 100;
+				double px = sqrt(monitor->width * monitor->width + monitor->height * monitor->height);
+				double px_per_in = px / mm * 10 * 2.54;
+				DBG cerr << "Using monitor pixel density "<<px_per_in<<", extra scale="<<(px_per_in / ppi)<<" for " <<(win_name?win_name:"?")<<endl;
+				scale *= px_per_in / ppi;
 			}
 		}
 	}
@@ -606,11 +638,12 @@ double anXWindow::UIScale()
 		_kids.e[c]->win_cur_uiscale = -1;
 		_kids.e[c]->UIScale();
 	}
-	return scale;
+
+	return win_cur_uiscale;
 }
 
 //! Return a ShortcutHandler that contains stacks of bound shortcuts and possible window actions.
-/*! NULL means there are none defined for this window.
+/*! nullptr means there are none defined for this window.
  *
  * Windows that do use shortcuts, and want them stored in an easy manner should use the
  * ShortcutManager system, accessed with GetDefaultShortcutManager(). They can then install
@@ -618,7 +651,7 @@ double anXWindow::UIScale()
  * instances can borrow those.
  */
 ShortcutHandler *anXWindow::GetShortcuts()
-{ return NULL; }
+{ return nullptr; }
 
 /*! This method exists to aid standardizing access to shortcut actions from potential scripting.
  * Return 1 for not found or otherwise not done, or 0 for success.
@@ -639,12 +672,12 @@ int anXWindow::PerformAction(int action_number)
  */
 void anXWindow::dump_out(FILE *f,int indent,int what,DumpContext *context)
 {
-	Attribute *att=dump_out_atts(NULL,0,context);
+	Attribute *att=dump_out_atts(nullptr,0,context);
 	att->dump_out(f,indent);
 	delete att;
 }
 
-/*! Append to att if att!=NULL, else return a new Attribute whose name is whattype().
+/*! Append to att if att!=nullptr, else return a new Attribute whose name is whattype().
  *
  * Default is to add attributes for win_x, win_y, win_w, and win_h.
  *
@@ -654,7 +687,7 @@ void anXWindow::dump_out(FILE *f,int indent,int what,DumpContext *context)
  */
 Attribute *anXWindow::dump_out_atts(Attribute *att,int what,DumpContext *context)
 {
-	if (!att) att=new Attribute(whattype(),NULL);
+	if (!att) att=new Attribute(whattype(),nullptr);
 	char scratch[100];
 
 	sprintf(scratch,"%d",win_x);
@@ -794,7 +827,7 @@ void anXWindow::SwapBuffers()
 /*! If tooltips are active, the anXApp calls tooltip() to find the tip for this window.
  * Thus, the window can redefine this function if there are multiple tooltips for some reason.
  *
- * Note that calling tooltip(NULL) will remove the tooltip.
+ * Note that calling tooltip(nullptr) will remove the tooltip.
  */
 const char *anXWindow::tooltip(const char *newtooltip)
 {
@@ -856,7 +889,7 @@ int anXWindow::preinit()
 		DBG cerr << "Remembering settings for " << whattype() <<endl;
 		Attribute *att=const_cast<Attribute *>(app->AppResource(whattype()));//do not delete it!
 		if (att) {
-			dump_in_atts(att,0,NULL);
+			dump_in_atts(att,0,nullptr);
 
 #ifdef _LAX_PLATFORM_XLIB
 			if (!xlib_win_sizehints) xlib_win_sizehints=XAllocSizeHints();
@@ -901,7 +934,7 @@ int anXWindow::preinit()
 int anXWindow::Finalize()
 {
 	if (win_style&ANXWIN_REMEMBER) {
-		Attribute *att = dump_out_atts(NULL,0,NULL);
+		Attribute *att = dump_out_atts(nullptr,0,nullptr);
 		if (att) app->AppResource(att); //do not delete att!
 	}
 	for (int c=0; c<_kids.n; c++) _kids.e[c]->Finalize();
@@ -930,16 +963,16 @@ anXWindow *anXWindow::WindowChild(int index)
 }
 
 //! Find the first immediate child window that has win_name==name.
-/*! If name==NULL, NULL is returned, not the first window that has a NULL name.
+/*! If name==nullptr, nullptr is returned, not the first window that has a nullptr name.
  *
- * If win_name==NULL, then win_title is compared against instead.
+ * If win_name==nullptr, then win_title is compared against instead.
  *
  * Note that this does not check kids of child windows.
  */
 anXWindow *anXWindow::findChildWindowByName(const char *name, bool recurse)
 {
-	if (!name) return NULL;
-	const char *s=NULL;
+	if (!name) return nullptr;
+	const char *s=nullptr;
 	for (int c=0; c<_kids.n; c++) {
 		s=_kids.e[c]->win_name ? _kids.e[c]->win_name : _kids.e[c]->win_title;
 		if (s && !strcmp(name,s)) return _kids.e[c];
@@ -949,11 +982,11 @@ anXWindow *anXWindow::findChildWindowByName(const char *name, bool recurse)
 			if (win) return win;
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
 //! Find the first immediate child window that has win_title==title.
-/*! If title==NULL, NULL is returned, not the first window that has a NULL title.
+/*! If title==nullptr, nullptr is returned, not the first window that has a nullptr title.
  *
  * Note that this does not check kids of child windows.
  *
@@ -962,8 +995,8 @@ anXWindow *anXWindow::findChildWindowByName(const char *name, bool recurse)
  */
 anXWindow *anXWindow::findChildWindowByTitle(const char *title, bool recurse)
 {
-	if (!title) return NULL;
-	const char *s=NULL;
+	if (!title) return nullptr;
+	const char *s=nullptr;
 	for (int c=0; c<_kids.n; c++) {
 		s=_kids.e[c]->win_title;
 		if (s && !strcmp(title,s)) return _kids.e[c];
@@ -973,7 +1006,7 @@ anXWindow *anXWindow::findChildWindowByTitle(const char *title, bool recurse)
 			if (win) return win;
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
 //! Purges child anXWindows from window's child stack.
@@ -1047,7 +1080,7 @@ int anXWindow::FocusOn(const FocusChangeData *e)
 		if (xim_ic) {
 			XSetICValues(app->xim_ic,
 						XNClientWindow, e->target->xlib_window,
-						NULL);
+						nullptr);
 			XSetICFocus(xim_ic);
 		}
 #endif //_LAX_PLATFORM_XLIB
@@ -1116,7 +1149,7 @@ int anXWindow::Resize(int nw,int nh)
 		double old_scale = win_cur_uiscale;
 		win_cur_uiscale = -1;
 		UIScale();
-		if (win_cur_uiscale != old_scale) UIScaleChange();
+		if (win_cur_uiscale != old_scale) UIScaleChanged();
 	}
 
 	needtodraw|=1;
@@ -1153,7 +1186,7 @@ int anXWindow::MoveResize(int nx,int ny,int nw,int nh)
 		double old_scale = win_cur_uiscale;
 		win_cur_uiscale = -1;
 		UIScale();
-		if (win_cur_uiscale != old_scale) UIScaleChange();
+		if (win_cur_uiscale != old_scale) UIScaleChanged();
 	}
 
 	needtodraw|=1;
@@ -1222,7 +1255,10 @@ int anXWindow::Event(const EventData *data,const char *mes)
 
 	if (data->type == LAX_onDeviceChange) return DeviceChange(dynamic_cast<const DeviceEventData*>(data));
 
-	if (data->type == LAX_onThemeChange) return ThemeChange(app->theme);
+	if (data->type == LAX_onThemeChanged) {
+		ThemeChanged();
+		return 0;
+	}
 
 	if (data->type == LAX_onMouseIn) {
 		 //set mouse cursor
@@ -1477,7 +1513,7 @@ int anXWindow::event(XEvent *e)
 					double oldscale = win_cur_uiscale;
 					win_cur_uiscale = -1;
 					UIScale();
-					if (win_cur_uiscale != oldscale) UIScaleChange();
+					if (win_cur_uiscale != oldscale) UIScaleChanged();
 				}
 			}
 
@@ -1503,7 +1539,7 @@ int anXWindow::event(XEvent *e)
 				DBG cerr <<"..typ("<<WindowTitle()<<"):MapNotify on"<<endl;
 				if (e->xmap.window==e->xmap.event) {
 					EventData *d=new EventData(LAX_onMapped,object_id,object_id);
-					app->SendMessage(d,object_id,NULL,object_id);
+					app->SendMessage(d,object_id,nullptr,object_id);
 					win_on=1;
 				}
 			} break;
@@ -1513,7 +1549,7 @@ int anXWindow::event(XEvent *e)
 				if (e->xmap.window==e->xmap.event) {
 					app->ClearTransients(this);
 					EventData *d=new EventData(LAX_onUnmapped,object_id,object_id);
-					app->SendMessage(d,object_id,NULL,object_id);
+					app->SendMessage(d,object_id,nullptr,object_id);
 					win_on=0;
 				}
 			} break;
@@ -1542,7 +1578,7 @@ int anXWindow::event(XEvent *e)
 			Atom actual_type;
 			int format;
 			unsigned long len, remaining;
-			unsigned char *data=NULL;
+			unsigned char *data=nullptr;
 			if (Success == XGetWindowProperty(
 							app->dpy,
 							e->xselection.requestor,
@@ -1578,7 +1614,7 @@ int anXWindow::event(XEvent *e)
 		case SelectionRequest: {
 			char *selection=XGetAtomName(app->dpy,e->xselectionrequest.selection); 
 			char *target   =XGetAtomName(app->dpy,e->xselectionrequest.target);
-			char *property =NULL;
+			char *property =nullptr;
 			if (e->xselectionrequest.property) property=XGetAtomName(app->dpy,e->xselectionrequest.property);
 
 			DBG cerr <<"\n----SelectionRequest this window:" <<xlib_window    <<endl;
@@ -1675,9 +1711,9 @@ int anXWindow::event(XEvent *e)
  * If key>0 and key<=0x10ffff, then key is the USC code of a character. In this case, buffer
  * will contain the utf8 representation of key. If key>0x1000000, then key can be compared to
  * various Laxkit defined keys, such as LAX_Pgdown, LAX_Del, etc. In this case, currently,
- * key&0xffffff is the Xlib keysym of the key. Also in this case, buffer will be NULL.
+ * key&0xffffff is the Xlib keysym of the key. Also in this case, buffer will be nullptr.
  *
- * If key==0 but buffer!=NULL, then buffer contains multiple utf8 characters, all of which
+ * If key==0 but buffer!=nullptr, then buffer contains multiple utf8 characters, all of which
  * should be considered input. This will have resulted from input that was somehow composed
  * from key sequences at a higher level.
  *
@@ -1694,7 +1730,7 @@ int anXWindow::event(XEvent *e)
  * or complain to the developers.
  *
  * Default behavior for this function is for tab press to make the input focus go to 
- * the nextcontrol (if it is not NULL), shift-tab transfers focus to prevcontrol (if not NULL).
+ * the nextcontrol (if it is not nullptr), shift-tab transfers focus to prevcontrol (if not nullptr).
  * See SelectNextControl() and SelectPrevControl().
  */
 int anXWindow::CharInput(unsigned int ch, const char *buffer,int len,unsigned int state, const LaxKeyboard *kb)
@@ -1765,9 +1801,9 @@ void anXWindow::ControlActivation(int on)
 /*! Usually this will be called from the init() function of some frame class to signal an end
  * to a tab loop.
  *
- * This just connects the most previous control that is NULL to the most next control that is NULL.
+ * This just connects the most previous control that is nullptr to the most next control that is nullptr.
  * Assumes that for each control in the current loop, thatcontrol->nextcontrol->prevcontrol==thatcontrol if thatcontrol is
- * not NULL, some thing for prevcontrol. If controls were added strictly through the anXWindow control loop functions,
+ * not nullptr, some thing for prevcontrol. If controls were added strictly through the anXWindow control loop functions,
  * this will be true.
  */
 int anXWindow::CloseControlLoop()
@@ -1781,15 +1817,15 @@ int anXWindow::CloseControlLoop()
 	if (mostprev==thisc) return 1; //already closed!
 	while (mostnext && mostnext->nextcontrol && mostnext!=thisc) {mostnext=mostnext->nextcontrol;  n++;}
 	DBG cerr <<"CloseControlLoop has "<<n<<endl;
-	if (mostprev==NULL) mostprev=thisc;
-	if (mostnext==NULL) mostnext=thisc;
+	if (mostprev==nullptr) mostprev=thisc;
+	if (mostnext==nullptr) mostnext=thisc;
 	mostprev->prevcontrol=mostnext;
 	mostnext->nextcontrol=mostprev;
 	return 1;
 }
 
 //! Connect towhat to this. Used for tab loops.
-/*! If towhat is passed in as NULL, then detach this from its loop, connecting next and prev.
+/*! If towhat is passed in as nullptr, then detach this from its loop, connecting next and prev.
  *
  * Actually this function connects towhat->GetController() and this->GetController(). This is so
  * the focus goes to, for instance, the editing part of a LineInput, rather than the LineInput itself,
@@ -1800,7 +1836,7 @@ int anXWindow::CloseControlLoop()
  * of a closed loop, then that loop is cut between towhat and towhat->prevcontrol.
  *
  * Return 0 for successful attachment or detachment. 1 for when there was nothing to attach, that is,
- * GetController() for this or towhat returned NULL.
+ * GetController() for this or towhat returned nullptr.
  */
 int anXWindow::ConnectControl(anXWindow *towhat, int after) // after=1
 {
@@ -1810,7 +1846,7 @@ int anXWindow::ConnectControl(anXWindow *towhat, int after) // after=1
 		DBG cerr <<"Disconnect "<<fromwhat->WindowTitle()<<endl;
 		if (fromwhat->nextcontrol) fromwhat->nextcontrol->prevcontrol=fromwhat->prevcontrol;
 		if (fromwhat->prevcontrol) fromwhat->prevcontrol->nextcontrol=fromwhat->nextcontrol;
-		fromwhat->prevcontrol=fromwhat->nextcontrol=NULL;
+		fromwhat->prevcontrol=fromwhat->nextcontrol=nullptr;
 		return 0;
 	}
 	if (towhat) towhat=towhat->GetController();
@@ -1821,12 +1857,12 @@ int anXWindow::ConnectControl(anXWindow *towhat, int after) // after=1
 	anXWindow *tostart=towhat->prevcontrol,*toend=towhat->nextcontrol;
 	while (tostart && tostart->prevcontrol && tostart!=towhat) {tostart=tostart->prevcontrol;}
 	if (tostart==towhat) { // closed! must open it...
-		tostart->prevcontrol->nextcontrol=NULL;
-		tostart->prevcontrol=NULL;
+		tostart->prevcontrol->nextcontrol=nullptr;
+		tostart->prevcontrol=nullptr;
 	}
 	while (toend && toend->nextcontrol) { toend=toend->nextcontrol; }
-	if (tostart==NULL) tostart=towhat;
-	if (toend==NULL) toend=towhat;
+	if (tostart==nullptr) tostart=towhat;
+	if (toend==nullptr) toend=towhat;
 	
 	anXWindow *temp;
 	if (after) {
@@ -1846,8 +1882,8 @@ int anXWindow::ConnectControl(anXWindow *towhat, int after) // after=1
 }
 
 //! Set the new owner and control message.
-/*! Sets win_owner whether or not nowner==NULL.
- * Sets win_sendthis only if mes!=NULL.
+/*! Sets win_owner whether or not nowner==nullptr.
+ * Sets win_sendthis only if mes!=nullptr.
  *
  * If send_mask!=0, then set win_owner_send_mask to it.
  */
@@ -1934,7 +1970,7 @@ int anXWindow::selectionCopy(char mid)
  * The selection owner can expect a SelectionRequest.
  *
  * targettype can be "STRING" or *** some other things that needs more research to determine!
- * If targettype==NULL, then use "STRING".
+ * If targettype==nullptr, then use "STRING".
  *
  * \todo figure out what gets passed around in targettype.
  */
@@ -2004,7 +2040,7 @@ char *anXWindow::getSelectionData(int *len,const char *property,const char *targ
 	DBG cerr << "  property: " << (property   ? property   : "(no property)") <<endl;
 	
 	if (len) *len=0;
-	return NULL;
+	return nullptr;
 }
 
 
@@ -2109,7 +2145,7 @@ int anXWindow::isXdndAware(Window w)
     Atom actual_type;
     int format;
     unsigned long count, remaining;
-    unsigned char *data=NULL;
+    unsigned char *data=nullptr;
     int version=0;
     XGetWindowProperty(app->dpy, w, XdndAware,
                         0, 0x8000000L, False, XA_ATOM, &actual_type, &format,

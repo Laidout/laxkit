@@ -68,7 +68,7 @@ class Button : public ButtonBase
 						int npad=-1,int ngap=-1);
 	virtual ~Button();
 	virtual const char *whattype() { return "Button"; }
-	virtual int ThemeChange(Theme *theme);
+	virtual void ThemeChanged();
 	virtual int SetGraphic(int newthing, int newwidth, int newheight);
 	virtual int SetIcon(const char *filename,int makebw=0);
 	virtual int SetIcon(LaxImage *img,int makebw=0);
