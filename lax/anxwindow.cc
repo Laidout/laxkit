@@ -597,8 +597,8 @@ double anXWindow::UIScale()
 	if (theme_scale <= 0) {
 		//theme -1 scale means use window/monitor hints
 		//use default gleaned from GTK_SCALE or QT_SCREEN_SCALE_FACTOR, or 1 if neither of those exist
-		DBG const char *what = "GTK_SCALE";
-		str = getenv("GTK_SCALE");
+		DBG const char *what = "GDK_SCALE";
+		str = getenv("GDK_SCALE");
 		if (!str) {
 			DBG what = "QT_SCALE_FACTOR";
 			str = getenv("QT_SCALE_FACTOR");
