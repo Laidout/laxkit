@@ -46,6 +46,9 @@ interfs: lax laxinterface interfs.o
 interfs2: lax laxinterface interfs2.o
 	$(LD) interfs2.o normalinterface.o joininterface.o -llaxinterfaces -llaxkit $(LDFLAGS) -o $@
 
+attxml: lax attxml.cc attxml.o
+	$(LD) $@.o  $(LDFLAGS) -o $@
+
 laxhello: lax laxinterface laxhello.cc laxhello.o
 	$(LD) $@.o  $(LDFLAGS) -o $@
 	#$(LD) $@.o -llaxinterfaces -llaxkit $(LDFLAGS) -o $@
@@ -74,7 +77,7 @@ test2: lax laxinterface test2.o
 testevents: lax laxinterface testevents.o
 	$(LD) $@.o  -llaxinterfaces -llaxkit $(LDFLAGS) -o $@
 
-themeeditor: lax laxinterface themeeditor.o
+themeeditor: lax laxinterface themeeditor.o themeeditor.cc
 	$(LD) $@.o  -llaxinterfaces -llaxkit $(LDFLAGS) -o $@
 
 thingpreviewer: lax thingpreviewer.o
