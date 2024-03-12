@@ -8101,7 +8101,7 @@ int PathInterface::LBUp(int x,int y,unsigned int state,const LaxMouse *d)
 					else if (action==HOVER_WeightBottom || action == HOVER_WeightTop)
 						{ sprintf(str, "%g", node->width);  mes = "setwidth";  label = _("Width"); }
 				
-					double th = app->defaultlaxfont->textheight();
+					double th = UIScale() * app->defaultlaxfont->textheight();
 					DoubleBBox bounds(x-5*th, x+5*th, y-th/2, y+th/2);
 					viewport->SetupInputBox(object_id, label, str, mes, bounds);
 					edit_pathi = drawpathi;

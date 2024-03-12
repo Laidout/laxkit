@@ -1482,7 +1482,14 @@ void TreeSelector::drawitemname(MenuItem *mitem,IntRectangle *rect)
 	dp->NewBG(g);
 	if (mitem->name) dp->textout(tx,rect->y+fasc+leading/2, mitem->name,strlen(mitem->name), LAX_LEFT|LAX_BASELINE);
 	if (mitem && mitem->image) {
-		dp->imageout(mitem->image, gx, rect->y);
+		if (app->theme->ui_scale_on_icons) {
+			double th = UIScale() * win_themestyle->normal->textheight();
+			double w = .8 * th / mitem->image->h() * mitem->image->w();
+			double h = .8 * th;
+			dp->imageout(mitem->image, gx, rect->y + rect->height/2 - h/2, w, h);
+		} else {
+			dp->imageout(mitem->image, gx, rect->y + rect->height/2 - mitem->image->h()/2);
+		}
 	}
 
 }

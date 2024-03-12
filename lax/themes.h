@@ -201,6 +201,7 @@ class Theme : public anObject, public DumpUtility
 	double base_font_size;
 	double ui_scale;
 	double ui_default_ppi;
+	bool ui_scale_on_icons; // false to render icons as is
 
 	unsigned int firstclk; //how long after first click to wait before idle "clicks", in ms
 	unsigned int dblclk;   //time between clicks that counts as a double click, in ms

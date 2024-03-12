@@ -1039,34 +1039,38 @@ Laxkit::anXWindow *ViewportWindow::SetupInputBox(unsigned long owner_id, const c
 
 	 //1. set up a LineEdit to get some input
 	 //2. temporarily toggle off viewport grab mode if necessary, to keep input in the edit
-	int border = 3;
-	int x=bounds.minx-border, y=bounds.miny-border, w=bounds.maxx-bounds.minx, h=bounds.maxy-bounds.miny;
+	int border = 3 * UIScale();
+	int x = bounds.minx - border;
+	int y = bounds.miny - border;
+	int w = bounds.maxx - bounds.minx;
+	int h = bounds.maxy - bounds.miny;
+
 	if (fabs(h) < 1e-5) {
-		h = 1.2 * win_themestyle->normal->textheight();
+		h = 1.2 * UIScale() * win_themestyle->normal->textheight();
 		y -= h/2;
 	}
 
-	if (y+h>win_h) y-=y+h-win_h+8;
-	else if (y - (label ? app->defaultlaxfont->textheight() : 0)<0) y = (label ? app->defaultlaxfont->textheight() : 0);
-	if (x+w>win_w) x-=x+w-win_w;
-	else if (x<0) x=0;
+	if (y + h > win_h) y -= y + h - win_h + 8;
+	else if (y - (label ? UIScale() * app->defaultlaxfont->textheight() : 0)<0) y = (label ? UIScale() * app->defaultlaxfont->textheight() : 0);
+	if (x + w > win_w) x -= x + w - win_w;
+	else if (x < 0) x = 0;
 
-	LineEdit *le= new LineEdit(this, label,label,
+	LineEdit *le = new LineEdit(this, label,label,
 								(send_controls ? LINEEDIT_SEND_CONTROLS : 0)
 								 | LINEEDIT_DESTROY_ON_ENTER|LINEEDIT_GRAB_ON_MAP|ANXWIN_ESCAPABLE|ANXWIN_OUT_CLICK_DESTROYS|ANXWIN_HOVER_FOCUS,
 								x,y,w,h, border,
 								NULL,owner_id,message,
 								text);
 	if (ntooltip) le->tooltip(ntooltip);
-	le->padx=le->pady=dp->textheight()*.1;
+	le->padx = le->pady = UIScale() * le->win_themestyle->normal->textheight()*.1;
 	le->SetSelection(0,-1);
 	app->addwindow(le);
 
-	temp_input=le;
-	temp_input_interface=owner_id;
+	temp_input = le;
+	temp_input_interface = owner_id;
 	makestr(temp_input_label, label);
 
-	temp_grab = win_style&ANXWIN_HOVER_FOCUS;
+	temp_grab = win_style & ANXWIN_HOVER_FOCUS;
 	win_style &= ~ANXWIN_HOVER_FOCUS;
 
 	needtodraw=1;
