@@ -323,7 +323,7 @@ int PrintDialog::init()
 	Button *tbut;
 	anXWindow *last=NULL;
 	int c,c2=-1;
-	double textheight = win_themestyle->normal->textheight();
+	double textheight = UIScale() * win_themestyle->normal->textheight();
 	double linpheight = 1.2 * textheight;
 	double CHECKGAP = textheight/4;
 
@@ -356,14 +356,16 @@ int PrintDialog::init()
 	last=paperx=new LineInput(this,"paper x",NULL,LINP_ONLEFT, 0,0,0,0, 0, 
 						last,object_id,"paper x",
 			            "Paper Size  x:","8.5?",0,
-			            100,0,1,1,3,3);
+			            100,0);
+	// const char *newlabel=NULL,const char *newtext=NULL,unsigned int ntstyle=0,
+	// int nlew=0,int nleh=0, double npadx=-1,double npady=-1,double npadlx=-1,double npadly=-1);
 	AddWin(paperx,1, paperx->win_w,0,50,50,0, linpheight,0,10,50,0, -1);
 	
 	 // -----Paper Size Y
 	last=papery=new LineInput(this,"paper y",NULL,LINP_ONLEFT, 0,0,0,0, 0, 
 						last,object_id,"paper y",
 			            "y:","11?",0,
-			           100,0,1,1,3,3);
+			           100,0);
 	AddWin(papery,1, papery->win_w,0,50,50,0, linpheight,0,10,50,0, -1);
 	
 	 // -----Paper Name

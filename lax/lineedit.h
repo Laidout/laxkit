@@ -68,7 +68,7 @@ class LineEdit : public TextXEditBaseUtf8
 	char *qualifier;
 	char *blanktext;
 
-	int padx,pady,mostpixwide;
+	int mostpixwide;
 	LineEdit(anXWindow *parnt,const char *nname,const char *ntitle,unsigned int nstyle,
 			int xx,int yy,int ww,int hh,int brder,
 			anXWindow *prev,unsigned long nowner=0,const char *nsend=NULL,

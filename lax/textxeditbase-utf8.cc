@@ -63,13 +63,13 @@ namespace Laxkit {
  *
  * Say it is 10, then the 10th pixel of the text from the left is located at the edge of textrect.x+pad.
  */
-/*! \var int TextXEditBaseUtf8::padx
- * \brief Horizontal inset within textrect to place text.
+/*! \var double TextXEditBaseUtf8::padx
+ * \brief Horizontal inset within textrect to place text. Pixel pad is padx * textheight.
  *
  * The horizontal area text can fill before scrolling is necessary is textrect.width-2*padx.
  */
-/*! \var int TextXEditBaseUtf8::pady
- * \brief Vertical inset within textrect to place text.
+/*! \var double TextXEditBaseUtf8::pady
+ * \brief Vertical inset within textrect to place text. Pixel pad is pady * textheight.
  *
  * The vertical area text can fill before scrolling is necessary is textrect.height-2*pady.
  */
@@ -141,8 +141,8 @@ TextXEditBaseUtf8::TextXEditBaseUtf8(anXWindow *parnt,const char *nname,const ch
 	bkwrongcolor  = ~0;
 	bkwrongcolor2 = ~0;
 
-	padx = 0;
-	pady = 0;
+	padx = -1; // -1 means default
+	pady = -1;
 
 	InstallColors(THEME_Edit);
 	if (thefont == nullptr) {

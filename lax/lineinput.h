@@ -55,15 +55,15 @@ class LineInput : public anXWindow, public LabelUser
 	char *label;
 	int labelw; //preferred width of the label
 	bool auto_labelw;
-	int lx,ly,lew,leh; // lw,lh<0 means use remainder, >0 is absolute
-	int padx,pady,padlx,padly;
+	int lx,ly,lew,leh;
+	double padx,pady,padlx,padly; //fraction of textheight
 
   public:
 	LineInput(anXWindow *parnt,const char *nname,const char *ntitle,unsigned int nstyle,
 			int xx,int yy,int ww,int hh,int brder,
 			anXWindow *prev,unsigned long nowner=0,const char *nsend=NULL,
 			const char *newlabel=NULL,const char *newtext=NULL,unsigned int ntstyle=0,
-			int nlew=0,int nleh=0,int npadx=-1,int npady=-1,int npadlx=-1,int npadly=-1);
+			int nlew=0,int nleh=0, double npadx=-1,double npady=-1,double npadlx=-1,double npadly=-1);
 	virtual ~LineInput();
 	virtual const char *whattype() { return "LineInput"; }
 	virtual const char *tooltip(const char *ntip);

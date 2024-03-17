@@ -72,7 +72,6 @@ class TextXEditBaseUtf8 : public anXWindow, public TextEditBaseUtf8
  	LaxFont *thefont;
 	int valid; 
 	double cx,cy,oldx,oldy,curlineoffset;
-	int padx,pady;
  	char firsttime,con;
  	long dpos,nlines;
 	long oldsellen,oldcp;
@@ -89,6 +88,8 @@ class TextXEditBaseUtf8 : public anXWindow, public TextEditBaseUtf8
 	virtual double TextExtent(const char *str, int len, double *width=nullptr,double *height=nullptr,double *ascent=nullptr,double *descent=nullptr);
 
  public:
+	double padx,pady; //fraction of textheight
+	
 	TextXEditBaseUtf8(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
 							 int xx,int yy,int ww,int hh,int brder,
 							 anXWindow *prev,unsigned long nowner,const char *nsend,

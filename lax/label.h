@@ -78,7 +78,7 @@ class Label : public anXWindow
 	Utf8String rawtext;
 	PtrStack<LabelChunk> thetext;
 	int nlines;
-	ColorStrip *colors; //if null, window colors are used
+	GradientStrip *colors; //if null, window colors are used
 	PtrStack<LaxFont> fonts;
 	PtrStack<LaxImage> images;
 

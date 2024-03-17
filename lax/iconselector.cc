@@ -163,6 +163,9 @@ void IconSelector::FillBox(IconBox *b,const char *nlabel,LaxImage *img,int nid)
 	if (nlabel) tw = win_themestyle->normal->Extent(nlabel,-1,&tw,&th,NULL,NULL) + 2*padg;
 	if (labelstyle == LAX_ICON_ONLY && img) tw = 0;
 
+	tw *= UIScale();
+	th *= UIScale();
+
 	b->w (tw + iw);
 	b->pw(tw + iw);
 	b->h (th > ih ? th : ih);
@@ -201,8 +204,8 @@ int IconSelector::AddBox(const char *nlabel,LaxImage *img,int nid)
 //! Draw the icon box.
 void IconSelector::drawbox(int which)
 {
-	if (which<0 || which>=wholelist.n || !win_on) return;
-	IconBox *b=dynamic_cast<IconBox *>(wholelist.e[which]);
+	if (which < 0 || which >= wholelist.n || !win_on) return;
+	IconBox *b = dynamic_cast<IconBox *>(wholelist.e[which]);
 	if (!b) return;
 	
 	Displayer *dp = GetDisplayer();
@@ -210,28 +213,27 @@ void IconSelector::drawbox(int which)
 	if (display_style == BOXES_Highlighted)
 		 dp->NewFG(which==hoverbox ? win_themestyle->bghover : (b->state == LAX_ON ? win_themestyle->bghl : win_themestyle->bg));
 	else dp->NewFG(which==hoverbox ? win_themestyle->bghover : win_themestyle->bg);
+
 	dp->drawrectangle(b->x() - b->pad,  b->y() - b->pad,    b->w() + 2*b->pad,  b->h() + 2*b->pad, 1);
 
 	 // Set  tx,ty  px,py
 	int w,h,tx,ty,ix,iy,dx,dy;
-	LaxImage *i=b->image;
-	const char *l=b->label;
-	get_placement(i,win_themestyle->normal,l,padg,labelstyle,&w,&h,&tx,&ty,&ix,&iy);
-	dx=b->x()+(b->w()-w)/2;
-	dy=b->y()+(b->h()-h)/2;
+	LaxImage *i = b->image;
+	const char *l = b->label;
+	get_placement(i,win_themestyle->normal,l,padg,labelstyle,&w,&h,&tx,&ty,&ix,&iy, UIScale());
+	dx = b->x() + (b->w() - w)/2;
+	dy = b->y() + (b->h() - h)/2;
 
 	 // draw the stuff
 	if (i && ix!=LAX_WAY_OFF) {
-		ix+=dx;
-		iy+=dy;
-		// dp->imageout(i,ix,iy);
-		//dp->imageout_within(i, ix,iy+b->h(), i->w(),i->h(), nullptr, 1);
+		ix += dx;
+		iy += dy;
 		dp->imageout(i, ix,iy+b->h()-boxinset, i->w(),-i->h());
 		i->doneForNow();
 	}
 	if (l && tx>LAX_WAY_OFF) {
-		tx+=dx;
-		ty+=dy;
+		tx += dx;
+		ty += dy;
 		dp->NewFG(win_themestyle->fg);
 		dp->textout(tx,ty, l,-1, LAX_LEFT|LAX_TOP);
 	}
@@ -241,7 +243,6 @@ void IconSelector::drawbox(int which)
 			dp->drawBevel(b->pad,highlight,shadow,b->state, b->x()-b->pad,b->y()-b->pad, b->w()+2*b->pad,b->h()+2*b->pad);
 	} else if (display_style == BOXES_Beveled) {
 		dp->drawBevel(b->pad,highlight,shadow,b->state, b->x()-b->pad,b->y()-b->pad, b->w()+2*b->pad,b->h()+2*b->pad);
-	// } else if (display_style == BOXES_Highlighted) {
 	}
 }
 

@@ -119,8 +119,8 @@ LineEdit::LineEdit(anXWindow *parnt,const char *nname,const char *ntitle,unsigne
 	newline = newline2 = 0;
 
 	textheight = UIScale() * win_themestyle->normal->textheight();
-	padx = textheight * .2;
-	pady = textheight * .2;
+	padx = .2;
+	pady = .2;
 	firsttime = 1;
 	needtodraw = 1;
 
@@ -128,7 +128,7 @@ LineEdit::LineEdit(anXWindow *parnt,const char *nname,const char *ntitle,unsigne
 
 	sellen = curpos = selstart = 0;
 	oldsellen = 0;
-	curlineoffset = -padx;
+	curlineoffset = -padx * textheight;
 	dpos = 0;
 	mostpixwide = 10;
 
@@ -147,7 +147,7 @@ LineEdit::~LineEdit()
 int LineEdit::init()
 {
 	TextXEditBaseUtf8::init();
-	curlineoffset = -padx;
+	curlineoffset = -padx * textheight;
 	if (!win_owner) SetOwner(win_parent);
 	return 0;
 }
@@ -469,7 +469,7 @@ int LineEdit::SetText(double newtext)
 int LineEdit::SetText(const char *newtext)
 { 
 	if (TextEditBaseUtf8::SetText(newtext)) return 1;
-	curlineoffset = -padx;
+	curlineoffset = -padx * textheight;
 	findcaret();
 	Modified(0);
 	needtodraw=1;
@@ -803,21 +803,21 @@ int LineEdit::Setpixwide()
 {
 	DBG cerr <<"---setpixwide clo:"<<curlineoffset<<"  cx="<<cx<<" mostpixwide="<<mostpixwide<<endl;
 
-	mostpixwide=GetExtent(0,textlen,0);
-	if (mostpixwide>win_w-2*padx) { // line is too long for window
-		if (win_w-padx-(mostpixwide-curlineoffset)>0) // gap on the right
-			curlineoffset=win_w-padx-mostpixwide;
-		else if (-curlineoffset-padx>0) // gap on the left
-			curlineoffset=-padx;
+	mostpixwide = GetExtent(0,textlen,0);
+	if (mostpixwide > win_w - 2*padx*textheight) { // line is too long for window
+		if (win_w - padx*textheight - (mostpixwide-curlineoffset) > 0) // gap on the right
+			curlineoffset = win_w - padx*textheight - mostpixwide;
+		else if (-curlineoffset - padx*textheight > 0) // gap on the left
+			curlineoffset = -padx;
 		else return 0; // fits ok
-		needtodraw=1;
+		needtodraw = 1;
 		return 0;
 	}
 
 	 // else whole line fits in window
-	if (textstyle&TEXT_LEFT) curlineoffset=-padx;
-	else if (textstyle&TEXT_CENTER) curlineoffset=-(win_w-mostpixwide)/2;
-	else if (textstyle&TEXT_RIGHT) curlineoffset=-(win_w-padx-mostpixwide);
+	if      (textstyle&TEXT_LEFT)   curlineoffset = -padx*textheight;
+	else if (textstyle&TEXT_CENTER) curlineoffset = -(win_w - mostpixwide)/2;
+	else if (textstyle&TEXT_RIGHT)  curlineoffset = -(win_w - padx*textheight - mostpixwide);
 	
 	DBG cerr <<" -----pixwide clo:"<<curlineoffset<<"  cx="<<cx<<" mostpixwide="<<mostpixwide<<endl;
 	return 1;
@@ -828,19 +828,18 @@ int LineEdit::Setpixwide()
  */
 int LineEdit::makeinwindow()  
 {
-	if (cx>=textrect.x+padx && cx<=textrect.x+textrect.width-padx) return 0;
+	if (cx >= textrect.x + padx*textheight && cx <= textrect.x + textrect.width - padx*textheight) return 0;
 	DBG cerr <<"---makeinwindow clo:"<<curlineoffset<<" cx:"<<cx;
 	 // get horizontal position
-	int oldclo=curlineoffset;
-	if (cx<textrect.x+padx) {
-		curlineoffset+=(cx-padx-textrect.x);
-		if (-curlineoffset>textrect.x+padx) curlineoffset=-padx-textrect.x;
-	} else if (cx>textrect.x+textrect.width-padx-3) {
-		curlineoffset+=cx-(textrect.x+textrect.width)+padx+3;
+	int oldclo = curlineoffset;
+	if (cx < textrect.x + padx*textheight) {
+		curlineoffset += (cx - padx*textheight - textrect.x);
+		if (-curlineoffset > textrect.x + padx*textheight) curlineoffset = -padx*textheight - textrect.x;
+	} else if (cx > textrect.x + textrect.width - padx*textheight - 3) {
+		curlineoffset += cx - (textrect.x + textrect.width) + padx*textheight + 3;
 	}
-	cx-=(curlineoffset-oldclo);
-	needtodraw=1;
-	//findcaret();
+	cx -= (curlineoffset - oldclo);
+	needtodraw = 1;
 	DBG cerr <<"        new clo:"<<curlineoffset<<" cx:"<<cx<<endl;
 	return 1;
 }
@@ -881,7 +880,7 @@ int LineEdit::LBDown(int x,int y, unsigned int state,int count,const LaxMouse *d
 		dp->font(thefont, UIScale() * thefont->textheight());
 	}
 
-	if (x>win_w-textheight-padx && (win_style&LINEEDIT_CLEAR_X)) {
+	if (x > win_w - textheight - padx*textheight && (win_style&LINEEDIT_CLEAR_X)) {
 		SetText("");
 		buttondown.up(d->id, LEFTBUTTON);
 		send(0);
@@ -1139,10 +1138,10 @@ int LineEdit::MouseMove(int x,int y,unsigned int state,const LaxMouse *d)
 
 	if (!buttondown.any()) {
 		int oldhover=lasthover;
-		if (x>win_w-textheight-padx && (win_style&LINEEDIT_CLEAR_X)) {
-			lasthover=1;
-		} else lasthover=0;
-		if (lasthover!=oldhover) needtodraw=1;
+		if (x > win_w - textheight - padx*textheight && (win_style&LINEEDIT_CLEAR_X)) {
+			lasthover = 1;
+		} else lasthover = 0;
+		if (lasthover != oldhover) needtodraw = 1;
 		return 0;
 	}
 
@@ -1198,15 +1197,15 @@ int LineEdit::SetupMetrics()
 void LineEdit::DrawText(int)
 {
 	char check=1;
-	if (textstyle&TEXT_LEFT || mostpixwide>textrect.width-2*padx) {
+	if (textstyle&TEXT_LEFT || mostpixwide > textrect.width - 2*padx*textheight) {
 		 //if left justified, or line fits off screen
 		DrawLineOfText(-curlineoffset,textrect.height/2-textheight/2+textascent,0,textlen,check);
 
 	} else {
 		//int ext=GetExtent(0,textlen,0);
 		if (textstyle&TEXT_CENTER) 
-			DrawLineOfText(textrect.width/2-mostpixwide/2,textrect.height/2-textheight/2+textascent,0,textlen,check);
-		else DrawLineOfText(textrect.width-padx-mostpixwide,textrect.height/2-textheight/2+textascent,0,textlen,check);
+			DrawLineOfText(textrect.width/2 - mostpixwide/2, textrect.height/2-textheight/2+textascent,0,textlen,check);
+		else DrawLineOfText(textrect.width - padx*textheight - mostpixwide, textrect.height/2-textheight/2+textascent,0,textlen,check);
 	}
 
 	if (curlineoffset<0) {

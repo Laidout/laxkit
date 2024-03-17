@@ -440,22 +440,23 @@ Attribute *LaxFont::dump_out_atts(Attribute *att, int what, DumpContext *context
 
 FontDialogFont::FontDialogFont(int nid, const char *nfile, const char *nfamily, const char *nstyle)
 {
-    id=nid;
-	if (id<=0) id=getUniqueNumber();
+	id = nid;
+	if (id <= 0) id = getUniqueNumber();
 
-    name=NULL;
-    psname=NULL;
-	format=-1;
-    preview=NULL;
+	name    = NULL;
+	psname  = NULL;
+	format  = -1;
+	preview = NULL;
 
-    family=newstr(nfamily);
-    style =newstr(nstyle);
-    file  =newstr(nfile);
-    index=0;
+	family    = newstr(nfamily);
+	style     = newstr(nstyle);
+	file      = newstr(nfile);
+	index     = 0;
+	has_color = false;
 
-	favorite=0;
+	favorite  = 0;
 
-	fc_pattern=NULL; //assume fontmanager->fontlist gets destroyed AFTER this
+	fc_pattern = NULL;  // assume fontmanager->fontlist gets destroyed AFTER this
 }
 
 FontDialogFont::~FontDialogFont()
@@ -465,10 +466,11 @@ FontDialogFont::~FontDialogFont()
     delete[] family;
     delete[] style;
     delete[] file;
-    //delete[] format;
     if (preview) preview->dec_count();
 }
 
+/*! Return whether both family and style caselessly match.
+ */
 bool FontDialogFont::Match(const char *mfamily, const char *mstyle)
 {
     if (mfamily && family && !strcasecmp(mfamily,family)) {
@@ -545,7 +547,7 @@ int FontDialogFont::UsePSName()
 LayeredDialogFont::LayeredDialogFont(int nid)
   : FontDialogFont(nid)
 { 
-	palette=NULL;
+	palette = nullptr;
 }
 
 
@@ -556,10 +558,10 @@ LayeredDialogFont::LayeredDialogFont(int nid)
 
 FontTag::FontTag(int nid, int ntagtype, const char *ntag)
 {
-	id=nid;
-	if (id<=0) id=getUniqueNumber();
-	tagtype=ntagtype;
-	tag=newstr(ntag);
+	id = nid;
+	if (id <= 0) id = getUniqueNumber();
+	tagtype = ntagtype;
+	tag = newstr(ntag);
 }
 
 FontTag::~FontTag()
@@ -577,13 +579,13 @@ FontTag::~FontTag()
 
 FontManager::FontManager()
 {
-	fcconfig=NULL;
-	ft_library=NULL;
+	fcconfig   = nullptr;
+	ft_library = nullptr;
 }
 
 FontManager::~FontManager()
 {
-	if (fcconfig) FcConfigDestroy(fcconfig);
+	if (fcconfig)   FcConfigDestroy(fcconfig);
 	if (ft_library) FT_Done_FreeType(*ft_library);
 }
 
@@ -609,7 +611,7 @@ FcConfig *FontManager::GetConfig()
 
      // Initialize FontConfig library.
 	FcInit(); //does nothing if FcInit() already called somewhere else
-	fcconfig=FcInitLoadConfigAndFonts();
+	fcconfig = FcInitLoadConfigAndFonts();
 
 	return fcconfig;
 }
@@ -618,8 +620,8 @@ FcConfig *FontManager::GetConfig()
  */
 int cmp_fontinfo_name(const void *f1p, const void *f2p)
 {
-	FontDialogFont *f1=*((FontDialogFont**)f1p);
-	FontDialogFont *f2=*((FontDialogFont**)f2p);
+	FontDialogFont *f1 = *((FontDialogFont**)f1p);
+	FontDialogFont *f2 = *((FontDialogFont**)f2p);
 
 	if (!f1->name) return -1;
 	if (!f2->name) return 1;
@@ -630,8 +632,8 @@ int cmp_fontinfo_name(const void *f1p, const void *f2p)
  */
 int cmp_fontinfo_psname(const void *f1p, const void *f2p)
 {
-	FontDialogFont *f1=*((FontDialogFont**)f1p);
-	FontDialogFont *f2=*((FontDialogFont**)f2p);
+	FontDialogFont *f1 = *((FontDialogFont**)f1p);
+	FontDialogFont *f2 = *((FontDialogFont**)f2p);
 
 	if (!f1->psname) return -1;
 	if (!f2->psname) return 1;
@@ -642,8 +644,8 @@ int cmp_fontinfo_psname(const void *f1p, const void *f2p)
  */
 static int cmp_fontinfo_file(const void *f1p, const void *f2p)
 {
-	FontDialogFont *f1=*((FontDialogFont**)f1p);
-	FontDialogFont *f2=*((FontDialogFont**)f2p);
+	FontDialogFont *f1 = *((FontDialogFont**)f1p);
+	FontDialogFont *f2 = *((FontDialogFont**)f2p);
 
 	if (!f1->file) return -1;
 	if (!f2->file) return 1;
@@ -666,43 +668,56 @@ PtrStack<FontDialogFont> *FontManager::GetFontList()
     FcResult result;
     FcValue v;
 
-	const char *format=NULL;
-    FontDialogFont *f=NULL;
-    FcFontSet *fontset=FcConfigGetFonts(fcconfig, FcSetSystem); //"This font set is owned by the library and must not be modified or freed"
+	const char *format = nullptr;
+    FontDialogFont *f = nullptr;
+    FcFontSet *fontset = FcConfigGetFonts(fcconfig, FcSetSystem); //"This font set is owned by the library and must not be modified or freed"
 
-    for (int c=0; c<fontset->nfont; c++) {
+    for (int c = 0; c < fontset->nfont; c++) {
          // Usually, for each font family, there are several styles
          // like bold, italic, etc.
-        result=FcPatternGet(fontset->fonts[c],FC_FAMILY,0,&v);
-        if (result!=FcResultMatch) continue;
+        result = FcPatternGet(fontset->fonts[c],FC_FAMILY,0,&v);
+        if (result != FcResultMatch) continue;
 
-        f=new FontDialogFont(c);
-        f->fc_pattern=fontset->fonts[c];
+        f = new FontDialogFont(c);
+        f->fc_pattern = fontset->fonts[c];
 
         makestr(f->family, (const char *)v.u.s);
 
-        result=FcPatternGet(fontset->fonts[c],FC_STYLE,0,&v);
-        if (result==FcResultMatch) makestr(f->style, (const char *)v.u.s);
+        result = FcPatternGet(fontset->fonts[c],FC_STYLE,0,&v);
+        if (result == FcResultMatch) makestr(f->style, (const char *)v.u.s);
 
-        result=FcPatternGet(fontset->fonts[c],FC_POSTSCRIPT_NAME,0,&v);
-        if (result==FcResultMatch) makestr(f->psname, (const char *)v.u.s);
+        result = FcPatternGet(fontset->fonts[c],FC_POSTSCRIPT_NAME,0,&v);
+        if (result == FcResultMatch) makestr(f->psname, (const char *)v.u.s);
 
-        result=FcPatternGet(fontset->fonts[c],FC_FILE,0,&v);
-        if (result==FcResultMatch) makestr(f->file, (const char *)v.u.s);
+        result = FcPatternGet(fontset->fonts[c],FC_FILE,0,&v);
+        if (result == FcResultMatch) makestr(f->file, (const char *)v.u.s);
 
-        result=FcPatternGet(fontset->fonts[c],FC_INDEX,0,&v);
-        if (result==FcResultMatch) f->index = v.u.i;
+        result = FcPatternGet(fontset->fonts[c],FC_INDEX,0,&v);
+        if (result == FcResultMatch) f->index = v.u.i;
 
-        result=FcPatternGet(fontset->fonts[c],FC_FONTFORMAT,0,&v);
-        //if (result==FcResultMatch) makestr(f->format, (const char *)v.u.s);
-        if (result==FcResultMatch) format=(const char *)v.u.s; else format=NULL;
-		if (format!=NULL) {
-			int id=GetTagId(format);
-			if (id==-1) {
+        result = FcPatternGet(fontset->fonts[c],FC_FONTFORMAT,0,&v);
+        if (result == FcResultMatch) format = (const char *)v.u.s; else format = nullptr;
+		if (format != NULL) {
+			int id = GetTagId(format);
+			if (id == -1) {
 				tags.push(new FontTag(-1, FontTag::TAG_Format, format)); //puts at end 
 				f->id = tags.e[tags.n-1]->id;
-			} else f->id=id;
-			if (id>-1) f->AddTag(id);
+			} else f->id = id;
+			if (id > -1) f->AddTag(id);
+		}
+
+		result = FcPatternGet(fontset->fonts[c], FC_COLOR, 0, &v);
+		if (result == FcResultMatch) {
+			f->has_color = v.u.b;
+
+			if (f->has_color) {
+				int tag_id = GetTagId(_("Color"));
+				if (tag_id == -1) {
+					tags.push(new FontTag(-1, FontTag::TAG_Color, _("Color"))); //puts at end 
+					tag_id = tags.e[tags.n-1]->id;
+				}
+				if (tag_id > -1) f->AddTag(tag_id);
+			}
 		}
 
 		f->UseFamilyStyleName();

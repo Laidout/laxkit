@@ -129,8 +129,8 @@ int ImageDialog::init()
 {
 	if (!xlib_window) return 1;
 
-	int        textheight = win_themestyle->normal->textheight();
-	int        linpheight = textheight + 6;
+	int        textheight = UIScale() * win_themestyle->normal->textheight();
+	int        linpheight = 1.2 * textheight;
 	anXWindow *last       = nullptr;
 	Button *   tbut       = nullptr;
 

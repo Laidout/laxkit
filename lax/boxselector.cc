@@ -315,7 +315,7 @@ void BoxSelector::Refresh()
 
 	Displayer *dp = MakeCurrent();
 	dp->ClearWindow();
-	dp->font(win_themestyle->normal);
+	dp->font(win_themestyle->normal, UIScale() * win_themestyle->normal->textheight());
 
 	for (int c=0; c<wholelist.n; c++) {
 		if (!wholelist.e[c]) continue;

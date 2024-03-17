@@ -250,9 +250,10 @@ void FontLayersWindow::Refresh()
 	dp->ClearWindow();
     dp->LineAttributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
 	dp->NewFG(win_themestyle->fg);
+	dp->font(win_themestyle->normal, UIScale() * win_themestyle->normal->textheight());
 
-	if (mode==0) {
-		DBG int over=0;
+	if (mode == 0) {
+		DBG int over = 0;
 		//if (buttondown.isdown(0,LEFTBUTTON)){ 
 		//	int device=buttondown.whichdown(0, LEFTBUTTON);
 		//	buttondown.getextrainfo(device, LEFTBUTTON, &over);
@@ -372,48 +373,52 @@ FontDialog::FontDialog(anXWindow *parnt,const char *nname,const char *ntitle,uns
 		LaxFont *nfont, bool work_on_dup)
 	: RowFrame(parnt,nname,ntitle,(nstyle&0xffff)|ROWFRAME_ROWS|ROWFRAME_CENTER,
 			   xx,yy,ww,hh,brder,
-			   NULL,nowner,nsend,
+			   nullptr,nowner,nsend,
 			   5)
 {
-	palette=NULL;
+	palette = nullptr;
 
-	thefont=nfont;
+	thefont = nfont;
 	if (nfont) {
-		if (work_on_dup) thefont=nfont->duplicate();
+		if (work_on_dup) thefont = nfont->duplicate();
 		else thefont->inc_count();
 
-		if (!fam)   fam  =thefont->Family();
-		if (!style) style=thefont->Style();
+		if (!fam) fam = thefont->Family();
+		if (!style) style = thefont->Style();
 	} else {
-		if (!fam) fam="sans";
-		thefont=app->fontmanager->MakeFont(fam, style, size, 0);
+		if (!fam) fam = "sans";
+		thefont = app->fontmanager->MakeFont(fam, style, size, 0);
 	}
 
-	fontlayer=thefont;
-	palette=dynamic_cast<Palette*>(thefont->GetColor());
+	fontlayer = thefont;
+	palette   = dynamic_cast<Palette *>(thefont->GetColor());
 	if (palette) palette->inc_count();
 
-
-	origfamily=newstr(fam);
-	origstyle =newstr(style);
+	origfamily = newstr(fam);
+	origstyle  = newstr(style);
 
 	if (!thefont && origfamily) {
 		FindFont();
 	}
 
-	dialog_style=ndstyle;
-	defaultsize=size;
-	if (defaultsize<=0) defaultsize=12;
-	currentfont=-1;
+	dialog_style = ndstyle;
+	defaultsize  = size;
+	if (defaultsize <= 0) defaultsize = 15;
+	currentfont = -1;
 
-	if (!nsample) nsample=_("The quick brown fox etc");
-	sampletext=newstr(nsample);
-	mfonts=NULL;
+	if (!nsample) nsample = _("The quick brown fox etc");
+	sampletext = newstr(nsample);
+	mfonts     = nullptr;
 
-	more=false;
-	initted=false;
+	more    = false;
+	initted = false;
 
-	tags=NULL;
+	tags = nullptr;
+
+	if (win_w <= 0) win_w = 600;
+	if (win_h <= 0) win_h = 600;
+
+	group = nullptr;
 }
 
 FontDialog::~FontDialog()
@@ -431,9 +436,9 @@ FontDialog::~FontDialog()
 int FontDialog::init()
 {
 
-	FontManager *fmanager=GetDefaultFontManager();
+	FontManager *fmanager = GetDefaultFontManager();
 
-	fonts=fmanager->GetFontList();
+	fonts = fmanager->GetFontList();
 
 
 	 //-------------build windows
@@ -441,24 +446,24 @@ int FontDialog::init()
 	//int linpheight=textheight+6;
 
 	anXWindow *last = NULL;
-	double textheight = win_themestyle->normal->textheight();
+	double textheight = UIScale() * win_themestyle->normal->textheight();
 
 	 //------font family
 	 // *** type in box progressively limits what's displayed in list 
 	 // *** should have selectors to group favorites or whatever
-	last=fontfamily=new LineInput(this,"fontfamily","fontfamily",0, 0,0,0,0, 0, last,object_id,"fontfamily", 
-							_("Family"),origfamily,0, 0,0,2,2,2,2);
+	last = fontfamily = new LineInput(this,"fontfamily","fontfamily",0, 0,0,0,0, 0, last,object_id,"fontfamily", 
+							_("Family"),origfamily,0); //, 0,0,-1,-1,-1,-1);
 	fontfamily->tooltip(_("Family name of the font"));
 	AddWin(fontfamily,1, 400,200,1000,50,0, fontfamily->win_h,0,0,50,0, -1);
 
 
 	 //------font style
-	last=fontstyle=new LineInput(this,"fontstyle","fontstyle",0, 0,0,0,0, 0, last,object_id,"fontstyle", 
-							_("Style"),origstyle,0, 0,0,2,2,2,2);
+	last = fontstyle = new LineInput(this,"fontstyle","fontstyle",0, 0,0,0,0, 0, last,object_id,"fontstyle", 
+							_("Style"),origstyle,0); //, 0,0,2,2,2,2);
 	fontstyle->tooltip(_("Style of the font"));
 	AddWin(fontstyle,1, 200,100,1000,50,0, fontstyle->win_h,0,0,50,0, -1);
 
-	last=new MenuButton(this,"styles","styles",MENUBUTTON_DOWNARROW, 0,0,0,0,0, last,object_id,"style",0, &styles,0, NULL,NULL,NULL,textheight/3);
+	last = new MenuButton(this,"styles","styles",MENUBUTTON_DOWNARROW, 0,0,0,0,0, last,object_id,"style",0, &styles,0, NULL,NULL,NULL,textheight/3);
 	AddWin(last,1, last->win_w,0,0,50,0, last->win_h,0,0,50,0, -1);
 
 
@@ -466,7 +471,7 @@ int FontDialog::init()
 	//last=fontsize=new LineInput(this,"size","size",0, //LINP_FLOAT,
 	//						0,0,0,0, 0, last,object_id,"fontsize", 
 	//						_("Size"),NULL,0, 0,0,2,2,2,2);
-	last=fontsize=new NumSlider(this,"size","size",ItemSlider::SENDALL|ItemSlider::EDITABLE|NumSlider::DOUBLES,
+	last = fontsize = new NumSlider(this,"size","size",ItemSlider::SENDALL|ItemSlider::EDITABLE|NumSlider::DOUBLES,
 							0,0,0,0, 1, last,object_id,"fontsize", 
 							_("Size"), 0,1000000, defaultsize, .5);
 	fontsize->tooltip(_("Size of the font"));
@@ -476,16 +481,10 @@ int FontDialog::init()
 
 
 	 //------font file
-	last=fontfile=new LineInput(this,"fontfile",_("Font file"),LINP_FILE, 0,0,0,0, 0, last,object_id,"fontfile", 
-							_("File"), thefont->FontFile(), 0, 0,0,2,2,2,2);
+	last = fontfile = new LineInput(this,"fontfile",_("Font file"),LINP_FILE, 0,0,0,0, 0, last,object_id,"fontfile", 
+							_("File"), thefont->FontFile(), 0); //, 0,0,2,2,2,2);
 	fontfile->tooltip(_("File of the font"));
 	AddWin(fontfile,1, 200,100,2000,50,0, fontstyle->win_h,0,0,50,0, -1);
-
-	last=new QuickFileOpen(this,"new file","new file",ANXWIN_REMEMBER, 0,0,0,0, 1,
-	                      last,object_id,"newfile",
-						  FILES_OPEN_ONE,
-						  fontfile);
-	AddWin(last,1, last->win_w,0,0,50,0, last->win_h,0,0,50,0, -1);
 
 	AddNull();
 
@@ -495,20 +494,30 @@ int FontDialog::init()
 
 
 	 //------search
-	last=search=new LineInput(this,"search","search",0, 0,0,0,0, 0, last,object_id,"search", 
-							_("Search"),NULL,0, 0,0,2,2,2,2);
+	last = search = new LineInput(this,"search","search",0, 0,0,0,0, 0, last,object_id,"search", 
+							_("Search"),NULL,0); //, 0,0,2,2,2,2);
 	search->GetLineEdit()->SetWinStyle(LINEEDIT_SEND_ANY_CHANGE, 1);
 	search->GetLineEdit()->SetWinStyle(LINEEDIT_CLEAR_X, 1);
 	search->tooltip(_("Search among fonts"));
 	AddWin(search,1, 20,10,5000,50,0, search->win_h,0,0,50,0, -1);
 
-	AddHSpacer(textheight*2, 0,250,0);
+	AddHSpacer(textheight, 0,0,0);
 
-	Button *tbut;
+	//MessageBar *mbar = new MessageBar(this, "group", nullptr, 0, 0,0,0,0,0, _("Group"));
+	//AddWin(mbar,1,-1);
+	last = group = new LineInput(this,"group","group",0, 0,0,0,0, 0, last,object_id,"group",
+							_("Group"),"2",0);
+	group->tooltip(_("Compact the font list by patterns.\n2 for instance means group lines whose first two words are the same."));
+	AddWin(group,1, group->win_w + 4*textheight,10,100,50,0, group->win_h,0,2*textheight,100,0, -1);
+
+
+	Button *tbut = nullptr;
 //	last=tbut=new Button(this,"more","more",IBUT_FLAT, 0,0,0,0, 0, 
 //			last,object_id,"more", 0, _("More.."),NULL,NULL,3,3);
 //	AddWin(tbut,1, tbut->win_w,0,tbut->win_w*2,50,0, tbut->win_h,0,0,50,0, -1);
 
+	AddNull();
+	AddVSpacer(textheight/2,0,0,0);
 	AddNull();
 
 	//----- tags
@@ -526,50 +535,63 @@ int FontDialog::init()
 	 //------font list
 	int orig=-1;
 	if (!mfonts) {
-		mfonts=new MenuInfo("Fonts");
-		//char str[1024];
+		mfonts = new MenuInfo("Fonts");
 
-		for (int c=0; c<fonts->n; c++) {
-			if (orig<0 && fonts->e[c]->file && thefont->FontFile() && !strcmp(fonts->e[c]->file, thefont->FontFile()))
-				orig=c;
+		int group_num = 0;
+		const char *group_match = nullptr;
+		int group_match_len = 0
+		int group_span = 0;
 
-			mfonts->AddItem(fonts->e[c]->name, c);
-			//------
-			//sprintf(str,"%s, %s",fonts->e[c]->family,fonts->e[c]->style);
-			//mfonts->AddItem(fonts->e[c]->name ? fonts->e[c]->name : str, c);
-			//------
-			//mfonts->AddItem((fonts->e[c]->psname ? fonts->e[c]->psname : _("No ps name!")),c);
+		if (group) {
+			group_num = group->GetLong();
+			if (group_num < 0) group_num = 0;
 		}
 
-		mfonts->SetCompareFunc(SORT_ABC|SORT_IGNORE_CASE);
+		for (int c = 0; c < fonts->n; c++) {
+			if (orig < 0 && fonts->e[c]->file && thefont->FontFile() && !strcmp(fonts->e[c]->file, thefont->FontFile()))
+				orig = c;
+
+			mfonts->AddItem(fonts->e[c]->name, c);
+			if (group_num > 0) {
+				if (!group_match) {
+					group_match = fonts->e[c]->name;
+				} else {
+					if (!strncasecmp(group_match, fonts->e[c]->name, group_match_len) && !isalphanum(fonts->e[c]->name[group_match_len])) {
+						group_span++;
+						// *** FINISH ME!!!
+					} else {
+						group_span = 0;
+						group_match = nullptr;
+						group_match_len = 0;
+					}
+				}
+			}
+		}
+
+		mfonts->SetCompareFunc(SORT_ABC | SORT_IGNORE_CASE);
 		mfonts->Sort(0);
 	}
 
-	last=fontlist=new TreeSelector(this,"fonts","fonts", SW_RIGHT,
+	last = fontlist = new TreeSelector(this,"fonts","fonts", SW_RIGHT,
 									0,0,0,0,1,
 									last,object_id,"font",
 									TREESEL_SEND_ON_UP
 									 |TREESEL_CURSSENDS
 									 //|TREESEL_TEXTCOLORS
 									 //|TREESEL_SUB_ON_LEFT
-									 |TREESEL_FOLLOW_MOUSE
-									 |TREESEL_CURSSELECTS
+									 //|TREESEL_FOLLOW_MOUSE
+									 //|TREESEL_CURSSELECTS
 									 |TREESEL_LEFT
 									 |TREESEL_ONE_ONLY,
 									mfonts);
 	fontlist->InstallColors(THEME_Edit);
-	//fontlist->tooltip(_("Select one of these"));
 	AddWin(fontlist,1, 200,100,1000,50,0, 30,0,2000,50,0, -1);
-
-	//***supposed to be handled automatically via ScrolledWindow:
-	//last=scroller=new Scroller(this, "scr","scr", SC_YSCROLL|SC_ABOTTOM, 0,0,0,0,0, last,object_id,"scroll", panner, ****sizes..);
 
 	AddNull();
 
 
-
 	 //-----sample text
-	last=text=new LineEdit(this,"sample","sample",0,
+	last = text = new LineEdit(this,"sample","sample",0,
 								0,0,0,0,0,
 								last,object_id,"sample",
 								sampletext,TEXT_CENTER);
@@ -641,28 +663,6 @@ int FontDialog::init()
 	//		last,object_id,"layers", 0, _("Layers.."),NULL,NULL,3,3);
 	AddWin(last,1, textheight*5,0,5000,50,0, last->win_h,0,0,50,0, -1);
 
-
-	AddNull();
-
-
-//------old vertical stack of colors:
-//	StackFrame *stack=new StackFrame(this, "vstack",NULL, STACKF_VERTICAL|STACKF_NOT_SIZEABLE, 0,0,0,0,0, NULL,0,NULL,0);
-//	int r,g,b;
-//	colorrgb(text->win_themestyle->fg, &r,&g,&b);
-//	ColorBox *colorbox;
-//	colorbox=new ColorBox(stack,"fg","fg",COLORBOX_SEND_ALL, 0,0,textheight*2,textheight*2,1, NULL,object_id,"fg", 
-//							   LAX_COLOR_RGB,1./255, r/255.,g/255.,b/255.,1.0,0);
-//	colorbox->tooltip(_("Sample foreground"));
-//	stack->AddWin(colorbox, 1, textheight*2,0,0,50,0, textheight*2,0,100,50,0);
-//
-//	colorrgb(text->win_themestyle->bg, &r,&g,&b);
-//	colorbox=new ColorBox(stack,"bg","bg",COLORBOX_SEND_ALL, 0,0,textheight*2,textheight*2,1, NULL,object_id,"bg", 
-//							   LAX_COLOR_RGB,1./255, r/255.,g/255.,b/255.,1.0,0);
-//	colorbox->tooltip(_("Sample background"));
-//	stack->AddWin(colorbox, 1, textheight*2,0,0,50,0, textheight*2,0,100,50,0);
-//	stack->WrapToExtent();
-//	AddWin(stack,1, stack->win_w,0,0,50,0, stack->win_h,0,0,50,0, -1);
-//------end old vertical stack of colors:
 
 	AddNull();
 

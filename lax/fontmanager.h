@@ -153,6 +153,7 @@ class FontDialogFont
     char *file;
 	int format;
     int index; //index in file when more than one font in file
+    bool has_color;
 
     LaxImage *preview;
     IntTagged tags;
@@ -195,6 +196,7 @@ class FontTag
 		TAG_File_Type,
 		TAG_Monospace,
 		TAG_Format,
+		TAG_Color,
 		TAG_Other,
 		TAG_MAX
 	};

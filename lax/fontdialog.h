@@ -114,6 +114,7 @@ class FontDialog : public RowFrame
 	LineEdit *text;
 	LineInput *fontfamily, *fontstyle, *fontfile;
 	LineInput *search;
+	LineInput *group;
 	NumSlider *fontsize;
 	MenuInfo *mfonts;
 	MenuInfo styles;

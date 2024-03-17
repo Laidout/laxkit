@@ -288,8 +288,8 @@ int Scroller::getpos(int mx,int my)
 	
 	if      (my>=a1off && my<a1off+ah) return UP_ARROW;   // up 
 	else if (my>=a2off && my<a2off+ah) return DOWN_ARROW; // down
-	else if (my<poss-zh) return PAGE_UP;    // pgup 
-	else if (my>pose+zh) return PAGE_DOWN; // pgdown
+	else if (my<poss-zh) return PAGE_DOWN;  // pgup 
+	else if (my>pose+zh) return PAGE_UP;   // pgdown
 	else if (my<poss) return ZOOM_UP;     // upper zoom handle
 	else if (my>pose) return ZOOM_DOWN;  // lower zoom handle
 	else return 3;	// on tracker
