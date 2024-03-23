@@ -539,7 +539,7 @@ int FontDialog::init()
 
 		int group_num = 0;
 		const char *group_match = nullptr;
-		int group_match_len = 0
+		int group_match_len = 0;
 		int group_span = 0;
 
 		if (group) {
@@ -556,7 +556,7 @@ int FontDialog::init()
 				if (!group_match) {
 					group_match = fonts->e[c]->name;
 				} else {
-					if (!strncasecmp(group_match, fonts->e[c]->name, group_match_len) && !isalphanum(fonts->e[c]->name[group_match_len])) {
+					if (!strncasecmp(group_match, fonts->e[c]->name, group_match_len) && !isalnum(fonts->e[c]->name[group_match_len])) {
 						group_span++;
 						// *** FINISH ME!!!
 					} else {
