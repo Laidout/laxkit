@@ -37,6 +37,7 @@ int bez_extrema(flatpoint p,flatpoint c,flatpoint d,flatpoint q,double *extrema,
 
 flatpoint bez_point(double t,flatpoint p1,flatpoint c1,flatpoint c2,flatpoint p2);
 flatpoint bez_tangent(double t,flatpoint p1,flatpoint c1,flatpoint c2,flatpoint p2);
+flatpoint bez_bitangent(double t,flatpoint p1,flatpoint c1,flatpoint c2,flatpoint p2);
 flatpoint bez_acceleration(double t,flatpoint p1,flatpoint c1,flatpoint c2,flatpoint p2);
 int accel_direction(double t, flatvector p, flatvector c, flatvector d, flatvector q);
 flatpoint bez_visual_tangent(double t,flatpoint p1,flatpoint c1,flatpoint c2,flatpoint p2);

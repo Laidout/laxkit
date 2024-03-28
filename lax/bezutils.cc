@@ -759,14 +759,21 @@ double bez_t_to_distance(double T, flatpoint p1,flatpoint c1,flatpoint c2,flatpo
 flatpoint bez_tangent(double t,flatpoint p1,flatpoint c1,flatpoint c2,flatpoint p2)
 {
 	double tt, a1,a2,a3,a4;
-	tt=t*t;
-	a1= -3 + 6*t -3*tt;
-	a2=  3 -12*t +9*tt;
-	a3=      6*t -9*tt;
-	a4=           3*tt;
+	tt = t*t;
+	a1 = -3 + 6*t - 3*tt;
+	a2 =  3 -12*t + 9*tt;
+	a3 =      6*t - 9*tt;
+	a4 =            3*tt;
 
-	return (flatpoint((a1*p1.x + a2*c1.x + a3*c2.x + a4*p2.x),
+	return (flatvector((a1*p1.x + a2*c1.x + a3*c2.x + a4*p2.x),
 					  (a1*p1.y + a2*c1.y + a3*c2.y + a4*p2.y)));
+}
+
+/*! Return the portion of bez_accerelation() perpendicular to bez_tangent().
+ */
+flatpoint bez_bitangent(double t,flatpoint p1,flatpoint c1,flatpoint c2,flatpoint p2)
+{
+	return bez_acceleration(t, p1, c1, c2, p2) |= bez_tangent(t, p1, c1, c2, p2);
 }
 
 //! Return the numerical acceleration vector at t.
@@ -775,20 +782,20 @@ flatpoint bez_tangent(double t,flatpoint p1,flatpoint c1,flatpoint c2,flatpoint 
 flatpoint bez_acceleration(double t,flatpoint p1,flatpoint c1,flatpoint c2,flatpoint p2)
 {
 	double a1,a2,a3,a4;
-	a1=   6 -  6*t;
-	a2= -12 + 18*t;
-	a3=   6 - 18*t;
-	a4=        6*t;
+	a1 =   6 -  6*t;
+	a2 = -12 + 18*t;
+	a3 =   6 - 18*t;
+	a4 =        6*t;
 
-	return (flatpoint((a1*p1.x + a2*c1.x + a3*c2.x + a4*p2.x),
-					  (a1*p1.y + a2*c1.y + a3*c2.y + a4*p2.y)));
+	return (flatvector((a1*p1.x + a2*c1.x + a3*c2.x + a4*p2.x),
+					   (a1*p1.y + a2*c1.y + a3*c2.y + a4*p2.y)));
 }
 
-/*! Convenience function to compute the acceleration vector at t, then return cardinal_direction(v).
+/*! Convenience function to compute the bitangent vector at t, then return cardinal_direction(v).
  */
 int accel_direction(double t, flatvector p, flatvector c, flatvector d, flatvector q)
 {
-	flatvector v = bez_acceleration(t,p,c,d,q);
+	flatvector v = bez_bitangent(t,p,c,d,q);
 	return cardinal_direction(v);
 }
 
