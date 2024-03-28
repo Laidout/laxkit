@@ -47,7 +47,7 @@ flatpoint *draw_thing_coordinates(DrawThingTypes thing, flatpoint *buffer, int b
 ScreenColor *coloravg(ScreenColor *result, ScreenColor *a, ScreenColor *b,float r=.5);
 unsigned long coloravg(const ScreenColor &a, const ScreenColor &b,float r=.5);
 unsigned long pixelfromcolor(ScreenColor *col);
-unsigned long standoutcolor(const Laxkit::ScreenColor &color, bool bw);
+unsigned long standoutcolor(const Laxkit::ScreenColor &color, bool bw, ScreenColor *color_ret = nullptr);
 void StandoutColor(const Laxkit::ScreenColor &color, bool bw, Laxkit::ScreenColor &color_ret);
 
 unsigned long coloravg(unsigned long a,unsigned long b,float r=.5);

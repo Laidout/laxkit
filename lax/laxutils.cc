@@ -442,7 +442,7 @@ char *LaxopToString(int function, char *str_ret, int len, int *len_ret)
  * If bw then this will always return black or white. Else each color channel
  * is the furthest from the channel value.
  */
-unsigned long standoutcolor(const Laxkit::ScreenColor &color, bool bw)
+unsigned long standoutcolor(const Laxkit::ScreenColor &color, bool bw, ScreenColor *color_ret)
 {
     ScreenColor col(0,0,0,65535);
 
@@ -463,6 +463,8 @@ unsigned long standoutcolor(const Laxkit::ScreenColor &color, bool bw)
 			else col.rgbf(1.,1.,1.,1.);
 		}
 	}
+
+	if (color_ret) *color_ret = col;
     return col.Pixel();
 }
 
