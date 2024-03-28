@@ -412,7 +412,7 @@ int ShortcutWindow::init()
 	ShortcutManager *manager=GetDefaultShortcutManager();
 
 
-	int textheight = win_themestyle->normal->textheight();
+	int textheight = UIScale() * win_themestyle->normal->textheight();
 
 	anXWindow *last=NULL;
 
