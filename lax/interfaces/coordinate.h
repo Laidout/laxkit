@@ -134,6 +134,7 @@ class Coordinate
 	virtual void append(double x,double y,unsigned long flags=POINT_VERTEX,SegmentControls *ctl=NULL);
 	virtual int close();
 	virtual int isClosed();
+	virtual bool isSmooth(double epsilon = 1e-6);
 	virtual void connect(Coordinate *np, bool after=true);
 	virtual Coordinate *disconnect(bool after=true);
 	virtual Coordinate *detach();

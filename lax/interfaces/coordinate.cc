@@ -22,8 +22,8 @@
 
 #include <lax/interfaces/coordinate.h>
 #include <lax/bezutils.h>
+#include <lax/lists.h>
 
-#include <lax/lists.cc>
 
 #include <iostream>
 using namespace std;
@@ -362,6 +362,20 @@ int Coordinate::isClosed()
 	if (!p) return 0;
 	return 1;
 }
+
+/*! Return whether the tangent forward and backward are roughly opposites, within epsilon tolerance.
+ * End points and non-vertex points are considered not smooth.
+ */
+bool Coordinate::isSmooth(double epsilon)
+{
+	flatvector p1, c1, c2, p2;
+	if (resolveToControls(p1, c1, c2, p2, true) == 0) return false;
+	flatvector t1 = bez_visual_tangent(0, p1, c1, c2, p2);
+	if (resolveToControls(p1, c1, c2, p2, false) == 0) return false;
+	flatvector t2 = bez_visual_tangent(0, p1, c1, c2, p2);
+	return (1.0 - t1.normalized()*t2.normalized()) < epsilon;
+}
+
 
 //! Append a new vertex point (x,y) to the next NULL, with iid=0.
 /*! Puts the point in the next most NULL. If this is a closed loop, then
