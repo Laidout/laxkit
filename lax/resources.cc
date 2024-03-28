@@ -1129,6 +1129,10 @@ void ResourceManager::dump_in_list_atts(ResourceType *type, Attribute *att,int f
 				}
 			}
 
+			if (resource->object && isblank(resource->object->object_idstr)) {
+				resource->object->Id(resource->name);
+			}
+
 			if (resourceok) type->resources.push(resource);
 			resource->dec_count();
 		}
