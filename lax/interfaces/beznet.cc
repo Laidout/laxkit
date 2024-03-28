@@ -109,6 +109,7 @@ BezNetData *BezNetData::FromPath(PathsData *data)
 	if (!net) net = new BezNetData();
 
 	// for each subpath, cut on self intersections
+
 	// Add and intersect each subsequent subpath
 
 

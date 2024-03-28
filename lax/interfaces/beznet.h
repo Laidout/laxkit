@@ -61,7 +61,7 @@ public:
 	HalfEdge *twin   = nullptr; // note, unlike "pure" implementations, we always have twins, but twin will have null face if non-manifold
 	HalfEdge *next   = nullptr; // HalfEdge objects allocated in BezEdge objects, which are in BezNetData::edges
 	HalfEdge *prev   = nullptr;
-	HalfEdge *ahead  = nullptr; // A hint that this edge semantically connects forward to this, such as when the net was generated from an overlapping path.
+	HalfEdge *ahead  = nullptr; // A hint that this edge semantically connects forward to this, such as when the net was generated from a path.
 	HalfEdge *behind = nullptr; // A hint that this edge semantically connects backward to this.
 	BezFace  *face   = nullptr; // face of this edge. twin will have separate face. only two faces per total edge allowed.
 	
