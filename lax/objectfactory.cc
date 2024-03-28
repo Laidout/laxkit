@@ -24,9 +24,6 @@
 #include <lax/objectfactory.h>
 
 
-#include <lax/lists.cc>
-
-
 namespace Laxkit {
 
 
@@ -79,14 +76,21 @@ ObjectFactoryNode *ObjectFactory::newObjectFactoryNode()
 
 
 //! Add ability to make a new type of object.
-/*! If newname already exists, then do nothing and return -1. Else return the index on types
+/*! If newname already exists, then do nothing if force_new == false and return -1. If
+ * force_new == true, then replace the old definition with the new definition.
+ * 
+ * If newname not found, return the index on types
  * that the new definition is pushed.
  */
-int ObjectFactory::DefineNewObject(int newid, const char *newname, NewObjectFunc newfunc,DelObjectFunc delfunc, int param)
+int ObjectFactory::DefineNewObject(int newid, const char *newname, NewObjectFunc newfunc,DelObjectFunc delfunc,
+					int param, bool force_new)
 {
-	int exists=0;
-	int i=findPosition(newname,&exists);
-	if (exists) return -1;
+	int exists = 0;
+	int i = findPosition(newname,&exists);
+	if (exists) {
+		if (!force_new) return -1;
+		types.remove(i);
+	}
 
 	ObjectFactoryNode *node = newObjectFactoryNode();
 	node->name = newstr(newname);
