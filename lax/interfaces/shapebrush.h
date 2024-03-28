@@ -38,15 +38,16 @@ class ShapeBrush : public PathsData
   	typedef Laxkit::NumStack<Laxkit::flatpoint> FlatpointLine;
   	Laxkit::PtrStack<FlatpointLine> remapped;
 
-    virtual void Remap();
+    virtual void Remap(Laxkit::flatvector direction);
 
   public:
   	ShapeBrush();
   	virtual ~ShapeBrush();
+  	virtual const char *whattype() { return "ShapeBrush"; }
 
   	virtual void Normalize();
   	virtual void CopyFrom(PathsData *paths);
-  	virtual void MinMax(int pathi, Laxkit::flatpoint direction, Laxkit::flatpoint &min, Laxkit::flatpoint &max);
+  	virtual int MinMax(int pathi, Laxkit::flatvector direction, Laxkit::flatvector &min, Laxkit::flatvector &max);
 };
 
 

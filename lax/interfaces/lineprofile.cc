@@ -23,10 +23,10 @@
 
 #include <lax/interfaces/lineprofile.h>
 #include <lax/interfaces/interfacemanager.h>
+#include <lax/interfaces/somedatafactory.h>
+
 #include <lax/attributes.h>
 #include <lax/language.h>
-
-#include <lax/lists.cc>
 
 
 using namespace Laxkit;
@@ -53,7 +53,7 @@ anObject *NewLineProfile(int p, anObject *refobj) { return new LineProfile; }
 int InstallDefaultLineProfiles(ObjectFactory *factory, ResourceManager *resources)
 {
 	if (factory) {
-		int status=factory->DefineNewObject(OBJTYPE_LineProfile, "LineProfile", NewLineProfile, NULL, 0);
+		int status=factory->DefineNewObject(OBJ_LineProfile, "LineProfile", NewLineProfile, NULL, 0);
 		if (status==-1) return -1;
 	}
 

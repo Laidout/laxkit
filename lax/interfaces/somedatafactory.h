@@ -48,6 +48,9 @@ enum LaxInterfaceDataTypes {
 	LAX_GROUPDATA,
 	LAX_VORONOIDATA,
 
+	OBJ_ShapeBrush,
+	OBJ_LineProfile,
+
 	LAX_DATA_MAX
 };
 

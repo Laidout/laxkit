@@ -21,9 +21,8 @@
 //
 
 #include <lax/interfaces/shapebrush.h>
-
-//template implementation:
-#include <lax/lists.cc>
+#include <lax/bezutils.h>
+#include <lax/debug.h>
 
 
 using namespace Laxkit;
@@ -69,6 +68,8 @@ void ShapeBrush::Normalize()
 			p = p->next;
 		} while (p && p != start);
 	}
+
+	FindBBox();
 }
 
 /*! Copy over all non-empty paths, ignoring holes.
@@ -98,17 +99,32 @@ void ShapeBrush::CopyFrom(PathsData *pathsdata)
 	Normalize();
 }
 
-void ShapeBrush::Remap()
+
+/*! Generate a cached, transformed flatpoint stack from the base Coordinate based path lines.
+ */
+void ShapeBrush::Remap(flatvector direction)
 {
 	// ***
+	DBGE("IMPLEMENT ME!!");
+
+	last_dir = direction;
 }
 
-void ShapeBrush::MinMax(int pathi, flatpoint direction, flatpoint &min, flatpoint &max)
-{
-	if (direction != last_dir) needtoremap = true;
-	if (needtoremap) Remap();
 
-	
+/*! Compute the points furthest away from each other orthogonally from direction.
+ * Note that this is only min and max in "y" relative to direction, NOT "x" which is direction.
+ * direction is a vector in object space.
+ */ 
+int ShapeBrush::MinMax(int pathi, flatvector direction, flatvector &min, flatvector &max)
+{
+	// *** TODO! actually cache:
+	if (direction != last_dir) needtoremap = true;
+	if (needtoremap) Remap(direction);
+
+
+	Path *path = paths.e[pathi];
+	path->MinMax(direction, min, max);
+	return 0;
 }
 
 

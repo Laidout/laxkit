@@ -36,6 +36,7 @@
 #include <lax/colorevents.h>
 #include <lax/language.h>
 
+#include <lax/vectors-out.h>
 
 using namespace Laxkit;
 
@@ -82,6 +83,43 @@ enum PathHoverType {
 	HOVER_WeightAngle,
 	HOVER_MAX
 };
+
+
+//------------------------------------- Resource Types -------------------------------------
+
+anObject *NewShapeBrush(int p, anObject *ref) { return new ShapeBrush; }
+
+//! For resourcemanager.
+Laxkit::anObject *createShapeBrush(Laxkit::Attribute *config)
+{
+    ShapeBrush *b = new ShapeBrush();
+    if (config) b->dump_in_atts(config, 0, nullptr);
+    return b;
+}
+
+void InstallPathResourceTypes(ObjectFactory *factory, ResourceManager *resources)
+{
+	if (factory) {
+		factory->DefineNewObject(OBJ_ShapeBrush, "ShapeBrush", NewShapeBrush, nullptr, 0);
+	}
+
+	if (resources) {
+		resources->AddResourceType("ShapeBrush", _("Shape Brush"), nullptr, nullptr, createShapeBrush, nullptr /*load from file*/);
+	}
+
+	InstallDefaultLineProfiles(factory, resources);
+}
+
+
+int PathInterface::InitializeResources()
+{
+	InterfaceManager *imanager=InterfaceManager::GetDefault(true);
+	ObjectFactory *factory = imanager->GetObjectFactory();
+	ResourceManager *resources = imanager->GetResourceManager();
+
+	InstallPathResourceTypes(factory, resources);
+	return 0;
+}
 
 
 //------------------------------------- PathCoordinate -------------------------------------
@@ -219,6 +257,11 @@ void Path::clear()
 	needtorecache=1;
 }
 
+Laxkit::anObject *Path::duplicate(Laxkit::anObject *ref)
+{
+	return duplicate();
+}
+
 Path *Path::duplicate()
 {
 	Path *newpath = new Path(NULL,linestyle);
@@ -316,6 +359,7 @@ void Path::dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *context)
 		fprintf(f,"%scache                   #This is for reference only. Ignored on read in.\n",spc);
 		fprintf(f,"%s  ...                   #This is for reference only. Ignored on read in.\n",spc);
 		fprintf(f,"%sprofile                 #Optional line profile\n",spc);
+		fprintf(f,"%sbrush                   #Optional shape brush\n", spc);
 		return;
 	}
 
@@ -330,6 +374,17 @@ void Path::dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *context)
 	if (profile) {
 		fprintf(f,"%sprofile\n",spc);
 		profile->dump_out(f, indent+2, what, context);
+	}
+
+	if (brush) {
+		if (brush->ResourceOwner() != this) {
+			 //is resource
+			fprintf(f, "%sshape_brush resource:%s", spc, brush->Id());
+
+		} else {
+			fprintf(f, "%sshape_brush\n", spc);
+			brush->dump_out(f, indent+2, 0, context);
+		}
 	}
 
 	Coordinate *p=path, *p2=NULL;
@@ -449,6 +504,19 @@ Laxkit::Attribute *Path::dump_out_atts(Laxkit::Attribute *att,int what, Laxkit::
 	if (profile) {
 		Attribute *att2 = att->pushSubAtt("profile");
 		profile->dump_out_atts(att2, what, context);
+	}
+
+	if (brush) {
+		if (brush->ResourceOwner()!=this) {
+			 //resource'd default_profile
+			char str[11+strlen(brush->Id())];
+			sprintf(str,"resource: %s", brush->Id());
+			att->push("shape_brush", str);
+
+		} else {
+			Attribute *t = att->pushSubAtt("shape_brush");
+			brush->dump_out_atts(t, 0, context);
+		}
 	}
 
 	if (path==path->lastPoint(0)) att->push("closed");
@@ -1185,7 +1253,7 @@ void Path::UpdateCache()
 				vv=bez_visual_tangent(bezt.e[bb], p->p(), c1,c2, p2->p());
 			}
 			vv.normalize();
-			vt=transpose(vv);
+			vt = transpose(vv);
 			vt.normalize();
 			po=bez.e[bb] + vt*cache_offset.f(cp+bezt.e[bb]);
 			if (hasangle) {
@@ -1197,13 +1265,16 @@ void Path::UpdateCache()
 
 			width = cache_width.f(cp+bezt.e[bb]);
 			if (brush) {
-				brush->MinMax(0, vt, shb, sht);
-				topp   .push(po + (sht.x * vv + sht.y * vt)*width/2);
-				bottomp.push(po + (shb.x * vv + shb.y * vt)*width/2);
+				brush->MinMax(0, vv, shb, sht);
+				anXApp::app->PostMessage2("v: %f,%f b: %f,%f  t: %f,%f", vt.x,vt.y, shb.x,shb.y, sht.x,sht.y);
+				// topp   .push(po + (sht.x * vv + sht.y * vt)*width/2);
+				// bottomp.push(po + (shb.x * vv + shb.y * vt)*width/2);
+				topp   .push(po + width/2 * sht);
+				bottomp.push(po + width/2 * shb);
 
 			} else {
-				topp   .push(po + vt*width/2);
-				bottomp.push(po - vt*width/2);
+				topp   .push(po + width/2 * vt);
+				bottomp.push(po - width/2 * vt);
 			}
 
 			if (cache_types & 1) {
@@ -1577,7 +1648,8 @@ void Path::FindBBoxWithWidth(DoubleBBox *ret)
 
 
 /*! Compute axis aligned bounding box of content transformed by transform.
- * Note this is more specific than the normal FindBBox().
+ * Note this is more specific than the normal FindBBox(), which only finds
+ * bounds in untransformed object space.
  */
 void Path::ComputeAABB(const double *transform, DoubleBBox &box)
 {
@@ -3581,16 +3653,16 @@ int Path::FindExtrema(NumStack<flatpoint> *points_ret, NumStack<double> *t_ret)
 	Coordinate *start = p;
 	flatpoint c1, c2;
 	int isline;
-	double extrema[5];
+	double extrema_t[5];
 	flatpoint extremap[5];
 
 	do {
 		if (p->getNext(c1,c2,p2,isline) != 0) break;
 
-		int ne = bez_extrema(p->p(), c1, c2, p2->p(), extrema, extremap);
+		int ne = bez_extrema(p->p(), c1, c2, p2->p(), extrema_t, extremap);
 		for (int c=0; c<ne; c++) {
 			if (points_ret)	points_ret->push(extremap[c]);
-			if (t_ret) t_ret->push(extrema[c]);
+			if (t_ret) t_ret->push(extrema_t[c]);
 		}
 
 		n += ne;
@@ -3598,6 +3670,84 @@ int Path::FindExtrema(NumStack<flatpoint> *points_ret, NumStack<double> *t_ret)
 	} while (p && p != start);
 	return n;
 }
+
+/*! Return the min and max points that lie on the path such that the y values are furthest away in
+ * a direction perpendicular to direction. Theses are used, for instance, when a ShapeBrush
+ * is swept out along a path. These points will either be extrema of the path transformed
+ * so that direction is the X axis, or vertices.
+ * Previous values of min and max are ignored.
+ */
+void Path::MinMax(Laxkit::flatvector direction, Laxkit::flatvector &min, Laxkit::flatvector &max)
+{
+	Coordinate *start;
+	Coordinate *pp;
+	Coordinate *p;
+	Coordinate *p1_, *p2_, *c1_, *c2_;
+	double extrema_t[5];
+	flatpoint extrema[5];
+	flatpoint y = direction.transpose().normalized();
+
+	double tr[6], tr_inv[6];
+	transform_from_basis(tr_inv, flatvector(), direction.normalized(), y);
+	transform_invert(tr, tr_inv);
+	
+	// First find a vertex point
+	start = pp = path->firstPoint(1);
+
+	if (!(pp->flags & POINT_VERTEX)) return; //only mysterious control points
+
+	//flatvector min_bound, max_bound;
+	min = max = transform_point(tr, pp->p());
+
+	// step through all the rest of the vertices
+	flatpoint p1, c1,c2, p2;
+
+	while (pp) {
+		p = pp->next;
+		if (!p || p == start) break;
+
+		if (p->flags & POINT_VERTEX) {
+			//simple case, just a line segment
+			p1 = transform_point(tr, p->p());
+			if (p1.y > max.y) max = p1;
+			else if (p1.y < min.y) min = p1;
+			pp = p;
+			continue;
+		}
+
+		if (pp->resolveToControls(p1_, c1_, c2_, p2_, true) == 0) break;
+		p1 = transform_point(tr, p1_->p());
+		c1 = transform_point(tr, c1_->p());
+		c2 = transform_point(tr, c2_->p());
+		p2 = transform_point(tr, p2_->p());
+		
+		// check end points
+		if (p1.y > max.y) max = p1;
+		else if (p1.y < min.y) min = p1;
+		if (p2.y > max.y) max = p2;
+		else if (p2.y < min.y) min = p2;
+
+		// check extrema
+		int n = bez_bbox(p1,c1,c2,p2, this, nullptr /*transform*/, extrema_t, extrema);
+
+		for (int c=0; c<n; c++) {
+			// if (extrema[c].info == LAX_TOP) {
+			// 	if (extrema[c].y > max.y) max = extrema[c];
+			// } else if (extrema[c].info == LAX_BOTTOM) {
+			// 	if (extrema[c].y < min.y) min = extrema[c];
+			// }
+			if      (extrema[c].y > max.y) max = extrema[c];
+			else if (extrema[c].y < min.y) min = extrema[c];
+		}
+
+		pp = p2_;
+		if (pp == start) break;
+	}
+
+	min = transform_point(tr_inv, min);
+	max = transform_point(tr_inv, max);
+}
+
 
 /*! Return the number of vertices in the path (points on the line, not control handles).
  *
@@ -3964,6 +4114,7 @@ PathsData::PathsData(unsigned long ns)
 	generator_data = nullptr;
 	generator      = -1;
 	style          = ns;
+	brush          = nullptr;
 }
 
 /*! Dec count of linestyle and fillstyle.
@@ -3973,6 +4124,7 @@ PathsData::~PathsData()
 	if (linestyle) linestyle->dec_count();
 	if (fillstyle) fillstyle->dec_count();
 	if (generator_data) generator_data->dec_count();
+	if (brush) brush->dec_count();
 }
 
 /*! Note paths with single points count as non-empty.
@@ -4020,8 +4172,9 @@ SomeData *PathsData::duplicate(SomeData *dup)
 
 	Path *path;
 	for (int c=0; c<paths.n; c++) {
-		path=paths.e[c]->duplicate();
+		path = paths.e[c]->duplicate();
 		newp->paths.push(path);
+		path->dec_count();
 	}
 
 	newp->linestyle=linestyle; if (linestyle) linestyle->inc_count();
@@ -4161,6 +4314,20 @@ int PathsData::fill(Laxkit::ScreenColor *color)
 	return 0;
 }
 
+int PathsData::UseShapeBrush(ShapeBrush *newbrush)
+{
+	if (newbrush == brush) return 0;
+	if (brush) brush->dec_count();
+	brush = newbrush;
+	if (brush) {
+		brush->inc_count();
+	}
+
+	for (int c=0; c<paths.n; c++) paths.e[c]->UseShapeBrush(newbrush);
+
+	return 0;
+}
+
 /*! \ingroup interfaces
  * \todo Make this access the basepathops in PathInterface to dump out the right
  * owner info... right now, not calling any dump_out in Path or in Coordinate..
@@ -4209,6 +4376,17 @@ void PathsData::dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *contex
 		fillstyle->dump_out(f,indent+2,0,context);
 	}
 
+	if (brush) {
+		if (brush->ResourceOwner()!=this) {
+			 //is resource
+			fprintf(f, "%sshape_brush resource:%s", spc, brush->Id());
+
+		} else {
+			fprintf(f, "%sshape_brush\n", spc);
+			brush->dump_out(f, indent+2, 0, context);
+		}
+	}
+
 	fprintf(f,"%sstyle %lu\n",spc,style);
 
 	LineStyle *ls;
@@ -4255,6 +4433,19 @@ Laxkit::Attribute *PathsData::dump_out_atts(Laxkit::Attribute *att,int what, Lax
 	if (fillstyle) {
 		Attribute *att2 = att->pushSubAtt("fillstyle");
 		fillstyle->dump_out_atts(att2, what, context);
+	}
+
+	if (brush) {
+		if (brush->ResourceOwner() != this) {
+			 //resource'd default_profile
+			char str[11+strlen(brush->Id())];
+			sprintf(str,"resource: %s", brush->Id());
+			att->push("shape_brush", str);
+
+		} else {
+			Attribute *t = att->pushSubAtt("shape_brush");
+			brush->dump_out_atts(t, 0, context);
+		}
 	}
 
 	att->push("style", style);
@@ -4308,6 +4499,24 @@ void PathsData::dump_in_atts(Attribute *att,int flag,Laxkit::DumpContext *contex
 			fillstyle=new FillStyle();
 			fillstyle->dump_in_atts(att->attributes.e[c],flag,context);
 
+		} else if (!strcmp(name,"shape_brush")) {
+			if (value && strstr(value,"resource:") == value) {
+				value += 9;
+				while (isspace(*value)) value ++;
+				InterfaceManager *imanager = InterfaceManager::GetDefault(true);
+				ResourceManager *rm = imanager->GetResourceManager();
+				ShapeBrush *obj = dynamic_cast<ShapeBrush*>(rm->FindResource(value,"ShapeBrush"));
+				if (obj) {
+					UseShapeBrush(obj);
+				}
+
+			} else { //not resourced
+				ShapeBrush *obj = new ShapeBrush;
+				obj->dump_in_atts(att->attributes.e[c], flag,context);
+				obj->SetResourceOwner(this);
+				UseShapeBrush(obj);
+			}
+
 		} else if (!strcmp(name,"style")) {
 			long stle;
 			if (LongAttribute(value,&stle)) style=(unsigned long)stle;
@@ -4316,6 +4525,7 @@ void PathsData::dump_in_atts(Attribute *att,int flag,Laxkit::DumpContext *contex
 			Path *newpath=new Path();
 			newpath->dump_in_atts(att->attributes.e[c],flag,context);
 			paths.push(newpath);
+			newpath->dec_count();
 
 		} else if (!strcmp(name,"d")) {
 			SvgToPathsData(this, value, NULL, NULL);
@@ -4487,7 +4697,9 @@ int PathsData::MergeEndpoints(Coordinate *from,int fromi, Coordinate *to,int toi
 void PathsData::pushEmpty(int where,LineStyle *nls)
 {
 	if (where<0 || where>paths.n) where=paths.n;
-	paths.push(new Path(NULL,nls),1,where);
+	Path *newpath = new Path(NULL,nls);
+	paths.push(newpath,-1,where);
+	newpath->dec_count();
 	if (!paths.e[where]->linestyle && linestyle) {
 		paths.e[where]->Line(linestyle);
 		paths.e[where]->defaultwidth = linestyle->width;
@@ -4671,7 +4883,9 @@ void PathsData::appendCoord(Coordinate *coord,int whichpath)
 {
 	if (whichpath<0 || whichpath>=paths.n) whichpath=paths.n-1;
 	if (paths.n==0) {
-		paths.push(new Path());
+		Path *newpath = new Path();
+		paths.push(newpath);
+		newpath->dec_count();
 		if (!paths.e[paths.n-1]->linestyle && linestyle) {
 			paths.e[paths.n-1]->Line(linestyle);
 		}
@@ -4694,7 +4908,9 @@ void PathsData::append(double x,double y,unsigned long flags,SegmentControls *ct
 {
 	if (whichpath<0 || whichpath>=paths.n) whichpath=paths.n-1;
 	if (paths.n==0) {
-		paths.push(new Path());
+		Path *newpath = new Path();
+		paths.push(newpath);
+		newpath->dec_count();
 		if (!paths.e[paths.n-1]->linestyle && linestyle) {
 			paths.e[paths.n-1]->Line(linestyle);
 		}
@@ -5107,6 +5323,16 @@ int PathsData::FindExtrema(int pathindex, NumStack<flatpoint> *points_ret, NumSt
 	return paths.e[pathindex]->FindExtrema(points_ret, t_ret);
 }
 
+/*! Return 0 for success or nonzero for error.
+ */
+int PathsData::MinMax(int pathi, Laxkit::flatvector direction, Laxkit::flatvector &min, Laxkit::flatvector &max)
+{
+	if (pathi < 0 || pathi >= paths.n) return -1;
+	paths.e[pathi]->MinMax(direction, min, max);
+	return 0;
+}
+
+
 //! Intersect a line with one subpath. p1 and p2 are in path coordinates.
 /*! ptsn is the number of points allocated in pts, and tn is the number allocated for t.
  * Search will commence for as many intersection points as will fill pts and t.
@@ -5455,6 +5681,7 @@ PathInterface::PathInterface(int nid,Displayer *ndp, unsigned long nstyle) : anI
 	hide_other_controls = true; // show all control points, or just those on currently selected vertices
 	show_baselines      = false;
 	show_outline        = false;
+	show_extrema        = false;
 	defaultweight.width = .01;
 
 	pathi_style = nstyle;
@@ -5618,6 +5845,17 @@ void PathInterface::deletedata()
 	if (linestyle) linestyle->dec_count();
 	linestyle=defaultline;
 	if (linestyle) linestyle->inc_count();
+
+	extrema.flush();
+}
+
+void PathInterface::UpdateExtrema()
+{
+	extrema.flush();
+	if (!data) return;
+	for (int c=0; c < data->paths.n; c++) {
+		data->FindExtrema(c, &extrema, nullptr);
+	}
 }
 
 ////! Add apathop to pathop stack.
@@ -6355,6 +6593,51 @@ int PathInterface::Refresh()
 		//DBG 	p=p->next;
 		//DBG } while (p && p!=start);
 
+		if (show_extrema) {
+			dp->LineWidthScreen(2*thin);
+			// outline first
+			dp->NewFG(.0,.0,1.);
+			double l = 8 * thin / dp->Getmag();
+			for (int c=0; c<extrema.n; c++) {
+				dp->drawpoint(extrema[c], 2*thin, 1);
+				if (extrema.e[c].info == LAX_TOP || extrema.e[c].info == LAX_BOTTOM)
+					dp->drawline(extrema[c]-flatvector(l,0), extrema[c]+flatvector(l,0));
+				else 
+					dp->drawline(extrema[c]-flatvector(0,l), extrema[c]+flatvector(0,l));
+			}
+			// normal line next
+			dp->NewFG(.4,.4,1.);
+			for (int c=0; c<extrema.n; c++) {
+				dp->drawpoint(extrema[c], 2*thin, 1);
+				if (extrema.e[c].info == LAX_TOP || extrema.e[c].info == LAX_BOTTOM)
+					dp->drawline(extrema[c]-flatvector(l,0), extrema[c]+flatvector(l,0));
+				else 
+					dp->drawline(extrema[c]-flatvector(0,l), extrema[c]+flatvector(0,l));
+			}
+		}
+
+
+		//----DBG vvvvv
+		//if (data->brush) {
+			unsigned int state;
+			int xx,yy;
+			mouseposition(0, curwindow, &xx, &yy, &state, nullptr);
+			flatvector p = dp->screentoreal(xx,yy);
+			flatvector center = dp->screentoreal((dp->Maxx+dp->Minx)/2, (dp->Maxy+dp->Miny)/2);
+			flatvector dir = p - center;
+			dir.normalize();
+
+			dp->NewFG(0.0, 0., 1.);
+			dp->LineWidthScreen(ScreenLine());
+			flatpoint min, max;
+			data->MinMax(0, dir, min, max);
+			dp->drawpoint(min, 8*ScreenLine(), 0);
+			dp->NewFG(0., 1., 0.);
+			dp->drawpoint(max, 8*ScreenLine(), 0);
+
+			//cerr << "minmax: "<<dp->realtoscreen(min)<<" -- "<<dp->realtoscreen(max)<<endl;
+		//}
+		//----DBG ^^^^
 	} // showdecs
 
 	 //draw various hovered points
@@ -7279,6 +7562,7 @@ Laxkit::MenuInfo *PathInterface::ContextMenu(int x,int y,int deviceid, MenuInfo 
 
 	menu->AddToggleItem(_("Show points"),  PATHIA_ToggleShowPoints, 0, show_points);
 	menu->AddToggleItem(_("Hide other controls"),  PATHIA_ToggleHideControls, 0, hide_other_controls);
+	menu->AddToggleItem(_("Show extrema"),  PATHIA_ToggleShowExtrema, 0, show_extrema);
 
 	if (!(pathi_style&PATHI_No_Weights)) {
 		menu->AddToggleItem(_("Show base and center lines"), PATHIA_ToggleBaseline, 0, show_baselines);
@@ -7311,6 +7595,8 @@ Laxkit::MenuInfo *PathInterface::ContextMenu(int x,int y,int deviceid, MenuInfo 
 		}
 
 		//---- shape brushes
+		menu->AddSep();
+		if (data->brush) menu->AddItem(_("Clear shape brush"), PATHIA_ClearShapeBrush);
 		InterfaceManager *imanager = InterfaceManager::GetDefault(true);
 		ResourceManager *rm = imanager->GetResourceManager();
 		ResourceType *resources = rm->FindType("ShapeBrush");
@@ -7318,9 +7604,9 @@ Laxkit::MenuInfo *PathInterface::ContextMenu(int x,int y,int deviceid, MenuInfo 
 			menu->AddItem(_("Use Shape Brush"));
 			menu->SubMenu();
 			int numadded = 0;
-			resources->AppendMenu(menu, true, &numadded, PATHIA_MAX, PATHIA_UseShapeBrush);
+			resources->AppendMenu(menu, true, &numadded, PATHIA_MAX, PATHIA_UseShapeBrush, data->brush);
 			if (numadded) menu->AddSep();
-			resources->AppendMenu(menu, false, &numadded, PATHIA_MAX, PATHIA_UseShapeBrush);
+			resources->AppendMenu(menu, false, &numadded, PATHIA_MAX, PATHIA_UseShapeBrush, data->brush);
 			menu->EndSubMenu();
 		}
 		menu->AddItem(_("Save as a Shape Brush"), PATHIA_SaveAsShapeBrush);
@@ -7346,9 +7632,15 @@ int PathInterface::Event(const Laxkit::EventData *e_data, const char *mes)
 			ResourceManager *rm = imanager->GetResourceManager();
 
 			if (s->info4 == PATHIA_UseShapeBrush) {
-				ShapeBrush *brush = dynamic_cast<ShapeBrush*>(rm->FindResourceFromRID(obj_id, "ShapeBrush"));
-				if (brush) { // user selected use shape brush
-					PostMessage(_("TODO!!!"));
+				Resource *resource = rm->FindResourceFromRID(obj_id, "ShapeBrush");
+				if (resource) {
+					ShapeBrush *brush = dynamic_cast<ShapeBrush*>(resource->GetObject());
+					if (brush) { // user selected use shape brush
+						if (data) {
+							data->UseShapeBrush(brush);
+							needtodraw = 1;
+						}
+					}
 				}
 			}
 		}
@@ -8265,6 +8557,7 @@ void PathInterface::Modified(int level)
 {
 	data->touchContents();
 	anInterface::Modified(level);
+	UpdateExtrema();
 }
 
 //! Add a new point at closest point to hoverpoint, which is in data coordinates.
@@ -9583,6 +9876,12 @@ int PathInterface::PerformAction(int action)
 		PostMessage(" *** need to implement PATHIA_BreakApartChunks!!");
 		return 0;
 
+	} else if (action == PATHIA_ClearShapeBrush) {
+		if (!data || !data->brush) return 0;
+		data->UseShapeBrush(nullptr);
+		needtodraw = 1;
+		return 0;
+
 	} else if (action == PATHIA_SaveAsShapeBrush) {
 		if (!data) return 0;
 		if (data->IsEmpty()) {
@@ -9600,6 +9899,11 @@ int PathInterface::PerformAction(int action)
 		brush->dec_count();
 		return 0;
 
+	} else if (action == PATHIA_ToggleShowExtrema) {
+		show_extrema = !show_extrema;
+		UpdateExtrema();
+		needtodraw = 1;
+		return 0;
 	}
 	
 	return 1;
@@ -9995,7 +10299,7 @@ PathUndo::PathUndo(PathsData *object, int ntype, int nisauto)
 
 PathUndo::~PathUndo()
 {
-	if (path) delete path;
+	if (path) path->dec_count();
 }
 
 const char *PathUndo::Description()
@@ -10057,7 +10361,8 @@ int PathsData::Undo(UndoData *data)
 			) {
 		// all of these just replace the path because weight maintenance is such a pain
 		Path *npath = paths.pop(undo->path_indices.e[0]);
-		paths.push(undo->path, undo->path_indices.e[0]);
+		paths.push(undo->path, -1, undo->path_indices.e[0]);
+		npath->dec_count();
 		undo->path = npath;
 	
 	// } else if (type == Reorder) {

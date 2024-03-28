@@ -82,10 +82,11 @@ class PathWeightNode
 	double bottomOffset() { return offset-width/2; }
 };
 
-class Path : public Laxkit::DumpUtility, public Laxkit::DoubleBBox
+class Path : virtual public Laxkit::anObject,
+			 virtual public Laxkit::DoubleBBox,
+			 virtual public Laxkit::DumpUtility
 {
- protected:
- public:
+  public:
  	static Laxkit::PtrStack<PathOperator> basepathops; 
 
 	Coordinate *path; // path is not necessarily the first in a chain, but is a vertex
@@ -93,7 +94,7 @@ class Path : public Laxkit::DumpUtility, public Laxkit::DoubleBBox
 
 	LineStyle *linestyle;
 	LineProfile *profile;
-	ShapeBrush *brush;
+	ShapeBrush *brush; //this will be the same as parent PathsData::brush (if it is contained there)
 	double defaultwidth;
 	bool absoluteangle; //1==absolute, or 0==relative to direction to path, wich angle==0 do default
 	Laxkit::anObject *generator_data;
@@ -118,6 +119,8 @@ class Path : public Laxkit::DumpUtility, public Laxkit::DoubleBBox
 	Path();
 	Path(Coordinate *np,LineStyle *nls=NULL);
 	virtual ~Path();
+	virtual const char *whattype() { return "Path"; }
+	virtual Laxkit::anObject *duplicate(Laxkit::anObject *ref); // redef from anObject
 	virtual Path *duplicate();
 	virtual void FindBBox();
 	virtual void FindBBoxBase(DoubleBBox *ret);
@@ -192,6 +195,7 @@ class Path : public Laxkit::DumpUtility, public Laxkit::DoubleBBox
 	virtual int GetIndex(Coordinate *p, bool ignore_controls);
 	virtual int Contains(Path *otherpath);
 	virtual int FindExtrema(Laxkit::NumStack<Laxkit::flatpoint> *points_ret, Laxkit::NumStack<double> *t_ret);
+	virtual void MinMax(Laxkit::flatvector direction, Laxkit::flatvector &min, Laxkit::flatvector &max);
 
 	virtual void dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *context);
 	virtual Laxkit::Attribute *dump_out_atts(Laxkit::Attribute *att,int what, Laxkit::DumpContext *context);
@@ -214,9 +218,10 @@ class PathsData : virtual public SomeData
 	};
 
 	unsigned long style; // contains FILL_* for combining(?)
-	Laxkit::PtrStack<Path> paths;
+	Laxkit::RefPtrStack<Path> paths;
 	LineStyle *linestyle; //!< This is the default line style for any paths that are added.
 	FillStyle *fillstyle; //!< This is the fill style for the collection of paths
+	ShapeBrush *brush;    //!< Default shape brush. Each Path can override default.
 
 	int generator;
 	Laxkit::anObject *generator_data;
@@ -235,6 +240,8 @@ class PathsData : virtual public SomeData
 	virtual int fill(Laxkit::ScreenColor *color);
 	virtual void InstallLineStyle(LineStyle *newlinestyle);
 	virtual void InstallFillStyle(FillStyle *newfillstyle);
+
+	virtual int UseShapeBrush(ShapeBrush *newbrush);
 
 	virtual bool Weighted(int whichpath=-1);
 	virtual bool HasOffset(int whichpath=-1);
@@ -291,8 +298,8 @@ class PathsData : virtual public SomeData
 	virtual int ReversePath(int pathindex);
 	virtual double Length(int pathi, double tstart,double tend);
 	virtual int FindExtrema(int pathindex, Laxkit::NumStack<Laxkit::flatpoint> *points_ret, Laxkit::NumStack<double> *t_ret);
-	//virtual int NumPoints(int vertices=1);
-
+	virtual int MinMax(int pathi, Laxkit::flatvector direction, Laxkit::flatvector &min, Laxkit::flatvector &max);
+	
 	virtual int NumPaths() { return paths.n; }
 	virtual Path *GetPath(int index);
 	virtual Path *GetOffsetPath(int index);
@@ -413,6 +420,7 @@ enum PathInterfaceActions {
 	PATHIA_ToggleWeights,
 	PATHIA_ToggleShowPoints,
 	PATHIA_ToggleHideControls,
+	PATHIA_ToggleShowExtrema,
 	PATHIA_Wider,
 	PATHIA_Thinner,
 	PATHIA_WidthStep,
@@ -428,6 +436,7 @@ enum PathInterfaceActions {
 	PATHIA_Delete,
 	PATHIA_UseLineProfile,
 	PATHIA_UseShapeBrush,
+	PATHIA_ClearShapeBrush,
 	PATHIA_SaveAsShapeBrush,
 	PATHIA_Combine, //todo
 	PATHIA_BreakApart, //todo
@@ -509,6 +518,7 @@ class PathInterface : public anInterface
 	Laxkit::Affine extram;
 	int lasth; //direction of toggling selected handle
 	int last_action, recent_action;
+	Laxkit::NumStack<Laxkit::flatvector> extrema;
 
 	int show_addpoint; //0 no, 1 one bez segs, 2 two bez segs (adding within line)
 	Laxkit::flatpoint add_point_hint[6];
@@ -530,6 +540,7 @@ class PathInterface : public anInterface
 	virtual void SetCurvertex(Coordinate *p, int path=-1);
 	virtual void UpdateAddHint();
 	virtual void UpdateDir();
+	virtual void UpdateExtrema();
 	virtual int WeightNodePosition(Path *path, PathWeightNode *weight,
 									Laxkit::flatpoint *pp_ret, Laxkit::flatpoint *po_ret, Laxkit::flatpoint *ptop_ret, Laxkit::flatpoint *pbottom_ret,
 									Laxkit::flatpoint *vv_ret, Laxkit::flatpoint *vt_ret,
@@ -561,6 +572,7 @@ class PathInterface : public anInterface
 	bool show_points; //0 no, 1 v + c of current, 2 all points
 	bool show_baselines;
 	bool show_outline;
+	bool show_extrema;
 	bool hide_other_controls;
 	double arrow_size;
 	double select_radius = 5; //!< selection distance
@@ -581,6 +593,7 @@ class PathInterface : public anInterface
 	virtual Laxkit::ShortcutHandler *GetShortcuts();
 	virtual anInterface *duplicate(anInterface *dup);
 	virtual PathsData *newPathsData();
+	virtual int InitializeResources();
 
 	 // from anInterface:
 	virtual const char *IconId() { return "Path"; }
