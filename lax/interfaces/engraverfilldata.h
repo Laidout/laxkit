@@ -28,6 +28,7 @@
 #include <lax/interfaces/imageinterface.h>
 #include <lax/interfaces/gradientinterface.h>
 #include <lax/interfaces/curvemapinterface.h>
+#include <lax/interfaces/somedatafactory.h>
 #include <lax/colors.h>
 #include <lax/screencolor.h>
 #include <lax/curveinfo.h>
@@ -47,7 +48,7 @@ class EngraverFillData;
 //NOTE!! these values must be coordinated with LaxInterfaceDataTypes, and 
 //any other Laxkit object types meant to be used with an ObjectFactory.
 enum EngraverObjectTypes {
-	ENGTYPE_TraceObject = 100,
+	ENGTYPE_TraceObject = LAX_DATA_MAX,
     ENGTYPE_EngraverLineQuality,
     ENGTYPE_EngraverTraceSettings,
     ENGTYPE_EngraverTraceStack,
