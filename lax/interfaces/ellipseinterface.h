@@ -83,7 +83,7 @@ class EllipseData : virtual public SomeData
 	double start,end;
 	int wedge_type;
 	double inner_r; //actual r = inner_r * (default), for rings
-	double inner_round[8], outer_round[8]; //for rounded corners
+	//double inner_round[8], outer_round[8]; //for rounded corners
 	double a,b; // x and y half height
 	Laxkit::flatpoint center,x,y; //center, x and y axis (in addition to this->m())
 
@@ -139,6 +139,7 @@ class EllipseInterface : public anInterface
 		ELLP_UseChord,
 		ELLP_UseOpen,
 		ELLP_SetWidth,
+		ELLP_ResetAlignment,
 		
 		ELLACTIONS_MAX
 	};
@@ -168,6 +169,7 @@ class EllipseInterface : public anInterface
 	
   public:
 	Laxkit::ScreenColor controlcolor;
+	Laxkit::ScreenColor controlcolor_rim;
 	int creationstyle,createfrompoint,createangle,showdecs; // cfp: 0 (nw), 1 y, 2 x, 3 xy
 	EllipseData *data;
 	ObjectContext *eoc;

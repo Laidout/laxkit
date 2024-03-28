@@ -120,7 +120,7 @@ EllipseData::EllipseData()
 	fillstyle = nullptr;
 	wedge_type = ELLIPSE_Wedge;
 
-	for (int i=0; i<8; i++) { inner_round[i] = outer_round[i] = 0; }
+	//for (int i=0; i<8; i++) { inner_round[i] = outer_round[i] = 0; }
 }
 
 EllipseData::~EllipseData()
@@ -545,8 +545,9 @@ EllipseInterface::EllipseInterface(anInterface *nowner, int nid,Displayer *ndp)
 {
 	linestyle.color.rgbf(1., 0, 0);
 	controlcolor.rgbf(.5, .5, .5, 1);
-	data = NULL;
-	eoc  = NULL;
+	standoutcolor(controlcolor, true, &controlcolor_rim);
+	data = nullptr;
+	eoc  = nullptr;
 
 	showdecs        = 1;
 	curpoint        = ELLP_None; //point clicked on
@@ -859,23 +860,43 @@ int EllipseInterface::Refresh()
 			dp->LineAttributes(thin/dp->Getmag(), LineSolid, LAXCAP_Butt, LAXJOIN_Round);
 		}
 		
-		 // axes
+		// axes rim color
+		dp->NewFG(controlcolor_rim);
+		dp->LineWidthScreen(2*thin);
 		p = getpoint(ELLP_XRadius,false);
 		dp->drawpoint(p, 3*thin, hover_point == ELLP_XRadius ? 1 : 0);
-		if (hover_point == ELLP_XRadius) dp->drawarrow(p, flatvector(1,0), 0, 20*thin, 0, 3, false);
+		if (hover_point == ELLP_XRadius) dp->drawarrow(p, data->x, 0, 20*thin, 0, 3, false);
 
 		p = getpoint(ELLP_XRadiusN,false);
 		dp->drawpoint(p, 3*thin, hover_point == ELLP_XRadiusN ? 1 : 0);
-		if (hover_point == ELLP_XRadiusN) dp->drawarrow(p, flatvector(-1,0), 0, 20*thin, 0, 3, false);
+		if (hover_point == ELLP_XRadiusN) dp->drawarrow(p, -data->x, 0, 20*thin, 0, 3, false);
 
 		p = getpoint(ELLP_YRadius,false);
 		dp->drawpoint(p, 3*thin, hover_point == ELLP_YRadius ? 1 : 0);
-		if (hover_point == ELLP_YRadius) dp->drawarrow(p, flatvector(0,1), 0, 20*thin, 0, 3, false);
+		if (hover_point == ELLP_YRadius) dp->drawarrow(p, data->y, 0, 20*thin, 0, 3, false);
 
 		p = getpoint(ELLP_YRadiusN,false);
 		dp->drawpoint(p, 3*thin, hover_point == ELLP_YRadiusN ? 1 : 0);
-		if (hover_point == ELLP_YRadiusN) dp->drawarrow(p, flatvector(0,-1), 0, 20*thin, 0, 3, false);
+		if (hover_point == ELLP_YRadiusN) dp->drawarrow(p, -data->y, 0, 20*thin, 0, 3, false);
 
+		// axes main color
+		dp->NewFG(controlcolor);
+		dp->LineWidthScreen(thin);
+		p = getpoint(ELLP_XRadius,false);
+		dp->drawpoint(p, 3*thin, hover_point == ELLP_XRadius ? 1 : 0);
+		if (hover_point == ELLP_XRadius) dp->drawarrow(p, data->x, 0, 20*thin, 0, 3, false);
+
+		p = getpoint(ELLP_XRadiusN,false);
+		dp->drawpoint(p, 3*thin, hover_point == ELLP_XRadiusN ? 1 : 0);
+		if (hover_point == ELLP_XRadiusN) dp->drawarrow(p, -data->x, 0, 20*thin, 0, 3, false);
+
+		p = getpoint(ELLP_YRadius,false);
+		dp->drawpoint(p, 3*thin, hover_point == ELLP_YRadius ? 1 : 0);
+		if (hover_point == ELLP_YRadius) dp->drawarrow(p, data->y, 0, 20*thin, 0, 3, false);
+
+		p = getpoint(ELLP_YRadiusN,false);
+		dp->drawpoint(p, 3*thin, hover_point == ELLP_YRadiusN ? 1 : 0);
+		if (hover_point == ELLP_YRadiusN) dp->drawarrow(p, -data->y, 0, 20*thin, 0, 3, false);
 
 		//  // angles
 		// if (hover_point == ELLP_StartAngle || hover_point == ELLP_EndAngle) {
@@ -1194,6 +1215,7 @@ Laxkit::MenuInfo *EllipseInterface::ContextMenu(int x,int y,int deviceid, Laxkit
 	if (!menu) menu = new MenuInfo();
 	if (menu->n()) menu->AddSep(_("Arc"));
 
+	menu->AddItem(_("Reset alignment"), ELLP_ResetAlignment);
 	menu->AddToggleItem(_("Show foci"), ELLP_ToggleFoci, 0, show_foci);
 	if (data->UsesAngles()) {
 		menu->AddItem(_("Flip gap"), ELLP_FlipGap);
@@ -1267,6 +1289,7 @@ int EllipseInterface::Event(const Laxkit::EventData *e,const char *mes)
 			|| i == ELLP_UseChord 
 			|| i == ELLP_UseOpen
 			|| i == ELLP_ToggleFoci
+			|| i == ELLP_ResetAlignment
 		   ) {
 			PerformAction(i);
 			return 0;
@@ -1678,6 +1701,13 @@ int EllipseInterface::PerformAction(int action)
 
 	} else if (action == ELLP_ToggleFoci) {
 		show_foci = !show_foci;
+		needtodraw = 1;
+		return 0;
+
+	} else if (action == ELLP_ResetAlignment) {
+		if (!data) return 0;
+		data->x = flatvector(1,0);
+		data->y = flatvector(0,1);
 		needtodraw = 1;
 		return 0;
 
