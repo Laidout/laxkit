@@ -6618,25 +6618,25 @@ int PathInterface::Refresh()
 
 
 		//----DBG vvvvv
-		//if (data->brush) {
-			unsigned int state;
-			int xx,yy;
-			mouseposition(0, curwindow, &xx, &yy, &state, nullptr);
-			flatvector p = dp->screentoreal(xx,yy);
-			flatvector center = dp->screentoreal((dp->Maxx+dp->Minx)/2, (dp->Maxy+dp->Miny)/2);
-			flatvector dir = p - center;
-			dir.normalize();
+		// //if (data->brush) {
+		// 	unsigned int state;
+		// 	int xx,yy;
+		// 	mouseposition(0, curwindow, &xx, &yy, &state, nullptr);
+		// 	flatvector p = dp->screentoreal(xx,yy);
+		// 	flatvector center = dp->screentoreal((dp->Maxx+dp->Minx)/2, (dp->Maxy+dp->Miny)/2);
+		// 	flatvector dir = p - center;
+		// 	dir.normalize();
 
-			dp->NewFG(0.0, 0., 1.);
-			dp->LineWidthScreen(ScreenLine());
-			flatpoint min, max;
-			data->MinMax(0, dir, min, max);
-			dp->drawpoint(min, 8*ScreenLine(), 0);
-			dp->NewFG(0., 1., 0.);
-			dp->drawpoint(max, 8*ScreenLine(), 0);
+		// 	dp->NewFG(0.0, 0., 1.);
+		// 	dp->LineWidthScreen(ScreenLine());
+		// 	flatpoint min, max;
+		// 	data->MinMax(0, dir, min, max);
+		// 	dp->drawpoint(min, 8*ScreenLine(), 0);
+		// 	dp->NewFG(0., 1., 0.);
+		// 	dp->drawpoint(max, 8*ScreenLine(), 0);
 
-			//cerr << "minmax: "<<dp->realtoscreen(min)<<" -- "<<dp->realtoscreen(max)<<endl;
-		//}
+		// 	//cerr << "minmax: "<<dp->realtoscreen(min)<<" -- "<<dp->realtoscreen(max)<<endl;
+		// //}
 		//----DBG ^^^^
 	} // showdecs
 
