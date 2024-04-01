@@ -28,10 +28,11 @@
 #include <cstring>
 #include <cctype>
 
-//#include <iostream>
-//using namespace std;
-
 #include <lax/strmanip.h>
+
+
+namespace Laxkit {
+
 
 //*** what the hell with SAFE? relic from a forgotten age?
 #define SAFE	5
@@ -1330,5 +1331,6 @@ char *lax_strchrnul(char *s, int c) {
 
 /*! @} */
 
+} //namespace Laxkit
 
 

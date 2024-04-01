@@ -26,6 +26,10 @@
 #include <cstring>
 #include <cstdarg>
 
+
+namespace Laxkit {
+
+
 int isblank(const char *str);
 int strcmp_safe(const char *s1, const char *s2);
 int strncmp_safe(const char *s1, const char *s2, int n);
@@ -90,6 +94,8 @@ char *htmlchars_decode(const char *str, char *buffer);
 
 const char *lax_strchrnul(const char *s, int c);
 char *lax_strchrnul(char *s, int c);
+
+} //namespace Laxkit
 
 #endif
 
