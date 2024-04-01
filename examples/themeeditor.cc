@@ -46,9 +46,9 @@
 #include <lax/themes.h>
 #include <lax/utf8string.h>
 #include <lax/version.h>
-#include <lax/debug.h>
-
 #include <lax/language.h>
+
+#include <lax/debug.h>
 
 
 #include <string>
@@ -774,10 +774,20 @@ int ThemeControls::init()
 
 	// 1
 	LaxImage *img = IconManager::GetDefault()->GetIcon("ImagePatch");
-	last = test_button = button = new Button(this,"Test button","Test button",BUTTON_OK, 5,300, 0,2*th,0, last,0,nullptr, 0, "Test Button", nullptr, img, 3);
-	img->dec_count();
-	AddWin(button,1, -1);
-	testWindows.push(button);
+	if (img) { // test with image
+		last = test_button = button = new Button(this,"Test button","Test button",BUTTON_OK, 5,300, 0,2*th,0,
+								last,0,nullptr, 0, "Test Button", nullptr, img);
+		img->dec_count();
+		AddWin(button,1, -1);
+		testWindows.push(button);
+
+	} else { // test with graphic instead
+		last = test_button = button = new Button(this,"Test button","Test button",BUTTON_OK, 5,300, 0,2*th,0,
+								last,0,nullptr, 0, "Test Button", nullptr, nullptr);
+		test_button->SetGraphic(THING_Wrench, th, th);
+		AddWin(button,1, -1);
+		testWindows.push(button);
+	}
 
 	// 2
 	last = test_checkbox = new CheckBox(this, "checkbox", "checkbox", CHECK_CIRCLE|CHECK_LEFT,
