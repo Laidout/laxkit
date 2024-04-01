@@ -32,6 +32,7 @@
 #include <lax/transformmath.h>
 #include <lax/resources.h>
 #include <lax/previewable.h>
+#include <lax/utf8string.h>
 #include <lax/undo.h>
 
 #include <cstdio>
@@ -183,6 +184,7 @@ class SomeDataUndo : public Laxkit::UndoData
 	int type;
 	Laxkit::Affine m, m_orig;
 	Laxkit::DoubleBBox box, box_orig;
+	Laxkit::Utf8String msg;
 
 	SomeDataUndo(SomeData *object,
 			     Laxkit::Affine *mo, Laxkit::DoubleBBox *boxo,
