@@ -23,22 +23,17 @@
 
 
 #include <lax/interfaces/freehandinterface.h>
-
+#include <lax/interfaces/interfacemanager.h>
 #include <lax/interfaces/somedatafactory.h>
 #include <lax/interfaces/pathinterface.h>
 #include <lax/interfaces/colorpatchinterface.h>
 #include <lax/interfaces/gradientinterface.h>
 #include <lax/language.h>
 
-//template implementation:
-#include <lax/refptrstack.cc>
-#include <lax/lists.cc>
-
 #include <unistd.h>
 
-#include <iostream>
-using namespace std;
-#define DBG 
+
+#include <lax/debug.h>
 
 
 using namespace Laxkit;
@@ -64,10 +59,10 @@ FreehandInterface::FreehandInterface(anInterface *nowner, int nid, Displayer *nd
  : anInterface(nowner,nid,ndp)
 {
 	//freehand_style = FREEHAND_Poly_Path;
-	//freehand_style = FREEHAND_Bez_Path;
+	freehand_style = FREEHAND_Bez_Path;
 	//freehand_style = FREEHAND_Bez_Outline;
 	//freehand_style = FREEHAND_Color_Mesh;
-	freehand_style = FREEHAND_Double_Mesh;
+	//freehand_style = FREEHAND_Double_Mesh;
 	mode = MODE_Normal;
 
 	linecolor .rgbf(0,0,.5); //control line color
@@ -77,16 +72,19 @@ FreehandInterface::FreehandInterface(anInterface *nowner, int nid, Displayer *nd
 	default_linestyle.color.rgbf(1.0, 0., 0.);
 	
 	smooth_pixel_threshhold = 2;
-	brush_size              = .1; //real units
+	brush_size              = .3; //real units
 	close_threshhold        = -1;
 	ignore_tip_time         = 10;
 	ignore_clock_t          = ignore_tip_time * sysconf(_SC_CLK_TCK) / 1000;
 
-	showdecs   = 1;
+	showdecs   = true;
 	needtodraw = 1;
 	size_dragged = false;
 
-	shape_brush  = nullptr;
+	shape_brush      = nullptr;
+	shape_brush_line = nullptr;
+	shape_brush_fill = nullptr;
+
 	line_profile = nullptr;
 
 	linestyle = nullptr;
@@ -103,6 +101,8 @@ FreehandInterface::FreehandInterface(anInterface *nowner, int nid, Displayer *nd
 FreehandInterface::~FreehandInterface()
 {
 	if (shape_brush) shape_brush->dec_count();
+	if (shape_brush_line) shape_brush_line->dec_count();
+	if (shape_brush_fill) shape_brush_fill->dec_count();
 	if (line_profile) line_profile->dec_count();
 	if (linestyle) linestyle->dec_count();
 	if (fillstyle) fillstyle->dec_count();
@@ -159,7 +159,7 @@ int FreehandInterface::UseThis(anObject *nobj, unsigned int mask)
 
 int FreehandInterface::InterfaceOn()
 { 
-	showdecs=1;
+	showdecs = true;
 	needtodraw=1;
 	if (close_threshhold <= 0) close_threshhold = NearThreshhold();
 	return 0;
@@ -168,7 +168,7 @@ int FreehandInterface::InterfaceOn()
 int FreehandInterface::InterfaceOff()
 { 
 	Clear(NULL);
-	showdecs=0;
+	showdecs = false;
 	needtodraw=1;
 	return 0;
 }
@@ -195,9 +195,21 @@ Laxkit::MenuInfo *FreehandInterface::ContextMenu(int x,int y,int deviceid, Laxki
 	menu->AddToggleItem(_("Create symmetric color mesh"),     FREEHAND_Double_Mesh,  0, (freehand_style & FREEHAND_Double_Mesh) != 0);
 	menu->AddToggleItem(_("Create grid mesh"),                FREEHAND_Grid_Mesh,    0, (freehand_style & FREEHAND_Grid_Mesh)   != 0);
 
-	// menu->AddItem(_("Use shape brush"), FREEHAND_Use_Shape, LAX_ISTOGGLE|((freehand_style&FREEHAND_Bez_Weighted)?LAX_CHECKED:0), 0);
-	// menu->AddItem(_("Select shape for shape brush..."), FREEHAND_Select_Shape, LAX_ISTOGGLE|((freehand_style&FREEHAND_Bez_Weighted)?LAX_CHECKED:0), 0);
-
+	menu->AddSep();
+	if (shape_brush) menu->AddItem(_("Clear shape brush"), FH_ClearShapeBrush);
+	InterfaceManager *imanager = InterfaceManager::GetDefault(true);
+	ResourceManager *rm = imanager->GetResourceManager();
+	ResourceType *resources = rm->FindType("ShapeBrush");
+	if (resources && resources->NumResources()) {
+		menu->AddItem(_("Use Shape Brush"));
+		menu->SubMenu();
+		int numadded = 0;
+		resources->AppendMenu(menu, true,  &numadded, FH_MAX, FH_UseShapeBrush, shape_brush);
+		if (numadded) menu->AddSep();
+		resources->AppendMenu(menu, false, &numadded, FH_MAX, FH_UseShapeBrush, shape_brush);
+		menu->EndSubMenu();
+	}
+	
 	return menu;
 }
 
@@ -208,7 +220,31 @@ int FreehandInterface::Event(const Laxkit::EventData *e,const char *mes)
         const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(e);
         int i =s->info2; //id of menu item
         //int ii=s->info4; //extra id, 1 for direction
-		DBG cerr <<" ********* freehand got menuevent..."<<i<<endl;
+		//DBG cerr <<" ********* freehand got menuevent..."<<i<<endl;
+
+		if (i >= FH_MAX) {
+			//is a resource: shape brush
+			unsigned int obj_id = i - FH_MAX;
+			InterfaceManager *imanager = InterfaceManager::GetDefault(true);
+			ResourceManager *rm = imanager->GetResourceManager();
+
+			if (s->info4 == FH_UseShapeBrush) {
+				Resource *resource = rm->FindResourceFromRID(obj_id, "ShapeBrush");
+				if (resource) {
+					ShapeBrush *brush = dynamic_cast<ShapeBrush*>(resource->GetObject());
+					if (brush) { // user selected use shape brush
+						UseShapeBrush(brush);
+						needtodraw = 1;
+					}
+				}
+			}
+			return 0;
+		}
+		
+		if (i == FH_ClearShapeBrush) {
+			PerformAction(i);
+			return 0;
+		}
 
 		if (i==FREEHAND_Raw_Path    ) {
 			freehand_style=FREEHAND_Raw_Path;
@@ -256,8 +292,8 @@ int FreehandInterface::Refresh()
 { 
 	//DBG cerr <<"  Freehand trying to startdrawing"<<endl;
 
-	if (needtodraw==0) return 0;
-	needtodraw=0;
+	if (needtodraw == 0) return 0;
+	needtodraw = 0;
 
 	if (mode == MODE_BrushSize) {
 		dp->NewFG(linecolor);
@@ -277,7 +313,32 @@ int FreehandInterface::Refresh()
 		return 0;
 	}
 
-	if (lines.n==0) return 0;
+	if (shape_brush) {
+		//brush has width normalized to -1..1, so we must scale then draw it
+		flatvector xx = brush_size/2 * dp->screentorealv(flatvector(1,0)).normalized();
+		flatvector yy = brush_size/2 * dp->screentorealv(flatvector(0,1)).normalized();
+		flatvector oo = dp->screentoreal(last_screen_pos);
+		//flatvector so = dp->realtoscreen(oo);
+
+		dp->LineWidthScreen(ScreenLine());
+		dp->drawpoint(oo, dp->Getmag() * brush_size/2, 0);
+
+		dp->PushAndNewAxes(oo, xx, yy);
+		//dp->PushAndNewAxes(oo, flatvector(1,0), flatvector(0,1));
+		//flatvector so2 = dp->realtoscreen(0,0);
+
+		dp->LineWidthScreen(3*ScreenLine());
+		dp->NewFG(1.0,0.,0.);
+		dp->drawline(0,0, 1,0);
+		dp->NewFG(.0,1.,0.);
+		dp->drawline(0,0, 0,1);
+		InterfaceManager *im = InterfaceManager::GetDefault(true);
+		im->DrawDataStraight(dp, shape_brush, shape_brush_line, shape_brush_fill);
+		dp->PopAxes();
+	}
+	
+
+	if (lines.n == 0) return 0;
 	
 	dp->LineAttributes(-1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
 	dp->LineWidthScreen(1);
@@ -325,13 +386,14 @@ int FreehandInterface::Refresh()
 		}
 
 
-		 // draw control points
+		// draw control points
 		if (showdecs) {
 			dp->NewFG(&pointcolor);
 			 // draw little circles
 			for (int c2=0; c2<line->n; c2++) {
 				dp->drawpoint(line->e[c2]->p,2,1);
 			}
+
 		}
 	}
 
@@ -438,13 +500,8 @@ int FreehandInterface::LBUp(int x,int y,unsigned int state, const Laxkit::LaxMou
 	return 0;
 }
 
-/*! \todo *** this isn't very sophisticated, for elegance, should use some kind of 
- * bez curve fitting to cut down on unnecessary points should use a timer so 
- * stopping makes sharp corners and closer spaced points?
- */
 int FreehandInterface::MouseMove(int x,int y,unsigned int state, const Laxkit::LaxMouse *d)
 {
-
 	if (mode == MODE_BrushSize) {
 		size_dragged = true;
 		double oldr = (last_screen_pos - size_center).norm();
@@ -458,11 +515,14 @@ int FreehandInterface::MouseMove(int x,int y,unsigned int state, const Laxkit::L
 
 	last_screen_pos.set(x,y);
 
-	if (!buttondown.isdown(d->id,LEFTBUTTON)) return 1;
+	if (!buttondown.isdown(d->id,LEFTBUTTON)) {
+		if (shape_brush) needtodraw = 1;
+		return 1;
+	}
+
 
 	int mx=0,my=0;
 	buttondown.move(d->id, x,y, &mx,&my);
-
 
 
 	// MODE_Normal
@@ -489,7 +549,7 @@ int FreehandInterface::MouseMove(int x,int y,unsigned int state, const Laxkit::L
 	line->push(pp);
 
 
-	needtodraw=1;
+	needtodraw = 1;
 	return 0;
 }
 
@@ -733,6 +793,7 @@ int FreehandInterface::send(int i)
 		bool closed = (realtoscreen(line->e[0]->p) - realtoscreen(line->e[line->n-1]->p)).norm() < close_threshhold;
 		if (closed) paths->fill(fillstyle ? &fillstyle->color : &default_fillstyle.color);
 		paths->line(brush_size,-1,-1,linestyle ? &linestyle->color : &default_linestyle.color);
+		if (shape_brush) paths->UseShapeBrush(shape_brush);
 		paths->FindBBox();
 		sendObject(paths,FREEHAND_Bez_Path);
 		delete line;
@@ -1005,6 +1066,10 @@ int FreehandInterface::PerformAction(int action)
 		}
 		needtodraw = 1;
 		return 0;
+
+	} else if (action == FH_ClearShapeBrush) {
+		UseShapeBrush(nullptr);
+		return 0;
 	}
 
 	return 1;
@@ -1059,7 +1124,7 @@ int FreehandInterface::KeyUp(unsigned int ch,unsigned int state, const Laxkit::L
 	return 1;
 }
 
-void FreehandInterface::dump_in_atts(Laxkit::Attribute *att,int flag,Laxkit::DumpContext *loadcontext)
+void FreehandInterface::dump_in_atts(Laxkit::Attribute *att,int flag,Laxkit::DumpContext *context)
 {
 	char *name, *value;
 	for (int c=0; c<att->attributes.n; c++) {
@@ -1085,19 +1150,70 @@ void FreehandInterface::dump_in_atts(Laxkit::Attribute *att,int flag,Laxkit::Dum
 		} else if (!strcmp(name, "point_color")) {
 			SimpleColorAttribute(value, nullptr, &pointcolor, nullptr);
 
-		} else if (!strcmp(name, "linestyle")) {
-		} else if (!strcmp(name, "fillstyle")) {
 		} else if (!strcmp(name, "shape_brush")) {
+			if (value && strstr(value,"resource:") == value) {
+				value += 9;
+				while (isspace(*value)) value ++;
+				InterfaceManager *imanager = InterfaceManager::GetDefault(true);
+				ResourceManager *rm = imanager->GetResourceManager();
+				ShapeBrush *obj = dynamic_cast<ShapeBrush*>(rm->FindResource(value,"ShapeBrush"));
+				if (obj) {
+					UseShapeBrush(obj);
+				}
+
+			} else { //not resourced
+				ShapeBrush *obj = new ShapeBrush;
+				obj->dump_in_atts(att->attributes.e[c], flag,context);
+				obj->SetResourceOwner(this);
+				UseShapeBrush(obj);
+			}
+
+		} else if (!strcmp(name, "linestyle")) {
+			DBGE("IMPLEMENT ME!!!");
+		} else if (!strcmp(name, "fillstyle")) {
+			DBGE("IMPLEMENT ME!!!");
 		} else if (!strcmp(name, "line_profile")) {
+			DBGE("IMPLEMENT ME!!!");
 		} else if (!strcmp(name, "gradients")) {
 			//gradient pos [resource:name]
 			//   ...gradient atts if not resource...
-			
+			DBGE("IMPLEMENT ME!!!");
 		}
 	}
 }
 
-Laxkit::Attribute *FreehandInterface::dump_out_atts(Laxkit::Attribute *att,int what,Laxkit::DumpContext *savecontext)
+
+/*! Passing in nullptr clears use of shape brush.
+ * Non-null sets brush, and also makes sure shape_brush_line and
+ * shape_brush_fill are both non-null.
+ */
+int FreehandInterface::UseShapeBrush(ShapeBrush *newbrush)
+{
+	if (newbrush == shape_brush) return 0;
+	if (shape_brush) shape_brush->dec_count();
+	shape_brush = newbrush;
+
+	if (shape_brush) {
+		shape_brush->inc_count();
+		if (!shape_brush_fill) {
+			shape_brush_fill = new FillStyle();
+			shape_brush_fill->fillrule = LAXFILL_None;
+		}
+		if (!shape_brush_line) {
+			shape_brush_line = new LineStyle();
+			shape_brush_line->width = ScreenLine()/2;
+			shape_brush_line->widthtype = 0;
+			shape_brush_line->Colorf(1.,0.,1.,1.);
+			//shape_brush_line->Colorf(linecolor);
+		}
+	}
+
+	needtodraw = 1;
+	return 0;
+}
+
+
+Laxkit::Attribute *FreehandInterface::dump_out_atts(Laxkit::Attribute *att,int what,Laxkit::DumpContext *context)
 {
 	if (!att) att = new Attribute();
 	if (what == -1) {
@@ -1120,9 +1236,19 @@ Laxkit::Attribute *FreehandInterface::dump_out_atts(Laxkit::Attribute *att,int w
 	// if (fillstyle) att2->push("resource", fillstyle->Id());
 	// else fillstyle->dump_out_atts(att2, what, savecontext);
 
-	// att->push("shape_brush", );
 	// att->push("line_profile", );
 	// att->push("gradients", );
+
+	if (shape_brush->ResourceOwner() != this) {
+		 //resource'd default_profile
+		char str[11+strlen(shape_brush->Id())];
+		sprintf(str,"resource: %s", shape_brush->Id());
+		att->push("shape_brush", str);
+
+	} else {
+		Attribute *t = att->pushSubAtt("shape_brush");
+		shape_brush->dump_out_atts(t, 0, context);
+	}
 
 	return att;
 }

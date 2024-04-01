@@ -61,6 +61,7 @@ enum FreehandEditorStyles {
 	FREEHAND_MAX
 };
 
+
 class RawPoint {
   public:
 	Laxkit::flatpoint p;
@@ -80,12 +81,22 @@ class FreehandInterface : public anInterface
 	enum EditMode { MODE_Normal, MODE_Settings, MODE_BrushSize };
 	EditMode mode;
 
-	char showdecs;
+	//enum MergeMode { MERGE_None, MERGE_Union, MERGE_Subtract };
+	//MergeMode merge_mode = MERGE_None; //TODO once we have path booleans!
+	//Laxkit::PtrStack<PathsData*> mergeables;
+
+	bool showdecs;
 	clock_t ignore_clock_t; // ignore_tip_time in clock_t ticks
 	Laxkit::ShortcutHandler *sc;
 
 	Laxkit::PtrStack<RawPointLine> lines; //one line per mouse id
 	Laxkit::NumStack<int> deviceids;
+
+	//mode brush size adjust state:
+	Laxkit::flatpoint size_center;
+	Laxkit::flatpoint last_screen_pos;
+	bool size_dragged;
+
 
 	//----user settings
 	double brush_size; //real size
@@ -100,6 +111,8 @@ class FreehandInterface : public anInterface
 	FillStyle *fillstyle;
 
 	ShapeBrush *shape_brush;
+	LineStyle *shape_brush_line;
+	FillStyle *shape_brush_fill;
 	LineProfile *line_profile;
 
 	Laxkit::GradientStrip default_gradient;
@@ -110,11 +123,6 @@ class FreehandInterface : public anInterface
 	Laxkit::ScreenColor linecolor;
 	Laxkit::ScreenColor pointcolor;
 	//----end user settings
-
-	//mode brush size adjust
-	Laxkit::flatpoint size_center;
-	Laxkit::flatpoint last_screen_pos;
-	bool size_dragged;
 
 
 	void SetupSettings();
@@ -132,9 +140,11 @@ class FreehandInterface : public anInterface
 
   public:
   	enum Actions {
-  		FH_None = 0,
+  		FH_None = FREEHAND_MAX,
+		FH_ClearShapeBrush,
+		FH_UseShapeBrush,
   		FH_Settings,
-  		FH_MAX
+		FH_MAX
   	};
 
 	unsigned int freehand_style;
@@ -168,6 +178,7 @@ class FreehandInterface : public anInterface
 
 	virtual unsigned int SendType(unsigned int type);
 	virtual int Mode(EditMode newmode);
+	virtual int UseShapeBrush(ShapeBrush *newbrush);
 
 	virtual void dump_in_atts(Laxkit::Attribute *att,int flag,Laxkit::DumpContext *loadcontext);
 	virtual Laxkit::Attribute *dump_out_atts(Laxkit::Attribute *att,int what,Laxkit::DumpContext *savecontext);
