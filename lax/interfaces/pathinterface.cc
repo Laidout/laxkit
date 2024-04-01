@@ -101,10 +101,14 @@ void InstallPathResourceTypes(ObjectFactory *factory, ResourceManager *resources
 {
 	if (factory) {
 		factory->DefineNewObject(OBJ_ShapeBrush, "ShapeBrush", NewShapeBrush, nullptr, 0);
+		//factory->DefineNewObject(OBJ_LineStyle, "LineStyle", NewLineStyle, nullptr, 0);
+		//factory->DefineNewObject(OBJ_FillStyle, "FillStyle", NewFillStyle, nullptr, 0);
 	}
 
 	if (resources) {
 		resources->AddResourceType("ShapeBrush", _("Shape Brush"), nullptr, nullptr, createShapeBrush, nullptr /*load from file*/);
+		//resources->AddResourceType("LineStyle", _("Line Style"), nullptr, nullptr, createLineStyle, nullptr /*load from file*/);
+		//resources->AddResourceType("FillStyle", _("Fill Style"), nullptr, nullptr, createFillStyle, nullptr /*load from file*/);
 	}
 
 	InstallDefaultLineProfiles(factory, resources);
@@ -4303,12 +4307,12 @@ int PathsData::line(double width,int cap,int join,ScreenColor *color)
 int PathsData::fill(Laxkit::ScreenColor *color)
 {
 	if (!color) {
-		if (fillstyle) fillstyle->fillstyle=FillNone;
+		if (fillstyle) fillstyle->fillstyle = LAXFILL_None;
 		return 0;
 	}
-	if (!fillstyle) fillstyle=new FillStyle();
+	if (!fillstyle) fillstyle = new FillStyle();
 	fillstyle->Color(color->red,color->green,color->blue,color->alpha);
-	fillstyle->fillstyle= FillSolid;
+	fillstyle->fillstyle = LAXFILL_Solid;
 	if (fillstyle->function == LAXOP_None) fillstyle->function = LAXOP_Over;
 
 	return 0;
@@ -5698,7 +5702,7 @@ PathInterface::PathInterface(int nid,Displayer *ndp, unsigned long nstyle) : anI
 
 	fillstyle = defaultfill = new FillStyle();
 	defaultfill->inc_count();
-	fillstyle->fillstyle = FillNone;
+	fillstyle->fillstyle = LAXFILL_None;
 
 	controlcolor = rgbcolor(0, 148, 178);  // defaults to blueish-white, change right after creation otherwise
 	addcolor     = rgbcolor(100,255,100);
@@ -5776,6 +5780,12 @@ bool PathInterface::Setting(unsigned int flag, bool on)
 void PathInterface::Dp(Displayer *ndp)
 {//***needed??
 	anInterface::Dp(ndp);
+}
+
+int PathInterface::draws(const char *atype)
+{
+	if (!strcmp(atype, "ShapeBrush")) return true;
+	return whatdatatype()!=NULL && !strcmp(whatdatatype(),atype);
 }
 
 //! Return a new instance of PathInterface with duplicates of all in pathops.
@@ -6285,7 +6295,7 @@ int PathInterface::Refresh()
 		fstyle=data->fillstyle;//default for all data paths
 		if (!fstyle) fstyle=defaultfill;   //default for interface
 	}
-	bool hasfill=(fstyle && fstyle->fillstyle != FillNone && fstyle->function != LAXOP_None);
+	bool hasfill = (fstyle ? fstyle->hasFill() : false);
 	bool ignoreweights= (data->style&PathsData::PATHS_Ignore_Weights) 
 				|| !(pathi_style&PATHI_Render_With_Cache);
 
@@ -6369,8 +6379,7 @@ int PathInterface::Refresh()
 
 		if (!ignoreweights) {
 			 //we need to rebuild path and fill the stroke, since it uses a non-standard outline
-			dp->FillAttributes(FillSolid, LAXFILL_Nonzero);
-			//dp->FillAttributes(FillSolid, LAXFILL_EvenOdd);
+			dp->FillAttributes(LAXFILL_Solid, LAXFILL_Nonzero);
 			for (int cc=0; cc<data->paths.n; cc++) {
 				// position p to be the first point that is a vertex
 				pdata=data->paths.e[cc];
@@ -6724,7 +6733,7 @@ int PathInterface::Refresh()
 void PathInterface::DrawOutlines()
 {
 	dp->LineWidthScreen(2);
-	dp->FillAttributes(FillSolid,EvenOddRule);
+	dp->FillAttributes(LAXFILL_Solid, LAXFILL_EvenOdd);
 
 	Path *path;
 	for (int cc=0; cc<data->paths.n; cc++) {
@@ -9441,14 +9450,14 @@ int PathInterface::PerformAction(int action)
 		 //toggle fill or not
 		if (!data) return 0;
 
-		if (data->fillstyle && data->fillstyle->function != LAXOP_None && data->fillstyle->fillstyle != FillNone) {
-			data->fillstyle->fillstyle = FillNone;
+		if (data->fillstyle && data->fillstyle->hasFill()) {
+			data->fillstyle->fillstyle = LAXFILL_None;
 			data->fillstyle->function = LAXOP_None;
 			PostMessage(_("Don't fill"));
 		} else {
-			if (!data->fillstyle) data->fillstyle=new FillStyle(*defaultfill);
-			data->fillstyle->fillstyle=FillSolid;
-			data->fillstyle->function = LAXOP_Over;
+			if (!data->fillstyle) data->fillstyle = new FillStyle(*defaultfill);
+			data->fillstyle->fillstyle = LAXFILL_Solid;
+			data->fillstyle->function  = LAXOP_Over;
 			PostMessage(_("Fill"));
 		} 
 		needtodraw=1;
@@ -10325,7 +10334,7 @@ const char *PathUndo::Description()
 int PathsData::Undo(UndoData *data)
 {
 	PathUndo *undo = dynamic_cast<PathUndo*>(data);
-	if (!undo) return 1;
+	if (!undo) return SomeData::Undo(data);
 
 
 	if (undo->type == PathUndo::MovePoints) {
@@ -10378,7 +10387,7 @@ int PathsData::Undo(UndoData *data)
 int PathsData::Redo(UndoData *data)
 {
 	PathUndo *undo = dynamic_cast<PathUndo*>(data);
-	if (!undo) return 1;
+	if (!undo) return SomeData::Redo(data);
 
 	if (undo->type == PathUndo::MovePoints) {
 		for (int p=0; p<undo->path_indices.n; p++) {

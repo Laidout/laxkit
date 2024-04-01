@@ -600,6 +600,7 @@ class PathInterface : public anInterface
 	virtual const char *Name();
 	virtual const char *whattype() { return "PathInterface"; }
 	virtual const char *whatdatatype() { return "PathsData"; }
+	virtual int draws(const char *atype);
 	virtual bool Setting(unsigned int flag, bool on);
 	virtual void Dp(Laxkit::Displayer *ndp);
 	virtual int DrawDataDp(Laxkit::Displayer *ndp,SomeData *ndata,
