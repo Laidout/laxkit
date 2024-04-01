@@ -1266,49 +1266,53 @@ void draw_special_color(Displayer *dp, int which, double square, double x, doubl
 void get_placement(LaxImage *image, LaxFont *font, const char *label,int gap,unsigned int how,
 					int *w,int *h,int *tx,int *ty,int *ix,int *iy, double icon_height, double ui_scale)
 {
-	LaxImage *i=NULL;
-	const char *l=NULL;
-	if (!image || how==LAX_TEXT_ONLY || how==LAX_TEXT_ICON || how==LAX_ICON_TEXT) l=label;
-	if (image && (how==LAX_ICON_ONLY || how==LAX_TEXT_ICON || how==LAX_ICON_TEXT)) i=image;
+	LaxImage *i   = nullptr;
+	const char *l = nullptr;
+	double th=0, tw=0, iw=0, ih=0, hh;
 
-	double th=0,tw=0,iw=0,ih=0,hh;
+	if (font && (!image || how==LAX_TEXT_ONLY || how==LAX_TEXT_ICON || how==LAX_ICON_TEXT)) l = label;
+	if (image && (how==LAX_ICON_ONLY || how==LAX_TEXT_ICON || how==LAX_ICON_TEXT)) i = image;
+
 	if (l && font) {
 		tw = ui_scale * font->Extent(l,-1);
 		th = ui_scale * font->textheight();
 	}
+
 	if (i) {
 		if (icon_height > 0) {
 			ih = ui_scale * font->textheight() * icon_height;
 			iw = ih / i->h() * i->w();
 		} else {
-			iw=image->w();
-			ih=image->h();
+			iw = image->w();
+			ih = image->h();
 		}
 	}
-	hh=(ih>th?ih:th);
-	if (h) *h=hh;
-	if (ty) *ty=(hh-th)/2;
-	if (iy) *iy=(hh-ih)/2;
+
+	hh = (ih > th ? ih : th);
+	if (h)  *h  = hh;
+	if (ty) *ty = (hh-th)/2;
+	if (iy) *iy = (hh-ih)/2;
+
 	if (l && i) {
-		if (w) *w=iw+tw+gap;
-		if (how==LAX_TEXT_ICON) {
-			if (tx) *tx=0;
-			if (ix) *ix=tw+gap;
+		if (w) *w = iw + tw + gap;
+		if (how == LAX_TEXT_ICON) {
+			if (tx) *tx = 0;
+			if (ix) *ix = tw + gap;
 		} else {
-			if (ix) *ix=0;
-			if (tx) *tx=iw+gap;
+			if (ix) *ix = 0;
+			if (tx) *tx = iw + gap;
 		}
 	} else if (l) { 
-		if (w) *w=tw;
-		if (tx) *tx=0; 
-		if (ix) *ix=LAX_WAY_OFF;
+		if (w)  *w  = tw;
+		if (tx) *tx = 0; 
+		if (ix) *ix = LAX_WAY_OFF;
 	} else if (i) {
-		if (w) *w=iw;
-		if (ix) *ix=0;
-		if (tx) *tx=LAX_WAY_OFF;
+		if (w)  *w  = iw;
+		if (ix) *ix = 0;
+		if (tx) *tx = LAX_WAY_OFF;
 	} else {
-		if (tx) *tx=LAX_WAY_OFF;
-		if (ix) *ix=LAX_WAY_OFF;
+		if (tx) *tx = LAX_WAY_OFF;
+		if (ix) *ix = LAX_WAY_OFF;
 	}
 }
 

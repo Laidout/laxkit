@@ -889,9 +889,11 @@ int ShortcutWindow2::init()
 	ShortcutManager *manager = GetDefaultShortcutManager();
 
 
-	int textheight = win_themestyle->normal->textheight();
+	double textheight = UIScale() * win_themestyle->normal->textheight();
+	double linpheight = 1.5 * textheight;
 
-	anXWindow *last=nullptr;
+
+	anXWindow *last = nullptr;
 
 	//int addspacer=0;
 
@@ -903,23 +905,24 @@ int ShortcutWindow2::init()
 	last = linp = new LineInput(this, "setname","set",0, 0,0,0,0,1, last,object_id,"setname",
 							_("Key set name"),manager->setname);
 	linp->tooltip(_("Name of the shortcut set"));
-	rowframe->AddWin(linp,1, 10*textheight,0,20*textheight,50,0, textheight*1.5,0,0,50,0, -1);
+	rowframe->AddWin(linp,1, 10*textheight,0,20*textheight,50,0, linpheight,0,0,50,0, -1);
 
 	Button *but;
 	last = but = new Button(this,"save","save",BUTTON_SAVE, 0,0,0,0,1, last,object_id,"save");
 	but->tooltip(_("Save the shortcut set to a file"));
-	rowframe->AddWin(but,1, but->win_w,0,0,50,0, textheight*1.5,0,0,50,0, -1);
+	rowframe->AddWin(but,1, but->win_w,0,0,50,0, linpheight,0,0,50,0, -1);
 
 	last = but = new Button(this,"load","load",BUTTON_OPEN, 0,0,0,0,1, last,object_id,"load");
 	but->tooltip(_("Load the shortcut set from a file"));
-	rowframe->AddWin(but,1, but->win_w,0,0,50,0, textheight*1.5,0,0,50,0, -1);
+	rowframe->AddWin(but,1, but->win_w,0,0,50,0, linpheight,0,0,50,0, -1);
 
 	rowframe->AddHSpacer(textheight);
 
-	last = but = new Button(this,"settings",nullptr,IBUT_FLAT, 0,0,1.5*textheight,1.5*textheight,0, last,object_id,"settings");
+	last = but = new Button(this,"settings",nullptr,IBUT_FLAT, 0,0,1.3*textheight,1.3*textheight,0, last,object_id,"settings");
 	but->tooltip(_("Keyboard settings"));
 	but->SetGraphic(THING_Wrench, textheight, textheight);
-	rowframe->AddWin(but,1, but->win_w,0,0,50,0, textheight*1.5,0,0,50,0, -1);
+	//but->icon_height = textheight;
+	rowframe->AddWin(but,1, but->win_w,0,0,50,0, linpheight,0,0,50,0, -1);
 
 	AddWin(rowframe,1, 400,200,10000,50,0, 2*textheight,0,0,50,0, -1);
 
@@ -1008,6 +1011,7 @@ int ShortcutWindow2::init()
 						0,0,0,0,0, nullptr,this->object_id,"areas",
 						TREESEL_SEND_ON_UP | TREESEL_NO_LINES | TREESEL_CURSSELECTS | TREESEL_CURSSENDS,
 						nullptr);
+	areawindow->pad = textheight * .5;
 	areawindow->InstallMenu(areas);
 	areawindow->Select(0);
 	areas->dec_count();

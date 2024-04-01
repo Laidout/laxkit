@@ -1528,11 +1528,11 @@ void KeyboardWindow::CurrentModsColor(ScreenColor &curModsColor, int withmods)
 void KeyboardWindow::Refresh()
 {
 	if (!win_on || !needtodraw) return;
-	needtodraw=0;
+	needtodraw = 0;
 	if (!keyboard) return;
 
 	Displayer *dp = MakeCurrent();
-	dp->font(win_themestyle->normal, win_themestyle->normal->textheight());
+	dp->font(win_themestyle->normal, UIScale() * win_themestyle->normal->textheight());
 
 	dp->ClearWindow();
 	dp->NewFG(win_themestyle->fg);
@@ -1540,7 +1540,7 @@ void KeyboardWindow::Refresh()
 
 	double xs = keyboard->width /keyboard->basewidth;
 	double ys = keyboard->height/keyboard->baseheight;
-	double th = win_themestyle->normal->textheight();
+	double th = UIScale() * win_themestyle->normal->textheight();
 	double round = th/5;
 	ScreenColor bg, fg;
 	ScreenColor curModsColor;

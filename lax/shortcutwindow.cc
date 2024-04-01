@@ -409,14 +409,15 @@ int ShortcutWindow::init()
 	//  area, sorted by default
 	//  keyboard
 
-	ShortcutManager *manager=GetDefaultShortcutManager();
+	ShortcutManager *manager = GetDefaultShortcutManager();
 
 
-	int textheight = UIScale() * win_themestyle->normal->textheight();
+	double textheight = UIScale() * win_themestyle->normal->textheight();
+	double linpheight = textheight * 1.5;
 
-	anXWindow *last=NULL;
+	anXWindow *last = nullptr;
 
-	int addspacer=0;
+	int addspacer = 0;
 
 //	if (swin_style&SHORTCUTW_Show_Search) {
 //		// [search keys]Search____________[x][search actions] [collapse all][expand all]
@@ -457,32 +458,32 @@ int ShortcutWindow::init()
 		//Name_______ [load][save][export]
 
 		LineInput *linp;
-		last=linp=new LineInput(this, "setname","set",0, 0,0,0,0,1, last,object_id,"setname",
+		last = linp = new LineInput(this, "setname","set",0, 0,0,0,0,1, last,object_id,"setname",
 								_("Key set name"),manager->setname);
 		linp->tooltip(_("Name of the shortcut set"));
-		AddWin(linp,1, 200,0,10000,50,0, textheight*1.25,0,0,50,0, -1);
+		AddWin(linp,1, 200,0,10000,50,0, linpheight,0,0,50,0, -1);
 
 		Button *but;
-		last=but=new Button(this,"save","save",BUTTON_SAVE, 0,0,0,0,1, last,object_id,"save");
+		last = but = new Button(this,"save","save",BUTTON_SAVE, 0,0,0,0,1, last,object_id,"save");
 		but->tooltip(_("Save the shortcut set to a file"));
-		AddWin(but,1, but->win_w,0,0,50,0, textheight*1.25,0,0,50,0, -1);
+		AddWin(but,1, but->win_w,0,0,50,0, linpheight,0,0,50,0, -1);
 
-		last=but=new Button(this,"load","load",BUTTON_OPEN, 0,0,0,0,1, last,object_id,"load");
+		last = but = new Button(this,"load","load",BUTTON_OPEN, 0,0,0,0,1, last,object_id,"load");
 		but->tooltip(_("Load the shortcut set from a file"));
-		AddWin(but,1, but->win_w,0,0,50,0, textheight*1.25,0,0,50,0, -1);
+		AddWin(but,1, but->win_w,0,0,50,0, linpheight,0,0,50,0, -1);
 
 		AddNull();
-		addspacer=1;
+		addspacer = 1;
 	}
 
 	if (addspacer) { AddVSpacer(textheight/2,0,0,50); AddNull(); }
 
 	
 	 //define the shortcuts tree
-	MenuInfo *menu=new MenuInfo;
+	MenuInfo *menu = new MenuInfo;
 
-	const char *place=initialarea;
-	if (isblank(place)) place=NULL;
+	const char *place = initialarea;
+	if (isblank(place)) place = nullptr;
 
 	for (int c=0; c<manager->shortcuts.n; c++) {
 		if (place && !strcmp(place,manager->shortcuts.e[c]->area))

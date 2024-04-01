@@ -141,7 +141,7 @@ void IconSelector::FillBox(IconBox *b,const char *nlabel,const char *filename,in
  *  
  *  Sets the preferred metrics to be exactly equal to the bounds of the icon+label.
  *  sync() must be called after AddBox sometime to layout everything. Note that the final
- *  defininte width and height may not be these ideal width and height.
+ *  definite width and height may not be these ideal width and height.
  *
  *  b is supposed to be a new, blank box, whose members are NULL.
  */
@@ -220,7 +220,7 @@ void IconSelector::drawbox(int which)
 	int w,h,tx,ty,ix,iy,dx,dy;
 	LaxImage *i = b->image;
 	const char *l = b->label;
-	get_placement(i,win_themestyle->normal,l,padg,labelstyle,&w,&h,&tx,&ty,&ix,&iy, UIScale());
+	get_placement(i,win_themestyle->normal,l,padg,labelstyle,&w,&h,&tx,&ty,&ix,&iy, 0, UIScale());
 	dx = b->x() + (b->w() - w)/2;
 	dy = b->y() + (b->h() - h)/2;
 

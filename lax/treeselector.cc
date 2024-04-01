@@ -184,6 +184,7 @@ void TreeSelector::base_init()
 	mousedragmode = 0;
 	column_gap    = -1;
 	pad           = -1;
+	padg          = -1;
 	offsetx = offsety = 0; //offset of everything from inrect.x,inrect.y,  so (screen item).y = item.y + offsety + inrect.y
 	textheight   = 0;
 	lineheight   = 0;
@@ -570,10 +571,12 @@ void TreeSelector::UIScaleChanged()
 	needtodraw = 1;
 
 	double scale = UIScale();
+	double scale_factor = scale * win_themestyle->normal->textheight() / textheight;
 	leading = 1 * scale;
 	textheight = scale * win_themestyle->normal->textheight();
 	iwidth = textheight;
 	padg = textheight/2;
+	pad *= scale_factor;
 
 	RebuildCache();
 }
@@ -598,6 +601,7 @@ int TreeSelector::init()
 	RemapColumns();
 
 	padg = textheight/2;
+	if (pad < 0) pad = textheight/2;
 	pagesize = inrect.height*.75;
 	arrangeItems();
 	return 0;
@@ -1484,8 +1488,8 @@ void TreeSelector::drawitemname(MenuItem *mitem,IntRectangle *rect)
 	if (mitem && mitem->image) {
 		if (app->theme->ui_scale_on_icons) {
 			double th = UIScale() * win_themestyle->normal->textheight();
-			double w = .8 * th / mitem->image->h() * mitem->image->w();
-			double h = .8 * th;
+			double w = 1. * th / mitem->image->h() * mitem->image->w();
+			double h = 1. * th;
 			dp->imageout(mitem->image, gx, rect->y + rect->height/2 - h/2, w, h);
 		} else {
 			dp->imageout(mitem->image, gx, rect->y + rect->height/2 - mitem->image->h()/2);

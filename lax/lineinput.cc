@@ -413,7 +413,7 @@ void LineInput::SetPlacement()
 		else nleh = leh;
 		
 		ley = padly*textheight;
-		ly = (padly + padx)*textheight + le->WindowBorder() + nleh/2 - textheight/2 + fasc;
+		ly = le->WindowBorder() + nleh/2 - textheight/2 + fasc;
 
 		if (win_style & LINP_ONRIGHT) { // [line edit] label
 			lex = padlx*textheight;
@@ -431,7 +431,7 @@ void LineInput::SetPlacement()
 
 		//int oldley = ley;
 		ley = (win_h - nleh) / 2;
-		//ly += (ley - oldley);
+		ly += ley;
 	}
 
 	if (helper) {

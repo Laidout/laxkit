@@ -347,9 +347,9 @@ void ColorSliders::Refresh()
 	needtodraw=0;
 
 
-	Displayer *dp=MakeCurrent();
+	Displayer *dp = MakeCurrent();
 	dp->ClearWindow();
-	dp->font(win_themestyle->normal);
+	dp->font(win_themestyle->normal, UIScale() * win_themestyle->normal->textheight());
 
 	if (!bars.n) return;
 
@@ -1257,8 +1257,8 @@ void ColorSliders::updateSliderRect()
 	sliders.width  = win_w;
 	sliders.height = win_h - (ok_button ? ok_button->win_h : 0);
 
-	double hexh = win_themestyle->normal->textheight();
-	double hexw = win_themestyle->normal->Extent("#00000000",-1)+2*gap;
+	double hexh = UIScale() * win_themestyle->normal->textheight();
+	double hexw = UIScale() * win_themestyle->normal->Extent("#00000000",-1)+2*gap;
 
 	hex.width = oldnew.width=-1;
 	if (win_style&COLORSLIDERS_Vertical) {
@@ -1345,7 +1345,7 @@ void ColorSliders::OkButton(const char *label)
 {
 	if (!label) label = _("Ok");
 	if (!ok_button) {
-		double th = win_themestyle->normal->textheight();
+		double th = UIScale() * win_themestyle->normal->textheight();
 		ok_button = new Button(this, "ok", "ok", 0,
 						win_w/2,win_h-1.5*th, 0,1.5*th, 0,
 						nullptr, object_id, "ok",

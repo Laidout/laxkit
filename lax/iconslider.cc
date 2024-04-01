@@ -85,7 +85,7 @@ void IconSlider::Refresh()
 		
 	int tx,ty,ix,iy;
 	get_placement(img,win_themestyle->normal,label,gap,(win_style&ICONSLIDER_WHAT_MASK)>>20,
-		NULL,NULL,&tx,&ty,&ix,&iy);
+		NULL,NULL,&tx,&ty,&ix,&iy, UIScale());
 	if (tx!=LAX_WAY_OFF) dp->textout(tx,ty,label,-1,LAX_LEFT|LAX_TOP);
 	if (ix!=LAX_WAY_OFF) dp->imageout(img,ix,iy);
 	

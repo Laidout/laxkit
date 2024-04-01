@@ -128,10 +128,10 @@ TabFrame::TabFrame(anXWindow *parnt,const char *nname,const char *ntitle,unsigne
 {
 	curtab = -1;
 	if (padinset <= 0) {
-		padinset = win_themestyle->normal->textheight()/2;
+		padinset = UIScale() * win_themestyle->normal->textheight()/2;
 	}
 	if (padg <= 0) {
-		padg = win_themestyle->normal->textheight()/2;
+		padg = UIScale() * win_themestyle->normal->textheight()/2;
 	}
 }
 
@@ -156,7 +156,7 @@ int TabFrame::init()
 void TabFrame::FillBox(IconBox *b,const char *nlabel,LaxImage *img, int nid)
 {
 	IconSelector::FillBox(b,nlabel,img,nid);
-	double pad = win_themestyle->normal->textheight()/3;
+	double pad = UIScale() * win_themestyle->normal->textheight()/3;
 	b->h (b->h()  + pad);
 	b->w (b->w()  + pad);
 	b->ph(b->ph() + pad);
@@ -180,13 +180,11 @@ void TabFrame::DrawTab(IconBox *b, int selected, int iscurbox)
 {
 	if (!b) return;
 
-	Displayer *dp=GetDisplayer();
+	Displayer *dp = GetDisplayer();
 
 	 //draw the outline
 
-	//dp->drawrectangle(b->x() - b->pad,  b->y() - b->pad,    b->w() + 2*b->pad,  b->h() + 2*b->pad, 0);
-
-	double xx=b->x(), yy=b->y(), ww=b->w(), hh=b->h();
+	double xx = b->x(), yy = b->y(), ww = b->w(), hh = b->h();
 
 	dp->moveto(xx-hh/3, yy+hh);
 	dp->curveto(flatpoint(xx,yy+hh), flatpoint(xx,yy), flatpoint(xx+hh/3,yy));
@@ -213,31 +211,27 @@ void TabFrame::DrawTab(IconBox *b, int selected, int iscurbox)
 	dp->NewFG(coloravg(win_themestyle->fg.Pixel(), win_themestyle->bg.Pixel()));
 	dp->stroke(0);
 
-	//dp->NewFG(win_colors->bg);
-	//dp->drawline(xx-hh/3,yy+hh, xx+ww+hh/3,yy+hh);
-
-
 	 // Set  tx,ty  px,py
 	int w,h,tx,ty,ix,iy,dx,dy;
-	LaxImage *i=b->image;
-	const char *l=b->label;
-	get_placement(i,win_themestyle->normal,l,padg,labelstyle,&w,&h,&tx,&ty,&ix,&iy);
-	dx=b->x()+(b->w()-w)/2;
-	dy=b->y()+(b->h()-h)/2;
+	LaxImage *img = b->image;
+	const char *label = b->label;
+	get_placement(img, win_themestyle->normal, label, padg, labelstyle,&w,&h,&tx,&ty,&ix,&iy, 1., UIScale());
+	dx = b->x() + (b->w() - w)/2;
+	dy = b->y() + (b->h() - h)/2;
 
 	 // draw the info
-	if (i && ix!=LAX_WAY_OFF) {
-		ix+=dx;
-		iy+=dy;
-		dp->imageout(i,ix,iy);
-		i->doneForNow();
+	if (img && ix != LAX_WAY_OFF) {
+		ix += dx;
+		iy += dy;
+		dp->imageout(img, ix,iy);
+		img->doneForNow();
 	}
 
-	if (l && tx>LAX_WAY_OFF) {
-		tx+=dx;
-		ty+=dy;
+	if (label && tx != LAX_WAY_OFF) {
+		tx += dx;
+		ty += dy;
 		dp->NewFG(win_themestyle->fg);
-		dp->textout(tx,ty, l,-1, LAX_LEFT|LAX_TOP);
+		dp->textout(tx,ty, label,-1, LAX_LEFT|LAX_TOP);
 	}
 }
 
@@ -250,7 +244,7 @@ void TabFrame::Refresh()
 	}
 
 	Displayer *dp=MakeCurrent();
-	dp->font(win_themestyle->normal, win_themestyle->normal->textheight());
+	dp->font(win_themestyle->normal, UIScale() * win_themestyle->normal->textheight());
 	dp->ClearWindow();
 	dp->LineWidth(1);
 	needtodraw=0;
@@ -263,7 +257,7 @@ void TabFrame::Refresh()
 		ListBox *row = dynamic_cast<ListBox*>(list.e[c]);
 
 		dp->NewFG(coloravg(win_themestyle->fg.Pixel(), win_themestyle->bg.Pixel(),.8));
-		dp->drawrectangle(0,row->y()-padinset, win_w,row->h()+padinset-1, 1);
+		dp->drawrectangle(0, row->y() - padinset, win_w, row->h() + padinset-1, 1);
 
 		int i = row->list.findindex(cbox);
 		if (i<0) i=-1;

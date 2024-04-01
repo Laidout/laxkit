@@ -224,16 +224,19 @@ void LineEdit::Refresh()
 	TextXEditBaseUtf8::Refresh();
 
 	if ((win_style & LINEEDIT_CLEAR_X) && textlen > 0) {
-		Displayer *dp=GetDisplayer();
-		dp->LineWidth(2);
-		if (lasthover==0) {
+		Displayer *dp = GetDisplayer();
+		double th = .8 * dp->textheight();
+		double pd = padx * dp->textheight();
+		dp->LineWidth(th*.2);
+		if (lasthover == 0) {
 			dp->NewFG(coloravg(win_themestyle->fg.Pixel(),win_themestyle->bg.Pixel()));
 		} else {
 			dp->NewFG(1.0,0.,0.);
 		}
+		dp->drawline(win_w - th - pd, win_h/2 - th/2, win_w - pd, win_h/2 + th/2);
+		dp->drawline(win_w - th - pd, win_h/2 + th/2, win_w - pd, win_h/2 - th/2);
 		dp->LineWidth(1);
 	}
-
 }
 
 int LineEdit::Event(const EventData *e,const char *mes)

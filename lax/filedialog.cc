@@ -267,21 +267,21 @@ FileDialog::FileDialog(anXWindow *parnt,const char *nname,const char *ntitle,uns
 	if (nnpath) delete[] nnpath;
 
 	 //add an ok and optionally a cancel button to wholelist here, rather than in init()
-	int textheight = win_themestyle->normal->textheight();
-	int linpheight = textheight + 6;
+	int textheight = UIScale() * win_themestyle->normal->textheight();
+	int linpheight = 1.5 * textheight;
 
 	unsigned long okbutton=BUTTON_OK;
 	if (dialog_style&(FILES_SAVE|FILES_SAVE_AS)) okbutton=BUTTON_SAVE;
 	else if (dialog_style&(FILES_OPEN_MANY|FILES_OPEN_ONE)) okbutton=BUTTON_OPEN;
 	ok=new Button(this,"fd-Ok",NULL,okbutton, 0,0,0,0, 1, 
 			NULL,object_id,"ok",
-			0, NULL,NULL,NULL,3,3);
+			0, NULL,NULL,NULL);
 	AddWin(ok,1, ok->win_w,0,50,50,0, linpheight,0,0,50,0, -1);
 	finalbuttons=wholelist.n-1;
 
 	if (!(dialog_style&FILES_NO_CANCEL)) {
 		last=new Button(this,"fd-cancel",NULL,BUTTON_CANCEL, 0,0,0,0, 1, 
-								 NULL,object_id,"cancel", 0,NULL,NULL,NULL,3,3);
+								 NULL,object_id,"cancel", 0,NULL,NULL,NULL);
 		AddWin(last,1, last->win_w,0,50,50,0, linpheight,0,0,50,0, -1);
 	}
 
@@ -492,14 +492,14 @@ int FileDialog::init()
 {
 	if (!ValidDrawable()) return 1;
 
-	int        textheight = win_themestyle->normal->textheight();
-	int        linpheight = textheight + 6;
-	anXWindow *last       = NULL;
-	Button *   tbut       = NULL;
-	if (finalbuttons<0) finalbuttons=0; //points to the "Ok" button that maybe is already there from constructor
+	int        textheight = UIScale() * win_themestyle->normal->textheight();
+	int        linpheight = 1.5*textheight;
+	anXWindow *last       = nullptr;
+	Button    *tbut       = nullptr;
+	if (finalbuttons < 0) finalbuttons = 0; //points to the "Ok" button that maybe is already there from constructor
 
 
-	IconManager *iconmanager=IconManager::GetDefault();
+	IconManager *iconmanager = IconManager::GetDefault();
 
 
 	 //----Add FILE line input
@@ -564,14 +564,14 @@ int FileDialog::init()
 	 // [new bookmark]
 	last=tbut=new Button(left,"fd-bookmark",NULL,IBUT_FLAT|IBUT_ICON_ONLY, 0,0,0,0, 0, 
 						last,object_id,"bookmark",
-						0,_("New bookmark"),NULL,iconmanager->GetIcon("Add"),3,3);
+						0,_("New bookmark"),NULL,iconmanager->GetIcon("Add"));
 	last->tooltip(_("Bookmark current directory"));
 	left->AddWin(tbut,1, tbut->win_w,0,50,50,0, linpheight,0,0,50,0, -1);
 
 	 // [remove bookmark]
 	last=tbut=new Button(left,"fd-rmbookmark",NULL,IBUT_FLAT|IBUT_ICON_ONLY, 0,0,0,0, 0, 
 						last,object_id,"rmbookmark",
-						0,_("Remove bookmark"),NULL,iconmanager->GetIcon("Remove"),3,3);
+						0,_("Remove bookmark"),NULL,iconmanager->GetIcon("Remove"));
 	last->tooltip(_("Remove selected bookmark"));
 	left->AddWin(tbut,1, tbut->win_w,0,50,50,0, linpheight,0,0,50,0, -1);
 
@@ -601,7 +601,7 @@ int FileDialog::init()
 		 //have "new dir" button only when saving
 		last=tbut=new Button(middle,"fd-new dir",NULL,IBUT_FLAT|IBUT_ICON_ONLY, 0,0,0,0, 0, 
 								 last,object_id,"new dir",
-								 0,_("New Dir"),NULL,iconmanager->GetIcon("NewDirectory"),3,3);
+								 0,_("New Dir"),NULL,iconmanager->GetIcon("NewDirectory"));
 		last->tooltip(_("Create a new directory"));
 		middle->AddWin(tbut,1, tbut->win_w,0,50,50,0, linpheight,0,0,50,0, -1);
 	}
@@ -609,42 +609,42 @@ int FileDialog::init()
 	 // [refresh]
 	last=tbut=new Button(middle,"fd-refresh",NULL,IBUT_FLAT|IBUT_ICON_ONLY, 0,0,0,0, 0, 
 						last,object_id,"refresh",
-						0,_("Refresh"),NULL,iconmanager->GetIcon("Refresh"),3,3);
+						0,_("Refresh"),NULL,iconmanager->GetIcon("Refresh"));
 	last->tooltip(_("Re-read current directory"));
 	middle->AddWin(tbut,1, tbut->win_w,0,50,50,0, linpheight,0,0,50,0, -1);
 
 	 // [up]
 	last=tbut=new Button(middle,"fd-up",NULL, IBUT_FLAT|IBUT_ICON_ONLY, 0,0,0,0, 0, 
 						last,object_id,"go up",
-						0,_("Up"),NULL,iconmanager->GetIcon("MoveUp"),3,3);
+						0,_("Up"),NULL,iconmanager->GetIcon("MoveUp"));
 	last->tooltip(_("Go up a directory"));
 	middle->AddWin(tbut,1, tbut->win_w,0,50,50,0, linpheight,0,0,50,0, -1);
 
 	 // [back]
 	last=tbut=new Button(middle,"fd-back",NULL,IBUT_FLAT|IBUT_ICON_ONLY, 0,0,0,0, 0, 
 						last,object_id,"go back",
-						0,_("Back"),NULL,iconmanager->GetIcon("Backward"),3,3);
+						0,_("Back"),NULL,iconmanager->GetIcon("Backward"));
 	last->tooltip(_("Go back"));
 	middle->AddWin(tbut,1, tbut->win_w,0,50,50,0, linpheight,0,0,50,0, -1);
 
 	 // [forward]
 	last=tbut=new Button(middle,"fd-forward",NULL,IBUT_FLAT|IBUT_ICON_ONLY, 0,0,0,0, 0, 
 						last,object_id,"go forward",
-						0,_("Forward"),NULL,iconmanager->GetIcon("Forward"),3,3);
+						0,_("Forward"),NULL,iconmanager->GetIcon("Forward"));
 	last->tooltip(_("Go forward"));
 	middle->AddWin(tbut,1, tbut->win_w,0,50,50,0, linpheight,0,0,50,0, -1);
 
 	 // [list/icons]
 	last=tbut=new Button(middle,"fd-display format",NULL,IBUT_FLAT|IBUT_ICON_ONLY, 0,0,0,0, 0, 
 						last,object_id,"details",
-						0,_("Details"),NULL,iconmanager->GetIcon("Icons"),3,3);
+						0,_("Details"),NULL,iconmanager->GetIcon("Icons"));
 	last->tooltip(_("Toggle showing list or icons"));
 	middle->AddWin(tbut,1, tbut->win_w,0,50,50,0, linpheight,0,0,50,0, -1);
 
 	 // [settings]
 	last=tbut=new Button(middle,"fd-settings",NULL,IBUT_FLAT|IBUT_ICON_ONLY, 0,0,0,0, 0, 
 						last,object_id,"settingsbutton",
-						0,_("Settings"),NULL,iconmanager->GetIcon("Settings"),3,3);
+						0,_("Settings"),NULL,iconmanager->GetIcon("Settings"));
 	last->tooltip(_("Settings"));
 	middle->AddWin(tbut,1, tbut->win_w,0,50,50,0, linpheight,0,0,50,0, -1);
 
@@ -709,11 +709,8 @@ int FileDialog::init()
 		hstack->AddWin(previewer,1, 100,50,500,50,0, 100,0,1000,50,0, -1);
 	}
 	hstack->WrapToExtent();
-	//hstack->UpdatePos(0);
-	//hstack->Sync(0);
 	
 	AddWin(hstack,1, finalbuttons++);
-	//app->addwindow(hstack);
 
 	AddNull(finalbuttons++);
 
@@ -725,8 +722,6 @@ int FileDialog::init()
 
 
 	 //----final buttons;
-
-
 
 
 	 //Now tie up the final buttons....
@@ -903,10 +898,10 @@ void FileDialog::AddFinalButton(const char *text, const char *ttip, int id, int 
 {
 	if (isblank(text)) return;
 
-	Button *final=new Button(this,"fd-final",NULL, 0, 0,0,0,0, 1, 
-									 NULL,object_id,"final",
+	Button *final = new Button(this,"fd-final",NULL, 0, 0,0,0,0, 1, 
+									 NULL, object_id, "final",
 									 id,
-									 text,NULL,NULL,3,3);
+									 text, NULL, NULL);
 	final->tooltip(ttip);
 	AddWin(final,1, final->win_w,0,50,50,0, final->win_h,0,0,50,0, finalbuttons+position);
 }
