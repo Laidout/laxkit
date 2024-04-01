@@ -262,7 +262,7 @@ int check_dirs(const char *dirs, bool make_too, int permissions)
 	return t != S_IFDIR ? c : -1;
 }
 
-/*! Create directories in dirs if they don't exist.
+/*! Create directories in dirstr if they don't exist.
  * Returns number of directories created and now all directories exist,
  * or return -1 if there was an error creating directories.
  *
@@ -278,7 +278,7 @@ int CheckDirs(const char *dirstr, int depth, int permissions)
 	char **dirs = split(dirstr, '/', &n);
 
 	if (depth > 0 || depth == 0) depth = n;
-	if( depth < 0) depth = n + depth;
+	if (depth < 0) depth = n + depth;
 	if (depth<0) depth = 0;
 
 	//store old curdir
