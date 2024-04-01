@@ -1605,8 +1605,8 @@ int EllipseInterface::CharInput(unsigned int ch, const char *buffer,int len,unsi
 
 	 //check shortcuts
 	if (!sc) GetShortcuts();
-	int action=sc->FindActionNumber(ch,state&LAX_STATE_MASK,0);
-	if (action>=0) {
+	int action = sc->FindActionNumber(ch,state&LAX_STATE_MASK,0);
+	if (action >= 0) {
 		return PerformAction(action);
 	}
 	
