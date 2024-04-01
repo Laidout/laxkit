@@ -1150,6 +1150,54 @@ int ViewportWindow::WheelDown(int x,int y,unsigned int state,int count,const Lax
 	return 0;
 }
 
+//! Scroll default horizontally.
+int ViewportWindow::WheelRight(int x,int y,unsigned int state,int count,const Laxkit::LaxMouse *d)
+{
+	// check for interface wheel first
+	for (int c=interfaces.n-1; c>=0; c--) {
+		if (!interfaces.e[c]->WheelLeft(x,y,state,count,d))
+			return 0;
+	}
+
+	int w;
+	if ((state & LAX_STATE_MASK) == ShiftMask) { // shift y
+		w = 20;
+		dp->ShiftScreen(0, w);
+		syncrulers();
+		needtodraw = 1;
+
+	} else { // shift y
+		w = 20;
+		dp->ShiftScreen(w, 0);
+		syncrulers();
+		needtodraw = 1;
+	}
+	return 0;
+}
+
+//! Scroll default horizontally.
+int ViewportWindow::WheelLeft(int x,int y,unsigned int state,int count,const Laxkit::LaxMouse *d)
+{
+	for (int c=interfaces.n-1; c>=0; c--) {
+		if (!interfaces.e[c]->WheelRight(x,y, state, count, d))
+			return 0;
+	}
+
+	int w;
+	if ((state & LAX_STATE_MASK) == ShiftMask) { // shift y
+		w = -20;
+		dp->ShiftScreen(0, w);
+		syncrulers();
+		needtodraw = 1;
+	} else {
+		w = -20;
+		dp->ShiftScreen(w, 0);
+		syncrulers();
+		needtodraw = 1;
+	}
+	return 0;
+}
+
 /*! Relay LBDown to the interfaces. If not interfaces take it, then try to select an object
  * at screen coordinate (x,y).
  * 

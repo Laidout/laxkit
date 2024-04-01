@@ -201,6 +201,8 @@ class ViewportWindow : public Laxkit::PanUser, public Laxkit::anXWindow
 	virtual int RBUp(int x,int y,unsigned int state,const Laxkit::LaxMouse *d);
 	virtual int WheelUp(int x,int y,unsigned int state,int count,const Laxkit::LaxMouse *d);
 	virtual int WheelDown(int x,int y,unsigned int state,int count,const Laxkit::LaxMouse *d);
+	virtual int WheelRight(int x,int y,unsigned int state,int count,const Laxkit::LaxMouse *d);
+	virtual int WheelLeft(int x,int y,unsigned int state,int count,const Laxkit::LaxMouse *d);
 	virtual int MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMouse *d);
 	virtual int KeyUp(unsigned int ch,unsigned int state,const Laxkit::LaxKeyboard *d);
 	virtual int CharInput(unsigned int ch, const char *buffer,int len,unsigned int state,const Laxkit::LaxKeyboard *d);

@@ -118,8 +118,10 @@ class anInterface : virtual public Laxkit::EventReceiver,
 	virtual int LBUp(int x,int y,unsigned int state, const Laxkit::LaxMouse *d) { return 1; }
 	virtual int MBUp(int x,int y,unsigned int state, const Laxkit::LaxMouse *d) { return 1; }
 	virtual int RBUp(int x,int y,unsigned int state, const Laxkit::LaxMouse *d) { return 1; }
-	virtual int WheelUp  (int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d) { return 1; }
-	virtual int WheelDown(int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d) { return 1; }
+	virtual int WheelUp   (int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d) { return 1; }
+	virtual int WheelDown (int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d) { return 1; }
+	virtual int WheelLeft (int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d) { return 1; }
+	virtual int WheelRight(int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d) { return 1; }
 	virtual int MouseMove(int x,int y,unsigned int state, const Laxkit::LaxMouse *d) { return 1; }
 	virtual int CharInput(unsigned int ch, const char *buffer,int len,unsigned int state, const Laxkit::LaxKeyboard *d) { return 1; }
 	virtual int KeyUp(unsigned int ch,unsigned int state, const Laxkit::LaxKeyboard *d) { return 1; }

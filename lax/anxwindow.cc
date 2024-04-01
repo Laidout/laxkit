@@ -1230,6 +1230,8 @@ int anXWindow::Event(const EventData *data,const char *mes)
 
 		if (me->button==4) return WheelUp(me->x, me->y, me->modifiers, me->count, me->device);
 		if (me->button==5) return WheelDown(me->x, me->y, me->modifiers, me->count, me->device);
+		if (me->button==6) return WheelRight(me->x, me->y, me->modifiers, me->count, me->device);
+		if (me->button==7) return WheelLeft(me->x, me->y, me->modifiers, me->count, me->device);
 
 		return ButtonDown(me->button, me->x, me->y, me->modifiers, me->count, me->device);
 

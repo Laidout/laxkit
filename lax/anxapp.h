@@ -285,6 +285,8 @@ class anXWindow : virtual public EventReceiver,
 	virtual int RBUp(int x,int y,unsigned int state,const LaxMouse *d) { return 1; }
 	virtual int WheelUp(int x,int y,unsigned int state,int count,const LaxMouse *d) { return 1; }
 	virtual int WheelDown(int x,int y,unsigned int state,int count,const LaxMouse *d) { return 1; }
+	virtual int WheelLeft(int x,int y,unsigned int state,int count,const LaxMouse *d) { return 1; }
+	virtual int WheelRight(int x,int y,unsigned int state,int count,const LaxMouse *d) { return 1; }
 
 	virtual Theme *GetTheme() const;
 	virtual void CustomTheme(Theme *new_theme);
