@@ -48,7 +48,7 @@ class CheckBox : public Button
 	CheckBox(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
 				int xx,int yy,int ww,int hh,int brder,
 				anXWindow *prev,unsigned long nowner,const char *nsendmes,
-				const char *nnme=NULL,int npadx=0,int npady=0);
+				const char *nnme=NULL,int npadx=-1,int npady=-1);
 	virtual ~CheckBox();
 	virtual void UIScaleChanged();
 	virtual const char *Label(const char *nlabel);
