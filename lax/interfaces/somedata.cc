@@ -821,44 +821,54 @@ SomeDataUndo::SomeDataUndo(SomeData *object,
 
 	context=object;
 	if (object) object->inc_count();
+
+	switch(type) {
+		case SomeDataUndo::SDUNDO_Bounds   : msg.Sprintf("%s: %s", object->Id(), _("New bounds"));    break;
+		case SomeDataUndo::SDUNDO_Transform: msg.Sprintf("%s: %s", object->Id(), _("New transform")); break;
+		case SomeDataUndo::SDUNDO_Shift    : msg.Sprintf("%s: %s", object->Id(), _("Shift"));         break;
+		case SomeDataUndo::SDUNDO_Rotation : msg.Sprintf("%s: %s", object->Id(), _("Rotation"));      break;
+		case SomeDataUndo::SDUNDO_Scale    : msg.Sprintf("%s: %s", object->Id(), _("Scale"));         break;
+		case SomeDataUndo::SDUNDO_Shear    : msg.Sprintf("%s: %s", object->Id(), _("Shear"));         break;
+		case SomeDataUndo::SDUNDO_Flip     : msg.Sprintf("%s: %s", object->Id(), _("Flip"));          break;
+	}
 }
 
 const char *SomeDataUndo::Description()
 {
-	if      (type==SomeDataUndo::SDUNDO_Bounds   ) return _("New bounds");
-	else if (type==SomeDataUndo::SDUNDO_Transform) return _("New transform");
-	else if (type==SomeDataUndo::SDUNDO_Shift    ) return _("Shift");
-	else if (type==SomeDataUndo::SDUNDO_Rotation ) return _("Rotation");
-	else if (type==SomeDataUndo::SDUNDO_Scale    ) return _("Scale");
-	else if (type==SomeDataUndo::SDUNDO_Shear    ) return _("Shear");
-	else if (type==SomeDataUndo::SDUNDO_Flip     ) return _("Flip");
-
-	return NULL;
+	return msg.c_str();
+	// if      (type==SomeDataUndo::SDUNDO_Bounds   ) return _("New bounds");
+	// else if (type==SomeDataUndo::SDUNDO_Transform) return _("New transform");
+	// else if (type==SomeDataUndo::SDUNDO_Shift    ) return _("Shift");
+	// else if (type==SomeDataUndo::SDUNDO_Rotation ) return _("Rotation");
+	// else if (type==SomeDataUndo::SDUNDO_Scale    ) return _("Scale");
+	// else if (type==SomeDataUndo::SDUNDO_Shear    ) return _("Shear");
+	// else if (type==SomeDataUndo::SDUNDO_Flip     ) return _("Flip");
+	//
+	// return NULL;
 }
 
 int SomeData::Undo(UndoData *data)
 {
-	SomeDataUndo *u=dynamic_cast<SomeDataUndo*>(data);
+	SomeDataUndo *u = dynamic_cast<SomeDataUndo*>(data);
 	if (!u) return 1;
 
-	if (u->type==SomeDataUndo::SDUNDO_Bounds)    setbounds(&u->box_orig); 
-	if (u->type==SomeDataUndo::SDUNDO_Transform) set(u->m_orig);
+	if (u->type == SomeDataUndo::SDUNDO_Bounds)    setbounds(&u->box_orig); 
+	else if (u->type == SomeDataUndo::SDUNDO_Transform) set(u->m_orig);
+	else set(u->m_orig);
 
-	set(u->m_orig);
 	touchContents();
 	return 0;
 }
 
 int SomeData::Redo(UndoData *data)
 {
-	SomeDataUndo *u=dynamic_cast<SomeDataUndo*>(data);
+	SomeDataUndo *u = dynamic_cast<SomeDataUndo*>(data);
 	if (!u) return 1;
 
-	if (u->type==SomeDataUndo::SDUNDO_Bounds)    { setbounds(&u->box); return 0; } 
-	if (u->type==SomeDataUndo::SDUNDO_Transform) { set(u->m); return 0; }
-
-	 //else apply transform
-	Multiply(u->m); // *** needs testing
+	if (u->type == SomeDataUndo::SDUNDO_Bounds)    { setbounds(&u->box); } 
+	else if (u->type == SomeDataUndo::SDUNDO_Transform) { set(u->m); }
+	else set(u->m);
+	
 	touchContents();
 	return 0;
 }
