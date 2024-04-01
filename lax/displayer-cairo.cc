@@ -720,8 +720,9 @@ void DisplayerCairo::FillAttributes(int fillstyle, int fillrule)
 {
 	if (!cr) return;
 
-	if (fillrule==LAXFILL_Nonzero) cairo_set_fill_rule(cr, CAIRO_FILL_RULE_WINDING);
+	if (fillrule == LAXFILL_Nonzero) cairo_set_fill_rule(cr, CAIRO_FILL_RULE_WINDING);
 	else cairo_set_fill_rule(cr, CAIRO_FILL_RULE_EVEN_ODD);
+	// *** what about fillstyle?? solid/pattern/none FINISH ME!!
 }
 
 /*! If num is 0, turn of dashes. If num is 1, use on/off same length.
