@@ -24,7 +24,7 @@
 
 #include <cstdio>
 
-#include <lax/anobject.h>
+#include <lax/resources.h>
 #include <lax/dump.h>
 #include <lax/colors.h>
 #include <lax/laxutils.h>
@@ -44,25 +44,26 @@ enum LineStyleMask {
 	LINESTYLE_MAX
 };
 
-class LineStyle : virtual public Laxkit::anObject, virtual public Laxkit::DumpUtility
+class LineStyle : virtual public Laxkit::Resourceable, virtual public Laxkit::DumpUtility
 {
   public:
   	double width;
-	int widthtype;
-	int capstyle, endcapstyle;
-	int joinstyle;
-	double miterlimit;
-	int dotdash;
-	int function;
+	int widthtype;     //!< 0 for screen width, 1 for real width
+	int capstyle;      //!< see LaxCapStyle
+	int endcapstyle;   //!< see LaxCapStyle
+	int joinstyle;     //!< see LaxJoinStyle
+	double miterlimit; //!< `miterlimit*width` is actual miter limit
+	int function;      //!< see LaxCompositeOp
 
+	int dotdash;
 	double *dashes;
 	double dash_offset;
 	int numdashes;
 
-	Laxkit::Color *color2;
+	Laxkit::Color *color2; // if non-null, color should be derived from color2
 	Laxkit::ScreenColor color;
 
-	unsigned long mask;
+	unsigned long mask; //!< A custom mask used by some interfaces, but not used explicity by LineStyle.
 
 	// typedef LineStyle *(*NewLineStyleFunc)();
 	// static NewLineStyleFunc newLineStyle;

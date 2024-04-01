@@ -22,25 +22,23 @@
 #ifndef _LAX_FILLSTYLE_H
 #define _LAX_FILLSTYLE_H
 
-#include <X11/Xlib.h>
 #include <cstdio>
-#include <lax/anobject.h>
+#include <lax/resources.h>
 #include <lax/dump.h>
 #include <lax/colors.h>
 #include <lax/drawingdefs.h>
 
-#define FillNone 100
 
 namespace LaxInterfaces {
 
-class FillStyle : virtual public Laxkit::anObject, virtual public Laxkit::DumpUtility
+class FillStyle : virtual public Laxkit::Resourceable, virtual public Laxkit::DumpUtility
 {
   public:
 	Laxkit::Color *color2;
 	Laxkit::ScreenColor color;
-	int fillrule;
-	int fillstyle;
-	int function;
+	int fillrule;  //!< See LaxFillRule
+	int fillstyle; //!< See LaxFillStyle
+	int function;  //!< See LaxCompositeOp
 	unsigned long mask;
 
 	FillStyle();

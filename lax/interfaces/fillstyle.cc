@@ -36,8 +36,7 @@ namespace LaxInterfaces {
  * This is the color used during a solid fill
  *
  * fillrule: see LaxFillRule\n
- * fillstyle (from Xlib): FillSolid, FillTiled, FillStippled, or FillOpaqueStippled, plus
- * FillNone (\#define as 100)\n
+ * fillstyle: a LaxFillStyle, or LAXFILL_None\n
  * 
  * function is a LaxCompositeOp.
  */
@@ -51,7 +50,7 @@ FillStyle::FillStyle()
 	color2 = nullptr;
 
 	fillrule  = LAXFILL_EvenOdd;
-	fillstyle = FillSolid;
+	fillstyle = LAXFILL_Solid;
 
 	mask = 0;
 }
@@ -143,9 +142,9 @@ void FillStyle::dump_in_atts(Attribute *att,int flag,Laxkit::DumpContext *contex
 			else fillrule=WindingRule;
 
 		} else if (!strcmp(name,"fillstyle")) {
-			if (!strcmp(value,"none")) fillstyle=FillNone;
+			if (!strcmp(value,"none")) fillstyle = LAXFILL_None;
 			//else if (!strcmp(value,"object")) fillstyle=FillObject; //for patterned fills
-			else fillstyle=FillSolid;
+			else fillstyle = LAXFILL_Solid;
 
 		} else if (!strcmp(name,"function")) {
 			function = StringToLaxop(value);
@@ -161,18 +160,18 @@ Laxkit::Attribute *FillStyle::dump_out_atts(Laxkit::Attribute *att,int what, Lax
 	if (!att) att=new Attribute;
 
 	if (what==-1) {
-		att->push("color","rgbaf(1,1,1,1) #color of the fill");
-		att->push("fillrule","nonzero #or odd, or even");
-		att->push("fillstyle","solid  #or none");
-		att->push("function", "Over   #Blend mode. Common is None or Over");
+		att->push("color","rgbaf(1,1,1,1)", "color of the fill");
+		att->push("fillrule","nonzero", "or odd, or even");
+		att->push("fillstyle","solid", "or none");
+		att->push("function", "Over", "Blend mode. Common is None or Over");
 		return att;
 	}
 
 	char scratch[200];
 	sprintf(scratch, "rgbaf(%.10g, %.10g, %.10g, %.10g)", color.Red(),color.Green(),color.Blue(),color.Alpha());
 	att->push("color", scratch);
-	att->push("fillrule",fillrule==LAXFILL_EvenOdd?"even":(fillrule==LAXFILL_Nonzero?"nonzero":"odd"));
-	att->push("fillstyle",fillstyle==FillSolid?"solid":"none"); //or "object"
+	att->push("fillrule", fillrule == LAXFILL_EvenOdd ? "even" : (fillrule == LAXFILL_Nonzero?"nonzero":"odd"));
+	att->push("fillstyle",fillstyle== LAXFILL_Solid ? "solid" : "none"); //or "object"
 
 	if (LaxopToString(function, scratch, 200, NULL)==NULL) {
 		sprintf(scratch, "%d", function);
@@ -189,13 +188,13 @@ void FillStyle::dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *contex
 		fprintf(f,"%scolor rgbaf(1,1,1,1) #color of the fill\n",spc);
 		fprintf(f,"%sfillrule nonzero     #or odd, or even\n", spc);
 		fprintf(f,"%sfillstyle solid      #or none\n",spc);
-		fprintf(f,"%sfunction Over          #Blend mode. Common is None or Over\n", spc);
+		fprintf(f,"%sfunction Over        #Blend mode. Common is None or Over\n", spc);
 		return;
 	}
 
 	fprintf(f,"%scolor rgbf(%.10g, %.10g, %.10g, %.10g)\n",spc, color.Red(),color.Green(),color.Blue(),color.Alpha());
-	fprintf(f,"%sfillrule %s\n", spc,fillrule==LAXFILL_EvenOdd?"even":(fillrule==LAXFILL_Nonzero?"nonzero":"odd"));
-	fprintf(f,"%sfillstyle %s\n",spc,fillstyle==FillSolid?"solid":"none"); //or "object"
+	fprintf(f,"%sfillrule %s\n", spc, fillrule == LAXFILL_EvenOdd?"even":(fillrule==LAXFILL_Nonzero?"nonzero":"odd"));
+	fprintf(f,"%sfillstyle %s\n",spc, fillstyle == LAXFILL_Solid ? "solid" : "none"); //or "object"
 
 	char op[50];
 	if (LaxopToString(function, op, 50, NULL) == NULL) {
@@ -208,7 +207,7 @@ void FillStyle::dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *contex
 //! Return whether the style will cause any fill or not.
 int FillStyle::hasFill()
 {
-	return fillstyle == 0 || function == LAXOP_Dest || function == LAXOP_None || fillstyle == FillNone;
+	return !(function == LAXOP_Dest || function == LAXOP_None || fillstyle == LAXFILL_None);
 }
 
 /*! Returns old fill rule.

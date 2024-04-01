@@ -48,19 +48,19 @@ LineStyle::LineStyle()
 	mask = ~0;
 
 	width      = 0;
-	widthtype  = 1;//0 for screen width, 1 for real width
+	widthtype  = 1; //0 for screen width, 1 for real width
 	color.red  = color.green = 0;
 	color.blue = color.alpha = 0xffff;
 	color2     = NULL;
 
-	capstyle   = LAXCAP_Butt;
+	capstyle    = LAXCAP_Butt;
 	endcapstyle = 0; //0 means use capstyle? .. need better cap support, use engraver line quality??
 	//dash_start_caps=LAXCAP_Butt;
 	//dash_end_caps  =LAXCAP_Butt;
 
-	joinstyle = LAXJOIN_Miter; 
+	joinstyle  = LAXJOIN_Miter;
 	miterlimit = 100; //so this means 100*(line thickness)
-	function = LAXOP_Over;
+	function   = LAXOP_Over;
 
 	 //dashes todo:
 	 // on/off, dashes is list of lengths proportional to width of on and off
@@ -74,44 +74,44 @@ LineStyle::LineStyle()
 
 LineStyle::LineStyle(const LineStyle &l) 
 {
-	width     =l.width;
-	widthtype =l.widthtype;
-	color     =l.color;
-	color2    =l.color2 ? l.color2->duplicate() : NULL;  //if (color2) color2->inc_count();
-	capstyle  =l.capstyle;
-	joinstyle =l.joinstyle;
-	miterlimit=l.miterlimit;
-	function  =l.function;
+	width      = l.width;
+	widthtype  = l.widthtype;
+	color      = l.color;
+	color2     = l.color2 ? l.color2->duplicate() : nullptr;
+	capstyle   = l.capstyle;
+	joinstyle  = l.joinstyle;
+	miterlimit = l.miterlimit;
+	function   = l.function;
 
-	dotdash   =l.dotdash; 
-	numdashes =l.numdashes;
-	dash_offset=l.dash_offset;
+	dotdash     = l.dotdash;
+	numdashes   = l.numdashes;
+	dash_offset = l.dash_offset;
 	if (numdashes) {
-		dashes=new double[numdashes];
+		dashes = new double[numdashes];
 		memcpy(dashes,l.dashes, numdashes*sizeof(double));
-	} else dashes=NULL; 
+	} else dashes = nullptr;
 }
 
 LineStyle &LineStyle::operator=(LineStyle &l) 
 {
-	width     =l.width;
-	widthtype =l.widthtype;
-	color     =l.color;
+	width      = l.width;
+	widthtype  = l.widthtype;
+	color      = l.color;
 	if (color2) color2->dec_count();
-	color2    =l.color2 ? l.color2->duplicate() : NULL;  //if (color2) color2->inc_count();
-	capstyle  =l.capstyle;
-	joinstyle =l.joinstyle;
-	miterlimit=l.miterlimit;
-	dotdash   =l.dotdash;
-	function  =l.function;
+	color2     = l.color2 ? l.color2->duplicate() : nullptr;
+	capstyle   = l.capstyle;
+	joinstyle  = l.joinstyle;
+	miterlimit = l.miterlimit;
+	dotdash    = l.dotdash;
+	function   = l.function;
 
 	delete[] dashes;
-	numdashes =l.numdashes;
-	dash_offset=l.dash_offset;
+	numdashes   = l.numdashes;
+	dash_offset = l.dash_offset;
 	if (numdashes) {
-		dashes=new double[numdashes];
+		dashes = new double[numdashes];
 		memcpy(dashes,l.dashes, numdashes*sizeof(double));
-	} else dashes=NULL; 
+	} else dashes = nullptr;
 
 	return l;
 }

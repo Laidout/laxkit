@@ -78,7 +78,7 @@ enum LaxSpreadStyle
 
 enum LaxCapStyle
 {
-	LAXCAP_Butt=1,
+	LAXCAP_Butt = 1,
 	LAXCAP_Round,
 	LAXCAP_Peak,
 	LAXCAP_Square,
@@ -92,7 +92,7 @@ enum LaxCapStyle
 
 enum LaxJoinStyle
 {
-	LAXJOIN_Miter=1,
+	LAXJOIN_Miter = 1,
 	LAXJOIN_Round,
 	LAXJOIN_Bevel,
 	LAXJOIN_Extrapolate,
@@ -102,14 +102,14 @@ enum LaxJoinStyle
 
 enum LaxFillRule
 {
-	LAXFILL_None=0,
-	LAXFILL_Nonzero,
+	LAXFILL_Nonzero = 1,
 	LAXFILL_EvenOdd,
 	LAXFILL_MAX
 };
 
 enum LaxFillStyle
 {
+	LAXFILL_None = 0,
 	LAXFILL_Solid = LAXFILL_MAX,
 	LAXFILL_Pattern,
 	LAXFILLSTYLE_MAX
