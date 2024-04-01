@@ -151,6 +151,8 @@ class Displayer : public PanUser, virtual public anObject
 	virtual flatpoint realtoscreen(double x,double y) = 0;
 	virtual flatpoint screentoreal(int x,int y) = 0;
 	virtual flatpoint screentoreal(flatpoint p) = 0;
+	virtual flatpoint screentorealv(flatvector v);
+	virtual flatpoint realtoscreenv(flatvector v);
 
 	virtual int Clip(flatpoint *p, int n, int append) = 0;//install a clip mask from a polyline (line is automatically closed)
 	virtual int Clip(bool append) = 0;//install a clip mask from current path

@@ -245,7 +245,7 @@ Displayer::~Displayer()
 /*! \fn void Displayer::FillAttributes(int fillstyle, int fillrule)
  *
  * fillrule can be one of LaxFillRule.
- * fillstyle can be FillSolid, FillTiled, FillStippled, or FillOpaqueStippled.
+ * fillstyle can be one of LaxFillStyle.
  */
 
 /*! Shortcut for simple on/off dashes of specified length as multiple of current line width. 0 means don't do dashes.
@@ -443,6 +443,21 @@ flatpoint Displayer::screentoreal(flatpoint p)
 	const double *ictm=Getictm();
 	return flatpoint(ictm[4] + ictm[0]*p.x + ictm[2]*p.y, ictm[5]+ictm[1]*p.x+ictm[3]*p.y); 
 }
+
+/*! Convert screen vector v to a real vector, so v is a direction only, not a position.
+ */
+flatpoint Displayer::screentorealv(flatvector v)
+{
+	return transform_vector(Getictm(), v);
+}
+
+/*! Convert real vector v to a screen vector, so v is a direction only, not a position.
+ */
+flatpoint Displayer::realtoscreenv(flatvector v)
+{
+	return transform_vector(Getctm(), v);
+}
+
 
 /*! \fn void Displayer::ClearWindow()
  * \brief Clear the window to bgcolor between Min* and Max*. 
@@ -1514,7 +1529,11 @@ void Displayer::PushAndNewTransform(const double *m)
 void Displayer::PushAndNewAxes(flatpoint p,flatpoint x,flatpoint y)
 {
 	PushAxes();
-	NewAxis(p,x,y);
+	double tctm[6], m[6];
+	transform_from_basis(m, p,x,y);
+	transform_mult(tctm, m, Getctm());
+	NewTransform(tctm);
+	//NewAxis(p,x,y);
 }
 
 /*! \fn void Displayer::PushAxes()
