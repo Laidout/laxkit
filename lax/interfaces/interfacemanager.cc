@@ -241,7 +241,10 @@ int InterfaceManager::DrawData(Displayer *dp,SomeData *data,anObject *a1,anObjec
 	return status;
 }
 
-/*! Return -1 for unknown data type, or 0 for drawn.
+/*! Draw random data by finding an interface that can draw it, then draw it WITHOUT
+ * first pushing its transform to the Displayer current transfrom stack.
+ * 
+ * Return -1 for unknown data type, or 0 for drawn.
  */
 int InterfaceManager::DrawDataStraight(Laxkit::Displayer *dp,LaxInterfaces::SomeData *data,
 							Laxkit::anObject *a1,Laxkit::anObject *a2,unsigned int info)

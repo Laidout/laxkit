@@ -694,8 +694,8 @@ void DisplayerXlib::LineAttributes(double width,int dash,int cap,int join)
 	XSetLineAttributes(GetDpy(),GetGC(), (int)width,dash,cap,join);
 }
 
-/*! fillrule can be EvenOddRule or WindingRule.
- * fillstyle can be FillSolid, FillTiled, FillStippled, or FillOpaqueStippled.
+/*! fillrule can be one of LaxFillRule.
+ * fillstyle can be one of LaxFillStyle.
  */
 void DisplayerXlib::FillAttributes(int fillstyle, int fillrule)
 {
