@@ -181,6 +181,8 @@ TreeSelector::TreeSelector(anXWindow *parnt,const char *nname,const char *ntitle
 
 void TreeSelector::base_init()
 {
+	InstallColors(THEME_Panel);
+
 	mousedragmode = 0;
 	column_gap    = -1;
 	pad           = -1;
@@ -195,7 +197,7 @@ void TreeSelector::base_init()
 	curmenuitem  = NULL;
 	timerid      = 0;
 	senddetail   = -1;
-	leading      = 0;
+	leading      = 1;
 	menustyle    = 0;
 	needtobuildcache = 1;
 	iwidth       = 10;
@@ -212,8 +214,6 @@ void TreeSelector::base_init()
 	sort_detail  = -1;
 	sort_descending = 0;
 	sort_dirs_first = false;
-
-	InstallColors(THEME_Panel);
 
 	menu = NULL;
 }
@@ -601,7 +601,7 @@ int TreeSelector::init()
 	RemapColumns();
 
 	padg = textheight/2;
-	if (pad < 0) pad = textheight/2;
+	if (pad < 0) pad = textheight * .3;
 	pagesize = inrect.height*.75;
 	arrangeItems();
 	return 0;
@@ -850,7 +850,9 @@ int TreeSelector::findmaxwidth(int s,int e, int *h_ret)
 	double scale = UIScale();
 	MenuItem *mitem;
 
-	if (pad < 0) pad = textheight * .2;
+	if (textheight <= 0) textheight = UIScale() * win_themestyle->normal->textheight();
+	if (pad < 0)  pad  = textheight * .3;
+	if (padg < 0) padg = textheight * .2;
 
 	for (int c = s; c <= e; c++) {
 		mitem = item(c);
@@ -887,7 +889,7 @@ int TreeSelector::findColumnWidth(int which)
 	double scale = UIScale();
 	MenuItem *mitem;
 
-	if (pad < 0) pad = textheight * .2;
+	if (pad < 0) pad = textheight * .3;
 
 	if (columns.e[which]->title) w = 2*pad + scale * win_themestyle->normal->Extent(columns.e[which]->title,-1);
 
@@ -1092,7 +1094,7 @@ void TreeSelector::Refresh()
 	//if (needtobuildcache) RebuildCache();
 	if (needtobuildcache) arrangeItems();
 
-	if (pad < 0) pad = textheight * .2;
+	if (pad < 0) pad = textheight * .3;
 	if (column_gap < 0) column_gap = textheight * .2;
 	double scale = UIScale();
 
@@ -2520,7 +2522,7 @@ void TreeSelector::SetLineHeight(int ntotalheight,int newleading, char forcearra
 void TreeSelector::findoutrect()
 {
 	outrect.x = outrect.y = 0;
-	if (pad < 0) pad = textheight * .2;
+	if (pad < 0) pad = textheight * .3;
 
 	if (menustyle&TREESEL_USE_TITLE && menu->title) outrect.y += textheight+pad; //one line for title
 	if (columns.n)  outrect.y += textheight+pad; //one line for column heads
@@ -2538,7 +2540,7 @@ void TreeSelector::findoutrect()
  */
 void TreeSelector::adjustinrect()
 {
-	if (pad < 0) pad = textheight * .2;
+	if (pad < 0) pad = textheight * .3;
 	inrect.x      +=   pad;
 	inrect.width  -= 2*pad;
 	inrect.y      +=   pad;
@@ -2612,7 +2614,7 @@ int TreeSelector::WrapToPosition(int screen_x, int screen_y, int screen, anXWind
 	screen_height= scr->height;
 
 	if (textheight <= 0) textheight = UIScale() * win_themestyle->normal->textheight();
-	if (pad < 0) pad = textheight * .2;
+	if (pad < 0) pad = textheight * .3;
 
 	 // -----find extent: ew,eh *** this only finds the text extent
 	if (leading == 0) {

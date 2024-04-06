@@ -48,28 +48,29 @@ NumSlider::NumSlider(anXWindow *parnt,const char *nname,const char *ntitle,unsig
 		anXWindow *prev,unsigned long nowner,const char *nsendthis,const char *nlabel,int nmin,int nmax,int cur)
 	: ItemSlider(parnt,nname,ntitle,nstyle,xx,yy,ww,hh,brder,prev,nowner,nsendthis)
 {
-	mode=0;
-	nitems=0;
+	mode = MODE_Normal;
+    nitems = 0;
 
-	min=nmin;
-	max=nmax;
-	step=1;
+    min  = nmin;
+    max  = nmax;
+    step = 1;
 
-	curnum=cur;
-	if (!(win_style&NO_MINIMUM) && curnum<min) curnum=min;
-	else if (!(win_style&NO_MAXIMUM) && curnum>max) curnum=max;
+    curnum = cur;
+    if      (!(win_style & NO_MINIMUM) && curnum < min) curnum = min;
+    else if (!(win_style & NO_MAXIMUM) && curnum > max) curnum = max;
 
-	curitem=curnum;
+    curitem = curnum;
 
-	lastitem=-1;
-	movewidth=2;
-	label=NULL;
-	labelbase=NULL;
-	makestr(label,nlabel);
+    lastitem  = -1;
+    movewidth = 2;
+    label     = NULL;
+    labelbase = NULL;
+    makestr(label, nlabel);
 
-	InstallColors(THEME_Panel);
+    InstallColors(THEME_Panel);
 
-	if (win_w==0 || win_h==0) WrapToExtent();
+    if (win_w == 0 || win_h == 0)
+      WrapToExtent();
 }
 
 NumSlider::NumSlider(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
@@ -77,7 +78,7 @@ NumSlider::NumSlider(anXWindow *parnt,const char *nname,const char *ntitle,unsig
 		anXWindow *prev,unsigned long nowner,const char *nsendthis,const char *nlabel,double nmin,double nmax,double cur, double nstep)
 	: ItemSlider(parnt,nname,ntitle,nstyle,xx,yy,ww,hh,brder,prev,nowner,nsendthis)
 {
-	mode   = 0;
+	mode   = MODE_Normal;
 	nitems = 0;
 
 	win_style |= DOUBLES;
@@ -268,35 +269,34 @@ int NumSlider::Select(double nn)
  */
 int NumSlider::Mode(int newmode)
 {
-	if (newmode==1 && mode!=1) {
-		 //edit current number
+	if (newmode == MODE_Editing && mode != MODE_Editing) {
+		// edit current number
 		char num[30];
-		if ((win_style&DOUBLES)) sprintf(num,"%.8g",curnum);
-		else sprintf(num,"%d",(int)curnum);
+		if (win_style & DOUBLES) sprintf(num,"%.8g", curnum);
+		else sprintf(num, "%d", (int)curnum);
 
-		double th = win_themestyle->normal->textheight();
+		double th = UIScale() * win_themestyle->normal->textheight();
 
-		LineEdit *le = new LineEdit(this,"inputedit",NULL,
+		LineEdit *le = new LineEdit(this, "inputedit", nullptr,
 			 ANXWIN_OUT_CLICK_DESTROYS|LINEEDIT_DESTROY_ON_ENTER|((win_style&DOUBLES) ? LINEEDIT_FLOAT : LINEEDIT_INT),
-			 th,0, win_w-4-2*th, win_h-4, 2,
-			 NULL,object_id,"lineedit",
+			 th/2,0, win_w - th, win_h - th*.15, 2,
+			 nullptr,object_id,"lineedit",
 			 num,0);
 
 		le->SetSelection(0,-1);
-		le->padx=5;
+		le->padx = .2 * th;
 		app->addwindow(le);
-		if (!le->xlib_window) return 0;
-		app->setfocus(le,0,NULL);//***
+		app->setfocus(le, 0, nullptr);
 
-		return 1;
+		return MODE_Editing;
 
 	} else {
-		mode=0;
-		anXWindow *w=findChildWindowByName("inputedit");
+		mode = MODE_Normal;
+		anXWindow *w = findChildWindowByName("inputedit");
 		if (w) app->destroywindow(w);
 	}
 
-	needtodraw=1;
+	needtodraw = 1;
 	return mode;
 }
 
@@ -358,7 +358,7 @@ int NumSlider::CharInput(unsigned int ch, const char *buffer,int len,unsigned in
 	if (ch == LAX_Esc) {
 		anXWindow *inputedit = findChildWindowByName("inputedit");
 		if (inputedit) {
-			Mode(0);
+			Mode(MODE_Normal);
 			return 0;
 		}
 	}

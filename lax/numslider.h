@@ -30,7 +30,8 @@ namespace Laxkit {
 class NumSlider : public ItemSlider
 {
   protected:
-	int mode;
+  	enum Modes { MODE_Normal = 0, MODE_Editing = 1 };
+	Modes mode;
 	int lastitem;
 	char *labelbase;
 	char *label;

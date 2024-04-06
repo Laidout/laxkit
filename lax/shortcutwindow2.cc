@@ -918,7 +918,7 @@ int ShortcutWindow2::init()
 
 	rowframe->AddHSpacer(textheight);
 
-	last = but = new Button(this,"settings",nullptr,IBUT_FLAT, 0,0,1.3*textheight,1.3*textheight,0, last,object_id,"settings");
+	last = but = new Button(this,"settings",nullptr,IBUT_FLAT, 0,0,1.5*textheight,1.3*textheight,0, last,object_id,"settings");
 	but->tooltip(_("Keyboard settings"));
 	but->SetGraphic(THING_Wrench, textheight, textheight);
 	//but->icon_height = textheight;

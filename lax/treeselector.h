@@ -192,7 +192,8 @@ class TreeSelector : public ScrolledWindow
 	unsigned long highlight,shadow;
 	unsigned long long menustyle;
 	int column_gap;
-	int padg,pad,leading, iwidth;
+	int padg,pad,leading;
+	int iwidth; //tree arrow width
 	double iconwidth; //1.0 == textheight
 
 	TreeSelector(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
