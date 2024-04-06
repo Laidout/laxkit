@@ -460,6 +460,7 @@ class ThemeControls : public RowFrame
 	MenuButton *test_menubutton;
 	Button *test_button;
 	TreeSelector *test_treeselector;
+	NumSlider *test_numslider;
 
 	MessageBar *uiscalemessage;
 	MessageBar *status;
@@ -861,6 +862,13 @@ int ThemeControls::init()
 	AddWin(test_menubutton,1, -1);
 	testWindows.push(test_menubutton);
 
+	// 7
+	test_numslider = new NumSlider(rows,"UIScaleSlider", "UI Scale Slider",
+		NumSlider::DOUBLES | ItemSlider::EDITABLE | ItemSlider::SENDALL,
+		0,0,win_themestyle->normal->textheight()*6,0,0, last,object_id,nullptr, nullptr, 0, 100, 1);
+	test_numslider->SetFloatRange(0,100,.1);
+	AddWin(test_numslider,1, -1);
+	testWindows.push(test_numslider);
 
 	AddNull();
 	AddSpacer(10,0,100000,50, 20,0,0,50);
