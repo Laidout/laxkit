@@ -75,10 +75,6 @@
 #include <lax/laxutils.h>
 #include <lax/mouseshapes.h>
 
-//template implementations:
-#include <lax/lists.cc>
-#include <lax/refptrstack.cc>
-
 
 #include <iostream>
 using namespace std;

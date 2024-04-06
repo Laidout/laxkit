@@ -301,11 +301,12 @@ class anXWindow : virtual public EventReceiver,
 	virtual int Resize(int nw,int nh);
 
  public:
-	 //control related stuff
+	// control related stuff
 	unsigned long win_owner;
 	unsigned int  win_owner_send_mask;
 	char         *win_sendthis;
 
+	// drag-and-drop related stuff
 	virtual void  contentChanged(); //this sends a ContentChange message to owners
 	virtual void  selectionChanged(); //calling this sends a SelectionChange message to owners
 	virtual bool DndWillAcceptDrop(int x, int y, const char *action, IntRectangle &rect, char **types, int *type_ret, anXWindow **child_ret);

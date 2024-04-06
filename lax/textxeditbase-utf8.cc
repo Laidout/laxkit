@@ -25,12 +25,11 @@
 #include <lax/laxutils.h>
 #include <lax/strmanip.h>
 
-// DBG !!!!!
-//#include <lax/displayer-cairo.h>
 
 #include <iostream>
 using namespace std;
 #define DBG 
+
 
 namespace Laxkit {
 
