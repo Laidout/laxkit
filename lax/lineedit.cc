@@ -130,7 +130,7 @@ LineEdit::LineEdit(anXWindow *parnt,const char *nname,const char *ntitle,unsigne
 	oldsellen = 0;
 	curlineoffset = -padx * textheight;
 	dpos = 0;
-	mostpixwide = 10;
+	mostpixwide = 0;
 
 	valid = 1;
 
