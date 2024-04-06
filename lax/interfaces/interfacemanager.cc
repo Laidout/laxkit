@@ -25,8 +25,6 @@
 #include <lax/language.h>
 #include <lax/singletonkeeper.h>
 
-//template implementation:
-#include <lax/lists.cc>
 
 #include <iostream>
 using namespace std;
