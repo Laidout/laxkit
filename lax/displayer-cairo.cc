@@ -131,6 +131,7 @@ void DisplayerCairo::base_init()
 	on = 0;
 
 	cr = nullptr;
+	//cr_source = nullptr;
 	laxfont = nullptr;
 	curfont = nullptr;
 	curscaledfont = nullptr; // *** not currently used
@@ -149,6 +150,7 @@ void DisplayerCairo::base_init()
 
 	fgRed = fgGreen = fgBlue = fgAlpha = 1.0;
 	bgRed = bgGreen = bgBlue = 0; bgAlpha = 1;
+	current_alpha = -1; // 0..1 means paint source with this additional alpha. otherwise do nothing special on paint
 
 	transform_identity(ctm);
 	transform_identity(ictm);
@@ -157,16 +159,17 @@ void DisplayerCairo::base_init()
 //! Dec count on cr and surface if they are not null.
 DisplayerCairo::~DisplayerCairo()
 {
-	if (cr) cairo_destroy(cr);
+	if (cr)           cairo_destroy(cr);
+	//if (cr_source)    cairo_destroy(cr_source);
 
-	if (surface) cairo_surface_destroy(surface);
-	if (ref_surface) cairo_surface_destroy(ref_surface);
-	if (mask) cairo_surface_destroy(mask);
+	if (surface)      cairo_surface_destroy(surface);
+	if (ref_surface)  cairo_surface_destroy(ref_surface);
+	if (mask)         cairo_surface_destroy(mask);
 	if (mask_pattern) cairo_pattern_destroy(mask_pattern);
-	if (source) cairo_surface_destroy(source);
+	if (source)       cairo_surface_destroy(source);
 
-	if (laxfont) laxfont->dec_count();
-	if (curfont) cairo_font_face_destroy(curfont);
+	if (laxfont)       laxfont->dec_count();
+	if (curfont)       cairo_font_face_destroy(curfont);
 	if (curscaledfont) cairo_scaled_font_destroy(curscaledfont);
 
 	if (imagebuffer) imagebuffer->dec_count();
@@ -636,6 +639,34 @@ LaxCompositeOp DisplayerCairo::BlendMode(LaxCompositeOp mode)
 	return old;
 }
 
+ /*! Start operations that will be converted to a source on PopGroup().
+  */
+void DisplayerCairo::PushGroup()
+{
+	if (!cr) return;
+	cairo_push_group(cr);
+}
+
+/*! Stop operations since the last PushGroup(), and convert them to
+ * the current source. You might then set BlendMode() or setSourceAlpha()
+ * before a show() command to flush operations.//start operations that will be converted to a paint source on PopGroup()
+ */
+void DisplayerCairo::PopGroup()
+{
+	if (!cr) return;
+	cairo_pop_group_to_source(cr);
+}
+
+/*! sets current_alpha, which is used when users call show() If neither mask nor mask_pattern exists.
+ * Returns old value.
+ */
+double DisplayerCairo::setCurrentAlpha(double alpha)
+{
+	double old = current_alpha;
+	current_alpha = alpha;
+	return old;
+}
+
 double DisplayerCairo::setSourceAlpha(double alpha)
 {
 	if (mask) { cairo_surface_destroy(mask); mask=nullptr; }
@@ -858,6 +889,7 @@ void DisplayerCairo::show()
 	if (source) cairo_set_source_surface(cr, source, 0,0); //else assume source has been set with something like NewFG()
 	if (mask) cairo_mask_surface(cr,mask,0,0);
 	else if (mask_pattern) cairo_mask(cr,mask_pattern);
+	else if (current_alpha >= 0) cairo_paint_with_alpha(cr, current_alpha);
 	else cairo_paint(cr);
 }
 

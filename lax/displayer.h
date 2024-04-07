@@ -133,6 +133,7 @@ class Displayer : public PanUser, virtual public anObject
 	virtual void Dashes(double dashlength);
 	virtual LaxCompositeOp BlendMode(LaxCompositeOp mode) = 0;
 	virtual double setSourceAlpha(double alpha) = 0;
+	virtual double setCurrentAlpha(double alpha) = 0;
 
 	virtual bool Capability(DisplayerFeature what) = 0; //see DisplayerFeature
 	virtual int RenderTarget();
@@ -160,6 +161,9 @@ class Displayer : public PanUser, virtual public anObject
 	virtual void PopClip() = 0; //restore a previous mask
 	virtual void ClearClip() = 0; //remove any mask
 	virtual int activeMask() = 0; //return whether there is an active mask
+
+	virtual void PushGroup() = 0; //start operations that will be converted to a paint source on PopGroup()
+	virtual void PopGroup() = 0;
 
 	//path drawing and filling
 	virtual int DrawReal(); //any subsequent calls are using real coordinates

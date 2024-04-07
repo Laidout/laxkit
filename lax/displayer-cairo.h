@@ -53,9 +53,10 @@ class DisplayerCairo : public Displayer
 	LaxCompositeOp blendmode;
 	int isinternal;
 	cairo_t *cr;
+	//cairo_t *cr_source; // when drawing on something that will have to be composited
 	cairo_surface_t *target; //which of surface or source to draw to
-	cairo_surface_t *surface;
-	cairo_surface_t *ref_surface;
+	cairo_surface_t *surface; //usually a window or an image
+	cairo_surface_t *ref_surface; //used to test things instead messing up normal surface
 	cairo_surface_t *mask;
 	cairo_pattern_t *mask_pattern;
 	cairo_surface_t *source;
@@ -66,6 +67,7 @@ class DisplayerCairo : public Displayer
 
 	double fgRed, fgGreen, fgBlue, fgAlpha;
 	double bgRed, bgGreen, bgBlue, bgAlpha;
+	double current_alpha; //set via setCurrentAlpha()
 
 	LaxFontCairo *laxfont;
 	cairo_font_face_t *curfont;
@@ -126,7 +128,8 @@ class DisplayerCairo : public Displayer
 	virtual void FillAttributes(int fillstyle, int fillrule);
 	virtual void Dashes(double *dashes, int num, double offset);
 	virtual LaxCompositeOp BlendMode(LaxCompositeOp mode);
-	virtual double setSourceAlpha(double alpha);
+	virtual double setSourceAlpha(double alpha); //makes mask_pattern be black+alpha
+	virtual double setCurrentAlpha(double alpha); //sets current_alpha, used at show()
 	 //@}
 
 
@@ -145,6 +148,9 @@ class DisplayerCairo : public Displayer
 	virtual void PopClip(); //restore a previous mask
 	virtual void ClearClip(); //remove any mask
 	virtual int activeMask(); //return whether there is an active mask
+
+	virtual void PushGroup(); //start operations that will be converted to a paint source on PopGroup()
+	virtual void PopGroup();
 
 	 //path drawing and filling
 	virtual void DrawOnMask();
