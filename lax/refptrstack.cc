@@ -30,10 +30,6 @@
 #include <cstring>
 
 
-//template implementation:
-#include <lax/lists.cc>
-
-
 namespace Laxkit {
 
 //--------------------------------------------- RefPtrStack -----------------------------------

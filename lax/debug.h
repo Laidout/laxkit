@@ -67,7 +67,7 @@ class Debug
 #else
 #define DBG
 #define DBG_(x) x
-#define DBGL(x) cerr << x << std::endl;
+#define DBGL(x) std::cerr << x << std::endl;
 #define DBGM(x) Laxkit::Debug::LineHeader(__FILE__, __LINE__, 0); Laxkit::Debug::Stream() << x << std::endl;
 #define DBGW(x) Laxkit::Debug::LineHeader(__FILE__, __LINE__, 1); Laxkit::Debug::Stream() << x; Laxkit::Debug::NormalTag();
 #define DBGE(x) Laxkit::Debug::LineHeader(__FILE__, __LINE__, 2); Laxkit::Debug::Stream() << x; Laxkit::Debug::NormalTag();

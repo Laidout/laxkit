@@ -28,7 +28,6 @@
 #include <lax/interfaces/somedata.h>
 #include <lax/interfaces/pathinterface.h>
 
-//using namespace std;
 
 namespace LaxInterfaces {
 

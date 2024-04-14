@@ -26,9 +26,6 @@
 #include <lax/anobject.h>
 #include <lax/vectors.h>
 
-#include <iostream>
-using namespace std;
-
 
 namespace LaxInterfaces {
 

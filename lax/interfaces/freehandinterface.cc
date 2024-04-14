@@ -434,7 +434,7 @@ int FreehandInterface::findLine(int id)
 //! Start a new freehand line.
 int FreehandInterface::LBDown(int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d) 
 {
-	DBG cerr <<"freehandlbd:"<<x<<','<<y<<"..";
+	DBG std::cerr <<"freehandlbd:"<<x<<','<<y<<"..";
 	buttondown.down(d->id,LEFTBUTTON,x,y);
 
 	if (mode == MODE_BrushSize) {
@@ -447,14 +447,14 @@ int FreehandInterface::LBDown(int x,int y,unsigned int state,int count, const La
 		deviceids.remove(i);
 	}
 
-	DBG cerr <<"../freehand Lbd\n";
+	DBG std::cerr <<"../freehand Lbd\n";
 	return 0;
 }
 
 //! Finish a new freehand line by calling newData with it.
 int FreehandInterface::LBUp(int x,int y,unsigned int state, const Laxkit::LaxMouse *d) 
 {
-	DBG cerr <<"  freehandLbup..";
+	//DBGM("  freehandLbup..");
 
 	if (!buttondown.isdown(d->id,LEFTBUTTON)) return 1;
 	int dragged=buttondown.up(d->id,LEFTBUTTON);
@@ -475,7 +475,7 @@ int FreehandInterface::LBUp(int x,int y,unsigned int state, const Laxkit::LaxMou
 	// else MODE_Normal
 	int i=findLine(d->id);
 	if (i>=0) {
-		DBG cerr <<"  *** FreehandInterface should check for closed path???"<<endl;
+		DBG std::cerr <<"  *** FreehandInterface should check for closed path???"<<std::endl;
 
 		if (dragged && lines.e[i]->n>1) {
 			if (ignore_clock_t) {

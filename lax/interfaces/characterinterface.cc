@@ -165,7 +165,7 @@ void CharacterInterface::SetupChars()
 	FT_Face ft_face = nullptr;
 	FT_Error ft_error = FT_New_Face(*ft_library, font->FontFile(), 0, &ft_face);
 	if (ft_error) { 
-		DBGE(" ERROR loading "<<(font->FontFile()?font->FontFile():"(no font file!!)")<<" with FT_New_Face"<<endl);
+		DBGE(" ERROR loading "<<(font->FontFile()?font->FontFile():"(no font file!!)")<<" with FT_New_Face");
 		return;
 	}
 
@@ -488,10 +488,8 @@ int CharacterInterface::scan(int x, int y, unsigned int state, int *category)
 		iy = (y-recentbox.miny)/boxwidth;
 		if (iy >= settings->recent.n) iy = -1;
 		*category = INSCHAR_Recent;
-		cerr << "recent: "<<iy;
 
 		return iy; // recent box is single column
-		//return iy*(recentbox.maxx-recentbox.miny)/boxwidth + ix;
 	}
 
 	if (suggestionbox.boxcontains(x,y)) {

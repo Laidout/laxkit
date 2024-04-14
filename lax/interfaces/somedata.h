@@ -38,11 +38,6 @@
 #include <cstdio>
 #include <ctime>
 
-#ifndef NULL
-#define NULL 0
-#endif
-
-using namespace std;
 
 namespace LaxInterfaces {
 
@@ -135,7 +130,7 @@ class SomeData :  virtual public Laxkit::Resourceable,
 	virtual SomeData *duplicate(SomeData *dup);
 	virtual int pointin(Laxkit::flatpoint pp,int pin=1); // return in=1 | on=2 | out=0, default is pointin bbox
 	virtual int fitto(double *boxm,DoubleBBox *box,double alignx,double aligny, int whentoscale=2);
-	virtual SomeData *GetParent() { return NULL; }
+	virtual SomeData *GetParent() { return nullptr; }
 	virtual SomeData *SetParent(SomeData *newparent);
 	virtual SomeData *FindCommonParent(SomeData *other);
 	virtual int IsChildOf(SomeData *obj);

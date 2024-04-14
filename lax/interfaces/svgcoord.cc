@@ -26,11 +26,9 @@
 #include <lax/strmanip.h>
 #include <lax/bezutils.h>
 
+#include <lax/debug.h>
+
 #include <cstdlib>
-
-
-#define DBG
-#include <iostream>
 
 
 using namespace Laxkit;
@@ -611,7 +609,8 @@ Coordinate *SvgToCoordinate(const char *d, int how, char **endptr, int *totalpoi
 			continue;
 
 		} else if (isalpha(*p)) {
-			cerr << " *** must implement '"<<*p<<"' in SvgToCoordinate()!!"<<endl;
+			DBGE(" *** must implement '"<<*p<<"' in SvgToCoordinate()!!");
+
 			if (endptr) *endptr=const_cast<char *>(p);
 			break;
 
@@ -623,14 +622,14 @@ Coordinate *SvgToCoordinate(const char *d, int how, char **endptr, int *totalpoi
 	  } 
 	} catch (int e) {
 		 //was error
-		DBG cerr <<"svgtocoord() had error in parsing: "<<e<<endl;
+		//DBG cerr <<"svgtocoord() had error in parsing: "<<e<<endl;
 		if (points) { delete points; points=NULL; }
 		if (endptr) *endptr=const_cast<char *>(p);
 	}
 
-	DBG char *str=CoordinateToSvg(points);
-	DBG cerr <<"SvgToCoord \""<<d<<"\" --> \""<<(str?str:"???")<<"\""<<endl;
-	DBG delete[] str;
+	//DBG char *str=CoordinateToSvg(points);
+	//DBG cerr <<"SvgToCoord \""<<d<<"\" --> \""<<(str?str:"???")<<"\""<<endl;
+	//DBG delete[] str;
 
 	if (totalpoints) *totalpoints=numpoints;
 	return points;
@@ -693,7 +692,7 @@ char *CoordinateToSvg(Coordinate *points)
 			else c2=p->fp;
 			lasttype=2;
 		} else {
-			DBG cerr <<"*** unknown point flag in CoordinateToSvg(Coordinate*): "<<p->flags<<endl;
+			//DBGE("*** unknown point flag in CoordinateToSvg(Coordinate*): "<<p->flags);
 		}
 		p=p->next;
 	} while (p && p!=points);

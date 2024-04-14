@@ -30,11 +30,8 @@
 #define _LAX_LISTS_CC
 
 
+// only for memcpy:
 #include <cstring>
-
-
-#define DBG
-#include <iostream>
 
 
 namespace Laxkit {
@@ -506,7 +503,6 @@ template <class T>
 int PtrStack<T>::insertArrays(T **a,char *nl,int nn)
 {
 	flush();
-	//DBG std::cerr <<"PtrStack e is "<<(e ? "not null" : "null")<<std::endl;
 	e = a;
 	max = n = nn;
 	if (nl) islocal = nl;
@@ -633,7 +629,6 @@ int PtrStack<T>::push(T *ne,char local,int where) // local=-1, where=-1
 	if (n == 0) {
 		n = 1;
 		if (max == 0) {
-			//DBG std::cerr << "PtrStack::push, max==0 and e: "<<(e ? "NOT NULL" : "null")<<std::endl;
 			if (delta == 0) max = 1; else max = delta;
 			e = new T*[max]; //e and islocal should always have been null before here
 			islocal = new char[max];
@@ -658,7 +653,6 @@ int PtrStack<T>::push(T *ne,char local,int where) // local=-1, where=-1
 		templ[where] = local;
 		delete[] e; e = nullptr;
 		delete[] islocal; islocal = nullptr;
-		//DBG std::cerr <<"PtrStack e is "<<(e ? "not null" : "null")<<std::endl;
 		e = temp;
 		islocal = templ;
 	} else {
@@ -746,7 +740,6 @@ T *PtrStack<T>::pop(int which,int *local) // which==-1,local=nullptr
 			delete[] e; e = nullptr;
 			delete[] islocal; islocal = nullptr;
 
-			//DBG std::cerr <<"PtrStack e is "<<(e ? "not null" : "null")<<std::endl;
 			e = temp;
 			islocal = templ;
 		}
@@ -793,7 +786,6 @@ int PtrStack<T>::Allocate(int newmax)
 	T **newt = new T*[newmax];
 	if (n) memcpy(newt, e, n*sizeof(T*));
 	delete[] e; e = nullptr;
-	//DBG std::cerr <<"PtrStack e is "<<(e ? "not null" : "null")<<std::endl;
 	e = newt;
 
 	char *templ = new char[max];
