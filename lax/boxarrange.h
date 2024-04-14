@@ -23,11 +23,10 @@
 #define _LAX_BOXARRANGE_H
 
 
-#ifndef NULL
-#define NULL 0
-#endif
-
 #include <lax/refptrstack.h>
+
+
+namespace Laxkit {
 
 
 #define BOX_SHOULD_WRAP   100000
@@ -104,9 +103,6 @@
 #define BOX_HIDDEN             (1<<23)
 
 
-namespace Laxkit {
-
-
 enum SquishyBoxMetrics {
 	BOX_H_pos    = 0,
 	BOX_H_len    = 1,
@@ -131,16 +127,17 @@ enum SquishyBoxMetrics {
 class SquishyBox 
 {
   public:
-	int m[14]; // metrics: x,w,pw,ws,wg,halign,hgap, y,h,ph,hs,hg,valign,vgap
-	int pad; // the bevel would go around this box, and should be added to the width in width calculations.
-	int padinset; // additional pad inside a box. "pad" is outside the box
-	int fpen,lpen; //flow penalty, line penalty
+	double m[14]; // metrics: x,w,pw,ws,wg,halign,hgap, y,h,ph,hs,hg,valign,vgap
+	double pad; // the bevel would go around this box, and should be added to the width in width calculations.
+	double padinset; // additional pad inside a box. "pad" is outside the box
+	double fpen,lpen; //flow penalty, line penalty
 	unsigned long flags; // LAX_LRTB, BOX_CENTER, for instance <-- these refer to arrangement of children
+	double last_scale; // ui scale with which current values were computed
 
 	SquishyBox();
 	SquishyBox(unsigned int nflags,
-				int nx,int nw,int npw,int nws,int nwg,int nhalign,int nhgap, 
-				int ny,int nh,int nph,int nhs,int nhg,int nvalign,int nvgap);
+				double nx,double nw,double npw,double nws,double nwg,double nhalign,double nhgap,
+				double ny,double nh,double nph,double nhs,double nhg,double nvalign,double nvgap);
 	virtual ~SquishyBox() {}
 	
 	virtual int hideBox(int yeshide);
@@ -149,47 +146,49 @@ class SquishyBox
 	virtual int WrapToExtent();
 	virtual void sync(int xx,int yy,int ww,int hh);
 	virtual void sync();
+	virtual void UpdateScale(double new_scale);
 	
 	 //sizing functions
-	virtual void SetPreferred(int npw,int nws,int nwg,int nhalign,int nhgap, 
-							  int nph,int nhs,int nhg,int nvalign,int nvgap);
-	virtual int x()      { return m[BOX_H_pos   ]; }
-	virtual int w()      { return m[BOX_H_len   ]; }
-	virtual int pw()     { return m[BOX_H_pref  ]; }
-	virtual int ws()     { return m[BOX_H_shrink]; }
-	virtual int wg()     { return m[BOX_H_grow  ]; }
-	virtual int halign() { return m[BOX_H_align ]; }
-	virtual int hgap()   { return m[BOX_H_gap   ]; }
+	virtual void SetPreferred(double npw,double nws,double nwg,double nhalign,double nhgap, 
+							  double nph,double nhs,double nhg,double nvalign,double nvgap);
+	virtual double x()      { return m[BOX_H_pos   ]; }
+	virtual double w()      { return m[BOX_H_len   ]; }
+	virtual double pw()     { return m[BOX_H_pref  ]; }
+	virtual double ws()     { return m[BOX_H_shrink]; }
+	virtual double wg()     { return m[BOX_H_grow  ]; }
+	virtual double halign() { return m[BOX_H_align ]; }
+	virtual double hgap()   { return m[BOX_H_gap   ]; }
 
-	virtual int y()      { return m[BOX_V_pos   ]; }
-	virtual int h()      { return m[BOX_V_len   ]; }
-	virtual int ph()     { return m[BOX_V_pref  ]; }
-	virtual int hs()     { return m[BOX_V_shrink]; }
-	virtual int hg()     { return m[BOX_V_grow  ]; }
-	virtual int valign() { return m[BOX_V_align ]; }
-	virtual int vgap()   { return m[BOX_V_gap   ]; }
+	virtual double y()      { return m[BOX_V_pos   ]; }
+	virtual double h()      { return m[BOX_V_len   ]; }
+	virtual double ph()     { return m[BOX_V_pref  ]; }
+	virtual double hs()     { return m[BOX_V_shrink]; }
+	virtual double hg()     { return m[BOX_V_grow  ]; }
+	virtual double valign() { return m[BOX_V_align ]; }
+	virtual double vgap()   { return m[BOX_V_gap   ]; }
 
-	virtual int x(int val)      { return m[BOX_H_pos   ]=val; } 
-	virtual int w(int val)      { return m[BOX_H_len   ]=val; }
-	virtual int pw(int val)     { return m[BOX_H_pref  ]=val; }
-	virtual int ws(int val)     { return m[BOX_H_shrink]=val; }
-	virtual int wg(int val)     { return m[BOX_H_grow  ]=val; }
-	virtual int halign(int val) { return m[BOX_H_align ]=val; }
-	virtual int hgap(int val)   { return m[BOX_H_gap   ]=val; }
+	virtual double x(int val)      { return m[BOX_H_pos   ]=val; } 
+	virtual double w(int val)      { return m[BOX_H_len   ]=val; }
+	virtual double pw(int val)     { return m[BOX_H_pref  ]=val; }
+	virtual double ws(int val)     { return m[BOX_H_shrink]=val; }
+	virtual double wg(int val)     { return m[BOX_H_grow  ]=val; }
+	virtual double halign(int val) { return m[BOX_H_align ]=val; } //usually in [0..100]
+	virtual double hgap(int val)   { return m[BOX_H_gap   ]=val; }
 
-	virtual int y(int val)      { return m[BOX_V_pos   ]=val; }
-	virtual int h(int val)      { return m[BOX_V_len   ]=val; }
-	virtual int ph(int val)     { return m[BOX_V_pref  ]=val; }
-	virtual int hs(int val)     { return m[BOX_V_shrink]=val; }
-	virtual int hg(int val)     { return m[BOX_V_grow  ]=val; }
-	virtual int valign(int val) { return m[BOX_V_align ]=val; }
-	virtual int vgap(int val)   { return m[BOX_V_gap   ]=val; }
+	virtual double y(int val)      { return m[BOX_V_pos   ]=val; }
+	virtual double h(int val)      { return m[BOX_V_len   ]=val; }
+	virtual double ph(int val)     { return m[BOX_V_pref  ]=val; }
+	virtual double hs(int val)     { return m[BOX_V_shrink]=val; }
+	virtual double hg(int val)     { return m[BOX_V_grow  ]=val; }
+	virtual double valign(int val) { return m[BOX_V_align ]=val; }
+	virtual double vgap(int val)   { return m[BOX_V_gap   ]=val; }
 
-	virtual int fpenalty() { return fpen; } //0=nothing, <0 force break, >0 never break
-	virtual int fpenalty(int val) { return fpen=val; }
-	virtual int lpenalty() { return lpen; }
-	virtual int lpenalty(int val) { return lpen=val; }
+	virtual double fpenalty() { return fpen; } //0=nothing, <0 force break, >0 never break
+	virtual double fpenalty(int val) { return fpen=val; }
+	virtual double lpenalty() { return lpen; }
+	virtual double lpenalty(int val) { return lpen=val; }
 };
+
 
 //----------------------------- ListBox ------------------------------
 class ListBox : public SquishyBox
@@ -199,23 +198,25 @@ class ListBox : public SquishyBox
 	
 	ListBox(unsigned int flag=0);//BOX_VERTICAL or BOX_HORIZONTAL
 	ListBox(unsigned int nflags,
-			int nx,int nw,int npw,int nws,int nwg,int nhalign,int nhgap, 
-			int ny,int nh,int nph,int nhs,int nhg,int nvalign,int nvgap);
+			double nx,double nw,double npw,double nws,double nwg,double nhalign,double nhgap, 
+			double ny,double nh,double nph,double nhs,double nhg,double nvalign,double nvgap);
 
 	 //list management functions
 	virtual void Push(SquishyBox *box,char islocal=0,int where=-1);
-	virtual void AddSpacer(int npw,int nws,int nwg,int nhalign, int where=-1);
+	virtual void AddSpacer(double npw,double nws,double nwg,double nhalign, int where=-1);
 	virtual int Pop(int which=-1);
-	virtual void Flush(); 
+	virtual void Flush();
 
 	 //syncing and distributing
+	virtual void UpdateScale(double new_scale);
 	virtual int WrapToExtent();
 	virtual void sync();
 	virtual int arrangeBoxes(int distributetoo=0);
 	virtual int distributeBoxes(int setmetrics=0);
-	virtual int figureDimensions(ListBox *target,int *nextrow=NULL,SquishyBox **boxes=NULL, int n=0,
-								double *squishx=NULL,double *squishy=NULL); 
+	virtual int figureDimensions(ListBox *target,int *nextrow = nullptr,SquishyBox **boxes = nullptr, int n = 0,
+								double *squishx = nullptr, double *squishy = nullptr); 
 };
+
 
 //----------------------------- RowColBox ------------------------------
 
@@ -223,7 +224,7 @@ class RowColBox : public ListBox
 {
   protected:
 	RefPtrStack<SquishyBox> wholelist; // the master list of boxes
-	int arrangedstate;
+	int arrangedstate; // 0 for list needs updating, 1 for no need to recompute
 	virtual ListBox *newSubBox();
 	virtual void filterflags();
 
@@ -231,19 +232,19 @@ class RowColBox : public ListBox
 	unsigned int elementflags;
 	RowColBox();
 	RowColBox(unsigned int nflags,
-			  int nx,int nw,int npw,int nws,int nwg,int nhalign,int nhgap, 
-			  int ny,int nh,int nph,int nhs,int nhg,int nvalign,int nvgap);
+			  double nx,double nw,double npw,double nws,double nwg,double nhalign,double nhgap, 
+			  double ny,double nh,double nph,double nhs,double nhg,double nvalign,double nvgap);
 	virtual void Push(SquishyBox *box,char islocal=0,int where=-1);
 	virtual int Pop(int which=-1);
 	virtual SquishyBox *GetBox(int which);
 	virtual int NumBoxes() { return wholelist.n; }
-	virtual void Flush(); 
+	virtual void Flush();
 	
+	virtual void UpdateScale(double new_scale);
 //	virtual int figureDimensions(); // finds and sets the pw,s,g, ph,s,g based on the children
 	virtual int arrangeBoxes(int distributetoo=0);
 	virtual int distributeBoxes(int setmetrics=0);
 };
-
 
 
 //-------------------------------------- TableLayout ------------------------

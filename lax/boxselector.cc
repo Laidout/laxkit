@@ -150,11 +150,12 @@ BoxSelector::BoxSelector(anXWindow *parnt,const char *nname,const char *ntitle,u
 {
 	InstallColors(THEME_Panel);
 
-	padinset=npad;
-	bevel=1;
-	padi=1;
-	curbox=-1;
-	hoverbox=-1;
+	debug    = false;  // draw X through each box
+	padinset = npad;
+	bevel    = 1;
+	padi     = 1;
+	curbox   = -1;
+	hoverbox = -1;
 
 	selection_style = SEL_Mixed;
 	if (win_style & BOXSEL_ONE_ONLY) selection_style = SEL_One_Only;
@@ -199,6 +200,12 @@ BoxSelector::BoxSelector(anXWindow *parnt,const char *nname,const char *ntitle,u
 
 BoxSelector::~BoxSelector()
 {
+}
+
+void BoxSelector::UIScaleChanged()
+{
+	anXWindow::UIScaleChanged();
+	UpdateScale(UIScale());
 }
 
 //! Wraps the window to the bounding box of the laid out boxes

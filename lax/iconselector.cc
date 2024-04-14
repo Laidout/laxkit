@@ -119,6 +119,8 @@ IconSelector::IconSelector(anXWindow *parnt,const char *nname,const char *ntitle
 	padg = npadg;
 	boxinset = nboxinset;
 	display_type = DTYPE_NORMAL;
+	default_boxw = -1;
+	default_boxh = -1;
 
 	if (win_style&STRICON_STR_ICON) labelstyle=LAX_TEXT_ICON;
 	else labelstyle=LAX_ICON_TEXT;
@@ -166,15 +168,38 @@ void IconSelector::FillBox(IconBox *b,const char *nlabel,LaxImage *img,int nid)
 	tw *= UIScale();
 	th *= UIScale();
 
-	b->w (tw + iw);
-	b->pw(tw + iw);
-	b->h (th > ih ? th : ih);
-	b->ph(th > ih ? th : ih);
+	if (default_boxw > 0) {
+		b->w (default_boxw);
+		b->pw(default_boxw);
+	} else {
+		b->w (tw + iw);
+		b->pw(tw + iw);
+	}
+	if (default_boxh > 0) {
+		b->h (default_boxh);
+		b->ph(default_boxh);
+	} else {
+		b->h (th > ih ? th : ih);
+		b->ph(th > ih ? th : ih);
+	}
+	b->ws(b->w()/2);
+	//b->wg(b->w()/2);
+	b->hs(b->h()/2);
+	//b->hg(b->h()/2);
+
 	b->id = nid;
 
 	b->SetBox(nlabel, img, nullptr);
 
 	b->pad = bevel;
+}
+
+/*! Convenience function to add a label box with no icon and prevent
+ * compiler errors about ambiguous overloading.
+ */
+int IconSelector::AddBox(const char *nlabel, int nid)
+{
+	return AddBox(nlabel, (LaxImage*)nullptr, nid);
 }
 
 //! Just returns AddBox(NULL,load_image(filename),makebw).
@@ -243,6 +268,12 @@ void IconSelector::drawbox(int which)
 			dp->drawBevel(b->pad,highlight,shadow,b->state, b->x()-b->pad,b->y()-b->pad, b->w()+2*b->pad,b->h()+2*b->pad);
 	} else if (display_style == BOXES_Beveled) {
 		dp->drawBevel(b->pad,highlight,shadow,b->state, b->x()-b->pad,b->y()-b->pad, b->w()+2*b->pad,b->h()+2*b->pad);
+	}
+
+	if (debug) {
+		dp->NewFG(win_themestyle->fg);
+		dp->drawline(b->x(), b->y(), b->x()+b->w(), b->y()+b->h());
+		dp->drawline(b->x(), b->y()+b->h(), b->x()+b->w(), b->y());
 	}
 }
 

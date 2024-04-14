@@ -176,6 +176,14 @@ RowFrame::RowFrame(anXWindow *parnt,const char *nname,const char *ntitle,unsigne
 RowFrame::~RowFrame()
 {}
 
+
+void RowFrame::UIScaleChanged()
+{
+	anXWindow::UIScaleChanged();
+	UpdateScale(UIScale());
+}
+
+
 //! Default RowFrame init only calls Sync(1).
 /*! Normally, derived classes would redefine init to include their child windows,
  * and it's just easier to call Sync(1) from there. RowFrame::init will always only
@@ -183,6 +191,7 @@ RowFrame::~RowFrame()
  */
 int RowFrame::init()
 {
+	last_scale = UIScale();
 	Sync(1); // usually derived classes will call this explicitly in their own init
 	return 0;
 }
@@ -355,8 +364,8 @@ int RowFrame::AddNull(int where) //where=-1
 int RowFrame::AddWin(anXWindow *win,int absorbcount,int where)//where=-1
 {
 	if (!win) return AddNull(where);
-	if (win->win_parent!=this) app->reparent(win,this);
-	SquishyBox *s=dynamic_cast<SquishyBox *>(win);
+	if (win->win_parent != this) app->reparent(win,this);
+	SquishyBox *s = dynamic_cast<SquishyBox *>(win);
 	if (s) { 
 		Push(s,3,where);
 		if (absorbcount) win->dec_count();
@@ -408,13 +417,9 @@ int RowFrame::AddWin(anXWindow *win,      //!< The window to add
 					int where             //!< Where in wholelist to add the window
 					) 
 {
-	WinFrameBox *wf;
-//	WinFrameBox(anXWindow *nwin,
-//				int nx,int nw,int npw,int nws,int nwg,int nhalign,  
-//				int ny,int nh,int nph,int nhs,int nhg,int nvalign);
-	wf=new WinFrameBox(win, 0,npw,npw,nws,nwg,nhalign,nhgap, 0,nph,nph,nhs,nhg,nvalign,nvgap);
+	WinFrameBox *wf = new WinFrameBox(win, 0,npw,npw,nws,nwg,nhalign,nhgap, 0,nph,nph,nhs,nhg,nvalign,nvgap);
 	if (win) {
-		wf->pad=win->WindowBorder();
+		wf->pad = win->WindowBorder();
 		if (win->win_parent!=this) app->reparent(win,this);
 		if (absorbcount) win->dec_count();
 	}
@@ -437,11 +442,21 @@ int RowFrame::AddWin(anXWindow *win,      //!< The window to add
 int RowFrame::AddWin(WinFrameBox *box,char islocal,int where)//where=-1 
 { 
 	if (!box) return 1;
-	if (box->win() && box->win()->win_parent!=this) app->reparent(box->win(),this);
+	if (box->win() && box->win()->win_parent != this) app->reparent(box->win(),this);
 	Push(box,islocal,where);
 	return 0;
 }
-	
+
+
+void RowFrame::Push(SquishyBox *box, char islocal, int where)
+{
+	if (box) {
+		box->last_scale = UIScale();
+	}
+	RowColBox::Push(box, islocal, where);
+}
+
+
 /*! Pop a box.
  * Return a reference if popped!=NULL. The window is not destroyed in this case.
  * If popped==NULL, then destroy the window.

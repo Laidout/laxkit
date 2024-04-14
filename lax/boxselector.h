@@ -89,7 +89,8 @@ class BoxSelector : public anXWindow, public RowColBox
 
 	virtual void togglebox(int which,int db=1);
 
-  public:	
+  public:
+  	bool debug; //draw X through each box
 	unsigned long highlight,shadow;
 	int pad,padi,bevel;
 	enum DisplayStyle {
@@ -111,6 +112,7 @@ class BoxSelector : public anXWindow, public RowColBox
 						int nid=0,int npad=0, int box_style=BOXES_Flat);
 	virtual ~BoxSelector();
 	virtual const char *whattype() { return "BoxSelector"; }
+	virtual void UIScaleChanged();
 	virtual void sync();
 	virtual int init();
 	virtual int Event(const EventData *e,const char *mes);

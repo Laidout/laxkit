@@ -61,8 +61,12 @@ class IconSelector : public BoxSelector
   	int display_type; //0 for normal rows or columns, 1 for vertical list with text
 
   public:
-	int padg,labelstyle;
-	int boxinset;
+	int labelstyle; //!< One of: LAX_TEXT_ONLY, LAX_ICON_ONLY, LAX_TEXT_ICON, LAX_ICON_TEXT
+	int padg;       //!< Pad between text and icon
+	int boxinset;   //!< pad inside each box
+	double default_boxw; //!< If -1, use extent of pads+icon+text, else use this absolute value.
+	double default_boxh; //!< If -1, use extent of pads+icon+text, else use this absolute value.
+
 	IconSelector(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
 						int xx,int yy,int ww,int hh,int brder,
 						anXWindow *prev,unsigned long nowner,const char *nsendmes,
@@ -71,8 +75,9 @@ class IconSelector : public BoxSelector
 	virtual void drawbox(int which);
 	virtual void FillBox(IconBox *b,const char *nlabel,LaxImage *img, int nid);
 	virtual void FillBox(IconBox *b,const char *nlabel,const char *filename, int nid);
-	virtual int AddBox(const char *nlabel,LaxImage *img,int nid);
-	virtual int AddBox(const char *nlabel,const char *filename,int nid);
+	virtual int AddBox(const char *nlabel, int nid);
+	virtual int AddBox(const char *nlabel, LaxImage *img, int nid);
+	virtual int AddBox(const char *nlabel, const char *filename, int nid);
 	virtual int send();
 	virtual int DisplayAsList(bool yes);
 	virtual int DisplayType() { return display_type; }

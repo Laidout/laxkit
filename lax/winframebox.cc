@@ -31,8 +31,7 @@ namespace Laxkit {
 /*! \class WinFrameBox
  * \brief Extends SquishyBox to store anXWindow for use in RowFrame, for instance.
  *
- * It is always assumed that nwin is reference counted, thus its count is increased when adding,
- * and decreased in the destructor.
+ * nwin's count is increased when adding, and decreased in WinFrameBox's destructor.
  */
 
 
@@ -42,9 +41,11 @@ WinFrameBox::WinFrameBox(anXWindow *nwin,
 			int ny,int nh,int nph,int nhs,int nhg,int nvalign,int nvgap)
 	: SquishyBox(0, nx,nw,npw,nws,nwg,nhalign,nhgap,  ny,nh,nph,nhs,nhg,nvalign,nvgap)
 {
-	//flags=0; ???that ok?
-	window=nwin;
-	if (window) window->inc_count();
+	window = nwin;
+	if (window) {
+		last_scale = window->UIScale();
+		window->inc_count();
+	}
 }
 
 /*! Dec count of window.
@@ -87,14 +88,12 @@ void WinFrameBox::sync()
 
 	if (!window) return;
 
-	 // some basic sanity checking, make windows smaller than 2000, clamps w,h, not pref w,h
+	// some basic sanity checking, clamps w,h, not pref w,h
 	if (w()>LAX_MAX_WINDOW_SIZE) w(LAX_MAX_WINDOW_SIZE);
 	else if (w()<0) w(0);
 	if (h()>LAX_MAX_WINDOW_SIZE) h(LAX_MAX_WINDOW_SIZE);
 	else if (h()<0) h(0);
 
-	//**** something messed up here: not doing border right*** not sub from width??
-	//is this still true?
 	window->MoveResize(x() - window->WindowBorder(), y()-window->WindowBorder(), w(),h());
 }
 

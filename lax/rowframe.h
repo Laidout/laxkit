@@ -70,8 +70,8 @@ namespace Laxkit {
 class RowFrame : public anXWindow, public RowColBox
 { 
  protected:
- public:	
-	unsigned long highlight,shadow,mobkcolor,bkcolor;
+ public:
+ 	unsigned long highlight,shadow,mobkcolor,bkcolor;
 	RowFrame(anXWindow *parnt = nullptr, unsigned long nstyle = ROWFRAME_ROWS, const char *name = nullptr);
 	RowFrame(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
 						int xx,int yy,int ww,int hh,int brder,
@@ -80,6 +80,7 @@ class RowFrame : public anXWindow, public RowColBox
 	virtual ~RowFrame();
 	virtual const char *whattype() { return "RowFrame"; }
 	virtual int init();
+	virtual void UIScaleChanged();
 	virtual int Sync(int add=0); // add=0, if 1 means addwindow
 	virtual void sync();
 	virtual void sync(int xx,int yy,int ww,int hh);
@@ -102,6 +103,7 @@ class RowFrame : public anXWindow, public RowColBox
 					int npw,int nws,int nwg,int nhalign,int nhgap,
 					int nph,int nhs,int nhg,int nvalign,int nvgap,
 					int where);
+	virtual void Push(SquishyBox *box, char islocal=0, int where=-1);
 	virtual int Pop(int which, anXWindow **popped);
 	virtual int Pop(int which=-1);
 	virtual void Refresh();

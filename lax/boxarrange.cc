@@ -29,11 +29,12 @@
 
 
 #include <lax/boxarrange.h>
-
+#include <lax/math.h>
 
 #include <iostream>
 using namespace std;
 #define DBG 
+
 
 
 // these defines are to make indexing the SquishyBox::m[] meaningful.
@@ -50,8 +51,6 @@ using namespace std;
 
 
 
-#include <iostream>
-using namespace std;
 
 
 namespace Laxkit {
@@ -228,41 +227,43 @@ namespace Laxkit {
  
 
 SquishyBox::SquishyBox()
-{ 
-	memset(m,0,14*sizeof(int));
-	m[align]=m[vert+align]=50; // default is to center boxes
-	fpen=lpen=0;
-	flags=0;
-	pad=padinset=0;
+{
+	memset(m, 0, 14 * sizeof(double));
+	m[align] = m[vert + align] = 50;  // default is to center boxes
+	flags = 0;
+	fpen = lpen = 0;
+	pad = padinset = 0;
+	last_scale = 1.0;
 }
 
 //! SquishyBox Constructor.
 SquishyBox::SquishyBox(unsigned int nflags, //!< See above for BOX_* flags
-					int nx,         //!< New x position
-					int nw,         //!< New width
-					int npw,        //!< New preferred width
-					int nws,        //!< New horizontal shrink
-					int nwg,        //!< New horizontal grow
-					int nhalign,    //!< New horizontal align, 0=bottom/right, 100=top/left, 50=center, etc.
-					int nhgap,      //!< New horizontal gap, ignored at edges
-					int ny,         //!< New y position
-					int nh,         //!< New height
-					int nph,        //!< New preferred height
-					int nhs,        //!< New vertical shrink
-					int nhg,        //!< New vertical grow
-					int nvalign,    //!< New vertical align, 0=bottom/right, 100=top/left, 50=center, etc.
-					int nvgap      //!< New vertical gap, ignored at edges
+					double nx,         //!< New x position
+					double nw,         //!< New width
+					double npw,        //!< New preferred width
+					double nws,        //!< New horizontal shrink
+					double nwg,        //!< New horizontal grow
+					double nhalign,    //!< New horizontal align, 0=bottom/right, 100=top/left, 50=center, etc.
+					double nhgap,      //!< New horizontal gap, ignored at edges
+					double ny,         //!< New y position
+					double nh,         //!< New height
+					double nph,        //!< New preferred height
+					double nhs,        //!< New vertical shrink
+					double nhg,        //!< New vertical grow
+					double nvalign,    //!< New vertical align, 0=bottom/right, 100=top/left, 50=center, etc.
+					double nvgap      //!< New vertical gap, ignored at edges
 					)
 { 
 	m[0]=nx; m[1]=nw; m[2]=npw;  m[3]=nws;  m[4]=nwg;  m[5]=nhalign;  m[6]=nhgap;
 	m[7]=ny; m[8]=nh; m[9]=nph; m[10]=nhs; m[11]=nhg; m[12]=nvalign; m[13]=nvgap;
-	fpen=lpen=0;
-	flags=nflags;
-	pad=padinset=0;
+	flags = nflags;
+	fpen = lpen = 0;
+	pad = padinset = 0;
+	last_scale = 1.0;
 }
 
-void SquishyBox::SetPreferred(int npw,int nws,int nwg,int nhalign,int nhgap, 
-							  int nph,int nhs,int nhg,int nvalign,int nvgap)
+void SquishyBox::SetPreferred(double npw,double nws,double nwg,double nhalign,double nhgap, 
+							  double nph,double nhs,double nhg,double nvalign,double nvgap)
 {
 	m[BOX_H_pref  ] = npw;
 	m[BOX_H_shrink] = nws;
@@ -341,6 +342,40 @@ void SquishyBox::sync(int xx,int yy,int ww,int hh)
 void SquishyBox::sync()
 {}
 
+
+/*! This must be called when a ui scale changes. This function scales
+ * all the preferred values based on new_scale/last_scale.
+ * Specific x,y,w,h are not modified here. For that the user must re-sync.
+ *
+ * Subclasses must redefine to also UpdateScale() on any children.
+ */
+void SquishyBox::UpdateScale(double new_scale)
+{
+	if (new_scale == last_scale) return;
+
+	if (last_scale <= 0) {
+		cerr << " *** SquishyBox undefined last_scale! FIXME!!" << endl;
+		return;
+	}
+
+	double factor = new_scale / last_scale;
+
+	m[BOX_H_pref  ] *= factor;
+	m[BOX_H_shrink] *= factor;
+	m[BOX_H_grow  ] *= factor;
+	m[BOX_H_align ] *= factor;
+	m[BOX_H_gap   ] *= factor;
+
+	m[BOX_V_pref  ] *= factor;
+	m[BOX_V_shrink] *= factor;
+	m[BOX_V_grow  ] *= factor;
+	m[BOX_V_align ] *= factor;
+	m[BOX_V_gap   ] *= factor;
+
+	last_scale = new_scale;
+}
+
+
 //-------------------------------------- ListBox ----------------------------------------
 /*! \class ListBox
  * \ingroup boxarrangers
@@ -356,11 +391,20 @@ ListBox::ListBox(unsigned int flag)
 }
 
 ListBox::ListBox(unsigned int nflags,
-			int nx,int nw,int npw,int nws,int nwg,int nhalign,int nhgap, 
-			int ny,int nh,int nph,int nhs,int nhg,int nvalign,int nvgap)
+			double nx,double nw,double npw,double nws,double nwg,double nhalign,double nhgap, 
+			double ny,double nh,double nph,double nhs,double nhg,double nvalign,double nvgap)
   : SquishyBox(nflags,nx,nw,npw,nws,nwg,nhalign,nhgap,
 		              ny,nh,nph,nhs,nhg,nvalign,nvgap)
 {}
+
+void ListBox::UpdateScale(double new_scale)
+{
+	SquishyBox::UpdateScale(new_scale);
+
+	for (int c = 0; c < list.n; c++) {
+		if (list.e[c]) list.e[c]->UpdateScale(new_scale);
+	}
+}
 
 //! Remove item with index which from list.
 /*! Default is to pop the top of the stack.
@@ -379,7 +423,7 @@ void ListBox::Flush()
 }
 
 //! Push box onto list with islocal. Create list if it doesn't exist.
-/*! If box==NULL, then this is later on interpreted as a line break.
+/*! If box==nullptr, then this is later on interpreted as a line break.
  *
  * If islocal==0 then ListBox will not delete the box when Pop() is called.
  * If islocal==1, then do call delete on the box when popped.
@@ -391,11 +435,11 @@ void ListBox::Push(SquishyBox *box,char islocal,int where) // islocal=0,where=-1
 	list.push(box,islocal,where);
 }
 
-void ListBox::AddSpacer(int npw,int nws,int nwg,int nhalign, int where)
+void ListBox::AddSpacer(double npw,double nws,double nwg,double nhalign, int where)
 {
 	SquishyBox *box;
-	if (flags&BOX_VERTICAL) box=new SquishyBox(BOX_VERTICAL, 0,1,1,0,0,50,0, 0,npw,npw,nws,nwg,nhalign,0);
-	else box=new SquishyBox(BOX_VERTICAL, 0,npw,npw,nws,nwg,nhalign, 0,1,1,0,0,50,0, 0);
+	if (flags & BOX_VERTICAL) box = new SquishyBox(BOX_VERTICAL, 0,1,1,0,0,50,0, 0,npw,npw,nws,nwg,nhalign,0);
+	else box = new SquishyBox(BOX_VERTICAL, 0,npw,npw,nws,nwg,nhalign, 0,1,1,0,0,50,0, 0);
 
 	list.push(box,1,where);
 }
@@ -471,7 +515,7 @@ int ListBox::arrangeBoxes(int distributetoo) //distributetoo=0
  *  This would be done to wrap this box around the extents of its children, for instance.
  *  Otherwise, leave this->pw,s,g/ph,s,g alone, and the 
  *  metrics derived from the child boxes are computed but not 
- *  stored (figureDimensions(NULL,...,&squishx,&squishy)). 
+ *  stored (figureDimensions(nullptr,...,&squishx,&squishy)). 
  *  They are just used to determine the squish values.
  *  
  *  This function assumes that the children already have their pw,s,g/ph,s,g (but not
@@ -488,7 +532,7 @@ int ListBox::arrangeBoxes(int distributetoo) //distributetoo=0
  *  corner as the origin, rather than a parent's origin. Thus, SquishyBoxes that are
  *  also windows should have BOX_DONT_PROPAGATE_POS set.
  *
- *  If there is a NULL in list, then the distributing stops at that NULL.
+ *  If there is a nullptr in list, then the distributing stops at that nullptr.
  *
  *  Returns 0 success, 1 error.
  *
@@ -500,23 +544,23 @@ int ListBox::distributeBoxes(int setmetrics) //setmetrics=0
 	
 	
 	 // Find the squishx and squishy values.
-	double squishx,squishy;
+	double squishx, squishy;
 	 // Must find squish zones for the child boxes, NOT use the target or this->metrics, 
 	 // because those are likely to be unrelated!!
 	//int SquishyBox::figureDimensions(SquishyBox *target,int *nextrow,SquishyBox **boxes, int n,double *squishx,double *squishy) 
 		
 		// both of these calls to figureDimensions wraps to extent if this->m[1/7] are BOX_SHOULD_WRAP
 		// However, only the first one actually changes the preferred metrics.
-	if (setmetrics!=0) {
-		figureDimensions(this,NULL,NULL,0,&squishx,&squishy);
-	} else figureDimensions(NULL,NULL,NULL,0,&squishx,&squishy);
+	if (setmetrics != 0) {
+		figureDimensions(this,nullptr,nullptr,0,&squishx,&squishy);
+	} else figureDimensions(nullptr,nullptr,nullptr,0,&squishx,&squishy);
 	
 	 // clamp squish to [-1,1] because the extra pad is distributed in various ways other 
 	 // than simple stretch
-	if (squishx<-1) squishx=-1;
-	else if (squishx>1) squishx=1;
-	if (squishy<-1) squishy=-1;
-	else if (squishy>1) squishy=1;
+	if      (squishx < -1) squishx = -1;
+	else if (squishx > 1)  squishx =  1;
+	if      (squishy < -1) squishy = -1;
+	else if (squishy > 1)  squishy =  1;
 
 	
 	 // Set offset into the metrics array.
@@ -526,9 +570,10 @@ int ListBox::distributeBoxes(int setmetrics) //setmetrics=0
 	int row,col;
 	int docol,stretchrow,stretchcol; // stretch=0 normal, 1=stretch, 2=space
 	unsigned int centertype;
-	if (flags&BOX_VERTICAL) { // is vertical list
-		row=vert; col=0; 
-		centertype=((flags&BOX_VALIGN_MASK)>>BOX_VALIGN_SHIFT)<<BOX_HALIGN_SHIFT;
+
+	if (flags & BOX_VERTICAL) { // is vertical list
+		row = vert; col = 0; 
+		centertype = ((flags&BOX_VALIGN_MASK)>>BOX_VALIGN_SHIFT)<<BOX_HALIGN_SHIFT;
 		if (flags&BOX_STRETCH_TO_FILL_Y) stretchrow=1;
 		else if (flags&BOX_SPACE_TO_FILL_Y) stretchrow=2;
 		else stretchrow=0;
@@ -552,24 +597,24 @@ int ListBox::distributeBoxes(int setmetrics) //setmetrics=0
 	} 
 
 	
-	SquishyBox **boxes=list.e;
-	int rw=2*padinset; // the new calculated width of the boxes put next to each other.
+	SquishyBox **boxes = list.e;
+	double rw = 2*padinset; // the new calculated width of the boxes put next to each other.
 			  // do not include target pad here; that goes outside the box
 	
 	 //Now distribute the boxes by setting their x,y,w,h
 	 // First pass, apply the straight squishx, and set box->w, and also y,h (using squishy)
 	int c;
-	int n=list.n;
-	for (c=0; c<n; c++) {
-		if (!boxes[c]) break; // *** NULL is a forced line break, shouldn't really happen in list, but just in case
+	int n = list.n;
+	for (c = 0; c < n; c++) {
+		if (!boxes[c]) break; // *** nullptr is a forced line break, shouldn't really happen in list, but just in case
 		if (boxes[c]->hidden()) continue;
 
-		if (squishx>0 && boxes[c]->m[row+grow])  // must grow the box
-			boxes[c]->m[row+len] = (int)(boxes[c]->m[row+pref] + boxes[c]->m[row+grow]*squishx + .5);
-		else if (squishx<0 && boxes[c]->m[row+shrink])  // must shrink the box
-			boxes[c]->m[row+len]  = (int)(boxes[c]->m[row+pref] + boxes[c]->m[row+shrink]*squishx + .5);
+		if (squishx > 0 && !isNearZero(boxes[c]->m[row+grow]))  // must grow the box
+			boxes[c]->m[row+len] = (boxes[c]->m[row+pref] + boxes[c]->m[row+grow]*squishx);
+		else if (squishx<0 && !isNearZero(boxes[c]->m[row+shrink]))  // must shrink the box
+			boxes[c]->m[row+len]  = (boxes[c]->m[row+pref] + boxes[c]->m[row+shrink]*squishx);
 		else boxes[c]->m[row+len] = boxes[c]->m[row+pref]; // box is just right
-		rw+=boxes[c]->m[row+len] + 2*boxes[c]->pad; //*** what about a padi?
+		rw += boxes[c]->m[row+len] + 2*boxes[c]->pad; //*** what about a padi?
 
 		 // Must sync box y,h to the target
 		if (docol) { // assumes m[col+len] set
@@ -593,12 +638,12 @@ int ListBox::distributeBoxes(int setmetrics) //setmetrics=0
 								  		*(100-boxes[c]->m[col+align])/100;
 		}
 	}
-	int extra=m[row+len]-rw; //*** what happens when extra is negative????
+	double extra = m[row+len]-rw; //*** what happens when extra is negative????
 	//if (extra<0) extra=0; //***???
 
 	 //Final pass must set box->x, and if necessary reset box->w to include extra stretch.
 	 // find starting x point
-	int x; // x does not include padinset
+	double x; // x does not include padinset
 	if (stretchrow==1) x=0; //stretch
 	else if (stretchrow==2) { //space
 		if (centertype&BOX_HCENTER) x=extra/(n+1);
@@ -663,14 +708,14 @@ int ListBox::distributeBoxes(int setmetrics) //setmetrics=0
 	return 0;
 }
 
-//! Finds pw,s,g/ph,s,g based on the boxes in list.
+//! Finds pw,s,g/ph,s,g and squish factors based on the boxes in list.
 /*! 
  *  To wrap *this to the metrics found from the boxes, call with target=this.
  *  Note that this only overwrites pw,s,g/ph,s,g. It does NOT change actual w,h, UNLESS
  *  target->w or h is equal to BOX_SHOULD_WRAP or flags\&BOX_WRAP_TO_X_EXTENT (or Y_EXTENT), in 
  *  which case they are set to the computed preferred w and/or h.
  *  
- *  If squish(x or y) is not NULL, then it is set to the value that would convert the newly found
+ *  If squish(x or y) is not nullptr, then it is set to the value that would convert the newly found
  *  pw,s,g/ph,s,g to the actual w,h. Of course, this needs w,h to already be
  *  set to desired values. If they are not wrapped as above, then the calling code
  *  must have set these values. Please note that the newly found pw,s,g/ph,s,g do not necessarily
@@ -680,34 +725,34 @@ int ListBox::distributeBoxes(int setmetrics) //setmetrics=0
  *  The squish values computed are what is multiplied to boxes' metrics so that
  *  the list fits to the actual target->w,h.
  *
- *  If target is NULL, the pw,s,g/ph,s,g are not stored anywhere, and this->flags are
+ *  If target is nullptr, the pw,s,g/ph,s,g are not stored anywhere, and this->flags are
  *  used. In that case, this function might still be useful just to get the squish values, 
  *  which get based on fitting into this->w,h.
  *
- *  If target is not NULL, then target->flags are used, and the pw,s,g/ph,s,g are put
+ *  If target is not nullptr, then target->flags are used, and the pw,s,g/ph,s,g are put
  *  into target, and the squish values are used to fit to target->w,h.
  *  
  *  If boxes is not null, then use that for the list of boxes assumed to have n boxes.
- *  Otherwise, use target->list.e/n, or if target is NULL, use this->list.e/n.
+ *  Otherwise, use target->list.e/n, or if target is nullptr, use this->list.e/n.
  *  Interprets boxes as a either a vertical or horizontal list, 
  *  according to whether BOX_VERTICAL is in flags or not.
  *  
- *  If nextrow is NULL, this uses ALL the boxes in list. It does not stop where a 
- *  line is filled. If nextrow is not NULL, then it does stop when a line is full, which
+ *  If nextrow is nullptr, this uses ALL the boxes in list. It does not stop where a 
+ *  line is filled. If nextrow is not nullptr, then it does stop when a line is full, which
  *  requires that the target->w or h is set to a desired value already,
  *  and nextrow is set to what would be the starting box of the next line.
  *
- * 	If an element of boxes is NULL, then the figuring stops right there, and nextrow is set to point
- * 	to the first non-NULL box after that NULL, or n if there aren't any.
+ * 	If an element of boxes is nullptr, then the figuring stops right there, and nextrow is set to point
+ * 	to the first non-nullptr box after that nullptr, or n if there aren't any.
  *
  * 	\todo *** this must eventually be modified to use all the LRTB, LRBT, ...
  *  \todo ****** implement pad and penalty!!
  */
 int ListBox::figureDimensions(ListBox *target,int *nextrow,SquishyBox **boxes, int n,double *squishx,double *squishy) 
-{					//boxes=NULL, n=0
+{					//boxes=nullptr, n=0
 
 	 // Setup boxes to point to target->list, or this->list, or return
-	if (boxes==NULL) {
+	if (boxes == nullptr) {
 		if (target) {
 			boxes=target->list.e;
 			n=target->list.n;
@@ -716,7 +761,7 @@ int ListBox::figureDimensions(ListBox *target,int *nextrow,SquishyBox **boxes, i
 			n=list.n;
 		}
 	}
-	//*** if (!n || boxes[0]==NULL) punt?
+	//*** if (!n || boxes[0]==nullptr) punt?
 		
 	 // Set up the target. No boxes are added to target->list.
 	int targetislocal=0;
@@ -733,47 +778,49 @@ int ListBox::figureDimensions(ListBox *target,int *nextrow,SquishyBox **boxes, i
 	 // The code below looks as if it is adding to a row (horizontal list), but the offsets
 	 // can simply swap it all to make it actually add to a column (vertical list).
 	int row,col;
-	if (target->flags&BOX_VERTICAL) { row=vert; col=0; } else { row=0; col=vert; } 
+	if (target->flags & BOX_VERTICAL) { row=vert; col=0; } else { row=0; col=vert; } 
 
-	int c,cs,tmp,padi=0,br=0; //***padi?? add a cellspacing/padi to SquishyBox?
-	int rm[2*vert]; // the row metrics, laid out the same as the  SquishyBox::m[].
+	int c,cs;
+	bool br = false;
+	double tmp, padi=0;
+	double rm[2*vert]; // the row metrics, laid out the same as the  SquishyBox::m[].
 	for (c=0; c<2*vert; c++) rm[c]=0;
 
-	c=0;
-	cs=c; // cs=index of start of row
+	c  = 0;
+	cs = c; // cs=index of start of row
 	
 	 // Add up all the pw,s,g/ph,s,g of the boxes.
-	 // Any NULL box means a forced line break.
+	 // Any nullptr box means a forced line break.
 	 // Fit them to a row with width target->[row+len]
-	 // At end of loop, c must be at start of next line or n or at first NULL
+	 // At end of loop, c must be at start of next line or n or at first nullptr
 	for (c=0; c<n && boxes[c]; c++) {
 		if (boxes[c]->hidden()) continue;
 
-		br=0;
+		br = false;
 		 // incorporate the width metrics
 		tmp=(c>cs?padi:0) + boxes[c]->m[row+pref] + 2*boxes[c]->pad;
 		rm[row+pref]  +=tmp; //pad is basically same as bevel
 		rm[row+shrink]+=boxes[c]->m[row+shrink];
 		rm[row+grow]  +=boxes[c]->m[row+grow];
 
-		 // if nextrow==NULL, then use all the first non-NULL boxes
+		 // if nextrow==nullptr, then use all the first non-nullptr boxes
 		 // otherwise, stop when the line is full.
 		if (nextrow) {
 			 // Check if sum of boxes exceeds the target width, 
 			 // if so, try to shrink. If shrink is uncomfortable, remove the last added, 
 			 // and break from adding more boxes.
-			if (rm[row+pref]>target->m[row+len]-2*target->padinset) {
-				br=1;
-				if (rm[row+pref]-rm[row+shrink]>target->m[row+len]-2*target->padinset) { 
+			if (rm[row+pref] > target->m[row+len] - 2*target->padinset) {
+				br = true;
+				if (rm[row+pref] - rm[row+shrink] > target->m[row+len] - 2*target->padinset) { 
 					 // If cannot shrink with these boxes, remove last added if possible
-					if (c!=cs) { // remove last added
-						rm[row+pref]  -=tmp; 
-						rm[row+shrink]-=boxes[c]->m[row+shrink];
-						rm[row+grow]  -=boxes[c]->m[row+grow];
+					if (c != cs) { // remove last added
+						rm[row+pref]  -= tmp; 
+						rm[row+shrink]-= boxes[c]->m[row+shrink];
+						rm[row+grow]  -= boxes[c]->m[row+grow];
 					} else { // is on the first box, so include it, even though it is too honkin' big
-						rm[col+pref]  =boxes[c]->m[col+pref]+2*boxes[c]->pad;
-						rm[col+shrink]=boxes[c]->m[col+shrink];
-						rm[col+grow]  =boxes[c]->m[col+grow];
+						rm[col+pref]   = boxes[c]->m[col+pref]+2*boxes[c]->pad;
+						rm[col+shrink] = boxes[c]->m[col+shrink];
+						rm[col+grow]   = boxes[c]->m[col+grow];
 						c++;
 					}
 					break; // end of line reached and no need to do the [col+*] below
@@ -784,41 +831,41 @@ int ListBox::figureDimensions(ListBox *target,int *nextrow,SquishyBox **boxes, i
 		 // incorporate the height metrics
 		 // rs is not a true shrink here, it is temporarily length=max min
 		 // rg is not a true shrink here, it is temporarily length=max max
-		if (boxes[c]->m[col+pref]+2*boxes[c]->pad>rm[col+pref]) rm[col+pref]=boxes[c]->m[col+pref]+2*boxes[c]->pad;
-		if (boxes[c]->m[col+pref]+2*boxes[c]->pad - boxes[c]->m[col+shrink]>rm[col+shrink]) //rs
-			rm[col+shrink]=boxes[c]->m[col+pref]+2*boxes[c]->pad-boxes[c]->m[col+shrink]; 
-		if (boxes[c]->m[col+pref]+2*boxes[c]->pad + boxes[c]->m[col+grow]>rm[col+grow]) //rg
-			rm[col+grow]=boxes[c]->m[col+pref]+2*boxes[c]->pad + boxes[c]->m[col+grow]; 
+		if (boxes[c]->m[col+pref] + 2*boxes[c]->pad > rm[col+pref]) rm[col+pref] = boxes[c]->m[col+pref] + 2*boxes[c]->pad;
+		if (boxes[c]->m[col+pref] + 2*boxes[c]->pad - boxes[c]->m[col+shrink] > rm[col+shrink]) //rs
+			rm[col+shrink] = boxes[c]->m[col+pref] + 2*boxes[c]->pad - boxes[c]->m[col+shrink]; 
+		if (boxes[c]->m[col+pref] + 2*boxes[c]->pad + boxes[c]->m[col+grow] > rm[col+grow]) //rg
+			rm[col+grow] = boxes[c]->m[col+pref] + 2*boxes[c]->pad + boxes[c]->m[col+grow]; 
 		
 		if (br) { c++; break; } // eol reached
 	} 
 	//if (cs==c) *** // no boxes were dealt with!
-	while (c<n && !boxes[c]) c++; // skip over any NULL boxes
-	if (nextrow) *nextrow=c; // this value is passed back
+	while (c < n && !boxes[c]) c++; // skip over any nullptr boxes
+	if (nextrow) *nextrow = c; // this value is passed back
 	
 	 // At this point the metrics are added up, but no shrinking/growing has been done
 	
 	 // c now points to the first box of what ought to be the next line,
-	 //  and either  rpw-rs<w<rpw  or  rpw<w
+	 //  and either  rpw-rs < w < rpw  or  rpw < w
 	 //  so now we have  rs,rpw,rg  and rpw may or may not be after w.
 	 // Convert col s,g to real shrink and grow values (they were maximum min point, and max max point):
-	rm[col+shrink]=rm[col+pref]-rm[col+shrink];
-	if (rm[col+shrink]<0) rm[col+shrink]=0;
-	rm[col+grow]  =rm[col+grow]-rm[col+pref];
-	if (rm[col+grow]<0) rm[col+grow]=0;
+	rm[col+shrink] = rm[col+pref] - rm[col+shrink];
+	if (rm[col+shrink] < 0) rm[col+shrink] = 0;
+	rm[col+grow]  = rm[col+grow] - rm[col+pref];
+	if (rm[col+grow] < 0) rm[col+grow] = 0;
 
 	 // Set target->pw,s,g and maybe ->w
-	int wraprow=(flags&BOX_VERTICAL && flags&BOX_WRAP_TO_Y_EXTENT) || (flags&BOX_HORIZONTAL && flags&BOX_WRAP_TO_X_EXTENT);
-	target->m[row+pref]  =rm[row+pref] + 2*target->padinset;
-	target->m[row+shrink]=rm[row+shrink];
-	target->m[row+grow]  =rm[row+grow];
-	if (target->m[row+len]==BOX_SHOULD_WRAP || wraprow) target->m[row+len]=target->m[row+pref]; // wrap to extent
+	bool wraprow = (flags & BOX_VERTICAL && flags & BOX_WRAP_TO_Y_EXTENT) || (flags & BOX_HORIZONTAL && flags & BOX_WRAP_TO_X_EXTENT);
+	target->m[row+pref]  = rm[row+pref] + 2*target->padinset;
+	target->m[row+shrink]= rm[row+shrink];
+	target->m[row+grow]  = rm[row+grow];
+	if (target->m[row+len] == BOX_SHOULD_WRAP || wraprow) target->m[row+len] = target->m[row+pref]; // wrap to extent
 	 // Set target->ph,s,g and maybe ->h
-	wraprow=(flags&BOX_VERTICAL && flags&BOX_WRAP_TO_X_EXTENT) || (flags&BOX_HORIZONTAL && flags&BOX_WRAP_TO_Y_EXTENT);
-	target->m[col+pref]  =rm[col+pref] + 2*target->padinset;
-	target->m[col+shrink]=rm[col+shrink];
-	target->m[col+grow]  =rm[col+grow];
-	if (target->m[col+len]==BOX_SHOULD_WRAP || wraprow) target->m[col+len]=target->m[col+pref]; // wrap to extent
+	wraprow = (flags & BOX_VERTICAL && flags & BOX_WRAP_TO_X_EXTENT) || (flags & BOX_HORIZONTAL && flags & BOX_WRAP_TO_Y_EXTENT);
+	target->m[col+pref]  = rm[col+pref] + 2*target->padinset;
+	target->m[col+shrink]= rm[col+shrink];
+	target->m[col+grow]  = rm[col+grow];
+	if (target->m[col+len] == BOX_SHOULD_WRAP || wraprow) target->m[col+len] = target->m[col+pref]; // wrap to extent
 
 	
 	 // Now we must determine the squish factor necessary to fit the rm[pref*] to target->w/h,
@@ -831,32 +878,32 @@ int ListBox::figureDimensions(ListBox *target,int *nextrow,SquishyBox **boxes, i
 	double squishX=0,squishY=0;
 	
 	 // deal with squishX
-	if ((target->flags&BOX_VERTICAL && squishy) || squishx) {
-		if (rm[row+pref] < target->m[row+len]-2*target->padinset) { // must grow, squishX>0
-			if (rm[row+grow]) squishX=(double) (target->m[row+len]-2*target->padinset-rm[row+pref])/rm[row+grow];
-			else squishX=1000000; // simliar to infinity(?!)
-		} else if (rm[row+pref] > target->m[row+len]-2*target->padinset) { // must shrink, squishX<0
-			if (rm[row+shrink]) squishX=(double) (target->m[row+len]-2*target->padinset-rm[row+pref]) / rm[row+shrink];
-			else squishX=-1000000; // simliar to infinity(?!)
-		} else squishX=0;
+	if ((target->flags & BOX_VERTICAL && squishy) || squishx) {
+		if (rm[row+pref] < target->m[row+len] - 2*target->padinset) { // must grow, squishX>0
+			if (!isNearZero(rm[row+grow])) squishX=(double) (target->m[row+len] - 2*target->padinset - rm[row+pref])/rm[row+grow];
+			else squishX = 1000000; // simliar to infinity(?!) .. row length was 0, this prevents div by 0
+		} else if (rm[row+pref] > target->m[row+len] - 2*target->padinset) { // must shrink, squishX<0
+			if (!isNearZero(rm[row+shrink])) squishX = (double) (target->m[row+len] - 2*target->padinset - rm[row+pref]) / rm[row+shrink];
+			else squishX = -1000000; // simliar to infinity(?!)
+		} else squishX = 0;
 	}
 	 // deal with squishY
-	if ((target->flags&BOX_VERTICAL && squishx) || squishy) {
+	if ((target->flags & BOX_VERTICAL && squishx) || squishy) {
 		if (rm[col+pref] < target->m[col+len]) { // must grow, squishY>0 //**** before len and pref were switched!! which is right?
-			if (rm[col+grow]) squishY=(double) (target->m[col+len]-2*target->padinset-rm[col+pref]) / rm[col+grow];
-			else squishY=1000000; // simliar to infinity(?!)
+			if (!isNearZero(rm[col+grow])) squishY=(double) (target->m[col+len]-2*target->padinset-rm[col+pref]) / rm[col+grow];
+			else squishY = 1000000; // simliar to infinity(?!) .. prevents div by 0. i know it's a littly silly
 		} else if (rm[col+pref] > target->m[col+len]) { // must shrink, squishY<0
-			if (rm[col+shrink]) squishY=(double) (target->m[col+len]-2*target->padinset-rm[col+pref]) / rm[col+shrink];
-			else squishY=-1000000; // simliar to infinity(?!)
-		} else squishY=0;
+			if (!isNearZero(rm[col+shrink])) squishY=(double) (target->m[col+len]-2*target->padinset-rm[col+pref]) / rm[col+shrink];
+			else squishY = -1000000; // simliar to infinity(?!)
+		} else squishY = 0;
 	}
 
-	if (flags&BOX_VERTICAL) {
-		if (squishx) *squishx=squishY;
-		if (squishy) *squishy=squishX;
+	if (flags & BOX_VERTICAL) {
+		if (squishx) *squishx = squishY;
+		if (squishy) *squishy = squishX;
 	} else {
-		if (squishx) *squishx=squishX;
-		if (squishy) *squishy=squishY;
+		if (squishx) *squishx = squishX;
+		if (squishy) *squishy = squishY;
 	}
 
 	if (targetislocal) delete target;
@@ -893,10 +940,8 @@ int ListBox::figureDimensions(ListBox *target,int *nextrow,SquishyBox **boxes, i
 
 RowColBox::RowColBox()
 { 
-//	if (flags&BOX_VERTICAL) flags|=BOX_STRETCH_TO_FILL_X;
-//	else flags|=BOX_STRETCH_TO_FILL_Y;
-	arrangedstate=0; // 0 for list array needs to be updated, 1 for list is current and no need to recompute
-	elementflags=0;
+	arrangedstate = 0; // 0 for list array needs to be updated, 1 for list is current and no need to recompute
+	elementflags = 0;
 	filterflags();
 }
 
@@ -906,15 +951,27 @@ RowColBox::RowColBox()
  * flags after the constructor finishes. See filterflags().
  */
 RowColBox::RowColBox(unsigned int nflags,
-			int nx,int nw,int npw,int nws,int nwg,int nhalign,int nhgap, 
-			int ny,int nh,int nph,int nhs,int nhg,int nvalign,int nvgap)
+			double nx,double nw,double npw,double nws,double nwg,double nhalign,double nhgap, 
+			double ny,double nh,double nph,double nhs,double nhg,double nvalign,double nvgap)
   : ListBox(nflags,nx,nw,npw,nws,nwg,nhalign,nhgap,
 			ny,nh,nph,nhs,nhg,nvalign,nvgap)
 {
-	arrangedstate=0; 
-	elementflags=0;
+	arrangedstate = 0; 
+	elementflags = 0;
 	filterflags();
 }
+
+
+void RowColBox::UpdateScale(double new_scale)
+{
+	arrangedstate = 0;
+	SquishyBox::UpdateScale(new_scale);
+
+	for (int c = 0; c < wholelist.n; c++) {
+		if (wholelist.e[c]) wholelist.e[c]->UpdateScale(new_scale);
+	}
+}
+
 
 //! Take what is in flags, and remake flags to be reasonable for a RowColBox.
 /*! Default for laying rows is for the main list to always stretch row->w (but not necessarily
@@ -951,7 +1008,7 @@ int RowColBox::Pop(int which) //which=-1
 SquishyBox *RowColBox::GetBox(int which)
 {
 	if (which>=0 && which<wholelist.n) return wholelist.e[which];
-	return NULL;
+	return nullptr;
 }
 
 //! Flush list, and if list does not exist, then create a new list.
@@ -963,7 +1020,7 @@ void RowColBox::Flush()
 }
 
 //! Push box onto wholelist with islocal.
-/*! If box==NULL, then this is later on interpreted as a line break.
+/*! If box==nullptr, then this is later on interpreted as a line break.
  *
  * Sets arrangedstate=0. Nothing is added to list here. list is maintained
  * in arrangeBoxes().
@@ -1007,10 +1064,10 @@ int RowColBox::arrangeBoxes(int distributetoo) // distributetoo=0
 		tbox=newSubBox();
 
 		 // find dimensions of row, and add it to list
-			//	virtual int figureDimensions(SquishyBox *target,int *nextrow=NULL,SquishyBox **boxes=NULL, int n=0,
-			//								double *squishx=NULL,double *squishy=NULL); 
+			//	virtual int figureDimensions(SquishyBox *target,int *nextrow=nullptr,SquishyBox **boxes=nullptr, int n=0,
+			//								double *squishx=nullptr,double *squishy=nullptr); 
 		cc=0;
-		figureDimensions(tbox,&cc,wholelist.e+cs,wholelist.n-cs,NULL,NULL);
+		figureDimensions(tbox,&cc,wholelist.e+cs,wholelist.n-cs,nullptr,nullptr);
 		for (c2=cs; c2<c+cc; c2++) tbox->Push(wholelist.e[c2],0);
 		c+=cc;
 		list.push(tbox);
