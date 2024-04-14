@@ -100,7 +100,7 @@ class aDrawable
 
 //-------------------------- anXWindow ----------------------------------------
 
-//for minimal window size sanity checking:
+//for simple window size sanity checking:
 #define LAX_MAX_WINDOW_SIZE 10000
 
 #define ANXWIN_MASK           (0xffff)

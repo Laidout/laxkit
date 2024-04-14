@@ -186,7 +186,7 @@ void FoldoutWindow::Refresh()
 	else dp->drawthing(labelheight/2,labelheight/2, labelheight/2,labelheight/2, 1, THING_Triangle_Right);
 
 	//draw label
-	if (label) dp->textout(labelheight,labehheight/2, label,-1, LAX_LEFT | LAX_VCENTER);
+	if (label) dp->textout(labelheight, labelheight/2, label,-1, LAX_LEFT | LAX_VCENTER);
 }
 
 
