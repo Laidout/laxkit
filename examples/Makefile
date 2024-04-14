@@ -68,7 +68,7 @@ stopwatch: lax laxinterface stopwatch.o
 stationrotater: lax stationrotater.o
 	$(LD) $@.o -llaxkit $(LDFLAGS) -o $@
 
-test: lax laxinterface test.o
+test: lax laxinterface test.o test.cc
 	$(LD) $@.o  -llaxinterfaces -llaxkit $(LDFLAGS) -o $@
 
 test2: lax laxinterface test2.o
