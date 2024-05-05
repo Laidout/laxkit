@@ -196,6 +196,7 @@ BoxSelector::BoxSelector(anXWindow *parnt,const char *nname,const char *ntitle,u
 	else if (win_style&BOXSEL_TOP) flags|=BOX_TOP;
 	else if (win_style&BOXSEL_BOTTOM) flags|=BOX_BOTTOM;
 
+	last_scale = UIScale();
 }
 
 BoxSelector::~BoxSelector()
@@ -243,7 +244,7 @@ int BoxSelector::WrapToExtent()
 /*! Also sets the hightlight and shadow colors.
  */
 int BoxSelector::init()
-{ 
+{
 	sync();
     highlight = coloravg(win_themestyle->bg.Pixel(),rgbcolor(255,255,255));
 	shadow = coloravg(win_themestyle->bg.Pixel(),rgbcolor(0,0,0));
