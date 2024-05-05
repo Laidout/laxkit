@@ -623,26 +623,32 @@ int LineEdit::CharInput(unsigned int ch,const char *buffer,int len,unsigned int 
 
 
 	 // catch control-(char) keys
-	if ((state&LAX_STATE_MASK)==ControlMask && ch>=32) switch(ch) { 
-		case 'b': 
-			DBG cerr <<"breakpoint"<<endl;
-			return 1;
+	if (((state & LAX_STATE_MASK) | ShiftMask) == (ShiftMask | ControlMask) && ch >= 32) switch(ch) { 
+		DBG case 'b':
+		DBG 	cerr <<"breakpoint"<<endl; //convenience to be able to interrupt whenever for debugging
+		DBG		return 1;
 
 		case 'j': { //try to join selected (ascii) characters into appropriate accented characters
 				if (CombineChars()==0) needtodraw=1;
 				return 0; 
 			}
 		case 'J': //justification
-			DBG cerr <<" justify before:"<<(textstyle&(TEXT_LEFT|TEXT_RIGHT|TEXT_CENTER))<<endl;
-			switch (textstyle&(TEXT_LEFT|TEXT_RIGHT|TEXT_CENTER)) {
-					  case TEXT_LEFT: textstyle=(textstyle&~TEXT_LEFT)|TEXT_CENTER; break;
-					  case TEXT_CENTER: textstyle=(textstyle&~TEXT_CENTER)|TEXT_RIGHT; break;
-					  case TEXT_RIGHT: textstyle=(textstyle&~TEXT_RIGHT)|TEXT_LEFT; break;
+				DBG if (textstyle & TEXT_LEFT) cerr <<" justify before: left"<<endl;
+				DBG else if (textstyle & TEXT_CENTER) cerr <<" justify before: center"<<endl;
+				DBG else cerr <<" justify before: right"<<endl;
+				
+				switch (textstyle & (TEXT_LEFT|TEXT_RIGHT|TEXT_CENTER)) {
+					  case TEXT_LEFT:   textstyle = (textstyle &~ TEXT_LEFT)   | TEXT_CENTER; break;
+					  case TEXT_CENTER: textstyle = (textstyle &~ TEXT_CENTER) | TEXT_RIGHT;  break;
+					  case TEXT_RIGHT:  textstyle = (textstyle &~ TEXT_RIGHT)  | TEXT_LEFT;   break;
 					  default: return 0;
 				}
-				DBG cerr <<" justify after:"<<(textstyle&(TEXT_LEFT|TEXT_RIGHT|TEXT_CENTER))<<endl;
-				Black(0,cy-textascent,win_w,textheight);
-				needtodraw=1;
+				DBG if (textstyle & TEXT_LEFT) cerr <<" justify after: left"<<endl;
+				DBG else if (textstyle & TEXT_CENTER) cerr <<" justify after: center"<<endl;
+				DBG else cerr <<" justify after: right"<<endl;
+				
+				Black(0, cy - textascent, win_w, textheight);
+				needtodraw = 1;
 				Setpixwide();
 				findcaret(); 
 				makeinwindow();
@@ -826,7 +832,7 @@ int LineEdit::Setpixwide()
 	return 1;
 }
 
-//! Changes curlineoffset, cx to be in window.
+//! Changes curlineoffset, cx so that the caret will be at a visible position in the window.
 /*!  Assumes cx,cy already set accurately
  */
 int LineEdit::makeinwindow()  
