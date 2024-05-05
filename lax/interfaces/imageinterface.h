@@ -74,6 +74,8 @@ enum ImageInterfaceActions {
 	II_Rectify,
 	II_Decorations,
 	II_ToggleLabels,
+	II_ToggleFileName,
+	II_ToggleFileSize,
 	II_FlipH,
 	II_FlipV,
 	II_Image_Info,
@@ -105,7 +107,10 @@ class ImageInterface : public anInterface
 	unsigned int controlcolor;
 	int showdecs;
 	bool showobj;
-	int showfile;
+	// bool show_labels;
+	bool show_size;
+	int show_file;
+
 	ImageInterface(int nid,Laxkit::Displayer *ndp,int nstyle=IMAGEI_POPUP_INFO);
 	virtual ~ImageInterface();
 	virtual const char *IconId() { return "Image"; }

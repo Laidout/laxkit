@@ -494,10 +494,12 @@ ImageInterface::ImageInterface(int nid,Displayer *ndp,int nstyle) : anInterface(
 	data = NULL;
 	ioc  = NULL;
 
-	showdecs = 1;
-	showobj  = true;
-	showfile = 0;
-	mode     = Mode::Normal;
+	showdecs    = 1;
+	showobj     = true;
+	// show_labels = false;
+	show_size   = false;
+	show_file   = 0; // 1 for full path, 2 for basename only
+	mode        = Mode::Normal;
 
 	controlcolor = rgbcolor(128,128,128);
 
@@ -638,9 +640,9 @@ int ImageInterface::DrawData(anObject *ndata,anObject *a1,anObject *a2,int info)
 
 	ImageData *bzd=data;
 	data=dynamic_cast<ImageData *>(ndata);
-	int td=showdecs, ntd=needtodraw, tshowobj=showobj, tshowfile=showfile;
+	int td=showdecs, ntd=needtodraw, tshowobj=showobj, tshowfile = show_file;
 	showdecs  =0;
-	showfile  =0;
+	show_file =0;
 	showobj   =true;
 	needtodraw=1;
 
@@ -648,7 +650,7 @@ int ImageInterface::DrawData(anObject *ndata,anObject *a1,anObject *a2,int info)
 
 	needtodraw=ntd;
 	showobj   =tshowobj;
-	showfile  =tshowfile;
+	show_file =tshowfile;
 	showdecs  =td;
 	data=bzd;
 	return 1;
@@ -778,16 +780,29 @@ int ImageInterface::Refresh()
 		dp->DrawReal();
 	}
 
-	 // show filename
-	if (showfile && data->filename) {
-		 //showfile==1 full path, ==2 basename only
+	// show labels
+	if (show_file || show_size) {
 		dp->DrawScreen();
+		double th = UIScale() * curwindow->win_themestyle->normal->textheight();
+		dp->font(curwindow->win_themestyle->normal, th);
 		dp->NewFG(rgbcolor(255,0,0));
-		flatpoint p=(lr+ll+ur+ul)/4;
-		char *f=NULL;
-		if (showfile==2) f=strrchr(data->filename,'/');
-		if (!f) f=data->filename; else f++;
-		dp->textout((int)p.x,(int)p.y,f,-1);
+		flatpoint p = (lr+ll)/2;
+
+		// show filename
+		if (show_file && data->filename) {
+			 //show_file==1 full path, ==2 basename only
+			char *f = nullptr;
+			if (show_file == 2) f = strrchr(data->filename,'/');
+			if (!f) f = data->filename; else f++;
+			if (f) dp->textout_halo(th*.1, p.x,p.y, f,-1, LAX_HCENTER | LAX_BOTTOM);
+			p -= (ur-lr).normalized() * th;
+		}
+
+		if (show_size) {
+			char str[100];
+			sprintf(str, "%d x %d px", data->image->w(), data->image->h());
+			dp->textout_halo(th*.1, p.x,p.y, str,-1, LAX_HCENTER | LAX_BOTTOM);
+		}
 		dp->DrawReal();
 	}
 
@@ -1064,8 +1079,6 @@ int ImageInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMo
 	o.x=(oo*data->xaxis())/(data->xaxis()*data->xaxis());
 	o.y=(oo*data->yaxis())/(data->yaxis()*data->yaxis()); // o is in data coords now
 
-	//DBG cerr <<"x,y="<<x<<','<<y<<"  p="<<p.x<<","<<p.y<<"  o="<<o.x<<','<<o.y;
-
 	if (!buttondown.isdown(mouse->id,LEFTBUTTON) || !data || !dp) return 1;
 	if (x==mx && y==my) return 0;
 
@@ -1090,7 +1103,6 @@ int ImageInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMo
 		}
 
 		oo=data->origin() + leftp.x*data->xaxis() + leftp.y*data->yaxis(); // where the point clicked down on is now
-		//DBG cerr <<"  oo="<<oo.x<<','<<oo.y<<endl;
 		d=lp-oo;
 		data->origin(data->origin()+d);
 
@@ -1099,7 +1111,6 @@ int ImageInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMo
 		data->origin(data->origin()+d);
 	}
 
-	//DBG cerr <<"  d="<<d.x<<','<<d.y<<endl;
 	mx=x; my=y;
 	needtodraw|=2;
 	return 0;
@@ -1116,13 +1127,15 @@ Laxkit::ShortcutHandler *ImageInterface::GetShortcuts()
 
 	sc=new ShortcutHandler(whattype());
 
-	sc->Add(II_Normalize,    'n',0,0,         "Normalize",     _("Normalize"),NULL,0);
-	sc->Add(II_Rectify,      'N',ShiftMask,0, "Rectify",       _("Clear aspect and rotation"),NULL,0);
-	sc->Add(II_Decorations,  'd',0,0,         "Decorations",   _("Toggle decorations"),NULL,0);
-	sc->Add(II_ToggleLabels, 'f',0,0,         "Labels",        _("Toggle labels"),NULL,0);
-	sc->Add(II_FlipH,        'h',0,0,         "FlipHorizontal",_("Flip horizontally"),NULL,0);
-	sc->Add(II_FlipV,        'v',0,0,         "FlipVertical",  _("Flip vertically"),NULL,0);
-	sc->Add(II_Image_Info,   LAX_Enter,0,0,   "ImageInfo",     _("Edit image info"),NULL,0);
+	sc->Add(II_Normalize,      'n',0,0,         "Normalize",     _("Normalize"),NULL,0);
+	sc->Add(II_Rectify,        'N',ShiftMask,0, "Rectify",       _("Clear aspect and rotation"),NULL,0);
+	sc->Add(II_Decorations,    'd',0,0,         "Decorations",   _("Toggle decorations"),NULL,0);
+	//sc->Add(II_ToggleLabels,   'l',0,0,         "Labels",        _("Toggle labels"),NULL,0);
+	sc->Add(II_ToggleFileName, 'f',0,0,         "ToggleFileName",_("Toggle showing filename in labels"),NULL,0);
+	sc->Add(II_ToggleFileSize, 's',0,0,         "ToggleFileSize",_("Toggle showing file size in labels"),NULL,0);
+	sc->Add(II_FlipH,          'h',0,0,         "FlipHorizontal",_("Flip horizontally"),NULL,0);
+	sc->Add(II_FlipV,          'v',0,0,         "FlipVertical",  _("Flip vertically"),NULL,0);
+	sc->Add(II_Image_Info,     LAX_Enter,0,0,   "ImageInfo",     _("Edit image info"),NULL,0);
 
 	manager->AddArea(whattype(),sc);
 	return sc;
@@ -1147,16 +1160,12 @@ int ImageInterface::PerformAction(int action)
 	} else if (action==II_FlipH) {
 		if (!data) return 0;
 		data->Flip(1);
-		//data->Flip(data->transformPoint(flatpoint(data->minx, (data->miny+data->maxy)/2)),
-				   //data->transformPoint(flatpoint(data->maxx, (data->miny+data->maxy)/2)));
 		needtodraw=1;
 		return 0;
 
 	} else if (action==II_FlipV) {
 		if (!data) return 0;
 		data->Flip(0);
-		//data->Flip(data->transformPoint(flatpoint((data->minx+data->maxx)/2, data->miny)),
-				   //data->transformPoint(flatpoint((data->minx+data->maxx)/2, data->maxy)));
 		needtodraw=1;
 		return 0;
 
@@ -1165,11 +1174,21 @@ int ImageInterface::PerformAction(int action)
 		needtodraw=1;
 		return 0;
 
-	} else if (action==II_ToggleLabels) {
-		showfile++;
-		if (showfile==3) showfile=0;
+	// } else if (action==II_ToggleLabels) {
+	// 	show_labels = !show_labels;
+	// 	needtodraw = 1;
+	// 	return 0;
+	
+	} else if (action==II_ToggleFileName) {
+		show_file++;
+		if (show_file == 3) show_file = 0;
+		//if (showfile && !show_labels) show_labels = true;
+		needtodraw = 1;
+		return 0;
+
+	} else if (action==II_ToggleFileSize) {
+		show_size = !show_size;
 		needtodraw=1;
-		DBG cerr <<"ImageInterface showfile: "<<(int)showfile<<endl;
 		return 0;
 	}
 
