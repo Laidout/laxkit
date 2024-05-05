@@ -87,7 +87,7 @@ ToolTip::ToolTip(const char *newtext,int mouse)
 		if (t>win_w) win_w=t;
 		if (thetext[c]!='\0') c++;
 	}
-	DBG cerr <<"Tooltip:  nl="<<nl<<endl;
+	// DBG cerr <<"Tooltip:  nl="<<nl<<endl;
 	textheight = UIScale() * win_themestyle->normal->textheight();
 	win_w += app->theme->default_padx*2;
 	win_h  = app->theme->default_pady*2 + nl*textheight;
