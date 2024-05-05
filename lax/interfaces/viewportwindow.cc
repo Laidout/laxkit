@@ -1062,7 +1062,7 @@ Laxkit::anXWindow *ViewportWindow::SetupInputBox(unsigned long owner_id, const c
 								NULL,owner_id,message,
 								text);
 	if (ntooltip) le->tooltip(ntooltip);
-	le->padx = le->pady = UIScale() * le->win_themestyle->normal->textheight()*.1;
+	le->padx = le->pady = .1;
 	le->SetSelection(0,-1);
 	app->addwindow(le);
 

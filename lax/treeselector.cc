@@ -2691,7 +2691,7 @@ int TreeSelector::WrapToPosition(int screen_x, int screen_y, int screen, anXWind
 		//unsigned int wh = onedgeofthis->win_h;
 
 		px = wx+ww+bd;
-		if (px+ew > (int)screen_width) {
+		if (px+ew > scrx + (int)screen_width) {
 			px = wx-bd-ew;
 			if (px<0) px = 0;
 		}

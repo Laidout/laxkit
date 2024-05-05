@@ -65,12 +65,12 @@ namespace Laxkit {
 /*! \var double TextXEditBaseUtf8::padx
  * \brief Horizontal inset within textrect to place text. Pixel pad is padx * textheight.
  *
- * The horizontal area text can fill before scrolling is necessary is textrect.width-2*padx.
+ * The horizontal area text can fill before scrolling is necessary is textrect.width-2*padx*textheight.
  */
 /*! \var double TextXEditBaseUtf8::pady
  * \brief Vertical inset within textrect to place text. Pixel pad is pady * textheight.
  *
- * The vertical area text can fill before scrolling is necessary is textrect.height-2*pady.
+ * The vertical area text can fill before scrolling is necessary is textrect.height-2*pady*textheight.
  */
 /*! \var int TextXEditBaseUtf8::cx
  * \brief The x position of the current position, measured from the top left corner of the window.

@@ -716,26 +716,32 @@ void ThemeControls::UpdateWindows()
 		testWindows.e[c]->CustomTheme(theme);
 	}
 
-	//--- resize windows
-	double scale = test_lineedit->UIScale();
-	double scaled_th = test_lineedit->UIScale() * test_lineedit->win_themestyle->normal->textheight();
+	double new_scale = theme->ui_scale;
 
-	//LineInput
-	GetBox(0)->pw(scaled_th * 7);
-	GetBox(0)->ph(2*scaled_th);
-	test_lineedit->SetPlacement();
+	for (int c = 0; c < testWindows.n; c++) {
+		GetBox(c)->UpdateScale(new_scale);
+	}
 
-	//TestButton
-	GetBox(1)->pw(2*scaled_th + scale * test_button->win_themestyle->normal->Extent(test_button->Label(),-1));
-	GetBox(1)->ph(2*scaled_th);
+	// //--- resize windows
+	// double scale = test_lineedit->UIScale();
+	// double scaled_th = test_lineedit->UIScale() * test_lineedit->win_themestyle->normal->textheight();
 
-	//Test Checkbox
-	GetBox(2)->pw(2*scaled_th + scale * test_checkbox->win_themestyle->normal->Extent(test_checkbox->Label(),-1));
-	GetBox(2)->ph(2*scaled_th);
+	// //LineInput
+	// GetBox(0)->pw(scaled_th * 7);
+	// GetBox(0)->ph(2*scaled_th);
+	// test_lineedit->SetPlacement();
 
-	//Test MenuButton
-	GetBox(6)->pw(2*scaled_th + scale * test_menubutton->win_themestyle->normal->Extent(test_menubutton->Label(),-1));
-	GetBox(6)->ph(2*scaled_th);
+	// //TestButton
+	// GetBox(1)->pw(2*scaled_th + scale * test_button->win_themestyle->normal->Extent(test_button->Label(),-1));
+	// GetBox(1)->ph(2*scaled_th);
+
+	// //Test Checkbox
+	// GetBox(2)->pw(2*scaled_th + scale * test_checkbox->win_themestyle->normal->Extent(test_checkbox->Label(),-1));
+	// GetBox(2)->ph(2*scaled_th);
+
+	// //Test MenuButton
+	// GetBox(6)->pw(2*scaled_th + scale * test_menubutton->win_themestyle->normal->Extent(test_menubutton->Label(),-1));
+	// GetBox(6)->ph(2*scaled_th);
 
 	arrangedstate = 0;
 	needtodraw = 1;

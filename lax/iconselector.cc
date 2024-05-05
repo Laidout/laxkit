@@ -213,7 +213,8 @@ int IconSelector::AddBox(const char *nlabel,const char *filename,int nid)
  */
 int IconSelector::AddBox(const char *nlabel,LaxImage *img,int nid)
 {
-	IconBox *newbox=new IconBox();
+	IconBox *newbox = new IconBox();
+	newbox->last_scale = UIScale();
 	FillBox(newbox,nlabel,img,nid);
 	wholelist.push(newbox);
 	needtodraw=1;

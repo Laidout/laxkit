@@ -131,7 +131,7 @@ namespace Laxkit {
 
 //TextXEditBaseUtf8::TextXEditBaseUtf8(anXWindow *parnt,const char *ntitle,unsigned long nstyle,
 //                             int xx,int yy,int ww,int hh,int brder,anXWindow *prev,
-//                             const char *newtext,unsigned long ntstyle,char ncntlchar) // newtext=NULL, ntstyle=0 ncntlchar=0
+//                             const char *newtext,unsigned long ntstyle,char ncntlchar) // newtext=nullptr, ntstyle=0 ncntlchar=0
 
 //! Constructor.
 MultiLineEdit::MultiLineEdit(anXWindow *prnt,const char *nname,const char *ntitle,unsigned long nstyle,
@@ -139,38 +139,40 @@ MultiLineEdit::MultiLineEdit(anXWindow *prnt,const char *nname,const char *ntitl
 					anXWindow *prev,unsigned long nowner,const char *nsend,
 					unsigned int ntstyle,const char *newtext)
 				: TextXEditBaseUtf8(prnt,nname,ntitle,nstyle,xx,yy,ww,hh,brder,prev,nowner,nsend,newtext,ntstyle,'\\')
-{ 			// nstyle=0, newtext=NULL, cntlchar=0; newtext copied
-	modified=0;
+{
+	modified = 0;
+	firsttime   = 1;
+	needtodraw  = 1;
 
 	InstallColors(THEME_Edit);
-	wscolor=rgbcolor(0,64,255);
-	con=cx=cy=cdir=0;
-	oldsellen=0;
-	scrollwidth=15;
+	wscolor = rgbcolor(0, 64, 255);
 
-	padx=pady=0;
-	textheight=0;
-	firsttime=1;
-	needtodraw=1;
-	tabwidth=30;
-	blanktext=NULL;
-			
-	linestats=NULL;
-	numlines=0;
+	con = cx = cy = cdir = 0;
+	oldsellen   = 0;
+	scrollwidth = 15;
 
-//	mostcharswide=Getcharswide();
-//	numlines=GetNumLines();
-	curlineoffset=-(padx + textrect.x);
-	curline=0;
-	dpos=0; nlines=0;
-	mostpixwide=mostcharswide*5;
-	if (textstyle&TEXT_WORDWRAP) maxpixwide=textrect.width-2*padx;
-		else maxpixwide=30000; 
+	padx = pady = .2; //fraction of textheight
+	textheight  = UIScale() * win_themestyle->normal->textheight();
+	tabwidth    = 30;
+	blanktext   = nullptr;
 
-	xscroller=yscroller=NULL;
-	xscrollislocal=yscrollislocal=1;
+	linestats = nullptr;
+	numlines  = 0;
 
-	win_pointer_shape=LAX_MOUSE_Text;
+	//	mostcharswide=Getcharswide();
+	//	numlines=GetNumLines();
+	curlineoffset = -(padx * textheight + textrect.x);
+	curline       = 0;
+	dpos          = 0;
+	nlines        = 0;
+	mostpixwide   = mostcharswide * 5;
+	if (textstyle & TEXT_WORDWRAP) maxpixwide = textrect.width - 2 * padx * textheight;
+	else maxpixwide = 30000;
+
+	xscroller = yscroller = nullptr;
+	xscrollislocal = yscrollislocal = 1;
+
+	win_pointer_shape = LAX_MOUSE_Text;
 }
 
 //! Destructor, delete linestats.
@@ -250,8 +252,8 @@ int MultiLineEdit::init()
 //	if (textstyle&TEXT_XSCROLL && !xscroller && !(textstyle&TEXT_WORDWRAP)) {
 //		xscroller=new Scroller(this,"ww-xscroller",SC_ABOTTOM|SC_XSCROLL, 
 //				0,win_h-scrollwidth, win_w,scrollwidth, 0, 
-//				NULL, window, "xscroller", 
-//				NULL,
+//				nullptr, window, "xscroller", 
+//				nullptr,
 //				0,mostpixwide,1,win_w*3/4,0);
 //		xscrollislocal=1;
 //		app->addwindow(xscroller,0);
@@ -259,14 +261,14 @@ int MultiLineEdit::init()
 //	if (textstyle&TEXT_YSCROLL && !yscroller) {
 //		yscroller=new Scroller(this,"ww-yscroller",SC_ABOTTOM|SC_YSCROLL, 
 //				win_w-scrollwidth,0, scrollwidth,win_h, 0, 
-//				NULL, window, "yscroller", 
-//				NULL,
+//				nullptr, window, "yscroller", 
+//				nullptr,
 //				0,textlen,1,100,0);
 //		yscrollislocal=1;
 //		app->addwindow(yscroller,0);
 //	}
 	settextrect();
-	curlineoffset=-(padx + textrect.x);
+	curlineoffset=-(padx*textheight + textrect.x);
 	DBG cerr <<"multilineedit init done."<<endl;
 	return 0;
 }
@@ -378,8 +380,8 @@ int MultiLineEdit::newyssize()
 //			if (!yscroller) { //*** when would this happen?? if not done in init, just never do it?? no so apps can have/not have
 //				yscroller=new Scroller(this,"ww-yscroller",SC_ABOTTOM|SC_YSCROLL, 
 //						win_w-scrollwidth,0, scrollwidth,win_h, 0, 
-//						NULL, window, "yscroller", 
-//						NULL,0,textlen,1,-1,linestats[0].start,linestats[lpers].start);
+//						nullptr, window, "yscroller", 
+//						nullptr,0,textlen,1,-1,linestats[0].start,linestats[lpers].start);
 //				app->addwindow(yscroller,0);
 //				yscrollislocal=1;
 //			}
@@ -444,8 +446,8 @@ int MultiLineEdit::newxssize(int p)//p=1, p is to prevent race with newyssize
 //			if (!xscroller) {
 //				xscroller=new Scroller(this,"ww-xscroller",SC_XSCROLL|SC_ABOTTOM,
 //					0,win_h-scrollwidth, win_w-(yscroller&&yscroller->win_on&&yscrollislocal?scrollwidth:0),scrollwidth, 0,
-//					NULL,window,"xscroller",
-//					NULL,
+//					nullptr,window,"xscroller",
+//					nullptr,
 //					0,mostpixwide,1,textrect.width-2*padx);
 //				xscrollislocal=1;
 //				app->addwindow(xscroller,0);
@@ -535,8 +537,8 @@ int MultiLineEdit::inschar(int ch)
 	cdir=0;
 	int f=curpos-ocp;
 	if (curline<0 || curline>=lpers) makeinwindow();
-	if (ch==newline) {
-		curlineoffset=-(padx+textrect.x);
+	if (ch == newline) {
+		curlineoffset = -(padx*textheight + textrect.x);
 		curline++;
 		for (int d=lpers+1; d>curline; d--)
 			{ linestats[d]=linestats[d-1]; linestats[d].start+=f; }
@@ -544,8 +546,8 @@ int MultiLineEdit::inschar(int ch)
 		linestats[curline].pixlen=GetExtent(linestats[curline].start,linestats[curline+1].start,0,linestats[curline+1].start);
 		linestats[curline].indent=0;
 		linestats[curline-1].pixlen=GetExtent(linestats[curline-1].start,linestats[curline].start,0,linestats[curline+1].start);
-		cx=padx;
-		cy=textrect.y+(pady)+curline*textheight+textascent;
+		cx = padx*textheight;
+		cy = textrect.y + (pady*textheight) + curline*textheight + textascent;
 		Getmostwide();
 		wwinspect(curline-2);
 		if (textstyle&TEXT_XSCROLL) newxssize();
@@ -554,7 +556,7 @@ int MultiLineEdit::inschar(int ch)
 		else { nlines=0; needtodraw|=2; }
 	} else {
 		for (int d=curline+1; d<lpers+2; d++) linestats[d].start+=f;  // shift down in memory 
-		linestats[curline].pixlen=GetExtent(curpos,linestats[curline+1].start,cx-padx+curlineoffset,linestats[curline+1].start);
+		linestats[curline].pixlen = GetExtent(curpos,linestats[curline+1].start,cx-padx*textheight+curlineoffset,linestats[curline+1].start);
 		if (linestats[curline].pixlen>maxpixwide || !isword(curpos-1))
 			wwinspect(curline-1);
 		if (linestats[curline].pixlen>mostpixwide) {
@@ -675,7 +677,7 @@ int MultiLineEdit::getscreenline(long pos)
 	return c+2;
 }
 
-int MultiLineEdit::replacesel(const char *newt,int after) //newt=NULL deletes, after=0
+int MultiLineEdit::replacesel(const char *newt,int after) //newt=nullptr deletes, after=0
 {
 	if (!newt) return delsel();
 	delsel();
@@ -757,8 +759,8 @@ int MultiLineEdit::CharInput(unsigned int ch,const char *buffer,int len,unsigned
 				textstyle^=TEXT_WORDWRAP;
 				maxpixwide=30000;
 			} else {
-				textstyle|=TEXT_WORDWRAP;
-				maxpixwide=textrect.width-2*padx;
+				textstyle |= TEXT_WORDWRAP;
+				maxpixwide = textrect.width - 2*padx*textheight;
 			}
 			makelinestart(0,-2,0,0);
 			newyssize();
@@ -842,7 +844,9 @@ int MultiLineEdit::CharInput(unsigned int ch,const char *buffer,int len,unsigned
 			findcaret();
 			if (state&ShiftMask) sellen=curpos-selstart;
 			else sellen=0;
-			needtodraw|=(makeinwindow()?1:4);
+			//needtodraw|=(makeinwindow()?1:4);
+			makeinwindow();
+			needtodraw = 1;
 			return 0;
 
 		case LAX_End: // end
@@ -864,7 +868,9 @@ int MultiLineEdit::CharInput(unsigned int ch,const char *buffer,int len,unsigned
 			}
 			if (state&ShiftMask) sellen=curpos-selstart;
 			else sellen=0;
-			needtodraw|=c|(makeinwindow()?1:4);
+			//needtodraw|=c|(makeinwindow()?1:4);
+			makeinwindow();
+			needtodraw = 1;
 			return 0;
 
 		case LAX_Pgup: //pgup
@@ -885,10 +891,12 @@ int MultiLineEdit::CharInput(unsigned int ch,const char *buffer,int len,unsigned
 			if (cdir) pout=cdir; else cdir=pout;
 			curpos=countout(curline,pout);
 			cx=pout-curlineoffset;
-			cy=textrect.y+(pady)+curline*textheight+textascent;
+			cy=textrect.y+(pady*textheight)+curline*textheight+textascent;
 			if (state&ShiftMask) sellen=curpos-selstart;
 			else sellen=0;
-			return needtodraw|=4;
+			//return needtodraw|=4;
+			needtodraw = 1;
+			return 0;
 
 		case LAX_Pgdown: //pgdn
 			if (state&ShiftMask && !sellen) selstart=curpos;
@@ -910,8 +918,8 @@ int MultiLineEdit::CharInput(unsigned int ch,const char *buffer,int len,unsigned
 			}
 			if (cdir) pout=cdir; else cdir=pout;
 			curpos=countout(curline,pout);
-			cx=pout-curlineoffset;
-			cy=textrect.y+(pady)+curline*textheight+textascent;
+			cx = pout - curlineoffset;
+			cy = textrect.y + (pady*textheight) + curline*textheight + textascent;
 			if (curpos==textlen) findcaret();
 			if (state&ShiftMask) sellen=curpos-selstart;
 			else if (sellen) {
@@ -919,7 +927,9 @@ int MultiLineEdit::CharInput(unsigned int ch,const char *buffer,int len,unsigned
 				dpos=(selstart<curpos?selstart:curpos);
 				if (needtodraw!=1) needtodraw|=2;
 			}
-			return needtodraw|=4;
+			needtodraw = 1;
+			return 0;
+			//return needtodraw|=4;
 
 		case LAX_Up: //up
 			if (state&ShiftMask && !sellen) selstart=curpos;
@@ -927,10 +937,10 @@ int MultiLineEdit::CharInput(unsigned int ch,const char *buffer,int len,unsigned
 			if (linestats[curline].start==0) return c;
 			pout=curlineoffset+cx;
 			 // set cy,curline first
-			if (state&ControlMask) { // ct+up = top of screen 
-				if (curline==0) return 0;
-				curline=0;
-				cy=textrect.y+(pady)+textascent;
+			if (state & ControlMask) { // ct+up = top of screen 
+				if (curline == 0) return 0;
+				curline = 0;
+				cy = textrect.y + (pady*textheight) + textascent;
 			} else {
 				if (curline==0) {
 					for (int c2=lpers+1; c2>0; c2--) linestats[c2]=linestats[c2-1];
@@ -946,7 +956,9 @@ int MultiLineEdit::CharInput(unsigned int ch,const char *buffer,int len,unsigned
 			cx=pout-curlineoffset;
 			if (state&ShiftMask) sellen=curpos-selstart;
 			else sellen=0;
-			needtodraw|=makeinwindow()|4;
+			//needtodraw|=makeinwindow()|4;
+			makeinwindow();
+			needtodraw = 1;
 			return 0;
 
 		case LAX_Down: //down
@@ -958,10 +970,10 @@ int MultiLineEdit::CharInput(unsigned int ch,const char *buffer,int len,unsigned
 					 && linestats[curline].start!=textlen 
 					 &&	!onlf(textlen-1)))
 				return needtodraw;
-			if (state&ControlMask) { // ct+dn = screen bottom  
-				if (curline==lpers-1) return 0;
-				curline=lpers-1;
-				cy=textrect.y+(pady)+curline*textheight+textascent;
+			if (state & ControlMask) { // ct+dn = screen bottom  
+				if (curline == lpers-1) return 0;
+				curline = lpers-1;
+				cy = textrect.y + (pady*textheight) + curline*textheight + textascent;
 			} else {
 				curline++;
 				cy+=textheight;
@@ -970,8 +982,10 @@ int MultiLineEdit::CharInput(unsigned int ch,const char *buffer,int len,unsigned
 					curline--;
 					makelinestart(lpers,-1,1,0);
 					newyssize();
-					c=curline;	newxssize(); curline=c; //***???
-					cy=textrect.y+(pady)+textheight*curline+textascent;
+					c = curline;
+					newxssize();
+					curline = c; //***???
+					cy = textrect.y + (pady*textheight) + textheight*curline + textascent;
 					needtodraw=1;
 				}
 			}
@@ -981,7 +995,9 @@ int MultiLineEdit::CharInput(unsigned int ch,const char *buffer,int len,unsigned
 			if (curpos==textlen) findcaret();
 			if (state&ShiftMask) sellen=curpos-selstart;
 				else sellen=0;
-			needtodraw|=makeinwindow()|4;
+			makeinwindow();
+			needtodraw = 1;
+			//needtodraw|=makeinwindow()|4;
 			return 0;
 
 		case LAX_Left: //left
@@ -1018,7 +1034,9 @@ int MultiLineEdit::CharInput(unsigned int ch,const char *buffer,int len,unsigned
 			}
 			if (state&ShiftMask) sellen=curpos-selstart;
 			else sellen=0;
-			needtodraw|=makeinwindow()|4;
+			//needtodraw|=makeinwindow()|4;
+			makeinwindow();
+			needtodraw = 1;
 			return 0;
 
 		case LAX_Right: //right
@@ -1046,7 +1064,9 @@ int MultiLineEdit::CharInput(unsigned int ch,const char *buffer,int len,unsigned
 			}
 			if (state&ShiftMask) sellen=curpos-selstart;
 			else sellen=0;
-			needtodraw|=(makeinwindow()?1:4);
+			//needtodraw|=(makeinwindow()?1:4);
+			makeinwindow();
+			needtodraw = 1;
 			return 0;
 
 		default: return anXWindow::CharInput(ch,buffer,len,state,d);
@@ -1064,8 +1084,8 @@ int MultiLineEdit::CharInput(unsigned int ch,const char *buffer,int len,unsigned
 long MultiLineEdit::findpos(int l,int pix,int updatecp,int conv) //updatecp==1,conv==1
 {
 	if (conv) {
-		l=(l-pady-textrect.y)/textheight;
-		pix=pix+curlineoffset;
+		l = (l - pady*textheight - textrect.y)/textheight;
+		pix = pix + curlineoffset;
 	}
 	
 	if (pix<0) pix=0;
@@ -1091,10 +1111,10 @@ long MultiLineEdit::findpos(int l,int pix,int updatecp,int conv) //updatecp==1,c
 		}
 		newpos=countout(l,pix);
 		if (updatecp && curpos!=newpos) {
-			curpos=newpos;
-			curline=l;
-			cy=textrect.y+(pady)+l*textheight+textascent;
-			cx=-curlineoffset+pix;
+			curpos = newpos;
+			curline = l;
+			cy = textrect.y + (pady*textheight) + l*textheight + textascent;
+			cx = -curlineoffset + pix;
 		}
 	}
 
@@ -1114,33 +1134,33 @@ long MultiLineEdit::countout(int linenumber,int &pout)
  */
 int MultiLineEdit::makeinwindow()
 {
-	if (cx>=padx && cx<=win_w-padx &&
-		cy-textascent>=pady  && cy+textdescent<=win_h-pady) return 0;
+	if (cx >= padx*textheight && cx <= win_w - padx*textheight &&
+		cy - textascent >= pady*textheight && cy + textdescent <= win_h - pady*textheight) return 0;
 
-	if (cy-textascent<pady) { // cursor is above screen, go up 
+	if (cy - textascent < pady*textheight) { // cursor is above screen, go up 
 		makelinestart(0,-2,1,0);
 		findcaret(); 
 		newyssize();
-	} else if (cy+textdescent>=pady+lpers*textheight) { // curs is below screen, go down 
+	} else if (cy + textdescent >= pady*textheight + lpers*textheight) { // curs is below screen, go down 
 		makelinestart(lpers>0?lpers-1:0,-2,0,0);
 		findcaret(); 
 		newyssize();
 	}
-	 // get horizontal position  
-	if (cx<padx+textrect.x) {
-		curlineoffset+=cx-(padx+textrect.x);
-		if (curlineoffset<-(padx+textrect.x)) curlineoffset=-(padx+textrect.x);
+	 // get horizontal position
+	if (cx < padx * textheight + textrect.x) {
+		curlineoffset += cx - (padx*textheight + textrect.x);
+		if (curlineoffset < -(padx*textheight + textrect.x)) curlineoffset = -(padx*textheight + textrect.x);
 		if (xscroller) xscroller->SetCurPos(curlineoffset);
-		needtodraw=1;
-	} else if (cx>textrect.x+textrect.width-padx) {
-		curlineoffset+=cx-(textrect.x+textrect.width)+padx;
-		if (cx+curlineoffset>mostpixwide) {
+		needtodraw = 1;
+	} else if (cx > textrect.x + textrect.width - padx*textheight) {
+		curlineoffset += cx - (textrect.x + textrect.width) + padx*textheight;
+		if (cx + curlineoffset > mostpixwide) {
 			Getmostwide();
-			longestline=curline;
-			if (textstyle&TEXT_XSCROLL) newxssize(); 
+			longestline = curline;
+			if (textstyle & TEXT_XSCROLL) newxssize();
 		}
 		if (xscroller) xscroller->SetCurPos(curlineoffset);
-		needtodraw=1;
+		needtodraw = 1;
 	}
 	findcaret();
 	return 1;
@@ -1150,27 +1170,27 @@ int MultiLineEdit::makeinwindow()
  */
 void MultiLineEdit::findcaret()
 {
-	if (curpos>=linestats[lpers].start) { // is below screen
-		if (linestats[lpers].start==textlen) { // curpos=textlen 
-			curline=lpers;
-			while (curline>0 && linestats[curline].start==textlen) curline--;
-			if (textlen>0 && onlf(linestats[curline+1].start-1)) curline++;
-			cy=textrect.y+(pady)+textheight*curline+textascent;
-			cx=GetExtent(linestats[curline].start,curpos,0,linestats[curline+1].start)-curlineoffset;		 
+	if (curpos >= linestats[lpers].start) { // is below screen
+		if (linestats[lpers].start == textlen) { // curpos=textlen 
+			curline = lpers;
+			while (curline > 0 && linestats[curline].start == textlen) curline--;
+			if (textlen > 0 && onlf(linestats[curline+1].start-1)) curline++;
+			cy = textrect.y + (pady*textheight) + textheight*curline + textascent;
+			cx = GetExtent(linestats[curline].start, curpos, 0, linestats[curline+1].start) - curlineoffset;		 
 		} else {
-			cy=(win_h-pady)+1+textascent;
-			curline=lpers+2;
+			cy = (win_h - pady*textheight) + 1 + textascent;
+			curline = lpers + 2;
 		}
 
-	} else if (curpos<linestats[0].start) { // is above screen
-		cy=-1;
-		curline=-1;
+	} else if (curpos < linestats[0].start) { // is above screen
+		cy = -1;
+		curline = -1;
 
 	} else { // is on screen
-		curline=lpers-1;
-		while (curpos<linestats[curline].start) curline--;
-		cy=textrect.y+(pady)+textheight*curline+textascent;
-		cx=GetExtent(linestats[curline].start,curpos,0,linestats[curline+1].start)-curlineoffset;		 
+		curline = lpers-1;
+		while (curpos < linestats[curline].start) curline--;
+		cy = textrect.y + (pady*textheight) + textheight*curline + textascent;
+		cx = GetExtent(linestats[curline].start, curpos, 0, linestats[curline+1].start) - curlineoffset;		 
 	}
 }
 
@@ -1184,15 +1204,16 @@ int MultiLineEdit::ShiftScreen(int x,long y)  // ylines
 {
 	DBG cerr <<"ShiftScreen:"<<x<<','<<y<<endl;
 	if (!x && !y) return 0;
-	if (x && !(textstyle&TEXT_WORDWRAP) && mostpixwide>win_w-2*padx) {
+	if (x && !(textstyle & TEXT_WORDWRAP) && mostpixwide > win_w - 2*padx*textheight) {
 		//DBG cerr <<':'<<x<<','<<xscroller->GetCurPos();
-		if (x>0) { // shift screen right
-			if (curlineoffset-x<-padx) x=curlineoffset+padx;
-		} else if (x<0) {
-			if (mostpixwide-(curlineoffset-x)<win_w-padx) x=win_w-padx-mostpixwide+curlineoffset;
+		if (x > 0) { // shift screen right
+			if (curlineoffset - x < -padx*textheight) x = curlineoffset + padx*textheight;
+		} else if (x < 0) {
+			if (mostpixwide - (curlineoffset - x) < win_w - padx*textheight)
+				x = win_w - padx*textheight - mostpixwide + curlineoffset;
 		}
-		cx+=x;
-		curlineoffset-=x;
+		cx += x;
+		curlineoffset -= x;
 		if (xscroller) xscroller->SetCurPos(curlineoffset);
 
 		DBG cerr <<" "<<x<<','<<(xscroller?xscroller->GetCurPos():-10000)<<" mpw="<<mostpixwide;
@@ -1246,7 +1267,9 @@ int MultiLineEdit::LBDown(int x,int y, unsigned int state,int count,const LaxMou
 	findpos(y,x); // this sets curpos and findscaret
 	DBG cerr <<' '<<thetext[curpos]<<':'<<(int)thetext[curpos]<<' ';
 	if (state&ShiftMask) sellen=curpos-selstart;
-	needtodraw|=makeinwindow()|4;
+	//needtodraw|=makeinwindow()|4;
+	makeinwindow();
+	needtodraw = 1;
 	return 0;
 }
 
@@ -1279,7 +1302,7 @@ int MultiLineEdit::LBDblClick(int x,int y, unsigned int state,const LaxMouse *d)
 	findcaret();
 	dpos=selstart; nlines=1;
 	sellen=curpos-selstart;
-	needtodraw|=2;
+	needtodraw = 1;
 	return 0;
 }
 
@@ -1314,7 +1337,7 @@ int MultiLineEdit::RBUp(int x,int y,unsigned int state,const LaxMouse *d)
 int MultiLineEdit::WheelDown(int x,int y,unsigned int state,int count,const LaxMouse *d)
 {
 	if (state&ControlMask) { // shift x
-		if (state&ShiftMask) ShiftScreen((win_w-2*padx)*4/5,0);
+		if (state&ShiftMask) ShiftScreen((win_w - 2*padx*textheight)*4/5,0);
 		else ShiftScreen(1,0);
 	} else { // shift y
 		if (state&ShiftMask) ShiftScreen(0,lpers-1);
@@ -1327,7 +1350,7 @@ int MultiLineEdit::WheelDown(int x,int y,unsigned int state,int count,const LaxM
 int MultiLineEdit::WheelUp(int x,int y,unsigned int state,int count,const LaxMouse *d)
 {
 	if (state&ControlMask) { // shift x
-		if (state&ShiftMask) ShiftScreen(-(win_w-2*padx)*4/5,0);
+		if (state&ShiftMask) ShiftScreen(-(win_w - 2*padx*textheight)*4/5,0);
 		else ShiftScreen(-1,0);
 	} else { // shift y
 		if (state&ShiftMask) ShiftScreen(0,-lpers+1);
@@ -1342,12 +1365,12 @@ int MultiLineEdit::MouseMove(int x,int y,unsigned int state,const LaxMouse *d)
 { 
 	//DBG cerr << "\ngeMove: ";
 	if (buttondown.isdown(d->id,LEFTBUTTON)) {
-		if (x>=padx && x<(win_w-padx) &&
-			y>=(pady) && y<(pady)+lpers*textheight) {
-			if (!sellen) selstart=curpos;
+		if (x >= padx*textheight && x < (win_w - padx*textheight) &&
+			y >= (pady*textheight) && y < (pady*textheight) + lpers * textheight) {
+			if (!sellen) selstart = curpos;
 			findpos(y,x);
-			sellen=curpos-selstart;
-			needtodraw|=4;
+			sellen = curpos - selstart;
+			needtodraw |= 4;
 			return 0;
 		}
 
@@ -1594,7 +1617,7 @@ int MultiLineEdit::Getmostwide()
 			mostpixwide=linestats[c].pixlen;
 			longestline=c;
 		}
-	if (xscroller) xscroller->SetSize(mostpixwide,textrect.width-2*padx);
+	if (xscroller) xscroller->SetSize(mostpixwide,textrect.width - 2*padx*textheight);
 	return c;
 }
 
@@ -1630,7 +1653,7 @@ void MultiLineEdit::Refresh()
 		if (!onlf(thetext[textlen-1])) nl++;
 
 		for (int c=0; c<nl; c++) {
-			dp->drawnum(textrect.x/2, textrect.y + pady + c*th + th/2, c+1);
+			dp->drawnum(textrect.x/2, textrect.y + pady*textheight + c*th + th/2, c+1);
 		}
 	}
 }
@@ -1649,11 +1672,11 @@ void MultiLineEdit::DrawText(int black) // black=1
 	if (curline+nlines<lpers+1 && linestats[curline+nlines].start==textlen) nlines=0;
 	if (nlines==0) nlines=lpers+1;
 	if (dpos==0) dpos=-1;
-	spy=textrect.y+pady+textascent;
+	spy = textrect.y + pady*textheight + textascent;
 
 	 // posinline already==linestats[0].start 
 	 // draw from [cline,cline+nlines), cline is the screen line containing dpos
-	if (dpos!=textlen && dpos>=linestats[lpers+1].start) { spy=(win_h-pady); } // dpos definitely offscreen 
+	if (dpos!=textlen && dpos>=linestats[lpers+1].start) { spy = (win_h - pady*textheight); } // dpos definitely offscreen 
 	else if (dpos>linestats[0].start) { 
 		if (dpos==textlen) {
 			cline=lpers;
@@ -1663,14 +1686,14 @@ void MultiLineEdit::DrawText(int black) // black=1
 			cline=0;
 			while (cline<lpers+1 && dpos>=linestats[cline+1].start) cline++; 
 		}
-		spy=(pady)+cline*textheight+textascent;
+		spy = (pady*textheight) + cline*textheight + textascent;
 		posinline=thetext+dpos; //*** this won't work when dpos is in a non-left tab segment
 		//lsofar=GetExtent(linestats[cline].start,posinline-thetext,0,linestats[cline+1].start);
 		GetExtent(linestats[cline].start,posinline-thetext,0,linestats[cline+1].start);
 	}  
 
-	if (textlen==0) nlines=0;
-	while (spy<(win_h-pady) && nlines) {
+	if (textlen == 0) nlines = 0;
+	while (spy < (win_h - pady*textheight) && nlines) {
  		 // *** this ignores small updates, shouldn't redraw the whole line???
 		 //  	would need special check for non-left tabs when setting dpos
 		DrawLineOfText(-curlineoffset,spy, linestats[cline].start,linestats[cline+1].start-linestats[cline].start,check);
@@ -1680,8 +1703,11 @@ void MultiLineEdit::DrawText(int black) // black=1
 		spy+=textheight;
 	}
 
-	if (black && nlines && spy<(win_h-pady)) { // black out the remainder of the screen
-		int x=padx,y=spy, w=win_w,h=win_h-y;
+	if (black && nlines && spy < (win_h - pady*textheight)) { // black out the remainder of the screen
+		int x = padx*textheight;
+		int y = spy;
+		int w = win_w;
+		int h = win_h - y;
 		if (w>0 && h>0) Black(x,y,w,h);
 	}
 	dpos=0; nlines=0;
@@ -1714,14 +1740,14 @@ void MultiLineEdit::SetupScreen()
 	if (textheight==0) return;
 	if (textrect.height==0) return;
 
-	lpers=(textrect.height-2*pady)/textheight;
+	lpers = (textrect.height - 2*pady*textheight)/textheight;
 	DBG cerr <<"lpers=="<<lpers<<endl;
 
 	makelinestart(0,-1,1,1);
 	Getmostwide();
 
-	if (textstyle&TEXT_WORDWRAP) {
-		maxpixwide=textrect.width-2*padx;
+	if (textstyle & TEXT_WORDWRAP) {
+		maxpixwide = textrect.width - 2*padx*textheight;
 	}
 
 	if (textstyle&TEXT_XSCROLL) {
@@ -1755,8 +1781,8 @@ void MultiLineEdit::settextrect()
 		nn[sz]='\0';
 		double w=thefont->Extent(nn,sz);
 
-		textrect.x += w+padx;
-		textrect.width -= w+padx;
+		textrect.x += w + padx*textheight;
+		textrect.width -= w + padx*textheight;
 	}
 }
 
@@ -1784,7 +1810,7 @@ int MultiLineEdit::MoveResize(int nx,int ny,int nw,int nh)
 
 Attribute *MultiLineEdit::dump_out_atts(Attribute *att,int what,DumpContext *savecontext)
 {
-	if (!att) att=new Attribute(whattype(),NULL);
+	if (!att) att=new Attribute(whattype(),nullptr);
 	anXWindow::dump_out_atts(att,what,savecontext);
 
 	if (what==-1) {

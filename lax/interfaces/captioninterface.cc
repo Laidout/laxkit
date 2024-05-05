@@ -48,10 +48,6 @@
 #include <lax/language.h>
 
 
-//template implementation:
-#include <lax/refptrstack.cc>
-#include <lax/lists.cc>
-
 using namespace Laxkit;
 
 #include <iostream>
@@ -1842,6 +1838,7 @@ int CaptionInterface::Refresh()
 
 		viewport->transformToContext(m,extrahover,0,-1);
 		dp->PushAndNewTransform(m);
+		dp->LineWidthScreen(ScreenLine());
 		dp->moveto(extrahover->obj->minx, extrahover->obj->miny);
 		dp->lineto(extrahover->obj->maxx, extrahover->obj->miny);
 		dp->lineto(extrahover->obj->maxx, extrahover->obj->maxy);
@@ -1851,7 +1848,6 @@ int CaptionInterface::Refresh()
 		dp->PopAxes(); 
 
 		if (data) dp->PopAxes();
-
 	}
 
 	if (!data) return 1;
@@ -1914,15 +1910,15 @@ int CaptionInterface::Refresh()
 
 		 //draw little circle around origin
 		dp->LineAttributes(1,LineSolid,CapRound,JoinRound);
-		flatpoint p=dp->realtoscreen(0,0);
+		flatpoint p = dp->realtoscreen(0,0);
 		dp->drawpoint(p, 4,0);
 
 
-		 //draw alignment knobs
+		// draw alignment knobs
 		dp->NewFG(0.0,0.0,1.0,.25);
 		double thin = ScreenLine();
-		double xs=grabpad*thin/dp->Getmag()/2;
-		double ys=grabpad*thin/dp->Getmag(1)/2;
+		double xs = grabpad*thin/dp->Getmag()/2;
+		double ys = grabpad*thin/dp->Getmag(1)/2;
 
 		dp->DrawReal();
 		dp->LineAttributes(-1,LineSolid,CapRound,JoinRound);
@@ -2463,25 +2459,16 @@ int CaptionInterface::scan(int x,int y,unsigned int state, int *line, int *pos)
 {
 	if (!data) return CAPTION_None;
 
-	double xmag=norm(dp->realtoscreen(transform_point(data->m(),flatpoint(1,0)))
-                    -dp->realtoscreen(transform_point(data->m(),flatpoint(0,0))));
-    double ymag=norm(dp->realtoscreen(transform_point(data->m(),flatpoint(0,1)))
-                    -dp->realtoscreen(transform_point(data->m(),flatpoint(0,0))));
+	double xmag=norm(realtoscreen(transform_point(data->m(),flatpoint(1,0)))
+                    -realtoscreen(transform_point(data->m(),flatpoint(0,0))));
+    double ymag=norm(realtoscreen(transform_point(data->m(),flatpoint(0,1)))
+                    -realtoscreen(transform_point(data->m(),flatpoint(0,0))));
 
 	double xm = grabpad*ScreenLine()/xmag/2;
 	double ym = grabpad*ScreenLine()/ymag/2;
-	//double xm=grabpad/Getmag();
-	//double ym=grabpad/Getmag(1);
-	DBG cerr <<"caption scan xm: "<<xm<<"  ym: "<<ym<<endl;
 
-	flatpoint p=screentoreal(x,y);
-	p=data->transformPointInverse(p);
-
-	//--------------
-	//flatpoint ul=realtoscreen(flatpoint(data->minx,data->miny));
-    //flatpoint ur=realtoscreen(flatpoint(data->maxx,data->miny));
-    //flatpoint ll=realtoscreen(flatpoint(data->minx,data->maxy));
-    //flatpoint lr=realtoscreen(flatpoint(data->maxx,data->maxy));
+	flatpoint p = screentoreal(x,y);
+	p = data->transformPointInverse(p);
 
 
 	if (p.x>=data->minx && p.x<=data->maxx && p.y>=data->miny && p.y<=data->maxy) {

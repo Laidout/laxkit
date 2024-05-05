@@ -53,7 +53,6 @@ class MultiLineEdit : public TextXEditBaseUtf8
 	virtual void settextrect();
 
  public:
-	int padx,pady;
 	MultiLineEdit(anXWindow *prnt,const char *nname,const char *ntitle,unsigned long nstyle,
 						int xx,int yy,int ww,int hh,int brder,
 						anXWindow *prev,unsigned long nowner=0,const char *nsend=NULL,

@@ -69,7 +69,7 @@ NumSlider::NumSlider(anXWindow *parnt,const char *nname,const char *ntitle,unsig
 
     InstallColors(THEME_Panel);
 
-    if (win_w == 0 || win_h == 0)
+    if (win_w <= 0 || win_h <= 0)
       WrapToExtent();
 }
 
@@ -270,7 +270,7 @@ int NumSlider::Select(double nn)
 int NumSlider::Mode(int newmode)
 {
 	if (newmode == MODE_Editing && mode != MODE_Editing) {
-		// edit current number
+		// activate editor for current number
 		char num[30];
 		if (win_style & DOUBLES) sprintf(num,"%.8g", curnum);
 		else sprintf(num, "%d", (int)curnum);
@@ -284,7 +284,7 @@ int NumSlider::Mode(int newmode)
 			 num,0);
 
 		le->SetSelection(0,-1);
-		le->padx = .2 * th;
+		le->padx = .2;
 		app->addwindow(le);
 		app->setfocus(le, 0, nullptr);
 
