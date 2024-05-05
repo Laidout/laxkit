@@ -233,31 +233,28 @@ const char *LineInput::tooltip(const char *ntip)
 //! Take any StrEventData and set thetext from it.
 int LineInput::Event(const EventData *data,const char *mes)
 {
-	DBG cerr <<" LineInput "<<WindowTitle()<<" event: "<<(mes ? mes : "--")<<endl;
+	if (dynamic_cast<const StrEventData *>(data)) {
+		if (!strcmp(mes,"lineinput-popup-style")) {
+			if (!win_owner || !(win_style&LINP_POPUP)) return 1;
+			
+			 //send the text, then destroy this window
+			char *str=GetText();
+			if (!str) return 0;
+			StrEventData *sendd=new StrEventData();
+			sendd->str=str;
+			app->SendMessage(sendd,win_owner,win_sendthis,object_id);
+			app->destroywindow(this);
+			return 0;
 
-	if (!dynamic_cast<const StrEventData *>(data)) return 1;
-
-	if (!strcmp(mes,"lineinput-popup-style")) {
-		if (!win_owner || !(win_style&LINP_POPUP)) return 1;
-		
-		 //send the text, then destroy this window
-		char *str=GetText();
-		if (!str) return 0;
-		StrEventData *sendd=new StrEventData();
-		sendd->str=str;
-		app->SendMessage(sendd,win_owner,win_sendthis,object_id);
-		app->destroywindow(this);
-		return 0;
-
-	} else if (!strcmp(mes,"helper")) {
-		const StrEventData *sdata = dynamic_cast<const StrEventData *>(data);
-		SetText(sdata->str);
-		le->Modified(1);
-		return 0;
+		} else if (!strcmp(mes,"helper")) {
+			const StrEventData *sdata = dynamic_cast<const StrEventData *>(data);
+			SetText(sdata->str);
+			le->Modified(1);
+			return 0;
+		}
 	}
 
-	SetText(dynamic_cast<const StrEventData *>(data)->str);
-	return 0;
+	return anXWindow::Event(data, mes);
 }
 
 //! Return pointer to the internal LineEdit.
