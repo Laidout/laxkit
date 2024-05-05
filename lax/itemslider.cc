@@ -145,7 +145,12 @@ int ItemSlider::GetCurrentItemId()
  */
 int ItemSlider::LBDown(int x,int y,unsigned int state,int count,const LaxMouse *d)
 {
-	buttondown.down(d->id,LEFTBUTTON, x,y, curitem);
+	buttondown.down(d->id, LEFTBUTTON, x,y, curitem);
+	// bit of a hack to allow rational sliding when a slide triggers a change in window location
+	// such as when UI scales
+	int gx,gy;
+	screen_coordinates(x,y, this, &gx,&gy);
+	buttonglobal.down(d->id, LEFTBUTTON, gx,gy, curitem);
 	return 0;
 }
 
@@ -163,10 +168,11 @@ int ItemSlider::LBUp(int x,int y,unsigned int state,const LaxMouse *d)
 
 	int lbitem;
 	int dragged=buttondown.up(d->id,LEFTBUTTON, &lbitem);
+	buttonglobal.up(d->id, LEFTBUTTON);
 
-	int ww=win_w/2;
+	int ww = win_w/2;
 
-	if (win_style&EDITABLE) {
+	if (win_style & EDITABLE) {
 		ww = UIScale() * win_themestyle->normal->textheight();
 		if (dragged<movewidth && x>=ww && x<win_w-ww) {
 			Mode(1);
@@ -174,9 +180,9 @@ int ItemSlider::LBUp(int x,int y,unsigned int state,const LaxMouse *d)
 		}
 	}
 
-	if (dragged<movewidth && x<ww) SelectPrevious(1);
-	if (dragged<movewidth && x>=win_w-ww) SelectNext(1);
-	if (curitem!=lbitem) send();
+	if (dragged < movewidth && x < ww) SelectPrevious(1);
+	if (dragged < movewidth && x >= win_w - ww) SelectNext(1);
+	if (curitem != lbitem) send();
 	return 0;
 }
 
@@ -209,32 +215,37 @@ int ItemSlider::scan(int x,int y,unsigned int state)
 int ItemSlider::MouseMove(int x,int y,unsigned int state,const LaxMouse *d)
 {
 	if (!buttondown.isdown(d->id,LEFTBUTTON)) {
-		int nhover=scan(x,y,state);
+		int nhover = scan(x,y,state);
 
-		if (nhover!=hover) {
-			hover=nhover;
-			needtodraw=1;
+		if (nhover != hover) {
+			hover = nhover;
+			needtodraw = 1;
 		}
 		return 1;
 	}
 
 	int mx,my;
-	buttondown.getcurrent(d->id, LEFTBUTTON, &mx,&my);
+	buttonglobal.getcurrent(d->id, LEFTBUTTON, &mx,&my);
+	int gx,gy;
+	screen_coordinates(x,y, this, &gx,&gy);
+	
+	double multiplier = 1;
+	if ((state & (ShiftMask | ControlMask)) == ShiftMask) multiplier = 10;
+	else if ((state & (ShiftMask | ControlMask)) == ControlMask) multiplier = 10;
+	else if ((state & (ShiftMask | ControlMask)) == (ShiftMask | ControlMask)) multiplier = 20;
 
-	double multiplier=1;
-	if ((state&(ShiftMask|ControlMask))==ShiftMask) multiplier=10;
-	else if ((state&(ShiftMask|ControlMask))==ControlMask) multiplier=10;
-	else if ((state&(ShiftMask|ControlMask))==(ShiftMask|ControlMask)) multiplier=20;
-
-	int m=0;
-	if (win_style&YSHIFT) {
-		if (my-y>movewidth) { SelectPrevious(multiplier); m=1; }
-		else if (y-my>movewidth) { SelectNext(multiplier); m=1; }
+	bool moved = false;
+	if (win_style & YSHIFT) {
+		if (my-gy > movewidth)  { SelectPrevious(multiplier); moved = 1; }
+		else if (gy-my > movewidth) { SelectNext(multiplier); moved = 1; }
 	} else {
-		if (mx-x>movewidth) { SelectPrevious(multiplier); m=1; }
-		else if (x-mx>movewidth) { SelectNext(multiplier); m=1; }
+		if (mx-gx > movewidth)  { SelectPrevious(multiplier); moved = 1; }
+		else if (gx-mx > movewidth) { SelectNext(multiplier); moved = 1; }
 	}
-	if (m) buttondown.move(d->id, x,y);
+	if (moved) {
+		buttondown.move(d->id, x,y);
+		buttonglobal.move(d->id, gx,gy);
+	}
 	return 0;
 }
 

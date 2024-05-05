@@ -35,6 +35,7 @@ class ItemSlider : public anXWindow
 	int curitem;
 
 	Laxkit::ButtonDownInfo buttondown;
+	Laxkit::ButtonDownInfo buttonglobal;
 	int hover;
 
 	virtual int send();
