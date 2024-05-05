@@ -1555,12 +1555,11 @@ bool GradientStrip::ExportSwatchBookerSBZ(const char *filename)
 
 	if (!zip.Open(filename, ZipWriter::Truncate)) return false;
 
-	//zip.WriteFile("mimetype", "application/x-krita-palette", 27);
-	//zip.WriteFile("profiles.xml", "<Profiles></Profiles>", 21);
-	//zip.WriteFile(default_icc, default_icc_buf, default_icc_len);
-	
-	// Something along the lines of:
-	// *** PUT DOC HERE!!!!
+	// A zip containing structure similar to:
+	//   swatchbooker.sbz
+	//   profiles/
+	//     SomeProfile.icm
+	//     SecondProfile.icm
 	
 	IOBuffer f;
 	int num_cols = num_columns_hint > 0 ? num_columns_hint : 16;
@@ -1636,7 +1635,7 @@ bool GradientStrip::ExportSwatchBookerSBZ(const char *filename)
 	}
 	f.Printf("  </book>\n");
 
-	f.Printf("</SwatchBooker>");
+	f.Printf("</SwatchBook>");
 
 	zip.WriteFile("swatchbook.xml", f.GetStringBuffer(), f.GetStringBufferLength());
 	zip.Close();
