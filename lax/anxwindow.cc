@@ -1383,7 +1383,7 @@ int anXWindow::event(XEvent *e)
 	DBG        <<"\", got event "<<xlib_event_name(e->type)<<" "<<e->xany.serial<<endl;
 
 	switch(e->type) {
-		 case ClientMessage: {
+		case ClientMessage: {
 		 	char *aname=XGetAtomName(app->dpy,e->xclient.message_type);
 			DBG cerr << "ClientMessage for "<<WindowTitle()<<": "<<aname<<endl;
 
@@ -1419,13 +1419,14 @@ int anXWindow::event(XEvent *e)
      
 			} else if (strcmp(aname,"XdndDrop")==0) {
 				// Sent from source to target to complete the drop.
-				HandleXdndDrop(e);
+				HandleXdndDrop(e); //this calls XConvertSelection, so we need to watch for a SelectionNotify event
 
 			} else if (strcmp(aname,"XdndLeave")==0) {
 				DBG cerr << "XdndLeave in "<<WindowTitle()<<endl;
 
 				// need to cancel any possible dnd in process
 				if (xlib_dnd) { delete xlib_dnd; xlib_dnd = nullptr; }
+				DndHoverCanceled();
 			}
 
 			XFree(aname);
@@ -1581,6 +1582,7 @@ int anXWindow::event(XEvent *e)
 			int format;
 			unsigned long len, remaining;
 			unsigned char *data=nullptr;
+			bool drop_accepted = false;
 			if (Success == XGetWindowProperty(
 							app->dpy,
 							e->xselection.requestor,
@@ -1592,18 +1594,18 @@ int anXWindow::event(XEvent *e)
 							&format, &len, &remaining, &data)) {
 
 				char *actualtype = XGetAtomName(app->dpy,actual_type);
-				DBG if (actualtype) cerr <<" dropping selection of type "<<(actualtype ? actualtype : "(unknown)")<<endl;
+				DBG if (actualtype) cerr <<"  dropping selection of type "<<(actualtype ? actualtype : "(unknown)")<<endl;
 
 				if (e->xselection.selection == XdndSelection && xlib_dnd && xlib_dnd->targetChild) {
-					xlib_dnd->targetChild->selectionDropped(data,len,actualtype,selection);
-				} else selectionDropped(data,len,actualtype,selection);
+					drop_accepted = !xlib_dnd->targetChild->selectionDropped(data,len,actualtype,selection);
+				} else drop_accepted = !selectionDropped(data,len,actualtype,selection);
 
 				if (actualtype) XFree(actualtype);
 				XFree(data);
 			}
 
 			if (e->xselection.selection == XdndSelection) {
-				cerr << " **** Need to send a XDndFinished"<<endl;
+				HandleXdndFinished(e, drop_accepted);
 				if (xlib_dnd) { delete xlib_dnd; xlib_dnd = nullptr; }
 			}
 
@@ -2171,7 +2173,7 @@ int anXWindow::HandleXdndEnter(XEvent *e)
 	// see for more in depth description: https://www.freedesktop.org/wiki/Specifications/XDND/
 	// also see blender's implementation: https://github.com/dfelinto/blender/blob/master/extern/xdnd/xdnd.c
 
-	DBG cerr << "XdndEnter in "<<WindowTitle()<<endl;
+	DBG cerr << "XdndEnter in "<<WindowTitle()<<", this window xid: "<<xlib_window<<endl;
 
 	if (xlib_dnd) return 1; //ignore any dnd if there is a current dnd
 
@@ -2179,10 +2181,12 @@ int anXWindow::HandleXdndEnter(XEvent *e)
 
 	//determine Xdnd protocol version. warning: no protocol mishap detection, assuming good for XDND_VERSION
 	xlib_dnd->version = (e->xclient.data.l[1]&0xff000000)>>24;
+	DBG cerr << "  dropping from dnd version: " << xlib_dnd->version <<endl;
     if (xlib_dnd->version > 5) xlib_dnd->version = XDND_VERSION;
 
 	xlib_dnd->mode = DndState::WaitingForDrop;
     xlib_dnd->source_window = (XID)e->xclient.data.l[0];
+    DBG cerr << "  source xid: " << xlib_dnd->source_window<<endl;
 
     bool more_than_three_types = ((e->xclient.data.l[1] & 1) != 0);
     DBG cerr << "  "<< (more_than_three_types ? "more than three types" : "1,2,or 3 types")<<endl;
@@ -2255,10 +2259,12 @@ int anXWindow::HandleXdndEnter(XEvent *e)
 
 	//whether we accept a drop is handled on XdndPosition messages
 	xlib_dnd->SetNames(names, num_names);
+	DndHoverStart();
 	return 0;
 }
 
 /*! When a drag and drop source moves around over us, after already entering.
+ * This results in the target sending an XdndStatus message back to the source.
  */
 int anXWindow::HandleXdndPosition(XEvent *e)
 {
@@ -2290,7 +2296,7 @@ int anXWindow::HandleXdndPosition(XEvent *e)
 	int y = (e->xclient.data.l[2]    )&0xffff;
 	xlib_dnd->lastx = x;
 	xlib_dnd->lasty = y;
-	DBG cerr << "Dnd coords: "<<x<<", "<<y<<endl;
+	DBG cerr << "  Dnd coords: "<<x<<", "<<y<<endl;
 
 	xlib_dnd->action = XdndActionPrivate;
 	xlib_dnd->inw = xlib_dnd->inh = 0;
@@ -2359,6 +2365,7 @@ int anXWindow::HandleXdndPosition(XEvent *e)
 	DBG cerr <<"   sent XdndStatus to "<<e->xclient.data.l[0]<<endl;
 	XSendEvent(app->dpy, e->xclient.data.l[0], False, 0, &s);
 
+	DndHoverMove(flatpoint(xx,yy), nullptr);
 	return 0;
 }
 
@@ -2407,8 +2414,49 @@ int anXWindow::HandleXdndDrop(XEvent *e)
      // else a non-send_event SelectionNotify sent to this.
     xlib_dnd->source_window = e->xclient.data.l[0]; //note this SHOULD have been the same as previous source_window from prev events
 
+    DBG cerr << "  ..waiting for XConvertSelection to be ready..."<<endl;
     return 0;
 }
+
+int anXWindow::HandleXdndFinished(XEvent *e, bool accepted)
+{
+	if (!xlib_dnd) return 1;
+
+	// XDndFinished:
+	//
+    // data.l[0] contains the XID of the target window.
+    // data.l[1]:
+    //     Bit 0 is set if the current target accepted the drop and successfully performed
+    //     the accepted drop action. (new in version 5) (If the version being used by the
+    //     source is less than 5, then the program should proceed as if the bit were set,
+    //	   regardless of its actual value.)
+    //     The rest of the bits are reserved for future use.
+    // data.l[2] contains the action performed by the target. None should be sent if the 
+    //     current target rejected the drop, i.e., when bit 0 of data.l[1] is zero. (new in version 5)
+    //     (Note: Performing an action other than the one that was accepted with the last XdndStatus
+    //     message is strongly discouraged because the user expects the action to match the visual
+    //     feedback that was given based on the XdndStatus messages!)
+
+	DBG cerr <<"Send XdndFinished to "<<xlib_dnd->source_window<<endl;
+
+	XEvent s;
+	s.xclient.type         = ClientMessage;
+	s.xclient.display      = app->dpy;
+	s.xclient.window       = xlib_dnd->source_window;
+	s.xclient.message_type = XdndFinished;
+	s.xclient.format       = 32;
+	s.xclient.data.l[0]    = xlib_window;
+	if (xlib_dnd->version >= 5) {
+		s.xclient.data.l[1] = accepted;
+		s.xclient.data.l[2] = xlib_dnd->action;
+	}
+
+	XSendEvent(app->dpy, xlib_dnd->source_window, False, 0, &s);
+	DndHoverSuccess();
+	
+	return 0;
+}
+
 
 #endif //_LAX_PLATFORM_XLIB
 

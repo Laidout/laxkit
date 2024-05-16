@@ -189,6 +189,7 @@ class anXWindow : virtual public EventReceiver,
   	int HandleXdndEnter(XEvent *e);
   	int HandleXdndPosition(XEvent *e);
 	int HandleXdndDrop(XEvent *e);
+	int HandleXdndFinished(XEvent *e, bool accepted);
 
 #endif //_LAX_PLATFORM_XLIB
 
@@ -310,6 +311,12 @@ class anXWindow : virtual public EventReceiver,
 	virtual void  contentChanged(); //this sends a ContentChange message to owners
 	virtual void  selectionChanged(); //calling this sends a SelectionChange message to owners
 	virtual bool DndWillAcceptDrop(int x, int y, const char *action, IntRectangle &rect, char **types, int *type_ret, anXWindow **child_ret);
+
+	// notifications during dnd events from other sources
+	virtual void DndHoverStart() {}
+	virtual void DndHoverMove(flatpoint p, char *action) {}
+	virtual void DndHoverCanceled() {}
+	virtual void DndHoverSuccess() {} // note this is called after selectionDropped() called
 
 
 	anXWindow *nextcontrol,*prevcontrol;
