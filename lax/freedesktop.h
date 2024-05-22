@@ -42,6 +42,7 @@ Laxkit::MenuInfo *recently_used(const char *recentfile, const char *mimetype,con
 Laxkit::MenuInfo *get_categorized_bookmarks(const char *file,const char *filetype, Laxkit::MenuInfo *menu, bool flat);
 int add_bookmark(const char *directory, int where);
 
+char *freedesktop_get_existing_thumbnail(const char *file);
 char *freedesktop_thumbnail(const char *file, char which='n');
 void freedesktop_md5(const unsigned char *data, int len, unsigned char *md5_ret);
 

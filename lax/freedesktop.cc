@@ -1257,41 +1257,90 @@ void freedesktop_md5(const unsigned char *data, int data_len, unsigned char *md5
 	EVP_MD_CTX_free(mdctx);
 }
 
+static const char *thumb_dirs[] = {
+	"~/.cache/thumbnails/normal/",
+	"~/.cache/thumbnails/large/",
+	"~/.thumbnails/normal/",
+	"~/.thumbnails/large/",
+	nullptr
+};
 
-//! Return the freedesktop thumbnail name corresponding to file.
+/*! Search for a thumbnail for file, and return the thumbnail file location.
+ * Return nullptr if no such file found.
+ * 
+ * \todo use actual XDG location instead of hardcoding "~/.cache/thumbnails"
+ */
+char *freedesktop_get_existing_thumbnail(const char *file)
+{
+	if (isblank(file)) return nullptr;
+
+	unsigned char md[33];
+	md[32] = '\0';
+	char *str, *h, *thumb;
+
+	h = full_path_for_file(file,NULL);
+	str = file_to_uri(h);
+	delete[] h;
+
+	//MD5() is deprecated, so rolling our own here:
+	freedesktop_md5((unsigned char *)str, strlen(str), md);
+	delete[] str;
+
+	for (int i = 15; i >= 0; i--) {
+		int c = md[i] & 15;
+		md[2*i+1] = "0123456789abcdef"[c];
+		c = (md[i] >> 4) & 15;
+		md[2*i] = "0123456789abcdef"[c];
+	}
+	
+	for (int i=0; thumb_dirs[i] != nullptr; i++) {
+		thumb = expand_home(thumb_dirs[i]);
+		appendstr(thumb, "/");
+		appendstr(thumb, (char*)md);
+		appendstr(thumb, ".png");
+		if (file_exists(thumb, 1, nullptr)) return thumb;
+		delete[] thumb;
+	}
+
+	return nullptr;
+}
+
+//! Return a freedesktop thumbnail file location corresponding to file.
 /*! If which=='n' (default), then use the "normal" thumbnail, else use the "large" thumbnail.
  *
  * Returns a new'd char[] with the path to the presumed preview. Does no existence check
  * or actual thumbnail generation.
+ * 
+ * \todo use actual XDG location instead of hardcoding "~/.cache/thumbnails"
  */
 char *freedesktop_thumbnail(const char *file, char which)
 {
+	if (isblank(file)) return nullptr;
+
 	char *pname;
-	char *str,*h;
+	char *str, *h;
 	unsigned char md[17];
 
-	 //provide space for 32 characters of the MD5 hex value
-	pname=newstr(which=='n'?
-					 "~/.thumbnails/normal/                                .png"
-					 :"~/.thumbnails/large/                                .png");
+	//provide space for 32 characters of the MD5 hex value
+	pname = newstr(which == 'n'?
+					 "~/.cache/thumbnails/normal/                                .png"
+					 :"~/.cache/thumbnails/large/                                .png");
 	expand_home_inplace(pname);
 
-	h=full_path_for_file(file,NULL);
-	str=file_to_uri(h);
+	h = full_path_for_file(file, nullptr);
+	str = file_to_uri(h);
 
 	delete[] h;
-	if (!str) cerr <<"**** ERROR!! null str here but there shouldn't be!!"<<endl;
 
-	//TODO: MD5() is deprecated, need to find a suitable replacement
-	//MD5((unsigned char *)str, strlen(str), md);
+	//MD5() is deprecated, so rolling our own here:
 	freedesktop_md5((unsigned char *)str, strlen(str), md);
 
-	h=strrchr(pname,'/')+1;
+	h = strrchr(pname,'/') + 1;
 	for (int c2=0; c2<16; c2++) {
-		sprintf(h,"%02x",(int)md[c2]);
-		h+=2;
+		sprintf(h, "%02x", (int)md[c2]);
+		h += 2;
 	}
-	*h='.';
+	*h = '.';
 	delete[] str;
 	return pname;
 }
