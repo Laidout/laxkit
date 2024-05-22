@@ -245,7 +245,7 @@ FileDialog::FileDialog(anXWindow *parnt,const char *nname,const char *ntitle,uns
 	app->addwindow(mask,0,0); //though these are addwindow'd, they are AddWin'd in init.
 
 	//initialize filelist in case we do some special selecting before init:
-	filelist = new TreeSelector(this,"files","files", SW_RIGHT,
+	last = filelist = new TreeSelector(this,"files","files", SW_RIGHT,
 							0,0,0,0, 1,
 							last,object_id,"files",
 							//TREESEL_SEND_ON_UP|TREESEL_CURSSELECTS| TREESEL_LEFT| TREESEL_SUB_FOLDER,
