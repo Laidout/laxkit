@@ -730,10 +730,12 @@ PtrStack<FontDialogFont> *FontManager::GetFontList()
         //FC_FONTFORMAT
         //FC_FONT_FEATURES
 
-        DBG cerr <<c<<", found font: Family,style,file: "<<f->family<<", "<<f->style<<", "<<f->file<<endl;
+        DBG cerr <<c<<", found font: Family,style,file: "
+        DBG      <<(f->family ? f->family : "null") << ", "
+        DBG      <<(f->style ? f->style : "null") << ", "
+        DBG      <<(f->file ? f->file : "null") << endl;
 
         fonts.push(f);
-
     }
 
 	 //sort by name, and try to rename duplicates
