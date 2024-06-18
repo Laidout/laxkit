@@ -61,11 +61,11 @@ LAXOBJDIR=objs
 
 
 #this compiles the core laxkit only, not laxinput
-almostall: touchdepends lax interfaces
+almostall: touchdepends lax
 	@echo "  -----------Done!-------------" 
 
 
-all: touchdepends lax interfaces laxinput
+all: touchdepends lax laxinput
 	@echo "  -----------Done!-------------" 
 
 
@@ -84,16 +84,17 @@ install-docs:
 icons:
 	cd lax/icons && make
 
-install: lax interfaces laxinput
+#install: lax interfaces laxinput
+install: lax laxinput
 	echo "---- installing `date` -----" >> install.log
 	$(INSTALL) -D -m644 $(LAXDIR)/liblaxkit.a $(LIBDIR)/liblaxkit.a && \
 		echo '$(LIBDIR)/liblaxkit.a' >> install.log
 	$(INSTALL) -D -m644 $(LAXDIR)/liblaxkit.so.$(LAXKITVERSION) $(LIBDIR)/liblaxkit.so.$(LAXKITVERSION) && \
 		echo '$(LIBDIR)/liblaxkit.so.$(LAXKITVERSION)' >> install.log
-	$(INSTALL) -D -m644 $(LAXDIR)/interfaces/liblaxinterfaces.a $(LIBDIR)/liblaxinterfaces.a && \
-		echo '$(LIBDIR)/liblaxinterfaces.a' >> install.log
-	$(INSTALL) -D -m644 $(LAXDIR)/interfaces/liblaxinterfaces.so.$(LAXKITVERSION) $(LIBDIR)/liblaxinterfaces.so.$(LAXKITVERSION) && \
-		echo '$(LIBDIR)/liblaxinterfaces.so.$(LAXKITVERSION)' >> install.log
+#	$(INSTALL) -D -m644 $(LAXDIR)/interfaces/liblaxinterfaces.a $(LIBDIR)/liblaxinterfaces.a && \
+#		echo '$(LIBDIR)/liblaxinterfaces.a' >> install.log
+#	$(INSTALL) -D -m644 $(LAXDIR)/interfaces/liblaxinterfaces.so.$(LAXKITVERSION) $(LIBDIR)/liblaxinterfaces.so.$(LAXKITVERSION) && \
+#		echo '$(LIBDIR)/liblaxinterfaces.so.$(LAXKITVERSION)' >> install.log
 	$(INSTALL) -d $(LAX_INCLUDE_DIR)/lax/interfaces
 	$(INSTALL) -D -m644 $(LAXDIR)/lists.cc $(LAX_INCLUDE_DIR)/lax/lists.cc && \
 		echo '$(LAX_INCLUDE_DIR)/lax/lists.cc' >> install.log
@@ -108,7 +109,7 @@ install: lax interfaces laxinput
 
 uninstall: 
 	rm -vf $(LIBDIR)/liblaxkit.a
-	rm -vf $(LIBDIR)/liblaxinterfaces.a
+#	rm -vf $(LIBDIR)/liblaxinterfaces.a
 	rm -v -rf $(INCLUDEDIR)/lax-$(LAXKITVERSION)
 
 docs:
@@ -117,21 +118,24 @@ docs:
 lax:
 	cd lax && $(MAKE) all
 
-interfaces:
-	cd lax/interfaces && $(MAKE) all
+# deprecated!
+#interfaces:
+#	cd lax/interfaces && $(MAKE) all
 
-laxinput: lax interfaces
+laxinput: lax
 	cd laxinput/ && $(MAKE)
 
 touchdepends:
 	touch lax/makedepend
 	touch lax/interfaces/makedepend
+	touch lax/spiro/makedepend
 
 depends:
 	touch lax/makedepend
 	touch lax/interfaces/makedepend
+	touch lax/spiro/makedepend
 	cd lax && $(MAKE) depends
-	cd lax/interfaces && $(MAKE) depends
+#	cd lax/interfaces && $(MAKE) depends
 
 
 #link debian to deb if not there.. Debian guidelines say don't put 
@@ -161,8 +165,10 @@ dist-clean: clean
 	rm -rf docs/html
 	rm -rf Makefile-toinclude config.log lax/configured.h lax/version.h
 
-.PHONY: clean docs lax interfaces depends unhidegarbage hidegarbage laxinput icons deb
+#.PHONY: clean docs lax interfaces depends unhidegarbage hidegarbage laxinput icons deb
+.PHONY: clean docs lax depends unhidegarbage hidegarbage laxinput icons deb
 clean:
-	cd lax && rm -f *.o *.a *.so *.so.*
-	cd lax/interfaces && rm -f *.o *.a *.so *.so.*
+	cd lax && $(MAKE) clean
+#	cd lax && rm -f *.o *.a *.so *.so.*
+#	cd lax/interfaces && rm -f *.o *.a *.so *.so.*
 

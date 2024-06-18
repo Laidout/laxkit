@@ -20,7 +20,8 @@ endif
 
 
 LD=g++
-LDFLAGS= -L$(LAXDIR) -L$(LAXIDIR) -llaxkit -llaxinterfaces `cups-config --libs` `pkg-config --libs ../laxkit.pc` $(EXTRA_LAX_LIBS)
+#LDFLAGS= -L$(LAXDIR) -L$(LAXIDIR) -llaxkit -llaxinterfaces `cups-config --libs` `pkg-config --libs ../laxkit.pc` $(EXTRA_LAX_LIBS)
+LDFLAGS= -L$(LAXDIR) -L$(LAXIDIR) `cups-config --libs` `pkg-config --libs ../laxkit.pc` $(EXTRA_LAX_LIBS)
 DEBUGFLAGS= -g -gdwarf-2
 CPPFLAGS= $(DEBUGFLAGS) ${EXTRA_LAX_CFLAGS} -I$(LAXDIR)/.. -std=c++11 `pkg-config --cflags ../laxkit.pc`
 
@@ -31,69 +32,68 @@ examples= \
 	interfs \
 	themeeditor \
 	spirocurves \
-	timers
+	timers \
+	widgets
 
 
 all: $(examples)
 
 
-cairotest: lax laxinterface cairotest.o
-	$(LD) $@.o  -llaxinterfaces -llaxkit -lharfbuzz $(LDFLAGS) -o $@
+cairotest: lax cairotest.o
+	$(LD) $@.o $(LDFLAGS) -o $@
 
-interfs: lax laxinterface interfs.o
-	$(LD) interfs.o -llaxinterfaces -llaxkit $(LDFLAGS) -o $@
+interfs: lax interfs.o
+	$(LD) interfs.o $(LDFLAGS) -o $@
 
-interfs2: lax laxinterface interfs2.o
+interfs2: lax interfs2.o
 	$(LD) interfs2.o normalinterface.o joininterface.o -llaxinterfaces -llaxkit $(LDFLAGS) -o $@
 
 attxml: lax attxml.cc attxml.o
-	$(LD) $@.o  $(LDFLAGS) -o $@
+	$(LD) $@.o $(LDFLAGS) -o $@
 
-laxhello: lax laxinterface laxhello.cc laxhello.o
-	$(LD) $@.o  $(LDFLAGS) -o $@
-	#$(LD) $@.o -llaxinterfaces -llaxkit $(LDFLAGS) -o $@
+laxhello: lax laxhello.cc laxhello.o
+	$(LD) $@.o $(LDFLAGS) -o $@
 
-widgets: lax laxinterface widgets.cc widgets.o
-	$(LD) $@.o -llaxkit $(LDFLAGS) -o $@
+widgets: lax widgets.cc widgets.o
+	$(LD) $@.o $(LDFLAGS) -o $@
 
-panel: lax laxinterface panel.o
-	$(LD) $@.o -llaxkit $(LDFLAGS) -o $@
+panel: lax panel.o
+	$(LD) $@.o $(LDFLAGS) -o $@
 
-spirocurves: lax laxinterface spirocurves.o
-	$(LD) $@.o -llaxinterfaces -llaxkit  $(LDFLAGS) -o $@
+spirocurves: lax spirocurves.o
+	$(LD) $@.o $(LDFLAGS) -o $@
 
-stopwatch: lax laxinterface stopwatch.o
-	$(LD) $@.o -llaxkit $(LDFLAGS) -o $@
+stopwatch: lax stopwatch.o
+	$(LD) $@.o $(LDFLAGS) -o $@
 
 stationrotater: lax stationrotater.o
-	$(LD) $@.o -llaxkit $(LDFLAGS) -o $@
+	$(LD) $@.o $(LDFLAGS) -o $@
 
-test: lax laxinterface test.o test.cc
-	$(LD) $@.o  -llaxinterfaces -llaxkit $(LDFLAGS) -o $@
+test: lax test.o test.cc
+	$(LD) $@.o $(LDFLAGS) -o $@
 
-test2: lax laxinterface test2.o
-	$(LD) $@.o  -llaxinterfaces -llaxkit $(LDFLAGS) -o $@
+test2: lax test2.o
+	$(LD) $@.o $(LDFLAGS) -o $@
 
-testevents: lax laxinterface testevents.o
-	$(LD) $@.o  -llaxinterfaces -llaxkit $(LDFLAGS) -o $@
+testevents: lax testevents.o
+	$(LD) $@.o $(LDFLAGS) -o $@
 
-themeeditor: lax laxinterface themeeditor.o themeeditor.cc
-	$(LD) $@.o  -llaxinterfaces -llaxkit $(LDFLAGS) -o $@
+themeeditor: lax themeeditor.o themeeditor.cc
+	$(LD) $@.o $(LDFLAGS) -o $@
 
 thingpreviewer: lax thingpreviewer.o
-	$(LD) $@.o -llaxkit $(LDFLAGS) -o $@
+	$(LD) $@.o $(LDFLAGS) -o $@
 
 timers: lax timers.o
-	$(LD) $@.o -llaxkit $(LDFLAGS) -o $@
+	$(LD) $@.o $(LDFLAGS) -o $@
 
-vfill: lax laxinterface vfill.o
-	$(LD) vfill.o  -llaxinterfaces -llaxkit $(LDFLAGS) -o $@
+vfill: lax vfill.o
+	$(LD) vfill.o $(LDFLAGS) -o $@
 
 
 depends:
 	touch makedepend
 	../utils/makedependencies -fmakedepend -I$(LAXDIR)/.. *.cc
-	#cd interfaces && $(MAKE) depends
 
 #-----------------------------------------------
 
@@ -101,8 +101,6 @@ depends:
 lax:
 	cd $(LAXDIR) && $(MAKE)
 
-laxinterface:
-	cd $(LAXDIR)/interfaces && $(MAKE)
 
 
 

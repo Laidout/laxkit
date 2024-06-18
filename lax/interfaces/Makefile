@@ -19,7 +19,7 @@ FPIC= -fPIC
 
 CPPFLAGS= $(OPTIMIZATION) $(EXTRA_LAX_CFLAGS) $(DEBUGFLAGS) $(FPIC) -I$(LAXDIR)/.. `pkg-config --cflags freetype2` -Wall
 
-
+# Reminder: if you add a .o file here, you must also add it to ../Makefile under otherobjs
 objs= \
 	linestyle.o \
 	fillstyle.o \
@@ -48,7 +48,8 @@ objs= \
 	gradientinterface.o \
 	groupdata.o \
 	imageinterface.o \
-	imagepatchinterface.o\
+	imagepatchinterface.o \
+	interfacewindow.o \
 	lineprofile.o \
 	mirrorinterface.o \
 	objectinterface.o \
@@ -59,6 +60,7 @@ objs= \
 	rectinterface.o \
 	shapebrush.o \
 	showkeysinterface.o \
+	sliderinterface.o \
 	simplepathinterface.o \
 	stackpartinterface.o \
 	svgcoord.o \
@@ -70,22 +72,23 @@ objs= \
 #	measureinterface.o \
 
 
-#----------------- Static lib ---------------------------
-liblaxinterfaces.a: $(objs)
-	ar cr $@ $(objs)
-	@echo "  -----------Done with interfaces!-------------" 
+# separate library is deprecated!
+# #----------------- Static lib ---------------------------
+# liblaxinterfaces.a: $(objs)
+# 	ar cr $@ $(objs)
+# 	@echo "  -----------Done with interfaces!-------------" 
+# 
+# 
+# #----------------- Dynamic lib ---------------------------
+# #these .so makers require that all object files be compiled with -fPIC,
+# #which ultimately adds to the overall size of the static archive
+# liblaxinterfaces.so.$(LAXKITVERSION): $(objs)
+# 	$(LD) -shared -fPIC  $(objs) -o $@
 
 
-#----------------- Dynamic lib ---------------------------
-#these .so makers require that all object files be compiled with -fPIC,
-#which ultimately adds to the overall size of the static archive
-liblaxinterfaces.so.$(LAXKITVERSION): $(objs)
-	$(LD) -shared -fPIC  $(objs) -o $@
+#all: liblaxinterfaces.a liblaxinterfaces.so.$(LAXKITVERSION)
+all: $(objs)
 
-
-all: liblaxinterfaces.a liblaxinterfaces.so.$(LAXKITVERSION)
-
-compileonly: $(objs)
 
 #------------------- Other --------------------------
 

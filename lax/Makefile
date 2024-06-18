@@ -193,18 +193,72 @@ objs= \
 #	colorselector.o \
 #
 
+
+# All subdirectories that have stuff we need to compile
+dirs= \
+	  spiro \
+	  interfaces
+
+# This is for all .o that need to be included from subdirectories
 otherobjs= \
 	spiro/rspline.o \
-	spiro/spiro.o
+	spiro/spiro.o \
+	interfaces/linestyle.o \
+	interfaces/fillstyle.o \
+	interfaces/somedata.o \
+	interfaces/somedataref.o \
+	interfaces/somedatafactory.o \
+	interfaces/coordinate.o \
+	interfaces/selection.o \
+	interfaces/aninterface.o \
+	interfaces/interfacemanager.o \
+	interfaces/viewportwindow.o \
+	interfaces/viewerwindow.o \
+	interfaces/viewportwithstack.o \
+	interfaces/beznet.o \
+	interfaces/beznetinterface.o \
+	interfaces/captioninterface.o \
+	interfaces/characterinterface.o \
+	interfaces/colorpatchinterface.o \
+	interfaces/curvemapinterface.o \
+	interfaces/curvewindow.o \
+	interfaces/delaunayinterface.o \
+	interfaces/ellipseinterface.o \
+	interfaces/engraverfilldata.o \
+	interfaces/engraverfillinterface.o \
+	interfaces/freehandinterface.o \
+	interfaces/gradientinterface.o \
+	interfaces/groupdata.o \
+	interfaces/imageinterface.o \
+	interfaces/imagepatchinterface.o \
+	interfaces/interfacewindow.o \
+	interfaces/lineprofile.o \
+	interfaces/mirrorinterface.o \
+	interfaces/objectinterface.o \
+	interfaces/patchinterface.o\
+	interfaces/pathinterface.o \
+	interfaces/perspectiveinterface.o \
+	interfaces/pressuremapinterface.o \
+	interfaces/rectinterface.o \
+	interfaces/shapebrush.o \
+	interfaces/showkeysinterface.o \
+	interfaces/sliderinterface.o \
+	interfaces/simplepathinterface.o \
+	interfaces/stackpartinterface.o \
+	interfaces/svgcoord.o \
+	interfaces/textonpathinterface.o \
+	interfaces/textstreaminterface.o \
+	interfaces/texttopath.o
 
 
 
-#this compiles the core laxkit only, not interfaces
-almostall: $(objs) liblaxkit.a
+all: $(objs) alldirs liblaxkit.a liblaxkit.so.$(LAXKITVERSION)
+#	for NAME in $(dirs); do $(MAKE) -C $$NAME ; done
 	@echo "  -----------Done!-------------" 
 
-all: $(objs) liblaxkit.a interfaces liblaxkit.so.$(LAXKITVERSION)
-	@echo "  -----------Done!-------------" 
+# #this compiles the core laxkit only, not subdirs
+# almostall: $(objs) liblaxkit.a
+# 	@echo "  -----------Done!-------------" 
 
 compileonly: $(objs) compileinterfaces
 	@echo "  -----------Done!-------------" 
@@ -216,39 +270,46 @@ compileonly: $(objs) compileinterfaces
 # like #defining DBG to be: //
 hidegarbage:
 	./hidegarbage *.cc
-	$(MAKE) -C interfaces hidegarbage
-	$(MAKE) -C spiro hidegarbage
+	for NAME in $(dirs); do $(MAKE) -C $$NAME hidegarbage ; done
+	#$(MAKE) -C interfaces hidegarbage
+	#$(MAKE) -C spiro hidegarbage
 
 # This changes in *.cc all occurrences of 
 # '(whitespace)//DBG' to '(same ws)DBG'.
 unhidegarbage:
 	./hidegarbage -0 *.cc
-	$(MAKE) -C interfaces unhidegarbage
-	$(MAKE) -C spiro unhidegarbage
+	for NAME in $(dirs); do $(MAKE) -C $$NAME unhidegarbage ; done
+	#$(MAKE) -C interfaces unhidegarbage
+	#$(MAKE) -C spiro unhidegarbage
 
 
 docs:
 	cd ../docs && doxygen
 
-interfaces:
-	cd interfaces && $(MAKE) all
-
 compileinterfaces:
 	cd interfaces && $(MAKE) compileonly
+
+interfaces:
+	cd interfaces && $(MAKE) all
 
 spiro:
 	cd spiro && $(MAKE) all
 
+alldirs:
+	for NAME in $(dirs); do $(MAKE) -C $$NAME ; done
+
+
 
 #----------------- Dynamic libs ---------------------------
-#these .so makers require that all object files be compiled with -fPIC,
-#which ultimately adds to the overall size of the static archive
-liblaxkit.so.$(LAXKITVERSION): $(objs)
-	$(LD) -shared -fPIC  $(objs) -o $@
+# These .so makers require that all object files be compiled with -fPIC,
+# which ultimately adds to the overall size of the static archive
+liblaxkit.so.$(LAXKITVERSION): $(objs) alldirs
+	$(LD) -shared -fPIC  $(objs) $(otherobjs) -o $@
 
 
 #----------------- Static libs ---------------------------
-liblaxkit.a: spiro $(objs)
+#liblaxkit.a: $(dirs)spiro $(objs)
+liblaxkit.a: alldirs $(objs)
 	ar cr $@ $(objs) $(otherobjs)
 
 
@@ -256,9 +317,11 @@ liblaxkit.a: spiro $(objs)
 depends:
 	touch makedepend
 	../utils/makedependencies -fmakedepend -I$(LAXDIR)/.. *.cc
-	$(MAKE) -C interfaces depends
-	$(MAKE) -C spiro depends
+	for NAME in $(dirs); do $(MAKE) -C $$NAME depends; done
+	#$(MAKE) -C interfaces depends
+	#$(MAKE) -C spiro depends
 
+# Note: the minus just means don't error if file not found
 -include makedepend
 
 
@@ -273,9 +336,10 @@ depends:
 dist-clean: clean
 	rm -f install.log
 
-.PHONY: clean docs interfaces spiro hidegarbage unhidegarbage
+.PHONY: clean docs $(dirs) hidegarbage unhidegarbage
 clean:
 	rm -f *.o *.a *.so
-	$(MAKE) -C interfaces clean
-	$(MAKE) -C spiro clean
+	for NAME in $(dirs); do $(MAKE) -C $$NAME clean; done
+	#$(MAKE) -C interfaces clean
+	#$(MAKE) -C spiro clean
 
