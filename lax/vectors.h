@@ -245,6 +245,7 @@ int intersection(flatline l1, flatline l2, flatpoint *p, double *index1, double 
 double findindex(flatpoint p,flatline l);   /* p=lp+t*lv, find t,uses p-l.p||l.v */
 int segmentandline(const flatpoint &p1,const flatpoint &p2,const flatline &l,flatpoint &p_ret, double *t_ret = nullptr);
 int segmentcross(flatpoint a1,flatpoint a2,flatpoint b1,flatpoint b2,flatpoint &p);
+flatvector nearest_to_segment(const flatvector &p, const flatvector &s1, const flatvector &s2, bool clamp);
 flatline flatten(spaceline l3d,Basis bas);
 flatpoint flatten(spacepoint pnt, Basis bas);
 flatpoint rotate(flatpoint p, double ang, int dec=0);

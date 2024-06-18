@@ -1030,6 +1030,22 @@ int segmentcross(flatpoint a1,flatpoint a2,flatpoint b1,flatpoint b2,flatpoint &
 	return 1;
 }
 
+/*! Return the point on segment s1 -> s2 that p is closests to.
+ * If clamp, then the point must be on the segment.
+ * Otherwise, return the point on an infinite line that runs through s1 and s2.
+ */
+flatvector nearest_to_segment(const flatvector &p, const flatvector &s1, const flatvector &s2, bool clamp)
+{
+	flatvector v = s2 - s1;
+	flatvector pv = p - s1;
+	double l = (v*pv) / (v*v);
+	if (clamp) {
+		if (l <= 0) return s1;
+		if (l >= 1) return s2;
+	}
+	return s1 + l*v;
+}
+
 //double distbetweenline(spaceline l1,spaceline l2) /* shortest distance of any point on l1 to any on l2 */
 //{
 //	spacevector a,b;	**** not work if lines are parallel or same
