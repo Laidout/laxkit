@@ -25,8 +25,6 @@
 #include <lax/fileutils.h>
 #include <lax/language.h>
 
-#include <lax/lists.cc>
-
 #include <sys/file.h>
 #include <errno.h>
 
@@ -34,7 +32,6 @@
 #include <iostream>
 using namespace std;
 using namespace Laxkit;
-using namespace LaxFiles;
 #define DBG
 
 #define ADD_NEW_DEVICE (-100)
