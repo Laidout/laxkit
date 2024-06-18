@@ -2198,7 +2198,7 @@ int GradientStrip::AddColor(double t,ScreenColor *col, const char *nname)
  */
 int GradientStrip::AddColor(double t, double red,double green,double blue,double alpha, const char *nname)
 {
-	Color *color = ColorManager::newColor(LAX_COLOR_RGB, 4, red,green,blue,alpha);
+	Color *color = ColorManager::newRGBA(red,green,blue,alpha);
 	color->screen.rgbf(red,green,blue,alpha);
 	int status = AddColor(t, color, false, nname);
 	color->dec_count();
