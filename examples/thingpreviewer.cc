@@ -58,6 +58,8 @@ const char *thing_name(int thing)
     if (thing==THING_Magnifying_Glass) return "THING_Magnifying_Glass";
     if (thing==THING_Wrench) return "THING_Wrench";
     if (thing==THING_Cancel) return "THING_Cancel";
+    if (thing==THING_Star) return "THING_Star";
+    if (thing==THING_Star) return "THING_Gear";
 
 	return "(unknown name)";
 }

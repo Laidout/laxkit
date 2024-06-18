@@ -747,6 +747,27 @@ flatpoint *draw_thing_coordinates(DrawThingTypes thing, flatpoint *buffer, int b
 
 		return buffer;
 
+	} else if (thing == THING_Gear) {
+		//Gear
+		int n = 0; 
+		const char *d = "m 2.0419362,0 c 0,-1.1277302 -0.914206,-2.0419362 -2.0419362,-2.0419362 -1.1277302,0 -2.0419362,0.914206 -2.0419362,2.0419362 0,1.1277302 0.914206,2.0419362 2.0419362,2.0419362 1.1277302,0 2.0419362,-0.914206 2.0419362,-2.0419362 z M 4.5910164,-1.0564883 5.65791,-1.30206 5.74756,-1.31184 7.5523,-0.64452 V 0.64452 L 5.74756,1.31184 5.65791,1.30206 4.5910164,1.0564883 3.6885282,2.9305332 4.54564,3.61171 4.60918,3.6757 5.21269,5.50277 4.20488,6.30648 2.5579,5.31154 2.50965,5.23536 2.0365228,4.2479581 0.00864559,4.7108086 0.01042,5.80579 0,5.89536 -1.05218,7.50637 -2.30891,7.21953 -2.5579,5.31154 -2.52842,5.22632 -2.0513606,4.2406194 -3.6775912,2.943745 -4.53266,3.628 -4.60918,3.6757 -6.52474,3.85752 -7.08404,2.69613 -5.74756,1.31184 -5.66255,1.28176 -4.5943764,1.0400099 V -1.0400099 L -5.66255,-1.28176 l -0.08501,-0.03008 -1.33648,-1.38429 0.5593,-1.16139 1.91556,0.18182 0.07652,0.0477 0.8550688,0.684255 L -1.83388,-3.79067 -2.52842,-5.22632 -2.5579,-5.31154 -2.30891,-7.21953 -1.05218,-7.50637 0,-5.89536 0.01042,-5.80579 0.00864559,-4.7108086 2.0365228,-4.2479581 2.50965,-5.23536 2.5579,-5.31154 4.20488,-6.30648 5.21269,-5.50277 4.60918,-3.6757 4.54564,-3.61171 3.6885282,-2.9305332 Z";
+		flatpoint *pts = SvgToFlatpoints(d, nullptr, 0, nullptr,0, &n, true);
+
+		if ((buffer && buffer_size < n) || (!buffer && buffer_size >= 0)) {
+			delete[] pts;
+			*n_ret = n;
+			return nullptr;
+		}
+
+		if (!buffer) buffer = pts;
+		else {
+			for (int c=0; c<n; c++) buffer[c] = pts[c];
+			delete[] pts;
+		}
+		*n_ret = n;
+
+		return buffer;
+
 
 	} else if (thing==THING_Octagon) {
 		if ((buffer && buffer_size<8) || (!buffer && buffer_size>=0)) { *n_ret=8; return NULL; }
@@ -1155,6 +1176,19 @@ flatpoint *draw_thing_coordinates(DrawThingTypes thing, flatpoint *buffer, int b
 		if (thing==THING_Double_Arrow_Vertical) { //flip to up and down
 			for (int c=0; c<10; c++) { t=buffer[c].y; buffer[c].y=buffer[c].x; buffer[c].x=t; }
 		}
+
+	} else if (thing == THING_Star) {
+		if ((buffer && buffer_size < 10) || (!buffer && buffer_size >= 0)) { *n_ret = 10; return nullptr; }
+		*n_ret = 10;
+		if (!buffer) buffer = new flatpoint[10];
+
+		double r1 = .5;
+		double r2 = r1 * cos(2*M_PI/5)/cos(2*M_PI/10);
+		for (int c=0; c<5; c++) {
+			buffer[2*c]   = flatpoint(.5 + r1 * sin(    c/5.0  * 2*M_PI),   .5 + r1 * cos(    c/5.0  * 2*M_PI));
+			buffer[2*c+1] = flatpoint(.5 + r2 * sin(((.5+c)/5.0) * 2*M_PI), .5 + r2 * cos(((.5+c)/5.0) * 2*M_PI));
+		}
+		buffer[9].info = LINE_Closed;
 
 	} else {
 		DBG cerr <<" *** must fully implement draw_thing_coordinates()"<<endl;

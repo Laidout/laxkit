@@ -116,7 +116,8 @@ enum LaxFillStyle
 };
 
 enum DrawThingTypes {
-	THING_None,
+	THING_Undefined = -1,
+	THING_None = 0,
 	THING_Circle,
 	THING_Circle_X,    //!< Circle with an x in it
 	THING_Circle_Plus, //!< Circle with a plus in it
@@ -156,6 +157,8 @@ enum DrawThingTypes {
 	THING_Octagon,
 	THING_Magnifying_Glass,
 	THING_Wrench,
+	THING_Star,
+	THING_Gear,
 
 	THING_MAX
 };
