@@ -71,7 +71,8 @@ class IconSelector : public BoxSelector
 						int xx,int yy,int ww,int hh,int brder,
 						anXWindow *prev,unsigned long nowner,const char *nsendmes,
 						int npadx=0,int npady=0, int nboxinset=0);
-	~IconSelector();
+	virtual ~IconSelector();
+	virtual const char *whattype() { return "IconSelector"; }
 	virtual void drawbox(int which);
 	virtual void FillBox(IconBox *b,const char *nlabel,LaxImage *img, int nid);
 	virtual void FillBox(IconBox *b,const char *nlabel,const char *filename, int nid);

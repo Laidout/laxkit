@@ -166,7 +166,8 @@ BoxSelector::BoxSelector(anXWindow *parnt,const char *nname,const char *ntitle,u
 //	filterflags();*** see RowColBox::filterflags
 //	if (win_style&BOXSEL_STRETCHX) elementflags|=BOX_STRETCH_TO_FILL_X;
 
-	flags=0; // will set flags here manually, not use default RowColBox()
+	flags = BOX_DONT_PROPAGATE_POS;
+
 	 //*** set squishy parameters/flags, should rethink this process a bit?
 	if (win_style&BOXSEL_COLUMNS) { flags|=BOX_HORIZONTAL; }
 	if (win_style&BOXSEL_ROWS) { flags|=BOX_VERTICAL; }
@@ -260,11 +261,12 @@ int BoxSelector::init()
  */
 void BoxSelector::sync()
 {
-	w(win_w?win_w:BOX_SHOULD_WRAP); // the BOX_SHOULD_WRAP forces a wrap to extent of child boxes
-	h(win_h?win_h:BOX_SHOULD_WRAP);
+	w(win_w ? win_w : BOX_SHOULD_WRAP); // the BOX_SHOULD_WRAP forces a wrap to extent of child boxes
+	h(win_h ? win_h : BOX_SHOULD_WRAP);
+
 	 //*** for ONE_ONLY, make sure there is one selected!! 
 	 //*** must count how many selected if none, select first non-gray box, and turn off
-	if (win_style&BOXSEL_ONE_ONLY && wholelist.n==0) {
+	if (win_style & BOXSEL_ONE_ONLY && wholelist.n == 0) {
 //		SelBox *b=dynamic_cast<SelBox *>(wholelist.e[0]);
 //		if (b) b->state=(b->state&(LAX_ON));
 	}
@@ -281,8 +283,14 @@ void BoxSelector::sync()
 		//***this seems to move window up to the parent origin!!!! grrrr
 	}
 
-	arrangedstate=1;
-	needtodraw=1;
+	arrangedstate = 1;
+	needtodraw = 1;
+}
+
+void BoxSelector::sync(int xx,int yy,int ww,int hh)
+{
+	SquishyBox::sync(xx,yy,ww,hh);
+	MoveResize(xx,yy,ww,hh);
 }
 
 //! Send a message to the owner.
@@ -319,7 +327,7 @@ int BoxSelector::send()
 void BoxSelector::Refresh()
 {
 	if (!needtodraw || !win_on) { needtodraw = 0; return; }
-	if (arrangedstate!=1) sync();
+	if (arrangedstate != 1) sync();
 
 	Displayer *dp = MakeCurrent();
 	dp->ClearWindow();

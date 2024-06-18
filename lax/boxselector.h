@@ -114,6 +114,7 @@ class BoxSelector : public anXWindow, public RowColBox
 	virtual const char *whattype() { return "BoxSelector"; }
 	virtual void UIScaleChanged();
 	virtual void sync();
+	virtual void sync(int xx,int yy,int ww,int hh);
 	virtual int init();
 	virtual int Event(const EventData *e,const char *mes);
 	virtual int WrapToExtent();

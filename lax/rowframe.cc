@@ -136,6 +136,7 @@ RowFrame::RowFrame(anXWindow *parnt,const char *nname,const char *ntitle,unsigne
 //	padi = 1;
 
 	flags=BOX_DONT_PROPAGATE_POS; // will set flags here manually, not use default RowColBox()
+	
 	 //*** set squishy parameters/flags, should rethink this process a bit?
 	if (win_style&ROWFRAME_COLUMNS) { flags|=BOX_HORIZONTAL; }
 	if (win_style&ROWFRAME_ROWS) { flags|=BOX_VERTICAL; }
@@ -481,9 +482,9 @@ int RowFrame::Pop(int which, anXWindow **popped)
 	return er;
 }
 
-int RowFrame::Pop(int which)
+int RowFrame::Remove(int which)
 {
-	return Pop(which,NULL);
+	return Pop(which, nullptr);
 }
 
 

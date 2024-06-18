@@ -411,7 +411,7 @@ void ListBox::UpdateScale(double new_scale)
  *
  * Returns 1 for item removed, or 0 for which out of bounds.
  */
-int ListBox::Pop(int which) //which=-1
+int ListBox::Remove(int which) //which=-1
 { 
 	return list.remove(which); 
 }
@@ -420,6 +420,36 @@ int ListBox::Pop(int which) //which=-1
 void ListBox::Flush()
 { 
 	list.flush(); 
+}
+
+SquishyBox *ListBox::GetBox(int which)
+{
+	if (which >= 0 && which < list.n) return list.e[which];
+	return nullptr;
+}
+
+int ListBox::NumVisibleBoxes()
+{
+	int n = 0;
+	for (int c = 0; c < list.n; c++)
+		if (!list.e[c]->hidden()) n++;
+	return n;
+}
+
+/*! Return true for success, false for nothing done, such as index out of range. */
+bool ListBox::HideSubBox(int index)
+{
+	if (index < 0 || index >= list.n) return false;
+	list.e[index]->hideBox(true);
+	return true;
+}
+
+/*! Return true for success, false for nothing done, such as index out of range. */
+bool ListBox::ShowSubBox(int index)
+{
+	if (index < 0 || index >= list.n) return false;
+	list.e[index]->hideBox(false);
+	return true;
 }
 
 //! Push box onto list with islocal. Create list if it doesn't exist.
@@ -998,7 +1028,7 @@ void RowColBox::filterflags()
 //! Remove box with index which from wholelist.
 /*! Default (when which==-1) is to remove the top of the wholelist.
  */
-int RowColBox::Pop(int which) //which=-1
+int RowColBox::Remove(int which) //which=-1
 { 
 	int er=wholelist.remove(which); 
 	arrangedstate=0;
@@ -1009,6 +1039,14 @@ SquishyBox *RowColBox::GetBox(int which)
 {
 	if (which>=0 && which<wholelist.n) return wholelist.e[which];
 	return nullptr;
+}
+
+int RowColBox::NumVisibleBoxes()
+{
+	int n = 0;
+	for (int c=0; c<wholelist.n; c++)
+		if (wholelist.e[c]->hidden()) n++;
+	return n;
 }
 
 //! Flush list, and if list does not exist, then create a new list.

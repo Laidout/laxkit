@@ -46,6 +46,9 @@ class StackFrame : public anXWindow, public ListBox
 	int gap;
 	ButtonDownInfo buttondown;
 	int curshape;
+	int needtoremap; // need to moveresize kids, assumes pos array correctly set
+
+	virtual int RebuildPos(bool useactual = false);
 
  public:
 	StackFrame(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
@@ -58,22 +61,24 @@ class StackFrame : public anXWindow, public ListBox
 	virtual void Refresh();
 	virtual int LBDown(int x,int y,unsigned int state,int count,const LaxMouse *d);
 	virtual int LBUp(int x,int y,unsigned int state,const LaxMouse *d);
-	virtual int MBDown(int x,int y,unsigned int state,int count,const LaxMouse *d);
-	virtual int MBUp(int x,int y,unsigned int state,const LaxMouse *d);
-	virtual int RBDown(int x,int y,unsigned int state,int count,const LaxMouse *d);
-	virtual int RBUp(int x,int y,unsigned int state,const LaxMouse *d);
+	// virtual int MBDown(int x,int y,unsigned int state,int count,const LaxMouse *d);
+	// virtual int MBUp(int x,int y,unsigned int state,const LaxMouse *d);
+	// virtual int RBDown(int x,int y,unsigned int state,int count,const LaxMouse *d);
+	// virtual int RBUp(int x,int y,unsigned int state,const LaxMouse *d);
 	virtual int MouseMove(int x,int y,unsigned int state,const LaxMouse *d);
 	virtual int MoveResize(int nx,int ny,int nw,int nh);
 	virtual int Resize(int nw,int nh);
 	virtual int Event(const EventData *e,const char *mes);
 
+	virtual anXWindow *GetWindow(int index);
+	virtual bool HideSubBox(int index);
+	virtual bool ShowSubBox(int index);
 	virtual void sync();
+	virtual int SyncFromPos(int add);
 	virtual int WrapToExtent();
-	virtual anXWindow *childWindow(int index);
+	// virtual anXWindow *childWindow(int index);
 	virtual int findWhichBar(int x,int y);
 	virtual int MoveBar(int index, int pixelamount, int shift);
-	virtual int Sync(int add);
-	virtual int UpdatePos(int useactual=0);
 	virtual int Gap() { return gap; }
 	virtual int Gap(int ngap);
 	virtual int ReplaceWin(anXWindow *win, int absorbcount, int index);
@@ -83,9 +88,12 @@ class StackFrame : public anXWindow, public ListBox
 					int npw,int nws,int nwg,int nhalign,int nhgap,
 					int nph,int nhs,int nhg,int nvalign,int nvgap,
 					int where=-1);
+	virtual int Remove(int which);
 	virtual Attribute *dump_out_atts(Attribute *att,int what,DumpContext *context);
 	virtual void dump_in_atts(Attribute *att,int flag,DumpContext *context);
 
+	static StackFrame *HBox();
+	static StackFrame *VBox();
 };
 
 

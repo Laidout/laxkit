@@ -105,7 +105,7 @@ class RowFrame : public anXWindow, public RowColBox
 					int where);
 	virtual void Push(SquishyBox *box, char islocal=0, int where=-1);
 	virtual int Pop(int which, anXWindow **popped);
-	virtual int Pop(int which=-1);
+	virtual int Remove(int which=-1);
 	virtual void Refresh();
 };
 

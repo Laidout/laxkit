@@ -930,7 +930,7 @@ int FileDialog::ClearFinalButton(int position)
 		anXWindow *win=NULL;
 		if (box) win=box->win();
 		if (win) app->destroywindow(win);
-		Pop(finalbuttons+position); //calls list.remove(index)
+		Remove(finalbuttons+position); //calls list.remove(index) and destroys window
 		if (finalbuttons==wholelist.n) { finalbuttons=-1; break; }
 	} while (cont);
 	return 0;

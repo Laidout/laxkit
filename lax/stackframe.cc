@@ -82,11 +82,6 @@ StackFrame::StackFrame(anXWindow *parnt,const char *nname,const char *ntitle,uns
 	: anXWindow(parnt,nname,ntitle,nstyle,xx,yy,ww,hh,brder,prev,nowner,nsend)
 {
 	InstallColors(THEME_Panel);
-	//WindowStyle *style = app->theme->GetStyle(THEME_Panel)->duplicate();
-	//style->fg.rgbf(0,1,0);
-	//style->bg.rgbf(1,0,0);
-	//InstallColors(style);
-	//style->dec_count();
 
 	if (win_style & STACKF_VERTICAL)
 		 flags = (flags & ~BOX_HORIZONTAL) | BOX_VERTICAL;
@@ -95,12 +90,33 @@ StackFrame::StackFrame(anXWindow *parnt,const char *nname,const char *ntitle,uns
 	if (ngap < 0) gap = win_themestyle->normal->textheight() / 2;
 	else gap = ngap / 2 * 2;
 
+	needtoremap = 1;
+
 	pos = nullptr;
 	whichbar = -1;
 
 	curshape = 0;
 	// if (win_style&STACKF_VERTICAL) win_pointer_shape=LAX_MOUSE_UpDown;
 	// else win_pointer_shape=LAX_MOUSE_LeftRight;
+}
+
+
+/*! Convenience static constructor to return a StackFrame set to horizontal, with name "hbox". */
+StackFrame *StackFrame::HBox()
+{
+	return new StackFrame(nullptr, "hbox", nullptr, 0,
+		0,0,0,0,0,
+		nullptr, 0, nullptr,
+		-1);
+}
+
+/*! Convenience static constructor to return a StackFrame set to vertical. */
+StackFrame *StackFrame::VBox()
+{
+	return new StackFrame(nullptr, "vbox", nullptr, STACKF_VERTICAL,
+		0,0,0,0,0,
+		nullptr, 0, nullptr,
+		-1);
 }
 
 StackFrame::~StackFrame()
@@ -114,43 +130,43 @@ StackFrame::~StackFrame()
  */
 int StackFrame::init()
 {
-	if (!pos) UpdatePos(1);
 	anXWindow::init();
-	Sync(1);
+	SyncFromPos(true);
+	for (int c=0; c<list.n; c++) {
+		if (list.e[c]->hidden()) {
+			HideSubBox(c);
+		}
+	}
 
 	return 0;
 }
 
-void StackFrame::sync()
+/*! Return the window, if any, contained in box at index.
+ */
+anXWindow *StackFrame::GetWindow(int index)
 {
-	DBG cerr <<"StackFrame::sync()"<<endl;
+	if (index < 0 || index >= NumBoxes()) return nullptr;
 
-	if (!pos) UpdatePos(1);
-	MoveResize(x(),y(), w(),h());
-	Sync(0);
-	//ListBox::sync();
+	anXWindow *w = dynamic_cast<anXWindow *>(GetBox(index));
+	if (w) return w;
+	
+	WinFrameBox *wf = dynamic_cast<WinFrameBox *>(GetBox(index));
+	if (wf) return wf->win();
+
+	return nullptr;
 }
 
-//! Return pointer to the child window at index.
-anXWindow *StackFrame::childWindow(int index)
-{
-	if (index<0 || index>=list.n) return NULL;
-
-	WinFrameBox *winbox=NULL;
-
-	 // the element might be a box containing a window, or a window derived from SquishyBox
-	winbox=dynamic_cast<WinFrameBox *>(list.e[index]);
-	if (winbox) return winbox->win();
-
-	return dynamic_cast<anXWindow *>(list.e[index]);
-}
 
 void StackFrame::Refresh()
 {
-	needtodraw=0;
-	if (!list.n || gap<=0) return;
+	if (needtoremap) {
+		SyncFromPos(0);
+		needtoremap = 0;
+	}
+	needtodraw = 0;
+	if (NumVisibleBoxes() == 0 || gap<=0) return;
 
-	Displayer *dp=MakeCurrent();
+	Displayer *dp = MakeCurrent();
 
 	unsigned long highlight=coloravg(win_themestyle->bg,rgbcolor(255,255,255));
 	unsigned long shadow   =coloravg(win_themestyle->bg,rgbcolor(0,0,0));
@@ -159,8 +175,11 @@ void StackFrame::Refresh()
 	dp->ClearWindow();
 
 	SquishyBox *b;
-	for (int c=0; c<list.n; c++) {
+	int i = -1; //index of visible
+	for (int c = 0; c < list.n; c++) {
 		b = list.e[c];
+		if (b->hidden()) continue;
+		i++;
 
 		if (win_style & STACKF_BEVEL) {
 			dp->drawBevel(gap/2, highlight,shadow, LAX_OFF, b->x()-gap/2,b->y()-gap/2, b->w()+gap,b->h()+gap);
@@ -168,10 +187,11 @@ void StackFrame::Refresh()
 		} else {
 			// draw little dots on draggable bars if gap>0
 			dp->NewFG(dots);
-			if (c==list.n-1) continue;
+			if (i == NumVisibleBoxes()-1) continue;
+			// if (c == list.n-1) continue;
 
 			int p;
-			if (win_style&STACKF_VERTICAL) {
+			if (win_style & STACKF_VERTICAL) {
 				p = (int)(pos[c] * win_h);
 
 				if (c == whichbar) {
@@ -184,7 +204,7 @@ void StackFrame::Refresh()
 				dp->drawthing(win_w/2-5,p, 2,2, 1,THING_Circle);
 				dp->drawthing(win_w/2+5,p, 2,2, 1,THING_Circle);
 			} else {
-				p=(int)(pos[c]*win_w);
+				p = (int)(pos[c]*win_w);
 
 				if (c == whichbar) {
 					dp->NewFG(coloravg(win_themestyle->bg, win_themestyle->fg, .2));
@@ -250,18 +270,26 @@ int StackFrame::LBDown(int x,int y,unsigned int state,int count,const LaxMouse *
 //! Return the index in pos of the bar under (x,y) or -1.
 int StackFrame::findWhichBar(int x,int y)
 {
-	if (win_style&STACKF_VERTICAL) {
-		for (int c=0; c<list.n; c++) {
-			if (y>=list.e[c]->y()-list.e[c]->pad-gap && y<list.e[c]->y()-list.e[c]->pad)
-				return c-1;
+	int i = -1;
+	if (win_style & STACKF_VERTICAL) {
+		for (int c = 0; c < list.n; c++) {
+			if (list.e[c]->hidden()) continue;
+			if (y >= list.e[c]->y() - list.e[c]->pad - gap && y < list.e[c]->y() - list.e[c]->pad) {
+				i = c-1;
+				break;
+			}
 		}
 	} else {
-		for (int c=1; c<list.n; c++) {
-			if (x>=list.e[c]->x()-list.e[c]->pad-gap && x<list.e[c]->x()-list.e[c]->pad)
-				return c-1;
+		for (int c = 1; c < list.n; c++) {
+			if (list.e[c]->hidden()) continue;
+			if (x >= list.e[c]->x() - list.e[c]->pad - gap && x < list.e[c]->x() - list.e[c]->pad) {
+				i = c-1;
+				break;
+			}
 		}
 	}
-	return -1;
+	while (i > 0 && pos[i] < 0) i--;
+	return i;
 }
 
 int StackFrame::LBUp(int x,int y,unsigned int state,const LaxMouse *d)
@@ -271,18 +299,6 @@ int StackFrame::LBUp(int x,int y,unsigned int state,const LaxMouse *d)
 	return 0;
 }
 
-int StackFrame::MBDown(int x,int y,unsigned int state,int count,const LaxMouse *d)
-{ return 1; }
-
-int StackFrame::MBUp(int x,int y,unsigned int state,const LaxMouse *d)
-{ return 1; }
-
-int StackFrame::RBDown(int x,int y,unsigned int state,int count,const LaxMouse *d)
-{ return 1; }
-
-int StackFrame::RBUp(int x,int y,unsigned int state,const LaxMouse *d)
-{ return 1; }
-
 int StackFrame::MouseMove(int x,int y,unsigned int state,const LaxMouse *d)
 {
 	if ((win_style&STACKF_NOT_SIZEABLE) || !buttondown.isdown(d->id,LEFTBUTTON) || whichbar<0) return 0;
@@ -291,99 +307,118 @@ int StackFrame::MouseMove(int x,int y,unsigned int state,const LaxMouse *d)
 	buttondown.move(d->id, x,y, &lastx,&lasty);
 
 	if ((win_style&STACKF_VERTICAL)) {
-		if (y==lasty) return 0;
+		if (y == lasty) return 0;
 		MoveBar(whichbar, y-lasty, 0);
 	} else {
-		if (x==lastx) return 0;
+		if (x == lastx) return 0;
 		MoveBar(whichbar, x-lastx, 0);
 	}
 
 	return 0;
 }
 
-/*! Sync() panes in addition to default resize.
+
+/*! SyncFromPos() panes in addition to default resize.
  */
 int StackFrame::MoveResize(int nx,int ny,int nw,int nh)
 {
 	DBG cerr <<"StackFrame::MoveResize"<<endl;
 
-	int c=anXWindow::MoveResize(nx,ny,nw,nh);
-	Sync(0);
+	int c = anXWindow::MoveResize(nx,ny,nw,nh);
+	needtoremap = 1;
+	needtodraw = 1;
+	// RebuildPos(true);
+	// SyncFromPos(0);
 	return c;
 }
 
-/*! Sync() panes in addition to default resize.
+/*! SyncFromPos() panes in addition to default resize.
  */
 int StackFrame::Resize(int nw,int nh)
 {
 	DBG cerr <<"StackFrame::Resize"<<endl;
 
-	int c=anXWindow::Resize(nw,nh);
-	Sync(0);
+	int c = anXWindow::Resize(nw,nh);
+	needtoremap = 1;
+	needtodraw = 1;
+	// RebuildPos(true);
+	// SyncFromPos(0);
 	return c;
 }
 
-//! With values in the pos array, resize the panes appropriately.
-/*! If add!=0, then addwindow() the child windows, if necessary.
+
+/*! This will be called from parents after this's dimensions have been set after a parent gets configured.
+ * The StackFrame should then recompute child positions and sizes, and tell them to also sync().
  */
-int StackFrame::Sync(int add)
+void StackFrame::sync()
 {
-	if (!list.n) return 1;
-	if (!pos) UpdatePos(1);
+	DBG cerr <<"StackFrame::sync()"<<endl;
 
+	MoveResize(x(),y(), w(),h()); //ends up queueing SyncFromPos, which is called at next Refresh
+	//SyncFromPos(0); <- this is called from MoveResize(..)
+	//ListBox::sync();
+}
 
-//	if (pos==NULL) {
-//		pos=new double[list.n];
-//	}
+//! With values in the pos array, resize the visible children appropriately.
+/*! If add != 0, then addwindow() the child windows, if necessary.
+ */
+int StackFrame::SyncFromPos(int add)
+{
+	if (!list.n) { needtoremap = 0; return 1; }
+	if (!pos) RebuildPos(false);
 
-	if (list.n==1) {
+	if (list.n == 1) {
 		list.e[0]->sync(0,0,win_w,win_h);
+		needtoremap = 0;
 		return 0;
 	}
 
 	//int sofar=0;
-	int maxdim=((win_style&STACKF_VERTICAL) ? win_h : win_w);
+	int maxdim = ((win_style & STACKF_VERTICAL) ? win_h : win_w);
 	
 	 //the numbers in pos point to the exact middle of the gap between windows
-	double lastpos=0;
+	double lastpos = 0;
 	int seg,  //width of box
 		segp; //left or top position of box
-	int x=0,y=0,w=0,h=0;
+	int x=0, y=0, w=0, h=0;
 
-	if (win_style&STACKF_VERTICAL) w=win_w; else h=win_h;
+	if (win_style & STACKF_VERTICAL) w = win_w; else h = win_h;
 
-	for (int c=0; c<list.n; c++) {
-		segp=(int)(maxdim*lastpos)+gap/2;
-		seg=(int)(maxdim*(pos[c]-lastpos)-gap);
+	for (int c = 0; c < list.n; c++) {
+		if (list.e[c]->hidden()) continue;
 
-		if (seg<1) seg=1;
+		segp = (int)(maxdim*lastpos) + gap/2;
+		seg  = (int)(maxdim*(pos[c] - lastpos) - gap);
+
+		if (seg < 1) seg = 1;
 		
-		if (win_style&STACKF_VERTICAL) {
-			y=segp;
-			h=seg;
+		if (win_style & STACKF_VERTICAL) {
+			y = segp;
+			h = seg;
 		} else {
-			x=segp;
-			w=seg;
+			x = segp;
+			w = seg;
 		}
 
 		list.e[c]->sync(x,y,w,h);
-		lastpos=pos[c];
+		lastpos = pos[c];
 	}
 
 	if (add) {
 		anXWindow *win;
 		WinFrameBox *winbox;
 
-		for (int c=0; c<list.n; c++) {
+		for (int c = 0; c < list.n; c++) {
 			 // the element might be a box containing a window, or a window derived from SquishyBox
-			winbox=dynamic_cast<WinFrameBox *>(list.e[c]);
-			if (winbox) win=winbox->win();
-			else win=dynamic_cast<anXWindow *>(list.e[c]);
+			winbox = dynamic_cast<WinFrameBox *>(list.e[c]);
+			if (winbox) win = winbox->win();
+			else win = dynamic_cast<anXWindow *>(list.e[c]);
 
-			if (win && win->xlib_window==0) app->addwindow(win,1,0);
+			if (win) app->addwindow(win,1,0);
 		}
 	}
 
+	needtoremap = 0;
 	return 0;
 }
 
@@ -392,43 +427,59 @@ int StackFrame::Sync(int add)
  * use the pw() and ph().
  *
  * This will destroy any info in pos already, and remap pos based on
- * pane width and height. This function should only be called after installing
+ * pane width and height. This function should ONLY be called after installing
  * new windows.
  *
  * Return 0 success, 1 for not enough useful information to construct pos, such
  * as having only 0 or 1 panes.
  *
- * pos[0] is the left edge of a box (when horizontal stack).
+ * pos is the right edge of a box in list when horizontal stack, and bottom edge for vertical
+ * stack.
  */
-int StackFrame::UpdatePos(int useactual)
+int StackFrame::RebuildPos(bool useactual)
 {
 	if (pos) delete[] pos;
-	pos=new double[list.n];
 
-	if (list.n<=1) {
-		pos[0]=0;
+	if (list.n <= 1) {
+		pos = new double[1];
+		pos[0] = 1.0;
 		return 1;
 	}
+	pos = new double[list.n];
 
-	int totalwidth=gap*list.n;
-	for (int c=0; c<list.n; c++) {
-		if (win_style&STACKF_VERTICAL)
+	// pass 1, get total width
+	int totaln = NumVisibleBoxes();
+	int totalwidth = gap * totaln; //list.n;
+	for (int c = 0; c < list.n; c++) {
+		if (list.e[c]->hidden()) continue;
+		if (win_style & STACKF_VERTICAL)
 			 totalwidth += useactual ? list.e[c]->h() : list.e[c]->ph();
 		else totalwidth += useactual ? list.e[c]->w() : list.e[c]->pw();
 	}
-	double x=0;
-	for (int c=0; c<list.n-1; c++) {
-		x+=gap;
 
-		if (win_style&STACKF_VERTICAL)
+	// pass 2, compute normalized bar positions
+	double x = 0;
+	int c = 0;
+	int i = 0;
+	for ( ; i < totaln-1; c++, i++) {
+		while (list.e[c]->hidden()) { c++; pos[c] = -1; }
+		x += gap;
+
+		if (win_style & STACKF_VERTICAL)
 			 x += useactual ? list.e[c]->h() : list.e[c]->ph();
 		else x += useactual ? list.e[c]->w() : list.e[c]->pw();
 
-		pos[c]=x/totalwidth;
+		pos[c] = x / totalwidth;
 
 		DBG cerr <<"pos["<<c<<"]="<<pos[c]<<endl;
 	}
-	pos[list.n-1]=1.0;
+
+	// there should be at most 1 non-hidden box remaining
+	while (c < list.n) {
+		if (list.e[c]->hidden()) pos[c] = -1;
+		else pos[c] = (i == totaln-1 ? 1.0 : -1);
+		c++;
+	}
 
 	return 0;
 }
@@ -441,12 +492,12 @@ int StackFrame::WrapToExtent()
 
 	//sync();
 	//double squishx=0,squishy=0;
-	//figureDimensions(this,NULL,NULL,0, &squishx,&squishy);
-	figureDimensions(this,NULL,NULL,0, NULL,NULL);
-	win_w=w();
-	win_h=h();
+	//figureDimensions(this,nullptr,nullptr,0, &squishx,&squishy);
+	figureDimensions(this,nullptr,nullptr,0, nullptr,nullptr);
+	win_w = w();
+	win_h = h();
 
-	UpdatePos(0);
+	RebuildPos(0);
 
 	return 0;
 }
@@ -456,65 +507,133 @@ int StackFrame::WrapToExtent()
  * or move all the bars on the left the same amount (shift==2).
  *
  * Return 0 for bar moved, else nonzero.
+ * If pos[index] == -1 (the box is hidden), return 1, and do nothing.
  *
  * \todo actually implement the shifting of adjacent bars
  */
 int StackFrame::MoveBar(int index, int pixelamount, int shift)
 {
-	if (index<0 || index>=list.n-1) return 1;
+	if (index < 0 || index >= list.n-1 || pos[index] == -1) return 1;
 	if (!pixelamount) return 0;
 
-	 //If moving the bar makes it cross over another bar, then just don't
-	double mag=(win_style&STACKF_VERTICAL)?win_h:win_w;
-	int curpos=(int)(mag*pos[index]);
-	int topos=curpos+pixelamount;
-	if (pixelamount>0) {
-		if (index==list.n-2 && topos>mag-gap) return 1;
-		else if (index<list.n-2 && (topos+gap)/mag>pos[index+1]) return 1;
-	} else {
-		if (index==0 && topos<gap) return 1;
-		else if (index>0 && (topos-gap)/mag<pos[index-1]) return 1;
-		DBG cerr <<"move back: "<<(topos-gap)/mag<<",  "<<pos[index-1]<<endl;
-	}
-	pos[index]=topos/mag;
+	if (!pos) RebuildPos(true);
 
-	Sync(0);
-	needtodraw=1;
+	// If moving the bar makes it cross over another bar, then just don't
+	double mag = (win_style & STACKF_VERTICAL) ? win_h : win_w;
+	int curpos = (int)(mag*pos[index]);
+	int to_pos = curpos + pixelamount;
+
+	int next_index = index + 1;
+	while (next_index < list.n && pos[next_index] == -1) next_index++;
+	int next_index2 = next_index + 1;
+	while (next_index2 < list.n && pos[next_index2] == -1) next_index2++;
+	int prev_index = index - 1;
+	while (prev_index >= 0 && pos[prev_index] == -1) prev_index--;
+	int prev_index2 = prev_index - 1;
+	while (prev_index2 >= 0 && pos[prev_index2] == -1) prev_index2--;
+
+	if (pixelamount > 0) {
+		if (next_index >= list.n && to_pos > mag - gap) return 1;
+		else if (next_index < list.n && (to_pos+gap) / mag > pos[next_index]) return 1;
+	} else {
+		if ((prev_index < 0 || index == 0) && to_pos < gap) return 1;
+		else if (index > 0 && (to_pos - gap) / mag < pos[index-1]) return 1;
+
+		//DBG cerr <<"move back: "<<(to_pos-gap)/mag<<",  "<<pos[index-1]<<endl;
+	}
+	pos[index] = to_pos / mag;
+
+	SyncFromPos(0);
+	needtodraw = 1;
 	return 0;
 }
 
 //! Use the given value for the pixel gap between windows.
-/*! This does not Sync() the windows.
+/*! This does not SyncFromPos() the windows.
  */
 int StackFrame::Gap(int ngap)
 {
-	if (ngap>=2) gap=ngap;
-	gap=(gap/2)*2;
+	if (ngap >= 2) gap = ngap;
+	gap = (gap/2)*2;
 	return gap;
 }
 
 
- //-------------------- basic window container function
-/*! \todo maybe the AddWin(), ReplaceWin() functions should belong
- *     to a window container base class..
- */
- 
+//-------------------- basic window container function
+
+bool StackFrame::HideSubBox(int index)
+{
+	if (!ListBox::HideSubBox(index)) return false;
+	SquishyBox *box = list.e[index];
+	anXWindow *win = dynamic_cast<anXWindow*>(box);
+	if (!win) {
+		WinFrameBox *wbox = dynamic_cast<WinFrameBox*>(box);
+		if (wbox) win = wbox->win();
+	}
+	if (win) {
+		app->unmapwindow(win);
+	}
+	if (pos) pos[index] = -1;
+	needtoremap = 1;
+	return true;
+}
+
+bool StackFrame::ShowSubBox(int index)
+{
+	if (!ListBox::ShowSubBox(index)) return false;
+	SquishyBox *box = list.e[index];
+	anXWindow *win = dynamic_cast<anXWindow*>(box);
+	if (!win) {
+		WinFrameBox *wbox = dynamic_cast<WinFrameBox*>(box);
+		if (wbox) win = wbox->win();
+	}
+	if (win) {
+		app->mapwindow(win);
+	}
+
+	// force recomputation of pos down the line somewhere
+	delete[] pos;
+	pos = nullptr;
+
+	// int next_index = index + 1;
+	// while (next_index < list.n && pos[next_index] == -1) next_index++;
+	// int next_index2 = next_index + 1;
+	// while (next_index2 < list.n && pos[next_index2] == -1) next_index2++;
+	// int prev_index = index - 1;
+	// while (prev_index >= 0 && pos[prev_index] == -1) prev_index--;
+	// int prev_index2 = prev_index - 1;
+	// while (prev_index2 >= 0 && pos[prev_index2] == -1) prev_index2--;
+	
+	// if (prev_index >= 0) {
+	// 	pos[index] = pos[prev_index];
+	// 	if (prev_index2 >= 0) pos[prev_index] = (pos[prev_index2] + pos[index])/2;
+	// 	else pos[prev_index] = pos[index]/2;
+		
+
+	// 	if (next_index < list.n) pos[index] = (pos[next_index])
+	// }
+
+	needtoremap = 1;
+	return true;
+}
+
+
 //! Replace the window on the stack at index with the given window.
 /*! Return 0 for window replaced, or nonzero for error.
  */
 int StackFrame::ReplaceWin(anXWindow *win, int absorbcount, int index)
 {
 	if (!win) return 1;
-	if (index<0 || index>=list.n) return 2;
+	if (index < 0 || index >= list.n) return 2;
 
-	WinFrameBox *box=dynamic_cast<WinFrameBox *>(list.e[index]);
+	WinFrameBox *box = dynamic_cast<WinFrameBox *>(list.e[index]);
 	if (!box) {
 		//retain the metrics of the box, but replace the whole box with a new one
 		// ***
 		list.remove(index);
-		AddWin(win,absorbcount,index);
+		AddWin(win, absorbcount, index);
 	} else {
-		app->reparent(win,this);
+		app->reparent(win, this);
 		if (box->win()) app->destroywindow(box->win());
 		box->NewWindow(win);
 		if (absorbcount) win->dec_count();
@@ -533,9 +652,10 @@ int StackFrame::ReplaceWin(anXWindow *win, int absorbcount, int index)
 int StackFrame::AddWin(WinFrameBox *box,char islocal,int where)
 {
 	if (!box) return 1;
-	if (box->win() && box->win()->win_parent!=this) app->reparent(box->win(),this);
-	Push(box,islocal,where); //this is SquishyBox::Push()
-	needtodraw=1;
+	if (box->win() && box->win()->win_parent != this) app->reparent(box->win(), this);
+	Push(box, islocal, where); //this is SquishyBox::Push()
+	needtodraw = 1;
+	needtoremap = 1;
 	return 0;
 }
 
@@ -545,7 +665,7 @@ int StackFrame::AddWin(WinFrameBox *box,char islocal,int where)
  * The end result is for win to be pushed onto the top of the stack.
  * Calls AddWin(WinFrameBox *,char,int) for the actual pushing.
  *
- * If win==NULL, then the given dimensions is for a spacer block.
+ * If win==nullptr, then the given dimensions is for a spacer block.
  */
 int StackFrame::AddWin(anXWindow *win,int absorbcount,
 						int npw,int nws,int nwg,int nhalign,int nhgap,
@@ -555,14 +675,13 @@ int StackFrame::AddWin(anXWindow *win,int absorbcount,
 	if (!win) return 1;
 
 	WinFrameBox *wf;
-	wf=new WinFrameBox(win, 0,npw,npw,nws,nwg,nhalign,nhgap, 0,nph,nph,nhs,nhg,nvalign,nvgap);
+	wf = new WinFrameBox(win, 0,npw,npw,nws,nwg,nhalign,nhgap, 0,nph,nph,nhs,nhg,nvalign,nvgap);
 	if (win) {
-		wf->pad=win->win_border;
-		if (win->win_parent!=this) app->reparent(win,this);
+		wf->pad = win->win_border;
+		if (win->win_parent != this) app->reparent(win, this);
 		if (absorbcount) win->dec_count();
 	}
 	AddWin(wf,1,where);
-	needtodraw=1;
 	return 0;
 }
 
@@ -576,17 +695,39 @@ int StackFrame::AddWin(anXWindow *win,int absorbcount,
  * 
  * Returns 0 on success, else nonzero 
  */
-int StackFrame::AddWin(anXWindow *win,int absorbcount,int where)//where==-1
+int StackFrame::AddWin(anXWindow *win,int absorbcount,int where)
 {
 	if (!win) return 1;
 	if (win->win_parent!=this) app->reparent(win,this);
 
 	if (dynamic_cast<SquishyBox *>(win)) {
-		Push((SquishyBox *)win,where);
+		Push(dynamic_cast<SquishyBox *>(win),where);
+		if (absorbcount) win->dec_count();
 		return 0;
 	}
 
-	return AddWin(win,absorbcount, win->win_w?win->win_w:5,0,0,50,0, win->win_h?win->win_h:5,0,0,50,0, where);
+	return AddWin(win,absorbcount, win->win_w ? win->win_w : 5, 0,0,50,0, win->win_h ? win->win_h : 5, 0,0,50,0, where);
+}
+
+//! Remove item with index which from list.
+/*! Default is to pop the top of the stack.
+ *
+ * Returns 1 for item removed, or 0 for which out of bounds.
+ */
+int StackFrame::Remove(int which) //which=-1
+{ 
+	if (which < 0 || which >= list.n) return 0;
+
+	anXWindow *win = dynamic_cast<anXWindow*>(list.e[which]);
+	if (!win) {
+		WinFrameBox *w = dynamic_cast<WinFrameBox*>(list.e[which]);
+		if (w) win = w->win();
+	}
+	if (win) app->destroywindow(win);
+
+	needtoremap = 1;
+	needtodraw = 1;
+	return list.remove(which); 
 }
 
 Attribute *StackFrame::dump_out_atts(Attribute *att,int what,DumpContext *context)
@@ -615,8 +756,9 @@ Attribute *StackFrame::dump_out_atts(Attribute *att,int what,DumpContext *contex
 		boxa->push("hg"    , box->wg()    );
 		boxa->push("valign", box->halign());
 		boxa->push("vgap"  , box->hgap()  );
+		boxa->push("hidden", box->hidden() ? "yes" : "no");
 
-		anXWindow *win = childWindow(c);
+		anXWindow *win = GetWindow(c);
 		if (win) {
 			Attribute *wina = boxa->pushSubAtt("window", win->whattype());
 			win->dump_out_atts(wina, what, context);
@@ -629,9 +771,53 @@ Attribute *StackFrame::dump_out_atts(Attribute *att,int what,DumpContext *contex
 void StackFrame::dump_in_atts(Attribute *att,int flag,DumpContext *context)
 {
 	anXWindow::dump_in_atts(att, flag, context);
+
+	// This assumes that boxes have already been installed, and reading in here
+	// is only to assign configuration.
+	Attribute *metrics = att->find("metrics");
+	if (metrics) {
+		const char *name;
+		const char *value;
+		int i = 0;
+
+		for (int c = 0; c < att->attributes.n; c++) {
+			name  = att->attributes.e[c]->name;
+			value = att->attributes.e[c]->value;
+
+			if (i >= list.n) break;
+
+			if (!strcmp(name, "box")) {
+
+				for (int c2 = 0; c2 < att->attributes.e[c]->attributes.n; c2++) {
+					name  = att->attributes.e[c]->attributes.e[c2]->name;
+					value = att->attributes.e[c]->attributes.e[c2]->value;
+
+					double d = 0;
+					DoubleAttribute(value, &d);
+					if      (!strcmp(name, "x"     )) list[i]->x(d);
+					else if (!strcmp(name, "w"     )) list[i]->w(d);
+					else if (!strcmp(name, "pw"    )) list[i]->pw(d);
+					else if (!strcmp(name, "ws"    )) list[i]->ws(d);
+					else if (!strcmp(name, "wg"    )) list[i]->wg(d);
+					else if (!strcmp(name, "halign")) list[i]->halign(d);
+					else if (!strcmp(name, "hgap"  )) list[i]->hgap(d);
+					else if (!strcmp(name, "y"     )) list[i]->x(d);
+					else if (!strcmp(name, "h"     )) list[i]->w(d);
+					else if (!strcmp(name, "ph"    )) list[i]->pw(d);
+					else if (!strcmp(name, "hs"    )) list[i]->ws(d);
+					else if (!strcmp(name, "hg"    )) list[i]->wg(d);
+					else if (!strcmp(name, "valign")) list[i]->halign(d);
+					else if (!strcmp(name, "vgap"  )) list[i]->hgap(d);
+					else if (!strcmp(name, "hidden")) list[i]->hideBox(BooleanAttribute(value));
+					else if (!strcmp(name, "window")) {
+						cerr << " *** FINISH StackFrame::dump_in_atts for window" << endl;
+					}
+				}
+				i++;
+			}
+		}
+	}
 }
-
-
 
 
 } //namespace Laxkit

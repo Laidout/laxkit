@@ -1030,7 +1030,7 @@ int ShortcutWindow2::init()
 
 
 	keyboard->UpdateCurrent();
-	Sync(1);
+	SyncFromPos(true);
 
 	if (use_locale) ApplyCurrentLocale();
 

@@ -213,6 +213,7 @@ int IconSelector::AddBox(const char *nlabel,const char *filename,int nid)
  */
 int IconSelector::AddBox(const char *nlabel,LaxImage *img,int nid)
 {
+	if (nid < 0) nid = wholelist.n-1;
 	IconBox *newbox = new IconBox();
 	newbox->last_scale = UIScale();
 	FillBox(newbox,nlabel,img,nid);
@@ -319,7 +320,7 @@ int IconSelector::DisplayAsList(bool yes)
 		display_type = DTYPE_NORMAL;
 		labelstyle = tlabelstyle;
 		for (int c = wholelist.n-1; c >= 0; c-=2) {
-			Pop(c);
+			Remove(c);
 			IconBox *b = dynamic_cast<IconBox*>(wholelist.e[c-1]);
 			if (b->image) b->image->inc_count();
 			FillBox(b, b->label, b->image, b->id);

@@ -147,7 +147,7 @@ class SquishyBox
 	virtual void sync(int xx,int yy,int ww,int hh);
 	virtual void sync();
 	virtual void UpdateScale(double new_scale);
-	
+
 	 //sizing functions
 	virtual void SetPreferred(double npw,double nws,double nwg,double nhalign,double nhgap, 
 							  double nph,double nhs,double nhg,double nvalign,double nvgap);
@@ -201,13 +201,18 @@ class ListBox : public SquishyBox
 			double nx,double nw,double npw,double nws,double nwg,double nhalign,double nhgap, 
 			double ny,double nh,double nph,double nhs,double nhg,double nvalign,double nvgap);
 
-	 //list management functions
+	// list management functions
 	virtual void Push(SquishyBox *box,char islocal=0,int where=-1);
 	virtual void AddSpacer(double npw,double nws,double nwg,double nhalign, int where=-1);
-	virtual int Pop(int which=-1);
+	virtual int Remove(int which=-1);
 	virtual void Flush();
+	virtual SquishyBox *GetBox(int which);
+	virtual bool HideSubBox(int index);
+	virtual bool ShowSubBox(int index);
+	virtual int NumBoxes() { return list.n; }
+	virtual int NumVisibleBoxes();
 
-	 //syncing and distributing
+	// syncing and distributing
 	virtual void UpdateScale(double new_scale);
 	virtual int WrapToExtent();
 	virtual void sync();
@@ -235,9 +240,10 @@ class RowColBox : public ListBox
 			  double nx,double nw,double npw,double nws,double nwg,double nhalign,double nhgap, 
 			  double ny,double nh,double nph,double nhs,double nhg,double nvalign,double nvgap);
 	virtual void Push(SquishyBox *box,char islocal=0,int where=-1);
-	virtual int Pop(int which=-1);
+	virtual int Remove(int which=-1);
 	virtual SquishyBox *GetBox(int which);
 	virtual int NumBoxes() { return wholelist.n; }
+	virtual int NumVisibleBoxes();
 	virtual void Flush();
 	
 	virtual void UpdateScale(double new_scale);
