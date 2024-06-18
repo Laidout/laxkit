@@ -20,11 +20,6 @@
 //    Copyright (C) 2004-2010 by Tom Lechner
 //
 
-
-
-
-
-
 #include <lax/scroller.h>
 #include <lax/laxutils.h>
 
