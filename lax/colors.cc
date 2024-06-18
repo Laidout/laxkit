@@ -933,12 +933,19 @@ Color *ColorManager::newColor(int systemid, int nvalues, ...)
 	va_list argptr;
 	va_start(argptr, nvalues);
 
-	Color *color=nullptr;
+	Color *color = nullptr;
 	for (int c=0; c<manager->systems.n; c++) {
 		if (systemid == manager->systems.e[c]->SystemId()) {
-			color=manager->systems.e[c]->newColor(nvalues, argptr);
+			color = manager->systems.e[c]->newColor(nvalues, argptr);
 			break;
 		}
+	}
+
+	// use default RGB as backup to prevent crashes for simple programs.
+	if (color == nullptr && systemid == LAX_COLOR_RGB) {
+		ColorSystem *system = Create_sRGB_System(true);
+		manager->AddSystem(system, true);
+		color = system->newColor(nvalues, argptr);
 	}
 	va_end(argptr);
 
