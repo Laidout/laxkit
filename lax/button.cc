@@ -82,8 +82,11 @@ Button::Button(anXWindow *parnt,const char *nname,const char *ntitle,unsigned lo
 	gap = npad; if (gap < 0) gap = UIScale() * app->theme->default_padx;
 	state = oldstate = 1;
 
-	thing = THING_None;
+	thing  = THING_None;
 	thingw = thingh = 0;
+	thing_on        = THING_Undefined; //means default to thing
+	thing_fill      = 2;
+	thing_on_fill   = 2;
 
 	label = newstr(nlabel);
 	labelstyle = LAX_ICON_TEXT;
@@ -229,6 +232,9 @@ int Button::SetGraphic(int newthing, int newwidth, int newheight)
 	image = bwimage = NULL;
 
 	thing  = newthing;
+	thing_on = newthing;
+	thing_on_fill = thing_fill = 2;
+
 	thingw = newwidth;
 	thingh = newheight;
 	if (thingw <= 0) {
@@ -239,6 +245,39 @@ int Button::SetGraphic(int newthing, int newwidth, int newheight)
 		// 	thingw = th / 2;
 		// } else
 		// 	thingw = win_themestyle->normal->textheight() / 2;
+	}
+	if (thingh <= 0) thingh = thingw;
+
+	needtodraw = 1;
+	return 0;
+}
+
+//! Use one graphic for on, another graphic for off.
+/*! This is something that can be drawn with draw_thing(). See THING_*.
+ * Fill values are 0 for stroke only. 1 for fill only, 2 for fill and stroke, which strokes with fg, and fills with color1.
+ *
+ * This will dec_count the image if present.
+ *
+ * Return 0 for thing installed. Nonzero for no change.
+ */
+int Button::SetGraphicOnOff(int newthing_on, int on_fill, int newthing_off, int off_fill, int newwidth, int newheight)
+{
+	if (image)   image  ->dec_count();
+	if (bwimage) bwimage->dec_count();
+	image = bwimage = nullptr;
+
+	thing         = newthing_off;
+	thing_fill    = off_fill;
+	thing_on      = newthing_on;
+	thing_on_fill = on_fill;
+
+	if (newwidth > 0 || newheight > 0) {
+		thingw = newwidth;
+		thingh = newheight;
+	}
+
+	if (thingw <= 0) {
+		thingw = win_themestyle->normal->textheight() / 2;
 	}
 	if (thingh <= 0) thingh = thingw;
 
@@ -343,7 +382,22 @@ void Button::draw()
 			if (Grayed()) dp->setSourceAlpha(1.);
 			i->doneForNow();
 		} else {
-			dp->drawthing(ix+iw/2,iy+ih/2, iw/2,ih/2, (DrawThingTypes)thing, win_themestyle->fg.Pixel(), win_themestyle->color1.Pixel());
+			dp->LineWidthScreen(1); //TODO: *** this should be something like theme->ScreenLine()
+			if (state & LAX_ON) {
+				if (thing_on_fill == 2)
+					dp->drawthing(ix+iw/2,iy+ih/2, iw/2,ih/2, (DrawThingTypes)thing_on, win_themestyle->fg.Pixel(), win_themestyle->color1.Pixel());
+				else {
+					dp->NewFG(win_themestyle->fg.Pixel());
+					dp->drawthing(ix+iw/2,iy+ih/2, iw/2,ih/2, thing_on_fill, (DrawThingTypes) thing_on);
+				}
+			} else {
+				if (thing_fill == 2)
+					dp->drawthing(ix+iw/2,iy+ih/2, iw/2,ih/2, (DrawThingTypes)thing, win_themestyle->fg.Pixel(), win_themestyle->color1.Pixel());
+				else {
+					dp->NewFG(win_themestyle->fg.Pixel());
+					dp->drawthing(ix+iw/2,iy+ih/2, iw/2,ih/2, thing_fill, (DrawThingTypes) thing);
+				}
+			}
 		}
 	}
 

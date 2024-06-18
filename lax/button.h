@@ -39,6 +39,9 @@ class Button : public ButtonBase
   protected:
 	LaxImage *image,*bwimage;
 	int thing,thingw,thingh;
+	int thing_fill;
+	int thing_on_fill;
+	int thing_on;
 	char *label;
 	LaxFont *font;
 
@@ -70,6 +73,7 @@ class Button : public ButtonBase
 	virtual const char *whattype() { return "Button"; }
 	virtual void ThemeChanged();
 	virtual int SetGraphic(int newthing, int newwidth, int newheight);
+	virtual int SetGraphicOnOff(int newthing_on, int on_fill, int newthing_off, int off_fill, int newwidth = 0, int newheight = 0);
 	virtual int SetIcon(const char *filename,int makebw=0);
 	virtual int SetIcon(LaxImage *img,int makebw=0);
 	virtual const char *Label(unsigned int which);
