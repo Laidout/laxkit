@@ -73,5 +73,7 @@ class Debug
 #define DBGE(x) Laxkit::Debug::LineHeader(__FILE__, __LINE__, 2); Laxkit::Debug::Stream() << x; Laxkit::Debug::NormalTag();
 #endif
 
+#define HEYYOU(x) std::cerr << __FILE__<<":"<<__LINE__<<"  "<<x<<std::endl;
+#define HEYYOU_OUT(x) std::cout << __FILE__<<":"<<__LINE__<<"  "<<x<<std::endl;
 
 } // namespace Laxkit
