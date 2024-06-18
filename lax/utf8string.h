@@ -59,8 +59,8 @@ class Utf8String
 	long Length() { return num_chars; }
 	long Bytes() { return num_bytes; }
 	long Capacity() { return bytes_allocated; }
-	void Clear();
-	void SetToNone();
+	void Clear();     // deallocates
+	void SetToNone(); // sets size to 0, but does not deallocate
 
 	Utf8String &operator=(const char *str);
 	//Utf8String &operator=(Utf8String &str);
