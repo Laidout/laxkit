@@ -40,11 +40,6 @@
 #include <lax/language.h>
 
 
-//template implementation:
-#include <lax/lists.cc>
-#include <lax/refptrstack.cc>
-
-
 using namespace Laxkit;
 
 
