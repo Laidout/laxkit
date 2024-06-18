@@ -32,16 +32,16 @@ class ScreenColor
 {
  public:
 	int red, green, blue, alpha; // in range 0..65535
-	char pixel_is_synced;
+	bool pixel_is_synced;
 	long pixel;
 	int info;
 
-	ScreenColor() { red=green=blue=0; alpha=65535; pixel_is_synced=0; pixel=0; info=0; }
+	ScreenColor() { red=green=blue=0; alpha=65535; pixel_is_synced=false; pixel=0; info=0; }
 	ScreenColor(unsigned int color);
 	ScreenColor(int r, int g, int b, int a)
-	  : red(r), green(g), blue(b), alpha(a), pixel_is_synced(0), pixel(0), info(0) {}
+	  : red(r), green(g), blue(b), alpha(a), pixel_is_synced(false), pixel(0), info(0) {}
 	ScreenColor(double r, double g, double b, double a)
-	  : red(r*65535), green(g*65535), blue(b*65535), alpha(a*65535), pixel_is_synced(0), pixel(0), info(0) {}
+	  : red(r*65535), green(g*65535), blue(b*65535), alpha(a*65535), pixel_is_synced(false), pixel(0), info(0) {}
 
 	void gray(int g, int a=0xffff);
 	void rgb(int r,int g,int b, int a=0xffff);
@@ -68,6 +68,7 @@ class ScreenColor
 
 	void AddDiff(double r, double g, double b);
 	void Average(ScreenColor *result, const ScreenColor &color, double r);
+	ScreenColor Lerp(const ScreenColor &color, double r) const;
 	void Clamp();
 
 	unsigned long Pixel() const;
@@ -75,6 +76,8 @@ class ScreenColor
 	int equals(double r,double g,double b, double a);
 
 	void hex(char *buffer, bool use_alpha=true, int depth=8);
+
+	ScreenColor Hinted(double hint = .1) const;
 };
 
 } //namespace Laxkit

@@ -198,6 +198,14 @@ void ScreenColor::Average(ScreenColor *result, const ScreenColor &color, double 
 	result->alpha = alpha*(1-r) + color.alpha*r;
 }
 
+/*! Return a new color lerping between this and color. */
+ScreenColor ScreenColor::Lerp(const ScreenColor &color, double r) const
+{
+	ScreenColor col = *this;
+	col.Average(&col, color, r);
+	return col;
+}
+
 /*! Make sure the channel values are [0..65535].
  */
 void ScreenColor::Clamp()
@@ -231,6 +239,29 @@ void ScreenColor::hex(char *buffer, bool use_alpha, int depth)
 	else sprintf(buffer, "%x%x%x", red>>12, green>>12, blue>>12);
 }
 
+/*! Return a screen color that is slightly different than the current.
+ * Each channel is added by abs(hint)*65535, unless
+ * the channel is overflowed, in which case, subtract the hint instead.
+ */
+ScreenColor ScreenColor::Hinted(double hint) const
+{
+	hint = fabs(hint); //to protect against jerks
+	ScreenColor ret;
+	int diff = hint * 65535;
+
+	if (red + diff > 65535) ret.red = red - diff;
+	else ret.red = red + diff;
+	if (ret.red < 0) ret.red = 0;
+	if (green + diff > 65535) ret.green = green - diff;
+	else ret.green = green + diff;
+	if (ret.green < 0) ret.green = 0;
+	if (blue + diff > 65535) ret.blue = blue - diff;
+	else ret.blue = blue + diff;
+	ret.alpha = alpha;
+	if (ret.blue < 0) ret.blue = 0;
+
+	return ret;
+}
 
 } // namespace Laxkit
 
