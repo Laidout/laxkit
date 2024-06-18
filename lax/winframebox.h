@@ -43,6 +43,7 @@ class WinFrameBox : public SquishyBox
 	virtual void NewWindow(anXWindow *nwin);
 	virtual anXWindow *win() { return window; }
 	virtual void sync();
+	virtual int hideBox(int yeshide);
 };
 
 

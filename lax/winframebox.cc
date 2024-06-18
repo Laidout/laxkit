@@ -97,6 +97,17 @@ void WinFrameBox::sync()
 	window->MoveResize(x() - window->WindowBorder(), y()-window->WindowBorder(), w(),h());
 }
 
+int WinFrameBox::hideBox(int yeshide)
+{
+	bool old = hidden();
+	int status = SquishyBox::hideBox(yeshide);
+	if (window) {
+		if (old) anXApp::app->unmapwindow(window);
+		else anXApp::app->mapwindow(window);
+	}
+	return status;
+}
+
 
 } //namespace Laxkit
 
