@@ -30,6 +30,7 @@
 #include <lax/scroller.h>
 #include <lax/gradientstrip.h>
 #include <lax/iconselector.h>
+#include <lax/stackframe.h>
 
 
 namespace Laxkit {
@@ -120,11 +121,16 @@ class FontDialog : public RowFrame
 	MenuInfo styles;
 	FontLayersWindow *layers;
 	IconSelector *tags;
+	anXWindow *character_viewer;
+
+	StackFrame *variations;
+	IconSelector *variation_features;
 
 	LaxFont *thefont, *fontlayer;
 	Palette *palette;
 
 	virtual void UpdateStyles();
+	virtual void UpdateVariations();
 	virtual void UpdateSample();
 	virtual void UpdateColorBoxes();
 	virtual void UpdateSearch();

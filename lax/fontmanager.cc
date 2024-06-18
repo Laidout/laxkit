@@ -54,10 +54,6 @@ using namespace std;
 #endif
 
 
-//template implementation:
-#include <lax/lists.cc>
-
-
 namespace Laxkit {
 
 
@@ -542,6 +538,124 @@ int FontDialogFont::UsePSName()
 	return 0;
 }
 
+/*! When variations_state == -1, then scan the font with Harfbuzz to determine
+ * variable type features and axes. This requires that file be a valid font file.
+ *
+ * Returns true for success and any features/axes found, otherwise return false
+ * and features/axes still not determined.
+ */
+bool FontDialogFont::UpdateVariations()
+{
+	if (variations_state >= 0) return true;
+	if (variations_state != -1) return false; // other than -1, we don't know what to do by default!
+
+	if (isblank(file)) {
+		DBG cerr << " *** missing file for font!! " <<(family ? family : "null") << endl;
+		return false;
+	}
+
+
+	hb_blob_t *blob = hb_blob_create_from_file(file);
+	hb_face_t *face = hb_face_create(blob, index);
+	
+	// determine adjustable axes
+	unsigned int num_axes = hb_ot_var_get_axis_count(face);
+	axes_array.resize(num_axes);
+	if (num_axes) {
+		hb_ot_var_axis_info_t *arr = axes_array.data();
+		hb_ot_var_get_axis_infos(face, 0, &num_axes, arr);
+		for (unsigned int c = 0; c < num_axes; c++) {
+			unsigned int text_len = hb_ot_name_get_utf8(face, axes_array[c].name_id, 0, 0, nullptr);
+			if (text_len) {
+				text_len++;
+				char text[text_len];
+				hb_ot_name_get_utf8(face, axes_array[c].name_id, 0, &text_len, text);
+				axes_names.push_back(text);
+
+				DBG cerr << "named axis: "<<text<<endl;
+			}
+		}
+	}
+
+
+	// determine all features
+	unsigned int num_features = 0;
+	unsigned int num_scripts = hb_ot_layout_table_get_script_tags(face, HB_OT_TAG_GSUB, 0, nullptr, nullptr);
+	std::vector<hb_tag_t> scripts(num_scripts + 1);
+	
+	hb_ot_layout_table_get_script_tags(face, HB_OT_TAG_GSUB, 0, &num_scripts, scripts.data());
+
+	char tag[5];
+	tag[4] = '\0';
+
+	for (unsigned int c = 0; c < num_scripts; c++) {
+        unsigned int num_languages = hb_ot_layout_script_get_language_tags(face, HB_OT_TAG_GSUB, c, 0, nullptr, nullptr);
+        for (unsigned int l = 0; l < num_languages; l++) {
+			unsigned int nfeatures = hb_ot_layout_language_get_feature_tags(face, HB_OT_TAG_GSUB, c, l, 0, nullptr, nullptr);
+			hb_tag_t features[nfeatures + 1];
+			hb_ot_layout_language_get_feature_tags(face, HB_OT_TAG_GSUB, c, l, 0, &nfeatures, features);
+
+			for (unsigned int f = 0; f < nfeatures; f++) {
+				tag[0] = (features[f]>>24)&0xff;
+				tag[1] = (features[f]>>16)&0xff;
+				tag[2] = (features[f]>>8 )&0xff;
+				tag[3] = (features[f]    )&0xff;
+				// each language might repeat a tag. check to not add dups..
+				// at this point we don't care about tag-language correspondence
+				unsigned int s = 0;
+				for (s = 0; s < feature_tags.size(); s++) {
+					if (feature_tags[s] == tag) break;
+				}
+				if (s == feature_tags.size()) {
+					feature_tags.push_back(Utf8String(tag));
+					num_features++;
+				}
+			}
+        }
+	}
+
+	// retrieve named axis instances
+	unsigned int num_named = hb_ot_var_get_named_instance_count(face);
+	if (num_named) {
+		for (unsigned int c = 0; c < num_named; c++) {
+			hb_ot_name_id_t subfamily_name_id = hb_ot_var_named_instance_get_subfamily_name_id(face, c);
+			hb_ot_name_id_t ps_name_id = hb_ot_var_named_instance_get_postscript_name_id(face, c);
+            unsigned int coords_length = 0;
+			unsigned int axes_count = hb_ot_var_named_instance_get_design_coords(face, c,
+                                &coords_length,
+                                nullptr);
+
+			unsigned int text_len = hb_ot_name_get_utf8(face, subfamily_name_id, 0, 0, nullptr);
+			if (text_len) {
+				text_len++;
+				char subfamily_text[text_len];
+				hb_ot_name_get_utf8(face, subfamily_name_id, 0, &text_len, subfamily_text);
+				DBG cerr << "named instance subfamily: "<<subfamily_text<<endl;
+			}
+			text_len = hb_ot_name_get_utf8(face, ps_name_id, 0, 0, nullptr);
+			if (text_len) {
+				text_len++;
+				char psname_text[text_len];
+				hb_ot_name_get_utf8(face, ps_name_id, 0, &text_len, psname_text);
+				DBG cerr << "named instance ps name: "<<psname_text<<endl;
+			}
+
+			if (axes_count) {
+				float coords[axes_count];
+				coords_length = axes_count;
+				unsigned int ret = hb_ot_var_named_instance_get_design_coords(face, c,
+                                &coords_length,
+                                coords);
+				DBG cerr << "returned axis coords: "<<coords_length<<" "<<axes_count<<" "<<ret<<endl;
+			}
+			//*** do something with these!!
+		}
+	}
+
+	if (num_axes == 0 && num_features == 0) variations_state = 0;
+	else variations_state = 1;
+	return true;
+}
 
 //-------------------------------------- FontDialogFont -------------------------------------
 LayeredDialogFont::LayeredDialogFont(int nid)
@@ -672,6 +786,8 @@ PtrStack<FontDialogFont> *FontManager::GetFontList()
     FontDialogFont *f = nullptr;
     FcFontSet *fontset = FcConfigGetFonts(fcconfig, FcSetSystem); //"This font set is owned by the library and must not be modified or freed"
 
+    tags.push(new FontTag(-1, FontTag::TAG_Favorite, _("Favorites")));
+
     for (int c = 0; c < fontset->nfont; c++) {
          // Usually, for each font family, there are several styles
          // like bold, italic, etc.
@@ -697,7 +813,7 @@ PtrStack<FontDialogFont> *FontManager::GetFontList()
 
         result = FcPatternGet(fontset->fonts[c],FC_FONTFORMAT,0,&v);
         if (result == FcResultMatch) format = (const char *)v.u.s; else format = nullptr;
-		if (format != NULL) {
+		if (format != nullptr) {
 			int id = GetTagId(format);
 			if (id == -1) {
 				tags.push(new FontTag(-1, FontTag::TAG_Format, format)); //puts at end 
@@ -718,6 +834,31 @@ PtrStack<FontDialogFont> *FontManager::GetFontList()
 				}
 				if (tag_id > -1) f->AddTag(tag_id);
 			}
+		}
+
+		result = FcPatternGet(fontset->fonts[c], FC_VARIABLE, 0, &v);
+		if (result == FcResultMatch) {
+			//DBG if (v.u.b) cerr << "TODO! implement FC_VARIABLE retrieval with fontconfig: " << v.u.b << endl;
+			if (v.u.b) {
+				int tag_id = GetTagId(_("Variable"));
+				if (tag_id == -1) {
+					tags.push(new FontTag(-1, FontTag::TAG_Other, _("Variable"))); //puts at end 
+					tag_id = tags.e[tags.n-1]->id;
+				}
+				if (tag_id > -1) f->AddTag(tag_id);
+			}
+		}
+
+		result = FcPatternGet(fontset->fonts[c], FC_FONT_VARIATIONS, 0, &v);
+		if (result == FcResultMatch) {
+			// *** this is apparently for setting query patterns somewhere else? never returns anything
+			DBG cerr << "TODO! implement FC_FONT_VARIATIONS retrieval with fontconfig: " << (const char *)v.u.s << endl;
+		}
+
+		result = FcPatternGet(fontset->fonts[c], FC_FONT_FEATURES, 0, &v);
+		if (result == FcResultMatch) {
+			// *** this is apparently for setting query patterns somewhere else? never returns anything
+			DBG cerr << "TODO! implement FC_FONT_FEATURES retrieval with fontconfig: " << (const char *)v.u.s << endl;
 		}
 
 		f->UseFamilyStyleName();
@@ -1038,7 +1179,7 @@ int FontManager::RetrieveFontmatrixTags()
 						}
 					} while (error2==SQLITE_ROW);
 
-					DBG cerr <<endl;
+					//DBG cerr <<endl;
 					sqlite3_finalize(stmt2);
 				}
 
@@ -1330,6 +1471,41 @@ LaxFont *FontManager::dump_in_font(Attribute *att, DumpContext *context)
 
 	return newfont;
 }
+
+
+/*! Return 1 for added, 2 for already there, else 0 for instance not found or null file. */
+int FontManager::AddFavoritesFile(const char *file)
+{
+	if (isblank(file)) return 0;
+
+	for (int c = 0; c < favorites_files.n; c++) {
+		if (favorites_files.e[c].Equals(file)) {
+			return 2;
+		}
+	}
+
+	favorites_files.push(Utf8String(file));
+	cerr << " *** MUST IMPLEMENT REBUILD FAVORITE FONTS" <<endl;
+	return 1;
+}
+
+
+/*! Return 1 for success, else 0 for instance not found or null file. */
+int FontManager::RemoveFavoritesFile(const char *file)
+{
+	if (isblank(file)) return 0;
+
+	for (int c = 0; c < favorites_files.n; c++) {
+		if (favorites_files.e[c].Equals(file)) {
+			favorites_files.remove(c);
+			cerr << " *** MUST IMPLEMENT REBUILD FAVORITE FONTS" <<endl;
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
 
 
 //--------------------------------------- Default FontManager Stuff ---------------------------

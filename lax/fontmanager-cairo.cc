@@ -31,9 +31,6 @@
 #include <lax/anxapp.h>
 #include <lax/colors.h>
 
-#include <lax/lists.cc> // this is necessary to instantiate templates
-#include <lax/refptrstack.cc>
-
 #include <cstdio>
 #include <cairo/cairo-ft.h>
 

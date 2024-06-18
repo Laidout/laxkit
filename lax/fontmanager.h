@@ -27,6 +27,10 @@
 #include <ft2build.h>
 #include FT_FREETYPE_H
 #include FT_ERRORS_H
+#include <harfbuzz/hb.h>
+#include <harfbuzz/hb-ot.h>
+
+#include <vector>
 
 #include <lax/anobject.h>
 #include <lax/errorlog.h>
@@ -35,6 +39,7 @@
 #include <lax/laximages.h>
 #include <lax/lists.h>
 #include <lax/gradientstrip.h>
+#include <lax/utf8string.h>
 
 
 namespace Laxkit {
@@ -79,6 +84,7 @@ class ColrGlyphMap
 	~ColrGlyphMap();
 };
 
+
 //---------------------------- LaxFont -------------------------------
 class LaxFont : public Resourceable
 {
@@ -88,7 +94,15 @@ class LaxFont : public Resourceable
 	char *fontfile;
 	char *psname;
 	int fontindex;
-	anObject *color;//optional, preferred color, a Color for single layer, Palette for multicolor
+	anObject *color; //optional, preferred color, a Color for single layer, Palette for multicolor
+
+	std::vector<hb_ot_var_axis_info_t> axes_array;
+	std::vector<hb_variation_t> variation_data; // current values for variable type axes
+	std::vector<hb_feature_t> userfeatures; // passed into hp_shape
+	//todo: figure out why numstack fails with hb_*:
+	//NumStack<hb_ot_var_axis_info_t> axes_array; // has axis min/max/default values for variable type axes
+	//NumStack<hb_variation_t> variation_data; // current values for variable type axes
+	//NumStack<hb_feature_t> userfeatures; // passed into hp_shape
 
   public:
 	int id;
@@ -140,7 +154,8 @@ class LaxFont : public Resourceable
 
 //---------------------------- FontDialogFont -------------------------------
 /*! \class FontDialogFont
- * \brief Describes a font as dealt with in a FontDialog.
+ * Describes a font as dealt with in a FontDialog.
+ * A list of these is maintained in FontManager::fonts.
  */
 class FontDialogFont
 {
@@ -151,17 +166,22 @@ class FontDialogFont
     char *style;
     char *psname;
     char *file;
-	int format;
     int index; //index in file when more than one font in file
+	int format; // Currently -1 for default, or id for "Layered" tag (see also FontManager::tags).
     bool has_color;
 
     LaxImage *preview;
     IntTagged tags;
 	int favorite; //num is rank in fav list, starting with 1. 0 is not favorite
 
-    FcPattern *fc_pattern; //owned by the master list
+	FcPattern *fc_pattern; //owned by the master list
 
-    FontDialogFont(int nid=-1, const char *nfile=NULL, const char *nfamily=NULL, const char *nstyle=NULL);
+	int variations_state = -1; //-1 for unknown, 0 for none, 1 for already queried
+	std::vector<Utf8String> feature_tags;
+	std::vector<Utf8String> axes_names;
+	std::vector<hb_ot_var_axis_info_t> axes_array;
+	
+    FontDialogFont(int nid = -1, const char *nfile = nullptr, const char *nfamily = nullptr, const char *nstyle = nullptr);
     virtual ~FontDialogFont();
     virtual bool Match(const char *mfamily, const char *mstyle);
     virtual int HasTag(int tag_id);
@@ -173,6 +193,7 @@ class FontDialogFont
 
 	virtual int UsePSName();
 	virtual int UseFamilyStyleName();
+	virtual bool UpdateVariations();
 };
 
 class LayeredDialogFont : public FontDialogFont
@@ -217,10 +238,15 @@ class FontManager : public anObject
   protected:
 	FcConfig *fcconfig;
 	FT_Library *ft_library;
+
 	PtrStack<FontDialogFont> fonts;
+	PtrStack<FontDialogFont> favorites;
+	PtrStack<FontDialogFont> recent;
+
 	ResourceDirs dirs; //extra places outside normal fontconfig to look for fonts
+	NumStack<Utf8String> favorites_files;
 	
-  public: 
+  public:
 	PtrStack<FontTag> tags;
 
 	FontManager();
@@ -250,6 +276,9 @@ class FontManager : public anObject
 	virtual int GetTagId(const char *tag);
 	virtual const char *GetTagName(int id);
 	virtual FontDialogFont *FindFontFromFile(const char *file);
+
+	virtual int AddFavoritesFile(const char *file);
+	virtual int RemoveFavoritesFile(const char *file);
 	 
 	virtual LaxFont *dump_in_font(Attribute *att, DumpContext *context);
 };

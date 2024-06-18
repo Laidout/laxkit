@@ -25,12 +25,15 @@
 #include <lax/lineinput.h>
 #include <lax/button.h>
 #include <lax/language.h>
-#include <lax/stackframe.h>
 #include <lax/colorbox.h>
 #include <lax/colorevents.h>
 #include <lax/laxutils.h>
 #include <lax/quickfileopen.h>
 #include <lax/menubutton.h>
+
+#include <lax/interfaces/characterinterface.h>
+#include <lax/interfaces/sliderinterface.h>
+#include <lax/interfaces/interfacewindow.h>
 
 
 #define DBG
@@ -419,6 +422,11 @@ FontDialog::FontDialog(anXWindow *parnt,const char *nname,const char *ntitle,uns
 	if (win_h <= 0) win_h = 600;
 
 	group = nullptr;
+
+	variations = nullptr;
+	variation_features = nullptr;
+
+	character_viewer = nullptr; // *** how to get notified of window kiled so this variable could be useful?
 }
 
 FontDialog::~FontDialog()
@@ -433,6 +441,8 @@ FontDialog::~FontDialog()
 	delete[] origstyle;
 }
 
+#define FONTD_TOGGLE 1000
+
 int FontDialog::init()
 {
 
@@ -441,12 +451,19 @@ int FontDialog::init()
 	fonts = fmanager->GetFontList();
 
 
-	 //-------------build windows
-	//int textheight=app->defaultfont->max_bounds.ascent+app->defaultfont->max_bounds.descent;
-	//int linpheight=textheight+6;
+	//-------------build windows
 
 	anXWindow *last = NULL;
 	double textheight = UIScale() * win_themestyle->normal->textheight();
+
+	// favorite button toggle
+	Button *tbut = nullptr;
+	last = tbut = new Button(this,"favorite",nullptr, BUTTON_TOGGLE | IBUT_FLAT, 0,0,0,0, 0,
+			last, object_id, "favorite", FONTD_TOGGLE, nullptr);
+	tbut->tooltip(_("Click to toggle this font variant as a favorite"));
+	tbut->SetGraphicOnOff(THING_Star, 1, THING_Star, 0);
+	AddWin(tbut,1, 1.1*textheight,0,0,50,0, 1.1*textheight,0,0,50,0, -1);
+
 
 	 //------font family
 	 // *** type in box progressively limits what's displayed in list 
@@ -503,18 +520,16 @@ int FontDialog::init()
 
 	AddHSpacer(textheight, 0,0,0);
 
-	//MessageBar *mbar = new MessageBar(this, "group", nullptr, 0, 0,0,0,0,0, _("Group"));
-	//AddWin(mbar,1,-1);
 	last = group = new LineInput(this,"group","group",0, 0,0,0,0, 0, last,object_id,"group",
 							_("Group"),"2",0);
 	group->tooltip(_("Compact the font list by patterns.\n2 for instance means group lines whose first two words are the same."));
 	AddWin(group,1, group->win_w + 4*textheight,10,100,50,0, group->win_h,0,2*textheight,100,0, -1);
 
-
-	Button *tbut = nullptr;
-//	last=tbut=new Button(this,"more","more",IBUT_FLAT, 0,0,0,0, 0, 
-//			last,object_id,"more", 0, _("More.."),NULL,NULL,3,3);
-//	AddWin(tbut,1, tbut->win_w,0,tbut->win_w*2,50,0, tbut->win_h,0,0,50,0, -1);
+	last = tbut = new Button(this, "config",nullptr, IBUT_FLAT, 0,0,0,0, 0,
+			last,object_id,"config", 0, nullptr);
+	tbut->SetGraphicOnOff(THING_Gear,1, THING_Gear,0, -1,-1);
+	tbut->tooltip(_("Configure"));
+	AddWin(tbut,1, textheight*1.5,0,0,50,0, textheight*1.5,0,0,50,0, -1);
 
 	AddNull();
 	AddVSpacer(textheight/2,0,0,0);
@@ -522,7 +537,10 @@ int FontDialog::init()
 
 	//----- tags
 	if (app->fontmanager->tags.n) {
-		last = tags = new IconSelector(this, "tags","tags", 0, 0,0,0,0,0, last,object_id,"tags",textheight/2,textheight/2);
+		last = tags = new IconSelector(this, "tags","tags", BOXSEL_ROWS, 0,0,0,0,1, last,object_id,"tags",
+					textheight/2,  //SquishyBox::padinset
+					textheight/2,  //IconSelector::padg between text and graphic
+					textheight/3); //IconSelector::boxinset
 
 		for (int c=0; c<app->fontmanager->tags.n; c++) {
 			tags->AddBox(app->fontmanager->tags.e[c]->tag, (LaxImage*)NULL, app->fontmanager->tags.e[c]->id);
@@ -572,6 +590,9 @@ int FontDialog::init()
 		mfonts->Sort(0);
 	}
 
+	// | fontlist | variations |
+	StackFrame *hbox = StackFrame::HBox();
+
 	last = fontlist = new TreeSelector(this,"fonts","fonts", SW_RIGHT,
 									0,0,0,0,1,
 									last,object_id,"font",
@@ -585,8 +606,38 @@ int FontDialog::init()
 									 |TREESEL_ONE_ONLY,
 									mfonts);
 	fontlist->InstallColors(THEME_Edit);
-	AddWin(fontlist,1, 200,100,1000,50,0, 30,0,2000,50,0, -1);
+	hbox->AddWin(fontlist,1, 200,100,1000,50,0, 30,0,2000,50,0, -1);
 
+	variations = StackFrame::VBox();
+	// 0: no variations message box
+	variations->AddWin(new MessageBar(nullptr, "novar", nullptr, 0, 0,0,0,0,0, _("No variations")),1, -1);
+
+	// 1: feature list
+	last = variation_features = new IconSelector(nullptr, "features","features", BOXSEL_ROWS, 0,0,100,100,1, last,object_id,"features",
+					textheight/2,  //SquishyBox::padinset
+					textheight/2,  //IconSelector::padg between text and graphic
+					textheight/3); //IconSelector::boxinset
+	//variation_features->AddBox("TEST", -1);
+	variations->AddWin(variation_features,1, 100,50,10000,50,0, textheight,0,10000,50,0, -1);
+
+	// // 2..: adjustable axes
+	// Scroller *slider_test; //todo: need a dedicated rail slider
+	// last = slider_test = new Scroller(variations, "slider", nullptr, SC_NOARROWS | SC_XSCROLL,
+	// 		0,0,0,0,0,
+	// 		last, object_id, "slider-test",
+	// 		nullptr,
+	// 		0, //long nmins=0,
+	// 		1000, //long nmaxs=0,
+	// 		100, //long nps=0,
+	// 		10, //long nes=0,
+	// 		0, //long ncp=-1,
+	// 		100 //long ncpe=-1
+	// 		);
+	// variations->AddWin(slider_test,1, 50,25,5000,50,0, textheight,0,0,50,0, -1);
+	
+	hbox->AddWin(variations,1, 200,100,1000,50,0, 30,0,2000,50,0, -1);
+
+	AddWin(hbox,1, 5000,4800,0,50,0, 30,0,2000,50,0, -1);
 	AddNull();
 
 
@@ -598,25 +649,26 @@ int FontDialog::init()
 	WindowStyle *ncolors = app->theme->GetStyle(THEME_Edit)->duplicate();
 	text->InstallColors(ncolors);
 	ncolors->dec_count();
-//	if (orig>=0) {
-//		LaxFont *newfont=app->fontmanager->MakeFont(fonts->e[orig]->family, fonts->e[orig]->style, defaultsize, 0);
-//		if (newfont) {
-//			text->UseThisFont(newfont);
-//			newfont->dec_count();
-//		}
-//	}
+
 	text->UseThisFont(thefont);
 	AddWin(text,1, 200,100,1000,50,0, defaultsize*1.75,0,0,50,0, -1);
 	AddNull();
 
 
-	 // fg/bg boxes
+	//----- Character insert button
+	last = tbut = new Button(this, "chars",nullptr, 0, 0,0,0,0, 1, 
+			last,object_id,"chars", 0, _("Cc"));
+	tbut->tooltip(_("Insert character"));
+	AddWin(tbut,1, textheight*2,0,0,50,0, textheight*2,0,0,50,0, -1);
+	
+
+	//-------fg/bg boxes
 	int r,g,b,a=255;
 	ColorBox *colorbox;
 
 	AddHSpacer(0, 0, 5000,0);
 
-	if (!palette) palette=new Palette;
+	if (!palette) palette = new Palette;
 
 	 //bg
 	colorrgb(text->win_themestyle->bg.Pixel(), &r,&g,&b);
@@ -846,6 +898,7 @@ int FontDialog::Event(const EventData *data,const char *mes)
 		currentfont=i;
 		UpdateSample();
 		UpdateStyles();
+		UpdateVariations();
 		return 0;
 
 	} else if (!strcmp(mes,"search")) {
@@ -907,6 +960,18 @@ int FontDialog::Event(const EventData *data,const char *mes)
 		cerr <<" *** need to toggle more/less options!"<<endl;
 
 		return 0;
+
+	} else if (!strcmp(mes, "chars")) {
+		if (!thefont) return 0;
+		LaxInterfaces::CharacterInterface *character_interface = new LaxInterfaces::CharacterInterface(nullptr, -1, nullptr, thefont);
+		LaxInterfaces::InterfaceWindow *iwindow = new LaxInterfaces::InterfaceWindow(nullptr, "CharsWindow",nullptr,
+			ANXWIN_ESCAPABLE | ANXWIN_REMEMBER,
+			-1,-1, 600,200, 0,
+			nullptr,0,nullptr,
+			character_interface, 1
+		);
+    	app->addwindow(iwindow);
+    	return 0;
 
 	} else if (!strcmp(mes,"layers")) {
 		const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(data);
@@ -997,7 +1062,7 @@ void FontDialog::UpdateColorBoxes()
 
 	 //remove excess color boxes
 	while (numboxes > numlayers) {
-		Pop(i+numboxes-1);
+		Remove(i+numboxes-1);
 		numboxes--;
 		needtosync=1;
 	}
@@ -1182,6 +1247,79 @@ void FontDialog::UpdateStyles()
 	}
 
 }
+
+
+void FontDialog::UpdateVariations()
+{
+	if (currentfont < 0 || currentfont >= fonts->n) return;
+
+	FontDialogFont *font = fonts->e[currentfont];
+	if (font->variations_state == -1) font->UpdateVariations();
+
+	if (font->variations_state == 0) {
+		// clear variations
+		variation_features->Flush();
+		variations->ShowSubBox(0); //no variations mbox
+		variations->HideSubBox(1); //feature list
+		while (variations->NumBoxes() > 2) variations->Remove(2);
+
+	} else {
+		// replace variations
+		variations->HideSubBox(0); //no variations mbox
+		variations->ShowSubBox(1); //feature list
+		variation_features->Flush();
+		for (unsigned int c = 0; c < font->feature_tags.size(); c++) {
+			//feature_box->AddBox(font->feature_tags[c].c_str(), -1);
+			variation_features->AddBox(font->feature_tags[c].c_str(), -1);
+		}
+
+		if (font->axes_array.size() > 0) {
+			// add axes sliders
+			for (unsigned int c = 0; c < font->axes_array.size(); c++) {
+				LaxInterfaces::SliderInterface *slider = nullptr;
+
+				if ((int)c + 2 < variations->NumBoxes()) {
+					LaxInterfaces::InterfaceWindow *win = dynamic_cast<LaxInterfaces::InterfaceWindow*>(variations->GetWindow(2 + c));
+					if (win) slider = dynamic_cast<LaxInterfaces::SliderInterface*>(win->GetInterface());
+					if (slider) {
+						LaxInterfaces::SliderInfo *info = slider->GetInfo();
+						info->label   = font->axes_names[c];
+						info->min     = font->axes_array[c].min_value;
+						info->max     = font->axes_array[c].max_value;
+						info->current = font->axes_array[c].default_value;
+						slider->SetDefaultStyle();
+					}
+
+				} else { // we need to create a new one
+					slider = new LaxInterfaces::SliderInterface();
+					LaxInterfaces::SliderInfo *info = slider->newData();
+					info->label   = font->axes_names[c];
+					info->min     = font->axes_array[c].min_value;
+					info->max     = font->axes_array[c].max_value;
+					info->current = font->axes_array[c].default_value;
+					// info->line_width        = 20;
+					// info->outline_width     = 5;
+					// info->graphic_size      = 40;
+					// info->graphic_fill_type = 2;
+					slider->UseThis(info);
+					info->dec_count();
+
+					LaxInterfaces::InterfaceWindow *iwindow = new LaxInterfaces::InterfaceWindow(nullptr, "slider",nullptr,
+						ANXWIN_ESCAPABLE | ANXWIN_REMEMBER,
+						0,0, 600,200, 0,
+						nullptr,0,nullptr,
+						slider, 1
+					);
+					slider->SetDefaultStyle();
+					variations->AddWin(iwindow,1, 50,25,5000,50,0, UIScale() * win_themestyle->normal->textheight(),0,0,50,0, -1);
+				}
+			}
+		}
+		while ((unsigned int)variations->NumBoxes() > 2+font->axes_array.size()) variations->Remove(variations->NumBoxes()-1);
+	}
+	//variations->Sync(0);
+}
+
 
 int FontDialog::CharInput(unsigned int ch, const char *buffer,int len,unsigned int state, const LaxKeyboard *kb)
 {
