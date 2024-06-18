@@ -26,10 +26,6 @@
 #include <lax/strmanip.h>
 
 
-//template implementation:
-#include <lax/lists.cc>
-
-
 using namespace Laxkit;
 
 
@@ -38,6 +34,9 @@ namespace Laxkit {
 
 /*! Class to simplify parsing and access to noncontinuous rangess
  * defined by ints, such as "1-4, 10-20".
+ *
+ * IndexRange defines sequences of elements in the range [0,max).
+ * Ranges can potentially overlap, or go backwards.
  *
  * Syntax being: s* [s* i s* [ rangechar s* i s* ] ]*
  * where s is whitespace and i is a positive or negative integer.
