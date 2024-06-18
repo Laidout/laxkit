@@ -52,6 +52,9 @@ class anObject : virtual public RefCounted
 	virtual const char *Id();
 	virtual const char *Id(const char *newid);
 	virtual void touchContents();
+
+	// a debugging breakpoint aid, check would be an object id
+	static void SETCHECK(unsigned int check);
 };
 
 
