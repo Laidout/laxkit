@@ -141,6 +141,7 @@ class SimpleMessage : public EventData
 	char *str;
 	anObject *object;
 	int info1,info2,info3,info4;
+	double d1 = 0;
 
 	SimpleMessage() { object=NULL; str=NULL; info1=info2=info3=info4=0; }
 	SimpleMessage(anObject *obj);
