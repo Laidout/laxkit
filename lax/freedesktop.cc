@@ -1346,5 +1346,101 @@ char *freedesktop_thumbnail(const char *file, char which)
 }
 
 
+//-------------- XDG Basedir functions ------------------------
+// See: https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html
+
+
+/*! Return a non-null expansion of `$XDG_DATA_HOME`.
+ * If `XDG_DATA_HOME` is null, then return `$HOME/.local/share`.
+ *
+ * Returned string should be delete[]'d.
+ */
+char *xdg_data_home()
+{
+	char *home = getenv("XDG_HOME");
+	if (home) return newstr(home);
+
+	home = newstr(getenv("HOME"));
+	appendstr(home, "/.local/share");
+	return home;
+}
+
+
+/*! Return `XDG_CONFIG_HOME` environment variable, or if null, return `$HOME/.config`.
+ */
+char *xdg_config_home()
+{
+	char *config = getenv("XDG_CONFIG_HOME");
+	if (config) return newstr(config);
+
+	config = newstr(getenv("HOME"));
+	appendstr(config, "/.config");
+	return config;
+}
+
+
+/*! Return `XDG_STATE_HOME` environment variable, or if null, return `$HOME/.local/state`.
+ */
+char *xdg_state_home()
+{
+	char *state = getenv("XDG_CONFIG_HOME");
+	if (state) return newstr(state);
+
+	state = newstr(getenv("HOME"));
+	appendstr(state, "/.local/state");
+	return state;
+}
+
+
+/*! Return `XDG_CACHE_HOME` environment variable, or if null, return `$HOME/.cache`.
+ */
+char *xdg_cache_home()
+{
+	char *cache = getenv("XDG_CACHE_HOME");
+	if (cache) return newstr(cache);
+
+	cache = newstr(getenv("HOME"));
+	appendstr(cache, "/.cache");
+	return cache;
+}
+
+
+/*! Return `XDG_RUNTIME_DIR` environment variable, or null.
+ */
+char *xdg_runtime_dir()
+{
+	const char *dir = getenv("XDG_RUNTIME_DIR");
+	return newstr(dir);
+}
+
+
+/*! If `XDG_DATA_DIRS` doesn't exist or is empty, then return `[ /usr/local/share/, /usr/share/ ]`.
+ * Else separate XDG_DATA_DIRS by ":" and return the resulting
+ * list of strings. Each string needs to be delete[]'d, such as by deletestrs().
+ */
+char **xdg_data_dirs(int *n_ret)
+{
+	const char *dirs = getenv("XDG_DATA_DIRS");
+	if (isblank(dirs)) dirs = "/usr/local/share/:/usr/share/";
+
+	char **data_dirs = split(dirs, ":", n_ret);
+	return data_dirs;
+}
+
+
+/*! If `XDG_CONFIG_DIRS` doesn't exist or is empty, then return `/etc/xdg`.
+ * Else separate XDG_CONFIG_DIRS by ":" and return the resulting
+ * list of strings. Each string needs to be delete[]'d, such as by deletestrs().
+ */
+char **xdg_config_dirs(int *n_ret)
+{
+	const char *dirs = getenv("XDG_CONFIG_DIRS");
+	if (isblank(dirs)) dirs = "/etc/xdg/";
+
+	char **config_dirs = split(dirs, ":", n_ret);
+	return config_dirs;
+}
+
+
 } //namespace
 

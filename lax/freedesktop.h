@@ -47,6 +47,17 @@ char *freedesktop_thumbnail(const char *file, char which='n');
 void freedesktop_md5(const unsigned char *data, int len, unsigned char *md5_ret);
 
 
+//-------------- XDG Basedir functions ------------------------
+
+char *xdg_data_home();
+char *xdg_config_home();
+char *xdg_state_home();
+char *xdg_cache_home();
+char *xdg_runtime_dir();
+char **xdg_data_dirs(int *n_ret);
+char **xdg_config_dirs(int *n_ret);
+
+
 } //namespace
 
 #endif
