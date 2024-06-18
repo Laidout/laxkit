@@ -13,7 +13,7 @@ VERSION 0.0.9
 (done) have the integrated short-cuts/actions mechanism in place
 (done) perhaps have the swappable graphics backend in place
        multiple monitor support
-       scaling ui
+(done) scaling ui
 
 
 VERSION 0.1
