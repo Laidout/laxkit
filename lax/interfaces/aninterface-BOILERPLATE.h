@@ -22,6 +22,8 @@
 #ifndef _LAX_BOILERPLATEINTERFACE_H
 #define _LAX_BOILERPLATEINTERFACE_H
 
+
+#include <lax/singletonkeeper.h>
 #include <lax/interfaces/aninterface.h>
 
 
@@ -55,7 +57,7 @@ class BoilerPlateToolSettings : public Laxkit::anObject
 
 class BoilerPlateInterface : public anInterface
 {
-	static SingletonKeeper settingsObject; // static so that it is easily shared between all tool instances
+	static Laxkit::SingletonKeeper settingsObject; // static so that it is easily shared between all tool instances
 
   protected:
 	int showdecs;
@@ -75,7 +77,7 @@ class BoilerPlateInterface : public anInterface
 
   public:
 	enum BoilerPlateActions {
-		BOILERPLATE_None=0,
+		BOILERPLATE_None = 0,
 		BOILERPLATE_Something,
 		BOILERPLATE_MAX
 	};

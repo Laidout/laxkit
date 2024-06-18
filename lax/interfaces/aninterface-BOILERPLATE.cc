@@ -85,6 +85,7 @@ BoilerPlateInterface::BoilerPlateInterface(anInterface *nowner, int nid, Display
 
 	showdecs   = 1;
 	needtodraw = 1;
+	hover      = 0;
 
 	dataoc     = nullptr;
 	data       = nullptr;
@@ -126,7 +127,7 @@ const char *BoilerPlateInterface::Name()
  */
 anInterface *BoilerPlateInterface::duplicate(anInterface *dup)
 { ***
-	if (dup==nullptr) dup=new BoilerPlateInterface(nullptr,id,nullptr);
+	if (dup == nullptr) dup = new BoilerPlateInterface(nullptr,id,nullptr);
 	else if (!dynamic_cast<BoilerPlateInterface *>(dup)) return nullptr;
 	return anInterface::duplicate(dup);
 }
@@ -158,15 +159,15 @@ int BoilerPlateInterface::UseThisObject(ObjectContext *oc)
 int BoilerPlateInterface::UseThis(anObject *nobj, unsigned int mask)
 { ***
 	if (!nobj) return 1;
-	LineStyle *ls=dynamic_cast<LineStyle *>(nobj);
-	if (ls!=nullptr) {
+	LineStyle *ls = dynamic_cast<LineStyle *>(nobj);
+	if (ls != nullptr) {
 		if (mask & (LINESTYLE_Color | LINESTYLE_Color2)) { 
 			linecolor=ls->color;
 		}
 //		if (mask & LINESTYLE_Width) {
 //			linecolor.width=ls->width;
 //		}
-		needtodraw=1;
+		needtodraw = 1;
 		return 1;
 	}
 	return 0;
@@ -187,8 +188,8 @@ ObjectContext *BoilerPlateInterface::Context()
  */
 int BoilerPlateInterface::InterfaceOn()
 { *** 
-	showdecs=1;
-	needtodraw=1;
+	showdecs = 1;
+	needtodraw = 1;
 	return 0;
 }
 
@@ -199,8 +200,8 @@ int BoilerPlateInterface::InterfaceOn()
 int BoilerPlateInterface::InterfaceOff()
 { *** 
 	Clear(nullptr);
-	showdecs=0;
-	needtodraw=1;
+	showdecs = 0;
+	needtodraw = 1;
 	return 0;
 }
 
@@ -209,8 +210,8 @@ int BoilerPlateInterface::InterfaceOff()
  */
 void BoilerPlateInterface::Clear(SomeData *d)
 { ***
-	if (dataoc) { delete dataoc; dataoc=nullptr; }
-	if (data) { data->dec_count(); data=nullptr; }
+	if (dataoc) { delete dataoc; dataoc = nullptr; }
+	if (data) { data->dec_count(); data = nullptr; }
 }
 
 
@@ -227,30 +228,29 @@ int BoilerPlateInterface::DrawData(anObject *ndata,anObject *a1,anObject *a2,int
 {
 	if (!ndata || dynamic_cast<BoilerPlateData *>(ndata)==nullptr) return 1;
 
-	BoilerPlateData *bzd=data;
-	data=dynamic_cast<BoilerPlateData *>(ndata);
+	BoilerPlateData *bzd = data;
+	data = dynamic_cast<BoilerPlateData *>(ndata);
 
 	 // store any other state we need to remember
 	 // and update to draw just the temporary object, no decorations
-	int td=showdecs,ntd=needtodraw;
-	showdecs=0;
-	needtodraw=1;
+	int td = showdecs, ntd = needtodraw;
+	showdecs = 0;
+	needtodraw = 1;
 
 	Refresh();
 
 	 //now restore the old state
-	needtodraw=ntd;
-	showdecs=td;
-	data=bzd;
+	needtodraw = ntd;
+	showdecs = td;
+	data = bzd;
 	return 1;
 }
 
 
 int BoilerPlateInterface::Refresh()
 { *** 
-
-	if (needtodraw==0) return 0;
-	needtodraw=0;
+	if (needtodraw == 0) return 0;
+	needtodraw = 0;
 
 
 
@@ -273,8 +273,8 @@ int BoilerPlateInterface::Refresh()
 
 void BoilerPlateInterface::deletedata()
 {
-	if (data) { data->dec_count(); data=nullptr; }
-    if (dataoc) { delete dataoc; dataoc=nullptr; }
+	if (data) { data->dec_count(); data = nullptr; }
+    if (dataoc) { delete dataoc; dataoc = nullptr; }
 }
 
 
@@ -291,18 +291,18 @@ BoilerPlateData *BoilerPlateInterface::newData()
  */
 int BoilerPlateInterface::OtherObjectCheck(int x,int y,unsigned int state) 
 {
-	ObjectContext *oc=nullptr;
-	int c=viewport->FindObject(x,y,whatdatatype(),nullptr,1,&oc);
-	SomeData *obj=nullptr;
-	if (c>=0 && oc && oc->obj && draws(oc->obj->whattype())) obj=oc->obj;
+	ObjectContext *oc = nullptr;
+	int c = viewport->FindObject(x,y,whatdatatype(),nullptr,1,&oc);
+	SomeData *obj = nullptr;
+	if (c >= 0 && oc && oc->obj && draws(oc->obj->whattype())) obj = oc->obj;
 
 	if (obj) { 
 		 // found another BoilerPlateData to work on.
 		 // If this is primary, then it is ok to work on other images, but not click onto
 		 // other types of objects.
-		UseThisObject(oc); 
-		if (viewport) viewport->ChangeObject(oc,0);
-		needtodraw=1;
+		UseThisObject(oc);
+		if (viewport) viewport->ChangeObject(oc, 0);
+		needtodraw = 1;
 		return 1;
 
 	} else if (c<0) {
@@ -337,7 +337,7 @@ int BoilerPlateInterface::LBDown(int x,int y,unsigned int state,int count, const
 
 
 	int nhover = scan(x,y,state);
-	if (nhover != hover && nhover != ) {
+	if (nhover != hover) {
 		hover = nhover;
 		needtodraw = 1;
 	}
@@ -348,7 +348,8 @@ int BoilerPlateInterface::LBDown(int x,int y,unsigned int state,int count, const
 	}
 
 
-	 // Check for clicking down on controls for existing data
+	// We clicked on nothing that scan() detects so..
+	// Check for clicking down on controls for existing data
 	if (data && data->pointin(screentoreal(x,y))) {
 		int action1 = something;
 		int action2 = something_else;
@@ -363,11 +364,11 @@ int BoilerPlateInterface::LBDown(int x,int y,unsigned int state,int count, const
 		return 0;
 	}
 
-	 //clicked down on nothing, release current data if it exists
+	// clicked down on nothing, release current data if it exists
 	deletedata();
 
 	
-	 // So, was clicked outside current image or on blank space, make new one or find other one.
+	// So, was clicked outside current image or on blank space, make new one or find other one.
 	int other = OtherObjectCheck(x,y);
 	if (other==2) return 0; //control changed to some other tool
 	if (other==1) return 0; //object changed via UseThisObject().. nothing more to do here!
@@ -377,7 +378,7 @@ int BoilerPlateInterface::LBDown(int x,int y,unsigned int state,int count, const
 	 //  change to other of same object always ok
 
 
-	 // To be here, must want brand new data plopped into the viewport context
+	// To be here, must want brand new data plopped into the viewport context
 	if (we want new data) {
 		//NewDataAt(x,y,state);
 
@@ -400,7 +401,7 @@ int BoilerPlateInterface::LBDown(int x,int y,unsigned int state,int count, const
 		//we have some other control operation in mind...
 	}
 
-	needtodraw=1;
+	needtodraw = 1;
 	return 0; //return 0 for absorbing event, or 1 for ignoring
 }
 
@@ -415,9 +416,9 @@ int BoilerPlateInterface::LBUp(int x,int y,unsigned int state, const Laxkit::Lax
 int BoilerPlateInterface::MBDown(int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d) 
 { ***
 	//dragged is a rough gauge of the maximum distance the mouse was from the original point
-	int dragged=buttondown.down(d->id,MIDDLEBUTTON,x,y);
+	int dragged = buttondown.down(d->id,MIDDLEBUTTON,x,y);
 
-	needtodraw=1;
+	needtodraw = 1;
 	return 0; //return 0 for absorbing event, or 1 for ignoring
 }
 
@@ -451,11 +452,10 @@ int BoilerPlateInterface::MouseMove(int x,int y,unsigned int state, const Laxkit
 		// update any mouse over state
 		int nhover = scan(x,y,state);
 		if (nhover != hover) {
-			hover=nhover;
-			buttondown.down(d->id,LEFTBUTTON,x,y, nhover);
+			hover = nhover;
 
 			PostMessage(_("Something based on new hover value"));
-			needtodraw=1;
+			needtodraw = 1;
 			return 0;
 		}
 		return 1;
@@ -503,19 +503,19 @@ int BoilerPlateInterface::send()
 
 int BoilerPlateInterface::CharInput(unsigned int ch, const char *buffer,int len,unsigned int state, const Laxkit::LaxKeyboard *d)
 { ***
-	if ((state&LAX_STATE_MASK)==(ControlMask|ShiftMask|AltMask|MetaMask)) {
+	if ((state & LAX_STATE_MASK) == (ControlMask | ShiftMask | AltMask | MetaMask)) {
 		//deal with various modified keys being pressed...
 	}
 
-	if (ch==LAX_Esc) { //the various possible keys beyond normal ascii printable chars are defined in lax/laxdefs.h
+	if (ch == LAX_Esc) { //the various possible keys beyond normal ascii printable chars are defined in lax/laxdefs.h
 		if (nothing selected) return 1; //need to return on plain escape, so that default switching to Object tool happens
 		
 		 //else..
 		ClearSelection();
-		needtodraw=1;
+		needtodraw = 1;
 		return 0;
 
-	} else if (ch==LAX_Up) {
+	} else if (ch == LAX_Up) {
 		//*** stuff
 
 	} else {
@@ -534,7 +534,7 @@ int BoilerPlateInterface::CharInput(unsigned int ch, const char *buffer,int len,
 
 int BoilerPlateInterface::KeyUp(unsigned int ch,unsigned int state, const Laxkit::LaxKeyboard *d)
 { ***
-	if ((state&LAX_STATE_MASK) == (ControlMask|ShiftMask|AltMask|MetaMask)) {
+	if ((state & LAX_STATE_MASK) == (ControlMask | ShiftMask | AltMask | MetaMask)) {
 		//deal with various modified keys being released...
 	}
 
