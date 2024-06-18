@@ -132,6 +132,8 @@ class anInterface : virtual public Laxkit::EventReceiver,
 	virtual void ViewportResized() {}
 	virtual void Mapped() {}
 	virtual void Unmapped() {}
+	virtual void MouseIn()  {} //when mouse enters containing window
+	virtual void MouseOut() {} //when mouse exits containing window
 	virtual int PreRefresh() { return 0; } //todo, needs more thought: done for each active interface in viewport before any objects rendered
 	virtual int Refresh() { needtodraw=0; return 0; }
 	virtual void PostMessage(const char *message);
