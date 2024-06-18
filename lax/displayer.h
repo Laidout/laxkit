@@ -129,6 +129,7 @@ class Displayer : public PanUser, virtual public anObject
 	virtual double LineWidthScreen(double newwidth) = 0; //return old
 	virtual void LineAttributes(double width,int dash,int cap,int join) = 0;
 	virtual void FillAttributes(int fillstyle, int fillrule) = 0;
+	virtual void LineCap(int cap) = 0;
 	virtual void Dashes(double *dashes, int num, double offset) = 0;
 	virtual void Dashes(double dashlength);
 	virtual LaxCompositeOp BlendMode(LaxCompositeOp mode) = 0;
@@ -215,6 +216,7 @@ class Displayer : public PanUser, virtual public anObject
 	virtual void drawthing(flatpoint p, double rx, double ry, int tofill, DrawThingTypes thing);
 	virtual void drawthing(double x, double y, double rx, double ry, int tofill, DrawThingTypes thing); // draws same orientation on screen
 	virtual void drawthing(double x, double y, double rx, double ry, DrawThingTypes thing,unsigned long fg,unsigned long bg,int lwidth=1);
+	virtual void drawthing(flatpoint p, double rx, double ry, DrawThingTypes thing,unsigned long fg,unsigned long bg,int lwidth=1);
 	virtual void drawarrow(flatpoint p,flatpoint v,double rfromp=0,double len=10,char reallength=1,int portion=3,bool center=false);
 	virtual void drawaxes(double len=1); //draw axes with real length at the origin
 	virtual void drawnum(double x, double y, int num); //write out the text of a number at the given coordinates.

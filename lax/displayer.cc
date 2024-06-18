@@ -1047,14 +1047,7 @@ void Displayer::drawarrow(flatpoint p,flatpoint v,double rfromp,double len,char 
 	if (portion&2) drawline(p2,p2-v/3-transpose(v)/4); //other half
 }
 
-/*! Convenience function to just call drawthing(p.x,p.y, ...);
- */
-void Displayer::drawthing(flatpoint p, double rx, double ry, int tofill, DrawThingTypes thing)
-{
-	drawthing(p.x, p.y, rx,ry, tofill, thing);
-}
-
-/*! Draw centered on x,y, with width 2*rx, height 2*ry.
+/*! Draw centered on x,y, with width 2*rx, height 2*ry. Stroke with fg. Fill with bg.
  */
 void Displayer::drawthing(double x, double y, double rx, double ry, DrawThingTypes thing,unsigned long fg,unsigned long bg,int lwidth)
 {
@@ -1063,6 +1056,18 @@ void Displayer::drawthing(double x, double y, double rx, double ry, DrawThingTyp
 	drawthing(x,y,rx,ry,1,thing);
 	NewFG(fg);
 	drawthing(x,y,rx,ry,0,thing);
+}
+
+void Displayer::drawthing(flatpoint p, double rx, double ry, DrawThingTypes thing,unsigned long fg,unsigned long bg,int lwidth)
+{
+	drawthing(p.x, p.y, rx, ry, thing, fg, bg, lwidth);
+}
+
+/*! Convenience function to just call drawthing(p.x,p.y, ...);
+ */
+void Displayer::drawthing(flatpoint p, double rx, double ry, int tofill, DrawThingTypes thing)
+{
+	drawthing(p.x, p.y, rx,ry, tofill, thing);
 }
 
 //! Draw a little graphic in range X:x-rx..x+rx,  Y:y-ry..y+ry.

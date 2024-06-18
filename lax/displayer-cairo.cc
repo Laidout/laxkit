@@ -747,6 +747,15 @@ void DisplayerCairo::LineAttributes(double width,int dash,int cap,int join)
 
 }
 
+void DisplayerCairo::LineCap(int cap)
+{
+	if (cap >= 0) {
+		if      (cap == LAXCAP_Butt)       cairo_set_line_cap(cr, CAIRO_LINE_CAP_BUTT);
+		else if (cap == LAXCAP_Round)      cairo_set_line_cap(cr, CAIRO_LINE_CAP_ROUND);
+		else if (cap == LAXCAP_Projecting) cairo_set_line_cap(cr, CAIRO_LINE_CAP_SQUARE);
+	}
+}
+
 void DisplayerCairo::FillAttributes(int fillstyle, int fillrule)
 {
 	if (!cr) return;
@@ -1512,6 +1521,10 @@ double DisplayerCairo::textout_line(double x,double y,const char *str,int len,un
  * from the origin of the current transform in cr.
  *
  * One of glyphs or glyphsp is assumed to be non null. If both nonnull, glyphs is used.
+ *
+ * glyphs and glyphsp both hold a list of GlyphPlace, but glpyhsp is just an array of pointers to GlyphPlace
+ * instead of a simple array of GlyphPlace. They are lumped here instead of different functions
+ * because I'm too lazy to duplicate code.
  */
 double DisplayerCairo::glyphsout(double x,double y, GlyphPlace *glyphs,GlyphPlace **glyphsp, unsigned int numglyphs, unsigned long align)
 {
