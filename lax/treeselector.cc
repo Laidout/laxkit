@@ -927,9 +927,12 @@ void TreeSelector::arrangeItems()
 
 	MenuItem *item = visibleitems.menuitems.e[visibleitems.menuitems.n-1];
 	wholerect.height = item->y + item->h;
-	IntRectangle selbox = inrect; //inrect has window coordinates. selbox is screen area mapped to wholerect space
-	selbox.x -= inrect.x;     //selbox width and height should be same w and h as inrect
-	selbox.y -= inrect.y;
+	IntRectangle selbox = inrect;   //inrect has window coordinates. selbox is screen area mapped to wholerect space
+	// selbox.x -= inrect.x; //selbox width and height should be same w and h as inrect
+	// selbox.y -= inrect.y;
+	// note: (screen item).y = item.y + offsety + inrect.y
+	selbox.x = -offsetx;
+	selbox.y = -offsety;
 
 	if (selbox.x < wholerect.x) selbox.x = wholerect.x;
 	if (selbox.y < wholerect.y) selbox.y = wholerect.y;
@@ -1421,6 +1424,8 @@ void TreeSelector::drawflags(MenuItem *mitem,IntRectangle *rect)
  * If flag=='L', then a locked lock is drawn.
  * if flag=='e', then a closed eye is drawn.
  * if flag=='E', then an open eye is drawn.
+ * if flag=='s', then an open star is drawn.
+ * if flag=='S', then an open star is drawn.
  * 
  * Otherwise, if a character is ' ', then by default, it is off, and nothing is drawn.
  * If not ' ', then a check mark is drawn.
@@ -1434,16 +1439,19 @@ int TreeSelector::drawFlagGraphic(char flag, int x,int y,int w,int h)
 	Displayer *dp = GetDisplayer();
 
 	DrawThingTypes thing=THING_Check;
+	int fill = 2;
 	if      (flag=='l') thing = THING_Unlocked;
 	else if (flag=='L') thing = THING_Locked;
 	else if (flag=='e') thing = THING_Closed_Eye;
 	else if (flag=='E') thing = THING_Open_Eye;
+	else if (flag=='s') { thing = THING_Star; fill = 1; }
+	else if (flag=='S') thing = THING_Star;
 
 	dp->NewFG(0,0,0);
 	if (flag=='e' || flag=='E') dp->NewBG(1.,1.,1.);
 	else dp->NewBG(.7,.7,.7);
 	dp->LineAttributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
-	dp->drawthing(x+w/2, y+h/2, w*.4,-w*.4, 2, thing); //draw centered on x, with width h/2
+	dp->drawthing(x+w/2, y+h/2, w*.4,-w*.4, fill, thing); //draw centered on x, with width h/2
 
 	return x+h;
 }
@@ -2370,24 +2378,27 @@ int TreeSelector::makeinwindow()
 {
 	if (textheight <= 0) return 0;
 
-	IntRectangle itemrect;
-	if (!findRect(ccuritem,&itemrect)) return 0;
+	IntRectangle cur_screen_rect;
+	if (!findRect(ccuritem, &cur_screen_rect)) return 0; //findRect returns screen rectangle
 
-	int dx,dy;
-	dx=dy=0;
+	int dx, dy;
+	dx = dy = 0;
 
-	if (itemrect.x<inrect.x) dx=inrect.x-itemrect.x;
-	else if (itemrect.x+itemrect.width>inrect.x+inrect.width)
-		dx=(inrect.x+inrect.width)-(itemrect.x+itemrect.width);
+    //offset is from inrect.x,inrect.y,  so (screen item).y = item.y + offsety + inrect.y
+	if (cur_screen_rect.x < inrect.x)
+		dx = inrect.x - cur_screen_rect.x;
+	else if (cur_screen_rect.x + cur_screen_rect.width > inrect.x + inrect.width)
+		dx = (inrect.x + inrect.width) - (cur_screen_rect.x + cur_screen_rect.width);
 
-	if (itemrect.y<inrect.y) dy=itemrect.y-inrect.y;
-	else if (itemrect.y+itemrect.height > inrect.y+inrect.height)
-		dy=(itemrect.y+itemrect.height)-(inrect.y+inrect.height);
+	if (cur_screen_rect.y < inrect.y)
+		dy = cur_screen_rect.y - inrect.y;
+	else if (cur_screen_rect.y + cur_screen_rect.height > inrect.y + inrect.height)
+		dy = (cur_screen_rect.y + cur_screen_rect.height) - (inrect.y + inrect.height);
 
-	needtodraw=1;
+	needtodraw = 1;
 
-	if (dx==0 && dy==0) return 0;
-	int ret=panner->Shift(1,dx)|panner->Shift(2,dy);
+	if (dx == 0 && dy == 0) return 0;
+	int ret = panner->Shift(1,dx) | panner->Shift(2,dy);
 	//offsetx = inrect.x-panner->GetCurPos(1);
 	//offsety = inrect.y-panner->GetCurPos(2);
 	offsetx = -panner->GetCurPos(1);
