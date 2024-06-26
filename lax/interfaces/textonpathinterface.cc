@@ -693,7 +693,7 @@ int TextOnPath::Remap()
 	FT_Face ft_face;
 	FT_Library *ft_library = fontmanager->GetFreetypeLibrary();
 
-	FT_New_Face (*ft_library, font->FontFile(), 0, &ft_face);
+	FT_New_Face (*ft_library, font->FontFile(), font->FontIndex(), &ft_face);
 	FT_Set_Char_Size (ft_face, scale_correction*font->Msize()*64, scale_correction*font->Msize()*64, 0, 0);
 
 	hb_font_t *hb_font;
