@@ -90,7 +90,7 @@ StackFrame::StackFrame(anXWindow *parnt,const char *nname,const char *ntitle,uns
 	if (ngap < 0) gap = win_themestyle->normal->textheight() / 2;
 	else gap = ngap / 2 * 2;
 
-	needtoremap = 1;
+	needtoremap = true;
 
 	pos = nullptr;
 	whichbar = -1;
@@ -102,18 +102,18 @@ StackFrame::StackFrame(anXWindow *parnt,const char *nname,const char *ntitle,uns
 
 
 /*! Convenience static constructor to return a StackFrame set to horizontal, with name "hbox". */
-StackFrame *StackFrame::HBox()
+StackFrame *StackFrame::HBox(const char *name)
 {
-	return new StackFrame(nullptr, "hbox", nullptr, 0,
+	return new StackFrame(nullptr, name, nullptr, 0,
 		0,0,0,0,0,
 		nullptr, 0, nullptr,
 		-1);
 }
 
 /*! Convenience static constructor to return a StackFrame set to vertical. */
-StackFrame *StackFrame::VBox()
+StackFrame *StackFrame::VBox(const char *name)
 {
-	return new StackFrame(nullptr, "vbox", nullptr, STACKF_VERTICAL,
+	return new StackFrame(nullptr, name, nullptr, STACKF_VERTICAL,
 		0,0,0,0,0,
 		nullptr, 0, nullptr,
 		-1);
@@ -124,14 +124,16 @@ StackFrame::~StackFrame()
 	if (pos) delete[] pos;
 }
 
-/*! Default just calls anXWindow::init().
- *
- * \todo need enter/leave cursor adjustment, or shade bar so you know you can move it
- */
 int StackFrame::init()
 {
+	DBG if (!strcmp(win_name, "variations")) {
+	DBG 	cerr << "AAAA"<<endl;
+	DBG }
+
 	anXWindow::init();
-	SyncFromPos(true);
+	ListBox::sync();
+	RebuildPos(true);
+	//SyncFromPos(false);
 	for (int c=0; c<list.n; c++) {
 		if (list.e[c]->hidden()) {
 			HideSubBox(c);
@@ -159,9 +161,17 @@ anXWindow *StackFrame::GetWindow(int index)
 
 void StackFrame::Refresh()
 {
+	if (needtolayout) {
+		DBG if (!strcmp(win_name, "variations")) {
+		DBG 	cerr << "AAAA"<<endl;
+		DBG }
+		ListBox::sync();
+		RebuildPos(true);
+		needtolayout = false;
+	}
 	if (needtoremap) {
 		SyncFromPos(0);
-		needtoremap = 0;
+		needtoremap = false;
 	}
 	needtodraw = 0;
 	if (NumVisibleBoxes() == 0 || gap<=0) return;
@@ -318,31 +328,23 @@ int StackFrame::MouseMove(int x,int y,unsigned int state,const LaxMouse *d)
 }
 
 
-/*! SyncFromPos() panes in addition to default resize.
- */
 int StackFrame::MoveResize(int nx,int ny,int nw,int nh)
 {
 	DBG cerr <<"StackFrame::MoveResize"<<endl;
 
 	int c = anXWindow::MoveResize(nx,ny,nw,nh);
-	needtoremap = 1;
+	needtoremap = true;
 	needtodraw = 1;
-	// RebuildPos(true);
-	// SyncFromPos(0);
 	return c;
 }
 
-/*! SyncFromPos() panes in addition to default resize.
- */
 int StackFrame::Resize(int nw,int nh)
 {
 	DBG cerr <<"StackFrame::Resize"<<endl;
 
 	int c = anXWindow::Resize(nw,nh);
-	needtoremap = 1;
+	needtoremap = true;
 	needtodraw = 1;
-	// RebuildPos(true);
-	// SyncFromPos(0);
 	return c;
 }
 
@@ -364,12 +366,16 @@ void StackFrame::sync()
  */
 int StackFrame::SyncFromPos(int add)
 {
-	if (!list.n) { needtoremap = 0; return 1; }
+	DBG if (!strcmp(win_name, "variations")) {
+	DBG 	cerr << "AAAA"<<endl;
+	DBG }
+
+	if (!list.n) { needtoremap = false; return 1; }
 	if (!pos) RebuildPos(false);
 
 	if (list.n == 1) {
 		list.e[0]->sync(0,0,win_w,win_h);
-		needtoremap = 0;
+		needtoremap = false;
 		return 0;
 	}
 
@@ -418,7 +424,7 @@ int StackFrame::SyncFromPos(int add)
 		}
 	}
 
-	needtoremap = 0;
+	needtoremap = false;
 	return 0;
 }
 
@@ -438,6 +444,10 @@ int StackFrame::SyncFromPos(int add)
  */
 int StackFrame::RebuildPos(bool useactual)
 {
+	DBG if (!strcmp(win_name, "variations")) {
+	DBG 	cerr << "AAAA"<<endl;
+	DBG }
+
 	if (pos) delete[] pos;
 
 	if (list.n <= 1) {
@@ -574,7 +584,8 @@ bool StackFrame::HideSubBox(int index)
 		app->unmapwindow(win);
 	}
 	if (pos) pos[index] = -1;
-	needtoremap = 1;
+	needtoremap = true;
+	needtolayout = true;
 	return true;
 }
 
@@ -613,7 +624,8 @@ bool StackFrame::ShowSubBox(int index)
 	// 	if (next_index < list.n) pos[index] = (pos[next_index])
 	// }
 
-	needtoremap = 1;
+	needtoremap = true;
+	needtolayout = true;
 	return true;
 }
 
@@ -655,7 +667,8 @@ int StackFrame::AddWin(WinFrameBox *box,char islocal,int where)
 	if (box->win() && box->win()->win_parent != this) app->reparent(box->win(), this);
 	Push(box, islocal, where); //this is SquishyBox::Push()
 	needtodraw = 1;
-	needtoremap = 1;
+	needtoremap = true;
+	needtolayout = true;
 	return 0;
 }
 
@@ -725,7 +738,8 @@ int StackFrame::Remove(int which) //which=-1
 	}
 	if (win) app->destroywindow(win);
 
-	needtoremap = 1;
+	needtoremap = true;
+	needtolayout = true;
 	needtodraw = 1;
 	return list.remove(which); 
 }

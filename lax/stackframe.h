@@ -39,14 +39,16 @@ namespace Laxkit {
 	
 class StackFrame : public anXWindow, public ListBox
 {
-	double *pos;
+	double *pos;  //!< Fraction of window extent in range 0..1 for where position of bar after box
+	bool *sticky; //!< For each box, whether to have the ... between it and next box
 
  protected:
 	int lastx,lasty, whichbar;
 	int gap;
 	ButtonDownInfo buttondown;
 	int curshape;
-	int needtoremap; // need to moveresize kids, assumes pos array correctly set
+	bool needtoremap;  //!< Need to moveresize kids based on pos, assumes child preferred metrics are set as desired
+	bool needtolayout; //!< There was a window add/remove, we need to recompute pos based on metrics
 
 	virtual int RebuildPos(bool useactual = false);
 
@@ -61,10 +63,6 @@ class StackFrame : public anXWindow, public ListBox
 	virtual void Refresh();
 	virtual int LBDown(int x,int y,unsigned int state,int count,const LaxMouse *d);
 	virtual int LBUp(int x,int y,unsigned int state,const LaxMouse *d);
-	// virtual int MBDown(int x,int y,unsigned int state,int count,const LaxMouse *d);
-	// virtual int MBUp(int x,int y,unsigned int state,const LaxMouse *d);
-	// virtual int RBDown(int x,int y,unsigned int state,int count,const LaxMouse *d);
-	// virtual int RBUp(int x,int y,unsigned int state,const LaxMouse *d);
 	virtual int MouseMove(int x,int y,unsigned int state,const LaxMouse *d);
 	virtual int MoveResize(int nx,int ny,int nw,int nh);
 	virtual int Resize(int nw,int nh);
@@ -76,7 +74,6 @@ class StackFrame : public anXWindow, public ListBox
 	virtual void sync();
 	virtual int SyncFromPos(int add);
 	virtual int WrapToExtent();
-	// virtual anXWindow *childWindow(int index);
 	virtual int findWhichBar(int x,int y);
 	virtual int MoveBar(int index, int pixelamount, int shift);
 	virtual int Gap() { return gap; }
@@ -92,8 +89,8 @@ class StackFrame : public anXWindow, public ListBox
 	virtual Attribute *dump_out_atts(Attribute *att,int what,DumpContext *context);
 	virtual void dump_in_atts(Attribute *att,int flag,DumpContext *context);
 
-	static StackFrame *HBox();
-	static StackFrame *VBox();
+	static StackFrame *HBox(const char *name = "hbox");
+	static StackFrame *VBox(const char *name = "vbox");
 };
 
 
