@@ -29,6 +29,8 @@
 namespace Laxkit {
 
 
+// These three are special flags, meaningless numbers that users should not use
+// as actual numbers in SquishyBox::m. They are to only be used as flags.
 #define BOX_SHOULD_WRAP   100000
 #define BOX_NO_BREAK      1000000
 #define BOX_MUST_BREAK    -1000000
