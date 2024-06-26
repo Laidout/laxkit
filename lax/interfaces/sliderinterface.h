@@ -40,6 +40,7 @@ class SliderInfo : virtual public Laxkit::anObject, virtual public Laxkit::Doubl
   	double default_v = 0;
   	double current = 0;
   	Laxkit::Utf8String label;
+  	Laxkit::Utf8String id; // this is send in Modified() messages as event->str
 
   	bool is_screen_space = true;
   	Laxkit::flatvector from, to;
@@ -85,16 +86,14 @@ class SliderInterface : public anInterface
 
 	Laxkit::ShortcutHandler *sc;
 
-	SliderInfo *info; //points to dataoc->obj
-	//ObjectContext *dataoc;
+	SliderInfo *info;
 
 	SliderToolSettings *settings;
 
 	int hover;
 	virtual int scan(int x, int y, unsigned int state, double *pos_ret);
-	//virtual int OtherObjectCheck(int x,int y,unsigned int state);
 
-	virtual int send();
+	virtual Laxkit::EventData *BuildModifiedMessage(int level);
 
   public:
 	enum SliderActions {
@@ -140,6 +139,7 @@ class SliderInterface : public anInterface
 	
 	virtual int Refresh();
 	virtual void DrawLine();
+	virtual void DrawLabel();
 	virtual void DrawBall();
 	virtual void SetDefaultStyle();
 };
