@@ -97,8 +97,8 @@ ColrGlyphMap::ColrGlyphMap(int initial, int n, int *g, int *cols)
 		colors = new int[n];
 		memcpy(colors, cols, n*sizeof(int));
 	} else {
-		glyphs = NULL;
-		colors = NULL;
+		glyphs = nullptr;
+		colors = nullptr;
 	}
 }
 
@@ -145,14 +145,19 @@ LaxFont::LaxFont()
 	textstyle = 0;
 	cntlchar  = '\\';
 
-	family    = NULL;
-	style     = NULL;
-	psname    = NULL;
-	fontfile  = NULL;
+	family    = nullptr;
+	style     = nullptr;
+	psname    = nullptr;
+	fontfile  = nullptr;
 	fontindex = 0;
 
-	color     = NULL;
-	nextlayer = NULL;
+	cached_blob_file = nullptr;
+	hb_font   = nullptr;
+	hb_face   = nullptr;
+	hb_blob   = nullptr;
+
+	color     = nullptr;
+	nextlayer = nullptr;
 }
 
 LaxFont::~LaxFont()
@@ -162,12 +167,17 @@ LaxFont::~LaxFont()
 	delete[] fontfile;
 	delete[] psname;
 
-	if (color) color->dec_count();
+	if (color)     color->dec_count();
 	if (nextlayer) nextlayer->dec_count();
+
+	delete[] cached_blob_file;
+	if (hb_font) hb_font_destroy(hb_font);
+	if (hb_face) hb_face_destroy(hb_face);
+	if (hb_blob) hb_blob_destroy(hb_blob);
 }
 
 
-/*! \fn int LaxFont::charwidth(unsigned long chr,int real,double *width=NULL,double *height=NULL)
+/*! \fn int LaxFont::charwidth(unsigned long chr,int real,double *width=nullptr,double *height=nullptr)
  * \brief Return the character width of ch.
  *
  * If the real character width is 0, and r==0, this should return width of "\9f" or "?" or some default
@@ -175,7 +185,7 @@ LaxFont::~LaxFont()
  */
 
 
-/*! \fn int contextcharwidth(char *start,char *pos,int real,double *width=NULL,double *height=NULL)
+/*! \fn int contextcharwidth(char *start,char *pos,int real,double *width=nullptr,double *height=nullptr)
  * \brief Like charwidth(), but return width of character in context of a whole string. In some languages, it's different.
  */
 
@@ -211,21 +221,22 @@ double LaxFont::Extent(const char *str,int len, double *w, double *h, double *as
 
 LaxFont *LaxFont::duplicate()
 {
-	FontManager *fontmanager=GetDefaultFontManager();
+	FontManager *fontmanager = GetDefaultFontManager();
 
-	LaxFont *old=this, *newlayer, *newfont=NULL;
+	LaxFont *old = this, *newlayer, *newfont = nullptr;
 	while (old) {
 		newlayer = fontmanager->MakeFontFromFile(old->FontFile(), old->Family(), old->Style(), textheight(), -1);
 		if (!newlayer) break;
+		newlayer->CopyVariations(old);
 
-		if (!newfont) newfont=newlayer;
+		if (!newfont) newfont = newlayer;
 		else newfont->AddLayer(-1, newlayer);
 
-		old=old->nextlayer;
+		old = old->nextlayer;
 	}
 
 	if (color) {
-		anObject *ncolor=color->duplicate(NULL);
+		anObject *ncolor = color->duplicate(nullptr);
 		if (ncolor) {
 			newfont->SetColor(ncolor);
 			ncolor->dec_count();
@@ -235,6 +246,13 @@ LaxFont *LaxFont::duplicate()
 	return newfont;
 }
 
+int LaxFont::CopyVariations(LaxFont *from_this)
+{
+	if (!from_this) return 0;
+	user_features = from_this->user_features;
+	variation_data = from_this->variation_data;
+	return user_features.size() + variation_data.size();
+}
 
 /*! Default just return this->family.
  */
@@ -273,11 +291,11 @@ int LaxFont::Layers()
 	return n;
 }
 
-/*! For multicolor font layers. which must be in range [0..Layers()], or NULL is returned.
+/*! For multicolor font layers. which must be in range [0..Layers()], or nullptr is returned.
  */
 LaxFont *LaxFont::Layer(int which)
 {
-	if (which<0 || which>=Layers()) return NULL;
+	if (which<0 || which>=Layers()) return nullptr;
 
 	LaxFont *f=this;
 	do {
@@ -286,7 +304,7 @@ LaxFont *LaxFont::Layer(int which)
 		which--;
 	} while (f);
 
-	return NULL;
+	return nullptr;
 }
 
 /*! Put layer at position where. 
@@ -317,23 +335,23 @@ LaxFont *LaxFont::AddLayer(int where, LaxFont *nfont)
 /*! Returns the new head. Normally this will be *this, but if which==0, then this->nextlayer becomes
  * the new head and that is returned.
  *
- * If popped_ret!=NULL, then do not dec_count the removed layer, but return it. Otherwise, the popped
+ * If popped_ret!=nullptr, then do not dec_count the removed layer, but return it. Otherwise, the popped
  * layer is dec_counted, even if it was the head.
  *
  * This lets you easily delete the first layer with something like:
- *  font = font->RemoveLayer(0, NULL), and not have to delete it yourself.
+ *  font = font->RemoveLayer(0, nullptr), and not have to delete it yourself.
  *
  * If only one layer or which is out of bounds, nothing is done and this is returned. popped_ret gets
- * set to NULL in this case.
+ * set to nullptr in this case.
  */
 LaxFont *LaxFont::RemoveLayer(int which, LaxFont **popped_ret)
 {
-	if (!nextlayer) { return this; if (popped_ret) *popped_ret=NULL; }
-	if (which<0 || which>=Layers()) { return this; if (popped_ret) *popped_ret=NULL; }
+	if (!nextlayer) { return this; if (popped_ret) *popped_ret=nullptr; }
+	if (which<0 || which>=Layers()) { return this; if (popped_ret) *popped_ret=nullptr; }
 
 	if (which==0) {
 		LaxFont *f=nextlayer;
-		nextlayer=NULL;
+		nextlayer=nullptr;
 		 if (popped_ret) {
 			 *popped_ret=this;
 		 } else this->dec_count();
@@ -345,7 +363,7 @@ LaxFont *LaxFont::RemoveLayer(int which, LaxFont **popped_ret)
 	while (which>0 && f->nextlayer) { f=f->nextlayer; which--; }
 	LaxFont *of=f->nextlayer;
 	f->nextlayer = of->nextlayer;
-	of->nextlayer=NULL;
+	of->nextlayer=nullptr;
 
 	if (popped_ret) *popped_ret=of;
 	else of->dec_count();
@@ -365,7 +383,7 @@ LaxFont *LaxFont::MoveLayer(int which, int to)
 	if (to<0 || to>=Layers()) return this;
 
 	LaxFont *head=this;
-	LaxFont *popped=NULL;
+	LaxFont *popped=nullptr;
 
 	head=RemoveLayer(which, &popped);
 	//if (to>which) to--;
@@ -380,7 +398,7 @@ void LaxFont::RemoveAllLayers()
 {
 	if (!nextlayer) return;
 	nextlayer->dec_count();
-	nextlayer=NULL;
+	nextlayer=nullptr;
 }
 
 int LaxFont::SetColor(anObject *ncolor)
@@ -439,10 +457,10 @@ FontDialogFont::FontDialogFont(int nid, const char *nfile, const char *nfamily, 
 	id = nid;
 	if (id <= 0) id = getUniqueNumber();
 
-	name    = NULL;
-	psname  = NULL;
+	name    = nullptr;
+	psname  = nullptr;
 	format  = -1;
-	preview = NULL;
+	preview = nullptr;
 
 	family    = newstr(nfamily);
 	style     = newstr(nstyle);
@@ -452,7 +470,7 @@ FontDialogFont::FontDialogFont(int nid, const char *nfile, const char *nfamily, 
 
 	favorite  = 0;
 
-	fc_pattern = NULL;  // assume fontmanager->fontlist gets destroyed AFTER this
+	fc_pattern = nullptr;  // assume fontmanager->fontlist gets destroyed AFTER this
 }
 
 FontDialogFont::~FontDialogFont()
@@ -652,10 +670,24 @@ bool FontDialogFont::UpdateVariations()
 		}
 	}
 
+	// cleanup
+	hb_face_destroy(face);
+	hb_blob_destroy(blob);
+
 	if (num_axes == 0 && num_features == 0) variations_state = 0;
 	else variations_state = 1;
 	return true;
 }
+
+/*! Return index, or -1 if not found. */
+int FontDialogFont::FindAxisIndex(const char *name)
+{
+	for (unsigned int c = 0; c < axes_names.size(); c++) {
+		if (axes_names[c].Equals(name)) return c;
+	}
+	return -1;
+}
+
 
 //-------------------------------------- FontDialogFont -------------------------------------
 LayeredDialogFont::LayeredDialogFont(int nid)
@@ -711,7 +743,7 @@ FT_Library *FontManager::GetFreetypeLibrary()
 
 		if (ft_error) {
 			cerr <<"Could not initialize freetype!!"<<endl;
-			return NULL;
+			return nullptr;
 		}
 
 	}
@@ -925,13 +957,13 @@ PtrStack<FontDialogFont> *FontManager::GetFontList()
  * 
  * If nid<=0 then the id is from getUniqueNumber().
  * 
- * Returns the new font object, or NULL on failure.
+ * Returns the new font object, or nullptr on failure.
  */
 
 
 /*! \fn LaxFont *FontManager::CheckOut(int id)
  *  \brief Add a count of 1 to the LaxFont with the given id, and return the corresponding font object.
- *  Returns the LaxFont object, or NULL if object not found.
+ *  Returns the LaxFont object, or nullptr if object not found.
  *
  * Please remember that when you are all done with the font, you must decrement its count.
  */
@@ -963,7 +995,7 @@ const char *FontManager::GetTagName(int id)
 	for (int c=0; c<tags.n; c++) {
 		if (tags.e[c]->id==id) return tags.e[c]->tag;
 	}
-	return NULL;
+	return nullptr;
 }
 
 /*! Return index in tags corresponding to tag, or -1 if not found.
@@ -977,20 +1009,20 @@ int FontManager::GetTagId(const char *tag)
 	return -1;
 }
 
-/*! NULL for unknown id. 0 is default language.
+/*! nullptr for unknown id. 0 is default language.
  */
 const char *FontManager::LanguageString(int id)
 {
 	cerr <<" *** need to implement FontManager language+script stuff!!"<<endl;
-	return NULL;
+	return nullptr;
 }
 
-/*! NULL for unknown id. 0 is default.
+/*! nullptr for unknown id. 0 is default.
  */
 const char *FontManager::ScriptString(int id)
 {
 	cerr <<" *** need to implement FontManager language+script stuff!!"<<endl;
-	return NULL;
+	return nullptr;
 }
 
 int FontManager::LanguageId(const char *str, bool create_if_not_found)
@@ -1009,7 +1041,7 @@ int FontManager::ScriptId  (const char *str, bool create_if_not_found)
  */
 FontDialogFont *FontManager::FindFontFromFile(const char *file)
 {
-	if (!fonts.n || !file) return NULL;
+	if (!fonts.n || !file) return nullptr;
 
 	 //binary search, assume fonts is sorted by file
 	int s=0, e=fonts.n-1, mid, cmp; 
@@ -1019,7 +1051,7 @@ FontDialogFont *FontManager::FindFontFromFile(const char *file)
 
 	do {
 		mid=(s+e)/2;
-		if (mid==e || mid==s) return NULL; //already checked
+		if (mid==e || mid==s) return nullptr; //already checked
 
 		cmp=strcmp(file, fonts.e[mid]->file);
 		if (cmp==0) return fonts.e[mid];
@@ -1030,7 +1062,7 @@ FontDialogFont *FontManager::FindFontFromFile(const char *file)
 		}
 	} while (s!=e);
 
-	return NULL;
+	return nullptr;
 }
 
 /*! Returns number of tags retrieved.
@@ -1048,12 +1080,12 @@ int FontManager::RetrieveFontmatrixTags()
 	expand_home_inplace(dbfile); 
 	int status=0;
 
-	sqlite3 *db=NULL;
+	sqlite3 *db=nullptr;
 
 	try {
-		if (!S_ISREG(file_exists(dbfile,1,NULL))) throw(1);
+		if (!S_ISREG(file_exists(dbfile,1,nullptr))) throw(1);
 
-		int error = sqlite3_open_v2(dbfile, &db, SQLITE_OPEN_READONLY, NULL);
+		int error = sqlite3_open_v2(dbfile, &db, SQLITE_OPEN_READONLY, nullptr);
 		if (error != SQLITE_OK) {
 			cerr <<"Couldn't open database "<<dbfile<<": "<<sqlite3_errmsg(db)<<endl;
 			throw (2);
@@ -1064,8 +1096,8 @@ int FontManager::RetrieveFontmatrixTags()
 		DBG cerr <<"Get tag names..."<<endl;
 
 		const char *sqlstr="SELECT tag FROM fontmatrix_tags GROUP BY tag";
-		sqlite3_stmt *stmt=NULL;
-		const char *strremain=NULL;
+		sqlite3_stmt *stmt=nullptr;
+		const char *strremain=nullptr;
 
 		status = sqlite3_prepare_v2(db, sqlstr, strlen(sqlstr)+1, &stmt, &strremain);
 		if (status !=SQLITE_OK) {
@@ -1128,10 +1160,10 @@ int FontManager::RetrieveFontmatrixTags()
 
 		 //for each font in fontmatrix_id, get all tags for that font..
 		sqlstr="SELECT fontident,digitident FROM fontmatrix_id";
-		stmt=NULL;
-		strremain=NULL;
+		stmt=nullptr;
+		strremain=nullptr;
 		error = sqlite3_prepare_v2(db, sqlstr, strlen(sqlstr)+1, &stmt, &strremain);
-		FontDialogFont *font=NULL;
+		FontDialogFont *font=nullptr;
 
 		if (error !=SQLITE_OK) {
 			cerr <<"Could not prepare statement! "<<sqlite3_errmsg(db)<<endl;
@@ -1155,7 +1187,7 @@ int FontManager::RetrieveFontmatrixTags()
 					rownum++;
 
 					const char *sqlstr2="SELECT digitident,tag FROM fontmatrix_tags WHERE digitident=?";
-					sqlite3_stmt *stmt2=NULL;
+					sqlite3_stmt *stmt2=nullptr;
 					int tagid;
 
 					int error2 = sqlite3_prepare_v2(db, sqlstr2, strlen(sqlstr2)+1, &stmt2, &strremain);
@@ -1295,14 +1327,14 @@ int FontManager::DumpInFontList(const char *file, ErrorLog *log)
 FontDialogFont *FontManager::DumpInFontDialogFont(Attribute *att)
 {
 	int layer=0;
-	const char *file=NULL, *family=NULL, *style=NULL, *id=NULL;
-	//const char *tagstr=NULL;
+	const char *file=nullptr, *family=nullptr, *style=nullptr, *id=nullptr;
+	//const char *tagstr=nullptr;
 
-	char *name=NULL;
-	char *value=NULL;
+	char *name=nullptr;
+	char *value=nullptr;
 
-	FontDialogFont *font=NULL;
-	LayeredDialogFont *lfont=NULL;
+	FontDialogFont *font=nullptr;
+	LayeredDialogFont *lfont=nullptr;
 
 	for (int c2=0; c2<att->attributes.n; c2++) {
 		name= att->attributes.e[c2]->name;
@@ -1327,7 +1359,7 @@ FontDialogFont *FontManager::DumpInFontDialogFont(Attribute *att)
 			}
 
 			layer++;
-			family=style=file=NULL;
+			family=style=file=nullptr;
 			char colorname[20];
 			sprintf(colorname,"fg%d",layer);
 
@@ -1346,7 +1378,7 @@ FontDialogFont *FontManager::DumpInFontDialogFont(Attribute *att)
 
 				} else if (!strcmp(name,"color")) {
 					double co[5];
-					if (SimpleColorAttribute(value, co, NULL)==0) {
+					if (SimpleColorAttribute(value, co, nullptr)==0) {
 						if (!lfont->palette) lfont->palette = GradientStrip::newPalette();
 						//lfont->palette->AddRGBA(colorname, co[0]*255, co[1]*255, co[2]*255, co[3]*255, 255);
 						lfont->palette->AddColor(0, co[0], co[1], co[2], co[3], colorname);
@@ -1378,7 +1410,7 @@ FontDialogFont *FontManager::DumpInFontDialogFont(Attribute *att)
 		return lfont;
 	}
 
-	if (!file) return NULL;
+	if (!file) return nullptr;
 
 	font = FindFontFromFile(file);
 	if (!font) {
@@ -1393,10 +1425,10 @@ FontDialogFont *FontManager::DumpInFontDialogFont(Attribute *att)
 
 LaxFont *FontManager::dump_in_font(Attribute *att, DumpContext *context)
 {
-	LaxFont *newfont=NULL;
+	LaxFont *newfont=nullptr;
 	const char *name, *value;
-	const char *file=NULL, *family=NULL, *style=NULL;
-	Palette *palette=NULL;
+	const char *file=nullptr, *family=nullptr, *style=nullptr;
+	Palette *palette=nullptr;
 	int layer=0;
 	double fontsize=1;
 
@@ -1417,7 +1449,7 @@ LaxFont *FontManager::dump_in_font(Attribute *att, DumpContext *context)
 		value=att->attributes.e[c2]->value;
 
 		if (!strcmp(name,"layer")) {
-			family=style=file=NULL;
+			family=style=file=nullptr;
 			layer++;
 			char cname[20];
 			sprintf(cname,"fg%d",layer);
@@ -1437,7 +1469,7 @@ LaxFont *FontManager::dump_in_font(Attribute *att, DumpContext *context)
 
 				} else if (!strcmp(name,"color")) {
 					double co[5];
-					if (SimpleColorAttribute(value, co, NULL)==0) {
+					if (SimpleColorAttribute(value, co, nullptr)==0) {
 						if (!palette) palette = GradientStrip::newPalette();
 						//palette->AddRGBA(cname, co[0]*255, co[1]*255, co[2]*255, co[3]*255, 255);
 						palette->AddColor(0, co[0], co[1], co[2], co[3], cname);
@@ -1511,24 +1543,24 @@ int FontManager::RemoveFavoritesFile(const char *file)
 //--------------------------------------- Default FontManager Stuff ---------------------------
 
 //! There can be only one (default displayer).
-static FontManager *fontmanager = NULL;
+static FontManager *fontmanager = nullptr;
 
 /*! \typedef FontManager *NewFontManagerFunc(aDrawable *w);
  * \brief Function type to create new FontManager objects.
  */
 
 //! The default FontManager "constructor".
-NewFontManagerFunc newFontManager = NULL;
+NewFontManagerFunc newFontManager = nullptr;
 
 
 
 //! Set the default "constructor" for FontManager objects.
-/*! If func==NULL, then use the default, checks for cairo, then for xlib.
+/*! If func==nullptr, then use the default, checks for cairo, then for xlib.
  * Return 0 for success, or 1 for unable to set to non-null.
  */
 int SetNewFontManagerFunc(const char *backend)
 {
-	NewFontManagerFunc func=NULL;
+	NewFontManagerFunc func=nullptr;
 	if (!backend) backend=LAX_DEFAULT_BACKEND;
 
 	if (!func) {
@@ -1560,7 +1592,7 @@ int SetNewFontManagerFunc(const char *backend)
 
 FontManager *GetDefaultFontManager()
 {
-    if (!newFontManager) SetNewFontManagerFunc(NULL);
+    if (!newFontManager) SetNewFontManagerFunc(nullptr);
     if (!fontmanager && newFontManager) fontmanager=newFontManager();
     return fontmanager;
 }

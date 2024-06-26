@@ -43,6 +43,8 @@ class LaxFontCairo : public LaxFont
 {
   protected:
 	double height_over_M;
+	void UpdateVariations();
+	void RebuildHBFont();
 
   public:
 	cairo_font_extents_t extents;
@@ -66,6 +68,13 @@ class LaxFontCairo : public LaxFont
 	virtual double descent();
 	virtual double Extent(const char *str,int len);
 	virtual double Resize(double newsize);
+
+	// OpenType variations
+	virtual const char *AxisName(int index) const;
+	virtual int AxisIndex(const char *name) const;
+	virtual bool SetAxis(int index, double value);
+	virtual double GetAxis(int index) const;
+	virtual bool SetFeature(const char *feature, bool active);
 };
 
 

@@ -91,14 +91,19 @@ class LaxFont : public Resourceable
   protected:
 	char *family;
 	char *style;
-	char *fontfile;
 	char *psname;
-	int fontindex;
-	anObject *color; //optional, preferred color, a Color for single layer, Palette for multicolor
+	char *fontfile;
+	int fontindex;   //!< Index of font within fontfile.
+	anObject *color; //!< optional, preferred color, a Color for single layer, Palette for multicolor
+
+	char *cached_blob_file;
+	hb_blob_t *hb_blob;
+	hb_face_t *hb_face;
+	hb_font_t *hb_font; //!< Cached harfbuzz font needed for glyph positioning.
 
 	std::vector<hb_ot_var_axis_info_t> axes_array;
-	std::vector<hb_variation_t> variation_data; // current values for variable type axes
-	std::vector<hb_feature_t> userfeatures; // passed into hp_shape
+	std::vector<hb_variation_t> variation_data; // current values for variable type axes of a font
+	std::vector<hb_feature_t> user_features;    // passed into hb_shape, which figures out which glyphs occur
 	//todo: figure out why numstack fails with hb_*:
 	//NumStack<hb_ot_var_axis_info_t> axes_array; // has axis min/max/default values for variable type axes
 	//NumStack<hb_variation_t> variation_data; // current values for variable type axes
@@ -129,6 +134,7 @@ class LaxFont : public Resourceable
 	virtual const char *Family();
 	virtual const char *Style();
 	virtual const char *FontFile();
+	virtual int FontIndex() { return fontindex; }
 	virtual const char *PostscriptName();
 	virtual double Extent(const char *str,int len) = 0;
 	virtual double Extent(const char *str,int len, double *w, double *h, double *asc, double *desc);
@@ -142,6 +148,15 @@ class LaxFont : public Resourceable
 	virtual LaxFont *RemoveLayer(int which, LaxFont **popped_ret);
 	virtual LaxFont *MoveLayer(int which, int to);
 	virtual void RemoveAllLayers();
+
+	// OpenType variations
+	virtual const char *AxisName(int index) const = 0;
+	virtual int AxisIndex(const char *name) const = 0;
+	virtual int NumAxes() { return (int)variation_data.size(); }
+	virtual bool SetAxis(int index, double value) = 0;
+	virtual double GetAxis(int index) const = 0;
+	virtual bool SetFeature(const char *feature, bool active) = 0;
+	virtual int CopyVariations(LaxFont *from_this);
 
 	virtual int HasColors() { return 0; } //1 for is manual layered font, 2 for colr based, 3 for svg
 	virtual anObject *GetColor() { return color; } //a Color or Palette
@@ -183,17 +198,20 @@ class FontDialogFont
 	
     FontDialogFont(int nid = -1, const char *nfile = nullptr, const char *nfamily = nullptr, const char *nstyle = nullptr);
     virtual ~FontDialogFont();
+
     virtual bool Match(const char *mfamily, const char *mstyle);
     virtual int HasTag(int tag_id);
     virtual int AddTag(int tag_id);
     virtual void RemoveTag(int tag_id);
 	
-	virtual void Favorite(int nfav) { favorite=nfav; }
+	virtual void Favorite(int nfav) { favorite = nfav; }
 	virtual int Favorite() { return favorite; }
 
 	virtual int UsePSName();
 	virtual int UseFamilyStyleName();
 	virtual bool UpdateVariations();
+
+	virtual int FindAxisIndex(const char *name);
 };
 
 class LayeredDialogFont : public FontDialogFont

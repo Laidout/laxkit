@@ -1254,7 +1254,8 @@ int DisplayerCairo::font(LaxFont *nfont, double size)
 	if (curscaledfont) { cairo_scaled_font_destroy(curscaledfont); curscaledfont=nullptr; }
 
 	if (cr) {
-		cairo_set_font_face(cr,curfont); 
+		cairo_set_font_face(cr, curfont);
+		if (cairofont->options) cairo_set_font_options(cr, cairofont->options);
 		//DBG cerr <<" font(LaxFont), cairo status set font face:  "<<cairo_status_to_string(cairo_status(cr)) <<endl;
 	}
 

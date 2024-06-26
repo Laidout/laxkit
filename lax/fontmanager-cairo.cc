@@ -33,6 +33,7 @@
 
 #include <cstdio>
 #include <cairo/cairo-ft.h>
+//#include <harfbuzz/hb-cairo.h>  file not found, grrr!!
 
 #include <iostream>
 #define DBG
@@ -163,25 +164,25 @@ cairo_status_t renderUserFontGlyph(cairo_scaled_font_t *scaled_font,
  */
 LaxFontCairo::LaxFontCairo()
 {
-	height_over_M=0;
-	font=nullptr;
-	scaledfont=nullptr;
-	options=cairo_font_options_create();
+	height_over_M = 0;
+	font          = nullptr;
+	scaledfont    = nullptr;
+	options       = cairo_font_options_create();
 	//cairo_matrix_t matrix;
 	//cairo_matrix_init_identity(&matrix);
 }
 
-//! Constructor.
-LaxFontCairo::LaxFontCairo(const char *fontconfigstr,int nid)
+//! Constructor from a FontConfig pattern.
+LaxFontCairo::LaxFontCairo(const char *fontconfigstr, int nid)
 {
 	DBG cerr << "LaxFontCairo constructor "<<object_id<<" from "<<(fontconfigstr?fontconfigstr:"(null)")<<endl;
 
-	font = nullptr;
+	font       = nullptr;
 	scaledfont = nullptr;
-	options = nullptr;
+	options    = nullptr;
 
 	FcResult result;
-	FcPattern *pattern = FcNameParse((FcChar8*)fontconfigstr);
+	FcPattern *pattern  = FcNameParse((FcChar8*)fontconfigstr);
 	FcPattern *pattern2 = pattern;
 
 
@@ -217,9 +218,15 @@ LaxFontCairo::LaxFontCairo(const char *fontconfigstr,int nid)
 
 	result = FcPatternGet(pattern2,FC_STYLE,0,&v);
 	if (result == FcResultMatch) makestr(style, (const char *)v.u.s);
+	else makestr(style, nullptr);
 
 	result = FcPatternGet(pattern2,FC_FILE,0,&v);
 	if (result == FcResultMatch) makestr(fontfile, (const char *)v.u.s);
+	else makestr(fontfile, nullptr);
+
+	result = FcPatternGet(pattern2,FC_INDEX,0,&v);
+	if (result == FcResultMatch) fontindex = v.u.i;
+	else fontindex = 0;
 
 	FcPatternDestroy(pattern);
 	if (found) FcPatternDestroy(found);
@@ -228,8 +235,10 @@ LaxFontCairo::LaxFontCairo(const char *fontconfigstr,int nid)
 	cairo_matrix_init_scale(&matrix, height, height);
 	cairo_matrix_t identity;
 	cairo_matrix_init_identity(&identity);
+	
 	options = cairo_font_options_create();
 	scaledfont = cairo_scaled_font_create(font, &matrix, &identity, options);
+	UpdateVariations();
 
 	//const cairo_matrix_t *font_matrix,
     //const cairo_matrix_t *ctm,
@@ -247,14 +256,14 @@ LaxFontCairo::LaxFontCairo(const char *nfamily, const char *nstyle, double size,
 {
 	DBG cerr <<"LaxFontCairo constructor family/style/size..."<<endl;
 
-	id=nid;
-	if (!id) id=getUniqueNumber();
+	id = nid;
+	if (!id) id = getUniqueNumber();
 
-	font=nullptr;
-	scaledfont=nullptr;
-	options=cairo_font_options_create();
+	font          = nullptr;
+	scaledfont    = nullptr;
+	options       = cairo_font_options_create();
+	height_over_M = 0;
 
-	height_over_M=0; 
 	SetFromFile(nullptr, nfamily, nstyle, size);
 }
 
@@ -265,6 +274,89 @@ LaxFontCairo::~LaxFontCairo()
 	if (scaledfont) cairo_scaled_font_destroy(scaledfont);
 	if (font) cairo_font_face_destroy(font);
 	if (options) cairo_font_options_destroy(options);
+}
+
+/*! After scaledfont is remade, call this to update hb_font.
+ */
+void LaxFontCairo::RebuildHBFont()
+{
+	//-------from FreeType:
+	// FT_New_Face (*ft_library, font->FontFile(), font->fontindex, &ft_face);
+	// FT_Set_Char_Size (ft_face, scale_correction*font->Msize()*64, scale_correction*font->Msize()*64, 0, 0);
+
+	// hb_font_t *hb_font;
+	// hb_font = hb_ft_font_create (ft_face, NULL);
+
+	// hb_face_t *hb_face;
+	// hb_face = hb_ft_face_create_referenced(ft_face);
+
+	// ***
+
+	// hb_font_destroy (hb_font);
+	// FT_Done_Face (ft_face);
+
+	//-----------from hb_blob:
+	// if (hb_face) {
+	// 	hb_face_destroy(hb_face);
+	// 	hb_face = nullptr;
+	// }
+	const char *fname = FontFile();
+	if (!fname) {
+		cerr << " *** trying to load null file in RebuildHBFont()!" <<endl;
+		return;
+	}
+
+	if (hb_blob && !strEquals(cached_blob_file, fname)) {
+		hb_font_destroy(hb_font);
+		hb_face_destroy(hb_face);
+		hb_blob_destroy(hb_blob);
+		hb_font = nullptr;
+		hb_blob = nullptr;
+		hb_face = nullptr;
+	}
+
+	if (!hb_blob) {
+		makestr(cached_blob_file, fname);
+		hb_blob = hb_blob_create_from_file_or_fail(fname);
+		if (!hb_blob) {
+			cerr << " *** could not get file blob: "<<fname<<endl;
+			return;
+		}
+
+		hb_face = hb_face_create(hb_blob, fontindex);
+	}
+
+	// hb_face_destroy(face);
+	// hb_blob_destroy(blob);
+}
+
+/*! Make variation_data and user_features arrays to reflect the font's capabilities.
+ * this->hb_font must exist before calling this function.
+ */
+void LaxFontCairo::UpdateVariations()
+{
+	RebuildHBFont();
+	// hb_font = hb_cairo_scaled_font_get_font(scaledfont); // <- requires harfbuzz built with cairo, which stock debian ISN'T!!
+	
+	// if (hb_blob) hb_blob_destroy(hb_blob);
+	// if (hb_face) hb_face_destroy(hb_face);
+	
+	// hb_face_t *hb_face = hb_font_get_face(hb_font);
+	
+	// determine adjustable axes
+	unsigned int num_axes = hb_ot_var_get_axis_count(hb_face);
+	axes_array.resize(num_axes); // array of just info
+	if (num_axes) {
+		hb_ot_var_axis_info_t *arr = axes_array.data();
+		hb_ot_var_get_axis_infos(hb_face, 0, &num_axes, arr);
+	}
+	variation_data.resize(num_axes); // array of actual values.. note actual values still need to be found somehow
+	for (unsigned int c = 0; c < num_axes; c++) {
+		variation_data[c].tag = axes_array[c].tag;
+	}
+
+	// determine features
+	// ***
 }
 
 const char *LaxFontCairo::PostscriptName()
@@ -386,6 +478,7 @@ int LaxFontCairo::SetFromFile(const char *nfile, const char *nfamily, const char
 	if (scaledfont) cairo_scaled_font_destroy(scaledfont);
 	if (font) cairo_font_face_destroy(font);
 	if (options) cairo_font_options_destroy(options);
+	if (hb_font) hb_font_destroy(hb_font);
 
 	font = newfont;
 
@@ -402,6 +495,7 @@ int LaxFontCairo::SetFromFile(const char *nfile, const char *nfamily, const char
 	cairo_matrix_init_scale(&m,size/height_over_M,size/height_over_M);
 	cairo_scaled_font_destroy(scaledfont);
 	scaledfont = cairo_scaled_font_create(font, &m, &ctm, options);
+	UpdateVariations();
     cairo_scaled_font_extents(scaledfont, &extents); 
 	return 0;
 }
@@ -458,26 +552,28 @@ double LaxFontCairo::Extent(const char *str,int len)
 double LaxFontCairo::Resize(double newsize)
 {
 	if (scaledfont) { cairo_scaled_font_destroy(scaledfont); scaledfont=nullptr; }
+	if (hb_font) { hb_font_destroy(hb_font); hb_font = nullptr; }
 	if (!font) return 0;
 
 
 	cairo_matrix_t m, ctm;
 	cairo_matrix_init_identity(&ctm);
-	if (height_over_M<=0) {
+	if (height_over_M <= 0) {
 		cairo_matrix_init_scale(&m,newsize,newsize);
-		scaledfont=cairo_scaled_font_create(font, &m, &ctm, options);
+		scaledfont = cairo_scaled_font_create(font, &m, &ctm, options);
 		cairo_scaled_font_extents(scaledfont, &extents); 
 
-		height_over_M=extents.height/newsize;
+		height_over_M = extents.height/newsize;
 
-		cairo_matrix_init_scale(&m,newsize/height_over_M,newsize/height_over_M);
+		cairo_matrix_init_scale(&m, newsize/height_over_M, newsize/height_over_M);
 
 		cairo_scaled_font_destroy(scaledfont);
 	}
 
-	cairo_matrix_init_scale(&m,newsize/height_over_M,newsize/height_over_M);
-	if (!options) options=cairo_font_options_create();
-	scaledfont=cairo_scaled_font_create(font, &m, &ctm, options);
+	cairo_matrix_init_scale(&m, newsize/height_over_M, newsize/height_over_M);
+	if (!options) options = cairo_font_options_create();
+	scaledfont = cairo_scaled_font_create(font, &m, &ctm, options);
+	UpdateVariations();
 	cairo_scaled_font_extents(scaledfont, &extents);
 
 	if (nextlayer) nextlayer->Resize(newsize);
@@ -507,6 +603,75 @@ double LaxFontCairo::contextcharwidth(char *start,char *pos,int real,double *wid
 { 
 	DBG cerr <<" font::charwidth don't use!!!"<<endl;
 	return charwidth((unsigned long)(*pos),real, width,height); 
+}
+
+
+
+//-------------------- OpenType variations
+const char *LaxFontCairo::AxisName(int index) const
+{
+	if (index >= 0 && index < (int)axes_array.size()) {
+		char tag[5];
+		hb_tag_to_string(variation_data[index].tag, tag);
+	}
+	return nullptr; // *** FIXME
+}
+
+int LaxFontCairo::AxisIndex(const char *name) const
+{
+	cerr << " *** IMPLEMENT LaxFontCairo::AxisIndex"<<endl;
+	return -1;
+}
+
+/*! Return true on able to set, else false.
+ */
+bool LaxFontCairo::SetAxis(int index, double value)
+{
+	if (index >= 0 && index < (int)variation_data.size()) {
+		variation_data[index].value = value;
+		char tag[5];
+
+		Utf8String str;
+		for (uint c = 0; c < variation_data.size(); c++) {
+			hb_tag_to_string(variation_data[c].tag, tag);
+			if (c != 0) str.Append(",");
+			str.Append(tag);
+			Utf8String s;
+			s.Sprintf("%f", variation_data[c].value);
+			str.Append("=");
+			str.Append(s);
+		}
+
+		DBG const char *oldopts = cairo_font_options_get_variations(options);
+		DBG cerr << "old options: "<<(oldopts ? oldopts : "null") <<endl;
+		cairo_font_options_set_variations(options, str.c_str());
+		DBG oldopts = cairo_font_options_get_variations(options);
+		DBG cerr << "new options: "<<(oldopts ? oldopts : "null") <<endl;
+
+		return true;
+	}
+	return false;
+}
+
+double LaxFontCairo::GetAxis(int index) const
+{
+	if (index >= 0 && index < (int)variation_data.size())
+		return variation_data[index].value;
+	return 0;
+}
+
+/*! `feature` is the 4 character feature code.
+ */
+bool LaxFontCairo::SetFeature(const char *feature, bool active)
+{
+	if (strlen(feature) < 4) return false;
+	hb_tag_t tag = HB_TAG(feature[0], feature[1], feature[2], feature[3]);
+	for (unsigned int c=0; c < user_features.size(); c++) {
+		if (user_features[c].tag != tag) continue;
+		user_features[c].value = active;
+		return true;
+	}
+	return false;
 }
 
 
@@ -585,7 +750,7 @@ LaxFont *FontManagerCairo::CheckOut(int id)
  */
 LaxFont *FontManagerCairo::MakeFontFromFile(const char *file, const char *nfamily, const char *nstyle, double size, int nid)
 {
-	LaxFontCairo *newfont=new LaxFontCairo();
+	LaxFontCairo *newfont = new LaxFontCairo();
 	if (newfont->SetFromFile(file, nfamily, nstyle, size)!=0) {
 		delete newfont;
 		return nullptr;
@@ -618,10 +783,11 @@ cairo_t *FontManagerCairo::ReferenceCairo()
  */
 LaxFont *FontManagerCairo::MakeFont(int nid)
 {
-	LaxFontCairo *f=new LaxFontCairo();
-	f->id=nid;
+	LaxFontCairo *f = new LaxFontCairo();
+	f->id = nid;
 	return f;
 }
+
 
 } // namespace Laxkit
 

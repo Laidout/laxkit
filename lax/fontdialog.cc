@@ -608,7 +608,9 @@ int FontDialog::init()
 	fontlist->InstallColors(THEME_Edit);
 	hbox->AddWin(fontlist,1, 200,100,1000,50,0, 30,0,2000,50,0, -1);
 
-	variations = StackFrame::VBox();
+	variations = StackFrame::VBox("variations");
+	variations->win_w = variations->win_h = 100; // <- for debugging... shouldn't really have to define this
+
 	// 0: no variations message box
 	variations->AddWin(new MessageBar(nullptr, "novar", nullptr, 0, 0,0,0,0,0, _("No variations")),1, -1);
 
@@ -617,25 +619,15 @@ int FontDialog::init()
 					textheight/2,  //SquishyBox::padinset
 					textheight/2,  //IconSelector::padg between text and graphic
 					textheight/3); //IconSelector::boxinset
-	//variation_features->AddBox("TEST", -1);
-	variations->AddWin(variation_features,1, 100,50,10000,50,0, textheight,0,10000,50,0, -1);
+	variations->AddWin(variation_features,1, 10000,10000-textheight,10000,50,0, 100,50,0,50,0, -1);
+	//variations->AddWin(variation_features,1, 100,50,10000,50,0, 10000,10000-textheight,0,50,0, -1);
+	//variations->AddWin(variation_features,1, 100,50,10000,50,0, textheight,0,10000,50,0, -1);
 
-	// // 2..: adjustable axes
-	// Scroller *slider_test; //todo: need a dedicated rail slider
-	// last = slider_test = new Scroller(variations, "slider", nullptr, SC_NOARROWS | SC_XSCROLL,
-	// 		0,0,0,0,0,
-	// 		last, object_id, "slider-test",
-	// 		nullptr,
-	// 		0, //long nmins=0,
-	// 		1000, //long nmaxs=0,
-	// 		100, //long nps=0,
-	// 		10, //long nes=0,
-	// 		0, //long ncp=-1,
-	// 		100 //long ncpe=-1
-	// 		);
-	// variations->AddWin(slider_test,1, 50,25,5000,50,0, textheight,0,0,50,0, -1);
-	
+	//TEMP:
+	//variations->AddWin(new MessageBar(nullptr, "var", nullptr, 0, 0,0,0,0,0, _("....variations...")),1, -1);
+
 	hbox->AddWin(variations,1, 200,100,1000,50,0, 30,0,2000,50,0, -1);
+	// app->addwindow(variations);
 
 	AddWin(hbox,1, 5000,4800,0,50,0, 30,0,2000,50,0, -1);
 	AddNull();
@@ -775,14 +767,14 @@ int FontDialog::SampleText(const char *ntext)
 
 void FontDialog::UpdateSample()
 {
-	double size=fontsize->Value();
-	if (size<=0) size=1e-4;
+	double size = fontsize->Value();
+	if (size <= 0) size = 1e-4;
 
-	if (currentfont<0) FindFont();
+	if (currentfont < 0) FindFont();
 	fontlayer->SetFromFile(fonts->e[currentfont]->file, fonts->e[currentfont]->family, fonts->e[currentfont]->style, size);
 	thefont->Resize(size);
 
-	double samplesize=size;
+	double samplesize = size;
 	LaxFont *samplefont = thefont;
 	double th = win_themestyle->normal->textheight();
 	if      (size < th / 2) samplesize = th / 2;
@@ -796,13 +788,12 @@ void FontDialog::UpdateSample()
 	text->UseThisFont(samplefont);
 	if (samplefont != thefont) samplefont->dec_count();
 
-	SquishyBox *box=findBox(text);
-	if (samplesize<15) samplesize=15;
-	samplesize=1.75*samplesize;
+	SquishyBox *box = findBox(text);
+	if (samplesize < 15) samplesize = 15;
+	samplesize = 1.75*samplesize;
 	if (box->ph() != samplesize) {
 		box->ph(samplesize);
 		Sync(0);
-		//fontlist->makeinwindow();
 	}
 }
 
@@ -972,6 +963,22 @@ int FontDialog::Event(const EventData *data,const char *mes)
 		);
     	app->addwindow(iwindow);
     	return 0;
+
+	} else if (starts_with(mes, "features")) {
+		const SimpleMessage *s = dynamic_cast<const SimpleMessage*>(data);
+		DBG cerr << " *** IMPLEMENT FEATURES EVENTS FONTDIALOG!! "<<s->info1<<' '<<s->info2<<' '<<s->info3<<endl;
+		return 0;
+
+	} else if (starts_with(mes, "axes-")) {
+		const SimpleMessage *s = dynamic_cast<const SimpleMessage*>(data);
+		const char *axis = mes+5;
+		double value = s->d1;
+		int index = fonts->e[currentfont]->FindAxisIndex(axis);
+		if (index >= 0) {
+			thefont->SetAxis(index, value);
+			text->Needtodraw(1);
+		}
+		return 0;
 
 	} else if (!strcmp(mes,"layers")) {
 		const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(data);
@@ -1272,6 +1279,9 @@ void FontDialog::UpdateVariations()
 			//feature_box->AddBox(font->feature_tags[c].c_str(), -1);
 			variation_features->AddBox(font->feature_tags[c].c_str(), -1);
 		}
+		variation_features->WrapToExtent();
+		variation_features->ws(9000 - variation_features->ph()); // shrink
+		variation_features->pw(10000);  // preferred height
 
 		if (font->axes_array.size() > 0) {
 			// add axes sliders
@@ -1304,10 +1314,12 @@ void FontDialog::UpdateVariations()
 					slider->UseThis(info);
 					info->dec_count();
 
-					LaxInterfaces::InterfaceWindow *iwindow = new LaxInterfaces::InterfaceWindow(nullptr, "slider",nullptr,
+					Utf8String msg = font->axes_names[c].c_str();
+					msg.Prepend("axes-");
+					LaxInterfaces::InterfaceWindow *iwindow = new LaxInterfaces::InterfaceWindow(nullptr, font->axes_names[c].c_str(),nullptr,
 						ANXWIN_ESCAPABLE | ANXWIN_REMEMBER,
 						0,0, 600,200, 0,
-						nullptr,0,nullptr,
+						nullptr, object_id, msg.c_str(),
 						slider, 1
 					);
 					slider->SetDefaultStyle();
