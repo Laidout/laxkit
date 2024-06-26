@@ -68,6 +68,7 @@ class anInterface : virtual public Laxkit::EventReceiver,
 	Laxkit::Displayer *dp;
 
 	virtual void Modified(int level=0);
+	virtual Laxkit::EventData *BuildModifiedMessage(int level) { return nullptr; }
 
   public:
 	char *name;
@@ -78,7 +79,9 @@ class anInterface : virtual public Laxkit::EventReceiver,
 
 	Laxkit::anXApp *app;
 	Laxkit::anXWindow *curwindow;
-	anInterface *owner,*child;
+	anInterface *owner;
+	anInterface *child;
+	unsigned long owner_id; //!< If non-zero, use this instead of owner->object_id when sending message from Modified()
 	char *owner_message;
 
 	int primary;

@@ -249,6 +249,7 @@ anInterface::anInterface()
 	viewport        = nullptr;
 	curwindow       = nullptr;
 	child = owner   = nullptr;
+	owner_id        = 0;
 	owner_message   = nullptr;
 	app             = anXApp::app;
 	name            = nullptr;
@@ -358,13 +359,18 @@ void anInterface::Modified(int level)
 {
 	if ((interface_style & INTERFACE_DontSendOnModified) != 0) return;
 									 
-    if (owner) {
-        DBG cerr << whattype() <<" Modified(), sending to "<<(owner->Id()?owner->Id():owner->whattype())<<endl;
-        const char *message=owner_message;
-        if (!message) message=whattype();
-        EventData *ev=new EventData(message);
-		ev->usertype = level;
-        anXApp::app->SendMessage(ev, owner->object_id, message,object_id);
+    if (owner || owner_id) {
+        DBG if (owner) cerr << whattype() <<" Modified(), sending to "<<(owner->Id()?owner->Id():owner->whattype())<<endl;
+        DBG else       cerr << whattype() <<" Modified(), sending to "<<owner_id<<endl;
+
+        const char *message = owner_message;
+        if (!message) message = whattype();
+        EventData *ev = BuildModifiedMessage(level);
+        if (!ev) {
+	        ev = new EventData(message);
+			ev->usertype = level;
+		}
+        anXApp::app->SendMessage(ev, owner_id ? owner_id : owner->object_id, message, object_id);
         return;
     }
 }

@@ -327,27 +327,28 @@ void SliderInterface::DrawBall()
 	}
 }
 
-// void SliderInterface::DrawLabel()
-// {
-// 	//dp->textout((dp->Maxx+dp->Minx)/2,(dp->Maxy+dp->Miny)/2, "Blah!",,-1, LAX_CENTER);
-// }
+void SliderInterface::DrawLabel()
+{
+	if (!info->label.IsEmpty()) {
+		dp->NewFG(info->graphic_fill);
+		dp->font(curwindow->win_themestyle->normal, UIScale()*curwindow->win_themestyle->normal->textheight());
+		if (info->current > (info->max + info->min)/2)
+			 dp->textout(bounds.minx,bounds.miny, info->label.c_str(),-1, LAX_TOP|LAX_LEFT);
+		else dp->textout(bounds.maxx,bounds.miny, info->label.c_str(),-1, LAX_TOP|LAX_RIGHT);
+	}
+}
 
 int SliderInterface::Refresh()
-{ 
-
+{
 	if (needtodraw == 0) return 0;
 	needtodraw = 0;
 	if (!info) return 0;
 
 	if (info->is_screen_space) dp->DrawScreen();
 
-	if (!info->label.IsEmpty()) {
-		dp->NewFG(info->graphic_fill);
-		dp->textout(bounds.minx,bounds.miny, info->label.c_str(),-1, LAX_TOP|LAX_LEFT);
-	}
 
-	// DrawLabel();
 	DrawLine();	
+	DrawLabel();
 	DrawBall();
 	
 	if (info->is_screen_space) dp->DrawReal();
@@ -517,15 +518,18 @@ int SliderInterface::MouseMove(int x,int y,unsigned int state, const Laxkit::Lax
 }
 
 
-int SliderInterface::send()
+EventData *SliderInterface::BuildModifiedMessage(int level)
 {
-	if (owner && info) {
-		SimpleMessage *msg = new SimpleMessage();
+	SimpleMessage *msg = nullptr;
+	if (info) {
+		msg = new SimpleMessage();
 		msg->d1 = info->current;
-		app->SendMessage(msg, owner->object_id, owner_message ? owner_message : "Slider", object_id);
+		msg->usertype = level;
+		if (!info->id.IsEmpty()) makestr(msg->str, info->id.c_str());
+		// app->SendMessage(msg, owner->object_id, owner_message ? owner_message : "Slider", object_id);
 	}
 
-	return 0;
+	return msg;
 }
 
 

@@ -56,6 +56,8 @@ InterfaceWindow::InterfaceWindow(anXWindow *pwindow,const char *nname,const char
 		interface = theinterface;
 		interface->CurrentWindow(this);
 		if (!absorb) interface->inc_count();
+		if (nowner) interface->owner_id = nowner;
+		if (nsend) makestr(interface->owner_message, nsend);
 	}
 }
 
