@@ -54,21 +54,21 @@ namespace Laxkit {
 FontLayersWindow::FontLayersWindow(anXWindow *parnt, anXWindow *prev, unsigned long nowner,const char *nsend, int nmode, int nlayers)
   : anXWindow(parnt,"layers","layers",0, 0,0,0,0,0, prev,nowner,nsend)
 {
-	mode=nmode; //0 for don't use layers, 1 for do use layers
+	mode = nmode;  // 0 for don't use layers, 1 for do use layers
 
-	if (nlayers<1) nlayers=1;
-	numlayers=nlayers;
-	if (numlayers>1) mode=1;
-	current_layer=1;
-	lasthover=0;
-	grabbed=0; //which layer to float during a mouse drag, if any
-	glyph_mismatch=false;
+	if (nlayers < 1) nlayers = 1;
+	numlayers = nlayers;
+	if (numlayers > 1) mode = 1;
+	current_layer  = 1;
+	lasthover      = 0;
+	grabbed        = 0;  // which layer to float during a mouse drag, if any
+	glyph_mismatch = false;
 
-	Displayer *dp=GetDisplayer();
-	pad=dp->textheight()/2;
+	Displayer *dp = GetDisplayer();
 
-	win_w=100;
-	win_h=2*pad + dp->textheight();
+	pad   = dp->textheight() / 2;
+	win_w = 100;
+	win_h = 2 * pad + dp->textheight();
 }
 
 FontLayersWindow::~FontLayersWindow()
@@ -76,16 +76,16 @@ FontLayersWindow::~FontLayersWindow()
 
 int FontLayersWindow::init()
 {
-	Displayer *dp=GetDisplayer();
-	boxwidth=dp->textheight()*2;
+	Displayer *dp = GetDisplayer();
+	boxwidth = dp->textheight()*2;
 	return 0;
 }
 
 int FontLayersWindow::Event(const EventData *data,const char *mes)
 {
-	if (data->type==LAX_onMouseOut) {
-		lasthover=0;
-		needtodraw=1;
+	if (data->type == LAX_onMouseOut) {
+		lasthover  = 0;
+		needtodraw = 1;
 	}
 	return anXWindow::Event(data,mes);
 }
@@ -424,9 +424,10 @@ FontDialog::FontDialog(anXWindow *parnt,const char *nname,const char *ntitle,uns
 	group = nullptr;
 
 	variations = nullptr;
+	variation_axes = nullptr;
 	variation_features = nullptr;
 
-	character_viewer = nullptr; // *** how to get notified of window kiled so this variable could be useful?
+	character_viewer = nullptr; // *** how to get notified of window killed so this variable could be useful?
 }
 
 FontDialog::~FontDialog()
@@ -620,14 +621,15 @@ int FontDialog::init()
 					textheight/2,  //IconSelector::padg between text and graphic
 					textheight/3); //IconSelector::boxinset
 	variations->AddWin(variation_features,1, 10000,10000-textheight,10000,50,0, 100,50,0,50,0, -1);
-	//variations->AddWin(variation_features,1, 100,50,10000,50,0, 10000,10000-textheight,0,50,0, -1);
-	//variations->AddWin(variation_features,1, 100,50,10000,50,0, textheight,0,10000,50,0, -1);
 
-	//TEMP:
-	//variations->AddWin(new MessageBar(nullptr, "var", nullptr, 0, 0,0,0,0,0, _("....variations...")),1, -1);
+	// 2: axes sliders, a non-sizeable VBox
+	variation_axes = StackFrame::VBox("variation_axes");
+	variation_axes->win_style |= STACKF_NOT_SIZEABLE;
+	variation_axes->Gap(0);
+	variations->AddWin(variation_axes,1, textheight,0,0,50,0, 100,50,0,50,0, -1);
+	
 
 	hbox->AddWin(variations,1, 200,100,1000,50,0, 30,0,2000,50,0, -1);
-	// app->addwindow(variations);
 
 	AddWin(hbox,1, 5000,4800,0,50,0, 30,0,2000,50,0, -1);
 	AddNull();
@@ -676,12 +678,12 @@ int FontDialog::init()
 			sprintf(str, "fg%d", c+1);
 
 			if (palette && c<palette->colors.n) {
-				r=255*palette->colors.e[c]->color->values[0];
-				g=255*palette->colors.e[c]->color->values[1];
-				b=255*palette->colors.e[c]->color->values[2];
-				a=255*palette->colors.e[c]->color->values[3];
+				r = 255*palette->colors.e[c]->color->values[0];
+				g = 255*palette->colors.e[c]->color->values[1];
+				b = 255*palette->colors.e[c]->color->values[2];
+				a = 255*palette->colors.e[c]->color->values[3];
 			} else {
-				a=255;
+				a = 255;
 				colorrgb(text->win_themestyle->fg.Pixel(), &r,&g,&b);
 			}
 
@@ -729,10 +731,11 @@ int FontDialog::init()
 	last->CloseControlLoop();
 	Sync(1);
 
-	if (orig<0) orig=FindFont(origfamily, origstyle, thefont->FontFile());
-	if (orig>=0) fontlist->SelectId(orig);
+	if (orig < 0) orig=FindFont(origfamily, origstyle, thefont->FontFile());
+	if (orig >= 0) fontlist->SelectId(orig);
 
-	initted=true;
+	initted = true;
+	UpdateVariations();
 
 	return 0;
 }
@@ -751,6 +754,7 @@ int FontDialog::FindFont(const char *family, const char *style, const char *file
 		}
 
 		if (family && strcasecmp(family, fonts->e[c]->family)) continue;
+		if (!style && !fonts->e[c]->style) return c;
 		if (style  && !strcasecmp(style, fonts->e[c]->style)) return c;
 	}
 
@@ -778,7 +782,7 @@ void FontDialog::UpdateSample()
 	LaxFont *samplefont = thefont;
 	double th = win_themestyle->normal->textheight();
 	if      (size < th / 2) samplesize = th / 2;
-	else if (size > th * 5) samplesize = th * 5;
+	else if (size > th * 3) samplesize = th * 3;
 
 	if (samplesize != size) {
 		samplefont = samplefont->duplicate();
@@ -975,8 +979,9 @@ int FontDialog::Event(const EventData *data,const char *mes)
 		double value = s->d1;
 		int index = fonts->e[currentfont]->FindAxisIndex(axis);
 		if (index >= 0) {
-			thefont->SetAxis(index, value);
-			text->Needtodraw(1);
+			fontlayer->SetAxis(index, value);
+			text->UseThisFont(thefont);
+			// text->Needtodraw(1);
 		}
 		return 0;
 
@@ -1268,12 +1273,15 @@ void FontDialog::UpdateVariations()
 		variation_features->Flush();
 		variations->ShowSubBox(0); //no variations mbox
 		variations->HideSubBox(1); //feature list
-		while (variations->NumBoxes() > 2) variations->Remove(2);
+		variations->HideSubBox(2); //axes sliders
+		// while (variations->NumBoxes() > 2) variations->Remove(2);
 
 	} else {
 		// replace variations
 		variations->HideSubBox(0); //no variations mbox
 		variations->ShowSubBox(1); //feature list
+		variations->ShowSubBox(2); //axes list
+
 		variation_features->Flush();
 		for (unsigned int c = 0; c < font->feature_tags.size(); c++) {
 			//feature_box->AddBox(font->feature_tags[c].c_str(), -1);
@@ -1288,15 +1296,16 @@ void FontDialog::UpdateVariations()
 			for (unsigned int c = 0; c < font->axes_array.size(); c++) {
 				LaxInterfaces::SliderInterface *slider = nullptr;
 
-				if ((int)c + 2 < variations->NumBoxes()) {
-					LaxInterfaces::InterfaceWindow *win = dynamic_cast<LaxInterfaces::InterfaceWindow*>(variations->GetWindow(2 + c));
+				if ((int)c < variation_axes->NumBoxes()) {
+					LaxInterfaces::InterfaceWindow *win = dynamic_cast<LaxInterfaces::InterfaceWindow*>(variation_axes->GetWindow(c));
 					if (win) slider = dynamic_cast<LaxInterfaces::SliderInterface*>(win->GetInterface());
 					if (slider) {
 						LaxInterfaces::SliderInfo *info = slider->GetInfo();
 						info->label   = font->axes_names[c];
 						info->min     = font->axes_array[c].min_value;
 						info->max     = font->axes_array[c].max_value;
-						info->current = font->axes_array[c].default_value;
+						// info->current = font->axes_array[c].default_value;
+						info->current = fontlayer->GetAxis(c);
 						slider->SetDefaultStyle();
 					}
 
@@ -1306,7 +1315,8 @@ void FontDialog::UpdateVariations()
 					info->label   = font->axes_names[c];
 					info->min     = font->axes_array[c].min_value;
 					info->max     = font->axes_array[c].max_value;
-					info->current = font->axes_array[c].default_value;
+					// info->current = font->axes_array[c].default_value;
+					info->current = fontlayer->GetAxis(c);
 					// info->line_width        = 20;
 					// info->outline_width     = 5;
 					// info->graphic_size      = 40;
@@ -1323,11 +1333,19 @@ void FontDialog::UpdateVariations()
 						slider, 1
 					);
 					slider->SetDefaultStyle();
-					variations->AddWin(iwindow,1, 50,25,5000,50,0, UIScale() * win_themestyle->normal->textheight(),0,0,50,0, -1);
+					variation_axes->AddWin(iwindow,1, 50,25,5000,50,0, UIScale() * win_themestyle->normal->textheight(),0,0,50,0, -1);
+					// variation_axes->AddWin(iwindow,1, UIScale() * win_themestyle->normal->textheight(),0,0,50,0,  50,25,5000,50,0, -1);
 				}
 			}
 		}
-		while ((unsigned int)variations->NumBoxes() > 2+font->axes_array.size()) variations->Remove(variations->NumBoxes()-1);
+		while ((unsigned int)variation_axes->NumBoxes() > font->axes_array.size()) variation_axes->Remove(variation_axes->NumBoxes()-1);
+
+		// variation_axes->WrapToExtent();
+		variation_axes->figureDimensions(variation_axes,nullptr,nullptr,0, nullptr,nullptr); //should set ph and pw
+		// hack to work around bug in vertical stackframe
+		// double t = variation_axes->ph(); variation_axes->ph(variation_axes->pw); variation_axes->pw(t);
+
+		variations->MarkForLayout();
 	}
 	//variations->Sync(0);
 }

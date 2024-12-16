@@ -353,6 +353,7 @@ void LaxFontCairo::UpdateVariations()
 	variation_data.resize(num_axes); // array of actual values.. note actual values still need to be found somehow
 	for (unsigned int c = 0; c < num_axes; c++) {
 		variation_data[c].tag = axes_array[c].tag;
+		variation_data[c].value = axes_array[c].default_value;
 	}
 
 	// determine features
@@ -477,7 +478,7 @@ int LaxFontCairo::SetFromFile(const char *nfile, const char *nfamily, const char
 	 //delete old info if any
 	if (scaledfont) cairo_scaled_font_destroy(scaledfont);
 	if (font) cairo_font_face_destroy(font);
-	if (options) cairo_font_options_destroy(options);
+	// if (options) cairo_font_options_destroy(options);
 	if (hb_font) hb_font_destroy(hb_font);
 
 	font = newfont;
@@ -486,7 +487,7 @@ int LaxFontCairo::SetFromFile(const char *nfile, const char *nfamily, const char
 	cairo_matrix_init_scale(&m,size,size);
 	cairo_matrix_init_identity(&ctm);
 
-	options=cairo_font_options_create();
+	if (!options) options = cairo_font_options_create();
 	scaledfont = cairo_scaled_font_create(font, &m, &ctm, options);
 	cairo_scaled_font_extents(scaledfont, &extents);
 
@@ -498,6 +499,19 @@ int LaxFontCairo::SetFromFile(const char *nfile, const char *nfamily, const char
 	UpdateVariations();
     cairo_scaled_font_extents(scaledfont, &extents); 
 	return 0;
+}
+
+int LaxFontCairo::CopyVariations(LaxFont *from_this)
+{
+	if (!LaxFont::CopyVariations(from_this)) return 0;
+
+	LaxFontCairo *f = dynamic_cast<LaxFontCairo*>(from_this);
+	if (f && f->options) {
+		if (options) cairo_font_options_destroy(options);
+		options = cairo_font_options_copy(f->options);
+	}
+
+	return user_features.size() + variation_data.size();
 }
 
 double LaxFontCairo::Msize()
@@ -596,14 +610,14 @@ double LaxFontCairo::charwidth(unsigned long chr,int real,double *width,double *
 }
 
 
-/*! Some languages change the character based on where letter is in word.
- * \todo This function as it stands is totally worthless and meaningless.
- */
-double LaxFontCairo::contextcharwidth(char *start,char *pos,int real,double *width,double *height)
-{ 
-	DBG cerr <<" font::charwidth don't use!!!"<<endl;
-	return charwidth((unsigned long)(*pos),real, width,height); 
-}
+// /*! Some languages change the character based on where letter is in word.
+//  * \todo This function as it stands is totally worthless and meaningless.
+//  */
+// double LaxFontCairo::contextcharwidth(char *start,char *pos,int real,double *width,double *height)
+// { 
+// 	DBG cerr <<" font::charwidth don't use!!!"<<endl;
+// 	return charwidth((unsigned long)(*pos),real, width,height); 
+// }
 
 
 
@@ -617,9 +631,15 @@ const char *LaxFontCairo::AxisName(int index) const
 	return nullptr; // *** FIXME
 }
 
-int LaxFontCairo::AxisIndex(const char *name) const
+int LaxFontCairo::AxisIndex(const char *tag) const
 {
-	cerr << " *** IMPLEMENT LaxFontCairo::AxisIndex"<<endl;
+	char ftag[5];
+	ftag[4] = '\0';
+	for (unsigned int c = 0; c < variation_data.size(); c++) {
+		hb_tag_to_string(variation_data[c].tag, ftag);
+		if (strEquals(tag, ftag)) return c;
+	}
+
 	return -1;
 }
 
@@ -651,6 +671,44 @@ bool LaxFontCairo::SetAxis(int index, double value)
 		return true;
 	}
 	return false;
+}
+
+/*! Return the number of axes set, or -1 for parsing error. */
+int LaxFontCairo::SetAxes(const char *str)
+{
+	if (!str) return 0;
+
+	int num_axes = 0;
+	int n = 0;
+
+	char **axes = split(str, ',', &num_axes);
+	if (num_axes > 0) {
+		char tag[5];
+		tag[4] = '\0';
+		for (int c = 0; c < num_axes; c++) {
+			char *p = strchr(axes[c], '=');
+			if (!p) continue;
+			if (p-axes[c] != 4) {
+				// *** error!! tags must have 4 chars
+				continue;
+			}
+			strncpy(tag, axes[c], 4);
+			p++;
+			double d = 0;
+			char *e = nullptr;
+			d = strtod(p, &e);
+			if (e == p) {
+				// *** error parsing!
+				continue;
+			}
+			int index = AxisIndex(tag);
+			SetAxis(index, d);
+			n++;
+		}
+	}
+
+	deletestrs(axes, num_axes);
+	return n;
 }
 
 double LaxFontCairo::GetAxis(int index) const

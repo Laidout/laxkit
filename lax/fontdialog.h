@@ -123,8 +123,9 @@ class FontDialog : public RowFrame
 	IconSelector *tags;
 	anXWindow *character_viewer;
 
-	StackFrame *variations;
+	StackFrame *variations; //parent to variation_features and variation_axes
 	IconSelector *variation_features;
+	StackFrame *variation_axes;
 
 	LaxFont *thefont, *fontlayer;
 	Palette *palette;

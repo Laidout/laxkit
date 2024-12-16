@@ -126,7 +126,7 @@ class LaxFont : public Resourceable
 	virtual int SetFromFile(const char *nfile, const char *nfamily, const char *nstyle, double size) = 0;
 
 	virtual double charwidth(unsigned long chr,int real,double *width=NULL,double *height=NULL) = 0;
-	virtual double contextcharwidth(char *start,char *pos,int real,double *width=NULL,double *height=NULL) = 0;
+	// virtual double contextcharwidth(char *start,char *pos,int real,double *width=NULL,double *height=NULL) = 0;
 	virtual double ascent() = 0;
 	virtual double descent() = 0;
 	virtual double textheight() = 0;
@@ -151,9 +151,10 @@ class LaxFont : public Resourceable
 
 	// OpenType variations
 	virtual const char *AxisName(int index) const = 0;
-	virtual int AxisIndex(const char *name) const = 0;
+	virtual int AxisIndex(const char *tag) const = 0;
 	virtual int NumAxes() { return (int)variation_data.size(); }
 	virtual bool SetAxis(int index, double value) = 0;
+	virtual int SetAxes(const char *str) = 0;
 	virtual double GetAxis(int index) const = 0;
 	virtual bool SetFeature(const char *feature, bool active) = 0;
 	virtual int CopyVariations(LaxFont *from_this);
@@ -163,7 +164,7 @@ class LaxFont : public Resourceable
 	virtual int SetColor(anObject *ncolor);
 
 	virtual Attribute *dump_out_atts(Attribute *att, int what, DumpContext *context);
-	//virtual void dump_in_atts(Attribute *att,int flag, DumpContext *context);
+	//virtual void dump_in_atts(Attribute *att,int flag, DumpContext *context); <- see FontManager::dump_in_font()
 };
 
 
@@ -298,7 +299,7 @@ class FontManager : public anObject
 	virtual int AddFavoritesFile(const char *file);
 	virtual int RemoveFavoritesFile(const char *file);
 	 
-	virtual LaxFont *dump_in_font(Attribute *att, DumpContext *context);
+	virtual LaxFont *dump_in_font(Attribute *att, DumpContext *context); // workaround for LaxFont subclass dump in complications
 };
 
 

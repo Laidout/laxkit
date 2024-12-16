@@ -59,9 +59,10 @@ class LaxFontCairo : public LaxFont
 
 	virtual const char *PostscriptName();
 	virtual int SetFromFile(const char *nfile, const char *nfamily, const char *nstyle, double size);
+	virtual int CopyVariations(LaxFont *from_this);
 
 	virtual double charwidth(unsigned long chr,int real,double *width=NULL,double *height=NULL);
-	virtual double contextcharwidth(char *start,char *pos,int real,double *width=NULL,double *height=NULL);
+	// virtual double contextcharwidth(char *start,char *pos,int real,double *width=NULL,double *height=NULL);
 	virtual double Msize();
 	virtual double textheight();
 	virtual double ascent();
@@ -71,8 +72,9 @@ class LaxFontCairo : public LaxFont
 
 	// OpenType variations
 	virtual const char *AxisName(int index) const;
-	virtual int AxisIndex(const char *name) const;
+	virtual int AxisIndex(const char *tag) const;
 	virtual bool SetAxis(int index, double value);
+	virtual int SetAxes(const char *str);
 	virtual double GetAxis(int index) const;
 	virtual bool SetFeature(const char *feature, bool active);
 };

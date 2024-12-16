@@ -185,9 +185,9 @@ LaxFont::~LaxFont()
  */
 
 
-/*! \fn int contextcharwidth(char *start,char *pos,int real,double *width=nullptr,double *height=nullptr)
- * \brief Like charwidth(), but return width of character in context of a whole string. In some languages, it's different.
- */
+// /*! \fn int contextcharwidth(char *start,char *pos,int real,double *width=nullptr,double *height=nullptr)
+//  * \brief Like charwidth(), but return width of character in context of a whole string. In some languages, it's different.
+//  */
 
 
 /*! \fn  double textheight()
@@ -438,10 +438,27 @@ Attribute *LaxFont::dump_out_atts(Attribute *att, int what, DumpContext *context
 			att2=att->pushSubAtt("layer");
 		}
 
-		att2->push("fontfile"  ,ff->FontFile()); 
-		att2->push("fontfamily",ff->Family());
-		att2->push("fontstyle" ,ff->Style());
+		att2->push("file"  ,ff->FontFile()); 
+		att2->push("family",ff->Family());
+		att2->push("style" ,ff->Style());
+
+	    if (ff->variation_data.size() > 0) {
+			char tag[5];
+			tag[4] = '\0';
+			Utf8String str;
+			for (unsigned int c = 0; c < ff->variation_data.size(); c++) {
+				hb_tag_to_string(ff->variation_data[c].tag, tag);
+				if (c != 0) str.Append(",");
+				str.Append(tag);
+				Utf8String s;
+				s.Sprintf("%f", ff->variation_data[c].value);
+				str.Append("=");
+				str.Append(s);
+			}
+			att2->push("axes", str.c_str());
+	    }
     }
+
 
 	return att;
 }
@@ -799,7 +816,8 @@ static int cmp_fontinfo_file(const void *f1p, const void *f2p)
 }
 
 
-/*! If this->fonts.n>0, then just return &this->fonts. Else populate then return it.
+/*! If this->fonts.n>0, then just return &this->fonts.
+ * Else populate then return it, based on what FontConfig says is laying around.
  */
 PtrStack<FontDialogFont> *FontManager::GetFontList()
 {
@@ -1299,14 +1317,14 @@ int FontManager::DumpInFontList(const char *file, ErrorLog *log)
 	att.dump_in(file);
 
 	for (int c=0; c<att.attributes.n; c++) {
-		name =att.attributes.e[c]->name;
-		value=att.attributes.e[c]->value;
+		name  = att.attributes.e[c]->name;
+		value = att.attributes.e[c]->value;
 
 		if (!strcmp(name, "font_dir")) {
 			AddDir(value);
 
 		} else if (!strcmp(name, "font")) {
-			FontDialogFont *f=DumpInFontDialogFont(att.attributes.e[c]);
+			FontDialogFont *f = DumpInFontDialogFont(att.attributes.e[c]);
 			if (f) fonts.push(f);
 
 		} else if (!strcmp(name, "meta")) {
@@ -1427,7 +1445,7 @@ LaxFont *FontManager::dump_in_font(Attribute *att, DumpContext *context)
 {
 	LaxFont *newfont=nullptr;
 	const char *name, *value;
-	const char *file=nullptr, *family=nullptr, *style=nullptr;
+	const char *file=nullptr, *family=nullptr, *style=nullptr, *axes = nullptr;
 	Palette *palette=nullptr;
 	int layer=0;
 	double fontsize=1;
@@ -1455,17 +1473,17 @@ LaxFont *FontManager::dump_in_font(Attribute *att, DumpContext *context)
 			sprintf(cname,"fg%d",layer);
 
 			for (int c3=0; c3<att->attributes.e[c2]->attributes.n; c3++) {
-				name= att->attributes.e[c2]->attributes.e[c3]->name;
-				value=att->attributes.e[c2]->attributes.e[c3]->value;
+				name  = att->attributes.e[c2]->attributes.e[c3]->name;
+				value = att->attributes.e[c2]->attributes.e[c3]->value;
 
-				if (!strcmp(name,"fontfile")) {
-					file=value;
+				if (!strcmp(name,"fontfile") || !strcmp(name,"file")) {
+					file = value;
 
-				} else if (!strcmp(name,"fontfamily")) {
-					family=value;
+				} else if (!strcmp(name,"fontfamily") || !strcmp(name,"family")) {
+					family = value;
 
-				} else if (!strcmp(name,"fontstyle")) {
-					style=value;
+				} else if (!strcmp(name,"fontstyle") || !strcmp(name,"style")) {
+					style = value;
 
 				} else if (!strcmp(name,"color")) {
 					double co[5];
@@ -1474,28 +1492,38 @@ LaxFont *FontManager::dump_in_font(Attribute *att, DumpContext *context)
 						//palette->AddRGBA(cname, co[0]*255, co[1]*255, co[2]*255, co[3]*255, 255);
 						palette->AddColor(0, co[0], co[1], co[2], co[3], cname);
 					}
+
+				} else if (!strcmp(name,"axes")) {
+					axes = value;
 				}
 			}
 
 			LaxFont *newlayer = MakeFontFromFile(file, family,style,fontsize,-1);
-			if (!newfont) newfont=newlayer;
+			if (axes) newlayer->SetAxes(axes);
+			if (!newfont) newfont = newlayer;
 			else newfont->AddLayer(newfont->Layers(), newlayer);
 
-		} else if (!strcmp(name,"fontfile")) {
-			file=value;
+		} else if (!strcmp(name,"fontfile") || !strcmp(name, "file")) { //older versions.. newer version's info are under layer
+			file = value;
 
-		} else if (!strcmp(name,"fontfamily")) {
-			family=value;
+		} else if (!strcmp(name,"fontfamily") || !strcmp(name, "family")) {
+			family = value;
 
-		} else if (!strcmp(name,"fontstyle")) {
-			style=value;
+		} else if (!strcmp(name,"fontstyle") || !strcmp(name, "style")) {
+			style = value;
+
+		} else if (!strcmp(name,"axes")) {
+			axes = value;
 
 		} else if (!strcmp(name,"fontsize")) {
 			DoubleAttribute(value,&fontsize); 
-		} 
-	} 
+		}
+	}
 
-	if (!newfont) newfont=MakeFontFromFile(file, family, style, fontsize, -1);
+	if (!newfont) {
+		newfont = MakeFontFromFile(file, family, style, fontsize, -1);
+		if (axes && newfont) newfont->SetAxes(axes);
+	}
 	if (newfont && palette) {
 		newfont->SetColor(palette);
 		palette->dec_count();
@@ -1542,7 +1570,7 @@ int FontManager::RemoveFavoritesFile(const char *file)
 
 //--------------------------------------- Default FontManager Stuff ---------------------------
 
-//! There can be only one (default displayer).
+//! There can be only one (default fontmanager).
 static FontManager *fontmanager = nullptr;
 
 /*! \typedef FontManager *NewFontManagerFunc(aDrawable *w);
