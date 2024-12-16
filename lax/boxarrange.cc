@@ -536,7 +536,7 @@ int ListBox::arrangeBoxes(int distributetoo) //distributetoo=0
 }
 
 //! Sets x,y,w,h of the child boxes in list, and tells them to sync().
-/*! The default for ListBox is to layout ALL the boxes in list, based
+/*! The default for ListBox is to layout ALL the visible boxes in list, based
  *  on the definite, and already set x,y,w,h of *this. It lays out ALL the boxes
  *  in list, whether they squish nicely or not.
  *
@@ -546,7 +546,8 @@ int ListBox::arrangeBoxes(int distributetoo) //distributetoo=0
  *  Otherwise, leave this->pw,s,g/ph,s,g alone, and the 
  *  metrics derived from the child boxes are computed but not 
  *  stored (figureDimensions(nullptr,...,&squishx,&squishy)). 
- *  They are just used to determine the squish values.
+ *  They are just used to determine the squish values that are applied to
+ *  child shrink and grow.
  *  
  *  This function assumes that the children already have their pw,s,g/ph,s,g (but not
  *  the x,y,w,h) set at desired values.
@@ -866,8 +867,8 @@ int ListBox::figureDimensions(ListBox *target,int *nextrow,SquishyBox **boxes, i
 		}
 		
 		 // incorporate the height metrics
-		 // rs is not a true shrink here, it is temporarily length=max min
-		 // rg is not a true shrink here, it is temporarily length=max max
+		 // rs is not a true shrink here, it is temporarily max min of ph-shrink
+		 // rg is not a true shrink here, it is temporarily max max of ph+grow
 		if (boxes[c]->m[col+pref] + 2*boxes[c]->pad > rm[col+pref])
 			rm[col+pref]   = boxes[c]->m[col+pref] + 2*boxes[c]->pad;
 		if (boxes[c]->m[col+pref] + 2*boxes[c]->pad - boxes[c]->m[col+shrink] > rm[col+shrink]) //rs
@@ -893,7 +894,7 @@ int ListBox::figureDimensions(ListBox *target,int *nextrow,SquishyBox **boxes, i
 	if (rm[col+grow]   < 0) rm[col+grow]   = 0;
 
 	 // Set target->pw,s,g and maybe ->w
-	bool wraprow = (flags & BOX_VERTICAL && flags & BOX_WRAP_TO_Y_EXTENT) || (flags & BOX_HORIZONTAL && flags & BOX_WRAP_TO_X_EXTENT);
+	bool wraprow = ((flags & BOX_VERTICAL) && (flags & BOX_WRAP_TO_Y_EXTENT)) || ((flags & BOX_HORIZONTAL) && (flags & BOX_WRAP_TO_X_EXTENT));
 	target->m[row+pref]  = rm[row+pref] + 2*target->padinset;
 	target->m[row+shrink]= rm[row+shrink];
 	target->m[row+grow]  = rm[row+grow];
