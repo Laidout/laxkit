@@ -136,17 +136,49 @@ int main(int argc,char **argv)
 
 
 	//------------------- StackFrame --------------------------
-	StackFrame *stack = new StackFrame(nullptr, "StackFrame","StackFrame", ANXWIN_CENTER /* STACKF_VERTICAL for vertical */,
-		0,0, 600,200, 0,
+	// vertical
+	StackFrame *stack = new StackFrame(nullptr, "StackFrame","StackFrame", STACKF_VERTICAL|ANXWIN_ESCAPABLE|ANXWIN_CENTER /* STACKF_VERTICAL for vertical */,
+		0,0, 200,600, 0,
 		nullptr,0,nullptr,
 		15 //int ngap
 		);
-	stack->AddWin(new MessageBar(nullptr, "mbar1",nullptr, 0, 0,0,100,100,1, "One"),1);
-	stack->AddWin(new MessageBar(nullptr, "mbar2",nullptr, 0, 0,0,100,100,1, "Two"),1);
-	stack->AddWin(new MessageBar(nullptr, "mbar3",nullptr, 0, 0,0,100,100,1, "Three"),1);
-	stack->HideSubBox(2);
-	stack->HideSubBox(0);
+	stack->AddWin(new MessageBar(nullptr, "mbar1",nullptr, 0, 0,0,100,100,1, "One"),1,   100,0,0,50,0, 100,0,0,50,0);
+
+	//stack->AddWin(new MessageBar(nullptr, "mbar2",nullptr, 0, 0,0,100,100,1, "Two"),1,   100,0,0,50,0, 10000,9900,0,50,0);
+	//stack->AddWin(new MessageBar(nullptr, "mbar2",nullptr, 0, 0,0,100,100,1, "Two"),1,   10000,9900,0,50,0,  100,0,0,50,0);
+	//stack->AddWin(new MessageBar(nullptr, "mbar2",nullptr, 0, 0,0,100,100,1, "Two"),1,   100,0,10000,50,0,  100,0,0,50,0);
+	stack->AddWin(new MessageBar(nullptr, "mbar2",nullptr, 0, 0,0,100,100,1, "Two"),1,   100,0,0,50,0,   100,0,10000,50,0);
+
+	stack->AddWin(new MessageBar(nullptr, "mbar3",nullptr, 0, 0,0,100,100,1, "Three"),1, 100,0,0,50,0, 100,0,0,50,0);
+	//stack->AddWin(new MessageBar(nullptr, "mbar4",nullptr, 0, 0,0,100,100,1, "Four"),1, 100,0,0,50,0, 100,0,0,50,0);
+	//stack->AddWin(new MessageBar(nullptr, "mbar5",nullptr, 0, 0,0,100,100,1, "Five"),1, 100,0,0,50,0, 100,0,0,50,0);
+	//stack->HideSubBox(2);
+	//stack->HideSubBox(0);
 	app.addwindow(stack);
+
+
+	// horizontal
+//	StackFrame *stack = new StackFrame(nullptr, "StackFrame","StackFrame", ANXWIN_ESCAPABLE|ANXWIN_CENTER /* STACKF_VERTICAL for vertical */,
+//		0,0, 600,200, 0,
+//		nullptr,0,nullptr,
+//		15 //int ngap
+//		);
+//	stack->AddWin(new MessageBar(nullptr, "mbar1",nullptr, 0, 0,0,100,100,1, "One"),1,   100,0,0,50,0, 100,0,0,50,0);
+//
+//
+//	//stack->AddWin(new MessageBar(nullptr, "mbar2",nullptr, 0, 0,0,100,100,1, "Two"),1,   10000,9900,0,50,0,  100,0,0,50,0);
+//	stack->AddWin(new MessageBar(nullptr, "mbar2",nullptr, 0, 0,0,100,100,1, "Two"),1,   100,0,10000,50,0,  100,0,0,50,0);
+//
+//	//stack->AddWin(new MessageBar(nullptr, "mbar2",nullptr, 0, 0,0,100,100,1, "Two"),1,   100,0,0,50,0, 10000,9900,0,50,0);
+//	//stack->AddWin(new MessageBar(nullptr, "mbar2",nullptr, 0, 0,0,100,100,1, "Two"),1,   100,0,0,50,0,   100,0,10000,50,0);
+//
+//
+//	//stack->AddWin(new MessageBar(nullptr, "mbar3",nullptr, 0, 0,0,100,100,1, "Three"),1, 100,0,0,50,0, 100,0,0,50,0);
+//	//stack->AddWin(new MessageBar(nullptr, "mbar4",nullptr, 0, 0,0,100,100,1, "Four"),1, 100,0,0,50,0, 100,0,0,50,0);
+//	//stack->AddWin(new MessageBar(nullptr, "mbar5",nullptr, 0, 0,0,100,100,1, "Five"),1, 100,0,0,50,0, 100,0,0,50,0);
+//	//stack->HideSubBox(2);
+//	//stack->HideSubBox(0);
+//	app.addwindow(stack);
 
 
 	//------------------- InterfaceWindow --------------------------
