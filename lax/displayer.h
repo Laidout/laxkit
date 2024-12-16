@@ -194,6 +194,7 @@ class Displayer : public PanUser, virtual public anObject
 	virtual void drawline(flatpoint p1,flatpoint p2) = 0;
 	virtual void drawline(double ax,double ay,double bx,double by);
 	virtual void drawrectangle(double x,double y,double w,double h,int tofill);
+	virtual void drawrectangle(const DoubleBBox &r,int tofill) { drawrectangle(r.minx,r.miny, r.maxx-r.minx,r.maxy-r.miny, tofill); }
 	virtual void drawRoundedRect(double x,double y,double w,double h,
                                 double vround, bool vispercent, double hround, bool hispercent,
                                 int tofill, int whichcorners=0xf);
