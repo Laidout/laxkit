@@ -220,8 +220,8 @@ class ViewportWindow : public Laxkit::PanUser, public Laxkit::anXWindow
 	virtual int Push(anInterface*i,int where, int absorbcount);
 	virtual int HasInterface(int iid);
 	virtual anInterface *HasInterface(const char *name, int *index_ret);
-	virtual anInterface *Pop(anInterface *i,char deletetoo=0);
-	virtual anInterface *PopId(int iid,char deletetoo=0);
+	virtual anInterface *Pop(anInterface *i, bool deletetoo = false);
+	virtual anInterface *PopId(int iid, bool deletetoo = false);
 	virtual void PostMessage(const char *mes);
 	virtual void PostMessage2(const char *fmt, ...);
 	virtual Laxkit::UndoManager *GetUndoManager();

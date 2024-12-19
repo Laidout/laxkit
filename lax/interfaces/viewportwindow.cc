@@ -837,7 +837,7 @@ int ViewportWindow::Push(anInterface *i,int where, int absorbcount)
 }
 
 //! Search for the interface with the given id, then remove and return it.
-anInterface *ViewportWindow::PopId(int iid,char deletetoo)//deletetoo=0
+anInterface *ViewportWindow::PopId(int iid, bool deletetoo)
 {
 	for (int c=0; c<interfaces.n; c++)
 		if (iid==interfaces.e[c]->id) return Pop(interfaces.e[c],deletetoo);
@@ -853,7 +853,7 @@ anInterface *ViewportWindow::PopId(int iid,char deletetoo)//deletetoo=0
  * It first calls i->InterfaceOff() then tries to remove any remaining children
  * (calls interfaces.remove(thechildinterface)
  */
-anInterface *ViewportWindow::Pop(anInterface *i,char deletetoo)//deletetoo=0
+anInterface *ViewportWindow::Pop(anInterface *i, bool deletetoo)
 {
 	int c=interfaces.findindex(i);
 	if (c<0) return NULL;
