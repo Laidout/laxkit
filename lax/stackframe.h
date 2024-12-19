@@ -74,6 +74,7 @@ class StackFrame : public anXWindow, public ListBox
 	virtual void sync();
 	virtual int SyncFromPos(int add);
 	virtual int WrapToExtent();
+	virtual void MarkForLayout() { needtolayout = true; }
 	virtual int findWhichBar(int x,int y);
 	virtual int MoveBar(int index, int pixelamount, int shift);
 	virtual int Gap() { return gap; }

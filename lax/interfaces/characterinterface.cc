@@ -512,7 +512,6 @@ int CharacterInterface::scan(int x, int y, unsigned int state, int *category)
 	return -1;
 }
 
-//! Start a new freehand line.
 int CharacterInterface::LBDown(int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d) 
 {
 	int cat = 0;
@@ -522,7 +521,6 @@ int CharacterInterface::LBDown(int x,int y,unsigned int state,int count, const L
 	return 0; //return 0 for absorbing event, or 1 for ignoring
 }
 
-//! Finish a new freehand line by calling newData with it.
 int CharacterInterface::LBUp(int x,int y,unsigned int state, const Laxkit::LaxMouse *d) 
 {
 	int cat=0;
@@ -642,7 +640,7 @@ int CharacterInterface::WheelDown(int x,int y,unsigned int state,int count, cons
  */
 int CharacterInterface::send()
 {
-	if (!owner || current < 0) return 1;
+	if (!(owner || owner_id) || current < 0) return 1;
 
 	int code = 0;
 	if (curcategory == INSCHAR_MainBox && current < chars.n) code = chars.e[current];
@@ -653,7 +651,7 @@ int CharacterInterface::send()
 	int len = utf8encode(code, utf8);
 	utf8[len] = '\0';
 	SimpleMessage *data = new SimpleMessage(utf8, code, curcategory, 0, 0);
-	app->SendMessage(data,owner->object_id,"insert char", object_id);
+	app->SendMessage(data,owner_id ? owner_id : owner->object_id,"insert char", object_id);
 
 	return 0;
 }

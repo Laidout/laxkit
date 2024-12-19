@@ -982,8 +982,14 @@ int FontDialog::Event(const EventData *data,const char *mes)
 			nullptr,0,nullptr,
 			character_interface, 1
 		);
+		character_interface->owner_id = object_id; // by default sends "insert char"
     	//app->addwindow(iwindow);
     	app->rundialog(iwindow);
+    	return 0;
+
+    } else if (!strcmp(mes, "insert char")) {
+    	const SimpleMessage *s = dynamic_cast<const SimpleMessage*>(data);
+    	text->insstring(s->str);
     	return 0;
 
 	} else if (starts_with(mes, "features")) {
