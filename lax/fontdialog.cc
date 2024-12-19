@@ -464,7 +464,7 @@ int FontDialog::init()
 	tbut->tooltip(_("Click to toggle this font variant as a favorite"));
 	tbut->SetGraphicOnOff(THING_Star, 1, THING_Star, 0);
 	AddWin(tbut,1, 1.1*textheight,0,0,50,0, 1.1*textheight,0,0,50,0, -1);
-
+	favorite = tbut;
 
 	 //------font family
 	 // *** type in box progressively limits what's displayed in list 
@@ -544,7 +544,9 @@ int FontDialog::init()
 					textheight/3); //IconSelector::boxinset
 
 		for (int c=0; c<app->fontmanager->tags.n; c++) {
-			tags->AddBox(app->fontmanager->tags.e[c]->tag, (LaxImage*)NULL, app->fontmanager->tags.e[c]->id);
+			int tag_id = app->fontmanager->tags.e[c]->id;
+			//if (app->fontmanager->tags.e[c]->tagtype == FontTag::TAG_Favorite) tag_id = -FontTag::TAG_Favorite;
+			tags->AddBox(app->fontmanager->tags.e[c]->tag, (LaxImage*)NULL, tag_id);
 		}
 
 		AddWin(tags,1, tags->win_w,0,5000,50,0, textheight*1.5,0,2*textheight,50,0, -1);
@@ -818,10 +820,13 @@ void FontDialog::UpdateSearch()
 	int tag;
 
 	NumStack<int> active_tags;
+	int favorites_id = -1;
 	for (int c2=0; c2<tags->NumBoxes(); c2++) {
 		box=dynamic_cast<SelBox*>(tags->GetBox(c2));
 		if (!box) continue;
 		if (box->state&LAX_ON) {
+			int category = app->fontmanager->GetTagCategory(box->id);
+			if (category == FontTag::TAG_Favorite) favorites_id = box->id; // there's supposed to be only one.. bit of a hack
 			active_tags.push(box->id);
 
 			DBG cerr<<"active tag: "<<app->fontmanager->GetTagName(box->id)<<endl;
@@ -830,20 +835,20 @@ void FontDialog::UpdateSearch()
 
 	if (active_tags.n) {
 		for (int c=0; c<menu->n(); c++) { //each line in window font list
-			item=menu->e(c);
+			item = menu->e(c);
 			if (!item) continue;
 
-			font = fonts->e[item->id]; //index into fontmanager->fonts[]
+			font = fonts->e[item->id];
 
-			int hit=0;
+			int hit = 0;
 			for (int c2=0; c2<active_tags.n; c2++) {
-				tag=active_tags.e[c2];
-				if (font->HasTag(tag)) {
-					item->state|=MENU_SEARCH_HIT;
+				tag = active_tags.e[c2];
+				if (font->HasTag(tag) || (tag == favorites_id && font->favorite > 0)) {
+					item->state |= MENU_SEARCH_HIT;
 					hit++;
 				}
 			}
-			if (!hit) item->state|=MENU_SEARCH_HIDDEN;
+			if (!hit) item->state |= MENU_SEARCH_HIDDEN;
 		}
 	}
 
@@ -880,6 +885,17 @@ int FontDialog::Event(const EventData *data,const char *mes)
 		UpdateSample();
 		return 0;
 
+	} else if (!strcmp(mes,"favorite")) {
+		if (currentfont < 0) return 0;
+		if (fonts->e[currentfont]->favorite == 0) {
+			fonts->e[currentfont]->favorite = 1;
+			//TODO: should create a variation and save to list
+		} else {
+			fonts->e[currentfont]->favorite = 0;			
+		}
+		UpdateSearch();
+		return  0;
+
 	} else if (!strcmp(mes,"font")) { 
 		 //clicked in list
 		const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(data);
@@ -889,6 +905,7 @@ int FontDialog::Event(const EventData *data,const char *mes)
 		fontfamily->SetText(fonts->e[i]->family);
 		fontstyle ->SetText(fonts->e[i]->style);
 		fontfile  ->SetText(fonts->e[i]->file);
+		favorite  ->Pressed(fonts->e[i]->favorite != 0);
 		//fontlayer->SetFromFile(fonts->e[i]->file, fonts->e[i]->family, fonts->e[i]->style, defaultsize);
 		currentfont=i;
 		UpdateSample();
@@ -965,7 +982,8 @@ int FontDialog::Event(const EventData *data,const char *mes)
 			nullptr,0,nullptr,
 			character_interface, 1
 		);
-    	app->addwindow(iwindow);
+    	//app->addwindow(iwindow);
+    	app->rundialog(iwindow);
     	return 0;
 
 	} else if (starts_with(mes, "features")) {

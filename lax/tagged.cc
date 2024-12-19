@@ -25,7 +25,6 @@
 #include <lax/strmanip.h>
 #include <lax/attributes.h>
 
-#include <lax/lists.cc>
 
 #include <cctype>
 
@@ -111,26 +110,36 @@ char *Tagged::GetAllTags()
 }
 
 //! Return whether the tag exists.
-/*! casematters== -1 for might not care, 0=it does not matter, 1=it does matter.
+/*! casematters== -1 for might not care but check exact matches first, 0=it does not matter, 1=it does matter.
  *
- * If the tag is not found, then return 0. 
+ * If the tag is found, then return true, else false
  *
- * If casematters==1, then return the index+1 of the tag when the tag matches exactly, otherwise 0.
- * If casematters==0, then return the index+1 of the tag when the tag matches ignoring case, otherwise 0.
- * If casematters==-1, then if there is an exact match, return the index+1 of the tag. 
- * If there is a match only ignoring case, then return the index+1 of the tag times -1, otherwise 0.
+ * If tag_index != null, then in it return:
+ * - If casematters==1, then set it to the index of the tag when the tag matches exactly, otherwise -1.
+ * - If casematters==0, then set it to the index of the tag when the tag matches ignoring case, otherwise -1.
+ * - If casematters==-1, then if there is an exact match, set it to the index of the tag.
+ * - If there is a match only ignoring case, then set it to the index+1 of the tag times -1, otherwise 0.
  *
  */
-int Tagged::HasTag(const char *tag, int casematters)
+bool Tagged::HasTag(const char *tag, int casematters, int *tag_index)
 {
-	if (!list_of_tags.n) return 0;
+	if (!list_of_tags.n) {
+		if (tag_index) *tag_index = -1;
+		return 0;
+	}
 
 	for (int c=0; c<list_of_tags.n; c++) {
-		if (casematters && !strcmp(tag,list_of_tags.e[c])) return c+1;
-		if (casematters<1 && !strcasecmp(tag,list_of_tags.e[c]))
-			return casematters==-1 ? -(c+1) : c+1;
+		if (casematters && !strcmp(tag,list_of_tags.e[c])) {
+			if (tag_index) *tag_index = c;
+			return true;
+		}
+		if (casematters < 1 && !strcasecmp(tag,list_of_tags.e[c])) {
+			if (tag_index) *tag_index = (casematters == -1 ? -(c+1) : c+1);
+			return true;
+		}
 	}
-	return 0;
+	if (tag_index) *tag_index = -1;
+	return false;
 }
 
 //! Remove tag number i. i must be in range [0..NumberOfTags()-1].
@@ -149,9 +158,9 @@ int Tagged::RemoveTag(int i)
  */
 int Tagged::RemoveTag(const char *tag)
 {
-	int c=HasTag(tag,1);
-	if (!c) return -1;
-	list_of_tags.remove(c-1);
+	int c = -1;
+	if (!HasTag(tag,1, &c)) return -1;
+	list_of_tags.remove(c);
 	return 0;
 }
 
@@ -184,13 +193,13 @@ int Tagged::InsertTag(const char *tag, int casematters)
 {
 	if (!tag) return 1;
 
-	int c=HasTag(tag,-1);
-	if (c) return c>0?c-1:-c+1;
+	int c = -1;
+	if (HasTag(tag,-1, &c)) return c > 0 ? c-1 : -c+1;
 
-	char *t=newstr(tag);
-	int pos=list_of_tags.n;
+	char *t = newstr(tag);
+	int pos = list_of_tags.n;
 	if (sorttags) {
-		for (pos=0; pos<list_of_tags.n; pos++) {
+		for (pos = 0; pos < list_of_tags.n; pos++) {
 			if (casematters && strcmp(list_of_tags.e[pos],tag)>0) break;
 			if (!casematters && strcasecmp(list_of_tags.e[pos],tag)>0) break;
 		}
@@ -256,16 +265,23 @@ int *IntTagged::GetAllTags(int *n)
 //! Return whether the tag exists.
 /*! If the tag is not found, then return 0. 
  *
- * Return the index+1 of the tag when the tag matches exactly, otherwise 0.
+ * Return true if has tag, else false.
+ * If tag_index != null, then return the index of the tag when the tag matches exactly, otherwise -1.
  */
-int IntTagged::HasTag(int tag)
+bool IntTagged::HasTag(int tag, int *tag_index)
 {
-	if (!list_of_tags.n) return 0;
+	if (!list_of_tags.n) {
+		if (tag_index) *tag_index = -1;
+		return false;
+	}
 
 	for (int c=0; c<list_of_tags.n; c++) {
-		if (tag == list_of_tags.e[c]) return c+1;
+		if (tag == list_of_tags.e[c]) {
+			if (tag_index) *tag_index = c;
+			return true;
+		}
 	}
-	return 0;
+	return false;
 }
 
 //! Remove tag number i. i must be in range [0..NumberOfTags()-1].
@@ -284,9 +300,9 @@ int IntTagged::RemoveTagIndex(int i)
  */
 int IntTagged::RemoveTag(int tag)
 {
-	int c=HasTag(tag);
-	if (!c) return -1;
-	list_of_tags.remove(c-1);
+	int c = -1;
+	if (!HasTag(tag, &c)) return -1;
+	list_of_tags.remove(c);
 	return 0;
 }
 
@@ -319,12 +335,12 @@ int IntTagged::InsertTag(int tag)
 {
 	if (!tag) return 1;
 
-	int c=HasTag(tag);
-	if (c) return c-1;
+	int c = -1;
+	if (HasTag(tag, &c)) return c;
 
-	int pos=list_of_tags.n;
+	int pos = list_of_tags.n;
 	if (sorttags) {
-		for (pos=0; pos<list_of_tags.n; pos++) {
+		for (pos = 0; pos < list_of_tags.n; pos++) {
 			if (list_of_tags.e[pos] > tag) break;
 		}
 	}
@@ -379,12 +395,10 @@ int TagCloud::AddObject(Tagged *obj)
 	for (int c=0; c<obj->NumberOfTags(); c++) {
 		tag=obj->GetTag(c);
 
-		i=HasTag(tag,1);
-		if (i<0) i=-i;
-		if (i) i--;
-		else {
+		bool has_tag = HasTag(tag,1, &i); //i should always be normal >= 0 index
+		if (!has_tag) {
 			 //brand new tag
-			i=InsertTag(tag,1);
+			i = InsertTag(tag,1);
 			taginfo.push(new TagCloudInfo(tag),0,i);
 		}
 
@@ -424,11 +438,9 @@ void TagCloud::FlushTags()
 
 int TagCloud::RemoveTag(const char *tag)
 {
-	int c=HasTag(tag,1);
-	if (!c) return -1;
+	int c = -1;
+	if (!HasTag(tag,1, &c)) return -1;
 	Tagged::RemoveTag(tag);
-	if (c<0) c=-c;
-	c--;
 	taginfo.remove(c);
 	return 0;
 }
@@ -437,7 +449,7 @@ int TagCloud::RemoveTag(const char *tag)
 int TagCloud::RemoveTag(int i)
 {
 	int r;
-	if ((r=Tagged::RemoveTag(i))==0) taginfo.remove(i);
+	if ((r = Tagged::RemoveTag(i)) == 0) taginfo.remove(i);
 	return r;
 }
 

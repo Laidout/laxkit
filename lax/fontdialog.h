@@ -24,6 +24,7 @@
 #define _LAX_FONTDIALOG_H
 
 #include <lax/rowframe.h>
+#include <lax/button.h>
 #include <lax/lineinput.h>
 #include <lax/treeselector.h>
 #include <lax/numslider.h>
@@ -104,7 +105,8 @@ class FontDialog : public RowFrame
 	double defaultsize;
 	unsigned long dialog_style;
 	PtrStack<FontDialogFont> *fonts; //stored in global fontmanager
-	int currentfont; //index into fonts
+
+	int currentfont; //index into fonts. settings for font might be on top of the base font
 
 	char *origfamily, *origstyle;
 
@@ -114,6 +116,7 @@ class FontDialog : public RowFrame
 	TreeSelector *fontlist;
 	LineEdit *text;
 	LineInput *fontfamily, *fontstyle, *fontfile;
+	Button *favorite;
 	LineInput *search;
 	LineInput *group;
 	NumSlider *fontsize;

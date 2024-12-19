@@ -185,6 +185,7 @@ class FontDialogFont
     int index; //index in file when more than one font in file
 	int format; // Currently -1 for default, or id for "Layered" tag (see also FontManager::tags).
     bool has_color;
+    FontDialogFont *based_on = nullptr; //!< Extra style variations may modify based_on to create a new entry
 
     LaxImage *preview;
     IntTagged tags;
@@ -201,7 +202,7 @@ class FontDialogFont
     virtual ~FontDialogFont();
 
     virtual bool Match(const char *mfamily, const char *mstyle);
-    virtual int HasTag(int tag_id);
+    virtual bool HasTag(int tag_id);
     virtual int AddTag(int tag_id);
     virtual void RemoveTag(int tag_id);
 	
@@ -293,6 +294,7 @@ class FontManager : public anObject
 
 	virtual int RetrieveFontmatrixTags();
 	virtual int GetTagId(const char *tag);
+	virtual int GetTagCategory(int id);
 	virtual const char *GetTagName(int id);
 	virtual FontDialogFont *FindFontFromFile(const char *file);
 

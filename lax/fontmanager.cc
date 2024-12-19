@@ -511,10 +511,11 @@ bool FontDialogFont::Match(const char *mfamily, const char *mstyle)
     return false;
 }
 
-/*! Return value is (index in tags array)+1, or 0 if not there.
+/*! Return whether font has tag_id.
  */
-int FontDialogFont::HasTag(int tag_id)
+bool FontDialogFont::HasTag(int tag_id)
 {
+	//if (tag_category == FontTag::TAG_Favorite && favorite > 0) return true;
 	return tags.HasTag(tag_id);
 }
 
@@ -1014,6 +1015,14 @@ const char *FontManager::GetTagName(int id)
 		if (tags.e[c]->id==id) return tags.e[c]->tag;
 	}
 	return nullptr;
+}
+
+int FontManager::GetTagCategory(int id)
+{
+	for (int c=0; c<tags.n; c++) {
+		if (tags.e[c]->id == id) return tags.e[c]->tagtype;
+	}
+	return -1;
 }
 
 /*! Return index in tags corresponding to tag, or -1 if not found.

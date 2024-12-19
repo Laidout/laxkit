@@ -40,7 +40,7 @@ class Tagged
 	Tagged();
 	virtual ~Tagged();
 
-	virtual int HasTag(const char *tag, int casematters);
+	virtual bool HasTag(const char *tag, int casematters, int *tag_index = nullptr);
 	virtual int NumberOfTags();
 	virtual const char *GetTag(int i);
 	virtual char *GetAllTags();
@@ -64,7 +64,7 @@ class IntTagged
 	IntTagged();
 	virtual ~IntTagged();
 
-	virtual int HasTag(int tag);
+	virtual bool HasTag(int tag, int *tag_index = nullptr);
 	virtual int NumberOfTags();
 	virtual int GetTag(int index);
 	virtual int *GetAllTags(int *n);
