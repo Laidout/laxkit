@@ -91,6 +91,8 @@ class ButtonBase : public anXWindow
 	virtual int toggle();
 	virtual int State(int newstate);
 	virtual int State() { return state; }
+	virtual bool Pressed() { return (state & LAX_ON) != 0; }
+	virtual bool Pressed(bool on);
 };
 
 } // namespace Laxkit

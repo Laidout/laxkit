@@ -246,6 +246,18 @@ int ButtonBase::toggle()
 	return state;
 }
 
+//! Set the pressed state to on.
+bool ButtonBase::Pressed(bool on)
+{
+	if (on) {
+		state = (state & ~(LAX_ON|LAX_OFF)) | LAX_ON;
+	} else {
+		state = (state & ~(LAX_ON|LAX_OFF)) | LAX_OFF;
+	}
+	needtodraw = 1;
+	return (state & LAX_ON) != 0;
+}
+
 /*! If mouse crosses borders, make sure that mousein is the correct value.
  * Seems the window is not receiving all the Enter/LeaveNotify events that it
  * is supposed to.
