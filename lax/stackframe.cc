@@ -126,7 +126,7 @@ StackFrame::~StackFrame()
 
 int StackFrame::init()
 {
-	DBG if (!strcmp(win_name, "variations")) {
+	DBG if (!strcmp_safe(win_name, "variations")) {
 	DBG 	cerr << "AAAA"<<endl;
 	DBG }
 
@@ -162,7 +162,7 @@ anXWindow *StackFrame::GetWindow(int index)
 void StackFrame::Refresh()
 {
 	if (needtolayout) {
-		DBG if (!strcmp(win_name, "variations")) {
+		DBG if (!strcmp_safe(win_name, "variations")) {
 		DBG 	cerr << "AAAA"<<endl;
 		DBG }
 		ListBox::sync();
@@ -366,7 +366,7 @@ void StackFrame::sync()
  */
 int StackFrame::SyncFromPos(int add)
 {
-	DBG if (!strcmp(win_name, "variations")) {
+	DBG if (!strcmp_safe(win_name, "variations")) {
 	DBG 	cerr << "AAAA"<<endl;
 	DBG }
 
@@ -444,7 +444,7 @@ int StackFrame::SyncFromPos(int add)
  */
 int StackFrame::RebuildPos(bool useactual)
 {
-	DBG if (!strcmp(win_name, "variations")) {
+	DBG if (!strcmp_safe(win_name, "variations")) {
 	DBG 	cerr << "AAAA"<<endl;
 	DBG }
 
