@@ -91,6 +91,8 @@ int flow_id(const char *direction);
 double MaxExtent(LaxFont *font, ...);
 double MaxExtent(const char **strs, int n, LaxFont *font);
 
+const char *LorumIpsum();
+const char *CervantesIpsum();
 
 } //namespace Laxkit
 

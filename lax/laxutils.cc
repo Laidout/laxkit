@@ -1523,6 +1523,26 @@ double MaxExtent(const char **strs, int n, LaxFont *font)
 	return max;
 }
 
+//---------------------------------- Text Utilities ------------------------------------
+
+//Todo: should probaby go elsewhere
+
+/*! Return a standard snippet of blockout text. */
+const char *LorumIpsum()
+{
+	return "Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt"
+		   " ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation"
+		   " ullamco laboris nisi ut aliquip ex ea commodo consequat. velit esse cillum dolore eu fugiat nulla pariatur.";
+}
+
+/*! Return a standard snippet of blockout text, with apologies to Cervantes. */
+const char *CervantesIpsum()
+{
+	return "And so, after having composed, struck out, rejected, added to, unmade, and remade a"
+		   " multitude of names out of his memory and fancy, he decided upon calling him Rocinante,"
+		   " a name, to his thinking, lofty, sonorous, and significant of his condition as a hack"
+		   " before he became what he now was, the first and foremost of all the hacks in the world.";
+}
 
 /*! @} */
 
