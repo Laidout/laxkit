@@ -29,7 +29,6 @@
 #include <lax/interfaces/linestyle.h>
 #include <lax/interfaces/fillstyle.h>
 #include <lax/interfaces/lineprofile.h>
-// #include <lax/interfaces/shapebrush.h>
 #include <lax/curveinfo.h>
 #include <lax/screencolor.h>
 #include <lax/dump.h>
@@ -41,7 +40,7 @@ namespace LaxInterfaces {
 
 
 class PathsData;
-class PathOperator;
+//class PathOperator;
 class LineProfile;
 class ShapeBrush;
 
@@ -87,9 +86,7 @@ class Path : virtual public Laxkit::anObject,
 			 virtual public Laxkit::DumpUtility
 {
   public:
- 	static Laxkit::PtrStack<PathOperator> basepathops; 
-
-	Coordinate *path; // path is not necessarily the first in a chain, but is a vertex
+ 	Coordinate *path; // path is not necessarily the first in a chain, but is a vertex
 	Laxkit::PtrStack<PathWeightNode> pathweights;
 
 	LineStyle *linestyle;
@@ -223,10 +220,9 @@ class PathsData : virtual public SomeData
 	FillStyle *fillstyle; //!< This is the fill style for the collection of paths
 	ShapeBrush *brush;    //!< Default shape brush. Each Path can override default.
 
-	int generator;
+	int generator; //interface id of path generator
 	Laxkit::anObject *generator_data;
 
-	//PathsData(unsigned long ns=(unsigned long)PATHS_Ignore_Weights);
 	PathsData(unsigned long ns=0);
 	virtual ~PathsData();
 	virtual const char *whattype() { return "PathsData"; }
@@ -324,46 +320,6 @@ class PathsData : virtual public SomeData
 PathsData *SvgToPathsData(PathsData *existingpath, const char *d,char **end_ptr, Laxkit::Attribute *powerstroke);
 int SetClipFromPaths(Laxkit::Displayer *dp, LaxInterfaces::SomeData *outline, const double *extra_m, bool real=false);
 int GetNumPathsData(SomeData *obj, int *num_other);
-
-//-------------------- PathOperator ---------------------------
-	
-
-class PathInterface;
-
-class PathOperator : public Laxkit::anObject
-{
- public:
-	int id;
-
-	PathOperator(int nid=-1);
-	virtual ~PathOperator();
-	virtual void dumpOut(FILE *f, int indent, SegmentControls *controls, int what, Laxkit::DumpContext *context) = 0;
-	virtual void dumpIn(Coordinate *attachto, Laxkit::Attribute *att, Laxkit::DumpContext *context) = 0;
-
-	virtual void drawControls(Laxkit::Displayer *dp, int which, SegmentControls *controls,
-							  int showdecs, PathInterface *pathi) = 0;
-
-	 //return an interface that can manipulate relevant data
-	virtual anInterface *getInterface(Laxkit::Displayer *dp,PathsData *data) = 0;
-
-	 //return a thing id for yes, there is something at screen coordinate (x,y), or 0 for none
-	virtual int scan(Laxkit::Displayer *dp,SegmentControls *ctl,double x,double y) = 0;
-
-	 // Return a new point and associated points. It must return
-	 // the most previous point in the group. This gets appended to whatever. 
-	 // It must not return closed loops. By comparison, a new bez point would create 3
-	 // points: control1--vertex--control2, and would return control1.
-	 // The returned segment must start and end with a vertex.
-	virtual Coordinate *newPoint(Laxkit::flatpoint p) = 0; // pop after/before, prefunit=0 means full unit
-
-	virtual int ShiftPoint(Coordinate *pp,Laxkit::flatpoint d) = 0;
-	virtual int Rotate(Laxkit::flatpoint o,double angle,Coordinate *pp) = 0;
-	virtual int Scale(Laxkit::flatpoint o,double f,int constrain, Coordinate *pp) = 0;
-
-	//virtual int UseThis(***);
-};
-	
-
 
 	
 //-------------------- PathInterface ---------------------------
@@ -524,15 +480,15 @@ class PathInterface : public anInterface
 	Laxkit::flatpoint add_point_hint[6];
 	
 	//Laxkit::PtrStack<PathOperator> pathops; 
-	PathOperator *curpathop;
+	//PathOperator *curpathop;
 
 	Laxkit::ShortcutHandler *sc;
 	virtual int PerformAction(int action);
 	virtual void Modified(int level=0);
 	
 	virtual void clearSelection();
-	virtual PathOperator *getPathOpFromId(int iid);
-	virtual PathOperator *getPathOp(Coordinate *p);
+	//virtual PathOperator *getPathOpFromId(int iid);
+	//virtual PathOperator *getPathOp(Coordinate *p);
 	virtual void selectPoint(Coordinate *p,char flag);
 	virtual void removeSegment(Coordinate *c);
 	virtual Coordinate *scannear(Coordinate *p,char u,double radius=5);
@@ -624,9 +580,6 @@ class PathInterface : public anInterface
 	virtual Laxkit::MenuInfo *ContextMenu(int x,int y,int deviceid, Laxkit::MenuInfo *menu);
 	virtual int Event(const Laxkit::EventData *e_data, const char *mes);
 	
-	//virtual void RegisterOp(PathOperator *apathop);
-	virtual int ChangeCurpathop(int newiid);
-
 	virtual int VerticesSelected();
 	virtual int DeleteCurpoints();
 	virtual int DeletePoint(Coordinate *p);

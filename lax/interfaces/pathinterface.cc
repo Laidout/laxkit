@@ -202,15 +202,15 @@ PathWeightNode::PathWeightNode(double nt,double noffset, double nwidth, double n
  *
  *  Note for Inkscape users, a knot in Inkscape is equivalent to a vertex here.
  */
-/*! \var PtrStack<PathOperator> Path::basepathops
- * 	\brief A reference pool of PathOperator classes.
- *
- * 	This static pool is necessary to allow Path or PathsData, for instance, to figure out their
- * 	actual bounds and to dump_out properly, independently of any particular PathInterface
- * 	or PathOperator instance.
- */
+// /*! \var PtrStack<PathOperator> Path::basepathops
+//  * 	\brief A reference pool of PathOperator classes.
+//  *
+//  * 	This static pool is necessary to allow Path or PathsData, for instance, to figure out their
+//  * 	actual bounds and to dump_out properly, independently of any particular PathInterface
+//  * 	or PathOperator instance.
+//  */
 
-PtrStack<PathOperator> Path::basepathops;
+//PtrStack<PathOperator> Path::basepathops;
 
 Path::Path()
   : path(NULL), linestyle(NULL)
@@ -422,22 +422,22 @@ void Path::dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *context)
 		}
 
 		 //check for controlled points
-		if (p->controls) {
-			p2=p;
-			while (p2->controls==p->controls) { p2=p2->next; if (!p2 || p2==path) break; }
-		 	 //now p2 points to the point just after the last point with same controller
+		// if (p->controls) {
+		// 	p2=p;
+		// 	while (p2->controls==p->controls) { p2=p2->next; if (!p2 || p2==path) break; }
+		//  	 //now p2 points to the point just after the last point with same controller
 
-			int c2;
-			for (c2=0; c2<basepathops.n; c2++) if (p2->controls->iid()==basepathops.e[c2]->id) break;
-			if (c2==basepathops.n) {
-				 //ignore if pathop not found during runtime!! should never happen anyway
-				p=p2;
-				continue;
-			}
-			fprintf(f,"%ssegment %s\n",spc,basepathops.e[c2]->whattype());
-			basepathops.e[c2]->dumpOut(f, indent+2, p->controls, 0, context);
-			p=p2;
-		}
+		// 	int c2;
+		// 	for (c2=0; c2<basepathops.n; c2++) if (p2->controls->iid()==basepathops.e[c2]->id) break;
+		// 	if (c2==basepathops.n) {
+		// 		 //ignore if pathop not found during runtime!! should never happen anyway
+		// 		p=p2;
+		// 		continue;
+		// 	}
+		// 	fprintf(f,"%ssegment %s\n",spc,basepathops.e[c2]->whattype());
+		// 	basepathops.e[c2]->dumpOut(f, indent+2, p->controls, 0, context);
+		// 	p=p2;
+		// }
 
 
 	} while (p && p!=path);
@@ -637,7 +637,7 @@ void Path::dump_in_atts(Laxkit::Attribute *att,int flag,Laxkit::DumpContext *con
 {
 	if (!att) return;
 	char *name,*value;
-	int c2,closed=0;
+	int closed=0;
 	if (path) { delete path; path=NULL; }
 
 	for (int c=0; c<att->attributes.n; c++) {
@@ -667,14 +667,15 @@ void Path::dump_in_atts(Laxkit::Attribute *att,int flag,Laxkit::DumpContext *con
 
 		} else if (!strcmp(name,"segment")) {
 			if (isblank(value)) continue;
+			//deprecated!
 
-			for (c2=0; c2<basepathops.n; c2++) if (!strcmp(value,basepathops.e[c]->whattype())) break;
-			if (c2==basepathops.n) {
-				Attribute *a=att->attributes.e[c]->find("asbezier");
-				if (a) appendBezFromStr(a->value);
-				continue;
-			}
-			basepathops.e[c2]->dumpIn(path->lastPoint(0), att->attributes.e[c], context);
+			// for (c2=0; c2<basepathops.n; c2++) if (!strcmp(value,basepathops.e[c]->whattype())) break;
+			// if (c2==basepathops.n) {
+			// 	Attribute *a=att->attributes.e[c]->find("asbezier");
+			// 	if (a) appendBezFromStr(a->value);
+			// 	continue;
+			// }
+			// basepathops.e[c2]->dumpIn(path->lastPoint(0), att->attributes.e[c], context);
 		}
 	}
 	if (closed && path) path->close();
@@ -5575,48 +5576,48 @@ PathsData *SvgToPathsData(PathsData *existingpath, const char *d,char **end_ptr,
 
 //----------------------------- PathOperator -----------------------------------
 
-/*! \class PathOperator
- * \ingroup interfaces
- * \brief Abstract base class of path operators.
- * \code #include <lax/interfaces/pathinterface.h> \endcode
- *
- * PathOperator objects provide helper functions to operate on Path objects. They allow
- * constructing and manipulating segments of paths that are not just plain bezier curves.
- *
- * Path::basepathops is a publically accessible static stack of PathOperators that
- * any Path object should be able to use. Thus, actual PathOperator instances must not
- * actually contain any state specific to any one path or interface.
- *
- * For a person to actually interacting with data, getInterface() will return an anInterface
- * object that can be used for that purpose, if any is available.
- */
+// /*! \class PathOperator
+//  * \ingroup interfaces
+//  * \brief Abstract base class of path operators.
+//  * \code #include <lax/interfaces/pathinterface.h> \endcode
+//  *
+//  * PathOperator objects provide helper functions to operate on Path objects. They allow
+//  * constructing and manipulating segments of paths that are not just plain bezier curves.
+//  *
+//  * Path::basepathops is a publically accessible static stack of PathOperators that
+//  * any Path object should be able to use. Thus, actual PathOperator instances must not
+//  * actually contain any state specific to any one path or interface.
+//  *
+//  * For a person to actually interacting with data, getInterface() will return an anInterface
+//  * object that can be used for that purpose, if any is available.
+//  */
 
-/*! \fn Coordinate *PathOperator::newPoint(flatpoint p)
- * \brief Return a new point and associated points.
- * \param p Where a point was clicked.
- *
- * Must return the most previous point in the newly added group of points.
- * It must not return closed loops. Should return a segment that starts and ends
- * with a vertex.
- *
- * \todo *** also return which point should be currently selected!
- */
+// /*! \fn Coordinate *PathOperator::newPoint(flatpoint p)
+//  * \brief Return a new point and associated points.
+//  * \param p Where a point was clicked.
+//  *
+//  * Must return the most previous point in the newly added group of points.
+//  * It must not return closed loops. Should return a segment that starts and ends
+//  * with a vertex.
+//  *
+//  * \todo *** also return which point should be currently selected!
+//  */
 
-PathOperator::PathOperator(int nid)
-{
-	id = nid;
-	if (nid < 0) id = getUniqueNumber();
-}
+// PathOperator::PathOperator(int nid)
+// {
+// 	id = nid;
+// 	if (nid < 0) id = getUniqueNumber();
+// }
 
-PathOperator::~PathOperator()
-{
-}
+// PathOperator::~PathOperator()
+// {
+// }
 
-/*! \fn anInterface *PathOperator::getInterface(Laxkit::Displayer *dp,PathsData *data)
- * \brief Return an interface that can manipulate relevant data
- *
- * \todo *** describe requirements of any interface returned here!!
- */
+// /*! \fn anInterface *PathOperator::getInterface(Laxkit::Displayer *dp,PathsData *data)
+//  * \brief Return an interface that can manipulate relevant data
+//  *
+//  * \todo *** describe requirements of any interface returned here!!
+//  */
 
 
 ////------------------------------ PathInterface ------------------------------------
@@ -5711,7 +5712,7 @@ PathInterface::PathInterface(int nid,Displayer *ndp, unsigned long nstyle) : anI
 
 	curvertex = NULL;
 	curpath   = NULL;
-	curpathop = NULL;
+	//curpathop = NULL;
 	curdirp   = NULL;
 
 	child = owner = NULL;
@@ -6447,27 +6448,28 @@ int PathInterface::Refresh()
 			p=start->firstPoint();
 			start=p;
 			p2=NULL;
-			Coordinate *nextp=NULL;
+			//Coordinate *nextp=NULL;
 
 			// draw the points
 			if (show_points) {
 				do { //one loop for each vertex to vertex segment
-					if (p->controls) {
-						 //first find the bounds of the bezier approximated segment
-						 //these bezier points do not get normal bezier control points drawn.
-						 //Control points to actually draw are in p->controls
-						nextp=p->next;
-						while (nextp && nextp!=start && nextp->controls==p->controls) nextp=nextp->next;
-						p=nextp;
+					// if (p->controls) {
+					// 	 //first find the bounds of the bezier approximated segment
+					// 	 //these bezier points do not get normal bezier control points drawn.
+					// 	 //Control points to actually draw are in p->controls
+					// 	nextp=p->next;
+					// 	while (nextp && nextp!=start && nextp->controls==p->controls) nextp=nextp->next;
+					// 	p=nextp;
 
-						int c2;
-						for (c2=0; c2<Path::basepathops.n; c2++)
-							if (p->controls->iid()==Path::basepathops.e[c2]->id) break;
-						if (c2!=Path::basepathops.n) {
-							Path::basepathops.e[c2]->drawControls(dp, -1, p->controls, showdecs, this);
-						} //else ignore if pathop not found during runtime!! should never happen anyway
+					// 	int c2;
+					// 	for (c2=0; c2<Path::basepathops.n; c2++)
+					// 		if (p->controls->iid()==Path::basepathops.e[c2]->id) break;
+					// 	if (c2!=Path::basepathops.n) {
+					// 		Path::basepathops.e[c2]->drawControls(dp, -1, p->controls, showdecs, this);
+					// 	} //else ignore if pathop not found during runtime!! should never happen anyway
 
-					} else {
+					//} else 
+					{
 						 //draw normal control points
 						bool on = (curpoints.findindex(p) >= 0);
 						bool con = IsNearSelected(p);
@@ -7038,27 +7040,27 @@ void PathInterface::UpdateDir()
 	UpdateAddHint();
 }
 
-//! Note this returns an element in PathInterface's own instances of available pathops, not the PathOp pool
-PathOperator *PathInterface::getPathOpFromId(int iid)
-{
-	for (int c=0; c<Path::basepathops.n; c++) {
-		if (Path::basepathops.e[c]->id==iid) {
-			return Path::basepathops.e[c];
-		}
-	}
-	return NULL;
-}
+// //! Note this returns an element in PathInterface's own instances of available pathops, not the PathOp pool
+// PathOperator *PathInterface::getPathOpFromId(int iid)
+// {
+// 	for (int c=0; c<Path::basepathops.n; c++) {
+// 		if (Path::basepathops.e[c]->id==iid) {
+// 			return Path::basepathops.e[c];
+// 		}
+// 	}
+// 	return NULL;
+// }
 
-//! Returns the most relevant PathOperator to operate on the given coordinate.
-/*!
- */
-PathOperator *PathInterface::getPathOp(Coordinate *p)
-{
-	if (!p) return NULL;
-	if (!p->controls) return NULL;
+// //! Returns the most relevant PathOperator to operate on the given coordinate.
+// /*!
+//  */
+// PathOperator *PathInterface::getPathOp(Coordinate *p)
+// {
+// 	if (!p) return NULL;
+// 	if (!p->controls) return NULL;
 
-	return getPathOpFromId(p->controls->iid());
-}
+// 	return getPathOpFromId(p->controls->iid());
+// }
 
 const double *PathInterface::datam()
 {
@@ -7424,7 +7426,7 @@ Coordinate *PathInterface::scan(int x,int y,int pmask, int *pathindex) // pmask=
 	if (!show_points) return nullptr;
 
 	// scan for vertex points
-	PathOperator *op=NULL;
+	//PathOperator *op=NULL;
 	for (c=0; c<data->paths.n; c++) {
 		start=cp=data->paths.e[c]->path;
 		if (!start) continue;
@@ -7433,14 +7435,15 @@ Coordinate *PathInterface::scan(int x,int y,int pmask, int *pathindex) // pmask=
 			cp = cp->firstPoint(1);
 			start = cp;
 			do {
-				if (cp->controls && cp->controls->iid() == pmask) {
-					op = getPathOpFromId(cp->controls->iid());
-					if (op && op->scan(dp,cp->controls,x,y)) {
-						if (pathindex) *pathindex = c;
-						return cp;
-					}
+				// if (cp->controls && cp->controls->iid() == pmask) {
+				// 	op = getPathOpFromId(cp->controls->iid());
+				// 	if (op && op->scan(dp,cp->controls,x,y)) {
+				// 		if (pathindex) *pathindex = c;
+				// 		return cp;
+				// 	}
 
-				} else if (cp->flags&POINT_VERTEX && !pmask) {
+				// } else 
+				if (cp->flags&POINT_VERTEX && !pmask) {
 					p = realtoscreen(transform_point(datam(),cp->p()));
 					if ((p.x-x)*(p.x-x)+(p.y-y)*(p.y-y)<select_radius2*ScreenLine()) {
 						DBG cerr <<" path scan found vertex on "<<c<<endl;
@@ -7794,9 +7797,10 @@ int PathInterface::LBDown(int x,int y,unsigned int state,int count,const LaxMous
 	// so PathInterface is free to do its thing.
 
 	// scan does not take primary into account, so do it manually here
-	if (curpathop && primary) lbfound=scan(x,y,curpathop->id);
-	else lbfound=scan(x,y);
-	lbselected=1;
+	//if (curpathop && primary) lbfound=scan(x,y,curpathop->id);
+	//else 
+	lbfound = scan(x,y);
+	lbselected = 1;
 
 	// Add Point if did not find any point, and is primary.
 	// also flush curpoints,
@@ -7922,58 +7926,58 @@ void PathInterface::selectPoint(Coordinate *p,char flag)
 		curpoints.pushnodup(p,0);
 	}
 
-	if (flag & PSELECT_SelectPathop) { // select proper PathOperator
-		if (p->controls) {
-			if (curpathop && curpathop->id==p->controls->iid()) ; //already right pathop
-			else ChangeCurpathop(p->controls->iid());
-		} else if (curpathop) ChangeCurpathop(0);
-	}
+	// if (flag & PSELECT_SelectPathop) { // select proper PathOperator
+	// 	if (p->controls) {
+	// 		if (curpathop && curpathop->id==p->controls->iid()) ; //already right pathop
+	// 		else ChangeCurpathop(p->controls->iid());
+	// 	} else if (curpathop) ChangeCurpathop(0);
+	// }
 
 	if (flag & PSELECT_SyncVertex) { // sync curvertex to the point
 		SetCurvertex(p);
 	}
 }
 
-//! Swap out the old pathop for the new on the ViewportWindow interface stack
-/*! Return 0 success, nonzero error.
- *
- * Note that this only works when this acts on a ViewportWindow.
- */
-int PathInterface::ChangeCurpathop(int newiid)
-{
-	if (!viewport) return 1;
+// //! Swap out the old pathop for the new on the ViewportWindow interface stack
+// /*! Return 0 success, nonzero error.
+//  *
+//  * Note that this only works when this acts on a ViewportWindow.
+//  */
+// int PathInterface::ChangeCurpathop(int newiid)
+// {
+// 	if (!viewport) return 1;
 
-	// Must sync up curpathop only if necessary.
-	if (curpathop && curpathop->id==newiid) return 0;
+// 	// Must sync up curpathop only if necessary.
+// 	if (curpathop && curpathop->id==newiid) return 0;
 
-	// pop old curpathop from window's interfaces stack, and turn it off
-	int n;
-	if (curpathop) { viewport->PopId(curpathop->id); }
-	n=viewport->interfaces.findindex(this)+1;
+// 	// pop old curpathop from window's interfaces stack, and turn it off
+// 	int n;
+// 	if (curpathop) { viewport->PopId(curpathop->id); }
+// 	n=viewport->interfaces.findindex(this)+1;
 
-	// now n is the index of this PathInterface plus 1. The new
-	// PathOperator is pushed right after PathInterface.
+// 	// now n is the index of this PathInterface plus 1. The new
+// 	// PathOperator is pushed right after PathInterface.
 
-	// Push new curpathop onto window's interfaces stack
-	curpathop=getPathOpFromId(newiid);
+// 	// Push new curpathop onto window's interfaces stack
+// 	curpathop=getPathOpFromId(newiid);
 
-	if (curpathop) {
-		child=curpathop->getInterface(dp,data);
-		viewport->Push(child,n,0);
-		child->UseThis(data);
-	}
+// 	if (curpathop) {
+// 		child=curpathop->getInterface(dp,data);
+// 		viewport->Push(child,n,0);
+// 		child->UseThis(data);
+// 	}
 
-	SetCurvertex(NULL);
-	curpoints.flush();
+// 	SetCurvertex(NULL);
+// 	curpoints.flush();
 
-	// post a message somewhere saying what is current pathop
-	char blah[100];
-	strcpy(blah,"PathInterface now using: ");
-	if (curpathop) strcat(blah,curpathop->whattype());
-	else strcat(blah," plain pathinterface");
-	PostMessage(blah);
-	return 0;
-}
+// 	// post a message somewhere saying what is current pathop
+// 	char blah[100];
+// 	strcpy(blah,"PathInterface now using: ");
+// 	if (curpathop) strcat(blah,curpathop->whattype());
+// 	else strcat(blah," plain pathinterface");
+// 	PostMessage(blah);
+// 	return 0;
+// }
 
 //! Return data after making it a new, checked out with count of 2 instance of a PathsData
 PathsData *PathInterface::newPathsData()
@@ -8052,10 +8056,11 @@ int PathInterface::AddPoint(flatpoint p)
 
 	// allocate new cluster of Coordinate objects
 	Coordinate *np=NULL, *cp=NULL;
-	if (curpathop) {
-		np = curpathop->newPoint(p); // newPoint defaults to a full unit
-		// *** need to assign cp! maybe pathop has preference for which point you should be on
-	} else {
+	// if (curpathop) {
+	// 	np = curpathop->newPoint(p); // newPoint defaults to a full unit
+	// 	// *** need to assign cp! maybe pathop has preference for which point you should be on
+	// } else 
+	{
 		if (addmode==ADDMODE_Point) np=new Coordinate(flatpoint(p),POINT_VERTEX,NULL);
 		else { //ADDMODE_Bezier
 			np=new Coordinate(p,POINT_VERTEX|POINT_REALLYSMOOTH,NULL);
@@ -8700,14 +8705,15 @@ int PathInterface::shiftSelected(flatpoint d)
 {
 	if (!data) return 0;
 	DBG cerr <<"----move selected"<<endl;
-	PathOperator *pathop;
+	//PathOperator *pathop;
 	Coordinate *p;
 
 	for (int c=0; c<curpoints.n; c++) {
-		pathop=NULL;
-		if (curpoints.e[c]->controls) pathop=getPathOpFromId(curpoints.e[c]->controls->iid());
-		if (pathop) pathop->ShiftPoint(curpoints.e[c],d);
-		else {
+		//pathop=NULL;
+		//if (curpoints.e[c]->controls) pathop=getPathOpFromId(curpoints.e[c]->controls->iid());
+		//if (pathop) pathop->ShiftPoint(curpoints.e[c],d);
+		//else 
+		{
 			//If trying to move a control point, and we are also moving a vertex at some
 			//point, then skip moving the control point
 			p=curpoints.e[c];
@@ -8737,12 +8743,13 @@ int PathInterface::scaleSelected(flatpoint center,double f,int constrain)
 {
 	if (!data) return 0;
 	DBG cerr <<"PathInterface::scaleSelected(), constrain "<<constrain<<endl;
-	PathOperator *pathop;
+	//PathOperator *pathop;
 	for (int c=0; c<curpoints.n; c++) {
-		pathop=NULL;
-		if (curpoints.e[c]->controls) pathop=getPathOpFromId(curpoints.e[c]->controls->iid());
-		if (pathop) pathop->Scale(center,f,constrain,curpoints.e[c]);
-		else {
+		//pathop=NULL;
+		//if (curpoints.e[c]->controls) pathop=getPathOpFromId(curpoints.e[c]->controls->iid());
+		//if (pathop) pathop->Scale(center,f,constrain,curpoints.e[c]);
+		//else
+		{
 			flatpoint p2=center+(curpoints.e[c]->p()-center)*f;
 			if (constrain&2) curpoints.e[c]->y(p2.y);
 			if (constrain&1) curpoints.e[c]->x(p2.x);
@@ -8757,12 +8764,13 @@ int PathInterface::scaleSelected(flatpoint center,double f,int constrain)
 int PathInterface::rotateSelected(flatpoint center,double angle)
 {
 	if (!data) return 0;
-	PathOperator *pathop;
+	//PathOperator *pathop;
 	for (int c=0; c<curpoints.n; c++) {
-		pathop=NULL;
-		if (curpoints.e[c]->controls) pathop=getPathOpFromId(curpoints.e[c]->controls->iid());
-		if (pathop) pathop->Rotate(center,angle,curpoints.e[c]);
-		else {
+		//pathop=NULL;
+		//if (curpoints.e[c]->controls) pathop=getPathOpFromId(curpoints.e[c]->controls->iid());
+		//if (pathop) pathop->Rotate(center,angle,curpoints.e[c]);
+		//else
+		{
 			flatpoint p=rotate(curpoints.e[c]->p(),center,angle,1);
 			curpoints.e[c]->p(p);
 		}
@@ -8848,7 +8856,8 @@ int PathInterface::MouseMove(int x,int y,unsigned int state,const LaxMouse *mous
 		}
 
 		 //scan for ordinary points
-		Coordinate *h=scan(x,y,curpathop?curpathop->id:0);
+		// Coordinate *h=scan(x,y,curpathop?curpathop->id:0);
+		Coordinate *h = scan(x,y, 0);
 
 		if (h) {
 			 //found hovering over existing control or vertex
@@ -9387,21 +9396,21 @@ int PathInterface::PerformAction(int action)
 		needtodraw = 1;
 		return 0;
 
-	} else if (action==PATHIA_Pathop) {
-		 // Select different pathop
-		if (Path::basepathops.n==0) return 0;
-		int curpop,idofnew=0;
+	// } else if (action==PATHIA_Pathop) {
+	// 	 // Select different pathop
+	// 	if (Path::basepathops.n==0) return 0;
+	// 	int curpop,idofnew=0;
 
-		if (curpathop) { // select next pathop on pathops stack
-			curpop=Path::basepathops.findindex(curpathop)+1;
-			if (curpop>=Path::basepathops.n) idofnew=0;
-				else idofnew=Path::basepathops.e[curpop]->id;
-		} else {
-			idofnew=Path::basepathops.e[0]->id;
-		}
+	// 	if (curpathop) { // select next pathop on pathops stack
+	// 		curpop=Path::basepathops.findindex(curpathop)+1;
+	// 		if (curpop>=Path::basepathops.n) idofnew=0;
+	// 			else idofnew=Path::basepathops.e[curpop]->id;
+	// 	} else {
+	// 		idofnew=Path::basepathops.e[0]->id;
+	// 	}
 
-		ChangeCurpathop(idofnew);
-		return 0;
+	// 	ChangeCurpathop(idofnew);
+	// 	return 0;
 
 	} else if (action==PATHIA_Copy) {
 		// copy points .. from a path only? copy preserving subpaths?
