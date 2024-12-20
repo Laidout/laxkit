@@ -40,7 +40,6 @@ namespace LaxInterfaces {
 
 
 class PathsData;
-//class PathOperator;
 class LineProfile;
 class ShapeBrush;
 
@@ -307,8 +306,7 @@ class PathsData : virtual public SomeData
 	virtual Laxkit::Attribute *dump_out_atts(Laxkit::Attribute *att,int what, Laxkit::DumpContext *context);
 	virtual void dump_in_atts(Laxkit::Attribute *att,int flag,Laxkit::DumpContext *context);
 
-	// typedef void (*PointMapFunc)(const flatpoint &p, flatpoint &newp);
- 	virtual int Map(std::function<int(const Laxkit::flatpoint &p, Laxkit::flatpoint &newp)> adjustFunc);
+	virtual int Map(std::function<int(const Laxkit::flatpoint &p, Laxkit::flatpoint &newp)> adjustFunc);
 
  	virtual int Undo(Laxkit::UndoData *data); // return 0 for sucess, nonzero error
 	virtual int Redo(Laxkit::UndoData *data); // return 0 for sucess, nonzero error
@@ -348,7 +346,7 @@ enum PathInterfaceActions {
 	PATHIA_None = 0,
 	PATHIA_CurpointOnHandle,
 	PATHIA_CurpointOnHandleR,
-	PATHIA_Pathop,
+	PATHIA_PathGenerator,
 	PATHIA_ToggleAbsAngle,
 	PATHIA_ToggleOutline,
 	PATHIA_ToggleBaseline,
@@ -391,6 +389,12 @@ enum PathInterfaceActions {
 	PATHIA_Reverse,
 	PATHIA_Delete,
 	PATHIA_UseLineProfile,
+	PATHIA_UseLineStyle,
+	PATHIA_MakeLineResource,
+	PATHIA_MakeLineLocal,
+	PATHIA_UseFillStyle,
+	PATHIA_MakeFillResource,
+	PATHIA_MakeFillLocal,
 	PATHIA_UseShapeBrush,
 	PATHIA_ClearShapeBrush,
 	PATHIA_SaveAsShapeBrush,
@@ -479,16 +483,15 @@ class PathInterface : public anInterface
 	int show_addpoint; //0 no, 1 one bez segs, 2 two bez segs (adding within line)
 	Laxkit::flatpoint add_point_hint[6];
 	
-	//Laxkit::PtrStack<PathOperator> pathops; 
-	//PathOperator *curpathop;
+	//Laxkit::PtrStack<PathGenerator> generators; // might be a subset of a global generator pool
+	//PathGenerator *generator;
 
 	Laxkit::ShortcutHandler *sc;
 	virtual int PerformAction(int action);
 	virtual void Modified(int level=0);
 	
 	virtual void clearSelection();
-	//virtual PathOperator *getPathOpFromId(int iid);
-	//virtual PathOperator *getPathOp(Coordinate *p);
+	//virtual PathGenerator *getGeneratorFromId(int iid);
 	virtual void selectPoint(Coordinate *p,char flag);
 	virtual void removeSegment(Coordinate *c);
 	virtual Coordinate *scannear(Coordinate *p,char u,double radius=5);

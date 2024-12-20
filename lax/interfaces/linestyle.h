@@ -28,6 +28,7 @@
 #include <lax/dump.h>
 #include <lax/colors.h>
 #include <lax/laxutils.h>
+#include <lax/interfaces/fillstyle.h>
 
 
 namespace LaxInterfaces {
@@ -59,6 +60,8 @@ class LineStyle : virtual public Laxkit::Resourceable, virtual public Laxkit::Du
 	double *dashes;
 	double dash_offset;
 	int numdashes;
+
+	FillStyle *stroke_fill;
 
 	Laxkit::Color *color2; // if non-null, color should be derived from color2
 	Laxkit::ScreenColor color;

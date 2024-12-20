@@ -88,6 +88,8 @@ enum PathHoverType {
 //------------------------------------- Resource Types -------------------------------------
 
 anObject *NewShapeBrush(int p, anObject *ref) { return new ShapeBrush; }
+anObject *NewLineStyle (int p, anObject *ref) { return new LineStyle;  }
+anObject *NewFillStyle (int p, anObject *ref) { return new FillStyle;  }
 
 //! For resourcemanager.
 Laxkit::anObject *createShapeBrush(Laxkit::Attribute *config)
@@ -97,18 +99,34 @@ Laxkit::anObject *createShapeBrush(Laxkit::Attribute *config)
     return b;
 }
 
+//! For resourcemanager.
+Laxkit::anObject *createLineStyle(Laxkit::Attribute *config)
+{
+    LineStyle *b = new LineStyle();
+    if (config) b->dump_in_atts(config, 0, nullptr);
+    return b;
+}
+
+//! For resourcemanager.
+Laxkit::anObject *createFillStyle(Laxkit::Attribute *config)
+{
+    FillStyle *b = new FillStyle();
+    if (config) b->dump_in_atts(config, 0, nullptr);
+    return b;
+}
+
 void InstallPathResourceTypes(ObjectFactory *factory, ResourceManager *resources)
 {
 	if (factory) {
 		factory->DefineNewObject(OBJ_ShapeBrush, "ShapeBrush", NewShapeBrush, nullptr, 0);
-		//factory->DefineNewObject(OBJ_LineStyle, "LineStyle", NewLineStyle, nullptr, 0);
-		//factory->DefineNewObject(OBJ_FillStyle, "FillStyle", NewFillStyle, nullptr, 0);
+		factory->DefineNewObject(OBJ_LineStyle,  "LineStyle",  NewLineStyle,  nullptr, 0);
+		factory->DefineNewObject(OBJ_FillStyle,  "FillStyle",  NewFillStyle,  nullptr, 0);
 	}
 
 	if (resources) {
 		resources->AddResourceType("ShapeBrush", _("Shape Brush"), nullptr, nullptr, createShapeBrush, nullptr /*load from file*/);
-		//resources->AddResourceType("LineStyle", _("Line Style"), nullptr, nullptr, createLineStyle, nullptr /*load from file*/);
-		//resources->AddResourceType("FillStyle", _("Fill Style"), nullptr, nullptr, createFillStyle, nullptr /*load from file*/);
+		resources->AddResourceType("LineStyle",  _("Line Style"),  nullptr, nullptr, createLineStyle,  nullptr /*load from file*/);
+		resources->AddResourceType("FillStyle",  _("Fill Style"),  nullptr, nullptr, createFillStyle,  nullptr /*load from file*/);
 	}
 
 	InstallDefaultLineProfiles(factory, resources);
@@ -193,24 +211,12 @@ PathWeightNode::PathWeightNode(double nt,double noffset, double nwidth, double n
  * \brief Path contains only one path.
  * \code #include <lax/interfaces/pathinterface.h> \endcode
  *
- *  Paths can use any PathOperator object found in basepathops to aid in constructing
- *  and maintaining path data. Straight lines and bezier lines are handled without
- *  any special PathOperators.
- *
  *  Path class exists just to contain a single (connected) path with its own linestyle.
  *  PathsData holds objects with multiple paths.
  *
  *  Note for Inkscape users, a knot in Inkscape is equivalent to a vertex here.
  */
-// /*! \var PtrStack<PathOperator> Path::basepathops
-//  * 	\brief A reference pool of PathOperator classes.
-//  *
-//  * 	This static pool is necessary to allow Path or PathsData, for instance, to figure out their
-//  * 	actual bounds and to dump_out properly, independently of any particular PathInterface
-//  * 	or PathOperator instance.
-//  */
 
-//PtrStack<PathOperator> Path::basepathops;
 
 Path::Path()
   : path(NULL), linestyle(NULL)
@@ -370,10 +376,15 @@ void Path::dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *context)
 	if (!path) return;
 
 	if (linestyle) {
-		fprintf(f,"%slinestyle\n",spc);
-		linestyle->dump_out(f,indent+2,what, context);
+		if (linestyle->IsResourced()) {
+			fprintf(f,"%slinestyle resource:%s\n", spc, linestyle->Id());
+		} else {
+			fprintf(f,"%slinestyle\n",spc);
+			linestyle->dump_out(f,indent+2,0,context);
+		}
 	}
-	if (path==path->lastPoint(0)) fprintf(f,"%sclosed\n",spc);
+
+	if (path == path->lastPoint(0)) fprintf(f,"%sclosed\n",spc);
 
 	if (profile) {
 		fprintf(f,"%sprofile\n",spc);
@@ -501,10 +512,14 @@ Laxkit::Attribute *Path::dump_out_atts(Laxkit::Attribute *att,int what, Laxkit::
 	if (!att) att=new Attribute;
 
 	if (linestyle) {
-		Attribute *att2=att->pushSubAtt("linestyle");
-		linestyle->dump_out_atts(att2, what, context);
+		if (linestyle->IsResourced()) {
+			att->pushStr("linestyle", -1, "resource:%s", linestyle->Id());
+		} else {
+			Attribute *att2 = att->pushSubAtt("linestyle");
+			linestyle->dump_out_atts(att2, what, context);
+		}
 	}
-
+	
 	if (profile) {
 		Attribute *att2 = att->pushSubAtt("profile");
 		profile->dump_out_atts(att2, what, context);
@@ -4372,13 +4387,21 @@ void PathsData::dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *contex
 			spc,m(0),m(1),m(2),m(3),m(4),m(5));
 
 	if (linestyle) {
-		fprintf(f,"%slinestyle\n",spc);
-		linestyle->dump_out(f,indent+2,0,context);
+		if (linestyle->IsResourced()) {
+			fprintf(f,"%slinestyle resource:%s\n", spc, linestyle->Id());
+		} else {
+			fprintf(f,"%slinestyle\n",spc);
+			linestyle->dump_out(f,indent+2,0,context);
+		}
 	}
 
 	if (fillstyle) {
-		fprintf(f,"%sfillstyle\n",spc);
-		fillstyle->dump_out(f,indent+2,0,context);
+		if (linestyle->IsResourced()) {
+			fprintf(f,"%sfillstyle resource:%s\n", spc, fillstyle->Id());
+		} else {
+			fprintf(f,"%sfillstyle\n",spc);
+			fillstyle->dump_out(f,indent+2,0,context);
+		}
 	}
 
 	if (brush) {
@@ -4431,13 +4454,21 @@ Laxkit::Attribute *PathsData::dump_out_atts(Laxkit::Attribute *att,int what, Lax
 	att->push("matrix", scratch);
 
 	if (linestyle) {
-		Attribute *att2 = att->pushSubAtt("linestyle");
-		linestyle->dump_out_atts(att2, what, context);
+		if (linestyle->IsResourced()) {
+			att->pushStr("linestyle", -1, "resource:%s", linestyle->Id());
+		} else {
+			Attribute *att2 = att->pushSubAtt("linestyle");
+			linestyle->dump_out_atts(att2, what, context);
+		}
 	}
 
 	if (fillstyle) {
-		Attribute *att2 = att->pushSubAtt("fillstyle");
-		fillstyle->dump_out_atts(att2, what, context);
+		if (fillstyle->IsResourced()) {
+			att->pushStr("fillstyle", -1, "resource:%s", fillstyle->Id());
+		} else {
+			Attribute *att2 = att->pushSubAtt("fillstyle");
+			fillstyle->dump_out_atts(att2, what, context);
+		}
 	}
 
 	if (brush) {
@@ -4496,13 +4527,39 @@ void PathsData::dump_in_atts(Attribute *att,int flag,Laxkit::DumpContext *contex
 
 		if (!strcmp(name,"linestyle")) {
 			if (linestyle) linestyle->dec_count();
-			linestyle=new LineStyle();
-			linestyle->dump_in_atts(att->attributes.e[c],flag,context);
+
+			if (value && strstr(value,"resource:") == value) {
+				value += 9;
+				while (isspace(*value)) value ++;
+				InterfaceManager *imanager = InterfaceManager::GetDefault(true);
+				ResourceManager *rm = imanager->GetResourceManager();
+				LineStyle *obj = dynamic_cast<LineStyle*>(rm->FindResource(value,"LineStyle"));
+				if (obj) {
+					linestyle = obj;
+					linestyle->inc_count();
+				}
+			} else {
+				linestyle = new LineStyle();
+				linestyle->dump_in_atts(att->attributes.e[c],flag,context);
+			}
 
 		} else if (!strcmp(name,"fillstyle")) {
 			if (fillstyle) fillstyle->dec_count();
-			fillstyle=new FillStyle();
-			fillstyle->dump_in_atts(att->attributes.e[c],flag,context);
+
+			if (value && strstr(value,"resource:") == value) {
+				value += 9;
+				while (isspace(*value)) value ++;
+				InterfaceManager *imanager = InterfaceManager::GetDefault(true);
+				ResourceManager *rm = imanager->GetResourceManager();
+				FillStyle *obj = dynamic_cast<FillStyle*>(rm->FindResource(value,"FillStyle"));
+				if (obj) {
+					fillstyle = obj;
+					fillstyle->inc_count();
+				}
+			} else {
+				fillstyle = new FillStyle();
+				fillstyle->dump_in_atts(att->attributes.e[c],flag,context);
+			}
 
 		} else if (!strcmp(name,"shape_brush")) {
 			if (value && strstr(value,"resource:") == value) {
@@ -5574,67 +5631,16 @@ PathsData *SvgToPathsData(PathsData *existingpath, const char *d,char **end_ptr,
 }
 
 
-//----------------------------- PathOperator -----------------------------------
-
-// /*! \class PathOperator
-//  * \ingroup interfaces
-//  * \brief Abstract base class of path operators.
-//  * \code #include <lax/interfaces/pathinterface.h> \endcode
-//  *
-//  * PathOperator objects provide helper functions to operate on Path objects. They allow
-//  * constructing and manipulating segments of paths that are not just plain bezier curves.
-//  *
-//  * Path::basepathops is a publically accessible static stack of PathOperators that
-//  * any Path object should be able to use. Thus, actual PathOperator instances must not
-//  * actually contain any state specific to any one path or interface.
-//  *
-//  * For a person to actually interacting with data, getInterface() will return an anInterface
-//  * object that can be used for that purpose, if any is available.
-//  */
-
-// /*! \fn Coordinate *PathOperator::newPoint(flatpoint p)
-//  * \brief Return a new point and associated points.
-//  * \param p Where a point was clicked.
-//  *
-//  * Must return the most previous point in the newly added group of points.
-//  * It must not return closed loops. Should return a segment that starts and ends
-//  * with a vertex.
-//  *
-//  * \todo *** also return which point should be currently selected!
-//  */
-
-// PathOperator::PathOperator(int nid)
-// {
-// 	id = nid;
-// 	if (nid < 0) id = getUniqueNumber();
-// }
-
-// PathOperator::~PathOperator()
-// {
-// }
-
-// /*! \fn anInterface *PathOperator::getInterface(Laxkit::Displayer *dp,PathsData *data)
-//  * \brief Return an interface that can manipulate relevant data
-//  *
-//  * \todo *** describe requirements of any interface returned here!!
-//  */
-
-
 ////------------------------------ PathInterface ------------------------------------
 
 /*! \class PathInterface
  * \ingroup interfaces
- *  \brief Edits PathsData objects. Also maintains all PathOperator classes.
+ *  \brief Edits PathsData objects.
  * \code #include <lax/interfaces/pathinterface.h> \endcode
  *
- *  There should only be one main PathInterface. Sub-interfaces for particular segments
- *  are found automatically from the Path::basepathops list, and then
- *  PathOperator::getInterface(). That interface (if any) is then made a child
- *  of the main PathInterface.
- *
+ *  There should only be one main PathInterface.
  *
  * \todo PathInterface should be able to draw single Path objects, not just PathsData?
- * \todo *** unknown PathOperators should be marked with a question mark at middle of path
  * \todo *** undo is very important for path editing!!
  * \todo *** must incorporate shift-move on grid lines, angles on 0/90/45/30/60/custom, etc.
  * \todo *** constrain x/y
@@ -5647,10 +5653,6 @@ PathsData *SvgToPathsData(PathsData *existingpath, const char *d,char **end_ptr,
  */
 /*! \var PtrStack<Coordinate> PathInterface::curpoints
  *  \brief Contains list of currently selected points on a path.
- *
- * If a controlled segment is selected, then only one bezier approximation point is 
- * stored in curpoints for that segment. More complicated point selection must be performed
- * by interfaces returned by PathOperator::getInterface().
  */
 /*! \var LineStyle *PathInterface::linestyle
  * \brief Pointer to what should be considered the current line style for the current data.
@@ -5868,15 +5870,6 @@ void PathInterface::UpdateExtrema()
 		data->FindExtrema(c, &extrema, nullptr);
 	}
 }
-
-////! Add apathop to pathop stack.
-//void PathInterface::RegisterOp(PathOperator *apathop)
-//{***
-//	if (apathop) {
-//		pathops.push(apathop);
-//		apathop->Dp(dp);
-//	}
-//}
 
 /*! Return the number of vertices (not control points) selected.
  */
@@ -6229,9 +6222,7 @@ int PathInterface::DrawData(anObject *ndata,anObject *a1,anObject *a2,int info)/
 	return 1; //*** should return 1 only if drawn?
 }
 
-//! Refresh draws the path and overlays the appropriate control points of the various PathOperator classes.
-/*! \todo need mechanism to only draw what's necessary
- */
+//! Refresh draws the path and overlays the appropriate control points.
 int PathInterface::Refresh()
 {
 	if (pathi_style&PATHI_Defer_Render) {
@@ -6256,7 +6247,6 @@ int PathInterface::Refresh()
 	// ------------ draw data-----------------
 
 	Coordinate *start,*p,*p2;
-	//PathOperator *pathop=NULL;
 	Path *pdata;
 	flatpoint fp;
 	LineStyle *lstyle=NULL;
@@ -7040,8 +7030,7 @@ void PathInterface::UpdateDir()
 	UpdateAddHint();
 }
 
-// //! Note this returns an element in PathInterface's own instances of available pathops, not the PathOp pool
-// PathOperator *PathInterface::getPathOpFromId(int iid)
+// PathGenerator *PathInterface::getGeneratorFromId(int iid)
 // {
 // 	for (int c=0; c<Path::basepathops.n; c++) {
 // 		if (Path::basepathops.e[c]->id==iid) {
@@ -7049,17 +7038,6 @@ void PathInterface::UpdateDir()
 // 		}
 // 	}
 // 	return NULL;
-// }
-
-// //! Returns the most relevant PathOperator to operate on the given coordinate.
-// /*!
-//  */
-// PathOperator *PathInterface::getPathOp(Coordinate *p)
-// {
-// 	if (!p) return NULL;
-// 	if (!p->controls) return NULL;
-
-// 	return getPathOpFromId(p->controls->iid());
 // }
 
 const double *PathInterface::datam()
@@ -7426,7 +7404,6 @@ Coordinate *PathInterface::scan(int x,int y,int pmask, int *pathindex) // pmask=
 	if (!show_points) return nullptr;
 
 	// scan for vertex points
-	//PathOperator *op=NULL;
 	for (c=0; c<data->paths.n; c++) {
 		start=cp=data->paths.e[c]->path;
 		if (!start) continue;
@@ -7435,14 +7412,6 @@ Coordinate *PathInterface::scan(int x,int y,int pmask, int *pathindex) // pmask=
 			cp = cp->firstPoint(1);
 			start = cp;
 			do {
-				// if (cp->controls && cp->controls->iid() == pmask) {
-				// 	op = getPathOpFromId(cp->controls->iid());
-				// 	if (op && op->scan(dp,cp->controls,x,y)) {
-				// 		if (pathindex) *pathindex = c;
-				// 		return cp;
-				// 	}
-
-				// } else 
 				if (cp->flags&POINT_VERTEX && !pmask) {
 					p = realtoscreen(transform_point(datam(),cp->p()));
 					if ((p.x-x)*(p.x-x)+(p.y-y)*(p.y-y)<select_radius2*ScreenLine()) {
@@ -7607,7 +7576,7 @@ Laxkit::MenuInfo *PathInterface::ContextMenu(int x,int y,int deviceid, MenuInfo 
 		}
 
 		//---- shape brushes
-		menu->AddSep();
+		menu->AddSep(_("Shape Brushes"));
 		if (data->brush) menu->AddItem(_("Clear shape brush"), PATHIA_ClearShapeBrush);
 		InterfaceManager *imanager = InterfaceManager::GetDefault(true);
 		ResourceManager *rm = imanager->GetResourceManager();
@@ -7622,6 +7591,42 @@ Laxkit::MenuInfo *PathInterface::ContextMenu(int x,int y,int deviceid, MenuInfo 
 			menu->EndSubMenu();
 		}
 		menu->AddItem(_("Save as a Shape Brush"), PATHIA_SaveAsShapeBrush);
+
+		//---- line styles
+		menu->AddSep(_("Line Styles"));
+		resources = rm->FindType("LineStyle");
+		if (resources && resources->NumResources()) {
+			menu->AddItem(_("Use line style"));
+			menu->SubMenu();
+			int numadded = 0;
+			resources->AppendMenu(menu, true, &numadded, PATHIA_MAX, PATHIA_UseLineStyle, data->linestyle);
+			if (numadded) menu->AddSep();
+			resources->AppendMenu(menu, false, &numadded, PATHIA_MAX, PATHIA_UseLineStyle, data->linestyle);
+			menu->EndSubMenu();
+		}
+		if (!data->linestyle->IsResourced()) {
+			menu->AddItem(_("Make line style a resource"), PATHIA_MakeLineResource);
+		} else {
+			menu->AddItem(_("Make line style unique"), PATHIA_MakeLineLocal);
+		}
+
+		//---- fill styles
+		menu->AddSep(_("Fill Styles"));
+		resources = rm->FindType("FillStyle");
+		if (resources && resources->NumResources()) {
+			menu->AddItem(_("Use file style"));
+			menu->SubMenu();
+			int numadded = 0;
+			resources->AppendMenu(menu, true, &numadded, PATHIA_MAX, PATHIA_UseFillStyle, data->fillstyle);
+			if (numadded) menu->AddSep();
+			resources->AppendMenu(menu, false, &numadded, PATHIA_MAX, PATHIA_UseFillStyle, data->fillstyle);
+			menu->EndSubMenu();
+		}
+		if (!data->fillstyle->IsResourced()) {
+			menu->AddItem(_("Make fill style a resource"), PATHIA_MakeFillResource);
+		} else {
+			menu->AddItem(_("Make fill style unique"), PATHIA_MakeFillLocal);
+		}
 	}
 
 	//menu->AddItem(_("Combine"),PATHIA_***);
@@ -7650,6 +7655,28 @@ int PathInterface::Event(const Laxkit::EventData *e_data, const char *mes)
 					if (brush) { // user selected use shape brush
 						if (data) {
 							data->UseShapeBrush(brush);
+							needtodraw = 1;
+						}
+					}
+				}
+			} else if (s->info4 == PATHIA_UseLineStyle) {
+				Resource *resource = rm->FindResourceFromRID(obj_id, "LineStyle");
+				if (resource) {
+					LineStyle *style = dynamic_cast<LineStyle*>(resource->GetObject());
+					if (style) { // user selected use shape brush
+						if (data) {
+							data->InstallLineStyle(style);
+							needtodraw = 1;
+						}
+					}
+				}
+			} else if (s->info4 == PATHIA_UseFillStyle) {
+				Resource *resource = rm->FindResourceFromRID(obj_id, "FillStyle");
+				if (resource) {
+					FillStyle *style = dynamic_cast<FillStyle*>(resource->GetObject());
+					if (style) { // user selected use shape brush
+						if (data) {
+							data->InstallFillStyle(style);
 							needtodraw = 1;
 						}
 					}
@@ -7926,58 +7953,11 @@ void PathInterface::selectPoint(Coordinate *p,char flag)
 		curpoints.pushnodup(p,0);
 	}
 
-	// if (flag & PSELECT_SelectPathop) { // select proper PathOperator
-	// 	if (p->controls) {
-	// 		if (curpathop && curpathop->id==p->controls->iid()) ; //already right pathop
-	// 		else ChangeCurpathop(p->controls->iid());
-	// 	} else if (curpathop) ChangeCurpathop(0);
-	// }
-
 	if (flag & PSELECT_SyncVertex) { // sync curvertex to the point
 		SetCurvertex(p);
 	}
 }
 
-// //! Swap out the old pathop for the new on the ViewportWindow interface stack
-// /*! Return 0 success, nonzero error.
-//  *
-//  * Note that this only works when this acts on a ViewportWindow.
-//  */
-// int PathInterface::ChangeCurpathop(int newiid)
-// {
-// 	if (!viewport) return 1;
-
-// 	// Must sync up curpathop only if necessary.
-// 	if (curpathop && curpathop->id==newiid) return 0;
-
-// 	// pop old curpathop from window's interfaces stack, and turn it off
-// 	int n;
-// 	if (curpathop) { viewport->PopId(curpathop->id); }
-// 	n=viewport->interfaces.findindex(this)+1;
-
-// 	// now n is the index of this PathInterface plus 1. The new
-// 	// PathOperator is pushed right after PathInterface.
-
-// 	// Push new curpathop onto window's interfaces stack
-// 	curpathop=getPathOpFromId(newiid);
-
-// 	if (curpathop) {
-// 		child=curpathop->getInterface(dp,data);
-// 		viewport->Push(child,n,0);
-// 		child->UseThis(data);
-// 	}
-
-// 	SetCurvertex(NULL);
-// 	curpoints.flush();
-
-// 	// post a message somewhere saying what is current pathop
-// 	char blah[100];
-// 	strcpy(blah,"PathInterface now using: ");
-// 	if (curpathop) strcat(blah,curpathop->whattype());
-// 	else strcat(blah," plain pathinterface");
-// 	PostMessage(blah);
-// 	return 0;
-// }
 
 //! Return data after making it a new, checked out with count of 2 instance of a PathsData
 PathsData *PathInterface::newPathsData()
@@ -8705,33 +8685,26 @@ int PathInterface::shiftSelected(flatpoint d)
 {
 	if (!data) return 0;
 	DBG cerr <<"----move selected"<<endl;
-	//PathOperator *pathop;
 	Coordinate *p;
 
 	for (int c=0; c<curpoints.n; c++) {
-		//pathop=NULL;
-		//if (curpoints.e[c]->controls) pathop=getPathOpFromId(curpoints.e[c]->controls->iid());
-		//if (pathop) pathop->ShiftPoint(curpoints.e[c],d);
-		//else 
-		{
-			//If trying to move a control point, and we are also moving a vertex at some
-			//point, then skip moving the control point
-			p=curpoints.e[c];
-			if (p->flags&POINT_TONEXT) p=p->next;
-			else if (p->flags&POINT_TOPREV) p=p->prev;
-			else p=NULL;
+		//If trying to move a control point, and we are also moving a vertex at some
+		//point, then skip moving the control point
+		p=curpoints.e[c];
+		if (p->flags&POINT_TONEXT) p=p->next;
+		else if (p->flags&POINT_TOPREV) p=p->prev;
+		else p=NULL;
 
-			if (p) {
-				int c2;
-				for (c2=0; c2<curpoints.n; c2++) {
-					if (c2==c) continue;
-					if (curpoints.e[c2]==p) break;
-				}
-				if (c2!=curpoints.n) continue;
+		if (p) {
+			int c2;
+			for (c2=0; c2<curpoints.n; c2++) {
+				if (c2==c) continue;
+				if (curpoints.e[c2]==p) break;
 			}
-
-			shiftBezPoint(curpoints.e[c],d);
+			if (c2!=curpoints.n) continue;
 		}
+
+		shiftBezPoint(curpoints.e[c],d);
 	}
 	UpdateDir();
 	data->FindBBox();
@@ -8743,17 +8716,10 @@ int PathInterface::scaleSelected(flatpoint center,double f,int constrain)
 {
 	if (!data) return 0;
 	DBG cerr <<"PathInterface::scaleSelected(), constrain "<<constrain<<endl;
-	//PathOperator *pathop;
 	for (int c=0; c<curpoints.n; c++) {
-		//pathop=NULL;
-		//if (curpoints.e[c]->controls) pathop=getPathOpFromId(curpoints.e[c]->controls->iid());
-		//if (pathop) pathop->Scale(center,f,constrain,curpoints.e[c]);
-		//else
-		{
-			flatpoint p2=center+(curpoints.e[c]->p()-center)*f;
-			if (constrain&2) curpoints.e[c]->y(p2.y);
-			if (constrain&1) curpoints.e[c]->x(p2.x);
-		}
+		flatpoint p2=center+(curpoints.e[c]->p()-center)*f;
+		if (constrain&2) curpoints.e[c]->y(p2.y);
+		if (constrain&1) curpoints.e[c]->x(p2.x);
 	}
 	UpdateDir();
 	data->FindBBox();
@@ -8764,16 +8730,9 @@ int PathInterface::scaleSelected(flatpoint center,double f,int constrain)
 int PathInterface::rotateSelected(flatpoint center,double angle)
 {
 	if (!data) return 0;
-	//PathOperator *pathop;
 	for (int c=0; c<curpoints.n; c++) {
-		//pathop=NULL;
-		//if (curpoints.e[c]->controls) pathop=getPathOpFromId(curpoints.e[c]->controls->iid());
-		//if (pathop) pathop->Rotate(center,angle,curpoints.e[c]);
-		//else
-		{
-			flatpoint p=rotate(curpoints.e[c]->p(),center,angle,1);
-			curpoints.e[c]->p(p);
-		}
+		flatpoint p=rotate(curpoints.e[c]->p(),center,angle,1);
+		curpoints.e[c]->p(p);
 	}
 	UpdateDir();
 	data->FindBBox();
@@ -9236,7 +9195,6 @@ Laxkit::ShortcutHandler *PathInterface::GetShortcuts()
 
 	sc->Add(PATHIA_CurpointOnHandle,  LAX_Up,0,0,        "HandlePoint",  _("Switch between handle and vertex"),NULL,0);
 	sc->Add(PATHIA_CurpointOnHandleR, LAX_Up,ShiftMask,0,"HandlePointR", _("Switch between handle and vertex"),NULL,0);
-	sc->Add(PATHIA_Pathop,            'o',0,0,        "Pathop",       _("Change path operator"),NULL,0);
 	sc->Add(PATHIA_ToggleAbsAngle,    '^',ShiftMask,0,"ToggleAbsAngle",_("Toggle absolute angles in subpaths"),NULL,0);
 	sc->Add(PATHIA_ToggleFillRule,    'F',ShiftMask,0,"ToggleFillRule",_("Toggle fill rule"),NULL,0);
 	sc->Add(PATHIA_ToggleFill,        'f',0,0,        "ToggleFill",   _("Toggle fill"),NULL,0);
@@ -9395,22 +9353,6 @@ int PathInterface::PerformAction(int action)
 		PostMessage(_("Points flipped"));
 		needtodraw = 1;
 		return 0;
-
-	// } else if (action==PATHIA_Pathop) {
-	// 	 // Select different pathop
-	// 	if (Path::basepathops.n==0) return 0;
-	// 	int curpop,idofnew=0;
-
-	// 	if (curpathop) { // select next pathop on pathops stack
-	// 		curpop=Path::basepathops.findindex(curpathop)+1;
-	// 		if (curpop>=Path::basepathops.n) idofnew=0;
-	// 			else idofnew=Path::basepathops.e[curpop]->id;
-	// 	} else {
-	// 		idofnew=Path::basepathops.e[0]->id;
-	// 	}
-
-	// 	ChangeCurpathop(idofnew);
-	// 	return 0;
 
 	} else if (action==PATHIA_Copy) {
 		// copy points .. from a path only? copy preserving subpaths?
@@ -9921,6 +9863,48 @@ int PathInterface::PerformAction(int action)
 		show_extrema = !show_extrema;
 		UpdateExtrema();
 		needtodraw = 1;
+		return 0;
+
+	} else if (action == PATHIA_MakeLineResource) {
+		if (!data) return 0;
+		if (data->linestyle->IsResourced()) {
+			PostMessage(_("Line style is already a resource"));
+		} else {
+			InterfaceManager *imanager = InterfaceManager::GetDefault(true);
+			ResourceManager *rm = imanager->GetResourceManager();
+			rm->AddResource("LineStyle", data->linestyle, nullptr, data->linestyle->Id(), data->linestyle->Id(),
+							nullptr, nullptr, nullptr, false);
+			PostMessage(_("Resourced."));
+		}
+		return 0;
+
+	} else if (action == PATHIA_MakeLineLocal) {
+		if (!data) return 0;
+		LineStyle *ls = dynamic_cast<LineStyle*>(data->linestyle->duplicate(nullptr));
+		data->InstallLineStyle(ls);
+		ls->dec_count();
+		PostMessage(_("Done."));
+		return 0;
+
+	} else if (action == PATHIA_MakeFillResource) {
+		if (!data) return 0;
+		if (data->fillstyle->IsResourced()) {
+			PostMessage(_("Fill style is already a resource"));
+		} else {
+			InterfaceManager *imanager = InterfaceManager::GetDefault(true);
+			ResourceManager *rm = imanager->GetResourceManager();
+			rm->AddResource("FillStyle", data->fillstyle, nullptr, data->fillstyle->Id(), data->fillstyle->Id(),
+							nullptr, nullptr, nullptr, false);
+			PostMessage(_("Resourced."));
+		}
+		return 0;
+
+	} else if (action == PATHIA_MakeFillLocal) {
+		if (!data) return 0;
+		FillStyle *s = dynamic_cast<FillStyle*>(data->fillstyle->duplicate(nullptr));
+		data->InstallFillStyle(s);
+		s->dec_count();
+		PostMessage(_("Done."));
 		return 0;
 	}
 	

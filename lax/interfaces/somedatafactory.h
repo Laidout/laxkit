@@ -50,6 +50,8 @@ enum LaxInterfaceDataTypes {
 
 	OBJ_ShapeBrush,
 	OBJ_LineProfile,
+	OBJ_LineStyle,
+	OBJ_FillStyle,
 
 	LAX_DATA_MAX
 };

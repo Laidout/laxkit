@@ -62,6 +62,8 @@ LineStyle::LineStyle()
 	miterlimit = 100; //so this means 100*(line thickness)
 	function   = LAXOP_Over;
 
+	stroke_fill = nullptr;
+
 	 //dashes todo:
 	 // on/off, dashes is list of lengths proportional to width of on and off
 	 // off/on, dashes is list of lengths proportional to width of on and off
@@ -82,6 +84,8 @@ LineStyle::LineStyle(const LineStyle &l)
 	joinstyle  = l.joinstyle;
 	miterlimit = l.miterlimit;
 	function   = l.function;
+	stroke_fill = l.stroke_fill;
+	if (stroke_fill) stroke_fill->inc_count();
 
 	dotdash     = l.dotdash;
 	numdashes   = l.numdashes;
@@ -104,6 +108,8 @@ LineStyle &LineStyle::operator=(LineStyle &l)
 	miterlimit = l.miterlimit;
 	dotdash    = l.dotdash;
 	function   = l.function;
+	stroke_fill = l.stroke_fill;
+	if (stroke_fill) stroke_fill->inc_count();
 
 	delete[] dashes;
 	numdashes   = l.numdashes;
@@ -118,6 +124,7 @@ LineStyle &LineStyle::operator=(LineStyle &l)
 
 LineStyle::~LineStyle()
 {
+	if (stroke_fill) stroke_fill->dec_count();
 	if (color2) color2->dec_count();
 	delete[] dashes;
 }

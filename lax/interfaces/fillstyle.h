@@ -37,7 +37,7 @@ class FillStyle : virtual public Laxkit::Resourceable, virtual public Laxkit::Du
 	Laxkit::Color *color2;
 	Laxkit::ScreenColor color;
 	int fillrule;  //!< See LaxFillRule
-	int fillstyle; //!< See LaxFillStyle
+	int fillstyle; //!< See LaxFillStyle, basically solid or a pattern
 	int function;  //!< See LaxCompositeOp
 	unsigned long mask;
 
