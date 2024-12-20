@@ -241,6 +241,7 @@ static const CssColorSpec css_colors[] = {
 
 /*! Check against the 147 common css named colors.
  * Return nonzero for found, else 0 for not found.
+ * Return the computed color in scolor.
  */
 int CSSNamedColor(const char *value, Laxkit::ScreenColor *scolor)
 {
