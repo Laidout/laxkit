@@ -25,6 +25,7 @@
 //#include <lax/interfaces/undo.h>
 #include <lax/interfaces/interfacemanager.h>
 #include <lax/strmanip.h>
+#include <lax/colorevents.h>
 
 using namespace Laxkit;
 
@@ -421,6 +422,36 @@ Laxkit::anXWindow *anInterface::CurrentWindow(Laxkit::anXWindow *ncur)
 	if (!ncur) return viewport;
 	viewport=dynamic_cast<ViewportWindow*>(ncur);
 	return curwindow=ncur;
+}
+
+/*! Update the viewport color box.
+ * If type_hint is 0, then make the color box use 1 color, either stroke or fill whichever is not null.
+ * Otherwise, assume you want a 2 color box, specify either COLOR_StrokeFill to show as a stroke on a fill,
+ * or COLOR_FGBG to show one box on another box.
+ * If type_hint is -1, then use 0 if only one of stroke or fill is not null, otherwise defaults to COLOR_StrokeFill.
+ */
+void anInterface::UpdateViewportColor(ScreenColor *stroke, ScreenColor *fill, int type_hint)
+{
+	if (type_hint < 0) {
+		if ((stroke && !fill) || (!stroke && fill)) type_hint = 0;
+		else if (stroke && fill) type_hint = COLOR_StrokeFill;
+	}
+
+	SimpleColorEventData *e;
+	if (type_hint == 0 && (fill && !stroke)) { stroke = fill; fill = nullptr; }
+	if (stroke) {
+		e = new SimpleColorEventData( 65535, stroke->red, stroke->green, stroke->blue, stroke->alpha, 0);
+		e->colormode = type_hint;
+		e->colorindex = 0;
+		app->SendMessage(e, curwindow->win_parent->object_id, "make curcolor", object_id);
+	}
+
+	if (fill) {
+		e = new SimpleColorEventData( 65535, fill->red, fill->green, fill->blue, fill->alpha, 0);
+		e->colormode = type_hint;
+		e->colorindex = 1;
+		app->SendMessage(e, curwindow->win_parent->object_id, "make curcolor", object_id);
+	}
 }
 
 /*! Will not add ch if child!=nullptr.

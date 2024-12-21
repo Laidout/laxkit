@@ -144,6 +144,8 @@ class anInterface : virtual public Laxkit::EventReceiver,
 	virtual Laxkit::UndoManager *GetUndoManager();
 	virtual Laxkit::ResourceManager *GetResourceManager();
 
+	virtual void UpdateViewportColor(Laxkit::ScreenColor *stroke, Laxkit::ScreenColor *fill, int type_hint);
+
 	virtual Laxkit::MenuInfo *ContextMenu(int x,int y,int deviceid, Laxkit::MenuInfo *menu);
 
 	virtual int Paste(const char *txt,int len, Laxkit::anObject *obj, const char *formathint);
