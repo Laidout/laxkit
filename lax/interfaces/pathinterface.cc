@@ -6118,8 +6118,7 @@ int PathInterface::UseThis(anObject *newdata,unsigned int mask)
 	if (!newdata || newdata==data) return 0;
 
 	if (dynamic_cast<LineStyle *>(newdata)) {
-		 //***
-		DBG cerr <<"LineInterface new color stuff"<<endl;
+		//DBG cerr <<"LineInterface new color stuff"<<endl;
 		LineStyle *nlinestyle=dynamic_cast<LineStyle *>(newdata);
 		if (mask & LINESTYLE_Color) {
 			if (data && data->linestyle) data->linestyle->color=nlinestyle->color;
@@ -7576,10 +7575,9 @@ Laxkit::MenuInfo *PathInterface::ContextMenu(int x,int y,int deviceid, MenuInfo 
 		}
 
 		//---- shape brushes
+		ResourceManager *rm = GetResourceManager();
 		menu->AddSep(_("Shape Brushes"));
 		if (data->brush) menu->AddItem(_("Clear shape brush"), PATHIA_ClearShapeBrush);
-		InterfaceManager *imanager = InterfaceManager::GetDefault(true);
-		ResourceManager *rm = imanager->GetResourceManager();
 		ResourceType *resources = rm->FindType("ShapeBrush");
 		if (resources && resources->NumResources()) {
 			menu->AddItem(_("Use Shape Brush"));
@@ -7663,7 +7661,7 @@ int PathInterface::Event(const Laxkit::EventData *e_data, const char *mes)
 				Resource *resource = rm->FindResourceFromRID(obj_id, "LineStyle");
 				if (resource) {
 					LineStyle *style = dynamic_cast<LineStyle*>(resource->GetObject());
-					if (style) { // user selected use shape brush
+					if (style) {
 						if (data) {
 							data->InstallLineStyle(style);
 							needtodraw = 1;
@@ -7674,7 +7672,7 @@ int PathInterface::Event(const Laxkit::EventData *e_data, const char *mes)
 				Resource *resource = rm->FindResourceFromRID(obj_id, "FillStyle");
 				if (resource) {
 					FillStyle *style = dynamic_cast<FillStyle*>(resource->GetObject());
-					if (style) { // user selected use shape brush
+					if (style) {
 						if (data) {
 							data->InstallFillStyle(style);
 							needtodraw = 1;
