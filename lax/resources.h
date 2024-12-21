@@ -174,6 +174,12 @@ class ResourceType : public Resource
 	virtual int MakeNameUnique(char *&thename);
 
 	virtual MenuInfo *AppendMenu(MenuInfo *menu, bool do_favorites, int *numadded, int id_offset, int info, anObject *current=nullptr);
+	virtual MenuInfo *AppendResourceMenu(MenuInfo *menu, const char *separator_label, const char *select_label,
+										const char *select_favorite_label,
+										int item_offset, int item_favorite_category, int item_category,
+										const char *make_resource_label, int make_resource_id,
+										const char *make_local_label, int make_local_id,
+										Resourceable *current);
 };
 
 

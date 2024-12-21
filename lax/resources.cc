@@ -626,6 +626,37 @@ MenuInfo *ResourceType::AppendMenu(MenuInfo *menu, bool do_favorites, int *numad
 	return menu;
 }
 
+MenuInfo *ResourceType::AppendResourceMenu(MenuInfo *menu, const char *separator_label,
+										   const char *select_label,
+										   const char *select_favorite_label,
+										   int item_offset, int item_favorite_category, int item_category,
+										   const char *make_resource_label, int make_resource_id,
+										   const char *make_local_label, int make_local_id,
+										   Resourceable *current
+										  )
+{
+	if (!menu) menu = new MenuInfo(name);
+
+	if (separator_label) menu->AddSep(separator_label);
+	if (NumResources()) {
+		menu->AddItem(select_label);
+		menu->SubMenu();
+		int numadded = 0;
+		if (select_favorite_label) menu->AddSep(select_favorite_label);
+		AppendMenu(menu, true, &numadded, item_offset, item_favorite_category, current);
+		if (numadded) menu->AddSep();
+		AppendMenu(menu, false, &numadded, item_offset, item_category, current);
+		menu->EndSubMenu();
+	}
+	if (!current->IsResourced()) {
+		menu->AddItem(make_resource_label, make_resource_id);
+	} else {
+		menu->AddItem(make_local_label, make_local_id);
+	}
+
+	return menu;
+}
+
 
 //----------------------------- ResourceManager -------------------------------
 
