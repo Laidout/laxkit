@@ -24,6 +24,7 @@
 #include <lax/interfaces/somedatafactory.h>
 #include <lax/interfaces/ellipseinterface.h>
 #include <lax/interfaces/somedataref.h>
+#include <lax/interfaces/interfacemanager.h>
 #include <lax/bezutils.h>
 #include <lax/language.h>
 
@@ -120,7 +121,7 @@ EllipseData::EllipseData()
 	fillstyle = nullptr;
 	wedge_type = ELLIPSE_Wedge;
 
-	//for (int i=0; i<8; i++) { inner_round[i] = outer_round[i] = 0; }
+	// for (int i=0; i<8; i++) { outer_round[i] = 1; }
 }
 
 EllipseData::~EllipseData()
@@ -135,10 +136,47 @@ bool EllipseData::UsesAngles()
 	return fmod(fabs(start-end) + .001, 2*M_PI) > .002;
 }
 
+/*! Removes old line style and replaces it with the default. */
 void EllipseData::InstallDefaultLineStyle()
 {
 	if (linestyle) linestyle->dec_count();
 	linestyle = new LineStyle();
+}
+
+/*! Incs count on style, unless it is already installed (takes ownership of newlinestyle).
+ */
+void EllipseData::InstallLineStyle(LineStyle *newlinestyle)
+{
+	if (linestyle == newlinestyle) return;
+	if (linestyle) linestyle->dec_count();
+	linestyle = newlinestyle;
+	if (newlinestyle) newlinestyle->inc_count();
+}
+
+/*! Incs count on style, unless it is already installed.
+ */
+void EllipseData::InstallFillStyle(FillStyle *newfillstyle)
+{
+	if (fillstyle==newfillstyle) return;
+	if (fillstyle) fillstyle->dec_count();
+	fillstyle=newfillstyle;
+	if (newfillstyle) newfillstyle->inc_count();
+}
+
+//! Fill with this color, or none if color==NULL.
+/*! If no fillstyle exists, a new one is created. If one does exist, its old color is overwritten. */
+int EllipseData::fill(Laxkit::ScreenColor *color)
+{
+	if (!color) {
+		if (fillstyle) fillstyle->fillstyle = LAXFILL_None;
+		return 0;
+	}
+	if (!fillstyle) fillstyle = new FillStyle();
+	fillstyle->Color(color->red,color->green,color->blue,color->alpha);
+	fillstyle->fillstyle = LAXFILL_Solid;
+	if (fillstyle->function == LAXOP_None) fillstyle->function = LAXOP_Over;
+
+	return 0;
 }
 
 SomeData *EllipseData::duplicate(SomeData *dup)
@@ -437,14 +475,23 @@ Attribute *EllipseData::dump_out_atts(Attribute *att,int what,Laxkit::DumpContex
 	att->push("y", scratch);
 
 	if (linestyle) {
-		Attribute *att2 = att->pushSubAtt("linestyle");
-		linestyle->dump_out_atts(att2, 0, context);
-	}
-	if (fillstyle) {
-		Attribute *att2 = att->pushSubAtt("fillstyle");
-		fillstyle->dump_out_atts(att2, 0, context);
+		if (linestyle->IsResourced()) {
+			att->pushStr("linestyle", -1, "resource:%s", linestyle->Id());
+		} else {
+			Attribute *att2 = att->pushSubAtt("linestyle");
+			linestyle->dump_out_atts(att2, what, context);
+		}
 	}
 
+	if (fillstyle) {
+		if (fillstyle->IsResourced()) {
+			att->pushStr("fillstyle", -1, "resource:%s", fillstyle->Id());
+		} else {
+			Attribute *att2 = att->pushSubAtt("fillstyle");
+			fillstyle->dump_out_atts(att2, what, context);
+		}
+	}
+	
 	return att;
 }
 
@@ -493,20 +540,43 @@ void EllipseData::dump_in_atts(Laxkit::Attribute *att,int flag,Laxkit::DumpConte
 				else if (!strcmp(value, "chord")) wedge_type = ELLIPSE_Chord;
 				else wedge_type = ELLIPSE_Open;
 			}
+
 		} else if (!strcmp(name,"linestyle")) {
-			// *** need to account for ref to line resource
-			LineStyle *lstyle = new LineStyle();
-			lstyle->dump_in_atts(att->attributes.e[c], flag, context);
 			if (linestyle) linestyle->dec_count();
-			linestyle = lstyle;
+
+			if (value && strstr(value,"resource:") == value) {
+				value += 9;
+				while (isspace(*value)) value ++;
+				InterfaceManager *imanager = InterfaceManager::GetDefault(true);
+				ResourceManager *rm = imanager->GetResourceManager();
+				LineStyle *obj = dynamic_cast<LineStyle*>(rm->FindResource(value,"LineStyle"));
+				if (obj) {
+					linestyle = obj;
+					linestyle->inc_count();
+				}
+			} else {
+				linestyle = new LineStyle();
+				linestyle->dump_in_atts(att->attributes.e[c],flag,context);
+			}
 
 		} else if (!strcmp(name,"fillstyle")) {
-			// *** need to account for ref to line resource
-			FillStyle *style = new FillStyle();
-			style->dump_in_atts(att->attributes.e[c], flag, context);
 			if (fillstyle) fillstyle->dec_count();
-			fillstyle = style;
 
+			if (value && strstr(value,"resource:") == value) {
+				value += 9;
+				while (isspace(*value)) value ++;
+				InterfaceManager *imanager = InterfaceManager::GetDefault(true);
+				ResourceManager *rm = imanager->GetResourceManager();
+				FillStyle *obj = dynamic_cast<FillStyle*>(rm->FindResource(value,"FillStyle"));
+				if (obj) {
+					fillstyle = obj;
+					fillstyle->inc_count();
+				}
+			} else {
+				fillstyle = new FillStyle();
+				fillstyle->dump_in_atts(att->attributes.e[c],flag,context);
+			}
+		
 		// } else if (!strcmp(name,"flags")) {
 			// ***
 		}
@@ -562,7 +632,7 @@ EllipseInterface::EllipseInterface(anInterface *nowner, int nid,Displayer *ndp)
 	allow_foci = true;
 	allow_angles = true;
 	allow_inner = true;
-	show_foci = true;
+	show_foci = false;
 	color_stroke = true;
 
 	mode = ELLP_None;
@@ -603,24 +673,56 @@ anInterface *EllipseInterface::duplicate(anInterface *dup)
 	return anInterface::duplicate(dup);
 }
 
+/*! Update the viewport color box */
+void EllipseInterface::UpdateViewportColor()
+{
+	if (!data) return;
+
+	ScreenColor *stroke = nullptr;
+	ScreenColor *fill = nullptr;
+
+	if (!data->linestyle) {
+		LineStyle *style = dynamic_cast<LineStyle*>(linestyle.duplicate(nullptr));
+		data->InstallLineStyle(style);
+	}
+	if (!data->fillstyle) {
+		// ScreenColor col(1.,1.,1.,1.);
+		data->fill(&data->linestyle->color);
+		data->fillstyle->function = LAXOP_None;
+	}
+	stroke = &data->linestyle->color;
+	fill = &data->fillstyle->color;
+	
+	anInterface::UpdateViewportColor(stroke, fill, COLOR_StrokeFill);
+}
+
 //! Accepts LineStyle. For LineStyle, just copies over width and color.
 int EllipseInterface::UseThis(anObject *nobj,unsigned int mask)
 {
 	if (!nobj) return 0;
 
 	if (dynamic_cast<LineStyle *>(nobj)) { 
-		DBG cerr <<"Ellipse new color stuff"<<endl;
+		//DBG cerr <<"Ellipse new color stuff"<<endl;
 
 		LineStyle *nlinestyle = dynamic_cast<LineStyle *>(nobj);
-		if (mask & (LINESTYLE_Color | LINESTYLE_Width)) {
-			if (mask & LINESTYLE_Color) { if (data) data->linestyle->color = nlinestyle->color; else linestyle.color = nlinestyle->color; }
-			if (mask & LINESTYLE_Width)  { if (data) data->linestyle->width = nlinestyle->width; else linestyle.width = nlinestyle->width; }
-			needtodraw=1;
-		} else {
-			if (!data) return 1;
-			if (!data->fillstyle) data->fillstyle = new FillStyle();
-			data->fillstyle->color = nlinestyle->color;
+		if (mask & LINESTYLE_Color) {
+			if (data) {
+				if (!data->linestyle) {
+					data->InstallDefaultLineStyle();
+					(*data->linestyle) = linestyle;
+				}
+				data->linestyle->color = nlinestyle->color;
+
+			} else linestyle.color = nlinestyle->color;
 		}
+		if (mask & LINESTYLE_Color2) {
+			if (data) data->fill(&nlinestyle->color);
+		}
+		if (mask & LINESTYLE_Width) {
+			if (data && data->linestyle) data->linestyle->width = nlinestyle->width;
+			else linestyle.width = nlinestyle->width;
+		}
+		
 		return 1;
 	}
 
@@ -653,6 +755,7 @@ int EllipseInterface::UseThisObject(ObjectContext *oc, SomeData *other_object)
 	if (data != ndata) {
 		data = ndata;
 		data->inc_count();
+		UpdateViewportColor();
 	}
 
 	return 1;
@@ -1224,6 +1327,23 @@ Laxkit::MenuInfo *EllipseInterface::ContextMenu(int x,int y,int deviceid, Laxkit
 		menu->AddToggleItem(_("Chord"), ELLP_UseChord, 0, data->wedge_type == EllipseData::ELLIPSE_Chord);
 		menu->AddToggleItem(_("Open gap"), ELLP_UseOpen, 0, data->wedge_type == EllipseData::ELLIPSE_Open);
 	}
+
+	ResourceManager *rm = GetResourceManager();
+
+	ResourceType *resources = rm->FindType("LineStyle");
+	resources->AppendResourceMenu(menu, _("Line Styles"), _("Use line style"), nullptr,
+					ELLP_MAX, ELLP_UseLineStyle, ELLP_UseLineStyle,
+					_("Make line style a resource"), ELLP_MakeLineResource,
+					_("Make line style unique"), ELLP_MakeLineLocal,
+					data->linestyle);
+
+	resources = rm->FindType("FillStyle");
+	resources->AppendResourceMenu(menu, _("Fill Styles"), _("Use fill style"), nullptr,
+					ELLP_MAX, ELLP_UseFillStyle, ELLP_UseFillStyle,
+					_("Make fill style a resource"), ELLP_MakeFillResource,
+					_("Make fill style unique"), ELLP_MakeFillLocal,
+					data->fillstyle);
+
 	return menu;
 }
 
@@ -1283,16 +1403,36 @@ int EllipseInterface::Event(const Laxkit::EventData *e,const char *mes)
 		const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(e);
 		int i = s->info2; //id of menu item
 
-		if (   i == ELLP_FlipGap
-			|| i == ELLP_CloseGap
-			|| i == ELLP_UseWedge
-			|| i == ELLP_UseChord 
-			|| i == ELLP_UseOpen
-			|| i == ELLP_ToggleFoci
-			|| i == ELLP_ResetAlignment
-		   ) {
+		if (i > ELLP_None && i < ELLP_MAX) {
 			PerformAction(i);
-			return 0;
+		} else if (i > ELLP_MAX) {
+			//is a resource, shape brush?? line profile
+			unsigned int obj_id = i - ELLP_MAX;
+			ResourceManager *rm = GetResourceManager();
+
+			if (s->info4 == ELLP_UseLineStyle) {
+				Resource *resource = rm->FindResourceFromRID(obj_id, "LineStyle");
+				if (resource) {
+					LineStyle *style = dynamic_cast<LineStyle*>(resource->GetObject());
+					if (style) {
+						if (data) {
+							data->InstallLineStyle(style);
+							needtodraw = 1;
+						}
+					}
+				}
+			} else if (s->info4 == ELLP_UseFillStyle) {
+				Resource *resource = rm->FindResourceFromRID(obj_id, "FillStyle");
+				if (resource) {
+					FillStyle *style = dynamic_cast<FillStyle*>(resource->GetObject());
+					if (style) {
+						if (data) {
+							data->InstallFillStyle(style);
+							needtodraw = 1;
+						}
+					}
+				}
+			}
 		}
 
 	} else return 1;
@@ -1726,6 +1866,48 @@ int EllipseInterface::PerformAction(int action)
 	} else if (action == ELLP_ToggleColorDest) {
 		color_stroke = !color_stroke;
 		PostMessage(color_stroke ? _("Send colors to stroke") : _("Send colors to fill"));
+		return 0;
+
+	} else if (action == ELLP_MakeLineResource) {
+		if (!data) return 0;
+		if (data->linestyle->IsResourced()) {
+			PostMessage(_("Line style is already a resource"));
+		} else {
+			InterfaceManager *imanager = InterfaceManager::GetDefault(true);
+			ResourceManager *rm = imanager->GetResourceManager();
+			rm->AddResource("LineStyle", data->linestyle, nullptr, data->linestyle->Id(), data->linestyle->Id(),
+							nullptr, nullptr, nullptr, false);
+			PostMessage(_("Resourced."));
+		}
+		return 0;
+
+	} else if (action == ELLP_MakeLineLocal) {
+		if (!data) return 0;
+		LineStyle *ls = dynamic_cast<LineStyle*>(data->linestyle->duplicate(nullptr));
+		data->InstallLineStyle(ls);
+		ls->dec_count();
+		PostMessage(_("Done."));
+		return 0;
+
+	} else if (action == ELLP_MakeFillResource) {
+		if (!data) return 0;
+		if (data->fillstyle->IsResourced()) {
+			PostMessage(_("Fill style is already a resource"));
+		} else {
+			InterfaceManager *imanager = InterfaceManager::GetDefault(true);
+			ResourceManager *rm = imanager->GetResourceManager();
+			rm->AddResource("FillStyle", data->fillstyle, nullptr, data->fillstyle->Id(), data->fillstyle->Id(),
+							nullptr, nullptr, nullptr, false);
+			PostMessage(_("Resourced."));
+		}
+		return 0;
+
+	} else if (action == ELLP_MakeFillLocal) {
+		if (!data) return 0;
+		FillStyle *s = dynamic_cast<FillStyle*>(data->fillstyle->duplicate(nullptr));
+		data->InstallFillStyle(s);
+		s->dec_count();
+		PostMessage(_("Done."));
 		return 0;
 	}
 

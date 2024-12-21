@@ -59,6 +59,19 @@ enum EllipsePoints {
 	ELLP_InnerRadius,
 	ELLP_WildPoint, //point that changes c but preserves focal points
 	ELLP_DragRect,
+
+	ELLP_Squircle,
+	ELLP_ToggleRectControls,
+	ELLP_TopLeftRectIn,
+	ELLP_TopLeftRectOut,
+
+	ELLP_UseLineStyle,
+	ELLP_MakeLineResource,
+	ELLP_MakeLineLocal,
+	ELLP_UseFillStyle,
+	ELLP_MakeFillResource,
+	ELLP_MakeFillLocal,
+
 	ELLP_MAX
 };
 
@@ -82,7 +95,8 @@ class EllipseData : virtual public SomeData
 	double start,end;
 	int wedge_type;
 	double inner_r; //actual r = inner_r * (default), for rings
-	//double inner_round[8], outer_round[8]; //for rounded corners
+	//double outer_round[8]; //for rounded corners, clockwise, top left in,out, top right in,out, etc.
+	//double inner_round[8]
 	double a,b; // x and y half height
 	Laxkit::flatpoint center,x,y; //center, x and y axis (in addition to this->m())
 
@@ -95,6 +109,10 @@ class EllipseData : virtual public SomeData
 	virtual const char *whattype() { return "EllipseData"; }
 
 	virtual void InstallDefaultLineStyle();
+	virtual void InstallLineStyle(LineStyle *newlinestyle);
+	virtual void InstallFillStyle(FillStyle *newfillstyle);
+	virtual int  fill(Laxkit::ScreenColor *color);
+
 	virtual void SetFoci(Laxkit::flatpoint f1,Laxkit::flatpoint f2,double c=-1);
 	virtual void GetFoci(Laxkit::flatpoint *f1,Laxkit::flatpoint *f2,double *c);
 	virtual void FindBBox();
@@ -104,7 +122,7 @@ class EllipseData : virtual public SomeData
 	virtual bool IsCircle() { return a == b; }
 	virtual bool UsesAngles();
 	virtual void MakeAligned();
-
+	
 	virtual int GetPath(int which, Laxkit::flatpoint *pts_ret);
 	virtual PathsData *ToPath();
 
@@ -203,6 +221,7 @@ class EllipseInterface : public anInterface
 	virtual int UseThis(Laxkit::anObject *nobj,unsigned int mask=0);
 	virtual int UseThisObject(ObjectContext *oc, SomeData *other_object);
 	virtual int UseThisObject(ObjectContext *oc) override;
+	virtual void UpdateViewportColor();
 	virtual Laxkit::flatpoint getpoint(EllipsePoints c, bool inparent);
 
 	virtual bool ShowFoci(bool yes);
