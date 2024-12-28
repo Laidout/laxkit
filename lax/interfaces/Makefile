@@ -58,6 +58,7 @@ objs= \
 	perspectiveinterface.o \
 	pressuremapinterface.o \
 	rectinterface.o \
+	roundedrectinterface.o \
 	shapebrush.o \
 	showkeysinterface.o \
 	sliderinterface.o \

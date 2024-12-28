@@ -240,6 +240,7 @@ otherobjs= \
 	interfaces/perspectiveinterface.o \
 	interfaces/pressuremapinterface.o \
 	interfaces/rectinterface.o \
+	interfaces/roundedrectinterface.o \
 	interfaces/shapebrush.o \
 	interfaces/showkeysinterface.o \
 	interfaces/sliderinterface.o \
