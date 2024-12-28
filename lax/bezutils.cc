@@ -1864,5 +1864,117 @@ int reduce_polyline(flatpoint *result, flatpoint *points, int n, double epsilon)
     return ii;
 }
 
+//------------------------------- Bezier based creation funcs ----------------------------
+
+/*! Create a rounded rectangle.
+ *  Returns number of vertices in the resulting path which were appended to pts_ret.
+ * 
+ * If numsizes is 1, then sizes[0].x is horizontal radius, and .y is vertical radius for all points.
+ * If numsizes is 4, then sizes is for lower left, lower right, upper right, upper left.
+ * If numsizes is 2 or 3, then it behaves as if it was 1.
+ * If numsizes is > 4, only the first 4 values are used.
+ *
+ * There will be a total of between 12 and 24 points, depending
+ * on if the radius at a point is 0 or not.
+ *
+ * Returned list starts with a vertex and usually ends with control point that attaches to first point.
+ */
+int MakeRoundedRect(double x, double y, double w, double h, flatpoint *sizes, int numsizes, NumStack<flatpoint> &pts_ret)
+{
+	int old_n = pts_ret.n;
+
+	int i[4];
+	i[0] = i[1] = i[2] = i[3] = 0;
+	if (numsizes >= 4) {
+		i[1]=1;
+		i[2]=2;
+		i[3]=3;
+	}
+
+	flatpoint op[4]; // base rectangle
+	op[0].set(x,y);
+	op[1].set(x+w,y);
+	op[2].set(x+w,y+h);
+	op[3].set(x,y+h);
+
+	double ins[8]; //in out in out in out ...
+	for (int c=0; c<8; c++) {
+		if (c%2 == 0) ins[c] = sizes[i[c/2]].y;
+		else ins[c] = sizes[i[c/2]].x;
+	}
+
+	double unit_r = bez_arc_handle_length(1, M_PI/2);
+
+	flatpoint vprev, vnext, inp, outp, v;
+	flatpoint last;
+	flatpoint p;
+	bool skipv;
+
+	for (int c=0; c<4; c++) {
+		vprev = op[(c+3)%4] - op[c];
+		vnext = op[(c+1)%4] - op[c];
+		vprev.normalize();
+		vnext.normalize();
+		inp  = op[c] + vprev * ins[2*c];
+		outp = op[c] + vnext * ins[2*c+1];
+		skipv = false;
+
+		if (c>0) { //connect to prev vertex
+			v = (last - inp)/3;
+			if (v.norm() > 1e-6) {
+				// there is distance between last point and current in point, so need to add segment
+				p = inp + 2*v;
+				p.info = LINE_Bez;
+				pts_ret.push(p);
+
+				p = inp + v;
+				p.info = LINE_Bez;
+				pts_ret.push(p);
+
+			} else skipv = true; // no need to add extra vertex
+		}
+
+		if (!skipv) { // add final flat line segment point from last to inp, or begin path if no last
+			p = inp;
+			p.info = 0;
+			last = p;
+			pts_ret.push(p);
+		}
+
+		if (ins[c*2] != 0 || ins[c*2+1] != 0) {
+			//curved corner, p-c-c-p
+			v = op[c] - inp;
+			p = inp + unit_r * v;
+			p.info = LINE_Bez;
+			pts_ret.push(p);
+			
+			v = op[c] - outp;
+			p = outp + unit_r * v;
+			p.info = LINE_Bez;
+			pts_ret.push(p);
+			
+			p = outp;
+			p.info = 0;
+			last = p;
+			pts_ret.push(p);
+
+		} // else  simple corner, 1 vertex only, already done
+	}
+
+	// connect final (straight) segment
+	v = (pts_ret[old_n] - last)/3;
+	p = last + v;
+	p.info = LINE_Bez;
+	pts_ret.push(p);
+	
+	p = last + 2*v;
+	p.info = LINE_Bez;
+	pts_ret.push(p);
+
+	pts_ret[pts_ret.n-1].info |= LINE_Closed;
+	
+	return pts_ret.n - old_n;
+}
+
 
 } // namespace Laxkit

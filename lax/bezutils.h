@@ -24,6 +24,8 @@
 
 #include <lax/vectors.h>
 #include <lax/doublebbox.h>
+#include <lax/lists.h>
+
 
 namespace Laxkit {
 	
@@ -89,6 +91,9 @@ double end_curvature(flatpoint p1,flatpoint c1,flatpoint c2,flatpoint p2);
 flatpoint *bez_from_points(flatpoint *result, flatpoint *points, int numpoints);
 flatpoint *bez_from_points(flatpoint *result, flatpoint *points, int totalpoints, int start, int numpoints);
 int reduce_polyline(flatpoint *result, flatpoint *points, int n, double epsilon);
+
+// Bezier path creators
+int MakeRoundedRect(double x, double y, double w, double h, flatpoint *sizes, int numsizes, NumStack<flatpoint> &pts_ret);
 
 
 } // namespace Laxkit
