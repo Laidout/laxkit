@@ -590,21 +590,6 @@ void EllipseData::dump_in_atts(Laxkit::Attribute *att,int flag,Laxkit::DumpConte
 /*! \class EllipseInterface
  * \ingroup interfaces
  * \brief Interface for EllipseData objects.
- *  
- * <pre>
- *  old:
- *   TO DO:
- *  
- *   draw only whats necessary
- *   ellipses start==end==0 means whole
- *   start/end angles
- *   move focus don't work circle kind of flaky/ out of phase with rect
- *  
- *   from inkscape/sodipodi:
- *    move start/end inside makes chord, outside makes pie
- * </pre>
- * 
- * \todo *** must be able to fill also?
  */
 
 //! Constructor.
