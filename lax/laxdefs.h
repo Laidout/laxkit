@@ -35,6 +35,9 @@ namespace Laxkit {
 #define MAX( a, b )  ((a) > (b) ? (a) : (b))
 #endif
 
+#ifndef SGN
+#define SGN(x) ((x) > 0 ? 1 : ((x) < 0 ? -1 : 0))
+#endif
 
 //------------------------------ Laxkit capabilities ----------------------------------
  //these can be queried in anXApp::has()
