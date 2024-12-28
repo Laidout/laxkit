@@ -28,14 +28,10 @@
 #include <lax/laxutils.h>
 #include <lax/language.h>
 
+//#include <lax/debug.h>
 
 
 using namespace Laxkit;
-
-
-#include <iostream>
-using namespace std;
-#define DBG 
 
 
 namespace LaxInterfaces {
@@ -78,10 +74,13 @@ SomeData *BoilerPlateData::duplicate(SomeData *dup)
  */
 
 
+// static object so that it is easily shared between all tool instances
+Laxkit::SingletonKeeper BoilerPlateInterface::settingsObject;
+
 BoilerPlateInterface::BoilerPlateInterface(anInterface *nowner, int nid, Displayer *ndp)
  : anInterface(nowner,nid,ndp)
 { ***
-	interface_flags=0;
+	interface_flags = 0;
 
 	showdecs   = 1;
 	needtodraw = 1;
@@ -331,7 +330,7 @@ int BoilerPlateInterface::scan(int x, int y, unsigned int state)
 int BoilerPlateInterface::LBDown(int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d) 
 { ***
 	//int device=d->subid; //normal id is the core mouse, not the controlling sub device
-	//DBG cerr <<"device: "<<d->id<<"  subdevice: "<<d->subid<<endl;
+	//DBG std::cerr <<"device: "<<d->id<<"  subdevice: "<<d->subid<<std::endl;
 	//LaxDevice *dv=app->devicemanager->findDevice(device);
 	//device_name=dv->name;
 
