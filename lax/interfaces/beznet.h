@@ -42,8 +42,9 @@ class HalfEdgeVertex
 {
 public:
 	Laxkit::flatpoint p;
+	HalfEdge *halfedge = nullptr; // allocation of edges are assumed to be managed in BezNetData::edges.
 	Laxkit::anObject *extra_info = nullptr;
-	HalfEdge *halfedge = nullptr; // memory of edges are assumed to be managed in BezNetData::edges.
+
 	HalfEdgeVertex(const Laxkit::flatpoint &pp, HalfEdge *h) { p = pp; halfedge = h; }
 	~HalfEdgeVertex() { if (extra_info) extra_info->dec_count(); }
 
@@ -84,12 +85,16 @@ public:
 class BezFace
 {
 public:
+	Laxkit::NumStack<Laxkit::flatpoint> cache_outline;
+	void BuildCacheOutline();
+
 	HalfEdge *halfedge = nullptr; // link to initial edge for face definition for which this BezFace is the target face for halfedge.
 
 	int tick = 0;
 	int info = 0;
 	Laxkit::anObject *extra_info = nullptr;
 
+	
 	BezFace() {}
 	virtual ~BezFace()
 	{
@@ -121,7 +126,7 @@ public:
 	// actual allocation for vertices, edges and faces in the net. Internal links in these things, such as the next edge
 	// in a face, all point to something allocated here.
 	Laxkit::PtrStack<HalfEdgeVertex> vertices;
-	Laxkit::PtrStack<HalfEdge> edges;
+	Laxkit::PtrStack<HalfEdge> edges; // ONLY half the edge. twins are allocated by main halfedge and not directly accessed from edges.
 	Laxkit::PtrStack<BezFace> faces;
 
 	BezNetData();
@@ -131,6 +136,7 @@ public:
 	virtual SomeData *duplicate(SomeData *dup);
 	virtual void dump_in_atts(Laxkit::Attribute *att, int flag, Laxkit::DumpContext *context);
 	virtual Laxkit::Attribute *dump_out_atts(Laxkit::Attribute *att,int what,Laxkit::DumpContext *savecontext);
+	virtual void dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *context);
 
 	int AddPath(PathsData *pdata, int face_mask);
 
@@ -146,6 +152,7 @@ public:
 
 	HalfEdgeVertex *FindClosestVertex(double threshhold); //use 0 to reqiure exact match
 	HalfEdge *FindEdge(HalfEdgeVertex *v1, HalfEdgeVertex *v2, int *direction_ret);
+	int FindEdgeIndex(HalfEdge *edge, bool *is_twin);
 
 
 	void RemoveDanglingEdges(BezFace *face);

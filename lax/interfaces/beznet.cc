@@ -218,6 +218,17 @@ HalfEdge *HalfEdge::PreviousAroundVertex(HalfEdge **twin_ret)
  * Networks of these comprise a BezNetData.
  */
 
+void BezFace::BuildCacheOutline()
+{
+	cache_outline.flush();
+
+	if (!halfedge) return;
+	HalfEdge *e = halfedge;
+	do {
+		cache_outline.push(e->vertex->p);
+		e = e->next;
+	} while (e && e != halfedge);
+}
 
 /*! Set the face of each halfedge to new_face (which might be null).
  * Will set halfedge to nullptr.
@@ -493,7 +504,7 @@ int BezNetData::DefinePolygon(int num_points, ...)
 
 
 /*! Search for an existing edge that has endpoints v1 and v2. If the edge runs
- * from v1 to v2o then dir = 1, else dir = -1.
+ * from v1 to v2 then dir = 1, else dir = -1.
  * 
  * If no such edge exists, return nullptr, and dir is unchanged.
  */
@@ -518,6 +529,40 @@ HalfEdge *BezNetData::FindEdge(HalfEdgeVertex *v1, HalfEdgeVertex *v2, int *dir)
 	return nullptr;
 }
 
+/*! Return the index of edge in edges.
+ * If is_twin == nullptr, then does NOT check twins.
+ * If is_twin != nullptr, then if edge in twin of an edge in edges, then
+ * return that index, with is_twin = true. Else is_twin is set to false.
+ */
+int BezNetData::FindEdgeIndex(HalfEdge *edge, bool *is_twin)
+{
+	if (is_twin) *is_twin = false;
+	for (int c = 0; c < edges.n; c++) {
+		if (edge == edges.e[c]) return c;
+		if (is_twin) {
+			if (edge == edges.e[c]->twin) {
+				*is_twin = true;
+				return c;
+			}
+		}
+	}
+	return -1;
+}
+
+void DebugFaces(BezNetData *data)
+{
+	for (int c=0; c < data->faces.n; c++) {
+		DBGL("face "<<c);
+		HalfEdge *e = data->faces.e[c]->halfedge;
+		bool is_twin;
+		do {
+			int index = data->FindEdgeIndex(e, &is_twin);
+			DBGL("  "<<index<<", twin: "<<(is_twin ? "yes":  "no"));
+			e = e->next;
+		} while (e && e != data->faces.e[c]->halfedge);
+
+	}
+}
 
 /*! Define a new region based on 3 or more already existing vertices.
  */
@@ -550,20 +595,20 @@ int BezNetData::DefinePolygon(Laxkit::NumStack<int> &points)
     	// - half: presumably we will add face to the empty half
     	// - full: bad! trying to add to occupied edge!
     	if (!edge || (edge->face == nullptr && edge->twin->face == nullptr)) {
-    		//we had either empty edge or null edge
+    		//we had either completely empty edge or null edge
     		if (!edge) {
     			edge = new HalfEdge();
     			edge->twin = new HalfEdge();
     			edge->twin->twin = edge;
     			edges.push(edge);
-    			edges.push(edge->twin);
+    			//edges.push(edge->twin);
     		}
 
     		//now we have a non-null, empty edge, need to define things on it
     		edge->face = face;
-    		edge->vertex = v1;
+    		if (edge->vertex == nullptr) edge->vertex = v1;
     		if (v1->halfedge == nullptr) v1->halfedge = edge;
-    		edge->twin->vertex = v2;
+    		if (edge->twin->vertex == nullptr) edge->twin->vertex = v2;
     		if (edge->twin->vertex->halfedge == nullptr) edge->twin->vertex->halfedge = edge->twin;
 
     		if (previous) {
@@ -578,9 +623,28 @@ int BezNetData::DefinePolygon(Laxkit::NumStack<int> &points)
     		previous = edge;
     		if (c == 0) first = edge;
 
+    	} else if (edge->face == nullptr && edge->twin->face != nullptr)  {
+    		//assume we are filling in the edge's face.. ***should probably sanity check way more in here
+    		if (edge->next != nullptr) {
+    			DBGE("AAAA!!! edge has no face, but does have a next!")
+    		}
+    		edge->face   = face;
+    		if (edge->vertex == nullptr) edge->vertex = v1;
+
+			edge->prev   = previous;
+			if (previous) previous->next = edge;
+
+    		if (c == points.n-1) {
+    			edge->next = first;
+    			first->prev = edge;
+    		}
+
+    		previous = edge;
+			if (c == 0) first = edge;
+
     	} else if (edge->face != nullptr && edge->twin->face == nullptr)  {
     		DBGE("Ahhh!!! trying to add a face to an occupied edge, no!!!!")
-    		//*** clean up how!?!
+    		//*** clean up how!?! tick on all new stuff, and remove all ticked?
     		delete face;
     		return 1;
     		// //assume we are filling in the twin face.. ***should probably sanity check way more in here
@@ -598,22 +662,6 @@ int BezNetData::DefinePolygon(Laxkit::NumStack<int> &points)
     		// previous = edge->twin;
     		// if (c == 0) first = edge->twin;
 
-    	} else if (edge->face == nullptr && edge->twin->face != nullptr)  {
-    		//assume we are filling in the edge's face.. ***should probably sanity check way more in here
-    		edge->face   = face;
-    		if (edge->vertex == nullptr) edge->vertex = v1;
-
-			edge->prev   = previous;
-			if (previous) previous->next = edge;
-
-    		if (c == points.n-1) {
-    			edge->twin->next = first;
-    			first->prev = edge->twin;
-    		}
-
-    		previous = edge;
-			if (c == 0) first = edge;
-
     	} else if (edge->face != nullptr && edge->twin->face != nullptr)  {
     		DBGE("Trying to add to full edge, ahhh!");
     		//*** clean up how!?!
@@ -624,7 +672,10 @@ int BezNetData::DefinePolygon(Laxkit::NumStack<int> &points)
     }
 
     face->halfedge = first;
+    face->BuildCacheOutline();
 	faces.push(face);
+
+	DebugFaces(this);
     return 0;
 }
 
@@ -696,7 +747,14 @@ PathsData *BezNetData::ResolveRegion(int face_a, PathOp op, int face_b, PathsDat
 
 void BezNetData::dump_in_atts(Laxkit::Attribute *att, int flag, Laxkit::DumpContext *context)
 {
+	DBGE("IMPLEMENT ME!!!");
+}
 
+void BezNetData::dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *context)
+{
+	Attribute att;
+	BezNetData::dump_out_atts(&att, what, context);
+	att.dump_out(f, indent);
 }
 
 Laxkit::Attribute *BezNetData::dump_out_atts(Laxkit::Attribute *att,int what,Laxkit::DumpContext *savecontext)
@@ -714,15 +772,20 @@ Laxkit::Attribute *BezNetData::dump_out_atts(Laxkit::Attribute *att,int what,Lax
 			str2.Sprintf("%.10g, %.10g\n", vertices.e[c]->p.x, vertices.e[c]->p.y);
 			str += str2;
 		}
-		att->push("vertices", str.c_str());
+		att->push("vertices", str.c_str()); // *** vertices have 0 or 1 halfedge attached, plus extra_info
 	}
 
 	if (edges.n) {
-		// ***
+		// *** edge
+		//       ahead/behind
+		//       face vertex
+		//       twin:face+vertex
+		//       bezier path
 	}
 
-	if (faces.n) {
-		// ***
+	for (int c = 0; c < faces.n; c++) {
+		// *** edge, info, extra_info
+		// BezFace *face = faces.e[c];
 	}
 
 	return att;

@@ -27,17 +27,24 @@
 #include <lax/laxutils.h>
 #include <lax/language.h>
 
+#include <lax/debug.h>
+using namespace std;
 
 using namespace Laxkit;
-
-
-#include <lax/debug.h>
 
 
 namespace LaxInterfaces {
 
 
 //--------------------------- BezNetInterface -------------------------------------
+
+BezNetToolSettings::BezNetToolSettings()
+{
+	max_arrow_length = .2;
+	default_vertex_color.rgbf(1.0,0.,0.);
+	default_edge_color.rgbf(0.,0.,1.);
+	default_face_color.rgbf(0.0, 1.0, 0.0, .5); //transparentish faces
+}
 
 BezNetToolSettings::~BezNetToolSettings()
 {
@@ -283,11 +290,57 @@ int BezNetInterface::Refresh()
 
 	dp->LineAttributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
 	dp->LineWidthScreen(ScreenLine());
+	double gap = ScreenLine() * 5 / dp->Getmag();
+
+	dp->NewFG(settings->default_face_color);
+	dp->fontsize(.1);
+	// draw faces
+	char ch[12];
+	for (int c=0; c<data->faces.n; c++) {
+		BezFace *face = data->faces.e[c];
+		if (!face->halfedge) continue;
+
+		HalfEdge *e = face->halfedge;
+		flatpoint p;
+		int n = 0;
+		do {
+			p += e->vertex->p;
+			n++;
+			e = e->next;
+		} while (e && e != face->halfedge);
+		p /= n;
+		dp->drawpoint(p, 5*ScreenLine(), 1);
+		//p = dp->realtoscreen(p);
+
+		dp->NewFG(0.,0.,0.);
+		sprintf(ch, "%d", c);
+		DBGL("face "<<c<<" at "<<p.x<<','<<p.y);
+		dp->textout(p.x,p.y,ch,strlen(ch),LAX_CENTER);
+		//dp->drawnum(p.x,p.y, c);
+
+		dp->NewFG(settings->default_face_color);
+		if (hover_face == c) {
+			DBGL("  face point count: "<<n<<"  cache points: "<<face->cache_outline.n);
+			dp->drawlines(face->cache_outline.e, face->cache_outline.n, 1, 1);
+
+			flatpoint p;
+			dp->LineWidthScreen(4*ScreenLine());
+			dp->NewFG(1.0,0.,1.);
+			HalfEdge *e = face->halfedge;
+			do {
+				DrawEdgeArrow(e, 1, gap);
+				e = e->next;
+			} while (e && e != face->halfedge);
+
+			dp->NewFG(settings->default_face_color);
+			dp->LineWidthScreen(ScreenLine());
+		}
+	}
 
 	dp->NewFG(settings->default_edge_color);
 	flatpoint p1, p2;
-	double gap = ScreenLine() * 5 / dp->Getmag();
-
+	// double l;
+	
 	// draw edges
 	for (int c=0; c<data->edges.n; c++) {
 		if (data->edges.e[c]->path) {
@@ -303,33 +356,17 @@ int BezNetInterface::Refresh()
 			dp->drawline(p1, p2);
 			flatpoint mid = (p1 + p2)/2;
 			flatpoint v = (p2 - p1)/2;
+			v.setLength(MIN(v.norm(), settings->max_arrow_length));
+			// double l = v.norm();
 			if (edge->face      ) dp->drawarrow(mid, -v,  gap, 1, 2, 1, true);
 			if (edge->twin->face) dp->drawarrow(mid, v/2, gap, 1, 2, 1, true);
 		}
 	}
 
-	// draw faces
-	for (int c=0; c<data->faces.n; c++) {
-		BezFace *face = data->faces.e[c];
-		if (!face->halfedge) continue;
-
-		HalfEdge *e = face->halfedge;
-		flatpoint p;
-		int n = 0;
-		do {
-			p += e->vertex->p;
-			n++;
-			e = e->next;
-		} while (e && e != face->halfedge);
-		p /= n;
-		p = dp->realtoscreen(p);
-		dp->drawnum(p.x,p.y, c);
-	}
-
 	// draw points
 	dp->NewFG(settings->default_vertex_color);
 	for (int c=0; c<data->vertices.n; c++) {
-		dp->drawpoint(data->vertices.e[c]->p, 5*ScreenLine(), 1);
+		dp->drawpoint(data->vertices.e[c]->p, (hover == c && hover_type == BEZNET_Vertex ? 2 : 1)*5*ScreenLine(), 1);
 	}
 
 
@@ -340,6 +377,19 @@ int BezNetInterface::Refresh()
 	return 0;
 }
 
+/*! If which&1, draw main edge arrow, which&2 draw twin edge arrow. */
+void BezNetInterface::DrawEdgeArrow(HalfEdge *edge, int which, double gap)
+{
+	flatvector p1 = edge->vertex->p;
+	flatvector p2 = edge->twin->vertex->p;
+
+	// dp->drawline(p1, p2);
+	flatpoint mid = (p1 + p2)/2;
+	flatpoint v = (p2 - p1)/2;
+	v.setLength(MAX(v.norm(), settings->max_arrow_length));
+	if ((which&1) && edge->face      ) dp->drawarrow(mid, -v,  gap, 1, 2, 1, true);
+	if ((which&2) && edge->twin->face) dp->drawarrow(mid, v/2, gap, 1, 2, 1, true);
+}
 
 void BezNetInterface::deletedata()
 {
@@ -355,7 +405,7 @@ BezNetData *BezNetInterface::newData()
 		obj = new BezNetData();
 
 		VoronoiData vdata;
-		vdata.CreateRandomPoints(10, 0, 0,2, 0,2);
+		vdata.CreateRandomPoints(5, 1, 0,5, 0,5);
 		
 		// vdata.AddPoint(flatpoint(2,2));
 		// vdata.AddPoint(flatpoint(3,2));
@@ -365,7 +415,7 @@ BezNetData *BezNetInterface::newData()
 		
 		vdata.Rebuild();
 		obj = BezNetData::FromVoronoi(&vdata);
-		//obj = BezNetData::FromDelaunay(&vdata);
+		// obj = BezNetData::FromDelaunay(&vdata);
 	}
 	return obj;	
 }
@@ -408,6 +458,22 @@ int BezNetInterface::OtherObjectCheck(int x,int y,unsigned int state)
 }
 
 
+int BezNetInterface::scanFaces(double x, double y, unsigned int state)
+{
+	if (!data) return -1;
+
+	flatpoint p = screentoreal(x,y);
+	p = transform_point_inverse(data->m(), p);
+
+	for (int c=0; c<data->faces.n; c++) {
+		if (point_is_in(p, data->faces.e[c]->cache_outline.e, data->faces.e[c]->cache_outline.n)) {
+			return c;
+		}
+	}
+
+	return -1;
+}
+
 int BezNetInterface::scan(double x, double y, unsigned int state, int *type_ret)
 {
 	*type_ret = BEZNET_None;
@@ -415,6 +481,8 @@ int BezNetInterface::scan(double x, double y, unsigned int state, int *type_ret)
 	if (!data) return BEZNET_None;
 
 	flatpoint p = screentoreal(x,y);
+	p = transform_point_inverse(data->m(), p);
+
 	double closest_dist = 100000000.0;
 	int closest_index = -1;
 
@@ -425,6 +493,8 @@ int BezNetInterface::scan(double x, double y, unsigned int state, int *type_ret)
 			closest_dist = dist;
 		}
 	}
+
+	// DBGM("p: "<<p.x<<","<<p.y<<"  closest_dist: "<<closest_dist<<"  index: "<< closest_index);
 
 	if (closest_index >= 0) {
 		*type_ret = BEZNET_Vertex;
@@ -437,6 +507,7 @@ int BezNetInterface::scan(double x, double y, unsigned int state, int *type_ret)
 
 int BezNetInterface::LBDown(int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d) 
 {
+	// cerr << " bez down, any: "<<buttondown.any()<<endl;
 	int nhover_type = 0;
 	int nhover = scan(x,y,state, &nhover_type);
 	if (nhover != hover || nhover_type != hover_type) {
@@ -452,7 +523,8 @@ int BezNetInterface::LBDown(int x,int y,unsigned int state,int count, const Laxk
 
 
 	 // Check for clicking down on controls for existing data
-	if (data && data->pointin(screentoreal(x,y))) {
+	if (data) {
+	//if (data && data->pointin(screentoreal(x,y))) {
 		// int action1 = something;
 		// int action2 = something_else;
 		// buttondown.down(d->id,LEFTBUTTON,x,y, action1, action2);
@@ -518,6 +590,7 @@ int BezNetInterface::LBDown(int x,int y,unsigned int state,int count, const Laxk
 
 int BezNetInterface::LBUp(int x,int y,unsigned int state, const Laxkit::LaxMouse *d) 
 {
+	// cerr << " bez up, any: "<<buttondown.any()<<endl;
 	buttondown.up(d->id,LEFTBUTTON);
 	return 0; //return 0 for absorbing event, or 1 for ignoring
 }
@@ -525,6 +598,7 @@ int BezNetInterface::LBUp(int x,int y,unsigned int state, const Laxkit::LaxMouse
 
 int BezNetInterface::MouseMove(int x,int y,unsigned int state, const Laxkit::LaxMouse *d)
 {
+	// DBG cerr << " bez move, any: "<<buttondown.any()<<endl;
 	if (!buttondown.any()) {
 		// update any mouse over state
 		int nhover_type = 0;
@@ -532,11 +606,22 @@ int BezNetInterface::MouseMove(int x,int y,unsigned int state, const Laxkit::Lax
 		if (nhover != hover || nhover_type != hover_type) {
 			hover = nhover;
 			hover_type = nhover_type;
-			buttondown.down(d->id,LEFTBUTTON,x,y, nhover, nhover_type);
-
-			PostMessage2(_("Index %d type %d"), hover, nhover_type);
+			
+			const char *msg = nullptr;
+			if (nhover_type == BEZNET_Vertex) msg = "vertex";
+			else if (nhover_type == BEZNET_Edge) msg = "edge";
+			else if (nhover_type == BEZNET_Face) msg = "face";
+			if (msg) PostMessage2(_("Index %d type %s"), hover, msg);
+			else PostMessage2(_("Index %d type %d"), hover, nhover_type);
 			needtodraw = 1;
 			return 0;
+		}
+
+		int hface = scanFaces(x,y,state);
+		DBGL("hover face: "<< hface);
+		if (hface != hover_face) {
+			hover_face = hface;
+			needtodraw = 1;
 		}
 		return 1;
 	}

@@ -37,18 +37,13 @@ class BezNetToolSettings : public Laxkit::Resourceable
 {
   public:
 	double default_linewidth;
+	double max_arrow_length;
 	Laxkit::ScreenColor default_vertex_color;
 	Laxkit::ScreenColor default_edge_color;
 	Laxkit::ScreenColor default_face_color;
 	int curpoint;
 
-	BezNetToolSettings()
-	{
-		default_vertex_color.rgbf(1.0,0.,0.);
-		default_edge_color.rgbf(0.,0.,1.);
-		default_edge_color.rgbf(1.0, 1.0, 1.0, 0.0); //transparent faces
-	}
-
+	BezNetToolSettings();
 	virtual ~BezNetToolSettings();
 	virtual const char *whattype() { return "BezNetToolSettings"; }
 };
@@ -78,9 +73,11 @@ class BezNetInterface : public anInterface
 	BezNetToolSettings *settings;
 
 	int hover = -1;
+	int hover_face = -1;
 	int hover_type = 0;
 
 	virtual int scan(double x, double y, unsigned int state, int *type_ret);
+	virtual int scanFaces(double x, double y, unsigned int state);
 	virtual int OtherObjectCheck(int x,int y,unsigned int state);
 
 	virtual int send();
@@ -92,7 +89,7 @@ class BezNetInterface : public anInterface
 		BEZNET_SplitEdge,
 		BEZNET_BuildArea,
 		BEZNET_Vertex,
-		BEZNET_Egde,
+		BEZNET_Edge,
 		BEZNET_Face,
 		BEZNET_MAX
 	};
@@ -124,17 +121,12 @@ class BezNetInterface : public anInterface
 	virtual int MouseMove(int x,int y,unsigned int state, const Laxkit::LaxMouse *d);
 	virtual int LBDown(int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d);
 	virtual int LBUp(int x,int y,unsigned int state, const Laxkit::LaxMouse *d);
-	//virtual int MBDown(int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d);
-	//virtual int MBUp(int x,int y,unsigned int state, const Laxkit::LaxMouse *d);
-	//virtual int RBDown(int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d);
-	//virtual int RBUp(int x,int y,unsigned int state, const Laxkit::LaxMouse *d);
-	//virtual int WheelUp  (int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d);
-	//virtual int WheelDown(int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d);
 	virtual int CharInput(unsigned int ch, const char *buffer,int len,unsigned int state, const Laxkit::LaxKeyboard *d);
 	//virtual int KeyUp(unsigned int ch,unsigned int state, const Laxkit::LaxKeyboard *d);
 	//virtual void ViewportResized();
 	
 	virtual void ClearSelection();
+	virtual void DrawEdgeArrow(HalfEdge *edge, int which, double gap);
 };
 
 } // namespace LaxInterfaces
