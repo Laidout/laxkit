@@ -834,9 +834,6 @@ ShortcutWindow2::ShortcutWindow2(Laxkit::anXWindow *parnt,const char *nname,cons
 		: StackFrame(parnt,nname,ntitle,(nstyle&ANXWIN_MASK) | STACKF_VERTICAL,
 					xx,yy,ww,hh,brder, nullptr,0,nullptr,
 					0)
-//		: RowFrame(parnt,nname,ntitle,(nstyle&ANXWIN_MASK)|ROWFRAME_ROWS|ROWFRAME_STRETCH_IN_COL|ROWFRAME_STRETCH_IN_ROW,
-//					xx,yy,ww,hh,brder, nullptr,0,nullptr,
-//					0)
 {
 	gap = win_themestyle->normal->textheight()*.6;
 
