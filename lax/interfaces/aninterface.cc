@@ -575,6 +575,8 @@ flatpoint anInterface::realtoscreen(flatpoint r)
  * If a viewport defines pages or groups, for instance, then this allows
  * derived interfaces to use coords on those pages and groups, rather than the
  * plain view transform in dp.
+ * 
+ * If you have a current object, this will generally be the object's parent space.
  */
 flatpoint anInterface::screentoreal(int x,int y)
 {
