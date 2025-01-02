@@ -1247,7 +1247,7 @@ flatpoint *bez_circle(flatpoint *points, int numpoints, double x,double y,double
 }
 
 /*! How long a bezier handle has to be for a given arc of theta radians.
- * For instance, a 90 degree arc on a unit circle has to be .5523 units long.
+ * For instance, a 90 degree arc on a unit circle needs a handle .5523 units long.
  */
 double bez_arc_handle_length(double radius, double theta)
 {
