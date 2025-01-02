@@ -206,7 +206,9 @@ SomeData *EllipseData::duplicate(SomeData *dup)
 	p->inner_r = inner_r;
 	p->style   = style;
 	p->wedge_type = wedge_type;
+
 	if (linestyle) p->linestyle = dynamic_cast<LineStyle*>(linestyle->duplicate(nullptr));
+	if (fillstyle) p->fillstyle = dynamic_cast<FillStyle*>(fillstyle->duplicate(nullptr));
 
 	return dup;
 }
@@ -953,46 +955,52 @@ int EllipseInterface::Refresh()
 		dp->LineWidthScreen(2*thin);
 		p = getpoint(ELLP_XRadius,false);
 		dp->drawpoint(p, 3*thin, hover_point == ELLP_XRadius ? 1 : 0);
-		if (hover_point == ELLP_XRadius) dp->drawarrow(p, data->x, 0, 20*thin, 0, 3, false);
+		// if (hover_point == ELLP_XRadius) dp->drawarrow(p, data->x, 0, 20*thin, 0, 3, false);
 
 		p = getpoint(ELLP_XRadiusN,false);
 		dp->drawpoint(p, 3*thin, hover_point == ELLP_XRadiusN ? 1 : 0);
-		if (hover_point == ELLP_XRadiusN) dp->drawarrow(p, -data->x, 0, 20*thin, 0, 3, false);
+		// if (hover_point == ELLP_XRadiusN) dp->drawarrow(p, -data->x, 0, 20*thin, 0, 3, false);
 
 		p = getpoint(ELLP_YRadius,false);
 		dp->drawpoint(p, 3*thin, hover_point == ELLP_YRadius ? 1 : 0);
-		if (hover_point == ELLP_YRadius) dp->drawarrow(p, data->y, 0, 20*thin, 0, 3, false);
+		// if (hover_point == ELLP_YRadius) dp->drawarrow(p, data->y, 0, 20*thin, 0, 3, false);
 
 		p = getpoint(ELLP_YRadiusN,false);
 		dp->drawpoint(p, 3*thin, hover_point == ELLP_YRadiusN ? 1 : 0);
-		if (hover_point == ELLP_YRadiusN) dp->drawarrow(p, -data->y, 0, 20*thin, 0, 3, false);
-
+		// if (hover_point == ELLP_YRadiusN) dp->drawarrow(p, -data->y, 0, 20*thin, 0, 3, false);
+		
 		// axes main color
 		dp->NewFG(controlcolor);
 		dp->LineWidthScreen(thin);
 		p = getpoint(ELLP_XRadius,false);
 		dp->drawpoint(p, 3*thin, hover_point == ELLP_XRadius ? 1 : 0);
-		if (hover_point == ELLP_XRadius) dp->drawarrow(p, data->x, 0, 20*thin, 0, 3, false);
+		// if (hover_point == ELLP_XRadius) dp->drawarrow(p, data->x, 0, 20*thin, 0, 3, false);
 
 		p = getpoint(ELLP_XRadiusN,false);
 		dp->drawpoint(p, 3*thin, hover_point == ELLP_XRadiusN ? 1 : 0);
-		if (hover_point == ELLP_XRadiusN) dp->drawarrow(p, -data->x, 0, 20*thin, 0, 3, false);
+		// if (hover_point == ELLP_XRadiusN) dp->drawarrow(p, -data->x, 0, 20*thin, 0, 3, false);
 
 		p = getpoint(ELLP_YRadius,false);
 		dp->drawpoint(p, 3*thin, hover_point == ELLP_YRadius ? 1 : 0);
-		if (hover_point == ELLP_YRadius) dp->drawarrow(p, data->y, 0, 20*thin, 0, 3, false);
+		// if (hover_point == ELLP_YRadius) dp->drawarrow(p, data->y, 0, 20*thin, 0, 3, false);
 
 		p = getpoint(ELLP_YRadiusN,false);
 		dp->drawpoint(p, 3*thin, hover_point == ELLP_YRadiusN ? 1 : 0);
-		if (hover_point == ELLP_YRadiusN) dp->drawarrow(p, -data->y, 0, 20*thin, 0, 3, false);
+		// if (hover_point == ELLP_YRadiusN) dp->drawarrow(p, -data->y, 0, 20*thin, 0, 3, false);
 
-		//  // angles
-		// if (hover_point == ELLP_StartAngle || hover_point == ELLP_EndAngle) {
-		// 	dp->LineAttributes(thin,LineDoubleDash, LAXCAP_Butt, LAXJOIN_Round);
-		// 	dp->drawline(data->center, dp->screentoreal(hover_x,hover_y));
-		// 	dp->drawline(data->center, getpoint(hover_point==ELLP_StartAngle?ELLP_EndAngle:ELLP_StartAngle,false)); // draw line of other angle point
-		// 	dp->LineAttributes(thin,LineSolid,LAXCAP_Butt,LAXJOIN_Round);
-		// }
+		// draw hovered rect control
+		dp->NewFG(controlcolor);
+		dp->NewBG(controlcolor_rim);
+		dp->LineWidthScreen(3*thin);
+		flatvector vvv;
+		if      (hover_point == ELLP_XRadius)  vvv.x = 1;
+		else if (hover_point == ELLP_YRadius)  vvv.y = 1;
+		else if (hover_point == ELLP_XRadiusN) vvv.x = -1;
+		else if (hover_point == ELLP_YRadiusN) vvv.y = -1;
+		if (vvv.x != 0 || vvv.y != 0) {
+			double tsize = 15*thin/dp->Getmag();
+			dp->drawthing(getpoint(hover_point, false), tsize, tsize, 2, THING_PinCentered, M_PI/2 + flatpoint(vvv.x, vvv.y).angle());
+		}
 	}
 
 	if (eoc && eoc->obj && data != eoc->obj) {
@@ -1304,8 +1312,11 @@ Laxkit::MenuInfo *EllipseInterface::ContextMenu(int x,int y,int deviceid, Laxkit
 	if (menu->n()) menu->AddSep(_("Arc"));
 
 	menu->AddItem(_("Reset alignment"), ELLP_ResetAlignment);
+	if (!data->IsCircle()) menu->AddItem(_("Make circle"), ELLP_ToggleCircle);
 	menu->AddToggleItem(_("Show foci"), ELLP_ToggleFoci, 0, show_foci);
+
 	if (data->UsesAngles()) {
+		menu->AddSep(_("Gap"));
 		menu->AddItem(_("Flip gap"), ELLP_FlipGap);
 		menu->AddItem(_("Close gap"), ELLP_CloseGap);
 		menu->AddToggleItem(_("Wedge"), ELLP_UseWedge, 0, data->wedge_type == EllipseData::ELLIPSE_Wedge);
@@ -1477,7 +1488,7 @@ int EllipseInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::Lax
 				np.normalize();
 				ref_point.x += asin(op.cross(np));
 				double ang = ref_point.x;
-				if (state & ControlMask) ang = (int)(ang / M_PI * 12) * M_PI/12;
+				if (state & ControlMask) ang = (int)(ang / M_PI * 12) * M_PI/12;  //snap to 15 degree increments
 				//handle special meaning of end == start
 				if (ang > data->start) {
 					if (data->start == data->end) data->end = data->start + 2*M_PI;
@@ -1503,7 +1514,7 @@ int EllipseInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::Lax
 				np.normalize();
 				ref_point.x += asin(op.cross(np));
 				double ang = ref_point.x;
-				if (state & ControlMask) data->end = (int)(ref_point.x / M_PI * 12) * M_PI/12;
+				if (state & ControlMask) ang = (int)(ref_point.x / M_PI * 12) * M_PI/12; //snap to 15 degree increments
 				//handle special meaning of end == start
 				if (ang > data->end) {
 					if (data->start == data->end) data->end = data->start + 2*M_PI;
@@ -1525,9 +1536,12 @@ int EllipseInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::Lax
 				|| curpoint == ELLP_YRadius || curpoint == ELLP_YRadiusN) {
 			int do_x = (curpoint == ELLP_XRadius ? 1 : (curpoint == ELLP_XRadiusN ? -1 : 0));
 			int do_y = (curpoint == ELLP_YRadius ? 1 : (curpoint == ELLP_YRadiusN ? -1 : 0));
+
+			bool do_circle = false;
 			if (state & ShiftMask) {
-				if (do_x) do_y = -1;
-				else if (do_y) do_x = 1;
+				// if (do_x) do_y = -1;
+				// else if (do_y) do_x = 1;
+				do_circle = true;
 			}
 
 			if (do_x) {
@@ -1536,10 +1550,7 @@ int EllipseInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::Lax
 				data->a += (v*data->x)/data->x.norm() * do_x / 2.0;
 				if (data->a < 0) data->a = 0;
 				adiff -= data->a;
-				if (adiff && (state & ControlMask)) { //move origin
-
-
-				}
+				if (do_circle) data->b = data->a;
 				needtodraw = 1;
 			}
 
@@ -1547,6 +1558,7 @@ int EllipseInterface::MouseMove(int x,int y,unsigned int state,const Laxkit::Lax
 				flatpoint v = data->transformPointInverse(screentoreal(x,y)) - data->transformPointInverse(screentoreal(lx,ly));
 				data->b += (v*data->y)/data->y.norm() * do_y / 2.0;
 				if (data->b < 0) data->b = 0;
+				if (do_circle) data->a = data->b;
 				needtodraw = 1;
 			}
 
