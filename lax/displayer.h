@@ -214,10 +214,10 @@ class Displayer : public PanUser, virtual public anObject
 	virtual void drawBevel(double bevel,unsigned long highlight,unsigned long shadow, int state,double x,double y,double w,double h);
 
 	//draw things
-	virtual void drawthing(flatpoint p, double rx, double ry, int tofill, DrawThingTypes thing);
-	virtual void drawthing(double x, double y, double rx, double ry, int tofill, DrawThingTypes thing); // draws same orientation on screen
-	virtual void drawthing(double x, double y, double rx, double ry, DrawThingTypes thing,unsigned long fg,unsigned long bg,int lwidth=1);
-	virtual void drawthing(flatpoint p, double rx, double ry, DrawThingTypes thing,unsigned long fg,unsigned long bg,int lwidth=1);
+	virtual void drawthing(flatpoint p, double rx, double ry, int tofill, DrawThingTypes thing, double angle_radians=0);
+	virtual void drawthing(double x, double y, double rx, double ry, int tofill, DrawThingTypes thing, double angle_radians=0);
+	virtual void drawthing(double x, double y, double rx, double ry, DrawThingTypes thing,unsigned long fg,unsigned long bg,int lwidth=1, double angle_radians=0);
+	virtual void drawthing(flatpoint p, double rx, double ry, DrawThingTypes thing,unsigned long fg,unsigned long bg,int lwidth=1, double angle_radians=0);
 	virtual void drawarrow(flatpoint p,flatpoint v,double rfromp=0,double len=10,char reallength=1,int portion=3,bool center=false);
 	virtual void drawaxes(double len=1); //draw axes with real length at the origin
 	virtual void drawnum(double x, double y, int num); //write out the text of a number at the given coordinates.

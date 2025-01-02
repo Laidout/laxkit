@@ -1049,42 +1049,50 @@ void Displayer::drawarrow(flatpoint p,flatpoint v,double rfromp,double len,char 
 
 /*! Draw centered on x,y, with width 2*rx, height 2*ry. Stroke with fg. Fill with bg.
  */
-void Displayer::drawthing(double x, double y, double rx, double ry, DrawThingTypes thing,unsigned long fg,unsigned long bg,int lwidth)
+void Displayer::drawthing(double x, double y, double rx, double ry, DrawThingTypes thing,
+						unsigned long fg,unsigned long bg,int lwidth, double angle_radians)
 {
 	if (lwidth>=0) LineAttributes(lwidth,0,CapRound,JoinRound);
 	NewFG(bg);
-	drawthing(x,y,rx,ry,1,thing);
+	drawthing(x,y,rx,ry,1,thing, angle_radians);
 	NewFG(fg);
-	drawthing(x,y,rx,ry,0,thing);
+	drawthing(x,y,rx,ry,0,thing, angle_radians);
 }
 
-void Displayer::drawthing(flatpoint p, double rx, double ry, DrawThingTypes thing,unsigned long fg,unsigned long bg,int lwidth)
+void Displayer::drawthing(flatpoint p, double rx, double ry, DrawThingTypes thing,unsigned long fg,unsigned long bg,int lwidth, double angle_radians)
 {
-	drawthing(p.x, p.y, rx, ry, thing, fg, bg, lwidth);
+	drawthing(p.x, p.y, rx, ry, thing, fg, bg, lwidth, angle_radians);
 }
 
 /*! Convenience function to just call drawthing(p.x,p.y, ...);
  */
-void Displayer::drawthing(flatpoint p, double rx, double ry, int tofill, DrawThingTypes thing)
+void Displayer::drawthing(flatpoint p, double rx, double ry, int tofill, DrawThingTypes thing, double angle_radians)
 {
-	drawthing(p.x, p.y, rx,ry, tofill, thing);
+	drawthing(p.x, p.y, rx,ry, tofill, thing, angle_radians);
 }
 
 //! Draw a little graphic in range X:x-rx..x+rx,  Y:y-ry..y+ry.
 /*! This grabs points from Laxkit::draw_thing_coordinates(), then draws with drawFormattedPoint().
  */
-void Displayer::drawthing(double x, double y, double rx, double ry, int tofill, DrawThingTypes thing)
+void Displayer::drawthing(double x, double y, double rx, double ry, int tofill, DrawThingTypes thing, double angle_radians)
 {
-	 //use thing_coordinates()
-	flatpoint *pts=NULL;
-	int n=0;
-	pts=draw_thing_coordinates(thing, NULL,-1, &n, 1);
+	flatpoint *pts = nullptr;
+	int n = 0;
+	pts = draw_thing_coordinates(thing, nullptr,-1, &n, 1);
 	if (!pts) return;
 
 	for (int c=0; c<n; c++) {
-		 // transform coordinate
-		pts[c].x=x+(2*rx*pts[c].x-rx);
-		pts[c].y=y+(2*ry*pts[c].y-ry);
+		// transform coordinate
+		if (angle_radians != 0) {
+			flatpoint p = pts[c] - flatpoint(.5,.5);
+			p = flatvector(p.x*cos(angle_radians) - p.y*sin(angle_radians),
+						   p.y*cos(angle_radians) + p.x*sin(angle_radians));
+			p += flatpoint(.5,.5);
+			p.info = pts[c].info;
+			pts[c] = p;
+		}
+		pts[c].x = x + (2*rx*pts[c].x - rx);
+		pts[c].y = y + (2*ry*pts[c].y - ry);
 	}
 
 	drawFormattedPoints(pts,n,tofill);
