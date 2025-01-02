@@ -37,7 +37,7 @@ namespace LaxInterfaces {
 
 enum RRectPoints {
 	RRECT_None=0,
-	RRECT_TopLeft,
+	RRECT_TopLeft, //do not change order of these, lest you mess up the hacky point checking
 	RRECT_Top,
 	RRECT_TopRight,
 	RRECT_Left,
@@ -67,7 +67,7 @@ class RoundedRectData : virtual public SomeData
   protected:
   	
   public:
-	bool is_square = false;
+	bool is_square = false; // hint so the interface keeps width and height the same
 	int round_style; // 0 = ellipsoidal, 1 = squircle, 2 = custom bevel
 	double x_align = 50.0;
 	double y_align = 50.0;
@@ -75,6 +75,7 @@ class RoundedRectData : virtual public SomeData
 	double height = 1.0;
 	
 	double round[8]; // clockwise from upper left: in,out, upper-right-in,out, ...
+	enum RoundType { Symmetric=0, Asymmetric=1, Independent=2 };
 	int round_type; // symmetric for all, different x/y but same for all, different for all
 
 	LineStyle *linestyle;
@@ -90,8 +91,6 @@ class RoundedRectData : virtual public SomeData
 	virtual int  fill(Laxkit::ScreenColor *color);
 
 	virtual void FindBBox();
-	// virtual void SetStyle(unsigned int s, bool on);
-	// virtual bool GetStyle(unsigned int s);
 	virtual Laxkit::flatpoint getpoint(RRectPoints c, bool transform_to_parent);
 	virtual bool IsSquare() { return width == height; }
 	
@@ -201,6 +200,7 @@ class RoundedRectInterface : public anInterface
 	virtual int UseThisObject(ObjectContext *oc) override;
 	virtual void UpdateViewportColor();
 	virtual Laxkit::flatpoint getpoint(RRectPoints c, bool inparent);
+	virtual bool getBar(RRectPoints which, Laxkit::flatpoint &p1_ret, Laxkit::flatpoint &p2_ret, bool transform_to_parent, double gap, double threshhold);
 };
 
 } // namespace LaxInterfaces

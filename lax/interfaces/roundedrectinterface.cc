@@ -40,8 +40,24 @@ namespace LaxInterfaces {
 const char *PointName(RRectPoints p)
 {
 	switch (p) {
-		case RRECT_None:        return _("None");
-		case RRECT_Center:      return _("Center");
+		case RRECT_None:           return _("None");
+		case RRECT_TopLeft:        return _("Top left");
+		case RRECT_Top:            return _("Top");
+		case RRECT_TopRight:       return _("TopRight");
+		case RRECT_Left:           return _("Left");
+		case RRECT_Center:         return _("Center");
+		case RRECT_Right:          return _("Right");
+		case RRECT_BottomLeft:     return _("BottomLeft");
+		case RRECT_Bottom:         return _("Bottom");
+		case RRECT_BottomRight:    return _("BottomRight");
+		case RRECT_TopLeftIn:      return _("TopLeftIn");
+		case RRECT_TopLeftOut:     return _("TopLeftOut");
+		case RRECT_TopRightIn:     return _("TopRightIn");
+		case RRECT_TopRightOut:    return _("TopRightOut");
+		case RRECT_BottomRightIn:  return _("BottomRightIn");
+		case RRECT_BottomRightOut: return _("BottomRightOut");
+		case RRECT_BottomLeftIn:   return _("BottomLeftIn");
+		case RRECT_BottomLeftOut:  return _("BottomLeftOut");
 		default: {
 			DBGL("PointName unknown for: "<<p);
 			return "?";
@@ -50,14 +66,17 @@ const char *PointName(RRectPoints p)
 	return "?";
 }
 
+// supposed to be message with modifier combo hints
 const char *PointMessage(RRectPoints p)
 {
 	switch (p) {
 		case RRECT_None:        return _("None");
-		case RRECT_Center:      return _("Center");
+		// case RRECT_Center:      return _("Center");
+
 		default: {
-			DBGL("PointName unknown for: "<<p);
-			return "?";
+			return PointName(p);
+			// DBGL("PointName unknown for: "<<p);
+			// return "?";
 		}
 	}
 	return "?";
@@ -121,7 +140,7 @@ int RoundedRectData::fill(Laxkit::ScreenColor *color)
 
 SomeData *RoundedRectData::duplicate(SomeData *dup)
 {
-	RoundedRectData *p=dynamic_cast<RoundedRectData*>(dup);
+	RoundedRectData *p = dynamic_cast<RoundedRectData*>(dup);
 	if (!p && !dup) return nullptr;
 
 	if (!dup) {
@@ -136,20 +155,20 @@ SomeData *RoundedRectData::duplicate(SomeData *dup)
 		dup = p;
 	}
 
+	p->is_square = is_square;
+	p->round_style = round_style;
+	p->x_align = x_align;
+	p->y_align = y_align;
+	p->width = width;
+	p->height = height;
+	p->round_type = round_type;
+	memcpy(p->round, round, 8*sizeof(double));
+
 	if (linestyle) p->linestyle = dynamic_cast<LineStyle*>(linestyle->duplicate(nullptr));
 	if (fillstyle) p->fillstyle = dynamic_cast<FillStyle*>(fillstyle->duplicate(nullptr));
 
 	return dup;
 }
-
-// bool RoundedRectData::GetStyle(unsigned int s)
-// { return style&s; }
-
-// void RoundedRectData::SetStyle(unsigned int s, bool on)
-// {
-// 	if (on) style|=s;
-// 	else style&=~s;
-// }
 
 void RoundedRectData::FindBBox()
 {
@@ -180,21 +199,39 @@ int RoundedRectData::GetPath(flatpoint *pts_ret)
 {
 	NumStack<flatpoint> pts;
 	flatpoint r[4];
-	r[0] = flatpoint(round[0], round[1]);
-	r[1] = flatpoint(round[2], round[3]);
-	r[2] = flatpoint(round[4], round[5]);
-	r[3] = flatpoint(round[6], round[7]);
+	r[3] = flatpoint(round[0], round[1]); // ul
+	r[2] = flatpoint(round[2], round[3]); // ur
+	r[1] = flatpoint(round[4], round[5]); // lr
+	r[0] = flatpoint(round[6], round[7]); // ll
+	
+	// // clamp here? doesn't quite work:
+	// double m;
+	// if (r[0].x + r[1].x > width) {
+	// 	m = (r[0].x + width - r[1].x)/2;
+	// 	r[0].x = m;
+	// 	r[1].x = width - m;
+	// }
+	// if (r[3].x + r[2].x > width) {
+	// 	m = (r[3].x + width - r[2].x)/2;
+	// 	r[3].x = m;
+	// 	r[2].x = width - m;
+	// }
+	// if (r[0].y + r[3].y > height) {
+	// 	m = (r[0].y + height - r[3].y)/2;
+	// 	r[0].y = m;
+	// 	r[3].y = height - m;
+	// }
+	// if (r[1].y + r[2].y > height) {
+	// 	m = (r[1].y + height - r[2].y)/2;
+	// 	r[1].y = m;
+	// 	r[2].y = height - m;
+	// }
+
 	MakeRoundedRect(minx, miny, maxx-minx, maxy-miny, r, 4, pts); // returns v-c-c-v-...-c-c
 	for (int c=0; c<pts.n; c++) {
 		pts_ret[c] = pts[(c+pts.n-1)%pts.n];
 	}
 
-	// //TODO: IMPLEMENT ME!!
-	// pts_ret[0] = pts_ret[1] = pts_ret[2] = flatpoint(minx,miny);
-	// pts_ret[3] = pts_ret[4] = pts_ret[5] = flatpoint(maxx,miny);
-	// pts_ret[6] = pts_ret[7] = pts_ret[8] = flatpoint(maxx,maxy);
-	// pts_ret[9] = pts_ret[10] = pts_ret[11] = flatpoint(minx,maxy);
-	// return 12;
 	return pts.n;
 }
 
@@ -227,21 +264,24 @@ flatpoint RoundedRectData::getpoint(RRectPoints c, bool transform_to_parent)
 	flatvector x(1,0);
 	flatvector y(0,1);
 
-	if        (c==RRECT_Center) {      p= center;
-	} else if (c==RRECT_Right) {       p= center + a*x; 
-	} else if (c==RRECT_BottomRight) { p= center + a*x - b*y; 
-	} else if (c==RRECT_Bottom) {      p= center       - b*y; 
-	} else if (c==RRECT_BottomLeft) {  p= center - a*x - b*y;
-	} else if (c==RRECT_Left) {        p= center - a*x; 
-	} else if (c==RRECT_TopLeft) {     p= center - a*x + b*y; 
-	} else if (c==RRECT_Top) {         p= center       + b*y; 
-	} else if (c==RRECT_TopRight) {    p= center + a*x + b*y;
+	if        (c == RRECT_Center) {      p = center;
+	} else if (c == RRECT_Right) {       p = center + a*x; 
+	} else if (c == RRECT_BottomRight) { p = center + a*x - b*y; 
+	} else if (c == RRECT_Bottom) {      p = center       - b*y; 
+	} else if (c == RRECT_BottomLeft) {  p = center - a*x - b*y;
+	} else if (c == RRECT_Left) {        p = center - a*x; 
+	} else if (c == RRECT_TopLeft) {     p = center - a*x + b*y; 
+	} else if (c == RRECT_Top) {         p = center       + b*y; 
+	} else if (c == RRECT_TopRight) {    p = center + a*x + b*y;
 
-	// } else if (c==RRECT_Right)  { p= center + a*x;
-	// } else if (c==RRECT_Left) { p= center - a*x;
-	// } else if (c==RRECT_Top)  { p= center + b*y;
-	// } else if (c==RRECT_Bottom) { p= center - b*y;
-
+	} else if (c == RRECT_TopLeftIn)      { p = center - a*x + (b - round[0])*y;
+	} else if (c == RRECT_TopLeftOut)     { p = center - (a - round[1])*x + b*y;
+	} else if (c == RRECT_TopRightIn)     { p = center + (a - round[2])*x + b*y;
+	} else if (c == RRECT_TopRightOut)    { p = center + a*x + (b - round[3])*y;
+	} else if (c == RRECT_BottomRightIn)  { p = center + a*x + (-b + round[4])*y;
+	} else if (c == RRECT_BottomRightOut) { p = center + (a - round[5])*x - b*y;
+	} else if (c == RRECT_BottomLeftIn)   { p = center + (-a + round[6])*x - b*y;
+	} else if (c == RRECT_BottomLeftOut)  { p = center + -a*x + (-b + round[7])*y;
 	}
 
 	if (transform_to_parent) return transformPoint(p);
@@ -261,10 +301,12 @@ Attribute *RoundedRectData::dump_out_atts(Attribute *att,int what,Laxkit::DumpCo
 
 	if (what==-1) { 
 		att->push("id", "somename","String id");
-		att->push("width", "1","Width to be aligned according to x_align");
-		att->push("height","1","height to be aligned according to y_align");
-		// ***
-		att->push("FINISH ME!!!!!");
+		att->push("width", "1", "Width to be aligned around the origin according to x_align");
+		att->push("height","1","height to be aligned around the origin according to y_align");
+		att->push("round_style", "ellipsoidal", "ellipsoidal, squircle, or custom. If custom, and the bevel shape is used");
+		att->push("round_type", "symmetric", "All corners 'symmetric' and the same, corners 'asymmetric' and the same, each corner 'independent'");
+		att->push("x_align", "50", "alignment with 0 being full left, 100 being full right, 50 being centered.");
+		att->push("y_align", "50", "alignment with 0 being full bottom, 100 being full top, 50 being centered.");
 		att->push("linestyle",nullptr,"(optional) Line style for this shape");
 		att->push("fillstyle",nullptr,"(optional) Fill style for this shape");
 		return att;
@@ -274,14 +316,14 @@ Attribute *RoundedRectData::dump_out_atts(Attribute *att,int what,Laxkit::DumpCo
 	att->pushStr("matrix",-1, "%.10g %.10g %.10g %.10g %.10g %.10g",
 			m(0),m(1),m(2),m(3),m(4),m(5));
 
-	if (is_square) att->push("flags", "square");
+	if (is_square) att->push("square", "yes");
 
 	att->push("x_align", x_align);
 	att->push("y_align", y_align);
-	att->push("width", width);
-	att->push("height", height);
+	att->push("width",   width);
+	att->push("height",  height);
 	att->push("round_style", (round_style == 2 ? "custom" : (round_style == 1 ? "squircle" : "ellipsoidal")));
-	att->push("round_type", round_type);
+	att->push("round_type", round_type == Symmetric ? "symmetric" : (round_type == Asymmetric ? "asymmetric" : "independent"));
 	att->pushStr("round",-1, "%.10g %.10g %.10g %.10g %.10g %.10g %.10g %.10g",
 		round[0], round[1], round[2], round[3], round[4], round[5], round[6], round[7]);
 
@@ -322,15 +364,28 @@ void RoundedRectData::dump_in_atts(Laxkit::Attribute *att,int flag,Laxkit::DumpC
 			if (!isblank(value)) Id(value);
 
 		} else if (!strcmp(name,"x_align")) {
+			DoubleAttribute(value, &x_align);
+
 		} else if (!strcmp(name,"y_align")) {
+			DoubleAttribute(value, &y_align);
+
 		} else if (!strcmp(name,"width")) {
+			DoubleAttribute(value, &width);
+
 		} else if (!strcmp(name,"height")) {
+			DoubleAttribute(value, &height);
+
 		} else if (!strcmp(name,"round_style")) {
 			if (!strcasecmp_safe(value, "custom")) round_style = 2;
 			else if (!strcasecmp_safe(value, "squircle")) round_style = 1;
 			else round_style = 0;
+
 		} else if (!strcmp(name,"round_type")) {
-			IntAttribute(value, &round_type);
+			if (!strcasecmp_safe(value, "symmetric")) round_type = Symmetric;
+			else if (!strcasecmp_safe(value, "asymmetric")) round_type = Asymmetric;
+			else if (!strcasecmp_safe(value, "independent")) round_type = Independent;
+			else IntAttribute(value, &round_type);
+
 		} else if (!strcmp(name,"round")) {
 			double d[8];
 			int n = DoubleListAttribute(value, d, 8);
@@ -372,8 +427,8 @@ void RoundedRectData::dump_in_atts(Laxkit::Attribute *att,int flag,Laxkit::DumpC
 				fillstyle->dump_in_atts(att->attributes.e[c],flag,context);
 			}
 		
-		// } else if (!strcmp(name,"flags")) {
-			// ***
+		} else if (!strcmp(name,"square")) {
+			is_square = BooleanAttribute(value);
 		}
 	}
 
@@ -440,7 +495,7 @@ const char *RoundedRectInterface::Name()
 }
 
 //! Return new RoundedRectInterface.
-/*! If dup!=nullptr and it cannot be cast to ImageInterface, then return nullptr.
+/*! If dup!=nullptr and it cannot be cast to RoundedRectInterface, then return nullptr.
  */
 anInterface *RoundedRectInterface::duplicate(anInterface *dup)
 {
@@ -478,23 +533,26 @@ FillStyle *RoundedRectInterface::DefaultFillStyle()
 /*! Update the viewport color box */
 void RoundedRectInterface::UpdateViewportColor()
 {
-	if (!data) return;
-
 	ScreenColor *stroke = nullptr;
 	ScreenColor *fill = nullptr;
 
-	if (!data->linestyle) {
-		LineStyle *style = dynamic_cast<LineStyle*>(DefaultLineStyle()->duplicate(nullptr));
-		data->InstallLineStyle(style);
-		style->dec_count();
-	}
-	if (!data->fillstyle) {
-		FillStyle *style = dynamic_cast<FillStyle*>(DefaultFillStyle()->duplicate(nullptr));
-		data->InstallFillStyle(style);
-		style->dec_count();
-	}
-	stroke = &data->linestyle->color;
-	fill = &data->fillstyle->color;
+	if (data){
+		if (!data->linestyle) {
+			LineStyle *style = dynamic_cast<LineStyle*>(DefaultLineStyle()->duplicate(nullptr));
+			data->InstallLineStyle(style);
+			style->dec_count();
+		}
+		stroke = &data->linestyle->color;
+	} else stroke = &(DefaultLineStyle()->color);
+
+	if (data) {
+		if (!data->fillstyle) {
+			FillStyle *style = dynamic_cast<FillStyle*>(DefaultFillStyle()->duplicate(nullptr));
+			data->InstallFillStyle(style);
+			style->dec_count();
+		}
+		fill = &data->fillstyle->color;
+	} else fill = &(DefaultFillStyle()->color);
 	
 	anInterface::UpdateViewportColor(stroke, fill, COLOR_StrokeFill);
 }
@@ -581,6 +639,7 @@ int RoundedRectInterface::UseThisObject(ObjectContext *oc)
  */
 int RoundedRectInterface::InterfaceOn()
 {
+	UpdateViewportColor();
 	showdecs=1;
 	needtodraw=1;
 	return 0;
@@ -651,11 +710,11 @@ int RoundedRectInterface::Refresh()
 		dp->PushAndNewTransform(m2);
 	}
 
-	// DBG cerr <<"  RRect::Refresh showdecs: "<<showdecs<<"  width: "<<(data->linestyle ? data->linestyle->width : 0)<<endl;
-		
+	
 	LineStyle *lstyle = data->linestyle;
 	if (!lstyle) lstyle = DefaultLineStyle();
-	FillStyle *fstyle = DefaultFillStyle();
+	FillStyle *fstyle = data->fillstyle;
+	if (!fstyle) fstyle = DefaultFillStyle();
 	if (fstyle && fstyle->function == LAXOP_None) fstyle = nullptr;
 
 	dp->NewFG(&lstyle->color);
@@ -688,14 +747,67 @@ int RoundedRectInterface::Refresh()
 		// draw a plus at the center
 		center = getpoint(RRECT_Center, false);
 		dp->LineWidthScreen(thin * (curpoint == RRECT_Center ? 3 : 1));
-		// double l = thin*10/dp->Getmag();
-		// dp->drawline(center - data->x*l, data->center + data->x*l);
-		// dp->drawline(center - data->y*l, data->center + data->y*l);
-		//dp->drawthing(center, thin*10/dp->Getmag(), thin*10/dp->Getmag(), 0, THING_Plus);
+		double l = thin*10/dp->Getmag();
+		dp->drawline(center - flatpoint(1,0)*l, center + flatpoint(1,0)*l);
+		dp->drawline(center - flatpoint(0,1)*l, center + flatpoint(0,1)*l);
 		dp->LineWidthScreen(thin);
 
-		if (1) {
-			dp->drawrectangle(_p1.x, _p1.y, _p2.x - _p1.x, _p2.y - _p1.y, 0);
+		// draw rounding controls
+		if (curpoint >= RRECT_TopLeftIn && curpoint <= RRECT_BottomLeftOut) {
+			flatpoint p1, p2;
+			double gap = thin * 4 / dp->Getmag();
+			double threshhold = thin * 10 / dp->Getmag();
+			if (getBar(curpoint, p1, p2, false, -gap, threshhold)) {
+				dp->LineCap(LAXCAP_Round);
+				dp->NewFG(controlcolor_rim);
+				dp->LineWidthScreen(6*thin);
+				dp->drawline(p1, p2);
+				dp->NewFG(controlcolor);
+				dp->LineWidthScreen(4*thin);
+				dp->drawline(p1, p2);
+			}
+		}
+
+		// draw rect size controls
+		static const flatvector vvv[] = {
+			flatvector(-1,1),
+			flatvector(0,1),
+			flatvector(1,1),
+			flatvector(-1,0),
+			flatvector(0,0),
+			flatvector(1,0),
+			flatvector(-1,-1),
+			flatvector(0,-1),
+			flatvector(1,-1)
+		};
+		dp->NewFG(controlcolor_rim);
+		dp->LineWidthScreen(2*thin);
+		for (int c=0; c<9; c++) {
+			int pt = RRECT_TopLeft + c;
+			if (pt == RRECT_Center) continue;
+			p = getpoint((RRectPoints)pt, false);
+			dp->drawpoint(p, 3*thin, hover_point == pt ? 1 : 0);
+		}
+		dp->NewFG(controlcolor);
+		dp->LineWidthScreen(thin);
+		double tsize = 15*thin/dp->Getmag();
+		for (int c=0; c<9; c++) {
+			int pt = RRECT_TopLeft + c;
+			if (pt == RRECT_Center) continue;
+			p = getpoint((RRectPoints)pt, false);
+			dp->drawpoint(p, 3*thin, hover_point == pt ? 1 : 0);
+		}
+
+		// draw hovered rect control
+		dp->NewFG(controlcolor);
+		dp->NewBG(controlcolor_rim);
+		dp->LineWidthScreen(3*thin);
+		for (int c=0; c<9; c++) {
+			int pt = RRECT_TopLeft + c;
+			if (pt != hover_point || pt == RRECT_Center) continue;
+			p = getpoint((RRectPoints)pt, false);
+			dp->drawthing(p, tsize, tsize, 2, THING_PinCentered, M_PI/2 + flatpoint(vvv[c].x, vvv[c].y).angle());
+			break;
 		}
 	}
 
@@ -709,55 +821,139 @@ int RoundedRectInterface::Refresh()
 
 flatpoint RoundedRectInterface::getpoint(RRectPoints c, bool inparent)
 {
-	// if (!data || c==RRECT_WildPoint) return dp->screentoreal(hover_x,hover_y);
 	return data->getpoint(c,inparent);
 }
 
+/*! Find a bar representing the in/out of the rounded rect.
+ * Make sure the bar is of sufficient length if distance from corner to in/out point is too small.
+ */
+bool RoundedRectInterface::getBar(RRectPoints which, flatpoint &p1_ret, flatpoint &p2_ret, bool transform_to_parent, double gap, double threshhold)
+{
+	if (!data) return false;
+
+	//flatpoint center = data->getpoint(RRECT_Center, false);
+	//double a = data->width/2;
+	//double b = data->height/2;
+
+	flatpoint pp = data->getpoint(which, false);
+	flatpoint corner, v, vt;
+
+	switch (which) {
+		case RRECT_TopLeftIn:
+			corner = data->getpoint(RRECT_TopLeft, false);
+			v.y = -1;
+			vt.x = -1;
+			break;
+		case RRECT_TopLeftOut:
+			corner = data->getpoint(RRECT_TopLeft, false);
+			v.x = 1;
+			vt.y = 1;
+			break;
+		case RRECT_TopRightIn:
+			corner = data->getpoint(RRECT_TopRight, false);
+			v.x = -1;
+			vt.y = 1;
+			break;
+		case RRECT_TopRightOut:
+			corner = data->getpoint(RRECT_TopRight, false);
+			v.y = -1;
+			vt.x = 1;
+			break;
+		case RRECT_BottomRightIn:
+			corner = data->getpoint(RRECT_BottomRight, false);
+			v.y = 1;
+			vt.x = 1;
+			break;
+		case RRECT_BottomRightOut:
+			corner = data->getpoint(RRECT_BottomRight, false);
+			v.x = -1;
+			vt.y = -1;
+			break;
+		case RRECT_BottomLeftIn:
+			corner = data->getpoint(RRECT_BottomLeft, false);
+			v.x = 1;
+			vt.y = -1;
+			break;
+		case RRECT_BottomLeftOut:
+			corner = data->getpoint(RRECT_BottomLeft, false);
+			v.y = 1;
+			vt.x = -1;
+			break;
+		default:
+			return false;
+	}
+
+	double len = (pp - corner).norm();
+	if (len < threshhold) {
+		len = threshhold;
+		pp = corner + len * v;
+	}
+
+	p1_ret = -gap*v + gap*vt + corner;
+	p2_ret = -gap*v + gap*vt + pp;
+	if (transform_to_parent) {
+		p1_ret = data->transformPoint(p1_ret);
+		p2_ret = data->transformPoint(p2_ret);
+	}
+	return true;
+}
 
 RRectPoints RoundedRectInterface::scan(double x,double y, unsigned int state)
 {
 	if (!data) return RRECT_None;
 
 	flatpoint p2;
-	flatpoint p = screentoreal(x,y);
-	
-	double dd, d = 1e+10, threshhold = NearThreshhold()/dp->Getmag();
-	// DBGL("scan d="<<d<<"(x,y)="<<p.x<<','<<p.y);
-	
-	RRectPoints closest = RRECT_None;
+	flatpoint p = data->transformPointInverse(screentoreal(x,y));
 
-	// first check normal points:
-	static const RRectPoints pts[] = {
-		 RRECT_Center,
-		 // RRECT_Right,
-		 // RRECT_Left,
-		 // RRECT_Top,
-		 // RRECT_Bottom,
-		 RRECT_None
-		};
+	flatpoint center = (flatvector(data->minx,data->miny) + flatvector(data->maxx, data->maxy))/2;
+	float xi = (p.x - center.x) / data->width * 6;
+	float yi = (p.y - center.y) / data->height * 6;
+	
+	// Outside the box maps to rect size controls
+	// Inside the box maps to rounding controls
+	if (xi <= -3) {
+		if (yi > 1) return RRECT_TopLeft;
+		if (yi < -1) return RRECT_BottomLeft;
+		return RRECT_Left;
+	} else if (xi >= 3) {
+		if (yi > 1) return RRECT_TopRight;
+		if (yi < -1) return RRECT_BottomRight;
+		return RRECT_Right;
+	} else if (yi <= -3) {
+		if (xi > 1) return RRECT_BottomRight;
+		if (xi < -1) return RRECT_BottomLeft;
+		return RRECT_Bottom;
+	} else if (yi >= 3) {
+		if (xi > 1) return RRECT_TopRight;
+		if (xi < -1) return RRECT_TopLeft;
+		return RRECT_Top;
 
-	for (int i = 0; pts[i] != RRECT_None; i++) {
-		p2 = getpoint(pts[i], true);
-		dd = (p2-p).norm();
-		if (dd < d) {
-			d = dd;
-			closest = pts[i];
+	} else if (xi > -1 && xi < 1 && yi > -1 && yi < 1) {
+		return RRECT_Center;
+
+	} else {
+	 //if (xi > -3 && xi < 3) && (yi > -3 && yi < 3) {  inside the rect
+		if (xi > yi) {
+			if (yi > -xi) {
+				if (yi > 0) return RRECT_TopRightOut;
+				return RRECT_BottomRightIn;
+			}
+			if (xi > 0) return RRECT_BottomRightOut;
+			return RRECT_BottomLeftIn;
 		}
+		if (yi > -xi) {
+			if (xi > 0) return RRECT_TopRightIn;
+			return RRECT_TopLeftOut;
+		}
+		if (yi > 0) return RRECT_TopLeftIn;
+		return RRECT_BottomLeftOut;
 	}
-	if (d < 3*threshhold) return closest;
-	
-	// flatpoint center = data->getpoint(RRECT_Center, true);
 
-
-	
-	DBG std::cerr << "rrect closest: d: "<<d<<"  "<<PointName(closest)<<std::endl;
-	return closest;
+	return RRECT_None;
 }
 
 int RoundedRectInterface::LBDown(int x,int y,unsigned int state,int count,const Laxkit::LaxMouse *d)
 {
-	DBGL("  in rrect lbd..");
-
 	hover_x = x;
 	hover_y = y;
 
@@ -767,14 +963,19 @@ int RoundedRectInterface::LBDown(int x,int y,unsigned int state,int count,const 
 		buttondown.down(d->id,LEFTBUTTON,x,y, over);
 		curpoint = over;
 
-		// if (curpoint == RRECT_Right) 	    ref_point = data->getpoint(RRECT_Left, true);
-		// else if (curpoint == RRECT_Top)  ref_point = data->getpoint(RRECT_Bottom, true);
+		if      (curpoint == RRECT_Right)  ref_point = data->getpoint(RRECT_Left, true);
+		else if (curpoint == RRECT_Left)   ref_point = data->getpoint(RRECT_Right, true);
+		else if (curpoint == RRECT_Top)    ref_point = data->getpoint(RRECT_Bottom, true);
+		else if (curpoint == RRECT_Bottom) ref_point = data->getpoint(RRECT_Top, true);
+		else if (curpoint == RRECT_TopRight)    ref_point = data->getpoint(RRECT_BottomLeft, true);
+		else if (curpoint == RRECT_TopLeft)     ref_point = data->getpoint(RRECT_BottomRight, true);
+		else if (curpoint == RRECT_BottomRight) ref_point = data->getpoint(RRECT_TopLeft, true);
+		else if (curpoint == RRECT_BottomLeft)  ref_point = data->getpoint(RRECT_TopRight, true);
 		
 		ref_point2 = data->getpoint(RRECT_Center, true);
 		
 		return 0; // other click with data
 	}
-	DBGL("  no rrect point found  ");
 
 	deletedata();
 	
@@ -799,7 +1000,7 @@ int RoundedRectInterface::LBDown(int x,int y,unsigned int state,int count,const 
 		return 0;
 
 	} else if (c < 0) {
-		 // If there is some other non-image data underneath (x,y) and
+		 // If there is some other type of data underneath (x,y) and
 		 // this is not primary, then switch objects, and switch tools to deal
 		 // with that object.
 		if (!primary && c==-1 && viewport->ChangeObject(oc,1,true)) {
@@ -815,7 +1016,7 @@ int RoundedRectInterface::LBDown(int x,int y,unsigned int state,int count,const 
 	if (viewport) viewport->ChangeContext(x,y,nullptr);
 
 	RoundedRectData *ndata = nullptr; //creates with 1 count
-	ndata = dynamic_cast<RoundedRectData *>(somedatafactory()->NewObject(LAX_RRECTDATA));
+	ndata = dynamic_cast<RoundedRectData *>(somedatafactory()->NewObject(LAX_ROUNDEDRECTDATA));
 	if (!ndata) ndata = new RoundedRectData;
 
 	LineStyle *style = dynamic_cast<LineStyle*>(DefaultLineStyle()->duplicate(nullptr));
@@ -838,8 +1039,6 @@ int RoundedRectInterface::LBDown(int x,int y,unsigned int state,int count,const 
 	curpoint = RRECT_DragRect;
 	flatpoint p = screentoreal(x,y);
 	data->origin(p);
-	// data->x = createx;
-	// data->y = createy;
 	data->width = data->height = 0;
 	data->FindBBox();
 	createp = p;
@@ -1012,50 +1211,80 @@ int RoundedRectInterface::MouseMove(int x,int y,unsigned int state,const Laxkit:
 	int lx,ly;
 	buttondown.move(mouse->id, x,y, &lx,&ly);
 
-	flatpoint d = screentoreal(x,y)-screentoreal(lx,ly);
-
-	flatpoint center = (flatvector(data->minx,data->miny) + flatvector(data->maxx, data->maxy))/2;
-	double a = data->width/2;
-	double b = data->height/2;
-	flatvector xx(1,0);
-	flatvector yy(0,1);
-
 	if (curpoint != RRECT_None) {
 		if (curpoint == RRECT_Center) {
 			data->origin(data->origin() + data->transformPointInverse(screentoreal(x,y)) - data->transformPointInverse(screentoreal(lx,ly)));
 			Modified();
 			needtodraw = 1;
 
-		} else if (curpoint == RRECT_Right || curpoint == RRECT_Left
-				|| curpoint == RRECT_Top || curpoint == RRECT_Bottom) {
+		} else if (curpoint >= RRECT_TopLeftIn && curpoint <= RRECT_BottomLeftOut) {
+			flatpoint p1, p2;
+			double thin = ScreenLine();
+			// double gap = thin * 4 / Getmag();
+			double threshhold = thin * 15 / Getmag();
+			getBar(curpoint, p1, p2, false, 0, threshhold);
+			flatvector dv = data->transformPointInverse(screentoreal(x,y)) - data->transformPointInverse(screentoreal(lx,ly));
+			double rr = dv * (p1-p2);
+			int index = curpoint - RRECT_TopLeftIn;
+			data->round[index] -= rr;
+			if (data->round[index] < 0) data->round[index] = 0;
+			rr = data->round[index];
 
-			int do_x = (curpoint == RRECT_Right ? 1 : (curpoint == RRECT_Left ? -1 : 0));
-			int do_y = (curpoint == RRECT_Top ? 1 : (curpoint == RRECT_Bottom ? -1 : 0));
+			bool do_symmetric = (state & ControlMask) == 0;
+			bool do_all = (state & ShiftMask) == 0;
+			if (do_all) {
+				if (do_symmetric) {
+					for (int c=0; c<8; c++) data->round[c] = rr;
+				} else {
+					if (index == 0 || index == 3 || index == 4 || index == 7) {
+						data->round[0] = data->round[3] = data->round[4] = data->round[7] = rr;
+					} else {
+						data->round[1] = data->round[2] = data->round[5] = data->round[6] = rr;
+					}
+				}
+			} else if (do_symmetric) { // just the one
+				if (index%2 == 0) data->round[index+1] = rr;
+				else data->round[index-1] = rr;
+			}
+			
+			needtodraw = 1;
+			data->FindBBox();
+			Modified();
+
+		} else if (curpoint >= RRECT_TopLeft && curpoint <= RRECT_BottomRight) {
+			int do_x = 0;
+			if      (curpoint == RRECT_Right || curpoint == RRECT_TopRight || curpoint == RRECT_BottomRight) do_x = 1;
+			else if (curpoint == RRECT_Left  || curpoint == RRECT_TopLeft  || curpoint == RRECT_BottomLeft)  do_x = -1;
+
+			int do_y = 0;
+			if      (curpoint == RRECT_Top     || curpoint == RRECT_TopRight    || curpoint == RRECT_TopLeft)      do_y = 1;
+			else if (curpoint == RRECT_Bottom  || curpoint == RRECT_BottomLeft  || curpoint == RRECT_BottomRight)  do_y = -1;
+			
+			if (state & ControlMask) { do_x *= 2; do_y *= 2; }
+
+			bool do_square = false;
 			if (state & ShiftMask) {
-				if (do_x) do_y = -1;
-				else if (do_y) do_x = 1;
+				do_square = true;
 			}
 
 			if (do_x) {
 				flatpoint v = data->transformPointInverse(screentoreal(x,y)) - data->transformPointInverse(screentoreal(lx,ly));
-				double adiff = a;
-				// data->width += (v*data->x)/data->x.norm() * do_x / 2.0;
-				data->width += v.x * do_x / 2.0;
+				data->width += v.x * do_x;
 				if (data->width < 0) data->width = 0;
-				adiff -= data->width;
-				if (adiff && (state & ControlMask)) { //move origin
-
-
-				}
 				needtodraw = 1;
 			}
 
 			if (do_y) {
 				flatpoint v = data->transformPointInverse(screentoreal(x,y)) - data->transformPointInverse(screentoreal(lx,ly));
-				// data->height += (v*data->y)/data->y.norm() * do_y / 2.0;
-				data->height += v.y * do_y / 2.0;
+				data->height += v.y * do_y;
 				if (data->height < 0) data->height = 0;
 				needtodraw = 1;
+			}
+
+			if (do_square) {
+				if (do_x && !do_y) data->height = data->width;
+				else if (!do_x && do_y) data->width = data->height;
+				else if (do_x && do_y) data->width = data->height = MAX(data->width, data->height);
 			}
 
 			if ((state & ControlMask) == 0) { //preserve opposite point
@@ -1064,11 +1293,16 @@ int RoundedRectInterface::MouseMove(int x,int y,unsigned int state,const Laxkit:
 				else if (curpoint == RRECT_Left)   constant = data->getpoint(RRECT_Right, true);
 				else if (curpoint == RRECT_Top)    constant = data->getpoint(RRECT_Bottom, true);
 				else if (curpoint == RRECT_Bottom) constant = data->getpoint(RRECT_Top, true);
+				else if (curpoint == RRECT_TopRight)    constant = data->getpoint(RRECT_BottomLeft, true);
+				else if (curpoint == RRECT_TopLeft)     constant = data->getpoint(RRECT_BottomRight, true);
+				else if (curpoint == RRECT_BottomRight) constant = data->getpoint(RRECT_TopLeft, true);
+				else if (curpoint == RRECT_BottomLeft)  constant = data->getpoint(RRECT_TopRight, true);
 				data->origin(data->origin() + ref_point - constant);
 			} else { //preserve original center
 				data->origin(data->origin() + ref_point2 - data->getpoint(RRECT_Center, true));
 			}
 
+			data->FindBBox();
 			Modified();
 
 		} else if (curpoint == RRECT_DragRect) {
