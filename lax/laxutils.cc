@@ -1190,6 +1190,39 @@ flatpoint *draw_thing_coordinates(DrawThingTypes thing, flatpoint *buffer, int b
 		}
 		buffer[9].info = LINE_Closed;
 
+	} else if (thing == THING_Pin || thing == THING_PinCentered) {
+		// a pin with the tip pointing downward at (.5,0)
+		// center of the round part is at *****
+		if ((buffer && buffer_size < 8) || (!buffer && buffer_size >= 0)) { *n_ret = 8; return nullptr; }
+		*n_ret = 8;
+		if (!buffer) buffer = new flatpoint[8];
+
+		double tip_angle = M_PI/3; // 60 degrees
+		double r = 1/(1+1/sin(tip_angle/2));
+		double x = 1-2*r;
+		double a = bez_arc_handle_length(r, M_PI/2 + tip_angle/2);
+		double xx = sqrt((r+x)*(r+x) - r*r);
+		flatvector v(xx*cos(M_PI/2 - tip_angle/2), xx*sin(M_PI/2 - tip_angle/2));
+
+		buffer[0] = flatpoint(.5,0);
+		buffer[1] = flatpoint(.5+v.x, v.y);
+		v.normalize();
+		v *= a;
+		buffer[2] = buffer[1] + flatpoint(v.x, v.y); buffer[2].info = LINE_Bez;
+		buffer[3] = flatpoint(.5 + a, 1, LINE_Bez);
+		buffer[4] = flatpoint(.5,1);
+		buffer[5] = flatpoint(.5 - a, 1, LINE_Bez);
+		buffer[6] = flatpoint(1-buffer[2].x, buffer[2].y); buffer[6].info = LINE_Bez;
+		buffer[7] = flatpoint(1-buffer[1].x, buffer[1].y); buffer[7].info = LINE_Closed;
+
+		if (thing == THING_PinCentered) {
+			double scale = .5 / (r+x);
+			for (int c=0; c<8; c++) {
+				buffer[c].x = (buffer[c].x - .5)*scale + .5;
+				buffer[c].y *= scale;
+			}
+		}
+
 	} else {
 		DBG cerr <<" *** must fully implement draw_thing_coordinates()"<<endl;
 		if (n_ret) *n_ret=0;

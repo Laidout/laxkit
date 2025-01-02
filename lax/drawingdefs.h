@@ -159,6 +159,8 @@ enum DrawThingTypes {
 	THING_Wrench,
 	THING_Star,
 	THING_Gear,
+	THING_Pin,
+	THING_PinCentered,
 
 	THING_MAX
 };
