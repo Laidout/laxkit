@@ -332,10 +332,17 @@ void SliderInterface::DrawLabel()
 	if (!info->label.IsEmpty()) {
 		dp->NewFG(info->graphic_fill);
 		dp->font(curwindow->win_themestyle->normal, UIScale()*curwindow->win_themestyle->normal->textheight());
-		if (info->current > (info->max + info->min)/2)
-			 dp->textout(bounds.minx,bounds.miny, info->label.c_str(),-1, LAX_TOP|LAX_LEFT);
-		else dp->textout(bounds.maxx,bounds.miny, info->label.c_str(),-1, LAX_TOP|LAX_RIGHT);
+		Utf8String str("%s: %g", info->label.c_str(), info->current);
+		
+		// if (info->current > (info->max + info->min)/2)
+		// 	 dp->textout(bounds.minx,bounds.miny, info->label.c_str(),-1, LAX_TOP|LAX_LEFT);
+		// else dp->textout(bounds.maxx,bounds.miny, info->label.c_str(),-1, LAX_TOP|LAX_RIGHT);
+		//------
+		dp->textout(bounds.minx,bounds.miny, str.c_str(),-1, LAX_TOP|LAX_LEFT);
 	}
+
+	DBG dp->LineWidthScreen(1);
+	DBG dp->drawrectangle(bounds, 0);
 }
 
 int SliderInterface::Refresh()
