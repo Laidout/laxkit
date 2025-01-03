@@ -87,6 +87,7 @@ class StackFrame : public anXWindow, public ListBox
 					int nph,int nhs,int nhg,int nvalign,int nvgap,
 					int where=-1);
 	virtual int Remove(int which);
+	virtual void MarkForLayout() { needtolayout = true; }
 	virtual Attribute *dump_out_atts(Attribute *att,int what,DumpContext *context);
 	virtual void dump_in_atts(Attribute *att,int flag,DumpContext *context);
 

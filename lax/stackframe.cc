@@ -131,6 +131,8 @@ int StackFrame::init()
 	DBG }
 
 	anXWindow::init();
+	if (win_w > 0) w(win_w);
+	if (win_h > 0) h(win_h);
 	ListBox::sync();
 	RebuildPos(true);
 	//SyncFromPos(false);
@@ -194,7 +196,7 @@ void StackFrame::Refresh()
 		if (win_style & STACKF_BEVEL) {
 			dp->drawBevel(gap/2, highlight,shadow, LAX_OFF, b->x()-gap/2,b->y()-gap/2, b->w()+gap,b->h()+gap);
 
-		} else {
+		} else if (!(win_style & STACKF_NOT_SIZEABLE) && gap > 0) {
 			// draw little dots on draggable bars if gap>0
 			dp->NewFG(dots);
 			if (i == NumVisibleBoxes()-1) continue;
@@ -558,12 +560,12 @@ int StackFrame::MoveBar(int index, int pixelamount, int shift)
 	return 0;
 }
 
-//! Use the given value for the pixel gap between windows.
+//! Use the given value for the pixel gap between windows. If < 0, use the current value.
 /*! This does not SyncFromPos() the windows.
  */
 int StackFrame::Gap(int ngap)
 {
-	if (ngap >= 2) gap = ngap;
+	if (ngap >= 0) gap = ngap;
 	gap = (gap/2)*2;
 	return gap;
 }
