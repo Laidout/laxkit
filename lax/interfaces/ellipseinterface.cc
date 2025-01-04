@@ -260,11 +260,14 @@ int EllipseData::GetPath(int which, flatpoint *pts_ret)
 {
 	if (which == 2) { //inner only, without wedge
 		bez_ellipse(pts_ret, 4, center.x, center.y, inner_r*a, inner_r*b, x,y, start,end);
+		pts_ret[11].info |= LINE_Closed;
 		return 12;
 	}
 	
 	bez_ellipse(pts_ret, 4, center.x, center.y, a, b, x,y, start,end);
-	if (which != 3) return 12; //outer only, without wedge
+	if (which != 3) {
+		return 12; //outer only, without wedge
+	}
 
 	// add inner points
 	if (fabs(inner_r) < 1e-10) { // no inner ring
@@ -275,6 +278,7 @@ int EllipseData::GetPath(int which, flatpoint *pts_ret)
 				v = (pts_ret[10] - pts_ret[1])/3;
 				pts_ret[0] = pts_ret[1] - v;
 				pts_ret[11] = pts_ret[10] + v;
+				pts_ret[11].info |= LINE_Closed;
 
 			} else if (wedge_type == ELLIPSE_Open) {
 				pts_ret[11].info = LINE_Open;
@@ -287,8 +291,11 @@ int EllipseData::GetPath(int which, flatpoint *pts_ret)
 				v = (pts_ret[1] - center)/3;
 				pts_ret[14] = center + v;
 				pts_ret[0] = pts_ret[14] + v;
+				pts_ret[14].info |= LINE_Closed;
 				n = 15;
 			}
+		} else {
+			pts_ret[11].info |= LINE_Closed;
 		}
 		return n;
 	}
@@ -321,11 +328,12 @@ int EllipseData::GetPath(int which, flatpoint *pts_ret)
 			v = (pts_ret[1] - pts_ret[22])/3;
 			pts_ret[23] = pts_ret[22] + v;
 			pts_ret[0] = pts_ret[23] + v;
+			pts_ret[23].info |= LINE_Closed;
 		}
 
 	} else { //solid rings, only need to terminate first
-		pts_ret[11].info = LINE_Open;
-		pts_ret[23].info = LINE_Open;
+		pts_ret[11].info = LINE_Closed;
+		pts_ret[23].info = LINE_Closed;
 	}
 	return 24;
 }

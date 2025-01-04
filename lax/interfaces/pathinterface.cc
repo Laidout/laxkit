@@ -711,7 +711,8 @@ int Path::UseShapeBrush(ShapeBrush *newbrush)
 	return 0;
 }
 
-/*! Return 0 for success.
+/*! Link linestyle, replacing old linestyle.
+ * Return 0 for success.
  */
 int Path::Line(LineStyle *nlinestyle)
 {
@@ -2560,10 +2561,12 @@ void Path::AppendPath(Path *p, bool absorb_path, double merge_ends, int at)
 }
 
 /*! Control points (info & LINE_BEZ) in pts must occur in pairs, so vertex-bez-bez-vertex-vertex-...
+ * If a point has info & (LINE_End|LINE_Open|LINE_Closed) then return the following index in
+ * next_index_ret or -1 if end of points reached.
  */
-void Path::append(flatpoint *pts, int n)
+void Path::append(flatpoint *pts, int n, int *next_index_ret)
 {
-	Coordinate *coord = FlatpointToCoordinate(pts,n);
+	Coordinate *coord = FlatpointToCoordinate(pts,n, next_index_ret);
 	append(coord);
 }
 
@@ -4979,6 +4982,28 @@ void PathsData::append(double x,double y,unsigned long flags,SegmentControls *ct
 	}
 	if (whichpath<0) whichpath=0;
 	paths.e[whichpath]->append(x,y,flags,ctl);
+}
+
+/*! Append points from flatpoint array. if next_index_ret != null, then only append the first
+ * path found in pts and return the index in pts that would start a next path.
+ * If next_index_ret == null, then append all paths found in pts.
+ *
+ * If a point has info & (LINE_End|LINE_Open|LINE_Closed), that signals the next point
+ * starts a new path.
+ */
+void PathsData::append(flatpoint *pts, int n, int *next_index_ret)
+{
+	int next = 0;
+	int c = paths.n;
+	while (next >= 0 && next != n) {
+		if (c >= paths.n) pushEmpty();
+		paths.e[c]->append(pts + next, n - next, &next);
+		c++;
+		if (next_index_ret) {
+			*next_index_ret = next;
+			return;
+		}
+	}
 }
 
 /*! Starts a new subpath. If whichpath>=0, then make the subpath at that index, otherwise add to end.

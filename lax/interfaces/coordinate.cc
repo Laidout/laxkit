@@ -1099,37 +1099,47 @@ flatpoint *CoordinateToFlatpoint(Coordinate *coord, int *n_ret)
 
 /*! Points marked with LINE_Bez must occur in pairs, thus:
  * vertex-bez-bez-vertex-vertex-vertex-bez-bez-vertex-etc
+ *
+ * Line will terminate on any point.info with LINE_Open|LINE_Closed|LINE_End.
+ * In that case, the next index will be returned in next_index_ret, or -1 if none.
  */
-Coordinate *FlatpointToCoordinate(flatpoint *points, int n)
+Coordinate *FlatpointToCoordinate(flatpoint *points, int n, int *next_index_ret)
 {
-	if (!points || n==0) return NULL;
+	if (!points || n == 0) return nullptr;
 
-	Coordinate *p=NULL, *path=NULL;
+	Coordinate *p = nullptr, *path = nullptr;
+	if (next_index_ret) *next_index_ret = -1;
 
-
-	int onbez=-1;
-	for (int c=0; c<n; c++) {
-		if (points[c].info&LINE_Bez) {
-			if (onbez==-1) {
-				if (points[c+1].info&LINE_Bez) onbez=POINT_TOPREV;
-				else onbez=POINT_TONEXT;
-			} else if (onbez==POINT_VERTEX) onbez=POINT_TOPREV;
-			else if (onbez==POINT_TOPREV) onbez=POINT_TONEXT;
-			else onbez=POINT_VERTEX; // <- note this shouldn't happen
-		} else onbez=POINT_VERTEX;
+	int onbez = -1;
+	int c;
+	for (c=0; c<n; c++) {
+		if (points[c].info & LINE_Bez) {
+			if (onbez == -1) {
+				if (points[c+1].info&LINE_Bez) onbez = POINT_TOPREV;
+				else onbez = POINT_TONEXT;
+			} else if (onbez == POINT_VERTEX) onbez = POINT_TOPREV;
+			else if (onbez == POINT_TOPREV) onbez = POINT_TONEXT;
+			else onbez = POINT_VERTEX; // <- note this shouldn't happen
+		} else onbez = POINT_VERTEX;
 
 		if (!path) {
-			p=path=new Coordinate(points[c], onbez, NULL);
+			p = path = new Coordinate(points[c], onbez, nullptr);
 		} else {
-			p->next=new Coordinate(points[c], onbez, NULL);
-			p->next->prev=p;
-			p=p->next;
+			p->next = new Coordinate(points[c], onbez, nullptr);
+			p->next->prev = p;
+			p = p->next;
 		}
+
+		if (points[c].info & (LINE_Open|LINE_Closed|LINE_End)) break;
 	}
 
-	if (points[n-1].info&LINE_Closed) {
-		p->next=path;
-		path->prev=p;
+	if (c < n && (points[c].info & LINE_Closed)) {
+		p->next = path;
+		path->prev = p;
+	}
+
+	if (c < n && (points[c].info & (LINE_Open|LINE_Closed|LINE_End))) {
+		if (next_index_ret) *next_index_ret = c+1;
 	}
 
 	return path;

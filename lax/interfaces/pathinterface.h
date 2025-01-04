@@ -128,7 +128,7 @@ class Path : virtual public Laxkit::anObject,
 	virtual void append(double x,double y,unsigned long flags=POINT_VERTEX,SegmentControls *ctl=NULL);
 	virtual void append(Laxkit::flatpoint p,unsigned long flags=POINT_VERTEX,SegmentControls *ctl=NULL);
 	virtual void append(Coordinate *coord);
-	virtual void append(Laxkit::flatpoint *pts, int n);
+	virtual void append(Laxkit::flatpoint *pts, int n, int *next_index_ret = nullptr);
 	virtual void appendBezFromStr(const char *value);
 	virtual void AppendPath(Path *p, bool absorb_path, double merge_ends, int at = -1);
 	virtual int MakeRoundedRect(double x, double y, double w, double h, Laxkit::flatpoint *sizes, int numsizes);
@@ -253,6 +253,7 @@ class PathsData : virtual public SomeData
 	virtual void appendCoord(Coordinate *coord,int whichpath=-1);
 	virtual void append(double x,double y,unsigned long flags=POINT_VERTEX,SegmentControls *ctl=NULL,int whichpath=-1);
 	virtual void append(Laxkit::flatpoint p,unsigned long flags=POINT_VERTEX,SegmentControls *ctl=NULL,int whichpath=-1);
+	virtual void append(Laxkit::flatpoint *pts, int n, int *next_index_ret = nullptr);
 	virtual void appendRect(double x,double y,double w,double h,SegmentControls *ctl=NULL,int whichpath=-1);
 	virtual bool appendRect(DoubleBBox *box, int whichpath=-1);
 	virtual int MakeRoundedRect(int pathi, double x, double y, double w, double h, Laxkit::flatpoint *sizes, int numsizes);

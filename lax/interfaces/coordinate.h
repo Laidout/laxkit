@@ -167,7 +167,7 @@ class CoordinateAnchor : public Coordinate
 //----------------------------------- Coordinate Shape Makers ----------------------------------
 
 int CoordinateToFlatpoint(Coordinate *coord, Laxkit::flatpoint **pts);
-Coordinate *FlatpointToCoordinate(Laxkit::flatpoint *points, int n);
+Coordinate *FlatpointToCoordinate(Laxkit::flatpoint *points, int n, int *next_index_ret = nullptr);
 Coordinate *CoordinatePolygon(Laxkit::flatpoint center, double radius, bool point_on_x_axis, int num_sides, int num_winding);
 //Coordinate RoundedRectangle(Laxkit::flatpoint ll, flatpoint ur, double round,double round2);
 

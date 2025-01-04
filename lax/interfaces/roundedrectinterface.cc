@@ -194,6 +194,8 @@ void RoundedRectData::FindBBox()
  * 
  * Returned points are c-v-c-c-v-c-c-v-c-c-v-c...
  * Return value is the number of points written to pts_ret.
+ *
+ * If pts_ret == nullptr, then return how many points must be allocated.
  */
 int RoundedRectData::GetPath(flatpoint *pts_ret)
 {
@@ -228,8 +230,12 @@ int RoundedRectData::GetPath(flatpoint *pts_ret)
 	// }
 
 	MakeRoundedRect(minx, miny, maxx-minx, maxy-miny, r, 4, pts); // returns v-c-c-v-...-c-c
-	for (int c=0; c<pts.n; c++) {
-		pts_ret[c] = pts[(c+pts.n-1)%pts.n];
+	if (pts_ret) {
+		for (int c=0; c<pts.n; c++) {
+			pts_ret[c] = pts[(c+pts.n-1)%pts.n];
+			pts_ret[c].info = (pts_ret[c].info & ~(LINE_End|LINE_Open|LINE_Closed));
+		}
+		pts_ret[pts.n-1].info |= LINE_Closed;
 	}
 
 	return pts.n;
@@ -514,7 +520,7 @@ LineStyle *RoundedRectInterface::DefaultLineStyle()
 	if (!default_linestyle) {
 		default_linestyle = new LineStyle();
 		default_linestyle->color.rgbf(1., 0, 0);
-		default_linestyle->width = .1;
+		default_linestyle->width = .2;
 	}
 
 	return default_linestyle;
