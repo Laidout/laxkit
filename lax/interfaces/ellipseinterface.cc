@@ -1355,9 +1355,13 @@ int EllipseInterface::Event(const Laxkit::EventData *e,const char *mes)
 {
 	const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(e);
 	if (!data || !s || isblank(s->str)) return 1;
-	double num = strtod(s->str, nullptr);
+	char *endptr = nullptr;
+	double num = strtod(s->str, &endptr);
+	bool bad_parse = false;
+	if (endptr == s->str) bad_parse = true;
 
 	if (!strcmp(mes,"focus_num")) {
+		if (bad_parse) { PostMessage(_("Bad value")); return 0; }
 		if (num < 0) { PostMessage(_("Number must be non-negative")); return 0; }
 		flatpoint f1,f2;
 		double c;
@@ -1369,20 +1373,24 @@ int EllipseInterface::Event(const Laxkit::EventData *e,const char *mes)
 		data->SetFoci(center - num * v, center + num * v, c);
 
 	} else if (!strcmp(mes,"a_num")) {
+		if (bad_parse) { PostMessage(_("Bad value")); return 0; }
 		if (num < 0) { PostMessage(_("Number must be non-negative")); return 0; }
 		data->a = num;
 
 	} else if (!strcmp(mes,"b_num")) {
+		if (bad_parse) { PostMessage(_("Bad value")); return 0; }
 		if (num < 0) { PostMessage(_("Number must be non-negative")); return 0; }
 		data->b = num;
 
 	} else if (!strcmp(mes,"c_num")) {
+		if (bad_parse) { PostMessage(_("Bad value")); return 0; }
 		flatpoint f1,f2;
 		data->GetFoci(&f1, &f2, nullptr);
 		if (num < norm(f1-f2)) { PostMessage(_("Number must be greater than distance between foci")); return 0;}
 		data->SetFoci(f1,f2, num);
 
 	} else if (!strcmp(mes,"r_num")) {
+		if (bad_parse) { PostMessage(_("Bad value")); return 0; }
 		// double old = (ref_point - data->center).norm();
 		// double scale = num/old;
 		if (num <= 0) { PostMessage(_("Number must be positive")); return 0; }
@@ -1390,16 +1398,20 @@ int EllipseInterface::Event(const Laxkit::EventData *e,const char *mes)
 		data->b *= num;
 
 	} else if (!strcmp(mes,"inner_num")) {
+		if (bad_parse) { PostMessage(_("Bad value")); return 0; }
 		if (num < 0) { PostMessage(_("Number must be non-negative")); return 0; }
 		data->inner_r = num;
 
 	} else if (!strcmp(mes,"start_num")) {
+		if (bad_parse) { PostMessage(_("Bad value")); return 0; }
 		data->start = num * M_PI/180;
 
 	} else if (!strcmp(mes,"end_num")) {
+		if (bad_parse) { PostMessage(_("Bad value")); return 0; }
 		data->end = num * M_PI/180;
 
 	} else if (!strcmp(mes,"set_width")) {
+		if (bad_parse) { PostMessage(_("Bad value")); return 0; }
 		if (num < 0) { PostMessage(_("Number must be non-negative")); return 0; }
 		data->linestyle->width = num;
 
