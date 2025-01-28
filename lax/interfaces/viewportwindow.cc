@@ -859,6 +859,7 @@ anInterface *ViewportWindow::Pop(anInterface *i, bool deletetoo)
 	if (c<0) return NULL;
 	DBG cerr <<".....popping "<<i->whattype()<<endl;
 	i->InterfaceOff();
+	if (temp_input) ClearInputBox();
 
 	if (i==copysource) { copysource->dec_count(); copysource=NULL; }
 	if (i==pastedest)  { pastedest ->dec_count(); pastedest=NULL;  }
