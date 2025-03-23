@@ -78,6 +78,7 @@ namespace Laxkit {
 #define LAX_BOTTOM    (1<<7)
 #define LAX_BASELINE  (1<<8)
 #define LAX_CENTER    (1<<1|1<<6)
+#define LAX_FLIP      (1<<9)
 
 typedef enum {
 	LAX_CUSTOM_ALIGNMENT=0,
