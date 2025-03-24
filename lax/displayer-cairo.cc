@@ -1234,7 +1234,7 @@ int DisplayerCairo::textheight()
 int DisplayerCairo::font(LaxFont *nfont, double size)
 {
 	LaxFontCairo *cairofont=dynamic_cast<LaxFontCairo*>(nfont);
-    if (!cairofont) return 1;
+	if (!cairofont) return 1;
 
 	if (size<0) size=nfont->textheight();
 
@@ -1469,25 +1469,25 @@ double DisplayerCairo::textout_line(double x,double y,const char *str,int len,un
 	cairo_text_extents_t extents;
 	cairo_text_extents(cr, tbuffer, &extents);
 
-    double ox,oy;
+	double ox,oy;
 	if (align & LAX_LEFT) ox = x;
 	else if (align & LAX_RIGHT) ox = x-extents.width;
-	else ox = x-extents.width/2; //center
+	else ox = x - extents.width/2; //center
 
-    if (align & LAX_TOP) oy=y+curfont_extents.ascent;
-    else if (align & LAX_BOTTOM) oy=y-(curfont_extents.height-curfont_extents.ascent);
-    else if (align & LAX_BASELINE) oy=y;
-    else oy=y - (curfont_extents.height)/2 + curfont_extents.ascent; //center
+	if (align & LAX_TOP) oy = y + curfont_extents.ascent;
+	else if (align & LAX_BOTTOM) oy = y - (curfont_extents.height-curfont_extents.ascent);
+	else if (align & LAX_BASELINE) oy = y;
+	else oy = y - (curfont_extents.height)/2 + curfont_extents.ascent; //center
 
 
 	cairo_move_to(cr, ox,oy);
-	if (len==0) return 0;
+	if (len == 0) return 0;
 
-	if (laxfont->Layers()==1) cairo_show_text(cr, tbuffer);
+	if (laxfont->Layers() == 1) cairo_show_text(cr, tbuffer);
 	else {
 		 //layered color font...
 		LaxFontCairo *f = laxfont;
-		int l=0;
+		int l = 0;
 		cairo_save(cr);
 		Palette *fpalette=dynamic_cast<Palette*>(f->GetColor());
 		if (!fpalette) fpalette=palette;
@@ -1506,7 +1506,7 @@ double DisplayerCairo::textout_line(double x,double y,const char *str,int len,un
 			cairo_move_to(cr, ox,oy);
 			cairo_set_font_face(cr,f->font);
 			cairo_show_text(cr, tbuffer);
-			f=dynamic_cast<LaxFontCairo*>(f->NextLayer());
+			f = dynamic_cast<LaxFontCairo*>(f->NextLayer());
 			l++;
 		}
 		cairo_restore(cr);
@@ -1541,42 +1541,42 @@ double DisplayerCairo::glyphsout(double x,double y, GlyphPlace *glyphs,GlyphPlac
 	double current_x=0;
 	double current_y=0;
 
-    for (unsigned int i = 0; i < numglyphs; i++)
-    {
+	for (unsigned int i = 0; i < numglyphs; i++)
+	{
 		if (glyphs) glyph = &glyphs[i];
 		else glyph = glyphsp[i];
 
-        cairo_glyphs[i].index = glyph->index;
-        cairo_glyphs[i].x =   current_x + glyph->x_offset;
-        cairo_glyphs[i].y =   current_y + glyph->y_offset;
+		cairo_glyphs[i].index = glyph->index;
+		cairo_glyphs[i].x =   current_x + glyph->x_offset;
+		cairo_glyphs[i].y =   current_y + glyph->y_offset;
 
-        current_x += glyph->x_advance;
-        current_y += glyph->y_advance;
-    }
+		current_x += glyph->x_advance;
+		current_y += glyph->y_advance;
+	}
 
 
 	cairo_text_extents_t extents;
 	cairo_glyph_extents(cr, cairo_glyphs, numglyphs, &extents);
 
-    double ox,oy;
+	double ox,oy;
 	if (align&LAX_LEFT) ox=x;
 	else if (align&LAX_RIGHT) ox=x-extents.width;
 	else ox=x-extents.width/2; //center
 
-    if (align&LAX_TOP) oy=y+curfont_extents.ascent;
-    else if (align&LAX_BOTTOM) oy=y-(curfont_extents.height-curfont_extents.ascent);
-    else if (align&LAX_BASELINE) oy=y;
-    else oy=y - (curfont_extents.height)/2 + curfont_extents.ascent; //center
+	if (align&LAX_TOP) oy=y+curfont_extents.ascent;
+	else if (align&LAX_BOTTOM) oy=y-(curfont_extents.height-curfont_extents.ascent);
+	else if (align&LAX_BASELINE) oy=y;
+	else oy=y - (curfont_extents.height)/2 + curfont_extents.ascent; //center
 
 	//cairo_move_to(cr, ox,oy); <- seems to have no effect on glyph placements
-    for (unsigned int i = 0; i < numglyphs; i++)
-    {
-        cairo_glyphs[i].x += ox;
-        cairo_glyphs[i].y += oy;
-    }
+	for (unsigned int i = 0; i < numglyphs; i++)
+	{
+		cairo_glyphs[i].x += ox;
+		cairo_glyphs[i].y += oy;
+	}
 
 	if (laxfont->Layers()==1) {
-	    cairo_show_glyphs(cr, cairo_glyphs, numglyphs);
+		cairo_show_glyphs(cr, cairo_glyphs, numglyphs);
 	} else {
 		 //layered color font...
 		LaxFontCairo *f = laxfont;
@@ -1624,18 +1624,18 @@ double DisplayerCairo::glyphsextent(GlyphPlace *glyphs,GlyphPlace **glyphsp, uns
 	GlyphPlace *glyph;
 	double current_x=0;
 	double current_y=0;
-    for (unsigned int i = 0; i < numglyphs; i++)
-    {
+	for (unsigned int i = 0; i < numglyphs; i++)
+	{
 		if (glyphs) glyph = &glyphs[i];
 		else glyph = glyphsp[i];
 
-        cairo_glyphs[i].index = glyph->index;
-        cairo_glyphs[i].x =   current_x + glyph->x_offset;
-        cairo_glyphs[i].y =   current_y + glyph->y_offset;
+		cairo_glyphs[i].index = glyph->index;
+		cairo_glyphs[i].x =   current_x + glyph->x_offset;
+		cairo_glyphs[i].y =   current_y + glyph->y_offset;
 
-        current_x += glyph->x_advance;
-        current_y += glyph->y_advance;
-    }
+		current_x += glyph->x_advance;
+		current_y += glyph->y_advance;
+	}
 
 	cairo_text_extents_t extents;
 	cairo_glyph_extents(cr, cairo_glyphs, numglyphs, &extents);
@@ -1656,31 +1656,31 @@ double DisplayerCairo::textout(double x,double y,const char *str,int len,unsigne
 	if (len < 0) len = strlen(str);
 	if (!len) return 0;
 
-    int n=0;
-    const char *nl=str;
-    do {
-        nl = strchr(nl,'\n');
-        if (nl-str >= len) break;
-        if (nl) nl++;
-        n++;
-    } while (nl);
+	int n=0;
+	const char *nl=str;
+	do {
+		nl = strchr(nl,'\n');
+		if (nl-str >= len) break;
+		if (nl) nl++;
+		n++;
+	} while (nl);
 
-    if (n==1 || n == 0) {
+	if (n==1 || n == 0) {
 		return textout_line(x,y, str,len, align);
 	}
 
-    const char *text = str;
-    int ret = 0;
-    int h = n*textheight();
+	const char *text = str;
+	int ret = 0;
+	int h = n*textheight();
 	flatpoint p;
 
-    int valign = align&(LAX_TOP|LAX_BOTTOM|LAX_VCENTER|LAX_BASELINE);
-    align = align&(LAX_LEFT|LAX_HCENTER|LAX_RIGHT);
-    if (valign == LAX_VCENTER) y-=h/2;
-    else if (valign == LAX_BOTTOM) y-=h;
+	int valign = align&(LAX_TOP|LAX_BOTTOM|LAX_VCENTER|LAX_BASELINE);
+	align = align&(LAX_LEFT|LAX_HCENTER|LAX_RIGHT);
+	if (valign == LAX_VCENTER) y-=h/2;
+	else if (valign == LAX_BOTTOM) y-=h;
 
-    int llen;
-    do {
+	int llen;
+	do {
 		nl = strchr(text, '\n');
 		if (!nl) {
 			llen = strlen(text);
@@ -1698,7 +1698,7 @@ double DisplayerCairo::textout(double x,double y,const char *str,int len,unsigne
 			if (!*text) nl = text;
 		} else len -= llen;
 	} while (*nl && len > 0);
-    return ret;
+	return ret;
 }
 
 double DisplayerCairo::textout(double *matrix,double x,double y,const char *str,int len,unsigned long align)
@@ -1716,24 +1716,29 @@ double DisplayerCairo::textout(double *matrix,double x,double y,const char *str,
 
 double DisplayerCairo::textout(double angle,double x,double y,const char *str,int len,unsigned long align)
 { 
-    double mm[6];
-    transform_identity(mm);
-    mm[4]-=x;
-    mm[5]-=y;
+	double mm[6];
+	transform_identity(mm);
+	mm[4] -= x;
+	mm[5] -= y;
 
-     //do a rotation
-    double r[6],s[6];
-    r[4]=r[5]=0;
-    r[0]=cos(angle);
-    r[1]=-sin(angle);
-    r[2]=sin(angle);
-    r[3]=cos(angle);
-    transform_mult(s,mm,r);
-    transform_copy(mm,s);
+	 //do a rotation
+	double r[6], s[6];
+	r[4] = r[5] = 0;
+	r[0] = cos(angle);
+	r[1] = -sin(angle);
+	r[2] = sin(angle);
+	r[3] = cos(angle);
+	if (align & LAX_FLIP) {
+		r[2] = -r[2];
+		r[3] = -r[3];
+	}
+	transform_mult(s,mm,r);
+	// transform_copy(mm,s);
 
-    mm[4]+=x;
-    mm[5]+=y;
+	s[4] += x;
+	s[5] += y;
 
+	transform_mult(mm, s,Getctm());
 
 	cairo_save(cr);
 	cairo_matrix_t m;
@@ -1742,7 +1747,7 @@ double DisplayerCairo::textout(double angle,double x,double y,const char *str,in
 	//cairo_translate(cr,-x,-y); <- why doesn't this work!?!?!
 	//cairo_rotate(cr,angle);
 	//cairo_translate(cr,x,y);
-	double d=textout(x,y,str,len,align);
+	double d = textout(x,y,str,len,align);
 	cairo_restore(cr);
 	return d;
 }
