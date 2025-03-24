@@ -82,7 +82,7 @@ class TextOnPath : virtual public SomeData
 	double textpathlen; //distance along path that text actually occupies
 	std::clock_t cachetime;
 
-	bool link_to_parent;
+	bool link_to_parent; // text should be mapped onto parent path object
 	ObjectContext *pathcontext; //link to another object, relative to ourself
 	PathsData *paths; //if !pathcontext, a local PathsData to use as the reference path. Else points to pathcontext->obj.
 	int pathindex; //path to use within paths
@@ -152,6 +152,7 @@ enum TextOnPathActions {
 	TPATH_Baseline,
 	TPATH_BaselineUp,
 	TPATH_BaselineDown,
+	TPATH_ResetBaseline,
 	TPATH_Offset,
 	TPATH_OffsetDec,
 	TPATH_OffsetInc,
