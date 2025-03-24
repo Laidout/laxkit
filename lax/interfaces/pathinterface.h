@@ -65,12 +65,12 @@ class PathWeightNode
 	double center_t; //t position on cached centerline (todo)
 
 	enum PathWeightNodeTypes {
-		Default=0,
-		Width      =(1<<0),
-		Offset     =(1<<1),
-		DualOffset =(1<<2),
-		Angle      =(1<<3),
-		AbsAngle   =(1<<4)
+		Default    = 0,
+		Width      = (1<<0),
+		Offset     = (1<<1),
+		DualOffset = (1<<2),
+		Angle      = (1<<3),
+		AbsAngle   = (1<<4)
 	};
 	int nodetype; //or'd PathWeightNodeTypes
 
