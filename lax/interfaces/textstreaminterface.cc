@@ -27,12 +27,12 @@
 #include <lax/interfaces/somedatafactory.h>
 #include <lax/interfaces/interfacemanager.h>
 #include <lax/interfaces/pathinterface.h>
+#include <lax/fontdialog.h>
 #include <lax/laxutils.h>
 #include <lax/language.h>
 
 
-//You need this if you use any of the Laxkit stack templates in lax/lists.h
-#include <lax/lists.cc>
+#include <lax/debug.h>
 
 
 using namespace Laxkit;
@@ -50,7 +50,8 @@ namespace LaxInterfaces {
 
 /*! \class TextStreamInterface
  * \ingroup interfaces
- * \brief Interface to easily adjust mouse pressure map for various purposes.
+ * Interface to select an object to stream text upon.
+ * It can scan for both inside an object area, or on the path of an object.
  */
 
 
@@ -59,34 +60,37 @@ TextStreamInterface::TextStreamInterface(anInterface *nowner, int nid, Displayer
 {
 	tstream_style = TXT_On_Stroke | TXT_In_Area | TXT_Draggable_Area;
 
-	showdecs=1;
-	needtodraw=1;
+    showdecs   = 1;
+    needtodraw = 1;
 
-	sc=NULL; //shortcut list, define as needed in GetShortcuts()
+    sc = nullptr; // shortcut list, define as needed in GetShortcuts()
 
-	extrahover=NULL;
-	extra_hover=0;
-	outline_index=-1;
+    extrahover    = nullptr;
+    extra_hover   = 0;
+    outline_index = -1;
 
-	flowdir.x = 1;
-	fontheight = 36./72;
-	close_dist = 20;
+    flowdir.x    = 1;
+    close_dist   = 20;
+    fontheight   = 36. / 72;
+    default_font = nullptr;
 
-	outline.style |= PathsData::PATHS_Ignore_Weights;
+    sample_text = _("Aa");
+
+    outline.style |= PathsData::PATHS_Ignore_Weights;
 	ScreenColor color(1.,0.,1.,1.);
 	outline.line(2, -1, -1, &color);
-	outline.linestyle->widthtype=0;//screen width
+	outline.linestyle->widthtype = 0;//screen width
 }
 
 TextStreamInterface::~TextStreamInterface()
 {
 	if (sc) sc->dec_count();
-	if (extrahover) { delete extrahover; extrahover=NULL; }
+	if (extrahover) { delete extrahover; extrahover = nullptr; }
 }
 
 const char *TextStreamInterface::whatdatatype()
 { 
-	return NULL; // NULL means this tool is creation only, it cannot edit existing data automatically
+	return nullptr; // nullptr means this tool is creation only, it cannot edit existing data automatically
 }
 
 /*! Name as displayed in menus, for instance.
@@ -96,12 +100,12 @@ const char *TextStreamInterface::Name()
 
 
 //! Return new TextStreamInterface.
-/*! If dup!=NULL and it cannot be cast to TextStreamInterface, then return NULL.
+/*! If dup!=nullptr and it cannot be cast to TextStreamInterface, then return nullptr.
  */
 anInterface *TextStreamInterface::duplicate(anInterface *dup)
 {
-	if (dup==NULL) dup=new TextStreamInterface(NULL,id,NULL);
-	else if (!dynamic_cast<TextStreamInterface *>(dup)) return NULL;
+	if (dup==nullptr) dup=new TextStreamInterface(nullptr,id,nullptr);
+	else if (!dynamic_cast<TextStreamInterface *>(dup)) return nullptr;
 	return anInterface::duplicate(dup);
 }
 
@@ -111,7 +115,7 @@ int TextStreamInterface::UseThis(anObject *nobj, unsigned int mask)
 {
 //	if (!nobj) return 1;
 //	LineStyle *ls=dynamic_cast<LineStyle *>(nobj);
-//	if (ls!=NULL) {
+//	if (ls!=nullptr) {
 //      ***
 //		needtodraw=1;
 //		return 1;
@@ -123,10 +127,10 @@ int TextStreamInterface::UseThis(anObject *nobj, unsigned int mask)
  * the interface stack of a viewport.
  */
 int TextStreamInterface::InterfaceOn()
-{ 
-	showdecs=1;
-	needtodraw=1;
-	return 0;
+{
+    showdecs = 1;
+    needtodraw = 1;
+    return 0;
 }
 
 /*! Any cleanup when an interface is deactivated, which usually means when it is removed from
@@ -134,8 +138,8 @@ int TextStreamInterface::InterfaceOn()
  */
 int TextStreamInterface::InterfaceOff()
 { 
-	Clear(NULL);
-	if (extrahover) { delete extrahover; extrahover=NULL; }
+	Clear(nullptr);
+	if (extrahover) { delete extrahover; extrahover=nullptr; }
 	showdecs=0;
 	needtodraw=1;
 	return 0;
@@ -152,32 +156,37 @@ void TextStreamInterface::ViewportResized()
 
 Laxkit::MenuInfo *TextStreamInterface::ContextMenu(int x,int y,int deviceid, Laxkit::MenuInfo *menu)
 { 
-//	if (no menu for x,y) return NULL;
-//
-//	if (!menu) menu=new MenuInfo;
-//	if (!menu->n()) menu->AddSep(_("Some new menu header"));
-//
-//	menu->AddItem(_("Create raw points"), FREEHAND_Raw_Path, LAX_ISTOGGLE|(istyle&FREEHAND_Raw_Path)?LAX_CHECKED:0);
-//	menu->AddItem(_("Some menu item"), SOME_MENU_VALUE);
-//	menu->AddSep(_("Some separator text"));
-//	menu->AddItem(_("Et Cetera"), SOME_OTHER_VALUE);
-//	return menu;
+	if (!menu) menu = new MenuInfo;
 
-	return NULL;
+	if (!menu->n()) menu->AddSep(_("Text stream"));
+
+	menu->AddItem(_("Default font..."), TXT_Font);
+
+	return menu;
 }
 
-int TextStreamInterface::Event(const Laxkit::EventData *data, const char *mes)
+int TextStreamInterface::Event(const Laxkit::EventData *e_data, const char *mes)
 {
-//    if (!strcmp(mes,"menuevent")) {
-//        const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(e_data);
-//        int i =s->info2; //id of menu item
-//
-//        if ( i==SOME_MENU_VALUE) {
-//			...
-//		}
-//
-//		return 0; 
-//	}
+   if (!strcmp(mes,"menuevent")) {
+		const SimpleMessage *s = dynamic_cast<const SimpleMessage*>(e_data);
+		int i = s->info2; //id of menu item
+
+		if ( i == TXT_Font) {
+			FontDialog *dialog = new FontDialog(nullptr, "Font",_("Font"),ANXWIN_REMEMBER, 10,10,700,700,0, object_id,"newfont",0,
+							nullptr, nullptr, default_font ? default_font->textheight() : fontheight, //fontfamily, fontstyle, fontsize,
+							nullptr, //sample text
+							default_font, true
+							);
+			app->rundialog(dialog);
+
+		}
+
+		return 0;
+
+	} else if (!strcmp(mes, "newfont")) {
+		DBGM("IMPLEMENT ME!!");
+		return 0;
+	}
 
 	return 1; //event not absorbed
 }
@@ -187,101 +196,71 @@ int TextStreamInterface::Event(const Laxkit::EventData *data, const char *mes)
 int TextStreamInterface::Refresh()
 {
 
-	if (needtodraw==0) return 0;
-	needtodraw=0;
+	if (needtodraw == 0) return 0;
+	needtodraw = 0;
 
 	DBG cerr <<"--------------TextStreamInterface::Refresh()-------------"<<endl;
 
 	if (extrahover) {
-		DBG cerr <<"--------------drawing extrahover-------------"<<endl;
+		DBG cerr <<"--------------drawing extrahover-------------"<<extra_hover<<endl;
 		dp->LineAttributes(1,LineSolid,CapRound,JoinRound);
 		
 		double m[6];
-		//viewport->transformToContext(m,extrahover,1,-1);
-		//dp->PushAndNewTransform(m);
 
 		viewport->transformToContext(m,extrahover,0,-1);
 		dp->PushAndNewTransform(m);
 
 		//draw path around object
-		dp->LineWidthScreen(3);
-		//dp->NewFG(255,255,255);
-		//dp->moveto(extrahover->obj->minx, extrahover->obj->miny);
-		//dp->lineto(extrahover->obj->maxx, extrahover->obj->miny);
-		//dp->lineto(extrahover->obj->maxx, extrahover->obj->maxy);
-		//dp->lineto(extrahover->obj->minx, extrahover->obj->maxy);
-		//dp->closed();
-		//dp->stroke(1);
-
-		//dp->LineWidthScreen(2);
+		dp->LineWidthScreen(3*ScreenLine());
 		dp->NewFG(255,0,255);
-		//dp->stroke(0);
-
+		outline.linestyle->width = 2*ScreenLine() * (extra_hover == TXT_Hover_Stroke ? 2 : 1);
 
 		InterfaceManager *imanager = InterfaceManager::GetDefault();
 		imanager->DrawDataStraight(dp, &outline);
+		outline.linestyle->width = 2*ScreenLine();
+		
+		//---------- Draw baselines
+		if (extra_hover == TXT_Hover_Area) {
+			dp->PushClip(0);
+			SetClipFromPaths(dp, &outline, nullptr, true);
 
-		//------------------
-		dp->PushClip(0);
-		SetClipFromPaths(dp, &outline, NULL, true);
-
-		DoubleBBox box;
-		box.addtobounds(extrahover->obj->minx, extrahover->obj->miny);
-		box.addtobounds(extrahover->obj->maxx, extrahover->obj->miny);
-		box.addtobounds(extrahover->obj->maxx, extrahover->obj->maxy);
-		box.addtobounds(extrahover->obj->minx, extrahover->obj->maxy);
+			DoubleBBox box;
+			box.addtobounds(extrahover->obj->minx, extrahover->obj->miny);
+			box.addtobounds(extrahover->obj->maxx, extrahover->obj->miny);
+			box.addtobounds(extrahover->obj->maxx, extrahover->obj->maxy);
+			box.addtobounds(extrahover->obj->minx, extrahover->obj->maxy);
 
 
-		flatpoint p1, p2;
-		flatpoint ydir = transpose(flowdir);
-		p1 = flatpoint(extrahover->obj->minx,extrahover->obj->miny);
-		//double mag = get_imagnification(m, 1,0);
+			flatpoint pp, p1, p2, mid;
+			flatpoint ydir = -transpose(flowdir);
+			pp = flatpoint(extrahover->obj->minx,extrahover->obj->maxy);
+			//double mag = get_imagnification(m, 1,0);
+			// double mm[6];
+			// transform_invert(mm, extrahover->obj->m());
 
-		for (int c=0; c<10; c++) {
-			p2 = p1 + flowdir*10;
+			for (int c = 0; ; c++) {
+				DBGM("drawing baseline "<<c);
+				flatline l(pp, pp + flowdir);
+				if (!extrahover->obj->IntersectWithLine(l, &p1, &p2, nullptr, nullptr)) break;
+				// mid = (p1 + p2)/2 + fontheight*.5*ydir;
+				// if (!extrahover->obj->pointin(extrahover->obj->transformPoint(mid))) break;
 
-			//p1 = flatpoint(outline.minx,outline.miny);
-			//dp->drawline(transform_point_inverse(outline.m(),p1), transform_point_inverse(outline.m(),p2));
-			//dp->drawline(transform_point(m,p1), transform_point(outline.m(), p2));
+				dp->drawline(p1, p2);
 
-			dp->drawline(p1, p2);
+				pp += fontheight * ydir;
+			}
 
-			p1+=fontheight*ydir;
-			//p1+=fontheight*ydir*mag;
+			dp->PopClip();
+
+		} else if (extra_hover == TXT_Hover_Stroke) {
+			dp->NewFG(100,100,255);
+			dp->drawarrow(hover_point, hover_direction, 0, 20*ScreenLine(), 0);
+			dp->fontsize(fontheight);
+			dp->textout(atan2(-hover_direction.y,hover_direction.x), hover_point.x,hover_point.y, sample_text.c_str(),-1, LAX_LEFT|LAX_BOTTOM|LAX_FLIP);
 		}
 
-		dp->PopClip();
 		dp->PopAxes(); 
-//		------------------
-//		dp->PopAxes(); 
-//		DoubleBBox box;
-//		box.addtobounds(transform_point(m, extrahover->obj->minx, extrahover->obj->miny));
-//		box.addtobounds(transform_point(m, extrahover->obj->maxx, extrahover->obj->miny));
-//		box.addtobounds(transform_point(m, extrahover->obj->maxx, extrahover->obj->maxy));
-//		box.addtobounds(transform_point(m, extrahover->obj->minx, extrahover->obj->maxy));
-//
-//
-//		flatpoint p1, p2;
-//		flatpoint ydir = transpose(flowdir);
-//		p1 = flatpoint(extrahover->obj->minx,extrahover->obj->miny);
-//		double mag = get_imagnification(m, 1,0);
-//
-//		for (int c=0; c<10; c++) {
-//			p2 = p1 + flowdir*10;
-//
-//			//p1 = flatpoint(outline.minx,outline.miny);
-//			//dp->drawline(transform_point_inverse(outline.m(),p1), transform_point_inverse(outline.m(),p2));
-//			//dp->drawline(transform_point(m,p1), transform_point(outline.m(), p2));
-//
-//			dp->drawline(p1, p2);
-//
-//			p1+=fontheight*ydir;
-//			//p1+=fontheight*ydir*mag;
-//		}
-//		------------------
-
 	}
-
 
 
 	//draw some text name
@@ -299,7 +278,7 @@ int TextStreamInterface::LBDown(int x,int y,unsigned int state,int count, const 
 {
 	buttondown.down(d->id,LEFTBUTTON,x,y);
 
-	if (extrahover) { delete extrahover; extrahover=NULL; }
+	if (extrahover) { delete extrahover; extrahover=nullptr; }
 
 	//int device=d->subid; //normal id is the core mouse, not the controlling sub device
 	//DBG cerr <<"device: "<<d->id<<"  subdevice: "<<d->subid<<endl;
@@ -320,43 +299,44 @@ int TextStreamInterface::LBUp(int x,int y,unsigned int state, const Laxkit::LaxM
 /*! Return what (x,y) is most near, plus the index of the path in extrahover.
  * Note: does not change the currently tracked object! Need to use Track() for that.
  */
-int TextStreamInterface::scan(int x,int y,unsigned int state, int &index, flatpoint &hovered)
+int TextStreamInterface::scanInCurrent(int x,int y,unsigned int state, int &index, flatpoint &hovered, float &hovered_t)
 {
 	if (!extrahover) return TXT_None;
-
 
 	double m[6];
 	flatpoint p = dp->screentoreal(x,y);
 	viewport->transformToContext(m,extrahover,0,1);
 	p = transform_point_inverse(m, p); //p should now be in object space
 
-
 	PathsData *pathsobj = dynamic_cast<PathsData*>(extrahover->obj);
-	if (pathsobj) {
+	if (pathsobj && search_on_outline) {
 
-		double dist=0, distalong=0, tdist=0;
-		//double mag = ;
+		double dist = 0, distalong = 0, tdist = 0;
 		int pathi;
 		flatpoint pp = pathsobj->ClosestPoint(p, &dist, &distalong, &tdist, &pathi);
 
 		// *** check distance within bounds
+		DBGM("--- dist: "<<dist<<"  distalong: "<<distalong<<"  tdist: "<<tdist<<"  fontsize: "<<fontheight)
+	
 		// *** check direction compared to path
 
-		if (pathi>=0) {
-			index=pathi;
-			hovered=pp;
+		if (pathi >= 0 && dist < fontheight*.5) {
+			index = pathi;
+			hovered = pp;
+			hovered_t = tdist;
+			pathsobj->PointAlongPath(index, tdist, 0, nullptr, &hover_direction);
 			return TXT_Hover_Stroke;
 		}
-
-	} else {
+	}
+	// else 
+	{ // can't resolve to a path, so just use object default in/out
 		if (extrahover->obj->pointin(extrahover->obj->transformPoint(p), 1)) {
-			index=0;
+			index = 0;
 			return TXT_Hover_Area;
 		}
-
 	}
 
-	index=-1;
+	index = -1;
 	return TXT_None;
 }
 
@@ -368,7 +348,7 @@ int TextStreamInterface::Track(ObjectContext *oc)
 {
 	if (!oc) {
 		DBG cerr <<" -- tracking nothing"<<endl;
-		if (extrahover) { delete extrahover; extrahover=NULL; }
+		if (extrahover) { delete extrahover; extrahover=nullptr; }
 		needtodraw=1;
 		DBG PostMessage("");
 		return 0;
@@ -380,7 +360,7 @@ int TextStreamInterface::Track(ObjectContext *oc)
 	if (extrahover && oc->isequal(extrahover)) return 0; //already tracked!
 
 	if (extrahover) delete extrahover; 
-	extrahover=oc->duplicate();
+	extrahover = oc->duplicate();
 
 	//determine inset path in which to lay text
 	//determine outline path.. depending on mode, we need:
@@ -415,41 +395,26 @@ int TextStreamInterface::DefineOutline(int which)
 	if (dynamic_cast<PathsData*>(extrahover->obj)) {
 		PathsData *paths = dynamic_cast<PathsData*>(extrahover->obj);
 
-		if (outline_index<0) outline_index=0;
+		if (outline_index < 0) outline_index = 0;
 		Path *npath = paths->GetOffsetPath(outline_index);
 		if (npath) outline.paths.push(npath); 
 		return 0;
 	}
 	
-	//  //create basic bounding box outline as default:
-	// Affine m = extrahover->obj->GetTransformToContext(false, 0);
-	// outline.moveTo(m.transformPoint(flatpoint(extrahover->obj->minx,extrahover->obj->miny)));
+	//create basic bounding box outline as default:
+	Affine m = extrahover->obj->GetTransformToContext(false, 0);
+	outline.moveTo(flatpoint(extrahover->obj->minx,extrahover->obj->miny));
 	// DBG Coordinate *cc=outline.LastVertex();
 	// DBG cerr <<"--hover\n  moveto: "<<cc->fp.x<<", "<<cc->fp.y<<endl;
 
-	// outline.lineTo(m.transformPoint(flatpoint(extrahover->obj->maxx,extrahover->obj->miny)));
-	// DBG cc=outline.LastVertex(); cerr <<"  lineto: "<<cc->fp.x<<", "<<cc->fp.y<<endl;
-
-	// outline.lineTo(m.transformPoint(flatpoint(extrahover->obj->maxx,extrahover->obj->maxy)));
-	// DBG cc=outline.LastVertex(); cerr <<"  lineto: "<<cc->fp.x<<", "<<cc->fp.y<<endl;
-
-	// outline.lineTo(m.transformPoint(flatpoint(extrahover->obj->minx,extrahover->obj->maxy)));
-	// DBG cc=outline.LastVertex(); cerr <<"  lineto: "<<cc->fp.x<<", "<<cc->fp.y<<endl;
-
-	 //create basic bounding box outline as default:
-	Affine m=extrahover->obj->GetTransformToContext(false, 0);
-	outline.moveTo(flatpoint(extrahover->obj->minx,extrahover->obj->miny));
-	DBG Coordinate *cc=outline.LastVertex();
-	DBG cerr <<"--hover\n  moveto: "<<cc->fp.x<<", "<<cc->fp.y<<endl;
-
 	outline.lineTo(flatpoint(extrahover->obj->maxx,extrahover->obj->miny));
-	DBG cc=outline.LastVertex(); cerr <<"  lineto: "<<cc->fp.x<<", "<<cc->fp.y<<endl;
+	// DBG cc=outline.LastVertex(); cerr <<"  lineto: "<<cc->fp.x<<", "<<cc->fp.y<<endl;
 
 	outline.lineTo(flatpoint(extrahover->obj->maxx,extrahover->obj->maxy));
-	DBG cc=outline.LastVertex(); cerr <<"  lineto: "<<cc->fp.x<<", "<<cc->fp.y<<endl;
+	// DBG cc=outline.LastVertex(); cerr <<"  lineto: "<<cc->fp.x<<", "<<cc->fp.y<<endl;
 
 	outline.lineTo(flatpoint(extrahover->obj->minx,extrahover->obj->maxy));
-	DBG cc=outline.LastVertex(); cerr <<"  lineto: "<<cc->fp.x<<", "<<cc->fp.y<<endl;
+	// DBG cc=outline.LastVertex(); cerr <<"  lineto: "<<cc->fp.x<<", "<<cc->fp.y<<endl;
 
 
 	outline.close();
@@ -459,50 +424,65 @@ int TextStreamInterface::DefineOutline(int which)
 
 int TextStreamInterface::MouseMove(int x,int y,unsigned int state, const Laxkit::LaxMouse *d)
 {
-
 	if (!buttondown.any()) {
-		int index=-1;
+		int index = -1;
 		flatpoint hovered;
-		int hover=scan(x,y,state, index,hovered); //searches for hits on last known object
+		float hovert;
+		int hover = scanInCurrent(x,y,state, index,hovered,hovert); //searches for hits on last known object
+		DBGM("----textstream hover: "<<hover)
 
-		if (hover==TXT_None) {
-			 //set up to outline potentially editable other captiondata
-			ObjectContext *oc=NULL;
-			int c=viewport->FindObject(x,y, NULL, NULL,1,&oc);
+		if (hover == TXT_None) {
+			// did not hover over part of current extrahover.
+			// search for new data to use.
+			ObjectContext *oc = nullptr;
+			int c = viewport->FindObject(x,y, nullptr, nullptr,1,&oc);
 
-			if (c>0) {
-				 //found object, so set up with it
+			if (c > 0) {
+				//found object, so set up with it
 				DBG cerr <<"textstream mouse over: "<<oc->obj->Id()<<endl;
 
-				needtodraw=1;
+				needtodraw = 1;
 				Track(oc);
-				hover = scan(x,y,state, index,hovered);
+				hover = scanInCurrent(x,y,state, index,hovered,hovert);
 				DefineOutline(index);
 
 				if (hover == TXT_None) hover = TXT_Hover_New;
-			} else Track(NULL); 
+			} else Track(nullptr); 
 		}
 
-		if (extrahover && hover==TXT_None) {
+		if (extrahover && hover == TXT_None) {
 			delete extrahover;
-			extrahover=NULL;
-			needtodraw=1;
+			extrahover = nullptr;
+			needtodraw = 1;
 		}
 
-		if (hover != TXT_Hover_New && outline_index != index) {
+		if (extrahover && hover != TXT_Hover_New && outline_index != index) {
 			DefineOutline(index);
-			needtodraw=1;
+			needtodraw = 1;
 		}
 
-		outline_index = index;
-		extra_hover = hover;
+		if (outline_index != index) {
+			outline_index = index;
+			needtodraw = 1;
+		}
+		if (extra_hover != hover) {
+			extra_hover = hover;
+			needtodraw = 1;
+		}
+		if (extra_hover == TXT_Hover_Stroke) {
+			if (hovert != hover_t || hovered != hover_point) {
+				hover_point = hovered;
+				hover_t = hovert;
+				needtodraw = 1;
+			}
+		}
 		return 0;
 	}
 
 	//else deal with mouse dragging...
 	
 
-	//needtodraw=1;
+	//needtodraw = 1;
 	return 0; //MouseMove is always called for all interfaces, return value doesn't inherently matter
 }
 
@@ -524,7 +504,7 @@ int TextStreamInterface::send()
 //		app->SendMessage(data,owner->object_id,"TextStreamInterface", object_id);
 //
 //	} else {
-//		if (viewport) viewport->NewData(paths,NULL);
+//		if (viewport) viewport->NewData(paths,nullptr);
 //	}
 
 	return 0;
@@ -559,10 +539,10 @@ Laxkit::ShortcutHandler *TextStreamInterface::GetShortcuts()
 //    sc=new ShortcutHandler(whattype());
 //
 //	//sc->Add([id number],  [key], [mod mask], [mode], [action string id], [description], [icon], [assignable]);
-//    sc->Add(CAPT_BaselineJustify, 'B',ShiftMask|ControlMask,0, "BaselineJustify", _("Baseline Justify"),NULL,0);
-//    sc->Add(CAPT_BottomJustify,   'b',ControlMask,0, "BottomJustify"  , _("Bottom Justify"  ),NULL,0);
-//    sc->Add(CAPT_Decorations,     'd',ControlMask,0, "Decorations"    , _("Toggle Decorations"),NULL,0);
-//	sc->Add(VIEWPORT_ZoomIn,      '+',ShiftMask,0,   "ZoomIn"         , _("Zoom in"),NULL,0);
+//    sc->Add(CAPT_BaselineJustify, 'B',ShiftMask|ControlMask,0, "BaselineJustify", _("Baseline Justify"),nullptr,0);
+//    sc->Add(CAPT_BottomJustify,   'b',ControlMask,0, "BottomJustify"  , _("Bottom Justify"  ),nullptr,0);
+//    sc->Add(CAPT_Decorations,     'd',ControlMask,0, "Decorations"    , _("Toggle Decorations"),nullptr,0);
+//	sc->Add(VIEWPORT_ZoomIn,      '+',ShiftMask,0,   "ZoomIn"         , _("Zoom in"),nullptr,0);
 //	sc->AddShortcut('=',0,0, VIEWPORT_ZoomIn); //add key to existing action
 //
 //    manager->AddArea(whattype(),sc);

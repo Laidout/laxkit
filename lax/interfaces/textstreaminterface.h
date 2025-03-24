@@ -31,7 +31,7 @@ namespace LaxInterfaces {
 
 
 enum TextStreamActions {
-	TXT_None=0,
+	TXT_None = 0,
 	TXT_Hover_Outside,
 	TXT_Hover_Outside_Stroke,
 	TXT_Hover_Inside,
@@ -41,6 +41,8 @@ enum TextStreamActions {
 	TXT_Hover_New,
 	TXT_Offset,
 	TXT_Position,
+
+	TXT_Font,
 	TXT_MAX
 };
 
@@ -56,20 +58,29 @@ class TextStreamInterface : public anInterface
   protected:
 	int showdecs;
 	ObjectContext *extrahover;
-	int extra_hover;
-	Laxkit::flatpoint hoverpoint;
+	int extra_hover; // what is hovered, see TXT_Hover_*
+	Laxkit::flatpoint hover_point; // where hovered, snaps to path
+	Laxkit::flatpoint hover_direction; // for text on path target
+	double hover_baseline; // fraction of fontheight to offset text on path
+	double hover_t; // t value along path for current path on text
 
-	Laxkit::flatpoint flowdir;
-	double fontheight;
+	Laxkit::flatpoint flowdir; // default forward text direction for areas
+	double fontheight; // use this hint when default_font is null
+	Laxkit::LaxFont *default_font;
+	Laxkit::Utf8String sample_text;
+
 	PathsData outline;
 	int outline_index;
 
 	double close_dist;
 
+	bool search_on_outline = true;
+	bool search_in_object = true;
+
 	Laxkit::ShortcutHandler *sc;
 
 	virtual int send();
-	virtual int scan(int x,int y,unsigned int state, int &index, Laxkit::flatpoint &hovered);
+	virtual int scanInCurrent(int x,int y,unsigned int state, int &index, Laxkit::flatpoint &hovered, float &hovered_t);
 	virtual int Track(ObjectContext *oc);
 	virtual int DefineOutline(int which);
 
