@@ -1030,7 +1030,7 @@ int segmentcross(flatpoint a1,flatpoint a2,flatpoint b1,flatpoint b2,flatpoint &
 	return 1;
 }
 
-/*! Return the point on segment s1 -> s2 that p is closests to.
+/*! Return the point on segment s1 -> s2 that p is closest to.
  * If clamp, then the point must be on the segment.
  * Otherwise, return the point on an infinite line that runs through s1 and s2.
  */

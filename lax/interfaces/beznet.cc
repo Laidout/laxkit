@@ -182,6 +182,20 @@ int HalfEdgeVertex::AllEdges(PtrStack<HalfEdge> &edges)
  * faces that are orientable in a 2d circular direction.
  */
 
+HalfEdge::~HalfEdge()
+{
+	if (path) delete path;
+
+	// detach connection hints
+	if (ahead) {
+		ahead->behind = nullptr;
+		ahead = nullptr;
+	}
+	if (behind) {
+		behind->ahead = nullptr;
+		behind = nullptr;
+	}
+}
 
 /*! Return the next outgoing halfedge around vertex, counter clockwise.
  * If the adjacent edge around the vertex is non-manifold (no twin with same vertex), then return this->prev in twin_ret, and return nullptr.
@@ -283,6 +297,18 @@ HalfEdge *BezFace::FirstOuterBoundary(int face_a, int op, int face_b, bool ignor
 	} while (edge && edge != halfedge);
 
 	return nullptr;
+}
+
+int BezFace::NumEdges()
+{
+	if (!halfedge) return 0;
+	int n = 0;
+	HalfEdge *edge = halfedge;
+	do {
+		n++;
+		edge = edge->next;
+	} while (edge && edge != halfedge);
+	return n;
 }
 
 
@@ -392,7 +418,7 @@ int BezNetData::RemoveEdge(HalfEdge *at_edge)
 	//   stand alone
 	// edge with one face
 	// edge with two faces
-	 
+	
 	if (at_edge->face == nullptr && at_edge->twin->face != nullptr) {
 		at_edge = at_edge->twin;
 	}
@@ -401,6 +427,7 @@ int BezNetData::RemoveEdge(HalfEdge *at_edge)
 		// either we are between two faces, or at the outer boundary of one face
 		if (at_edge->twin && at_edge->twin->face) {
 			//between two faces, we need to merge the faces
+			BezFace *face_to_remove = at_edge->twin->face;
 			BezFace *keep_face = at_edge->face;
 			at_edge->twin->face->ReassignFace(keep_face);
 
@@ -417,27 +444,23 @@ int BezNetData::RemoveEdge(HalfEdge *at_edge)
 			if (at_edge->vertex->halfedge == at_edge)
 				at_edge->vertex->halfedge = at_edge->next;
 
+			faces.remove(faces.findindex(face_to_remove));
 			edges.remove(edges.findindex(at_edge));
 
 			RemoveDanglingEdges(keep_face);
+			keep_face->BuildCacheOutline();
 
 		} else {
 			// a single face on an exterior boundary. must ressign face to null
-			// ***
+			// BezFace *face_to_remove = at_edge->twin->face;
+			// at_edge->face->ReassignFace(nullptr);
+			// *** FINISH ME
 		}
 	} else {
-		// edge has no faces
-		// ***
-	}
-
-	if (!at_edge->face && !at_edge->twin->face) {
-		// raw edge with no attached faces
-		//*** remove ref from adjacent connections
+		// edge has no faces, probably part of a dangling edge?
+		// *** FINISH ME
 		//edges.remove(edges.findindex(at_edge));
-		return 0;
 	}
-
-
 
 	return 0;
 }
@@ -547,6 +570,16 @@ int BezNetData::FindEdgeIndex(HalfEdge *edge, bool *is_twin)
 		}
 	}
 	return -1;
+}
+
+int BezNetData::FindVertexIndex(HalfEdgeVertex *vertex)
+{
+	return vertices.findindex(vertex);
+}
+
+int BezNetData::FindFaceIndex(BezFace *face)
+{
+	return faces.findindex(face);
 }
 
 void DebugFaces(BezNetData *data)
@@ -757,35 +790,83 @@ void BezNetData::dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *conte
 	att.dump_out(f, indent);
 }
 
+void BezNetData::dump_out_edge(Laxkit::Attribute *att2, HalfEdge *edge, bool output_twin)
+{
+	Utf8String str;
+	bool is_twin;
+	int i = FindVertexIndex(edge->vertex);
+	att2->push("vertex", i);
+
+	// HalfEdge *next
+	// HalfEdge *prev  <- only really need to store next
+	i = FindEdgeIndex(edge->next, &is_twin);
+	if (i >= 0) {
+		str.Sprintf("%d%s", i, is_twin ? ":twin" : "");
+		att2->push("next", str.c_str());
+	}
+
+	// HalfEdge *ahead
+	// HalfEdge *behind <- only really need ahead(?)
+	i = FindEdgeIndex(edge->ahead, &is_twin);
+	if (i >= 0) {
+		str.Sprintf("%d%s", i, is_twin ? ":twin" : "");
+		att2->push("ahead", str.c_str());
+	}
+
+	// BezFace  *face
+	i = FindFaceIndex(edge->face);
+	if (i >= 0) {
+		att2->push("face", i);
+	}
+
+	// Coordinate *path
+	if (edge->path) {
+		Attribute *att3 = att2->pushSubAtt("path");
+		att3->push("TODO");
+	}
+
+	if (output_twin) {
+		Attribute *twin = att2->pushSubAtt("twin");
+		dump_out_edge(twin, edge->twin, false);
+	}
+}
+
 Laxkit::Attribute *BezNetData::dump_out_atts(Laxkit::Attribute *att,int what,Laxkit::DumpContext *savecontext)
 {
 	if (what == -1) {
+		if (!att) att = new Attribute();
 		// ***
+		att->push("TODO");
 		return att;
 	}
 
 	if (!att) att = new Attribute();
 
+	Utf8String str, str2;
+	bool is_twin;
+
 	if (vertices.n) {
-		Utf8String str, str2;
 		for (int c=0; c<vertices.n; c++) {
-			str2.Sprintf("%.10g, %.10g\n", vertices.e[c]->p.x, vertices.e[c]->p.y);
+			str2.Sprintf("%d %.10g, %.10g\n", c, vertices.e[c]->p.x, vertices.e[c]->p.y);
 			str += str2;
 		}
 		att->push("vertices", str.c_str()); // *** vertices have 0 or 1 halfedge attached, plus extra_info
 	}
 
-	if (edges.n) {
-		// *** edge
-		//       ahead/behind
-		//       face vertex
-		//       twin:face+vertex
-		//       bezier path
+	for (int c = 0; c < edges.n; c++) {
+		HalfEdge *edge = edges.e[c];
+		Attribute *att2 = att->pushSubAtt("edge");
+		dump_out_edge(att2, edge, true);
 	}
 
 	for (int c = 0; c < faces.n; c++) {
-		// *** edge, info, extra_info
-		// BezFace *face = faces.e[c];
+		// each face has: edge, info, extra_info
+		BezFace *face = faces.e[c];
+		int e = FindEdgeIndex(face->halfedge, &is_twin);
+		if (is_twin) str.Sprintf("%d:twin %d", e, face->info);
+		else str.Sprintf("%d %d", e, face->info);
+		att->push("face", str.c_str());
+		// *** extra_info
 	}
 
 	return att;

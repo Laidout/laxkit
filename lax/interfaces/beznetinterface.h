@@ -74,19 +74,22 @@ class BezNetInterface : public anInterface
 
 	int hover = -1;
 	int hover_face = -1;
+	int hover_edge = -1;
 	int hover_type = 0;
 
 	virtual int scan(double x, double y, unsigned int state, int *type_ret);
 	virtual int scanFaces(double x, double y, unsigned int state);
+	virtual int scanEdges(double x, double y, unsigned int state);
 	virtual int OtherObjectCheck(int x,int y,unsigned int state);
 
 	virtual int send();
 
   public:
 	enum BezNetActions {
-		BEZNET_None=0,
+		BEZNET_None = 0,
 		BEZNET_RemoveEdge,
 		BEZNET_SplitEdge,
+		BEZNET_MergeFaces,
 		BEZNET_BuildArea,
 		BEZNET_Vertex,
 		BEZNET_Edge,

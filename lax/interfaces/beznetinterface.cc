@@ -210,9 +210,11 @@ void BezNetInterface::ClearSelection()
  */
 Laxkit::MenuInfo *BezNetInterface::ContextMenu(int x,int y,int deviceid, Laxkit::MenuInfo *menu)
 {
-	// if (no menu for x,y) return menu;
+	if (!menu) menu = new MenuInfo;
 
-	// if (!menu) menu=new MenuInfo;
+	if (hover_edge >= 0) {
+		menu->AddItem(_("Remove edge"), BEZNET_RemoveEdge);
+	}
 	// if (!menu->n()) menu->AddSep(_("Some new menu header"));
 
 	// menu->AddToggleItem(_("New checkbox"), laximage_icon, YOUR_CHECKBOX_ID, checkbox_info, (istyle & STYLEFLAG) /*on*/, -1 /*where*/);
@@ -233,22 +235,20 @@ Laxkit::MenuInfo *BezNetInterface::ContextMenu(int x,int y,int deviceid, Laxkit:
  */
 int BezNetInterface::Event(const Laxkit::EventData *evdata, const char *mes)
 {
-	// if (!strcmp(mes,"menuevent")) {
-	// 	 //these are sent by the ContextMenu popup
-	// 	const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(evdata);
-	// 	int i	= s->info2; //id of menu item
-	// 	int info = s->info4; //info of menu item
+	if (!strcmp(mes,"menuevent")) {
+		 //these are sent by the ContextMenu popup
+		const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(evdata);
+		int i	= s->info2; //id of menu item
+		// int info = s->info4; //info of menu item
 
-	// 	// check actions first
-	// 	if ( i == SOME_MENU_VALUE
-	// 	  || i == SOME_OTHER_VALUE
-	// 	  ) {
-	// 		PerformAction(i);
-	// 		return 0;
-	// 	}
+		// check actions first
+		if ( i >= BEZNET_None && i < BEZNET_MAX) {
+			PerformAction(i);
+			return 0;
+		}
 
-	// 	return 0; 
-	// }
+		return 0; 
+	}
 
 	return 1; //event not absorbed
 }
@@ -353,7 +353,9 @@ int BezNetInterface::Refresh()
 			p1 = edge->vertex->p;
 			p2 = edge->twin->vertex->p;
 
+			if (hover_edge == c) dp->LineWidthScreen(4*ScreenLine());
 			dp->drawline(p1, p2);
+			if (hover_edge == c) dp->LineWidthScreen(ScreenLine());
 			flatpoint mid = (p1 + p2)/2;
 			flatpoint v = (p2 - p1)/2;
 			v.setLength(MIN(v.norm(), settings->max_arrow_length));
@@ -405,7 +407,7 @@ BezNetData *BezNetInterface::newData()
 		obj = new BezNetData();
 
 		VoronoiData vdata;
-		vdata.CreateRandomPoints(5, 1, 0,5, 0,5);
+		vdata.CreateRandomPoints(5, 5, 0,5, 0,5);
 		
 		// vdata.AddPoint(flatpoint(2,2));
 		// vdata.AddPoint(flatpoint(3,2));
@@ -457,6 +459,30 @@ int BezNetInterface::OtherObjectCheck(int x,int y,unsigned int state)
 	return 0;
 }
 
+
+int BezNetInterface::scanEdges(double x, double y, unsigned int state)
+{
+	if (!data) return -1;
+
+	flatpoint p = screentoreal(x,y);
+	p = transform_point_inverse(data->m(), p);
+	double dist = 1000000;
+	double dd;
+	flatpoint pp;
+	int closest = -1;
+
+	for (int c = 0; c < data->edges.n; c++) {
+		pp = nearest_to_segment(p, data->edges.e[c]->vertex->p, data->edges.e[c]->twin->vertex->p, true);
+		dd = (p-pp).norm();
+
+		if (dd < dist) {
+			dist = dd;
+			closest = c;
+		}
+	}
+
+	return closest;
+}
 
 int BezNetInterface::scanFaces(double x, double y, unsigned int state)
 {
@@ -623,6 +649,13 @@ int BezNetInterface::MouseMove(int x,int y,unsigned int state, const Laxkit::Lax
 			hover_face = hface;
 			needtodraw = 1;
 		}
+
+		int hedge = scanEdges(x,y,state);
+		DBGL("hover edge: "<< hedge);
+		if (hedge != hover_edge) {
+			hover_edge = hedge;
+			needtodraw = 1;
+		}
 		return 1;
 	}
 
@@ -717,6 +750,16 @@ Laxkit::ShortcutHandler *BezNetInterface::GetShortcuts()
  */
 int BezNetInterface::PerformAction(int action)
 {
+	if (action == BEZNET_RemoveEdge) {
+		if (!data || hover_edge < 0 || hover_edge >= data->edges.n) return 0;
+		if (data->RemoveEdge(data->edges.e[hover_edge])) {
+			hover = -1;
+			hover_face = -1;
+			hover_edge = -1;
+			needtodraw = 1;
+		}
+		return 0;
+	}
 	return 1;
 }
 

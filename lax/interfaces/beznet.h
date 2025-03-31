@@ -76,7 +76,7 @@ public:
 	HalfEdge *NextAroundVertex(HalfEdge **twin_ret = nullptr);
 	HalfEdge *PreviousAroundVertex(HalfEdge **twin_ret = nullptr);
 
-	~HalfEdge() { if (path) delete path; }
+	~HalfEdge();
 };
 
 
@@ -103,6 +103,7 @@ public:
 
 	HalfEdge *FirstOuterBoundary(int *index);
 	HalfEdge *FirstOuterBoundary(int face_a, int op, int face_b, bool ignore_ticked_edges);
+	int NumEdges();
 
 	//danger zone:
 	void ReassignFace(BezFace *new_face);
@@ -136,6 +137,7 @@ public:
 	virtual SomeData *duplicate(SomeData *dup);
 	virtual void dump_in_atts(Laxkit::Attribute *att, int flag, Laxkit::DumpContext *context);
 	virtual Laxkit::Attribute *dump_out_atts(Laxkit::Attribute *att,int what,Laxkit::DumpContext *savecontext);
+	virtual void dump_out_edge(Laxkit::Attribute *att, HalfEdge *edge, bool output_twin);
 	virtual void dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *context);
 
 	int AddPath(PathsData *pdata, int face_mask);
@@ -153,6 +155,8 @@ public:
 	HalfEdgeVertex *FindClosestVertex(double threshhold); //use 0 to reqiure exact match
 	HalfEdge *FindEdge(HalfEdgeVertex *v1, HalfEdgeVertex *v2, int *direction_ret);
 	int FindEdgeIndex(HalfEdge *edge, bool *is_twin);
+	int FindVertexIndex(HalfEdgeVertex *vertex);
+	int FindFaceIndex(BezFace *face);
 
 
 	void RemoveDanglingEdges(BezFace *face);
