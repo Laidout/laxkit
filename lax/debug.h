@@ -19,6 +19,9 @@
 //
 //    Copyright (C) 2023-present by AUTHORS
 //
+#ifndef _LAX_DEBUG_H
+#define _LAX_DEBUG_H
+
 
 #include <iostream>
 
@@ -77,3 +80,5 @@ class Debug
 #define HEYYOU_OUT(x) std::cout << __FILE__<<":"<<__LINE__<<"  "<<x<<std::endl;
 
 } // namespace Laxkit
+
+#endif
