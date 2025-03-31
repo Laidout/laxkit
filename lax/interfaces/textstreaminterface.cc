@@ -128,9 +128,9 @@ int TextStreamInterface::UseThis(anObject *nobj, unsigned int mask)
  */
 int TextStreamInterface::InterfaceOn()
 {
-    showdecs = 1;
-    needtodraw = 1;
-    return 0;
+	showdecs = 1;
+	needtodraw = 1;
+	return 0;
 }
 
 /*! Any cleanup when an interface is deactivated, which usually means when it is removed from
@@ -139,9 +139,9 @@ int TextStreamInterface::InterfaceOn()
 int TextStreamInterface::InterfaceOff()
 { 
 	Clear(nullptr);
-	if (extrahover) { delete extrahover; extrahover=nullptr; }
-	showdecs=0;
-	needtodraw=1;
+	if (extrahover) { delete extrahover; extrahover = nullptr; }
+	showdecs = 0;
+	needtodraw = 1;
 	return 0;
 }
 
@@ -262,23 +262,28 @@ int TextStreamInterface::Refresh()
 		dp->PopAxes(); 
 	}
 
-
-	//draw some text name
-	//dp->DrawScreen();
-	//dp->LineAttributes(1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
-	//dp->NewFG(curwindow->win_colors->fg);
-	//dp->textout((dp->Maxx+dp->Minx)/2,(dp->Maxy+dp->Miny)/2, "Blah!",,-1, LAX_CENTER);
-	//dp->drawline(dp->Minx,dp->Miny, dp->Maxx,dp->Maxy);
-	//dp->DrawReal();
-
 	return 0;
+}
+
+/*! Stub to allow subclasses to do something in response to a click down on a streamable area
+ * without having to refedine LBDown,etc.
+ *
+ * This is called on LBDown when there is an extrahover.
+ */
+bool TextStreamInterface::AttachStream()
+{
+	return false;
 }
 
 int TextStreamInterface::LBDown(int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d) 
 {
 	buttondown.down(d->id,LEFTBUTTON,x,y);
 
-	if (extrahover) { delete extrahover; extrahover=nullptr; }
+	if (extrahover) {
+		delete extrahover;
+		extrahover = nullptr;
+		AttachStream();
+	}
 
 	//int device=d->subid; //normal id is the core mouse, not the controlling sub device
 	//DBG cerr <<"device: "<<d->id<<"  subdevice: "<<d->subid<<endl;

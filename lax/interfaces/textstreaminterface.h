@@ -119,6 +119,7 @@ class TextStreamInterface : public anInterface
 
 	virtual void FlowDir(Laxkit::flatpoint dir);
 	virtual void FontHeight(double height);
+	virtual bool AttachStream();
 };
 
 } // namespace LaxInterfaces
