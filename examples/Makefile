@@ -55,7 +55,7 @@ laxhello: lax laxhello.cc laxhello.o
 	$(LD) $@.o $(LDFLAGS) -o $@
 
 widgets: lax widgets.cc widgets.o
-	$(LD) $@.o $(LDFLAGS) -o $@
+	$(LD) $@.o $(LDFLAGS) `cups-config --libs` -o $@
 
 panel: lax panel.o
 	$(LD) $@.o $(LDFLAGS) -o $@

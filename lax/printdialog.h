@@ -61,6 +61,7 @@ class PrintDialog : public RowFrame
 	PrintContext *printcontext;
 	int optionsstart; //index in wholelist where options widgets start
 
+	MenuInfo *cached_paper_list = nullptr;
 	// cups_option_t *options;
 	// ppd_file_t *ppd;
 	
@@ -83,6 +84,7 @@ class PrintDialog : public RowFrame
 	virtual int init();
 	virtual int send();
 	virtual void setup();
+	virtual MenuInfo *GetPaperSizeMenu();
 	virtual int Event(const EventData *e,const char *mes);
 	virtual int CharInput(unsigned int ch,const char *buffer,int len,unsigned int state,const LaxKeyboard *d);
 };
