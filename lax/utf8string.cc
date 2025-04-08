@@ -585,7 +585,7 @@ void Utf8String::Trim()
  */
 void Utf8String::LTrim()
 {
-	if (s) return;
+	if (!s || num_bytes == 0) return;
 	int p = 0;
 	while (isspace(s[p])) p++;
 	if (p>0) Erase(0,p-1);		
@@ -600,6 +600,7 @@ void Utf8String::RTrim()
 }
 
 /*! Any char in chars gets a backslash before it.
+ * Newline, carriage return, and tab get replaced with '\n', '\r', and '\t'.
  */
 Utf8String &Utf8String::BackslashChars(const char *chars)
 {
