@@ -90,6 +90,7 @@ class PtrStack
 	//PtrStack &operator=(PtrStack &&stack); // equals operator for move
 	virtual T *operator[](int i) { if (i>=0 && i<n) return e[i]; else return nullptr; }
 	virtual void flush();
+	virtual void flush_n();
 	virtual int how_many() { return n; }
 	virtual void swap(int i1,int i2);
 	virtual void slide(int i1,int i2);

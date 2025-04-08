@@ -529,7 +529,7 @@ T **PtrStack<T>::extractArrays(char **local,int *nn)//local=nullptr, nn=nullptr
 	return ee;
 }
 
-//! Flush the stack. Makes e==nullptr.
+//! Flush the stack. Deletes e and islocal and makes them nullptr.
 /*! If the element's local==2 then the elements are delete with <tt>delete[]</tt>.
  *  If the local==1 it is just deleted with <tt>delete</tt>.
  *  If the islocal flag for the element is !=1 or 2,
@@ -538,7 +538,7 @@ T **PtrStack<T>::extractArrays(char **local,int *nn)//local=nullptr, nn=nullptr
 template <class T>
 void PtrStack<T>::flush()
 {
-	if (n == 0) return;
+	//if (n == 0) return;
 	for (int c=0; c<n; c++)
 		if (e[c]) {
 			if (islocal[c] == LISTS_DELETE_Array) delete[] e[c];
@@ -548,6 +548,27 @@ void PtrStack<T>::flush()
 	delete[] islocal; islocal = nullptr;
 	n = 0;
 	max = 0;
+}
+
+/*! Flush the stack WITHOUT deallocating internal arrays.
+ *  This WILL delete individual elements and set them to null in the arrays, without reallocating the arrays,
+ *  so this->max stays the same.
+ *  If the element's local==2 then the elements are delete with <tt>delete[]</tt>.
+ *  If the local==1 it is just deleted with <tt>delete</tt>.
+ *  If the islocal flag for the element is !=1 or 2,
+ *  then the element is not delete'd at all.
+ */
+template <class T>
+void PtrStack<T>::flush_n()
+{
+	if (n == 0) return; // we assume all good
+	for (int c = 0; c < n; c++)
+		if (e[c]) {
+			if (islocal[c] == LISTS_DELETE_Array) delete[] e[c];
+			else if (islocal[c] == LISTS_DELETE_Single) delete e[c];
+			e[c] = nullptr;
+		}
+	n = 0;
 }
 
 //! Find the index (in the range [0,n-1]) corresponding to the pointer t.
@@ -630,6 +651,8 @@ int PtrStack<T>::push(T *ne,char local,int where) // local=-1, where=-1
 		n = 1;
 		if (max == 0) {
 			if (delta == 0) max = 1; else max = delta;
+			delete[] e;       // shouldn't be necessary, but valgrind complains
+			delete[] islocal; // shouldn't be necessary, but valgrind complains
 			e = new T*[max]; //e and islocal should always have been null before here
 			islocal = new char[max];
 		}
