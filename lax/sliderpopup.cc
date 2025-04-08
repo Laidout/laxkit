@@ -556,6 +556,20 @@ int SliderPopup::SelectIndex(int index)
 	return curitem;
 }
 
+int SliderPopup::SelectByName(const char *name)
+{
+	if (!items) return -1;
+	for (int c = 0; c < items->n(); c++) {
+		if (!strcmp(items->e(c)->name, name)) {
+			curitem = c;
+			needtodraw = 1;
+			return curitem;
+		}
+	}
+	return -1;
+}
+
+
 } // namespace Laxkit
 
 
