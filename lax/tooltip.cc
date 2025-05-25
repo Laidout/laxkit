@@ -19,14 +19,11 @@
 //
 //    Copyright (C) 2010 by Tom Lechner
 //
+
 #include <lax/tooltip.h>
-
-#include <iostream>
-using namespace std;
-#define DBG 
-
 #include <lax/laxutils.h>
 #include <lax/screeninformation.h>
+
 
 namespace Laxkit {
 
@@ -61,31 +58,31 @@ int ToolTip::NumTips()
 ToolTip::ToolTip(const char *newtext,int mouse)
 	: anXWindow(NULL,"tooltip","tooltip",ANXWIN_BARE,0,0,1,1,0,NULL,0,NULL)
 {
-	DBG cerr <<"Creating Tooltip: \""<<(newtext?newtext:"(missing)")<<"\"..."<<endl;
+	// DBG cerr <<"Creating Tooltip: \""<<(newtext?newtext:"(missing)")<<"\"..."<<endl;
 
 	mouse_id=mouse;
 
 	numtips++;
-	needtodraw=1;
-	win_border=1;
+	needtodraw = 1;
+	win_border = 1;
 	InstallColors(THEME_Tooltip);
 	
-	if (!newtext) newtext="TOOLTIP MISSING";
-	thetext=new char[strlen(newtext)+1];
+	if (!newtext) newtext = "TOOLTIP MISSING";
+	thetext = new char[strlen(newtext)+1];
 	strcpy(thetext,newtext);
 
 	 // Automatically wrap win_w,win_h to text extents
-	int nl=0,t;
-	win_w=0;
-	int c=0,c2=0;
-	while (thetext[c]!='\0') {
-		c2=c;
+	int nl = 0, t;
+	win_w = 0;
+	int c = 0, c2 = 0;
+	while (thetext[c] != '\0') {
+		c2 = c;
 		while (thetext[c]!='\0' && thetext[c]!='\n') c++;
 		nl++;
-		if (c==c2) continue;
+		if (c == c2) continue;
 	    t = UIScale() * win_themestyle->normal->Extent(thetext+c2,c-c2);
-		if (t>win_w) win_w=t;
-		if (thetext[c]!='\0') c++;
+		if (t > win_w) win_w = t;
+		if (thetext[c] != '\0') c++;
 	}
 	// DBG cerr <<"Tooltip:  nl="<<nl<<endl;
 	textheight = UIScale() * win_themestyle->normal->textheight();
@@ -99,11 +96,11 @@ ToolTip::ToolTip(const char *newtext,int mouse)
 		mouseposition(mouse_id, NULL, &rx,&ry, NULL,NULL, NULL, &scr);
 		if (scr != NULL) { scx = scr->x; scy = scr->y; }
 	}
-	if (rx-win_w < scx) win_x = rx + textheight; else win_x = rx-win_w;
-	if (ry-(1+nl)*textheight < scy) win_y = ry+textheight; else win_y = ry-(1+nl)*textheight;
+	if (rx - win_w < scx) win_x = rx + textheight; else win_x = rx-win_w;
+	if (ry - (1+nl)*textheight < scy) win_y = ry + textheight; else win_y = ry - (1+nl)*textheight;
 	
-	c=strlen(thetext)-20;
-	if (c<0) c=0;
+	c = strlen(thetext)-20;
+	if (c < 0) c = 0;
 	app->addtimer(this,5000+c*50,5000+c*50,5001+c*50); // last for max of 5 seconds + 1sec / 20 chars
 }
 
@@ -148,7 +145,7 @@ int ToolTip::Event(const EventData *e,const char *mes)
  */
 int ToolTip::Idle(int tid, double delta)
 {
-	DBG cerr <<"ToolTip \""<<thetext<<"\" idle"<<endl;
+	// DBG cerr <<"ToolTip \""<<thetext<<"\" idle"<<endl;
 	if (tid) app->destroywindow(this);
 	return 0;
 }
