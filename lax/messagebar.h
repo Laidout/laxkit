@@ -69,6 +69,7 @@ class MessageBar : public anXWindow
 	virtual int SetText(const char *newtext);
 	virtual int SetupMetrics();
 	virtual char *GetText();
+	virtual int GetTextWidth() { return ex; }
 	virtual int init();
 	virtual int Event(const EventData *e,const char *mes);
 	virtual void Refresh();
