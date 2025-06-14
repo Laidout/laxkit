@@ -32,10 +32,6 @@
 #include <lax/keyboardwindow.h>
 
 
-//template implementation:
-#include <lax/lists.cc>
-
-
 #include <iostream>
 using namespace std;
 #define DBG 

@@ -24,9 +24,6 @@
 #include <lax/strmanip.h>
 #include <lax/iobuffer.h>
 
-//template implementation:
-#include <lax/lists.cc>
-
 
 namespace Laxkit {
 	

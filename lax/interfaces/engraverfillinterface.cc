@@ -45,15 +45,11 @@
 #include <lax/interfaces/somedataref.h>
 
 
-#include <lax/lists.cc>
-#include <lax/refptrstack.cc>
-
-
-using namespace Laxkit;
-
 #include <iostream>
 using namespace std;
 #define DBG 
+
+using namespace Laxkit;
 
 
 namespace LaxInterfaces {

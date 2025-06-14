@@ -23,10 +23,6 @@
 #include <lax/strmanip.h>
 #include "errorlog.h"
 
-
-//template implementation:
-#include <lax/lists.cc>
-
 #include <cstdio>
 
 #include <iostream>

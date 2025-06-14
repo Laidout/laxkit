@@ -26,8 +26,6 @@
 #include <lax/anxapp.h>
 #include <lax/laxtuio.h>
 
-#include <lax/refptrstack.cc>
-
 #include <sys/times.h>
 #include <sys/types.h>
 //#include <sys/stat.h>

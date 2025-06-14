@@ -28,9 +28,6 @@
 #include <lax/utf8string.h>
 #include <lax/language.h>
 
-//template implementation:
-#include <lax/refptrstack.cc>
-
 #include <iostream>
 #define DBG
 using namespace std;

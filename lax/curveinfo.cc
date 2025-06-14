@@ -25,8 +25,6 @@
 #include <lax/bezutils.h>
 #include <lax/language.h>
 
-//template implementation:
-#include <lax/lists.cc>
 
 #include <iostream>
 using namespace std;

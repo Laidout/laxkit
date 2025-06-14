@@ -30,7 +30,6 @@
 #include <lax/colorevents.h>
 #include <lax/colorbox.h>
 
-#include <lax/refptrstack.cc>
 
 #include <iostream>
 using namespace std;

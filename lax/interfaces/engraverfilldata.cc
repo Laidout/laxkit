@@ -45,10 +45,6 @@
 #include <lax/interfaces/somedataref.h>
 
 
-#include <lax/lists.cc>
-#include <lax/refptrstack.cc>
-
-
 using namespace Laxkit;
 
 #include <iostream>

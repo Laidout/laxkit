@@ -23,7 +23,6 @@
 #include <lax/anxapp.h>
 #include <lax/laxdevices.h>
 #include <lax/strmanip.h>
-#include <lax/lists.cc>
 #include <lax/mouseshapes.h>
 
 #include <sys/times.h>

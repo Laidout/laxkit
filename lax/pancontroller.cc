@@ -24,8 +24,6 @@
 #include <lax/pancontroller.h>
 #include <lax/panuser.h>
 
-#include <lax/lists.cc>
-
 #include <iostream>
 using namespace std;
 #define DBG 

@@ -23,7 +23,6 @@
 
 #include <lax/misc.h>
 #include <lax/colors.h>
-#include <lax/refptrstack.cc>
 #include <lax/strmanip.h>
 #include <lax/language.h>
 #include <lax/singletonkeeper.h>
