@@ -48,13 +48,15 @@ class DoubleBBox {
 	virtual void setbounds(double mix,double max,double miy,double may) { minx=mix; maxx=max; miny=miy; maxy=may; }
 	virtual void setboundsXYWH(double x,double y,double w,double h) { minx=x; maxx=x+w; miny=y; maxy=y+h; }
 	virtual void setbounds(const DoubleRectangle &rect);
-	virtual int validbounds() { return maxx>=minx && maxy>=miny; }
+	virtual int validbounds() const { return maxx>=minx && maxy>=miny; }
 	virtual int nonzerobounds() { return maxx>minx && maxy>miny; }
 	virtual int intersect(double mix,double max,double miy,double may, int settointersection=0);
 	virtual int intersect(DoubleBBox *bbox, int settointersection=0);
-	virtual int intersect(const double *m,DoubleBBox *bbox, int touching, int settointersection);
+	virtual bool intersect(const double *m, const DoubleBBox *bbox);
+	virtual bool ContainsBox(const double *m, const DoubleBBox *bbox) const;
 	virtual int IntersectWithLine(const flatline &line, flatpoint *p1_ret, flatpoint *p2_ret, double *i1_ret=nullptr, double *i2_ret=nullptr);
-	virtual int boxcontains(double x, double y);
+	virtual int boxcontains(double x, double y) const;
+	virtual int boxcontains(const flatpoint &p) const { return boxcontains(p.x, p.y); }
 	virtual flatpoint BBoxPoint(double x,double y) const;
 	double boxwidth()  const {  return maxx>minx ? maxx-minx : 0; }
 	double boxheight() const {  return maxy>miny ? maxy-miny : 0; }

@@ -29,7 +29,7 @@ namespace Laxkit {
 /*! \class DoubleBBox
  * \brief Class with double minx,maxx,miny,maxy.
  */
-/*! \fn	int DoubleBBox::validbounds()
+/*! \fn	int DoubleBBox::validbounds() const.
  * \brief Returns maxx>=minx && maxy>=miny.
  */
 /*! \fn DoubleBBox::DoubleBBox() 
@@ -138,71 +138,81 @@ void DoubleBBox::addtobounds(const DoubleRectangle &rect)
 	addtobounds(rect.x+rect.width, rect.y+rect.height);
 }
 
-//! Return whether the transformed box touches. **** incomplete implementation
-/*! If settointersection, then set the bounds of *this to the bounding box of the
- * intersection.
- *
- * If touching, then return true if any part touches this.
- * If !touching, then return true only if bbox is totally inside this.
- *
- * \todo *** this is not well implemented, settointersection not implemented.
- * \todo *** this needs some rethinking.. options are confusing, touching is ambiguous
- */
-int DoubleBBox::intersect(const double *m,DoubleBBox *bbox, int touching, int settointersection)//s=0
+bool DoubleBBox::ContainsBox(const double *m, const DoubleBBox *bbox) const
 {
-	if (!m || !bbox) return 0;
-	int n=0;
-	flatpoint ul,ur,ll,lr;
+	if (!validbounds() || !bbox->validbounds()) return false;
+	return boxcontains(transform_point(m, flatpoint(bbox->minx,bbox->miny)))
+		&& boxcontains(transform_point(m, flatpoint(bbox->minx,bbox->maxy)))
+		&& boxcontains(transform_point(m, flatpoint(bbox->maxx,bbox->maxy)))
+		&& boxcontains(transform_point(m, flatpoint(bbox->maxx,bbox->miny)))
+		;
+}
 
-	 //this here checks if any of the corners are inside the bounding box.
-	ll=transform_point(m,flatpoint(bbox->minx,bbox->miny));
-	if (ll.x>=minx && ll.x<=maxx && ll.y>=miny && ll.y<=maxy) n++;
+//! Return whether the transformed box touches.
+bool DoubleBBox::intersect(const double *m, const DoubleBBox *bbox)
+{
+	if (!m || !bbox || !validbounds() || !bbox->validbounds()) return 0;
 
-	ul=transform_point(m,flatpoint(bbox->minx,bbox->maxy));
-	if (ul.x>=minx && ul.x<=maxx && ul.y>=miny && ul.y<=maxy) n++;
+	flatpoint a[4] { flatpoint(minx,miny), flatpoint(minx,maxy), flatpoint(maxx,maxy), flatpoint(maxx,miny) };
+	flatpoint b[4] { flatpoint(bbox->minx,bbox->miny), flatpoint(bbox->minx,bbox->maxy),
+					 flatpoint(bbox->maxx,bbox->maxy), flatpoint(bbox->maxx,bbox->miny) };
+	for (int c=0; c<4; c++) b[c] = transform_point(m, b[c]);
 
-	ur=transform_point(m,flatpoint(bbox->maxx,bbox->maxy));
-	if (ur.x>=minx && ur.x<=maxx && ur.y>=miny && ur.y<=maxy) n++;
+	return AreConvexPolygonsIntersecting(a,4, b,4);
 
-	lr=transform_point(m,flatpoint(bbox->maxx,bbox->miny));
-	if (lr.x>=minx && lr.x<=maxx && lr.y>=miny && lr.y<=maxy) n++;
+	//bool touching = true;
+	// int n=0;
+	// flatpoint ul,ur,ll,lr;
 
-	if (!n && touching) {
-		////flatpoint p1(minx,miny), p2(minx,maxy), p3(maxx,maxy), p4(maxx,miny);
-		////if (segmentcross(p1,p2, ul,ur, p)) return 1;
-		////if (segmentcross(p1,p2, ur,lr, p)) return 1;
-		////if (segmentcross(p1,p2, lr,ll, p)) return 1;
-		////if (segmentcross(p1,p2, ll,ul, p)) return 1;
-		//
-		////if (segmentcross(p2,p3, ul,ur, p)) return 1;
-		////if (segmentcross(p2,p3, ur,lr, p)) return 1;
-		////if (segmentcross(p2,p3, lr,ll, p)) return 1;
-		////if (segmentcross(p2,p3, ll,ul, p)) return 1;
-		//
-		////if (segmentcross(p3,p4, ul,ur, p)) return 1;
-		////if (segmentcross(p3,p4, ur,lr, p)) return 1;
-		////if (segmentcross(p3,p4, lr,ll, p)) return 1;
-		////if (segmentcross(p3,p4, ll,ul, p)) return 1;
-		//
-		////if (segmentcross(p4,p1, ul,ur, p)) return 1;
-		////if (segmentcross(p4,p1, ur,lr, p)) return 1;
-		////if (segmentcross(p4,p1, lr,ll, p)) return 1;
-		////if (segmentcross(p4,p1, ll,ul, p)) return 1;
-		//
-		//------------------
-		//flatpoint pts[4];
-		//pts[0].x=minx; pts[0].y=miny;
-		//pts[1].x=maxx; pts[1].y=miny;
-		//pts[2].x=maxx; pts[2].y=maxy;
-		//pts[3].x=minx; pts[3].y=maxy;
-		//if (intersections(ll,lr, pts,4,true)) return 1;
-		//if (intersections(lr,ur, pts,4,true)) return 1;
-		//if (intersections(ur,ul, pts,4,true)) return 1;
-		//if (intersections(ul,ll, pts,4,true)) return 1;
-		return 0;
-	}
-	if (touching) return n; //true if any corners in bounds
-	return n==4; //true when all 4 corners are in bounds
+	// // this here checks if any of the corners are inside the bounding box.
+	// ll=transform_point(m,flatpoint(bbox->minx,bbox->miny));
+	// if (ll.x>=minx && ll.x<=maxx && ll.y>=miny && ll.y<=maxy) n++;
+
+	// ul=transform_point(m,flatpoint(bbox->minx,bbox->maxy));
+	// if (ul.x>=minx && ul.x<=maxx && ul.y>=miny && ul.y<=maxy) n++;
+
+	// ur=transform_point(m,flatpoint(bbox->maxx,bbox->maxy));
+	// if (ur.x>=minx && ur.x<=maxx && ur.y>=miny && ur.y<=maxy) n++;
+
+	// lr=transform_point(m,flatpoint(bbox->maxx,bbox->miny));
+	// if (lr.x>=minx && lr.x<=maxx && lr.y>=miny && lr.y<=maxy) n++;
+
+	// if (!n && touching) {
+	// 	////flatpoint p1(minx,miny), p2(minx,maxy), p3(maxx,maxy), p4(maxx,miny);
+	// 	////if (segmentcross(p1,p2, ul,ur, p)) return 1;
+	// 	////if (segmentcross(p1,p2, ur,lr, p)) return 1;
+	// 	////if (segmentcross(p1,p2, lr,ll, p)) return 1;
+	// 	////if (segmentcross(p1,p2, ll,ul, p)) return 1;
+	// 	//
+	// 	////if (segmentcross(p2,p3, ul,ur, p)) return 1;
+	// 	////if (segmentcross(p2,p3, ur,lr, p)) return 1;
+	// 	////if (segmentcross(p2,p3, lr,ll, p)) return 1;
+	// 	////if (segmentcross(p2,p3, ll,ul, p)) return 1;
+	// 	//
+	// 	////if (segmentcross(p3,p4, ul,ur, p)) return 1;
+	// 	////if (segmentcross(p3,p4, ur,lr, p)) return 1;
+	// 	////if (segmentcross(p3,p4, lr,ll, p)) return 1;
+	// 	////if (segmentcross(p3,p4, ll,ul, p)) return 1;
+	// 	//
+	// 	////if (segmentcross(p4,p1, ul,ur, p)) return 1;
+	// 	////if (segmentcross(p4,p1, ur,lr, p)) return 1;
+	// 	////if (segmentcross(p4,p1, lr,ll, p)) return 1;
+	// 	////if (segmentcross(p4,p1, ll,ul, p)) return 1;
+	// 	//
+	// 	//------------------
+	// 	//flatpoint pts[4];
+	// 	//pts[0].x=minx; pts[0].y=miny;
+	// 	//pts[1].x=maxx; pts[1].y=miny;
+	// 	//pts[2].x=maxx; pts[2].y=maxy;
+	// 	//pts[3].x=minx; pts[3].y=maxy;
+	// 	//if (intersections(ll,lr, pts,4,true)) return 1;
+	// 	//if (intersections(lr,ur, pts,4,true)) return 1;
+	// 	//if (intersections(ur,ul, pts,4,true)) return 1;
+	// 	//if (intersections(ul,ll, pts,4,true)) return 1;
+	// 	return 0;
+	// }
+	// if (touching) return n; //true if any corners in bounds
+	// return n==4; //true when all 4 corners are in bounds
 }
 
 //! Just return intersect(bbox.minx,...,settointersection).
@@ -211,7 +221,7 @@ int DoubleBBox::intersect(DoubleBBox *bbox, int settointersection)//s=0
 	return intersect(bbox->minx,bbox->maxx,bbox->miny,bbox->maxy,settointersection);
 }
 
-//! Intersect the given bounds with this's bounds. Return 1 for non-empty intersection
+//! Intersect the given bounds with this's bounds. Return 1 for non-empty intersection or 0 for no intersection.
 /*! If settointersection!=0, then set current bounds to the intersection or invalid bounds
  * if there is no intersection.
  *
@@ -219,17 +229,17 @@ int DoubleBBox::intersect(DoubleBBox *bbox, int settointersection)//s=0
  */
 int DoubleBBox::intersect(double mix,double max,double miy,double may, int settointersection)//s=0
 {
-	if (minx>mix) mix=minx;
-	if (maxx<max) max=maxx;
-	if (miny>miy) miy=miny;
-	if (maxy<may) may=maxy;
+	if (minx > mix) mix = minx;
+	if (maxx < max) max = maxx;
+	if (miny > miy) miy = miny;
+	if (maxy < may) may = maxy;
 	if (settointersection) {
-		minx=mix;
-		maxx=max;
-		miny=miy;
-		maxy=may;
+		minx = mix;
+		maxx = max;
+		miny = miy;
+		maxy = may;
 	}
-	return max>=mix && may>=miy;
+	return max >= mix && may >= miy;
 }
 
 /*! Find where a line intersects with the box, if any.
@@ -296,7 +306,7 @@ int DoubleBBox::IntersectWithLine(const flatline &line, flatpoint *p1_ret, flatp
 //! Return whether the given point is contained within or on the bounds.
 /*! Invalid bounds will always return 0.
  */
-int DoubleBBox::boxcontains(double x, double y)
+int DoubleBBox::boxcontains(double x, double y) const
 {
 	if (maxx>=minx && maxy>=miny && x>=minx && x<=maxx && y>=miny && y<=maxy) return 1;
 	return 0;
