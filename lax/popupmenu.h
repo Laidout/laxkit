@@ -53,6 +53,7 @@ class PopupMenu : public TreeSelector
 	virtual void CustomTheme(Theme *new_theme);
 	virtual int init();
 	virtual int Idle(int tid, double delta);
+	virtual void UIScaleChanged();
 	virtual int MouseMove(int x,int y,unsigned int state,const LaxMouse *d);
 	virtual int RBDown(int x,int y,unsigned int state,int count,const LaxMouse *d);
 	virtual int RBUp(int x,int y,unsigned int state,const LaxMouse *d);

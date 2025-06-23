@@ -188,6 +188,11 @@ int PopupMenu::init()
 	return TreeSelector::init();
 }
 
+void PopupMenu::UIScaleChanged()
+{
+	TreeSelector::UIScaleChanged(); //this sends same to children
+	WrapToMouse(0);
+}
 
 ////! Focus off maybe destroys the menus.
 ///*! Also, if TREESEL_FOCUS_OFF_DESTROYS, then an off focus destroys this window.
