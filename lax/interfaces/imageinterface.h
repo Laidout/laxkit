@@ -75,16 +75,21 @@ enum ImageInterfaceActions {
 	II_Decorations,
 	II_ToggleLabels,
 	II_ToggleFileName,
+	II_TogglePixelSize,
 	II_ToggleFileSize,
 	II_FlipH,
 	II_FlipV,
 	II_Image_Info,
+	II_ScaleImageToPaperDPI,
+	II_ViewExif,
 	II_MAX
 };
 
 class ImageInterface : public anInterface
 {
- protected:
+	Laxkit::Affine cached_m; //for undo construction
+
+  protected:
  	enum class Mode { Normal, DragNew };
 	Mode mode;
 	int mousedragged;
@@ -102,7 +107,9 @@ class ImageInterface : public anInterface
 	Laxkit::ShortcutHandler *sc;
 	virtual int PerformAction(int action);
 
- public:
+	virtual int InstallUndo();
+
+  public:
 	unsigned long style;
 	unsigned int controlcolor;
 	int showdecs;
@@ -133,6 +140,7 @@ class ImageInterface : public anInterface
 	virtual int MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMouse *d);
 	virtual int CharInput(unsigned int ch, const char *buffer,int len,unsigned int state,const Laxkit::LaxKeyboard *d);
 	virtual int Refresh();
+	virtual Laxkit::MenuInfo *ContextMenu(int x,int y,int deviceid, Laxkit::MenuInfo *menu);
 
 	virtual ImageData *newData();
 };

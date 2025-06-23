@@ -77,7 +77,7 @@ namespace LaxInterfaces {
 
 
 //! Constructor. Configures based on the image in nfilename.
-/*! If nfilename is not a valid image, then image is NULL, and maxx==maxy==0.
+/*! If nfilename is not a valid image, then image is nullptr, and maxx==maxy==0.
  *
  * If npreview is passed in, then potentially generate a preview for the image. These previews will
  * not exceed dimensions maxpx by maxpy. Note that If there is already an image at npreview, and it exceeds these
@@ -90,14 +90,14 @@ namespace LaxInterfaces {
  * If npreview, load_image_with_preview() is used, otherwise load_image() is used.
  */
 ImageData::ImageData(const char *nfilename, const char *npreview, int maxpx, int maxpy, char delpreview, int nindex)
-	: ImageInfo(nfilename,npreview,NULL,NULL,0)
+	: ImageInfo(nfilename,npreview,nullptr,nullptr,0)
 {
 	DBG cerr <<"in ImageData constructor"<<endl;
 
 	index = nindex;
 	previewflag = (delpreview?0:1);
-	image = NULL;
-	previewimage = NULL;
+	image = nullptr;
+	previewimage = nullptr;
 	flags |= SOMEDATA_KEEP_1_TO_1;
 
 	if (!filename) return;
@@ -108,8 +108,8 @@ ImageData::~ImageData()
 {
 	DBG cerr <<"in ImageData destructor"<<endl;
 
-	if (image) { image->dec_count(); image=NULL; }
-	if (previewimage) { previewimage->dec_count(); previewimage=NULL; }
+	if (image) { image->dec_count(); image=nullptr; }
+	if (previewimage) { previewimage->dec_count(); previewimage=nullptr; }
 
 	DBG cerr <<"-- ImageData dest. end"<<endl;
 }
@@ -118,7 +118,7 @@ ImageData::~ImageData()
 SomeData *ImageData::duplicate(SomeData *dup)
 {
 	ImageData *newimage = dynamic_cast<ImageData*>(dup);
-	if (!newimage && dup) return NULL; //was not an ImageData!
+	if (!newimage && dup) return nullptr; //was not an ImageData!
 
 	if (!dup) {
 		dup = dynamic_cast<SomeData*>(somedatafactory()->NewObject(LAX_IMAGEDATA));
@@ -129,7 +129,7 @@ SomeData *ImageData::duplicate(SomeData *dup)
 		dup = newimage;
 	}
 
-	//newimage->LoadImage(image->filename, previewimage ? previewimage->filename : NULL, 0,0,0,0);
+	//newimage->LoadImage(image->filename, previewimage ? previewimage->filename : nullptr, 0,0,0,0);
 	if (newimage->LoadImage(filename, previewfile, 0,0,0,0, index) != 0) {
 		newimage->SetImage(image, previewimage);
 	}
@@ -144,12 +144,12 @@ SomeData *ImageData::duplicate(SomeData *dup)
 ImageData &ImageData::operator=(ImageData &i)
 {
 	SetInfo(&i);
-	if (image) { image->dec_count(); image=NULL; }
+	if (image) { image->dec_count(); image=nullptr; }
 	minx=i.minx;
 	maxx=i.maxx;
 	miny=i.miny;
 	maxy=i.maxy;
-	if (i.image) LoadImage(i.image->filename, previewimage ? previewimage->filename : NULL,0,0,0,1, i.index);
+	if (i.image) LoadImage(i.image->filename, previewimage ? previewimage->filename : nullptr,0,0,0,1, i.index);
 	return i;
 }
 
@@ -187,7 +187,7 @@ void ImageData::dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *contex
 
 Laxkit::Attribute *ImageData::dump_out_atts(Laxkit::Attribute *att,int what,Laxkit::DumpContext *savecontext)
 {
-   if (!att) att=new Attribute(whattype(),NULL);
+   if (!att) att=new Attribute(whattype(),nullptr);
 
 	if (what==-1) {
 		att->push("filename",   "/path/to/file");
@@ -203,12 +203,12 @@ Laxkit::Attribute *ImageData::dump_out_atts(Laxkit::Attribute *att,int what,Laxk
 
 	DumpContext *dump=dynamic_cast<DumpContext *>(savecontext);
 	if (dump && dump->basedir) {
-		char *tmp=NULL;
+		char *tmp=nullptr;
 		if (filename) {
 			if (!dump->subs_only || (dump->subs_only && is_in_subdir(filename,dump->basedir)))
 				tmp=relative_file(filename,dump->basedir,1);
 			att->push("filename",tmp?tmp:filename);
-			if (tmp) { delete[] tmp; tmp=NULL; }
+			if (tmp) { delete[] tmp; tmp=nullptr; }
 		}
 		if (previewfile) {
 			if (!dump->subs_only || (dump->subs_only && is_in_subdir(previewfile,dump->basedir)))
@@ -229,7 +229,7 @@ Laxkit::Attribute *ImageData::dump_out_atts(Laxkit::Attribute *att,int what,Laxk
 
 	char s[120];
 	sprintf(s,"%.10g %.10g %.10g %.10g %.10g %.10g",
-				m(0),m(1),m(2),m(3),m(4),m(5));
+				m((int)0),m(1),m(2),m(3),m(4),m(5));
 	att->push("matrix",s);
 
 	if (description) att->push("description",description);
@@ -239,7 +239,7 @@ Laxkit::Attribute *ImageData::dump_out_atts(Laxkit::Attribute *att,int what,Laxk
 }
 
 /*! When the image listed in the attribute cannot be loaded,
- * image is set to NULL, and the width and height attributes
+ * image is set to nullptr, and the width and height attributes
  * are used if present. If the image can be loaded, then width and
  * height as given in the file are curretly ignored, and the actual pixel
  * width and height of the image are used instead.
@@ -251,7 +251,7 @@ void ImageData::dump_in_atts(Attribute *att,int flag,Laxkit::DumpContext *contex
 	if (!att) return;
 	char *name,*value;
 	minx=miny=0;
-	char *fname=NULL,*pname=NULL;
+	char *fname=nullptr,*pname=nullptr;
 	double w=0,h=0;
 	previewflag=(previewflag&~1);
 
@@ -276,7 +276,7 @@ void ImageData::dump_in_atts(Attribute *att,int flag,Laxkit::DumpContext *contex
 		}
 	}
 
-	char *checkname=NULL;
+	char *checkname=nullptr;
 	DumpContext *dump=dynamic_cast<DumpContext *>(context);
 	if (fname && fname[0]!='/' && dump && dump->basedir) {
 		fname=checkname=full_path_for_file(fname,dump->basedir);
@@ -287,7 +287,7 @@ void ImageData::dump_in_atts(Attribute *att,int flag,Laxkit::DumpContext *contex
 		maxy=h;
 	}
 
-	 // if filename is given, and old file is NULL, or is different...
+	 // if filename is given, and old file is nullptr, or is different...
 	 //  ... meaning don't load in the image if it is the same image
 	if (fname && (!filename || (filename && strcmp(fname,filename)))) {
 		if (!isblank(pname)) previewflag|=1;
@@ -334,11 +334,11 @@ void ImageData::Flip(flatpoint f1,flatpoint f2)
 	Affine::Flip(f1,f2);
 }
 
-/*! Return the image's filename, if any. If none, return NULL.
+/*! Return the image's filename, if any. If none, return nullptr.
  */
 const char *ImageData::Filename()
 {
-	if (image==NULL || isblank(image->filename)) return NULL;
+	if (image==nullptr || isblank(image->filename)) return nullptr;
 	return image->filename;
 }
 
@@ -354,7 +354,7 @@ const char *ImageData::Filename()
  * set to 0, but filename is set
  * to fname, and the previous image is freed. 1 is returned.
  *
- * If npreview is NULL, then use whatever was in previewfile...?
+ * If npreview is nullptr, then use whatever was in previewfile...?
  *
  * Pass 1 for del if the preview should be deleted when image is destroyed.
  */
@@ -362,15 +362,15 @@ int ImageData::LoadImage(const char *fname, const char *npreview, int maxpx, int
 {
 	makestr(filename,fname);
 	makestr(previewfile,npreview);
-	if (image) { image->dec_count(); image=NULL; }
-	if (previewimage) { previewimage->dec_count(); previewimage=NULL; }
+	if (image) { image->dec_count(); image=nullptr; }
+	if (previewimage) { previewimage->dec_count(); previewimage=nullptr; }
 
-	LaxImage *t, *p=NULL;
+	LaxImage *t, *p=nullptr;
 	//--------
 	//if (npreview) t=load_image_with_preview(fname,npreview,maxpx,maxpy, &p);
 	//else t=load_image(fname);
 	//--------
-	t = ImageLoader::LoadImage(fname, npreview,maxpx,maxpy,&p, 0,-1, NULL, true, index);
+	t = ImageLoader::LoadImage(fname, npreview,maxpx,maxpy,&p, 0,-1, nullptr, true, index);
 
 	if (t) {
 		image=t;
@@ -383,7 +383,7 @@ int ImageData::LoadImage(const char *fname, const char *npreview, int maxpx, int
 			minx=0; miny=0;
 			maxx=image->w();
 			maxy=image->h();
-			fitto(NULL,&box,50.,50.);
+			fitto(nullptr,&box,50.,50.);
 
 		} else {
 			minx=0; miny=0;
@@ -467,8 +467,8 @@ int ImageData::SetImage(LaxImage *newimage, LaxImage *newpreview)
 		maxy=image->h();
 
 	} else {
-		image=NULL;
-		makestr(filename,NULL);
+		image=nullptr;
+		makestr(filename,nullptr);
 	}
 	return 0;
 }
@@ -491,8 +491,8 @@ ImageInterface::ImageInterface(int nid,Displayer *ndp,int nstyle) : anInterface(
 {
 	style = nstyle;
 
-	data = NULL;
-	ioc  = NULL;
+	data = nullptr;
+	ioc  = nullptr;
 
 	showdecs    = 1;
 	showobj     = true;
@@ -505,7 +505,7 @@ ImageInterface::ImageInterface(int nid,Displayer *ndp,int nstyle) : anInterface(
 
 	needtodraw = 1;
 
-	sc = NULL;
+	sc = nullptr;
 }
 
 ImageInterface::~ImageInterface()
@@ -519,14 +519,14 @@ const char *ImageInterface::Name()
 { return _("Image"); }
 
 //! Return new ImageInterface.
-/*! If dup!=NULL and it cannot be cast to ImageInterface, then return NULL.
+/*! If dup!=nullptr and it cannot be cast to ImageInterface, then return nullptr.
  *
  * \todo dup max_preview dims, and make it one dim, not x and y?
  */
 anInterface *ImageInterface::duplicate(anInterface *dup)
 {
-	if (dup==NULL) dup=new ImageInterface(id,NULL);
-	else if (!dynamic_cast<ImageInterface *>(dup)) return NULL;
+	if (dup==nullptr) dup=new ImageInterface(id,nullptr);
+	else if (!dynamic_cast<ImageInterface *>(dup)) return nullptr;
 
 	return anInterface::duplicate(dup);
 }
@@ -592,7 +592,7 @@ int ImageInterface::UseThis(anObject *nobj,unsigned int mask)
 //		if (data) deletedata();
 //		ImageData *ndata=dynamic_cast<ImageData *>(nobj);
 //		if (viewport) {
-//			ObjectContext *oc=NULL;
+//			ObjectContext *oc=nullptr;
 //			viewport->NewData(ndata,&oc);
 //			if (oc) ioc=oc->duplicate();
 //		}
@@ -618,25 +618,34 @@ int ImageInterface::InterfaceOn()
 //! Calls Clear(), sets showdecs=0, and needtodraw=1.
 int ImageInterface::InterfaceOff()
 {
-	Clear(NULL);
+	Clear(nullptr);
 	showdecs=0;
 	needtodraw=1;
 	DBG cerr <<"imageinterfaceOff()"<<endl;
 	return 0;
 }
 
+Laxkit::MenuInfo *ImageInterface::ContextMenu(int x,int y,int deviceid, MenuInfo *menu)
+{
+	// if (!menu) menu = new MenuInfo();
+
+	// menu->AddItem(_("Make random points"), VORONOI_MakeRandomRect);
+
+	return menu;
+}
+
 void ImageInterface::Clear(SomeData *d)
 {
 	if ((d && d==data) || (!d && data)) {
 		data->dec_count();
-		data=NULL;
+		data=nullptr;
 	}
 }
 
 //! Draw ndata, but remember that data should still be the resident data.
 int ImageInterface::DrawData(anObject *ndata,anObject *a1,anObject *a2,int info)
 {
-	if (!ndata || dynamic_cast<ImageData *>(ndata)==NULL) return 1;
+	if (!ndata || dynamic_cast<ImageData *>(ndata)==nullptr) return 1;
 
 	ImageData *bzd=data;
 	data=dynamic_cast<ImageData *>(ndata);
@@ -809,11 +818,11 @@ int ImageInterface::Refresh()
 	return 0;
 }
 
-//! Decs count of data, and Sets to NULL.
+//! Decs count of data, and Sets to nullptr.
 void ImageInterface::deletedata()
 {
-	if (data) { data->dec_count(); data=NULL; }
-	if (ioc) { delete ioc; ioc=NULL; }
+	if (data) { data->dec_count(); data=nullptr; }
+	if (ioc) { delete ioc; ioc=nullptr; }
 }
 
 //! Create and return new data, also calls viewport->NewData(newdata).
@@ -828,18 +837,18 @@ void ImageInterface::deletedata()
  */
 ImageData *ImageInterface::newData()
 {
-	ImageData *ndata=NULL;
+	ImageData *ndata=nullptr;
 	ndata=dynamic_cast<ImageData *>(somedatafactory()->NewObject(LAX_IMAGEDATA));
 	if (ndata) {
-		ndata->LoadImage(NULL);
+		ndata->LoadImage(nullptr);
 	}
-	if (!ndata) ndata=new ImageData(NULL);//creates 1 count
+	if (!ndata) ndata=new ImageData(nullptr);//creates 1 count
 	ndata->flags|=SOMEDATA_KEEP_1_TO_1; //so that when scaling, default is to maintain proportions
 
 //	if (sgn(dp->m()[0])!=sgn(dp->m()[3])) ndata->m(3,-ndata->m(3)); //flip if dp is +y==up
 
 	if (viewport) {
-		ObjectContext *oc=NULL;
+		ObjectContext *oc=nullptr;
 		viewport->NewData(ndata,&oc);//viewport adds only its own counts
 		if (ioc) delete ioc;
 		if (oc) ioc=oc->duplicate();
@@ -874,9 +883,9 @@ int ImageInterface::LBDown(int x,int y,unsigned int state,int count,const Laxkit
 //	}
 //	---------------------------
 	if (!data) {
-		ImageData *obj=NULL;
-		ObjectContext *oc=NULL;
-		int c=viewport->FindObject(x,y,whatdatatype(),NULL,1,&oc);
+		ImageData *obj=nullptr;
+		ObjectContext *oc=nullptr;
+		int c=viewport->FindObject(x,y,whatdatatype(),nullptr,1,&oc);
 		if (c>0) obj=dynamic_cast<ImageData *>(oc->obj);
 
 	 	if (obj) {
@@ -905,7 +914,7 @@ int ImageInterface::LBDown(int x,int y,unsigned int state,int count,const Laxkit
 		}
 
 		 // To be here, must want brand new data plopped into the viewport context
-		if (viewport) viewport->ChangeContext(x,y,NULL);
+		if (viewport) viewport->ChangeContext(x,y,nullptr);
 		mode = Mode::DragNew;
 		data=newData(); //data has count of at least one. viewport->NewData() was called here.
 		needtodraw=1;
@@ -917,7 +926,7 @@ int ImageInterface::LBDown(int x,int y,unsigned int state,int count,const Laxkit
 		data->yaxis(flatpoint(0,1)/Getmag()/2);
 		transform_copy(m_orig, data->m());
 
-		DBG data->dump_out(stderr,6,0,NULL);
+		DBG data->dump_out(stderr,6,0,nullptr);
 		return 0;
 	}
 
@@ -967,11 +976,11 @@ int ImageInterface::LBDown(int x,int y,unsigned int state,int count,const Laxkit
 void ImageInterface::runImageDialog()
 {
 	 //after Laxkit event system is rewritten, this will be very different:
-	ImageInfo *inf=new ImageInfo(data->filename,data->previewfile,NULL,data->description,0);
-	curwindow->app->rundialog(new ImageDialog(NULL,"imagedialog for imageinterface",_("Image Properties"),
+	ImageInfo *inf=new ImageInfo(data->filename,data->previewfile,nullptr,data->description,0);
+	curwindow->app->rundialog(new ImageDialog(nullptr,"imagedialog for imageinterface",_("Image Properties"),
 					ANXWIN_REMEMBER,
 					0,0,400,400,0,
-					NULL,object_id,"image properties",
+					nullptr,object_id,"image properties",
 					IMGD_NO_TITLE,inf));
 	inf->dec_count();
 }
@@ -1003,7 +1012,7 @@ int ImageInterface::LBUp(int x,int y,unsigned int state,const Laxkit::LaxMouse *
 	if (mode == Mode::DragNew && !mousedragged && data) {
 		DBG cerr <<"**ImageInterface Clear() for no mouse move on new imagedata and no dragging"<<endl;
 		if (viewport) viewport->DeleteObject();
-		Clear(NULL);
+		Clear(nullptr);
 		
 	} else if (data && viewport) {
 		viewport->ObjectMoved(ioc,1);
@@ -1015,8 +1024,8 @@ int ImageInterface::LBUp(int x,int y,unsigned int state,const Laxkit::LaxMouse *
 
 			Affine mo(m_orig);
 			undomanager->AddUndo(new SomeDataUndo(data,
-										&mo,NULL,
-										data,NULL,
+										&mo,nullptr,
+										data,nullptr,
 										SomeDataUndo::SDUNDO_Transform,
 										false));
 		}
@@ -1127,46 +1136,67 @@ Laxkit::ShortcutHandler *ImageInterface::GetShortcuts()
 
 	sc=new ShortcutHandler(whattype());
 
-	sc->Add(II_Normalize,      'n',0,0,         "Normalize",     _("Normalize"),NULL,0);
-	sc->Add(II_Rectify,        'N',ShiftMask,0, "Rectify",       _("Clear aspect and rotation"),NULL,0);
-	sc->Add(II_Decorations,    'd',0,0,         "Decorations",   _("Toggle decorations"),NULL,0);
-	//sc->Add(II_ToggleLabels,   'l',0,0,         "Labels",        _("Toggle labels"),NULL,0);
-	sc->Add(II_ToggleFileName, 'f',0,0,         "ToggleFileName",_("Toggle showing filename in labels"),NULL,0);
-	sc->Add(II_ToggleFileSize, 's',0,0,         "ToggleFileSize",_("Toggle showing file size in labels"),NULL,0);
-	sc->Add(II_FlipH,          'h',0,0,         "FlipHorizontal",_("Flip horizontally"),NULL,0);
-	sc->Add(II_FlipV,          'v',0,0,         "FlipVertical",  _("Flip vertically"),NULL,0);
-	sc->Add(II_Image_Info,     LAX_Enter,0,0,   "ImageInfo",     _("Edit image info"),NULL,0);
+	sc->Add(II_Normalize,      'n',0,0,         "Normalize",     _("Normalize"),nullptr,0);
+	sc->Add(II_Rectify,        'N',ShiftMask,0, "Rectify",       _("Clear aspect and rotation"),nullptr,0);
+	sc->Add(II_Decorations,    'd',0,0,         "Decorations",   _("Toggle decorations"),nullptr,0);
+	//sc->Add(II_ToggleLabels,   'l',0,0,         "Labels",        _("Toggle labels"),nullptr,0);
+	sc->Add(II_ToggleFileName, 'f',0,0,         "ToggleFileName",_("Toggle showing filename in labels"),nullptr,0);
+	sc->Add(II_TogglePixelSize,'s',0,0,         "TogglePixelSize",_("Toggle showing pixel width and height in labels"),nullptr,0);
+	sc->Add(II_FlipH,          'h',0,0,         "FlipHorizontal",_("Flip horizontally"),nullptr,0);
+	sc->Add(II_FlipV,          'v',0,0,         "FlipVertical",  _("Flip vertically"),nullptr,0);
+	sc->Add(II_Image_Info,     LAX_Enter,0,0,   "ImageInfo",     _("Edit image info"),nullptr,0);
 
 	manager->AddArea(whattype(),sc);
 	return sc;
+}
+
+int ImageInterface::InstallUndo()
+{
+	if (!data) return 0;
+	UndoManager *undomanager = GetUndoManager();
+	if (!undomanager) return 0;
+
+	undomanager->AddUndo(new SomeDataUndo(data,
+						&cached_m, nullptr, //initial m,box
+						data, nullptr, //new m,box
+						SomeDataUndo::SDUNDO_Transform,
+						false));
+	return 1;
 }
 
 int ImageInterface::PerformAction(int action)
 {
 	if (action==II_Normalize || action==II_Rectify) {
 		if (!data) return 0;
-		if (action==II_Rectify) {
-			double x=norm(data->xaxis());
+		cached_m = *data;
+		if (action == II_Rectify) {
+			double x = norm(data->xaxis());
 			data->xaxis(flatpoint(x,0));
 		}
 		data->yaxis(transpose(data->xaxis()));
-		needtodraw=1;
+		if (!cached_m.IsEqual(*data))
+			InstallUndo();
+		needtodraw = 1;
 		return 0;
 
 	} else if (action==II_Image_Info) {
 		runImageDialog();
 		return 0;
 
-	} else if (action==II_FlipH) {
+	} else if (action == II_FlipH) {
 		if (!data) return 0;
+		cached_m = *data;
 		data->Flip(1);
-		needtodraw=1;
+		InstallUndo();
+		needtodraw = 1;
 		return 0;
 
-	} else if (action==II_FlipV) {
+	} else if (action == II_FlipV) {
 		if (!data) return 0;
+		cached_m = *data;
 		data->Flip(0);
-		needtodraw=1;
+		InstallUndo();
+		needtodraw = 1;
 		return 0;
 
 	} else if (action==II_Decorations) {
@@ -1186,9 +1216,9 @@ int ImageInterface::PerformAction(int action)
 		needtodraw = 1;
 		return 0;
 
-	} else if (action==II_ToggleFileSize) {
+	} else if (action==II_TogglePixelSize) {
 		show_size = !show_size;
-		needtodraw=1;
+		needtodraw = 1;
 		return 0;
 	}
 
