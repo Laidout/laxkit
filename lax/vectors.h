@@ -298,6 +298,11 @@ Quaternion operator/(Quaternion a,double r);  /* divide y double */
 Quaternion operator/=(Quaternion &a,double r);
 Quaternion operator*(Quaternion a,Quaternion b);
 
+
+//------------------- Misc math utils -----------------
+
+bool AreConvexPolygonsIntersecting(flatpoint *a, int num_a, flatpoint *b, int num_b);
+
 //------------------- Misc vector creation -----------------
 
 int ComputeCatenary3D(const spacevector &P1, const spacevector &P2, double arc_length, spacevector *pts_ret, int samples = 5,

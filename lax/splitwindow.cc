@@ -22,7 +22,6 @@
 
 
 
-#include <lax/lists.cc>
 #include <lax/splitwindow.h>
 #include <lax/laxutils.h>
 #include <lax/menuinfo.h>

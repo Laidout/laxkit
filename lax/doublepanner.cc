@@ -31,7 +31,6 @@
 
 
 
-#include <lax/lists.cc>
 #include <lax/displayer.h>
 #include <lax/laxutils.h>
 #include <lax/doublebbox.h>

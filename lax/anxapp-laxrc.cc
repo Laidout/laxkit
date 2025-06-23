@@ -25,8 +25,6 @@
 #include <lax/strmanip.h>
 #include <lax/laxutils.h>
 
-#include <lax/lists.cc>
-
 #include <sys/file.h>
 
 

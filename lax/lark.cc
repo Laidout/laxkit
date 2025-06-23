@@ -21,15 +21,14 @@
 //
 
 #include <lax/lark.h>
-#include <lax/lists.cc>
 #include <lax/strmanip.h>
-
 
 
 namespace Laxkit {
 
 	
-static PtrStack<char> lax_larks(2);
+static PtrStack<char> lax_larks(LISTS_DELETE_Array);
+
 /*! lark_alpha_sorted[0] is index in lax_larks of lowest string.
  *  lark_alpha_sorted[lark_alpha_sorted.n-1] is index in lax_larks of highest string.
  */
@@ -70,7 +69,7 @@ static int lark_position(const char *str,int *c)
 //! Return pointer to string associated with id, or NULL if none.
 /*! Yes, lark is a take off on Glib's quarks: Laxkit+quARK.
  *
- * Laxkit maintains a hash of strings and associated ids, that can be used
+ * Laxkit can maintain a hash of strings and associated ids, that can be used
  * as a shortcut for checking string equality for commonly used strings, namely
  * event names. These are a replacement for X Atoms, so that Laxkit events do not
  * clutter up the X server.

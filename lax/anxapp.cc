@@ -764,12 +764,12 @@ int anXApp::Tooltips(int on)
  */
 Attribute *anXApp::AppResource(const char *name)
 {
-	if (!name) return NULL;
+	if (isblank(name)) return nullptr;
 	return app_resources.find(name);
 }
 
 //! Append to or replace a resource. The resource belongs to the type of thing in resource->name.
-/*! IMPORTANT: If resource is different than the one already in *this, then it is removed, and
+/*! IMPORTANT: If resource is different than the one already in *this, then the old one removed, and
  * totally replaced with the new one. Otherwise, nothing is done, since it's the same one on the stack.
  * LaidoutApp takes possession of resource, meaning it becomes responsible for deleting it.
  *

@@ -31,10 +31,6 @@
 #include <lax/strmanip.h>
 
 
-//template implementation:
-#include <lax/lists.cc>
-
-
 #define DBG
 
 

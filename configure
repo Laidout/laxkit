@@ -4,6 +4,12 @@
 ## Laxkit configure
 ##
 #
+# This creates these files:
+#   config.log
+#   laxkit.pc
+#   lax/version.h
+#   lax/configured.h
+#   Makefile-toinclude
 #
 # --help
 # --prefix=/blah/blah
@@ -43,7 +49,7 @@ LAXKIT_PC_LIBS=""
 CONFIGCOMMAND="./configure $@"
 
 
- #x11, or (unimplemented): qt, headless
+ #x11, or (unimplemented): qt, headless, wayland
 PLATFORM="x11"
 
 LAXKITBACKEND="cairo"
@@ -74,7 +80,7 @@ while true ; do
         echo " --help                       Show this stuff"
         echo " --prefix=/where/to/install   Defaults to $PREFIX"
         echo " --configdir=/path/to/config  Defaults to $LAXKITCONFIGDIRBASE/$LAXKITVERSION"
-		echo " --platform=x11               Only x11 is implemented. Someday also headless or qt."
+		echo " --platform=x11               Only x11 is implemented. Todo: headless or wayland."
 #		echo " --disable-gl                 Do not build opengl components. Default is to built them."
         echo " --disable-graphicsmagick     Do not build GraphicsMagick components. Default is to $USEGRAPHICSMAGICK them."
         echo " --enable-graphicsmagick      Build GraphicsMagick components. Default is to $USEGRAPHICSMAGICK them."

@@ -23,9 +23,6 @@
 
 #include <lax/menuinfo.h>
 
-#include <lax/lists.cc>
-#include <lax/refptrstack.cc>
-
 #include <cstdlib>
 #include <iostream>
 using namespace std;

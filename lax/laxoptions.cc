@@ -25,10 +25,9 @@
 #include <lax/language.h>
 #include <sys/ioctl.h>
 
-#include <lax/lists.cc>
-
 #include <cstdlib>
 #include <iostream>
+
 using namespace std;
 #define DBG 
 
