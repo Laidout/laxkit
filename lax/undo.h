@@ -45,8 +45,8 @@ class UndoData
 {
   public:
     Undoable *context;
-	unsigned long undogroup;
-	unsigned long undo_id;
+	unsigned long undogroup; // automatically assigned. 0 for continues previous
+	unsigned long undo_id;   // automatically assigned
 	char *description;
     clock_t time;
     int direction;
