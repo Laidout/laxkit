@@ -466,7 +466,7 @@ Attribute *EllipseData::dump_out_atts(Attribute *att,int what,Laxkit::DumpContex
 
 	att->push("id", Id());
 	att->pushStr("matrix",-1, "%.10g %.10g %.10g %.10g %.10g %.10g",
-			m(0),m(1),m(2),m(3),m(4),m(5));
+			m((int)0),m(1),m(2),m(3),m(4),m(5));
 
 	if (style & ELLIPSE_IsCircle) att->push("flags", "circle");
 

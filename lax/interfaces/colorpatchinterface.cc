@@ -175,7 +175,7 @@ void ColorPatchData::dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *c
 		return;
 	}
 	fprintf(f,"%smatrix %.10g %.10g %.10g %.10g %.10g %.10g\n",
-			spc,m(0),m(1),m(2),m(3),m(4),m(5));
+			spc,m((int)0),m(1),m(2),m(3),m(4),m(5));
 	fprintf(f,"%sgriddivisions %d\n",spc,griddivisions);
 	fprintf(f,"%sxsize %d\n",spc,xsize);
 	fprintf(f,"%sysize %d\n",spc,ysize);
@@ -235,7 +235,7 @@ Laxkit::Attribute *ColorPatchData::dump_out_atts(Laxkit::Attribute *att,int what
 	}
 
 	att->pushStr("matrix",-1, "%.10g %.10g %.10g %.10g %.10g %.10g\n",
-			m(0),m(1),m(2),m(3),m(4),m(5));
+			m((int)0),m(1),m(2),m(3),m(4),m(5));
 	att->push("griddivisions",griddivisions);
 	if (style&PATCH_SMOOTH) att->push("style", "smooth");
 	

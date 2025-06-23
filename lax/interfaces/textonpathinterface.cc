@@ -244,7 +244,7 @@ Attribute *TextOnPath::dump_out_atts(Attribute *att,int what,DumpContext *contex
 	}
 
 	char scratch[200];
-	sprintf(scratch, "%.10g %.10g %.10g %.10g %.10g %.10g", m(0),m(1),m(2),m(3),m(4),m(5));
+	sprintf(scratch, "%.10g %.10g %.10g %.10g %.10g %.10g", m((int)0),m(1),m(2),m(3),m(4),m(5));
 	att->push("matrix", scratch); 
 
 	if      (baseline_type == FROM_Path)         att->push("baseline_type", "path");

@@ -624,7 +624,7 @@ Laxkit::Attribute *GradientData::dump_out_atts(Laxkit::Attribute *att,int what,L
 
 	char scratch[120];
 	sprintf(scratch,"%.10g %.10g %.10g %.10g %.10g %.10g",
-				m(0),m(1),m(2),m(3),m(4),m(5));
+				m((int)0),m(1),m(2),m(3),m(4),m(5));
 	att->push("matrix",scratch);
 
 	att->push(IsRadial() ? "radial" : "linear");

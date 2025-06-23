@@ -4387,7 +4387,7 @@ void PathsData::dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *contex
 	}
 
 	fprintf(f,"%smatrix %.10g %.10g %.10g %.10g %.10g %.10g\n",
-			spc,m(0),m(1),m(2),m(3),m(4),m(5));
+			spc,m((int)0),m(1),m(2),m(3),m(4),m(5));
 
 	if (linestyle) {
 		if (linestyle->IsResourced()) {
@@ -4453,7 +4453,7 @@ Laxkit::Attribute *PathsData::dump_out_atts(Laxkit::Attribute *att,int what, Lax
 
 	char scratch[200];
 
-	sprintf(scratch, "%.10g %.10g %.10g %.10g %.10g %.10g", m(0),m(1),m(2),m(3),m(4),m(5));
+	sprintf(scratch, "%.10g %.10g %.10g %.10g %.10g %.10g", m((int)0),m(1),m(2),m(3),m(4),m(5));
 	att->push("matrix", scratch);
 
 	if (linestyle) {

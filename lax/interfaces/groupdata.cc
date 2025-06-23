@@ -28,9 +28,6 @@
 #include <lax/utf8string.h>
 #include <lax/language.h>
 
-//template implementation:
-#include <lax/refptrstack.cc>
-
 #include <iostream>
 #define DBG
 using namespace std;
@@ -443,7 +440,7 @@ void GroupData::dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *contex
 	}
 
 	fprintf(f,"%smatrix %.10g %.10g %.10g %.10g %.10g %.10g\n",spc,
-				m(0),m(1),m(2),m(3),m(4),m(5));
+				m((int)0),m(1),m(2),m(3),m(4),m(5));
 
 	if (visible)    fprintf(f,"%svisible\n",spc);
 	if (selectable) fprintf(f,"%sselectable\n",spc);
@@ -498,7 +495,7 @@ void GroupData::dump_out_group(FILE *f,int indent,int what,Laxkit::DumpContext *
 	if (!kidsonly) {
 		fprintf(f,"%sid %s\n",spc,Id());
 		fprintf(f,"%smatrix %.10g %.10g %.10g %.10g %.10g %.10g\n",spc,
-					m(0),m(1),m(2),m(3),m(4),m(5));
+					m((int)0),m(1),m(2),m(3),m(4),m(5));
 
 		if (visible)    fprintf(f,"%svisible\n",spc);
 		if (selectable) fprintf(f,"%sselectable\n",spc);
@@ -549,7 +546,7 @@ Laxkit::Attribute *GroupData::dump_out_group_atts(Laxkit::Attribute *att, int wh
 	Utf8String s;
 	if (!kidsonly) {
 		att->push("id", Id());
-		s.Sprintf("%.10g %.10g %.10g %.10g %.10g %.10g", m(0),m(1),m(2),m(3),m(4),m(5));
+		s.Sprintf("%.10g %.10g %.10g %.10g %.10g %.10g", m((int)0),m(1),m(2),m(3),m(4),m(5));
 		att->push("matrix", s.c_str());
 
 		if (visible) att->push("visible");
