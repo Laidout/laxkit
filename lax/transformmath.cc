@@ -133,6 +133,26 @@ bool Affine::isIdentity()
            are_near(_m[4], 0.0, EPSILON) && are_near(_m[5], 0.0, EPSILON);
 }
 
+/*! Return whether the members are exactly equal. */
+bool Affine::IsEqual(Affine const &m) const
+{
+	return _m[0] == m.m(0) &&
+		   _m[1] == m.m(1) &&
+		   _m[2] == m.m(2) &&
+		   _m[3] == m.m(3) &&
+		   _m[4] == m.m(4) &&
+		   _m[5] == m.m(5);
+}
+
+/*! Return whether each member is withich epsilon of each other. */
+bool Affine::IsAlmostEqual(Affine const &m, double epsilon) const
+{
+	return are_near(_m[0], m.m(0), epsilon) && are_near(_m[1], m.m(1), epsilon) &&
+           are_near(_m[2], m.m(2), epsilon) && are_near(_m[3], m.m(3), epsilon) &&
+           are_near(_m[4], m.m(4), epsilon) && are_near(_m[5], m.m(5), epsilon);
+}
+
+
 /*! Set angle of xaxis, and rotate y axis so it makes the original angle with the x axis.
  * Does not affect origin. Only sets rotation of axes.
  */

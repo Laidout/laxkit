@@ -48,6 +48,8 @@ class Affine
 	virtual void set(Affine const &a);
 	virtual void setIdentity();
 	virtual bool isIdentity();
+	virtual bool IsEqual(Affine const &m) const;
+	virtual bool IsAlmostEqual(Affine const &m, double epsilon = 1e-15) const;
 	virtual void setRotation(double angle);
 	virtual void setShear(double anglex, double angley);
 	virtual void setScale(double sx,double sy);
@@ -84,9 +86,9 @@ class Affine
 	virtual flatpoint transformVectorInverse(flatpoint p);
 
 	virtual const double *m() const { return _m; }
-	virtual void   m(const double *mm);
+	virtual void   m(const double *mm); //todo: this should be set(mm) because compiler has ridiculous complaint about ambiguous with m(int) const
 	virtual void   m(double xx,double xy,double yx,double yy,double tx,double ty);
-	virtual double m(int c) { return _m[c]; }
+	virtual double m(int c) const { return _m[c]; }
 	virtual void   m(int c,double v) { _m[c]=v; }
 	virtual void Unshear(int preserve_x, int normalize);
 	virtual void Normalize();
