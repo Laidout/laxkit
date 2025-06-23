@@ -1813,6 +1813,62 @@ Quaternion Quaternion::conjugate()
 	return Quaternion(-x,-y,-z,w);
 }
 
+
+//------------------- Misc math utils -----------------
+
+/*! Implementation of separating axes checking. 
+ */
+bool AreConvexPolygonsIntersecting(flatpoint *a, int num_a, flatpoint *b, int num_b)
+{
+    for (int x = 0; x < 2; x++)
+    {
+        flatpoint *polygon = (x==0) ? a : b;
+        int num = x == 0 ? num_a : num_b;
+
+        for (int i1 = 0; i1 < num; i1++)
+        {
+            int   i2 = (i1 + 1) % num;
+            flatpoint p1 = polygon[i1];
+            flatpoint p2 = polygon[i2];
+
+            flatpoint normal(p2.y - p1.y, p1.x - p2.x);
+
+            double min_a =  1e+100; //Double.POSITIVE_INFINITY;
+            double max_a = -1e+100; //Double.NEGATIVE_INFINITY;
+
+            for (int c = 0; c < num_a; c++)
+            {
+            	flatpoint p = a[c];
+                double projected = normal.x * p.x + normal.y * p.y;
+
+                if (projected < min_a)
+                    min_a = projected;
+                if (projected > max_a)
+                    max_a = projected;
+            }
+
+            double min_b =  1e+100; //Double.POSITIVE_INFINITY;
+            double max_b = -1e+100; //Double.NEGATIVE_INFINITY;
+
+            for (int c = 0; c < num_b; c++)
+            {
+            	flatpoint p = b[c];
+                double projected = normal.x * p.x + normal.y * p.y;
+
+                if (projected < min_b)
+                    min_b = projected;
+                if (projected > max_b)
+                    max_b = projected;
+            }
+
+            if (max_a < min_b || max_b < min_a) return false;
+        }
+    }
+
+    return true;
+}
+
+
 //------------------- Misc vector creation -----------------
 
 /*! Compute a catenary curve with endpoints P1 and P2, with Y up.
