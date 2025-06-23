@@ -16,6 +16,7 @@
 #include <lax/iconselector.h>
 #include <lax/numslider.h>
 #include <lax/scrolledwindow.h>
+#include <lax/popupmenu.h>
 
 #include <lax/interfaces/characterinterface.h>
 #include <lax/interfaces/sliderinterface.h>
@@ -94,7 +95,7 @@ int main(int argc,char **argv)
 
 
 	//------------------- PrintDialog --------------------------
-	app.addwindow(new PrintDialog(nullptr,"Print","Print",ANXWIN_ESCAPABLE|ANXWIN_CENTER, 0,0,1000,700,0, nullptr,0,nullptr, 0));
+	//app.addwindow(new PrintDialog(nullptr,"Print","Print",ANXWIN_ESCAPABLE|ANXWIN_CENTER, 0,0,1000,700,0, nullptr,0,nullptr, 0));
 
 //	 	PrintDialog(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
 //			int xx,int yy,int ww,int hh,int brder,
@@ -214,6 +215,25 @@ int main(int argc,char **argv)
 //	app.addwindow(swindow);
 
 	
+	//------------------- PopupWindow --------------------------
+	MenuInfo *menu = new MenuInfo();
+	menu->AddItem("one");
+	menu->AddItem("two");
+	menu->AddItem("3");
+	menu->AddItem("4");
+	menu->AddItem("5");
+	menu->AddItem("6");
+	menu->AddItem("7");
+	PopupMenu *popup = new PopupMenu(NULL,_("Move"), 0,
+						0,0,0,0, 1,
+						0,"moveto",
+						0, //mouse to position near?
+						menu,1, nullptr,
+						TREESEL_LEFT);
+	popup->pad = 5;
+	popup->WrapToMouse(0);
+	app.rundialog(popup);
+
 	//----------------- Done setting up. Now run! ----------------------------
 
 	cout <<"------Done adding initial windows in main() -------\n";
