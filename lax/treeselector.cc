@@ -2584,7 +2584,7 @@ void TreeSelector::Sync()
 }
 
 //! Resize the window to the extent of the items, and reposition near the mouse.
-int TreeSelector::WrapToMouse(int mouseid, anXWindow *onedgeofthis) //onedgeofthis=0
+int TreeSelector::WrapToMouse(int mouseid, anXWindow *onedgeofthis)
 {
     int x=0,y=0,screen=0;
     mouseposition(mouseid, NULL, &x, &y, NULL, NULL, &screen);

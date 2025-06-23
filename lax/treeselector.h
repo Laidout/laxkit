@@ -222,7 +222,7 @@ class TreeSelector : public ScrolledWindow
 	virtual int Event(const EventData *e,const char *mes);
 	virtual void UIScaleChanged();
 
-	virtual int WrapToMouse(int mouseid, anXWindow *onedgeofthis=0);
+	virtual int WrapToMouse(int mouseid, anXWindow *onedgeofthis = nullptr);
 	virtual int WrapToPosition(int screen_x, int screen_y, int screen, anXWindow *onedgeofthis = nullptr);
 
 	virtual void       dump_out(FILE *f,int indent,int what,DumpContext *savecontext);

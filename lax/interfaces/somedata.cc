@@ -727,7 +727,7 @@ Laxkit::Affine SomeData::GetTransforms(SomeData *ancestor, bool invert)
     return a;
 }
 
-/*! Return concatenation of parent transforms.
+/*! Return concatenation of parent transforms (parent->m * parent->parent->m * ...).
  * Note this is not valid beyond containing page.
  *  
  * If partial>0, then do not use that many upper transforms. For instance, partial==1
