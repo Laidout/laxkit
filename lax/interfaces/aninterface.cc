@@ -247,6 +247,7 @@ namespace LaxInterfaces {
 //!  This constructor assigns id=getUniqueNumber().
 anInterface::anInterface()
 {
+	dp              = nullptr;
 	viewport        = nullptr;
 	curwindow       = nullptr;
 	child = owner   = nullptr;
