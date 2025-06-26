@@ -1290,7 +1290,7 @@ int DisplayerCairo::font(const char *family,const char *style,double pixelsize)
 
 int DisplayerCairo::fontsize(double size)
 {
-	//DBG cerr <<"---fontsize"<<endl;
+	DBG cerr <<"---fontsize: "<<size<<endl;
 
 	int tempcr=0;
 	if (!cr) {
@@ -1738,7 +1738,8 @@ double DisplayerCairo::textout(double angle,double x,double y,const char *str,in
 	s[4] += x;
 	s[5] += y;
 
-	transform_mult(mm, s,Getctm());
+	if (real_coordinates) transform_mult(mm, s,Getctm());
+	else transform_copy(mm, s);
 
 	cairo_save(cr);
 	cairo_matrix_t m;
