@@ -64,6 +64,22 @@ int days_in_year(int year)
 	return is_leap_year(year)?366:365;
 }
 
+/*! Return in range 0..6. Formula based on Julian days, from stackoverflow question 6054016. */
+int day_of_week(int year, int month, int day, bool start_sunday)
+{
+	int dow = (
+          day
+        + ((153 * (month + 12 * ((14 - month) / 12) - 3) + 2) / 5)
+        + (365 * (year + 4800 - ((14 - month) / 12)))
+        + ((year + 4800 - ((14 - month) / 12)) / 4)
+        - ((year + 4800 - ((14 - month) / 12)) / 100)
+        + ((year + 4800 - ((14 - month) / 12)) / 400)
+        - 32045
+      ) % 7;
+	  if (!start_sunday) dow = (dow+6) % 7;
+	  return dow;
+}
+
 //! Return text for day of the week.
 /*! Return S,M,T,W... for lvl==0. Sun,Mon,Tue,... for lvl==1, or Sunday,Monday,...
  *
@@ -72,24 +88,24 @@ int days_in_year(int year)
  */
 const char *dayofweek(int day, int lvl, int sunday)
 {
-	day=(day+sunday)%7;
+	day = (day+sunday) % 7;
 
-	const char *str=NULL;
-	if (day==0) str=_("Sunday");
-	else if (day==1) str=_("Monday");
-	else if (day==2) str=_("Tuesday");
-	else if (day==3) str=_("Wednesday");
-	else if (day==4) str=_("Thursday");
-	else if (day==5) str=_("Friday");
-	else if (day==6) str=_("Saturday");
-	else return NULL;
+	const char *str = nullptr;
+	if      (day == 0) str = _("Sunday");
+	else if (day == 1) str = _("Monday");
+	else if (day == 2) str = _("Tuesday");
+	else if (day == 3) str = _("Wednesday");
+	else if (day == 4) str = _("Thursday");
+	else if (day == 5) str = _("Friday");
+	else if (day == 6) str = _("Saturday");
+	else return nullptr;
 
-	if (lvl>1) return str;
+	if (lvl > 1) return str;
 
 	 //bit of a kludge to ease translating, automatically extract
 	 //the first 1 or 3 letters of the day as necessary.
 	 //each character can theoretically be 1 to 6 bytes long.
-	if (lvl==0) {
+	if (lvl == 0) {
 		 //single character abreviation
 		static char abrv1[56];
 		int i=0,d=day*7;
@@ -97,7 +113,7 @@ const char *dayofweek(int day, int lvl, int sunday)
 		abrv1[d+i]='\0';
 		return abrv1+d;
 
-	} else if (lvl==1) {
+	} else if (lvl == 1) {
 		 //three character abreviation
 		static char abrv3[140];
 		int i=0,d=day*20;
@@ -117,8 +133,8 @@ const char *dayofweek(int day, int lvl, int sunday)
  */
 const char *monthname(int month,int lvl)
 {
-	const char *str=NULL;
-	if (month== 1) str=_("January");
+	const char *str = nullptr;
+	if      (month== 1) str=_("January");
 	else if (month== 2) str=_("February");
 	else if (month== 3) str=_("March");
 	else if (month== 4) str=_("April");
@@ -130,13 +146,13 @@ const char *monthname(int month,int lvl)
 	else if (month==10) str=_("October");
 	else if (month==11) str=_("November");
 	else if (month==12) str=_("December");
-	else return NULL;
-	if (lvl==1) return str;
+	else return nullptr;
+	if (lvl == 1) return str;
 
 	 //bit of a kludge to ease translating, automatically extract
-	 //the first 3 letters of month as necessary.
+	 //the first 3 utf8 letters of month as necessary.
 	 //each character can theoretically be 1 to 6 bytes long.
-	int i=0,m=(month-1)*20;
+	int i = 0, m = (month-1)*20;
 	static char abrv[240];
 	abrv[m+i]=str[i]; i++; while (str[i]&128) { abrv[m+i]=str[i]; i++; }
 	abrv[m+i]=str[i]; i++; while (str[i]&128) { abrv[m+i]=str[i]; i++; }
@@ -151,7 +167,7 @@ const char *monthname(int month,int lvl)
 /*! \class LaxDate
  * \brief Small class to help slightly with date manipulation, based on the Gregorian calendar.
  *
- * LaxDate will always have a valid date. That is, assuming there are no programming bugs
+ * LaxDate will always have a valid date. That is, assuming there are no programming bugs.
  *
  * This class assumes a purely Gregorian calendar, and this ignores the deletion of 10 days in
  * October 1582. In 8000 years or so when the calendar is off by a day, you will be screwed.
@@ -160,7 +176,7 @@ const char *monthname(int month,int lvl)
 
 //! Initialize to current date.
 LaxDate::LaxDate()
-  : year(0),month(0),day(0),dayofweek(-1),dayofyear(-1)
+  : year(0), month(0), day(0)
 {
 	SetToToday();
 }
@@ -172,20 +188,16 @@ LaxDate::LaxDate(int year, int month, int day)
 
 LaxDate::LaxDate(const LaxDate &d)
 {
-	year=d.year;
-	month=d.month;
-	day=d.day;
-	dayofweek=d.dayofweek;
-	dayofyear=d.dayofyear;
+	year      = d.year;
+	month     = d.month;
+	day       = d.day;
 }
 
 LaxDate &LaxDate::operator=(LaxDate &d)
 {
-	year=d.year;
-	month=d.month;
-	day=d.day;
-	dayofweek=d.dayofweek;
-	dayofyear=d.dayofyear;
+	year      = d.year;
+	month     = d.month;
+	day       = d.day;
 	return d;
 }
 
@@ -196,13 +208,11 @@ LaxDate &LaxDate::operator=(LaxDate &d)
 int LaxDate::Set(int y, int m, int d)
 {
 	if (m<1 || m>12) return 1;
-	if (d<1 || d>days_in_month(m,y)) return 2;
+	if (d < 1 || d > days_in_month(m, y)) return 2;
 
-	year=y;
-	month=m;
-	day=d;
-	dayofweek=-1;
-	dayofyear=-1;
+	year      = y;
+	month     = m;
+	day       = d;
 
 	return 0;
 }
@@ -211,43 +221,38 @@ void LaxDate::SetToToday()
 {
 	struct tm d;
 	memset(&d, 0, sizeof(struct tm));
-	time_t t=time(NULL);
+	time_t t = time(nullptr);
 	localtime_r(&t, &d); //seconds from the epoch
 
-	year =d.tm_year+1900;
-	month=d.tm_mon+1; //to make it [1..12]
-	day  =d.tm_mday;  //is [1..31]
-	dayofweek=d.tm_wday; //0..6, 0==sunday
-	dayofyear=d.tm_yday; //0..365, 0==first day
+	year      = d.tm_year + 1900;
+	month     = d.tm_mon + 1; // to make it [1..12]
+	day       = d.tm_mday;    // is [1..31]
+
+	_time.SetToNow();
 }
 
 //! Return the number of days after a Sunday. That is, if on a sunday, return 0, monday is 1, etc.
-int LaxDate::DayOfWeek()
+int LaxDate::DayOfWeek() const
 {
-	if (dayofweek<0){
-		dayofweek= (*this-LaxDate(2011,10,16))%7;
-		//DBG cerr <<"dow diff:"<<(LaxDate(2011,10,16)-*this)
-		//DBG      <<"dow diff:"<<(*this-LaxDate(2011,10,16))<<"  %7:"<<dayofweek<<endl;
-		if (dayofweek<0) dayofweek=7+dayofweek;
-	}
+	int dayofweek = day_of_week(year, month, day, true);
+	// int dayofweek = (*this - LaxDate(2011,10,16))%7;
+	// if (dayofweek<0) dayofweek = 7 + dayofweek;
 	return dayofweek;
 }
 
 /*! 0 is the first day.
  */
-int LaxDate::DayOfYear()
+int LaxDate::DayOfYear() const
 {
-	if (dayofyear<0){
-		dayofyear=0;
-		for (int c=1; c<month; c++) dayofyear+=days_in_month(c,year);
-		dayofyear+=day-1;
-	}
+	int dayofyear = 0;
+	for (int c = 1; c < month; c++) dayofyear += days_in_month(c,year);
+	dayofyear += day - 1;
 	return dayofyear;
 }
 
 void LaxDate::AddDays(int days)
 {
-	day+=days;
+	day += days;
 
 	while (day > days_in_month(month,year)) {
 		day -= days_in_month(month,year);
@@ -259,9 +264,6 @@ void LaxDate::AddDays(int days)
 		if (month<0) { month=11; year--; }
 		day += days_in_month(month,year);
 	}
-
-	dayofweek=-1;
-	dayofyear=-1;
 }
 
 /*! Just return AddDays(weeks*7).
@@ -277,25 +279,20 @@ void LaxDate::AddWeeks(int weeks)
  */
 int LaxDate::AddMonths(int months)
 {
-	dayofweek=-1;
-	dayofyear=-1;
-
 	year  += months/12;
 	month += months%12;
 
-	if (month>=12) { month-=12; year++; }
-	else if (month<0) { month+=12; year--; }
+	if (month >= 12) { month -= 12; year++; }
+	else if (month < 0) { month += 12; year--; }
 
 	int mdays = days_in_month(month, year);
-	if (day>=mdays) { day=mdays; return 1; }
+	if (day >= mdays) { day = mdays; return 1; }
 	return 0;
 }
 
 void LaxDate::AddYears(int years)
 {
-	dayofweek=-1;
-	dayofyear=-1;
-	year+=years;
+	year += years;
 }
 
 /*! Add years first, then months, then days.
@@ -310,10 +307,8 @@ void LaxDate::Add(int years, int months, int days)
 
 
 //! Return the number of days between dates. Note this is negative when d1 is later than d2.
-int operator-(LaxDate d2,LaxDate d1)
+int operator-(const LaxDate &d2, const LaxDate &d1)
 {
-	DBG cerr <<"date "<<d2.Year()<<"/"<<d2.Month()<<"/"<<d2.Day()<<" - "<<d1.Year()<<"/"<<d1.Month()<<"/"<<d1.Day()<<" = ";
-
 	// *** this is a lazy way to do it:
 	int n=0, y1,y2;
 	if (d1<d2) {
@@ -327,56 +322,174 @@ int operator-(LaxDate d2,LaxDate d1)
 		if (y1==y2) n+=d2.DayOfYear()-d1.DayOfYear();
 		else n-=d1.DayOfYear()+days_in_year(y2)-d2.DayOfYear();
 	}
-
-	DBG cerr <<n<<endl;
 	return n;
 }
 
-int operator<(LaxDate d1,LaxDate d2)
+/*! This is a wrapper for strftime(), and has the same return value, which is
+ * the number of characters including a terminating null written to buffer if that
+ * number is less than or equal to max. If greater than max, then the number is
+ * returned and buffer is not modified.
+ *
+ * Example:
+ * - `date.Format("%Y-%m-%dT%H:%M:%SZ", buffer, max);` -> `2025-06-29T11:30:45Z`
+ */
+int LaxDate::Format(const char *fmt, char *buffer, int &max)
 {
-	if (d1.Year()<d2.Year()) return 1;
-	if (d1.Year()>d2.Year()) return 0;
-	if (d1.Month()<d2.Month()) return 1;
-	if (d1.Month()>d2.Month()) return 0;
-	if (d1.Day()<d2.Day()) return 1;
-	if (d1.Day()>d2.Day()) return 0;
-	return 0; //they are the same Day()
+	struct tm d;
+	memset(&d, 0, sizeof(struct tm));
+	d.tm_sec  = (int)_time.Second();    /* Seconds          [0, 60] */
+	d.tm_min  = _time.Minute();    /* Minutes          [0, 59] */
+	d.tm_hour = _time.Hour();   /* Hour             [0, 23] */
+	d.tm_mday = day;   /* Day of the month [1, 31] */
+	d.tm_mon  = month-1;   /* Month            [0, 11]  (January = 0) */
+	d.tm_year = year-1900;   /* Year minus 1900 */
+	d.tm_wday = DayOfWeek();   /* Day of the week  [0, 6]   (Sunday = 0) */
+	d.tm_yday = DayOfYear();   /* Day of the year  [0, 365] (Jan/01 = 0) */
+	//d.tm_isds = t;  /* Daylight savings flag */
+	//long tm_gmtoff; /* Seconds East of UTC */
+	//const char *tm_zone;   /* Timezone abbreviation */
+
+	return strftime(buffer, max, fmt, &d);
 }
 
-int operator>(LaxDate d1,LaxDate d2)
+bool operator<(const LaxDate &d1, const LaxDate &d2)
 {
-	if (d1.Year()>d2.Year()) return 1;
-	if (d1.Year()<d2.Year()) return 0;
-	if (d1.Month()>d2.Month()) return 1;
-	if (d1.Month()<d2.Month()) return 0;
-	if (d1.Day()>d2.Day()) return 1;
-	if (d1.Day()<d2.Day()) return 0;
-	return 0; //they are the same Day()
+	if (d1.Year()<d2.Year()) return true;
+	if (d1.Year()>d2.Year()) return false;
+	if (d1.Month()<d2.Month()) return true;
+	if (d1.Month()>d2.Month()) return false;
+	if (d1.Day()<d2.Day()) return true;
+	if (d1.Day()>d2.Day()) return false;
+	return false; //they are the same Day()
 }
 
-int operator<=(LaxDate d1,LaxDate d2)
+bool operator>(const LaxDate &d1, const LaxDate &d2)
 {
-	if (d1.Year()<d2.Year()) return 1;
-	if (d1.Year()>d2.Year()) return 0;
-	if (d1.Month()<d2.Month()) return 1;
-	if (d1.Month()>d2.Month()) return 0;
-	if (d1.Day()<=d2.Day()) return 1;
-	return 0;
+	if (d1.Year()>d2.Year()) return true;
+	if (d1.Year()<d2.Year()) return false;
+	if (d1.Month()>d2.Month()) return true;
+	if (d1.Month()<d2.Month()) return false;
+	if (d1.Day()>d2.Day()) return true;
+	if (d1.Day()<d2.Day()) return false;
+	return false; //they are the same Day()
 }
 
-int operator>=(LaxDate d1,LaxDate d2)
+bool operator<=(const LaxDate &d1, const LaxDate &d2)
 {
-	if (d1.Year()>d2.Year()) return 1;
-	if (d1.Year()<d2.Year()) return 0;
-	if (d1.Month()>d2.Month()) return 1;
-	if (d1.Month()<d2.Month()) return 0;
-	if (d1.Day()>=d2.Day()) return 1;
-	return 0;
+	if (d1.Year()<d2.Year()) return true;
+	if (d1.Year()>d2.Year()) return false;
+	if (d1.Month()<d2.Month()) return true;
+	if (d1.Month()>d2.Month()) return false;
+	if (d1.Day()<=d2.Day()) return true;
+	return false;
 }
 
-int operator==(LaxDate d1,LaxDate d2)
+bool operator>=(const LaxDate &d1, const LaxDate &d2)
 {
-	return d1.Year()==d2.Year() && d1.Month()==d2.Month() && d1.Day()==d2.Day();
+	if (d1.Year()>d2.Year()) return true;
+	if (d1.Year()<d2.Year()) return false;
+	if (d1.Month()>d2.Month()) return true;
+	if (d1.Month()<d2.Month()) return false;
+	if (d1.Day()>=d2.Day()) return true;
+	return false;
+}
+
+bool operator==(const LaxDate &d1, const LaxDate &d2)
+{
+	return d1.Year() == d2.Year() && d1.Month() == d2.Month() && d1.Day() == d2.Day();
+}
+
+
+//------------------------------------ LaxTime --------------------------------
+
+LaxTime::LaxTime(int h, int m, double s)
+{
+	hour   = h;
+	minute = m;
+	second = s;
+}
+
+void LaxTime::SetToNow()
+{
+	struct timespec ts; // tv_sec, tv_nsec (nanoseconds)
+	clock_gettime(CLOCK_REALTIME, &ts); // sec+nsec since the epoch, Jan 1 1970
+
+	struct tm d;
+	memset(&d, 0, sizeof(struct tm));
+	localtime_r(&ts.tv_sec, &d);
+
+	hour = d.tm_hour;
+	minute = d.tm_min;
+	second = d.tm_sec + ts.tv_nsec * 1e-9;
+}
+
+/*! Static constructor. */
+LaxTime LaxTime::Now()
+{
+	LaxTime t;
+	t.SetToNow();
+	return t;
+}
+
+/*! Static constructor */
+LaxTime LaxTime::FromSeconds(double s)
+{
+	LaxTime t;
+	t.hour = s/60/60;
+	s -= t.hour*60*60;
+	t.minute = s/60;
+	s -= t.minute*60;
+	t.second = s;
+	return t;
+}
+
+
+// seconds between instances
+double operator-(const LaxTime &t1, const LaxTime &t2)
+{
+	double s = (t1.Hour() - t2.Hour())*60*60 + (t1.Minute() - t2.Minute())*60 + (t1.Second() - t2.Second());
+	return s;
+}
+
+bool operator< (const LaxTime &t1, const LaxTime &t2)
+{
+	if (t1.hour > t2.hour) return false;
+	if (t1.hour < t2.hour) return true;
+	if (t1.minute > t2.minute) return false;
+	if (t1.minute < t2.minute) return true;
+	return t1.second < t2.second;
+}
+
+bool operator> (const LaxTime &t1, const LaxTime &t2)
+{
+	if (t1.hour > t2.hour) return true;
+	if (t1.hour < t2.hour) return false;
+	if (t1.minute > t2.minute) return true;
+	if (t1.minute < t2.minute) return false;
+	return t1.second > t2.second;
+}
+
+bool operator<=(const LaxTime &t1, const LaxTime &t2)
+{
+	if (t1.hour > t2.hour) return false;
+	if (t1.hour < t2.hour) return true;
+	if (t1.minute > t2.minute) return false;
+	if (t1.minute < t2.minute) return true;
+	return t1.second <= t2.second;
+}
+
+bool operator>=(const LaxTime &t1, const LaxTime &t2)
+{
+	if (t1.hour > t2.hour) return true;
+	if (t1.hour < t2.hour) return false;
+	if (t1.minute > t2.minute) return true;
+	if (t1.minute < t2.minute) return false;
+	return t1.second >= t2.second;
+}
+
+bool operator==(const LaxTime &t1, const LaxTime &t2)
+{
+	return t1.hour == t2.hour && t1.minute == t2.minute && t1.second == t2.second;
 }
 
 

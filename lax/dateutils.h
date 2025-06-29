@@ -28,8 +28,42 @@ namespace Laxkit {
 int is_leap_year(int year);
 int days_in_month(int month, int year);
 int days_in_year(int year);
+int day_of_week(int year, int month, int day, bool start_sunday);
 const char *dayofweek(int day, int lvl, int sunday);
 const char *monthname(int month,int lvl);
+
+
+//---------------------------- LaxTime -----------------------------------------
+
+class LaxTime
+{
+  protected:
+
+  public:
+	int hour = 0; // 0..23
+	int minute = 0; // 0..59
+	double second = 0.0; // 0 to 60
+
+	LaxTime() { hour = 0; minute = 0; second = 0.0; }
+	LaxTime(int h, int m, double s);
+	int Hour() const { return hour; }
+	int Minute() const { return minute; }
+	double Second() const { return second; }
+	double TotalSeconds() const { return (hour*60 + minute)*60 + second; }
+	double TotalMinutes() const { return hour*60 + minute + second/60; }
+	double TotalHours()   const { return hour + minute/60.0 + second/3600; }
+	void SetToNow();
+
+	static LaxTime Now();
+	static LaxTime FromSeconds(double s);
+};
+
+double operator-(const LaxTime &t1, const LaxTime &t2); // seconds between instances
+bool operator< (const LaxTime &t1, const LaxTime &t2);
+bool operator> (const LaxTime &t1, const LaxTime &t2);
+bool operator<=(const LaxTime &t1, const LaxTime &t2);
+bool operator>=(const LaxTime &t1, const LaxTime &t2);
+bool operator==(const LaxTime &t1, const LaxTime &t2);
 
 
 //---------------------------- LaxDate -----------------------------------------
@@ -37,8 +71,10 @@ const char *monthname(int month,int lvl);
 class LaxDate
 {
   protected:
-	int year,month,day;
-	int dayofweek, dayofyear;
+	int year;
+	int month; // 1..12
+	int day;   // 1..31
+	LaxTime _time; //todo: finish adding this
 
   public:
 	LaxDate();
@@ -54,19 +90,23 @@ class LaxDate
 	void AddYears(int years);
 	void Add(int years, int months, int days);
 
-	int Year()  { return year;  }
-	int Month() { return month; }
-	int Day()   { return day;   }
-	int DayOfWeek();
-	int DayOfYear();
+	int Format(const char *fmt, char *buffer, int &max);
+
+	int Year()  const { return year;  }
+	int Month() const { return month; }
+	int Day()   const { return day;   }
+	int DayOfWeek() const;
+	int DayOfYear() const;
+	bool IsLeapYear() const { return is_leap_year(year); }
 };
 
-int operator-(LaxDate d1,LaxDate d2); //number of days between dates
-int operator<(LaxDate d1,LaxDate d2);
-int operator>(LaxDate d1,LaxDate d2);
-int operator<=(LaxDate d1,LaxDate d2);
-int operator>=(LaxDate d1,LaxDate d2);
-int operator==(LaxDate d1,LaxDate d2);
+int  operator- (const LaxDate &d1,const LaxDate &d2); //number of days between dates
+bool operator< (const LaxDate &d1,const LaxDate &d2);
+bool operator> (const LaxDate &d1,const LaxDate &d2);
+bool operator<=(const LaxDate &d1,const LaxDate &d2);
+bool operator>=(const LaxDate &d1,const LaxDate &d2);
+bool operator==(const LaxDate &d1,const LaxDate &d2);
+
 
 } //namespace Laxkit
 
