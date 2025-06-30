@@ -138,7 +138,7 @@ void Win::Refresh()
 	 //spinning square
     Affine m;
     m.setRotation(angle);
-    m.setScale(scale,scale);
+    m.setScale(1/scale,1/scale);
     m.origin(flatpoint(win_w/2,win_h/2));
 
     flatpoint pts[4] = {{-1., 1., 0},
@@ -146,10 +146,13 @@ void Win::Refresh()
                         { 1.,-1., 0},
                         {-1.,-1., 0}};
     
-    for (int c=0; c<4; c++) pts[c]=m.transformPoint(pts[c]);
+    for (int c=0; c<4; c++) {
+		pts[c] = m.transformPoint(pts[c]);
+	}
 
 
-    dp->NewFG(win_themestyle->fg);
+    //dp->NewFG(win_themestyle->fg);
+	dp->NewFG(0.,0.,1.);
     dp->drawlines(pts, 4, 1, 1);
 
 
