@@ -33,7 +33,8 @@ examples= \
 	themeeditor \
 	spirocurves \
 	timers \
-	widgets
+	widgets \
+	clock
 
 
 all: $(examples)
@@ -61,6 +62,9 @@ panel: lax panel.o
 	$(LD) $@.o $(LDFLAGS) -o $@
 
 spirocurves: lax spirocurves.o
+	$(LD) $@.o $(LDFLAGS) -o $@
+
+clock: lax clock.o
 	$(LD) $@.o $(LDFLAGS) -o $@
 
 stopwatch: lax stopwatch.o
