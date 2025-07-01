@@ -143,13 +143,8 @@ void StopWatch::Lap()
 	laps.push(current_time);
 }
 
- //add time to laps list
 void StopWatch::SetTime(double time)
 {
-//	if (playing) {
-//		pause_time = time;
-//		pause_clock = times(NULL);
-//	}
 	tms tms_;
 	pause_clock = times(&tms_);
 	start_clock = pause_clock - time * ticks_per_sec;
