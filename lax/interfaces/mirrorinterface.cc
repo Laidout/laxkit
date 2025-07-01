@@ -46,7 +46,9 @@ namespace LaxInterfaces {
 
 /*! \class MirrorData
  * \ingroup interfaces
- * \brief Data that MirrorInterface can use.
+ * Data that MirrorInterface can use.
+ * This tool can be used, for instance, to show line grids, or an axis for a mirror filter,
+ * since both are just dragging a straight line with optional label around with two points.
  */
 
 MirrorData::MirrorData()
@@ -250,7 +252,7 @@ Laxkit::MenuInfo *MirrorInterface::ContextMenu(int x,int y,int deviceid, Laxkit:
 	if (menu->n()) menu->AddSep(_("Mirror"));
 
 	menu->AddItem(_("Mirror X"), MIRROR_X);
-	menu->AddItem(_("Mirror Y"), MIRROR_X);
+	menu->AddItem(_("Mirror Y"), MIRROR_Y);
 	menu->AddItem(_("Mirror 45 deg"), MIRROR_45);
 	menu->AddItem(_("Mirror -45 deg"), MIRROR_135);
 
@@ -404,7 +406,7 @@ int MirrorInterface::OtherObjectCheck(int x,int y,unsigned int state)
 	return 0;
 }
 
-int MirrorInterface::scan(int x, int y, unsigned int state)
+int MirrorInterface::scan(int x, int y, unsigned int state, int count)
 {
 	if (!mirrordata) return MIRROR_None;
 
@@ -420,7 +422,32 @@ int MirrorInterface::scan(int x, int y, unsigned int state)
 	double t;
 	double d = distance(p, flatline(mirrordata->p2, mirrordata->p1), &t);
 	//if (t > 0 && t < 1) return MIRROR_Segment;
-	if (d < threshhold) return MIRROR_Line;
+	if (d < threshhold) {
+		if (count == 2) {
+			flatpoint pp = mirrordata->p2;
+			if (data) pp = data->transformPoint(pp);
+			pp = dp->realtoscreen(pp);
+			if (!dp->onscreen(pp.x, pp.y)) {
+				mirrordata->p2 = p;
+				return MIRROR_P2;
+			}
+			pp = mirrordata->p1;
+			if (data) pp = data->transformPoint(pp);
+			pp = dp->realtoscreen(pp);
+			if (!dp->onscreen(pp.x, pp.y)) {
+				mirrordata->p1 = p;
+				return MIRROR_P1;
+			}
+			if (pp.distanceTo(mirrordata->p2) < pp.distanceTo(mirrordata->p1)) {
+				mirrordata->p2 = p;
+				return MIRROR_P2;
+			} else  {
+				mirrordata->p1 = p;
+				return MIRROR_P1;
+			}
+		}
+		return MIRROR_Line;
+	}
 
 	return MIRROR_None;
 }
@@ -428,7 +455,8 @@ int MirrorInterface::scan(int x, int y, unsigned int state)
 int MirrorInterface::LBDown(int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d) 
 {
 
-	int nhover = scan(x,y,state);
+	int nhover = scan(x,y,state,count);
+
 	if (nhover != MIRROR_None) {
 		hover = nhover;
 		buttondown.down(d->id,LEFTBUTTON,x,y, nhover);
@@ -527,7 +555,7 @@ int MirrorInterface::MouseMove(int x,int y,unsigned int state, const Laxkit::Lax
 {
 	if (!buttondown.any()) {
 		// update any mouse over state
-		int nhover = scan(x,y,state);
+		int nhover = scan(x,y,state, 1);
 		if (nhover != hover) {
 			hover = nhover;
 			// buttondown.down(d->id,LEFTBUTTON,x,y, nhover);
@@ -563,7 +591,7 @@ int MirrorInterface::MouseMove(int x,int y,unsigned int state, const Laxkit::Lax
 			// apply snap
 			flatvector v = drag_p1 - drag_p2;
 			double increment = M_PI/12;
-			double angle = (int(atan2(v.y, v.x) / increment)) * increment;
+			double angle = (floor(.5 + atan2(v.y, v.x) / increment)) * increment;
 			v = v.norm() * flatvector(cos(angle), sin(angle));
 			mirrordata->p1 = drag_p2 + v;
 			// apply snap
@@ -580,7 +608,7 @@ int MirrorInterface::MouseMove(int x,int y,unsigned int state, const Laxkit::Lax
 			// apply snap
 			flatvector v = drag_p2 - drag_p1;
 			double increment = M_PI/12;
-			double angle = (int(atan2(v.y, v.x) / increment)) * increment;
+			double angle = (floor(.5 + atan2(v.y, v.x) / increment)) * increment;
 			v = v.norm() * flatvector(cos(angle), sin(angle));
 			mirrordata->p2 = drag_p1 + v;
 		} else mirrordata->p2 = drag_p2;
@@ -697,11 +725,27 @@ int MirrorInterface::PerformAction(int action)
 			return 0;
 		}
 
-		// case MIRROR_45:
+		case MIRROR_45: {
+			double len = (mirrordata->p2 - mirrordata->p1).norm();
+			mirrordata->p2 = flatpoint(mirrordata->p1.x + len, mirrordata->p1.y + len);
+			//if (mirrordata->p2.y == mirrordata->p1.y) mirrordata->p2.y = mirrordata->p1.y+1;
+			Modified();
+			needtodraw = 1;
+			return 0;
+		}
+
+		case MIRROR_135: {
+			double len = (mirrordata->p2 - mirrordata->p1).norm();
+			mirrordata->p2 = flatpoint(mirrordata->p1.x + len, mirrordata->p1.y - len);
+			//if (mirrordata->p2.y == mirrordata->p1.y) mirrordata->p2.y = mirrordata->p1.y+1;
+			Modified();
+			needtodraw = 1;
+			return 0;
+		}
+
+		// case MIRROR_Rotate: // in 15 degree increments
 		// 	***
-		// case MIRROR_135:
-		// 	***
-		// case MIRROR_Rotate:
+		// case MIRROR_RotateR:
 		// 	***
 		// case MIRROR_Left:
 		// case MIRROR_Top:

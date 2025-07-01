@@ -85,7 +85,7 @@ class MirrorInterface : public anInterface
 	Laxkit::flatpoint drag_p1, drag_p2; //cache for snapping ref
 
 	int hover;
-	virtual int scan(int x, int y, unsigned int state);
+	virtual int scan(int x, int y, unsigned int state, int count);
 	virtual int OtherObjectCheck(int x,int y,unsigned int state);
 
 	virtual int send();
@@ -107,8 +107,8 @@ class MirrorInterface : public anInterface
 		MIRROR_45,
 		MIRROR_135,
 		MIRROR_Rotate,
-		MIRROR_Merge,
-		MIRROR_Merge_Threshhold,
+		MIRROR_Merge, // boolean union a path with its mirror
+		MIRROR_Merge_Threshhold, // distance to line within which to merge points
 		MIRROR_Move_Line,
 		MIRROR_Move_Point,
 		MIRROR_MAX
