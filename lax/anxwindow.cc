@@ -1054,6 +1054,70 @@ int anXWindow::Grayed(int g)
 	return Grayed(); 
 }
 
+bool anXWindow::IsFullscreen()
+{
+	#ifdef _LAX_PLATFORM_XLIB
+	if (!app || !app->dpy) return false;
+	unsigned long *data = nullptr;
+	unsigned long nret = 0;
+	Atom actual_type_ret = 0;
+	int format = 0;
+	unsigned long leftover = 0;
+	int status = XGetWindowProperty(app->dpy, xlib_window, _NET_WM_STATE, 0, 64, False,
+					AnyPropertyType, /* req_type */
+					&actual_type_ret,
+					&format,
+					&nret,
+					&leftover,
+					(unsigned char **)(&data));
+	if (status != Success) return false;
+	for (unsigned long c = 0; c < nret; c++) {
+		if (data[c] == _NET_WM_STATE_FULLSCREEN) return true;
+	}
+	return false;
+	#else
+	return false;
+	#endif	
+}
+
+/*! Set fullscreen or not.
+ * If the window is not toplevel, nothing happens.
+ * Return 0 for success or 1 for error.
+ */
+int anXWindow::Fullscreen(bool yes)
+{
+	if (win_parent) return -1;
+
+	#ifdef _LAX_PLATFORM_XLIB
+	//XChangeProperty(app->dpy, xlib_window, _NET_WM_STATE, XA_ATOM, 32, PropModeReplace, (unsigned char*)&_NET_WM_STATE_FULLSCREEN, yes); <- set prop, but no fs
+	
+	if (!app->dpy) return 1;
+	XEvent xev;
+    long evmask = SubstructureRedirectMask | SubstructureNotifyMask;
+
+    xev.type = ClientMessage;
+    xev.xclient.window = xlib_window;
+    xev.xclient.message_type = _NET_WM_STATE;
+    xev.xclient.format = 32;
+
+    // xev.xclient.data.l[0] = _NET_WM_STATE_TOGGLE;
+    // xev.xclient.data.l[1] = _NET_WM_STATE_FULLSCREEN;
+    //-----
+    xev.xclient.data.l[0] = yes ? _NET_WM_STATE_ADD : _NET_WM_STATE_REMOVE;
+    xev.xclient.data.l[1] = _NET_WM_STATE_FULLSCREEN;
+
+    xev.xclient.data.l[2] = 0;  /* no second property to toggle */
+    xev.xclient.data.l[3] = 1;  /* source indication: 1 means normal application */
+    xev.xclient.data.l[4] = 0;  /* unused */
+
+    if(!XSendEvent(app->dpy, DefaultRootWindow(app->dpy), 0, evmask, &xev)) {
+        return 2;
+    }
+	return 0;
+	#else
+	return 1;
+	#endif
+}
 
 //! Increment win_active, and highlights the window's border, if the event refers to this window.
 /*! The default here is to activate for any focus on from any keyboard.
@@ -1300,6 +1364,11 @@ Atom anXWindow::MimeTextPlainUtf8 = 0;
 Atom anXWindow::MimeTextPlainLatin1 = 0;
 Atom anXWindow::Xlib_TEXT = 0;
 Atom anXWindow::Xlib_UTF8_STRING = 0;
+Atom anXWindow::_NET_WM_STATE = 0;
+int  anXWindow::_NET_WM_STATE_REMOVE = 0;
+int  anXWindow::_NET_WM_STATE_ADD    = 1;
+int  anXWindow::_NET_WM_STATE_TOGGLE = 2;
+Atom anXWindow::_NET_WM_STATE_FULLSCREEN = 0;
 
 void anXWindow::InitXlibVars(Display *dpy)
 {
@@ -1331,6 +1400,12 @@ void anXWindow::InitXlibVars(Display *dpy)
     MimeTextPlainLatin1   = XInternAtom(dpy,"text/plain;charset=ISO-8859-1",False);
     Xlib_TEXT             = XInternAtom(dpy,"TEXT",False);
     Xlib_UTF8_STRING      = XInternAtom(dpy,"UTF8_STRING",False);
+
+    _NET_WM_STATE            = XInternAtom(dpy, "_NET_WM_STATE", False);
+    // _NET_WM_STATE_REMOVE     = XInternAtom(dpy, "_NET_WM_STATE_REMOVE", False);
+    // _NET_WM_STATE_ADD        = XInternAtom(dpy, "_NET_WM_STATE_ADD", False);
+    // _NET_WM_STATE_TOGGLE     = XInternAtom(dpy, "_NET_WM_STATE_TOGGLE", False);
+    _NET_WM_STATE_FULLSCREEN = XInternAtom(dpy, "_NET_WM_STATE_FULLSCREEN", False);
 }
 
 

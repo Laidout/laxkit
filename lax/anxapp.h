@@ -181,6 +181,12 @@ class anXWindow : virtual public EventReceiver,
 
     static Atom LaxDndProperty;
 
+    static Atom _NET_WM_STATE;
+    static Atom _NET_WM_STATE_FULLSCREEN;
+    static int _NET_WM_STATE_TOGGLE;
+    static int _NET_WM_STATE_REMOVE;
+    static int _NET_WM_STATE_ADD;
+
   	static bool xlib_vars_initialized;
   	static void InitXlibVars(Display *dpy);
 
@@ -249,6 +255,8 @@ class anXWindow : virtual public EventReceiver,
 	virtual anXWindow *WindowChild(int index);
 	virtual int  Grayed();
 	virtual int  Grayed(int g);
+	virtual bool IsFullscreen();
+	virtual int  Fullscreen(bool yes);
 	virtual int  preinit();
 	virtual int  init() { return 0; }
 	virtual int  Finalize();
@@ -508,6 +516,9 @@ class anXApp : virtual public anObject
 	virtual int DefaultIcon(const char *file);
 	virtual int DefaultIcon(LaxImage *image, int absorb_count);
 	virtual int ScreenInfo(int screen,int *x,int *y, int *width,int *height,int *mmwidth,int *mmheight,int *depth,int *monitor);
+	// virtual int MonitorInfo(int monitor, int *x,int *y, int *width,int *height,int *mmwidth,int *mmheight,int *depth, const char **id, const char **name);
+	virtual const ScreenInformation *MonitorInfo(int monitor);
+	virtual int NumMonitors();
 	virtual const char *Locale() const { return default_language; }
 	virtual void Locale(const char *);
 

@@ -1329,7 +1329,37 @@ void anXApp::RefreshScreenInfo()
 }
 
 
+int anXApp::NumMonitors()
+{
+	if (!screeninfo) return 0;
+	return screeninfo->HowMany();
+}
 
+/*! Return 0 for failure, or positive number for success.
+ */
+// int anXApp::MonitorInfo(int monitor, int *x,int *y, int *width,int *height,int *mmwidth,int *mmheight,int *depth, const char **id, const char **name)
+// {
+// 	if (!screeninfo) return 0;
+// 	ScreenInformation *info = screeninfo->Get(monitor);
+// 	if (!info) return 0;
+// 	int n = 0;
+// 	if (x)       { *x       = info->x;        n++; }
+// 	if (y)       { *y       = info->y;        n++; }
+// 	if (width)   { *width   = info->width;    n++; }
+// 	if (height)  { *height  = info->height;   n++; }
+// 	if (mmwidth) { *mmwidth = info->mmwidth;  n++; }
+// 	if (mmheight){ *mmheight= info->mmheight; n++; }
+// 	if (depth)   { *depth   = info->depth;    n++; }
+// 	if (id)      { *id      = info->id;       n++; }
+// 	if (name)    { *name    = info->name;     n++; }
+// 	return n;
+// }
+
+const ScreenInformation *anXApp::MonitorInfo(int monitor)
+{
+	if (!screeninfo) return nullptr;
+	return screeninfo->Get(monitor);
+}
 
 //! Return information about a screen, based on information in screeninfo which gets defined in init().
 /*! Return the width, height, and depth information about a screen, if the
