@@ -723,7 +723,7 @@ void DisplayerCairo::LineAttributes(double width,int dash,int cap,int join)
 	if (width>=0) cairo_set_line_width(cr,width);
 
 	if (dash>=0) {
-		if (dash==LineSolid) cairo_set_dash(cr,nullptr,0,0);
+		if (dash == 0) cairo_set_dash(cr,nullptr,0,0);
 		else {
 			if (width < 0) width = cairo_get_line_width(cr);
 			double l=width*5;
@@ -745,6 +745,15 @@ void DisplayerCairo::LineAttributes(double width,int dash,int cap,int join)
 		else if (join==LAXJOIN_Bevel) cairo_set_line_join(cr, CAIRO_LINE_JOIN_BEVEL);
 	}
 
+}
+
+void DisplayerCairo::LineJoin(int join)
+{
+	if (join >= 0) {
+		if      (join == LAXJOIN_Miter) cairo_set_line_join(cr, CAIRO_LINE_JOIN_MITER);
+		else if (join == LAXJOIN_Round) cairo_set_line_join(cr, CAIRO_LINE_JOIN_ROUND);
+		else if (join == LAXJOIN_Bevel) cairo_set_line_join(cr, CAIRO_LINE_JOIN_BEVEL);
+	}
 }
 
 void DisplayerCairo::LineCap(int cap)

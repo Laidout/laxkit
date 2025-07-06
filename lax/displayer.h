@@ -130,6 +130,7 @@ class Displayer : public PanUser, virtual public anObject
 	virtual void LineAttributes(double width,int dash,int cap,int join) = 0;
 	virtual void FillAttributes(int fillstyle, int fillrule) = 0;
 	virtual void LineCap(int cap) = 0;
+	virtual void LineJoin(int join) = 0;
 	virtual void Dashes(double *dashes, int num, double offset) = 0;
 	virtual void Dashes(double dashlength);
 	virtual LaxCompositeOp BlendMode(LaxCompositeOp mode) = 0;

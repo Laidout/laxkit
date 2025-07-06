@@ -127,6 +127,7 @@ class DisplayerCairo : public Displayer
 	virtual void LineAttributes(double width,int dash,int cap,int join);
 	virtual void FillAttributes(int fillstyle, int fillrule);
 	virtual void LineCap(int cap);
+	virtual void LineJoin(int join);
 	virtual void Dashes(double *dashes, int num, double offset);
 	virtual LaxCompositeOp BlendMode(LaxCompositeOp mode);
 	virtual double setSourceAlpha(double alpha); //makes mask_pattern be black+alpha
