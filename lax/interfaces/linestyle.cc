@@ -22,6 +22,7 @@
 
 #include <lax/interfaces/linestyle.h>
 #include <lax/drawingdefs.h>
+#include <lax/utf8string.h>
 #include <lax/laxutils.h>
 
 
@@ -68,7 +69,7 @@ LineStyle::LineStyle()
 	 // on/off, dashes is list of lengths proportional to width of on and off
 	 // off/on, dashes is list of lengths proportional to width of on and off
 	 // broken, dashes holds settings for zero_threshhold, broken_threshhold, and other stuff..
-	dotdash     = 0;
+	use_dashes  = false;
 	dash_offset = 0;
 	dashes      = NULL;
 	numdashes   = 0;
@@ -87,7 +88,7 @@ LineStyle::LineStyle(const LineStyle &l)
 	stroke_fill = l.stroke_fill;
 	if (stroke_fill) stroke_fill->inc_count();
 
-	dotdash     = l.dotdash;
+	use_dashes  = l.use_dashes;
 	numdashes   = l.numdashes;
 	dash_offset = l.dash_offset;
 	if (numdashes) {
@@ -106,7 +107,7 @@ LineStyle &LineStyle::operator=(LineStyle &l)
 	capstyle   = l.capstyle;
 	joinstyle  = l.joinstyle;
 	miterlimit = l.miterlimit;
-	dotdash    = l.dotdash;
+	use_dashes = l.use_dashes;
 	function   = l.function;
 	stroke_fill = l.stroke_fill;
 	if (stroke_fill) stroke_fill->inc_count();
@@ -164,6 +165,18 @@ void LineStyle::Colorf(const Laxkit::ScreenColor &col)
 	Colorf(col.Red(), col.Green(), col.Blue(), col.Alpha());
 }
 
+void LineStyle::Dashes(double *_dashes, int num, double offset)
+{
+	delete[] dashes;
+	dashes = nullptr;
+	dash_offset = offset;
+	numdashes = num;
+	if (numdashes < 0) numdashes = 0;
+	if (num <= 0) return;
+	dashes = new double[numdashes];
+	memcpy(dashes, _dashes, numdashes * sizeof(double));
+}
+
 //! Dump in.
 void LineStyle::dump_in_atts(Attribute *att,int flag,Laxkit::DumpContext *context)
 {
@@ -202,8 +215,17 @@ void LineStyle::dump_in_atts(Attribute *att,int flag,Laxkit::DumpContext *contex
  			else if (!strcmp(value,"miter")) joinstyle=LAXJOIN_Miter;
 			else joinstyle=LAXJOIN_Extrapolate;
 
-		} else if (!strcmp(name,"dotdash")) {
-			IntAttribute(value,&dotdash);
+		} else if (!strcmp(name, "use_dashes") || !strcmp(name,"dotdash")) { //dotdash deprecated
+			use_dashes = BooleanAttribute(value);
+
+		} else if (!strcmp(name,"dash_offset")) {
+			DoubleAttribute(value, &dash_offset);
+
+		} else if (!strcmp(name,"dashes")) {
+			delete[] dashes;
+			dashes = nullptr;
+			numdashes = 0;
+			DoubleListAttribute(value, &dashes, &numdashes);
 
 		} else if (!strcmp(name,"function")) {
 			function = StringToLaxop(value);
@@ -224,7 +246,9 @@ Laxkit::Attribute *LineStyle::dump_out_atts(Laxkit::Attribute *att,int what, Lax
 		att->push("endcapstyle","round",    "or miter, butt, projecting, zero, same");
 		att->push("joinstyle","round",      "or miter, bevel, extrapolate");
 		att->push("miterlimit","100",       "means limit is 100*width");
-		att->push("dotdash","5",            "an integer whose bits define an on-off pattern");
+		att->push("use_dashes","false",     "Whether to use on/off pattern in dashes");
+		att->push("dash_offset","0",        "Initial offset to first dash");
+		att->push("dashes","1",             "Dash pattern. 1 number is ordinary on/off. Else is sequence [on off on off ...].");
 		att->push("width","1",              "width of the line");
 		att->push("function","Over",        "Blend mode. Common is None or Over");
 
@@ -238,32 +262,41 @@ Laxkit::Attribute *LineStyle::dump_out_atts(Laxkit::Attribute *att,int what, Lax
 	sprintf(scratch, "rgbaf(%.10g, %.10g, %.10g, %.10g)", color.Red(),color.Green(),color.Blue(),color.Alpha());
 	att->push("color", scratch);
 
-	if (capstyle==LAXCAP_Butt) str="butt";
-	else if (capstyle==LAXCAP_Round) str="round";
- 	else if (capstyle==LAXCAP_Projecting) str="projecting";
- 	else if (capstyle==LAXCAP_Zero_Width) str="zero";
-    else str="?";
+	if      (capstyle == LAXCAP_Butt)       str = "butt";
+	else if (capstyle == LAXCAP_Round)      str = "round";
+ 	else if (capstyle == LAXCAP_Projecting) str = "projecting";
+ 	else if (capstyle == LAXCAP_Zero_Width) str = "zero";
+    else str = "?";
 	att->push("capstyle", str);
 
 	if (endcapstyle !=0) {
-		if      (endcapstyle == LAXCAP_Butt) str="butt";
-		else if (endcapstyle == LAXCAP_Round) str="round";
-		else if (endcapstyle == LAXCAP_Projecting) str="projecting";
-		else if (endcapstyle == LAXCAP_Zero_Width) str="zero";
+		if      (endcapstyle == LAXCAP_Butt)       str = "butt";
+		else if (endcapstyle == LAXCAP_Round)      str = "round";
+		else if (endcapstyle == LAXCAP_Projecting) str = "projecting";
+		else if (endcapstyle == LAXCAP_Zero_Width) str = "zero";
 		else str="?";
 		att->push("endcapstyle", str);
 	}
 
-	if (joinstyle==LAXJOIN_Miter) str="miter";
-	else if (joinstyle==LAXJOIN_Round) str="round";
- 	else if (joinstyle==LAXJOIN_Bevel) str="bevel";
- 	else if (joinstyle==LAXJOIN_Extrapolate) str="extrapolate";
-    else str="?";
+	if      (joinstyle == LAXJOIN_Miter)       str = "miter";
+	else if (joinstyle == LAXJOIN_Round)       str = "round";
+ 	else if (joinstyle == LAXJOIN_Bevel)       str = "bevel";
+ 	else if (joinstyle == LAXJOIN_Extrapolate) str = "extrapolate";
+    else str = "?";
 	att->push("joinstyle",str);
 	att->push("miterlimit",miterlimit);
 
-	att->push("dotdash", dotdash);
 	att->push("width", width);
+	att->push("use_dashes", use_dashes ? "yes" : "no");
+	att->push("dash_offset", dash_offset);
+	if (numdashes) {
+		Utf8String str, str2;
+		for (int c = 0; c < numdashes; c++) {
+			str2.Sprintf("%f ", dashes[c]);
+			str.Append(str2);
+		}
+		att->push("dashes", str.c_str());
+	}
 
 	if (LaxopToString(function, scratch, 200, NULL)==NULL) {
 		sprintf(scratch, "%d", function);
@@ -279,48 +312,6 @@ void LineStyle::dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *contex
 	Attribute att;
 	dump_out_atts(&att, what, context);
 	att.dump_out(f,indent);
-
-//	char spc[indent+1]; memset(spc,' ',indent); spc[indent]='\0';
-//	if (what==-1) {
-//		//fprintf(f,"%smask                   #what is active in this linestyle\n", spc);
-//		fprintf(f,"%scolor rgbaf(1,1,1,1)   #rgba in range [0..1]\n",spc);
-//		fprintf(f,"%scapstyle round         #or miter, projecting, zero\n", spc);
-//		fprintf(f,"%sjoinstyle round        #or miter, bevel, extrapolate\n",spc);
-//		fprintf(f,"%smiterlimit 100         #means limit is 100*width\n",spc);
-//		fprintf(f,"%sdotdash 5              #an integer whose bits define an on-off pattern\n",  spc);
-//		fprintf(f,"%sfunction Over          #Blend mode. Common is None or Over\n", spc);
-//		fprintf(f,"%swidth %.10g\n", spc,width);
-//		return;
-//	}
-//
-//	const char *str;
-//
-//	//fprintf(f,"%smask %lu\n", spc,mask);
-//	fprintf(f,"%scolor rgbf(%.10g, %.10g, %.10g, %.10g)\n",spc, color.Red(),color.Green(),color.Blue(),color.Alpha());
-//
-//	if (capstyle==LAXCAP_Butt) str="butt";
-//	else if (capstyle==LAXCAP_Round) str="round";
-// 	else if (capstyle==LAXCAP_Projecting) str="projecting";
-// 	else if (capstyle==LAXCAP_Zero_Width) str="zero";
-//    else str="?";
-//	fprintf(f,"%scapstyle %s\n", spc,str);
-//
-//	if (joinstyle==LAXJOIN_Miter) str="miter";
-//	else if (joinstyle==LAXJOIN_Round) str="round";
-// 	else if (joinstyle==LAXJOIN_Bevel) str="bevel";
-// 	else if (joinstyle==LAXJOIN_Extrapolate) str="extrapolate";
-//    else str="?";
-//	fprintf(f,"%sjoinstyle %s\n",spc,str);
-//	fprintf(f,"%smiterlimit %.10g\n",spc,miterlimit);
-//
-//	fprintf(f,"%sdotdash %d\n",  spc,dotdash);
-//	fprintf(f,"%swidth %.10g\n", spc,width);
-//
-//	char op[50];
-//	if (LaxopToString(function, op, 50, NULL) == NULL) {
-//		sprintf(op, "%d", function);
-//	}
-//	fprintf(f,"%sfunction %s\n", spc,op);
 }
 
 

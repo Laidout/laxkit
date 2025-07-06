@@ -56,10 +56,10 @@ class LineStyle : virtual public Laxkit::Resourceable, virtual public Laxkit::Du
 	double miterlimit; //!< `miterlimit*width` is actual miter limit
 	int function;      //!< see LaxCompositeOp
 
-	int dotdash;
-	double *dashes;
+	bool use_dashes;
 	double dash_offset;
-	int numdashes;
+	double *dashes;
+	int numdashes; // size of dashes array
 
 	FillStyle *stroke_fill;
 
@@ -82,6 +82,7 @@ class LineStyle : virtual public Laxkit::Resourceable, virtual public Laxkit::Du
 	virtual void Color(int r,int g,int b,int a);
 	virtual void Colorf(double r,double g,double b,double a);
 	virtual void Colorf(const Laxkit::ScreenColor &col);
+	virtual void Dashes(double *dashes, int num, double offset);
 	virtual void dump_in_atts(Laxkit::Attribute *att,int flag,Laxkit::DumpContext *context);
 	virtual void dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *context);
 	virtual Laxkit::Attribute *dump_out_atts(Laxkit::Attribute *att,int what, Laxkit::DumpContext *context);

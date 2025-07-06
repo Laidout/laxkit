@@ -4148,6 +4148,7 @@ PathsData::~PathsData()
 	if (fillstyle) fillstyle->dec_count();
 	if (generator_data) generator_data->dec_count();
 	if (brush) brush->dec_count();
+	paths.flush(); //here for debugging assistance
 }
 
 /*! Note paths with single points count as non-empty.
@@ -6404,16 +6405,16 @@ int PathInterface::Refresh()
 			dp->fill(0);
 
 		} else { //ordinary system stroke
-			dp->LineAttributes(-1,
-							   (lstyle->dotdash && lstyle->dotdash!=~0)?LineOnOffDash:LineSolid,
-							   lstyle->capstyle,
-							   lstyle->joinstyle);
+			dp->LineCap(lstyle->capstyle);
+			dp->LineJoin(lstyle->joinstyle);
 			if (lstyle->widthtype==0) dp->LineWidthScreen(lstyle->width);
 			else dp->LineWidth(lstyle->width);
+			if (lstyle->use_dashes) dp->Dashes(lstyle->dashes, lstyle->numdashes, lstyle->dash_offset);
+			else dp->Dashes(nullptr, 0, 0);
 			dp->stroke(0);
 		}
 	}
-	 
+	
 	dp->DrawImmediately(1);
 
 	double thin = ScreenLine();
