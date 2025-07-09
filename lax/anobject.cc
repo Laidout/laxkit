@@ -44,7 +44,7 @@ namespace Laxkit {
  */
 	
 DBG static int numofanObject=0;
-DBG static unsigned int CHECK=2508;
+DBG static unsigned int CHECK=0;
 
 void anObject::SETCHECK(unsigned int check)
 {
