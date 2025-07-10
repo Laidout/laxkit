@@ -350,6 +350,12 @@ const char *SliderPopup::GetCurrentItem()
 	return NULL;
 }
 
+int SliderPopup::GetCurrentItemId()
+{
+	if (curitem >= 0) return items->menuitems.e[curitem]->id;
+	return -1;
+}
+
 int SliderPopup::GetCurrentItemIndex()
 { return curitem; }
 

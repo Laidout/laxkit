@@ -82,6 +82,7 @@ class SliderPopup : public ItemSlider
 	virtual int SelectIndex(int index);
 	virtual int SelectByName(const char *name);
 	virtual const char *GetCurrentItem();
+	virtual int GetCurrentItemId();
 	virtual int GetCurrentItemIndex();
 	virtual int DeleteItem(int id);
 	virtual int AddSep(const char *name=NULL,int where=-1);

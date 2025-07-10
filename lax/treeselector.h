@@ -256,6 +256,7 @@ class TreeSelector : public ScrolledWindow
 
 	virtual void SendDetail(int which);
 	virtual int GetSelectedIndex(int i);
+	virtual int GetSelectedId(int i);
 	virtual MenuItem *GetSelected(int i);
 	virtual MenuItem *GetItem(int i);
 	virtual int NumSelected();

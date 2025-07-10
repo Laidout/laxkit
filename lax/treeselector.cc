@@ -381,6 +381,14 @@ int TreeSelector::GetSelectedIndex(int i)
 	return -1;
 }
 
+/*! Return the id of the ith selected item, else -1 if bad index.
+ */
+int TreeSelector::GetSelectedId(int i)
+{
+	if (i < 0 || i >= selection.n) return -1;
+	return selection.e[i]->id;
+}
+
 //! Return the ith selelected item. i must be in range [0..NumSelected()-1].
 MenuItem *TreeSelector::GetSelected(int i)
 {
