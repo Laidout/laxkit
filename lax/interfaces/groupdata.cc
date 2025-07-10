@@ -128,6 +128,8 @@ int GroupData::push(LaxInterfaces::SomeData *obj, int where)
 //! Push obj onto the stack only if it is not already there.
 /*! If the item is already on the stack, then its count is not
  * incremented.
+ *
+ * Returns -1 if the item was pushed, otherwise the index of the item in the stack.
  */
 int GroupData::pushnodup(LaxInterfaces::SomeData *obj)
 {
