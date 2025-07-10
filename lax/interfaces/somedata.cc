@@ -644,7 +644,7 @@ int SomeData::pointin(flatpoint pp,int pin)
 //! Fit this data to box.
 /*! This adjusts this->matrix so that this's bounds lie within the box transformed
  * by boxm. To put it differently, make this fit in another SomeData's bounding box.
- * This will take on the box's matrix, and then the scaling and origin are adjusted
+ * This will take on the box's orientation, and then the scaling and origin are adjusted
  * so this's bounding box fits inside box. Note that this is very different than merely
  * visually translating and scaling this so that it fits in the transformed box, because
  * this is rotated to have axes parallel to box.
@@ -663,25 +663,26 @@ int SomeData::pointin(flatpoint pp,int pin)
  * if smaller than box. Else scale up and down to fit to bounds
  *
  * Return 0 for success, or 1 for error, for instance if box or this had invalid bounds.
- *
- * \todo ***this should maybe be fitto_aligned(), and a fitto() should be shifting and
- *    scaling so that this fits in the transformed box, which is also useful sometimes..
- */
-int SomeData::fitto(double *boxm,DoubleBBox *box,double alignx,double aligny, int whentoscale)
+  */
+int SomeData::AlignAndFit(double *boxm,DoubleBBox *box,double alignx,double aligny, int whentoscale)
 {
 	if (!box) return 1;
 	alignx /= 100;
 	aligny /= 100;
-	if (boxm) m(boxm);
+	if (boxm) m(boxm); else setIdentity();
 	double scale = 1;
 	flatpoint banchor(box->minx*(1-alignx) + box->maxx*alignx, box->miny*(1-aligny) + box->maxy*aligny),
 	          manchor(minx*(1-alignx) + maxx*alignx, miny*(1-aligny) + maxy*aligny);
 	banchor = transform_point(m(),banchor);
 
-	if (whentoscale==2 || (whentoscale==1 && (maxx-minx>box->maxx-box->minx || maxy-miny>box->maxy-box->miny))) {
+	DBG cerr << "SomeData::AlignAndFit box: "<<box->minx<<" "<<box->miny<<" "<<box->maxx<<" "<<box->maxy<<endl;
+	DBG cerr << "                this bbox: "<<minx<<" "<<miny<<" "<<maxx<<" "<<maxy<<endl;
+
+	if (whentoscale==2 || (whentoscale==1 && (maxx-minx > box->maxx-box->minx || maxy-miny > box->maxy-box->miny))) {
 		 // make new scaling only when it doesn't already fit in box
 		scale = (box->maxx-box->minx)/(maxx-minx);
 		double yscale = (box->maxy-box->miny)/(maxy-miny);
+		DBG cerr << "     scalex: "<<scale<<" scaley: "<<yscale<<endl;
 		if (yscale < scale) scale = yscale;
 
 		xaxis(xaxis()*scale);
@@ -692,7 +693,7 @@ int SomeData::fitto(double *boxm,DoubleBBox *box,double alignx,double aligny, in
 	return 0;
 }
 
-/*! Contcatenate depth number of parent transforms.
+/*! Concatenate depth number of parent transforms.
  * For instance, depth==2 is `parent->m * this->m`.
  */
 Laxkit::Affine SomeData::GetTransforms(int depth, bool invert)

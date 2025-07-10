@@ -3147,7 +3147,7 @@ ImageData *EngraverPointGroup::SpacingSnapshot()
 	idata->SetImage(image, NULL);
 	image->dec_count();
 
-	idata->fitto(NULL,&bbox,50,50,2);
+	idata->AlignAndFit(NULL,&bbox,50,50,2);
 
 	return idata;
 }
@@ -3221,7 +3221,7 @@ ImageData *EngraverPointGroup::CreateFromSnapshot()
 	idata->SetImage(image, NULL);
 	image->dec_count();
 
-	idata->fitto(NULL,&bbox,50,50,2);
+	idata->AlignAndFit(NULL,&bbox,50,50,2);
 
 	return idata;
 }
@@ -3788,7 +3788,7 @@ void EngraverPointGroup::InstallTraceGradient(char type, GradientData *ngradient
 		Affine aa(owner->GetTransformToContext(false,0));
 		DoubleBBox bbox;
 		bbox.addtobounds(aa.m(), owner);
-		gradient->fitto(NULL,&bbox,50,50,2);
+		gradient->AlignAndFit(NULL,&bbox,50,50,2);
 	}
 
 	trace->Install(type=='l' ? TraceObject::TRACE_LinearGradient : TraceObject::TRACE_RadialGradient, gradient);

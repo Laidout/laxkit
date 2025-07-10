@@ -129,7 +129,7 @@ class SomeData :  virtual public Laxkit::Resourceable,
 	virtual Laxkit::flatpoint ReferencePoint(int which, bool transform_to_parent);
 	virtual SomeData *duplicate(SomeData *dup);
 	virtual int pointin(Laxkit::flatpoint pp,int pin=1); // return in=1 | on=2 | out=0, default is pointin bbox
-	virtual int fitto(double *boxm,DoubleBBox *box,double alignx,double aligny, int whentoscale=2);
+	virtual int AlignAndFit(double *boxm,DoubleBBox *box,double alignx,double aligny, int whentoscale=2);
 	virtual SomeData *GetParent() { return nullptr; }
 	virtual SomeData *SetParent(SomeData *newparent);
 	virtual SomeData *FindCommonParent(SomeData *other);

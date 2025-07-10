@@ -383,7 +383,7 @@ int ImageData::LoadImage(const char *fname, const char *npreview, int maxpx, int
 			minx=0; miny=0;
 			maxx=image->w();
 			maxy=image->h();
-			fitto(nullptr,&box,50.,50.);
+			AlignAndFit(nullptr,&box,50.,50.);
 
 		} else {
 			minx=0; miny=0;
