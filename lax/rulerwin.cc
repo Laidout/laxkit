@@ -170,7 +170,7 @@ namespace Laxkit {
  */
 
 
-/*! If base_units!=NULL, then use those units. By default, known units 
+/*! If base_units!=nullptr, then use those units. By default, known units 
  * are "Inches", "Feet", "cm", "mm", "Meters", "Points", "Pixels", and the default is inches.
  *
  * \todo If syncwithscreen, then based on the given units, try to set up so that units
@@ -201,13 +201,10 @@ RulerWindow::RulerWindow(anXWindow *parnt,const char *nname,const char *ntitle,u
 	needtodraw=1;
 	DBG smallnumbers->suppress_debug=1;
 	
-		// set fractional width of ticks
-//	tf=1.;
-//	stf=.75;
-//	sstf=.5;
-	tf=.75;
-	stf=.4;
-	sstf=.3;
+	// set fractional width of ticks
+	tf   = .75;
+	stf  = .4;
+	sstf = .3;
 	
 	numcolor = win_themestyle->fg.Pixel();
 	tickcolor = win_themestyle->fg.Pixel();
@@ -215,7 +212,7 @@ RulerWindow::RulerWindow(anXWindow *parnt,const char *nname,const char *ntitle,u
 	subsubtickcolor = coloravg(win_themestyle->fg,win_themestyle->bg,.6666);
 	curposcolor = rgbcolor(0,254,0);
 
-	trackwindow = NULL;
+	trackwindow = nullptr;
 
 	UnitManager *units = GetUnitManager();
 	//baseunits=UNITS_None;
@@ -223,21 +220,21 @@ RulerWindow::RulerWindow(anXWindow *parnt,const char *nname,const char *ntitle,u
 	DBG cerr <<"baseunits on ruler creation:"<<baseunits<<endl;
 
 	if (base_units) {
-		units->UnitInfo(base_units,&baseunits,NULL,NULL,NULL,NULL,NULL);
+		units->UnitInfo(base_units,&baseunits, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr);
 	}
-	if (win_style&RULER_STANDARD || baseunits==UNITS_Inches) {
-		base=12;
-		subdiv=2;
-		subsubdiv=4;
-		if (baseunits==UNITS_None) baseunits=UNITS_Inches;
+	if (win_style & RULER_STANDARD || baseunits == UNITS_Inches) {
+		base      = 12;
+		subdiv    = 2;
+		subsubdiv = 4;
+		if (baseunits == UNITS_None) baseunits = UNITS_Inches;
 	} else { // default is for metric
-		base=10;
-		subdiv=2;
-		subsubdiv=5;
-		if (baseunits==UNITS_None) baseunits=UNITS_CM;
+		base      = 10;
+		subdiv    = 2;
+		subsubdiv = 5;
+		if (baseunits == UNITS_None) baseunits = UNITS_CM;
 	} 
-	currentunits=baseunits;
-	umag=1;
+	currentunits = baseunits;
+	umag = 1;
 
 	if (syncwithscreen) {
 		//***
@@ -443,7 +440,7 @@ void RulerWindow::Refresh()
 	for (int c=0; c<app->devicemanager->NumDevices(); c++) {
 		mouse=dynamic_cast<LaxMouse*>(app->devicemanager->Device(c));
 		if (!mouse) continue;
-		if (mouseposition(mouse->id, this, &x,&y, &mask, NULL)==0) {
+		if (mouseposition(mouse->id, this, &x,&y, &mask, nullptr)==0) {
 			if (win_style&RULER_X) {
 				dp->drawline(x,0, x,win_h);
 			} else {
@@ -461,12 +458,12 @@ void RulerWindow::Refresh()
  */
 void RulerWindow::TrackThisWindow(anXWindow *win)
 {
-	trackwindow=win; // Yes, this goes before checking for win==NULL
+	trackwindow=win; // Yes, this goes before checking for win==nullptr
 	if (!win) return;
 
 	int x,y, xx,yy;
-	translate_window_coordinates(this,0,0, NULL, &x, &y, NULL);
-	translate_window_coordinates(win, 0,0, NULL,&xx,&yy, NULL);
+	translate_window_coordinates(this,0,0, nullptr, &x, &y, nullptr);
+	translate_window_coordinates(win, 0,0, nullptr,&xx,&yy, nullptr);
 
 	if (win_style&RULER_X) screenoffset=x - xx;
 	else screenoffset=y - yy;
@@ -484,7 +481,7 @@ void RulerWindow::Track()
 	for (int c=0; c<app->devicemanager->NumDevices(); c++) {
 		mouse=dynamic_cast<LaxMouse*>(app->devicemanager->Device(c));
 		if (!mouse) continue;
-		if (mouseposition(mouse->id, trackwindow, &x,&y, &mask, NULL)==0) {
+		if (mouseposition(mouse->id, trackwindow, &x,&y, &mask, nullptr)==0) {
 			//SetPos rx-win_x,ry-win_y???*****
 		} else {
 			// Pointer is not on same screen as trackwindow
@@ -601,24 +598,24 @@ int RulerWindow::RBDown(int x,int y,unsigned int state,int count,const LaxMouse 
 //! By default use GetUnitManager() to find a units manager.
 int RulerWindow::NumberOfUnits()
 {
-	UnitManager *units=GetUnitManager();
-	return units->NumberOfUnits();
+	UnitManager *units = GetUnitManager();
+	return units->NumberOfUnits(UNITS_Length);
 }
 
 //! Return positive for info found, or 0 for not found.
 int RulerWindow::UnitInfo(int index, const char **name, int *id, double *scale, int *sdiv, int *ssdiv, const char **label)
 {
-	if (index<0 || index>=NumberOfUnits()) return 0;
+	if (index < 0 || index >= NumberOfUnits()) return 0;
 
 	int iid;
 	char *nm;
-	UnitManager *units=GetUnitManager();
-	units->UnitInfoIndex(index, &iid, scale, NULL, NULL, &nm, label);
-
-	if (name)   *name=nm;
-	if (id)       *id=iid;
-	if (sdiv)   *sdiv=2;
-	if (ssdiv) *ssdiv=(iid==UNITS_Feet || iid==UNITS_Inches ? 4 : 5 );
+	UnitManager *units = GetUnitManager();
+	units->UnitInfoIndex(index, &iid, scale, nullptr, nullptr, &nm, label, nullptr, UNITS_Length);
+	
+	if (name)   *name = nm;
+	if (id)       *id = iid;
+	if (sdiv)   *sdiv = 2;
+	if (ssdiv) *ssdiv = (iid == UNITS_Feet || iid == UNITS_Inches ? 4 : 5 );
 
 	return 1;
 }
@@ -626,18 +623,18 @@ int RulerWindow::UnitInfo(int index, const char **name, int *id, double *scale, 
 //! Call up a menu to choose units from.
 int RulerWindow::RBUp(int x,int y,unsigned int state,const LaxMouse *d)
 {
-	if (!(win_style&RULER_UNITS_MENU)) return 0;
+	if (!(win_style & RULER_UNITS_MENU)) return 0;
 
-	MenuInfo *menu=new MenuInfo(_("Units"));
+	MenuInfo *menu = new MenuInfo(_("Units"));
 
 	const char *name, *nm;
-	const char *current = NULL;
-	const char *label = NULL;
+	const char *current = nullptr;
+	const char *label = nullptr;
 	char buffer[200];
 	int id;
 
-	for (int c=0; c<NumberOfUnits(); c++) {
-		UnitInfo(c, &name, &id, NULL,NULL,NULL, &label);
+	for (int c = 0; c < NumberOfUnits(); c++) {
+		UnitInfo(c, &name, &id, nullptr,nullptr,nullptr, &label);
 		nm = name;
 		if (label) {
 			sprintf(buffer, "%s: %s", name, label);
@@ -663,7 +660,7 @@ int RulerWindow::RBUp(int x,int y,unsigned int state,const LaxMouse *d)
 						object_id,"units", 
 						d->id,
 						menu,1,
-						NULL,
+						nullptr,
 						TREESEL_LEFT);
 	popup->WrapToMouse(d->id);
 	app->rundialog(popup);
@@ -689,15 +686,15 @@ int RulerWindow::Event(const EventData *e,const char *mes)
 		return 0;
 	}
 
-	if (item_index<0 && item_index>=NumberOfUnits()) return 0;
+	if (item_index < 0 && item_index >= NumberOfUnits()) return 0;
 
 
 	const char *name;
 	int id, sdiv,ssdiv;
 	double scale;
 
-	for (int c=0; c<NumberOfUnits(); c++) {
-		UnitInfo(c, &name, &id, &scale, &sdiv, &ssdiv, NULL);
+	for (int c = 0; c < NumberOfUnits(); c++) {
+		UnitInfo(c, &name, &id, &scale, &sdiv, &ssdiv, nullptr);
 		if (item_id==id) { 
 			SetCurrentUnits(name);
 			if (win_owner) {
@@ -724,11 +721,11 @@ int RulerWindow::Event(const EventData *e,const char *mes)
  */
 int RulerWindow::SetBaseUnits(int units)
 {
-	UnitManager *u=GetUnitManager();
-	if (u->UnitInfoId(units,NULL,NULL,NULL,NULL,NULL)==0) {
-		baseunits=units;
-		umag=u->GetFactor(baseunits,currentunits);
-		needtodraw=1;
+	UnitManager *u = GetUnitManager();
+	if (u->UnitInfoId(units,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr) == 0) {
+		baseunits = units;
+		umag = u->GetFactor(baseunits, currentunits);
+		needtodraw = 1;
 		return 0;
 	}
 	return 1;
@@ -738,10 +735,10 @@ int RulerWindow::SetBaseUnits(const char *units)
 {
 	UnitManager *u=GetUnitManager();
 	int id;
-	if (u->UnitInfo(units,&id,NULL,NULL,NULL,NULL,NULL)==0) {
-		baseunits=id;
-		umag=u->GetFactor(baseunits,currentunits);
-		needtodraw=1;
+	if (u->UnitInfo(units,&id,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr) == 0) {
+		baseunits = id;
+		umag = u->GetFactor(baseunits,currentunits);
+		needtodraw = 1;
 		return 0;
 	}
 	return 1;
@@ -754,7 +751,7 @@ int RulerWindow::SetCurrentUnits(const char *units)
 {
 	UnitManager *u=GetUnitManager();
 	int id;
-	if (u->UnitInfo(units,&id,NULL,NULL,NULL,NULL,NULL)==0 && id!=currentunits)
+	if (u->UnitInfo(units,&id,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr) == 0 && id != currentunits)
 		return SetCurrentUnits(id);
 	return 1;
 }
@@ -765,23 +762,23 @@ int RulerWindow::SetCurrentUnits(int id)
 {
 	if (id==currentunits) return 0;
 
-	UnitManager *u=GetUnitManager();
-	if (u->UnitInfoId(id,NULL,NULL,NULL,NULL,NULL)==0) {
-		currentunits=id;
-		if (id==UNITS_Feet || id==UNITS_Inches) {
-			subdiv=2;
-			subsubdiv=4;
-			base=12;
+	UnitManager *u = GetUnitManager();
+	if (u->UnitInfoId(id,nullptr,nullptr,nullptr,nullptr,nullptr,nullptr) == 0) {
+		currentunits = id;
+		if (id == UNITS_Feet || id == UNITS_Inches) {
+			subdiv    = 2;
+			subsubdiv = 4;
+			base      = 12;
 		} else {
-			subdiv=2;
-			subsubdiv=5;
-			base=10;
+			subdiv    = 2;
+			subsubdiv = 5;
+			base      = 10;
 		}
-		umag=GetUnitManager()->GetFactor(baseunits,currentunits);
-		unit=1;
+		umag = GetUnitManager()->GetFactor(baseunits,currentunits);
+		unit = 1;
 		adjustmetrics();
 		DBG cerr <<" set current units to "<<currentunits<<", umag="<<umag<<endl;
-		needtodraw=1;
+		needtodraw = 1;
 		return 0;
 	}
 	return 1;
@@ -834,15 +831,15 @@ int RulerWindow::Resize(int nw,int nh)
 	return 0;
 }
 
-/*! Append to att if att!=NULL, else return a new Attribute whose name is whattype().
+/*! Append to att if att!=nullptr, else return a new Attribute whose name is whattype().
  *
  * Default is to add attributes for "text", and whatever anXWindow adds.
  */
 Attribute *RulerWindow::dump_out_atts(Attribute *att,int what,DumpContext *context)
 {
-	if (!att) att=new Attribute(whattype(),NULL);
+	if (!att) att = new Attribute(whattype(),nullptr);
 	anXWindow::dump_out_atts(att,what,context);
-	if (what==-1) {
+	if (what == -1) {
 		att->push("vertical","boolean");
 		att->push("horizontal","boolean");
 		att->push("base","Base of number system. 12 for standard, 10 for metric, for instance.");
@@ -853,7 +850,7 @@ Attribute *RulerWindow::dump_out_atts(Attribute *att,int what,DumpContext *conte
 		return att;
 	}
 
-	if (win_style&RULER_X) att->push("vertical");
+	if (win_style & RULER_X) att->push("vertical");
 	else att->push("horizontal");
 
 	char buf[30];
@@ -867,16 +864,16 @@ Attribute *RulerWindow::dump_out_atts(Attribute *att,int what,DumpContext *conte
 	sprintf(buf,"%d",subsubdiv);
 	att->push("subsubdiv",buf);
 
-	char *unitname=NULL;
-	UnitManager *units=GetUnitManager();
-	units->UnitInfoId(baseunits,NULL,&unitname,NULL,NULL,NULL);
+	char *unitname = nullptr;
+	UnitManager *units = GetUnitManager();
+	units->UnitInfoId(baseunits,nullptr,&unitname,nullptr,nullptr,nullptr,nullptr);
 	att->push("units",unitname);
 
-	if (win_style&RULER_X) {
-		if (win_style&RULER_TOPTICKS) att->push("tickalign","top");
+	if (win_style & RULER_X) {
+		if (win_style & RULER_TOPTICKS) att->push("tickalign","top");
 		else att->push("tickalign","bottom");
 	} else {
-		if (win_style&RULER_TOPTICKS) att->push("tickalign","left");
+		if (win_style & RULER_TOPTICKS) att->push("tickalign","left");
 		else att->push("tickalign","right");
 	}
 
