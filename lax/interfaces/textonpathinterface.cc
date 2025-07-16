@@ -253,8 +253,8 @@ Attribute *TextOnPath::dump_out_atts(Attribute *att,int what,DumpContext *contex
 	else if (baseline_type == FROM_Other_Stroke) att->push("baseline_type", "otherstroke");
 	else if (baseline_type == FROM_Envelope)     att->push("baseline_type", "envelope");
 
-	UnitManager *um=GetUnitManager();
-	const char *u=um->UnitName(baseline_units);
+	UnitManager *um = GetUnitManager();
+	const char *u = um->UnitName(baseline_units);
 	if (u) sprintf(scratch, "%.10g %s", baseline, u ? u : "");
 	else   sprintf(scratch, "%.10g", baseline);
 	att->push("baseline", scratch);

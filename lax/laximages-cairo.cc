@@ -425,7 +425,10 @@ LaxCairoImage::~LaxCairoImage()
 	delete[] cache_buffer;
 }
 
-/*! Return nullptr for failure.
+/*! Crop the image to given rect. Bounds are not clamped, so resulting image will be x,y,w,h.
+ * If return_new, create a new cropped image and return that.
+ * Else return pointer to this, but image has been cropped in place.
+ * Return nullptr for failure.
  */
 LaxImage *LaxCairoImage::Crop(int x, int y, int width, int height, bool return_new)
 {

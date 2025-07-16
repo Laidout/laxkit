@@ -952,7 +952,7 @@ int MenuInfo::findIndex(MenuItem *mi)
 //	return menu->findFromLine(i+plusorminus);
 //}
 
-//! Get the element at line number i, including all open submenus and separators.
+//! Get the element at line number i, including all open submenus and separators, and skipping hidden.
 MenuItem *MenuInfo::findFromLine(int i)
 {
 	if (i<0) return NULL;
