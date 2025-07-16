@@ -23,6 +23,7 @@
 #include <lax/iconmanager.h>
 #include <lax/singletonkeeper.h>
 #include <lax/strmanip.h>
+#include <lax/fileutils.h>
 
 #include <lax/debug.h>
 
@@ -178,6 +179,23 @@ LaxImage *IconManager::findicon(const char *name, bool save_broken)
 	}
 
 	return img;
+}
+
+/*! Return the first path that contains the file filename.
+ */
+const char *IconManager::FindPathForFile(const char *filename)
+{
+	if (isblank(filename)) return nullptr;
+
+	for (int c = 0; c < icon_path.n; c++) {
+		char *path = newstr(icon_path.e[c]);
+		appendstr(path, "/");
+		appendstr(path, filename);
+		int status = file_exists(path, 1, nullptr);
+		delete[] path;
+		if (status) return icon_path.e[c];
+	}
+	return nullptr;
 }
 
 const char *IconManager::Broken(int i)

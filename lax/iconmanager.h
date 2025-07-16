@@ -70,6 +70,7 @@ class IconManager : public Laxkit::anObject, public Laxkit::PtrStack<IconNode>
 	virtual int RemovePath(const char *oldpath);
 	virtual int NumPaths() { return icon_path.n; }
 	virtual const char *GetPath(int index);
+	virtual const char *FindPathForFile(const char *filename);
 	virtual int PreloadAll();
 
 	virtual int NumBroken() { return broken.n; }
