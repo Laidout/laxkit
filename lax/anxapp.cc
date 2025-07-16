@@ -2143,6 +2143,8 @@ int anXApp::addwindow(anXWindow *w,char mapit,char absorb_count) // mapit==1, ab
 #ifdef _LAX_PLATFORM_XLIB
 	if (w==NULL || w->xlib_window) return 1; // do not create if it is already created.
 
+	DBG cerr << "addwindow title: "<<w->WindowTitle()<<"  id: "<<w->Id()<<endl;
+
 	if (w->app != this) {
 		DBG cerr << "win app!=app.\n";
 		w->app = this;
@@ -2208,8 +2210,8 @@ int anXApp::addwindow(anXWindow *w,char mapit,char absorb_count) // mapit==1, ab
 	 //---------center on screen or in parent-------------
 	DBG fprintf(stderr,"addwindow: style: %lx\n",w->win_style);
 
-	XSizeHints *sizehints=w->xlib_win_sizehints;
-	if (w->win_style&ANXWIN_CENTER) {
+	XSizeHints *sizehints = w->xlib_win_sizehints;
+	if (w->win_style & ANXWIN_CENTER) {
 		DBG cerr << "addwindow: Centering "<<w->WindowTitle()<<endl;
 		if (!w->win_parent) {
 			if (!sizehints) sizehints = XAllocSizeHints();
@@ -2245,7 +2247,7 @@ int anXApp::addwindow(anXWindow *w,char mapit,char absorb_count) // mapit==1, ab
 			w->win_x=(w->win_parent->win_w-w->win_w)/2;
 			w->win_y=(w->win_parent->win_h-w->win_h)/2;
 		}
-	} else if (!w->win_parent && w->win_h>1 && w->win_w>1) {
+	} else if (!w->win_parent && w->win_x >= 0 && w->win_y >= 0 && w->win_h > 1 && w->win_w > 1) {
 		 //attempt to position on screen when no parent...
 		if (!sizehints) sizehints=XAllocSizeHints();
 		Screen *scr=DefaultScreenOfDisplay(dpy);
@@ -2260,6 +2262,27 @@ int anXApp::addwindow(anXWindow *w,char mapit,char absorb_count) // mapit==1, ab
 		sizehints->width = w->win_w;
 		sizehints->height = w->win_h;
 		sizehints->flags |= USPosition|USSize;
+
+	} else if (!w->win_parent && w->win_x<0 && w->win_y<0) {
+		//attempt to put on same screen as mouse
+		if (!sizehints) sizehints = XAllocSizeHints();
+		
+		LaxMouse *mouse = devicemanager->findMouse(0);
+		if (mouse) {
+			double xx,yy;
+			ScreenInformation *monitor = nullptr;
+			int er = mouse->getInfo(nullptr, nullptr, nullptr, &xx,&yy, nullptr, nullptr, nullptr, nullptr, &monitor);
+			if (er == 0) {
+				w->win_x = monitor->x + monitor->width/2  - w->win_w/2;
+				w->win_y = monitor->y + monitor->height/2 - w->win_h/2;
+
+				sizehints->x = w->win_x;
+				sizehints->y = w->win_y;
+				sizehints->width = w->win_w;
+				sizehints->height = w->win_h;
+				sizehints->flags |= USPosition|USSize;
+			}
+		}
 	}
 
 	DBG cerr << "addwindow::create:"<<w->WindowTitle()<<"  x,y:"<<w->win_x<<','<<w->win_y<<"  w,h:"<<w->win_w<<','<<w->win_h<<endl;
