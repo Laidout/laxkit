@@ -43,8 +43,8 @@ namespace Laxkit {
  * Objects are created with a count of 1.
  */
 	
-DBG static int numofanObject=0;
-DBG static unsigned int CHECK=0;
+DBG static int numofanObject = 0;
+DBG static unsigned int CHECK = 0;
 
 void anObject::SETCHECK(unsigned int check)
 {
@@ -59,11 +59,11 @@ anObject::anObject()
 	suppress_debug=0;
 	DBG numofanObject++;
 	
-	object_id=getUniqueNumber(); 
-	object_idstr=NULL;
+	object_id = getUniqueNumber(); 
+	object_idstr = nullptr;
 	DBG cerr <<"anObject tracker "<<object_id<<"   created    num of anObjects: "<<numofanObject<<endl;
 
-	DBG if (object_id==CHECK) {
+	DBG if (CHECK > 0 && object_id == CHECK) {
 	DBG 	cerr <<" Agh!"<<endl;
 	DBG }
 
@@ -95,7 +95,7 @@ anObject::~anObject()
 	DBG numofanObject--;
 	DBG cerr <<"anObject tracker "<<object_id<<"   destroyed "<<(object_idstr?object_idstr:"(?)")<<" num of anObjects: "<<numofanObject<<endl;
 
-	DBG if (object_id==CHECK) {
+	DBG if (CHECK > 0 && object_id == CHECK) {
 	DBG 	cerr <<object_id<<" Destructor Agh!"<<endl;
 	DBG }
 
@@ -141,7 +141,7 @@ int anObject::inc_count()
 {
 	_count++;
 
-	DBG if (object_id==CHECK) {
+	DBG if (CHECK > 0 && object_id == CHECK) {
 	DBG 	cerr <<object_id<<" inc_count Agh!"<<endl;
 	DBG }
 	DBG if (!suppress_debug) {
@@ -164,7 +164,7 @@ int anObject::dec_count()
 	DBG   cerr <<"refcounted anobject dec count, now: "<<_count<<(_count==0?", deleting":"")<<endl;
 	DBG   cerr<<(whattype() ? whattype() : "(no whattype)")<<" "<<object_id<<" dec counted: "<<_count<<"  "<<(object_idstr?object_idstr:"(?)")<<endl;
 	DBG }
-	DBG if (object_id==CHECK) {
+	DBG if (CHECK > 0 && object_id == CHECK) {
 	DBG 	cerr <<object_id<<" inc_count Agh!"<<endl;
 	DBG }
 
