@@ -522,7 +522,7 @@ int CSSFontSize(const char *value, double *value_ret, CSSName *relative_ret, int
 				while (isalnum(*endptr)) endptr++;
 				units = unitm->UnitId(value, endptr - value);
 				if (units != UNITS_None && !units_ret) {
-					v = unitm->Convert(v, units, UNITS_CSSPoints, nullptr);
+					v = unitm->Convert(v, units, UNITS_CSSPoints);
 				}
 				value = endptr;
 			}
