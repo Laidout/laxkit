@@ -228,6 +228,7 @@ otherobjs= \
 	interfaces/engraverfillinterface.o \
 	interfaces/freehandinterface.o \
 	interfaces/gradientinterface.o \
+	interfaces/gridselectinterface.o \
 	interfaces/groupdata.o \
 	interfaces/imageinterface.o \
 	interfaces/imagepatchinterface.o \

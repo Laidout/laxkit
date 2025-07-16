@@ -46,6 +46,7 @@ objs= \
 	engraverfillinterface.o \
 	freehandinterface.o \
 	gradientinterface.o \
+	gridselectinterface.o \
 	groupdata.o \
 	imageinterface.o \
 	imagepatchinterface.o \
