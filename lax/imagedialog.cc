@@ -30,10 +30,7 @@
 
 #include <sys/stat.h>
 
-
-#include <iostream>
-using namespace std;
-#define DBG 
+#include <lax/debug.h>
 
 
 namespace Laxkit {
@@ -102,7 +99,7 @@ FilePreviewer *ImageDialog::newFilePreviewer()
 {
 	return new FilePreviewer(this,"previewer",nullptr,
 									 MB_MOVE|FILEPREV_SHOW_DIMS,
-									 0,0,0,0, 1, imageinfo->filename);
+									 0,0,0,0, 1, imageinfo->filename, imageinfo->index);
 }
 
 //! Set win_w and win_h to sane values if necessary.
@@ -135,25 +132,35 @@ int ImageDialog::init()
 	Button *   tbut       = nullptr;
 
 	//--------------- FilePreviewer
-	last=previewer=newFilePreviewer();
+	last = previewer = newFilePreviewer();
 	//***warning, hack!:
-	previewer->Preview(imageinfo->filename);
+	previewer->Preview(imageinfo->filename, imageinfo->index);
 	AddWin(previewer,1, 100,50,1600,50,0, 30,0,1600,50,0, -1);
 	AddNull();
 
 	 //---------- File
-	last=tbut=new Button(this,"preview file",nullptr,0, 0,0,0,0, 1, 
-						last,object_id,"preview file",
+	last = tbut = new Button(this,"button file",nullptr,0, 0,0,0,0, 1, 
+						last,object_id,"button file",
 						0,_("File"),nullptr,nullptr,
 						3,3);
 	tbut->tooltip(_("Display file above"));
 	AddWin(tbut,1, tbut->win_w,0,50,50,0, linpheight,0,0,50,0, -1);
-	//-------
+	
+	// file input
 	last=file   =new LineInput(this,"file",_("File"),LINP_FILE | LINP_SEND_ANY,
 							    0,0,0,0, 1, last,object_id,"new file", " ",imageinfo->filename);
 	file->GetLineEdit()->SetCurpos(-1);
 	file->tooltip("Filename to use");
 	AddWin(file,1, 200,100,1000,50,0, file->win_h,0,0,50,0, -1);
+
+	// index input
+	last = index = new LineInput(this,"index",_("Subimage"),LINP_INT | LINP_SEND_ANY,
+							    0,0,0,0, 1, last,object_id,"new index", "Subimage");
+	index->SetText(imageinfo->index);
+	index->GetLineEdit()->SetCurpos(-1);
+	index->tooltip("Subimage index in the main file. This is 0 for single image files");
+	AddWin(index,1, index->win_w,0,50,50,0, index->win_h,0,0,50,0, -1);
+
 	AddNull();
 	
 	 //------------ Preview
@@ -280,8 +287,6 @@ void ImageDialog::closeWindow()
  */
 int ImageDialog::Event(const EventData *data,const char *mes)
 {
-	DBG cerr <<"-----image dialog got: "<<mes<<endl;
-
 	if (!strcmp(mes,"reallyoverwrite")) {
 		RegeneratePreview(1);
 		return 0;
@@ -291,7 +296,7 @@ int ImageDialog::Event(const EventData *data,const char *mes)
 		if (!s) return 1;
 		makestr(imageinfo->filename,s->str);
 		file->SetText(imageinfo->filename);
-		previewer->Preview(imageinfo->filename);
+		previewer->Preview(imageinfo->filename, imageinfo->index);
 		return 0;
 
 	} else if (!strcmp(mes,"install new preview")) {
@@ -314,7 +319,7 @@ int ImageDialog::Event(const EventData *data,const char *mes)
 	} else if (!strcmp(mes,"new file")) {
 		const char *f = file->GetCText();
 		makestr(imageinfo->filename, f);
-		previewer->Preview(imageinfo->filename);
+		previewer->Preview(imageinfo->filename, imageinfo->index);
 		return 0;
 
 	} else if (!strcmp(mes,"new preview")) {
@@ -333,10 +338,17 @@ int ImageDialog::Event(const EventData *data,const char *mes)
 		makestr(imageinfo->description,t);
 		return 0;
 
-	} else if (!strcmp(mes,"preview file")) {
-		const char *prev=file->GetCText();
-		makestr(imageinfo->filename,prev);
-		previewer->Preview(imageinfo->filename);
+	} else if (!strcmp(mes,"new index")) {
+		const char *t = index->GetCText();
+		char *endptr = nullptr;
+		int i = strtol(t,&endptr,10);
+		if (endptr != t) SetImageIndex(i);
+		return 0;
+
+	} else if (!strcmp(mes,"button file")) {
+		const char *prev = file->GetCText();
+		makestr(imageinfo->filename, prev);
+		previewer->Preview(imageinfo->filename, imageinfo->index);
 		return 0;
 
 	} else if (!strcmp(mes,"preview preview")) {
@@ -370,23 +382,43 @@ int ImageDialog::Event(const EventData *data,const char *mes)
 	return anXWindow::Event(data,mes);
 }
 
+/*! Make sure new_index is in correct range for image.
+ * Return true for success and index set in the imageinfo, else false.
+ */
+bool ImageDialog::SetImageIndex(int new_index)
+{
+	if (new_index < 0) return false;
+	int subimages = 0;
+	if (ImageLoader::Ping(imageinfo->filename, nullptr /*width*/, nullptr /*height*/, nullptr /*filesize*/, &subimages) == 0)
+		if (new_index >= subimages) return false;
+	imageinfo->index = new_index;
+	previewer->Preview(imageinfo->filename, imageinfo->index);
+	return true;
+}
+
 //! Sync imageinfo to the window controls' contents.
 void ImageDialog::updateImageInfo()
 {
-	const char *s=file->GetCText();
-	makestr(imageinfo->filename,s);
-	
-	s=preview->GetCText();
-	makestr(imageinfo->previewfile,s);
-	
+	const char *s = file->GetCText();
+	makestr(imageinfo->filename, s);
+
+	s = preview->GetCText();
+	makestr(imageinfo->previewfile, s);
+
 	if (titlee) {
-		s=titlee->GetCText();
-		makestr(imageinfo->previewfile,s);
+		s = titlee->GetCText();
+		makestr(imageinfo->previewfile, s);
 	}
-	
+
 	if (desc) {
-		s=desc->GetCText();
-		makestr(imageinfo->description,s);
+		s = desc->GetCText();
+		makestr(imageinfo->description, s);
+	}
+
+	if (index) {
+		char *endptr = nullptr;
+		int i = strtol(s,&endptr,10);
+		if (endptr != s) SetImageIndex(i);
 	}
 }
 

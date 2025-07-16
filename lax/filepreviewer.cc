@@ -27,6 +27,8 @@
 #include <lax/language.h>
 #include <lax/doublebbox.h>
 
+#include <lax/debug.h>
+
 #include <sys/stat.h>
 #include <cstdio>
 #include <unistd.h>
@@ -84,13 +86,13 @@ PreviewerFunction::~PreviewerFunction()
 
 static PtrStack<PreviewerFunction> previewers;
 
-//! Return a PreviewerFunction object that can display filename, or NULL.
+//! Return a PreviewerFunction object that can display filename, or nullptr.
 PreviewerFunction *FindPreviewer(const char *filename)
 {
 	for (int c=0; c<previewers.n; c++) {
 		if (previewers.e[c]->Handles(filename)) return previewers.e[c];
 	}
-	return NULL;
+	return nullptr;
 }
 
 //! Add previewer to list of file previewer objects.
@@ -138,7 +140,7 @@ int InitializeDefaultPreviewers()
  */
 /*! \var int FilePreviewer::state
  * \brief What is being previewed
- * - 0=question mark (usually NULL filename)
+ * - 0=question mark (usually nullptr filename)
  * - 1=bad filename
  * - 2=text
  * - 3=image
@@ -154,15 +156,14 @@ int InitializeDefaultPreviewers()
 //						int nx,int ny,int nw,int nh,int brder,const char *newtext) 
 FilePreviewer::FilePreviewer(anXWindow *pwindow,const char *nname,const char *ntitle,unsigned long nstyle,
 						int nx,int ny,int nw,int nh,int brder,
-						const char *file,int sz) 
-				: MessageBar(pwindow,nname,ntitle,nstyle|MB_LEFT, nx,ny, nw,nh,brder, NULL) 
+						const char *file, int index) 
+				: MessageBar(pwindow,nname,ntitle,nstyle|MB_LEFT, nx,ny, nw,nh,brder, nullptr) 
 {
-	filename=NULL;
-	image=NULL;
+	filename = nullptr;
+	image    = nullptr;
+	state    = 0;
 
-	state=0;
-
-	Preview(file);
+	Preview(file, index);
 }
 
 FilePreviewer::~FilePreviewer()
@@ -173,12 +174,12 @@ FilePreviewer::~FilePreviewer()
 
 
 //! Change what is being previewed to file. ***this function currently rather sucks
-int FilePreviewer::Preview(const char *file)
+int FilePreviewer::Preview(const char *file, int index)
 {
 	if (!file) { // remove preview
 		if (image) {
 			image->dec_count();
-			image=NULL;
+			image=nullptr;
 		}
 
 		SetText("?");
@@ -193,20 +194,22 @@ int FilePreviewer::Preview(const char *file)
 	
 	if (image) {
 		image->dec_count();
-		image=NULL;
+		image=nullptr;
 	}
 
-	if (file_exists(file,1,NULL) == S_IFDIR) {
+	if (file_exists(file,1,nullptr) == S_IFDIR) {
 		SetText(_("(directory)"));
 		state=1;
 		return 0; 
 	}
 
-	image = ImageLoader::LoadImage(file);
-	if (image) { state=3; return 0; }
+	// image = ImageLoader::LoadImage(file);
+	image = ImageLoader::LoadImage(file, nullptr,0,0,nullptr, 0, LAX_IMAGE_DEFAULT, nullptr, true, index);
+	if (image) { state = 3; return 0; }
 	
+	// was not a loadable image, so try something else
 	char blah[25+strlen(file)];
-	if (file_exists(file,1,NULL)!=S_IFREG) {
+	if (file_exists(file,1,nullptr)!=S_IFREG) {
 		sprintf(blah,"File doesn't exist:\n%s",file);
 		SetText(blah);
 		state=1;
@@ -259,6 +262,10 @@ int FilePreviewer::Preview(const char *file)
 //	return t;
 //}
 
+int FilePreviewer::init()
+{
+	return MessageBar::init();
+}
 
 /*! *** should show image x/y/maybe other exif stuff? zooming?
  */
@@ -381,13 +388,11 @@ void FilePreviewer::Refresh()
 //	return 0;
 //}
 //
-//int FilePreviewer::MoveResize(int nx,int ny,int nw,int nh)
-//{//***
-//	anXWindow::MoveResize(nx,ny,nw,nh);
-//	SetupMetrics();
-//	needtodraw=1;
-//	return 0;
-//}
+int FilePreviewer::MoveResize(int nx,int ny,int nw,int nh)
+{
+	// DBGL("FilePreviewer "<<Id()<<" resize, xywh: "<<nx<<" "<<ny<<" "<<nw<<" "<<nh)
+	return MessageBar::MoveResize(nx,ny,nw,nh);
+}
 //
 //int FilePreviewer::Resize(int nw,int nh)
 //{//***

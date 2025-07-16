@@ -448,6 +448,7 @@ int ImageData::SetImage(LaxImage *newimage, LaxImage *newpreview)
 	}
 
 	if (newimage) {
+		index = newimage->index;
 		makestr(filename,newimage->filename);
 		if (newpreview) makestr(previewfile, newpreview->filename);
 
@@ -467,8 +468,9 @@ int ImageData::SetImage(LaxImage *newimage, LaxImage *newpreview)
 		maxy=image->h();
 
 	} else {
-		image=nullptr;
-		makestr(filename,nullptr);
+		index = 0;
+		image = nullptr;
+		makestr(filename, nullptr);
 	}
 	return 0;
 }
@@ -975,8 +977,7 @@ int ImageInterface::LBDown(int x,int y,unsigned int state,int count,const Laxkit
  */
 void ImageInterface::runImageDialog()
 {
-	 //after Laxkit event system is rewritten, this will be very different:
-	ImageInfo *inf=new ImageInfo(data->filename,data->previewfile,nullptr,data->description,0);
+	ImageInfo *inf = new ImageInfo(data->filename, data->previewfile, nullptr, data->description,0, data->index);
 	curwindow->app->rundialog(new ImageDialog(nullptr,"imagedialog for imageinterface",_("Image Properties"),
 					ANXWIN_REMEMBER,
 					0,0,400,400,0,

@@ -44,10 +44,10 @@ class FilePreviewer : public MessageBar
 	int pad;
 	FilePreviewer(anXWindow *pwindow,const char *nname,const char *ntitle,unsigned long nstyle,
 				int nx,int ny,int nw,int nh,int brder,
-				const char *file=NULL,int sz=5000);
+				const char *file = nullptr, int index = 0);
 	virtual ~FilePreviewer();
 	virtual const char *tooltip() { return filename; }
-//	virtual int init();
+	virtual int init();
 	virtual void Refresh();
 	virtual const char *whattype() { return "FilePreviewer"; } 
 //	virtual int LBDown(int x,int y,unsigned int state,int count);
@@ -55,10 +55,10 @@ class FilePreviewer : public MessageBar
 //	virtual int LBUp(int x,int y,unsigned int state);
 //	virtual int RBUp(int x,int y,unsigned int state);
 //	virtual int MouseMove(int x,int y,unsigned int state);
-//	virtual int MoveResize(int nx,int ny,int nw,int nh);
+	virtual int MoveResize(int nx,int ny,int nw,int nh);
 //	virtual int Resize(int nw,int nh);
 	virtual int SetText(const char *newtext) { return MessageBar::SetText(newtext); }
-	virtual int Preview(const char *file);
+	virtual int Preview(const char *file, int index = 0);
 	virtual const char *Preview() { return filename; }
 };
 

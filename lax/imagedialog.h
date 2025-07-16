@@ -45,7 +45,7 @@ class ImageDialog : public RowFrame
  protected:
 	//FileLineInput *file,*preview;
 	MultiLineEdit *desc;
-	LineInput *file,*preview,*titlee,*side;
+	LineInput *file, *preview, *titlee, *side, *index;
 	FilePreviewer *previewer;
 	ImageInfo *imageinfo;
 	unsigned int dialog_style;
@@ -53,6 +53,8 @@ class ImageDialog : public RowFrame
 	virtual char *reallyGeneratePreview();
 	virtual int RegeneratePreview(int force);
 	virtual void updateImageInfo();
+	bool SetImageIndex(int i);
+	
  public:
 	ImageDialog(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
 		int xx,int yy,int ww,int hh,int brder,

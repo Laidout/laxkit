@@ -47,7 +47,7 @@ class ImageInfo : virtual public anObject, virtual public Tagged
 	ImageInfo *next;
 
 	ImageInfo();
-	ImageInfo(const char *f,const char *p,const char *t,const char *d,int pf);
+	ImageInfo(const char *f,const char *p,const char *t,const char *d,int pf, int i = 0);
 	virtual ~ImageInfo();
 	ImageInfo &operator=(ImageInfo &f);
 	virtual int SetInfo(ImageInfo *f);

@@ -23,9 +23,6 @@
 #include <lax/imageinfo.h>
 #include <lax/strmanip.h>
 
-#ifndef NULL
-#define NULL (0)
-#endif
 
 namespace Laxkit {
 	
@@ -35,10 +32,11 @@ namespace Laxkit {
  * \brief Kind of a shell to hold various information about an image.
  *
  * Currently, stores:
- *  1. file name
- *  2. preview file name
- *  3. title
- *  4. description
+ *  - file name
+ *  - subimage index
+ *  - preview file name
+ *  - title
+ *  - description
  *
  * \todo come to think of it, this could be mostly just a hash, which would
  *   make integration of exif info easier...
@@ -47,45 +45,45 @@ namespace Laxkit {
 
 ImageInfo::ImageInfo()
 {
-	filename=previewfile=title=description=NULL;
-	previewflags=0;
-	next=NULL;
-	index = 0;
+	filename = previewfile = title = description = nullptr;
+	previewflags = 0;
+	next         = nullptr;
+	index        = 0;
 }
 
-ImageInfo::ImageInfo(const char *f,const char *p,const char *t,const char *d,int pf)
+ImageInfo::ImageInfo(const char *f,const char *p,const char *t,const char *d,int pf, int i)
 {
-	filename   =newstr(f);
-	previewfile=newstr(p);
-	title      =newstr(t);
-	description=newstr(d);
-	previewflags=pf;
-	next=NULL;
-	index = 0;
+	filename     = newstr(f);
+	previewfile  = newstr(p);
+	title        = newstr(t);
+	description  = newstr(d);
+	previewflags = pf;
+	next         = nullptr;
+	index        = i;
 }
 
 /*! Delete the strings and next.
  */
 ImageInfo::~ImageInfo()
 {
-	if (title) delete[] title;
-	if (description) delete[] description;
-	if (filename) delete[] filename;
-	if (previewfile) delete[] previewfile;
+	delete[] title;
+	delete[] description;
+	delete[] filename;
+	delete[] previewfile;
 
 	if (next) delete next;
-	next=NULL;
+	next = nullptr;
 }
 
 ImageInfo &ImageInfo::operator=(ImageInfo &f)
 {
-	makestr(filename,f.filename);
-	makestr(description,f.description);
-	makestr(previewfile,f.previewfile);
-	makestr(title,f.title);
-	previewflags=f.previewflags;
-	mask=f.mask;
-	index = f.index;
+	makestr(filename, f.filename);
+	makestr(description, f.description);
+	makestr(previewfile, f.previewfile);
+	makestr(title, f.title);
+	previewflags = f.previewflags;
+	mask         = f.mask;
+	index        = f.index;
 	return f;
 }
 
@@ -93,7 +91,7 @@ ImageInfo &ImageInfo::operator=(ImageInfo &f)
  */
 int ImageInfo::SetInfo(ImageInfo *f)
 {
-	*this=*f;
+	*this = *f;
 	return 0;
 }
 

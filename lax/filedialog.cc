@@ -523,7 +523,6 @@ int FileDialog::init()
 	 //make a 3 pane stack:  Recent/Bookmarks,  Files,  Preview
 	StackFrame *hstack=new StackFrame(this,"hbox","hbox",0, 0,0,0,0,0, NULL,0,NULL, 8);
 
-
 	 //bookmarks pane...
 	//hstack->AddSpacer(100,100,100,50, -1);
 
@@ -704,7 +703,9 @@ int FileDialog::init()
 	 //---------preview pane..
 	if (dialog_style & FILES_PREVIEW) {
 		char *blah = fullFilePath(nullptr);
-		last = previewer = new FilePreviewer(hstack,"previewer","previewer",MB_MOVE|MB_LEFT, 0,0,0,0, 1, blah);
+		last = previewer = new FilePreviewer(nullptr,"previewer","previewer",FILEPREV_SHOW_DIMS|MB_MOVE|MB_LEFT, 0,0,0,0, 1, blah);
+		// last = previewer = new FilePreviewer(hstack,"previewer","previewer",FILEPREV_SHOW_DIMS|MB_MOVE|MB_LEFT, 0,0,0,0, 1, blah); <- *** this doesn't work??!?? wtf!!
+		previewer->Id("filepreviewer");
 		delete[] blah;
 		hstack->AddWin(previewer,1, 100,50,500,50,0, 100,0,1000,50,0, -1);
 	}

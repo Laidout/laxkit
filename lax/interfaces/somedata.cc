@@ -669,7 +669,7 @@ int SomeData::AlignAndFit(double *boxm,DoubleBBox *box,double alignx,double alig
 	if (!box) return 1;
 	alignx /= 100;
 	aligny /= 100;
-	if (boxm) m(boxm); else setIdentity();
+	if (boxm) m(boxm); //else setIdentity();
 	double scale = 1;
 	flatpoint banchor(box->minx*(1-alignx) + box->maxx*alignx, box->miny*(1-aligny) + box->maxy*aligny),
 	          manchor(minx*(1-alignx) + maxx*alignx, miny*(1-aligny) + maxy*aligny);
