@@ -25,10 +25,8 @@
 #include <lax/strmanip.h>
 #include <lax/singletonkeeper.h>
 
+#include <lax/debug.h>
 
-#include <iostream>
-using namespace std;
-#define DBG
 
 namespace Laxkit {
 
@@ -70,18 +68,51 @@ namespace Laxkit {
  *     sievert 	Sv 	equivalent dose (of ionising radiation) 	m2⋅s−2 	J/kg
  *     katal 	kat 	catalytic activity 	mol⋅s−1
  */
-// class Units
-// {
-//   public:
-//   	NumStack<int> numerator;
-//   	NumStack<int> denominator;
+class CompoundUnit
+{
+  public:
+  	struct Piece {
+  		int unit;
+  		double power; //double to help interim calculations, but in end should resolve to integers generally
+  		Piece() { unit = 0; power = 1; }
+  		Piece(int u, double p) { unit = u; power = p; }
+  	};
+  	NumStack<Piece> units; // base units only?
+  	int category_hint;
 
-//   	Utf8String str; //cached write out of the units
+  	CompoundUnit *express_as = nullptr;
 
-//   	void MultiplyUnits(const NumberUnits &units);
-//   	void DivideUnits(const NumberUnits &units);
-//};
+  	// Utf8String str; //cached write out of the units
 
+  	void MultiplyUnits(const CompoundUnit &units);
+  	void DivideUnits(const CompoundUnit &units);
+  	int FindIndex(int unit);
+};
+
+int CompoundUnit::FindIndex(int unit)
+{
+	for (int c = 0; c < units.n; c++)
+		if (units.e[c].unit == unit) return c;
+	return -1;
+}
+
+void CompoundUnit::MultiplyUnits(const CompoundUnit &u)
+{
+	for (int c = 0; c < u.units.n; c++) {
+		int i = FindIndex(u.units.e[c].unit);
+		if (i >= 0) units.e[i].power += u.units.e[c].power;
+		else units.push(Piece(u.units.e[c].unit, u.units.e[c].power));
+	}
+}
+
+void CompoundUnit::DivideUnits(const CompoundUnit &u)
+{
+	for (int c = 0; c < u.units.n; c++) {
+		int i = FindIndex(u.units.e[c].unit);
+		if (i >= 0) units.e[i].power -= u.units.e[c].power;
+		else units.push(Piece(u.units.e[c].unit, -u.units.e[c].power));
+	}
+}
 
 //------------------------------------- CreateDefaultUnits() ----------------------------------------
 
@@ -91,47 +122,87 @@ namespace Laxkit {
  *
  * Defined are inches, feet, centimeters, millimeters, meters, points, and pixels.
  *
- * If units==NULL, return a new SimpleUnit. Else add to units.
+ * If units == nullptr, return a new SimpleUnit. Else add to units.
  */
 UnitManager *CreateDefaultUnits(UnitManager *units, bool include_px, bool include_em)
 {
 	if (!units) units = new UnitManager(false);
-	units->AddUnits(UNITS_Inches,    .0254,    _("in"), _("inch"),      _("inches"));
-	units->AddUnits(UNITS_Feet,      12*.0254, _("ft"), _("foot"),      _("feet"));
-	units->AddUnits(UNITS_Yards,     36*.0254, _("yd"), _("yard"),      _("yards"));
-	units->AddUnits(UNITS_CM,        .01,      _("cm"), _("centimeter"),_("centimeters"));
-	units->AddUnits(UNITS_MM,        .001,     _("mm"), _("millimeter"),_("millimeters"));
-	units->AddUnits(UNITS_Meters,    1,        _("m"),   _("meter"),    _("meters"));
-	units->AddUnits(UNITS_Points,    .0254/72, _("pt"),   _("point"),   _("points"), _("72 ppi"));
-	units->AddUnits(UNITS_SvgPoints, .0254/90, _("svgpt"),_("svgpoint"),_("svgpoints"), _("Legacy 90 ppi"));
-	units->AddUnits(UNITS_CSSPoints, .0254/96, _("csspt"),_("csspoint"),_("csspoints"), _("96 ppi"));
+	units->AddUnits(UNITS_Length, UNITS_Inches,    .0254,    0, _("in"), _("inch"),      _("inches"));
+	units->AddUnits(UNITS_Length, UNITS_Feet,      12*.0254, 0, _("ft"), _("foot"),      _("feet"));
+	units->AddUnits(UNITS_Length, UNITS_Yards,     36*.0254, 0, _("yd"), _("yard"),      _("yards"));
+	units->AddUnits(UNITS_Length, UNITS_CM,        .01,      0, _("cm"), _("centimeter"),_("centimeters"));
+	units->AddUnits(UNITS_Length, UNITS_MM,        .001,     0, _("mm"), _("millimeter"),_("millimeters"));
+	units->AddUnits(UNITS_Length, UNITS_Meters,    1,        0, _("m"),   _("meter"),    _("meters"));
+	units->AddUnits(UNITS_Length, UNITS_Points,    .0254/72, 0, _("pt"),   _("point"),   _("points"), _("72 ppi"));
+	units->AddUnits(UNITS_Length, UNITS_SvgPoints, .0254/90, 0, _("svgpt"),_("svgpoint"),_("svgpoints"), _("Legacy 90 ppi"));
+	units->AddUnits(UNITS_Length, UNITS_CSSPoints, .0254/96, 0, _("csspt"),_("csspoint"),_("csspoints"), _("96 ppi"));
 
-	if (include_px) units->AddUnits(UNITS_Pixels, .0254/96, _("px"), _("pixel"), _("pixels"));
-	if (include_em) units->AddUnits(UNITS_em,     1, _("em"), _("em"),    _("em"));
+	if (include_px) units->AddUnits(UNITS_Length, UNITS_Pixels, .0254/96, 0, _("px"), _("pixel"), _("pixels"));
+	if (include_em) units->AddUnits(UNITS_Length, UNITS_em,     1,        0, _("em"), _("em"),    _("em"));
 
 	return units;
 }
 
+UnitManager *CreateTemperatureUnits(UnitManager *units)
+{
+	if (!units) units = new UnitManager(false);
+
+	// K = C − 273.15
+	// C = 5/9 * (F - 32)
+	// F = 32 + 9/5 * C
+	units->AddUnits(UNITS_Temperature, UNITS_K,  1, 273.15,       _("K"), _("kelvin"),     _("kelvin"));
+	units->AddUnits(UNITS_Temperature, UNITS_C,  1, 0,            _("C"), _("celcius"),    _("celcius"));
+	units->AddUnits(UNITS_Temperature, UNITS_F,  5./9, -32.*5/9,  _("F"), _("fahrenheit"), _("fahrenheit"));
+	units->DefaultUnits(UNITS_C, UNITS_Temperature);
+	return units;
+}
+
+// UnitManager *CreateExtraLengthUnits(UnitManager *units)
+// {
+// 	if (!units) units = new UnitManager(false);
+
+// 	units->AddUnits(UNITS_Length, UNITS_Fermi,          , 0, _(""), _("Fermi"),         _("Fermi"));           
+// 	units->AddUnits(UNITS_Length, UNITS_Angstrom,       , 0, _("ang"), _("Angstrom"),      _("Angstrom"));              
+// 	units->AddUnits(UNITS_Length, UNITS_Micron,         , 0, _("micron"), _("Micron"),        _("Micron"));            
+// 	units->AddUnits(UNITS_Length, UNITS_Mil,            , 0, _("mil"), _("Mil"),           _("Mil"));              // 1000 mil = 1 inch
+// 	units->AddUnits(UNITS_Length, UNITS_Miles,          , 0, _("mile"), _("Miles"),         _("Miles"));           
+// 	units->AddUnits(UNITS_Length, UNITS_NauticalMile,   , 0, _("nmile"), _("NauticalMile"),  _("NauticalMile"));                  
+// 	units->AddUnits(UNITS_Length, UNITS_League,         , 0, _(""), _("League"),        _("League"));              // 1 = 3 miles = 4800 m
+// 	units->AddUnits(UNITS_Length, UNITS_Fathom,         , 0, _(""), _("Fathom"),        _("Fathom"));              // 1 = 6 feet
+// 	units->AddUnits(UNITS_Length, UNITS_Furlong,        , 0, _(""), _("Furlong"),       _("Furlong"));               // 1 = 1/8 mile
+// 	units->AddUnits(UNITS_Length, UNITS_Horse,          , 0, _(""), _("Horse"),         _("Horse"));               // about 8 feet
+// 	units->AddUnits(UNITS_Length, UNITS_FootballField,  , 0, _(""), _("FootballField"), _("FootballField"));                    // 100 yards
+// 	units->AddUnits(UNITS_Length, UNITS_EarthRadius,    , 0, _(""), _("EarthRadius"),   _("EarthRadius"));                  // approx. 6,371 km
+// 	units->AddUnits(UNITS_Length, UNITS_LunarDist,      , 0, _(""), _("LunarDist"),     _("LunarDist"));                  // approx. 384402 km, center of earth to center of moon
+// 	units->AddUnits(UNITS_Length, UNITS_AU,             , 0, _(""), _("AU"),            _("AU"));               // astronomical unit, 1 au = 149597870700 m
+// 	units->AddUnits(UNITS_Length, UNITS_Lightsecond,    , 0, _(""), _("Lightsecond"),   _("Lightsecond"));                 
+// 	units->AddUnits(UNITS_Length, UNITS_Lightyear,      , 0, _(""), _("Lightyear"),     _("Lightyear"));               
+// 	units->AddUnits(UNITS_Length, UNITS_Parsec,         , 0, _(""), _("Parsec"),        _("Parsec"));                // 30856775814671.9 km
+// 	units->AddUnits(UNITS_Length, UNITS_Hubble,         , 0, _(""), _("Hubble"),        _("Hubble"));               // 14.4 billion ly
+// 	units->AddUnits(UNITS_Length, UNITS_Cubit,          .5, 0, _(""), _("Cubit"),         _("Cubit"));              // elbow to tip of middle finger, very roughly 1/2 meter
+
+// 	return units;
+// }
 
 //------------------------------------- GetUnitManager() ----------------------------------------
 //! A general repository for units.
-/*! This starts out as NULL. You would initialize it and retrieve it with GetUnitManager().
+/*! This starts out as nullptr. You would initialize it and retrieve it with GetUnitManager().
  */
 static SingletonKeeper unit_manager;
 
-//! Return unit_manager, initializing it with CreateDefaultUnits() if it was NULL, includes px and em units.
+//! Return unit_manager, initializing it with CreateDefaultUnits() if it was nullptr, includes px and em units.
 UnitManager *GetUnitManager()
 {
 	UnitManager *um = dynamic_cast<UnitManager*>(unit_manager.GetObject());
 	if (!um) {
-		um = CreateDefaultUnits(NULL, true, true);
+		um = CreateDefaultUnits(nullptr, true, true);
 		unit_manager.SetObject(um,1);
 	}
 	return um;
 }
 
-/*! If NULL, then clear.
- * If not NULL, then set manager as default. Note: does NOT inc count, simply takes possession.
+/*! If nullptr, then clear.
+ * If not nullptr, then set manager as default. Note: does NOT inc count, simply takes possession.
  */
 void SetUnitManager(UnitManager *manager)
 {
@@ -155,37 +226,14 @@ SimpleUnit::SimpleUnit()
 {
 	id = 0;
 	scaling = 0;
-	next = NULL;
-	label = NULL;
+	label = nullptr;
 }
 
 SimpleUnit::~SimpleUnit()
 {
-	if (next) delete next;
 	delete[] label;
 }
 
-
-SimpleUnit *SimpleUnit::find(int units)
-{
-	SimpleUnit *f;
-	f=this;
-	while (f && f->id!=units) f=f->next;
-	return f;
-}
-
-SimpleUnit *SimpleUnit::find(const char *name,int len)
-{
-	if (len < 0) len = strlen(name);
-	SimpleUnit *f;
-	f = this;
-	while (f) {
-		for (int c=0; c<f->names.n; c++)
-			if (len == (int)strlen(f->names.e[c]) && !strncasecmp(f->names.e[c],name,len)) return f;
-		f=f->next;
-	}
-	return NULL;
-}
 
 //------------------------------------- UnitManager ----------------------------------------
 
@@ -198,28 +246,67 @@ UnitManager::UnitManager(bool install_default)
 
 UnitManager::~UnitManager()
 {
-	delete units;
 }
 
 
-int UnitManager::NumberOfUnits()
+int UnitManager::NumberOfUnits(int category)
 {
-	if (!units) return 0;
-	SimpleUnit *f = units;
-	int n=0;
-	if (!f->scaling) return 0;
-	while (f) {
-		n++;
-		f=f->next;
+	if (!categories.n) return 0;
+
+	if (category == UNITS_Default) category = default_category;
+	for (int c = 0; c < categories.n; c++) {
+		if (categories.e[c]->category == category)
+			return categories.e[c]->units.n;
 	}
-	return n;
+
+	return 0;
+}
+
+UnitCategory *UnitManager::FindCategory(int category)
+{
+	if (category == UNITS_Default) category = default_category;
+	for (int c = 0; c < categories.n; c++) {
+		if (categories.e[c]->category == category)
+			return categories.e[c];		
+	}
+	return nullptr;
+}
+
+const SimpleUnit *UnitManager::Find(int id, int category)
+{
+	for (int c = 0; c < categories.n; c++) {
+		if (category != UNITS_Any && categories.e[c]->category != category) continue;
+		for (int c2 = 0; c2 < categories.e[c]->units.n; c2++) {
+			if (categories.e[c]->units.e[c2]->id == id)
+				return categories.e[c]->units.e[c2];
+		}
+	}
+
+	return nullptr;
+}
+
+const SimpleUnit *UnitManager::FindByName(const char *name, int len, int category)
+{
+	if (len < 0) len = strlen(name);
+	
+	for (int c = 0; c < categories.n; c++) {
+		if (category != UNITS_Any && categories.e[c]->category != category) continue;
+
+		for (int c2 = 0; c2 < categories.e[c]->units.n; c2++) {
+			SimpleUnit *f = categories.e[c]->units.e[c2];
+			for (int c3 = 0; c3 < f->names.n; c3++)
+			if (len == (int)strlen(f->names.e[c3]) && !strncasecmp(f->names.e[c3],name,len))
+				return f;
+		}
+	}
+
+	return nullptr;
 }
 
 //! Return the unit id corresponding to name, or UNITS_None if not found.
-int UnitManager::UnitId(const char *name, int len)
+int UnitManager::UnitId(const char *name, int len, int category)
 {
-	if (!units) return UNITS_None;
-	SimpleUnit *f = units->find(name,len);
+	const SimpleUnit *f = FindByName(name,len, category);
 	if (!f) return UNITS_None;
 	return f->id;
 }
@@ -228,25 +315,23 @@ int UnitManager::UnitId(const char *name, int len)
  *
  * Returns first in names list.
  */
-const char *UnitManager::UnitName(int uid)
+const char *UnitManager::UnitName(int uid, int category)
 {
-	if (!units) return nullptr;
-	SimpleUnit *f = units->find(uid);
+	const SimpleUnit *f = Find(uid, category);
 	if (!f || !f->names.n) return nullptr;
-
-	return f->names[0];
+	return f->names.e[0];
 }
 
 //! Retrieve some information about a unit, using id value as a key (not index #).
 /*! Return 0 for success or nonzero for error.
  */
-int UnitManager::UnitInfoId(int id, double *scale, char **shortname, char **singular,char **plural, const char **label_ret)
+int UnitManager::UnitInfoId(int id, double *scale, char **shortname, char **singular,char **plural, const char **label_ret, double *offset, int category)
 {
-	if (!units) return 2;
-	SimpleUnit *f = units->find(id);
+	const SimpleUnit *f = Find(id, category);
 	if (!f) return 1;
 
 	if (scale)     *scale     = f->scaling;
+	if (offset)    *offset    = f->offset;
 	if (shortname) *shortname = f->names.e[0];
 	if (singular)  *singular  = f->names.e[1];
 	if (plural)    *plural    = f->names.e[2];
@@ -257,16 +342,16 @@ int UnitManager::UnitInfoId(int id, double *scale, char **shortname, char **sing
 //! Retrieve some information about a unit, using index value as a key (not id #).
 /*! Return 0 for success or nonzero for error.
  */
-int UnitManager::UnitInfoIndex(int index, int *iid, double *scale, char **shortname, char **singular,char **plural, const char **label_ret)
+int UnitManager::UnitInfoIndex(int index, int *iid, double *scale, char **shortname, char **singular,char **plural, const char **label_ret, double *offset, int category)
 {
-	if (!units) return -1;
-	SimpleUnit *f = units;
-	if (!f->scaling) return 1;
-	while (f && index) { f = f->next; index--; }
-	if (!f) return 1;
+	UnitCategory *cat = FindCategory(category);
+	if (!cat || index < 0 || index >= cat->units.n) return 1;
 
+	SimpleUnit *f = cat->units.e[index];
+	
 	if (iid)       *iid       = f->id;
 	if (scale)     *scale     = f->scaling;
+	if (offset)    *offset    = f->offset;
 	if (shortname) *shortname = f->names.e[0];
 	if (singular)  *singular  = f->names.e[1];
 	if (plural)    *plural    = f->names.e[2];
@@ -277,14 +362,14 @@ int UnitManager::UnitInfoIndex(int index, int *iid, double *scale, char **shortn
 //! Retrieve some information about a unit.
 /*! Return 0 for success or nonzero for error.
  */
-int UnitManager::UnitInfo(const char *name, int *iid, double *scale, char **shortname, char **singular,char **plural, const char **label_ret)
+int UnitManager::UnitInfo(const char *name, int *iid, double *scale, char **shortname, char **singular,char **plural, const char **label_ret, double *offset, int category)
 {
-	if (!units) return 1;
-	SimpleUnit *f = units->find(name);
+	const SimpleUnit *f = FindByName(name,-1, category);
 	if (!f) return 1;
 
 	if (iid)       *iid       = f->id;
 	if (scale)     *scale     = f->scaling;
+	if (offset)    *offset    = f->offset;
 	if (shortname) *shortname = f->names.e[0];
 	if (singular)  *singular  = f->names.e[1];
 	if (plural)    *plural    = f->names.e[2];
@@ -294,76 +379,112 @@ int UnitManager::UnitInfo(const char *name, int *iid, double *scale, char **shor
 
 //! Set the size of a pixel in the specified units, or the default units if intheseunits==0.
 /*! Return 0 for success or nonzero for error and nothing done.
+ * This is only for category UNITS_Length.
  */
 int UnitManager::PixelSize(double pixelsize, int intheseunits)
 {
-	if (!units) return 1;
-	if (!intheseunits) intheseunits = defaultunits;
-	SimpleUnit *p = units, *i = units;
-	while (p && p->id != UNITS_Pixels) p = p->next;
-	while (i && i->id != intheseunits) i = i->next;
+	UnitCategory *cat = FindCategory(UNITS_Length);
+	if (!cat) return 1;
+
+	if (!intheseunits) intheseunits = cat->default_units_index >= 0 ? cat->units.e[cat->default_units_index]->id : UNITS_Meters;
+	SimpleUnit *p = nullptr, *i = nullptr;
+	for (int c = 0; c < cat->units.n; c++) {
+		if (cat->units.e[c]->id == UNITS_Pixels) p = cat->units.e[c];
+		if (cat->units.e[c]->id == intheseunits) i = cat->units.e[c];
+		if (p && i) break;
+	}
 	if (!p || !i) return 1;
-	p->scaling = pixelsize*i->scaling;
+	p->scaling = pixelsize * i->scaling;
 	return 0;
 }
 
-//! Return the id of whatever are the default units, as set by DefaultUnits(const char *).
-int UnitManager::DefaultUnits()
+//! Return the id of whatever are the default units, as set by DefaultUnits(const char *, category).
+int UnitManager::DefaultUnits(int category)
 {
-	return defaultunits;
+	UnitCategory *cat = FindCategory(category);
+	if (cat && cat->default_units_index >= 0) return cat->units.e[cat->default_units_index]->id;
+	return UNITS_None;
 }
 
-//! Set default units, and return id of the current units.
-int UnitManager::DefaultUnits(const char *units)
+//! Set default units, and return id of the current default units after setting. On not found, return UNITS_None.
+int UnitManager::DefaultUnits(const char *units, int category)
 {
-	if (!units) return defaultunits;
-	SimpleUnit *f = this->units->find(units);
-	if (!f) return defaultunits;
-	defaultunits = f->id;
-	return defaultunits;
+	if (category == UNITS_Default) category = default_category;
+	const SimpleUnit *f = FindByName(units,-1, category);
+	if (!f) return UNITS_None;
+
+	UnitCategory *cat = FindCategory(category);
+	if (!cat) return UNITS_None;
+
+	for (int c = 0; c < cat->units.n; c++) {
+		if (cat->units.e[c] == f) {
+			cat->default_units_index = c;
+			break;
+		}
+	}
+	return f->id;
 }
 
 //! Set default units to the units with this id.
 /*! Returns UNITS_None on error, else units_id. */
-int UnitManager::DefaultUnits(int units_id)
+int UnitManager::DefaultUnits(int units_id, int category)
 {
-	if (!units) return defaultunits;
-	SimpleUnit *f = units;
-	while (f && f->id != units_id) f = f->next;
+	if (category == UNITS_Default) category = default_category;
+	const SimpleUnit *f = Find(units_id, category);
 	if (!f) return UNITS_None;
-	defaultunits = f->id;
-	return defaultunits;
+
+	UnitCategory *cat = FindCategory(category);
+	if (!cat) return UNITS_None;
+
+	for (int c = 0; c < cat->units.n; c++) {
+		if (cat->units.e[c] == f) {
+			cat->default_units_index = c;
+			break;
+		}
+	}
+	return f->id;
 }
 
 //! Return a value you would multiply numbers in fromunits when you want tounits.
-double UnitManager::GetFactor(int fromunits, int tounits)
+double UnitManager::GetFactor(int fromunits, int tounits, double *offset_ret, int category)
 {
-	if (fromunits == tounits) return 1; //to ward off any rounding errors for the direct case.
-	if (!units) return 1;
-	SimpleUnit *f = units->find(fromunits);
-	SimpleUnit *t = units->find(tounits);
-	if (!f || !t) return 1;
-	return f->scaling/t->scaling;
+	if (fromunits == tounits) {
+		if (offset_ret) *offset_ret = 0;
+		return 1; //to ward off any rounding errors for the direct case.
+	}
+	const SimpleUnit *f = Find(fromunits, category);
+	const SimpleUnit *t = Find(tounits, category);
+	if (!f || !t) {
+		if (offset_ret) *offset_ret = 0;
+		return 1;
+	}
+	if (offset_ret) *offset_ret = (f->offset - t->offset) / t->scaling;
+	return f->scaling / t->scaling;
 }
 
 
-/*! You should always define shortname. You may pass nullptr for singular or plural.
+/*! You should always define shortname. You may pass nullptr for singular, plural, and label.
+ * Does NOT check for already exists.
  * Return 0 for success.
  */
-int UnitManager::AddUnits(int nid, double scale, const char *shortname, const char *singular,const char *plural, const char *nlabel)
+int UnitManager::AddUnits(int category, int nid, double scale, double offset, const char *shortname, const char *singular,const char *plural, const char *nlabel)
 {
-	SimpleUnit *u = nullptr;
-	if (!units) {
-		u = units = new SimpleUnit;
-	} else {
-		u = units;
-		while (u->next) u = u->next;
-		u->next = new SimpleUnit;
-		u = u->next;
-	}
+	if (category == UNITS_Default) category = default_category;
 
-	u->id = nid;
+	SimpleUnit *u = new SimpleUnit;
+	UnitCategory *cat = FindCategory(category);
+	if (!cat) {
+		cat = new UnitCategory();
+		cat->default_units_index = 0;
+		cat->category = category;
+		categories.push(cat);
+	}
+	cat->units.push(u);
+
+	u->category = category;
+	u->id      = nid;
 	u->scaling = scale;
+	u->offset  = offset;
 	u->names.push(newstr(shortname));
 	if (singular) u->names.push(newstr(singular));
 	if (plural)   u->names.push(newstr(plural));
@@ -371,83 +492,85 @@ int UnitManager::AddUnits(int nid, double scale, const char *shortname, const ch
 	return 0;
 }
 
-const SimpleUnit *UnitManager::Find(int id)
-{
-	if (!units) return nullptr;
-	return units->find(id);
-}
-
 
 /*! From and to are matched ignoring case to all the names for each unit, until a match is found.
  *
  *  If the units were not found, ther error_ret gets set to a nonzero value. Else it is 0.
  */
-double UnitManager::Convert(double value, const char *from, const char *to, int *error_ret)
+double UnitManager::Convert(double value, const char *from, const char *to, int category, int *error_ret)
 {
-	if (!units || !from || !to) {
-		if (error_ret) *error_ret=-1;
+	if (!from || !to) {
+		if (error_ret) *error_ret = -1;
 		return 0;
 	}
 
 	if (!strcmp(from,to)) return value;
 
-	SimpleUnit *f,*t;
-	int c;
-
-	f = units;
-	while (f) {
-		for (c=0; c<f->names.n; c++) if (!strcasecmp(f->names.e[c],from)) break;
-		if (f->names.n && c!=f->names.n) break;
-		f = f->next;
-	}
+	const SimpleUnit *f,*t;
+	
+	f = FindByName(from,-1, category);
 	if (!f) {
-		if (error_ret) *error_ret=1;
+		if (error_ret) *error_ret = 1;
 		return 0;
 	}
 
-	t = units;
-	while (t) {
-		for (c=0; c<t->names.n; c++) if (!strcasecmp(t->names.e[c],to)) break;
-		if (t->names.n && c!=t->names.n) break;
-		t = t->next;
-	}
+	t = FindByName(to,-1, category);
 	if (!t) {
-		if (error_ret) *error_ret=2;
+		if (error_ret) *error_ret = 2;
 		return 0;
 	}
 
-	return value*f->scaling/t->scaling;
+	//return value * f->scaling / t->scaling;  without offset
+	return (value * f->scaling + f->offset - t->offset) / t->scaling; // with offset
 }
 
 /*! If the units were not found, then error_ret gets set to a nonzero value. Else it is 0.
  */
-double UnitManager::Convert(double value, int from_id, int to_id, int *error_ret)
+double UnitManager::Convert(double value, int from_id, int to_id, int category, int *error_ret)
 {
 	if (from_id == to_id) return value; //avoid rounding errors!
-	if (!units) {
-		if (error_ret) *error_ret=3;
-		return 0;
-	}
 
-	SimpleUnit *f,*t;
+	const SimpleUnit *f,*t;
 
-	f = units;
-	while (f && f->id!=from_id) f=f->next;
+	f = Find(from_id, category);
 	if (!f) {
 		if (error_ret) *error_ret=1;
 		return 0;
 	}
 
-	t = units;
-	while (t && t->id!=to_id) t=t->next;
+	t = Find(to_id, category);
 	if (!t) {
 		if (error_ret) *error_ret=2;
 		return 0;
 	}
 
-	return value*f->scaling/t->scaling;
+	//return value * f->scaling / t->scaling;  without offset
+	return (value * f->scaling + f->offset - t->offset) / t->scaling; // with offset
 }
 
+
+int UnitManager::BuildFor(int category)
+{
+	default_category = category;
+	return default_category;
+}
+
+
+/*! For instance, to add meters/second:
+ * ```
+ *   AddDerivedUnit(UNITS_MPS, 1, 0, "m_per_s", "Meter per second", "Meters per second", "Meters per second",
+ *   				2,
+ *   				UNITS_Meters,   1.0,
+ *   				UNITS_Seconds, -1.0)
+ * ```
+ */
+bool UnitManager::AddDerivedUnit(int nid, double scale, double offset,
+						const char *shortname, const char *singular,const char *plural, const char *nlabel,
+						int num_base_units, ...)
+{
+	DBGE("IMPLEMENT ME!!")
+	return false;
+}
 
 
 } //namespace Laxkit
