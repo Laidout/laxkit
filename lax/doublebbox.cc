@@ -129,6 +129,12 @@ void DoubleBBox::addtobounds(flatpoint p)
 void DoubleBBox::addtobounds(double x,double y)
 { addtobounds(flatpoint(x,y)); }
 
+void DoubleBBox::addtobounds_wh(double x, double y, double w, double h)
+{
+	addtobounds(flatpoint(x,y));
+	addtobounds(flatpoint(x+w,y+h));
+}
+
 /*! Basically adds points (x,y) and (x+width, y+height).
  * Does not care if rect width or height are negative.
  */
