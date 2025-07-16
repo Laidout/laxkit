@@ -44,9 +44,10 @@ namespace Laxkit {
 class PanController : virtual public anObject
 {
  protected:
-	PtrStack<anXWindow> tellstack;
+	PtrStack<EventReceiver> tellstack;
+
  public:
-	anXWindow *donttell;
+	EventReceiver *donttell;
 	unsigned int pan_style;
 	int sendstatus;
 	long minsel[2],maxsel[2],min[2],max[2],start[2],end[2]; // workspace info, 0=x 1=y
@@ -90,9 +91,9 @@ class PanController : virtual public anObject
 	virtual long PageDown(int which,int numpages=1);
 
 	virtual void sendMessages();
-	virtual void tell(anXWindow *win);
-	virtual void tellPop(anXWindow *win=NULL);
-	virtual void dontTell(anXWindow *win);
+	virtual void tell(EventReceiver *win);
+	virtual void tellPop(EventReceiver *win = nullptr);
+	virtual void dontTell(EventReceiver *win);
 };
 
 } // namespace Laxkit

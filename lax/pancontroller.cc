@@ -112,7 +112,7 @@ namespace Laxkit {
  * If PANC_ELEMENT_IS_PERCENT is set in pan_style, then elementsize is that percent (100=100%)
  * of the selbox size. Otherwise, elementsize is that absolute number of whole space units.
  */
-/*! \fn PtrStack<anXWindow> PanController::tellstack
+/*! \fn PtrStack<EventReceiver> PanController::tellstack
  * \brief Stack of windows to notify when settings change.
  *
  * If the windows in tellstack can be cast to PanUser, then proper deleting procedures
@@ -123,7 +123,7 @@ namespace Laxkit {
 //! Default constructor, sets minsel to 1, maxsel to 1000000, and style to PANC_ELEMENT_IS_PERCENT|PANC_PAGE_IS_PERCENT.
 PanController::PanController()
 {
-	donttell=NULL;
+	donttell=nullptr;
 	sendstatus=1;
 	for (int c=0; c<2; c++) {
 		min[c]=max[c]=start[c]=end[c]=0;
@@ -140,7 +140,7 @@ PanController::PanController()
 //! Copy constructor. Does not copy tellstack.
 PanController::PanController(const PanController &pan)
 {
-	donttell=NULL;
+	donttell=nullptr;
 	sendstatus=1;
 	pan_style=pan.pan_style;
 	pixelaspect=pan.pixelaspect;
@@ -184,35 +184,35 @@ PanController::PanController(long xmin,long xmax,long xstart,long xend,
 							 long ymin,long ymax,long ystart,long yend,
 							 int w,int h,unsigned long panstyle)
 {
-	donttell=NULL;
-	sendstatus=1;
-	
-	pan_style=panstyle;
-	pagesize[0]=pagesize[1]=90;
-	elementsize[0]=elementsize[1]=10;
-	
-	min[0]=xmin;
-	max[0]=xmax;
-	start[0]=xstart;
-	end[0]=xend;
+	donttell   = nullptr;
+	sendstatus = 1;
 
-	min[1]=ymin;
-	max[1]=ymax;
-	start[1]=ystart;
-	end[1]=yend;
-	
-	 // default minsel/maxsel is 0 and max-min
-	minsel[0]=minsel[1]=1;
-	maxsel[0]=max[0]-min[0]+1;
-	maxsel[1]=max[1]-min[1]+1;
-	
-	boxaspect[0]=end[0]-start[0]+1;
-	boxaspect[1]=end[1]-start[1]+1;
-	pixelaspect=1.0;
+	pan_style   = panstyle;
+	pagesize[0] = pagesize[1] = 90;
+	elementsize[0] = elementsize[1] = 10;
+
+	min[0]   = xmin;
+	max[0]   = xmax;
+	start[0] = xstart;
+	end[0]   = xend;
+
+	min[1]   = ymin;
+	max[1]   = ymax;
+	start[1] = ystart;
+	end[1]   = yend;
+
+	// default minsel/maxsel is 0 and max-min
+	minsel[0] = minsel[1] = 1;
+	maxsel[0]             = max[0] - min[0] + 1;
+	maxsel[1]             = max[1] - min[1] + 1;
+
+	boxaspect[0] = end[0] - start[0] + 1;
+	boxaspect[1] = end[1] - start[1] + 1;
+	pixelaspect  = 1.0;
 }
 
 //! Destructor, turns off the panner in any PanUser in tellstack.
-/*! This is done by calling UseThisPanner(NULL) on anything that
+/*! This is done by calling UseThisPanner(nullptr) on anything that
  * can be cast to PanUser. This prevents any PanUser classes from calling
  * a panner that has just been destroyed. This of course assumes that
  * the panner is destroyed before those windows!! Otherwise the pointers
@@ -230,35 +230,35 @@ PanController::~PanController()
 	DBG cerr <<"in PanController destructor: tellstack.n:"<<tellstack.n<<endl;
 //	for (int c=0; c<tellstack.n; c++) {
 //		if (dynamic_cast<PanUser *>(tellstack.e[c]))
-//			dynamic_cast<PanUser *>(tellstack.e[c])->UseThisPanner(NULL);
+//			dynamic_cast<PanUser *>(tellstack.e[c])->UseThisPanner(nullptr);
 //	}
 }
 
 //! Push win onto the stack of windows to notify of changes.
-void PanController::tell(anXWindow *win)
+void PanController::tell(EventReceiver *win)
 {
 	DBG int c = -1;
 	if (win) {
 		DBG c=
 		tellstack.pushnodup(win,0);
 	}
-	DBG cerr <<" ---TELL---"<<win->WindowTitle(1)<<"  "<<c<<endl;
+	DBG cerr <<" ---TELL---"<<(win->Id() ? win->Id() : "?")<<"  "<<c<<endl;
 }
 
-//! Pop win from the tellstack. If win==NULL, then flush the tellstack.
+//! Pop win from the tellstack. If win==nullptr, then flush the tellstack.
 /*! If the window is already on the stack, it is not pushed again.
  */
-void PanController::tellPop(anXWindow *win)
+void PanController::tellPop(EventReceiver *win)
 {
-	if (win==NULL) tellstack.flush();
+	if (win==nullptr) tellstack.flush();
 	else tellstack.popp(win);
-	DBG cerr <<" ---TELLPOP---"<<win->WindowTitle(1)<<endl;
+	DBG cerr <<" ---TELLPOP---"<<(win->Id() ? win->Id() : "?")<<endl;
 }
 
-//! Exhempt win from getting messages sent to it, until dontTell(NULL) or dontTell(someotherwindow) is called.
+//! Exhempt win from getting messages sent to it, until dontTell(nullptr) or dontTell(someotherwindow) is called.
 /*! There can only be one exhemption at a time.
  */
-void PanController::dontTell(anXWindow *win)
+void PanController::dontTell(EventReceiver *win)
 {
 	donttell=win;
 }
@@ -281,12 +281,12 @@ void PanController::sendMessages()
 	if (!tellstack.n || sendstatus!=1) return;
 	DBG cerr <<"----- In sendMessages to "<<tellstack.n<<" windows.."<<endl;
 
-	SimpleMessage *data=NULL;
+	SimpleMessage *data=nullptr;
 	for (int c=0; c<tellstack.n; c++) {
-		if (tellstack.e[c]==NULL) { tellstack.pop(c); c--; continue; } // cover for sloppy programmers
+		if (tellstack.e[c]==nullptr) { tellstack.pop(c); c--; continue; } // cover for sloppy programmers
 		if (tellstack.e[c]==donttell) continue;
 
-		data=new SimpleMessage(NULL, start[0], end[0], start[1], end[1]);
+		data=new SimpleMessage(nullptr, start[0], end[0], start[1], end[1]);
 		
 		//app->SendMessage(tellstack.e[c],"pan change"); <-- should send a normal ClientMessage
 		anXApp::app->SendMessage(data, tellstack.e[c]->object_id, "pan change", 0);
@@ -312,9 +312,9 @@ long PanController::GetPageSize(int which)
 }
 
 //! Return the start of x (which==1) or y (which==2) dimension.
-/*! If curpos or curposend are not NULL, then the start and end are put there.
+/*! If curpos or curposend are not nullptr, then the start and end are put there.
  */
-long PanController::GetCurPos(int which,long *curpos,long *curposend)//curpos=curposend=NULL
+long PanController::GetCurPos(int which,long *curpos,long *curposend)//curpos=curposend=nullptr
 {
 	if (which!=1 && which!=2) return 0;
 	which--;
@@ -325,7 +325,7 @@ long PanController::GetCurPos(int which,long *curpos,long *curposend)//curpos=cu
 
 //! Get the horizontal (which==1) or vertical(=2) magnification of the box to the screen (screen=Getmag*real)
 /*! Use this when you have a screen size boxwidth that must correspond
- * to the selection box. If wholestart/endret are not NULL, then return what would
+ * to the selection box. If wholestart/endret are not nullptr, then return what would
  * be the whole space start and end if viewed in screen coordinates. The origin
  * is taken to be the start of the transformed box (screen coords).
  *
@@ -346,7 +346,7 @@ double PanController::GetMagToBox(int which,int boxwidth,long *wholestartret,lon
 
 //! Get the horizontal (which==1) or vertical(=2) magnification of the whole space to the screen (screen=Getmag*real)
 /*! Use this when you have a screen size trackwidth that must correspond
- * to the whole space. If boxstart/endret are not NULL, then return what would
+ * to the whole space. If boxstart/endret are not nullptr, then return what would
  * be the selection box start and end if viewed in screen coordinates. Coordinates
  * are scaled so that the whole space maps to the range [0,trackwidth].
  *

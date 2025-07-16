@@ -30,9 +30,9 @@ class PanUser
 {
  public:
 	PanController *panner;
-	PanUser(PanController *npan=NULL);
+	PanUser(PanController *npan = nullptr);
 	virtual ~PanUser();
-	virtual PanController *createNewPanner(PanController *pan=NULL);
+	virtual PanController *createNewPanner(PanController *pan = nullptr);
 	virtual void UseThisPanner(PanController *npanner);
 };
 
