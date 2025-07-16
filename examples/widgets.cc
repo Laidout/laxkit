@@ -20,6 +20,7 @@
 
 #include <lax/interfaces/characterinterface.h>
 #include <lax/interfaces/sliderinterface.h>
+#include <lax/interfaces/gridselectinterface.h>
 #include <lax/interfaces/interfacewindow.h>
 
 
@@ -103,8 +104,11 @@ int main(int argc,char **argv)
 //			const char *nfiletoprint=NULL, PrintContext *pt=NULL);
 
 	//------------------- FileInput --------------------------
-//	app.addwindow(new FileDialog(nullptr, "Files", nullptr, 0, 1930, 10, 800,600, 0, 0,nullptr,0));
+	//app.addwindow(new FileDialog(nullptr, "Files", nullptr, 0, -1,-1, 800,600, 0, 0,nullptr,FILES_PREVIEW) );
 
+//	app.addwindow(new FilePreviewer(nullptr,"previewer",nullptr,ANXWIN_ESCAPABLE|FILEPREV_SHOW_DIMS,
+//				-1,-1, 600,400,0,
+//				"/path/to/something.jpg"));
 
 	//------------------- FontInput --------------------------
 //	app.addwindow(new FontDialog(nullptr, "FontDialog", "Font Dialog", ANXWIN_CENTER,
@@ -193,6 +197,22 @@ int main(int argc,char **argv)
 //		);
 //	app.addwindow(iwindow);
 
+	//------------------- GridSelect InterfaceWindow --------------------------
+	GridSelectInterface *grid_interface = new GridSelectInterface(nullptr, -1, nullptr);
+	MenuInfo items;
+	char str[30];
+	for (int c = 0; c < 20; c++) {
+		sprintf(str, "%d", c);
+		items.AddItem(str);
+	}
+	grid_interface->UseThisMenu(&items);
+	InterfaceWindow *iwindow = new InterfaceWindow(nullptr, "InterfaceWindow","Interface Window", ANXWIN_CENTER | ANXWIN_ESCAPABLE,
+		0,0, 600,200, 0,
+		nullptr,0,nullptr,
+		grid_interface, 1
+		);
+	app.addwindow(iwindow);
+
 	//------------------- Slider InterfaceWindow --------------------------
 //	SliderInterface *sinterface = new SliderInterface();
 //	SliderInfo *info = sinterface->newData();
@@ -216,23 +236,23 @@ int main(int argc,char **argv)
 
 	
 	//------------------- PopupWindow --------------------------
-	MenuInfo *menu = new MenuInfo();
-	menu->AddItem("one");
-	menu->AddItem("two");
-	menu->AddItem("3");
-	menu->AddItem("4");
-	menu->AddItem("5");
-	menu->AddItem("6");
-	menu->AddItem("7");
-	PopupMenu *popup = new PopupMenu(NULL,_("Move"), 0,
-						0,0,0,0, 1,
-						0,"moveto",
-						0, //mouse to position near?
-						menu,1, nullptr,
-						TREESEL_LEFT);
-	popup->pad = 5;
-	popup->WrapToMouse(0);
-	app.rundialog(popup);
+//	MenuInfo *menu = new MenuInfo();
+//	menu->AddItem("one");
+//	menu->AddItem("two");
+//	menu->AddItem("3");
+//	menu->AddItem("4");
+//	menu->AddItem("5");
+//	menu->AddItem("6");
+//	menu->AddItem("7");
+//	PopupMenu *popup = new PopupMenu(NULL,_("Move"), 0,
+//						0,0,0,0, 1,
+//						0,"moveto",
+//						0, //mouse to position near?
+//						menu,1, nullptr,
+//						TREESEL_LEFT);
+//	popup->pad = 5;
+//	popup->WrapToMouse(0);
+//	app.rundialog(popup);
 
 	//----------------- Done setting up. Now run! ----------------------------
 
