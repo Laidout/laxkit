@@ -26,6 +26,7 @@
 
 #include <lax/interfaces/somedatafactory.h>
 #include <lax/laxutils.h>
+#include <lax/laxdefs.h>
 #include <lax/language.h>
 
 #include <lax/debug.h>
@@ -66,7 +67,7 @@ namespace LaxInterfaces {
  */
 
 
-GridSelectInterface::GridSelectInterface(anInterface *nowner, int nid, Displayer *ndp)
+GridSelectInterface::GridSelectInterface(anInterface *nowner, int nid, Displayer *ndp, unsigned int send_to_id, const char *msg)
  : anInterface(nowner,nid,ndp)
 {
 	interface_flags = 0;
@@ -79,6 +80,9 @@ GridSelectInterface::GridSelectInterface(anInterface *nowner, int nid, Displayer
 	color_normal.rgbf(0.,0.,0.);
 	color_selected.rgbf(.1,0.,.1);
 	hover_diff = .1;
+
+	owner_id = send_to_id;
+	makestr(owner_message, msg);
 
 	sc = nullptr; //shortcut list, define as needed in GetShortcuts()
 }
@@ -554,29 +558,96 @@ int GridSelectInterface::LBUp(int x,int y,unsigned int state, const Laxkit::LaxM
 	DBGL(" ***************** dragged: "<<dragged<<" oldhover: "<<old_hover<<" new_hover: "<<nhover)
 
 	if (dragged < 5 && nhover >= 0 && nhover == old_hover) {
-		if ((state & (ControlMask | ShiftMask)) == ControlMask) {
-			selected.pushnodup(nhover);
 
-		} else if ((state & (ControlMask | ShiftMask)) == ShiftMask) {
-			if (selected.n) {
-				int start = selected.e[selected.n-1];
-				int stop = nhover;
-				if (stop < start) { int t = stop; stop = start; start = t; }
-				for (int c = start; c <= stop; c++) {
-					selected.pushnodup(c);
-				}
-			}
+		addselect(nhover, state);
 
-		} else {
-			selected.flush();
-			selected.pushnodup(nhover);
-		}
+		// if ((state & (ControlMask | ShiftMask)) == ControlMask) {
+		// 	selected.pushnodup(nhover);
+
+		// } else if ((state & (ControlMask | ShiftMask)) == ShiftMask) {
+		// 	if (selected.n) {
+		// 		int start = selected.e[selected.n-1];
+		// 		int stop = nhover;
+		// 		if (stop < start) { int t = stop; stop = start; start = t; }
+		// 		for (int c = start; c <= stop; c++) {
+		// 			selected.pushnodup(c);
+		// 		}
+		// 	}
+
+		// } else {
+		// 	selected.flush();
+		// 	selected.pushnodup(nhover);
+		// }
 		send(0);
 		needtodraw = 1;
 		//items->findFromLine(nhover)->SetState(MENU_SELECTED, true);
 	}
 
 	return 0; //return 0 for absorbing event, or 1 for ignoring
+}
+
+void GridSelectInterface::addselect(int i,unsigned int state)
+{
+	if (!items) return;
+
+	if (!(state & ShiftMask) || select_type == LAX_ONE_ONLY || select_type == LAX_ZERO_OR_ONE) {
+		//shift not pressed, or select zero or one
+
+		MenuItem *mitem = items->e(i);
+		int oldstate = selected.Contains(i);
+
+		if (!(state & ControlMask)) {
+			// unselect others
+			if (selected.n) oldstate = 0;
+			selected.flush();
+		}
+
+		if (mitem) {
+			if (select_type == LAX_ONE_ONLY || oldstate == 0) {
+				//turn on
+				if (select_type == LAX_ONE_ONLY) selected.flush();
+				selected.pushnodup(i);
+				
+			} else if (oldstate) {
+				//turn off
+				selected.remove(selected.findindex(i));
+			}
+		}
+
+		cur_item = i;
+		
+		needtodraw |= 2;
+
+	} else if (state & ShiftMask) { // select range
+		// MenuItem *curmenuitem = items->e(cur_item);
+		int start,end;
+		int nstate = selected.Contains(cur_item);
+		if (i < cur_item) { start = i; end = cur_item; } else { start = cur_item; end = i; }
+
+		for (int c = start; c <= end; c++) {
+			//make each item's state the same as the old curitem state
+			//or toggle the state if control is also pressed. toggle is only 
+			//between ON and OFF, otherwise curitem->state is used.
+			// MenuItem *titem = items->e(c);
+			//if (titem->isGrayed()) continue;
+			
+			if (state & ControlMask) { 
+				//toggle
+				if (selected.Contains(c)) {
+					if (selected.Contains(c)) {
+						if (nstate) selected.pushnodup(c);
+						else selected.remove(selected.findindex(c));
+					}
+				}
+			} else if (!selected.Contains(c)) { 
+				//turn on
+				selected.pushnodup(c);
+			}
+		}
+		cur_item = i;
+		//curmenuitem = mitem;
+		needtodraw |= 2;
+	}
 }
 
 int GridSelectInterface::MBDown(int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d) 
@@ -701,11 +772,12 @@ int GridSelectInterface::WheelDown(int x,int y,unsigned int state,int count, con
  */
 int GridSelectInterface::send(int context)
 {
-	if (owner) {
+	if (owner || owner_id) {
 		SimpleMessage *msg = new SimpleMessage();
 		if (selected.n) {
 			int i = selected.e[selected.n-1];
 			MenuItem *item = items->findFromLine(i);
+			makestr(msg->str, item->name);
 			msg->info1 = i;
 			msg->info2 = item->id;
 			msg->info3 = item->info;
@@ -715,7 +787,7 @@ int GridSelectInterface::send(int context)
 			msg->info3 = 0;
 		}
 		msg->info4 = selected.n;
-		app->SendMessage(msg, owner->object_id, owner_message, object_id);
+		app->SendMessage(msg, owner ? owner->object_id : owner_id, owner_message, object_id);
 	}
 
 	return 0;
@@ -731,6 +803,8 @@ int GridSelectInterface::CharInput(unsigned int ch, const char *buffer,int len,u
 		if (selected.n == 0) return 1;
 		// if (nothing selected) return 1; //need to return on plain escape, so that default switching to Object tool happens
 		
+		if (select_type == LAX_ONE_ONLY) return 1;
+
 		 //else..
 		Clear(nullptr);
 		needtodraw = 1;
@@ -796,6 +870,23 @@ Laxkit::ShortcutHandler *GridSelectInterface::GetShortcuts()
 int GridSelectInterface::PerformAction(int action)
 {
 	return 1;
+}
+
+bool GridSelectInterface::Select(int id)
+{
+	if (!items) return false;
+	int index = -1;
+	items->findid(id, &index);
+	if (index < 0) return false;
+	addselect(index, 0);
+	return true;
+}
+
+bool GridSelectInterface::SelectIndex(int index)
+{
+	if (index < 0 || index >= items->n()) return false;
+	addselect(index, 0);
+	return true;
 }
 
 void GridSelectInterface::UseThisMenu(Laxkit::MenuInfo *newmenu)

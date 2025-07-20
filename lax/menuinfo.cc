@@ -785,6 +785,8 @@ int MenuInfo::AddToggleItem(const char *newitem, int nid, int ninfo, bool on, La
 //! Add item at position where, or to end of menu if where<0.
 /*! Please note that the MenuItem that is created is local to the menuitems stack (it will be deleted
  *  when the item stack is flushed), while the passed in submenu is local according to subislocal.
+ *
+ * \todo why is this img not incremented but other constructor is??
  */
 int MenuInfo::AddItem(const char *newitem, int nid, int info, LaxImage *img, int where, int state)
 {
@@ -979,18 +981,22 @@ MenuItem *MenuInfo::findFromLine(int i)
  *
  * Any potential submenus that do not currently exist are skipped.
  */
-MenuItem *MenuInfo::findid(int checkid)
+MenuItem *MenuInfo::findid(int checkid, int *index_ret)
 {
-	MenuItem *m=NULL;
-	for (int c=0; c<menuitems.n; c++) {
-		if (menuitems.e[c]->id==checkid) return menuitems.e[c];
-		if (menuitems.e[c]->state&MENU_HAS_SUBMENU) {
-			MenuInfo *minfo=menuitems.e[c]->GetSubmenu(0);
+	MenuItem *m = nullptr;
+	for (int c = 0; c < menuitems.n; c++) {
+		if (menuitems.e[c]->id == checkid) {
+			if (index_ret) *index_ret = c;
+			return menuitems.e[c];
+		}
+		if (menuitems.e[c]->state & MENU_HAS_SUBMENU) {
+			MenuInfo *minfo = menuitems.e[c]->GetSubmenu(0);
 			if (minfo) 
-				if (m=minfo->findid(checkid), m!=NULL) return m;
+				if (m = minfo->findid(checkid, index_ret), m != nullptr) return m;
 		}
 	}
-	return NULL;
+	if (index_ret) *index_ret = -1;
+	return nullptr;
 }
 
 int MenuInfo::n()

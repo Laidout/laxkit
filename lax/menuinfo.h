@@ -29,8 +29,8 @@
 #include <lax/laximages.h>
 #include <lax/refptrstack.h>
 
-#ifndef NULL
-#define NULL (0)
+#ifndef nullptr
+#define nullptr (0)
 #endif
 
  //-----sorting styles
@@ -111,14 +111,14 @@ class MenuItem : public anObject
 
 	MenuItem();
 	MenuItem(const char *newitem,int nid,unsigned int nstate,int ninfo,MenuInfo *nsub,int sublocal);
-	MenuItem(LaxImage *img=NULL);
+	MenuItem(LaxImage *img=nullptr);
 	MenuItem(const char *newitem,const char *img,int nid,unsigned int nstate,int ninfo,MenuInfo *nsub,int sublocal);
 	MenuItem(const char *newitem,LaxImage *img,int nid,unsigned int nstate,int ninfo,MenuInfo *nsub,int sublocal);
 	virtual ~MenuItem();
 	virtual MenuInfo *GetSubmenu(int create=0);
 	virtual MenuInfo *CreateSubmenu(const char *ntitle);
 	virtual int AddDetail(MenuItem *detail);
-	virtual int AddDetail(const char *newitem,LaxImage *img=NULL,int nid=0,int ninfo=0);
+	virtual int AddDetail(const char *newitem,LaxImage *img=nullptr,int nid=0,int ninfo=0);
 	virtual MenuItem *GetDetail(int i);
 	virtual int NumDetail();
 	virtual void SetState(unsigned newstate, int on);
@@ -155,19 +155,19 @@ class MenuInfo : public anObject
 	MenuItem *parent;
 	RefPtrStack<MenuItem> menuitems;
 
-	MenuInfo(const char *ntitle=NULL);
+	MenuInfo(const char *ntitle=nullptr);
 	virtual ~MenuInfo();
 	virtual void SetCompareFunc(CompareFunc func);
 	virtual void SetCompareFunc(int newsortstyle);
 	virtual void Sort(int detail=0,int newsortstyle=0);
 	virtual void sort(int start,int end, int detail); // sort in 1,2,3..  flips elsewhere for 3,2,1
-	virtual MenuInfo *findparent(MenuInfo *m,int *index=NULL);
+	virtual MenuInfo *findparent(MenuInfo *m,int *index=nullptr);
 	virtual MenuItem *findFromLine(int i); // find element with index i, counting all open submenus
 	virtual int findLine(MenuItem *mi); // return index of mi counting all open submenus
 	virtual int findIndex(MenuItem *mi); // return index of mi only if mi is in this menu, not a submenu
 	virtual int findIndex(const char *name, int start_at=0); // return index if name is in this menu, not a submenu
 	virtual int findIndex(int checkid); // return index of element with checkid in this menu, not a submenu
-	virtual MenuItem *findid(int checkid); // find MenuItem with id==checkid
+	virtual MenuItem *findid(int checkid, int *index_ret = nullptr); // find MenuItem with id==checkid
 	virtual int idexists(int check,MenuInfo *look); // whether an id==check exists somewhere in the menu.
 	virtual int getuniqueid(int trythis=-1); // find a unique id number to use
 	virtual int how_many(int maxn,int all=0); // maxn=0 is count all visible, maxn>0 is only consider menuitems.e[c<maxn]
@@ -175,14 +175,14 @@ class MenuInfo : public anObject
 	virtual int AddItem(const char *newitem, int nid=0, int ninfo=0, LaxImage *img=nullptr, int where=-1, int state=0);
 	virtual int AddDelimited(const char *newitem,char delimiter='/', int nid=0, int ninfo=0, LaxImage *img=nullptr, int where=-1, int state=0);
 	virtual int AddToggleItem(const char *newitem, int nid=0, int ninfo=0, bool on=false, LaxImage *img=nullptr, int where=-1, int state=0);
-	virtual int AddSep(const char *name=NULL,int where=-1);
+	virtual int AddSep(const char *name=nullptr,int where=-1);
 	virtual int AddItemAsIs(MenuItem *mi,char islocal,int where=-1); //where=-1
 	virtual int AddDetail(const char *newitem,LaxImage *img,int nid=0,int ninfo=0, int towhich=-1);
 	virtual int AddItem(MenuItem *mi,char islocal,int where=-1); //where=-1
 
 	virtual MenuItem *Top();
 	virtual int Remove(int which=-1);
-	virtual int SubMenu(const char *ntitle=NULL,int which=-1); // future adds go on a new submenu for current item
+	virtual int SubMenu(const char *ntitle=nullptr,int which=-1); // future adds go on a new submenu for current item
 	virtual void EndSubMenu(); // stop adding to a submenu
 	virtual void DoneSubMenus() { curmenu=this; }  // resets curmenu to this
 	virtual void NewTitle(const char *ntitle); // set a new title for curmenu

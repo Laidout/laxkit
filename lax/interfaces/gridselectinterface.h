@@ -48,6 +48,7 @@ class GridSelectInterface : public anInterface
 	Laxkit::NumStack<int> almost_selected; // for drag box selecting, preview what will be selected
 
 	int hover = -1;
+	int cur_item = -1;
 	Laxkit::flatpoint offset;
 	Laxkit::flatpoint offset_target;
 
@@ -59,6 +60,8 @@ class GridSelectInterface : public anInterface
 	virtual int send(int context);
 	virtual void RemapItems();
 	virtual int AdjustOffset();
+	virtual void addselect(int i,unsigned int state);
+
 
   public:
 	enum GridSelectActions {
@@ -74,6 +77,7 @@ class GridSelectInterface : public anInterface
 	int mode = GRIDSELECT_None;
 
 	int grid_type = GRIDSELECT_Grid;
+	Laxkit::LaxSelect select_type = Laxkit::LAX_ZERO_OR_MORE;
 
 	unsigned int interface_flags = 0;
 
@@ -84,7 +88,7 @@ class GridSelectInterface : public anInterface
 	bool show_images  = true;
 	bool show_strings = true;
 
-	GridSelectInterface(anInterface *nowner, int nid,Laxkit::Displayer *ndp);
+	GridSelectInterface(anInterface *nowner = nullptr, int nid = 0,Laxkit::Displayer *ndp = nullptr, unsigned int send_to_id = 0, const char *msg = nullptr);
 	virtual ~GridSelectInterface();
 	virtual anInterface *duplicate(anInterface *dup);
 	virtual const char *IconId() { return "GridSelect"; }
@@ -118,7 +122,8 @@ class GridSelectInterface : public anInterface
 	virtual int KeyUp(unsigned int ch,unsigned int state, const Laxkit::LaxKeyboard *d);
 	virtual void ViewportResized();
 
-
+	virtual bool Select(int id);
+	virtual bool SelectIndex(int index);
 	virtual void UseThisMenu(Laxkit::MenuInfo *newmenu);
 };
 

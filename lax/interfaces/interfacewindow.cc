@@ -124,6 +124,10 @@ int InterfaceWindow::SetInterface(anInterface *new_interface)
 	return 0;
 }
 
+int InterfaceWindow::Needtodraw()
+ {
+ 	return needtodraw | (interface ? interface->Needtodraw() : 0);
+ }
 
 void InterfaceWindow::Refresh()
 {

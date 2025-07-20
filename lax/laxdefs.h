@@ -119,6 +119,13 @@ typedef enum {
 #define LAX_SEPARATOR   (1<<3)
 #define LAX_MSTATE_MASK (0xff)
 
+enum LaxSelect {
+	LAX_ONE_ONLY = 1,
+	LAX_ZERO_OR_ONE,
+	LAX_ONE_OR_MORE,
+	LAX_ZERO_OR_MORE
+};
+
  // note to programmer: make sure this can be combined with above state
  // note to programmer: *** why are these here? need better way to organize this sort of state
 #define LAX_OPEN        (1<<8)

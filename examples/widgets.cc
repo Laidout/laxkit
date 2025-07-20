@@ -6,6 +6,7 @@
 #include <lax/laxutils.h>
 #include <lax/transformmath.h>
 #include <lax/language.h>
+#include <lax/laxdefs.h>
 
 #include <lax/printdialog.h>
 #include <lax/quickfileopen.h>
@@ -206,6 +207,7 @@ int main(int argc,char **argv)
 		items.AddItem(str);
 	}
 	grid_interface->UseThisMenu(&items);
+	grid_interface->select_type = LAX_ONE_ONLY;
 	InterfaceWindow *iwindow = new InterfaceWindow(nullptr, "InterfaceWindow","Interface Window", ANXWIN_CENTER | ANXWIN_ESCAPABLE,
 		0,0, 600,200, 0,
 		nullptr,0,nullptr,

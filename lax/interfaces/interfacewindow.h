@@ -50,6 +50,7 @@ class InterfaceWindow : public Laxkit::anXWindow
 	virtual ~InterfaceWindow();
 	virtual const char *whattype();
 	virtual int init();
+	virtual int  Needtodraw();
 	virtual void Refresh();
 	virtual int LBDown(int x,int y,unsigned int state,int count,const Laxkit::LaxMouse *d);
 	virtual int LBUp(int x,int y,unsigned int state,const Laxkit::LaxMouse *d);
