@@ -1144,7 +1144,7 @@ int anXWindow::FocusOn(const FocusChangeData *e)
 		if (xim_ic) {
 			XSetICValues(app->xim_ic,
 						XNClientWindow, e->target->xlib_window,
-						nullptr);
+						NULL); //note: using nullptr throws missing sentinel warning
 			XSetICFocus(xim_ic);
 		}
 #endif //_LAX_PLATFORM_XLIB
