@@ -100,7 +100,7 @@ class PtrStack
 	virtual T *pop(int which=-1,int *local=nullptr); // -1 means from the end, <-1 means return nullptr
 	virtual int findindex(T *t);
 	virtual int Contains(T *t);
-	virtual int remove(int which); // which is index
+	virtual int remove(int index);
 	virtual int remove(T *t);
 	virtual int pushnodup(T *nd,char local,int where=-1);
 	virtual void Delta(int ndelta) { if (ndelta>=0) delta=ndelta; }

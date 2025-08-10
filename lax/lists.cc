@@ -595,7 +595,7 @@ int PtrStack<T>::Contains(T *t)
 	if (i >= 0) return i+1;
 	return 0;
 }
-//! Pop and delete (if islocal) the element at index which.
+//! Pop and delete (if islocal) the element at index.
 /*! This purges the element by popping and then (if islocal==1 or 2) deleting it.
  * Default if no index is specified is to remove the top element (which==-1).
  * If which==-2 then do nothing (see findindex()).
@@ -603,14 +603,14 @@ int PtrStack<T>::Contains(T *t)
  * Return 1 if an item is removed, else 0.
  */
 template <class T>
-int PtrStack<T>::remove(int which) //which=-1
+int PtrStack<T>::remove(int index)
 {
-	if (which==-2) return 0;
-	if (which<0 || which>=n) which=n-1;
-	if (which<0) return 0;
+	if (index == -2) return 0;
+	if (index < 0 || index >= n) index = n-1;
+	if (index < 0) return 0;
 
-	char l = islocal[which];
-	T *t = pop(which);
+	char l = islocal[index];
+	T *t = pop(index);
 	if (t) {
 		if (l == LISTS_DELETE_Array) delete[] t;
 		else if (l == LISTS_DELETE_Single) delete t;
