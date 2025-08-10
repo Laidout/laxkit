@@ -1400,11 +1400,15 @@ void TreeSelector::drawItemContents(MenuItem *i,int offset_x,int suboffset,int o
 			if (ii->state & LAX_ISTOGGLE) {
 				//draw checkmark if ii is a toggle
 				double th = dp->textheight();
+				double g = th*.15;
+				dp->NewFG(win_themestyle->bg.Lerp(win_themestyle->fg, .3));
+				dp->drawrectangle(itemspot.x+g, itemspot.y+g, th-2*g,th-2*g, 0);
+				dp->NewFG(win_themestyle->fg);
 				if (ii->state & LAX_CHECKED) {
 					dp->drawthing(itemspot.x+th/2,itemspot.y+itemspot.height/2, th/3,-th/3, 1, THING_Check);
 				}
-				itemspot.width -= th;
-				itemspot.x += th;
+				itemspot.width -= 1.5*th;
+				itemspot.x += 1.5*th;
 			}
 			drawitemname(ii,&itemspot);
 		}
