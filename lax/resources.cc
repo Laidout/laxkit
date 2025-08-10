@@ -648,7 +648,7 @@ MenuInfo *ResourceType::AppendResourceMenu(MenuInfo *menu, const char *separator
 		AppendMenu(menu, false, &numadded, item_offset, item_category, current);
 		menu->EndSubMenu();
 	}
-	if (!current->IsResourced()) {
+	if (current && !current->IsResourced()) {
 		menu->AddItem(make_resource_label, make_resource_id);
 	} else {
 		menu->AddItem(make_local_label, make_local_id);
