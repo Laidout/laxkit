@@ -42,6 +42,13 @@ class BoilerPlateData : virtual public SomeData
 	virtual void FindBBox();
 	virtual SomeData *duplicate(SomeData *dup);
 
+	// these needed sometimes when polymorphic class:
+	virtual const char* Id() { return Laxkit::anObject::Id(); }
+	virtual const char* Id(const char *new_id) { return Laxkit::anObject::Id(new_id); }
+
+	virtual void dump_out(FILE *f, int indent, int what, Laxkit::DumpContext *context);
+	virtual Laxkit::Attribute* dump_out_atts(Laxkit::Attribute *att, int what, Laxkit::DumpContext *context);
+	virtual void dump_in_atts(Laxkit::Attribute*att, int flag, Laxkit::DumpContext *context);
 };
 
 

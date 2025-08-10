@@ -64,6 +64,24 @@ SomeData *BoilerPlateData::duplicate(SomeData *dup)
 { ***
 }
 
+void BoilerPlateData::dump_out(FILE *f, int indent, int what, Laxkit::DumpContext *context)
+{
+	Attribute att;
+	dump_out_atts(&att, what, context);
+    att.dump_out(f, indent);
+}
+
+Laxkit::Attribute* BoilerPlateData::dump_out_atts(Laxkit::Attribute *att, int what, Laxkit::DumpContext *context)
+{
+	DBGE("IMPLEMENT ME!!!")
+	return att;
+}
+
+void BoilerPlateData::dump_in_atts(Laxkit::Attribute*att, int flag, Laxkit::DumpContext *context)
+{
+	DBGE("IMPLEMENT ME!!!")
+}
+
 
 
 //--------------------------- BoilerPlateInterface -------------------------------------
