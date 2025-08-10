@@ -38,7 +38,7 @@ class anObject : virtual public RefCounted
   public:
 	unsigned long object_id;
 	char *object_idstr;
-	std::clock_t modtime;
+	std::clock_t modtime; // clock ticks since an arbitrary time. usually this will be consistent per session.
 
 	anObject();
 	virtual ~anObject();
