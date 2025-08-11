@@ -10,9 +10,6 @@
 #include <lax/transformmath.h>
 #include <lax/language.h>
 
-//template implementation:
-#include <lax/lists.cc>
-
 
 //#include <cmath>
 
