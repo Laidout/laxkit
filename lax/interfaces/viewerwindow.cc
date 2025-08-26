@@ -341,6 +341,14 @@ anInterface *ViewerWindow::FindInterface(const char *which)
 	return NULL;
 }
 
+anInterface *ViewerWindow::FindInterface(int id)
+{
+	for (int c = 0; c < tools.n; c++) {
+		if ((int)tools.e[c]->object_id == id) return tools.e[c];
+	}
+	return nullptr;
+}
+
 //! Remove tool with id from the list of tools.
 int ViewerWindow::RemoveTool(int id)
 {
@@ -353,7 +361,7 @@ int ViewerWindow::RemoveTool(int id)
 //! Add i to tools, and make it the current tool if selectalso with call to SelectTool(i->id).
 /*! i->Dp(&viewport->dp) is called.
  *
- * The way I do it, this interface will be local to ViewerWindow, and should be a copy of
+ * This interface will be local to ViewerWindow, and should be a copy of
  * an interface from a pool somewhere. This way, the interface can maintain its own state variables,
  * and settings its dp to viewportwindow->dp is normal and expected.
  *
@@ -361,11 +369,11 @@ int ViewerWindow::RemoveTool(int id)
  * through the stack doing AddTool(pool[c]->duplicate(NULL),1,0) will add local copies of the interfaces,
  * and set their dp to the right thing. Works for me...
  */
-int ViewerWindow::AddTool(anInterface *i, char selectalso, int absorbcount)
+int ViewerWindow::AddTool(anInterface *i, bool selectalso, bool absorbcount)
 {
 	if (!i) return 1;
 	DBG cerr <<"-----AddTool: "<<i->whattype()<<" with id="<<i->id<<endl;
-	tools.pushnodup(i,3);
+	tools.pushnodup(i, LISTS_DELETE_Refcount);
 	i->Dp(viewport->dp);
 	if (selectalso) SelectTool(i->id);
 	if (absorbcount) i->dec_count();
