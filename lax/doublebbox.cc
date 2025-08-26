@@ -117,13 +117,17 @@ void DoubleBBox::addtobounds(DoubleBBox *bbox)
 }
 
 //! Expand bounds to contain p. Set the bounds to p if current bounds are invalid.
-void DoubleBBox::addtobounds(flatpoint p)
+void DoubleBBox::addtobounds(const flatpoint &p)
 {
-	if (maxx<minx || maxy<miny) { minx=maxx=p.x; miny=maxy=p.y; return; }
-	if (p.x<minx) minx=p.x;
-	else if (p.x>maxx) maxx=p.x;
-	if (p.y<miny) miny=p.y;
-	else if (p.y>maxy) maxy=p.y;
+	if (maxx < minx || maxy < miny) {
+		minx = maxx = p.x;
+		miny = maxy = p.y;
+		return;
+	}
+	if      (p.x < minx) minx = p.x;
+	else if (p.x > maxx) maxx = p.x;
+	if      (p.y < miny) miny = p.y;
+	else if (p.y > maxy) maxy = p.y;
 }
 
 void DoubleBBox::addtobounds(double x,double y)
@@ -133,6 +137,12 @@ void DoubleBBox::addtobounds_wh(double x, double y, double w, double h)
 {
 	addtobounds(flatpoint(x,y));
 	addtobounds(flatpoint(x+w,y+h));
+}
+
+void DoubleBBox::addtobounds(double min_x, double max_x, double min_y, double max_y)
+{
+	addtobounds(flatpoint(min_x, min_y));
+	addtobounds(flatpoint(max_x, max_y));
 }
 
 /*! Basically adds points (x,y) and (x+width, y+height).
@@ -370,5 +380,31 @@ void DoubleBBox::ExpandBounds(double amount)
 	ShiftBounds(-amount, amount, -amount, amount);
 }
 
+
+//------------------------- Insets -----------------------------
+
+void Insets::ApplyInsets(DoubleBBox &box) const
+{
+	box.minx += left;
+	box.miny += bottom;
+	box.maxx -= right;
+	box.maxy -= top;
+}
+
+DoubleBBox Insets::InsetBox(const DoubleBBox &box) const
+{
+	DoubleBBox box_ret(box);
+	if (!box.validbounds()) return box_ret;
+	ApplyInsets(box_ret);
+	return box_ret;
+}
+
+void Insets::SetFromBoxDiff(const DoubleBBox &box, const DoubleBBox &inset_box)
+{
+	left = inset_box.minx - box.minx;
+	right = box.maxx - inset_box.maxx;
+	top = box.maxy - inset_box.maxy;
+	bottom = inset_box.miny - box.miny;
+}
 
 } // namespace Laxkit 

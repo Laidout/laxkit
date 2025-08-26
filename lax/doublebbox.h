@@ -38,11 +38,12 @@ class DoubleBBox {
 	virtual ~DoubleBBox() {}
 	virtual void ClearBBox() { minx=miny=0; maxx=maxy=-1; }
 	virtual void addtobounds(double x,double y);
-	virtual void addtobounds(flatpoint p);
+	virtual void addtobounds(const flatpoint &p);
 	virtual void addtobounds(DoubleBBox *bbox);
 	virtual void addtobounds(const double *m, DoubleBBox *bbox);
 	virtual void addtobounds(flatpoint *pts,int n);
 	virtual void addtobounds(const DoubleRectangle &rect);
+	virtual void addtobounds(double min_x, double max_x, double min_y, double max_y);
 	virtual void addtobounds_wh(double x, double y, double w, double h);
 	virtual void setbounds(DoubleBBox *bbox);
 	virtual void setbounds(flatpoint *pts,int n);
@@ -67,7 +68,22 @@ class DoubleBBox {
 	virtual void ShiftBounds(double left, double right, double top, double bottom);
 	virtual void ExpandBounds(double amount);
 };
-	
+
+
+class Insets {
+  public:
+  	double top = 0;
+  	double right = 0;
+  	double bottom = 0;
+  	double left = 0;
+  	Insets() {}
+  	Insets(double t, double r, double b, double l) { top = t; right = r; bottom = b; left = l; }
+  	void ApplyInsets(DoubleBBox &box) const;
+  	DoubleBBox InsetBox(const DoubleBBox &box) const;
+  	void SetFromBoxDiff(const DoubleBBox &box, const DoubleBBox &inset_box);
+};
+
+
 } // namespace Laxkit
 
 #endif
