@@ -6313,7 +6313,8 @@ int PathInterface::Refresh()
 	}
 	bool hasfill = (fstyle ? fstyle->hasFill() : false);
 	bool ignoreweights= (data->style&PathsData::PATHS_Ignore_Weights) 
-				|| !(pathi_style&PATHI_Render_With_Cache);
+				|| !(pathi_style&PATHI_Render_With_Cache)
+				|| (lstyle && lstyle->widthtype == 0);
 
 	if (pathi_style&PATHI_Hide_Path) { hasfill=false; hasstroke=false; }
 
