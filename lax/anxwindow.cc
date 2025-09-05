@@ -758,14 +758,14 @@ void anXWindow::dump_in_atts(Attribute *att,int flag,DumpContext *context)
 			int n=0;
 			char **flags=splitspace(value,&n);
 			for (int c2=0; c2<n; c2++) {
-				if (!strcmp(flags[c2],"grayed"      )) SetWinStyle(ANXWIN_GRAYED      ,1);
-				if (!strcmp(flags[c2],"remember"    )) SetWinStyle(ANXWIN_REMEMBER    ,1);
-				if (!strcmp(flags[c2],"dndaware"    )) SetWinStyle(ANXWIN_XDND_AWARE  ,1);
-				if (!strcmp(flags[c2],"bare"        )) SetWinStyle(ANXWIN_BARE        ,1);
-				if (!strcmp(flags[c2],"center"      )) SetWinStyle(ANXWIN_CENTER      ,1);
-				if (!strcmp(flags[c2],"fullscreen"  )) SetWinStyle(ANXWIN_FULLSCREEN  ,1);
-				if (!strcmp(flags[c2],"escapable"   )) SetWinStyle(ANXWIN_ESCAPABLE   ,1);
-				if (!strcmp(flags[c2],"doublebuffer")) SetWinStyle(ANXWIN_DOUBLEBUFFER,1);
+				if      (!strcmp(flags[c2],"grayed"      )) SetWinStyle(ANXWIN_GRAYED      ,1);
+				else if (!strcmp(flags[c2],"remember"    )) SetWinStyle(ANXWIN_REMEMBER    ,1);
+				else if (!strcmp(flags[c2],"dndaware"    )) SetWinStyle(ANXWIN_XDND_AWARE  ,1);
+				else if (!strcmp(flags[c2],"bare"        )) SetWinStyle(ANXWIN_BARE        ,1);
+				else if (!strcmp(flags[c2],"center"      )) SetWinStyle(ANXWIN_CENTER      ,1);
+				else if (!strcmp(flags[c2],"fullscreen"  )) SetWinStyle(ANXWIN_FULLSCREEN  ,1);
+				else if (!strcmp(flags[c2],"escapable"   )) SetWinStyle(ANXWIN_ESCAPABLE   ,1);
+				else if (!strcmp(flags[c2],"doublebuffer")) SetWinStyle(ANXWIN_DOUBLEBUFFER,1);
 			}
 			deletestrs(flags,n);
 		} else if (!strcmp(name,"win_flags")) {

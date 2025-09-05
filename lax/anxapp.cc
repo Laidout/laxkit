@@ -2108,6 +2108,25 @@ int anXApp::rundialog(anXWindow *ndialog,anXWindow *wingroup,char absorb_count)/
 	return 0;
 }
 
+void dump_window_styles(const char *win, unsigned long style)
+{
+	cerr << "window style for "<<(win ? win : ("unnamed"))<<endl;
+
+	if (style & ANXWIN_TRANSIENT     ) cerr << "  ANXWIN_TRANSIENT      (1<<0)" <<endl;
+	if (style & ANXWIN_NOT_DELETEABLE) cerr << "  ANXWIN_NOT_DELETEABLE (1<<1)" <<endl;
+	if (style & ANXWIN_GRAYED        ) cerr << "  ANXWIN_GRAYED         (1<<2)" <<endl;
+	if (style & ANXWIN_REMEMBER      ) cerr << "  ANXWIN_REMEMBER       (1<<3)" <<endl;
+	if (style & ANXWIN_XDND_AWARE    ) cerr << "  ANXWIN_XDND_AWARE     (1<<4)" <<endl;
+	if (style & ANXWIN_HOVER_FOCUS   ) cerr << "  ANXWIN_HOVER_FOCUS    (1<<5)" <<endl;
+	if (style & ANXWIN_NO_INPUT      ) cerr << "  ANXWIN_NO_INPUT       (1<<6)" <<endl;
+	if (style & ANXWIN_BARE          ) cerr << "  ANXWIN_BARE           (1<<7)" <<endl;
+	if (style & ANXWIN_CENTER        ) cerr << "  ANXWIN_CENTER         (1<<8)" <<endl;
+	if (style & ANXWIN_FULLSCREEN    ) cerr << "  ANXWIN_FULLSCREEN     (1<<9)" <<endl;
+	if (style & ANXWIN_ESCAPABLE     ) cerr << "  ANXWIN_ESCAPABLE      (1<<10)" <<endl;
+	if (style & ANXWIN_DOUBLEBUFFER  ) cerr << "  ANXWIN_DOUBLEBUFFER   (1<<11)" <<endl;
+	if (style & ANXWIN_DOOMED        ) cerr << "  ANXWIN_DOOMED         (1<<12)" <<endl;
+}
+
 //! Add a window, optionally map it, optionally decrement its count.
 /*! In the course of adding the window, the following steps are taken:
  *
@@ -2208,7 +2227,7 @@ int anXApp::addwindow(anXWindow *w,char mapit,char absorb_count) // mapit==1, ab
 	w->preinit();
 
 	 //---------center on screen or in parent-------------
-	DBG fprintf(stderr,"addwindow: style: %lx\n",w->win_style);
+	DBG dump_window_styles(w->WindowTitle(), w->win_style);
 
 	XSizeHints *sizehints = w->xlib_win_sizehints;
 	if (w->win_style & ANXWIN_CENTER) {
