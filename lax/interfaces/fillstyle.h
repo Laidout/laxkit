@@ -51,6 +51,7 @@ class FillStyle : virtual public Laxkit::Resourceable, virtual public Laxkit::Du
 
 	virtual void Color(int r,int g,int b,int a);
 	virtual void Colorf(double r,double g,double b,double a);
+	virtual void Colorf(const Laxkit::ScreenColor &col);
 	virtual void dump_in_atts(Laxkit::Attribute *att,int flag,Laxkit::DumpContext *context);
 	virtual Laxkit::Attribute *dump_out_atts(Laxkit::Attribute *att,int what, Laxkit::DumpContext *context);
 	virtual void dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *context);

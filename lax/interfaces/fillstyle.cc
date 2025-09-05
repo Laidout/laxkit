@@ -123,6 +123,11 @@ void FillStyle::Colorf(double r,double g,double b,double a)
 	color.alpha = a * 65535;
 }
 
+void FillStyle::Colorf(const Laxkit::ScreenColor &col)
+{
+	Colorf(col.Red(), col.Green(), col.Blue(), col.Alpha());
+}
+
 //! Reverse of dump_out.
 void FillStyle::dump_in_atts(Attribute *att,int flag,Laxkit::DumpContext *context) 
 {
