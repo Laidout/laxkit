@@ -96,6 +96,7 @@ class LineInput : public anXWindow, public LabelUser
 	virtual void SetText(double newtext);
 	virtual void SetOwner(anXWindow *nowner,const char *mes=NULL) { if (le) le->SetOwner(nowner,mes); }
 	virtual void SetPlacement(); // this must follow any change to label
+	virtual void WrapToExtent();
 	virtual int send() { return 0; }
 	virtual int CloseControlLoop() { if (le) return le->CloseControlLoop(); return 0; }
 	virtual LineEdit *GetLineEdit();

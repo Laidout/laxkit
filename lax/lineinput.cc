@@ -212,6 +212,57 @@ LineInput::~LineInput()
 	if (label) delete[] label;
 }
 
+/*! Set win_w and win_h to just enough to contain contents.
+ */
+void LineInput::WrapToExtent()
+{
+	double scale = UIScale();
+	double lw = 0, lh = 0, fasc = 0, fdes = 0, textheight;
+	if (label) {
+		win_themestyle->normal->Extent(label,-1,&lw,&lh,&fasc,&fdes);
+		lw *= scale;
+		lh *= scale;
+	} else {
+		fasc = win_themestyle->normal->ascent();
+		fdes = win_themestyle->normal->descent();
+	}
+	fasc *= scale;
+	fdes *= scale;
+	textheight = fasc + fdes;
+
+	if (padx  < 0) padx  = .15;
+	if (pady  < 0) pady  = .15;
+	if (padly < 0) padly = .15;
+	if (padlx < 0) padlx = .15;
+	
+	if (!auto_labelw) lw = labelw;
+	else if (Label()) {
+		win_themestyle->normal->Extent(Label(),-1,&lw,nullptr,nullptr,nullptr); //&lh,&fasc,&fdes);
+		lw *= UIScale();
+	}
+
+	 // set win_w and win_h for this window
+	int brder = le->win_border;
+	if (brder < 0) brder = 0;
+	if (win_h <= 1) { // wrap height to textheight+pads
+		int nh = textheight + 2 * padly * textheight;
+		if (le->win_h > nh) nh = le->win_h;
+		win_h = nh + 2 * brder + 2 * pady * textheight;
+		if (win_style & (LINP_ONTOP | LINP_ONBOTTOM)) win_h += padly * textheight + textheight;
+	} 
+	if (win_w <= 1) {
+		win_w = 2*padlx*textheight + 2*padx*textheight + 2*brder; // set win_w equal to the pads
+		if (win_style & (LINP_ONLEFT|LINP_ONRIGHT)) { // to win_w add lew and lw
+			if (lew > 0) win_w += padx*textheight + lew + lw;
+			else win_w += padlx*textheight + lw + lw; // make edit width same as label width
+		} else { // to win_w add the greater of lw or nlew
+			int nlew = le->win_w;
+			if (nlew > lw) win_w += nlew; else win_w += lw;
+		}
+		if (helper) win_w += helper->win_w;
+	}	
+}
+
 void LineInput::Qualifier(const char *nqualifier)
 {
 	if (le) le->Qualifier(nqualifier);
