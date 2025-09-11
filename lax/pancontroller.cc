@@ -123,56 +123,56 @@ namespace Laxkit {
 //! Default constructor, sets minsel to 1, maxsel to 1000000, and style to PANC_ELEMENT_IS_PERCENT|PANC_PAGE_IS_PERCENT.
 PanController::PanController()
 {
-	donttell=nullptr;
-	sendstatus=1;
-	for (int c=0; c<2; c++) {
-		min[c]=max[c]=start[c]=end[c]=0;
-		pagesize[c]=90;
-		elementsize[c]=1;
-		minsel[c]=1;
-		maxsel[c]=1000000;
+	donttell   = nullptr;
+	sendstatus = 1;
+	for (int c = 0; c < 2; c++) {
+		min[c] = max[c] = start[c] = end[c] = 0;
+		pagesize[c]    = 90;
+		elementsize[c] = 1;
+		minsel[c]      = 1;
+		maxsel[c]      = 1000000;
 	}
-	pixelaspect=1.0;
-	boxaspect[0]=boxaspect[1]=100;
-	pan_style=PANC_ELEMENT_IS_PERCENT|PANC_PAGE_IS_PERCENT;
+	pixelaspect  = 1.0;
+	boxaspect[0] = boxaspect[1] = 100;
+	pan_style = PANC_ELEMENT_IS_PERCENT | PANC_PAGE_IS_PERCENT;
 }
 
 //! Copy constructor. Does not copy tellstack.
 PanController::PanController(const PanController &pan)
 {
-	donttell=nullptr;
-	sendstatus=1;
-	pan_style=pan.pan_style;
-	pixelaspect=pan.pixelaspect;
-	for (int c=0; c<2; c++) {
-		boxaspect[c]=pan.boxaspect[c];
-		pagesize[c]=pan.pagesize[c];
-		elementsize[c]=pan.elementsize[c];
-		minsel[c]=pan.minsel[c];
-		maxsel[c]=pan.maxsel[c];
-		min[c]=pan.min[c];
-		max[c]=pan.max[c];
-		start[c]=pan.start[c];
-		end[c]=pan.end[c];
+	donttell    = nullptr;
+	sendstatus  = 1;
+	pan_style   = pan.pan_style;
+	pixelaspect = pan.pixelaspect;
+	for (int c = 0; c < 2; c++) {
+		boxaspect[c]   = pan.boxaspect[c];
+		pagesize[c]    = pan.pagesize[c];
+		elementsize[c] = pan.elementsize[c];
+		minsel[c]      = pan.minsel[c];
+		maxsel[c]      = pan.maxsel[c];
+		min[c]         = pan.min[c];
+		max[c]         = pan.max[c];
+		start[c]       = pan.start[c];
+		end[c]         = pan.end[c];
 	}
 }
 
 //! Assignment operator does NOT copy the tellstack. Leaves tellstack as is.
 PanController& PanController::operator=(PanController &pan)
 {
-	sendstatus=1;
-	pan_style=pan.pan_style;
-	pixelaspect=pan.pixelaspect;
-	for (int c=0; c<2; c++) {
-		boxaspect[c]=pan.boxaspect[c];
-		pagesize[c]=pan.pagesize[c];
-		elementsize[c]=pan.elementsize[c];
-		minsel[c]=pan.minsel[c];
-		maxsel[c]=pan.maxsel[c];
-		min[c]=pan.min[c];
-		max[c]=pan.max[c];
-		start[c]=pan.start[c];
-		end[c]=pan.end[c];
+	sendstatus  = 1;
+	pan_style   = pan.pan_style;
+	pixelaspect = pan.pixelaspect;
+	for (int c = 0; c < 2; c++) {
+		boxaspect[c]   = pan.boxaspect[c];
+		pagesize[c]    = pan.pagesize[c];
+		elementsize[c] = pan.elementsize[c];
+		minsel[c]      = pan.minsel[c];
+		maxsel[c]      = pan.maxsel[c];
+		min[c]         = pan.min[c];
+		max[c]         = pan.max[c];
+		start[c]       = pan.start[c];
+		end[c]         = pan.end[c];
 	}
 	return pan;
 }
@@ -405,11 +405,11 @@ void PanController::SetPixelAspect(double npixaspect)
  */
 void PanController::SetBoxAspect(int w,int h)
 {
-	if (w<=0 || h<=0) return;
-	double ww=((double)(end[0]-start[0]+1))/boxaspect[0]; // ww=wholeSpaceUnits/boxaspectUnits
-	boxaspect[0]=w;
-	boxaspect[1]=h;
-	end[0]=(long)(start[0]-1+ww*w+.5);
+	if (w <= 0 || h <= 0) return;
+	double ww = ((double)(end[0] - start[0] + 1)) / boxaspect[0]; // ww=wholeSpaceUnits/boxaspectUnits
+	boxaspect[0] = w;
+	boxaspect[1] = h;
+	end[0] = (long)(start[0] - 1 + ww*w + .5);
 	adjustSelbox(1,1);
 	sendMessages();
 }
@@ -422,7 +422,7 @@ void PanController::SetBoxAspect(int w,int h)
  *
  * Internally, this is called by SetBoxAspect and SetPixelAspect.
  */
-int PanController::adjustSelbox(int which,char validatetoo)//validatetoo=1
+int PanController::adjustSelbox(int which, bool validatetoo)
 {
 	if (boxaspect[0]==0 || boxaspect[1]==0) return 0;
 	if (which!=1 && which!=2) which=2;
@@ -437,11 +437,30 @@ int PanController::adjustSelbox(int which,char validatetoo)//validatetoo=1
 
 	 // so now which has its preferred setup, and we must convert start[other] and end[other]
 	 // to acceptible values.
-	start[other]+=diff;
-	end[other]=start[other]+dimother-1;
-	int c=0;
-	if (validatetoo) c=validateSelbox(other+1);
-	return c|(other+1);
+	start[other] += diff;
+	end[other] = start[other] + dimother - 1;
+	int c = 0;
+	if (validatetoo) c = validateSelbox(other + 1);
+	return c | (other + 1);
+}
+
+void dump_panner(PanController *p, bool use_cout)
+{
+	if (strcmp(p->Id(), "for-valuewindow")) return;
+	if (use_cout) {
+		std::cout << "panner "<<p->Id()<<": x whole: "<<p->min[0]<<" .. "<<p->max[0]<<" ("<<p->max[0]-p->min[0]<<")"
+				<<"  y whole: "<<p->min[1]<<" .. "<<p->max[1]<<" ("<<p->max[1]-p->min[1]<<")"
+				<<"  x sel "<<p->start[0] <<" .. "<<p->end[0]<<" ("<<p->end[0]-p->start[0]<<")"
+				<<"  y sel: "<<p->start[1]<<" .. "<<p->end[1]<<" ("<<p->end[1]-p->start[1]<<")"
+				<<endl;
+	} else {
+		std::cerr << "panner "<<p->Id()<<": x whole: "<<p->min[0]<<" .. "<<p->max[0]<<" ("<<p->max[0]-p->min[0]<<")"
+				<<"  y whole: "<<p->min[1]<<" .. "<<p->max[1]<<" ("<<p->max[1]-p->min[1]<<")"
+				<<"  x sel "<<p->start[0] <<" .. "<<p->end[0]<<" ("<<p->end[0]-p->start[0]<<")"
+				<<"  y sel: "<<p->start[1]<<" .. "<<p->end[1]<<" ("<<p->end[1]-p->start[1]<<")"
+				<<endl;
+
+	}
 }
 
 //! Make sure the selbox is completely in wholebox or vice versa, as necessary.
@@ -461,52 +480,64 @@ int PanController::adjustSelbox(int which,char validatetoo)//validatetoo=1
 int PanController::validateSelbox(int which)//which=3
 {
 	//DBG cerr <<"   validate.. keep "<<which<<endl;
-	int changed=0;
+	int changed = 0;
 	int other;
-	for (int c=0; c<2; c++) {
-		if (!((c+1)&which)) continue; // only check which
-		other=(c==0?1:0);
+	for (int c = 0; c < 2; c++) {
+		if (!((c+1) & which)) continue; // only check which
+		other = (c==0 ? 1 : 0);
 
-		 // handle selbox>wholebox
-		if (pan_style&PANC_ALLOW_SMALL && end[c]-start[c]>max[c]-min[c]) {
-			if (pan_style&PANC_CENTER_SMALL) { changed|=Center(c+1); continue; }
-			if (start[c]<min[c] && end[c]<max[c]) { // move end to max
-				start[c]+=max[c]-end[c];
-				end[c]=max[c];
-				changed|=c+1;
-				continue;
+		// handle selbox > wholebox
+		if (end[c]-start[c] > max[c]-min[c]) {
+			if (pan_style & PANC_ALLOW_SMALL) {
+				if (pan_style & PANC_CENTER_SMALL) {
+					changed |= Center(c+1);
+					continue;
+				}
+
+				if (start[c] < min[c] && end[c] < max[c]) {  // move end to max
+					start[c] += max[c] - end[c];
+					end[c] = max[c];
+					changed |= c + 1;
+					continue;
+				}
+				if (start[c] > min[c] && end[c] > max[c]) {  // move start to min
+					end[c] += start[c] - min[c];
+					start[c] = min[c];
+					changed |= c + 1;
+					continue;
+				}
 			}
-			if (start[c]>min[c] && end[c]>max[c]) { // move start to min
-				end[c]+=start[c]-min[c];
-				start[c]=min[c];
-				changed|=c+1;
-				continue;
-			}
+
+			// if !allow-small, just position at front edge
+			end[c] += start[c] - min[c];
+			start[c] = min[c];
+			changed |= c + 1;
 			continue;
 		}
-		 // handle selbox<wholebox
-		if (start[c]<min[c]) {
+
+		// handle selbox < wholebox
+		
+		long slen = end[c] - start[c];
+
+		if (start[c] < min[c]) {
 			//DBG cerr <<"pancontroller--- start past min"<<endl;
 			
-			changed|=c+1;
-			end[c]+=min[c]-start[c];
-			start[c]=min[c];
-			if (end[c]>max[c]) { // if in here, then zooming is required
-				end[c]=max[c];
-				//DBG cerr <<"PanController::validate "<<c<<"  must shrink other="<<other<<"!!"<<endl;
-				
-				adjustSelbox(other,0); // tries to preserve which, shrink, do not validate to prevent race!
+			changed |= c+1;
+			end[c] += min[c] - start[c];
+			start[c] = min[c];
+			if (end[c] > max[c]) { // if in here, then zooming is required
+				end[c] = max[c];
+				adjustSelbox(other, 0); // tries to preserve which, shrink, do not validate to prevent race!
 			}
 		}
-		//DBG cerr <<"pancontroller--- end past min"<<endl;
-		if (end[c]>max[c]) {
-			changed|=c+1;
-			start[c]-=end[c]-max[c];
-			end[c]=max[c];
-			if (start[c]<min[c]) { // if in here, then zooming is required
-				start[c]=min[c];
-				//DBG cerr <<"PanController::validate "<<c<<" must shrink other="<<other<<"!!"<<endl;
 
+		//DBG cerr <<"pancontroller--- end past min"<<endl;
+		if (end[c] > max[c]) {
+			changed |= c+1;
+			start[c] -= end[c] - max[c];
+			end[c] = max[c];
+			if (start[c] < min[c]) { // if in here, then zooming is required
+				start[c] = min[c];
 				adjustSelbox(other,0); // tries to preserve which, shrink, do not validate to prevent race!
 			}
 		}
@@ -852,6 +883,15 @@ void PanController::SetSelection(long xmin,long xmax,long ymin,long ymax)
 	end[1]   = ymax;
 }
 
+void PanController::SetSelectionSize(long width, long height, bool validate)
+{
+	// start[0] = xmin;
+	end[0] = start[0] + width;
+	// end[0]   = xmax;
+	end[1]   = start[1] + height;
+	if (validate) validateSelbox();
+}
+
 /*! Set the minimum selection size and maximum selection size.
  */
 void PanController::SetSelBounds(int which, long small,long big)
@@ -932,6 +972,20 @@ int PanController::SetWholebox(long xmin,long xmax,long ymin,long ymax)
 	return c;
 }
 
+/*! Set only the wholebox, and don't touch the selbox other than to clamp to bounds.
+ * This is in contrast to SetWholebox() which changes the selbox.
+ */
+int PanController::SetWholeboxOnly(long xmin,long xmax,long ymin,long ymax, bool validate, bool send_messages)
+{
+	min[0] = xmin;
+	max[0] = xmax;
+	min[1] = ymin;
+	max[1] = ymax;
+
+	int c = validate ? validateSelbox() : 0;
+	if (send_messages) sendMessages();
+	return c;
+}
 
 } // namespace Laxkit
 

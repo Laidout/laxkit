@@ -56,9 +56,11 @@ enum ScrolledWindowStyles {
 
 class ScrolledWindow : public PanUser, public anXWindow
 {
+	bool first = true;
  protected:
 	virtual void findoutrect();
 	virtual void adjustinrect();
+	virtual void AdjustTheWindow();
 
  public:
 	IntRectangle inrect,outrect;
@@ -69,13 +71,15 @@ class ScrolledWindow : public PanUser, public anXWindow
 
 	ScrolledWindow(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
 		int xx,int yy,int ww,int hh,int brder,
-		anXWindow *prev,unsigned long nowner=0,const char *nsend = NULL,
-		PanController *pan = NULL);
+		anXWindow *prev = nullptr, unsigned long nowner = 0, const char *nsend = nullptr,
+		anXWindow *the_window = nullptr,
+		PanController *pan = nullptr);
 	virtual const char *whattype() { return "ScrolledWindow"; }
 	virtual int init();
 	virtual int send();
 	virtual void syncWindows();
 	virtual int UseThisWindow(anXWindow *nwindow);
+	virtual void Refresh();
 	virtual int MoveResize(int nx,int ny,int nw,int nh);
 	virtual int Resize(int nw,int nh);
 	virtual int Event(const EventData *e,const char *mes);

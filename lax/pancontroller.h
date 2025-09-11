@@ -50,7 +50,9 @@ class PanController : virtual public anObject
 	EventReceiver *donttell;
 	unsigned int pan_style;
 	int sendstatus;
-	long minsel[2],maxsel[2],min[2],max[2],start[2],end[2]; // workspace info, 0=x 1=y
+	long minsel[2],  maxsel[2]; // min and max allowable size of selection box
+	long min[2],     max[2];      // space size
+	long start[2],   end[2];   // selection box start and end
 	long pagesize[2],elementsize[2];
 	int boxaspect[2];
 	double pixelaspect;  // =pixw/pixh
@@ -68,17 +70,19 @@ class PanController : virtual public anObject
 	virtual double GetMagToWhole(int which,int trackwidth,long *boxstartret,long *boxendret);
 	virtual void SetSelBounds(int which, long small,long big);
 	virtual void SetSelection(long xmin,long xmax,long ymin,long ymax);
+	virtual void SetSelectionSize(long width, long height, bool validate);
 	virtual void SetPixelAspect(double npixaspect=1.0);
 	virtual double findpixelaspect();
 	virtual void SetBoxAspect(int w,int h);
 	virtual int SetWholebox(long xmin,long xmax,long ymin,long ymax);
+	virtual int SetWholeboxOnly(long xmin,long xmax,long ymin,long ymax, bool validate, bool send_messages);
 	virtual int SetStuff(int which,long nmin,long nmax,long nps,long nes,long posstart,long posend);
 	virtual int SetSize(int which, long nmin,long nmax,long nps);
 	virtual long GetCurPos(int which,long *curpos=NULL,long *curposend=NULL);
 	virtual long SetCurPos(int which,long pos);
 	virtual long SetCurPos(int which,long poss,long pose);
 	virtual int validateSelbox(int which=3);
-	virtual int adjustSelbox(int which=2,char validatetoo=1);
+	virtual int adjustSelbox(int which = 2, bool validatetoo = true);
 
 	virtual int Center(int which=3);
 	virtual long Shift(int which,long d, long wholelen=0, long boxlen=0);
@@ -95,6 +99,9 @@ class PanController : virtual public anObject
 	virtual void tellPop(EventReceiver *win = nullptr);
 	virtual void dontTell(EventReceiver *win);
 };
+
+// for debugging:
+void dump_panner(PanController *p, bool use_cout);
 
 } // namespace Laxkit
 

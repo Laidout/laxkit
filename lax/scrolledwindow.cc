@@ -1,8 +1,8 @@
 //
 //	
 //    The Laxkit, a windowing toolkit
-//    Copyright (C) 2004-2006,2010,2019 by Tom Lechner
 //    Please consult https://github.com/Laidout/laxkit about where to send any
+//    correspondence about this software.
 //
 //    This library is free software; you can redistribute it and/or
 //    modify it under the terms of the GNU Library General Public
@@ -17,10 +17,11 @@
 //    You should have received a copy of the GNU Library General Public
 //    License along with this library; If not, see <http://www.gnu.org/licenses/>.
 //
-//    correspondence about this software.
+//    Copyright (C) 2009,2010 by Tom Lechner
 //
 
 #include <lax/scrolledwindow.h>
+#include <lax/displayer.h>
 
 #include <iostream>
 #define DBG
@@ -43,7 +44,7 @@ namespace Laxkit {
 /*! \var IntRectangle ScrolledWindow::inrect
  * \brief The rectangle that thewindow resides in.
  *
- * If thewindow is NULL, then derived classes can use this as the area to do their thing in.
+ * If thewindow is nullptr, then derived classes can use this as the area to do their thing in.
  * It corresponds also to the selbox of the panner.
  */
 /*! \var IntRectangle ScrolledWindow::outrect
@@ -60,14 +61,17 @@ namespace Laxkit {
 ScrolledWindow::ScrolledWindow(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
 		int xx,int yy,int ww,int hh,int brder,
 		anXWindow *prev,unsigned long nowner,const char *nsend,
+		anXWindow *the_window,
 		PanController *pan)
 	: PanUser(pan),
 	  anXWindow (parnt,nname,ntitle,nstyle,xx,yy,ww,hh,brder,prev,nowner,nsend)
 {
 	scrollwidth = 15;
-	thewindow = NULL;
-	xscroller = yscroller = NULL;
-	panpopup = NULL;
+	thewindow = nullptr;
+	xscroller = yscroller = nullptr;
+	panpopup = nullptr;
+
+	if (the_window) UseThisWindow(the_window);
 }
 
 //! Send what? huh?***
@@ -95,40 +99,41 @@ int ScrolledWindow::init()
 //	panner->SetSpace(-5*win_w,5*win_w,-5*win_h,5*win_h);
 //	panner->SetCurPos(1,-win_w,win_w);
 //	panner->SetCurPos(2,-win_h,win_h);
-	panner->SetBoxAspect(win_w-scrollwidth,win_h-scrollwidth);
+	// panner->SetBoxAspect(win_w-scrollwidth,win_h-scrollwidth);
 
-	if (HasWinStyle(SW_MOVE_WINDOW)) {
-		if (thewindow) {
-			panner->SetWholebox(0,thewindow->win_w, 0,thewindow->win_h);
-			panner->SetSelection(0,inrect.width, 0,inrect.height);
-		}
-	}
+	// if (HasWinStyle(SW_MOVE_WINDOW)) {
+	// 	if (thewindow) {
+	// 		panner->SetWholebox(0,thewindow->win_w, 0,thewindow->win_h);
+	// 		panner->SetSelection(0,inrect.width, 0,inrect.height);
+	// 	}
+	// }
 
 	if (win_style&(SW_TOP|SW_BOTTOM)) {
-		if (!xscroller) xscroller = new Scroller(this,"sw-xscroller",NULL,
+		if (!xscroller) xscroller = new Scroller(this,"sw-xscroller",nullptr,
 							SC_XSCROLL | SC_ABOTTOM | (win_style & SW_X_ZOOMABLE ? SC_ZOOM : 0),
 							0,(win_style & SW_TOP ? 0 : win_h-scrollwidth), win_w,scrollwidth, 0,
-							NULL,0,"xscroll",
+							nullptr,0,"xscroll",
 							panner,0);
 		app->addwindow(xscroller);
 	}
 	if (win_style&(SW_LEFT|SW_RIGHT)) {
-		if (!yscroller) yscroller=new Scroller(this,"sw-yscroller",NULL,
+		if (!yscroller) yscroller=new Scroller(this,"sw-yscroller",nullptr,
 							SC_YSCROLL | SC_ABOTTOM | (win_style & SW_X_ZOOMABLE ? SC_ZOOM : 0),  //*** abottom adjustable??
 							(win_style & SW_RIGHT ? win_w-scrollwidth : 0),(win_style & SW_TOP ? scrollwidth : 0), //x,y
 							scrollwidth,win_h-scrollwidth, 0, //w,h,border
-							NULL,0,"yscroll",
+							nullptr,0,"yscroll",
 							panner,0);
 		app->addwindow(yscroller);
 	}
 	if (win_style&SW_INCLUDE_PAN && !panpopup && (yscroller || xscroller)) {
-		panpopup=new PanPopup(this,"sw-panpopup",NULL,0, 0,0,0,0, 0, NULL,0,NULL, panner);
+		panpopup=new PanPopup(this,"sw-panpopup",nullptr,0, 0,0,0,0, 0, nullptr,0,nullptr, panner);
 		app->addwindow(panpopup);
 	}
 	if (xscroller) panner->tell(xscroller);
 	if (yscroller) panner->tell(yscroller);
 	if (panpopup)  panner->tell(panpopup);
 	syncWindows();
+
 	return 0;
 }
 
@@ -136,20 +141,23 @@ int ScrolledWindow::init()
 /*! Any old window must be disposed of, and nwindow installed, which
  * means reparenting to this, and setting where messages should go.
  *
- * Returns 0 on success. If nwindow is NULL, nothing is done and 1 is returned.
+ * Returns 0 on success. If nwindow is nullptr, nothing is done and 1 is returned.
  * 
  * The old window is app->destroywindow'd.
  */
 int ScrolledWindow::UseThisWindow(anXWindow *nwindow)
 {
 	if (!nwindow) return 1;
-	if (thewindow) {
+	if (thewindow && thewindow != nwindow) {
 		panner->tellPop(thewindow);
 		app->destroywindow(thewindow);
 	}
 
 	thewindow = nwindow;
 	panner->tell(thewindow);
+	// panner->dontTell(this);
+	panner->SetWholeboxOnly(0, thewindow->win_w, 0, thewindow->win_h, false, false);
+	// panner->dontTell(nullptr);
 	app->reparent(thewindow,this); // app takes care of whether kid/parent->windows exist yet.
 	syncWindows();
 	return 0;
@@ -189,85 +197,94 @@ void ScrolledWindow::findoutrect()
 void ScrolledWindow::adjustinrect() {}
 	
 //! MoveResize the scrollers, panwindow, and thewindow.
-/*! Calls findoutrect(), then syncs the windows, then sets inrect, and finally
- * calls adjustinrect().
- *
- * \todo *** window shifting rather than relay messages is not implemented yet
+/*! Calls findoutrect(), then sets the scrollers, then sets inrect, 
+ * calls adjustinrect(), then sets thewindow position.
  */
 void ScrolledWindow::syncWindows()
 {
-	//***get rect to put the goodies in.. derived classes might want to take up some real estate....
-	
+	// get rect to put the goodies in.. derived classes might want to take up some real estate....
 	findoutrect();
 	inrect = outrect;
-	int x, y, w,h;
+	
+	int x = outrect.x, y = outrect.y, w = outrect.width, h = outrect.height;
 	bool xon = false, yon = false;
 
+	// figure out if scroller should be on or off
 	if (win_style & SW_MOVE_WINDOW) {
-		//turn on and off scrollers based on contained window size
 		if (!thewindow) {
-			if (xscroller && xscroller->win_on) { app->unmapwindow(xscroller); xon = false; }
-			if (yscroller && yscroller->win_on) { app->unmapwindow(yscroller); yon = false; }
+			if (xscroller && xscroller->win_on) { xon = false; }
+			if (yscroller && yscroller->win_on) { yon = false; }
 
 		} else {
 			if (thewindow->win_w >= outrect.width - scrollwidth) {
-				if (xscroller) {
-					if (!xscroller->win_on) { app->mapwindow(xscroller); xon = true; }
-				}
-			} else if (xscroller) { app->unmapwindow(xscroller); xon = false; }
+				if (xscroller) xon = true;
+			} else if (xscroller) xon = false;
 
 			if (thewindow->win_h >= outrect.height - scrollwidth) {
-				if (yscroller) {
-					if (!yscroller->win_on) { app->mapwindow(yscroller); yon = true; }
-				}
-			} else if (yscroller) { app->unmapwindow(yscroller); yon = false; }
+				if (yscroller) yon = true;
+			} else if (yscroller) yon = false;
+		}
+		if (HasWinStyle(SW_ALWAYS_X)) xon = true;
+		if (HasWinStyle(SW_ALWAYS_Y)) yon = true;
+
+	} else {
+		// pan events get relayed to window, but thewindow doesn't actually move
+		xon = (xscroller && xscroller->win_on);  // <- ***FIXME! win_on not set yet!! has to wait for MapNotify!!
+		yon = (yscroller && yscroller->win_on);
+	}
+
+
+	// yscroller is placed first
+	if (yscroller) {
+		if (yon) {
+			x = (win_style & SW_LEFT) ? outrect.x : outrect.x + outrect.width - scrollwidth;
+			w = scrollwidth;
+			if (panpopup && panpopup->win_on) {
+				h = outrect.height - scrollwidth;
+				if (win_style & SW_TOP) y = outrect.y + scrollwidth;
+				else y = outrect.y;
+			} else { y = outrect.y; h = outrect.height; }
+
+			if (!yscroller->win_on) app->mapwindow(yscroller);
+			yscroller->MoveResize(x,y,w,h);
+		
+		} else {
+			app->unmapwindow(yscroller);
+		}
+	}
+	
+	// xscroller placed inset by yscroller
+	if (xscroller) {
+		if (xon) {
+			y = (win_style & SW_TOP) ? 0 : outrect.y + outrect.height - scrollwidth;
+			h = scrollwidth;
+			if ((yscroller && yscroller->win_on) || (panpopup && panpopup->win_on)) {
+				w = outrect.width - scrollwidth;
+				if (win_style&SW_LEFT) x = outrect.x + scrollwidth;
+				else x = outrect.x;
+			} else { x = outrect.x; w = outrect.width; }
+
+			if (!yscroller->win_on) app->mapwindow(yscroller);
+			xscroller->MoveResize(x,y,w,h);
+		
+		} else {
+			app->unmapwindow(xscroller);
 		}
 	}
 
-	xon = (xscroller && xscroller->win_on);
-	yon = (yscroller && yscroller->win_on);
-
-
-	 // yscroller is placed first
-	//if (yscroller && yscroller->win_on) {
-	if (yscroller && yon) {
-		x = (win_style & SW_LEFT) ? outrect.x : outrect.x + outrect.width - scrollwidth;
-		w = scrollwidth;
-		if (panpopup && panpopup->win_on) {
-			h = outrect.height - scrollwidth;
-			if (win_style & SW_TOP) y = outrect.y + scrollwidth;
-			else y = outrect.y;
-		} else { y = outrect.y; h = outrect.height; }
-
-		yscroller->MoveResize(x,y,w,h);
-	}
-	
-	 // xscroller placed inset by yscroller
-	//if (xscroller && xscroller->win_on) {
-	if (xscroller && xon) {
-		y = (win_style & SW_TOP) ? 0 : outrect.y + outrect.height - scrollwidth;
-		h = scrollwidth;
-		if ((yscroller && yscroller->win_on) || (panpopup && panpopup->win_on)) {
-			w = outrect.width - scrollwidth;
-			if (win_style&SW_LEFT) x = outrect.x + scrollwidth;
-			else x = outrect.x;
-		} else { x = outrect.x; w = outrect.width; }
-
-		xscroller->MoveResize(x,y,w,h);
-	}
-
-	 // the scroller positioning above already took into account existence of panpopup..
+	// the scroller positioning above already took into account existence of panpopup..
 	if (panpopup && panpopup->win_on) {
 		if (win_style & SW_TOP)  y = outrect.y; else y = outrect.y + outrect.height - scrollwidth;
 		if (win_style & SW_LEFT) x = outrect.x; else x = outrect.x + outrect.width  - scrollwidth;
 		panpopup->MoveResize(x,y,scrollwidth,scrollwidth);
 	}
 
-	 // define inrect.. note this is done after scroller positioning above
+	// define inrect.. note this is done after scroller positioning above
 	if (yscroller && yon) {
 		w = outrect.width - 1.5*scrollwidth;
 		if (win_style & SW_LEFT) x = outrect.x + scrollwidth; else x = outrect.x;
 	} else { x = outrect.x;  w = outrect.width; }
+
 	if (xscroller && xon) {
 		h = outrect.height - scrollwidth;
 		if (win_style & SW_TOP) y = outrect.y + scrollwidth; else y = outrect.y;
@@ -278,6 +295,7 @@ void ScrolledWindow::syncWindows()
 	inrect.width  = w;
 	inrect.height = h;
 	adjustinrect();
+	// where thewindow has to go:
 	x = inrect.x     ;
 	y = inrect.y     ;
 	w = inrect.width ;
@@ -285,36 +303,54 @@ void ScrolledWindow::syncWindows()
 
 	 // Sync up thewindow, if present
 	if (thewindow) {
-		if (!(win_style & SW_MOVE_WINDOW)) {
+		if (HasWinStyle(SW_MOVE_WINDOW)) {
+			//thewindow is wholebox and slides around in the scrollwindow
+			
+			panner->SetSelectionSize(inrect.width, inrect.height, false);
+			//---
+			// panner->SetSelection(panner->start[0], panner->start[0]+win_w, panner->start[1], panner->start[1]+win_h);
+			panner->pagesize[1] = inrect.height*2/3;
+			if (panner->pagesize[1] < 1) panner->pagesize[1] = 1;
+
+			AdjustTheWindow();
+			panner->validateSelbox();
+
+			//TODO: should be optional to resize x instead of always map to inrect.width
+			thewindow->MoveResize(x-(panner->start[0]-panner->min[0]), y-(panner->start[1]-panner->min[1]),
+					inrect.width, thewindow->win_h);
+					// thewindow->win_w < inrect.width ? inrect.width : win_w, thewindow->win_h);
+
+		} else {
 			w -= thewindow->WindowBorder()*2;
 			h -= thewindow->WindowBorder()*2;
 			thewindow->MoveResize(x,y,w,h);
 			panner->SetBoxAspect(thewindow->win_w,thewindow->win_h);
-
-		} else {
-			//thewindow is wholebox, so...
-			//cout << "move scrolled window before: "<<thewindow->win_name<<"  "<<thewindow->win_x<<"  "<<thewindow->win_y<<"  "<<thewindow->win_w<<"  "<<thewindow->win_h<<endl;
-			//cout << " new x,y: "<<x-(panner->start[0]-panner->min[0])<<','<< y-(panner->start[1]-panner->min[1])<<endl;
-
-			thewindow->MoveResize(x-(panner->start[0]-panner->min[0]), y-(panner->start[1]-panner->min[1]),
-					thewindow->win_w < inrect.width ? inrect.width : win_w, thewindow->win_h);
-
-			//cout << "move scrolled window after:  "<<thewindow->win_name<<"  "<<thewindow->win_x<<"  "<<thewindow->win_y<<"  "<<thewindow->win_w<<"  "<<thewindow->win_h<<endl;
 		}
 	} else {
+		panner->dontTell(this);
 		panner->SetBoxAspect(inrect.width,inrect.height);
+		panner->dontTell(nullptr);
 	}
 }
+
+/*! Mainly for `win_style & SW_MOVE_WINDOW`, make any adjustments on thewindow right
+ * after a new inrect has been found. This might happen, for instance, if thewindow is a RowFrame,
+ * and needs to reflow to a new win_w, which causes a new win_h.
+ *
+ * Default here does nothing.
+ */
+void ScrolledWindow::AdjustTheWindow()
+{}
 
 //! Just calls anXWindow::MoveResize, then syncWindows().
 int ScrolledWindow::MoveResize(int nx,int ny,int nw,int nh)
 {
 	anXWindow::MoveResize(nx,ny,nw,nh);
 
-	if (win_style & SW_MOVE_WINDOW) {
-		panner->SetSelection(panner->start[0], panner->start[0]+win_w, panner->start[1], panner->start[1]+win_h);
-		panner->pagesize[1] = win_h*2/3;
-	}
+	// if (win_style & SW_MOVE_WINDOW) {
+	// 	panner->SetSelection(panner->start[0], panner->start[0]+win_w, panner->start[1], panner->start[1]+win_h);
+	// 	panner->pagesize[1] = win_h*2/3;
+	// }
 
 	syncWindows();
 	return 0;
@@ -325,9 +361,9 @@ int ScrolledWindow::Resize(int nw,int nh)
 {
 	anXWindow::Resize(nw,nh);
 
-	if (win_style & SW_MOVE_WINDOW) {
-		panner->SetSelection(panner->start[0], panner->start[0]+win_w, panner->start[1], panner->start[1]+win_h);
-	}
+	// if (win_style & SW_MOVE_WINDOW) {
+	// 	panner->SetSelection(panner->start[0], panner->start[0]+win_w, panner->start[1], panner->start[1]+win_h);
+	// }
 
 	syncWindows();
 	return 0;
@@ -337,7 +373,7 @@ int ScrolledWindow::Resize(int nw,int nh)
 int ScrolledWindow::WheelUp(int x,int y,unsigned int state,int count,const LaxMouse *d)
 {
 	if (!panner) return 1;
-	panner->OneUp(1);
+	panner->OneUp(2);
 	return 0;
 }
 
@@ -345,8 +381,16 @@ int ScrolledWindow::WheelUp(int x,int y,unsigned int state,int count,const LaxMo
 int ScrolledWindow::WheelDown(int x,int y,unsigned int state,int count,const LaxMouse *d)
 {
 	if (!panner) return 1;
-	panner->OneDown(1);
+	panner->OneDown(2);
 	return 0;
+}
+
+void ScrolledWindow::Refresh()
+{
+	if (first) {
+		first = false;
+	}
+	needtodraw = 0;
 }
 
 
