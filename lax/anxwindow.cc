@@ -491,7 +491,7 @@ int anXWindow::SetWinStyle(unsigned int stylebit, int newvalue)
  */
 int anXWindow::HasWinStyle(unsigned int stylebit)
 {
-	return win_style&stylebit;
+	return win_style & stylebit;
 }
 
 

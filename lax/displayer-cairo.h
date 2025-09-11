@@ -209,6 +209,7 @@ class DisplayerCairo : public Displayer
 	 //@{
 	virtual const double *Getctm();
 	virtual const double *Getictm();
+	virtual bool IsValid();
 
 	virtual void ShiftScreen(double dx,double dy);
 	virtual void ResetTransform();

@@ -6264,11 +6264,6 @@ int PathInterface::Refresh()
 	}
 	needtodraw=0;
 
-	// if (!strcmp_safe(data->Id(), "PathsData18")) {
-	// 	cout << "REFRESH"<<endl;
-	// 	data->dump_out(stdout, 2, 0, nullptr);
-	// }
-
 	// ------------ draw data-----------------
 
 	Coordinate *start,*p,*p2;

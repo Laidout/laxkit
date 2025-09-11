@@ -951,7 +951,6 @@ void ViewportWindow::Refresh()
 		for (c=0; c<interfaces.n; c++) {
 			if (interfaces.e[c]->interface_type==INTERFACE_Overlay) continue;
 			if (interfaces.e[c]->Needtodraw()) {
-				//cout <<" \ndrawing "<<c;
 				oc=interfaces.e[c]->Context();
 				if (oc) {
 					double m[6];
@@ -967,7 +966,6 @@ void ViewportWindow::Refresh()
 		for (c=0; c<interfaces.n; c++) {
 			if (interfaces.e[c]->interface_type!=INTERFACE_Overlay) continue;
 			if (interfaces.e[c]->Needtodraw()) {
-				//cout <<" \ndrawing "<<c;
 				oc=interfaces.e[c]->Context();
 				if (oc) {
 					double m[6];
@@ -1127,7 +1125,6 @@ int ViewportWindow::WheelDown(int x,int y,unsigned int state,int count,const Lax
 	int w;
 	if ((state&LAX_STATE_MASK)==ControlMask) { // alt-but zoom
 		double z=1/1.15;
-//cout <<"..Zoom:"<<z<<"  ";
 		dp->Zoom(z,x,y);
 		syncWithDp();
 		needtodraw=1;
@@ -1400,7 +1397,6 @@ int ViewportWindow::MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMo
 		} else if (state&ControlMask) { // zoom: left==out, right==in
 			if (x-mx) { 
 				double z=pow(1.1,x-mx);
-				//cout <<"..Zoom:"<<z<<"  ";
 				dp->Zoom(z,rmx,rmy);
 				syncWithDp();
 				needtodraw=1;

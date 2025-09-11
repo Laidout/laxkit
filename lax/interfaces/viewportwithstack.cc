@@ -402,7 +402,6 @@ void ViewportWithStack::Refresh()
 			if (!ifc) { // look in interfaces if interface is not in viewer->tools
 				for (c2=0; c2<interfaces.n; c2++) {
 					if (interfaces.e[c2]->draws(datastack.e[c]->whattype())) {
-						//cout <<"---DrawData:"<<datastack.e[c]->whattype()<<endl;
 						ifc=interfaces.e[c2];
 						break;
 					}
@@ -424,7 +423,6 @@ void ViewportWithStack::Refresh()
 		dp->DrawReal();
 		for (c=0; c<interfaces.n; c++) {
 			if (interfaces.e[c]->Needtodraw()) {
-				//cout <<" \ndrawing "<<c;
 				oc=interfaces.e[c]->Context();
 				dd=oc?oc->obj:NULL;
 				if (oc) {

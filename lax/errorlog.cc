@@ -24,11 +24,7 @@
 #include "errorlog.h"
 
 #include <cstdio>
-
 #include <iostream>
-using namespace std;
-#define DBG
-
 
 
 namespace Laxkit {
@@ -38,20 +34,20 @@ namespace Laxkit {
 //---------------------------------- ErrorLog -----------------------------
 
 
-//! Dump to cout.
+//! Dump to std::cout.
 void dumperrorlog(const char *mes,ErrorLog &log)
 {
-	if (mes) cout <<mes<<"("<<log.Total()<<")"<<endl;
+	if (mes) std::cout <<mes<<"("<<log.Total()<<")"<<std::endl;
 	ErrorLogNode *e;
 	for (int c=0; c<log.Total(); c++) {
 		e=log.Message(c);
-		if (e->severity==ERROR_Ok) cout <<"Ok: ";
-		else if (e->severity==ERROR_Warning) cout <<"Warning: ";
-		else if (e->severity==ERROR_Fail) cout <<"Error! ";
+		if (e->severity==ERROR_Ok) std::cout <<"Ok: ";
+		else if (e->severity==ERROR_Warning) std::cout <<"Warning: ";
+		else if (e->severity==ERROR_Fail) std::cout <<"Error! ";
 
-		cout <<e->description<<", id:"<<e->object_id<<","<<(e->objectstr_id?e->objectstr_id:"(no str)")<<" ";
-		if (e->path) cout << e->path;
-		cout <<endl;
+		std::cout <<e->description<<", id:"<<e->object_id<<","<<(e->objectstr_id?e->objectstr_id:"(no str)")<<" ";
+		if (e->path) std::cout << e->path;
+		std::cout <<std::endl;
 
 	}
 }
@@ -63,10 +59,10 @@ void dumperrorlog(const char *mes,ErrorLog &log)
 
 ErrorLogNode::ErrorLogNode()
 {
-	path         = NULL;
-	objectstr_id = NULL;
+	path         = nullptr;
+	objectstr_id = nullptr;
 	object_id    = 0;
-	description  = NULL;
+	description  = nullptr;
 	severity     = 0;
 	info         = 0;
 	extra        = nullptr;
@@ -156,7 +152,7 @@ const char *ErrorLog::Message(int i,int *severity,int *info, int *pos,int *line)
 	if (info) *info=0;
 	if (pos) *pos=-1;
 	if (line) *line=-1;
-	return NULL;
+	return nullptr;
 }
 
 int ErrorLog::AddError(int ninfo, int npos,int nline, const char *fmt, ...)
@@ -170,7 +166,7 @@ int ErrorLog::AddError(int ninfo, int npos,int nline, const char *fmt, ...)
 
 int ErrorLog::AddError(const char *desc, int ninfo, int pos,int line)
 {
-	return AddMessage(0,NULL,NULL,desc,ERROR_Fail,ninfo, pos,line);
+	return AddMessage(0,nullptr,nullptr,desc,ERROR_Fail,ninfo, pos,line);
 }
 
 int ErrorLog::AddWarning(int ninfo, int npos,int nline, const char *fmt, ...)
@@ -184,7 +180,7 @@ int ErrorLog::AddWarning(int ninfo, int npos,int nline, const char *fmt, ...)
 
 int ErrorLog::AddWarning(const char *desc, int ninfo, int pos,int line)
 {
-	return AddMessage(0,NULL,NULL,desc,ERROR_Warning,ninfo, pos,line);
+	return AddMessage(0,nullptr,nullptr,desc,ERROR_Warning,ninfo, pos,line);
 }
 
 int ErrorLog::vAddMessage(int severity, int ninfo, int npos,int nline, const char *fmt, va_list arg)
@@ -192,7 +188,7 @@ int ErrorLog::vAddMessage(int severity, int ninfo, int npos,int nline, const cha
 	va_list arg2;
 	va_copy(arg2, arg);
 
-    int c = vsnprintf(NULL, 0, fmt, arg2);
+    int c = vsnprintf(nullptr, 0, fmt, arg2);
     va_end(arg2);
 
 	char *message = new char[c+1+10];
@@ -200,7 +196,7 @@ int ErrorLog::vAddMessage(int severity, int ninfo, int npos,int nline, const cha
 	vsnprintf(message, c+1, fmt, arg2);
 	va_end(arg2);
 
-	int status = AddMessage(0,NULL,NULL, message, severity,ninfo, npos,nline);
+	int status = AddMessage(0,nullptr,nullptr, message, severity,ninfo, npos,nline);
 	delete[] message;
 	return status;
 }
@@ -212,7 +208,7 @@ int ErrorLog::AddMessage(int severity, int ninfo, int npos,int nline, const char
 	va_list arg;
 
     va_start(arg, fmt);
-    int c = vsnprintf(NULL, 0, fmt, arg);
+    int c = vsnprintf(nullptr, 0, fmt, arg);
     va_end(arg);
 
 	char *message = new char[c+1+10];
@@ -220,14 +216,14 @@ int ErrorLog::AddMessage(int severity, int ninfo, int npos,int nline, const char
 	vsnprintf(message, c+1, fmt, arg);
 	va_end(arg);
 
-	int status = AddMessage(0,NULL,NULL, message, severity,ninfo, npos,nline);
+	int status = AddMessage(0,nullptr,nullptr, message, severity,ninfo, npos,nline);
 	delete[] message;
 	return status;
 }
 
 int ErrorLog::AddMessage(const char *desc, int severity, int ninfo, int pos,int line, anObject *extra)
 {
-	return AddMessage(0,NULL,NULL,desc,severity,ninfo, pos,line, extra);
+	return AddMessage(0,nullptr,nullptr,desc,severity,ninfo, pos,line, extra);
 }
 
 /*! Returns number of messages including this one.
@@ -241,19 +237,19 @@ int ErrorLog::AddMessage(unsigned int objid, const char *objidstr, const char *n
 	return messages.n;
 }
 
-//! Return message i, or NULL if i out or range.
+//! Return message i, or nullptr if i out or range.
 const char *ErrorLog::MessageStr(int i)
 {
 	if (i>=0 && i<messages.n) return messages.e[i]->description;
-	return NULL;
+	return nullptr;
 }
 
-//! Return new char[] with all messages, or NULL if there are none.
+//! Return new char[] with all messages, or nullptr if there are none.
 char *ErrorLog::FullMessageStr()
 {
-	if (!messages.n) return NULL;
+	if (!messages.n) return nullptr;
 
-	char *str=NULL;
+	char *str=nullptr;
 	for (int c=0; c<messages.n; c++) {
 		 //write out something like: "objectstr_id (path):\n" or "path:\n"
 		if (messages.e[c]->objectstr_id) appendstr(str, messages.e[c]->objectstr_id);
@@ -274,7 +270,7 @@ char *ErrorLog::FullMessageStr()
 ErrorLogNode *ErrorLog::Message(int i)
 {
 	if (i>=0 && i<messages.n) return messages.e[i];
-	return NULL;
+	return nullptr;
 }
 
 //! Return the number of ok notes.

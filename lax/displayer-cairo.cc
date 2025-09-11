@@ -316,7 +316,9 @@ int DisplayerCairo::MakeCurrent(aDrawable *buffer)
 	if (!buffer) { EndDrawing(); return -1; }
 
 	if (cr && cairo_status(cr) != CAIRO_STATUS_SUCCESS) {
-		cerr << " *** WARNING!!! cairo in error status: "<<cairo_status_to_string(cairo_status(cr))<<"!! recreating cr..."<<endl;
+		cout << " *** WARNING!!! MakeCurrent(): cairo in error status: "<<cairo_status_to_string(cairo_status(cr))<<"!! recreating cr..."<<endl;
+		cerr << " *** WARNING!!! MakeCurrent(): cairo in error status: "<<cairo_status_to_string(cairo_status(cr))<<"!! recreating cr..."<<endl;
+		dumpctm(Getctm(), false);
 		cairo_destroy(cr);
 		cr = nullptr;
 	}
@@ -1989,15 +1991,26 @@ void DisplayerCairo::ShiftScreen(double dx,double dy)
 	//DBG dump_transforms(cr, ctm);
 }
 
-bool CairoErrorCheck(cairo_t *cr, bool say_if_ok)
+bool CairoErrorCheck(cairo_t *cr, bool say_if_ok, bool out)
 {
 	if (cr && cairo_status(cr) != CAIRO_STATUS_SUCCESS) {
-		cerr << " *** WARNING!!! cairo in error status: "<<cairo_status_to_string(cairo_status(cr))<< endl;
+		if (out)
+			cout << " *** WARNING!!! cairo in error status: "<<cairo_status_to_string(cairo_status(cr))<< endl;
+		else
+			cerr << " *** WARNING!!! cairo in error status: "<<cairo_status_to_string(cairo_status(cr))<< endl;
 		return true;
 	} else if (say_if_ok) {
-		cerr << " --- cairo no error" <<endl;
+		if (out)
+			cout << " --- cairo no error" <<endl;
+		else
+			cerr << " --- cairo no error" <<endl;
 	}
 	return false;
+}
+
+bool DisplayerCairo::IsValid()
+{
+	return !CairoErrorCheck(cr, true, false);
 }
 
 //! Set the ctm to these 6 numbers.
@@ -2017,7 +2030,12 @@ void DisplayerCairo::NewTransform(const double *d)
 		m.y0=d[5];
 		cairo_set_matrix(cr, &m);
 	}
-	//CairoErrorCheck(cr, true);
+	DBG if (!CairoErrorCheck(cr, true, true)) {
+	DBG 	dumpctm(d);
+	DBG }
+	DBG if (d[0]*d[3]-d[1]*d[2] == 0) {
+	DBG 	cout << "BAD NEW MATRIX!!";
+	DBG }
 
 	transform_copy(ctm,d);
 	transform_invert(ictm,ctm);
@@ -2046,6 +2064,13 @@ void DisplayerCairo::NewTransform(double a,double b,double c,double d,double x0,
 		m.y0=y0;
 		cairo_set_matrix(cr, &m);
 	}
+
+	DBG if (!CairoErrorCheck(cr, true, true)) {
+	DBG 	cout << a<<' '<<b<<' '<<c<<' '<<d<<' '<<x0<<' '<<y0<<endl;
+	DBG }
+	DBG if (a*d-b*c == 0) {
+	DBG 	cout << "BAD NEW MATRIX!!";
+	DBG }
 
 	ctm[0]=a;
 	ctm[1]=b;

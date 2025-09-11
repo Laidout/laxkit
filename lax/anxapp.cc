@@ -76,9 +76,8 @@
 #include <lax/mouseshapes.h>
 
 
-#include <iostream>
+#include <lax/debug.h>
 using namespace std;
-#define DBG
 
 
 
@@ -939,20 +938,20 @@ bool IsWayland()
 
 static int X11_error_handler(Display * d, XErrorEvent * e)
 {
-    cout << "X11 error " << (int)e->error_code << ":  ";
+    std::cout << "X11 error " << (int)e->error_code << ":  ";
 
     char buffer[1000];
     XGetErrorText(d, e->error_code, buffer, 1000);
     buffer[999] = '\0';
-    cout << "  " <<buffer<<endl;
+    std::cout << "  " <<buffer<<endl;
 
-    cout <<"  error request_code "<<(int)e->request_code<<":  "; // see Xproto.h for these codes
+    std::cout <<"  error request_code "<<(int)e->request_code<<":  "; // see Xproto.h for these codes
     char intbuf[30];
     sprintf(intbuf, "%d", (int)e->request_code);
     XGetErrorDatabaseText(d, "XRequest", intbuf, "", buffer, 1000);
-    cout <<buffer<<endl;
+    std::cout <<buffer<<endl;
 
-    cout <<"  error minor_code:   "<<(int)e->minor_code  <<endl; // usually a code from an extension
+    std::cout <<"  error minor_code:   "<<(int)e->minor_code  <<endl; // usually a code from an extension
     return 0;
 }
 
@@ -3335,11 +3334,11 @@ int anXApp::refresh(anXWindow *w)
 
 
 //! Anything can call app->postmessage when they want to make some status statement.
-/*! Builtin default is to do nothing. (well, cout something in debug version)
+/*! Builtin default is to do nothing. (well, write out somewhere in debug version)
  */
 void anXApp::postmessage(const char *str)
 {
-	DBG cout <<str<<endl;
+	DBGL(str);
 }
 
 /*! Printf style message.

@@ -26,9 +26,8 @@
 #include <lax/vectors-out.h>
 
 
-#include <iostream>
+#include <lax/debug.h>
 using namespace std;
-#define DBG 
 
 #define EPSILON (1e-10)
 
@@ -972,7 +971,7 @@ flatpoint *bez_points(flatpoint *to_points,int numsegs,flatpoint *from_points,in
  */
 flatpoint *bez_points(flatpoint *to_points,int numsegs,flatpoint *from_points,int resolution,int isclosed,int atend)
 {
-	cout <<"*** imp bez_points!"<<endl;
+	DBGE("*** imp bez_points!");
 	return NULL;
 //	if (to_points==NULL) to_points=new flatpoint[resolution*numsegs];
 //

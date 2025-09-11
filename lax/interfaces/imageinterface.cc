@@ -31,13 +31,10 @@
 #include <lax/laxutils.h>
 #include <lax/language.h>
 
+#include <lax/debug.h>
+using namespace std;
 
 using namespace Laxkit;
-
-
-#include <iostream>
-using namespace std;
-#define DBG
 
 #define sgn(a) ((a)<0?-1:((a)>0?1:0))
 
@@ -407,7 +404,7 @@ int ImageData::LoadImage(const char *fname, const char *npreview, int maxpx, int
  */
 int ImageData::UsePreview(const char *npreview, int maxpx, int maxpy, char del)
 {
-	cout <<"*** must check that this works: ImageData::UsePreview()"<<endl;
+	DBGW("*** must check that this works: ImageData::UsePreview()");
 
 	//***should pop out old LaxImage::previewfile, and drop in new, generating if necessary...
 	//***check that this works

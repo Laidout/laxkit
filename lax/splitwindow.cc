@@ -28,9 +28,8 @@
 #include <lax/popupmenu.h>
 #include <lax/mouseshapes.h>
 
-#include <iostream>
+#include <lax/debug.h>
 using namespace std;
-#define DBG 
 
 namespace Laxkit {
 
@@ -1866,14 +1865,14 @@ void SplitWindow::scaleWindows()
  */
 void SplitWindow::validateX()
 {
-	cout <<"  **** SplitWindow::validateX()"<<endl;
+	DBGE("  **** implement SplitWindow::validateX()");
 }
 
 /*! \todo ***
  */
 void SplitWindow::validateY()
 {
-	cout <<"  **** SplitWindow::validateY()"<<endl;
+	DBGE("  **** implement SplitWindow::validateY()");
 }
 
 //! MoveResize, calls scaleWindows to perform the scaling.

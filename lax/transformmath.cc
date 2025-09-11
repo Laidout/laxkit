@@ -661,9 +661,9 @@ int AffineStack::GetAxes(int which, double *mm)
 
 //! Write out the transform d to cout, or to cerr if DBG is enabled.
 /*! \ingroup transformmath */
-void dumpctm(const double *d)
+void dumpctm(const double *d, bool to_err)
 {	
-	DBG if (1) {
+	DBG if (to_err) {
 	DBG   cerr <<"--- dumpctm transform: ";
 	DBG for (int c=0; c<6; c++) cerr<<d[c]<<(c<5?", ":"\n");
 	DBG } else {
@@ -672,6 +672,16 @@ void dumpctm(const double *d)
 	DBG }
 }
 
+void dumpctm_out(const double *d)
+{	
+	DBG if (1) {
+	DBG   cout <<"--- dumpctm transform: ";
+	DBG for (int c=0; c<6; c++) cerr<<d[c]<<(c<5?", ":"\n");
+	DBG } else {
+	cout <<"--- dumpctm transform: ";
+	for (int c=0; c<6; c++) cout<<d[c]<<(c<5?", ":"\n");
+	DBG }
+}
 
 //! Return identity matrix. If result==nullptr, then return a new'd double[6].
 /*! \ingroup transformmath

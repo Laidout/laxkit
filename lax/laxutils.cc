@@ -35,9 +35,8 @@
 #include <lax/displayer-xlib.h>
 #include <lax/displayer-cairo.h>
 
-#include <iostream>
+#include <lax/debug.h>
 using namespace std;
-#define DBG 
 
 
 //include various backends...
@@ -180,7 +179,7 @@ unsigned long screen_color_at_mouse(int mouse_id, int *error_ret)
     unsigned int mask_return;
     XQueryPointer(anXApp::app->dpy, root, &root_win, &child, &root_x, &root_y, &win_x, &win_y, &mask_return);
     
-    cout << "root:"<<root<<"  root_win: "<<root_win<<"  child: "<<child<<endl;
+    // DBG cerr << "root:"<<root<<"  root_win: "<<root_win<<"  child: "<<child<<endl;
 
     XWindowAttributes child_attr;
     XGetWindowAttributes(anXApp::app->dpy, child, &child_attr);
@@ -190,11 +189,12 @@ unsigned long screen_color_at_mouse(int mouse_id, int *error_ret)
 
     int x_mouse_offset = win_x - child_attr.x;
     int y_mouse_offset = win_y - child_attr.y;
-    cout << "  x_mouse_offset: "<<x_mouse_offset<<"  y_mouse_offset:  "<< y_mouse_offset << endl;
+
+    // DBG cerr << "  x_mouse_offset: "<<x_mouse_offset<<"  y_mouse_offset:  "<< y_mouse_offset << endl;
 
     XImage *img = XGetImage(anXApp::app->dpy, child, x_mouse_offset, y_mouse_offset, 1, 1, AllPlanes, XYPixmap);
     if (!img) {
-        DBG cerr << "no image returned by XGetImage" << endl;
+        DBGW("no image returned by XGetImage");
         if (error_ret) *error_ret = 1;
         return 0;
     }
@@ -546,14 +546,14 @@ void set_color_shift_info(unsigned int rm, unsigned int gm, unsigned int bm, uns
 	while (mask && mask&1) { mask>>=1; alpha_size*=2; }
 
 
-	DBG cerr <<"----color shift setup----"<<endl;
-	DBG cerr.setf(ios_base::hex,ios_base::basefield);
-	DBG cerr <<"rgba:"<<red_mask<<","<<green_mask<<","<<blue_mask<<","<<alpha_mask<<endl;
-	DBG cerr.setf(ios_base::dec,ios_base::basefield);
-	DBG cerr <<"red_size:"<<red_size<<" shift:"<<red_shift<<endl;
-	DBG cerr <<"green_size:"<<green_size<<" shift:"<<green_shift<<endl;
-	DBG cerr <<"blue_size:"<<blue_size<<" shift:"<<blue_shift<<endl;
-	DBG cerr <<"alpha_size:"<<alpha_size<<" shift:"<<alpha_shift<<endl;
+	// DBG cerr <<"----color shift setup----"<<endl;
+	// DBG cerr.setf(ios_base::hex,ios_base::basefield);
+	// DBG cerr <<"rgba:"<<red_mask<<","<<green_mask<<","<<blue_mask<<","<<alpha_mask<<endl;
+	// DBG cerr.setf(ios_base::dec,ios_base::basefield);
+	// DBG cerr <<"red_size:"<<red_size<<" shift:"<<red_shift<<endl;
+	// DBG cerr <<"green_size:"<<green_size<<" shift:"<<green_shift<<endl;
+	// DBG cerr <<"blue_size:"<<blue_size<<" shift:"<<blue_shift<<endl;
+	// DBG cerr <<"alpha_size:"<<alpha_size<<" shift:"<<alpha_shift<<endl;
 }
 
 unsigned long coloravg(const ScreenColor &a, const ScreenColor &b,float r)
@@ -1224,7 +1224,7 @@ flatpoint *draw_thing_coordinates(DrawThingTypes thing, flatpoint *buffer, int b
 		}
 
 	} else {
-		DBG cerr <<" *** must fully implement draw_thing_coordinates()"<<endl;
+		DBGW(" *** must fully implement draw_thing_coordinates() for thing: "<<thing);
 		if (n_ret) *n_ret=0;
 		return NULL;
 	}

@@ -79,7 +79,6 @@ int DraggableFrame::Event(const EventData *e,const char *mes)
 	//if (e->type==LAX_onMouseOut && (win_style&MB_LEAVE_DESTROYS)) {
 
 	if (e->type==LAX_onMouseOut) {
-		cout << " --out-- "<<endl;
 		if (!buttondown.any()) { hover = WHERE_None; needtodraw = 1; }
 	}
 	return anXWindow::Event(e,mes);

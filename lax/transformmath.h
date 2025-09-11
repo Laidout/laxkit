@@ -130,7 +130,7 @@ class AffineStack : public Affine
 
 //-------------------- lower level Affine functions ---------------------
 
-void dumpctm(const double *d);
+void dumpctm(const double *d, bool to_err = true);
 int is_degenerate_transform(const double *m);
 double *transform_invert(double *result,const double *m);
 double *transform_mult(double *result,const double *a,const double *b);

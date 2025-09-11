@@ -40,10 +40,7 @@
 
 #include <cstring>
 
-#include <iostream>
-#define DBG 
-
-
+#include <lax/debug.h>
 using namespace std;
 
 
@@ -190,14 +187,20 @@ Displayer *DisplayerXlib::duplicate()
 
 //! Flush waiting composite operation.
 void DisplayerXlib::show()
-{ cout <<"*** imp DisplayerXlib::show()"<<endl; }
+{
+	DBGE("*** imp DisplayerXlib::show()");
+}
 
 void DisplayerXlib::SwapBuffers()
-{ cout <<"*** imp DisplayerXlib::swapbuffers()"<<endl; }
+{
+	DBGE("*** imp DisplayerXlib::swapbuffers()");
+}
 
 //! Turn on or off the usage of double buffering.
 void DisplayerXlib::BackBuffer(int on)
-{ cout <<"*** imp DisplayerXlib::backbuffer()"<<endl; }
+{
+	DBGE("*** imp DisplayerXlib::backbuffer()");
+}
 
 //! Return whether there is an active clipping area.
 int DisplayerXlib::activeMask()
@@ -783,12 +786,12 @@ int DisplayerXlib::DrawScreen()
 
 void DisplayerXlib::DrawOnMask()
 {
-	cout <<" *** DisplayerXlib::DrawOnMask doesn't do anything!"<<endl;
+	DBGE(" *** DisplayerXlib::DrawOnMask doesn't do anything!");
 }
 
 void DisplayerXlib::DrawOnSrc()
 {
-	cout <<" *** DisplayerXlib::DrawOnSrc doesn't do anything!"<<endl;
+	DBGE(" *** DisplayerXlib::DrawOnSrc doesn't do anything!");
 }
 
 void DisplayerXlib::moveto(flatpoint p)

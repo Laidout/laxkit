@@ -468,10 +468,6 @@ int LaxOptions::Parse(int argc, char **argv, int *argerr)
 	int i, c2;
 	LaxOption *o=NULL;
 
-	//DBG for (int c=1; c<argc; c++) {
-	//DBG 	cout << "arg "<<c<<": "<<argv[c]<<endl;
-	//DBG }
-		
 	first_remaining=n;
 
 	for (int c=1; c<argc; c++) {

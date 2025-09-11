@@ -381,7 +381,6 @@ int MeasureInterface::MouseMove(int x,int y,unsigned int state)
 		clen=data->colors.e[data->colors.n-1]->t - cstart;
 		if (plen && curpoints.n) {
 			for (int c=0; c<curpoints.n; c++) {
-				//cout <<"move point "<<curpoints.e[c]<<"  by d.x="<<d.x<<"  d.x/clen="<<d.x/clen<<endl;
 				cp=curpoints.e[c];
 				
 				DBG if (cp==0) {

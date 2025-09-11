@@ -227,13 +227,13 @@ void getScaledI(double *I,double a,double b,double c,double d)
  */
 void printG(const char *ch,double *G)
 {
-	cout <<endl<<ch<<':'<<endl;
+	std::cout <<endl<<ch<<':'<<endl;
 	int r,c;
 	for (r=0; r<4; r++) {
 		for (c=0; c<4; c++) {
-			cout << G[r*4+c]<< "  ";
+			std::cout << G[r*4+c]<< "  ";
 		}
-		cout <<endl;
+		std::cout <<endl;
 	}
 }
 

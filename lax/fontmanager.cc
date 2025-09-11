@@ -31,7 +31,7 @@
 #include <lax/language.h>
 #include <lax/colors.h>
 
-#include <iostream>
+#include <lax/debug.h>
 using namespace std;
 #define DBG 
 
@@ -1165,7 +1165,7 @@ int FontManager::RetrieveFontmatrixTags()
 				rownum++;
 
 			} else if (status!=SQLITE_DONE) {
-				cout <<"  *** step error!!" << sqlite3_errmsg(db) <<endl;
+				DBGE("  *** step error!!" << sqlite3_errmsg(db));
 				sqlite3_finalize(stmt);
 				throw (40);
 			}

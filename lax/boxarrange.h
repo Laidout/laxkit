@@ -35,6 +35,9 @@ namespace Laxkit {
 #define BOX_NO_BREAK      1000000
 #define BOX_MUST_BREAK    -1000000
 
+
+// The following go in SqishyBox::flags:
+
  // For laying out, for instance LRTB == Left to Right, Top to Bottom
  // Note that only LRTB and TBLR are implemented in ArrangeRowCol().
  // These correspond to LAX_LRTB, etc. note that they take up 
@@ -60,7 +63,7 @@ namespace Laxkit {
  // if laying out y, make x,w value sync with target->w
 #define BOX_SET_X_TOO   (1<<8)
 #define BOX_SET_METRICS (1<<7|1<<8)
-        
+
  // |11223344| <-- with any of the left/center/right/justify, always acts as justify
 #define BOX_STRETCH_TO_FILL_X  (1<<9)
 #define BOX_STRETCH_TO_FILL_Y  (1<<10)
@@ -252,6 +255,7 @@ class RowColBox : public ListBox
 //	virtual int figureDimensions(); // finds and sets the pw,s,g, ph,s,g based on the children
 	virtual int arrangeBoxes(int distributetoo=0);
 	virtual int distributeBoxes(int setmetrics=0);
+	virtual void MarkSizeDirty() { arrangedstate = 0; };
 };
 
 

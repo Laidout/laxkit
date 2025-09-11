@@ -254,7 +254,7 @@ int PanWindow::Event(const EventData *e,const char *mes)
 //			if (bmask&Button1Mask) buttondown|=LEFTBUTTON;
 //			if (bmask&Button2Mask) buttondown|=MIDDLEBUTTON;
 //			if (bmask&Button3Mask) buttondown|=RIGHTBUTTON;
-//		} else cout <<"PanWindow GrabFailure!"<<endl; 
+//		}
 //	}
 	return anXWindow::Event(e,mes);
 }
@@ -398,7 +398,6 @@ int PanWindow::LBUp(int x,int y,unsigned int state, const LaxMouse *d)
 
 int PanWindow::MouseMove(int x,int y,unsigned int state, const LaxMouse *d)
 {
-//cout<<"\nPanWindow:";
 	if (!bdowndevice || !(buttondown&LEFTBUTTON)) return 1;
 
 	if (mx==-50000) mx=x;

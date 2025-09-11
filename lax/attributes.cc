@@ -36,6 +36,7 @@
 #include <limits.h>
 #include <iostream>
 
+#include <lax/debug.h>
 
 using namespace std;
 #define DBG 
@@ -2473,7 +2474,7 @@ int SubAttributesToXMLFile(FILE *f, Attribute *att, int indent)
 char *AttributeToXML(Attribute *att,char *&appendtothis, char **error_ret)
 {//***
 	if (!att) return NULL;
-	cout <<"*** implement AttributeToXML!!"<<endl;
+	DBGE("*** implement AttributeToXML!!");
 	return NULL;
 }
 

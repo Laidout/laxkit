@@ -256,6 +256,7 @@ class Displayer : public PanUser, virtual public anObject
 	 //@{
 	virtual const double *Getctm() = 0;
 	virtual const double *Getictm() = 0;
+	virtual bool IsValid() = 0;
 	virtual int righthanded();
 	virtual bool defaultRighthanded(bool right);
 	virtual bool defaultRighthanded();

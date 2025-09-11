@@ -989,7 +989,7 @@ double findindex(flatpoint p,flatline l)   /* p=lp+t*lv, find t */
 
 //	err=1;
 //	if ((p.x-l.p.x)*l.v.y!=(p.y-l.p.y)*l.v.x) { 
-//	//cout <<"..p not on l..";
+//	//cerr <<"..p not on l..";
 //		err=0; return 0; 
 //	}
 //	if (l.v.x!=0) return (p.x-l.p.x)/l.v.x;
@@ -1023,7 +1023,6 @@ int segmentcross(flatpoint a1,flatpoint a2,flatpoint b1,flatpoint b2,flatpoint &
 	e=intersection(l2,l,p);
 	if (e!=0) { return 0; }
 	double t=findindex(p,l2);
-	//cout << "..segIndex="<<t<<"..";
 	if (t<0 || t>1) return 0;
 	t=findindex(p,l);
 	if (t<0 || t>1) return 0;

@@ -1726,7 +1726,6 @@ int GradientInterface::scan(int x,int y)
 	p = screentoreal(x,y); //<-remember this is not including data's transform
 	double d = 5*ScreenLine()/Getmag(), //d eventually is (5 screen pixels in gradient space)^2
 		   dd = 0;
-	//DBG cout <<" gd scan x,y: "<<x<<','<<y<<"  d="<<d<<"(x,y)="<<p.x<<','<<p.y;
 	double threshhold = d;
 	d *= d;
 	int closest = GP_OutsideData;
@@ -2271,7 +2270,6 @@ int GradientInterface::MouseMove(int x,int y,unsigned int state,const LaxMouse *
 
 		if (plen && curpoints.n) {
 			for (int c=0; c<curpoints.n; c++) {
-				//cout <<"move point "<<curpoints.e[c]<<"  by d.x="<<d.x<<"  d.x/clen="<<d.x/clen<<endl;
 				cp = curpoints.e[c];
 
 				DBG if (cp==0) {

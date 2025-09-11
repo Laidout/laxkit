@@ -2953,10 +2953,6 @@ void EngraverPointGroup::dump_in_atts(Laxkit::Attribute *att,int flag,Laxkit::Du
 		appendstr(iorefs,"|dash:");
 		appendstr(iorefs,dashkey);
 	}
-
-
-	//DBG cout <<"Engraver dumped in:"<<endl;
-	//DBG dump_out(stdout, 0, 0, NULL, NULL,NULL);
 }
 
 

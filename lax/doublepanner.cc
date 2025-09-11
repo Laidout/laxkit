@@ -294,11 +294,10 @@ void DoublePanner::CenterPoint(flatpoint p)
  */
 void DoublePanner::CenterReal()
 {
-//cout <<"displayer Centerreal:x,y,rx,ry:["<<Minx<<","<<Maxx<<"] ["<<Miny<<","<<Maxy<<"] "<<ctm[4]<<","<<ctm[5]<<endl;
 	ctm[4]=(Minx+Maxx)/2; ctm[5]=(Miny+Maxy)/2; 
 	transform_invert(ictm,ctm);
 	syncPanner();
-DBG cerr <<"--displayer Centerrreal:x,y,rx,ry:["<<Minx<<","<<Maxx<<"] ["<<Miny<<","<<Maxy<<"] "<<ctm[4]<<","<<ctm[5]<<endl;
+	DBG cerr <<"--displayer Centerrreal:x,y,rx,ry:["<<Minx<<","<<Maxx<<"] ["<<Miny<<","<<Maxy<<"] "<<ctm[4]<<","<<ctm[5]<<endl;
 }
 
 //! Move the viewable portion by dx,dy screen units.
@@ -473,14 +472,12 @@ DBG cerr <<"   new realfromscreen:"<<po.x<<","<<po.y<<"  ctm4,5="<<ctm[4]<<','<<
 //! Zoom around the real origin.
 void DoublePanner::Zoom(double m) // zooms with origin constant point
 {
-//cout <<"DoublePanner zoom: "<<m<<" rx:"<<(ctm[0]*ctm[0]+ctm[1]*ctm[1])<<"  ry:"<<ctm[2]*ctm[2]+ctm[3]*ctm[3]<<endl;
 	if (m<=0) return;
 
 	if (m<1 && (m*sqrt(ctm[0]*ctm[0]+ctm[1]*ctm[1])<lowerbound || 
 				m*sqrt(ctm[2]*ctm[2]+ctm[3]*ctm[3])<lowerbound)) return;
 	if (m>1 && (m*sqrt(ctm[0]*ctm[0]+ctm[1]*ctm[1])>upperbound || 
 				m*sqrt(ctm[2]*ctm[2]+ctm[3]*ctm[3])>upperbound)) return;
-//cout <<"  adjusting mag..."<<endl;
 	ctm[0]*=m;
 	ctm[1]*=m;
 	ctm[2]*=m;

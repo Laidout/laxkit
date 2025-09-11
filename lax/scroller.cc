@@ -636,7 +636,7 @@ void Scroller::drawtrackbox()
 	panner->GetMagToWhole((win_style&SC_XSCROLL?1:2), wholelen, &poss,&pose);
 			
 	 //***must imp ALLOW SMALL
-	if (poss<0 || poss>wholelen || pose<0 || pose>wholelen) {
+	if (poss < 0 || poss > wholelen || pose < 0 || pose > wholelen) {
 		if (!(win_style&SC_ALLOW_SMALL)) {
 			DBG cerr<<"*** must imp scroller allow small"<<endl;
 			 // SMALL lets the wholespace be less than the selbox, in fact,

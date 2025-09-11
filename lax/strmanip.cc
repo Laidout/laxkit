@@ -21,9 +21,6 @@
 //
 
 
-// NOTE this is c++ code, using new and delete, not malloc and free
-
-
 #include <cstdio>
 #include <cstring>
 #include <cctype>
@@ -986,7 +983,6 @@ char **splitspace(const char *stro,int *n_ret)
 {
 	char str[strlen(stro)+1];
 	strcpy(str,stro);
-//cout <<stro<<endl<<str<<endl;
 	int l=strlen(str);
 	int c,c2,c3;
 	
@@ -1015,7 +1011,6 @@ char **splitspace(const char *stro,int *n_ret)
 	
 	
 	char **r=split(str+c,' ',n_ret);
-//cout <<*n_ret<<endl;
 	return r;
 }
 

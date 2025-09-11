@@ -354,54 +354,10 @@ void FilePreviewer::Refresh()
 }
 
 
-////! Should regenerate preview?
-//int FilePreviewer::LBDown(int x,int y,unsigned int state,int count)
-//{***
-//	buttondown|=LEFTBUTTON;
-////cout << "thetext:"<<thetext;
-//	return 1;
-//}
-//
-//int FilePreviewer::LBUp(int x,int y,unsigned int state)
-//{***
-//	buttondown|=LEFTBUTTON;
-//	if (!(win_style&MB_COPY))return 1;
-//	 //	copy to clipboard
-//	char *str=GetText();
-//	app->CopytoBuffer(str,strlen(str)); 
-//cout <<"(mb copy: "<<str<<")\n";
-//	delete[] str;
-//	return 0;
-//}
-//
-//int FilePreviewer::RBDown(int x,int y,unsigned int state,int count)
-//{//***
-//	buttondown|=RIGHTBUTTON;
-//	msx=x;
-//	msy=y;
-//	return 0;
-//}
-//
-//int FilePreviewer::RBUp(int x,int y,unsigned int state)
-//{//***
-//	buttondown&=~RIGHTBUTTON;
-//	return 0;
-//}
-//
 int FilePreviewer::MoveResize(int nx,int ny,int nw,int nh)
 {
-	// DBGL("FilePreviewer "<<Id()<<" resize, xywh: "<<nx<<" "<<ny<<" "<<nw<<" "<<nh)
 	return MessageBar::MoveResize(nx,ny,nw,nh);
 }
-//
-//int FilePreviewer::Resize(int nw,int nh)
-//{//***
-//	anXWindow::Resize(nw,nh);
-//	SetupMetrics();
-//	needtodraw=1;
-//	return 0;
-//}
-//
 
 	
 } // namespace Laxkit

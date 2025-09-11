@@ -501,7 +501,6 @@ void LinesInterface::movecontrol(int which,flatpoint d)
 	if ((data->style&LINESDATA_CLOSED && data->npoints>2) || (which>1 && which<2*data->npoints-3)) { // middle control point
 		data->points[l1]=l*ll; //**** danger no parallel checking
 		data->points[r1]=l*lr; //**** danger no parallel checking
-		//cout <<" A: np"<< data->npoints<<" whichc:"<<which<<" ";
 	} else if (which==1) {  // first control point, open path or closed and n==2
 		if (data->npoints==2) {
 			data->points[0]+=d;
@@ -511,9 +510,7 @@ void LinesInterface::movecontrol(int which,flatpoint d)
 			//data->points[0]+=(d|=l.v); // moves first point perp to line
 			data->points[0]=data->points[1]-l.v; // moves last point to keep rod same length
 		}
-		//cout <<" B ";
 	} else { // final control point
-		//cout <<" C ";
 		if (data->npoints==2) { //***unreachable?
 			data->points[0]+=d;
 			data->points[1]+=d;
@@ -546,7 +543,6 @@ int LinesInterface::MouseMove(int x,int y,unsigned int state)
 			if (fabs(newa)>fabs(newb)) newa=fabs(newb)*(newa>0?1:-1);
 			else newb=fabs(newa)*(newb>0?1:-1);
 		}
-		//cout <<"newa,newb,np"<<newa<<' '<<newb<<' '<<np.x<<','<<np.y;
 		
 		mx=x; my=y;
 		needtodraw|=1;
@@ -555,10 +551,8 @@ int LinesInterface::MouseMove(int x,int y,unsigned int state)
 	if (curpoint<0 || !data->npoints) return 1;
 	if ((curpoint&1)==1 && (data->style&(LINESDATA_LINES|LINESDATA_POLYGON))) { // on control point => npoints>1
 		 // move line by control point 
-		//cout << "  LinesMM-controlpoint ";
 		movecontrol(curpoint,x,y);
 		mx=x; my=y;
-		//cout <<"  doneControlPoint\n";
 	} else if (data->style&LINESDATA_LINES) { // on vertex for data
 		 // must be on vertex point here
 		flatpoint d=screentoreal(x,y)-screentoreal(mx,my);
