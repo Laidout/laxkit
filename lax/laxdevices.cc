@@ -1463,6 +1463,7 @@ int XInput2Pointer::eventFilter(EventData **events_ret, XEvent *xev, anXWindow *
 		b->to=ww->object_id;
 		b->target=ww;
 		b->device=this;
+		b->propagate=1;
 		b->button   =button;
 		b->count	=buttoncount;
 		b->x		=dev->event_x;
@@ -1487,6 +1488,7 @@ int XInput2Pointer::eventFilter(EventData **events_ret, XEvent *xev, anXWindow *
 		b->to=ww->object_id;
 		b->target=ww;
 		b->device=this;
+		b->propagate=1;
 		b->button   =button;
 		b->x		=dev->event_x;
 		b->y		=dev->event_y;
