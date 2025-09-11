@@ -59,6 +59,8 @@ class MessageBar : public anXWindow
 
  public:
 	int padx,pady;
+	bool debug = false;
+
 	MessageBar(anXWindow *pwindow,
 				const char *nname,
 				const char *ntitle,

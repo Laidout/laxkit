@@ -252,6 +252,12 @@ void MessageBar::Refresh()
 		dp->textout(ox+indents[c], oy+c*UIScale()*height, thetext[c],l, LAX_LEFT|LAX_BASELINE);
 	}
 
+	if (debug) {
+		dp->LineWidthScreen(2);
+		dp->drawline(0,0, win_w, win_h);
+		dp->drawline(0,win_h, win_w, 0);
+	}
+
 	if (win_style & ANXWIN_DOUBLEBUFFER) SwapBuffers();
 	needtodraw = 0;
 	return;
@@ -373,7 +379,7 @@ int MessageBar::MouseMove(int x,int y,unsigned int state,const LaxMouse *d)
 
 int MessageBar::WheelUp(int x,int y,unsigned int state,int count,const LaxMouse *d)
 {
-	if (!(win_style & MB_MOVE)) return 0;
+	if (!(win_style & MB_MOVE)) return 1;
 
 	if (state&(ShiftMask|ControlMask)) oy+=win_h*3/4; else oy+=20;
 	if (oy-fasc-pady>0 && pady+oy-fasc+ey+pady>win_h) { // box is below upper pad, lower edge is below lower pad
@@ -386,7 +392,7 @@ int MessageBar::WheelUp(int x,int y,unsigned int state,int count,const LaxMouse 
 
 int MessageBar::WheelDown(int x,int y,unsigned int state,int count,const LaxMouse *d)
 {
-	if (!(win_style & MB_MOVE)) return 0;
+	if (!(win_style & MB_MOVE)) return 1;
 	
 	if (state&(ShiftMask|ControlMask)) oy-=win_h*3/4; else oy-=20;
 	if (oy-fasc-pady<=0 && oy-fasc+pady+ey<win_h) { if (ey+2*pady<win_h) oy=fasc+pady; else oy=win_h-ey-pady+fasc; }
