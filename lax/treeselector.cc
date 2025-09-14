@@ -1856,18 +1856,19 @@ void TreeSelector::addselect(int i,unsigned int state)
 	MenuItem *mitem = item(i),*titem;
 	//if (!mitem) return;
 	//if (mitem->state&LAX_SEPARATOR) return;
+	if (mitem && mitem->IsGray()) { mitem = nullptr; i = -1; }
 
 	if (!(state&ShiftMask) || menustyle&(TREESEL_ZERO_OR_ONE|TREESEL_ONE_ONLY)) {
 		 //shift not pressed, or select zero or one
 
 		int oldstate = mitem ? mitem->state : 0;
-		if (!(state&ControlMask)) {
+		if (!(state & ControlMask)) {
 			 // unselect others
 			if (selection.n) oldstate = LAX_OFF;
-			for (c=selection.n-1; c>=0; c--) { // turn off all the ones that are on
+			for (c = selection.n-1; c >= 0; c--) { // turn off all the ones that are on
 				titem = selection.e[c];
 				selection.remove(c);
-				titem->state &= ~(LAX_ON|LAX_OFF|MENU_SELECTED); 
+				titem->state &= ~(LAX_ON | LAX_OFF | MENU_SELECTED); 
 				titem->state |= LAX_OFF; 
 			}
 		}
@@ -1906,7 +1907,7 @@ void TreeSelector::addselect(int i,unsigned int state)
 			titem=item(c);
 			if (HasStyle(TREESEL_SELECT_LEAF_ONLY) && (titem->hasSub())) continue;
 			if (HasStyle(TREESEL_SELECT_SUB_ONLY) && !(titem->hasSub())) continue;
-			if ((titem->state&LAX_MSTATE_MASK)==LAX_GRAY) continue;
+			if (titem->IsGray()) continue;
 			if (titem->state&LAX_SEPARATOR) continue;
 
 			if (state&ControlMask) { 
@@ -2076,7 +2077,7 @@ int TreeSelector::LBUp(int x,int y,unsigned int state,const LaxMouse *d)
 
 	addselect(i,state);
 
-	if (!(ii->hasSub() && HasStyle(TREESEL_SELECT_LEAF_ONLY))) {
+	if (!ii->IsGray() && !(ii->hasSub() && HasStyle(TREESEL_SELECT_LEAF_ONLY))) {
 		if (HasStyle(TREESEL_SEND_ON_UP))    send(d->id);
 		if (HasStyle(TREESEL_DESTROY_ON_UP)) app->destroywindow(this);
 	}

@@ -127,6 +127,7 @@ class MenuItem : public anObject
 	virtual const char *GetString(int detail);
 
 	virtual int isSelected(int oron=1);
+	virtual bool IsGray() const;
 	virtual int hasSub() const;
 	virtual int isOpen() const;
 	virtual int Open();

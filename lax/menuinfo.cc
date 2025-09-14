@@ -322,6 +322,11 @@ int MenuItem::isSelected(int oron)
 	return state&MENU_SELECTED;
 }
 
+bool MenuItem::IsGray() const
+{
+	return (state & LAX_GRAY) != 0;
+}
+
 void MenuItem::SetExtra(anObject *obj, bool absorb)
 {
 	if (obj != extra) {

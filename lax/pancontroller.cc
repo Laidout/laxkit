@@ -517,8 +517,6 @@ int PanController::validateSelbox(int which)//which=3
 
 		// handle selbox < wholebox
 		
-		long slen = end[c] - start[c];
-
 		if (start[c] < min[c]) {
 			//DBG cerr <<"pancontroller--- start past min"<<endl;
 			
