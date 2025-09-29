@@ -451,7 +451,7 @@ PtrStack<T>::PtrStack(char nar)
 
 //! PtrStack Destructor, just calls flush().
 template <class T>
-PtrStack<T>::~PtrStack<T>()
+PtrStack<T>::~PtrStack()
 {
 	flush();
 }

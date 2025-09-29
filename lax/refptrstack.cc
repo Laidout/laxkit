@@ -50,7 +50,7 @@ RefPtrStack<T>::RefPtrStack(char nar)
 
 //! RefPtrStack Destructor, empty.
 template <class T>
-RefPtrStack<T>::~RefPtrStack<T>()
+RefPtrStack<T>::~RefPtrStack()
 {
 	flush();
 }
