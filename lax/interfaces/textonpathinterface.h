@@ -161,6 +161,7 @@ enum TextOnPathActions {
 	TPATH_Size,
 	TPATH_ConnectTo,
 	TPATH_EditPath,
+	TPATH_SelectFont,
 	TPATH_ToggleDirection,
 	TPATH_ConvertToPath,
 	TPATH_Text,

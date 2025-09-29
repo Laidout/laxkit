@@ -42,7 +42,14 @@ enum TextStreamActions {
 	TXT_Offset,
 	TXT_Position,
 
+	TXT_Menu_Min,
 	TXT_Font,
+	TXT_NewText,
+	TXT_ImportText,
+	TXT_LoremIpsum,
+	TXT_Cervantes,
+	TXT_Menu_Max,
+
 	TXT_MAX
 };
 
@@ -57,17 +64,22 @@ class TextStreamInterface : public anInterface
 {
   protected:
 	int showdecs;
-	ObjectContext *extrahover;
-	int extra_hover; // what is hovered, see TXT_Hover_*
+	ObjectContext *extrahover; // what object is being hovered over
+	int extra_hover; // either TXT_Hover_Stroke | TXT_Hover_Area. see qualifiers hover_reverse_dir, hover_outside
 	Laxkit::flatpoint hover_point; // where hovered, snaps to path
 	Laxkit::flatpoint hover_direction; // for text on path target
 	double hover_baseline; // fraction of fontheight to offset text on path
 	double hover_t; // t value along path for current path on text
+	bool hover_reverse_dir = false;
+	bool hover_outside = false;
 
 	Laxkit::flatpoint flowdir; // default forward text direction for areas
 	double fontheight; // use this hint when default_font is null
 	Laxkit::LaxFont *default_font;
 	Laxkit::Utf8String sample_text;
+
+	int text_to_place_hint = TXT_NewText;
+	Laxkit::Utf8String text_to_place; // either plain text or file according to text_to_place_hint
 
 	PathsData outline;
 	int outline_index;
@@ -80,9 +92,10 @@ class TextStreamInterface : public anInterface
 	Laxkit::ShortcutHandler *sc;
 
 	virtual int send();
-	virtual int scanInCurrent(int x,int y,unsigned int state, int &index, Laxkit::flatpoint &hovered, float &hovered_t);
+	virtual int scanInCurrent(int x,int y,unsigned int state, int &index, Laxkit::flatpoint &hovered, float &hovered_t, bool &outside, bool &reversed);
 	virtual int Track(ObjectContext *oc);
 	virtual int DefineOutline(int which);
+	virtual bool AttachStream();
 
   public:
 	unsigned int tstream_style;
@@ -107,10 +120,6 @@ class TextStreamInterface : public anInterface
 	virtual int MouseMove(int x,int y,unsigned int state, const Laxkit::LaxMouse *d);
 	virtual int LBDown(int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d);
 	virtual int LBUp(int x,int y,unsigned int state, const Laxkit::LaxMouse *d);
-	//virtual int MBDown(int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d);
-	//virtual int MBUp(int x,int y,unsigned int state, const Laxkit::LaxMouse *d);
-	//virtual int RBDown(int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d);
-	//virtual int RBUp(int x,int y,unsigned int state, const Laxkit::LaxMouse *d);
 	virtual int WheelUp  (int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d);
 	virtual int WheelDown(int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d);
 	virtual int CharInput(unsigned int ch, const char *buffer,int len,unsigned int state, const Laxkit::LaxKeyboard *d);
@@ -119,7 +128,6 @@ class TextStreamInterface : public anInterface
 
 	virtual void FlowDir(Laxkit::flatpoint dir);
 	virtual void FontHeight(double height);
-	virtual bool AttachStream();
 };
 
 } // namespace LaxInterfaces

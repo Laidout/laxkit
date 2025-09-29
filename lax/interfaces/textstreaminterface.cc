@@ -80,12 +80,16 @@ TextStreamInterface::TextStreamInterface(anInterface *nowner, int nid, Displayer
 	ScreenColor color(1.,0.,1.,1.);
 	outline.line(2, -1, -1, &color);
 	outline.linestyle->widthtype = 0;//screen width
+
+	hover_t = 0;
+	hover_baseline = 0;
 }
 
 TextStreamInterface::~TextStreamInterface()
 {
 	if (sc) sc->dec_count();
 	if (extrahover) { delete extrahover; extrahover = nullptr; }
+	if (default_font) default_font->dec_count();
 }
 
 const char *TextStreamInterface::whatdatatype()
@@ -162,6 +166,13 @@ Laxkit::MenuInfo *TextStreamInterface::ContextMenu(int x,int y,int deviceid, Lax
 
 	menu->AddItem(_("Default font..."), TXT_Font);
 
+	// stream resource menu
+	menu->AddSep(_("Text"));
+	menu->AddItem(_("New text"),          TXT_NewText);
+	// menu->AddItem(_("Text from file..."), TXT_ImportText);
+	menu->AddItem(_("Lorem ipsum"),       TXT_LoremIpsum);
+	menu->AddItem(_("Cervantes ipsum"),   TXT_Cervantes);
+	
 	return menu;
 }
 
@@ -256,7 +267,12 @@ int TextStreamInterface::Refresh()
 			dp->NewFG(100,100,255);
 			dp->drawarrow(hover_point, hover_direction, 0, 20*ScreenLine(), 0);
 			dp->fontsize(fontheight);
-			dp->textout(atan2(-hover_direction.y,hover_direction.x), hover_point.x,hover_point.y, sample_text.c_str(),-1, LAX_LEFT|LAX_BOTTOM|LAX_FLIP);
+			flatpoint p = hover_direction.transpose().normalized();
+			// DBGM("******************************************************************* baseline: "<<hover_baseline<<"  fh: "<<fontheight<<"  tp: "<<p.x<<","<<p.y);
+			p = hover_baseline * fontheight * p + hover_point;
+			double angle = atan2(-hover_direction.y,hover_direction.x);
+			if (hover_reverse_dir) angle += M_PI;
+			dp->textout(angle, p.x,p.y, sample_text.c_str(),-1, LAX_LEFT|LAX_BOTTOM|LAX_FLIP);
 		}
 
 		dp->PopAxes(); 
@@ -280,9 +296,9 @@ int TextStreamInterface::LBDown(int x,int y,unsigned int state,int count, const 
 	buttondown.down(d->id,LEFTBUTTON,x,y);
 
 	if (extrahover) {
+		AttachStream();
 		delete extrahover;
 		extrahover = nullptr;
-		AttachStream();
 	}
 
 	//int device=d->subid; //normal id is the core mouse, not the controlling sub device
@@ -304,7 +320,7 @@ int TextStreamInterface::LBUp(int x,int y,unsigned int state, const Laxkit::LaxM
 /*! Return what (x,y) is most near, plus the index of the path in extrahover.
  * Note: does not change the currently tracked object! Need to use Track() for that.
  */
-int TextStreamInterface::scanInCurrent(int x,int y,unsigned int state, int &index, flatpoint &hovered, float &hovered_t)
+int TextStreamInterface::scanInCurrent(int x,int y,unsigned int state, int &index, flatpoint &hovered, float &hovered_t, bool &outside, bool &reversed)
 {
 	if (!extrahover) return TXT_None;
 
@@ -329,7 +345,13 @@ int TextStreamInterface::scanInCurrent(int x,int y,unsigned int state, int &inde
 			index = pathi;
 			hovered = pp;
 			hovered_t = tdist;
+			if (state & ControlMask) reversed = true; else reversed = false;
 			pathsobj->PointAlongPath(index, tdist, 0, nullptr, &hover_direction);
+			flatvector v = p - pp;
+			flatvector vt = hover_direction.transpose();
+			outside = ((v*vt) >= 0);
+			DBGM("******************************************************************************"<< (v*vt) <<"  "<<reversed);
+
 			return TXT_Hover_Stroke;
 		}
 	}
@@ -433,7 +455,9 @@ int TextStreamInterface::MouseMove(int x,int y,unsigned int state, const Laxkit:
 		int index = -1;
 		flatpoint hovered;
 		float hovert;
-		int hover = scanInCurrent(x,y,state, index,hovered,hovert); //searches for hits on last known object
+		bool outside = false;
+		bool reversed = false;
+		int hover = scanInCurrent(x,y,state, index,hovered,hovert, outside, reversed); //searches for hits on last known object
 		DBGM("----textstream hover: "<<hover)
 
 		if (hover == TXT_None) {
@@ -448,7 +472,7 @@ int TextStreamInterface::MouseMove(int x,int y,unsigned int state, const Laxkit:
 
 				needtodraw = 1;
 				Track(oc);
-				hover = scanInCurrent(x,y,state, index,hovered,hovert);
+				hover = scanInCurrent(x,y,state, index,hovered,hovert, outside, reversed);
 				DefineOutline(index);
 
 				if (hover == TXT_None) hover = TXT_Hover_New;
@@ -475,9 +499,12 @@ int TextStreamInterface::MouseMove(int x,int y,unsigned int state, const Laxkit:
 			needtodraw = 1;
 		}
 		if (extra_hover == TXT_Hover_Stroke) {
-			if (hovert != hover_t || hovered != hover_point) {
+			if (hovert != hover_t || hovered != hover_point || outside != hover_outside || reversed != hover_reverse_dir) {
 				hover_point = hovered;
 				hover_t = hovert;
+				hover_reverse_dir = reversed;
+				hover_outside = outside;
+				hover_baseline = hover_reverse_dir ? (hover_outside ? 1 : 0) : (hover_outside ? 0 : -1);
 				needtodraw = 1;
 			}
 		}
@@ -556,6 +583,33 @@ Laxkit::ShortcutHandler *TextStreamInterface::GetShortcuts()
 
 int TextStreamInterface::PerformAction(int action)
 {
+	if (action == TXT_Font) {
+		FontDialog *dialog = new FontDialog(nullptr, "Font",_("Font"),ANXWIN_REMEMBER, 10,10,700,700,0, object_id,"newfont",0,
+							nullptr, nullptr, default_font ? default_font->textheight() : fontheight, //fontfamily, fontstyle, fontsize,
+							nullptr, //sample text
+							default_font, true
+							);
+		app->rundialog(dialog);
+		return 0;
+	
+	} else if (action == TXT_NewText) {
+		text_to_place_hint = TXT_NewText;
+		needtodraw = 1;
+		return 0;
+
+	} else if (action == TXT_LoremIpsum) {
+		text_to_place_hint = TXT_LoremIpsum;
+		text_to_place = LoremIpsum();
+		needtodraw = 1;
+		return 0;
+
+	} else if (action == TXT_Cervantes) {
+		text_to_place_hint = TXT_Cervantes;
+		text_to_place = CervantesIpsum();
+		needtodraw = 1;
+		return 0;
+	}
+
 	return 1;
 }
 

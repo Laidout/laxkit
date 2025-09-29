@@ -37,6 +37,7 @@
 #include <lax/laxutils.h>
 #include <lax/fontdialog.h>
 #include <lax/colorevents.h>
+#include <lax/laxutils.h>
 #include <lax/language.h>
 
 
@@ -480,7 +481,7 @@ int TextOnPath::UseThisPath(PathsData *newpaths, int path_index)
 int TextOnPath::UseThisPath(ObjectContext *npathcontext, int path_index)
 {
 	if (!npathcontext) return -1;
-	PathsData *newpaths = dynamic_cast<PathsData*>(pathcontext->obj);
+	PathsData *newpaths = dynamic_cast<PathsData*>(npathcontext->obj);
 	if (!newpaths) return 1;
 
 	if (pathcontext) delete pathcontext;
@@ -1528,7 +1529,8 @@ Laxkit::MenuInfo *TextOnPathInterface::ContextMenu(int x,int y,int deviceid, Lax
 
 	//if (!menu->n()) menu->AddSep(_("Offset type"));
 	if (menu->n()) menu->AddSep();
-	menu->AddItem(_("Edit path..."), TPATH_EditPath);
+	menu->AddItem(_("Edit path..."),   TPATH_EditPath);
+	menu->AddItem(_("Select font..."), TPATH_SelectFont);
 	menu->AddSep();
 	menu->AddToggleItem(_("Baseline from path"),         TextOnPath::FROM_Path,         0, (textonpath->baseline_type==TextOnPath::FROM_Path));
 	menu->AddToggleItem(_("Baseline from offset"),       TextOnPath::FROM_Offset,       0, (textonpath->baseline_type==TextOnPath::FROM_Offset));
@@ -1585,6 +1587,7 @@ int TextOnPathInterface::Event(const Laxkit::EventData *e_data, const char *mes)
 
 		if (   i == TPATH_ConvertToPath
 			|| i == TPATH_EditPath
+			|| i == TPATH_SelectFont
 			|| i == TPATH_ToggleDirection
 			|| i == TPATH_Link_To_Parent
 			|| i == TPATH_ResetBaseline
@@ -2319,17 +2322,21 @@ int TextOnPathInterface::MouseMove(int x,int y,unsigned int state, const Laxkit:
 		needtodraw=1;
 		return 0;
 
-	} else if (hover==TPATH_Size) {
-		flatpoint dv= textonpath->transformPointInverse(screentoreal(x,y)) - textonpath->transformPointInverse(screentoreal(lx,ly));
+	} else if (hover == TPATH_Size) {
+		flatpoint dv = textonpath->transformPointInverse(screentoreal(x,y)) - textonpath->transformPointInverse(screentoreal(lx,ly));
 
-		double factor=72;
-		if (state&ShiftMask) factor*=.1;
-		if (state&ControlMask) factor*=.1;
-		double d=textonpath->font->textheight() + factor*dv.y;
-		if (d<=0) d=1e-3;
+		double factor = 72; // use pts for font size by default
+		if (state & ShiftMask)   factor *= .1;
+		if (state & ControlMask) factor *= .1;
+		double old_th = textonpath->font->textheight();
+		double old_msize = textonpath->font->Msize();
+		double d = old_th + factor*dv.y;
+		if (d <= 0) d = 1e-3;
 		textonpath->Size(d);
+		double new_th = textonpath->font->textheight();
+		double new_msize = textonpath->font->Msize();
 		char str[200];
-		sprintf(str, _("Size %f pt dv=%f,%f"), d, dv.x,dv.y);
+		sprintf(str, _("old th,M: %f %f, new th,M: %f %f d: %f pt dv=%f,%f"), old_th, old_msize, new_th, new_msize, d, dv.x,dv.y);
 		//sprintf(str, _("Size %f pt"), d);
 
 		DBG cerr <<"------------ new font size a,d,h, fs: "<<textonpath->font->ascent()<<", "<<textonpath->font->descent()
@@ -2581,6 +2588,7 @@ Laxkit::ShortcutHandler *TextOnPathInterface::GetShortcuts()
 	sc->Add(TPATH_OffsetInc,      'l',ControlMask,0,           "OffsetInc",      _("Move line start forward"),NULL,0);
 	sc->Add(TPATH_OffsetDec,      'L',ShiftMask|ControlMask,0, "OffsetDec",      _("Move line start backward"),NULL,0);
 	sc->Add(TPATH_EditPath,       'p',ControlMask,0,           "EditPath",       _("Edit the path"),NULL,0);
+	sc->Add(TPATH_SelectFont,     't',ControlMask,0,           "SelectFont",     _("Select font from dialog"),NULL,0);
 	sc->Add(TPATH_ConvertToPath,  'P',ShiftMask|ControlMask,0, "ConvertToPath",  _("Convert to path object"),NULL,0);
 	sc->Add(TPATH_ToggleDirection,'D',ShiftMask|ControlMask,0, "ToggleDirection",_("Toggle basic direction of text"),NULL,0);
 	sc->Add(TPATH_Paste,          'v',ControlMask,0,           "Paste",          _("Paste text"),NULL,0);
@@ -2639,6 +2647,15 @@ int TextOnPathInterface::PerformAction(int action)
 		needtodraw=1;
 
 		PostMessage(_("Press Enter or Esc to finish editing"));
+		return 0;
+
+	} else if (action == TPATH_SelectFont) {
+		if (child) return 0;
+		app->rundialog(new FontDialog(nullptr, "Font", _("Font"), ANXWIN_REMEMBER, 10,10,700,700,0, object_id,"newfont",0,
+			nullptr, nullptr, textonpath->font->textheight(), //data->fontfamily, data->fontstyle, data->fontsize,
+			nullptr, //sample text
+			textonpath->font, true
+		));
 		return 0;
 
 	} else if (action==TPATH_OffsetDec) {
