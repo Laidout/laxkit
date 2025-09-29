@@ -309,7 +309,7 @@ class UnitManager : public anObject
 
 
 //------------------------------------- CreateDefaultUnits() ----------------------------------------
-UnitManager *CreateDefaultUnits(UnitManager *units = nullptr);
+UnitManager *CreateDefaultUnits(UnitManager *units = nullptr, bool include_px = true, bool include_em = true);
 UnitManager *CreateTemperatureUnits(UnitManager *units = nullptr);
 UnitManager *GetUnitManager();
 void SetUnitManager(UnitManager *manager);
