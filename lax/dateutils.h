@@ -97,6 +97,7 @@ class LaxDate
 	int Day()   const { return day;   }
 	int DayOfWeek() const;
 	int DayOfYear() const;
+	int WeekOfYear() const;
 	bool IsLeapYear() const { return is_leap_year(year); }
 };
 

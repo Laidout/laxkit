@@ -250,6 +250,13 @@ int LaxDate::DayOfYear() const
 	return dayofyear;
 }
 
+/*! 0 is the first week.
+ */
+int LaxDate::WeekOfYear() const
+{
+	return (DayOfYear() - DayOfWeek() - 1 + 7) / 7;
+}
+
 void LaxDate::AddDays(int days)
 {
 	day += days;
