@@ -1561,7 +1561,7 @@ double MaxExtent(const char **strs, int n, LaxFont *font)
 //Todo: should probaby go elsewhere
 
 /*! Return a standard snippet of blockout text. */
-const char *LorumIpsum()
+const char *LoremIpsum()
 {
 	return "Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt"
 		   " ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation"
