@@ -273,13 +273,13 @@ void Utf8String::updateNumChars()
 	if (!s) return;
 
 	const char *ss;
+	int len;
 
-	for (int c=0; c<num_bytes && s[c]!=0; ) {
+	for (int c = 0; c < num_bytes && s[c] != 0; ) {
 		num_chars++;
-		c++;
-		ss = utf8fwd(s+c, s+c, s+num_bytes);
-		if (ss == s+c) break;
-		c = ss-s;
+		utf8decode(s+c, s+num_bytes, &len);
+		if (len == 0) break;
+		c += len;
 	}
 }
 
