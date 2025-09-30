@@ -1864,17 +1864,19 @@ int TextOnPathInterface::Refresh()
 			dp->fill(0);
 
 		} else if (hover_type == TPATH_Baseline) {
-			dp->moveto (pp - .5*th*tv - th*tangent);
-			dp->curveto(pp - th*tangent, pp + th*tangent, pp - .5*th*tv + th*tangent);
-			dp->curveto(pp - th*tv + th*tangent, pp - th*tv - th*tangent, pp - .5*th*tv - th*tangent);
-			dp->closed();
-			dp->moveto(pp - 2*th*tv);
-			dp->lineto(pp + 2*th*tv);
-			dp->closeopen();
-
 			ScreenColor baselineknobcolor(.0,.0,.0,.25);
-			dp->NewFG(&baselineknobcolor);
-			dp->fill(0);
+			dp->NewFG(baselineknobcolor);
+
+			dp->drawthing(pp - .7*th*tv, .7*th,.7*th, 1, THING_Double_Arrow_Vertical, tangent.angle());
+			//-----
+			// dp->moveto (pp - .5*th*tv - th*tangent);
+			// dp->curveto(pp - th*tangent, pp + th*tangent, pp - .5*th*tv + th*tangent);
+			// dp->curveto(pp - th*tv + th*tangent, pp - th*tv - th*tangent, pp - .5*th*tv - th*tangent);
+			// dp->closed();
+			// dp->moveto(pp - 2*th*tv);
+			// dp->lineto(pp + 2*th*tv);
+			// dp->closeopen();
+			// dp->fill(0);
 
 		} else if (hover_type == TPATH_Move) {
 			double xs=grabpad*thin/dp->Getmag()/2;
@@ -2001,7 +2003,7 @@ int TextOnPathInterface::scan(int x,int y,unsigned int state, double *alongpath,
 		//DBG sprintf(str, "d:%f  bl:%f  th:%f nn:%f", disttopath, textonpath->baseline, th, dd);
 		//DBG PostMessage(str);
 
-		if (dd >= -.5 && dd <= 0) {
+		if (dd >= -1.0 && dd <= 0) {
 			return TPATH_Baseline;
 		}
 		if (dd >= 0 && dd <= 1) {

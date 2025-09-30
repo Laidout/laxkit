@@ -74,7 +74,8 @@ TextStreamInterface::TextStreamInterface(anInterface *nowner, int nid, Displayer
     fontheight   = 36. / 72;
     default_font = nullptr;
 
-    sample_text = _("Aa");
+    default_sample_text = _("Aa");
+    sample_text = default_sample_text;
 
     outline.style |= PathsData::PATHS_Ignore_Weights;
 	ScreenColor color(1.,0.,1.,1.);
@@ -168,10 +169,11 @@ Laxkit::MenuInfo *TextStreamInterface::ContextMenu(int x,int y,int deviceid, Lax
 
 	// stream resource menu
 	menu->AddSep(_("Text"));
-	menu->AddItem(_("New text"),          TXT_NewText);
-	// menu->AddItem(_("Text from file..."), TXT_ImportText);
-	menu->AddItem(_("Lorem ipsum"),       TXT_LoremIpsum);
-	menu->AddItem(_("Cervantes ipsum"),   TXT_Cervantes);
+	menu->AddToggleItem(_("New text"),          TXT_NewText,    0, text_to_place_hint == TXT_NewText);
+	menu->AddToggleItem(_("Lorem ipsum"),       TXT_LoremIpsum, 0, text_to_place_hint == TXT_LoremIpsum);
+	menu->AddToggleItem(_("Cervantes ipsum"),   TXT_Cervantes,  0, text_to_place_hint == TXT_Cervantes);
+	// menu->AddToggleItem(_("Text from file..."), TXT_ImportText, 0, text_to_place_hint == TXT_ImportText);
+	// menu->AddToggleItem(_("Stream..."),         TXT_StreamText, 0, text_to_place_hint == TXT_StreamText);
 	
 	return menu;
 }
@@ -182,17 +184,7 @@ int TextStreamInterface::Event(const Laxkit::EventData *e_data, const char *mes)
 		const SimpleMessage *s = dynamic_cast<const SimpleMessage*>(e_data);
 		int i = s->info2; //id of menu item
 
-		if ( i == TXT_Font) {
-			FontDialog *dialog = new FontDialog(nullptr, "Font",_("Font"),ANXWIN_REMEMBER, 10,10,700,700,0, object_id,"newfont",0,
-							nullptr, nullptr, default_font ? default_font->textheight() : fontheight, //fontfamily, fontstyle, fontsize,
-							nullptr, //sample text
-							default_font, true
-							);
-			app->rundialog(dialog);
-
-		}
-
-		return 0;
+		return PerformAction(i);
 
 	} else if (!strcmp(mes, "newfont")) {
 		DBGM("IMPLEMENT ME!!");
@@ -594,18 +586,23 @@ int TextStreamInterface::PerformAction(int action)
 	
 	} else if (action == TXT_NewText) {
 		text_to_place_hint = TXT_NewText;
+		sample_text = default_sample_text;
 		needtodraw = 1;
 		return 0;
 
 	} else if (action == TXT_LoremIpsum) {
 		text_to_place_hint = TXT_LoremIpsum;
 		text_to_place = LoremIpsum();
+		sample_text = text_to_place.Substr(0,10);
+		if (text_to_place.Length() > 10) sample_text.Append("...");
 		needtodraw = 1;
 		return 0;
 
 	} else if (action == TXT_Cervantes) {
 		text_to_place_hint = TXT_Cervantes;
 		text_to_place = CervantesIpsum();
+		sample_text = text_to_place.Substr(0,10);
+		if (text_to_place.Length() > 10) sample_text.Append("...");
 		needtodraw = 1;
 		return 0;
 	}

@@ -76,7 +76,8 @@ class TextStreamInterface : public anInterface
 	Laxkit::flatpoint flowdir; // default forward text direction for areas
 	double fontheight; // use this hint when default_font is null
 	Laxkit::LaxFont *default_font;
-	Laxkit::Utf8String sample_text;
+	Laxkit::Utf8String default_sample_text; // default "Aa"
+	Laxkit::Utf8String sample_text; // snippet that gets written
 
 	int text_to_place_hint = TXT_NewText;
 	Laxkit::Utf8String text_to_place; // either plain text or file according to text_to_place_hint
