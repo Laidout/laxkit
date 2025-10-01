@@ -75,14 +75,14 @@ ObjectInterface::~ObjectInterface()
 const char *ObjectInterface::Name()
 { return _("Object"); }
 
-anInterface *ObjectInterface::duplicate(anInterface *dup)//dup=NULL
+anInterface *ObjectInterface::duplicateInterface(anInterface *dup)//dup=NULL
 {
 	ObjectInterface *r;
 	if (dup==NULL) r=new ObjectInterface(id,dp);
 	else {r=dynamic_cast<ObjectInterface *>(dup);
 		if (r==NULL) return NULL;
 	}
-	return RectInterface::duplicate(r);
+	return RectInterface::duplicateInterface(r);
 }
 
 /*! Does nothing but return 0. Cannot use any data.
@@ -850,7 +850,7 @@ int ObjectInterface::PerformAction(int action)
 
 	} else if (action == OIA_Delete) {
 		dontclear=1;
-		Selection *sel = selection->duplicate();
+		Selection *sel = selection->duplicateSelection();
 		while (sel->n()) {
 			viewport->ChangeObject(sel->e(0),0,false);
 			viewport->DeleteObject();

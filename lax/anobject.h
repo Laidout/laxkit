@@ -45,8 +45,8 @@ class anObject : virtual public RefCounted
 	virtual const char *whattype() { return "anObject"; }
 	virtual const char *IconKey() { return nullptr; }
 	virtual bool istype(const char *type);
-	virtual anObject *ObjectOwner() { return NULL; }
-	virtual anObject *duplicate(anObject *ref) { return NULL; }
+	virtual anObject *ObjectOwner() { return nullptr; }
+	virtual anObject *duplicate() { return nullptr; }
 	virtual int inc_count();
 	virtual int dec_count();
 	virtual const char *Id();

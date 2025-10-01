@@ -121,7 +121,7 @@ Color &Color::operator=(Color &c)
 	return c;
 }
 
-Color *Color::duplicate()
+Color *Color::duplicateColor()
 {
 	Color *color = new Color(*this);
 	return color;
@@ -469,7 +469,7 @@ ColorRef::~ColorRef()
 }
 
 
-Color *ColorRef::duplicate()
+Color *ColorRef::duplicateColor()
 {
 	ColorRef *col = new ColorRef(color);
 	return col;

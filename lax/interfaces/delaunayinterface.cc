@@ -768,7 +768,7 @@ void VoronoiData::Flush()
 	FindBBox();
 }
 
-SomeData *VoronoiData::duplicate(SomeData *dup)
+SomeData *VoronoiData::duplicateData(SomeData *dup)
 {
 	VoronoiData *newobj = dynamic_cast<VoronoiData*>(dup);
 	if (!newobj && dup) return nullptr; //was not a VoronoiData!
@@ -798,9 +798,9 @@ SomeData *VoronoiData::duplicate(SomeData *dup)
 	newobj->color_delaunay->dec_count();
 	newobj->color_voronoi->dec_count();
 	newobj->color_points->dec_count();
-	newobj->color_delaunay = color_delaunay->duplicate();
-	newobj->color_voronoi = color_voronoi->duplicate();
-	newobj->color_points = color_points->duplicate();
+	newobj->color_delaunay = color_delaunay->duplicateColor();
+	newobj->color_voronoi = color_voronoi->duplicateColor();
+	newobj->color_points = color_points->duplicateColor();
 
 	 //somedata elements:
 	dup->setbounds(minx,maxx,miny,maxy);
@@ -882,11 +882,11 @@ const char *DelaunayInterface::Name()
 //! Return new DelaunayInterface.
 /*! If dup!=NULL and it cannot be cast to DelaunayInterface, then return NULL.
  */
-anInterface *DelaunayInterface::duplicate(anInterface *dup)
+anInterface *DelaunayInterface::duplicateInterface(anInterface *dup)
 {
 	if (dup==NULL) dup=new DelaunayInterface(NULL,id,NULL);
 	else if (!dynamic_cast<DelaunayInterface *>(dup)) return NULL;
-	return anInterface::duplicate(dup);
+	return anInterface::duplicateInterface(dup);
 }
 
 void DelaunayInterface::Clear(SomeData *d)
@@ -1220,16 +1220,16 @@ int DelaunayInterface::LBDown(int x,int y,unsigned int state,int count, const La
 		return 0;
 	}
 
-	if (curpoint<0) {
+	if (curpoint < 0) {
 		if (!data) {
-			data=dynamic_cast<VoronoiData *>(somedatafactory()->NewObject(LAX_VORONOIDATA));
-			if (!data) data=new VoronoiData; 
+			data = dynamic_cast<VoronoiData *>(somedatafactory()->NewObject(LAX_VORONOIDATA));
+			if (!data) data = new VoronoiData; 
 
-			viewport->ChangeContext(x,y,NULL);
-			ObjectContext *oc=NULL;
+			viewport->ChangeContext(x,y,nullptr);
+			ObjectContext *oc = nullptr;
 			viewport->NewData(data,&oc);//viewport adds only its own counts
-			if (voc) { delete voc; voc=NULL; }
-			if (oc) voc=oc->duplicate();
+			if (voc) { delete voc; voc = nullptr; }
+			if (oc) voc = oc->duplicate();
 
 		}
 
@@ -1288,7 +1288,7 @@ int DelaunayInterface::MouseMove(int x,int y,unsigned int state, const Laxkit::L
 			if (!oc->isequal(hover_obj)) {
 				DBG cerr << "needtodraw yes!"<<endl;
 				if (hover_obj) delete hover_obj;
-				hover_obj  =oc->duplicate();
+				hover_obj = oc->duplicate();
 				PostMessage2(_("Stipple from %s"), oc->obj->Id());
 				needtodraw=1;
 			}
@@ -1383,7 +1383,7 @@ int DelaunayInterface::UseThisObject(ObjectContext *oc)
 		data=NULL;
 	}
 	if (voc) delete voc;
-	voc=oc->duplicate();
+	voc = oc->duplicate();
 
 	if (data!=ndata) {
 		data=ndata;
@@ -1805,7 +1805,7 @@ int DelaunayInterface::Event(const Laxkit::EventData *e_data, const char *mes)
 			ObjectContext *oc=NULL;
 			viewport->NewData(data,&oc);//viewport adds only its own counts
 			if (voc) { delete voc; voc=NULL; }
-			if (oc) voc=oc->duplicate();
+			if (oc) voc = oc->duplicate();
 		}
 
 		data->dump_in_atts(&att,0,NULL);

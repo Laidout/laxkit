@@ -66,7 +66,7 @@ Selection::~Selection()
 //! Return a duplicate of this selection.
 /*! Will not copy properties.
  */
-Selection *Selection::duplicate()
+Selection *Selection::duplicateSelection()
 {
 	Selection *s=new Selection();
 	for (int c=0; c<objects.n; c++) {

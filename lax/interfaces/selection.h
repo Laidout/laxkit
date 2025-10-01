@@ -65,7 +65,8 @@ class Selection : public Laxkit::anObject, public Laxkit::DoubleBBox
 	Selection();
 	virtual ~Selection();
 
-	virtual Selection *duplicate();
+	virtual Selection *duplicateSelection();
+	virtual Laxkit::anObject *duplicate() { return duplicateSelection(); }
 	virtual int FindIndex(LaxInterfaces::ObjectContext *oc);
 	virtual int FindIndex(LaxInterfaces::SomeData *obj);
 	virtual int Add(LaxInterfaces::ObjectContext *oc, int where, int ninfo=-1);

@@ -77,7 +77,7 @@ FillStyle::FillStyle(const FillStyle &f)
 	function  = f.function;
 	mask      = f.mask;
 	if (f.color2) {
-		color2 = f.color2->duplicate();
+		color2 = f.color2->duplicateColor();
 	}
 }
 
@@ -89,7 +89,7 @@ FillStyle &FillStyle::operator=(FillStyle &f)
 	function  = f.function;
 	mask      = f.mask;
 	if (f.color2) {
-		color2 = f.color2->duplicate();
+		color2 = f.color2->duplicateColor();
 	}
 	return f;
 }
@@ -99,7 +99,7 @@ FillStyle::~FillStyle()
 	if (color2) color2->dec_count();
 }
 
-anObject *FillStyle::duplicate(anObject *ref)
+anObject *FillStyle::duplicate()
 {
 	FillStyle *style = new FillStyle(*this);
 	return style;

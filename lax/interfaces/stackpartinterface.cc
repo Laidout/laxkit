@@ -218,11 +218,11 @@ const char *StackPartInterface::Name()
 //! Return new StackPartInterface.
 /*! If dup!=NULL and it cannot be cast to StackPartInterface, then return NULL.
  */
-anInterface *StackPartInterface::duplicate(anInterface *dup)
+anInterface *StackPartInterface::duplicateInterface(anInterface *dup)
 {
 	if (dup==NULL) dup=new StackPartInterface(NULL,id,NULL);
 	else if (!dynamic_cast<StackPartInterface *>(dup)) return NULL;
-	return anInterface::duplicate(dup);
+	return anInterface::duplicateInterface(dup);
 }
 
 ////! Use the object at oc if it is an StackParts.

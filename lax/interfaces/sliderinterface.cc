@@ -74,7 +74,7 @@ void SliderInfo::FindBBox()
 }
 
 
-Laxkit::anObject *SliderInfo::duplicate(Laxkit::anObject *ref)
+Laxkit::anObject *SliderInfo::duplicate()
 {
 	SliderInfo *dup = new SliderInfo();
 	*dup = *this;
@@ -147,11 +147,11 @@ const char *SliderInterface::Name()
 //! Return new SliderInterface.
 /*! If dup!=nullptr and it cannot be cast to SliderInterface, then return nullptr.
  */
-anInterface *SliderInterface::duplicate(anInterface *dup)
+anInterface *SliderInterface::duplicateInterface(anInterface *dup)
 {
 	if (dup == nullptr) dup = new SliderInterface(nullptr,id,nullptr);
 	else if (!dynamic_cast<SliderInterface *>(dup)) return nullptr;
-	return anInterface::duplicate(dup);
+	return anInterface::duplicateInterface(dup);
 }
 
 

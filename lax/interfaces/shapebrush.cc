@@ -91,7 +91,7 @@ void ShapeBrush::CopyFrom(PathsData *pathsdata)
 		}
 
 		if (skip) continue;
-		Path *path = pathsdata->paths.e[c]->duplicate();
+		Path *path = pathsdata->paths.e[c]->duplicatePath();
 		paths.push(path);
 	}
 

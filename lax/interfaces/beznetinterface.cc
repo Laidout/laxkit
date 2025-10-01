@@ -109,11 +109,11 @@ const char *BezNetInterface::Name()
 //! Return new BezNetInterface.
 /*! If dup!=nullptr and it cannot be cast to BezNetInterface, then return nullptr.
  */
-anInterface *BezNetInterface::duplicate(anInterface *dup)
+anInterface *BezNetInterface::duplicateInterface(anInterface *dup)
 {
 	if (dup == nullptr) dup = new BezNetInterface(nullptr,id,nullptr);
 	else if (!dynamic_cast<BezNetInterface *>(dup)) return nullptr;
-	return anInterface::duplicate(dup);
+	return anInterface::duplicateInterface(dup);
 }
 
 

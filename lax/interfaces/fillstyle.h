@@ -47,7 +47,7 @@ class FillStyle : virtual public Laxkit::Resourceable, virtual public Laxkit::Du
 	FillStyle &operator=(FillStyle &f);
 	virtual ~FillStyle();
 	virtual const char *whattype() { return "FillStyle"; }
-	virtual anObject *duplicate(anObject *ref);
+	virtual anObject *duplicate();
 
 	virtual void Color(int r,int g,int b,int a);
 	virtual void Colorf(double r,double g,double b,double a);

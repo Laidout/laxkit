@@ -72,7 +72,7 @@ GradientStrip::GradientSpot::GradientSpot(GradientStrip::GradientSpot *spot, boo
 	}
 
 	if (spot) {
-		if (dup_color && spot->color) color = spot->color->duplicate();
+		if (dup_color && spot->color) color = spot->color->duplicateColor();
 		else {
 			color = spot->color;
 			if (color) color->inc_count();
@@ -108,7 +108,7 @@ GradientStrip::GradientSpot::GradientSpot(double tt,double ss,Color *col, bool d
 	ns = 0;
 
 	if (col) {
-		if (dup) color = col->duplicate();
+		if (dup) color = col->duplicateColor();
 		else {
 			color = col;
 			color->inc_count();
@@ -521,23 +521,12 @@ int GradientStrip::maxPreviewSize()
 
 /*! Warning: name and file are not copied.
  */
-anObject *GradientStrip::duplicate(anObject *dup)
+anObject *GradientStrip::duplicate()
 {
-	GradientStrip *g = dynamic_cast<GradientStrip*>(dup);
-	if (dup && !g) return nullptr; //supplied reference was not GradientStrip!
+	GradientStrip *g = newGradientStrip();
+	if (!g) g = new GradientStrip();
 
-	if (!dup) {
-		dup = newGradientStrip();
-		if (dup) {
-			g = dynamic_cast<GradientStrip*>(dup);
-			g->setbounds(minx,maxx,miny,maxy);
-		}
-	} 
-
-	if (!g) {
-		g = new GradientStrip();
-		dup = g;
-	}
+	g->setbounds(minx,maxx,miny,maxy);
 
 	g->gradient_flags = gradient_flags;
 	g->gradient_flags &= ~Built_in;
@@ -554,11 +543,11 @@ anObject *GradientStrip::duplicate(anObject *dup)
 
 	makestr(g->name, name);
 
-	for (int c=0; c<colors.n; c++) {
+	for (int c = 0; c < colors.n; c++) {
 		g->colors.push(new GradientStrip::GradientSpot(colors.e[c]));
 	}
 
-	return dup;
+	return g;
 }
 
 /*! This sets the gradient as a radial gradient.
@@ -688,7 +677,7 @@ int GradientStrip::SetColor(int index, ScreenColor *scolor)
 int GradientStrip::SetColor(int index, Color *color, bool dup)
 {
 	if (index<0 || index>=colors.n) return 1;
-	Color *ncolor = (dup ? color->duplicate() : color);
+	Color *ncolor = (dup ? color->duplicateColor() : color);
 	if (!dup) ncolor->inc_count();
 
 	if (colors.e[index]->color) colors.e[index]->color->dec_count();
@@ -2236,7 +2225,7 @@ int GradientStrip::AddColor(double t, Color *color, bool dup, const char *nname)
 		if (color) {
 			 //replace color
 			colors.e[c]->color->dec_count();
-			colors.e[c]->color = (dup ? color->duplicate() : color);
+			colors.e[c]->color = (dup ? color->duplicateColor() : color);
 			if (!dup) color->inc_count();
 		}
 

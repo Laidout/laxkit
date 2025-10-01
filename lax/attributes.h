@@ -57,14 +57,15 @@ class Attribute {
 
 	unsigned int flags;
 
-	Attribute() { name = value = atttype = comment = NULL;  flags = 0; }
-	Attribute(const char *nn, const char *nval, const char *nt=NULL);
+	Attribute() { name = value = atttype = comment = nullptr;  flags = 0; }
+	Attribute(const char *nn, const char *nval, const char *nt=nullptr);
 	virtual ~Attribute();
-	virtual Attribute *duplicate();
-	virtual Attribute  *find      (const char *fromname, int *i_ret=NULL);
-	virtual const char *findValue (const char *fromname, int *i_ret=NULL);
-	virtual double      findDouble(const char *fromname, int *i_ret=NULL);
-	virtual long        findLong  (const char *fromname, int *i_ret=NULL);
+	virtual Attribute *duplicateAtt();
+	virtual anObject *duplicate() { return dynamic_cast<anObject*>(duplicateAtt()); }
+	virtual Attribute  *find      (const char *fromname, int *i_ret=nullptr);
+	virtual const char *findValue (const char *fromname, int *i_ret=nullptr);
+	virtual double      findDouble(const char *fromname, int *i_ret=nullptr);
+	virtual long        findLong  (const char *fromname, int *i_ret=nullptr);
 	virtual Attribute *pushSubAtt(const char *nname, const char *nvalue=nullptr, const char *ncomment=nullptr);
 	virtual int push(Attribute *att, int where);
 	virtual int push(const char *nname);
@@ -76,7 +77,7 @@ class Attribute {
 	virtual int push(const char *nname,unsigned long nval,int where=-1);
 	virtual int push(const char *nname,int nval,          int where=-1);
 	virtual int push(const char *nname,double nval,       int where=-1);
-	virtual Attribute *Top() { if (attributes.n) return attributes.e[attributes.n-1]; return NULL; }
+	virtual Attribute *Top() { if (attributes.n) return attributes.e[attributes.n-1]; return nullptr; }
 	virtual int remove(int index);
 	virtual void clear();
 	virtual void Comment(const char *ncomment);
@@ -88,8 +89,8 @@ class Attribute {
 	virtual int   dump_in_json(const char *str);
 	virtual int   dump_in_xml (const char *str);
 
-	virtual int   dump_in     (FILE *f,             int Indent,Attribute **stopatsub=NULL);
-	virtual int   dump_in     (IOBuffer &f, int Indent,Attribute **stopatsub=NULL);
+	virtual int   dump_in     (FILE *f,             int Indent,Attribute **stopatsub=nullptr);
+	virtual int   dump_in     (IOBuffer &f, int Indent,Attribute **stopatsub=nullptr);
 
 	virtual char *dump_in_indented (IOBuffer &f, int indent);
 	virtual char *dump_in_until    (IOBuffer &f, const char *str, int indent=0);
@@ -103,14 +104,14 @@ class AttributeObject : public Laxkit::anObject, public Attribute
   public:
 	anObject *data;
 	AttributeObject();
-	AttributeObject(const char *nn, const char *nval,const char *nt=NULL);
+	AttributeObject(const char *nn, const char *nval,const char *nt=nullptr);
 	virtual ~AttributeObject();
-	virtual Attribute *duplicate(); 
+	virtual Attribute *duplicateAtt(); 
 	virtual void SetData(anObject *ndata, int absorb);
 };
 
 //---------------------------------- Dump helper functions ---------------------------------
-void dump_out_value(FILE *f, int indent, const char *value, int valuewidth = 1, const char *comment = NULL, int commentindent = 1);
+void dump_out_value(FILE *f, int indent, const char *value, int valuewidth = 1, const char *comment = nullptr, int commentindent = 1);
 void dump_out_escaped(FILE *f, const char *str, int n);
 void dump_out_indented(FILE *f, int indent, const char *str);
 void dump_out_quoted(FILE *f, const char *value, char quote);
@@ -122,20 +123,20 @@ void skip_to_next_attribute(IOBuffer &f, int indent);
 
 //---------------------------------- Basic Type Conversion Routines -----------------------------------	
 int ByteSizeAttribute(const char *s, long *ll, char towhat);
-double *TransformAttribute(const char *v,double *m,char **endptr=NULL);
+double *TransformAttribute(const char *v,double *m,char **endptr=nullptr);
 bool IsOnlyDouble(const char *v, int len, double *d_ret);
-int DoubleAttribute(const char *v,double *d,char **endptr=NULL);
-int DoubleListAttribute(const char *v,double *d,int maxn,char **endptr=NULL);
+int DoubleAttribute(const char *v,double *d,char **endptr=nullptr);
+int DoubleListAttribute(const char *v,double *d,int maxn,char **endptr=nullptr);
 int DoubleListAttribute(const char *v,double **d,int *n_ret);
-int FloatAttribute(const char *v,float *f,char **endptr=NULL);
+int FloatAttribute(const char *v,float *f,char **endptr=nullptr);
 bool IsOnlyInt(const char *v, int len, int *i_ret);
-int IntAttribute(const char *v,int *i,char **endptr=NULL);
-int UIntAttribute(const char *v,unsigned int *i,char **endptr=NULL);
-int LongAttribute(const char *v,long *l,char **endptr=NULL);
-int ULongAttribute(const char *v,unsigned long *l,char **endptr=NULL);
-int IntListAttribute(const char *v,int *i,int maxn,char **endptr=NULL);
-int IntListAttribute(const char *v,int **i,int *n_ret,char **endptr=NULL);
-char *QuotedAttribute(const char *v,char **endptr=NULL);
+int IntAttribute(const char *v,int *i,char **endptr=nullptr);
+int UIntAttribute(const char *v,unsigned int *i,char **endptr=nullptr);
+int LongAttribute(const char *v,long *l,char **endptr=nullptr);
+int ULongAttribute(const char *v,unsigned long *l,char **endptr=nullptr);
+int IntListAttribute(const char *v,int *i,int maxn,char **endptr=nullptr);
+int IntListAttribute(const char *v,int **i,int *n_ret,char **endptr=nullptr);
+char *QuotedAttribute(const char *v,char **endptr=nullptr);
 char *WholeQuotedAttribute(const char *v);
 int BooleanAttribute(const char *v);
 int NameValueAttribute(const char *str, char **name, char **value, char **end_ptr,
@@ -145,9 +146,9 @@ int SimpleColorAttribute(const char *v,unsigned long *color_ret, Laxkit::ScreenC
 int SimpleColorAttribute(const char *v, double *colors, const char **end_ptr);
 int HexColorAttributeRGB(const char *v,unsigned long *l,const char **endptr);
 int HexColorAttributeRGB(const char *v,Laxkit::ScreenColor *color,const char **endptr);
-int FlatvectorAttribute(const char *v,flatvector *l,char **endptr=NULL);
-int SpacevectorAttribute(const char *v,spacevector *l,char **endptr=NULL);
-int QuaternionAttribute(const char *v,Quaternion *l,char **endptr=NULL);
+int FlatvectorAttribute(const char *v,flatvector *l,char **endptr=nullptr);
+int SpacevectorAttribute(const char *v,spacevector *l,char **endptr=nullptr);
+int QuaternionAttribute(const char *v,Quaternion *l,char **endptr=nullptr);
 
 
 //---------------------------------- XML Conversion helpers -------------------------------

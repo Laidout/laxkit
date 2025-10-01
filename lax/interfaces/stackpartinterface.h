@@ -114,7 +114,7 @@ class StackPartInterface : public anInterface
 
 	StackPartInterface(anInterface *nowner, int nid,Laxkit::Displayer *ndp);
 	virtual ~StackPartInterface();
-	virtual anInterface *duplicate(anInterface *dup);
+	virtual anInterface *duplicateInterface(anInterface *dup);
 	virtual const char *IconId() { return "StackParts"; }
 	virtual const char *Name();
 	virtual const char *whattype() { return "StackPartInterface"; }

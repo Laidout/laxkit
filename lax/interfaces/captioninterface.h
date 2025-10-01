@@ -90,7 +90,7 @@ class CaptionData : virtual public SomeData
 	CaptionData();
 	CaptionData(const char *ntext, const char *nfontfamily, const char *nfontstyle, int fsize, double xcenter, double ycenter);
 	virtual ~CaptionData();
-	virtual SomeData *duplicate(SomeData *dup);
+	virtual SomeData *duplicateData(SomeData *dup);
 	virtual void FindBBox();
 
 	virtual int NeedToRecache();
@@ -200,7 +200,7 @@ class CaptionInterface : public anInterface
 
 	CaptionInterface(int nid,Laxkit::Displayer *ndp);
 	virtual ~CaptionInterface();
-	virtual anInterface *duplicate(anInterface *dup);
+	virtual anInterface *duplicateInterface(anInterface *dup);
 	virtual const char *IconId() { return "Caption"; }
 	virtual const char *Name();
 	virtual const char *whattype() { return "CaptionInterface"; }

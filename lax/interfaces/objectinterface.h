@@ -82,7 +82,7 @@ class ObjectInterface : public RectInterface
 	virtual const char *whatdatatype() { return "Selection"; }
 	virtual int InterfaceOn();
 	virtual int InterfaceOff();
-	virtual anInterface *duplicate(anInterface *dup);
+	virtual anInterface *duplicateInterface(anInterface *dup);
 	virtual void deletedata();
 	virtual void Clear(SomeData *d=NULL);
 	virtual int UseThis(anObject *newdata,unsigned int);

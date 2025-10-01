@@ -162,7 +162,7 @@ class EngraverFillInterface : public PatchInterface
 	virtual const char *Name();
 	virtual const char *whattype() { return "EngraverFillInterface"; }
 	virtual const char *whatdatatype() { return "EngraverFillData"; }
-	virtual anInterface *duplicate(anInterface *dup);
+	virtual anInterface *duplicateInterface(anInterface *dup);
 	virtual int UseThisObject(ObjectContext *oc);
 	virtual int UseThis(anObject *newdata,unsigned int mask=0);
 	virtual int UseThis(int id,int ndata);

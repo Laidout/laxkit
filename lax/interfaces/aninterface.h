@@ -93,7 +93,8 @@ class anInterface : virtual public Laxkit::EventReceiver,
 	anInterface(anInterface *nowner,int nid);
 	anInterface(anInterface *nowner,int nid,Laxkit::Displayer *ndp);
 	virtual ~anInterface();
-	virtual anInterface *duplicate(anInterface *dup);
+	virtual anInterface *duplicateInterface(anInterface *dup);
+	virtual anObject *duplicate() { return duplicateInterface(nullptr); }
 	virtual Laxkit::ShortcutHandler *GetShortcuts();
 	virtual int PerformAction(int actionnumber);
 

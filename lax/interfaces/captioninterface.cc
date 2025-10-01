@@ -199,7 +199,7 @@ CaptionData::~CaptionData()
 	DBG cerr <<"-- CaptionData dest. end"<<endl;
 }
 
-SomeData *CaptionData::duplicate(SomeData *dup)
+SomeData *CaptionData::duplicateData(SomeData *dup)
 {
 	CaptionData *i=dynamic_cast<CaptionData*>(dup);
     if (!i && dup) return NULL; //was not an ImageData!
@@ -233,7 +233,7 @@ SomeData *CaptionData::duplicate(SomeData *dup)
 	if (color) {
 		if (color->ObjectOwner() == this) {
 			 //dup color
-			i->color = color->duplicate();
+			i->color = color->duplicateColor();
 		} else {
 			 //link color
 			i->color = color;
@@ -1489,7 +1489,7 @@ SomeData *CaptionData::ConvertToPaths(bool use_clones, RefPtrStack<SomeData> *cl
 			  } else pobject = layers.e[layer];
 
 			   //provide proper offset
-			  PathsData *newchar = dynamic_cast<PathsData*>(outline->duplicate(NULL));
+			  PathsData *newchar = dynamic_cast<PathsData*>(outline->duplicate());
 
 			  for (int p=0; p<newchar->paths.n; p++) {
 				  Coordinate *coord = newchar->paths.e[p]->path;
@@ -1643,11 +1643,11 @@ CaptionInterface::~CaptionInterface()
 //! Return new CaptionInterface.
 /*! If dup!=NULL and it cannot be cast to CaptionInterface, then return NULL.
  */
-anInterface *CaptionInterface::duplicate(anInterface *dup)
+anInterface *CaptionInterface::duplicateInterface(anInterface *dup)
 {
 	if (dup==NULL) dup=new CaptionInterface(id,NULL);
 	else if (!dynamic_cast<CaptionInterface *>(dup)) return NULL;
-	return anInterface::duplicate(dup);
+	return anInterface::duplicateInterface(dup);
 }
 
 const char *CaptionInterface::Name()

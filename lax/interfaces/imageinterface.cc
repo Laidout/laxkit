@@ -112,7 +112,7 @@ ImageData::~ImageData()
 }
 
 //! Return a new ImageData, based on this.
-SomeData *ImageData::duplicate(SomeData *dup)
+SomeData *ImageData::duplicateData(SomeData *dup)
 {
 	ImageData *newimage = dynamic_cast<ImageData*>(dup);
 	if (!newimage && dup) return nullptr; //was not an ImageData!
@@ -522,12 +522,12 @@ const char *ImageInterface::Name()
  *
  * \todo dup max_preview dims, and make it one dim, not x and y?
  */
-anInterface *ImageInterface::duplicate(anInterface *dup)
+anInterface *ImageInterface::duplicateInterface(anInterface *dup)
 {
 	if (dup==nullptr) dup=new ImageInterface(id,nullptr);
 	else if (!dynamic_cast<ImageInterface *>(dup)) return nullptr;
 
-	return anInterface::duplicate(dup);
+	return anInterface::duplicateInterface(dup);
 }
 
 //! Use the object at oc if it is an ImageData.
@@ -540,7 +540,7 @@ int ImageInterface::UseThisObject(ObjectContext *oc)
 
 	if (data && data!=ndata) deletedata();
 	if (ioc) delete ioc;
-	ioc=oc->duplicate();
+	ioc = oc->duplicate();
 
 	if (data!=ndata) {
 		data=ndata;
@@ -850,7 +850,7 @@ ImageData *ImageInterface::newData()
 		ObjectContext *oc=nullptr;
 		viewport->NewData(ndata,&oc);//viewport adds only its own counts
 		if (ioc) delete ioc;
-		if (oc) ioc=oc->duplicate();
+		if (oc) ioc = oc->duplicate();
 	}
 	return ndata;
 }
@@ -894,7 +894,7 @@ int ImageInterface::LBDown(int x,int y,unsigned int state,int count,const Laxkit
 			data=obj;
 			data->inc_count();
 			if (ioc) delete ioc;
-			ioc=oc->duplicate();
+			ioc = oc->duplicate();
 
 			if (viewport) viewport->ChangeObject(oc,0,true);
 			needtodraw=1;

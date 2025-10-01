@@ -45,7 +45,7 @@ class ColorPatchData : public PatchData
 	ColorPatchData();
 	virtual ~ColorPatchData();
 	const char *whattype() { return "ColorPatchData"; }
-	virtual SomeData *duplicate(SomeData *dup);
+	virtual SomeData *duplicateData(SomeData *dup);
 
 	virtual void CopyMeshPoints(PatchData *patch, bool usepath);
 	virtual void Set(double xx,double yy,double ww,double hh,int nr,int nc,unsigned int stle);
@@ -92,7 +92,7 @@ class ColorPatchInterface : public PatchInterface
 	ColorPatchInterface(int nid,Laxkit::Displayer *ndp);
 	virtual ~ColorPatchInterface();
 	virtual Laxkit::ShortcutHandler *GetShortcuts();
-	virtual anInterface *duplicate(anInterface *dup=NULL);
+	virtual anInterface *duplicateInterface(anInterface *dup);
 	virtual const char *IconId() { return "ColorPatch"; }
 	virtual const char *Name();
 	virtual const char *whattype() { return "ColorPatchInterface"; }

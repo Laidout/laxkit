@@ -214,7 +214,7 @@ int ByteSizeAttribute(const char *s, long *ll, char towhat)
 		return 0;
 	}
 	char *e;
-	long l=strtol(str,&e,10);//supposedly, e will never be NULL
+	long l=strtol(str,&e,10);//supposedly, e will never be nullptr
 	if (e==str) {
 		delete[] str;
 		if (ll) *ll=0;
@@ -260,7 +260,7 @@ bool IsOnlyDouble(const char *v, int len, double *d_ret)
 //! Turn v into a double, put in d if successful, return 1. Else don't change d and return 0.
 /*! \ingroup attributes
  */
-int DoubleAttribute(const char *v,double *d,char **endptr)//endptr=NULL
+int DoubleAttribute(const char *v,double *d,char **endptr)//endptr=nullptr
 {
 	if (!v) return 0;
 	char *e;
@@ -278,7 +278,7 @@ int DoubleAttribute(const char *v,double *d,char **endptr)//endptr=NULL
  *
  * The numbers must be separated by whitespace or a comma.
  */
-int DoubleListAttribute(const char *v,double *d,int maxn,char **endptr)//endptr=NULL
+int DoubleListAttribute(const char *v,double *d,int maxn,char **endptr)//endptr=nullptr
 {
 	if (!v) return 0;
 	char *e;
@@ -311,7 +311,7 @@ int DoubleListAttribute(const char *v,double **d,int *n_ret)
 	char *str=newstr(v);
 	int n=0;
 	char **fields=splitonspace(str,&n);
-	if (!n) { if (n_ret) *n_ret=0; *d=NULL; return 0; }
+	if (!n) { if (n_ret) *n_ret=0; *d=nullptr; return 0; }
 	char *e;
 	int nn=0;
 	double dd,*ddd=new double[n];
@@ -326,7 +326,7 @@ int DoubleListAttribute(const char *v,double **d,int *n_ret)
 		if (n_ret) *n_ret=nn;
 	} else {
 		delete[] ddd;
-		*d=NULL;
+		*d=nullptr;
 		if (n_ret) *n_ret=0;
 	}
 	delete[] fields;
@@ -336,7 +336,7 @@ int DoubleListAttribute(const char *v,double **d,int *n_ret)
 //! Turn v into a float, put in f if successful, return 1. Else don't change f and return 0.
 /*! \ingroup attributes
  */
-int FloatAttribute(const char *v,float *f,char **endptr)//endptr=NULL
+int FloatAttribute(const char *v,float *f,char **endptr)//endptr=nullptr
 {
 	if (!v) return 0;
 	char *e;
@@ -350,7 +350,7 @@ int FloatAttribute(const char *v,float *f,char **endptr)//endptr=NULL
 //! Turn v into an unsigned int, put in i if successful, return 1. Else don't change i and return 0.
 /*! \ingroup attributes
  */
-int UIntAttribute(const char *v,unsigned int *i,char **endptr)//endptr=NULL
+int UIntAttribute(const char *v,unsigned int *i,char **endptr)//endptr=nullptr
 {
 	if (!v) return 0;
 	char *e;
@@ -366,7 +366,7 @@ int UIntAttribute(const char *v,unsigned int *i,char **endptr)//endptr=NULL
  *
  * \todo warning, this will parse "200jjj" as 200, and return 1.
  */
-int IntAttribute(const char *v,int *i,char **endptr)//endptr=NULL
+int IntAttribute(const char *v,int *i,char **endptr)//endptr=nullptr
 {
 	if (!v) return 0;
 	char *e;
@@ -397,7 +397,7 @@ bool IsOnlyInt(const char *v, int len, int *i_ret)
 }
 
 //! Figure out if value is yes==true==1 or no==false==0. Return the boolean value.
-/*! If value==NULL or value=="" then assume true. This is usually what is
+/*! If value==nullptr or value=="" then assume true. This is usually what is
  * wanted since it would be something like name="someflag" and no value means
  * that the flag simply exists.
  *
@@ -424,7 +424,7 @@ int BooleanAttribute(const char *v)
 int SimpleColorAttribute(const char *v,unsigned long *color_ret, Laxkit::ScreenColor *scolor_ret, const char **end_ptr)
 {
 	double colors[5];
-	const char *endpp=NULL;
+	const char *endpp=nullptr;
 	int status = SimpleColorAttribute(v, colors, &endpp);
 	if (status != 0) return status;
 	if (end_ptr) *end_ptr=endpp;
@@ -564,7 +564,7 @@ int SimpleColorAttribute(const char *v, double *colors, const char **end_ptr)
 	int a=0;  //has alpha
 	int f=-1; //is float==0, is css==1, or 8, or 16bit
 
-	if (strchr(v,'.')!=NULL) f=0; //assume floats if has decimal points
+	if (strchr(v,'.')!=nullptr) f=0; //assume floats if has decimal points
 
 	if (type!=0 && (*v=='a' || *v=='A')) { a=1; v++; } // has alpha
 	if (type!=0 && (*v=='f' || *v=='F')) { f=0; v++; } // read in floats
@@ -671,7 +671,7 @@ int HexColorAttributeRGB(const char *value,Laxkit::ScreenColor *color,const char
 	int n=0;
 	int r,g,b,a;
 	while (isxdigit(v[n])) n++;
-	char *end=NULL;
+	char *end=nullptr;
 	unsigned long num=strtol(v,&end,16);
 	if (end==v) {
 		 //wasn't a number there to parse!
@@ -810,7 +810,7 @@ int QuaternionAttribute(const char *v,Quaternion *vec,char **endptr)
 //! Turn v into an unsigned long, put in l if successful, return 1. Else don't change l and return 0.
 /*! \ingroup attributes
  */
-int ULongAttribute(const char *v,unsigned long *l,char **endptr)//endptr=NULL
+int ULongAttribute(const char *v,unsigned long *l,char **endptr)//endptr=nullptr
 {
 	if (!v) return 0;
 	char *e;
@@ -826,7 +826,7 @@ int ULongAttribute(const char *v,unsigned long *l,char **endptr)//endptr=NULL
  * Return 1 if successful. Else don't change l and return 0.
  * endptr will point to either the first invalid char, or to v.
  */
-int LongAttribute(const char *v,long *l,char **endptr)//endptr=NULL
+int LongAttribute(const char *v,long *l,char **endptr)//endptr=nullptr
 {
 	if (!v) return 0;
 	char *e;
@@ -842,7 +842,7 @@ int LongAttribute(const char *v,long *l,char **endptr)//endptr=NULL
  * Put in i[] if successful, return number of items parsed. Else don't change i's elements and return 0.
  * The numbers must be separated by whitespace.
  */
-int IntListAttribute(const char *v,int *i,int maxn,char **endptr)//endptr=NULL
+int IntListAttribute(const char *v,int *i,int maxn,char **endptr)//endptr=nullptr
 {
 	if (!v) return 0;
 	char *e;
@@ -862,13 +862,13 @@ int IntListAttribute(const char *v,int *i,int maxn,char **endptr)//endptr=NULL
 
 //! Turn v into a new int[], and put it in i. Put the number of values in n_ret.
 /*! \ingroup attributes
- * Put in i if successful, return number of items parsed. Else point i to NULL and return 0.
+ * Put in i if successful, return number of items parsed. Else point i to nullptr and return 0.
  * The numbers must be separated by whitespace.
  *
  * The first part unparsable into an int breaks the reading. The rest of the string is ignored.
  *
  * Returns the number of ints successfully parsed. This is the same number put in n_ret, if
- * n_ret!=NULL.
+ * n_ret!=nullptr.
  *
  * \todo *** need to do some testing on this
  */
@@ -881,7 +881,7 @@ int IntListAttribute(const char *v,int **i,int *n_ret,char **endptr)
 		c,
 		n=0;
 	const char *vv=v;
-	char *e=NULL;
+	char *e=nullptr;
 	
 	while (1) {
 		c=IntListAttribute(vv,ii+max-5,5,&e);
@@ -902,10 +902,10 @@ int IntListAttribute(const char *v,int **i,int *n_ret,char **endptr)
 }
 
 //! Return a double[6] transform derived from v.
-/*! If m!=NULL, then put the result there. Otherwise, return a new double[6].
+/*! If m!=nullptr, then put the result there. Otherwise, return a new double[6].
  *
  * The transform can be a simple list of 6 real numbers or an SVG style transform.
- * In the first case, less than 6 numbers will return NULL. Parsing stops after those
+ * In the first case, less than 6 numbers will return nullptr. Parsing stops after those
  * 6 numbers.
  * 
  * The SVG style transform is composed of a list of chunks of:
@@ -919,7 +919,7 @@ int IntListAttribute(const char *v,int **i,int *n_ret,char **endptr)
  *  translate, rotate, and scale, all the numbers after the 1st are optional.    
  *  Parsing will stop at the first chunk not recognized as a further transform element.
  *
- * If there is an error, NULL is returned, else m is returned. If m is NULL, then a new
+ * If there is an error, nullptr is returned, else m is returned. If m is nullptr, then a new
  * double[6] is returned.
  *
  *  \todo *** implement me!
@@ -932,7 +932,7 @@ double *TransformAttribute(const char *v,double *m,char **endptr)
 	if (isdigit(*v) || *v=='-' || *v=='.') {
 		 //found a number, so assume a list of 6 numbers
 		int n = DoubleListAttribute(v, matrix, 6, endptr);
-		if (n!=6) return NULL;
+		if (n!=6) return nullptr;
 		if (!m) m = new double[6];
 		transform_copy(m,matrix);
 		return m;
@@ -943,7 +943,7 @@ double *TransformAttribute(const char *v,double *m,char **endptr)
 	transform_identity(matrix);
 	double d[6], tt[6];
 	const char *vv;
-	char *ee=NULL;
+	char *ee=nullptr;
 	int n;
 	while (*v) {
 		while (isspace(*v) || *v==',') v++;
@@ -1024,7 +1024,7 @@ double *TransformAttribute(const char *v,double *m,char **endptr)
  *
  * Quotes can be '"' or '\''.
  *
- * On error or no first chunk, NULL is returned.
+ * On error or no first chunk, nullptr is returned.
  *
  * Please note that it is assumed that there is no trailing comment in v. That is, there
  * is no final chunk of text beginning with a '#' character.
@@ -1035,7 +1035,7 @@ double *TransformAttribute(const char *v,double *m,char **endptr)
  */
 char *QuotedAttribute(const char *v,char **endptr)
 {
-	if (!v) return NULL;
+	if (!v) return nullptr;
 	char *s = new char[strlen(v)+1];
 	char *sp= s;
 	const char *p=v;
@@ -1089,15 +1089,15 @@ char *QuotedAttribute(const char *v,char **endptr)
  */
 char *WholeQuotedAttribute(const char *v)
 {
-	if (!v) return NULL;
+	if (!v) return nullptr;
 	while (isspace(*v)) v++;
-	if (!*v) return NULL;
+	if (!*v) return nullptr;
 	
 	if (*v!='"') {
 		 //the simple case just return whole thing
 		const char *end=v+strlen(v)-1;
 		while (end!=v && isspace(*end)) end--;
-		if (end==v) return NULL;
+		if (end==v) return nullptr;
 		return newnstr(v,end-v+1);		
 	}
 	
@@ -1106,7 +1106,7 @@ char *WholeQuotedAttribute(const char *v)
 	 // so this chunk starts with a quote, it could be:
 	 // '"2" "3"'  or  '"23\"4"  56' or  '"aohoau aou "'
 	const char *p=v+1; //v points to first quote
-	const char *end=NULL;
+	const char *end=nullptr;
 	while (*p) {
 		while (*p && *p!='\\' && *p!='"') p++;
 		if (*p=='\\') { //potential escaped quote
@@ -1115,17 +1115,17 @@ char *WholeQuotedAttribute(const char *v)
 			end=p; // make end point to final quote
 			p++;
 			while (isspace(*p)) p++;
-			if (*p!='\0') end=NULL; //do whole thing if another chunk found
+			if (*p!='\0') end=nullptr; //do whole thing if another chunk found
 			break;
 		}
 		p++;
 	}
-	if (end==NULL) { // must use whole thing from v (includes initial quote)
+	if (end==nullptr) { // must use whole thing from v (includes initial quote)
 		end=p+strlen(p);
 	} else {
 		v++;
 	}
-	if (end==v) return NULL;
+	if (end==v) return nullptr;
 	return newnstr(v,end-v);
 }
 
@@ -1146,7 +1146,7 @@ bool HasEdgeWhitespace(const char *value)
  * quotes escaped, and after writing out a space. If there are newlines, " \\\n"
  * is output and value is written on subsequent lines at indent.
  *
- * A newline is always the last thing written to the file. If value==NULL,
+ * A newline is always the last thing written to the file. If value==nullptr,
  * a single newline is written to f.
  *
  * If the string has leading or trailing whitespace, or a number sign, they will be escaped.
@@ -1391,7 +1391,7 @@ void dump_out_indented(FILE *f, int indent, const char *str)
 void skip_to_next_attribute(IOBuffer &f,int indent)
 {
 	long pos;
-	char *line=NULL;
+	char *line=nullptr;
 	size_t n=0;
 	int c,i;
 
@@ -1422,7 +1422,7 @@ void skip_to_next_attribute(IOBuffer &f,int indent)
  * 
  * name is the id tag of the entry, or the attribute name.
  * 
- * atttype is the type of thing that name is. If atttype==NULL, then assume the value is
+ * atttype is the type of thing that name is. If atttype==nullptr, then assume the value is
  * a string.
  *
  *
@@ -1440,11 +1440,11 @@ void skip_to_next_attribute(IOBuffer &f,int indent)
 
 Attribute::Attribute(const char *nn, const char *val,const char *nt)
 {
-	name=value=atttype=NULL;
+	name=value=atttype=nullptr;
 	makestr(name,nn);
 	makestr(value,val);
 	makestr(atttype,nt);
-	comment = NULL;
+	comment = nullptr;
 	flags=0;
 }
 
@@ -1456,13 +1456,13 @@ Attribute::~Attribute()
 	delete[] comment;
 }
 
-//! Set name, value, atttype, comment to NULL and flush attributes.
+//! Set name, value, atttype, comment to nullptr and flush attributes.
 void Attribute::clear()
 {
-	delete[] name;    name    = NULL;
-	delete[] value;   value   = NULL;
-	delete[] atttype; atttype = NULL;
-	delete[] comment; comment = NULL;
+	delete[] name;    name    = nullptr;
+	delete[] value;   value   = nullptr;
+	delete[] atttype; atttype = nullptr;
+	delete[] comment; comment = nullptr;
 	attributes.flush();
 }
 
@@ -1474,15 +1474,15 @@ void Attribute::Comment(const char *ncomment)
 }
 
 //! Return a new deep copy of *this.
-Attribute *Attribute::duplicate()
+Attribute *Attribute::duplicateAtt()
 {
-	Attribute *att=new Attribute(name,value,atttype);
+	Attribute *att = new Attribute(name,value,atttype);
 	att->flags = flags;
 	makestr(att->comment, comment);
 
-	for (int c=0; c<attributes.n; c++) {
-		if (!attributes.e[c]) continue; //tweak to ignore NULL attributes
-		att->push(attributes.e[c]->duplicate(),-1);
+	for (int c = 0; c < attributes.n; c++) {
+		if (!attributes.e[c]) continue; //tweak to ignore nullptr attributes
+		att->push(attributes.e[c]->duplicateAtt(),-1);
 	}
 	return att;
 }
@@ -1491,8 +1491,8 @@ Attribute *Attribute::duplicate()
 /*! i_ret is the index of the subattribute found, or -1 if not found, or -2 if found,
  * but could not convert to double.
  *
- * If an attribute is not found, NULL is returned.
- * If an attribute with a NULL value is found, then "" is returned.
+ * If an attribute is not found, nullptr is returned.
+ * If an attribute with a nullptr value is found, then "" is returned.
  */
 const char *Attribute::findValue(const char *fromname,int *i_ret)
 {
@@ -1545,15 +1545,15 @@ long Attribute::findLong(const char *fromname,int *i_ret)
 		if (attributes.e[c]->name && !strcmp(attributes.e[c]->name,fromname)) {
 			if (!isblank(attributes.e[c]->value)) {
 				if (i_ret) *i_ret=c;
-				return strtol(attributes.e[c]->value,NULL,10);
+				return strtol(attributes.e[c]->value,nullptr,10);
 			}
 			break;
 		}
 	return 0;
 }
 
-//! Return the first sub-attribute with the name fromname, or NULL if not found.
-/*! If i_ret!=NULL, then fill it with the index of the attribute, if found, or -1 if not found.
+//! Return the first sub-attribute with the name fromname, or nullptr if not found.
+/*! If i_ret!=nullptr, then fill it with the index of the attribute, if found, or -1 if not found.
  */
 Attribute *Attribute::find(const char *fromname,int *i_ret)
 {
@@ -1597,10 +1597,10 @@ int Attribute::pushn(const char *nname, int len)
 	return push(v ,-1);
 }
 
-//! Shortcut to push with name and a NULL value to top of stack.
+//! Shortcut to push with name and a nullptr value to top of stack.
 int Attribute::push(const char *nname)
 {
-	Attribute *v=new Attribute(nname,NULL,NULL);
+	Attribute *v=new Attribute(nname,nullptr,nullptr);
 	return push(v,-1);
 }
 
@@ -1609,7 +1609,7 @@ int Attribute::pushStr(const char *nname, int where, const char *fmt, ...)
     va_list arg;
 
     va_start(arg, fmt);
-    int c = vsnprintf(NULL, 0, fmt, arg);
+    int c = vsnprintf(nullptr, 0, fmt, arg);
     va_end(arg);
 
     char *message = new char[c+1];
@@ -1636,7 +1636,7 @@ int Attribute::push(const char *nname,const char *nval, const char *ncomment, in
  */
 int Attribute::push(const char *nname,const char *nval,int where)
 {
-	Attribute *v=new Attribute(nname,nval,NULL);
+	Attribute *v=new Attribute(nname,nval,nullptr);
 	return push(v,where);
 }
 
@@ -1650,7 +1650,7 @@ int Attribute::push(const char *nname,int nval,int where)
 {
 	char scratch[20];
 	sprintf(scratch,"%d",nval);
-	Attribute *v=new Attribute(nname,scratch,NULL);
+	Attribute *v=new Attribute(nname,scratch,nullptr);
 	return push(v,where);
 }
 
@@ -1664,7 +1664,7 @@ int Attribute::push(const char *nname,long nval,int where)
 {
 	char scratch[20];
 	sprintf(scratch,"%ld",nval);
-	Attribute *v=new Attribute(nname,scratch,NULL);
+	Attribute *v=new Attribute(nname,scratch,nullptr);
 	return push(v,where);
 }
 
@@ -1678,7 +1678,7 @@ int Attribute::push(const char *nname,unsigned long nval,int where)
 {
 	char scratch[20];
 	sprintf(scratch,"%lu",nval);
-	Attribute *v=new Attribute(nname,scratch,NULL);
+	Attribute *v=new Attribute(nname,scratch,nullptr);
 	return push(v,where);
 }
 
@@ -1692,7 +1692,7 @@ int Attribute::push(const char *nname,double nval,int where)
 {
 	char scratch[20];
 	sprintf(scratch,"%.10g",nval);
-	Attribute *v=new Attribute(nname,scratch,NULL);
+	Attribute *v=new Attribute(nname,scratch,nullptr);
 	return push(v,where);
 }
 
@@ -1764,7 +1764,7 @@ void Attribute::dump_out(FILE *f, int indent)
 /*! Convenience function to write the ENTIRE attribute, INCLUDING name, value,
  * and subattributes  to f, such as with \a dump_out_full(stdout,0).
  *
- * If there is no name, value, or subatts then nothing is written. If name==NULL,
+ * If there is no name, value, or subatts then nothing is written. If name==nullptr,
  * or empty, then "\"\"" is written for name, but value is still written.
  */
 void Attribute::dump_out_full(FILE *f, int indent)
@@ -1799,7 +1799,7 @@ void Attribute::dump_out_full(FILE *f, int indent)
  */
 char *Attribute::dump_in_indented(IOBuffer &f, int Indent)
 {
-	char *line=NULL,*str=NULL,*tline;
+	char *line=nullptr,*str=nullptr,*tline;
 	size_t n;
 	int c,indent;
 
@@ -1823,7 +1823,7 @@ char *Attribute::dump_in_indented(IOBuffer &f, int Indent)
 			f.SetPos(pos);
 			if (f.IsEOF()) f.Clearerr();
 			if (line) f.FreeGetLinePtr(line);
-			line=NULL;
+			line=nullptr;
 			n=0;
 			return str;
 		}
@@ -1859,8 +1859,8 @@ char *Attribute::dump_in_indented(IOBuffer &f, int Indent)
  */
 char *Attribute::dump_in_until(IOBuffer &f, const char *tag, int Indent)//indent=0
 {
-	char *str  = NULL;
-	char *line = NULL, *tline;
+	char *str  = nullptr;
+	char *line = nullptr, *tline;
 	size_t n;
 	int c,indent=-1,i;
 	long pos;
@@ -1910,16 +1910,16 @@ char *removeescapes(char *&str)
 	return str;
 }
 
-/*! This function just wraps f in an IOBuffer, and calls dump_in(IOBuffer &f, int Indent,Attribute **stopatsub=NULL)
+/*! This function just wraps f in an IOBuffer, and calls dump_in(IOBuffer &f, int Indent,Attribute **stopatsub=nullptr)
  */
-int Attribute::dump_in(FILE *f, int Indent,Attribute **stopatsub)//stopatsub=NULL
+int Attribute::dump_in(FILE *f, int Indent,Attribute **stopatsub)//stopatsub=nullptr
 {
 	IOBuffer ff;
 	ff.UseThis(f);
 
 	dump_in(ff,Indent,stopatsub);
 
-	ff.UseThis(NULL);
+	ff.UseThis(nullptr);
 	return 0;
 }
 
@@ -1932,7 +1932,7 @@ int Attribute::dump_in(FILE *f, int Indent,Attribute **stopatsub)//stopatsub=NUL
  *
  * Each subelement parsed in is pushed onto the top of the attributes stack.
  *
- * If stopatsub!=NULL, then parsing halts after 1 subattribute is encountered,
+ * If stopatsub!=nullptr, then parsing halts after 1 subattribute is encountered,
  * *stopatsub is made to point to the relevant subattribute (which is somewhere on
  * the attributes stack), and the actual indentation of the subattribute line is returned.
  * This allows programs to parse just so far, then they can pass parsing control
@@ -1952,28 +1952,28 @@ int Attribute::dump_in(FILE *f, int Indent,Attribute **stopatsub)//stopatsub=NUL
  * No substitutions are done. That is, say defaultpage is defined
  * previously in a containing scope, and a subattribute with name
  * defaultpage is found here, it is parsed in as name="defaultpage",
- * value=NULL. Substituting must be done elsewhere.
+ * value=nullptr. Substituting must be done elsewhere.
  * 
- * If stopatsub!=NULL, return -1 for nothing found or EOF, or if a subattribute was just
+ * If stopatsub!=nullptr, return -1 for nothing found or EOF, or if a subattribute was just
  * parsed, return the actual indent of that subattribute.
  *
- * If stopatsub==NULL, return the number of subattributes read, or a negative number for error.
+ * If stopatsub==nullptr, return the number of subattributes read, or a negative number for error.
  * The calling code must check for EOF itself. Compounding elements with the +name mechanism
  * counts as 1 subattribute read per +name line.
  * 
- * \todo make name==NULL (in file as "") and value=something like "1234\naeuo" behave in
+ * \todo make name==nullptr (in file as "") and value=something like "1234\naeuo" behave in
  *   some sort of reasonable way, like have name become "" or ~ or something..
  */
 int Attribute::dump_in(IOBuffer &f, int Indent,Attribute **stopatsub)
 {
 	if (f.IsEOF()) return 0;
 
-	char *line=NULL;
+	char *line=nullptr;
 	int c,indent;
 	size_t n=0;
-	char *val,*fld,*temp=NULL;
+	char *val,*fld,*temp=nullptr;
 	int nf,numattsread=0;
-	if (stopatsub) *stopatsub=NULL;
+	if (stopatsub) *stopatsub=nullptr;
 
 	while (!f.IsEOF()) {
 		c = getline_indent_nonblank(&line,&n,f,Indent,"#",'"',1);
@@ -2014,7 +2014,7 @@ int Attribute::dump_in(IOBuffer &f, int Indent,Attribute **stopatsub)
 		 //   <<<filename <-- signal that format is ATT_VALUE_FILE, contents in file filename 
 		 //   << BLAH <-- raw read in until BLAH is encountered again. 
 		 //   < BLAH <-- indented raw read in until BLAH is encountered again. 
-		 //   (NULL)
+		 //   (nullptr)
 		 //   somesimplevalue
 		 //   "some quoted value, maybe with escaped \t things"
 
@@ -2031,7 +2031,7 @@ int Attribute::dump_in(IOBuffer &f, int Indent,Attribute **stopatsub)
 			val += 3;
 			while (isspace(*val)) val++;
 			if (!*val) { 
-				val = NULL; 
+				val = nullptr; 
 				DBG cerr <<" <<< broken filename!!"<<endl; 
 			} else {
 				// *** supposed to read in file and put it in attribute
@@ -2042,7 +2042,7 @@ int Attribute::dump_in(IOBuffer &f, int Indent,Attribute **stopatsub)
 			val += 2;
 			while (isspace(*val)) val++;
 			if (!*val) { 
-				val = NULL;
+				val = nullptr;
 				DBG cerr <<" <<< broken indented tag!! "<<endl;
 			} else {
 				val = temp = dump_in_until(f,val,indent+1);
@@ -2053,7 +2053,7 @@ int Attribute::dump_in(IOBuffer &f, int Indent,Attribute **stopatsub)
 			val++;
 			while (isspace(*val)) val++;
 			if (!*val) {
-				val = NULL;
+				val = nullptr;
 				DBG cerr <<" <<< broken rawtag!! "<<endl;
 			} else {
 				val = temp = dump_in_until(f,val,0);
@@ -2084,7 +2084,7 @@ int Attribute::dump_in(IOBuffer &f, int Indent,Attribute **stopatsub)
 			}
 		}
 		if (val) makestr(att->value,val);
-		if (temp) { delete[] temp; temp=NULL; }
+		if (temp) { delete[] temp; temp=nullptr; }
 
 		//DBG char spc[indent+1]; memset(spc,' ',indent); spc[indent]='\0';
 		//DBG cerr<<spc<<"Found att("<<attributes.n<<"):\""<<(att->name?att->name:"(no name)")<<"\" = \""
@@ -2124,7 +2124,7 @@ int Attribute::dump_in(const char *filename, int what)
 		return 1;
 	}
 	if (what == ATT_Xml) {
-		if (XMLFileToAttribute(this, filename, NULL) == this) return 0;
+		if (XMLFileToAttribute(this, filename, nullptr) == this) return 0;
 		return 1;
 	}
 
@@ -2138,7 +2138,7 @@ int Attribute::dump_in(const char *filename, int what)
 
 	makestr(name,"file");
 	makestr(value,filename);
-	makestr(atttype,NULL);
+	makestr(atttype,nullptr);
 
 	DBG cerr <<"Reading "<<filename<<"...."<<endl;
 
@@ -2158,8 +2158,8 @@ int Attribute::dump_in_str(const char *str)
 	f.OpenCString(str);
 
 	makestr(name,"string");
-	makestr(value,NULL);
-	makestr(atttype,NULL);
+	makestr(value,nullptr);
+	makestr(atttype,nullptr);
 
 	//dump_in(f,0);
 	cerr << " *** need to implement  Attribute::dump_in_str()!"<<endl;
@@ -2172,7 +2172,7 @@ int Attribute::dump_in_str(const char *str)
  */
 int Attribute::dump_in_json(const char *str)
 {
-	if (JsonStringToAttribute (str, this, NULL) == this) return 0;
+	if (JsonStringToAttribute (str, this, nullptr) == this) return 0;
 	return 1;
 }
 
@@ -2181,8 +2181,8 @@ int Attribute::dump_in_json(const char *str)
 int Attribute::dump_in_xml (const char *str)
 {
 	long pos = 0;
-	const char **stand_alone_tag_list = NULL;
-	if (XMLChunkToAttribute(this, str,strlen(str), &pos, NULL, stand_alone_tag_list) == this) return 0;
+	const char **stand_alone_tag_list = nullptr;
+	if (XMLChunkToAttribute(this, str,strlen(str), &pos, nullptr, stand_alone_tag_list) == this) return 0;
 	return 1;
 }
 
@@ -2266,20 +2266,20 @@ int NameValueAttribute(const char *str, char **name, char **value, char **end_pt
 }
 
 //! Transform something like "name=value name2=value2" into an Attribute.
-/*! If att!=NULL, then append subattributes to it and also return att.
+/*! If att!=nullptr, then append subattributes to it and also return att.
  * Otherwise, return a new Attribute.
  */
 Attribute *NameValueToAttribute(Attribute *att,const char *str, char assign, char delim)
 {
 	if (!att) att=new Attribute;
 
-	char *name=NULL,*value=NULL;
+	char *name=nullptr,*value=nullptr;
 	char *end;
 
 	end=const_cast<char *>(str);
 	do {
 		str=end;
-		if (NameValueAttribute(str,&name,&value,&end,assign,delim,NULL)!=0) break;
+		if (NameValueAttribute(str,&name,&value,&end,assign,delim,nullptr)!=0) break;
 		att->push(name,value);
 		delete[] name;
 		delete[] value;
@@ -2299,13 +2299,13 @@ Attribute *NameValueToAttribute(Attribute *att,const char *str, char assign, cha
 AttributeObject::AttributeObject()
   : Attribute()
 {
-	data = NULL;
+	data = nullptr;
 }
 
 AttributeObject::AttributeObject(const char *nn, const char *nval,const char *nt)
   : Attribute(nn,nval,nt)
 {
-	data = NULL;
+	data = nullptr;
 }
 
 AttributeObject::~AttributeObject()
@@ -2313,16 +2313,16 @@ AttributeObject::~AttributeObject()
 	if (data) data->dec_count();
 }
 
-Attribute *AttributeObject::duplicate()
+Attribute *AttributeObject::duplicateAtt()
 {
 	AttributeObject *att=new AttributeObject(name,value,atttype);
 	att->flags=flags;
 	for (int c=0; c<attributes.n; c++) {
-		if (!attributes.e[c]) continue; //tweak to ignore NULL attributes
-		att->push(attributes.e[c]->duplicate(),-1);
+		if (!attributes.e[c]) continue; //tweak to ignore nullptr attributes
+		att->push(attributes.e[c]->duplicateAtt(),-1);
 	}
 
-	if (data) att->SetData(data->duplicate(NULL), 1);
+	if (data) att->SetData(data->duplicate(), 1);
 	return att;
 }
 
@@ -2462,7 +2462,7 @@ int SubAttributesToXMLFile(FILE *f, Attribute *att, int indent)
 }
 
 //! Convert the attribute to a character array.
-/*! If appendtothis!=NULL, then append to it. Otherwise return a new char[].
+/*! If appendtothis!=nullptr, then append to it. Otherwise return a new char[].
  *
  * Comments are derived from attributes with name "!--". A <?xml ... ?> tag is 
  * derived from an attribute with name ?xml. Any value is mapped to content. Subattributes
@@ -2473,15 +2473,15 @@ int SubAttributesToXMLFile(FILE *f, Attribute *att, int indent)
  */
 char *AttributeToXML(Attribute *att,char *&appendtothis, char **error_ret)
 {//***
-	if (!att) return NULL;
+	if (!att) return nullptr;
 	DBGE("*** implement AttributeToXML!!");
-	return NULL;
+	return nullptr;
 }
 
 //! Read in an XML file, and rather simply make an Attribute out of it.
-/*! This merely opens the file and returns XMLChunkToAttribute(NULL,f,stand_alone_tag_list).
+/*! This merely opens the file and returns XMLChunkToAttribute(nullptr,f,stand_alone_tag_list).
  *
- * Puts in att if att!=NULL, otherwist returns a new Attribute.
+ * Puts in att if att!=nullptr, otherwist returns a new Attribute.
  * See XMLChunkToAttribute(Attribute*,const char *,long,long*,const char *,const char **)
  * for details about the conversion.
  *
@@ -2492,9 +2492,9 @@ char *AttributeToXML(Attribute *att,char *&appendtothis, char **error_ret)
 Attribute *XMLFileToAttribute(Attribute *att,const char *file,const char **stand_alone_tag_list)
 {
 	FILE *f=fopen(file,"r");
-	if (!f) return NULL;
+	if (!f) return nullptr;
 
-	if (att==NULL) att=new Attribute;
+	if (att==nullptr) att=new Attribute;
 	XMLChunkToAttribute(att,f,stand_alone_tag_list);
 	
 	fclose(f);
@@ -2510,12 +2510,12 @@ Attribute *XMLFileToAttributeLocked(Attribute *att,const char *file,const char *
     char *rf=expand_home(file);
     int fd=open(rf,O_RDONLY);
     delete[] rf;
-    if (fd<0) { setlocale(LC_ALL,""); return NULL; }
+    if (fd<0) { setlocale(LC_ALL,""); return nullptr; }
     flock(fd,LOCK_EX);
     FILE *f=fdopen(fd,"r");
-    if (!f) { setlocale(LC_ALL,""); close(fd); return NULL; }
+    if (!f) { setlocale(LC_ALL,""); close(fd); return nullptr; }
 
-	if (att==NULL) att=new Attribute;
+	if (att==nullptr) att=new Attribute;
     XMLChunkToAttribute(att,f,stand_alone_tag_list);
 
     flock(fd,LOCK_UN);
@@ -2533,7 +2533,7 @@ Attribute *XMLFileToAttributeLocked(Attribute *att,const char *file,const char *
  * This function parses in everything until the close of the tag. It is a very simplistic
  * conversion. If you need more, you should probably use the actual libxml.
  *
- * If att==NULL, then return a new Attribute. Otherwise, append the new things to att.
+ * If att==nullptr, then return a new Attribute. Otherwise, append the new things to att.
  *
  * stand_alone_tag_list is a list of element names that are self contained, that is, they
  * have no closing tag, and do not explicitly end in /&lt;.
@@ -2560,9 +2560,9 @@ Attribute *XMLChunkToAttribute(Attribute *att,FILE *f,const char **stand_alone_t
 	memset(buf, 0, maxbuf+1); //doing this, while should be unnecessary, clears valgrind warning
 	
 	n=fread(buf,1,maxbuf,f);
-	if (n<=0) return NULL; //error
+	if (n<=0) return nullptr; //error
 	
-	XMLChunkToAttribute(att,buf,maxbuf,NULL,NULL,stand_alone_tag_list);
+	XMLChunkToAttribute(att,buf,maxbuf,nullptr,nullptr,stand_alone_tag_list);
 	
 	return att;
 }
@@ -2573,7 +2573,7 @@ static void skipws(const char *buf,long n,long *c)
 	while (*c<n && isspace(buf[*c])) (*c)++;
 }
 
-//! Return 1 for str in list, or 0. list is NULL terminated list.
+//! Return 1 for str in list, or 0. list is nullptr terminated list.
 /*! \ingroup misc
  *
  * \todo move this to strmanip.h?
@@ -2680,7 +2680,7 @@ Attribute *XMLChunkToAttribute(Attribute *att,
 {
 	if (!att) att=new Attribute;
 
-	char *error=NULL, *value=NULL, *name=NULL;
+	char *error=nullptr, *value=nullptr, *name=nullptr;
 	char *nm,*vl,*e;
 	char final;
 	long c=0,c2=0;
@@ -2832,7 +2832,7 @@ Attribute *XMLChunkToAttribute(Attribute *att,
 int AttributeToCSSFile(FILE *f, Attribute *att, int indent)
 {
 	if (!f) return 1;
-	char *str=AttributeToCSS(att,NULL,NULL);
+	char *str=AttributeToCSS(att,nullptr,nullptr);
 	if (isblank(str)) {
 		if (str) delete[] str;
 		return 1;
@@ -2847,7 +2847,7 @@ int AttributeToCSSFile(FILE *f, Attribute *att, int indent)
 char *AttributeToCSS(Attribute *att,char **appendtothis, char **error_ret)
 {
 	cerr << " *** must implement AttributeToCSS()!!"<<endl;
-	return NULL;
+	return nullptr;
 }
 
 //! Create a specially formatted Attribute with data from a CSS file.
@@ -2867,12 +2867,12 @@ char *AttributeToCSS(Attribute *att,char **appendtothis, char **error_ret)
 Attribute *CSSFileToAttribute (const char *cssfile,Attribute *att)
 {
 	cerr << " *** must implement CSSFileToAttribute()!!"<<endl;
-	return NULL;
+	return nullptr;
 
 //	FILE *f=fopen(file,"r");
-//	if (!f) return NULL;
+//	if (!f) return nullptr;
 //
-//	if (att==NULL) att=new Attribute;
+//	if (att==nullptr) att=new Attribute;
 //	
 //	fclose(f);
 //	return att;
@@ -2881,7 +2881,7 @@ Attribute *CSSFileToAttribute (const char *cssfile,Attribute *att)
 Attribute *CSSToAttribute (const char *css,Attribute *att)
 {
 	cerr << " *** must implement CSSToAttribute()!!"<<endl;
-	return NULL;
+	return nullptr;
 }
 
 /*! Parse a string like "fill-color:#123456; stroke-opacity: .6" into an Attribute:
@@ -2975,7 +2975,7 @@ char *AttributeToJsonString(Attribute *att,char **appendtothis, int indent, char
 //
 //	appendstr(*appendtothis,"}\n");
 
-	return NULL;
+	return nullptr;
 }
 
 /*! Return 0 for success, or nonzero for error.
@@ -3054,8 +3054,8 @@ int DumpAttributeToJson(FILE *f, Attribute *att, int indent)
 
 Attribute *JsonFileToAttribute (const char *jsonfile, Attribute *att)
 {
-	char *contents = read_in_whole_file(jsonfile, NULL, 0);
-	Attribute *a = JsonStringToAttribute(contents, att, NULL);
+	char *contents = read_in_whole_file(jsonfile, nullptr, 0);
+	Attribute *a = JsonStringToAttribute(contents, att, nullptr);
 	delete[] contents;
 	return a;
 }
@@ -3238,7 +3238,7 @@ Attribute *JsonStringToAttribute (const char *jsonstring, Attribute *att, const 
 				return nullptr;
 			}
 
-			Attribute *key = new Attribute("key", NULL);
+			Attribute *key = new Attribute("key", nullptr);
 			makenstr(key->value, str, strend-str);
 			att->push(key, -1);
 
@@ -3251,8 +3251,8 @@ Attribute *JsonStringToAttribute (const char *jsonstring, Attribute *att, const 
 			}
 			str++;
 
-			endptr = NULL;
-			Attribute *value = JsonStringToAttribute(str, NULL, &strend);
+			endptr = nullptr;
+			Attribute *value = JsonStringToAttribute(str, nullptr, &strend);
 			if (!value) {
 				//expected object
 				if (newatt) { delete att; att = nullptr; }

@@ -22,17 +22,15 @@
 
 #include <lax/interfaces/somedatafactory.h>
 #include <lax/interfaces/aninterface.h>
-//#include <lax/interfaces/undo.h>
 #include <lax/interfaces/interfacemanager.h>
 #include <lax/strmanip.h>
 #include <lax/colorevents.h>
 
+#include <lax/debug.h>
+
+
 using namespace Laxkit;
 
-
-#include <iostream>
-using namespace std;
-#define DBG 
 
 //! Namespace for the Laxkit interfaces, surprisingly enough.
 namespace LaxInterfaces {
@@ -311,7 +309,7 @@ anInterface::~anInterface()
 	if (child) child->dec_count();
 	delete[] owner_message;
 	delete[] last_message;
-	DBG cerr<<"--- anInterface "<<whattype()<<" "<<object_id<<" "<<(object_idstr?object_idstr:"(no id)")<<","<<" destructor"<<endl; 
+	DBGM("--- anInterface "<<whattype()<<" "<<object_id<<" "<<(object_idstr?object_idstr:"(no id)")<<","<<" destructor");
 }
 
 
@@ -332,22 +330,22 @@ anInterface::~anInterface()
  * Typical duplicate function in an interface looks like this:\n
  *
  * \code
- * anInterface *TheInterface::duplicate()
+ * anInterface *TheInterface::duplicateInterface()
  * {
- *    dup=new TheInterface();
+ *    dup = new TheInterface();
  *    // add any other TheInterface specific initialization
  *    dup->somefield = somefield;
  *
- *    return anInterface::duplicate(dup);
+ *    return anInterface::duplicateInterface(dup);
  * }
  * \endcode
  */
-anInterface *anInterface::duplicate(anInterface *dup)
+anInterface *anInterface::duplicateInterface(anInterface *dup)
 {
 	if (!dup) return nullptr; //dup=new anInterface();<- wrong! anInterface is abstract class..
 	makestr(dup->name,name);
-	dup->id=id;
-	dup->interface_style=interface_style;
+	dup->id = id;
+	dup->interface_style = interface_style;
 	return dup;
 }
 
@@ -362,8 +360,8 @@ void anInterface::Modified(int level)
 	if ((interface_style & INTERFACE_DontSendOnModified) != 0) return;
 									 
     if (owner || owner_id) {
-        DBG if (owner) cerr << whattype() <<" Modified(), sending to "<<(owner->Id()?owner->Id():owner->whattype())<<endl;
-        DBG else       cerr << whattype() <<" Modified(), sending to "<<owner_id<<endl;
+        DBG if (owner) std::cerr << whattype() <<" Modified(), sending to "<<(owner->Id()?owner->Id():owner->whattype())<<std::endl;
+        DBG else       std::cerr << whattype() <<" Modified(), sending to "<<owner_id<<std::endl;
 
         const char *message = owner_message;
         if (!message) message = whattype();

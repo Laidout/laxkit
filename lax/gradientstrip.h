@@ -142,7 +142,7 @@ class GradientStrip : virtual public Resourceable, virtual public DumpUtility, v
 	GradientStrip(flatpoint from, flatpoint to, double rr1, double rr2, Laxkit::ScreenColor *col1, Laxkit::ScreenColor *col2); 
 	virtual ~GradientStrip();
 	virtual const char *whattype() { return IsPalette() ? "Palette" : "GradientStrip"; }
-	virtual anObject *duplicate(anObject *ref);
+	virtual anObject *duplicate();
 	virtual GradientStrip *newGradientStrip();
 	virtual void touchContents();
 	virtual int maxPreviewSize();

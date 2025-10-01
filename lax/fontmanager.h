@@ -118,8 +118,8 @@ class LaxFont : public Resourceable
 
 	LaxFont();
 	virtual ~LaxFont();
-	virtual LaxFont *duplicate();
-	virtual anObject *duplicate(anObject *ref) { return duplicate(); }
+	virtual LaxFont *duplicateFont();
+	virtual anObject *duplicate() { return duplicateFont(); }
 
 	virtual int FontId() { return id; }
 

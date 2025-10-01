@@ -99,7 +99,7 @@ class CurveInfo : public Resourceable, public DumpUtility
 	virtual ~CurveInfo();
 	virtual const char *whattype() { return "CurveInfo"; }
 	CurveInfo &operator=(CurveInfo &l);
-	virtual anObject *duplicate(anObject *ref);
+	virtual anObject *duplicate();
 	virtual void SetXBounds(double nxmin, double nxmax, const char *nxlabel, bool remap);
 	virtual void SetYBounds(double nymin, double nymax, const char *nylabel, bool remap);
 	virtual void ComputeYBounds(double buffer);

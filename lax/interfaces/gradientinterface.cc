@@ -246,7 +246,7 @@ float GradientData::R2() const
 	return use_strip_points && strip ? strip->r2 : r2;
 }
 
-SomeData *GradientData::duplicate(SomeData *dup)
+SomeData *GradientData::duplicateData(SomeData *dup)
 {
 	GradientData *g=dynamic_cast<GradientData*>(dup);
 	if (!g && !dup) return NULL; //was not GradientData!
@@ -273,7 +273,7 @@ SomeData *GradientData::duplicate(SomeData *dup)
 	g->fill_parent      = fill_parent;
 	g->spread_method    = spread_method;
 	if (strip) {
-		GradientStrip *nstrip = dynamic_cast<GradientStrip*>(strip->duplicate(nullptr));
+		GradientStrip *nstrip = dynamic_cast<GradientStrip*>(strip->duplicate());
 		g->Set(nstrip, 1, false, true);
 	}
 
@@ -988,7 +988,7 @@ GradientInterface::~GradientInterface()
 }
 
 //! Return dup of this. Copies over creationstyle, creatp/v, createlen, col1, col2.
-anInterface *GradientInterface::duplicate(anInterface *dup)//dup=NULL
+anInterface *GradientInterface::duplicateInterface(anInterface *dup)//dup=NULL
 {
 	if (dup==NULL) dup=new GradientInterface(id,NULL);
 	else if (!dynamic_cast<GradientInterface *>(dup)) return NULL;
@@ -1000,7 +1000,7 @@ anInterface *GradientInterface::duplicate(anInterface *dup)//dup=NULL
 	dupp->creater2=creater2;
 	dupp->createv=createv;
 	dupp->style = style;
-	return anInterface::duplicate(dup);
+	return anInterface::duplicateInterface(dup);
 }
 
 /*! Differentiates based on gradienttype.

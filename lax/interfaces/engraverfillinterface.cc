@@ -212,7 +212,7 @@ EngraverFillInterface::~EngraverFillInterface()
 const char *EngraverFillInterface::Name()
 { return _("Engraver Fill"); }
 
-anInterface *EngraverFillInterface::duplicate(anInterface *dup)//dup=NULL;
+anInterface *EngraverFillInterface::duplicateInterface(anInterface *dup)//dup=NULL;
 {
 	EngraverFillInterface *dupp;
 	if (dup==NULL) dupp=new EngraverFillInterface(id,NULL);
@@ -221,13 +221,13 @@ anInterface *EngraverFillInterface::duplicate(anInterface *dup)//dup=NULL;
 
 	dupp->recurse=recurse;
 	dupp->rendermode=rendermode;
-	return PatchInterface::duplicate(dupp);
+	return PatchInterface::duplicateInterface(dupp);
 }
 
 //! Return new local EngraverFillData
 PatchData *EngraverFillInterface::newPatchData(double xx,double yy,double ww,double hh,int nr,int nc,unsigned int stle)
 {
-	EngraverFillData *ndata=NULL;
+	EngraverFillData *ndata = nullptr;
 //	if (somedatafactory) {
 //		ndata=dynamic_cast<EngraverFillData *>(somedatafactory->newObject(LAX_ENGRAVERFILLDATA));
 //	} 
@@ -235,10 +235,10 @@ PatchData *EngraverFillInterface::newPatchData(double xx,double yy,double ww,dou
 	if (!ndata) ndata=new EngraverFillData();//creates 1 count
 
 	ndata->MakeGroupNameUnique(0);
-	ndata->groups.e[0]->InstallTraceSettings(default_trace.duplicate(),1);
+	ndata->groups.e[0]->InstallTraceSettings(dynamic_cast<EngraverTraceSettings*>(default_trace.duplicate()),1);
 	//if (!ndata->groups.e[0]->trace)  ndata->groups.e[0]->trace =new EngraverTraceSettings;
 	if (!ndata->groups.e[0]->dashes) {
-		ndata->groups.e[0]->dashes=new EngraverLineQuality;
+		ndata->groups.e[0]->dashes = new EngraverLineQuality;
 		ndata->groups.e[0]->dashes->SetResourceOwner(ndata->groups.e[0]);
 	}
 
@@ -5304,7 +5304,7 @@ int EngraverFillInterface::Event(const Laxkit::EventData *e_data, const char *me
 				if (group->trace->traceobject->ResourceOwner()==group->trace)
 					return 0; //already local
 				
-				TraceObject *to=dynamic_cast<TraceObject*>(group->trace->traceobject->duplicate(NULL));
+				TraceObject *to = dynamic_cast<TraceObject*>(group->trace->traceobject->duplicate());
 				group->trace->Install(to);
 				to->dec_count();
 				//UpdatePanelAreas();
@@ -5321,7 +5321,7 @@ int EngraverFillInterface::Event(const Laxkit::EventData *e_data, const char *me
 
 		} else if (info==-1 || info>=0) {
 			 //was a favorite resource or another resource
-			TraceObject *obj=dynamic_cast<TraceObject*>(manager->FindResource(s->str, "TraceObject", NULL));
+			TraceObject *obj = dynamic_cast<TraceObject*>(manager->FindResource(s->str, "TraceObject", nullptr));
 			if (obj) {
 				//int up=0;
 				//if (group->trace->ResourceOwner()==group->trace) up=1;
@@ -5687,10 +5687,10 @@ int EngraverFillInterface::Event(const Laxkit::EventData *e_data, const char *me
 			if (i==ENGRAVE_Make_Local) { //new based on currently ref'd
 				EngraverPointGroup *cur =edata->GroupFromIndex(current_group);
 				if (cur) {
-					if (what==ENGRAVE_Direction)    cur->InstallDirection(    cur->direction->duplicate(),1);
-					else if (what==ENGRAVE_Dashes)  cur->InstallDashes(       cur->dashes   ->duplicate(),1);
-					else if (what==ENGRAVE_Spacing) cur->InstallSpacing(      cur->spacing  ->duplicate(),1);
-					else if (what==ENGRAVE_Tracing) cur->InstallTraceSettings(cur->trace    ->duplicate(),1);
+					if      (what==ENGRAVE_Direction) cur->InstallDirection(    dynamic_cast<EngraverDirection*    >(cur->direction->duplicate()),1);
+					else if (what==ENGRAVE_Dashes)    cur->InstallDashes(       dynamic_cast<EngraverLineQuality*  >(cur->dashes   ->duplicate()),1);
+					else if (what==ENGRAVE_Spacing)   cur->InstallSpacing(      dynamic_cast<EngraverSpacing*      >(cur->spacing  ->duplicate()),1);
+					else if (what==ENGRAVE_Tracing)   cur->InstallTraceSettings(dynamic_cast<EngraverTraceSettings*>(cur->trace    ->duplicate()),1);
 
 					UpdatePanelAreas();
 					needtodraw=1;

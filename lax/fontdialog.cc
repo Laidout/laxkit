@@ -383,7 +383,7 @@ FontDialog::FontDialog(anXWindow *parnt,const char *nname,const char *ntitle,uns
 
 	thefont = nfont;
 	if (nfont) {
-		if (work_on_dup) thefont = nfont->duplicate();
+		if (work_on_dup) thefont = nfont->duplicateFont();
 		else thefont->inc_count();
 
 		if (!fam) fam = thefont->Family();
@@ -787,7 +787,7 @@ void FontDialog::UpdateSample()
 	else if (size > th * 3) samplesize = th * 3;
 
 	if (samplesize != size) {
-		samplefont = samplefont->duplicate();
+		samplefont = samplefont->duplicateFont();
 		samplefont->Resize(samplesize);
 	}
 

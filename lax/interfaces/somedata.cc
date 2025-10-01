@@ -315,91 +315,91 @@ int SomeData::renderToBufferImage(LaxImage *image)
 	return 0;
 }
 
-//! Create a preview image with transparency for a cached screen preview.
-/*! Will create regardless of usepreview. 
- *  This will return immediately if the bounds are not valid.
- *  If w or h are less than or equal to 0, then use default or previous values for them.
- *  The default is to fit within a box 200x200, with aspect approximately the same
- *  as the object's bounding box.
- *
- *  Subclasses need not redefine this function. They need only redefine renderToBuffer().
- */
-int SomeData::GeneratePreview(int maxdim)
-{
-	if (maxx <= minx || maxy <= miny) //bad bounds so return
-		return (previewtime >= modtime);
+// //! Create a preview image with transparency for a cached screen preview.
+// /*! Will create regardless of usepreview. 
+//  *  This will return immediately if the bounds are not valid.
+//  *  If w or h are less than or equal to 0, then use default or previous values for them.
+//  *  The default is to fit within a box 200x200, with aspect approximately the same
+//  *  as the object's bounding box.
+//  *
+//  *  Subclasses need not redefine this function. They need only redefine renderToBuffer().
+//  */
+// int SomeData::GeneratePreview(int maxdim)
+// {
+// 	if (maxx <= minx || maxy <= miny) //bad bounds so return
+// 		return (previewtime >= modtime);
 
-	DBG cerr <<"...SomeData::GeneratePreview()"<<endl;
+// 	DBG cerr <<"...SomeData::GeneratePreview()"<<endl;
 
 
-	if (maxdim <= 0) maxdim = 500;
-	InterfaceManager *im = InterfaceManager::GetDefault(true);
-	if (im) maxdim = im->PreviewSize();
+// 	if (maxdim <= 0) maxdim = 500;
+// 	InterfaceManager *im = InterfaceManager::GetDefault(true);
+// 	if (im) maxdim = im->PreviewSize();
 
-	int w = 0;
-	int h = 0;
+// 	int w = 0;
+// 	int h = 0;
 
-	if (maxx - minx > maxy - miny) {
-		w = maxdim;
-		h = (maxy - miny) * w / (maxx - minx);
-	} else {
-		h = maxdim;
-		w = (maxx - minx) * h / (maxy - miny);
-	}
+// 	if (maxx - minx > maxy - miny) {
+// 		w = maxdim;
+// 		h = (maxy - miny) * w / (maxx - minx);
+// 	} else {
+// 		h = maxdim;
+// 		w = (maxx - minx) * h / (maxy - miny);
+// 	}
 
-	if (w <= 0) w = 1;
-	if (h <= 0) h = 1;
+// 	if (w <= 0) w = 1;
+// 	if (h <= 0) h = 1;
 
-	// protect against growing sizes...
-	if (w > maxdim) {
-		double aspect = (double)h / w;
-		w = maxdim;
-		h = maxdim * aspect;
-		if (h <= 0) h = 1;
-	}
-	if (h > maxdim) {
-		double aspect = (double)w / h;
-		h = maxdim;
-		w = maxdim * aspect;
-		if (w <= 0) w = 1;
-	}
+// 	// protect against growing sizes...
+// 	if (w > maxdim) {
+// 		double aspect = (double)h / w;
+// 		w = maxdim;
+// 		h = maxdim * aspect;
+// 		if (h <= 0) h = 1;
+// 	}
+// 	if (h > maxdim) {
+// 		double aspect = (double)w / h;
+// 		h = maxdim;
+// 		w = maxdim * aspect;
+// 		if (w <= 0) w = 1;
+// 	}
 
-	//if (preview && (w!=preview->w() || h!=preview->h())) {
-	if (preview && ((float)w/preview->w()>1.05 || (float)w/preview->w()<.95 ||
-					(float)h/preview->h()>1.05 || (float)h/preview->h()<.95)) {
-		 //delete old preview and make new only when changing size of preview more that 5%-ish in x or y
-		DBG cerr <<"removing old preview..."<<endl;
-		preview->dec_count(); 
-		preview = nullptr;
-	} else if (preview) { //use previous bounds, which might not be the ideal w,h
-		w = preview->w();
-		h = preview->h();
-	}
+// 	//if (preview && (w!=preview->w() || h!=preview->h())) {
+// 	if (preview && ((float)w/preview->w()>1.05 || (float)w/preview->w()<.95 ||
+// 					(float)h/preview->h()>1.05 || (float)h/preview->h()<.95)) {
+// 		 //delete old preview and make new only when changing size of preview more that 5%-ish in x or y
+// 		DBG cerr <<"removing old preview..."<<endl;
+// 		preview->dec_count(); 
+// 		preview = nullptr;
+// 	} else if (preview) { //use previous bounds, which might not be the ideal w,h
+// 		w = preview->w();
+// 		h = preview->h();
+// 	}
 
-	if (!preview) {
-		DBG cerr <<"old preview didn't exist, so creating new one... w,h: "<<w<<", "<<h<<endl;
-		preview = ImageLoader::NewImage(w,h);
-	}
+// 	if (!preview) {
+// 		DBG cerr <<"old preview didn't exist, so creating new one... w,h: "<<w<<", "<<h<<endl;
+// 		preview = ImageLoader::NewImage(w,h);
+// 	}
 
-	DBG cerr << "Render to buffer w,h="<<w<<','<<h<<", preview says: "<<preview->w()<<','<<preview->h()<<endl;
+// 	DBG cerr << "Render to buffer w,h="<<w<<','<<h<<", preview says: "<<preview->w()<<','<<preview->h()<<endl;
 
-	if (renderToBufferImage(preview) != 0) { 
-		 //render direct to image didn't work, so try the old style render to char[] buffer...
-		DBG cerr << "SomeData::GeneratePreview: Attempt render preview direct to buffer, w,h="<<w<<','<<h<<":"<<endl;
-		unsigned char *buffer = preview->getImageBuffer(); 
-		renderToBuffer(buffer,w,h,w*4,8,4); 
-		if (preview->doneWithBuffer(buffer) == 0) {
-			tms tms_;
-			previewtime = times(&tms_);
-		}
+// 	if (renderToBufferImage(preview) != 0) { 
+// 		 //render direct to image didn't work, so try the old style render to char[] buffer...
+// 		DBG cerr << "SomeData::GeneratePreview: Attempt render preview direct to buffer, w,h="<<w<<','<<h<<":"<<endl;
+// 		unsigned char *buffer = preview->getImageBuffer(); 
+// 		renderToBuffer(buffer,w,h,w*4,8,4); 
+// 		if (preview->doneWithBuffer(buffer) == 0) {
+// 			tms tms_;
+// 			previewtime = times(&tms_);
+// 		}
 
-	} else  {
-		tms tms_;
-		previewtime = times(&tms_);
-	}
+// 	} else  {
+// 		tms tms_;
+// 		previewtime = times(&tms_);
+// 	}
 
-	return (previewtime >= modtime);
-}
+// 	return (previewtime >= modtime);
+// }
 
 /*! Set previewtime to 0 to force a preview refresh, and modtime=times(NULL).
  * If GetParent() is not null, then call touchContents() on it.
@@ -421,7 +421,7 @@ Laxkit::LaxImage *SomeData::GetPreview()
 	// }
 	// return NULL;
 
-	if (previewtime<modtime || !preview) GeneratePreview(0);
+	if (previewtime<modtime || !preview) GeneratePreview(-1,-1);
 	return preview;
 }
 
@@ -605,7 +605,7 @@ Attribute *SomeData::dump_out_atts(Attribute *att,int what,Laxkit::DumpContext *
  *
  * bboxstyle, locks, visible, selectable, and the matrix are copied over here.
  */
-SomeData *SomeData::duplicate(SomeData *dup)
+SomeData *SomeData::duplicateData(SomeData *dup)
 {
 	SomeData *ndata=dynamic_cast<SomeData*>(dup);
 	if (!ndata && !dup) return NULL;

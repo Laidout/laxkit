@@ -116,8 +116,8 @@ class Path : virtual public Laxkit::anObject,
 	Path(Coordinate *np,LineStyle *nls=NULL);
 	virtual ~Path();
 	virtual const char *whattype() { return "Path"; }
-	virtual Laxkit::anObject *duplicate(Laxkit::anObject *ref); // redef from anObject
-	virtual Path *duplicate();
+	virtual Laxkit::anObject *duplicate() { return duplicatePath(); } // redef from anObject
+	virtual Path *duplicatePath();
 	virtual void FindBBox();
 	virtual void FindBBoxBase(DoubleBBox *ret);
 	virtual void FindBBoxWithWidth(DoubleBBox *ret);
@@ -229,7 +229,7 @@ class PathsData : virtual public SomeData
 	virtual void FindBBoxBase(DoubleBBox *ret);
 	virtual void FindBBoxWithWidth(DoubleBBox *ret);
 	virtual void ComputeAABB(const double *transform, DoubleBBox &box);
-	virtual SomeData *duplicate(SomeData *dup);
+	virtual SomeData *duplicateData(SomeData *dup);
 
 	virtual int line(double width,int cap=-1,int join=-1,Laxkit::ScreenColor *color=NULL);
 	virtual int fill(Laxkit::ScreenColor *color);
@@ -551,7 +551,7 @@ class PathInterface : public anInterface
 	PathInterface(int nid,Laxkit::Displayer *ndp, unsigned long nstyle=PATHI_Render_With_Cache);
 	virtual ~PathInterface();
 	virtual Laxkit::ShortcutHandler *GetShortcuts();
-	virtual anInterface *duplicate(anInterface *dup);
+	virtual anInterface *duplicateInterface(anInterface *dup);
 	virtual PathsData *newPathsData();
 	virtual int InitializeResources();
 

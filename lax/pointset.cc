@@ -46,7 +46,7 @@ PointSet::~PointSet()
 {
 }
 
-anObject *PointSet::duplicate(anObject *ref)
+PointSet *PointSet::duplicateSet(anObject *ref)
 {
 	PointSet *set = new PointSet();
 	if (ref) {
@@ -75,7 +75,7 @@ int PointSet::CopyFrom(PointSet *set, int with_info, int copy_method)
 	for (int c=0; c<set->points.n; c++) {
 		anObject *info = nullptr;
 		if (with_info == 1) { info = set->points.e[c]->info; if (info) info->inc_count(); }
-		else if (with_info == 2 && set->points.e[c]->info) info = set->points.e[c]->info->duplicate(nullptr);
+		else if (with_info == 2 && set->points.e[c]->info) info = set->points.e[c]->info->duplicate();
 
 		if (copy_method == 0 || c >= points.n) {
 			AddPoint(set->points.e[c]->p, info, true, set->points.e[c]->weight);

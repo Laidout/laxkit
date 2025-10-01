@@ -134,7 +134,7 @@ public:
 	virtual ~BezNetData();
 	virtual const char *whattype() { return "BezNetData"; }
 	virtual void FindBBox();
-	virtual SomeData *duplicate(SomeData *dup);
+	virtual SomeData *duplicateData(SomeData *dup);
 	virtual void dump_in_atts(Laxkit::Attribute *att, int flag, Laxkit::DumpContext *context);
 	virtual Laxkit::Attribute *dump_out_atts(Laxkit::Attribute *att,int what,Laxkit::DumpContext *savecontext);
 	virtual void dump_out_edge(Laxkit::Attribute *att, HalfEdge *edge, bool output_twin);

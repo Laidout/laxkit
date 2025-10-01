@@ -47,7 +47,7 @@ class ShowKeysInterface : public anInterface
 
 	ShowKeysInterface(anInterface *nowner, int nid,Laxkit::Displayer *ndp);
 	virtual ~ShowKeysInterface();
-	virtual anInterface *duplicate(anInterface *dup);
+	virtual anInterface *duplicateInterface(anInterface *dup);
 	virtual const char *IconId() { return "ShowKeys"; }
 	const char *Name();
 	const char *whattype() { return "ShowKeysInterface"; }

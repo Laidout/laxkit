@@ -75,11 +75,11 @@ const char *ShowKeysInterface::Name()
 //! Return new ShowKeysInterface.
 /*! If dup!=NULL and it cannot be cast to ShowKeysInterface, then return NULL.
  */
-anInterface *ShowKeysInterface::duplicate(anInterface *dup)
+anInterface *ShowKeysInterface::duplicateInterface(anInterface *dup)
 {
 	if (dup==NULL) dup=new ShowKeysInterface(NULL,id,NULL);
 	else if (!dynamic_cast<ShowKeysInterface *>(dup)) return NULL;
-	return anInterface::duplicate(dup);
+	return anInterface::duplicateInterface(dup);
 }
 
 /*! Any setup when an interface is activated, which usually means when it is added to 

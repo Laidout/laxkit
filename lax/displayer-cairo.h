@@ -86,6 +86,7 @@ class DisplayerCairo : public Displayer
 	DisplayerCairo(anXWindow *nxw = nullptr, PanController *pan = nullptr);
 	virtual ~DisplayerCairo();
 	virtual Displayer *duplicate();
+	virtual anObject *duplicate(anObject *ref) { return dynamic_cast<Displayer*>(duplicate()); }
 
 	 /*! \name Cairo specific helper functions: */
 	 //@{

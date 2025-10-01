@@ -116,11 +116,11 @@ const char *FreehandInterface::Name()
 //! Return new FreehandInterface.
 /*! If dup!=NULL and it cannot be cast to ImageInterface, then return NULL.
  */
-anInterface *FreehandInterface::duplicate(anInterface *dup)
+anInterface *FreehandInterface::duplicateInterface(anInterface *dup)
 {
 	if (dup==NULL) dup=new FreehandInterface(NULL,id,NULL);
 	else if (!dynamic_cast<FreehandInterface *>(dup)) return NULL;
-	return anInterface::duplicate(dup);
+	return anInterface::duplicateInterface(dup);
 }
 
 /*! Returns old number of milliseconds.
@@ -889,7 +889,7 @@ int FreehandInterface::send(int i)
 			sendObject(pdata,FREEHAND_Bez_Weighted);
 
 			if (freehand_style&FREEHAND_Path_Mesh) {
-				pdata=dynamic_cast<PathsData*>(pdata->duplicate(NULL)); //if both, we need to do this!
+				pdata = dynamic_cast<PathsData*>(pdata->duplicate()); //if both, we need to do this!
 			}
 		}
 
@@ -945,8 +945,8 @@ int FreehandInterface::send(int i)
 		while (cc) { nn++; cc=cc->next; }
 
 		GradientStrip *gradient = nullptr;
-		if (gradients.n) gradient = dynamic_cast<GradientStrip*>(gradients.e[0]->duplicate(nullptr));
-		else gradient = dynamic_cast<GradientStrip*>(default_gradient.duplicate(nullptr));
+		if (gradients.n) gradient = dynamic_cast<GradientStrip*>(gradients.e[0]->duplicate());
+		else gradient = dynamic_cast<GradientStrip*>(default_gradient.duplicate());
 		
 		if (freehand_style&(FREEHAND_Double_Mesh)) {
 			int ncol = gradient->NumColors();

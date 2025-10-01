@@ -87,7 +87,7 @@ class SomeData :  virtual public Laxkit::Resourceable,
 	int usepreview;
 
 	virtual Laxkit::LaxImage *GetPreview();
-	virtual int GeneratePreview(int maxdim);
+	// virtual int GeneratePreview(int maxdim);
 	virtual int renderToBufferImage(Laxkit::LaxImage *image);
 	virtual int renderToBuffer(unsigned char *buffer, int bufw, int bufh, int bufstride, int bufdepth, int bufchannels);
 
@@ -127,7 +127,8 @@ class SomeData :  virtual public Laxkit::Resourceable,
 	virtual void ComputeAABB(const double *transform, DoubleBBox &box);
 	virtual Laxkit::flatpoint BBoxPoint(double x,double y, bool transform_to_parent);
 	virtual Laxkit::flatpoint ReferencePoint(int which, bool transform_to_parent);
-	virtual SomeData *duplicate(SomeData *dup);
+	virtual SomeData *duplicateData(SomeData *dup);
+	virtual anObject *duplicate() { return duplicateData(nullptr); }
 	virtual int pointin(Laxkit::flatpoint pp,int pin=1); // return in=1 | on=2 | out=0, default is pointin bbox
 	virtual int AlignAndFit(double *boxm,DoubleBBox *box,double alignx,double aligny, int whentoscale=2);
 	virtual SomeData *GetParent() { return nullptr; }

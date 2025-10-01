@@ -121,7 +121,7 @@ void TextOnPath::FindBBox()
 	}
 }
 
-SomeData *TextOnPath::duplicate(SomeData *dup)
+SomeData *TextOnPath::duplicateData(SomeData *dup)
 {
 	TextOnPath *i=dynamic_cast<TextOnPath*>(dup);
 	if (!i && dup) return NULL; //was not an ImageData!
@@ -164,7 +164,7 @@ SomeData *TextOnPath::duplicate(SomeData *dup)
 
 		if (color->ObjectOwner() == this) {
 			 //dup color
-			i->color = color->duplicate();
+			i->color = color->duplicateColor();
 		} else {
 			 //link color
 			i->color = color;
@@ -177,7 +177,7 @@ SomeData *TextOnPath::duplicate(SomeData *dup)
 
 		//if (font->ObjectOwner() == this) {
 			 //dup font
-			i->font = font->duplicate();
+			i->font = font->duplicateFont();
 		//} else {
 		//     //link font
 		//    i->font = font;
@@ -189,7 +189,7 @@ SomeData *TextOnPath::duplicate(SomeData *dup)
 		i->UseThisPath(pathcontext, pathindex);
 
 	} else if (paths) {
-		PathsData *newpath = dynamic_cast<PathsData*>(paths->duplicate(nullptr));
+		PathsData *newpath = dynamic_cast<PathsData*>(paths->duplicate());
 		i->UseThisPath(newpath, pathindex);
 		newpath->dec_count();
 	}
@@ -378,7 +378,7 @@ void TextOnPath::dump_in_atts(Attribute *att,int flag,DumpContext *context)
 	}
 
 	if (!font) {
-		LaxFont *font = anXApp::app->defaultlaxfont->duplicate();
+		LaxFont *font = anXApp::app->defaultlaxfont->duplicateFont();
 		//font->Resize(defaultsize);
 		Font(font);
 		font->dec_count();
@@ -443,7 +443,7 @@ int TextOnPath::LinkToParent(bool yes)
 
 	} else {
 		if (!paths) return 0;
-		PathsData *newpath = dynamic_cast<PathsData*>(paths->duplicate(nullptr));
+		PathsData *newpath = dynamic_cast<PathsData*>(paths->duplicate());
 		paths->dec_count();
 		paths = newpath;
 		link_to_parent = false;
@@ -650,7 +650,7 @@ int TextOnPath::Remap()
 
 	// update offsetpath
 	if (!path) return 0;
-	offsetpath = path->duplicate();
+	offsetpath = path->duplicatePath();
 	offsetpath->cache_types = 1;
 
 	if (link_to_parent) {
@@ -1247,7 +1247,7 @@ SomeData *TextOnPath::ConvertToPaths(bool use_clones, Laxkit::RefPtrStack<SomeDa
 				} else pobject = layers.e[layer];
 
 				 //provide proper offset
-				PathsData *newchar = dynamic_cast<PathsData*>(outline->duplicate(NULL));
+				PathsData *newchar = dynamic_cast<PathsData*>(outline->duplicate());
 
 				for (int p=0; p<newchar->paths.n; p++) {
 					Coordinate *coord = newchar->paths.e[p]->path;
@@ -1396,11 +1396,11 @@ const char *TextOnPathInterface::Name()
 //! Return new TextOnPathInterface.
 /*! If dup!=NULL and it cannot be cast to TextOnPathInterface, then return NULL.
  */
-anInterface *TextOnPathInterface::duplicate(anInterface *dup)
+anInterface *TextOnPathInterface::duplicateInterface(anInterface *dup)
 {
 	if (dup==NULL) dup=new TextOnPathInterface(NULL,id);
 	else if (!dynamic_cast<TextOnPathInterface *>(dup)) return NULL;
-	return anInterface::duplicate(dup);
+	return anInterface::duplicateInterface(dup);
 }
 
 ObjectContext *TextOnPathInterface::Context()
@@ -2131,7 +2131,7 @@ int TextOnPathInterface::LBDown(int x,int y,unsigned int state,int count, const 
 	//so no other object underneath, need to create a new one!
 	textonpath = newData();
 	textonpath->Text("");
-	LaxFont *font = anXApp::app->defaultlaxfont->duplicate();
+	LaxFont *font = anXApp::app->defaultlaxfont->duplicateFont();
 	font->Resize(defaultsize);
 	textonpath->Font(font);
 	font->dec_count();
@@ -2489,7 +2489,7 @@ TextOnPath *TextOnPathInterface::newData()
 	ndata=dynamic_cast<TextOnPath *>(somedatafactory()->NewObject(LAX_TEXTONPATH));
 	if (!ndata) ndata = new TextOnPath();
 
-	LaxFont *font = anXApp::app->defaultlaxfont->duplicate(); //todo: *** need some standard!!
+	LaxFont *font = anXApp::app->defaultlaxfont->duplicateFont(); //todo: *** need some standard!!
 	font->Resize(defaultsize);
 	ndata->Font(font);
 	font->dec_count();
@@ -2521,7 +2521,7 @@ int TextOnPathInterface::Paste(const char *txt,int len, Laxkit::anObject *obj, c
 		textonpath = newData();
 		textonpath->Text(text);
 
-		LaxFont *font = anXApp::app->defaultlaxfont->duplicate(); // *** need some standard!!
+		LaxFont *font = anXApp::app->defaultlaxfont->duplicateFont(); // *** need some standard!!
 		font->Resize(defaultsize);
 		textonpath->Font(font);
 		//textonpath->color->screen.red=65535;

@@ -103,7 +103,7 @@ class TextStreamInterface : public anInterface
 
 	TextStreamInterface(anInterface *nowner, int nid,Laxkit::Displayer *ndp);
 	virtual ~TextStreamInterface();
-	virtual anInterface *duplicate(anInterface *dup);
+	virtual anInterface *duplicateInterface(anInterface *dup);
 	virtual const char *IconId() { return "TextStream"; }
 	const char *Name();
 	const char *whattype() { return "TextStreamInterface"; }

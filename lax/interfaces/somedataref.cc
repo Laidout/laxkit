@@ -127,7 +127,7 @@ void SomeDataRef::FindBBox()
 	modtime = thedata->modtime;
 }
 
-SomeData *SomeDataRef::duplicate(SomeData *dup)
+SomeData *SomeDataRef::duplicateData(SomeData *dup)
 {
 	if (dup) {
 		if (!dynamic_cast<SomeDataRef*>(dup)) return NULL;

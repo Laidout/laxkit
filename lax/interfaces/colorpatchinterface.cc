@@ -89,7 +89,7 @@ ColorPatchData::~ColorPatchData()
 }
 
 
-SomeData *ColorPatchData::duplicate(SomeData *dup)
+SomeData *ColorPatchData::duplicateData(SomeData *dup)
 {
 	ColorPatchData *p=dynamic_cast<ColorPatchData*>(dup);
 	if (!p && !dup) return NULL; //was not ColorPatchData!
@@ -116,7 +116,7 @@ SomeData *ColorPatchData::duplicate(SomeData *dup)
 		}
 	}
 
-	return PatchData::duplicate(dup);
+	return PatchData::duplicateData(dup);
 }
 
 //! Set in rect xx,yy,ww,hh with nr rows and nc columns. Removes old info.
@@ -794,14 +794,14 @@ ColorPatchInterface::~ColorPatchInterface()
 const char *ColorPatchInterface::Name()
 { return _("Color Mesh"); }
 
-anInterface *ColorPatchInterface::duplicate(anInterface *dup)//dup=NULL;
+anInterface *ColorPatchInterface::duplicateInterface(anInterface *dup)//dup=NULL;
 {
 	if (dup==NULL) dup=new ColorPatchInterface(id,NULL);
 	else if (!dynamic_cast<ColorPatchInterface *>(dup)) return NULL;
 	ColorPatchInterface *dupp=dynamic_cast<ColorPatchInterface *>(dup);
 	dupp->recurse=recurse;
 	dupp->rendermode=rendermode;
-	return PatchInterface::duplicate(dup);
+	return PatchInterface::duplicateInterface(dup);
 }
 
 //! Return new local ColorPatchData

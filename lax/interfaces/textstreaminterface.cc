@@ -107,11 +107,11 @@ const char *TextStreamInterface::Name()
 //! Return new TextStreamInterface.
 /*! If dup!=nullptr and it cannot be cast to TextStreamInterface, then return nullptr.
  */
-anInterface *TextStreamInterface::duplicate(anInterface *dup)
+anInterface *TextStreamInterface::duplicateInterface(anInterface *dup)
 {
 	if (dup==nullptr) dup=new TextStreamInterface(nullptr,id,nullptr);
 	else if (!dynamic_cast<TextStreamInterface *>(dup)) return nullptr;
-	return anInterface::duplicate(dup);
+	return anInterface::duplicateInterface(dup);
 }
 
 /*! Normally this will accept some common things like changes to line styles, like a current color.

@@ -629,7 +629,7 @@ int EngraverDirection::SetType(int newtype)
 	return 0;
 }
 
-EngraverDirection *EngraverDirection::duplicate()
+Laxkit::anObject *EngraverDirection::duplicate()
 {
 	EngraverDirection *dup=new EngraverDirection();
 
@@ -1047,13 +1047,13 @@ const char *EngraverSpacing::Id(const char *str)
 	return anObject::Id();
 }
 
-EngraverSpacing *EngraverSpacing::duplicate()
+Laxkit::anObject *EngraverSpacing::duplicate()
 {
-	EngraverSpacing *dup=new EngraverSpacing;
+	EngraverSpacing *dup = new EngraverSpacing;
 
-	dup->type=type;
-	dup->spacing=spacing;
-	//dup->map=map->duplicate();
+	dup->type = type;
+	dup->spacing = spacing;
+	//dup->map = map->duplicate();
 
 	return dup;
 }
@@ -1171,21 +1171,21 @@ const char *EngraverLineQuality::Id(const char *str)
 	return anObject::Id();
 }
 
-EngraverLineQuality *EngraverLineQuality::duplicate()
+Laxkit::anObject *EngraverLineQuality::duplicate()
 {
-	EngraverLineQuality *dup=new EngraverLineQuality();
+	EngraverLineQuality *dup = new EngraverLineQuality();
 
-	dup->dash_length      =dash_length;
-	dup->dash_density     =dash_density;
-	dup->dash_randomness  =dash_randomness;
-	dup->randomseed       =randomseed;
-	dup->zero_threshhold  =zero_threshhold;
-	dup->broken_threshhold=broken_threshhold;
-	dup->dash_taper       =dash_taper; 
-	dup->indashcaps       =indashcaps;
-	dup->outdashcaps      =outdashcaps;
-	dup->startcaps        =startcaps;
-	dup->endcaps          =endcaps;
+	dup->dash_length       = dash_length;
+	dup->dash_density      = dash_density;
+	dup->dash_randomness   = dash_randomness;
+	dup->randomseed        = randomseed;
+	dup->zero_threshhold   = zero_threshhold;
+	dup->broken_threshhold = broken_threshhold;
+	dup->dash_taper        = dash_taper; 
+	dup->indashcaps        = indashcaps;
+	dup->outdashcaps       = outdashcaps;
+	dup->startcaps         = startcaps;
+	dup->endcaps           = endcaps;
 
 	return dup;
 }
@@ -1424,13 +1424,13 @@ TraceObject::~TraceObject()
 	delete[] trace_ref_bw;
 }
 
-Laxkit::anObject *TraceObject::duplicate(Laxkit::anObject *ref)
+Laxkit::anObject *TraceObject::duplicate()
 {
-	TraceObject *dup=new TraceObject;
-	dup->type=type;
-	makestr(dup->object_idstr,object_idstr);
-	makestr(dup->image_file,image_file);
-	dup->object=object;
+	TraceObject *dup = new TraceObject;
+	dup->type = type;
+	makestr(dup->object_idstr, object_idstr);
+	makestr(dup->image_file, image_file);
+	dup->object = object;
 	if (object) object->inc_count();
 
 	return dup;
@@ -1775,17 +1775,17 @@ const char *EngraverTraceSettings::Id(const char *str)
 
 /*! Warning: will link, NOT duplicate dashes, trace, etc.
  */
-EngraverTraceSettings *EngraverTraceSettings::duplicate()
+Laxkit::anObject *EngraverTraceSettings::duplicate()
 {
-	EngraverTraceSettings *dup=new EngraverTraceSettings;
+	EngraverTraceSettings *dup = new EngraverTraceSettings;
 
-	dup->continuous_trace=continuous_trace;
-	dup->traceobject=traceobject;
+	dup->continuous_trace = continuous_trace;
+	dup->traceobject = traceobject;
 	if (traceobject) traceobject->inc_count();
 
-	dup->lock_ref_to_obj=lock_ref_to_obj;
-	dup->traceobj_opacity=traceobj_opacity;
-	dup->tracetype=tracetype;
+	dup->lock_ref_to_obj = lock_ref_to_obj;
+	dup->traceobj_opacity = traceobj_opacity;
+	dup->tracetype = tracetype;
 
 	return dup;
 }
@@ -2311,28 +2311,28 @@ void EngraverPointGroup::CopyFrom(EngraverPointGroup *orig, bool keep_name, bool
 	if (trace) { trace->dec_count(); trace=NULL; } 
 	if (link_trace) { trace=orig->trace; if (trace) trace->inc_count(); }
 	else if (orig->trace!=NULL) {
-		trace=orig->trace->duplicate();
+		trace = dynamic_cast<EngraverTraceSettings*>(orig->trace->duplicate());
 		trace->SetResourceOwner(this);
 	}
 
 	if (dashes) { dashes->dec_count(); dashes=NULL; }
 	if (link_dash) { dashes=orig->dashes; if (dashes) dashes->inc_count(); }
 	else if (orig->dashes) {
-		dashes=orig->dashes->duplicate();
+		dashes = dynamic_cast<EngraverLineQuality*>(orig->dashes->duplicate());
 		dashes->SetResourceOwner(this);
 	}
 
 	if (direction) { direction->dec_count(); direction=NULL; }
 	if (link_dir) { direction=orig->direction; if (direction) direction->inc_count(); }
 	else if (orig->direction) {
-		direction=orig->direction->duplicate();
+		direction = dynamic_cast<EngraverDirection*>(orig->direction->duplicate());
 		direction->SetResourceOwner(this);
 	}
 
-	if (spacing) { spacing->dec_count(); spacing=NULL; } 
-	if (link_spacing) { spacing=orig->spacing; if (spacing) spacing->inc_count(); }
-	else if (orig->spacing!=NULL) {
-		spacing=orig->spacing->duplicate();
+	if (spacing) { spacing->dec_count(); spacing = nullptr; } 
+	if (link_spacing) { spacing = orig->spacing; if (spacing) spacing->inc_count(); }
+	else if (orig->spacing != nullptr) {
+		spacing = dynamic_cast<EngraverSpacing*>(orig->spacing->duplicate());
 		spacing->SetResourceOwner(this);
 	}
 
@@ -5599,7 +5599,7 @@ double EngraverFillData::DefaultSpacing(double nspacing)
 	return oldspacing;
 }
 
-SomeData *EngraverFillData::duplicate(SomeData *dup)
+SomeData *EngraverFillData::duplicateData(SomeData *dup)
 {
 	EngraverFillData *p=dynamic_cast<EngraverFillData*>(dup);
 	if (!p && !dup) return NULL; //was not EngraverFillData!
@@ -5629,7 +5629,7 @@ SomeData *EngraverFillData::duplicate(SomeData *dup)
 		p->groups.push(group);
 	}
 
-	return PatchData::duplicate(dup);
+	return PatchData::duplicateData(dup);
 }
 
 

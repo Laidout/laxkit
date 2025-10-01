@@ -48,7 +48,7 @@ class MirrorData : virtual public SomeData
 
 	virtual const char *whattype() { return "MirrorData"; }
 	virtual void FindBBox();
-	virtual SomeData *duplicate(SomeData *dup);
+	virtual SomeData *duplicateData(SomeData *dup);
 
 };
 
@@ -122,7 +122,7 @@ class MirrorInterface : public anInterface
 
 	MirrorInterface(anInterface *nowner, int nid,Laxkit::Displayer *ndp);
 	virtual ~MirrorInterface();
-	virtual anInterface *duplicate(anInterface *dup);
+	virtual anInterface *duplicateInterface(anInterface *dup);
 	virtual const char *IconId() { return "Mirror"; }
 	virtual const char *Name();
 	virtual const char *whattype() { return "MirrorInterface"; }

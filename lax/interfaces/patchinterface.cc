@@ -483,7 +483,7 @@ void PatchData::UpdateCache()
 //	return 1;
 //}
 
-SomeData *PatchData::duplicate(SomeData *dup)
+SomeData *PatchData::duplicateData(SomeData *dup)
 {
 	PatchData *p=dynamic_cast<PatchData*>(dup);
 	if (!p && !dup) return NULL; //was not PatchData!
@@ -516,10 +516,10 @@ SomeData *PatchData::duplicate(SomeData *dup)
 		p->controls=controls;
 	}
 
-	if (base_path) p->base_path=dynamic_cast<PathsData*>(base_path->duplicate(NULL));
+	if (base_path) p->base_path = dynamic_cast<PathsData*>(base_path->duplicate());
 
 	 //somedata elements:
-	dup->bboxstyle=bboxstyle;
+	dup->bboxstyle = bboxstyle;
 	dup->m(m());
 	return dup;
 }
@@ -775,7 +775,7 @@ void PatchData::FindBBox()
 void PatchData::CopyMeshPoints(PatchData *patch, bool usepath)
 {
 	if (patch->base_path && usepath) {
-		PathsData *path=dynamic_cast<PathsData*>(patch->base_path->duplicate(NULL));
+		PathsData *path = dynamic_cast<PathsData*>(patch->base_path->duplicate());
 		InstallPath(path);
 		path->dec_count();
 
@@ -3005,7 +3005,7 @@ PatchInterface::~PatchInterface()
 }
 
 //! Return duplicate of this.
-anInterface *PatchInterface::duplicate(anInterface *dup)//dup=NULL
+anInterface *PatchInterface::duplicateInterface(anInterface *dup)//dup=NULL
 {
 	if (dup==NULL) dup=new PatchInterface(id,NULL);
 	else if (!dynamic_cast<PatchInterface *>(dup)) return NULL;
@@ -3019,7 +3019,7 @@ anInterface *PatchInterface::duplicate(anInterface *dup)//dup=NULL
 	dupp->ys=ys;
 	dupp->rendermode=rendermode;
 	dupp->drawrendermode=drawrendermode;
-	return anInterface::duplicate(dup);
+	return anInterface::duplicateInterface(dup);
 }
 
 const char *PatchInterface::Name()

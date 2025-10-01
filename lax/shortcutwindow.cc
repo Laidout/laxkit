@@ -65,7 +65,7 @@ class ShortcutTreeSelector : public TreeSelector
 	virtual int MouseMove(int x,int y,unsigned int state,const LaxMouse *d);
 	virtual int CharInput(unsigned int ch, const char *buffer,int len,unsigned int state,const Laxkit::LaxKeyboard *d);
 	virtual int isPressableKey(unsigned int ch);
-	virtual void UpdateSearch(MenuInfo *m,const char *str, int search_type);
+	virtual void UpdateSearchRec(MenuInfo *m,const char *str, int search_type);
 };
 
 ShortcutTreeSelector::ShortcutTreeSelector(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
@@ -309,7 +309,7 @@ void ShortcutTreeSelector::SwapBuffers()
  *
  * If setinput!=0, then update the search input box.
  */
-void ShortcutTreeSelector::UpdateSearch(MenuInfo *m,const char *str, int search_type)
+void ShortcutTreeSelector::UpdateSearchRec(MenuInfo *m,const char *str, int search_type)
 {
 	if (m==NULL) m=menu;
 	needtobuildcache=1;
@@ -320,7 +320,7 @@ void ShortcutTreeSelector::UpdateSearch(MenuInfo *m,const char *str, int search_
 	for (int c=0; c<m->menuitems.n; c++) {
 		mi=m->menuitems.e[c];
 		if (mi->hasSub()) {
-			UpdateSearch(mi->GetSubmenu(0), str, search_type);
+			UpdateSearchRec(mi->GetSubmenu(0), str, search_type);
 			continue; //assume only leaves have key info
 		}
 
@@ -593,7 +593,7 @@ void ShortcutWindow::UpdateSearch()
 	ShortcutTreeSelector *t=(ShortcutTreeSelector*)findChildWindowByName("tree");
 	
 	t->Menu()->ClearSearch();
-	t->UpdateSearch(NULL, b->GetCText(), search_type);
+	t->UpdateSearchRec(nullptr, b->GetCText(), search_type);
 }
 
 /*! Set the search string to str AND set it in the edit box.

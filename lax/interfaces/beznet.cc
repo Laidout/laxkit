@@ -330,7 +330,7 @@ void BezNetData::FindBBox()
 	maxx = maxy = 2;
 }
 
-SomeData *BezNetData::duplicate(SomeData *dup)
+SomeData *BezNetData::duplicateData(SomeData *dup)
 {
 	//FIXME! ***
 	BezNetData *net = dynamic_cast<BezNetData*>(somedatafactory()->NewObject(LAX_BEZNETDATA));

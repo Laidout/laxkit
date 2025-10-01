@@ -107,11 +107,11 @@ const char *GridSelectInterface::Name()
 //! Return new GridSelectInterface.
 /*! If dup!=nullptr and it cannot be cast to GridSelectInterface, then return nullptr.
  */
-anInterface *GridSelectInterface::duplicate(anInterface *dup)
+anInterface *GridSelectInterface::duplicateInterface(anInterface *dup)
 {
 	if (dup == nullptr) dup = new GridSelectInterface(nullptr,id,nullptr);
 	else if (!dynamic_cast<GridSelectInterface *>(dup)) return nullptr;
-	return anInterface::duplicate(dup);
+	return anInterface::duplicateInterface(dup);
 }
 
 //! Use the object at oc if it is an GridSelectData.

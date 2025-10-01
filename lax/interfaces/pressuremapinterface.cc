@@ -81,11 +81,11 @@ const char *PressureMapInterface::Name()
 //! Return new PressureMapInterface.
 /*! If dup!=NULL and it cannot be cast to ImageInterface, then return NULL.
  */
-anInterface *PressureMapInterface::duplicate(anInterface *dup)
+anInterface *PressureMapInterface::duplicateInterface(anInterface *dup)
 {
 	if (dup==NULL) dup=new PressureMapInterface(NULL,id,NULL);
 	else if (!dynamic_cast<PressureMapInterface *>(dup)) return NULL;
-	return anInterface::duplicate(dup);
+	return anInterface::duplicateInterface(dup);
 }
 
 int PressureMapInterface::UseThis(anObject *nobj, unsigned int mask)

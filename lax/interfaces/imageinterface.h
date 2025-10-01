@@ -47,7 +47,7 @@ class ImageData : public Laxkit::ImageInfo, virtual public SomeData
 	virtual ~ImageData();
 	virtual const char *whattype() { return "ImageData"; }
 	ImageData &operator=(ImageData &i);
-	virtual SomeData *duplicate(SomeData *dup);
+	virtual SomeData *duplicateData(SomeData *dup);
 
 	virtual void Flip(int horiz);
 	virtual void Flip(Laxkit::flatpoint f1, Laxkit::flatpoint f2);
@@ -126,7 +126,7 @@ class ImageInterface : public anInterface
 	virtual const char *whatdatatype() { return "ImageData"; }
 	virtual Laxkit::ShortcutHandler *GetShortcuts();
 	virtual int Event(const Laxkit::EventData *data, const char *mes);
-	virtual anInterface *duplicate(anInterface *dup);
+	virtual anInterface *duplicateInterface(anInterface *dup);
 	virtual void deletedata();
 	virtual int InterfaceOn();
 	virtual int InterfaceOff();

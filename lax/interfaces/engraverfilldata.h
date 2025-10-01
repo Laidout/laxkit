@@ -373,7 +373,7 @@ class TraceObject : public Laxkit::Resourceable, public Laxkit::DumpUtility
 	TraceObject();
 	virtual ~TraceObject();
 	virtual const char *whattype() { return "TraceObject"; }
-	virtual Laxkit::anObject *duplicate(Laxkit::anObject *ref);
+	virtual Laxkit::anObject *duplicate();
 
 	virtual void dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *context);
 	virtual Laxkit::Attribute *dump_out_atts(Laxkit::Attribute *att,int what,Laxkit::DumpContext *savecontext);
@@ -413,8 +413,8 @@ class EngraverTraceSettings : public Laxkit::Resourceable, public Laxkit::DumpUt
 	virtual const char *Id();
 	virtual const char *Id(const char *str);
 	virtual const char *whattype() { return "EngraverTraceSettings"; }
+	virtual Laxkit::anObject *duplicate();
 	void ClearCache(bool obj_too);
-	virtual EngraverTraceSettings *duplicate();
 	void Install(TraceObject::TraceObjectType ntype, SomeData *obj);
 	void Install(TraceObject *nobject);
 	virtual const char *Identifier();
@@ -476,7 +476,7 @@ class EngraverLineQuality : public Laxkit::Resourceable, public Laxkit::DumpUtil
 	EngraverLineQuality();
 	virtual ~EngraverLineQuality();
 	virtual const char *whattype() { return "EngraverLineQuality"; }
-	virtual EngraverLineQuality *duplicate();
+	virtual Laxkit::anObject *duplicate();
 	virtual const char *Id();
 	virtual const char *Id(const char *id);
 
@@ -668,7 +668,7 @@ class EngraverDirection : public Laxkit::Resourceable, public Laxkit::DumpUtilit
 	EngraverDirection();
 	virtual ~EngraverDirection();
 	virtual const char *whattype() { return "EngraverDirection"; }
-	virtual EngraverDirection *duplicate();
+	virtual Laxkit::anObject *duplicate();
 	virtual const char *Id();
 	virtual const char *Id(const char *id);
 
@@ -701,7 +701,7 @@ class EngraverSpacing : public Laxkit::Resourceable, public Laxkit::DumpUtility
 	EngraverSpacing();
 	virtual ~EngraverSpacing();
 	virtual const char *whattype() { return "EngraverSpacing"; }
-	virtual EngraverSpacing *duplicate();
+	virtual Laxkit::anObject *duplicate();
 	virtual const char *Id();
 	virtual const char *Id(const char *id);
 
@@ -860,7 +860,7 @@ class EngraverFillData : virtual public PatchData
 	virtual const char *whattype() { return "EngraverFillData"; }
 	virtual const char *Id();
 	virtual const char *Id(const char *id);
-	virtual SomeData *duplicate(SomeData *dup);
+	virtual SomeData *duplicateData(SomeData *dup);
 	virtual int renderToBuffer(unsigned char *buffer, int bufw, int bufh, int bufstride, int bufdepth, int bufchannels);
 	virtual int renderToBufferImage(Laxkit::LaxImage *image);
 

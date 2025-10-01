@@ -93,7 +93,7 @@ class CharacterInterface : public anInterface
 
 	CharacterInterface(anInterface *nowner, int nid, Laxkit::Displayer *ndp, Laxkit::LaxFont *nfont);
 	virtual ~CharacterInterface();
-	virtual anInterface *duplicate(anInterface *dup);
+	virtual anInterface *duplicateInterface(anInterface *dup);
 	virtual const char *IconId() { return "Character"; }
 	const char *Name();
 	const char *whattype() { return "CharacterInterface"; }

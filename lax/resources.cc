@@ -1150,7 +1150,7 @@ void ResourceManager::dump_in_list_atts(ResourceType *type, Attribute *att,int f
 				} else if (!strcmp(name,"config")) {
 					resource->source_type = Resource::FromConfig;
 					makestr(resource->objecttype,value);
-					resource->config=att->attributes.e[c]->attributes.e[c2]->duplicate();
+					resource->config = att->attributes.e[c]->attributes.e[c2]->duplicateAtt();
 					resourceok=1;
 
 				} else if (!strcmp(name,"builtin")) {

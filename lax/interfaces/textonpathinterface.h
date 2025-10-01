@@ -108,7 +108,7 @@ class TextOnPath : virtual public SomeData
 	virtual void	   dump_out(FILE *f,int indent,int what, Laxkit::DumpContext *context);
 	virtual Laxkit::Attribute *dump_out_atts(Laxkit::Attribute *att,int what, Laxkit::DumpContext *context); 
 	virtual void dump_in_atts(Laxkit::Attribute *att,int flag, Laxkit::DumpContext *context);
-	virtual SomeData *duplicate(SomeData *dup);
+	virtual SomeData *duplicateData(SomeData *dup);
 
 
 	virtual int Text(const char *newtext, int nstart=0, int nend=-1);
@@ -207,7 +207,7 @@ class TextOnPathInterface : public anInterface
 
 	TextOnPathInterface(anInterface *nowner, int nid);
 	virtual ~TextOnPathInterface();
-	virtual anInterface *duplicate(anInterface *dup);
+	virtual anInterface *duplicateInterface(anInterface *dup);
 	virtual const char *IconId() { return "TextOnPath"; }
 	const char *Name();
 	const char *whattype() { return "TextOnPathInterface"; }

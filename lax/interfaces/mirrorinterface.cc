@@ -75,7 +75,7 @@ void MirrorData::FindBBox()
 	addtobounds(p2);
 }
 
-SomeData *MirrorData::duplicate(SomeData *dup)
+SomeData *MirrorData::duplicateData(SomeData *dup)
 {
 	MirrorData *d = dynamic_cast<MirrorData*>(dup);
 	if (dup && !d) return nullptr; // wrong type!!
@@ -162,11 +162,11 @@ const char *MirrorInterface::Name()
 //! Return new MirrorInterface.
 /*! If dup!=NULL and it cannot be cast to MirrorInterface, then return NULL.
  */
-anInterface *MirrorInterface::duplicate(anInterface *dup)
+anInterface *MirrorInterface::duplicateInterface(anInterface *dup)
 {
 	if (dup==NULL) dup=new MirrorInterface(NULL,id,NULL);
 	else if (!dynamic_cast<MirrorInterface *>(dup)) return NULL;
-	return anInterface::duplicate(dup);
+	return anInterface::duplicateInterface(dup);
 }
 
 //! Use the object as reference for the mirror.

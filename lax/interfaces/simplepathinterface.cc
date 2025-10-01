@@ -300,7 +300,7 @@ void SimplePathData::FindBBox()
 	}
 }
 
-SomeData *SimplePathData::duplicate(SomeData *dup)
+SomeData *SimplePathData::duplicateData(SomeData *dup)
 {
 	SimplePathData *newpath = dynamic_cast<SimplePathData*>(dup);
     if (!newpath && dup) return NULL; //was not an SimplePathData!
@@ -510,11 +510,11 @@ const char *SimplePathInterface::Name()
 //! Return new SimplePathInterface.
 /*! If dup!=NULL and it cannot be cast to SimplePathInterface, then return NULL.
  */
-anInterface *SimplePathInterface::duplicate(anInterface *dup)
+anInterface *SimplePathInterface::duplicateInterface(anInterface *dup)
 {
 	if (dup==NULL) dup=new SimplePathInterface(NULL,id,NULL);
 	else if (!dynamic_cast<SimplePathInterface *>(dup)) return NULL;
-	return anInterface::duplicate(dup);
+	return anInterface::duplicateInterface(dup);
 }
 
 //! Use the object at oc if it is an SimplePathData.

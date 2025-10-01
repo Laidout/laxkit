@@ -131,7 +131,8 @@ class PointSet : public PointCollection, virtual public anObject, virtual public
 	PointSet();
 	virtual ~PointSet();
 	virtual const char *whattype() { return "PointSet"; }
-	virtual anObject *duplicate(anObject *ref);
+	virtual PointSet *duplicateSet(anObject *ref);
+	virtual anObject *duplicate() { return duplicateSet(nullptr); }
 	virtual int CopyFrom(PointSet *set, int with_info, int copy_method);
 
 	// from DumpUtility:

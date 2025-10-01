@@ -125,7 +125,7 @@ class PatchData : virtual public SomeData, virtual public Laxkit::PointCollectio
 	PatchData(double xx,double yy,double ww,double hh,int nr,int nc,unsigned int stle);
 	virtual ~PatchData();
 	virtual const char *whattype() { return "PatchData"; }
-	virtual SomeData *duplicate(SomeData *dup);
+	virtual SomeData *duplicateData(SomeData *dup);
 	virtual void FindBBox();
 	virtual int pointin(Laxkit::flatpoint pp,int pin=1);
 
@@ -319,7 +319,7 @@ class PatchInterface : public anInterface
 	virtual const char *Name();
 	virtual const char *whattype() { return "PatchInterface"; }
 	virtual const char *whatdatatype() { return "PatchData"; }
-	virtual anInterface *duplicate(anInterface *dup);
+	virtual anInterface *duplicateInterface(anInterface *dup);
 	virtual Laxkit::MenuInfo *ContextMenu(int x,int y,int deviceid, Laxkit::MenuInfo *menu);
 	virtual int Event(const Laxkit::EventData *e_data, const char *mes);
 	virtual int UseThisObject(ObjectContext *oc);

@@ -112,7 +112,7 @@ class SimplePathData : virtual public SomeData
 	virtual ~SimplePathData();
 	virtual const char *whattype() { return "SimplePathData"; }
     virtual void FindBBox();
-    virtual SomeData *duplicate(SomeData *dup);
+    virtual SomeData *duplicateData(SomeData *dup);
 
 	virtual void UpdateInterpolation();
 	virtual void BuildSpiro();
@@ -213,7 +213,7 @@ class SimplePathInterface : public anInterface
 
 	SimplePathInterface(anInterface *nowner, int nid, Laxkit::Displayer *ndp);
 	virtual ~SimplePathInterface();
-	virtual anInterface *duplicate(anInterface *dup);
+	virtual anInterface *duplicateInterface(anInterface *dup);
 	virtual const char *IconId() { return "SimplePath"; }
 	virtual const char *Name();
 	virtual const char *whattype() { return "SimplePathInterface"; }

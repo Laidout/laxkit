@@ -62,7 +62,7 @@ class GradientData : virtual public SomeData
 			Laxkit::ScreenColor *col1,Laxkit::ScreenColor *col2,unsigned int stle);
 	virtual ~GradientData();
 	virtual const char *whattype() { return "GradientData"; }
-	virtual SomeData *duplicate(SomeData *dup);
+	virtual SomeData *duplicateData(SomeData *dup);
 	virtual void FindBBox();
 	virtual int pointin(Laxkit::flatpoint pp,int pin=1);
 
@@ -185,7 +185,7 @@ class GradientInterface : public anInterface
 	GradientInterface(int nid,Laxkit::Displayer *ndp);
 	virtual ~GradientInterface();
 	virtual Laxkit::ShortcutHandler *GetShortcuts();
-	virtual anInterface *duplicate(anInterface *dup);
+	virtual anInterface *duplicateInterface(anInterface *dup);
 	virtual const char *IconId();
 	virtual const char *Name();
 	virtual const char *whattype() { return "GradientInterface"; }

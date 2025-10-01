@@ -47,7 +47,7 @@ class ImagePatchData : public PatchData
 	ImagePatchData(const char *file=NULL);
 	virtual ~ImagePatchData(); 
 	virtual const char *whattype() { return "ImagePatchData"; }
-	virtual SomeData *duplicate(SomeData *dup);
+	virtual SomeData *duplicateData(SomeData *dup);
 	virtual void dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *context);
 	virtual Laxkit::Attribute *dump_out_atts(Laxkit::Attribute *att,int what,Laxkit::DumpContext *context);
 	virtual void dump_in_atts(Laxkit::Attribute *att,int flag,Laxkit::DumpContext *context);
@@ -81,7 +81,7 @@ class ImagePatchInterface : public PatchInterface
 	virtual const char *Name();
 	virtual const char *whattype() { return "ImagePatchInterface"; }
 	virtual const char *whatdatatype() { return "ImagePatchData"; }
-	virtual anInterface *duplicate(anInterface *dup);
+	virtual anInterface *duplicateInterface(anInterface *dup);
 	virtual int UseThisObject(ObjectContext *oc);
 	virtual int UseThis(anObject *newdata,unsigned int mask=0);
 	virtual int UseThis(int id,int ndata);

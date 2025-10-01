@@ -73,7 +73,7 @@ class GroupData :   virtual public Laxkit::Tagged,
 	GroupData();
 	virtual ~GroupData();
 	virtual const char *whattype() { return "Group"; }
-	virtual LaxInterfaces::SomeData *duplicate(LaxInterfaces::SomeData *dup);
+	virtual LaxInterfaces::SomeData *duplicateData(LaxInterfaces::SomeData *dup);
 	virtual const char *Id();
 	virtual const char *Id(const char *newid);
 

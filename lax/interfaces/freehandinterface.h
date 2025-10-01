@@ -152,7 +152,7 @@ class FreehandInterface : public anInterface
 
 	FreehandInterface(anInterface *nowner, int nid,Laxkit::Displayer *ndp);
 	virtual ~FreehandInterface();
-	virtual anInterface *duplicate(anInterface *dup);
+	virtual anInterface *duplicateInterface(anInterface *dup);
 	virtual const char *IconId() { return "Freehand"; }
 	virtual const char *Name();
 	virtual const char *whattype() { return "FreehandInterface"; }

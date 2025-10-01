@@ -125,7 +125,7 @@ ImagePatchData::~ImagePatchData()
 	if (idata && (idataislocal==1 || idataislocal==2)) delete[] idata; 
 }
 
-SomeData *ImagePatchData::duplicate(SomeData *dup)
+SomeData *ImagePatchData::duplicateData(SomeData *dup)
 {
 	ImagePatchData *p=dynamic_cast<ImagePatchData*>(dup);
 	if (!p && !dup) return NULL; //was not ImagePatchData!
@@ -147,7 +147,7 @@ SomeData *ImagePatchData::duplicate(SomeData *dup)
 		transform_copy(p->im, im);
 	}
 
-	return PatchData::duplicate(dup);
+	return PatchData::duplicateData(dup);
 }
 
 //! Return the color at (s,t) where (1,1) corresponds to (iwidth,iheight) in the image.
@@ -428,7 +428,7 @@ ImagePatchInterface::~ImagePatchInterface()
 const char *ImagePatchInterface::Name()
 { return _("Image Mesh"); }
 
-anInterface *ImagePatchInterface::duplicate(anInterface *dup)//dup=NULL;
+anInterface *ImagePatchInterface::duplicateInterface(anInterface *dup)//dup=NULL;
 {
 	ImagePatchInterface *dupp;
 	if (dup==NULL) dupp=new ImagePatchInterface(id,NULL);
@@ -437,7 +437,7 @@ anInterface *ImagePatchInterface::duplicate(anInterface *dup)//dup=NULL;
 
 	dupp->recurse=recurse;
 	dupp->rendermode=rendermode;
-	return PatchInterface::duplicate(dupp);
+	return PatchInterface::duplicateInterface(dupp);
 }
 
 //! Return new local ImagePatchData

@@ -179,7 +179,7 @@ int EllipseData::fill(Laxkit::ScreenColor *color)
 	return 0;
 }
 
-SomeData *EllipseData::duplicate(SomeData *dup)
+SomeData *EllipseData::duplicateData(SomeData *dup)
 {
 	EllipseData *p=dynamic_cast<EllipseData*>(dup);
 	if (!p && !dup) return NULL;
@@ -207,8 +207,8 @@ SomeData *EllipseData::duplicate(SomeData *dup)
 	p->style   = style;
 	p->wedge_type = wedge_type;
 
-	if (linestyle) p->linestyle = dynamic_cast<LineStyle*>(linestyle->duplicate(nullptr));
-	if (fillstyle) p->fillstyle = dynamic_cast<FillStyle*>(fillstyle->duplicate(nullptr));
+	if (linestyle) p->linestyle = dynamic_cast<LineStyle*>(linestyle->duplicate());
+	if (fillstyle) p->fillstyle = dynamic_cast<FillStyle*>(fillstyle->duplicate());
 
 	return dup;
 }
@@ -659,13 +659,13 @@ const char *EllipseInterface::Name()
 //! Return new EllipseInterface.
 /*! If dup!=NULL and it cannot be cast to ImageInterface, then return NULL.
  */
-anInterface *EllipseInterface::duplicate(anInterface *dup)
+anInterface *EllipseInterface::duplicateInterface(anInterface *dup)
 {
 	EllipseInterface *edup = dynamic_cast<EllipseInterface *>(dup);
 	if (dup == NULL) dup = edup = new EllipseInterface(NULL,id,NULL);
 	else if (!dup) return NULL;
 	edup->linestyle = linestyle;
-	return anInterface::duplicate(dup);
+	return anInterface::duplicateInterface(dup);
 }
 
 /*! Update the viewport color box */
@@ -677,7 +677,7 @@ void EllipseInterface::UpdateViewportColor()
 	ScreenColor *fill = nullptr;
 
 	if (!data->linestyle) {
-		LineStyle *style = dynamic_cast<LineStyle*>(linestyle.duplicate(nullptr));
+		LineStyle *style = dynamic_cast<LineStyle*>(linestyle.duplicate());
 		data->InstallLineStyle(style);
 	}
 	if (!data->fillstyle) {
@@ -1900,7 +1900,7 @@ int EllipseInterface::PerformAction(int action)
 
 	} else if (action == ELLP_MakeLineLocal) {
 		if (!data) return 0;
-		LineStyle *ls = dynamic_cast<LineStyle*>(data->linestyle->duplicate(nullptr));
+		LineStyle *ls = dynamic_cast<LineStyle*>(data->linestyle->duplicate());
 		data->InstallLineStyle(ls);
 		ls->dec_count();
 		PostMessage(_("Done."));
@@ -1921,7 +1921,7 @@ int EllipseInterface::PerformAction(int action)
 
 	} else if (action == ELLP_MakeFillLocal) {
 		if (!data) return 0;
-		FillStyle *s = dynamic_cast<FillStyle*>(data->fillstyle->duplicate(nullptr));
+		FillStyle *s = dynamic_cast<FillStyle*>(data->fillstyle->duplicate());
 		data->InstallFillStyle(s);
 		s->dec_count();
 		PostMessage(_("Done."));

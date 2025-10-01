@@ -208,7 +208,7 @@ RectInterface::~RectInterface()
 const char *RectInterface::Name()
 { return _("Affine"); }
 
-anInterface *RectInterface::duplicate(anInterface *dup)//dup=NULL
+anInterface *RectInterface::duplicateInterface(anInterface *dup)//dup=NULL
 {
 	RectInterface *r;
 	if (dup==NULL) r=new RectInterface(id,dp);
@@ -218,7 +218,7 @@ anInterface *RectInterface::duplicate(anInterface *dup)//dup=NULL
 	r->creationstyle=creationstyle;
 	r->createx=createx;
 	r->createy=createy;
-	return anInterface::duplicate(r);
+	return anInterface::duplicateInterface(r);
 }
 
 int RectInterface::InterfaceOn()

@@ -148,7 +148,7 @@ class PerspectiveInterface : public anInterface
 
 	PerspectiveInterface(anInterface *nowner, int nid,Laxkit::Displayer *ndp);
 	virtual ~PerspectiveInterface();
-	virtual anInterface *duplicate(anInterface *dup);
+	virtual anInterface *duplicateInterface(anInterface *dup);
 	virtual const char *IconId() { return "Perspective"; }
 	const char *Name();
 	const char *whattype() { return "PerspectiveInterface"; }

@@ -156,7 +156,7 @@ class RectInterface : public anInterface
 	virtual const char *Name();
 	virtual const char *whattype() { return "RectInterface"; }
 	virtual const char *whatdatatype() { return "RectData"; }
-	virtual anInterface *duplicate(anInterface *dup);
+	virtual anInterface *duplicateInterface(anInterface *dup);
 	virtual int InterfaceOn();
 	virtual int InterfaceOff();
 	virtual void Mapped();

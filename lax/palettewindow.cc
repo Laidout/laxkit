@@ -604,7 +604,7 @@ int PaletteWindow::Event(const EventData *e,const char *mes)
 				return 0;
 
 	 		} else if (id == ACTION_DuplicatePalette) {
-	 			Palette *dup = dynamic_cast<Palette*>(palette->duplicate(nullptr));
+	 			Palette *dup = dynamic_cast<Palette*>(palette->duplicate());
 	 			char *newname = increment_file(palette->name);
 	 			palette->dec_count();
 	 			delete[] dup->name;

@@ -69,7 +69,7 @@ CharacterInterface::CharacterInterface(anInterface *nowner, int nid, Displayer *
 
 	font = nullptr;
 	if (nfont) {
-		font=nfont->duplicate();
+		font = nfont->duplicateFont();
 	}
 
 	firsttime      = 1;
@@ -105,11 +105,11 @@ const char *CharacterInterface::Name()
 //! Return new CharacterInterface.
 /*! If dup!=nullptr and it cannot be cast to CharacterInterface, then return nullptr.
  */
-anInterface *CharacterInterface::duplicate(anInterface *dup)
+anInterface *CharacterInterface::duplicateInterface(anInterface *dup)
 {
-	if (dup==nullptr) dup=new CharacterInterface(nullptr,id,nullptr,nullptr);
+	if (dup == nullptr) dup = new CharacterInterface(nullptr,id,nullptr,nullptr);
 	else if (!dynamic_cast<CharacterInterface *>(dup)) return nullptr;
-	return anInterface::duplicate(dup);
+	return anInterface::duplicateInterface(dup);
 }
 
 /*! Normally this will accept some common things like changes to line styles, like a current color.

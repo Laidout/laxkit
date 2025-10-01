@@ -62,7 +62,7 @@ class SliderInfo : virtual public Laxkit::anObject, virtual public Laxkit::Doubl
 
 	virtual const char *whattype() { return "SliderInfo"; }
 	virtual void FindBBox();
-	virtual Laxkit::anObject *duplicate(Laxkit::anObject *ref);
+	virtual Laxkit::anObject *duplicate();
 
 	void CopyStyle(const SliderInfo *info);
 };
@@ -107,7 +107,7 @@ class SliderInterface : public anInterface
 
 	SliderInterface(anInterface *nowner = nullptr, int nid = -1, Laxkit::Displayer *ndp = nullptr);
 	virtual ~SliderInterface();
-	virtual anInterface *duplicate(anInterface *dup);
+	virtual anInterface *duplicateInterface(anInterface *dup);
 	virtual const char *IconId() { return "Slider"; }
 	virtual const char *Name();
 	virtual const char *whattype() { return "SliderInterface"; }

@@ -267,12 +267,7 @@ void Path::clear()
 	needtorecache=1;
 }
 
-Laxkit::anObject *Path::duplicate(Laxkit::anObject *ref)
-{
-	return duplicate();
-}
-
-Path *Path::duplicate()
+Path *Path::duplicatePath()
 {
 	Path *newpath = new Path(NULL,linestyle);
 	if (profile) newpath->ApplyLineProfile(profile, true);
@@ -4178,7 +4173,7 @@ int PathsData::Map(std::function<int(const flatpoint &p, flatpoint &newp)> adjus
 	return changed;
 }
 
-SomeData *PathsData::duplicate(SomeData *dup)
+SomeData *PathsData::duplicateData(SomeData *dup)
 {
 	PathsData *newp=dynamic_cast<PathsData*>(dup);
 	if (!newp && dup) return NULL; //was not a PathsData!
@@ -4196,7 +4191,7 @@ SomeData *PathsData::duplicate(SomeData *dup)
 
 	Path *path;
 	for (int c=0; c<paths.n; c++) {
-		path = paths.e[c]->duplicate();
+		path = paths.e[c]->duplicatePath();
 		newp->paths.push(path);
 		path->dec_count();
 	}
@@ -5267,7 +5262,7 @@ Path *PathsData::GetOffsetPath(int index)
 	Path *path = GetPath(index);
 	if (!path) return NULL;
 
-	Path *opath = path->duplicate();
+	Path *opath = path->duplicatePath();
 	if (opath->HasOffset()) opath->ApplyOffset();
 	return opath;
 }
@@ -5540,7 +5535,7 @@ PathsData *PathsData::MergeWith(PathsData *otherPath,
 
 	PathsData *path_ret = nullptr;
 	if (return_new) {
-		path_ret = dynamic_cast<PathsData*>(duplicate(nullptr));
+		path_ret = dynamic_cast<PathsData*>(duplicateData(nullptr));
 	} else path_ret = this;
 
 	//int cur_path_count = paths.n;
@@ -5551,7 +5546,7 @@ PathsData *PathsData::MergeWith(PathsData *otherPath,
 			c--;
 		}
 		else {
-			path = otherPath->paths[c]->duplicate();
+			path = otherPath->paths[c]->duplicatePath();
 		}
 		paths.push(path);
 		if (transform_from_other) {
@@ -5821,7 +5816,7 @@ int PathInterface::draws(const char *atype)
 /*! Also copies over creationstyle, controlcolor, and linestyle (contents are copied,
  * not linestyle pointer).
  */
-anInterface *PathInterface::duplicate(anInterface *dup)//dup=NULL
+anInterface *PathInterface::duplicateInterface(anInterface *dup)//dup=NULL
 {
 	if (dup==NULL) dup=new PathInterface(id,NULL);
 	PathInterface *dupp=dynamic_cast<PathInterface *>(dup);
@@ -5830,7 +5825,7 @@ anInterface *PathInterface::duplicate(anInterface *dup)//dup=NULL
 	dupp->controlcolor=controlcolor;
 	if (linestyle) (*dupp->linestyle)=(*linestyle);
 	if (fillstyle) (*dupp->fillstyle)=(*fillstyle);
-	return anInterface::duplicate(dup);
+	return anInterface::duplicateInterface(dup);
 }
 
  //! When turning on, make sure we have lock on data, and turn on decorations
@@ -9900,7 +9895,7 @@ int PathInterface::PerformAction(int action)
 
 	} else if (action == PATHIA_MakeLineLocal) {
 		if (!data) return 0;
-		LineStyle *ls = dynamic_cast<LineStyle*>(data->linestyle->duplicate(nullptr));
+		LineStyle *ls = dynamic_cast<LineStyle*>(data->linestyle->duplicate());
 		data->InstallLineStyle(ls);
 		ls->dec_count();
 		PostMessage(_("Done."));
@@ -9921,7 +9916,7 @@ int PathInterface::PerformAction(int action)
 
 	} else if (action == PATHIA_MakeFillLocal) {
 		if (!data) return 0;
-		FillStyle *s = dynamic_cast<FillStyle*>(data->fillstyle->duplicate(nullptr));
+		FillStyle *s = dynamic_cast<FillStyle*>(data->fillstyle->duplicate());
 		data->InstallFillStyle(s);
 		s->dec_count();
 		PostMessage(_("Done."));
@@ -9938,7 +9933,7 @@ void PathInterface::UpdateViewportColor()
 
 	ScreenColor *col;
 	if (!data->linestyle) {
-		LineStyle *style = dynamic_cast<LineStyle*>(defaultline->duplicate(nullptr));
+		LineStyle *style = dynamic_cast<LineStyle*>(defaultline->duplicate());
 		data->InstallLineStyle(style);
 	}
 	if (!data->fillstyle) {

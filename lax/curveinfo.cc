@@ -135,7 +135,7 @@ CurveInfo &CurveInfo::operator=(CurveInfo &l)
 	return l;
 }
 
-anObject *CurveInfo::duplicate(anObject *ref)
+anObject *CurveInfo::duplicate()
 {
 	CurveInfo *nc = new CurveInfo;
 	*nc = *this;

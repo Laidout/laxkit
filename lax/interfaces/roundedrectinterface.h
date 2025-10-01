@@ -83,7 +83,7 @@ class RoundedRectData : virtual public SomeData
 
 	RoundedRectData();
 	virtual ~RoundedRectData();
-	virtual SomeData *duplicate(SomeData *dup);
+	virtual SomeData *duplicateData(SomeData *dup);
 	virtual const char *whattype() { return "RoundedRectData"; }
 
 	virtual void InstallLineStyle(LineStyle *newlinestyle);
@@ -174,7 +174,7 @@ class RoundedRectInterface : public anInterface
 	virtual const char *Name();
 	virtual const char *whattype() { return "RoundedRectInterface"; }
 	virtual const char *whatdatatype() { return "RoundedRectData"; }
-	virtual anInterface *duplicate(anInterface *dup);
+	virtual anInterface *duplicateInterface(anInterface *dup);
 	virtual void Clear(SomeData *d);
 	virtual Laxkit::ShortcutHandler *GetShortcuts();
 	virtual void Dp(Laxkit::Displayer *ndp);

@@ -105,7 +105,7 @@ class EllipseData : virtual public SomeData
 
 	EllipseData();
 	virtual ~EllipseData();
-	virtual SomeData *duplicate(SomeData *dup);
+	virtual SomeData *duplicateData(SomeData *dup);
 	virtual const char *whattype() { return "EllipseData"; }
 
 	virtual void InstallDefaultLineStyle();
@@ -200,7 +200,7 @@ class EllipseInterface : public anInterface
 	virtual const char *Name();
 	virtual const char *whattype() { return "EllipseInterface"; }
 	virtual const char *whatdatatype() { return "EllipseData"; }
-	virtual anInterface *duplicate(anInterface *dup);
+	virtual anInterface *duplicateInterface(anInterface *dup);
 	virtual void Clear(SomeData *d);
 	virtual Laxkit::ShortcutHandler *GetShortcuts();
 	virtual void Dp(Laxkit::Displayer *ndp);

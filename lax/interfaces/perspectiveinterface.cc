@@ -835,7 +835,7 @@ const char *PerspectiveInterface::Name()
 //! Return new PerspectiveInterface.
 /*! If dup!=NULL and it cannot be cast to PerspectiveInterface, then return NULL.
  */
-anInterface *PerspectiveInterface::duplicate(anInterface *dup)
+anInterface *PerspectiveInterface::duplicateInterface(anInterface *dup)
 {
 	if (dup==NULL) {
 		PerspectiveInterface *p = new PerspectiveInterface(NULL,id,NULL);
@@ -843,7 +843,7 @@ anInterface *PerspectiveInterface::duplicate(anInterface *dup)
 		p->interface_flags = interface_flags;
 
 	} else if (!dynamic_cast<PerspectiveInterface *>(dup)) return NULL;
-	return anInterface::duplicate(dup);
+	return anInterface::duplicateInterface(dup);
 }
 
 /*! Assumes dataoc has something meaningful.

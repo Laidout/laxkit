@@ -219,7 +219,7 @@ double LaxFont::Extent(const char *str,int len, double *w, double *h, double *as
 }
 
 
-LaxFont *LaxFont::duplicate()
+LaxFont *LaxFont::duplicateFont()
 {
 	FontManager *fontmanager = GetDefaultFontManager();
 
@@ -236,7 +236,7 @@ LaxFont *LaxFont::duplicate()
 	}
 
 	if (color) {
-		anObject *ncolor = color->duplicate(nullptr);
+		anObject *ncolor = color->duplicate();
 		if (ncolor) {
 			newfont->SetColor(ncolor);
 			ncolor->dec_count();

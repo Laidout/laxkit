@@ -138,7 +138,7 @@ int RoundedRectData::fill(Laxkit::ScreenColor *color)
 	return 0;
 }
 
-SomeData *RoundedRectData::duplicate(SomeData *dup)
+SomeData *RoundedRectData::duplicateData(SomeData *dup)
 {
 	RoundedRectData *p = dynamic_cast<RoundedRectData*>(dup);
 	if (!p && !dup) return nullptr;
@@ -164,8 +164,8 @@ SomeData *RoundedRectData::duplicate(SomeData *dup)
 	p->round_type = round_type;
 	memcpy(p->round, round, 8*sizeof(double));
 
-	if (linestyle) p->linestyle = dynamic_cast<LineStyle*>(linestyle->duplicate(nullptr));
-	if (fillstyle) p->fillstyle = dynamic_cast<FillStyle*>(fillstyle->duplicate(nullptr));
+	if (linestyle) p->linestyle = dynamic_cast<LineStyle*>(linestyle->duplicate());
+	if (fillstyle) p->fillstyle = dynamic_cast<FillStyle*>(fillstyle->duplicate());
 
 	return dup;
 }
@@ -503,7 +503,7 @@ const char *RoundedRectInterface::Name()
 //! Return new RoundedRectInterface.
 /*! If dup!=nullptr and it cannot be cast to RoundedRectInterface, then return nullptr.
  */
-anInterface *RoundedRectInterface::duplicate(anInterface *dup)
+anInterface *RoundedRectInterface::duplicateInterface(anInterface *dup)
 {
 	RoundedRectInterface *edup = dynamic_cast<RoundedRectInterface *>(dup);
 	if (dup == nullptr) dup = edup = new RoundedRectInterface(nullptr,id,nullptr);
@@ -512,7 +512,7 @@ anInterface *RoundedRectInterface::duplicate(anInterface *dup)
 	if (edup->default_linestyle) edup->default_linestyle->inc_count();
 	edup->default_fillstyle = DefaultFillStyle();
 	if (edup->default_fillstyle) edup->default_fillstyle->inc_count();
-	return anInterface::duplicate(dup);
+	return anInterface::duplicateInterface(dup);
 }
 
 LineStyle *RoundedRectInterface::DefaultLineStyle()
@@ -544,7 +544,7 @@ void RoundedRectInterface::UpdateViewportColor()
 
 	if (data){
 		if (!data->linestyle) {
-			LineStyle *style = dynamic_cast<LineStyle*>(DefaultLineStyle()->duplicate(nullptr));
+			LineStyle *style = dynamic_cast<LineStyle*>(DefaultLineStyle()->duplicate());
 			data->InstallLineStyle(style);
 			style->dec_count();
 		}
@@ -553,7 +553,7 @@ void RoundedRectInterface::UpdateViewportColor()
 
 	if (data) {
 		if (!data->fillstyle) {
-			FillStyle *style = dynamic_cast<FillStyle*>(DefaultFillStyle()->duplicate(nullptr));
+			FillStyle *style = dynamic_cast<FillStyle*>(DefaultFillStyle()->duplicate());
 			data->InstallFillStyle(style);
 			style->dec_count();
 		}
@@ -573,7 +573,7 @@ int RoundedRectInterface::UseThis(anObject *nobj,unsigned int mask)
 		if (mask & LINESTYLE_Color) {
 			if (data) {
 				if (!data->linestyle) {
-					LineStyle *style = dynamic_cast<LineStyle*>(DefaultLineStyle()->duplicate(nullptr));
+					LineStyle *style = dynamic_cast<LineStyle*>(DefaultLineStyle()->duplicate());
 					data->InstallLineStyle(style);
 					style->dec_count();
 				}
@@ -584,7 +584,7 @@ int RoundedRectInterface::UseThis(anObject *nobj,unsigned int mask)
 		if (mask & LINESTYLE_Color2) {
 			if (data) {
 				if (!data->fillstyle) {
-					FillStyle *style = dynamic_cast<FillStyle*>(DefaultFillStyle()->duplicate(nullptr));
+					FillStyle *style = dynamic_cast<FillStyle*>(DefaultFillStyle()->duplicate());
 					data->InstallFillStyle(style);
 					style->dec_count();
 				}
@@ -1025,11 +1025,11 @@ int RoundedRectInterface::LBDown(int x,int y,unsigned int state,int count,const 
 	ndata = dynamic_cast<RoundedRectData *>(somedatafactory()->NewObject(LAX_ROUNDEDRECTDATA));
 	if (!ndata) ndata = new RoundedRectData;
 
-	LineStyle *style = dynamic_cast<LineStyle*>(DefaultLineStyle()->duplicate(nullptr));
+	LineStyle *style = dynamic_cast<LineStyle*>(DefaultLineStyle()->duplicate());
 	ndata->InstallLineStyle(style);
 	style->dec_count();
 	
-	FillStyle *fstyle = dynamic_cast<FillStyle*>(DefaultFillStyle()->duplicate(nullptr));
+	FillStyle *fstyle = dynamic_cast<FillStyle*>(DefaultFillStyle()->duplicate());
 	ndata->InstallFillStyle(fstyle);
 	fstyle->dec_count();
 	
@@ -1473,7 +1473,7 @@ int RoundedRectInterface::PerformAction(int action)
 
 	} else if (action == RRECT_MakeLineLocal) {
 		if (!data) return 0;
-		LineStyle *ls = dynamic_cast<LineStyle*>(data->linestyle->duplicate(nullptr));
+		LineStyle *ls = dynamic_cast<LineStyle*>(data->linestyle->duplicate());
 		data->InstallLineStyle(ls);
 		ls->dec_count();
 		PostMessage(_("Done."));
@@ -1494,7 +1494,7 @@ int RoundedRectInterface::PerformAction(int action)
 
 	} else if (action == RRECT_MakeFillLocal) {
 		if (!data) return 0;
-		FillStyle *s = dynamic_cast<FillStyle*>(data->fillstyle->duplicate(nullptr));
+		FillStyle *s = dynamic_cast<FillStyle*>(data->fillstyle->duplicate());
 		data->InstallFillStyle(s);
 		s->dec_count();
 		PostMessage(_("Done."));

@@ -64,7 +64,7 @@ class PressureMapInterface : public anInterface
 
 	PressureMapInterface(anInterface *nowner, int nid,Laxkit::Displayer *ndp);
 	virtual ~PressureMapInterface();
-	virtual anInterface *duplicate(anInterface *dup);
+	virtual anInterface *duplicateInterface(anInterface *dup);
 	virtual const char *IconId() { return "PressureMap"; }
 	const char *Name();
 	const char *whattype() { return "PressureMapInterface"; }

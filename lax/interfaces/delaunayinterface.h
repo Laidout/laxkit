@@ -104,7 +104,8 @@ class VoronoiData : virtual public LaxInterfaces::SomeData, virtual public Laxki
 	virtual void dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *context);
 	virtual Laxkit::Attribute *dump_out_atts(Laxkit::Attribute *att,int what,Laxkit::DumpContext *context);
 	virtual void dump_in_atts(Laxkit::Attribute *att,int flag,Laxkit::DumpContext *context);
-	virtual SomeData *duplicate(SomeData *dup);
+	virtual SomeData *duplicateData(SomeData *dup);
+	virtual Laxkit::anObject *duplicate() { return duplicateData(nullptr); }
 
 	virtual void Flush();
 	virtual void Triangulate();
@@ -195,7 +196,7 @@ class DelaunayInterface : public anInterface
 
 	DelaunayInterface(anInterface *nowner, int nid,Laxkit::Displayer *ndp);
 	virtual ~DelaunayInterface();
-	virtual anInterface *duplicate(anInterface *dup);
+	virtual anInterface *duplicateInterface(anInterface *dup);
 	virtual const char *IconId() { return "Delaunay"; }
 	virtual const char *Name();
 	virtual const char *whattype() { return "DelaunayInterface"; }

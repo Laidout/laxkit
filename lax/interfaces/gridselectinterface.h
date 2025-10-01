@@ -90,7 +90,7 @@ class GridSelectInterface : public anInterface
 
 	GridSelectInterface(anInterface *nowner = nullptr, int nid = 0,Laxkit::Displayer *ndp = nullptr, unsigned int send_to_id = 0, const char *msg = nullptr);
 	virtual ~GridSelectInterface();
-	virtual anInterface *duplicate(anInterface *dup);
+	virtual anInterface *duplicateInterface(anInterface *dup);
 	virtual const char *IconId() { return "GridSelect"; }
 	virtual const char *Name();
 	virtual const char *whattype() { return "GridSelectInterface"; }

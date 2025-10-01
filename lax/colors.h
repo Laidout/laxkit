@@ -89,7 +89,8 @@ class Color : public Laxkit::anObject, public DumpUtility
 	Color &operator=(Color &l);
 	virtual ~Color();
 	virtual const char *whattype() { return "Color"; }
-	virtual Color *duplicate();
+	virtual Color *duplicateColor();
+	virtual anObject *duplicate() { return duplicateColor(); }
 
 	virtual const char *Name();
 	virtual double Alpha();
@@ -123,7 +124,7 @@ class ColorRef : virtual public Laxkit::Color
 	ColorRef(Color *newcolor);
 	virtual ~ColorRef();
 
-	virtual Color *duplicate();
+	virtual Color *duplicateColor();
 	//virtual const char *Name();
 	virtual double Alpha();
 	virtual int ColorType();

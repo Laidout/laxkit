@@ -101,7 +101,7 @@ class BezNetInterface : public anInterface
 
 	BezNetInterface(anInterface *nowner, int nid,Laxkit::Displayer *ndp);
 	virtual ~BezNetInterface();
-	virtual anInterface *duplicate(anInterface *dup);
+	virtual anInterface *duplicateInterface(anInterface *dup);
 	virtual const char *IconId() { return "BezNet"; }
 	virtual const char *Name();
 	virtual const char *whattype() { return "BezNetInterface"; }

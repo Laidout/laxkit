@@ -272,7 +272,6 @@ void Utf8String::updateNumChars()
 	num_chars=0;
 	if (!s) return;
 
-	const char *ss;
 	int len;
 
 	for (int c = 0; c < num_bytes && s[c] != 0; ) {

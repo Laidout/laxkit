@@ -80,7 +80,7 @@ LineStyle::LineStyle(const LineStyle &l)
 	width      = l.width;
 	widthtype  = l.widthtype;
 	color      = l.color;
-	color2     = l.color2 ? l.color2->duplicate() : nullptr;
+	color2     = l.color2 ? l.color2->duplicateColor() : nullptr;
 	capstyle   = l.capstyle;
 	joinstyle  = l.joinstyle;
 	miterlimit = l.miterlimit;
@@ -103,7 +103,7 @@ LineStyle &LineStyle::operator=(LineStyle &l)
 	widthtype  = l.widthtype;
 	color      = l.color;
 	if (color2) color2->dec_count();
-	color2     = l.color2 ? l.color2->duplicate() : nullptr;
+	color2     = l.color2 ? l.color2->duplicateColor() : nullptr;
 	capstyle   = l.capstyle;
 	joinstyle  = l.joinstyle;
 	miterlimit = l.miterlimit;
@@ -130,7 +130,7 @@ LineStyle::~LineStyle()
 	delete[] dashes;
 }
 
-anObject *LineStyle::duplicate(anObject *ref)
+anObject *LineStyle::duplicate()
 {
 	LineStyle *style = new LineStyle(*this);
 	return style;

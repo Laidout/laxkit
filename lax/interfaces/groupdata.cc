@@ -87,10 +87,10 @@ LaxInterfaces::SomeData *GroupData::GetParent()
 
 /*! Returns copy with copy of kids.
  */
-LaxInterfaces::SomeData *GroupData::duplicate(LaxInterfaces::SomeData *dup)
+LaxInterfaces::SomeData *GroupData::duplicateData(LaxInterfaces::SomeData *dup)
 {
 	GroupData *d=dynamic_cast<GroupData*>(dup);
-	if (dup && !d) return NULL; //not a drawableobject!
+	if (dup && !d) return nullptr; //not a drawableobject!
 	if (!dup) {
 		InterfaceManager *imanager = InterfaceManager::GetDefault(true);
 		dup = imanager->NewDataObject("Group");
@@ -102,7 +102,7 @@ LaxInterfaces::SomeData *GroupData::duplicate(LaxInterfaces::SomeData *dup)
 	SomeData *obj;
 	GroupData *dobj;
 	for (int c=0; c<kids.n; c++) {
-		obj=kids.e[c]->duplicate(NULL);
+		obj = kids.e[c]->duplicateData(nullptr);
 		dobj=dynamic_cast<GroupData*>(obj);
 		d->push(obj);
 		dobj->parent=d;
