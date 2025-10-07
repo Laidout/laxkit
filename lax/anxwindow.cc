@@ -627,7 +627,7 @@ double anXWindow::UIScale()
 				if (ppi <= 0) ppi = 100;
 				double px = sqrt(monitor->width * monitor->width + monitor->height * monitor->height);
 				double px_per_in = px / mm * 10 * 2.54;
-				DBG cerr << "Using monitor pixel density "<<px_per_in<<", extra scale="<<(px_per_in / ppi)<<" for " <<(win_name?win_name:"?")<<endl;
+				DBG cerr << "Using monitor "<<(monitor->id?monitor->id:"null")<<" pixel density "<<px_per_in<<", extra scale="<<(px_per_in / ppi)<<" for " <<(win_name?win_name:"?")<<endl;
 				scale *= px_per_in / ppi;
 			}
 		}
@@ -1814,8 +1814,12 @@ int anXWindow::event(XEvent *e)
  */
 int anXWindow::CharInput(unsigned int ch, const char *buffer,int len,unsigned int state, const LaxKeyboard *kb)
 {
-	DBG cerr <<" CharInput: "<<ch<<endl;
-	if (ch==LAX_Esc && (win_style&ANXWIN_ESCAPABLE) && deletenow()) { app->destroywindow(this); return 0; }
+	DBG cerr <<" CharInput on "<<WindowTitle()<<": "<<ch<<endl;
+	if (ch == LAX_Esc) {
+		if (win_style & ANXWIN_ESCAPABLE) {
+			if (deletenow()) { app->destroywindow(this); return 0; }
+		}
+	}
 	if (ch!='\t') return 1;
 	if ((state&LAX_STATE_MASK)==ShiftMask) return SelectPrevControl(kb);
 	if ((state&LAX_STATE_MASK)==0) return SelectNextControl(kb);
