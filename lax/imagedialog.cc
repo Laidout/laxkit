@@ -26,6 +26,9 @@
 #include <lax/multilineedit.h>
 #include <lax/laximages.h>
 #include <lax/overwrite.h>
+#include <lax/freedesktop.h>
+#include <lax/menubutton.h>
+#include <lax/popupmenu.h>
 #include <lax/language.h>
 
 #include <sys/stat.h>
@@ -114,14 +117,6 @@ int ImageDialog::preinit()
 	return 0;
 }
 
-/*! Add dialogs in this order: 
- *    FilePreviewer, 
- *    file, preview,
- *    preview generate button,
- *    title,
- *    description,
- *    final ok and cancel.
- */
 int ImageDialog::init()
 {
 	if (!xlib_window) return 1;
@@ -133,7 +128,6 @@ int ImageDialog::init()
 
 	//--------------- FilePreviewer
 	last = previewer = newFilePreviewer();
-	//***warning, hack!:
 	previewer->Preview(imageinfo->filename, imageinfo->index);
 	AddWin(previewer,1, 100,50,1600,50,0, 30,0,1600,50,0, -1);
 	AddNull();
@@ -158,7 +152,7 @@ int ImageDialog::init()
 							    0,0,0,0, 1, last,object_id,"new index", "Subimage");
 	index->SetText(imageinfo->index);
 	index->GetLineEdit()->SetCurpos(-1);
-	index->tooltip("Subimage index in the main file. This is 0 for single image files");
+	index->tooltip("Subimage index, 0 for single image files. A pdf or animated gif might have index 5 for instance.");
 	AddWin(index,1, index->win_w,0,50,50,0, index->win_h,0,0,50,0, -1);
 
 	AddNull();
@@ -173,9 +167,20 @@ int ImageDialog::init()
 	//----
 	last=preview=new LineInput(this,"preview",_("Preview"),LINP_FILE, 0,0,0,0, 1, last,object_id,"new preview", " ",imageinfo->previewfile);
 	preview->GetLineEdit()->SetCurpos(-1);
-	preview->tooltip("The image's preview file, if any");
+	preview->tooltip("The image's optional preview file to speed up screen rendering");
 	AddWin(preview,1, 200,100,1000,50,0, preview->win_h,0,0,50,0, -1);
+
+	MenuButton *menub;
+	last = menub = new MenuButton(this,"previewlist",nullptr, MENUBUTTON_DOWNARROW | MENUBUTTON_CLICK_CALLS_OWNER, 0,0,0,0,0,
+							  last, object_id, "previewlist",0,
+							  nullptr,1,
+							  "  ",nullptr,nullptr);
+	menub->tooltip(_("Select from possible automatic previews"));
+	AddWin(menub,1, -1);
+	
 	AddNull();
+
+
 
 	 //------------ [Re]Generate button
 	int p=file_exists(imageinfo->previewfile,1,nullptr);
@@ -187,7 +192,7 @@ int ImageDialog::init()
 	if (p && p!=S_IFREG) tbut->State(LAX_GRAY);
 	AddWin(tbut,1, tbut->win_w,0,50,50,0, linpheight,0,0,50,0, -1);
 	 // add field for max preview dimension
-	last=side=new LineInput(this,"side",nullptr,0,    0,0,0,0, 1, last,object_id,"new max side", "Fit to:","200");
+	last=side=new LineInput(this,"side",nullptr,0,    0,0,0,0, 1, last,object_id,"new max side", "Fit to:","256");
 	last->tooltip("Generate a preview inside a square this wide in pixels");
 	AddWin(last,1, linpheight*3,linpheight,10,50,0, last->win_h,0,0,50,0, -1);
 	//last=new LineInput(this,"height",0,    0,0,0,0, 1, last,object_id,"new max height", "Height:","200");
@@ -234,6 +239,24 @@ int ImageDialog::init()
 
 	return 0;
 }
+
+/*! Return null terminated list.
+ * Returned value needs to be deleted with deletestrs(str, 0)
+ */
+char **ImageDialog::GetPossiblePreviewFiles()
+{
+	if (isblank(imageinfo->filename)) return nullptr;
+
+	char **dirs = new char*[5];
+	dirs[0] = freedesktop_thumbnail_filename(imageinfo->filename, 'n');
+	dirs[1] = freedesktop_thumbnail_filename(imageinfo->filename, 'l');
+	dirs[2] = freedesktop_thumbnail_filename(imageinfo->filename, 'x');
+	dirs[3] = freedesktop_thumbnail_filename(imageinfo->filename, 'X');
+	dirs[4] = nullptr;
+
+	return dirs;
+}
+
 
 //! Send an event to owner.
 /*! If dialog_style&IMGD_SEND_STRS, sends a StrsEventData, 
@@ -347,6 +370,14 @@ int ImageDialog::Event(const EventData *data,const char *mes)
 
 	} else if (!strcmp(mes,"button file")) {
 		const char *prev = file->GetCText();
+		if (isblank(prev)) {
+			app->rundialog(new FileDialog(nullptr,"get new file",nullptr,ANXWIN_REMEMBER,
+									  0,0,400,500,0,
+									  object_id,"install new file",
+									  FILES_OPEN_ONE | FILES_PREVIEW,
+									  nullptr));
+			return 0;
+		}
 		makestr(imageinfo->filename, prev);
 		previewer->Preview(imageinfo->filename, imageinfo->index);
 		return 0;
@@ -376,6 +407,52 @@ int ImageDialog::Event(const EventData *data,const char *mes)
 									  0,0,400,500,0,object_id,"install new preview",
 									  FILES_OPEN_ONE|FILES_PREVIEW,
 									  preview->GetCText()));
+		return 0;
+
+	} else if (!strcmp(mes,"previewlist")) {
+
+		 // build and launch possible preview files menu
+		if (isblank(file->GetCText())) return 0;
+				
+		MenuInfo *menu = new MenuInfo("Possible Preview Files");
+		// full = newstr(file->GetCText());
+		
+		char **previews = GetPossiblePreviewFiles();
+		for (int c = 0; previews[c]; c++) {
+			char *str = newstr(previews[c]);
+			if (!str) continue;
+
+			int image_width = 0;
+			int image_height = 0;
+			int ping = ImageLoader::Ping(str, &image_width,&image_height, nullptr,nullptr); //return 0 for success. subfiles is number of "frames" in file
+			if (ping == 0) {
+				prependstr(str,"* ");
+			} else {
+				prependstr(str,"  ");
+			}
+			menu->AddItem(str,c);
+			delete[] str;
+		}
+		deletestrs(previews, 0);
+
+		PopupMenu *popup = new PopupMenu(nullptr,menu->title, 0,
+                        0,0,0,0, 1,
+                        object_id,"usethispreview",
+                        0, //mouse to position near?
+                        menu,1, nullptr,
+                        TREESEL_LEFT | TREESEL_ZERO_OR_ONE | TREESEL_SEND_STRINGS | TREESEL_LIVE_SEARCH);
+		popup->Select(0);
+		popup->WrapToMouse(0,nullptr);
+		app->rundialog(popup);
+		if (popup->object_id) app->setfocus(popup);
+		else { app->destroywindow(popup); popup=nullptr; }
+		return 0;
+
+	} else if (!strcmp(mes, "usethispreview")) {
+		const StrsEventData *s = dynamic_cast<const StrsEventData *>(data);
+		if (!s || s->n == 0) return 0;
+
+		preview->SetText(s->strs[0] + 2);
 		return 0;
 	}
 
@@ -433,9 +510,13 @@ void ImageDialog::updateImageInfo()
 char *ImageDialog::reallyGeneratePreview()
 {
 	long width = side->GetLineEdit()->GetLong(nullptr);
+	int ww = freedesktop_guess_thumb_size(imageinfo->previewfile);
+	if (ww > 0) {
+		width = ww;
+	}
 	if (width <= 10) return newstr("Too small to fit preview inside.");
 
-	if (GeneratePreviewFile(imageinfo->filename,imageinfo->previewfile,"jpg",width,width,1))
+	if (GeneratePreviewFile(imageinfo->filename,imageinfo->previewfile, "png", width,width,1))
 		return newstr("Error making preview.");
 
 	LaxImage *image = ImageLoader::LoadImage(imageinfo->previewfile);

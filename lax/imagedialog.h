@@ -54,6 +54,8 @@ class ImageDialog : public RowFrame
 	virtual int RegeneratePreview(int force);
 	virtual void updateImageInfo();
 	bool SetImageIndex(int i);
+
+	virtual char **GetPossiblePreviewFiles();
 	
  public:
 	ImageDialog(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,

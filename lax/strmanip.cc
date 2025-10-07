@@ -1119,22 +1119,22 @@ const char *lax_extension(const char *path)
 	return period+1;
 }
 
-//! Returns a new char[] with the dir part of the path, or NULL.
+//! Returns a new char[] with the dir part of the path, or nullptr.
 /*! The calling code must delete[] what is returned.
  *
- * So something like "blah.h" will return NULL.
+ * So something like "blah.h" will return nullptr.
  * "yack/hack" will return "yack" or "yack/" if (appendslash).
  *
- * "/" will return "" (not NULL), or "/" if appendslash.
+ * "/" will return "" (not nullptr), or "/" if appendslash.
  */
-char *lax_dirname(const char *path,char appendslash)
+char *lax_dirname(const char *path, bool appendslash)
 {
-	if (!path) return NULL;
-	const char *base=strrchr(path,'/');
-	if (!base) return NULL;
-	char *dir=new char[base-path+2];
-	strncpy(dir,path,base-path+(appendslash?1:0));
-	dir[base-path+(appendslash?1:0)]='\0';
+	if (!path) return nullptr;
+	const char *base = strrchr(path,'/');
+	if (!base) return nullptr;
+	char *dir = new char[base-path+2];
+	strncpy(dir, path, base - path + (appendslash ? 1 : 0));
+	dir[base - path + (appendslash ? 1 : 0)] = '\0';
 	return dir;
 }
 

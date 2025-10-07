@@ -30,6 +30,7 @@
 #include <lax/strmanip.h>
 #include <lax/fileutils.h>
 #include <lax/attributes.h>
+#include <lax/utf8string.h>
 #include <lax/language.h>
 
 
@@ -1230,6 +1231,8 @@ int add_bookmark(const char *directory, int where)
 
 
 /*! The old MD5() openssl is deprecated, but we need it for the freedesktop thumbnail spec, so using this alternative.
+ * Note the md5_ret will just be numbers, not characters. You have to convert to characters yourself.
+ * md5_ret should be at least 16 chars long.
  */
 void freedesktop_md5(const unsigned char *data, int data_len, unsigned char *md5_ret)
 {
@@ -1257,13 +1260,22 @@ void freedesktop_md5(const unsigned char *data, int data_len, unsigned char *md5
 	EVP_MD_CTX_free(mdctx);
 }
 
-static const char *thumb_dirs[] = {
-	"~/.cache/thumbnails/normal/",
-	"~/.cache/thumbnails/large/",
-	"~/.thumbnails/normal/",
-	"~/.thumbnails/large/",
+static const char *thumb_dirs[] = { // gets prepended with xdg_cache_home()
+	"/thumbnails/normal/",   //  128 px
+	"/thumbnails/large/",    //  256 px
+	"/thumbnails/x-large/",  //  512 px
+	"/thumbnails/xx-large/", // 1024 px
+	// "~/.thumbnails/normal/",    // deprecated
+	// "~/.thumbnails/large/",
 	nullptr
 };
+
+/*! Does NOT include the initial xdg_cache_home(). You will have to prepend it yourself.
+ */
+const char **freedesktop_thumbnail_dirs()
+{
+	return thumb_dirs;
+}
 
 /*! Search for a thumbnail for file, and return the thumbnail file location.
  * Return nullptr if no such file found.
@@ -1294,8 +1306,9 @@ char *freedesktop_get_existing_thumbnail(const char *file)
 	}
 	
 	for (int i=0; thumb_dirs[i] != nullptr; i++) {
-		thumb = expand_home(thumb_dirs[i]);
-		appendstr(thumb, "/");
+		// thumb = expand_home(thumb_dirs[i]);
+		thumb = newstr(xdg_cache_home());
+		appendstr(thumb, thumb_dirs[i]);
 		appendstr(thumb, (char*)md);
 		appendstr(thumb, ".png");
 		if (file_exists(thumb, 1, nullptr)) return thumb;
@@ -1306,14 +1319,14 @@ char *freedesktop_get_existing_thumbnail(const char *file)
 }
 
 //! Return a freedesktop thumbnail file location corresponding to file.
-/*! If which=='n' (default), then use the "normal" thumbnail, else use the "large" thumbnail.
+/*! If which=='n' (default), then use the "normal" (128px) thumbnail,
+ * else 'l' is "large" (256px) thumbnail,
+ * 'x' is 512px "x-large", 'X' is 1024 "xx-large".
  *
  * Returns a new'd char[] with the path to the presumed preview. Does no existence check
  * or actual thumbnail generation.
- * 
- * \todo use actual XDG location instead of hardcoding "~/.cache/thumbnails"
  */
-char *freedesktop_thumbnail(const char *file, char which)
+char *freedesktop_thumbnail_filename(const char *file, char which)
 {
 	if (isblank(file)) return nullptr;
 
@@ -1321,11 +1334,15 @@ char *freedesktop_thumbnail(const char *file, char which)
 	char *str, *h;
 	unsigned char md[17];
 
-	//provide space for 32 characters of the MD5 hex value
-	pname = newstr(which == 'n'?
-					 "~/.cache/thumbnails/normal/                                .png"
-					 :"~/.cache/thumbnails/large/                                .png");
-	expand_home_inplace(pname);
+	pname = newstr(xdg_cache_home());
+	appendstr(pname, "/thumbnails/");
+	if      (which == 'l') appendstr(pname, "large");
+	else if (which == 'x') appendstr(pname, "x-large");
+	else if (which == 'X') appendstr(pname, "xx-large");
+	else appendstr(pname, "normal");
+	// provide space for 32 characters of the MD5 hex value
+	appendstr(pname, "/                                .png");
+	// expand_home_inplace(pname);
 
 	h = full_path_for_file(file, nullptr);
 	str = file_to_uri(h);
@@ -1343,6 +1360,33 @@ char *freedesktop_thumbnail(const char *file, char which)
 	*h = '.';
 	delete[] str;
 	return pname;
+}
+
+/*! If there's "normal", "large", "x-large", "xx-large" just before the file name,
+ * return 128, 256, 512, or 1024.
+ * If none of those, return 0.
+ */
+int freedesktop_guess_thumb_size(const char *filename)
+{
+	if (!filename) return 0;
+	const char *pf = filename;
+	const char *slash1 = strrchr(pf, '/');
+	if (slash1 &&  slash1 != pf) {
+		const char *slash2 = slash1 - 1;
+		while (slash2 != pf && *(slash2 - 1) != '/') slash2--;
+		if (slash2 != pf && slash1-slash2 > 1) {
+			if (!strncmp(slash2, "normal", slash1-slash2-1)) {
+				return 128;
+			} else if (!strncmp(slash2, "large", slash1-slash2-1)) {
+				return 256;
+			} else if (!strncmp(slash2, "x-large", slash1-slash2-1)) {
+				return 512;
+			} else if (!strncmp(slash2, "xx-large", slash1-slash2-1)) {
+				return 1024;
+			}
+		}
+	}
+	return 0;
 }
 
 
@@ -1392,16 +1436,23 @@ char *xdg_state_home()
 }
 
 
+static Utf8String _xdg_cache_home;
+
 /*! Return `XDG_CACHE_HOME` environment variable, or if null, return `$HOME/.cache`.
  */
-char *xdg_cache_home()
+const char *xdg_cache_home()
 {
-	char *cache = getenv("XDG_CACHE_HOME");
-	if (cache) return newstr(cache);
+	if (_xdg_cache_home.IsEmpty()) {
+		const char *cache = getenv("XDG_CACHE_HOME");
+		if (cache) _xdg_cache_home = cache;
+		else {
+			cache = newstr(getenv("HOME"));
+			_xdg_cache_home = cache;
+			_xdg_cache_home.Append("/.cache");
+		}
+	}
 
-	cache = newstr(getenv("HOME"));
-	appendstr(cache, "/.cache");
-	return cache;
+	return _xdg_cache_home.c_str();
 }
 
 

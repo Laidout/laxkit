@@ -43,8 +43,10 @@ Laxkit::MenuInfo *get_categorized_bookmarks(const char *file,const char *filetyp
 int add_bookmark(const char *directory, int where);
 
 char *freedesktop_get_existing_thumbnail(const char *file);
-char *freedesktop_thumbnail(const char *file, char which='n');
+char *freedesktop_thumbnail_filename(const char *file, char which='n');
+const char **freedesktop_thumbnail_dirs();
 void freedesktop_md5(const unsigned char *data, int len, unsigned char *md5_ret);
+int freedesktop_guess_thumb_size(const char *filename);
 
 
 //-------------- XDG Basedir functions ------------------------
@@ -52,7 +54,7 @@ void freedesktop_md5(const unsigned char *data, int len, unsigned char *md5_ret)
 char *xdg_data_home();
 char *xdg_config_home();
 char *xdg_state_home();
-char *xdg_cache_home();
+const char *xdg_cache_home();
 char *xdg_runtime_dir();
 char **xdg_data_dirs(int *n_ret);
 char **xdg_config_dirs(int *n_ret);

@@ -626,9 +626,20 @@ int ImageInterface::InterfaceOff()
 
 Laxkit::MenuInfo *ImageInterface::ContextMenu(int x,int y,int deviceid, MenuInfo *menu)
 {
-	// if (!menu) menu = new MenuInfo();
+	if (!menu) menu = new MenuInfo();
 
-	// menu->AddItem(_("Make random points"), VORONOI_MakeRandomRect);
+	if (data) {
+		if (data->image) {
+			menu->AddItem(_("Replace image..."),   II_ReplaceImage);
+			menu->AddItem(_("Reload image"),       II_ReloadImage);
+		} else {
+			menu->AddItem(_("Load image"),       II_LoadImage);
+		}
+		menu->AddItem(_("Edit image info..."), II_ImageInfo);
+		// menu->AddItem(_("New image object"),  II_NewImageObject);
+	} else {
+		menu->AddItem(_("Load image..."),      II_LoadImage);
+	}
 
 	return menu;
 }
@@ -729,12 +740,12 @@ int ImageInterface::Refresh()
 			dp->drawline(lr,ll);
 			dp->drawline(ll,ul);
 
-			int up=-1;
-			if (dp->defaultRighthanded()) up=1; //flip if dp is +y==up
+			int up = 1;
+			if (dp->defaultRighthanded()) up = -1; //flip if dp is +y==up
 			//if (dp->righthanded()) up=1; //flip if dp is +y==up
 
-			flatpoint p=(ll+lr+ul+ur)/4; //center of image
-			flatpoint tip=p+up*((ul+ur)/2-p)*2/3; //tip of an arrow from center, 2/3 toward up direction
+			flatpoint p = (ll + lr + ul + ur)/4;  // center of image
+			flatpoint tip = p + up*((ul + ur)/2 - p)*2/3;  // tip of an arrow from center, 2/3 toward up direction
 
 			if (status==-1) {
 				 // undefined image, draw big x
@@ -987,7 +998,17 @@ void ImageInterface::runImageDialog()
  */
 int ImageInterface::Event(const Laxkit::EventData *data, const char *mes)
 {
-	if (!strcmp(mes,"image properties")) {
+	if (!strcmp(mes,"menuevent")) {
+		const SimpleMessage *s = dynamic_cast<const SimpleMessage*>(data);
+		int i = s->info2; //id of menu item
+
+		if (i >= II_Normalize && i < II_MAX) {
+			PerformAction(i);
+			return 0;
+		}
+		return 1;
+
+	} else if (!strcmp(mes,"image properties")) {
 		if (!data) return 0;
 
 		 //pass on to the first active interface that wants it, if any
@@ -1142,7 +1163,7 @@ Laxkit::ShortcutHandler *ImageInterface::GetShortcuts()
 	sc->Add(II_TogglePixelSize,'s',0,0,         "TogglePixelSize",_("Toggle showing pixel width and height in labels"),nullptr,0);
 	sc->Add(II_FlipH,          'h',0,0,         "FlipHorizontal",_("Flip horizontally"),nullptr,0);
 	sc->Add(II_FlipV,          'v',0,0,         "FlipVertical",  _("Flip vertically"),nullptr,0);
-	sc->Add(II_Image_Info,     LAX_Enter,0,0,   "ImageInfo",     _("Edit image info"),nullptr,0);
+	sc->Add(II_ImageInfo,      LAX_Enter,0,0,   "ImageInfo",     _("Edit image info"),nullptr,0);
 
 	manager->AddArea(whattype(),sc);
 	return sc;
@@ -1164,7 +1185,19 @@ int ImageInterface::InstallUndo()
 
 int ImageInterface::PerformAction(int action)
 {
-	if (action==II_Normalize || action==II_Rectify) {
+	if (action == II_LoadImage || action == II_LoadNewImage) {
+		PostMessage("IMPLEMENT ME");
+		return 0;
+
+	} else if (action == II_ReloadImage) {
+		PostMessage("IMPLEMENT ME");
+		return 0;
+
+	} else if (action == II_ReplaceImage) {
+		PostMessage("IMPLEMENT ME");
+		return 0;
+	
+	} else if (action==II_Normalize || action==II_Rectify) {
 		if (!data) return 0;
 		cached_m = *data;
 		if (action == II_Rectify) {
@@ -1177,7 +1210,7 @@ int ImageInterface::PerformAction(int action)
 		needtodraw = 1;
 		return 0;
 
-	} else if (action==II_Image_Info) {
+	} else if (action == II_ImageInfo) {
 		runImageDialog();
 		return 0;
 

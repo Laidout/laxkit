@@ -79,9 +79,14 @@ enum ImageInterfaceActions {
 	II_ToggleFileSize,
 	II_FlipH,
 	II_FlipV,
-	II_Image_Info,
+	II_ImageInfo,
 	II_ScaleImageToPaperDPI,
 	II_ViewExif,
+	II_LoadImage,
+	II_LoadNewImage,
+	II_ReloadImage,
+	II_ReplaceImage,
+	II_NewImageObject,
 	II_MAX
 };
 
