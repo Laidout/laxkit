@@ -72,7 +72,7 @@ int main(int argc,char **argv)
 	viewer->AddTool(new     ObjectInterface(i++,NULL), 1,1);
 	//viewer->AddTool(new   GradientInterface(i++,NULL), 1,1); current = i;
 	viewer->AddTool(new   MirrorInterface(nullptr,i++,NULL), 1,1); current = i;
-	//viewer->AddTool(new      ImageInterface(i++,NULL), 1,1);
+	viewer->AddTool(new      ImageInterface(i++,NULL), 1,1);
 	//viewer->AddTool(new      PatchInterface(i++,NULL), 1,1);
 	//viewer->AddTool(new ColorPatchInterface(i++,NULL), 1,1);
 	//viewer->AddTool(new       RectInterface(i++,NULL), 1,1);

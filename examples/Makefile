@@ -81,6 +81,9 @@ test2: lax test2.o
 testevents: lax testevents.o
 	$(LD) $@.o $(LDFLAGS) -o $@
 
+testgm: testgm.cc
+	$(LD) testgm.cc -I /usr/include/GraphicsMagick -lGraphicsMagick++ -lGraphicsMagick -o $@
+
 themeeditor: lax themeeditor.o themeeditor.cc
 	$(LD) $@.o $(LDFLAGS) -o $@
 
