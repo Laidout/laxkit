@@ -25,16 +25,14 @@
 #include <cstdio>
 #include <cstdarg>
 
-#include <iostream>
-
 #include <lax/utf8string.h>
 #include <lax/utf8utils.h>
 #include <lax/strmanip.h>
 
+#include <iostream>
 #define DBG
-
-
 using namespace std;
+
 
 namespace Laxkit {
 

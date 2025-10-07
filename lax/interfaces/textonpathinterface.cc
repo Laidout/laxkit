@@ -2178,32 +2178,32 @@ int TextOnPathInterface::LBUp(int x,int y,unsigned int state, const Laxkit::LaxM
 {
 	DBG cerr <<"TextOnPathInterface::LBUp().."<<endl;
 
-	int hover=TPATH_None;
+	int hover = TPATH_None;
 	int dragged = buttondown.up(d->id,LEFTBUTTON, &hover);
 
 	if (!dragged) {
 		char input[100];
-		const char *str=NULL;
-		const char *label=NULL;
+		const char *str   = nullptr;
+		const char *label = nullptr;
 
-		if (hover==TPATH_Baseline) {
+		if (hover == TPATH_Baseline) {
 			sprintf(input, "%f", textonpath->baseline);
-			str="setbaseline";
-			label=_("Baseline");
+			str = "setbaseline";
+			label = _("Baseline");
 
 		} else if (hover==TPATH_Offset) {
 			sprintf(input, "%f", textonpath->start_offset);
-			str="setoffset";
-			label=_("Indent");
+			str = "setoffset";
+			label = _("Offset");
 
 		} else if (hover==TPATH_Size) {
 			sprintf(input,"%.10g", textonpath->font->textheight());
-			str="fontsize";
-			label=_("Indent");
+			str = "fontsize";
+			label = _("Font size");
 		}
 
 		if (str) {
-			double th=anXApp::app->defaultlaxfont->textheight();
+			double th = anXApp::app->defaultlaxfont->textheight();
 			DoubleBBox bounds(x-5*th, x+5*th, y-th*.7,y+th*.7);
 			viewport->SetupInputBox(object_id, label, input, str, bounds);
 		}

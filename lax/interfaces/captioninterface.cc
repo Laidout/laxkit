@@ -943,6 +943,8 @@ char *CaptionData::GetText()
 	return text;
 }
 
+/*! Return whether each line is empty string or whitespace.
+ */
 bool CaptionData::IsBlank()
 {
 	for (int c=0; c<lines.n; c++) {
@@ -1095,7 +1097,7 @@ int CaptionData::DeleteChar(int line,int pos,int after, int *newline,int *newpos
 
 int CaptionData::InsertChar(unsigned int ch, int line,int pos, int *newline,int *newpos)
 {
-	if (pos<0 || pos>=(int)strlen(lines.e[line])) pos=strlen(lines.e[line]);
+	if (pos < 0 || pos >= (int)strlen(lines.e[line])) pos = strlen(lines.e[line]);
 
 	if (ch=='\n') {
 		 //add new line
@@ -1143,13 +1145,17 @@ int CaptionData::InsertChar(unsigned int ch, int line,int pos, int *newline,int 
 
 int CaptionData::DeleteSelection(int fline,int fpos, int tline,int tpos, int *newline,int *newpos)
 {
-	if (fline<0 || fline>=lines.n) fline=lines.n-1;
-	if (tline<0 || tline>=lines.n) tline=lines.n-1;
-	if (fpos<0 || fpos>=(int)strlen(lines.e[fline])) fpos=strlen(lines.e[fline]);
-	if (tpos<0 || tpos>=(int)strlen(lines.e[tline])) tpos=strlen(lines.e[tline]);
-	if (fline==tline && fpos==tpos) { *newline=fline; *newpos=fpos; return 0; }
+	if (fline < 0 || fline >= lines.n) fline = lines.n - 1;
+	if (tline < 0 || tline >= lines.n) tline = lines.n - 1;
+	if (fpos < 0 || fpos >= (int)strlen(lines.e[fline])) fpos = strlen(lines.e[fline]);
+	if (tpos < 0 || tpos >= (int)strlen(lines.e[tline])) tpos = strlen(lines.e[tline]);
+	if (fline == tline && fpos == tpos) {
+		*newline = fline;
+		*newpos  = fpos;
+		return 0;
+	}
 
-	 //make from be before to
+	// make from be before to
 	if (tline<fline) {
 		int tt=tline; tline=fline; fline=tt;
 		tt=tpos; tpos=fpos; fpos=tt;
@@ -1185,33 +1191,42 @@ int CaptionData::DeleteSelection(int fline,int fpos, int tline,int tpos, int *ne
 	return 0;
 }
 
+/*! If line < 0, append to final line.
+ * If pos < 0, then append to the end of that line.
+ * If txt contains newlines, then the new line and position in line of the end point + 1 of
+ * the inserted string is returned.
+ */
 int CaptionData::InsertString(const char *txt,int len, int line,int pos, int *newline,int *newpos)
 {
-	if (line<0 || line>=lines.n) line=lines.n-1;
-	if (pos<0 || pos>=(int)strlen(lines.e[line])) pos=strlen(lines.e[line]);
-	if (len<0) len=strlen(txt);
-	if (!txt || !len) { *newline=line; *newpos=pos; return 0; }
-	
+	if (line < 0 || line >= lines.n) line = lines.n - 1;
+	if (pos < 0 || pos >= (int)strlen(lines.e[line])) pos = strlen(lines.e[line]);
+	if (len < 0) len = strlen(txt);
+	if (!txt || !len) {
+		*newline = line;
+		*newpos  = pos;
+		return 0;
+	}
+
 	insertnstr(lines.e[line], txt,len, pos);
 
-	char *curline =lines.e[line];
-	char *origline=lines.e[line];
-	lines.e[line]=NULL;
-	int first=1;
+	char *curline  = lines.e[line];
+	char *origline = lines.e[line];
+	lines.e[line]  = nullptr;
+	bool first     = true;
 
 	while (*curline) {
 		char *nl = lax_strchrnul(curline, '\n');
-		if (*nl=='\0' && first) {
-			lines.e[line]=origline;
-			origline=NULL;
+		if (*nl == '\0' && first) {
+			lines.e[line] = origline;
+			origline = nullptr;
 			break; //line is good as is
 		}
 
-		 //else we need to add it
-		char *thisline=newnstr(curline, nl-curline);
+		// else we need to add it
+		char *thisline = newnstr(curline, nl-curline);
 		if (first) {
-			lines.e[line]=thisline;
-			first=0;
+			lines.e[line] = thisline;
+			first = false;
 		} else {
 			lines.push(thisline, line);
 			linelengths.push(0, line);
@@ -1220,16 +1235,16 @@ int CaptionData::InsertString(const char *txt,int len, int line,int pos, int *ne
 		ComputeLineLen(line);
 
 		line++;
-		curline=nl;
+		curline = nl;
 		if (*curline) curline++;
 	}
 	delete[] origline;
 
-	needtorecache=true;
+	needtorecache = true;
 	FindBBox();
 
-	*newline=line;
-	*newpos =pos;
+	*newline = line;
+	*newpos  = pos;
 	return 0;
 }
 

@@ -2527,7 +2527,7 @@ Laxkit::Attribute *EngraverPointGroup::dump_out_atts(Laxkit::Attribute *att,int 
 	if (!att) att = new Attribute;
 	Attribute *att2;
 
-	if (what==-1) {
+	if (what == -1) {
 		att->push("id 1             #group id number");
 		att->push("name Name        #some name for ");
 
@@ -2577,8 +2577,8 @@ Laxkit::Attribute *EngraverPointGroup::dump_out_atts(Laxkit::Attribute *att,int 
 	att->push("id", id);
 	if (!isblank(name)) att->push("name", name);
 	
-	att->push("active", active?"yes":"no");
-	att->push("linked", linked?"yes":"no");
+	att->push("active", active ? "yes" : "no");
+	att->push("linked", linked ? "yes" : "no");
 
 	att->push("default_weight", default_weight);
 
@@ -2642,18 +2642,18 @@ Laxkit::Attribute *EngraverPointGroup::dump_out_atts(Laxkit::Attribute *att,int 
 	LinePoint *p;
 	Utf8String s,s2;
 	const char *ons, *dash;
-	for (int c=0; c<lines.n; c++) {
+	for (int c = 0; c < lines.n; c++) {
 		s.Sprintf("%d", c);
 		att2 = att->pushSubAtt("line", nullptr, s.c_str());
 
 		p = lines.e[c];
 		s.SetToNone();
 		while (p) {
-			if (p->on==ENGRAVE_Off) ons="off";
-			else if (p->on==ENGRAVE_On) ons="on";
-			else if (p->on==ENGRAVE_EndPoint) ons="end";
-			else if (p->on==ENGRAVE_StartPoint) ons="start";
-			s2.Sprintf("%s  (%.10g, %.10g) %.10g %s\n", p->s,p->t, p->weight, ons);
+			if      (p->on == ENGRAVE_Off       ) ons = "off";
+			else if (p->on == ENGRAVE_On        ) ons = "on";
+			else if (p->on == ENGRAVE_EndPoint  ) ons = "end";
+			else if (p->on == ENGRAVE_StartPoint) ons = "start";
+			s2.Sprintf("(%.10g, %.10g) %.10g %s\n", p->s,p->t, p->weight, ons);
 			s.Append(s2);
 
 			p = p->next;
@@ -2665,34 +2665,34 @@ Laxkit::Attribute *EngraverPointGroup::dump_out_atts(Laxkit::Attribute *att,int 
 			att2 = att->pushSubAtt("linecache", nullptr, s.c_str());
 			s.SetToNone();
 
-			LinePointCache *cc=lines.e[c]->cache;
-			LinePointCache *ccstart=cc;
+			LinePointCache *cc = lines.e[c]->cache;
+			LinePointCache *ccstart = cc;
 			const char *onsd;
 
 			do {
-				if (cc->on==ENGRAVE_Off) ons="off";
-				else if (cc->on==ENGRAVE_On) ons="on";
-				else if (cc->on==ENGRAVE_EndPoint) ons="end";
-				else if (cc->on==ENGRAVE_StartPoint) ons="start";
+				if      (cc->on == ENGRAVE_Off       ) ons = "off";
+				else if (cc->on == ENGRAVE_On        ) ons = "on";
+				else if (cc->on == ENGRAVE_EndPoint  ) ons = "end";
+				else if (cc->on == ENGRAVE_StartPoint) ons = "start";
 
-				if (cc->dashon==ENGRAVE_Off) onsd="off";
-				else if (cc->dashon==ENGRAVE_On) onsd="on";
-				else if (cc->dashon==ENGRAVE_EndPoint) onsd="end";
-				else if (cc->dashon==ENGRAVE_StartPoint) onsd="start";
+				if      (cc->dashon == ENGRAVE_Off       ) onsd = "off";
+				else if (cc->dashon == ENGRAVE_On        ) onsd = "on";
+				else if (cc->dashon == ENGRAVE_EndPoint  ) onsd = "end";
+				else if (cc->dashon == ENGRAVE_StartPoint) onsd = "start";
 
-				if (cc->type==ENGRAVE_Original) dash="orig";
-				else if (cc->type==ENGRAVE_BlockStart ) dash="blockstart";
-				else if (cc->type==ENGRAVE_BlockEnd   ) dash="blockend";
-				else if (cc->type==ENGRAVE_VisualCache) dash="sample";
-				else if (cc->type==ENGRAVE_EndDash    ) dash="dashend";
-				else if (cc->type==ENGRAVE_StartDash  ) dash="dashstart";
-				else dash="unknown";
+				if      (cc->type == ENGRAVE_Original   ) dash = "orig";
+				else if (cc->type == ENGRAVE_BlockStart ) dash = "blockstart";
+				else if (cc->type == ENGRAVE_BlockEnd   ) dash = "blockend";
+				else if (cc->type == ENGRAVE_VisualCache) dash = "sample";
+				else if (cc->type == ENGRAVE_EndDash    ) dash = "dashend";
+				else if (cc->type == ENGRAVE_StartDash  ) dash = "dashstart";
+				else dash = "unknown";
 
 				s2.Sprintf("%s %.10g (%.10g, %.10g) %.10g %s %s\n", dash, cc->bt, cc->p.x,cc->p.y,cc->weight, ons, onsd);
 				s.Append(s2);
 
-				cc=cc->next;
-			} while (cc && cc!=ccstart);
+				cc = cc->next;
+			} while (cc && cc != ccstart);
 			att2->value = s.ExtractBytes(nullptr, nullptr, nullptr);
 		}
 	}
