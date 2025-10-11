@@ -53,8 +53,9 @@ class ImageData : public Laxkit::ImageInfo, virtual public SomeData
 	virtual void Flip(Laxkit::flatpoint f1, Laxkit::flatpoint f2);
 	virtual int SetImage(Laxkit::LaxImage *newimage, Laxkit::LaxImage *newpreview);
 	virtual void SetDescription(const char *ndesc);
-	virtual int UsePreview(const char *npreview, int maxpx=0, int maxpy=0, char del=0);
-	virtual int LoadImage(const char *fname, const char *npreview=NULL, int maxpx=0, int maxpy=0, char del=0,char fit=0,int index=0);
+	virtual int UsePreview(const char *npreview, int maxpx=0, int maxpy=0);
+	virtual int LoadImage(const char *fname, const char *npreview = nullptr, int maxpx = 0, int maxpy = 0, bool fit = false, int index = 0);
+	virtual int ReloadImage();
 	virtual const char *Filename();
 	
 	virtual void dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *context);

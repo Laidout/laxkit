@@ -36,7 +36,6 @@ using namespace std;
 
 using namespace Laxkit;
 
-#define sgn(a) ((a)<0?-1:((a)>0?1:0))
 
 namespace LaxInterfaces {
 
@@ -98,7 +97,7 @@ ImageData::ImageData(const char *nfilename, const char *npreview, int maxpx, int
 	flags |= SOMEDATA_KEEP_1_TO_1;
 
 	if (!filename) return;
-	LoadImage(nfilename, npreview, maxpx, maxpy, delpreview, 0, nindex);
+	LoadImage(nfilename, npreview, maxpx, maxpy, 0, nindex);
 }
 
 ImageData::~ImageData()
@@ -127,7 +126,7 @@ SomeData *ImageData::duplicateData(SomeData *dup)
 	}
 
 	//newimage->LoadImage(image->filename, previewimage ? previewimage->filename : nullptr, 0,0,0,0);
-	if (newimage->LoadImage(filename, previewfile, 0,0,0,0, index) != 0) {
+	if (newimage->LoadImage(filename, previewfile, 0,0,0, index) != 0) {
 		newimage->SetImage(image, previewimage);
 	}
 
@@ -146,7 +145,7 @@ ImageData &ImageData::operator=(ImageData &i)
 	maxx=i.maxx;
 	miny=i.miny;
 	maxy=i.maxy;
-	if (i.image) LoadImage(i.image->filename, previewimage ? previewimage->filename : nullptr,0,0,0,1, i.index);
+	if (i.image) LoadImage(i.image->filename, previewimage ? previewimage->filename : nullptr,0,0,1, i.index);
 	return i;
 }
 
@@ -290,7 +289,7 @@ void ImageData::dump_in_atts(Attribute *att,int flag,Laxkit::DumpContext *contex
 		if (!isblank(pname)) previewflag|=1;
 		 // load an image with existing preview, do not destroy that preview when
 		 // image is destroyed:
-		if (LoadImage(fname,pname,0,0,0,1, index)) {
+		if (LoadImage(fname,pname,0,0,1, index)) {
 			 // error loading image, so use the above w,h
 			minx=miny=0;
 			maxx=w;
@@ -352,10 +351,8 @@ const char *ImageData::Filename()
  * to fname, and the previous image is freed. 1 is returned.
  *
  * If npreview is nullptr, then use whatever was in previewfile...?
- *
- * Pass 1 for del if the preview should be deleted when image is destroyed.
  */
-int ImageData::LoadImage(const char *fname, const char *npreview, int maxpx, int maxpy, char del,char fit,int index)
+int ImageData::LoadImage(const char *fname, const char *npreview, int maxpx, int maxpy, bool fit, int index)
 {
 	makestr(filename,fname);
 	makestr(previewfile,npreview);
@@ -397,18 +394,27 @@ int ImageData::LoadImage(const char *fname, const char *npreview, int maxpx, int
 	return 1;
 }
 
+/*! Return 0 for success, or nonzero error.
+ */
+int ImageData::ReloadImage()
+{
+	if (!image) return 1;
+	const char *pfile = nullptr;
+	return LoadImage(image->filename, pfile, image->w(), image->h(), true, image->index);
+}
+
 //! Use a different preview.
 /*! This simply calls LoadImage() with the old filename, and the new preview info.
  *
  * \todo Check that this works as intended.
  */
-int ImageData::UsePreview(const char *npreview, int maxpx, int maxpy, char del)
+int ImageData::UsePreview(const char *npreview, int maxpx, int maxpy)
 {
 	DBGW("*** must check that this works: ImageData::UsePreview()");
 
 	//***should pop out old LaxImage::previewfile, and drop in new, generating if necessary...
 	//***check that this works
-	LoadImage(filename,npreview,maxpx,maxpy,del, 0);
+	LoadImage(filename,npreview,maxpx,maxpy);
 
 	return 0;
 }
@@ -576,7 +582,7 @@ int ImageInterface::UseThis(anObject *nobj,unsigned int mask)
 		data->SetDescription(imageinfo->description);
 		 //load new image if one is provided, and auto fit to old image area
 		if (undo_data) undo_data->m_orig = data->m();
-		data->LoadImage(imageinfo->filename,imageinfo->previewfile, 0,0,0, 1, imageinfo->index);
+		data->LoadImage(imageinfo->filename,imageinfo->previewfile, 0,0, 1, imageinfo->index);
 		if (undo_data) undo_data->m = data->m();
 		
 		if (undo_data) {
@@ -629,12 +635,12 @@ Laxkit::MenuInfo *ImageInterface::ContextMenu(int x,int y,int deviceid, MenuInfo
 	if (!menu) menu = new MenuInfo();
 
 	if (data) {
-		if (data->image) {
-			menu->AddItem(_("Replace image..."),   II_ReplaceImage);
-			menu->AddItem(_("Reload image"),       II_ReloadImage);
-		} else {
-			menu->AddItem(_("Load image"),       II_LoadImage);
-		}
+		// if (data->image) {
+		// 	menu->AddItem(_("Replace image..."),   II_ReplaceImage);
+		// 	menu->AddItem(_("Reload image"),       II_ReloadImage);
+		// } else {
+		// 	menu->AddItem(_("Load image"),       II_LoadImage);
+		// }
 		menu->AddItem(_("Edit image info..."), II_ImageInfo);
 		// menu->AddItem(_("New image object"),  II_NewImageObject);
 	} else {
@@ -817,7 +823,7 @@ int ImageInterface::Refresh()
 			p -= (ur-lr).normalized() * th;
 		}
 
-		if (show_size) {
+		if (show_size && data->image) {
 			char str[100];
 			sprintf(str, "%d x %d px", data->image->w(), data->image->h());
 			dp->textout_halo(th*.1, p.x,p.y, str,-1, LAX_HCENTER | LAX_BOTTOM);
@@ -855,6 +861,7 @@ ImageData *ImageInterface::newData()
 	if (!ndata) ndata=new ImageData(nullptr);//creates 1 count
 	ndata->flags|=SOMEDATA_KEEP_1_TO_1; //so that when scaling, default is to maintain proportions
 
+// #define sgn(a) ((a)<0?-1:((a)>0?1:0))
 //	if (sgn(dp->m()[0])!=sgn(dp->m()[3])) ndata->m(3,-ndata->m(3)); //flip if dp is +y==up
 
 	if (viewport) {
@@ -1185,11 +1192,16 @@ int ImageInterface::InstallUndo()
 
 int ImageInterface::PerformAction(int action)
 {
-	if (action == II_LoadImage || action == II_LoadNewImage) {
+	if (action == II_LoadImage) {
+		return 0;
+
+	} else if (action == II_LoadNewImage) {
 		PostMessage("IMPLEMENT ME");
 		return 0;
 
 	} else if (action == II_ReloadImage) {
+		if (!data) return 0;
+		data->ReloadImage();
 		PostMessage("IMPLEMENT ME");
 		return 0;
 
@@ -1328,7 +1340,7 @@ int ImageData::Undo(UndoData *data)
 	} else if (u->type == ImageDataUndo::UNDO_Info) {
 		SetDescription(u->info_old->description);
 		 //load new image if one is provided, and auto fit to old image area
-		LoadImage(u->info_old->filename, u->info_old->previewfile, 0,0,0, 1, u->info_old->index);
+		LoadImage(u->info_old->filename, u->info_old->previewfile, 0,0, 1, u->info_old->index);
 		set(u->m_orig);
 	}
 
@@ -1351,7 +1363,7 @@ int ImageData::Redo(UndoData *data)
 	} else if (u->type == ImageDataUndo::UNDO_Info) {
 		SetDescription(u->info_new->description);
 		 //load new image if one is provided, and auto fit to old image area
-		LoadImage(u->info_new->filename, u->info_new->previewfile, 0,0,0, 1, u->info_new->index);
+		LoadImage(u->info_new->filename, u->info_new->previewfile, 0,0, 1, u->info_new->index);
 		set(u->m);
 	}
 
