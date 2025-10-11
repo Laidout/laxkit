@@ -7543,25 +7543,58 @@ Laxkit::MenuInfo *PathInterface::ContextMenu(int x,int y,int deviceid, MenuInfo 
 		menu->AddToggleItem(_("Zero tips"),    PATHIA_EndCapZero,  0, (ecstyle==LAXCAP_Zero_Width));
 	menu->EndSubMenu();
 
-	if (!(pathi_style&PATHI_One_Path_Only)) {
-		if (menu->n()) menu->AddSep();
-		menu->AddItem(_("Start new subpath"),PATHIA_StartNewSubpath);
-		menu->AddItem(_("Start new path object"),PATHIA_StartNewPath);
-	}
-
 	//if (***multiple paths available) menu->AddItem(_("Separate with holes"),PATHIA_BreakApart);
 	//if (***multiple paths available) menu->AddItem(_("Separate all"),PATHIA_BreakApart);
 	//if (***multiple path objects) menu->AddItem(_("Combine"),PATHIA_Combine);
 	// *** need mechanism to insert custom path actions
 
+	//---- line styles
+	ResourceManager *rm = GetResourceManager();
+	menu->AddSep(_("Line Styles"));
+	menu->AddItem(_("Toggle stroke"), PATHIA_ToggleStroke);
+	ResourceType *resources = rm->FindType("LineStyle");
+	if (resources && resources->NumResources()) {
+		menu->AddItem(_("Use line style"));
+		menu->SubMenu();
+		int numadded = 0;
+		resources->AppendMenu(menu, true, &numadded, PATHIA_MAX, PATHIA_UseLineStyle, data->linestyle);
+		if (numadded) menu->AddSep();
+		resources->AppendMenu(menu, false, &numadded, PATHIA_MAX, PATHIA_UseLineStyle, data->linestyle);
+		menu->EndSubMenu();
+	}
+	if (!data->linestyle->IsResourced()) {
+		menu->AddItem(_("Make line style a resource"), PATHIA_MakeLineResource);
+	} else {
+		menu->AddItem(_("Make line style unique"), PATHIA_MakeLineLocal);
+	}
+
+	//---- fill styles
+	menu->AddSep(_("Fill Styles"));
+	menu->AddItem(_("Toggle fill"), PATHIA_ToggleFill);
+	resources = rm->FindType("FillStyle");
+	if (resources && resources->NumResources()) {
+		menu->AddItem(_("Use file style"));
+		menu->SubMenu();
+		int numadded = 0;
+		resources->AppendMenu(menu, true, &numadded, PATHIA_MAX, PATHIA_UseFillStyle, data->fillstyle);
+		if (numadded) menu->AddSep();
+		resources->AppendMenu(menu, false, &numadded, PATHIA_MAX, PATHIA_UseFillStyle, data->fillstyle);
+		menu->EndSubMenu();
+	}
+	if (!data->fillstyle->IsResourced()) {
+		menu->AddItem(_("Make fill style a resource"), PATHIA_MakeFillResource);
+	} else {
+		menu->AddItem(_("Make fill style unique"), PATHIA_MakeFillLocal);
+	}
+
 	// misc decoration showing
-	if (menu->n()) menu->AddSep();
+	menu->AddSep(_("Line Details"));
 
 	menu->AddToggleItem(_("Show points"),  PATHIA_ToggleShowPoints, 0, show_points);
 	menu->AddToggleItem(_("Hide other controls"),  PATHIA_ToggleHideControls, 0, hide_other_controls);
 	menu->AddToggleItem(_("Show extrema"),  PATHIA_ToggleShowExtrema, 0, show_extrema);
 
-	if (!(pathi_style&PATHI_No_Weights)) {
+	if (!(pathi_style & PATHI_No_Weights)) {
 		menu->AddToggleItem(_("Show base and center lines"), PATHIA_ToggleBaseline, 0, show_baselines);
 		menu->AddToggleItem(_("Show weight nodes"), PATHIA_ToggleWeights, 0, show_weights);
 
@@ -7582,20 +7615,29 @@ Laxkit::MenuInfo *PathInterface::ContextMenu(int x,int y,int deviceid, MenuInfo 
 			menu->AddItem(_("Apply offset"),PATHIA_ApplyOffset);
 			menu->AddItem(_("Reset offset"),PATHIA_ResetOffset);
 		}
+
+
 		menu->AddItem(_("Convert to straight lines"),  PATHIA_MakeStraight);
 		menu->AddItem(_("Convert to straight beziers"),PATHIA_MakeBezStraight);
 		//menu->AddItem(_("New object from stroke"),     PATHIA_NewFromStroke); 
-
+		
 		if (data->paths.n) {
 			//menu->AddItem(_("Break apart all"),PATHIA_BreakApart);
 			//menu->AddItem(_("Break apart chunks"),PATHIA_BreakApartChunks);
 		}
 
+		//------- sub path actions
+		if (!(pathi_style & PATHI_One_Path_Only)) {
+			menu->AddSep();
+			menu->AddItem(_("Start new subpath"),PATHIA_StartNewSubpath);
+			menu->AddItem(_("Start new path object"),PATHIA_StartNewPath);
+		}
+
+
 		//---- shape brushes
-		ResourceManager *rm = GetResourceManager();
 		menu->AddSep(_("Shape Brushes"));
 		if (data->brush) menu->AddItem(_("Clear shape brush"), PATHIA_ClearShapeBrush);
-		ResourceType *resources = rm->FindType("ShapeBrush");
+		resources = rm->FindType("ShapeBrush");
 		if (resources && resources->NumResources()) {
 			menu->AddItem(_("Use Shape Brush"));
 			menu->SubMenu();
@@ -7606,42 +7648,6 @@ Laxkit::MenuInfo *PathInterface::ContextMenu(int x,int y,int deviceid, MenuInfo 
 			menu->EndSubMenu();
 		}
 		menu->AddItem(_("Save as a Shape Brush"), PATHIA_SaveAsShapeBrush);
-
-		//---- line styles
-		menu->AddSep(_("Line Styles"));
-		resources = rm->FindType("LineStyle");
-		if (resources && resources->NumResources()) {
-			menu->AddItem(_("Use line style"));
-			menu->SubMenu();
-			int numadded = 0;
-			resources->AppendMenu(menu, true, &numadded, PATHIA_MAX, PATHIA_UseLineStyle, data->linestyle);
-			if (numadded) menu->AddSep();
-			resources->AppendMenu(menu, false, &numadded, PATHIA_MAX, PATHIA_UseLineStyle, data->linestyle);
-			menu->EndSubMenu();
-		}
-		if (!data->linestyle->IsResourced()) {
-			menu->AddItem(_("Make line style a resource"), PATHIA_MakeLineResource);
-		} else {
-			menu->AddItem(_("Make line style unique"), PATHIA_MakeLineLocal);
-		}
-
-		//---- fill styles
-		menu->AddSep(_("Fill Styles"));
-		resources = rm->FindType("FillStyle");
-		if (resources && resources->NumResources()) {
-			menu->AddItem(_("Use file style"));
-			menu->SubMenu();
-			int numadded = 0;
-			resources->AppendMenu(menu, true, &numadded, PATHIA_MAX, PATHIA_UseFillStyle, data->fillstyle);
-			if (numadded) menu->AddSep();
-			resources->AppendMenu(menu, false, &numadded, PATHIA_MAX, PATHIA_UseFillStyle, data->fillstyle);
-			menu->EndSubMenu();
-		}
-		if (!data->fillstyle->IsResourced()) {
-			menu->AddItem(_("Make fill style a resource"), PATHIA_MakeFillResource);
-		} else {
-			menu->AddItem(_("Make fill style unique"), PATHIA_MakeFillLocal);
-		}
 	}
 
 	//menu->AddItem(_("Combine"),PATHIA_***);
