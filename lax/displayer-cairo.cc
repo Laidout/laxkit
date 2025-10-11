@@ -2030,12 +2030,12 @@ void DisplayerCairo::NewTransform(const double *d)
 		m.y0=d[5];
 		cairo_set_matrix(cr, &m);
 	}
-	DBG if (!CairoErrorCheck(cr, true, true)) {
-	DBG 	dumpctm(d);
-	DBG }
-	DBG if (d[0]*d[3]-d[1]*d[2] == 0) {
-	DBG 	cout << "BAD NEW MATRIX!!";
-	DBG }
+	// DBG if (!CairoErrorCheck(cr, true, true)) {
+	// DBG 	dumpctm(d);
+	// DBG }
+	// DBG if (d[0]*d[3]-d[1]*d[2] == 0) {
+	// DBG 	cout << "BAD NEW MATRIX!!";
+	// DBG }
 
 	transform_copy(ctm,d);
 	transform_invert(ictm,ctm);
@@ -2065,12 +2065,12 @@ void DisplayerCairo::NewTransform(double a,double b,double c,double d,double x0,
 		cairo_set_matrix(cr, &m);
 	}
 
-	DBG if (!CairoErrorCheck(cr, true, true)) {
-	DBG 	cout << a<<' '<<b<<' '<<c<<' '<<d<<' '<<x0<<' '<<y0<<endl;
-	DBG }
-	DBG if (a*d-b*c == 0) {
-	DBG 	cout << "BAD NEW MATRIX!!";
-	DBG }
+	// DBG if (!CairoErrorCheck(cr, true, true)) {
+	// DBG 	cout << a<<' '<<b<<' '<<c<<' '<<d<<' '<<x0<<' '<<y0<<endl;
+	// DBG }
+	// DBG if (a*d-b*c == 0) {
+	// DBG 	cout << "BAD NEW MATRIX!!";
+	// DBG }
 
 	ctm[0]=a;
 	ctm[1]=b;
