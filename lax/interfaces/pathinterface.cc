@@ -1589,7 +1589,7 @@ void Path::FindBBox()
 
 	} else {
 		FindBBoxBase(this);
-		if (linestyle) {
+		if (linestyle && linestyle->widthtype == 1) {
 			ExpandBounds(linestyle->width/2);
 		}
 	}
@@ -1653,7 +1653,7 @@ void Path::FindBBoxWithWidth(DoubleBBox *ret)
 
 	if (!Weighted()) {
 		FindBBoxBase(ret);
-		if (linestyle) {
+		if (linestyle && linestyle->widthtype == 1) {
 			ret->ExpandBounds(linestyle->width);
 		}
 	} else {
