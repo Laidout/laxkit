@@ -625,19 +625,18 @@ SomeData *SomeData::duplicateData(SomeData *dup)
 	return ndata;
 }
 
-//! Return if pp transformed to data coords is within the bounds.
-/*! unimplemented: in=1 | on=2 | out=0 */
+/*! Return if parent space pp is within the bounds.
+ * Default transforms to object space and returns if in bounding box, and ignores the pin options.
+ * Child classes should implement pin.
+ */
 int SomeData::pointin(flatpoint pp,int pin)
 { 
-//	double x=((pp-origin())*xaxis())/sqrt(xaxis()*xaxis()), 
-//		   y=((pp-origin())*yaxis())/sqrt(yaxis()*yaxis());
 	double x,y,mm[6];
 	transform_invert(mm,m());
-	pp=transform_point(mm,pp);
-	x=pp.x;
-	y=pp.y;
-	//DBG cerr <<"------ SomeData::pointin "<<x<<','<<y<<endl;
-	if (x>=minx && x<=maxx && y>=miny && y<=maxy) return 1;
+	pp = transform_point(mm,pp);
+	x = pp.x;
+	y = pp.y;
+	if (x >= minx && x <= maxx && y >= miny && y <= maxy) return 1;
 	return 0;
 }
 

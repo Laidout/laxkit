@@ -37,8 +37,6 @@ class PathWeightNode;
 
 //--------------------------- LineProfile -----------------------------
 
-////! NOTE! This define must coexist with EngraverObjectTypes and LaxInterfaceDataTypes
-//#define OBJTYPE_LineProfile 200
 
 // There is a macro Absolute in XI.h
 #ifdef Absolute
