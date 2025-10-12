@@ -118,6 +118,7 @@ class LaxFont : public Resourceable
 
 	LaxFont();
 	virtual ~LaxFont();
+	virtual const char *whattype() { return "Font"; }
 	virtual LaxFont *duplicateFont();
 	virtual anObject *duplicate() { return duplicateFont(); }
 
@@ -278,6 +279,7 @@ class FontManager : public anObject
 	virtual LaxFont *MakeFont(int nid) = 0;
 	virtual LaxFont *Add(LaxFont *font,int nid) = 0;
 	virtual LaxFont *CheckOut(int id) = 0;
+	virtual LaxFont *dump_in_font(Attribute *att, DumpContext *context); // workaround for LaxFont subclass dump in complications
 
 	virtual FcConfig *GetConfig();
 	virtual FT_Library *GetFreetypeLibrary();
@@ -300,8 +302,8 @@ class FontManager : public anObject
 
 	virtual int AddFavoritesFile(const char *file);
 	virtual int RemoveFavoritesFile(const char *file);
-	 
-	virtual LaxFont *dump_in_font(Attribute *att, DumpContext *context); // workaround for LaxFont subclass dump in complications
+
+	static void InstallFontResourceType(ObjectFactory *factory, ResourceManager *resources);
 };
 
 

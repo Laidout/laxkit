@@ -100,14 +100,14 @@ CaptionData::CaptionData()
 {
 	fontfamily  = newstr("sans");
 	fontstyle   = newstr("normal");
-	fontfile    = NULL;
-	fontsize    = 24;
+	fontfile    = nullptr;
+	fontsize    = 35;
 	linespacing = 1;
-	font        = NULL;
+	font        = nullptr;
 
 	direction = -1;
-	language  = NULL;
-	script    = NULL;
+	language  = nullptr;
+	script    = nullptr;
 
 	state     = 0;
 
@@ -119,7 +119,7 @@ CaptionData::CaptionData()
 	linelengths.push(0);
 	linestats.push(new Linestat(0,0,0,0,0));
 
-	color = NULL;
+	color = nullptr;
 	red = green = blue = .5;
 	alpha = 1.;
 
@@ -133,53 +133,52 @@ CaptionData::CaptionData(const char *ntext, const char *nfontfamily, const char 
   : lines(2)
 {
 	DBG cerr <<"in CaptionData constructor"<<endl;
-	
-	if (isblank(nfontfamily)) nfontfamily="sans";
-	if (isblank(nfontstyle)) nfontstyle="normal";
 
-	fontfamily=newstr(nfontfamily);
-	fontstyle=newstr(nfontstyle);
-	fontfile=NULL;
+	if (isblank(nfontfamily)) nfontfamily = "sans";
+	if (isblank(nfontstyle)) nfontstyle = "normal";
 
-	direction=-1;
-	language=NULL;
-	script=NULL;
-	
-	fontsize=fsize;
-	linespacing=1;
-	if (fontsize<=0) fontsize=24;
-	font=NULL;
+	fontfamily = newstr(nfontfamily);
+	fontstyle  = newstr(nfontstyle);
+	fontfile   = nullptr;
 
-	state=0;  //0 means someone needs to remap extents
+	direction = -1;
+	language  = nullptr;
+	script    = nullptr;
 
+	fontsize    = fsize;
+	linespacing = 1;
+	if (fontsize <= 0) fontsize = 35;
+	font = nullptr;
 
-	int numlines=0;
-	char **text=split(ntext,'\n',&numlines);
-	for (int c=0; c<numlines; c++) {
+	state = 0;  // 0 means someone needs to remap extents
+
+	int    numlines = 0;
+	char **text     = split(ntext, '\n', &numlines);
+	for (int c = 0; c < numlines; c++) {
 		lines.push(text[c]);
 		linelengths.push(0);
-		linestats.push(new Linestat(0,0,0,0,0));
+		linestats.push(new Linestat(0, 0, 0, 0, 0));
 	}
-	xcentering=xcenter;
-	ycentering=ycenter;
-	baseline_hint=-1;
+	xcentering    = xcenter;
+	ycentering    = ycenter;
+	baseline_hint = -1;
 
-	if (numlines==0) {
+	if (numlines == 0) {
 		lines.push(newstr(""));
 		linelengths.push(0);
-		linestats.push(new Linestat(0,0,0,0,0));
-		numlines=1;
+		linestats.push(new Linestat(0, 0, 0, 0, 0));
+		numlines = 1;
 	}
 
-	color=NULL;
-	red=green=blue=.5;
-	alpha=1.;
+	color = nullptr;
+	red = green = blue = .5;
+	alpha = 1.;
 
-	needtorecache=true;
+	needtorecache = true;
 	Font(fontfile, fontfamily, fontstyle, fontsize);
 
-	DBG if (ntext) cerr <<"CaptionData new text:"<<endl<<ntext<<endl;
-	DBG cerr <<"..CaptionData end"<<endl;
+	DBG if (ntext) cerr << "CaptionData new text:" << endl << ntext << endl;
+	DBG cerr << "..CaptionData end" << endl;
 }
 
 CaptionData::~CaptionData()
@@ -202,7 +201,7 @@ CaptionData::~CaptionData()
 SomeData *CaptionData::duplicateData(SomeData *dup)
 {
 	CaptionData *i=dynamic_cast<CaptionData*>(dup);
-    if (!i && dup) return NULL; //was not an ImageData!
+    if (!i && dup) return nullptr; //was not an ImageData!
 
     if (!dup) {
         dup=dynamic_cast<SomeData*>(somedatafactory()->NewObject(LAX_CAPTIONDATA));
@@ -258,39 +257,53 @@ SomeData *CaptionData::duplicateData(SomeData *dup)
 
 void CaptionData::FindBBox()
 {
-	double width=fontsize;
-	double height=fontsize + (lines.n-1)*fontsize*linespacing;
-	if (linespacing<0) {
-		height=fontsize - (lines.n-1)*fontsize*linespacing;
-	}
-
-
-	if (state==0 || NeedToRecache()) {
+	if (state == 0 || NeedToRecache()) {
 		ComputeLineLen(-1);
-		state=1;
+		state = 1;
 	}
+
+	// Compute height
+	double height = 0;
+	if (lines.n) {
+		miny = 0;
+		maxy = fontsize;
+		double y = 0;
+		linestats.e[0]->baseline = y;
+		for (int c = 1; c < linestats.n; c++) {
+			y += fontsize * (linespacing + linestats.e[c-1]->line_space_diff);
+			if (y < miny) miny = y;
+			else if (y + fontsize > maxy) maxy = y + fontsize;
+			linestats.e[c]->baseline = y;
+		}
+		height = maxy - miny;
+
+		y = -ycentering / 100 * height - miny;
+		for (int c = 0; c < linestats.n; c++) {
+			linestats.e[c]->baseline += y;
+		}
+		miny += y;
+		maxy = miny + height;
+
+	} else {
+		miny = -ycentering / 100 * height;
+		maxy = miny + height;
+		if (maxy == miny) maxy = miny + fontsize;
+	}
+
+
+	// Compute width
+	double width  = fontsize;
 
 	if (lines.n) {
-		width=0;
-		for (int c=0; c<lines.n; c++) {
-			if (linelengths.e[c]>width) width=linelengths.e[c];
+		width = 0;
+		for (int c = 0; c < lines.n; c++) {
+			if (linelengths.e[c] > width) width = linelengths.e[c];
 		}
 	}
 
-	minx=-xcentering/100*width;
-	maxx=minx+width;
-	if (maxx==minx) maxx=minx+fontsize/3;
-
-	miny=-ycentering/100*height;
-	maxy=miny+height;
-	if (maxy==miny) maxy=miny+fontsize;
-
-	 //check for effects of negative line spacing
-//	if (linespacing<0) { 
-//		maxy=fontsize;
-//		miny=maxy-height;
-//	}
-
+	minx = -xcentering / 100 * width;
+	maxx = minx + width;
+	if (maxx == minx) maxx = minx + fontsize / 3;
 }
 
 int CaptionData::NeedToRecache()
@@ -341,7 +354,7 @@ int CaptionData::RecacheLine(int linei)
 	FT_Set_Char_Size (ft_face, font->Msize()*64, font->Msize()*64, 0, 0);
 
 	hb_font_t *hb_font;
-	hb_font = hb_ft_font_create (ft_face, NULL);
+	hb_font = hb_ft_font_create (ft_face, nullptr);
 
 
 	 //figure out direction, language, and script
@@ -358,7 +371,7 @@ int CaptionData::RecacheLine(int linei)
 
 
 	 //Figure out language, if any
-	hb_language_t hblang = NULL;
+	hb_language_t hblang = nullptr;
 	//const char *str=fontmanager->LanguageString(language);
 	//if (language>=0 && str) hblang = hb_language_from_string(str, strlen(str));
 	if (language) hblang = hb_language_from_string(language, strlen(language));
@@ -371,7 +384,7 @@ int CaptionData::RecacheLine(int linei)
 	//if (script>=0 && *str) hbscript = hb_script_from_string(str, strlen(str));
 	if (script) hbscript = hb_script_from_string(script, strlen(script));
 
-//	const char *nonblank=NULL;
+//	const char *nonblank=nullptr;
 //	for (int c=0; c<lines.n; c++) {
 //		if (!isblank(lines.e[c])) nonblank=lines.e[c];
 //	}
@@ -397,13 +410,13 @@ int CaptionData::RecacheLine(int linei)
 
 
 		 //set direction, language, and script
-		if (dir==HB_DIRECTION_INVALID || hblang==NULL || hbscript==HB_SCRIPT_UNKNOWN) {
+		if (dir==HB_DIRECTION_INVALID || hblang==nullptr || hbscript==HB_SCRIPT_UNKNOWN) {
 			 //at least one of these things we know, so we have to manually set again
 			hb_buffer_guess_segment_properties (hb_buffer); //guesses direction, script, language 
 			hb_buffer_get_segment_properties (hb_buffer, &seg_properties);
 
 			if (dir != HB_DIRECTION_INVALID)   seg_properties.direction = dir;      else dir      = seg_properties.direction;
-			if (hblang != NULL)                seg_properties.language  = hblang;   else hblang   = seg_properties.language;
+			if (hblang != nullptr)                seg_properties.language  = hblang;   else hblang   = seg_properties.language;
 			if (hbscript != HB_SCRIPT_UNKNOWN) seg_properties.script    = hbscript; else hbscript = seg_properties.script;
 
 			hb_buffer_set_segment_properties (hb_buffer, &seg_properties);
@@ -480,7 +493,7 @@ int CaptionData::RecacheLine(int linei)
 
 
 		  //Shape it!
-		hb_shape (hb_font, hb_buffer, NULL, 0);
+		hb_shape (hb_font, hb_buffer, nullptr, 0);
 
 
 		 // get positioning
@@ -512,8 +525,8 @@ int CaptionData::RecacheLine(int linei)
 		//
 
 		unsigned int numglyphs   = hb_buffer_get_length (hb_buffer); //glyphs wide
-		hb_glyph_info_t *info    = hb_buffer_get_glyph_infos (hb_buffer, NULL);     //points to inside hb_buffer
-		hb_glyph_position_t *pos = hb_buffer_get_glyph_positions (hb_buffer, NULL); //points to inside hb_buffer
+		hb_glyph_info_t *info    = hb_buffer_get_glyph_infos (hb_buffer, nullptr);     //points to inside hb_buffer
+		hb_glyph_position_t *pos = hb_buffer_get_glyph_positions (hb_buffer, nullptr); //points to inside hb_buffer
 
 		 // update cache info
 		if (linestats.e[c]->numglyphs < (int)numglyphs) {
@@ -581,18 +594,6 @@ double CaptionData::ComputeLineLen(int line)
 
 	if (line>=0 && line<lines.n) return linestats.e[line]->pixlen;
 	return 0;
-	//-----------------
-//	if (line<0) {
-//		int max=0,w;
-//		for (int c=0; c<lines.n; c++) {
-//			w=ComputeLineLen(c);
-//			if (w>max) max=w;
-//		}
-//		return w;
-//	}
-//
-//	if (!font || line>=lines.n) return 0;
-//	return font->Extent(lines.e[line],strlen(lines.e[line]));
 }
 
 /*! Find line and byte position within.
@@ -600,15 +601,22 @@ double CaptionData::ComputeLineLen(int line)
  */
 int CaptionData::FindPos(double y, double x, int *line, int *pos)
 {
-	int l = (linespacing!=0 ? (y-miny)/fabs(fontsize*linespacing) : 0); 
-	if (l<0 || l>=lines.n) return 0;
-	if (linespacing<0) l=lines.n-1-l;
+	if (y < miny || y > maxy) return 0;
 
-	x+=xcentering/100*(linelengths[l]);
+	int l = -1;
+	for (int c = 0; c < linestats.n; c++) {
+		if (y > linestats.e[c]->baseline && y < linestats.e[c]->baseline + fontsize*(linespacing + linestats.e[c]->line_space_diff)) {
+			l = c;
+			break;
+		}
+	}
+	if (l == -1) return 0;
+
+	// ---
+	x += xcentering/100*(linelengths[l]);
 	
-	unsigned int p=0;
+	unsigned int p = 0;
 
-//	------------------
 	int len = linestats.e[l]->numglyphs;
 	int g=0;
 	double current_x=0;
@@ -649,25 +657,11 @@ int CaptionData::FindPos(double y, double x, int *line, int *pos)
 
 		g++;
 	}
-	if (g==len) p=strlen(lines.e[l]);
 
-//	------------------
-//	double lastw=0;
-//	double w;
-//	const char *pp;
-//	while (p<strlen(lines.e[l])) {
-//		p++;
-//		pp=utf8fwd(lines.e[l]+p, lines.e[l], lines.e[l]+strlen(lines.e[l]));
-//		p=pp-lines.e[l];
-//
-//		w=font->Extent(lines.e[l], p);
-//		if (x<(lastw+w)/2) { p=utf8back_index(lines.e[l],p-1,strlen(lines.e[l])); break; }
-//		lastw=w;
-//	}
-//	------------------
+	if (g == len) p = strlen(lines.e[l]);
 
-	*line=l;
-	*pos=p;
+	if (line) *line = l;
+	if (pos)  *pos  = p;
 	return 0;
 }
 
@@ -702,6 +696,7 @@ void CaptionData::dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *cont
 		fprintf(f,"%sxcentering 50        #0 is left, 50 is center, 100 is right, or any other number\n",spc);
 		fprintf(f,"%sycentering 50        #0 is top, 50 is center, 100 is bottom, or any other number\n",spc);
 		fprintf(f,"%scolor rgbaf(1,0,0,1)\n", spc);
+		fprintf(f,"%sline_space_diff      # list of custom line spacing offsets per line\n", spc);
 		fprintf(f,"%stext \\  #The actual text\n%s  blah",spc,spc);
 		return;
 	}
@@ -717,6 +712,10 @@ void CaptionData::dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *cont
 
 	fprintf(f,"%sfontsize %.10g\n",spc,fontsize);
 	fprintf(f,"%slinespacing %.10g\n",spc,linespacing);
+	fprintf(f,"%sline_space_diff ", spc);
+	for (int c = 0; c < linestats.n; c++) {
+		fprintf(f, "%.10g%s", linestats.e[c]->line_space_diff, c < linestats.n-1 ? " " : "\n");
+	}
 
 	const char *dir=flow_name(direction);
 	if (!dir) dir="guess";
@@ -728,6 +727,7 @@ void CaptionData::dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *cont
 	fprintf(f,"%sycentering %.10g\n",spc,ycentering);
 	fprintf(f,"%scolor rgbaf(%.10g, %.10g, %.10g, %.10g)\n",
 				spc, red,green,blue,alpha);
+
 
 	if (lines.n) {
 		fprintf(f,"%stext \\\n",spc);
@@ -751,6 +751,7 @@ Laxkit::Attribute *CaptionData::dump_out_atts(Attribute *att,int what,DumpContex
 		att->push("ycentering", "50",      "0 is top, 50 is center, 100 is bottom, or any other number");
 		att->push("color", "rgbaf(1,0,0,1)");
 		att->push("text", "The actual text\n%s  blah");
+		att->push("line_space_diff",       "List of custom line spacing offsets per line");
 		return att;
 	}
 
@@ -768,6 +769,12 @@ Laxkit::Attribute *CaptionData::dump_out_atts(Attribute *att,int what,DumpContex
 
 	att->push("fontsize",fontsize);
 	att->push("linespacing",linespacing);
+	Utf8String str, str2;
+	for (int c = 0; c < linestats.n; c++) {
+		str2.Sprintf("%.10g%s", linestats.e[c]->line_space_diff, c < linestats.n-1 ? " " : "");
+		str.Append(str2);
+	}
+	att->push("line_space_diff", str.c_str());
 
 	const char *dir=flow_name(direction);
 	if (!dir) dir="guess";
@@ -781,6 +788,7 @@ Laxkit::Attribute *CaptionData::dump_out_atts(Attribute *att,int what,DumpContex
 	sprintf(scratch, "rgbaf(%.10g, %.10g, %.10g, %.10g)",
 						red,green,blue,alpha);
 	att->push("color", scratch);
+
 
 	if (lines.n) {
 		char *txt=GetText();
@@ -796,15 +804,19 @@ void CaptionData::dump_in_atts(Attribute *att,int flag,Laxkit::DumpContext *cont
 {
 	if (!att) return;
 
-	char *name,*value;
-	minx=miny=0;
-	maxx=maxy=-1;
+	char *name, *value;
+	minx = miny = 0;
+	maxx = maxy = -1;
 
-	const char *family=NULL, *style=NULL, *file=NULL;
-	LaxFont *newfont=NULL;
-	Palette *palette=NULL;
+	const char *family        = nullptr;
+	const char *style         = nullptr;
+	const char *file          = nullptr;
+	LaxFont    *newfont       = nullptr;
+	Palette    *palette       = nullptr;
+	double     *spacing_diffs = nullptr;
+	int       n_spacing_diffs = 0;
 
-	const char *sz=att->findValue("fontsize");
+	const char *sz = att->findValue("fontsize");
 	if (sz) DoubleAttribute(sz,&fontsize);
 
 	for (int c=0; c<att->attributes.n; c++) {
@@ -870,9 +882,12 @@ void CaptionData::dump_in_atts(Attribute *att,int flag,Laxkit::DumpContext *cont
 		} else if (!strcmp(name,"linespacing")) {
 			DoubleAttribute(value,&linespacing);
 
+		} else if (!strcmp(name,"line_space_diff")) {
+			n_spacing_diffs = DoubleListAttribute(value, &spacing_diffs, nullptr);
+
 		} else if (!strcmp(name,"color")) {
 			double co[5];
-			if (SimpleColorAttribute(value, co, NULL)==0) {
+			if (SimpleColorAttribute(value, co, nullptr)==0) {
 				red  =co[0];
 				green=co[1];
 				blue =co[2];
@@ -892,7 +907,13 @@ void CaptionData::dump_in_atts(Attribute *att,int flag,Laxkit::DumpContext *cont
 		newfont->dec_count();
 	} else Font(file, family, style, fontsize);
 
-	needtorecache=true;
+	if (n_spacing_diffs) {
+		for (int c = 0; c < n_spacing_diffs && c < linestats.n; c++) {
+			linestats.e[c]->line_space_diff = spacing_diffs[c];
+		}
+	}
+
+	needtorecache = true;
 }
 
 /*! Adjust ycentering to align with the given line's baseline.
@@ -935,7 +956,7 @@ double CaptionData::Size(double newsize)
  */
 char *CaptionData::GetText()
 {
-	char *text=NULL;
+	char *text=nullptr;
 	for (int c=0; c<lines.n; c++) {
 		appendstr(text, lines.e[c]);
 		if (c<lines.n-1) appendstr(text,"\n");
@@ -1304,11 +1325,11 @@ int CaptionData::Font(LaxFont *newfont)
 
 int CaptionData::Font(const char *file, const char *family,const char *style,double size)
 {
-	if (font) { font->dec_count(); font=NULL; }
+	if (font) { font->dec_count(); font=nullptr; }
 
 	if (file)  font=InterfaceManager::GetDefault()->GetFontManager()->MakeFontFromFile(file, family,style,size,-1);
 	if (!font) font=InterfaceManager::GetDefault()->GetFontManager()->MakeFont(family,style,size,-1);
-	if (!font) font=InterfaceManager::GetDefault()->GetFontManager()->MakeFont("sans",NULL,size,-1);
+	if (!font) font=InterfaceManager::GetDefault()->GetFontManager()->MakeFont("sans",nullptr,size,-1);
 
 	fontsize=size;
 	//linespacing=1;
@@ -1334,11 +1355,11 @@ int CaptionData::Font(const char *file, const char *family,const char *style,dou
  * The first object is a Group of SomeDataRef objects, and the second is another Group object
  * containing the glyphs. The SomeDataRef objects all point to the paths in the second object.
  *
- * NULL will be returned if there is no text to render.
+ * nullptr will be returned if there is no text to render.
  */
 SomeData *CaptionData::ConvertToPaths(bool use_clones, RefPtrStack<SomeData> *clones_to_add_to)
 {
-	if (!font || (lines.n==1 && strlen(lines.e[0])==0)) return NULL;
+	if (!font || (lines.n==1 && strlen(lines.e[0])==0)) return nullptr;
 
 	RecacheLine(-1);
 
@@ -1365,9 +1386,9 @@ SomeData *CaptionData::ConvertToPaths(bool use_clones, RefPtrStack<SomeData> *cl
 	PathsData *outline;
 	
 	RefPtrStack<PathsData> layers; //temp object for single color layers
-	PathsData *pobject=NULL;
+	PathsData *pobject=nullptr;
 
-	RefPtrStack<SomeData> *object=NULL;
+	RefPtrStack<SomeData> *object=nullptr;
 
 	ScreenColor color(red,green,blue,alpha);
 
@@ -1395,7 +1416,7 @@ SomeData *CaptionData::ConvertToPaths(bool use_clones, RefPtrStack<SomeData> *cl
 		if (glyphname[0]=='\0') sprintf(glyphname,"glyph%d",glyph->index);
 
 		for (int layer=0; layer<font->Layers(); layer++) {
-		  outline=NULL;
+		  outline=nullptr;
 		  for (int o=0; o<glyphs[layer].n; o++) {
 			if (!strcmp(glyphs[layer].e[o]->Id(), glyphname)) { 
 				outline=dynamic_cast<PathsData*>(glyphs[layer].e[o]);
@@ -1573,7 +1594,7 @@ SomeData *CaptionData::ConvertToPaths(bool use_clones, RefPtrStack<SomeData> *cl
 		}
 
 		DBG cerr <<"Converted to path."<<endl;
-		//DBG dump_out(stderr,2,0,NULL);
+		//DBG dump_out(stderr,2,0,nullptr);
 
 		GroupData *group = dynamic_cast<GroupData*>(imanager->NewDataObject("Group"));
 		for (int l=0; l<layers.n; l++) {
@@ -1587,7 +1608,7 @@ SomeData *CaptionData::ConvertToPaths(bool use_clones, RefPtrStack<SomeData> *cl
 	if (object) {
 		DBG cerr << "*** Warning!!! must implement GroupData for CaptionData::ConvertToPaths()!!!"<<endl;
 	}
-	return NULL;
+	return nullptr;
 }
 
 
@@ -1608,16 +1629,16 @@ SomeData *CaptionData::ConvertToPaths(bool use_clones, RefPtrStack<SomeData> *cl
 
 CaptionInterface::CaptionInterface(int nid,Displayer *ndp) : anInterface(nid,ndp)
 {
-	data          = NULL;
-	coc           = NULL;
-	extrahover    = NULL;
+	data          = nullptr;
+	coc           = nullptr;
+	extrahover    = nullptr;
 	showdecs      = 1;
 	showbaselines = 0;
 	showobj       = 1;
 	mode          = 0;
 	lasthover     = CAPTION_None;
 
-	defaultsize    = 24;
+	defaultsize    = 35;
 	defaultspacing = 1;
 	defaultscale   = -1;
 	defaultfamily  = newstr("sans");
@@ -1635,13 +1656,13 @@ CaptionInterface::CaptionInterface(int nid,Displayer *ndp) : anInterface(nid,ndp
 //	if (newtext) {
 //		if (!data) data=new CaptionData(newtext,
 //						 "sans", //font name   //"/usr/X11R6/lib/X11/fonts/TTF/temp/hrtimes_.ttf",
-//						 NULL, //font style
+//						 nullptr, //font style
 //						 36, //font size
 //						 0,  //xcenter,
 //						 0); //ycenter
 //	}
 
-	sc = NULL;
+	sc = nullptr;
 }
 
 CaptionInterface::~CaptionInterface()
@@ -1649,19 +1670,19 @@ CaptionInterface::~CaptionInterface()
 	DBG cerr <<"----in CaptionInterface destructor"<<endl;
 	deletedata();
 
-	if (extrahover) { delete extrahover; extrahover=NULL; }
+	if (extrahover) { delete extrahover; extrahover=nullptr; }
 	if (sc) sc->dec_count();
 	delete[] defaultfamily;
 	delete[] defaultstyle;
 }
 
 //! Return new CaptionInterface.
-/*! If dup!=NULL and it cannot be cast to CaptionInterface, then return NULL.
+/*! If dup!=nullptr and it cannot be cast to CaptionInterface, then return nullptr.
  */
 anInterface *CaptionInterface::duplicateInterface(anInterface *dup)
 {
-	if (dup==NULL) dup=new CaptionInterface(id,NULL);
-	else if (!dynamic_cast<CaptionInterface *>(dup)) return NULL;
+	if (dup==nullptr) dup=new CaptionInterface(id,nullptr);
+	else if (!dynamic_cast<CaptionInterface *>(dup)) return nullptr;
 	return anInterface::duplicateInterface(dup);
 }
 
@@ -1679,7 +1700,7 @@ int CaptionInterface::InterfaceOn()
 
 //	if (!data) data=new CaptionData("\n0123\n  spaced line 3", 
 //						 "sans", //font name   //"/usr/X11R6/lib/X11/fonts/TTF/temp/hrtimes_.ttf",
-//						 NULL, //font style
+//						 nullptr, //font style
 //						 36, //font size
 //						 0,  //xcenter,
 //						 0); //ycenter
@@ -1689,9 +1710,9 @@ int CaptionInterface::InterfaceOn()
 //! Calls Clear(), sets showdecs=0, and needtodraw=1.
 int CaptionInterface::InterfaceOff()
 {
-	//Clear(NULL);
+	//Clear(nullptr);
 	deletedata(); 
-	if (extrahover) { delete extrahover; extrahover=NULL; }
+	if (extrahover) { delete extrahover; extrahover=nullptr; }
 	showdecs=0;
 	needtodraw=1;
 	DBG cerr <<"CaptionInterfaceOff()"<<endl;
@@ -1702,11 +1723,11 @@ void CaptionInterface::Clear(SomeData *d)
 {
 	if ((d && d==data) || (!d && data)) {
 		data->dec_count(); 
-		data=NULL; 
+		data=nullptr; 
 	} 
 }
 
-//! Sets data=NULL.
+//! Sets data=nullptr.
 /*! That results in data->dec_count() being called somewhere along the line.
  */
 void CaptionInterface::deletedata()
@@ -1715,21 +1736,31 @@ void CaptionInterface::deletedata()
 		if (data->lines.n==1 && data->lines.e[0][0]=='\0') {
 			 //is a blank object, need to remove it
 			data->dec_count();
-			data=NULL;
+			data=nullptr;
 			viewport->ChangeObject(coc, false, true);
 			viewport->DeleteObject(); //this will also result in deletedata
 
 		} else {
 			data->dec_count();
-			data=NULL;
+			data=nullptr;
 		}
 	}
-	if (coc) { delete coc; coc=NULL; }
+	if (coc) { delete coc; coc=nullptr; }
+}
+
+
+int CaptionInterface::InitializeResources()
+{
+	InterfaceManager *imanager = InterfaceManager::GetDefault(true);
+	ObjectFactory *factory = imanager->GetObjectFactory();
+	ResourceManager *resources = imanager->GetResourceManager();
+	FontManager::InstallFontResourceType(factory, resources);
+	return 0;
 }
 
 Laxkit::MenuInfo *CaptionInterface::ContextMenu(int x,int y,int deviceid, Laxkit::MenuInfo *menu)
 {
-	if (!menu) menu=new MenuInfo();
+	if (!menu) menu = new MenuInfo();
 
 	//menu->AddItem(_("Lorem ipsum..."));
 	//menu->AddItem(_("Show all controls"));
@@ -1737,8 +1768,34 @@ Laxkit::MenuInfo *CaptionInterface::ContextMenu(int x,int y,int deviceid, Laxkit
 	if (data) {
 		menu->AddItem(_("Insert character..."), CAPTION_InsertChar);
 		menu->AddItem(_("Select font..."), CAPTION_Font_Dialog);
+
+		// if (font->ResourceOwner() != this) {
+		// 	menu->AddItem(_("Make font a resource"), CAPTION_MakeFontResource);
+		// } else {
+		// 	menu->AddItem(_("Make font local"), CAPTION_MakeFontLocal);
+		// }
+		InterfaceManager *imanager = InterfaceManager::GetDefault(true);
+		ResourceManager *rm = imanager->GetResourceManager();
+		ResourceType *resources = rm->FindType("Font");
+		if (resources) {
+			// int numadded = 0;
+			// ftype->AppendResourceMenu(menu, true, &numadded, PATHIA_MAX, PATHIA_UseLineStyle, data->linestyle);
+			resources->AppendResourceMenu(menu, _("Resources"), _("Font"), _("Favorites"),
+										0, CAPTION_FontResource, CAPTION_FontResource,
+										_("Make font a resource"), CAPTION_MakeFontResource,
+										_("Make font local"), CAPTION_MakeFontLocal,
+										data->font);
+		}
+	
 		menu->AddSep();
-		menu->AddItem(_("Create path object"), CAPTION_Create_Path_Object);
+		for (int c = 0; c < data->linestats.n-1; c++) {
+			if (data->linestats.e[c]->line_space_diff != 0) {
+				menu->AddItem(_("Clear custom line spacing"), CAPTION_Clear_Spacing_Diff);
+				menu->AddSep();
+				break;
+			}
+		}
+		menu->AddItem(_("Duplicate to path object"), CAPTION_Create_Path_Object);
 		//menu->AddItem(_("Convert to path"), CAPTION_Convert_To_Path);
 		//menu->AddItem(_("Convert to path clones"));
 		//menu->AddItem(_(""));
@@ -1750,7 +1807,7 @@ Laxkit::MenuInfo *CaptionInterface::ContextMenu(int x,int y,int deviceid, Laxkit
 //! Draw ndata, but remember that data should still be the resident data afterward.
 int CaptionInterface::DrawData(anObject *ndata,anObject *a1,anObject *a2,int info)
 {
-	if (!ndata || dynamic_cast<CaptionData *>(ndata)==NULL) return 1;
+	if (!ndata || dynamic_cast<CaptionData *>(ndata)==nullptr) return 1;
 
 	CaptionData *d=data;
 	data=dynamic_cast<CaptionData *>(ndata);
@@ -1780,7 +1837,7 @@ void CaptionInterface::TextOutGlyphs(int line, double x,double y, bool show_care
 	GlyphPlace *glyph;
 	GlyphPlace *nextglyph;
 
-	dp->glyphsout(current_x,current_y, data->linestats.e[line]->glyphs, NULL, len, LAX_BASELINE|LAX_LEFT); 
+	dp->glyphsout(current_x,current_y, data->linestats.e[line]->glyphs, nullptr, len, LAX_BASELINE|LAX_LEFT); 
 
 	if (!show_caret) return;
 	
@@ -1791,7 +1848,7 @@ void CaptionInterface::TextOutGlyphs(int line, double x,double y, bool show_care
 	{
 		glyph = &data->linestats.e[line]->glyphs[i];
 		if (i<len-1) nextglyph = &data->linestats.e[line]->glyphs[i+1];
-		else nextglyph = NULL;
+		else nextglyph = nullptr;
 
 		// *** ASSUMES CLUSTER VALUES MONOTONICALLY INCREASE
 		//
@@ -1822,7 +1879,7 @@ void CaptionInterface::TextOutGlyphs(int line, double x,double y, bool show_care
 
 	 //draw caret
 	dp->NewFG(0.0, .5, 0.0, 1.0);
-	//double ex=dp->textextent(data->font, data->lines.e[line],caretpos, NULL,NULL,NULL,NULL,0);
+	//double ex=dp->textextent(data->font, data->lines.e[line],caretpos, nullptr,nullptr,nullptr,nullptr,0);
 	double tick=data->fontsize/10;
 	dp->drawline(caretx,y, caretx,y+data->fontsize);
 	dp->drawline(caretx,y, caretx-tick,y-tick);
@@ -1993,6 +2050,30 @@ int CaptionInterface::Refresh()
 			//dp->drawrectangle(data->minx,data->miny-2*ys, xs,ys, 1);
 		}
 
+		if (lasthover == CAPTION_Line_Space_Diff) {
+			double y = data->linestats.e[hover_index]->baseline + data->fontsize;
+			dp->NewFG(0.,1.,0.,.4);
+			dp->moveto(data->minx, y);
+			dp->curveto(flatpoint(data->minx, y + data->fontsize/10),
+						flatpoint((data->minx + data->maxx)/2, y),
+						flatpoint((data->minx + data->maxx)/2, y + data->fontsize/5));
+			dp->curveto(
+						flatpoint((data->minx + data->maxx)/2, y),
+						flatpoint(data->maxx, y),
+						flatpoint(data->maxx, y)
+						);
+			dp->curveto(flatpoint(data->maxx, y),
+						flatpoint((data->minx + data->maxx)/2, y),
+						flatpoint((data->minx + data->maxx)/2, y - data->fontsize/5));
+			dp->curveto(flatpoint((data->minx + data->maxx)/2, y),
+						flatpoint(data->minx, y),
+						flatpoint(data->minx, y));
+			// dp->lineto((data->minx + data->maxx)/2, y + data->fontsize/5);
+			// dp->lineto(data->maxx, y);
+			// dp->lineto((data->minx + data->maxx)/2, y - data->fontsize/5);
+			dp->closed();
+			dp->fill(0);
+		}
 	}
 
 	dp->NewFG(data->red, data->green, data->blue, data->alpha);
@@ -2009,16 +2090,18 @@ int CaptionInterface::Refresh()
 
 			 //draw the stuff
 			double x,y;
-			double baseline=data->font->ascent(), descent=data->font->descent();
+			double baseline = data->font->ascent(), descent = data->font->descent();
 			//y = -data->ycentering/100*data->fontsize*data->linespacing*data->lines.n;
 			y = data->miny;
 
 			for (int c=(data->LineSpacing()<0 ? data->lines.n-1 : 0);
 					 (data->LineSpacing()<0 ? c>=0 : c<data->lines.n);
-					 (data->LineSpacing()<0 ? c-- : c++),
-					 y+=fabs(data->fontsize*data->linespacing)) {
+					 (data->LineSpacing()<0 ? c-- : c++)
+					 ) {
 
-				x=-data->xcentering/100*(data->linelengths.e[c]);
+				y = data->linestats.e[c]->baseline;
+
+				x = -data->xcentering/100*(data->linelengths.e[c]);
 
 				if (showbaselines) {
 					dp->NewFG(baseline_color);
@@ -2043,7 +2126,7 @@ int CaptionInterface::Refresh()
 				// //draw caret
 				//if (c==caretline && showdecs) {
 				//	dp->NewFG(0.0, .5, 0.0, 1.0);
-				//	double ex=dp->textextent(data->font, data->lines.e[c],caretpos, NULL,NULL,NULL,NULL,0);
+				//	double ex=dp->textextent(data->font, data->lines.e[c],caretpos, nullptr,nullptr,nullptr,nullptr,0);
 				//	double tick=data->fontsize/10;
 				//	dp->drawline(x+ex,y, x+ex,y+data->fontsize);
 				//	dp->drawline(x+ex,y, x+ex-tick,y-tick);
@@ -2052,6 +2135,8 @@ int CaptionInterface::Refresh()
 				//	dp->drawline(x+ex,y+data->fontsize, x+ex+tick,y+data->fontsize+tick);
 				//	dp->NewFG(data->red, data->green, data->blue, data->alpha);
 				//}
+				
+				y += fabs(data->fontsize * (data->linespacing + (c < data->linestats.n-1 ? data->linestats.e[c]->line_space_diff : 0)));
 			}
 
 			//dp->font(app->defaultlaxfont);
@@ -2083,14 +2168,14 @@ ObjectContext *CaptionInterface::Context()
  */
 CaptionData *CaptionInterface::newData()
 {
-	CaptionData *ndata=NULL;
+	CaptionData *ndata=nullptr;
 
 	ndata=dynamic_cast<CaptionData *>(somedatafactory()->NewObject(LAX_CAPTIONDATA));
 	//if (ndata) ndata->SetText("\nline 2\nthird line");
 
 	if (!ndata) ndata=new CaptionData();
 	
-	ndata->Font(NULL, defaultfamily, defaultstyle, defaultsize);
+	ndata->Font(nullptr, defaultfamily, defaultstyle, defaultsize);
 
 	return ndata;
 }
@@ -2168,37 +2253,41 @@ int CaptionInterface::LBDown(int x,int y,unsigned int state,int count, const Lax
 	if (child) return 1;
 
 	DBG cerr << "  in captioninterface lbd..";
-	int mline,mpos;
-	int over=scan(x,y,state, &mline, &mpos);
+	int mline, mpos, index = -1;
+	int over = scan(x,y,state, &mline, &mpos, &index);
 	buttondown.down(d->id,LEFTBUTTON,x,y, over);
-	mousedragged=0;
-	if (extrahover) { delete extrahover; extrahover=NULL; }
+	mousedragged = 0;
+	if (extrahover) { delete extrahover; extrahover = nullptr; }
 
-	if (data && count==2) {
-		app->rundialog(new FontDialog(NULL, "Font",_("Font"),ANXWIN_REMEMBER, 10,10,700,700,0, object_id,"newfont",0,
+	if (data && count == 2) {
+		app->rundialog(new FontDialog(nullptr, "Font",_("Font"),ANXWIN_REMEMBER, 10,10,700,700,0, object_id,"newfont",0,
 					data->fontfamily, data->fontstyle, data->fontsize,
-					NULL, //sample text
+					nullptr, //sample text
 					data->font, true
 					));
 		buttondown.up(d->id,LEFTBUTTON);
 		return 0;
 	}
 
-	if (over!=CAPTION_None) {
-		if (over==CAPTION_Text) {
-			caretline=mline;
-			caretpos=mpos;
-			needtodraw=1;
+	if (over != CAPTION_None) {
+		if (over == CAPTION_Line_Space_Diff) {
+			hover_index = index;
+			needtodraw = 1;
+		}
+		if (over == CAPTION_Text) {
+			caretline = mline;
+			caretpos = mpos;
+			needtodraw = 1;
 		}
 		return 0; //clicked down on something for current data
 	}
 
 
-	 // make new one or find other one.
-	CaptionData *obj=NULL;
-	ObjectContext *oc=NULL;
-	int c=viewport->FindObject(x,y,whatdatatype(),NULL,1,&oc);
-	if (c>0) obj=dynamic_cast<CaptionData *>(oc->obj); //***actually don't need the cast, if c>0 then obj is CaptionData
+	// make new text object or find other one.
+	CaptionData *obj  = nullptr;
+	ObjectContext *oc = nullptr;
+	int c = viewport->FindObject(x,y,whatdatatype(),nullptr,1,&oc);
+	if (c > 0) obj=dynamic_cast<CaptionData *>(oc->obj); //***actually don't need the cast, if c>0 then obj is CaptionData
 
 	if (obj) { 
 		 // found another CaptionData to work on.
@@ -2206,28 +2295,28 @@ int CaptionInterface::LBDown(int x,int y,unsigned int state,int count, const Lax
 		 // other types of objects.
 		if (data) deletedata();
 
-		data=obj;
+		data = obj;
 		data->inc_count();
 		if (coc) delete coc;
-		coc=oc->duplicate();
+		coc = oc->duplicate();
 		
 		if (viewport) viewport->ChangeObject(oc,0,true);
 		buttondown.moveinfo(d->id,LEFTBUTTON, CAPTION_Move);
 
-		defaultsize=data->fontsize;
+		defaultsize = data->fontsize;
 		makestr(defaultfamily,data->fontfamily);
 		makestr(defaultstyle, data->fontstyle);
-		defaultscale=data->xaxis().norm();
+		defaultscale = data->xaxis().norm();
 
 		SimpleColorEventData *e=new SimpleColorEventData( 65535, 0xffff*data->red, 0xffff*data->green, 0xffff*data->blue, 0xffff*data->alpha, 0);
 		app->SendMessage(e, curwindow->win_parent->object_id, "make curcolor", object_id);
 
 		FixCaret();
 
-		needtodraw=1;
+		needtodraw = 1;
 		return 0;
 
-	} else if (c<0) {
+	} else if (c < 0) {
 		 // If there is some other non-image data underneath (x,y) and
 		 // this is not primary, then switch objects, and switch tools to deal
 		 // with that object.
@@ -2239,7 +2328,7 @@ int CaptionInterface::LBDown(int x,int y,unsigned int state,int count, const Lax
 	}
 
 	 // To be here, must want brand new data plopped into the viewport context
-	if (viewport) viewport->ChangeContext(x,y,NULL);
+	if (viewport) viewport->ChangeContext(x,y,nullptr);
 	//mode=1; //drag out text area
 	mode=0;
 	deletedata();
@@ -2259,15 +2348,15 @@ int CaptionInterface::LBDown(int x,int y,unsigned int state,int count, const Lax
 	if (dp->defaultRighthanded()) {
 		data->yaxis(-data->yaxis());
 	}
-	DBG data->dump_out(stderr,6,0,NULL);
+	DBG data->dump_out(stderr,6,0,nullptr);
 
 	SimpleColorEventData *e=new SimpleColorEventData( 65535, 0xffff*data->red, 0xffff*data->green, 0xffff*data->blue, 0xffff*data->alpha, 0);
 	app->SendMessage(e, curwindow->win_parent->object_id, "make curcolor", object_id);
 	
 	if (viewport) {
-		ObjectContext *oc=NULL;
+		ObjectContext *oc=nullptr;
 		viewport->NewData(data,&oc);//viewport adds only its own counts
-		if (coc) { delete coc; coc=NULL; }
+		if (coc) { delete coc; coc=nullptr; }
 		if (oc) coc=oc->duplicate();
 	}
 
@@ -2297,7 +2386,7 @@ int CaptionInterface::Paste(const char *txt,int len, Laxkit::anObject *obj, cons
 		data->SetText(text);
 
 		int mx,my;
-		mouseposition(0, curwindow, &mx,&my, NULL, NULL, NULL);
+		mouseposition(0, curwindow, &mx,&my, nullptr, nullptr, nullptr);
 		flatpoint leftp = screentoreal(mx,my);
 		data->origin(leftp);
 		if (defaultscale<=0) defaultscale=1./Getmag()/2;
@@ -2306,15 +2395,15 @@ int CaptionInterface::Paste(const char *txt,int len, Laxkit::anObject *obj, cons
 		if (dp->defaultRighthanded()) {
 			data->yaxis(-data->yaxis());
 		}
-		DBG data->dump_out(stderr,6,0,NULL);
+		DBG data->dump_out(stderr,6,0,nullptr);
 
 		SimpleColorEventData *e=new SimpleColorEventData( 65535, 0xffff*data->red, 0xffff*data->green, 0xffff*data->blue, 0xffff*data->alpha, 0);
 		app->SendMessage(e, curwindow->win_parent->object_id, "make curcolor", object_id);
 		
 		if (viewport) {
-			ObjectContext *oc=NULL;
+			ObjectContext *oc=nullptr;
 			viewport->NewData(data,&oc);//viewport adds only its own counts
-			if (coc) { delete coc; coc=NULL; }
+			if (coc) { delete coc; coc=nullptr; }
 			if (oc) coc=oc->duplicate();
 		}
 
@@ -2335,7 +2424,7 @@ int CaptionInterface::Event(const Laxkit::EventData *e_data, const char *mes)
 
 		if (!data) return 0;
 
-		double size=strtod(s->strs[2], NULL);
+		double size=strtod(s->strs[2], nullptr);
 		if (size<=0) size=1e-4;
 
 		LaxFont *newfont=dynamic_cast<LaxFont*>(s->object);
@@ -2355,7 +2444,7 @@ int CaptionInterface::Event(const Laxkit::EventData *e_data, const char *mes)
 	} else if (!strcmp(mes, "linespacing")) {
 		const StrEventData *s=dynamic_cast<const StrEventData*>(e_data);
 		if (!s) return 1;
-		char *end=NULL;
+		char *end=nullptr;
 		double spacing = strtod(s->str,&end);
 		if (end!=s->str && spacing>0) {
 			data->LineSpacing(spacing);
@@ -2364,10 +2453,23 @@ int CaptionInterface::Event(const Laxkit::EventData *e_data, const char *mes)
 		}
 		return 0;
 
+	} else if (!strcmp(mes, "spacingdiff")) {
+		const StrEventData *s = dynamic_cast<const StrEventData*>(e_data);
+		if (!s) return 1;
+		char *end = nullptr;
+		double diff = strtod(s->str, &end);
+		if (end != s->str) {
+			data->linestats.e[hover_index]->line_space_diff = diff;
+			data->FindBBox();
+			data->touchContents();
+			needtodraw=1;
+		}
+		return 0;
+
 	} else if (!strcmp(mes, "size")) {
 		const StrEventData *s=dynamic_cast<const StrEventData*>(e_data);
 		if (!s) return 1;
-		char *end=NULL;
+		char *end=nullptr;
 		double size=strtod(s->str,&end);
 		if (end!=s->str && size>0) {
 			data->Size(size);
@@ -2381,7 +2483,7 @@ int CaptionInterface::Event(const Laxkit::EventData *e_data, const char *mes)
 	} else if (!strcmp(mes, "angle")) {
 		const StrEventData *s=dynamic_cast<const StrEventData*>(e_data);
 		if (!s) return 1;
-		char *end=NULL;
+		char *end=nullptr;
 		double angle=strtod(s->str,&end)/180.*M_PI;
 		if (end!=s->str) {
 			double oldang=angle_full(data->xaxis(),data->yaxis());
@@ -2408,12 +2510,32 @@ int CaptionInterface::Event(const Laxkit::EventData *e_data, const char *mes)
 
 	} else if (!strcmp(mes,"menuevent")) {
         const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(e_data);
-        int i =s->info2; //id of menu item
+        int i = s->info2; //id of menu item
+        int category = s->info4;
+
+        if (category == CAPTION_FontResource) {
+        	InterfaceManager *imanager = InterfaceManager::GetDefault(true);
+			ResourceManager *rm = imanager->GetResourceManager();
+        	Resource *resource = rm->FindResourceFromRID(i, "Font");
+			if (resource) {
+				LaxFont *o = dynamic_cast<LaxFont*>(resource->GetObject());
+				if (o) {
+					if (o) {
+						data->Font(o);
+						needtodraw = 1;
+					}
+				}
+			}
+        	return 0;
+        }
 
         if ( i == CAPTION_Convert_To_Path
           || i == CAPTION_Create_Path_Object
           || i == CAPTION_Font_Dialog
           || i == CAPTION_InsertChar
+          || i == CAPTION_Clear_Spacing_Diff
+		  || i == CAPTION_MakeFontResource
+		  || i == CAPTION_MakeFontLocal
           ) {
 			return PerformAction(i);
 		}
@@ -2439,27 +2561,31 @@ int CaptionInterface::LBUp(int x,int y,unsigned int state, const Laxkit::LaxMous
 			int over;
 			buttondown.getextrainfo(d->id,LEFTBUTTON, &over);
 
-			const char *what=NULL;
+			const char *what = nullptr;
 			char str[30];
 
-			if (over==CAPTION_Size) {
-				what="size";
-				sprintf(str,"%.10g",data->fontsize);
+			if (over == CAPTION_Size) {
+				what = "size";
+				sprintf(str, "%.10g", data->fontsize);
 
-			} else if (over==CAPTION_Line_Spacing) {
-				what="linespacing";
-				sprintf(str,"%.10g",data->linespacing);
+			} else if (over == CAPTION_Line_Spacing) {
+				what = "linespacing";
+				sprintf(str, "%.10g", data->linespacing);
 
-			} else if (over==CAPTION_Rotate) {
-				what="angle";
-				flatpoint x=data->xaxis();
-				sprintf(str,"%.10g",x.angle()*180/M_PI);
+			} else if (over == CAPTION_Rotate) {
+				what = "angle";
+				flatpoint x = data->xaxis();
+				sprintf(str, "%.10g", x.angle() * 180 / M_PI);
+
+			} else if (over == CAPTION_Line_Space_Diff) {
+				what = "spacingdiff";
+				sprintf(str, "%.10g", data->linestats.e[hover_index]->line_space_diff);
 			}
 
 			if (what) {
-				double th=app->defaultlaxfont->textheight();
+				double th = UIScale() * app->defaultlaxfont->textheight();
 				DoubleBBox bounds(x+th, x+20*th, y-th/2, y+th/2);
-				viewport->SetupInputBox(object_id, NULL, str, what, bounds);
+				viewport->SetupInputBox(object_id, nullptr, str, what, bounds);
 			}
 
 		} else if (data && viewport) viewport->ObjectMoved(coc,1);
@@ -2470,30 +2596,40 @@ int CaptionInterface::LBUp(int x,int y,unsigned int state, const Laxkit::LaxMous
 	return 0;
 }
 
-int CaptionInterface::scan(int x,int y,unsigned int state, int *line, int *pos)
+int CaptionInterface::scan(int x,int y,unsigned int state, int *line, int *pos, int *index)
 {
 	if (!data) return CAPTION_None;
 
-	double xmag=norm(realtoscreen(transform_point(data->m(),flatpoint(1,0)))
-                    -realtoscreen(transform_point(data->m(),flatpoint(0,0))));
-    double ymag=norm(realtoscreen(transform_point(data->m(),flatpoint(0,1)))
-                    -realtoscreen(transform_point(data->m(),flatpoint(0,0))));
+	double xmag = norm(realtoscreen(transform_point(data->m(),flatpoint(1,0)))
+                      -realtoscreen(transform_point(data->m(),flatpoint(0,0))));
+    double ymag = norm(realtoscreen(transform_point(data->m(),flatpoint(0,1)))
+                      -realtoscreen(transform_point(data->m(),flatpoint(0,0))));
 
-	double xm = grabpad*ScreenLine()/xmag/2;
-	double ym = grabpad*ScreenLine()/ymag/2;
+	double xm = grabpad * ScreenLine()/xmag/2;
+	double ym = grabpad * ScreenLine()/ymag/2;
 
 	flatpoint p = screentoreal(x,y);
 	p = data->transformPointInverse(p);
 
-
-	if (p.x>=data->minx && p.x<=data->maxx && p.y>=data->miny && p.y<=data->maxy) {
-		if (line) {
+	if (p.x >= data->minx && p.x <= data->maxx && p.y >= data->miny && p.y <= data->maxy) {
+		if (line || index) {
 			data->FindPos(p.y, p.x, line,pos);
+
+			if (*line >= 0 && (state & ControlMask)) {
+				if (*line < data->linestats.n-1 && p.y > data->linestats.e[*line]->baseline + data->fontsize/2) {
+					if (index) *index = *line;
+					return CAPTION_Line_Space_Diff;
+
+				} else if (*line > 0 && p.y < data->linestats.e[*line]->baseline + data->fontsize/2) {
+					if (index) *index = *line - 1;
+					return CAPTION_Line_Space_Diff;
+				}
+			}
 		}
 		return CAPTION_Text;
 	}
 
-	 //checking for clicking down just outside bounds...
+	// checking for clicking down just outside bounds...
 	if (p.x>=data->minx-xm && p.x<=data->maxx+xm+xm
 			&& p.y>=data->miny-ym && p.y<=data->maxy+ym) {
 
@@ -2513,6 +2649,7 @@ int CaptionInterface::scan(int x,int y,unsigned int state, int *line, int *pos)
 	}
 
 
+	if (index) *index = -1;
 	return CAPTION_None;
 }
 
@@ -2521,14 +2658,17 @@ int CaptionInterface::MouseMove(int x,int y,unsigned int state, const Laxkit::La
 	if (child) return 0;
 
 	if (!buttondown.any() || !data) {
-		int hover=scan(x,y,state, NULL,NULL);
+		int index = -1;
+		int line = -1;
+		int pos = -1;
+		int hover = scan(x,y,state, &line, &pos, &index);
 
-		if (hover==CAPTION_None) {
+		if (hover == CAPTION_None) {
 			 //set up to outline potentially editable other captiondata
-			ObjectContext *oc=NULL;
-			int c=viewport->FindObject(x,y,whatdatatype(),NULL,1,&oc);
+			ObjectContext *oc=nullptr;
+			int c=viewport->FindObject(x,y,whatdatatype(),nullptr,1,&oc);
 			if (c>0) {
-				DBG cerr <<"caption mouse over: "<<oc->obj->Id()<<endl;
+				// DBG cerr <<"caption mouse over: "<<oc->obj->Id()<<endl;
 
 				if (!oc->isequal(extrahover)) {
 					if (extrahover) delete extrahover;
@@ -2537,27 +2677,29 @@ int CaptionInterface::MouseMove(int x,int y,unsigned int state, const Laxkit::La
 				}
 			} else if (extrahover) {
 				delete extrahover;
-				extrahover=NULL;
+				extrahover=nullptr;
 				needtodraw=1;
 			}
 		}
 
-		if (hover!=CAPTION_None && extrahover) {
+		if (hover != CAPTION_None && extrahover) {
 			delete extrahover;
-			extrahover=NULL;
-			needtodraw=1;
+			extrahover = nullptr;
+			needtodraw = 1;
 		}
 
-		if (hover!=lasthover) {
-			lasthover=hover;
-			needtodraw=1;
-			if (lasthover==CAPTION_Move)              PostMessage(_("Move"));
-			else if (lasthover==CAPTION_HAlign)       PostMessage(_("Horizontal alignment"));
-			else if (lasthover==CAPTION_VAlign)       PostMessage(_("Vertical alignment"));
-			else if (lasthover==CAPTION_Rotate)       PostMessage(_("Rotate, shift to snap"));
-			else if (lasthover==CAPTION_Size)         PostMessage(_("Drag for font size, click to input"));
-			else if (lasthover==CAPTION_Line_Spacing) PostMessage(_("Drag for line spacing, click to input"));
-			else if (lasthover==CAPTION_Text)         PostMessage(_("Text"));
+		if (hover != lasthover || hover_index != index) {
+			lasthover = hover;
+			hover_index = index;
+			needtodraw = 1;
+			if      (lasthover == CAPTION_Move)            PostMessage(_("Move"));
+			else if (lasthover == CAPTION_HAlign)          PostMessage(_("Horizontal alignment"));
+			else if (lasthover == CAPTION_VAlign)          PostMessage(_("Vertical alignment"));
+			else if (lasthover == CAPTION_Rotate)          PostMessage(_("Rotate, shift to snap"));
+			else if (lasthover == CAPTION_Size)            PostMessage(_("Drag for font size, click to input"));
+			else if (lasthover == CAPTION_Line_Spacing)    PostMessage(_("Drag for line spacing, click to input"));
+			else if (lasthover == CAPTION_Text)            PostMessage(_("Text"));
+			else if (lasthover == CAPTION_Line_Space_Diff) PostMessage2(_("Custom line spacing for line %d: %f"), hover_index, data->linestats.e[hover_index]->line_space_diff);
 			else PostMessage(" ");
 			return 0;
 		}
@@ -2603,14 +2745,29 @@ int CaptionInterface::MouseMove(int x,int y,unsigned int state, const Laxkit::La
 			needtodraw=1;
 			return 0;
 
-		} else if (over==CAPTION_Line_Spacing) {
-			double factor=.1;
-			if (state&ShiftMask) factor*=.1;
-			if (state&ControlMask) factor*=.1;
-			double d=data->LineSpacing() + factor*dv.y;
+		} else if (over == CAPTION_Line_Spacing) {
+			double factor = 1./data->fontsize;
+			if (state & ShiftMask)   factor *= .1;
+			if (state & ControlMask) factor *= .1;
+			double d = data->LineSpacing() + factor*dv.y;
 			data->LineSpacing(d);
 			char str[100];
 			sprintf(str, _("Line spacing %f %%"), d);
+
+			PostMessage(str);
+			needtodraw=1;
+			return 0;
+
+		} else if (over == CAPTION_Line_Space_Diff) {
+			double factor = 1./data->fontsize;
+			if (state & ShiftMask)   factor *= .1;
+			if (state & ControlMask) factor *= .1;
+			double d = data->linestats.e[hover_index]->line_space_diff + factor*dv.y;
+			data->linestats.e[hover_index]->line_space_diff = d;
+			data->FindBBox();
+			data->touchContents();
+			char str[100];
+			sprintf(str, _("Line %d extra spacing %f %%"), hover_index, d);
 
 			PostMessage(str);
 			needtodraw=1;
@@ -2680,25 +2837,25 @@ Laxkit::ShortcutHandler *CaptionInterface::GetShortcuts()
 
     //virtual int Add(int nid, const char *nname, const char *desc, const char *icon, int nmode, int assign);
 
-    sc=new ShortcutHandler(whattype());
+    sc = new ShortcutHandler(whattype());
 
-    sc->Add(CAPTION_Copy,            'c',ControlMask,0, "Copy"           , _("Copy"            ),NULL,0);
-    sc->Add(CAPTION_Paste,           'v',ControlMask,0, "Paste"          , _("Paste"           ),NULL,0);
-    sc->Add(CAPTION_LeftJustify,     'l',ControlMask,0, "LeftJustify"    , _("Left Justify"    ),NULL,0);
-    sc->Add(CAPTION_CenterJustify,   'e',ControlMask,0, "CenterJustify"  , _("Center Justify"  ),NULL,0);
-    sc->Add(CAPTION_RightJustify,    'r',ControlMask,0, "RightJustify"   , _("Right Justify"   ),NULL,0);
-    sc->Add(CAPTION_TopJustify,      't',ControlMask,0, "TopJustify"     , _("Top Justify"     ),NULL,0);
-    sc->Add(CAPTION_MiddleJustify,   'm',ControlMask,0, "MiddleJustify"  , _("Middle Justify"  ),NULL,0);
-    sc->Add(CAPTION_BaselineJustify, 'B',ShiftMask|ControlMask,0, "BaselineJustify", _("Baseline Justify"),NULL,0);
-    sc->Add(CAPTION_BottomJustify,   'b',ControlMask,0, "BottomJustify"  , _("Bottom Justify"  ),NULL,0);
-    sc->Add(CAPTION_Direction,       'D',ShiftMask|ControlMask,0, "Direction", _("Toggle Direction"),NULL,0);
-    sc->Add(CAPTION_Decorations,     'd',ControlMask,0, "Decorations"    , _("Toggle Decorations"),NULL,0);
-    sc->Add(CAPTION_ShowBaselines,   'D',ShiftMask|ControlMask,0, "ShowBaselines", _("Show Baselines"),NULL,0);
-    sc->Add(CAPTION_InsertChar,      'i',ControlMask,0, "InsertChar"     , _("Insert Character"),NULL,0);
-    sc->Add(CAPTION_CombineChars,    'j',ControlMask,0, "CombineChars"   , _("Join Characters if possible"),NULL,0);
-    sc->Add(CAPTION_Create_Path_Object,'P',ShiftMask|ControlMask,0, "ConvertToPaths", _("Convert to path object, but keep the old object"),NULL,0);
-    sc->Add(CAPTION_Font_Dialog,     'F',ShiftMask|ControlMask,0, "SelectFont", _("Select font"),NULL,0);
-    //sc->Add(CAPTION_Convert_To_Path, 'P',ShiftMask|ControlMask,0, "ConvertToPaths", _("Convert to path object"),NULL,0);
+    sc->Add(CAPTION_Copy,            'c',ControlMask,0, "Copy"           , _("Copy"            ),nullptr,0);
+    sc->Add(CAPTION_Paste,           'v',ControlMask,0, "Paste"          , _("Paste"           ),nullptr,0);
+    sc->Add(CAPTION_LeftJustify,     'l',ControlMask,0, "LeftJustify"    , _("Left Justify"    ),nullptr,0);
+    sc->Add(CAPTION_CenterJustify,   'e',ControlMask,0, "CenterJustify"  , _("Center Justify"  ),nullptr,0);
+    sc->Add(CAPTION_RightJustify,    'r',ControlMask,0, "RightJustify"   , _("Right Justify"   ),nullptr,0);
+    sc->Add(CAPTION_TopJustify,      't',ControlMask,0, "TopJustify"     , _("Top Justify"     ),nullptr,0);
+    sc->Add(CAPTION_MiddleJustify,   'm',ControlMask,0, "MiddleJustify"  , _("Middle Justify"  ),nullptr,0);
+    sc->Add(CAPTION_BaselineJustify, 'B',ShiftMask|ControlMask,0, "BaselineJustify", _("Baseline Justify"),nullptr,0);
+    sc->Add(CAPTION_BottomJustify,   'b',ControlMask,0, "BottomJustify"  , _("Bottom Justify"  ),nullptr,0);
+    sc->Add(CAPTION_Direction,       'D',ShiftMask|ControlMask,0, "Direction", _("Toggle Direction"),nullptr,0);
+    sc->Add(CAPTION_Decorations,     'd',ControlMask,0, "Decorations"    , _("Toggle Decorations"),nullptr,0);
+    sc->Add(CAPTION_ShowBaselines,   'D',ShiftMask|ControlMask,0, "ShowBaselines", _("Show Baselines"),nullptr,0);
+    sc->Add(CAPTION_InsertChar,      'i',ControlMask,0, "InsertChar"     , _("Insert Character"),nullptr,0);
+    sc->Add(CAPTION_CombineChars,    'j',ControlMask,0, "CombineChars"   , _("Join Characters if possible"),nullptr,0);
+    sc->Add(CAPTION_Create_Path_Object,'P',ShiftMask|ControlMask,0, "ConvertToPaths", _("Convert to path object, but keep the old object"),nullptr,0);
+    sc->Add(CAPTION_Font_Dialog,     'F',ShiftMask|ControlMask,0, "SelectFont", _("Select font"),nullptr,0);
+    //sc->Add(CAPTION_Convert_To_Path, 'P',ShiftMask|ControlMask,0, "ConvertToPaths", _("Convert to path object"),nullptr,0);
 
     manager->AddArea(whattype(),sc);
     return sc;
@@ -2708,7 +2865,7 @@ int CaptionInterface::PerformAction(int action)
 {
 	if (action==CAPTION_Paste) {
 		 //pasting with no data should create a new data
-		viewport->PasteRequest(this, NULL);
+		viewport->PasteRequest(this, nullptr);
 		return 0;
 	}
 
@@ -2770,6 +2927,15 @@ int CaptionInterface::PerformAction(int action)
 		needtodraw=1;
 		return 0;
 
+	} else if (action == CAPTION_Clear_Spacing_Diff) {
+		for (int c = 0; c < data->linestats.n-1; c++) {
+			data->linestats.e[c]->line_space_diff = 0;
+		}
+		
+		data->FindBBox();
+		needtodraw = 1;
+		return 0;
+
 	} else if (action==CAPTION_InsertChar) {
 		if (data && !child) {
 			CharacterInterface *chari = new CharacterInterface(this, 0, dp, data->font);
@@ -2828,10 +2994,10 @@ int CaptionInterface::PerformAction(int action)
 
 	} else if (action==CAPTION_Create_Path_Object) {
 		if (!data) return 0;
-		SomeData *newdata = data->ConvertToPaths(false, NULL);
+		SomeData *newdata = data->ConvertToPaths(false, nullptr);
 
 		 //add data to viewport, and select tool for it
-		ObjectContext *oc=NULL;
+		ObjectContext *oc=nullptr;
 		viewport->NewData(newdata,&oc);//viewport adds only its own counts
 		//viewport->ChangeObject(oc, 1,true);
 		newdata->dec_count();
@@ -2839,11 +3005,32 @@ int CaptionInterface::PerformAction(int action)
 
 	} else if (action == CAPTION_Font_Dialog) {
 		if (!data) return 0;
-		app->rundialog(new FontDialog(NULL, "Font",_("Font"),ANXWIN_REMEMBER, 10,10,700,700,0, object_id,"newfont",0,
+		app->rundialog(new FontDialog(nullptr, "Font",_("Font"),ANXWIN_REMEMBER, 10,10,700,700,0, object_id,"newfont",0,
 					data->fontfamily, data->fontstyle, data->fontsize,
-					NULL, //sample text
+					nullptr, //sample text
 					data->font, true
 					));
+		return 0;
+	
+	} else if (action == CAPTION_MakeFontResource) {
+		if (!data) return 0;
+		if (data->font->IsResourced()) {
+			PostMessage2(_("%s is already a resource"), _("Font"));
+		} else {
+			InterfaceManager *imanager = InterfaceManager::GetDefault(true);
+			ResourceManager *rm = imanager->GetResourceManager();
+			rm->AddResource("Font", data->font, nullptr, data->font->Id(), data->font->Id(),
+							nullptr, nullptr, nullptr, false);
+			PostMessage(_("Resourced."));
+		}
+		return 0;
+
+	} else if (action == CAPTION_MakeFontLocal) {
+		if (!data) return 0;
+		LaxFont *f = dynamic_cast<LaxFont*>(data->font->duplicate());
+		data->Font(f);
+		f->dec_count();
+		PostMessage(_("Done."));
 		return 0;
 	}
 

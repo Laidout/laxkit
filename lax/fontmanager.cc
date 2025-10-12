@@ -30,6 +30,7 @@
 #include <lax/fileutils.h>
 #include <lax/language.h>
 #include <lax/colors.h>
+#include <lax/resourcetypes.h>
 
 #include <lax/debug.h>
 using namespace std;
@@ -1635,6 +1636,29 @@ FontManager *GetDefaultFontManager()
 }
 
 
+anObject *NewFontForObjectFactory(int p, anObject *ref) { return GetDefaultFontManager()->MakeFont(getUniqueNumber()); }
+
+Laxkit::anObject *createFontForResourceManager(Laxkit::Attribute *config)
+{
+	FontManager *manager = GetDefaultFontManager();
+
+    if (config) {
+		return manager->dump_in_font(config, nullptr);
+    }
+
+    return NewFontForObjectFactory(0,nullptr);
+}
+
+void FontManager::InstallFontResourceType(ObjectFactory *factory, ResourceManager *resources)
+{
+	if (factory) {
+		factory->DefineNewObject(OBJ_Font, "Font", NewFontForObjectFactory, nullptr, 0);
+	}
+
+	if (resources) {
+		resources->AddResourceType("Font", _("Font"), nullptr, nullptr, createFontForResourceManager, nullptr /*load from file*/);
+	}
+}
 
 
 

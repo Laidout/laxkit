@@ -17,50 +17,20 @@
 //    You should have received a copy of the GNU Library General Public
 //    License along with this library; If not, see <http://www.gnu.org/licenses/>.
 //
-//    Copyright (C) 2004-2012,2015 by Tom Lechner
+//    Copyright (C) 2025 by Tom Lechner
 //
-#ifndef _LAX_SOMEDATAFACTORY_H
-#define _LAX_SOMEDATAFACTORY_H
-
-#include <lax/resourcetypes.h>
-#include <lax/objectfactory.h>
+#ifndef _LAX_RESOURCETYPES_H
+#define _LAX_RESOURCETYPES_H
 
 
 
-namespace LaxInterfaces {
+namespace Laxkit {
 
 enum LaxInterfaceDataTypes {
-	LAX_BEZDATA = Laxkit::LAX_RESOURCES_MAX,
-	LAX_BEZNETDATA,
-	LAX_COLORPATCHDATA,
-	LAX_ELLIPSEDATA,
-	LAX_ENGRAVERFILLDATA,
-	LAX_GRADIENTDATA,
-	LAX_IMAGEDATA,
-	LAX_IMAGEPATCHDATA,
-	LAX_LINESDATA,
-	LAX_PATCHDATA,
-	LAX_PATHSDATA,
-	LAX_RECTDATA,
-	LAX_ROUNDEDRECTDATA,
-	LAX_SOMEDATA,
-	LAX_SOMEDATAREF,
-	LAX_CAPTIONDATA,
-	LAX_TEXTONPATH,
-	LAX_GROUPDATA,
-	LAX_VORONOIDATA,
+	OBJ_Font = 1,
 
-	OBJ_ShapeBrush,
-	OBJ_LineProfile,
-	OBJ_LineStyle,
-	OBJ_FillStyle,
-
-	LAX_DATA_MAX
+	LAX_RESOURCES_MAX
 };
-
-Laxkit::ObjectFactory *somedatafactory();
-
-
 
 
 } //namespace LaxInterfaces

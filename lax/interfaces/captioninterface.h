@@ -72,6 +72,8 @@ class CaptionData : virtual public SomeData
 		double pixlen;
 		double indent; //from minx, or miny if vertical writing
 		double height;
+		double baseline = 0.0;
+		double line_space_diff = 0.0;
 
 		 // Get glyph information and positions out of the buffer.
 		Laxkit::GlyphPlace *glyphs;
@@ -144,6 +146,8 @@ enum CaptionInterfaceActions {
 	CAPTION_VAlign,
 	CAPTION_Size,
 	CAPTION_Line_Spacing,
+	CAPTION_Line_Space_Diff,
+	CAPTION_Line_Spacing_Specific,
 
 	CAPTION_Copy,
 	CAPTION_Paste,
@@ -163,6 +167,10 @@ enum CaptionInterfaceActions {
 	CAPTION_Create_Path_Object,
 	CAPTION_Lorem_Ipsum,
 	CAPTION_Font_Dialog,
+	CAPTION_Clear_Spacing_Diff,
+	CAPTION_MakeFontResource,
+	CAPTION_MakeFontLocal,
+	CAPTION_FontResource,
 
 	CAPT_MAX
 };
@@ -177,6 +185,7 @@ class CaptionInterface : public anInterface
 	int scaretline,scaretpos, sellen;
 	Laxkit::flatpoint caret;
 	int lasthover;
+	int hover_index = -1;
 	Laxkit::ShortcutHandler *sc;
 
 	 // *** temporary:
@@ -205,6 +214,7 @@ class CaptionInterface : public anInterface
 	virtual const char *Name();
 	virtual const char *whattype() { return "CaptionInterface"; }
 	virtual const char *whatdatatype() { return "CaptionData"; }
+	virtual int InitializeResources();
 	virtual void deletedata();
 	virtual ObjectContext *Context();
 	virtual int LBDown(int x,int y,unsigned int state,int count, const Laxkit::LaxMouse *d);
@@ -226,7 +236,7 @@ class CaptionInterface : public anInterface
 	virtual int Paste(const char *txt,int len, Laxkit::anObject *obj, const char *formathint);
 
 	virtual void FixCaret();
-	virtual int scan(int x,int y,unsigned int state, int *line, int *pos);
+	virtual int scan(int x,int y,unsigned int state, int *line, int *pos, int *index);
 	virtual CaptionData *newData();
 };
 
