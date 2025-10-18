@@ -1229,6 +1229,7 @@ int CaptionData::InsertString(const char *txt,int len, int line,int pos, int *ne
 	}
 
 	insertnstr(lines.e[line], txt,len, pos);
+	pos += len;
 
 	char *curline  = lines.e[line];
 	char *origline = lines.e[line];
@@ -2054,7 +2055,7 @@ int CaptionInterface::Refresh()
 			double y = data->linestats.e[hover_index]->baseline + data->fontsize;
 			dp->NewFG(0.,1.,0.,.4);
 			dp->moveto(data->minx, y);
-			dp->curveto(flatpoint(data->minx, y + data->fontsize/10),
+			dp->curveto(flatpoint(data->minx, y),
 						flatpoint((data->minx + data->maxx)/2, y),
 						flatpoint((data->minx + data->maxx)/2, y + data->fontsize/5));
 			dp->curveto(
@@ -2068,9 +2069,6 @@ int CaptionInterface::Refresh()
 			dp->curveto(flatpoint((data->minx + data->maxx)/2, y),
 						flatpoint(data->minx, y),
 						flatpoint(data->minx, y));
-			// dp->lineto((data->minx + data->maxx)/2, y + data->fontsize/5);
-			// dp->lineto(data->maxx, y);
-			// dp->lineto((data->minx + data->maxx)/2, y - data->fontsize/5);
 			dp->closed();
 			dp->fill(0);
 		}
@@ -2853,6 +2851,7 @@ Laxkit::ShortcutHandler *CaptionInterface::GetShortcuts()
     sc->Add(CAPTION_ShowBaselines,   'D',ShiftMask|ControlMask,0, "ShowBaselines", _("Show Baselines"),nullptr,0);
     sc->Add(CAPTION_InsertChar,      'i',ControlMask,0, "InsertChar"     , _("Insert Character"),nullptr,0);
     sc->Add(CAPTION_CombineChars,    'j',ControlMask,0, "CombineChars"   , _("Join Characters if possible"),nullptr,0);
+	sc->Add(CAPTION_CombineUnicode,  'u',ControlMask,0, "CombineUnicode" , _("From adjacent hex numbers, replace with unicode character"),nullptr,0);
     sc->Add(CAPTION_Create_Path_Object,'P',ShiftMask|ControlMask,0, "ConvertToPaths", _("Convert to path object, but keep the old object"),nullptr,0);
     sc->Add(CAPTION_Font_Dialog,     'F',ShiftMask|ControlMask,0, "SelectFont", _("Select font"),nullptr,0);
     //sc->Add(CAPTION_Convert_To_Path, 'P',ShiftMask|ControlMask,0, "ConvertToPaths", _("Convert to path object"),nullptr,0);
@@ -2863,9 +2862,10 @@ Laxkit::ShortcutHandler *CaptionInterface::GetShortcuts()
 
 int CaptionInterface::PerformAction(int action)
 {
-	if (action==CAPTION_Paste) {
-		 //pasting with no data should create a new data
-		viewport->PasteRequest(this, nullptr);
+	if (action == CAPTION_Paste) {
+		// pasting with no data should create a new data
+		PostMessage(_("Trying to paste"));
+		viewport->PasteRequest(this, "UTF8_STRING");
 		return 0;
 	}
 
@@ -2985,6 +2985,32 @@ int CaptionInterface::PerformAction(int action)
 		data->DeleteChar(caretline,caretpos,0, &caretline,&caretpos);
 		data->InsertChar(newch,caretline,caretpos,&caretline,&caretpos);
 		needtodraw=1;
+		return 0;
+
+	} else if (action == CAPTION_CombineUnicode) {
+		if (!data) return 1;
+
+		long i1 = caretpos;
+		long i2 = caretpos;
+		while (i1 > 0 && isxdigit(data->lines.e[caretline][i1-1])) i1--;
+		long slen = strlen(data->lines.e[caretline]);
+		while (isxdigit(data->lines.e[caretline][i2])) i2++;
+		slen = i2 - i1;
+		if (slen > 8) {
+			i2 = i1 + 8;
+			slen = 8;
+		}
+
+		if (slen == 0 || slen > 8) {
+			PostMessage(_("Must have a sequence of hex digits (0-9, a-f, A-F) to combine!"));
+			return 0;
+		}
+
+		int newch = strtol(data->lines.e[caretline] + i1, nullptr, 16);
+
+		data->DeleteSelection(caretline,i1, caretline,i2, &caretline,&caretpos);
+		data->InsertChar(newch, caretline,i1, &caretline,&caretpos);
+		needtodraw = 1;
 		return 0;
 
 	} else if (action==CAPTION_Convert_To_Path) {
