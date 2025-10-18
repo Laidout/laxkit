@@ -42,6 +42,20 @@ using namespace std;
 namespace Laxkit {
 
 
+// cairo fonts:
+// 
+// cairo_set_font_size()        -->  set the M size
+// cairo_scaled_font_extents()  -->  get ascent, descent which are really just hints,
+//                                   height which IS NOT ascent+descent, and IS NOT the M size. it is default line spacing
+//                                   
+// 
+// an identity font matrix makes the M square 1 unit x 1 unit
+// 
+// font->textheight()  -->  extents.height
+// font->Msize()       -->  extents.height / height_over_M;
+// 
+
+
 
 //--------------------------- FontManagerCairo ------------------------------------------
 FontManager *newFontManager_cairo()

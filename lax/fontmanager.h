@@ -130,8 +130,8 @@ class LaxFont : public Resourceable
 	// virtual double contextcharwidth(char *start,char *pos,int real,double *width=NULL,double *height=NULL) = 0;
 	virtual double ascent() = 0;
 	virtual double descent() = 0;
-	virtual double textheight() = 0;
-	virtual double Msize() = 0;
+	virtual double textheight() = 0; // NOT EQUAL to ascent + descent!!!
+	virtual double Msize() = 0;      // NOT EQUAL to ascent + descent OR textheight!!!!
 	virtual const char *Family();
 	virtual const char *Style();
 	virtual const char *FontFile();

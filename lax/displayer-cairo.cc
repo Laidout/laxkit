@@ -46,6 +46,8 @@ using namespace std;
 
 namespace Laxkit {
 
+
+
 //-------------------------------- DisplayerCairo --------------------------
 /*! \class DisplayerCairo
  * \brief Displayer based on Cairo.
