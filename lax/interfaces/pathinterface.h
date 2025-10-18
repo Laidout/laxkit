@@ -200,7 +200,7 @@ class Path : virtual public Laxkit::anObject,
 
 
 //-------------------- PathsData ---------------------------
-	
+
 
 
 class PathsData : virtual public SomeData

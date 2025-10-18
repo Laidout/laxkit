@@ -4056,7 +4056,7 @@ double Path::distance_to_t(double distance, int *err, int resolution)
 
 
 //! Reverse the direction of the path.
-/*! Return 0 for success or 1 for some error.
+/*! Return 0 for success or 1 for some error, such as null path or no vertex points.
  *
  * \todo *** this ignores pathop ownership!
  */
