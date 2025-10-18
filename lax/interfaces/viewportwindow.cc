@@ -512,10 +512,15 @@ int ViewportWindow::SetSelection(Selection *nselection)
 
 int ViewportWindow::selectionDropped(const unsigned char *data,unsigned long len,const char *actual_type, const char *which)
 {
-	for (int c=0; c<interfaces.n; c++) {
-		if (interfaces.e[c]->Paste((const char *)data,len, NULL, actual_type)==0) { 
+	if (pastedest) {
+		pastedest->Paste((const char *)data,len, nullptr, actual_type);
+		pastedest->dec_count();
+		return 0;
+	}
+	for (int c = 0; c < interfaces.n; c++) {
+		if (interfaces.e[c]->Paste((const char *)data,len, nullptr, actual_type) == 0) { 
 			//DBG cerr <<"interface "<<interfaces.e[c]->whattype()<<" needs to draw "<<interfaces.e[c]->needtodraw<<endl;
-			needtodraw=1; 
+			needtodraw = 1; 
 			return 0;
 		}
 	}
@@ -527,7 +532,7 @@ int ViewportWindow::PasteRequest(anInterface *interf, const char *targettype)
 {
 	if (pastedest != interf) {
 		if (pastedest) pastedest->dec_count();
-		pastedest=interf;
+		pastedest = interf;
 		if (pastedest) pastedest->inc_count();
 	}
 
