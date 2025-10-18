@@ -65,14 +65,14 @@ class TextOnPath : virtual public SomeData
 		FROM_MAX
 	} baseline_type;
 
-	double baseline; //distance off path to put the baseline
+	double baseline; // distance off path to put the baseline
 	int baseline_units; //em==0, or physical unit
-	double start_offset; //distance from start of path
-	double end_offset;
+	double start_inset; //distance from start of path
+	double end_inset;
 	double rotation;
 	double path_length;
-	double alignment; //0 == left, 100 == right
-	int pathdirection;
+	double alignment; //0 == left, 100 == right, between start_inset and end_inset
+	bool path_reversed;
 
 	int start, end; //byte index in text, used text is in range [start, end)
 	char *text;
@@ -91,6 +91,7 @@ class TextOnPath : virtual public SomeData
 
 	double scale_correction;
 	Laxkit::LaxFont *font;
+	double fontsize; // distinct from font->textheight() to preserve sane editing
 	Laxkit::Color *color;
 	char *language; //id matching something in fontmanager
 	char *script;
@@ -122,8 +123,8 @@ class TextOnPath : virtual public SomeData
 	virtual double Baseline(double newbaseline, bool diff);
 	virtual double Baseline(double newbaseline, bool diff, Laxkit::flatpoint constant);
 	virtual double StartOffset(double newoffset, bool diff);
-	virtual int PathDirection() { return pathdirection; }
-	virtual int PathDirection(int newdir);
+	virtual int PathReversed() { return path_reversed; }
+	virtual int PathReversed(bool yes);
 
 	virtual int UseThisPath(PathsData *newpaths, int path_index);
 	virtual int UseThisPath(ObjectContext *npathcontext, int path_index);
@@ -153,9 +154,9 @@ enum TextOnPathActions {
 	TPATH_BaselineUp,
 	TPATH_BaselineDown,
 	TPATH_ResetBaseline,
-	TPATH_Offset,
-	TPATH_OffsetDec,
-	TPATH_OffsetInc,
+	TPATH_Inset,
+	TPATH_InsetDec,
+	TPATH_InsetInc,
 	TPATH_BaseAndOff,
 	TPATH_Move,
 	TPATH_Size,
@@ -167,6 +168,9 @@ enum TextOnPathActions {
 	TPATH_Text,
 	TPATH_Paste,
 	TPATH_Link_To_Parent,
+	TPATH_InsertChar,
+	TPATH_CombineChars,
+	TPATH_CombineUnicode,
 	TPATH_MAX	
 };
 

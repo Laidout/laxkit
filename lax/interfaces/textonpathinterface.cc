@@ -29,6 +29,7 @@
 #include <lax/interfaces/textonpathinterface.h>
 #include <lax/interfaces/texttopath.h>
 #include <lax/interfaces/interfacemanager.h>
+#include <lax/interfaces/characterinterface.h>
 #include <lax/interfaces/somedataref.h>
 #include <lax/interfaces/somedatafactory.h>
 #include <lax/interfaces/groupdata.h>
@@ -63,10 +64,11 @@ TextOnPath::TextOnPath()
 {
 	baseline_type = FROM_Offset;
 	baseline      = 0;
-	start_offset  = 0;  // actual distance along path from start of path
-	end_offset    = -1;
+	fontsize      = 35; // pts
+	start_inset   = 0;  // actual distance along path from start of path
+	end_inset     = -1;
 	path_length   = -1;
-	pathdirection = 0;  // 0, 2 go forward on path, 1, 3 go backward
+	path_reversed = false;
 	alignment     = 0;
 
 	rotation = 0;
@@ -139,17 +141,17 @@ SomeData *TextOnPath::duplicateData(SomeData *dup)
 	}
 
 	 //somedata elements:
-	dup->bboxstyle=bboxstyle;
+	dup->bboxstyle = bboxstyle;
 	dup->m(m());
 
-	i->baseline_type = baseline_type; 
-	i->baseline = baseline;
+	i->baseline_type  = baseline_type;
+	i->baseline       = baseline;
 	i->baseline_units = baseline_units;
-	i->start_offset = start_offset;
-	i->end_offset = end_offset;
-	i->rotation = rotation;
-	i->path_length = path_length;
-	i->pathdirection = pathdirection;
+	i->start_inset    = start_inset;
+	i->end_inset      = end_inset;
+	i->rotation       = rotation;
+	i->path_length    = path_length;
+	i->path_reversed  = path_reversed;
 
 	i->Text(text, start, end);
 
@@ -229,8 +231,8 @@ Attribute *TextOnPath::dump_out_atts(Attribute *att,int what,DumpContext *contex
 		att->push("matrix", "1 0 0 1 0 0", "An affine matrix of 6 numbers");
 		att->push("baseline_type","path",  "or offset|stroke|otherstroke|envelope");
 		att->push("baseline",     ".5em",  "number for how much to offset text from baseline_type");
-		att->push("start_offset",".5","Distance from path start to begin text");
-		//att->push("end_offset","0","TODo.. Distance from path end text can't go past");
+		att->push("start_inset",".5","Distance from path start to begin text");
+		//att->push("end_inset","0","TODo.. Distance from path end text can't go past");
 		//att->push("rotation","0","TODo.. Extra rotation to apply to glyphs");
 		att->push("text_start","0","First byte of text to use");
 		att->push("text_end","0","Byte after final text character");
@@ -260,8 +262,8 @@ Attribute *TextOnPath::dump_out_atts(Attribute *att,int what,DumpContext *contex
 	else   sprintf(scratch, "%.10g", baseline);
 	att->push("baseline", scratch);
 
-	att->push("start_offset", start_offset);
-	att->push("end_offset", end_offset);
+	att->push("start_inset", start_inset);
+	att->push("end_inset", end_inset);
 	att->push("rotation", rotation);
 
 	if (font) {
@@ -277,7 +279,7 @@ Attribute *TextOnPath::dump_out_atts(Attribute *att,int what,DumpContext *contex
 
 	color->dump_out_simple_string(att, "color");
 
-	att->push("direction", pathdirection % 2 == 0 ? "forward" : "backward");
+	att->push("path_reversed", path_reversed ? "yes" : "no");
 
 	if (paths) {
 		att->push("pathindex", pathindex);
@@ -322,10 +324,13 @@ void TextOnPath::dump_in_atts(Attribute *att,int flag,DumpContext *context)
 				color = newcolor;
 			}
 
-		} else if (!strcmp(name, "direction")) {
+		} else if (!strcmp(name, "direction")) { // deprecated since .098
 			if (value && !strcasecmp(value, "backward"))
-				pathdirection = 1;
-			else pathdirection = 0;
+				path_reversed = true;
+			else path_reversed = false;
+
+		} else if (!strcmp(name, "path_reversed")) {
+			path_reversed = BooleanAttribute(value);
 
 		} else if (!strcmp(name,"text_start")) {
 			IntAttribute(value, &start);
@@ -343,11 +348,11 @@ void TextOnPath::dump_in_atts(Attribute *att,int flag,DumpContext *context)
 			else if (!strcmp(value, "otherstroke")) baseline_type = FROM_Other_Stroke;
 			else if (!strcmp(value, "envelope"))    baseline_type = FROM_Envelope;
 
-		} else if (!strcmp(name,"start_offset")) {
-			DoubleAttribute(value, &start_offset);
+		} else if (!strcmp(name,"start_inset") || !strcmp(name,"start_offset")) { // start_offset is old, deprecated
+			DoubleAttribute(value, &start_inset);
 
-		} else if (!strcmp(name,"end_offset")) {
-			DoubleAttribute(value, &end_offset);
+		} else if (!strcmp(name,"end_inset")) {
+			DoubleAttribute(value, &end_inset);
 
 		} else if (!strcmp(name,"rotation")) {
 			DoubleAttribute(value, &rotation);
@@ -521,27 +526,27 @@ double TextOnPath::Baseline(double newbaseline, bool diff, flatpoint constant)
 	needtorecache=1;
 	Remap();
 	closest = offsetpath->ClosestPoint(constant, &disttopath2, &distalongpath2, &tdist2);
-	StartOffset(distalongpath2-distalongpath+start_offset, false);
+	StartOffset(distalongpath2-distalongpath+start_inset, false);
 
 	return baseline;
 }
 
-/*! Set the start_offset, or add to it if diff.
+/*! Set the start_inset, or add to it if diff.
  */
 double TextOnPath::StartOffset(double newoffset, bool diff)
 {
-	if (diff) start_offset += newoffset;
-	else start_offset=newoffset;
+	if (diff) start_inset += newoffset;
+	else start_inset=newoffset;
 
 	if (offsetpath->IsClosed()) {
 		Remap(); //just in case, since we need offsetpath to be updated
 		double len=offsetpath->Length(0,-1);
-		while (start_offset>=2*len)  start_offset-=2*len;
-		while (start_offset<=-2*len) start_offset+=2*len;
+		while (start_inset>=2*len)  start_inset-=2*len;
+		while (start_inset<=-2*len) start_inset+=2*len;
 	}
 
 	needtorecache=1;
-	return start_offset;
+	return start_inset;
 }
 
 /*! Retrieve information about a position along a path.
@@ -559,16 +564,16 @@ int TextOnPath::PointInfo(double position, flatpoint *point_ret, flatpoint *tang
 
 	double strokewidth = path->defaultwidth;
 
-	if (pathdirection%2==0) {
-		if (baseline_type==FROM_Envelope) {
-			path->PointInfo(position, 1, &point, &tangent, NULL, NULL, NULL, NULL, &strokewidth, NULL);
+	if (!path_reversed) {
+		if (baseline_type == FROM_Envelope) {
+			path->PointInfo(position, 1, &point, &tangent, nullptr, nullptr, nullptr, nullptr, &strokewidth, nullptr);
 		} else {
 			offsetpath->PointAlongPath(position, 1, &point, &tangent);
 		}
 
 	} else {
-		if (baseline_type==FROM_Envelope) {
-			path->PointInfo(-position,1, &point, &tangent, NULL, NULL, NULL, NULL, &strokewidth, NULL);
+		if (baseline_type == FROM_Envelope) {
+			path->PointInfo(-position,1, &point, &tangent, nullptr, nullptr, nullptr, nullptr, &strokewidth, nullptr);
 		} else {
 			offsetpath->PointAlongPath(-position, 1, &point, &tangent);
 		}
@@ -586,13 +591,19 @@ int TextOnPath::PointInfo(double position, flatpoint *point_ret, flatpoint *tang
 	return 0;
 }
 
-int TextOnPath::PathDirection(int newdir)
+int TextOnPath::PathReversed(bool rev)
 {
-	pathdirection = newdir;
-	if (pathdirection > 3) pathdirection = 0;
-	if (pathdirection < 0) pathdirection = 3;
+	// Remap();
+
+	path_reversed = rev;
+
+	// if (path_reversed)
+	// 	start_inset = start_inset - textpathlen;
+	// else
+	// 	start_inset = start_inset + textpathlen;
+
 	needtorecache = 1;
-	return pathdirection;
+	return path_reversed;
 }
 
 /*! Reallocate cache to be able to hold newn glpyhs.
@@ -678,6 +689,8 @@ int TextOnPath::Remap()
 	}
 	
 	offsetpath->ApplyOffset();
+	if (path_reversed) offsetpath->Reverse();
+
 	path_length = offsetpath->Length(0,-1);
 
 	if (end - start <= 0) {  // ok to have just a bunch of spaces
@@ -906,7 +919,7 @@ int TextOnPath::Remap()
 
 	DBG cerr <<endl;
 
-	textpathlen = width;
+	textpathlen = width / 72;
 	
 
 	 //cleanup hb and freetype stuff
@@ -917,34 +930,38 @@ int TextOnPath::Remap()
 
 	 //now we have glyphs laid out along a straight line,
 	 //we need to apply it to the actual line
-	double d = start_offset;
+	double d = start_inset;
 	flatpoint point, tangent, normal;
 	double scaling = 1; //recomputed only for FROM_Envelope
 	double glyphwidth; //recomputed each glyph
 
 	double strokewidth = path->defaultwidth;
+	// bool pathreversed = false;
 	if (baseline_type==FROM_Envelope) {
-		strokewidth = path->GetWeight(path->t_to_distance(pathdirection%2==0 ? d : -d, NULL), &strokewidth, NULL, NULL);
+		// strokewidth = path->GetWeight(path->t_to_distance(pathreversed ? -d : d, nullptr), &strokewidth, nullptr, nullptr);
+		strokewidth = path->GetWeight(path->t_to_distance(d, nullptr), &strokewidth, nullptr, nullptr);
 	}
 
 	for (int i = 0; i < numglyphs; i++) {
 		 //get point info at current distance plus half the advance width:
-		if (pathdirection%2==0) {
-			if (baseline_type==FROM_Envelope) {
+		if (!path_reversed) {
+			if (baseline_type == FROM_Envelope) {
 				scaling = strokewidth/font->Msize()*72.;
-				path->PointInfo(d+scaling*glyphs.e[i]->x_advance/2/72, 1, &point, &tangent, NULL, NULL, NULL, NULL, &strokewidth, NULL);
+				path->PointInfo(d + scaling*glyphs.e[i]->x_advance/2/72, 1, &point, &tangent, nullptr, nullptr, nullptr, nullptr, &strokewidth, nullptr);
 			} else {
 				offsetpath->PointAlongPath(d+glyphs.e[i]->x_advance/2/72, 1, &point, &tangent);
 			}
 
 		} else {
-			if (baseline_type==FROM_Envelope) {
+			if (baseline_type == FROM_Envelope) {
 				scaling = strokewidth/font->Msize()*72.;
-				path->PointInfo(-d-scaling*glyphs.e[i]->x_advance/2/72,1, &point, &tangent, NULL, NULL, NULL, NULL, &strokewidth, NULL);
+				path->PointInfo(d + scaling*glyphs.e[i]->x_advance/2/72,1, &point, &tangent, nullptr, nullptr, nullptr, nullptr, &strokewidth, nullptr);
+				// path->PointInfo(-d-scaling*glyphs.e[i]->x_advance/2/72,1, &point, &tangent, nullptr, nullptr, nullptr, nullptr, &strokewidth, nullptr);
 			} else {
-				offsetpath->PointAlongPath(-d-glyphs.e[i]->x_advance/2/72, 1, &point, &tangent);
+				// offsetpath->PointAlongPath(-d-glyphs.e[i]->x_advance/2/72, 1, &point, &tangent);
+				offsetpath->PointAlongPath(d + glyphs.e[i]->x_advance/2/72, 1, &point, &tangent);
 			}
-			tangent = -tangent;
+			// tangent = -tangent;
 		}
 
 		if (baseline_type==FROM_Envelope) {
@@ -1057,14 +1074,16 @@ int TextOnPath::InsertChar(unsigned int ch, int pos, int *newpos)
 
 int TextOnPath::InsertString(const char *txt,int len, int pos, int *newpos)
 {
-	if (pos<start || pos>=end) pos=end;
-	if (len<0) len=strlen(txt);
-	if (!txt || !len) { *newpos=pos; return 0; }
+	if (pos < start || pos >= end) pos = end;
+	if (len < 0) len = strlen(txt);
+	if (!txt || !len) { *newpos = pos; return 0; }
 
 	insertnstr(text, txt,len, pos);
+	pos += len;
+	end += len;
 
-	*newpos =pos;
-	needtorecache=1;
+	*newpos = pos;
+	needtorecache = 1;
 	return 0;
 }
 
@@ -1573,6 +1592,15 @@ int TextOnPathInterface::Event(const Laxkit::EventData *e_data, const char *mes)
 
 		return 0;
 
+	} else if (!strcmp(mes, "insert char")) {
+		const StrEventData *s=dynamic_cast<const StrEventData*>(e_data);
+		if (!s) return 1;
+		int ch = s->info1;
+		if (textonpath) textonpath->InsertChar(ch, caretpos, &caretpos);
+		needtodraw = 1;
+
+		return 0;
+
 	} else if (!strcmp(mes, "PathInterface")) {
 		DBG cerr <<" ***** need to update textonpath!"<<endl;
 		textonpath->NeedToRecache(true);
@@ -1642,15 +1670,15 @@ int TextOnPathInterface::Event(const Laxkit::EventData *e_data, const char *mes)
 
 		return 0;
 
-	} else if (!strcmp(mes,"setoffset")) {
-		const SimpleMessage *s=dynamic_cast<const SimpleMessage*>(e_data);
+	} else if (!strcmp(mes,"setinset")) {
+		const SimpleMessage *s = dynamic_cast<const SimpleMessage*>(e_data);
 		if (!textonpath || isblank(s->str)) return 0;
-		char *endptr=NULL;
-		double d=strtod(s->str, &endptr);
+		char *endptr = nullptr;
+		double d = strtod(s->str, &endptr);
 		if (endptr != s->str) {
-			textonpath->start_offset = d;
+			textonpath->start_inset = d;
 			textonpath->NeedToRecache(true);
-			needtodraw=1;
+			needtodraw = 1;
 		}
 		return 0;
 
@@ -1842,13 +1870,13 @@ int TextOnPathInterface::Refresh()
 		tv=transpose(tangent);
 		//double angle = angle_full(tangent, lasthover-pp);
 		//if (angle<0) tv=-tv;
-		if (textonpath->pathdirection%2==1) tv=-tv;
+		// if (textonpath->path_reversed) tv = -tv;
 		tv.normalize();
 		tangent.normalize();
 		double th=textonpath->font->Msize()/72;
 
-		//draw start offset modifier
-		if (hover_type == TPATH_Offset) {
+		//draw start inset modifier
+		if (hover_type == TPATH_Inset) {
 			double s = th;
 			//double s = 1.5*grabpad*thin/dp->Getmag()/2;
 			dp->moveto(pp +     s*tv -   2*s*tangent);
@@ -1891,14 +1919,14 @@ int TextOnPathInterface::Refresh()
 
 		//draw the caret
 		if (caretpos>=0) {
-			ScreenColor caretcolor(.0,.0,.0,.5);
+			ScreenColor caretcolor(.0,.5,.0,1.);
 			dp->NewFG(&caretcolor);
 
 			double size=1;
 			flatpoint point, v;
 
 			if (textonpath->numglyphs==0) {
-				textonpath->PointInfo(textonpath->start_offset, &point, &v, &size);
+				textonpath->PointInfo(textonpath->start_inset, &point, &v, &size);
 				v.normalize();
 				v*=size;
 				flatpoint vt = transpose(v);
@@ -1982,7 +2010,7 @@ int TextOnPathInterface::scan(int x,int y,unsigned int state, double *alongpath,
 	textonpath->offsetpath->PointAlongPath(tdist, 0, &point, &tangent);
 	double angle = angle_full(tangent, p-point);
 	if (angle<0) disttopath=-disttopath;
-	if (textonpath->pathdirection%2==1) disttopath=-disttopath;
+	// if (textonpath->path_reversed) disttopath = -disttopath;
 
 	if (distto) *distto=disttopath;
 	*alongpath = distalongpath;
@@ -1992,35 +2020,21 @@ int TextOnPathInterface::scan(int x,int y,unsigned int state, double *alongpath,
 	DBG cerr << " --------------textonpath p:"<<p.x<<','<<p.y<<"  disttopath: "<<disttopath<<"  distalong: "<<distalongpath<<"  tdist: "<<tdist<<endl;
 
 
-	//if (distalongpath>=start_offset && distalongpath<=end_offset) {
+	//if (distalongpath>=start_inset && distalongpath<=end_inset) {
 	double th=textonpath->font->Msize()/72;
 	//double dd = (disttopath - textonpath->baseline)/th;
 	double dd = (disttopath)/th;
 
-	if (distalongpath >= textonpath->start_offset) {
-
-		//DBG char str[200];
-		//DBG sprintf(str, "d:%f  bl:%f  th:%f nn:%f", disttopath, textonpath->baseline, th, dd);
-		//DBG PostMessage(str);
-
+	if (distalongpath >= 0) {
 		if (dd >= -1.0 && dd <= 0) {
 			return TPATH_Baseline;
 		}
-		if (dd >= 0 && dd <= 1) {
+		if (dd >= 0 && dd <= 1 && distalongpath >= textonpath->start_inset) {
 			return TPATH_Text;
 		}
 		if (dd >= 1 && dd <= 1.5) {
-			return TPATH_Offset;
+			return TPATH_Inset;
 		}
-//		if (disttopath >= -th/2 && disttopath <= 0) {
-//			return TPATH_Baseline;
-//		}
-//		if (disttopath >= 0 && disttopath <= th) {
-//			return TPATH_Text;
-//		}
-//		if (disttopath >= th && disttopath <= th*2) {
-//			return TPATH_Offset;
-//		}
 	}
 
 	DBG char str[200];
@@ -2034,7 +2048,6 @@ int TextOnPathInterface::scan(int x,int y,unsigned int state, double *alongpath,
 			return TPATH_Move;
 		}
 	}
-
 
 	return TPATH_None;
 }
@@ -2191,10 +2204,10 @@ int TextOnPathInterface::LBUp(int x,int y,unsigned int state, const Laxkit::LaxM
 			str = "setbaseline";
 			label = _("Baseline");
 
-		} else if (hover==TPATH_Offset) {
-			sprintf(input, "%f", textonpath->start_offset);
-			str = "setoffset";
-			label = _("Offset");
+		} else if (hover == TPATH_Inset) {
+			sprintf(input, "%f", textonpath->start_inset);
+			str = "setinset";
+			label = _("Inset");
 
 		} else if (hover==TPATH_Size) {
 			sprintf(input,"%.10g", textonpath->font->textheight());
@@ -2276,7 +2289,7 @@ int TextOnPathInterface::MouseMove(int x,int y,unsigned int state, const Laxkit:
 			hover_type = hover;
 
 			if      (hover_type == TPATH_Baseline) PostMessage(_("Drag to change offset from baseline"));
-			else if (hover_type == TPATH_Offset)   PostMessage(_("Drag to change placement along line"));
+			else if (hover_type == TPATH_Inset)   PostMessage(_("Drag to change placement along line"));
 			else if (hover_type == TPATH_Move)     PostMessage(_("Drag to move whole object"));
 			else if (hover_type == TPATH_Size)     PostMessage(_("Drag for font size, click to input"));
 			//else if (hover_type==TPATH_Text)     PostMessage("...type to add text");
@@ -2300,23 +2313,24 @@ int TextOnPathInterface::MouseMove(int x,int y,unsigned int state, const Laxkit:
 	scan( x, y,state, &alongpath,  &alongt,  &distto);
 	scan(lx,ly,state, &alongpath2, &alongt2, &distto2);
 
-	// if ((hover == TPATH_Baseline || hover == TPATH_Offset) && (state & ControlMask)) hover = TPATH_BaseAndOff;
+	// if ((hover == TPATH_Baseline || hover == TPATH_Inset) && (state & ControlMask)) hover = TPATH_BaseAndOff;
 
 	char scratch[200];
 	if (hover==TPATH_Baseline || hover==TPATH_BaseAndOff) {
 		//textonpath->Baseline(distto-distto2, true, textonpath->transformPointInverse(screentoreal(x,y))); //also adjusts offset.. problematic
-		textonpath->Baseline(distto-distto2, true); //change only baseline
+		textonpath->Baseline((textonpath->path_reversed ? -1 : 1) * (distto - distto2), true); //change only baseline
 		sprintf(scratch, _("Baseline %f"), textonpath->baseline);
 		PostMessage(scratch);
 		needtodraw=1;
 	}
 
-	if (hover==TPATH_Offset || hover==TPATH_BaseAndOff) {
-		textonpath->start_offset += (alongpath-alongpath2);
+	if (hover == TPATH_Inset || hover == TPATH_BaseAndOff) {
+		// textonpath->start_inset += (textonpath->path_reversed ? -1 : 1) * (alongpath-alongpath2);
+		textonpath->start_inset += alongpath - alongpath2;
 		textonpath->NeedToRecache(true);
-		sprintf(scratch, _("Offset %f"), textonpath->start_offset);
+		sprintf(scratch, _("Offset %f"), textonpath->start_inset);
 		PostMessage(scratch);
-		needtodraw=1;
+		needtodraw = 1;
 
 	} else if (hover==TPATH_Move) {
 		flatpoint d=screentoreal(x,y)-screentoreal(lx,ly); // real vector from data->origin() to mouse move to 
@@ -2338,7 +2352,7 @@ int TextOnPathInterface::MouseMove(int x,int y,unsigned int state, const Laxkit:
 		double new_th = textonpath->font->textheight();
 		double new_msize = textonpath->font->Msize();
 		char str[200];
-		sprintf(str, _("old th,M: %f %f, new th,M: %f %f d: %f pt dv=%f,%f"), old_th, old_msize, new_th, new_msize, d, dv.x,dv.y);
+		sprintf(str, _("old th,M,r: %f %f %f, new th,M,r: %f %f %f d: %f pt dv=%f,%f"), old_th, old_msize, old_th/old_msize, new_th, new_msize, new_th/new_msize, d, dv.x,dv.y);
 		//sprintf(str, _("Size %f pt"), d);
 
 		DBG cerr <<"------------ new font size a,d,h, fs: "<<textonpath->font->ascent()<<", "<<textonpath->font->descent()
@@ -2507,7 +2521,7 @@ int TextOnPathInterface::Paste(const char *txt,int len, Laxkit::anObject *obj, c
 	if (textonpath) {
 		textonpath->InsertString(txt, len, caretpos, &caretpos);
 		PostMessage(_("Pasted."));
-		needtodraw=1;
+		needtodraw = 1;
 		return 0;
 
 	} else {
@@ -2587,13 +2601,17 @@ Laxkit::ShortcutHandler *TextOnPathInterface::GetShortcuts()
 	sc->Add(TPATH_BaselineUp,     'b',ControlMask,0,           "BaselineUp",     _("Move baseline up"),NULL,0);
 	sc->Add(TPATH_BaselineDown,   'B',ShiftMask|ControlMask,0, "BaselineDown",   _("Move baseline down"),NULL,0);
 	sc->Add(TPATH_ResetBaseline,  'b',AltMask,0,               "ResetBaseline",  _("Reset baseline"),NULL,0);
-	sc->Add(TPATH_OffsetInc,      'l',ControlMask,0,           "OffsetInc",      _("Move line start forward"),NULL,0);
-	sc->Add(TPATH_OffsetDec,      'L',ShiftMask|ControlMask,0, "OffsetDec",      _("Move line start backward"),NULL,0);
+	sc->Add(TPATH_InsetInc,      'l',ControlMask,0,            "InsetInc",      _("Move line start forward"),NULL,0);
+	sc->Add(TPATH_InsetDec,      'L',ShiftMask|ControlMask,0,  "InsetDec",      _("Move line start backward"),NULL,0);
 	sc->Add(TPATH_EditPath,       'p',ControlMask,0,           "EditPath",       _("Edit the path"),NULL,0);
 	sc->Add(TPATH_SelectFont,     't',ControlMask,0,           "SelectFont",     _("Select font from dialog"),NULL,0);
 	sc->Add(TPATH_ConvertToPath,  'P',ShiftMask|ControlMask,0, "ConvertToPath",  _("Convert to path object"),NULL,0);
 	sc->Add(TPATH_ToggleDirection,'D',ShiftMask|ControlMask,0, "ToggleDirection",_("Toggle basic direction of text"),NULL,0);
 	sc->Add(TPATH_Paste,          'v',ControlMask,0,           "Paste",          _("Paste text"),NULL,0);
+	sc->Add(TPATH_InsertChar,     'i',ControlMask,0,           "InsertChar",     _("Insert Character"),nullptr,0);
+    sc->Add(TPATH_CombineChars,   'j',ControlMask,0,           "CombineChars",   _("Join Characters if possible"),nullptr,0);
+    sc->Add(TPATH_CombineUnicode, 'u',ControlMask,0,           "CombineUnicode", _("From adjacent hex numbers, replace with unicode character"),nullptr,0);
+    
 
 	manager->AddArea(whattype(),sc);
 	return sc;
@@ -2660,14 +2678,14 @@ int TextOnPathInterface::PerformAction(int action)
 		));
 		return 0;
 
-	} else if (action==TPATH_OffsetDec) {
-		textonpath->start_offset-=textonpath->font->Msize()/2/72;
+	} else if (action==TPATH_InsetDec) {
+		textonpath->start_inset-=textonpath->font->Msize()/2/72;
 		textonpath->NeedToRecache(true);
 		needtodraw=1;
 		return 0;
 
-	} else if (action==TPATH_OffsetInc) {
-		textonpath->start_offset+=textonpath->font->Msize()/2/72;
+	} else if (action==TPATH_InsetInc) {
+		textonpath->start_inset+=textonpath->font->Msize()/2/72;
 		textonpath->NeedToRecache(true);
 		needtodraw=1;
 		return 0;
@@ -2696,10 +2714,10 @@ int TextOnPathInterface::PerformAction(int action)
 		needtodraw = 1;
 		return 0;
 
-	} else if (action==TPATH_ToggleDirection) {
-		textonpath->PathDirection(textonpath->PathDirection()+1);
+	} else if (action == TPATH_ToggleDirection) {
+		textonpath->PathReversed(!textonpath->PathReversed());
 		PostMessage(_("Direction flipped."));
-		needtodraw=1;
+		needtodraw = 1;
 		return 0;
 
 	} else if (action==TPATH_ConvertToPath) {
@@ -2720,8 +2738,8 @@ int TextOnPathInterface::PerformAction(int action)
 		PostMessage(_("Converted into new object."));
 		return 0;
 
-	} else if (action==TPATH_Paste) {
-		viewport->PasteRequest(this, NULL);
+	} else if (action == TPATH_Paste) {
+		viewport->PasteRequest(this, nullptr);
 		return 0;
 
 	} else if (action == TPATH_Link_To_Parent) {
@@ -2742,6 +2760,65 @@ int TextOnPathInterface::PerformAction(int action)
 			paths=textonpath->paths;
 			if (paths) paths->inc_count();
 		}
+		return 0;
+
+	} else if (action == TPATH_InsertChar) {
+		if (textonpath && !child) {
+			CharacterInterface *chari = new CharacterInterface(this, 0, dp, textonpath->font);
+			child = chari;
+			viewport->Push(chari, viewport->HasInterface(object_id)-1,0);
+		}
+		return 0;
+
+	} else if (action == TPATH_CombineChars) {
+		if (!textonpath) return 1;
+
+		if (caretpos < textonpath->start) caretpos = textonpath->start;
+		if (caretpos > textonpath->end) caretpos = textonpath->end;
+
+		long i1 = caretpos - 2;
+		long i2 = caretpos - 1;
+		if (i1 < textonpath->start || i2 < textonpath->start) {
+			PostMessage(_("Must have 2 characters to combine!"));
+			return 0;
+		}
+
+		int newch = composekey(textonpath->text[i1], textonpath->text[i2]);
+		if (newch == 0 || newch == textonpath->text[i2]) {
+			PostMessage(_("Could not combine"));
+			return 0;
+		}
+
+		textonpath->DeleteChar(i1,1, &caretpos);
+		textonpath->DeleteChar(i1,1, &caretpos);
+		textonpath->InsertChar(newch, caretpos, &caretpos);
+		needtodraw = 1;
+		return 0;
+
+	} else if (action == TPATH_CombineUnicode) {
+		if (!textonpath) return 1;
+
+		long i1 = caretpos;
+		long i2 = caretpos;
+		while (i1 > textonpath->start && isxdigit(textonpath->text[i1-1])) i1--;
+		long slen = textonpath->end - textonpath->start;
+		while (isxdigit(textonpath->text[i2])) i2++;
+		slen = i2 - i1;
+		if (slen > 8) {
+			i2 = i1 + 8;
+			slen = 8;
+		}
+
+		if (slen == 0 || slen > 8) {
+			PostMessage(_("Must have a sequence of hex digits (0-9, a-f, A-F) to combine!"));
+			return 0;
+		}
+
+		int newch = strtol(textonpath->text + i1, nullptr, 16);
+
+		textonpath->DeleteSelection(i1, i2, &caretpos);
+		textonpath->InsertChar(newch, i1, &caretpos);
+		needtodraw = 1;
 		return 0;
 	}
 
