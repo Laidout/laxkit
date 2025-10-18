@@ -693,20 +693,22 @@ LaxImage *GraphicsMagickLoader::load_image(const char *filename,
 		makestr(cimage->filename, filename);
 
 		iimg->dec_count();
+		iimg = nullptr;
 
 		if (actual_format) *actual_format = LAX_IMAGE_CAIRO;
 
 		if (previewimage_ret && *previewimage_ret) {
-			 //convert preview image, if any, to cairo
-			iimg = dynamic_cast<LaxGMImage*>(*previewimage_ret);
-			
-			LaxCairoImage *pimage = MakeCairoFromGraphicsMagick(iimg, true); //assume previews ok to load straight in
-			iimg->dec_count();
+			LaxGMImage *preview_gm = dynamic_cast<LaxGMImage*>(*previewimage_ret);
+			if (preview_gm) {
+				// convert gm preview image, if any, to cairo
+				LaxCairoImage *pimage = MakeCairoFromGraphicsMagick(preview_gm, true); //assume previews ok to load straight in
+				pimage->importer = this;
+				pimage->importer->inc_count();
+				makestr(pimage->filename, previewfile);
 
-			pimage->importer = this;
-			pimage->importer->inc_count();
-			makestr(pimage->filename, previewfile);
-			*previewimage_ret = pimage; 
+				(*previewimage_ret)->dec_count();
+				*previewimage_ret = pimage;
+			}
 		}
 
 		return cimage;
