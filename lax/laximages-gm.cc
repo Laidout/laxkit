@@ -40,8 +40,7 @@
 #include <lax/laximages-cairo.h>
 #endif
 
-
-#include <iostream>
+#include <lax/debug.h>
 using namespace std;
 #define DBG 
 
@@ -172,6 +171,30 @@ LaxGMImage::LaxGMImage(unsigned char *buffer, int w, int h, int stride)
 LaxGMImage::~LaxGMImage()
 {
 }
+
+/*! Can only set attribute on a loaded image.
+ * Pass null as value to remove the attribute.
+ */
+int LaxGMImage::SetAttribute(const char *key, const char *value)
+{
+	int status = LaxImage::SetAttribute(key, value);
+	if (has_image == NoImage) return status;
+	image.attribute(key, value);
+	return 1;
+}
+
+/*! Returned value must be delete'd.
+ */
+char *LaxGMImage::GetAttribute(const char *key)
+{
+	if (has_image == NoImage) {
+		return LaxImage::GetAttribute(key);
+	}
+	std::string s = image.attribute(key);
+	char *ss = newstr(s.c_str());
+	return ss;
+}
+
 
 /*! MUST be followed up with call to doneWithBuffer().
  * The bytes are arranged BGRABGRABGRA...
@@ -380,7 +403,7 @@ unsigned int LaxGMImage::imagestate()
 
 LaxImage *LaxGMImage::Crop(int x, int y, int width, int height, bool return_new)
 {
-	cerr << " *** NEED TO IMPLEMENT LaxGMImage::Crop()!!!" <<endl;
+	DBGE(" *** NEED TO IMPLEMENT LaxGMImage::Crop()!!!");
 	return nullptr;
 }
 
@@ -632,6 +655,8 @@ LaxCairoImage *MakeCairoFromGraphicsMagick(LaxGMImage *iimg, bool ping_only)
 }
 #endif
 
+/*! Note index is only relevant for main filename. Preview images are assumed to only have index 0.
+ */
 LaxGMImage *load_gm_image_with_preview(const char *filename, const char *previewfile, int maxx, int maxy, LaxImage **previewimage_ret, int index)
 {
 	Magick::Image image;
@@ -639,24 +664,45 @@ LaxGMImage *load_gm_image_with_preview(const char *filename, const char *preview
 		image.ping(filename);
 	} catch (Magick::Exception &error_ ) {
 		DBG cerr <<"GraphicsMagick Error loading "<<filename<<endl;
-		return NULL;
+		return nullptr;
 	}
 
 	LaxGMImage *img = new LaxGMImage(filename, &image, index);
 	img->doneForNow();
 
 	if (previewimage_ret) {
-	  if (!isblank(previewfile) && previewimage_ret) {
-		 //this will create previewfile on disk if it doesn't already exist:
-		LaxImage *pimg = NULL;
-		GeneratePreviewFile(img, previewfile, "png", maxx, maxy, 1, &pimg);
-		if (pimg) pimg->doneForNow();
+		if (!isblank(previewfile)) {
+			Magick::Image pimage;
+			bool exists = false;
+			try {
+				pimage.ping(previewfile);
+				exists = true;
+			} catch (Magick::Exception &error_ ) {
+				return nullptr;
+			}
 
-		*previewimage_ret = dynamic_cast<LaxImage*>(pimg);
+			if (exists) {
+				LaxGMImage *pimg = new LaxGMImage(previewfile, &pimage, 0);
+				pimg->doneForNow();
+				*previewimage_ret = pimg;
 
-	  } else {
-		*previewimage_ret = NULL;
-	  }
+			} else {
+				if (maxx > 0 || maxy > 0) {
+					if (maxx <= 0) maxx = maxy;
+					if (maxy <= 0) maxy = maxx;
+
+					// this will create previewfile on disk if it doesn't already exist:
+					LaxImage *pimg = nullptr;
+					GeneratePreviewFile(img, previewfile, "png", maxx, maxy, 1, &pimg);
+					if (pimg) pimg->doneForNow();
+
+					*previewimage_ret = pimg;
+
+				} else {
+					*previewimage_ret = nullptr;
+				}
+			}
+		}
 	}
 
 	return img;

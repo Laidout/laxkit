@@ -23,6 +23,7 @@
 #define _LAX_LAXIMAGES_H
 
 #include <lax/anobject.h>
+#include <lax/attributes.h>
 #include <sys/times.h>
 
 
@@ -63,6 +64,7 @@ class LaxImage : public anObject
   public:
 	ImageLoader *importer;
 	anObject *importer_data;
+	Attribute attributes;
 
 	char *filename;
 	int index;
@@ -80,6 +82,9 @@ class LaxImage : public anObject
 	virtual unsigned char *getImageBuffer() = 0;
 	virtual int doneWithBuffer(unsigned char *buffer) = 0;
 	virtual LaxImage *Crop(int x, int y, int width, int height, bool return_new) = 0;
+
+	virtual int SetAttribute(const char *key, const char *value);
+	virtual char *GetAttribute(const char *key);
 
 	//virtual int MaxMemoryUsed();
 	//virtual int dec_count();

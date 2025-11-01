@@ -52,9 +52,6 @@ namespace LaxInterfaces {
  * Please note that these are not really designed with the idea of editting the contained image,
  * but are more just a container to move around and scale images.
  *
- * Be forewarned that if previewflag==1, then the preview image will be unlinked (deleted from
- * the harddrive) in the LaxImage destructor. The default for ImageData objects is to not
- * delete (previewflag==0).
  *
  * \todo In addition to have filename and previewimage, perhaps make allowances for
  *   a transformedImageCache to facilitate use of ImagePatchData, for instance.....
@@ -63,12 +60,6 @@ namespace LaxInterfaces {
  * \todo should probably have an option for deferred loading? (not needed if using imlib, which basically
  *   does that automatically)
  * \todo have flag: Don't display image|Use original|Use preview?
- */
-/*! \var char ImageData::previewflag
- *
- * If previewflag&1, then the preview file path is saved in a dump_out, and is used
- * when loading from a dump_in.  On a dump_in, if a preview file is given, then the
- * 1 bit of previewflag gets set to 1.
  */
 
 
@@ -91,7 +82,6 @@ ImageData::ImageData(const char *nfilename, const char *npreview, int maxpx, int
 	DBG cerr <<"in ImageData constructor"<<endl;
 
 	index = nindex;
-	previewflag = (delpreview?0:1);
 	image = nullptr;
 	previewimage = nullptr;
 	flags |= SOMEDATA_KEEP_1_TO_1;
@@ -215,7 +205,7 @@ Laxkit::Attribute *ImageData::dump_out_atts(Laxkit::Attribute *att,int what,Laxk
 
 	} else {
 		if (filename) att->push("filename",filename);
-		if (previewfile && previewflag&1) att->push("previewfile",previewfile);
+		if (previewfile) att->push("previewfile",previewfile);
 	}
 
 	att->push("index",index);
@@ -249,7 +239,6 @@ void ImageData::dump_in_atts(Attribute *att,int flag,Laxkit::DumpContext *contex
 	minx=miny=0;
 	char *fname=nullptr,*pname=nullptr;
 	double w=0,h=0;
-	previewflag=(previewflag&~1);
 
 	for (int c=0; c<att->attributes.n; c++) {
 		name= att->attributes.e[c]->name;
@@ -286,7 +275,6 @@ void ImageData::dump_in_atts(Attribute *att,int flag,Laxkit::DumpContext *contex
 	 // if filename is given, and old file is nullptr, or is different...
 	 //  ... meaning don't load in the image if it is the same image
 	if (fname && (!filename || (filename && strcmp(fname,filename)))) {
-		if (!isblank(pname)) previewflag|=1;
 		 // load an image with existing preview, do not destroy that preview when
 		 // image is destroyed:
 		if (LoadImage(fname,pname,0,0,1, index)) {
@@ -753,7 +741,7 @@ int ImageInterface::Refresh()
 			flatpoint p = (ll + lr + ul + ur)/4;  // center of image
 			flatpoint tip = p + up*((ul + ur)/2 - p)*2/3;  // tip of an arrow from center, 2/3 toward up direction
 
-			if (status==-1) {
+			if (isblank(data->filename)) {
 				 // undefined image, draw big x
 				dp->drawline(ul,lr);
 				dp->drawline(ll,ur);

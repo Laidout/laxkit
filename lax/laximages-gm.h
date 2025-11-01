@@ -82,6 +82,8 @@ class LaxGMImage : public LaxImage
 	virtual int Load(const char *file, int atindex);
 	virtual int Save(const char *tofile = nullptr, const char *format = nullptr); //format==null guess from extension
 	virtual void Set(double r, double g, double b, double a);
+	virtual int SetAttribute(const char *key, const char *value);
+	virtual char *GetAttribute(const char *key);
 };
 
 

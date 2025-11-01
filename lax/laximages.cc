@@ -31,6 +31,7 @@
 #include <lax/transformmath.h>
 #include <lax/singletonkeeper.h>
 #include <lax/laxutils.h>
+#include <lax/freedesktop.h>
 
 
 #include <iostream>
@@ -291,6 +292,31 @@ LaxImage::~LaxImage()
 	if (importer_data) importer_data->dec_count();
 }
 
+/*! Pass null as value to remove the attribute.
+ */
+int LaxImage::SetAttribute(const char *key, const char *value)
+{
+	int i = -1;
+	Attribute *a = attributes.find(key, &i);
+	if (a) {
+		if (!value) {
+			a->remove(i);
+			return 1;
+		}
+		makestr(a->value, value);
+		return 1;
+	}
+	attributes.push(key, value);
+	return 1;
+}
+
+/*! Returned value must be delete'd.
+ */
+char *LaxImage::GetAttribute(const char *key)
+{
+	return newstr(attributes.findValue(key));
+}
+
 
 //--------------------------- LaxImage utils --------------------------------------
 /*! \typedef int (*DefaultImageTypeFunc)()
@@ -340,6 +366,13 @@ int GeneratePreviewFile(LaxImage *image,
 						   int width, int height, int fit, LaxImage **preview_ret)
 {
 	if (!image || !to_preview_file || to_preview_file[0] == '\0') return 1;
+
+	if (width <= 0) width = height;
+	if (height <= 0) height = width;
+	if (width == 0) {
+		width = height = freedesktop_guess_thumb_size(to_preview_file);
+		if (width == 0) width = height = 256;
+	}
 
 	LaxImage *preview = GeneratePreview(image, width, height, fit);
 	if (!preview) return 2;

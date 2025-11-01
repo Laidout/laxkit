@@ -37,7 +37,6 @@ namespace LaxInterfaces {
 class ImageData : public Laxkit::ImageInfo, virtual public SomeData
 {
  public:
-	char previewflag;
 	Laxkit::LaxImage *image;
 	Laxkit::LaxImage *previewimage;
 

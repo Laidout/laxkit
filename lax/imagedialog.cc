@@ -133,11 +133,12 @@ int ImageDialog::init()
 	AddNull();
 
 	 //---------- File
-	last = tbut = new Button(this,"button file",nullptr,0, 0,0,0,0, 1, 
+	last = tbut = new Button(this,"button file",nullptr,BUTTON_TOGGLE, 0,0,0,0, 1, 
 						last,object_id,"button file",
 						0,_("File"),nullptr,nullptr,
 						3,3);
 	tbut->tooltip(_("Display file above"));
+	tbut->Pressed(true);
 	AddWin(tbut,1, tbut->win_w,0,50,50,0, linpheight,0,0,50,0, -1);
 	
 	// file input
@@ -158,8 +159,8 @@ int ImageDialog::init()
 	AddNull();
 	
 	 //------------ Preview
-	last=tbut=new Button(this,"preview preview",nullptr,0, 0,0,0,0, 1, 
-						last,object_id,"preview preview",
+	last = tbut = new Button(this,"button preview",nullptr,BUTTON_TOGGLE, 0,0,0,0, 1, 
+						last,object_id,"button preview",
 						0,_("Preview"),nullptr,nullptr,
 						3,3);
 	tbut->tooltip(_("Display preview file above"));
@@ -369,6 +370,11 @@ int ImageDialog::Event(const EventData *data,const char *mes)
 		return 0;
 
 	} else if (!strcmp(mes,"button file")) {
+		Button *f = dynamic_cast<Button*>(findChildWindowByName("button file"));
+		Button *p = dynamic_cast<Button*>(findChildWindowByName("button preview"));
+		f->Pressed(true);
+		p->Pressed(false);
+
 		const char *prev = file->GetCText();
 		if (isblank(prev)) {
 			app->rundialog(new FileDialog(nullptr,"get new file",nullptr,ANXWIN_REMEMBER,
@@ -382,8 +388,13 @@ int ImageDialog::Event(const EventData *data,const char *mes)
 		previewer->Preview(imageinfo->filename, imageinfo->index);
 		return 0;
 
-	} else if (!strcmp(mes,"preview preview")) {
-		const char *prev=preview->GetCText();
+	} else if (!strcmp(mes,"button preview")) {
+		Button *f = dynamic_cast<Button*>(findChildWindowByName("button file"));
+		Button *p = dynamic_cast<Button*>(findChildWindowByName("button preview"));
+		f->Pressed(false);
+		p->Pressed(true);
+
+		const char *prev = preview->GetCText();
 		makestr(imageinfo->previewfile,prev);
 		previewer->Preview(imageinfo->previewfile);
 		return 0;
