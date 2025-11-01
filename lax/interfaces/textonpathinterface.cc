@@ -936,54 +936,49 @@ int TextOnPath::Remap()
 	double glyphwidth; //recomputed each glyph
 
 	double strokewidth = path->defaultwidth;
-	// bool pathreversed = false;
 	if (baseline_type==FROM_Envelope) {
-		// strokewidth = path->GetWeight(path->t_to_distance(pathreversed ? -d : d, nullptr), &strokewidth, nullptr, nullptr);
 		strokewidth = path->GetWeight(path->t_to_distance(d, nullptr), &strokewidth, nullptr, nullptr);
 	}
 
 	for (int i = 0; i < numglyphs; i++) {
-		 //get point info at current distance plus half the advance width:
+		glyph = glyphs.e[i];
+
+		// get point info at current distance plus half the advance width:
 		if (!path_reversed) {
 			if (baseline_type == FROM_Envelope) {
 				scaling = strokewidth/font->Msize()*72.;
-				path->PointInfo(d + scaling*glyphs.e[i]->x_advance/2/72, 1, &point, &tangent, nullptr, nullptr, nullptr, nullptr, &strokewidth, nullptr);
+				path->PointInfo(d + scaling * glyph->x_advance/2/72, 1, &point, &tangent, nullptr, nullptr, nullptr, nullptr, &strokewidth, nullptr);
 			} else {
-				offsetpath->PointAlongPath(d+glyphs.e[i]->x_advance/2/72, 1, &point, &tangent);
+				offsetpath->PointAlongPath(d + glyph->x_advance/2/72, 1, &point, &tangent);
 			}
 
 		} else {
 			if (baseline_type == FROM_Envelope) {
 				scaling = strokewidth/font->Msize()*72.;
-				path->PointInfo(d + scaling*glyphs.e[i]->x_advance/2/72,1, &point, &tangent, nullptr, nullptr, nullptr, nullptr, &strokewidth, nullptr);
-				// path->PointInfo(-d-scaling*glyphs.e[i]->x_advance/2/72,1, &point, &tangent, nullptr, nullptr, nullptr, nullptr, &strokewidth, nullptr);
+				path->PointInfo(d + scaling*glyph->x_advance/2/72,1, &point, &tangent, nullptr, nullptr, nullptr, nullptr, &strokewidth, nullptr);
 			} else {
-				// offsetpath->PointAlongPath(-d-glyphs.e[i]->x_advance/2/72, 1, &point, &tangent);
-				offsetpath->PointAlongPath(d + glyphs.e[i]->x_advance/2/72, 1, &point, &tangent);
+				offsetpath->PointAlongPath(d + glyph->x_advance/2/72, 1, &point, &tangent);
 			}
-			// tangent = -tangent;
 		}
 
-		if (baseline_type==FROM_Envelope) {
-			glyphs.e[i]->scaling = strokewidth/font->Msize()*72.;
-			//glyph->scaling = strokewidth/font->Msize()/72.;
+		if (baseline_type == FROM_Envelope) {
+			glyph->scaling = strokewidth / font->Msize() * 72.;
 
 		} else {
 			glyph->scaling = 1;
 		}
 
-		glyphwidth = glyphs.e[i]->scaling * glyphs.e[i]->x_advance / 72;
-		glyphs.e[i]->rotation = atan2(tangent.y, tangent.x);
+		glyphwidth = glyph->scaling * glyph->x_advance / 72;
+		glyph->rotation = atan2(tangent.y, tangent.x);
 		tangent.normalize();
-		glyphs.e[i]->position = point - tangent*glyphwidth/2; //<- *** probably wrong
-		if (baseline_type==FROM_Envelope) {
+		glyph->position = point - tangent*glyphwidth/2; //<- *** probably wrong
+		if (baseline_type == FROM_Envelope) {
 			normal = transpose(tangent);
-			glyphs.e[i]->position = point - normal*strokewidth/2; //center within envelope
+			glyph->position = point - normal*strokewidth/2; //center within envelope
 		}
 
 
-		d += glyphs.e[i]->scaling * glyphs.e[i]->x_advance / 72;
-		//d += glyphs.e[i]->x_advance / 72;
+		d += glyph->scaling * glyph->x_advance / 72;
 	}
 
 	needtorecache = 0;
@@ -1551,10 +1546,10 @@ Laxkit::MenuInfo *TextOnPathInterface::ContextMenu(int x,int y,int deviceid, Lax
 	menu->AddItem(_("Edit path..."),   TPATH_EditPath);
 	menu->AddItem(_("Select font..."), TPATH_SelectFont);
 	menu->AddSep();
-	menu->AddToggleItem(_("Baseline from path"),         TextOnPath::FROM_Path,         0, (textonpath->baseline_type==TextOnPath::FROM_Path));
 	menu->AddToggleItem(_("Baseline from offset"),       TextOnPath::FROM_Offset,       0, (textonpath->baseline_type==TextOnPath::FROM_Offset));
 	menu->AddToggleItem(_("Baseline from stroke"),       TextOnPath::FROM_Stroke,       0, (textonpath->baseline_type==TextOnPath::FROM_Stroke));
 	menu->AddToggleItem(_("Baseline from other stroke"), TextOnPath::FROM_Other_Stroke, 0, (textonpath->baseline_type==TextOnPath::FROM_Other_Stroke));
+	menu->AddToggleItem(_("Baseline from path (ignores offset)"), TextOnPath::FROM_Path,0, (textonpath->baseline_type==TextOnPath::FROM_Path));
 	menu->AddToggleItem(_("Use envelope for size"),      TextOnPath::FROM_Envelope,     0, (textonpath->baseline_type==TextOnPath::FROM_Envelope));
 	//menu->AddItem(_("Use envelope to stretch"), TPATH_UseStretchEnvelope);
 	menu->AddSep();

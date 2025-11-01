@@ -41,6 +41,7 @@ class OnPathGlyph : public Laxkit::GlyphPlace
 	Laxkit::flatpoint position; //GlyphPlace x,y are the flat layout
 	double rotation;
 	double scaling;
+	double kern = 0;
 	bool visible;
 	int styleid; //when you have a run of glyphs, but they all come from different fonts
 
