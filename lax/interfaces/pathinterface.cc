@@ -3372,7 +3372,7 @@ int Path::Intersect(flatpoint P1,flatpoint P2, int isline, double startt, flatpo
 
 	} while (p!=start);
 	
-	num=bez_intersections(P1,P2,isline, points.e,points.n, 30, startt,pts,ptsn, t,tn,NULL);
+	num=bez_intersections(P1,P2,isline, points.e,points.n, 50, startt,pts,ptsn, t,tn,NULL);
 
 	return num;
 }
@@ -3857,7 +3857,7 @@ int Path::Contains(Path *otherpath)
 }
 
 //! Find the distance along the path between the bounds, or whole length if tend<tstart.
-double Path::Length(double tstart,double tend)
+double Path::Length(double tstart, double tend, int resolution)
 {
 	if (!path) return 0;
 	Coordinate *start=path->firstPoint(1);
@@ -3896,7 +3896,7 @@ double Path::Length(double tstart,double tend)
 
 		} else {
 			 //else need to search bez segment
-			d += bez_segment_length(p->p(),c1->p(),c2->p(),v2->p(), 30);   //update running visual distance
+			d += bez_segment_length(p->p(),c1->p(),c2->p(),v2->p(), resolution);   //update running visual distance
 		}
 
 		p=v2;
@@ -4601,7 +4601,7 @@ void PathsData::dump_in_atts(Attribute *att,int flag,Laxkit::DumpContext *contex
 }
 
 //! Find the distance along the path between the bounds, or whole length if tend<tstart.
-double PathsData::Length(int pathi, double tstart,double tend)
+double PathsData::Length(int pathi, double tstart, double tend, int resolution)
 {
 	if (pathi<0 || pathi>=paths.n) return 0;
 	return paths.e[pathi]->Length(tstart,tend);
@@ -8781,6 +8781,19 @@ void PathInterface::hoverMessage()
 	else if (drawhover == HOVER_Direction)        mes = _("Click to flip add direction, or drag to select next add");
 	
 	PostMessage(mes);
+}
+
+void PathInterface::MouseOut()
+{
+	if (show_addpoint) {
+		show_addpoint = 0;
+		needtodraw = 1;
+	}
+}
+
+void PathInterface::MouseIn()
+{
+	UpdateAddHint();
 }
 
 /*! 

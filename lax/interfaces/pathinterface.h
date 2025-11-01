@@ -108,7 +108,7 @@ class Path : virtual public Laxkit::anObject,
 	Laxkit::NumStack<Laxkit::flatpoint> centercache; //bezier c-v-c-...
 	Laxkit::NumStack<Laxkit::flatpoint> cache_top; //bezier c-v-c-... like top half of outline cache without joins
 	Laxkit::NumStack<Laxkit::flatpoint> cache_bottom; //bezier c-v-c-... like bottom half of outline cache without joins
-	virtual void UpdateS(bool all, int resolution=30);
+	virtual void UpdateS(bool all, int resolution=50);
 	virtual void UpdateCache();
 	virtual void UpdateWidthCache();
 
@@ -183,7 +183,7 @@ class Path : virtual public Laxkit::anObject,
 						            Laxkit::flatpoint *ptop, Laxkit::flatpoint *pbottom,
 									double *offset, double *width, double *angle);
 	virtual Laxkit::flatpoint ClosestPoint(Laxkit::flatpoint point, double *disttopath, double *distalongpath, double *tdist, int resolution=50);
-	virtual double Length(double tstart,double tend);
+	virtual double Length(double tstart, double tend, int resolution = 50);
 	virtual double distance_to_t(double distance, int *err, int resolution=50);
 	virtual double t_to_distance(double t, int *err, int resolution=50);
 	virtual int NumVertices(bool *isclosed_ret);
@@ -292,7 +292,7 @@ class PathsData : virtual public SomeData
 	// virtual int SampleN(int pathindex, int n_points, bool step_is_distance, double from, double to, Laxkit::PtrStack<Affine> &tr_ret);
 	virtual Coordinate *GetCoordinate(int pathi, double t);
 	virtual int ReversePath(int pathindex);
-	virtual double Length(int pathi, double tstart,double tend);
+	virtual double Length(int pathi, double tstart, double tend, int resolution = 50);
 	virtual int FindExtrema(int pathindex, Laxkit::NumStack<Laxkit::flatpoint> *points_ret, Laxkit::NumStack<double> *t_ret);
 	virtual int MinMax(int pathi, Laxkit::flatvector direction, Laxkit::flatvector &min, Laxkit::flatvector &max);
 	
@@ -577,6 +577,8 @@ class PathInterface : public anInterface
 	virtual int LBDown(int x,int y,unsigned int state,int count,const Laxkit::LaxMouse *d);
 	virtual int LBUp(int x,int y,unsigned int state,const Laxkit::LaxMouse *d);
 	virtual int MouseMove(int x,int y,unsigned int state,const Laxkit::LaxMouse *mouse);
+	virtual void MouseOut(); //when mouse exits containing window
+	virtual void MouseIn(); //when mouse enters containing window
 	virtual int WheelUp(int x,int y,unsigned int state,int count,const Laxkit::LaxMouse *d);
 	virtual int WheelDown(int x,int y,unsigned int state,int count,const Laxkit::LaxMouse *d);
 	virtual int CharInput(unsigned int ch, const char *buffer,int len,unsigned int state,const Laxkit::LaxKeyboard *d);
