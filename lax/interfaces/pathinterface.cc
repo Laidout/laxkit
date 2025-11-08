@@ -7557,15 +7557,17 @@ Laxkit::MenuInfo *PathInterface::ContextMenu(int x,int y,int deviceid, MenuInfo 
 		menu->AddItem(_("Use line style"));
 		menu->SubMenu();
 		int numadded = 0;
-		resources->AppendMenu(menu, true, &numadded, PATHIA_MAX, PATHIA_UseLineStyle, data->linestyle);
+		resources->AppendMenu(menu, true, &numadded, PATHIA_MAX, PATHIA_UseLineStyle, data ? data->linestyle : nullptr);
 		if (numadded) menu->AddSep();
-		resources->AppendMenu(menu, false, &numadded, PATHIA_MAX, PATHIA_UseLineStyle, data->linestyle);
+		resources->AppendMenu(menu, false, &numadded, PATHIA_MAX, PATHIA_UseLineStyle, data ? data->linestyle : nullptr);
 		menu->EndSubMenu();
 	}
-	if (!data->linestyle->IsResourced()) {
-		menu->AddItem(_("Make line style a resource"), PATHIA_MakeLineResource);
-	} else {
-		menu->AddItem(_("Make line style unique"), PATHIA_MakeLineLocal);
+	if (data) {
+		if (!data->linestyle->IsResourced()) {
+			menu->AddItem(_("Make line style a resource"), PATHIA_MakeLineResource);
+		} else {
+			menu->AddItem(_("Make line style unique"), PATHIA_MakeLineLocal);
+		}
 	}
 
 	//---- fill styles
@@ -7576,15 +7578,17 @@ Laxkit::MenuInfo *PathInterface::ContextMenu(int x,int y,int deviceid, MenuInfo 
 		menu->AddItem(_("Use file style"));
 		menu->SubMenu();
 		int numadded = 0;
-		resources->AppendMenu(menu, true, &numadded, PATHIA_MAX, PATHIA_UseFillStyle, data->fillstyle);
+		resources->AppendMenu(menu, true, &numadded, PATHIA_MAX, PATHIA_UseFillStyle, data ? data->fillstyle : nullptr);
 		if (numadded) menu->AddSep();
-		resources->AppendMenu(menu, false, &numadded, PATHIA_MAX, PATHIA_UseFillStyle, data->fillstyle);
+		resources->AppendMenu(menu, false, &numadded, PATHIA_MAX, PATHIA_UseFillStyle, data ? data->fillstyle : nullptr);
 		menu->EndSubMenu();
 	}
-	if (!data->fillstyle->IsResourced()) {
-		menu->AddItem(_("Make fill style a resource"), PATHIA_MakeFillResource);
-	} else {
-		menu->AddItem(_("Make fill style unique"), PATHIA_MakeFillLocal);
+	if (data) {
+		if (!data->fillstyle->IsResourced()) {
+			menu->AddItem(_("Make fill style a resource"), PATHIA_MakeFillResource);
+		} else {
+			menu->AddItem(_("Make fill style unique"), PATHIA_MakeFillLocal);
+		}
 	}
 
 	// misc decoration showing
