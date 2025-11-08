@@ -61,59 +61,63 @@ void Previewable::touchContents()
 
 LaxImage *Previewable::GetPreview()
 {
-	if (previewtime < modtime || !preview) GeneratePreview(-1,-1);
+	if (previewtime < modtime || !preview || (modtime == 0 && previewtime == 0)) GeneratePreview(-1,-1);
     return preview;
 }
 
 int Previewable::maxPreviewSize()
 {
-	return 200;
+	return 256;
 } 
 
 /*! Set up a LaxImage to hold a preview, then call renderToBufferImage() to
  * actually render the preview.
  */
-int Previewable::GeneratePreview(int w, int h)
+int Previewable::GeneratePreview(int ww, int hh)
 {
-   if (preview) {
-        if (w<=0 && h<=0) {
-            w=preview->w();
-            h=preview->h();
-        }
-         //make the desired preview dimensions approximately sympatico with
-         //the actual dimensions of the object
-        if ((w>h && (maxx-minx)<(maxy-miny))) h=0;
-        else if ((w<h && (maxx-minx)>(maxy-miny))) w=0;
-    }
+	int w = ww;
+	int h = hh;
 
     int maxdim = maxPreviewSize();
-
-    if (w<=0 && h<=0) {
-        if (maxx-minx>maxy-miny) w=maxdim;
-		else h=maxdim;
+	if (w <= 0 && h <= 0) {
+        if (maxx - minx > maxy - miny) w = maxdim;
+		else h = maxdim;
     }
 
-    if (w<=0 && h>0) w=(maxx-minx)*h/(maxy-miny);
-    else if (w>0 && h<=0) h=(maxy-miny)*w/(maxx-minx);
+	if (preview) {
+        if (w <= 0 && h <= 0) {
+            w = preview->w();
+            h = preview->h();
+        }
+        // make the desired preview dimensions approximately sympatico with
+        // the actual dimensions of the object
+        if ((w > h && (maxx - minx) < (maxy - miny))) h = 0;
+        else if ((w < h && (maxx - minx) > (maxy - miny))) w = 0;
+	}
 
-    if (w<=0) w=1;
-    if (h<=0) h=1;
+	if (w <= 0 && h > 0)
+		w = (maxx - minx) * h / (maxy - miny);
+	else if (w > 0 && h <= 0)
+		h = (maxy - miny) * w / (maxx - minx);
 
-     //protect against growing sizes...
+	if (w <= 0) w = 1;
+	if (h <= 0) h = 1;
+
+	// protect against growing sizes...
     if (w > maxdim) {
-        double aspect=(double)h/w;
+        double aspect = (double)h / w;
         w = maxdim;
-        h = maxdim*aspect;
+        h = maxdim * aspect;
         if (h <= 0) h = 1;
     }
-    if (h>maxdim) {
-        double aspect=(double)w/h;
-        h = maxdim;
-        w = maxdim*aspect;
-        if (w <= 0) w = 1;
-    }
+	if (h > maxdim) {
+		double aspect = (double)w / h;
+		h = maxdim;
+		w = maxdim * aspect;
+		if (w <= 0) w = 1;
+	}
 
- 	//if (preview && (w!=preview->w() || h!=preview->h())) {
+	//if (preview && (w!=preview->w() || h!=preview->h())) {
     if (preview && ((float)w/preview->w()>1.05 || (float)w/preview->w()<.95 ||
                     (float)h/preview->h()>1.05 || (float)h/preview->h()<.95)) {
          //delete old preview and make new only when changing size of preview more that 5%-ish in x or y

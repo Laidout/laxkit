@@ -117,6 +117,9 @@ class EngraverFillInterface : public PatchInterface
 	 //general display state
 	Laxkit::ScreenColor fgcolor,bgcolor;
 	unsigned long activate_color, deactivate_color;
+	Laxkit::LaxFont *ui_font = nullptr;
+	double ui_font_scale = 1.0;
+	int default_preview_size = 256;
 
 	int lasthover;
 	int lasthovercategory;

@@ -421,7 +421,7 @@ Laxkit::LaxImage *SomeData::GetPreview()
 	// }
 	// return NULL;
 
-	if (previewtime<modtime || !preview) GeneratePreview(-1,-1);
+	if (previewtime < modtime || !preview || (modtime == 0 && previewtime == 0)) GeneratePreview(-1,-1);
 	return preview;
 }
 

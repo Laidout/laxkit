@@ -134,6 +134,11 @@ EngraverFillInterface::EngraverFillInterface(int nid,Displayer *ndp)
 	edata=NULL;
 	tracebox=NULL;
 
+	// InterfaceManager *imanager = InterfaceManager::GetDefault(true);
+	// FontManager *fmanager = imanager->GetFontManager();
+	ui_font = app->defaultlaxfont;
+	ui_font->inc_count();
+	ui_font_scale = 1.0;
 
 	current_group=0;
 	default_spacing=1./20;
@@ -207,6 +212,7 @@ EngraverFillInterface::EngraverFillInterface(int nid,Displayer *ndp)
 EngraverFillInterface::~EngraverFillInterface() 
 {
 	DBG cerr<<"-------"<<whattype()<<","<<" destructor"<<endl;
+	if (ui_font) ui_font->dec_count();
 }
 
 const char *EngraverFillInterface::Name()
@@ -366,9 +372,10 @@ int EngraverFillInterface::scanPanel(int x,int y, int *category, int *index_ret,
 	}
 	DBG cerr <<"in panel"<<endl;
 
-	*category=ENGRAVE_Panel;
-	x-=panelbox.minx;
-	y-=panelbox.miny;
+	*category = ENGRAVE_Panel;
+	x -= panelbox.minx;
+	y -= panelbox.miny;
+	double th = ui_font_scale * UIScale() * ui_font->textheight();
 
 	MenuItem *item, *item2;
 	for (int c=0; c<panel.n(); c++) {
@@ -385,7 +392,6 @@ int EngraverFillInterface::scanPanel(int x,int y, int *category, int *index_ret,
 
 					if (item2->pointIsIn(x,y)) {
 						if (item2->id==ENGRAVE_Group_List) {
-							double th=dp->textheight();
 							//int n=NumGroupLines();
 							int index=(y-item2->y)/th;
 							int detail=(x-item2->x)/th;
@@ -742,6 +748,7 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
 	int over=0;
 	int category=0;
 	buttondown.getextrainfo(d->id,LEFTBUTTON, &over,&category);
+	double th = ui_font_scale * UIScale() * ui_font->textheight();
 
 	if (category==ENGRAVE_Panel) {
 
@@ -792,7 +799,6 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
 
 				} else if (obj==edata && gindex<0) {
 					MenuItem *item=panel.findid(over);
-					double th=dp->textheight();
 					int yy= panelbox.miny + item->y + ((y-panelbox.miny-item->y)/th+1)*th;
 					DoubleBBox bounds(item->x+panelbox.minx+th,item->x+panelbox.minx+th + item->w,
 										yy,yy+th);
@@ -851,7 +857,6 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
 							} else {
 								 //rename group
 								MenuItem *item=panel.findid(over);
-								double th=dp->textheight();
 								int yy= panelbox.miny + item->y + ((y-panelbox.miny-item->y)/th+1)*th;
 								DoubleBBox bounds(item->x+panelbox.minx+th,item->x+panelbox.minx+th + item->w,
 													yy,yy+th);
@@ -927,7 +932,6 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
 
 		} else if (over==ENGRAVE_Group_Name) {
 			MenuItem *item=panel.findid(over);
-			double th=dp->textheight();
 			int yy= panelbox.miny + item->y + ((y-panelbox.miny-item->y)/th+1)*th;
 			DoubleBBox bounds(item->x+panelbox.minx+th,item->x+panelbox.minx+th + item->w,
 								yy,yy+th);
@@ -1054,7 +1058,6 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
 
 		} else if (over==ENGRAVE_Trace_Name) {
 			MenuItem *item=panel.findid(over);
-			double th=dp->textheight();
 			int yy= panelbox.miny + item->y + ((y-panelbox.miny-item->y)/th+1)*th;
 			DoubleBBox bounds(item->x+panelbox.minx+th,item->x+panelbox.minx+th + (panelbox.maxx-panelbox.minx)*.9,
 								yy,yy+th);
@@ -1065,7 +1068,6 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
 
 		} else if (over==ENGRAVE_Trace_Object_Name && trace->traceobject) {
 			MenuItem *item=panel.findid(over);
-			double th=dp->textheight();
 			int yy= panelbox.miny + item->y + ((y-panelbox.miny-item->y)/th+1)*th;
 			DoubleBBox bounds(item->x+panelbox.minx+th,item->x+panelbox.minx+th + item->w,
 								yy,yy+th);
@@ -1117,7 +1119,6 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
 
 		} else if (over==ENGRAVE_Dash_Name) {
 			MenuItem *item=panel.findid(over);
-			double th=dp->textheight();
 			int yy= panelbox.miny + item->y + ((y-panelbox.miny-item->y)/th+1)*th;
 			DoubleBBox bounds(item->x+panelbox.minx+th,item->x+panelbox.minx+th + (panelbox.maxx-panelbox.minx)*.9,
 								yy,yy+th);
@@ -1131,7 +1132,6 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
 				MenuItem *item=panel.findid(over);
 				char str[20];
 				sprintf(str,"%.10g",group->dashes->dash_length);
-				double th=dp->textheight();
 				int yy= panelbox.miny + item->y + ((y-panelbox.miny-item->y)/th+1)*th;
 				DoubleBBox bounds(item->x+panelbox.minx+th,item->x+panelbox.minx+th + item->w,
 									yy,yy+th);
@@ -1144,7 +1144,6 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
 				MenuItem *item=panel.findid(over);
 				char str[20];
 				sprintf(str,"%d",group->dashes->randomseed);
-				double th=dp->textheight();
 				int yy= panelbox.miny + item->y + ((y-panelbox.miny-item->y)/th+1)*th;
 				DoubleBBox bounds(item->x+panelbox.minx+th,item->x+panelbox.minx+th + item->w,
 									yy,yy+th);
@@ -1167,7 +1166,6 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
 
 		} else if (over==ENGRAVE_Direction_Name) {
 			MenuItem *item=panel.findid(over);
-			double th=dp->textheight();
 			int yy= panelbox.miny + item->y + ((y-panelbox.miny-item->y)/th+1)*th;
 			DoubleBBox bounds(item->x+panelbox.minx+th,item->x+panelbox.minx+th + (panelbox.maxx-panelbox.minx)*.9,
 								yy,yy+th);
@@ -1235,7 +1233,6 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
 				MenuItem *item=panel.findid(over);
 				char str[20];
 				sprintf(str,"%d",group->direction->seed);
-				double th=dp->textheight();
 				int yy= panelbox.miny + item->y + ((y-panelbox.miny-item->y)/th+1)*th;
 				DoubleBBox bounds(item->x+panelbox.minx+th,item->x+panelbox.minx+th + item->w,
 									yy,yy+th);
@@ -1289,7 +1286,6 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
 
 		} else if (over==ENGRAVE_Spacing_Name) {
 			MenuItem *item=panel.findid(over);
-			double th=dp->textheight();
 			int yy= panelbox.miny + item->y + ((y-panelbox.miny-item->y)/th+1)*th;
 			DoubleBBox bounds(item->x+panelbox.minx+th,item->x+panelbox.minx+th + (panelbox.maxx-panelbox.minx)*.9,
 								yy,yy+th);
@@ -1303,7 +1299,6 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
 				MenuItem *item=panel.findid(over);
 				char str[20];
 				sprintf(str,"%.10g",group->spacing->spacing);
-				double th=dp->textheight();
 				int yy= panelbox.miny + item->y + ((y-panelbox.miny-item->y)/th+1)*th;
 				DoubleBBox bounds(item->x+panelbox.minx+th,item->x+panelbox.minx+th + item->w,
 									yy,yy+th);
@@ -1450,7 +1445,6 @@ int EngraverFillInterface::LBUp(int x,int y,unsigned int state,const Laxkit::Lax
 		}
 
 		if (what) {
-			double th=dp->textheight();
 			DoubleBBox bounds(x-15*th/2,x-15*th/2+15*th, y+th,y+2*th);
 			viewport->SetupInputBox(object_id, NULL, str, what, bounds, whatm);
 			eventgroup=current_group;
@@ -1787,10 +1781,10 @@ int EngraverFillInterface::MouseMove(int x,int y,unsigned int state,const Laxkit
 
 	if (controlmode==EMODE_Controls) {
 		if (buttondown.any()) {
-			int over=0, lx,ly, ix,iy;
-			int overcat=0;
-			double th=dp->textheight();
-			double pad=th/2;
+			int    over    = 0, lx, ly, ix, iy;
+			int    overcat = 0;
+			double th      = ui_font_scale * UIScale() * ui_font->textheight();
+			double pad     = th/2;
 
 			buttondown.getextrainfo(mouse->id,LEFTBUTTON, &over,&overcat);
 			buttondown.move(mouse->id,x,y, &lx,&ly);
@@ -2529,6 +2523,8 @@ int EngraverFillInterface::Refresh()
 	 //draw the trace object if necessary
 	EngraverPointGroup *group=(edata ? edata->GroupFromIndex(current_group) : NULL);
 	EngraverTraceSettings *trace=(group ? group->trace : &default_trace);
+	double th = ui_font_scale * UIScale() * ui_font->textheight();
+	dp->font(ui_font, th);
 
 	if (show_trace_object) {
 	  if (viewport && trace->traceobject && trace->traceobject->object && trace->traceobj_opacity > 0) {
@@ -2711,7 +2707,7 @@ int EngraverFillInterface::Refresh()
 				char buffer[50];
 
 				dp->DrawScreen();
-				dp->font(anXApp::app->defaultlaxfont);
+				dp->font(ui_font, th);
 				dp->LineAttributes(-1,LineSolid,LAXCAP_Round,LAXJOIN_Round);
 				dp->LineWidthScreen(1);
 				dp->NewFG(1.,0.,0.);
@@ -3057,7 +3053,7 @@ int EngraverFillInterface::Refresh()
 
 			dp->NewFG(&bgcolor);
 			//dp->drawellipse(100,100,50,50, 0,0,1);
-			dp->drawellipse(sensbox.x+sensbox.width/2,sensbox.y+sensbox.height/2, sensbox.width/2,2*dp->textheight()+5+sensbox.height/2, 0,0,1);
+			dp->drawellipse(sensbox.x+sensbox.width/2,sensbox.y+sensbox.height/2, sensbox.width/2,2*th+5+sensbox.height/2, 0,0,1);
 			dp->NewFG(&fgcolor);
 			DrawSlider(sens/2, lasthover==ENGRAVE_Sensitivity, sensbox.x,sensbox.y,sensbox.width,sensbox.height, NULL);
 			dp->textout(sensbox.x+sensbox.width/2,sensbox.y-5, _("Sensitivity"),-1, LAX_HCENTER|LAX_BOTTOM); 
@@ -3228,7 +3224,7 @@ void EngraverFillInterface::DrawNumInput(double pos,int type,int hovered, double
 	if (hovered)  dp->NewFG(0.,0.,0.); 
 	else dp->NewFG(.5,.5,.5);
 
-	double th=dp->textheight();
+	double th = ui_font_scale * UIScale() * ui_font->textheight();
 
 	if (text) {
 		//if (pos<.5) dp->textout(x+w,y+h/2, text,-1, LAX_RIGHT|LAX_VCENTER);
@@ -3253,7 +3249,7 @@ void EngraverFillInterface::DrawSlider(double pos,int hovered, double x,double y
  	
 	dp->NewFG(.5,.5,.5);
 
-	double ww=(text ? dp->textextent(text,-1, NULL,NULL) : 0);
+	double ww = (text ? ui_font_scale * UIScale() * ui_font->Extent(text,-1) : 0);
 	if (text) {
 		//if (pos<.5) dp->textout(x+w,y+h/2, text,-1, LAX_RIGHT|LAX_VCENTER);
 		//else dp->textout(x,y+h/2, text,-1, LAX_LEFT|LAX_VCENTER);
@@ -3478,7 +3474,7 @@ void EngraverFillInterface::UpdatePanelAreas()
 		  //panel.AddItem("Spacing",    ENGRAVE_Spacing);
 	}
 
-	double th=dp->textheight();
+	double th = ui_font_scale * UIScale() * ui_font->textheight();
 	double pad=th/2;
 
 	//now update positions
@@ -3620,12 +3616,15 @@ void EngraverFillInterface::UpdatePanelAreas()
 					if (item2->id==ENGRAVE_Trace_Same_As) {
 						item2->x=pad;  item2->y=y+1*th;  item2->w=pw-2*pad;  item2->h=th; 
 						if (sharing) {
-							item2->w=item2->x+dp->textextent(_("With:"),-1,NULL,NULL);
+							item2->w=item2->x + ui_font_scale * UIScale() * ui_font->Extent(_("With:"),-1);
 						}
 
 					} else if (item2->id==ENGRAVE_Trace_Name) {
 						if (sharing) {
-							item2->x=pad+dp->textextent(_("With:"),-1,NULL,NULL);  item2->y=y+1*th;  item2->w=pw-pad-item2->x-th;  item2->h=th;
+							item2->x = pad + ui_font_scale * UIScale() * ui_font->Extent(_("With:"),-1);
+							item2->y = y+1*th;
+							item2->w = pw-pad-item2->x-th;
+							item2->h = th;
 						} else {
 							item2->x=item2->y=item2->w=item2->h=0;
 						}
@@ -3709,12 +3708,15 @@ void EngraverFillInterface::UpdatePanelAreas()
 					if (item2->id==ENGRAVE_Dash_Same_As) {
 						item2->x=pad;  item2->y=y+1*th;  item2->w=pw-2*pad;  item2->h=th; 
 						if (sharing) {
-							item2->w=dp->textextent(_("With:"),-1,NULL,NULL);
+							item2->w = ui_font_scale * UIScale() * ui_font->Extent(_("With:"),-1);
 						}
 
 					} else if (item2->id==ENGRAVE_Dash_Name) {
 						if (sharing) {
-							item2->x=pad+dp->textextent(_("With:"),-1,NULL,NULL);  item2->y=y+1*th;  item2->w=pw-pad-item2->x-th;  item2->h=th;
+							item2->x = pad + ui_font_scale * UIScale() * ui_font->Extent(_("With:"),-1);
+							item2->y = y+1*th;
+							item2->w = pw-pad-item2->x-th;
+							item2->h = th;
 						} else {
 							item2->x=item2->y=item2->w=item2->h=0;
 						}
@@ -3769,12 +3771,15 @@ void EngraverFillInterface::UpdatePanelAreas()
 					if (item2->id==ENGRAVE_Spacing_Same_As) {
 						item2->x=pad;  item2->y=y+1*th;  item2->w=pw-2*pad;  item2->h=th; 
 						if (sharing) {
-							item2->w=dp->textextent(_("With:"),-1,NULL,NULL);
+							item2->w = ui_font_scale * UIScale() * ui_font->Extent(_("With:"),-1);
 						}
 
 					} else if (item2->id==ENGRAVE_Spacing_Name) {
 						if (sharing) {
-							item2->x=pad+dp->textextent(_("With:"),-1,NULL,NULL);  item2->y=y+1*th;  item2->w=pw-pad-item2->x-th;  item2->h=th;
+							item2->x = pad + ui_font_scale * UIScale() * ui_font->Extent(_("With:"),-1);
+							item2->y = y+1*th;
+							item2->w = pw-pad-item2->x-th;
+							item2->h = th;
 						} else {
 							item2->x=item2->y=item2->w=item2->h=0;
 						}
@@ -3817,12 +3822,15 @@ void EngraverFillInterface::UpdatePanelAreas()
 					if (item2->id==ENGRAVE_Direction_Same_As) {
 						item2->x=pad;  item2->y=y+1*th;  item2->w=pw-2*pad;  item2->h=th; 
 						if (sharing) {
-							item2->w=dp->textextent(_("With:"),-1,NULL,NULL);
+							item2->w = ui_font_scale * UIScale() * ui_font->Extent(_("With:"),-1);
 						}
 
 					} else if (item2->id==ENGRAVE_Direction_Name) {
 						if (sharing) {
-							item2->x=pad+dp->textextent(_("With:"),-1,NULL,NULL);  item2->y=y+1*th;  item2->w=pw-pad-item2->x-th;  item2->h=th;
+							item2->x = pad + ui_font_scale * UIScale() * ui_font->Extent(_("With:"),-1);
+							item2->y = y+1*th;
+							item2->w = pw-pad-item2->x-th;
+							item2->h = th;
 						} else {
 							item2->x=item2->y=item2->w=item2->h=0;
 						}
@@ -3910,8 +3918,8 @@ void EngraverFillInterface::DrawPanel()
 	dp->drawrectangle(panelbox.minx,panelbox.miny, panelbox.maxx-panelbox.minx,panelbox.maxy-panelbox.miny, 2);
 	dp->NewFG(&fgcolor);
 
-	double th=dp->textheight();
-	double pad=th/2;
+	double th = ui_font_scale * UIScale() * ui_font->textheight();
+	double pad = th/2;
 	int ix,iy,iw,ih;
 	int i2x,i2y,i2w,i2h;
 	unsigned long hcolor=coloravg(fgcolor.Pixel(),bgcolor.Pixel(), .8);
@@ -3926,6 +3934,8 @@ void EngraverFillInterface::DrawPanel()
 		iy=item->y+panelbox.miny;
 		iw=item->w;
 		ih=item->h;
+
+		dp->font(ui_font, th);
 		
 		if (item->id==ENGRAVE_Mode_Selection) {
 			int which=mode;
@@ -4718,9 +4728,10 @@ int EngraverFillInterface::IsSharing(int what, EngraverPointGroup *group, int cu
  */
 void EngraverFillInterface::DrawPanelHeader(int open, int hover, const char *name, int x,int y,int w, int hh)
 {
-	int h=dp->textheight(); //hh is whole section height, we can ignore.. maybe one day draw box around whole section
-	double ww=dp->textextent(name,-1,NULL,NULL)+2*dp->textextent(" ",1,NULL,NULL);
-	if (ww<w) {
+	double h = ui_font_scale * UIScale() * ui_font->textheight();
+	// int h=dp->textheight(); //hh is whole section height, we can ignore.. maybe one day draw box around whole section
+	double ww = ui_font_scale * UIScale() * (ui_font->Extent(name,-1) + 2*ui_font->Extent(" ",1));
+	if (ww < w) {
 		dp->LineAttributes(2,LineSolid,LAXCAP_Round,LAXJOIN_Round);
 		dp->drawline(x,y+h/2, x+(w-ww)/2,y+h/2);
 		dp->drawline(x+w,y+h/2, x+w-(w-ww)/2,y+h/2);
@@ -5019,7 +5030,17 @@ int EngraverFillInterface::PerformAction(int action)
 		EngraverPointGroup *group=edata->GroupFromIndex(current_group);
 		group->linked=!group->linked;
 		needtodraw=1;
-		return 0; 
+		return 0;
+
+	} else if (action == ENGRAVE_Preview_Size) {
+		int yy = (dp->Miny + dp->Maxy)/2;
+		int xx = (dp->Minx + dp->Maxx)/2;
+		double th = UIScale() * ui_font->textheight();
+		DoubleBBox bounds(xx - 4*th, xx + 4*th, yy,yy+th);
+		char str[30];
+		sprintf(str, "%d", edata ? edata->preview_size : default_preview_size);
+		viewport->SetupInputBox(object_id, _("Preview size"), str, "preview_size", bounds);
+		return 0;
 	}
 
 
@@ -5205,9 +5226,15 @@ int EngraverFillInterface::Event(const Laxkit::EventData *e_data, const char *me
 
 		DBG cerr <<"Engraver Event: i=="<<i<<"  interf="<<interf<<endl;
 		
-		if (interf==curvemapi.object_id) return curvemapi.Event(e_data,mes);
+		if (interf == curvemapi.object_id) return curvemapi.Event(e_data,mes);
 		if (child && !strcmp(child->whattype(),"CurveMapInterface")) return child->Event(e_data,mes);
-		if (i<PATCHA_MAX) return PatchInterface::Event(e_data,mes);
+
+		if (i == ENGRAVE_Preview_Size) {
+			PerformAction(i);
+			return 0;
+		}
+
+		if (i < PATCHA_MAX) return PatchInterface::Event(e_data,mes);
 
 		if ( i==EMODE_Mesh
 		  || i==EMODE_Thickness
@@ -5918,6 +5945,26 @@ int EngraverFillInterface::Event(const Laxkit::EventData *e_data, const char *me
 
 		needtodraw=1;
 		return 0;
+
+	} else if (!strcmp(mes,"preview_size")) {
+		const SimpleMessage *s = dynamic_cast<const SimpleMessage*>(e_data);
+		if (!s || isblank(s->str)) return 0;
+		int ps = strtol(s->str, nullptr, 10);
+		if (ps > 0 && ps < 2049) {
+        	default_preview_size = ps;
+
+        	for (int c = 0; c < selection->n(); c++) {
+				EngraverFillData *obj = dynamic_cast<EngraverFillData*>(selection->e(c)->obj);
+				if (!obj) continue;
+				obj->preview_size = ps;
+				obj->previewtime = 0;
+			}
+			PostMessage(_("Preview size changed"));
+			needtodraw = 1;
+        } else {
+        	PostMessage(_("Bad value for preview size. Must be in range 1..2048."));
+        }
+        return 0;
     }
 
     return 1;
@@ -6084,12 +6131,12 @@ Laxkit::MenuInfo *EngraverFillInterface::ContextMenu(int x,int y,int deviceid, L
 	if (menu->n()!=0) menu->AddSep(_("Engraver"));
 
 	int category=0, index=-1, detail=-1;
-	int where=scanEngraving(x,y,0, &category, &index, &detail);
-	if (mode==EMODE_Trace
-		 || where==ENGRAVE_Trace_Box
-		 || where==ENGRAVE_Trace_Once
-		 || where==ENGRAVE_Trace_Load
-		 || where==ENGRAVE_Trace_Continuous) {
+	int where = scanEngraving(x,y,0, &category, &index, &detail);
+	if (mode == EMODE_Trace
+		 || where == ENGRAVE_Trace_Box
+		 || where == ENGRAVE_Trace_Once
+		 || where == ENGRAVE_Trace_Load
+		 || where == ENGRAVE_Trace_Continuous) {
 		menu->AddSep(_("Trace"));
 		menu->AddItem(_("Load image to trace..."),ENGRAVE_Trace_Load);
 		menu->AddItem(_("Clear trace object"), ENGRAVE_Trace_Clear);
@@ -6107,6 +6154,8 @@ Laxkit::MenuInfo *EngraverFillInterface::ContextMenu(int x,int y,int deviceid, L
 //		menu->AddItem(_("Manual"),ENGRAVE_, LAX_OFF);
 //		menu->AddItem(_(""),ENGRAVE_, LAX_OFF);
 //	}
+
+	menu->AddItem(_("Change preview size"), ENGRAVE_Preview_Size);
 
 	menu->AddSep(_("Mode"));
 	MenuItem *i;
@@ -6198,8 +6247,9 @@ int EngraverFillInterface::CharInput(unsigned int ch, const char *buffer,int len
 			return 0;
 		} else if (ch==LAX_Shift) {
 			submode=2;
-			sensbox.width =(dp->Maxx-dp->Minx)/4;
-			sensbox.height=dp->textheight();
+			double th = ui_font_scale * UIScale() * ui_font->textheight();
+			sensbox.width  = (dp->Maxx-dp->Minx)/4;
+			sensbox.height = th;
 			sensbox.x = (dp->Maxx+dp->Minx-sensbox.width)/2;
 			sensbox.y = dp->Miny*.2 + dp->Maxy*.8;
 			//if (state&ControlMask) submode=3;

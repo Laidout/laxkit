@@ -209,6 +209,9 @@ enum EngraveControls {
 
 	ENGRAVE_Sensitivity,
 
+	//------- extra menu items
+	ENGRAVE_Preview_Size,
+
 	 //------modes:
 	EMODE_Render_Only,
 	EMODE_Controls,
@@ -852,7 +855,8 @@ class EngraverFillData : virtual public PatchData
  protected:
   	
  public:
-	Laxkit::PtrStack<EngraverPointGroup> groups; 
+	Laxkit::PtrStack<EngraverPointGroup> groups;
+	int preview_size = 256;
 
 	EngraverFillData();
 	//EngraverFillData(double xx,double yy,double ww,double hh,int nr,int nc,unsigned int stle);
@@ -863,6 +867,8 @@ class EngraverFillData : virtual public PatchData
 	virtual SomeData *duplicateData(SomeData *dup);
 	virtual int renderToBuffer(unsigned char *buffer, int bufw, int bufh, int bufstride, int bufdepth, int bufchannels);
 	virtual int renderToBufferImage(Laxkit::LaxImage *image);
+	virtual bool CanRenderPreview() { return true; }
+	virtual int maxPreviewSize() { return preview_size; }
 
 	virtual double DefaultSpacing(double nspacing);
 	virtual void MakeDefaultGroup();

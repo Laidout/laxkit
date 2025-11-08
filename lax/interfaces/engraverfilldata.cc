@@ -5753,7 +5753,8 @@ void EngraverFillData::dump_out(FILE *f,int indent,int what,Laxkit::DumpContext 
 		return;
 	}
 
-	fprintf(f,"%smesh\n",spc);
+	fprintf(f, "%spreview_size %d\n", spc, preview_size);
+	fprintf(f, "%smesh\n", spc);
 	PatchData::dump_out(f,indent+2,what,context);
 
 	for (int c=0; c<groups.n; c++) {
@@ -5781,6 +5782,8 @@ Laxkit::Attribute *EngraverFillData::dump_out_atts(Laxkit::Attribute *att,int wh
 		return att;
 	}
 
+	att->push("preview_size", preview_size);
+
 	att2 = att->pushSubAtt("mesh");
 	PatchData::dump_out_atts(att2, what,context);
 
@@ -5798,16 +5801,21 @@ void EngraverFillData::dump_in_atts(Attribute *att,int flag,Laxkit::DumpContext 
 	if (!att) return;
 
 	char *name;
-	//char *value;
+	char *value;
 	int c;
 
 	bool groups_flushed=false;
 
 	for (c=0; c<att->attributes.n; c++) {
-		name= att->attributes.e[c]->name;
-		//value=att->attributes.e[c]->value;
+		name  = att->attributes.e[c]->name;
+		value = att->attributes.e[c]->value;
 
-		if (!strcmp(name,"mesh")) {
+		if (!strcmp(name,"preview_size")) {
+			int i = 0;
+			IntAttribute(value, &i);
+			if (i > 0 && i < 2048) preview_size = i;
+
+		} else if (!strcmp(name,"mesh")) {
 			PatchData::dump_in_atts(att->attributes.e[c],flag,context);
 
 		} else if (!strcmp(name,"group")) {
