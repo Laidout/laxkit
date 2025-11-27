@@ -95,7 +95,7 @@ PromptEdit::PromptEdit(anXWindow *prnt,const char *nname,const char *ntitle,unsi
 	start=textlen;
 
 	LaxFont *font=app->fontmanager->MakeFontFromStr("Courier",getUniqueNumber());
-	font->Resize(UIScale() * 20);
+	font->Resize(UIScale() * 13);
 	//LaxFont *font=app->fontmanager->MakeFontFromStr(":spacing=100",getUniqueNumber());
 	UseThisFont(font);
 	font->dec_count(); 
