@@ -3209,13 +3209,13 @@ int PatchInterface::Event(const Laxkit::EventData *e_data, const char *mes)
 			}
 
 		} else if (i==PATCHA_Coons || i==PATCHA_Borders || i==PATCHA_Linear || i==PATCHA_Full) {
-			if (i==PATCHA_Coons) whichcontrols=Patch_Coons;
-			else if (i==PATCHA_Borders) whichcontrols=Patch_Border_Only;
-			else if (i==PATCHA_Linear) whichcontrols=Patch_Linear;
-			else if (i==PATCHA_Full) whichcontrols=Patch_Full_Bezier;
+			if      (i == PATCHA_Coons)   whichcontrols = Patch_Coons;
+			else if (i == PATCHA_Borders) whichcontrols = Patch_Border_Only;
+			else if (i == PATCHA_Linear)  whichcontrols = Patch_Linear;
+			else if (i == PATCHA_Full)    whichcontrols = Patch_Full_Bezier;
 
 			if (viewport) {
-				if (whichcontrols==Patch_Linear)           viewport->PostMessage(_("Edit as a linear patches"));
+				if      (whichcontrols==Patch_Linear)      viewport->PostMessage(_("Edit as a linear patches"));
 				else if (whichcontrols==Patch_Coons)       viewport->PostMessage(_("Edit as Coons patches" ));
 				else if (whichcontrols==Patch_Border_Only) viewport->PostMessage(_("Edit with border controls only")); 
 				else if (whichcontrols==Patch_Full_Bezier) viewport->PostMessage(_("Edit full cubic bezier patch"));
@@ -3304,14 +3304,15 @@ int PatchInterface::InterfaceOff()
  */
 PatchData *PatchInterface::newPatchData(double xx,double yy,double ww,double hh,int nr,int nc,unsigned int stle)
 {
-	PatchData *ndata=NULL;
+	PatchData *ndata = nullptr;
 
-	ndata=dynamic_cast<PatchData *>(somedatafactory()->NewObject(LAX_PATCHDATA));
+	ndata = dynamic_cast<PatchData *>(somedatafactory()->NewObject(LAX_PATCHDATA));
 
 	if (ndata) ndata->Set(xx,yy,ww,hh,nr,nc,stle);
-	else ndata=new PatchData(xx,yy,ww,hh,nr,nc,stle);//creates 1 count
+	else ndata = new PatchData(xx,yy,ww,hh,nr,nc,stle);//creates 1 count
 
-	ndata->style|=PATCH_SMOOTH;
+	ndata->controls = (PatchControls)whichcontrols;
+	ndata->style |= PATCH_SMOOTH;
 	ndata->FindBBox();
 	return ndata;
 }
@@ -4111,9 +4112,10 @@ int PatchInterface::LBDown(int x,int y,unsigned int state,int count,const Laxkit
 			//found another patch object to work on
 			viewport->ChangeObject(oc,0,true);
 			deletedata((state&LAX_STATE_MASK)==ShiftMask ? false : true);
-			data=dynamic_cast<PatchData*>(obj);
+			data = dynamic_cast<PatchData*>(obj);
 			data->inc_count();
-			poc=oc->duplicate();
+			poc = oc->duplicate();
+			whichcontrols = data->controls;
 			AddToSelection(poc);
 
 			//set up path interface if necessary
