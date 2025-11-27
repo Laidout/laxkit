@@ -1474,30 +1474,32 @@ void get_placement(int thingw,int thingh, LaxFont *font, const char *label,int g
  */
 const char *flow_name(int direction)
 {
-	if (direction==LAX_LRTB) return "lrtb";
-	else if (direction==LAX_LRBT) return "lrbt";
-	else if (direction==LAX_RLTB) return "rltb";
-	else if (direction==LAX_RLBT) return "rlbt";
-	else if (direction==LAX_TBLR) return "tblr";
-	else if (direction==LAX_TBRL) return "tbrl";
-	else if (direction==LAX_BTLR) return "btlr";
-	else if (direction==LAX_BTRL) return "btrl";
-	return NULL;
+	if      (direction == LAX_LRTB) return "lrtb";
+	else if (direction == LAX_LRBT) return "lrbt";
+	else if (direction == LAX_RLTB) return "rltb";
+	else if (direction == LAX_RLBT) return "rlbt";
+	else if (direction == LAX_TBLR) return "tblr";
+	else if (direction == LAX_TBRL) return "tbrl";
+	else if (direction == LAX_BTLR) return "btlr";
+	else if (direction == LAX_BTRL) return "btrl";
+	else if (direction == LAX_CUSTOM_FLOW) return "custom";
+	return nullptr;
 }
 
 /*! Return a human readable string for dir.
  */
 const char *flow_name_translated(int direction)
 {
-	if (direction==LAX_LRTB) return _("Left to right, top to bottom");
-	else if (direction==LAX_LRBT) return _("Left to right, bottom to top");
-	else if (direction==LAX_RLTB) return _("Right to left, top to bottom");
-	else if (direction==LAX_RLBT) return _("Right to left, bottom to top");
-	else if (direction==LAX_TBLR) return _("Top to bottom, left to right");
-	else if (direction==LAX_TBRL) return _("Top to bottom, right to left");
-	else if (direction==LAX_BTLR) return _("Bottom to top, left to right");
-	else if (direction==LAX_BTRL) return _("Bottom to top, right to left");
-	return NULL;
+	if      (direction == LAX_LRTB) return _("Left to right, top to bottom");
+	else if (direction == LAX_LRBT) return _("Left to right, bottom to top");
+	else if (direction == LAX_RLTB) return _("Right to left, top to bottom");
+	else if (direction == LAX_RLBT) return _("Right to left, bottom to top");
+	else if (direction == LAX_TBLR) return _("Top to bottom, left to right");
+	else if (direction == LAX_TBRL) return _("Top to bottom, right to left");
+	else if (direction == LAX_BTLR) return _("Bottom to top, left to right");
+	else if (direction == LAX_BTRL) return _("Bottom to top, right to left");
+	else if (direction == LAX_CUSTOM_FLOW) return _("Custom flow directions");
+	return nullptr;
 }
 
 /*! From "lrtb" return LAX_LRTB, for instance.
