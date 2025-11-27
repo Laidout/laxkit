@@ -559,7 +559,7 @@ int ResourceType::AddResource(anObject *nobject, anObject *ntopowner, const char
 
 	char *uniquename = newstr(nname);
 	MakeNameUnique(uniquename);
-	Resource *r = new Resource(nobject,ntopowner, uniquename, uniquename, ndescription,nfile,nicon);
+	Resource *r = new Resource(nobject,ntopowner, uniquename, nName, ndescription,nfile,nicon);
 	r->from_file_func = from_file_func;
 	r->creation_func = creation_func;
 	delete[] uniquename;
