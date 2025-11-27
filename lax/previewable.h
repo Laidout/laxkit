@@ -43,7 +43,7 @@ class Previewable : virtual public anObject, virtual public DoubleBBox
 
 	virtual void touchContents();
 	virtual bool HasOldPreview() { return modtime > previewtime; }
-	virtual bool CanRenderPreview() { return false; }
+	virtual bool CanRenderPreview() { return false; } // whether renderToBufferImage() should work
 	virtual LaxImage *GetPreview();
 	virtual int GeneratePreview(int width, int height);
 

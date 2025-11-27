@@ -106,7 +106,7 @@ int IconSlider::AddItem(const char *nlabel,const char *filename,int nid)
 		items=new MenuInfo;
 		iislocal=1;
 	}
-	MenuItem *newitem=new MenuItem(nlabel,filename,nid,LAX_OFF,0,NULL,0);
+	MenuItem *newitem = new MenuItem(nlabel,filename,nid,LAX_OFF,0,nullptr);
 	items->AddItem(newitem,1);
 	
 	DBG cerr <<"Added "<<filename<<" to IconSlider "<<WindowTitle()<<endl;

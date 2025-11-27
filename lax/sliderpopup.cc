@@ -272,11 +272,11 @@ int SliderPopup::AddToggleItem(const char *newitem, int nid, int ninfo, bool on)
  */
 int SliderPopup::AddItem(const char *newitem,LaxImage *icon,int nid)
 {
-	MenuItem *item=new MenuItem(newitem, icon, nid, LAX_OFF, 0, NULL, 1);
-	items->AddItem(item,1);
-	needtodraw=1;
-	nitems=items->menuitems.n;
-	if (nitems && curitem<0) curitem=0;
+	MenuItem *item = new MenuItem(newitem, icon, nid, LAX_OFF, 0, nullptr);
+	items->AddItem(item, 1);
+	needtodraw = 1;
+	nitems = items->menuitems.n;
+	if (nitems && curitem < 0) curitem = 0;
 	return nitems;
 }
 

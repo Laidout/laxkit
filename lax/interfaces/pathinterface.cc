@@ -742,7 +742,7 @@ int Path::LineColor(Laxkit::ScreenColor *ncolor)
 	return 0;
 }
 
-/*! For any vertex point where point->next_s<=0, compute the length of the next segment.
+/*! For any vertex point where point->next_s < 0, compute the length of the next segment.
  * If all, then force recomputation of all segment lengths.
  *
  * These s computations should be considered rough approximations.
@@ -778,7 +778,7 @@ void Path::UpdateS(bool all, int resolution)
 			}
 		}
 
-		if (all || p->next_s<=0) {
+		if (all || p->next_s < 0) {
 			p->next_s = bez_segment_length(p->p(),c1,c2,p2->p(), resolution);
 		}
 
