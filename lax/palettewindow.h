@@ -91,6 +91,7 @@ class PaletteWindow : public anXWindow
 	virtual int send();
 	virtual int LBDown(int x,int y,unsigned int state,int count,const LaxMouse *d);
 	virtual int LBUp(int x,int y,unsigned int state,const LaxMouse *d);
+	virtual int RBDown(int x,int y,unsigned int state,int count,const LaxMouse *d);
 	virtual int RBUp(int x,int y,unsigned int state,const LaxMouse *d);
 	virtual int MouseMove(int x,int y,unsigned int state,const LaxMouse *d);
 	virtual int CharInput(unsigned int ch, const char *buffer,int len,unsigned int state, const LaxKeyboard *kb);

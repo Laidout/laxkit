@@ -237,12 +237,12 @@ void PaletteWindow::Refresh()
 	dp->ClearWindow();
 	dp->NewBG(win_themestyle->bg);
  
-	double th = win_themestyle->normal->textheight();
+	double th = UIScale() * win_themestyle->normal->textheight();
 
 	 // draw head stuff
 	double pname_width = win_themestyle->normal->Extent(isblank(palette->name) ? _("untitled") : palette->name, -1);
 	const char *blah;
-	dp->font(win_themestyle->normal);
+	dp->font(win_themestyle->normal, th);
 	dp->NewFG(win_themestyle->bg);
 	dp->BlendMode(LAXOP_Over);
 	dp->drawrectangle(0,0,win_w, th, 1);
@@ -304,23 +304,23 @@ void PaletteWindow::Refresh()
 			if (color >= 0 && curcolor < 0) {
 				// draw one solid bar
 				dp->NewFG(rgbcolor(r,g,b,a));
-				if (a < 255) dp->drawCheckerboard(cc+2*pad,0, ccc, win_themestyle->normal->textheight()+2*pad, th/2, 0,0);
-				dp->drawrectangle(cc+2*pad,0, ccc, win_themestyle->normal->textheight()+2*pad,1);
+				if (a < 255) dp->drawCheckerboard(cc+2*pad,0, ccc, th+2*pad, th/2, 0,0);
+				dp->drawrectangle(cc+2*pad,0, ccc, th+2*pad,1);
 			} else {
 				// draw split color bar:  curcolor / hovered color
 				if (a < 255) {
 					dp->NewFG(coloravg(win_themestyle->fg, win_themestyle->bg, .75));
-					dp->drawCheckerboard(cc+2*pad + ccc/2,0, ccc/2, win_themestyle->normal->textheight()+2*pad, th/2, 0,0);
+					dp->drawCheckerboard(cc+2*pad + ccc/2,0, ccc/2, th+2*pad, th/2, 0,0);
 				}
 				dp->NewFG(rgbcolor(r,g,b,a));
-				dp->drawrectangle(cc+2*pad + ccc/2,0, ccc/2, win_themestyle->normal->textheight()+2*pad,1);
+				dp->drawrectangle(cc+2*pad + ccc/2,0, ccc/2, th+2*pad,1);
 
 				if (palette->colors.e[curcolor]->color->values[3] < 1.0) {
 					dp->NewFG(coloravg(win_themestyle->fg, win_themestyle->bg, .75));
-					dp->drawCheckerboard(cc+2*pad,0, ccc/2, win_themestyle->normal->textheight()+2*pad, th/2, 0,0);
+					dp->drawCheckerboard(cc+2*pad,0, ccc/2, th+2*pad, th/2, 0,0);
 				}
 				dp->NewFG(palette->colors.e[curcolor]->color);
-				dp->drawrectangle(cc+2*pad,0, ccc/2, win_themestyle->normal->textheight()+2*pad,1);
+				dp->drawrectangle(cc+2*pad,0, ccc/2, th+2*pad,1);
 			}
 		}
 	}
@@ -365,7 +365,7 @@ void PaletteWindow::Refresh()
 /*! Return either color index or HOVER_*. */
 int PaletteWindow::findColorIndex(int x,int y)
 {
-	double th = win_themestyle->normal->textheight();
+	double th = UIScale() * win_themestyle->normal->textheight();
 
 	// scan top bar
 	if (y < th+pad) {
@@ -494,6 +494,11 @@ int PaletteWindow::MouseMove(int x,int y,unsigned int state,const LaxMouse *d)
 	return 0;
 }
 
+int PaletteWindow::RBDown(int x,int y,unsigned int state,int count,const LaxMouse *d)
+{
+	// capture so it doesn't leak through to lower windows
+	return 0;
+}
 
 //! Pop up a context menu to select a recent menu or other things.
 int PaletteWindow::RBUp(int x,int y,unsigned int state,const LaxMouse *d)
@@ -831,10 +836,11 @@ int PaletteWindow::CharInput(unsigned int ch, const char *buffer,int len,unsigne
  */
 void PaletteWindow::findInrect()
 {
+	double th = UIScale() * win_themestyle->normal->textheight();
 	inrect.x = 0;
-	inrect.y = win_themestyle->normal->textheight() + 2*pad;
+	inrect.y = th + 2*pad;
 	inrect.width=  win_w;
-	inrect.height= win_h - win_themestyle->normal->textheight() - 2*pad;
+	inrect.height= win_h - th - 2*pad;
 	if (inrect.width<1) inrect.width=1;
 	if (inrect.height<1) inrect.height=1;
 	
