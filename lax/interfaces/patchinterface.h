@@ -170,19 +170,21 @@ class PatchData : virtual public SomeData, virtual public Laxkit::PointCollectio
 	virtual int UsesPath();
 	 //@}
 
-	 /*! \name I/O */
-	 //@{
-	 //rendering functions
+	/*! \name Rendering Functions */
+	//@{
 	virtual int renderToBuffer(unsigned char *buffer, int bufw, int bufh, int bufstride, int bufdepth, int bufchannels);
 	virtual void rpatchpoint(PatchRenderContext *context,
 								Laxkit::flatpoint ul,Laxkit::flatpoint ur,Laxkit::flatpoint ll,Laxkit::flatpoint lr,
 								double s1,double t1, double s2,double t2,int which);
 	virtual void patchpoint(PatchRenderContext *context, double s0,double ds,double t0,double dt,int n);
+	//@}
 	
+	/*! \name I/O */
+	//@{
 	virtual void dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *context);
 	virtual Laxkit::Attribute *dump_out_atts(Laxkit::Attribute *att,int what,Laxkit::DumpContext *context);
 	virtual void dump_in_atts(Laxkit::Attribute *att,int flag,Laxkit::DumpContext *context);
-	 //@}
+	//@}
 	
 	/*! \name From PointSet */
 	//@{
@@ -301,7 +303,7 @@ class PatchInterface : public anInterface
 	unsigned long controlcolor;
 	int showdecs, oldshowdecs; 
 	bool smoothedit;
-	char whichcontrols;
+	int whichcontrols;
 	bool auto_select_close;
 	double auto_close_threshhold;
 	int recurse;
