@@ -59,8 +59,9 @@ FreehandInterface::FreehandInterface(anInterface *nowner, int nid, Displayer *nd
  : anInterface(nowner,nid,ndp)
 {
 	//freehand_style = FREEHAND_Poly_Path;
-	freehand_style = FREEHAND_Bez_Path;
+	// freehand_style = FREEHAND_Bez_Path;
 	//freehand_style = FREEHAND_Bez_Outline;
+	freehand_style = FREEHAND_Bez_Weighted;
 	//freehand_style = FREEHAND_Color_Mesh;
 	//freehand_style = FREEHAND_Double_Mesh;
 	mode = MODE_Normal;
@@ -162,6 +163,10 @@ int FreehandInterface::InterfaceOn()
 	showdecs = true;
 	needtodraw=1;
 	if (close_threshhold <= 0) close_threshhold = NearThreshhold();
+	UpdateViewportColor(
+		&((linestyle ? linestyle : &default_linestyle)->color),
+		&((fillstyle ? fillstyle : &default_fillstyle)->color),
+		-1);
 	return 0;
 }
 
@@ -186,11 +191,11 @@ Laxkit::MenuInfo *FreehandInterface::ContextMenu(int x,int y,int deviceid, Laxki
 	if (!menu) menu=new MenuInfo;
 	else menu->AddSep(_("Freehand"));
 
-	menu->AddToggleItem(_("Create raw points"),               FREEHAND_Raw_Path ,    0, (freehand_style & FREEHAND_Raw_Path )   != 0);
-	menu->AddToggleItem(_("Create simplified polyline"),      FREEHAND_Poly_Path ,   0, (freehand_style & FREEHAND_Poly_Path )  != 0);
 	menu->AddToggleItem(_("Create bezier line"),              FREEHAND_Bez_Path ,    0, (freehand_style & FREEHAND_Bez_Path )   != 0);
 	menu->AddToggleItem(_("Create bezier outline"),           FREEHAND_Bez_Outline,  0, (freehand_style & FREEHAND_Bez_Outline) != 0);
 	menu->AddToggleItem(_("Create bezier with weight nodes"), FREEHAND_Bez_Weighted, 0, (freehand_style & FREEHAND_Bez_Weighted)!= 0);
+	menu->AddToggleItem(_("Create simplified polyline"),      FREEHAND_Poly_Path ,   0, (freehand_style & FREEHAND_Poly_Path )  != 0);
+	menu->AddToggleItem(_("Create raw points"),               FREEHAND_Raw_Path ,    0, (freehand_style & FREEHAND_Raw_Path )   != 0);
 	menu->AddToggleItem(_("Create color mesh"),               FREEHAND_Color_Mesh,   0, (freehand_style & FREEHAND_Color_Mesh)  != 0);
 	menu->AddToggleItem(_("Create symmetric color mesh"),     FREEHAND_Double_Mesh,  0, (freehand_style & FREEHAND_Double_Mesh) != 0);
 	menu->AddToggleItem(_("Create grid mesh"),                FREEHAND_Grid_Mesh,    0, (freehand_style & FREEHAND_Grid_Mesh)   != 0);
