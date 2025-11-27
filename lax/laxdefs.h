@@ -96,15 +96,16 @@ typedef enum {
 
 //----------------------------- Arrangement flow direction -----------------------------------
 //***whats with this? should be enum-like?
-#define LAX_LRTB      (0)
-#define LAX_LRBT      (1)
-#define LAX_RLTB      (2)
-#define LAX_RLBT      (3)
-#define LAX_TBLR      (4)
-#define LAX_TBRL      (5)
-#define LAX_BTLR      (6)
-#define LAX_BTRL      (7)
-#define LAX_FLOW_MASK (0x7)
+#define LAX_LRTB        (0)
+#define LAX_LRBT        (1)
+#define LAX_RLTB        (2)
+#define LAX_RLBT        (3)
+#define LAX_TBLR        (4)
+#define LAX_TBRL        (5)
+#define LAX_BTLR        (6)
+#define LAX_BTRL        (7)
+#define LAX_CUSTOM_FLOW (8)
+#define LAX_FLOW_MASK   (0x7)
 
 
 //----------------------------- Menu item state --------------------------------------------
