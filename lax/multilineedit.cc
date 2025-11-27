@@ -1170,6 +1170,8 @@ int MultiLineEdit::makeinwindow()
  */
 void MultiLineEdit::findcaret()
 {
+	if (firsttime) return;
+	
 	if (curpos >= linestats[lpers].start) { // is below screen
 		if (linestats[lpers].start == textlen) { // curpos=textlen 
 			curline = lpers;
