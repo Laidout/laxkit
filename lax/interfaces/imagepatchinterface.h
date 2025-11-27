@@ -59,6 +59,8 @@ class ImagePatchData : public PatchData
 	virtual void zap(); // zap to image
 	virtual int SetImage(const char *fname);
 
+	// from Previewable
+	virtual bool CanRenderPreview() { return true; }
 	virtual int renderToBufferImage(Laxkit::LaxImage *image);
 };
 

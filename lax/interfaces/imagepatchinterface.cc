@@ -396,7 +396,20 @@ int ImagePatchData::hasColorData()
 
 int ImagePatchData::renderToBufferImage(Laxkit::LaxImage *image)
 {
-	return -1; //this forces use of PatchData::renderToBuffer()
+	if (!image) return 1;
+	if (maxx - minx <= 0 || maxy - miny <= 0) return 2;
+	if (image->w() <= 0 || image->h() <= 0) return 3;
+
+	unsigned char *buffer = image->getImageBuffer(); //BGRABGRA..
+	int iwidth  = image->w();
+	int iheight = image->h();
+
+	int status = PatchData::renderToBuffer(buffer, iwidth, iheight, 4*iwidth, 8, 4);
+	image->doneWithBuffer(buffer);
+
+	if (status != 0) return status;
+	
+	return 0;
 }
 
 
@@ -681,32 +694,32 @@ void ImagePatchInterface::patchpoint(PatchRenderContext *context,double s0,doubl
 	//ds3=ds2*ds;
 	
 	ScreenColor col[2][n+1];
-	int a=1;
-	for (c=0,ss=s0; c<=n; c++,ss+=ds) idata->WhatColor(ss,0, &col[0][c]);
-		
+	int a = 1;
+	for (c = 0, ss = s0; c <= n; c++, ss += ds) idata->WhatColor(ss, 0, &col[0][c]);
+
 	idata->WhatColor(0,0, &col[a][0]);
 	int olddm=dp->DrawScreen();
-	for (r=0,t=0,tt=t0; r<=n; r++,t+=d,tt+=dt) {
-		getT(T,t);
-		for (c=0,s=0,ss=s0; c<=n; c++,s+=d,ss+=ds) {
+	for (r = 0, t = 0, tt = t0; r <= n; r++, t += d, tt += dt) {
+		getT(T, t);
+		for (c = 0, s = 0, ss = s0; c <= n; c++, s += d, ss += ds) {
 			idata->WhatColor(ss+ds,tt+dt, &col[a][c+1]);
 			
 			getT(S,s);
-			if (r%2==0) 
-				if (c%2==0) i=2*c;    // row even, column even
-				else i=2*c+1;         // row even, column odd
-			else if (c%2==0) i=2*c+1; // row odd,  column even
-				else i=2*c;           // row odd,  column odd
-			pp[i]=context->getPoint(S,T); // computes (S Cx T,S Cy T), is already in screen 
-										  //   coords, thus so is returned point
+			if (r%2 == 0) 
+				if (c%2 == 0) i = 2*c;    // row even, column even
+				else i = 2*c+1;           // row even, column odd
+			else if (c%2 == 0) i = 2*c+1; // row odd,  column even
+				else i = 2*c;             // row odd,  column odd
+			pp[i] = context->getPoint(S,T); // computes (S Cx T,S Cy T), is already in screen 
+										    //   coords, thus so is returned point
 
-			if (r>0 && c>0) {
+			if (r > 0 && c > 0) {
 				dp->NewFG(&col[a][c]);
 				dp->drawlines(pp+(c-1)*2,4,1,1); //draw a filled quadrilateral
 				//XFillPolygon(app->dpy,dp->GetWindow(),dp->GetGC(),pp+(c-1)*2,4,Convex,CoordModeOrigin);
 			}
 		}
-		a^=1;
+		a ^= 1;
 		idata->WhatColor(0,tt+dt, &col[a][0]);
 	}
 	if (olddm) dp->DrawReal();
