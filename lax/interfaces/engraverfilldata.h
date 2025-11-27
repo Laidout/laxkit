@@ -856,7 +856,7 @@ class EngraverFillData : virtual public PatchData
   	
  public:
 	Laxkit::PtrStack<EngraverPointGroup> groups;
-	int preview_size = 256;
+	int preview_size = 512;
 
 	EngraverFillData();
 	//EngraverFillData(double xx,double yy,double ww,double hh,int nr,int nc,unsigned int stle);
