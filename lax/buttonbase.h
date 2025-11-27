@@ -74,6 +74,7 @@ class ButtonBase : public anXWindow
 	virtual int Grayed(int g);
 	virtual int LBDown(int x,int y,unsigned int wstate,int count,const LaxMouse *d);
 	virtual int LBUp(int x,int y,unsigned int wstate,const LaxMouse *d);
+	virtual int RBDown(int x,int y,unsigned int wstate,int count,const LaxMouse *d) { return 0; }
 	// virtual int WheelDown(int x,int y,unsigned int wstate,int count,const LaxMouse *d);
 	// virtual int WheelUp(int x,int y,unsigned int wstate,int count,const LaxMouse *d);
 	virtual int MouseMove(int x,int y,unsigned int state,const LaxMouse *d);
