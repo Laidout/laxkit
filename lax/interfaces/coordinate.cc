@@ -108,6 +108,7 @@ namespace LaxInterfaces {
  */
 /*! \var double Coordinate::next_s
  * For vertex points, a hint about the length of the following segment to the next vertex point.
+ * Valid values are >= 0. Otherwise consider it unknown.
  */
  
 
@@ -119,7 +120,7 @@ Coordinate::Coordinate()
 	flags       = POINT_VERTEX;
 	iid         = 0;
 	info        = 0;
-	next_s      = 0;
+	next_s      = -1;
 	anchor      = nullptr;
 }
 
@@ -132,7 +133,7 @@ Coordinate::Coordinate(flatpoint p)
 	flags       = POINT_VERTEX;
 	iid         = 0;
 	info        = 0;
-	next_s      = 0;
+	next_s      = -1;
 	anchor      = nullptr;
 }
 
@@ -145,7 +146,7 @@ Coordinate::Coordinate(double x,double y)
 	flags       = POINT_VERTEX;
 	iid         = 0;
 	info        = 0;
-	next_s      = 0;
+	next_s      = -1;
 	anchor      = nullptr;
 }
 
@@ -159,7 +160,7 @@ Coordinate::Coordinate(double x,double y,unsigned long nflags,SegmentControls *c
 	flags       = nflags;
 	iid         = 0;
 	info        = 0;
-	next_s      = 0;
+	next_s      = -1;
 	anchor      = nullptr;
 }
 
@@ -174,7 +175,7 @@ Coordinate::Coordinate(flatpoint pp,unsigned long nflags,SegmentControls *ctl)
 	flags       = nflags;
 	iid         = 0;
 	info        = 0;
-	next_s      = 0;
+	next_s      = -1;
 	anchor      = nullptr;
 }
 
@@ -190,7 +191,7 @@ Coordinate::Coordinate(const Coordinate &p)
 	iid   = p.iid;
 	info  = p.info;
 	next = prev = NULL;
-	next_s      = 0;
+	next_s      = -1;
 	anchor      = nullptr;
 }
 
