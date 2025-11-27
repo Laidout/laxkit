@@ -92,10 +92,9 @@ class MenuItem : public anObject
 {
   protected:
 	void base_init();
-	void base_init(const char *newitem,int nid,unsigned int nstate,int ninfo,MenuInfo *nsub,int sublocal);
+	void base_init(const char *newitem,int nid,unsigned int nstate,int ninfo,MenuInfo *nsub);
 
 	MenuInfo *submenu; // menu is the menu that this item is in, submenu is assumed local
-	int subislocal;
 
   public:
 	char *name; //displayed text
@@ -110,10 +109,10 @@ class MenuItem : public anObject
 	anObject *extra;
 
 	MenuItem();
-	MenuItem(const char *newitem,int nid,unsigned int nstate,int ninfo,MenuInfo *nsub,int sublocal);
+	MenuItem(const char *newitem,int nid,unsigned int nstate,int ninfo,MenuInfo *nsub);
 	MenuItem(LaxImage *img=nullptr);
-	MenuItem(const char *newitem,const char *img,int nid,unsigned int nstate,int ninfo,MenuInfo *nsub,int sublocal);
-	MenuItem(const char *newitem,LaxImage *img,int nid,unsigned int nstate,int ninfo,MenuInfo *nsub,int sublocal);
+	MenuItem(const char *newitem,const char *img,int nid,unsigned int nstate,int ninfo,MenuInfo *nsub);
+	MenuItem(const char *newitem,LaxImage *img,int nid,unsigned int nstate,int ninfo,MenuInfo *nsub);
 	virtual ~MenuItem();
 	virtual MenuInfo *GetSubmenu(int create=0);
 	virtual MenuInfo *CreateSubmenu(const char *ntitle);

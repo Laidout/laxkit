@@ -188,9 +188,6 @@ int menu_strcmp123kb(MenuItem *i1,int detail1, MenuItem *i2,int detail2)
  * items that are leaves, but which provoke some action by themselves, and items
  * that are things that are either on or off.
  */
-/*! \var int MenuItem::subislocal
- * \brief Nonzero if submenu should be deleted from the destructor.
- */
 
 
 MenuItem::MenuItem()
@@ -207,7 +204,6 @@ void MenuItem::base_init()
 	image      = nullptr;
 	submenu    = nullptr;
 	state      = LAX_OFF;
-	subislocal = 0;
 	info       = 0;
 	extra      = nullptr;
 	x = y = w = h = 0;
@@ -217,18 +213,17 @@ void MenuItem::base_init()
 }
 
 //! Item constructor, straight copy of all fields.
-MenuItem::MenuItem(const char *newitem,int nid,unsigned int nstate,int ninfo,MenuInfo *nsub,int sublocal)
+MenuItem::MenuItem(const char *newitem,int nid,unsigned int nstate,int ninfo,MenuInfo *nsub)
 { 
-	base_init(newitem,nid,nstate,ninfo,nsub,sublocal);
+	base_init(newitem,nid,nstate,ninfo,nsub);
 }
 
-void MenuItem::base_init(const char *newitem,int nid,unsigned int nstate,int ninfo,MenuInfo *nsub,int sublocal)
+void MenuItem::base_init(const char *newitem,int nid,unsigned int nstate,int ninfo,MenuInfo *nsub)
 {
 	parent     = nullptr;
 	id         = nid;
 	state      = nstate;
 	submenu    = nsub;
-	subislocal = sublocal;
 	name       = nullptr;
 	key        = nullptr;
 	image      = nullptr;
@@ -252,27 +247,29 @@ MenuItem::MenuItem(LaxImage *img)
 }
 
 //! Image file img is loaded, so it has a count of 1 after the constructor.
-MenuItem::MenuItem(const char *newitem,const char *img,int nid,unsigned int nstate,int ninfo,MenuInfo *nsub,int sublocal)
+MenuItem::MenuItem(const char *newitem,const char *img,int nid,unsigned int nstate,int ninfo,MenuInfo *nsub)
 {
-	base_init(newitem,nid,nstate,ninfo,nsub,sublocal);
+	base_init(newitem,nid,nstate,ninfo,nsub);
 	image = ImageLoader::LoadImage(img);
 }
 
 //! img pointer is transfered. Its count is not incremented.
-MenuItem::MenuItem(const char *newitem,LaxImage *img,int nid,unsigned int nstate,int ninfo,MenuInfo *nsub,int sublocal)
+MenuItem::MenuItem(const char *newitem,LaxImage *img,int nid,unsigned int nstate,int ninfo,MenuInfo *nsub)
 {
-	base_init(newitem,nid,nstate,ninfo,nsub,sublocal);
+	base_init(newitem,nid,nstate,ninfo,nsub);
 	image=img;
 }
 
-//! Destructor, deletes name and if subislocal!=0, also deletes submenu.
 MenuItem::~MenuItem()
 {
 	delete[] key;
 	delete[] name;
-	if (image) image->dec_count();
-	if (extra) extra->dec_count();
-	if (subislocal && submenu) delete submenu; 
+	if (image)   image->dec_count();
+	if (extra)   extra->dec_count();
+	if (submenu) {
+		submenu->parent = nullptr;
+		submenu->dec_count(); 
+	}
 
 	if (nextdetail) delete nextdetail;
 }
@@ -290,11 +287,10 @@ MenuItem::~MenuItem()
 MenuInfo *MenuItem::CreateSubmenu(const char *ntitle)
 {
 	if (!submenu) {
-		submenu=new MenuInfo(ntitle);
-		submenu->parent=this;
-		subislocal=1;
+		submenu = new MenuInfo(ntitle);
+		submenu->parent = this;
 	}
-	state|=MENU_HAS_SUBMENU;
+	state |= MENU_HAS_SUBMENU;
 	return submenu;
 }
 
@@ -453,7 +449,7 @@ int MenuItem::AddDetail(MenuItem *detail)
  */
 int MenuItem::AddDetail(const char *newitem,LaxImage *img,int nid,int ninfo)
 {
-	MenuItem *mi=new MenuItem(newitem,img,nid,LAX_OFF,ninfo,NULL,0);
+	MenuItem *mi=new MenuItem(newitem,img,nid,LAX_OFF,ninfo,nullptr);
 	AddDetail(mi);
 	return 0;
 }
@@ -789,13 +785,11 @@ int MenuInfo::AddToggleItem(const char *newitem, int nid, int ninfo, bool on, La
 
 //! Add item at position where, or to end of menu if where<0.
 /*! Please note that the MenuItem that is created is local to the menuitems stack (it will be deleted
- *  when the item stack is flushed), while the passed in submenu is local according to subislocal.
- *
- * \todo why is this img not incremented but other constructor is??
+ *  when the item stack is flushed), while the passed in submenu is dec_counted later.
  */
 int MenuInfo::AddItem(const char *newitem, int nid, int info, LaxImage *img, int where, int state)
 {
-	MenuItem *mi = new MenuItem(newitem,img,nid, state, info, NULL,0);
+	MenuItem *mi = new MenuItem(newitem,img,nid, state, info, nullptr);
 	curmenu->menuitems.push(mi,1,where);
 	mi->parent = curmenu;
 	return curmenu->menuitems.n;
@@ -844,7 +838,7 @@ int MenuInfo::AddDetail(const char *newitem,LaxImage *img,int nid,int ninfo, int
 	if (towhich<0 || towhich>=curmenu->menuitems.n) towhich=curmenu->menuitems.n-1;
 	if (towhich<0) return 0;
 
-	MenuItem *mi=new MenuItem(newitem,img,nid,LAX_OFF,ninfo,NULL,0);
+	MenuItem *mi=new MenuItem(newitem,img,nid,LAX_OFF,ninfo,nullptr);
 	curmenu->menuitems.e[towhich]->AddDetail(mi);
 
 	return 0;

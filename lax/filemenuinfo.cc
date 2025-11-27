@@ -45,7 +45,7 @@ namespace Laxkit {
  * If followlinks!=0 then follow links, otherwise, statbuf will refer to the link itself.
  */
 FileMenuItem::FileMenuItem(const char *newitem,unsigned int nstate,int followlinks)
-	: MenuItem(newitem,0,nstate,0,NULL,0)
+	: MenuItem(newitem,0,nstate,0,nullptr)
 {
 	int c;
 	info=followlinks;
@@ -68,9 +68,8 @@ FileMenuItem::FileMenuItem(const char *newitem,unsigned int nstate,int followlin
 //! Grab out the submenu, defining if necessary. submenu undefined afterwards.
 MenuInfo *FileMenuItem::ExtractMenu()
 {
-	MenuInfo *sm=GetSubmenu(1);
-	subislocal=0;
-	submenu=NULL;
+	MenuInfo *sm = GetSubmenu(1);
+	submenu = nullptr;
 	return sm;
 }
 
@@ -95,8 +94,7 @@ MenuInfo *FileMenuItem::CreateSubmenu(const char *pathtodir)
 			DBG perror(pathtodir);
 			return NULL;
 		}
-		submenu=new MenuInfo(pathtodir);
-		subislocal=1;
+		submenu = new MenuInfo(pathtodir);
 
 		char *str=NULL;
 		struct dirent *entry;
