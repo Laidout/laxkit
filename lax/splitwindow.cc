@@ -333,8 +333,8 @@ void SplitWindow::Refresh()
 				 //draw boundary
 				unsigned long hl = highlight, sd = shadow;
 				if (mousein && windows.e[c]->win() && windows.e[c]->win() == lastactivewindow) {
-					hl = coloravg(win_themestyle->bg,rgbcolor(255,255,255), .8);
-					sd = coloravg(win_themestyle->bg,rgbcolor(255,255,255), .3);
+					hl = coloravg(win_themestyle->bg,rgbcolor(255,0,255), .8);
+					sd = coloravg(win_themestyle->bg,rgbcolor(255,0,255), .3);
 				}
 				dp->drawBevel(space/2, hl,sd, LAX_OFF,
 						windows.e[c]->x1,windows.e[c]->y1,
@@ -1123,7 +1123,7 @@ void SplitWindow::drawsplitmarks()
  */
 void SplitWindow::drawmovemarks(int on) //on=1
 {
-	Displayer *dp = GetDisplayer();
+	Displayer *dp = MakeCurrent();
 	//DBG if (on) cerr <<"draw on "<<minx<<','<<maxx<<' '<<miny<<','<<maxy<<' '<<curx<<','<<cury<<endl;
 	//DBG else cerr <<"draw off "<<minx<<','<<maxx<<' '<<miny<<','<<maxy<<' '<<curx<<','<<cury<<endl;
 	//DBG cerr <<"  line: "<<curx<<","<<sminy<<" to "<<curx<<","<<smaxy<<endl;
@@ -1316,7 +1316,7 @@ int SplitWindow::Event(const EventData *e, const char *mes)
 	//DBG cerr <<"SplitWindow::event:"<<xlib_event_name(e->type)<<endl;
 	//DBG if (e->type==EnterNotify || e->type==LeaveNotify) { cerr <<" crossing:"; printxcrossing(this,e); }
 
-	if (e->type==LAX_onMouseOut) {
+	if (e->type == LAX_onMouseOut || e->type == LAX_onFocusOff) {
 		//const EnterExitData *ee=dynamic_cast<const EnterExitData*>(e);
 		mousein=0;
 		needtodraw=1;
@@ -1326,7 +1326,7 @@ int SplitWindow::Event(const EventData *e, const char *mes)
 		}
 		return 0;
 
-	} else if (e->type==LAX_onMouseIn) {
+	} else if (e->type == LAX_onMouseIn) {
 		const EnterExitData *ee=dynamic_cast<const EnterExitData*>(e);
 		mousein=1;
 		needtodraw=1;
@@ -1353,6 +1353,8 @@ int SplitWindow::Event(const EventData *e, const char *mes)
 			//DBG if (!curbox) cerr <<"enter did not find curbox"<<endl;
 			
 			GetAffected(ee->x,ee->y,dynamic_cast<LaxMouse*>(ee->device));
+
+			InitCleanupCheck();
 		}
 		return 0;//anXWindow default is just to return
 
@@ -1407,6 +1409,35 @@ int SplitWindow::Event(const EventData *e, const char *mes)
 	}
 
 	return anXWindow::Event(e,mes);
+}
+
+/*! Hack to remove gap highlight after a small amount of time.
+ * Sometimes we are not getting matched mouse/focus in/out events.
+ */
+void SplitWindow::InitCleanupCheck()
+{
+	cleanup_timer = app->addtimer(this, 100, 100, 100);
+}
+
+void SplitWindow::CheckHover()
+{
+	anXWindow *child = nullptr;
+	mouseposition(0, this, nullptr, nullptr, nullptr, &child, nullptr, nullptr);
+	if (child != nullptr && child != this) {
+		mousein = 0;
+		needtodraw = 1;
+	}
+}
+
+int SplitWindow::Idle(int tid, double delta)
+{
+	if (tid == cleanup_timer) {
+		CheckHover();
+		return 1;
+		cleanup_timer = 0;
+	}
+
+	return 1;
 }
 
 //! Toggle curbox maximized if which==-1, or maximize (1) or un-maximize(0).

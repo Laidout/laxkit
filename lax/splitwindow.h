@@ -73,7 +73,9 @@ typedef NewWindowObject WinFuncNode;
 
 
 class SplitWindow : public anXWindow
-{ 
+{
+	int cleanup_timer = 0;
+
   protected:
 	ButtonDownInfo buttondown;
 	int mousein;
@@ -100,6 +102,8 @@ class SplitWindow : public anXWindow
 	virtual void syncaffected();
 	virtual anXWindow *NewWindow(const char *wtype,anXWindow *likethis=NULL);
 	virtual MenuInfo *GetMenu();
+	virtual void CheckHover();
+	virtual void InitCleanupCheck();
 
   public:
 	SplitWindow(anXWindow *parnt,const char *nname,const char *ntitle,unsigned long nstyle,
@@ -120,6 +124,7 @@ class SplitWindow : public anXWindow
 	virtual int MoveResize(int nx,int ny,int nw,int nh);
 	virtual int Resize(int nw,int nh);
 	virtual void Refresh();
+	virtual int  Idle(int tid, double delta);
 	
 	virtual int NumPanes() { return windows.n; }
 	virtual PlainWinBox *GetPane(int which);
