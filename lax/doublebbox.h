@@ -81,6 +81,7 @@ class Insets {
   	void ApplyInsets(DoubleBBox &box) const;
   	DoubleBBox InsetBox(const DoubleBBox &box) const;
   	void SetFromBoxDiff(const DoubleBBox &box, const DoubleBBox &inset_box);
+  	void Set(double t, double r, double b, double l) { top = t; right = r; bottom = b; left = l; }
 };
 
 
