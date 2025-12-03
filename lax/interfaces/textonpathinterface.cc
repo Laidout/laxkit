@@ -401,16 +401,19 @@ int TextOnPath::Font(Laxkit::LaxFont *newfont)
 	font = newfont;
 	font->inc_count();
 	//if (font->textheight()<5) scale_correction = 50;
-	needtorecache=1;
+	fontsize = font->textheight();
+	needtorecache = 1;
 	return 0;
 }
 
 double TextOnPath::Size(double newfontsize)
 {
-	if (newfontsize<=0) newfontsize=1e-4;
-	double fs=font->Resize(newfontsize);
-	needtorecache=1;
-	return fs;
+	if (newfontsize <= 0) newfontsize = 1e-4;
+	fontsize = newfontsize;
+	// double fs = font->Resize(newfontsize);
+	font->Resize(newfontsize);
+	needtorecache = 1;
+	return fontsize;
 }
 
 void TextOnPath::ColorRGB(double r, double g, double b, double a)
@@ -1447,7 +1450,7 @@ int TextOnPathInterface::UseThisObject(ObjectContext *oc)
 	if (caretpos<0) caretpos=0;
 	if (caretpos>textonpath->end-textonpath->start) caretpos=textonpath->end-textonpath->start;
 
-	defaultsize=textonpath->font->textheight();
+	defaultsize = textonpath->Size();
 	//makestr(defaultfamily,textonpath->fontfamily);
 	//makestr(defaultstyle, textonpath->fontstyle);
 	//defaultscale = textonpath->xaxis().norm();
@@ -1780,7 +1783,8 @@ int TextOnPathInterface::Refresh()
 	//long curpos = textonpath->start;
 	flatpoint pp;
 
-	dp->font(textonpath->font,textonpath->font->textheight()/72);
+	// dp->font(textonpath->font, textonpath->font->textheight()/72);
+	dp->font(textonpath->font, textonpath->fontsize/72);
 	OnPathGlyph *glyph;
 	GlyphPlace **glyphs = (GlyphPlace**)(textonpath->glyphs.e);
 
@@ -1953,7 +1957,8 @@ int TextOnPathInterface::Refresh()
 					if (c==textonpath->numglyphs) ox=glyph->x_advance/72.;
 
 					dp->LineWidthScreen(2);
-					double th=textonpath->font->textheight()/72;
+					// double th=textonpath->font->textheight()/72;
+					double th = textonpath->fontsize/72;
 					dp->drawline(ox,0, ox,-th);
 					dp->drawline(ox,0, ox-th/10,th/10);
 					dp->drawline(ox,0, ox+th/10,th/10);
@@ -2054,7 +2059,8 @@ int TextOnPathInterface::LBDown(int x,int y,unsigned int state,int count, const 
 
 	if (textonpath && count==2) {
 		app->rundialog(new FontDialog(NULL, "Font",_("Font"),ANXWIN_REMEMBER, 10,10,700,700,0, object_id,"newfont",0,
-					NULL, NULL, textonpath->font->textheight(), //data->fontfamily, data->fontstyle, data->fontsize,
+					// NULL, NULL, textonpath->font->textheight(), //data->fontfamily, data->fontstyle, data->fontsize,
+					NULL, NULL, textonpath->Size(), //data->fontfamily, data->fontstyle, data->fontsize,
 					NULL, //sample text
 					textonpath->font, true
 					));
@@ -2106,7 +2112,8 @@ int TextOnPathInterface::LBDown(int x,int y,unsigned int state,int count, const 
 		if (viewport) viewport->ChangeObject(oc,0,true);
 		//buttondown.moveinfo(d->id,LEFTBUTTON, TPATH_Move);
 
-		defaultsize=textonpath->font->textheight();
+		// defaultsize = textonpath->font->textheight();
+			defaultsize = textonpath->Size();
 		//makestr(defaultfamily,textonpath->fontfamily);
 		//makestr(defaultstyle, textonpath->fontstyle);
 		//defaultscale=textonpath->xaxis().norm();
@@ -2205,7 +2212,7 @@ int TextOnPathInterface::LBUp(int x,int y,unsigned int state, const Laxkit::LaxM
 			label = _("Inset");
 
 		} else if (hover==TPATH_Size) {
-			sprintf(input,"%.10g", textonpath->font->textheight());
+			sprintf(input,"%.10g", textonpath->fontsize);
 			str = "fontsize";
 			label = _("Font size");
 		}
@@ -2339,19 +2346,21 @@ int TextOnPathInterface::MouseMove(int x,int y,unsigned int state, const Laxkit:
 		double factor = 72; // use pts for font size by default
 		if (state & ShiftMask)   factor *= .1;
 		if (state & ControlMask) factor *= .1;
-		double old_th = textonpath->font->textheight();
+		// double old_th = textonpath->font->textheight();
+		double old_th = textonpath->Size();
 		double old_msize = textonpath->font->Msize();
 		double d = old_th + factor*dv.y;
 		if (d <= 0) d = 1e-3;
 		textonpath->Size(d);
-		double new_th = textonpath->font->textheight();
+		// double new_th = textonpath->font->textheight();
+		double new_th = textonpath->Size();
 		double new_msize = textonpath->font->Msize();
 		char str[200];
 		sprintf(str, _("old th,M,r: %f %f %f, new th,M,r: %f %f %f d: %f pt dv=%f,%f"), old_th, old_msize, old_th/old_msize, new_th, new_msize, new_th/new_msize, d, dv.x,dv.y);
 		//sprintf(str, _("Size %f pt"), d);
 
 		DBG cerr <<"------------ new font size a,d,h, fs: "<<textonpath->font->ascent()<<", "<<textonpath->font->descent()
-		DBG      <<", "<<textonpath->font->textheight()<<endl;
+		DBG      <<", "<<textonpath->font->textheight()<<", "<<textonpath->Size()<<endl;
 
 		PostMessage(str);
 		needtodraw=1;
@@ -2667,7 +2676,8 @@ int TextOnPathInterface::PerformAction(int action)
 	} else if (action == TPATH_SelectFont) {
 		if (child) return 0;
 		app->rundialog(new FontDialog(nullptr, "Font", _("Font"), ANXWIN_REMEMBER, 10,10,700,700,0, object_id,"newfont",0,
-			nullptr, nullptr, textonpath->font->textheight(), //data->fontfamily, data->fontstyle, data->fontsize,
+			// nullptr, nullptr, textonpath->font->textheight(), //data->fontfamily, data->fontstyle, data->fontsize,
+			nullptr, nullptr, textonpath->Size(), //data->fontfamily, data->fontstyle, data->fontsize,
 			nullptr, //sample text
 			textonpath->font, true
 		));

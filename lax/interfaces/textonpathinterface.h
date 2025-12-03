@@ -120,6 +120,8 @@ class TextOnPath : virtual public SomeData
 	virtual bool NeedToRecache(bool yes);
 	virtual int Font(Laxkit::LaxFont *newfont);
 	virtual double Size(double newfontsize);
+	virtual double Size() { return fontsize; }
+	// virtual double Size() { return font->textheight(); }
 	virtual void ColorRGB(double r, double g, double b, double a=-1.0);
 	virtual double Baseline(double newbaseline, bool diff);
 	virtual double Baseline(double newbaseline, bool diff, Laxkit::flatpoint constant);
