@@ -1239,12 +1239,13 @@ int FileDialog::Event(const EventData *data,const char *mes)
 			menu->sortstyle = (menu->sortstyle&(SORT_CBA|SORT_ABC)) | SORT_CBA;
 
 		} else if (id==SORT_IGNORE_CASE) {
-			bool ignore = menu->sortstyle & SORT_IGNORE_CASE;
-			menu->sortstyle = (menu->sortstyle & (~SORT_IGNORE_CASE)) | (ignore ? 0: SORT_IGNORE_CASE);
+			bool old_ignore = menu->sortstyle & SORT_IGNORE_CASE;
+			menu->sortstyle = (menu->sortstyle & (~SORT_IGNORE_CASE)) | (old_ignore ? 0: SORT_IGNORE_CASE);
+			if ((menu->sortstyle & ~SORT_IGNORE_CASE) == 0) menu->sortstyle |= SORT_ABC;
 
 		} else if (id==SORT_DIRS_FIRST) {
 			filelist->sort_dirs_first = !filelist->sort_dirs_first;
-			menu->sortstyle = (menu->sortstyle & SORT_DIRS_FIRST) | (filelist->sort_dirs_first ? SORT_DIRS_FIRST : 0);
+			menu->sortstyle = (menu->sortstyle & (~SORT_DIRS_FIRST)) | (filelist->sort_dirs_first ? SORT_DIRS_FIRST : 0);
 		}
 
 		if (filelist->sort_detail < 0) filelist->sort_detail = 0;
