@@ -71,16 +71,16 @@ namespace Laxkit {
 //-------------------------- Comparison functions
 
 int menu_strcmp(MenuItem *i1,int detail1, MenuItem *i2,int detail2)
-{ return strcmp(i1->GetString(detail1), i2->GetString(detail1)); }
+{ return strcmp(i1->GetString(detail1), i2->GetString(detail2)); }
 
 int menu_strcasecmp(MenuItem *i1,int detail1, MenuItem *i2,int detail2)
-{ return strcasecmp(i1->GetString(detail1), i2->GetString(detail1)); }
+{ return strcasecmp(i1->GetString(detail1), i2->GetString(detail2)); }
 
 int menu_reversestrcmp(MenuItem *i1,int detail1, MenuItem *i2,int detail2)
-{ return -strcmp(i1->GetString(detail1), i2->GetString(detail1)); }
+{ return -strcmp(i1->GetString(detail1), i2->GetString(detail2)); }
 
 int menu_reversestrcasecmp(MenuItem *i1,int detail1, MenuItem *i2,int detail2)
-{ return -strcasecmp(i1->GetString(detail1), i2->GetString(detail1)); }
+{ return -strcasecmp(i1->GetString(detail1), i2->GetString(detail2)); }
 
 int menu_strcmp123(MenuItem *i1,int detail1, MenuItem *i2,int detail2)
 { return atof(i1->GetString(detail1))<atof(i2->GetString(detail2))?-1:(atof(i1->GetString(detail1))>atof(i2->GetString(detail2))?1:0); }
