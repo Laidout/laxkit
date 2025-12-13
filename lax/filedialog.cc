@@ -179,6 +179,7 @@ FileDialog::FileDialog(anXWindow *parnt,const char *nname,const char *ntitle,uns
 	  history(2)
 {
 	dialog_style = ndstyle | FILES_GLOBAL_BOOKMARK;
+	dialog_style |= FILES_DIRS_FIRST;
 	
 	files      = new MenuInfo;
 	recentmenu = new MenuInfo;
@@ -1229,21 +1230,21 @@ int FileDialog::Event(const EventData *data,const char *mes)
 		return 0;
 
 	} else if (!strcmp(mes,"settings")) { // toggle details/all together
-		int id=s->info2;
+		int id = s->info2;
 
 		MenuInfo *menu = filelist->Menu();
-		if (id==SORT_ABC) {
-			menu->sortstyle = (menu->sortstyle&(SORT_CBA|SORT_ABC)) | SORT_ABC;
+		if (id == SORT_ABC) {
+			menu->sortstyle = (menu->sortstyle & ~(SORT_CBA|SORT_ABC)) | SORT_ABC;
 
-		} else if (id==SORT_CBA) {
-			menu->sortstyle = (menu->sortstyle&(SORT_CBA|SORT_ABC)) | SORT_CBA;
+		} else if (id == SORT_CBA) {
+			menu->sortstyle = (menu->sortstyle & ~(SORT_CBA|SORT_ABC)) | SORT_CBA;
 
-		} else if (id==SORT_IGNORE_CASE) {
+		} else if (id == SORT_IGNORE_CASE) {
 			bool old_ignore = menu->sortstyle & SORT_IGNORE_CASE;
 			menu->sortstyle = (menu->sortstyle & (~SORT_IGNORE_CASE)) | (old_ignore ? 0: SORT_IGNORE_CASE);
 			if ((menu->sortstyle & ~SORT_IGNORE_CASE) == 0) menu->sortstyle |= SORT_ABC;
 
-		} else if (id==SORT_DIRS_FIRST) {
+		} else if (id == SORT_DIRS_FIRST) {
 			filelist->sort_dirs_first = !filelist->sort_dirs_first;
 			menu->sortstyle = (menu->sortstyle & (~SORT_DIRS_FIRST)) | (filelist->sort_dirs_first ? SORT_DIRS_FIRST : 0);
 		}
@@ -1529,6 +1530,48 @@ void FileDialog::UseFileTypes(MenuInfo *types, int default_type)
 
 	file_default_type = default_type;
 	dialog_style |= FILES_USE_FILE_TYPES;
+}
+
+//! Passes off to SignatureInterface::dump_out().
+void FileDialog::dump_out(FILE *f, int indent, int what, Laxkit::DumpContext *context)
+{
+    Attribute att;
+	dump_out_atts(&att,0,context);
+    att.dump_out(f,indent);
+}
+
+Laxkit::Attribute *FileDialog::dump_out_atts(Laxkit::Attribute *att, int what, Laxkit::DumpContext *context)
+{
+	att = anXWindow::dump_out_atts(att, what, context);
+	if (!att) att = new Attribute();
+
+	if (filelist->Menu()->sortstyle & SORT_IGNORE_CASE) att->push("sort_caseless");
+	if (filelist->sort_dirs_first) att->push("sort_dirs_first");
+
+	// att->push("which", which);
+	return att;
+}
+
+//! Passes off to SignatureInterface::dump_in_atts().
+void FileDialog::dump_in_atts(Laxkit::Attribute *att,int flag,Laxkit::DumpContext *context)
+{
+	anXWindow::dump_in_atts(att,flag,context);
+	const char *name;
+	const char *value;
+	for (int c = 0; c < att->attributes.n; c++) {
+		name  = att->attributes.e[c]->name;
+		value = att->attributes.e[c]->value;
+		
+		if (!strcmp(name, "sort_caseless")) {
+			bool b = BooleanAttribute(value);
+			if (b) filelist->Menu()->sortstyle |= SORT_IGNORE_CASE;
+
+		} else if (!strcmp(name, "sort_dirs_first")) {
+			bool b = BooleanAttribute(value);
+			filelist->sort_dirs_first = b;
+			filelist->Menu()->sortstyle = (filelist->Menu()->sortstyle & (~SORT_DIRS_FIRST)) | (b ? SORT_DIRS_FIRST : 0);
+		}
+	}
 }
 
 

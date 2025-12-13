@@ -132,6 +132,10 @@ class FileDialog : public RowFrame
 	virtual int NewHistory(const char *npath);
 
 	virtual void UseFileTypes(MenuInfo *types, int default_type);
+
+	virtual void dump_out(FILE *f,int indent,int what,Laxkit::DumpContext *context);
+	virtual Laxkit::Attribute *dump_out_atts(Laxkit::Attribute *att,int what,Laxkit::DumpContext *context);
+	virtual void dump_in_atts(Laxkit::Attribute *att,int flag,Laxkit::DumpContext *context);
 };
 
 } //namespace Laxkit
