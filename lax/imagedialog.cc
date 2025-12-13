@@ -246,16 +246,18 @@ int ImageDialog::init()
  */
 char **ImageDialog::GetPossiblePreviewFiles()
 {
-	if (isblank(imageinfo->filename)) return nullptr;
+	return ImageLoader::GetPreviewFileList(imageinfo->filename, nullptr);
 
-	char **dirs = new char*[5];
-	dirs[0] = freedesktop_thumbnail_filename(imageinfo->filename, 'n');
-	dirs[1] = freedesktop_thumbnail_filename(imageinfo->filename, 'l');
-	dirs[2] = freedesktop_thumbnail_filename(imageinfo->filename, 'x');
-	dirs[3] = freedesktop_thumbnail_filename(imageinfo->filename, 'X');
-	dirs[4] = nullptr;
+	// if (isblank(imageinfo->filename)) return nullptr;
 
-	return dirs;
+	// char **dirs = new char*[5];
+	// dirs[0] = freedesktop_thumbnail_filename(imageinfo->filename, 'n');
+	// dirs[1] = freedesktop_thumbnail_filename(imageinfo->filename, 'l');
+	// dirs[2] = freedesktop_thumbnail_filename(imageinfo->filename, 'x');
+	// dirs[3] = freedesktop_thumbnail_filename(imageinfo->filename, 'X');
+	// dirs[4] = nullptr;
+
+	// return dirs;
 }
 
 

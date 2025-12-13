@@ -347,16 +347,14 @@ int ImageData::LoadImage(const char *fname, const char *npreview, int maxpx, int
 	if (image) { image->dec_count(); image=nullptr; }
 	if (previewimage) { previewimage->dec_count(); previewimage=nullptr; }
 
-	LaxImage *t, *p=nullptr;
-	//--------
-	//if (npreview) t=load_image_with_preview(fname,npreview,maxpx,maxpy, &p);
-	//else t=load_image(fname);
-	//--------
-	t = ImageLoader::LoadImage(fname, npreview,maxpx,maxpy,&p, 0,-1, nullptr, true, index);
+	LaxImage *t, *preview_img = nullptr;
+	
+	// if npreview==null, no preview is loaded. preview is not generated in any case
+	t = ImageLoader::LoadImage(fname, npreview,maxpx,maxpy, &preview_img, 0,-1, nullptr, true, index);
 
 	if (t) {
-		image=t;
-		previewimage=p;
+		image = t;
+		previewimage = preview_img;
 
 		if (fit && maxx>minx && maxy>miny) {
 			 //if you want to fit the new image within the bounds of the old image

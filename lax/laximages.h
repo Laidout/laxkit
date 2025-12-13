@@ -137,6 +137,9 @@ class ImageLoader : public anObject
 	static int RemoveLoader(int which);
 	static int FlushLoaders();
 
+	static char **(*GetPreviewFileList_func)(const char *file, const char *context);
+	static char **GetPreviewFileList(const char *file, const char *context);
+
 	static LaxImage *LoadImage(const char *file,
                                const char *previewfile, int maxw,int maxh, LaxImage **preview_ret,
                                int required_state,

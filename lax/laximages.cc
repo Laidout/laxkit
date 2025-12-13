@@ -605,6 +605,25 @@ int ImageLoader::SetLoaderPriority(int where)
 }
 
 
+char **(*ImageLoader::GetPreviewFileList_func)(const char *file, const char *context) = nullptr;
+
+char **ImageLoader::GetPreviewFileList(const char *file, const char *context)
+{
+	if (GetPreviewFileList_func != nullptr) return GetPreviewFileList_func(file, context);
+
+	if (isblank(file)) return nullptr;
+
+	char **dirs = new char*[5];
+	dirs[0] = freedesktop_thumbnail_filename(file, 'n');
+	dirs[1] = freedesktop_thumbnail_filename(file, 'l');
+	dirs[2] = freedesktop_thumbnail_filename(file, 'x');
+	dirs[3] = freedesktop_thumbnail_filename(file, 'X');
+	dirs[4] = nullptr;
+
+	return dirs;
+}
+
+
 /*! Try to load file into the default image format.
  */
 LaxImage *ImageLoader::LoadImage(const char *file)
