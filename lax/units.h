@@ -69,6 +69,7 @@ enum UnitTypes {
 	UNITS_Micron,
 	UNITS_Mil,     // 1000 mil = 1 inch
 	UNITS_Miles,
+	UNITS_Kilometer,
 	UNITS_NauticalMile,
 	UNITS_League,  // 1 = 3 miles = 4800 m
 	UNITS_Fathom,  // 1 = 6 feet

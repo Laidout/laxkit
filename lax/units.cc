@@ -127,18 +127,24 @@ void CompoundUnit::DivideUnits(const CompoundUnit &u)
 UnitManager *CreateDefaultUnits(UnitManager *units, bool include_px, bool include_em)
 {
 	if (!units) units = new UnitManager(false);
-	units->AddUnits(UNITS_Length, UNITS_Inches,    .0254,    0, _("in"), _("inch"),      _("inches"));
-	units->AddUnits(UNITS_Length, UNITS_Feet,      12*.0254, 0, _("ft"), _("foot"),      _("feet"));
-	units->AddUnits(UNITS_Length, UNITS_Yards,     36*.0254, 0, _("yd"), _("yard"),      _("yards"));
-	units->AddUnits(UNITS_Length, UNITS_CM,        .01,      0, _("cm"), _("centimeter"),_("centimeters"));
-	units->AddUnits(UNITS_Length, UNITS_MM,        .001,     0, _("mm"), _("millimeter"),_("millimeters"));
-	units->AddUnits(UNITS_Length, UNITS_Meters,    1,        0, _("m"),   _("meter"),    _("meters"));
-	units->AddUnits(UNITS_Length, UNITS_Points,    .0254/72, 0, _("pt"),   _("point"),   _("points"), _("72 ppi"));
-	units->AddUnits(UNITS_Length, UNITS_SvgPoints, .0254/90, 0, _("svgpt"),_("svgpoint"),_("svgpoints"), _("Legacy 90 ppi"));
-	units->AddUnits(UNITS_Length, UNITS_CSSPoints, .0254/96, 0, _("csspt"),_("csspoint"),_("csspoints"), _("96 ppi"));
+	units->AddUnits(UNITS_Length, UNITS_Inches,    .0254,    0, _("in"),     _("inch"),      _("inches"));
+	units->AddUnits(UNITS_Length, UNITS_Feet,      12*.0254, 0, _("ft"),     _("foot"),      _("feet"));
+	units->AddUnits(UNITS_Length, UNITS_Yards,     36*.0254, 0, _("yd"),     _("yard"),      _("yards"));
+	units->AddUnits(UNITS_Length, UNITS_CM,        .01,      0, _("cm"),     _("centimeter"),_("centimeters"));
+	units->AddUnits(UNITS_Length, UNITS_MM,        .001,     0, _("mm"),     _("millimeter"),_("millimeters"));
+	units->AddUnits(UNITS_Length, UNITS_Meters,    1,        0, _("m"),      _("meter"),     _("meters"));
+	units->AddUnits(UNITS_Length, UNITS_Mil,       2.54e-5,  0, _("mil"),    _("mil"),       _("mils"));
+	units->AddUnits(UNITS_Length, UNITS_Micron,    1e-6,     0, _("micron"), _("micron"),    _("micron"));
 
-	if (include_px) units->AddUnits(UNITS_Length, UNITS_Pixels, .0254/96, 0, _("px"), _("pixel"), _("pixels"));
-	if (include_em) units->AddUnits(UNITS_Length, UNITS_em,     1,        0, _("em"), _("em"),    _("em"));
+	units->AddUnits(UNITS_Length, UNITS_Kilometer, 1000,     0,  _("km"),    _("kilometer"), _("kilometers"));
+	units->AddUnits(UNITS_Length, UNITS_Miles,     1609.34,  0,  _("mile"),  _("mile"),      _("miles"));
+
+	units->AddUnits(UNITS_Length, UNITS_Points,    .0254/72, 0, _("pt"),     _("point"),     _("points"),    _("72 ppi"));
+	units->AddUnits(UNITS_Length, UNITS_SvgPoints, .0254/90, 0, _("svgpt"),  _("svgpoint"),  _("svgpoints"), _("Legacy 90 ppi"));
+	units->AddUnits(UNITS_Length, UNITS_CSSPoints, .0254/96, 0, _("csspt"),  _("csspoint"),  _("csspoints"), _("96 ppi"));
+
+	if (include_px) units->AddUnits(UNITS_Length, UNITS_Pixels, .0254/96, 0, _("px"),        _("pixel"),     _("pixels"));
+	if (include_em) units->AddUnits(UNITS_Length, UNITS_em,     1,        0, _("em"),        _("em"),        _("em"));
 
 	return units;
 }
