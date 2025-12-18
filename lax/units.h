@@ -33,6 +33,7 @@ enum UnitTypes {
 	UNITS_None = 0,
 	UNITS_Any,
 	UNITS_Default,
+	UNITS_Error,
 	//categories
 	UNITS_Length,
 	UNITS_Time,
@@ -297,6 +298,7 @@ class UnitManager : public anObject
 	virtual int DefaultUnits(int units, int category = UNITS_Default);
 	virtual double Convert(double value, const char *from, const char *to, int category = UNITS_Any, int *error_ret = nullptr);
 	virtual double Convert(double value, int from_id, int to_id, int category = UNITS_Any, int *error_ret = nullptr);
+	virtual double ParseWithUnit(const char *str, int *units_ret, int *unit_category_ret, const char **unit_str_ret, const char **end_ptr);
 	virtual int PixelSize(double pixelsize, int intheseunits); // for length only
 
 	//------------ new 

@@ -554,6 +554,34 @@ double UnitManager::Convert(double value, int from_id, int to_id, int category, 
 	return (value * f->scaling + f->offset - t->offset) / t->scaling; // with offset
 }
 
+double UnitManager::ParseWithUnit(const char *str, int *units_ret, int *unit_category_ret, const char **unit_str_ret, const char **end_ptr)
+{
+	char *endptr = nullptr;
+	double d = strtod(str, &endptr);
+	if (end_ptr) *end_ptr = endptr;
+	if (endptr == str) {
+		if (units_ret) *units_ret = UNITS_Error;
+		return 0;
+	}
+
+	const char *p = endptr;
+	while(isspace(*p)) p++;
+
+	int unit = UNITS_None;
+	int cat = UNITS_None;
+	if (unit_str_ret) *unit_str_ret = p;
+	if (*p) {
+		const SimpleUnit *sunit = FindByName(p,-1);
+		if (sunit) {
+			unit = sunit->id;
+			cat = sunit->category;
+		}
+	}
+
+	if (units_ret) *units_ret = unit;
+	if (unit_category_ret) *unit_category_ret = cat;
+	return d;
+}
 
 int UnitManager::BuildFor(int category)
 {
