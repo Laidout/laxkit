@@ -1104,7 +1104,7 @@ const char *lax_basename(const char *path)
 	return n;
 }
 
-/*! Like lax_basename, but return a pointer to the extension, if any.
+/*! Like lax_basename, but return a pointer to the extension (starting after the '.'), if any.
  * If no extension, return NULL.
  * If a file is all extension (like ".blah"), return null.
  * If a file has a blank extension (like "blah.") return null.
