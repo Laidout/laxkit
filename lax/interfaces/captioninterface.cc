@@ -1669,9 +1669,20 @@ CaptionInterface::CaptionInterface(int nid,Displayer *ndp) : anInterface(nid,ndp
 CaptionInterface::~CaptionInterface()
 {
 	DBG cerr <<"----in CaptionInterface destructor"<<endl;
-	deletedata();
 
-	if (extrahover) { delete extrahover; extrahover=nullptr; }
+	if (data) {
+		if (data->lines.n==1 && data->lines.e[0][0]=='\0') {
+			 //is a blank object, need to remove it
+			data->dec_count();
+			data = nullptr;
+		} else {
+			data->dec_count();
+			data = nullptr;
+		}
+	}
+	if (coc) { delete coc; coc = nullptr; }
+
+	if (extrahover) { delete extrahover; extrahover = nullptr; }
 	if (sc) sc->dec_count();
 	delete[] defaultfamily;
 	delete[] defaultstyle;
