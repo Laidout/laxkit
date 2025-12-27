@@ -326,6 +326,85 @@ const char *ImageData::Filename()
 	return image->filename;
 }
 
+/*! For creation of a preview file.
+ * If npreview_file exists, then use that one, regardless of size.
+ * If not, then create a default preview based on max_px_size.
+ * If max_px_size <= 0, then use a default max size.
+ * 
+ * Actual image size is aquired from ImageLoader::Ping().
+ */
+int ImageData::LoadPreviewed(const char *fname, int index, int max_px_size, const char *npreview_file, bool fit, const char *context)
+{
+	makestr(filename, fname);
+	makestr(previewfile, npreview_file);
+	if (image) { image->dec_count(); image = nullptr; }
+	if (previewimage) { previewimage->dec_count(); previewimage = nullptr; }
+
+	int w, h;
+	long filesize;
+	int num_subfiles = 0;
+	int err = ImageLoader::Ping(filename, &w, &h, &filesize, &num_subfiles);
+	if (index >= num_subfiles) index = num_subfiles-1;
+	if (index < 0) index = 0;
+	this->index = index;
+	
+	if (err == 0) { // successful ping
+		if (fit && maxx > minx && maxy > miny) {
+			// if you want to fit the new image within the bounds of the old image
+			// and old bounds were valid and nonzero
+			DoubleBBox box;
+			box.setbounds(this);
+			minx = 0; miny = 0;
+			maxx = w;
+			maxy = h;
+			AlignAndFit(nullptr, &box, 50., 50.);
+
+		} else {
+			// set new bounds
+			minx = 0; miny = 0;
+			maxx = w;
+			maxy = h;
+		}
+
+	} else {
+		DBG cerr <<"** warning ImageData couldn't load "<<(fname?fname:"(unknown)")<<endl;
+		if (maxx-minx <= 0 || maxy-miny <= 0)
+			minx = miny = maxx = maxy = 0;
+	}
+
+	if (err == 0) {
+		if (isblank(previewfile)) {
+			// find good name for preview file
+			char **possible = ImageLoader::GetPreviewFileList(filename, context, index);
+			if (possible) {
+				int i = 0;
+				while (possible[i]) {
+					if (file_exists(possible[i], 1, nullptr)) {
+						makestr(previewfile, possible[i]);
+						break;
+					}
+					i++;
+				}		
+
+				if (!isblank(previewfile)) {
+					previewimage = ImageLoader::LoadImage(previewfile);
+				} else {
+					if (possible[0]) makestr(previewfile, possible[0]);
+				}
+
+				deletestrs(possible, 0);
+			}
+		}
+
+		if (!previewimage && !isblank(previewfile)) {
+			// we need to create a new one
+			GeneratePreviewFile(filename, previewfile, "png", 0,0, 1, nullptr, &previewimage, index);
+		}
+	}
+
+	return 1;
+}
+
 //! Set the image to the image in fname, if possible. Sets filename regardless.
 /*! Return 0 for success, other for error.
  *

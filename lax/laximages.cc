@@ -27,6 +27,7 @@
 
 #include <lax/laximages.h>
 #include <lax/strmanip.h>
+#include <lax/fileutils.h>
 #include <lax/vectors.h>
 #include <lax/transformmath.h>
 #include <lax/singletonkeeper.h>
@@ -331,6 +332,168 @@ DefaultImageTypeFunc default_image_type = NULL;
 //---------------------- preview creation
 
 
+//! Create a preview file name based on a name template and the absolute path in file.
+/*! \ingroup misc
+ *
+ * doc_path should be a full, simplified, absolute path, or nullptr.
+ * 
+ * You must have one of these in the final part of a path: 
+ * - '%' is replaced with basename without extension: 'file.jpg' -> 'file'
+ * - '*' is replaced with filename: 'file.jpg' -> 'file.jpg'
+ * - '@' is replaced with 32 character freedesktop md5 hash
+ * 
+ * If index > 0, say index == 3, then:
+ * - '@' gets a hash based on file path + '[3]'. Final file name will be the hash + ".png"
+ * - '%' gets '.3' appended before the extension
+ * - '*' gets '.3' appended before the extension
+ * 
+ * The initial character can be:
+ * - '^' at the start of the path will be replaced with doc_path.
+ * - '~' is expanded to home directory
+ * - '&' is expanded to xdg_cache_home()
+ * 
+ * The template can be an absolute path, or relative.
+ * If not in same dir as the image, then it is ok to have a relative path from there,
+ * such as "../thumbs/%-s.png". If the template is "/tmp/thumbs/%-s.png", then that
+ * absolute path is used. A template like "*.jpg" uses the whole filename, so
+ * file.tiff would become "file.tiff.jpg". 
+ *
+ * There should be only one of '%', '@' or '*'. Any such characters after the first one
+ * will be replaced by a '-' character. If there are none of those characters, then assume
+ * nametemplate is just a prefix to tack onto file, thus "path/to/file.jpg" with a template of
+ * "blah." will return "path/to/blah.file.png". In this case if there are further '/' chars 
+ * in nametemplate, they are converted to '-' chars, so just be sure to include a proper wildcard.
+ *
+ * Note that this does not check the filesystem for existence or not of the generated preview
+ * name. Those duties lie elsewhere.
+ *
+ * WARNING: If file is not an absolute path and you use '@', the path will NOT correspond to a valid
+ * freedesktop thumbnail file.
+ *
+ * If you use '^' with a blank doc_path, this is an error, and nullptr is returned
+ */
+char *PreviewFileName(const char *file, const char *nametemplate, const char *doc_path, int index)
+{
+	if (!file || !nametemplate) return nullptr;
+	
+	const char *bname_orig = lax_basename(file);
+	if (!bname_orig) return nullptr;
+
+	char *bname = nullptr;
+
+	// fix up nametemplate
+	char *tmplate = new char[strlen(nametemplate)+5];
+	strcpy(tmplate, nametemplate);
+	
+	// set bname to the thing to be placed in the template wildcard
+	// and replace the wildcard in tmplate with "%s" to be used in 
+	// later sprintf
+	char *tmp = nullptr;
+	tmp = strchr(tmplate,'%');
+	if (!tmp) tmp = strchr(tmplate,'*');
+	if (!tmp) tmp = strchr(tmplate,'@');
+	if (tmp) { // found a wildcard	
+		char fwildcard = *tmp; // the wildcard
+		int pos = tmp - tmplate;
+		replace(tmplate, "%s", tmp-tmplate, tmp-tmplate, nullptr); // tmplate different afterwards!!
+		char *tmp2 = tmplate + pos + 1;
+
+		// remove extraneous file wildcard chars
+		do {
+			tmp = strchr(tmp2,'%');
+			if (!tmp) tmp = strchr(tmp2,'*');
+			if (!tmp) tmp = strchr(tmp2,'@');
+			if (tmp) {
+				*tmp = '-';
+				tmp2 = tmp + 1;
+			}
+		} while (tmp);
+		
+		if (fwildcard == '@') {
+			// bname gets something like "83ab3492fa02f3bcd23829eaf2837243.png"
+			char *str = file_to_uri(file);
+			if (!str) str = newstr(file); // was relative path. Beware!!
+			if (index > 0) {
+				char ss[20];
+				sprintf(ss, "[%d]", index);
+				appendstr(str, ss);
+			}
+			char *h;
+			unsigned char md[17];
+			bname = new char[40];
+			
+			freedesktop_md5((unsigned char *)str, strlen(str), md);
+
+			h = bname;
+			for (int c2 = 0; c2 < 16; c2++) {
+				sprintf(h, "%02x", (int)md[c2]);
+				h += 2;
+			}
+			strcat(bname,".png");
+			delete[] str;
+
+		} else if (fwildcard == '%') { //chop suffix in bname
+			bname = newstr(bname_orig);
+			chop_extension(bname);
+			if (index > 0) {
+				char str[20];
+				sprintf(str, ".%d", index);
+				appendstr(bname, str);
+			}
+			
+		} else { //'*'
+			bname = newstr(bname_orig);
+			if (index > 0) {
+				char str[20];
+				sprintf(str, ".%d", index);
+				appendstr(bname, str);
+			}
+		}
+
+	} else { //no "%*@" found
+		bname = newstr(bname_orig);
+		if (index > 0) {
+			char str[20];
+			sprintf(str, ".%d", index);
+			appendstr(bname, str);
+		}
+	}
+
+	// expand any initial directory	
+	if (tmplate[1] == '/' && tmplate[0] != '/') {
+		if (tmplate[0] == '~') {
+			expand_home_inplace(tmplate);
+
+		} else if (tmplate[0] == '&') {
+			replace(tmplate, xdg_cache_home(), 0,0, nullptr);
+
+		} else if (tmplate[0] == '^') {
+			if (isblank(doc_path)) {
+				delete[] bname;
+				delete[] tmplate;
+				return nullptr;
+			}
+			replace(tmplate, doc_path, 0,0, nullptr);
+		}
+	}
+
+	char *previewname = new char[strlen(bname) + strlen(tmplate) + 1];
+	sprintf(previewname, tmplate, bname);
+
+	if (previewname[0] != '/') {
+		char *path = lax_dirname(file, 1);
+		if (path) {
+			prependstr(previewname, path);
+			delete[] path;
+		}
+	}
+	
+	delete[] bname;
+	delete[] tmplate;
+	simplify_path(previewname, 1);
+	return previewname;
+}
+
 /*! Load in original_file, and Save a resized version of image to to_preview_file.
  * If fit, maintain aspect ratio to found bounds that fit within a box width x height.
  * Return 0 for success or nonzero for error and not saved.
@@ -339,7 +502,8 @@ int GeneratePreviewFile(const char *original_file,
 						   const char *to_preview_file, 
 						   const char *format, 
 						   int width, int height, int fit,
-						   LaxImage **main_ret, LaxImage **preview_ret)
+						   LaxImage **main_ret, LaxImage **preview_ret,
+						   int index)
 {
 	LaxImage *image = ImageLoader::LoadImage(original_file,
 								 nullptr, 0,0, nullptr,
@@ -347,7 +511,7 @@ int GeneratePreviewFile(const char *original_file,
 								 LAX_IMAGE_DEFAULT, //!< LaxImageTypes, for starters. 0 and LAX_IMAGE_DEFAULT both mean use default. Non zero is return NULL for can't.
 								 NULL,
 								 false, //!< If possible, do not actually load the pixel data, just things like width and height
-								 0);
+								 index);
 	if (!image) return 1;
 	int status = GeneratePreviewFile(image, to_preview_file, format, width, height, fit);
 	if (main_ret) *main_ret = image;
@@ -605,11 +769,13 @@ int ImageLoader::SetLoaderPriority(int where)
 }
 
 
-char **(*ImageLoader::GetPreviewFileList_func)(const char *file, const char *context) = nullptr;
+/*! Free returned list with deletestrs(ret, 0).
+ */
+char **(*ImageLoader::GetPreviewFileList_func)(const char *file, const char *context, int index) = nullptr;
 
-char **ImageLoader::GetPreviewFileList(const char *file, const char *context)
+char **ImageLoader::GetPreviewFileList(const char *file, const char *context, int index)
 {
-	if (GetPreviewFileList_func != nullptr) return GetPreviewFileList_func(file, context);
+	if (GetPreviewFileList_func != nullptr) return GetPreviewFileList_func(file, context, index);
 
 	if (isblank(file)) return nullptr;
 
@@ -626,9 +792,9 @@ char **ImageLoader::GetPreviewFileList(const char *file, const char *context)
 
 /*! Try to load file into the default image format.
  */
-LaxImage *ImageLoader::LoadImage(const char *file)
+LaxImage *ImageLoader::LoadImage(const char *file, int index)
 {
-	return LoadImage(file, NULL,0,0,NULL, 0, LAX_IMAGE_DEFAULT, NULL, true, 0);
+	return LoadImage(file, nullptr,0,0,nullptr, 0, LAX_IMAGE_DEFAULT, nullptr, true, index);
 }
 
 LaxImage *ImageLoader::LoadImage(const char *file,
@@ -678,6 +844,8 @@ LaxImage *ImageLoader::LoadImage(const char *file,
  */
 int ImageLoader::Ping(const char *file, int *width, int *height, long *filesize, int *subfiles)
 {
+	if (isblank(file)) return 3;
+
 	ImageLoader *loader = ImageLoader::GetLoaderByIndex(0);
 	if (!loader) {
 		DBG cerr <<"ImageLoader::Ping() no loaders!"<<endl;

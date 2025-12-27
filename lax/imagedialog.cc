@@ -246,7 +246,7 @@ int ImageDialog::init()
  */
 char **ImageDialog::GetPossiblePreviewFiles()
 {
-	return ImageLoader::GetPreviewFileList(imageinfo->filename, nullptr);
+	return ImageLoader::GetPreviewFileList(imageinfo->filename, nullptr, imageinfo->index);
 
 	// if (isblank(imageinfo->filename)) return nullptr;
 

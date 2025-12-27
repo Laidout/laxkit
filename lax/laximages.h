@@ -103,10 +103,12 @@ extern DefaultImageTypeFunc default_image_type;
 
 //---------------- File or Image preview creation
 
+char *PreviewFileName(const char *file, const char *nametemplate, const char *doc_path, int index);
 LaxImage *GeneratePreview(LaxImage *image, int width, int height, int fit);
-int GeneratePreviewFile(LaxImage *image, const char *to_preview_file, const char *format, int width, int height, int fit, LaxImage **preview_ret=nullptr);
+int GeneratePreviewFile(LaxImage *image, const char *to_preview_file, const char *format, int width, int height, int fit,
+							LaxImage **preview_ret = nullptr);
 int GeneratePreviewFile(const char *original_file, const char *to_preview_file, const char *format, int width, int height, int fit,
-						   LaxImage **main_ret=nullptr, LaxImage **preview_ret=nullptr);
+						   LaxImage **main_ret = nullptr, LaxImage **preview_ret = nullptr, int index = 0);
 
 
 
@@ -137,8 +139,8 @@ class ImageLoader : public anObject
 	static int RemoveLoader(int which);
 	static int FlushLoaders();
 
-	static char **(*GetPreviewFileList_func)(const char *file, const char *context);
-	static char **GetPreviewFileList(const char *file, const char *context);
+	static char **(*GetPreviewFileList_func)(const char *file, const char *context, int index);
+	static char **GetPreviewFileList(const char *file, const char *context, int index);
 
 	static LaxImage *LoadImage(const char *file,
                                const char *previewfile, int maxw,int maxh, LaxImage **preview_ret,
@@ -147,7 +149,7 @@ class ImageLoader : public anObject
                                int *actual_format,
                                bool ping_only,
                                int index);
-	static LaxImage *LoadImage(const char *file);
+	static LaxImage *LoadImage(const char *file, int index = 0);
 	static int Ping(const char *file, int *width, int *height, long *filesize, int *subfiles); //return 0 for success. subfiles is number of "frames" in file
 	static LaxImage *NewImage(int width, int height, int format = LAX_IMAGE_DEFAULT);
 	static LaxImage *NewImageFromBuffer(unsigned char *data, int width, int height, int stride, int format = LAX_IMAGE_DEFAULT);

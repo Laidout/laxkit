@@ -54,6 +54,7 @@ class ImageData : public Laxkit::ImageInfo, virtual public SomeData
 	virtual void SetDescription(const char *ndesc);
 	virtual int UsePreview(const char *npreview, int maxpx=0, int maxpy=0);
 	virtual int LoadImage(const char *fname, const char *npreview = nullptr, int maxpx = 0, int maxpy = 0, bool fit = false, int index = 0);
+	virtual int LoadPreviewed(const char *fname, int index, int maxpx, const char *npreview_file, bool fit, const char *context = nullptr);
 	virtual int ReloadImage();
 	virtual const char *Filename();
 	
