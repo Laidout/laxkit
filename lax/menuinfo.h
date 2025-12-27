@@ -29,9 +29,6 @@
 #include <lax/laximages.h>
 #include <lax/refptrstack.h>
 
-#ifndef nullptr
-#define nullptr (0)
-#endif
 
  //-----sorting styles
 enum MenuSortStyles {
