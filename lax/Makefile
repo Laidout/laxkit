@@ -338,7 +338,7 @@ depends:
 dist-clean: clean
 	rm -f install.log
 
-.PHONY: clean docs $(dirs) hidegarbage unhidegarbage
+.PHONY: clean docs $(dirs) hidegarbage unhidegarbage alldirs
 clean:
 	rm -f *.o *.a *.so
 	for NAME in $(dirs); do $(MAKE) -C $$NAME clean; done
