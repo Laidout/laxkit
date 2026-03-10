@@ -201,7 +201,7 @@ void DisplayerCairo::BackBuffer(int on)
 //! This sets up internals for drawing onto buffer, and wraps window if the min/max seem to not be set.
 int DisplayerCairo::StartDrawing(aDrawable *buffer)
 {
-	DBG cerr<<"----DisplayerCairo Start Drawing"<<endl;
+	// DBG cerr<<"----DisplayerCairo Start Drawing"<<endl;
 
 	MakeCurrent(buffer);
 	Updates(0);
@@ -1303,7 +1303,7 @@ int DisplayerCairo::font(const char *family,const char *style,double pixelsize)
 
 int DisplayerCairo::fontsize(double size)
 {
-	DBG cerr <<"---fontsize: "<<size<<endl;
+	// DBG cerr <<"---fontsize: "<<size<<endl;
 
 	int tempcr=0;
 	if (!cr) {
