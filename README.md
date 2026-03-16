@@ -1,9 +1,13 @@
 
 THE LAXKIT
 ---------------
+
+THIS REPO HAS MOVED!!
+The current repo can be found at: https://codeberg.org/Laidout/laxkit
+
+
 Version 0.0.8.1  
 Released under the LGPL  
-http://github.com/Laidout/laxkit  
 
 
 WHAT IS IT
